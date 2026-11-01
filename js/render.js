@@ -389,7 +389,7 @@ function renderEnding() {
       <span>수색 ${st.scavs}회</span><span>살상 ${st.kills}</span><span>도둑질 ${st.stolen}</span>
       <span>도움 ${st.helped}</span><span>습격 ${st.raids}회 (격퇴 ${st.repelled})</span><span>사망 ${st.deaths}</span>
     </div>
-    <button class="btn big primary" onclick="localStorage.removeItem(SAVE_KEY);G.newGame()">새 게임</button>
+    <button class="btn big primary" onclick="G.restart()">새 게임</button>
     <button class="btn big" onclick="S=null;render()">타이틀로</button>
   </div>`;
 }
@@ -410,6 +410,7 @@ function renderModal() {
     case 'trade': h = modalTrade(m); break;
     case 'report': h = modalReport(m); break;
     case 'event': h = modalEvent(m); break;
+    case 'confirm': h = `<div class="mbox"><p class="mtext">${esc(m.text)}</p><div class="mbtns"><button class="btn" onclick="G.closeModal()">취소</button><button class="btn primary" onclick="G.confirmYes()">확인</button></div></div>`; break;
     case 'eventResult': h = `<div class="mbox"><h2>${m.title}</h2><p class="mtext">${esc(m.text)}</p><div class="mbtns"><button class="btn primary" onclick="G.closeModal()">확인</button></div></div>`; break;
   }
   box.innerHTML = h;

@@ -455,10 +455,7 @@ G.scTrade = () => {
   pushModal({ type: 'trade', src: 'pack', stockKey: 'trader', title: '드래곤로드 암시장', markup: 1.3, offer: {}, ask: {} });
   render();
 };
-G.scLeave = () => {
-  if (!confirm('지금 은신처로 돌아갑니까?')) return;
-  endScav('leave');
-};
+G.scLeave = () => askConfirm('지금 은신처로 돌아갑니까?', 'leave');
 
 function endScav(reason) {
   const sc = S.scav;
@@ -1050,6 +1047,15 @@ G.newGame = newGame;
 G.load = loadGame;
 G.save = () => saveGame(false);
 G.help = () => { if (!S) { S = { modals: [], phase: 'title' }; } pushModal({ type: 'help' }); render(); };
-G.toTitle = () => { if (S && S.phase === 'day' && !confirm('타이틀로 돌아갑니까? (자동 저장된 아침 기록은 남아 있습니다)')) return; S = null; render(); };
+G.toTitle = () => askConfirm('타이틀로 돌아갑니까? (자동 저장된 아침 기록은 남아 있습니다)', 'title');
+
+/* 샌드박스 환경에서는 window.confirm 이 막히므로 게임 내 확인창을 사용 */
+const CONFIRM_ACTIONS = {
+  leave: () => endScav('leave'),
+  title: () => { S = null; render(); },
+};
+function askConfirm(text, action) { S.modals.unshift({ type: 'confirm', text, action }); render(); }
+G.confirmYes = () => { const m = S.modals.shift(); render(); CONFIRM_ACTIONS[m.action](); };
+G.restart = () => { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ } newGame(); };
 
 window.addEventListener('DOMContentLoaded', () => render());
