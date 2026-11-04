@@ -13,7 +13,8 @@
     "evaluate": "tsx scripts/evaluate.ts",
     "bank": "tsx scripts/build-bank.ts",
     "verify": "npm run typecheck && npm run test && npm run build",
-    "e2e": "tsx scripts/e2e.ts"
+    "e2e": "tsx scripts/e2e.ts",
+    "explore": "tsx scripts/explore-family.ts"
   },
   "repository": {
     "type": "git",

@@ -1,0 +1,977 @@
+{
+  "generatedAt": "2026-11-04T16:20:04.859Z",
+  "n": 6,
+  "elapsedSec": 38,
+  "ranking": [
+    {
+      "id": "fam-d3-cheb-no2x2",
+      "fitness": 0.5748,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "fam-d3-cheb-none",
+      "fitness": 0.556,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "fam-d2-cheb-no2x2",
+      "fitness": 0.5329,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "echo (기준)",
+      "fitness": 0.5166,
+      "original": true
+    },
+    {
+      "id": "fam-d2-cheb-notouch",
+      "fitness": 0.5166,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "fam-d2-cheb-none",
+      "fitness": 0.5089,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "fam-d3-cheb-notouch",
+      "fitness": 0.5081,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "fam-d1-cheb-notouch",
+      "fitness": 0.4876,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "fam-d3-manh-notouch",
+      "fitness": 0.4873,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "fam-d2-manh-notouch",
+      "fitness": 0.4862,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "fam-d3-manh-no2x2",
+      "fitness": 0.4779,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "fam-d3-manh-none",
+      "fitness": 0.4716,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "fam-d1-cheb-none",
+      "fitness": 0.4078,
+      "original": false,
+      "knownAs": "지뢰찾기류"
+    },
+    {
+      "id": "fam-d1-cheb-no2x2",
+      "fitness": 0.3932,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "fam-d1-manh-notouch",
+      "fitness": 0.3344,
+      "original": false,
+      "knownAs": "상하좌우 개수 단서류"
+    },
+    {
+      "id": "fam-d2-manh-no2x2",
+      "fitness": 0.3149,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "fam-d2-manh-none",
+      "fitness": 0.2534,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "fam-d1-manh-none",
+      "fitness": 0.1299,
+      "original": false,
+      "knownAs": "상하좌우 개수 단서류"
+    },
+    {
+      "id": "fam-d1-manh-no2x2",
+      "fitness": 0.1255,
+      "original": false,
+      "knownAs": "상하좌우 개수 단서류"
+    }
+  ],
+  "details": {
+    "fam-d3-cheb-no2x2": {
+      "rules": "fam-d3-cheb-no2x2",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 1,
+          "clueDensity": 0.306,
+          "techniqueMix": 0,
+          "avgScore": 10.5,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 16,
+          "clueDensity": 0.272,
+          "techniqueMix": 0.394,
+          "avgScore": 35,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 155,
+          "clueDensity": 0.296,
+          "techniqueMix": 0.353,
+          "avgScore": 45.8,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 162,
+          "clueDensity": 0.31,
+          "techniqueMix": 0.519,
+          "avgScore": 157.7,
+          "failures": 0
+        }
+      },
+      "depthSpread": 147.2,
+      "monotonic": true,
+      "fitness": 0.5748
+    },
+    "fam-d3-cheb-none": {
+      "rules": "fam-d3-cheb-none",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 0,
+          "clueDensity": 0.287,
+          "techniqueMix": 0,
+          "avgScore": 9.3,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 4,
+          "clueDensity": 0.279,
+          "techniqueMix": 0.357,
+          "avgScore": 32.3,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 77,
+          "clueDensity": 0.296,
+          "techniqueMix": 0.29,
+          "avgScore": 36.2,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 40,
+          "clueDensity": 0.32,
+          "techniqueMix": 0.51,
+          "avgScore": 140.3,
+          "failures": 0
+        }
+      },
+      "depthSpread": 131,
+      "monotonic": true,
+      "fitness": 0.556
+    },
+    "fam-d2-cheb-no2x2": {
+      "rules": "fam-d2-cheb-no2x2",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 1,
+          "clueDensity": 0.324,
+          "techniqueMix": 0,
+          "avgScore": 11.3,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 12,
+          "clueDensity": 0.296,
+          "techniqueMix": 0.248,
+          "avgScore": 29.2,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 301,
+          "clueDensity": 0.323,
+          "techniqueMix": 0.409,
+          "avgScore": 53.5,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 169,
+          "clueDensity": 0.294,
+          "techniqueMix": 0.429,
+          "avgScore": 138.5,
+          "failures": 0
+        }
+      },
+      "depthSpread": 127.2,
+      "monotonic": true,
+      "fitness": 0.5329
+    },
+    "echo (기준)": {
+      "rules": "echo",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 6,
+          "clueDensity": 0.319,
+          "techniqueMix": 0,
+          "avgScore": 15.8,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 17,
+          "clueDensity": 0.241,
+          "techniqueMix": 0.243,
+          "avgScore": 43.2,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 0.833,
+          "genMs": 603,
+          "clueDensity": 0.218,
+          "techniqueMix": 0.249,
+          "avgScore": 53.3,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 266,
+          "clueDensity": 0.26,
+          "techniqueMix": 0.42,
+          "avgScore": 189.7,
+          "failures": 0
+        }
+      },
+      "depthSpread": 173.9,
+      "monotonic": true,
+      "fitness": 0.5166
+    },
+    "fam-d2-cheb-notouch": {
+      "rules": "fam-d2-cheb-notouch",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 2,
+          "clueDensity": 0.319,
+          "techniqueMix": 0,
+          "avgScore": 15.8,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 14,
+          "clueDensity": 0.241,
+          "techniqueMix": 0.243,
+          "avgScore": 43.2,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 0.833,
+          "genMs": 613,
+          "clueDensity": 0.218,
+          "techniqueMix": 0.249,
+          "avgScore": 53.3,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 261,
+          "clueDensity": 0.26,
+          "techniqueMix": 0.42,
+          "avgScore": 189.7,
+          "failures": 0
+        }
+      },
+      "depthSpread": 173.9,
+      "monotonic": true,
+      "fitness": 0.5166
+    },
+    "fam-d2-cheb-none": {
+      "rules": "fam-d2-cheb-none",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 1,
+          "clueDensity": 0.329,
+          "techniqueMix": 0,
+          "avgScore": 10.2,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 4,
+          "clueDensity": 0.323,
+          "techniqueMix": 0.251,
+          "avgScore": 27.8,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 77,
+          "clueDensity": 0.32,
+          "techniqueMix": 0.266,
+          "avgScore": 40.7,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 48,
+          "clueDensity": 0.302,
+          "techniqueMix": 0.47,
+          "avgScore": 143,
+          "failures": 0
+        }
+      },
+      "depthSpread": 132.8,
+      "monotonic": true,
+      "fitness": 0.5089
+    },
+    "fam-d3-cheb-notouch": {
+      "rules": "fam-d3-cheb-notouch",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 2,
+          "clueDensity": 0.319,
+          "techniqueMix": 0,
+          "avgScore": 14.2,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 24,
+          "clueDensity": 0.279,
+          "techniqueMix": 0.252,
+          "avgScore": 43,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 0.833,
+          "genMs": 925,
+          "clueDensity": 0.235,
+          "techniqueMix": 0.304,
+          "avgScore": 79.8,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 262,
+          "clueDensity": 0.286,
+          "techniqueMix": 0.389,
+          "avgScore": 147.7,
+          "failures": 0
+        }
+      },
+      "depthSpread": 133.5,
+      "monotonic": true,
+      "fitness": 0.5081
+    },
+    "fam-d1-cheb-notouch": {
+      "rules": "fam-d1-cheb-notouch",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 2,
+          "clueDensity": 0.384,
+          "techniqueMix": 0,
+          "avgScore": 16.2,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 11,
+          "clueDensity": 0.262,
+          "techniqueMix": 0.223,
+          "avgScore": 44.8,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 67,
+          "clueDensity": 0.269,
+          "techniqueMix": 0.267,
+          "avgScore": 59.8,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 142,
+          "clueDensity": 0.294,
+          "techniqueMix": 0.305,
+          "avgScore": 117.7,
+          "failures": 0
+        }
+      },
+      "depthSpread": 101.5,
+      "monotonic": true,
+      "fitness": 0.4876
+    },
+    "fam-d3-manh-notouch": {
+      "rules": "fam-d3-manh-notouch",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 2,
+          "clueDensity": 0.241,
+          "techniqueMix": 0,
+          "avgScore": 16.3,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 17,
+          "clueDensity": 0.245,
+          "techniqueMix": 0.137,
+          "avgScore": 33.2,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 229,
+          "clueDensity": 0.221,
+          "techniqueMix": 0.086,
+          "avgScore": 45.3,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 188,
+          "clueDensity": 0.232,
+          "techniqueMix": 0.324,
+          "avgScore": 178.3,
+          "failures": 0
+        }
+      },
+      "depthSpread": 162,
+      "monotonic": true,
+      "fitness": 0.4873
+    },
+    "fam-d2-manh-notouch": {
+      "rules": "fam-d2-manh-notouch",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 2,
+          "clueDensity": 0.231,
+          "techniqueMix": 0,
+          "avgScore": 19.8,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 20,
+          "clueDensity": 0.228,
+          "techniqueMix": 0.131,
+          "avgScore": 39.5,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 86,
+          "clueDensity": 0.204,
+          "techniqueMix": 0.112,
+          "avgScore": 51,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 82,
+          "clueDensity": 0.208,
+          "techniqueMix": 0.243,
+          "avgScore": 147.2,
+          "failures": 0
+        }
+      },
+      "depthSpread": 127.4,
+      "monotonic": true,
+      "fitness": 0.4862
+    },
+    "fam-d3-manh-no2x2": {
+      "rules": "fam-d3-manh-no2x2",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 1,
+          "clueDensity": 0.338,
+          "techniqueMix": 0,
+          "avgScore": 12.3,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 12,
+          "clueDensity": 0.316,
+          "techniqueMix": 0.256,
+          "avgScore": 34.3,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 90,
+          "clueDensity": 0.33,
+          "techniqueMix": 0.254,
+          "avgScore": 44,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 63,
+          "clueDensity": 0.331,
+          "techniqueMix": 0.338,
+          "avgScore": 101.5,
+          "failures": 0
+        }
+      },
+      "depthSpread": 89.2,
+      "monotonic": true,
+      "fitness": 0.4779
+    },
+    "fam-d3-manh-none": {
+      "rules": "fam-d3-manh-none",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 0,
+          "clueDensity": 0.347,
+          "techniqueMix": 0,
+          "avgScore": 11.5,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 3,
+          "clueDensity": 0.344,
+          "techniqueMix": 0.232,
+          "avgScore": 30.5,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 13,
+          "clueDensity": 0.347,
+          "techniqueMix": 0.28,
+          "avgScore": 47,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 29,
+          "clueDensity": 0.344,
+          "techniqueMix": 0.37,
+          "avgScore": 112,
+          "failures": 0
+        }
+      },
+      "depthSpread": 100.5,
+      "monotonic": true,
+      "fitness": 0.4716
+    },
+    "fam-d1-cheb-none": {
+      "rules": "fam-d1-cheb-none",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 2,
+          "clueDensity": 0.352,
+          "techniqueMix": 0,
+          "avgScore": 11.7,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 4,
+          "clueDensity": 0.34,
+          "techniqueMix": 0.211,
+          "avgScore": 29.5,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 0.667,
+          "genMs": 34,
+          "clueDensity": 0.333,
+          "techniqueMix": 0.269,
+          "avgScore": 39.8,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 0.833,
+          "genMs": 55,
+          "clueDensity": 0.328,
+          "techniqueMix": 0.337,
+          "avgScore": 104,
+          "failures": 0
+        }
+      },
+      "depthSpread": 92.3,
+      "monotonic": true,
+      "fitness": 0.4078
+    },
+    "fam-d1-cheb-no2x2": {
+      "rules": "fam-d1-cheb-no2x2",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 2,
+          "clueDensity": 0.319,
+          "techniqueMix": 0,
+          "avgScore": 12,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 8,
+          "clueDensity": 0.33,
+          "techniqueMix": 0.188,
+          "avgScore": 27.7,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 0.333,
+          "genMs": 191,
+          "clueDensity": 0.35,
+          "techniqueMix": 0.283,
+          "avgScore": 46,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 151,
+          "clueDensity": 0.294,
+          "techniqueMix": 0.318,
+          "avgScore": 91.2,
+          "failures": 0
+        }
+      },
+      "depthSpread": 79.2,
+      "monotonic": true,
+      "fitness": 0.3932
+    },
+    "fam-d1-manh-notouch": {
+      "rules": "fam-d1-manh-notouch",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 2,
+          "clueDensity": 0.287,
+          "techniqueMix": 0,
+          "avgScore": 20,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 0.5,
+          "genMs": 58,
+          "clueDensity": 0.276,
+          "techniqueMix": 0.037,
+          "avgScore": 30,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 51,
+          "clueDensity": 0.259,
+          "techniqueMix": 0.047,
+          "avgScore": 41.3,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 0.833,
+          "genMs": 154,
+          "clueDensity": 0.242,
+          "techniqueMix": 0.103,
+          "avgScore": 77,
+          "failures": 0
+        }
+      },
+      "depthSpread": 57,
+      "monotonic": true,
+      "fitness": 0.3344
+    },
+    "fam-d2-manh-no2x2": {
+      "rules": "fam-d2-manh-no2x2",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 1,
+          "clueDensity": 0.37,
+          "techniqueMix": 0,
+          "avgScore": 13,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 8,
+          "clueDensity": 0.34,
+          "techniqueMix": 0.204,
+          "avgScore": 29.8,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 0.5,
+          "genMs": 83,
+          "clueDensity": 0.34,
+          "techniqueMix": 0.212,
+          "avgScore": 36.8,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 0.333,
+          "genMs": 245,
+          "clueDensity": 0.331,
+          "techniqueMix": 0.3,
+          "avgScore": 88.7,
+          "failures": 0
+        }
+      },
+      "depthSpread": 75.7,
+      "monotonic": true,
+      "fitness": 0.3149
+    },
+    "fam-d2-manh-none": {
+      "rules": "fam-d2-manh-none",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 1,
+          "clueDensity": 0.38,
+          "techniqueMix": 0,
+          "avgScore": 12.5,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 3,
+          "clueDensity": 0.357,
+          "techniqueMix": 0.168,
+          "avgScore": 26.7,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 0.333,
+          "genMs": 23,
+          "clueDensity": 0.361,
+          "techniqueMix": 0.171,
+          "avgScore": 28.7,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 0.167,
+          "genMs": 43,
+          "clueDensity": 0.352,
+          "techniqueMix": 0.205,
+          "avgScore": 47,
+          "failures": 0
+        }
+      },
+      "depthSpread": 34.5,
+      "monotonic": true,
+      "fitness": 0.2534
+    },
+    "fam-d1-manh-none": {
+      "rules": "fam-d1-manh-none",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 2,
+          "clueDensity": 0.426,
+          "techniqueMix": 0,
+          "avgScore": 15,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 0.667,
+          "genMs": 5,
+          "clueDensity": 0.429,
+          "techniqueMix": 0.064,
+          "avgScore": 24.3,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 0,
+          "genMs": 11,
+          "clueDensity": 0.429,
+          "techniqueMix": 0.064,
+          "avgScore": 24.3,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 0,
+          "genMs": 18,
+          "clueDensity": 0.414,
+          "techniqueMix": 0.039,
+          "avgScore": 29,
+          "failures": 0
+        }
+      },
+      "depthSpread": 14,
+      "monotonic": true,
+      "fitness": 0.1299
+    },
+    "fam-d1-manh-no2x2": {
+      "rules": "fam-d1-manh-no2x2",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 1,
+          "clueDensity": 0.421,
+          "techniqueMix": 0,
+          "avgScore": 15.2,
+          "failures": 0
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 0.5,
+          "genMs": 24,
+          "clueDensity": 0.391,
+          "techniqueMix": 0.088,
+          "avgScore": 25.8,
+          "failures": 0
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 0,
+          "genMs": 34,
+          "clueDensity": 0.391,
+          "techniqueMix": 0.088,
+          "avgScore": 25.8,
+          "failures": 0
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 0,
+          "genMs": 59,
+          "clueDensity": 0.378,
+          "techniqueMix": 0.038,
+          "avgScore": 29.3,
+          "failures": 0
+        }
+      },
+      "depthSpread": 14.1,
+      "monotonic": true,
+      "fitness": 0.1255
+    }
+  }
+}
