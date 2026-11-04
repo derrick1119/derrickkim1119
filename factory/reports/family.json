@@ -1,118 +1,156 @@
 {
-  "generatedAt": "2026-11-04T16:20:04.859Z",
+  "generatedAt": "2026-11-04T18:24:16.543Z",
   "n": 6,
-  "elapsedSec": 38,
+  "elapsedSec": 30,
   "ranking": [
     {
       "id": "fam-d3-cheb-no2x2",
-      "fitness": 0.5748,
-      "original": true,
-      "knownAs": null
-    },
-    {
-      "id": "fam-d3-cheb-none",
-      "fitness": 0.556,
-      "original": true,
-      "knownAs": null
-    },
-    {
-      "id": "fam-d2-cheb-no2x2",
-      "fitness": 0.5329,
-      "original": true,
-      "knownAs": null
-    },
-    {
-      "id": "echo (기준)",
-      "fitness": 0.5166,
-      "original": true
-    },
-    {
-      "id": "fam-d2-cheb-notouch",
-      "fitness": 0.5166,
-      "original": true,
-      "knownAs": null
-    },
-    {
-      "id": "fam-d2-cheb-none",
-      "fitness": 0.5089,
-      "original": true,
-      "knownAs": null
-    },
-    {
-      "id": "fam-d3-cheb-notouch",
-      "fitness": 0.5081,
+      "fitness": 0.4883,
+      "fitnessV1": 0.5748,
+      "scanLoad": 11.08,
       "original": true,
       "knownAs": null
     },
     {
       "id": "fam-d1-cheb-notouch",
       "fitness": 0.4876,
+      "fitnessV1": 0.4876,
+      "scanLoad": 6.38,
       "original": true,
       "knownAs": null
     },
     {
       "id": "fam-d3-manh-notouch",
       "fitness": 0.4873,
+      "fitnessV1": 0.4873,
+      "scanLoad": 7.33,
       "original": true,
       "knownAs": null
     },
     {
       "id": "fam-d2-manh-notouch",
       "fitness": 0.4862,
+      "fitnessV1": 0.4862,
+      "scanLoad": 5.84,
       "original": true,
       "knownAs": null
     },
     {
       "id": "fam-d3-manh-no2x2",
       "fitness": 0.4779,
+      "fitnessV1": 0.4779,
+      "scanLoad": 7.04,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "fam-d2-cheb-no2x2",
+      "fitness": 0.4738,
+      "fitnessV1": 0.5329,
+      "scanLoad": 10.12,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "fam-d3-cheb-none",
+      "fitness": 0.4729,
+      "fitnessV1": 0.556,
+      "scanLoad": 11.06,
       "original": true,
       "knownAs": null
     },
     {
       "id": "fam-d3-manh-none",
       "fitness": 0.4716,
+      "fitnessV1": 0.4716,
+      "scanLoad": 7.25,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "echo (기준)",
+      "fitness": 0.4632,
+      "fitnessV1": 0.5166,
+      "scanLoad": 9.95,
+      "original": true
+    },
+    {
+      "id": "fam-d2-cheb-notouch",
+      "fitness": 0.4632,
+      "fitnessV1": 0.5166,
+      "scanLoad": 9.95,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "fam-d2-cheb-none",
+      "fitness": 0.4583,
+      "fitnessV1": 0.5089,
+      "scanLoad": 9.87,
+      "original": true,
+      "knownAs": null
+    },
+    {
+      "id": "fam-d3-cheb-notouch",
+      "fitness": 0.4339,
+      "fitnessV1": 0.5081,
+      "scanLoad": 10.97,
       "original": true,
       "knownAs": null
     },
     {
       "id": "fam-d1-cheb-none",
       "fitness": 0.4078,
+      "fitnessV1": 0.4078,
+      "scanLoad": 6.41,
       "original": false,
       "knownAs": "지뢰찾기류"
     },
     {
       "id": "fam-d1-cheb-no2x2",
       "fitness": 0.3932,
+      "fitnessV1": 0.3932,
+      "scanLoad": 6.44,
       "original": true,
       "knownAs": null
     },
     {
       "id": "fam-d1-manh-notouch",
       "fitness": 0.3344,
+      "fitnessV1": 0.3344,
+      "scanLoad": 3.41,
       "original": false,
       "knownAs": "상하좌우 개수 단서류"
     },
     {
       "id": "fam-d2-manh-no2x2",
       "fitness": 0.3149,
+      "fitnessV1": 0.3149,
+      "scanLoad": 5.81,
       "original": true,
       "knownAs": null
     },
     {
       "id": "fam-d2-manh-none",
       "fitness": 0.2534,
+      "fitnessV1": 0.2534,
+      "scanLoad": 5.78,
       "original": true,
       "knownAs": null
     },
     {
       "id": "fam-d1-manh-none",
       "fitness": 0.1299,
+      "fitnessV1": 0.1299,
+      "scanLoad": 3.38,
       "original": false,
       "knownAs": "상하좌우 개수 단서류"
     },
     {
       "id": "fam-d1-manh-no2x2",
       "fitness": 0.1255,
+      "fitnessV1": 0.1255,
+      "scanLoad": 3.39,
       "original": false,
       "knownAs": "상하좌우 개수 단서류"
     }
@@ -129,309 +167,53 @@
           "clueDensity": 0.306,
           "techniqueMix": 0,
           "avgScore": 10.5,
-          "failures": 0
-        },
-        "medium": {
-          "size": 7,
-          "hitRate": 1,
-          "genMs": 16,
-          "clueDensity": 0.272,
-          "techniqueMix": 0.394,
-          "avgScore": 35,
-          "failures": 0
-        },
-        "hard": {
-          "size": 7,
-          "hitRate": 1,
-          "genMs": 155,
-          "clueDensity": 0.296,
-          "techniqueMix": 0.353,
-          "avgScore": 45.8,
-          "failures": 0
-        },
-        "expert": {
-          "size": 8,
-          "hitRate": 1,
-          "genMs": 162,
-          "clueDensity": 0.31,
-          "techniqueMix": 0.519,
-          "avgScore": 157.7,
-          "failures": 0
-        }
-      },
-      "depthSpread": 147.2,
-      "monotonic": true,
-      "fitness": 0.5748
-    },
-    "fam-d3-cheb-none": {
-      "rules": "fam-d3-cheb-none",
-      "n": 6,
-      "tiers": {
-        "easy": {
-          "size": 6,
-          "hitRate": 1,
-          "genMs": 0,
-          "clueDensity": 0.287,
-          "techniqueMix": 0,
-          "avgScore": 9.3,
-          "failures": 0
-        },
-        "medium": {
-          "size": 7,
-          "hitRate": 1,
-          "genMs": 4,
-          "clueDensity": 0.279,
-          "techniqueMix": 0.357,
-          "avgScore": 32.3,
-          "failures": 0
-        },
-        "hard": {
-          "size": 7,
-          "hitRate": 1,
-          "genMs": 77,
-          "clueDensity": 0.296,
-          "techniqueMix": 0.29,
-          "avgScore": 36.2,
-          "failures": 0
-        },
-        "expert": {
-          "size": 8,
-          "hitRate": 1,
-          "genMs": 40,
-          "clueDensity": 0.32,
-          "techniqueMix": 0.51,
-          "avgScore": 140.3,
-          "failures": 0
-        }
-      },
-      "depthSpread": 131,
-      "monotonic": true,
-      "fitness": 0.556
-    },
-    "fam-d2-cheb-no2x2": {
-      "rules": "fam-d2-cheb-no2x2",
-      "n": 6,
-      "tiers": {
-        "easy": {
-          "size": 6,
-          "hitRate": 1,
-          "genMs": 1,
-          "clueDensity": 0.324,
-          "techniqueMix": 0,
-          "avgScore": 11.3,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 9.02,
+          "ringClip": 0.624,
+          "overlap": 2.75
         },
         "medium": {
           "size": 7,
           "hitRate": 1,
           "genMs": 12,
+          "clueDensity": 0.272,
+          "techniqueMix": 0.394,
+          "avgScore": 35,
+          "failures": 0,
+          "scanLoad": 11.61,
+          "ringClip": 0.516,
+          "overlap": 3.15
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 118,
           "clueDensity": 0.296,
-          "techniqueMix": 0.248,
-          "avgScore": 29.2,
-          "failures": 0
-        },
-        "hard": {
-          "size": 7,
-          "hitRate": 1,
-          "genMs": 301,
-          "clueDensity": 0.323,
-          "techniqueMix": 0.409,
-          "avgScore": 53.5,
-          "failures": 0
+          "techniqueMix": 0.353,
+          "avgScore": 45.8,
+          "failures": 0,
+          "scanLoad": 11.04,
+          "ringClip": 0.54,
+          "overlap": 3.29
         },
         "expert": {
           "size": 8,
           "hitRate": 1,
-          "genMs": 169,
-          "clueDensity": 0.294,
-          "techniqueMix": 0.429,
-          "avgScore": 138.5,
-          "failures": 0
+          "genMs": 137,
+          "clueDensity": 0.31,
+          "techniqueMix": 0.519,
+          "avgScore": 157.7,
+          "failures": 0,
+          "scanLoad": 12.67,
+          "ringClip": 0.472,
+          "overlap": 3.92
         }
       },
-      "depthSpread": 127.2,
+      "depthSpread": 147.2,
       "monotonic": true,
-      "fitness": 0.5329
-    },
-    "echo (기준)": {
-      "rules": "echo",
-      "n": 6,
-      "tiers": {
-        "easy": {
-          "size": 6,
-          "hitRate": 1,
-          "genMs": 6,
-          "clueDensity": 0.319,
-          "techniqueMix": 0,
-          "avgScore": 15.8,
-          "failures": 0
-        },
-        "medium": {
-          "size": 7,
-          "hitRate": 1,
-          "genMs": 17,
-          "clueDensity": 0.241,
-          "techniqueMix": 0.243,
-          "avgScore": 43.2,
-          "failures": 0
-        },
-        "hard": {
-          "size": 7,
-          "hitRate": 0.833,
-          "genMs": 603,
-          "clueDensity": 0.218,
-          "techniqueMix": 0.249,
-          "avgScore": 53.3,
-          "failures": 0
-        },
-        "expert": {
-          "size": 8,
-          "hitRate": 1,
-          "genMs": 266,
-          "clueDensity": 0.26,
-          "techniqueMix": 0.42,
-          "avgScore": 189.7,
-          "failures": 0
-        }
-      },
-      "depthSpread": 173.9,
-      "monotonic": true,
-      "fitness": 0.5166
-    },
-    "fam-d2-cheb-notouch": {
-      "rules": "fam-d2-cheb-notouch",
-      "n": 6,
-      "tiers": {
-        "easy": {
-          "size": 6,
-          "hitRate": 1,
-          "genMs": 2,
-          "clueDensity": 0.319,
-          "techniqueMix": 0,
-          "avgScore": 15.8,
-          "failures": 0
-        },
-        "medium": {
-          "size": 7,
-          "hitRate": 1,
-          "genMs": 14,
-          "clueDensity": 0.241,
-          "techniqueMix": 0.243,
-          "avgScore": 43.2,
-          "failures": 0
-        },
-        "hard": {
-          "size": 7,
-          "hitRate": 0.833,
-          "genMs": 613,
-          "clueDensity": 0.218,
-          "techniqueMix": 0.249,
-          "avgScore": 53.3,
-          "failures": 0
-        },
-        "expert": {
-          "size": 8,
-          "hitRate": 1,
-          "genMs": 261,
-          "clueDensity": 0.26,
-          "techniqueMix": 0.42,
-          "avgScore": 189.7,
-          "failures": 0
-        }
-      },
-      "depthSpread": 173.9,
-      "monotonic": true,
-      "fitness": 0.5166
-    },
-    "fam-d2-cheb-none": {
-      "rules": "fam-d2-cheb-none",
-      "n": 6,
-      "tiers": {
-        "easy": {
-          "size": 6,
-          "hitRate": 1,
-          "genMs": 1,
-          "clueDensity": 0.329,
-          "techniqueMix": 0,
-          "avgScore": 10.2,
-          "failures": 0
-        },
-        "medium": {
-          "size": 7,
-          "hitRate": 1,
-          "genMs": 4,
-          "clueDensity": 0.323,
-          "techniqueMix": 0.251,
-          "avgScore": 27.8,
-          "failures": 0
-        },
-        "hard": {
-          "size": 7,
-          "hitRate": 1,
-          "genMs": 77,
-          "clueDensity": 0.32,
-          "techniqueMix": 0.266,
-          "avgScore": 40.7,
-          "failures": 0
-        },
-        "expert": {
-          "size": 8,
-          "hitRate": 1,
-          "genMs": 48,
-          "clueDensity": 0.302,
-          "techniqueMix": 0.47,
-          "avgScore": 143,
-          "failures": 0
-        }
-      },
-      "depthSpread": 132.8,
-      "monotonic": true,
-      "fitness": 0.5089
-    },
-    "fam-d3-cheb-notouch": {
-      "rules": "fam-d3-cheb-notouch",
-      "n": 6,
-      "tiers": {
-        "easy": {
-          "size": 6,
-          "hitRate": 1,
-          "genMs": 2,
-          "clueDensity": 0.319,
-          "techniqueMix": 0,
-          "avgScore": 14.2,
-          "failures": 0
-        },
-        "medium": {
-          "size": 7,
-          "hitRate": 1,
-          "genMs": 24,
-          "clueDensity": 0.279,
-          "techniqueMix": 0.252,
-          "avgScore": 43,
-          "failures": 0
-        },
-        "hard": {
-          "size": 7,
-          "hitRate": 0.833,
-          "genMs": 925,
-          "clueDensity": 0.235,
-          "techniqueMix": 0.304,
-          "avgScore": 79.8,
-          "failures": 0
-        },
-        "expert": {
-          "size": 8,
-          "hitRate": 1,
-          "genMs": 262,
-          "clueDensity": 0.286,
-          "techniqueMix": 0.389,
-          "avgScore": 147.7,
-          "failures": 0
-        }
-      },
-      "depthSpread": 133.5,
-      "monotonic": true,
-      "fitness": 0.5081
+      "fitnessV1": 0.5748,
+      "loadFactor": 0.8495,
+      "fitness": 0.4883
     },
     "fam-d1-cheb-notouch": {
       "rules": "fam-d1-cheb-notouch",
@@ -444,38 +226,52 @@
           "clueDensity": 0.384,
           "techniqueMix": 0,
           "avgScore": 16.2,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 6.32,
+          "ringClip": 0.21,
+          "overlap": 2.43
         },
         "medium": {
           "size": 7,
           "hitRate": 1,
-          "genMs": 11,
+          "genMs": 8,
           "clueDensity": 0.262,
           "techniqueMix": 0.223,
           "avgScore": 44.8,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 6.29,
+          "ringClip": 0.214,
+          "overlap": 1.65
         },
         "hard": {
           "size": 7,
           "hitRate": 1,
-          "genMs": 67,
+          "genMs": 44,
           "clueDensity": 0.269,
           "techniqueMix": 0.267,
           "avgScore": 59.8,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 6.38,
+          "ringClip": 0.202,
+          "overlap": 1.71
         },
         "expert": {
           "size": 8,
           "hitRate": 1,
-          "genMs": 142,
+          "genMs": 83,
           "clueDensity": 0.294,
           "techniqueMix": 0.305,
           "avgScore": 117.7,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 6.52,
+          "ringClip": 0.185,
+          "overlap": 1.92
         }
       },
       "depthSpread": 101.5,
       "monotonic": true,
+      "fitnessV1": 0.4876,
+      "loadFactor": 1,
       "fitness": 0.4876
     },
     "fam-d3-manh-notouch": {
@@ -489,7 +285,10 @@
           "clueDensity": 0.241,
           "techniqueMix": 0,
           "avgScore": 16.3,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 6.7,
+          "ringClip": 0.442,
+          "overlap": 1.61
         },
         "medium": {
           "size": 7,
@@ -498,29 +297,40 @@
           "clueDensity": 0.245,
           "techniqueMix": 0.137,
           "avgScore": 33.2,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 7.46,
+          "ringClip": 0.378,
+          "overlap": 1.83
         },
         "hard": {
           "size": 7,
           "hitRate": 1,
-          "genMs": 229,
+          "genMs": 169,
           "clueDensity": 0.221,
           "techniqueMix": 0.086,
           "avgScore": 45.3,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 7.49,
+          "ringClip": 0.376,
+          "overlap": 1.66
         },
         "expert": {
           "size": 8,
           "hitRate": 1,
-          "genMs": 188,
+          "genMs": 139,
           "clueDensity": 0.232,
           "techniqueMix": 0.324,
           "avgScore": 178.3,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 7.66,
+          "ringClip": 0.362,
+          "overlap": 1.78
         }
       },
       "depthSpread": 162,
       "monotonic": true,
+      "fitnessV1": 0.4873,
+      "loadFactor": 1,
       "fitness": 0.4873
     },
     "fam-d2-manh-notouch": {
@@ -534,38 +344,52 @@
           "clueDensity": 0.231,
           "techniqueMix": 0,
           "avgScore": 19.8,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 5.5,
+          "ringClip": 0.313,
+          "overlap": 1.26
         },
         "medium": {
           "size": 7,
           "hitRate": 1,
-          "genMs": 20,
+          "genMs": 16,
           "clueDensity": 0.228,
           "techniqueMix": 0.131,
           "avgScore": 39.5,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 5.87,
+          "ringClip": 0.266,
+          "overlap": 1.34
         },
         "hard": {
           "size": 7,
           "hitRate": 1,
-          "genMs": 86,
+          "genMs": 64,
           "clueDensity": 0.204,
           "techniqueMix": 0.112,
           "avgScore": 51,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 5.97,
+          "ringClip": 0.254,
+          "overlap": 1.21
         },
         "expert": {
           "size": 8,
           "hitRate": 1,
-          "genMs": 82,
+          "genMs": 64,
           "clueDensity": 0.208,
           "techniqueMix": 0.243,
           "avgScore": 147.2,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 6.01,
+          "ringClip": 0.249,
+          "overlap": 1.25
         }
       },
       "depthSpread": 127.4,
       "monotonic": true,
+      "fitnessV1": 0.4862,
+      "loadFactor": 1,
       "fitness": 0.4862
     },
     "fam-d3-manh-no2x2": {
@@ -579,39 +403,171 @@
           "clueDensity": 0.338,
           "techniqueMix": 0,
           "avgScore": 12.3,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 6.3,
+          "ringClip": 0.475,
+          "overlap": 2.11
         },
         "medium": {
           "size": 7,
           "hitRate": 1,
-          "genMs": 12,
+          "genMs": 11,
           "clueDensity": 0.316,
           "techniqueMix": 0.256,
           "avgScore": 34.3,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 7.2,
+          "ringClip": 0.4,
+          "overlap": 2.28
         },
         "hard": {
           "size": 7,
           "hitRate": 1,
-          "genMs": 90,
+          "genMs": 88,
           "clueDensity": 0.33,
           "techniqueMix": 0.254,
           "avgScore": 44,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 6.97,
+          "ringClip": 0.419,
+          "overlap": 2.3
         },
         "expert": {
           "size": 8,
           "hitRate": 1,
-          "genMs": 63,
+          "genMs": 47,
           "clueDensity": 0.331,
           "techniqueMix": 0.338,
           "avgScore": 101.5,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 7.68,
+          "ringClip": 0.36,
+          "overlap": 2.54
         }
       },
       "depthSpread": 89.2,
       "monotonic": true,
+      "fitnessV1": 0.4779,
+      "loadFactor": 1,
       "fitness": 0.4779
+    },
+    "fam-d2-cheb-no2x2": {
+      "rules": "fam-d2-cheb-no2x2",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 1,
+          "clueDensity": 0.324,
+          "techniqueMix": 0,
+          "avgScore": 11.3,
+          "failures": 0,
+          "scanLoad": 9.19,
+          "ringClip": 0.426,
+          "overlap": 2.97
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 11,
+          "clueDensity": 0.296,
+          "techniqueMix": 0.248,
+          "avgScore": 29.2,
+          "failures": 0,
+          "scanLoad": 10.79,
+          "ringClip": 0.326,
+          "overlap": 3.18
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 239,
+          "clueDensity": 0.323,
+          "techniqueMix": 0.409,
+          "avgScore": 53.5,
+          "failures": 0,
+          "scanLoad": 9.54,
+          "ringClip": 0.404,
+          "overlap": 3.09
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 148,
+          "clueDensity": 0.294,
+          "techniqueMix": 0.429,
+          "avgScore": 138.5,
+          "failures": 0,
+          "scanLoad": 10.96,
+          "ringClip": 0.315,
+          "overlap": 3.21
+        }
+      },
+      "depthSpread": 127.2,
+      "monotonic": true,
+      "fitnessV1": 0.5329,
+      "loadFactor": 0.8891,
+      "fitness": 0.4738
+    },
+    "fam-d3-cheb-none": {
+      "rules": "fam-d3-cheb-none",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 1,
+          "clueDensity": 0.287,
+          "techniqueMix": 0,
+          "avgScore": 9.3,
+          "failures": 0,
+          "scanLoad": 9.02,
+          "ringClip": 0.624,
+          "overlap": 2.58
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 4,
+          "clueDensity": 0.279,
+          "techniqueMix": 0.357,
+          "avgScore": 32.3,
+          "failures": 0,
+          "scanLoad": 11.18,
+          "ringClip": 0.534,
+          "overlap": 3.12
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 74,
+          "clueDensity": 0.296,
+          "techniqueMix": 0.29,
+          "avgScore": 36.2,
+          "failures": 0,
+          "scanLoad": 11.43,
+          "ringClip": 0.524,
+          "overlap": 3.38
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 37,
+          "clueDensity": 0.32,
+          "techniqueMix": 0.51,
+          "avgScore": 140.3,
+          "failures": 0,
+          "scanLoad": 12.6,
+          "ringClip": 0.475,
+          "overlap": 4.05
+        }
+      },
+      "depthSpread": 131,
+      "monotonic": true,
+      "fitnessV1": 0.556,
+      "loadFactor": 0.8506,
+      "fitness": 0.4729
     },
     "fam-d3-manh-none": {
       "rules": "fam-d3-manh-none",
@@ -624,7 +580,10 @@
           "clueDensity": 0.347,
           "techniqueMix": 0,
           "avgScore": 11.5,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 6.35,
+          "ringClip": 0.471,
+          "overlap": 2.19
         },
         "medium": {
           "size": 7,
@@ -633,16 +592,22 @@
           "clueDensity": 0.344,
           "techniqueMix": 0.232,
           "avgScore": 30.5,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 7.31,
+          "ringClip": 0.39,
+          "overlap": 2.51
         },
         "hard": {
           "size": 7,
           "hitRate": 1,
-          "genMs": 13,
+          "genMs": 14,
           "clueDensity": 0.347,
           "techniqueMix": 0.28,
           "avgScore": 47,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 7.65,
+          "ringClip": 0.363,
+          "overlap": 2.65
         },
         "expert": {
           "size": 8,
@@ -651,12 +616,253 @@
           "clueDensity": 0.344,
           "techniqueMix": 0.37,
           "avgScore": 112,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 7.69,
+          "ringClip": 0.359,
+          "overlap": 2.64
         }
       },
       "depthSpread": 100.5,
       "monotonic": true,
+      "fitnessV1": 0.4716,
+      "loadFactor": 1,
       "fitness": 0.4716
+    },
+    "echo (기준)": {
+      "rules": "echo",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 6,
+          "clueDensity": 0.319,
+          "techniqueMix": 0,
+          "avgScore": 15.8,
+          "failures": 0,
+          "scanLoad": 9.26,
+          "ringClip": 0.421,
+          "overlap": 2.95
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 18,
+          "clueDensity": 0.241,
+          "techniqueMix": 0.243,
+          "avgScore": 43.2,
+          "failures": 0,
+          "scanLoad": 9.73,
+          "ringClip": 0.392,
+          "overlap": 2.35
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 0.833,
+          "genMs": 456,
+          "clueDensity": 0.218,
+          "techniqueMix": 0.249,
+          "avgScore": 53.3,
+          "failures": 0,
+          "scanLoad": 10.18,
+          "ringClip": 0.364,
+          "overlap": 2.21
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 183,
+          "clueDensity": 0.26,
+          "techniqueMix": 0.42,
+          "avgScore": 189.7,
+          "failures": 0,
+          "scanLoad": 10.63,
+          "ringClip": 0.336,
+          "overlap": 2.78
+        }
+      },
+      "depthSpread": 173.9,
+      "monotonic": true,
+      "fitnessV1": 0.5166,
+      "loadFactor": 0.8967,
+      "fitness": 0.4632
+    },
+    "fam-d2-cheb-notouch": {
+      "rules": "fam-d2-cheb-notouch",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 2,
+          "clueDensity": 0.319,
+          "techniqueMix": 0,
+          "avgScore": 15.8,
+          "failures": 0,
+          "scanLoad": 9.26,
+          "ringClip": 0.421,
+          "overlap": 2.95
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 11,
+          "clueDensity": 0.241,
+          "techniqueMix": 0.243,
+          "avgScore": 43.2,
+          "failures": 0,
+          "scanLoad": 9.73,
+          "ringClip": 0.392,
+          "overlap": 2.35
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 0.833,
+          "genMs": 470,
+          "clueDensity": 0.218,
+          "techniqueMix": 0.249,
+          "avgScore": 53.3,
+          "failures": 0,
+          "scanLoad": 10.18,
+          "ringClip": 0.364,
+          "overlap": 2.21
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 199,
+          "clueDensity": 0.26,
+          "techniqueMix": 0.42,
+          "avgScore": 189.7,
+          "failures": 0,
+          "scanLoad": 10.63,
+          "ringClip": 0.336,
+          "overlap": 2.78
+        }
+      },
+      "depthSpread": 173.9,
+      "monotonic": true,
+      "fitnessV1": 0.5166,
+      "loadFactor": 0.8967,
+      "fitness": 0.4632
+    },
+    "fam-d2-cheb-none": {
+      "rules": "fam-d2-cheb-none",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 1,
+          "clueDensity": 0.329,
+          "techniqueMix": 0,
+          "avgScore": 10.2,
+          "failures": 0,
+          "scanLoad": 8.94,
+          "ringClip": 0.441,
+          "overlap": 2.93
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 5,
+          "clueDensity": 0.323,
+          "techniqueMix": 0.251,
+          "avgScore": 27.8,
+          "failures": 0,
+          "scanLoad": 9.96,
+          "ringClip": 0.378,
+          "overlap": 3.2
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 80,
+          "clueDensity": 0.32,
+          "techniqueMix": 0.266,
+          "avgScore": 40.7,
+          "failures": 0,
+          "scanLoad": 9.91,
+          "ringClip": 0.381,
+          "overlap": 3.17
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 47,
+          "clueDensity": 0.302,
+          "techniqueMix": 0.47,
+          "avgScore": 143,
+          "failures": 0,
+          "scanLoad": 10.65,
+          "ringClip": 0.334,
+          "overlap": 3.22
+        }
+      },
+      "depthSpread": 132.8,
+      "monotonic": true,
+      "fitnessV1": 0.5089,
+      "loadFactor": 0.9005,
+      "fitness": 0.4583
+    },
+    "fam-d3-cheb-notouch": {
+      "rules": "fam-d3-cheb-notouch",
+      "n": 6,
+      "tiers": {
+        "easy": {
+          "size": 6,
+          "hitRate": 1,
+          "genMs": 2,
+          "clueDensity": 0.319,
+          "techniqueMix": 0,
+          "avgScore": 14.2,
+          "failures": 0,
+          "scanLoad": 9.12,
+          "ringClip": 0.62,
+          "overlap": 2.91
+        },
+        "medium": {
+          "size": 7,
+          "hitRate": 1,
+          "genMs": 16,
+          "clueDensity": 0.279,
+          "techniqueMix": 0.252,
+          "avgScore": 43,
+          "failures": 0,
+          "scanLoad": 10.91,
+          "ringClip": 0.545,
+          "overlap": 3.04
+        },
+        "hard": {
+          "size": 7,
+          "hitRate": 0.833,
+          "genMs": 681,
+          "clueDensity": 0.235,
+          "techniqueMix": 0.304,
+          "avgScore": 79.8,
+          "failures": 0,
+          "scanLoad": 11.18,
+          "ringClip": 0.534,
+          "overlap": 2.62
+        },
+        "expert": {
+          "size": 8,
+          "hitRate": 1,
+          "genMs": 196,
+          "clueDensity": 0.286,
+          "techniqueMix": 0.389,
+          "avgScore": 147.7,
+          "failures": 0,
+          "scanLoad": 12.68,
+          "ringClip": 0.472,
+          "overlap": 3.64
+        }
+      },
+      "depthSpread": 133.5,
+      "monotonic": true,
+      "fitnessV1": 0.5081,
+      "loadFactor": 0.8539,
+      "fitness": 0.4339
     },
     "fam-d1-cheb-none": {
       "rules": "fam-d1-cheb-none",
@@ -665,42 +871,56 @@
         "easy": {
           "size": 6,
           "hitRate": 1,
-          "genMs": 2,
+          "genMs": 1,
           "clueDensity": 0.352,
           "techniqueMix": 0,
           "avgScore": 11.7,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 6.24,
+          "ringClip": 0.22,
+          "overlap": 2.2
         },
         "medium": {
           "size": 7,
           "hitRate": 1,
-          "genMs": 4,
+          "genMs": 3,
           "clueDensity": 0.34,
           "techniqueMix": 0.211,
           "avgScore": 29.5,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 6.47,
+          "ringClip": 0.192,
+          "overlap": 2.2
         },
         "hard": {
           "size": 7,
           "hitRate": 0.667,
-          "genMs": 34,
+          "genMs": 24,
           "clueDensity": 0.333,
           "techniqueMix": 0.269,
           "avgScore": 39.8,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 6.25,
+          "ringClip": 0.219,
+          "overlap": 2.08
         },
         "expert": {
           "size": 8,
           "hitRate": 0.833,
-          "genMs": 55,
+          "genMs": 47,
           "clueDensity": 0.328,
           "techniqueMix": 0.337,
           "avgScore": 104,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 6.68,
+          "ringClip": 0.165,
+          "overlap": 2.19
         }
       },
       "depthSpread": 92.3,
       "monotonic": true,
+      "fitnessV1": 0.4078,
+      "loadFactor": 1,
       "fitness": 0.4078
     },
     "fam-d1-cheb-no2x2": {
@@ -710,42 +930,56 @@
         "easy": {
           "size": 6,
           "hitRate": 1,
-          "genMs": 2,
+          "genMs": 1,
           "clueDensity": 0.319,
           "techniqueMix": 0,
           "avgScore": 12,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 6.24,
+          "ringClip": 0.22,
+          "overlap": 1.98
         },
         "medium": {
           "size": 7,
           "hitRate": 1,
-          "genMs": 8,
+          "genMs": 6,
           "clueDensity": 0.33,
           "techniqueMix": 0.188,
           "avgScore": 27.7,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 6.64,
+          "ringClip": 0.169,
+          "overlap": 2.19
         },
         "hard": {
           "size": 7,
           "hitRate": 0.333,
-          "genMs": 191,
+          "genMs": 161,
           "clueDensity": 0.35,
           "techniqueMix": 0.283,
           "avgScore": 46,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 6.38,
+          "ringClip": 0.202,
+          "overlap": 2.23
         },
         "expert": {
           "size": 8,
           "hitRate": 1,
-          "genMs": 151,
+          "genMs": 117,
           "clueDensity": 0.294,
           "techniqueMix": 0.318,
           "avgScore": 91.2,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 6.49,
+          "ringClip": 0.188,
+          "overlap": 1.91
         }
       },
       "depthSpread": 79.2,
       "monotonic": true,
+      "fitnessV1": 0.3932,
+      "loadFactor": 1,
       "fitness": 0.3932
     },
     "fam-d1-manh-notouch": {
@@ -755,42 +989,56 @@
         "easy": {
           "size": 6,
           "hitRate": 1,
-          "genMs": 2,
+          "genMs": 1,
           "clueDensity": 0.287,
           "techniqueMix": 0,
           "avgScore": 20,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 3.35,
+          "ringClip": 0.162,
+          "overlap": 0.97
         },
         "medium": {
           "size": 7,
           "hitRate": 0.5,
-          "genMs": 58,
+          "genMs": 43,
           "clueDensity": 0.276,
           "techniqueMix": 0.037,
           "avgScore": 30,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 3.43,
+          "ringClip": 0.143,
+          "overlap": 0.95
         },
         "hard": {
           "size": 7,
           "hitRate": 1,
-          "genMs": 51,
+          "genMs": 36,
           "clueDensity": 0.259,
           "techniqueMix": 0.047,
           "avgScore": 41.3,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 3.36,
+          "ringClip": 0.16,
+          "overlap": 0.87
         },
         "expert": {
           "size": 8,
           "hitRate": 0.833,
-          "genMs": 154,
+          "genMs": 102,
           "clueDensity": 0.242,
           "techniqueMix": 0.103,
           "avgScore": 77,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 3.5,
+          "ringClip": 0.124,
+          "overlap": 0.85
         }
       },
       "depthSpread": 57,
       "monotonic": true,
+      "fitnessV1": 0.3344,
+      "loadFactor": 1,
       "fitness": 0.3344
     },
     "fam-d2-manh-no2x2": {
@@ -804,38 +1052,52 @@
           "clueDensity": 0.37,
           "techniqueMix": 0,
           "avgScore": 13,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 5.31,
+          "ringClip": 0.337,
+          "overlap": 1.97
         },
         "medium": {
           "size": 7,
           "hitRate": 1,
-          "genMs": 8,
+          "genMs": 7,
           "clueDensity": 0.34,
           "techniqueMix": 0.204,
           "avgScore": 29.8,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 5.96,
+          "ringClip": 0.255,
+          "overlap": 2.03
         },
         "hard": {
           "size": 7,
           "hitRate": 0.5,
-          "genMs": 83,
+          "genMs": 70,
           "clueDensity": 0.34,
           "techniqueMix": 0.212,
           "avgScore": 36.8,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 5.91,
+          "ringClip": 0.261,
+          "overlap": 2.01
         },
         "expert": {
           "size": 8,
           "hitRate": 0.333,
-          "genMs": 245,
+          "genMs": 230,
           "clueDensity": 0.331,
           "techniqueMix": 0.3,
           "avgScore": 88.7,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 6.06,
+          "ringClip": 0.242,
+          "overlap": 2.01
         }
       },
       "depthSpread": 75.7,
       "monotonic": true,
+      "fitnessV1": 0.3149,
+      "loadFactor": 1,
       "fitness": 0.3149
     },
     "fam-d2-manh-none": {
@@ -849,38 +1111,52 @@
           "clueDensity": 0.38,
           "techniqueMix": 0,
           "avgScore": 12.5,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 5.35,
+          "ringClip": 0.332,
+          "overlap": 2.03
         },
         "medium": {
           "size": 7,
           "hitRate": 1,
-          "genMs": 3,
+          "genMs": 4,
           "clueDensity": 0.357,
           "techniqueMix": 0.168,
           "avgScore": 26.7,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 5.96,
+          "ringClip": 0.254,
+          "overlap": 2.13
         },
         "hard": {
           "size": 7,
           "hitRate": 0.333,
-          "genMs": 23,
+          "genMs": 30,
           "clueDensity": 0.361,
           "techniqueMix": 0.171,
           "avgScore": 28.7,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 5.92,
+          "ringClip": 0.26,
+          "overlap": 2.13
         },
         "expert": {
           "size": 8,
           "hitRate": 0.167,
-          "genMs": 43,
+          "genMs": 39,
           "clueDensity": 0.352,
           "techniqueMix": 0.205,
           "avgScore": 47,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 5.9,
+          "ringClip": 0.263,
+          "overlap": 2.07
         }
       },
       "depthSpread": 34.5,
       "monotonic": true,
+      "fitnessV1": 0.2534,
+      "loadFactor": 1,
       "fitness": 0.2534
     },
     "fam-d1-manh-none": {
@@ -890,42 +1166,56 @@
         "easy": {
           "size": 6,
           "hitRate": 1,
-          "genMs": 2,
+          "genMs": 1,
           "clueDensity": 0.426,
           "techniqueMix": 0,
           "avgScore": 15,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 3.3,
+          "ringClip": 0.176,
+          "overlap": 1.4
         },
         "medium": {
           "size": 7,
           "hitRate": 0.667,
-          "genMs": 5,
+          "genMs": 4,
           "clueDensity": 0.429,
           "techniqueMix": 0.064,
           "avgScore": 24.3,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 3.34,
+          "ringClip": 0.165,
+          "overlap": 1.43
         },
         "hard": {
           "size": 7,
           "hitRate": 0,
-          "genMs": 11,
+          "genMs": 7,
           "clueDensity": 0.429,
           "techniqueMix": 0.064,
           "avgScore": 24.3,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 3.34,
+          "ringClip": 0.165,
+          "overlap": 1.43
         },
         "expert": {
           "size": 8,
           "hitRate": 0,
-          "genMs": 18,
+          "genMs": 12,
           "clueDensity": 0.414,
           "techniqueMix": 0.039,
           "avgScore": 29,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 3.52,
+          "ringClip": 0.121,
+          "overlap": 1.46
         }
       },
       "depthSpread": 14,
       "monotonic": true,
+      "fitnessV1": 0.1299,
+      "loadFactor": 1,
       "fitness": 0.1299
     },
     "fam-d1-manh-no2x2": {
@@ -939,38 +1229,52 @@
           "clueDensity": 0.421,
           "techniqueMix": 0,
           "avgScore": 15.2,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 3.25,
+          "ringClip": 0.187,
+          "overlap": 1.37
         },
         "medium": {
           "size": 7,
           "hitRate": 0.5,
-          "genMs": 24,
+          "genMs": 23,
           "clueDensity": 0.391,
           "techniqueMix": 0.088,
           "avgScore": 25.8,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 3.42,
+          "ringClip": 0.146,
+          "overlap": 1.34
         },
         "hard": {
           "size": 7,
           "hitRate": 0,
-          "genMs": 34,
+          "genMs": 35,
           "clueDensity": 0.391,
           "techniqueMix": 0.088,
           "avgScore": 25.8,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 3.42,
+          "ringClip": 0.146,
+          "overlap": 1.34
         },
         "expert": {
           "size": 8,
           "hitRate": 0,
-          "genMs": 59,
+          "genMs": 64,
           "clueDensity": 0.378,
           "techniqueMix": 0.038,
           "avgScore": 29.3,
-          "failures": 0
+          "failures": 0,
+          "scanLoad": 3.47,
+          "ringClip": 0.134,
+          "overlap": 1.31
         }
       },
       "depthSpread": 14.1,
       "monotonic": true,
+      "fitnessV1": 0.1255,
+      "loadFactor": 1,
       "fitness": 0.1255
     }
   }

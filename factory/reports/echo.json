@@ -1,7 +1,6 @@
 {
   "rules": "echo",
   "n": 15,
-  "generatedAt": "2026-11-04T16:11:30.220Z",
   "tiers": {
     "easy": {
       "size": 6,
@@ -10,36 +9,52 @@
       "clueDensity": 0.307,
       "techniqueMix": 0,
       "avgScore": 15.7,
-      "failures": 0
+      "failures": 0,
+      "scanLoad": 9.39,
+      "ringClip": 0.413,
+      "overlap": 2.88
     },
     "medium": {
       "size": 7,
       "hitRate": 1,
-      "genMs": 21,
+      "genMs": 18,
       "clueDensity": 0.264,
       "techniqueMix": 0.24,
       "avgScore": 43.9,
-      "failures": 0
+      "failures": 0,
+      "scanLoad": 10.17,
+      "ringClip": 0.365,
+      "overlap": 2.68
     },
     "hard": {
       "size": 7,
       "hitRate": 0.933,
-      "genMs": 1139,
+      "genMs": 917,
       "clueDensity": 0.239,
       "techniqueMix": 0.269,
       "avgScore": 61.1,
-      "failures": 0
+      "failures": 0,
+      "scanLoad": 10.25,
+      "ringClip": 0.359,
+      "overlap": 2.45
     },
     "expert": {
       "size": 8,
       "hitRate": 1,
-      "genMs": 198,
+      "genMs": 142,
       "clueDensity": 0.249,
       "techniqueMix": 0.369,
       "avgScore": 161.9,
-      "failures": 0
+      "failures": 0,
+      "scanLoad": 10.45,
+      "ringClip": 0.347,
+      "overlap": 2.61
     }
   },
   "depthSpread": 146.2,
-  "monotonic": true
+  "monotonic": true,
+  "fitnessV1": 0.5202,
+  "loadFactor": 0.8915,
+  "fitness": 0.4637,
+  "generatedAt": "2026-11-04T18:24:52.604Z"
 }
