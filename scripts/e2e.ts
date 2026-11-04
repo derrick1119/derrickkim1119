@@ -8,6 +8,8 @@ import { spawn } from 'node:child_process';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import { generate } from '../engine/generator.ts';
+import { getRules } from '../engine/rules/index.ts';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
@@ -62,6 +64,31 @@ try {
     console.log(`e2e ${scheme}: OK (${date}, ${p.width}x${p.height}, hint="${msg.slice(0, 40)}…")`);
     await ctx.close();
   }
+
+  // 플레이테스트 모드: 브라우저 즉석 생성 퍼즐이 Node 생성 결과와 같아야(결정성) 이 정답으로 풀린다
+  const PLAY = { rules: 'fam-d3-cheb-no2x2', seed: 7, tier: 'easy' as const, size: 6 };
+  const pp = generate(getRules(PLAY.rules), { width: PLAY.size, height: PLAY.size, seed: PLAY.seed, target: PLAY.tier })!;
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  const page = await ctx.newPage();
+  const errors: string[] = [];
+  page.on('pageerror', (e: Error) => errors.push(e.message));
+  page.on('console', (m: { type(): string; text(): string }) => m.type() === 'error' && errors.push(m.text()));
+  await page.goto(`http://localhost:${PORT}/?play=${PLAY.rules}&seed=${PLAY.seed}&tier=${PLAY.tier}`);
+  await page.waitForSelector('.cell');
+  const genMs = await page.getAttribute('#meta', 'data-gen-ms');
+  const clues = await page.locator('.cell').evaluateAll((els: Element[]) => els.map((e) => e.textContent || null));
+  const expected = pp.clues.map((c) => (c === null ? null : String(c)));
+  if (JSON.stringify(clues) !== JSON.stringify(expected)) throw new Error('playtest: browser puzzle differs from node');
+  await page.screenshot({ path: join(shots, 'play-start.png') });
+  const pc = page.locator('.cell');
+  for (let i = 0; i < pp.solution.length; i++) if (pp.solution[i] === '1') await pc.nth(i).click();
+  await page.waitForSelector('dialog#win[open]', { timeout: 5000 });
+  await page.screenshot({ path: join(shots, 'play-win.png') });
+  if (errors.length) throw new Error('playtest console errors: ' + errors.join(' | '));
+  const scrollW = await page.evaluate(() => document.documentElement.scrollWidth);
+  if (scrollW > 390) throw new Error(`playtest horizontal scroll: ${scrollW}px`);
+  console.log(`e2e playtest: OK (${PLAY.rules} seed ${PLAY.seed} ${PLAY.tier}, gen ${genMs}ms)`);
+  await ctx.close();
 } catch (e) {
   failed = true;
   console.error(e);

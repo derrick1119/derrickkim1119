@@ -1,9 +1,11 @@
 import { puzzleNumber, TIER_LABEL } from '../engine/daily.ts';
+import { generate } from '../engine/generator.ts';
 import { nextStep, type Step } from '../engine/deducer.ts';
 import { buildModel, givenState, satisfiesAll, type Model } from '../engine/model.ts';
 import { getRules } from '../engine/rules/index.ts';
-import type { Puzzle, RuleSet } from '../engine/types.ts';
+import type { Puzzle, RuleSet, Tier } from '../engine/types.ts';
 
+/** date === '' 이면 플레이테스트 퍼즐 (기록·연속에 반영 안 함) */
 type DailyPuzzle = Puzzle & { date: string };
 /** UI 칸 상태: 0 미정, 1 칠함, 2 점(빈칸 확정) */
 type Mark = 0 | 1 | 2;
@@ -123,6 +125,13 @@ function render() {
       c.cells.forEach((x) => hintCtx.add(x));
     }
   }
+  // 단서 외 제약(맞닿기 금지, 2×2 금지 등)을 넘어선 칠한 칸 — 규칙과 무관하게 모델에서 판정
+  const violating = new Set<number>();
+  for (const c of model.cons) {
+    if (c.kind === 'echo' || c.kind === 'clue-cell') continue;
+    const on = c.cells.filter((x) => marks[x] === 1);
+    if (on.length > c.max) on.forEach((x) => violating.add(x));
+  }
   cells.forEach((b, i) => {
     const m = marks[i];
     const x = i % w, y = Math.floor(i / w);
@@ -132,11 +141,7 @@ function render() {
     b.classList.toggle('ring-src', pinnedClue === i);
     b.classList.toggle('hint-target', hintTargets.has(i));
     b.classList.toggle('hint-ctx', hintCtx.has(i) && !hintTargets.has(i));
-    let bad = false;
-    if (m === 1) {
-      bad = (x > 0 && marks[i - 1] === 1) || (x < w - 1 && marks[i + 1] === 1) ||
-        (y > 0 && marks[i - w] === 1) || (y < h - 1 && marks[i + w] === 1);
-    }
+    const bad = violating.has(i);
     if (isClue(i)) {
       const st = ringStatus(i);
       b.classList.toggle('done', st === 'done');
@@ -302,6 +307,7 @@ function explain(s: Step): string {
         ? `테두리 표시된 숫자 ${n}의 고리에는 이미 ${n}개가 칠해졌어요. 고리의 나머지 칸은 비어 있어야 합니다.`
         : `숫자 ${n}의 고리에서 아직 정하지 않은 칸을 모두 칠해야 ${n}개를 채울 수 있어요.`;
     }
+    if (c.kind === 'no-2x2') return '2×2 네 칸을 모두 칠할 수는 없어요. 반짝이는 칸은 비어 있어야 합니다.';
     return '칠한 칸 바로 옆(상하좌우)은 칠할 수 없어요.';
   }
   if (s.technique === 'pair') {
@@ -341,7 +347,7 @@ interface Stats { solvedDates: string[] }
 
 function recordWin() {
   save();
-  if (puzzle.date !== localISO()) return; // 지난 퍼즐은 연속 기록에 안 들어감
+  if (!puzzle.date || puzzle.date !== localISO()) return; // 지난 퍼즐은 연속 기록에 안 들어감
   const st = store.get<Stats>('stats', { solvedDates: [] });
   if (!st.solvedDates.includes(puzzle.date)) st.solvedDates.push(puzzle.date);
   store.set('stats', st);
@@ -369,6 +375,9 @@ function renderStreak() {
 function shareText(): string {
   const tierEmoji = { easy: '🟩', medium: '🟨', hard: '🟧', expert: '🟥' }[puzzle.difficulty.tier];
   const url = location.origin + location.pathname;
+  if (!puzzle.date) {
+    return `플레이테스트 ${puzzle.rules} ${tierEmoji} ${TIER_LABEL[puzzle.difficulty.tier]}\n⏱ ${fmtTime(elapsed)} · 💡 ${hints}\n${location.href}`;
+  }
   return `메아리 #${puzzleNumber(puzzle.date)} ${tierEmoji} ${TIER_LABEL[puzzle.difficulty.tier]}\n⏱ ${fmtTime(elapsed)} · 💡 ${hints}\n${url}`;
 }
 
@@ -394,10 +403,74 @@ $('btn-share').addEventListener('click', async () => {
 
 /* ---------- 불러오기 ---------- */
 
+const TIER_SIZE: Record<Tier, number> = { easy: 6, medium: 7, hard: 7, expert: 8 };
+
+/** ?play=<규칙id>&seed=<n>&tier=<난이도>[&size=<n>] — 아무 규칙이나 즉석 생성해 플레이 (오너 플레이테스트용) */
+async function loadPlaytest(params: URLSearchParams): Promise<DailyPuzzle> {
+  const id = params.get('play')!;
+  const tier = (params.get('tier') ?? 'medium') as Tier;
+  if (!(tier in TIER_SIZE)) throw new Error(`unknown tier: ${tier}`);
+  const seed = Number(params.get('seed') ?? 1) >>> 0;
+  const size = Math.min(10, Math.max(4, Number(params.get('size') ?? TIER_SIZE[tier]) || TIER_SIZE[tier]));
+  const r = getRules(id);
+  $('meta').textContent = '퍼즐 생성 중…';
+  await new Promise((res) => setTimeout(res, 30)); // 문구를 먼저 그린다
+  const t0 = performance.now();
+  const p = generate(r, { width: size, height: size, seed, target: tier });
+  if (!p) throw new Error('generation failed');
+  const ms = Math.round(performance.now() - t0);
+  $('archive').closest('label')!.hidden = true;
+  $('meta').dataset.genMs = String(ms);
+  return { ...p, date: '' };
+}
+
 async function load() {
+  const params = new URLSearchParams(location.search);
+  if (params.has('play')) {
+    puzzle = await loadPlaytest(params);
+  } else {
+    puzzle = await loadDaily(params);
+  }
+  rules = getRules(puzzle.rules);
+  model = buildModel(puzzle, rules);
+  if (!puzzle.date) document.title = `플레이테스트 · ${rules.name}`;
+
+  $('rules-list').replaceChildren(
+    ...rules.rules.map((r) => {
+      const li = document.createElement('li');
+      li.textContent = r;
+      return li;
+    }),
+  );
+  const firstVisit = !store.get('seen-rules', false);
+  $<HTMLDetailsElement>('rules').open = firstVisit || !puzzle.date;
+  store.set('seen-rules', true);
+
+  const n = puzzle.width * puzzle.height;
+  const prog = store.get<Progress | null>(`progress:${puzzle.id}`, null);
+  marks = prog?.marks?.length === n ? prog.marks : new Array<Mark>(n).fill(0);
+  elapsed = prog?.elapsed ?? 0;
+  hints = prog?.hints ?? 0;
+  solved = prog?.solved ?? false;
+  started = false;
+
+  const tierLabel = TIER_LABEL[puzzle.difficulty.tier];
+  $('meta').textContent = puzzle.date
+    ? `#${puzzleNumber(puzzle.date)} · ${puzzle.date.replace(/-/g, '.')} · ${tierLabel} · ${puzzle.width}×${puzzle.height}`
+    : `플레이테스트 · ${puzzle.rules} · seed ${puzzle.seed} · ${tierLabel} · ${puzzle.width}×${puzzle.height}`;
+  timerEl.textContent = fmtTime(elapsed);
+  focusIdx = 0;
+  buildBoard();
+  render();
+  renderStreak();
+  if (solved) hintEl.textContent = puzzle.date
+    ? `이미 ${fmtTime(elapsed)}에 풀었어요. 내일 또 만나요!`
+    : `이미 ${fmtTime(elapsed)}에 풀었어요. 주소의 seed를 바꾸면 새 퍼즐이 나와요.`;
+}
+
+async function loadDaily(params: URLSearchParams): Promise<DailyPuzzle> {
   const idx: { dates: string[] } = await fetch('puzzles/index.json').then((r) => r.json());
   const today = localISO();
-  const params = new URLSearchParams(location.search);
   const available = idx.dates.filter((d) => d <= today);
   const fallback = available.at(-1) ?? idx.dates[0];
   let date = params.get('d') ?? fallback;
@@ -419,37 +492,7 @@ async function load() {
     location.href = u.toString();
   };
 
-  puzzle = await fetch(`puzzles/${date}.json`).then((r) => r.json());
-  rules = getRules(puzzle.rules);
-  model = buildModel(puzzle, rules);
-
-  $('rules-list').replaceChildren(
-    ...rules.rules.map((r) => {
-      const li = document.createElement('li');
-      li.textContent = r;
-      return li;
-    }),
-  );
-  const firstVisit = !store.get('seen-rules', false);
-  $<HTMLDetailsElement>('rules').open = firstVisit;
-  store.set('seen-rules', true);
-
-  const n = puzzle.width * puzzle.height;
-  const prog = store.get<Progress | null>(`progress:${puzzle.id}`, null);
-  marks = prog?.marks?.length === n ? prog.marks : new Array<Mark>(n).fill(0);
-  elapsed = prog?.elapsed ?? 0;
-  hints = prog?.hints ?? 0;
-  solved = prog?.solved ?? false;
-  started = false;
-
-  $('meta').textContent =
-    `#${puzzleNumber(puzzle.date)} · ${puzzle.date.replace(/-/g, '.')} · ${TIER_LABEL[puzzle.difficulty.tier]} · ${puzzle.width}×${puzzle.height}`;
-  timerEl.textContent = fmtTime(elapsed);
-  focusIdx = 0;
-  buildBoard();
-  render();
-  renderStreak();
-  if (solved) hintEl.textContent = `이미 ${fmtTime(elapsed)}에 풀었어요. 내일 또 만나요!`;
+  return fetch(`puzzles/${date}.json`).then((r) => r.json());
 }
 
 load().catch((err) => {

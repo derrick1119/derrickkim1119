@@ -52,13 +52,28 @@ export function ringOf(cell: number, w: number, h: number, d: number, metric: Me
   return out;
 }
 
+/** 플레이어용 규칙 설명 (플레이테스트 모드에서 그대로 보인다) */
+export function familyRuleText(p: FamilyParams): string[] {
+  const shape = p.metric === 'cheb'
+    ? `${2 * p.d + 1}×${2 * p.d + 1} 정사각형 테두리`
+    : `마름모 테두리(가로+세로 거리 ${p.d})`;
+  const out = [
+    '일부 칸을 칠하세요. 숫자 칸은 칠하지 않습니다.',
+    `숫자는 그 칸을 중심으로 한 ${shape}에 있는 칠한 칸의 수입니다.` +
+      (p.d > 1 ? ` 그 안쪽 칸은 세지 않아요.` : ''),
+  ];
+  if (p.global === 'notouch') out.push('칠한 칸끼리는 상하좌우로 맞닿을 수 없습니다.');
+  if (p.global === 'no2x2') out.push('2×2 네 칸을 모두 칠할 수는 없습니다.');
+  return out;
+}
+
 export function makeFamily(p: FamilyParams): RuleSet {
   const ring = (c: number, w: number, h: number) => ringOf(c, w, h, p.d, p.metric);
   return {
     id: familyId(p),
     name: familyId(p),
     tagline: `거리 ${p.d} ${p.metric} 고리, 전역 ${p.global}`,
-    rules: [`숫자 = 거리 ${p.d}(${p.metric}) 고리의 칠한 칸 수`, `전역 규칙: ${p.global}`],
+    rules: familyRuleText(p),
 
     constraints(pz: PuzzleData): CardConstraint[] {
       const { width: w, height: h } = pz;

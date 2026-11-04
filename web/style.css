@@ -66,7 +66,7 @@ button, select { font: inherit; color: inherit; }
 .logo .r2 { stroke-width: 1.5; opacity: .28; }
 h1 { margin: 0; font-size: 1.35rem; letter-spacing: -0.02em; }
 .meta { margin: 2px 0 0; font-size: .85rem; color: var(--muted); }
-.timer { font-variant-numeric: tabular-nums; font-size: 1.1rem; color: var(--muted); }
+.timer { font-variant-numeric: tabular-nums; font-size: 1.1rem; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
 
 .rules {
   background: var(--surface);

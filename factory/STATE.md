@@ -1,12 +1,13 @@
 # 공장 상태
 
 상태: RUNNING
-마지막 사이클: 0002 (2026-11-04, 규칙 계보 탐색기)
+마지막 사이클: 0003 (2026-11-04, 플레이테스트 모드)
 연속 실패: 0
 
 ## 제품
 - **메아리 (Echo)** — 숫자는 두 칸 너머(5×5 테두리)의 칠한 칸 수. 칠한 칸은 맞닿을 수 없음.
 - 데일리 은행: 2026-11-05 ~ 2027-01-03 (60일). 요일별 난이도: 월·화 쉬움 / 수·목 보통 / 금·토 어려움 / 일 지옥.
+- 플레이테스트: `?play=<규칙id>&seed=<n>&tier=<easy|medium|hard|expert>` — 아무 규칙이나 브라우저 즉석 생성 (번들 gzip 8.27KB).
 - 배포: `factory` 브랜치 → GitHub Pages (오너가 Settings → Pages → Source: GitHub Actions 설정 필요)
 
 ## 계기판 (echo, n=15)
@@ -25,7 +26,11 @@
 | echo | 0.517 | **출시 중** |
 
 ## 다음 할 일
-BACKLOG 맨 위 항목.
+BACKLOG 맨 위 `[ ]` — 인지 부하 지표 (d=3 우세가 '세기 부담' 반영 후에도 유지되는지).
 
 ## 오너에게
-- 규칙 탐색에서 echo보다 기계 지표가 높은 변형 2개를 찾았어요(고리 거리 3). 다음 사이클들에서 플레이테스트 모드를 만들면 링크로 직접 만져보고 '재미있다/아니다'만 알려주세요 — 기계가 못 재는 유일한 지표입니다.
+- **플레이테스트 모드가 생겼어요.** 아래 링크로 후보 규칙을 직접 풀어보고, 어느 쪽이 재미있는지 한 줄만 남겨주세요 (seed 숫자를 바꾸면 새 퍼즐).
+  - 후보 1위: https://derrick1119.github.io/derrickkim1119/?play=fam-d3-cheb-no2x2&seed=1&tier=medium
+  - 후보 2위: https://derrick1119.github.io/derrickkim1119/?play=fam-d3-cheb-none&seed=1&tier=medium
+  - 현재 제품(비교용): https://derrick1119.github.io/derrickkim1119/?play=echo&seed=1&tier=medium
+- 배포가 안 보이면 Settings → Pages → Source를 "GitHub Actions"로 설정해야 합니다.
