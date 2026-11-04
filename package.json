@@ -1,0 +1,30 @@
+{
+  "name": "puzzle-factory",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "자율 퍼즐 공장: 새로운 논리 퍼즐 규칙을 발명하고, 정답이 유일함을 증명하고, 매일 퍼즐을 출시한다.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "evaluate": "tsx scripts/evaluate.ts",
+    "bank": "tsx scripts/build-bank.ts",
+    "verify": "npm run typecheck && npm run test && npm run build",
+    "e2e": "tsx scripts/e2e.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/derrick1119/derrickkim1119.git"
+  },
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9",
+    "vite": "^7.3.7",
+    "vitest": "^3.2.7"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "rules": "echo",
+  "n": 15,
+  "generatedAt": "2026-11-04T16:11:30.220Z",
+  "tiers": {
+    "easy": {
+      "size": 6,
+      "hitRate": 1,
+      "genMs": 4,
+      "clueDensity": 0.307,
+      "techniqueMix": 0,
+      "avgScore": 15.7,
+      "failures": 0
+    },
+    "medium": {
+      "size": 7,
+      "hitRate": 1,
+      "genMs": 21,
+      "clueDensity": 0.264,
+      "techniqueMix": 0.24,
+      "avgScore": 43.9,
+      "failures": 0
+    },
+    "hard": {
+      "size": 7,
+      "hitRate": 0.933,
+      "genMs": 1139,
+      "clueDensity": 0.239,
+      "techniqueMix": 0.269,
+      "avgScore": 61.1,
+      "failures": 0
+    },
+    "expert": {
+      "size": 8,
+      "hitRate": 1,
+      "genMs": 198,
+      "clueDensity": 0.249,
+      "techniqueMix": 0.369,
+      "avgScore": 161.9,
+      "failures": 0
+    }
+  },
+  "depthSpread": 146.2,
+  "monotonic": true
+}

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>메아리 — 매일 하나의 논리 퍼즐</title>
+    <meta name="description" content="숫자는 두 칸 너머에서 울린다. 정답이 단 하나임이 증명된, 매일 새로운 논리 퍼즐." />
+    <meta name="theme-color" content="#f6f1e7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#16161a" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='4' fill='%23d9480f'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%23d9480f' stroke-width='2.5' opacity='.6'/%3E%3Ccircle cx='16' cy='16' r='15' fill='none' stroke='%23d9480f' stroke-width='1.5' opacity='.3'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="top">
+        <div class="brand">
+          <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+            <circle cx="16" cy="16" r="4" />
+            <circle cx="16" cy="16" r="10" class="r1" />
+            <circle cx="16" cy="16" r="15" class="r2" />
+          </svg>
+          <div>
+            <h1>메아리</h1>
+            <p class="meta" id="meta">불러오는 중…</p>
+          </div>
+        </div>
+        <div class="timer" id="timer" aria-live="off">0:00</div>
+      </header>
+
+      <details class="rules" id="rules">
+        <summary>규칙</summary>
+        <ol id="rules-list"></ol>
+        <p class="rules-tip">숫자를 누르거나 올려두면 그 숫자가 세는 고리가 표시돼요. 칸을 누를 때마다 <b>칠함 → 점(빈칸 확정) → 지움</b> 순서로 바뀝니다.</p>
+      </details>
+
+      <section class="board-wrap">
+        <div class="board" id="board" role="grid" aria-label="퍼즐 판"></div>
+      </section>
+
+      <p class="hint-msg" id="hint-msg" role="status" aria-live="polite"></p>
+
+      <nav class="controls">
+        <button type="button" id="btn-undo" aria-label="되돌리기">↶ 되돌리기</button>
+        <button type="button" id="btn-hint" class="primary">💡 힌트</button>
+        <button type="button" id="btn-reset" aria-label="처음부터">처음부터</button>
+      </nav>
+
+      <footer class="foot">
+        <label>지난 퍼즐 <select id="archive"></select></label>
+        <span id="streak"></span>
+      </footer>
+    </main>
+
+    <dialog id="win">
+      <h2>풀었어요!</h2>
+      <p id="win-text"></p>
+      <pre id="share-text"></pre>
+      <div class="dialog-actions">
+        <button type="button" id="btn-share" class="primary">결과 공유</button>
+        <button type="button" id="btn-close">닫기</button>
+      </div>
+    </dialog>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
