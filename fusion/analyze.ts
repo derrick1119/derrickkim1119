@@ -16,7 +16,7 @@ import { atomsOf, buildFusionRules, fusionId, knownGenre, withoutAtom, type Fusi
 
 const atomOfKind = (kind: string): string | null => (kind === 'clue-cell' || kind === 'givens' ? null : kind);
 
-function stepAtoms(m: Model, spec: FusionSpec, before: Int8Array, step: Step): Set<string> {
+export function stepAtoms(m: Model, spec: FusionSpec, before: Int8Array, step: Step): Set<string> {
   const out = new Set<string>();
   const add = (ci: number) => {
     const a = atomOfKind(m.cons[ci].kind);

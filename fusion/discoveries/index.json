@@ -81,6 +81,33 @@
     "foundAt": "2026-11-05"
   },
   {
+    "id": "fx-knight-x-balanced.nothree",
+    "name": "도약 저울 속 물결",
+    "fitness": 0.9362,
+    "synergy": 0.913,
+    "necessityMin": 0.969,
+    "hitRate": 0.969,
+    "density": 0.143,
+    "ingredients": [
+      {
+        "id": "knight",
+        "name": "나이트 도약",
+        "origin": "체스 나이트"
+      },
+      {
+        "id": "balanced",
+        "name": "반반",
+        "origin": "타쿠주·빈에리"
+      },
+      {
+        "id": "nothree",
+        "name": "셋 연속 금지",
+        "origin": "타쿠주·빈에리"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
     "id": "fx-knight-x-balanced",
     "name": "도약과 저울",
     "fitness": 0.9061,
@@ -120,6 +147,33 @@
         "id": "rowcol",
         "name": "줄 개수",
         "origin": "텐트·배틀십 (가장자리 개수)"
+      },
+      {
+        "id": "nothree",
+        "name": "셋 연속 금지",
+        "origin": "타쿠주·빈에리"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-knight-x-kline.nothree",
+    "name": "도약 쌍을 건넌 물결",
+    "fitness": 0.8757,
+    "synergy": 1,
+    "necessityMin": 1,
+    "hitRate": 0.75,
+    "density": 0.066,
+    "ingredients": [
+      {
+        "id": "knight",
+        "name": "나이트 도약",
+        "origin": "체스 나이트"
+      },
+      {
+        "id": "kline",
+        "name": "줄마다 둘",
+        "origin": "스타배틀·N퀸"
       },
       {
         "id": "nothree",
@@ -174,6 +228,28 @@
         "id": "kingtouch",
         "name": "대각선까지 맞닿기 금지",
         "origin": "스타배틀"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-bishop-x-balanced",
+    "name": "사선과 저울",
+    "fitness": 0.809,
+    "synergy": 0.826,
+    "necessityMin": 1,
+    "hitRate": 0.906,
+    "density": 0.17,
+    "ingredients": [
+      {
+        "id": "bishop",
+        "name": "비숍의 사선",
+        "origin": "체스 비숍"
+      },
+      {
+        "id": "balanced",
+        "name": "반반",
+        "origin": "타쿠주·빈에리"
       }
     ],
     "foundAt": "2026-11-05"
@@ -348,6 +424,33 @@
     "foundAt": "2026-11-05"
   },
   {
+    "id": "fx-bishop-rowcol-no2x2e",
+    "name": "사선 눈금을 건넌 그물",
+    "fitness": 0.6112,
+    "synergy": 0.707,
+    "necessityMin": 0.938,
+    "hitRate": 1,
+    "density": 0.319,
+    "ingredients": [
+      {
+        "id": "bishop",
+        "name": "비숍의 사선",
+        "origin": "체스 비숍"
+      },
+      {
+        "id": "rowcol",
+        "name": "줄 개수",
+        "origin": "텐트·배틀십 (가장자리 개수)"
+      },
+      {
+        "id": "no2x2e",
+        "name": "텅 빈 2×2 금지",
+        "origin": "헤야와케·누리카베 변형"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
     "id": "fx-rook-x-no2x2e",
     "name": "시선과 그물",
     "fitness": 0.5979,
@@ -360,6 +463,33 @@
         "id": "rook",
         "name": "룩의 시선",
         "origin": "체스 룩"
+      },
+      {
+        "id": "no2x2e",
+        "name": "텅 빈 2×2 금지",
+        "origin": "헤야와케·누리카베 변형"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-echo2-rowcol-no2x2e",
+    "name": "메아리 눈금을 건넌 그물",
+    "fitness": 0.5905,
+    "synergy": 0.628,
+    "necessityMin": 1,
+    "hitRate": 0.969,
+    "density": 0.305,
+    "ingredients": [
+      {
+        "id": "echo2",
+        "name": "두 칸 너머 고리",
+        "origin": "발명 공장의 메아리"
+      },
+      {
+        "id": "rowcol",
+        "name": "줄 개수",
+        "origin": "텐트·배틀십 (가장자리 개수)"
       },
       {
         "id": "no2x2e",

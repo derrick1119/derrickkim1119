@@ -1,0 +1,20 @@
+[
+ {
+  "cycle": "0001",
+  "tested": 60,
+  "total": 472,
+  "discoveries": 8
+ },
+ {
+  "cycle": "0002",
+  "tested": 90,
+  "total": 457,
+  "discoveries": 17
+ },
+ {
+  "cycle": "0003",
+  "tested": 130,
+  "total": 457,
+  "discoveries": 22
+ }
+]

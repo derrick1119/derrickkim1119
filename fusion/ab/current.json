@@ -1,0 +1,312 @@
+{
+ "round": 1,
+ "createdAt": "2026-11-05",
+ "status": "pending",
+ "A": {
+  "id": "fx-knight-rowcol-nothree",
+  "name": "도약 눈금의 물결",
+  "fun": {
+   "id": "fx-knight-rowcol-nothree",
+   "n": 20,
+   "fun": 0.765,
+   "se": 0.018,
+   "parts": {
+    "aha": 0.422,
+    "cascade": 0.755,
+    "interplay": 0.957,
+    "balance": 0.934,
+    "mental": 0.921,
+    "elegance": 0.722
+   }
+  },
+  "puzzles": [
+   {
+    "tier": "medium",
+    "id": "fx-knight-rowcol-nothree-6x6-v",
+    "seed": 31,
+    "rules": "fx-knight-rowcol-nothree",
+    "width": 6,
+    "height": 6,
+    "clues": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     2,
+     null,
+     3,
+     3,
+     null,
+     null,
+     1,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     1,
+     null,
+     null,
+     null,
+     0
+    ],
+    "edges": {
+     "rows": [
+      null,
+      null,
+      null,
+      4,
+      null,
+      2
+     ],
+     "cols": [
+      null,
+      null,
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    "solution": "100101011010100110110101001001001010",
+    "difficulty": {
+     "tier": "medium",
+     "score": 31,
+     "counts": {
+      "single": 23,
+      "pair": 2,
+      "trial": 0
+     },
+     "maxTrialDepth": 0
+    }
+   },
+   {
+    "tier": "hard",
+    "id": "fx-knight-rowcol-nothree-6x6-1q",
+    "seed": 62,
+    "rules": "fx-knight-rowcol-nothree",
+    "width": 6,
+    "height": 6,
+    "clues": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     0,
+     null,
+     null,
+     3,
+     null,
+     null,
+     null,
+     2,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     1,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "edges": {
+     "rows": [
+      null,
+      3,
+      null,
+      2,
+      null,
+      null
+     ],
+     "cols": [
+      null,
+      4,
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    "solution": "101010110010010101001100110011011010",
+    "difficulty": {
+     "tier": "hard",
+     "score": 34,
+     "counts": {
+      "single": 24,
+      "pair": 0,
+      "trial": 1
+     },
+     "maxTrialDepth": 2
+    }
+   }
+  ]
+ },
+ "B": {
+  "id": "fx-knight-x-balanced",
+  "name": "도약과 저울",
+  "fun": {
+   "id": "fx-knight-x-balanced",
+   "n": 20,
+   "fun": 0.829,
+   "se": 0.013,
+   "parts": {
+    "aha": 0.504,
+    "cascade": 0.868,
+    "interplay": 0.912,
+    "balance": 0.975,
+    "mental": 0.911,
+    "elegance": 0.911
+   }
+  },
+  "puzzles": [
+   {
+    "tier": "medium",
+    "id": "fx-knight-x-balanced-6x6-v",
+    "seed": 31,
+    "rules": "fx-knight-x-balanced",
+    "width": 6,
+    "height": 6,
+    "clues": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     1,
+     null,
+     1,
+     null,
+     null,
+     null,
+     null,
+     null,
+     5,
+     null,
+     null,
+     2,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     4,
+     0,
+     null,
+     null
+    ],
+    "solution": "110100001110101001010101101010010011",
+    "difficulty": {
+     "tier": "medium",
+     "score": 26,
+     "counts": {
+      "single": 14,
+      "pair": 3,
+      "trial": 0
+     },
+     "maxTrialDepth": 0
+    }
+   },
+   {
+    "tier": "hard",
+    "id": "fx-knight-x-balanced-6x6-1q",
+    "seed": 62,
+    "rules": "fx-knight-x-balanced",
+    "width": 6,
+    "height": 6,
+    "clues": [
+     null,
+     null,
+     null,
+     3,
+     null,
+     1,
+     null,
+     null,
+     null,
+     2,
+     null,
+     1,
+     null,
+     null,
+     null,
+     null,
+     null,
+     1,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     2,
+     null,
+     null,
+     null,
+     1,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "solution": "110010111000001110011001100101000111",
+    "difficulty": {
+     "tier": "hard",
+     "score": 27,
+     "counts": {
+      "single": 17,
+      "pair": 0,
+      "trial": 1
+     },
+     "maxTrialDepth": 2
+    }
+   }
+  ]
+ },
+ "diff": 0.064,
+ "z": 2.88,
+ "machinePick": "B"
+}

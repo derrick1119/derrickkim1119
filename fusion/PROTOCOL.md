@@ -35,7 +35,16 @@
    계기판/원자/생성기를 바꿨으면 영향받는 발견을 `npm run fusion:search -- --only <id>`로 재평가한다.
 8. **판정**: 통과+개선 → 커밋, BACKLOG `[x]`. 폐기 기준 해당 → 코드 되돌리고 실패 이유만 기록해 커밋.
 9. **새 가설 1~3개**를 BACKLOG에 추가 (원장에서 보이는 패턴 우선 — 예: "어떤 원자가 발견에 자주 등장하나").
+9-1. **재미 A|B** (오너 요청, 실험 0003):
+    - 채팅에 오너의 선택("A"/"B")이 와 있으면 먼저 `npx tsx fusion/cli-ab.ts choose A|B`. 승자가 기준선
+      (`fusion/ab/baseline.json`, 데일리 은행이 새 날짜에 쓰는 규칙)이 된다.
+    - `npx tsx fusion/cli-ab.ts run` — 새 발견의 재미 지표를 계산하고, 대기 중인 라운드가 없으면
+      기준선(A)에 도전할 새 아이디어(B)를 골라 `fusion/ab/current.json`에 쓴다. 대기 중이면 그대로 둔다.
+    - B 후보가 바닥나면 탐색·원자 추가로 새 아이디어를 만든다(사다리 2·3단계).
 10. **기록**: JOURNAL 맨 위 항목, STATE 갱신(탐색 진척 `시험/전체`, 발견 수, 챔피언, 연속 실패 수).
+10-1. **계기판 아티팩트 갱신** (매 사이클): `npx tsx fusion/cli-dashboard.ts --cycle NNNN` →
+    `fusion/reports/dashboard.html`을 STATE "계기판" 줄의 slug로 `publish_files` 재게시(base_version은 get_artifact로).
+    A|B 라운드가 새로 열렸으면 사이클 요약에 A·B 이름과 계기판 링크를 쓰고 오너에게 선택을 요청한다.
 11. **푸시**: `git push -u origin factory`. 거절되면 `git pull --rebase origin factory` → `npm run verify` 다시 → push.
     네트워크 실패는 2·4·8·16초 백오프로 최대 4회.
 
