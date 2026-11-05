@@ -36,6 +36,11 @@ const INCOMPATIBLE: [string, string][] = [
   ['no2x2f', 'notouch'],
   ['rowcol', 'kline'], // 바깥 숫자가 전부 2 → 장식
   ['rowcol', 'balanced'],
+  // 실험 0006: 줄마다 하나
+  ['kline1', 'kline'], ['kline1', 'balanced'],
+  ['kline1', 'rowcol'], // 바깥 숫자가 전부 1 → 장식
+  ['kline1', 'no2x2f'], // 자명하게 성립
+  ['kline1', 'nothree'], ['kline1', 'no2x2e'], ['kline1', 'connf'], // 6칸 이상 판에서 불가능
 ];
 
 export function fusionId(s: FusionSpec): string {
@@ -75,6 +80,7 @@ export function knownGenre(s: FusionSpec): string | null {
   if (s.cell === 'givens' && g === 'balanced.nothree') return '타쿠주/빈에리';
   if (s.cell === 'echo2' && !s.edge && g === 'notouch') return '메아리(발명 공장)';
   if (s.cell === 'givens' && g.includes('kline')) return '스타배틀류(영역 없음)';
+  if (s.cell === 'givens' && s.globals.includes('kline1')) return '룩 배치(스타배틀류)';
   if (!s.cell && s.edge === 'rowcol' && g === 'kingtouch') return '배틀십류';
   return null;
 }

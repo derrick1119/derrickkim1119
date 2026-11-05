@@ -137,6 +137,12 @@ export const ATOMS: Record<string, Atom> = {
     scope: (c, w, h) => ring(c, w, h, 2), hint: countHint('두 칸 너머 고리'),
   },
 
+  diag4: {
+    id: 'diag4', role: 'cell', name: '대각선 4칸', origin: '지뢰찾기의 모서리 이웃 (0006)', word: '모서리',
+    rule: '숫자 = 대각선으로 맞닿은 4칸 중 칠한 칸 수. 숫자 칸은 칠하지 않습니다.',
+    scope: (c, w, h) => offsets(c, w, h, DIAG), hint: countHint('대각선 4칸'),
+  },
+
   // ── 가장자리 원자 ────────────────────────────────────────────────────────
   rowcol: {
     id: 'rowcol', role: 'edge', name: '줄 개수', origin: '텐트·배틀십 (가장자리 개수)', word: '눈금',
@@ -177,6 +183,12 @@ export const ATOMS: Record<string, Atom> = {
     rule: '모든 가로줄과 세로줄에 정확히 2칸씩 칠합니다.',
     constraints: (w, h) => lines(w, h).map((cells) => ({ cells, min: 2, max: 2, kind: 'kline' })),
     hint: (v) => (v === 0 ? '이 줄에는 이미 2칸이 칠해졌어요.' : '이 줄에 2칸을 채우려면 남은 칸을 칠해야 해요.'),
+  },
+  kline1: {
+    id: 'kline1', role: 'global', name: '줄마다 하나', origin: '체스 룩 배치·라틴 방진 (0006)', word: '외길',
+    rule: '모든 가로줄과 세로줄에 정확히 1칸씩 칠합니다.',
+    constraints: (w, h) => lines(w, h).map((cells) => ({ cells, min: 1, max: 1, kind: 'kline1' })),
+    hint: (v) => (v === 0 ? '이 줄에는 이미 1칸이 칠해졌어요.' : '이 줄에 칠할 수 있는 칸이 하나뿐이에요.'),
   },
   balanced: {
     id: 'balanced', role: 'global', name: '반반', origin: '타쿠주·빈에리', word: '저울',
