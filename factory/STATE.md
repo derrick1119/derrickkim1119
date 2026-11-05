@@ -1,7 +1,8 @@
 # 공장 상태
 
 상태: RUNNING
-마지막 사이클: 0005 (2026-11-05, 상위 4개 재검증)
+마지막 사이클: 0006 (2026-11-05, 재미 지표 + A|B 1라운드)
+계기판: 07243dcf-3e0c-43ad-b779-dcd4f4e0056b (https://claude.ai/artifact/1t9cfp5KKbJGdCRYdjZLDg)
 연속 실패: 0
 
 ## 제품
@@ -27,13 +28,17 @@
 | fam-d3-cheb-no2x2 | 0.4613 ± 0.0084 | 0002 1위였으나 운이었음 — 노이즈 안 |
 | echo | 0.4399 ± 0.0182 | **출시 중** |
 
+## A|B 1라운드 (판정 대기)
+| | 규칙 | 재미 | fitness |
+|---|---|---|---|
+| A (챔피언) | echo 메아리 | 0.579 ± 0.010 | 0.440 |
+| B (도전자) | fam-d3-manh-notouch 마름모 메아리 | 0.637 ± 0.005 | 0.483 |
+
 ## 다음 할 일
-BACKLOG 맨 위 `[ ]` — explore 기본을 다중 시드(n=10 × 2)로 바꾸고 sd 함께 보고.
+매 사이클 A|B 투표 확인(3½단계). 판정 전엔 BACKLOG 맨 위 `[ ]` — 나이트 메아리 어려움 적중률 보정.
 
 ## 오너에게
-- **플레이테스트 모드가 생겼어요.** 아래 링크로 후보 규칙을 직접 풀어보고, 어느 쪽이 재미있는지 한 줄만 남겨주세요 (seed 숫자를 바꾸면 새 퍼즐).
-  - 이전 1위(재검증 후 4위): https://derrick1119.github.io/derrickkim1119/?play=fam-d3-cheb-no2x2&seed=1&tier=medium
-  - 이전 후보(재검증 대상 외): https://derrick1119.github.io/derrickkim1119/?play=fam-d3-cheb-none&seed=1&tier=medium
-  - **오리지널 후보 1순위**(마름모 고리+맞닿기 금지, 재검증으로 확정): https://derrick1119.github.io/derrickkim1119/?play=fam-d3-manh-notouch&seed=1&tier=medium
-  - 현재 제품(비교용): https://derrick1119.github.io/derrickkim1119/?play=echo&seed=1&tier=medium
-- 배포가 안 보이면 Settings → Pages → Source를 "GitHub Actions"로 설정해야 합니다.
+- **A|B 1라운드가 열렸어요.** 계기판에서 A(현재 메아리)와 B(마름모 메아리)를 나란히 풀어보고 버튼으로 골라주세요: https://claude.ai/artifact/1t9cfp5KKbJGdCRYdjZLDg
+  버튼이 안 되면 채팅으로 "A" 또는 "B"라고만 보내주셔도 됩니다. 다음 사이클이 읽고 반영합니다.
+- B를 고르면 데일리 규칙이 바뀌는데, 이미 만들어 둔 날짜(~2027-01-03)는 바꾸지 않는 규칙 때문에 01-04부터 적용됩니다.
+  더 빨리 바꾸려면 "아직 공개 안 된 미래 날짜는 다시 만들어도 된다"고 허락해 주세요.

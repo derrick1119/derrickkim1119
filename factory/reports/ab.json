@@ -1,0 +1,162 @@
+{
+  "generatedAt": "2026-11-05T02:18:20.933Z",
+  "n": 20,
+  "sets": 4,
+  "elapsedSec": 76,
+  "a": {
+    "id": "echo",
+    "name": "숫자는 두 칸 너머에서 울린다",
+    "fitness": 0.4399,
+    "fitnessSd": 0.0182,
+    "fun": 0.579,
+    "funSd": 0.01,
+    "eligible": false,
+    "tiers": {
+      "easy": {
+        "hitRate": 1,
+        "genMs": 2,
+        "clueDensity": 0.304,
+        "scanLoad": 9.365,
+        "fun": 0.413,
+        "tension": 0.467,
+        "spread": 0.772,
+        "aha": 0
+      },
+      "medium": {
+        "hitRate": 1,
+        "genMs": 11,
+        "clueDensity": 0.275,
+        "scanLoad": 10.205,
+        "fun": 0.615,
+        "tension": 0.587,
+        "spread": 0.655,
+        "aha": 0.603
+      },
+      "hard": {
+        "hitRate": 0.813,
+        "genMs": 358,
+        "clueDensity": 0.251,
+        "scanLoad": 10.21,
+        "fun": 0.598,
+        "tension": 0.673,
+        "spread": 0.64,
+        "aha": 0.483
+      },
+      "expert": {
+        "hitRate": 1,
+        "genMs": 100,
+        "clueDensity": 0.255,
+        "scanLoad": 10.8,
+        "fun": 0.524,
+        "tension": 0.755,
+        "spread": 0.586,
+        "aha": 0.23
+      }
+    }
+  },
+  "b": "fam-d3-manh-notouch",
+  "candidates": [
+    {
+      "id": "fam-d1-knight-notouch",
+      "name": "나이트 메아리, 전역 notouch",
+      "fitness": 0.4114,
+      "fitnessSd": 0.008,
+      "fun": 0.638,
+      "funSd": 0.015,
+      "eligible": false,
+      "tiers": {
+        "easy": {
+          "hitRate": 1,
+          "genMs": 1,
+          "clueDensity": 0.267,
+          "scanLoad": 4.935,
+          "fun": 0.358,
+          "tension": 0.242,
+          "spread": 0.831,
+          "aha": 0
+        },
+        "medium": {
+          "hitRate": 0.9,
+          "genMs": 21,
+          "clueDensity": 0.26,
+          "scanLoad": 5.42,
+          "fun": 0.653,
+          "tension": 0.35,
+          "spread": 0.776,
+          "aha": 0.833
+        },
+        "hard": {
+          "hitRate": 0.887,
+          "genMs": 64,
+          "clueDensity": 0.253,
+          "scanLoad": 5.393,
+          "fun": 0.67,
+          "tension": 0.387,
+          "spread": 0.782,
+          "aha": 0.843
+        },
+        "expert": {
+          "hitRate": 1,
+          "genMs": 56,
+          "clueDensity": 0.245,
+          "scanLoad": 5.683,
+          "fun": 0.59,
+          "tension": 0.525,
+          "spread": 0.715,
+          "aha": 0.528
+        }
+      }
+    },
+    {
+      "id": "fam-d3-manh-notouch",
+      "name": "거리 3 manh 고리, 전역 notouch",
+      "fitness": 0.4829,
+      "fitnessSd": 0.0012,
+      "fun": 0.637,
+      "funSd": 0.005,
+      "eligible": true,
+      "tiers": {
+        "easy": {
+          "hitRate": 1,
+          "genMs": 1,
+          "clueDensity": 0.246,
+          "scanLoad": 6.633,
+          "fun": 0.393,
+          "tension": 0.333,
+          "spread": 0.845,
+          "aha": 0
+        },
+        "medium": {
+          "hitRate": 1,
+          "genMs": 10,
+          "clueDensity": 0.249,
+          "scanLoad": 7.428,
+          "fun": 0.675,
+          "tension": 0.452,
+          "spread": 0.78,
+          "aha": 0.795
+        },
+        "hard": {
+          "hitRate": 0.9,
+          "genMs": 209,
+          "clueDensity": 0.234,
+          "scanLoad": 7.342,
+          "fun": 0.656,
+          "tension": 0.516,
+          "spread": 0.765,
+          "aha": 0.686
+        },
+        "expert": {
+          "hitRate": 1,
+          "genMs": 91,
+          "clueDensity": 0.216,
+          "scanLoad": 8.027,
+          "fun": 0.58,
+          "tension": 0.662,
+          "spread": 0.748,
+          "aha": 0.329
+        }
+      }
+    }
+  ]
+}

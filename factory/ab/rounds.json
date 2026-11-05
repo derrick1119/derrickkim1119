@@ -1,0 +1,15 @@
+{
+  "champion": "echo",
+  "rounds": [
+    {
+      "round": 1,
+      "a": "echo",
+      "b": "fam-d3-manh-notouch",
+      "bName": "마름모 메아리",
+      "proposedAt": "2026-11-05",
+      "experiment": "0006",
+      "winner": null,
+      "decidedAt": null
+    }
+  ]
+}

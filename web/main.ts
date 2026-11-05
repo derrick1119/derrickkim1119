@@ -425,7 +425,10 @@ async function loadPlaytest(params: URLSearchParams): Promise<DailyPuzzle> {
 }
 
 async function load() {
-  const params = new URLSearchParams(location.search);
+  // 쿼리가 막힌 환경(아티팩트 프레임 등)에선 #play=…&seed=… 해시도 받는다
+  const hash = location.hash.slice(1);
+  const params = new URLSearchParams(location.search || (hash.includes('=') ? hash : ''));
+  addEventListener('hashchange', () => location.reload());
   if (params.has('play')) {
     puzzle = await loadPlaytest(params);
   } else {

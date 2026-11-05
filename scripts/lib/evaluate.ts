@@ -1,4 +1,6 @@
+import { measureFun } from '../../engine/fun.ts';
 import { generate } from '../../engine/generator.ts';
+import { buildModel } from '../../engine/model.ts';
 import type { RuleSet, Tier } from '../../engine/types.ts';
 
 export const EVAL_PLAN: { tier: Tier; size: number }[] = [
@@ -22,6 +24,11 @@ export interface TierStats {
   ringClip: number;
   /** 판 안 칸 하나가 평균 몇 개 단서 고리에 속하는가 */
   overlap: number;
+  /** 재미 대리 지표 (engine/fun.ts) */
+  fun: number;
+  tension: number;
+  spread: number;
+  aha: number;
 }
 
 export interface EvalReport {
@@ -36,6 +43,8 @@ export interface EvalReport {
   loadFactor: number;
   /** fitnessV1 × loadFactor */
   fitness: number;
+  /** 보통·어려움·지옥 평균 재미 (0006) */
+  fun: number;
 }
 
 /** 사람이 편하게 세는 칸 수 기준 (지뢰찾기 단서 = 8칸) */
@@ -59,6 +68,7 @@ export function evaluateRules(rules: RuleSet, n: number, attempts = 40, seedBase
   for (const { tier, size } of EVAL_PLAN) {
     let hits = 0, ms = 0, density = 0, mix = 0, score = 0, fails = 0;
     let scan = 0, clip = 0, over = 0;
+    const fun = { fun: 0, tension: 0, spread: 0, aha: 0 };
     const full = fullRingSize(rules, size);
     for (let s = 0; s < n; s++) {
       const t0 = performance.now();
@@ -85,6 +95,8 @@ export function evaluateRules(rules: RuleSet, n: number, attempts = 40, seedBase
       scan += ringSum / k;
       clip += 1 - ringSum / (k * full);
       over += cover.reduce((a, b) => a + b, 0) / (size * size);
+      const fr = measureFun(buildModel(p, rules));
+      for (const k of Object.keys(fun) as (keyof typeof fun)[]) fun[k] += fr[k];
     }
     const ok = Math.max(1, n - fails);
     tiers[tier] = {
@@ -98,6 +110,10 @@ export function evaluateRules(rules: RuleSet, n: number, attempts = 40, seedBase
       scanLoad: +(scan / ok).toFixed(2),
       ringClip: +(clip / ok).toFixed(3),
       overlap: +(over / ok).toFixed(2),
+      fun: +(fun.fun / ok).toFixed(3),
+      tension: +(fun.tension / ok).toFixed(3),
+      spread: +(fun.spread / ok).toFixed(3),
+      aha: +(fun.aha / ok).toFixed(3),
     };
   }
   const list = EVAL_PLAN.map((p) => tiers[p.tier]);
@@ -120,5 +136,6 @@ export function evaluateRules(rules: RuleSet, n: number, attempts = 40, seedBase
     fitnessV1: +fitnessV1.toFixed(4),
     loadFactor: +loadFactor.toFixed(4),
     fitness: +(fitnessV1 * loadFactor).toFixed(4),
+    fun: +((tiers.medium.fun + tiers.hard.fun + tiers.expert.fun) / 3).toFixed(3),
   };
 }

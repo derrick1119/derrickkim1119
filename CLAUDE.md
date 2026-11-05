@@ -37,6 +37,8 @@
 1. **동기화**: `git fetch origin factory && git checkout factory && git pull origin factory`, `npm ci`.
 2. **읽기**: `factory/STATE.md`, `factory/BACKLOG.md`, `factory/JOURNAL.md` 마지막 3개 항목.
 3. **정지 조건 확인**: STATE의 `상태:`가 `BLOCKED`이면 아무것도 바꾸지 말고 종료한다.
+3½. **A|B 판정 확인**: 계기판 아티팩트(slug는 STATE의 `계기판:` 줄) DB의 `ab/round-<N>` 문서(`db_get`)와
+   채팅의 오너 메시지를 본다. 오너가 골랐으면 아래 "A|B 루프"의 *판정 처리*를 이번 사이클의 일로 한다(가설 선택 대신).
 4. **유지보수 우선**: 은행에 오늘 이후 퍼즐이 30일 미만이면 `npm run bank -- --days 90` 부터 한다.
 5. **가설 하나 선택**: BACKLOG 맨 위의 `[ ]` 항목 하나. (사이클당 하나. 크면 쪼개서 BACKLOG에 되돌려 넣는다.)
 6. **실험 기록 먼저**: `factory/experiments/NNNN-제목.md`에 가설 · 측정 지표 · **폐기 기준**을 코드 수정 *전에* 쓴다.
@@ -47,6 +49,19 @@
 9. **새 가설 1~3개**를 BACKLOG에 추가 (이번 결과에서 나온 것 우선). 아래 "발상 규칙" 참고.
 10. **기록**: JOURNAL 맨 위에 항목 추가, STATE 갱신(지표 표, 연속 실패 수, 다음 할 일).
 11. **커밋 & 푸시**: `git push -u origin factory`. 네트워크 실패 시 2·4·8·16초 백오프로 최대 4회.
+12. **계기판 갱신**: `npm run build && npm run dashboard` → `dashboard-dist/`의 index.html과 play/ 전체를
+   계기판 아티팩트에 `publish_files`로 다시 게시(slug + `get_artifact`의 최신 version). 게시 실패는 사이클 실패로 치지 않고 JOURNAL에 적는다.
+
+## A|B 루프 (오너 요청, 0006~)
+- **챔피언(A)** = 현재 기준 규칙, **도전자(B)** = 공장이 고른 새 아이디어. 상태는 `factory/ab/rounds.json`, 수치는 `factory/reports/ab.json`(`npm run abtest`).
+- **도전자 자격**: 전 난이도 적중률 ≥ 0.9, 단조, 어려움 생성 ≤ 2초. 자격자 중 **재미(fun) 최고**를 B로. 재미 차가 2×sd 안이면 fitness로 가른다.
+- 라운드가 열려 있는(winner = null) 동안: 평소처럼 BACKLOG를 진행하되, 도전자 풀을 넓히는 항목을 우선한다. 같은 라운드의 B는 바꾸지 않는다.
+- **판정 처리** (오너가 고른 다음 사이클):
+  1. rounds.json에 winner·decidedAt 기록, `champion` 갱신. JOURNAL에 "A|B N라운드 판정" 항목.
+  2. B가 이기면 오너 승인이 있는 것으로 보고 데일리 규칙을 B로 바꾼다: build-bank가 쓰는 규칙 id를 champion으로.
+     **기존 날짜 파일은 그대로**(가드레일) — 새 규칙은 은행의 마지막 날짜 다음 날부터 적용된다. 웹 문구(제목·규칙 설명)도 맞춘다.
+  3. 새 라운드 N+1을 연다: 새 챔피언을 A로, 새 도전자를 발굴해 B로(아래 "발상 규칙", 재미 지표로 비교). 계기판에 올린다.
+- 오너의 선택은 재미의 유일한 진짜 측정값이다. 선택 결과를 재미 지표와 비교해 지표가 틀렸으면 지표를 고치는 가설을 BACKLOG에 넣는다.
 
 ## 절대 규칙 (가드레일)
 - `npm run verify`가 실패한 상태로 push 금지. **테스트를 약화·삭제·skip 해서 통과시키지 않는다.**

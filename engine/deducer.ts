@@ -34,7 +34,8 @@ export function findSingle(m: Model, state: Int8Array): Step | null {
   return null;
 }
 
-export function findPair(m: Model, state: Int8Array): Step | null {
+/** each가 주어지면 첫 결과에서 멈추지 않고 가능한 pair 추론을 모두 넘긴다 (재미 지표용) */
+export function findPair(m: Model, state: Int8Array, each?: (s: Step) => void): Step | null {
   for (const [i, j] of m.pairs) {
     const A = m.cons[i], B = m.cons[j];
     const ea = evalConstraint(A, state);
@@ -60,8 +61,11 @@ export function findPair(m: Model, state: Int8Array): Step | null {
     ];
     for (const [cells, lo, hi] of groups) {
       if (cells.length === 0) continue;
-      if (hi === 0) return { technique: 'pair', cells, value: 0, constraints: [i, j] };
-      if (lo === cells.length) return { technique: 'pair', cells, value: 1, constraints: [i, j] };
+      let st: Step | null = null;
+      if (hi === 0) st = { technique: 'pair', cells, value: 0, constraints: [i, j] };
+      else if (lo === cells.length) st = { technique: 'pair', cells, value: 1, constraints: [i, j] };
+      if (st && !each) return st;
+      if (st) each!(st);
     }
   }
   return null;

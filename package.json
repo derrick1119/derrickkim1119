@@ -18,7 +18,9 @@
     "reverify": "tsx scripts/reverify.ts",
     "fusion:search": "tsx fusion/cli-search.ts",
     "fusion:bank": "tsx fusion/cli-bank.ts",
-    "fusion:e2e": "tsx fusion/e2e.ts"
+    "fusion:e2e": "tsx fusion/e2e.ts",
+    "abtest": "tsx scripts/abtest.ts",
+    "dashboard": "tsx scripts/dashboard.ts"
   },
   "repository": {
     "type": "git",

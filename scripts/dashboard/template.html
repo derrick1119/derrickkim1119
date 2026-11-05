@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>퍼즐 공장 계기판</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* 레이아웃: 실험실 계기판. 요약(상태·다음 실행) → 플레이 → 순위 차트 → 일지. 한 열, 넓은 화면에선 2열 타일. */
+:root {
+  --bg: #eef1f3;
+  --surface: #ffffff;
+  --ink: #18222b;
+  --muted: #5b6873;
+  --line: #d5dbe0;
+  --accent: #0f6c8c;
+  --accent-soft: #d6ebf2;
+  --ghost: #b9c6cf;
+  --good: #1d7a46;
+  --warn: #9a6400;
+  --font-display: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11171c; --surface: #19222a; --ink: #e4eaee; --muted: #93a2ad; --line: #2b3741;
+    --accent: #5cc0e0; --accent-soft: #173643; --ghost: #3a4a56; --good: #5fcf8f; --warn: #e0b050;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11171c; --surface: #19222a; --ink: #e4eaee; --muted: #93a2ad; --line: #2b3741;
+  --accent: #5cc0e0; --accent-soft: #173643; --ghost: #3a4a56; --good: #5fcf8f; --warn: #e0b050;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--font-body); }
+.wrap { max-width: 960px; margin: 0 auto; padding: 28px 16px 56px; display: grid; gap: 20px; }
+h1, h2 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 1.05rem; font-weight: 700; }
+p { margin: 0; }
+.sub { color: var(--muted); font-size: 0.9rem; }
+.mono, .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 500; border: 1px solid currentColor; }
+.pill.ok { color: var(--good); }
+.pill.ok::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.next { border-left: 4px solid var(--accent); }
+.big { font-family: var(--font-mono); font-size: 1.7rem; font-weight: 500; line-height: 1.2; }
+.sched { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sched li { display: grid; grid-template-columns: 4.2rem 6.4rem 1fr; gap: 10px; align-items: baseline; font-size: 0.9rem; }
+.sched li:first-child { font-weight: 700; }
+.sched .c { color: var(--muted); font-family: var(--font-mono); }
+.links { display: grid; gap: 8px; }
+.links a { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); text-decoration: none; background: var(--bg); }
+.links a:hover { border-color: var(--accent); }
+.links a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.links b { font-family: var(--font-mono); font-weight: 500; font-size: 0.85rem; word-break: break-all; }
+.links span { color: var(--muted); font-size: 0.82rem; grid-column: 1; }
+.links em { font-style: normal; color: var(--accent); font-size: 0.85rem; grid-row: 1 / span 2; grid-column: 2; align-self: center; }
+.chart-wrap { overflow-x: auto; }
+.chart { display: grid; gap: 7px; min-width: 520px; }
+.row { display: grid; grid-template-columns: 11.5rem 1fr 3.4rem 3.2rem; gap: 10px; align-items: center; font-size: 0.82rem; }
+.row .id { font-family: var(--font-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row.live .id { color: var(--accent); font-weight: 500; }
+.track { position: relative; height: 16px; background: linear-gradient(to right, var(--line) 1px, transparent 1px) 0 0 / 16.666% 100%; border-radius: 3px; }
+.bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
+.bar.v1 { background: var(--ghost); }
+.bar.v2 { background: var(--accent); top: 3px; bottom: 3px; }
+.row.dim .bar.v2 { opacity: 0.45; }
+.row .num { text-align: right; }
+.row .scan { color: var(--muted); text-align: right; font-family: var(--font-mono); }
+.axis { display: grid; grid-template-columns: 11.5rem 1fr 3.4rem 3.2rem; gap: 10px; font-size: 0.75rem; color: var(--muted); }
+.axis .ticks { display: flex; justify-content: space-between; font-family: var(--font-mono); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.82rem; color: var(--muted); }
+.legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 5px; }
+.journal { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.journal li { display: grid; grid-template-columns: 3.4rem 1fr; gap: 12px; }
+.journal .n { font-family: var(--font-mono); color: var(--muted); }
+.journal .t { font-weight: 700; }
+.tag { font-size: 0.72rem; padding: 1px 7px; border-radius: 4px; margin-left: 6px; font-weight: 500; vertical-align: 1px; }
+.tag.yes { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
+.tag.part { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+.facts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.85rem; color: var(--muted); }
+.facts b { color: var(--ink); font-family: var(--font-mono); font-weight: 500; }
+@media (max-width: 560px) {
+  .chart, .axis { min-width: 0 !important; }
+  .row { grid-template-columns: 1fr 3.4rem 2.8rem; row-gap: 2px; }
+  .row .id { grid-column: 1 / -1; }
+  .axis { grid-template-columns: 1fr 3.4rem 2.8rem; }
+  .axis > span:first-child { display: none; }
+}
+@media (max-width: 420px) {
+  .sched li { grid-template-columns: 3.6rem 5.6rem 1fr; font-size: 0.85rem; }
+  .big { font-size: 1.4rem; }
+}
+.ab { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.side { border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 10px; align-content: start; background: var(--bg); min-width: 0; }
+.side.win { border-color: var(--good); box-shadow: 0 0 0 2px color-mix(in srgb, var(--good) 35%, transparent); }
+.side h3 { margin: 0; font-size: 1rem; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.side h3 .badge { font-family: var(--font-mono); background: var(--accent); color: var(--surface); border-radius: 4px; padding: 0 7px; }
+.side ol { margin: 0; padding-left: 1.2rem; font-size: 0.88rem; display: grid; gap: 2px; }
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.metric { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; display: grid; }
+.metric span { font-size: 0.72rem; color: var(--muted); }
+.metric b { font-family: var(--font-mono); font-weight: 500; font-size: 1rem; }
+.metric b.up { color: var(--good); }
+.frame { width: 100%; height: 720px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.seeds { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 0.82rem; color: var(--muted); }
+button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 6px 12px; }
+button:hover { border-color: var(--accent); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+button.vote { background: var(--accent); color: var(--surface); border-color: var(--accent); font-weight: 700; padding: 10px 14px; }
+button.vote:disabled { opacity: 0.5; cursor: default; }
+.vote-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+#vote-msg { font-size: 0.88rem; }
+.why { font-size: 0.85rem; color: var(--muted); display: grid; gap: 4px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.84rem; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { color: var(--muted); font-weight: 500; }
+td.num { font-family: var(--font-mono); text-align: right; }
+.tbl { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <div>
+      <h1>퍼즐 공장 계기판</h1>
+      <p class="sub" id="hdr-sub"></p>
+    </div>
+    <span class="pill ok" id="hdr-pill"></span>
+  </header>
+
+  <section class="card next" id="ab-card">
+    <div>
+      <h2 id="ab-title">A|B 대결</h2>
+      <p class="sub" id="ab-sub"></p>
+    </div>
+    <div class="ab" id="ab"></div>
+    <div class="why" id="ab-why"></div>
+    <div class="vote-row">
+      <button type="button" class="vote" id="vote-a">A 유지</button>
+      <button type="button" class="vote" id="vote-b">B 채택</button>
+      <span id="vote-msg" class="sub"></span>
+    </div>
+  </section>
+
+  <section class="tiles">
+    <div class="card">
+      <h2>다음 자동 실행</h2>
+      <p class="big" id="next-time"></p>
+      <p class="sub">한국 시간 · 6시간마다 매시 22분 · 사이클마다 이 페이지도 갱신됩니다</p>
+      <ul class="sched" id="sched"></ul>
+    </div>
+    <div class="card">
+      <h2>제품 · 데일리</h2>
+      <div class="facts" id="facts"></div>
+      <p class="sub" id="product-note"></p>
+    </div>
+  </section>
+
+  <section class="card">
+    <div>
+      <h2>규칙 후보</h2>
+      <p class="sub">재미 = 긴장·퍼짐·아하의 평균(보통 이상 난이도). fitness = 난이도 통제·단서 희소·추론 다양성. 자격 = 전 난이도 적중률 ≥ 0.9, 단조, 어려움 생성 ≤ 2초.</p>
+    </div>
+    <div class="tbl"><table id="cands"></table></div>
+  </section>
+
+  <section class="card">
+    <h2>사이클 일지</h2>
+    <ul class="journal" id="journal"></ul>
+  </section>
+</main>
+<script id="data" type="application/json">/*DATA*/</script>
+<script>
+const D = JSON.parse(document.getElementById("data").textContent);
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+$("hdr-sub").textContent = `factory 브랜치 · 사이클 ${D.state.lastCycle} 기준 · ${D.generatedAt}`;
+$("hdr-pill").textContent = `${D.state.status} · 연속 실패 ${D.state.fails}`;
+
+const R = D.ab.round;
+$("ab-title").textContent = `A|B 대결 ${R.round}라운드`;
+$("ab-sub").textContent = R.winner
+  ? `결정됨: ${R.winner === "A" ? "A 유지" : "B 채택"} (${R.decidedAt}). 공장이 다음 도전자를 찾는 중입니다.`
+  : "두 규칙을 몇 판씩 풀어보고 더 재미있는 쪽을 골라주세요. 고른 쪽이 새 기준(챔피언)이 되고, 공장은 다시 새 도전자를 찾습니다.";
+const metric = (label, v, other, fmt = (x) => x.toFixed(3)) =>
+  `<div class="metric"><span>${label}</span><b class="${v > other ? "up" : ""}">${fmt(v)}</b></div>`;
+function side(key, s, o) {
+  return `<div class="side${R.winner === key ? " win" : ""}">
+    <h3><span class="badge">${key}</span>${esc(s.title)}<span class="sub mono">${esc(s.id)}</span></h3>
+    <ol>${s.rules.map((r) => `<li>${esc(r)}</li>`).join("")}</ol>
+    <div class="metrics">${metric("재미", s.fun, o.fun)}${metric("긴장", s.tension, o.tension)}${metric("퍼짐", s.spread, o.spread)}${metric("아하", s.aha, o.aha)}</div>
+    <div class="seeds"><span>퍼즐</span>${[1, 2, 3].map((n) => `<button type="button" data-side="${key}" data-seed="${n}" aria-pressed="${n === 1}">${n}</button>`).join("")}
+      <span>난이도</span><button type="button" data-side="${key}" data-tier="medium" aria-pressed="true">보통</button><button type="button" data-side="${key}" data-tier="hard" aria-pressed="false">어려움</button></div>
+    <iframe class="frame" id="frame-${key}" title="${key} 규칙 퍼즐" loading="lazy" src="play/index.html#play=${encodeURIComponent(s.id)}&seed=1&tier=medium"></iframe>
+  </div>`;
+}
+$("ab").innerHTML = side("A", D.ab.a, D.ab.b) + side("B", D.ab.b, D.ab.a);
+const sel = { A: { seed: 1, tier: "medium" }, B: { seed: 1, tier: "medium" } };
+$("ab").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-side]");
+  if (!b) return;
+  const k = b.dataset.side;
+  if (b.dataset.seed) sel[k].seed = Number(b.dataset.seed);
+  if (b.dataset.tier) sel[k].tier = b.dataset.tier;
+  document.querySelectorAll(`button[data-side="${k}"]`).forEach((x) =>
+    x.setAttribute("aria-pressed", String(Number(x.dataset.seed) === sel[k].seed || x.dataset.tier === sel[k].tier)));
+  const s = k === "A" ? D.ab.a : D.ab.b;
+  $("frame-" + k).src = `play/index.html#play=${encodeURIComponent(s.id)}&seed=${sel[k].seed}&tier=${sel[k].tier}`;
+});
+$("ab-why").innerHTML = D.ab.why.map((w) => `<p>${esc(w)}</p>`).join("");
+
+// 투표: 오너만 쓸 수 있는 공유 DB. 공장이 다음 사이클에 읽는다.
+const msg = $("vote-msg");
+const vA = $("vote-a"), vB = $("vote-b");
+const fallback = "여기서 저장할 수 없는 환경이에요. 채팅으로 \"A\" 또는 \"B\"라고 알려주셔도 됩니다.";
+const docPath = `ab/round-${R.round}`;
+function showChoice(c) {
+  if (!c) return;
+  msg.textContent = `저장됨: ${c.choice === "A" ? "A 유지" : "B 채택"} · 다음 사이클에 반영됩니다.`;
+  vA.setAttribute("aria-pressed", String(c.choice === "A"));
+  vB.setAttribute("aria-pressed", String(c.choice === "B"));
+}
+if (R.winner) { vA.disabled = vB.disabled = true; msg.textContent = "이번 라운드는 끝났어요."; }
+else {
+  msg.textContent = "투표 기능을 불러오는 중…";
+  let db = null;
+  (async () => {
+    try { db = window.claude && (await window.claude.use("db")); } catch { db = null; }
+    if (!db) { msg.textContent = fallback; return; }
+    try { const snap = await db.doc(docPath).get(); const v = snap && (snap.data ? snap.data() : snap); if (v && v.choice) showChoice(v); else msg.textContent = "아직 고르지 않았어요."; }
+    catch { msg.textContent = "아직 고르지 않았어요."; }
+  })();
+  const vote = async (choice) => {
+    if (!db) { msg.textContent = fallback; return; }
+    vA.disabled = vB.disabled = true;
+    try { await db.doc(docPath).set({ choice, at: new Date().toISOString(), a: D.ab.a.id, b: D.ab.b.id }); showChoice({ choice }); }
+    catch { msg.textContent = "저장하지 못했어요. 이 페이지의 소유자만 고를 수 있어요. 채팅으로 알려주셔도 됩니다."; }
+    vA.disabled = vB.disabled = false;
+  };
+  vA.onclick = () => vote("A");
+  vB.onclick = () => vote("B");
+}
+
+$("next-time").textContent = D.schedule[0]?.kst ?? "";
+$("sched").innerHTML = D.schedule.map((s) => `<li><span class="c">${s.cycle}</span><span>${esc(s.short)}</span><span>${esc(s.task)}</span></li>`).join("");
+$("facts").innerHTML = D.product.facts.map(([k, v]) => `<span>${esc(k)} <b>${esc(v)}</b></span>`).join("");
+$("product-note").textContent = D.product.note;
+
+$("cands").innerHTML = `<thead><tr><th>규칙</th><th>재미</th><th>fitness</th><th>최저 적중</th><th>어려움 ms</th><th>자격</th></tr></thead><tbody>` +
+  D.candidates.map((c) => `<tr><td class="mono">${esc(c.id)}${c.role ? ` <span class="tag yes">${c.role}</span>` : ""}</td><td class="num">${c.fun.toFixed(3)} ± ${c.funSd.toFixed(3)}</td><td class="num">${c.fitness.toFixed(3)}</td><td class="num">${c.minHit.toFixed(2)}</td><td class="num">${c.hardMs}</td><td>${c.eligible ? "✓" : "—"}</td></tr>`).join("") + "</tbody>";
+
+$("journal").innerHTML = D.journal.map((j) => `<li><span class="n">${j.n}</span><div><p class="t">${esc(j.title)}</p><p class="sub">${esc(j.result)}</p></div></li>`).join("");
+</script>
+</body>
+</html>
