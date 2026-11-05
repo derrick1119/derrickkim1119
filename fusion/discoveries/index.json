@@ -54,6 +54,33 @@
     "foundAt": "2026-11-05"
   },
   {
+    "id": "fx-echo2-x-kingtouch.no2x2e",
+    "name": "메아리 별과 그물",
+    "fitness": 1.0403,
+    "synergy": 0.985,
+    "necessityMin": 1,
+    "hitRate": 0.906,
+    "density": 0.071,
+    "ingredients": [
+      {
+        "id": "echo2",
+        "name": "두 칸 너머 고리",
+        "origin": "발명 공장의 메아리"
+      },
+      {
+        "id": "kingtouch",
+        "name": "대각선까지 맞닿기 금지",
+        "origin": "스타배틀"
+      },
+      {
+        "id": "no2x2e",
+        "name": "텅 빈 2×2 금지",
+        "origin": "헤야와케·누리카베 변형"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
     "id": "fx-knight-x-kingtouch.no2x2e",
     "name": "도약 별과 그물",
     "fitness": 0.9368,
@@ -157,6 +184,28 @@
     "foundAt": "2026-11-05"
   },
   {
+    "id": "fx-orth4-x-balanced",
+    "name": "십자를 건넌 저울",
+    "fitness": 0.888,
+    "synergy": 0.932,
+    "necessityMin": 1,
+    "hitRate": 0.938,
+    "density": 0.198,
+    "ingredients": [
+      {
+        "id": "orth4",
+        "name": "십자 4칸",
+        "origin": "여러 개수 단서 퍼즐"
+      },
+      {
+        "id": "balanced",
+        "name": "반반",
+        "origin": "타쿠주·빈에리"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
     "id": "fx-knight-x-kline.nothree",
     "name": "도약 쌍을 건넌 물결",
     "fitness": 0.8757,
@@ -196,6 +245,33 @@
         "id": "bishop",
         "name": "비숍의 사선",
         "origin": "체스 비숍"
+      },
+      {
+        "id": "nothree",
+        "name": "셋 연속 금지",
+        "origin": "타쿠주·빈에리"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-echo2-x-balanced.nothree",
+    "name": "메아리 저울 속 물결",
+    "fitness": 0.8423,
+    "synergy": 0.907,
+    "necessityMin": 0.938,
+    "hitRate": 0.938,
+    "density": 0.172,
+    "ingredients": [
+      {
+        "id": "echo2",
+        "name": "두 칸 너머 고리",
+        "origin": "발명 공장의 메아리"
+      },
+      {
+        "id": "balanced",
+        "name": "반반",
+        "origin": "타쿠주·빈에리"
       },
       {
         "id": "nothree",
@@ -321,6 +397,33 @@
         "id": "no2x2e",
         "name": "텅 빈 2×2 금지",
         "origin": "헤야와케·누리카베 변형"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-nb8-rowcol-kingtouch",
+    "name": "지뢰 눈금의 별",
+    "fitness": 0.6883,
+    "synergy": 0.824,
+    "necessityMin": 0.906,
+    "hitRate": 0.969,
+    "density": 0.27,
+    "ingredients": [
+      {
+        "id": "nb8",
+        "name": "이웃 8칸",
+        "origin": "지뢰찾기"
+      },
+      {
+        "id": "rowcol",
+        "name": "줄 개수",
+        "origin": "텐트·배틀십 (가장자리 개수)"
+      },
+      {
+        "id": "kingtouch",
+        "name": "대각선까지 맞닿기 금지",
+        "origin": "스타배틀"
       }
     ],
     "foundAt": "2026-11-05"
@@ -534,6 +637,28 @@
         "id": "bishop",
         "name": "비숍의 사선",
         "origin": "체스 비숍"
+      },
+      {
+        "id": "rowcol",
+        "name": "줄 개수",
+        "origin": "텐트·배틀십 (가장자리 개수)"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-echo2-rowcol-x",
+    "name": "메아리와 눈금",
+    "fitness": 0.5064,
+    "synergy": 0.511,
+    "necessityMin": 1,
+    "hitRate": 1,
+    "density": 0.334,
+    "ingredients": [
+      {
+        "id": "echo2",
+        "name": "두 칸 너머 고리",
+        "origin": "발명 공장의 메아리"
       },
       {
         "id": "rowcol",
