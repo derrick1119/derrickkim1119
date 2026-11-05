@@ -4,12 +4,13 @@
  *   npx tsx fusion/cli-ab.ts run          재미 지표 갱신(새 발견만) + 대기 중인 A|B가 없으면 새 B 선정
  *   npx tsx fusion/cli-ab.ts run --all    재미 지표 전부 다시 계산
  *   npx tsx fusion/cli-ab.ts choose A|B   오너의 선택 기록 → 승자가 기준선(A)이 된다
+ *   npx tsx fusion/cli-ab.ts choose none "이유"   둘 다 아님 — 기준선은 그대로, 라운드만 닫는다
  *
  * 기준선 = 데일리 은행이 새 날짜에 쓰는 규칙. 오너가 고르기 전엔 바뀌지 않는다.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { evaluateFun, type FunReport } from './fun.ts';
+import { CLARITY_MIN, clarity, evaluateFun, type FunReport } from './fun.ts';
 import { generateFusion } from './generator.ts';
 import { fusionName, parseFusionId, type FusionPuzzle } from './spec.ts';
 
@@ -28,8 +29,8 @@ const write = (p: string, v: unknown) => writeFileSync(p, JSON.stringify(v, null
 
 export interface Baseline { id: string; name: string; since: string; round: number }
 export interface AbSide { id: string; name: string; fun: FunReport; puzzles: (FusionPuzzle & { tier: string })[] }
-export interface AbRound { round: number; createdAt: string; status: 'pending' | 'decided'; A: AbSide; B: AbSide; diff: number; z: number; machinePick: 'A' | 'B' | '동률' }
-export interface AbDecision { round: number; at: string; A: string; B: string; machinePick: string; ownerPick: 'A' | 'B' }
+export interface AbRound { round: number; createdAt: string; status: 'pending' | 'decided'; A: AbSide; B: AbSide; diff: number; z: number; machinePick: 'A' | 'B' | '동률'; kind?: 'baseline' | 'challengers' }
+export interface AbDecision { round: number; at: string; A: string; B: string; machinePick: string; ownerPick: 'A' | 'B' | 'none'; note?: string }
 
 const today = new Date().toISOString().slice(0, 10);
 const [cmd, arg] = process.argv.slice(2);
@@ -50,9 +51,16 @@ function side(id: string): AbSide {
 if (cmd === 'choose') {
   const cur = read<AbRound | null>(P.current, null);
   if (!cur || cur.status !== 'pending') throw new Error('대기 중인 A|B가 없습니다.');
-  if (arg !== 'A' && arg !== 'B') throw new Error('choose A 또는 choose B');
-  history.push({ round: cur.round, at: today, A: cur.A.id, B: cur.B.id, machinePick: cur.machinePick, ownerPick: arg });
+  if (arg !== 'A' && arg !== 'B' && arg !== 'none') throw new Error('choose A | B | none "이유"');
+  const note = process.argv[4];
+  history.push({ round: cur.round, at: today, A: cur.A.id, B: cur.B.id, machinePick: cur.machinePick, ownerPick: arg, ...(note ? { note } : {}) });
   cur.status = 'decided';
+  if (arg === 'none') {
+    write(P.history, history);
+    write(P.current, cur);
+    console.log(`라운드 ${cur.round}: 둘 다 아님 (${note ?? ''}) → 기준선 유지 ${baseline.id}`);
+    process.exit(0);
+  }
   const win = arg === 'A' ? cur.A : cur.B;
   write(P.baseline, { id: win.id, name: win.name, since: today, round: cur.round } satisfies Baseline);
   write(P.history, history);
@@ -73,14 +81,17 @@ if (cmd === 'choose') {
   if (cur && cur.status === 'pending') console.log(`A|B 라운드 ${cur.round} 오너 선택 대기 중 — 새 B를 만들지 않음`);
   else {
     const seen = new Set(history.flatMap((h) => [h.A, h.B]));
-    const pick = ids.filter((id) => id !== baseline.id && !seen.has(id)).sort((a, b) => fun[b].fun - fun[a].fun)[0];
-    if (!pick) console.log('새 B 후보 없음 — 탐색·원자 추가로 발견을 늘려야 함');
+    const eligible = ids.filter((id) => id !== baseline.id && !seen.has(id) && clarity(parseFusionId(id)!) >= CLARITY_MIN).sort((a, b) => fun[b].fun - fun[a].fun);
+    // 실험 0005: 오너가 기준선까지 "둘 다 아님"으로 물렸고 기준선이 이해도 미달이면, 쉬운 후보 둘끼리 겨룬다
+    const kind = history.at(-1)?.ownerPick === 'none' && clarity(parseFusionId(baseline.id)!) < CLARITY_MIN ? 'challengers' : 'baseline';
+    const [aId, bId] = kind === 'challengers' ? eligible : [baseline.id, eligible[0]];
+    if (!aId || !bId) console.log('새 B 후보 없음 — 탐색·원자 추가로 발견을 늘려야 함');
     else {
-      const A = side(baseline.id), B = side(pick);
+      const A = side(aId), B = side(bId);
       const diff = B.fun.fun - A.fun.fun;
       const z = diff / Math.max(1e-6, Math.hypot(A.fun.se, B.fun.se));
-      const round = (cur?.round ?? 0) + 1;
-      const r: AbRound = { round, createdAt: today, status: 'pending', A, B, diff: +diff.toFixed(3), z: +z.toFixed(2), machinePick: z > 1 ? 'B' : z < -1 ? 'A' : '동률' };
+      const round = Math.max(cur?.round ?? 0, history.at(-1)?.round ?? 0) + 1;
+      const r: AbRound = { round, createdAt: today, status: 'pending', A, B, diff: +diff.toFixed(3), z: +z.toFixed(2), machinePick: z > 1 ? 'B' : z < -1 ? 'A' : '동률', kind };
       write(P.current, r);
       console.log(`A|B 라운드 ${round}: A=${A.id} (${A.fun.fun}) vs B=${B.id} (${B.fun.fun}) · z=${r.z} · 기계 추천 ${r.machinePick}`);
     }

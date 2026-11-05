@@ -57,12 +57,12 @@ function chips(id: string) {
   return atomsOf(parseFusionId(id)!).map((a) => `<li title="${esc(a.origin)}">${esc(a.name)}</li>`).join('');
 }
 
-function sideCard(key: 'A' | 'B', s: AbRound['A'], other: AbRound['A']) {
+function sideCard(key: 'A' | 'B', s: AbRound['A'], other: AbRound['A'], kind: AbRound['kind']) {
   const bars = FUN_PARTS.map((k) => {
     const v = s.fun.parts[k], o = other.fun.parts[k];
     return `<div class="bar"><span>${FUN_LABEL[k]}</span><i style="--v:${(v * 100).toFixed(0)}%" class="${v > o + 0.03 ? 'up' : ''}"></i><b>${v.toFixed(2)}</b></div>`;
   }).join('');
-  const role = key === 'A' ? '기존 아이디어 · 지금 데일리 규칙' : '새 아이디어 · 도전자';
+  const role = kind === 'challengers' ? `쉬운 후보 ${key === 'A' ? 1 : 2} · 이해도 ${s.fun.parts.clarity.toFixed(2)}` : key === 'A' ? '기존 아이디어 · 지금 데일리 규칙' : '새 아이디어 · 도전자';
   return `<article class="side side-${key}">
   <header><span class="tag">${key}</span><div><p class="eyebrow">${role}</p><h3>${esc(s.name)}</h3></div></header>
   <ul class="chips">${chips(s.id)}</ul>
@@ -78,14 +78,14 @@ if (cur) {
   const verdict = cur.machinePick === '동률' ? '두 안의 차이가 오차 범위 안이라 기계 판정은 동률입니다.' : `기계 판정은 <b>${cur.machinePick}</b>입니다 (차이 ${cur.diff > 0 ? '+' : ''}${cur.diff.toFixed(3)}, z = ${cur.z}).`;
   abHtml = `<div class="ab-head">
   <span class="pill ${pending ? 'wait' : 'done'}">${pending ? '오너 선택 대기' : '결정됨'}</span>
-  <p>${pending ? '두 퍼즐을 직접 풀어 보고, <b>채팅에 “A” 또는 “B”라고 답해 주세요.</b> 고른 쪽이 다음 데일리 규칙(기준선)이 되고, 공장은 그 기준선에 도전할 새 아이디어를 찾습니다.' : '이 라운드는 결정됐습니다. 다음 사이클에 새 도전자를 고릅니다.'} ${verdict} 재미 점수는 풀이 기록에서 뽑은 추정치라서, 최종 판단은 직접 풀어 본 느낌으로 해 주세요.</p>
+  <p>${pending && cur.kind === 'challengers' ? '지난 라운드 피드백(“너무 복잡해서 이해하기 어렵다”)을 반영해, 규칙이 두 줄뿐인 쉬운 후보 둘을 골랐습니다. 지금 규칙은 이해도 미달이라 이번엔 빠졌습니다. <b>채팅에 “A” 또는 “B”라고 답해 주세요.</b> 고른 쪽이 새 데일리 규칙(기준선)이 됩니다.' : pending ? '두 퍼즐을 직접 풀어 보고, <b>채팅에 “A” 또는 “B”라고 답해 주세요.</b> 고른 쪽이 다음 데일리 규칙(기준선)이 되고, 공장은 그 기준선에 도전할 새 아이디어를 찾습니다.' : '이 라운드는 결정됐습니다. 다음 사이클에 새 도전자를 고릅니다.'} ${verdict} 재미 점수는 풀이 기록에서 뽑은 추정치라서, 최종 판단은 직접 풀어 본 느낌으로 해 주세요.</p>
 </div>
-<div class="ab">${sideCard('A', cur.A, cur.B)}${sideCard('B', cur.B, cur.A)}</div>`;
+<div class="ab">${sideCard('A', cur.A, cur.B, cur.kind)}${sideCard('B', cur.B, cur.A, cur.kind)}</div>`;
 }
 
 const discRows = discoveries.map((d, i) => {
   const mark = d.id === cur?.A.id ? '<span class="mini a">A</span>' : d.id === cur?.B.id ? '<span class="mini b">B</span>' : '';
-  return `<tr><td class="num">${i + 1}</td><td>${esc(d.name)} ${mark}</td><td class="ing">${d.ingredients.map((x) => esc(x.name)).join(' × ')}</td><td class="num">${f3(d.fitness)}</td><td class="num">${f3(fun[d.id]?.fun)}</td><td class="num">${d.synergy.toFixed(2)}</td><td class="num">${d.necessityMin.toFixed(2)}</td></tr>`;
+  return `<tr><td class="num">${i + 1}</td><td>${esc(d.name)} ${mark}</td><td class="ing">${d.ingredients.map((x) => esc(x.name)).join(' × ')}</td><td class="num">${f3(d.fitness)}</td><td class="num">${f3(fun[d.id]?.fun)}</td><td class="num">${f3(fun[d.id]?.parts.clarity)}</td><td class="num">${d.synergy.toFixed(2)}</td><td class="num">${d.necessityMin.toFixed(2)}</td></tr>`;
 }).join('');
 
 const atomTable = atomRows.map(({ a, t, d, rate }) => `<tr><td>${esc(a.name)}</td><td class="ing">${esc(a.origin)}</td><td class="num">${t}</td><td class="num">${d}</td><td class="num"><span class="meter" style="--v:${(rate * 100).toFixed(0)}%"></span>${pct(rate)}</td></tr>`).join('');
@@ -106,7 +106,7 @@ const journal = readFileSync(join(root, 'JOURNAL.md'), 'utf8').split(/^## /m).sl
 }).join('');
 
 const histRows = history.length
-  ? history.map((h) => `<tr><td class="num">${h.round}</td><td>${h.at}</td><td>${esc(h.A)}</td><td>${esc(h.B)}</td><td>${h.machinePick}</td><td><b>${h.ownerPick}</b></td></tr>`).join('')
+  ? history.map((h) => `<tr><td class="num">${h.round}</td><td>${h.at}</td><td>${esc(h.A)}</td><td>${esc(h.B)}</td><td>${h.machinePick}</td><td><b>${h.ownerPick === 'none' ? '둘 다 아님' : h.ownerPick}</b>${h.note ? `<br><span class="muted">${esc(h.note)}</span>` : ''}</td></tr>`).join('')
   : '<tr><td colspan="6" class="muted">아직 오너 선택 기록이 없습니다. 첫 선택부터 재미 지표 가중치 보정에 씁니다.</td></tr>';
 
 const bundle = (await build({ entryPoints: [join(root, 'dashboard', 'player.ts')], bundle: true, minify: true, format: 'iife', write: false, target: 'es2022' })).outputFiles[0].text;
@@ -145,8 +145,8 @@ const html = `<!DOCTYPE html>
 
 <section aria-labelledby="disc-h">
   <h2 id="disc-h">발견 순위</h2>
-  <p class="muted">fitness = 생성 품질(적중률·단서 밀도·융합도·필수성). 재미 = 풀이 흐름에서 뽑은 추정치(아하·열쇠·맞물림·고른 재료·머릿속 부담·간결함의 가중 기하평균).</p>
-  <div class="scroll"><table><thead><tr><th>#</th><th>이름</th><th>재료</th><th>fitness</th><th>재미</th><th>융합도</th><th>필수성</th></tr></thead><tbody>${discRows}</tbody></table></div>
+  <p class="muted">fitness = 생성 품질(적중률·단서 밀도·융합도·필수성). 재미 = 이해도(규칙 수·낯섦, 가중치 2)와 풀이 흐름(아하·열쇠·맞물림·고른 재료·머릿속 부담·간결함)의 가중 기하평균. 이해도 0.7 미만은 A|B에 오르지 않습니다.</p>
+  <div class="scroll"><table><thead><tr><th>#</th><th>이름</th><th>재료</th><th>fitness</th><th>재미</th><th>이해도</th><th>융합도</th><th>필수성</th></tr></thead><tbody>${discRows}</tbody></table></div>
 </section>
 
 <div class="two">

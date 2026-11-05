@@ -9,9 +9,10 @@ import { stepAtoms } from './analyze.ts';
 import { clueCount, generateFusion } from './generator.ts';
 import { atomsOf, buildFusionRules, type FusionPuzzle, type FusionSpec } from './spec.ts';
 
-export const FUN_PARTS = ['aha', 'cascade', 'interplay', 'balance', 'mental', 'elegance'] as const;
+export const FUN_PARTS = ['clarity', 'aha', 'cascade', 'interplay', 'balance', 'mental', 'elegance'] as const;
 export type FunPart = (typeof FUN_PARTS)[number];
 export const FUN_LABEL: Record<FunPart, string> = {
+  clarity: '이해도',
   aha: '아하',
   cascade: '열쇠',
   interplay: '맞물림',
@@ -19,9 +20,27 @@ export const FUN_LABEL: Record<FunPart, string> = {
   mental: '머릿속 부담',
   elegance: '간결함',
 };
-export const FUN_WEIGHT: Record<FunPart, number> = { aha: 1, cascade: 1, interplay: 1.5, balance: 1, mental: 1, elegance: 1 };
+export const FUN_WEIGHT: Record<FunPart, number> = { clarity: 2, aha: 1, cascade: 1, interplay: 1.5, balance: 1, mental: 1, elegance: 1 };
 
 const clamp = (x: number) => Math.max(0, Math.min(1, x));
+
+/**
+ * 원자 친숙도 (실험 0005, 임시값): 처음 보는 사람이 머릿속에 바로 그릴 수 있는가.
+ * 새 원자를 추가하면 여기에도 값을 넣는다 (없으면 0.5).
+ */
+export const FAMILIARITY: Record<string, number> = {
+  nb8: 1, orth4: 1, givens: 1, rowcol: 0.9, rook: 0.7, bishop: 0.5, echo2: 0.4, knight: 0.35,
+  notouch: 0.9, kline: 0.9, balanced: 0.9, kingtouch: 0.8, nothree: 0.8, no2x2f: 0.8, no2x2e: 0.7, conne: 0.6, connf: 0.6,
+};
+/** 도전자 자격 (실험 0005): 이 값 미만은 A|B에 올리지 않는다 */
+export const CLARITY_MIN = 0.7;
+
+/** 이해도 = 외울 규칙 수 계수 × 가장 낯선 규칙의 친숙도 */
+export function clarity(spec: FusionSpec): number {
+  const atoms = atomsOf(spec);
+  const count = ({ 1: 1, 2: 1, 3: 0.6, 4: 0.35 } as Record<number, number>)[atoms.length] ?? 0.2;
+  return +(count * Math.min(...atoms.map((a) => FAMILIARITY[a.id] ?? 0.5))).toFixed(3);
+}
 
 export function funOfPuzzle(spec: FusionSpec, p: FusionPuzzle): Record<FunPart, number> {
   const m = buildModel(p, buildFusionRules(spec));
@@ -55,6 +74,7 @@ export function funOfPuzzle(spec: FusionSpec, p: FusionPuzzle): Record<FunPart, 
   const atomCost = { 1: 1, 2: 1, 3: 0.85, 4: 0.7 }[atomsOf(spec).length] ?? 0.6;
   const density = clueCount(p) / (p.width * p.height);
   return {
+    clarity: clarity(spec),
     aha: clamp(1 - Math.abs(r - 0.3) / 0.3),
     cascade: clamp(meanCascade / 6),
     interplay: hard ? cross / hard : 0,

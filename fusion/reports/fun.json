@@ -2,9 +2,10 @@
  "fx-knight-rowcol-nothree": {
   "id": "fx-knight-rowcol-nothree",
   "n": 20,
-  "fun": 0.765,
-  "se": 0.018,
+  "fun": 0.586,
+  "se": 0.01,
   "parts": {
+   "clarity": 0.21,
    "aha": 0.422,
    "cascade": 0.755,
    "interplay": 0.957,
@@ -16,9 +17,10 @@
  "fx-nb8-x-balanced.notouch": {
   "id": "fx-nb8-x-balanced.notouch",
   "n": 20,
-  "fun": 0.768,
-  "se": 0.006,
+  "fun": 0.714,
+  "se": 0.004,
   "parts": {
+   "clarity": 0.54,
    "aha": 0.273,
    "cascade": 1,
    "interplay": 1,
@@ -30,9 +32,10 @@
  "fx-rook-x-balanced.notouch": {
   "id": "fx-rook-x-balanced.notouch",
   "n": 20,
-  "fun": 0.755,
-  "se": 0.005,
+  "fun": 0.668,
+  "se": 0.003,
   "parts": {
+   "clarity": 0.42,
    "aha": 0.283,
    "cascade": 1,
    "interplay": 1,
@@ -44,9 +47,10 @@
  "fx-knight-x-kingtouch.no2x2e": {
   "id": "fx-knight-x-kingtouch.no2x2e",
   "n": 20,
-  "fun": 0.608,
-  "se": 0.053,
+  "fun": 0.484,
+  "se": 0.035,
   "parts": {
+   "clarity": 0.21,
    "aha": 0.209,
    "cascade": 0.782,
    "interplay": 0.725,
@@ -58,9 +62,10 @@
  "fx-knight-x-balanced": {
   "id": "fx-knight-x-balanced",
   "n": 20,
-  "fun": 0.829,
-  "se": 0.013,
+  "fun": 0.69,
+  "se": 0.008,
   "parts": {
+   "clarity": 0.35,
    "aha": 0.504,
    "cascade": 0.868,
    "interplay": 0.912,
@@ -72,9 +77,10 @@
  "fx-bishop-x-nothree": {
   "id": "fx-bishop-x-nothree",
   "n": 20,
-  "fun": 0.604,
-  "se": 0.039,
+  "fun": 0.58,
+  "se": 0.029,
   "parts": {
+   "clarity": 0.5,
    "aha": 0.349,
    "cascade": 0.793,
    "interplay": 0.458,
@@ -86,9 +92,10 @@
  "fx-givens-rowcol-kingtouch": {
   "id": "fx-givens-rowcol-kingtouch",
   "n": 20,
-  "fun": 0.623,
-  "se": 0.053,
+  "fun": 0.583,
+  "se": 0.042,
   "parts": {
+   "clarity": 0.48,
    "aha": 0.311,
    "cascade": 0.508,
    "interplay": 0.8,
@@ -100,9 +107,10 @@
  "fx-nb8-x-kline": {
   "id": "fx-nb8-x-kline",
   "n": 20,
-  "fun": 0.777,
-  "se": 0.026,
+  "fun": 0.803,
+  "se": 0.021,
   "parts": {
+   "clarity": 0.9,
    "aha": 0.7,
    "cascade": 0.629,
    "interplay": 0.73,
@@ -114,9 +122,10 @@
  "fx-knight-x-kingtouch": {
   "id": "fx-knight-x-kingtouch",
   "n": 20,
-  "fun": 0.595,
-  "se": 0.049,
+  "fun": 0.528,
+  "se": 0.036,
   "parts": {
+   "clarity": 0.35,
    "aha": 0.363,
    "cascade": 0.654,
    "interplay": 0.458,
@@ -128,9 +137,10 @@
  "fx-echo2-x-kline.no2x2e": {
   "id": "fx-echo2-x-kline.no2x2e",
   "n": 20,
-  "fun": 0.755,
-  "se": 0.025,
+  "fun": 0.595,
+  "se": 0.015,
   "parts": {
+   "clarity": 0.24,
    "aha": 0.772,
    "cascade": 0.578,
    "interplay": 0.743,
@@ -142,9 +152,10 @@
  "fx-orth4-rowcol-no2x2e": {
   "id": "fx-orth4-rowcol-no2x2e",
   "n": 20,
-  "fun": 0.669,
-  "se": 0.028,
+  "fun": 0.607,
+  "se": 0.02,
   "parts": {
+   "clarity": 0.42,
    "aha": 0.567,
    "cascade": 0.71,
    "interplay": 0.573,
@@ -156,9 +167,10 @@
  "fx-nb8-x-kingtouch": {
   "id": "fx-nb8-x-kingtouch",
   "n": 20,
-  "fun": 0.627,
-  "se": 0.04,
+  "fun": 0.661,
+  "se": 0.033,
   "parts": {
+   "clarity": 0.8,
    "aha": 0.624,
    "cascade": 0.689,
    "interplay": 0.447,
@@ -170,9 +182,10 @@
  "fx-nb8-x-no2x2e.notouch": {
   "id": "fx-nb8-x-no2x2e.notouch",
   "n": 20,
-  "fun": 0.776,
-  "se": 0.018,
+  "fun": 0.681,
+  "se": 0.012,
   "parts": {
+   "clarity": 0.42,
    "aha": 0.645,
    "cascade": 0.712,
    "interplay": 0.738,
@@ -184,9 +197,10 @@
  "fx-bishop-x-kingtouch": {
   "id": "fx-bishop-x-kingtouch",
   "n": 20,
-  "fun": 0.646,
-  "se": 0.037,
+  "fun": 0.611,
+  "se": 0.027,
   "parts": {
+   "clarity": 0.5,
    "aha": 0.51,
    "cascade": 0.811,
    "interplay": 0.475,
@@ -198,9 +212,10 @@
  "fx-rook-x-no2x2e": {
   "id": "fx-rook-x-no2x2e",
   "n": 20,
-  "fun": 0.601,
-  "se": 0.036,
+  "fun": 0.622,
+  "se": 0.029,
   "parts": {
+   "clarity": 0.7,
    "aha": 0.692,
    "cascade": 0.611,
    "interplay": 0.375,
@@ -212,9 +227,10 @@
  "fx-knight-rowcol-x": {
   "id": "fx-knight-rowcol-x",
   "n": 20,
-  "fun": 0.697,
-  "se": 0.042,
+  "fun": 0.6,
+  "se": 0.029,
   "parts": {
+   "clarity": 0.35,
    "aha": 0.551,
    "cascade": 0.736,
    "interplay": 0.688,
@@ -226,9 +242,10 @@
  "fx-bishop-rowcol-x": {
   "id": "fx-bishop-rowcol-x",
   "n": 20,
-  "fun": 0.631,
-  "se": 0.033,
+  "fun": 0.601,
+  "se": 0.025,
   "parts": {
+   "clarity": 0.5,
    "aha": 0.728,
    "cascade": 0.62,
    "interplay": 0.379,
@@ -240,9 +257,10 @@
  "fx-knight-x-balanced.nothree": {
   "id": "fx-knight-x-balanced.nothree",
   "n": 20,
-  "fun": 0.763,
-  "se": 0.022,
+  "fun": 0.585,
+  "se": 0.014,
   "parts": {
+   "clarity": 0.21,
    "aha": 0.423,
    "cascade": 0.823,
    "interplay": 0.88,
@@ -254,9 +272,10 @@
  "fx-knight-x-kline.nothree": {
   "id": "fx-knight-x-kline.nothree",
   "n": 20,
-  "fun": 0.805,
-  "se": 0.011,
+  "fun": 0.609,
+  "se": 0.007,
   "parts": {
+   "clarity": 0.21,
    "aha": 0.417,
    "cascade": 0.968,
    "interplay": 1,
@@ -268,9 +287,10 @@
  "fx-bishop-x-balanced": {
   "id": "fx-bishop-x-balanced",
   "n": 20,
-  "fun": 0.744,
-  "se": 0.033,
+  "fun": 0.683,
+  "se": 0.024,
   "parts": {
+   "clarity": 0.5,
    "aha": 0.542,
    "cascade": 0.823,
    "interplay": 0.68,
@@ -282,9 +302,10 @@
  "fx-bishop-rowcol-no2x2e": {
   "id": "fx-bishop-rowcol-no2x2e",
   "n": 20,
-  "fun": 0.672,
-  "se": 0.037,
+  "fun": 0.567,
+  "se": 0.025,
   "parts": {
+   "clarity": 0.3,
    "aha": 0.567,
    "cascade": 0.802,
    "interplay": 0.553,
@@ -296,9 +317,10 @@
  "fx-echo2-rowcol-no2x2e": {
   "id": "fx-echo2-rowcol-no2x2e",
   "n": 20,
-  "fun": 0.696,
-  "se": 0.024,
+  "fun": 0.559,
+  "se": 0.015,
   "parts": {
+   "clarity": 0.24,
    "aha": 0.756,
    "cascade": 0.674,
    "interplay": 0.512,
@@ -310,9 +332,10 @@
  "fx-echo2-x-kingtouch.no2x2e": {
   "id": "fx-echo2-x-kingtouch.no2x2e",
   "n": 20,
-  "fun": 0.729,
-  "se": 0.019,
+  "fun": 0.58,
+  "se": 0.012,
   "parts": {
+   "clarity": 0.24,
    "aha": 0.36,
    "cascade": 0.799,
    "interplay": 0.963,
@@ -324,9 +347,10 @@
  "fx-orth4-x-balanced": {
   "id": "fx-orth4-x-balanced",
   "n": 20,
-  "fun": 0.819,
-  "se": 0.024,
+  "fun": 0.837,
+  "se": 0.02,
   "parts": {
+   "clarity": 0.9,
    "aha": 0.584,
    "cascade": 0.815,
    "interplay": 0.868,
@@ -338,9 +362,10 @@
  "fx-echo2-x-balanced.nothree": {
   "id": "fx-echo2-x-balanced.nothree",
   "n": 20,
-  "fun": 0.773,
-  "se": 0.022,
+  "fun": 0.606,
+  "se": 0.014,
   "parts": {
+   "clarity": 0.24,
    "aha": 0.772,
    "cascade": 0.523,
    "interplay": 0.842,
@@ -352,9 +377,10 @@
  "fx-nb8-rowcol-kingtouch": {
   "id": "fx-nb8-rowcol-kingtouch",
   "n": 20,
-  "fun": 0.713,
-  "se": 0.026,
+  "fun": 0.656,
+  "se": 0.019,
   "parts": {
+   "clarity": 0.48,
    "aha": 0.67,
    "cascade": 0.52,
    "interplay": 0.705,
@@ -366,9 +392,10 @@
  "fx-echo2-rowcol-x": {
   "id": "fx-echo2-rowcol-x",
   "n": 20,
-  "fun": 0.594,
-  "se": 0.035,
+  "fun": 0.547,
+  "se": 0.025,
   "parts": {
+   "clarity": 0.4,
    "aha": 0.668,
    "cascade": 0.642,
    "interplay": 0.331,

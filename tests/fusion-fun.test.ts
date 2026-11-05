@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FUN_PARTS, funOfPuzzle, funScore } from '../fusion/fun.ts';
+import { CLARITY_MIN, clarity, FUN_PARTS, funOfPuzzle, funScore } from '../fusion/fun.ts';
 import { generateFusion } from '../fusion/generator.ts';
 import { parseFusionId } from '../fusion/spec.ts';
 
@@ -15,5 +15,12 @@ describe('fun metric (실험 0003)', () => {
     const base = Object.fromEntries(FUN_PARTS.map((k) => [k, 0.5])) as Record<(typeof FUN_PARTS)[number], number>;
     for (const k of FUN_PARTS) expect(funScore({ ...base, [k]: 0.9 })).toBeGreaterThan(funScore(base));
     expect(funScore(Object.fromEntries(FUN_PARTS.map((k) => [k, 1])) as typeof base)).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('clarity (실험 0005)', () => {
+  it('rejects the rounds the owner called too complex and admits two-line rules', () => {
+    for (const id of ['fx-knight-rowcol-nothree', 'fx-knight-x-balanced']) expect(clarity(parseFusionId(id)!)).toBeLessThan(CLARITY_MIN);
+    for (const id of ['fx-orth4-x-balanced', 'fx-nb8-x-kline']) expect(clarity(parseFusionId(id)!)).toBeGreaterThanOrEqual(CLARITY_MIN);
   });
 });
