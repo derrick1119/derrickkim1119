@@ -56,6 +56,7 @@ const A = sideOf(round.a, round.a === 'echo' ? '메아리 (현재 제품)' : (ro
 const B = sideOf(round.b, round.bName ?? round.b);
 const pct = (x: number, y: number) => `${x > y ? '+' : ''}${Math.round(((x - y) / Math.max(1e-9, y)) * 100)}%`;
 const why = [
+  `단순함 게이트 통과: B의 숫자는 숫자 칸에서 뻗은 대각선 두 줄만 셉니다. 1라운드(메아리 vs 마름모 메아리)는 "규칙 이해가 어렵다"는 피드백으로 무효 처리했어요.`,
   `기계 판정: 재미 B ${B.fun.toFixed(3)} vs A ${A.fun.toFixed(3)} (${pct(B.fun, A.fun)}), fitness B ${B.fitness.toFixed(3)} vs A ${A.fitness.toFixed(3)} (${pct(B.fitness, A.fitness)}).`,
   `긴장은 '확정할 수 있는 칸이 2개 이하인 순간'의 비율, 퍼짐은 다음 추론이 판의 먼 곳에서 나오는 정도, 아하는 어려운 추론 한 번이 풀어주는 칸 수입니다. 기계는 재미를 대신 잴 뿐이라 최종 판정은 직접 풀어본 감각으로 해주세요.`,
   `B를 고르면 데일리 규칙이 B로 바뀝니다. 이미 만들어 둔 날짜의 퍼즐은 바꾸지 않는 규칙이 있어, 은행의 마지막 날짜 다음 날부터 B 퍼즐이 나갑니다.`,

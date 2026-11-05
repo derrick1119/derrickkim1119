@@ -9,7 +9,13 @@ import type { CardConstraint, PuzzleData, RuleSet } from '../types.ts';
  * id 형식: fam-d2-cheb-notouch
  */
 /** knight: 나이트 이동 8칸 (d=1만 의미 있음, 0006에서 추가 — FAMILY_SPACE 탐색에는 넣지 않음) */
-export type Metric = 'cheb' | 'manh' | 'knight';
+export type Metric = 'cheb' | 'manh' | 'knight' | 'diag' | 'cross' | 'xline';
+/** 0007 단순함 게이트: 세는 칸이 숫자 칸에 닿거나(contact) 숫자 칸에서 뻗은 줄 위에 있어야(line) 이해가 쉽다 */
+export function regionClass(p: FamilyParams): 'contact' | 'line' | 'distant' {
+  if (p.metric === 'cross' || p.metric === 'xline') return 'line';
+  if (p.metric === 'diag' || (p.d === 1 && p.metric !== 'knight')) return 'contact';
+  return 'distant';
+}
 export type Global = 'none' | 'notouch' | 'no2x2';
 export interface FamilyParams {
   d: number;
@@ -35,18 +41,26 @@ export function familyId(p: FamilyParams): string {
 }
 
 export function parseFamilyId(id: string): FamilyParams | null {
-  const m = /^fam-d(\d)-(cheb|manh|knight)-(none|notouch|no2x2)$/.exec(id);
-  if (m && m[2] === 'knight' && m[1] !== '1') return null;
+  const m = /^fam-d(\d)-(cheb|manh|knight|diag|cross|xline)-(none|notouch|no2x2)$/.exec(id);
+  if (m && /knight|diag|cross|xline/.test(m[2]) && m[1] !== '1') return null;
   return m ? { d: Number(m[1]), metric: m[2] as Metric, global: m[3] as Global } : null;
 }
 
+const DIAG = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
 const KNIGHT = [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]];
 
 export function ringOf(cell: number, w: number, h: number, d: number, metric: Metric): number[] {
   const x = cell % w, y = Math.floor(cell / w);
   const out: number[] = [];
-  if (metric === 'knight') {
-    for (const [dx, dy] of KNIGHT) {
+  if (metric === 'cross' || metric === 'xline') {
+    const dirs = metric === 'cross' ? [[1, 0], [-1, 0], [0, 1], [0, -1]] : [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+    for (const [dx, dy] of dirs) {
+      for (let nx = x + dx, ny = y + dy; nx >= 0 && ny >= 0 && nx < w && ny < h; nx += dx, ny += dy) out.push(ny * w + nx);
+    }
+    return out;
+  }
+  if (metric === 'knight' || metric === 'diag') {
+    for (const [dx, dy] of metric === 'knight' ? KNIGHT : DIAG) {
       const nx = x + dx, ny = y + dy;
       if (nx >= 0 && ny >= 0 && nx < w && ny < h) out.push(ny * w + nx);
     }
@@ -65,11 +79,14 @@ export function ringOf(cell: number, w: number, h: number, d: number, metric: Me
 
 /** 플레이어용 규칙 설명 (플레이테스트 모드에서 그대로 보인다) */
 export function familyRuleText(p: FamilyParams): string[] {
-  if (p.metric === 'knight') {
-    const out = [
-      '일부 칸을 칠하세요. 숫자 칸은 칠하지 않습니다.',
-      '숫자는 그 칸에서 체스 나이트가 한 번에 뛸 수 있는 8칸(가로 2·세로 1, 또는 가로 1·세로 2)에 있는 칠한 칸의 수입니다.',
-    ];
+  const simple: Partial<Record<Metric, string>> = {
+    knight: '숫자는 그 칸에서 체스 나이트가 한 번에 뛸 수 있는 8칸(가로 2·세로 1, 또는 가로 1·세로 2)에 있는 칠한 칸의 수입니다.',
+    diag: '숫자는 그 칸에 대각선으로 닿은 칸(최대 4칸) 중 칠한 칸의 수입니다.',
+    cross: '숫자는 그 칸과 같은 가로줄·세로줄에 있는 칠한 칸의 수입니다.',
+    xline: '숫자는 그 칸을 지나는 두 대각선 줄 위에 있는 칠한 칸의 수입니다.',
+  };
+  if (simple[p.metric]) {
+    const out = ['일부 칸을 칠하세요. 숫자 칸은 칠하지 않습니다.', simple[p.metric]!];
     if (p.global === 'notouch') out.push('칠한 칸끼리는 상하좌우로 맞닿을 수 없습니다.');
     if (p.global === 'no2x2') out.push('2×2 네 칸을 모두 칠할 수는 없습니다.');
     return out;
@@ -92,7 +109,7 @@ export function makeFamily(p: FamilyParams): RuleSet {
   return {
     id: familyId(p),
     name: familyId(p),
-    tagline: p.metric === 'knight' ? `나이트 메아리, 전역 ${p.global}` : `거리 ${p.d} ${p.metric} 고리, 전역 ${p.global}`,
+    tagline: p.metric !== 'cheb' && p.metric !== 'manh' ? `${p.metric} 메아리, 전역 ${p.global}` : `거리 ${p.d} ${p.metric} 고리, 전역 ${p.global}`,
     rules: familyRuleText(p),
 
     constraints(pz: PuzzleData): CardConstraint[] {

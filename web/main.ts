@@ -302,10 +302,11 @@ function explain(s: Step): string {
     const c = model.cons[s.constraints[0]];
     if (c.kind === 'echo') {
       const n = puzzle.clues[c.anchor!]!;
-      if (n === 0) return '숫자 0의 고리에는 칠한 칸이 하나도 없어야 해요. 반짝이는 칸은 모두 비어 있어야 합니다.';
+      const ring = puzzle.rules === 'echo' ? '고리' : '세는 칸';
+      if (n === 0) return `숫자 0이 세는 칸에는 칠한 칸이 하나도 없어야 해요. 반짝이는 칸은 모두 비어 있어야 합니다.`;
       return s.value === 0
-        ? `테두리 표시된 숫자 ${n}의 고리에는 이미 ${n}개가 칠해졌어요. 고리의 나머지 칸은 비어 있어야 합니다.`
-        : `숫자 ${n}의 고리에서 아직 정하지 않은 칸을 모두 칠해야 ${n}개를 채울 수 있어요.`;
+        ? `테두리 표시된 숫자 ${n}의 ${ring}에는 이미 ${n}개가 칠해졌어요. 나머지 칸은 비어 있어야 합니다.`
+        : `숫자 ${n}의 ${ring}에서 아직 정하지 않은 칸을 모두 칠해야 ${n}개를 채울 수 있어요.`;
     }
     if (c.kind === 'no-2x2') return '2×2 네 칸을 모두 칠할 수는 없어요. 반짝이는 칸은 비어 있어야 합니다.';
     return '칠한 칸 바로 옆(상하좌우)은 칠할 수 없어요.';
@@ -315,7 +316,7 @@ function explain(s: Step): string {
       .map((ci) => model.cons[ci])
       .filter((c) => c.kind === 'echo')
       .map((c) => puzzle.clues[c.anchor!]);
-    const who = nums.length === 2 ? `숫자 ${nums[0]}과(와) ${nums[1]}의 고리` : '표시된 두 조건';
+    const who = nums.length === 2 ? `숫자 ${nums[0]}과(와) ${nums[1]}이 세는 칸` : '표시된 두 조건';
     return `${who}를 함께 보세요. 겹치는 부분에 들어갈 수 있는 개수를 따져보면, 반짝이는 칸은 ${act} 합니다.`;
   }
   const opposite = s.value === 1 ? '비워' : '칠해';

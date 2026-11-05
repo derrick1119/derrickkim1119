@@ -8,6 +8,17 @@
       "bName": "마름모 메아리",
       "proposedAt": "2026-11-05",
       "experiment": "0006",
+      "winner": "void",
+      "decidedAt": "2026-11-05",
+      "note": "오너 피드백: 둘 다 규칙 이해가 어려움 → 무효. 단순함 게이트 도입(0007)."
+    },
+    {
+      "round": 2,
+      "a": "echo",
+      "b": "fam-d1-xline-none",
+      "bName": "사선 세기",
+      "proposedAt": "2026-11-05",
+      "experiment": "0007",
       "winner": null,
       "decidedAt": null
     }

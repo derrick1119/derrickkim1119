@@ -5,6 +5,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { parseFamilyId, regionClass } from '../engine/rules/family.ts';
 import { getRules } from '../engine/rules/index.ts';
 import { evaluateRules, type EvalReport } from './lib/evaluate.ts';
 
@@ -31,7 +32,11 @@ function measure(id: string) {
       scanLoad: avg((x) => x.scanLoad), fun: avg((x) => x.fun), tension: avg((x) => x.tension), spread: avg((x) => x.spread), aha: avg((x) => x.aha) }];
   }));
   const minHit = Math.min(...tierKeys.map((t) => tiers[t].hitRate));
-  const eligible = minHit >= 0.9 && reps.every((r) => r.monotonic) && tiers.hard.genMs <= 2000;
+  // 0007 단순함 게이트: 세는 칸이 접촉형·직선형 (echo = 거리 2 테두리 → distant)
+  const fam = parseFamilyId(id);
+  const region = fam ? regionClass(fam) : 'distant';
+  const simple = region !== 'distant';
+  const eligible = simple && minHit >= 0.9 && reps.every((r) => r.monotonic) && tiers.hard.genMs <= 2000;
   const row = {
     id,
     name: getRules(id).tagline,
@@ -39,16 +44,27 @@ function measure(id: string) {
     fitnessSd: +sd(reps.map((r) => r.fitness)).toFixed(4),
     fun: +mean(reps.map((r) => r.fun)).toFixed(3),
     funSd: +sd(reps.map((r) => r.fun)).toFixed(3),
+    region,
+    simple,
     eligible,
     tiers,
   };
-  console.log(`${id.padEnd(24)} fun=${row.fun}±${row.funSd} fitness=${row.fitness}±${row.fitnessSd} minHit=${minHit} hardMs=${tiers.hard.genMs} ${eligible ? '자격' : '미달'}`);
+  console.log(`${id.padEnd(24)} fun=${row.fun}±${row.funSd} fitness=${row.fitness}±${row.fitnessSd} minHit=${minHit} hardMs=${tiers.hard.genMs} ${region} ${eligible ? '자격' : '미달'}`);
   return row;
 }
 
 const a = measure(A);
 const rows = cands.map(measure);
-const b = rows.filter((r) => r.eligible).sort((x, y) => y.fun - x.fun)[0] ?? null;
+// 선택: 재미 → (2×sd 안이면) fitness → (그것도 2×sd 안이면) 규칙 문장이 적은 쪽 (0007 오너 피드백: 단순함)
+const noise = (a: number, b: number, sa: number, sb: number) => Math.abs(a - b) <= 2 * Math.max(sa, sb);
+const ruleCount = (id: string) => getRules(id).rules.length;
+const pool = rows.filter((r) => r.eligible).sort((x, y) => y.fun - x.fun);
+const b = pool.reduce<(typeof pool)[0] | null>((best, r) => {
+  if (!best) return r;
+  if (!noise(r.fun, best.fun, r.funSd, best.funSd)) return best;
+  if (!noise(r.fitness, best.fitness, r.fitnessSd, best.fitnessSd)) return r.fitness > best.fitness ? r : best;
+  return ruleCount(r.id) < ruleCount(best.id) ? r : best;
+}, null);
 const out = { generatedAt: new Date().toISOString(), n, sets, elapsedSec: Math.round((performance.now() - t0) / 1000), a, b: b?.id ?? null, candidates: rows };
 const dir = join(import.meta.dirname, '..', 'factory', 'reports');
 mkdirSync(dir, { recursive: true });

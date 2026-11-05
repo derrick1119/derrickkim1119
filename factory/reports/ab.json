@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-11-05T02:18:20.933Z",
+  "generatedAt": "2026-11-05T04:45:44.409Z",
   "n": 20,
   "sets": 4,
-  "elapsedSec": 76,
+  "elapsedSec": 57,
   "a": {
     "id": "echo",
     "name": "숫자는 두 칸 너머에서 울린다",
@@ -10,6 +10,8 @@
     "fitnessSd": 0.0182,
     "fun": 0.579,
     "funSd": 0.01,
+    "region": "distant",
+    "simple": false,
     "eligible": false,
     "tiers": {
       "easy": {
@@ -24,7 +26,7 @@
       },
       "medium": {
         "hitRate": 1,
-        "genMs": 11,
+        "genMs": 12,
         "clueDensity": 0.275,
         "scanLoad": 10.205,
         "fun": 0.615,
@@ -34,7 +36,7 @@
       },
       "hard": {
         "hitRate": 0.813,
-        "genMs": 358,
+        "genMs": 379,
         "clueDensity": 0.251,
         "scanLoad": 10.21,
         "fun": 0.598,
@@ -44,7 +46,7 @@
       },
       "expert": {
         "hitRate": 1,
-        "genMs": 100,
+        "genMs": 107,
         "clueDensity": 0.255,
         "scanLoad": 10.8,
         "fun": 0.524,
@@ -54,107 +56,111 @@
       }
     }
   },
-  "b": "fam-d3-manh-notouch",
+  "b": "fam-d1-xline-none",
   "candidates": [
     {
-      "id": "fam-d1-knight-notouch",
-      "name": "나이트 메아리, 전역 notouch",
-      "fitness": 0.4114,
-      "fitnessSd": 0.008,
-      "fun": 0.638,
-      "funSd": 0.015,
-      "eligible": false,
+      "id": "fam-d1-xline-none",
+      "name": "xline 메아리, 전역 none",
+      "fitness": 0.4858,
+      "fitnessSd": 0.0024,
+      "fun": 0.612,
+      "funSd": 0.013,
+      "region": "line",
+      "simple": true,
+      "eligible": true,
       "tiers": {
         "easy": {
           "hitRate": 1,
-          "genMs": 1,
-          "clueDensity": 0.267,
-          "scanLoad": 4.935,
-          "fun": 0.358,
-          "tension": 0.242,
-          "spread": 0.831,
+          "genMs": 0,
+          "clueDensity": 0.348,
+          "scanLoad": 6.127,
+          "fun": 0.34,
+          "tension": 0.239,
+          "spread": 0.782,
           "aha": 0
         },
         "medium": {
-          "hitRate": 0.9,
-          "genMs": 21,
-          "clueDensity": 0.26,
-          "scanLoad": 5.42,
-          "fun": 0.653,
-          "tension": 0.35,
-          "spread": 0.776,
-          "aha": 0.833
+          "hitRate": 1,
+          "genMs": 2,
+          "clueDensity": 0.328,
+          "scanLoad": 7.357,
+          "fun": 0.631,
+          "tension": 0.451,
+          "spread": 0.861,
+          "aha": 0.579
         },
         "hard": {
-          "hitRate": 0.887,
-          "genMs": 64,
-          "clueDensity": 0.253,
-          "scanLoad": 5.393,
-          "fun": 0.67,
-          "tension": 0.387,
-          "spread": 0.782,
-          "aha": 0.843
+          "hitRate": 0.925,
+          "genMs": 16,
+          "clueDensity": 0.324,
+          "scanLoad": 7.335,
+          "fun": 0.618,
+          "tension": 0.561,
+          "spread": 0.873,
+          "aha": 0.418
         },
         "expert": {
           "hitRate": 1,
-          "genMs": 56,
-          "clueDensity": 0.245,
-          "scanLoad": 5.683,
-          "fun": 0.59,
-          "tension": 0.525,
-          "spread": 0.715,
-          "aha": 0.528
+          "genMs": 22,
+          "clueDensity": 0.304,
+          "scanLoad": 8.728,
+          "fun": 0.587,
+          "tension": 0.661,
+          "spread": 0.879,
+          "aha": 0.22
         }
       }
     },
     {
-      "id": "fam-d3-manh-notouch",
-      "name": "거리 3 manh 고리, 전역 notouch",
-      "fitness": 0.4829,
-      "fitnessSd": 0.0012,
-      "fun": 0.637,
-      "funSd": 0.005,
+      "id": "fam-d1-xline-no2x2",
+      "name": "xline 메아리, 전역 no2x2",
+      "fitness": 0.4945,
+      "fitnessSd": 0.0078,
+      "fun": 0.633,
+      "funSd": 0.011,
+      "region": "line",
+      "simple": true,
       "eligible": true,
       "tiers": {
         "easy": {
           "hitRate": 1,
           "genMs": 1,
-          "clueDensity": 0.246,
-          "scanLoad": 6.633,
-          "fun": 0.393,
-          "tension": 0.333,
-          "spread": 0.845,
+          "clueDensity": 0.335,
+          "scanLoad": 6.205,
+          "fun": 0.365,
+          "tension": 0.311,
+          "spread": 0.785,
           "aha": 0
         },
         "medium": {
           "hitRate": 1,
-          "genMs": 10,
-          "clueDensity": 0.249,
-          "scanLoad": 7.428,
-          "fun": 0.675,
-          "tension": 0.452,
-          "spread": 0.78,
-          "aha": 0.795
+          "genMs": 6,
+          "clueDensity": 0.314,
+          "scanLoad": 7.398,
+          "fun": 0.668,
+          "tension": 0.486,
+          "spread": 0.863,
+          "aha": 0.655
         },
         "hard": {
-          "hitRate": 0.9,
-          "genMs": 209,
-          "clueDensity": 0.234,
-          "scanLoad": 7.342,
-          "fun": 0.656,
-          "tension": 0.516,
-          "spread": 0.765,
-          "aha": 0.686
+          "hitRate": 1,
+          "genMs": 68,
+          "clueDensity": 0.319,
+          "scanLoad": 7.413,
+          "fun": 0.641,
+          "tension": 0.611,
+          "spread": 0.867,
+          "aha": 0.445
         },
         "expert": {
           "hitRate": 1,
-          "genMs": 91,
-          "clueDensity": 0.216,
-          "scanLoad": 8.027,
-          "fun": 0.58,
-          "tension": 0.662,
-          "spread": 0.748,
-          "aha": 0.329
+          "genMs": 78,
+          "clueDensity": 0.303,
+          "scanLoad": 8.755,
+          "fun": 0.591,
+          "tension": 0.69,
+          "spread": 0.866,
+          "aha": 0.217
         }
       }
     }
