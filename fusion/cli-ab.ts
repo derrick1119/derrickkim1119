@@ -42,7 +42,7 @@ function side(id: string): AbSide {
   const spec = parseFusionId(id)!;
   const puzzles = (['medium', 'hard'] as const).map((tier, k) => ({
     tier,
-    ...generateFusion(spec, { width: 6, height: 6, seed: 31 * (k + 1) + baseline.round * 1000 + history.length, target: tier, attempts: 60 })!,
+    ...generateFusion(spec, { width: 6, height: 6, seed: 31 * (k + 1) + baseline.round * 1000 + history.length, target: tier, attempts: 60, requireAllAtoms: true })!,
   }));
   return { id, name: fusionName(spec), fun: fun[id], puzzles };
 }

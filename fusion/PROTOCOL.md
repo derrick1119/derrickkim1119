@@ -28,7 +28,8 @@
 2. **읽기**: `fusion/STATE.md`, `fusion/BACKLOG.md`, `fusion/JOURNAL.md` 최근 3개.
 3. **정지 조건**: STATE `상태: BLOCKED`면 아무것도 바꾸지 말고 종료.
 4. **유지보수 우선**: 교차점 데일리가 오늘 이후 30일 미만이면 `npm run fusion:bank -- --days 120`부터.
-5. **기본 업무 — 탐색**: 원장에 미시험 조합이 남아 있으면 `npm run fusion:search -- --budget 40 --max-sec 420`을 **매 사이클** 돌린다.
+5. **기본 업무 — 탐색**: 원장에 미시험 조합이 남아 있으면 `timeout 1200 npm run fusion:search -- --budget 40 --max-sec 420`을 **매 사이클** 돌린다.
+   한 조합에서 멈춰 timeout으로 죽어도 원장은 조합마다 저장되고, 다음 실행이 그 조합을 시간 초과로 기록하고 넘어간다(실험 0004).
    새 발견이 나오면 카드(`fusion/discoveries/<id>.md`)를 읽고, 이름·규칙 문장이 어색하지 않은지 확인한다.
 6. **가설 하나**: BACKLOG 맨 위 `[ ]` 하나. 코드 수정 *전에* `fusion/experiments/NNNN-제목.md`에 가설·지표·**폐기 기준**을 쓴다.
 7. **구현 → 측정**: `npm run verify`. UI를 건드렸으면 `npm run build && npm run fusion:e2e` 후 스크린샷을 직접 본다.

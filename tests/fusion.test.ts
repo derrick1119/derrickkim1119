@@ -5,7 +5,7 @@ import { hashString, mulberry32, shuffle } from '../engine/rng.ts';
 import { countSolutions } from '../engine/solver.ts';
 import { ATOMS, connectedPartial } from '../fusion/atoms.ts';
 import { analyzePuzzle } from '../fusion/analyze.ts';
-import { generateFusion } from '../fusion/generator.ts';
+import { allAtomsNecessary, generateFusion } from '../fusion/generator.ts';
 import { sampleSolution } from '../fusion/sampler.ts';
 import { allSpecs, buildFusionRules, fusionId, fusionName, knownGenre, parseFusionId, validSpec } from '../fusion/spec.ts';
 
@@ -122,5 +122,14 @@ describe('redundant pairs (실험 0002)', () => {
       }
     }
     expect(validSpec({ cell: 'nb8', edge: null, globals: ['conne', 'kingtouch'] })).toBe(false);
+  });
+});
+
+describe('requireAllAtoms (실험 0004)', () => {
+  it('keeps only puzzles where every atom is needed', () => {
+    const spec = parseFusionId('fx-nb8-x-conne')!;
+    const p = generateFusion(spec, { width: 6, height: 6, seed: 9001, target: 'hard', attempts: 30, requireAllAtoms: true });
+    expect(p).not.toBeNull();
+    expect(allAtomsNecessary(spec, p!)).toBe(true);
   });
 });

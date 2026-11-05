@@ -4,7 +4,7 @@ import { mulberry32, shuffle } from '../engine/rng.ts';
 import { countSolutions } from '../engine/solver.ts';
 import type { Technique, Tier } from '../engine/types.ts';
 import { sampleSolution } from './sampler.ts';
-import { buildFusionRules, fitsBoard, fusionId, type FusionPuzzle, type FusionPuzzleData, type FusionSpec } from './spec.ts';
+import { atomsOf, buildFusionRules, fitsBoard, fusionId, withoutAtom, type FusionPuzzle, type FusionPuzzleData, type FusionSpec } from './spec.ts';
 
 export interface FusionGenOptions {
   width: number;
@@ -12,6 +12,19 @@ export interface FusionGenOptions {
   seed: number;
   target: Tier;
   attempts?: number;
+  /** 실험 0004: 원자 하나를 빼도 유일해가 남는 퍼즐(장식 재료)을 버린다. 평가에는 쓰지 않는다 */
+  requireAllAtoms?: boolean;
+}
+
+/** 모든 원자가 필요한가: 어느 원자를 빼도(같은 단서로) 해가 2개 이상이 되어야 한다 */
+export function allAtomsNecessary(spec: FusionSpec, p: FusionPuzzleData): boolean {
+  return atomsOf(spec).every((a) => {
+    const reduced = withoutAtom(spec, a.id);
+    const data: FusionPuzzleData = { ...p, rules: fusionId(reduced) };
+    if (!reduced.cell) data.clues = data.clues.map(() => null);
+    if (!reduced.edge) delete data.edges;
+    return countSolutions(data, buildFusionRules(reduced), 2).count >= 2;
+  });
 }
 
 const MAX_TECH: Record<Tier, Technique> = { easy: 'single', medium: 'pair', hard: 'trial', expert: 'trial' };
@@ -82,6 +95,7 @@ export function generateFusion(spec: FusionSpec, opt: FusionGenOptions): FusionP
       solution: Array.from(final.state).join(''),
       difficulty,
     };
+    if (opt.requireAllAtoms && !allAtomsNecessary(spec, data)) continue;
     if (difficulty.tier === target) return puzzle;
     const d = (p: FusionPuzzle) => Math.abs(RANK[p.difficulty.tier] - RANK[target]);
     if (!best || d(puzzle) < d(best)) best = puzzle;

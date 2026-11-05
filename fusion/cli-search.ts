@@ -22,7 +22,7 @@ const root = join(import.meta.dirname);
 const ledgerPath = join(root, 'ledger.json');
 const indexPath = join(root, 'discoveries', 'index.json');
 
-interface Ledger { version: 1; tested: Record<string, FusionReport & { confirmed?: FusionReport; at: string }> }
+interface Ledger { version: 1; tested: Record<string, FusionReport & { confirmed?: FusionReport; at: string; timedOut?: boolean }>; inProgress?: string }
 interface Discovery {
   id: string; name: string; fitness: number; synergy: number; necessityMin: number; hitRate: number; density: number;
   ingredients: { id: string; name: string; origin: string }[]; foundAt: string;
@@ -30,6 +30,24 @@ interface Discovery {
 
 const ledger: Ledger = existsSync(ledgerPath) ? JSON.parse(readFileSync(ledgerPath, 'utf8')) : { version: 1, tested: {} };
 const discoveries: Discovery[] = existsSync(indexPath) ? JSON.parse(readFileSync(indexPath, 'utf8')) : [];
+
+// 지난 실행이 한 조합에서 멈춰 강제 종료됐으면(실험 0004), 그 조합을 시간 초과로 기록하고 넘어간다
+if (ledger.inProgress && !only) {
+  const id = ledger.inProgress;
+  ledger.tested[id] = {
+    id, n: 0, known: null, atoms: atomsOf(parseFusionId(id)!).length, hitRate: 0, density: 1, synergy: 0, necessity: {}, necessityMin: 0,
+    hardMs: 0, failures: 0, fitness: 0, discovery: false, at: new Date().toISOString().slice(0, 10), timedOut: true,
+  };
+  console.log(`${id.padEnd(34)} 지난 실행에서 시간 초과 → 건너뜀`);
+}
+delete ledger.inProgress;
+
+function save() {
+  writeFileSync(ledgerPath, JSON.stringify(ledger, null, 1) + '\n');
+  discoveries.sort((a, b) => b.fitness - a.fitness);
+  writeFileSync(indexPath, JSON.stringify(discoveries, null, 2) + '\n');
+  writeFileSync(join(root, '..', 'web', 'public', 'fusion', 'discoveries.json'), JSON.stringify(discoveries) + '\n');
+}
 
 const all = allSpecs();
 let queue: FusionSpec[];
@@ -51,6 +69,7 @@ let tested = 0;
 for (const spec of queue) {
   if (tested >= budget || (performance.now() - t0) / 1000 > maxSec) break;
   const id = fusionId(spec);
+  if (!only) (ledger.inProgress = id), save();
   const r = evaluateFusion(spec, 3);
   tested++;
   const entry: Ledger['tested'][string] = { ...r, at: today };
@@ -65,13 +84,12 @@ for (const spec of queue) {
     } else mark = ' (확증 실패)';
   }
   ledger.tested[id] = entry;
+  delete ledger.inProgress;
+  save();
   console.log(`${id.padEnd(34)} fit=${r.fitness.toFixed(3)} syn=${r.synergy.toFixed(2)} nec=${r.necessityMin.toFixed(2)} hit=${r.hitRate.toFixed(2)}${r.known ? ' [' + r.known + ']' : ''}${mark}`);
 }
 
-writeFileSync(ledgerPath, JSON.stringify(ledger, null, 1) + '\n');
-discoveries.sort((a, b) => b.fitness - a.fitness);
-writeFileSync(indexPath, JSON.stringify(discoveries, null, 2) + '\n');
-writeFileSync(join(root, '..', 'web', 'public', 'fusion', 'discoveries.json'), JSON.stringify(discoveries) + '\n');
+save();
 const totalTested = Object.keys(ledger.tested).length;
 console.log(`\n이번 탐색 ${tested}개 · 새 발견 ${found.length}개 · 누적 ${totalTested}/${all.length} 조합 시험 · 발견 총 ${discoveries.length}개 · ${Math.round((performance.now() - t0) / 1000)}s`);
 
