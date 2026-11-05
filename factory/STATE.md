@@ -1,7 +1,7 @@
 # 공장 상태
 
 상태: RUNNING
-마지막 사이클: 0004 (2026-11-04, 인지 부하 지표)
+마지막 사이클: 0005 (2026-11-05, 상위 4개 재검증)
 연속 실패: 0
 
 ## 제품
@@ -18,22 +18,22 @@
 | hard | 7 | 0.93 | 917 | 0.239 | 0.27 | 61.1 | 10.3 |
 | expert | 8 | 1.00 | 142 | 0.249 | 0.37 | 161.9 | 10.5 |
 
-## 규칙 후보 (family.json, n=6, fitness v2 = 인지 부하 반영)
-| 규칙 | fitness | v1 | 세는 칸 | 상태 |
-|---|---|---|---|---|
-| fam-d3-cheb-no2x2 | 0.4883 | 0.5748 | 11.1 | 후보 — 1~4위 동률(노이즈), 재검증 필요 |
-| fam-d1-cheb-notouch | 0.4876 | 0.4876 | 6.4 | 후보 |
-| fam-d3-manh-notouch | 0.4873 | 0.4873 | 7.3 | 후보 (신규 부상) |
-| fam-d2-manh-notouch | 0.4862 | 0.4862 | 5.8 | 후보 |
-| echo | 0.4632 | 0.5166 | 10.0 | **출시 중** |
+## 규칙 후보 (top.json, n=20 × 시드 집합 4개, 평균 ± sd)
+| 규칙 | fitness | 상태 |
+|---|---|---|
+| fam-d1-cheb-notouch | 0.4832 ± 0.0040 | 점수 1위 — 지뢰찾기 변형류라 오리지널 판정 보류 |
+| fam-d3-manh-notouch | 0.4829 ± 0.0012 | **오리지널 후보 1순위** (sd 최소) |
+| fam-d2-manh-notouch | 0.4758 ± 0.0052 | 후보 (echo 대비 경계) |
+| fam-d3-cheb-no2x2 | 0.4613 ± 0.0084 | 0002 1위였으나 운이었음 — 노이즈 안 |
+| echo | 0.4399 ± 0.0182 | **출시 중** |
 
 ## 다음 할 일
-BACKLOG 맨 위 `[ ]` — 상위 4개 n=20 재검증 (현재 순위는 노이즈 안 동률).
+BACKLOG 맨 위 `[ ]` — explore 기본을 다중 시드(n=10 × 2)로 바꾸고 sd 함께 보고.
 
 ## 오너에게
 - **플레이테스트 모드가 생겼어요.** 아래 링크로 후보 규칙을 직접 풀어보고, 어느 쪽이 재미있는지 한 줄만 남겨주세요 (seed 숫자를 바꾸면 새 퍼즐).
-  - 후보 1위: https://derrick1119.github.io/derrickkim1119/?play=fam-d3-cheb-no2x2&seed=1&tier=medium
+  - 이전 1위(재검증 후 4위): https://derrick1119.github.io/derrickkim1119/?play=fam-d3-cheb-no2x2&seed=1&tier=medium
   - 후보 2위: https://derrick1119.github.io/derrickkim1119/?play=fam-d3-cheb-none&seed=1&tier=medium
-  - 신규 후보(마름모 고리+맞닿기 금지): https://derrick1119.github.io/derrickkim1119/?play=fam-d3-manh-notouch&seed=1&tier=medium
+  - **오리지널 후보 1순위**(마름모 고리+맞닿기 금지, 재검증으로 확정): https://derrick1119.github.io/derrickkim1119/?play=fam-d3-manh-notouch&seed=1&tier=medium
   - 현재 제품(비교용): https://derrick1119.github.io/derrickkim1119/?play=echo&seed=1&tier=medium
 - 배포가 안 보이면 Settings → Pages → Source를 "GitHub Actions"로 설정해야 합니다.

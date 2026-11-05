@@ -53,7 +53,8 @@ function fullRingSize(rules: RuleSet, size: number): number {
  * fitness = fitnessV1 × loadFactor (0004: 단서당 세야 할 칸이 8칸을 넘으면 페널티)
  * 높을수록: 난이도 통제가 잘 되고, 단서가 적고, 단순 반복이 아닌 추론을 요구한다.
  */
-export function evaluateRules(rules: RuleSet, n: number, attempts = 40): EvalReport {
+/** seedBase: 시드 집합 번호. 0 = 0001~0004와 같은 시드 (재현성 기준선) */
+export function evaluateRules(rules: RuleSet, n: number, attempts = 40, seedBase = 0): EvalReport {
   const tiers = {} as Record<Tier, TierStats>;
   for (const { tier, size } of EVAL_PLAN) {
     let hits = 0, ms = 0, density = 0, mix = 0, score = 0, fails = 0;
@@ -61,7 +62,7 @@ export function evaluateRules(rules: RuleSet, n: number, attempts = 40): EvalRep
     const full = fullRingSize(rules, size);
     for (let s = 0; s < n; s++) {
       const t0 = performance.now();
-      const p = generate(rules, { width: size, height: size, seed: 1_000_003 * (s + 1), target: tier, attempts });
+      const p = generate(rules, { width: size, height: size, seed: 1_000_003 * (s + 1) + seedBase * 7_919_011, target: tier, attempts });
       ms += performance.now() - t0;
       if (!p) {
         fails++;

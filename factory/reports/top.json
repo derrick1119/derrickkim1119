@@ -1,0 +1,83 @@
+{
+  "generatedAt": "2026-11-05T00:25:15.326Z",
+  "n": 20,
+  "sets": 4,
+  "elapsedSec": 110,
+  "ranking": [
+    {
+      "id": "fam-d1-cheb-notouch",
+      "fitness": 0.4832,
+      "sd": 0.004,
+      "fitnessV1": 0.4832,
+      "perSet": [
+        0.4787,
+        0.4821,
+        0.4884,
+        0.4835
+      ],
+      "monotonicSets": 4,
+      "hardGenMs": 51,
+      "hitRate": 1
+    },
+    {
+      "id": "fam-d3-manh-notouch",
+      "fitness": 0.4829,
+      "sd": 0.0012,
+      "fitnessV1": 0.4829,
+      "perSet": [
+        0.4811,
+        0.4838,
+        0.4833,
+        0.4832
+      ],
+      "monotonicSets": 4,
+      "hardGenMs": 200,
+      "hitRate": 0.975
+    },
+    {
+      "id": "fam-d2-manh-notouch",
+      "fitness": 0.4758,
+      "sd": 0.0052,
+      "fitnessV1": 0.4758,
+      "perSet": [
+        0.4829,
+        0.4767,
+        0.4716,
+        0.4722
+      ],
+      "monotonicSets": 4,
+      "hardGenMs": 78,
+      "hitRate": 0.981
+    },
+    {
+      "id": "fam-d3-cheb-no2x2",
+      "fitness": 0.4613,
+      "sd": 0.0084,
+      "fitnessV1": 0.5365,
+      "perSet": [
+        0.4538,
+        0.471,
+        0.4547,
+        0.4656
+      ],
+      "monotonicSets": 4,
+      "hardGenMs": 238,
+      "hitRate": 0.981
+    },
+    {
+      "id": "echo",
+      "fitness": 0.4399,
+      "sd": 0.0182,
+      "fitnessV1": 0.4953,
+      "perSet": [
+        0.4426,
+        0.4456,
+        0.4571,
+        0.4142
+      ],
+      "monotonicSets": 4,
+      "hardGenMs": 358,
+      "hitRate": 0.953
+    }
+  ]
+}
