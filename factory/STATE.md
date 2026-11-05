@@ -33,7 +33,7 @@ BACKLOG 맨 위 `[ ]` — explore 기본을 다중 시드(n=10 × 2)로 바꾸�
 ## 오너에게
 - **플레이테스트 모드가 생겼어요.** 아래 링크로 후보 규칙을 직접 풀어보고, 어느 쪽이 재미있는지 한 줄만 남겨주세요 (seed 숫자를 바꾸면 새 퍼즐).
   - 이전 1위(재검증 후 4위): https://derrick1119.github.io/derrickkim1119/?play=fam-d3-cheb-no2x2&seed=1&tier=medium
-  - 후보 2위: https://derrick1119.github.io/derrickkim1119/?play=fam-d3-cheb-none&seed=1&tier=medium
+  - 이전 후보(재검증 대상 외): https://derrick1119.github.io/derrickkim1119/?play=fam-d3-cheb-none&seed=1&tier=medium
   - **오리지널 후보 1순위**(마름모 고리+맞닿기 금지, 재검증으로 확정): https://derrick1119.github.io/derrickkim1119/?play=fam-d3-manh-notouch&seed=1&tier=medium
   - 현재 제품(비교용): https://derrick1119.github.io/derrickkim1119/?play=echo&seed=1&tier=medium
 - 배포가 안 보이면 Settings → Pages → Source를 "GitHub Actions"로 설정해야 합니다.
