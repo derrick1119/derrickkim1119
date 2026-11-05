@@ -1,9 +1,24 @@
 {
-  "generatedAt": "2026-11-05T00:25:15.326Z",
+  "generatedAt": "2026-11-05T12:28:25.478Z",
   "n": 20,
   "sets": 4,
-  "elapsedSec": 110,
+  "elapsedSec": 215,
   "ranking": [
+    {
+      "id": "fam-d3-manh-notouch",
+      "fitness": 0.491,
+      "sd": 0.0077,
+      "fitnessV1": 0.491,
+      "perSet": [
+        0.4811,
+        0.4965,
+        0.4977,
+        0.4887
+      ],
+      "monotonicSets": 4,
+      "hardGenMs": 397,
+      "hitRate": 0.997
+    },
     {
       "id": "fam-d1-cheb-notouch",
       "fitness": 0.4832,
@@ -16,68 +31,53 @@
         0.4835
       ],
       "monotonicSets": 4,
-      "hardGenMs": 51,
+      "hardGenMs": 92,
       "hitRate": 1
     },
     {
-      "id": "fam-d3-manh-notouch",
-      "fitness": 0.4829,
-      "sd": 0.0012,
-      "fitnessV1": 0.4829,
-      "perSet": [
-        0.4811,
-        0.4838,
-        0.4833,
-        0.4832
-      ],
-      "monotonicSets": 4,
-      "hardGenMs": 200,
-      "hitRate": 0.975
-    },
-    {
       "id": "fam-d2-manh-notouch",
-      "fitness": 0.4758,
-      "sd": 0.0052,
-      "fitnessV1": 0.4758,
+      "fitness": 0.4816,
+      "sd": 0.0059,
+      "fitnessV1": 0.4816,
       "perSet": [
         0.4829,
         0.4767,
-        0.4716,
-        0.4722
+        0.4894,
+        0.4772
       ],
       "monotonicSets": 4,
-      "hardGenMs": 78,
-      "hitRate": 0.981
+      "hardGenMs": 149,
+      "hitRate": 0.997
     },
     {
       "id": "fam-d3-cheb-no2x2",
-      "fitness": 0.4613,
-      "sd": 0.0084,
-      "fitnessV1": 0.5365,
+      "fitness": 0.4695,
+      "sd": 0.0067,
+      "fitnessV1": 0.5458,
       "perSet": [
-        0.4538,
-        0.471,
-        0.4547,
-        0.4656
+        0.4605,
+        0.4766,
+        0.4713,
+        0.4697
       ],
       "monotonicSets": 4,
-      "hardGenMs": 238,
-      "hitRate": 0.981
+      "hardGenMs": 410,
+      "hitRate": 1
     },
     {
       "id": "echo",
-      "fitness": 0.4399,
-      "sd": 0.0182,
-      "fitnessV1": 0.4953,
+      "fitness": 0.4556,
+      "sd": 0.0081,
+      "fitnessV1": 0.5131,
       "perSet": [
-        0.4426,
-        0.4456,
-        0.4571,
-        0.4142
+        0.4543,
+        0.4548,
+        0.4665,
+        0.4469
       ],
       "monotonicSets": 4,
-      "hardGenMs": 358,
-      "hitRate": 0.953
+      "hardGenMs": 760,
+      "hitRate": 0.994
     }
   ]
 }

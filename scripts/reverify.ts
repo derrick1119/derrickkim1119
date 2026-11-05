@@ -16,13 +16,15 @@ const arg = (k: string, d: string) => {
 const ids = arg('only', 'echo').split(',');
 const n = Number(arg('n', '20'));
 const sets = Number(arg('sets', '4'));
+// 0009: 제품 기준 생성 예산 (0008 참고)
+const ATTEMPTS = 40;
 const t0 = performance.now();
 
 const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
 const sd = (a: number[]) => Math.sqrt(a.reduce((x, y) => x + (y - mean(a)) ** 2, 0) / Math.max(1, a.length - 1));
 
 const rows = ids.map((id) => {
-  const reports = Array.from({ length: sets }, (_, k) => evaluateRules(getRules(id), n, 20, k + 1));
+  const reports = Array.from({ length: sets }, (_, k) => evaluateRules(getRules(id), n, ATTEMPTS, k + 1));
   const f = reports.map((r) => r.fitness);
   const v1 = reports.map((r) => r.fitnessV1);
   const row = {

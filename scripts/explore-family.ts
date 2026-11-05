@@ -16,10 +16,12 @@ const avgScan = (r: EvalReport) => {
 
 const args = process.argv.slice(2);
 const n = Number(args[args.indexOf('--n') + 1] || 6) || 6;
+// 0009: 제품 기준 생성 예산 (0008 참고)
+const ATTEMPTS = 40;
 const t0 = performance.now();
 
 const rows: Record<string, unknown>[] = [];
-const baseline = evaluateRules(echo, n, 20);
+const baseline = evaluateRules(echo, n, ATTEMPTS);
 rows.push({ id: 'echo (기준)', fitness: baseline.fitness, fitnessV1: baseline.fitnessV1, scanLoad: avgScan(baseline), original: true, report: baseline });
 console.log(`echo baseline fitness=${baseline.fitness}`);
 
@@ -29,7 +31,7 @@ for (const d of FAMILY_SPACE.d)
       const p: FamilyParams = { d, metric, global };
       const id = familyId(p);
       const t = performance.now();
-      const r = evaluateRules(makeFamily(p), n, 20);
+      const r = evaluateRules(makeFamily(p), n, ATTEMPTS);
       const genre = knownGenre(p);
       rows.push({ id, fitness: r.fitness, fitnessV1: r.fitnessV1, scanLoad: avgScan(r), original: !genre, knownAs: genre, report: r });
       const hit = Object.values(r.tiers).map((x) => x.hitRate.toFixed(2)).join('/');
