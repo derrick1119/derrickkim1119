@@ -101,3 +101,26 @@ describe('analyzer', () => {
     }
   });
 });
+
+describe('redundant pairs (실험 0002)', () => {
+  it('kingtouch implies conne on every 4×4 and 3×5 board', () => {
+    for (const [w, h] of [[4, 4], [3, 5]]) {
+      const n = w * h;
+      for (let mask = 0; mask < 1 << n; mask++) {
+        const s = new Int8Array(n);
+        for (let i = 0; i < n; i++) s[i] = (mask >> i) & 1;
+        let touch = false;
+        for (let i = 0; i < n && !touch; i++) {
+          if (!s[i]) continue;
+          const x = i % w, y = (i / w) | 0;
+          for (const [dx, dy] of [[1, 0], [0, 1], [1, 1], [-1, 1]]) {
+            const nx = x + dx, ny = y + dy;
+            if (nx >= 0 && nx < w && ny < h && s[ny * w + nx]) touch = true;
+          }
+        }
+        if (!touch) expect(connectedPartial(s, w, h, 0)).toBe(true);
+      }
+    }
+    expect(validSpec({ cell: 'nb8', edge: null, globals: ['conne', 'kingtouch'] })).toBe(false);
+  });
+});

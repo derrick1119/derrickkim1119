@@ -1,5 +1,108 @@
 [
   {
+    "id": "fx-nb8-x-balanced.notouch",
+    "name": "지뢰 저울 속 섬",
+    "fitness": 1.1941,
+    "synergy": 1,
+    "necessityMin": 1,
+    "hitRate": 1,
+    "density": 0.045,
+    "ingredients": [
+      {
+        "id": "nb8",
+        "name": "이웃 8칸",
+        "origin": "지뢰찾기"
+      },
+      {
+        "id": "balanced",
+        "name": "반반",
+        "origin": "타쿠주·빈에리"
+      },
+      {
+        "id": "notouch",
+        "name": "맞닿기 금지",
+        "origin": "히토리·여러 칠하기 퍼즐"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-rook-x-balanced.notouch",
+    "name": "시선 저울과 섬",
+    "fitness": 1.1882,
+    "synergy": 1,
+    "necessityMin": 1,
+    "hitRate": 1,
+    "density": 0.049,
+    "ingredients": [
+      {
+        "id": "rook",
+        "name": "룩의 시선",
+        "origin": "체스 룩"
+      },
+      {
+        "id": "balanced",
+        "name": "반반",
+        "origin": "타쿠주·빈에리"
+      },
+      {
+        "id": "notouch",
+        "name": "맞닿기 금지",
+        "origin": "히토리·여러 칠하기 퍼즐"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-knight-x-kingtouch.no2x2e",
+    "name": "도약 별과 그물",
+    "fitness": 0.9368,
+    "synergy": 0.991,
+    "necessityMin": 1,
+    "hitRate": 0.813,
+    "density": 0.071,
+    "ingredients": [
+      {
+        "id": "knight",
+        "name": "나이트 도약",
+        "origin": "체스 나이트"
+      },
+      {
+        "id": "kingtouch",
+        "name": "대각선까지 맞닿기 금지",
+        "origin": "스타배틀"
+      },
+      {
+        "id": "no2x2e",
+        "name": "텅 빈 2×2 금지",
+        "origin": "헤야와케·누리카베 변형"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-knight-x-balanced",
+    "name": "도약과 저울",
+    "fitness": 0.9061,
+    "synergy": 0.889,
+    "necessityMin": 1,
+    "hitRate": 0.969,
+    "density": 0.179,
+    "ingredients": [
+      {
+        "id": "knight",
+        "name": "나이트 도약",
+        "origin": "체스 나이트"
+      },
+      {
+        "id": "balanced",
+        "name": "반반",
+        "origin": "타쿠주·빈에리"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
     "id": "fx-knight-rowcol-nothree",
     "name": "도약 눈금의 물결",
     "fitness": 0.899,
@@ -22,6 +125,55 @@
         "id": "nothree",
         "name": "셋 연속 금지",
         "origin": "타쿠주·빈에리"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-bishop-x-nothree",
+    "name": "사선 속 물결",
+    "fitness": 0.8449,
+    "synergy": 0.801,
+    "necessityMin": 1,
+    "hitRate": 1,
+    "density": 0.196,
+    "ingredients": [
+      {
+        "id": "bishop",
+        "name": "비숍의 사선",
+        "origin": "체스 비숍"
+      },
+      {
+        "id": "nothree",
+        "name": "셋 연속 금지",
+        "origin": "타쿠주·빈에리"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-givens-rowcol-kingtouch",
+    "name": "눈금 속 별",
+    "fitness": 0.8375,
+    "synergy": 1,
+    "necessityMin": 1,
+    "hitRate": 0.938,
+    "density": 0.285,
+    "ingredients": [
+      {
+        "id": "givens",
+        "name": "미리 보인 칸",
+        "origin": "스도쿠·타쿠주 (정답 일부 공개)"
+      },
+      {
+        "id": "rowcol",
+        "name": "줄 개수",
+        "origin": "텐트·배틀십 (가장자리 개수)"
+      },
+      {
+        "id": "kingtouch",
+        "name": "대각선까지 맞닿기 금지",
+        "origin": "스타배틀"
       }
     ],
     "foundAt": "2026-11-05"
@@ -98,6 +250,33 @@
     "foundAt": "2026-11-05"
   },
   {
+    "id": "fx-orth4-rowcol-no2x2e",
+    "name": "십자 눈금과 그물",
+    "fitness": 0.6816,
+    "synergy": 0.848,
+    "necessityMin": 1,
+    "hitRate": 0.969,
+    "density": 0.359,
+    "ingredients": [
+      {
+        "id": "orth4",
+        "name": "십자 4칸",
+        "origin": "여러 개수 단서 퍼즐"
+      },
+      {
+        "id": "rowcol",
+        "name": "줄 개수",
+        "origin": "텐트·배틀십 (가장자리 개수)"
+      },
+      {
+        "id": "no2x2e",
+        "name": "텅 빈 2×2 금지",
+        "origin": "헤야와케·누리카베 변형"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
     "id": "fx-nb8-x-kingtouch",
     "name": "지뢰의 별",
     "fitness": 0.6629,
@@ -110,6 +289,55 @@
         "id": "nb8",
         "name": "이웃 8칸",
         "origin": "지뢰찾기"
+      },
+      {
+        "id": "kingtouch",
+        "name": "대각선까지 맞닿기 금지",
+        "origin": "스타배틀"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-nb8-x-no2x2e.notouch",
+    "name": "지뢰 그물 속 섬",
+    "fitness": 0.6595,
+    "synergy": 0.901,
+    "necessityMin": 0.781,
+    "hitRate": 1,
+    "density": 0.267,
+    "ingredients": [
+      {
+        "id": "nb8",
+        "name": "이웃 8칸",
+        "origin": "지뢰찾기"
+      },
+      {
+        "id": "no2x2e",
+        "name": "텅 빈 2×2 금지",
+        "origin": "헤야와케·누리카베 변형"
+      },
+      {
+        "id": "notouch",
+        "name": "맞닿기 금지",
+        "origin": "히토리·여러 칠하기 퍼즐"
+      }
+    ],
+    "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-bishop-x-kingtouch",
+    "name": "사선과 별",
+    "fitness": 0.6395,
+    "synergy": 0.617,
+    "necessityMin": 0.969,
+    "hitRate": 1,
+    "density": 0.238,
+    "ingredients": [
+      {
+        "id": "bishop",
+        "name": "비숍의 사선",
+        "origin": "체스 비숍"
       },
       {
         "id": "kingtouch",

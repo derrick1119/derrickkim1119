@@ -31,6 +31,7 @@ const INCOMPATIBLE: [string, string][] = [
   ['kline', 'balanced'],
   ['connf', 'notouch'], // 칠한 칸이 맞닿을 수 없는데 연결돼야 함 → 불가능
   ['connf', 'kingtouch'],
+  ['conne', 'kingtouch'], // kingtouch ⇒ 빈칸은 항상 연결 (실험 0002) → 장식
   ['no2x2f', 'kingtouch'], // 자명하게 성립(장식)
   ['no2x2f', 'notouch'],
   ['rowcol', 'kline'], // 바깥 숫자가 전부 2 → 장식
