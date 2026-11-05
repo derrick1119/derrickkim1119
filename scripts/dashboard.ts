@@ -97,5 +97,11 @@ rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 const html = read('scripts/dashboard/template.html').replace('/*DATA*/', JSON.stringify(data).replace(/</g, '\\u003c'));
 writeFileSync(join(out, 'index.html'), html);
-if (existsSync(join(root, 'dist'))) cpSync(join(root, 'dist'), join(out, 'play'), { recursive: true });
+// play/ = 플레이테스트용 메아리만 (발견 공장 제품·데일리 은행은 뺀다 — 계기판은 #play= 모드만 쓴다)
+if (existsSync(join(root, 'dist'))) {
+  cpSync(join(root, 'dist'), join(out, 'play'), {
+    recursive: true,
+    filter: (src) => !/[\\/](fusion[^\\/]*|puzzles)$/.test(src),
+  });
+}
 console.log(`dashboard-dist/ written (${schedule[0].kst} 다음 실행, A=${A.id} B=${B.id})`);
