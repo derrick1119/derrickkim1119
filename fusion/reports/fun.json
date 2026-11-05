@@ -703,5 +703,230 @@
    "mental": 0.988,
    "elegance": 0.751
   }
+ },
+ "fx-rook-x-nothree.notouch": {
+  "id": "fx-rook-x-nothree.notouch",
+  "n": 20,
+  "fun": 0.622,
+  "se": 0.015,
+  "parts": {
+   "clarity": 0.42,
+   "aha": 0.392,
+   "cascade": 0.798,
+   "interplay": 0.875,
+   "balance": 0.933,
+   "mental": 0.65,
+   "elegance": 0.806
+  }
+ },
+ "fx-orth4-x-kingtouch.kline1": {
+  "id": "fx-orth4-x-kingtouch.kline1",
+  "n": 20,
+  "fun": 0.69,
+  "se": 0.011,
+  "parts": {
+   "clarity": 0.48,
+   "aha": 0.354,
+   "cascade": 0.893,
+   "interplay": 0.915,
+   "balance": 0.951,
+   "mental": 0.886,
+   "elegance": 0.787
+  }
+ },
+ "fx-bishop-x-nothree.notouch": {
+  "id": "fx-bishop-x-nothree.notouch",
+  "n": 20,
+  "fun": 0.531,
+  "se": 0.037,
+  "parts": {
+   "clarity": 0.3,
+   "aha": 0.214,
+   "cascade": 0.776,
+   "interplay": 0.775,
+   "balance": 0.905,
+   "mental": 0.819,
+   "elegance": 0.815
+  }
+ },
+ "fx-nb8-x-kline.no2x2e": {
+  "id": "fx-nb8-x-kline.no2x2e",
+  "n": 20,
+  "fun": 0.691,
+  "se": 0.016,
+  "parts": {
+   "clarity": 0.42,
+   "aha": 0.667,
+   "cascade": 0.771,
+   "interplay": 0.837,
+   "balance": 0.917,
+   "mental": 0.902,
+   "elegance": 0.767
+  }
+ },
+ "fx-bishop-x-kline.no2x2e": {
+  "id": "fx-bishop-x-kline.no2x2e",
+  "n": 20,
+  "fun": 0.574,
+  "se": 0.023,
+  "parts": {
+   "clarity": 0.3,
+   "aha": 0.545,
+   "cascade": 0.673,
+   "interplay": 0.724,
+   "balance": 0.932,
+   "mental": 0.762,
+   "elegance": 0.79
+  }
+ },
+ "fx-bishop-x-no2x2e.notouch": {
+  "id": "fx-bishop-x-no2x2e.notouch",
+  "n": 20,
+  "fun": 0.527,
+  "se": 0.024,
+  "parts": {
+   "clarity": 0.3,
+   "aha": 0.305,
+   "cascade": 0.851,
+   "interplay": 0.558,
+   "balance": 0.95,
+   "mental": 0.931,
+   "elegance": 0.775
+  }
+ },
+ "fx-nb8-x-balanced": {
+  "id": "fx-nb8-x-balanced",
+  "n": 20,
+  "fun": 0.843,
+  "se": 0.011,
+  "parts": {
+   "clarity": 0.9,
+   "aha": 0.64,
+   "cascade": 0.732,
+   "interplay": 0.844,
+   "balance": 0.993,
+   "mental": 0.963,
+   "elegance": 0.893
+  }
+ },
+ "fx-rowline-x-kingtouch": {
+  "id": "fx-rowline-x-kingtouch",
+  "n": 20,
+  "fun": 0.775,
+  "se": 0.01,
+  "parts": {
+   "clarity": 0.8,
+   "aha": 0.421,
+   "cascade": 0.644,
+   "interplay": 1,
+   "balance": 0.9,
+   "mental": 0.975,
+   "elegance": 0.816
+  }
+ },
+ "fx-echo2-x-nothree": {
+  "id": "fx-echo2-x-nothree",
+  "n": 20,
+  "fun": 0.629,
+  "se": 0.021,
+  "parts": {
+   "clarity": 0.4,
+   "aha": 0.654,
+   "cascade": 0.584,
+   "interplay": 0.639,
+   "balance": 0.99,
+   "mental": 0.926,
+   "elegance": 0.879
+  }
+ },
+ "fx-bishop-x-kline": {
+  "id": "fx-bishop-x-kline",
+  "n": 20,
+  "fun": 0.647,
+  "se": 0.023,
+  "parts": {
+   "clarity": 0.5,
+   "aha": 0.545,
+   "cascade": 0.801,
+   "interplay": 0.571,
+   "balance": 0.975,
+   "mental": 0.847,
+   "elegance": 0.91
+  }
+ },
+ "fx-rowline-x-nothree": {
+  "id": "fx-rowline-x-nothree",
+  "n": 20,
+  "fun": 0.797,
+  "se": 0.008,
+  "parts": {
+   "clarity": 0.8,
+   "aha": 0.445,
+   "cascade": 0.741,
+   "interplay": 1,
+   "balance": 0.928,
+   "mental": 0.891,
+   "elegance": 0.859
+  }
+ },
+ "fx-rowline-x-notouch": {
+  "id": "fx-rowline-x-notouch",
+  "n": 20,
+  "fun": 0.828,
+  "se": 0.008,
+  "parts": {
+   "clarity": 0.85,
+   "aha": 0.52,
+   "cascade": 0.759,
+   "interplay": 1,
+   "balance": 0.98,
+   "mental": 0.925,
+   "elegance": 0.759
+  }
+ },
+ "fx-bishop-rowcol-notouch": {
+  "id": "fx-bishop-rowcol-notouch",
+  "n": 20,
+  "fun": 0.555,
+  "se": 0.024,
+  "parts": {
+   "clarity": 0.3,
+   "aha": 0.451,
+   "cascade": 0.74,
+   "interplay": 0.604,
+   "balance": 0.859,
+   "mental": 0.988,
+   "elegance": 0.719
+  }
+ },
+ "fx-nb8-rowcol-no2x2e": {
+  "id": "fx-nb8-rowcol-no2x2e",
+  "n": 20,
+  "fun": 0.658,
+  "se": 0.015,
+  "parts": {
+   "clarity": 0.42,
+   "aha": 0.677,
+   "cascade": 0.627,
+   "interplay": 0.777,
+   "balance": 0.872,
+   "mental": 0.955,
+   "elegance": 0.681
+  }
+ },
+ "fx-nb8-x-no2x2e": {
+  "id": "fx-nb8-x-no2x2e",
+  "n": 20,
+  "fun": 0.674,
+  "se": 0.032,
+  "parts": {
+   "clarity": 0.7,
+   "aha": 0.737,
+   "cascade": 0.534,
+   "interplay": 0.552,
+   "balance": 0.727,
+   "mental": 0.971,
+   "elegance": 0.821
+  }
  }
 }
