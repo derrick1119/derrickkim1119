@@ -1,5 +1,5 @@
 import { measureFun } from '../../engine/fun.ts';
-import { generate } from '../../engine/generator.ts';
+import { EVAL_ATTEMPTS, generate } from '../../engine/generator.ts';
 import { buildModel } from '../../engine/model.ts';
 import type { RuleSet, Tier } from '../../engine/types.ts';
 
@@ -63,7 +63,7 @@ function fullRingSize(rules: RuleSet, size: number): number {
  * 높을수록: 난이도 통제가 잘 되고, 단서가 적고, 단순 반복이 아닌 추론을 요구한다.
  */
 /** seedBase: 시드 집합 번호. 0 = 0001~0004와 같은 시드 (재현성 기준선) */
-export function evaluateRules(rules: RuleSet, n: number, attempts = 40, seedBase = 0): EvalReport {
+export function evaluateRules(rules: RuleSet, n: number, attempts = EVAL_ATTEMPTS, seedBase = 0): EvalReport {
   const tiers = {} as Record<Tier, TierStats>;
   for (const { tier, size } of EVAL_PLAN) {
     let hits = 0, ms = 0, density = 0, mix = 0, score = 0, fails = 0;

@@ -4,6 +4,14 @@ import { mulberry32, shuffle } from './rng.ts';
 import { countSolutions } from './solver.ts';
 import type { Puzzle, PuzzleData, RuleSet, Technique, Tier } from './types.ts';
 
+/**
+ * 생성 예산(무작위 정답을 몇 번까지 새로 뽑아보는가)의 단일 출처 (0010).
+ * 평가는 플레이어가 실제로 보는 퍼즐과 같은 조건이어야 한다 (0008: 예산이 작으면 적중률을 과소평가).
+ */
+export const PLAY_ATTEMPTS = 40; // 브라우저 플레이테스트 = generate 기본값
+export const BANK_ATTEMPTS = 80; // 데일리 은행 (오프라인이라 더 넉넉히)
+export const EVAL_ATTEMPTS = PLAY_ATTEMPTS; // abtest·explore·reverify·evaluate
+
 export interface GenOptions {
   width: number;
   height: number;
@@ -36,7 +44,7 @@ export function solvableWith(p: PuzzleData, rules: RuleSet, max: Technique) {
  */
 export function generate(rules: RuleSet, opt: GenOptions): Puzzle | null {
   const { width: w, height: h, seed, target } = opt;
-  const attempts = opt.attempts ?? 40;
+  const attempts = opt.attempts ?? PLAY_ATTEMPTS;
   const rng = mulberry32(seed);
   const max = MAX_TECH[target];
   let best: Puzzle | null = null;

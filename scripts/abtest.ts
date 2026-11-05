@@ -5,6 +5,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { EVAL_ATTEMPTS } from '../engine/generator.ts';
 import { parseFamilyId, regionClass } from '../engine/rules/family.ts';
 import { getRules } from '../engine/rules/index.ts';
 import { evaluateRules, type EvalReport } from './lib/evaluate.ts';
@@ -19,7 +20,7 @@ const cands = arg('cands', '').split(',').filter(Boolean);
 const n = Number(arg('n', '10'));
 const sets = Number(arg('sets', '2'));
 // 0008: 제품과 같은 생성 예산(플레이테스트 40, 데일리 은행 80)으로 평가해야 자격 판정이 공정하다
-const attempts = Number(arg('attempts', '40'));
+const attempts = Number(arg('attempts', String(EVAL_ATTEMPTS)));
 const t0 = performance.now();
 const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
 const sd = (a: number[]) => Math.sqrt(a.reduce((x, y) => x + (y - mean(a)) ** 2, 0) / Math.max(1, a.length - 1));

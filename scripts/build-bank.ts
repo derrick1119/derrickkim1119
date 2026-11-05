@@ -7,7 +7,7 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { addDays, LAUNCH_DATE, WEEKDAY_PLAN, weekday } from '../engine/daily.ts';
-import { generate } from '../engine/generator.ts';
+import { generate, BANK_ATTEMPTS } from '../engine/generator.ts';
 import { hashString } from '../engine/rng.ts';
 import { getRules } from '../engine/rules/index.ts';
 
@@ -31,7 +31,7 @@ for (let i = 0; i < days; i++) {
   if (existsSync(file)) continue;
   const plan = WEEKDAY_PLAN[weekday(date)];
   const seed = hashString(`${rulesId}:${date}`);
-  const p = generate(rules, { width: plan.size, height: plan.size, seed, target: plan.tier, attempts: 80 });
+  const p = generate(rules, { width: plan.size, height: plan.size, seed, target: plan.tier, attempts: BANK_ATTEMPTS });
   if (!p) throw new Error(`generation failed for ${date}`);
   if (p.difficulty.tier !== plan.tier) console.warn(`${date}: wanted ${plan.tier}, got ${p.difficulty.tier}`);
   writeFileSync(file, JSON.stringify({ date, ...p }) + '\n');

@@ -31,3 +31,15 @@ describe('knight echo', () => {
     expect(countSolutions(p, r, 2).count).toBe(1);
   });
 });
+
+describe('generation budget single source (0010)', () => {
+  it('evaluation uses the same budget players see; the bank uses at least that', async () => {
+    const g = await import('../engine/generator.ts');
+    expect(g.EVAL_ATTEMPTS).toBe(g.PLAY_ATTEMPTS);
+    expect(g.BANK_ATTEMPTS).toBeGreaterThanOrEqual(g.EVAL_ATTEMPTS);
+    const ev = await import('../scripts/lib/evaluate.ts');
+    // 기본 인자 = EVAL_ATTEMPTS: 같은 시드에서 명시 호출과 결과가 같아야 한다
+    const r = getRules('echo');
+    expect(ev.evaluateRules(r, 1).fitness).toBe(ev.evaluateRules(r, 1, g.EVAL_ATTEMPTS).fitness);
+  });
+});
