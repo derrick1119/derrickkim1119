@@ -4097,6 +4097,1414 @@
    "fitness": 0.0827,
    "discovery": false,
    "at": "2026-11-05"
+  },
+  "fx-orth4-rowcol-kingtouch": {
+   "id": "fx-orth4-rowcol-kingtouch",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 0.917,
+   "density": 0.264,
+   "synergy": 0.936,
+   "necessity": {
+    "orth4": 1,
+    "rowcol": 1,
+    "kingtouch": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 201,
+   "failures": 0,
+   "fitness": 0.8002,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-orth4-rowcol-kingtouch",
+    "n": 8,
+    "known": null,
+    "atoms": 3,
+    "hitRate": 0.969,
+    "density": 0.271,
+    "synergy": 0.926,
+    "necessity": {
+     "orth4": 1,
+     "rowcol": 1,
+     "kingtouch": 1
+    },
+    "necessityMin": 1,
+    "hardMs": 168,
+    "failures": 0,
+    "fitness": 0.8307,
+    "discovery": true
+   }
+  },
+  "fx-x-rowcol-conne.no2x2e": {
+   "id": "fx-x-rowcol-conne.no2x2e",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 0.083,
+   "density": 0.25,
+   "synergy": 1,
+   "necessity": {
+    "rowcol": 1,
+    "conne": 0.5,
+    "no2x2e": 1
+   },
+   "necessityMin": 0.5,
+   "hardMs": 28,
+   "failures": 10,
+   "fitness": 0.0391,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-orth4-x-balanced.nothree": {
+   "id": "fx-orth4-x-balanced.nothree",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 0.833,
+   "density": 0.177,
+   "synergy": 1,
+   "necessity": {
+    "orth4": 1,
+    "balanced": 1,
+    "nothree": 0.667
+   },
+   "necessityMin": 0.667,
+   "hardMs": 134,
+   "failures": 0,
+   "fitness": 0.5719,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-bishop-x-connf.no2x2f": {
+   "id": "fx-bishop-x-connf.no2x2f",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 0.917,
+   "density": 0.296,
+   "synergy": 0.427,
+   "necessity": {
+    "bishop": 1,
+    "connf": 0.5,
+    "no2x2f": 0.583
+   },
+   "necessityMin": 0.5,
+   "hardMs": 215,
+   "failures": 0,
+   "fitness": 0.2184,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-nb8-x-kingtouch.no2x2e": {
+   "id": "fx-nb8-x-kingtouch.no2x2e",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 0.833,
+   "density": 0.103,
+   "synergy": 0.986,
+   "necessity": {
+    "nb8": 1,
+    "kingtouch": 1,
+    "no2x2e": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 909,
+   "failures": 0,
+   "fitness": 0.9237,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-nb8-x-kingtouch.no2x2e",
+    "n": 8,
+    "known": null,
+    "atoms": 3,
+    "hitRate": 0.906,
+    "density": 0.101,
+    "synergy": 0.994,
+    "necessity": {
+     "nb8": 1,
+     "kingtouch": 1,
+     "no2x2e": 1
+    },
+    "necessityMin": 1,
+    "hardMs": 1049,
+    "failures": 0,
+    "fitness": 1.0135,
+    "discovery": true
+   }
+  },
+  "fx-bishop-x-conne": {
+   "id": "fx-bishop-x-conne",
+   "n": 3,
+   "known": null,
+   "atoms": 2,
+   "hitRate": 1,
+   "density": 0.312,
+   "synergy": 0.115,
+   "necessity": {
+    "bishop": 1,
+    "conne": 0.5
+   },
+   "necessityMin": 0.5,
+   "hardMs": 9,
+   "failures": 0,
+   "fitness": 0.1255,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-orth4-x-kline": {
+   "id": "fx-orth4-x-kline",
+   "n": 3,
+   "known": null,
+   "atoms": 2,
+   "hitRate": 0.917,
+   "density": 0.169,
+   "synergy": 0.872,
+   "necessity": {
+    "orth4": 1,
+    "kline": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 43,
+   "failures": 0,
+   "fitness": 0.8551,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-orth4-x-kline",
+    "n": 8,
+    "known": null,
+    "atoms": 2,
+    "hitRate": 0.938,
+    "density": 0.176,
+    "synergy": 0.863,
+    "necessity": {
+     "orth4": 1,
+     "kline": 1
+    },
+    "necessityMin": 1,
+    "hardMs": 46,
+    "failures": 0,
+    "fitness": 0.8593,
+    "discovery": true
+   }
+  },
+  "fx-knight-rowcol-no2x2e.nothree": {
+   "id": "fx-knight-rowcol-no2x2e.nothree",
+   "n": 3,
+   "known": null,
+   "atoms": 4,
+   "hitRate": 1,
+   "density": 0.231,
+   "synergy": 0.943,
+   "necessity": {
+    "knight": 1,
+    "rowcol": 1,
+    "no2x2e": 0.167,
+    "nothree": 1
+   },
+   "necessityMin": 0.167,
+   "hardMs": 79,
+   "failures": 0,
+   "fitness": 0.1532,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-givens-rowcol-connf.nothree": {
+   "id": "fx-givens-rowcol-connf.nothree",
+   "n": 3,
+   "known": null,
+   "atoms": 4,
+   "hitRate": 0,
+   "density": 1,
+   "synergy": 0,
+   "necessity": {
+    "givens": 0,
+    "rowcol": 0,
+    "connf": 0,
+    "nothree": 0
+   },
+   "necessityMin": 0,
+   "hardMs": 327,
+   "failures": 12,
+   "fitness": 0,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-echo2-x-no2x2e.notouch": {
+   "id": "fx-echo2-x-no2x2e.notouch",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 0.833,
+   "density": 0.209,
+   "synergy": 0.922,
+   "necessity": {
+    "echo2": 1,
+    "no2x2e": 0.917,
+    "notouch": 1
+   },
+   "necessityMin": 0.917,
+   "hardMs": 736,
+   "failures": 0,
+   "fitness": 0.7088,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-echo2-x-no2x2e.notouch",
+    "n": 8,
+    "known": null,
+    "atoms": 3,
+    "hitRate": 0.938,
+    "density": 0.199,
+    "synergy": 0.867,
+    "necessity": {
+     "echo2": 1,
+     "no2x2e": 0.969,
+     "notouch": 1
+    },
+    "necessityMin": 0.969,
+    "hardMs": 525,
+    "failures": 0,
+    "fitness": 0.813,
+    "discovery": true
+   }
+  },
+  "fx-orth4-rowcol-connf.no2x2f": {
+   "id": "fx-orth4-rowcol-connf.no2x2f",
+   "n": 3,
+   "known": null,
+   "atoms": 4,
+   "hitRate": 0.833,
+   "density": 0.319,
+   "synergy": 0.588,
+   "necessity": {
+    "orth4": 1,
+    "rowcol": 1,
+    "connf": 0.5,
+    "no2x2f": 0.75
+   },
+   "necessityMin": 0.5,
+   "hardMs": 204,
+   "failures": 0,
+   "fitness": 0.2378,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-nb8-rowcol-x": {
+   "id": "fx-nb8-rowcol-x",
+   "n": 3,
+   "known": null,
+   "atoms": 2,
+   "hitRate": 1,
+   "density": 0.367,
+   "synergy": 0.788,
+   "necessity": {
+    "nb8": 1,
+    "rowcol": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 38,
+   "failures": 0,
+   "fitness": 0.6572,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-nb8-rowcol-x",
+    "n": 8,
+    "known": null,
+    "atoms": 2,
+    "hitRate": 0.969,
+    "density": 0.366,
+    "synergy": 0.708,
+    "necessity": {
+     "nb8": 1,
+     "rowcol": 1
+    },
+    "necessityMin": 1,
+    "hardMs": 33,
+    "failures": 0,
+    "fitness": 0.5884,
+    "discovery": true
+   }
+  },
+  "fx-rook-x-balanced.no2x2e": {
+   "id": "fx-rook-x-balanced.no2x2e",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 0.5,
+   "density": 0.323,
+   "synergy": 1,
+   "necessity": {
+    "rook": 1,
+    "balanced": 0.667,
+    "no2x2e": 0.75
+   },
+   "necessityMin": 0.667,
+   "hardMs": 110,
+   "failures": 0,
+   "fitness": 0.2823,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-x-rowcol-no2x2e.nothree": {
+   "id": "fx-x-rowcol-no2x2e.nothree",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 0,
+   "density": 1,
+   "synergy": 0,
+   "necessity": {
+    "rowcol": 0,
+    "no2x2e": 0,
+    "nothree": 0
+   },
+   "necessityMin": 0,
+   "hardMs": 23,
+   "failures": 12,
+   "fitness": 0,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-nb8-x-balanced.kingtouch": {
+   "id": "fx-nb8-x-balanced.kingtouch",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 0,
+   "density": 1,
+   "synergy": 0,
+   "necessity": {
+    "nb8": 0,
+    "balanced": 0,
+    "kingtouch": 0
+   },
+   "necessityMin": 0,
+   "hardMs": 4,
+   "failures": 12,
+   "fitness": 0,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-echo2-x-balanced.no2x2e": {
+   "id": "fx-echo2-x-balanced.no2x2e",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 1,
+   "density": 0.201,
+   "synergy": 0.844,
+   "necessity": {
+    "echo2": 1,
+    "balanced": 1,
+    "no2x2e": 0.583
+   },
+   "necessityMin": 0.583,
+   "hardMs": 108,
+   "failures": 0,
+   "fitness": 0.5101,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-givens-x-kingtouch.kline": {
+   "id": "fx-givens-x-kingtouch.kline",
+   "n": 3,
+   "known": "스타배틀류(영역 없음)",
+   "atoms": 3,
+   "hitRate": 0.25,
+   "density": 0.016,
+   "synergy": 1,
+   "necessity": {
+    "givens": 1,
+    "kingtouch": 1,
+    "kline": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 11,
+   "failures": 9,
+   "fitness": 0.3076,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-orth4-x-connf": {
+   "id": "fx-orth4-x-connf",
+   "n": 3,
+   "known": null,
+   "atoms": 2,
+   "hitRate": 0.5,
+   "density": 0.323,
+   "synergy": 0.302,
+   "necessity": {
+    "orth4": 1,
+    "connf": 0.5
+   },
+   "necessityMin": 0.5,
+   "hardMs": 35,
+   "failures": 0,
+   "fitness": 0.0935,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-orth4-rowcol-nothree.notouch": {
+   "id": "fx-orth4-rowcol-nothree.notouch",
+   "n": 3,
+   "known": null,
+   "atoms": 4,
+   "hitRate": 0.917,
+   "density": 0.085,
+   "synergy": 1,
+   "necessity": {
+    "orth4": 1,
+    "rowcol": 0.833,
+    "nothree": 1,
+    "notouch": 1
+   },
+   "necessityMin": 0.833,
+   "hardMs": 195,
+   "failures": 0,
+   "fitness": 0.8736,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-orth4-rowcol-nothree.notouch",
+    "n": 8,
+    "known": null,
+    "atoms": 4,
+    "hitRate": 0.938,
+    "density": 0.088,
+    "synergy": 1,
+    "necessity": {
+     "orth4": 1,
+     "rowcol": 0.719,
+     "nothree": 1,
+     "notouch": 1
+    },
+    "necessityMin": 0.719,
+    "hardMs": 217,
+    "failures": 0,
+    "fitness": 0.7681,
+    "discovery": true
+   }
+  },
+  "fx-knight-x-no2x2e.no2x2f": {
+   "id": "fx-knight-x-no2x2e.no2x2f",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 0.75,
+   "density": 0.287,
+   "synergy": 0.552,
+   "necessity": {
+    "knight": 1,
+    "no2x2e": 1,
+    "no2x2f": 0.25
+   },
+   "necessityMin": 0.25,
+   "hardMs": 75,
+   "failures": 0,
+   "fitness": 0.1072,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-nb8-x-kline.nothree": {
+   "id": "fx-nb8-x-kline.nothree",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 0.667,
+   "density": 0.08,
+   "synergy": 1,
+   "necessity": {
+    "nb8": 1,
+    "kline": 1,
+    "nothree": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 55,
+   "failures": 3,
+   "fitness": 0.7665,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-knight-x-conne": {
+   "id": "fx-knight-x-conne",
+   "n": 3,
+   "known": null,
+   "atoms": 2,
+   "hitRate": 0.917,
+   "density": 0.355,
+   "synergy": 0.343,
+   "necessity": {
+    "knight": 1,
+    "conne": 0.5
+   },
+   "necessityMin": 0.5,
+   "hardMs": 3,
+   "failures": 0,
+   "fitness": 0.1752,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-knight-x-kline.notouch": {
+   "id": "fx-knight-x-kline.notouch",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 1,
+   "density": 0.126,
+   "synergy": 0.944,
+   "necessity": {
+    "knight": 1,
+    "kline": 1,
+    "notouch": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 172,
+   "failures": 0,
+   "fitness": 1.0434,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-knight-x-kline.notouch",
+    "n": 8,
+    "known": null,
+    "atoms": 3,
+    "hitRate": 0.969,
+    "density": 0.129,
+    "synergy": 0.974,
+    "necessity": {
+     "knight": 1,
+     "kline": 1,
+     "notouch": 1
+    },
+    "necessityMin": 1,
+    "hardMs": 207,
+    "failures": 0,
+    "fitness": 1.0332,
+    "discovery": true
+   }
+  },
+  "fx-bishop-x-balanced.no2x2e": {
+   "id": "fx-bishop-x-balanced.no2x2e",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 0.75,
+   "density": 0.171,
+   "synergy": 0.852,
+   "necessity": {
+    "bishop": 1,
+    "balanced": 1,
+    "no2x2e": 0.25
+   },
+   "necessityMin": 0.25,
+   "hardMs": 322,
+   "failures": 0,
+   "fitness": 0.1713,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-givens-rowcol-no2x2e": {
+   "id": "fx-givens-rowcol-no2x2e",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 1,
+   "density": 0.497,
+   "synergy": 0.711,
+   "necessity": {
+    "givens": 1,
+    "rowcol": 1,
+    "no2x2e": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 44,
+   "failures": 0,
+   "fitness": 0.4829,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-givens-rowcol-no2x2e",
+    "n": 8,
+    "known": null,
+    "atoms": 3,
+    "hitRate": 0.969,
+    "density": 0.46,
+    "synergy": 0.822,
+    "necessity": {
+     "givens": 1,
+     "rowcol": 1,
+     "no2x2e": 1
+    },
+    "necessityMin": 1,
+    "hardMs": 56,
+    "failures": 0,
+    "fitness": 0.5602,
+    "discovery": true
+   }
+  },
+  "fx-knight-rowcol-no2x2e": {
+   "id": "fx-knight-rowcol-no2x2e",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 1,
+   "density": 0.329,
+   "synergy": 0.787,
+   "necessity": {
+    "knight": 1,
+    "rowcol": 1,
+    "no2x2e": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 74,
+   "failures": 0,
+   "fitness": 0.6958,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-knight-rowcol-no2x2e",
+    "n": 8,
+    "known": null,
+    "atoms": 3,
+    "hitRate": 1,
+    "density": 0.324,
+    "synergy": 0.856,
+    "necessity": {
+     "knight": 1,
+     "rowcol": 1,
+     "no2x2e": 1
+    },
+    "necessityMin": 1,
+    "hardMs": 55,
+    "failures": 0,
+    "fitness": 0.7476,
+    "discovery": true
+   }
+  },
+  "fx-givens-rowcol-no2x2e.no2x2f": {
+   "id": "fx-givens-rowcol-no2x2e.no2x2f",
+   "n": 3,
+   "known": null,
+   "atoms": 4,
+   "hitRate": 0.833,
+   "density": 0.483,
+   "synergy": 1,
+   "necessity": {
+    "givens": 1,
+    "rowcol": 1,
+    "no2x2e": 1,
+    "no2x2f": 0.5
+   },
+   "necessityMin": 0.5,
+   "hardMs": 154,
+   "failures": 0,
+   "fitness": 0.2692,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-nb8-rowcol-no2x2e.notouch": {
+   "id": "fx-nb8-rowcol-no2x2e.notouch",
+   "n": 3,
+   "known": null,
+   "atoms": 4,
+   "hitRate": 1,
+   "density": 0.241,
+   "synergy": 0.946,
+   "necessity": {
+    "nb8": 1,
+    "rowcol": 1,
+    "no2x2e": 1,
+    "notouch": 0.917
+   },
+   "necessityMin": 0.917,
+   "hardMs": 121,
+   "failures": 0,
+   "fitness": 0.8328,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-nb8-rowcol-no2x2e.notouch",
+    "n": 8,
+    "known": null,
+    "atoms": 4,
+    "hitRate": 1,
+    "density": 0.247,
+    "synergy": 0.929,
+    "necessity": {
+     "nb8": 1,
+     "rowcol": 1,
+     "no2x2e": 0.969,
+     "notouch": 0.969
+    },
+    "necessityMin": 0.969,
+    "hardMs": 188,
+    "failures": 0,
+    "fitness": 0.8598,
+    "discovery": true
+   }
+  },
+  "fx-bishop-rowcol-kingtouch": {
+   "id": "fx-bishop-rowcol-kingtouch",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 1,
+   "density": 0.232,
+   "synergy": 0.804,
+   "necessity": {
+    "bishop": 1,
+    "rowcol": 1,
+    "kingtouch": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 197,
+   "failures": 0,
+   "fitness": 0.8095,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-bishop-rowcol-kingtouch",
+    "n": 8,
+    "known": null,
+    "atoms": 3,
+    "hitRate": 1,
+    "density": 0.248,
+    "synergy": 0.827,
+    "necessity": {
+     "bishop": 1,
+     "rowcol": 0.969,
+     "kingtouch": 1
+    },
+    "necessityMin": 0.969,
+    "hardMs": 254,
+    "failures": 0,
+    "fitness": 0.7851,
+    "discovery": true
+   }
+  },
+  "fx-x-rowcol-kingtouch.nothree": {
+   "id": "fx-x-rowcol-kingtouch.nothree",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 0,
+   "density": 1,
+   "synergy": 0,
+   "necessity": {
+    "rowcol": 0,
+    "kingtouch": 0,
+    "nothree": 0
+   },
+   "necessityMin": 0,
+   "hardMs": 4,
+   "failures": 12,
+   "fitness": 0,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-givens-x-conne.no2x2f": {
+   "id": "fx-givens-x-conne.no2x2f",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 0.667,
+   "density": 0.888,
+   "synergy": 0.067,
+   "necessity": {
+    "givens": 1,
+    "conne": 0.5,
+    "no2x2f": 0.5
+   },
+   "necessityMin": 0.5,
+   "hardMs": 95,
+   "failures": 0,
+   "fitness": 0.0118,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-rook-x-conne.connf": {
+   "id": "fx-rook-x-conne.connf",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 0.75,
+   "density": 0.204,
+   "synergy": 0.672,
+   "necessity": {
+    "rook": 1,
+    "conne": 0,
+    "connf": 0.455
+   },
+   "necessityMin": 0,
+   "hardMs": 136,
+   "failures": 1,
+   "fitness": 0,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-knight-rowcol-no2x2e.no2x2f": {
+   "id": "fx-knight-rowcol-no2x2e.no2x2f",
+   "n": 3,
+   "known": null,
+   "atoms": 4,
+   "hitRate": 1,
+   "density": 0.312,
+   "synergy": 0.923,
+   "necessity": {
+    "knight": 1,
+    "rowcol": 1,
+    "no2x2e": 1,
+    "no2x2f": 0.417
+   },
+   "necessityMin": 0.417,
+   "hardMs": 69,
+   "failures": 0,
+   "fitness": 0.3365,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-orth4-rowcol-connf": {
+   "id": "fx-orth4-rowcol-connf",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 0.75,
+   "density": 0.333,
+   "synergy": 0.525,
+   "necessity": {
+    "orth4": 1,
+    "rowcol": 1,
+    "connf": 0.5
+   },
+   "necessityMin": 0.5,
+   "hardMs": 105,
+   "failures": 0,
+   "fitness": 0.1939,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-knight-rowcol-connf.no2x2f": {
+   "id": "fx-knight-rowcol-connf.no2x2f",
+   "n": 3,
+   "known": null,
+   "atoms": 4,
+   "hitRate": 0.833,
+   "density": 0.311,
+   "synergy": 0.642,
+   "necessity": {
+    "knight": 1,
+    "rowcol": 0.917,
+    "connf": 0.5,
+    "no2x2f": 0.833
+   },
+   "necessityMin": 0.5,
+   "hardMs": 296,
+   "failures": 0,
+   "fitness": 0.2562,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-knight-x-nothree.notouch": {
+   "id": "fx-knight-x-nothree.notouch",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 0.5,
+   "density": 0.061,
+   "synergy": 1,
+   "necessity": {
+    "knight": 1,
+    "nothree": 1,
+    "notouch": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 267,
+   "failures": 0,
+   "fitness": 0.5867,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-echo2-rowcol-nothree": {
+   "id": "fx-echo2-rowcol-nothree",
+   "n": 3,
+   "known": null,
+   "atoms": 3,
+   "hitRate": 1,
+   "density": 0.257,
+   "synergy": 0.847,
+   "necessity": {
+    "echo2": 1,
+    "rowcol": 0.75,
+    "nothree": 1
+   },
+   "necessityMin": 0.75,
+   "hardMs": 67,
+   "failures": 0,
+   "fitness": 0.6118,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-echo2-rowcol-nothree",
+    "n": 8,
+    "known": null,
+    "atoms": 3,
+    "hitRate": 0.969,
+    "density": 0.259,
+    "synergy": 0.864,
+    "necessity": {
+     "echo2": 1,
+     "rowcol": 0.844,
+     "nothree": 1
+    },
+    "necessityMin": 0.844,
+    "hardMs": 184,
+    "failures": 0,
+    "fitness": 0.6748,
+    "discovery": true
+   }
+  },
+  "fx-bishop-rowcol-no2x2e.no2x2f": {
+   "id": "fx-bishop-rowcol-no2x2e.no2x2f",
+   "n": 3,
+   "known": null,
+   "atoms": 4,
+   "hitRate": 1,
+   "density": 0.306,
+   "synergy": 0.792,
+   "necessity": {
+    "bishop": 1,
+    "rowcol": 1,
+    "no2x2e": 1,
+    "no2x2f": 0.417
+   },
+   "necessityMin": 0.417,
+   "hardMs": 338,
+   "failures": 0,
+   "fitness": 0.3014,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-echo2-rowcol-no2x2e.notouch": {
+   "id": "fx-echo2-rowcol-no2x2e.notouch",
+   "n": 3,
+   "known": null,
+   "atoms": 4,
+   "hitRate": 0.917,
+   "density": 0.22,
+   "synergy": 0.954,
+   "necessity": {
+    "echo2": 1,
+    "rowcol": 0.75,
+    "no2x2e": 1,
+    "notouch": 0.917
+   },
+   "necessityMin": 0.75,
+   "hardMs": 473,
+   "failures": 0,
+   "fitness": 0.6454,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-echo2-rowcol-no2x2e.notouch",
+    "n": 8,
+    "known": null,
+    "atoms": 4,
+    "hitRate": 1,
+    "density": 0.218,
+    "synergy": 0.923,
+    "necessity": {
+     "echo2": 1,
+     "rowcol": 0.813,
+     "no2x2e": 0.969,
+     "notouch": 0.969
+    },
+    "necessityMin": 0.813,
+    "hardMs": 385,
+    "failures": 0,
+    "fitness": 0.7453,
+    "discovery": true
+   }
+  },
+  "fx-bishop-rowcol-kingtouch.nothree": {
+   "id": "fx-bishop-rowcol-kingtouch.nothree",
+   "n": 3,
+   "known": null,
+   "atoms": 4,
+   "hitRate": 0,
+   "density": 1,
+   "synergy": 0,
+   "necessity": {
+    "bishop": 0,
+    "rowcol": 0,
+    "kingtouch": 0,
+    "nothree": 0
+   },
+   "necessityMin": 0,
+   "hardMs": 4,
+   "failures": 12,
+   "fitness": 0,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-nb8-x-kline1": {
+   "id": "fx-nb8-x-kline1",
+   "n": 3,
+   "known": null,
+   "atoms": 2,
+   "hitRate": 1,
+   "density": 0.169,
+   "synergy": 0.92,
+   "necessity": {
+    "nb8": 1,
+    "kline1": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 35,
+   "failures": 0,
+   "fitness": 0.9722,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-nb8-x-kline1",
+    "n": 8,
+    "known": null,
+    "atoms": 2,
+    "hitRate": 1,
+    "density": 0.159,
+    "synergy": 0.874,
+    "necessity": {
+     "nb8": 1,
+     "kline1": 1
+    },
+    "necessityMin": 1,
+    "hardMs": 44,
+    "failures": 0,
+    "fitness": 0.9447,
+    "discovery": true
+   }
+  },
+  "fx-orth4-x-kline1": {
+   "id": "fx-orth4-x-kline1",
+   "n": 3,
+   "known": null,
+   "atoms": 2,
+   "hitRate": 1,
+   "density": 0.136,
+   "synergy": 0.939,
+   "necessity": {
+    "orth4": 1,
+    "kline1": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 33,
+   "failures": 0,
+   "fitness": 1.0273,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-orth4-x-kline1",
+    "n": 8,
+    "known": null,
+    "atoms": 2,
+    "hitRate": 0.969,
+    "density": 0.143,
+    "synergy": 0.966,
+    "necessity": {
+     "orth4": 1,
+     "kline1": 1
+    },
+    "necessityMin": 1,
+    "hardMs": 31,
+    "failures": 0,
+    "fitness": 1.0096,
+    "discovery": true
+   }
+  },
+  "fx-rook-x-kline1": {
+   "id": "fx-rook-x-kline1",
+   "n": 3,
+   "known": null,
+   "atoms": 2,
+   "hitRate": 0.25,
+   "density": 0.422,
+   "synergy": 0,
+   "necessity": {
+    "rook": 1,
+    "kline1": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 116,
+   "failures": 0,
+   "fitness": 0.0361,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-diag4-x-notouch": {
+   "id": "fx-diag4-x-notouch",
+   "n": 3,
+   "known": null,
+   "atoms": 2,
+   "hitRate": 0.5,
+   "density": 0.288,
+   "synergy": 0.9,
+   "necessity": {
+    "diag4": 1,
+    "notouch": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 23,
+   "failures": 0,
+   "fitness": 0.4095,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-diag4-x-kingtouch": {
+   "id": "fx-diag4-x-kingtouch",
+   "n": 3,
+   "known": null,
+   "atoms": 2,
+   "hitRate": 0.833,
+   "density": 0.264,
+   "synergy": 0.895,
+   "necessity": {
+    "diag4": 1,
+    "kingtouch": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 110,
+   "failures": 0,
+   "fitness": 0.7021,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-diag4-x-kingtouch",
+    "n": 8,
+    "known": null,
+    "atoms": 2,
+    "hitRate": 0.844,
+    "density": 0.267,
+    "synergy": 0.863,
+    "necessity": {
+     "diag4": 1,
+     "kingtouch": 1
+    },
+    "necessityMin": 1,
+    "hardMs": 71,
+    "failures": 0,
+    "fitness": 0.688,
+    "discovery": true
+   }
+  },
+  "fx-diag4-x-kline": {
+   "id": "fx-diag4-x-kline",
+   "n": 3,
+   "known": null,
+   "atoms": 2,
+   "hitRate": 0.75,
+   "density": 0.195,
+   "synergy": 0.97,
+   "necessity": {
+    "diag4": 1,
+    "kline": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 37,
+   "failures": 0,
+   "fitness": 0.7365,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-diag4-x-kline",
+    "n": 8,
+    "known": null,
+    "atoms": 2,
+    "hitRate": 0.875,
+    "density": 0.203,
+    "synergy": 0.956,
+    "necessity": {
+     "diag4": 1,
+     "kline": 1
+    },
+    "necessityMin": 1,
+    "hardMs": 30,
+    "failures": 0,
+    "fitness": 0.8416,
+    "discovery": true
+   }
+  },
+  "fx-diag4-x-kline1": {
+   "id": "fx-diag4-x-kline1",
+   "n": 3,
+   "known": null,
+   "atoms": 2,
+   "hitRate": 0.833,
+   "density": 0.162,
+   "synergy": 1,
+   "necessity": {
+    "diag4": 1,
+    "kline1": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 34,
+   "failures": 0,
+   "fitness": 0.8724,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-diag4-x-kline1",
+    "n": 8,
+    "known": null,
+    "atoms": 2,
+    "hitRate": 0.844,
+    "density": 0.155,
+    "synergy": 0.947,
+    "necessity": {
+     "diag4": 1,
+     "kline1": 1
+    },
+    "necessityMin": 1,
+    "hardMs": 36,
+    "failures": 0,
+    "fitness": 0.8534,
+    "discovery": true
+   }
+  },
+  "fx-diag4-x-balanced": {
+   "id": "fx-diag4-x-balanced",
+   "n": 3,
+   "known": null,
+   "atoms": 2,
+   "hitRate": 0.917,
+   "density": 0.197,
+   "synergy": 0.917,
+   "necessity": {
+    "diag4": 1,
+    "balanced": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 25,
+   "failures": 0,
+   "fitness": 0.8589,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-diag4-x-balanced",
+    "n": 8,
+    "known": null,
+    "atoms": 2,
+    "hitRate": 0.906,
+    "density": 0.206,
+    "synergy": 0.924,
+    "necessity": {
+     "diag4": 1,
+     "balanced": 1
+    },
+    "necessityMin": 1,
+    "hardMs": 20,
+    "failures": 0,
+    "fitness": 0.8449,
+    "discovery": true
+   }
+  },
+  "fx-diag4-x-nothree": {
+   "id": "fx-diag4-x-nothree",
+   "n": 3,
+   "known": null,
+   "atoms": 2,
+   "hitRate": 0.25,
+   "density": 0.264,
+   "synergy": 0.333,
+   "necessity": {
+    "diag4": 1,
+    "nothree": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 27,
+   "failures": 0,
+   "fitness": 0.1073,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-diag4-x-no2x2f": {
+   "id": "fx-diag4-x-no2x2f",
+   "n": 3,
+   "known": null,
+   "atoms": 2,
+   "hitRate": 0.25,
+   "density": 0.422,
+   "synergy": 0,
+   "necessity": {
+    "diag4": 1,
+    "no2x2f": 0.333
+   },
+   "necessityMin": 0.333,
+   "hardMs": 16,
+   "failures": 0,
+   "fitness": 0.012,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-diag4-x-no2x2e": {
+   "id": "fx-diag4-x-no2x2e",
+   "n": 3,
+   "known": null,
+   "atoms": 2,
+   "hitRate": 0.25,
+   "density": 0.385,
+   "synergy": 0,
+   "necessity": {
+    "diag4": 1,
+    "no2x2e": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 11,
+   "failures": 0,
+   "fitness": 0.0384,
+   "discovery": false,
+   "at": "2026-11-05"
+  },
+  "fx-diag4-rowcol-x": {
+   "id": "fx-diag4-rowcol-x",
+   "n": 3,
+   "known": null,
+   "atoms": 2,
+   "hitRate": 0.75,
+   "density": 0.409,
+   "synergy": 0.902,
+   "necessity": {
+    "diag4": 1,
+    "rowcol": 1
+   },
+   "necessityMin": 1,
+   "hardMs": 37,
+   "failures": 0,
+   "fitness": 0.5104,
+   "discovery": true,
+   "at": "2026-11-05",
+   "confirmed": {
+    "id": "fx-diag4-rowcol-x",
+    "n": 8,
+    "known": null,
+    "atoms": 2,
+    "hitRate": 0.75,
+    "density": 0.434,
+    "synergy": 0.853,
+    "necessity": {
+     "diag4": 1,
+     "rowcol": 1
+    },
+    "necessityMin": 1,
+    "hardMs": 24,
+    "failures": 0,
+    "fitness": 0.4677,
+    "discovery": true
+   }
   }
  }
 }
