@@ -72,8 +72,12 @@ const candidates = all.map((r: any) => ({
 
 // 제품
 const dates: string[] = json('web/public/puzzles/index.json').dates;
-const asset = existsSync(join(root, 'dist/assets')) ? readdirSync(join(root, 'dist/assets')).find((f) => f.endsWith('.js')) : null;
-const gz = asset ? (gzipSync(readFileSync(join(root, 'dist/assets', asset))).length / 1024).toFixed(2) + 'KB' : '?';
+// 메아리 번들 = fusion(발견 공장) 청크를 뺀 JS 전부
+const assets = existsSync(join(root, 'dist/assets'))
+  ? readdirSync(join(root, 'dist/assets')).filter((f) => f.endsWith('.js') && !f.startsWith('fusion'))
+  : [];
+const gzBytes = assets.reduce((a, f) => a + gzipSync(readFileSync(join(root, 'dist/assets', f))).length, 0);
+const gz = assets.length ? (gzBytes / 1024).toFixed(2) + 'KB' : '?';
 const product = {
   facts: [['데일리 은행', `${dates[0].slice(5)} → ${dates.at(-1)!.slice(5)} (${dates.length}일)`], ['JS gzip', `${gz} / 30KB`], ['챔피언', rounds.champion]],
   note: '은행이 30일 아래로 내려가면 공장이 자동으로 90일치를 추가합니다.',
