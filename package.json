@@ -15,7 +15,10 @@
     "verify": "npm run typecheck && npm run test && npm run build",
     "e2e": "tsx scripts/e2e.ts",
     "explore": "tsx scripts/explore-family.ts",
-    "reverify": "tsx scripts/reverify.ts"
+    "reverify": "tsx scripts/reverify.ts",
+    "fusion:search": "tsx fusion/cli-search.ts",
+    "fusion:bank": "tsx fusion/cli-bank.ts",
+    "fusion:e2e": "tsx fusion/e2e.ts"
   },
   "repository": {
     "type": "git",

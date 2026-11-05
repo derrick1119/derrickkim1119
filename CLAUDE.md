@@ -1,3 +1,17 @@
+# 이 저장소에는 공장이 둘 있다
+
+| 공장 | 하는 일 | 프로토콜 | 제품 |
+|---|---|---|---|
+| **발명 공장** | 세상에 없는 규칙을 발명 | 이 파일 아래 전부 | 메아리 (`web/index.html`) |
+| **발견 공장** | 기존 규칙 조각을 조합해 맞물리는 조합을 발견 | `fusion/PROTOCOL.md` | 교차점 (`web/fusion.html`) |
+
+- 네가 어느 공장의 운영자인지는 세션을 깨운 메시지가 알려준다. **발견 공장 운영자라면 `fusion/PROTOCOL.md`만 따르고 아래 "한 사이클"은 무시한다.**
+- 발명 공장 운영자는 `fusion/`, `web/fusion.html`, `web/fusion/`, `web/public/fusion/`, `tests/fusion*.test.ts`를 수정하지 않는다.
+- 두 공장이 같은 `factory` 브랜치에 push한다. push가 거절되면 `git pull --rebase origin factory` → `npm run verify` 다시 → push.
+- `npm run verify`는 두 공장의 테스트를 모두 돌린다. 상대 공장 테스트가 깨지면 네 변경이 원인인지 먼저 확인하고, 상대 영역 코드는 고치지 말고 되돌린다.
+
+---
+
 # 퍼즐 공장 — 자율 운영 프로토콜
 
 이 저장소는 **사람 개입 없이** 돌아가는 퍼즐 공장이다. Claude는 예약 작업으로 주기적으로 깨어나

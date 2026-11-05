@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>교차점 — 오래된 규칙이 만나는 곳</title>
+    <meta name="description" content="이미 있던 퍼즐 규칙들이 처음 만나는 곳. 공장이 수백 가지 조합을 시험해 찾아낸 '발견'을 매일 하나씩 풉니다." />
+    <meta name="theme-color" content="#eef4f3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121718" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M4 8 L28 24 M4 24 L28 8' stroke='%230b7285' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='4.5' fill='%23e8590c'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./fusion/style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="top">
+        <div class="brand">
+          <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M4 8 L28 24 M4 24 L28 8" />
+            <circle cx="16" cy="16" r="4.5" />
+          </svg>
+          <div>
+            <h1>교차점</h1>
+            <p class="meta" id="meta">불러오는 중…</p>
+          </div>
+        </div>
+        <div class="timer" id="timer">0:00</div>
+      </header>
+
+      <section class="discovery" id="discovery" aria-label="오늘의 발견">
+        <p class="eyebrow" id="disc-label">오늘의 발견</p>
+        <h2 id="disc-name">…</h2>
+        <ul class="chips" id="disc-chips"></ul>
+      </section>
+
+      <details class="rules" id="rules">
+        <summary>규칙</summary>
+        <ol id="rules-list"></ol>
+        <p class="rules-tip">칸을 누를 때마다 <b>칠함 → 점(빈칸 확정) → 지움</b>. 숫자를 누르면 그 숫자가 세는 칸이 표시돼요.</p>
+      </details>
+
+      <section class="board-wrap">
+        <div class="board" id="board" role="grid" aria-label="퍼즐 판"></div>
+      </section>
+
+      <p class="hint-msg" id="hint-msg" role="status" aria-live="polite"></p>
+
+      <nav class="controls">
+        <button type="button" id="btn-undo">↶ 되돌리기</button>
+        <button type="button" id="btn-hint" class="primary">💡 힌트</button>
+        <button type="button" id="btn-reset">처음부터</button>
+      </nav>
+
+      <section class="museum" aria-labelledby="museum-title">
+        <h2 id="museum-title">발견 박물관</h2>
+        <p class="museum-sub" id="museum-sub">공장이 조합을 시험해 찾아낸 규칙들. 두 재료가 맞물려야만 풀리는 정도(융합도)와, 재료 하나를 빼면 퍼즐이 무너지는 정도(필수성)를 측정했어요.</p>
+        <div class="cards" id="cards"></div>
+      </section>
+
+      <footer class="foot">
+        <label>지난 퍼즐 <select id="archive"></select></label>
+        <span id="streak"></span>
+        <a href="./">메아리도 풀어보기 →</a>
+      </footer>
+    </main>
+
+    <dialog id="win">
+      <h2>풀었어요!</h2>
+      <p id="win-text"></p>
+      <pre id="share-text"></pre>
+      <div class="dialog-actions">
+        <button type="button" id="btn-share" class="primary">결과 공유</button>
+        <button type="button" id="btn-close">닫기</button>
+      </div>
+    </dialog>
+
+    <script type="module" src="./fusion/main.ts"></script>
+  </body>
+</html>
