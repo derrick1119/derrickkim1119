@@ -1,6 +1,6 @@
 /**
  * A|B 후보 평가: 챔피언(A)과 도전자 후보들을 같은 조건으로 재고, 자격을 갖춘 후보 중 재미 최고를 B로 고른다.
- *   npm run abtest -- --a echo --cands fam-d1-knight-none,fam-d1-knight-notouch [--n 10] [--sets 2]
+ *   npm run abtest -- --a echo --cands fam-d1-xline-none,fam-d1-xline-notouch [--n 10] [--sets 2] [--attempts 40]
  * 결과: factory/reports/ab.json  (계기판이 읽는다)
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -18,12 +18,14 @@ const A = arg('a', 'echo');
 const cands = arg('cands', '').split(',').filter(Boolean);
 const n = Number(arg('n', '10'));
 const sets = Number(arg('sets', '2'));
+// 0008: 제품과 같은 생성 예산(플레이테스트 40, 데일리 은행 80)으로 평가해야 자격 판정이 공정하다
+const attempts = Number(arg('attempts', '40'));
 const t0 = performance.now();
 const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
 const sd = (a: number[]) => Math.sqrt(a.reduce((x, y) => x + (y - mean(a)) ** 2, 0) / Math.max(1, a.length - 1));
 
 function measure(id: string) {
-  const reps: EvalReport[] = Array.from({ length: sets }, (_, k) => evaluateRules(getRules(id), n, 20, k + 1));
+  const reps: EvalReport[] = Array.from({ length: sets }, (_, k) => evaluateRules(getRules(id), n, attempts, k + 1));
   const tierKeys = Object.keys(reps[0].tiers) as (keyof EvalReport['tiers'])[];
   const tiers = Object.fromEntries(tierKeys.map((t) => {
     const xs = reps.map((r) => r.tiers[t]);
@@ -65,7 +67,7 @@ const b = pool.reduce<(typeof pool)[0] | null>((best, r) => {
   if (!noise(r.fitness, best.fitness, r.fitnessSd, best.fitnessSd)) return r.fitness > best.fitness ? r : best;
   return ruleCount(r.id) < ruleCount(best.id) ? r : best;
 }, null);
-const out = { generatedAt: new Date().toISOString(), n, sets, elapsedSec: Math.round((performance.now() - t0) / 1000), a, b: b?.id ?? null, candidates: rows };
+const out = { generatedAt: new Date().toISOString(), n, sets, attempts, elapsedSec: Math.round((performance.now() - t0) / 1000), a, b: b?.id ?? null, candidates: rows };
 const dir = join(import.meta.dirname, '..', 'factory', 'reports');
 mkdirSync(dir, { recursive: true });
 writeFileSync(join(dir, 'ab.json'), JSON.stringify(out, null, 2) + '\n');

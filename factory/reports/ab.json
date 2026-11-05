@@ -1,15 +1,16 @@
 {
-  "generatedAt": "2026-11-05T04:45:44.409Z",
+  "generatedAt": "2026-11-05T06:25:40.295Z",
   "n": 20,
   "sets": 4,
-  "elapsedSec": 57,
+  "attempts": 40,
+  "elapsedSec": 102,
   "a": {
     "id": "echo",
     "name": "숫자는 두 칸 너머에서 울린다",
-    "fitness": 0.4399,
-    "fitnessSd": 0.0182,
-    "fun": 0.579,
-    "funSd": 0.01,
+    "fitness": 0.4556,
+    "fitnessSd": 0.0081,
+    "fun": 0.581,
+    "funSd": 0.012,
     "region": "distant",
     "simple": false,
     "eligible": false,
@@ -35,18 +36,18 @@
         "aha": 0.603
       },
       "hard": {
-        "hitRate": 0.813,
-        "genMs": 379,
-        "clueDensity": 0.251,
-        "scanLoad": 10.21,
-        "fun": 0.598,
-        "tension": 0.673,
-        "spread": 0.64,
-        "aha": 0.483
+        "hitRate": 0.975,
+        "genMs": 429,
+        "clueDensity": 0.25,
+        "scanLoad": 10.213,
+        "fun": 0.606,
+        "tension": 0.652,
+        "spread": 0.645,
+        "aha": 0.521
       },
       "expert": {
         "hitRate": 1,
-        "genMs": 107,
+        "genMs": 104,
         "clueDensity": 0.255,
         "scanLoad": 10.8,
         "fun": 0.524,
@@ -56,14 +57,14 @@
       }
     }
   },
-  "b": "fam-d1-xline-none",
+  "b": "fam-d1-xline-notouch",
   "candidates": [
     {
       "id": "fam-d1-xline-none",
       "name": "xline 메아리, 전역 none",
-      "fitness": 0.4858,
-      "fitnessSd": 0.0024,
-      "fun": 0.612,
+      "fitness": 0.4938,
+      "fitnessSd": 0.0046,
+      "fun": 0.611,
       "funSd": 0.013,
       "region": "line",
       "simple": true,
@@ -90,24 +91,77 @@
           "aha": 0.579
         },
         "hard": {
-          "hitRate": 0.925,
-          "genMs": 16,
-          "clueDensity": 0.324,
-          "scanLoad": 7.335,
-          "fun": 0.618,
-          "tension": 0.561,
-          "spread": 0.873,
-          "aha": 0.418
+          "hitRate": 1,
+          "genMs": 18,
+          "clueDensity": 0.327,
+          "scanLoad": 7.325,
+          "fun": 0.616,
+          "tension": 0.564,
+          "spread": 0.875,
+          "aha": 0.409
         },
         "expert": {
           "hitRate": 1,
-          "genMs": 22,
+          "genMs": 21,
           "clueDensity": 0.304,
           "scanLoad": 8.728,
           "fun": 0.587,
           "tension": 0.661,
           "spread": 0.879,
           "aha": 0.22
+        }
+      }
+    },
+    {
+      "id": "fam-d1-xline-notouch",
+      "name": "xline 메아리, 전역 notouch",
+      "fitness": 0.503,
+      "fitnessSd": 0.0048,
+      "fun": 0.658,
+      "funSd": 0.01,
+      "region": "line",
+      "simple": true,
+      "eligible": true,
+      "tiers": {
+        "easy": {
+          "hitRate": 1,
+          "genMs": 1,
+          "clueDensity": 0.242,
+          "scanLoad": 6.235,
+          "fun": 0.396,
+          "tension": 0.338,
+          "spread": 0.849,
+          "aha": 0
+        },
+        "medium": {
+          "hitRate": 1,
+          "genMs": 9,
+          "clueDensity": 0.234,
+          "scanLoad": 7.49,
+          "fun": 0.711,
+          "tension": 0.408,
+          "spread": 0.794,
+          "aha": 0.928
+        },
+        "hard": {
+          "hitRate": 0.95,
+          "genMs": 402,
+          "clueDensity": 0.205,
+          "scanLoad": 7.518,
+          "fun": 0.677,
+          "tension": 0.491,
+          "spread": 0.774,
+          "aha": 0.767
+        },
+        "expert": {
+          "hitRate": 1,
+          "genMs": 99,
+          "clueDensity": 0.192,
+          "scanLoad": 8.703,
+          "fun": 0.585,
+          "tension": 0.707,
+          "spread": 0.787,
+          "aha": 0.26
         }
       }
     },
@@ -144,7 +198,7 @@
         },
         "hard": {
           "hitRate": 1,
-          "genMs": 68,
+          "genMs": 64,
           "clueDensity": 0.319,
           "scanLoad": 7.413,
           "fun": 0.641,
@@ -154,7 +208,7 @@
         },
         "expert": {
           "hitRate": 1,
-          "genMs": 78,
+          "genMs": 77,
           "clueDensity": 0.303,
           "scanLoad": 8.755,
           "fun": 0.591,
