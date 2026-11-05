@@ -137,6 +137,11 @@ export const ATOMS: Record<string, Atom> = {
     scope: (c, w, h) => ring(c, w, h, 2), hint: countHint('두 칸 너머 고리'),
   },
 
+  rowline: {
+    id: 'rowline', role: 'cell', name: '같은 가로줄', origin: '룩의 시선 절반 (0007)', word: '가로',
+    rule: '숫자 = 같은 가로줄에서 칠한 칸 수. 숫자 칸은 칠하지 않습니다.',
+    scope: (c, w, h) => rays(c, w, h, [[1, 0], [-1, 0]]), hint: countHint('같은 가로줄'),
+  },
   diag4: {
     id: 'diag4', role: 'cell', name: '대각선 4칸', origin: '지뢰찾기의 모서리 이웃 (0006)', word: '모서리',
     rule: '숫자 = 대각선으로 맞닿은 4칸 중 칠한 칸 수. 숫자 칸은 칠하지 않습니다.',

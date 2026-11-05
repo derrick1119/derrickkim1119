@@ -40,6 +40,8 @@ const INCOMPATIBLE: [string, string][] = [
   ['kline1', 'kline'], ['kline1', 'balanced'],
   ['kline1', 'rowcol'], // 바깥 숫자가 전부 1 → 장식
   ['kline1', 'no2x2f'], // 자명하게 성립
+  // 실험 0007: 같은 가로줄 — 줄 개수가 정해진 규칙과는 숫자가 상수, 바깥 가로 숫자와는 중복
+  ['rowline', 'balanced'], ['rowline', 'kline'], ['rowline', 'kline1'], ['rowline', 'rowcol'],
   ['kline1', 'nothree'], ['kline1', 'no2x2e'], ['kline1', 'connf'], // 6칸 이상 판에서 불가능
 ];
 

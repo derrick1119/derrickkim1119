@@ -29,7 +29,7 @@ const clamp = (x: number) => Math.max(0, Math.min(1, x));
  * 새 원자를 추가하면 여기에도 값을 넣는다 (없으면 0.5).
  */
 export const FAMILIARITY: Record<string, number> = {
-  nb8: 1, orth4: 1, givens: 1, diag4: 0.9, kline1: 0.95, rowcol: 0.9, rook: 0.7, bishop: 0.5, echo2: 0.4, knight: 0.35,
+  nb8: 1, orth4: 1, givens: 1, diag4: 0.9, kline1: 0.95, rowline: 0.85, rowcol: 0.9, rook: 0.7, bishop: 0.5, echo2: 0.4, knight: 0.35,
   notouch: 0.9, kline: 0.9, balanced: 0.9, kingtouch: 0.8, nothree: 0.8, no2x2f: 0.8, no2x2e: 0.7, conne: 0.6, connf: 0.6,
 };
 /** 도전자 자격 (실험 0005): 이 값 미만은 A|B에 올리지 않는다 */
