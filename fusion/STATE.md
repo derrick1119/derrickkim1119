@@ -1,6 +1,6 @@
 # 발견 공장 상태
 
-상태: RUNNING
+상태: RETIRED (2026-11-06 오너 결정으로 퍼즐 라인 폐기 → `arcade/` 게임 발견 공장으로 전환. A|B 2라운드 취소)
 마지막 사이클: 0010 (2026-11-06, 탐색 큐를 이해도 순으로)
 연속 실패: 0
 계기판: slug 31ee3db4-07df-4eef-b4eb-226aa0668917 · https://claude.ai/artifact/7AcEhtzoUWTsZDBKWYUjiW

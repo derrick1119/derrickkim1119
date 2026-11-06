@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>게임 발견 공장</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>/* 게임 발견 공장 계기판: 결정(A|B 플레이)이 맨 위, 근거는 접어 둔다. 캔버스 색은 --g-* 토큰을 읽는다. */
+:root {
+  --bg: #f2f5f4; --panel: #ffffff; --ink: #15222a; --muted: #5d6e74; --line: #d6e0e1;
+  --accent: #1864ab; --accent-soft: #dbe9f7; --hot: #e8590c; --hot-soft: #ffe8d9; --ok: #2b8a3e;
+  --g-bg: #eef3f4; --g-ink: #15222a; --g-muted: #9aabb0; --g-accent: #1864ab; --g-hot: #e8590c; --g-soft: #d5e0e3;
+  --font-body: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  --font-num: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #161f26; --ink: #e4edf2; --muted: #93a6ad; --line: #28363f;
+    --accent: #4dabf7; --accent-soft: #15314a; --hot: #ff8a4c; --hot-soft: #432818; --ok: #69db7c;
+    --g-bg: #111a20; --g-ink: #e4edf2; --g-muted: #5c707a; --g-accent: #4dabf7; --g-hot: #ff8a4c; --g-soft: #22313a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #161f26; --ink: #e4edf2; --muted: #93a6ad; --line: #28363f;
+  --accent: #4dabf7; --accent-soft: #15314a; --hot: #ff8a4c; --hot-soft: #432818; --ok: #69db7c;
+  --g-bg: #111a20; --g-ink: #e4edf2; --g-muted: #5c707a; --g-accent: #4dabf7; --g-hot: #ff8a4c; --g-soft: #22313a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 var(--font-body); }
+main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 64px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; }
+main > * { min-width: 0; }
+h1, h2, h3 { margin: 0; line-height: 1.3; text-wrap: balance; }
+h1 { font-size: 28px; }
+h2 { font-size: 19px; margin-bottom: 10px; }
+h3 { font-size: 20px; }
+p { margin: 0; }
+.eyebrow { font-size: 12px; letter-spacing: .04em; color: var(--muted); }
+.muted { color: var(--muted); font-size: 13px; }
+.top { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: end; border-bottom: 2px solid var(--ink); padding-bottom: 14px; }
+.meta { color: var(--muted); font-size: 14px; display: flex; gap: 8px; align-items: center; }
+.pill { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; border: 1.5px solid currentColor; }
+.pill.ok { color: var(--ok); }
+.lead { max-width: 72ch; margin-bottom: 16px; }
+.ab { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(330px, 100%), 1fr)); gap: 16px; }
+.ab > * { min-width: 0; }
+.side { background: var(--panel); border: 1px solid var(--line); border-top: 5px solid var(--accent); border-radius: 12px; padding: 16px; display: grid; gap: 12px; align-content: start; }
+.side-B { border-top-color: var(--hot); }
+.side header { display: flex; gap: 12px; align-items: center; }
+.tag { font: 700 22px/1 var(--font-num); width: 44px; height: 44px; display: grid; place-items: center; border-radius: 10px; background: var(--accent-soft); color: var(--accent); flex: none; }
+.side-B .tag { background: var(--hot-soft); color: var(--hot); }
+.genes { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; }
+.genes li:not(.x) { border: 1px solid var(--line); border-radius: 99px; padding: 1px 10px; }
+.genes .x { color: var(--muted); }
+.twist { font-size: 14px; color: var(--muted); }
+.rules { margin: 0; padding-left: 20px; display: grid; gap: 2px; font-size: 15px; }
+.game { position: relative; display: grid; justify-items: center; }
+.g-canvas { display: block; border-radius: 10px; touch-action: none; outline: none; }
+.g-canvas:focus-visible { box-shadow: 0 0 0 3px var(--hot); }
+.g-overlay { position: absolute; inset: 0; margin: auto; width: min(100%, 380px); border: 0; border-radius: 10px; background: color-mix(in srgb, var(--panel) 72%, transparent); color: var(--ink); font: inherit; cursor: pointer; display: grid; place-content: center; gap: 4px; text-align: center; }
+.g-overlay[hidden] { display: none; }
+.g-overlay b { font-size: 30px; }
+.g-overlay span { font-size: 14px; color: var(--muted); }
+.g-overlay:focus-visible { outline: 3px solid var(--hot); }
+.metrics summary { cursor: pointer; font-size: 14px; color: var(--muted); }
+.metrics summary b { font-family: var(--font-num); color: var(--ink); }
+.bars { display: grid; gap: 4px; margin: 8px 0; }
+.bar { display: grid; grid-template-columns: 110px 1fr 40px; gap: 8px; align-items: center; font-size: 13px; }
+.bar i { height: 8px; border-radius: 4px; background: var(--line); position: relative; overflow: hidden; }
+.bar i::after { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--v); background: var(--muted); }
+.bar i.up::after { background: var(--accent); }
+.side-B .bar i.up::after { background: var(--hot); }
+.bar b { font: 500 13px var(--font-num); text-align: right; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 28px; }
+.two > * { min-width: 0; }
+.how, .genelist, .hist { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; max-width: 70ch; }
+.genelist { list-style: none; padding: 0; }
+.genelist b { display: inline-block; min-width: 7.5em; }
+button:focus-visible { outline: 3px solid var(--hot); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+<header class="top">
+  <div><p class="eyebrow">아는 장르 × 아는 장르 + 한 번 비틀기</p><h1>게임 발견 공장</h1></div>
+  <p class="meta"><span class="pill ok">RUNNING</span> 사이클 0011 · 2026-11-06 11:03 UTC 갱신</p>
+</header>
+
+<section aria-labelledby="ab-h">
+  <h2 id="ab-h">A|B 1라운드 — 직접 해보고 골라 주세요</h2>
+  <p class="lead">두 게임을 한 판씩 해 보고, <b>채팅에 “A” 또는 “B”라고 답해 주세요.</b> 고른 쪽이 챔피언이 되고, 공장은 그 챔피언에 도전할 새 조합을 만듭니다. 둘 다 별로면 이유를 한 줄 적어 주세요. 그게 다음 게임의 설계 기준이 됩니다.</p>
+  <div class="ab"><article class="side side-A">
+  <header><span class="tag">A</span><div><p class="eyebrow">새 게임 1</p><h3>궤도 꼬리</h3></div></header>
+  <ul class="genes"><li><b>스네이크</b></li><li class="x" aria-hidden="true">×</li><li><b>원버튼 캐주얼</b></li><li class="x" aria-hidden="true">×</li><li><b>궤도 아케이드</b></li></ul>
+  <p class="twist">두 원 궤도만 도는 뱀 + 거꾸로 스네이크(꼬리는 저절로 자라고, 먹으면 줄어든다)</p>
+  <ol class="rules"><li>누르면 안쪽 ↔ 바깥 궤도를 갈아탑니다.</li><li>꼬리는 저절로 자라요. 점을 먹으면 줄어듭니다.</li><li>꼬리에 닿으면 끝.</li></ol>
+  <div class="game" data-game="orbit"></div>
+  <details class="metrics"><summary>봇 측정: 재미 추정 <b>0.97</b></summary>
+    <div class="bars"><div class="bar"><span>실력이 통하나</span><i style="--v:100%" class="up"></i><b>1.00</b></div><div class="bar"><span>처음 해도 버티나</span><i style="--v:100%" class=""></i><b>1.00</b></div><div class="bar"><span>한 판 길이</span><i style="--v:100%" class="up"></i><b>1.00</b></div><div class="bar"><span>단순함</span><i style="--v:85%" class="up"></i><b>0.85</b></div></div>
+    <p class="muted">못하는 봇 87.5초·20점 / 잘하는 봇 149.8초·176.5점 (24판 중앙값)</p>
+  </details>
+</article><article class="side side-B">
+  <header><span class="tag">B</span><div><p class="eyebrow">새 게임 2</p><h3>벽돌 수비대</h3></div></header>
+  <ul class="genes"><li><b>벽돌깨기</b></li><li class="x" aria-hidden="true">×</li><li><b>타워 디펜스</b></li><li class="x" aria-hidden="true">×</li><li><b>랜덤 뽑기·머지</b></li></ul>
+  <p class="twist">벽돌이 적처럼 줄지어 내려오고, 깰 때마다 주사위 게이지가 차서 무작위 강화가 터진다</p>
+  <ol class="rules"><li>좌우로 받침대를 움직여 공을 튕기세요.</li><li>벽돌이 빨간 선을 넘으면 끝. 공을 놓치면 벽돌이 두 줄 내려와요.</li><li>벽돌 8개마다 주사위: 분열·관통·폭발 중 하나!</li></ol>
+  <div class="game" data-game="brickdef"></div>
+  <details class="metrics"><summary>봇 측정: 재미 추정 <b>0.76</b></summary>
+    <div class="bars"><div class="bar"><span>실력이 통하나</span><i style="--v:93%" class=""></i><b>0.93</b></div><div class="bar"><span>처음 해도 버티나</span><i style="--v:100%" class=""></i><b>1.00</b></div><div class="bar"><span>한 판 길이</span><i style="--v:33%" class=""></i><b>0.33</b></div><div class="bar"><span>단순함</span><i style="--v:78%" class=""></i><b>0.78</b></div></div>
+    <p class="muted">못하는 봇 43.7초·22.5점 / 잘하는 봇 180초·162.5점 (24판 중앙값)</p>
+  </details>
+</article></div>
+</section>
+
+<section aria-labelledby="how-h" class="two">
+  <div>
+    <h2 id="how-h">공장이 하는 일</h2>
+    <ol class="how">
+      <li>성공한 캐주얼 게임이 쓴 공식처럼, <b>아는 장르 두세 개를 섞고 한 번 비튼다.</b> 장르를 통째로 베끼지 않고 핵심 재미 한 조각씩만 가져온다.</li>
+      <li>게임을 실제로 만들고, <b>못하는 봇과 잘하는 봇</b>이 수십 판씩 해 본다. 실력이 결과를 바꾸는지, 처음 해도 바로 죽지 않는지, 한 판이 적당히 짧은지 잰다.</li>
+      <li>기계 점수가 좋은 것을 오너에게 A|B로 올린다. <b>진짜 재미는 오너의 선택으로만 정한다.</b></li>
+    </ol>
+  </div>
+  <div>
+    <h2>재료 (장르 조각)</h2>
+    <ul class="genelist"><li><b>벽돌깨기</b> 튕기는 공으로 블록을 부순다</li><li><b>타워 디펜스</b> 적이 다가오고, 선을 넘으면 진다</li><li><b>랜덤 뽑기·머지</b> 강화가 무작위로 나오고, 같은 것끼리 합치면 세진다</li><li><b>스네이크</b> 먹을수록 꼬리가 길어지고, 꼬리에 닿으면 끝</li><li><b>원버튼 캐주얼</b> 버튼 하나, 타이밍만으로 조작</li><li><b>궤도 아케이드</b> 중심을 도는 원 궤도 위를 움직인다</li><li><b>무한 러너</b> 끝이 없고 점점 빨라진다, 최고 기록 경쟁</li><li><b>타이밍 쌓기</b> 움직이는 블록을 제때 멈춰 쌓는다</li><li><b>2048·수박게임</b> 같은 것끼리 부딪히면 한 단계 위로 합쳐진다</li><li><b>탄막 서바이버</b> 공격은 자동, 플레이어는 움직임만</li></ul>
+  </div>
+</section>
+
+<section aria-labelledby="hist-h">
+  <h2 id="hist-h">기록</h2>
+  <ul class="hist">
+    <li><b>2026-11-06</b> 오너 결정: 논리 퍼즐 라인(교차점) 폐기. 성공한 캐주얼 게임들처럼 기존 장르를 조합·변형해 새 게임을 만드는 공장으로 전환.</li>
+    
+  </ul>
+</section>
+</main>
+<script>"use strict";(()=>{function x(e){let r=e>>>0;return()=>{r=r+1831565813>>>0;let t=r;return t=Math.imul(t^t>>>15,t|1),t^=t+Math.imul(t^t>>>7,t|61),((t^t>>>14)>>>0)/4294967296}}var B=1/60;var u=1,N=1.5,L=7,k=u/L,g=.06,v=1.38,p=.24,I=.022,P=1.22,d=.018,R=.0125,F=8;function S(e){for(let t of e.bricks)t.y+=g+.012;let r=1+Math.floor(e.t/1500);for(let t=0;t<L;t++){if(e.rng()<.35)continue;let n=1+Math.floor(e.rng()*Math.min(r,4));e.bricks.push({col:t,y:.06,hp:n,max:n})}}var W=e=>({x:e.px,y:v-.03,vx:R*(e.rng()<.5?-.6:.6),vy:-R*.8,pierce:0});function ne(e){let t=["\uBD84\uC5F4","\uAD00\uD1B5","\uD3ED\uBC1C"][Math.floor(e.rng()*3)];if(e.lastPower={name:t,t:e.t},t==="\uBD84\uC5F4"&&e.balls.length){let n=e.balls[Math.floor(e.rng()*e.balls.length)];e.balls.push({...n,vx:-n.vx,pierce:0})}else if(t==="\uAD00\uD1B5")for(let n of e.balls)n.pierce=300;else e.bomb++}function oe(e,r){let t=e.bricks[r],n=o=>{let a=e.bricks[o];!a||a.hp<=0||--a.hp<=0&&(e.score++,++e.gauge>=F&&(e.gauge=0,ne(e)))};e.bomb>0?(e.bomb--,e.bricks.forEach((o,a)=>Math.abs(o.col-t.col)<=1&&Math.abs(o.y-t.y)<g*1.8&&n(a))):n(r),e.bricks=e.bricks.filter(o=>o.hp>0)}var Y={id:"brickdef",name:"\uBCBD\uB3CC \uC218\uBE44\uB300",genes:["brick","defense","gacha"],twist:"\uBCBD\uB3CC\uC774 \uC801\uCC98\uB7FC \uC904\uC9C0\uC5B4 \uB0B4\uB824\uC624\uACE0, \uAE70 \uB54C\uB9C8\uB2E4 \uC8FC\uC0AC\uC704 \uAC8C\uC774\uC9C0\uAC00 \uCC28\uC11C \uBB34\uC791\uC704 \uAC15\uD654\uAC00 \uD130\uC9C4\uB2E4",rules:["\uC88C\uC6B0\uB85C \uBC1B\uCE68\uB300\uB97C \uC6C0\uC9C1\uC5EC \uACF5\uC744 \uD295\uAE30\uC138\uC694.","\uBCBD\uB3CC\uC774 \uBE68\uAC04 \uC120\uC744 \uB118\uC73C\uBA74 \uB05D. \uACF5\uC744 \uB193\uCE58\uBA74 \uBCBD\uB3CC\uC774 \uB450 \uC904 \uB0B4\uB824\uC640\uC694.","\uBCBD\uB3CC 8\uAC1C\uB9C8\uB2E4 \uC8FC\uC0AC\uC704: \uBD84\uC5F4\xB7\uAD00\uD1B5\xB7\uD3ED\uBC1C \uC911 \uD558\uB098!"],controls:"leftright",create(e){let r={rng:x(e),t:0,px:u/2,balls:[],bricks:[],respawn:0,nextRow:0,rowEvery:420,gauge:0,bomb:0,lastPower:null,score:0,dead:!1};return S(r),S(r),S(r),r.balls.push(W(r)),r},step(e,r){if(!e.dead){if(e.t++,r.aim!==void 0){let t=Math.max(p/2,Math.min(u-p/2,r.aim*u));e.px+=Math.max(-I,Math.min(I,t-e.px))}else e.px=Math.max(p/2,Math.min(u-p/2,e.px+r.dir*I));if(++e.nextRow>=e.rowEvery&&(e.nextRow=0,e.rowEvery=Math.max(180,e.rowEvery-8),S(e)),e.bricks.some(t=>t.y+g>P))return void(e.dead=!0);for(let t of e.balls){if(t.x+=t.vx,t.y+=t.vy,t.pierce>0&&t.pierce--,(t.x<d||t.x>u-d)&&(t.vx=-t.vx,t.x=Math.max(d,Math.min(u-d,t.x))),t.y<d&&(t.vy=Math.abs(t.vy),t.y=d),t.vy>0&&t.y>v-d&&t.y<v+.02&&Math.abs(t.x-e.px)<p/2+d){let o=(t.x-e.px)/(p/2)*1.05;Math.abs(o)<.18&&(o=o<0||o===0&&e.rng()<.5?-.18:.18),t.vx=R*Math.sin(o),t.vy=-R*Math.cos(o)}for(let n=0;n<e.bricks.length;n++){let o=e.bricks[n],a=o.col*k,c=o.y;if(t.x+d>a&&t.x-d<a+k&&t.y+d>c&&t.y-d<c+g){t.pierce===0&&(Math.min(Math.abs(t.x-a),Math.abs(t.x-a-k))<Math.min(Math.abs(t.y-c),Math.abs(t.y-c-g))?t.vx=-t.vx:t.vy=-t.vy),oe(e,n);break}}}e.balls=e.balls.filter(t=>t.y<N+.05),e.balls.length===0&&(e.respawn===0?(e.respawn=90,S(e),S(e),e.nextRow=0):--e.respawn===0&&e.balls.push(W(e)))}},over:e=>e.dead,score:e=>e.score,draw(e,r,t,n,o){let a=Math.min(t/u,n/N),c=(t-u*a)/2,l=f=>c+f*a,s=f=>f*a;e.fillStyle=o.bg,e.fillRect(0,0,t,n),e.strokeStyle=o.hot,e.lineWidth=2,e.setLineDash([6,6]),e.beginPath(),e.moveTo(l(0),s(P)),e.lineTo(l(u),s(P)),e.stroke(),e.setLineDash([]),e.textAlign="center",e.textBaseline="middle",e.font=`700 ${Math.round(g*a*.6)}px system-ui, sans-serif`;for(let f of r.bricks)e.fillStyle=f.hp>=3?o.ink:f.hp===2?o.accent:o.muted,e.fillRect(l(f.col*k)+2,s(f.y),k*a-4,g*a),e.fillStyle=o.bg,e.fillText(String(f.hp),l(f.col*k+k/2),s(f.y+g/2));for(let f of r.balls)e.fillStyle=f.pierce>0?o.hot:r.bomb>0?o.accent:o.ink,e.beginPath(),e.arc(l(f.x),s(f.y),d*a*(f.pierce>0?1.4:1),0,Math.PI*2),e.fill();e.fillStyle=o.ink,e.fillRect(l(r.px-p/2),s(v),p*a,.02*a),e.fillStyle=o.soft,e.fillRect(l(.04),s(1.46),(u-.08)*a,.018*a),e.fillStyle=o.accent,e.fillRect(l(.04),s(1.46),(u-.08)*a*(r.gauge/F),.018*a),e.fillStyle=o.ink,e.textAlign="left",e.font=`700 ${Math.round(.05*a)}px system-ui, sans-serif`,e.fillText(String(r.score),l(.03),s(P+.07)),r.lastPower&&r.t-r.lastPower.t<90&&(e.textAlign="center",e.fillStyle=o.hot,e.font=`800 ${Math.round(.08*a)}px system-ui, sans-serif`,e.fillText(`\u{1F3B2} ${r.lastPower.name}!`,l(u/2),s(.75)))}},q={name:"\uAC00\uB9CC\uD788",act:()=>({tap:!1,dir:0})},U={name:"\uACF5 \uB530\uB77C\uAC00\uAE30",act(e){let r=e.balls.filter(l=>l.vy>0);if(!r.length)return{tap:!1,dir:0,aim:.5};let t=r.reduce((l,s)=>(v-s.y)/s.vy<(v-l.y)/l.vy?s:l),n=t.x+t.vx*((v-t.y)/t.vy),o=u-2*d;n=((n-d)%(2*o)+2*o)%(2*o),n=d+(n>o?2*o-n:n);let a=e.bricks.filter(l=>l.col<L/2).length,c=e.bricks.length-a;return n+=c>a?-.07:.07,{tap:!1,dir:0,aim:Math.max(0,Math.min(1,n/u))}}};var h=[.48,.82],ae=.065,j=.09,ie=24,J=8,X=e=>e.hop>0?h[e.ring]+(h[1-e.ring]-h[e.ring])*(e.hop/J):h[e.ring],z=e=>({x:Math.cos(e.angle)*X(e),y:Math.sin(e.angle)*X(e)}),K=e=>({x:Math.cos(e.food.angle)*h[e.food.ring],y:Math.sin(e.food.angle)*h[e.food.ring]}),T=(e,r)=>Math.hypot(e.x-r.x,e.y-r.y);function V(e){for(let r=0;r<30;r++){let t={angle:e.angle+Math.PI*(.6+e.rng()*.8),ring:e.rng()<.5?0:1},n={x:Math.cos(t.angle)*h[t.ring],y:Math.sin(t.angle)*h[t.ring]};if(e.trail.every(o=>T(n,o)>j))return void(e.food=t)}e.food={angle:e.angle+Math.PI,ring:1-e.ring}}var A={id:"orbit",name:"\uADA4\uB3C4 \uAF2C\uB9AC",genes:["snake","onebutton","orbit"],twist:"\uB450 \uC6D0 \uADA4\uB3C4\uB9CC \uB3C4\uB294 \uBC40 + \uAC70\uAFB8\uB85C \uC2A4\uB124\uC774\uD06C(\uAF2C\uB9AC\uB294 \uC800\uC808\uB85C \uC790\uB77C\uACE0, \uBA39\uC73C\uBA74 \uC904\uC5B4\uB4E0\uB2E4)",rules:["\uB204\uB974\uBA74 \uC548\uCABD \u2194 \uBC14\uAE65 \uADA4\uB3C4\uB97C \uAC08\uC544\uD0D1\uB2C8\uB2E4.","\uAF2C\uB9AC\uB294 \uC800\uC808\uB85C \uC790\uB77C\uC694. \uC810\uC744 \uBA39\uC73C\uBA74 \uC904\uC5B4\uB4ED\uB2C8\uB2E4.","\uAF2C\uB9AC\uC5D0 \uB2FF\uC73C\uBA74 \uB05D."],controls:"tap",create(e){let r={rng:x(e),t:0,angle:0,ring:1,hop:0,omega:2*Math.PI/240,tailLen:90,trail:[],food:{angle:Math.PI,ring:0},score:0,dead:!1};return V(r),r},step(e,r){if(e.dead)return;e.t++,r.tap&&e.hop===0&&(e.ring=1-e.ring,e.hop=J),e.hop>0&&e.hop--,e.angle+=e.omega,e.t%6===0&&e.tailLen++;let t=z(e);if(e.trail.push(t),e.trail.length>e.tailLen&&e.trail.splice(0,e.trail.length-e.tailLen),e.hop===0){for(let n=0;n<e.trail.length-ie;n++)if(T(t,e.trail[n])<ae)return void(e.dead=!0)}T(t,K(e))<j&&(e.score++,e.tailLen=Math.max(50,e.tailLen-70),e.omega*=1.012,V(e))},over:e=>e.dead,score:e=>e.score,draw(e,r,t,n,o){let a=Math.min(t,n)/2/1,c=t/2,l=n/2,s=m=>c+m.x*a*.92,f=m=>l+m.y*a*.92;e.fillStyle=o.bg,e.fillRect(0,0,t,n),e.strokeStyle=o.soft,e.lineWidth=a*.1;for(let m of h)e.beginPath(),e.arc(c,l,m*a*.92,0,Math.PI*2),e.stroke();e.lineCap="round",e.lineJoin="round",e.strokeStyle=o.ink,e.lineWidth=a*.07,e.beginPath(),r.trail.forEach((m,w)=>w?e.lineTo(s(m),f(m)):e.moveTo(s(m),f(m))),e.stroke();let M=K(r);e.fillStyle=o.hot,e.beginPath(),e.arc(s(M),f(M),a*.05,0,Math.PI*2),e.fill();let y=z(r);e.fillStyle=r.dead?o.hot:o.accent,e.beginPath(),e.arc(s(y),f(y),a*.06,0,Math.PI*2),e.fill(),e.fillStyle=o.ink,e.font=`700 ${Math.round(a*.28)}px system-ui, sans-serif`,e.textAlign="center",e.textBaseline="middle",e.fillText(String(r.score),c,l)}},Q={name:"\uB9C9\uB204\uB974\uAE30",act:(e,r)=>({tap:r()<1/70,dir:0})},Z={name:"\uB0B4\uB2E4\uBCF4\uAE30",act(e){if(e.hop>0)return{tap:!1,dir:0};let r=o=>{let a={...e,rng:()=>.5,trail:e.trail.slice(),food:{...e.food}};for(let c=0;c<110;c++)if(A.step(a,{tap:o&&c===0,dir:0}),a.dead)return c;return 999},t=r(!1),n=e.food.ring!==e.ring&&Math.abs(((e.food.angle-e.angle)%(2*Math.PI)+2*Math.PI)%(2*Math.PI))<.6;if(t<999||n){let o=r(!0);if(o>t||n&&o>=999)return{tap:!0,dir:0}}return{tap:!1,dir:0}}};var ee=[{game:A,dumb:Q,smart:Z},{game:Y,dumb:q,smart:U}];function le(e){let r=getComputedStyle(e),t=(n,o)=>r.getPropertyValue(n).trim()||o;return{bg:t("--g-bg","#f4f7f6"),ink:t("--g-ink","#142427"),muted:t("--g-muted","#8a9b9e"),accent:t("--g-accent","#0b7285"),hot:t("--g-hot","#d9480f"),soft:t("--g-soft","#dde7e7")}}var te={get(e){try{return Number(localStorage.getItem("arcade:"+e)??0)}catch{return 0}},set(e,r){try{localStorage.setItem("arcade:"+e,String(r))}catch{}}};function se(e,r){let t=r.controls==="leftright"?1.5:1,n=document.createElement("canvas");n.className="g-canvas",n.tabIndex=0,n.setAttribute("aria-label",`${r.name} \uAC8C\uC784 \uD654\uBA74. ${r.controls==="tap"?"\uC2A4\uD398\uC774\uC2A4\uB098 \uD654\uBA74 \uD0ED":"\uC88C\uC6B0 \uD654\uC0B4\uD45C\uB098 \uB4DC\uB798\uADF8"}\uB85C \uC870\uC791`);let o=document.createElement("button");o.type="button",o.className="g-overlay",e.append(n,o);let a=n.getContext("2d"),c=null,l=1,s=!1,f=0,M=0,y=!1,m,w=new Set;function D(){let i=Math.min(e.clientWidth,380),b=window.devicePixelRatio||1;n.style.width=`${i}px`,n.style.height=`${i*t}px`,n.width=Math.round(i*b),n.height=Math.round(i*t*b),a.setTransform(b,0,0,b,0,0),E()}let E=()=>c&&r.draw(a,c,n.width/(window.devicePixelRatio||1),n.height/(window.devicePixelRatio||1),le(e));function G(i){o.innerHTML=i,o.hidden=!1}function $(){l=Date.now()%1e6+1,c=r.create(l),s=!0,o.hidden=!0,M=performance.now(),f=0,n.focus({preventScroll:!0}),requestAnimationFrame(O)}function O(i){if(s){for(f+=Math.min(.25,(i-M)/1e3),M=i;f>=B;){let b=(w.has("ArrowRight")?1:0)-(w.has("ArrowLeft")?1:0),re={tap:y,dir:b,aim:m};if(y=!1,r.step(c,re),f-=B,r.over(c)){s=!1;let _=r.score(c),H=Math.max(_,te.get(r.id));te.set(r.id,H),E(),G(`<b>${_}\uC810</b><span>\uCD5C\uACE0 ${H}\uC810 \xB7 \uB204\uB974\uBA74 \uB2E4\uC2DC</span>`);return}}E(),requestAnimationFrame(O)}}let C=i=>{let b=n.getBoundingClientRect();return Math.max(0,Math.min(1,(i.clientX-b.left)/b.width))};n.addEventListener("pointerdown",i=>{i.preventDefault(),s&&(r.controls==="tap"?y=!0:m=C(i))}),n.addEventListener("pointermove",i=>r.controls==="leftright"&&s&&(i.buttons||i.pointerType==="mouse")&&(m=C(i))),n.addEventListener("pointerleave",()=>m=void 0),n.addEventListener("keydown",i=>{if((i.key===" "||i.key==="ArrowLeft"||i.key==="ArrowRight"||i.key==="Enter")&&i.preventDefault(),!s&&(i.key===" "||i.key==="Enter"))return $();r.controls==="tap"&&(i.key===" "||i.key==="ArrowUp")&&!i.repeat&&(y=!0),(i.key==="ArrowLeft"||i.key==="ArrowRight")&&(w.add(i.key),m=void 0)}),n.addEventListener("keyup",i=>w.delete(i.key)),o.addEventListener("click",$),c=r.create(1),D(),G(`<b>\uC2DC\uC791</b><span>${r.controls==="tap"?"\uD0ED / \uC2A4\uD398\uC774\uC2A4":"\uB4DC\uB798\uADF8 / \u2190 \u2192"}</span>`),new ResizeObserver(D).observe(e)}for(let e of document.querySelectorAll("[data-game]")){let r=ee.find(t=>t.game.id===e.dataset.game);r&&se(e,r.game)}})();
+</script>
+</body>
+</html>

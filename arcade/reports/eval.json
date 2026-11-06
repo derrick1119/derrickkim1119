@@ -1,0 +1,46 @@
+{
+ "orbit": {
+  "id": "orbit",
+  "name": "궤도 꼬리",
+  "n": 24,
+  "dumb": {
+   "score": 20,
+   "sec": 87.5
+  },
+  "smart": {
+   "score": 176.5,
+   "sec": 149.8,
+   "capped": 0
+  },
+  "skillGap": 8.45,
+  "parts": {
+   "skill": 1,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85
+  },
+  "fun": 0.97
+ },
+ "brickdef": {
+  "id": "brickdef",
+  "name": "벽돌 수비대",
+  "n": 24,
+  "dumb": {
+   "score": 22.5,
+   "sec": 43.7
+  },
+  "smart": {
+   "score": 162.5,
+   "sec": 180,
+   "capped": 0.6666666666666666
+  },
+  "skillGap": 6.96,
+  "parts": {
+   "skill": 0.933,
+   "onboarding": 1,
+   "session": 0.333,
+   "simplicity": 0.782
+  },
+  "fun": 0.76
+ }
+}
