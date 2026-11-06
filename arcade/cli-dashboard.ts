@@ -83,7 +83,7 @@ const html = `<!DOCTYPE html>
 
 ${bench ? `<section aria-labelledby="bench-h">
   <h2 id="bench-h">다음 라운드 후보</h2>
-  <p class="lead">1라운드 결과가 나오면 챔피언과 겨룰 후보입니다. 미리 해 보셔도 됩니다.</p>
+  <p class="lead">이번 라운드가 끝나면 챔피언과 겨룰 수 있는 후보입니다. 미리 해 보셔도 됩니다.</p>
   <div class="ab">${bench}</div>
 </section>` : ''}
 
