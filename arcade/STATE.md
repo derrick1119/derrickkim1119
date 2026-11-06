@@ -1,7 +1,7 @@
 # 게임 발견 공장 상태
 
 상태: RUNNING
-마지막 사이클: 0013 (2026-11-06, A|B 2라운드 판정 + 새 조합 합체 탑)
+마지막 사이클: 0014 (2026-11-06, 외부 압박 지표 — 폐기)
 연속 실패: 0
 계기판: slug 31ee3db4-07df-4eef-b4eb-226aa0668917 · https://claude.ai/artifact/7AcEhtzoUWTsZDBKWYUjiW
 
