@@ -1,5 +1,32 @@
 [
   {
+    "id": "fx-givens-x-balanced.notouch",
+    "name": "저울의 섬",
+    "fitness": 1.2071,
+    "synergy": 1,
+    "necessityMin": 1,
+    "hitRate": 1,
+    "density": 0.034,
+    "ingredients": [
+      {
+        "id": "givens",
+        "name": "미리 보인 칸",
+        "origin": "스도쿠·타쿠주 (정답 일부 공개)"
+      },
+      {
+        "id": "balanced",
+        "name": "반반",
+        "origin": "타쿠주·빈에리"
+      },
+      {
+        "id": "notouch",
+        "name": "맞닿기 금지",
+        "origin": "히토리·여러 칠하기 퍼즐"
+      }
+    ],
+    "foundAt": "2026-11-06"
+  },
+  {
     "id": "fx-nb8-x-balanced.notouch",
     "name": "지뢰 저울 속 섬",
     "fitness": 1.1941,
@@ -97,6 +124,33 @@
       {
         "id": "balanced",
         "name": "반반",
+        "origin": "타쿠주·빈에리"
+      },
+      {
+        "id": "notouch",
+        "name": "맞닿기 금지",
+        "origin": "히토리·여러 칠하기 퍼즐"
+      }
+    ],
+    "foundAt": "2026-11-06"
+  },
+  {
+    "id": "fx-nb8-x-nothree.notouch",
+    "name": "지뢰 물결을 건넌 섬",
+    "fitness": 1.0552,
+    "synergy": 1,
+    "necessityMin": 1,
+    "hitRate": 0.938,
+    "density": 0.1,
+    "ingredients": [
+      {
+        "id": "nb8",
+        "name": "이웃 8칸",
+        "origin": "지뢰찾기"
+      },
+      {
+        "id": "nothree",
+        "name": "셋 연속 금지",
         "origin": "타쿠주·빈에리"
       },
       {
@@ -211,6 +265,33 @@
     "foundAt": "2026-11-05"
   },
   {
+    "id": "fx-diag4-x-kline.notouch",
+    "name": "모서리 쌍의 섬",
+    "fitness": 0.9775,
+    "synergy": 0.992,
+    "necessityMin": 0.969,
+    "hitRate": 0.938,
+    "density": 0.134,
+    "ingredients": [
+      {
+        "id": "diag4",
+        "name": "대각선 4칸",
+        "origin": "지뢰찾기의 모서리 이웃 (0006)"
+      },
+      {
+        "id": "kline",
+        "name": "줄마다 둘",
+        "origin": "스타배틀·N퀸"
+      },
+      {
+        "id": "notouch",
+        "name": "맞닿기 금지",
+        "origin": "히토리·여러 칠하기 퍼즐"
+      }
+    ],
+    "foundAt": "2026-11-06"
+  },
+  {
     "id": "fx-rook-x-nothree.notouch",
     "name": "시선 물결 속 섬",
     "fitness": 0.9639,
@@ -260,6 +341,28 @@
         "id": "notouch",
         "name": "맞닿기 금지",
         "origin": "히토리·여러 칠하기 퍼즐"
+      }
+    ],
+    "foundAt": "2026-11-06"
+  },
+  {
+    "id": "fx-bishop-x-kline1",
+    "name": "사선을 건넌 외길",
+    "fitness": 0.9561,
+    "synergy": 0.904,
+    "necessityMin": 1,
+    "hitRate": 0.938,
+    "density": 0.116,
+    "ingredients": [
+      {
+        "id": "bishop",
+        "name": "비숍의 사선",
+        "origin": "체스 비숍"
+      },
+      {
+        "id": "kline1",
+        "name": "줄마다 하나",
+        "origin": "체스 룩 배치·라틴 방진 (0006)"
       }
     ],
     "foundAt": "2026-11-06"
@@ -638,6 +741,33 @@
     "foundAt": "2026-11-05"
   },
   {
+    "id": "fx-nb8-x-kline.notouch",
+    "name": "지뢰 쌍과 섬",
+    "fitness": 0.8982,
+    "synergy": 0.969,
+    "necessityMin": 0.906,
+    "hitRate": 1,
+    "density": 0.187,
+    "ingredients": [
+      {
+        "id": "nb8",
+        "name": "이웃 8칸",
+        "origin": "지뢰찾기"
+      },
+      {
+        "id": "kline",
+        "name": "줄마다 둘",
+        "origin": "스타배틀·N퀸"
+      },
+      {
+        "id": "notouch",
+        "name": "맞닿기 금지",
+        "origin": "히토리·여러 칠하기 퍼즐"
+      }
+    ],
+    "foundAt": "2026-11-06"
+  },
+  {
     "id": "fx-nb8-x-kline.no2x2e",
     "name": "지뢰 쌍과 그물",
     "fitness": 0.8917,
@@ -712,6 +842,33 @@
       }
     ],
     "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-orth4-rowcol-nothree",
+    "name": "십자 눈금 속 물결",
+    "fitness": 0.8812,
+    "synergy": 0.975,
+    "necessityMin": 1,
+    "hitRate": 1,
+    "density": 0.28,
+    "ingredients": [
+      {
+        "id": "orth4",
+        "name": "십자 4칸",
+        "origin": "여러 개수 단서 퍼즐"
+      },
+      {
+        "id": "rowcol",
+        "name": "줄 개수",
+        "origin": "텐트·배틀십 (가장자리 개수)"
+      },
+      {
+        "id": "nothree",
+        "name": "셋 연속 금지",
+        "origin": "타쿠주·빈에리"
+      }
+    ],
+    "foundAt": "2026-11-06"
   },
   {
     "id": "fx-knight-x-kline.nothree",
@@ -859,6 +1016,33 @@
       }
     ],
     "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-diag4-rowcol-notouch",
+    "name": "모서리 눈금을 건넌 섬",
+    "fitness": 0.8428,
+    "synergy": 0.968,
+    "necessityMin": 1,
+    "hitRate": 1,
+    "density": 0.308,
+    "ingredients": [
+      {
+        "id": "diag4",
+        "name": "대각선 4칸",
+        "origin": "지뢰찾기의 모서리 이웃 (0006)"
+      },
+      {
+        "id": "rowcol",
+        "name": "줄 개수",
+        "origin": "텐트·배틀십 (가장자리 개수)"
+      },
+      {
+        "id": "notouch",
+        "name": "맞닿기 금지",
+        "origin": "히토리·여러 칠하기 퍼즐"
+      }
+    ],
+    "foundAt": "2026-11-06"
   },
   {
     "id": "fx-echo2-x-balanced.nothree",
@@ -1126,6 +1310,33 @@
     "foundAt": "2026-11-05"
   },
   {
+    "id": "fx-orth4-rowcol-notouch",
+    "name": "십자 눈금과 섬",
+    "fitness": 0.8076,
+    "synergy": 0.929,
+    "necessityMin": 1,
+    "hitRate": 1,
+    "density": 0.315,
+    "ingredients": [
+      {
+        "id": "orth4",
+        "name": "십자 4칸",
+        "origin": "여러 개수 단서 퍼즐"
+      },
+      {
+        "id": "rowcol",
+        "name": "줄 개수",
+        "origin": "텐트·배틀십 (가장자리 개수)"
+      },
+      {
+        "id": "notouch",
+        "name": "맞닿기 금지",
+        "origin": "히토리·여러 칠하기 퍼즐"
+      }
+    ],
+    "foundAt": "2026-11-06"
+  },
+  {
     "id": "fx-nb8-x-kline",
     "name": "지뢰와 쌍",
     "fitness": 0.8042,
@@ -1219,6 +1430,28 @@
         "id": "notouch",
         "name": "맞닿기 금지",
         "origin": "히토리·여러 칠하기 퍼즐"
+      }
+    ],
+    "foundAt": "2026-11-06"
+  },
+  {
+    "id": "fx-rook-x-nothree",
+    "name": "시선 속 물결",
+    "fitness": 0.7877,
+    "synergy": 0.801,
+    "necessityMin": 1,
+    "hitRate": 0.969,
+    "density": 0.227,
+    "ingredients": [
+      {
+        "id": "rook",
+        "name": "룩의 시선",
+        "origin": "체스 룩"
+      },
+      {
+        "id": "nothree",
+        "name": "셋 연속 금지",
+        "origin": "타쿠주·빈에리"
       }
     ],
     "foundAt": "2026-11-06"
@@ -1467,6 +1700,55 @@
     "foundAt": "2026-11-06"
   },
   {
+    "id": "fx-nb8-rowcol-nothree",
+    "name": "지뢰 눈금을 건넌 물결",
+    "fitness": 0.72,
+    "synergy": 0.912,
+    "necessityMin": 0.906,
+    "hitRate": 0.938,
+    "density": 0.271,
+    "ingredients": [
+      {
+        "id": "nb8",
+        "name": "이웃 8칸",
+        "origin": "지뢰찾기"
+      },
+      {
+        "id": "rowcol",
+        "name": "줄 개수",
+        "origin": "텐트·배틀십 (가장자리 개수)"
+      },
+      {
+        "id": "nothree",
+        "name": "셋 연속 금지",
+        "origin": "타쿠주·빈에리"
+      }
+    ],
+    "foundAt": "2026-11-06"
+  },
+  {
+    "id": "fx-nb8-x-nothree",
+    "name": "지뢰를 건넌 물결",
+    "fitness": 0.7168,
+    "synergy": 0.731,
+    "necessityMin": 1,
+    "hitRate": 0.969,
+    "density": 0.246,
+    "ingredients": [
+      {
+        "id": "nb8",
+        "name": "이웃 8칸",
+        "origin": "지뢰찾기"
+      },
+      {
+        "id": "nothree",
+        "name": "셋 연속 금지",
+        "origin": "타쿠주·빈에리"
+      }
+    ],
+    "foundAt": "2026-11-06"
+  },
+  {
     "id": "fx-echo2-x-nothree",
     "name": "메아리 속 물결",
     "fitness": 0.7149,
@@ -1558,6 +1840,60 @@
       }
     ],
     "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-givens-rowcol-notouch",
+    "name": "눈금 속 섬",
+    "fitness": 0.6947,
+    "synergy": 1,
+    "necessityMin": 1,
+    "hitRate": 0.844,
+    "density": 0.341,
+    "ingredients": [
+      {
+        "id": "givens",
+        "name": "미리 보인 칸",
+        "origin": "스도쿠·타쿠주 (정답 일부 공개)"
+      },
+      {
+        "id": "rowcol",
+        "name": "줄 개수",
+        "origin": "텐트·배틀십 (가장자리 개수)"
+      },
+      {
+        "id": "notouch",
+        "name": "맞닿기 금지",
+        "origin": "히토리·여러 칠하기 퍼즐"
+      }
+    ],
+    "foundAt": "2026-11-06"
+  },
+  {
+    "id": "fx-nb8-rowcol-notouch",
+    "name": "지뢰 눈금의 섬",
+    "fitness": 0.6898,
+    "synergy": 0.854,
+    "necessityMin": 0.906,
+    "hitRate": 1,
+    "density": 0.311,
+    "ingredients": [
+      {
+        "id": "nb8",
+        "name": "이웃 8칸",
+        "origin": "지뢰찾기"
+      },
+      {
+        "id": "rowcol",
+        "name": "줄 개수",
+        "origin": "텐트·배틀십 (가장자리 개수)"
+      },
+      {
+        "id": "notouch",
+        "name": "맞닿기 금지",
+        "origin": "히토리·여러 칠하기 퍼즐"
+      }
+    ],
+    "foundAt": "2026-11-06"
   },
   {
     "id": "fx-nb8-rowcol-kingtouch",
@@ -1734,6 +2070,28 @@
     "foundAt": "2026-11-05"
   },
   {
+    "id": "fx-rook-x-kingtouch",
+    "name": "시선과 별",
+    "fitness": 0.648,
+    "synergy": 0.759,
+    "necessityMin": 0.875,
+    "hitRate": 0.938,
+    "density": 0.217,
+    "ingredients": [
+      {
+        "id": "rook",
+        "name": "룩의 시선",
+        "origin": "체스 룩"
+      },
+      {
+        "id": "kingtouch",
+        "name": "대각선까지 맞닿기 금지",
+        "origin": "스타배틀"
+      }
+    ],
+    "foundAt": "2026-11-06"
+  },
+  {
     "id": "fx-orth4-x-nothree",
     "name": "십자의 물결",
     "fitness": 0.6441,
@@ -1803,6 +2161,33 @@
       }
     ],
     "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-givens-rowcol-nothree",
+    "name": "눈금과 물결",
+    "fitness": 0.6214,
+    "synergy": 1,
+    "necessityMin": 1,
+    "hitRate": 0.781,
+    "density": 0.364,
+    "ingredients": [
+      {
+        "id": "givens",
+        "name": "미리 보인 칸",
+        "origin": "스도쿠·타쿠주 (정답 일부 공개)"
+      },
+      {
+        "id": "rowcol",
+        "name": "줄 개수",
+        "origin": "텐트·배틀십 (가장자리 개수)"
+      },
+      {
+        "id": "nothree",
+        "name": "셋 연속 금지",
+        "origin": "타쿠주·빈에리"
+      }
+    ],
+    "foundAt": "2026-11-06"
   },
   {
     "id": "fx-nb8-rowcol-no2x2e",
@@ -2043,6 +2428,28 @@
       }
     ],
     "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-orth4-rowcol-x",
+    "name": "십자를 건넌 눈금",
+    "fitness": 0.4883,
+    "synergy": 0.696,
+    "necessityMin": 1,
+    "hitRate": 0.875,
+    "density": 0.41,
+    "ingredients": [
+      {
+        "id": "orth4",
+        "name": "십자 4칸",
+        "origin": "여러 개수 단서 퍼즐"
+      },
+      {
+        "id": "rowcol",
+        "name": "줄 개수",
+        "origin": "텐트·배틀십 (가장자리 개수)"
+      }
+    ],
+    "foundAt": "2026-11-06"
   },
   {
     "id": "fx-diag4-rowcol-x",

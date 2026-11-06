@@ -52,5 +52,11 @@
   "tested": 348,
   "total": 574,
   "discoveries": 82
+ },
+ {
+  "cycle": "0010",
+  "tested": 388,
+  "total": 574,
+  "discoveries": 98
  }
 ]
