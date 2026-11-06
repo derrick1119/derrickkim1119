@@ -2,13 +2,14 @@
  * 조합 공간 탐색. 아직 시험하지 않은 조합을 골라 1차 선별(n=3) → 기준 통과 시 확증(n=8) →
  * 확증되면 발견 카드를 쓴다. 모든 결과는 원장(ledger.json)에 남아 다음 사이클이 이어받는다.
  *
- *   npm run fusion:search -- [--budget 20] [--max-sec 420] [--only <id>]
+ *   npm run fusion:search -- [--budget 20] [--max-sec 420] [--only <id>] [--clear-first]
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { hashString, mulberry32, shuffle } from '../engine/rng.ts';
 import { ATOMS } from './atoms.ts';
 import { evaluateFusion, type FusionReport } from './analyze.ts';
+import { clarity } from './fun.ts';
 import { generateFusion } from './generator.ts';
 import { allSpecs, atomsOf, fusionId, fusionName, parseFusionId, playerRules, type FusionSpec } from './spec.ts';
 
@@ -60,6 +61,11 @@ else {
     ...shuffle(untested.filter((s) => atomsOf(s).length >= 2), rng),
     ...shuffle(untested.filter((s) => atomsOf(s).length < 2), rng),
   ];
+  // 실험 0010: 이해도 높은 조합부터 (안정 정렬이라 같은 이해도 안에서는 무작위 순서 유지)
+  if (process.argv.includes('--clear-first')) {
+    const multi = queue.filter((s) => atomsOf(s).length >= 2).sort((a, b) => clarity(b) - clarity(a));
+    queue = [...multi, ...queue.filter((s) => atomsOf(s).length < 2)];
+  }
 }
 
 const t0 = performance.now();
