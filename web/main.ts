@@ -305,7 +305,7 @@ function explain(s: Step): string {
       const ring = puzzle.rules === 'echo' ? '고리' : '세는 칸';
       if (n === 0) return `숫자 0이 세는 칸에는 칠한 칸이 하나도 없어야 해요. 반짝이는 칸은 모두 비어 있어야 합니다.`;
       return s.value === 0
-        ? `테두리 표시된 숫자 ${n}의 ${ring}에는 이미 ${n}개가 칠해졌어요. 나머지 칸은 비어 있어야 합니다.`
+        ? `숫자 ${n}의 ${ring}에는 이미 ${n}개가 칠해졌어요. 나머지 칸은 비어 있어야 합니다.`
         : `숫자 ${n}의 ${ring}에서 아직 정하지 않은 칸을 모두 칠해야 ${n}개를 채울 수 있어요.`;
     }
     if (c.kind === 'no-2x2') return '2×2 네 칸을 모두 칠할 수는 없어요. 반짝이는 칸은 비어 있어야 합니다.';
@@ -317,7 +317,7 @@ function explain(s: Step): string {
       .filter((c) => c.kind === 'echo')
       .map((c) => puzzle.clues[c.anchor!]);
     const who = nums.length === 2 ? `숫자 ${nums[0]}과(와) ${nums[1]}이 세는 칸` : '표시된 두 조건';
-    return `${who}를 함께 보세요. 겹치는 부분에 들어갈 수 있는 개수를 따져보면, 반짝이는 칸은 ${act} 합니다.`;
+    return `${who}${/[칸]$/.test(who) ? '을' : '를'} 함께 보세요. 겹치는 부분에 들어갈 수 있는 개수를 따져보면, 반짝이는 칸은 ${act} 합니다.`;
   }
   const opposite = s.value === 1 ? '비워' : '칠해';
   return `반짝이는 칸을 ${opposite} 본다고 가정해보세요. ${s.depth}수 안에 모순이 생깁니다. 그러니 이 칸은 ${act} 해요.`;

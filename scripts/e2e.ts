@@ -89,6 +89,48 @@ try {
   if (scrollW > 390) throw new Error(`playtest horizontal scroll: ${scrollW}px`);
   console.log(`e2e playtest: OK (${PLAY.rules} seed ${PLAY.seed} ${PLAY.tier}, gen ${genMs}ms)`);
   await ctx.close();
+
+  // 0012: 힌트만 따라가도 끝까지 풀리는가 + 문구가 규칙에 맞는가 (3라운드 후보)
+  {
+    const H = { rules: 'fam-d1-xline-notouch', seed: 1, tier: 'hard' as const, size: 7 };
+    const hp = generate(getRules(H.rules), { width: H.size, height: H.size, seed: H.seed, target: H.tier })!;
+    const hctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+    const hpage = await hctx.newPage();
+    const herr: string[] = [];
+    hpage.on('pageerror', (e: Error) => herr.push(e.message));
+    hpage.on('console', (m: { type(): string; text(): string }) => m.type() === 'error' && herr.push(m.text()));
+    await hpage.goto(`http://localhost:${PORT}/?play=${H.rules}&seed=${H.seed}&tier=${H.tier}`);
+    await hpage.waitForSelector('.cell');
+    const msgs = new Set<string>();
+    let n = 0;
+    const cellsH = hpage.locator('.cell');
+    // 풀리면 힌트 버튼이 꺼지고 승리 창은 650ms 뒤에 뜬다
+    while (!(await hpage.locator('#btn-hint').isDisabled())) {
+      if (++n > hp.width * hp.height) throw new Error('hint-only solve did not finish');
+      await hpage.click('#btn-hint');
+      const m = (await hpage.textContent('#hint-msg')) ?? '';
+      if (m.length < 10) throw new Error(`empty hint at step ${n}`);
+      msgs.add(m.replace(/\d+/g, '#'));
+      if (n === 3) await hpage.screenshot({ path: join(shots, 'play-hint-xline.png') });
+      const targets: number[] = await hpage.locator('.cell.hint-target').evaluateAll((els: Element[]) =>
+        els.map((e) => Number((e as HTMLElement).dataset.i)));
+      if (!targets.length) throw new Error(`hint without target at step ${n}: ${m}`);
+      for (const i of targets) {
+        if (hp.solution[i] === '1') await cellsH.nth(i).click();
+        else await cellsH.nth(i).click({ button: 'right' });
+        if (await hpage.locator('#btn-hint').isDisabled()) break;
+      }
+    }
+    await hpage.waitForSelector('dialog#win[open]', { timeout: 5000 });
+    // 메아리 전용 단어 금지 + 받침 뒤 '를' 같은 조사 오류 금지
+    const bad = [...msgs].filter((m) => /고리|테두리|칸를/.test(m));
+    if (bad.length) throw new Error('echo-only wording in hints: ' + bad.join(' | '));
+    if (herr.length) throw new Error('hint-solve console errors: ' + herr.join(' | '));
+    await hpage.screenshot({ path: join(shots, 'play-hint-win.png') });
+    console.log(`e2e hint-solve: OK (${H.rules} ${H.tier}, ${n} hints, ${msgs.size} distinct messages)`);
+    for (const m of msgs) console.log('   · ' + m);
+    await hctx.close();
+  }
 } catch (e) {
   failed = true;
   console.error(e);
