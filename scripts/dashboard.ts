@@ -7,6 +7,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, write
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { getRules } from '../engine/rules/index.ts';
+import { roundAgeHours } from './lib/ab.ts';
 
 const root = join(import.meta.dirname, '..');
 const read = (p: string) => readFileSync(join(root, p), 'utf8');
@@ -92,7 +93,8 @@ const journal = read('factory/JOURNAL.md').split('\n## ').slice(1, 6).map((sec) 
   return { n: m?.[1] ?? '', title: m?.[2] ?? head, result: res.replace(/[*`]/g, '') };
 });
 
-const data = { generatedAt: kst(now).long, state: st, schedule, ab: { round, a: A, b: B, why }, candidates, product, journal };
+const ageHours = roundAgeHours(round, now);
+const data = { generatedAt: kst(now).long, state: st, schedule, ab: { round, a: A, b: B, why, ageHours }, candidates, product, journal };
 const out = join(root, 'dashboard-dist');
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });

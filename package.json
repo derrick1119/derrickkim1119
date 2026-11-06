@@ -20,7 +20,8 @@
     "fusion:bank": "tsx fusion/cli-bank.ts",
     "fusion:e2e": "tsx fusion/e2e.ts",
     "abtest": "tsx scripts/abtest.ts",
-    "dashboard": "tsx scripts/dashboard.ts"
+    "dashboard": "tsx scripts/dashboard.ts",
+    "ab:status": "tsx scripts/ab-status.ts"
   },
   "repository": {
     "type": "git",

@@ -20,7 +20,9 @@
       "proposedAt": "2026-11-05",
       "experiment": "0007",
       "winner": null,
-      "decidedAt": null
+      "decidedAt": null,
+      "openedAt": "2026-11-05T04:47:00Z",
+      "remindedAt": null
     }
   ]
 }

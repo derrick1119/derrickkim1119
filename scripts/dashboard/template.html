@@ -195,7 +195,8 @@ const R = D.ab.round;
 $("ab-title").textContent = `A|B 대결 ${R.round}라운드`;
 $("ab-sub").textContent = R.winner
   ? `결정됨: ${R.winner === "A" ? "A 유지" : "B 채택"} (${R.decidedAt}). 공장이 다음 도전자를 찾는 중입니다.`
-  : "두 규칙을 몇 판씩 풀어보고 더 재미있는 쪽을 골라주세요. 고른 쪽이 새 기준(챔피언)이 되고, 공장은 다시 새 도전자를 찾습니다.";
+  : "두 규칙을 몇 판씩 풀어보고 더 재미있는 쪽을 골라주세요. 고른 쪽이 새 기준(챔피언)이 되고, 공장은 다시 새 도전자를 찾습니다."
+    + (D.ab.ageHours != null ? ` 열린 지 ${Math.floor(D.ab.ageHours)}시간.` : "");
 const metric = (label, v, other, fmt = (x) => x.toFixed(3)) =>
   `<div class="metric"><span>${label}</span><b class="${v > other ? "up" : ""}">${fmt(v)}</b></div>`;
 function side(key, s, o) {
