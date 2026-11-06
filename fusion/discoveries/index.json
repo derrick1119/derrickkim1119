@@ -184,6 +184,33 @@
     "foundAt": "2026-11-05"
   },
   {
+    "id": "fx-orth4-x-kline.notouch",
+    "name": "십자 쌍 속 섬",
+    "fitness": 0.9602,
+    "synergy": 0.936,
+    "necessityMin": 1,
+    "hitRate": 0.938,
+    "density": 0.136,
+    "ingredients": [
+      {
+        "id": "orth4",
+        "name": "십자 4칸",
+        "origin": "여러 개수 단서 퍼즐"
+      },
+      {
+        "id": "kline",
+        "name": "줄마다 둘",
+        "origin": "스타배틀·N퀸"
+      },
+      {
+        "id": "notouch",
+        "name": "맞닿기 금지",
+        "origin": "히토리·여러 칠하기 퍼즐"
+      }
+    ],
+    "foundAt": "2026-11-06"
+  },
+  {
     "id": "fx-nb8-x-kline1",
     "name": "지뢰의 외길",
     "fitness": 0.9447,
@@ -314,6 +341,33 @@
     "foundAt": "2026-11-05"
   },
   {
+    "id": "fx-nb8-x-balanced.nothree",
+    "name": "지뢰 저울과 물결",
+    "fitness": 0.9068,
+    "synergy": 0.96,
+    "necessityMin": 1,
+    "hitRate": 0.906,
+    "density": 0.173,
+    "ingredients": [
+      {
+        "id": "nb8",
+        "name": "이웃 8칸",
+        "origin": "지뢰찾기"
+      },
+      {
+        "id": "balanced",
+        "name": "반반",
+        "origin": "타쿠주·빈에리"
+      },
+      {
+        "id": "nothree",
+        "name": "셋 연속 금지",
+        "origin": "타쿠주·빈에리"
+      }
+    ],
+    "foundAt": "2026-11-06"
+  },
+  {
     "id": "fx-knight-x-balanced",
     "name": "도약과 저울",
     "fitness": 0.9061,
@@ -334,6 +388,87 @@
       }
     ],
     "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-echo2-x-kline1",
+    "name": "메아리를 건넌 외길",
+    "fitness": 0.9061,
+    "synergy": 0.892,
+    "necessityMin": 1,
+    "hitRate": 0.938,
+    "density": 0.153,
+    "ingredients": [
+      {
+        "id": "echo2",
+        "name": "두 칸 너머 고리",
+        "origin": "발명 공장의 메아리"
+      },
+      {
+        "id": "kline1",
+        "name": "줄마다 하나",
+        "origin": "체스 룩 배치·라틴 방진 (0006)"
+      }
+    ],
+    "foundAt": "2026-11-06"
+  },
+  {
+    "id": "fx-orth4-rowcol-no2x2e.notouch",
+    "name": "십자 눈금 그물과 섬",
+    "fitness": 0.9045,
+    "synergy": 0.962,
+    "necessityMin": 0.938,
+    "hitRate": 1,
+    "density": 0.204,
+    "ingredients": [
+      {
+        "id": "orth4",
+        "name": "십자 4칸",
+        "origin": "여러 개수 단서 퍼즐"
+      },
+      {
+        "id": "rowcol",
+        "name": "줄 개수",
+        "origin": "텐트·배틀십 (가장자리 개수)"
+      },
+      {
+        "id": "no2x2e",
+        "name": "텅 빈 2×2 금지",
+        "origin": "헤야와케·누리카베 변형"
+      },
+      {
+        "id": "notouch",
+        "name": "맞닿기 금지",
+        "origin": "히토리·여러 칠하기 퍼즐"
+      }
+    ],
+    "foundAt": "2026-11-06"
+  },
+  {
+    "id": "fx-diag4-x-balanced.nothree",
+    "name": "모서리 저울 속 물결",
+    "fitness": 0.9017,
+    "synergy": 0.924,
+    "necessityMin": 1,
+    "hitRate": 0.906,
+    "density": 0.152,
+    "ingredients": [
+      {
+        "id": "diag4",
+        "name": "대각선 4칸",
+        "origin": "지뢰찾기의 모서리 이웃 (0006)"
+      },
+      {
+        "id": "balanced",
+        "name": "반반",
+        "origin": "타쿠주·빈에리"
+      },
+      {
+        "id": "nothree",
+        "name": "셋 연속 금지",
+        "origin": "타쿠주·빈에리"
+      }
+    ],
+    "foundAt": "2026-11-06"
   },
   {
     "id": "fx-knight-rowcol-nothree",
@@ -635,6 +770,38 @@
     "foundAt": "2026-11-05"
   },
   {
+    "id": "fx-givens-rowcol-kingtouch.no2x2e",
+    "name": "눈금 별의 그물",
+    "fitness": 0.8381,
+    "synergy": 1,
+    "necessityMin": 0.938,
+    "hitRate": 0.781,
+    "density": 0.085,
+    "ingredients": [
+      {
+        "id": "givens",
+        "name": "미리 보인 칸",
+        "origin": "스도쿠·타쿠주 (정답 일부 공개)"
+      },
+      {
+        "id": "rowcol",
+        "name": "줄 개수",
+        "origin": "텐트·배틀십 (가장자리 개수)"
+      },
+      {
+        "id": "kingtouch",
+        "name": "대각선까지 맞닿기 금지",
+        "origin": "스타배틀"
+      },
+      {
+        "id": "no2x2e",
+        "name": "텅 빈 2×2 금지",
+        "origin": "헤야와케·누리카베 변형"
+      }
+    ],
+    "foundAt": "2026-11-06"
+  },
+  {
     "id": "fx-givens-rowcol-kingtouch",
     "name": "눈금 속 별",
     "fitness": 0.8375,
@@ -660,6 +827,33 @@
       }
     ],
     "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-echo2-x-kingtouch.kline1",
+    "name": "메아리 별을 건넌 외길",
+    "fitness": 0.8374,
+    "synergy": 0.965,
+    "necessityMin": 0.875,
+    "hitRate": 0.875,
+    "density": 0.1,
+    "ingredients": [
+      {
+        "id": "echo2",
+        "name": "두 칸 너머 고리",
+        "origin": "발명 공장의 메아리"
+      },
+      {
+        "id": "kingtouch",
+        "name": "대각선까지 맞닿기 금지",
+        "origin": "스타배틀"
+      },
+      {
+        "id": "kline1",
+        "name": "줄마다 하나",
+        "origin": "체스 룩 배치·라틴 방진 (0006)"
+      }
+    ],
+    "foundAt": "2026-11-06"
   },
   {
     "id": "fx-bishop-x-no2x2e.notouch",
@@ -809,6 +1003,60 @@
     "foundAt": "2026-11-05"
   },
   {
+    "id": "fx-orth4-x-no2x2e.notouch",
+    "name": "십자 그물을 건넌 섬",
+    "fitness": 0.7986,
+    "synergy": 0.753,
+    "necessityMin": 1,
+    "hitRate": 1,
+    "density": 0.204,
+    "ingredients": [
+      {
+        "id": "orth4",
+        "name": "십자 4칸",
+        "origin": "여러 개수 단서 퍼즐"
+      },
+      {
+        "id": "no2x2e",
+        "name": "텅 빈 2×2 금지",
+        "origin": "헤야와케·누리카베 변형"
+      },
+      {
+        "id": "notouch",
+        "name": "맞닿기 금지",
+        "origin": "히토리·여러 칠하기 퍼즐"
+      }
+    ],
+    "foundAt": "2026-11-06"
+  },
+  {
+    "id": "fx-bishop-x-kline.notouch",
+    "name": "사선 쌍의 섬",
+    "fitness": 0.787,
+    "synergy": 0.907,
+    "necessityMin": 0.875,
+    "hitRate": 0.875,
+    "density": 0.112,
+    "ingredients": [
+      {
+        "id": "bishop",
+        "name": "비숍의 사선",
+        "origin": "체스 비숍"
+      },
+      {
+        "id": "kline",
+        "name": "줄마다 둘",
+        "origin": "스타배틀·N퀸"
+      },
+      {
+        "id": "notouch",
+        "name": "맞닿기 금지",
+        "origin": "히토리·여러 칠하기 퍼즐"
+      }
+    ],
+    "foundAt": "2026-11-06"
+  },
+  {
     "id": "fx-bishop-rowcol-kingtouch",
     "name": "사선 눈금을 건넌 별",
     "fitness": 0.7851,
@@ -834,6 +1082,33 @@
       }
     ],
     "foundAt": "2026-11-05"
+  },
+  {
+    "id": "fx-bishop-x-balanced.nothree",
+    "name": "사선 저울 속 물결",
+    "fitness": 0.7713,
+    "synergy": 0.914,
+    "necessityMin": 0.813,
+    "hitRate": 0.938,
+    "density": 0.13,
+    "ingredients": [
+      {
+        "id": "bishop",
+        "name": "비숍의 사선",
+        "origin": "체스 비숍"
+      },
+      {
+        "id": "balanced",
+        "name": "반반",
+        "origin": "타쿠주·빈에리"
+      },
+      {
+        "id": "nothree",
+        "name": "셋 연속 금지",
+        "origin": "타쿠주·빈에리"
+      }
+    ],
+    "foundAt": "2026-11-06"
   },
   {
     "id": "fx-orth4-rowcol-nothree.notouch",

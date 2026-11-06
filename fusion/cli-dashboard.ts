@@ -9,6 +9,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ATOMS } from './atoms.ts';
 import type { AbDecision, AbRound, Baseline } from './cli-ab.ts';
+import { ruleExamples } from './examples.ts';
 import { FUN_LABEL, FUN_PARTS, type FunReport } from './fun.ts';
 import { allSpecs, atomsOf, fusionId, parseFusionId } from './spec.ts';
 
@@ -110,7 +111,9 @@ const histRows = history.length
   : '<tr><td colspan="6" class="muted">아직 오너 선택 기록이 없습니다. 첫 선택부터 재미 지표 가중치 보정에 씁니다.</td></tr>';
 
 const bundle = (await build({ entryPoints: [join(root, 'dashboard', 'player.ts')], bundle: true, minify: true, format: 'iife', write: false, target: 'es2022' })).outputFiles[0].text;
-const abData = cur ? JSON.stringify({ A: cur.A, B: cur.B }).replace(/</g, '\\u003c') : '{}';
+const abData = cur
+  ? JSON.stringify({ A: cur.A, B: cur.B, examples: { ...ruleExamples(parseFusionId(cur.A.id)!), ...ruleExamples(parseFusionId(cur.B.id)!) } }).replace(/</g, '\\u003c')
+  : '{}';
 const css = readFileSync(join(root, 'dashboard', 'style.css'), 'utf8');
 
 const html = `<!DOCTYPE html>

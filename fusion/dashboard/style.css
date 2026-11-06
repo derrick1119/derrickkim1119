@@ -77,7 +77,16 @@ code { font: 13px var(--font-num); background: var(--accent-soft); padding: 0 4p
 .side-B .bar i.up::after { background: var(--cross); }
 .bar b { font: 500 13px var(--font-num); text-align: right; }
 .player { display: grid; gap: 10px; border-top: 1px dashed var(--line); padding-top: 12px; }
-.p-rules { margin: 0; padding-left: 20px; font-size: 14px; display: grid; gap: 2px; }
+.p-rules { margin: 0; padding-left: 0; list-style: none; font-size: 14px; display: grid; gap: 8px; }
+.p-rules li { display: flex; gap: 10px; align-items: center; }
+.p-ex { width: 72px; height: 72px; flex: none; }
+.p-ex .ex-off { fill: var(--bg); stroke: var(--line); }
+.p-ex .ex-scope { stroke: var(--cross); stroke-width: 1.6; }
+.p-ex .ex-off.ex-scope { fill: var(--cross-soft); }
+.p-ex .ex-num { fill: var(--panel); stroke: var(--ink); }
+.p-ex .ex-fill { fill: var(--ink); }
+.p-ex text { font: 700 8px var(--font-num); text-anchor: middle; fill: var(--ink); }
+.p-ex .ex-e { font-weight: 500; fill: var(--muted); }
 .p-tabs, .p-bar { display: flex; gap: 6px; flex-wrap: wrap; }
 .p-tab, .p-btn { font: inherit; font-size: 13px; padding: 4px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
 .p-tab[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
