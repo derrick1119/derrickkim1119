@@ -39,6 +39,7 @@ p { margin: 0; }
 .ab > * { min-width: 0; }
 .side { background: var(--panel); border: 1px solid var(--line); border-top: 5px solid var(--accent); border-radius: 12px; padding: 16px; display: grid; gap: 12px; align-content: start; }
 .side-B { border-top-color: var(--hot); }
+.side.bench { border-top-color: var(--line); }
 .side header { display: flex; gap: 12px; align-items: center; }
 .tag { font: 700 22px/1 var(--font-num); width: 44px; height: 44px; display: grid; place-items: center; border-radius: 10px; background: var(--accent-soft); color: var(--accent); flex: none; }
 .side-B .tag { background: var(--hot-soft); color: var(--hot); }

@@ -40,6 +40,18 @@ function card(key: 'A' | 'B', id: string, other: string) {
 </article>`;
 }
 
+const bench = GAMES.filter((e) => e.game.id !== cur.A && e.game.id !== cur.B).map(({ game: g }) => {
+  const r = evals[g.id];
+  return `<article class="side bench">
+  <header><div><p class="eyebrow">다음 라운드 후보 · 봇 재미 추정 ${r.fun.toFixed(2)}</p><h3>${esc(g.name)}</h3></div></header>
+  <ul class="genes">${g.genes.map((x) => `<li><b>${esc(GENES[x].from)}</b></li>`).join('<li class="x" aria-hidden="true">×</li>')}</ul>
+  <p class="twist">${esc(g.twist)}</p>
+  <ol class="rules">${g.rules.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>
+  <div class="game" data-game="${g.id}"></div>
+  <p class="muted">못하는 봇 ${r.dumb.sec}초·${r.dumb.score}점 / 잘하는 봇 ${r.smart.sec}초·${r.smart.score}점</p>
+</article>`;
+}).join('');
+
 const css = readFileSync(join(root, 'dashboard.css'), 'utf8');
 const bundle = (await build({ entryPoints: [join(root, 'play.ts')], bundle: true, minify: true, format: 'iife', write: false, target: 'es2022' })).outputFiles[0].text;
 const geneList = Object.values(GENES).map((g) => `<li><b>${esc(g.from)}</b> ${esc(g.what)}</li>`).join('');
@@ -68,6 +80,12 @@ const html = `<!DOCTYPE html>
   <p class="lead">${cur.winner ? `결정됨: <b>${esc(cur.winner)}</b>` : '두 게임을 한 판씩 해 보고, <b>채팅에 “A” 또는 “B”라고 답해 주세요.</b> 고른 쪽이 챔피언이 되고, 공장은 그 챔피언에 도전할 새 조합을 만듭니다. 둘 다 별로면 이유를 한 줄 적어 주세요. 그게 다음 게임의 설계 기준이 됩니다.'}</p>
   <div class="ab">${card('A', cur.A, cur.B)}${card('B', cur.B, cur.A)}</div>
 </section>
+
+${bench ? `<section aria-labelledby="bench-h">
+  <h2 id="bench-h">다음 라운드 후보</h2>
+  <p class="lead">1라운드 결과가 나오면 챔피언과 겨룰 후보입니다. 미리 해 보셔도 됩니다.</p>
+  <div class="ab">${bench}</div>
+</section>` : ''}
 
 <section aria-labelledby="how-h" class="two">
   <div>

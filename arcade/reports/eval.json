@@ -42,5 +42,27 @@
    "simplicity": 0.782
   },
   "fun": 0.76
+ },
+ "guard": {
+  "id": "guard",
+  "name": "궤도 수비",
+  "n": 24,
+  "dumb": {
+   "score": 3,
+   "sec": 10.2
+  },
+  "smart": {
+   "score": 89.5,
+   "sec": 83,
+   "capped": 0.041666666666666664
+  },
+  "skillGap": 22.63,
+  "parts": {
+   "skill": 1,
+   "onboarding": 0.798,
+   "session": 0.958,
+   "simplicity": 0.85
+  },
+  "fun": 0.922
  }
 }
