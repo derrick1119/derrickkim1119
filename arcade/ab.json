@@ -1,6 +1,7 @@
 {
- "champion": null,
+ "champion": "orbit",
  "rounds": [
-  { "round": 1, "openedAt": "2026-11-06", "A": "orbit", "B": "brickdef", "winner": null, "note": "피벗 첫 라운드 — 기준선이 없어 새 게임 둘끼리" }
+  { "round": 1, "openedAt": "2026-11-06", "A": "orbit", "B": "brickdef", "winner": "orbit", "decidedAt": "2026-11-06", "machinePick": "orbit", "note": "피벗 첫 라운드. 오너: \"A가 낫네.\" 봇 재미 추정(0.97 vs 0.76)과 일치" },
+  { "round": 2, "openedAt": "2026-11-06", "A": "orbit", "B": "guard", "winner": null, "note": "챔피언 궤도 꼬리 vs 도전자 궤도 수비(봇 재미 추정 0.92, 후보 중 1위)" }
  ]
 }
