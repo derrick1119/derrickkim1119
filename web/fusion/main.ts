@@ -5,6 +5,8 @@ import { hashString } from '../../engine/rng.ts';
 import type { RuleSet, Tier } from '../../engine/types.ts';
 import { ATOMS } from '../../fusion/atoms.ts';
 import { FUSION_LAUNCH } from '../../fusion/daily.ts';
+import { exampleSvg } from '../../fusion/example-svg.ts';
+import { exampleFor } from '../../fusion/examples.ts';
 import { generateFusion } from '../../fusion/generator.ts';
 import { atomsOf, buildFusionRules, parseFusionId, type FusionPuzzle, type FusionSpec } from '../../fusion/spec.ts';
 
@@ -390,7 +392,17 @@ function showDiscovery(label: string) {
     li.innerHTML = `${a.name} <small>· ${a.origin}</small>`;
     chips.append(li);
   });
-  $('rules-list').replaceChildren(...rules.rules.map((r) => Object.assign(document.createElement('li'), { textContent: r })));
+  // 실험 0009: 원자 규칙마다 예시 그림 (첫 줄은 안내 문장)
+  const atoms = atomsOf(spec);
+  $('rules-list').replaceChildren(
+    ...rules.rules.map((r, k) => {
+      const li = document.createElement('li');
+      const pic = k > 0 && atoms[k - 1] ? exampleSvg(exampleFor(atoms[k - 1].id)) : null;
+      if (pic) (li.className = 'with-ex'), li.append(pic);
+      li.append(Object.assign(document.createElement('span'), { textContent: r }));
+      return li;
+    }),
+  );
 }
 
 function startPuzzle(p: FusionPuzzle & { date?: string }, label: string, meta: string) {

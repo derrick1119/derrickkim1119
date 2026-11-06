@@ -4,50 +4,13 @@
  * 교차점 제품 번들과 별개 — `fusion/cli-dashboard.ts`가 esbuild로 묶어 페이지에 인라인한다.
  */
 import type { RuleExample } from '../examples.ts';
+import { exampleSvg } from '../example-svg.ts';
 import { atomsOf, buildFusionRules, parseFusionId, type FusionPuzzle } from '../spec.ts';
 
 interface Side { id: string; name: string; puzzles: (FusionPuzzle & { tier: string })[] }
 const TIER: Record<string, string> = { easy: '쉬움', medium: '보통', hard: '어려움', expert: '전문가' };
 const data = JSON.parse(document.getElementById('ab-data')!.textContent!) as { A: Side; B: Side; examples?: Record<string, RuleExample> };
 
-/** 실험 0008: 규칙 옆 미니 그림. 숫자 규칙은 세는 칸, 판 규칙은 4×4 예시 정답 */
-function exampleSvg(ex: RuleExample | undefined): SVGSVGElement | null {
-  if (!ex || ex.kind === 'none') return null;
-  const NS = 'http://www.w3.org/2000/svg', c = 12, pad = ex.kind === 'grid' && ex.edges ? c : 0;
-  const svg = document.createElementNS(NS, 'svg');
-  svg.setAttribute('viewBox', `0 0 ${ex.w * c + pad} ${ex.h * c + pad}`);
-  svg.setAttribute('class', 'p-ex');
-  svg.setAttribute('aria-hidden', 'true');
-  const scope = ex.kind === 'scope' ? new Set(ex.cells) : null;
-  const filled = ex.kind === 'scope' ? new Set(ex.filled) : null;
-  for (let i = 0; i < ex.w * ex.h; i++) {
-    const r = document.createElementNS(NS, 'rect');
-    r.setAttribute('x', String(pad + (i % ex.w) * c + 1));
-    r.setAttribute('y', String(pad + Math.floor(i / ex.w) * c + 1));
-    r.setAttribute('width', String(c - 2));
-    r.setAttribute('height', String(c - 2));
-    r.setAttribute('rx', '2');
-    const cls = ex.kind === 'scope'
-      ? i === ex.center ? 'ex-num' : `${filled!.has(i) ? 'ex-fill' : 'ex-off'}${scope!.has(i) ? ' ex-scope' : ''}`
-      : ex.sol[i] === '1' ? 'ex-fill' : 'ex-off';
-    r.setAttribute('class', cls);
-    svg.append(r);
-  }
-  const label = (x: number, y: number, t: string, cls: string) => {
-    const e = document.createElementNS(NS, 'text');
-    e.setAttribute('x', String(x));
-    e.setAttribute('y', String(y));
-    e.setAttribute('class', cls);
-    e.textContent = t;
-    svg.append(e);
-  };
-  if (ex.kind === 'scope') label((ex.center % ex.w) * c + c / 2, Math.floor(ex.center / ex.w) * c + c / 2 + 3, String(ex.cells.filter((k) => filled!.has(k)).length), 'ex-t');
-  if (ex.kind === 'grid' && ex.edges) {
-    ex.edges.cols.forEach((v, x) => label(pad + x * c + c / 2, c - 3, String(v), 'ex-e'));
-    ex.edges.rows.forEach((v, y) => label(c / 2, pad + y * c + c / 2 + 3, String(v), 'ex-e'));
-  }
-  return svg;
-}
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string) => {
   const e = document.createElement(tag);
   if (cls) e.className = cls;

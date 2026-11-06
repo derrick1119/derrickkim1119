@@ -47,7 +47,16 @@ h1 { margin: 0; font-size: 1.35rem; letter-spacing: -0.02em; }
 
 .rules { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; font-size: .92rem; line-height: 1.55; }
 .rules summary { cursor: pointer; font-weight: 600; }
-.rules ol { margin: 8px 0 6px; padding-left: 1.2em; }
+.rules ol { margin: 8px 0 6px; padding-left: 0; list-style: none; }
+.rules li.with-ex { display: flex; gap: 10px; align-items: center; margin: 6px 0; }
+.p-ex { width: 64px; height: 64px; flex: none; }
+.p-ex .ex-off { fill: var(--bg); stroke: var(--line); }
+.p-ex .ex-scope { stroke: var(--scope); stroke-width: 1.6; }
+.p-ex .ex-off.ex-scope { fill: var(--accent-soft); }
+.p-ex .ex-num { fill: var(--surface); stroke: var(--ink); }
+.p-ex .ex-fill { fill: var(--fill); }
+.p-ex text { font: 700 8px ui-monospace, monospace; text-anchor: middle; fill: var(--ink); }
+.p-ex .ex-e { font-weight: 500; fill: var(--muted); }
 .rules-tip { margin: 0; color: var(--muted); font-size: .85rem; }
 
 .board-wrap { display: flex; justify-content: center; }
