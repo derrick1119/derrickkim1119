@@ -18,7 +18,7 @@ const store = {
 };
 
 function mount(root: HTMLElement, g: GameDef<any>) {
-  const aspect = g.controls === 'leftright' ? 1.5 : 1;
+  const aspect = g.aspect ?? (g.controls === 'leftright' ? 1.5 : 1);
   const canvas = document.createElement('canvas');
   canvas.className = 'g-canvas';
   canvas.tabIndex = 0;

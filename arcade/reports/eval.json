@@ -64,5 +64,27 @@
    "simplicity": 0.85
   },
   "fun": 0.922
+ },
+ "mergetower": {
+  "id": "mergetower",
+  "name": "합체 탑",
+  "n": 24,
+  "dumb": {
+   "score": 850,
+   "sec": 85.2
+  },
+  "smart": {
+   "score": 6806,
+   "sec": 90.6,
+   "capped": 0
+  },
+  "skillGap": 8,
+  "parts": {
+   "skill": 1,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85
+  },
+  "fun": 0.97
  }
 }

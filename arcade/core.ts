@@ -53,6 +53,8 @@ export interface GameDef<S> {
   rules: string[];
   /** 조작: 원버튼 탭 / 좌우 */
   controls: 'tap' | 'leftright';
+  /** 화면 세로 ÷ 가로 (없으면 좌우 1.5, 탭 1) */
+  aspect?: number;
   create(seed: number): S;
   step(s: S, input: Input): void;
   over(s: S): boolean;
