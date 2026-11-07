@@ -2,7 +2,7 @@
 
 상태: 진행 중 — 자동 사이클 (1시간마다, 기획자·FUN QA·PM). 세션 `session_01Nm4gExEyeU9e8MSuJic6vN`
 플레이 주소: https://derrick1119.github.io/derrickkim1119/studio/planet-guardian/
-마일스톤: M1 ✅ → **M2 첫 5분 진행 중** · 다음 오너 테스트 예상 **11-08(일) 07:30 KST** (PM, MILESTONES.md)
+마일스톤: M1 ✅ → **M2 첫 5분 진행 중** (C003까지) · 다음 오너 테스트 예상 **11-08(일) 08:20 KST** (PM, MILESTONES.md)
 
 ## 지켜보는 법
 - **팀 대화**: `TALK.md` (최신이 위) — 기획자가 한 일 → FUN QA 유저군별 평가 → 기획자 응답 → PM
