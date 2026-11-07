@@ -3,7 +3,7 @@
  * 출발점: arcade/games/guardian2.ts (복사 후 독립). 같은 시드·같은 입력 → 같은 결과.
  * 화면·소리와 분리: 시뮬은 매 틱 `events`에 "무슨 일이 어디서 났나"만 남기고, 손맛(파티클·흔들림·소리)은 그걸 읽어 만든다.
  */
-import { mulberry32, type Rng } from '../../engine/rng.ts';
+import { hashString, mulberry32, type Rng } from '../../engine/rng.ts';
 
 export const CORE = 0.17, ORBIT = 0.43, BODY = 0.05, ENEMY_R = 0.04, RANGE = 0.32;
 export const SLOTS = 8, HP_MAX = 5, CARD_Y = 0.84;
@@ -50,10 +50,16 @@ export interface Input {
 }
 
 export interface State {
-  /** 운석 전용 난수 — 카드 선택이 운석 배치를 바꾸지 않게 분리 (리뷰: 데일리 공정성) */
-  rng: Rng;
-  /** 카드·슬롯 전용 난수 */
-  crng: Rng;
+  /**
+   * 난수는 함수가 아니라 숫자 상태로 둔다 (C006, FUN QA C005) — State를 통째로 복제할 수 있어야
+   * 롤아웃 봇이 "미래를 아는 투시"가 아니라 지금 상태에서 갈래를 시험해 볼 수 있다.
+   * rngS: 운석 · slotS: 건물 자리 · 카드 손패는 (시드·박자 번호·이번 박자 다시 뽑기 수)로 그때그때 만든다
+   */
+  seed: number;
+  rngS: number;
+  slotS: number;
+  beatNo: number;
+  handRolls: number;
   wave: number;
   /** 이번 웨이브에 남은 운석 수 */
   budget: number;
@@ -93,6 +99,16 @@ export interface State {
   events: GameEvent[];
 }
 
+/** mulberry32와 같은 수열을 숫자 상태로 (engine/rng.ts와 결과 동일) */
+function rnd(s: State, key: 'rngS' | 'slotS') {
+  const a = (s[key] + 0x6d2b79f5) >>> 0;
+  s[key] = a;
+  let t = a;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+
 export const pos = (a: number, r: number) => ({ x: Math.cos(a) * r, y: Math.sin(a) * r });
 export const wrap = (a: number) => ((a % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
 export const spin = (s: State) => s.t * 0.003;
@@ -104,7 +120,7 @@ export const turretRange = (lv: number) => 0.34 + 0.05 * (lv - 1);
 
 export function create(seed: number): State {
   return {
-    rng: mulberry32(seed), crng: mulberry32(seed ^ 0x5bd1e995), wave: 1, budget: waveSize(1), breath: 0, t: 0, angle: -Math.PI / 2, spinLv: 0, allies: 0, cool: [0], enemies: [], bullets: [],
+    seed, rngS: seed >>> 0, slotS: (seed ^ 0x5bd1e995) >>> 0, beatNo: 0, handRolls: 0, wave: 1, budget: waveSize(1), breath: 0, t: 0, angle: -Math.PI / 2, spinLv: 0, allies: 0, cool: [0], enemies: [], bullets: [],
     ore: 0, cost: REROLL0, nextCard: FIRST_CARD, lastCard: 0, rerolls: 0, offer: null, offerAt: -99, builds: 0, hp: 3, spawnIn: 90, nextId: 1, kills: 0, blocks: 0,
     combo: 0, comboAt: -999, bestCombo: 0, last: null, hitAt: -99, deadAt: -1, dead: false, events: [],
     // 리뷰: 시작 방어 0 → 포탑 Lv1 하나를 깔고 시작 (기지가 첫 화면부터 보인다)
@@ -119,20 +135,23 @@ export const score = (s: State) => { const p = scoreParts(s); return p.kills + p
 /** 웨이브 예산 (리뷰 ①: 시간 기반 스폰은 88초에 초당 12개 벽을 만들었다) */
 /** 속도 상한(초당) — FUN QA C001: n² 가속은 반응 불가능한 벽이었다. 난이도는 수·크기로 올린다 */
 const VMAX = 0.42;
-/** 운석 기본 속도. C005: 1~2웨이브를 0.11로 늦추는 램프를 시험했으나 L1(169초)·M4 퇴행, L8은 램프 없이도 통과라 폐기(TALK C005) */
-export const speedOf = (wave: number) => Math.min(VMAX, 0.14 + 0.025 * (wave - 1));
+/**
+ * 운석 기본 속도: 1~2웨이브는 0.11로 천천히(라이트가 아무것도 못 짓고 끝나는 판 방지, L8).
+ * C006 복구 — C005 폐기는 근거 오류였다("램프 없이 99초"는 램프를 켜고 잰 값, TALK C005 정정)
+ */
+export const speedOf = (wave: number) => (wave <= 2 ? 0.11 : Math.min(VMAX, 0.14 + 0.025 * (wave - 1)));
 export const waveSize = (n: number) => 6 + 3 * n;
 const waveCap = (n: number) => 3 + n;
 const waveGap = (n: number) => Math.max(18, 80 - 6 * n);
 
 function spawn(s: State) {
   const n = s.wave - 1;
-  const big = s.rng() < Math.min(0.45, 0.06 * n);
+  const big = rnd(s, 'rngS') < Math.min(0.45, 0.06 * n);
   // 후반 난이도는 단단함으로: 3웨이브마다 체력 +1 (C004. FUN QA: 계단 벽 → M3-2에서 빌드로 대응하는 위협으로 교체 예정)
-  const hp = (big ? 3 : 1 + (s.rng() < Math.min(0.6, 0.08 * n) ? 1 : 0)) + Math.floor(n / 3);
-  s.enemies.push({ id: s.nextId++, a: s.rng() * Math.PI * 2, r: 1.05, v: (speedOf(s.wave) + s.rng() * 0.03) / 60, hp, maxHp: hp, big, flash: -99 });
+  const hp = (big ? 3 : 1 + (rnd(s, 'rngS') < Math.min(0.6, 0.08 * n) ? 1 : 0)) + Math.floor(n / 3);
+  s.enemies.push({ id: s.nextId++, a: rnd(s, 'rngS') * Math.PI * 2, r: 1.05, v: (speedOf(s.wave) + rnd(s, 'rngS') * 0.03) / 60, hp, maxHp: hp, big, flash: -99 });
   s.budget--;
-  s.spawnIn = Math.round(waveGap(s.wave) * (0.7 + s.rng() * 0.6));
+  s.spawnIn = Math.round(waveGap(s.wave) * (0.7 + rnd(s, 'rngS') * 0.6));
 }
 
 function waves(s: State) {
@@ -165,7 +184,9 @@ export function available(s: State): Card[] {
 function makeOffer(s: State) {
   const all = available(s);
   const pick: Card[] = [];
-  while (pick.length < 3 && all.length) pick.push(all.splice(Math.floor(s.crng() * all.length), 1)[0]);
+  // 손패는 이 박자·이 다시 뽑기 횟수로만 정해진다 — 다시 뽑기가 이후 건물 자리·운석을 바꾸지 않는다 (C006)
+  const hand = mulberry32(hashString(`${s.seed}:${s.beatNo}:${s.handRolls}`));
+  while (pick.length < 3 && all.length) pick.push(all.splice(Math.floor(hand() * all.length), 1)[0]);
   s.offer = pick.length ? pick : null;
   if (s.offer) (s.offerAt = s.t), s.events.push({ type: 'offer' });
 }
@@ -176,7 +197,7 @@ function apply(s: State, c: Card): { x: number; y: number } {
     case 'new-mine':
     case 'new-turret': {
       const free = freeSlots(s);
-      const slot = free[Math.floor(s.crng() * free.length)];
+      const slot = free[Math.floor(rnd(s, 'slotS') * free.length)];
       s.sites.push({ kind: c.id === 'new-mine' ? '광산' : '포탑', slot, level: 1, cool: 0, aim: 0, born: s.t });
       return at(slot);
     }
@@ -235,6 +256,7 @@ export function step(s: State, input: Input) {
       s.ore -= s.cost;
       s.cost += REROLL_ADD;
       s.rerolls++;
+      s.handRolls++;
       makeOffer(s);
       s.events.push({ type: 'reroll' });
     } else if (input.pick !== undefined) choose(s, input.pick);
@@ -247,6 +269,8 @@ export function step(s: State, input: Input) {
   if (s.t >= s.nextCard) {
     s.lastCard = s.t;
     s.nextCard = s.t + BEAT;
+    s.beatNo++;
+    s.handRolls = 0;
     makeOffer(s);
   }
   if (s.t - s.comboAt > COMBO_GAP) s.combo = 0;

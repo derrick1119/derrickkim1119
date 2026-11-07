@@ -74,6 +74,33 @@ describe('행성 수호대 시뮬', () => {
     expect(JSON.stringify(s.offer)).toBe(offer);
   });
 
+  it('State를 통째로 복제하면 같은 입력에 같은 미래 (C006: 롤아웃 봇 선결 조건)', () => {
+    const s = create(21);
+    for (let k = 0; k < 2000; k++) step(s, s.offer ? { pick: 0 } : {});
+    const c = structuredClone(s);
+    for (let k = 0; k < 3000; k++) {
+      const inp = s.offer ? { pick: k % 3 } : {};
+      step(s, inp);
+      step(c, inp);
+    }
+    expect(JSON.stringify(c)).toBe(JSON.stringify(s));
+  });
+
+  it('다시 뽑기는 손패만 바꾼다 — 운석·건물 자리 난수는 그대로 (C006)', () => {
+    const s = create(33);
+    while (!s.offer) step(s, {});
+    const a = structuredClone(s), b = structuredClone(s);
+    b.ore = a.ore = 50;
+    step(b, { reroll: true });
+    expect(b.rngS).toBe(a.rngS);
+    expect(b.slotS).toBe(a.slotS);
+    // 같은 박자에서 다시 뽑기 횟수가 같으면 같은 손패
+    const c = structuredClone(s);
+    c.ore = 50;
+    step(c, { reroll: true });
+    expect(JSON.stringify(c.offer)).toBe(JSON.stringify(b.offer));
+  });
+
   it('시작하자마자 포탑 하나가 있다', () => {
     expect(create(1).sites.filter((x) => x.kind === '포탑')).toHaveLength(1);
   });
