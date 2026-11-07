@@ -26,6 +26,7 @@
 9. **기록**: TALK.md 맨 위에 사이클 블록(📋 → 🧪 → ✏️ 순서가 아니라 실제 대화 순서: ✏️ 한 일 → 🧪 평가 → ✏️ 응답 → 📋 PM). MILESTONES.md·STATUS.md 갱신.
 10. **커밋·푸시**: "스튜디오 행성 수호대: C### <요약>". 거절되면 pull --rebase → verify → push. 배포는 Actions `deploy` 결과로 확인.
 11. **오너 알림**: PM이 "오너 테스트 준비 완료"를 선언한 사이클에만 PushNotification(무엇을 테스트할지 3줄 + 주소). STATUS `상태: 오너 테스트 대기`로 바꾸고 다음 사이클부터 멈춤.
+    - **테스트 링크는 전체 주소로 맨 앞에** (오너 2026-11-08: "내가 테스트할 수 있는 링크를 줘야지"): 알림, 사이클 끝 한국어 요약, STATUS '오너에게' 첫 줄에 `https://derrick1119.github.io/derrickkim1119/studio/planet-guardian/`를 그대로 넣는다. 오너 테스트 대기 중의 한 줄 보고에도 붙인다.
 
 ## 연속 실패
 3사이클 연속 verify 실패로 push 못 함 → STATUS `상태: BLOCKED`, "오너에게"에 이유, 알림.
