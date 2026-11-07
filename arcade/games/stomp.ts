@@ -157,11 +157,10 @@ export const stomp: GameDef<StompState> = {
 export const stompRandom: Bot<StompState> = { name: '막누르기', act: (_s, rng) => ({ tap: rng() < 1 / 40, dir: 0 }) };
 
 /** 봇: 지금 뛸 때와 안 뛸 때를 내다보고, 오래 살아남고 더 많이 밟는 쪽을 고른다.
- *  사람처럼 0.05초(3틱)에 한 번만 판단한다 — 매 틱 완벽하게 반응하면 어떤 판도 안 죽어서 난이도를 잴 수 없다 */
+ *  반응 간격은 모든 게임 공통으로 runBot이 준다 (core.REACT, 실험 0016) */
 export const stompSmart: Bot<StompState> = {
   name: '내다보기',
   act(s) {
-    if (s.t % 3 !== 0) return { tap: false, dir: 0 };
     const sim = (tapNow: boolean) => {
       const c: StompState = { ...s, rng: () => 0.5, pits: s.pits.slice(), enemies: s.enemies.map((e) => ({ ...e })), nextAt: Infinity };
       let k = 0;

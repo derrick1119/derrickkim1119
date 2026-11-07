@@ -84,13 +84,16 @@ export interface RunResult {
   changes: number;
 }
 
-/** 봇 한 판. maxTicks(기본 3분)에서 끊는다 */
-export function runBot<S>(g: GameDef<S>, bot: Bot<S>, seed: number, maxTicks = 60 * 180): RunResult {
+/** 잘하는 봇의 반응 간격(틱). 사람처럼 0.05초에 한 번 판단 — 매 틱 완벽하면 어떤 게임도 안 죽어서 난이도를 잴 수 없다 (실험 0016) */
+export const REACT = 3;
+
+/** 봇 한 판. maxTicks(기본 3분)에서 끊는다. react틱마다 한 번 판단하고, 사이 틱엔 직전 입력을 유지(탭은 다시 누르지 않음) */
+export function runBot<S>(g: GameDef<S>, bot: Bot<S>, seed: number, maxTicks = 60 * 180, react = 1): RunResult {
   const s = g.create(seed);
   const rng = mulberry32(seed ^ 0x9e3779b9);
-  let ticks = 0, changes = 0, last = '';
+  let ticks = 0, changes = 0, last = '', held: Input = NO_INPUT;
   while (!g.over(s) && ticks < maxTicks) {
-    const inp = bot.act(s, rng);
+    const inp = ticks % react === 0 ? (held = bot.act(s, rng)) : { ...held, tap: false };
     const key = `${inp.tap ? 1 : 0}${inp.dir}${inp.aim === undefined ? '' : Math.round(inp.aim * 8)}`;
     if (key !== last && (inp.tap || inp.dir !== 0 || inp.aim !== undefined)) changes++;
     last = key;

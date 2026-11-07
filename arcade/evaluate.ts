@@ -11,7 +11,7 @@
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { runBot, type Bot, type GameDef } from './core.ts';
+import { REACT, runBot, type Bot, type GameDef } from './core.ts';
 import { GAMES } from './registry.ts';
 
 export interface ArcadeReport {
@@ -34,7 +34,7 @@ const clamp = (x: number) => Math.max(0, Math.min(1, x));
 export function evaluateGame<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, n = 24): ArcadeReport {
   const seeds = [...Array(n).keys()].map((i) => 1000 + i * 7919);
   const d = seeds.map((sd) => runBot(g, dumb, sd));
-  const m = seeds.map((sd) => runBot(g, smart, sd));
+  const m = seeds.map((sd) => runBot(g, smart, sd, 60 * 180, REACT));
   const cap = 60 * 180;
   const dumbScore = median(d.map((r) => r.score)), smartScore = median(m.map((r) => r.score));
   const dumbSec = median(d.map((r) => r.ticks)) / 60, smartSec = median(m.map((r) => r.ticks)) / 60;

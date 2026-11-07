@@ -8,11 +8,11 @@
    "sec": 87.5
   },
   "smart": {
-   "score": 176.5,
-   "sec": 149.8,
+   "score": 178.5,
+   "sec": 153.8,
    "capped": 0
   },
-  "skillGap": 8.45,
+  "skillGap": 8.55,
   "parts": {
    "skill": 1,
    "onboarding": 1,
@@ -30,18 +30,18 @@
    "sec": 43.7
   },
   "smart": {
-   "score": 162.5,
+   "score": 163,
    "sec": 180,
-   "capped": 0.6666666666666666
+   "capped": 0.7083333333333334
   },
-  "skillGap": 6.96,
+  "skillGap": 6.98,
   "parts": {
-   "skill": 0.933,
+   "skill": 0.934,
    "onboarding": 1,
-   "session": 0.333,
+   "session": 0.292,
    "simplicity": 0.782
   },
-  "fun": 0.76
+  "fun": 0.743
  },
  "guard": {
   "id": "guard",
@@ -52,18 +52,18 @@
    "sec": 10.2
   },
   "smart": {
-   "score": 89.5,
-   "sec": 83,
-   "capped": 0.041666666666666664
+   "score": 91.5,
+   "sec": 83.9,
+   "capped": 0.08333333333333333
   },
-  "skillGap": 22.63,
+  "skillGap": 23.13,
   "parts": {
    "skill": 1,
    "onboarding": 0.798,
-   "session": 0.958,
+   "session": 0.917,
    "simplicity": 0.85
   },
-  "fun": 0.922
+  "fun": 0.914
  },
  "mergetower": {
   "id": "mergetower",
@@ -74,18 +74,18 @@
    "sec": 85.2
   },
   "smart": {
-   "score": 6806,
-   "sec": 90.6,
-   "capped": 0
+   "score": 5844,
+   "sec": 131.5,
+   "capped": 0.041666666666666664
   },
-  "skillGap": 8,
+  "skillGap": 6.87,
   "parts": {
-   "skill": 1,
+   "skill": 0.927,
    "onboarding": 1,
-   "session": 1,
+   "session": 0.958,
    "simplicity": 0.85
   },
-  "fun": 0.97
+  "fun": 0.934
  },
  "stomp": {
   "id": "stomp",
