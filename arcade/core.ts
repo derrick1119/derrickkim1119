@@ -140,6 +140,12 @@ export interface GameDef<S> {
   aspect?: number;
   /** 디자인 컨셉. 있으면 페이지 색 대신 이 팔레트로 그린다 */
   art?: Art;
+  /**
+   * 지금까지 판에 "새로 등장한 것"의 수 (새 적 종류·새 능력·사건·판의 변화…). 0022 오너 피드백:
+   * "목표가 너무 쉽게 눈에 들어오고, 계속해도 어떨지가 단번에 느껴진다" → 판이 흐르며 펼쳐져야 한다.
+   * 0023부터 새 게임은 필수. 계기판이 30·60·120초 시점 값을 잰다.
+   */
+  reveals?(s: S): number;
   create(seed: number): S;
   step(s: S, input: Input): void;
   over(s: S): boolean;

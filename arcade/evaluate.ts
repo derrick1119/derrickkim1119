@@ -11,7 +11,8 @@
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { REACT, runBot, type Bot, type GameDef } from './core.ts';
+import { mulberry32 } from '../engine/rng.ts';
+import { NO_INPUT, REACT, runBot, type Bot, type GameDef } from './core.ts';
 import { GAMES } from './registry.ts';
 
 export interface ArcadeReport {
@@ -21,7 +22,9 @@ export interface ArcadeReport {
   dumb: { score: number; sec: number };
   smart: { score: number; sec: number; capped: number };
   skillGap: number;
-  parts: { skill: number; onboarding: number; session: number; simplicity: number };
+  parts: { skill: number; onboarding: number; session: number; simplicity: number; unfold?: number };
+  /** 잘하는 봇 판에서 30·60·120초 시점의 '새로 등장한 것' 수 (reveals가 있는 게임만) */
+  reveals?: [number, number, number];
   fun: number;
 }
 
@@ -40,18 +43,39 @@ export function evaluateGame<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, n = 
   const dumbSec = median(d.map((r) => r.ticks)) / 60, smartSec = median(m.map((r) => r.ticks)) / 60;
   const capped = m.filter((r) => r.ticks >= cap).length / n;
   const skillGap = (smartScore + 1) / (dumbScore + 1);
-  const parts = {
+  // 펼쳐짐: 잘하는 봇 판을 다시 돌려 30·60·120초(또는 끝난 시점)의 reveals를 잰다
+  let reveals: [number, number, number] | undefined;
+  if (g.reveals) {
+    const at = [0, 0, 0];
+    for (const sd of seeds.slice(0, 8)) {
+      const st = g.create(sd), rng = mulberry32(sd ^ 0x9e3779b9);
+      let held = NO_INPUT;
+      for (let t = 0; t < 60 * 120 && !g.over(st); t++) {
+        const inp = t % REACT === 0 ? (held = smart.act(st, rng)) : { ...held, tap: false, move: undefined, pick: undefined };
+        g.step(st, inp);
+        if (t === 60 * 30 - 1) at[0] += g.reveals(st);
+        if (t === 60 * 60 - 1) at[1] += g.reveals(st);
+      }
+      at[2] += g.reveals(st);
+    }
+    reveals = at.map((x) => +(x / 8).toFixed(1)) as [number, number, number];
+  }
+  const parts: ArcadeReport['parts'] = {
     skill: clamp(Math.log(skillGap) / Math.log(8)), // 8배 이상이면 만점
     onboarding: clamp((dumbSec - 3) / 9), // 3초 0점 · 12초 만점
     session: clamp(smartSec / 45) * (1 - capped), // 45초 이상 만점, 3분 넘게 버티는 판 비율만큼 감점
     simplicity: clamp(1 - (g.rules.length - 2) * 0.15) * (g.controls === 'leftright' ? 0.92 : 1),
   };
-  const fun = Math.exp((Math.log(0.05 + parts.skill) * 2 + Math.log(0.05 + parts.onboarding) + Math.log(0.05 + parts.session) + Math.log(0.05 + parts.simplicity)) / 5) / 1.05;
+  // 2분 안에 새로 등장한 것 4가지면 만점 (오너 피드백 0022). reveals 없는 옛 게임은 이 항목 없이 잰다
+  if (reveals) parts.unfold = clamp(reveals[2] / 4);
+  const terms = [[parts.skill, 2], [parts.onboarding, 1], [parts.session, 1], [parts.simplicity, 1], ...(parts.unfold === undefined ? [] : [[parts.unfold, 2]])] as [number, number][];
+  const fun = Math.exp(terms.reduce((a, [v, w]) => a + w * Math.log(0.05 + v), 0) / terms.reduce((a, [, w]) => a + w, 0)) / 1.05;
   return {
     id: g.id, name: g.name, n,
     dumb: { score: dumbScore, sec: +dumbSec.toFixed(1) },
     smart: { score: smartScore, sec: +smartSec.toFixed(1), capped },
     skillGap: +skillGap.toFixed(2),
+    reveals,
     parts: Object.fromEntries(Object.entries(parts).map(([k, v]) => [k, +v.toFixed(3)])) as ArcadeReport['parts'],
     fun: +fun.toFixed(3),
   };
@@ -63,7 +87,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const t0 = performance.now();
     const r = evaluateGame(e.game as GameDef<unknown>, e.dumb as Bot<unknown>, e.smart as Bot<unknown>);
     out[r.id] = r;
-    console.log(`${r.name.padEnd(8)} 재미 ${r.fun.toFixed(3)} · 숙련격차 ${r.skillGap}× · 못함 ${r.dumb.sec}s/${r.dumb.score}점 · 잘함 ${r.smart.sec}s/${r.smart.score}점 (3분 버팀 ${Math.round(r.smart.capped * 100)}%) · ${((performance.now() - t0) / 1000).toFixed(1)}s`);
+    console.log(`${r.name.padEnd(8)} 재미 ${r.fun.toFixed(3)}${r.reveals ? ` · 펼쳐짐 ${r.reveals.join('/')}` : ''} · 숙련격차 ${r.skillGap}× · 못함 ${r.dumb.sec}s/${r.dumb.score}점 · 잘함 ${r.smart.sec}s/${r.smart.score}점 (3분 버팀 ${Math.round(r.smart.capped * 100)}%) · ${((performance.now() - t0) / 1000).toFixed(1)}s`);
   }
   writeFileSync(join(import.meta.dirname, 'reports', 'eval.json'), JSON.stringify(out, null, 1) + '\n');
 }
