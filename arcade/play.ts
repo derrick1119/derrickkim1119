@@ -4,6 +4,7 @@
  * 조작: 원버튼 = 화면 탭·스페이스, 좌우 = 드래그·화살표 키.
  */
 import { TICK, type GameDef, type Input, type Theme } from './core.ts';
+import { peek } from './juice.ts';
 import { GAMES } from './registry.ts';
 
 function theme(el: HTMLElement): Theme {
@@ -45,6 +46,7 @@ function mount(root: HTMLElement, g: GameDef<any>) {
     if (!s) return;
     const w = canvas.width / (window.devicePixelRatio || 1), h = canvas.height / (window.devicePixelRatio || 1);
     g.draw(ctx, s, w, h, g.art?.palette ?? theme(root));
+    peek(s)?.render(ctx, w, h); // 공용 연출은 여기서 한 번에 (게임이 빠뜨리지 않게)
     // 'touch' 게임을 키보드로 할 때만: 가상 커서 고리
     if (keyboard && running && g.controls === 'touch') {
       ctx.strokeStyle = spaceDown ? '#ffffff' : 'rgba(255,255,255,.6)';

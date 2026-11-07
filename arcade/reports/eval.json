@@ -1,58 +1,58 @@
 {
- "lantern": {
-  "id": "lantern",
-  "name": "등불 마을",
+ "echo": {
+  "id": "echo",
+  "name": "분신 받아치기",
   "n": 24,
   "dumb": {
-   "score": 2,
-   "sec": 28
+   "score": 1,
+   "sec": 17.6
   },
   "smart": {
-   "score": 430.5,
-   "sec": 144.9,
-   "capped": 0.16666666666666666
+   "score": 74.5,
+   "sec": 71.3,
+   "capped": 0
   },
-  "skillGap": 143.83,
+  "skillGap": 37.75,
   "reveals": [
-   4,
-   7,
-   10
+   5,
+   7.6,
+   8
   ],
   "dumbReveals": [
-   1,
-   1
+   2.3,
+   2.3
   ],
   "parts": {
    "skill": 1,
    "onboarding": 1,
-   "session": 0.833,
-   "simplicity": 0.85,
+   "session": 1,
+   "simplicity": 0.782,
    "unfold": 1
   },
-  "fun": 0.954
+  "fun": 0.967
  },
- "sling": {
-  "id": "sling",
-  "name": "돌팔매 성",
+ "lasso": {
+  "id": "lasso",
+  "name": "올가미",
   "n": 24,
   "dumb": {
-   "score": 1,
-   "sec": 39.1
+   "score": 0,
+   "sec": 21.1
   },
   "smart": {
-   "score": 501.5,
-   "sec": 142.5,
+   "score": 199.5,
+   "sec": 108.4,
    "capped": 0
   },
-  "skillGap": 251.25,
+  "skillGap": 200.5,
   "reveals": [
-   5,
-   9.5,
-   12
+   1.8,
+   3.8,
+   6
   ],
   "dumbReveals": [
-   2.6,
-   3
+   0.9,
+   0.9
   ],
   "parts": {
    "skill": 1,

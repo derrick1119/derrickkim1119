@@ -1,7 +1,9 @@
 /**
  * 공용 연출(손맛) 모듈 — 0022 오너 피드백 "보기에 밋밋했어".
  * 화면 연출만 담당하고 시뮬레이션 상태는 건드리지 않는다(결정성·봇 측정에 영향 없음).
- * 게임의 draw()에서 `const fx = juice(s)`로 꺼내 쓰고, 사건이 생긴 순간 burst/pop/kick을 부른 뒤 마지막에 fx.render(ctx).
+ * 게임의 draw()에서 `const fx = juice(s)`로 꺼내 쓰고, 사건이 생긴 순간 burst/pop/kick/ring을 부른다.
+ * **render는 게임이 부르지 않는다** — 플레이어(`play.ts`)가 draw 직후 `peek(s)?.render()`로 그린다.
+ * (0026에서 발견: 0023~0024 게임 셋이 render 호출을 빠뜨려 파티클·글자·번쩍이 한 번도 안 보였다. 그래서 한 곳에서 그린다.)
  * 상태 객체마다 하나씩 WeakMap에 붙어서, 새 판이 시작되면 자동으로 새로 생긴다.
  */
 interface Particle { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number }
@@ -10,6 +12,7 @@ interface Popup { x: number; y: number; text: string; color: string; life: numbe
 export class Juice {
   particles: Particle[] = [];
   popups: Popup[] = [];
+  rings: { x: number; y: number; color: string; r: number; max: number; width: number; life: number }[] = [];
   shake = 0;
   flash = 0;
   flashColor = '#ffffff';
@@ -45,6 +48,12 @@ export class Juice {
     if (this.popups.length > 30) this.popups.shift();
   }
 
+  /** 퍼져 나가는 충격파 고리 (0026) */
+  ring(x: number, y: number, color: string, max = 60, width = 4) {
+    this.rings.push({ x, y, color, r: 4, max, width, life: 24 });
+    if (this.rings.length > 20) this.rings.shift();
+  }
+
   /** 화면 흔들림 */
   kick(amount: number) {
     this.shake = Math.max(this.shake, amount);
@@ -64,6 +73,17 @@ export class Juice {
 
   /** 다 그린 뒤 부른다: 파티클·글자·번쩍을 덧그린다 */
   render(ctx: CanvasRenderingContext2D, w: number, h: number) {
+    for (const r of this.rings) {
+      r.life--;
+      r.r += (r.max - r.r) * 0.18;
+      ctx.globalAlpha = Math.max(0, r.life / 24);
+      ctx.strokeStyle = r.color;
+      ctx.lineWidth = r.width * (r.life / 24) + 0.5;
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    this.rings = this.rings.filter((r) => r.life > 0);
     for (const p of this.particles) {
       p.x += p.vx;
       p.y += p.vy;
@@ -102,6 +122,9 @@ export class Juice {
 }
 
 const store = new WeakMap<object, Juice>();
+/** 이미 만들어진 연출만 꺼내기 (없으면 undefined) — 플레이어가 draw 뒤에 render할 때 쓴다 */
+export const peek = (s: object): Juice | undefined => store.get(s);
+
 /** 이 판(상태 객체)의 연출 꺼내기 */
 export const juice = (s: object): Juice => {
   let j = store.get(s);
