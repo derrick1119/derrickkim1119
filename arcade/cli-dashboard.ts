@@ -6,7 +6,8 @@
 import { build } from 'esbuild';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { GENES } from './core.ts';
+import { GENE_KIND_LABEL, GENES, type GeneKind } from './core.ts';
+import { ideaText, suggest, usage } from './ideas.ts';
 import type { ArcadeReport } from './evaluate.ts';
 import { GAMES } from './registry.ts';
 
@@ -64,7 +65,14 @@ function artLine(id: string) {
 
 const css = readFileSync(join(root, 'dashboard.css'), 'utf8');
 const bundle = (await build({ entryPoints: [join(root, 'play.ts')], bundle: true, minify: true, format: 'iife', write: false, target: 'es2022' })).outputFiles[0].text;
-const geneList = Object.values(GENES).map((g) => `<li><b>${esc(g.from)}</b> ${esc(g.what)}</li>`).join('');
+const used = usage();
+const ideas = suggest(6, now.slice(0, 10));
+const geneList = (Object.keys(GENE_KIND_LABEL) as GeneKind[]).map((k) => {
+  const xs = Object.values(GENES).filter((g) => g.kind === k).sort((a, b) => used[b.id] - used[a.id]);
+  return `<details class="genegroup"${k === 'core' ? '' : ''}><summary><b>${GENE_KIND_LABEL[k]}</b> ${xs.length}개 · 써 본 것 ${xs.filter((g) => used[g.id]).length}</summary>
+  <ul class="genelist">${xs.map((g) => `<li class="${used[g.id] ? 'used' : ''}"><b>${esc(g.from)}</b> ${esc(g.what)}${used[g.id] ? ` <span class="n">×${used[g.id]}</span>` : ''}</li>`).join('')}</ul></details>`;
+}).join('');
+const ideaList = ideas.map((i) => `<li>${esc(ideaText(i))} <span class="muted">새 재료 ${i.fresh}개</span></li>`).join('');
 const done = ab.rounds.filter((r) => r.winner);
 
 const html = `<!DOCTYPE html>
@@ -107,8 +115,10 @@ ${bench ? `<section aria-labelledby="bench-h">
     </ol>
   </div>
   <div>
-    <h2>재료 (장르 조각)</h2>
-    <ul class="genelist">${geneList}</ul>
+    <h2>재료 (장르 조각) ${Object.keys(GENES).length}개</h2>
+    ${geneList}
+    <h2 class="sub">다음 조합 후보 (안 써 본 재료 우선)</h2>
+    <ol class="how">${ideaList}</ol>
   </div>
 </section>
 

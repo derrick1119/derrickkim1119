@@ -2,6 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { GENES, REACT, runBot } from '../arcade/core.ts';
 import { GAMES } from '../arcade/registry.ts';
 
+describe('genes (0018)', () => {
+  it('every gene has a kind and the pool is diverse', () => {
+    const kinds = new Set(Object.values(GENES).map((x) => x.kind));
+    expect([...kinds].sort()).toEqual(['control', 'core', 'meta', 'twist']);
+    expect(Object.keys(GENES).length).toBeGreaterThanOrEqual(50);
+    for (const [id, x] of Object.entries(GENES)) expect(x.id).toBe(id);
+  });
+});
+
 describe('arcade factory (실험 0011)', () => {
   for (const { game, dumb, smart } of GAMES) {
     it(`${game.name}: deterministic, simple, and skill matters`, () => {

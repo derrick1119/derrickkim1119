@@ -73,6 +73,12 @@ p { margin: 0; }
 .two > * { min-width: 0; }
 .how, .genelist, .hist { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; max-width: 70ch; }
 .genelist { list-style: none; padding: 0; }
-.genelist b { display: inline-block; min-width: 7.5em; }
+.genelist b { display: inline-block; min-width: 8.5em; }
+.genelist li:not(.used) { color: var(--muted); }
+.genelist .n { font: 500 12px var(--font-num); color: var(--accent); }
+.genegroup { border-top: 1px solid var(--line); padding: 8px 0; }
+.genegroup summary { cursor: pointer; font-size: 14px; }
+.genegroup .genelist { margin-top: 8px; }
+h2.sub { margin-top: 20px; font-size: 16px; }
 button:focus-visible { outline: 3px solid var(--hot); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

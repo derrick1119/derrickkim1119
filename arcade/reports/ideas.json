@@ -1,0 +1,78 @@
+{
+ "unused": 45,
+ "total": 57,
+ "ideas": [
+  {
+   "core": [
+    "billiards",
+    "rhythm"
+   ],
+   "control": "hold",
+   "spice": "combo",
+   "fresh": 3
+  },
+  {
+   "core": [
+    "autobattle",
+    "survivor"
+   ],
+   "control": "onebutton",
+   "spice": "ghost",
+   "fresh": 2
+  },
+  {
+   "core": [
+    "deck",
+    "merge"
+   ],
+   "control": "dragaim",
+   "spice": "chain",
+   "fresh": 3
+  },
+  {
+   "core": [
+    "racing",
+    "billiards"
+   ],
+   "control": "hold",
+   "spice": "unlock",
+   "fresh": 4
+  },
+  {
+   "core": [
+    "flap",
+    "brick"
+   ],
+   "control": "dragaim",
+   "spice": "gravityflip",
+   "fresh": 3
+  },
+  {
+   "core": [
+    "traffic",
+    "pushbox"
+   ],
+   "control": "twobutton",
+   "spice": "rewind",
+   "fresh": 4
+  },
+  {
+   "core": [
+    "grapple",
+    "billiards"
+   ],
+   "control": "hold",
+   "spice": "rolereverse",
+   "fresh": 4
+  },
+  {
+   "core": [
+    "shmup",
+    "snake"
+   ],
+   "control": "onebutton",
+   "spice": "mirror",
+   "fresh": 2
+  }
+ ]
+}
