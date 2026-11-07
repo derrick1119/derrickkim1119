@@ -1,8 +1,14 @@
 # 행성 수호대 스튜디오 — 상태
 
-상태: 진행 중 — M1 핵심 손맛 완료 (2026-11-07, 세션 `session_01Nm4gExEyeU9e8MSuJic6vN`)
+상태: 진행 중 — 자동 사이클 (1시간마다, 기획자·FUN QA·PM). 세션 `session_01Nm4gExEyeU9e8MSuJic6vN`
 플레이 주소: https://derrick1119.github.io/derrickkim1119/studio/planet-guardian/
-마일스톤: **M1 ✅** → 다음 M2 첫 5분
+마일스톤: M1 ✅ → **M2 첫 5분 진행 중** · 다음 오너 테스트 예상 **11-08(일) 07:30 KST** (PM, MILESTONES.md)
+
+## 지켜보는 법
+- **팀 대화**: `TALK.md` (최신이 위) — 기획자가 한 일 → FUN QA 유저군별 평가 → 기획자 응답 → PM
+- **마일스톤·일정·QC**: `MILESTONES.md` (PM)
+- **재미 기준**: `FUN.md` · 지표 `reports/funqa.json` · 팀 규칙 `TEAM.md`
+- 오너 테스트가 준비되면 알림이 갑니다. 그 사이엔 사이클이 알림 없이 돕니다.
 
 ## 이번에 한 것 (M1)
 - 기획서 `GDD.md` v1.1 · 기획 리뷰 2회 `REVIEWS.md` (R1 기획서, R2 빌드 스크린샷)
