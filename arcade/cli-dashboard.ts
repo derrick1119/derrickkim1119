@@ -18,12 +18,12 @@ const evals: Record<string, ArcadeReport> = JSON.parse(readFileSync(join(root, '
 const ab: { champion: string | null; graduated?: { id: string; name: string; at: string; round: number; studio: string; play: string }[]; rounds: { round: number; openedAt: string; A: string; B: string; winner: string | null; note?: string }[] } = JSON.parse(readFileSync(join(root, 'ab.json'), 'utf8'));
 const cur = ab.rounds.at(-1)!;
 const now = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
-const LABEL: Record<string, string> = { skill: '실력이 통하나', onboarding: '처음 해도 버티나', session: '한 판 길이', simplicity: '단순함' };
+const LABEL: Record<string, string> = { skill: '실력이 통하나', onboarding: '처음 해도 버티나', session: '한 판 길이', simplicity: '단순함', unfold: '판이 펼쳐지나' };
 
 function card(key: 'A' | 'B', id: string, other: string) {
   const g = GAMES.find((e) => e.game.id === id)!.game, r = evals[id], o = evals[other];
   const bars = Object.entries(r.parts).map(([k, v]) => {
-    const up = v > (o.parts as Record<string, number>)[k] + 0.03;
+    const up = v > ((o.parts as Record<string, number>)[k] ?? 0) + 0.03;
     return `<div class="bar"><span>${LABEL[k]}</span><i style="--v:${Math.round(v * 100)}%" class="${up ? 'up' : ''}"></i><b>${v.toFixed(2)}</b></div>`;
   }).join('');
   const genes = g.genes.map((x) => `<li><b>${esc(GENES[x].from)}</b></li>`).join('<li class="x" aria-hidden="true">×</li>');
@@ -37,7 +37,7 @@ function card(key: 'A' | 'B', id: string, other: string) {
   <div class="game" data-game="${id}"></div>
   <details class="metrics"><summary>봇 측정: 재미 추정 <b>${r.fun.toFixed(2)}</b></summary>
     <div class="bars">${bars}</div>
-    <p class="muted">못하는 봇 ${r.dumb.sec}초·${r.dumb.score}점 / 잘하는 봇 ${r.smart.sec}초·${r.smart.score}점 (${r.n}판 중앙값)</p>
+    <p class="muted">못하는 봇 ${r.dumb.sec}초·${r.dumb.score}점 / 잘하는 봇 ${r.smart.sec}초·${r.smart.score}점 (${r.n}판 중앙값)${r.reveals ? ` · 새로 나온 것 30초 ${r.reveals[0]} → 1분 ${r.reveals[1]} → 2분 ${r.reveals[2]}가지` : ''}</p>
   </details>
 </article>`;
 }

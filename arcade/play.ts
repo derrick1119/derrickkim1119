@@ -22,13 +22,13 @@ function mount(root: HTMLElement, g: GameDef<any>) {
   const canvas = document.createElement('canvas');
   canvas.className = 'g-canvas';
   canvas.tabIndex = 0;
-  canvas.setAttribute('aria-label', `${g.name} 게임 화면. ${g.controls === 'tap' ? '스페이스나 화면 탭' : g.controls === 'hold' ? '스페이스나 화면을 꾹 눌렀다 떼기' : g.controls === 'touch' ? '화면 왼쪽·오른쪽 누르기와 카드 탭(또는 ← →, 숫자 1 2 3)' : g.controls === 'swipe' ? '밀기와 탭(또는 화살표·스페이스)' : '좌우 화살표나 드래그'}로 조작`);
+  canvas.setAttribute('aria-label', `${g.name} 게임 화면. ${g.hint ?? (g.controls === 'tap' ? '스페이스나 화면 탭' : g.controls === 'hold' ? '스페이스나 화면을 꾹 눌렀다 떼기' : g.controls === 'touch' ? '화면 왼쪽·오른쪽 누르기와 카드 탭(또는 ← →, 숫자 1 2 3)' : g.controls === 'swipe' ? '밀기와 탭(또는 화살표·스페이스)' : '좌우 화살표나 드래그')}로 조작`);
   const overlay = document.createElement('button');
   overlay.type = 'button';
   overlay.className = 'g-overlay';
   root.append(canvas, overlay);
   const ctx = canvas.getContext('2d')!;
-  let s: any = null, seed = 1, running = false, acc = 0, last = 0, tapQueued = false, holding = false, aim: number | undefined, pointer: { x: number; y: number } | null = null, pick: number | undefined, move: Input['move'], swipeFrom: { x: number; y: number } | null = null;
+  let s: any = null, seed = 1, running = false, acc = 0, last = 0, tapQueued = false, holding = false, aim: number | undefined, pointer: { x: number; y: number } | null = null, pick: number | undefined, move: Input['move'], swipeFrom: { x: number; y: number } | null = null, cursor = { x: 0.5, y: 0.5 }, spaceDown = false;
   const keys = new Set<string>();
 
   function size() {
@@ -40,7 +40,20 @@ function mount(root: HTMLElement, g: GameDef<any>) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     draw();
   }
-  const draw = () => s && g.draw(ctx, s, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1), g.art?.palette ?? theme(root));
+  let keyboard = false;
+  const draw = () => {
+    if (!s) return;
+    const w = canvas.width / (window.devicePixelRatio || 1), h = canvas.height / (window.devicePixelRatio || 1);
+    g.draw(ctx, s, w, h, g.art?.palette ?? theme(root));
+    // 'touch' 게임을 키보드로 할 때만: 가상 커서 고리
+    if (keyboard && running && g.controls === 'touch') {
+      ctx.strokeStyle = spaceDown ? '#ffffff' : 'rgba(255,255,255,.6)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cursor.x * w, cursor.y * h, spaceDown ? 7 : 10, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  };
   function show(text: string) {
     overlay.innerHTML = text;
     overlay.hidden = false;
@@ -61,7 +74,13 @@ function mount(root: HTMLElement, g: GameDef<any>) {
     last = now;
     while (acc >= TICK) {
       const dir = ((keys.has('ArrowRight') ? 1 : 0) - (keys.has('ArrowLeft') ? 1 : 0)) as -1 | 0 | 1;
-      const input: Input = { tap: tapQueued, hold: holding, dir, aim, pointer, pick, move };
+      // 'touch' 게임 키보드: 화살표로 가상 커서를 움직이고, 스페이스를 누르고 있으면 그 자리를 누른 것
+      if (g.controls === 'touch') {
+        const kx = (keys.has('ArrowRight') ? 1 : 0) - (keys.has('ArrowLeft') ? 1 : 0), ky = (keys.has('ArrowDown') ? 1 : 0) - (keys.has('ArrowUp') ? 1 : 0);
+        cursor = { x: Math.max(0, Math.min(1, cursor.x + kx * 0.012)), y: Math.max(0, Math.min(1, cursor.y + ky * 0.012)) };
+        if (spaceDown) pointer = { ...cursor };
+      }
+      const input: Input = { tap: tapQueued, hold: holding, dir: g.controls === 'touch' && spaceDown ? 0 : dir, aim, pointer, pick, move };
       tapQueued = false;
       pick = undefined;
       move = undefined;
@@ -117,17 +136,24 @@ function mount(root: HTMLElement, g: GameDef<any>) {
     if (g.controls === 'hold' && (e.key === ' ' || e.key === 'ArrowUp')) (holding = true), e.repeat || (tapQueued = true);
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') (keys.add(e.key), (aim = undefined));
     if (g.controls === 'touch' && ['1', '2', '3'].includes(e.key)) pick = Number(e.key) - 1;
+    if (g.controls === 'touch' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) (e.preventDefault(), keys.add(e.key));
+    if (g.controls === 'touch' && e.key.startsWith('Arrow')) keyboard = true;
+    if (g.controls === 'touch' && e.key === ' ' && running) (spaceDown = true), (pointer = { ...cursor });
     if (g.controls === 'swipe' && !e.repeat) {
       const m = ({ ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' } as const)[e.key as 'ArrowLeft'];
       if (m) move = m;
       if (e.key === ' ') tapQueued = true;
     }
   });
-  canvas.addEventListener('keyup', (e) => (keys.delete(e.key), (e.key === ' ' || e.key === 'ArrowUp') && (holding = false)));
+  canvas.addEventListener('keyup', (e) => {
+    keys.delete(e.key);
+    if (e.key === ' ' || e.key === 'ArrowUp') holding = false;
+    if (g.controls === 'touch' && e.key === ' ') (spaceDown = false), (pointer = null);
+  });
   overlay.addEventListener('click', start);
   s = g.create(1);
   size();
-  show(`<b>시작</b><span>${g.controls === 'tap' ? '탭 / 스페이스' : g.controls === 'hold' ? '꾹 눌렀다 떼기 / 스페이스' : g.controls === 'touch' ? '화면 왼쪽·오른쪽 누르기 · 카드 탭 / ← → · 1 2 3' : g.controls === 'swipe' ? '밀기(스와이프) · 탭 / 화살표 · 스페이스' : '드래그 / ← →'}</span>`);
+  show(`<b>시작</b><span>${g.hint ?? (g.controls === 'tap' ? '탭 / 스페이스' : g.controls === 'hold' ? '꾹 눌렀다 떼기 / 스페이스' : g.controls === 'touch' ? '화면 왼쪽·오른쪽 누르기 · 카드 탭 / ← → · 1 2 3' : g.controls === 'swipe' ? '밀기(스와이프) · 탭 / 화살표 · 스페이스' : '드래그 / ← →')}</span>`);
   new ResizeObserver(size).observe(root);
 }
 

@@ -97,6 +97,7 @@ export const GENES: Record<string, Gene> = Object.fromEntries(
     g('swipe', 'control', '스와이프', '상하좌우로 밀어 한 칸씩 움직인다'),
     g('dragaim', 'control', '드래그 조준', '끌어서 방향과 세기를 정하고 놓아 발사'),
     g('slide', 'control', '좌우 미끄러지기', '손가락을 따라 좌우로 움직인다'),
+    g('pointer', 'control', '가리키기', '누른 곳으로 간다·누른 곳에 한다 (가장 손에 붙는 조작)'),
     // ── 비틀기 ────────────────────────────────────────────────
     g('orbit', 'twist', '원 궤도', '평면 대신 중심을 도는 원 위에서 움직인다'),
     g('gravityflip', 'twist', '중력 뒤집기', '위아래가 뒤집힌다, 천장이 바닥이 된다'),
@@ -107,6 +108,8 @@ export const GENES: Record<string, Gene> = Object.fromEntries(
     g('rewind', 'twist', '되감기', '실수하면 몇 초 전으로 돌아간다, 대신 대가가 있다'),
     g('ghost', 'twist', '유령 경주', '내 지난 판의 유령과 함께 달린다'),
     g('chain', 'twist', '연쇄 폭발', '터진 것이 이웃을 터뜨리며 이어진다'),
+    g('daynight', 'twist', '낮과 밤', '낮엔 키우고 밤엔 지킨다, 하는 일이 번갈아 바뀐다'),
+    g('depth', 'twist', '깊어지는 판', '나아갈수록 새 구역이 열리고, 새 것이 나온다'),
     // ── 성장 ─────────────────────────────────────────────────
     g('gacha', 'meta', '랜덤 뽑기', '강화가 무작위로 나온다'),
     g('pick3', 'meta', '셋 중 하나 고르기', '레벨이 오를 때 강화 셋 중 하나를 고른다'),
@@ -136,6 +139,8 @@ export interface GameDef<S> {
   rules: string[];
   /** 조작: 원버튼 탭 / 좌우 */
   controls: 'tap' | 'hold' | 'leftright' | 'touch' | 'swipe';
+  /** 시작 화면·접근성 문구에 쓸 조작 안내 (없으면 조작 종류별 기본 문구, 0023) */
+  hint?: string;
   /** 화면 세로 ÷ 가로 (없으면 좌우 1.5, 탭 1) */
   aspect?: number;
   /** 디자인 컨셉. 있으면 페이지 색 대신 이 팔레트로 그린다 */

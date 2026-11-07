@@ -1,78 +1,33 @@
 {
- "unused": 31,
- "total": 57,
+ "unused": 28,
+ "total": 60,
  "ideas": [
   {
    "core": [
     "deck",
-    "rhythm"
+    "stack"
    ],
-   "control": "twobutton",
-   "spice": "ghost",
-   "fresh": 2
+   "control": "slide",
+   "spice": "unlock",
+   "fresh": 3
   },
   {
    "core": [
     "racing",
-    "absorb"
+    "grapple"
    ],
-   "control": "onebutton",
-   "spice": "unlock",
-   "fresh": 2
-  },
-  {
-   "core": [
-    "flap",
-    "merge"
-   ],
-   "control": "slide",
+   "control": "dragaim",
    "spice": "gravityflip",
    "fresh": 3
   },
   {
    "core": [
-    "traffic",
-    "deck"
+    "flap",
+    "dodge"
    ],
-   "control": "swipe",
-   "spice": "rewind",
-   "fresh": 3
-  },
-  {
-   "core": [
-    "grapple",
-    "stack"
-   ],
-   "control": "slide",
+   "control": "onebutton",
    "spice": "rolereverse",
-   "fresh": 3
-  },
-  {
-   "core": [
-    "order",
-    "autobattle"
-   ],
-   "control": "swipe",
-   "spice": "mirror",
    "fresh": 2
-  },
-  {
-   "core": [
-    "memory",
-    "deck"
-   ],
-   "control": "swipe",
-   "spice": "collect",
-   "fresh": 3
-  },
-  {
-   "core": [
-    "fishing",
-    "stack"
-   ],
-   "control": "hold",
-   "spice": "combo",
-   "fresh": 1
   }
  ]
 }

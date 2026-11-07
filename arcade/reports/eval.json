@@ -284,5 +284,61 @@
    "simplicity": 0.85
   },
   "fun": 0.926
+ },
+ "lantern": {
+  "id": "lantern",
+  "name": "등불 마을",
+  "n": 24,
+  "dumb": {
+   "score": 2,
+   "sec": 28
+  },
+  "smart": {
+   "score": 430.5,
+   "sec": 144.9,
+   "capped": 0.16666666666666666
+  },
+  "skillGap": 143.83,
+  "reveals": [
+   4,
+   7,
+   10
+  ],
+  "parts": {
+   "skill": 1,
+   "onboarding": 1,
+   "session": 0.833,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.954
+ },
+ "rope": {
+  "id": "rope",
+  "name": "밧줄 동굴",
+  "n": 24,
+  "dumb": {
+   "score": 40,
+   "sec": 12.3
+  },
+  "smart": {
+   "score": 1798,
+   "sec": 147.7,
+   "capped": 0
+  },
+  "skillGap": 43.88,
+  "reveals": [
+   2.4,
+   4.9,
+   7
+  ],
+  "parts": {
+   "skill": 1,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.978
  }
 }

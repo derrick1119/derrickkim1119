@@ -49,13 +49,16 @@ export function evaluateGame<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, n = 
     const at = [0, 0, 0];
     for (const sd of seeds.slice(0, 8)) {
       const st = g.create(sd), rng = mulberry32(sd ^ 0x9e3779b9);
-      let held = NO_INPUT;
-      for (let t = 0; t < 60 * 120 && !g.over(st); t++) {
+      let held = NO_INPUT, t = 0;
+      for (; t < 60 * 120 && !g.over(st); t++) {
         const inp = t % REACT === 0 ? (held = smart.act(st, rng)) : { ...held, tap: false, move: undefined, pick: undefined };
         g.step(st, inp);
         if (t === 60 * 30 - 1) at[0] += g.reveals(st);
         if (t === 60 * 60 - 1) at[1] += g.reveals(st);
       }
+      // 일찍 끝난 판은 끝난 시점 값으로 센다 (0023: 안 그러면 60초 값이 30초 값보다 작게 나왔다)
+      if (t < 60 * 30) at[0] += g.reveals(st);
+      if (t < 60 * 60) at[1] += g.reveals(st);
       at[2] += g.reveals(st);
     }
     reveals = at.map((x) => +(x / 8).toFixed(1)) as [number, number, number];

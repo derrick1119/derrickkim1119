@@ -6,6 +6,8 @@ import { drift, driftRandom, driftSmart } from './games/drift.ts';
 import { guard, guardRandom, guardSmart } from './games/guard.ts';
 import { gridRandom, gridSmart, gridwar } from './games/gridwar.ts';
 import { guardian, guardianRandom, guardianSmart } from './games/guardian.ts';
+import { lantern, lanternRandom, lanternSmart } from './games/lantern.ts';
+import { rope, ropeRandom, ropeSmart } from './games/rope.ts';
 import { guardian2, guardian2Random, guardian2Smart } from './games/guardian2.ts';
 import { mergetower, towerRandom, towerSmart } from './games/mergetower.ts';
 import { orbit, orbitRandom, orbitSmart } from './games/orbit.ts';
@@ -30,4 +32,6 @@ export const GAMES: Entry[] = [
   { game: pinbrick, dumb: pinRandom, smart: pinSmart },
   { game: drift, dumb: driftRandom, smart: driftSmart },
   { game: gridwar, dumb: gridRandom, smart: gridSmart },
+  { game: lantern, dumb: lanternRandom, smart: lanternSmart },
+  { game: rope, dumb: ropeRandom, smart: ropeSmart },
 ];
