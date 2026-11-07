@@ -5,7 +5,7 @@
  *
  *   npx tsx arcade/ideas.ts [--n 8] [--seed 2026-11-07]
  */
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { hashString, mulberry32, shuffle } from '../engine/rng.ts';
 import { GENES, type Gene, type GeneKind } from './core.ts';
@@ -13,9 +13,12 @@ import { GAMES } from './registry.ts';
 
 export interface Idea { core: [string, string]; control: string; spice: string; fresh: number }
 
+/** 재료를 몇 번 써 봤나 — 지금 게임 + 졸업한 게임 + 폐기한 게임(ab.json) 모두. 폐기했다고 '안 써 본 재료'로 되돌리지 않는다 */
 export function usage(): Record<string, number> {
   const u: Record<string, number> = Object.fromEntries(Object.keys(GENES).map((k) => [k, 0]));
-  for (const e of GAMES) for (const id of e.game.genes) u[id] = (u[id] ?? 0) + 1;
+  const ab: { graduated?: { genes?: string[] }[]; discarded?: { genes: string[] }[] } = JSON.parse(readFileSync(join(import.meta.dirname, 'ab.json'), 'utf8'));
+  const tried = [...GAMES.map((e) => e.game.genes), ...(ab.graduated ?? []).map((x) => x.genes ?? []), ...(ab.discarded ?? []).map((x) => x.genes)];
+  for (const genes of tried) for (const id of genes) u[id] = (u[id] ?? 0) + 1;
   return u;
 }
 

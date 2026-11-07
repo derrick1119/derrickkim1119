@@ -108,7 +108,153 @@
    "at": "2026-11-07",
    "round": 8,
    "studio": "studio/planet-guardian",
-   "play": "https://derrick1119.github.io/derrickkim1119/studio/planet-guardian/"
+   "play": "https://derrick1119.github.io/derrickkim1119/studio/planet-guardian/",
+   "genes": [
+    "survivor",
+    "defense",
+    "idle",
+    "pick3",
+    "twobutton"
+   ]
+  }
+ ],
+ "discarded": [
+  {
+   "id": "orbit",
+   "name": "궤도 꼬리",
+   "genes": [
+    "snake",
+    "onebutton",
+    "orbit"
+   ],
+   "at": "2026-11-07",
+   "why": "2라운드에서 선택받지 못함"
+  },
+  {
+   "id": "brickdef",
+   "name": "벽돌 수비대",
+   "genes": [
+    "brick",
+    "defense",
+    "gacha"
+   ],
+   "at": "2026-11-07",
+   "why": "1라운드에서 선택받지 못함"
+  },
+  {
+   "id": "guard",
+   "name": "궤도 수비",
+   "genes": [
+    "survivor",
+    "defense",
+    "onebutton"
+   ],
+   "at": "2026-11-07",
+   "why": "5라운드에서 선택받지 못함"
+  },
+  {
+   "id": "guardian",
+   "name": "행성 수호대",
+   "genes": [
+    "survivor",
+    "defense",
+    "idle",
+    "onebutton"
+   ],
+   "at": "2026-11-07",
+   "why": "8라운드에서 선택받지 못함"
+  },
+  {
+   "id": "mergetower",
+   "name": "합체 탑",
+   "genes": [
+    "stack",
+    "merge",
+    "onebutton"
+   ],
+   "at": "2026-11-07",
+   "why": "3라운드에서 선택받지 못함"
+  },
+  {
+   "id": "stomp",
+   "name": "밟기 러너",
+   "genes": [
+    "endless",
+    "survivor",
+    "onebutton"
+   ],
+   "at": "2026-11-07",
+   "why": "4라운드에서 선택받지 못함"
+  },
+  {
+   "id": "beat",
+   "name": "박자 포탑",
+   "genes": [
+    "defense",
+    "rhythm",
+    "onebutton"
+   ],
+   "at": "2026-11-07",
+   "why": "6라운드에서 선택받지 못함"
+  },
+  {
+   "id": "snowball",
+   "name": "눈덩이 비탈",
+   "genes": [
+    "endless",
+    "absorb",
+    "onebutton"
+   ],
+   "at": "2026-11-07",
+   "why": "라운드에 오르지 못한 후보"
+  },
+  {
+   "id": "pool",
+   "name": "먹보 당구",
+   "genes": [
+    "billiards",
+    "absorb",
+    "hold",
+    "combo"
+   ],
+   "at": "2026-11-07",
+   "why": "7라운드에서 선택받지 못함"
+  },
+  {
+   "id": "pinbrick",
+   "name": "핀볼 블록",
+   "genes": [
+    "pinball",
+    "brick",
+    "onebutton",
+    "chain"
+   ],
+   "at": "2026-11-07",
+   "why": "라운드에 오르지 못한 후보"
+  },
+  {
+   "id": "drift",
+   "name": "링 드리프트",
+   "genes": [
+    "drift",
+    "survivor",
+    "hold",
+    "shrink"
+   ],
+   "at": "2026-11-07",
+   "why": "9라운드에서 선택받지 못함"
+  },
+  {
+   "id": "gridwar",
+   "name": "한 칸 우주전",
+   "genes": [
+    "shmup",
+    "autobattle",
+    "swipe",
+    "turnbased"
+   ],
+   "at": "2026-11-07",
+   "why": "9라운드에서 선택받지 못함"
   }
  ]
 }

@@ -1,37 +1,16 @@
-/** 공장이 만든 게임 목록. 새 게임은 여기에 등록한다 */
+/**
+ * 공장이 만든 게임 목록 — **지금 오너 앞에 있는 게임만** 둔다.
+ * 오너(2026-11-07): "선택 받지 못한 아이디어는 폐기해서 보여주지마. 다음 라운드 후보가 너무 많다."
+ * → 라운드에서 진 게임은 여기와 `arcade/games/`에서 지우고 `ab.json`의 `discarded`에 이름·재료만 남긴다.
+ * 졸업한 게임은 스튜디오(`studio/<게임>/`)가 이어받는다(행성 수호대 2의 원본 `games/guardian2.ts`는 스튜디오 참고용으로 파일만 남김).
+ */
 import type { Bot, GameDef } from './core.ts';
-import { beat, beatRandom, beatSmart } from './games/beat.ts';
-import { brickChase, brickdef, brickIdle } from './games/brickdef.ts';
-import { drift, driftRandom, driftSmart } from './games/drift.ts';
-import { guard, guardRandom, guardSmart } from './games/guard.ts';
-import { gridRandom, gridSmart, gridwar } from './games/gridwar.ts';
-import { guardian, guardianRandom, guardianSmart } from './games/guardian.ts';
 import { lantern, lanternRandom, lanternSmart } from './games/lantern.ts';
 import { rope, ropeRandom, ropeSmart } from './games/rope.ts';
-import { guardian2, guardian2Random, guardian2Smart } from './games/guardian2.ts';
-import { mergetower, towerRandom, towerSmart } from './games/mergetower.ts';
-import { orbit, orbitRandom, orbitSmart } from './games/orbit.ts';
-import { pinbrick, pinRandom, pinSmart } from './games/pinbrick.ts';
-import { pool, poolRandom, poolSmart } from './games/pool.ts';
-import { snowball, snowRandom, snowSmart } from './games/snowball.ts';
-import { stomp, stompRandom, stompSmart } from './games/stomp.ts';
 
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S> }
 
 export const GAMES: Entry[] = [
-  { game: orbit, dumb: orbitRandom, smart: orbitSmart },
-  { game: brickdef, dumb: brickIdle, smart: brickChase },
-  { game: guard, dumb: guardRandom, smart: guardSmart },
-  { game: guardian, dumb: guardianRandom, smart: guardianSmart },
-  { game: guardian2, dumb: guardian2Random, smart: guardian2Smart },
-  { game: mergetower, dumb: towerRandom, smart: towerSmart },
-  { game: stomp, dumb: stompRandom, smart: stompSmart },
-  { game: beat, dumb: beatRandom, smart: beatSmart },
-  { game: snowball, dumb: snowRandom, smart: snowSmart },
-  { game: pool, dumb: poolRandom, smart: poolSmart },
-  { game: pinbrick, dumb: pinRandom, smart: pinSmart },
-  { game: drift, dumb: driftRandom, smart: driftSmart },
-  { game: gridwar, dumb: gridRandom, smart: gridSmart },
   { game: lantern, dumb: lanternRandom, smart: lanternSmart },
   { game: rope, dumb: ropeRandom, smart: ropeSmart },
 ];

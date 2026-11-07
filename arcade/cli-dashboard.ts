@@ -15,7 +15,7 @@ const root = import.meta.dirname;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const cycle = process.argv.includes('--cycle') ? process.argv[process.argv.indexOf('--cycle') + 1] : '????';
 const evals: Record<string, ArcadeReport> = JSON.parse(readFileSync(join(root, 'reports', 'eval.json'), 'utf8'));
-const ab: { champion: string | null; graduated?: { id: string; name: string; at: string; round: number; studio: string; play: string }[]; rounds: { round: number; openedAt: string; A: string; B: string; winner: string | null; note?: string }[] } = JSON.parse(readFileSync(join(root, 'ab.json'), 'utf8'));
+const ab: { champion: string | null; graduated?: { id: string; name: string; at: string; round: number; studio: string; play: string }[]; discarded?: { id: string; name: string }[]; rounds: { round: number; openedAt: string; A: string; B: string; winner: string | null; note?: string }[] } = JSON.parse(readFileSync(join(root, 'ab.json'), 'utf8'));
 const cur = ab.rounds.at(-1)!;
 const now = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 const LABEL: Record<string, string> = { skill: '실력이 통하나', onboarding: '처음 해도 버티나', session: '한 판 길이', simplicity: '단순함', unfold: '판이 펼쳐지나' };
@@ -74,6 +74,7 @@ const geneList = (Object.keys(GENE_KIND_LABEL) as GeneKind[]).map((k) => {
 }).join('');
 const ideaList = ideas.map((i) => `<li>${esc(ideaText(i))} <span class="muted">새 재료 ${i.fresh}개</span></li>`).join('');
 const done = ab.rounds.filter((r) => r.winner);
+const nameOf = (id: string) => GAMES.find((e) => e.game.id === id)?.game.name ?? ab.graduated?.find((g) => g.id === id)?.name ?? ab.discarded?.find((g) => g.id === id)?.name ?? id;
 
 const html = `<!DOCTYPE html>
 <html lang="ko">
@@ -131,7 +132,8 @@ ${(ab.graduated ?? []).length ? `<section aria-labelledby="grad-h">
   <h2 id="hist-h">기록</h2>
   <ul class="hist">
     <li><b>2026-11-06</b> 오너 결정: 논리 퍼즐 라인(교차점) 폐기. 성공한 캐주얼 게임들처럼 기존 장르를 조합·변형해 새 게임을 만드는 공장으로 전환.</li>
-    ${done.map((r) => `<li><b>${r.round}라운드</b> ${esc(r.A)} vs ${esc(r.B)} → ${esc(r.winner!)}</li>`).join('')}
+    ${done.map((r) => `<li><b>${r.round}라운드</b> → ${r.winner === 'none' ? '둘 다 탈락' : esc(nameOf(r.winner!))}</li>`).join('')}
+    ${(ab.discarded ?? []).length ? `<li><b>2026-11-07</b> 오너 결정: 선택받지 못한 게임 ${ab.discarded!.length}개 폐기 — 계기판엔 지금 라운드와 졸업한 게임만 둔다.</li>` : ''}
   </ul>
 </section>
 </main>
