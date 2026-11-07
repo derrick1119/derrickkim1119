@@ -4,6 +4,7 @@ import { beat, beatRandom, beatSmart } from './games/beat.ts';
 import { brickChase, brickdef, brickIdle } from './games/brickdef.ts';
 import { guard, guardRandom, guardSmart } from './games/guard.ts';
 import { guardian, guardianRandom, guardianSmart } from './games/guardian.ts';
+import { guardian2, guardian2Random, guardian2Smart } from './games/guardian2.ts';
 import { mergetower, towerRandom, towerSmart } from './games/mergetower.ts';
 import { orbit, orbitRandom, orbitSmart } from './games/orbit.ts';
 import { pinbrick, pinRandom, pinSmart } from './games/pinbrick.ts';
@@ -18,6 +19,7 @@ export const GAMES: Entry[] = [
   { game: brickdef, dumb: brickIdle, smart: brickChase },
   { game: guard, dumb: guardRandom, smart: guardSmart },
   { game: guardian, dumb: guardianRandom, smart: guardianSmart },
+  { game: guardian2, dumb: guardian2Random, smart: guardian2Smart },
   { game: mergetower, dumb: towerRandom, smart: towerSmart },
   { game: stomp, dumb: stompRandom, smart: stompSmart },
   { game: beat, dumb: beatRandom, smart: beatSmart },

@@ -17,6 +17,10 @@ export interface Input {
   dir: -1 | 0 | 1;
   /** 포인터로 직접 가리킨 x(0~1). 있으면 dir보다 우선 */
   aim?: number;
+  /** 'touch' 게임: 누르고 있는 동안의 포인터 위치(캔버스 기준 0~1), 안 누르면 null (0021) */
+  pointer?: { x: number; y: number } | null;
+  /** 'touch' 게임: 숫자 키 1·2·3으로 고른 카드 (0부터) */
+  pick?: number;
 }
 
 export const NO_INPUT: Input = { tap: false, dir: 0 };
@@ -129,7 +133,7 @@ export interface GameDef<S> {
   /** 플레이어용 규칙 (짧을수록 좋다, 3줄 이하 권장) */
   rules: string[];
   /** 조작: 원버튼 탭 / 좌우 */
-  controls: 'tap' | 'hold' | 'leftright';
+  controls: 'tap' | 'hold' | 'leftright' | 'touch';
   /** 화면 세로 ÷ 가로 (없으면 좌우 1.5, 탭 1) */
   aspect?: number;
   /** 디자인 컨셉. 있으면 페이지 색 대신 이 팔레트로 그린다 */
