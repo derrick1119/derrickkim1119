@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
-import { BEAT, FIRST_CARD, beatOf, create, noviceBot, randomBot, runBot, smartBot, spinSpeed, step, type GameEvent, type State } from '../studio/planet-guardian/sim.ts';
+import { BEAT, FIRST_CARD, available, beatOf, create, noviceBot, randomBot, runBot, smartBot, spinSpeed, step, type GameEvent, type State } from '../studio/planet-guardian/sim.ts';
 import { createJuice, react, tick } from '../studio/planet-guardian/juice.ts';
 
 const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
@@ -115,6 +115,21 @@ describe('행성 수호대 시뮬', () => {
     expect(beatOf(s)).toBe(BEAT - 2 * 108);
     s.sites.push({ kind: '광산', slot: 1, level: 3, cool: 0, aim: 0, born: 0 }, { kind: '광산', slot: 2, level: 3, cool: 0, aim: 0, born: 0 });
     expect(beatOf(s)).toBe(60 * 6);
+  });
+
+  it('다시 뽑기는 지금 손패를 빼고 뽑는다, 광산 문구는 박자 하한에서 사실대로 (C009)', () => {
+    const s = create(12);
+    while (!s.offer) step(s, {});
+    const before = s.offer!.map((c) => c.id);
+    s.ore = 50;
+    step(s, { reroll: true });
+    const after = s.offer!.map((c) => c.id);
+    if (available(s).filter((c) => !before.includes(c.id)).length) expect(after.some((id) => before.includes(id))).toBe(false);
+    const q = create(1);
+    q.sites.push({ kind: '광산', slot: 0, level: 3, cool: 0, aim: 0, born: 0 }, { kind: '광산', slot: 1, level: 3, cool: 0, aim: 0, born: 0 });
+    expect(beatOf(q)).toBe(60 * 6);
+    for (const c of available(q).filter((c) => c.id.endsWith('mine'))) expect(c.detail).toBe('광석 +0.3/초');
+    expect(available(create(1)).find((c) => c.id === 'new-mine')!.detail).toContain('빨리');
   });
 
   it('시작하자마자 포탑 하나가 있다', () => {

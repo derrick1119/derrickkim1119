@@ -178,9 +178,11 @@ const lowest = (s: State, kind: Kind) => s.sites.filter((x) => x.kind === kind &
 export function available(s: State): Card[] {
   const out: Card[] = [];
   const free = freeSlots(s).length > 0;
-  if (free) out.push({ id: 'new-mine', label: '새 광산', detail: '카드가 1.8초 빨리' }, { id: 'new-turret', label: '새 포탑', detail: '자동 사격' });
+  // C009: 박자가 하한(6초)에 닿으면 광산은 광석만 준다 — 카드 문구도 사실대로 (FUN QA C008: '1.8초 빨리'는 거짓말이었다)
+  const atFloor = beatOf(s) <= 60 * 6;
+  if (free) out.push({ id: 'new-mine', label: '새 광산', detail: atFloor ? '광석 +0.3/초' : '카드가 1.8초 빨리' }, { id: 'new-turret', label: '새 포탑', detail: '자동 사격' });
   const m = lowest(s, '광산'), t = lowest(s, '포탑');
-  if (m) out.push({ id: 'up-mine', label: `광산 Lv${m.level + 1}`, detail: '카드 박자 더 빨리' });
+  if (m) out.push({ id: 'up-mine', label: `광산 Lv${m.level + 1}`, detail: atFloor ? '광석 +0.3/초' : '카드 박자 더 빨리' });
   if (t) out.push({ id: 'up-turret', label: `포탑 Lv${t.level + 1}`, detail: '연사·사거리 ↑' });
   if (s.allies < 3) out.push({ id: 'ally', label: '위성', detail: '편대 +1기' });
   if (s.spinLv < 3) out.push({ id: 'spin', label: `궤도 가속 Lv${s.spinLv + 1}`, detail: '회전 +50%' });
@@ -188,8 +190,10 @@ export function available(s: State): Card[] {
   return out;
 }
 
-function makeOffer(s: State) {
-  const all = available(s);
+function makeOffer(s: State, exclude: CardId[] = []) {
+  // C009 다시 뽑기 = 지금 손패 3장을 빼고 뽑는다 (남는 카드가 없으면 전체에서)
+  const every = available(s), rest = every.filter((c) => !exclude.includes(c.id));
+  const all = rest.length ? rest : every;
   const pick: Card[] = [];
   // 손패는 이 박자·이 다시 뽑기 횟수로만 정해진다 — 다시 뽑기가 이후 건물 자리·운석을 바꾸지 않는다 (C006)
   const hand = mulberry32(hashString(`${s.seed}:${s.beatNo}:${s.handRolls}`));
@@ -264,7 +268,7 @@ export function step(s: State, input: Input) {
       s.cost += REROLL_ADD;
       s.rerolls++;
       s.handRolls++;
-      makeOffer(s);
+      makeOffer(s, s.offer.map((c) => c.id));
       s.events.push({ type: 'reroll' });
     } else if (input.pick !== undefined) choose(s, input.pick);
     return;
