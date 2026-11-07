@@ -36,7 +36,7 @@
 - 기계 추천 적중 4/8 · 오너: 원버튼 고집 안 해도 됨 · 오너 선택 3번 모두 원버튼, 2·3라운드 승자는 '처치 → 무작위 강화'가 있는 쪽
 
 ## 졸업한 게임
-- 🎓 행성 수호대 2 (2026-11-07, 8라운드) → 스튜디오 `studio/planet-guardian/` · 플레이: https://derrick1119.github.io/derrickkim1119/studio/planet-guardian/
+- 🎓 행성 수호대 2 (2026-11-07, 8라운드) → 스튜디오 `studio/planet-guardian/` (세션 session_01Nm4gExEyeU9e8MSuJic6vN) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/planet-guardian/
 
 ## 오너에게
 - 다음 사이클에 새 게임 둘끼리 9라운드를 엽니다. 열리면 알립니다.
