@@ -65,6 +65,28 @@
   },
   "fun": 0.914
  },
+ "guardian": {
+  "id": "guardian",
+  "name": "행성 수호대",
+  "n": 24,
+  "dumb": {
+   "score": 20.5,
+   "sec": 21.4
+  },
+  "smart": {
+   "score": 276.5,
+   "sec": 109,
+   "capped": 0
+  },
+  "skillGap": 12.91,
+  "parts": {
+   "skill": 1,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85
+  },
+  "fun": 0.97
+ },
  "mergetower": {
   "id": "mergetower",
   "name": "합체 탑",
