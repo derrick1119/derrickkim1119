@@ -26,5 +26,33 @@
    "unfold": 1
   },
   "fun": 0.954
+ },
+ "sling": {
+  "id": "sling",
+  "name": "돌팔매 성",
+  "n": 24,
+  "dumb": {
+   "score": 1,
+   "sec": 39.1
+  },
+  "smart": {
+   "score": 501.5,
+   "sec": 142.5,
+   "capped": 0
+  },
+  "skillGap": 251.25,
+  "reveals": [
+   5,
+   9.5,
+   12
+  ],
+  "parts": {
+   "skill": 1,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.978
  }
 }

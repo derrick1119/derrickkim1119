@@ -6,9 +6,11 @@
  */
 import type { Bot, GameDef } from './core.ts';
 import { lantern, lanternRandom, lanternSmart } from './games/lantern.ts';
+import { sling, slingRandom, slingSmart } from './games/sling.ts';
 
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S> }
 
 export const GAMES: Entry[] = [
   { game: lantern, dumb: lanternRandom, smart: lanternSmart },
+  { game: sling, dumb: slingRandom, smart: slingSmart },
 ];
