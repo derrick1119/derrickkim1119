@@ -40,7 +40,7 @@ function future(s: State, opt: Option, rseed: number): number {
 }
 
 /** 한 카드 화면의 원자료 */
-export interface Decision { ids: (CardId | 'reroll')[]; means: number[]; best: number; second: number; worst: number; seTop: number; seBW: number; balancedIdx: number; rerollSplit: boolean | null; ms: number }
+export interface Decision { idx?: number; ids: (CardId | 'reroll')[]; means: number[]; best: number; second: number; worst: number; seTop: number; seBW: number; balancedIdx: number; rerollSplit: boolean | null; ms: number }
 
 export function decide(s: State, gameSeed: number, k = K): { input: Input; d: Decision } {
   const t0 = performance.now();
@@ -78,6 +78,7 @@ function playRollout(seed: number) {
   while (!s.dead && s.t < 60 * 900 && guard++ < 60 * 900 * 4) {
     if (s.offer) {
       const { input, d } = decide(s, seed);
+      d.idx = ds.length;
       ds.push(d);
       step(s, input);
     } else step(s, {});
@@ -96,22 +97,41 @@ function playWith(seed: number, bot: (s: State, r: () => number) => Input) {
 const med = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] ?? 0;
 const pct = (n: number, d: number) => (d ? Math.round((1000 * n) / d) / 10 : 0);
 
-/** 튜닝 시드에서 뽑는 '최적 고정 순서': 카드가 나왔을 때 최선이었던 비율이 높은 순 (C008, FUN QA C007 D2*) */
-function bestOrder(games: Game[]): string[] {
-  const seen: Record<string, number> = {}, best: Record<string, number> = {};
-  for (const d of games.flatMap((g) => g.decisions)) d.ids.forEach((id, i) => ((seen[id] = (seen[id] ?? 0) + 1), i === d.best && (best[id] = (best[id] ?? 0) + 1)));
-  return Object.keys(seen).filter((id) => id !== 'reroll').sort((a, b) => (best[b] ?? 0) / seen[b] - (best[a] ?? 0) / seen[a]);
+/** 국면: 결정 0~4번째(초반) / 5번째 이후(후반) — C009, FUN QA C008: 광산은 국면에 따라 최선↔최악이 뒤집힌다 */
+const PHASE_SPLIT = 5;
+const phaseOf = (d: Decision) => ((d.idx ?? 0) < PHASE_SPLIT ? 'early' : 'late');
+export type Order = { early: string[]; late: string[] };
+const splitOf = (d: Decision) => d.second >= 0 && d.means[d.best] - d.means[d.second] > 2 * d.seTop && d.seTop > 0;
+const pickBy = (d: Decision, ord: string[]) => {
+  const cards = d.ids.map((id, i) => [id, i] as const).filter(([id]) => id !== 'reroll');
+  return [...cards].sort((x, y) => ord.indexOf(x[0]) - ord.indexOf(y[0]))[0][1];
+};
+function* perms(xs: string[]): Generator<string[]> {
+  if (xs.length <= 1) return yield xs;
+  for (let i = 0; i < xs.length; i++) for (const p of perms([...xs.slice(0, i), ...xs.slice(i + 1)])) yield [xs[i], ...p];
+}
+/** 튜닝 시드에서 뽑는 2단 정답표: 국면마다 카드 순서를 전수 탐색해 갈리는 결정을 가장 많이 맞히는 순서 (C009, FUN QA C008) */
+function bestOrder(games: Game[]): Order {
+  const ds = games.flatMap((g) => g.decisions).filter(splitOf);
+  const ids = [...new Set(ds.flatMap((d) => d.ids))].filter((x) => x !== 'reroll') as string[];
+  const fit = (phase: string) => {
+    const xs = ds.filter((d) => phaseOf(d) === phase && d.ids[d.best] !== 'reroll');
+    let best = ids, hit = -1;
+    for (const p of perms(ids)) {
+      const h = xs.filter((d) => pickBy(d, p) === d.best).length;
+      if (h > hit) (hit = h), (best = p);
+    }
+    return best;
+  };
+  return { early: fit('early'), late: fit('late') };
 }
 
-function report(games: Game[], order: string[] | null) {
+function report(games: Game[], order: Order | null) {
   const ds = games.flatMap((g) => g.decisions);
-  const split = (d: Decision) => d.second >= 0 && d.means[d.best] - d.means[d.second] > 2 * d.seTop && d.seTop > 0;
+  const split = splitOf;
   const a1 = (d: Decision) => d.worst !== d.best && d.means[d.best] - d.means[d.worst] > 2 * d.seBW && d.seBW > 0;
   const a2 = (d: Decision) => split(d) && d.means[d.best] - d.means[d.second] >= 0.03 * Math.max(1, d.means[d.best]);
-  const fixedPick = (d: Decision) => {
-    const cards = d.ids.map((id, i) => [id, i] as const).filter(([id]) => id !== 'reroll');
-    return cards.sort((x, y) => order!.indexOf(x[0]) - order!.indexOf(y[0]))[0][1];
-  };
+  const fixedPick = (d: Decision) => pickBy(d, order![phaseOf(d)]);
   const wrongStar = (d: Decision) => split(d) && order !== null && d.best !== fixedPick(d);
   const splits = ds.filter(split);
   // 카드별 최선·최악 표 + D5 경보(한 카드가 나온 화면의 60% 이상에서 최선이거나 최악)
@@ -123,15 +143,29 @@ function report(games: Game[], order: string[] | null) {
     if (i === d.worst && d.worst !== d.best) r.최악++;
   });
   const cardTable = Object.fromEntries(Object.entries(table).map(([id, r]) => [id, { ...r, 최선률: pct(r.최선, r.나옴), 최악률: pct(r.최악, r.나옴) }]));
-  const D5 = Object.entries(cardTable).filter(([id, r]) => id !== 'reroll' && r.나옴 >= 10 && (r.최선률 >= 60 || r.최악률 >= 60)).map(([id]) => id);
-  const perGame = games.map((g) => g.decisions.filter(wrongStar).length);
+  // D5 국면별 (C009): 초반·후반 따로, 10번 이상 나온 카드, n 함께
+  const phaseTable = (phase: string) => {
+    const t: Record<string, { 나옴: number; 최선: number; 최악: number }> = {};
+    for (const d of ds.filter((x) => phaseOf(x) === phase)) d.ids.forEach((id, i) => {
+      const r = (t[id] ??= { 나옴: 0, 최선: 0, 최악: 0 });
+      r.나옴++;
+      if (i === d.best) r.최선++;
+      if (i === d.worst && d.worst !== d.best) r.최악++;
+    });
+    return t;
+  };
+  const D5 = (['early', 'late'] as const).flatMap((ph) => Object.entries(phaseTable(ph)).filter(([id, r]) => id !== 'reroll' && r.나옴 >= 10 && (r.최선 / r.나옴 >= 0.6 || r.최악 / r.나옴 >= 0.6)).map(([id, r]) => `${ph === 'early' ? '초반' : '후반'}:${id}(최선 ${pct(r.최선, r.나옴)}%·최악 ${pct(r.최악, r.나옴)}%, n=${r.나옴})`));
+  const lateMine = phaseTable('late')['new-mine'];
+  // D1×D2*: 느껴지는 차이(1·2위 차 ≥ 3%이면서 > 2SE)인 결정 중 정답표를 거스르는 것만 (C009)
+  const perGame = games.map((g) => g.decisions.filter((d) => a2(d) && wrongStar(d)).length);
   return {
     D1_갈리는결정: pct(splits.length, ds.length),
     D1a1_함정있음_최선최악2SE: pct(ds.filter(a1).length, ds.length),
     D1a2_느껴지는차_3퍼센트와2SE: pct(ds.filter(a2).length, ds.length),
     D2_BALANCED틀림_참고: pct(splits.filter((d) => d.best !== d.balancedIdx).length, splits.length),
-    D2star_최적고정순서틀림: order ? pct(splits.filter(wrongStar).length, splits.length) : null,
-    D1xD2star_판당횟수_중앙값: order ? med(perGame) : null,
+    D2star_2단정답표틀림: order ? pct(splits.filter(wrongStar).length, splits.length) : null,
+    D1xD2star_판당횟수_중앙값_느껴지는차만: order ? med(perGame) : null,
+    부수_후반신규광산최악률: lateMine ? `${pct(lateMine.최악, lateMine.나옴)}% (n=${lateMine.나옴}, 목표 ≤ 50%)` : null,
     D3_다시뽑기갈림: pct(ds.filter((d) => d.rerollSplit).length, ds.filter((d) => d.rerollSplit !== null).length),
     다시뽑기선택: pct(ds.filter((d) => d.ids[d.best] === 'reroll').length, ds.length),
     D5_경보카드: D5,
@@ -177,8 +211,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       writeFileSync(tuneFile, JSON.stringify(r, null, 2) + '\n');
       console.log(JSON.stringify(r, null, 2));
     } else {
-      let order: string[] | null = null;
-      try { order = JSON.parse(readFileSync(tuneFile, 'utf8')).최적고정순서; } catch { /* 튜닝 전 */ }
+      let order: Order | null = null;
+      try { const o = JSON.parse(readFileSync(tuneFile, 'utf8')).최적고정순서; order = o && !Array.isArray(o) ? o : null; } catch { /* 튜닝 전 */ }
       const B = mode === 'evalB', seeds = [...Array(B ? 8 : 24).keys()].map((i) => 101 + i);
       const games = await parallel(seeds, K, B ? 'B' : 'A', B ? 'evalB' : 'eval');
       const lightMed = med(seeds.map((x) => playWith(x, randomBot)));
