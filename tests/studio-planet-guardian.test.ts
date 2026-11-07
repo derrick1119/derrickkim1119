@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
-import { BEAT, create, noviceBot, randomBot, runBot, smartBot, spinSpeed, step, type GameEvent, type State } from '../studio/planet-guardian/sim.ts';
+import { BEAT, FIRST_CARD, beatOf, create, noviceBot, randomBot, runBot, smartBot, spinSpeed, step, type GameEvent, type State } from '../studio/planet-guardian/sim.ts';
 import { createJuice, react, tick } from '../studio/planet-guardian/juice.ts';
 
 const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
@@ -50,13 +50,20 @@ describe('행성 수호대 시뮬', () => {
 
   it('카드는 광석이 아니라 박자로 온다, 다시 뽑기는 광석을 쓴다 (C004)', () => {
     const s = create(9);
-    const at: number[] = [];
+    const at: number[] = [], gap: number[] = [];
     while (at.length < 3 && !s.dead) {
       step(s, {});
-      if (s.offer) (at.push(s.t), step(s, { pick: 0 }));
+      // 다음 카드는 이 카드가 뜬 순간 정해진 박자 뒤에 온다 (C008: 광산 단계마다 박자가 짧아진다)
+      if (s.offer) (at.push(s.t), gap.push(s.nextCard - s.t), step(s, { pick: 0 }));
     }
-    expect(at[1] - at[0]).toBe(BEAT);
-    expect(at[2] - at[1]).toBe(BEAT);
+    expect(gap[0]).toBe(BEAT); // 광산이 없을 때 첫 박자는 기본값
+    expect(at[1] - at[0]).toBe(gap[0]);
+    expect(at[2] - at[1]).toBe(gap[1]);
+    // 광석이 아무리 많아도 박자 전엔 카드가 오지 않는다
+    const q = create(9);
+    q.ore = 999;
+    for (let k = 0; k < FIRST_CARD - 1; k++) step(q, {});
+    expect(q.offer).toBeNull();
     while (!s.offer) step(s, {});
     s.ore = 100;
     const before = s.cost;
@@ -99,6 +106,15 @@ describe('행성 수호대 시뮬', () => {
     c.ore = 50;
     step(c, { reroll: true });
     expect(JSON.stringify(c.offer)).toBe(JSON.stringify(b.offer));
+  });
+
+  it('광산 단계마다 카드 박자가 1.8초 빨라진다, 최소 6초 (C008)', () => {
+    const s = create(1);
+    expect(beatOf(s)).toBe(BEAT);
+    s.sites.push({ kind: '광산', slot: 0, level: 2, cool: 0, aim: 0, born: 0 });
+    expect(beatOf(s)).toBe(BEAT - 2 * 108);
+    s.sites.push({ kind: '광산', slot: 1, level: 3, cool: 0, aim: 0, born: 0 }, { kind: '광산', slot: 2, level: 3, cool: 0, aim: 0, born: 0 });
+    expect(beatOf(s)).toBe(60 * 6);
   });
 
   it('시작하자마자 포탑 하나가 있다', () => {
