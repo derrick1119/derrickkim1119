@@ -21,6 +21,8 @@ export interface Input {
   pointer?: { x: number; y: number } | null;
   /** 'touch' 게임: 숫자 키 1·2·3으로 고른 카드 (0부터) */
   pick?: number;
+  /** 'swipe' 게임: 이번 틱에 밀어낸 방향 (한 번만 들어온다, 0022) */
+  move?: 'left' | 'right' | 'up' | 'down';
 }
 
 export const NO_INPUT: Input = { tap: false, dir: 0 };
@@ -133,7 +135,7 @@ export interface GameDef<S> {
   /** 플레이어용 규칙 (짧을수록 좋다, 3줄 이하 권장) */
   rules: string[];
   /** 조작: 원버튼 탭 / 좌우 */
-  controls: 'tap' | 'hold' | 'leftright' | 'touch';
+  controls: 'tap' | 'hold' | 'leftright' | 'touch' | 'swipe';
   /** 화면 세로 ÷ 가로 (없으면 좌우 1.5, 탭 1) */
   aspect?: number;
   /** 디자인 컨셉. 있으면 페이지 색 대신 이 팔레트로 그린다 */
@@ -176,9 +178,9 @@ export function runBot<S>(g: GameDef<S>, bot: Bot<S>, seed: number, maxTicks = 6
   const rng = mulberry32(seed ^ 0x9e3779b9);
   let ticks = 0, changes = 0, last = '', held: Input = NO_INPUT;
   while (!g.over(s) && ticks < maxTicks) {
-    const inp = ticks % react === 0 ? (held = bot.act(s, rng)) : { ...held, tap: false };
-    const key = `${inp.tap ? 1 : 0}${inp.hold ? 1 : 0}${inp.dir}${inp.aim === undefined ? '' : Math.round(inp.aim * 8)}`;
-    if (key !== last && (inp.tap || inp.hold || inp.dir !== 0 || inp.aim !== undefined)) changes++;
+    const inp = ticks % react === 0 ? (held = bot.act(s, rng)) : { ...held, tap: false, move: undefined, pick: undefined };
+    const key = `${inp.tap ? 1 : 0}${inp.hold ? 1 : 0}${inp.dir}${inp.move ?? ''}${inp.aim === undefined ? '' : Math.round(inp.aim * 8)}`;
+    if (key !== last && (inp.tap || inp.hold || inp.move || inp.dir !== 0 || inp.aim !== undefined)) changes++;
     last = key;
     g.step(s, inp);
     ticks++;

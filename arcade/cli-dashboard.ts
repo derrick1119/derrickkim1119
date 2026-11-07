@@ -15,7 +15,7 @@ const root = import.meta.dirname;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const cycle = process.argv.includes('--cycle') ? process.argv[process.argv.indexOf('--cycle') + 1] : '????';
 const evals: Record<string, ArcadeReport> = JSON.parse(readFileSync(join(root, 'reports', 'eval.json'), 'utf8'));
-const ab: { champion: string | null; rounds: { round: number; openedAt: string; A: string; B: string; winner: string | null; note?: string }[] } = JSON.parse(readFileSync(join(root, 'ab.json'), 'utf8'));
+const ab: { champion: string | null; graduated?: { id: string; name: string; at: string; round: number; studio: string; play: string }[]; rounds: { round: number; openedAt: string; A: string; B: string; winner: string | null; note?: string }[] } = JSON.parse(readFileSync(join(root, 'ab.json'), 'utf8'));
 const cur = ab.rounds.at(-1)!;
 const now = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 const LABEL: Record<string, string> = { skill: '실력이 통하나', onboarding: '처음 해도 버티나', session: '한 판 길이', simplicity: '단순함' };
@@ -27,7 +27,7 @@ function card(key: 'A' | 'B', id: string, other: string) {
     return `<div class="bar"><span>${LABEL[k]}</span><i style="--v:${Math.round(v * 100)}%" class="${up ? 'up' : ''}"></i><b>${v.toFixed(2)}</b></div>`;
   }).join('');
   const genes = g.genes.map((x) => `<li><b>${esc(GENES[x].from)}</b></li>`).join('<li class="x" aria-hidden="true">×</li>');
-  const role = cur.round === 1 && !ab.champion ? `새 게임 ${key === 'A' ? 1 : 2}` : key === 'A' ? '지금 챔피언' : '도전자';
+  const role = !ab.champion ? `새 게임 ${key === 'A' ? 1 : 2}` : key === 'A' ? '지금 챔피언' : '도전자';
   return `<article class="side side-${key}">
   <header><span class="tag">${key}</span><div><p class="eyebrow">${role}</p><h3>${esc(g.name)}</h3></div></header>
   <ul class="genes">${genes}</ul>
@@ -121,6 +121,11 @@ ${bench ? `<section aria-labelledby="bench-h">
     <ol class="how">${ideaList}</ol>
   </div>
 </section>
+
+${(ab.graduated ?? []).length ? `<section aria-labelledby="grad-h">
+  <h2 id="grad-h">🎓 졸업한 게임 — 스튜디오에서 상용화 중</h2>
+  <ul class="hist">${(ab.graduated ?? []).map((g) => `<li><b>${esc(g.name)}</b> (${esc(g.at)}, ${g.round}라운드 최종 선택) · <a href="${esc(g.play.replace('https://derrick1119.github.io/derrickkim1119/', '../'))}">플레이</a> · <code>${esc(g.studio)}</code></li>`).join('')}</ul>
+</section>` : ''}
 
 <section aria-labelledby="hist-h">
   <h2 id="hist-h">기록</h2>

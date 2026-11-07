@@ -1,19 +1,19 @@
 {
- "unused": 39,
+ "unused": 31,
  "total": 57,
  "ideas": [
   {
    "core": [
-    "autobattle",
-    "pinball"
+    "deck",
+    "rhythm"
    ],
    "control": "twobutton",
    "spice": "ghost",
-   "fresh": 3
+   "fresh": 2
   },
   {
    "core": [
-    "deck",
+    "racing",
     "absorb"
    ],
    "control": "onebutton",
@@ -22,8 +22,8 @@
   },
   {
    "core": [
-    "racing",
-    "brick"
+    "flap",
+    "merge"
    ],
    "control": "slide",
    "spice": "gravityflip",
@@ -31,17 +31,17 @@
   },
   {
    "core": [
-    "flap",
-    "autobattle"
+    "traffic",
+    "deck"
    ],
    "control": "swipe",
    "spice": "rewind",
-   "fresh": 4
+   "fresh": 3
   },
   {
    "core": [
-    "traffic",
-    "pinball"
+    "grapple",
+    "stack"
    ],
    "control": "slide",
    "spice": "rolereverse",
@@ -49,12 +49,30 @@
   },
   {
    "core": [
-    "grapple",
-    "whack"
+    "order",
+    "autobattle"
    ],
    "control": "swipe",
    "spice": "mirror",
-   "fresh": 4
+   "fresh": 2
+  },
+  {
+   "core": [
+    "memory",
+    "deck"
+   ],
+   "control": "swipe",
+   "spice": "collect",
+   "fresh": 3
+  },
+  {
+   "core": [
+    "fishing",
+    "stack"
+   ],
+   "control": "hold",
+   "spice": "combo",
+   "fresh": 1
   }
  ]
 }

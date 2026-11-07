@@ -22,13 +22,13 @@ function mount(root: HTMLElement, g: GameDef<any>) {
   const canvas = document.createElement('canvas');
   canvas.className = 'g-canvas';
   canvas.tabIndex = 0;
-  canvas.setAttribute('aria-label', `${g.name} 게임 화면. ${g.controls === 'tap' ? '스페이스나 화면 탭' : g.controls === 'hold' ? '스페이스나 화면을 꾹 눌렀다 떼기' : g.controls === 'touch' ? '화면 왼쪽·오른쪽 누르기와 카드 탭(또는 ← →, 숫자 1 2 3)' : '좌우 화살표나 드래그'}로 조작`);
+  canvas.setAttribute('aria-label', `${g.name} 게임 화면. ${g.controls === 'tap' ? '스페이스나 화면 탭' : g.controls === 'hold' ? '스페이스나 화면을 꾹 눌렀다 떼기' : g.controls === 'touch' ? '화면 왼쪽·오른쪽 누르기와 카드 탭(또는 ← →, 숫자 1 2 3)' : g.controls === 'swipe' ? '밀기와 탭(또는 화살표·스페이스)' : '좌우 화살표나 드래그'}로 조작`);
   const overlay = document.createElement('button');
   overlay.type = 'button';
   overlay.className = 'g-overlay';
   root.append(canvas, overlay);
   const ctx = canvas.getContext('2d')!;
-  let s: any = null, seed = 1, running = false, acc = 0, last = 0, tapQueued = false, holding = false, aim: number | undefined, pointer: { x: number; y: number } | null = null, pick: number | undefined;
+  let s: any = null, seed = 1, running = false, acc = 0, last = 0, tapQueued = false, holding = false, aim: number | undefined, pointer: { x: number; y: number } | null = null, pick: number | undefined, move: Input['move'], swipeFrom: { x: number; y: number } | null = null;
   const keys = new Set<string>();
 
   function size() {
@@ -61,9 +61,10 @@ function mount(root: HTMLElement, g: GameDef<any>) {
     last = now;
     while (acc >= TICK) {
       const dir = ((keys.has('ArrowRight') ? 1 : 0) - (keys.has('ArrowLeft') ? 1 : 0)) as -1 | 0 | 1;
-      const input: Input = { tap: tapQueued, hold: holding, dir, aim, pointer, pick };
+      const input: Input = { tap: tapQueued, hold: holding, dir, aim, pointer, pick, move };
       tapQueued = false;
       pick = undefined;
+      move = undefined;
       g.step(s, input);
       acc -= TICK;
       if (g.over(s)) {
@@ -90,6 +91,7 @@ function mount(root: HTMLElement, g: GameDef<any>) {
     e.preventDefault();
     if (!running) return;
     if (g.controls === 'touch') return void (pointer = toPoint(e));
+    if (g.controls === 'swipe') return void (swipeFrom = toPoint(e));
     if (g.controls === 'tap') tapQueued = true;
     else if (g.controls === 'hold') (tapQueued = true), (holding = true);
     else aim = toAim(e);
@@ -99,7 +101,15 @@ function mount(root: HTMLElement, g: GameDef<any>) {
     if (g.controls === 'leftright' && running && (e.buttons || e.pointerType === 'mouse')) aim = toAim(e);
   });
   canvas.addEventListener('pointerleave', () => ((aim = undefined), (holding = false), (pointer = null)));
-  window.addEventListener('pointerup', () => ((holding = false), (pointer = null)));
+  window.addEventListener('pointerup', (e) => {
+    holding = false;
+    pointer = null;
+    if (g.controls !== 'swipe' || !swipeFrom || !running) return;
+    const q = toPoint(e), dx = q.x - swipeFrom.x, dy = q.y - swipeFrom.y;
+    swipeFrom = null;
+    if (Math.hypot(dx, dy) < 0.05) tapQueued = true;
+    else move = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up';
+  });
   canvas.addEventListener('keydown', (e) => {
     if (e.key === ' ' || e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Enter') e.preventDefault();
     if (!running && (e.key === ' ' || e.key === 'Enter')) return start();
@@ -107,12 +117,17 @@ function mount(root: HTMLElement, g: GameDef<any>) {
     if (g.controls === 'hold' && (e.key === ' ' || e.key === 'ArrowUp')) (holding = true), e.repeat || (tapQueued = true);
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') (keys.add(e.key), (aim = undefined));
     if (g.controls === 'touch' && ['1', '2', '3'].includes(e.key)) pick = Number(e.key) - 1;
+    if (g.controls === 'swipe' && !e.repeat) {
+      const m = ({ ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' } as const)[e.key as 'ArrowLeft'];
+      if (m) move = m;
+      if (e.key === ' ') tapQueued = true;
+    }
   });
   canvas.addEventListener('keyup', (e) => (keys.delete(e.key), (e.key === ' ' || e.key === 'ArrowUp') && (holding = false)));
   overlay.addEventListener('click', start);
   s = g.create(1);
   size();
-  show(`<b>시작</b><span>${g.controls === 'tap' ? '탭 / 스페이스' : g.controls === 'hold' ? '꾹 눌렀다 떼기 / 스페이스' : g.controls === 'touch' ? '화면 왼쪽·오른쪽 누르기 · 카드 탭 / ← → · 1 2 3' : '드래그 / ← →'}</span>`);
+  show(`<b>시작</b><span>${g.controls === 'tap' ? '탭 / 스페이스' : g.controls === 'hold' ? '꾹 눌렀다 떼기 / 스페이스' : g.controls === 'touch' ? '화면 왼쪽·오른쪽 누르기 · 카드 탭 / ← → · 1 2 3' : g.controls === 'swipe' ? '밀기(스와이프) · 탭 / 화살표 · 스페이스' : '드래그 / ← →'}</span>`);
   new ResizeObserver(size).observe(root);
 }
 

@@ -2,7 +2,9 @@
 import type { Bot, GameDef } from './core.ts';
 import { beat, beatRandom, beatSmart } from './games/beat.ts';
 import { brickChase, brickdef, brickIdle } from './games/brickdef.ts';
+import { drift, driftRandom, driftSmart } from './games/drift.ts';
 import { guard, guardRandom, guardSmart } from './games/guard.ts';
+import { gridRandom, gridSmart, gridwar } from './games/gridwar.ts';
 import { guardian, guardianRandom, guardianSmart } from './games/guardian.ts';
 import { guardian2, guardian2Random, guardian2Smart } from './games/guardian2.ts';
 import { mergetower, towerRandom, towerSmart } from './games/mergetower.ts';
@@ -26,4 +28,6 @@ export const GAMES: Entry[] = [
   { game: snowball, dumb: snowRandom, smart: snowSmart },
   { game: pool, dumb: poolRandom, smart: poolSmart },
   { game: pinbrick, dumb: pinRandom, smart: pinSmart },
+  { game: drift, dumb: driftRandom, smart: driftSmart },
+  { game: gridwar, dumb: gridRandom, smart: gridSmart },
 ];
