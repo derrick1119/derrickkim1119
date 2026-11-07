@@ -65,6 +65,9 @@ const pct = (xs: number[], q: number) => (xs.length ? [...xs].sort((a, b) => a -
 const r1 = (x: number) => Math.round(x * 10) / 10;
 const SEEDS = [...Array(24).keys()].map((k) => k + 101);
 const many = (bot: Bot) => SEEDS.map((x) => run(bot, x));
+/** 다시 뽑기 정책 비교는 판 단위 잡음이 커서 96시드로 (FUN QA C006: 24시드 중앙값은 459~619로 흔들림). 평가 시드 101~124와 겹치지 않게 2001~2096 */
+const SEEDS96 = [...Array(96).keys()].map((k) => k + 2001);
+const many96 = (bot: Bot) => SEEDS96.map((x) => run(bot, x));
 /** 두 빌드의 카드 선택이 얼마나 겹치나 (0~1) */
 function overlap(a: Run[], b: Run[]) {
   let same = 0, all = 0;
@@ -79,7 +82,10 @@ export function measure() {
   const light = many(randomBot), mid = many(smartBot);
   // R1 비교용: 광석이 되는 대로 무조건 다시 뽑는 봇
   const always: Bot = (s) => (s.offer && s.ore >= s.cost ? { reroll: true } : smartBot(s));
-  const alwaysRuns = many(always);
+  // R0·R1 (C007 개정): 96시드 쌍 비교 — 무조건 / 안 누름 / 골라 누름
+  const never96 = many96(botOf(BALANCED)), always96 = many96(always), pick96 = many96(smartBot);
+  const pairMed = (a: Run[], b: Run[]) => med(a.map((r, i) => r.score / Math.max(1, b[i].score)));
+  const R0 = pairMed(always96, never96);
   const byPolicy = Object.fromEntries(Object.entries(POLICIES).map(([k, p]) => [k, k === '방어우선' ? mid : many(botOf(p))])) as Record<string, Run[]>;
   const scoreOf = Object.fromEntries(Object.entries(byPolicy).map(([k, rs]) => [k, med(rs.map((r) => r.score))])) as Record<string, number>;
   const ranked = Object.keys(scoreOf).sort((a, b) => scoreOf[b] - scoreOf[a]);
@@ -103,7 +109,7 @@ export function measure() {
   const C = (id: string, group: Check['group'], what: string, value: number, target: string, ok: boolean, ref = false): Check => ({ id, group, what, value: r1(value), target, ok, ref });
   // R1 (FUN QA C004): 다시 뽑기가 판단인가 — 골라 누르는 쪽이 무조건 누르는 쪽보다 5% 이상 낫고, 판 끝에 광석이 남아돌지 않는다
   // R1 (C006 개정, FUN QA C005): 시드별 쌍 비교 — 골라 누르는 봇이 이기는 시드 수와 쌍별 점수비 중앙값
-  const pairs = mid.map((r, i) => r.score / Math.max(1, alwaysRuns[i].score));
+  const pairs = pick96.map((r, i) => r.score / Math.max(1, always96[i].score));
   const R1wins = pairs.filter((x) => x > 1).length, R1a = med(pairs);
   const R1b = med(mid.map((r) => r.oreLeft / Math.max(1, r.rerollCost * 2 + 2)));
   // L8 (C006 개정): 분위수 자리 덕에 통과하지 않게, 45초 미만 판 개수로
@@ -111,7 +117,7 @@ export function measure() {
   const H4 = (100 * med(hard.map((r) => r.bonus))) / Math.max(1, med(hard.map((r) => r.score)));
   const deaths = hard.map((r) => r.sec), H8 = pct(deaths, 0.75) - pct(deaths, 0.25);
   const L1 = med(light.map((r) => r.sec)), L2 = med(light.map((r) => r.firstCard)), L3 = med(light.map((r) => r.builds)), L4 = med(light.map((r) => r.firstHit)), L5 = pct(lightWarn, 0.1);
-  const M1 = med(mid.map((r) => r.sec)), M2 = med(mid.map((r) => r.builds + r.rerolls)), M3 = best / Math.max(1, worst);
+  const M1 = med(mid.map((r) => r.sec)), M2 = med(mid.map((r) => r.builds)), M3 = best / Math.max(1, worst);
   const H1 = med(hardScores) / Math.max(1, med(light.map((r) => r.score))), H2 = med(hard.map((r) => r.sec)), H6 = pct(hardWarn, 0.1);
   const checks: Check[] = [
     C('L1', '라이트', '첫 판 길이(초)', L1, '90~180', L1 >= 90 && L1 <= 180),
@@ -125,7 +131,8 @@ export function measure() {
     C('F1', '라이트', '[참고] 판단 사이 간격 중앙값(초) — 박자 카드 뒤 설정값', F1, '≤ 12', F1 <= 12, true),
     C('F2', '라이트', '[참고] 판단 사이 간격 상위 10%(초) — 설정값', F1p90, '≤ 20', F1p90 <= 20, true),
     C('M1', '미들코어', '판 길이(초)', M1, '180~360', M1 >= 180 && M1 <= 360),
-    C('M2', '미들코어', '판당 판단 수(카드 + 누른 다시 뽑기)', M2, '15~30', M2 >= 15 && M2 <= 30),
+    C('M2', '미들코어', '판당 카드 선택 수 (C007: 카드만 셈, 다시 뽑기는 롤아웃에서 갈리는 것만 — rollout.json)', M2, '15~30', M2 >= 15 && M2 <= 30),
+    C('R0', '미들코어', '다시 뽑기 버튼의 가치: 무조건/안 누름 96시드 쌍 비 중앙값', R0, '≥ 1.03', R0 >= 1.03),
     C('M3', '미들코어', '빌드 최고/최저 점수 비(선택이 중요한가)', M3, '≥ 1.3', M3 >= 1.3),
     C('M4', '미들코어', '최고의 85% 안 서로 다른 빌드 수(겹침 ≤ 50%)', distinct.length, '≥ 2', distinct.length >= 2),
     C('H1', '하드코어', '실력 격차: 최고 빌드/아무거나 점수 비', H1, '≥ 4', H1 >= 4),
@@ -135,12 +142,12 @@ export function measure() {
     C('H5', '하드코어', '최고 빌드 점수 변동계수(%) — 결정적 벽이 아닌가', cv * 100, '≥ 15', cv >= 0.15),
     C('H6', '하드코어', '끝판 피격 운석 화면 안 시간 하위 10%(초)', H6, '≥ 0.6', H6 >= 0.6),
     C('H8', '하드코어', '최고 빌드 사망 시각 사분위 범위(초) — 벽이 아닌가 (M3 기준)', H8, '≥ 30', H8 >= 30),
-    C('R1', '미들코어', `다시 뽑기 판단: 골라 누르기/무조건 누르기 시드별 점수비 중앙값 (이긴 시드 ${R1wins}/24, ≥ 16 필요)`, R1a, '≥ 1.05', R1a >= 1.05 && R1wins >= 16),
+    C('R1', '미들코어', `다시 뽑기 판단: 골라 누르기/무조건 96시드 쌍 비 중앙값 (이긴 시드 ${R1wins}/96, ≥ 64 필요)`, R1a, '≥ 1.05', R1a >= 1.05 && R1wins >= 64),
     C('R2', '미들코어', '판 끝 남은 광석 ÷ 다시 뽑기 2회분 (중앙값)', R1b, '≤ 1', R1b <= 1),
   ];
   const summary = (rs: Run[]) => ({ sec: r1(med(rs.map((r) => r.sec))), score: med(rs.map((r) => r.score)), wave: med(rs.map((r) => r.wave)), builds: med(rs.map((r) => r.builds)) });
   const ratio = (rs: Run[], f: (r: Run) => number, g: (r: Run) => number) => r1((100 * rs.reduce((a, r) => a + f(r), 0)) / Math.max(1, rs.reduce((a, r) => a + g(r), 0)));
-  const observe = { 처치광석비율: ratio(mid, (r) => r.killOre, (r) => r.allOre), 빈화면비율: ratio(mid, (r) => r.emptyTicks, (r) => r.sec * 60), 무조건다시뽑기점수: med(alwaysRuns.map((r) => r.score)) };
+  const observe = { 처치광석비율: ratio(mid, (r) => r.killOre, (r) => r.allOre), 빈화면비율: ratio(mid, (r) => r.emptyTicks, (r) => r.sec * 60), 무조건다시뽑기점수_96: med(always96.map((r) => r.score)), 안누름점수_96: med(never96.map((r) => r.score)), 골라누름점수_96: med(pick96.map((r) => r.score)) };
   return { observe, at: new Date().toISOString(), seeds: SEEDS.length, hardBuild: bestName, groups: { 라이트: summary(light), 미들코어: summary(mid), 하드코어: summary(hard) }, strategies: scoreOf, distinct, checks, passed: checks.filter((c) => c.ok && !c.ref).length, counted: checks.filter((c) => !c.ref).length };
 }
 
