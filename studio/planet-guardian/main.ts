@@ -4,7 +4,7 @@
 import { create, crew, score, smartBot, step, type Input, type State } from './sim.ts';
 import { createJuice, react, tick, type Juice } from './juice.ts';
 import { createSfx } from './audio.ts';
-import { cardBox, cardTop, draw, markDead, setSelected, setTouchOnly } from './render.ts';
+import { cardBox, cardTop, draw, markDead, rerollBox, setSelected, setTouchOnly } from './render.ts';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const canvas = $<HTMLCanvasElement>('game'), ctx = canvas.getContext('2d')!;
@@ -65,13 +65,14 @@ function pause(on: boolean) {
 
 // ── 입력 ────────────────────────────────────────────────
 // 조작은 카드 고르기뿐 (오너: "조작 따로 없이 그냥 계속 회전"). 카드가 뜨면 게임이 멈추고 기다린다
-let pick: number | undefined, sel = 0;
+let pick: number | undefined, sel = 0, reroll = false;
 
 canvas.addEventListener('pointerdown', (e) => {
   sfx.unlock();
   if (mode !== 'play' || !s.offer) return;
   e.preventDefault();
-  const x = e.offsetX, y = e.offsetY;
+  const x = e.offsetX, y = e.offsetY, rb = rerollBox(W, H);
+  if (x >= rb.x && x <= rb.x + rb.w && y >= rb.y - 4 && y <= rb.y + rb.h + 4) return void ((reroll = true), sfx.ui('pick'));
   if (y < cardTop(H) - 8) return;
   const k = [0, 1, 2].find((i) => x / W >= cardBox(i).x0 - 0.01 && x / W <= cardBox(i).x1 + 0.01);
   if (k !== undefined && s.offer[k]) (pick = k), sfx.ui('pick');
@@ -85,19 +86,22 @@ addEventListener('keydown', (e) => {
     if (e.code === 'Escape' || e.code === 'KeyP') return pause(true);
     if (!s.offer) return;
     const n = s.offer.length;
+    // 고르는 칸: 카드 0..n-1, 그다음 n = 다시 뽑기 버튼
     if (/^(Digit|Numpad)[123]$/.test(e.code) && Number(e.code.slice(-1)) <= n) (pick = Number(e.code.slice(-1)) - 1), sfx.ui('pick');
-    else if (e.code === 'ArrowLeft' || e.code === 'KeyA') (sel = (sel + n - 1) % n), e.preventDefault();
-    else if (e.code === 'ArrowRight' || e.code === 'KeyD') (sel = (sel + 1) % n), e.preventDefault();
-    else if (e.code === 'Enter' || e.code === 'Space') (pick = sel), sfx.ui('pick'), e.preventDefault();
+    else if (e.code === 'KeyR') (reroll = true), sfx.ui('pick');
+    else if (e.code === 'ArrowLeft' || e.code === 'KeyA') (sel = (sel + n) % (n + 1)), e.preventDefault();
+    else if (e.code === 'ArrowRight' || e.code === 'KeyD') (sel = (sel + 1) % (n + 1)), e.preventDefault();
+    else if (e.code === 'Enter' || e.code === 'Space') (sel === n ? (reroll = true) : (pick = sel)), sfx.ui('pick'), e.preventDefault();
   } else if (mode === 'pause' && (e.code === 'Escape' || e.code === 'KeyP')) pause(false);
 });
 addEventListener('blur', () => pause(true));
 document.addEventListener('visibilitychange', () => document.hidden && pause(true));
 
 function input(): Input {
-  const out: Input = { pick };
+  const out: Input = { pick, reroll };
   if (pick !== undefined) sel = 0;
   pick = undefined;
+  reroll = false;
   return out;
 }
 
@@ -165,7 +169,8 @@ function loop(now: number) {
     acc -= 1000 / 60;
   }
   if (mode === 'over' && screens.result.hidden && frame - overAt > 100) result();
-  setSelected(mode === 'play' && s.offer && !touchOnly ? sel : -1);
+  // 선택 표시: 카드면 0~2, 다시 뽑기 버튼이면 3
+  setSelected(mode === 'play' && s.offer && !touchOnly ? (sel === s.offer.length ? 3 : sel) : -1);
   if (W) draw(ctx, s, j, W, H, frame, mode !== 'title');
   requestAnimationFrame(loop);
 }

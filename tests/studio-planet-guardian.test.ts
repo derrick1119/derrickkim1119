@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
-import { create, noviceBot, randomBot, runBot, smartBot, spinSpeed, step, type GameEvent, type State } from '../studio/planet-guardian/sim.ts';
+import { BEAT, create, noviceBot, randomBot, runBot, smartBot, spinSpeed, step, type GameEvent, type State } from '../studio/planet-guardian/sim.ts';
 import { createJuice, react, tick } from '../studio/planet-guardian/juice.ts';
 
 const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
@@ -48,6 +48,28 @@ describe('행성 수호대 시뮬', () => {
     expect(s.t).toBe(t + 1);
   });
 
+  it('카드는 광석이 아니라 박자로 온다, 다시 뽑기는 광석을 쓴다 (C004)', () => {
+    const s = create(9);
+    const at: number[] = [];
+    while (at.length < 3 && !s.dead) {
+      step(s, {});
+      if (s.offer) (at.push(s.t), step(s, { pick: 0 }));
+    }
+    expect(at[1] - at[0]).toBe(BEAT);
+    expect(at[2] - at[1]).toBe(BEAT);
+    while (!s.offer) step(s, {});
+    s.ore = 100;
+    const before = s.cost;
+    step(s, { reroll: true });
+    expect(s.ore).toBe(100 - before);
+    expect(s.cost).toBeGreaterThan(before);
+    expect(s.offer).not.toBeNull();
+    s.ore = 0;
+    const offer = JSON.stringify(s.offer);
+    step(s, { reroll: true }); // 광석이 모자라면 아무 일도 없다
+    expect(JSON.stringify(s.offer)).toBe(offer);
+  });
+
   it('시작하자마자 포탑 하나가 있다', () => {
     expect(create(1).sites.filter((x) => x.kind === '포탑')).toHaveLength(1);
   });
@@ -75,11 +97,12 @@ describe('행성 수호대 시뮬', () => {
 });
 
 describe('행성 수호대 밸런스 (GDD §8, 봇)', () => {
-  const seeds = [...Array(16).keys()].map((k) => k + 1);
+  // 40시드: 아무거나 고르는 봇은 판마다 편차가 커서(28~281초) 16시드 중앙값은 흔들린다 — 목표는 그대로, 측정만 촘촘히 (C004)
+  const seeds = [...Array(40).keys()].map((k) => k + 1);
   it('막누르기 봇도 첫 판 30초 이상 (프로토타입은 10초)', () => {
     expect(median(seeds.map((x) => runBot(randomBot, x).sec))).toBeGreaterThanOrEqual(30);
   });
-  it('처음 하는 사람 대역(0.4초 지연·조준 오차) 봇은 첫 판 60~150초 (GDD §1)', () => {
+  it('처음 하는 사람 대역(카드 아무거나) 봇은 첫 판 60~150초 (GDD §1)', () => {
     const m = median(seeds.map((x) => runBot(noviceBot, x).sec));
     expect(m).toBeGreaterThanOrEqual(60);
     expect(m).toBeLessThanOrEqual(150);

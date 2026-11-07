@@ -26,7 +26,7 @@ const botOf = (p: Policy): Bot => (s) => ({ pick: s.offer ? s.offer.map((c: Card
 /** 모바일 390×844에서 화면 안에 보이는 반지름(단위 좌표) — render.ts view()와 같은 식 */
 const PLAY_H = 844 * 0.82, SC = Math.min(390 * 0.6, PLAY_H * 0.47), VISIBLE_R = Math.min(195, PLAY_H * 0.53) / SC;
 
-interface Run { gaps: number[]; sec: number; score: number; builds: number; kills: number; bestCombo: number; wave: number; firstCard: number; firstHit: number; warn: number[]; picks: CardId[] }
+interface Run { rerolls: number; gaps: number[]; sec: number; score: number; builds: number; kills: number; bestCombo: number; wave: number; firstCard: number; firstHit: number; warn: number[]; picks: CardId[] }
 
 function run(bot: Bot, seed: number, max = 60 * 900): Run {
   const s = create(seed), rng = mulberry32(seed ^ 0x9e3779b9);
@@ -51,7 +51,7 @@ function run(bot: Bot, seed: number, max = 60 * 900): Run {
       }
     }
   }
-  return { gaps, sec: s.t / 60, score: s.kills + s.builds * 5, builds: s.builds, kills: s.kills, bestCombo: s.bestCombo, wave: s.wave, firstCard, firstHit: firstHit < 0 ? s.t / 60 : firstHit, warn, picks };
+  return { rerolls: s.rerolls, gaps, sec: s.t / 60, score: s.kills + s.builds * 5, builds: s.builds, kills: s.kills, bestCombo: s.bestCombo, wave: s.wave, firstCard, firstHit: firstHit < 0 ? s.t / 60 : firstHit, warn, picks };
 }
 
 const med = (xs: number[]) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] : 0);
@@ -88,10 +88,11 @@ export function measure() {
   // L7: 최고 빌드로도 초반 운 사망이 없는가 — 하위 10% 생존 시간
   const L7 = pct(hard.map((r) => r.sec), 0.1);
   // F1: 판단(카드 1장 = 1회) 사이 간격 중앙값. 슬롯 선택은 슬롯별 점수 차가 측정된 뒤에만 센다(PM C002)
-  const F1 = med(light.concat(mid).flatMap((r) => r.gaps.slice(1)));
+  const allGaps = light.concat(mid).flatMap((r) => r.gaps.slice(1));
+  const F1 = med(allGaps), F1p90 = pct(allGaps, 0.9);
   const C = (id: string, group: Check['group'], what: string, value: number, target: string, ok: boolean): Check => ({ id, group, what, value: r1(value), target, ok });
   const L1 = med(light.map((r) => r.sec)), L2 = med(light.map((r) => r.firstCard)), L3 = med(light.map((r) => r.builds)), L4 = med(light.map((r) => r.firstHit)), L5 = pct(lightWarn, 0.1);
-  const M1 = med(mid.map((r) => r.sec)), M2 = med(mid.map((r) => r.builds)), M3 = best / Math.max(1, worst);
+  const M1 = med(mid.map((r) => r.sec)), M2 = med(mid.map((r) => r.builds + r.rerolls)), M3 = best / Math.max(1, worst);
   const H1 = med(hardScores) / Math.max(1, med(light.map((r) => r.score))), H2 = med(hard.map((r) => r.sec)), H6 = pct(hardWarn, 0.1);
   const checks: Check[] = [
     C('L1', '라이트', '첫 판 길이(초)', L1, '90~150', L1 >= 90 && L1 <= 150),
@@ -102,8 +103,9 @@ export function measure() {
     C('L6', '라이트', '첫 피격 → 끝까지(초) — 연쇄 사망', hitToDeath, '≥ 25', hitToDeath >= 25),
     C('L7', '라이트', '최고 빌드 하위 10% 생존(초) — 초반 운 사망', L7, '≥ 90', L7 >= 90),
     C('F1', '라이트', '판단 사이 간격 중앙값(초) — 관전 시간', F1, '≤ 12', F1 <= 12),
+    C('F2', '라이트', '판단 사이 간격 상위 10%(초) — 긴 관전 구간', F1p90, '≤ 20', F1p90 <= 20),
     C('M1', '미들코어', '판 길이(초)', M1, '180~360', M1 >= 180 && M1 <= 360),
-    C('M2', '미들코어', '판당 카드 선택 수', M2, '8~15', M2 >= 8 && M2 <= 15),
+    C('M2', '미들코어', '판당 판단 수(카드 + 누른 다시 뽑기)', M2, '15~30', M2 >= 15 && M2 <= 30),
     C('M3', '미들코어', '빌드 최고/최저 점수 비(선택이 중요한가)', M3, '≥ 1.3', M3 >= 1.3),
     C('M4', '미들코어', '최고의 85% 안 서로 다른 빌드 수(겹침 ≤ 50%)', distinct.length, '≥ 2', distinct.length >= 2),
     C('H1', '하드코어', '실력 격차: 최고 빌드/아무거나 점수 비', H1, '≥ 4', H1 >= 4),

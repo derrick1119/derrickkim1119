@@ -9,6 +9,11 @@ const BG = '#0a0e1f', SOFT = '#1c2547', MUTED = '#3b4470', INK = '#1b1b2f';
 /** 카드 영역의 k번째 카드 가로 범위 (0~1) */
 export const cardBox = (k: number) => ({ x0: 0.03 + k * 0.32, x1: 0.03 + k * 0.32 + 0.3 });
 export const cardTop = (h: number) => h * CARD_Y;
+/** 다시 뽑기 버튼 (카드 띠 바로 위, 가운데). 터치 대상 44px 이상 */
+export const rerollBox = (w: number, h: number) => {
+  const bw = Math.min(w * 0.62, 260), bh = 46;
+  return { x: (w - bw) / 2, y: cardTop(h) - bh - 12, w: bw, h: bh };
+};
 
 export interface View { cx: number; cy: number; sc: number; w: number; h: number }
 
@@ -298,7 +303,7 @@ function hud(ctx: CanvasRenderingContext2D, s: State, w: number, h: number, fram
   // 건설 카드 띠 — 카드가 뜨면 세계가 멈추고(시뮬) 화면이 어두워진다
   const top = cardTop(h), ch = h * 0.13;
   if (s.offer) {
-    if (s.offerAt !== seenOffer) (seenOffer = s.offerAt), (offerFrame = frame);
+    if (s.offerAt * 1000 + s.rerolls !== seenOffer) (seenOffer = s.offerAt * 1000 + s.rerolls), (offerFrame = frame);
     const age = frame - offerFrame, slide = ease(age / 14), glow = 0.5 + 0.5 * Math.sin(frame / 8);
     ctx.fillStyle = `rgba(10,14,31,${0.55 * slide})`;
     ctx.fillRect(0, 0, w, top - 6);
@@ -306,10 +311,23 @@ function hud(ctx: CanvasRenderingContext2D, s: State, w: number, h: number, fram
     ctx.textAlign = 'center';
     ctx.fillStyle = COLORS.ore;
     ctx.font = `900 ${Math.round(u * 0.075)}px system-ui, sans-serif`;
-    ctx.fillText('건설 시간!', w / 2, top - ch * 1.25);
+    ctx.fillText('건설 시간!', w / 2, top - ch * 1.55 - 20);
     ctx.fillStyle = COLORS.white;
     ctx.font = `600 ${Math.round(u * 0.04)}px system-ui, sans-serif`;
-    ctx.fillText('하나를 고르면 다시 시작해요', w / 2, top - ch * 0.62);
+    ctx.fillText('하나를 고르면 다시 시작해요', w / 2, top - ch * 0.95 - 20);
+    // 다시 뽑기: 광석을 쓴다 (모자라면 흐리게)
+    const rb = rerollBox(w, h), can = s.ore >= s.cost;
+    ctx.fillStyle = can ? '#2b3566' : '#161c3a';
+    ctx.strokeStyle = can ? COLORS.ore : '#3b4470';
+    ctx.lineWidth = selected === 3 ? 4 : 2;
+    if (selected === 3) ctx.strokeStyle = COLORS.white;
+    ctx.beginPath();
+    ctx.roundRect(rb.x, rb.y, rb.w, rb.h, 23);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = can ? COLORS.ore : '#5b6490';
+    ctx.font = `800 ${Math.round(Math.min(u * 0.042, 18))}px system-ui, sans-serif`;
+    ctx.fillText(`🔄 다시 뽑기 · 광석 ${s.cost}/${Math.floor(s.ore)}${touchOnly ? '' : ' (R)'}`, w / 2, rb.y + rb.h * 0.28);
     ctx.globalAlpha = 1;
     s.offer.forEach((c, k) => {
       const bx = cardBox(k), x = bx.x0 * w, cw = (bx.x1 - bx.x0) * w, y = top + (1 - ease((age - k * 3) / 14)) * ch * 1.2;
@@ -338,7 +356,8 @@ function hud(ctx: CanvasRenderingContext2D, s: State, w: number, h: number, fram
       ctx.globalAlpha = 1;
     });
   } else {
-    const f = Math.min(1, s.ore / s.cost), x = w * 0.06, bw = w * 0.88, y = top + ch * 0.32;
+    // 다음 카드까지 박자 (C004: 카드는 시간 박자로 온다)
+    const f = Math.min(1, (s.t - s.lastCard) / Math.max(1, s.nextCard - s.lastCard)), x = w * 0.06, bw = w * 0.88, y = top + ch * 0.32;
     ctx.fillStyle = SOFT;
     ctx.beginPath();
     ctx.roundRect(x, y, bw, 12, 6);
@@ -350,7 +369,7 @@ function hud(ctx: CanvasRenderingContext2D, s: State, w: number, h: number, fram
     ctx.fillStyle = '#8f9bd6';
     ctx.textAlign = 'center';
     ctx.font = `600 ${Math.round(Math.min(w * 0.036, ch * 0.17))}px system-ui, sans-serif`;
-    ctx.fillText(`광석 ${Math.floor(s.ore)} / ${s.cost} — 차면 건설 카드가 나와요`, w / 2, y + 22);
+    ctx.fillText(`다음 건설 카드까지 ${Math.ceil((s.nextCard - s.t) / 60)}초 · 광석 ${Math.floor(s.ore)} (다시 뽑기용)`, w / 2, y + 22);
   }
   if (s.last && since < 70) {
     ctx.textAlign = 'center';

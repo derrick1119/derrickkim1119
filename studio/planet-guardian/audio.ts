@@ -71,6 +71,9 @@ export function createSfx(): Sfx {
             tone(t, 110, 35, 0.45, 0.8, 'sine');
             burstNoise(t, 0.4, 500, 0.7);
             break;
+          case 'reroll':
+            [660, 880].forEach((f, k) => tone(t + k * 0.05, f, f * 1.2, 0.08, 0.12, 'triangle'));
+            break;
           case 'clear':
             [784, 988, 1175].forEach((f, k) => tone(t + k * 0.08, f, f, 0.2, 0.14, 'sine'));
             break;

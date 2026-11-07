@@ -9,8 +9,12 @@ export const CORE = 0.17, ORBIT = 0.43, BODY = 0.05, ENEMY_R = 0.04, RANGE = 0.3
 export const SLOTS = 8, HP_MAX = 5, CARD_Y = 0.84;
 const BULLET_V = 1.3 / 60, FIRE_EVERY = 30, COMBO_GAP = 60, BREATH = 240;
 export const TICK = 1 / 60;
-/** 카드 비용 곡선. C003: 비용만 낮춰 F1(≤12초)을 맞추려 했으나 처치 광석 → 카드 → 처치의 눈덩이로 판이 끝나지 않아 폐기(TALK C003) */
-const COST0 = 8, COST_MUL = 1.15, COST_ADD = 3;
+/**
+ * 박자 카드 (C004, FUN QA C003 대안 A): 카드는 광석이 아니라 시간 박자로 온다 — 처치 광석 → 카드 → 처치의 눈덩이를 끊는다.
+ * 광석은 카드 화면의 "다시 뽑기"에 쓴다. 잘 막을수록 고를 거리가 넓어진다 (실력 보상은 "몇 장"이 아니라 "어떤 장").
+ * C003 기록: 비용 곡선만 낮추는 방식은 눈덩이로 판이 끝나지 않아 폐기.
+ */
+export const BEAT = 60 * 11, FIRST_CARD = 60 * 8, REROLL0 = 4, REROLL_ADD = 2;
 
 export type Kind = '광산' | '포탑';
 export type CardId = 'new-mine' | 'new-turret' | 'up-mine' | 'up-turret' | 'ally' | 'shield' | 'spin';
@@ -26,6 +30,7 @@ export type GameEvent =
   | { type: 'kill'; x: number; y: number; big: boolean; combo: number; ore: number; by: 'shot' | 'body' }
   | { type: 'impact'; x: number; y: number; hp: number }
   | { type: 'offer' }
+  | { type: 'reroll' }
   | { type: 'build'; card: CardId; x: number; y: number }
   | { type: 'wave'; wave: number }
   | { type: 'clear'; wave: number }
@@ -38,6 +43,8 @@ export type GameEvent =
 export interface Input {
   /** 고른 카드(0부터). 카드가 떠 있는 동안 게임은 멈춰 있다 */
   pick?: number;
+  /** 카드 화면에서 광석을 내고 다시 뽑기 */
+  reroll?: boolean;
 }
 
 export interface State {
@@ -60,7 +67,12 @@ export interface State {
   bullets: Shot[];
   sites: Site[];
   ore: number;
+  /** 다시 뽑기 비용 (뽑을 때마다 +2, 카드를 고르면 처음 값으로) */
   cost: number;
+  /** 다음 카드가 오는 틱 / 지난 카드가 온 틱 */
+  nextCard: number;
+  lastCard: number;
+  rerolls: number;
   offer: Card[] | null;
   offerAt: number;
   builds: number;
@@ -91,7 +103,7 @@ export const turretRange = (lv: number) => 0.34 + 0.05 * (lv - 1);
 export function create(seed: number): State {
   return {
     rng: mulberry32(seed), crng: mulberry32(seed ^ 0x5bd1e995), wave: 1, budget: waveSize(1), breath: 0, t: 0, angle: -Math.PI / 2, spinLv: 0, allies: 0, cool: [0], enemies: [], bullets: [],
-    ore: 0, cost: COST0, offer: null, offerAt: -99, builds: 0, hp: 3, spawnIn: 90, nextId: 1, kills: 0, blocks: 0,
+    ore: 0, cost: REROLL0, nextCard: FIRST_CARD, lastCard: 0, rerolls: 0, offer: null, offerAt: -99, builds: 0, hp: 3, spawnIn: 90, nextId: 1, kills: 0, blocks: 0,
     combo: 0, comboAt: -999, bestCombo: 0, last: null, hitAt: -99, deadAt: -1, dead: false, events: [],
     // 리뷰: 시작 방어 0 → 포탑 Lv1 하나를 깔고 시작 (기지가 첫 화면부터 보인다)
     sites: [{ kind: '포탑', slot: 6, level: 1, cool: 0, aim: 0, born: -99 }],
@@ -111,8 +123,8 @@ function spawn(s: State) {
   const n = s.wave - 1;
   const big = s.rng() < Math.min(0.45, 0.06 * n);
   // 후반 난이도는 단단함으로: 5웨이브마다 체력 +1
-  const hp = (big ? 3 : 1 + (s.rng() < Math.min(0.6, 0.08 * n) ? 1 : 0)) + Math.floor(n / 5);
-  s.enemies.push({ id: s.nextId++, a: s.rng() * Math.PI * 2, r: 1.05, v: (Math.min(VMAX, 0.11 + 0.025 * n) + s.rng() * 0.03) / 60, hp, maxHp: hp, big, flash: -99 });
+  const hp = (big ? 3 : 1 + (s.rng() < Math.min(0.6, 0.08 * n) ? 1 : 0)) + Math.floor(n / 3);
+  s.enemies.push({ id: s.nextId++, a: s.rng() * Math.PI * 2, r: 1.05, v: (Math.min(VMAX, 0.14 + 0.025 * n) + s.rng() * 0.03) / 60, hp, maxHp: hp, big, flash: -99 });
   s.budget--;
   s.spawnIn = Math.round(waveGap(s.wave) * (0.7 + s.rng() * 0.6));
 }
@@ -186,8 +198,7 @@ function choose(s: State, k: number) {
   if (!s.offer || !s.offer[k]) return;
   const c = s.offer[k];
   const p = apply(s, c);
-  s.ore -= s.cost;
-  s.cost = Math.round(s.cost * COST_MUL + COST_ADD);
+  s.cost = REROLL0;
   s.builds++;
   s.last = { card: c.id, label: c.label, t: s.t };
   s.offer = null;
@@ -214,14 +225,24 @@ export function step(s: State, input: Input) {
   if (s.dead) return;
   // 카드가 떠 있으면 세계가 멈춘다 — 고르기 전엔 진행하지 않는다 (오너: "레벨업하면 멈추고 선택해야 진행")
   if (s.offer) {
-    if (input.pick !== undefined) choose(s, input.pick);
+    if (input.reroll && s.ore >= s.cost) {
+      s.ore -= s.cost;
+      s.cost += REROLL_ADD;
+      s.rerolls++;
+      makeOffer(s);
+      s.events.push({ type: 'reroll' });
+    } else if (input.pick !== undefined) choose(s, input.pick);
     return;
   }
   s.t++;
   s.angle = wrap(s.angle + spinSpeed(s));
   waves(s);
   s.ore += (0.5 + mineRate(s)) / 60;
-  if (!s.offer && s.ore >= s.cost) makeOffer(s);
+  if (s.t >= s.nextCard) {
+    s.lastCard = s.t;
+    s.nextCard = s.t + BEAT;
+    makeOffer(s);
+  }
   if (s.t - s.comboAt > COMBO_GAP) s.combo = 0;
   const ships = crew(s).map((a) => pos(a, ORBIT));
   ships.forEach((m, k) => {
@@ -290,6 +311,8 @@ export const noviceBot = randomBot;
 export const BALANCED: Policy = (c, s) =>
   s.hp <= 1 && c.id === 'shield' ? 0 : c.id === 'ally' ? 1 : c.id === 'up-turret' ? 2 : c.id === 'new-turret' ? 3 : c.id === 'spin' ? 4 : c.id.endsWith('mine') ? 5 : 6;
 export function smartBot(s: State): Input {
+  // 쓸 만한 카드(위성·포탑·궤도 가속)가 없고 광석이 넉넉하면 다시 뽑는다
+  if (s.offer && s.ore >= s.cost + 4 && s.offer.every((c) => BALANCED(c, s) > 4)) return { reroll: true };
   return { pick: pickBy(s, BALANCED) };
 }
 export const policyBot = (rank: Policy) => (s: State): Input => ({ pick: pickBy(s, rank) });
