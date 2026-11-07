@@ -14,6 +14,8 @@ export const TICK = 1 / 60;
  * 광석은 카드 화면의 "다시 뽑기"에 쓴다. 잘 막을수록 고를 거리가 넓어진다 (실력 보상은 "몇 장"이 아니라 "어떤 장").
  * C003 기록: 비용 곡선만 낮추는 방식은 눈덩이로 판이 끝나지 않아 폐기.
  */
+/** C005: 처치 광석 1/3 → 0.3/1 (처치 광석 비율 81% → 58%, GDD 목표 30~50%에 다가감). 기본 수입 0.15 시험은 L1·M4 퇴행으로 폐기 */
+export const KILL_ORE = 0.3, KILL_ORE_BIG = 1, BASE_ORE = 0.5;
 export const BEAT = 60 * 11, FIRST_CARD = 60 * 8, REROLL0 = 4, REROLL_ADD = 2;
 
 export type Kind = '광산' | '포탑';
@@ -115,6 +117,8 @@ export const score = (s: State) => s.kills + s.builds * 5;
 /** 웨이브 예산 (리뷰 ①: 시간 기반 스폰은 88초에 초당 12개 벽을 만들었다) */
 /** 속도 상한(초당) — FUN QA C001: n² 가속은 반응 불가능한 벽이었다. 난이도는 수·크기로 올린다 */
 const VMAX = 0.42;
+/** 운석 기본 속도. C005: 1~2웨이브를 0.11로 늦추는 램프를 시험했으나 L1(169초)·M4 퇴행, L8은 램프 없이도 통과라 폐기(TALK C005) */
+export const speedOf = (wave: number) => Math.min(VMAX, 0.14 + 0.025 * (wave - 1));
 export const waveSize = (n: number) => 6 + 3 * n;
 const waveCap = (n: number) => 3 + n;
 const waveGap = (n: number) => Math.max(18, 80 - 6 * n);
@@ -124,7 +128,7 @@ function spawn(s: State) {
   const big = s.rng() < Math.min(0.45, 0.06 * n);
   // 후반 난이도는 단단함으로: 3웨이브마다 체력 +1 (C004. FUN QA: 계단 벽 → M3-2에서 빌드로 대응하는 위협으로 교체 예정)
   const hp = (big ? 3 : 1 + (s.rng() < Math.min(0.6, 0.08 * n) ? 1 : 0)) + Math.floor(n / 3);
-  s.enemies.push({ id: s.nextId++, a: s.rng() * Math.PI * 2, r: 1.05, v: (Math.min(VMAX, 0.14 + 0.025 * n) + s.rng() * 0.03) / 60, hp, maxHp: hp, big, flash: -99 });
+  s.enemies.push({ id: s.nextId++, a: s.rng() * Math.PI * 2, r: 1.05, v: (speedOf(s.wave) + s.rng() * 0.03) / 60, hp, maxHp: hp, big, flash: -99 });
   s.budget--;
   s.spawnIn = Math.round(waveGap(s.wave) * (0.7 + s.rng() * 0.6));
 }
@@ -198,7 +202,7 @@ function choose(s: State, k: number) {
   if (!s.offer || !s.offer[k]) return;
   const c = s.offer[k];
   const p = apply(s, c);
-  s.cost = REROLL0;
+  // C005: 다시 뽑기 비용은 판 내내 누적된다 (FUN QA C004: 고를 때 초기화하면 '부자면 무조건 누르기'가 된다)
   s.builds++;
   s.last = { card: c.id, label: c.label, t: s.t };
   s.offer = null;
@@ -237,7 +241,7 @@ export function step(s: State, input: Input) {
   s.t++;
   s.angle = wrap(s.angle + spinSpeed(s));
   waves(s);
-  s.ore += (0.5 + mineRate(s)) / 60;
+  s.ore += (BASE_ORE + mineRate(s)) / 60;
   if (s.t >= s.nextCard) {
     s.lastCard = s.t;
     s.nextCard = s.t + BEAT;
@@ -289,7 +293,8 @@ export function step(s: State, input: Input) {
       s.combo++;
       s.comboAt = s.t;
       s.bestCombo = Math.max(s.bestCombo, s.combo);
-      const ore = e.big ? 3 : 1;
+      // C005: 처치 광석 축소 (FUN QA C004: 광석의 81%가 처치 → 남아돌아 광산이 함정)
+      const ore = e.big ? KILL_ORE_BIG : KILL_ORE;
       s.ore += ore;
       s.events.push({ type: 'kill', x: ep.x, y: ep.y, big: e.big, combo: s.combo, ore, by });
     }

@@ -64,6 +64,10 @@ describe('행성 수호대 시뮬', () => {
     expect(s.ore).toBe(100 - before);
     expect(s.cost).toBeGreaterThan(before);
     expect(s.offer).not.toBeNull();
+    const raised = s.cost;
+    step(s, { pick: 0 });
+    expect(s.cost).toBe(raised); // C005: 카드를 골라도 다시 뽑기 비용은 그대로 (판 내내 누적)
+    while (!s.offer) step(s, {});
     s.ore = 0;
     const offer = JSON.stringify(s.offer);
     step(s, { reroll: true }); // 광석이 모자라면 아무 일도 없다

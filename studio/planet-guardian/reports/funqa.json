@@ -1,5 +1,10 @@
 {
-  "at": "2026-11-07T16:48:43.006Z",
+  "observe": {
+    "처치광석비율": 58.1,
+    "빈화면비율": 21.5,
+    "무조건다시뽑기점수": 444
+  },
+  "at": "2026-11-07T17:42:48.240Z",
   "seeds": 24,
   "hardBuild": "방어우선",
   "groups": {
@@ -40,7 +45,8 @@
       "what": "첫 판 길이(초)",
       "value": 113.3,
       "target": "90~150",
-      "ok": true
+      "ok": true,
+      "ref": false
     },
     {
       "id": "L2",
@@ -48,7 +54,8 @@
       "what": "첫 카드까지(초)",
       "value": 8,
       "target": "≤ 15",
-      "ok": true
+      "ok": true,
+      "ref": false
     },
     {
       "id": "L3",
@@ -56,7 +63,8 @@
       "what": "첫 판 건설 수",
       "value": 10,
       "target": "≥ 4",
-      "ok": true
+      "ok": true,
+      "ref": false
     },
     {
       "id": "L4",
@@ -64,7 +72,8 @@
       "what": "첫 피격까지(초)",
       "value": 24.9,
       "target": "≥ 20",
-      "ok": true
+      "ok": true,
+      "ref": false
     },
     {
       "id": "L5",
@@ -72,7 +81,8 @@
       "what": "피격 운석이 화면 안에 보인 시간 하위 10%(초)",
       "value": 1.8,
       "target": "≥ 1.5",
-      "ok": true
+      "ok": true,
+      "ref": false
     },
     {
       "id": "L6",
@@ -80,7 +90,8 @@
       "what": "첫 피격 → 끝까지(초) — 연쇄 사망",
       "value": 49.8,
       "target": "≥ 25",
-      "ok": true
+      "ok": true,
+      "ref": false
     },
     {
       "id": "L7",
@@ -88,23 +99,35 @@
       "what": "최고 빌드 하위 10% 생존(초) — 초반 운 사망",
       "value": 207.7,
       "target": "≥ 90",
-      "ok": true
+      "ok": true,
+      "ref": false
+    },
+    {
+      "id": "L8",
+      "group": "라이트",
+      "what": "라이트 하위 20% 판 길이(초) — 아무것도 못 짓고 끝남",
+      "value": 52.5,
+      "target": "≥ 45",
+      "ok": true,
+      "ref": false
     },
     {
       "id": "F1",
       "group": "라이트",
-      "what": "판단 사이 간격 중앙값(초) — 관전 시간",
+      "what": "[참고] 판단 사이 간격 중앙값(초) — 박자 카드 뒤 설정값",
       "value": 11,
       "target": "≤ 12",
-      "ok": true
+      "ok": true,
+      "ref": true
     },
     {
       "id": "F2",
       "group": "라이트",
-      "what": "판단 사이 간격 상위 10%(초) — 긴 관전 구간",
+      "what": "[참고] 판단 사이 간격 상위 10%(초) — 설정값",
       "value": 11,
       "target": "≤ 20",
-      "ok": true
+      "ok": true,
+      "ref": true
     },
     {
       "id": "M1",
@@ -112,7 +135,8 @@
       "what": "판 길이(초)",
       "value": 257.8,
       "target": "180~360",
-      "ok": true
+      "ok": true,
+      "ref": false
     },
     {
       "id": "M2",
@@ -120,7 +144,8 @@
       "what": "판당 판단 수(카드 + 누른 다시 뽑기)",
       "value": 23,
       "target": "15~30",
-      "ok": true
+      "ok": true,
+      "ref": false
     },
     {
       "id": "M3",
@@ -128,7 +153,8 @@
       "what": "빌드 최고/최저 점수 비(선택이 중요한가)",
       "value": 6.2,
       "target": "≥ 1.3",
-      "ok": true
+      "ok": true,
+      "ref": false
     },
     {
       "id": "M4",
@@ -136,7 +162,8 @@
       "what": "최고의 85% 안 서로 다른 빌드 수(겹침 ≤ 50%)",
       "value": 2,
       "target": "≥ 2",
-      "ok": true
+      "ok": true,
+      "ref": false
     },
     {
       "id": "H1",
@@ -144,7 +171,8 @@
       "what": "실력 격차: 최고 빌드/아무거나 점수 비",
       "value": 3.6,
       "target": "≥ 4",
-      "ok": false
+      "ok": false,
+      "ref": false
     },
     {
       "id": "H2",
@@ -152,7 +180,8 @@
       "what": "최고 빌드 판 길이(초) — 끝이 있어야 한다",
       "value": 257.8,
       "target": "300~600",
-      "ok": false
+      "ok": false,
+      "ref": false
     },
     {
       "id": "H3",
@@ -160,7 +189,8 @@
       "what": "회전 속도의 의미: 같은 빌드 궤도 가속 있음/없음 시드별 점수비 중앙값",
       "value": 1.3,
       "target": "≥ 1.1",
-      "ok": true
+      "ok": true,
+      "ref": false
     },
     {
       "id": "H4",
@@ -168,7 +198,8 @@
       "what": "점수 중 콤보·무피격 보너스 비율(%)",
       "value": 0,
       "target": "≥ 10",
-      "ok": false
+      "ok": false,
+      "ref": false
     },
     {
       "id": "H5",
@@ -176,7 +207,8 @@
       "what": "최고 빌드 점수 변동계수(%) — 결정적 벽이 아닌가",
       "value": 21.4,
       "target": "≥ 15",
-      "ok": true
+      "ok": true,
+      "ref": false
     },
     {
       "id": "H6",
@@ -184,8 +216,37 @@
       "what": "끝판 피격 운석 화면 안 시간 하위 10%(초)",
       "value": 1.5,
       "target": "≥ 0.6",
-      "ok": true
+      "ok": true,
+      "ref": false
+    },
+    {
+      "id": "H8",
+      "group": "하드코어",
+      "what": "최고 빌드 사망 시각 사분위 범위(초) — 벽이 아닌가 (M3 기준)",
+      "value": 30.6,
+      "target": "≥ 30",
+      "ok": true,
+      "ref": false
+    },
+    {
+      "id": "R1",
+      "group": "미들코어",
+      "what": "다시 뽑기 판단: 골라 누르기/무조건 누르기 점수비",
+      "value": 1,
+      "target": "≥ 1.05",
+      "ok": false,
+      "ref": false
+    },
+    {
+      "id": "R2",
+      "group": "미들코어",
+      "what": "판 끝 남은 광석 ÷ 다시 뽑기 2회분 (중앙값)",
+      "value": 30.4,
+      "target": "≤ 1",
+      "ok": false,
+      "ref": false
     }
   ],
-  "passed": 16
+  "passed": 16,
+  "counted": 21
 }

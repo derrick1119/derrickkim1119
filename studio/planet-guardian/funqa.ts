@@ -8,7 +8,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mulberry32 } from '../../engine/rng.ts';
-import { BALANCED, CORE, create, randomBot, step, type Card, type CardId, type Input, type Policy, type State } from './sim.ts';
+import { BALANCED, BASE_ORE, CORE, create, mineRate, randomBot, smartBot, step, type Card, type CardId, type Input, type Policy, type State } from './sim.ts';
 import type { Rng } from '../../engine/rng.ts';
 
 type Bot = (s: State, rng: Rng) => Input;
@@ -26,17 +26,22 @@ const botOf = (p: Policy): Bot => (s) => ({ pick: s.offer ? s.offer.map((c: Card
 /** 모바일 390×844에서 화면 안에 보이는 반지름(단위 좌표) — render.ts view()와 같은 식 */
 const PLAY_H = 844 * 0.82, SC = Math.min(390 * 0.6, PLAY_H * 0.47), VISIBLE_R = Math.min(195, PLAY_H * 0.53) / SC;
 
-interface Run { rerolls: number; gaps: number[]; sec: number; score: number; builds: number; kills: number; bestCombo: number; wave: number; firstCard: number; firstHit: number; warn: number[]; picks: CardId[] }
+interface Run { oreLeft: number; rerollCost: number; killOre: number; allOre: number; emptyTicks: number; rerolls: number; gaps: number[]; sec: number; score: number; builds: number; kills: number; bestCombo: number; wave: number; firstCard: number; firstHit: number; warn: number[]; picks: CardId[] }
 
 function run(bot: Bot, seed: number, max = 60 * 900): Run {
   const s = create(seed), rng = mulberry32(seed ^ 0x9e3779b9);
-  let firstCard = -1, firstHit = -1, guard = 0, lastOffer = 0;
+  let firstCard = -1, firstHit = -1, guard = 0, lastOffer = 0, killOre = 0, allOre = 0, emptyTicks = 0;
   const gaps: number[] = [];
   const warn: number[] = [], picks: CardId[] = [];
   while (!s.dead && s.t < max && guard++ < max * 4) {
     const before = s.enemies.map((e) => ({ id: e.id, v: e.v })), offer = s.offer;
     const inp = bot(s, rng);
+    const t0 = s.t;
     step(s, inp);
+    if (s.t > t0) {
+      allOre += (BASE_ORE + mineRate(s)) / 60;
+      if (!s.enemies.length) emptyTicks++;
+    }
     if (offer && inp.pick !== undefined) picks.push(offer[inp.pick].id);
     for (const e of s.events) {
       if (e.type === 'offer') {
@@ -44,6 +49,7 @@ function run(bot: Bot, seed: number, max = 60 * 900): Run {
         gaps.push((s.t - lastOffer) / 60); // 멈춘 시간은 s.t가 안 흐르니 저절로 빠진다
         lastOffer = s.t;
       }
+      if (e.type === 'kill') (killOre += e.ore), (allOre += e.ore);
       if (e.type === 'impact') {
         if (firstHit < 0) firstHit = s.t / 60;
         const gone = before.find((b) => !s.enemies.some((x) => x.id === b.id));
@@ -51,7 +57,7 @@ function run(bot: Bot, seed: number, max = 60 * 900): Run {
       }
     }
   }
-  return { rerolls: s.rerolls, gaps, sec: s.t / 60, score: s.kills + s.builds * 5, builds: s.builds, kills: s.kills, bestCombo: s.bestCombo, wave: s.wave, firstCard, firstHit: firstHit < 0 ? s.t / 60 : firstHit, warn, picks };
+  return { oreLeft: s.ore, rerollCost: s.cost, killOre, allOre, emptyTicks, rerolls: s.rerolls, gaps, sec: s.t / 60, score: s.kills + s.builds * 5, builds: s.builds, kills: s.kills, bestCombo: s.bestCombo, wave: s.wave, firstCard, firstHit: firstHit < 0 ? s.t / 60 : firstHit, warn, picks };
 }
 
 const med = (xs: number[]) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] : 0);
@@ -66,10 +72,14 @@ function overlap(a: Run[], b: Run[]) {
   return all ? same / all : 1;
 }
 
-export interface Check { id: string; group: '라이트' | '미들코어' | '하드코어'; what: string; value: number; target: string; ok: boolean }
+export interface Check { ref?: boolean; id: string; group: '라이트' | '미들코어' | '하드코어'; what: string; value: number; target: string; ok: boolean }
 
 export function measure() {
-  const light = many(randomBot), mid = many(botOf(BALANCED));
+  // 미들코어 = 다시 뽑기도 쓰는 smartBot (FUN QA C004: 셈법과 봇을 일치)
+  const light = many(randomBot), mid = many(smartBot);
+  // R1 비교용: 광석이 되는 대로 무조건 다시 뽑는 봇
+  const always: Bot = (s) => (s.offer && s.ore >= s.cost ? { reroll: true } : smartBot(s));
+  const alwaysRuns = many(always);
   const byPolicy = Object.fromEntries(Object.entries(POLICIES).map(([k, p]) => [k, k === '방어우선' ? mid : many(botOf(p))])) as Record<string, Run[]>;
   const scoreOf = Object.fromEntries(Object.entries(byPolicy).map(([k, rs]) => [k, med(rs.map((r) => r.score))])) as Record<string, number>;
   const ranked = Object.keys(scoreOf).sort((a, b) => scoreOf[b] - scoreOf[a]);
@@ -90,7 +100,12 @@ export function measure() {
   // F1: 판단(카드 1장 = 1회) 사이 간격 중앙값. 슬롯 선택은 슬롯별 점수 차가 측정된 뒤에만 센다(PM C002)
   const allGaps = light.concat(mid).flatMap((r) => r.gaps.slice(1));
   const F1 = med(allGaps), F1p90 = pct(allGaps, 0.9);
-  const C = (id: string, group: Check['group'], what: string, value: number, target: string, ok: boolean): Check => ({ id, group, what, value: r1(value), target, ok });
+  const C = (id: string, group: Check['group'], what: string, value: number, target: string, ok: boolean, ref = false): Check => ({ id, group, what, value: r1(value), target, ok, ref });
+  // R1 (FUN QA C004): 다시 뽑기가 판단인가 — 골라 누르는 쪽이 무조건 누르는 쪽보다 5% 이상 낫고, 판 끝에 광석이 남아돌지 않는다
+  const R1a = med(mid.map((r) => r.score)) / Math.max(1, med(alwaysRuns.map((r) => r.score)));
+  const R1b = med(mid.map((r) => r.oreLeft / Math.max(1, r.rerollCost * 2 + 2)));
+  const L8 = pct(light.map((r) => r.sec), 0.2);
+  const deaths = hard.map((r) => r.sec), H8 = pct(deaths, 0.75) - pct(deaths, 0.25);
   const L1 = med(light.map((r) => r.sec)), L2 = med(light.map((r) => r.firstCard)), L3 = med(light.map((r) => r.builds)), L4 = med(light.map((r) => r.firstHit)), L5 = pct(lightWarn, 0.1);
   const M1 = med(mid.map((r) => r.sec)), M2 = med(mid.map((r) => r.builds + r.rerolls)), M3 = best / Math.max(1, worst);
   const H1 = med(hardScores) / Math.max(1, med(light.map((r) => r.score))), H2 = med(hard.map((r) => r.sec)), H6 = pct(hardWarn, 0.1);
@@ -102,8 +117,9 @@ export function measure() {
     C('L5', '라이트', '피격 운석이 화면 안에 보인 시간 하위 10%(초)', L5, '≥ 1.5', L5 >= 1.5),
     C('L6', '라이트', '첫 피격 → 끝까지(초) — 연쇄 사망', hitToDeath, '≥ 25', hitToDeath >= 25),
     C('L7', '라이트', '최고 빌드 하위 10% 생존(초) — 초반 운 사망', L7, '≥ 90', L7 >= 90),
-    C('F1', '라이트', '판단 사이 간격 중앙값(초) — 관전 시간', F1, '≤ 12', F1 <= 12),
-    C('F2', '라이트', '판단 사이 간격 상위 10%(초) — 긴 관전 구간', F1p90, '≤ 20', F1p90 <= 20),
+    C('L8', '라이트', '라이트 하위 20% 판 길이(초) — 아무것도 못 짓고 끝남', L8, '≥ 45', L8 >= 45),
+    C('F1', '라이트', '[참고] 판단 사이 간격 중앙값(초) — 박자 카드 뒤 설정값', F1, '≤ 12', F1 <= 12, true),
+    C('F2', '라이트', '[참고] 판단 사이 간격 상위 10%(초) — 설정값', F1p90, '≤ 20', F1p90 <= 20, true),
     C('M1', '미들코어', '판 길이(초)', M1, '180~360', M1 >= 180 && M1 <= 360),
     C('M2', '미들코어', '판당 판단 수(카드 + 누른 다시 뽑기)', M2, '15~30', M2 >= 15 && M2 <= 30),
     C('M3', '미들코어', '빌드 최고/최저 점수 비(선택이 중요한가)', M3, '≥ 1.3', M3 >= 1.3),
@@ -114,17 +130,23 @@ export function measure() {
     C('H4', '하드코어', '점수 중 콤보·무피격 보너스 비율(%)', 0, '≥ 10', false),
     C('H5', '하드코어', '최고 빌드 점수 변동계수(%) — 결정적 벽이 아닌가', cv * 100, '≥ 15', cv >= 0.15),
     C('H6', '하드코어', '끝판 피격 운석 화면 안 시간 하위 10%(초)', H6, '≥ 0.6', H6 >= 0.6),
+    C('H8', '하드코어', '최고 빌드 사망 시각 사분위 범위(초) — 벽이 아닌가 (M3 기준)', H8, '≥ 30', H8 >= 30),
+    C('R1', '미들코어', '다시 뽑기 판단: 골라 누르기/무조건 누르기 점수비', R1a, '≥ 1.05', R1a >= 1.05),
+    C('R2', '미들코어', '판 끝 남은 광석 ÷ 다시 뽑기 2회분 (중앙값)', R1b, '≤ 1', R1b <= 1),
   ];
   const summary = (rs: Run[]) => ({ sec: r1(med(rs.map((r) => r.sec))), score: med(rs.map((r) => r.score)), wave: med(rs.map((r) => r.wave)), builds: med(rs.map((r) => r.builds)) });
-  return { at: new Date().toISOString(), seeds: SEEDS.length, hardBuild: bestName, groups: { 라이트: summary(light), 미들코어: summary(mid), 하드코어: summary(hard) }, strategies: scoreOf, distinct, checks, passed: checks.filter((c) => c.ok).length };
+  const ratio = (rs: Run[], f: (r: Run) => number, g: (r: Run) => number) => r1((100 * rs.reduce((a, r) => a + f(r), 0)) / Math.max(1, rs.reduce((a, r) => a + g(r), 0)));
+  const observe = { 처치광석비율: ratio(mid, (r) => r.killOre, (r) => r.allOre), 빈화면비율: ratio(mid, (r) => r.emptyTicks, (r) => r.sec * 60), 무조건다시뽑기점수: med(alwaysRuns.map((r) => r.score)) };
+  return { observe, at: new Date().toISOString(), seeds: SEEDS.length, hardBuild: bestName, groups: { 라이트: summary(light), 미들코어: summary(mid), 하드코어: summary(hard) }, strategies: scoreOf, distinct, checks, passed: checks.filter((c) => c.ok && !c.ref).length, counted: checks.filter((c) => !c.ref).length };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const m = measure();
   mkdirSync(join(import.meta.dirname, 'reports'), { recursive: true });
   writeFileSync(join(import.meta.dirname, 'reports', 'funqa.json'), JSON.stringify(m, null, 2) + '\n');
-  console.log(`FUN QA 지표 ${m.passed}/${m.checks.length} 통과 · 하드코어 빌드 = ${m.hardBuild}`);
+  console.log(`FUN QA 지표 ${m.passed}/${m.counted} 통과(참고 제외) · 하드코어 빌드 = ${m.hardBuild}`);
   for (const c of m.checks) console.log(`${c.ok ? '✅' : '❌'} ${c.id} [${c.group}] ${c.what}: ${c.value} (목표 ${c.target})`);
   console.log('유저군 요약', JSON.stringify(m.groups));
+  console.log('관찰', JSON.stringify(m.observe));
   console.log('빌드별 점수', JSON.stringify(m.strategies), '서로 다른 상위 빌드', m.distinct.join(','));
 }
