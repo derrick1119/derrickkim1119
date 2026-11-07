@@ -9,6 +9,8 @@ export const CORE = 0.17, ORBIT = 0.43, BODY = 0.05, ENEMY_R = 0.04, RANGE = 0.3
 export const SLOTS = 8, HP_MAX = 5, CARD_Y = 0.84;
 const BULLET_V = 1.3 / 60, FIRE_EVERY = 30, COMBO_GAP = 60, BREATH = 240;
 export const TICK = 1 / 60;
+/** 카드 비용 곡선. C003: 비용만 낮춰 F1(≤12초)을 맞추려 했으나 처치 광석 → 카드 → 처치의 눈덩이로 판이 끝나지 않아 폐기(TALK C003) */
+const COST0 = 8, COST_MUL = 1.15, COST_ADD = 3;
 
 export type Kind = '광산' | '포탑';
 export type CardId = 'new-mine' | 'new-turret' | 'up-mine' | 'up-turret' | 'ally' | 'shield' | 'spin';
@@ -89,7 +91,7 @@ export const turretRange = (lv: number) => 0.34 + 0.05 * (lv - 1);
 export function create(seed: number): State {
   return {
     rng: mulberry32(seed), crng: mulberry32(seed ^ 0x5bd1e995), wave: 1, budget: waveSize(1), breath: 0, t: 0, angle: -Math.PI / 2, spinLv: 0, allies: 0, cool: [0], enemies: [], bullets: [],
-    ore: 0, cost: 8, offer: null, offerAt: -99, builds: 0, hp: 3, spawnIn: 90, nextId: 1, kills: 0, blocks: 0,
+    ore: 0, cost: COST0, offer: null, offerAt: -99, builds: 0, hp: 3, spawnIn: 90, nextId: 1, kills: 0, blocks: 0,
     combo: 0, comboAt: -999, bestCombo: 0, last: null, hitAt: -99, deadAt: -1, dead: false, events: [],
     // 리뷰: 시작 방어 0 → 포탑 Lv1 하나를 깔고 시작 (기지가 첫 화면부터 보인다)
     sites: [{ kind: '포탑', slot: 6, level: 1, cool: 0, aim: 0, born: -99 }],
@@ -185,7 +187,7 @@ function choose(s: State, k: number) {
   const c = s.offer[k];
   const p = apply(s, c);
   s.ore -= s.cost;
-  s.cost = Math.round(s.cost * 1.15 + 3);
+  s.cost = Math.round(s.cost * COST_MUL + COST_ADD);
   s.builds++;
   s.last = { card: c.id, label: c.label, t: s.t };
   s.offer = null;
