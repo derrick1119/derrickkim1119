@@ -19,8 +19,8 @@ export function usage(): Record<string, number> {
   return u;
 }
 
-/** 오너가 고른 조작(지금까지 3/3 원버튼) — 원버튼 계열을 우선하되 다른 조작도 가끔 섞는다 */
-const CONTROL_PREF: Record<string, number> = { onebutton: 3, hold: 3, twobutton: 1, swipe: 1, dragaim: 1, slide: 0.5 };
+/** 조작 가중치. 오너(2026-11-07): "굳이 원버튼을 고집할 필요 없어" → 모든 조작을 고르게 */
+const CONTROL_PREF: Record<string, number> = { onebutton: 1, hold: 1, twobutton: 1, swipe: 1, dragaim: 1, slide: 1 };
 
 export function suggest(n = 8, seed = new Date().toISOString().slice(0, 10)): Idea[] {
   const u = usage();

@@ -7,9 +7,9 @@
     "autobattle",
     "pinball"
    ],
-   "control": "hold",
+   "control": "twobutton",
    "spice": "ghost",
-   "fresh": 2
+   "fresh": 3
   },
   {
    "core": [
@@ -25,7 +25,7 @@
     "racing",
     "brick"
    ],
-   "control": "dragaim",
+   "control": "slide",
    "spice": "gravityflip",
    "fresh": 3
   },
@@ -34,16 +34,16 @@
     "flap",
     "autobattle"
    ],
-   "control": "hold",
+   "control": "swipe",
    "spice": "rewind",
-   "fresh": 3
+   "fresh": 4
   },
   {
    "core": [
     "traffic",
     "pinball"
    ],
-   "control": "dragaim",
+   "control": "slide",
    "spice": "rolereverse",
    "fresh": 3
   },
@@ -52,27 +52,9 @@
     "grapple",
     "whack"
    ],
-   "control": "twobutton",
+   "control": "swipe",
    "spice": "mirror",
    "fresh": 4
-  },
-  {
-   "core": [
-    "shmup",
-    "autobattle"
-   ],
-   "control": "hold",
-   "spice": "turnbased",
-   "fresh": 3
-  },
-  {
-   "core": [
-    "order",
-    "snake"
-   ],
-   "control": "onebutton",
-   "spice": "collect",
-   "fresh": 2
   }
  ]
 }
