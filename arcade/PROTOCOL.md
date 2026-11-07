@@ -44,10 +44,11 @@
    레지스트리에서 빼고(코드는 `arcade/games/`에 남김) 실험 기록에 이유를 쓴다. 이것도 성과다.
 7. **새 아이디어 1~3개**를 BACKLOG에 (조합표에서 아직 안 쓴 짝, 오너 이유에서 나온 것 우선).
 8. **기록**: JOURNAL 맨 위 항목, STATE 갱신(게임 목록·봇 지표·라운드·연속 실패 수).
-9. **계기판 갱신** (오너가 직접 볼 게 바뀐 사이클에만): A|B 라운드가 새로 열렸거나, 계기판에 새 게임이 올라갔거나,
-   플레이 가능한 게임 코드가 바뀐 사이클에만 `npx tsx arcade/cli-dashboard.ts --cycle NNNN` → STATE "계기판" slug로 `publish_files` 재게시
-   (base_version은 `get_artifact`). 기록·지표만 바뀐 사이클은 게시하지 않는다 — 게시마다 오너 폰에 승인 요청이 떠서다(오너 요청 2026-11-06).
-   게시가 거부·미응답이면 사이클 실패로 치지 않고 JOURNAL에만 적는다.
+9. **계기판 갱신** (매 사이클): `npx tsx arcade/cli-dashboard.ts --cycle NNNN` → `arcade/reports/dashboard.html`과
+   **`web/public/arcade/index.html`**(GitHub Pages)이 함께 만들어진다. push하면 Pages가 자동 배포 →
+   오너 주소: https://derrick1119.github.io/derrickkim1119/arcade/ (오너 결정 2026-11-07: 공개 페이지로 운영, 승인 창 없음).
+   아티팩트(`publish_files`)는 게시마다 오너 승인 창이 떠서 **쓰지 않는다**. 오너에게 알릴 땐 Pages 주소를 준다.
+   push 뒤 배포가 끝나면(약 1분) `curl`로 주소가 열리는지 확인하고, 실패하면 JOURNAL에 적는다.
 10. **푸시**: 커밋 메시지 "발견 NNNN: <요약>", `git push -u origin factory`. 거절되면 `git pull --rebase origin factory` → verify → push.
 
 ## 절대 규칙

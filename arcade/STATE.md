@@ -3,7 +3,7 @@
 상태: RUNNING
 마지막 사이클: 0019 (2026-11-07, A|B 4라운드 판정 + 챔피언 확장판 행성 수호대)
 연속 실패: 0
-계기판: slug 31ee3db4-07df-4eef-b4eb-226aa0668917 · https://claude.ai/artifact/7AcEhtzoUWTsZDBKWYUjiW
+계기판: **https://derrick1119.github.io/derrickkim1119/arcade/** (GitHub Pages, 승인 없이 열림 · 오너 결정 2026-11-07) · 옛 아티팩트 slug 31ee3db4-07df-4eef-b4eb-226aa0668917(더 이상 갱신 안 함)
 
 ## 게임
 | 게임 | 조합 | 디자인 컨셉 | 조작 | 재미 추정 | 숙련 격차 | 못함/잘함 생존 |
@@ -31,5 +31,5 @@
 
 ## 오너에게
 - 🔔 결정 필요: 5라운드 — 원본 궤도 수비(A) vs 확장판 행성 수호대(B). 계기판에서 해 보고 채팅에 "A" 또는 "B".
-  https://claude.ai/artifact/7AcEhtzoUWTsZDBKWYUjiW
+  https://derrick1119.github.io/derrickkim1119/arcade/
 - 결정이 필요할 때마다 알림을 보냅니다(오너 요청).

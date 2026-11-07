@@ -4,7 +4,7 @@
  * → arcade/reports/dashboard.html (아티팩트로 게시, slug는 arcade/STATE.md)
  */
 import { build } from 'esbuild';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { GENE_KIND_LABEL, GENES, type GeneKind } from './core.ts';
 import { ideaText, suggest, usage } from './ideas.ts';
@@ -135,4 +135,7 @@ ${bench ? `<section aria-labelledby="bench-h">
 </html>
 `;
 writeFileSync(join(root, 'reports', 'dashboard.html'), html);
+// 오너 요청(2026-11-07): 승인 창 없이 언제든 열 수 있게 GitHub Pages에도 싣는다 → /arcade/
+mkdirSync(join(root, '..', 'web', 'public', 'arcade'), { recursive: true });
+writeFileSync(join(root, '..', 'web', 'public', 'arcade', 'index.html'), html);
 console.log(`dashboard: ${(html.length / 1024).toFixed(1)} KB · 라운드 ${cur.round} (${cur.A} vs ${cur.B})`);
