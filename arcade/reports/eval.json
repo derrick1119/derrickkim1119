@@ -18,6 +18,10 @@
    7,
    10
   ],
+  "dumbReveals": [
+   1,
+   1
+  ],
   "parts": {
    "skill": 1,
    "onboarding": 1,
@@ -45,6 +49,10 @@
    5,
    9.5,
    12
+  ],
+  "dumbReveals": [
+   2.6,
+   3
   ],
   "parts": {
    "skill": 1,

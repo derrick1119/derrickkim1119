@@ -25,6 +25,8 @@ export interface ArcadeReport {
   parts: { skill: number; onboarding: number; session: number; simplicity: number; unfold?: number };
   /** 잘하는 봇 판에서 30·60·120초 시점의 '새로 등장한 것' 수 (reveals가 있는 게임만) */
   reveals?: [number, number, number];
+  /** 못하는 봇(처음 하는 사람) 판: 30초 시점·판이 끝날 때의 '새로 등장한 것' 수 (0025) */
+  dumbReveals?: [number, number];
   fun: number;
 }
 
@@ -44,7 +46,7 @@ export function evaluateGame<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, n = 
   const capped = m.filter((r) => r.ticks >= cap).length / n;
   const skillGap = (smartScore + 1) / (dumbScore + 1);
   // 펼쳐짐: 잘하는 봇 판을 다시 돌려 30·60·120초(또는 끝난 시점)의 reveals를 잰다
-  let reveals: [number, number, number] | undefined;
+  let reveals: [number, number, number] | undefined, dumbReveals: [number, number] | undefined;
   if (g.reveals) {
     const at = [0, 0, 0];
     for (const sd of seeds.slice(0, 8)) {
@@ -62,6 +64,19 @@ export function evaluateGame<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, n = 
       at[2] += g.reveals(st);
     }
     reveals = at.map((x) => +(x / 8).toFixed(1)) as [number, number, number];
+    // 처음 하는 사람 기준: 못하는 봇은 2분 안에 무엇을 보나 (0025, 등불 마을은 못하는 봇이 첫 밤에 끝남)
+    const du = [0, 0];
+    for (const sd of seeds.slice(0, 8)) {
+      const st = g.create(sd), rng = mulberry32(sd ^ 0x9e3779b9);
+      let t = 0;
+      for (; t < 60 * 120 && !g.over(st); t++) {
+        g.step(st, dumb.act(st, rng));
+        if (t === 60 * 30 - 1) du[0] += g.reveals(st);
+      }
+      if (t < 60 * 30) du[0] += g.reveals(st);
+      du[1] += g.reveals(st);
+    }
+    dumbReveals = du.map((x) => +(x / 8).toFixed(1)) as [number, number];
   }
   const parts: ArcadeReport['parts'] = {
     skill: clamp(Math.log(skillGap) / Math.log(8)), // 8배 이상이면 만점
@@ -79,6 +94,7 @@ export function evaluateGame<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, n = 
     smart: { score: smartScore, sec: +smartSec.toFixed(1), capped },
     skillGap: +skillGap.toFixed(2),
     reveals,
+    dumbReveals,
     parts: Object.fromEntries(Object.entries(parts).map(([k, v]) => [k, +v.toFixed(3)])) as ArcadeReport['parts'],
     fun: +fun.toFixed(3),
   };
@@ -90,7 +106,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const t0 = performance.now();
     const r = evaluateGame(e.game as GameDef<unknown>, e.dumb as Bot<unknown>, e.smart as Bot<unknown>);
     out[r.id] = r;
-    console.log(`${r.name.padEnd(8)} 재미 ${r.fun.toFixed(3)}${r.reveals ? ` · 펼쳐짐 ${r.reveals.join('/')}` : ''} · 숙련격차 ${r.skillGap}× · 못함 ${r.dumb.sec}s/${r.dumb.score}점 · 잘함 ${r.smart.sec}s/${r.smart.score}점 (3분 버팀 ${Math.round(r.smart.capped * 100)}%) · ${((performance.now() - t0) / 1000).toFixed(1)}s`);
+    console.log(`${r.name.padEnd(8)} 재미 ${r.fun.toFixed(3)}${r.reveals ? ` · 펼쳐짐 ${r.reveals.join('/')} (못함 ${r.dumbReveals?.join('/')})` : ''} · 숙련격차 ${r.skillGap}× · 못함 ${r.dumb.sec}s/${r.dumb.score}점 · 잘함 ${r.smart.sec}s/${r.smart.score}점 (3분 버팀 ${Math.round(r.smart.capped * 100)}%) · ${((performance.now() - t0) / 1000).toFixed(1)}s`);
   }
   writeFileSync(join(import.meta.dirname, 'reports', 'eval.json'), JSON.stringify(out, null, 1) + '\n');
 }
