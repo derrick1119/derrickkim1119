@@ -7,11 +7,11 @@ import { mulberry32, type Rng } from '../../engine/rng.ts';
 
 export const CORE = 0.17, ORBIT = 0.43, BODY = 0.05, ENEMY_R = 0.04, RANGE = 0.32;
 export const SLOTS = 8, HP_MAX = 5, CARD_Y = 0.84;
-const BULLET_V = 1.3 / 60, MOVE = 1.7 / 60, FIRE_EVERY = 30, COMBO_GAP = 60, BREATH = 240;
+const BULLET_V = 1.3 / 60, FIRE_EVERY = 30, COMBO_GAP = 60, BREATH = 240;
 export const TICK = 1 / 60;
 
 export type Kind = '광산' | '포탑';
-export type CardId = 'new-mine' | 'new-turret' | 'up-mine' | 'up-turret' | 'ally' | 'shield';
+export type CardId = 'new-mine' | 'new-turret' | 'up-mine' | 'up-turret' | 'ally' | 'shield' | 'spin';
 export interface Card { id: CardId; label: string; detail: string }
 export interface Enemy { id: number; a: number; r: number; v: number; hp: number; maxHp: number; big: boolean; flash: number }
 export interface Shot { x: number; y: number; vx: number; vy: number; life: number; from: 'ship' | 'turret' }
@@ -29,12 +29,12 @@ export type GameEvent =
   | { type: 'clear'; wave: number }
   | { type: 'dead' };
 
+/**
+ * 입력은 카드 고르기뿐 (오너 2026-11-07: "조작 따로 없이 그냥 계속 회전하게 해주는 게 낫지 않아?").
+ * 편대는 저절로 돌고, 플레이어의 판단은 "무엇을 짓나" 하나에 모인다.
+ */
 export interface Input {
-  /** -1 반시계, 0 정지, 1 시계 (봇·호환용) */
-  dir: -1 | 0 | 1;
-  /** 가고 싶은 궤도 각도 — 가장 가까운 배가 그 각도로 간다. 손을 떼도 도착할 때까지 간다 (오너: "조작이 좀 어렵네") */
-  aim?: number;
-  /** 이번 틱에 고른 카드(0부터) */
+  /** 고른 카드(0부터). 카드가 떠 있는 동안 게임은 멈춰 있다 */
   pick?: number;
 }
 
@@ -50,9 +50,8 @@ export interface State {
   breath: number;
   t: number;
   angle: number;
-  dir: -1 | 0 | 1;
-  /** 마지막으로 누른 목표 각도 (도착하면 null) */
-  target: number | null;
+  /** 궤도 가속 단계 0~3 — 회전 속도 (오너: "회전 속도도 좀 중요할 것 같고") */
+  spinLv: number;
   allies: number;
   cool: number[];
   enemies: Enemy[];
@@ -89,7 +88,7 @@ export const turretRange = (lv: number) => 0.34 + 0.05 * (lv - 1);
 
 export function create(seed: number): State {
   return {
-    rng: mulberry32(seed), crng: mulberry32(seed ^ 0x5bd1e995), wave: 1, budget: waveSize(1), breath: 0, t: 0, angle: -Math.PI / 2, dir: 0, target: null, allies: 0, cool: [0], enemies: [], bullets: [],
+    rng: mulberry32(seed), crng: mulberry32(seed ^ 0x5bd1e995), wave: 1, budget: waveSize(1), breath: 0, t: 0, angle: -Math.PI / 2, spinLv: 0, allies: 0, cool: [0], enemies: [], bullets: [],
     ore: 0, cost: 8, offer: null, offerAt: -99, builds: 0, hp: 3, spawnIn: 90, nextId: 1, kills: 0, blocks: 0,
     combo: 0, comboAt: -999, bestCombo: 0, last: null, hitAt: -99, deadAt: -1, dead: false, events: [],
     // 리뷰: 시작 방어 0 → 포탑 Lv1 하나를 깔고 시작 (기지가 첫 화면부터 보인다)
@@ -100,15 +99,18 @@ export function create(seed: number): State {
 export const score = (s: State) => s.kills + s.builds * 5;
 
 /** 웨이브 예산 (리뷰 ①: 시간 기반 스폰은 88초에 초당 12개 벽을 만들었다) */
-export const waveSize = (n: number) => 8 + 3 * n;
-const waveCap = (n: number) => 4 + n;
-const waveGap = (n: number) => Math.max(16, 70 - 8 * n);
+/** 속도 상한(초당) — FUN QA C001: n² 가속은 반응 불가능한 벽이었다. 난이도는 수·크기로 올린다 */
+const VMAX = 0.42;
+export const waveSize = (n: number) => 6 + 3 * n;
+const waveCap = (n: number) => 3 + n;
+const waveGap = (n: number) => Math.max(18, 80 - 6 * n);
 
 function spawn(s: State) {
   const n = s.wave - 1;
-  const big = s.rng() < Math.min(0.5, 0.09 * n);
-  const hp = big ? 3 : 1 + (s.rng() < Math.min(0.6, 0.12 * n) ? 1 : 0);
-  s.enemies.push({ id: s.nextId++, a: s.rng() * Math.PI * 2, r: 1.05, v: (0.13 + 0.05 * n + 0.004 * n * n + s.rng() * 0.04) / 60, hp, maxHp: hp, big, flash: -99 });
+  const big = s.rng() < Math.min(0.45, 0.06 * n);
+  // 후반 난이도는 단단함으로: 5웨이브마다 체력 +1
+  const hp = (big ? 3 : 1 + (s.rng() < Math.min(0.6, 0.08 * n) ? 1 : 0)) + Math.floor(n / 5);
+  s.enemies.push({ id: s.nextId++, a: s.rng() * Math.PI * 2, r: 1.05, v: (Math.min(VMAX, 0.11 + 0.025 * n) + s.rng() * 0.03) / 60, hp, maxHp: hp, big, flash: -99 });
   s.budget--;
   s.spawnIn = Math.round(waveGap(s.wave) * (0.7 + s.rng() * 0.6));
 }
@@ -134,7 +136,8 @@ export function available(s: State): Card[] {
   const m = lowest(s, '광산'), t = lowest(s, '포탑');
   if (m) out.push({ id: 'up-mine', label: `광산 Lv${m.level + 1}`, detail: '캐는 속도 ↑' });
   if (t) out.push({ id: 'up-turret', label: `포탑 Lv${t.level + 1}`, detail: '연사·사거리 ↑' });
-  if (s.allies < 3) out.push({ id: 'ally', label: '위성', detail: '수호선 +1' });
+  if (s.allies < 3) out.push({ id: 'ally', label: '위성', detail: '편대 +1기' });
+  if (s.spinLv < 3) out.push({ id: 'spin', label: `궤도 가속 Lv${s.spinLv + 1}`, detail: '회전 +50%' });
   if (s.hp < HP_MAX) out.push({ id: 'shield', label: '방어막', detail: '내구도 +1' });
   return out;
 }
@@ -168,6 +171,9 @@ function apply(s: State, c: Card): { x: number; y: number } {
       s.allies++;
       s.cool.push(0);
       return pos(s.angle, ORBIT);
+    case 'spin':
+      s.spinLv++;
+      return pos(s.angle, ORBIT);
     case 'shield':
       s.hp++;
       return { x: 0, y: 0 };
@@ -198,32 +204,19 @@ function shoot(s: State, from: { x: number; y: number }, range: number, kind: 's
   return Math.atan2(best.p.y - from.y, best.p.x - from.x);
 }
 
-/** 목표까지 남은 각도(가장 가까운 배 기준, 부호 = 방향) */
-export function toTarget(s: State, aim: number) {
-  return crew(s).map((a) => wrap(aim - a)).reduce((a, x) => (Math.abs(x) < Math.abs(a) ? x : a));
-}
-/** 목표 이동: 멀면 빠르게(초당 3.3라디안), 가까우면 감속해 정확히 멈춘다 — 예전 고정 1.7라디안은 반 바퀴에 1.9초 */
-const AIM_MAX = 0.055, AIM_MIN = 0.012, AIM_GAIN = 0.16;
+/** 회전 속도(라디안/틱): 기본 초당 0.9, 궤도 가속 단계마다 +50% */
+export const spinSpeed = (s: State) => (0.9 / 60) * (1 + 0.5 * s.spinLv);
 
 export function step(s: State, input: Input) {
   s.events = [];
   if (s.dead) return;
-  s.t++;
-  if (input.pick !== undefined) choose(s, input.pick);
-  if (input.aim !== undefined) s.target = input.aim;
-  if (input.dir) s.target = null;
-  if (s.target !== null) {
-    const d = toTarget(s, s.target);
-    if (Math.abs(d) < 0.006) (s.target = null), (s.dir = 0);
-    else {
-      const v = Math.min(AIM_MAX, Math.max(AIM_MIN, Math.abs(d) * AIM_GAIN), Math.abs(d));
-      s.dir = d > 0 ? 1 : -1;
-      s.angle = wrap(s.angle + s.dir * v);
-    }
-  } else {
-    s.dir = input.dir;
-    if (s.dir) s.angle = wrap(s.angle + s.dir * MOVE);
+  // 카드가 떠 있으면 세계가 멈춘다 — 고르기 전엔 진행하지 않는다 (오너: "레벨업하면 멈추고 선택해야 진행")
+  if (s.offer) {
+    if (input.pick !== undefined) choose(s, input.pick);
+    return;
   }
+  s.t++;
+  s.angle = wrap(s.angle + spinSpeed(s));
   waves(s);
   s.ore += (0.5 + mineRate(s)) / 60;
   if (!s.offer && s.ore >= s.cost) makeOffer(s);
@@ -281,41 +274,29 @@ export function step(s: State, input: Input) {
   s.bullets = s.bullets.filter((b) => b.life > 0);
 }
 
-/** 봇: 아무 데나 막 누르고, 카드는 아무거나 (바닥 대역) */
+/** 카드 고르는 버릇 — 봇은 이것만 다르다 (조작이 없으니 실력 = 카드 판단) */
+export type Policy = (c: Card, s: State) => number;
+const pickBy = (s: State, rank: Policy) => (s.offer ? s.offer.map((c, k) => [rank(c, s), k]).sort((a, b) => a[0] - b[0])[0][1] : undefined);
+
+/** 봇: 카드는 아무거나 (처음 하는 사람 대역) */
 export function randomBot(s: State, rng: Rng): Input {
-  return { dir: 0, aim: rng() < 0.1 ? rng() * Math.PI * 2 : undefined, pick: s.offer && rng() < 0.02 ? Math.floor(rng() * s.offer.length) : undefined };
+  return { pick: s.offer ? Math.floor(rng() * s.offer.length) : undefined };
 }
+export const noviceBot = randomBot;
 
-/** 봇: 처음 하는 사람 대역 — 0.4초 늦게 보고, 0.3라디안쯤 빗나가게 누르고, 카드는 늦게 아무거나 (리뷰 R1: 막누르기는 신규 유저 대리 지표가 아니다) */
-export function noviceBot(s: State, rng: Rng): Input {
-  const pick = s.offer && s.t - s.offerAt > 120 && rng() < 0.05 ? Math.floor(rng() * s.offer.length) : undefined;
-  // 0.4초 전에 이미 보이던 운석 중 가장 급한 것 (반응 지연)
-  const seen = s.enemies.filter((e) => 1.05 - e.r > e.v * 24);
-  if (!seen.length || rng() < 0.6) return { dir: 0, pick };
-  const urgent = seen.reduce((a, e) => ((e.r - CORE) / e.v < (a.r - CORE) / a.v ? e : a));
-  return { dir: 0, aim: urgent.a + (rng() - 0.5) * 0.6, pick };
-}
-
-/** 봇: 가장 급한 운석을 가장 가까운 배로 막고, 카드는 위성 > 포탑 강화 > 새 포탑 > 광산 > 방어막 (내구도 1이면 방어막 먼저) */
+/** 봇: 방어 우선 — 위성 > 포탑 강화 > 새 포탑 > 궤도 가속 > 광산 > 방어막 (내구도 1이면 방어막 먼저) */
+export const BALANCED: Policy = (c, s) =>
+  s.hp <= 1 && c.id === 'shield' ? 0 : c.id === 'ally' ? 1 : c.id === 'up-turret' ? 2 : c.id === 'new-turret' ? 3 : c.id === 'spin' ? 4 : c.id.endsWith('mine') ? 5 : 6;
 export function smartBot(s: State): Input {
-  let pick: number | undefined;
-  if (s.offer) {
-    const rank = (c: Card) => (s.hp <= 1 && c.id === 'shield' ? 0 : c.id === 'ally' ? 1 : c.id === 'up-turret' ? 2 : c.id === 'new-turret' ? 3 : c.id.endsWith('mine') ? 4 : 5);
-    pick = s.offer.map((c, k) => [rank(c), k]).sort((a, b) => a[0] - b[0])[0][1];
-  }
-  if (!s.enemies.length) return { dir: 0, pick };
-  const urgent = s.enemies.reduce((a, e) => ((e.r - CORE) / e.v < (a.r - CORE) / a.v ? e : a));
-  return { dir: 0, aim: urgent.a, pick };
+  return { pick: pickBy(s, BALANCED) };
 }
+export const policyBot = (rank: Policy) => (s: State): Input => ({ pick: pickBy(s, rank) });
 
-/** 봇 한 판: react틱마다 판단, 사이 틱은 방향만 유지(카드는 다시 고르지 않음) */
-export function runBot(bot: (s: State, rng: Rng) => Input, seed: number, maxTicks = 60 * 600, react = 3) {
+/** 봇 한 판 */
+export function runBot(bot: (s: State, rng: Rng) => Input, seed: number, maxTicks = 60 * 600) {
   const s = create(seed);
   const rng = mulberry32(seed ^ 0x9e3779b9);
-  let held: Input = { dir: 0 };
-  while (!s.dead && s.t < maxTicks) {
-    const inp = s.t % react === 0 ? (held = bot(s, rng)) : { dir: held.dir };
-    step(s, inp);
-  }
+  let guard = 0;
+  while (!s.dead && s.t < maxTicks && guard++ < maxTicks * 4) step(s, bot(s, rng));
   return { score: score(s), sec: s.t / 60, builds: s.builds, kills: s.kills, state: s };
 }

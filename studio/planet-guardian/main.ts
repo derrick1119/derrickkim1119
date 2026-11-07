@@ -4,7 +4,7 @@
 import { create, crew, score, smartBot, step, type Input, type State } from './sim.ts';
 import { createJuice, react, tick, type Juice } from './juice.ts';
 import { createSfx } from './audio.ts';
-import { cardBox, cardTop, draw, markDead, setTouchOnly, view } from './render.ts';
+import { cardBox, cardTop, draw, markDead, setSelected, setTouchOnly } from './render.ts';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const canvas = $<HTMLCanvasElement>('game'), ctx = canvas.getContext('2d')!;
@@ -54,8 +54,6 @@ function start() {
   sfx.unlock();
   s = create((Date.now() & 0x7fffffff) || 1);
   j = createJuice(calm);
-  pointers.clear();
-  keys.clear();
   sfx.ui('start');
   show('play');
 }
@@ -66,60 +64,40 @@ function pause(on: boolean) {
 }
 
 // ── 입력 ────────────────────────────────────────────────
-/** 누르고 있는 손가락들. 카드 띠 위의 손가락은 조준, 카드 띠의 손가락은 그 순간 한 번 고르기 — 조준하면서 다른 손가락으로 카드를 고를 수 있다 */
-const pointers = new Map<number, { x: number; y: number; t: number }>();
-const keys = new Set<string>();
-let pick: number | undefined;
+// 조작은 카드 고르기뿐 (오너: "조작 따로 없이 그냥 계속 회전"). 카드가 뜨면 게임이 멈추고 기다린다
+let pick: number | undefined, sel = 0;
 
 canvas.addEventListener('pointerdown', (e) => {
   sfx.unlock();
-  if (mode !== 'play') return;
+  if (mode !== 'play' || !s.offer) return;
   e.preventDefault();
-  canvas.setPointerCapture?.(e.pointerId);
   const x = e.offsetX, y = e.offsetY;
-  // 카드가 떠 있을 때만 아래 띠가 카드 영역 — 아니면 어디든 조종 (리뷰 R2: 죽은 영역)
-  if (s.offer && y >= cardTop(H) - 8) {
-    const k = [0, 1, 2].find((i) => x / W >= cardBox(i).x0 - 0.01 && x / W <= cardBox(i).x1 + 0.01);
-    if (k !== undefined && s.offer?.[k]) (pick = k), sfx.ui('pick');
-    return;
-  }
-  pointers.set(e.pointerId, { x, y, t: performance.now() });
+  if (y < cardTop(H) - 8) return;
+  const k = [0, 1, 2].find((i) => x / W >= cardBox(i).x0 - 0.01 && x / W <= cardBox(i).x1 + 0.01);
+  if (k !== undefined && s.offer[k]) (pick = k), sfx.ui('pick');
 });
-canvas.addEventListener('pointermove', (e) => {
-  const p = pointers.get(e.pointerId);
-  if (p) (p.x = e.offsetX), (p.y = e.offsetY);
-});
-const lift = (e: PointerEvent) => void pointers.delete(e.pointerId);
-canvas.addEventListener('pointerup', lift);
-canvas.addEventListener('pointercancel', lift);
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
-const AIM_KEYS: Record<string, [number, number]> = {
-  ArrowLeft: [-1, 0], KeyA: [-1, 0], ArrowRight: [1, 0], KeyD: [1, 0], ArrowUp: [0, -1], KeyW: [0, -1], ArrowDown: [0, 1], KeyS: [0, 1],
-};
 addEventListener('keydown', (e) => {
   sfx.unlock();
   if (e.code === 'KeyM') return toggleMute();
   if (mode === 'play') {
-    if (e.code in AIM_KEYS) (keys.add(e.code), e.preventDefault());
-    else if (e.code === 'Escape' || e.code === 'KeyP') pause(true);
-    else if (/^(Digit|Numpad)[123]$/.test(e.code) && s.offer) (pick = Number(e.code.slice(-1)) - 1), sfx.ui('pick');
+    if (e.code === 'Escape' || e.code === 'KeyP') return pause(true);
+    if (!s.offer) return;
+    const n = s.offer.length;
+    if (/^(Digit|Numpad)[123]$/.test(e.code) && Number(e.code.slice(-1)) <= n) (pick = Number(e.code.slice(-1)) - 1), sfx.ui('pick');
+    else if (e.code === 'ArrowLeft' || e.code === 'KeyA') (sel = (sel + n - 1) % n), e.preventDefault();
+    else if (e.code === 'ArrowRight' || e.code === 'KeyD') (sel = (sel + 1) % n), e.preventDefault();
+    else if (e.code === 'Enter' || e.code === 'Space') (pick = sel), sfx.ui('pick'), e.preventDefault();
   } else if (mode === 'pause' && (e.code === 'Escape' || e.code === 'KeyP')) pause(false);
 });
-addEventListener('keyup', (e) => void keys.delete(e.code));
-addEventListener('blur', () => (keys.clear(), pointers.clear(), pause(true)));
+addEventListener('blur', () => pause(true));
 document.addEventListener('visibilitychange', () => document.hidden && pause(true));
 
-/** 지금 입력 → 시뮬 입력. 키는 화면 방향(←는 화면 왼쪽으로 간다), 손가락은 행성 중심에서 본 방향 */
 function input(): Input {
-  const out: Input = { dir: 0, pick };
+  const out: Input = { pick };
+  if (pick !== undefined) sel = 0;
   pick = undefined;
-  let dx = 0, dy = 0;
-  for (const k of keys) (dx += AIM_KEYS[k][0]), (dy += AIM_KEYS[k][1]);
-  const v = view(W, H);
-  const last = [...pointers.values()].sort((a, b) => b.t - a.t)[0];
-  if (last) out.aim = Math.atan2(last.y - v.cy, last.x - v.cx);
-  else if (dx || dy) out.aim = Math.atan2(dy, dx);
   return out;
 }
 
@@ -187,6 +165,7 @@ function loop(now: number) {
     acc -= 1000 / 60;
   }
   if (mode === 'over' && screens.result.hidden && frame - overAt > 100) result();
+  setSelected(mode === 'play' && s.offer && !touchOnly ? sel : -1);
   if (W) draw(ctx, s, j, W, H, frame, mode !== 'title');
   requestAnimationFrame(loop);
 }
@@ -194,7 +173,8 @@ function loop(now: number) {
 /** 확인용(스크린샷 스크립트) — 상태 읽기만 */
 (globalThis as unknown as { __pg: object }).__pg = { state: () => s, mode: () => mode };
 
-setTouchOnly(matchMedia?.('(any-pointer: fine)').matches === false);
+const touchOnly = matchMedia?.('(any-pointer: fine)').matches === false;
+setTouchOnly(touchOnly);
 resize();
 show('title');
 $('best').textContent = store.get('pg.best') ? `최고 기록 ${store.get('pg.best')}` : '';

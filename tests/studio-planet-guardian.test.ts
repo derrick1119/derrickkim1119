@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
-import { create, noviceBot, randomBot, runBot, smartBot, step, toTarget, type GameEvent, type State } from '../studio/planet-guardian/sim.ts';
+import { create, noviceBot, randomBot, runBot, smartBot, spinSpeed, step, type GameEvent, type State } from '../studio/planet-guardian/sim.ts';
 import { createJuice, react, tick } from '../studio/planet-guardian/juice.ts';
 
 const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
@@ -17,8 +17,7 @@ describe('행성 수호대 시뮬', () => {
     const angles = (pick: number) => {
       const s = create(42), seen = new Map<number, number>();
       while (s.t < 60 * 40 && !s.dead) {
-        const inp = smartBot(s);
-        step(s, { dir: inp.dir, pick: s.offer ? Math.min(pick, s.offer.length - 1) : undefined });
+        step(s, { pick: s.offer ? Math.min(pick, s.offer.length - 1) : undefined });
         for (const e of s.enemies) if (!seen.has(e.id)) seen.set(e.id, e.a);
       }
       return [...seen.entries()].slice(0, 12);
@@ -26,21 +25,27 @@ describe('행성 수호대 시뮬', () => {
     expect(angles(0)).toEqual(angles(2));
   });
 
-  it('누른 곳으로 간다: aim 쪽으로 가장 가까운 배가 움직인다', () => {
-    const s = create(1);
-    const before = s.angle;
-    for (let k = 0; k < 30; k++) step(s, { dir: 0, aim: 0 });
-    expect(Math.abs(s.angle)).toBeLessThan(Math.abs(before));
+  it('조작 없이 편대가 저절로 돈다, 궤도 가속이면 더 빨리 (오너 C002)', () => {
+    const s = create(1), a0 = s.angle;
+    for (let k = 0; k < 30; k++) step(s, {});
+    expect(s.angle).not.toBe(a0);
+    const slow = spinSpeed(s);
+    s.spinLv = 2;
+    expect(spinSpeed(s)).toBeGreaterThan(slow * 1.9);
   });
 
-  it('한 번 누르고 떼도 배가 목표까지 가서 정확히 멈춘다 (오너: 조작이 어렵다)', () => {
-    const s = create(1);
-    step(s, { dir: 0, aim: Math.PI / 2 }); // 반대편(아래)을 한 번 누름
-    let t = 0;
-    while (s.target !== null && t++ < 120) step(s, { dir: 0 });
-    expect(s.target).toBeNull();
-    expect(t).toBeLessThan(80); // 반 바퀴 1.3초 안 (예전 고정 속도는 1.9초 + 계속 누르고 있어야 했다)
-    expect(Math.abs(toTarget(s, Math.PI / 2))).toBeLessThan(0.01);
+  it('카드가 뜨면 고를 때까지 멈춘다, 고르면 다시 흐른다 (오너 C002)', () => {
+    const s = create(5);
+    while (!s.offer) step(s, {});
+    const t = s.t, enemies = JSON.stringify(s.enemies);
+    for (let k = 0; k < 200; k++) step(s, {});
+    expect(s.t).toBe(t);
+    expect(JSON.stringify(s.enemies)).toBe(enemies);
+    step(s, { pick: 0 });
+    expect(s.offer).toBeNull();
+    expect(s.builds).toBe(1);
+    step(s, {});
+    expect(s.t).toBe(t + 1);
   });
 
   it('시작하자마자 포탑 하나가 있다', () => {
@@ -49,7 +54,8 @@ describe('행성 수호대 시뮬', () => {
 
   it('손맛 사건이 나온다: 발사·처치·피격·카드·웨이브', () => {
     const s = create(3), seen = new Set<GameEvent['type']>();
-    while (!s.dead && s.t < 60 * 600) {
+    let g = 0;
+    while (!s.dead && s.t < 60 * 600 && g++ < 1e6) {
       step(s, randomBot(s, Math.random));
       for (const e of s.events) seen.add(e.type);
     }

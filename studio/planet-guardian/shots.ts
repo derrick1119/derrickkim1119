@@ -20,38 +20,41 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.screenshot({ path: join(here, 'screens', `${name}-title.png`) });
   const scroll = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
   if (scroll) errors.push(`${name}: 가로 스크롤`);
-  // 키보드만으로 시작 → 왼쪽 누르고 있기 → 카드는 1
+  // 키보드만으로 시작 → 카드는 → Enter 로 고르기
   await page.keyboard.press('Enter');
   for (let k = 0; k < 14; k++) {
-    await page.keyboard.down(k % 2 ? 'ArrowLeft' : 'ArrowUp');
     await page.waitForTimeout(700);
-    await page.keyboard.up(k % 2 ? 'ArrowLeft' : 'ArrowUp');
-    await page.keyboard.press('Digit1');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Enter');
   }
   await page.screenshot({ path: join(here, 'screens', `${name}-play.png`) });
   // 카드가 뜬 순간 + 전투 중 손맛 (새 판에서 카드가 뜰 때까지 버틴다)
   await page.keyboard.press('KeyP');
   await page.click('#quit');
   await page.keyboard.press('Enter');
-  await page.keyboard.down('ArrowUp');
   await page.waitForFunction(() => (globalThis as any).__pg.state().offer || (globalThis as any).__pg.state().dead, null, { timeout: 60_000 });
   await page.waitForTimeout(350);
   await page.screenshot({ path: join(here, 'screens', `${name}-cards.png`) });
-  await page.keyboard.up('ArrowUp');
-  if (name === 'mobile') {
-    // 터치: 행성 아래쪽을 누르고 있기
-    await page.mouse.move(195, 560);
-    await page.mouse.down();
-    await page.waitForTimeout(900);
-    await page.screenshot({ path: join(here, 'screens', `${name}-touch.png`) });
-    await page.mouse.up();
-  }
+  // 카드가 떠 있는 동안 게임이 멈춰 있는가 → 카드를 눌러 고르면 다시 도는가 (오너: "레벨업하면 멈추고 선택")
+  await page.waitForFunction(() => (globalThis as any).__pg.state().offer || (globalThis as any).__pg.state().dead, null, { timeout: 60_000 });
+  const t0 = await page.evaluate(() => (globalThis as any).__pg.state().t);
+  await page.waitForTimeout(800);
+  const t1 = await page.evaluate(() => (globalThis as any).__pg.state().t);
+  if (t1 !== t0) errors.push(`${name}: 카드가 떠 있는데 시간이 흐름 ${t0}→${t1}`);
+  await page.screenshot({ path: join(here, 'screens', `${name}-touch.png`) });
+  await page.mouse.click(vp.width / 2, vp.height * 0.9);
+  await page.waitForTimeout(300);
+  if (await page.evaluate(() => !!(globalThis as any).__pg.state().offer && (globalThis as any).__pg.state().builds === 0)) errors.push(`${name}: 카드를 눌러도 안 골라짐`);
   await page.keyboard.press('KeyP');
   await page.waitForTimeout(200);
   await page.screenshot({ path: join(here, 'screens', `${name}-pause.png`) });
-  // 결과 화면: 손 놓고 기다리기
+  // 결과 화면: 방어막을 1로 줄이고(확인용) 카드는 계속 1번
   await page.keyboard.press('KeyP');
-  await page.waitForFunction(() => !document.getElementById('result')!.hidden, null, { timeout: 120_000 });
+  await page.evaluate(() => void ((globalThis as any).__pg.state().hp = 1));
+  for (let k = 0; k < 400 && (await page.locator('#result').isHidden()); k++) {
+    await page.keyboard.press('Digit1');
+    await page.waitForTimeout(300);
+  }
   await page.waitForTimeout(600);
   await page.screenshot({ path: join(here, 'screens', `${name}-result.png`) });
   await page.close();

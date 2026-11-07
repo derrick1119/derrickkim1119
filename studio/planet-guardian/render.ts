@@ -22,7 +22,9 @@ const ease = (x: number) => 1 - (1 - Math.min(1, Math.max(0, x))) ** 3;
 /** 튀어나오기: 0→1.2→1 */
 const pop = (x: number) => (x >= 1 ? 1 : x < 0.6 ? ease(x / 0.6) * 1.2 : 1.2 - 0.2 * ease((x - 0.6) / 0.4));
 
-let deadFrame = 0, touchOnly = false;
+let deadFrame = 0, touchOnly = false, seenOffer = -1, offerFrame = 0, selected = -1;
+/** 키보드로 고르는 중인 카드(없으면 -1) */
+export const setSelected = (k: number) => void (selected = k);
 /** 터치 기기에서는 카드의 키보드 번호를 숨긴다 */
 export const setTouchOnly = (v: boolean) => void (touchOnly = v);
 /** 판이 끝난 화면 프레임을 알려 준다(기지 전경 줌 시작점) */
@@ -169,17 +171,6 @@ export function draw(ctx: CanvasRenderingContext2D, s: State, j: Juice, w: numbe
       ctx.stroke();
     }
     // 편대
-    // 목표 표시: 누른 곳(손을 떼도 배가 그리로 간다)
-    if (s.target !== null) {
-      const tp = pos(s.target, ORBIT);
-      ctx.strokeStyle = COLORS.mint;
-      ctx.globalAlpha = 0.55 + 0.25 * Math.sin(frame / 5);
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(X(tp.x), Y(tp.y), BODY * sc * 1.25, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
     // 화면 밖 운석: 가장자리 화살표
     for (const e of s.enemies) {
       const ep = pos(e.a, e.r), ex = X(ep.x), ey = Y(ep.y), m = 14;
@@ -212,17 +203,15 @@ export function draw(ctx: CanvasRenderingContext2D, s: State, j: Juice, w: numbe
       ctx.beginPath();
       ctx.arc(X(m.x * 1.06), Y(m.y * 1.06), r * 0.35, 0, Math.PI * 2);
       ctx.fill();
-      if (s.dir) {
-        const ahead = pos(a + s.dir * 0.28, ORBIT);
-        ctx.strokeStyle = k === 0 ? COLORS.mint : COLORS.white;
-        ctx.globalAlpha = 0.5;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(cx, cy, ORBIT * sc, Math.min(a, a + s.dir * 0.28), Math.max(a, a + s.dir * 0.28));
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-        void ahead;
-      }
+      // 회전 꼬리: 길이 = 회전 속도 (궤도 가속이 눈에 보이게)
+      const tail = 0.18 + 0.12 * s.spinLv;
+      ctx.strokeStyle = k === 0 ? COLORS.mint : COLORS.white;
+      ctx.globalAlpha = 0.45;
+      ctx.lineWidth = 3 + s.spinLv;
+      ctx.beginPath();
+      ctx.arc(cx, cy, ORBIT * sc, a - tail, a);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
     });
   }
 
@@ -306,12 +295,24 @@ function hud(ctx: CanvasRenderingContext2D, s: State, w: number, h: number, fram
     ctx.fillText(`${s.combo}연속`, 16, ry + rr + 8);
   }
 
-  // 건설 카드 띠
+  // 건설 카드 띠 — 카드가 뜨면 세계가 멈추고(시뮬) 화면이 어두워진다
   const top = cardTop(h), ch = h * 0.13;
   if (s.offer) {
-    const slide = ease((s.t - s.offerAt) / 14), glow = 0.5 + 0.5 * Math.sin(frame / 8);
+    if (s.offerAt !== seenOffer) (seenOffer = s.offerAt), (offerFrame = frame);
+    const age = frame - offerFrame, slide = ease(age / 14), glow = 0.5 + 0.5 * Math.sin(frame / 8);
+    ctx.fillStyle = `rgba(10,14,31,${0.55 * slide})`;
+    ctx.fillRect(0, 0, w, top - 6);
+    ctx.globalAlpha = slide;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = COLORS.ore;
+    ctx.font = `900 ${Math.round(u * 0.075)}px system-ui, sans-serif`;
+    ctx.fillText('건설 시간!', w / 2, top - ch * 1.25);
+    ctx.fillStyle = COLORS.white;
+    ctx.font = `600 ${Math.round(u * 0.04)}px system-ui, sans-serif`;
+    ctx.fillText('하나를 고르면 다시 시작해요', w / 2, top - ch * 0.62);
+    ctx.globalAlpha = 1;
     s.offer.forEach((c, k) => {
-      const bx = cardBox(k), x = bx.x0 * w, cw = (bx.x1 - bx.x0) * w, y = top + (1 - ease((s.t - s.offerAt - k * 3) / 14)) * ch * 1.2;
+      const bx = cardBox(k), x = bx.x0 * w, cw = (bx.x1 - bx.x0) * w, y = top + (1 - ease((age - k * 3) / 14)) * ch * 1.2;
       ctx.globalAlpha = slide;
       ctx.fillStyle = COLORS.ore;
       ctx.shadowColor = COLORS.ore;
@@ -320,6 +321,11 @@ function hud(ctx: CanvasRenderingContext2D, s: State, w: number, h: number, fram
       ctx.roundRect(x, y, cw, ch, 10);
       ctx.fill();
       ctx.shadowBlur = 0;
+      if (k === selected) {
+        ctx.strokeStyle = COLORS.white;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+      }
       ctx.fillStyle = INK;
       ctx.textAlign = 'center';
       ctx.font = `800 ${Math.round(Math.min(cw * 0.13, ch * 0.24))}px system-ui, sans-serif`;
