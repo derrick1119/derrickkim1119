@@ -326,8 +326,11 @@ function hud(ctx: CanvasRenderingContext2D, s: State, w: number, h: number, fram
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = can ? COLORS.ore : '#5b6490';
-    ctx.font = `800 ${Math.round(Math.min(u * 0.042, 18))}px system-ui, sans-serif`;
-    ctx.fillText(`🔄 다시 뽑기 · 광석 ${s.cost}/${Math.floor(s.ore)}${touchOnly ? '' : ' (R)'}`, w / 2, rb.y + rb.h * 0.28);
+    // C011: 두 줄 — 위는 할 일, 아래는 값(쓰는 광석 · 가진 광석). '4/4'는 비용인지 보유량인지 헷갈렸다 (FUN QA)
+    ctx.font = `800 ${Math.round(Math.min(u * 0.04, 16))}px system-ui, sans-serif`;
+    ctx.fillText(`🔄 다시 뽑기${touchOnly ? '' : ' (R)'}`, w / 2, rb.y + 5);
+    ctx.font = `600 ${Math.round(Math.min(u * 0.03, 12))}px system-ui, sans-serif`;
+    ctx.fillText(`광석 ${s.cost} 써요 · 가진 것 ${Math.floor(s.ore)}`, w / 2, rb.y + 26);
     ctx.globalAlpha = 1;
     s.offer.forEach((c, k) => {
       const bx = cardBox(k), x = bx.x0 * w, cw = (bx.x1 - bx.x0) * w, y = top + (1 - ease((age - k * 3) / 14)) * ch * 1.2;

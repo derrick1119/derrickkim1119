@@ -182,11 +182,11 @@ export function available(s: State): Card[] {
   const free = freeSlots(s).length > 0;
   // C009: 박자가 하한(6초)에 닿으면 광산은 광석만 준다 — 카드 문구도 사실대로 (FUN QA C008: '1.8초 빨리'는 거짓말이었다)
   const atFloor = beatOf(s) <= 60 * 6;
-  if (free) out.push({ id: 'new-mine', label: '새 광산', detail: atFloor ? '광석 +0.3/초' : '카드가 1.8초 빨리' }, { id: 'new-turret', label: '새 포탑', detail: '자동 사격' });
+  if (free) out.push({ id: 'new-mine', label: '새 광산', detail: atFloor ? '광석 +0.3/초' : '다음 카드가 더 빨리' }, { id: 'new-turret', label: '새 포탑', detail: '자동 사격' });
   const m = lowest(s, '광산'), t = lowest(s, '포탑');
-  if (m) out.push({ id: 'up-mine', label: `광산 Lv${m.level + 1}`, detail: atFloor ? '광석 +0.3/초' : '카드 박자 더 빨리' });
+  if (m) out.push({ id: 'up-mine', label: `광산 Lv${m.level + 1}`, detail: atFloor ? '광석 +0.3/초' : '다음 카드가 더 빨리' });
   if (t) out.push({ id: 'up-turret', label: `포탑 Lv${t.level + 1}`, detail: '연사·사거리 ↑' });
-  if (s.allies < 3) out.push({ id: 'ally', label: '위성', detail: '편대 +1기' });
+  if (s.allies < 3) out.push({ id: 'ally', label: '위성', detail: '하나 더 돌아요' });
   if (s.spinLv < 3) out.push({ id: 'spin', label: `궤도 가속 Lv${s.spinLv + 1}`, detail: '회전 +50%' });
   if (s.hp < HP_MAX) out.push({ id: 'shield', label: '방어막', detail: '내구도 +1' });
   return out;
