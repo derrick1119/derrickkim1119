@@ -122,7 +122,7 @@ const waveGap = (n: number) => Math.max(18, 80 - 6 * n);
 function spawn(s: State) {
   const n = s.wave - 1;
   const big = s.rng() < Math.min(0.45, 0.06 * n);
-  // 후반 난이도는 단단함으로: 5웨이브마다 체력 +1
+  // 후반 난이도는 단단함으로: 3웨이브마다 체력 +1 (C004. FUN QA: 계단 벽 → M3-2에서 빌드로 대응하는 위협으로 교체 예정)
   const hp = (big ? 3 : 1 + (s.rng() < Math.min(0.6, 0.08 * n) ? 1 : 0)) + Math.floor(n / 3);
   s.enemies.push({ id: s.nextId++, a: s.rng() * Math.PI * 2, r: 1.05, v: (Math.min(VMAX, 0.14 + 0.025 * n) + s.rng() * 0.03) / 60, hp, maxHp: hp, big, flash: -99 });
   s.budget--;
