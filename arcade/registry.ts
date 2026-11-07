@@ -6,11 +6,9 @@
  */
 import type { Bot, GameDef } from './core.ts';
 import { lantern, lanternRandom, lanternSmart } from './games/lantern.ts';
-import { rope, ropeRandom, ropeSmart } from './games/rope.ts';
 
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S> }
 
 export const GAMES: Entry[] = [
   { game: lantern, dumb: lanternRandom, smart: lanternSmart },
-  { game: rope, dumb: ropeRandom, smart: ropeSmart },
 ];

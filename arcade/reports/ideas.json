@@ -28,6 +28,87 @@
    "control": "onebutton",
    "spice": "rolereverse",
    "fresh": 2
+  },
+  {
+   "core": [
+    "traffic",
+    "endless"
+   ],
+   "control": "slide",
+   "spice": "ghost",
+   "fresh": 3
+  },
+  {
+   "core": [
+    "order",
+    "rhythm"
+   ],
+   "control": "dragaim",
+   "spice": "mirror",
+   "fresh": 3
+  },
+  {
+   "core": [
+    "memory",
+    "endless"
+   ],
+   "control": "onebutton",
+   "spice": "rewind",
+   "fresh": 2
+  },
+  {
+   "core": [
+    "fishing",
+    "pushbox"
+   ],
+   "control": "swipe",
+   "spice": "collect",
+   "fresh": 3
+  },
+  {
+   "core": [
+    "slingshot",
+    "rhythm"
+   ],
+   "control": "slide",
+   "spice": "chain",
+   "fresh": 2
+  },
+  {
+   "core": [
+    "artillery",
+    "endless"
+   ],
+   "control": "slide",
+   "spice": "gacha",
+   "fresh": 2
+  },
+  {
+   "core": [
+    "territory",
+    "snake"
+   ],
+   "control": "pointer",
+   "spice": "orbit",
+   "fresh": 1
+  },
+  {
+   "core": [
+    "golf",
+    "dodge"
+   ],
+   "control": "onebutton",
+   "spice": "daynight",
+   "fresh": 1
+  },
+  {
+   "core": [
+    "bubble",
+    "fishing"
+   ],
+   "control": "onebutton",
+   "spice": "combo",
+   "fresh": 2
   }
  ]
 }
