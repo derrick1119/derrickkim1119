@@ -19,6 +19,7 @@
 3. **멈춤 확인**: STATUS `상태:`가 `오너 테스트 대기`면 → 오너 피드백(채팅·STATUS)이 있으면 반영하고, 없으면 아무것도 안 하고 한 줄 보고. `BLOCKED`도 한 줄 보고.
 4. **기획자 작업**: 지난 사이클 🧪 보완점과 📋 PM 지시 중 우선순위 최상 1~2개를 구현(diff 약 400줄 이내). 기획 판단이 바뀌면 GDD.md도.
 5. **측정**: `npx tsx studio/planet-guardian/build.ts` → `npx tsx studio/planet-guardian/funqa.ts` → `npx tsx studio/planet-guardian/shots.ts`(콘솔 에러 0이어야 함) → `npm run verify`.
+   - **verify는 종료 코드로만 판정한다.** 출력을 grep·tail·head로 거르거나 파이프로 넘겨 종료 코드를 잃지 않고, 0이 아니면 push하지 않는다. (C008 위반 1건 뒤 추가)
 6. **FUN QA** (Agent): FUN.md · reports/funqa.json · screens/*.png · 이번 diff 요약(무엇을 바꿨는지만, 왜 좋은지는 말하지 않음)을 주고 유저군별 평가 요청.
 7. **기획자 응답**: 보완점마다 대응 방안(이번에 함/다음 사이클/안 함 + 이유).
 8. **PM** (Agent): MILESTONES.md · STATUS.md · 이번 TALK 블록 · 지표를 주고 → 마일스톤 진척·일정 갱신·QC 판정. **완료 기준을 모두 넘고 QC 체크리스트 통과면 "오너 테스트 준비 완료"** 선언.
