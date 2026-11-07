@@ -7,6 +7,7 @@ import { hashString, mulberry32, type Rng } from '../../engine/rng.ts';
 
 export const CORE = 0.17, ORBIT = 0.43, BODY = 0.05, ENEMY_R = 0.04, RANGE = 0.32;
 export const SLOTS = 8, HP_MAX = 5, CARD_Y = 0.84;
+const ALLY_FIRE = 60;
 const BULLET_V = 1.3 / 60, FIRE_EVERY = 30, COMBO_GAP = 60, BREATH = 240;
 export const TICK = 1 / 60;
 /**
@@ -139,6 +140,12 @@ const VMAX = 0.42;
  * 운석 기본 속도: 1~2웨이브는 0.11로 천천히(라이트가 아무것도 못 짓고 끝나는 판 방지, L8).
  * C006 복구 — C005 폐기는 근거 오류였다("램프 없이 99초"는 램프를 켜고 잰 값, TALK C005 정정)
  */
+/**
+ * 카드 박자: 광산 단계마다 1.8초 빨라진다(최소 6초) — C008: 광산이 '늘 최악'(튜닝 93%)이던 이유는 광석 쓸 곳이 없어서.
+ * 광산 = 카드를 더 자주 받는 생산 건물. 본전: 카드 1장을 내고 약 70초 뒤부터 이득 (FUN QA C007: 120초 안 본전)
+ */
+export const beatOf = (s: State) => Math.max(60 * 6, BEAT - 108 * s.sites.filter((x) => x.kind === '광산').reduce((a, x) => a + x.level, 0));
+
 export const speedOf = (wave: number) => (wave <= 2 ? 0.11 : Math.min(VMAX, 0.14 + 0.025 * (wave - 1)));
 export const waveSize = (n: number) => 6 + 3 * n;
 const waveCap = (n: number) => 3 + n;
@@ -171,9 +178,9 @@ const lowest = (s: State, kind: Kind) => s.sites.filter((x) => x.kind === kind &
 export function available(s: State): Card[] {
   const out: Card[] = [];
   const free = freeSlots(s).length > 0;
-  if (free) out.push({ id: 'new-mine', label: '새 광산', detail: '광석 +0.3/초' }, { id: 'new-turret', label: '새 포탑', detail: '자동 사격' });
+  if (free) out.push({ id: 'new-mine', label: '새 광산', detail: '카드가 1.8초 빨리' }, { id: 'new-turret', label: '새 포탑', detail: '자동 사격' });
   const m = lowest(s, '광산'), t = lowest(s, '포탑');
-  if (m) out.push({ id: 'up-mine', label: `광산 Lv${m.level + 1}`, detail: '캐는 속도 ↑' });
+  if (m) out.push({ id: 'up-mine', label: `광산 Lv${m.level + 1}`, detail: '카드 박자 더 빨리' });
   if (t) out.push({ id: 'up-turret', label: `포탑 Lv${t.level + 1}`, detail: '연사·사거리 ↑' });
   if (s.allies < 3) out.push({ id: 'ally', label: '위성', detail: '편대 +1기' });
   if (s.spinLv < 3) out.push({ id: 'spin', label: `궤도 가속 Lv${s.spinLv + 1}`, detail: '회전 +50%' });
@@ -268,7 +275,7 @@ export function step(s: State, input: Input) {
   s.ore += (BASE_ORE + mineRate(s)) / 60;
   if (s.t >= s.nextCard) {
     s.lastCard = s.t;
-    s.nextCard = s.t + BEAT;
+    s.nextCard = s.t + beatOf(s);
     s.beatNo++;
     s.handRolls = 0;
     makeOffer(s);
@@ -277,7 +284,8 @@ export function step(s: State, input: Input) {
   const ships = crew(s).map((a) => pos(a, ORBIT));
   ships.forEach((m, k) => {
     if (--s.cool[k] > 0) return;
-    s.cool[k] = shoot(s, m, RANGE, 'ship') === null ? 1 : FIRE_EVERY;
+    // C008: 위성(2번째 배부터)은 사격 간격 2배 — '늘 최선'(튜닝 24/24)이던 위성을 몸으로 막는 각도 하나로
+    s.cool[k] = shoot(s, m, RANGE, 'ship') === null ? 1 : k === 0 ? FIRE_EVERY : ALLY_FIRE;
   });
   for (const site of s.sites) {
     if (site.kind !== '포탑' || --site.cool > 0) continue;
