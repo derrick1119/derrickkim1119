@@ -50,7 +50,8 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.screenshot({ path: join(here, 'screens', `${name}-pause.png`) });
   // 결과 화면: 방어막을 1로 줄이고(확인용) 카드는 계속 1번
   await page.keyboard.press('KeyP');
-  await page.evaluate(() => void ((globalThis as any).__pg.state().hp = 1));
+  // 확인용: 방어막 1 + 화면의 운석을 행성 가까이로 옮겨 판을 끝낸다
+  await page.evaluate(() => { const st = (globalThis as any).__pg.state(); st.hp = 1; for (const e of st.enemies) e.r = Math.min(e.r, 0.3); });
   for (let k = 0; k < 400 && (await page.locator('#result').isHidden()); k++) {
     await page.keyboard.press('Digit1');
     await page.waitForTimeout(300);

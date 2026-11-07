@@ -154,11 +154,14 @@ function result() {
   const h = s.lastHit;
   $('r-cause').textContent = h ? `${h.wave}웨이브에서 ${h.big ? '거대 운석' : h.maxHp > 1 ? `단단한 운석(체력 ${h.maxHp})` : '운석'}에 마지막 방어막이 깨졌어요` : '';
   const turretLv = s.sites.filter((x) => x.kind === '포탑').reduce((a, x) => a + x.level, 0);
-  $('r-next').textContent =
-    s.allies === 0 ? '다음 판: 위성을 골라 막는 각도를 늘려 보세요'
-      : turretLv < 4 ? '다음 판: 포탑을 더 짓거나 강화해 보세요'
-        : s.spinLv === 0 ? '다음 판: 궤도 가속으로 편대를 빠르게 돌려 보세요'
-          : '다음 판: 마음에 드는 카드가 없으면 광석으로 다시 뽑아 보세요';
+  // C010: 다음 판 한 줄은 끝난 원인에 묶는다 (FUN QA: 2/3가 같은 문장, 사인과 무관했다) + 숫자 목표
+  const tip =
+    h?.big ? (turretLv < 5 ? '거대 운석은 단단해요 — 포탑을 더 짓거나 강화해 보세요' : '거대 운석이 늘어나요 — 위성으로 막는 각도를 넓혀 보세요')
+      : h && h.maxHp > 1 ? '단단한 운석은 여러 발 필요해요 — 포탑 강화로 연사를 올려 보세요'
+        : s.allies === 0 ? '여기저기서 와요 — 위성을 골라 막는 각도를 늘려 보세요'
+          : s.spinLv === 0 ? '틈이 생겨요 — 궤도 가속으로 편대를 빠르게 돌려 보세요'
+            : '빈틈을 메울 카드가 없으면 광석으로 다시 뽑아 보세요';
+  $('r-next').textContent = `다음 목표 ${s.wave + 1}웨이브 · ${tip}`;
   $('r-stats').innerHTML = [
     ['버틴 웨이브', `${s.wave}`],
     ['부순 운석', `${s.kills}`],
