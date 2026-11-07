@@ -98,9 +98,11 @@ export function measure() {
   const lightWarn = light.flatMap((r) => r.warn), hardWarn = hard.flatMap((r) => r.warn);
   const hitToDeath = med(light.map((r) => r.sec - r.firstHit));
   // H3 (FUN QA C002 개정): 같은 빌드에서 궤도 가속만 뺀 것과 시드별로 비교한 점수비의 중앙값
-  const noSpin: Policy = (c, st) => (c.id === 'spin' ? 99 : BALANCED(c, st));
-  const noSpinRuns = many(botOf(noSpin));
-  const spinGain = med(mid.map((r, i) => r.score / Math.max(1, noSpinRuns[i].score)));
+  // H3 (C010 개정, FUN QA C009): 같은 봇(BALANCED, 다시 뽑기 안 함)에서 궤도 가속만 맨 앞/맨 뒤 — 96시드 쌍 비. 옛 정의는 다시 뽑기 규칙을 쟀다
+  const spinFirst: Policy = (c, st) => (c.id === 'spin' ? -1 : BALANCED(c, st)), spinLast: Policy = (c, st) => (c.id === 'spin' ? 99 : BALANCED(c, st));
+  const first96 = many96(botOf(spinFirst)), last96 = many96(botOf(spinLast));
+  const h3pairs = first96.map((r, i) => r.score / Math.max(1, last96[i].score));
+  const spinGain = med(h3pairs), spinWins = h3pairs.filter((x) => x > 1).length;
   // L7: 최고 빌드로도 초반 운 사망이 없는가 — 하위 10% 생존 시간
   const L7 = pct(hard.map((r) => r.sec), 0.1);
   // F1: 판단(카드 1장 = 1회) 사이 간격 중앙값. 슬롯 선택은 슬롯별 점수 차가 측정된 뒤에만 센다(PM C002)
@@ -132,12 +134,12 @@ export function measure() {
     C('F2', '라이트', '[참고] 판단 사이 간격 상위 10%(초) — 설정값', F1p90, '≤ 20', F1p90 <= 20, true),
     C('M1', '미들코어', '판 길이(초)', M1, '180~360', M1 >= 180 && M1 <= 360),
     C('M2', '미들코어', '판당 카드 선택 수 (C007: 카드만 셈, 다시 뽑기는 롤아웃에서 갈리는 것만 — rollout.json)', M2, '15~30', M2 >= 15 && M2 <= 30),
-    C('R0', '미들코어', '다시 뽑기 버튼의 가치: 무조건/안 누름 96시드 쌍 비 중앙값', R0, '≥ 1.03', R0 >= 1.03),
+    C('R0', '미들코어', '다시 뽑기 버튼의 가치: 무조건/안 누름 96시드 쌍 비 중앙값 (C010: R1과 함께 — 무조건이 골라 누름을 이기면 미통과)', R0, '≥ 1.03', R0 >= 1.03 && R1a >= 1),
     C('M3', '미들코어', '빌드 최고/최저 점수 비(선택이 중요한가)', M3, '≥ 1.3', M3 >= 1.3),
     C('M4', '미들코어', '최고의 85% 안 서로 다른 빌드 수(겹침 ≤ 50%)', distinct.length, '≥ 2', distinct.length >= 2),
     C('H1', '하드코어', '실력 격차: 최고 빌드/아무거나 점수 비', H1, '≥ 4', H1 >= 4),
     C('H2', '하드코어', '최고 빌드 판 길이(초) — 끝이 있어야 한다', H2, '300~600', H2 >= 300 && H2 <= 600),
-    C('H3', '하드코어', '회전 속도의 의미: 같은 빌드 궤도 가속 있음/없음 시드별 점수비 중앙값', spinGain, '≥ 1.1', spinGain >= 1.1),
+    C('H3', '하드코어', `회전 속도의 의미: 같은 봇 궤도 가속 맨 앞/맨 뒤 96시드 쌍 비 중앙값 (이긴 시드 ${spinWins}/96, ≥ 60 필요)`, spinGain, '≥ 1.1', spinGain >= 1.1 && spinWins >= 60),
     C('H4', '하드코어', '점수 중 실력 보너스 비율(%) — scoreParts 실측', H4, '≥ 10', H4 >= 10),
     C('H5', '하드코어', '최고 빌드 점수 변동계수(%) — 결정적 벽이 아닌가', cv * 100, '≥ 15', cv >= 0.15),
     C('H6', '하드코어', '끝판 피격 운석 화면 안 시간 하위 10%(초)', H6, '≥ 0.6', H6 >= 0.6),

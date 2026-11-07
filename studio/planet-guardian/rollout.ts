@@ -163,7 +163,7 @@ function report(games: Game[], order: Order | null) {
     D1a1_함정있음_최선최악2SE: pct(ds.filter(a1).length, ds.length),
     D1a2_느껴지는차_3퍼센트와2SE: pct(ds.filter(a2).length, ds.length),
     D2_BALANCED틀림_참고: pct(splits.filter((d) => d.best !== d.balancedIdx).length, splits.length),
-    D2star_2단정답표틀림: order ? pct(splits.filter(wrongStar).length, splits.length) : null,
+    D2star_2단정답표틀림_느껴지는차안에서: order ? pct(ds.filter((d) => a2(d) && wrongStar(d)).length, ds.filter(a2).length) : null,
     D1xD2star_판당횟수_중앙값_느껴지는차만: order ? med(perGame) : null,
     부수_후반신규광산최악률: lateMine ? `${pct(lateMine.최악, lateMine.나옴)}% (n=${lateMine.나옴}, 목표 ≤ 50%)` : null,
     D3_다시뽑기갈림: pct(ds.filter((d) => d.rerollSplit).length, ds.filter((d) => d.rerollSplit !== null).length),
