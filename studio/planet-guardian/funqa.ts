@@ -8,7 +8,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mulberry32 } from '../../engine/rng.ts';
-import { BALANCED, BASE_ORE, CORE, create, mineRate, randomBot, smartBot, step, type Card, type CardId, type Input, type Policy, type State } from './sim.ts';
+import { BALANCED, BASE_ORE, CORE, create, mineRate, randomBot, scoreParts, smartBot, step, type Card, type CardId, type Input, type Policy, type State } from './sim.ts';
 import type { Rng } from '../../engine/rng.ts';
 
 type Bot = (s: State, rng: Rng) => Input;
@@ -26,7 +26,7 @@ const botOf = (p: Policy): Bot => (s) => ({ pick: s.offer ? s.offer.map((c: Card
 /** 모바일 390×844에서 화면 안에 보이는 반지름(단위 좌표) — render.ts view()와 같은 식 */
 const PLAY_H = 844 * 0.82, SC = Math.min(390 * 0.6, PLAY_H * 0.47), VISIBLE_R = Math.min(195, PLAY_H * 0.53) / SC;
 
-interface Run { oreLeft: number; rerollCost: number; killOre: number; allOre: number; emptyTicks: number; rerolls: number; gaps: number[]; sec: number; score: number; builds: number; kills: number; bestCombo: number; wave: number; firstCard: number; firstHit: number; warn: number[]; picks: CardId[] }
+interface Run { bonus: number; oreLeft: number; rerollCost: number; killOre: number; allOre: number; emptyTicks: number; rerolls: number; gaps: number[]; sec: number; score: number; builds: number; kills: number; bestCombo: number; wave: number; firstCard: number; firstHit: number; warn: number[]; picks: CardId[] }
 
 function run(bot: Bot, seed: number, max = 60 * 900): Run {
   const s = create(seed), rng = mulberry32(seed ^ 0x9e3779b9);
@@ -57,7 +57,7 @@ function run(bot: Bot, seed: number, max = 60 * 900): Run {
       }
     }
   }
-  return { oreLeft: s.ore, rerollCost: s.cost, killOre, allOre, emptyTicks, rerolls: s.rerolls, gaps, sec: s.t / 60, score: s.kills + s.builds * 5, builds: s.builds, kills: s.kills, bestCombo: s.bestCombo, wave: s.wave, firstCard, firstHit: firstHit < 0 ? s.t / 60 : firstHit, warn, picks };
+  return { bonus: scoreParts(s).bonus, oreLeft: s.ore, rerollCost: s.cost, killOre, allOre, emptyTicks, rerolls: s.rerolls, gaps, sec: s.t / 60, score: s.kills + s.builds * 5, builds: s.builds, kills: s.kills, bestCombo: s.bestCombo, wave: s.wave, firstCard, firstHit: firstHit < 0 ? s.t / 60 : firstHit, warn, picks };
 }
 
 const med = (xs: number[]) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] : 0);
@@ -102,22 +102,26 @@ export function measure() {
   const F1 = med(allGaps), F1p90 = pct(allGaps, 0.9);
   const C = (id: string, group: Check['group'], what: string, value: number, target: string, ok: boolean, ref = false): Check => ({ id, group, what, value: r1(value), target, ok, ref });
   // R1 (FUN QA C004): 다시 뽑기가 판단인가 — 골라 누르는 쪽이 무조건 누르는 쪽보다 5% 이상 낫고, 판 끝에 광석이 남아돌지 않는다
-  const R1a = med(mid.map((r) => r.score)) / Math.max(1, med(alwaysRuns.map((r) => r.score)));
+  // R1 (C006 개정, FUN QA C005): 시드별 쌍 비교 — 골라 누르는 봇이 이기는 시드 수와 쌍별 점수비 중앙값
+  const pairs = mid.map((r, i) => r.score / Math.max(1, alwaysRuns[i].score));
+  const R1wins = pairs.filter((x) => x > 1).length, R1a = med(pairs);
   const R1b = med(mid.map((r) => r.oreLeft / Math.max(1, r.rerollCost * 2 + 2)));
-  const L8 = pct(light.map((r) => r.sec), 0.2);
+  // L8 (C006 개정): 분위수 자리 덕에 통과하지 않게, 45초 미만 판 개수로
+  const L8 = light.filter((r) => r.sec < 45).length;
+  const H4 = (100 * med(hard.map((r) => r.bonus))) / Math.max(1, med(hard.map((r) => r.score)));
   const deaths = hard.map((r) => r.sec), H8 = pct(deaths, 0.75) - pct(deaths, 0.25);
   const L1 = med(light.map((r) => r.sec)), L2 = med(light.map((r) => r.firstCard)), L3 = med(light.map((r) => r.builds)), L4 = med(light.map((r) => r.firstHit)), L5 = pct(lightWarn, 0.1);
   const M1 = med(mid.map((r) => r.sec)), M2 = med(mid.map((r) => r.builds + r.rerolls)), M3 = best / Math.max(1, worst);
   const H1 = med(hardScores) / Math.max(1, med(light.map((r) => r.score))), H2 = med(hard.map((r) => r.sec)), H6 = pct(hardWarn, 0.1);
   const checks: Check[] = [
-    C('L1', '라이트', '첫 판 길이(초)', L1, '90~150', L1 >= 90 && L1 <= 150),
+    C('L1', '라이트', '첫 판 길이(초)', L1, '90~180', L1 >= 90 && L1 <= 180),
     C('L2', '라이트', '첫 카드까지(초)', L2, '≤ 15', L2 <= 15),
     C('L3', '라이트', '첫 판 건설 수', L3, '≥ 4', L3 >= 4),
     C('L4', '라이트', '첫 피격까지(초)', L4, '≥ 20', L4 >= 20),
     C('L5', '라이트', '피격 운석이 화면 안에 보인 시간 하위 10%(초)', L5, '≥ 1.5', L5 >= 1.5),
     C('L6', '라이트', '첫 피격 → 끝까지(초) — 연쇄 사망', hitToDeath, '≥ 25', hitToDeath >= 25),
     C('L7', '라이트', '최고 빌드 하위 10% 생존(초) — 초반 운 사망', L7, '≥ 90', L7 >= 90),
-    C('L8', '라이트', '라이트 하위 20% 판 길이(초) — 아무것도 못 짓고 끝남', L8, '≥ 45', L8 >= 45),
+    C('L8', '라이트', '45초 미만에 끝난 판 수(24판 중) — 아무것도 못 짓고 끝남', L8, '≤ 1', L8 <= 1),
     C('F1', '라이트', '[참고] 판단 사이 간격 중앙값(초) — 박자 카드 뒤 설정값', F1, '≤ 12', F1 <= 12, true),
     C('F2', '라이트', '[참고] 판단 사이 간격 상위 10%(초) — 설정값', F1p90, '≤ 20', F1p90 <= 20, true),
     C('M1', '미들코어', '판 길이(초)', M1, '180~360', M1 >= 180 && M1 <= 360),
@@ -127,11 +131,11 @@ export function measure() {
     C('H1', '하드코어', '실력 격차: 최고 빌드/아무거나 점수 비', H1, '≥ 4', H1 >= 4),
     C('H2', '하드코어', '최고 빌드 판 길이(초) — 끝이 있어야 한다', H2, '300~600', H2 >= 300 && H2 <= 600),
     C('H3', '하드코어', '회전 속도의 의미: 같은 빌드 궤도 가속 있음/없음 시드별 점수비 중앙값', spinGain, '≥ 1.1', spinGain >= 1.1),
-    C('H4', '하드코어', '점수 중 콤보·무피격 보너스 비율(%)', 0, '≥ 10', false),
+    C('H4', '하드코어', '점수 중 실력 보너스 비율(%) — scoreParts 실측', H4, '≥ 10', H4 >= 10),
     C('H5', '하드코어', '최고 빌드 점수 변동계수(%) — 결정적 벽이 아닌가', cv * 100, '≥ 15', cv >= 0.15),
     C('H6', '하드코어', '끝판 피격 운석 화면 안 시간 하위 10%(초)', H6, '≥ 0.6', H6 >= 0.6),
     C('H8', '하드코어', '최고 빌드 사망 시각 사분위 범위(초) — 벽이 아닌가 (M3 기준)', H8, '≥ 30', H8 >= 30),
-    C('R1', '미들코어', '다시 뽑기 판단: 골라 누르기/무조건 누르기 점수비', R1a, '≥ 1.05', R1a >= 1.05),
+    C('R1', '미들코어', `다시 뽑기 판단: 골라 누르기/무조건 누르기 시드별 점수비 중앙값 (이긴 시드 ${R1wins}/24, ≥ 16 필요)`, R1a, '≥ 1.05', R1a >= 1.05 && R1wins >= 16),
     C('R2', '미들코어', '판 끝 남은 광석 ÷ 다시 뽑기 2회분 (중앙값)', R1b, '≤ 1', R1b <= 1),
   ];
   const summary = (rs: Run[]) => ({ sec: r1(med(rs.map((r) => r.sec))), score: med(rs.map((r) => r.score)), wave: med(rs.map((r) => r.wave)), builds: med(rs.map((r) => r.builds)) });

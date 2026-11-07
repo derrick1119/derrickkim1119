@@ -112,7 +112,9 @@ export function create(seed: number): State {
   };
 }
 
-export const score = (s: State) => s.kills + s.builds * 5;
+/** 점수 구성 — H4(점수 중 실력 보너스 비율)를 실측하려고 나눠 둔다. 보너스는 M3-6에서 생긴다(지금 0) */
+export const scoreParts = (s: State) => ({ kills: s.kills, builds: s.builds * 5, bonus: 0 });
+export const score = (s: State) => { const p = scoreParts(s); return p.kills + p.builds + p.bonus; };
 
 /** 웨이브 예산 (리뷰 ①: 시간 기반 스폰은 88초에 초당 12개 벽을 만들었다) */
 /** 속도 상한(초당) — FUN QA C001: n² 가속은 반응 불가능한 벽이었다. 난이도는 수·크기로 올린다 */
@@ -316,8 +318,8 @@ export const noviceBot = randomBot;
 export const BALANCED: Policy = (c, s) =>
   s.hp <= 1 && c.id === 'shield' ? 0 : c.id === 'ally' ? 1 : c.id === 'up-turret' ? 2 : c.id === 'new-turret' ? 3 : c.id === 'spin' ? 4 : c.id.endsWith('mine') ? 5 : 6;
 export function smartBot(s: State): Input {
-  // 쓸 만한 카드(위성·포탑·궤도 가속)가 없고 광석이 넉넉하면 다시 뽑는다
-  if (s.offer && s.ore >= s.cost + 4 && s.offer.every((c) => BALANCED(c, s) > 4)) return { reroll: true };
+  // C006: 실제로 누르는 미들 봇 — 위성·포탑 강화(급하면 방어막) 같은 핵심 카드가 손패에 없고 광석이 되면 다시 뽑는다 (FUN QA C005: 예전 봇은 0회)
+  if (s.offer && s.ore >= s.cost && s.offer.every((c) => BALANCED(c, s) > 2)) return { reroll: true };
   return { pick: pickBy(s, BALANCED) };
 }
 export const policyBot = (rank: Policy) => (s: State): Input => ({ pick: pickBy(s, rank) });
