@@ -32,7 +32,7 @@ export type GameEvent =
 export interface Input {
   /** -1 반시계, 0 정지, 1 시계 (봇·호환용) */
   dir: -1 | 0 | 1;
-  /** 가고 싶은 궤도 각도 — 있으면 dir 대신, 가장 가까운 배가 그 각도로 간다 (리뷰 ②: 누른 곳으로 간다) */
+  /** 가고 싶은 궤도 각도 — 가장 가까운 배가 그 각도로 간다. 손을 떼도 도착할 때까지 간다 (오너: "조작이 좀 어렵네") */
   aim?: number;
   /** 이번 틱에 고른 카드(0부터) */
   pick?: number;
@@ -51,6 +51,8 @@ export interface State {
   t: number;
   angle: number;
   dir: -1 | 0 | 1;
+  /** 마지막으로 누른 목표 각도 (도착하면 null) */
+  target: number | null;
   allies: number;
   cool: number[];
   enemies: Enemy[];
@@ -87,7 +89,7 @@ export const turretRange = (lv: number) => 0.34 + 0.05 * (lv - 1);
 
 export function create(seed: number): State {
   return {
-    rng: mulberry32(seed), crng: mulberry32(seed ^ 0x5bd1e995), wave: 1, budget: waveSize(1), breath: 0, t: 0, angle: -Math.PI / 2, dir: 0, allies: 0, cool: [0], enemies: [], bullets: [],
+    rng: mulberry32(seed), crng: mulberry32(seed ^ 0x5bd1e995), wave: 1, budget: waveSize(1), breath: 0, t: 0, angle: -Math.PI / 2, dir: 0, target: null, allies: 0, cool: [0], enemies: [], bullets: [],
     ore: 0, cost: 8, offer: null, offerAt: -99, builds: 0, hp: 3, spawnIn: 90, nextId: 1, kills: 0, blocks: 0,
     combo: 0, comboAt: -999, bestCombo: 0, last: null, hitAt: -99, deadAt: -1, dead: false, events: [],
     // 리뷰: 시작 방어 0 → 포탑 Lv1 하나를 깔고 시작 (기지가 첫 화면부터 보인다)
@@ -106,7 +108,7 @@ function spawn(s: State) {
   const n = s.wave - 1;
   const big = s.rng() < Math.min(0.5, 0.09 * n);
   const hp = big ? 3 : 1 + (s.rng() < Math.min(0.6, 0.12 * n) ? 1 : 0);
-  s.enemies.push({ id: s.nextId++, a: s.rng() * Math.PI * 2, r: 1.05, v: (0.13 + 0.05 * n + s.rng() * 0.04) / 60, hp, maxHp: hp, big, flash: -99 });
+  s.enemies.push({ id: s.nextId++, a: s.rng() * Math.PI * 2, r: 1.05, v: (0.13 + 0.05 * n + 0.004 * n * n + s.rng() * 0.04) / 60, hp, maxHp: hp, big, flash: -99 });
   s.budget--;
   s.spawnIn = Math.round(waveGap(s.wave) * (0.7 + s.rng() * 0.6));
 }
@@ -196,19 +198,32 @@ function shoot(s: State, from: { x: number; y: number }, range: number, kind: 's
   return Math.atan2(best.p.y - from.y, best.p.x - from.x);
 }
 
-/** 목표 각도로 가장 가까운 배를 보내는 방향 */
-function steer(s: State, aim: number): -1 | 0 | 1 {
-  const d = crew(s).map((a) => wrap(aim - a)).reduce((a, x) => (Math.abs(x) < Math.abs(a) ? x : a));
-  return Math.abs(d) < MOVE ? 0 : d > 0 ? 1 : -1;
+/** 목표까지 남은 각도(가장 가까운 배 기준, 부호 = 방향) */
+export function toTarget(s: State, aim: number) {
+  return crew(s).map((a) => wrap(aim - a)).reduce((a, x) => (Math.abs(x) < Math.abs(a) ? x : a));
 }
+/** 목표 이동: 멀면 빠르게(초당 3.3라디안), 가까우면 감속해 정확히 멈춘다 — 예전 고정 1.7라디안은 반 바퀴에 1.9초 */
+const AIM_MAX = 0.055, AIM_MIN = 0.012, AIM_GAIN = 0.16;
 
 export function step(s: State, input: Input) {
   s.events = [];
   if (s.dead) return;
   s.t++;
   if (input.pick !== undefined) choose(s, input.pick);
-  s.dir = input.aim === undefined ? input.dir : steer(s, input.aim);
-  if (s.dir) s.angle = wrap(s.angle + s.dir * MOVE);
+  if (input.aim !== undefined) s.target = input.aim;
+  if (input.dir) s.target = null;
+  if (s.target !== null) {
+    const d = toTarget(s, s.target);
+    if (Math.abs(d) < 0.006) (s.target = null), (s.dir = 0);
+    else {
+      const v = Math.min(AIM_MAX, Math.max(AIM_MIN, Math.abs(d) * AIM_GAIN), Math.abs(d));
+      s.dir = d > 0 ? 1 : -1;
+      s.angle = wrap(s.angle + s.dir * v);
+    }
+  } else {
+    s.dir = input.dir;
+    if (s.dir) s.angle = wrap(s.angle + s.dir * MOVE);
+  }
   waves(s);
   s.ore += (0.5 + mineRate(s)) / 60;
   if (!s.offer && s.ore >= s.cost) makeOffer(s);
@@ -266,9 +281,19 @@ export function step(s: State, input: Input) {
   s.bullets = s.bullets.filter((b) => b.life > 0);
 }
 
-/** 봇: 아무 방향이나 누르고, 카드는 아무거나 (처음 하는 사람 대역) */
+/** 봇: 아무 데나 막 누르고, 카드는 아무거나 (바닥 대역) */
 export function randomBot(s: State, rng: Rng): Input {
-  return { dir: (rng() < 0.5 ? (rng() < 0.5 ? -1 : 1) : 0) as -1 | 0 | 1, pick: s.offer && rng() < 0.02 ? Math.floor(rng() * s.offer.length) : undefined };
+  return { dir: 0, aim: rng() < 0.1 ? rng() * Math.PI * 2 : undefined, pick: s.offer && rng() < 0.02 ? Math.floor(rng() * s.offer.length) : undefined };
+}
+
+/** 봇: 처음 하는 사람 대역 — 0.4초 늦게 보고, 0.3라디안쯤 빗나가게 누르고, 카드는 늦게 아무거나 (리뷰 R1: 막누르기는 신규 유저 대리 지표가 아니다) */
+export function noviceBot(s: State, rng: Rng): Input {
+  const pick = s.offer && s.t - s.offerAt > 120 && rng() < 0.05 ? Math.floor(rng() * s.offer.length) : undefined;
+  // 0.4초 전에 이미 보이던 운석 중 가장 급한 것 (반응 지연)
+  const seen = s.enemies.filter((e) => 1.05 - e.r > e.v * 24);
+  if (!seen.length || rng() < 0.6) return { dir: 0, pick };
+  const urgent = seen.reduce((a, e) => ((e.r - CORE) / e.v < (a.r - CORE) / a.v ? e : a));
+  return { dir: 0, aim: urgent.a + (rng() - 0.5) * 0.6, pick };
 }
 
 /** 봇: 가장 급한 운석을 가장 가까운 배로 막고, 카드는 위성 > 포탑 강화 > 새 포탑 > 광산 > 방어막 (내구도 1이면 방어막 먼저) */
@@ -280,8 +305,7 @@ export function smartBot(s: State): Input {
   }
   if (!s.enemies.length) return { dir: 0, pick };
   const urgent = s.enemies.reduce((a, e) => ((e.r - CORE) / e.v < (a.r - CORE) / a.v ? e : a));
-  const d = crew(s).map((a) => wrap(urgent.a - a)).reduce((a, x) => (Math.abs(x) < Math.abs(a) ? x : a));
-  return { dir: Math.abs(d) < 0.05 ? 0 : d > 0 ? 1 : -1, pick };
+  return { dir: 0, aim: urgent.a, pick };
 }
 
 /** 봇 한 판: react틱마다 판단, 사이 틱은 방향만 유지(카드는 다시 고르지 않음) */

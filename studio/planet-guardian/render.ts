@@ -14,8 +14,8 @@ export interface View { cx: number; cy: number; sc: number; w: number; h: number
 
 export function view(w: number, h: number, zoom = 1): View {
   const play = h * (CARD_Y - 0.02); // 카드 띠 위가 게임판
-  const u = Math.min(w, play);
-  return { cx: w / 2, cy: play * 0.53, sc: (u / 2) * 0.94 * zoom, w, h };
+  // 오너 "조작이 어렵다" → 판을 키운다. 세로 화면에선 운석 출발점이 좌우 화면 밖이어도 된다(가장자리 화살표로 알림)
+  return { cx: w / 2, cy: play * 0.53, sc: Math.min(w * 0.6, play * 0.47) * zoom, w, h };
 }
 
 const ease = (x: number) => 1 - (1 - Math.min(1, Math.max(0, x))) ** 3;
@@ -169,6 +169,33 @@ export function draw(ctx: CanvasRenderingContext2D, s: State, j: Juice, w: numbe
       ctx.stroke();
     }
     // 편대
+    // 목표 표시: 누른 곳(손을 떼도 배가 그리로 간다)
+    if (s.target !== null) {
+      const tp = pos(s.target, ORBIT);
+      ctx.strokeStyle = COLORS.mint;
+      ctx.globalAlpha = 0.55 + 0.25 * Math.sin(frame / 5);
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(X(tp.x), Y(tp.y), BODY * sc * 1.25, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    // 화면 밖 운석: 가장자리 화살표
+    for (const e of s.enemies) {
+      const ep = pos(e.a, e.r), ex = X(ep.x), ey = Y(ep.y), m = 14;
+      if (ex > -4 && ex < w + 4 && ey > -4 && ey < h + 4) continue;
+      const ax = Math.min(w - m, Math.max(m, ex)), ay = Math.min(h - m, Math.max(m, ey)), ang = Math.atan2(cy - ey, cx - ex);
+      ctx.save();
+      ctx.translate(ax, ay);
+      ctx.rotate(ang);
+      ctx.fillStyle = e.big ? COLORS.big : COLORS.rock;
+      ctx.beginPath();
+      ctx.moveTo(8, 0);
+      ctx.lineTo(-6, -7);
+      ctx.lineTo(-6, 7);
+      ctx.fill();
+      ctx.restore();
+    }
     crew(s).forEach((a, k) => {
       const m = pos(a, ORBIT), r = BODY * sc * (k === 0 ? 1 : 0.85);
       ctx.fillStyle = k === 0 ? COLORS.mint : COLORS.white;

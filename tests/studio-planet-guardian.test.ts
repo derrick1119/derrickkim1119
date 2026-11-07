@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
-import { create, randomBot, runBot, smartBot, step, type GameEvent, type State } from '../studio/planet-guardian/sim.ts';
+import { create, noviceBot, randomBot, runBot, smartBot, step, toTarget, type GameEvent, type State } from '../studio/planet-guardian/sim.ts';
 import { createJuice, react, tick } from '../studio/planet-guardian/juice.ts';
 
 const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
@@ -31,6 +31,16 @@ describe('행성 수호대 시뮬', () => {
     const before = s.angle;
     for (let k = 0; k < 30; k++) step(s, { dir: 0, aim: 0 });
     expect(Math.abs(s.angle)).toBeLessThan(Math.abs(before));
+  });
+
+  it('한 번 누르고 떼도 배가 목표까지 가서 정확히 멈춘다 (오너: 조작이 어렵다)', () => {
+    const s = create(1);
+    step(s, { dir: 0, aim: Math.PI / 2 }); // 반대편(아래)을 한 번 누름
+    let t = 0;
+    while (s.target !== null && t++ < 120) step(s, { dir: 0 });
+    expect(s.target).toBeNull();
+    expect(t).toBeLessThan(80); // 반 바퀴 1.3초 안 (예전 고정 속도는 1.9초 + 계속 누르고 있어야 했다)
+    expect(Math.abs(toTarget(s, Math.PI / 2))).toBeLessThan(0.01);
   });
 
   it('시작하자마자 포탑 하나가 있다', () => {
@@ -62,6 +72,11 @@ describe('행성 수호대 밸런스 (GDD §8, 봇)', () => {
   const seeds = [...Array(16).keys()].map((k) => k + 1);
   it('막누르기 봇도 첫 판 30초 이상 (프로토타입은 10초)', () => {
     expect(median(seeds.map((x) => runBot(randomBot, x).sec))).toBeGreaterThanOrEqual(30);
+  });
+  it('처음 하는 사람 대역(0.4초 지연·조준 오차) 봇은 첫 판 60~150초 (GDD §1)', () => {
+    const m = median(seeds.map((x) => runBot(noviceBot, x).sec));
+    expect(m).toBeGreaterThanOrEqual(60);
+    expect(m).toBeLessThanOrEqual(150);
   });
   it('잘하는 봇은 3~9분 (88초 스폰 벽 제거)', () => {
     const m = median(seeds.map((x) => runBot(smartBot, x, 60 * 900).sec));
