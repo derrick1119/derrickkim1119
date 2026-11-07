@@ -117,6 +117,19 @@ describe('행성 수호대 시뮬', () => {
     expect(beatOf(s)).toBe(60 * 6);
   });
 
+  it('손패에 같은 카드 두 장은 없다 (C010)', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const s = create(seed);
+      for (let k = 0; k < 600 && !s.dead; k++) {
+        if (s.offer) {
+          const ids = s.offer.map((c) => c.id);
+          expect(new Set(ids).size).toBe(ids.length);
+        }
+        step(s, s.offer ? { pick: 0 } : {});
+      }
+    }
+  });
+
   it('다시 뽑기는 지금 손패를 빼고 뽑는다, 광산 문구는 박자 하한에서 사실대로 (C009)', () => {
     const s = create(12);
     while (!s.offer) step(s, {});

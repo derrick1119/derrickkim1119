@@ -31,7 +31,7 @@ export type GameEvent =
   | { type: 'fire'; x: number; y: number; from: 'ship' | 'turret' }
   | { type: 'hit'; x: number; y: number }
   | { type: 'kill'; x: number; y: number; big: boolean; combo: number; ore: number; by: 'shot' | 'body' }
-  | { type: 'impact'; x: number; y: number; hp: number }
+  | { type: 'impact'; x: number; y: number; hp: number; big: boolean; maxHp: number }
   | { type: 'offer' }
   | { type: 'reroll' }
   | { type: 'build'; card: CardId; x: number; y: number }
@@ -98,6 +98,8 @@ export interface State {
   deadAt: number;
   dead: boolean;
   events: GameEvent[];
+  /** 마지막으로 행성에 닿은 운석 — 결과 화면 '무엇에 끝났나' (C010) */
+  lastHit: { big: boolean; maxHp: number; wave: number } | null;
 }
 
 /** mulberry32와 같은 수열을 숫자 상태로 (engine/rng.ts와 결과 동일) */
@@ -123,7 +125,7 @@ export function create(seed: number): State {
   return {
     seed, rngS: seed >>> 0, slotS: (seed ^ 0x5bd1e995) >>> 0, beatNo: 0, handRolls: 0, wave: 1, budget: waveSize(1), breath: 0, t: 0, angle: -Math.PI / 2, spinLv: 0, allies: 0, cool: [0], enemies: [], bullets: [],
     ore: 0, cost: REROLL0, nextCard: FIRST_CARD, lastCard: 0, rerolls: 0, offer: null, offerAt: -99, builds: 0, hp: 3, spawnIn: 90, nextId: 1, kills: 0, blocks: 0,
-    combo: 0, comboAt: -999, bestCombo: 0, last: null, hitAt: -99, deadAt: -1, dead: false, events: [],
+    combo: 0, comboAt: -999, bestCombo: 0, last: null, hitAt: -99, deadAt: -1, dead: false, events: [], lastHit: null,
     // 리뷰: 시작 방어 0 → 포탑 Lv1 하나를 깔고 시작 (기지가 첫 화면부터 보인다)
     sites: [{ kind: '포탑', slot: 6, level: 1, cool: 0, aim: 0, born: -99 }],
   };
@@ -307,7 +309,8 @@ export function step(s: State, input: Input) {
       s.hitAt = s.t;
       s.hp--;
       s.combo = 0;
-      s.events.push({ type: 'impact', x: ep.x, y: ep.y, hp: s.hp });
+      s.lastHit = { big: e.big, maxHp: e.maxHp, wave: s.wave };
+      s.events.push({ type: 'impact', x: ep.x, y: ep.y, hp: s.hp, big: e.big, maxHp: e.maxHp });
       if (s.hp <= 0) {
         s.dead = true;
         s.deadAt = s.t;

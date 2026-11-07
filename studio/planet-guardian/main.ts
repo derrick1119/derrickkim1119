@@ -150,10 +150,18 @@ function result() {
   const lv = (k: '광산' | '포탑') => s.sites.filter((x) => x.kind === k).map((x) => `Lv${x.level}`).join(' ') || '없음';
   $('r-score').textContent = String(score(s));
   $('r-best').textContent = isBest ? '새 최고 기록!' : `최고 ${best}`;
+  // C010: 무엇에 끝났나 + 다음 판 목표 한 줄 ('몸으로 N'은 조작이 없어져 뺐다)
+  const h = s.lastHit;
+  $('r-cause').textContent = h ? `${h.wave}웨이브에서 ${h.big ? '거대 운석' : h.maxHp > 1 ? `단단한 운석(체력 ${h.maxHp})` : '운석'}에 마지막 방어막이 깨졌어요` : '';
+  const turretLv = s.sites.filter((x) => x.kind === '포탑').reduce((a, x) => a + x.level, 0);
+  $('r-next').textContent =
+    s.allies === 0 ? '다음 판: 위성을 골라 막는 각도를 늘려 보세요'
+      : turretLv < 4 ? '다음 판: 포탑을 더 짓거나 강화해 보세요'
+        : s.spinLv === 0 ? '다음 판: 궤도 가속으로 편대를 빠르게 돌려 보세요'
+          : '다음 판: 마음에 드는 카드가 없으면 광석으로 다시 뽑아 보세요';
   $('r-stats').innerHTML = [
     ['버틴 웨이브', `${s.wave}`],
-    ['부순 운석', `${s.kills} (몸으로 ${s.blocks})`],
-    ['최고 연속', `${s.bestCombo}`],
+    ['부순 운석', `${s.kills}`],
     ['광산', lv('광산')],
     ['포탑', lv('포탑')],
     ['위성', `${crew(s).length - 1}기`],
