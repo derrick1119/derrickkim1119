@@ -48,7 +48,7 @@
    **`web/public/arcade/index.html`**(GitHub Pages)이 함께 만들어진다. push하면 Pages가 자동 배포 →
    오너 주소: https://derrick1119.github.io/derrickkim1119/arcade/ (오너 결정 2026-11-07: 공개 페이지로 운영, 승인 창 없음).
    아티팩트(`publish_files`)는 게시마다 오너 승인 창이 떠서 **쓰지 않는다**. 오너에게 알릴 땐 Pages 주소를 준다.
-   push 뒤 배포가 끝나면(약 1분) `curl`로 주소가 열리는지 확인하고, 실패하면 JOURNAL에 적는다.
+   push 뒤 GitHub Actions의 deploy(pages.yml) 실행이 success인지 확인한다(이 환경에선 github.io에 직접 접속 불가). 실패하면 JOURNAL에 적는다.
 10. **푸시**: 커밋 메시지 "발견 NNNN: <요약>", `git push -u origin factory`. 거절되면 `git pull --rebase origin factory` → verify → push.
 
 ## 절대 규칙

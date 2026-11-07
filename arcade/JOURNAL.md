@@ -5,7 +5,7 @@
 ## 0019+ — 2026-11-07 · 계기판을 GitHub Pages로
 - **문제**: 아티팩트 게시마다 오너 앱에 승인 창(저장소 허용 규칙으로도 안 꺼짐 — 파일 첨부·내용 직접 전송 둘 다 확인). 이 클라우드 세션은 미리보기 창도 미지원.
 - **오너 결정**: GitHub Pages 공개 페이지로. `cli-dashboard`가 `web/public/arcade/index.html`도 쓰고, push 시 자동 배포 → https://derrick1119.github.io/derrickkim1119/arcade/
-- PROTOCOL 9단계: 아티팩트 대신 Pages. 배포 후 curl로 확인.
+- PROTOCOL 9단계: 아티팩트 대신 Pages. 배포 확인은 Actions 실행 결과로(이 환경은 github.io 접속이 막혀 있음). 첫 배포 성공(run 47).
 
 ## A|B 4라운드 판정 + 0019 챔피언 확장 — 2026-11-07
 - **오너**: "A" → 챔피언 **궤도 수비** 유지(기계 추천 적중, 2/4). 그리고 "A를 더 발전시켜라 — 아군, 행성 수호, 채굴·생산, 확대하면 기지 건설".
