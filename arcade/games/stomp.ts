@@ -71,6 +71,11 @@ export const stomp: GameDef<StompState> = {
   rules: ['누르면 점프합니다.', '적은 위에서 밟으면 쓰러져요. 옆에서 부딪히거나 구덩이에 빠지면 끝.', '5마리마다 무작위 강화: 이단 점프·방패·느린 시간.'],
   controls: 'tap',
   aspect: 0.62,
+  art: {
+    concept: '종이 공작',
+    mood: '크라프트지 위에 오려 붙인 언덕과 종이 인형. 멀리 있는 언덕은 천천히 지나간다.',
+    palette: { bg: '#f1e4c8', ink: '#3b2a1e', muted: '#c9b48e', accent: '#2f6fd6', hot: '#e2513a', soft: '#a9875a' },
+  },
   create(seed) {
     const s: StompState = {
       rng: mulberry32(seed), t: 0, dist: 0, speed: 0.0075, y: GROUND, vy: 0, air: 0, airMax: 1, shield: 0, slow: 0,
@@ -116,6 +121,15 @@ export const stomp: GameDef<StompState> = {
     const sc = w, X = (x: number) => (x - s.dist) * sc, Y = (y: number) => (y / VIEW_H) * h;
     ctx.fillStyle = th.bg;
     ctx.fillRect(0, 0, w, h);
+    // 먼 언덕 두 겹 (느리게 흐르는 시차 스크롤)
+    for (const [k, col, amp, base] of [[0.15, th.muted, 0.08, 0.36], [0.4, '#b99c6c', 0.06, 0.44]] as const) {
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      for (let x = 0; x <= w; x += 8) ctx.lineTo(x, Y(base - amp * Math.abs(Math.sin((x / w + s.dist * k) * 3.1))));
+      ctx.lineTo(w, h);
+      ctx.fill();
+    }
     // 땅 (구덩이 제외)
     ctx.fillStyle = th.soft;
     ctx.fillRect(0, Y(GROUND), w, h - Y(GROUND));
@@ -125,11 +139,16 @@ export const stomp: GameDef<StompState> = {
     for (const p of s.pits) (ctx.fillRect(X(p.a) - 2, Y(GROUND), 2, h), ctx.fillRect(X(p.b), Y(GROUND), 2, h));
     for (const e of s.enemies) {
       if (!e.alive) continue;
+      // 종이 그림자 + 몸통
+      ctx.fillStyle = 'rgba(59,42,30,.25)';
+      ctx.fillRect(X(e.x - EW / 2) + 3, Y(GROUND - EH) + 3, EW * sc, (EH / VIEW_H) * h);
       ctx.fillStyle = th.hot;
       ctx.fillRect(X(e.x - EW / 2), Y(GROUND - EH), EW * sc, (EH / VIEW_H) * h);
       ctx.fillStyle = th.bg;
       ctx.fillRect(X(e.x - EW / 4), Y(GROUND - EH * 0.7), 3, 3);
     }
+    ctx.fillStyle = 'rgba(59,42,30,.25)';
+    ctx.fillRect(X(s.dist + PX - PW / 2) + 3, Y(s.y - PH) + 3, PW * sc, (PH / VIEW_H) * h);
     ctx.fillStyle = s.dead ? th.hot : th.accent;
     ctx.fillRect(X(s.dist + PX - PW / 2), Y(s.y - PH), PW * sc, (PH / VIEW_H) * h);
     if (s.shield > 0) {

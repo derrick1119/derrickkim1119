@@ -40,7 +40,18 @@ export const GENES: Record<string, Gene> = {
   stack: { id: 'stack', from: '타이밍 쌓기', what: '움직이는 블록을 제때 멈춰 쌓는다' },
   merge: { id: 'merge', from: '2048·수박게임', what: '같은 것끼리 부딪히면 한 단계 위로 합쳐진다' },
   survivor: { id: 'survivor', from: '탄막 서바이버', what: '공격은 자동, 플레이어는 움직임만' },
+  rhythm: { id: 'rhythm', from: '리듬 게임', what: '박자에 맞춰 누르면 보상이 커진다' },
+  absorb: { id: 'absorb', from: '덩치 키우기(.io)', what: '나보다 작은 건 먹고 커지고, 큰 건 피한다' },
 };
+
+/** 게임마다 입히는 디자인 컨셉 (오너 요청 2026-11-07). 게임 하나가 한 세계의 색을 쓴다 */
+export interface Art {
+  /** 컨셉 이름 (예: "작은 행성 방어") */
+  concept: string;
+  /** 분위기 한 줄 */
+  mood: string;
+  palette: Theme;
+}
 
 export interface GameDef<S> {
   id: string;
@@ -55,6 +66,8 @@ export interface GameDef<S> {
   controls: 'tap' | 'leftright';
   /** 화면 세로 ÷ 가로 (없으면 좌우 1.5, 탭 1) */
   aspect?: number;
+  /** 디자인 컨셉. 있으면 페이지 색 대신 이 팔레트로 그린다 */
+  art?: Art;
   create(seed: number): S;
   step(s: S, input: Input): void;
   over(s: S): boolean;

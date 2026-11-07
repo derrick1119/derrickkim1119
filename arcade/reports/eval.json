@@ -108,5 +108,49 @@
    "simplicity": 0.85
   },
   "fun": 0.855
+ },
+ "beat": {
+  "id": "beat",
+  "name": "박자 포탑",
+  "n": 24,
+  "dumb": {
+   "score": 45.5,
+   "sec": 38.1
+  },
+  "smart": {
+   "score": 615,
+   "sec": 133.3,
+   "capped": 0
+  },
+  "skillGap": 13.25,
+  "parts": {
+   "skill": 1,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85
+  },
+  "fun": 0.97
+ },
+ "snowball": {
+  "id": "snowball",
+  "name": "눈덩이 비탈",
+  "n": 24,
+  "dumb": {
+   "score": 264,
+   "sec": 38.2
+  },
+  "smart": {
+   "score": 852,
+   "sec": 51.8,
+   "capped": 0
+  },
+  "skillGap": 3.22,
+  "parts": {
+   "skill": 0.562,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85
+  },
+  "fun": 0.781
  }
 }

@@ -55,6 +55,11 @@ export const guard: GameDef<GuardState> = {
   twist: '서바이버인데 움직임은 "공전 방향" 하나뿐 — 사방에서 오는 적 중 어느 쪽을 먼저 막을지만 고른다',
   rules: ['누르면 도는 방향이 바뀝니다. 총은 가까운 적을 저절로 쏴요.', '적이 가운데 핵에 닿으면 끝. 몸으로 부딪혀도 막을 수 있어요.', '10마리마다 무작위 강화: 연사·쌍발·가속.'],
   controls: 'tap',
+  art: {
+    concept: '작은 행성 방어',
+    mood: '깊은 우주, 고리를 두른 작은 초록 행성. 주황 운석이 쏟아지고 위성 하나가 궤도를 돈다.',
+    palette: { bg: '#0a0e1f', ink: '#ff8a3d', muted: '#3b4470', accent: '#7cf2c4', hot: '#ff4d4d', soft: '#1c2547' },
+  },
   create(seed) {
     const s: GuardState = {
       rng: mulberry32(seed), t: 0, angle: -Math.PI / 2, dir: 1, omega: 1.7 / 60, fireEvery: 34, shots: 1, cool: 0,
@@ -108,17 +113,42 @@ export const guard: GameDef<GuardState> = {
     const X = (x: number) => cx + x * sc, Y = (y: number) => cy + y * sc;
     ctx.fillStyle = th.bg;
     ctx.fillRect(0, 0, w, h);
+    // 별: 위치는 고정(결정적), 천천히 반짝임
+    for (let k = 0; k < 60; k++) {
+      const sx = ((k * 7919) % 997) / 997, sy = ((k * 104729) % 991) / 991;
+      ctx.globalAlpha = 0.25 + 0.35 * Math.abs(Math.sin(s.t / 40 + k));
+      ctx.fillStyle = th.muted;
+      ctx.fillRect(sx * w, sy * h, k % 5 ? 1.5 : 2.5, k % 5 ? 1.5 : 2.5);
+    }
+    ctx.globalAlpha = 1;
     ctx.strokeStyle = th.soft;
     ctx.lineWidth = sc * 0.05;
     ctx.beginPath();
     ctx.arc(cx, cy, ORBIT * sc, 0, Math.PI * 2);
     ctx.stroke();
+    // 행성 + 고리
     ctx.fillStyle = s.dead ? th.hot : th.accent;
     ctx.beginPath();
     ctx.arc(cx, cy, CORE * sc, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = th.accent;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, CORE * sc * 1.7, CORE * sc * 0.45, -0.35, 0, Math.PI * 2);
+    ctx.stroke();
     for (const e of s.enemies) {
       const p = pos(e.a, e.r);
+      // 운석 꼬리 (바깥쪽으로)
+      const tail = pos(e.a, e.r + 0.09);
+      ctx.strokeStyle = th.ink;
+      ctx.globalAlpha = 0.35;
+      ctx.lineWidth = ENEMY_R * sc;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(X(p.x), Y(p.y));
+      ctx.lineTo(X(tail.x), Y(tail.y));
+      ctx.stroke();
+      ctx.globalAlpha = 1;
       ctx.fillStyle = e.hp > 1 ? th.hot : th.ink;
       ctx.beginPath();
       ctx.arc(X(p.x), Y(p.y), ENEMY_R * sc * (e.hp > 1 ? 1.25 : 1), 0, Math.PI * 2);
@@ -140,7 +170,7 @@ export const guard: GameDef<GuardState> = {
     ctx.lineTo(X(ahead.x), Y(ahead.y));
     ctx.stroke();
     ctx.fillStyle = th.bg;
-    ctx.font = `700 ${Math.round(CORE * sc)}px system-ui, sans-serif`;
+    ctx.font = `800 ${Math.round(CORE * sc)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(String(s.kills), cx, cy);

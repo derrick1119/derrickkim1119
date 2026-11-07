@@ -31,6 +31,7 @@ function card(key: 'A' | 'B', id: string, other: string) {
   <header><span class="tag">${key}</span><div><p class="eyebrow">${role}</p><h3>${esc(g.name)}</h3></div></header>
   <ul class="genes">${genes}</ul>
   <p class="twist">${esc(g.twist)}</p>
+  ${artLine(id)}
   <ol class="rules">${g.rules.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>
   <div class="game" data-game="${id}"></div>
   <details class="metrics"><summary>봇 측정: 재미 추정 <b>${r.fun.toFixed(2)}</b></summary>
@@ -46,11 +47,20 @@ const bench = GAMES.filter((e) => e.game.id !== cur.A && e.game.id !== cur.B).ma
   <header><div><p class="eyebrow">다음 라운드 후보 · 봇 재미 추정 ${r.fun.toFixed(2)}</p><h3>${esc(g.name)}</h3></div></header>
   <ul class="genes">${g.genes.map((x) => `<li><b>${esc(GENES[x].from)}</b></li>`).join('<li class="x" aria-hidden="true">×</li>')}</ul>
   <p class="twist">${esc(g.twist)}</p>
+  ${artLine(g.id)}
   <ol class="rules">${g.rules.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>
   <div class="game" data-game="${g.id}"></div>
   <p class="muted">못하는 봇 ${r.dumb.sec}초·${r.dumb.score}점 / 잘하는 봇 ${r.smart.sec}초·${r.smart.score}점</p>
 </article>`;
 }).join('');
+
+/** 디자인 컨셉 줄: 팔레트 색 점 + 컨셉 이름 + 분위기 (오너 요청 2026-11-07) */
+function artLine(id: string) {
+  const a = GAMES.find((e) => e.game.id === id)?.game.art;
+  if (!a) return '';
+  const dots = [a.palette.bg, a.palette.ink, a.palette.accent, a.palette.hot].map((c) => `<i style="background:${c}"></i>`).join('');
+  return `<p class="art"><span class="swatch" aria-hidden="true">${dots}</span><b>${esc(a.concept)}</b> ${esc(a.mood)}</p>`;
+}
 
 const css = readFileSync(join(root, 'dashboard.css'), 'utf8');
 const bundle = (await build({ entryPoints: [join(root, 'play.ts')], bundle: true, minify: true, format: 'iife', write: false, target: 'es2022' })).outputFiles[0].text;

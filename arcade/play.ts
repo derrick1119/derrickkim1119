@@ -40,7 +40,7 @@ function mount(root: HTMLElement, g: GameDef<any>) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     draw();
   }
-  const draw = () => s && g.draw(ctx, s, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1), theme(root));
+  const draw = () => s && g.draw(ctx, s, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1), g.art?.palette ?? theme(root));
   function show(text: string) {
     overlay.innerHTML = text;
     overlay.hidden = false;

@@ -76,6 +76,11 @@ export const brickdef: GameDef<BrickState> = {
   twist: '벽돌이 적처럼 줄지어 내려오고, 깰 때마다 주사위 게이지가 차서 무작위 강화가 터진다',
   rules: ['좌우로 받침대를 움직여 공을 튕기세요.', '벽돌이 빨간 선을 넘으면 끝. 공을 놓치면 벽돌이 두 줄 내려와요.', '벽돌 8개마다 주사위: 분열·관통·폭발 중 하나!'],
   controls: 'leftright',
+  art: {
+    concept: '레트로 오락실',
+    mood: '검은 브라운관 위의 무지개 벽돌과 주사선. 주사위가 터질 때마다 화면이 번쩍.',
+    palette: { bg: '#07060d', ink: '#f2f2ff', muted: '#6b6b8f', accent: '#ffe14d', hot: '#ff3b6b', soft: '#1b1a2e' },
+  },
   create(seed) {
     const s: BrickState = {
       rng: mulberry32(seed), t: 0, px: W / 2, balls: [], bricks: [], respawn: 0, nextRow: 0, rowEvery: 60 * 7,
@@ -153,9 +158,12 @@ export const brickdef: GameDef<BrickState> = {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = `700 ${Math.round(BH * sc * 0.6)}px system-ui, sans-serif`;
+    const RAINBOW = ['#ff3b6b', '#ff8a3d', '#ffe14d', '#5df28a', '#3ed2ff', '#7a6bff', '#d46bff'];
     for (const b of s.bricks) {
-      ctx.fillStyle = b.hp >= 3 ? th.ink : b.hp === 2 ? th.accent : th.muted;
+      ctx.fillStyle = RAINBOW[b.col % RAINBOW.length];
+      ctx.globalAlpha = 0.45 + 0.55 * (b.hp / b.max);
       ctx.fillRect(X(b.col * BW) + 2, Y(b.y), BW * sc - 4, BH * sc);
+      ctx.globalAlpha = 1;
       ctx.fillStyle = th.bg;
       ctx.fillText(String(b.hp), X(b.col * BW + BW / 2), Y(b.y + BH / 2));
     }
@@ -182,6 +190,8 @@ export const brickdef: GameDef<BrickState> = {
       ctx.font = `800 ${Math.round(0.08 * sc)}px system-ui, sans-serif`;
       ctx.fillText(`🎲 ${s.lastPower.name}!`, X(W / 2), Y(0.75));
     }
+    ctx.fillStyle = 'rgba(0,0,0,.18)';
+    for (let y = 0; y < h; y += 3) ctx.fillRect(0, y, w, 1);
   },
 };
 

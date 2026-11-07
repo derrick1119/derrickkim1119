@@ -91,6 +91,11 @@ export const mergetower: GameDef<TowerState> = {
   rules: ['누르면 위에서 움직이는 블록이 떨어집니다.', '같은 숫자끼리 닿으면 두 배로 합쳐져요.', '한 줄이라도 맨 위까지 차면 끝.'],
   controls: 'tap',
   aspect: 1.45,
+  art: {
+    concept: '사탕 가게',
+    mood: '크림색 진열장에 둥근 젤리 블록. 합쳐질수록 더 진하고 큰 사탕이 된다.',
+    palette: { bg: '#fff6ec', ink: '#5a2a3a', muted: '#e9cfc0', accent: '#ff7aa8', hot: '#ff4f6d', soft: '#f6e3d6' },
+  },
   create(seed) {
     const s: TowerState = {
       rng: mulberry32(seed), t: 0, grid: Array.from({ length: COLS }, () => []), x: 0.5, vx: 0.011, cur: 2, next: 2,
@@ -114,12 +119,20 @@ export const mergetower: GameDef<TowerState> = {
     ctx.fillStyle = th.bg;
     ctx.fillRect(0, 0, w, h);
     const cell = Math.min(w / COLS, h / (ROWS + 2.2)), ox = (w - cell * COLS) / 2, top = cell * 2;
-    const tint = (v: number) => [th.soft, th.muted, th.accent, th.ink, th.hot][Math.min(4, Math.floor(Math.log2(v) / 1.6))];
+    // 사탕 색: 숫자가 커질수록 레몬 → 민트 → 하늘 → 포도 → 딸기 → 초콜릿
+    const CANDY = ['#ffd84d', '#7fe0b0', '#7cc8ff', '#b48cff', '#ff7aa8', '#ff4f6d', '#8a4b3a', '#3a1f2b'];
+    const tint = (v: number) => CANDY[Math.min(CANDY.length - 1, Math.round(Math.log2(v)) - 1)];
     const box = (x: number, y: number, v: number, alpha = 1) => {
       ctx.globalAlpha = alpha;
       ctx.fillStyle = tint(v);
-      ctx.fillRect(x + 2, y + 2, cell - 4, cell - 4);
-      ctx.fillStyle = Math.log2(v) / 1.6 < 1 ? th.ink : th.bg;
+      ctx.beginPath();
+      ctx.roundRect(x + 3, y + 3, cell - 6, cell - 6, cell * 0.28);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.45)';
+      ctx.beginPath();
+      ctx.ellipse(x + cell * 0.34, y + cell * 0.3, cell * 0.14, cell * 0.08, -0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = Math.log2(v) >= 7 ? '#fff6ec' : th.ink;
       ctx.font = `800 ${Math.round(cell * (v >= 1000 ? 0.28 : v >= 100 ? 0.34 : 0.42))}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';

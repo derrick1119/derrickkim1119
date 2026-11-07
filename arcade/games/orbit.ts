@@ -47,6 +47,11 @@ export const orbit: GameDef<OrbitState> = {
   twist: '두 원 궤도만 도는 뱀 + 거꾸로 스네이크(꼬리는 저절로 자라고, 먹으면 줄어든다)',
   rules: ['누르면 안쪽 ↔ 바깥 궤도를 갈아탑니다.', '꼬리는 저절로 자라요. 점을 먹으면 줄어듭니다.', '꼬리에 닿으면 끝.'],
   controls: 'tap',
+  art: {
+    concept: '네온 뱀',
+    mood: '한밤 오락실 간판처럼 번지는 형광 선. 꼬리가 빛의 궤적으로 남는다.',
+    palette: { bg: '#0b0f24', ink: '#3ef0ff', muted: '#2a3566', accent: '#c6ff3a', hot: '#ff3fa4', soft: '#161d40' },
+  },
   create(seed) {
     const s: OrbitState = {
       rng: mulberry32(seed), t: 0, angle: 0, ring: 1, hop: 0, omega: (2 * Math.PI) / 240, tailLen: 90, trail: [],
@@ -90,9 +95,12 @@ export const orbit: GameDef<OrbitState> = {
     ctx.lineJoin = 'round';
     ctx.strokeStyle = th.ink;
     ctx.lineWidth = sc * 0.07;
+    ctx.shadowColor = th.ink;
+    ctx.shadowBlur = sc * 0.12;
     ctx.beginPath();
     s.trail.forEach((p, i) => (i ? ctx.lineTo(X(p), Y(p)) : ctx.moveTo(X(p), Y(p))));
     ctx.stroke();
+    ctx.shadowColor = th.hot;
     // 점
     const f = foodPos(s);
     ctx.fillStyle = th.hot;
@@ -105,6 +113,7 @@ export const orbit: GameDef<OrbitState> = {
     ctx.beginPath();
     ctx.arc(X(hd), Y(hd), sc * 0.06, 0, Math.PI * 2);
     ctx.fill();
+    ctx.shadowBlur = 0;
     ctx.fillStyle = th.ink;
     ctx.font = `700 ${Math.round(sc * 0.28)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';

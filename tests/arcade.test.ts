@@ -9,6 +9,7 @@ describe('arcade factory (실험 0011)', () => {
       expect(game.rules.length).toBeLessThanOrEqual(3);
       expect(game.genes.length).toBeGreaterThanOrEqual(2);
       for (const g of game.genes) expect(GENES[g]).toBeDefined();
+      expect(game.art?.concept.length).toBeGreaterThan(1);
       const seeds = [11, 22, 33, 44];
       const d = seeds.reduce((a, sd) => a + runBot(game, dumb, sd, 60 * 90).score, 0);
       const m = seeds.reduce((a, sd) => a + runBot(game, smart, sd, 60 * 90, REACT).score, 0);
