@@ -95,3 +95,12 @@ describe('행성 수호대 플레이 빌드', () => {
     expect(gzipSync(html).length).toBeLessThanOrEqual(30 * 1024);
   });
 });
+
+describe('행성 수호대 FUN QA 계기판', () => {
+  it('세 유저군 지표를 모두 잰다', async () => {
+    const { measure } = await import('../studio/planet-guardian/funqa.ts');
+    const m = measure();
+    for (const g of ['라이트', '미들코어', '하드코어'] as const) expect(m.checks.filter((c) => c.group === g).length).toBeGreaterThanOrEqual(4);
+    for (const c of m.checks) expect(Number.isFinite(c.value)).toBe(true);
+  });
+});
