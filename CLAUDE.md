@@ -4,9 +4,11 @@
 |---|---|---|---|
 | **발명 공장** | 세상에 없는 규칙을 발명 | 이 파일 아래 전부 | 메아리 (`web/index.html`) |
 | **발견 공장** | 기존 장르를 조합·변형해 새 캐주얼 게임을 발견 (2026-11-06 퍼즐 라인 폐기) | `arcade/PROTOCOL.md` | 게임 발견 공장 계기판 (`arcade/`) |
+| **스튜디오** | 공장에서 오너가 최종 선택한 게임을 전문 기획자 방식으로 상용화 (게임마다 별도 세션) | `studio/<게임>/BRIEF.md` | `web/public/studio/<게임>/` |
 
 - 네가 어느 공장의 운영자인지는 세션을 깨운 메시지가 알려준다. **발견 공장 운영자라면 `arcade/PROTOCOL.md`만 따르고 아래 "한 사이클"은 무시한다.** (`fusion/`은 폐기된 퍼즐 라인 기록)
-- 발명 공장 운영자는 `arcade/`, `tests/arcade*.test.ts`, `fusion/`, `web/fusion.html`, `web/fusion/`, `web/public/fusion/`, `tests/fusion*.test.ts`를 수정하지 않는다.
+- 스튜디오 운영자는 자기 `studio/<게임>/`, `web/public/studio/<게임>/`, `tests/studio-<게임>*.test.ts`만 수정한다. 공장들은 `studio/`를 수정하지 않는다(발견 공장이 졸업 때 `BRIEF.md`·`STATUS.md`를 처음 만드는 것만 예외).
+- 발명 공장 운영자는 `arcade/`, `studio/`, `tests/arcade*.test.ts`, `tests/studio*.test.ts`, `fusion/`, `web/fusion.html`, `web/fusion/`, `web/public/fusion/`, `tests/fusion*.test.ts`를 수정하지 않는다.
 - 두 공장이 같은 `factory` 브랜치에 push한다. push가 거절되면 `git pull --rebase origin factory` → `npm run verify` 다시 → push.
 - `npm run verify`는 두 공장의 테스트를 모두 돌린다. 상대 공장 테스트가 깨지면 네 변경이 원인인지 먼저 확인하고, 상대 영역 코드는 고치지 말고 되돌린다.
 

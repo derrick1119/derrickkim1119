@@ -1,5 +1,5 @@
 {
- "champion": "guardian",
+ "champion": null,
  "rounds": [
   {
    "round": 1,
@@ -76,8 +76,20 @@
    "openedAt": "2026-11-07",
    "A": "guardian",
    "B": "guardian2",
-   "winner": null,
-   "note": "챔피언 행성 수호대 vs 행성 수호대 2(원버튼 제약 해제 후 확장판: 좌우 누르기 이동 · 건설 카드 셋 중 하나 직접 선택 · 건물 레벨 3단계 · 위성 3기 · 판 끝 기지 전경)"
+   "winner": "guardian2",
+   "note": "챔피언 행성 수호대 vs 행성 수호대 2(원버튼 제약 해제 후 확장판: 좌우 누르기 이동 · 건설 카드 셋 중 하나 직접 선택 · 건물 레벨 3단계 · 위성 3기 · 판 끝 기지 전경) · 오너: \"B. 내가 선택한 건 더 디벨롭해줘.\" → 최종 선택, 스튜디오로 졸업(studio/planet-guardian). 봇은 1편(0.97)을 근소하게 높게 봤음 → 빗나감",
+   "decidedAt": "2026-11-07",
+   "machinePick": "guardian"
+  }
+ ],
+ "graduated": [
+  {
+   "id": "guardian2",
+   "name": "행성 수호대 2",
+   "at": "2026-11-07",
+   "round": 8,
+   "studio": "studio/planet-guardian",
+   "play": "https://derrick1119.github.io/derrickkim1119/studio/planet-guardian/"
   }
  ]
 }
