@@ -86,5 +86,27 @@
    "simplicity": 0.85
   },
   "fun": 0.97
+ },
+ "stomp": {
+  "id": "stomp",
+  "name": "밟기 러너",
+  "n": 24,
+  "dumb": {
+   "score": 38.5,
+   "sec": 7.6
+  },
+  "smart": {
+   "score": 605,
+   "sec": 50.2,
+   "capped": 0
+  },
+  "skillGap": 15.34,
+  "parts": {
+   "skill": 1,
+   "onboarding": 0.509,
+   "session": 1,
+   "simplicity": 0.85
+  },
+  "fun": 0.855
  }
 }
