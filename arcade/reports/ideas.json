@@ -1,46 +1,28 @@
 {
- "unused": 45,
+ "unused": 39,
  "total": 57,
  "ideas": [
   {
    "core": [
-    "billiards",
-    "rhythm"
+    "autobattle",
+    "pinball"
    ],
    "control": "hold",
-   "spice": "combo",
-   "fresh": 3
-  },
-  {
-   "core": [
-    "autobattle",
-    "survivor"
-   ],
-   "control": "onebutton",
    "spice": "ghost",
    "fresh": 2
   },
   {
    "core": [
     "deck",
-    "merge"
+    "absorb"
    ],
-   "control": "dragaim",
-   "spice": "chain",
-   "fresh": 3
+   "control": "onebutton",
+   "spice": "unlock",
+   "fresh": 2
   },
   {
    "core": [
     "racing",
-    "billiards"
-   ],
-   "control": "hold",
-   "spice": "unlock",
-   "fresh": 4
-  },
-  {
-   "core": [
-    "flap",
     "brick"
    ],
    "control": "dragaim",
@@ -49,29 +31,47 @@
   },
   {
    "core": [
-    "traffic",
-    "pushbox"
+    "flap",
+    "autobattle"
    ],
-   "control": "twobutton",
+   "control": "hold",
    "spice": "rewind",
-   "fresh": 4
+   "fresh": 3
+  },
+  {
+   "core": [
+    "traffic",
+    "pinball"
+   ],
+   "control": "dragaim",
+   "spice": "rolereverse",
+   "fresh": 3
   },
   {
    "core": [
     "grapple",
-    "billiards"
+    "whack"
    ],
-   "control": "hold",
-   "spice": "rolereverse",
+   "control": "twobutton",
+   "spice": "mirror",
    "fresh": 4
   },
   {
    "core": [
     "shmup",
+    "autobattle"
+   ],
+   "control": "hold",
+   "spice": "turnbased",
+   "fresh": 3
+  },
+  {
+   "core": [
+    "order",
     "snake"
    ],
    "control": "onebutton",
-   "spice": "mirror",
+   "spice": "collect",
    "fresh": 2
   }
  ]

@@ -174,5 +174,49 @@
    "simplicity": 0.85
   },
   "fun": 0.781
+ },
+ "pool": {
+  "id": "pool",
+  "name": "먹보 당구",
+  "n": 24,
+  "dumb": {
+   "score": 4,
+   "sec": 32.6
+  },
+  "smart": {
+   "score": 31,
+   "sec": 58.3,
+   "capped": 0
+  },
+  "skillGap": 6.4,
+  "parts": {
+   "skill": 0.893,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85
+  },
+  "fun": 0.929
+ },
+ "pinbrick": {
+  "id": "pinbrick",
+  "name": "핀볼 블록",
+  "n": 24,
+  "dumb": {
+   "score": 167.5,
+   "sec": 59.5
+  },
+  "smart": {
+   "score": 646,
+   "sec": 128.9,
+   "capped": 0.2916666666666667
+  },
+  "skillGap": 3.84,
+  "parts": {
+   "skill": 0.647,
+   "onboarding": 1,
+   "session": 0.708,
+   "simplicity": 0.85
+  },
+  "fun": 0.771
  }
 }

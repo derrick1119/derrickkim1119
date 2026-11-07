@@ -11,6 +11,8 @@ import { mulberry32, type Rng } from '../engine/rng.ts';
 export interface Input {
   /** 원버튼 게임의 탭(이번 틱에 새로 눌렸는가) */
   tap: boolean;
+  /** 버튼을 누르고 있는가 (꾹 눌렀다 떼기 게임, 0020) */
+  hold?: boolean;
   /** 좌우 조작 게임: -1 왼쪽, 0 정지, 1 오른쪽 */
   dir: -1 | 0 | 1;
   /** 포인터로 직접 가리킨 x(0~1). 있으면 dir보다 우선 */
@@ -127,7 +129,7 @@ export interface GameDef<S> {
   /** 플레이어용 규칙 (짧을수록 좋다, 3줄 이하 권장) */
   rules: string[];
   /** 조작: 원버튼 탭 / 좌우 */
-  controls: 'tap' | 'leftright';
+  controls: 'tap' | 'hold' | 'leftright';
   /** 화면 세로 ÷ 가로 (없으면 좌우 1.5, 탭 1) */
   aspect?: number;
   /** 디자인 컨셉. 있으면 페이지 색 대신 이 팔레트로 그린다 */
@@ -171,8 +173,8 @@ export function runBot<S>(g: GameDef<S>, bot: Bot<S>, seed: number, maxTicks = 6
   let ticks = 0, changes = 0, last = '', held: Input = NO_INPUT;
   while (!g.over(s) && ticks < maxTicks) {
     const inp = ticks % react === 0 ? (held = bot.act(s, rng)) : { ...held, tap: false };
-    const key = `${inp.tap ? 1 : 0}${inp.dir}${inp.aim === undefined ? '' : Math.round(inp.aim * 8)}`;
-    if (key !== last && (inp.tap || inp.dir !== 0 || inp.aim !== undefined)) changes++;
+    const key = `${inp.tap ? 1 : 0}${inp.hold ? 1 : 0}${inp.dir}${inp.aim === undefined ? '' : Math.round(inp.aim * 8)}`;
+    if (key !== last && (inp.tap || inp.hold || inp.dir !== 0 || inp.aim !== undefined)) changes++;
     last = key;
     g.step(s, inp);
     ticks++;

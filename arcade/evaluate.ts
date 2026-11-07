@@ -44,7 +44,7 @@ export function evaluateGame<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, n = 
     skill: clamp(Math.log(skillGap) / Math.log(8)), // 8배 이상이면 만점
     onboarding: clamp((dumbSec - 3) / 9), // 3초 0점 · 12초 만점
     session: clamp(smartSec / 45) * (1 - capped), // 45초 이상 만점, 3분 넘게 버티는 판 비율만큼 감점
-    simplicity: clamp(1 - (g.rules.length - 2) * 0.15) * (g.controls === 'tap' ? 1 : 0.92),
+    simplicity: clamp(1 - (g.rules.length - 2) * 0.15) * (g.controls === 'leftright' ? 0.92 : 1),
   };
   const fun = Math.exp((Math.log(0.05 + parts.skill) * 2 + Math.log(0.05 + parts.onboarding) + Math.log(0.05 + parts.session) + Math.log(0.05 + parts.simplicity)) / 5) / 1.05;
   return {

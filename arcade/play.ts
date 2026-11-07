@@ -22,13 +22,13 @@ function mount(root: HTMLElement, g: GameDef<any>) {
   const canvas = document.createElement('canvas');
   canvas.className = 'g-canvas';
   canvas.tabIndex = 0;
-  canvas.setAttribute('aria-label', `${g.name} 게임 화면. ${g.controls === 'tap' ? '스페이스나 화면 탭' : '좌우 화살표나 드래그'}로 조작`);
+  canvas.setAttribute('aria-label', `${g.name} 게임 화면. ${g.controls === 'tap' ? '스페이스나 화면 탭' : g.controls === 'hold' ? '스페이스나 화면을 꾹 눌렀다 떼기' : '좌우 화살표나 드래그'}로 조작`);
   const overlay = document.createElement('button');
   overlay.type = 'button';
   overlay.className = 'g-overlay';
   root.append(canvas, overlay);
   const ctx = canvas.getContext('2d')!;
-  let s: any = null, seed = 1, running = false, acc = 0, last = 0, tapQueued = false, aim: number | undefined;
+  let s: any = null, seed = 1, running = false, acc = 0, last = 0, tapQueued = false, holding = false, aim: number | undefined;
   const keys = new Set<string>();
 
   function size() {
@@ -61,7 +61,7 @@ function mount(root: HTMLElement, g: GameDef<any>) {
     last = now;
     while (acc >= TICK) {
       const dir = ((keys.has('ArrowRight') ? 1 : 0) - (keys.has('ArrowLeft') ? 1 : 0)) as -1 | 0 | 1;
-      const input: Input = { tap: tapQueued, dir, aim };
+      const input: Input = { tap: tapQueued, hold: holding, dir, aim };
       tapQueued = false;
       g.step(s, input);
       acc -= TICK;
@@ -85,21 +85,24 @@ function mount(root: HTMLElement, g: GameDef<any>) {
     e.preventDefault();
     if (!running) return;
     if (g.controls === 'tap') tapQueued = true;
+    else if (g.controls === 'hold') (tapQueued = true), (holding = true);
     else aim = toAim(e);
   });
   canvas.addEventListener('pointermove', (e) => g.controls === 'leftright' && running && (e.buttons || e.pointerType === 'mouse') && (aim = toAim(e)));
-  canvas.addEventListener('pointerleave', () => (aim = undefined));
+  canvas.addEventListener('pointerleave', () => ((aim = undefined), (holding = false)));
+  window.addEventListener('pointerup', () => (holding = false));
   canvas.addEventListener('keydown', (e) => {
     if (e.key === ' ' || e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Enter') e.preventDefault();
     if (!running && (e.key === ' ' || e.key === 'Enter')) return start();
     if (g.controls === 'tap' && (e.key === ' ' || e.key === 'ArrowUp') && !e.repeat) tapQueued = true;
+    if (g.controls === 'hold' && (e.key === ' ' || e.key === 'ArrowUp')) (holding = true), e.repeat || (tapQueued = true);
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') (keys.add(e.key), (aim = undefined));
   });
-  canvas.addEventListener('keyup', (e) => keys.delete(e.key));
+  canvas.addEventListener('keyup', (e) => (keys.delete(e.key), (e.key === ' ' || e.key === 'ArrowUp') && (holding = false)));
   overlay.addEventListener('click', start);
   s = g.create(1);
   size();
-  show(`<b>시작</b><span>${g.controls === 'tap' ? '탭 / 스페이스' : '드래그 / ← →'}</span>`);
+  show(`<b>시작</b><span>${g.controls === 'tap' ? '탭 / 스페이스' : g.controls === 'hold' ? '꾹 눌렀다 떼기 / 스페이스' : '드래그 / ← →'}</span>`);
   new ResizeObserver(size).observe(root);
 }
 
