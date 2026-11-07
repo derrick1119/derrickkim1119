@@ -127,6 +127,20 @@ describe('행성 수호대 시뮬', () => {
   });
 });
 
+describe('행성 수호대 롤아웃 봇 (C007)', () => {
+  it('원본 State를 건드리지 않고(투시 금지 복제), 같은 입력엔 같은 판정', async () => {
+    const { decide } = await import('../studio/planet-guardian/rollout.ts');
+    const s = create(44);
+    while (!s.offer) step(s, {});
+    s.ore = 30;
+    const before = JSON.stringify(s);
+    const a = decide(s, 44), b = decide(s, 44);
+    expect(JSON.stringify(s)).toBe(before);
+    expect(a.d.means).toEqual(b.d.means);
+    expect(a.d.means.length).toBe(s.offer!.length + 1); // 카드 + 다시 뽑기
+  });
+});
+
 describe('행성 수호대 밸런스 (GDD §8, 봇)', () => {
   // 40시드: 아무거나 고르는 봇은 판마다 편차가 커서(28~281초) 16시드 중앙값은 흔들린다 — 목표는 그대로, 측정만 촘촘히 (C004)
   const seeds = [...Array(40).keys()].map((k) => k + 1);
