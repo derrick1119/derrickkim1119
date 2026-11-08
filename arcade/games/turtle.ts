@@ -66,11 +66,16 @@ export const multOf = (combo: number) => 1 + Math.min(4, Math.floor(combo / 3));
 export const duckZ = (o: Ob, ct: number) => LANE + 0.3 * Math.cos(((ct + o.ph) / 240) * TAU);
 const duckIn = (o: Ob, ct: number) => Math.abs(duckZ(o, ct) - LANE) < 0.2;
 export function groundAt(c: Course, x: number) {
-  for (const r of c.ramps) if (x >= r.x && x <= r.x + r.w) return ((x - r.x) / r.w) * r.h;
+  const rs = c.ramps;
+  for (let i = 0; i < rs.length; i++) {
+    const r = rs[i];
+    if (x >= r.x && x <= r.x + r.w) return ((x - r.x) / r.w) * r.h;
+  }
   return 0;
 }
 function zoneAt(c: Course, x: number) {
-  for (const z of c.zones) if (x >= z.x0 && x <= z.x1) return z.kind;
+  const zs = c.zones;
+  for (let i = 0; i < zs.length; i++) if (x >= zs[i].x0 && x <= zs[i].x1) return zs[i].kind;
   return null;
 }
 
@@ -153,27 +158,28 @@ type Cb = (kind: string, x: number, y: number, n?: number, text?: string) => voi
  * 거북이 한 틱 — 게임과 봇(앞날 흉내)이 같은 함수를 쓴다. 얻은 점수를 돌려준다.
  * got: [딸기들 | 장애물들] 처리 여부 (봇은 복사본으로 흉내 낸다)
  */
+function bailB(b: Body, got: Uint8Array, why: string, j: number, cb?: Cb) {
+  if (j >= 0) got[j] = 1;
+  b.bail = BAIL;
+  b.v *= 0.5;
+  b.combo = 0;
+  b.tuck = false;
+  b.rail = -1;
+  b.grind = 0;
+  b.rot = 0;
+  b.rotTo = 0;
+  if (b.vy > 0) b.vy = 0;
+  cb?.('bail', b.x, b.y, 0, why);
+}
+function endGrind(b: Body, cb?: Cb) {
+  if (b.grind >= 18) (b.combo++, cb?.('grind', b.x, b.y, b.grind));
+  b.grind = 0;
+}
+
 export function advance(b: Body, c: Course, got: Uint8Array, hold: boolean, ct: number, cb?: Cb): number {
   const nb = c.berries.length;
   let pts = 0;
   const mult = multOf(b.combo);
-  const bail = (why: string, j: number) => {
-    if (j >= 0) got[j] = 1;
-    b.bail = BAIL;
-    b.v *= 0.5;
-    b.combo = 0;
-    b.tuck = false;
-    b.rail = -1;
-    b.grind = 0;
-    b.rot = 0;
-    b.rotTo = 0;
-    if (b.vy > 0) b.vy = 0;
-    cb?.('bail', b.x, b.y, 0, why);
-  };
-  const endGrind = () => {
-    if (b.grind >= 18) (b.combo++, cb?.('grind', b.x, b.y, b.grind));
-    b.grind = 0;
-  };
   if (b.bail > 0) {
     // 뒤집혀서 데굴데굴 미끄러지는 중 — 조작은 안 먹는다
     b.bail--;
@@ -199,7 +205,7 @@ export function advance(b: Body, c: Course, got: Uint8Array, hold: boolean, ct: 
       const f = b.rot / TAU, fl = Math.floor(f);
       b.rotTo = (f - fl < 0.12 ? fl : fl + 1) * TAU;
     } else {
-      if (b.rail >= 0) endGrind();
+      if (b.rail >= 0) endGrind(b, cb);
       b.air = true;
       b.vy = HOP;
       b.rail = -1;
@@ -218,7 +224,7 @@ export function advance(b: Body, c: Course, got: Uint8Array, hold: boolean, ct: 
   b.x += b.v;
   if (b.rail >= 0) {
     const r = c.obs[b.rail];
-    if (b.x > r.x + r.w) (endGrind(), (b.rail = -1), (b.air = true), (b.vy = 0.03));
+    if (b.x > r.x + r.w) (endGrind(b, cb), (b.rail = -1), (b.air = true), (b.vy = 0.03));
     else {
       b.y = r.h;
       if (b.tuck) (b.grind++, b.grind % 4 === 0 && (pts += 5 * mult));
@@ -233,8 +239,8 @@ export function advance(b: Body, c: Course, got: Uint8Array, hold: boolean, ct: 
     const g = groundAt(c, b.x);
     let landed = false;
     if (b.vy < 0)
-      for (const i of c.rails) {
-        const r = c.obs[i];
+      for (let q = 0; q < c.rails.length; q++) {
+        const i = c.rails[q], r = c.obs[i];
         if (!got[nb + i] && py >= r.h - 0.03 && b.y <= r.h && b.x >= r.x && b.x <= r.x + r.w) {
           (b.rail = i), (b.y = r.h), (landed = true);
           break;
@@ -249,7 +255,7 @@ export function advance(b: Body, c: Course, got: Uint8Array, hold: boolean, ct: 
       const spins = onRail ? Math.floor(b.rot / TAU + 0.12) : n;
       b.rot = 0;
       b.rotTo = 0;
-      if (!ok) return bail('flip', -1), pts;
+      if (!ok) return bailB(b, got, 'flip', -1, cb), pts;
       if (spins > 0) (pts += SPINPTS[Math.min(5, spins)] * mult), (b.combo += spins), cb?.('spin', b.x, b.y, spins);
       else cb?.('land', b.x, b.y);
       if (b.rail >= 0) cb?.('rail', b.x, b.y);
@@ -276,10 +282,10 @@ export function advance(b: Body, c: Course, got: Uint8Array, hold: boolean, ct: 
       continue;
     }
     if (got[j] || b.rail === i) continue;
-    if (o.kind === 'rock' && b.y < o.h) bail('rock', j);
-    else if (o.kind === 'duck' && b.y < o.h && duckIn(o, ct)) bail('duck', j);
-    else if (o.kind === 'bar' && top > o.h) bail('bar', j);
-    else if (o.kind === 'rail' && b.y < o.h - 0.03 && top > o.h - 0.1) bail('rail', j);
+    if (o.kind === 'rock' && b.y < o.h) bailB(b, got, 'rock', j, cb);
+    else if (o.kind === 'duck' && b.y < o.h && duckIn(o, ct)) bailB(b, got, 'duck', j, cb);
+    else if (o.kind === 'bar' && top > o.h) bailB(b, got, 'bar', j, cb);
+    else if (o.kind === 'rail' && b.y < o.h - 0.03 && top > o.h - 0.1) bailB(b, got, 'rail', j, cb);
     else if (o.kind === 'puddle' && !b.air) (got[j] = 2), (b.v *= 0.45), cb?.('splash', o.x + o.w / 2, 0);
     if (b.bail) return pts;
   }

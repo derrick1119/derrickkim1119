@@ -848,21 +848,34 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
   // ── 주둥이 화살표 ──
   if (s.phase === 'day' && s.left > 0 && !s.pending.length) {
     const thn = thetaAt(s, s.dayT), zc = I.h[CI] * HZ + 2, dx = Math.cos(thn), dy = Math.sin(thn);
-    const g0 = C + 0.5, col = s.charge > 0 ? '#ffdd55' : '#ffffff';
-    ctx.strokeStyle = col;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([3, 4]);
-    ctx.lineDashOffset = -s.t * 0.5;
-    ctx.beginPath();
-    ctx.moveTo(...P(g0 + dx * 0.7, g0 + dy * 0.7, zc));
-    ctx.lineTo(...P(g0 + dx * 2.6, g0 + dy * 2.6, zc));
-    ctx.stroke();
+    const g0 = C + 0.5, col = s.charge > 0 ? '#ffdd55' : '#ffffff', pulse = 1 + 0.08 * Math.sin(s.t / 6);
+    // 땅 위 점선 길 + 끝에 큰 화살표 (검은 테두리·주황 번짐) — 지금 떼면 이쪽으로 흐른다
+    ctx.lineCap = 'round';
+    for (const [c, lw] of [['rgba(30,10,0,.55)', 5], [col, 2.6]] as [string, number][]) {
+      ctx.strokeStyle = c;
+      ctx.lineWidth = lw;
+      ctx.setLineDash([4, 5]);
+      ctx.lineDashOffset = -s.t * 0.6;
+      ctx.beginPath();
+      ctx.moveTo(...P(g0 + dx * 0.9, g0 + dy * 0.9, zc));
+      ctx.lineTo(...P(g0 + dx * 2.7, g0 + dy * 2.7, zc));
+      ctx.stroke();
+    }
     ctx.setLineDash([]);
-    const tip = P(g0 + dx * 3.1, g0 + dy * 3.1, zc), l = P(g0 + dx * 2.5 - dy * 0.45, g0 + dy * 2.5 + dx * 0.45, zc), r = P(g0 + dx * 2.5 + dy * 0.45, g0 + dy * 2.5 - dx * 0.45, zc);
+    ctx.lineCap = 'butt';
+    const tip = P(g0 + dx * 3.5 * pulse, g0 + dy * 3.5 * pulse, zc), l = P(g0 + dx * 2.6 - dy * 0.7, g0 + dy * 2.6 + dx * 0.7, zc), r = P(g0 + dx * 2.6 + dy * 0.7, g0 + dy * 2.6 - dx * 0.7, zc);
     ctx.shadowColor = '#ff8a2a';
-    ctx.shadowBlur = 10;
+    ctx.shadowBlur = 12;
     poly([tip, l, r], col);
     ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(40,15,0,.8)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(...tip);
+    ctx.lineTo(...l);
+    ctx.lineTo(...r);
+    ctx.closePath();
+    ctx.stroke();
     if (I.vent >= 0) {
       const vx = (I.vent % N) + 0.5, vy = ((I.vent / N) | 0) + 0.5, zv = I.h[I.vent] * HZ + 2;
       const t2 = P(vx - dx * 1.7, vy - dy * 1.7, zv), l2 = P(vx - dx * 1.2 + dy * 0.35, vy - dy * 1.2 - dx * 0.35, zv), r2 = P(vx - dx * 1.2 - dy * 0.35, vy - dy * 1.2 + dx * 0.35, zv);
