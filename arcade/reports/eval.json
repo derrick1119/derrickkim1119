@@ -1,36 +1,4 @@
 {
- "garden": {
-  "id": "garden",
-  "name": "물길 정원",
-  "n": 24,
-  "dumb": {
-   "score": 0,
-   "sec": 34.1
-  },
-  "smart": {
-   "score": 357.5,
-   "sec": 89.9,
-   "capped": 0.16666666666666666
-  },
-  "skillGap": 358.5,
-  "reveals": [
-   2.6,
-   3.9,
-   4.3
-  ],
-  "dumbReveals": [
-   0,
-   0
-  ],
-  "parts": {
-   "skill": 1,
-   "onboarding": 1,
-   "session": 0.833,
-   "simplicity": 0.85,
-   "unfold": 1
-  },
-  "fun": 0.954
- },
  "domino": {
   "id": "domino",
   "name": "도미노 도시",
@@ -62,5 +30,37 @@
    "unfold": 1
   },
   "fun": 0.927
+ },
+ "shadow": {
+  "id": "shadow",
+  "name": "그림자 도둑",
+  "n": 24,
+  "dumb": {
+   "score": 110,
+   "sec": 126
+  },
+  "smart": {
+   "score": 367.5,
+   "sec": 121.4,
+   "capped": 0.08333333333333333
+  },
+  "skillGap": 3.32,
+  "reveals": [
+   2,
+   3.8,
+   5.4
+  ],
+  "dumbReveals": [
+   0,
+   1.8
+  ],
+  "parts": {
+   "skill": 0.577,
+   "onboarding": 1,
+   "session": 0.917,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.834
  }
 }

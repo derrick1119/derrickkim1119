@@ -6,11 +6,11 @@
  */
 import type { Bot, GameDef } from './core.ts';
 import { domino, dominoRandom, dominoSmart } from './games/domino.ts';
-import { garden, gardenRandom, gardenSmart } from './games/garden.ts';
+import { shadow, shadowRandom, shadowSmart } from './games/shadow.ts';
 
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S> }
 
 export const GAMES: Entry[] = [
-  { game: garden, dumb: gardenRandom, smart: gardenSmart },
   { game: domino, dumb: dominoRandom, smart: dominoSmart },
+  { game: shadow, dumb: shadowRandom, smart: shadowSmart },
 ];
