@@ -770,7 +770,7 @@ export const snowglobe: GameDef<SnowState> = {
       if (e.kind === 'grow') fx.burst(x, y, '#ffffff', 16, 2.6, 2.6), fx.ring(x, y + CW * 0.1, '#e8f1ff', CW * 0.8, 3), e.text && fx.pop(x, y - CW * 0.5, e.text, '#bfe0ff', 13);
       if (e.kind === 'drift') fx.burst(x, y + CW * 0.1, '#eef5ff', 7, 1.4, 2);
       if (e.kind === 'roof') fx.burst(x, y - CW * 0.3, '#dbe7f7', 10, 1.8, 2.2), fx.pop(x, y - CW * 0.6, e.text!, '#cfe3ff', 13);
-      if (e.kind === 'melt') fx.burst(x, y, '#8fd3ff', 10, 1.6, 2), fx.pop(x, y - CW * 0.3, e.text!, '#8fd3ff', 12);
+      if (e.kind === 'melt') fx.burst(x, y, '#8fd3ff', 12, 1.8, 2), fx.ring(x, y + CW * 0.15, '#bfe8ff', CW * 0.5, 2), fx.pop(x, y + CW * 0.25, e.text!, '#8fd3ff', 12);
       if (e.kind === 'bury') fx.burst(x, y, '#ffffff', 26, 3.2, 3), fx.kick(9), fx.pop(x, y - CW * 0.6, e.text!, th.hot, 16);
       if (e.kind === 'dark') fx.pop(GX, GY - GR * 0.35, e.text!, th.hot, 16);
       if (e.kind === 'fest') {

@@ -13,7 +13,7 @@ import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
 import { juice } from '../juice.ts';
 
-const N = 15, C = 7, CI = C * N + C, NN = N * N, A = 1.22;
+const N = 15, C = 7, CI = C * N + C, NN = N * N, A = 1.1;
 const DAY = 1200, NIGHT = 110, DAYS = 7, FULL = 90, COOL = 70, SPIN = (Math.PI * 2) / 500, VMIN = 2, VMAX = 12;
 const SEA = 0, LAVA = 1, ROCK = 2, GRASS = 3, FOREST = 4, ANIMAL = 5, HOUSE = 6, CRATER = 7, VENT = 8;
 const LIGHT = 1, HARBOR = 2, SPRING = 3;
@@ -41,6 +41,7 @@ for (let k = 0; k < NN; k++) {
 }
 const dist = (k: number) => Math.hypot((k % N) - C, ((k / N) | 0) - C);
 const maxH = (k: number) => (dist(k) < 1.5 ? 4 : dist(k) < 3 ? 3 : 2);
+const ANIMALS = ['🦌', '🐇', '🐿️', '🦊', '🐑', '🦔'];
 const hsh = (k: number) => ((Math.imul(k + 1, 2654435761) >>> 0) % 10007) / 10007;
 
 export interface Isle { kind: Uint8Array; g: Float32Array; h: Uint8Array; feat: Uint8Array; islet: Uint8Array; vent: number; linked: boolean }
@@ -277,6 +278,9 @@ function lavaAt(s: VolcanoState, k: number) {
     ev(s, s.flowNew === 1 ? 'hiss' : 'steam', k, s.flowNew === 1 ? '치익!' : undefined);
   } else I.h[k] = Math.min(I.h[k] + 1, maxH(k));
   if (lost > 0) (s.flowLost += lost), ev(s, was === HOUSE ? 'house' : 'bury', k, was === HOUSE ? '🏠 집이 덮였어요!' : `-${lost}`);
+  // 웃음: 덮이는 동물·주민은 펄쩍 뛰어 데굴데굴 달아난다
+  if (was === ANIMAL) ev(s, 'flee', k, ANIMALS[Math.floor(hsh(k * 7) * ANIMALS.length)]);
+  if (was === HOUSE) ev(s, 'flee', k, '🏃');
   I.kind[k] = LAVA;
   I.g[k] = 0;
   I.feat[k] = 0;
@@ -298,7 +302,7 @@ function erupt(s: VolcanoState, hold: number) {
   s.erupts++;
   s.flowNew = 0;
   s.flowLost = 0;
-  ev(s, 'erupt', CI, hold >= FULL ? '콰르릉!!' : hold > 45 ? '콰르릉!' : '부글');
+  ev(s, 'erupt', CI, hold >= FULL ? '콰르릉!!' : hold > 45 ? '콰르릉!' : hold > 24 ? '부글' : '뿌웅~');
 }
 
 function newDay(s: VolcanoState) {
@@ -502,13 +506,12 @@ const SKY: [number, string, string][] = [
   [0.86, '#6a5aa8', '#ffa070'],
   [1, '#2a2d66', '#ee7a5c'],
 ];
-const ANIMALS = ['🦌', '🐇', '🐿️', '🦊', '🐑', '🦔'];
 
 function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, h: number, th: Theme) {
   const fx = juice(s), I = s.isle, K = I.kind, R = (x: number) => x * w;
-  const TW = (w * 0.92) / N, TH = TW * 0.5, HZ = TW * 0.22, D = TW * 1.25, OX = w / 2;
-  const top = R(0.135), bot = h - R(0.1);
-  const OY = top + (bot - top - (N * TH + D)) * 0.66;
+  const TW = (w * 0.97) / N, TH = TW * 0.5, HZ = TW * 0.22, D = TW * 1.2, OX = w / 2;
+  const top = R(0.15), bot = h - R(0.1);
+  const OY = top + (bot - top - (N * TH + D + TW * 0.5)) * 0.78;
   const P = (gx: number, gy: number, z: number): [number, number] => [OX + ((gx - gy) * TW) / 2, OY + ((gx + gy) * TH) / 2 - z];
   const poly = (pts: [number, number][], fill: string | CanvasGradient) => {
     ctx.beginPath();
@@ -577,11 +580,26 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
     }
   }
   // ── 판 그림자·바다 단면 ──
-  ctx.fillStyle = 'rgba(0,20,40,.28)';
+  const L0 = P(0, N, 0), F0 = P(N, N, 0), R0 = P(N, 0, 0), T00 = P(0, 0, 0);
+  ctx.fillStyle = 'rgba(0,20,40,.3)';
   ctx.beginPath();
-  ctx.ellipse(OX, OY + N * TH + D * 0.9, N * TW * 0.5, TW * 1.6, 0, 0, Math.PI * 2);
+  ctx.ellipse(OX, F0[1] + D + TW * 0.9, N * TW * 0.42, TW * 0.9, 0, 0, Math.PI * 2);
   ctx.fill();
-  const L0 = P(0, N, 0), F0 = P(N, N, 0), R0 = P(N, 0, 0);
+  // 나무 받침대 (디오라마 진열대)
+  {
+    const pd = TW * 0.45, ex = TW * 0.35, dy0 = D, L1: [number, number] = [L0[0] - ex, L0[1] + dy0], F1: [number, number] = [F0[0], F0[1] + dy0 + ex * 0.5], R1: [number, number] = [R0[0] + ex, R0[1] + dy0];
+    const T1: [number, number] = [T00[0], T00[1] + dy0 - ex * 0.5];
+    poly([T1, R1, F1, L1], mix('#a8754a', '#3a2818', night * 0.6));
+    poly([L1, F1, [F1[0], F1[1] + pd], [L1[0], L1[1] + pd]], mix('#8a5a34', '#2a1c10', night * 0.6));
+    poly([F1, R1, [R1[0], R1[1] + pd], [F1[0], F1[1] + pd]], mix('#6e4626', '#20140c', night * 0.6));
+    ctx.strokeStyle = 'rgba(255,220,170,.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(L1[0], L1[1]);
+    ctx.lineTo(F1[0], F1[1]);
+    ctx.lineTo(R1[0], R1[1]);
+    ctx.stroke();
+  }
   const wg = ctx.createLinearGradient(0, F0[1] - TH * N * 0.5, 0, F0[1] + D);
   wg.addColorStop(0, mix('#2a8fd0', '#123a66', night));
   wg.addColorStop(1, mix('#0d3b6b', '#06182e', night));
@@ -669,6 +687,18 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
         pvLost += LIFE[K[k]] + FEAT_LIFE[I.feat[k]];
       }
   }
+  // 성공한 밤: 다 같이 춤 / 실패한 밤: 화산이 훌쩍
+  const dance = s.phase === 'night' && !s.retry ? 1 : 0, sad = s.phase === 'night' && s.retry;
+  const shout = (x: number, y: number, t: string) => {
+    ctx.font = `900 ${TW * 0.45}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = '#ffffff';
+    ctx.strokeText(t, x, y);
+    ctx.fillStyle = '#e8202a';
+    ctx.fillText(t, x, y);
+  };
   // ── 섬: 뒤에서 앞으로 ──
   const rain = rainAt(s.day, s.phase === 'night' ? 0 : s.dayT);
   const lights: [number, number, number][] = [];
@@ -692,7 +722,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
         const pA = side === 0 ? [i, j + 1] : [i + 1, j], pB = [i + 1, j + 1];
         for (let zz = z, band = 0; zz > nz + 0.01; zz -= HZ, band++) {
           const lo = Math.max(nz, zz - HZ);
-          poly([P(pA[0], pA[1], zz), P(pB[0], pB[1], zz), P(pB[0], pB[1], lo), P(pA[0], pA[1], lo)], lo < 0 ? mix('#3a3030', '#141018', night * 0.6) : band % 2 ? soil2 : soil);
+          poly([P(pA[0], pA[1], zz), P(pB[0], pB[1], zz), P(pB[0], pB[1], lo), P(pA[0], pA[1], lo)], lo < 0 ? mix(lo < -D * 0.7 ? '#b8955e' : band % 2 ? '#6a4a34' : '#5a3e2c', '#1a1410', night * 0.6) : band % 2 ? soil2 : soil);
           if (side === 1) poly([P(pA[0], pA[1], zz), P(pB[0], pB[1], zz), P(pB[0], pB[1], lo), P(pA[0], pA[1], lo)], 'rgba(0,0,0,.2)');
         }
         if (!rocky) poly([P(pA[0], pA[1], z), P(pB[0], pB[1], z), P(pB[0], pB[1], z - 2), P(pA[0], pA[1], z - 2)], mix('#5b9a38', '#1e3418', night * 0.6));
@@ -756,12 +786,21 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
         }
         if (kd === ANIMAL) {
           const [ax, ay] = P(i + 0.55 + 0.12 * Math.sin(s.t / 50 + k), j + 0.65, z);
+          // 평소엔 깡총, 용암이 올 자리면 '!' 하고 제자리 펄쩍펄쩍, 성공한 밤엔 다 같이 춤
+          const scared = !!preview[k], party = dance > 0;
+          const hop = scared ? Math.abs(Math.sin(s.t / 3 + k)) * 7 : party ? Math.abs(Math.sin(s.t / 6)) * 7 : Math.abs(Math.sin(s.t / 9 + k)) * 2;
+          ctx.save();
+          ctx.translate(ax, ay - hop);
+          if (party && Math.floor(s.t / 12 + k) % 2) ctx.scale(-1, 1);
+          if (party) ctx.rotate(Math.sin(s.t / 6) * 0.3);
           ctx.globalAlpha = 1;
           ctx.fillStyle = '#ffffff';
-          ctx.font = `${TW * 0.5}px system-ui, sans-serif`;
+          ctx.font = `${TW * (scared ? 0.55 : 0.44)}px system-ui, sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
-          ctx.fillText(ANIMALS[Math.floor(hsh(k * 7) * ANIMALS.length)], ax, ay - Math.abs(Math.sin(s.t / 9 + k)) * 2);
+          ctx.fillText(ANIMALS[Math.floor(hsh(k * 7) * ANIMALS.length)], 0, 0);
+          ctx.restore();
+          if (scared) shout(ax, ay - hop - TW * 0.5, '!');
         }
       }
       if (kd === HOUSE) drawHouse(cx, cy, k);

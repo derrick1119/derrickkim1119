@@ -94,14 +94,16 @@ function sprout(j: Jar, i: number, o: number, h: Hook, slime = 0) {
   if (drink >= 0) (j.k[drink] = E), (j.v[drink] = 0);
   (j.k[i] = PLANT), (j.v[i] = type), (j.o[i] = o), (j.b[i] = h.t);
   let birth: '' | 'bfly' | 'snail' = '';
-  if ((type === FLOWER && f.bfly) || (type === MOSS && f.snail))
+  // 짝: 꽃·연꽃끼리 → 나비, 이끼·버섯끼리 → 달팽이 (짝 지은 식물은 다시 짝 짓지 않는다)
+  const sunny = type === FLOWER || type === LOTUS, mate = (v: number) => (sunny ? v === FLOWER || v === LOTUS : v === MOSS || v === MUSH);
+  if (sunny ? f.bfly : f.snail)
     for (let dy = -1; dy <= 1 && !birth; dy++)
       for (let dx = -1; dx <= 1 && !birth; dx++) {
         const c = at(x + dx, y + dy);
-        if (c >= 0 && c !== i && j.k[c] === PLANT && (j.v[c] === type || (type === MOSS && j.v[c] === MUSH))) {
+        if (c >= 0 && c !== i && j.k[c] === PLANT && mate(j.v[c])) {
           j.v[c] |= PAIRED;
           j.v[i] |= PAIRED;
-          birth = type === FLOWER ? 'bfly' : 'snail';
+          birth = sunny ? 'bfly' : 'snail';
           h.born[birth]++;
         }
       }
@@ -192,15 +194,15 @@ const turn = (o: number, d: Dir) => (d === 'down' ? o : (o + (d === 'right' ? 1 
 interface Cfg { goal: Goal; tilts: number; rocks: number; seeds: number; water: number; soil: number; light: 0 | 1 }
 export const STAGES: Cfg[] = [
   { goal: { any: 3 }, tilts: 6, rocks: 0, seeds: 5, water: 10, soil: 24, light: 0 },
-  { goal: { flower: 1, moss: 2 }, tilts: 5, rocks: 2, seeds: 7, water: 7, soil: 24, light: 0 },
+  { goal: { flower: 2, moss: 2 }, tilts: 5, rocks: 2, seeds: 8, water: 8, soil: 24, light: 0 },
   { goal: { moss: 1, mush: 1, flower: 1 }, tilts: 5, rocks: 2, seeds: 8, water: 8, soil: 22, light: 0 },
-  { goal: { bfly: 1, moss: 1 }, tilts: 5, rocks: 2, seeds: 8, water: 7, soil: 22, light: 0 },
+  { goal: { bfly: 1, moss: 2 }, tilts: 5, rocks: 2, seeds: 9, water: 8, soil: 22, light: 0 },
   { goal: { snail: 1, flower: 2 }, tilts: 5, rocks: 3, seeds: 9, water: 7, soil: 22, light: 0 },
   { goal: { flower: 2, moss: 2 }, tilts: 5, rocks: 2, seeds: 9, water: 7, soil: 22, light: 1 },
   { goal: { lotus: 1, mush: 1, flower: 1 }, tilts: 5, rocks: 2, seeds: 9, water: 8, soil: 22, light: 0 },
   { goal: { bfly: 1, snail: 1 }, tilts: 5, rocks: 3, seeds: 9, water: 7, soil: 20, light: 0 },
-  { goal: { flower: 2, moss: 2, mush: 1 }, tilts: 5, rocks: 3, seeds: 10, water: 8, soil: 20, light: 1 },
-  { goal: { lotus: 1, bfly: 1, mush: 1 }, tilts: 6, rocks: 3, seeds: 10, water: 8, soil: 20, light: 0 },
+  { goal: { lotus: 1, moss: 2, mush: 1 }, tilts: 5, rocks: 3, seeds: 10, water: 8, soil: 20, light: 1 },
+  { goal: { lotus: 2, bfly: 1, mush: 1, moss: 1 }, tilts: 6, rocks: 3, seeds: 11, water: 9, soil: 20, light: 0 },
 ];
 
 interface Critter { kind: 'bfly' | 'snail'; x: number; y: number; tx: number; ty: number; cd: number; drops: number; face: number; born: number }
@@ -299,7 +301,7 @@ function newStage(s: TerraState) {
   if (k >= 1) see(s, 'rock', '바위 밑은 그늘 — 🌿 이끼가 자라요');
   if (k >= 2) see(s, 'mush', '그늘에서 물에 잠기면 🍄 버섯');
   if (k >= 3) see(s, 'bfly', '🌸 둘이 붙어 피면 🦋 나비 — 씨앗을 떨궈요');
-  if (k >= 4) see(s, 'snail', '🌿 옆에 🌿·🍄가 붙으면 🐌 달팽이 — 씨앗을 틔워요');
+  if (k >= 4) see(s, 'snail', '🌿·🍄 둘이 붙어 자라면 🐌 달팽이 — 씨앗을 틔워요');
   if (cfg.light) see(s, 'sun', '해질녘 — 빛이 왼쪽 창에서 들어와요');
   if (k >= 6) see(s, 'lotus', '햇빛에서 물에 잠기면 🪷 연꽃');
   ev(s, 'stage', CEN, CEN, `${k + 1}판 — ${goalText(cfg.goal)}`);
@@ -475,7 +477,7 @@ export const terrarium: GameDef<TerraState> = {
       s.cleared = true;
       const st = (s.tilts - s.left) * 2 <= s.tilts ? 3 : s.left > 0 ? 2 : 1;
       s.stars += st;
-      s.score += 30 + st * 10;
+      s.score += 20 + st * 15;
       const pl: number[] = [];
       for (let i = 0; i < N * N; i++) if (s.jar.k[i] === PLANT && pl.length < 5) pl.push(s.jar.v[i] & 7);
       s.jars.push({ stars: st, plants: pl });
@@ -942,8 +944,8 @@ function sim(s: TerraState, j: Jar, o: number, d: Dir, born: Born) {
   settle(j, o2, { t: s.t, f: s.feat, born });
   return o2;
 }
-/** 정원 점수: 목표에 든 만큼 + 남은 씨앗(가능성) − 목표에 안 드는 식물(씨앗 낭비) */
-function value(s: TerraState, j: Jar, born: Born, left: number) {
+/** 정원 점수: 목표에 든 만큼 + 아직 안 싹튼 씨앗이 알맞은 자리(햇빛/그늘)에 있는 만큼 − 목표에 안 드는 식물(씨앗 낭비) */
+function value(s: TerraState, j: Jar, o: number, born: Born, left: number) {
   const c = tally(j, s.nb + born.bfly, s.ns + born.snail), g = s.goal;
   if (met(g, c)) return 1e6 + left * 1000;
   let v = 0, need = 0;
@@ -951,37 +953,50 @@ function value(s: TerraState, j: Jar, born: Born, left: number) {
     v += 100 * Math.min(c[key], g[key]!);
     need += Math.max(0, g[key]! - c[key]) * (key === 'bfly' || key === 'snail' ? 2 : 1);
   }
-  // 생물 목표: 짝 없는 꽃/이끼 하나는 반쯤 온 것
-  const want = { flower: (g.flower ?? 0) + (g.bfly ? 2 : 0), moss: (g.moss ?? 0) + (g.snail ? 2 : 0), mush: g.mush ?? 0, lotus: g.lotus ?? 0 };
-  if (g.bfly && c.bfly < g.bfly) v += 35 * Math.min(1, c.flower);
-  if (g.snail && c.snail < g.snail) v += 35 * Math.min(1, c.moss);
+  const bf = g.bfly && c.bfly < g.bfly ? 2 : 0, sn = g.snail && c.snail < g.snail ? 2 : 0;
+  const want = { flower: (g.flower ?? 0) + bf, moss: (g.moss ?? 0) + sn, mush: (g.mush ?? 0) + (sn ? 1 : 0), lotus: g.lotus ?? 0 };
   if (!g.any) v -= 30 * (Math.max(0, c.flower - want.flower) + Math.max(0, c.moss - want.moss) + Math.max(0, c.mush - want.mush) + Math.max(0, c.lotus - want.lotus));
-  v += 12 * Math.min(c.seeds, need) + Math.min(c.water, 6);
+  // 아직 씨앗인 것: 지금 자리의 빛/그늘이 남은 목표에 맞으면 가산 (생물 목표는 이미 핀 짝 옆이면 더)
+  const needSun = Math.max(0, (g.flower ?? 0) - c.flower) + Math.max(0, (g.lotus ?? 0) - c.lotus) + bf;
+  const needShade = Math.max(0, (g.moss ?? 0) - c.moss) + Math.max(0, (g.mush ?? 0) - c.mush) + sn;
+  let sun = 0, shade = 0, pair = 0;
+  for (let i = 0; i < N * N; i++) {
+    if (j.k[i] !== SEED) continue;
+    if (lit(j, i, o, s.feat.light)) sun++;
+    else shade++;
+    if (bf || sn)
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          const q = at((i % N) + dx, ((i / N) | 0) + dy);
+          if (q >= 0 && j.k[q] === PLANT && (((j.v[q] === FLOWER) && bf) || ((j.v[q] === MOSS || j.v[q] === MUSH) && sn))) pair = 1;
+        }
+  }
+  v += 9 * Math.min(sun, needSun) + 9 * Math.min(shade, needShade) + 20 * pair;
+  if (bf) v += 30 * Math.min(1, c.flower);
+  if (sn) v += 30 * Math.min(1, c.moss + c.mush);
+  v += 6 * Math.min(c.seeds, need) + Math.min(c.water, 6);
   if (c.seeds < need) v -= 150;
   return v;
 }
+interface Node { j: Jar; o: number; born: Born; first: Dir; v: number }
 export const terrariumSmart: Bot<TerraState> = {
   name: '정원사',
   act(s) {
     if (s.pause > 0 || s.cleared || s.left === 0 || s.t - s.rotT < ROT || s.still < 4) return { tap: false, dir: 0 };
-    let best: Dir = 'down', bv = -1e9;
-    for (const d of MOVES) {
-      const j = cloneJar(s.jar), born = { bfly: 0, snail: 0 }, o2 = sim(s, j, s.o, d, born);
-      let v = value(s, j, born, s.left - 1);
-      if (v < 1e6 && s.left > 1)
-        for (const d2 of MOVES) {
-          const j2 = cloneJar(j), b2 = { ...born }, o3 = sim(s, j2, o2, d2, b2);
-          let v2 = value(s, j2, b2, s.left - 2);
-          if (v2 < 1e6 && s.left > 2)
-            for (const d3 of MOVES) {
-              const j3 = cloneJar(j2), b3 = { ...b2 };
-              sim(s, j3, o3, d3, b3);
-              v2 = Math.max(v2, value(s, j3, b3, s.left - 3) * 0.97);
-            }
-          v = Math.max(v, v2 * 0.97);
+    // 빔 탐색: 네 수까지 내다보되, 깊이마다 좋은 6개만 넓힌다
+    let layer: Node[] = [{ j: s.jar, o: s.o, born: { bfly: 0, snail: 0 }, first: 'down', v: 0 }], best = null as Node | null;
+    for (let depth = 0; depth < Math.min(4, s.left); depth++) {
+      const next: Node[] = [];
+      for (const nd of layer)
+        for (const d of MOVES) {
+          const j = cloneJar(nd.j), born = { ...nd.born }, o2 = sim(s, j, nd.o, d, born);
+          const v = value(s, j, o2, born, s.left - depth - 1) * 0.97 ** depth, n2 = { j, o: o2, born, first: depth ? nd.first : d, v };
+          if (!best || v > best.v) best = n2;
+          if (v < 1e6) next.push(n2);
         }
-      if (v > bv) (bv = v), (best = d);
+      if (best && best.v >= 1e6) break;
+      layer = next.sort((a, b) => b.v - a.v).slice(0, 6);
     }
-    return { tap: false, dir: 0, move: best };
+    return { tap: false, dir: 0, move: best!.first };
   },
 };

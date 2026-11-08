@@ -44,7 +44,7 @@ export interface AntState {
   kind: number[]; res: Res[]; hidden: Res[]; room: Room[]; prog: number[]; wet: number[]; grow: number[]; tmr: number[]; conn: boolean[];
   ants: number; target: number; chain: number[]; down: boolean; taps: number; idle: number;
   rainAt: number; rainV: number; raining: number; mole: Mole | null;
-  hearts: number; stars: number; pts: number; pause: number; cleared: boolean; won: boolean;
+  hearts: number; stars: number; got: number; pts: number; pause: number; cleared: boolean; won: boolean;
   seen: Set<string>; events: Ev[]; dead: boolean; news: { text: string; t: number } | null;
 }
 
@@ -312,7 +312,7 @@ export const antfarm: GameDef<AntState> = {
     const s = {
       rng: mulberry32(seed), t: 0, day: 0, dt: 0, T: 40, goal: 12, kind: [], res: [], hidden: [], room: [], prog: [], wet: [], grow: [], tmr: [], conn: [],
       ants: 4, target: -1, chain: [], down: false, taps: 0, idle: 0, rainAt: 0, rainV: 0, raining: 0, mole: null,
-      hearts: 3, stars: 0, pts: 0, pause: 0, cleared: false, won: false, seen: new Set<string>(), events: [], dead: false, news: null,
+      hearts: 3, stars: 0, got: 0, pts: 0, pause: 0, cleared: false, won: false, seen: new Set<string>(), events: [], dead: false, news: null,
     } as AntState;
     newDay(s);
     return s;
@@ -380,6 +380,7 @@ export const antfarm: GameDef<AntState> = {
     if (s.ants >= s.goal) {
       const left = 1 - s.dt / (s.T * 60), st = left >= 0.4 ? 3 : left >= 0.15 ? 2 : 1, last = s.day === DAYS.length - 1;
       s.stars += st;
+      s.got = st;
       s.pts += s.goal + st * 10 + 10;
       s.cleared = true;
       ev(s, 'clear', 0.5, Y0 + 0.28, `${s.day + 1}일째 성공! ${'★'.repeat(st)}${'☆'.repeat(3 - st)}`);
@@ -863,10 +864,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: AntState, w: number, h: numbe
       ctx.arc(x - z * 0.35, y - z * 0.1 + bob, z * 0.25, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#ffe9a8';
-      ctx.font = `900 ${R(0.022)}px system-ui, sans-serif`;
+      ctx.font = `900 ${R(0.027)}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(`+${big}`, x + R(0.026), y - R(0.022));
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = 'rgba(40,20,8,.8)';
+      ctx.strokeText(`+${big}`, x + R(0.028), y - R(0.024));
+      ctx.fillText(`+${big}`, x + R(0.028), y - R(0.024));
     } else if (rs === 'mystery') {
       ctx.fillStyle = '#6e4a2c';
       ctx.beginPath();
@@ -1282,10 +1286,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: AntState, w: number, h: numbe
     if (e.kind === 'rock') say(x, y - R(0.04), e.text!, e.col!, 13), fx.kick(2);
     if (e.kind === 'here') fx.ring(x, y, '#ffffff', R(0.04), 2);
     if (e.kind === 'sniff') fx.ring(x, y, e.col!, R(0.06), 3), say(CX(colOf(ENT)), Y(Y0) - R(0.03), e.text!, e.col!, 15);
-    if (e.kind === 'clear') fx.burst(w / 2, y, '#ffe066', 60, 6, 3.2), fx.burst(w / 2, y, '#9be15d', 30, 5, 3), fx.ring(w / 2, y, '#ffe066', R(0.45), 8), fx.blink('#fff6c8', 0.3), say(w / 2, y, e.text!, '#ffffff', 24);
-    if (e.kind === 'season') say(w / 2, y, e.text!, '#ffe066', 20), fx.burst(w / 2, y, '#ff8fb1', 50, 7, 3);
-    if (e.kind === 'fail') fx.kick(8), fx.blink(th.hot, 0.25), say(w / 2, y, e.text!, th.hot, 19);
-    if (e.kind === 'stage') say(w / 2, y, e.text!, '#ffffff', 19);
+    if (e.kind === 'clear') fx.burst(w / 2, y, '#ffe066', 60, 6, 3.2), fx.burst(w / 2, y, '#9be15d', 30, 5, 3), fx.ring(w / 2, y, '#ffe066', R(0.45), 8), fx.blink('#fff6c8', 0.3);
+    if (e.kind === 'season') fx.burst(w / 2, y, '#ff8fb1', 50, 7, 3), fx.burst(w / 2, y, '#7cc7ff', 40, 6, 3);
+    if (e.kind === 'fail') fx.kick(8), fx.blink(th.hot, 0.25);
   }
   fx.memo.t = s.t;
   ctx.restore();
@@ -1331,6 +1334,39 @@ function drawAll(ctx: CanvasRenderingContext2D, s: AntState, w: number, h: numbe
   ctx.fillStyle = th.ink;
   ctx.font = `800 ${R(0.032)}px system-ui, sans-serif`;
   ctx.fillText(msg, bx + bw + 14, by);
+  // 하루 카드: 시작(목표) · 성공(별) · 해 질 녘 실패
+  {
+    let head = '', sub = '', col = '#ffffff', age = 0;
+    if (s.pause > 0) {
+      age = (s.won ? 150 : 110) - s.pause;
+      if (s.won) (head = '한 계절 개미 마을 완성!'), (sub = `${'★'.repeat(s.got)}${'☆'.repeat(3 - s.got)} · 별 모두 ${s.stars}개`), (col = '#ffe066');
+      else if (s.cleared) (head = `${s.day + 1}일째 성공!`), (sub = `${'★'.repeat(s.got)}${'☆'.repeat(3 - s.got)}  개미들이 춤춰요`), (col = '#ffe066');
+      else (head = '해가 졌어요… 쿨쿨'), (sub = s.hearts > 0 ? `하트 -1 · ${s.day + 1}일째 다시` : '끝'), (col = '#ffb3a8');
+    } else if (s.dt < 120) (head = `${s.day + 1}일째`), (sub = `해 지기 전에 개미 ${s.goal}마리!`), (age = s.dt);
+    if (head) {
+      const sc = Math.min(1, 0.6 + age / 12), a = s.pause > 0 ? 1 : Math.min(1, (120 - s.dt) / 20), cyy = Y(0.25);
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.translate(w / 2, cyy);
+      ctx.scale(sc, sc);
+      ctx.fillStyle = 'rgba(35,22,14,.86)';
+      ctx.beginPath();
+      ctx.roundRect(-R(0.36), -R(0.07), R(0.72), R(0.14), R(0.04));
+      ctx.fill();
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = col;
+      ctx.font = `900 ${R(0.05)}px system-ui, sans-serif`;
+      ctx.fillText(head, 0, -R(0.022), R(0.68));
+      ctx.fillStyle = '#fff8ec';
+      ctx.font = `800 ${R(0.034)}px system-ui, sans-serif`;
+      ctx.fillText(sub, 0, R(0.035), R(0.68));
+      ctx.restore();
+    }
+  }
   // 새것 알림: 하늘 띠에 3초쯤 걸린다
   if (s.news && s.t - s.news.t < 200) {
     const age = s.t - s.news.t, a = Math.min(1, age / 10, (200 - age) / 20), drop = Math.max(0, 10 - age) * 2;
