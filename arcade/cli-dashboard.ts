@@ -15,7 +15,7 @@ const root = import.meta.dirname;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const cycle = process.argv.includes('--cycle') ? process.argv[process.argv.indexOf('--cycle') + 1] : '????';
 const evals: Record<string, ArcadeReport> = JSON.parse(readFileSync(join(root, 'reports', 'eval.json'), 'utf8'));
-const ab: { champion: string | null; graduated?: { id: string; name: string; at: string; round: number; studio: string; play: string }[]; discarded?: { id: string; name: string }[]; rounds: { round: number; openedAt: string; A: string; B: string; winner: string | null; note?: string }[] } = JSON.parse(readFileSync(join(root, 'ab.json'), 'utf8'));
+const ab: { champion: string | null; graduated?: { id: string; name: string; at: string; round: number; studio: string; play: string }[]; discarded?: { id: string; name: string }[]; rounds: { round: number; openedAt: string; A: string; B: string | null; winner: string | null; note?: string }[] } = JSON.parse(readFileSync(join(root, 'ab.json'), 'utf8'));
 const cur = ab.rounds.at(-1)!;
 // 아이디어 메뉴 (오너 선택 2026-11-08): 라운드 사이에 만들기 전 한 줄 기획을 먼저 보여 준다
 const menu: { round: number; why: string; picked: number[] | null; items: { no: number; emoji: string; name: string; from: string; wow: string; first: string; depth: string }[] } | null = (() => {
@@ -26,14 +26,14 @@ const nameOf = (id: string) => GAMES.find((e) => e.game.id === id)?.game.name ??
 const now = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 const LABEL: Record<string, string> = { skill: '실력이 통하나', onboarding: '처음 해도 버티나', session: '한 판 길이', simplicity: '단순함', unfold: '판이 펼쳐지나' };
 
-function card(key: 'A' | 'B', id: string, other: string) {
-  const g = GAMES.find((e) => e.game.id === id)!.game, r = evals[id], o = evals[other];
+function card(key: 'A' | 'B', id: string, other: string | null) {
+  const g = GAMES.find((e) => e.game.id === id)!.game, r = evals[id], o = other ? evals[other] : null;
   const bars = Object.entries(r.parts).map(([k, v]) => {
-    const up = v > ((o.parts as Record<string, number>)[k] ?? 0) + 0.03;
+    const up = !!o && v > ((o.parts as Record<string, number>)[k] ?? 0) + 0.03;
     return `<div class="bar"><span>${LABEL[k]}</span><i style="--v:${Math.round(v * 100)}%" class="${up ? 'up' : ''}"></i><b>${v.toFixed(2)}</b></div>`;
   }).join('');
   const genes = g.genes.map((x) => `<li><b>${esc(GENES[x].from)}</b></li>`).join('<li class="x" aria-hidden="true">×</li>');
-  const role = !ab.champion ? `새 게임 ${key === 'A' ? 1 : 2}` : key === 'A' ? '지금 챔피언' : '도전자';
+  const role = !other ? `💡 ${esc(g.origin ?? '한 게임')}` : !ab.champion ? `새 게임 ${key === 'A' ? 1 : 2}` : key === 'A' ? '지금 챔피언' : '도전자';
   return `<article class="side side-${key}">
   <header><span class="tag">${key}</span><div><p class="eyebrow">${role}</p><h3>${esc(g.name)}</h3></div></header>
   <ul class="genes">${genes}</ul>
@@ -110,7 +110,9 @@ ${menuOpen ? `<h2 id="ab-h">${menu!.round}라운드 아이디어 메뉴 — 만�
     <p class="muted"><b>첫 3초</b> ${esc(m.first)}</p>
     <p class="muted"><b>안 질리는 이유</b> ${esc(m.depth)}</p>
   </article>`).join('')}</div>` : cur.winner ? `<h2 id="ab-h">${cur.round + 1}라운드 준비 중</h2>
-  <p class="lead">${cur.round}라운드는 ${cur.winner === 'none' ? '<b>둘 다 탈락</b>' : `<b>${esc(nameOf(cur.winner))}</b> 승`}. 공장이 새 게임을 만들고 있습니다. 준비되면 알려 드립니다.</p>` : `<h2 id="ab-h">A|B ${cur.round}라운드 — 직접 해보고 골라 주세요</h2>
+  <p class="lead">${cur.round}라운드는 ${cur.winner === 'none' ? '<b>둘 다 탈락</b>' : `<b>${esc(nameOf(cur.winner))}</b> 승`}. 공장이 새 게임을 만들고 있습니다. 준비되면 알려 드립니다.</p>` : !cur.B ? `<h2 id="ab-h">${cur.round}라운드 — 한 판 해 보고 “좋아” / “별로”</h2>
+  <p class="lead">이번 라운드는 오너가 준 아이디어로 만든 게임 하나입니다. 한 판 해 보고 <b>채팅에 “좋아” 또는 “별로”라고 답해 주세요.</b> 별로면 이유를 한 줄 적어 주세요. 좋으면 이 게임이 챔피언이 되고, 다음 게임이 여기에 도전합니다.</p>
+  <div class="ab one">${card('A', cur.A, null)}</div>` : `<h2 id="ab-h">A|B ${cur.round}라운드 — 직접 해보고 골라 주세요</h2>
   <p class="lead">두 게임을 한 판씩 해 보고, <b>채팅에 “A” 또는 “B”라고 답해 주세요.</b> 고른 쪽이 챔피언이 되고, 공장은 그 챔피언에 도전할 새 조합을 만듭니다. 둘 다 별로면 이유를 한 줄 적어 주세요. 그게 다음 게임의 설계 기준이 됩니다.</p>
   <div class="ab">${card('A', cur.A, cur.B)}${card('B', cur.B, cur.A)}</div>`}
 </section>
@@ -160,4 +162,4 @@ writeFileSync(join(root, 'reports', 'dashboard.html'), html);
 // 오너 요청(2026-11-07): 승인 창 없이 언제든 열 수 있게 GitHub Pages에도 싣는다 → /arcade/
 mkdirSync(join(root, '..', 'web', 'public', 'arcade'), { recursive: true });
 writeFileSync(join(root, '..', 'web', 'public', 'arcade', 'index.html'), html);
-console.log(`dashboard: ${(html.length / 1024).toFixed(1)} KB · 라운드 ${cur.round} (${cur.A} vs ${cur.B})`);
+console.log(`dashboard: ${(html.length / 1024).toFixed(1)} KB · 라운드 ${cur.round} (${cur.B ? `${cur.A} vs ${cur.B}` : `${cur.A} 한 게임`})`);

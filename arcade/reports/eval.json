@@ -1,66 +1,34 @@
 {
- "domino": {
-  "id": "domino",
-  "name": "도미노 도시",
+ "ducks": {
+  "id": "ducks",
+  "name": "줄줄이 오리",
   "n": 24,
   "dumb": {
-   "score": 53,
-   "sec": 58.6
+   "score": 25.5,
+   "sec": 8
   },
   "smart": {
-   "score": 297,
-   "sec": 44.9,
-   "capped": 0
+   "score": 401,
+   "sec": 91.1,
+   "capped": 0.041666666666666664
   },
-  "skillGap": 5.52,
+  "skillGap": 15.17,
   "reveals": [
-   4,
-   4.9,
-   4.9
+   5.3,
+   7,
+   7
   ],
   "dumbReveals": [
-   3,
-   3
+   3.1,
+   3.1
   ],
   "parts": {
-   "skill": 0.821,
-   "onboarding": 1,
-   "session": 0.998,
+   "skill": 1,
+   "onboarding": 0.56,
+   "session": 0.958,
    "simplicity": 0.85,
    "unfold": 1
   },
-  "fun": 0.927
- },
- "shadow": {
-  "id": "shadow",
-  "name": "그림자 도둑",
-  "n": 24,
-  "dumb": {
-   "score": 110,
-   "sec": 126
-  },
-  "smart": {
-   "score": 367.5,
-   "sec": 121.4,
-   "capped": 0.08333333333333333
-  },
-  "skillGap": 3.32,
-  "reveals": [
-   2,
-   3.8,
-   5.4
-  ],
-  "dumbReveals": [
-   0,
-   1.8
-  ],
-  "parts": {
-   "skill": 0.577,
-   "onboarding": 1,
-   "session": 0.917,
-   "simplicity": 0.85,
-   "unfold": 1
-  },
-  "fun": 0.834
+  "fun": 0.9
  }
 }

@@ -37,6 +37,7 @@ p { margin: 0; }
 .lead { max-width: 72ch; margin-bottom: 16px; }
 .ab { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(330px, 100%), 1fr)); gap: 16px; }
 .ab > * { min-width: 0; }
+.ab.one { max-width: 560px; }
 .side { background: var(--panel); border: 1px solid var(--line); border-top: 5px solid var(--accent); border-radius: 12px; padding: 16px; display: grid; gap: 12px; align-content: start; }
 .side-B { border-top-color: var(--hot); }
 .side.bench { border-top-color: var(--line); }

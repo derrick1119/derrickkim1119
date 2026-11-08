@@ -17,7 +17,9 @@ describe('arcade factory (실험 0011)', () => {
   it('열린 라운드의 두 게임은 등록돼 있고, 폐기한 게임은 다시 보이지 않는다 (오너 규칙 2026-11-07)', () => {
     const ab = JSON.parse(readFileSync(join(import.meta.dirname, '..', 'arcade', 'ab.json'), 'utf8'));
     const ids = GAMES.map((e) => e.game.id), cur = ab.rounds.at(-1);
-    if (!cur.winner) expect(ids).toEqual(expect.arrayContaining([cur.A, cur.B]));
+    // 한 게임 라운드(B 없음, 오너 아이디어 '좋아/별로' 2026-11-08)도 그 게임은 반드시 등록돼 있어야 한다
+    if (!cur.winner) expect(ids).toEqual(expect.arrayContaining([cur.A, cur.B].filter(Boolean)));
+    expect(cur.A).toBeTruthy();
     for (const d of ab.discarded ?? []) expect(ids).not.toContain(d.id);
   });
   for (const { game, dumb, smart } of GAMES) {
