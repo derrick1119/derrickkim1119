@@ -13,7 +13,7 @@ import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
 import { juice } from '../juice.ts';
 
-const N = 12, CEN = 6, A = 1.32, STEP = 3, ROT = 14;
+const N = 12, CEN = 6, A = 1.32, STEP = 4, ROT = 16;
 export const E = 0, SOIL = 1, WATER = 2, SEED = 3, ROCK = 4, PLANT = 5;
 export const FLOWER = 1, MOSS = 2, MUSH = 3, LOTUS = 4;
 const PAIRED = 8;
@@ -510,15 +510,101 @@ export const terrarium: GameDef<TerraState> = {
 
 // ───────────────────────── 그리기 ─────────────────────────
 const SOIL_COL = ['#a8773f', '#875a2f', '#6c4625', '#55361c'];
+const hash = (i: number, k: number) => (((i + 1) * 7919 + k * 104729) % 997) / 997;
+type Mood = 'idle' | 'run' | 'wow' | 'dizzy' | 'happy' | 'oops';
+/** 개구리 집사 — 병 꼭대기에 앉아 있다가, 구르면 통나무 굴리기처럼 종종걸음, 뒤집히면 날아갔다 어질어질, 실패하면 미끄러져 벌러덩 */
+function drawFrog(ctx: CanvasRenderingContext2D, x: number, y: number, S: number, mood: Mood, t: number, tilt: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(tilt);
+  const run = mood === 'run', kick = mood === 'oops' ? Math.sin(t / 2) * 0.12 * S : 0;
+  ctx.fillStyle = '#3f9a3a';
+  for (const sd of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(sd * 0.36 * S, -0.02 * S + (run ? Math.sin(t / 1.6 + sd) * 0.09 * S : 0) + kick * sd, 0.19 * S, 0.08 * S, sd * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const g = ctx.createRadialGradient(-0.15 * S, -0.32 * S, 0.04 * S, 0, -0.18 * S, 0.6 * S);
+  g.addColorStop(0, '#b5f08f');
+  g.addColorStop(1, '#45a33c');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.ellipse(0, -0.2 * S, 0.48 * S, 0.33 * S, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#e4f8c8';
+  ctx.beginPath();
+  ctx.ellipse(0, -0.1 * S, 0.27 * S, 0.17 * S, 0, 0, Math.PI * 2);
+  ctx.fill();
+  const blink = mood === 'idle' && t % 170 < 7;
+  for (const sd of [-1, 1]) {
+    const ex = sd * 0.23 * S, ey = -0.47 * S;
+    ctx.fillStyle = '#5cbf4c';
+    ctx.beginPath();
+    ctx.arc(ex, ey, 0.17 * S, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = Math.max(1.2, S * 0.045);
+    ctx.strokeStyle = '#1d2a1b';
+    if (mood === 'happy' || blink) {
+      ctx.beginPath();
+      ctx.arc(ex, ey + 0.03 * S, 0.08 * S, Math.PI * 1.1, Math.PI * 1.9);
+      ctx.stroke();
+      continue;
+    }
+    const big = mood === 'wow' || mood === 'run' ? 0.15 : 0.12;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(ex, ey, big * S, 0, Math.PI * 2);
+    ctx.fill();
+    if (mood === 'dizzy') {
+      ctx.beginPath();
+      for (let a = 0; a < 12; a++) ctx.lineTo(ex + Math.cos(a * 0.9 + t / 4 * sd) * a * 0.009 * S, ey + Math.sin(a * 0.9 + t / 4 * sd) * a * 0.009 * S);
+      ctx.stroke();
+    } else if (mood === 'oops') {
+      ctx.beginPath();
+      ctx.moveTo(ex - 0.06 * S, ey - 0.06 * S), ctx.lineTo(ex + 0.06 * S, ey + 0.06 * S);
+      ctx.moveTo(ex + 0.06 * S, ey - 0.06 * S), ctx.lineTo(ex - 0.06 * S, ey + 0.06 * S);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = '#1d2a1b';
+      ctx.beginPath();
+      ctx.arc(ex + (run ? -0.02 * S * sd : 0.02 * S), ey + 0.01 * S, (mood === 'wow' ? 0.04 : 0.06) * S, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.fillStyle = 'rgba(255,130,150,.55)';
+  for (const sd of [-1, 1]) (ctx.beginPath(), ctx.ellipse(sd * 0.3 * S, -0.22 * S, 0.06 * S, 0.035 * S, 0, 0, Math.PI * 2), ctx.fill());
+  ctx.strokeStyle = '#1d2a1b';
+  ctx.lineWidth = Math.max(1.2, S * 0.04);
+  ctx.beginPath();
+  if (mood === 'wow' || mood === 'oops') ctx.ellipse(0, -0.24 * S, 0.06 * S, mood === 'oops' ? 0.03 * S : 0.07 * S, 0, 0, Math.PI * 2);
+  else if (run) (ctx.moveTo(-0.12 * S, -0.25 * S), ctx.lineTo(0.12 * S, -0.25 * S));
+  else ctx.arc(0, -0.3 * S, mood === 'happy' ? 0.17 * S : 0.13 * S, Math.PI * 0.2, Math.PI * 0.8);
+  ctx.stroke();
+  if (mood === 'happy') {
+    ctx.fillStyle = '#ff7a8a';
+    ctx.beginPath();
+    ctx.ellipse(0, -0.16 * S, 0.06 * S, 0.035 * S, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  if (run) {
+    ctx.fillStyle = '#9fdcff';
+    const k = (t % 14) / 14;
+    ctx.beginPath();
+    ctx.ellipse(0.45 * S + k * 0.2 * S, -0.62 * S - k * 0.1 * S, 0.05 * S, 0.08 * S, 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawTerrarium(ctx: CanvasRenderingContext2D, s: TerraState, w: number, h: number, th: Theme) {
-  const fx = juice(s), j = s.jar, C = w * 0.066, RR = C * CEN, hb = w * 0.15, cx = w / 2, cy = hb + C * 1.3 + RR;
+  const fx = juice(s), j = s.jar, C = w * 0.064, RR = C * CEN, hb = w * 0.15, cx = w / 2, cy = hb + C * 2.1 + RR;
   const p = Math.min(1, Math.max(0, (s.t - s.rotT) / ROT)), ease = (1 - Math.cos(p * Math.PI)) / 2;
   const angD = s.ang0 + (s.ang1 - s.ang0) * ease, ang = (angD * Math.PI) / 180, ca = Math.cos(ang), sa = Math.sin(ang);
   const toS = (x: number, y: number): [number, number] => {
     const dx = (x - CEN) * C, dy = (y - CEN) * C;
     return [cx + dx * ca - dy * sa, cy + dx * sa + dy * ca];
   };
-  const eve = s.feat.light === 1, oo = p < 0.5 ? s.rotFrom : s.o;
+  const eve = s.feat.light === 1, oo = p < 0.5 ? s.rotFrom : s.o, ty = cy + RR * 0.84;
   ctx.save();
   fx.begin(ctx);
   // 방 벽 + 창
@@ -529,24 +615,25 @@ function drawTerrarium(ctx: CanvasRenderingContext2D, s: TerraState, w: number, 
   ctx.fillStyle = bg;
   ctx.fillRect(-10, -10, w + 20, h + 20);
   {
-    const wx = eve ? -w * 0.05 : w * 0.08, wy = eve ? cy - RR * 0.7 : hb + 6, ww = eve ? w * 0.16 : w * 0.34, wh = eve ? RR * 1.1 : w * 0.2;
-    const glow = ctx.createRadialGradient(wx + ww / 2, wy + wh / 2, 4, wx + ww / 2, wy + wh / 2, w * 0.5);
-    glow.addColorStop(0, eve ? 'rgba(255,170,90,.35)' : 'rgba(255,240,190,.28)');
+    const wx = eve ? -w * 0.04 : w * 0.06, wy = eve ? cy - RR * 0.75 : hb + 8, ww = eve ? w * 0.15 : w * 0.3, wh = eve ? RR * 1.1 : w * 0.22;
+    const glow = ctx.createRadialGradient(wx + ww / 2, wy + wh / 2, 4, wx + ww / 2, wy + wh / 2, w * 0.55);
+    glow.addColorStop(0, eve ? 'rgba(255,170,90,.38)' : 'rgba(255,240,190,.3)');
     glow.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = eve ? '#ffb46b' : '#fff1c4';
-    ctx.globalAlpha = 0.55;
+    const sky = ctx.createLinearGradient(0, wy, 0, wy + wh);
+    sky.addColorStop(0, eve ? '#ff9a5c' : '#fff6d6');
+    sky.addColorStop(1, eve ? '#ffcf8a' : '#d8f1ff');
+    ctx.fillStyle = sky;
+    ctx.globalAlpha = 0.6;
     ctx.fillRect(wx, wy, ww, wh);
     ctx.globalAlpha = 1;
     ctx.strokeStyle = eve ? '#5a3448' : '#2e5547';
     ctx.lineWidth = 4;
     ctx.strokeRect(wx, wy, ww, wh);
     ctx.beginPath();
-    ctx.moveTo(wx + ww / 2, wy);
-    ctx.lineTo(wx + ww / 2, wy + wh);
-    ctx.moveTo(wx, wy + wh / 2);
-    ctx.lineTo(wx + ww, wy + wh / 2);
+    ctx.moveTo(wx + ww / 2, wy), ctx.lineTo(wx + ww / 2, wy + wh);
+    ctx.moveTo(wx, wy + wh / 2), ctx.lineTo(wx + ww, wy + wh / 2);
     ctx.stroke();
   }
   // 빛줄기 (위 창: 비스듬히 아래로 / 해질녘: 왼쪽에서 가로로)
@@ -563,59 +650,105 @@ function drawTerrarium(ctx: CanvasRenderingContext2D, s: TerraState, w: number, 
       const y0 = cy - RR * 0.8 + k * RR * 0.45;
       ctx.moveTo(0, y0), ctx.lineTo(w, y0 - 10 + k * 6), ctx.lineTo(w, y0 + RR * 0.32), ctx.lineTo(0, y0 + RR * 0.18);
     } else {
-      const x0 = w * 0.1 + k * w * 0.13;
-      ctx.moveTo(x0, hb), ctx.lineTo(x0 + w * 0.08, hb), ctx.lineTo(x0 + w * 0.28, h), ctx.lineTo(x0 + w * 0.12, h);
+      const x0 = w * 0.08 + k * w * 0.12;
+      ctx.moveTo(x0, hb), ctx.lineTo(x0 + w * 0.07, hb), ctx.lineTo(x0 + w * 0.3, h), ctx.lineTo(x0 + w * 0.13, h);
     }
     ctx.fill();
   }
   ctx.restore();
-  // 탁자 (3/4 시점: 윗면 + 앞면 두께)
-  const ty = cy + RR * 0.86;
+  // 탁자 (3/4 시점: 윗면 + 앞면 두께 + 다리)
   {
-    const top = ctx.createLinearGradient(0, ty, 0, ty + w * 0.12);
-    top.addColorStop(0, '#8a5d3b');
+    const tb = h - w * 0.07;
+    ctx.fillStyle = '#3a2516';
+    ctx.fillRect(w * 0.08, tb - w * 0.02, w * 0.05, h - tb + 10);
+    ctx.fillRect(w * 0.87, tb - w * 0.02, w * 0.05, h - tb + 10);
+    const top = ctx.createLinearGradient(0, ty, 0, tb - w * 0.05);
+    top.addColorStop(0, '#7d5334');
     top.addColorStop(1, '#a8754b');
     ctx.fillStyle = top;
     ctx.beginPath();
-    ctx.moveTo(w * 0.06, ty), ctx.lineTo(w * 0.94, ty), ctx.lineTo(w * 1.02, ty + w * 0.12), ctx.lineTo(-w * 0.02, ty + w * 0.12);
+    ctx.moveTo(w * 0.05, ty), ctx.lineTo(w * 0.95, ty), ctx.lineTo(w * 1.02, tb - w * 0.05), ctx.lineTo(-w * 0.02, tb - w * 0.05);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(60,30,15,.25)';
+    ctx.strokeStyle = 'rgba(60,30,15,.22)';
     ctx.lineWidth = 1;
-    for (let k = 1; k < 5; k++) {
+    for (let k = 1; k < 6; k++) {
+      const yy = ty + (k / 6) * (tb - w * 0.05 - ty);
       ctx.beginPath();
-      ctx.moveTo(w * 0.06 - k * 2, ty + k * w * 0.024);
-      ctx.lineTo(w * 0.94 + k * 2, ty + k * w * 0.024);
+      ctx.moveTo(w * 0.05 - k * 1.2, yy);
+      ctx.bezierCurveTo(w * 0.3, yy + 2, w * 0.7, yy - 2, w * 0.95 + k * 1.2, yy);
       ctx.stroke();
     }
     ctx.fillStyle = '#5b3a22';
-    ctx.fillRect(-w * 0.02, ty + w * 0.12, w * 1.04, w * 0.045);
+    ctx.fillRect(-w * 0.02, tb - w * 0.05, w * 1.04, w * 0.04);
+    ctx.fillStyle = 'rgba(255,220,170,.18)';
+    ctx.fillRect(-w * 0.02, tb - w * 0.05, w * 1.04, 2);
     ctx.fillStyle = 'rgba(0,0,0,.35)';
-    ctx.fillRect(-w * 0.02, ty + w * 0.165, w * 1.04, w * 0.02);
+    ctx.fillRect(-w * 0.02, tb - w * 0.01, w * 1.04, w * 0.015);
+  }
+  // 채운 병 모음: 탁자 앞쪽에 작은 병 열 개가 줄지어
+  for (let k = 0; k < STAGES.length; k++) {
+    const r = w * 0.027, x = w * 0.07 + (k + 0.5) * ((w * 0.86) / STAGES.length), y = h - w * 0.07 - w * 0.05 - r - 3, jar = s.jars[k];
+    ctx.fillStyle = 'rgba(0,0,0,.3)';
+    ctx.beginPath();
+    ctx.ellipse(x + 2, y + r * 0.92, r * 1.05, r * 0.28, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = jar ? 'rgba(150,220,180,.28)' : 'rgba(255,255,255,.06)';
+    ctx.strokeStyle = jar ? 'rgba(210,250,255,.85)' : 'rgba(210,250,255,.25)';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = jar ? '#c08a52' : 'rgba(210,250,255,.22)';
+    ctx.fillRect(x - r * 0.35, y - r * 1.32, r * 0.7, r * 0.36);
+    if (jar) {
+      ctx.fillStyle = '#7a5032';
+      ctx.beginPath();
+      ctx.arc(x, y, r * 0.92, 0.15 * Math.PI, 0.85 * Math.PI);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `${r * 1.15}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(PLANT_ICON[jar.plants[0] ?? 1], x, y - r * 0.05);
+      ctx.fillStyle = th.accent;
+      ctx.font = `800 ${r * 0.6}px system-ui, sans-serif`;
+      ctx.fillText('★'.repeat(jar.stars), x, y - r * 1.75);
+    }
   }
   // 병 그림자 + 받침
   {
-    const sh = ctx.createRadialGradient(cx + (eve ? RR * 0.35 : RR * 0.12), ty + w * 0.05, 4, cx, ty + w * 0.05, RR * 1.05);
+    const off = eve ? RR * 0.35 : RR * 0.12;
+    const sh = ctx.createRadialGradient(cx + off, ty + w * 0.03, 4, cx + off, ty + w * 0.03, RR * 1.05);
     sh.addColorStop(0, 'rgba(0,0,0,.55)');
     sh.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = sh;
     ctx.beginPath();
-    ctx.ellipse(cx + (eve ? RR * 0.35 : RR * 0.1), ty + w * 0.055, RR * 1.05, w * 0.045, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx + off, ty + w * 0.03, RR * 1.0, w * 0.04, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 유리공이 모은 빛 (탁자 위 밝은 점)
+    const ca2 = ctx.createRadialGradient(cx - off * 1.6, ty + w * 0.06, 1, cx - off * 1.6, ty + w * 0.06, RR * 0.35);
+    ca2.addColorStop(0, eve ? 'rgba(255,190,120,.45)' : 'rgba(255,250,210,.4)');
+    ca2.addColorStop(1, 'rgba(255,250,210,0)');
+    ctx.fillStyle = ca2;
+    ctx.beginPath();
+    ctx.ellipse(cx - off * 1.6, ty + w * 0.06, RR * 0.35, w * 0.03, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#4a2f1c';
     ctx.beginPath();
     ctx.ellipse(cx, cy + RR * 0.93 + 7, RR * 0.52, RR * 0.12, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#7a5032';
+    ctx.fillStyle = '#86593a';
     ctx.beginPath();
     ctx.ellipse(cx, cy + RR * 0.93, RR * 0.52, RR * 0.12, 0, 0, Math.PI * 2);
     ctx.fill();
   }
-  // 병 뒷면 유리
+  // 병 뒷면 유리 (안쪽이 살짝 어둡게 — 둥근 공 속)
   {
     const gb = ctx.createRadialGradient(cx - RR * 0.3, cy - RR * 0.35, RR * 0.1, cx, cy, RR);
-    gb.addColorStop(0, 'rgba(200,245,255,.10)');
-    gb.addColorStop(0.85, 'rgba(120,190,200,.10)');
-    gb.addColorStop(1, 'rgba(30,70,70,.45)');
+    gb.addColorStop(0, 'rgba(200,245,255,.12)');
+    gb.addColorStop(0.8, 'rgba(110,180,190,.12)');
+    gb.addColorStop(1, 'rgba(20,60,60,.5)');
     ctx.fillStyle = gb;
     ctx.beginPath();
     ctx.arc(cx, cy, RR, 0, Math.PI * 2);
@@ -629,19 +762,23 @@ function drawTerrarium(ctx: CanvasRenderingContext2D, s: TerraState, w: number, 
   ctx.translate(cx, cy);
   ctx.rotate(ang);
   const q = Math.min(1, (s.t - s.stepT) / STEP), cell = (i: number): [number, number] => [((i % N) - CEN + j.mx[i] * (1 - q)) * C, (((i / N) | 0) - CEN + j.my[i] * (1 - q)) * C];
+  const [ux, uy] = rotJ(oo, 0, -1), upA = Math.atan2(uy, ux) + Math.PI / 2;
+  const solid = (c: number) => c >= 0 && (j.k[c] === SOIL || j.k[c] === ROCK);
   // 빛과 그늘 (그늘은 서늘하게 어둡게, 햇빛은 따뜻하게)
   const sunAlpha = p < 1 ? Math.abs(1 - 2 * ease) : 1;
-  for (let i = 0; i < N * N; i++) {
-    if (!INSIDE[i] || j.k[i] === SOIL || j.k[i] === ROCK) continue;
-    const x = ((i % N) - CEN) * C, y = (((i / N) | 0) - CEN) * C, sun = lit(j, i, oo, s.feat.light);
-    ctx.fillStyle = sun ? (eve ? `rgba(255,170,90,${0.1 * sunAlpha})` : `rgba(255,236,160,${0.09 * sunAlpha})`) : `rgba(0,10,28,${0.34 * sunAlpha})`;
-    ctx.fillRect(x - 0.5, y - 0.5, C + 1, C + 1);
+  for (const sunPass of [true, false]) {
+    ctx.beginPath();
+    for (let i = 0; i < N * N; i++) {
+      if (!INSIDE[i] || j.k[i] === SOIL || j.k[i] === ROCK || lit(j, i, oo, s.feat.light) !== sunPass) continue;
+      ctx.rect(((i % N) - CEN) * C - 0.5, (((i / N) | 0) - CEN) * C - 0.5, C + 1, C + 1);
+    }
+    ctx.fillStyle = sunPass ? (eve ? `rgba(255,170,90,${0.12 * sunAlpha})` : `rgba(255,236,160,${0.1 * sunAlpha})`) : `rgba(4,22,40,${0.3 * sunAlpha})`;
+    ctx.fill();
   }
-  // 흙·바위·씨앗 — 겉흙일수록 밝게(켜켜이 쌓인 층), 위로 드러난 면엔 두께
-  const [ux, uy] = rotJ(oo, 0, -1);
+  // 흙·바위: 겉흙일수록 밝게(켜켜이 쌓인 층), 알갱이 점, 드러난 윗면은 두께 있게 솟아 보이게
   for (let i = 0; i < N * N; i++) {
     const K = j.k[i];
-    if (K !== SOIL && K !== ROCK && K !== SEED) continue;
+    if (K !== SOIL && K !== ROCK) continue;
     const [x, y] = cell(i), ix = i % N, iy = (i / N) | 0;
     if (K === SOIL) {
       let d = 0;
@@ -651,73 +788,101 @@ function drawTerrarium(ctx: CanvasRenderingContext2D, s: TerraState, w: number, 
         d++;
       }
       ctx.fillStyle = SOIL_COL[d];
-      ctx.fillRect(x - 0.5, y - 0.5, C + 1, C + 1);
-      ctx.fillStyle = j.v[i] & 1 ? 'rgba(255,220,170,.10)' : 'rgba(0,0,0,.08)';
-      ctx.fillRect(x + C * 0.15, y + C * 0.2, C * 0.7, C * 0.6);
+      ctx.fillRect(x - 0.6, y - 0.6, C + 1.2, C + 1.2);
+      for (let g = 0; g < 3; g++) {
+        ctx.fillStyle = g ? 'rgba(40,20,8,.28)' : 'rgba(255,225,180,.22)';
+        ctx.beginPath();
+        ctx.arc(x + C * (0.15 + 0.7 * hash(i * 3 + j.v[i], g)), y + C * (0.15 + 0.7 * hash(i * 5 + j.v[i], g + 3)), C * (0.05 + 0.03 * g), 0, Math.PI * 2);
+        ctx.fill();
+      }
       if (j.v[i] === 3 && d >= 1) {
         ctx.fillStyle = '#8f8a80';
         ctx.beginPath();
-        ctx.ellipse(x + C * 0.5, y + C * 0.55, C * 0.18, C * 0.12, 0.4, 0, Math.PI * 2);
+        ctx.ellipse(x + C * 0.5, y + C * 0.55, C * 0.2, C * 0.13, 0.4, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.3)';
+        ctx.fillRect(x + C * 0.42, y + C * 0.47, C * 0.1, C * 0.04);
       }
-      if (d === 0) {
-        // 위로 드러난 겉흙: 밝은 윗면 + 풀 몇 가닥
-        const c2 = at(ix + ux, iy + uy);
-        if (c2 >= 0 && j.k[c2] !== SOIL) {
-          ctx.save();
-          ctx.translate(x + C / 2, y + C / 2);
-          ctx.rotate(Math.atan2(uy, ux) + Math.PI / 2);
-          ctx.fillStyle = '#c99a5e';
-          ctx.fillRect(-C / 2 - 0.5, -C / 2 - 0.5, C + 1, C * 0.26);
-          ctx.fillStyle = '#7cc46a';
-          for (let g = 0; g < 3; g++) ctx.fillRect(-C * 0.35 + g * C * 0.3 + (j.v[i] & 2), -C / 2 - C * 0.12, 1.6, C * 0.16);
-          ctx.restore();
-        }
-      }
-    } else if (K === ROCK) {
+    } else {
       const rg = ctx.createLinearGradient(x, y, x + C, y + C);
-      rg.addColorStop(0, '#a3a9b3');
-      rg.addColorStop(1, '#5d636e');
+      rg.addColorStop(0, '#aab0ba');
+      rg.addColorStop(1, '#5a606b');
       ctx.fillStyle = rg;
       ctx.beginPath();
-      ctx.roundRect(x - 0.5, y - 0.5, C + 1, C + 1, C * 0.22);
+      ctx.roundRect(x - 0.5, y - 0.5, C + 1, C + 1, C * 0.2);
       ctx.fill();
       ctx.strokeStyle = 'rgba(40,44,52,.45)';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(x + C * 0.3, y + C * 0.2);
+      ctx.moveTo(x + C * (0.2 + 0.3 * hash(i, 1)), y + C * 0.2);
       ctx.lineTo(x + C * 0.45, y + C * 0.55);
-      ctx.lineTo(x + C * 0.7, y + C * 0.65);
+      ctx.lineTo(x + C * (0.6 + 0.2 * hash(i, 2)), y + C * 0.7);
       ctx.stroke();
-      ctx.fillStyle = 'rgba(120,200,110,.35)';
-      ctx.fillRect(x + C * 0.1, y + C * 0.08, C * 0.8, C * 0.12);
-    } else {
-      ctx.save();
-      ctx.translate(x + C / 2, y + C / 2);
-      ctx.rotate(j.v[i] * 0.8 + Math.sin(s.t / 9 + i) * 0.1);
-      ctx.fillStyle = '#5a3418';
-      ctx.beginPath();
-      ctx.ellipse(0, 0, C * 0.26, C * 0.17, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#d39a55';
-      ctx.beginPath();
-      ctx.ellipse(0, 0, C * 0.22, C * 0.13, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#f2d39a';
-      ctx.fillRect(-C * 0.12, -C * 0.04, C * 0.2, C * 0.04);
-      ctx.restore();
     }
   }
-  // 물: 한 덩어리로 칠하고 수면에 반짝이는 선
+  // 드러난 윗면: 흙은 밝은 겉흙 + 풀, 바위는 이끼 낀 윗면 — 셀 위로 살짝 솟게(두께)
+  for (let i = 0; i < N * N; i++) {
+    const K = j.k[i];
+    if ((K !== SOIL && K !== ROCK) || solid(at((i % N) + ux, ((i / N) | 0) + uy))) continue;
+    const [x, y] = cell(i), sunny = lit(j, i, oo, s.feat.light);
+    ctx.save();
+    ctx.translate(x + C / 2, y + C / 2);
+    ctx.rotate(upA);
+    const T = C * 0.3;
+    ctx.fillStyle = K === SOIL ? '#c99a5e' : '#b9c0c8';
+    ctx.beginPath();
+    ctx.moveTo(-C / 2 - 0.6, -C / 2 + 1), ctx.lineTo(C / 2 + 0.6, -C / 2 + 1), ctx.lineTo(C / 2 + 0.6, -C / 2 - T * 0.6), ctx.lineTo(-C / 2 - 0.6, -C / 2 - T * 0.6);
+    ctx.fill();
+    ctx.fillStyle = K === SOIL ? 'rgba(255,235,190,.35)' : 'rgba(255,255,255,.35)';
+    ctx.fillRect(-C / 2 - 0.6, -C / 2 - T * 0.6, C + 1.2, 1.5);
+    ctx.fillStyle = sunny ? '#7cd06a' : '#4f8f5a';
+    if (K === ROCK) ctx.fillRect(-C * 0.4, -C / 2 - T * 0.6, C * 0.8, T * 0.35);
+    else for (let g = 0; g < 3; g++) {
+      const gx = -C * 0.36 + g * C * 0.33 + hash(i, g) * C * 0.1, gh = T * (0.7 + 0.8 * hash(i, g + 5)) * (sunny ? 1.2 : 0.8);
+      ctx.beginPath();
+      ctx.moveTo(gx - 1.2, -C / 2 - T * 0.5);
+      ctx.quadraticCurveTo(gx + Math.sin(s.t / 30 + i + g) * 2, -C / 2 - T * 0.5 - gh, gx + 1.8, -C / 2 - T * 0.5 - gh * 1.05);
+      ctx.lineTo(gx + 1.2, -C / 2 - T * 0.5);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  // 씨앗
+  for (let i = 0; i < N * N; i++) {
+    if (j.k[i] !== SEED) continue;
+    const [x, y] = cell(i);
+    ctx.save();
+    ctx.translate(x + C / 2, y + C / 2);
+    ctx.rotate(j.v[i] * 0.8 + Math.sin(s.t / 9 + i) * 0.12);
+    ctx.fillStyle = '#4a2a12';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, C * 0.3, C * 0.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    const sg = ctx.createLinearGradient(0, -C * 0.2, 0, C * 0.2);
+    sg.addColorStop(0, '#f0c27a');
+    sg.addColorStop(1, '#b67a3a');
+    ctx.fillStyle = sg;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, C * 0.26, C * 0.16, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.55)';
+    ctx.fillRect(-C * 0.12, -C * 0.09, C * 0.16, C * 0.04);
+    ctx.restore();
+  }
+  // 물: 한 덩어리로 칠하고, 위로 드러난 수면은 밝은 띠 + 일렁이는 선
   ctx.beginPath();
   for (let i = 0; i < N * N; i++) if (j.k[i] === WATER) {
-    const [x, y] = cell(i);
-    ctx.rect(x - 0.6, y - 0.6, C + 1.2, C + 1.2);
+    const [x, y] = cell(i), ix = i % N, iy = (i / N) | 0, rt = at(ix + 1, iy), dn = at(ix, iy + 1);
+    ctx.roundRect(x - 1.5, y - 1.5, C + 3, C + 3, C * 0.32);
+    // 이웃 물과는 이음매 없이 (둥근 모서리 사이 바늘구멍 메우기)
+    if (rt >= 0 && j.k[rt] === WATER && !j.mx[i] && !j.mx[rt] && !j.my[i] && !j.my[rt]) ctx.rect(x + C / 2, y - 1, C, C + 2);
+    if (dn >= 0 && j.k[dn] === WATER && !j.mx[i] && !j.mx[dn] && !j.my[i] && !j.my[dn]) ctx.rect(x - 1, y + C / 2, C + 2, C);
   }
-  ctx.fillStyle = 'rgba(70,170,245,.58)';
+  const wg = ctx.createLinearGradient(-RR, -RR, RR, RR);
+  wg.addColorStop(0, 'rgba(110,200,255,.58)');
+  wg.addColorStop(1, 'rgba(40,120,230,.62)');
+  ctx.fillStyle = wg;
   ctx.fill();
-  ctx.strokeStyle = 'rgba(220,250,255,.85)';
-  ctx.lineWidth = 2;
   for (let i = 0; i < N * N; i++) {
     if (j.k[i] !== WATER) continue;
     const ix = i % N, iy = (i / N) | 0, c2 = at(ix + ux, iy + uy);
@@ -725,11 +890,16 @@ function drawTerrarium(ctx: CanvasRenderingContext2D, s: TerraState, w: number, 
     const [x, y] = cell(i);
     ctx.save();
     ctx.translate(x + C / 2, y + C / 2);
-    ctx.rotate(Math.atan2(uy, ux) + Math.PI / 2);
+    ctx.rotate(upA);
+    ctx.fillStyle = 'rgba(170,225,255,.45)';
+    ctx.fillRect(-C / 2 - 0.7, -C / 2, C + 1.4, C * 0.22);
+    ctx.strokeStyle = 'rgba(235,252,255,.9)';
+    ctx.lineWidth = 1.6;
     ctx.beginPath();
-    ctx.moveTo(-C / 2, -C / 2 + 2);
-    ctx.quadraticCurveTo(0, -C / 2 + 2 + Math.sin(s.t / 8 + ix + iy) * 2.5, C / 2, -C / 2 + 2);
+    ctx.moveTo(-C / 2, -C / 2 + 1);
+    ctx.quadraticCurveTo(0, -C / 2 + 1 + Math.sin(s.t / 8 + ix + iy) * 2.2, C / 2, -C / 2 + 1);
     ctx.stroke();
+    if (hash(i, s.t >> 4) < 0.2) (ctx.fillStyle = '#ffffff'), ctx.fillRect(-C * 0.2 + hash(i, 7) * C * 0.4, -C / 2 + C * 0.06, 2, 2);
     ctx.restore();
   }
   // 식물: 싹튼 때의 '위'로 자라 있다 (병이 돌면 같이 기운다)
@@ -737,32 +907,38 @@ function drawTerrarium(ctx: CanvasRenderingContext2D, s: TerraState, w: number, 
   ctx.textBaseline = 'middle';
   for (let i = 0; i < N * N; i++) {
     if (j.k[i] !== PLANT) continue;
-    const type = j.v[i] & 7, age = s.t - j.b[i], gr = age < 26 ? Math.min(1.2, (age / 18) * 1.15) - Math.max(0, (age - 18) / 8) * 0.2 : 1;
+    const type = j.v[i] & 7, age = s.t - j.b[i], gr = age < 26 ? Math.min(1.25, (age / 16) * 1.25) - Math.max(0, (age - 16) / 10) * 0.25 : 1;
     const x = ((i % N) - CEN + 0.5) * C, y = (((i / N) | 0) - CEN + 0.5) * C;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate((-j.o[i] * Math.PI) / 2 + Math.sin(s.t / 34 + i) * 0.07);
-    ctx.translate(0, C * 0.12);
+    ctx.translate(0, C * 0.14);
     ctx.scale(Math.max(0.05, gr), Math.max(0.05, gr));
     if (type === FLOWER || type === LOTUS) (ctx.shadowColor = eve ? '#ffb46b' : '#fff0a0'), (ctx.shadowBlur = 10);
     ctx.fillStyle = '#ffffff';
-    ctx.font = `${C * (type === MOSS ? 0.95 : 1.08)}px system-ui, sans-serif`;
-    ctx.fillText(PLANT_ICON[type], 0, 0);
+    ctx.font = `${C * (type === MOSS ? 1.0 : 1.12)}px system-ui, sans-serif`;
+    ctx.fillText(PLANT_ICON[type], 0, -C * 0.08);
     ctx.shadowBlur = 0;
     ctx.restore();
   }
   ctx.restore();
-  // 생물: 화면에선 늘 똑바로
+  // 생물: 화면에선 늘 똑바로. 병이 구르면 달팽이는 어질어질
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
   for (const c of s.critters) {
-    const [x, y] = toS(c.x, c.y);
+    const [x, y] = toS(c.x, c.y), dizzy = s.t - s.rotT < 70;
     ctx.save();
     ctx.translate(x, y + (c.kind === 'bfly' ? Math.sin(s.t / 7 + c.born) * 3 : 0));
-    ctx.scale(c.kind === 'bfly' ? 0.55 + 0.45 * Math.abs(Math.sin(s.t / 4 + c.born)) : -c.face, 1);
     ctx.fillStyle = '#ffffff';
-    ctx.font = `${C * 0.9}px system-ui, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(c.kind === 'bfly' ? '🦋' : '🐌', 0, 0);
+    ctx.font = `${C * 0.95}px system-ui, sans-serif`;
+    if (c.kind === 'bfly') ctx.scale(0.5 + 0.5 * Math.abs(Math.sin(s.t / (dizzy ? 2 : 4) + c.born)), 1), ctx.fillText('🦋', 0, 0);
+    else {
+      ctx.save();
+      ctx.scale(-c.face, 1);
+      ctx.fillText('🐌', 0, 0);
+      ctx.restore();
+      if (dizzy) (ctx.font = `${C * 0.5}px system-ui, sans-serif`), ctx.fillText('💫', Math.sin(s.t / 5) * 5, -C * 0.6);
+    }
     ctx.restore();
   }
   // 빛줄기 속 먼지
@@ -772,14 +948,14 @@ function drawTerrarium(ctx: CanvasRenderingContext2D, s: TerraState, w: number, 
     ctx.fillStyle = `rgba(255,245,200,${a * 0.5})`;
     ctx.fillRect(px, py, 1.6, 1.6);
   }
-  // 병 앞면 유리: 테두리, 큰 반사, 코르크 마개
+  // 병 앞면 유리: 테두리, 큰 반사, 코르크 마개(병과 함께 돈다)
   {
     ctx.strokeStyle = 'rgba(20,50,50,.55)';
     ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.arc(cx, cy, RR + 1, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.strokeStyle = 'rgba(210,250,255,.55)';
+    ctx.strokeStyle = 'rgba(210,250,255,.6)';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.arc(cx, cy, RR - 1, 0, Math.PI * 2);
@@ -800,7 +976,6 @@ function drawTerrarium(ctx: CanvasRenderingContext2D, s: TerraState, w: number, 
     ctx.beginPath();
     ctx.ellipse(cx - RR * 0.5, cy - RR * 0.58, RR * 0.07, RR * 0.04, -0.7, 0, Math.PI * 2);
     ctx.fill();
-    // 코르크: 병의 '위'(입구)에 — 병과 함께 돈다
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(ang);
@@ -824,14 +999,60 @@ function drawTerrarium(ctx: CanvasRenderingContext2D, s: TerraState, w: number, 
   }
   // 비구름 (↓)
   if (s.t - s.rainT < 50) {
-    const a = 1 - (s.t - s.rainT) / 50;
-    ctx.globalAlpha = a;
+    ctx.globalAlpha = 1 - (s.t - s.rainT) / 50;
     ctx.fillStyle = '#ffffff';
     ctx.font = `${C * 1.5}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('🌧️', cx, cy - RR * 0.72);
+    ctx.fillText('🌧️', cx + RR * 0.05, cy - RR * 0.68);
     ctx.globalAlpha = 1;
+  }
+  // 개구리 집사
+  const FS = C * 2.0, fy0 = cy - RR - 1;
+  {
+    let fx0 = cx, fy = fy0, tilt = 0, mood: Mood = 'idle';
+    const dr = s.t - s.rotT, df = s.t - s.flipT, dl = s.t - s.failT;
+    if (dl < 95 && !s.cleared) {
+      // 미끄러져 병 옆으로 데굴데굴 → 탁자 위에 벌러덩
+      const u = Math.min(1, dl / 32), th0 = -Math.PI / 2 + u * Math.PI * 0.62;
+      fx0 = cx + Math.cos(th0) * (RR + FS * 0.3);
+      fy = cy + Math.sin(th0) * (RR + FS * 0.3);
+      if (u >= 1) (fx0 = Math.min(fx0, w - FS * 0.6)), (fy = Math.min(ty + FS * 0.25, fy + (dl - 32) * 4));
+      tilt = u < 1 ? u * Math.PI * 3 : Math.PI;
+      mood = 'oops';
+    } else if (s.dead) (fx0 = Math.min(cx + RR * 0.93, w - FS * 0.6)), (fy = ty + FS * 0.25), (tilt = Math.PI), (mood = 'oops');
+    else if (s.cleared || s.won) {
+      // 우스꽝스러운 춤
+      fx0 += Math.sin(s.t / 6) * FS * 0.22;
+      fy -= Math.abs(Math.sin(s.t / 6)) * 10;
+      tilt = Math.sin(s.t / 6) * 0.4;
+      mood = 'happy';
+    } else if (df < ROT + 20) {
+      const u = df / (ROT + 20);
+      fy -= Math.sin(u * Math.PI) * RR * 0.55;
+      tilt = u * Math.PI * 2;
+      mood = 'wow';
+    } else if (df < ROT + 90) (mood = 'dizzy'), (tilt = Math.sin(s.t / 5) * 0.15);
+    else if (dr < ROT + 18) {
+      // 통나무 굴리기: 병이 구르는 반대로 종종걸음
+      const u = Math.min(1, dr / ROT), wob = dr > ROT ? Math.sin((dr - ROT) / 2) * (1 - (dr - ROT) / 18) : 0;
+      fx0 -= s.rollDir * Math.sin(u * Math.PI) * FS * 0.25;
+      fy -= Math.abs(Math.sin(dr / 1.6)) * 3;
+      tilt = -s.rollDir * Math.sin(u * Math.PI) * 0.35 + wob * 0.5;
+      mood = 'run';
+    } else if (s.t - s.rainT < 45) (mood = 'happy'), (fy -= Math.abs(Math.sin((s.t - s.rainT) / 6)) * 8);
+    else if (s.t - s.birthT < 40) (mood = 'happy'), (fy -= Math.abs(Math.sin((s.t - s.birthT) / 5)) * 10);
+    else if (s.t - s.sproutT < 22) (mood = 'wow'), (fy -= 4);
+    drawFrog(ctx, fx0, fy, FS, mood, s.t, tilt);
+    if (mood === 'dizzy')
+      for (let k = 0; k < 3; k++) {
+        const a = s.t / 8 + (k * Math.PI * 2) / 3;
+        ctx.fillStyle = '#ffe14d';
+        ctx.font = `${C * 0.45}px system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('★', fx0 + Math.cos(a) * FS * 0.42, fy - FS * 0.75 + Math.sin(a) * FS * 0.12);
+      }
+    if (s.cleared && s.t % 40 < 20) (ctx.fillStyle = th.accent), (ctx.font = `800 ${C * 0.6}px system-ui, sans-serif`), ctx.fillText('♪', fx0 + FS * 0.55, fy - FS * 0.8 - ((s.t % 40) / 2));
   }
   // 사건 → 연출
   const seenT = fx.memo.t ?? -1;
@@ -843,41 +1064,41 @@ function drawTerrarium(ctx: CanvasRenderingContext2D, s: TerraState, w: number, 
       const col = PLANT_COL[e.c ?? 1];
       fx.burst(x, y, col, 10, 2.2, 2.4);
       fx.ring(x, y, col, C * 0.9, 2.5);
-      if (pops++ < 4) fx.pop(x, y - C * 0.6, `뽁! ${PLANT_ICON[e.c ?? 1]}`, '#ffffff', 13);
+      if (pops++ < 3) fx.pop(x, y - C * 0.6, '뽁!', '#ffffff', 13);
       fx.kick(1.5);
     }
-    if (e.kind === 'roll') fx.kick(5), fx.burst(cx, cy + RR * 0.8, '#c99a5e', 14, 2.5, 2.5);
-    if (e.kind === 'rain') fx.burst(cx, cy - RR * 0.6, '#8fd3ff', 18, 2, 2), e.text && fx.pop(cx + RR * 0.45, cy - RR * 0.75, e.text, '#bfe9ff', 14);
-    if (e.kind === 'birth') fx.ring(x, y, th.accent, C * 2.2, 4), fx.burst(x, y, th.accent, 24, 3.5, 2.6), fx.pop(x, y - C, e.text!, th.accent, 17), fx.blink('#fff6c8', 0.12);
+    if (e.kind === 'roll') fx.kick(5), fx.burst(cx, cy + RR * 0.8, '#c99a5e', 14, 2.5, 2.5), e.text === '뒤집기!' && fx.pop(cx + FS * 1.3, fy0 + FS * 0.1, '으아아아!', '#ffffff', 14);
+    if (e.kind === 'rain') fx.burst(cx, cy - RR * 0.6, '#8fd3ff', 18, 2, 2), fx.pop(cx + FS * 1.2, fy0 + FS * 0.1, '개굴!', '#bfe9ff', 14);
+    if (e.kind === 'birth') fx.ring(x, y, th.accent, C * 2.2, 4), fx.burst(x, y, th.accent, 24, 3.5, 2.6), fx.pop(x, y - C, e.text!, th.accent, 16), fx.blink('#fff6c8', 0.12);
     if (e.kind === 'drop') fx.burst(x, y, '#d39a55', 6, 1.5, 2), fx.pop(x, y - 8, e.text!, '#f2d39a', 12);
     if (e.kind === 'slime') fx.burst(x, y, '#b6f0a0', 12, 2, 2.2), fx.pop(x, y - 10, e.text!, '#d8ffc8', 12);
-    if (e.kind === 'clear' || e.kind === 'win') fx.ring(cx, cy, th.accent, RR * 1.2, 8), fx.burst(cx, cy, th.accent, 50, 5, 3), fx.blink('#fff6c8', 0.28), fx.pop(cx, cy - RR * 0.35, e.text!, '#ffffff', 21);
-    if (e.kind === 'fail') fx.kick(10), fx.blink(th.hot, 0.3), fx.pop(cx, cy - RR * 0.2, e.text!, th.hot, 18);
+    if (e.kind === 'clear' || e.kind === 'win') fx.ring(cx, cy, th.accent, RR * 1.2, 8), fx.burst(cx, cy, th.accent, 50, 5, 3), fx.blink('#fff6c8', 0.28), fx.pop(cx, cy - RR * 0.5, e.text!, '#ffffff', 21), fx.pop(cx + FS * 1.5, fy0 + FS * 0.15, '개굴개굴♪', th.accent, 14);
+    if (e.kind === 'fail') fx.kick(10), fx.blink(th.hot, 0.3), fx.pop(cx, cy - RR * 0.2, e.text!, th.hot, 17), fx.pop(cx + RR * 0.7, cy - RR * 0.85, '꽥!', '#ffffff', 16);
     if (e.kind === 'stage') fx.pop(cx, cy - RR * 0.5, e.text!, '#ffffff', 19);
-    if (e.kind === 'new') fx.pop(cx, cy - RR * 0.05, e.text!, th.accent, 14);
+    if (e.kind === 'new') fx.pop(cx, cy - RR * 0.12, e.text!, th.accent, 14);
   }
   fx.memo.t = s.t;
   // 첫 판 안내
   if (s.stage === 0 && s.left === s.tilts && s.t > 20 && s.pause === 0) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = `900 ${w * 0.048}px system-ui, sans-serif`;
+    ctx.font = `900 ${w * 0.05}px system-ui, sans-serif`;
     ctx.lineWidth = 4;
-    ctx.strokeStyle = 'rgba(0,0,0,.5)';
-    const bob = Math.sin(s.t / 8) * 4;
-    ctx.strokeText('👈 왼쪽으로 쓱 밀어 보세요', cx + bob, cy - RR * 0.42);
+    ctx.strokeStyle = 'rgba(0,0,0,.55)';
+    const bob = Math.sin(s.t / 8) * 5;
+    ctx.strokeText('👈 왼쪽으로 쓱 밀어 보세요', cx + bob, cy - RR * 0.4);
     ctx.fillStyle = '#ffffff';
-    ctx.fillText('👈 왼쪽으로 쓱 밀어 보세요', cx + bob, cy - RR * 0.42);
+    ctx.fillText('👈 왼쪽으로 쓱 밀어 보세요', cx + bob, cy - RR * 0.4);
   }
   ctx.restore();
   // ── HUD ──
-  ctx.fillStyle = 'rgba(6,16,12,.62)';
+  ctx.fillStyle = 'rgba(6,16,12,.66)';
   ctx.fillRect(0, 0, w, hb);
   ctx.textBaseline = 'top';
   ctx.textAlign = 'left';
   ctx.fillStyle = th.ink;
   ctx.font = `900 ${w * 0.045}px system-ui, sans-serif`;
-  ctx.fillText(`${s.stage + 1}판 · 밀기 ${s.left}/${s.tilts}`, 10, 9);
+  ctx.fillText(`🫙 ${s.stage + 1}/${STAGES.length}판 · 밀기 ${s.left}/${s.tilts}`, 10, 9);
   ctx.textAlign = 'right';
   ctx.fillStyle = th.hot;
   ctx.fillText('♥'.repeat(Math.max(0, s.hearts)) + '♡'.repeat(Math.max(0, 3 - s.hearts)), w - 10, 9);
@@ -885,48 +1106,22 @@ function drawTerrarium(ctx: CanvasRenderingContext2D, s: TerraState, w: number, 
     const c = tally(j, s.nb, s.ns);
     let gx = 10;
     ctx.textAlign = 'left';
-    ctx.font = `800 ${w * 0.04}px system-ui, sans-serif`;
-    for (const key of Object.keys(s.goal) as GoalKey[]) {
+    const keys = Object.keys(s.goal) as GoalKey[];
+    ctx.font = `800 ${w * (keys.length > 3 ? 0.036 : 0.04)}px system-ui, sans-serif`;
+    for (const key of keys) {
       const need = s.goal[key]!, have = Math.min(need, c[key]), ok = have >= need, label = `${ICON[key]} ${have}/${need}`;
       const tw = ctx.measureText(label).width + 12;
-      ctx.fillStyle = ok ? 'rgba(120,220,120,.35)' : 'rgba(255,255,255,.10)';
+      ctx.fillStyle = ok ? 'rgba(120,220,120,.38)' : 'rgba(255,255,255,.10)';
       ctx.beginPath();
       ctx.roundRect(gx, 15 + w * 0.045, tw, w * 0.055, 8);
       ctx.fill();
       ctx.fillStyle = ok ? '#c8ffc0' : '#ffffff';
       ctx.fillText(label, gx + 6, 18 + w * 0.045);
-      gx += tw + 6;
+      gx += tw + (keys.length > 3 ? 4 : 6);
     }
     ctx.textAlign = 'right';
     ctx.fillStyle = th.accent;
     ctx.fillText(`★ ${s.stars}`, w - 10, 18 + w * 0.045);
-  }
-  // 아래 띠: 채운 병 모음
-  {
-    const by = h - w * 0.06, r = w * 0.024;
-    ctx.fillStyle = 'rgba(6,16,12,.5)';
-    ctx.fillRect(0, by - r - 6, w, r * 2 + 12);
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = th.muted;
-    ctx.font = `800 ${w * 0.032}px system-ui, sans-serif`;
-    ctx.fillText(`정원 ${s.jars.length}/${STAGES.length}`, 10, by);
-    for (let k = 0; k < STAGES.length; k++) {
-      const x = w * 0.27 + k * (r * 2.7), jar = s.jars[k];
-      ctx.strokeStyle = jar ? 'rgba(210,250,255,.8)' : 'rgba(210,250,255,.25)';
-      ctx.lineWidth = 1.5;
-      ctx.fillStyle = jar ? 'rgba(120,200,160,.25)' : 'rgba(255,255,255,.04)';
-      ctx.beginPath();
-      ctx.arc(x, by, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      if (jar) {
-        ctx.fillStyle = '#ffffff';
-        ctx.font = `${r * 1.2}px system-ui, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.fillText(PLANT_ICON[jar.plants[0] ?? 1], x, by + 1);
-      }
-    }
   }
 }
 

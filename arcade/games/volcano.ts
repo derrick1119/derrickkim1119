@@ -23,8 +23,8 @@ const FEAT_LIFE = [0, 8, 8, 4];
 const G_GRASS = 360, G_FOREST = 700, G_ANIMAL = 800;
 const ERUPTS = [3, 3, 4, 4, 4, 4, 4];
 /** 날마다 해 질 녘 목표 ★·★★·★★★ (섬 넓이 칸 · 생명 — 별은 둘 다 넘어야). 앞서 키워 둔 섬이 다음 날을 쉽게 한다 */
-const GOAL_A = [[30, 46, 52], [50, 68, 80], [72, 92, 110], [105, 118, 128], [125, 138, 148], [140, 152, 160], [155, 162, 168]];
-const GOAL_L = [[20, 50, 70], [120, 155, 185], [240, 285, 320], [360, 410, 455], [450, 500, 545], [520, 565, 610], [580, 625, 670]];
+const GOAL_A = [[30, 46, 52], [50, 68, 80], [72, 92, 110], [105, 118, 128], [125, 138, 148], [138, 148, 156], [148, 156, 164]];
+const GOAL_L = [[20, 50, 70], [120, 155, 185], [240, 285, 320], [360, 410, 455], [440, 490, 535], [505, 550, 595], [560, 605, 650]];
 
 const NB4: number[][] = [], NB8: number[][] = [];
 for (let k = 0; k < NN; k++) {
@@ -93,7 +93,7 @@ export function flowOrder(I: Isle, src: number, th: number, block: Uint8Array | 
   seen[src] = 1;
   const push = (k: number) => {
     const dx = (k % N) - sx, dy = ((k / N) | 0) - sy, al = dx * ux + dy * uy, pe = Math.abs(dy * ux - dx * uy);
-    const f = (al >= 0 ? al : -5 * al) + (I.kind[k] === SEA ? 1 : 5) * pe;
+    const f = (al >= 0 ? al : -5 * al) + (I.kind[k] === SEA ? 1 : 3.5) * pe;
     let n = key.length;
     key.push(f);
     val.push(k);
@@ -394,10 +394,11 @@ function endDay(s: VolcanoState) {
     s.dayStars = st;
     s.retry = false;
     ev(s, 'clear', CI, `${s.day + 1}일째 성공! ${'★'.repeat(st)}${'☆'.repeat(3 - st)}`);
+    if (s.day === DAYS - 1) note(s, `🏝️ ${DAYS}일 만에 섬 완성! ★ ${s.stars}`, '#ffe08a');
   } else {
     s.hearts--;
     s.retry = true;
-    ev(s, 'fail', CI, `${s.area < s.areaGoal ? '넓이' : '생명'}가 모자라요 · 하트 -1`);
+    ev(s, 'fail', CI, `${s.area < s.areaGoal ? '넓이가' : '생명이'} 모자라요 · 하트 -1`);
     if (s.hearts <= 0) s.dead = true;
   }
 }
@@ -522,10 +523,10 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
     ctx.fill();
   };
   const zOf = (k: number) => (K[k] === SEA ? 0 : I.h[k] * HZ);
-  const CONE = TW * 1.15;
+  const CONE = TW * 1.4;
   const night = s.phase === 'night' ? Math.min(1, (NIGHT - s.pause) / 25, s.pause / 25 + 0.2) : 0;
   const f = s.phase === 'night' ? 1 : s.dayT / DAY;
-  const dusk = Math.max(night * 0.45, f > 0.82 ? ((f - 0.82) / 0.18) * 0.3 : f < 0.06 ? ((0.06 - f) / 0.06) * 0.18 : 0);
+  const dusk = Math.max(night * 0.32, f > 0.82 ? ((f - 0.82) / 0.18) * 0.3 : f < 0.06 ? ((0.06 - f) / 0.06) * 0.18 : 0);
   ctx.save();
   fx.begin(ctx);
   // ── 하늘 ──
@@ -533,8 +534,8 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
   for (let i = 0; i < SKY.length - 1; i++) if (f >= SKY[i][0] && f <= SKY[i + 1][0]) (a = SKY[i]), (b = SKY[i + 1]);
   const u = (f - a[0]) / Math.max(1e-6, b[0] - a[0]);
   const sg = ctx.createLinearGradient(0, 0, 0, h);
-  sg.addColorStop(0, mix(mix(a[1], b[1], u), '#0a1030', night));
-  sg.addColorStop(0.55, mix(mix(a[2], b[2], u), '#1d2a58', night));
+  sg.addColorStop(0, mix(mix(a[1], b[1], u), '#141c48', night));
+  sg.addColorStop(0.55, mix(mix(a[2], b[2], u), '#34407a', night));
   sg.addColorStop(1, mix('#1a5c8c', '#0a1834', night));
   ctx.fillStyle = sg;
   ctx.fillRect(-12, -12, w + 24, h + 24);
@@ -897,11 +898,81 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
       ctx.fill();
     }
   }
+  // ── 달아나는 동물·주민, 뛰어오르는 물고기 ──
+  for (const e of s.events) {
+    if (e.kind !== 'flee' && e.kind !== 'hiss') continue;
+    const age = s.t - e.t, i = e.k % N, j = (e.k / N) | 0, [x0, y0] = P(i + 0.5, j + 0.5, zOf(e.k));
+    if (age > 80) continue;
+    ctx.save();
+    if (e.kind === 'flee') {
+      const dir = x0 >= OX ? 1 : -1, x = x0 + dir * age * 1.1, y = y0 - age * 2.4 + age * age * 0.045;
+      ctx.translate(x, y);
+      ctx.rotate(dir * age * 0.32);
+      if (dir > 0) ctx.scale(-1, 1);
+      ctx.globalAlpha = Math.min(1, (80 - age) / 20);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `${TW * 0.6}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(e.text!, 0, 0);
+      ctx.restore();
+      if (age < 30) shout(x, y - TW * 0.4, e.text === '🏃' ? '으악!' : '!!');
+      continue;
+    }
+    // 치익: 놀란 물고기가 바다에서 튀어 오른다
+    const fx1 = x0 + age * 0.6 + TW * 0.4, fy1 = y0 - age * 2.2 + age * age * 0.05;
+    if (fy1 < y0 + 4) {
+      ctx.translate(fx1, fy1);
+      ctx.rotate(-0.6 + age * 0.04);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `${TW * 0.55}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🐟', 0, 0);
+      ctx.restore();
+      if (age < 35) shout(fx1, fy1 - TW * 0.35, '!?');
+    } else ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  // ── 밤·노을 ──
+  if (dusk > 0.01) {
+    ctx.fillStyle = `rgba(14,18,52,${dusk})`;
+    ctx.fillRect(-12, -12, w + 24, h + 24);
+    ctx.globalCompositeOperation = 'lighter';
+    for (const [x, y, al] of lights) {
+      const gl = ctx.createRadialGradient(x, y, 0, x, y, TW * 1.3);
+      gl.addColorStop(0, `rgba(255,120,40,${al * dusk * 0.9})`);
+      gl.addColorStop(1, 'rgba(255,80,20,0)');
+      ctx.fillStyle = gl;
+      ctx.fillRect(x - TW * 1.3, y - TW * 1.3, TW * 2.6, TW * 2.6);
+    }
+    for (let k = 0; k < NN; k++) {
+      if (K[k] === HOUSE) {
+        const [x, y] = P((k % N) + 0.5, ((k / N) | 0) + 0.5, zOf(k));
+        const gl = ctx.createRadialGradient(x, y - 4, 0, x, y - 4, TW * 0.9);
+        gl.addColorStop(0, `rgba(255,210,120,${dusk * 0.9})`);
+        gl.addColorStop(1, 'rgba(255,200,100,0)');
+        ctx.fillStyle = gl;
+        ctx.fillRect(x - TW, y - TW - 4, TW * 2, TW * 2);
+      }
+      if (I.feat[k] === LIGHT) {
+        const [x, y] = P((k % N) + 0.5, ((k / N) | 0) + 0.5, zOf(k) + TW * 0.9);
+        const an = s.t / 25;
+        ctx.fillStyle = `rgba(255,240,170,${dusk * 0.35})`;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.arc(x, y, TW * 4, an - 0.18, an + 0.18);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
   // ── 화산 얼굴 (웃음): 눈은 주둥이 쪽을 보고, 누르면 끙 힘주고, 쏟을 땐 입을 떡, 성공하면 활짝, 실패하면 훌쩍 ──
   {
     const [cx0, cy0] = P(C + 0.5, C + 0.5, I.h[CI] * HZ), p = Math.min(1, s.charge / FULL), flow = s.pending.length > 0;
     const shake = s.charge > 0 ? Math.sin(s.t * 1.7) * (0.5 + p * 1.5) : 0, hop = dance ? Math.abs(Math.sin(s.t / 6)) * 3 : 0;
-    const fx0 = cx0 + shake, fy = cy0 - CONE * 0.52 - hop, ex = TW * 0.2, er = TW * 0.115;
+    const fx0 = cx0 + shake, fy = cy0 - CONE * 0.5 - hop, ex = TW * 0.23, er = TW * 0.135;
     const sinceSum = (() => { let a = 999; for (const e of s.events) if (e.kind === 'sum') a = Math.min(a, s.t - e.t); return a; })();
     const thn = thetaAt(s, s.dayT), look = P(C + 0.5 + Math.cos(thn), C + 0.5 + Math.sin(thn), I.h[CI] * HZ), lx = (look[0] - cx0) / TW, ly = (look[1] - cy0) / TW;
     ctx.lineCap = 'round';
@@ -985,76 +1056,6 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
     }
     ctx.lineCap = 'butt';
   }
-  // ── 달아나는 동물·주민, 뛰어오르는 물고기 ──
-  for (const e of s.events) {
-    if (e.kind !== 'flee' && e.kind !== 'hiss') continue;
-    const age = s.t - e.t, i = e.k % N, j = (e.k / N) | 0, [x0, y0] = P(i + 0.5, j + 0.5, zOf(e.k));
-    if (age > 80) continue;
-    ctx.save();
-    if (e.kind === 'flee') {
-      const dir = x0 >= OX ? 1 : -1, x = x0 + dir * age * 1.1, y = y0 - age * 2.4 + age * age * 0.045;
-      ctx.translate(x, y);
-      ctx.rotate(dir * age * 0.32);
-      if (dir > 0) ctx.scale(-1, 1);
-      ctx.globalAlpha = Math.min(1, (80 - age) / 20);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `${TW * 0.6}px system-ui, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(e.text!, 0, 0);
-      ctx.restore();
-      if (age < 30) shout(x, y - TW * 0.4, e.text === '🏃' ? '으악!' : '!!');
-      continue;
-    }
-    // 치익: 놀란 물고기가 바다에서 튀어 오른다
-    const fx1 = x0 + age * 0.6 + TW * 0.4, fy1 = y0 - age * 2.2 + age * age * 0.05;
-    if (fy1 < y0 + 4) {
-      ctx.translate(fx1, fy1);
-      ctx.rotate(-0.6 + age * 0.04);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `${TW * 0.55}px system-ui, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('🐟', 0, 0);
-      ctx.restore();
-      if (age < 35) shout(fx1, fy1 - TW * 0.35, '!?');
-    } else ctx.restore();
-  }
-  ctx.globalAlpha = 1;
-  // ── 밤·노을 ──
-  if (dusk > 0.01) {
-    ctx.fillStyle = `rgba(14,18,52,${dusk})`;
-    ctx.fillRect(-12, -12, w + 24, h + 24);
-    ctx.globalCompositeOperation = 'lighter';
-    for (const [x, y, al] of lights) {
-      const gl = ctx.createRadialGradient(x, y, 0, x, y, TW * 1.3);
-      gl.addColorStop(0, `rgba(255,120,40,${al * dusk * 0.9})`);
-      gl.addColorStop(1, 'rgba(255,80,20,0)');
-      ctx.fillStyle = gl;
-      ctx.fillRect(x - TW * 1.3, y - TW * 1.3, TW * 2.6, TW * 2.6);
-    }
-    for (let k = 0; k < NN; k++) {
-      if (K[k] === HOUSE) {
-        const [x, y] = P((k % N) + 0.5, ((k / N) | 0) + 0.5, zOf(k));
-        const gl = ctx.createRadialGradient(x, y - 4, 0, x, y - 4, TW * 0.9);
-        gl.addColorStop(0, `rgba(255,210,120,${dusk * 0.9})`);
-        gl.addColorStop(1, 'rgba(255,200,100,0)');
-        ctx.fillStyle = gl;
-        ctx.fillRect(x - TW, y - TW - 4, TW * 2, TW * 2);
-      }
-      if (I.feat[k] === LIGHT) {
-        const [x, y] = P((k % N) + 0.5, ((k / N) | 0) + 0.5, zOf(k) + TW * 0.9);
-        const an = s.t / 25;
-        ctx.fillStyle = `rgba(255,240,170,${dusk * 0.35})`;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.arc(x, y, TW * 4, an - 0.18, an + 0.18);
-        ctx.closePath();
-        ctx.fill();
-      }
-    }
-    ctx.globalCompositeOperation = 'source-over';
-  }
   // ── 연출 ──
   const seenT = fx.memo.t ?? -1;
   for (const e of s.events) {
@@ -1092,9 +1093,9 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
     const msg = `새 땅 +${pvNew}${pvLost ? `  덮임 -${pvLost}` : ''}`;
     ctx.lineWidth = 3;
     ctx.strokeStyle = 'rgba(0,0,0,.55)';
-    ctx.strokeText(msg, cx, cy - TW * 1.3);
+    ctx.strokeText(msg, cx, cy - CONE - TW * 0.9);
     ctx.fillStyle = pvLost > 4 ? '#ffb0a0' : '#fff2b0';
-    ctx.fillText(msg, cx, cy - TW * 1.3);
+    ctx.fillText(msg, cx, cy - CONE - TW * 0.9);
     // 게이지
     const gx = w - R(0.06), gy0 = top + R(0.08), gh = R(0.42);
     ctx.fillStyle = 'rgba(0,0,0,.4)';
@@ -1284,7 +1285,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
   }
   function drawCrater(x: number, y: number, sc: number) {
     // 원뿔 화산: 아래 넓고 위 좁은 산, 꼭대기에 용암 웅덩이. 누를수록 용암 줄기가 산허리로 번진다
-    const p = Math.min(1, s.charge / FULL), flow = s.pending.length > 0, Hc = CONE * sc, bw = TW * 0.66 * sc, tw = TW * 0.3 * sc, ty = y - Hc;
+    const p = Math.min(1, s.charge / FULL), flow = s.pending.length > 0, Hc = CONE * sc, bw = TW * 0.78 * sc, tw = TW * 0.32 * sc, ty = y - Hc;
     const swell = s.charge > 0 ? 1 + p * 0.06 + Math.sin(s.t * 0.9) * 0.015 * p : 1;
     ctx.fillStyle = 'rgba(0,0,0,.25)';
     ctx.beginPath();
