@@ -472,17 +472,17 @@ export const train: GameDef<TrainState> = {
       if (e.t <= seenT) continue;
       const [gx, gy] = e.lot > 0 ? lotG(e.lot) : e.lot === 0 ? [0, -RT] : [0, 0];
       const [x0, y] = sp(gx, gy, e.lot >= 0 ? 0.05 : 0), x = Math.max(70 * K, Math.min(w - 70 * K, x0));
-      if (e.kind === 'drop') fx.burst(x, y + 8 * K, e.col!, 14, 2.6, 2.6), fx.ring(x, y + 8 * K, '#ffffff', 26 * K, 3), e.text && fx.pop(x, y - 10 * K, e.text, '#ffffff', 15 * K), fx.kick(1.5);
-      if (e.kind === 'stack') fx.burst(x, y, e.col!, 20, 3, 3), fx.ring(x, y, '#ffffff', 34 * K, 4), fx.pop(x, y - 14 * K, e.text!, '#fff1a8', 17 * K), fx.kick(3);
-      if (e.kind === 'evolve') fx.burst(x, y, e.col!, 42, 5, 3.4), fx.ring(x, y, e.col!, 70 * K, 6), fx.kick(6), fx.blink('#fffbe0', 0.18), fx.pop(x, y - 30 * K, e.text!, '#ffffff', 20 * K);
+      if (e.kind === 'drop') fx.burst(x0, y + 8 * K, e.col!, 14, 2.6, 2.6), fx.ring(x0, y + 8 * K, '#ffffff', 26 * K, 3), e.text && fx.pop(x, y - 10 * K, e.text, '#ffffff', 15 * K), fx.kick(1.5);
+      if (e.kind === 'stack') fx.burst(x0, y, e.col!, 20, 3, 3), fx.ring(x0, y, '#ffffff', 34 * K, 4), fx.pop(x, y - 14 * K, e.text!, '#fff1a8', 17 * K), fx.kick(3);
+      if (e.kind === 'evolve') fx.burst(x0, y, e.col!, 42, 5, 3.4), fx.ring(x0, y, e.col!, 70 * K, 6), fx.kick(6), fx.blink('#fffbe0', 0.18), fx.pop(x, y - 30 * K, e.text!, '#ffffff', 20 * K);
       if (e.kind === 'market') {
-        for (const c of ['#ff5c6c', '#ffd23f', '#4dabf7', '#7ee07e']) fx.burst(x, y, c, 16, 6, 3);
-        fx.ring(x, y, '#ffd23f', 90 * K, 7), fx.kick(8), fx.blink('#fff1c0', 0.25), fx.pop(x, y - 32 * K, e.text!, '#ffd23f', 22 * K);
+        for (const c of ['#ff5c6c', '#ffd23f', '#4dabf7', '#7ee07e']) fx.burst(x0, y, c, 16, 6, 3);
+        fx.ring(x0, y, '#ffd23f', 90 * K, 7), fx.kick(8), fx.blink('#fff1c0', 0.25), fx.pop(x, y - 32 * K, e.text!, '#ffd23f', 22 * K);
       }
-      if (e.kind === 'splash') fx.burst(x, y + 6 * K, '#6fd3ff', 30, 4, 3), fx.ring(x, y + 6 * K, '#bfefff', 40 * K, 4), fx.kick(4), fx.pop(x, y - 16 * K, e.text!, '#bfefff', 15 * K);
+      if (e.kind === 'splash') fx.burst(x0, y + 6 * K, '#6fd3ff', 30, 4, 3), fx.ring(x0, y + 6 * K, '#bfefff', 40 * K, 4), fx.kick(4), fx.pop(x, y - 16 * K, e.text!, '#bfefff', 15 * K);
       if (e.kind === 'bump') fx.pop(x, y - 12 * K, e.text!, '#ffd0d0', 13 * K), fx.kick(1);
-      if (e.kind === 'load') fx.burst(x, y, '#ffffff', 18, 2.5, 4), fx.pop(x, y - 22 * K, e.text!, '#ffffff', 15 * K);
-      if (e.kind === 'pax') fx.burst(x, y, '#7ee07e', 24, 4, 3), fx.pop(x, y - 30 * K, e.text!, '#b9ffb9', 17 * K);
+      if (e.kind === 'load') fx.burst(x0, y, '#ffffff', 18, 2.5, 4), fx.pop(x, y - 22 * K, e.text!, '#ffffff', 15 * K);
+      if (e.kind === 'pax') fx.burst(x0, y, '#7ee07e', 24, 4, 3), fx.pop(x, y - 30 * K, e.text!, '#b9ffb9', 17 * K);
       if (e.kind === 'paxno') fx.pop(x, y - 30 * K, e.text!, '#c8d0e0', 14 * K);
       if (e.kind === 'clear') {
         for (const c of ['#ff5c6c', '#ffd23f', '#4dabf7', '#7ee07e', '#ffffff']) fx.burst(w / 2, h * 0.45, c, 22, 7, 3.2);
