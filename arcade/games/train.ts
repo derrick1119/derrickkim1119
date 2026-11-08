@@ -488,8 +488,8 @@ export const train: GameDef<TrainState> = {
       if (e.kind === 'splash') fx.burst(x0, y + 6 * K, '#6fd3ff', 30, 4, 3), fx.ring(x0, y + 6 * K, '#bfefff', 40 * K, 4), fx.kick(4), pop(x0, y - 16 * K, e.text!, '#bfefff', 15 * K);
       if (e.kind === 'bump') pop(x0, y - 12 * K, e.text!, '#ffd0d0', 13 * K), fx.kick(1);
       if (e.kind === 'load') fx.burst(x0, y, '#ffffff', 18, 2.5, 4), pop(x0, y - 22 * K, e.text!, '#ffffff', 15 * K);
-      if (e.kind === 'pax') fx.burst(x0, y, '#7ee07e', 24, 4, 3), pop(x0, y - 30 * K, e.text!, '#b9ffb9', 17 * K);
-      if (e.kind === 'paxno') pop(x0, y - 30 * K, e.text!, '#c8d0e0', 14 * K);
+      if (e.kind === 'pax') fx.burst(x0, y, '#7ee07e', 24, 4, 3), pop(x0, y + 40 * K, e.text!, '#b9ffb9', 17 * K);
+      if (e.kind === 'paxno') pop(x0, y + 58 * K, e.text!, '#c8d0e0', 14 * K);
       if (e.kind === 'clear') {
         for (const c of ['#ff5c6c', '#ffd23f', '#4dabf7', '#7ee07e', '#ffffff']) fx.burst(w / 2, h * 0.45, c, 22, 7, 3.2);
         fx.blink('#fff6c8', 0.3), fx.kick(5);

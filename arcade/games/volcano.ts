@@ -896,6 +896,130 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
       ctx.fill();
     }
   }
+  // ── 화산 얼굴 (웃음): 눈은 주둥이 쪽을 보고, 누르면 끙 힘주고, 쏟을 땐 입을 떡, 성공하면 활짝, 실패하면 훌쩍 ──
+  {
+    const [cx0, cy0] = P(C + 0.5, C + 0.5, I.h[CI] * HZ), p = Math.min(1, s.charge / FULL), flow = s.pending.length > 0;
+    const shake = s.charge > 0 ? Math.sin(s.t * 1.7) * (0.5 + p * 1.5) : 0, hop = dance ? Math.abs(Math.sin(s.t / 6)) * 3 : 0;
+    const fx0 = cx0 + shake, fy = cy0 + TH * 0.62 - hop, ex = TW * 0.2, er = TW * 0.12;
+    const sinceSum = (() => { let a = 999; for (const e of s.events) if (e.kind === 'sum') a = Math.min(a, s.t - e.t); return a; })();
+    const thn = thetaAt(s, s.dayT), look = P(C + 0.5 + Math.cos(thn), C + 0.5 + Math.sin(thn), I.h[CI] * HZ), lx = (look[0] - cx0) / TW, ly = (look[1] - cy0) / TW;
+    ctx.lineCap = 'round';
+    const lid = (x: number, y: number, up: boolean) => {
+      ctx.strokeStyle = '#2a1a1a';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.arc(x, y + (up ? 1.5 : -1.5), er * 0.9, up ? Math.PI * 1.15 : Math.PI * 0.15, up ? Math.PI * 1.85 : Math.PI * 0.85);
+      ctx.stroke();
+    };
+    for (const sd of [-1, 1]) {
+      const x = fx0 + sd * ex, y = fy;
+      if (s.charge > 0) {
+        // 끙: > <
+        ctx.strokeStyle = '#2a1a1a';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(x - sd * er, y - er * 0.8);
+        ctx.lineTo(x + sd * er * 0.6, y);
+        ctx.lineTo(x - sd * er, y + er * 0.8);
+        ctx.stroke();
+      } else if (flow || dance || sinceSum < 50) lid(x, y, true);
+      else if (sad) lid(x, y, false);
+      else if (s.t % 170 < 7) {
+        ctx.strokeStyle = '#2a1a1a';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(x - er, y);
+        ctx.lineTo(x + er, y);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(x, y, er, er * 1.15, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#1a1010';
+        ctx.beginPath();
+        ctx.arc(x + lx * er * 0.5, y + ly * er * 0.6, er * 0.55, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      if (s.charge > 0 || dance) {
+        ctx.fillStyle = `rgba(255,90,90,${0.35 + p * 0.5})`;
+        ctx.beginPath();
+        ctx.ellipse(x + sd * er * 0.9, y + er * 1.6, er * 0.8, er * 0.45, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    // 입
+    ctx.strokeStyle = '#2a1a1a';
+    ctx.fillStyle = '#5a1010';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    if (flow) (ctx.ellipse(fx0, fy + er * 2.4, er * 0.9, er * 1.1, 0, 0, Math.PI * 2), ctx.fill());
+    else if (s.charge > 0) (ctx.moveTo(fx0 - er, fy + er * 2.2), ctx.lineTo(fx0 + er, fy + er * 2.2), ctx.stroke());
+    else if (sad) (ctx.arc(fx0, fy + er * 3, er * 0.8, Math.PI * 1.15, Math.PI * 1.85), ctx.stroke());
+    else if (dance) (ctx.arc(fx0, fy + er * 1.6, er * 1.1, 0.1, Math.PI - 0.1), ctx.fill());
+    else (ctx.arc(fx0, fy + er * 1.6, er * 0.7, 0.3, Math.PI - 0.3), ctx.stroke());
+    if (s.charge > 0 && p > 0.6) {
+      // 진땀
+      const ph = (s.t % 30) / 30;
+      ctx.fillStyle = '#9fd8ff';
+      ctx.beginPath();
+      ctx.arc(fx0 + ex * 2, fy - er + ph * 8, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (sad)
+      for (const sd of [-1, 1]) {
+        const ph = ((s.t + (sd > 0 ? 10 : 0)) % 24) / 24;
+        ctx.fillStyle = '#7fc8ff';
+        ctx.beginPath();
+        ctx.arc(fx0 + sd * ex, fy + er + ph * 12, 1.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    if (sinceSum < 45 && sinceSum > 5 && !flow) {
+      ctx.globalAlpha = 1 - sinceSum / 45;
+      ctx.font = `800 ${TW * 0.42}px system-ui, sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('후련~', fx0 + ex * 1.8, fy - er * 2 - sinceSum * 0.3);
+      ctx.globalAlpha = 1;
+    }
+    ctx.lineCap = 'butt';
+  }
+  // ── 달아나는 동물·주민, 뛰어오르는 물고기 ──
+  for (const e of s.events) {
+    if (e.kind !== 'flee' && e.kind !== 'hiss') continue;
+    const age = s.t - e.t, i = e.k % N, j = (e.k / N) | 0, [x0, y0] = P(i + 0.5, j + 0.5, zOf(e.k));
+    if (age > 80) continue;
+    ctx.save();
+    if (e.kind === 'flee') {
+      const dir = x0 >= OX ? 1 : -1, x = x0 + dir * age * 1.1, y = y0 - age * 2.4 + age * age * 0.045;
+      ctx.translate(x, y);
+      ctx.rotate(dir * age * 0.32);
+      if (dir > 0) ctx.scale(-1, 1);
+      ctx.globalAlpha = Math.min(1, (80 - age) / 20);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `${TW * 0.6}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(e.text!, 0, 0);
+      ctx.restore();
+      if (age < 30) shout(x, y - TW * 0.4, e.text === '🏃' ? '으악!' : '!!');
+      continue;
+    }
+    // 치익: 놀란 물고기가 바다에서 튀어 오른다
+    const fx1 = x0 + age * 0.6 + TW * 0.4, fy1 = y0 - age * 2.2 + age * age * 0.05;
+    if (fy1 < y0 + 4) {
+      ctx.translate(fx1, fy1);
+      ctx.rotate(-0.6 + age * 0.04);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `${TW * 0.55}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🐟', 0, 0);
+      ctx.restore();
+      if (age < 35) shout(fx1, fy1 - TW * 0.35, '!?');
+    } else ctx.restore();
+  }
+  ctx.globalAlpha = 1;
   // ── 밤·노을 ──
   if (dusk > 0.01) {
     ctx.fillStyle = `rgba(14,18,52,${dusk})`;
@@ -1124,15 +1248,32 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
       ctx.arc(x + sz * 0.5 + ph * 5, y - wh - sz * 1.2 - ph * 14, 1.5 + ph * 2.5, 0, Math.PI * 2);
       ctx.fill();
     }
-    // 주민
+    // 주민: 평소엔 산책, 용암이 올 자리면 '!' 하고 동동, 성공한 밤엔 만세 점프, 실패한 밤엔 데굴데굴
+    const scared = !!preview[k];
     for (let p = 0; p < 2; p++) {
-      const an = s.t / (40 + p * 13) + k + p * 3, px = x + Math.cos(an) * TW * 0.36, py = y + 3 + Math.sin(an) * TH * 0.3;
+      const an = s.t / (scared ? 8 : sad ? 10 : 40 + p * 13) + k + p * 3, px = x + Math.cos(an) * TW * 0.36, py0 = y + 3 + Math.sin(an) * TH * 0.3;
+      const jump = scared ? Math.abs(Math.sin(s.t / 3 + p)) * 5 : dance ? Math.abs(Math.sin(s.t / 6 + p * 1.5)) * 6 : 0, py = py0 - jump;
+      ctx.save();
+      ctx.translate(px, py);
+      if (sad) ctx.rotate(s.t / 4 + p);
       ctx.fillStyle = ['#3a6fd8', '#d84a6a'][p];
-      ctx.fillRect(px - 1, py - 4, 2.2, 3.5);
+      ctx.fillRect(-1, -4, 2.2, 3.5);
+      if (dance || scared) {
+        ctx.strokeStyle = '#ffd9b0';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-1, -3.5);
+        ctx.lineTo(-3, -6.5);
+        ctx.moveTo(1.2, -3.5);
+        ctx.lineTo(3.2, -6.5);
+        ctx.stroke();
+      }
       ctx.fillStyle = '#ffd9b0';
       ctx.beginPath();
-      ctx.arc(px + 0.1, py - 5.2, 1.3, 0, Math.PI * 2);
+      ctx.arc(0.1, -5.2, 1.3, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
+      if (scared && p === 0) shout(px, py - 7, '!');
     }
   }
   function drawCrater(x: number, y: number, sc: number) {
