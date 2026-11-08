@@ -42,9 +42,11 @@ export interface Ob { kind: Kind; x: number; w: number; h: number; ph: number }
 interface Zone { kind: 'ice' | 'wind'; x0: number; x1: number }
 interface Berry { x: number; y: number }
 interface Fan { x: number; z: number; e: string; ph: number }
+/** 판 위 소품: 0 나무 · 1 가로등 · 2 덤불 · 3 연못 · 4 집 · 5 눈사람 · 6 풍차 · 7 축제 천막 */
+interface Deco { x: number; kind: number; s: number; z: number }
 export interface Course {
   k: number; name: string; len: number; obs: Ob[]; ramps: Ob[]; rails: number[]; zones: Zone[]; berries: Berry[];
-  time: number; snail: number; night: boolean; t2: number; t3: number; fans: Fan[]; deco: { x: number; kind: number; s: number }[];
+  time: number; snail: number; night: boolean; t2: number; t3: number; fans: Fan[]; deco: Deco[];
 }
 export interface Body { x: number; y: number; vy: number; v: number; tuck: boolean; air: boolean; rot: number; rotTo: number; bail: number; rail: number; grind: number; combo: number; oi: number; bi: number }
 interface Ev { t: number; kind: string; x: number; y: number; text?: string; n?: number }
@@ -146,8 +148,16 @@ export function makeCourse(seed: number, k: number): Course {
   c.time = k === 6 ? Math.round(len / SNAILV) + 60 : Math.round(len / VREF[k]);
   c.t2 = Math.max(50, Math.round((pot * 0.5) / 50) * 50);
   c.t3 = Math.max(100, Math.round((pot * 1.0) / 50) * 50);
-  for (let fx = 2 + r() * 3; fx < len + 3; fx += 3 + r() * 3.5) c.fans.push({ x: fx, z: 0.68 + r() * 0.2, e: FANS[k][Math.floor(r() * 4)], ph: r() * 6 });
-  for (let dx = -1.5 + r() * 2; dx < len + 5; dx += 2.2 + r() * 2.8) c.deco.push({ x: dx, kind: r() < (k === 7 ? 0.5 : 0.25) ? 1 : 0, s: 0.8 + r() * 0.45 });
+  for (let fx = 2 + r() * 3; fx < len + 3; fx += 3 + r() * 3.5) c.fans.push({ x: fx, z: 0.6 + r() * 0.18, e: FANS[k][Math.floor(r() * 4)], ph: r() * 6 });
+  const special = [3, -1, 4, 3, -1, 5, 6, 7][k];
+  for (let dx = -0.5 + r() * 2; dx < len + 5; dx += 2.2 + r() * 2.8) {
+    const sp = special >= 0 && r() < 0.3;
+    const kind = sp && (special === 4 || special === 6 || special === 7) ? special : r() < (k === 7 ? 0.5 : 0.22) ? 1 : 0;
+    c.deco.push({ x: dx, kind, s: 0.8 + r() * 0.45, z: 1 });
+    if (sp && (special === 3 || special === 5)) c.deco.push({ x: dx + 0.8, kind: special, s: 0.9 + r() * 0.4, z: special === 3 ? 0.8 : 0.84 });
+    else if (r() < 0.55) c.deco.push({ x: dx + 1 + r(), kind: 2, s: 0.7 + r() * 0.5, z: 0.86 + r() * 0.06 });
+  }
+  c.deco.sort((a, b) => b.z - a.z);
   return c;
 }
 
