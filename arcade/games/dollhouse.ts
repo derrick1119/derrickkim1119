@@ -13,8 +13,8 @@ import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
 import { juice } from '../juice.ts';
 
-const A = 1.45, GY = 1.2, FH = 0.12, RW = 0.27, HALF = RW / 2, CLEAR = 0.15, ROPE = 0.3;
-const IMB = 0.5, CK = 2.0, TILT = 0.024, G = 0.0011, DESC = 28, SETTLE = 16, HOUSES = 8;
+const A = 1.45, GY = 1.2, FH = 0.135, RW = 0.3, HALF = RW / 2, CLEAR = 0.15, ROPE = 0.3;
+const IMB = 1.0, CK = 2.0, TILT = 0.024, G = 0.0011, DESC = 28, SETTLE = 16, HOUSES = 8;
 /** 집 중심에서 왼쪽 칸·오른쪽 칸·두 칸짜리 방의 중심 */
 const COLX = [-HALF, HALF, 0];
 
@@ -34,9 +34,9 @@ const RD: Record<RT, { e: string; name: string; who: string; wall: string; floor
 /** 집(판)마다: 방 수 · 흔들림 각속도 · 흔들림 폭 · '딱' 허용 오차 · 넘어지는 기울기 · 바람 세기 */
 const par = (k: number) => ({
   n: [5, 6, 7, 7, 8, 8, 9, 9][Math.min(k, 7)],
-  om: (2 * Math.PI) / Math.max(72, 165 - 13 * k),
-  amp: k === 0 ? 0.24 : Math.min(0.33, 0.29 + 0.006 * k),
-  win: k === 0 ? 0.034 : Math.max(0.011, 0.026 - 0.002 * k),
+  om: (2 * Math.PI) / Math.max(92, 165 - 11 * k),
+  amp: k === 0 ? 0.26 : Math.min(0.34, 0.31 + 0.005 * k),
+  win: k === 0 ? 0.038 : Math.max(0.015, 0.029 - 0.002 * k),
   limit: k === 0 ? 6 : Math.max(2.5, 3.4 - 0.12 * k),
   wind: k >= 4 ? 0.0011 + 0.0003 * (k - 4) : 0,
 });
@@ -53,6 +53,8 @@ export interface HouseState {
   rooms: Room[]; h: number[]; cap: boolean[]; crooked: number; happy: number; goal: number; goal3: number; placed: number;
   hearts: number; stars: number; bank: number; built: number; village: { h0: number; h1: number; st: number }[];
   pause: number; cleared: boolean; clearT: number; toppled: number; finished: boolean; junk: Junk[];
+  /** 웃음 연출용: 마지막 쿵(비뚤)·콤보·딱 시각 */
+  thudT: number; comboT: number; perfT: number;
   seen: Set<string>; events: Ev[]; dead: boolean;
 }
 
@@ -70,7 +72,7 @@ const hangY = (s: HouseState) => GY - hmax(s) * FH - CLEAR - FH / 2;
 /** 매달린 방의 x — dt틱 뒤 */
 export const hx = (s: HouseState, h: Hang, dt = 0) => 0.5 + par(s.stage).amp * Math.sin(h.phase + par(s.stage).om * dt);
 const fallN = (d: number) => Math.max(1, Math.ceil((-1 + Math.sqrt(1 + (8 * d) / G)) / 2));
-const winOf = (s: HouseState) => (s.stage === 0 && s.placed === 0 ? 0.14 : par(s.stage).win);
+const winOf = (s: HouseState) => (s.stage === 0 && s.placed === 0 ? 0.15 : par(s.stage).win);
 /** 집 기준 좌표(가로 l, 높이 u) → 세상 좌표 (집이 기운 만큼 돌려서) */
 function world(s: HouseState, l: number, u: number) {
   const th = theta(s);
@@ -102,7 +104,7 @@ function makeDeck(s: HouseState): RT[] {
   while (d.length < body) {
     const x = basic[Math.floor(r() * basic.length)];
     d.push(x);
-    if (x === 'kitchen' && k >= 1 && d.length < body && r() < 0.6) d.push('dining');
+    if (x === 'kitchen' && k >= 1 && d.length < body && r() < 0.75) d.push('dining');
   }
   if (k === 0) d[0] = 'kitchen';
   if (k === 1) (d[0] = 'kitchen'), (d[1] = 'dining');
@@ -180,12 +182,14 @@ function land(s: HouseState, f: Fall) {
   }
   if (L.perfect) {
     s.crooked *= 0.55;
+    s.perfT = s.t;
     gain += 3;
     ev(s, 'perfect', top.x, top.y + FH / 2, r.stairs ? '딱! 계단 연결' : '딱!');
     see(s, 'perfect', '딱! 맞으면 행복 +4 · 기운 집도 바로 서요');
     if (r.stairs) see(s, 'stairs', '딱 맞게 쌓으면 계단이 생겨 주민이 오가요');
   } else {
     s.crooked += Math.max(-1.3, Math.min(1.3, L.q)) * CK;
+    s.thudT = s.t;
     ev(s, 'thud', top.x, top.y + FH / 2, Math.abs(L.q) > 0.5 ? '쿵… 삐뚤' : '쿵');
     see(s, 'lean', '비뚤게 놓으면 집이 기울어요 — 너무 기울면 와르르!');
   }
@@ -195,8 +199,9 @@ function land(s: HouseState, f: Fall) {
     if (nb && ((t === 'attic' && nb.t === 'green') || (t === 'green' && nb.t === 'attic'))) (r.combo = nb.combo = 'garden'), (gain += 8), ev(s, 'combo', 0.5, top.y, '옥상 정원! +8', '#7ddf64');
     if (nb && ((t === 'bath' && nb.t === 'bed') || (t === 'bed' && nb.t === 'bath'))) (r.combo = nb.combo = 'cozy'), (gain += 5), ev(s, 'combo', 0.5, top.y, '아늑! +5', '#8fd8ff');
   }
+  if (r.combo) s.comboT = s.t;
   s.happy += gain;
-  ev(s, 'move', top.x, top.y, RD[t].who);
+  if (s.stage === 0 && s.placed <= 2) ev(s, 'move', top.x, top.y, RD[t].who);
   const ln = Math.abs(lean(s));
   if (ln > p.limit) {
     s.hearts--;
@@ -242,7 +247,7 @@ export const dollhouse: GameDef<HouseState> = {
   create(seed) {
     const s = {
       rng: mulberry32(seed), t: 0, stage: 0, deck: [], di: 0, hang: null, fall: null, wait: 0, rooms: [], h: [0, 0], cap: [false, false], crooked: 0, happy: 0, goal: 0, goal3: 0, placed: 0,
-      hearts: 3, stars: 0, bank: 0, built: 0, village: [], pause: 0, cleared: false, clearT: -1, toppled: -1, finished: false, junk: [], seen: new Set<string>(), events: [], dead: false,
+      hearts: 3, stars: 0, bank: 0, built: 0, village: [], pause: 0, cleared: false, clearT: -1, toppled: -1, finished: false, junk: [], thudT: -99, comboT: -99, perfT: -99, seen: new Set<string>(), events: [], dead: false,
     } as HouseState;
     newStage(s);
     s.wait = 10;
@@ -274,8 +279,9 @@ export const dollhouse: GameDef<HouseState> = {
     const h = s.hang;
     if (inp.tap && h.age >= DESC) {
       const x = hx(s, h), y = hangY(s);
-      s.fall = { t: h.t, x0: x, y0: y, k: 0, wind: h.wind, rot: -Math.atan2(x - 0.5, ROPE) * 0.45, land: resolve(s, h.t, x, h.wind) };
+      s.fall = { t: h.t, x0: x, y0: y, k: 0, wind: h.wind, rot: -Math.atan2(x - 0.5, ROPE) * 0.2, land: resolve(s, h.t, x, h.wind) };
       s.hang = null;
+      ev(s, 'drop', x, y, s.rng() < 0.5 ? '으아아!' : '꺄아!');
       return;
     }
     h.age++;
@@ -320,9 +326,10 @@ function poly(ctx: CanvasRenderingContext2D, pts: number[][], fill: string) {
   ctx.closePath();
   ctx.fill();
 }
-function emoji(ctx: CanvasRenderingContext2D, e: string, x: number, y: number, size: number, flip = false) {
+function emoji(ctx: CanvasRenderingContext2D, e: string, x: number, y: number, size: number, flip = false, rot = 0) {
   ctx.save();
   ctx.translate(x, y);
+  if (rot) (ctx.translate(0, -size / 2), ctx.rotate(rot), ctx.translate(0, size / 2));
   if (flip) ctx.scale(-1, 1);
   ctx.fillStyle = '#ffffff';
   ctx.font = `${size}px system-ui, "Noto Color Emoji", sans-serif`;
@@ -332,7 +339,9 @@ function emoji(ctx: CanvasRenderingContext2D, e: string, x: number, y: number, s
   ctx.restore();
 }
 
-interface Look { lit: number; night: number; time: number; seed: number; who: boolean; combo: string; side: boolean; top: boolean; sky: string; up: boolean; down: boolean }
+/** 주민 표정·몸짓: 걷기 · 조마조마(매달림) · 비명(떨어짐) · 어질어질(비뚤게 앉음) · 펄쩍(옆집 쿵에 놀람) · 춤(딱·콤보) */
+type Mood = 'walk' | 'nervous' | 'scream' | 'dizzy' | 'hop' | 'dance';
+interface Look { lit: number; night: number; time: number; seed: number; who: boolean; combo: string; side: boolean; top: boolean; sky: string; up: boolean; down: boolean; mood?: Mood; mt?: number }
 
 /** 방 하나: 앞면이 열린 상자 (왼쪽 위에서 비스듬히 본 단면). x = 왼쪽, yb = 바닥, px 단위 */
 function roomBox(ctx: CanvasRenderingContext2D, t: RT, x: number, yb: number, W: number, H: number, o: Look) {
@@ -432,9 +441,21 @@ function roomBox(ctx: CanvasRenderingContext2D, t: RT, x: number, yb: number, W:
   }
   // 주민
   if (o.who) {
-    const sp = o.time / 80 + o.seed * 6, wx2 = ix + iw * (0.5 + 0.3 * Math.sin(sp)), bob = Math.abs(Math.sin(o.time / 7 + o.seed * 9)) * H * 0.03;
-    emoji(ctx, D.who, wx2, iy + ih + H * 0.01 - bob, H * 0.32, Math.cos(sp) < 0);
-    if (t === 'hall') emoji(ctx, '🕺', ix + iw * (0.5 - 0.3 * Math.sin(sp * 1.2)), iy + ih + H * 0.01 - bob, H * 0.32);
+    const m = o.mood ?? 'walk', mt = o.mt ?? 0, sp = o.time / 80 + o.seed * 6, sz = H * 0.34, gy = iy + ih + H * 0.01;
+    let wx2 = ix + iw * (0.5 + 0.3 * Math.sin(sp)), y2 = gy - Math.abs(Math.sin(o.time / 7 + o.seed * 9)) * H * 0.03, flip = Math.cos(sp) < 0, rot = 0, who = D.who;
+    if (m === 'nervous') (wx2 = ix + iw * 0.42 + Math.sin(o.time * 1.7) * 1.5), (flip = false);
+    if (m === 'scream') (wx2 = ix + iw * 0.45), (y2 = gy - H * 0.12 - Math.abs(Math.sin(o.time / 2)) * H * 0.06), (who = '😱');
+    if (m === 'dizzy') (rot = Math.sin(o.time / 4) * 0.35), (wx2 = ix + iw * (0.45 + 0.05 * Math.sin(o.time / 6)));
+    if (m === 'hop') y2 = gy - Math.sin(Math.min(1, mt) * Math.PI) * H * 0.3;
+    if (m === 'dance') (y2 = gy - Math.abs(Math.sin(o.time / 4)) * H * 0.14), (flip = Math.floor(o.time / 8) % 2 === 0), (rot = Math.sin(o.time / 4) * 0.25);
+    emoji(ctx, who, wx2, y2, sz, flip, rot);
+    if (t === 'hall') emoji(ctx, '🕺', ix + iw * (0.5 - 0.3 * Math.sin(sp * 1.2)), m === 'dance' ? y2 : gy, sz, !flip, -rot);
+    // 머리 위 말풍선 기호
+    const hy2 = y2 - sz * 1.05;
+    if (m === 'nervous') emoji(ctx, '💦', wx2 + sz * 0.45, hy2 + sz * 0.45 + Math.sin(o.time / 5) * 2, sz * 0.5);
+    if (m === 'hop') emoji(ctx, '❗', wx2, hy2, sz * 0.6);
+    if (m === 'dizzy') for (let k = 0; k < 3; k++) emoji(ctx, '⭐', wx2 + Math.cos(o.time / 6 + k * 2.1) * sz * 0.45, hy2 + sz * 0.35 + Math.sin(o.time / 6 + k * 2.1) * sz * 0.12, sz * 0.32);
+    if (m === 'dance') emoji(ctx, k3(o.time) ? '🎵' : '🎶', wx2 + sz * 0.5, hy2 + sz * 0.2 - ((o.time % 30) / 30) * sz * 0.4, sz * 0.45);
   }
   // 불빛: 주민이 오면 전등이 켜진다. 밤에 불 꺼진 방은 어둡다
   const lx = bx + bw * 0.5, ly = iy + H * 0.12;
@@ -486,6 +507,8 @@ function roomBox(ctx: CanvasRenderingContext2D, t: RT, x: number, yb: number, W:
   ctx.lineWidth = 1.2;
   ctx.strokeRect(x + 0.5, yb - H + 0.5, W - 1, H - 1);
 }
+
+const k3 = (t: number) => Math.floor(t / 15) % 2 === 0;
 
 /** 박공지붕 (다락 · 집 완성 때) */
 function roof(ctx: CanvasRenderingContext2D, x: number, yb: number, W: number, H: number, time: number, chimney: boolean, garden: boolean) {
@@ -553,7 +576,7 @@ function drawGame(ctx: CanvasRenderingContext2D, s: HouseState, w: number, h: nu
     ctx.beginPath();
     ctx.arc(sx, sy, sr, 0, 7);
     ctx.fill();
-    if (night > 0.5) (ctx.fillStyle = skyTop), ctx.beginPath(), ctx.arc(sx + sr * 0.45, sy - sr * 0.2, sr * 0.85, 0, 7), ctx.fill();
+    if (night > 0.5) for (const [cx, cy, cr] of [[-0.3, -0.2, 0.22], [0.25, 0.1, 0.16], [-0.05, 0.4, 0.12]]) (ctx.fillStyle = 'rgba(160,150,120,.35)'), ctx.beginPath(), ctx.arc(sx + cx * sr, sy + cy * sr, cr * sr, 0, 7), ctx.fill();
   }
   // 구름
   for (let i = 0; i < 5; i++) {
@@ -592,8 +615,8 @@ function drawGame(ctx: CanvasRenderingContext2D, s: HouseState, w: number, h: nu
 
   // ── 세상 좌표 (집이 높아지면 살짝 줌아웃)
   const hmT = hmax(s), hm = (fx.memo.hm = fx.memo.hm === undefined ? hmT : fx.memo.hm + (hmT - fx.memo.hm) * 0.06);
-  const wTop = GY - hm * FH - CLEAR - FH - ROPE - 0.07, wBot = GY + 0.3, need = wBot - wTop, avail = A - 0.15 - 0.02;
-  const z = Math.min(1.12, avail / need), sTop = 0.15 + Math.max(0, (avail - need * z) / 2);
+  const wTop = GY - hm * FH - CLEAR - FH - ROPE - 0.07, wBot = GY + 0.27, need = wBot - wTop, avail = A - 0.15 - 0.01;
+  const z = Math.min(1, avail / need), sTop = 0.15 + Math.max(0, avail - need * z);
   const scr = (x: number, y: number) => ({ x: w / 2 + (x * w - w / 2) * z, y: sTop * w + (y - wTop) * w * z });
   ctx.translate(w / 2, sTop * w);
   ctx.scale(z, z);
@@ -682,6 +705,10 @@ function drawGame(ctx: CanvasRenderingContext2D, s: HouseState, w: number, h: nu
     ctx.globalAlpha = clamp01(1.3 - a);
     roomBox(ctx, j.t, -X(RW / 2), Y(FH / 2), X(RW), Y(FH), { lit: 0, night, time: s.t, seed: 0.3, who: false, combo: '', side: false, top: false, sky: skyBot, up: false, down: false });
     ctx.restore();
+    // 주민은 우산을 펴고 둥실둥실 (떨어진 방에서 탈출)
+    const ux = X(j.x - j.dir * 0.04 + Math.sin(a * 6) * 0.03), uy = Y(j.y - 0.06 + a * 0.22), us = Y(FH * 0.34);
+    emoji(ctx, '☂️', ux, uy - us * 0.85, us * 1.1, false, Math.sin(a * 6) * 0.25);
+    emoji(ctx, RD[j.t].who, ux, uy, us, j.dir < 0);
   }
   ctx.globalAlpha = 1;
 
@@ -689,17 +716,25 @@ function drawGame(ctx: CanvasRenderingContext2D, s: HouseState, w: number, h: nu
   const ln = lean(s), lim = par(k).limit, tA = s.toppled >= 0 ? (s.t - s.toppled) / 45 : 0;
   const rot = theta(s) + (tA > 0 ? Math.sign(ln || 1) * Math.min(1.4, tA * tA * 0.5) : 0) + (Math.abs(ln) > lim * 0.7 && tA === 0 ? Math.sin(s.t / 3) * 0.004 : 0);
   // 그림자
-  ctx.fillStyle = 'rgba(20,30,10,.28)';
+  ctx.fillStyle = `rgba(20,30,10,${0.28 * clamp01(1 - tA)})`;
   ctx.beginPath();
-  ctx.ellipse(IX + X(0.05 + rot * 0.6), Y(GY - 0.012), X(RW + 0.06 + hm * 0.012), Y(0.03), 0, 0, 7);
+  ctx.ellipse(IX + X(0.05 + theta(s) * 0.6), Y(GY - 0.012), X(RW + 0.06 + hm * 0.012), Y(0.03), 0, 0, 7);
   ctx.fill();
+  // 밤: 불 켜진 방들의 빛이 집 둘레로 번진다
+  if (night > 0 && s.rooms.length) {
+    const gy2 = Y(GY - hm * FH * 0.5), gr = X(0.35 + hm * 0.05), g = ctx.createRadialGradient(X(0.5), gy2, 0, X(0.5), gy2, gr);
+    g.addColorStop(0, `rgba(255,190,100,${0.4 * night})`);
+    g.addColorStop(1, 'rgba(255,190,100,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(X(0.5) - gr, gy2 - gr, gr * 2, gr * 2);
+  }
+  // 주춧돌 (땅에 붙어 있어서 집이 기울어도 그대로)
+  poly(ctx, [[X(0.5 + RW + 0.012), Y(GY) - 2], [X(0.5 + RW + 0.012) + Y(0.02), Y(GY) - 2 - Y(0.016)], [X(0.5 + RW + 0.012) + Y(0.02), Y(GY + 0.012) - Y(0.016)], [X(0.5 + RW + 0.012), Y(GY + 0.012)]], '#8f8a9a');
+  ctx.fillStyle = '#b8b2c4';
+  ctx.fillRect(X(0.5 - RW - 0.012), Y(GY) - 2, X(2 * RW + 0.024), Y(0.014));
   ctx.save();
   ctx.translate(X(0.5), Y(GY));
   ctx.rotate(rot);
-  // 주춧돌
-  poly(ctx, [[X(RW + 0.012), -2], [X(RW + 0.012) + Y(0.02), -2 - Y(0.016)], [X(RW + 0.012) + Y(0.02), Y(0.012) - Y(0.016)], [X(RW + 0.012), Y(0.012)]], '#8f8a9a');
-  ctx.fillStyle = '#b8b2c4';
-  ctx.fillRect(-X(RW + 0.012), -2, X(2 * RW + 0.024), Y(0.014));
   // 빈 칸 안내 (점선) + 매달린 방의 그림자
   const hg = s.hang, ready = hg && hg.age >= DESC && s.pause === 0;
   if (hg && !s.cleared) {
@@ -738,9 +773,11 @@ function drawGame(ctx: CanvasRenderingContext2D, s: HouseState, w: number, h: nu
     ctx.translate(ox, oy + drop);
     ctx.rotate(rr);
     ctx.scale(1, squash);
+    // 웃음: 새로 비뚤게 앉은 방 주민은 어질어질, 다른 주민들은 쿵 소리에 펄쩍, 딱·콤보엔 다 같이 춤
+    const mood: Mood = s.t - s.comboT < 110 ? 'dance' : !r.perfect && age < 75 ? 'dizzy' : s.t - s.thudT < 22 ? 'hop' : r.perfect && age < 55 ? 'dance' : 'walk';
     roomBox(ctx, r.t, -W / 2, 0, W, Hh, {
-      lit: clamp01((age - 6) / 18), night, time: s.t, seed: r.seed, who: age > 6, combo: r.combo, side: right, top: !above && !(r.t === 'attic'), sky: night > 0.5 ? '#2a3170' : skyTop,
-      up: !!above?.stairs, down: r.stairs,
+      lit: clamp01((age - 6) / 18), night, time: s.t, seed: r.seed, who: age > 6 && tA === 0, combo: r.combo, side: right, top: !above && !(r.t === 'attic'), sky: night > 0.5 ? '#2a3170' : skyTop,
+      up: !!above?.stairs, down: r.stairs, mood, mt: (s.t - s.thudT) / 22,
     });
     if (r.t === 'attic') roof(ctx, -W / 2, -Hh, W, Hh, s.t, false, r.combo === 'garden');
     ctx.restore();
@@ -763,6 +800,14 @@ function drawGame(ctx: CanvasRenderingContext2D, s: HouseState, w: number, h: nu
     }
   }
   ctx.restore();
+  // 무너지면 주민들이 튀어나와 풀밭을 데굴데굴 굴러간다
+  if (tA > 0)
+    for (const r of s.rooms) {
+      const st = world(s, COLX[r.col] * 0.8, (r.floor + 0.3) * FH), dir = (r.seed < 0.5 ? -1 : 1) * (0.6 + r.seed), fall = Math.min(1, tA * 1.3);
+      const ex = X(Math.max(0.06, Math.min(0.94, st.x + dir * tA * (0.14 + 0.06 * r.floor)))), ey = Y(st.y + (GY + 0.03 * r.seed - st.y) * fall * fall) - Y(0.05) * Math.sin(fall * Math.PI);
+      emoji(ctx, RD[r.t].who, ex, ey, Y(FH * 0.36), dir < 0, dir * tA * 9);
+      if (fall >= 1) emoji(ctx, '💫', ex, ey - Y(FH * 0.34), Y(FH * 0.24));
+    }
 
   // ── 크레인 + 매달린 방
   const hy = hangY(s), py = hy - ROPE;
@@ -802,17 +847,17 @@ function drawGame(ctx: CanvasRenderingContext2D, s: HouseState, w: number, h: nu
       }
     }
   }
-  const drawHanging = (t: RT, x: number, y: number, r0: number, alpha = 1) => {
+  // 매달린 방엔 이사 올 주민이 타고 있다 — 흔들릴 땐 조마조마, 떨어질 땐 비명
+  const drawHanging = (t: RT, x: number, y: number, r0: number, mood: Mood) => {
     ctx.save();
-    ctx.globalAlpha = alpha;
     ctx.translate(X(x), Y(y + FH / 2));
     ctx.rotate(r0);
     const W = X(t === 'hall' ? 2 * RW : RW);
-    roomBox(ctx, t, -W / 2, 0, W, Y(FH), { lit: 0, night, time: s.t, seed: 0.6, who: false, combo: '', side: true, top: true, sky: night > 0.5 ? '#2a3170' : skyTop, up: false, down: false });
+    roomBox(ctx, t, -W / 2, 0, W, Y(FH), { lit: 0, night, time: s.t, seed: 0.6, who: true, combo: '', side: true, top: true, sky: night > 0.5 ? '#2a3170' : skyTop, up: false, down: false, mood });
     ctx.restore();
   };
   if (s.hang) {
-    const x = hx(s, s.hang), p = clamp01(s.hang.age / DESC), y = hy - (1 - p) * (1 - p) * 0.45, r0 = -Math.atan2(x - 0.5, ROPE) * 0.45;
+    const x = hx(s, s.hang), p = clamp01(s.hang.age / DESC), y = hy - (1 - p) * (1 - p) * 0.45, r0 = -Math.atan2(x - 0.5, ROPE) * 0.2;
     ctx.strokeStyle = '#4a3a3a';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -823,11 +868,11 @@ function drawGame(ctx: CanvasRenderingContext2D, s: HouseState, w: number, h: nu
     ctx.beginPath();
     ctx.arc(X(x), Y(y - FH / 2) - 4, 4, 0, 7);
     ctx.fill();
-    drawHanging(s.hang.t, x, y, r0);
+    drawHanging(s.hang.t, x, y, r0, 'nervous');
   }
   if (s.fall) {
     const f = s.fall, x = f.x0 + f.wind * f.k, y = f.y0 + (G * f.k * (f.k + 1)) / 2;
-    drawHanging(f.t, x, y, f.rot * (1 - f.k / f.land.n));
+    drawHanging(f.t, x, y, f.rot * (1 - f.k / f.land.n), 'scream');
   }
 
   // ── 사건 → 연출 (화면 좌표로 바꿔서)
@@ -835,17 +880,18 @@ function drawGame(ctx: CanvasRenderingContext2D, s: HouseState, w: number, h: nu
   for (const e of s.events) {
     if (e.t <= seenT) continue;
     const p = scr(e.x, e.y);
-    if (e.kind === 'perfect') fx.burst(p.x, p.y, '#ffe9a8', 26, 4, 3), fx.burst(p.x, p.y, '#ffffff', 12, 2.5, 2), fx.ring(p.x, p.y, '#ffd36b', w * 0.22 * z, 5), fx.kick(4), fx.pop(p.x, p.y - 26, e.text!, '#ffe066', 22);
+    if (e.kind === 'perfect') fx.burst(p.x, p.y, '#ffe9a8', 26, 4, 3), fx.burst(p.x, p.y, '#ffffff', 12, 2.5, 2), fx.ring(p.x, p.y, '#ffd36b', w * 0.22 * z, 5), fx.kick(4), fx.pop(p.x, p.y - 40 * z, e.text!, '#ffe066', 22);
+    if (e.kind === 'drop') fx.pop(p.x + 34 * z, p.y - 30 * z, e.text!, '#ffffff', 15);
     if (e.kind === 'thud') fx.burst(p.x, p.y, '#c8a27a', 22, 3.5, 3.5), fx.kick(9), fx.pop(p.x, p.y - 22, e.text!, '#ffd0b0', 18);
-    if (e.kind === 'move') fx.pop(p.x + 30 * z, p.y - 4, `${e.text} 이사 왔어요`, '#ffffff', 13);
+    if (e.kind === 'move') fx.pop(p.x, p.y + 30 * z, `${e.text} 이사 왔어요!`, '#ffffff', 13);
     if (e.kind === 'combo') fx.burst(p.x, p.y, e.col!, 50, 6, 3.5), fx.ring(p.x, p.y, e.col!, w * 0.4, 7), fx.blink(e.col!, 0.22), fx.kick(7), fx.pop(p.x, p.y - 48, e.text!, e.col!, 24);
     if (e.kind === 'warn') fx.pop(p.x, p.y - 30, e.text!, e.col!, 16), fx.kick(5);
     if (e.kind === 'off') fx.burst(p.x, p.y, '#c8a27a', 30, 4, 3), fx.kick(8), fx.pop(p.x, p.y - 30, e.text!, '#ff9a9a', 18);
     if (e.kind === 'topple') fx.kick(20), fx.blink(th.hot, 0.35), fx.burst(w / 2, p.y, '#c8a27a', 60, 7, 4), fx.pop(w / 2, h * 0.42, e.text!, '#ffffff', 22);
     if (e.kind === 'clear') fx.burst(w / 2, p.y, '#ffd36b', 60, 7, 3.5), fx.burst(w / 2, p.y, '#ff8fb1', 30, 5, 3), fx.blink('#fff6c8', 0.3), fx.pop(w / 2, h * 0.3, e.text!, '#ffffff', 24);
     if (e.kind === 'win') fx.pop(w / 2, h * 0.4, e.text!, th.accent, 28), fx.blink('#ffffff', 0.4);
-    if (e.kind === 'stage') fx.pop(w / 2, h * 0.27, e.text!, '#ffffff', 19);
-    if (e.kind === 'new') fx.pop(w / 2, h * 0.36, e.text!, '#fff3b0', 15);
+    if (e.kind === 'stage') fx.pop(w / 2, h * 0.3, e.text!, '#ffffff', 19);
+    if (e.kind === 'new') fx.pop(w / 2, h * 0.21, e.text!, '#fff3b0', 15);
   }
   fx.memo.t = s.t;
   ctx.restore();
@@ -857,9 +903,9 @@ function drawGame(ctx: CanvasRenderingContext2D, s: HouseState, w: number, h: nu
     ctx.font = `900 ${w * 0.05}px system-ui, sans-serif`;
     ctx.lineWidth = 4;
     ctx.strokeStyle = 'rgba(40,28,70,.6)';
-    ctx.strokeText('👆 방이 점선 칸 위에 오면 탭!', w / 2, h * 0.2);
+    ctx.strokeText('👆 방이 점선 칸 위에 오면 탭!', w / 2, h * 0.17);
     ctx.fillStyle = '#ffffff';
-    ctx.fillText('👆 방이 점선 칸 위에 오면 탭!', w / 2, h * 0.2);
+    ctx.fillText('👆 방이 점선 칸 위에 오면 탭!', w / 2, h * 0.17);
   }
   const bandH = w * 0.135;
   ctx.fillStyle = 'rgba(40,28,70,.78)';
@@ -869,7 +915,7 @@ function drawGame(ctx: CanvasRenderingContext2D, s: HouseState, w: number, h: nu
   ctx.fillStyle = th.ink;
   ctx.font = `900 ${w * 0.042}px system-ui, sans-serif`;
   const n = s.deck.length;
-  ctx.fillText(`${k + 1}/${HOUSES}번째 집 · 방 ${s.placed}/${n} · 😊 ${s.happy}/${s.happy >= s.goal ? s.goal3 : s.goal}`, 10, bandH * 0.3);
+  ctx.fillText(`🏠 ${k + 1}/${HOUSES} · 방 ${s.placed}/${n} · 😊 ${s.happy}/${s.happy >= s.goal ? s.goal3 + '★★★' : s.goal + '★★'}`, 10, bandH * 0.3);
   ctx.textAlign = 'right';
   ctx.fillStyle = th.hot;
   ctx.fillText('♥'.repeat(Math.max(0, s.hearts)) + '♡'.repeat(Math.max(0, 3 - s.hearts)), w - 10, bandH * 0.3);
@@ -890,7 +936,7 @@ function drawGame(ctx: CanvasRenderingContext2D, s: HouseState, w: number, h: nu
   }
   if (s.di >= n) (ctx.fillStyle = th.muted), ctx.fillText('지붕', nx, bandH * 0.74);
   // 기울기 수평계
-  const gx = w * 0.62, gw = w * 0.34, gy = bandH * 0.74, f = Math.max(-1.15, Math.min(1.15, ln / lim));
+  const gx = w * 0.62, gw = w * 0.34, gy = bandH * 0.74, f = Math.max(-1.05, Math.min(1.05, ln / lim));
   ctx.fillStyle = 'rgba(255,255,255,.18)';
   ctx.beginPath();
   ctx.roundRect(gx, gy - 6, gw, 12, 6);

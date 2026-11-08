@@ -14,14 +14,17 @@ import type { Bot, GameDef, Input, Theme } from '../core.ts';
 import { juice } from '../juice.ts';
 
 const N = 15, C = 7, CI = C * N + C, NN = N * N, A = 1.22;
-const DAY = 1200, NIGHT = 110, DAYS = 7, FULL = 90, COOL = 70, SPIN = (Math.PI * 2) / 500, VMIN = 2, VMAX = 16;
+const DAY = 1200, NIGHT = 110, DAYS = 7, FULL = 90, COOL = 70, SPIN = (Math.PI * 2) / 500, VMIN = 2, VMAX = 12;
 const SEA = 0, LAVA = 1, ROCK = 2, GRASS = 3, FOREST = 4, ANIMAL = 5, HOUSE = 6, CRATER = 7, VENT = 8;
 const LIGHT = 1, HARBOR = 2, SPRING = 3;
 const LIFE = [0, 0, 0, 1, 2, 4, 6, 0, 0];
 const FEAT_LIFE = [0, 8, 8, 4];
+/** 자라는 데 드는 양: 식은 땅 → 풀(혼자 6초) → 숲(혼자 12초) → 동물(숲이 셋 이상 모이면 13초). 덮인 숲은 하루가 넘게 걸려야 되돌아온다 */
+const G_GRASS = 360, G_FOREST = 700, G_ANIMAL = 800;
 const ERUPTS = [3, 3, 4, 4, 4, 4, 4];
-const GAIN_A = [4, 6, 8, 9, 10, 10, 10];
-const GAIN_L = [4, 10, 16, 22, 26, 30, 34];
+/** 날마다 해 질 녘 목표 ★·★★·★★★ (섬 넓이 칸 · 생명 — 별은 둘 다 넘어야). 앞서 키워 둔 섬이 다음 날을 쉽게 한다 */
+const GOAL_A = [[30, 46, 52], [50, 68, 80], [72, 92, 110], [105, 118, 128], [125, 138, 148], [140, 152, 160], [155, 162, 168]];
+const GOAL_L = [[20, 50, 70], [120, 155, 185], [240, 285, 320], [360, 410, 455], [450, 500, 545], [520, 565, 610], [580, 625, 670]];
 
 const NB4: number[][] = [], NB8: number[][] = [];
 for (let k = 0; k < NN; k++) {
@@ -45,7 +48,7 @@ interface Ev { t: number; kind: string; k: number; text?: string }
 interface Note { t: number; text: string; color: string }
 export interface VolcanoState {
   rng: Rng; t: number; day: number; dayT: number; phase: 'day' | 'night'; pause: number; retry: boolean; won: boolean;
-  isle: Isle; snap: Isle; jit: Float32Array; spin0: number; spinDir: number;
+  isle: Isle; jit: Float32Array; spin0: number; spinDir: number;
   left: number; erupts: number; charge: number; pending: { i: number; at: number }[]; flowNew: number; flowLost: number; fast: boolean;
   areaGoal: number; lifeGoal: number; startLife: number; area: number; life: number; main: Uint8Array; open: Uint8Array;
   hearts: number; stars: number; cleared: number; dayStars: number;
@@ -59,15 +62,17 @@ function see(s: VolcanoState, key: string, text: string) {
   s.seen.add(key);
   note(s, text, '#ffe08a');
 }
-const cloneIsle = (a: Isle): Isle => ({ kind: a.kind.slice(), g: a.g.slice(), h: a.h.slice(), feat: a.feat.slice(), islet: a.islet.slice(), vent: a.vent, linked: a.linked });
 
 /** 주둥이 방향 (격자 각도). 하루 시작 각도에서 일정하게 돈다 — 봇도 같은 함수로 앞을 내다본다 */
 export const thetaAt = (s: VolcanoState, dayT: number) => s.spin0 + s.spinDir * SPIN * dayT;
 /** 누른 시간 → 용암 양 (바다 한 칸 = 1, 땅 위로 흐르는 칸 = 0.25) */
 export const vol = (hold: number) => VMIN + (VMAX - VMIN) * Math.min(1, hold / FULL);
 /** 비구름 (3일째부터): 섬 위를 천천히 떠돈다 */
-export const rainAt = (day: number, dayT: number) =>
-  day >= 2 ? { x: C + 0.5 + 4.3 * Math.sin(dayT * 0.0042 + day * 1.7), y: C + 0.5 + 4.3 * Math.cos(dayT * 0.0033 + day * 2.3), r: 2.1 } : null;
+export function rainAt(day: number, dayT: number) {
+  if (day < 2) return null;
+  const a = dayT * 0.0045 + day * 1.7, rho = 4.4 + 1.2 * Math.sin(dayT * 0.011 + day);
+  return { x: C + 0.5 + rho * Math.cos(a), y: C + 0.5 + rho * Math.sin(a), r: 2.1 };
+}
 function rainMask(day: number, dayT: number): Uint8Array | null {
   const c = rainAt(day, dayT);
   if (!c) return null;
@@ -87,7 +92,7 @@ export function flowOrder(I: Isle, src: number, th: number, block: Uint8Array | 
   seen[src] = 1;
   const push = (k: number) => {
     const dx = (k % N) - sx, dy = ((k / N) | 0) - sy, al = dx * ux + dy * uy, pe = Math.abs(dy * ux - dx * uy);
-    const f = (al >= 0 ? al : -3 * al) + (I.kind[k] === SEA ? 1 : 2.6) * pe;
+    const f = (al >= 0 ? al : -5 * al) + (I.kind[k] === SEA ? 1 : 5) * pe;
     let n = key.length;
     key.push(f);
     val.push(k);
@@ -250,14 +255,14 @@ function grow(s: VolcanoState, dt: number) {
     for (const n of NB4[k]) if (K[n] >= GRASS && K[n] <= HOUSE) life4++;
     const r = s.jit[k] * wet * dt;
     if (kd === ROCK) {
-      G[k] += r * (1 + 0.8 * life4);
-      if (G[k] >= 260) (K[k] = GRASS), (G[k] = 0), see(s, 'grass', '🌱 식은 용암에 풀이 돋아요');
+      G[k] += r * (1 + 0.6 * life4);
+      if (G[k] >= G_GRASS) (K[k] = GRASS), (G[k] = 0), see(s, 'grass', '🌱 식은 용암에 풀이 돋아요');
     } else if (kd === GRASS) {
-      G[k] += r * (1 + 0.35 * forest8);
-      if (G[k] >= 300) (K[k] = FOREST), (G[k] = 0), ev(s, 'sprout', k), see(s, 'forest', '🌳 풀밭이 숲이 돼요');
+      G[k] += r * (1 + 0.25 * forest8);
+      if (G[k] >= G_FOREST) (K[k] = FOREST), (G[k] = 0), ev(s, 'sprout', k), see(s, 'forest', '🌳 풀밭이 숲이 돼요');
     } else if (kd === FOREST) {
-      if (forest8 >= 2) G[k] += r;
-      if (G[k] >= 330) (K[k] = ANIMAL), (G[k] = 0), ev(s, 'animal', k), see(s, 'animal', '🦌 숲이 모이면 동물이 와요');
+      if (forest8 >= 3) G[k] += r;
+      if (G[k] >= G_ANIMAL) (K[k] = ANIMAL), (G[k] = 0), ev(s, 'animal', k), see(s, 'animal', '🦌 숲이 모이면 동물이 와요');
     }
   }
 }
@@ -320,9 +325,9 @@ function newDay(s: VolcanoState) {
     let best = -1, bv = -1;
     for (let k = 0; k < NN; k++) {
       const dd = dist(k);
-      if (!s.main[k] || dd < 2.8 || dd > 4.4 || I.feat[k] || (K[k] !== ROCK && K[k] !== GRASS && K[k] !== LAVA)) continue;
+      if (!s.main[k] || dd < 2.8 || dd > 4.4 || I.feat[k] || K[k] < LAVA || K[k] > ANIMAL) continue;
       if (NB8[k].some((n) => K[n] === HOUSE)) continue;
-      const v = (K[k] === GRASS ? 0 : 1) + hsh(k + d);
+      const v = -LIFE[K[k]] + hsh(k + d);
       if (v > bv) (bv = v), (best = k);
     }
     if (best >= 0) {
@@ -354,10 +359,9 @@ function newDay(s: VolcanoState) {
   if (d >= 5) see(s, 'wind', '🍃 바람이 바뀌었어요 — 주둥이가 거꾸로 돌아요');
   s.spin0 = d === 0 ? Math.PI / 4 - SPIN * 110 : s.rng() * Math.PI * 2;
   stats(s);
-  s.areaGoal = Math.min(s.area + GAIN_A[d], NN - 30);
-  s.lifeGoal = s.life + GAIN_L[d];
+  s.areaGoal = GOAL_A[d][0];
+  s.lifeGoal = GOAL_L[d][0];
   s.startLife = s.life;
-  s.snap = cloneIsle(I);
   startDay(s);
   note(s, `☀️ ${d + 1}일째 — 넓이 ${s.areaGoal} · 생명 ${s.lifeGoal}`, '#ffffff');
 }
@@ -371,14 +375,16 @@ function startDay(s: VolcanoState) {
   stats(s);
 }
 
+/** 지금 해가 지면 받을 별 */
+export const starsNow = (s: VolcanoState) => [0, 1, 2].filter((i) => s.area >= GOAL_A[s.day][i] && s.life >= GOAL_L[s.day][i]).length;
+
 function endDay(s: VolcanoState) {
   stats(s);
   const pass = s.area >= s.areaGoal && s.life >= s.lifeGoal;
   s.phase = 'night';
   s.pause = NIGHT;
   if (pass) {
-    const g = GAIN_L[s.day], extra = s.life - s.lifeGoal;
-    const st = 1 + (extra >= g * 0.5 ? 1 : 0) + (extra >= g ? 1 : 0);
+    const st = starsNow(s);
     s.stars += st;
     s.cleared++;
     s.dayStars = st;
@@ -421,10 +427,10 @@ export const volcano: GameDef<VolcanoState> = {
       if (d > edge) continue;
       I.kind[k] = d < 0.5 ? CRATER : d >= 1.4 && dx + dy <= -1 ? GRASS : ROCK;
       I.h[k] = d < 0.5 ? 5 : d < 1.5 ? 3 : 2;
-      I.g[k] = rng() * 140;
+      I.g[k] = I.kind[k] === GRASS ? 250 + rng() * 350 : rng() * 140;
     }
     const s: VolcanoState = {
-      rng, t: 0, day: 0, dayT: 0, phase: 'day', pause: 0, retry: false, won: false, isle: I, snap: I, jit, spin0: 0, spinDir: 1,
+      rng, t: 0, day: 0, dayT: 0, phase: 'day', pause: 0, retry: false, won: false, isle: I, jit, spin0: 0, spinDir: 1,
       left: 0, erupts: 0, charge: 0, pending: [], flowNew: 0, flowLost: 0, fast: false,
       areaGoal: 0, lifeGoal: 0, startLife: 0, area: 0, life: 0, main: new Uint8Array(NN), open: new Uint8Array(NN),
       hearts: 3, stars: 0, cleared: 0, dayStars: 0, seen: new Set<string>(), events: [], notes: [], dead: false,
@@ -440,7 +446,7 @@ export const volcano: GameDef<VolcanoState> = {
     if (s.phase === 'night') {
       if (--s.pause > 0) return;
       if (s.retry) {
-        s.isle = cloneIsle(s.snap);
+        // 그날 다시: 섬은 그대로 하룻밤 더 자란 채로, 같은 목표에 분출을 새로 받는다
         startDay(s);
         note(s, `🔁 ${s.day + 1}일째 다시 — 넓이 ${s.areaGoal} · 생명 ${s.lifeGoal}`, '#ffd0d0');
       } else if (++s.day >= DAYS) (s.dead = true), (s.won = true);
@@ -476,14 +482,15 @@ export const volcano: GameDef<VolcanoState> = {
     }
   },
   over: (s) => s.dead,
-  score: (s) => s.stars * 10 + Math.floor(s.life / 4),
+  /** 별 하나 10점, 7일을 다 버텨 섬을 완성하면 30점 더 */
+  score: (s) => s.stars * 10 + (s.won ? 30 : 0),
   draw(ctx, s, w, h, th: Theme) {
     drawVolcano(ctx, s, w, h, th);
   },
 };
 
 // ───────────────────────────── 그리기 ─────────────────────────────
-const rgb = (c: string) => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
+const rgb = (c: string) => (c[0] === '#' ? [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)] : c.slice(4, -1).split(',').map(Number));
 function mix(a: string, b: string, t: number) {
   const A1 = rgb(a), B1 = rgb(b), u = Math.max(0, Math.min(1, t));
   return `rgb(${Math.round(A1[0] + (B1[0] - A1[0]) * u)},${Math.round(A1[1] + (B1[1] - A1[1]) * u)},${Math.round(A1[2] + (B1[2] - A1[2]) * u)})`;
@@ -694,7 +701,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
       const v = hsh(k) * 0.12;
       let topC: string;
       if (isLava) topC = mix('#ffb03a', '#3e3540', 1 - heat);
-      else if (kd === ROCK) topC = mix(mix('#4c4552', '#6a6070', v * 4), '#a59a6a', Math.min(1, I.g[k] / 400));
+      else if (kd === ROCK) topC = mix(mix('#4c4552', '#6a6070', v * 4), '#8f9a6a', Math.min(1, I.g[k] / G_GRASS) * 0.5);
       else if (kd === GRASS) topC = mix('#86cf5a', '#a8dc6a', v * 4);
       else if (kd === FOREST || kd === ANIMAL) topC = mix('#5fae48', '#4a9a3e', v * 4);
       else if (kd === HOUSE) topC = mix('#a9d872', '#c8e48a', v * 4);
@@ -741,7 +748,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
         if (hsh(k + 9) < 0.3) ((ctx.fillStyle = mix('#ffe066', '#554422', night)), ctx.fillRect(cx + 2, cy - 1, 2, 2));
       }
       if (kd === FOREST || kd === ANIMAL) {
-        const grown = kd === FOREST ? Math.min(1, 0.45 + I.g[k] / 90) : 1;
+        const grown = kd === FOREST ? Math.min(1, 0.45 + I.g[k] / 200) : 1;
         const spots = kd === ANIMAL ? [[0.28, 0.3], [0.72, 0.38]] : [[0.3, 0.3], [0.7, 0.42], [0.42, 0.72]];
         for (let t = 0; t < spots.length; t++) {
           const [tx, ty] = P(i + spots[t][0], j + spots[t][1], z);
@@ -951,23 +958,33 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
   ctx.textAlign = 'right';
   ctx.fillStyle = th.hot;
   ctx.fillText('♥'.repeat(Math.max(0, s.hearts)) + '♡'.repeat(Math.max(0, 3 - s.hearts)), w - 10, R(0.035));
-  const bar = (x: number, label: string, v: number, goal: number, col: string) => {
-    const bw = w * 0.44, by = R(0.07), bh = R(0.045), ok = v >= goal;
+  const bar = (x: number, label: string, v: number, goals: number[], col: string) => {
+    const bw = w * 0.44, by = R(0.07), bh = R(0.045), ok = v >= goals[0], max = goals[2] * 1.1, lo = goals[0] * 0.55;
+    const at = (q: number) => bw * Math.max(0, Math.min(1, (q - lo) / (max - lo)));
     ctx.fillStyle = 'rgba(255,255,255,.12)';
     ctx.beginPath();
     ctx.roundRect(x, by, bw, bh, bh / 2);
     ctx.fill();
     ctx.fillStyle = ok ? '#7ee07a' : col;
     ctx.beginPath();
-    ctx.roundRect(x, by, Math.max(bh, bw * Math.min(1, v / Math.max(1, goal))), bh, bh / 2);
+    ctx.roundRect(x, by, Math.max(bh, at(v)), bh, bh / 2);
     ctx.fill();
+    ctx.font = `900 ${R(0.026)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    for (let i = 0; i < 3; i++) {
+      const gx = x + at(goals[i]);
+      ctx.fillStyle = 'rgba(10,20,40,.7)';
+      ctx.fillRect(gx - 1, by, 2, bh);
+      ctx.fillStyle = v >= goals[i] ? '#ffd23f' : 'rgba(255,255,255,.55)';
+      ctx.fillText('★', gx, by + bh + R(0.016));
+    }
     ctx.fillStyle = '#ffffff';
-    ctx.font = `800 ${R(0.032)}px system-ui, sans-serif`;
+    ctx.font = `800 ${R(0.03)}px system-ui, sans-serif`;
     ctx.textAlign = 'left';
-    ctx.fillText(`${label} ${v}/${goal}${ok ? ' ✓' : ''}`, x + 6, by + bh / 2 + 1);
+    ctx.fillText(`${label} ${v}/${goals[0]}${ok ? ' ✓' : ''}`, x + 6, by + bh / 2 + 1);
   };
-  bar(w * 0.04, '🏝️ 넓이', s.area, s.areaGoal, '#4fb3e8');
-  bar(w * 0.52, '🌱 생명', s.life, s.lifeGoal, '#e8b04f');
+  bar(w * 0.04, '🏝️ 넓이', s.area, GOAL_A[s.day], '#4fb3e8');
+  bar(w * 0.52, '🌱 생명', s.life, GOAL_L[s.day], '#e8b04f');
   ctx.fillStyle = 'rgba(8,22,40,.72)';
   ctx.fillRect(0, bot, w, h - bot);
   ctx.textAlign = 'left';
@@ -1203,12 +1220,12 @@ const mark = new Uint32Array(NN);
 let stamp = 0;
 function worth(I: Isle, k: number) {
   const kd = I.kind[k], g = I.g[k];
-  let v = kd === ROCK ? 0.15 + (g / 260) * 0.6 : kd === GRASS ? 1 + g / 300 : kd === FOREST ? 2 + (g / 330) * 1.5 : kd === ANIMAL ? 4 : kd === HOUSE ? 14 : 0;
+  let v = kd === ROCK ? 0.15 + (g / G_GRASS) * 0.6 : kd === GRASS ? 1 + g / G_FOREST : kd === FOREST ? 2 + (g / G_ANIMAL) * 1.5 : kd === ANIMAL ? 4 : kd === HOUSE ? 14 : 0;
   if (I.islet[k] && !I.linked) v *= 1.5;
   return v + (I.feat[k] ? 9 : 0);
 }
 /** 한 번의 분출을 흉내 내 값을 매긴다: 새 땅(바다 칸) − 덮이는 생명 */
-function judge(s: VolcanoState, f1: Flow, V1: number, f2: Flow | null, V2: number, wGain: number) {
+function judge(s: VolcanoState, f1: Flow, V1: number, f2: Flow | null, V2: number) {
   stamp++;
   const I = s.isle;
   let gain = 0, loss = 0;
@@ -1226,20 +1243,23 @@ function judge(s: VolcanoState, f1: Flow, V1: number, f2: Flow | null, V2: numbe
   };
   run(f1, V1);
   if (f2) run(f2, V2);
-  return gain * wGain - loss * 1.3;
+  // 오늘 ★ 넓이까지 모자란 땅은 아주 값지게, ★★★까지는 값지게, 그 너머도 앞날의 생명(칸마다 4)으로.
+  // 덮인 생명은 다시 자라지만, 늦게 덮을수록 해 질 녘까지 돌아올 시간이 없다
+  const ga = GOAL_A[s.day], g1 = Math.min(gain, Math.max(0, ga[0] - s.area)), g3 = Math.min(gain - g1, Math.max(0, ga[2] - s.area - g1));
+  return g1 * 8 + g3 * 4 + (gain - g1 - g3) * 2.5 - loss * (0.8 + (1.4 * s.dayT) / DAY);
 }
 const HOLDS = [15, 27, 39, 51, 63, 75, 90];
 function plan(s: VolcanoState) {
   const now = s.dayT, span = Math.max(40, Math.min(500, (DAY - now - 150) / Math.max(1, s.left)));
-  const wGain = s.area < s.areaGoal ? 3 : 1.8;
-  let best = { press: now, hold: 45, made: now, n: s.erupts, day: s.day, v: -1e9 };
+  // 넓이 목표를 채웠고 다 손해면 기다린다 (1초 뒤 다시 본다)
+  let best = { press: now + 60, hold: 0, made: now, n: s.erupts, day: s.day * 10 + s.hearts, v: s.area >= GOAL_A[s.day][2] ? 0 : -1e9 };
   for (let r = now + 12; r <= now + span; r += 4) {
     const th = thetaAt(s, r), block = rainMask(s.day, r);
     const f1 = flowOrder(s.isle, CI, th, block, VMAX), f2 = s.isle.vent >= 0 ? flowOrder(s.isle, s.isle.vent, th + Math.PI, block, VMAX * 0.6) : null;
     for (const H of HOLDS) {
       if (r - H < now) continue;
-      const V = vol(H), v = judge(s, f1, V, f2, V * 0.6, wGain) - (r - now) * 0.004;
-      if (v > best.v) best = { press: r - H, hold: H, made: now, n: s.erupts, day: s.day, v };
+      const V = vol(H), v = judge(s, f1, V, f2, V * 0.6) - (r - now) * 0.004;
+      if (v > best.v) best = { press: r - H, hold: H, made: now, n: s.erupts, day: s.day * 10 + s.hearts, v };
     }
   }
   return best;
@@ -1252,7 +1272,7 @@ export const volcanoSmart: Bot<VolcanoState> = {
     if (s.phase !== 'day' || s.left <= 0 || s.pending.length) return OFF;
     let m = plans.get(s);
     if (s.charge > 0) return { tap: false, dir: 0, hold: s.charge < (m?.hold ?? 40) - 1 };
-    if (!m || m.n !== s.erupts || m.day !== s.day || m.press < s.dayT - 3 || s.dayT - m.made > 120) plans.set(s, (m = plan(s)));
-    return { tap: false, dir: 0, hold: s.dayT + 1 >= m.press };
+    if (!m || m.n !== s.erupts || m.day !== s.day * 10 + s.hearts || m.press < s.dayT - 3 || (!m.hold && s.dayT >= m.press)) plans.set(s, (m = plan(s)));
+    return { tap: false, dir: 0, hold: m.hold > 0 && s.dayT + 1 >= m.press };
   },
 };

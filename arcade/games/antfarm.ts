@@ -18,19 +18,19 @@ const A = 1.42;
 export const COLS = 9, ROWS = 8, N = COLS * ROWS;
 const X0 = 0.08, X1 = 0.9, CW = (X1 - X0) / COLS, Y0 = 0.45, CH = 0.088, Y1 = Y0 + ROWS * CH;
 /** 3/4 시점: 상자 뒤쪽 모서리가 오른쪽 위로 비켜 보인다 */
-const DX = 0.042, DY = -0.05, GT = Y0 - 0.075;
+const DX = 0.056, DY = -0.066, GT = Y0 - 0.075;
 /** 입구 (맨 윗줄 가운데) */
 export const ENT = 4;
 export const SOIL = 0, CLAY = 1, ROCK = 2, LOOSE = 3, DUG = 4;
 const COST = [1, 2.2, Infinity, 0.35, 0];
 const SPROUT = 100, SEED_P = 210, FUNG_P = 270, FUNG_WET = 70, WET = 420;
-const RAIN_P = 640, RAIN_FIRST = 480, RAIN_WARN = 170, MOLE_P = 600, MOLE_FIRST = 430, MOLE_WARN = 130, MOLE_SPEED = 1 / 7;
+const RAIN_P = 640, RAIN_FIRST = 480, RAIN_WARN = 170, MOLE_P = 600, MOLE_FIRST = 780, MOLE_WARN = 130, MOLE_SPEED = 1 / 7;
 
 type Room = '' | 'sugar' | 'seed' | 'fungus' | 'honey';
 type Res = '' | 'sugar' | 'seed' | 'fungus' | 'mystery' | 'honey' | 'pocket';
 interface Day { T: number; goal: number; sugar: number; seed: number; fungus: number; mystery: number; rock: number; clay: number; rain: number; mole: boolean }
 const DAYS: Day[] = [
-  { T: 40, goal: 12, sugar: 4, seed: 2, fungus: 0, mystery: 0, rock: 3, clay: 0, rain: 0, mole: false },
+  { T: 45, goal: 12, sugar: 5, seed: 2, fungus: 0, mystery: 0, rock: 2, clay: 0, rain: 0, mole: false },
   { T: 42, goal: 16, sugar: 3, seed: 3, fungus: 0, mystery: 0, rock: 4, clay: 1, rain: 4, mole: false },
   { T: 44, goal: 20, sugar: 3, seed: 3, fungus: 0, mystery: 0, rock: 4, clay: 1, rain: 4, mole: true },
   { T: 46, goal: 24, sugar: 3, seed: 2, fungus: 2, mystery: 0, rock: 5, clay: 2, rain: 5, mole: true },
@@ -42,10 +42,10 @@ interface Ev { t: number; kind: string; x: number; y: number; text?: string; col
 export interface AntState {
   rng: Rng; t: number; day: number; dt: number; T: number; goal: number;
   kind: number[]; res: Res[]; hidden: Res[]; room: Room[]; prog: number[]; wet: number[]; grow: number[]; tmr: number[]; conn: boolean[];
-  ants: number; target: number; chain: number[]; down: boolean; taps: number; first: number;
+  ants: number; target: number; chain: number[]; down: boolean; taps: number; idle: number;
   rainAt: number; rainV: number; raining: number; mole: Mole | null;
   hearts: number; stars: number; pts: number; pause: number; cleared: boolean; won: boolean;
-  seen: Set<string>; events: Ev[]; dead: boolean;
+  seen: Set<string>; events: Ev[]; dead: boolean; news: { text: string; t: number } | null;
 }
 
 const NB: number[][] = [...Array(N).keys()].map((i) => {
@@ -58,14 +58,14 @@ const NB: number[][] = [...Array(N).keys()].map((i) => {
 });
 const rowOf = (i: number) => Math.floor(i / COLS), colOf = (i: number) => i % COLS;
 const cx = (c: number) => X0 + (c + 0.5) * CW, cy = (r: number) => Y0 + (r + 0.5) * CH;
-const rate = (ants: number) => (0.75 + 0.065 * Math.min(ants, 30)) / 60;
+const rate = (ants: number) => (0.9 + 0.065 * Math.min(ants, 30)) / 60;
 const sugarAmt = (r: number) => 3 + Math.floor(r / 3);
 
 const ev = (s: AntState, kind: string, x: number, y: number, text?: string, col?: string) => s.events.push({ t: s.t, kind, x, y, text, col });
 function see(s: AntState, key: string, text: string) {
   if (s.seen.has(key)) return;
   s.seen.add(key);
-  ev(s, 'new', 0.5, Y0 + 0.36, text);
+  s.news = { text, t: s.t };
 }
 
 /** 입구에서 각 칸까지 '파야 할 흙의 양'이 가장 적은 길 (봇이 내다볼 때도 같은 함수) */
@@ -180,14 +180,14 @@ function setTarget(s: AntState, i: number) {
   if (d[i] === Infinity) return void ev(s, 'rock', cx(colOf(i)), cy(rowOf(i)), '돌에 막혔어요', '#d0d4dc');
   s.target = i;
   s.chain = chainTo(prev, i);
-  if (s.taps++ === 0) s.first = s.dt;
+  s.taps++;
   ev(s, 'go', cx(colOf(i)), cy(rowOf(i)), s.taps === 1 ? '사사삭!' : undefined, '#ffe066');
 }
 
 function tapAt(s: AntState, x: number, y: number) {
   if (x < X0 - 0.03 || x > X1 + 0.03 || y < Y0 - 0.03 || y > Y1 + 0.03) return;
   const c = Math.max(0, Math.min(COLS - 1, Math.floor((x - X0) / CW))), r = Math.max(0, Math.min(ROWS - 1, Math.floor((y - Y0) / CH))), i = r * COLS + c;
-  if (s.kind[i] === ROCK) return void ev(s, 'rock', cx(c), cy(r), '돌은 못 파요', '#d0d4dc');
+  if (s.kind[i] === ROCK) return void ev(s, 'rock', cx(c), cy(r), '띵! 돌이에요', '#d0d4dc');
   if (s.kind[i] === DUG && s.conn[i]) return void ev(s, 'here', cx(c), cy(r));
   setTarget(s, i);
 }
@@ -208,7 +208,7 @@ function moleStep(s: AntState) {
     if (s.kind[i] === DUG) {
       s.kind[i] = LOOSE;
       s.wet[i] = 0;
-      if (s.room[i]) (s.room[i] = ''), (s.ants = Math.max(1, s.ants - 2)), ev(s, 'molehit', cx(c), cy(m.row), '와르르! -2🐜', '#ffb08a');
+      if (s.room[i]) (s.room[i] = ''), (s.ants = Math.max(1, s.ants - 2)), ev(s, 'molehit', cx(c), cy(m.row), '두더지: 앗, 실례~ -2🐜', '#ffb08a');
       else ev(s, 'loose', cx(c), cy(m.row));
       connect(s);
       if (s.target >= 0) s.chain = chainTo(dijkstra(s.kind).prev, s.target);
@@ -240,6 +240,7 @@ function newDay(s: AntState) {
   s.ants = 4;
   s.target = -1;
   s.chain = [];
+  s.idle = 0;
   s.raining = 0;
   s.rainV = d.rain;
   s.rainAt = RAIN_FIRST;
@@ -249,9 +250,11 @@ function newDay(s: AntState) {
     const row = 2 + Math.floor(r() * 5);
     for (let c = 0; c < COLS; c++) if (r() < 0.75) s.kind[row * COLS + c] = CLAY;
   }
+  // 첫 날은 가운데 다섯 줄에만 묻는다 (아무 데나 파도 지나가다 닿게 — 첫 판은 거의 못 진다)
+  const c0 = s.day === 0 ? 2 : 0, cn = s.day === 0 ? 5 : COLS;
   const free = (r0: number, r1: number) => {
     for (let k = 0; k < 60; k++) {
-      const i = (r0 + Math.floor(r() * (r1 - r0 + 1))) * COLS + Math.floor(r() * COLS);
+      const i = (r0 + Math.floor(r() * (r1 - r0 + 1))) * COLS + c0 + Math.floor(r() * cn);
       if (i === ENT || i === ENT + COLS || s.kind[i] === ROCK || s.res[i] || NB[i].some((v) => s.res[v])) continue;
       return i;
     }
@@ -272,8 +275,8 @@ function newDay(s: AntState) {
       else s.res[i] = res;
     }
   };
-  put('sugar', d.sugar - (s.day === 0 ? 1 : 0), s.day === 0 ? 1 : 2, s.day === 0 ? 5 : ROWS - 1);
-  put('seed', d.seed, 1, s.day === 0 ? 4 : 6);
+  put('sugar', d.sugar - (s.day === 0 ? 1 : 0), s.day === 0 ? 1 : 2, s.day === 0 ? 3 : ROWS - 1);
+  put('seed', d.seed, 1, s.day === 0 ? 3 : 6);
   put('fungus', d.fungus, 4, ROWS - 1);
   put('mystery', d.mystery, 2, ROWS - 1);
   // 두더지 줄엔 큼직한 설탕 미끼 하나
@@ -308,8 +311,8 @@ export const antfarm: GameDef<AntState> = {
   create(seed) {
     const s = {
       rng: mulberry32(seed), t: 0, day: 0, dt: 0, T: 40, goal: 12, kind: [], res: [], hidden: [], room: [], prog: [], wet: [], grow: [], tmr: [], conn: [],
-      ants: 4, target: -1, chain: [], down: false, taps: 0, first: -1, rainAt: 0, rainV: 0, raining: 0, mole: null,
-      hearts: 3, stars: 0, pts: 0, pause: 0, cleared: false, won: false, seen: new Set<string>(), events: [], dead: false,
+      ants: 4, target: -1, chain: [], down: false, taps: 0, idle: 0, rainAt: 0, rainV: 0, raining: 0, mole: null,
+      hearts: 3, stars: 0, pts: 0, pause: 0, cleared: false, won: false, seen: new Set<string>(), events: [], dead: false, news: null,
     } as AntState;
     newDay(s);
     return s;
@@ -329,6 +332,14 @@ export const antfarm: GameDef<AntState> = {
     }
     s.dt++;
     if (press && p) tapAt(s, p.x, p.y * A);
+    // 첫날만: 3초 넘게 놀면 개미들이 알아서 가장 가까운 먹이 냄새를 따라간다 (첫 판은 거의 못 진다)
+    s.idle = s.target >= 0 ? 0 : s.idle + 1;
+    if (s.day === 0 && s.idle > 180) {
+      const { d, prev } = dijkstra(s.kind);
+      let best = -1;
+      for (let i = 0; i < N; i++) if (s.res[i] && s.kind[i] !== DUG && d[i] < (best < 0 ? Infinity : d[best])) best = i;
+      if (best >= 0) (s.target = best), (s.chain = chainTo(prev, best)), ev(s, 'sniff', cx(colOf(best)), cy(rowOf(best)), '킁킁… 냄새다!', '#ffe9a8');
+    }
     // 굴 파기: 입구에서 목표까지 이어진 길에서 아직 안 판 첫 칸을 판다 (개미가 많을수록 빠르다)
     if (s.target >= 0) {
       const h = s.chain.find((i) => s.kind[i] !== DUG);
@@ -398,77 +409,135 @@ const mix = (a: string, b: string, t: number) => {
   const p = hex(a), q = hex(b);
   return `rgb(${p.map((v, k) => Math.round(v + (q[k] - v) * Math.max(0, Math.min(1, t)))).join(',')})`;
 };
-const ROOM_COL: Record<string, string> = { sugar: '#fff1c4', seed: '#9be15d', fungus: '#f3e3c3', honey: '#ffc94d' };
+const CARRY: Record<string, string> = { sugar: 'sugar', seed: 'leaf', fungus: 'fungus', honey: 'honey' };
+const pops = new WeakMap<object, { x: number; y: number; t: number }[]>();
 const FLOWER = ['#ff8fb1', '#ffd43b', '#ff7b54', '#c58cff', '#7cc7ff'];
 
-function drawAnt(ctx: CanvasRenderingContext2D, x: number, y: number, ang: number, z: number, t: number, carry?: string) {
+/** 개미 한 마리 (옆에서 본 모습). carry: 짐(dirt·sugar·leaf·fungus·honey), pose: 'up' 뒤집혀 버둥 · 'wow' 눈이 휘둥그레 */
+function drawAnt(ctx: CanvasRenderingContext2D, x: number, y: number, ang: number, z: number, t: number, carry?: string, pose?: 'up' | 'wow') {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(ang);
-  ctx.strokeStyle = '#1b0e07';
-  ctx.lineWidth = Math.max(0.6, z * 0.22);
-  const wig = Math.sin(t * 0.7 + x * 3) * z * 0.35;
+  if (Math.cos(ang) < -0.01) ctx.scale(1, -1);
+  const up = pose === 'up';
+  if (up) ctx.scale(1, -1);
+  // 다리 셋 (뒤집히면 하늘로 버둥버둥)
+  ctx.strokeStyle = '#3a1206';
+  ctx.lineWidth = Math.max(0.8, z * 0.26);
+  ctx.lineCap = 'round';
+  const sp = up ? 2.4 : 0.8;
   ctx.beginPath();
-  for (const k of [-1, 0, 1]) {
-    const lx = k * z * 0.45, sw = k === 0 ? -wig : wig;
-    ctx.moveTo(lx, 0);
-    ctx.lineTo(lx + sw, z * 0.95);
-    ctx.moveTo(lx, 0);
-    ctx.lineTo(lx - sw, -z * 0.95);
+  for (let k = 0; k < 3; k++) {
+    const lx = (k - 1) * z * 0.42, sw = Math.sin(t * sp + k * 2.1 + x) * z * (up ? 0.6 : 0.4);
+    ctx.moveTo(lx, z * 0.1);
+    ctx.lineTo(lx + sw * 0.5 - z * 0.15, z * 0.6);
+    ctx.lineTo(lx + sw, z * 1.05);
   }
+  // 더듬이
+  ctx.moveTo(z * 0.95, -z * 0.25);
+  ctx.quadraticCurveTo(z * 1.3, -z * 1.0, z * 1.65, -z * (0.75 + 0.15 * Math.sin(t * 0.3 + x)));
   ctx.stroke();
-  ctx.fillStyle = '#2b150a';
+  // 몸: 배·가슴·머리
+  ctx.fillStyle = '#c4441e';
   ctx.beginPath();
-  ctx.ellipse(-z * 0.95, 0, z * 0.62, z * 0.46, 0, 0, Math.PI * 2);
-  ctx.ellipse(0, 0, z * 0.38, z * 0.28, 0, 0, Math.PI * 2);
-  ctx.ellipse(z * 0.68, 0, z * 0.36, z * 0.32, 0, 0, Math.PI * 2);
+  ctx.ellipse(-z * 0.95, -z * 0.05, z * 0.72, z * 0.55, -0.2, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = 'rgba(255,220,180,.35)';
   ctx.beginPath();
-  ctx.arc(-z * 1.05, -z * 0.18, z * 0.2, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, z * 0.42, z * 0.3, 0, 0, Math.PI * 2);
   ctx.fill();
-  if (carry) {
-    ctx.fillStyle = carry;
+  ctx.fillStyle = '#a8331a';
+  ctx.beginPath();
+  ctx.arc(z * 0.78, -z * 0.12, z * 0.42, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,200,160,.55)';
+  ctx.beginPath();
+  ctx.ellipse(-z * 1.1, -z * 0.32, z * 0.28, z * 0.14, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+  // 눈 (놀라면 휘둥그레)
+  const er = z * (pose === 'wow' ? 0.32 : 0.17);
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(z * 0.92, -z * 0.22, er, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#120603';
+  ctx.beginPath();
+  ctx.arc(z * 0.97, -z * 0.22, er * 0.5, 0, Math.PI * 2);
+  ctx.fill();
+  // 짐: 몸보다 큰 걸 번쩍 들고 간다
+  if (carry === 'sugar') {
+    ctx.fillStyle = '#fffaf0';
+    ctx.strokeStyle = 'rgba(160,130,90,.7)';
+    ctx.lineWidth = 0.8;
+    ctx.fillRect(z * 1.0, -z * 1.55, z * 1.15, z * 1.15);
+    ctx.strokeRect(z * 1.0, -z * 1.55, z * 1.15, z * 1.15);
+  } else if (carry === 'leaf') {
+    ctx.fillStyle = '#5fbf3f';
     ctx.beginPath();
-    ctx.arc(z * 1.3, 0, z * 0.48, 0, Math.PI * 2);
+    ctx.ellipse(z * 0.3, -z * 1.35, z * 1.35, z * 0.55, -0.35, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#3f8f2f';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(-z * 0.9, -z * 0.9);
+    ctx.lineTo(z * 1.5, -z * 1.8);
+    ctx.stroke();
+  } else if (carry) {
+    ctx.fillStyle = carry === 'dirt' ? '#b98a5c' : carry === 'fungus' ? '#f3e3c3' : '#ffb22e';
+    ctx.beginPath();
+    ctx.arc(z * 1.45, -z * 0.55, z * 0.55, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
 }
 
-function drawMole(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, dir: number, t: number) {
+function drawMole(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, dir: number, t: number, oops = false) {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(dir, 1);
-  const g = ctx.createRadialGradient(-z * 0.2, -z * 0.3, z * 0.1, 0, 0, z * 1.1);
-  g.addColorStop(0, '#6b5a5a');
-  g.addColorStop(1, '#2c2222');
+  // 밀려나는 흙 물결
+  ctx.fillStyle = 'rgba(185,138,92,.85)';
+  ctx.beginPath();
+  ctx.ellipse(z * 0.9, 0, z * 0.9, z * 1.05, 0, -Math.PI / 2, Math.PI / 2);
+  ctx.fill();
+  const g = ctx.createRadialGradient(-z * 0.2, -z * 0.4, z * 0.1, 0, 0, z * 1.2);
+  g.addColorStop(0, '#9a8a8a');
+  g.addColorStop(1, '#4a3b3b');
   ctx.fillStyle = g;
   ctx.shadowColor = 'rgba(0,0,0,.5)';
   ctx.shadowBlur = 8;
   ctx.beginPath();
-  ctx.ellipse(0, 0, z * 1.15, z * 0.78, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, z * 1.2, z * 0.85, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
-  // 분홍 삽 손
+  // 분홍 삽 손 (허우적)
   ctx.fillStyle = '#ffb3bf';
   for (const sy of [-1, 1]) {
     ctx.beginPath();
-    ctx.ellipse(z * 0.55, sy * z * 0.62, z * 0.32, z * 0.2, sy * (0.6 + 0.3 * Math.sin(t * 0.5)), 0, Math.PI * 2);
+    ctx.ellipse(z * 0.7, sy * z * 0.7, z * 0.36, z * 0.22, sy * (0.6 + 0.5 * Math.sin(t * 0.6)), 0, Math.PI * 2);
     ctx.fill();
   }
-  // 코
+  // 큰 분홍 코
   ctx.beginPath();
-  ctx.ellipse(z * 1.2, 0, z * 0.28, z * 0.22, 0, 0, Math.PI * 2);
+  ctx.ellipse(z * 1.25, -z * 0.05, z * 0.34, z * 0.27, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = '#ff7f93';
+  ctx.fillStyle = '#ff6f87';
   ctx.beginPath();
-  ctx.arc(z * 1.36, 0, z * 0.1, 0, Math.PI * 2);
+  ctx.arc(z * 1.45, -z * 0.08, z * 0.13, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = '#0e0808';
+  // 볼·뻐드렁니·실눈 (미안하면 눈이 >_<)
+  ctx.fillStyle = 'rgba(255,140,160,.6)';
   ctx.beginPath();
-  ctx.arc(z * 0.72, -z * 0.28, z * 0.07, 0, Math.PI * 2);
+  ctx.arc(z * 0.55, z * 0.22, z * 0.2, 0, Math.PI * 2);
   ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(z * 1.05, z * 0.2, z * 0.14, z * 0.2);
+  ctx.fillRect(z * 1.21, z * 0.2, z * 0.14, z * 0.2);
+  ctx.strokeStyle = '#1a1010';
+  ctx.lineWidth = Math.max(1, z * 0.09);
+  ctx.beginPath();
+  if (oops) (ctx.moveTo(z * 0.6, -z * 0.5), ctx.lineTo(z * 0.78, -z * 0.38), ctx.lineTo(z * 0.6, -z * 0.26));
+  else (ctx.moveTo(z * 0.58, -z * 0.36), ctx.quadraticCurveTo(z * 0.7, -z * 0.46, z * 0.82, -z * 0.36));
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -634,13 +703,17 @@ function drawAll(ctx: CanvasRenderingContext2D, s: AntState, w: number, h: numbe
   for (let i = 0; i < N; i++) {
     const c = colOf(i), r = rowOf(i), x = CX(c), y = CY(r);
     if (s.kind[i] === CLAY) {
-      ctx.fillStyle = 'rgba(150,70,45,.55)';
+      // 진흙: 이웃 진흙과 이어진 붉은 띠 (위아래 가장자리만 물결)
+      const lc = c > 0 && s.kind[i - 1] === CLAY, rc = c < COLS - 1 && s.kind[i + 1] === CLAY, wv = (k: number) => R(0.006) * Math.sin(k * 1.7 + r);
+      ctx.fillStyle = 'rgba(160,72,44,.62)';
       ctx.beginPath();
-      ctx.roundRect(x - R(CW * 0.5), y - R(CH * 0.42), R(CW), R(CH * 0.84), R(0.02));
+      ctx.moveTo(x - R(CW * 0.5) + (lc ? -1 : R(0.01)), y - R(CH * 0.36) + wv(c));
+      ctx.lineTo(x + R(CW * 0.5) + (rc ? 1 : -R(0.01)), y - R(CH * 0.36) + wv(c + 1));
+      ctx.lineTo(x + R(CW * 0.5) + (rc ? 1 : -R(0.01)), y + R(CH * 0.38) + wv(c + 3));
+      ctx.lineTo(x - R(CW * 0.5) + (lc ? -1 : R(0.01)), y + R(CH * 0.38) + wv(c + 2));
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255,190,150,.18)';
-      ctx.lineWidth = 1;
-      for (let k = -1; k <= 1; k++) (ctx.beginPath(), ctx.moveTo(x - R(CW * 0.4), y + k * R(0.02)), ctx.quadraticCurveTo(x, y + k * R(0.02) - R(0.008), x + R(CW * 0.4), y + k * R(0.02)), ctx.stroke());
+      ctx.fillStyle = 'rgba(255,190,150,.16)';
+      for (let k = 0; k < 3; k++) ctx.fillRect(x - R(CW * 0.5), y - R(0.018) + k * R(0.017) + wv(c + k), R(CW), 1.2);
     }
     if (s.kind[i] === ROCK) {
       ctx.fillStyle = '#7d7a76';
@@ -663,7 +736,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: AntState, w: number, h: numbe
   }
   // ── 굴 ──
   const dug = (i: number) => s.kind[i] === DUG;
-  const tw = R(Math.min(CW, CH) * 0.5);
+  const tw = R(Math.min(CW, CH) * 0.62);
   ctx.lineCap = 'round';
   for (const [col, wd, oy] of [['#c79a6a', tw * 1.32, 1.5], ['#1f1109', tw, 0]] as [string, number, number][]) {
     ctx.strokeStyle = col;
@@ -692,14 +765,14 @@ function drawAll(ctx: CanvasRenderingContext2D, s: AntState, w: number, h: numbe
     const x = CX(colOf(i)), y = CY(rowOf(i)), on = s.conn[i];
     ctx.fillStyle = '#c79a6a';
     ctx.beginPath();
-    ctx.ellipse(x, y + 1.5, R(CW * 0.5), R(CH * 0.42), 0, 0, Math.PI * 2);
+    ctx.ellipse(x, y + 1.5, R(CW * 0.6), R(CH * 0.5), 0, 0, Math.PI * 2);
     ctx.fill();
     const rg = ctx.createRadialGradient(x, y - R(0.01), 0, x, y, R(CW * 0.48));
     rg.addColorStop(0, on ? '#4a2c17' : '#2a1a10');
     rg.addColorStop(1, '#1a0d06');
     ctx.fillStyle = rg;
     ctx.beginPath();
-    ctx.ellipse(x, y, R(CW * 0.46), R(CH * 0.38), 0, 0, Math.PI * 2);
+    ctx.ellipse(x, y, R(CW * 0.55), R(CH * 0.45), 0, 0, Math.PI * 2);
     ctx.fill();
     if (rm === 'sugar') {
       for (let k = 0; k < 5; k++) {
@@ -751,16 +824,19 @@ function drawAll(ctx: CanvasRenderingContext2D, s: AntState, w: number, h: numbe
       ctx.fillStyle = '#a67a52';
       for (let k = 0; k < 7; k++) ctx.fillRect(x + (hsh(i * 7 + k) - 0.5) * R(CW * 0.7), y + (hsh(i * 7 + k + 3) - 0.5) * R(CH * 0.5), 2.5, 2.5);
     }
-  // 빗물 (굴 안에 고인 물)
+  // 빗물: 굴 모양 그대로 차오른다
   for (let i = 0; i < N; i++) {
     if (!s.wet[i] || s.kind[i] !== DUG) continue;
-    const lv = Math.min(1, (WET - s.wet[i]) / 30, s.wet[i] / 60), x = CX(colOf(i)), y = CY(rowOf(i)), hh = R(CH * 0.42) * lv;
-    ctx.fillStyle = 'rgba(70,150,230,.72)';
+    const lv = Math.min(1, (WET - s.wet[i]) / 30, s.wet[i] / 60), x = CX(colOf(i)), y = CY(rowOf(i));
+    ctx.fillStyle = ctx.strokeStyle = `rgba(70,150,230,${0.8 * lv})`;
+    ctx.lineWidth = tw * 0.84;
     ctx.beginPath();
-    ctx.roundRect(x - R(CW * 0.5), y + R(CH * 0.21) - hh, R(CW), hh, R(0.01));
+    if (s.room[i]) ctx.ellipse(x, y, R(CW * 0.52), R(CH * 0.42), 0, 0, Math.PI * 2);
+    else ctx.arc(x, y, tw * 0.42, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = 'rgba(220,245,255,.7)';
-    ctx.fillRect(x - R(CW * 0.42), y + R(CH * 0.21) - hh, R(CW * 0.84) * (0.6 + 0.4 * Math.sin(t / 8 + i)), 1.5);
+    for (const v of NB[i]) if (v > i && s.wet[v] && s.kind[v] === DUG) (ctx.beginPath(), ctx.moveTo(x, y), ctx.lineTo(CX(colOf(v)), CY(rowOf(v))), ctx.stroke());
+    ctx.fillStyle = `rgba(225,245,255,${0.7 * lv})`;
+    ctx.fillRect(x - tw * 0.3, y - tw * 0.22 + Math.sin(t / 8 + i), tw * 0.6, 1.5);
   }
   // 묻힌 것들 (설탕 방울·씨앗·버섯·? 흙덩이)
   for (let i = 0; i < N; i++) {
@@ -833,7 +909,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: AntState, w: number, h: numbe
       ctx.stroke();
     }
   }
-  // ── 개미들: 입구에서 각 방·파는 곳까지 줄지어 왕복 (돌아올 땐 짐을 든다) ──
+  // ── 개미들: 입구에서 각 방·파는 곳까지 줄지어 왕복 (돌아올 땐 몸보다 큰 짐을 든다) ──
+  const z = R(0.0105), m = s.mole, alarm = !!m && s.dt >= m.at - MOLE_WARN && m.pos > -1.4 && m.pos < COLS + 0.4;
   {
     const prev = new Int16Array(N).fill(-1), on = new Uint8Array(N), q = [ENT];
     on[ENT] = 1;
@@ -852,21 +929,20 @@ function drawAll(ctx: CanvasRenderingContext2D, s: AntState, w: number, h: numbe
       if (back !== undefined) {
         const r0 = route(back), [hx, hy] = pt(hd), [bx, by] = pt(back), f = 0.25 + 0.45 * Math.min(1, s.prog[hd] / COST[s.kind[hd]]);
         r0.push([bx + (hx - bx) * f, by + (hy - by) * f]);
-        routes.push({ pts: r0, carry: '#a67a52', dig: true });
+        routes.push({ pts: r0, carry: 'dirt', dig: true });
       }
     }
-    for (let i = 0; i < N; i++) if (s.room[i] && on[i]) routes.push({ pts: route(i), carry: ROOM_COL[s.room[i]], dig: false });
-    const n = Math.min(Math.floor(s.ants), 48), nd = routes[0]?.dig ? Math.max(2, Math.round(n * 0.45)) : 0;
+    for (let i = 0; i < N; i++) if (s.room[i] && on[i] && !s.wet[i]) routes.push({ pts: route(i), carry: CARRY[s.room[i]], dig: false });
+    const n = Math.min(Math.floor(s.ants), 44), nd = routes[0]?.dig ? Math.max(2, Math.round(n * 0.45)) : 0;
     const per = new Map<number, number>();
-    const z = R(0.0085);
     for (let a = 0; a < n; a++) {
       let ri = -1;
       if (a < nd) ri = 0;
       else if (routes.length > (nd ? 1 : 0)) ri = (nd ? 1 : 0) + ((a - nd) % (routes.length - (nd ? 1 : 0)));
       if (ri < 0) {
         // 할 일 없는 개미: 입구 둘레를 서성인다
-        const ang = t / 30 + a * 2.1, x = CX(colOf(ENT)) + Math.cos(ang) * R(0.02), y = CY(0) + Math.sin(ang * 1.3) * R(0.012);
-        drawAnt(ctx, x, y, ang + Math.PI / 2, z, t + a * 5);
+        const ang = Math.sin(t / 40 + a * 2.1) * 0.6 + (a % 2) * Math.PI, x = CX(colOf(ENT)) + Math.sin(t / 50 + a * 1.7) * R(0.025), y = CY(0) + R(0.01);
+        drawAnt(ctx, x, y, ang, z, t + a * 5);
         continue;
       }
       const rt = routes[ri], k = per.get(ri) ?? 0;
@@ -876,12 +952,48 @@ function drawAll(ctx: CanvasRenderingContext2D, s: AntState, w: number, h: numbe
       const seg: number[] = [];
       for (let j = 1; j < rt.pts.length; j++) seg.push(Math.hypot(rt.pts[j][0] - rt.pts[j - 1][0], rt.pts[j][1] - rt.pts[j - 1][1])), (L += seg[j - 1]);
       if (L < 1) continue;
-      const u = (t * R(0.0028) + (k / cnt + hsh(a) * 0.08) * 2 * L) % (2 * L), back = u > L;
+      const u = (t * R(0.0032) + (k / cnt + hsh(a) * 0.08) * 2 * L) % (2 * L), back = u > L;
       let dd = back ? 2 * L - u : u, j = 0;
       while (j < seg.length - 1 && dd > seg[j]) (dd -= seg[j]), j++;
       const [ax, ay] = rt.pts[j], [bx, by] = rt.pts[j + 1], f = seg[j] ? Math.min(1, dd / seg[j]) : 0;
-      const ang = Math.atan2(by - ay, bx - ax) + (back ? Math.PI : 0), side = (back ? 1 : -1) * R(0.007);
-      drawAnt(ctx, ax + (bx - ax) * f - Math.sin(ang) * side, ay + (by - ay) * f + Math.cos(ang) * side, ang, z, t + a * 7, back ? rt.carry : undefined);
+      const ang = Math.atan2(by - ay, bx - ax) + (back ? Math.PI : 0), side = (back ? 1 : -1) * R(0.006);
+      const x = ax + (bx - ax) * f - Math.sin(ang) * side, y = ay + (by - ay) * f + Math.cos(ang) * side;
+      // 두더지가 오면 그 줄 개미는 눈이 휘둥그레
+      const wow = alarm && Math.abs(y - CY(m!.row)) < R(CH * 0.6);
+      drawAnt(ctx, x, y, ang, z, t + a * 7, back ? rt.carry : undefined, wow ? 'wow' : undefined);
+      if (wow) (ctx.fillStyle = '#ffe066'), (ctx.font = `900 ${R(0.026)}px system-ui, sans-serif`), (ctx.textAlign = 'center'), ctx.fillText('!', x, y - R(0.022) - Math.abs(Math.sin(t / 3 + a)) * 3);
+    }
+  }
+  // 물에 잠긴 굴: 잎사귀 뗏목 위에서 뒤집혀 버둥버둥
+  for (let i = 0; i < N; i++) {
+    if (!s.wet[i] || s.kind[i] !== DUG || hsh(i * 3 + 1) > 0.75) continue;
+    const lv = Math.min(1, (WET - s.wet[i]) / 30, s.wet[i] / 60);
+    if (lv < 0.6) continue;
+    const bx = CX(colOf(i)) + Math.sin(t / 25 + i) * tw * 0.2, by = CY(rowOf(i)) - tw * 0.12 + Math.sin(t / 11 + i) * 1.3, tilt = Math.sin(t / 18 + i) * 0.2;
+    ctx.fillStyle = '#5fbf3f';
+    ctx.beginPath();
+    ctx.ellipse(bx, by + z * 0.5, z * 2.1, z * 0.55, tilt, 0, Math.PI * 2);
+    ctx.fill();
+    drawAnt(ctx, bx, by - z * 0.3, tilt, z, t * 1.5 + i, undefined, 'up');
+  }
+  // 사건 반응: 무너지거나 잠기면 개미가 데굴데굴 튕겨 나가고, 방이 생기면 우쭐 춤
+  for (const e of s.events) {
+    const age = s.t - e.t;
+    if ((e.kind === 'molehit' || e.kind === 'drown' || e.kind === 'pocket') && age < 60) {
+      for (let k = 0; k < 3; k++) {
+        const vx = (k - 1) * R(0.0034) + R(0.0008), vy = -R(0.0065) - k * R(0.0012);
+        drawAnt(ctx, X(e.x) + vx * age, Y(e.y) + vy * age + R(0.00014) * age * age, age * 0.35 * (k % 2 ? 1 : -1), z, t, undefined, 'up');
+      }
+    }
+    if (e.kind === 'room' && age < 95) {
+      for (let k = 0; k < 3; k++) {
+        const hop = Math.abs(Math.sin(age * 0.22 + k * 1.1)) * R(0.016), x = X(e.x) + (k - 1) * R(0.026), y = Y(e.y) + R(0.01) - hop;
+        drawAnt(ctx, x, y, (k === 2 ? Math.PI : 0) + Math.sin(age * 0.3 + k) * 0.35, z, t + k * 4);
+      }
+      ctx.fillStyle = `rgba(255,243,176,${1 - age / 95})`;
+      ctx.font = `900 ${R(0.03)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(age % 30 < 15 ? '♪' : '♫', X(e.x) + R(0.04) * Math.sin(age / 9), Y(e.y) - R(0.03) - age * 0.25);
     }
   }
   // 두더지
@@ -891,11 +1003,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: AntState, w: number, h: numbe
       const mx = X(X0 + (m.pos + 0.5) * CW), my = CY(m.row);
       ctx.fillStyle = 'rgba(166,122,82,.7)';
       for (let k = 0; k < 6; k++) ctx.fillRect(mx - m.dir * R(0.03 + k * 0.012) + Math.sin(t + k) * 3, my + (hsh(k + t) - 0.5) * R(0.05), 3, 3);
-      drawMole(ctx, mx, my, R(0.032), m.dir, t);
+      drawMole(ctx, mx, my, R(0.04), m.dir, t, s.events.some((e) => e.kind === 'molehit' && s.t - e.t < 50));
     } else if (s.dt >= m.at - MOLE_WARN) {
       // 옆 유리에 코끝이 비친다
       const ex = m.dir > 0 ? X(X0) + R(0.012) : X(X1) - R(0.012);
-      drawMole(ctx, ex - m.dir * R(0.03) + Math.sin(t / 3) * 2 * m.dir, CY(m.row), R(0.026), m.dir, t);
+      drawMole(ctx, ex - m.dir * R(0.04) + Math.sin(t / 3) * 2 * m.dir, CY(m.row), R(0.034), m.dir, t);
     }
   }
   ctx.restore(); // 흙 clip 끝
@@ -923,53 +1035,86 @@ function drawAll(ctx: CanvasRenderingContext2D, s: AntState, w: number, h: numbe
     ctx.beginPath();
     ctx.ellipse(ex, ey - R(0.008), R(0.012), R(0.006), 0, 0, Math.PI * 2);
     ctx.fill();
-    // 꽃: 씨앗 방이 있는 열 위
+    // 꽃: 씨앗 방이 있는 열 위 (싹 → 줄기 → 꽃, 개미를 낳을 때마다 살짝 통통)
     const plants: [number, number][] = [];
     for (let i = 0; i < N; i++) {
       if (s.room[i] !== 'seed') continue;
-      const c = colOf(i), g = Math.min(1, s.grow[i] / SPROUT), bx = CX(c) + R(DX * 0.5), by = Y(Y0 + DY * 0.5), hgt = R(0.02 + 0.11 * g + 0.02 * Math.min(1, s.tmr[i] / SEED_P));
-      const sway = Math.sin(t / 30 + c) * R(0.006) * g, tx = bx + sway, ty = by - hgt;
+      const c = colOf(i), g = Math.min(1, s.grow[i] / SPROUT), bx = CX(c) + R(DX * 0.5), by = Y(Y0 + DY * 0.5);
+      const hgt = R(0.025 + 0.15 * g), sway = Math.sin(t / 30 + c) * R(0.008) * g, tx = bx + sway, ty = by - hgt;
       plants.push([bx, by]);
       ctx.strokeStyle = '#3f8f2f';
-      ctx.lineWidth = 2.2;
+      ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(bx, by);
-      ctx.quadraticCurveTo(bx - R(0.01), by - hgt * 0.5, tx, ty);
+      ctx.quadraticCurveTo(bx - R(0.012), by - hgt * 0.5, tx, ty);
       ctx.stroke();
       ctx.fillStyle = '#63b84a';
-      for (let k = 1; k <= 2; k++) {
-        if (g < k * 0.35) continue;
-        const ly = by - hgt * (0.3 * k);
+      for (let k = 1; k <= 3; k++) {
+        if (g < k * 0.28) continue;
+        const ly = by - hgt * (0.22 * k), sd = k % 2 ? 1 : -1;
         ctx.beginPath();
-        ctx.ellipse(bx + R(0.014) * (k % 2 ? 1 : -1), ly, R(0.014), R(0.006), (k % 2 ? -0.5 : 0.5), 0, Math.PI * 2);
+        ctx.ellipse(bx + sd * R(0.02) + sway * 0.5, ly, R(0.021), R(0.008), sd * -0.5, 0, Math.PI * 2);
         ctx.fill();
       }
       if (g >= 1) {
-        const pc = FLOWER[c % FLOWER.length], pr = R(0.012);
+        const pc = FLOWER[c % FLOWER.length], puff = 1 + 0.25 * Math.max(0, 1 - s.tmr[i] / 25), pr = R(0.017) * puff;
         ctx.fillStyle = pc;
         ctx.shadowColor = pc;
-        ctx.shadowBlur = 6;
-        for (let k = 0; k < 5; k++) (ctx.beginPath(), ctx.arc(tx + Math.cos(k * 1.26 + t / 90) * pr, ty + Math.sin(k * 1.26 + t / 90) * pr, pr * 0.75, 0, Math.PI * 2), ctx.fill());
+        ctx.shadowBlur = 8;
+        for (let k = 0; k < 6; k++) (ctx.beginPath(), ctx.arc(tx + Math.cos(k * 1.05 + t / 90) * pr, ty + Math.sin(k * 1.05 + t / 90) * pr, pr * 0.7, 0, Math.PI * 2), ctx.fill());
         ctx.shadowBlur = 0;
         ctx.fillStyle = '#ffe066';
         ctx.beginPath();
-        ctx.arc(tx, ty, pr * 0.6, 0, Math.PI * 2);
+        ctx.arc(tx, ty, pr * 0.62, 0, Math.PI * 2);
         ctx.fill();
+        // 꽃도 웃는다
+        ctx.strokeStyle = '#7a4a10';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(tx, ty + pr * 0.05, pr * 0.3, 0.2, Math.PI - 0.2);
+        ctx.stroke();
+        ctx.fillStyle = '#7a4a10';
+        ctx.fillRect(tx - pr * 0.25, ty - pr * 0.22, 1.6, 1.6);
+        ctx.fillRect(tx + pr * 0.15, ty - pr * 0.22, 1.6, 1.6);
       } else {
         ctx.fillStyle = '#8ee06a';
         ctx.beginPath();
-        ctx.ellipse(tx, ty, R(0.008), R(0.005), -0.6, 0, Math.PI * 2);
+        ctx.ellipse(tx - R(0.007), ty, R(0.011), R(0.006), -0.6, 0, Math.PI * 2);
+        ctx.ellipse(tx + R(0.007), ty, R(0.011), R(0.006), 0.6, 0, Math.PI * 2);
         ctx.fill();
       }
     }
-    // 정원 개미: 언덕 ↔ 꽃, 잎을 물고 돌아온다
+    // 정원 개미: 언덕 ↔ 꽃, 몸보다 큰 잎을 우산처럼 들고 돌아온다
     plants.forEach(([bx, by], pi) => {
       for (let k = 0; k < 2; k++) {
-        const u = ((t * 0.006 + k * 0.5 + pi * 0.3) % 1) * 2, back = u > 1, f = back ? 2 - u : u;
+        const u = ((t * 0.005 + k * 0.5 + pi * 0.3) % 1) * 2, back = u > 1, f = back ? 2 - u : u;
         const x = ex + (bx - ex) * f, y = ey + (by - ey) * f, ang = Math.atan2(by - ey, bx - ex) + (back ? Math.PI : 0);
-        drawAnt(ctx, x, y - 1, ang, R(0.0075), t + k * 9, back ? '#6fcf4f' : undefined);
+        drawAnt(ctx, x, y - R(0.009), ang, R(0.0095), t + k * 9, back ? 'leaf' : undefined);
       }
     });
+    // 하루 성공 → 정원에서 고깔모자 쓰고 줄춤 / 해가 지면 → 뒤집혀 데굴데굴 'zzz'
+    if (s.pause > 0) {
+      for (let k = 0; k < 7; k++) {
+        const f = (k + 0.5) / 7, gx = X(X0 + 0.04 + f * (X1 - X0 - 0.08) + DX * 0.5), gy = Y(Y0 + DY * 0.5) - R(0.012), az = R(0.016);
+        if (s.cleared) {
+          const hop = Math.abs(Math.sin(t * 0.22 + k * 0.8)) * R(0.025), wob = Math.sin(t * 0.2 + k) * 0.3;
+          drawAnt(ctx, gx, gy - hop, wob, az, t + k * 3, k % 3 === 0 ? 'sugar' : undefined);
+          ctx.fillStyle = FLOWER[k % FLOWER.length];
+          ctx.beginPath();
+          ctx.moveTo(gx + az * 0.4, gy - hop - az * 0.45);
+          ctx.lineTo(gx + az * 1.2, gy - hop - az * 0.45);
+          ctx.lineTo(gx + az * 0.85, gy - hop - az * 1.9);
+          ctx.fill();
+        } else {
+          const roll = Math.sin(t * 0.06 + k) * R(0.03);
+          drawAnt(ctx, gx + roll, gy, roll / az, az, t + k * 3, undefined, 'up');
+          ctx.fillStyle = 'rgba(255,255,255,.85)';
+          ctx.font = `800 ${R(0.022 + 0.008 * ((t / 20 + k) % 1))}px system-ui, sans-serif`;
+          ctx.textAlign = 'center';
+          if (k % 2 === 0) ctx.fillText('z', gx + R(0.01) + ((t / 20 + k) % 1) * R(0.015), gy - R(0.025) - ((t / 20 + k) % 1) * R(0.03));
+        }
+      }
+    }
   }
   // ── 유리·나무틀 ──
   {
@@ -1107,32 +1252,40 @@ function drawAll(ctx: CanvasRenderingContext2D, s: AntState, w: number, h: numbe
     ctx.globalAlpha = 1;
   }
   // ── 사건 → 손맛 ──
-  const seenT = fx.memo.t ?? -1;
+  const seenT = fx.memo.t ?? -1, recent = pops.get(s) ?? [];
+  pops.set(s, recent);
+  // 같은 때 같은 자리에 글자가 겹치지 않게 위로 비켜 쌓는다
+  const say = (x: number, y: number, text: string, col: string, size: number) => {
+    for (let k = 0; k < 6 && recent.some((q) => s.t - q.t < 45 && Math.abs(q.x - x) < w * 0.32 && Math.abs(q.y - y) < size + 4); k++) y -= size + 6;
+    recent.push({ x, y, t: s.t });
+    if (recent.length > 12) recent.shift();
+    fx.pop(x, y, text, col, size);
+  };
   for (const e of s.events) {
     if (e.t <= seenT) continue;
     const x = X(e.x), y = Y(e.y);
-    if (e.kind === 'go') fx.ring(x, y, '#ffe066', R(0.06), 3), fx.kick(1.5), e.text && fx.pop(CX(colOf(ENT)), Y(Y0) - R(0.03), e.text, '#ffe066', 18);
+    if (e.kind === 'go') fx.ring(x, y, '#ffe066', R(0.06), 3), fx.kick(1.5), e.text && say(CX(colOf(ENT)), Y(Y0) - R(0.03), e.text, '#ffe066', 18);
     if (e.kind === 'dig') fx.burst(x, y, '#b98a5c', 10, 2.2, 2.2), fx.kick(1.5);
     if (e.kind === 'crumb') fx.burst(x, y, '#a67a52', 3, 1.4, 1.6);
-    if (e.kind === 'room') fx.burst(x, y, e.col!, 34, 4.5, 3), fx.ring(x, y, e.col!, R(0.12), 5), fx.kick(5), fx.blink(e.col!, 0.12), fx.pop(x, y - R(0.05), e.text!, '#ffffff', 17);
-    if (e.kind === 'born') fx.pop(x + R(0.02), y - R(0.03), e.text!, e.col!, 12), fx.burst(x, y, e.col!, 4, 1.5, 1.6);
-    if (e.kind === 'sprout') fx.burst(x, y, '#9be15d', 16, 3, 2.4), fx.ring(x, y, '#9be15d', R(0.05), 3), fx.pop(x, y - R(0.05), e.text!, '#e9ffd6', 14);
-    if (e.kind === 'peek') fx.ring(x, y, e.col!, R(0.06), 3), fx.pop(x, y - R(0.04), e.text!, e.col!, 14);
-    if (e.kind === 'rainwarn') fx.pop(w / 2, y, e.text!, e.col!, 17);
+    if (e.kind === 'room') fx.burst(x, y, e.col!, 34, 4.5, 3), fx.ring(x, y, e.col!, R(0.12), 5), fx.kick(5), fx.blink(e.col!, 0.12), say(x, y - R(0.05), e.text!, '#ffffff', 17);
+    if (e.kind === 'born') say(x + R(0.02), y - R(0.03), e.text!, e.col!, 12), fx.burst(x, y, e.col!, 4, 1.5, 1.6);
+    if (e.kind === 'sprout') fx.burst(x, y, '#9be15d', 16, 3, 2.4), fx.ring(x, y, '#9be15d', R(0.05), 3), say(x, y - R(0.05), e.text!, '#e9ffd6', 14);
+    if (e.kind === 'peek') fx.ring(x, y, e.col!, R(0.06), 3), say(x, y - R(0.04), e.text!, e.col!, 14);
+    if (e.kind === 'rainwarn') say(w / 2, y, e.text!, e.col!, 17);
     if (e.kind === 'rain') fx.blink('#9cc8ff', 0.15), fx.kick(2);
-    if (e.kind === 'drown') fx.burst(x, y, '#7cc7ff', 18, 3, 2.5), fx.pop(x, y - R(0.04), e.text!, e.col!, 14), fx.kick(4);
-    if (e.kind === 'wetfungus') fx.burst(x, y, '#b8f28a', 16, 3, 2.4), fx.pop(x, y - R(0.04), e.text!, e.col!, 14);
-    if (e.kind === 'pocket') fx.burst(x, y, '#7cc7ff', 30, 4.5, 3), fx.ring(x, y, '#7cc7ff', R(0.12), 5), fx.kick(7), fx.pop(x, y - R(0.05), e.text!, e.col!, 15);
-    if (e.kind === 'molewarn') fx.pop(x + (x < w / 2 ? R(0.12) : -R(0.12)), y - R(0.035), e.text!, e.col!, 15), fx.kick(3);
-    if (e.kind === 'molehit') fx.burst(x, y, '#a67a52', 26, 4, 3), fx.kick(8), fx.pop(x, y - R(0.04), e.text!, e.col!, 15), fx.blink('#ffb08a', 0.12);
+    if (e.kind === 'drown') fx.burst(x, y, '#7cc7ff', 18, 3, 2.5), say(x, y - R(0.04), e.text!, e.col!, 14), fx.kick(4);
+    if (e.kind === 'wetfungus') fx.burst(x, y, '#b8f28a', 16, 3, 2.4), say(x, y - R(0.04), e.text!, e.col!, 14);
+    if (e.kind === 'pocket') fx.burst(x, y, '#7cc7ff', 30, 4.5, 3), fx.ring(x, y, '#7cc7ff', R(0.12), 5), fx.kick(7), say(x, y - R(0.05), e.text!, e.col!, 15);
+    if (e.kind === 'molewarn') say(x + (x < w / 2 ? R(0.12) : -R(0.12)), y - R(0.035), e.text!, e.col!, 15), fx.kick(3);
+    if (e.kind === 'molehit') fx.burst(x, y, '#a67a52', 26, 4, 3), fx.kick(8), say(x, y - R(0.04), e.text!, e.col!, 15), fx.blink('#ffb08a', 0.12);
     if (e.kind === 'loose') fx.burst(x, y, '#a67a52', 12, 3, 2.5), fx.kick(3);
-    if (e.kind === 'rock') fx.pop(x, y - R(0.04), e.text!, e.col!, 13), fx.kick(2);
+    if (e.kind === 'rock') say(x, y - R(0.04), e.text!, e.col!, 13), fx.kick(2);
     if (e.kind === 'here') fx.ring(x, y, '#ffffff', R(0.04), 2);
-    if (e.kind === 'clear') fx.burst(w / 2, y, '#ffe066', 60, 6, 3.2), fx.burst(w / 2, y, '#9be15d', 30, 5, 3), fx.ring(w / 2, y, '#ffe066', R(0.45), 8), fx.blink('#fff6c8', 0.3), fx.pop(w / 2, y, e.text!, '#ffffff', 24);
-    if (e.kind === 'season') fx.pop(w / 2, y, e.text!, '#ffe066', 20), fx.burst(w / 2, y, '#ff8fb1', 50, 7, 3);
-    if (e.kind === 'fail') fx.kick(8), fx.blink(th.hot, 0.25), fx.pop(w / 2, y, e.text!, th.hot, 19);
-    if (e.kind === 'stage') fx.pop(w / 2, y, e.text!, '#ffffff', 19);
-    if (e.kind === 'new') fx.pop(w / 2, y, e.text!, th.accent, 14);
+    if (e.kind === 'sniff') fx.ring(x, y, e.col!, R(0.06), 3), say(CX(colOf(ENT)), Y(Y0) - R(0.03), e.text!, e.col!, 15);
+    if (e.kind === 'clear') fx.burst(w / 2, y, '#ffe066', 60, 6, 3.2), fx.burst(w / 2, y, '#9be15d', 30, 5, 3), fx.ring(w / 2, y, '#ffe066', R(0.45), 8), fx.blink('#fff6c8', 0.3), say(w / 2, y, e.text!, '#ffffff', 24);
+    if (e.kind === 'season') say(w / 2, y, e.text!, '#ffe066', 20), fx.burst(w / 2, y, '#ff8fb1', 50, 7, 3);
+    if (e.kind === 'fail') fx.kick(8), fx.blink(th.hot, 0.25), say(w / 2, y, e.text!, th.hot, 19);
+    if (e.kind === 'stage') say(w / 2, y, e.text!, '#ffffff', 19);
   }
   fx.memo.t = s.t;
   ctx.restore();
@@ -1170,14 +1323,32 @@ function drawAll(ctx: CanvasRenderingContext2D, s: AntState, w: number, h: numbe
   ctx.fillStyle = '#ffffff';
   ctx.fillText('☀️', bx + bw * (1 - p), by);
   let msg = '';
-  if (s.rainV && s.dt >= s.rainAt - RAIN_WARN) msg = '☔ 비! 가장 깊은 굴부터 차요';
-  else if (s.mole && s.dt >= s.mole.at - MOLE_WARN && s.dt < s.mole.at + 80) msg = `🐾 두더지가 ${s.mole.row + 1}번째 줄로!`;
+  if (s.mole && s.dt >= s.mole.at - MOLE_WARN && s.dt < s.mole.at + 80) msg = `🐾 두더지가 ${s.mole.row + 1}번째 줄로!`;
+  else if (s.rainV && s.dt >= s.rainAt - RAIN_WARN) msg = '☔ 비! 가장 깊은 굴부터 차요';
   else if (s.target >= 0) msg = '개미들이 굴을 파는 중…';
   else if (s.pause === 0) msg = '👆 다음에 팔 곳을 톡!';
   ctx.textAlign = 'left';
   ctx.fillStyle = th.ink;
   ctx.font = `800 ${R(0.032)}px system-ui, sans-serif`;
   ctx.fillText(msg, bx + bw + 14, by);
+  // 새것 알림: 하늘 띠에 3초쯤 걸린다
+  if (s.news && s.t - s.news.t < 200) {
+    const age = s.t - s.news.t, a = Math.min(1, age / 10, (200 - age) / 20), drop = Math.max(0, 10 - age) * 2;
+    ctx.globalAlpha = a;
+    ctx.font = `900 ${R(0.034)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    const tx = `✨ ${s.news.text}`, tw2 = Math.min(w - 16, ctx.measureText(tx).width + 24), by2 = hb + R(0.045) - drop;
+    ctx.fillStyle = 'rgba(43,29,20,.82)';
+    ctx.beginPath();
+    ctx.roundRect(w / 2 - tw2 / 2, by2 - R(0.03), tw2, R(0.06), R(0.03));
+    ctx.fill();
+    ctx.strokeStyle = th.accent;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(tx, w / 2, by2, w - 30);
+    ctx.globalAlpha = 1;
+  }
   if (s.day === 0 && s.taps === 0 && s.t > 20) {
     ctx.textAlign = 'center';
     ctx.font = `900 ${R(0.045)}px system-ui, sans-serif`;
@@ -1239,20 +1410,13 @@ function candidates(s: AntState, kind: number[], room: Room[], ants: number, now
     if (rem <= 0) continue;
     const k2 = kind.slice(), rm2 = room.slice();
     for (const k of ch) if (k2[k] !== DUG) k2[k] = DUG;
-    let g = 0, newRoom: Room = '';
-    if (r0 === 'sugar') (g = sugarAmt(rowOf(i)) * 1.15), (newRoom = 'sugar');
-    else if (r0 === 'honey') (g = 7 * 1.15), (newRoom = 'honey');
+    let g = 0, imm = 0, newRoom: Room = '';
+    if (r0 === 'sugar') (imm = sugarAmt(rowOf(i))), (newRoom = 'sugar');
+    else if (r0 === 'honey') (imm = 7), (newRoom = 'honey');
     else if (r0 === 'mystery') g = 2.2;
     else if (r0 === 'pocket') g = -3;
     else if (r0 === 'seed') (g = Math.max(0, (rem - SPROUT) / SEED_P) * 0.9), (newRoom = 'seed');
     else if (r0 === 'fungus') (g = Math.max(0, rem / FUNG_P) * 0.9), (newRoom = 'fungus');
-    if (reconnect) {
-      // 끊긴 방들을 다시 잇기
-      const c2 = new Uint8Array(N);
-      for (const k of reach(k2)) c2[k] = 1;
-      for (let k = 0; k < N; k++) if (room[k] && c2[k] && !conn[k]) g += room[k] === 'seed' ? rem / SEED_P : room[k] === 'fungus' ? rem / FUNG_P : 0.3;
-    }
-    if (newRoom) rm2[i] = newRoom;
     // 두더지 줄에 만든 방은 다음에 지나갈 때 무너진다
     if (m && rowOf(i) === m.row && newRoom) {
       let nx = m.at;
@@ -1262,14 +1426,36 @@ function candidates(s: AntState, kind: number[], room: Room[], ants: number, now
       else if (newRoom === 'fungus') g = Math.min(rem, life) / FUNG_P - 2;
       else if (life < rem) g -= 2;
     }
-    if (ants + (newRoom === 'sugar' || newRoom === 'honey' ? g / 1.15 : 0) >= s.goal) g += 40;
+    if (reconnect) {
+      // 끊긴 방들을 다시 잇기
+      const c2 = new Uint8Array(N);
+      for (const k of reach(k2)) c2[k] = 1;
+      for (let k = 0; k < N; k++) if (room[k] && c2[k] && !conn[k]) g += room[k] === 'seed' ? rem / SEED_P : room[k] === 'fungus' ? rem / FUNG_P : 0.3;
+    }
+    if (newRoom) rm2[i] = newRoom;
+    // 가는 길에 지나치는 것도 줍는다
+    for (const k of ch) {
+      if (k === i || kind[k] === DUG) continue;
+      const rk = s.res[k];
+      if (m && rowOf(k) === m.row && rk) {
+        if (rk === 'sugar' || rk === 'honey') imm += rk === 'sugar' ? sugarAmt(rowOf(k)) : 7;
+        if (rk !== 'pocket') (g -= 2), (rm2[k] = '');
+        continue;
+      }
+      if (rk === 'sugar' || rk === 'honey') (imm += rk === 'sugar' ? sugarAmt(rowOf(k)) : 7), (rm2[k] = rk);
+      else if (rk === 'seed') (g += Math.max(0, (rem - SPROUT) / SEED_P) * 0.9), (rm2[k] = 'seed');
+      else if (rk === 'fungus') (g += Math.max(0, rem / FUNG_P) * 0.9), (rm2[k] = 'fungus');
+      else if (rk === 'pocket') g -= 3;
+    }
+    g += imm * 1.15;
+    if (ants + imm >= s.goal) g += 40;
     let v = g;
     if (rains) {
       const after = rainsAfter(s, arrive);
       v += (base - rainLoss(k2, rm2, s.rainV)) * after;
     }
     if (v <= 0.05) continue;
-    out.push({ i, v, ticks, kind: k2, room: rm2, ants: ants + (newRoom === 'sugar' || newRoom === 'honey' ? Math.round(g / 1.15) : 0) });
+    out.push({ i, v, ticks, kind: k2, room: rm2, ants: ants + imm });
   }
   return out;
 }

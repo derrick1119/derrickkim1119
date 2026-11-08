@@ -17,11 +17,11 @@ import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
 import { juice } from '../juice.ts';
 
-const N = 7, C = 3, A = 1.35, FLY = 26, NIGHTS = 10;
+const N = 7, C = 3, A = 1.35, FLY = 32, NIGHTS = 10;
 type Dir = 'up' | 'down' | 'left' | 'right';
 const DV: Record<Dir, [number, number]> = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 const DIRS: Dir[] = ['up', 'down', 'left', 'right'];
-const GOALS = [5, 5, 6, 7, 8, 8, 9, 9, 10, 11];
+const GOALS = [5, 6, 8, 9, 10, 11, 12, 13, 14, 15];
 const SHAKES = [6, 6, 7, 7, 7, 7, 8, 8, 8, 8];
 export const onBoard = (x: number, y: number) => x >= 0 && y >= 0 && x < N && y < N && (x - C) ** 2 + (y - C) ** 2 <= 10;
 const ix = (x: number, y: number) => y * N + x, cx = (i: number) => i % N, cy = (i: number) => (i / N) | 0;
@@ -145,7 +145,9 @@ function newNight(s: SnowState) {
     for (const x of [2, 4]) cells[ix(x, C)].thing = 'house';
     for (const x of [2, 3, 4]) for (const y of [2, 4]) cells[ix(x, y)].snow = 1;
   } else {
-    cells[pick([ix(2, 3), ix(4, 3), ix(3, 2), ix(3, 4)])].thing = 'house';
+    // 트리 옆 첫 집 (2·3밤은 두 채 — 16라운드 '너무 어렵지 않게')
+    const nb = [ix(2, 3), ix(4, 3), ix(3, 2), ix(3, 4)];
+    for (let m = 0; m < (k <= 2 ? 2 : 1); m++) cells[nb.splice(Math.floor(r() * nb.length), 1)[0]].thing = 'house';
     for (let m = 0; m < 3 + (k >= 5 ? 1 : 0); m++) cells[pick(free((x, y) => Math.max(Math.abs(x - C), Math.abs(y - C)) >= 2))].thing = 'pine';
     if (k >= 2) {
       let p = pick(free((x, y) => Math.abs(x - C) + Math.abs(y - C) >= 3));
@@ -157,7 +159,12 @@ function newNight(s: SnowState) {
       }
     }
     if (k >= 4) cells[pick(free((x, y) => Math.abs(x - C) + Math.abs(y - C) >= 3))].wish = true;
-    for (let m = 0; m < 5; m++) cells[pick(free(() => true))].snow = 1;
+    // 미리 깔린 눈 더미 5곳 — 그중 2곳은 불빛 바로 옆(한 번만 더 쌓으면 불 켠 집)
+    const nearLit = (x: number, y: number) => Object.values(DV).some(([dx, dy]) => onBoard(x + dx, y + dy) && conducts(cells[ix(x + dx, y + dy)]));
+    for (let m = 0; m < 5; m++) {
+      const l = free((x, y) => !cells[ix(x, y)].snow && (m >= 2 || nearLit(x, y)));
+      if (l.length) cells[pick(l)].snow = 1;
+    }
   }
   s.cells = cells;
   s.goal = GOALS[k];
@@ -187,7 +194,8 @@ function endNight(s: SnowState, ok: boolean) {
     s.lights += s.lit;
     s.bonus = Math.min(2, Math.floor(s.left / 2));
     s.result = 1;
-    ev(s, 'clear', 0, 0, `새벽! ${'★'.repeat(st)}${'☆'.repeat(3 - st)}${s.bonus ? ` · 다음 밤 흔들기 +${s.bonus}` : ''}`);
+    const last = s.night >= NIGHTS - 1;
+    ev(s, 'clear', 0, 0, last ? `🎄 크리스마스 아침! ${'★'.repeat(st)}${'☆'.repeat(3 - st)}` : `새벽! ${'★'.repeat(st)}${'☆'.repeat(3 - st)}${s.bonus ? ` · 다음 밤 흔들기 +${s.bonus}` : ''}`);
     s.pause = 110;
   } else {
     s.hearts--;
@@ -203,13 +211,13 @@ function resolve(s: SnowState) {
   const before = s.cells.map((c) => c.thing);
   const { grown, buried, roofed } = settle(s.cells, s.flights, s.t);
   for (const f of s.flights) {
-    if (f.kind === 'melt') ev(s, 'melt', cx(f.to), cy(f.to), '스르르'), see(s, 'pond', '🧊 얼음 연못 — 눈이 미끄러져요. 연못에 멈춘 눈은 녹아요');
+    if (f.kind === 'melt') ev(s, 'melt', cx(f.to), cy(f.to), '퐁당!'), see(s, 'pond', '🧊 얼음 연못 — 눈이 미끄러져요. 연못에 멈춘 눈은 녹아요');
     if (f.kind === 'snow' && !grown.includes(f.to)) ev(s, 'drift', cx(f.to), cy(f.to));
   }
   for (const i of roofed) if (s.cells[i].thing === 'house') ev(s, 'roof', cx(i), cy(i), '지붕에 눈!'), see(s, 'roof', '⚠️ 지붕에 눈 — 한 번 더 쌓이면 집이 묻혀요');
   for (const i of grown) ev(s, 'grow', cx(i), cy(i), s.cells[i].roof ? '눈이 너무 많아!' : undefined);
   if (grown.length) see(s, 'grow', '🏠 눈이 두 번 쌓인 자리에 집이 솟아요');
-  for (const i of buried) ev(s, 'bury', cx(i), cy(i), before[i] ? '묻혔어요!' : '눈사람이 됐어요'), see(s, 'bury', '⛄ 집이 묻혀 눈사람이 됐어요 — 불빛이 끊겨요. 같은 쪽만 흔들지 마세요');
+  for (const i of buried) ev(s, 'bury', cx(i), cy(i), before[i] ? '묻혔어요!' : '눈사람이 됐어요'), see(s, 'bury', '⛄ 묻힌 집은 눈사람 — 불빛이 끊겨요!');
   s.flights = [];
   const prev = s.lit;
   s.lit = lights(s.cells, s.t);
@@ -289,7 +297,7 @@ export const snowglobe: GameDef<SnowState> = {
   score: (s) => s.stars * 10 + s.lights + s.festAll * 3,
   draw(ctx, s, w, h, th: Theme) {
     const fx = juice(s), U = w, t = s.t;
-    const GX = 0.5 * U, GY = 0.6 * U, GR = 0.465 * U, CW = 0.1 * U, CH = CW * 0.6, VY = 0.67 * U, LIFT = 0.12 * U;
+    const GX = 0.5 * U, GY = 0.6 * U, GR = 0.465 * U, CW = 0.108 * U, CH = CW * 0.6, VY = 0.66 * U, LIFT = 0.085 * U;
     const PX = (x: number) => GX + (x - C) * CW, PY = (y: number) => VY + (y - C) * CH;
     const hash = (n: number) => (((n * 2654435761) >>> 0) % 1000) / 1000;
     const dawn = s.result === 1 && s.pause > 0 ? Math.min(1, (110 - s.pause) / 40) : 0;
@@ -377,15 +385,16 @@ export const snowglobe: GameDef<SnowState> = {
     ctx.lineTo(GX + GR, VY);
     ctx.lineTo(GX - GR, VY);
     ctx.fill();
-    // 눈 마을 받침(두께 있는 땅 덩어리)
-    const RX = 4.3 * CW, RY = 4.3 * CH, T = U * 0.05;
+    // 눈 마을 받침(두께 있는 땅 덩어리) — 달빛에 푸르스름한 눈, 옆면은 흙층
+    const RX = 4.3 * CW, RY = 4.05 * CH, T = U * 0.085;
     {
       const side = ctx.createLinearGradient(0, VY, 0, VY + RY + T);
-      side.addColorStop(0, '#f4f8ff');
-      side.addColorStop(0.62, '#e2ecfa');
-      side.addColorStop(0.7, '#8a6142');
+      side.addColorStop(0, '#dfe8f8');
+      side.addColorStop(0.72, '#c3d2ee');
+      side.addColorStop(0.75, '#8a6142');
       side.addColorStop(0.86, '#6b4a33');
-      side.addColorStop(1, '#3e2b1f');
+      side.addColorStop(0.9, '#5a5560');
+      side.addColorStop(1, '#2e2a33');
       ctx.fillStyle = side;
       ctx.beginPath();
       ctx.ellipse(GX, VY + T, RX, RY, 0, 0, Math.PI);
@@ -394,10 +403,18 @@ export const snowglobe: GameDef<SnowState> = {
       ctx.closePath();
       ctx.fill();
       ctx.strokeStyle = 'rgba(40,24,14,.35)';
-      for (let k = 1; k <= 2; k++) (ctx.beginPath(), ctx.ellipse(GX, VY + T * (0.62 + k * 0.14), RX, RY, 0, 0.15, Math.PI - 0.15), ctx.stroke());
-      const top = ctx.createRadialGradient(GX - RX * 0.3, VY - RY * 0.4, U * 0.02, GX, VY, RX);
-      top.addColorStop(0, '#ffffff');
-      top.addColorStop(1, '#cfdcf2');
+      ctx.lineWidth = 1;
+      for (const k of [0.45, 0.72]) (ctx.beginPath(), ctx.ellipse(GX, VY + T * k, RX, RY, 0, 0.2, Math.PI - 0.2), ctx.stroke());
+      ctx.fillStyle = 'rgba(30,20,20,.35)';
+      for (let k = 0; k < 9; k++) {
+        const a = 0.25 + (k / 8) * (Math.PI - 0.5), sx = GX + Math.cos(a) * RX * 0.98, sy = VY + Math.sin(a) * RY + T * (0.62 + 0.25 * hash(k + 900));
+        ctx.beginPath();
+        ctx.ellipse(sx, sy, U * (0.006 + 0.006 * hash(k + 950)), U * 0.004, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const top = ctx.createRadialGradient(GX - RX * 0.2, VY - RY * 0.3, U * 0.02, GX, VY, RX);
+      top.addColorStop(0, '#eef3fc');
+      top.addColorStop(1, '#a9bce2');
       ctx.fillStyle = top;
       ctx.beginPath();
       ctx.ellipse(GX, VY, RX, RY, 0, 0, Math.PI * 2);
@@ -407,144 +424,237 @@ export const snowglobe: GameDef<SnowState> = {
     for (let i = 0; i < N * N; i++) {
       const c = s.cells[i];
       if (!c.on) continue;
-      const x = PX(cx(i)), y = PY(cy(i)), tw = CW - 3, tc = CH - 3;
-      ctx.fillStyle = c.pond ? '#6f93bf' : '#b9c8e4';
-      rr(ctx, x - tw / 2, y - tc / 2 + 2.5, tw, tc, 4);
+      const x = PX(cx(i)), y = PY(cy(i)), tw = CW - 2.5, tc = CH - 2.5;
+      ctx.fillStyle = c.pond ? '#5d7fb0' : '#8fa3cf';
+      rr(ctx, x - tw / 2, y - tc / 2 + 3, tw, tc, 5);
       ctx.fill();
       if (c.pond) {
         const g = ctx.createLinearGradient(x - tw / 2, y - tc / 2, x + tw / 2, y + tc / 2);
         g.addColorStop(0, '#d6f1ff');
-        g.addColorStop(0.5, '#9fd0f2');
-        g.addColorStop(1, '#7fb2df');
+        g.addColorStop(0.5, '#8cc4ee');
+        g.addColorStop(1, '#6aa2d8');
         ctx.fillStyle = g;
-      } else ctx.fillStyle = hash(i + s.night * 50) < 0.5 ? '#f7faff' : '#eef4fd';
-      rr(ctx, x - tw / 2, y - tc / 2, tw, tc, 4);
+      } else ctx.fillStyle = hash(i + s.night * 50) < 0.5 ? '#d9e3f5' : '#d1dcf1';
+      rr(ctx, x - tw / 2, y - tc / 2, tw, tc, 5);
       ctx.fill();
-      if (c.pond) (ctx.strokeStyle = 'rgba(255,255,255,.7)'), (ctx.lineWidth = 1.2), ctx.beginPath(), ctx.moveTo(x - tw * 0.3, y + tc * 0.1), ctx.lineTo(x - tw * 0.05, y - tc * 0.2), ctx.stroke();
+      if (c.pond) (ctx.strokeStyle = 'rgba(255,255,255,.75)'), (ctx.lineWidth = 1.4), ctx.beginPath(), ctx.moveTo(x - tw * 0.3, y + tc * 0.15), ctx.lineTo(x - tw * 0.05, y - tc * 0.2), ctx.moveTo(x + tw * 0.05, y + tc * 0.2), ctx.lineTo(x + tw * 0.2, y), ctx.stroke();
       if (c.wish) {
         ctx.save();
         ctx.shadowColor = '#ffd36b';
         ctx.shadowBlur = 12;
         ctx.strokeStyle = `rgba(255,211,107,${0.6 + 0.3 * Math.sin(t / 10)})`;
-        ctx.lineWidth = 2;
-        rr(ctx, x - tw / 2 + 1, y - tc / 2 + 1, tw - 2, tc - 2, 4);
+        ctx.lineWidth = 2.2;
+        rr(ctx, x - tw / 2 + 1, y - tc / 2 + 1, tw - 2, tc - 2, 5);
         ctx.stroke();
         ctx.restore();
-      }
-      if (c.snow > 0 && !c.thing) {
-        // 눈 더미 (한 번 쌓임 — 한 번 더면 집)
-        ctx.fillStyle = 'rgba(120,150,200,.35)';
-        ctx.beginPath();
-        ctx.ellipse(x, y + 2, CW * 0.36, CH * 0.32, 0, 0, Math.PI * 2);
-        ctx.fill();
-        const g = ctx.createRadialGradient(x - CW * 0.1, y - CH * 0.3, 1, x, y, CW * 0.34);
-        g.addColorStop(0, '#ffffff');
-        g.addColorStop(1, '#d5e3f7');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.ellipse(x, y - CH * 0.08, CW * 0.32, CH * 0.42, 0, Math.PI, 0);
-        ctx.ellipse(x, y - CH * 0.08, CW * 0.32, CH * 0.16, 0, 0, Math.PI);
-        ctx.fill();
+        if (!c.thing) (ctx.fillStyle = '#ffffff'), (ctx.font = `${CW * 0.26}px system-ui, sans-serif`), (ctx.textAlign = 'center'), (ctx.textBaseline = 'middle'), ctx.fillText('✨', x, y);
       }
     }
-    // 눈뭉치 그림자 (어느 칸 위에 떠 있는지) + 그 칸으로 살랑 떨어지는 눈송이
+    // 불빛 웅덩이: 불 켠 집·트리 둘레의 눈이 따뜻하게 물든다
+    for (let i = 0; i < N * N; i++) {
+      const c = s.cells[i];
+      if (!c.on || !c.lit || t < c.litAt || (c.thing !== 'house' && c.thing !== 'tree')) continue;
+      const x = PX(cx(i)), y = PY(cy(i)) + CH * 0.15, r = CW * (c.thing === 'tree' ? 1.5 : 1.05), g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, `rgba(255,196,110,${0.42 * Math.min(1, (t - c.litAt) / 20)})`);
+      g.addColorStop(1, 'rgba(255,196,110,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(x, y, r, r * 0.62, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // 눈 더미 (한 번 쌓임 — 한 번 더면 집)
+    for (let i = 0; i < N * N; i++) {
+      const c = s.cells[i];
+      if (!c.on || c.thing || !c.snow) continue;
+      const x = PX(cx(i)), y = PY(cy(i));
+      ctx.fillStyle = 'rgba(70,95,160,.35)';
+      ctx.beginPath();
+      ctx.ellipse(x + 1, y + 2, CW * 0.38, CH * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      const g = ctx.createRadialGradient(x - CW * 0.1, y - CH * 0.25, 1, x, y, CW * 0.36);
+      g.addColorStop(0, '#ffffff');
+      g.addColorStop(1, '#c4d4f0');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(x, y, CW * 0.34, CH * 0.36, 0, Math.PI, 0);
+      ctx.ellipse(x, y, CW * 0.34, CH * 0.14, 0, 0, Math.PI);
+      ctx.fill();
+    }
+    // 눈뭉치가 떠 있는 칸: 푸른 고리 + 그리로 살랑 떨어지는 눈송이
     for (const p of s.puffs) {
-      const x = PX(cx(p.i)), y = PY(cy(p.i)), a = Math.min(1, (t - p.born) / 15), rx = CW * (p.big ? 0.42 : 0.34), ry = CH * (p.big ? 0.4 : 0.32);
-      ctx.fillStyle = `rgba(40,70,150,${0.3 * a})`;
-      ctx.strokeStyle = `rgba(90,140,230,${0.75 * a})`;
-      ctx.lineWidth = 1.5;
+      const x = PX(cx(p.i)), y = PY(cy(p.i)), a = Math.min(1, (t - p.born) / 15), rx = CW * (p.big ? 0.42 : 0.36), ry = CH * (p.big ? 0.4 : 0.34);
+      ctx.fillStyle = `rgba(60,110,220,${0.22 * a})`;
+      ctx.strokeStyle = `rgba(120,190,255,${0.9 * a})`;
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([3, 2.5]);
       ctx.beginPath();
       ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = `rgba(255,255,255,${0.8 * a})`;
-      for (let k = 0; k < 4; k++) {
-        const u = (t / 50 + k / 4 + p.i * 0.17) % 1;
-        ctx.fillRect(x + Math.sin(u * 9 + k) * CW * 0.12, y - LIFT * (1 - u) + 2, 1.6, 1.6);
-      }
+      ctx.setLineDash([]);
     }
+    // 웃음 담당: 반응 상태 (사건 시각에서 계산 — 시뮬레이션은 건드리지 않음)
+    const shakeAge = t - s.shakeT, [sdx, sdy] = DV[s.dir], festing = t - s.festT < 160 || (s.result === 1 && s.pause > 0), failing = s.result === -1 && s.pause > 0;
+    const recent = (kind: string, age: number) => s.events.filter((e) => e.kind === kind && t - e.t < age);
+    // 펭귄: 연못이 있으면 연못 위에서 스케이트, 없으면 받침 앞 가장자리를 뒤뚱뒤뚱
+    const ponds = s.cells.map((c, i) => (c.pond ? i : -1)).filter((i) => i >= 0);
+    let pgX: number, pgY: number, pgRot = 0, pgFlip = 1, pgMark = '';
+    if (ponds.length) {
+      const xs = ponds.map(cx), ys = ponds.map(cy), mx = (Math.min(...xs) + Math.max(...xs)) / 2, my = (Math.min(...ys) + Math.max(...ys)) / 2;
+      const ax = ((Math.max(...xs) - Math.min(...xs)) / 2 + 0.2) * CW, ay = ((Math.max(...ys) - Math.min(...ys)) / 2 + 0.15) * CH, ph = t / 38;
+      pgX = PX(mx) + Math.cos(ph) * ax;
+      pgY = PY(my) + Math.sin(ph) * ay + CH * 0.1;
+      pgFlip = Math.sin(ph) > 0 ? -1 : 1;
+      pgRot = Math.sin(ph * 2) * 0.25;
+    } else {
+      const ph = t / 120;
+      pgX = GX + Math.sin(ph) * RX * 0.3;
+      pgY = VY + RY * 0.93;
+      pgFlip = Math.cos(ph) > 0 ? 1 : -1;
+      pgRot = Math.sin(t / 6) * 0.12;
+    }
+    const melt = recent('melt', 70)[0];
+    if (melt) {
+      const a = t - melt.t;
+      pgRot = Math.PI * Math.min(1, a / 12) * (a < 50 ? 1 : (70 - a) / 20);
+      pgMark = a < 40 ? '꽈당!' : '';
+    } else if (failing) (pgRot = t / 5), (pgX += Math.sin(t / 15) * CW * 0.3);
+    else if (festing) pgFlip = Math.cos(t / 3) > 0 ? 1 : -1;
+    else if (shakeAge < 45) {
+      // 흔들면 배로 쭈욱 미끄러진다
+      const u = shakeAge / 45;
+      pgRot = (sdx || 1) * (Math.PI / 2) * Math.sin(u * Math.PI);
+      pgX += sdx * CW * 0.45 * Math.sin(u * Math.PI);
+      pgY += sdy * CH * 0.3 * Math.sin(u * Math.PI);
+      pgMark = u < 0.5 ? '쭈욱~' : '';
+    }
+    const pgRow = ponds.length ? Math.max(0, Math.min(N - 1, Math.round((pgY - VY) / CH + C - 0.2))) : N;
     // 집·나무·눈사람·주민 — 뒤 줄부터
     const litHouses = s.cells.map((c, i) => (c.thing === 'house' && c.lit && t >= c.litAt ? i : -1)).filter((i) => i >= 0);
-    const festing = t - s.festT < 160;
-    for (let y = 0; y < N; y++) {
-      for (let x = 0; x < N; x++) {
+    const grows = recent('grow', 45);
+    // 꼬마전구 줄: 불 켜진 이웃끼리 (줄마다 그 줄 건물 바로 뒤에 그려 앞줄 집이 가리게). 세로 줄은 지붕 오른쪽 끝으로
+    const garland = (i: number, j: number) => {
+      const a = s.cells[i], b = s.cells[j];
+      if (!a.on || !b.on || !a.lit || !b.lit || !conducts(a) || !conducts(b) || t < Math.max(a.litAt, b.litAt)) return;
+      const hgt = (c: Cell) => (c.thing === 'tree' ? CW * 0.95 : c.thing === 'pine' ? CW * 0.55 : CW * 0.48);
+      const vert = j === i + N, off = vert ? CW * 0.26 : 0;
+      const x1 = PX(cx(i)) + off, y1 = PY(cy(i)) + CH * 0.18 - hgt(a), x2 = PX(cx(j)) + off, y2 = PY(cy(j)) + CH * 0.18 - hgt(b);
+      const mxp = (x1 + x2) / 2 + (vert ? CW * 0.12 : 0), myp = (y1 + y2) / 2 + CW * (vert ? 0.04 : 0.16);
+      ctx.strokeStyle = 'rgba(30,30,40,.6)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.quadraticCurveTo(mxp, myp, x2, y2);
+      ctx.stroke();
+      for (let k = 1; k < (vert ? 4 : 6); k++) {
+        const u = k / (vert ? 4 : 6), bx = (1 - u) ** 2 * x1 + 2 * (1 - u) * u * mxp + u * u * x2, by = (1 - u) ** 2 * y1 + 2 * (1 - u) * u * myp + u * u * y2;
+        const col = ['#ffd36b', '#ff6b7f', '#7fe0ff', '#9dff8a'][(k + i) % 4], blink = Math.sin(t / 9 + k * 2 + i) > -0.4;
+        bulb(ctx, bx, by + 1.5, 2, blink ? col : '');
+      }
+    };
+    for (let y = 0; y <= N; y++) {
+      for (let x = 0; x < N && y < N; x++) {
         const i = ix(x, y), c = s.cells[i];
         if (!c.on || !c.thing) continue;
-        const bx = PX(x), by = PY(y) + CH * 0.18, age = t - c.born, sc = age < 16 ? backOut(age / 16) : 1, on = c.lit && t >= c.litAt;
+        const bx = PX(x), by = PY(y) + CH * 0.18, age = t - c.born, sc = age < 16 ? Math.max(0.01, backOut(age / 16)) : 1, on = c.lit && t >= c.litAt;
+        // 흔들면 집도 살짝 휘청
+        const sway = shakeAge < 30 ? sdx * Math.sin(shakeAge / 3) * (1 - shakeAge / 30) * 0.06 : 0;
         ctx.save();
         ctx.translate(bx, by);
-        ctx.scale(sc, sc);
-        ctx.fillStyle = 'rgba(40,60,110,.3)';
+        ctx.fillStyle = 'rgba(30,45,95,.32)';
         ctx.beginPath();
-        ctx.ellipse(2, 1, CW * 0.42, CH * 0.3, 0, 0, Math.PI * 2);
+        ctx.ellipse(2, 1, CW * 0.44 * sc, CH * 0.3 * sc, 0, 0, Math.PI * 2);
         ctx.fill();
+        ctx.rotate(sway);
+        ctx.scale(sc, sc);
         if (c.thing === 'house') drawHouse(ctx, CW, i, on, c.roof, t, c.wish);
         if (c.thing === 'pine') drawPine(ctx, CW, 1, on, t, i);
         if (c.thing === 'tree') drawPine(ctx, CW, 1.75, true, t, i);
-        if (c.thing === 'man') drawMan(ctx, CW, t, i);
+        if (c.thing === 'man') drawMan(ctx, CW, t, i, sdx * Math.max(0, 1 - shakeAge / 40));
         ctx.restore();
       }
-      // 주민: 불 켠 집 앞을 오간다 (축제 땐 깡충)
+      if (y < N) for (let x = 0; x < N; x++) (x < N - 1 && garland(ix(x, y), ix(x + 1, y)), y > 0 && garland(ix(x, y - 1), ix(x, y)));
+      // 주민: 불 켠 집 앞을 오간다. 흔들면 휘청, 옆에 집이 솟으면 눈이 휘둥그레 펄쩍, 축제엔 막춤, 실패하면 데굴데굴
       litHouses.forEach((hi, j) => {
-        if (j >= 8 || cy(hi) !== y) return;
-        const ph = t / 70 + j * 1.9, px = PX(cx(hi)) + Math.sin(ph) * CW * 0.42, py = PY(cy(hi)) + CH * 0.42 + Math.cos(ph * 0.8) * CH * 0.08;
-        const jump = festing ? Math.abs(Math.sin(t / 6 + j)) * CW * 0.12 : 0;
-        drawVillager(ctx, px, py - jump, CW, j, Math.cos(ph) > 0);
+        if (j >= 8 || (y < N ? cy(hi) !== y : true)) return;
+        const ph = t / 70 + j * 1.9;
+        let px = PX(cx(hi)) + Math.sin(ph) * CW * 0.4, py = PY(cy(hi)) + CH * 0.45 + Math.cos(ph * 0.8) * CH * 0.06, rot = 0, arms = 0, eyes = 0, mark = '', right = Math.cos(ph) > 0;
+        const near = grows.find((e) => e.x !== cx(hi) || e.y !== cy(hi) ? Math.abs(e.x - cx(hi)) <= 1 && Math.abs(e.y - cy(hi)) <= 1 : false);
+        if (failing) (rot = (t / 5 + j) * (j % 2 ? 1 : -1)), (px += Math.sin(t / 12 + j) * CW * 0.3), (py -= CW * 0.05);
+        else if (festing) {
+          const beat = Math.floor(t / 10 + j) % 4;
+          py -= Math.abs(Math.sin(t / 5 + j)) * CW * 0.13;
+          rot = (beat === 1 ? 0.35 : beat === 3 ? -0.35 : 0) * (j % 2 ? 1 : -1);
+          arms = beat % 2 ? 1 : 2;
+          right = beat < 2;
+        } else if (near) {
+          const a = t - near.t;
+          py -= Math.sin(Math.min(1, a / 18) * Math.PI) * CW * 0.2;
+          eyes = 1;
+          arms = 1;
+          mark = '!';
+        } else if (shakeAge < 35) (rot = sdx * 0.4 * Math.sin(shakeAge / 4) * (1 - shakeAge / 35)), (px += sdx * CW * 0.08 * Math.sin(shakeAge / 6)), (arms = 1), (eyes = 1);
+        drawVillager(ctx, px, py, CW, j, right, rot, arms, eyes);
+        if (mark) (ctx.fillStyle = '#ffe14d'), (ctx.font = `900 ${CW * 0.28}px system-ui, sans-serif`), (ctx.textAlign = 'center'), (ctx.textBaseline = 'bottom'), ctx.fillText(mark, px, py - CW * 0.42);
       });
+      if (y === pgRow) drawPenguin(ctx, pgX, pgY, CW, pgRot, pgFlip, t, pgMark);
     }
-    // 꼬마전구 줄: 불 켜진 이웃끼리
-    for (let i = 0; i < N * N; i++) {
-      const a = s.cells[i];
-      if (!a.on || !a.lit || !conducts(a)) continue;
-      for (const j of [i + 1, i + N]) {
-        if ((j === i + 1 && cx(i) === N - 1) || j >= N * N) continue;
-        const b = s.cells[j];
-        if (!b.on || !b.lit || !conducts(b) || t < Math.max(a.litAt, b.litAt)) continue;
-        const hgt = (c: Cell) => (c.thing === 'tree' ? CW * 0.95 : c.thing === 'pine' ? CW * 0.55 : CW * 0.5);
-        const x1 = PX(cx(i)), y1 = PY(cy(i)) + CH * 0.18 - hgt(a), x2 = PX(cx(j)), y2 = PY(cy(j)) + CH * 0.18 - hgt(b);
-        const mxp = (x1 + x2) / 2, myp = (y1 + y2) / 2 + CW * 0.18;
-        ctx.strokeStyle = 'rgba(30,30,40,.6)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.quadraticCurveTo(mxp, myp, x2, y2);
-        ctx.stroke();
-        for (let k = 1; k < 6; k++) {
-          const u = k / 6, bx = (1 - u) ** 2 * x1 + 2 * (1 - u) * u * mxp + u * u * x2, by = (1 - u) ** 2 * y1 + 2 * (1 - u) * u * myp + u * u * y2;
-          const col = ['#ffd36b', '#ff6b7f', '#7fe0ff', '#9dff8a'][(k + i) % 4], blink = Math.sin(t / 9 + k * 2 + i) > -0.4;
-          ctx.save();
-          ctx.shadowColor = col;
-          ctx.shadowBlur = blink ? 8 : 0;
-          ctx.fillStyle = blink ? col : 'rgba(80,80,90,.8)';
-          ctx.beginPath();
-          ctx.arc(bx, by + 1.5, 1.8, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
+    // 묻힌 집에서 주민이 '퐁' 튀어나와 데굴데굴 → 어질어질
+    for (const e of recent('bury', 110)) {
+      const a = t - e.t, u = Math.min(1, a / 36), side = e.x >= C ? 1 : -1;
+      const px = PX(e.x) + side * u * CW * 0.75, py = PY(e.y) + CH * 0.45 - Math.sin(u * Math.PI) * CW * 0.7;
+      drawVillager(ctx, px, py, CW, e.x + e.y, side > 0, u < 1 ? u * Math.PI * 4 * side : Math.PI / 2 * side * (a < 70 ? 1 : 0), 1, 1);
+      if (u >= 1) {
+        ctx.fillStyle = '#ffe14d';
+        for (let k = 0; k < 3; k++) {
+          const an = t / 6 + (k * Math.PI * 2) / 3;
+          ctx.fillRect(px + Math.cos(an) * CW * 0.12 - 1, py - CW * 0.32 + Math.sin(an) * CW * 0.04 - 1, 2.4, 2.4);
         }
-      }
+      } else (ctx.fillStyle = '#ffffff'), (ctx.font = `900 ${CW * 0.22}px system-ui, sans-serif`), (ctx.textAlign = 'center'), (ctx.textBaseline = 'bottom'), ctx.fillText('으앗!', px, py - CW * 0.4);
     }
-    // 떠 있는 눈뭉치 / 날아가는 눈뭉치
+    // 떠 있는 눈뭉치(점선으로 자기 칸과 이어짐) / 날아가는 눈뭉치
     const fly = s.busy > 0 ? 1 - s.busy / FLY : 0;
-    for (const p of s.puffs) drawPuff(ctx, PX(cx(p.i)), PY(cy(p.i)) - LIFT + Math.sin(t / 18 + p.i) * U * 0.006, CW, p.big, t, p.i, Math.min(1, (t - p.born) / 15));
+    for (const p of s.puffs) {
+      const x = PX(cx(p.i)), y0 = PY(cy(p.i)), y = y0 - LIFT + Math.sin(t / 18 + p.i) * U * 0.005, a = Math.min(1, (t - p.born) / 15);
+      ctx.fillStyle = `rgba(255,255,255,${0.85 * a})`;
+      for (let k = 0; k < 5; k++) {
+        const u = (t / 45 + k / 5 + p.i * 0.17) % 1;
+        ctx.fillRect(x + Math.sin(u * 9 + k) * CW * 0.08 - 1, y + (y0 - y) * u, 2, 2);
+      }
+      drawPuff(ctx, x, y, CW, p.big, t, p.i, a);
+    }
     for (const f of s.flights) {
       const e = easeIO(Math.min(1, fly / 0.72)), drop = Math.max(0, (fly - 0.55) / 0.45);
       const x = PX(cx(f.from)) + (PX(cx(f.to)) - PX(cx(f.from))) * e, y = PY(cy(f.from)) + (PY(cy(f.to)) - PY(cy(f.from))) * e - LIFT * (1 - drop * drop);
-      const [dx, dy] = DV[s.dir];
       for (let k = 3; k >= 1; k--) {
-        ctx.fillStyle = `rgba(255,255,255,${0.15 * (4 - k) * (1 - drop)})`;
+        ctx.fillStyle = `rgba(255,255,255,${0.16 * (4 - k) * (1 - drop)})`;
         ctx.beginPath();
-        ctx.arc(x - dx * k * CW * 0.3, y - dy * k * CH * 0.3, CW * 0.16, 0, Math.PI * 2);
+        ctx.arc(x - sdx * k * CW * 0.3, y - sdy * k * CH * 0.3, CW * 0.15, 0, Math.PI * 2);
         ctx.fill();
       }
       drawPuff(ctx, x, y, CW * (1 - 0.35 * drop), f.big, t, f.from, 1);
     }
     // 휘날리는 눈 (흔든 직후엔 그쪽으로 눈보라)
     {
-      const st = t - s.shakeT, storm = Math.max(0, 1 - st / 80), [dx, dy] = DV[s.dir];
+      const st = t - s.shakeT, storm = Math.max(0, 1 - st / 80), [dx, dy] = DV[s.dir], [wx, wy] = s.wind ? DV[s.wind] : [0, 0];
+      // 찬바람 밤: 바람 줄기가 바람 쪽으로 흐른다
+      if (s.wind) {
+        ctx.strokeStyle = 'rgba(220,240,255,.35)';
+        ctx.lineWidth = 1.5;
+        for (let k = 0; k < 9; k++) {
+          const u = (t / 90 + hash(k + 1200)) % 1, off = (hash(k + 1300) - 0.5) * GR * 1.6;
+          const bx = GX + (wx ? wx * (u - 0.5) * GR * 2 : off), by = GY - GR * 0.2 + (wy ? wy * (u - 0.5) * GR * 1.6 : off * 0.5);
+          ctx.beginPath();
+          ctx.moveTo(bx, by);
+          ctx.quadraticCurveTo(bx - wx * U * 0.04 + wy * 4, by - wy * U * 0.04 + wx * 4, bx - wx * U * 0.08, by - wy * U * 0.08);
+          ctx.stroke();
+        }
+      }
       for (let k = 0; k < 70; k++) {
         const a = hash(k + 500) * Math.PI * 2, rr0 = Math.sqrt(hash(k + 600)) * GR;
         let x = GX + Math.cos(a) * rr0 + Math.sin(t / 50 + k) * U * 0.012, y = GY + Math.sin(a) * rr0 + ((t * (0.2 + hash(k) * 0.3)) % (GR * 2)) - GR * 0.3;
         if (y > GY + GR) y -= GR * 2;
+        if (s.wind) (x += wx * ((t * 0.3 + k * 13) % (GR * 0.6))), (y += wy * ((t * 0.3 + k * 13) % (GR * 0.6)));
         x += dx * storm * U * 0.25 * Math.sin((st / 80) * Math.PI + k);
         y += dy * storm * U * 0.25 * Math.sin((st / 80) * Math.PI + k);
         ctx.fillStyle = `rgba(255,255,255,${0.45 + 0.4 * hash(k + 700)})`;
@@ -673,9 +783,9 @@ export const snowglobe: GameDef<SnowState> = {
         fx.kick(6);
         fx.pop(GX, GY - GR * 0.68, e.text!, th.accent, 18);
       }
-      if (e.kind === 'night') fx.pop(GX, GY - GR * 0.25, e.text!, '#ffffff', 18);
-      if (e.kind === 'clear') fx.ring(GX, GY, th.accent, GR, 8), fx.burst(GX, GY - GR * 0.3, th.accent, 40, 5, 3), fx.blink('#fff1c8', 0.3), fx.pop(GX, GY - GR * 0.22, e.text!, '#ffffff', 20);
-      if (e.kind === 'fail') fx.kick(10), fx.blink(th.hot, 0.3), fx.pop(GX, GY - GR * 0.3, e.text!, th.hot, 18);
+      if (e.kind === 'night') fx.pop(GX, GY - GR * 0.55, e.text!, '#ffffff', 18);
+      if (e.kind === 'clear') fx.ring(GX, GY, th.accent, GR, 8), fx.burst(GX, GY - GR * 0.3, th.accent, 40, 5, 3), fx.blink('#fff1c8', 0.3), fx.pop(GX, GY - GR * 0.42, e.text!, '#ffffff', 20);
+      if (e.kind === 'fail') fx.kick(10), fx.blink(th.hot, 0.3), fx.pop(GX, GY - GR * 0.45, e.text!, th.hot, 18);
     }
     fx.memo.t = t;
     ctx.restore();
@@ -702,7 +812,7 @@ export const snowglobe: GameDef<SnowState> = {
     }
     // ── 아래 띠: 새것 안내 + 별 진행 막대 ──
     {
-      const top = U * 1.185, by = U * 1.262, bx = U * 0.12, bw = U * 0.8, bh = U * 0.026, max = s.goal + 4, f = Math.min(1, s.lit / max);
+      const top = U * 1.185, by = U * 1.272, bx = U * 0.15, bw = U * 0.78, bh = U * 0.026, lo = Math.max(0, s.goal - 8), max = s.goal + 4, f = Math.max(0, Math.min(1, (s.lit - lo) / (max - lo)));
       ctx.fillStyle = 'rgba(8,10,28,.66)';
       ctx.fillRect(0, top, w, h - top);
       ctx.fillStyle = 'rgba(255,255,255,.15)';
@@ -715,7 +825,7 @@ export const snowglobe: GameDef<SnowState> = {
       if (f > 0) (rr(ctx, bx, by, Math.max(bh, bw * f), bh, bh / 2), ctx.fill());
       ctx.textAlign = 'center';
       [s.goal, s.goal + 2, s.goal + 4].forEach((v, k) => {
-        const tx = bx + bw * (v / max), ok = s.lit >= v;
+        const tx = bx + bw * ((v - lo) / (max - lo)), ok = s.lit >= v;
         ctx.fillStyle = ok ? th.accent : 'rgba(255,255,255,.6)';
         ctx.fillRect(tx - 1, by - 3, 2, bh + 6);
         ctx.textBaseline = 'top';
@@ -728,8 +838,8 @@ export const snowglobe: GameDef<SnowState> = {
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#ffffff';
-      ctx.font = `800 ${U * 0.028}px system-ui, sans-serif`;
-      ctx.fillText('💡', U * 0.035, by + bh / 2);
+      ctx.font = `900 ${U * 0.03}px system-ui, sans-serif`;
+      ctx.fillText(`💡${s.lit}`, U * 0.025, by + bh / 2);
       const note = s.notes.find((n) => t >= n.t0 && t < n.t0 + 150);
       if (note) {
         ctx.textAlign = 'center';
@@ -752,6 +862,21 @@ export const snowglobe: GameDef<SnowState> = {
       ctx.fillStyle = '#ffffff';
       ctx.fillText('👆 위로 쓱 밀어 흔들어 보세요', GX, yy);
     }
+    if (s.done || s.dead) {
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = `900 ${U * 0.055}px system-ui, sans-serif`;
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = 'rgba(10,14,40,.75)';
+      const msg = s.done ? '🎄 크리스마스 아침!' : '💤 마을이 잠들었어요', sub = `별 ${s.stars}개 · 불 켠 집 ${s.lights}채 · 축제 ${s.festAll}번`;
+      ctx.strokeText(msg, GX, GY - GR * 0.62);
+      ctx.fillStyle = s.done ? th.accent : '#ffffff';
+      ctx.fillText(msg, GX, GY - GR * 0.62);
+      ctx.font = `800 ${U * 0.034}px system-ui, sans-serif`;
+      ctx.strokeText(sub, GX, GY - GR * 0.45);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(sub, GX, GY - GR * 0.45);
+    }
   },
 };
 
@@ -764,6 +889,21 @@ function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: n
   ctx.arcTo(x, y + h, x, y, r);
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
+}
+/** 꼬마전구 하나: 빛 번짐(큰 반투명 원) + 알맹이. col이 비면 꺼진 전구 (shadowBlur는 폰에서 비싸서 안 씀) */
+function bulb(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, col: string) {
+  if (col) {
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.arc(x, y, r * 2.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  ctx.fillStyle = col || 'rgba(80,80,90,.8)';
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
 }
 const backOut = (u: number) => 1 + 2.2 * (u - 1) ** 3 + 1.2 * (u - 1) ** 2;
 const easeIO = (u: number) => (u < 0.5 ? 2 * u * u : 1 - 2 * (1 - u) ** 2);
@@ -899,14 +1039,7 @@ function drawPine(ctx: CanvasRenderingContext2D, CW: number, size: number, on: b
     if (on)
       for (let b = 0; b < 3 + k; b++) {
         const u = (b + 0.5) / (3 + k), col = ['#ffd36b', '#ff6b7f', '#7fe0ff'][(b + k + i) % 3], blink = Math.sin(t / 8 + b * 2.1 + k + i) > -0.3;
-        ctx.save();
-        ctx.shadowColor = col;
-        ctx.shadowBlur = blink ? 7 : 0;
-        ctx.fillStyle = blink ? col : '#555';
-        ctx.beginPath();
-        ctx.arc(-wd * 0.8 + wd * 1.6 * u, yb - ht * 0.12 - Math.sin(u * Math.PI) * ht * 0.08, 1.4 * Math.min(1.4, size), 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+        bulb(ctx, -wd * 0.8 + wd * 1.6 * u, yb - ht * 0.12 - Math.sin(u * Math.PI) * ht * 0.08, 1.4 * Math.min(1.4, size), blink ? col : '');
       }
   }
   if (size > 1.5) {
@@ -928,66 +1061,172 @@ function star(ctx: CanvasRenderingContext2D, x: number, y: number, r1: number, r
   }
   ctx.closePath();
 }
-/** 묻힌 집 = 눈더미 위 눈사람 */
-function drawMan(ctx: CanvasRenderingContext2D, CW: number, t: number, i: number) {
+/** 묻힌 집 = 눈더미 위 눈사람 (흔들면 당근 코가 그쪽으로 휙 돌아간다) */
+function drawMan(ctx: CanvasRenderingContext2D, CW: number, t: number, i: number, look: number) {
   const g = ctx.createRadialGradient(-CW * 0.1, -CW * 0.2, 1, 0, -CW * 0.1, CW * 0.4);
   g.addColorStop(0, '#ffffff');
-  g.addColorStop(1, '#c7d6ee');
+  g.addColorStop(1, '#bccbe8');
   ctx.fillStyle = g;
   ctx.beginPath();
-  ctx.ellipse(0, -CW * 0.06, CW * 0.36, CW * 0.16, 0, Math.PI, 0);
+  ctx.ellipse(0, -CW * 0.06, CW * 0.38, CW * 0.17, 0, Math.PI, 0);
   ctx.fill();
   ctx.fillStyle = ROOFS[(i >> 1) % ROOFS.length];
-  ctx.fillRect(CW * 0.14, -CW * 0.2, CW * 0.12, CW * 0.04);
-  const wob = Math.sin(t / 30 + i) * 0.05;
+  ctx.fillRect(CW * 0.14, -CW * 0.21, CW * 0.12, CW * 0.04);
   ctx.save();
-  ctx.rotate(wob);
+  ctx.rotate(Math.sin(t / 30 + i) * 0.05 + look * 0.3);
   ctx.fillStyle = g;
   ctx.beginPath();
-  ctx.arc(-CW * 0.04, -CW * 0.26, CW * 0.12, 0, Math.PI * 2);
+  ctx.arc(-CW * 0.04, -CW * 0.27, CW * 0.13, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.arc(-CW * 0.04, -CW * 0.43, CW * 0.085, 0, Math.PI * 2);
+  ctx.arc(-CW * 0.04, -CW * 0.45, CW * 0.09, 0, Math.PI * 2);
   ctx.fill();
+  const nose = look < -0.1 ? -1 : 1, hx = -CW * 0.04 + look * CW * 0.03;
   ctx.fillStyle = '#222';
-  ctx.fillRect(-CW * 0.075, -CW * 0.46, 2, 2);
-  ctx.fillRect(-CW * 0.025, -CW * 0.46, 2, 2);
+  ctx.fillRect(hx - CW * 0.035, -CW * 0.48, 2, 2);
+  ctx.fillRect(hx + CW * 0.015, -CW * 0.48, 2, 2);
   ctx.fillStyle = '#ff8a3d';
   ctx.beginPath();
-  ctx.moveTo(-CW * 0.04, -CW * 0.43);
-  ctx.lineTo(CW * 0.04, -CW * 0.42);
-  ctx.lineTo(-CW * 0.04, -CW * 0.41);
+  ctx.moveTo(hx, -CW * 0.45);
+  ctx.lineTo(hx + nose * CW * 0.1, -CW * 0.44);
+  ctx.lineTo(hx, -CW * 0.43);
   ctx.fill();
   ctx.fillStyle = '#d64545';
-  ctx.fillRect(-CW * 0.12, -CW * 0.37, CW * 0.16, CW * 0.035);
+  ctx.fillRect(-CW * 0.13, -CW * 0.39, CW * 0.18, CW * 0.04);
+  // 굴뚝이 모자가 됐다
+  ctx.fillStyle = '#4a3a3a';
+  ctx.fillRect(-CW * 0.1, -CW * 0.6, CW * 0.12, CW * 0.08);
+  ctx.fillRect(-CW * 0.13, -CW * 0.53, CW * 0.18, CW * 0.02);
   ctx.restore();
 }
 const COATS = ['#e2574c', '#3d7fd9', '#f2b33d', '#5bbf7a', '#b06ad9', '#ef7fb0'];
-function drawVillager(ctx: CanvasRenderingContext2D, x: number, y: number, CW: number, j: number, right: boolean) {
-  const s = CW * 0.07;
-  ctx.fillStyle = 'rgba(40,60,110,.3)';
+/** 꼬마 주민. arms 0 내림 · 1 만세 · 2 한 팔 흔들기, eyes 1 = 휘둥그레 */
+function drawVillager(ctx: CanvasRenderingContext2D, x: number, y: number, CW: number, j: number, right: boolean, rot = 0, arms = 0, eyes = 0) {
+  const s = CW * 0.09, coat = COATS[j % COATS.length];
+  ctx.fillStyle = 'rgba(30,45,95,.32)';
   ctx.beginPath();
   ctx.ellipse(x, y + 1, s * 1.2, s * 0.45, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = COATS[j % COATS.length];
+  ctx.save();
+  ctx.translate(x, y - s * 1.4);
+  ctx.rotate(rot);
+  ctx.translate(0, s * 1.4);
+  ctx.strokeStyle = coat;
+  ctx.lineWidth = s * 0.45;
+  ctx.lineCap = 'round';
+  const arm = (side: number, up: boolean) => {
+    ctx.beginPath();
+    ctx.moveTo(side * s * 0.5, -s * 1.9);
+    ctx.lineTo(side * s * 1.15, up ? -s * 3.2 : -s * 0.9);
+    ctx.stroke();
+  };
+  arm(-1, arms === 1 || arms === 2);
+  arm(1, arms === 1);
+  ctx.lineCap = 'butt';
+  ctx.fillStyle = coat;
   ctx.beginPath();
-  ctx.moveTo(x - s, y);
-  ctx.lineTo(x + s, y);
-  ctx.lineTo(x + s * 0.55, y - s * 2.2);
-  ctx.lineTo(x - s * 0.55, y - s * 2.2);
+  ctx.moveTo(-s, 0);
+  ctx.lineTo(s, 0);
+  ctx.lineTo(s * 0.55, -s * 2.2);
+  ctx.lineTo(-s * 0.55, -s * 2.2);
   ctx.fill();
   ctx.fillStyle = '#ffe0c2';
   ctx.beginPath();
-  ctx.arc(x, y - s * 2.8, s * 0.75, 0, Math.PI * 2);
+  ctx.arc(0, -s * 2.8, s * 0.8, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = COATS[(j + 2) % COATS.length];
   ctx.beginPath();
-  ctx.arc(x, y - s * 3.1, s * 0.75, Math.PI, 0);
+  ctx.arc(0, -s * 3.15, s * 0.8, Math.PI, 0);
   ctx.fill();
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
-  ctx.arc(x + (right ? -s * 0.6 : s * 0.6), y - s * 3.5, s * 0.3, 0, Math.PI * 2);
+  ctx.arc(right ? -s * 0.6 : s * 0.6, -s * 3.6, s * 0.32, 0, Math.PI * 2);
   ctx.fill();
+  const ex = right ? s * 0.18 : -s * 0.18;
+  if (eyes) {
+    for (const d of [-1, 1]) {
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(ex + d * s * 0.32, -s * 2.8, s * 0.26, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#1a1a2a';
+      ctx.beginPath();
+      ctx.arc(ex + d * s * 0.32, -s * 2.78, s * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#7a2a2a';
+    ctx.beginPath();
+    ctx.arc(ex, -s * 2.4, s * 0.15, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.fillStyle = '#2a2030';
+    ctx.fillRect(ex - s * 0.32, -s * 2.85, 1.6, 1.6);
+    ctx.fillRect(ex + s * 0.22, -s * 2.85, 1.6, 1.6);
+  }
+  ctx.restore();
+}
+/** 스케이트 펭귄: 연못 위를 빙글빙글. 흔들면 배로 쭈욱, 연못에 눈이 퐁당하면 꽈당 */
+function drawPenguin(ctx: CanvasRenderingContext2D, x: number, y: number, CW: number, rot: number, flip: number, t: number, mark: string) {
+  const s = CW * 0.13;
+  ctx.fillStyle = 'rgba(30,45,95,.3)';
+  ctx.beginPath();
+  ctx.ellipse(x, y + 1, s * 1.1, s * 0.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.save();
+  ctx.translate(x, y - s * 1.1);
+  ctx.rotate(rot);
+  ctx.scale(flip, 1);
+  ctx.translate(0, s * 1.1);
+  ctx.fillStyle = '#ff9a3d';
+  const kick = Math.sin(t / 5) * s * 0.25;
+  ctx.beginPath();
+  ctx.ellipse(-s * 0.35 + kick, 0, s * 0.35, s * 0.14, 0, 0, Math.PI * 2);
+  ctx.ellipse(s * 0.35 - kick, 0, s * 0.35, s * 0.14, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#20243a';
+  ctx.beginPath();
+  ctx.ellipse(0, -s * 1.15, s * 0.8, s * 1.15, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.ellipse(s * 0.18, -s * 0.95, s * 0.52, s * 0.85, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#20243a';
+  ctx.save();
+  ctx.translate(-s * 0.6, -s * 1.3);
+  ctx.rotate(-0.6 + Math.sin(t / 4) * 0.5);
+  ctx.beginPath();
+  ctx.ellipse(0, s * 0.4, s * 0.2, s * 0.55, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  ctx.fillStyle = '#e2574c';
+  ctx.fillRect(-s * 0.7, -s * 1.6, s * 1.4, s * 0.22);
+  ctx.fillRect(-s * 0.75, -s * 1.6, s * 0.22, s * 0.6);
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(s * 0.35, -s * 1.95, s * 0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#111';
+  ctx.beginPath();
+  ctx.arc(s * 0.4, -s * 1.95, s * 0.1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ff9a3d';
+  ctx.beginPath();
+  ctx.moveTo(s * 0.6, -s * 1.85);
+  ctx.lineTo(s * 1.05, -s * 1.72);
+  ctx.lineTo(s * 0.6, -s * 1.62);
+  ctx.fill();
+  ctx.restore();
+  if (mark) {
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `900 ${CW * 0.2}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(20,30,70,.6)';
+    ctx.strokeText(mark, x, y - s * 2.6);
+    ctx.fillText(mark, x, y - s * 2.6);
+  }
 }
 /** 떠 있는 눈뭉치: 뭉게뭉게(아래는 푸른 그늘) + 반짝이는 눈송이. 함박눈은 크고 ❄️ */
 function drawPuff(ctx: CanvasRenderingContext2D, x: number, y: number, CW: number, big: boolean, t: number, i: number, a: number) {

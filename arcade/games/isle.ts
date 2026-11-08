@@ -8,6 +8,8 @@
  * 고민 거리: 지금 타일 + 다음 3개가 보인다. 좋은 자리(숲 옆·집 둘 옆)는 하나뿐이라 '지금 쓸까, 다음 집에게 남길까'.
  * 하는 일이 바뀐다: 2계절 물(폭포·논·호수 — 물길 잇기) → 3계절 눈산이 바다에서 솟음(다리 놓아 잇기·산장) →
  *                  4계절 꽃밭(서로 다른 이웃 사이에) → 5계절 사막이 솟음(물 대면 오아시스, 밭은 마름) → 6계절 등대(바다로 튀어나온 끝에).
+ * 웃음(오너 추가 기준): 옆 칸에 타일이 쿵 하면 주민이 눈이 커져 펄쩍('!'), 오리는 엉덩이만 내놓고 거꾸로 첨벙, 사슴은 깡충.
+ *                  변신이 생기면 근처 주민이 막춤, 계절 완성엔 다 같이 춤, 실패하면 데굴데굴 구르며 머리 위에 별이 돈다.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -453,17 +455,132 @@ function tree(ctx: CanvasRenderingContext2D, x: number, y: number, sz: number, s
   }
 }
 
-function person(ctx: CanvasRenderingContext2D, x: number, y: number, sz: number, col: string, t: number) {
-  const b = Math.abs(Math.sin(t / 5)) * sz * 0.25;
+/** 주민: 평소엔 아장아장, 옆에 타일이 쿵 하면 펄쩍(눈이 커지고 '!'), 변신·계절 완성엔 막춤, 실패하면 데굴데굴 */
+function person(ctx: CanvasRenderingContext2D, x: number, y: number, sz: number, col: string, t: number, o: Look) {
+  const jump = o.startle < 36, dance = !jump && (o.mood === 'dance' || o.party < 80), roll = !jump && o.mood === 'roll';
+  let lift = Math.abs(Math.sin(t / 5)) * sz * 0.25, ang = 0;
+  if (jump) lift = Math.sin((o.startle / 36) * Math.PI) * sz * 4.5;
+  else if (dance) (lift = Math.abs(Math.sin(t / 6)) * sz * 1.6), (ang = Math.sin(t / 6) * 0.45);
+  else if (roll) (ang = t / 3.2), (lift = sz * 0.3), (x += Math.sin(t / 22) * sz * 2.2);
   ctx.fillStyle = 'rgba(0,0,0,.25)';
-  oval(ctx, x, y, sz * 0.7, sz * 0.25);
+  oval(ctx, x, y, sz * 0.7 * (1 - Math.min(0.6, lift / (sz * 8))), sz * 0.25);
   ctx.fill();
+  ctx.save();
+  ctx.translate(x, y - lift - sz * 1.15);
+  ctx.rotate(ang);
+  // 팔
+  const arm = jump ? -sz * 1.0 : dance ? -sz * 0.5 + Math.sin(t / 3) * sz * 0.5 : roll ? -sz * 0.2 : sz * 0.35;
+  ctx.strokeStyle = col;
+  ctx.lineWidth = Math.max(1, sz * 0.22);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-sz * 0.35, 0);
+  ctx.lineTo(-sz * 0.85, dance ? -arm : arm);
+  ctx.moveTo(sz * 0.35, 0);
+  ctx.lineTo(sz * 0.85, arm);
+  ctx.stroke();
+  ctx.lineCap = 'butt';
   ctx.fillStyle = col;
-  oval(ctx, x, y - sz * 0.9 - b, sz * 0.45, sz * 0.7);
+  oval(ctx, 0, sz * 0.25, sz * 0.45, sz * 0.7);
   ctx.fill();
   ctx.fillStyle = '#ffd8b5';
   ctx.beginPath();
-  ctx.arc(x, y - sz * 1.9 - b, sz * 0.42, 0, Math.PI * 2);
+  ctx.arc(0, -sz * 0.75, sz * 0.48, 0, Math.PI * 2);
+  ctx.fill();
+  // 얼굴
+  ctx.fillStyle = '#212529';
+  ctx.strokeStyle = '#212529';
+  ctx.lineWidth = Math.max(0.6, sz * 0.12);
+  for (const ex of [-1, 1]) {
+    const px = ex * sz * 0.19, py = -sz * 0.78;
+    if (jump) {
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(px, py - sz * 0.05, sz * 0.24, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#212529';
+      ctx.beginPath();
+      ctx.arc(px, py - sz * 0.05, sz * 0.1, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (dance) {
+      ctx.beginPath();
+      ctx.arc(px, py + sz * 0.05, sz * 0.12, Math.PI * 1.1, Math.PI * 1.9);
+      ctx.stroke();
+    } else if (roll) {
+      ctx.beginPath();
+      ctx.moveTo(px - sz * 0.1, py - sz * 0.1);
+      ctx.lineTo(px + sz * 0.1, py + sz * 0.1);
+      ctx.moveTo(px + sz * 0.1, py - sz * 0.1);
+      ctx.lineTo(px - sz * 0.1, py + sz * 0.1);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(px, py, sz * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  if (jump) {
+    ctx.beginPath();
+    ctx.arc(0, -sz * 0.45, sz * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+  if (jump && o.startle < 26) {
+    ctx.font = `900 ${Math.max(10, sz * 2.2)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(0,0,0,.55)';
+    ctx.strokeText('!', x, y - lift - sz * 3.4);
+    ctx.fillStyle = '#ffe066';
+    ctx.fillText('!', x, y - lift - sz * 3.4);
+  }
+  if (roll) {
+    ctx.fillStyle = '#ffe066';
+    for (let k = 0; k < 3; k++) {
+      const a = t / 8 + (k * Math.PI * 2) / 3;
+      ctx.beginPath();
+      ctx.arc(x + Math.cos(a) * sz * 0.9, y - sz * 2.9 + Math.sin(a) * sz * 0.3, Math.max(0.8, sz * 0.16), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+/** 오리: 물에 둥둥, 옆에 타일이 쿵 하면 엉덩이만 내놓고 거꾸로 첨벙 */
+function duck(ctx: CanvasRenderingContext2D, x: number, y: number, sz: number, t: number, o: Look) {
+  const bob = Math.sin(t / 14 + o.seed) * sz * 0.12;
+  if (o.startle < 60) {
+    const k = Math.sin(t / 2) * sz * 0.35;
+    ctx.strokeStyle = 'rgba(255,255,255,.7)';
+    ctx.lineWidth = 1;
+    oval(ctx, x, y, sz * (0.8 + o.startle / 50), sz * (0.3 + o.startle / 140));
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    poly(ctx, x - sz * 0.45, y, x + sz * 0.45, y, x + sz * 0.1, y - sz * 0.75);
+    ctx.fill();
+    ctx.strokeStyle = '#ff922b';
+    ctx.lineWidth = Math.max(1, sz * 0.16);
+    ctx.beginPath();
+    ctx.moveTo(x - sz * 0.05, y - sz * 0.6);
+    ctx.lineTo(x - sz * 0.35 + k, y - sz * 1.15);
+    ctx.moveTo(x + sz * 0.2, y - sz * 0.6);
+    ctx.lineTo(x + sz * 0.45 - k, y - sz * 1.15);
+    ctx.stroke();
+    return;
+  }
+  ctx.fillStyle = '#ffffff';
+  oval(ctx, x, y + bob, sz * 0.6, sz * 0.32);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + sz * 0.42, y - sz * 0.35 + bob, sz * 0.25, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ff922b';
+  poly(ctx, x + sz * 0.62, y - sz * 0.38 + bob, x + sz * 0.9, y - sz * 0.3 + bob, x + sz * 0.62, y - sz * 0.25 + bob);
+  ctx.fill();
+  ctx.fillStyle = '#212529';
+  ctx.beginPath();
+  ctx.arc(x + sz * 0.48, y - sz * 0.42 + bob, Math.max(0.5, sz * 0.06), 0, Math.PI * 2);
   ctx.fill();
 }
 
@@ -524,7 +641,8 @@ function house(ctx: CanvasRenderingContext2D, x: number, y: number, sz: number, 
   }
 }
 
-interface Look { t: number; sea: number; form: number; formT: number; seed: number; dusk: number; lights: Light[] | null }
+interface Look { t: number; sea: number; form: number; formT: number; seed: number; dusk: number; lights: Light[] | null; startle: number; party: number; mood: '' | 'dance' | 'roll' }
+const CALM = { startle: 999, party: 999, mood: '' as const };
 
 /** 타일 한 칸: 두께 있는 흙 덩어리 + 윗면 + 장식 */
 function drawTile(ctx: CanvasRenderingContext2D, k: number, x: number, y: number, tw: number, o: Look) {
@@ -581,7 +699,7 @@ function drawTile(ctx: CanvasRenderingContext2D, k: number, x: number, y: number
     for (const [dx, dy, sc] of [[0, -0.5, 0.36], [-0.48, 0, 0.4], [0.46, -0.04, 0.38], [0.02, 0.42, 0.42]]) tree(ctx, x + dx * hw, y + dy * hh, tw * sc, sea, sway, o.seed + dx * 3);
     if (f & GRV) {
       // 사슴이 나무 사이를 거닌다
-      const ph = Math.sin(t / 70 + o.seed), dx = x + ph * hw * 0.35, dy = y + hh * 0.18, dir = Math.cos(t / 70 + o.seed) > 0 ? 1 : -1, sz = tw * 0.07;
+      const ph = Math.sin(t / 70 + o.seed), dx = x + ph * hw * 0.35, dy = y + hh * 0.18 - (o.startle < 30 ? Math.sin((o.startle / 30) * Math.PI) * tw * 0.25 : o.party < 80 ? Math.abs(Math.sin(t / 5)) * tw * 0.06 : 0), dir = Math.cos(t / 70 + o.seed) > 0 ? 1 : -1, sz = tw * 0.07;
       ctx.fillStyle = 'rgba(0,0,0,.2)';
       oval(ctx, dx, dy + sz * 0.9, sz * 1.1, sz * 0.3);
       ctx.fill();
@@ -633,7 +751,7 @@ function drawTile(ctx: CanvasRenderingContext2D, k: number, x: number, y: number
       for (let i = 0; i < n; i++) {
         const age = t - o.formT, out = Math.min(1, age / 45), a = (t + i * 140) / (60 + i * 20) + o.seed + i * 3;
         const px = x + hw * 0.3 + (Math.cos(a) * hw * 0.66 - hw * 0.3) * out, py = y + hh * 0.42 + (Math.sin(a) * hh * 0.5 - hh * 0.42 + hh * 0.2) * out;
-        person(ctx, px, py, tw * 0.055, SHIRT[(o.seed + i) % SHIRT.length], t + i * 7);
+        person(ctx, px, py, tw * 0.085, SHIRT[(o.seed + i) % SHIRT.length], t + i * 7, o);
       }
     }
   } else if (k === FLD) {
@@ -729,6 +847,7 @@ function drawTile(ctx: CanvasRenderingContext2D, k: number, x: number, y: number
         ctx.fill();
       }
     }
+    if (!(f & LAK)) duck(ctx, x + hw * 0.22, py + hh * 0.18, tw * 0.1, t, o);
     if (f & LAK) {
       const bx = x + Math.sin(t / 90 + o.seed) * hw * 0.3, by = py + hh * 0.15 + Math.cos(t / 90 + o.seed) * hh * 0.15, sz = tw * 0.12;
       ctx.fillStyle = '#8d5a3b';
@@ -854,12 +973,12 @@ const shown = (s: IsleState) => s.season % 4;
 
 function drawIsle(ctx: CanvasRenderingContext2D, s: IsleState, w: number, h: number, th: Theme) {
   const fx = juice(s), m = fx.memo, sea = shown(s), t = s.t;
-  const HUD = w * 0.14, PANEL = w * 0.3, top = HUD, bot = h - PANEL, areaH = bot - top;
+  const HUD = w * 0.15, PANEL = w * 0.3, top = HUD, bot = h - PANEL, areaH = bot - top;
   ctx.save();
   fx.begin(ctx);
   // 하늘빛 (계절 안에서 아침 → 저녁, 계절을 마치면 밤 불꽃)
   const prog = s.need ? s.placed / s.need : 0;
-  const duskT = s.pause > 0 && s.outcome === 'clear' ? 0.62 : s.pause > 0 ? 0.5 : Math.max(0, (prog - 0.45) / 0.55) * 0.5;
+  const duskT = s.pause > 0 && s.outcome === 'clear' ? 0.42 : s.pause > 0 ? 0.32 : Math.max(0, (prog - 0.45) / 0.55) * 0.36;
   m.dusk = m.dusk === undefined ? duskT : m.dusk + (duskT - m.dusk) * 0.04;
   const dusk = m.dusk;
   // 바다
@@ -952,13 +1071,20 @@ function drawIsle(ctx: CanvasRenderingContext2D, s: IsleState, w: number, h: num
     ctx.stroke();
     ctx.restore();
   }
-  // 타일 (뒤에서 앞으로)
-  const lights: Light[] = [];
+  // 타일 (뒤에서 앞으로). 주민·동물 반응: 옆 칸에 쿵 → 펄쩍, 근처 변신 → 막춤, 계절 완성 → 다 같이 춤, 실패 → 데굴데굴
+  const lights: Light[] = [], mood = s.pause > 0 ? (s.outcome === 'clear' ? 'dance' : 'roll') : '';
+  const near = (c: number, kind: string, within: number, others: boolean) => {
+    let best = 999;
+    for (const e of s.events)
+      if ((e.kind === kind || (kind === 'combo' && e.kind === 'discover')) && e.c >= 0 && t - e.t < within && (!others || e.c !== c) && Math.abs(cx(e.c) - cx(c)) + Math.abs(cy(e.c) - cy(c)) <= 1)
+        best = Math.min(best, t - e.t);
+    return best;
+  };
   for (const c of order) {
     const tl = s.tiles[c]!, r = rise(c), age = t - tl.born;
     const bounce = tl.k !== MTN && tl.k !== SND && age >= 0 && age < 12 ? -Math.sin((age / 12) * Math.PI) * tw * 0.07 : 0;
     if (r > 0) ctx.globalAlpha = 1 - r;
-    drawTile(ctx, tl.k, X(c), Y(c) + r * tw * 0.8 + bounce, tw, { t, sea, form: tl.form, formT: tl.formT, seed: c % 13, dusk, lights });
+    drawTile(ctx, tl.k, X(c), Y(c) + r * tw * 0.8 + bounce, tw, { t, sea, form: tl.form, formT: tl.formT, seed: c % 13, dusk, lights, startle: near(c, 'land', 60, true), party: near(c, 'combo', 90, false), mood });
     ctx.globalAlpha = 1;
   }
   // 떨어지는 타일
@@ -967,7 +1093,7 @@ function drawIsle(ctx: CanvasRenderingContext2D, s: IsleState, w: number, h: num
     ctx.fillStyle = `rgba(0,30,60,${0.15 + 0.3 * p})`;
     oval(ctx, x, Y(c) + d + hh * 0.3, hw * (0.5 + 0.5 * p), hh * (0.5 + 0.5 * p));
     ctx.fill();
-    drawTile(ctx, s.falling.k, x, y, tw, { t, sea, form: 0, formT: t, seed: c % 13, dusk, lights: null });
+    drawTile(ctx, s.falling.k, x, y, tw, { t, sea, form: 0, formT: t, seed: c % 13, dusk, lights: null, ...CALM });
   }
   // 저녁빛 + 불빛
   if (dusk > 0.01) {
@@ -1012,9 +1138,9 @@ function drawIsle(ctx: CanvasRenderingContext2D, s: IsleState, w: number, h: num
     ctx.fill();
   }
   ctx.globalAlpha = 1;
-  // 표시 위에 떠 있는 '지금 타일' + 얻을 아름다움
+  // 표시 위에 떠 있는 '지금 타일' + 얻을 아름다움 (가려지지 않게 타일 위에 테두리를 한 번 더)
   if (playing && s.deck.length) {
-    const x = X(curC), y = Y(curC) - tw * 0.62 + Math.sin(t / 9) * tw * 0.04;
+    const x = X(curC), base = Y(curC) + d, y = Math.max(top + tw * 0.62 + 16, Y(curC) - tw * 1.0) + Math.sin(t / 9) * tw * 0.05;
     if (m.pc !== curC || m.pp !== s.placed + s.season * 100) {
       const g = s.g.slice();
       g[curC] = s.deck[0];
@@ -1022,29 +1148,48 @@ function drawIsle(ctx: CanvasRenderingContext2D, s: IsleState, w: number, h: num
       m.pc = curC;
       m.pp = s.placed + s.season * 100;
     }
-    ctx.strokeStyle = 'rgba(255,249,219,.8)';
-    ctx.setLineDash([2, 3]);
+    ctx.save();
+    ctx.shadowColor = '#ffe066';
+    ctx.shadowBlur = 10;
+    ctx.strokeStyle = '#fff3bf';
+    ctx.lineWidth = 2;
+    diamond(ctx, x, base, hw * 0.95, hh * 0.95);
+    ctx.stroke();
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(255,249,219,.85)';
+    ctx.setLineDash([3, 3]);
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(x, y + hh + d);
-    ctx.lineTo(x, Y(curC) + d - hh * 0.4);
+    ctx.moveTo(x, y + hh * 0.8 + d);
+    ctx.lineTo(x, base - hh * 0.3);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.globalAlpha = 0.88;
-    drawTile(ctx, s.deck[0], x, y, tw * 0.8, { t, sea, form: 0, formT: t, seed: 3, dusk: 0, lights: null });
-    ctx.globalAlpha = 1;
-    const gain = m.pg, big = gain >= 6;
-    ctx.font = `900 ${Math.max(13, tw * (big ? 0.34 : 0.27))}px system-ui, sans-serif`;
+    ctx.fillStyle = '#fff3bf';
+    poly(ctx, x - tw * 0.07, base - hh * 0.55, x + tw * 0.07, base - hh * 0.55, x, base - hh * 0.2);
+    ctx.fill();
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    ctx.shadowColor = 'rgba(255,230,120,.9)';
+    ctx.shadowBlur = 14;
+    drawTile(ctx, s.deck[0], x, y, tw * 0.8, { t, sea, form: 0, formT: t, seed: 3, dusk: 0, lights: null, ...CALM });
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(255,255,255,.9)';
+    ctx.lineWidth = 1.5;
+    diamond(ctx, x, y, tw * 0.4, tw * 0.8 * 0.29);
+    ctx.stroke();
+    const gain = m.pg, big = gain >= 6, gt = `${gain >= 0 ? '+' : ''}${gain}`, gy = y - tw * 0.62;
+    ctx.font = `900 ${Math.max(13, Math.min(22, tw * (big ? 0.36 : 0.3)))}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.lineWidth = 3.5;
-    ctx.strokeStyle = 'rgba(0,0,0,.5)';
-    const gt = `${gain > 0 ? '+' : ''}${gain}`, gy = y - tw * 0.62;
-    ctx.strokeText(gt, x + tw * 0.42, gy);
-    ctx.fillStyle = big ? '#ffd43b' : gain <= 0 ? '#ffa8a8' : '#ffffff';
-    if (big) (ctx.shadowColor = '#ffd43b'), (ctx.shadowBlur = 12);
-    ctx.fillText(gt, x + tw * 0.42, gy);
+    const bw2 = ctx.measureText(gt).width + 12, bh2 = Math.max(17, Math.min(26, tw * 0.4));
+    ctx.fillStyle = big ? '#f59f00' : gain <= 0 ? 'rgba(120,40,50,.85)' : 'rgba(8,40,64,.85)';
+    if (big) (ctx.shadowColor = '#ffd43b'), (ctx.shadowBlur = 14);
+    ctx.beginPath();
+    ctx.roundRect(x - bw2 / 2, gy - bh2 / 2, bw2, bh2, bh2 / 2);
+    ctx.fill();
     ctx.shadowBlur = 0;
+    ctx.fillStyle = big ? '#ffffff' : gain <= 0 ? '#ffc9c9' : '#ffffff';
+    ctx.fillText(gt, x, gy + 1);
   }
   // 사건 → 연출
   const seenT = m.t ?? -1, P = (c: number): [number, number] => (c < 0 ? [w / 2, top + areaH * 0.42] : [X(c), Y(c)]);
@@ -1058,14 +1203,14 @@ function drawIsle(ctx: CanvasRenderingContext2D, s: IsleState, w: number, h: num
       fx.burst(x, y + d, '#e7f5ff', 10, 2, 2);
       fx.ring(x, y + d * 0.5, '#ffffff', hw * 1.4, 3);
       fx.kick(n >= 6 ? 7 : 3);
-      fx.pop(x, y - tw * 0.55, e.text!, n >= 6 ? '#ffd43b' : n <= 0 ? '#ffa8a8' : '#ffffff', n >= 6 ? 22 : 17);
+      fx.pop(x, y - tw * 0.4, e.text!, n >= 6 ? '#ffd43b' : n <= 0 ? '#ffa8a8' : '#ffffff', n >= 6 ? 22 : 17);
       if (n >= 6) fx.burst(x, y - tw * 0.3, '#ffd43b', 18, 4, 2.5);
     }
     if (e.kind === 'combo' || e.kind === 'discover') {
       const k = e.n ?? 0, first = e.kind === 'discover';
       fx.burst(x, y - tw * 0.2, e.col!, first ? 40 : 22, first ? 5 : 3.5, 3);
       fx.ring(x, y, e.col!, tw * (first ? 1.6 : 1), first ? 6 : 4);
-      fx.pop(x, y - tw * (0.95 + 0.32 * k), first ? `✨ ${e.text}` : e.text!, e.col!, first ? 20 : 16);
+      fx.pop(Math.max(w * 0.22, Math.min(w * 0.78, x)), y - tw * 0.4 - 24 - 19 * k, first ? `✨ ${e.text}` : e.text!, e.col!, first ? 18 : 15);
       if (first) fx.blink(e.col!, 0.22), fx.kick(6);
     }
     if (e.kind === 'rise') {
@@ -1075,19 +1220,68 @@ function drawIsle(ctx: CanvasRenderingContext2D, s: IsleState, w: number, h: num
       fx.pop(w / 2, top + areaH * 0.9, e.text!, e.col!, 15);
     }
     if (e.kind === 'new') fx.pop(w / 2, top + areaH * 0.9, e.text!, th.accent, 15);
-    if (e.kind === 'season') fx.pop(w / 2, top + areaH * 0.12, e.text!, '#ffffff', 19);
+    if (e.kind === 'season') fx.pop(w / 2, top + areaH * 0.08, e.text!, '#ffffff', 18);
     if (e.kind === 'clear') {
-      fx.pop(w / 2, top + areaH * 0.3, e.text!, '#ffd43b', 26);
       for (let k = 0; k < 3 + (e.n ?? 0); k++) {
-        const fxp = w * (0.2 + 0.6 * ((k * 37) % 10) / 10), fyp = top + areaH * (0.12 + 0.2 * ((k * 53) % 10) / 10);
+        const fxp = w * (0.1 + 0.8 * ((k * 37) % 10) / 10), fyp = top + areaH * (0.42 + 0.4 * ((k * 53) % 10) / 10);
         fx.burst(fxp, fyp, SHIRT[k % SHIRT.length], 30, 4.5, 2.5);
         fx.ring(fxp, fyp, SHIRT[(k + 2) % SHIRT.length], 50, 3);
       }
       fx.blink('#fff6c8', 0.25);
     }
-    if (e.kind === 'fail') fx.pop(w / 2, top + areaH * 0.3, e.text!, th.hot, 17), fx.kick(10), fx.blink(th.hot, 0.25);
+    if (e.kind === 'fail') fx.kick(10), fx.blink(th.hot, 0.25);
   }
   m.t = t;
+  // 계절 끝 배너 (쉬는 동안 계속 보이게)
+  if (s.done || s.dead) {
+    ctx.save();
+    ctx.translate(w / 2, top + areaH * 0.16);
+    ctx.fillStyle = s.done ? 'rgba(255,244,200,.95)' : 'rgba(255,225,225,.95)';
+    ctx.shadowColor = 'rgba(0,0,0,.35)';
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.roundRect(-w * 0.4, -w * 0.09, w * 0.8, w * 0.18, w * 0.04);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = s.done ? '#7a4b00' : '#a61e4d';
+    ctx.font = `900 ${w * 0.058}px system-ui, sans-serif`;
+    ctx.fillText(s.done ? '🏝️ 섬 완성!' : '하트를 다 썼어요', 0, -w * 0.035);
+    ctx.font = `800 ${w * 0.038}px system-ui, sans-serif`;
+    ctx.fillText(`아름다움 ${s.beauty} · ★${s.stars} · 도감 ${s.book.size}/${COMBOS.length}`, 0, w * 0.045);
+    ctx.restore();
+  } else if (s.pause > 0 && s.outcome) {
+    const age = PAUSE - s.pause, sc = Math.min(1, age / 12) * (1 + 0.08 * Math.max(0, 1 - age / 20)), clear = s.outcome === 'clear';
+    const st = clear ? s.starLog[s.starLog.length - 1] : 0, gain = s.beauty - s.base;
+    ctx.save();
+    ctx.translate(w / 2, top + areaH * 0.2);
+    ctx.scale(sc, sc);
+    ctx.fillStyle = clear ? 'rgba(255,244,200,.95)' : 'rgba(255,225,225,.95)';
+    ctx.shadowColor = 'rgba(0,0,0,.35)';
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.roundRect(-w * 0.36, -w * 0.09, w * 0.72, w * 0.18, w * 0.04);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = clear ? '#7a4b00' : '#a61e4d';
+    ctx.font = `900 ${w * 0.06}px system-ui, sans-serif`;
+    ctx.fillText(clear ? `${SEASON_NAME[sea]} 완성!` : '조금 모자라요…', 0, -w * 0.035);
+    ctx.font = `900 ${w * 0.05}px system-ui, sans-serif`;
+    if (clear) {
+      for (let i = 0; i < 3; i++) {
+        const pop = Math.min(1, Math.max(0, (age - 14 - i * 9) / 8));
+        ctx.fillStyle = i < st && pop > 0 ? '#f59f00' : 'rgba(122,75,0,.25)';
+        ctx.fillText('★', (i - 1) * w * 0.07, w * 0.045 - (i < st ? Math.sin(pop * Math.PI) * 6 : 0));
+      }
+    } else {
+      ctx.font = `800 ${w * 0.036}px system-ui, sans-serif`;
+      ctx.fillText(`아름다움 ${gain}/${s.goal} · 하트 −1${s.hearts > 0 ? ' · 다시 꾸며요' : ''}`, 0, w * 0.045);
+    }
+    ctx.restore();
+  }
   // 첫 안내
   if (s.season === 0 && s.placed < 3 && !s.pause) {
     const msg = s.placed === 0 ? '👆 빛나는 칸이 섬을 돌아요 — 원하는 칸에서 탭!' : '아래 다음 타일을 보고 자리를 골라요';
@@ -1143,7 +1337,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: IsleState, w: number, h: numb
   ctx.fillText(`★${s.stars}`, w * 0.8, HUD * 0.3);
   ctx.fillStyle = th.hot;
   ctx.fillText('♥'.repeat(Math.max(0, s.hearts)) + '♡'.repeat(Math.max(0, 3 - s.hearts)), w * 0.97, HUD * 0.3);
-  const bx = w * 0.03, bw = w * 0.94, by = HUD * 0.62, bh = HUD * 0.24, full = goal * 1.9;
+  const bx = w * 0.03, bw = w * 0.94, by = HUD * 0.55, bh = HUD * 0.33, full = goal * 1.9;
   ctx.fillStyle = 'rgba(255,255,255,.14)';
   ctx.beginPath();
   ctx.roundRect(bx, by, bw, bh, bh / 2);
@@ -1156,7 +1350,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: IsleState, w: number, h: numb
   ctx.beginPath();
   ctx.roundRect(bx, by, Math.max(bh, bw * fr), bh, bh / 2);
   ctx.fill();
-  ctx.font = `900 ${bh * 0.8}px system-ui, sans-serif`;
+  ctx.font = `900 ${bh * 0.62}px system-ui, sans-serif`;
   ctx.textAlign = 'center';
   [1, 1.35, 1.8].forEach((mul, i) => {
     const x = bx + bw * ((goal * mul) / full);
@@ -1167,7 +1361,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: IsleState, w: number, h: numb
   });
   ctx.textAlign = 'left';
   ctx.fillStyle = '#0b2a40';
-  ctx.font = `900 ${bh * 0.72}px system-ui, sans-serif`;
+  ctx.font = `900 ${bh * 0.68}px system-ui, sans-serif`;
   ctx.fillText(`아름다움 ${gain >= 0 ? '+' : ''}${gain} / ${goal}`, bx + bh * 0.5, by + bh * 0.52);
   // 아래 판: 지금 타일 + 다음 3개 + 도움말
   const py = h - PANEL;
@@ -1176,7 +1370,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: IsleState, w: number, h: numb
   ctx.textAlign = 'center';
   ctx.fillStyle = th.muted;
   ctx.font = `800 ${w * 0.03}px system-ui, sans-serif`;
-  const look = { t: s.t, sea, form: 0, formT: s.t, seed: 2, dusk: 0, lights: null };
+  const look = { t: s.t, sea, form: 0, formT: s.t, seed: 2, dusk: 0, lights: null, ...CALM };
   if (s.deck.length) {
     ctx.fillText('지금', w * 0.13, py + PANEL * 0.12);
     ctx.fillStyle = 'rgba(255,224,102,.16)';
@@ -1186,7 +1380,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: IsleState, w: number, h: numb
     drawTile(ctx, s.deck[0], w * 0.13, py + PANEL * 0.5, w * 0.12, look);
     for (let i = 1; i < 4; i++) {
       const x = w * (0.2 + 0.13 * i);
-      if (i === 1) (ctx.fillStyle = th.muted), ctx.fillText('다음', x + w * 0.13, py + PANEL * 0.12);
+      if (i === 1) (ctx.fillStyle = th.muted), ctx.fillText('다음 →', x + w * 0.06, py + PANEL * 0.12);
       if (!s.deck[i]) continue;
       ctx.globalAlpha = 1 - (i - 1) * 0.18;
       drawTile(ctx, s.deck[i], x, py + PANEL * 0.52, w * 0.085, look);
@@ -1205,7 +1399,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: IsleState, w: number, h: numb
     ctx.fillStyle = '#ffffff';
     ctx.font = `900 ${w * 0.045}px system-ui, sans-serif`;
     const st = s.outcome === 'clear' ? s.starLog[s.starLog.length - 1] : 0;
-    ctx.fillText(s.outcome === 'clear' ? `${'★'.repeat(st)}${'☆'.repeat(3 - st)} 다음 계절로…` : s.outcome === 'fail' ? '이 계절을 다시 꾸며요' : '…', w / 2, py + PANEL * 0.45);
+    ctx.fillText(s.done || s.dead ? `점수 ${s.beauty + s.stars * 5}` : s.outcome === 'clear' ? `${'★'.repeat(st)}${'☆'.repeat(3 - st)} 다음 계절로…` : s.outcome === 'fail' ? '이 계절을 다시 꾸며요' : '…', w / 2, py + PANEL * 0.45);
   }
 }
 

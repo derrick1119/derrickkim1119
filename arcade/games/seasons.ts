@@ -40,10 +40,10 @@ export const STAGES = [
 const DEX: Record<string, string> = { nest: '🐦', squirrel: '🐿️', oak: '🌰', deer: '🦌', pine: '🌲' };
 
 /** g: -1 하늘(아직 땅 아님) · 0 빈 땅 · 1 씨앗 · 2 새싹 · 3 어린 나무 · 4 나무 · 5 그루터기 */
-interface Tile { g: number; sp: number; age: number; u: number; v: number; nest: number; at: number }
+interface Tile { g: number; sp: number; age: number; u: number; v: number; nest: number; at: number; hurt: number }
 /** st: 0 꽃 · 1 풋열매 · 2 익음 · 4 사라짐(먹힘·떨어짐) */
 interface Fruit { tile: number; k: number; set: number; rip: number; st: number; sp: number }
-interface Critter { kind: 'sq' | 'deer'; at: number; x: number; y: number; fx: number; fy: number; tx: number; ty: number; t0: number; t1: number; target: number; next: number }
+interface Critter { kind: 'sq' | 'deer'; at: number; x: number; y: number; fx: number; fy: number; tx: number; ty: number; t0: number; t1: number; target: number; next: number; ate: number }
 interface Ev { t: number; kind: string; x: number; y: number; text?: string; n?: number }
 export interface SeasonsState {
   rng: Rng; t: number; stage: number; year: number; season: number; st: number; sid: number; sAt: number; n: number; n0: number; grewAt: number;
@@ -51,6 +51,8 @@ export interface SeasonsState {
   snow: number; storm: number; frost: number; strikeAt: number;
   harvest: number; total: number; stars: number; hearts: number; pause: number; result: number; done: boolean; dead: boolean;
   snap: { tiles: Tile[]; snow: number } | null; lastStars: number;
+  /** 계절을 넘기는 순간 섬에 있던 동물들 — 깜짝 놀라 데굴데굴 굴러 떨어진다(연출용) */
+  fled: { kind: string; x: number; y: number; ate: number }[]; fledAt: number;
   seen: Set<string>; events: Ev[]; taps: number;
 }
 
@@ -95,7 +97,7 @@ function startStage(s: SeasonsState, retry: boolean) {
       s.n = STAGES[k].n;
       s.grewAt = s.t;
       s.tiles.forEach((t, i) => {
-        if (t.g === -1 && gi(i) < s.n && gj(i) < s.n) (t.g = 0), (t.at = s.t), ev(s, 'land', gi(i), gj(i));
+        if (t.g === -1 && gi(i) < s.n && gj(i) < s.n) (t.g = 0), (t.at = s.t);
       });
       if (k > 0) see(s, 'land', '🏝️ 땅이 넓어졌어요 — 새 땅에 씨앗을 퍼뜨려요');
     }
@@ -178,7 +180,7 @@ function begin(s: SeasonsState) {
 function critter(s: SeasonsState, kind: 'sq' | 'deer', at: number, q: number): Critter {
   // 섬 앞쪽 가장자리 밖에서 들어온다
   const side = (q + s.sid) % 2, along = (q * 1.7 + 0.4) % s.n, x = side ? s.n - 0.1 : along, y = side ? along : s.n - 0.1;
-  return { kind, at, x, y, fx: x, fy: y, tx: x, ty: y, t0: at, t1: at, target: -1, next: at };
+  return { kind, at, x, y, fx: x, fy: y, tx: x, ty: y, t0: at, t1: at, target: -1, next: at, ate: 0 };
 }
 
 /** 계절 안의 한 틱 (난수 없음 — 잘하는 봇이 이 함수로 앞날을 그대로 내다본다) */
@@ -220,7 +222,7 @@ function moveCritter(s: SeasonsState, c: Critter) {
     c.y = c.ty;
     if (c.kind === 'sq') {
       const f = s.fruits[c.target];
-      if (f && f.st === 2) (f.st = 4), ev(s, 'eat', c.x, c.y, undefined, f.sp);
+      if (f && f.st === 2) (f.st = 4), c.ate++, (s.tiles[f.tile].hurt = s.t), ev(s, 'eat', c.x, c.y, undefined, f.sp);
     } else {
       const t = s.tiles[c.target];
       if (t.g === 3) (t.g = 0), (t.at = s.t), ev(s, 'browse', c.x, c.y);
@@ -273,6 +275,7 @@ function strike(s: SeasonsState) {
   s.strikeAt = s.t;
   if (best >= 0) {
     const t = s.tiles[best];
+    if (t.nest) ev(s, 'squawk', gi(best), gj(best));
     Object.assign(t, { g: 5, age: 0, nest: 0, at: s.t });
     ev(s, 'storm', gi(best), gj(best), `⚡ 쾅! 나무 1그루${knocked ? ` · 열매 ${knocked}개 떨어짐` : ''}`);
   }
@@ -281,6 +284,17 @@ function strike(s: SeasonsState) {
 /** 지금 계절을 끝낸다 (탭 또는 해 질 녘) */
 function advance(s: SeasonsState) {
   const se = s.season;
+  // 섬에 있던 동물은 계절이 휙 바뀌자 화들짝 — 데굴데굴 굴러 섬 밖으로
+  const here = s.critters.filter((c) => s.st >= c.at);
+  if (here.length) {
+    s.fledAt = s.t;
+    s.fled = here.map((c) => {
+      const q = c.target >= 0 ? Math.min(1, (s.st - c.t0) / Math.max(1, c.t1 - c.t0)) : 1;
+      const x = c.target >= 0 ? c.fx + (c.tx - c.fx) * q : c.x, y = c.target >= 0 ? c.fy + (c.ty - c.fy) * q : c.y;
+      ev(s, 'flee', x, y, c.kind === 'sq' ? (c.ate ? '헉! 볼 빵빵' : '헉!') : '미끄덩~');
+      return { kind: c.kind, x, y, ate: c.ate };
+    });
+  }
   if (se === 0) {
     let n = 0;
     for (const t of s.tiles) if (t.g === 1) (t.g = 0), n++;
@@ -382,9 +396,9 @@ export const seasons: GameDef<SeasonsState> = {
   genes: ['idle', 'daynight', 'onebutton'],
   twist: '버튼 하나가 시간을 민다 — 탭할 때마다 하늘에 뜬 숲 섬의 계절이 넘어가 싹이 나무로 쑥 자라고 열매가 익는데, 계절마다 좋은 일(싹·맺힘·익음·눈)과 나쁜 일(서리·폭풍·다람쥐·사슴)이 실시간으로 다가와서 "언제 넘기나"가 곧 숲의 운명이 된다',
   rules: [
-    '탭하면 다음 계절로 (가만히 두면 해 질 녘에 저절로) — 봄 싹, 여름 열매, 가을 익음, 겨울 눈.',
-    '가을에 넘기면 익은 열매만 거둬요: 일찍 넘기면 덜 익어 썩고, 늦으면 다람쥐가 먹어요. 거둔 열매는 씨앗이 돼 숲이 번져요.',
-    '판마다 정해진 해 동안 열매 목표를 채우면 별 1~3개, 못 채우면 하트 -1 하고 그 판만 다시.',
+    '탭하면 다음 계절로 — 봄 싹, 여름 열매, 가을 익음, 겨울 눈. 가만히 두면 해 질 녘에 저절로 넘어가요.',
+    '가을엔 익은 열매만 거둬요. 일찍 넘기면 썩고, 늦으면 다람쥐가 먹어요. 거둔 열매는 씨앗이 돼요.',
+    '판마다 정해진 해 동안 열매 목표를 채우면 별, 못 채우면 하트 -1 하고 그 판만 다시.',
   ],
   controls: 'tap',
   hint: '탭 = 다음 계절로 / 스페이스',
@@ -398,9 +412,9 @@ export const seasons: GameDef<SeasonsState> = {
   create(seed) {
     const s: SeasonsState = {
       rng: mulberry32(seed), t: 0, stage: 0, year: 0, season: 0, st: 0, sid: 0, sAt: 0, n: 3, n0: 3, grewAt: -99,
-      tiles: [...Array(N * N)].map((_, k) => ({ g: gi(k) < 3 && gj(k) < 3 ? 0 : -1, sp: 0, age: 0, u: 0, v: 0, nest: 0, at: -99 })), fruits: [], critters: [],
+      tiles: [...Array(N * N)].map((_, k) => ({ g: gi(k) < 3 && gj(k) < 3 ? 0 : -1, sp: 0, age: 0, u: 0, v: 0, nest: 0, at: -99, hurt: -99 })), fruits: [], critters: [],
       snow: 1, storm: 0, frost: 0, strikeAt: 0, harvest: 0, total: 0, stars: 0, hearts: 3, pause: 0, result: 0, done: false, dead: false,
-      snap: null, lastStars: 0, seen: new Set<string>(), events: [], taps: 0,
+      snap: null, lastStars: 0, fled: [], fledAt: -99, seen: new Set<string>(), events: [], taps: 0,
     };
     // 지난해 심긴 어린 나무 둘 + 갓 뿌린 씨앗 셋 — 첫 여름에 나무 둘이 쑥 자란다
     for (const [i, j] of [[0, 2], [2, 0]]) Object.assign(s.tiles[i * N + j], { g: 3, age: 1 });
@@ -456,14 +470,14 @@ const SNOW = '#f4f8fc';
 
 function drawScene(ctx: CanvasRenderingContext2D, s: SeasonsState, w: number, h: number, th: Theme) {
   const fx = juice(s), R = (r: number) => r * w;
-  const se = s.season, prev = (se + 3) % 4, k = Math.min(1, (s.t - s.sAt) / 40), p = s.pause ? 1 : Math.min(1, s.st / SEASONS[se].max);
+  const se = s.season, prev = (se + 3) % 4, k = s.sid <= 1 ? 1 : Math.min(1, (s.t - s.sAt) / 40), p = s.pause ? 1 : Math.min(1, s.st / SEASONS[se].max);
   const snowNow = se === 3 ? s.snow : se === 0 ? s.snow * (1 - smooth(0, 1, k)) : 0;
   const pal = (key: 'sky' | 'sky2' | 'grass' | 'grass2' | 'leaf', i: number) => PAL[i][key];
   const col = (key: 'sky' | 'sky2' | 'grass' | 'grass2' | 'leaf') => mix(pal(key, prev), pal(key, se), k);
   const dusk = smooth(0.62, 1, p) * 0.75;
-  // 땅이 넓어지면 카메라가 천천히 물러난다
-  const nv = s.n0 + (s.n - s.n0) * smooth(0, 1, (s.t - s.grewAt) / 60), n = s.n;
-  const tw = Math.min(R(0.21), R(0.84) / nv), tH = tw / 2, cx = w / 2, top = R(0.72) - (nv * tH) / 2, D = R(0.11);
+  // 땅이 넓어지면 카메라가 먼저 물러나고(0.7초), 그다음 앞쪽에 새 땅이 쿵 붙는다
+  const ga = s.t - s.grewAt, landed = ga >= 40, nv = s.n0 + (s.n - s.n0) * smooth(0, 1, ga / 40), n = landed ? s.n : s.n0;
+  const tw = Math.min(R(0.26), R(0.88) / nv), tH = tw / 2, cx = w / 2, top = R(0.74) - (nv * tH) / 2, D = R(0.11);
   const P = (i: number, j: number) => ({ x: cx + ((i - j) * tw) / 2, y: top + ((i + j + 1) * tH) / 2 });
   ctx.save();
   fx.begin(ctx);
@@ -606,7 +620,17 @@ function drawScene(ctx: CanvasRenderingContext2D, s: SeasonsState, w: number, h:
     }
     for (const q of crit) {
       if (Math.min(2 * n - 2, Math.max(0, Math.round(q.x + q.y))) !== d) continue;
-      const c = P(q.x, q.y), hop = q.moving ? Math.abs(Math.sin(s.t / 3)) * R(0.012) : 0;
+      // 다람쥐는 깡충깡충(먹을수록 볼이 빵빵), 사슴은 얼음 위를 스케이트 타듯 미끄러진다
+      const sq = q.c.kind === 'sq', c = P(q.x, q.y), hop = q.moving && sq ? Math.abs(Math.sin(s.t / 3)) * R(0.012) : 0;
+      if (!sq && q.moving) {
+        ctx.strokeStyle = 'rgba(255,255,255,.7)';
+        ctx.lineWidth = 1.5;
+        const b = P(q.c.fx, q.c.fy);
+        ctx.beginPath();
+        ctx.moveTo(b.x, b.y + 2);
+        ctx.quadraticCurveTo((b.x + c.x) / 2 + Math.sin(s.t / 9) * 10, (b.y + c.y) / 2 + 6, c.x, c.y + 2);
+        ctx.stroke();
+      }
       ctx.fillStyle = 'rgba(0,0,0,.18)';
       ctx.beginPath();
       ctx.ellipse(c.x, c.y + 2, R(0.022), R(0.008), 0, 0, Math.PI * 2);
@@ -614,13 +638,34 @@ function drawScene(ctx: CanvasRenderingContext2D, s: SeasonsState, w: number, h:
       ctx.save();
       ctx.translate(c.x, c.y - hop);
       if (q.c.tx - q.c.fx - (q.c.ty - q.c.fy) > 0) ctx.scale(-1, 1);
+      if (!sq && q.moving) ctx.rotate(Math.sin(s.t / 7) * 0.3);
+      const puff = sq ? 1 + 0.18 * Math.min(4, q.c.ate) : 1;
+      if (sq && q.c.ate) ctx.scale(1 + 0.05 * Math.sin(s.t / 4), 1 - 0.05 * Math.sin(s.t / 4));
       ctx.fillStyle = '#ffffff';
-      ctx.font = `${R(q.c.kind === 'sq' ? 0.05 : 0.075)}px system-ui, sans-serif`;
+      ctx.font = `${R((sq ? 0.062 : 0.08) * puff)}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
       ctx.fillText(q.c.kind === 'sq' ? '🐿️' : '🦌', 0, 2);
       ctx.restore();
     }
+  }
+  // 화들짝 놀란 동물: 펄쩍 뛰어 데굴데굴 구르다 섬 밖으로 떨어진다
+  const fa = s.t - s.fledAt;
+  if (fa < 80) for (const f of s.fled) {
+    const mx = (n - 1) / 2, dx = f.x - mx, dy = f.y - mx, dl = Math.hypot(dx, dy) || 1, go = Math.min(fa, 45) * 0.05;
+    const c = P(f.x + (dx / dl) * go, f.y + (dy / dl) * go), sq = f.kind === 'sq';
+    const jump = fa < 24 ? Math.sin((fa / 24) * Math.PI) * R(0.07) : 0, fall = fa > 45 ? (fa - 45) ** 2 * 0.25 : 0;
+    ctx.save();
+    ctx.translate(c.x, c.y - jump + fall);
+    ctx.rotate(sq ? (fa < 10 ? 0 : (fa - 10) * 0.35 * Math.sign(dx - dy || 1)) : Math.sin(fa / 4) * 0.6);
+    ctx.globalAlpha = Math.max(0, 1 - fall / R(0.3));
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `${R((sq ? 0.062 : 0.08) * (1 + 0.18 * Math.min(4, f.ate)))}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(sq ? '🐿️' : '🦌', 0, 0);
+    if (fa < 14) (ctx.font = `900 ${R(0.04)}px system-ui, sans-serif`), ctx.fillText('❗', R(0.02), -R(0.05));
+    ctx.restore();
   }
   // 날씨: 봄 꽃잎 · 가을 낙엽 · 겨울 눈
   for (let q = 0; q < 40; q++) {
@@ -678,17 +723,23 @@ function drawScene(ctx: CanvasRenderingContext2D, s: SeasonsState, w: number, h:
     ctx.fillRect(-10, -10, w + 20, h + 20);
   }
   // 사건 연출
+  if (landed && ga < 90 && fx.memo.land !== s.grewAt) {
+    fx.memo.land = s.grewAt;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (i >= s.n0 || j >= s.n0) (fx.burst(P(i, j).x, P(i, j).y, '#c9a26a', 6, 2.5, 2.5));
+    fx.kick(9);
+    fx.ring(cx, bot, '#ffe7b0', half, 6);
+    fx.pop(cx, bot + R(0.06), '쿵! 새 땅', '#ffffff', 20);
+  }
   const seenT = fx.memo.t ?? -1;
   let sprouts = 0;
   for (const e of s.events) {
     if (e.t <= seenT) continue;
-    const c = P(e.x, e.y), mid = { x: cx, y: R(0.42) };
-    if (e.kind === 'season') fx.ring(cx, top + n * tH * 0.5, '#ffffff', half * 1.1, 5), fx.pop(mid.x, mid.y, e.text!, '#ffffff', 26), fx.blink(['#ffd0e4', '#fff3a0', '#ffb070', '#ffffff'][se], 0.25);
+    const c = P(e.x, e.y), mid = { x: cx, y: R(0.435) };
+    if (e.kind === 'season') fx.ring(cx, top + n * tH * 0.5, '#ffffff', half * 1.1, 5), fx.pop(mid.x, mid.y, e.text!, '#ffffff', 26), fx.blink(['#ffd0e4', '#fff3a0', '#ffb070', '#ffffff'][se], 0.15);
     if (e.kind === 'grow') fx.burst(c.x, c.y - R(0.09), '#7dd35a', 22, 4, 3), fx.ring(c.x, c.y - R(0.05), '#c8ff9a', R(0.12), 4), fx.kick(4), fx.pop(c.x, c.y - R(0.17), '쑥!', '#ffffff', 18);
     if (e.kind === 'sapling') fx.burst(c.x, c.y - R(0.03), '#a6e07a', 10, 2.5, 2);
     if (e.kind === 'sprout' && sprouts++ < 6) fx.burst(c.x, c.y, '#b6f08a', 8, 2, 2), sprouts === 1 && fx.pop(c.x, c.y - R(0.04), '🌱', '#ffffff', 14);
     if (e.kind === 'nest') fx.pop(c.x, c.y - R(0.2), '🐦 둥지!', '#ffffff', 16), fx.burst(c.x, c.y - R(0.14), '#a0703c', 14, 3, 2.5);
-    if (e.kind === 'land') fx.burst(c.x, c.y, '#c9a26a', 6, 2, 2.5);
     if (e.kind === 'gift') fx.pop(c.x, c.y - R(0.14), `${e.text} 선물!`, '#ffffff', 16), fx.ring(c.x, c.y, '#ffe27a', R(0.1), 4);
     if (e.kind === 'ripe') fx.burst(c.x, c.y - R(0.1), SPECIES[e.n!].col, 4, 1.5, 1.8);
     if (e.kind === 'sq') fx.pop(c.x, c.y - R(0.04), '🐿️ 다람쥐!', '#ffe0b0', 14);
@@ -702,12 +753,20 @@ function drawScene(ctx: CanvasRenderingContext2D, s: SeasonsState, w: number, h:
     if (e.kind === 'rot') fx.pop(cx, R(0.64), e.text!, '#e9d38a', 15);
     if (e.kind === 'dry') fx.pop(cx, R(0.64), e.text!, '#eadcc4', 14);
     if (e.kind === 'storm') fx.blink('#ffffff', 0.7), fx.kick(12), fx.burst(c.x, c.y - R(0.08), '#ff9a3c', 34, 5, 3.5), fx.burst(c.x, c.y - R(0.08), '#555555', 16, 2, 4), fx.pop(cx, R(0.4), e.text!, '#fff3a0', 17);
+    if (e.kind === 'squawk') fx.pop(c.x + R(0.05), c.y - R(0.2), '🐦 꽥!! (머리 뽀글)', '#ffffff', 15), fx.burst(c.x, c.y - R(0.15), '#f2e6c8', 14, 4, 2.5);
     if (e.kind === 'frozen') fx.burst(c.x, c.y, '#cfeaff', 8, 2, 2);
     if (e.kind === 'frost') fx.blink('#bfe4ff', 0.45), fx.kick(e.n ? 6 : 1), fx.pop(cx, R(0.4), e.text!, '#e4f4ff', 18);
     if (e.kind === 'clear') fx.pop(cx, h * 0.36, e.text!, '#ffffff', 26), fx.burst(cx, h * 0.36, '#ffd23f', 60, 6, 3.5), fx.ring(cx, h * 0.36, '#ffd23f', R(0.5), 8), fx.blink('#fff6c8', 0.3);
-    if (e.kind === 'fail') fx.pop(cx, h * 0.38, e.text!, th.hot, 19), fx.kick(10);
+    if (e.kind === 'fail') fx.pop(cx, h * 0.38, e.text!, '#ffc2bd', 20), fx.kick(10), fx.blink(th.hot, 0.2);
     if (e.kind === 'stage') fx.pop(cx, R(0.33), e.text!, '#ffffff', 19);
-    if (e.kind === 'new') fx.pop(cx, R(0.47), e.text!, '#fff7c2', 14);
+    if (e.kind === 'new') {
+      // 새것 안내는 섬 아래에, 잇달아 나오면 위로 쌓는다
+      const stack = e.t - (fx.memo.newT ?? -999) < 60 ? (fx.memo.newK ?? 0) + 1 : 0;
+      fx.memo.newT = e.t;
+      fx.memo.newK = stack;
+      fx.pop(cx, h - R(0.2) - stack * R(0.055), e.text!, '#fff7c2', 14);
+    }
+    if (e.kind === 'flee') fx.pop(c.x, c.y - R(0.09), e.text!, '#ffffff', 15);
   }
   fx.memo.t = s.t;
   ctx.restore();
@@ -788,6 +847,12 @@ function drawThing(ctx: CanvasRenderingContext2D, s: SeasonsState, t: Tile, idx:
   ctx.beginPath();
   ctx.ellipse(x - sunDir * u * 0.35, y + 1, u * 0.42, u * 0.15, 0, 0, Math.PI * 2);
   ctx.fill();
+  // 판을 통과하면 숲 전체가 엉덩이춤, 실패하면 시무룩하게 축 늘어진다
+  const dance = s.pause && s.result === 1 ? Math.sin(s.t / 5 + idx * 1.7) : 0, droop = s.pause && s.result === -1 ? Math.min(1, (120 - s.pause) / 40) : 0;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.transform(1 + 0.06 * dance, 0, dance * 0.22 + droop * 0.2 * (idx % 2 ? 1 : -1), 1 - 0.07 * Math.abs(dance) - 0.12 * droop, 0, 0);
+  ctx.translate(-x, -y);
   const bare = se === 3 && sp !== 2, leaf = treeLeaf(se, sp, idx, s);
   const trunkH = sp === 2 ? u * 0.3 : u * 0.55;
   ctx.fillStyle = '#6d4528';
@@ -833,7 +898,17 @@ function drawThing(ctx: CanvasRenderingContext2D, s: SeasonsState, t: Tile, idx:
       ctx.moveTo(x, y - trunkH + 2);
       ctx.lineTo(x + Math.cos(a) * u * 0.42, y - trunkH + Math.sin(a) * u * 0.5);
       ctx.stroke();
-      if (snow > 0.15) (ctx.fillStyle = `rgba(255,255,255,${snow})`), ctx.beginPath(), ctx.ellipse(x + Math.cos(a) * u * 0.38, y - trunkH + Math.sin(a) * u * 0.46 - 1, u * 0.07, u * 0.03, 0, 0, Math.PI * 2), ctx.fill();
+    }
+    // 눈이 쌓일수록 맨가지가 솜사탕 같은 눈 왕관을 쓴다
+    if (snow > 0.05) for (const [bx, by, br] of [[-0.55, 0.25, 0.6], [0.55, 0.2, 0.6], [0, 0, 0.85], [0.05, -0.45, 0.55]]) {
+      const r = u * 0.3 * br * (0.4 + 0.6 * snow), gx = x + bx * u * 0.34, gy = cy + by * u * 0.34;
+      const gr = ctx.createRadialGradient(gx - r * 0.3, gy - r * 0.4, r * 0.1, gx, gy, r);
+      gr.addColorStop(0, `rgba(255,255,255,${0.95 * snow})`);
+      gr.addColorStop(1, `rgba(200,220,240,${0.9 * snow})`);
+      ctx.fillStyle = gr;
+      ctx.beginPath();
+      ctx.arc(gx, gy, r, 0, Math.PI * 2);
+      ctx.fill();
     }
   } else {
     const wide = sp === 1 ? 1.2 : 1, r = u * 0.34 * wide;
@@ -856,6 +931,7 @@ function drawThing(ctx: CanvasRenderingContext2D, s: SeasonsState, t: Tile, idx:
       ctx.fill();
     }
   }
+  if (t.g === 4) face(ctx, s, t, idx, x, sp === 2 ? y - trunkH - u * 0.12 : bare ? y - trunkH * 0.5 : cy + u * 0.06, bare ? u * 0.6 : u, droop > 0);
   // 둥지 + 새
   if (t.nest && t.g === 4) {
     const nx = x + u * 0.28, ny = cy + u * 0.05;
@@ -877,7 +953,7 @@ function drawThing(ctx: CanvasRenderingContext2D, s: SeasonsState, t: Tile, idx:
     const spots: [number, number][] = [[-0.45, 0.1], [0.4, -0.15], [-0.05, 0.35], [0.1, -0.45]];
     for (const f of s.fruits) {
       if (f.tile !== idx || f.st >= 4) continue;
-      const [ox, oy] = spots[f.k % 4], fx = x + ox * u * 0.42, fy = (sp === 2 ? y - trunkH - u * 0.3 : cy) + oy * u * 0.4, fr = Math.max(2.2, u * 0.065);
+      const [ox, oy] = spots[f.k % 4], fx = x + ox * u * 0.42, fy = (sp === 2 ? y - trunkH - u * 0.3 : cy) + oy * u * 0.4, fr = Math.max(2.6, u * 0.085);
       if (f.st === 0) {
         if (se !== 1) continue;
         ctx.fillStyle = '#fff0f6';
@@ -886,20 +962,57 @@ function drawThing(ctx: CanvasRenderingContext2D, s: SeasonsState, t: Tile, idx:
         ctx.fill();
         continue;
       }
-      const c = f.st === 2 ? SPECIES[sp].col : SPECIES[sp].green;
+      const c = f.st === 2 ? SPECIES[f.sp].col : SPECIES[f.sp].green;
       if (f.st === 2) (ctx.shadowColor = c), (ctx.shadowBlur = 8);
       ctx.fillStyle = c;
       ctx.beginPath();
-      if (sp === 0) ctx.arc(fx, fy, fr, 0, Math.PI * 2);
+      if (f.sp === 0) ctx.arc(fx, fy, fr, 0, Math.PI * 2);
       else ctx.ellipse(fx, fy, fr * 0.8, fr * 1.05, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
-      if (sp === 1) (ctx.fillStyle = '#6b4a2a'), ctx.fillRect(fx - fr * 0.85, fy - fr * 1.05, fr * 1.7, fr * 0.55);
+      if (f.sp === 1) (ctx.fillStyle = '#6b4a2a'), ctx.fillRect(fx - fr * 0.85, fy - fr * 1.05, fr * 1.7, fr * 0.55);
       ctx.fillStyle = 'rgba(255,255,255,.55)';
       ctx.beginPath();
       ctx.arc(fx - fr * 0.3, fy - fr * 0.3, fr * 0.3, 0, Math.PI * 2);
       ctx.fill();
     }
+  }
+  ctx.restore();
+}
+
+/** 나무 얼굴: 평소엔 깜빡, 쑥 자라면 눈 동그랗게, 다람쥐가 열매를 따 먹으면 >_<, 겨울엔 쿨쿨, 통과하면 ^_^ */
+function face(ctx: CanvasRenderingContext2D, s: SeasonsState, t: Tile, idx: number, x: number, y: number, u: number, sad: boolean) {
+  const e = Math.max(1.1, u * 0.032), gap = u * 0.11, ink = '#2a1d12';
+  const happy = s.pause > 0 && s.result === 1, hurt = s.t - t.hurt < 45, wow = s.t - t.at < 45 || (s.strikeAt > 0 && s.t - s.strikeAt < 50);
+  const sleepy = s.season === 3 && !happy && !wow, blink = (s.t + idx * 37) % 210 < 7;
+  ctx.fillStyle = 'rgba(255,120,150,.45)';
+  for (const sx of [-1, 1]) (ctx.beginPath(), ctx.ellipse(x + sx * gap * 1.7, y + e * 2.2, e * 1.6, e * 0.9, 0, 0, Math.PI * 2), ctx.fill());
+  ctx.strokeStyle = ctx.fillStyle = ink;
+  ctx.lineWidth = Math.max(1, e * 0.75);
+  ctx.lineCap = 'round';
+  for (const sx of [-1, 1]) {
+    const ex = x + sx * gap;
+    ctx.beginPath();
+    if (hurt) ctx.moveTo(ex - sx * e * 1.2, y - e * 1.1), ctx.lineTo(ex + sx * e * 0.4, y), ctx.lineTo(ex - sx * e * 1.2, y + e * 1.1), ctx.stroke();
+    else if (happy) ctx.arc(ex, y + e * 0.6, e * 1.3, Math.PI * 1.15, Math.PI * 1.85), ctx.stroke();
+    else if (sad) ctx.moveTo(ex - e * 1.2, y - sx * e * 0.6), ctx.lineTo(ex + e * 1.2, y + sx * e * 0.6), ctx.stroke();
+    else if (sleepy || blink) ctx.moveTo(ex - e * 1.1, y), ctx.lineTo(ex + e * 1.1, y), ctx.stroke();
+    else if (wow) (ctx.fillStyle = '#ffffff'), ctx.arc(ex, y, e * 1.7, 0, Math.PI * 2), ctx.fill(), (ctx.fillStyle = ink), ctx.beginPath(), ctx.arc(ex, y, e * 0.8, 0, Math.PI * 2), ctx.fill();
+    else ctx.arc(ex, y, e, 0, Math.PI * 2), ctx.fill();
+  }
+  ctx.beginPath();
+  if (wow && !hurt) ctx.ellipse(x, y + e * 2.6, e * 0.8, e * 1.1, 0, 0, Math.PI * 2), ctx.fill();
+  else if (happy) ctx.arc(x, y + e * 1.6, e * 1.3, 0.1, Math.PI - 0.1), ctx.fill();
+  else if (hurt) ctx.moveTo(x - e * 1.2, y + e * 2.4), ctx.lineTo(x - e * 0.4, y + e * 1.8), ctx.lineTo(x + e * 0.4, y + e * 2.4), ctx.lineTo(x + e * 1.2, y + e * 1.8), ctx.stroke();
+  else if (sad) ctx.arc(x, y + e * 3.2, e * 1.1, Math.PI * 1.15, Math.PI * 1.85), ctx.stroke();
+  ctx.lineCap = 'butt';
+  if (sleepy && (idx * 7 + Math.floor(s.t / 60)) % 3 === 0) {
+    const a = (s.t % 60) / 60;
+    ctx.globalAlpha = 1 - a;
+    ctx.font = `800 ${Math.max(8, u * 0.16)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText('z', x + gap * 2 + a * 6, y - u * 0.25 - a * u * 0.3);
+    ctx.globalAlpha = 1;
   }
 }
 
@@ -940,9 +1053,13 @@ function drawHud(ctx: CanvasRenderingContext2D, s: SeasonsState, w: number, h: n
   ctx.font = `800 ${R(0.033)}px system-ui, sans-serif`;
   ctx.fillText(`★★ ${g.goal[1]} · ★★★ ${g.goal[2]}`, R(0.3), R(0.1));
   ctx.textAlign = 'right';
-  const dex = [...s.seen].filter((x) => DEX[x]).map((x) => DEX[x]).join('');
   ctx.fillStyle = '#ffffff';
-  ctx.fillText(`★${s.stars} 📖${dex || '·'}`, w - 10, R(0.1));
+  ctx.fillText(`★ ${s.stars}`, w - 10, R(0.1));
+  // 도감: 만난 동물·나무 (위 띠 바로 아래 작은 스티커 줄)
+  const dex = [...s.seen].filter((x) => DEX[x]).map((x) => DEX[x]);
+  ctx.font = `${R(0.032)}px system-ui, sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,.85)';
+  ctx.fillText(`📖 ${['🍎', ...dex].join('')} ${dex.length + 1}/6`, w - 8, R(0.168));
   // 아래 띠: 해가 지나가는 길(계절 시간) + 다가오는 일 + 지금 넘기면
   const by = h - R(0.15);
   ctx.fillStyle = 'rgba(24,40,28,.62)';
@@ -974,13 +1091,15 @@ function drawHud(ctx: CanvasRenderingContext2D, s: SeasonsState, w: number, h: n
   // 첫 판 안내
   const first = s.stage === 0 && s.year === 0 && !s.pause;
   const tip = first && se === 0 && s.taps === 0 ? '👆 탭하면 다음 계절로!' : first && se === 2 ? '👆 열매가 빨갛게 익으면 탭 — 다람쥐 조심!' : first && se === 1 && s.st > 30 ? '꽃이 열매가 되는 중… 다 맺히면 탭' : '';
-  if (tip && s.st > 15) {
-    ctx.font = `900 ${R(0.046)}px system-ui, sans-serif`;
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = 'rgba(30,40,30,.55)';
-    ctx.strokeText(tip, w / 2, R(0.2));
+  if (tip && s.st > 6) {
+    ctx.font = `900 ${R(0.044)}px system-ui, sans-serif`;
+    const tw = ctx.measureText(tip).width + R(0.06), bob = Math.sin(s.t / 8) * 2;
+    ctx.fillStyle = 'rgba(30,45,30,.6)';
+    ctx.beginPath();
+    ctx.roundRect(w / 2 - tw / 2, R(0.195) + bob, tw, R(0.064), R(0.032));
+    ctx.fill();
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(tip, w / 2, R(0.2));
+    ctx.fillText(tip, w / 2, R(0.228) + bob);
   }
 }
 
@@ -998,7 +1117,8 @@ function nowText(s: SeasonsState) {
   const ripe = s.fruits.filter((f) => f.st === 2 && SPECIES[f.sp].ripe === se), green = s.fruits.filter((f) => f.st === 1 && SPECIES[f.sp].ripe === se).length;
   const val = ripe.reduce((a, f) => a + SPECIES[f.sp].val, 0);
   if (se === 2) return `지금 넘기면 → 거둠 +${val}${green ? ` · 🤢 ${green} 썩음` : ''}`;
-  return `❄️ 눈 ${Math.round(s.snow * 100)}%${val || green ? ` · 솔방울 +${val}` : ''} · 넘기면 새해`;
+  const th = thr(s), sprout = s.tiles.filter((t) => t.g === 1 && t.u < th).length;
+  return `❄️ 눈 ${Math.round(s.snow * 100)}% → 봄에 싹 ${sprout}${val || green ? ` · 솔방울 +${val}` : ''}`;
 }
 
 /** 봇: 아무 때나 탭 */
