@@ -105,7 +105,7 @@ ${cur.winner ? `<h2 id="ab-h">${cur.round + 1}라운드 준비 중</h2>
 
 ${bench ? `<section aria-labelledby="bench-h">
   <h2 id="bench-h">${ideaOnly ? '💡 오너 아이디어로 만든 게임' : '다음 라운드 후보'}</h2>
-  <p class="lead">${ideaOnly ? `${cur.round}라운드 답과 별개로 먼저 해 보세요. ${cur.round}라운드가 끝나면 이긴 쪽과 이 게임으로 다음 라운드를 엽니다(둘 다 별로면 이 게임과 새 게임 하나로).` : '이번 라운드가 끝나면 챔피언과 겨룰 수 있는 후보입니다. 미리 해 보셔도 됩니다.'}</p>
+  <p class="lead">${ideaOnly ? (cur.winner ? `다음 라운드(${cur.round + 1}라운드)에 올라갈 게임입니다. 새 게임이 준비되는 동안 먼저 해 보셔도 됩니다.` : `${cur.round}라운드 답과 별개로 먼저 해 보세요. ${cur.round}라운드가 끝나면 이긴 쪽과 이 게임으로 다음 라운드를 엽니다(둘 다 별로면 이 게임과 새 게임 하나로).`) : '이번 라운드가 끝나면 챔피언과 겨룰 수 있는 후보입니다. 미리 해 보셔도 됩니다.'}</p>
   <div class="ab">${bench}</div>
 </section>` : ''}
 
