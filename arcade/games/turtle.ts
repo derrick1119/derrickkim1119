@@ -13,7 +13,9 @@ import { juice } from '../juice.ts';
 
 const A = 1.15, TAU = Math.PI * 2, COURSES = 8, LANE = 0.32;
 /** 걷기(다리로 밀기) · 등껍질 속도 · 얼음 위 등껍질 속도 (칸/틱) */
-const VWALK = 0.035, VTUCK = 0.1, VICE = 0.14, ACC = 0.0022, FRIC = 0.0008, PUSH = 0.0006;
+const VWALK = 0.035, VTUCK = 0.1, VICE = 0.14, ACC = 0.0022, FRIC = 0.0008, GLIDE = 0.00025, PUSH = 0.0006;
+/** 등껍질 속에 이만큼(틱) 넘게 있으면 답답해서 저절로 튀어나온다 — 계속 누르고 있을 필요가 없게 (기준 8) */
+const TUCKMAX = 75;
 const G = 0.0055, HOP = 0.09, SPIN = TAU / 24, BAIL = 70, HALF = 0.2, HU = 0.55, HT = 0.28;
 const SPINPTS = [0, 100, 250, 450, 700, 1000];
 const NAMES = ['연못가 산책로', '점프대 공원', '빨래 마을', '오리 연못', '난간 광장', '꽁꽁 호수', '바람 언덕', '밤 축제'];
@@ -48,7 +50,7 @@ export interface Course {
   k: number; name: string; len: number; obs: Ob[]; ramps: Ob[]; rails: number[]; zones: Zone[]; berries: Berry[];
   time: number; snail: number; night: boolean; t2: number; t3: number; fans: Fan[]; deco: Deco[];
 }
-export interface Body { x: number; y: number; vy: number; v: number; tuck: boolean; air: boolean; rot: number; rotTo: number; bail: number; rail: number; grind: number; combo: number; oi: number; bi: number }
+export interface Body { x: number; y: number; vy: number; v: number; tuck: boolean; air: boolean; rot: number; rotTo: number; bail: number; rail: number; grind: number; combo: number; oi: number; bi: number; tt: number; lock: boolean }
 interface Ev { t: number; kind: string; x: number; y: number; text?: string; n?: number }
 export interface TurtleState {
   rng: Rng; seed: number; t: number; ct: number; k: number; c: Course; b: Body; got: Uint8Array;
@@ -115,9 +117,9 @@ export function makeCourse(seed: number, k: number): Course {
       gap += 4;
       pot += 270;
     } else if (kind === 'bar') {
-      w = 0.5;
+      w = 0.9 + r() * 0.4;
       c.obs.push({ kind, x, w, h: 0.34, ph: 0 });
-      berry(x + 0.25, 0.14);
+      berry(x + w / 2, 0.14);
       pot += 30;
     } else if (kind === 'puddle') {
       w = 1 + r() * 0.9;
@@ -146,8 +148,9 @@ export function makeCourse(seed: number, k: number): Course {
   c.rails = c.obs.flatMap((o, i) => (o.kind === 'rail' ? [i] : []));
   pot += c.berries.length * 10;
   c.time = k === 6 ? Math.round(len / SNAILV) + 60 : Math.round(len / VREF[k]);
-  c.t2 = Math.max(50, Math.round((pot * 0.5) / 50) * 50);
-  c.t3 = Math.max(100, Math.round((pot * 1.0) / 50) * 50);
+  // 별: ★★ = 묘기 조금, ★★★ = 회전을 꾸준히 (보통 사람 봇·장인 봇 점수로 맞춤)
+  c.t2 = Math.round((pot + 100) / 50) * 50;
+  c.t3 = Math.round((pot * 1.9 + 250) / 50) * 50;
   for (let fx = 2 + r() * 3; fx < len + 3; fx += 3 + r() * 3.5) c.fans.push({ x: fx, z: 0.6 + r() * 0.18, e: FANS[k][Math.floor(r() * 4)], ph: r() * 6 });
   const special = [3, -1, 4, 3, -1, 5, 6, 7][k];
   for (let dx = -0.5 + r() * 2; dx < len + 5; dx += 2.2 + r() * 2.8) {
@@ -161,7 +164,7 @@ export function makeCourse(seed: number, k: number): Course {
   return c;
 }
 
-const newBody = (): Body => ({ x: 0.6, y: 0, vy: 0, v: 0, tuck: false, air: false, rot: 0, rotTo: 0, bail: 0, rail: -1, grind: 0, combo: 0, oi: 0, bi: 0 });
+const newBody = (): Body => ({ x: 0.6, y: 0, vy: 0, v: 0, tuck: false, air: false, rot: 0, rotTo: 0, bail: 0, rail: -1, grind: 0, combo: 0, oi: 0, bi: 0, tt: 0, lock: false });
 type Cb = (kind: string, x: number, y: number, n?: number, text?: string) => void;
 
 /**
@@ -202,14 +205,18 @@ export function advance(b: Body, c: Course, got: Uint8Array, hold: boolean, ct: 
       if (b.y <= g) (b.y = g), (b.air = false), (b.vy = 0);
     } else b.y = g;
     while (b.oi < c.obs.length && c.obs[b.oi].x + c.obs[b.oi].w < b.x - HALF) (got[nb + b.oi] = got[nb + b.oi] || 1), b.oi++;
-    if (b.bail === 0) (b.air = false), (b.y = g), (b.vy = 0), (b.tuck = hold);
+    if (b.bail === 0) (b.air = false), (b.y = g), (b.vy = 0), (b.tuck = false), (b.lock = hold);
     return 0;
   }
   const z = zoneAt(c, b.x);
-  if (hold && !b.tuck) {
+  if (!hold) b.lock = false;
+  let want = hold && !b.lock;
+  if (b.tuck && !b.air && b.tt >= TUCKMAX) (want = false), (b.lock = true), cb?.('stuffy', b.x, b.y);
+  if (want && !b.tuck) {
     b.tuck = true;
+    b.tt = 0;
     cb?.(b.air ? 'curl' : 'tuck', b.x, b.y, b.v);
-  } else if (!hold && b.tuck) {
+  } else if (!want && b.tuck) {
     b.tuck = false;
     if (b.air) {
       const f = b.rot / TAU, fl = Math.floor(f);
@@ -229,7 +236,8 @@ export function advance(b: Body, c: Course, got: Uint8Array, hold: boolean, ct: 
     const vm = z === 'ice' ? VICE : VTUCK;
     b.v = b.v < vm ? Math.min(vm, b.v + ACC) : Math.max(vm, b.v - FRIC);
   } else if (z === 'wind') b.v = Math.max(0.01, b.v - 0.0016);
-  else if (z !== 'ice') b.v = b.v > VWALK ? Math.max(VWALK, b.v - FRIC) : Math.min(VWALK, b.v + PUSH);
+  else if (z !== 'ice') b.v = b.v > VWALK ? Math.max(VWALK, b.v - GLIDE) : Math.min(VWALK, b.v + PUSH);
+  if (b.tuck) b.tt++;
   const py = b.y;
   b.x += b.v;
   if (b.rail >= 0) {
@@ -261,7 +269,7 @@ export function advance(b: Body, c: Course, got: Uint8Array, hold: boolean, ct: 
       b.air = false;
       b.vy = 0;
       const n = Math.round(b.rot / TAU), onRail = b.rail >= 0 && b.tuck;
-      const ok = onRail || (b.tuck ? Math.abs(b.rot - n * TAU) < 0.75 : Math.abs(b.rot - b.rotTo) < 0.45);
+      const ok = onRail || (b.tuck ? Math.abs(b.rot - n * TAU) < 0.2 * TAU : Math.abs(b.rot - b.rotTo) < 0.6);
       const spins = onRail ? Math.floor(b.rot / TAU + 0.12) : n;
       b.rot = 0;
       b.rotTo = 0;
@@ -284,7 +292,7 @@ export function advance(b: Body, c: Course, got: Uint8Array, hold: boolean, ct: 
       if (i === b.oi) b.oi++;
       if (!got[j]) {
         got[j] = 1;
-        if (o.kind === 'rock') (pts += 10), cb?.('pass', o.x + o.w / 2, o.h, 10, '폴짝!');
+        if (o.kind === 'rock') (pts += 10), cb?.('pass', o.x + o.w / 2, o.h, 10, '');
         else if (o.kind === 'bar') (pts += 20 * mult), b.combo++, cb?.('pass', o.x, 0.3, 20 * mult, '쏙!');
         else if (o.kind === 'puddle') (pts += 15), cb?.('pass', o.x + o.w / 2, 0.5, 15, '휙!');
         else if (o.kind === 'duck' && duckIn(o, ct)) (pts += 30 * mult), b.combo++, cb?.('pass', o.x + o.w / 2, 0.6, 30 * mult, '꽥?!');
@@ -331,11 +339,11 @@ const BAILTXT: Record<string, string> = { rock: '쿵! 데굴데굴~', duck: '꽥
 
 export const turtle: GameDef<TurtleState> = {
   id: 'turtle',
-  name: '스케이트 거북이 🐢',
+  name: '스케이트 거북이',
   genes: ['endless', 'hold', 'combo'],
   origin: '오너 아이디어 — "스케이트 타는 거북이, 와우 포인트잖아 웃기잖아" (2026-11-08)',
   twist: '느릿느릿 거북이가 등껍질에 쏙 숨는 순간 스케이트처럼 슝~ 미끄러진다 — 숨으면 빨라지고 낮아지지만 못 뛰고, 떼야 폴짝 뛰며, 공중에서 숨으면 등껍질이 팽이처럼 돈다',
-  rules: ['꾹 누르면 등껍질에 쏙 — 빨라지고 낮은 건 밑으로 지나가요. 떼면 폴짝!', '공중에서 꾹 누르면 빙글빙글 회전! 땅에 닿기 전에 떼야 똑바로 착지해요.', '해 지기 전에 결승선까지 — 묘기·🍓 점수로 별을 모아요.'],
+  rules: ['꾹 누르면 등껍질에 쏙 — 슝~ 빨라지고 낮은 건 밑으로! 떼면 폴짝, 속도는 이어져요.', '공중에서 꾹 누르면 빙글빙글 회전! 땅에 닿기 전에 떼야 똑바로 착지해요.', '해 지기 전에 결승선까지 — 묘기·🍓 점수로 별을 모아요.'],
   controls: 'hold',
   hint: '꾹 누르면 등껍질에 쏙(슝~), 떼면 폴짝 / 스페이스',
   aspect: A,
@@ -356,9 +364,8 @@ export const turtle: GameDef<TurtleState> = {
     const hold = !!inp.hold;
     if (s.phase === 'pause') {
       if (--s.pause <= 0) {
-        if (s.cleared) s.k++;
-        if (s.k >= COURSES) s.dead = true;
-        else startCourse(s);
+        if (s.cleared && s.k === COURSES - 1) s.dead = true;
+        else (s.cleared && s.k++, startCourse(s));
       }
       return;
     }
@@ -370,15 +377,21 @@ export const turtle: GameDef<TurtleState> = {
       else if (kind === 'spin') (ev(s, kind, x, y, n === 1 ? '빙글 1회전!' : n === 2 ? '2회전!! 빙글빙글' : `${n}회전!!! 팽이 거북`, n), (s.lastTrick = s.t));
       else if (kind === 'bail') (ev(s, kind, x, y, BAILTXT[text ?? 'flip']), (s.lastBail = s.t), text === 'bar' && (s.sock = s.t));
       else if (kind === 'berry') ev(s, kind, x, y, `+${n}`);
-      else if (kind === 'pass') ev(s, kind, x, y, `${text} +${n}`);
+      else if (kind === 'pass') ev(s, kind, x, y, text ? `${text} +${n}` : `+${n}`);
       else if (kind === 'grind') (ev(s, kind, x, y, '끼이익~ 갈기!'), (s.lastTrick = s.t));
       else if (kind === 'splash') ev(s, kind, x, y, '첨벙!');
+      else if (kind === 'stuffy') ev(s, kind, x, y, '답답해! 퐁!');
       else if (kind === 'launch') ev(s, kind, x, y, '휘익~');
       else ev(s, kind, x, y);
     });
     s.cpts += pts;
     s.total += pts;
-    if (multOf(b.combo) > m0) ev(s, 'combo', b.x, b.y, `${b.combo}연속 콤보! ×${multOf(b.combo)}`);
+    if (multOf(b.combo) > m0) {
+      // 같은 틱의 묘기 글자에 붙여서 한 줄로 (글자가 겹치지 않게)
+      const last = s.events.at(-1);
+      if (last && last.t === s.t && (last.kind === 'spin' || last.kind === 'pass' || last.kind === 'grind')) last.text += ` 콤보×${multOf(b.combo)}`;
+      else ev(s, 'combo', b.x, b.y, `${b.combo}연속 콤보! ×${multOf(b.combo)}`);
+    }
     // 보이기 시작한 새것
     for (let i = b.oi; i < c.obs.length && c.obs[i].x < b.x + 6.5; i++) see(s, c.obs[i].kind);
     for (const r of c.ramps) if (r.x > b.x && r.x < b.x + 6.5) see(s, 'ramp');
@@ -387,8 +400,8 @@ export const turtle: GameDef<TurtleState> = {
     if (c.snail) {
       if (s.ct > 60) s.snailX += c.snail;
     } else s.snailX += 0.045;
-    if (!s.snailPassed && s.ct > 20 && s.snailX > b.x + 0.3 && b.x < c.len) (s.snailPassed = 1), ev(s, 'snail', s.snailX, 0.4, c.snail ? '🐌 라이벌: 먼저 간다~' : '🐌 달팽이한테 추월당함…');
-    if (s.snailPassed === 1 && b.x > s.snailX + 0.6) (s.snailPassed = 2), ev(s, 'snail', s.snailX, 0.4, '🐌 …!?');
+    if (!s.snailPassed && s.ct > 20 && s.snailX > b.x + 0.3 && b.x < c.len) (s.snailPassed = 1), ev(s, 'snail', s.snailX, 0.4, c.snail ? '먼저 간다~ 느림보 거북!' : '추월~ (달팽이)');
+    if (s.snailPassed === 1 && b.x > s.snailX + 0.6) (s.snailPassed = 2), ev(s, 'snail', s.snailX, 0.4, '…!? 뭐야 저 거북이');
     if (b.x >= c.len) {
       const bonus = Math.max(0, Math.floor(timeLeft(s) / 6));
       s.cpts += bonus;
@@ -532,7 +545,7 @@ function drawTurtle(ctx: CanvasRenderingContext2D, u: number, o: Look) {
     ctx.fill();
   }
   // 목·머리 (등껍질 뒤에 먼저)
-  const head = legs ? { x: 0.43, y: base - 0.17 } : null;
+  const head = legs ? { x: 0.45, y: base - 0.2 } : null;
   if (head) {
     ctx.strokeStyle = '#86bf4e';
     ctx.lineWidth = 0.13;
@@ -596,7 +609,7 @@ function drawTurtle(ctx: CanvasRenderingContext2D, u: number, o: Look) {
     hg.addColorStop(1, '#79b544');
     ctx.fillStyle = hg;
     ctx.beginPath();
-    ctx.ellipse(hx, hy, 0.135, 0.125, 0, 0, TAU);
+    ctx.ellipse(hx, hy, 0.16, 0.145, 0, 0, TAU);
     ctx.fill();
     ctx.fillStyle = 'rgba(255,120,140,.45)';
     ctx.beginPath();
@@ -604,9 +617,9 @@ function drawTurtle(ctx: CanvasRenderingContext2D, u: number, o: Look) {
     ctx.fill();
     ctx.fillStyle = '#2b3a1a';
     ctx.beginPath();
-    ctx.arc(hx + 0.115, hy - 0.005, 0.009, 0, TAU);
+    ctx.arc(hx + 0.14, hy - 0.01, 0.01, 0, TAU);
     ctx.fill();
-    const ex = hx + 0.045, ey = hy - 0.035;
+    const ex = hx + 0.05, ey = hy - 0.04;
     ctx.strokeStyle = '#2a1e14';
     ctx.lineWidth = 0.018;
     if (o.face === 'dizzy') {
@@ -625,7 +638,7 @@ function drawTurtle(ctx: CanvasRenderingContext2D, u: number, o: Look) {
       ctx.quadraticCurveTo(hx + 0.08, hy + 0.075, hx + 0.12, hy + 0.035);
       ctx.stroke();
     } else {
-      const wow = o.face === 'wow', rx = wow ? 0.06 : 0.05, ry = wow ? 0.068 : 0.055;
+      const wow = o.face === 'wow', rx = wow ? 0.072 : 0.06, ry = wow ? 0.082 : 0.065;
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.ellipse(ex, ey, rx, ry, 0, 0, TAU);
@@ -634,11 +647,11 @@ function drawTurtle(ctx: CanvasRenderingContext2D, u: number, o: Look) {
       ctx.stroke();
       ctx.fillStyle = '#1a1410';
       ctx.beginPath();
-      ctx.arc(ex + 0.018, ey + (wow ? 0 : 0.012), wow ? 0.02 : 0.026, 0, TAU);
+      ctx.arc(ex + 0.022, ey + (wow ? 0 : 0.014), wow ? 0.024 : 0.032, 0, TAU);
       ctx.fill();
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(ex + 0.026, ey - 0.006, 0.008, 0, TAU);
+      ctx.arc(ex + 0.032, ey - 0.006, 0.01, 0, TAU);
       ctx.fill();
       if (!wow) {
         // 무표정: 눈꺼풀이 반쯤 덮였다
@@ -647,7 +660,7 @@ function drawTurtle(ctx: CanvasRenderingContext2D, u: number, o: Look) {
         ctx.ellipse(ex, ey, rx + 0.004, ry + 0.004, 0, 0, TAU);
         ctx.clip();
         ctx.fillStyle = '#86bf4e';
-        ctx.fillRect(ex - 0.07, ey - 0.08, 0.14, 0.075);
+        ctx.fillRect(ex - 0.08, ey - 0.09, 0.16, 0.085);
         ctx.restore();
         ctx.strokeStyle = '#2a1e14';
         ctx.lineWidth = 0.016;
@@ -758,17 +771,225 @@ function drawTree(ctx: CanvasRenderingContext2D, x: number, y: number, S: number
   }
 }
 
+/** 판 위 소품 (px,py = 바닥 가운데) */
+function drawProp(ctx: CanvasRenderingContext2D, d: Deco, px: number, py: number, S: number, k: number, dusk: number, t: number, lit: boolean) {
+  const s = S * d.s;
+  const shade = (rx: number) => {
+    ctx.fillStyle = 'rgba(40,30,20,.2)';
+    ctx.beginPath();
+    ctx.ellipse(px - rx * 0.35, py + 1, rx, rx * 0.22, 0, 0, TAU);
+    ctx.fill();
+  };
+  if (d.kind === 0) return drawTree(ctx, px, py, S, k, d.s, dusk);
+  if (d.kind === 1) {
+    shade(S * 0.25);
+    ctx.fillStyle = '#3b3346';
+    ctx.fillRect(px - 1.5, py - S * 1.3, 3, S * 1.3);
+    ctx.fillStyle = lit ? '#ffd27a' : '#e8dcc0';
+    ctx.shadowColor = '#ffb347';
+    ctx.shadowBlur = lit ? 16 : 0;
+    ctx.beginPath();
+    ctx.roundRect(px - 5, py - S * 1.3 - 10, 10, 11, 3);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#3b3346';
+    ctx.fillRect(px - 6, py - S * 1.3 - 12, 12, 3);
+    return;
+  }
+  if (d.kind === 2) {
+    shade(s * 0.35);
+    const col = k === 5 ? ['#f4fbff', '#b9d3e0'] : k === 7 ? ['#4f7a52', '#22382a'] : ['#8fd06a', '#3f8a3a'];
+    for (const [dx, dy, r] of [[-0.18, -0.14, 0.17], [0.16, -0.15, 0.18], [0, -0.25, 0.2]] as [number, number, number][]) {
+      const g = ctx.createRadialGradient(px + s * (dx + 0.06), py + s * (dy - 0.08), 1, px + s * dx, py + s * dy, s * r);
+      g.addColorStop(0, mix(col[0], '#e8a07a', dusk * 0.4));
+      g.addColorStop(1, mix(col[1], '#3b2a4a', dusk * 0.5));
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(px + s * dx, py + s * dy, s * r, 0, TAU);
+      ctx.fill();
+    }
+    if (k !== 5 && k !== 7) for (const [dx, dy] of [[-0.12, -0.25], [0.1, -0.32], [0.2, -0.12]]) (ctx.fillStyle = ['#ff8fb1', '#ffffff', '#ffd23f'][Math.floor(d.x) % 3]), ctx.beginPath(), ctx.arc(px + s * dx, py + s * dy, 1.8, 0, TAU), ctx.fill();
+    return;
+  }
+  if (d.kind === 3) {
+    // 연못: 물·연잎·갈대
+    const rx = S * 1.3 * d.s, ry = S * 0.28;
+    ctx.fillStyle = '#9b8a6a';
+    ctx.beginPath();
+    ctx.ellipse(px, py, rx + 4, ry + 3, 0, 0, TAU);
+    ctx.fill();
+    const g = ctx.createLinearGradient(0, py - ry, 0, py + ry);
+    g.addColorStop(0, mix('#5fb4e6', '#5a5aa0', dusk));
+    g.addColorStop(1, mix('#2f7fc0', '#2d2d6a', dusk));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(px, py, rx, ry, 0, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.5)';
+    ctx.lineWidth = 1;
+    const rp = (t % 90) / 90;
+    ctx.beginPath();
+    ctx.ellipse(px + rx * 0.3, py, rx * 0.35 * rp, ry * 0.4 * rp, 0, 0, TAU);
+    ctx.stroke();
+    for (const [dx, dy] of [[-0.5, -0.2], [0.1, 0.3], [0.55, -0.1]]) {
+      ctx.fillStyle = '#4fa84a';
+      ctx.beginPath();
+      ctx.ellipse(px + rx * dx, py + ry * dy, 6, 2.6, 0, 0.3, TAU - 0.3);
+      ctx.lineTo(px + rx * dx, py + ry * dy);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#ff9ec4';
+    ctx.beginPath();
+    ctx.arc(px + rx * 0.1, py + ry * 0.3 - 2, 2.2, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = '#6b8a3a';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 5; i++) {
+      const rx2 = px - rx * 0.95 + i * 3, sw = Math.sin(t / 20 + i) * 1.5;
+      ctx.beginPath();
+      ctx.moveTo(rx2, py);
+      ctx.lineTo(rx2 + sw, py - 12 - (i % 2) * 5);
+      ctx.stroke();
+    }
+    return;
+  }
+  if (d.kind === 4) {
+    // 빨래 마을 오두막 (앞면 + 옆면 + 지붕)
+    const wd = s * 0.9, ht = s * 0.7, dp = s * 0.28;
+    shade(wd * 0.6);
+    ctx.fillStyle = mix('#c9a27a', '#6a5068', dusk * 0.6);
+    ctx.beginPath();
+    ctx.moveTo(px + wd / 2, py);
+    ctx.lineTo(px + wd / 2 + dp, py - dp * 0.7);
+    ctx.lineTo(px + wd / 2 + dp, py - ht - dp * 0.7);
+    ctx.lineTo(px + wd / 2, py - ht);
+    ctx.fill();
+    ctx.fillStyle = mix('#f3e3c8', '#8d7090', dusk * 0.6);
+    ctx.fillRect(px - wd / 2, py - ht, wd, ht);
+    ctx.fillStyle = mix(['#d4614a', '#4a7fc0', '#e0a040'][Math.floor(d.x) % 3], '#4a2a4a', dusk * 0.5);
+    ctx.beginPath();
+    ctx.moveTo(px - wd / 2 - 4, py - ht);
+    ctx.lineTo(px, py - ht - s * 0.45);
+    ctx.lineTo(px + dp, py - ht - s * 0.45 - dp * 0.7);
+    ctx.lineTo(px + wd / 2 + dp + 4, py - ht - dp * 0.7);
+    ctx.lineTo(px + wd / 2 + 4, py - ht);
+    ctx.fill();
+    ctx.fillStyle = '#7a4e2d';
+    ctx.fillRect(px - wd * 0.12, py - ht * 0.55, wd * 0.24, ht * 0.55);
+    ctx.fillStyle = lit ? '#ffd36b' : '#9fd3f0';
+    if (lit) (ctx.shadowColor = '#ffd36b'), (ctx.shadowBlur = 10);
+    ctx.fillRect(px - wd * 0.4, py - ht * 0.75, wd * 0.18, wd * 0.16);
+    ctx.fillRect(px + wd * 0.22, py - ht * 0.75, wd * 0.18, wd * 0.16);
+    ctx.shadowBlur = 0;
+    return;
+  }
+  if (d.kind === 5) {
+    shade(s * 0.3);
+    for (const [dy, r] of [[-0.18, 0.2], [-0.48, 0.15], [-0.7, 0.11]]) {
+      const g = ctx.createRadialGradient(px + s * 0.05, py + s * (dy - 0.06), 1, px, py + s * dy, s * r);
+      g.addColorStop(0, '#ffffff');
+      g.addColorStop(1, '#c8dceb');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(px, py + s * dy, s * r, 0, TAU);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#222222';
+    ctx.fillRect(px - s * 0.06, py - s * 0.74, 2, 2);
+    ctx.fillRect(px + s * 0.03, py - s * 0.74, 2, 2);
+    ctx.fillStyle = '#ff8a3d';
+    ctx.beginPath();
+    ctx.moveTo(px, py - s * 0.69);
+    ctx.lineTo(px + s * 0.16, py - s * 0.67);
+    ctx.lineTo(px, py - s * 0.65);
+    ctx.fill();
+    ctx.fillStyle = '#d24a3a';
+    ctx.fillRect(px - s * 0.13, py - s * 0.6, s * 0.26, 3);
+    ctx.strokeStyle = '#6e4529';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(px - s * 0.12, py - s * 0.5);
+    ctx.lineTo(px - s * 0.32, py - s * 0.62);
+    ctx.moveTo(px + s * 0.12, py - s * 0.5);
+    ctx.lineTo(px + s * 0.3, py - s * 0.66);
+    ctx.stroke();
+    return;
+  }
+  if (d.kind === 6) {
+    // 풍차: 바람 언덕에선 날개가 빙빙
+    shade(s * 0.4);
+    ctx.fillStyle = mix('#f0e2c8', '#7a6a88', dusk * 0.6);
+    ctx.beginPath();
+    ctx.moveTo(px - s * 0.25, py);
+    ctx.lineTo(px - s * 0.14, py - s * 1.3);
+    ctx.lineTo(px + s * 0.14, py - s * 1.3);
+    ctx.lineTo(px + s * 0.25, py);
+    ctx.fill();
+    ctx.fillStyle = '#b5523a';
+    ctx.beginPath();
+    ctx.moveTo(px - s * 0.2, py - s * 1.3);
+    ctx.lineTo(px, py - s * 1.55);
+    ctx.lineTo(px + s * 0.2, py - s * 1.3);
+    ctx.fill();
+    ctx.fillStyle = '#7a4e2d';
+    ctx.fillRect(px - s * 0.06, py - s * 0.3, s * 0.12, s * 0.3);
+    ctx.save();
+    ctx.translate(px, py - s * 1.3);
+    ctx.rotate(t * 0.06 + d.x);
+    for (let i = 0; i < 4; i++) {
+      ctx.rotate(TAU / 4);
+      ctx.fillStyle = '#fff8ec';
+      ctx.fillRect(2, -s * 0.07, s * 0.62, s * 0.14);
+      ctx.strokeStyle = '#8a6a4a';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(2, -s * 0.07, s * 0.62, s * 0.14);
+    }
+    ctx.restore();
+    return;
+  }
+  // 7: 밤 축제 천막
+  const wd = s * 1.0, ht = s * 0.75;
+  shade(wd * 0.5);
+  ctx.fillStyle = '#5a3a2a';
+  ctx.fillRect(px - wd / 2, py - ht * 0.45, wd, ht * 0.45);
+  ctx.fillStyle = '#7a4e2d';
+  ctx.fillRect(px - wd / 2 - 2, py - ht * 0.48, wd + 4, 4);
+  for (let i = 0; i < 6; i++) {
+    ctx.fillStyle = i % 2 ? '#fff3e0' : '#e8453c';
+    ctx.beginPath();
+    ctx.moveTo(px - wd / 2 + (i / 6) * wd, py - ht);
+    ctx.lineTo(px - wd / 2 + ((i + 1) / 6) * wd, py - ht);
+    ctx.lineTo(px - wd / 2 + ((i + 1) / 6) * wd, py - ht * 0.78);
+    ctx.quadraticCurveTo(px - wd / 2 + ((i + 0.5) / 6) * wd, py - ht * 0.7, px - wd / 2 + (i / 6) * wd, py - ht * 0.78);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#e8453c';
+  ctx.beginPath();
+  ctx.moveTo(px - wd / 2 - 4, py - ht);
+  ctx.lineTo(px, py - ht - s * 0.35);
+  ctx.lineTo(px + wd / 2 + 4, py - ht);
+  ctx.fill();
+  ctx.fillStyle = '#ffd27a';
+  ctx.shadowColor = '#ffb347';
+  ctx.shadowBlur = 14;
+  ctx.beginPath();
+  ctx.arc(px - wd * 0.3, py - ht * 0.62, 3.5, 0, TAU);
+  ctx.arc(px + wd * 0.3, py - ht * 0.62, 3.5, 0, TAU);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
 function drawWorld(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: number, th: Theme) {
   const fx = juice(s), c = s.c, b = s.b, k = c.k;
-  const S = w / 8, U = S * 1.25;
-  const camX = b.x - 1.7;
-  const yF = h * 0.75, D = h * 0.17, T = h * 0.09, skew = D * 0.55;
+  const S = w / 7, U = S * 1.4;
+  const camX = b.x - 1.45;
+  const yF = h * 0.8, D = h * 0.26, T = h * 0.075, skew = D * 0.42;
   const X = (wx: number, z: number) => (wx - camX) * S + z * skew;
   const Y = (z: number, hg: number) => yF - z * D - hg * S;
   const frac = c.night ? 1 : c.snail ? Math.max(0, s.snailX) / c.len : Math.min(1, s.ct / c.time);
   const dusk = c.night ? 1 : Math.max(0, (frac - 0.45) / 0.55);
   const top = w * 0.12, yBack = yF - D;
-  const x0 = Math.max(-2, camX - 3), x1 = Math.min(c.len + 4, camX + 11);
+  const x0 = Math.max(-0.6, camX - 3), x1 = Math.min(c.len + 4, camX + 10);
   const hit = s.events.filter((e) => s.t - e.t < 50);
   ctx.save();
   fx.begin(ctx);
@@ -818,6 +1039,34 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: 
     ctx.fillStyle = c.night ? 'rgba(120,120,170,.25)' : mix('#ffffff', '#ffc2a8', frac).replace('rgb', 'rgba').replace(')', ',.8)');
     for (const [dx, dy, r] of [[0, 0, 14], [14, -5, 11], [-14, -2, 10], [26, 2, 8]]) (ctx.beginPath(), ctx.arc(cx + dx, cy + dy, r, 0, TAU), ctx.fill());
   }
+  // 새 떼 · (바람 언덕) 연
+  ctx.strokeStyle = c.night ? 'rgba(200,200,255,.5)' : 'rgba(60,50,70,.6)';
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 3; i++) {
+    const bx = w + 30 - ((s.t * (0.5 + i * 0.12) + i * 140 + camX * S * 0.05) % (w + 80)), by = top + 50 + i * 16 + Math.sin(s.t / 30 + i) * 6, fl = Math.sin(s.t / 5 + i * 2) * 4;
+    ctx.beginPath();
+    ctx.moveTo(bx - 6, by - fl);
+    ctx.quadraticCurveTo(bx - 3, by - 2, bx, by);
+    ctx.quadraticCurveTo(bx + 3, by - 2, bx + 6, by - fl);
+    ctx.stroke();
+  }
+  if (k === 6)
+    for (let i = 0; i < 2; i++) {
+      const kx = w * (0.3 + i * 0.35) + Math.sin(s.t / 25 + i) * 10, ky = top + 40 + i * 20 + Math.cos(s.t / 20 + i) * 6;
+      ctx.fillStyle = i ? '#ff6b6b' : '#ffd23f';
+      ctx.beginPath();
+      ctx.moveTo(kx, ky - 12);
+      ctx.lineTo(kx + 9, ky);
+      ctx.lineTo(kx, ky + 14);
+      ctx.lineTo(kx - 9, ky);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,.6)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(kx, ky + 14);
+      ctx.quadraticCurveTo(kx - 20, ky + 50, kx - 10 - i * 30, yBack - 10);
+      ctx.stroke();
+    }
   // 먼 언덕 + 작은 마을 (시차)
   for (const [par, base, amp, col0, col1] of [[0.15, yBack - 34, 16, '#a8d494', '#7c5a8e'], [0.35, yBack - 12, 12, '#7fc06a', '#5b3f6e']] as [number, number, number, string, string][]) {
     ctx.fillStyle = c.night ? mix(col1, '#141432', 0.6) : mix(col0, col1, dusk);
@@ -845,34 +1094,48 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: 
       }
   }
   // 나무 탁자 (디오라마가 놓인 곳)
-  const tb = ctx.createLinearGradient(0, yF, 0, h);
-  tb.addColorStop(0, '#6b4430');
+  const tb = ctx.createLinearGradient(0, yBack, 0, h);
+  tb.addColorStop(0, '#9a6a48');
+  tb.addColorStop(0.5, '#7a4e34');
   tb.addColorStop(1, '#3d2519');
   ctx.fillStyle = tb;
-  ctx.fillRect(-10, yF, w + 20, h - yF + 10);
+  ctx.fillRect(-10, yBack + 3, w + 20, h - yBack + 10);
   ctx.strokeStyle = 'rgba(0,0,0,.12)';
   ctx.lineWidth = 1;
-  for (let i = 0; i < 6; i++) {
-    const gy = yF + T + 6 + i * 9;
+  for (let i = 0; i < 12; i++) {
+    const gy = yBack + 8 + i * ((h - yBack) / 12);
     ctx.beginPath();
     ctx.moveTo(0, gy);
     for (let px = 0; px <= w; px += 20) ctx.lineTo(px, gy + Math.sin(px / 40 + i) * 1.5);
     ctx.stroke();
   }
   // 땅 덩어리: 윗면(풀) · 돌길 · 앞면(흙층) · 오른쪽 끝면
-  const sx0 = X(-2, 0), sx1 = X(c.len + 4, 0);
+  const sx0 = X(-0.6, 0), sx1 = X(c.len + 4, 0);
   ctx.fillStyle = 'rgba(0,0,0,.35)';
   ctx.fillRect(sx0 + 6, yF + T, sx1 - sx0, 10);
+  ctx.beginPath();
+  ctx.moveTo(sx0 - 10, yF + T);
+  ctx.lineTo(X(-0.6, 1) - 12, yBack + 6);
+  ctx.lineTo(X(-0.6, 1), yBack);
+  ctx.lineTo(sx0, yF);
+  ctx.fill();
   const tg = ctx.createLinearGradient(0, yBack, 0, yF);
   tg.addColorStop(0, mix(k === 5 ? '#e6f2f6' : k === 6 ? '#b9cf6e' : '#98cf62', '#6c5a7a', dusk * 0.6));
   tg.addColorStop(1, mix(k === 5 ? '#c9dfe8' : k === 6 ? '#93b04c' : '#6fb144', '#4f4060', dusk * 0.6));
   ctx.fillStyle = tg;
   ctx.beginPath();
-  ctx.moveTo(X(-2, 0), yF);
+  ctx.moveTo(X(-0.6, 0), yF);
   ctx.lineTo(X(c.len + 4, 0), yF);
   ctx.lineTo(X(c.len + 4, 1), yBack);
-  ctx.lineTo(X(-2, 1), yBack);
+  ctx.lineTo(X(-0.6, 1), yBack);
   ctx.fill();
+  // 판 뒤 모서리 (배경 그림과 판이 만나는 곳)
+  ctx.strokeStyle = 'rgba(255,255,255,.35)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(X(-0.6, 1), yBack);
+  ctx.lineTo(X(c.len + 4, 1), yBack);
+  ctx.stroke();
   // 얼음판
   for (const z of c.zones) {
     if (z.kind !== 'ice' || z.x1 < x0 || z.x0 > x1) continue;
@@ -977,28 +1240,15 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: 
       ctx.fillStyle = k === 5 ? '#f4fbff' : mix('#5e9e38', '#3d3a50', dusk * 0.6);
     }
   }
-  // 뒤쪽 나무·가로등
-  for (const d of c.deco) {
-    if (d.x < x0 - 1 || d.x > x1) continue;
-    const px = X(d.x, 1.0), py = Y(1.0, 0) + 2;
-    if (d.kind === 0) drawTree(ctx, px, py, S, k, d.s, dusk);
-    else {
-      ctx.fillStyle = 'rgba(40,30,20,.2)';
-      ctx.beginPath();
-      ctx.ellipse(px - 8, py + 1, 10, 2.5, 0, 0, TAU);
-      ctx.fill();
-      ctx.fillStyle = '#3b3346';
-      ctx.fillRect(px - 1.5, py - S * 1.3, 3, S * 1.3);
-      const on = dusk > 0.35;
-      ctx.fillStyle = on ? '#ffd27a' : '#e8dcc0';
-      ctx.shadowColor = '#ffb347';
-      ctx.shadowBlur = on ? 16 : 0;
-      ctx.beginPath();
-      ctx.roundRect(px - 5, py - S * 1.3 - 10, 10, 11, 3);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-    }
-  }
+  // 판 위 소품: 뒤 나무·집·풍차 → 울타리 → 연못·덤불·눈사람
+  const lit = dusk > 0.35;
+  for (const d of c.deco) if (d.z >= 0.95 && d.x > x0 - 1.5 && d.x < x1 + 1) drawProp(ctx, d, X(d.x, d.z), Y(d.z, 0) + 2, S, k, dusk, s.t, lit);
+  ctx.strokeStyle = mix('#a77a4f', '#5a4050', dusk * 0.6);
+  ctx.fillStyle = mix('#c99a6a', '#6a5060', dusk * 0.6);
+  ctx.lineWidth = 2;
+  for (let q = Math.max(-0.5, Math.floor(x0 * 2) / 2); q < Math.min(c.len + 4, x1 + 1); q += 0.5) ctx.fillRect(X(q, 0.97) - 1.5, Y(0.97, 0.32), 3, 0.32 * S);
+  for (const hg of [0.12, 0.25]) (ctx.beginPath(), ctx.moveTo(X(Math.max(-0.5, x0), 0.97), Y(0.97, hg)), ctx.lineTo(X(Math.min(c.len + 4, x1 + 1), 0.97), Y(0.97, hg)), ctx.stroke());
+  for (const d of c.deco) if (d.z < 0.95 && d.x > x0 - 2.5 && d.x < x1 + 1) drawProp(ctx, d, X(d.x, d.z), Y(d.z, 0), S, k, dusk, s.t, lit);
   // 구경꾼: 묘기에 환호, 넘어지면 깜짝
   for (const f of c.fans) {
     if (f.x < x0 || f.x > x1) continue;
@@ -1032,6 +1282,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: 
       ctx.fill();
     }
     emo(ctx, '🐌', px, py - 11, S * 0.38, true);
+    const said = s.events.filter((e) => e.kind === 'snail').at(-1);
+    if (said && s.t - said.t < 100) bubble(ctx, px, py - 34, said.text!, 10);
   }
   // 길 위의 것들: 뒤쪽(오리 뒤편·빨랫줄 먼 기둥) → 길 → 거북이 → 앞쪽
   const front: (() => void)[] = [];
@@ -1096,9 +1348,10 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: 
       }
     } else if (o.kind === 'duck') {
       const zc = duckZ(o, s.ct), moving = Math.sin(((s.ct + o.ph) / 240) * TAU);
+      const hitAgo = s.t - s.lastBail, scared = hitAgo < 60 && Math.abs(b.x - o.x - o.w / 2) < 2 ? 1 - hitAgo / 60 : 0;
       const draw = () => {
         for (let i = 0; i < 4; i++) {
-          const dz = zc + (i % 2) * 0.04, px = X(o.x + 0.15 + i * 0.27, dz), py = Y(dz, 0) - Math.abs(Math.sin(s.t / 6 + i)) * 2;
+          const dz = zc + (i % 2) * 0.04, px = X(o.x + 0.15 + i * 0.27, dz) + scared * (i - 1.5) * 14, py = Y(dz, 0) - Math.abs(Math.sin(s.t / 6 + i)) * 2 - scared * Math.abs(Math.sin(s.t / 3 + i)) * 16;
           shadowAt(px, py + 2, 6);
           emo(ctx, i === 0 ? '🦆' : '🐥', px, py - (i === 0 ? 10 : 7), S * (i === 0 ? 0.42 : 0.3), moving < 0);
         }
@@ -1108,7 +1361,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: 
       else front.push(draw);
     } else if (o.kind === 'rail') {
       const px0 = X(o.x, LANE), px1 = X(o.x + o.w, LANE), py = Y(LANE, o.h);
-      shadowAt((px0 + px1) / 2, Y(LANE, 0), (px1 - px0) * 0.5);
+      (ctx.fillStyle = 'rgba(30,20,10,.22)'), ctx.fillRect(px0 - 6, Y(LANE, 0) - 1, px1 - px0, 4);
       ctx.strokeStyle = '#59606a';
       ctx.lineWidth = 3;
       for (const q of [0.25, o.w / 2, o.w - 0.25]) (ctx.beginPath(), ctx.moveTo(X(o.x + q, LANE + 0.04), Y(LANE + 0.04, 0)), ctx.lineTo(X(o.x + q, LANE + 0.04), Y(LANE + 0.04, o.h)), ctx.stroke());
@@ -1124,47 +1377,46 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: 
       ctx.fillStyle = '#ffcf3f';
       for (let q = 0.4; q < o.w; q += 0.8) ctx.fillRect(X(o.x + q, LANE) - 3, py - 2, 6, 4);
     } else if (o.kind === 'bar') {
-      // 빨랫줄: 먼 기둥·줄·빨래 (빨래는 거북이 앞에 그린다)
-      const xa = X(o.x + 0.25, 0.7), xb = X(o.x + 0.25, 0.02), ya = Y(0.7, 1.55), yb = Y(0.02, 1.55);
+      // 빨랫줄: 길 뒤 기둥 둘 사이 줄에 빨래가 낮게 걸려 있다 (빨래는 거북이 앞에 그린다)
+      const zp = LANE + 0.17, LH = 1.15, xa = X(o.x - 0.08, zp), xb = X(o.x + o.w + 0.08, zp), yl = Y(zp, LH);
       ctx.strokeStyle = '#7a5232';
       ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(xa, Y(0.7, 0));
-      ctx.lineTo(xa, ya);
-      ctx.stroke();
+      for (const px of [xa, xb]) (ctx.beginPath(), ctx.moveTo(px, Y(zp, 0)), ctx.lineTo(px, yl - 4), ctx.stroke());
       front.push(() => {
-        ctx.strokeStyle = '#7a5232';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(xb, Y(0.02, 0));
-        ctx.lineTo(xb, yb);
-        ctx.stroke();
-        ctx.strokeStyle = '#f4efe6';
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.moveTo(xa, ya);
-        ctx.quadraticCurveTo((xa + xb) / 2, (ya + yb) / 2 + 6, xb, yb);
-        ctx.stroke();
         const sway = Math.sin(s.t / 14 + o.x) * 2;
-        const cloth = (z: number, len: number, col: string, wd: number) => {
-          const px = X(o.x + 0.25, z), py = Y(z, 1.55) + 4;
+        ctx.strokeStyle = '#f4efe6';
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.moveTo(xa, yl);
+        ctx.quadraticCurveTo((xa + xb) / 2, yl + 8, xb, yl);
+        ctx.stroke();
+        const items = Math.max(3, Math.round(o.w / 0.28));
+        for (let i = 0; i < items; i++) {
+          const f = (i + 0.5) / items, cx = X(o.x + o.w * f, LANE), lyy = yl + 8 * (1 - (2 * f - 1) ** 2) + 2, bot = Y(LANE, o.h + 0.03 + (i % 2) * 0.05);
+          const wd = ((o.w / items) * S) * 0.85, col = ['#fff5e8', '#8fd3ff', '#ff8fb1', '#ffd23f', '#b8ff8a'][(i + Math.floor(o.x)) % 5];
           ctx.fillStyle = col;
           ctx.beginPath();
-          ctx.moveTo(px - wd / 2, py);
-          ctx.lineTo(px + wd / 2, py);
-          ctx.lineTo(px + wd / 2 + sway, py + len);
-          for (let i = 4; i >= 0; i--) ctx.lineTo(px - wd / 2 + sway + (i / 4) * wd, py + len + (i % 2 ? 3 : 0));
+          if (i % 3 === 1) {
+            // 양말
+            ctx.moveTo(cx - wd * 0.2, lyy);
+            ctx.lineTo(cx + wd * 0.15, lyy);
+            ctx.lineTo(cx + wd * 0.15 + sway, bot - wd * 0.25);
+            ctx.quadraticCurveTo(cx + wd * 0.5 + sway, bot, cx + wd * 0.1 + sway, bot);
+            ctx.lineTo(cx - wd * 0.2 + sway, bot - wd * 0.1);
+          } else {
+            // 셔츠·수건
+            ctx.moveTo(cx - wd / 2, lyy);
+            ctx.lineTo(cx + wd / 2, lyy);
+            ctx.lineTo(cx + wd / 2 + sway, bot);
+            for (let q = 4; q >= 0; q--) ctx.lineTo(cx - wd / 2 + sway + (q / 4) * wd, bot + (q % 2 ? 2.5 : 0));
+          }
+          ctx.closePath();
           ctx.fill();
+          ctx.fillStyle = 'rgba(0,0,0,.12)';
+          ctx.fillRect(cx - wd / 2 + sway, bot - 4, wd, 3);
           ctx.fillStyle = '#c69c6d';
-          ctx.fillRect(px - wd / 2 + 2, py - 3, 3, 6);
-          ctx.fillRect(px + wd / 2 - 5, py - 3, 3, 6);
-        };
-        cloth(0.58, S * 0.5, '#8fd3ff', S * 0.3);
-        cloth(LANE, (1.55 - o.h) * S - 6, '#fff5e8', S * 0.55);
-        const px = X(o.x + 0.25, LANE), py = Y(LANE, 1.55) + 4;
-        ctx.fillStyle = '#ff8fb1';
-        for (let i = 0; i < 3; i++) ctx.fillRect(px - S * 0.22 + sway * 0.5, py + 10 + i * 9, S * 0.44, 3);
-        cloth(0.1, S * 0.4, '#ff8fb1', S * 0.16);
+          ctx.fillRect(cx - 2, lyy - 3, 3, 6);
+        }
       });
     }
   }
@@ -1206,28 +1458,46 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: 
     ctx.fill();
     emo(ctx, '🍓', px, py, S * 0.3);
   }
-  // 결승 아치 (먼 기둥)
-  const fin = c.len;
+  // 결승 아치: 줄무늬 풍선 기둥 둘 + 체크 현수막
+  const fin = c.len, ZA = 0.66, ZB = 0.02, AH = 1.95;
+  const pillar = (z: number) => {
+    const px = X(fin, z), py = Y(z, 0);
+    for (let i = 0; i < 7; i++) {
+      ctx.fillStyle = i % 2 ? '#ffffff' : '#ff5c6c';
+      ctx.beginPath();
+      ctx.roundRect(px - S * 0.11, py - ((i + 1) / 7) * AH * S, S * 0.22, (AH * S) / 7 + 1, S * 0.08);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,.35)';
+    ctx.fillRect(px - S * 0.06, py - AH * S, 3, AH * S);
+  };
   if (fin > x0 - 1 && fin < x1 + 1) {
-    const pa = X(fin, 0.68), pb = X(fin, 0.02);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(pa - 2, Y(0.68, 1.9), 4, 1.9 * S);
+    pillar(ZA);
     front.push(() => {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(pb - 2, Y(0.02, 1.9), 4, 1.9 * S);
+      pillar(ZB);
       for (let i = 0; i < 10; i++)
         for (let j = 0; j < 2; j++) {
-          const z0 = 0.68 - (i / 10) * 0.66, z1 = 0.68 - ((i + 1) / 10) * 0.66, hg = 1.9 - j * 0.14;
+          const z0 = ZA - (i / 10) * (ZA - ZB), z1 = ZA - ((i + 1) / 10) * (ZA - ZB), hg = AH + 0.08 - j * 0.17;
           ctx.fillStyle = (i + j) % 2 ? '#222222' : '#ffffff';
           ctx.beginPath();
           ctx.moveTo(X(fin, z0), Y(z0, hg));
           ctx.lineTo(X(fin, z1), Y(z1, hg));
-          ctx.lineTo(X(fin, z1), Y(z1, hg - 0.14));
-          ctx.lineTo(X(fin, z0), Y(z0, hg - 0.14));
+          ctx.lineTo(X(fin, z1), Y(z1, hg - 0.17));
+          ctx.lineTo(X(fin, z0), Y(z0, hg - 0.17));
           ctx.fill();
         }
-      emo(ctx, '🎈', pa + 6, Y(0.68, 2.2) + Math.sin(s.t / 15) * 3, S * 0.35);
-      emo(ctx, '🎈', pb - 4, Y(0.02, 2.15) + Math.cos(s.t / 15) * 3, S * 0.35);
+      const mx = X(fin, (ZA + ZB) / 2), my = Y((ZA + ZB) / 2, AH + 0.5);
+      ctx.fillStyle = '#ffd23f';
+      ctx.beginPath();
+      ctx.roundRect(mx - S * 0.5, my - S * 0.17, S, S * 0.34, 6);
+      ctx.fill();
+      ctx.fillStyle = '#5a2a10';
+      ctx.font = `900 ${S * 0.24}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('결승!', mx, my + 1);
+      emo(ctx, '🎈', X(fin, ZA) + 8, Y(ZA, AH + 0.35) + Math.sin(s.t / 15) * 3, S * 0.35);
+      emo(ctx, '🎈', X(fin, ZB) - 6, Y(ZB, AH + 0.3) + Math.cos(s.t / 15) * 3, S * 0.35);
     });
   }
   // 거북이
@@ -1252,9 +1522,23 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: 
     }
     ctx.globalAlpha = 1;
   }
+  if (b.air && (b.tuck || b.rot < b.rotTo) && !b.bail) {
+    // 빙글빙글 회전 자국
+    ctx.strokeStyle = 'rgba(255,255,255,.7)';
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 2; i++) {
+      ctx.lineWidth = 3 - i;
+      ctx.beginPath();
+      ctx.arc(tx, ty - U * 0.24, U * (0.48 + i * 0.1), b.rot - Math.PI * 0.5 + i * Math.PI, b.rot + i * Math.PI);
+      ctx.stroke();
+    }
+  }
   const face: Face = b.bail ? 'dizzy' : s.phase === 'pause' && s.cleared ? 'smug' : s.t - s.lastTrick < 70 ? 'smug' : (b.air && !b.tuck) || (!b.tuck && b.v > 0.065) ? 'wow' : 'meh';
   ctx.save();
-  ctx.translate(tx, ty);
+  // 걸을 땐 통통 · 껍질 속이 답답해지면 부들부들 떨며 김이 난다 (곧 퐁!)
+  const stuffy = b.tuck && !b.air && b.tt > 48;
+  ctx.translate(tx + (stuffy ? Math.sin(s.t * 1.7) * 1.5 : 0), ty - (!b.tuck && !b.air && !b.bail ? Math.abs(Math.sin(b.x * 9)) * 2 : 0));
+  if (stuffy && s.t % 4 === 0) fx.burst(tx - U * 0.05, ty - U * 0.5, 'rgba(255,255,255,.8)', 2, 1.2, 3);
   drawTurtle(ctx, U, { tuck: b.tuck && !b.bail, rot: b.rot, face, walk: b.x * 9, ice, sock: s.t - s.sock < 420, shades: b.combo >= 3, bail: b.bail, t: s.t });
   ctx.restore();
   if (b.bail)
@@ -1305,7 +1589,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: 
   // 노을빛·밤
   if (dusk > 0 && !c.night) (ctx.fillStyle = `rgba(255,110,60,${dusk * 0.13})`), ctx.fillRect(-10, -10, w + 20, h + 20);
   if (c.night) {
-    ctx.fillStyle = 'rgba(8,10,40,.5)';
+    ctx.fillStyle = 'rgba(8,10,40,.36)';
     ctx.fillRect(-10, -10, w + 20, h + 20);
     ctx.globalCompositeOperation = 'lighter';
     const glow = (gx: number, gyy: number, r: number, a: number) => {
@@ -1315,8 +1599,9 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: 
       ctx.fillStyle = lg;
       ctx.fillRect(gx - r, gyy - r, r * 2, r * 2);
     };
-    for (const d of c.deco) if (d.kind === 1 && d.x > x0 - 2 && d.x < x1 + 2) glow(X(d.x, 1), Y(1, 1.3), S * 1.6, 0.35);
-    glow(tx + U * 0.3, ty - U * 0.3, S * 1.5, 0.28);
+    for (const d of c.deco)
+      if ((d.kind === 1 || d.kind === 7) && d.x > x0 - 2 && d.x < x1 + 2) (glow(X(d.x, 1), Y(1, d.kind === 1 ? 1.3 : 0.5), S * 1.4, 0.4), glow(X(d.x, LANE), Y(LANE, 0), S * 1.3, 0.22));
+    glow(tx + U * 0.3, ty - U * 0.3, S * 2, 0.3);
     ctx.globalCompositeOperation = 'source-over';
     // 줄 전구
     for (let q = Math.floor(x0); q < x1; q += 0.5) {
@@ -1337,32 +1622,45 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: 
       ctx.fill();
     }
   }
+  const vg = ctx.createRadialGradient(w / 2, h * 0.55, h * 0.35, w / 2, h * 0.55, h * 0.8);
+  vg.addColorStop(0, 'rgba(30,10,25,0)');
+  vg.addColorStop(1, 'rgba(30,10,25,.38)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(-10, -10, w + 20, h + 20);
   // 사건 → 연출
   const seenT = fx.memo.t ?? -1;
+  /** 거북이 근처 글자는 겹치지 않게 위로 쌓는다 */
+  const say = (x: number, y: number, text: string, color: string, size: number) => {
+    const slot = (fx.memo.pt ?? -99) > s.t - 24 ? ((fx.memo.ps ?? 0) + 1) % 4 : 0;
+    fx.memo.pt = s.t;
+    fx.memo.ps = slot;
+    fx.pop(Math.max(w * 0.32, Math.min(w * 0.68, x)), y - slot * size * 1.15, text, color, size);
+  };
   for (const e of s.events) {
     if (e.t <= seenT) continue;
     const ex = X(e.x, LANE), ey = Y(LANE, e.y);
-    if (e.kind === 'tuck') (e.text && (fx.pop(ex, ey - U * 0.6, e.text, '#ffffff', 20), fx.ring(ex, ey - U * 0.2, '#ffffff', U * 0.7, 3)), fx.burst(ex - U * 0.35, ey - 3, '#e6cfa0', 10, 2.5, 2.5), fx.kick(2));
+    if (e.kind === 'tuck') (e.text && (say(ex, ey - U * 0.7, e.text, '#ffffff', 20), fx.ring(ex, ey - U * 0.2, '#ffffff', U * 0.7, 3)), fx.burst(ex - U * 0.35, ey - 3, '#e6cfa0', 10, 2.5, 2.5), fx.kick(2));
     if (e.kind === 'hop') fx.burst(ex, ey - 2, '#f0dfb8', 7, 1.8, 2);
-    if (e.kind === 'launch') fx.pop(ex, ey - U * 0.7, e.text!, '#fff3c4', 16);
+    if (e.kind === 'stuffy') (say(ex, ey - U * 0.9, e.text!, '#ffe0a8', 15), fx.burst(ex + U * 0.3, ey - U * 0.3, '#ffffff', 10, 2.5, 2));
+    if (e.kind === 'launch') (fx.ring(ex, ey, '#fff3c4', U * 0.6, 3), fx.burst(ex, ey, '#f0dfb8', 8, 2.5, 2));
     if (e.kind === 'land') fx.burst(ex, ey - 2, '#f0dfb8', 8, 2, 2);
-    if (e.kind === 'spin') (fx.pop(ex, ey - U, e.text!, '#ffd23f', 18 + (e.n ?? 1) * 3), fx.ring(ex, ey - U * 0.3, '#ffd23f', U * (0.8 + (e.n ?? 1) * 0.3), 4), fx.burst(ex, ey - U * 0.3, '#fff2a8', 18 + (e.n ?? 1) * 8, 4, 2.5), fx.kick(3 + (e.n ?? 1)), (e.n ?? 1) >= 2 && fx.blink('#fff3c4', 0.18));
-    if (e.kind === 'bail') (fx.pop(ex, ey - U * 0.9, e.text!, th.hot, 18), fx.burst(ex, ey - U * 0.2, '#c8a07a', 16, 3.5, 3), fx.burst(ex, ey - U * 0.4, '#ffffff', 10, 3, 2), fx.kick(9), fx.blink(th.hot, 0.12));
-    if (e.kind === 'berry') (fx.pop(ex, ey - 12, e.text!, '#ff6b81', 13), fx.burst(ex, ey, '#ff4d6d', 8, 2, 2));
+    if (e.kind === 'spin') (say(ex, ey - U * 1.1, e.text!, '#ffd23f', 18 + (e.n ?? 1) * 3), fx.ring(ex, ey - U * 0.3, '#ffd23f', U * (0.8 + (e.n ?? 1) * 0.3), 4), fx.burst(ex, ey - U * 0.3, '#fff2a8', 18 + (e.n ?? 1) * 8, 4, 2.5), fx.kick(3 + (e.n ?? 1)), (e.n ?? 1) >= 2 && fx.blink('#fff3c4', 0.18));
+    if (e.kind === 'bail' && e.text!.startsWith('꽥')) (fx.burst(ex + U * 0.3, ey - U * 0.3, '#ffffff', 16, 4, 2.5), fx.burst(ex + U * 0.3, ey - U * 0.3, '#ffd23f', 10, 3.5, 2));
+    if (e.kind === 'bail') (say(ex, ey - U * 0.95, e.text!, '#ff8a7a', 20), fx.burst(ex, ey - U * 0.2, '#c8a07a', 16, 3.5, 3), fx.burst(ex, ey - U * 0.4, '#ffffff', 10, 3, 2), fx.kick(9), fx.blink(th.hot, 0.12));
+    if (e.kind === 'berry') (fx.pop(ex + 6, Math.min(ey, Y(LANE, b.y)) - U * 0.8, e.text!, '#ff8aa0', 11), fx.burst(ex, ey, '#ff4d6d', 8, 2, 2));
     if (e.kind === 'splash') (fx.pop(ex, ey - U * 0.6, e.text!, '#8fd3ff', 17), fx.burst(ex, ey - 4, '#9fd8ff', 26, 3.5, 3), fx.ring(ex, ey, '#cfefff', U * 0.9, 3), fx.kick(4));
-    if (e.kind === 'pass') fx.pop(ex, ey - U * 0.7, e.text!, '#ffffff', 14);
-    if (e.kind === 'grind') (fx.pop(ex, ey - U * 0.8, e.text!, '#ffb347', 16), fx.burst(ex, ey, '#ffcf4a', 16, 3, 2));
+    if (e.kind === 'pass') e.text!.startsWith('+') ? fx.pop(ex + 8, ey - U * 0.5, e.text!, '#ffffff', 11) : say(ex + U * 0.3, ey - U * 0.6, e.text!, '#ffffff', 14);
+    if (e.kind === 'grind') (say(ex, ey - U * 0.9, e.text!, '#ffb347', 16), fx.burst(ex, ey, '#ffcf4a', 16, 3, 2));
     if (e.kind === 'rail') fx.burst(ex, ey, '#ffcf4a', 12, 3, 2);
-    if (e.kind === 'combo') (fx.pop(w / 2, h * 0.3, e.text!, th.accent, 20), fx.blink('#eaffd8', 0.1));
-    if (e.kind === 'snail') fx.pop(X(e.x, 0.58), Y(0.58, 0) - 34, e.text!, '#fff3c4', 13);
-    if (e.kind === 'course') fx.pop(w / 2, h * 0.24, e.text!, '#ffffff', 22);
-    if (e.kind === 'new') fx.pop(w / 2, h * 0.33, e.text!, '#fff3c4', 14);
+    if (e.kind === 'combo') (say(ex, ey - U * 1.1, e.text!, '#b8ff8a', 17), fx.ring(ex, ey - U * 0.3, '#b8ff8a', U * 1.2, 3));
+    if (e.kind === 'course') fx.pop(w / 2, h * 0.37, e.text!, '#ffffff', 22);
+    if (e.kind === 'new') fx.pop(w / 2, h * 0.45, e.text!, '#fff3c4', 14);
     if (e.kind === 'clear') {
-      fx.pop(w / 2, h * 0.27, e.text!, '#ffd23f', 26);
+      fx.pop(w / 2, h * 0.32, e.text!, '#ffd23f', 26);
       for (const [cx, col] of [[0.25, '#ff6b6b'], [0.5, '#ffd23f'], [0.75, '#7ed957'], [0.4, '#6cc6ff'], [0.6, '#ff8fb1']] as [number, string][]) fx.burst(w * cx, h * 0.3, col, 22, 5.5, 3);
       fx.blink('#fff6c8', 0.25);
     }
-    if (e.kind === 'bonus') fx.pop(w / 2, h * 0.36, e.text!, '#ffffff', 15);
+    if (e.kind === 'bonus') fx.pop(w / 2, h * 0.39, e.text!, '#ffffff', 15);
     if (e.kind === 'fail') (fx.pop(w / 2, h * 0.3, e.text!, th.hot, 19), fx.kick(10), fx.blink('#3a1a3a', 0.35));
   }
   fx.memo.t = s.t;
@@ -1439,7 +1737,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: 
   ctx.fillStyle = 'rgba(255,255,255,.85)';
   ctx.fillText(`${s.cpts}점`, 4, py2 - 13);
   // 첫 안내
-  const say = (t1: string, t2?: string) => {
+  const hintBox = (t1: string, t2?: string) => {
     ctx.textAlign = 'center';
     ctx.font = `900 ${S * 0.27}px system-ui, sans-serif`;
     const tw = Math.max(ctx.measureText(t1).width, t2 ? ctx.measureText(t2).width : 0) + 24;
@@ -1451,17 +1749,17 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: 
     ctx.fillText(t1, w / 2, top + 25);
     if (t2) (ctx.fillStyle = '#ffe0a8'), (ctx.font = `800 ${S * 0.22}px system-ui, sans-serif`), ctx.fillText(t2, w / 2, top + 45);
   };
-  if (s.phase === 'run' && k === 0 && (s.tucks === 0 || s.hops === 0) && s.ct > 10) say('👆 꾹 누르면 등껍질에 쏙 — 슝~', '떼면 폴짝! 돌멩이를 넘어요');
-  else if (s.phase === 'run' && k === 1 && s.ct < 420 && s.ct > 30) say('🛹 점프대에서 날면 꾹 = 빙글!', '땅에 닿기 전에 떼야 똑바로 착지');
+  if (s.phase === 'run' && k === 0 && (s.tucks === 0 || s.hops === 0) && s.ct > 10) hintBox('👆 꾹 누르면 등껍질에 쏙 — 슝~', '떼면 폴짝! 돌멩이를 넘어요');
+  else if (s.phase === 'run' && k === 1 && s.ct < 420 && s.ct > 30) hintBox('🛹 점프대에서 날면 꾹 = 빙글!', '땅에 닿기 전에 떼야 똑바로 착지');
   if (s.phase === 'pause') {
     ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(40,22,30,.6)';
     ctx.beginPath();
-    ctx.roundRect(w * 0.18, h * 0.38, w * 0.64, 34, 12);
+    ctx.roundRect(w * 0.16, top + 10, w * 0.68, 30, 12);
     ctx.fill();
     ctx.fillStyle = '#ffffff';
-    ctx.font = `800 ${S * 0.22}px system-ui, sans-serif`;
-    ctx.fillText(s.cleared ? (s.k === COURSES - 1 ? '🏆 8코스 완주! 거북이 전설' : `다음: ${s.k + 2}판 ${NAMES[s.k + 1]}`) : `♥ ${s.hearts} — 같은 코스 다시!`, w / 2, h * 0.38 + 17);
+    ctx.font = `800 ${S * 0.2}px system-ui, sans-serif`;
+    ctx.fillText(s.cleared ? (s.k === COURSES - 1 ? '🏆 8코스 완주! 거북이 전설' : `다음: ${s.k + 2}판 ${NAMES[s.k + 1]}`) : `♥ ${s.hearts} — 같은 코스 다시!`, w / 2, top + 25);
   }
 }
 

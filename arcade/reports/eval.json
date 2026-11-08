@@ -1,1 +1,290 @@
-{}
+{
+ "isle": {
+  "id": "isle",
+  "name": "타일 섬",
+  "n": 24,
+  "dumb": {
+   "score": 68.5,
+   "sec": 39.4
+  },
+  "smart": {
+   "score": 317,
+   "sec": 83.7,
+   "capped": 0
+  },
+  "skillGap": 4.58,
+  "reveals": [
+   9.1,
+   12.9,
+   15.4
+  ],
+  "dumbReveals": [
+   7,
+   8.8
+  ],
+  "parts": {
+   "skill": 0.731,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.899
+ },
+ "terrarium": {
+  "id": "terrarium",
+  "name": "기울이는 유리병 정원",
+  "n": 24,
+  "dumb": {
+   "score": 178.5,
+   "sec": 37.6
+  },
+  "smart": {
+   "score": 714,
+   "sec": 45.1,
+   "capped": 0
+  },
+  "skillGap": 3.98,
+  "reveals": [
+   6.5,
+   7,
+   7
+  ],
+  "dumbReveals": [
+   3.4,
+   3.5
+  ],
+  "parts": {
+   "skill": 0.665,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.876
+ },
+ "train": {
+  "id": "train",
+  "name": "장난감 기차 마을",
+  "n": 24,
+  "dumb": {
+   "score": 46.5,
+   "sec": 96.3
+  },
+  "smart": {
+   "score": 470.5,
+   "sec": 147.2,
+   "capped": 0
+  },
+  "skillGap": 9.93,
+  "reveals": [
+   3.1,
+   7,
+   10
+  ],
+  "dumbReveals": [
+   1.6,
+   3.6
+  ],
+  "parts": {
+   "skill": 1,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.978
+ },
+ "volcano": {
+  "id": "volcano",
+  "name": "화산섬 키우기",
+  "n": 24,
+  "dumb": {
+   "score": 30,
+   "sec": 91.6
+  },
+  "smart": {
+   "score": 150,
+   "sec": 141.8,
+   "capped": 0
+  },
+  "skillGap": 4.87,
+  "reveals": [
+   6.5,
+   9,
+   10.8
+  ],
+  "dumbReveals": [
+   7.3,
+   9
+  ],
+  "parts": {
+   "skill": 0.761,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.909
+ },
+ "dollhouse": {
+  "id": "dollhouse",
+  "name": "단면 인형의 집",
+  "n": 24,
+  "dumb": {
+   "score": 76,
+   "sec": 78.8
+  },
+  "smart": {
+   "score": 431,
+   "sec": 119,
+   "capped": 0
+  },
+  "skillGap": 5.61,
+  "reveals": [
+   5.1,
+   7.4,
+   10
+  ],
+  "dumbReveals": [
+   5.3,
+   7.1
+  ],
+  "parts": {
+   "skill": 0.829,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.93
+ },
+ "antfarm": {
+  "id": "antfarm",
+  "name": "개미 단면 정원",
+  "n": 24,
+  "dumb": {
+   "score": 52,
+   "sec": 156.1
+  },
+  "smart": {
+   "score": 412,
+   "sec": 109.2,
+   "capped": 0
+  },
+  "skillGap": 7.79,
+  "reveals": [
+   3.1,
+   4.9,
+   6
+  ],
+  "dumbReveals": [
+   2.3,
+   3.1
+  ],
+  "parts": {
+   "skill": 0.987,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.975
+ },
+ "seasons": {
+  "id": "seasons",
+  "name": "계절 숲",
+  "n": 24,
+  "dumb": {
+   "score": 11,
+   "sec": 31.8
+  },
+  "smart": {
+   "score": 765,
+   "sec": 104.2,
+   "capped": 0
+  },
+  "skillGap": 63.83,
+  "reveals": [
+   5,
+   6,
+   8
+  ],
+  "dumbReveals": [
+   2.9,
+   3.1
+  ],
+  "parts": {
+   "skill": 1,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.978
+ },
+ "snowglobe": {
+  "id": "snowglobe",
+  "name": "스노볼 마을",
+  "n": 24,
+  "dumb": {
+   "score": 68.5,
+   "sec": 53.2
+  },
+  "smart": {
+   "score": 508.5,
+   "sec": 64.7,
+   "capped": 0
+  },
+  "skillGap": 7.33,
+  "reveals": [
+   8.6,
+   10,
+   10
+  ],
+  "dumbReveals": [
+   6.1,
+   6.9
+  ],
+  "parts": {
+   "skill": 0.958,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.967
+ },
+ "turtle": {
+  "id": "turtle",
+  "name": "스케이트 거북이",
+  "n": 24,
+  "dumb": {
+   "score": 2349,
+   "sec": 105.5
+  },
+  "smart": {
+   "score": 34243,
+   "sec": 108.2,
+   "capped": 0
+  },
+  "skillGap": 14.57,
+  "reveals": [
+   3,
+   6,
+   10
+  ],
+  "dumbReveals": [
+   2.4,
+   4.8
+  ],
+  "parts": {
+   "skill": 1,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.978
+ }
+}
