@@ -26,13 +26,14 @@ const botOf = (p: Policy): Bot => (s) => ({ pick: s.offer ? s.offer.map((c: Card
 /** 모바일 390×844에서 화면 안에 보이는 반지름(단위 좌표) — render.ts view()와 같은 식 */
 const PLAY_H = 844 * 0.82, SC = Math.min(390 * 0.6, PLAY_H * 0.47), VISIBLE_R = Math.min(195, PLAY_H * 0.53) / SC;
 
-interface Run { bonus: number; oreLeft: number; rerollCost: number; killOre: number; allOre: number; emptyTicks: number; rerolls: number; gaps: number[]; sec: number; score: number; builds: number; kills: number; bestCombo: number; wave: number; firstCard: number; firstHit: number; warn: number[]; picks: CardId[] }
+interface Run { bonus: number; oreLeft: number; rerollCost: number; killOre: number; allOre: number; emptyTicks: number; rerolls: number; gaps: number[]; sec: number; score: number; builds: number; kills: number; bestCombo: number; wave: number; firstCard: number; firstHit: number; warn: number[]; picks: CardId[]; pickT: number[]; ally3: number }
 
 function run(bot: Bot, seed: number, max = 60 * 900): Run {
   const s = create(seed), rng = mulberry32(seed ^ 0x9e3779b9);
   let firstCard = -1, firstHit = -1, guard = 0, lastOffer = 0, killOre = 0, allOre = 0, emptyTicks = 0;
   const gaps: number[] = [];
-  const warn: number[] = [], picks: CardId[] = [];
+  const warn: number[] = [], picks: CardId[] = [], pickT: number[] = [];
+  let ally3 = -1;
   while (!s.dead && s.t < max && guard++ < max * 4) {
     const before = s.enemies.map((e) => ({ id: e.id, v: e.v })), offer = s.offer;
     const inp = bot(s, rng);
@@ -42,7 +43,8 @@ function run(bot: Bot, seed: number, max = 60 * 900): Run {
       allOre += (BASE_ORE + mineRate(s)) / 60;
       if (!s.enemies.length) emptyTicks++;
     }
-    if (offer && inp.pick !== undefined) picks.push(offer[inp.pick].id);
+    if (offer && inp.pick !== undefined) picks.push(offer[inp.pick].id), pickT.push(s.t);
+    if (ally3 < 0 && s.allies >= 3) ally3 = s.t;
     for (const e of s.events) {
       if (e.type === 'offer') {
         if (firstCard < 0) firstCard = s.t / 60;
@@ -57,7 +59,7 @@ function run(bot: Bot, seed: number, max = 60 * 900): Run {
       }
     }
   }
-  return { bonus: scoreParts(s).bonus, oreLeft: s.ore, rerollCost: s.cost, killOre, allOre, emptyTicks, rerolls: s.rerolls, gaps, sec: s.t / 60, score: s.kills + s.builds * 5, builds: s.builds, kills: s.kills, bestCombo: s.bestCombo, wave: s.wave, firstCard, firstHit: firstHit < 0 ? s.t / 60 : firstHit, warn, picks };
+  return { bonus: scoreParts(s).bonus, oreLeft: s.ore, rerollCost: s.cost, killOre, allOre, emptyTicks, rerolls: s.rerolls, gaps, sec: s.t / 60, score: s.kills + s.builds * 5, builds: s.builds, kills: s.kills, bestCombo: s.bestCombo, wave: s.wave, firstCard, firstHit: firstHit < 0 ? s.t / 60 : firstHit, warn, picks, pickT, ally3: ally3 < 0 ? s.t : ally3 };
 }
 
 const med = (xs: number[]) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] : 0);
@@ -108,6 +110,10 @@ export function measure() {
   // F1: 판단(카드 1장 = 1회) 사이 간격 중앙값. 슬롯 선택은 슬롯별 점수 차가 측정된 뒤에만 센다(PM C002)
   const allGaps = light.concat(mid).flatMap((r) => r.gaps.slice(1));
   const F1 = med(allGaps), F1p90 = pct(allGaps, 0.9);
+  // G1·G2 (오너 2026-11-08 "성장이 금방 끝나는 느낌"): 눈에 보이는 새 성장(새 건물·위성·궤도 가속)을 마지막으로 고른 시각 / 위성 상한 도달 시각 ÷ 판 길이
+  const NEW: CardId[] = ['new-mine', 'new-turret', 'ally', 'spin'];
+  const G1 = med(mid.map((r) => { const k = r.picks.map((p, i) => (NEW.includes(p) ? r.pickT[i] : -1)).reduce((a, x) => Math.max(a, x), 0); return k / Math.max(1, r.sec * 60); }));
+  const G2 = med(mid.map((r) => r.ally3 / Math.max(1, r.sec * 60)));
   const C = (id: string, group: Check['group'], what: string, value: number, target: string, ok: boolean, ref = false): Check => ({ id, group, what, value: r1(value), target, ok, ref });
   // R1 (FUN QA C004): 다시 뽑기가 판단인가 — 골라 누르는 쪽이 무조건 누르는 쪽보다 5% 이상 낫고, 판 끝에 광석이 남아돌지 않는다
   // R1 (C006 개정, FUN QA C005): 시드별 쌍 비교 — 골라 누르는 봇이 이기는 시드 수와 쌍별 점수비 중앙값
@@ -130,10 +136,12 @@ export function measure() {
     C('L6', '라이트', '첫 피격 → 끝까지(초) — 연쇄 사망', hitToDeath, '≥ 25', hitToDeath >= 25),
     C('L7', '라이트', '최고 빌드 하위 10% 생존(초) — 초반 운 사망', L7, '≥ 90', L7 >= 90),
     C('L8', '라이트', '45초 미만에 끝난 판 수(24판 중) — 아무것도 못 짓고 끝남', L8, '≤ 1', L8 <= 1),
-    C('F1', '라이트', '[참고] 판단 사이 간격 중앙값(초) — 박자 카드 뒤 설정값', F1, '≤ 12', F1 <= 12, true),
-    C('F2', '라이트', '[참고] 판단 사이 간격 상위 10%(초) — 설정값', F1p90, '≤ 20', F1p90 <= 20, true),
+    C('F1', '라이트', '카드 화면(멈춤) 사이 간격 중앙값(초) — 오너 11-08 "카드가 자주 뜬다"', F1, '15~30', F1 >= 15 && F1 <= 30),
+    C('F2', '라이트', '[참고] 카드 화면 사이 간격 상위 10%(초)', F1p90, '≤ 45', F1p90 <= 45, true),
+    C('G1', '미들코어', '성장 지속: 새 성장 카드(새 건물·위성·가속)를 마지막으로 고른 시각 ÷ 판 길이(중앙값) — 오너 11-08', G1, '≥ 0.75', G1 >= 0.75),
+    C('G2', '미들코어', '위성 상한 도달 시각 ÷ 판 길이(중앙값, 못 닿으면 1) — 오너 11-08 "성장이 금방 끝난다"', G2, '≥ 0.5', G2 >= 0.5),
     C('M1', '미들코어', '판 길이(초)', M1, '180~360', M1 >= 180 && M1 <= 360),
-    C('M2', '미들코어', '판당 카드 선택 수 (C007: 카드만 셈, 다시 뽑기는 롤아웃에서 갈리는 것만 — rollout.json)', M2, '15~30', M2 >= 15 && M2 <= 30),
+    C('M2', '미들코어', '판당 카드 선택 수 (카드만 셈. 오너 11-08: 15~30 → 8~16)', M2, '8~16', M2 >= 8 && M2 <= 16),
     C('R0', '미들코어', '다시 뽑기 버튼의 가치: 무조건/안 누름 96시드 쌍 비 중앙값 (C010: R1과 함께 — 무조건이 골라 누름을 이기면 미통과)', R0, '≥ 1.03', R0 >= 1.03 && R1a >= 1),
     C('M3', '미들코어', '빌드 최고/최저 점수 비(선택이 중요한가)', M3, '≥ 1.3', M3 >= 1.3),
     C('M4', '미들코어', '최고의 85% 안 서로 다른 빌드 수(겹침 ≤ 50%)', distinct.length, '≥ 2', distinct.length >= 2),

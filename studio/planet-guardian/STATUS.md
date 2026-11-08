@@ -1,6 +1,6 @@
 # 행성 수호대 스튜디오 — 상태
 
-상태: 오너 테스트 대기 — M2 테스트 준비 완료(C011 PM 선언). 오너 피드백이 올 때까지 자동 사이클은 한 줄 보고만 해요. 세션 `session_01Nm4gExEyeU9e8MSuJic6vN`
+상태: 진행 중 — 오너 M2 피드백 반영(F01~). "성장이 금방 끝남·카드가 자주 뜸·정답이 정해짐" 세션 `session_01Nm4gExEyeU9e8MSuJic6vN`
 플레이 주소: https://derrick1119.github.io/derrickkim1119/studio/planet-guardian/
 마일스톤: M1 ✅ → **M2 첫 5분 오너 테스트 대기** (C011 품질 점검 끝, 한도 9/9 사용, ❌ 공개) · 오너 테스트 **11-08(일) 09:30 KST부터** (PM, MILESTONES.md)
 
