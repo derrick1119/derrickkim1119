@@ -522,9 +522,10 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
     ctx.fill();
   };
   const zOf = (k: number) => (K[k] === SEA ? 0 : I.h[k] * HZ);
+  const CONE = TW * 1.15;
   const night = s.phase === 'night' ? Math.min(1, (NIGHT - s.pause) / 25, s.pause / 25 + 0.2) : 0;
   const f = s.phase === 'night' ? 1 : s.dayT / DAY;
-  const dusk = Math.max(night * 0.62, f > 0.82 ? ((f - 0.82) / 0.18) * 0.3 : f < 0.06 ? ((0.06 - f) / 0.06) * 0.18 : 0);
+  const dusk = Math.max(night * 0.45, f > 0.82 ? ((f - 0.82) / 0.18) * 0.3 : f < 0.06 ? ((0.06 - f) / 0.06) * 0.18 : 0);
   ctx.save();
   fx.begin(ctx);
   // ── 하늘 ──
@@ -804,7 +805,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
         }
       }
       if (kd === HOUSE) drawHouse(cx, cy, k);
-      if (kd === CRATER || kd === VENT) drawCrater(cx, cy, kd === VENT ? 0.7 : 1);
+      if (kd === CRATER || kd === VENT) drawCrater(cx, cy, kd === VENT ? 0.6 : 1);
       if (I.feat[k] === LIGHT) drawLight(cx, cy, k);
       if (I.islet[k] && !I.linked) {
         ctx.strokeStyle = `rgba(255,224,138,${0.5 + 0.4 * Math.sin(s.t / 8)})`;
@@ -870,7 +871,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
   // ── 분출 불꽃 ──
   if (s.pending.length) {
     for (const src of I.vent >= 0 ? [CI, I.vent] : [CI]) {
-      const [cx, cy] = P((src % N) + 0.5, ((src / N) | 0) + 0.5, I.h[src] * HZ + 3);
+      const [cx, cy] = P((src % N) + 0.5, ((src / N) | 0) + 0.5, I.h[src] * HZ + CONE * (src === CI ? 1 : 0.6) + 2);
       for (let k = 0; k < 14; k++) {
         const ph = ((s.t * 2 + k * 13) % 40) / 40, an = -Math.PI / 2 + (hsh(k + s.t) - 0.5) * 1.6, sp = TW * 1.6 * (0.5 + hsh(k * 3));
         const x = cx + Math.cos(an) * sp * ph, y = cy + Math.sin(an) * sp * ph + ph * ph * TW * 2.2;
@@ -900,7 +901,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
   {
     const [cx0, cy0] = P(C + 0.5, C + 0.5, I.h[CI] * HZ), p = Math.min(1, s.charge / FULL), flow = s.pending.length > 0;
     const shake = s.charge > 0 ? Math.sin(s.t * 1.7) * (0.5 + p * 1.5) : 0, hop = dance ? Math.abs(Math.sin(s.t / 6)) * 3 : 0;
-    const fx0 = cx0 + shake, fy = cy0 + TH * 0.62 - hop, ex = TW * 0.2, er = TW * 0.12;
+    const fx0 = cx0 + shake, fy = cy0 - CONE * 0.52 - hop, ex = TW * 0.2, er = TW * 0.115;
     const sinceSum = (() => { let a = 999; for (const e of s.events) if (e.kind === 'sum') a = Math.min(a, s.t - e.t); return a; })();
     const thn = thetaAt(s, s.dayT), look = P(C + 0.5 + Math.cos(thn), C + 0.5 + Math.sin(thn), I.h[CI] * HZ), lx = (look[0] - cx0) / TW, ly = (look[1] - cy0) / TW;
     ctx.lineCap = 'round';
@@ -1277,21 +1278,63 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
     }
   }
   function drawCrater(x: number, y: number, sc: number) {
-    const rx = TW * 0.42 * sc, ry = TH * 0.42 * sc, p = Math.min(1, s.charge / FULL), flow = s.pending.length > 0;
+    // 원뿔 화산: 아래 넓고 위 좁은 산, 꼭대기에 용암 웅덩이. 누를수록 용암 줄기가 산허리로 번진다
+    const p = Math.min(1, s.charge / FULL), flow = s.pending.length > 0, Hc = CONE * sc, bw = TW * 0.66 * sc, tw = TW * 0.3 * sc, ty = y - Hc;
+    const swell = s.charge > 0 ? 1 + p * 0.06 + Math.sin(s.t * 0.9) * 0.015 * p : 1;
+    ctx.fillStyle = 'rgba(0,0,0,.25)';
+    ctx.beginPath();
+    ctx.ellipse(x + 4, y + 2, bw * 1.1, bw * 0.45, 0, 0, Math.PI * 2);
+    ctx.fill();
+    const body = ctx.createLinearGradient(x - bw, 0, x + bw, 0);
+    body.addColorStop(0, mix('#7a6a70', '#2a2430', night * 0.6));
+    body.addColorStop(0.45, mix('#5a4c56', '#201a24', night * 0.6));
+    body.addColorStop(1, mix('#33282f', '#120e14', night * 0.6));
+    ctx.beginPath();
+    ctx.moveTo(x - bw * swell, y);
+    ctx.quadraticCurveTo(x, y + bw * 0.42, x + bw * swell, y);
+    ctx.lineTo(x + tw * swell, ty);
+    ctx.lineTo(x - tw * swell, ty);
+    ctx.closePath();
+    ctx.fillStyle = body;
+    ctx.fill();
+    // 산허리 골
+    ctx.strokeStyle = 'rgba(0,0,0,.18)';
+    ctx.lineWidth = 1.2;
+    for (const q of [-0.55, 0.15, 0.6]) {
+      ctx.beginPath();
+      ctx.moveTo(x + tw * q, ty + 2);
+      ctx.lineTo(x + bw * q * 1.1, y + 1);
+      ctx.stroke();
+    }
+    // 용암 줄기 (누를수록·흐를수록)
+    const streak = flow ? 1 : p;
+    if (streak > 0) {
+      ctx.strokeStyle = `rgba(255,${120 + 80 * streak},40,${0.5 + 0.5 * streak})`;
+      ctx.shadowColor = '#ff5a00';
+      ctx.shadowBlur = 8;
+      ctx.lineWidth = 2;
+      for (const q of [-0.35, 0.3]) {
+        ctx.beginPath();
+        ctx.moveTo(x + tw * q, ty + 1);
+        ctx.quadraticCurveTo(x + tw * q * 2, ty + Hc * 0.4 * streak, x + bw * q * 0.9, ty + Hc * 0.85 * streak);
+        ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+    }
     // 연기 기둥
     for (let q = 0; q < 4; q++) {
       const ph = ((s.t * (1 + p) + q * 25) % 100) / 100;
-      ctx.fillStyle = `rgba(${flow ? '90,80,80' : '200,200,205'},${(0.35 + p * 0.3) * (1 - ph)})`;
+      ctx.fillStyle = `rgba(${flow ? '90,80,80' : '210,210,215'},${(0.35 + p * 0.3) * (1 - ph)})`;
       ctx.beginPath();
-      ctx.arc(x + Math.sin(ph * 4 + q) * 5 + ph * 10, y - 6 - ph * TW * 2.2 * sc, (3 + ph * 8) * sc, 0, Math.PI * 2);
+      ctx.arc(x + Math.sin(ph * 4 + q) * 5 + ph * 10, ty - 4 - ph * TW * 2 * sc, (3 + ph * 8) * sc, 0, Math.PI * 2);
       ctx.fill();
     }
-    ctx.fillStyle = mix('#3a3038', '#18141c', night * 0.5);
+    ctx.fillStyle = mix('#2a2026', '#100c10', night * 0.5);
     ctx.beginPath();
-    ctx.ellipse(x, y, rx * 1.15, ry * 1.15, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, ty, tw * swell * 1.05, tw * 0.48, 0, 0, Math.PI * 2);
     ctx.fill();
     const glow = 0.35 + p * 0.65 + (flow ? 0.5 : 0);
-    const mg = ctx.createRadialGradient(x, y, 0, x, y, rx);
+    const mg = ctx.createRadialGradient(x, ty, 0, x, ty, tw);
     mg.addColorStop(0, `rgba(255,230,120,${Math.min(1, glow)})`);
     mg.addColorStop(0.6, `rgba(255,110,30,${Math.min(1, glow)})`);
     mg.addColorStop(1, 'rgba(120,20,10,1)');
@@ -1299,7 +1342,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
     ctx.shadowBlur = 8 + glow * 14;
     ctx.fillStyle = mg;
     ctx.beginPath();
-    ctx.ellipse(x, y + (1 - p) * 1.5, rx * (0.75 + p * 0.25), ry * (0.75 + p * 0.25), 0, 0, Math.PI * 2);
+    ctx.ellipse(x, ty + (1 - p) * 1, tw * (0.7 + p * 0.25), tw * 0.34 * (0.7 + p * 0.3), 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
     if (p > 0)
@@ -1307,10 +1350,10 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
         const ph = ((s.t * 3 + q * 17) % 30) / 30;
         ctx.fillStyle = `rgba(255,240,160,${1 - ph})`;
         ctx.beginPath();
-        ctx.arc(x + (hsh(q + Math.floor(s.t / 10)) - 0.5) * rx, y - ph * 6 * (1 + p * 2), 1 + p * 1.5, 0, Math.PI * 2);
+        ctx.arc(x + (hsh(q + Math.floor(s.t / 10)) - 0.5) * tw, ty - ph * 6 * (1 + p * 2), 1 + p * 1.5, 0, Math.PI * 2);
         ctx.fill();
       }
-    lights.push([x, y, 0.6 + p * 0.4]);
+    lights.push([x, ty, 0.6 + p * 0.4]);
   }
   function drawLight(x: number, y: number, k: number) {
     const hgt = TW * 0.9, bw = TW * 0.12;
@@ -1365,7 +1408,14 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
   function drawPreview(i: number, j: number, z: number, k: number) {
     const pulse = 0.5 + 0.5 * Math.sin(s.t / 4);
     const pts = [P(i, j, z + 1), P(i + 1, j, z + 1), P(i + 1, j + 1, z + 1), P(i, j + 1, z + 1)];
-    poly(pts, `rgba(255,${K[k] === SEA ? 170 : 90},40,${0.35 + 0.15 * pulse})`);
+    poly(pts, `rgba(255,${K[k] === SEA ? 160 : 80},30,${0.5 + 0.2 * pulse})`);
+    ctx.strokeStyle = `rgba(255,240,180,${0.5 + 0.3 * pulse})`;
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(...pts[0]);
+    for (const q of pts) ctx.lineTo(...q);
+    ctx.closePath();
+    ctx.stroke();
     if (LIFE[K[k]] || I.feat[k]) {
       const [x, y] = P(i + 0.5, j + 0.5, z + 2);
       ctx.strokeStyle = `rgba(255,40,40,${0.6 + 0.4 * pulse})`;
