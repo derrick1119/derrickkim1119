@@ -18,8 +18,10 @@ describe('arcade factory (실험 0011)', () => {
     const ab = JSON.parse(readFileSync(join(import.meta.dirname, '..', 'arcade', 'ab.json'), 'utf8'));
     const ids = GAMES.map((e) => e.game.id), cur = ab.rounds.at(-1);
     // 한 게임 라운드(B 없음, 오너 아이디어 '좋아/별로' 2026-11-08)도 그 게임은 반드시 등록돼 있어야 한다
-    if (!cur.winner) expect(ids).toEqual(expect.arrayContaining([cur.A, cur.B].filter(Boolean)));
-    expect(cur.A).toBeTruthy();
+    // 라운드 = A|B 둘, 한 게임(B 없음), 또는 여러 게임(games, 오너 요청 2026-11-08: 아이디어를 모두 만들어 한꺼번에) — 열린 라운드의 게임은 모두 등록돼 있어야 한다
+    const open = [cur.A, cur.B, ...(cur.games ?? [])].filter(Boolean);
+    if (!cur.winner) expect(ids).toEqual(expect.arrayContaining(open));
+    expect(open.length).toBeGreaterThan(0);
     for (const d of ab.discarded ?? []) expect(ids).not.toContain(d.id);
   });
   for (const { game, dumb, smart } of GAMES) {
