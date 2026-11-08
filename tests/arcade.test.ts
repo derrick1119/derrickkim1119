@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { GENES, REACT, runBot } from '../arcade/core.ts';
 import { GAMES } from '../arcade/registry.ts';
@@ -12,6 +14,12 @@ describe('genes (0018)', () => {
 });
 
 describe('arcade factory (실험 0011)', () => {
+  it('열린 라운드의 두 게임은 등록돼 있고, 폐기한 게임은 다시 보이지 않는다 (오너 규칙 2026-11-07)', () => {
+    const ab = JSON.parse(readFileSync(join(import.meta.dirname, '..', 'arcade', 'ab.json'), 'utf8'));
+    const ids = GAMES.map((e) => e.game.id), cur = ab.rounds.at(-1);
+    if (!cur.winner) expect(ids).toEqual(expect.arrayContaining([cur.A, cur.B]));
+    for (const d of ab.discarded ?? []) expect(ids).not.toContain(d.id);
+  });
   for (const { game, dumb, smart } of GAMES) {
     it(`${game.name}: deterministic, simple, and skill matters`, () => {
       expect(runBot(game, smart, 42, 60 * 40, REACT)).toEqual(runBot(game, smart, 42, 60 * 40, REACT));
