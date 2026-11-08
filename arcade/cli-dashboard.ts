@@ -43,10 +43,12 @@ function card(key: 'A' | 'B', id: string, other: string) {
 </article>`;
 }
 
-const bench = GAMES.filter((e) => e.game.id !== cur.A && e.game.id !== cur.B).map(({ game: g }) => {
+const benchGames = GAMES.filter((e) => e.game.id !== cur.A && e.game.id !== cur.B), ideaOnly = benchGames.length > 0 && benchGames.every((e) => e.game.origin);
+const bench = benchGames.map(({ game: g }) => {
   const r = evals[g.id];
   return `<article class="side bench">
-  <header><div><p class="eyebrow">다음 라운드 후보 · 봇 재미 추정 ${r.fun.toFixed(2)}</p><h3>${esc(g.name)}</h3></div></header>
+  <header><div><p class="eyebrow">${g.origin ? '💡 오너 아이디어' : '다음 라운드 후보'} · 봇 재미 추정 ${r.fun.toFixed(2)}</p><h3>${esc(g.name)}</h3></div></header>
+  ${g.origin ? `<p class="muted">${esc(g.origin)}</p>` : ''}
   <ul class="genes">${g.genes.map((x) => `<li><b>${esc(GENES[x].from)}</b></li>`).join('<li class="x" aria-hidden="true">×</li>')}</ul>
   <p class="twist">${esc(g.twist)}</p>
   ${artLine(g.id)}
@@ -102,8 +104,8 @@ ${cur.winner ? `<h2 id="ab-h">${cur.round + 1}라운드 준비 중</h2>
 </section>
 
 ${bench ? `<section aria-labelledby="bench-h">
-  <h2 id="bench-h">다음 라운드 후보</h2>
-  <p class="lead">이번 라운드가 끝나면 챔피언과 겨룰 수 있는 후보입니다. 미리 해 보셔도 됩니다.</p>
+  <h2 id="bench-h">${ideaOnly ? '💡 오너 아이디어로 만든 게임' : '다음 라운드 후보'}</h2>
+  <p class="lead">${ideaOnly ? `${cur.round}라운드 답과 별개로 먼저 해 보세요. ${cur.round}라운드가 끝나면 이긴 쪽과 이 게임으로 다음 라운드를 엽니다(둘 다 별로면 이 게임과 새 게임 하나로).` : '이번 라운드가 끝나면 챔피언과 겨룰 수 있는 후보입니다. 미리 해 보셔도 됩니다.'}</p>
   <div class="ab">${bench}</div>
 </section>` : ''}
 

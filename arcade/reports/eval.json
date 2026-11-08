@@ -62,5 +62,37 @@
    "unfold": 1
   },
   "fun": 0.978
+ },
+ "illusion": {
+  "id": "illusion",
+  "name": "착시 속 정답",
+  "n": 24,
+  "dumb": {
+   "score": 20,
+   "sec": 22.6
+  },
+  "smart": {
+   "score": 550,
+   "sec": 68.3,
+   "capped": 0
+  },
+  "skillGap": 26.24,
+  "reveals": [
+   4.1,
+   5.8,
+   5.8
+  ],
+  "dumbReveals": [
+   1.8,
+   1.8
+  ],
+  "parts": {
+   "skill": 1,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.978
  }
 }

@@ -29,7 +29,7 @@ function mount(root: HTMLElement, g: GameDef<any>) {
   overlay.className = 'g-overlay';
   root.append(canvas, overlay);
   const ctx = canvas.getContext('2d')!;
-  let s: any = null, seed = 1, running = false, acc = 0, last = 0, tapQueued = false, holding = false, aim: number | undefined, pointer: { x: number; y: number } | null = null, pick: number | undefined, move: Input['move'], swipeFrom: { x: number; y: number } | null = null, cursor = { x: 0.5, y: 0.5 }, spaceDown = false;
+  let s: any = null, seed = 1, running = false, acc = 0, last = 0, tapQueued = false, holding = false, aim: number | undefined, pointer: { x: number; y: number } | null = null, pick: number | undefined, move: Input['move'], swipeFrom: { x: number; y: number } | null = null, cursor = { x: 0.5, y: 0.5 }, spaceDown = false, latch: { x: number; y: number } | null = null;
   const keys = new Set<string>();
 
   function size() {
@@ -82,7 +82,9 @@ function mount(root: HTMLElement, g: GameDef<any>) {
         cursor = { x: Math.max(0, Math.min(1, cursor.x + kx * 0.012)), y: Math.max(0, Math.min(1, cursor.y + ky * 0.012)) };
         if (spaceDown) pointer = { ...cursor };
       }
-      const input: Input = { tap: tapQueued, hold: holding, dir: g.controls === 'touch' && spaceDown ? 0 : dir, aim, pointer, pick, move };
+      // 아주 짧은 탭(한 프레임 안에 눌렀다 뗌)도 최소 한 틱은 '누름'으로 보이게 (2026-11-08)
+      const input: Input = { tap: tapQueued, hold: holding, dir: g.controls === 'touch' && spaceDown ? 0 : dir, aim, pointer: pointer ?? latch, pick, move };
+      latch = null;
       tapQueued = false;
       pick = undefined;
       move = undefined;
@@ -111,7 +113,7 @@ function mount(root: HTMLElement, g: GameDef<any>) {
   canvas.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     if (!running) return;
-    if (g.controls === 'touch') return void (pointer = toPoint(e));
+    if (g.controls === 'touch') return void (pointer = latch = toPoint(e));
     if (g.controls === 'swipe') return void (swipeFrom = toPoint(e));
     if (g.controls === 'tap') tapQueued = true;
     else if (g.controls === 'hold') (tapQueued = true), (holding = true);
