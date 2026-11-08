@@ -4,23 +4,23 @@
   "name": "중력 쏟기",
   "n": 24,
   "dumb": {
-   "score": 82.5,
-   "sec": 31.6
+   "score": 77.5,
+   "sec": 29.4
   },
   "smart": {
-   "score": 297.5,
-   "sec": 70.8,
+   "score": 280,
+   "sec": 63,
    "capped": 0
   },
-  "skillGap": 3.57,
+  "skillGap": 3.58,
   "reveals": [
-   4.3,
-   5.6,
-   5.9
+   4.5,
+   5.5,
+   5.5
   ],
   "dumbReveals": [
-   3.1,
-   3.3
+   3,
+   3.1
   ],
   "parts": {
    "skill": 0.613,
@@ -31,36 +31,36 @@
   },
   "fun": 0.858
  },
- "rewind": {
-  "id": "rewind",
-  "name": "되감기 골프",
+ "chef": {
+  "id": "chef",
+  "name": "몬스터 요리사",
   "n": 24,
   "dumb": {
-   "score": 5,
-   "sec": 67
+   "score": 142.5,
+   "sec": 98.6
   },
   "smart": {
-   "score": 195.5,
-   "sec": 166.2,
-   "capped": 0.2916666666666667
+   "score": 563.5,
+   "sec": 145.4,
+   "capped": 0
   },
-  "skillGap": 32.75,
+  "skillGap": 3.93,
   "reveals": [
-   3.4,
-   4.5,
-   5.9
+   2.6,
+   4,
+   5.8
   ],
   "dumbReveals": [
-   1.1,
-   1.4
+   1.5,
+   2.3
   ],
   "parts": {
-   "skill": 1,
+   "skill": 0.659,
    "onboarding": 1,
-   "session": 0.708,
+   "session": 1,
    "simplicity": 0.85,
    "unfold": 1
   },
-  "fun": 0.934
+  "fun": 0.874
  }
 }
