@@ -1,7 +1,7 @@
 # 게임 발견 공장 상태
 
 상태: RUNNING
-마지막 사이클: 0029 (2026-11-08) · 13라운드 둘 다 탈락 → 진행 방식 오너 확인 중
+마지막 사이클: 0029 (2026-11-08) · 13라운드 둘 다 탈락 → 14라운드 아이디어 메뉴(오너 선택 대기)
 연속 실패: 0
 계기판: **https://derrick1119.github.io/derrickkim1119/arcade/** (GitHub Pages, 승인 없이 열림 · 오너 결정 2026-11-07) · 옛 아티팩트 slug 31ee3db4-07df-4eef-b4eb-226aa0668917(더 이상 갱신 안 함)
 
@@ -36,4 +36,4 @@
 - 🎓 행성 수호대 2 (2026-11-07, 8라운드) → 스튜디오 `studio/planet-guardian/` (세션 session_01Nm4gExEyeU9e8MSuJic6vN) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/planet-guardian/
 
 ## 오너에게
-- 👉 https://derrick1119.github.io/derrickkim1119/arcade/ — 14라운드 준비 전: 연속 '둘 다 별로'라 진행 방식을 여쭤보는 중.
+- 👉 https://derrick1119.github.io/derrickkim1119/arcade/ — 🔔 **14라운드 아이디어 메뉴**: 한 줄 기획 8개 중 만들 것 1~2개 번호를 골라 주세요(예: "3, 6").

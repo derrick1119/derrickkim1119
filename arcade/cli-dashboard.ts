@@ -17,6 +17,11 @@ const cycle = process.argv.includes('--cycle') ? process.argv[process.argv.index
 const evals: Record<string, ArcadeReport> = JSON.parse(readFileSync(join(root, 'reports', 'eval.json'), 'utf8'));
 const ab: { champion: string | null; graduated?: { id: string; name: string; at: string; round: number; studio: string; play: string }[]; discarded?: { id: string; name: string }[]; rounds: { round: number; openedAt: string; A: string; B: string; winner: string | null; note?: string }[] } = JSON.parse(readFileSync(join(root, 'ab.json'), 'utf8'));
 const cur = ab.rounds.at(-1)!;
+// 아이디어 메뉴 (오너 선택 2026-11-08): 라운드 사이에 만들기 전 한 줄 기획을 먼저 보여 준다
+const menu: { round: number; why: string; picked: number[] | null; items: { no: number; emoji: string; name: string; from: string; wow: string; first: string; depth: string }[] } | null = (() => {
+  try { return JSON.parse(readFileSync(join(root, 'menu.json'), 'utf8')); } catch { return null; }
+})();
+const menuOpen = !!menu && !menu.picked && !!cur.winner;
 const nameOf = (id: string) => GAMES.find((e) => e.game.id === id)?.game.name ?? ab.graduated?.find((g) => g.id === id)?.name ?? ab.discarded?.find((g) => g.id === id)?.name ?? id;
 const now = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 const LABEL: Record<string, string> = { skill: '실력이 통하나', onboarding: '처음 해도 버티나', session: '한 판 길이', simplicity: '단순함', unfold: '판이 펼쳐지나' };
@@ -97,7 +102,14 @@ const html = `<!DOCTYPE html>
 </header>
 
 <section aria-labelledby="ab-h">
-${cur.winner ? `<h2 id="ab-h">${cur.round + 1}라운드 준비 중</h2>
+${menuOpen ? `<h2 id="ab-h">${menu!.round}라운드 아이디어 메뉴 — 만들 것을 골라 주세요</h2>
+  <p class="lead">${cur.round}라운드는 ${cur.winner === 'none' ? '<b>둘 다 탈락</b>' : `<b>${esc(nameOf(cur.winner))}</b> 승`}. 이번엔 만들기 전에 기획부터 보여 드립니다. <b>채팅에 번호 1~2개를 적어 주세요</b>(예: “3, 6”). 고른 것만 만들어 다음 라운드로 올립니다. 다 별로면 이유를 한 줄 적어 주세요.</p>
+  <div class="ab">${menu!.items.map((m) => `<article class="side bench">
+    <header><span class="tag">${m.no}</span><div><p class="eyebrow">${esc(m.from)}</p><h3>${m.emoji} ${esc(m.name)}</h3></div></header>
+    <p class="twist"><b>와우</b> ${esc(m.wow)}</p>
+    <p class="muted"><b>첫 3초</b> ${esc(m.first)}</p>
+    <p class="muted"><b>안 질리는 이유</b> ${esc(m.depth)}</p>
+  </article>`).join('')}</div>` : cur.winner ? `<h2 id="ab-h">${cur.round + 1}라운드 준비 중</h2>
   <p class="lead">${cur.round}라운드는 ${cur.winner === 'none' ? '<b>둘 다 탈락</b>' : `<b>${esc(nameOf(cur.winner))}</b> 승`}. 공장이 새 게임을 만들고 있습니다. 준비되면 알려 드립니다.</p>` : `<h2 id="ab-h">A|B ${cur.round}라운드 — 직접 해보고 골라 주세요</h2>
   <p class="lead">두 게임을 한 판씩 해 보고, <b>채팅에 “A” 또는 “B”라고 답해 주세요.</b> 고른 쪽이 챔피언이 되고, 공장은 그 챔피언에 도전할 새 조합을 만듭니다. 둘 다 별로면 이유를 한 줄 적어 주세요. 그게 다음 게임의 설계 기준이 됩니다.</p>
   <div class="ab">${card('A', cur.A, cur.B)}${card('B', cur.B, cur.A)}</div>`}
