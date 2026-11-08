@@ -5,10 +5,12 @@
  * 졸업한 게임은 스튜디오(`studio/<게임>/`)가 이어받는다(행성 수호대 2의 원본 `games/guardian2.ts`는 스튜디오 참고용으로 파일만 남김).
  */
 import type { Bot, GameDef } from './core.ts';
+import { cascade, cascadeRandom, cascadeSmart } from './games/cascade.ts';
 import { illusion, illusionRandom, illusionSmart } from './games/illusion.ts';
 
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S> }
 
 export const GAMES: Entry[] = [
   { game: illusion, dumb: illusionRandom, smart: illusionSmart },
+  { game: cascade, dumb: cascadeRandom, smart: cascadeSmart },
 ];

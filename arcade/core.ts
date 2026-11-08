@@ -81,6 +81,7 @@ export const GENES: Record<string, Gene> = Object.fromEntries(
     g('grapple', 'core', '밧줄 그네', '천장에 줄을 걸어 흔들리다 놓아 날아간다'),
     g('whack', 'core', '두더지 잡기', '잠깐 튀어나온 것을 재빨리 친다'),
     g('illusion', 'core', '착시 그림', '눈이 속는 그림에서 진짜 답을 가려낸다 (오너 아이디어 2026-11-08)'),
+    g('multiply', 'core', '곱하기 문', '지나가면 수가 곱해지는 문을 골라 지나가 크게 불린다'),
     g('fishing', 'core', '낚시', '기다렸다가 입질이 오면 제때 당긴다'),
     g('pushbox', 'core', '상자 밀기 퍼즐', '상자를 밀어 정해진 칸에 넣는다, 되돌릴 수 없다'),
     g('territory', 'core', '땅따먹기', '선을 그어 둘러싼 만큼 내 땅이 된다, 선이 끊기면 끝'),
