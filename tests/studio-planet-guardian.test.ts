@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
-import { BEAT, FIRST_CARD, available, beatOf, create, noviceBot, randomBot, runBot, smartBot, spinSpeed, step, type GameEvent, type State } from '../studio/planet-guardian/sim.ts';
+import { ALLY_MAX, FIRST_CARD, available, create, mineRate, noviceBot, planetOf, randomBot, runBot, smartBot, spinSpeed, step, waveKind, type GameEvent, type State } from '../studio/planet-guardian/sim.ts';
 import { createJuice, react, tick } from '../studio/planet-guardian/juice.ts';
 
 const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
@@ -48,22 +48,30 @@ describe('행성 수호대 시뮬', () => {
     expect(s.t).toBe(t + 1);
   });
 
-  it('카드는 광석이 아니라 박자로 온다, 다시 뽑기는 광석을 쓴다 (C004)', () => {
+  it('카드는 광석이 아니라 첫 카드(8초) 뒤로 웨이브를 막을 때마다 온다, 다시 뽑기는 광석을 쓴다 (C004 → F01 오너)', () => {
     const s = create(9);
-    const at: number[] = [], gap: number[] = [];
-    while (at.length < 3 && !s.dead) {
+    const at: number[] = [], clears: number[] = [];
+    while (at.length < 4 && !s.dead) {
       step(s, {});
-      // 다음 카드는 이 카드가 뜬 순간 정해진 박자 뒤에 온다 (C008: 광산 단계마다 박자가 짧아진다)
-      if (s.offer) (at.push(s.t), gap.push(s.nextCard - s.t), step(s, { pick: 0 }));
+      if (s.events.some((e) => e.type === 'clear')) clears.push(s.t);
+      // F01: 카드가 뜨는 틱은 첫 카드(FIRST_CARD) 아니면 웨이브를 막은 바로 그 틱뿐이다
+      if (s.offer) (at.push(s.t), step(s, { pick: 0 }));
     }
-    expect(gap[0]).toBe(BEAT); // 광산이 없을 때 첫 박자는 기본값
-    expect(at[1] - at[0]).toBe(gap[0]);
-    expect(at[2] - at[1]).toBe(gap[1]);
-    // 광석이 아무리 많아도 박자 전엔 카드가 오지 않는다
+    expect(at[0]).toBe(FIRST_CARD);
+    expect(at.slice(1)).toEqual(clears.slice(0, 3));
+    // 광석이 아무리 많아도 첫 카드 전엔, 그리고 웨이브를 막기 전엔 카드가 오지 않는다
     const q = create(9);
     q.ore = 999;
     for (let k = 0; k < FIRST_CARD - 1; k++) step(q, {});
     expect(q.offer).toBeNull();
+    step(q, {});
+    expect(q.offer).not.toBeNull();
+    step(q, { pick: 0 });
+    while (!q.dead && !q.events.some((e) => e.type === 'clear')) {
+      expect(q.offer).toBeNull();
+      step(q, {});
+    }
+    expect(q.offer).not.toBeNull();
     while (!s.offer) step(s, {});
     s.ore = 100;
     const before = s.cost;
@@ -108,13 +116,62 @@ describe('행성 수호대 시뮬', () => {
     expect(JSON.stringify(c.offer)).toBe(JSON.stringify(b.offer));
   });
 
-  it('광산 단계마다 카드 박자가 1.8초 빨라진다, 최소 6초 (C008)', () => {
+  it('광산은 광석만 준다(단계마다 +0.3/초) — 카드가 오는 때는 바꾸지 않고, 문구가 사실과 같다 (C008 박자 단축 → F01)', () => {
     const s = create(1);
-    expect(beatOf(s)).toBe(BEAT);
+    expect(mineRate(s)).toBe(0);
     s.sites.push({ kind: '광산', slot: 0, level: 2, cool: 0, aim: 0, born: 0 });
-    expect(beatOf(s)).toBe(BEAT - 2 * 108);
-    s.sites.push({ kind: '광산', slot: 1, level: 3, cool: 0, aim: 0, born: 0 }, { kind: '광산', slot: 2, level: 3, cool: 0, aim: 0, born: 0 });
-    expect(beatOf(s)).toBe(60 * 6);
+    expect(mineRate(s)).toBeCloseTo(0.6, 10);
+    for (const c of available(s).filter((c) => c.id.endsWith('mine'))) expect(c.detail).toBe('광석 +0.3/초');
+    // 광산 3단계 2개를 더해도 카드가 뜨는 틱은 광산 없는 판과 똑같다
+    const offers = (q: State) => {
+      const at: number[] = [];
+      // 짓지 않고 손패만 치운다 — 두 판의 기지를 같게 두고 카드 시각만 비교
+      while (at.length < 5 && !q.dead) (step(q, {}), q.offer && (at.push(q.t), (q.offer = null)));
+      return at;
+    };
+    const a = create(17), b = create(17);
+    b.sites.push({ kind: '광산', slot: 0, level: 3, cool: 0, aim: 0, born: 0 }, { kind: '광산', slot: 1, level: 3, cool: 0, aim: 0, born: 0 });
+    const oa = offers(a);
+    expect(oa.length).toBeGreaterThanOrEqual(3); // 짓지 않으면 3웨이브쯤 끝난다 — 끝날 때까지의 카드 시각 전부
+    expect(new Set(oa).size).toBe(oa.length);
+    expect(offers(b)).toEqual(oa);
+  });
+
+  it('다음 웨이브 예고는 (시드·웨이브 번호)로만 정해지고 그대로 온다, 행성 성격과 반대 위협은 오지 않는다 (F01)', () => {
+    for (const pick of [0, 2]) {
+      const s = create(31);
+      while (s.wave < 8 && !s.dead) {
+        step(s, s.offer ? { pick: Math.min(pick, s.offer.length - 1) } : {});
+        if (s.offer) expect(s.nextKind).toBe(waveKind(31, s.wave + 1));
+        if (s.events.some((e) => e.type === 'wave')) expect(s.kind).toBe(waveKind(31, s.wave));
+      }
+    }
+    for (let seed = 1; seed <= 60; seed++) {
+      expect(waveKind(seed, 1)).toBe('보통');
+      expect(waveKind(seed, 2)).toBe('보통');
+      const other = planetOf(seed) === '떼' ? '거대' : '떼';
+      for (let n = 3; n <= 40; n++) expect(waveKind(seed, n)).not.toBe(other);
+    }
+  });
+
+  it('위성은 6기까지, 몸막기는 체력 1만큼 (F01 오너 "성장이 금방 끝나")', () => {
+    const s = create(1);
+    s.allies = ALLY_MAX - 1;
+    expect(available(s).some((c) => c.id === 'ally')).toBe(true);
+    s.allies = ALLY_MAX;
+    expect(available(s).some((c) => c.id === 'ally')).toBe(false);
+    expect(ALLY_MAX).toBe(6);
+    // 첫 위성 바로 앞에 체력 3 운석: 한 번 닿으면 2가 되고, 같은 운석은 곧바로 다시 맞지 않는다
+    const q = create(2);
+    q.spawnIn = 9999;
+    const a = q.angle + 0.0001;
+    q.enemies.push({ id: 999, a, r: 0.43 + 0.0001, v: 0, hp: 3, maxHp: 3, big: false, flash: -99 });
+    q.cool[0] = 9999;
+    q.sites = [];
+    step(q, {});
+    expect(q.enemies.find((e) => e.id === 999)?.hp).toBe(2);
+    step(q, {});
+    expect(q.enemies.find((e) => e.id === 999)?.hp).toBe(2);
   });
 
   it('손패에 같은 카드 두 장은 없다 (C010)', () => {
@@ -130,7 +187,7 @@ describe('행성 수호대 시뮬', () => {
     }
   });
 
-  it('다시 뽑기는 지금 손패를 빼고 뽑는다, 광산 문구는 박자 하한에서 사실대로 (C009)', () => {
+  it('다시 뽑기는 지금 손패를 빼고 뽑는다, 광산 문구는 사실대로 (C009)', () => {
     const s = create(12);
     while (!s.offer) step(s, {});
     const before = s.offer!.map((c) => c.id);
@@ -138,11 +195,15 @@ describe('행성 수호대 시뮬', () => {
     step(s, { reroll: true });
     const after = s.offer!.map((c) => c.id);
     if (available(s).filter((c) => !before.includes(c.id)).length) expect(after.some((id) => before.includes(id))).toBe(false);
+    // 광산 문구는 늘 실제 효과와 같다 (F01: 박자 단축이 없어져 하한 구분도 없다)
     const q = create(1);
-    q.sites.push({ kind: '광산', slot: 0, level: 3, cool: 0, aim: 0, born: 0 }, { kind: '광산', slot: 1, level: 3, cool: 0, aim: 0, born: 0 });
-    expect(beatOf(q)).toBe(60 * 6);
+    q.sites.push({ kind: '광산', slot: 0, level: 3, cool: 0, aim: 0, born: 0 }, { kind: '광산', slot: 1, level: 2, cool: 0, aim: 0, born: 0 });
     for (const c of available(q).filter((c) => c.id.endsWith('mine'))) expect(c.detail).toBe('광석 +0.3/초');
-    expect(available(create(1)).find((c) => c.id === 'new-mine')!.detail).toContain('빨리');
+    // F01: 광산은 3웨이브부터 (초반 카드는 모두 방어 — L8)
+    const early = create(1);
+    for (const w of [1, 2]) (early.wave = w), expect(available(early).some((c) => c.id === 'new-mine')).toBe(false);
+    early.wave = 3;
+    expect(available(early).find((c) => c.id === 'new-mine')!.detail).toBe('광석 +0.3/초');
   });
 
   it('시작하자마자 포탑 하나가 있다', () => {

@@ -8,7 +8,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mulberry32 } from '../../engine/rng.ts';
-import { BALANCED, BASE_ORE, CORE, create, mineRate, randomBot, scoreParts, smartBot, step, type Card, type CardId, type Input, type Policy, type State } from './sim.ts';
+import { ALLY_MAX, BALANCED, BASE_ORE, CORE, create, mineRate, randomBot, readBot, scoreParts, smartBot, step, type Card, type CardId, type Input, type Policy, type State } from './sim.ts';
 import type { Rng } from '../../engine/rng.ts';
 
 type Bot = (s: State, rng: Rng) => Input;
@@ -30,7 +30,7 @@ interface Run { bonus: number; oreLeft: number; rerollCost: number; killOre: num
 
 function run(bot: Bot, seed: number, max = 60 * 900): Run {
   const s = create(seed), rng = mulberry32(seed ^ 0x9e3779b9);
-  let firstCard = -1, firstHit = -1, guard = 0, lastOffer = 0, killOre = 0, allOre = 0, emptyTicks = 0;
+  let firstCard = -1, firstHit = -1, guard = 0, lastOffer = 0, lastBeat = 0, killOre = 0, allOre = 0, emptyTicks = 0;
   const gaps: number[] = [];
   const warn: number[] = [], picks: CardId[] = [], pickT: number[] = [];
   let ally3 = -1;
@@ -44,9 +44,11 @@ function run(bot: Bot, seed: number, max = 60 * 900): Run {
       if (!s.enemies.length) emptyTicks++;
     }
     if (offer && inp.pick !== undefined) picks.push(offer[inp.pick].id), pickT.push(s.t);
-    if (ally3 < 0 && s.allies >= 3) ally3 = s.t;
+    if (ally3 < 0 && s.allies >= ALLY_MAX) ally3 = s.t;
     for (const e of s.events) {
-      if (e.type === 'offer') {
+      // F01 버그 고침: 다시 뽑기도 'offer' 사건을 내서 간격 0초가 섞였다 — FUN.md 정의대로 새 손패(박자 번호가 바뀔 때)만 센다
+      if (e.type === 'offer' && s.beatNo !== lastBeat) {
+        lastBeat = s.beatNo;
         if (firstCard < 0) firstCard = s.t / 60;
         gaps.push((s.t - lastOffer) / 60); // 멈춘 시간은 s.t가 안 흐르니 저절로 빠진다
         lastOffer = s.t;
@@ -114,6 +116,9 @@ export function measure() {
   const NEW: CardId[] = ['new-mine', 'new-turret', 'ally', 'spin'];
   const G1 = med(mid.map((r) => { const k = r.picks.map((p, i) => (NEW.includes(p) ? r.pickT[i] : -1)).reduce((a, x) => Math.max(a, x), 0); return k / Math.max(1, r.sec * 60); }));
   const G2 = med(mid.map((r) => r.ally3 / Math.max(1, r.sec * 60)));
+  // P1 (F01, 오너 "정답이 정해진 느낌"): 다음 웨이브를 읽는 봇 / 고정 순위 봇 — 둘 다 같은 규칙으로 다시 뽑는다
+  const read96 = many96(readBot), p1pairs = read96.map((r, i) => r.score / Math.max(1, pick96[i].score));
+  const P1 = med(p1pairs), P1wins = p1pairs.filter((x) => x > 1).length;
   const C = (id: string, group: Check['group'], what: string, value: number, target: string, ok: boolean, ref = false): Check => ({ id, group, what, value: r1(value), target, ok, ref });
   // R1 (FUN QA C004): 다시 뽑기가 판단인가 — 골라 누르는 쪽이 무조건 누르는 쪽보다 5% 이상 낫고, 판 끝에 광석이 남아돌지 않는다
   // R1 (C006 개정, FUN QA C005): 시드별 쌍 비교 — 골라 누르는 봇이 이기는 시드 수와 쌍별 점수비 중앙값
@@ -139,7 +144,8 @@ export function measure() {
     C('F1', '라이트', '카드 화면(멈춤) 사이 간격 중앙값(초) — 오너 11-08 "카드가 자주 뜬다"', F1, '15~30', F1 >= 15 && F1 <= 30),
     C('F2', '라이트', '[참고] 카드 화면 사이 간격 상위 10%(초)', F1p90, '≤ 45', F1p90 <= 45, true),
     C('G1', '미들코어', '성장 지속: 새 성장 카드(새 건물·위성·가속)를 마지막으로 고른 시각 ÷ 판 길이(중앙값) — 오너 11-08', G1, '≥ 0.75', G1 >= 0.75),
-    C('G2', '미들코어', '위성 상한 도달 시각 ÷ 판 길이(중앙값, 못 닿으면 1) — 오너 11-08 "성장이 금방 끝난다"', G2, '≥ 0.5', G2 >= 0.5),
+    C('G2', '미들코어', `위성 상한(${ALLY_MAX}기) 도달 시각 ÷ 판 길이(중앙값, 못 닿으면 1) — 오너 11-08 "성장이 금방 끝난다"`, G2, '≥ 0.5', G2 >= 0.5),
+    C('P1', '미들코어', `정답표 체감: 다음 웨이브를 읽는 봇 / 고정 순위 봇 96시드 쌍 비 중앙값 (이긴 시드 ${P1wins}/96, ≥ 60 필요) — 오너 11-08`, P1, '≥ 1.1', P1 >= 1.1 && P1wins >= 60),
     C('M1', '미들코어', '판 길이(초)', M1, '180~360', M1 >= 180 && M1 <= 360),
     C('M2', '미들코어', '판당 카드 선택 수 (카드만 셈. 오너 11-08: 15~30 → 8~16)', M2, '8~16', M2 >= 8 && M2 <= 16),
     C('R0', '미들코어', '다시 뽑기 버튼의 가치: 무조건/안 누름 96시드 쌍 비 중앙값 (C010: R1과 함께 — 무조건이 골라 누름을 이기면 미통과)', R0, '≥ 1.03', R0 >= 1.03 && R1a >= 1),

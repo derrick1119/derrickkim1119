@@ -8,6 +8,9 @@ import { hashString, mulberry32, type Rng } from '../../engine/rng.ts';
 export const CORE = 0.17, ORBIT = 0.43, BODY = 0.05, ENEMY_R = 0.04, RANGE = 0.32;
 export const SLOTS = 8, HP_MAX = 5, CARD_Y = 0.84;
 const ALLY_FIRE = 60;
+/** F01: 몸막기는 1 피해 — 같은 운석은 BODY_CD 틱에 한 번. 체력 1은 그대로 부서지고, 단단한 운석·거대 운석은 포탑이 맡는다 */
+const BODY_CD = 30;
+export const ALLY_MAX = 6, MINE_FROM = 3;
 const BULLET_V = 1.3 / 60, FIRE_EVERY = 30, COMBO_GAP = 60, BREATH = 240;
 export const TICK = 1 / 60;
 /**
@@ -17,7 +20,28 @@ export const TICK = 1 / 60;
  */
 /** C005: 처치 광석 1/3 → 0.3/1 (처치 광석 비율 81% → 58%, GDD 목표 30~50%에 다가감). 기본 수입 0.15 시험은 L1·M4 퇴행으로 폐기 */
 export const KILL_ORE = 0.3, KILL_ORE_BIG = 1, BASE_ORE = 0.5;
-export const BEAT = 60 * 11, FIRST_CARD = 60 * 8, REROLL0 = 4, REROLL_ADD = 2;
+export const FIRST_CARD = 60 * 8, REROLL0 = 4, REROLL_ADD = 2;
+/**
+ * F01 (오너 M2 테스트 11-08: "카드가 자주 뜨는 것 같다 · 정답이 정해진 느낌"): 카드는 11초 박자가 아니라
+ * **웨이브를 막을 때마다 한 장**(첫 카드만 8초). 카드 화면에 **다음 웨이브 종류**를 보여 준다 — 좋은 카드가 상황마다 달라지게.
+ */
+export type WaveKind = '보통' | '떼' | '거대' | '빠름';
+export const KIND_TEXT: Record<WaveKind, string> = { 보통: '여러 운석이 골고루', 떼: '작은 운석이 사방에서 많이', 거대: '단단한 거대 운석이 천천히', 빠름: '작은 운석이 빠르게' };
+/**
+ * 행성 성격 (F01): 판마다 자주 오는 위협이 하나 있다(떼·거대·빠름). 종류가 고르게 섞이면 '무엇이 와도 버티는 빌드' 하나가 정답이 된다
+ * (측정: 고르게 섞으면 '새 포탑 먼저' 고정 순서가 381점으로 1등, 예고를 읽는 봇은 0.6~0.8배).
+ */
+export const planetOf = (seed: number): '떼' | '거대' => (hashString(`${seed}:planet`) % 2 ? '거대' : '떼');
+/**
+ * 웨이브 종류는 (시드·웨이브 번호)로만 정한다 — 카드 선택·다시 뽑기가 바꾸지 않는다. 1~2웨이브는 연습이라 보통.
+ * 그 뒤 행성 성격 50% · 보통 37.5% · 빠름 12.5%. 반대 위협(떼 행성의 거대, 거대 행성의 떼)은 오지 않는다 —
+ * 섞여 오면 '가장 약한 고리'에서 죽어서 고르게 짓는 순서 하나가 다시 정답이 됐다(측정, F01).
+ */
+export const waveKind = (seed: number, n: number): WaveKind => {
+  if (n <= 2) return '보통';
+  const r = hashString(`${seed}:wave:${n}`) % 8;
+  return r < 4 ? planetOf(seed) : r < 7 ? '보통' : '빠름';
+};
 
 export type Kind = '광산' | '포탑';
 export type CardId = 'new-mine' | 'new-turret' | 'up-mine' | 'up-turret' | 'ally' | 'shield' | 'spin';
@@ -62,6 +86,9 @@ export interface State {
   beatNo: number;
   handRolls: number;
   wave: number;
+  /** 지금 웨이브와 다음 웨이브의 종류 (F01) */
+  kind: WaveKind;
+  nextKind: WaveKind;
   /** 이번 웨이브에 남은 운석 수 */
   budget: number;
   /** 숨 고르기 남은 틱 (0이면 전투 중) */
@@ -78,9 +105,8 @@ export interface State {
   ore: number;
   /** 다시 뽑기 비용 (뽑을 때마다 +2, 카드를 고르면 처음 값으로) */
   cost: number;
-  /** 다음 카드가 오는 틱 / 지난 카드가 온 틱 */
+  /** 첫 카드가 오는 틱 (그 뒤로는 웨이브를 막을 때마다, F01) */
   nextCard: number;
-  lastCard: number;
   rerolls: number;
   offer: Card[] | null;
   offerAt: number;
@@ -123,8 +149,8 @@ export const turretRange = (lv: number) => 0.34 + 0.05 * (lv - 1);
 
 export function create(seed: number): State {
   return {
-    seed, rngS: seed >>> 0, slotS: (seed ^ 0x5bd1e995) >>> 0, beatNo: 0, handRolls: 0, wave: 1, budget: waveSize(1), breath: 0, t: 0, angle: -Math.PI / 2, spinLv: 0, allies: 0, cool: [0], enemies: [], bullets: [],
-    ore: 0, cost: REROLL0, nextCard: FIRST_CARD, lastCard: 0, rerolls: 0, offer: null, offerAt: -99, builds: 0, hp: 3, spawnIn: 90, nextId: 1, kills: 0, blocks: 0,
+    seed, rngS: seed >>> 0, slotS: (seed ^ 0x5bd1e995) >>> 0, beatNo: 0, handRolls: 0, wave: 1, kind: '보통', nextKind: waveKind(seed, 2), budget: waveSize(1), breath: 0, t: 0, angle: -Math.PI / 2, spinLv: 0, allies: 0, cool: [0], enemies: [], bullets: [],
+    ore: 0, cost: REROLL0, nextCard: FIRST_CARD, rerolls: 0, offer: null, offerAt: -99, builds: 0, hp: 3, spawnIn: 90, nextId: 1, kills: 0, blocks: 0,
     combo: 0, comboAt: -999, bestCombo: 0, last: null, hitAt: -99, deadAt: -1, dead: false, events: [], lastHit: null,
     // 리뷰: 시작 방어 0 → 포탑 Lv1 하나를 깔고 시작 (기지가 첫 화면부터 보인다)
     sites: [{ kind: '포탑', slot: 6, level: 1, cool: 0, aim: 0, born: -99 }],
@@ -142,35 +168,57 @@ const VMAX = 0.42;
  * 운석 기본 속도: 1~2웨이브는 0.11로 천천히(라이트가 아무것도 못 짓고 끝나는 판 방지, L8).
  * C006 복구 — C005 폐기는 근거 오류였다("램프 없이 99초"는 램프를 켜고 잰 값, TALK C005 정정)
  */
-/**
- * 카드 박자: 광산 단계마다 1.8초 빨라진다(최소 6초) — C008: 광산이 '늘 최악'(튜닝 93%)이던 이유는 광석 쓸 곳이 없어서.
- * 광산 = 카드를 더 자주 받는 생산 건물. 본전: 카드 1장을 내고 약 70초 뒤부터 이득 (FUN QA C007: 120초 안 본전)
- */
-export const beatOf = (s: State) => Math.max(60 * 6, BEAT - 108 * s.sites.filter((x) => x.kind === '광산').reduce((a, x) => a + x.level, 0));
-
-export const speedOf = (wave: number) => (wave <= 2 ? 0.11 : Math.min(VMAX, 0.14 + 0.025 * (wave - 1)));
+/** F01: 카드가 웨이브마다 오니 웨이브 하나가 '한 단계'다 — 웨이브당 난이도 상승을 RAMP배로 (카드가 시간 박자일 때보다 단계당 받는 힘이 크다) */
+const RAMP = 0.6;
+// F01: 1웨이브는 연습 — 0.08로 더 천천히 (첫 피격이 판의 절반에서 10초 근처였다, L4)
+export const speedOf = (wave: number) => (wave === 1 ? 0.08 : wave === 2 ? 0.11 : Math.min(VMAX, 0.14 + 0.025 * (wave - 1) * RAMP));
 export const waveSize = (n: number) => 6 + 3 * n;
 const waveCap = (n: number) => 3 + n;
 const waveGap = (n: number) => Math.max(18, 80 - 6 * n);
+/** 종류별 웨이브 모양 (F01): 수 배율 · 간격 배율 · 동시 상한 더하기 · 속도 배율 */
+const SHAPE: Record<WaveKind, { size: number; gap: number; cap: number; v: number }> = {
+  보통: { size: 1, gap: 1, cap: 0, v: 1 },
+  떼: { size: 2, gap: 0.4, cap: 6, v: 1 },
+  거대: { size: 0.35, gap: 1.6, cap: 0, v: 0.75 },
+  빠름: { size: 1, gap: 0.8, cap: 0, v: 1.6 },
+};
+export const budgetOf = (k: WaveKind, n: number) => Math.max(3, Math.round(waveSize(n) * SHAPE[k].size));
 
 function spawn(s: State) {
-  const n = s.wave - 1;
-  const big = rnd(s, 'rngS') < Math.min(0.45, 0.06 * n);
-  // 후반 난이도는 단단함으로: 3웨이브마다 체력 +1 (C004. FUN QA: 계단 벽 → M3-2에서 빌드로 대응하는 위협으로 교체 예정)
-  const hp = (big ? 3 : 1 + (rnd(s, 'rngS') < Math.min(0.6, 0.08 * n) ? 1 : 0)) + Math.floor(n / 3);
-  s.enemies.push({ id: s.nextId++, a: rnd(s, 'rngS') * Math.PI * 2, r: 1.05, v: (speedOf(s.wave) + rnd(s, 'rngS') * 0.03) / 60, hp, maxHp: hp, big, flash: -99 });
+  const n = (s.wave - 1) * RAMP, k = s.kind, sh = SHAPE[k];
+  // F01: 난수는 종류와 상관없이 늘 같은 개수를 뽑는다 — 운석 배치가 카드 선택과 무관하게 유지된다
+  const bigRoll = rnd(s, 'rngS'), hpRoll = rnd(s, 'rngS');
+  // F01: 거대 운석은 거대 행성에만 — 떼 행성의 보통 웨이브에 거대가 섞이면(후반 45%) 어디서나 포탑이 필수라 정답이 하나였다
+  const big = k === '거대' || (k === '보통' && planetOf(s.seed) === '거대' && bigRoll < Math.min(0.45, 0.06 * n));
+  // 후반 난이도는 단단함으로: 3웨이브마다 체력 +1 (C004). 떼·빠름은 약한 돌이 많거나 빠르다 — 단단함은 절반만
+  // 떼는 늘 체력 1(수로 밀어붙이는 위협 — 위성 몸막기의 몫), 빠름은 단단함 절반
+  const step3 = k === '떼' ? 0 : k === '빠름' ? Math.floor(n / 6) : Math.floor(n / 3);
+  const hp = (big ? 3 : 1 + (k === '보통' && hpRoll < Math.min(0.6, 0.08 * n) ? 1 : 0)) + step3;
+  s.enemies.push({ id: s.nextId++, a: rnd(s, 'rngS') * Math.PI * 2, r: 1.05, v: Math.min(VMAX * 1.4, (speedOf(s.wave) + rnd(s, 'rngS') * 0.03) * sh.v) / 60, hp, maxHp: hp, big, flash: -99 });
   s.budget--;
-  s.spawnIn = Math.round(waveGap(s.wave) * (0.7 + rnd(s, 'rngS') * 0.6));
+  s.spawnIn = Math.round(waveGap(s.wave) * sh.gap * (0.7 + rnd(s, 'rngS') * 0.6));
 }
 
 function waves(s: State) {
   if (s.breath > 0) {
-    if (--s.breath === 0) (s.wave++, (s.budget = waveSize(s.wave)), (s.spawnIn = 30), s.events.push({ type: 'wave', wave: s.wave }));
+    if (--s.breath === 0) {
+      s.wave++;
+      s.kind = s.nextKind;
+      s.nextKind = waveKind(s.seed, s.wave + 1);
+      s.budget = budgetOf(s.kind, s.wave);
+      s.spawnIn = 30;
+      s.events.push({ type: 'wave', wave: s.wave });
+    }
     return;
   }
   if (s.budget > 0) {
-    if (--s.spawnIn <= 0 && s.enemies.length < waveCap(s.wave)) spawn(s);
-  } else if (!s.enemies.length) (s.breath = BREATH), s.events.push({ type: 'clear', wave: s.wave });
+    if (--s.spawnIn <= 0 && s.enemies.length < waveCap(s.wave) + SHAPE[s.kind].cap) spawn(s);
+  } else if (!s.enemies.length) {
+    s.breath = BREATH;
+    s.events.push({ type: 'clear', wave: s.wave });
+    // F01: 웨이브를 막으면 건설 시간 — 다음 웨이브 종류를 보고 고른다
+    deal(s);
+  }
 }
 
 const freeSlots = (s: State) => [...Array(SLOTS).keys()].filter((k) => !s.sites.some((x) => x.slot === k));
@@ -180,16 +228,25 @@ const lowest = (s: State, kind: Kind) => s.sites.filter((x) => x.kind === kind &
 export function available(s: State): Card[] {
   const out: Card[] = [];
   const free = freeSlots(s).length > 0;
-  // C009: 박자가 하한(6초)에 닿으면 광산은 광석만 준다 — 카드 문구도 사실대로 (FUN QA C008: '1.8초 빨리'는 거짓말이었다)
-  const atFloor = beatOf(s) <= 60 * 6;
-  if (free) out.push({ id: 'new-mine', label: '새 광산', detail: atFloor ? '광석 +0.3/초' : '다음 카드가 더 빨리' }, { id: 'new-turret', label: '새 포탑', detail: '자동 사격' });
+  // F01: 카드가 웨이브마다 오니 광산은 박자를 줄이지 않고 광석(다시 뽑기)만 준다 — 문구도 그대로
+  // F01: 광산은 3웨이브부터 — 카드가 웨이브마다 와서 초반 두 장 중 하나가 광산이면 라이트가 45초 안에 끝났다(L8 2/24)
+  if (free && s.wave >= MINE_FROM) out.push({ id: 'new-mine', label: '새 광산', detail: '광석 +0.3/초' });
+  if (free) out.push({ id: 'new-turret', label: '새 포탑', detail: '자동 사격' });
   const m = lowest(s, '광산'), t = lowest(s, '포탑');
-  if (m) out.push({ id: 'up-mine', label: `광산 Lv${m.level + 1}`, detail: atFloor ? '광석 +0.3/초' : '다음 카드가 더 빨리' });
+  if (m) out.push({ id: 'up-mine', label: `광산 Lv${m.level + 1}`, detail: '광석 +0.3/초' });
   if (t) out.push({ id: 'up-turret', label: `포탑 Lv${t.level + 1}`, detail: '연사·사거리 ↑' });
-  if (s.allies < 3) out.push({ id: 'ally', label: '위성', detail: '하나 더 돌아요' });
-  if (s.spinLv < 3) out.push({ id: 'spin', label: `궤도 가속 Lv${s.spinLv + 1}`, detail: '회전 +50%' });
+  // F01: 위성 상한 3 → ALLY_MAX — 3기에서 막히면 '위성으로 깊게 가는 길'이 없고 성장이 41초에 끝났다 (오너: "성장이 금방 끝나")
+  if (s.allies < ALLY_MAX) out.push({ id: 'ally', label: `위성 ${s.allies + 2}기째`, detail: '하나 더 돌아요' });
+  if (s.spinLv < 3) out.push({ id: 'spin', label: `궤도 가속 Lv${s.spinLv + 1}`, detail: '회전 +100%' });
   if (s.hp < HP_MAX) out.push({ id: 'shield', label: '방어막', detail: '내구도 +1' });
   return out;
+}
+
+/** 건설 시간: 손패 번호를 하나 올리고 3장을 뽑는다 */
+function deal(s: State) {
+  s.beatNo++;
+  s.handRolls = 0;
+  makeOffer(s);
 }
 
 function makeOffer(s: State, exclude: CardId[] = []) {
@@ -258,7 +315,8 @@ function shoot(s: State, from: { x: number; y: number }, range: number, kind: 's
 }
 
 /** 회전 속도(라디안/틱): 기본 초당 0.9, 궤도 가속 단계마다 +50% */
-export const spinSpeed = (s: State) => (0.9 / 60) * (1 + 0.5 * s.spinLv);
+// F01: 카드가 판당 11장으로 귀해져 +50%로는 손해(H3 0.7) — 단계마다 +100%
+export const spinSpeed = (s: State) => (0.9 / 60) * (1 + s.spinLv);
 
 export function step(s: State, input: Input) {
   s.events = [];
@@ -279,13 +337,7 @@ export function step(s: State, input: Input) {
   s.angle = wrap(s.angle + spinSpeed(s));
   waves(s);
   s.ore += (BASE_ORE + mineRate(s)) / 60;
-  if (s.t >= s.nextCard) {
-    s.lastCard = s.t;
-    s.nextCard = s.t + beatOf(s);
-    s.beatNo++;
-    s.handRolls = 0;
-    makeOffer(s);
-  }
+  if (s.t === s.nextCard) deal(s);
   if (s.t - s.comboAt > COMBO_GAP) s.combo = 0;
   const ships = crew(s).map((a) => pos(a, ORBIT));
   ships.forEach((m, k) => {
@@ -319,7 +371,13 @@ export function step(s: State, input: Input) {
       }
       continue;
     }
-    let by: 'shot' | 'body' | null = ships.some((m) => Math.hypot(ep.x - m.x, ep.y - m.y) < BODY + ENEMY_R) ? 'body' : null;
+    let by: 'shot' | 'body' | null = null;
+    // F01: 몸막기 = 1 피해 (예전엔 체력과 상관없이 즉사 → 단단한·거대 운석도 위성이 다 막아 '위성이 늘 최선'이었다)
+    if (s.t - e.flash >= BODY_CD && ships.some((m) => Math.hypot(ep.x - m.x, ep.y - m.y) < BODY + ENEMY_R)) {
+      e.flash = s.t;
+      if (--e.hp <= 0) by = 'body';
+      else s.events.push({ type: 'hit', x: ep.x, y: ep.y });
+    }
     for (const b of s.bullets) {
       if (by || b.life <= 0 || Math.hypot(ep.x - b.x, ep.y - b.y) > ENEMY_R + 0.015) continue;
       b.life = 0;
@@ -362,6 +420,22 @@ export function smartBot(s: State): Input {
   return { pick: pickBy(s, BALANCED) };
 }
 export const policyBot = (rank: Policy) => (s: State): Input => ({ pick: pickBy(s, rank) });
+
+/**
+ * F01 P1: 다음 웨이브를 읽고 고르는 봇 — 떼는 덮는 각도(위성·가속), 거대는 화력(포탑), 빠름은 가로채기(가속·위성)와 방어막.
+ * 이 봇이 고정 순위(BALANCED)를 이겨야 '정답이 정해진 느낌'이 아니다 (FUN.md P1).
+ */
+const NEED: Record<WaveKind, CardId[]> = {
+  보통: ['ally', 'up-turret', 'new-turret', 'spin', 'new-mine', 'up-mine', 'shield'],
+  떼: ['ally', 'spin', 'new-turret', 'up-turret', 'shield', 'new-mine', 'up-mine'],
+  거대: ['up-turret', 'new-turret', 'shield', 'spin', 'ally', 'new-mine', 'up-mine'],
+  빠름: ['spin', 'ally', 'shield', 'new-turret', 'up-turret', 'new-mine', 'up-mine'],
+};
+export const READ: Policy = (c, s) => (s.hp <= 1 && c.id === 'shield' ? -1 : NEED[s.nextKind].indexOf(c.id));
+export function readBot(s: State): Input {
+  if (s.offer && s.ore >= s.cost && s.offer.every((c) => READ(c, s) > 1)) return { reroll: true };
+  return { pick: pickBy(s, READ) };
+}
 
 /** 봇 한 판 */
 export function runBot(bot: (s: State, rng: Rng) => Input, seed: number, maxTicks = 60 * 600) {

@@ -1,7 +1,7 @@
 /**
  * 그리기 (브라우저 전용). 시뮬 상태 + 손맛 상태 → 캔버스. 상태는 바꾸지 않는다.
  */
-import { CARD_Y, CORE, crew, ENEMY_R, BODY, ORBIT, pos, score, siteAngle, spin, type State } from './sim.ts';
+import { budgetOf, planetOf, CARD_Y, CORE, crew, ENEMY_R, BODY, KIND_TEXT, ORBIT, pos, score, siteAngle, spin, type State } from './sim.ts';
 import { COLORS, shakeOffset, type Juice } from './juice.ts';
 
 const BG = '#0a0e1f', SOFT = '#1c2547', MUTED = '#3b4470', INK = '#1b1b2f';
@@ -293,7 +293,10 @@ function hud(ctx: CanvasRenderingContext2D, s: State, w: number, h: number, fram
   }
   ctx.fillStyle = '#8f9bd6';
   ctx.textAlign = 'center';
-  ctx.fillText(s.breath > 0 ? `${s.wave}웨이브 방어 · 숨 고르기` : `${s.wave}웨이브`, w / 2, 16);
+  ctx.fillText(s.breath > 0 ? `${s.wave}웨이브 방어 · 숨 고르기` : `${s.wave}웨이브 · ${s.kind}`, w / 2, 16);
+  ctx.font = `600 ${Math.round(u * 0.03)}px system-ui, sans-serif`;
+  ctx.fillText(`${planetOf(s.seed)} 행성`, w / 2, 16 + u * 0.05);
+  ctx.font = `700 ${Math.round(u * 0.036)}px system-ui, sans-serif`;
   ctx.textAlign = 'left';
   if (s.combo >= 2) {
     ctx.fillStyle = COLORS.ore;
@@ -314,7 +317,9 @@ function hud(ctx: CanvasRenderingContext2D, s: State, w: number, h: number, fram
     ctx.fillText('건설 시간!', w / 2, top - ch * 1.55 - 20);
     ctx.fillStyle = COLORS.white;
     ctx.font = `600 ${Math.round(u * 0.04)}px system-ui, sans-serif`;
-    ctx.fillText('하나를 고르면 다시 시작해요', w / 2, top - ch * 0.95 - 20);
+    // F01: 다음 웨이브 예고 — 무엇에 대비할지 보고 고른다 (첫 카드는 지금 웨이브)
+    const nk = s.t <= s.nextCard ? s.kind : s.nextKind, nw = s.t <= s.nextCard ? s.wave : s.wave + 1;
+    ctx.fillText(`${s.t <= s.nextCard ? '이번' : '다음'} ${nw}웨이브 · ${nk}: ${KIND_TEXT[nk]}`, w / 2, top - ch * 0.95 - 20);
     // 다시 뽑기: 광석을 쓴다 (모자라면 흐리게)
     const rb = rerollBox(w, h), can = s.ore >= s.cost;
     ctx.fillStyle = can ? '#2b3566' : '#161c3a';
@@ -359,8 +364,9 @@ function hud(ctx: CanvasRenderingContext2D, s: State, w: number, h: number, fram
       ctx.globalAlpha = 1;
     });
   } else {
-    // 다음 카드까지 박자 (C004: 카드는 시간 박자로 온다)
-    const f = Math.min(1, (s.t - s.lastCard) / Math.max(1, s.nextCard - s.lastCard)), x = w * 0.06, bw = w * 0.88, y = top + ch * 0.32;
+    // F01: 다음 카드 = 이 웨이브를 막을 때 — 막대는 웨이브 진행(부순·남은 운석), 숨 고르기 중엔 다음 웨이브 예고
+    const first = s.t < s.nextCard, total = budgetOf(s.kind, s.wave), left = s.budget + s.enemies.length;
+    const f = first ? s.t / s.nextCard : s.breath > 0 ? 1 : Math.min(1, (total - left) / Math.max(1, total)), x = w * 0.06, bw = w * 0.88, y = top + ch * 0.32;
     ctx.fillStyle = SOFT;
     ctx.beginPath();
     ctx.roundRect(x, y, bw, 12, 6);
@@ -372,7 +378,9 @@ function hud(ctx: CanvasRenderingContext2D, s: State, w: number, h: number, fram
     ctx.fillStyle = '#8f9bd6';
     ctx.textAlign = 'center';
     ctx.font = `600 ${Math.round(Math.min(w * 0.036, ch * 0.17))}px system-ui, sans-serif`;
-    ctx.fillText(`다음 건설 카드까지 ${Math.ceil((s.nextCard - s.t) / 60)}초 · 광석 ${Math.floor(s.ore)} (다시 뽑기용)`, w / 2, y + 22);
+    const msg = first ? `첫 건설 카드까지 ${Math.ceil((s.nextCard - s.t) / 60)}초` : s.breath > 0 ? `곧 ${s.wave + 1}웨이브 · ${s.nextKind}: ${KIND_TEXT[s.nextKind]}` : `이 웨이브를 막으면 건설 카드 · 남은 운석 ${left}`;
+    ctx.fillText(msg, w / 2, y + 22);
+    ctx.fillText(`광석 ${Math.floor(s.ore)} (다시 뽑기용)`, w / 2, y + 44);
   }
   if (s.last && since < 70) {
     ctx.textAlign = 'center';
