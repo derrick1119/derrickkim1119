@@ -212,6 +212,8 @@ export interface TerraState {
   feat: Feat; goal: Goal; tilts: number; left: number; still: number; lastMove: number; pause: number; cleared: boolean; won: boolean;
   critters: Critter[]; nb: number; ns: number; hearts: number; stars: number; score: number; grown: number; jars: { stars: number; plants: number[] }[];
   seen: Set<string>; events: Ev[]; dead: boolean; rainT: number;
+  /** 개구리 집사 연출용: 마지막 뒤집기·싹·실패·생물 탄생 시각 */
+  flipT: number; sproutT: number; failT: number; birthT: number; rollDir: number;
 }
 
 const ev = (s: TerraState, kind: string, x: number, y: number, text?: string, c?: number) => s.events.push({ t: s.t, kind, x, y, text, c });
@@ -336,6 +338,7 @@ function hook(s: TerraState): Hook {
       s.grown++;
       s.score += 1;
       ev(s, 'sprout', x, y, undefined, type);
+      s.sproutT = s.t;
       see(s, 'sprout', '물에 닿은 씨앗이 그 자리에서 자라요!');
       if (birth) {
         s.score += 5;
@@ -343,6 +346,7 @@ function hook(s: TerraState): Hook {
         else s.ns++;
         s.critters.push({ kind: birth, x, y, tx: x, ty: y - 1, cd: 120, drops: birth === 'bfly' ? 2 : 0, face: 1, born: s.t });
         ev(s, 'birth', x, y, birth === 'bfly' ? '🦋 나비 탄생!' : '🐌 달팽이 탄생!');
+        s.birthT = s.t;
       }
     },
   };
@@ -363,6 +367,8 @@ function move(s: TerraState, d: Dir) {
   s.ang0 = s.ang1;
   s.ang1 += d === 'right' ? 90 : d === 'left' ? -90 : 180;
   s.rotT = s.t;
+  s.rollDir = d === 'left' ? -1 : 1;
+  if (d === 'up') s.flipT = s.t;
   ev(s, 'roll', CEN, CEN, d === 'up' ? '뒤집기!' : '데굴');
 }
 
@@ -445,7 +451,7 @@ export const terrarium: GameDef<TerraState> = {
     const s = {
       rng: mulberry32(seed), t: 0, stage: 0, jar: newJar(), o: 0, ang0: 0, ang1: 0, rotT: -99, rotFrom: 0, par: 0, stepT: 0, moving: false,
       feat: featOf(0), goal: {}, tilts: 0, left: 0, still: 0, lastMove: 0, pause: 0, cleared: false, won: false,
-      critters: [], nb: 0, ns: 0, hearts: 3, stars: 0, score: 0, grown: 0, jars: [], seen: new Set<string>(), events: [], dead: false, rainT: -99,
+      critters: [], nb: 0, ns: 0, hearts: 3, stars: 0, score: 0, grown: 0, jars: [], seen: new Set<string>(), events: [], dead: false, rainT: -99, flipT: -999, sproutT: -999, failT: -999, birthT: -999, rollDir: 1,
     } as TerraState;
     newStage(s);
     return s;
@@ -489,6 +495,7 @@ export const terrarium: GameDef<TerraState> = {
     const drops = s.critters.reduce((a, q) => a + q.drops, 0);
     if (s.still > 40 && s.t - s.lastMove > 120 && (s.left === 0 || (c.seeds === 0 && drops === 0)) && !(s.ns > 0 && c.seeds > 0 && s.t - s.lastMove < 600)) {
       s.hearts--;
+      s.failT = s.t;
       ev(s, 'fail', CEN, CEN, c.seeds === 0 ? '씨앗이 다 떨어졌어요! 하트 -1' : '밀기를 다 썼어요! 하트 -1');
       if (s.hearts <= 0) s.dead = true;
       else s.pause = 90;

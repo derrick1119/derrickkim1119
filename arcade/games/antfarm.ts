@@ -5,6 +5,10 @@
  *       씨앗 방 위 정원에선 싹이 돋아 꽃이 피고, 개미가 계속 늘어 굴 파는 속도도 빨라진다.
  * 첫 3초: 입구 바로 아래 설탕 방울. 첫 탭에 개미 넷이 줄지어 내려가 두 칸을 파고 '설탕 창고! +3'.
  * 목표·보상: 하루(판)마다 해 지기 전 개미 N마리 — 빨리 채울수록 별. 못 채우면 하트 -1, 그 날만 다시. 6일(한 계절)이면 끝.
+ *           첫날은 먹이가 가운데에 몰려 있고, 3초 넘게 놀면 개미가 '킁킁' 가까운 먹이를 알아서 판다 (아무렇게나 해도 첫날은 통과).
+ * 웃음(기준 10): 개미가 몸보다 큰 설탕 덩이·잎 우산을 들고 다니고, 방이 생기면 깡충 춤(♪), 물이 차면 잎 뗏목 위에서 뒤집혀 버둥,
+ *               두더지가 오면 그 줄 개미 눈이 휘둥그레(!), 무너지면 데굴데굴 튕겨 나가고 두더지는 볼 빨개져 "앗, 실례~".
+ *               성공하면 정원에서 고깔모자 줄춤, 해가 지면 뒤집혀 '쿨쿨'. 정원 꽃도 웃는다.
  * 하는 일이 바뀐다: 2일 비(빗물은 가장 깊은 굴부터 → 빈 굴을 더 깊게 파 물받이를 만든다)
  *                  → 3일 두더지(정해진 줄을 지나가며 굴·방을 무너뜨림 → 그 줄엔 방을 두지 않고, 끊긴 길은 다시 판다)
  *                  → 4일 버섯 농장(물에 잠기면 오히려 쑥쑥 → 이번엔 버섯을 가장 깊이)
@@ -1342,9 +1346,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: AntState, w: number, h: numbe
       if (s.won) (head = '한 계절 개미 마을 완성!'), (sub = `${'★'.repeat(s.got)}${'☆'.repeat(3 - s.got)} · 별 모두 ${s.stars}개`), (col = '#ffe066');
       else if (s.cleared) (head = `${s.day + 1}일째 성공!`), (sub = `${'★'.repeat(s.got)}${'☆'.repeat(3 - s.got)}  개미들이 춤춰요`), (col = '#ffe066');
       else (head = '해가 졌어요… 쿨쿨'), (sub = s.hearts > 0 ? `하트 -1 · ${s.day + 1}일째 다시` : '끝'), (col = '#ffb3a8');
-    } else if (s.dt < 120) (head = `${s.day + 1}일째`), (sub = `해 지기 전에 개미 ${s.goal}마리!`), (age = s.dt);
+    } else if (s.dead) (head = s.won ? '한 계절 개미 마을 완성!' : '개미들이 쿨쿨 잠들었어요'), (sub = `${s.day + (s.won ? 1 : 0)}일 버팀 · 별 ${s.stars}개`), (col = s.won ? '#ffe066' : '#ffb3a8'), (age = 99);
+    else if (s.dt < 120) (head = `${s.day + 1}일째`), (sub = `해 지기 전에 개미 ${s.goal}마리!`), (age = s.dt);
     if (head) {
-      const sc = Math.min(1, 0.6 + age / 12), a = s.pause > 0 ? 1 : Math.min(1, (120 - s.dt) / 20), cyy = Y(0.25);
+      const sc = Math.min(1, 0.6 + age / 12), a = s.pause > 0 || s.dead ? 1 : Math.min(1, (120 - s.dt) / 20), cyy = Y(0.275);
       ctx.save();
       ctx.globalAlpha = a;
       ctx.translate(w / 2, cyy);
@@ -1391,10 +1396,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: AntState, w: number, h: numbe
     const tx = '👆 흙을 톡! 개미가 그쪽으로 굴을 파요', tw2 = ctx.measureText(tx).width;
     ctx.fillStyle = 'rgba(43,29,20,.7)';
     ctx.beginPath();
-    ctx.roundRect(w / 2 - tw2 / 2 - 10, Y(0.21) - R(0.035), tw2 + 20, R(0.07), R(0.03));
+    ctx.roundRect(w / 2 - tw2 / 2 - 10, Y(0.14) - R(0.035), tw2 + 20, R(0.07), R(0.03));
     ctx.fill();
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(tx, w / 2, Y(0.21));
+    ctx.fillText(tx, w / 2, Y(0.14));
   }
 }
 

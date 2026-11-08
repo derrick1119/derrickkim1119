@@ -509,13 +509,13 @@ export const train: GameDef<TrainState> = {
       card(ctx, w / 2, 0.165 * w, [note.text], K * 0.92, 'rgba(45,30,18,.86)', '#fff3c8');
       ctx.globalAlpha = 1;
     }
-    if (s.pause > 0 && s.result) {
+    if (s.pause > 0 && s.pause <= PAUSE - 36 && s.result) {
       const ok = s.result === 'clear' || s.result === 'end', st = ok ? Math.min(3, 1 + +(s.last >= s.cfg.goal[1]) + +(s.last >= s.cfg.goal[2])) : 0;
       const lines = ok
         ? [s.result === 'end' ? '🎉 마을 축제 완성!' : `${s.stage + 1}판 완성!`, `${'★'.repeat(st)}${'☆'.repeat(3 - st)}  마을 ${s.last}점`]
         : s.result === 'over' ? ['하트를 다 썼어요', `마을 점수 합계 ${s.total}`] : [`${s.cfg.goal[0] - s.last}점 모자라요`, `♥ -1 · 이 판 다시!`];
       card(ctx, w / 2, 0.27 * w, lines, K * 1.25, ok ? 'rgba(255,250,235,.95)' : 'rgba(60,20,20,.88)', ok ? '#4a3020' : '#ffdede');
-    } else if (s.stage > 0 && t - s.stageT < 70 && t - s.stageT > 0) {
+    } else if (!s.pause && s.stage > 0 && t - s.stageT < 70 && t - s.stageT > 0) {
       card(ctx, w / 2, 0.27 * w, [`${s.stage + 1}판 — 목표 ${s.cfg.goal[0]}점`, `${s.cfg.laps}바퀴 · 화물칸 ${s.cfg.cap}`], K * 1.1, 'rgba(255,250,235,.92)', '#4a3020');
     }
     ctx.restore();

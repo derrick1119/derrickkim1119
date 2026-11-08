@@ -509,7 +509,7 @@ const SKY: [number, string, string][] = [
 
 function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, h: number, th: Theme) {
   const fx = juice(s), I = s.isle, K = I.kind, R = (x: number) => x * w;
-  const TW = (w * 0.97) / N, TH = TW * 0.5, HZ = TW * 0.22, D = TW * 1.2, OX = w / 2;
+  const TW = (w * 0.9) / N, TH = TW * 0.5, HZ = TW * 0.22, D = TW * 1.2, OX = w / 2;
   const top = R(0.15), bot = h - R(0.1);
   const OY = top + (bot - top - (N * TH + D + TW * 0.5)) * 0.78;
   const P = (gx: number, gy: number, z: number): [number, number] => [OX + ((gx - gy) * TW) / 2, OY + ((gx + gy) * TH) / 2 - z];
@@ -587,7 +587,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
   ctx.fill();
   // 나무 받침대 (디오라마 진열대)
   {
-    const pd = TW * 0.45, ex = TW * 0.35, dy0 = D, L1: [number, number] = [L0[0] - ex, L0[1] + dy0], F1: [number, number] = [F0[0], F0[1] + dy0 + ex * 0.5], R1: [number, number] = [R0[0] + ex, R0[1] + dy0];
+    const pd = TW * 0.45, ex = TW * 0.28, dy0 = D, L1: [number, number] = [L0[0] - ex, L0[1] + dy0], F1: [number, number] = [F0[0], F0[1] + dy0 + ex * 0.5], R1: [number, number] = [R0[0] + ex, R0[1] + dy0];
     const T1: [number, number] = [T00[0], T00[1] + dy0 - ex * 0.5];
     poly([T1, R1, F1, L1], mix('#a8754a', '#3a2818', night * 0.6));
     poly([L1, F1, [F1[0], F1[1] + pd], [L1[0], L1[1] + pd]], mix('#8a5a34', '#2a1c10', night * 0.6));
@@ -1062,7 +1062,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
     if (e.kind === 'erupt') fx.burst(x, y - 6, '#ff8a2a', 30, 4.5, 3), fx.burst(x, y - 6, '#ffe27a', 14, 3, 2), fx.ring(x, y, '#ffb347', TW * 2.4, 5), fx.kick(e.text === '부글' ? 4 : 9), fx.blink('#ff7a2a', 0.18), e.text && fx.pop(x, y - 26, e.text, '#ffd27a', 18);
     if (e.kind === 'hiss') fx.pop(x, y - 14, e.text!, '#ffffff', 20), fx.burst(x, y, '#e8f4ff', 18, 3, 3), fx.ring(x, y, '#ffffff', TW * 1.5, 3), fx.kick(4);
     if (e.kind === 'steam') fx.burst(x, y, '#dff0ff', 4, 1.6, 2);
-    if (e.kind === 'bury') fx.burst(x, y, '#5a4a44', 10, 2.5, 2.5), fx.pop(x, y - 8, e.text!, '#ff8080', 13);
+    if (e.kind === 'bury') fx.burst(x, y, '#5a4a44', 10, 2.5, 2.5), e.text !== '-1' && e.text !== '-2' && fx.pop(x, y - 8, e.text!, '#ff8080', 13);
     if (e.kind === 'house') fx.burst(x, y, '#ff5a5a', 22, 3.5, 3), fx.pop(x, y - 12, e.text!, '#ff6b6b', 16), fx.kick(10), fx.blink('#ff3030', 0.2);
     if (e.kind === 'sum') fx.pop(w / 2, OY - R(0.02), e.text!, '#fff4c8', 17);
     if (e.kind === 'sprout') fx.burst(x, y - 4, '#9be36a', 5, 1.4, 1.6);
