@@ -1,7 +1,7 @@
 /**
  * 브라우저 진입점: 캔버스 · 입력(멀티터치/키보드) · 고정 60Hz 루프 · 화면 전환(타이틀/일시정지/결과).
  */
-import { create, crew, score, smartBot, step, type Input, type State } from './sim.ts';
+import { create, crew, planetOf, score, smartBot, step, type Input, type State } from './sim.ts';
 import { createJuice, react, tick, type Juice } from './juice.ts';
 import { createSfx } from './audio.ts';
 import { cardBox, cardTop, draw, markDead, rerollBox, setSelected, setTouchOnly } from './render.ts';
@@ -155,11 +155,13 @@ function result() {
   $('r-cause').textContent = h ? `${h.wave}웨이브에서 ${h.big ? '거대 운석' : h.maxHp > 1 ? `단단한 운석(체력 ${h.maxHp})` : '운석'}에 마지막 방어막이 깨졌어요` : '';
   const turretLv = s.sites.filter((x) => x.kind === '포탑').reduce((a, x) => a + x.level, 0);
   // C010: 다음 판 한 줄은 끝난 원인에 묶는다 (FUN QA: 2/3가 같은 문장, 사인과 무관했다) + 숫자 목표
+  // F01 FUN QA: 조언은 행성의 위협과 끝난 원인에 묶는다 (궤도 가속 권유는 데이터상 가장 약한 카드라 뺐다)
+  const giant = planetOf(s.seed) === '거대';
   const tip =
-    h?.big ? (turretLv < 5 ? '거대 운석은 단단해요 — 포탑을 더 짓거나 강화해 보세요' : '거대 운석이 늘어나요 — 위성으로 막는 각도를 넓혀 보세요')
+    h?.big ? (turretLv < 5 ? '거대 운석은 몸으로 못 막아요 — 포탑을 더 짓거나 강화해 보세요' : '거대 운석이 늘어나요 — 포탑 강화를 서둘러 보세요')
       : h && h.maxHp > 1 ? '단단한 운석은 여러 발 필요해요 — 포탑 강화로 연사를 올려 보세요'
-        : s.allies === 0 ? '여기저기서 와요 — 위성을 하나 더 골라 막는 각도를 늘려 보세요'
-          : s.spinLv === 0 ? '틈이 생겨요 — 궤도 가속으로 위성을 빠르게 돌려 보세요'
+        : !giant && s.allies < 3 ? '작은 운석 떼는 위성이 몸으로 막아요 — 위성을 더 골라 보세요'
+          : giant && turretLv < 4 ? '거대 운석이 오는 행성이에요 — 포탑을 미리 키워 두세요'
             : '빈틈을 메울 카드가 없으면 광석으로 다시 뽑아 보세요';
   $('r-next').textContent = `다음 목표 ${s.wave + 1}웨이브 · ${tip}`;
   $('r-stats').innerHTML = [

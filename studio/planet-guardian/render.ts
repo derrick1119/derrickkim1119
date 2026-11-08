@@ -294,8 +294,11 @@ function hud(ctx: CanvasRenderingContext2D, s: State, w: number, h: number, fram
   ctx.fillStyle = '#8f9bd6';
   ctx.textAlign = 'center';
   ctx.fillText(s.breath > 0 ? `${s.wave}웨이브 방어 · 숨 고르기` : `${s.wave}웨이브 · ${s.kind}`, w / 2, 16);
-  ctx.font = `600 ${Math.round(u * 0.03)}px system-ui, sans-serif`;
-  ctx.fillText(`${planetOf(s.seed)} 행성`, w / 2, 16 + u * 0.05);
+  // F01 FUN QA: '거대 행성'은 '큰 행성'으로 읽혔고 12px로 흐렸다 → 자주 오는 위협을 말로, 14px 이상
+  ctx.font = `700 ${Math.max(14, Math.round(u * 0.036))}px system-ui, sans-serif`;
+  ctx.fillStyle = '#ff8a8a';
+  ctx.fillText(planetOf(s.seed) === '떼' ? '자주 오는 위협: 작은 운석 떼' : '자주 오는 위협: 거대 운석', w / 2, 18 + u * 0.05);
+  ctx.fillStyle = '#8f9bd6';
   ctx.font = `700 ${Math.round(u * 0.036)}px system-ui, sans-serif`;
   ctx.textAlign = 'left';
   if (s.combo >= 2) {
