@@ -1060,7 +1060,12 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
   for (const e of s.events) {
     if (e.t <= seenT) continue;
     const i = e.k % N, j = (e.k / N) | 0, [x, y] = P(i + 0.5, j + 0.5, zOf(e.k) + 4);
-    if (e.kind === 'erupt') fx.burst(x, y - 6, '#ff8a2a', 30, 4.5, 3), fx.burst(x, y - 6, '#ffe27a', 14, 3, 2), fx.ring(x, y, '#ffb347', TW * 2.4, 5), fx.kick(e.text === '부글' ? 4 : 9), fx.blink('#ff7a2a', 0.18), e.text && fx.pop(x, y - 26, e.text, '#ffd27a', 18);
+    if (e.kind === 'erupt') {
+      const yt = y - CONE * (e.k === CI ? 1 : 0.6);
+      // 웃음: 아주 살짝 누르면 '뿌웅~' 하고 방귀 같은 연기만 퐁
+      if (e.text === '뿌웅~') fx.burst(x, yt, '#bdb6b0', 16, 2, 4), fx.ring(x, yt, '#d8d2cc', TW * 1.2, 3), fx.pop(x, yt - 18, e.text, '#e8e2dc', 17);
+      else fx.burst(x, yt, '#ff8a2a', 30, 4.5, 3), fx.burst(x, yt, '#ffe27a', 14, 3, 2), fx.ring(x, y, '#ffb347', TW * 2.4, 5), fx.kick(e.text === '부글' ? 4 : 9), fx.blink('#ff7a2a', 0.18), e.text && fx.pop(x, yt - 18, e.text, '#ffd27a', 18);
+    }
     if (e.kind === 'hiss') fx.pop(x, y - 14, e.text!, '#ffffff', 20), fx.burst(x, y, '#e8f4ff', 18, 3, 3), fx.ring(x, y, '#ffffff', TW * 1.5, 3), fx.kick(4);
     if (e.kind === 'steam') fx.burst(x, y, '#dff0ff', 4, 1.6, 2);
     if (e.kind === 'bury') fx.burst(x, y, '#5a4a44', 10, 2.5, 2.5), e.text !== '-1' && e.text !== '-2' && fx.pop(x, y - 8, e.text!, '#ff8080', 13);
