@@ -1,1 +1,66 @@
-{}
+{
+ "garden": {
+  "id": "garden",
+  "name": "물길 정원",
+  "n": 24,
+  "dumb": {
+   "score": 0,
+   "sec": 34.1
+  },
+  "smart": {
+   "score": 357.5,
+   "sec": 89.9,
+   "capped": 0.16666666666666666
+  },
+  "skillGap": 358.5,
+  "reveals": [
+   2.6,
+   3.9,
+   4.3
+  ],
+  "dumbReveals": [
+   0,
+   0
+  ],
+  "parts": {
+   "skill": 1,
+   "onboarding": 1,
+   "session": 0.833,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.954
+ },
+ "domino": {
+  "id": "domino",
+  "name": "도미노 도시",
+  "n": 24,
+  "dumb": {
+   "score": 53,
+   "sec": 58.6
+  },
+  "smart": {
+   "score": 297,
+   "sec": 44.9,
+   "capped": 0
+  },
+  "skillGap": 5.52,
+  "reveals": [
+   4,
+   4.9,
+   4.9
+  ],
+  "dumbReveals": [
+   3,
+   3
+  ],
+  "parts": {
+   "skill": 0.821,
+   "onboarding": 1,
+   "session": 0.998,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.927
+ }
+}
