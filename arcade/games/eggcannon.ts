@@ -817,21 +817,21 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
   const seenT = fx.memo.t ?? -1;
   for (const e of s.events) {
     if (e.t <= seenT) continue;
-    const x = LX(e.x), y = LY(e.y);
-    if (e.kind === 'fire') fx.burst(x, y, '#fff8e8', 14, 3, 2.5), fx.ring(x, y, '#ffffff', S * 1.3, 3), fx.pop(x + 18, y - 8, e.text!, '#ffffff', 18), fx.kick(2 + s.lastPow * 5);
-    else if (e.kind === 'over') fx.burst(x, y, '#ff6a50', 24, 4.5, 3), fx.burst(x, y, '#ffffff', 16, 3, 3), fx.pop(x + 24, y - 24, e.text!, '#ff6a5a', 22), fx.kick(9), fx.blink('#ff8060', 0.2);
-    else if (e.kind === 'land') fx.ring(x, y, '#ffe27a', S * 1.4, 3), fx.burst(x, y, '#f7d98a', 10, 2, 2), fx.pop(x, y - 16, e.text!, '#ffffff', 16);
-    else if (e.kind === 'hatch') fx.burst(x, y - 6, '#ffe14a', 14 + (e.n ?? 1) * 6, 3, 2.6), fx.ring(x, y - 4, '#fff3a0', S * (1.4 + (e.n ?? 1) * 0.3), 4), fx.pop(x, y - S * 1.7, e.text!, '#ffb02e', (e.n ?? 1) >= 2 ? 19 : 17), fx.kick((e.n ?? 1) >= 3 ? 5 : 2);
-    else if (e.kind === 'bounce') fx.burst(x, y, '#ffffff', 8, 2.5, 2), fx.pop(x, y - 14, '통!', '#ffd0a0', 17), fx.kick(3);
-    else if (e.kind === 'break') fx.burst(x, y, '#ffe066', 14, 3, 2.6), fx.burst(x, y, '#ffffff', 8, 2.5, 2), fx.pop(x, y - 14, e.text!, '#ffb0a0', 16), fx.kick(3);
+    const x = LX(e.x), y = LY(e.y), tx = Math.max(58, Math.min(w - 58, x));
+    if (e.kind === 'fire') fx.burst(x, y, '#fff8e8', 14, 3, 2.5), fx.ring(x, y, '#ffffff', S * 1.3, 3), fx.pop(tx + 18, y - 8, e.text!, '#ffffff', 18), fx.kick(2 + s.lastPow * 5);
+    else if (e.kind === 'over') fx.burst(x, y, '#ff6a50', 24, 4.5, 3), fx.burst(x, y, '#ffffff', 16, 3, 3), fx.pop(tx + 24, y - 24, e.text!, '#ff6a5a', 22), fx.kick(9), fx.blink('#ff8060', 0.2);
+    else if (e.kind === 'land') fx.ring(x, y, '#ffe27a', S * 1.4, 3), fx.burst(x, y, '#f7d98a', 10, 2, 2), fx.pop(tx, y - 16, e.text!, '#ffffff', 16);
+    else if (e.kind === 'hatch') fx.burst(x, y - 6, '#ffe14a', 14 + (e.n ?? 1) * 6, 3, 2.6), fx.ring(x, y - 4, '#fff3a0', S * (1.4 + (e.n ?? 1) * 0.3), 4), fx.pop(tx, y - S * 1.7, e.text!, '#ffb02e', (e.n ?? 1) >= 2 ? 19 : 17), fx.kick((e.n ?? 1) >= 3 ? 5 : 2);
+    else if (e.kind === 'bounce') fx.burst(x, y, '#ffffff', 8, 2.5, 2), fx.pop(tx, y - 14, '통!', '#ffd0a0', 17), fx.kick(3);
+    else if (e.kind === 'break') fx.burst(x, y, '#ffe066', 14, 3, 2.6), fx.burst(x, y, '#ffffff', 8, 2.5, 2), fx.pop(tx, y - 14, e.text!, '#ffb0a0', 16), fx.kick(3);
     else if (e.kind === 'out') fx.pop(Math.min(w - 40, x), Math.max(topH + 24, y), e.text!, '#cfe8ff', 15);
-    else if (e.kind === 'foxhit') fx.burst(x, y, '#ffe066', 18, 3.5, 3), fx.pop(x, y - 20, e.text!, '#ffd27a', 19), fx.kick(6);
-    else if (e.kind === 'steal') fx.pop(x, y - 18, '삐약!!', '#ff9a8a', 17), fx.kick(5), fx.blink('#ff6040', 0.15);
+    else if (e.kind === 'foxhit') fx.burst(x, y, '#ffe066', 18, 3.5, 3), fx.pop(tx, y - 20, e.text!, '#ffd27a', 19), fx.kick(6);
+    else if (e.kind === 'steal') fx.pop(tx, y - 18, '삐약!!', '#ff9a8a', 17), fx.kick(5), fx.blink('#ff6040', 0.15);
     else if (e.kind === 'foxin') fx.pop(Math.min(w - 30, x), y - 10, e.text!, '#ffb070', 14);
     else if (e.kind === 'clear') fx.burst(w / 2, h * 0.36, '#ffd23f', 60, 6, 3), fx.blink('#fff6c8', 0.25), fx.pop(w / 2, h * 0.34, e.text!, '#ffe27a', 24);
     else if (e.kind === 'fail') fx.kick(10), fx.blink('#ff4d5e', 0.25), fx.pop(w / 2, h * 0.36, e.text!, '#ff8a8a', 17);
     else if (e.kind === 'perfect') fx.burst(w / 2, h * 0.44, '#c8ff9a', 30, 4, 2.5), fx.pop(w / 2, h * 0.44, e.text!, '#d8ffb0', 16);
-    else if (e.kind === 'tap') fx.pop(x, y, e.text!, '#ffffff', 14);
+    else if (e.kind === 'tap') fx.pop(tx, y, e.text!, '#ffffff', 14);
   }
   fx.memo.t = s.t;
   // 누르는 중: 세기 온도계 (넘치면 빨갛게 깜빡 — 곧 꼬꼬댁!)
@@ -1382,16 +1382,33 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
     }
   }
   function drawFence(fe: Fence) {
-    const z0 = LZ - 0.18, z1 = LZ + 0.18, col = mix('#b07a44', '#2a1c10', dark * 0.6), col2 = mix('#8a5a30', '#1e140a', dark * 0.6);
-    const rail = (hh: number) => poly([[X(fe.x - 0.06, z1), Y(z1, hh)], [X(fe.x - 0.06, z0), Y(z0, hh)], [X(fe.x - 0.06, z0), Y(z0, hh - 0.22)], [X(fe.x - 0.06, z1), Y(z1, hh - 0.22)]], col);
-    for (const zz of [z1, LZ, z0]) {
-      const x = X(fe.x, zz), y = Y(zz, 0), pw = S * 0.14;
-      if (zz === LZ) for (const hh of [fe.h * 0.32, fe.h * 0.66, fe.h * 0.98]) rail(hh);
-      poly([[x - pw, y], [x + pw, y], [x + pw, y - fe.h * S], [x, y - fe.h * S - pw], [x - pw, y - fe.h * S]], col2);
-      poly([[x - pw, y], [x, y], [x, y - fe.h * S - pw], [x - pw, y - fe.h * S]], col);
+    // 길을 가로지르는 나무 판자 울타리 (판자 · X자 버팀 · 기둥 머리)
+    const z0 = LZ - 0.2, z1 = LZ + 0.2, hh = fe.h, x0 = fe.x;
+    const P2 = (z: number, y: number) => [X(x0, z), Y(z, y)];
+    ell(X(x0, LZ), Y(LZ, 0) + 2, S * 0.5, S * 0.2, 'rgba(0,0,0,.2)');
+    poly([P2(z0, 0), P2(z1, 0), P2(z1, hh), P2(z0, hh)], mix('#c08a52', '#2a1c10', dark * 0.6));
+    ctx.strokeStyle = mix('#8a5a30', '#1e140a', dark * 0.6);
+    ctx.lineWidth = 1;
+    for (let q = 1; q < 4; q++) {
+      const zz = z0 + ((z1 - z0) * q) / 4;
+      ctx.beginPath();
+      ctx.moveTo(...(P2(zz, 0) as [number, number]));
+      ctx.lineTo(...(P2(zz, hh) as [number, number]));
+      ctx.stroke();
+    }
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(...(P2(z0, hh * 0.08) as [number, number]));
+    ctx.lineTo(...(P2(z1, hh * 0.92) as [number, number]));
+    ctx.moveTo(...(P2(z1, hh * 0.08) as [number, number]));
+    ctx.lineTo(...(P2(z0, hh * 0.92) as [number, number]));
+    ctx.stroke();
+    for (const zz of [z1, z0]) {
+      const [x, y] = P2(zz, 0), pw = S * 0.13;
+      poly([[x - pw, y + 1], [x + pw, y + 1], [x + pw, y - hh * S - 2], [x, y - hh * S - pw - 3], [x - pw, y - hh * S - 2]], mix('#8a5a30', '#1e140a', dark * 0.6));
       if (moon && zz === z0) {
-        ell(x, y - fe.h * S - pw - 4, 3.5, 4.5, '#ffcf5a');
-        lights.push([x, y - fe.h * S - pw - 4, S * 1.8, 'rgba(255,190,90,.85)']);
+        ell(x, y - hh * S - pw - 7, 3.5, 4.5, '#ffcf5a');
+        lights.push([x, y - hh * S - pw - 7, S * 1.8, 'rgba(255,190,90,.85)']);
       }
     }
   }

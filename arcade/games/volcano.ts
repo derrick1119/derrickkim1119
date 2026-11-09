@@ -2018,3 +2018,9 @@ export const volcanoAmountOnly: Bot<VolcanoState> = {
   },
 };
 
+/** 비교용(계기판 미등록): 장인과 같지만 양은 '살짝(뿌웅)' 아니면 '꽉'만 — 중간 양이 얼마나 필요한지 잰다 */
+export const volcanoBinary: Bot<VolcanoState> = {
+  name: '모 아니면 도',
+  act: (s) => holdBot(s, () => plan(s, [HOLDS[0], HOLDS[HOLDS.length - 1]])),
+};
+
