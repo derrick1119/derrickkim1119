@@ -132,7 +132,7 @@ export function judge(b: number, want: number, type: number): [number, number] {
   let res: number, pay: number;
   if (Math.abs(d) < 0.2) (res = JUST), (pay = PRICE[want] + 1);
   else if (Math.abs(d) < 0.5) (res = GOOD), (pay = PRICE[want]);
-  else if (d > 0) (res = BIG), (pay = 1);
+  else if (d > 0) (res = BIG), (pay = 0);
   else (res = b < 0.6 ? RAW : DROOP), (pay = 0);
   if (res >= GOOD && (type === RUSH || type === VIP)) pay *= 2;
   return [res, pay];
@@ -221,7 +221,7 @@ function land(s: BakeryState, f: Flight) {
   const tag = c ? c.e : '';
   if (f.res === JUST) ev(s, 'just', f.x, `볼 빵빵! +${f.pay}🪙`, f.pay), s.justs++, see(s, 'just', `${tag} 딱 맞으면 볼이 빵빵! 돈도 더 받아요`);
   else if (f.res === GOOD) ev(s, 'good', f.x, `냠! +${f.pay}🪙`, f.pay), see(s, 'just', `${tag} 딱 맞으면 볼이 빵빵! 돈도 더 받아요`);
-  else if (f.res === BIG) ev(s, 'big', f.x, '우왓 깔렸다! +1🪙', 1), see(s, 'big', '😵 너무 크면 손님이 깔려요 (1🪙만)');
+  else if (f.res === BIG) ev(s, 'big', f.x, '우왓 깔렸다! 0🪙'), see(s, 'big', '😵 너무 크면 손님이 깔려요 (돈 못 받음)');
   else if (f.res === DROOP) ev(s, 'droop', f.x, '축~ 처졌어요 0🪙'), see(s, 'droop', '😑 덜 부풀면 빵이 축 처져요 (돈 못 받음)');
   else if (f.res === RAW) ev(s, 'droop', f.x, '물컹! 날반죽 0🪙'), see(s, 'droop', '😑 덜 부풀면 빵이 축 처져요 (돈 못 받음)');
   else if (f.res === STOLEN) ev(s, 'stolen', SPOT, '이 녀석!'), see(s, 'cat', '🐈 고양이가 창가에 앉아 있을 땐 떼지 마요!');
