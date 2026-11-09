@@ -932,6 +932,29 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
   ctx.lineWidth = 1;
   for (let q = 1; q < 9; q++) (ctx.beginPath(), ctx.moveTo(...P(BX0, BY0, (q / 9) * HB)), ctx.lineTo(...P(BX0, 1, (q / 9) * HB)), ctx.stroke());
   poly([P(BX0, BY0, 0), P(BX0, 1, 0), P(BX0, 1, HB), P(BX0, BY0, HB)], 'rgba(0,0,0,.12)');
+  // 벽과 바닥이 만나는 곳의 그늘 + 창으로 드는 햇살
+  {
+    const [ax0, ay0] = P(BX0, 1, 0), [ax1] = P(BX1, 1, 0);
+    const ao = ctx.createLinearGradient(0, ay0, 0, ay0 - R(0.05));
+    ao.addColorStop(0, 'rgba(60,30,10,.28)');
+    ao.addColorStop(1, 'rgba(60,30,10,0)');
+    ctx.fillStyle = ao;
+    ctx.fillRect(ax0, ay0 - R(0.05), ax1 - ax0, R(0.05));
+    const fl = ctx.createLinearGradient(0, ay0, 0, ay0 + R(0.04));
+    fl.addColorStop(0, 'rgba(60,30,10,.25)');
+    fl.addColorStop(1, 'rgba(60,30,10,0)');
+    ctx.fillStyle = fl;
+    ctx.fillRect(ax0, ay0, ax1 - ax0 + SK * 0.2, R(0.04));
+    if (s.phase === 'day' && f < 0.8) {
+      const al = 0.16 * (1 - Math.max(0, f - 0.6) / 0.2);
+      const sh = ctx.createLinearGradient(...P(0.66, 1, 0.3), ...P(0.5, 0.5, 0));
+      sh.addColorStop(0, `rgba(255,248,210,${al})`);
+      sh.addColorStop(1, 'rgba(255,248,210,0)');
+      ctx.globalCompositeOperation = 'lighter';
+      poly([P(0.58, 1, 0.3), P(0.74, 1, 0.3), P(0.62, 0.48, 0), P(0.42, 0.48, 0)], sh);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
   // ── 오븐 ──
   const OVX0 = 0.04, OVX1 = 0.34, OVY = 0.88;
   const ovC = P((OVX0 + OVX1) / 2, OVY, 0), ovW = (OVX1 - OVX0) * WW;
