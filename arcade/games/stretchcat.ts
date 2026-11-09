@@ -1075,7 +1075,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: CatState, w: number, h: num
     tipX = c.edge + c.L;
     tipH = h0 + 0.42 - Math.max(0, c.L - 2.5) * 0.05;
     pose = 'long';
-    face = c.L > LMAX * 0.78 ? 'strain' : c.L > 2 ? 'meh' : 'meh';
+    face = c.L > LMAX * 0.78 || gust(k, ct) > 0.3 ? 'strain' : 'meh';
   } else if (c.mode === 'bridge') {
     hipX = c.edge - 0.62;
     tipX = c.xp;
@@ -2163,9 +2163,10 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: CatState, w: number, h: num
       const sp = 3 + g * 9 + (warn ? 1.5 : 0);
       const px = w - ((s.t * sp + i * 47) % (w + 60)), py = top + S * 0.4 + ((i * 37) % 100) / 100 * (yS - top - S);
       if (g < 0.05 && !warn && i % 3) continue;
+      ctx.lineWidth = 1.5 + g * 1.5;
       ctx.beginPath();
       ctx.moveTo(px, py);
-      ctx.lineTo(px + 14 + g * 22, py);
+      ctx.lineTo(px + 14 + g * 40, py);
       ctx.stroke();
       if (i % 3 === 0) {
         ctx.save();
@@ -2324,6 +2325,21 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: CatState, w: number, h: num
     ny += w * 0.066;
   }
   ctx.globalAlpha = 1;
+  // 돌풍 알림 (5판): 다음 돌풍까지 · 곧 바람 · 돌풍!
+  if (k === 4 && s.phase === 'run') {
+    const u = ct % GP, g = gust(k, ct), warn = u >= 180 && u < 220;
+    const txt = g > 0.02 ? '💨 돌풍! 몸이 밀려요' : warn ? '🍃 곧 바람!' : `🍃 잠잠 ${((180 - u) / 60).toFixed(1)}초`;
+    ctx.font = `900 ${Math.max(12, w * 0.038)}px system-ui, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    const tw = ctx.measureText(txt).width + 16, py = botY - w * 0.06;
+    ctx.fillStyle = g > 0.02 ? 'rgba(200,60,70,.82)' : warn ? 'rgba(210,130,40,.82)' : 'rgba(36,22,44,.72)';
+    ctx.beginPath();
+    ctx.roundRect(8, py - w * 0.03, tw, w * 0.06, w * 0.03);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(txt, 16, py + 1);
+  }
   // 첫 안내
   if (s.phase === 'run' && k === 0 && s.bridges === 0 && c.mode === 'idle' && s.t > 10) {
     const t1 = '👆 꾹 누르면 쭈욱~ 늘어나요', t2 = '떼면 앞발 척! 옆 지붕에 닿게';

@@ -209,7 +209,7 @@ function stats(s: ElephantState) {
   s.meter = m + s.flies;
   s.blooms = b;
   s.buds = buds;
-  if (s.flies > f0 && s.phase === 'day') ev(s, 'fly', -1, '🦋 나비가 왔어요!'), see(s, 'fly', '🦋 꽃이 셋 모이면 나비가 와요 (+1)');
+  if (s.flies > f0 && s.phase === 'day') see(s, 'fly', '🦋 꽃이 셋 모이면 나비가 와요 (+1)');
 }
 
 function fire(s: ElephantState) {
@@ -274,9 +274,10 @@ function land(s: ElephantState) {
     } else ev(s, 'drink', k);
     if (G.kind[k] === BLOOM && G.water[k] === MELT_AT[sp] - 1) see(s, 'full', '💧 물을 가득 머금은 꽃 — 한 방울만 더 주면 녹아요!');
   }
-  const m0 = s.meter;
+  const f0 = s.flies;
   stats(s);
-  ev(s, 'sum', -1, o.bloom || o.melt ? `${o.bloom ? `꽃 +${o.bloom}` : ''}${o.bloom && o.melt ? ' · ' : ''}${o.melt ? `녹음 -${o.melt}` : ''}` : s.meter > m0 ? '' : '물만 젖었어요');
+  const parts = [o.bloom ? `꽃 +${o.bloom}` : '', s.flies > f0 ? `🦋+${s.flies - f0}` : '', o.melt ? `녹음 -${o.melt}` : ''].filter(Boolean);
+  ev(s, 'sum', Math.max(0, Math.min(COLS - 1, sh.tc)) + sh.row * COLS, parts.length ? parts.join(' · ') : '물만 젖었어요');
 }
 
 // ───────────────────────────── 하루 ─────────────────────────────
@@ -1083,13 +1084,12 @@ function drawGarden(ctx: CanvasRenderingContext2D, s: ElephantState, w: number, 
     if (e.kind === 'soak') fx.burst(x, y - 6, '#9fdcff', 18, 3, 2.2), fx.pop(x, y - U(1) * 1.0, '💢', '#ff6a5a', 18);
     if (e.kind === 'hiccup') fx.pop(elX + eu * 0.8, elY - eu * 2.3, e.text!, '#ffffff', 20), fx.kick(5), fx.burst(tip[0], tip[1], '#bfe8ff', 18, 3.2, 2.4);
     if (e.kind === 'tap') fx.pop(elX, elY - eu * 2.4, e.text!, '#ffffff', 14);
-    if (e.kind === 'sum' && e.text) fx.pop(w / 2, OY - RH * 0.6, e.text, '#fff4c8', 16);
-    if (e.kind === 'fly') fx.pop(w / 2, OY + RH * 0.4, e.text!, '#ffe8ff', 14);
+    if (e.kind === 'sum') fx.pop(Math.max(R(0.2), Math.min(w - R(0.2), x)), y - U(1) * 1.25, e.text!, e.text!.includes('녹음') ? '#ffd0c0' : e.text === '물만 젖었어요' ? '#d8eefa' : '#fff4c8', 16);
     if (e.kind === 'sprout') fx.burst(x, y - 3, '#9be36a', 6, 1.4, 1.6);
     if (e.kind === 'shut') fx.pop(x, y - U(1) * 0.8, '🌙 쿨쿨', '#d8dcff', 12);
     if (e.kind === 'gust') fx.pop(elX + (e.text!.startsWith('←') ? -1 : 1) * eu, elY - eu * 2.6, e.text!, '#e8ffd0', 13);
     if (e.kind === 'drink') fx.burst(x, y - 4, '#bfe8ff', 4, 1.2, 1.4);
-    if (e.kind === 'clear') fx.burst(w / 2, h * 0.36, '#ffd23f', 60, 6, 3), fx.blink('#fff6c8', 0.25), fx.pop(w / 2, h * 0.34, e.text!, '#ffe27a', 24);
+    if (e.kind === 'clear') fx.burst(w / 2, h * 0.36, '#ffd23f', 60, 6, 3), fx.blink('#fff6c8', 0.25), fx.pop(w / 2, h * 0.34, e.text!, '#ffe27a', 24), fx.pop(elX + eu, elY - eu * 2.3, '뿌우~♪', '#ffffff', 16);
     if (e.kind === 'fail') fx.kick(9), fx.blink('#ff4d5e', 0.22), fx.pop(w / 2, h * 0.36, e.text!, '#ff9a9a', 17);
     if (e.kind === 'ff') fx.pop(w / 2, bot - R(0.05), e.text!, '#cfe8ff', 13);
   }

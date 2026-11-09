@@ -577,7 +577,7 @@ interface Look { mode: 'stand' | 'ball' | 'spin'; fd: number; rot: number; face:
 
 /** 고슴도치 (x,y = 발밑, u = 한 칸 px). 등에 꽂힌 과일 탑까지 */
 function drawHog(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, o: Look) {
-  const r = RB * u * 1.3, coat = mix('#6a4424', '#2a1c14', o.night * 0.5), tip = mix('#d8b07a', '#6a5a48', o.night * 0.5), skin = mix('#e9c79c', '#7a6a5a', o.night * 0.45);
+  const r = RB * u * 1.3, coat = mix('#7e5230', '#2a1c14', o.night * 0.5), tip = mix('#f0cc94', '#6a5a48', o.night * 0.5), skin = mix('#e9c79c', '#7a6a5a', o.night * 0.45);
   let tx = x, ty = y;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
@@ -701,7 +701,7 @@ function drawHog(ctx: CanvasRenderingContext2D, x: number, y: number, u: number,
     ctx.save();
     ctx.translate(cx, cy);
     if (spin) ctx.scale(1 + o.p * 0.06, 1 - o.p * 0.08);
-    ctx.fillStyle = mix('#4a2e18', '#1c120c', o.night * 0.5);
+    ctx.fillStyle = mix('#5e3c22', '#1c120c', o.night * 0.5);
     ctx.beginPath();
     ctx.arc(0, 0, r * 0.98, 0, TAU);
     ctx.fill();

@@ -688,7 +688,7 @@ const SKY: [number, string, string][] = [
 ];
 
 function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h: number, th: Theme) {
-  const fx = juice(s), R = (x: number) => x * w;
+  const fx = juice(s), R = (x: number) => x * w, F = (x: number) => Math.max(12, x * w);
   const top = R(0.13), bot = h - R(0.1);
   const WW = R(0.82), SK = R(0.12), DY = R(0.26), OX = R(0.03), OY = bot - R(0.12);
   const P = (x: number, y: number, z: number): [number, number] => [OX + x * WW + y * SK, OY - y * DY - z * w];
@@ -709,7 +709,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
     for (const e of s.events) if (e.kind === kind) a = Math.min(a, s.t - e.t);
     return a;
   };
-  const shout = (x: number, y: number, t: string, col = '#e8202a', size = R(0.042)) => {
+  const shout = (x: number, y: number, t: string, col = '#e8202a', size = F(0.042)) => {
     ctx.font = `900 ${size}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
@@ -1114,14 +1114,14 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(gx - gw / 2 - 2, yOf(s.b) - 1.5, gw + 4, 3);
     }
-    ctx.font = `800 ${R(0.032)}px system-ui, sans-serif`;
+    ctx.font = `800 ${F(0.032)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (let L = 1; L <= 5; L++) {
       ctx.fillStyle = tgt && tgt.want === L && s.phase === 'day' ? '#3a2208' : 'rgba(255,255,255,.85)';
       ctx.fillText(String(L), gx, yOf(L));
     }
-    ctx.font = `900 ${R(0.03)}px system-ui, sans-serif`;
+    ctx.font = `900 ${F(0.03)}px system-ui, sans-serif`;
     ctx.fillStyle = '#ffffff';
     ctx.fillText('💥', gx, yOf(BMAX) - R(0.025));
     if (tgt && s.phase === 'day') emo(ctx, tgt.e, gx + gw / 2 + R(0.028), yOf(tgt.want), R(0.04));
@@ -1143,11 +1143,11 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
     drawBear(ctx, bearAt[0], bearAt[1], R(0.24), mood, s.t, s.charge > 0 ? p : mood === 'oops' ? 0.4 : 0, flour, look);
     const hy = bearAt[1] - R(0.24) * 1.2;
     if (mood === 'shock') shout(bearAt[0], hy, '펑?!', '#e8202a');
-    else if (mood === 'panic') shout(bearAt[0] + R(0.02), hy, '으으…', '#e86a20', R(0.036));
-    else if (mood === 'proud') bubble(ctx, bearAt[0] + R(0.03), hy + 4, '흠흠!', R(0.033));
+    else if (mood === 'panic') shout(bearAt[0] + R(0.02), hy, '으으…', '#e86a20', F(0.036));
+    else if (mood === 'proud') bubble(ctx, bearAt[0] + R(0.03), hy + 4, '흠흠!', F(0.033));
     else if (mood === 'angry') bubble(ctx, bearAt[0] + R(0.03), hy + 4, '이 녀석!', R(0.033), '#c02020');
-    else if (mood === 'oops') bubble(ctx, bearAt[0] + R(0.03), hy + 4, '어라…', R(0.033));
-    else if (mood === 'swing') shout(bearAt[0] + R(0.06), hy + 8, '영차!', '#c86a10', R(0.036));
+    else if (mood === 'oops') bubble(ctx, bearAt[0] + R(0.03), hy + 4, '어라…', F(0.033));
+    else if (mood === 'swing') shout(bearAt[0] + R(0.06), hy + 8, '영차!', '#c86a10', F(0.036));
   }
   // ── 카운터 + 진열장 + 고양이 ──
   {
@@ -1181,8 +1181,8 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
       ctx.fill();
       emo(ctx, '🐈', kx, ky - R(0.03) - (sitting ? 0 : Math.abs(Math.sin(s.t / 6)) * 2), R(0.075), !walkL);
       if (catBlocks(s, s.dayT)) {
-        if (s.charge > 0) shout(kx, ky - R(0.075), '냥?', '#e8202a', R(0.036));
-        else if (sitting && s.t % 80 < 40) bubble(ctx, kx + R(0.02), ky - R(0.09), '…zZ', R(0.028));
+        if (s.charge > 0) shout(kx, ky - R(0.075), '냥?', '#e8202a', F(0.036));
+        else if (sitting && s.t % 80 < 40) bubble(ctx, kx + R(0.02), ky - R(0.09), '…zZ', F(0.028));
       }
     } else if (s.phase === 'day' && s.day >= 1 && s.dayT >= s.catAway) {
       // 낮잠 바구니
@@ -1192,7 +1192,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
       ctx.ellipse(kx, ky, R(0.04), R(0.016), 0, 0, Math.PI);
       ctx.fill();
       emo(ctx, '🐈', kx, ky - R(0.015), R(0.05));
-      ctx.font = `800 ${R(0.03)}px system-ui, sans-serif`;
+      ctx.font = `800 ${F(0.03)}px system-ui, sans-serif`;
       ctx.fillStyle = 'rgba(255,255,255,.8)';
       ctx.fillText('z', kx + R(0.03), ky - R(0.04) - (s.t % 60) * 0.15);
     }
@@ -1250,7 +1250,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
       ctx.strokeStyle = '#e9c27a';
       ctx.lineWidth = 1.5;
       ctx.stroke();
-      ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
+      ctx.font = `900 ${F(0.036)}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = dusk > 0.15 ? '#ffe9a0' : '#ffe2b0';
@@ -1469,7 +1469,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
       for (let q = 0; q < 2; q++) {
         const ph = ((ag + q * 20) % 40) / 40;
         ctx.globalAlpha = 1 - ph;
-        ctx.font = `900 ${R(0.034)}px system-ui, sans-serif`;
+        ctx.font = `900 ${F(0.034)}px system-ui, sans-serif`;
         ctx.fillStyle = '#ff5a8a';
         ctx.textAlign = 'center';
         ctx.fillText('♥', x + (q ? 1 : -1) * CS * 0.45 + Math.sin(ph * 6) * 3, y - CS * 1.1 - ph * CS * 0.6);
@@ -1485,7 +1485,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
         // 축 처진 빵: 머리 위에 흐물흐물 늘어진다
         const sag = Math.min(1, ag / 14);
         loaf(ctx, x, y - CS * 0.98 * (1 - 0.06 * sag), sizeW(Math.max(2, c.want)) * 0.85, c.dough, Math.min(0.5, c.b / 3.4), 0.4 + 0.6 * sag);
-        if (ag % 40 < 30) bubble(ctx, x + CS * 0.75, y - CS * 1.25, '애걔…', R(0.03));
+        if (ag % 40 < 30) bubble(ctx, x + CS * 0.75, y - CS * 1.25, '애걔…', F(0.03));
       }
     }
     // 말풍선: 원하는 크기
@@ -1504,24 +1504,24 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
       ctx.fill();
       ctx.stroke();
       loaf(ctx, bx - bw * 0.16, by - bh * 0.2, R(0.012 + show * 0.008), 0, 1);
-      ctx.font = `900 ${R(0.04)}px system-ui, sans-serif`;
+      ctx.font = `900 ${F(0.04)}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = show >= 5 ? '#d02020' : '#4a2a10';
       ctx.fillText(fick ? `${show}?` : String(show), bx + bw * 0.25, by - bh * 0.5);
-      if (c.type === RUSH) shout(bx + bw * 0.55, by - bh + 4, '급해!', '#e86a20', R(0.03));
+      if (c.type === RUSH) shout(bx + bw * 0.55, by - bh + 4, '급해!', '#e86a20', F(0.03));
     }
     // 반응 글자
     if (landed && ag < 60) {
-      if (c.res === STOLEN) bubble(ctx, x, y - CS * 1.45, '어…?', R(0.032));
+      if (c.res === STOLEN) bubble(ctx, x, y - CS * 1.45, '어…?', F(0.032));
       else if (c.res === MISS && ag < 40) {
-        ctx.font = `800 ${R(0.03)}px system-ui, sans-serif`;
+        ctx.font = `800 ${F(0.03)}px system-ui, sans-serif`;
         ctx.fillStyle = 'rgba(255,255,255,.8)';
         ctx.textAlign = 'center';
         ctx.fillText('흥…', x, y - CS * 1.3 - ag * 0.2);
       }
     }
-    if (c.type === FIRST && !c.res && c.x >= SPOT - 0.004) bubble(ctx, x + CS * 1.15, y - CS * 1.55, '빵 주세요!', R(0.032));
+    if (c.type === FIRST && !c.res && c.x >= SPOT - 0.004) bubble(ctx, x + CS * 1.15, y - CS * 1.55, '빵 주세요!', F(0.032));
   }
   // ── 날아가는 빵 ──
   for (const fl of s.flights) {
@@ -1550,7 +1550,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
     const [rx, ry] = P(0.72, 0.6, HB + CT), ag = s.catAway - s.dayT;
     emo(ctx, '🐈', rx, ry - R(0.03), R(0.07), true);
     loaf(ctx, rx - R(0.035), ry - R(0.01), R(0.035), 0, 1.1);
-    if (ag > 160) shout(rx, ry - R(0.07), '냠냠♪', '#e86a20', R(0.032));
+    if (ag > 160) shout(rx, ry - R(0.07), '냠냠♪', '#e86a20', F(0.032));
   }
   // ── 저녁·밤 빛 ──
   if (dusk > 0.01) {
@@ -1597,7 +1597,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
       else (msg = `${tk.e} 아직 작아요 (${Math.max(1, Math.round(s.b * 10) / 10)}/${tk.want})`), (col = '#fff2b0');
     } else if (tgt) msg = `${tgt.e} 오는 중… ${SIZE_NAME[tgt.want]}`;
     const [mx, my] = P(0.3, 0.6, HB - 0.03);
-    ctx.font = `900 ${R(0.04)}px system-ui, sans-serif`;
+    ctx.font = `900 ${F(0.04)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const tw = ctx.measureText(msg).width + 16;
@@ -1617,7 +1617,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
     ctx.beginPath();
     ctx.arc(ux, uy, R(0.06) + pl * R(0.012), 0, TAU);
     ctx.stroke();
-    shout(ux + R(0.06), uy - R(0.04), 'NEW!', '#ff7a1a', R(0.034));
+    shout(ux + R(0.06), uy - R(0.04), 'NEW!', '#ff7a1a', F(0.034));
     if (s.t % 9 === 0) fx.burst(ux, uy, '#fff0a0', 3, 1.5, 1.8);
   }
   // 마지막 밤: 불꽃놀이
@@ -1663,7 +1663,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
   ctx.fillStyle = th.ink;
-  ctx.font = `900 ${R(0.043)}px system-ui, sans-serif`;
+  ctx.font = `900 ${F(0.043)}px system-ui, sans-serif`;
   ctx.fillText(`${s.phase === 'night' ? '🌙' : '☀️'} ${s.day + 1}일째 / ${DAYS}`, 10, R(0.035));
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffd23f';
@@ -1686,7 +1686,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
     ctx.beginPath();
     ctx.roundRect(bx, by, Math.max(bh, at(s.coins)), bh, bh / 2);
     ctx.fill();
-    ctx.font = `900 ${R(0.03)}px system-ui, sans-serif`;
+    ctx.font = `900 ${F(0.03)}px system-ui, sans-serif`;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
     for (let i = 0; i < 3; i++) {
@@ -1700,10 +1700,10 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
       ctx.fillText('★'.repeat(i + 1), gx - 3, by + bh / 2 + 1);
     }
     ctx.fillStyle = ok ? '#a8f08a' : '#ffffff';
-    ctx.font = `900 ${R(0.038)}px system-ui, sans-serif`;
+    ctx.font = `900 ${F(0.038)}px system-ui, sans-serif`;
     ctx.textAlign = 'left';
     ctx.fillText(`🪙${s.coins}`, 10, by + bh / 2 + 1);
-    ctx.font = `800 ${R(0.028)}px system-ui, sans-serif`;
+    ctx.font = `800 ${F(0.028)}px system-ui, sans-serif`;
     ctx.fillStyle = 'rgba(255,255,255,.65)';
     ctx.fillText(ok ? '✓' : `/${g[0]}`, 10 + ctx.measureText(`🪙${s.coins}`).width * 1.36, by + bh / 2 + 2);
   }
@@ -1713,18 +1713,18 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
   const midY = bot + (h - bot) / 2;
   const firstHint = s.day === 0 && s.coins < 2 && s.phase === 'day';
   if (firstHint) {
-    ctx.font = `900 ${R(0.04)}px system-ui, sans-serif`;
+    ctx.font = `900 ${F(0.04)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = s.t % 40 < 26 ? '#ffffff' : '#ffe08a';
     ctx.fillText('👆 꾹 누르면 반죽이 부풀고, 떼면 휙 꺼내요!', w / 2, midY - R(0.012));
-    ctx.font = `700 ${R(0.03)}px system-ui, sans-serif`;
+    ctx.font = `700 ${F(0.03)}px system-ui, sans-serif`;
     ctx.fillStyle = '#ffd27a';
     ctx.fillText('오븐 속 점선만큼 부풀면 떼요', w / 2, midY + R(0.03));
   } else {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.font = `800 ${R(0.03)}px system-ui, sans-serif`;
+    ctx.font = `800 ${F(0.03)}px system-ui, sans-serif`;
     ctx.fillStyle = 'rgba(255,255,255,.75)';
     if (s.day >= 2) {
       ctx.fillText('반죽', 8, midY);
@@ -1733,7 +1733,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
         const x = 8 + R(0.1) + q * R(0.1);
         ctx.globalAlpha = q === 0 ? 1 : 0.75;
         emo(ctx, DOUGH[list[q]].e, x, midY - R(0.006), R(q === 0 ? 0.055 : 0.042));
-        ctx.font = `800 ${R(0.026)}px system-ui, sans-serif`;
+        ctx.font = `800 ${F(0.026)}px system-ui, sans-serif`;
         ctx.fillStyle = DOUGH[list[q]].r > 1 ? '#ff9a7a' : DOUGH[list[q]].r < 1 ? '#9ad0ff' : 'rgba(255,255,255,.8)';
         ctx.textAlign = 'center';
         ctx.fillText(DOUGH[list[q]].r > 1 ? '빠름' : DOUGH[list[q]].r < 1 ? '느림' : '보통', x, midY + R(0.032));
@@ -1753,7 +1753,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
     ctx.roundRect(sx0, midY - 3, swd * f, 6, 3);
     ctx.fill();
     emo(ctx, s.phase === 'night' ? '🌙' : '☀️', sx0 + swd * f, midY, R(0.04));
-    ctx.font = `700 ${R(0.026)}px system-ui, sans-serif`;
+    ctx.font = `700 ${F(0.026)}px system-ui, sans-serif`;
     ctx.fillStyle = 'rgba(255,255,255,.7)';
     ctx.textAlign = 'center';
     ctx.fillText(s.phase === 'night' ? (s.retry ? '내일 다시 도전' : '문 닫았어요') : '문 닫을 때까지', sx0 + swd / 2, midY + R(0.03));
@@ -1766,7 +1766,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
     const ag = s.t - n.t, al = Math.min(1, (220 - ag) / 30, ag / 8);
     if (al <= 0) continue;
     ctx.globalAlpha = al;
-    ctx.font = `800 ${R(0.034)}px system-ui, sans-serif`;
+    ctx.font = `800 ${F(0.034)}px system-ui, sans-serif`;
     const tw = ctx.measureText(n.text).width + 18;
     ctx.fillStyle = 'rgba(40,20,12,.7)';
     ctx.beginPath();
@@ -1790,13 +1790,13 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
     ctx.stroke();
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffe2b0';
-    ctx.font = `900 ${R(0.045)}px system-ui, sans-serif`;
+    ctx.font = `900 ${F(0.045)}px system-ui, sans-serif`;
     ctx.fillText(s.retry ? '😢 손님이 모자랐어요' : `${'★'.repeat(s.dayStars)}${'☆'.repeat(3 - s.dayStars)}`, w / 2, by + bh * 0.25);
-    ctx.font = `800 ${R(0.034)}px system-ui, sans-serif`;
+    ctx.font = `800 ${F(0.034)}px system-ui, sans-serif`;
     ctx.fillStyle = '#ffffff';
     ctx.fillText(`오늘 번 돈 🪙${s.coins}`, w / 2, by + bh * 0.52);
     ctx.fillStyle = '#ffd27a';
-    ctx.font = `800 ${R(0.03)}px system-ui, sans-serif`;
+    ctx.font = `800 ${F(0.03)}px system-ui, sans-serif`;
     ctx.fillText(s.retry ? `♥ ${s.hearts} 남음 — 같은 날 다시!` : s.ups > 0 ? `${UPS[s.ups - 1].name} 완성!` : '', w / 2, by + bh * 0.78);
     ctx.globalAlpha = 1;
   }
