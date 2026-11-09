@@ -361,7 +361,7 @@ function lavaAt(s: VolcanoState, k: number) {
     s.pen += SPILL;
     I.burn[k] = Math.min(9, I.burn[k] + 1);
     ev(s, 'spill', k, s.flowSpill === 1 ? '주르륵~ 앗 뜨거 탁자!' : undefined);
-    see(s, 'spill', '🫗 접시 밖으로 넘치면 탁자가 타요!');
+    see(s, 'spill', '🔥 접시 밖으로 넘치면 탁자가 타요!');
     return;
   }
   const was = I.kind[k];
@@ -962,7 +962,8 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
           const [tx0, ty0] = P(i + spots[t][0], j + spots[t][1], z);
           tree(tx0, ty0, TW * 0.21 * grown * (0.85 + hsh(k + t) * 0.3), hsh(k * 5 + t) < 0.45);
         }
-        if (kd === ANIMAL) {
+        // 동물 칸 절반쯤에만 동물을 크게 (다 그리면 동물원처럼 빽빽하다)
+        if (kd === ANIMAL && (hsh(k * 3) < 0.55 || preview[k] || dance)) {
           const [ax, ay] = P(i + 0.55 + 0.12 * Math.sin(s.t / 50 + k), j + 0.66, z);
           // 평소엔 깡총, 용암이 올 자리면 '!' 하고 제자리 펄쩍펄쩍, 성공한 밤엔 다 같이 춤
           const scared = !!preview[k];
@@ -1241,7 +1242,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
     if (e.kind === 'dock') fx.burst(x, y - 6, '#ffe08a', 22, 3, 2.5), fx.ring(x, y, '#ffe08a', TW * 1.8, 4), fx.pop(x, y - 24, e.text!, '#ffe08a', 17);
     if (e.kind === 'arrive') fx.ring(x, y, '#ffffff', TW * 0.9, 2), fx.burst(x, y, '#e8f8ff', 8, 1.6, 2);
     if (e.kind === 'plate') fx.ring(OX, OY, '#ffe08a', w * 0.5, 6), fx.blink('#fff6c8', 0.25), fx.pop(w / 2, OY - TW * 2.5, e.text!, '#ffe08a', 20);
-    if (e.kind === 'sum') fx.pop(w / 2, OY - span * TW * 0.25 - 8, e.text!, '#fff4c8', 15);
+    if (e.kind === 'sum') fx.pop(w / 2, bot - 18, e.text!, '#fff4c8', 16);
     if (e.kind === 'sprout') fx.burst(x, y - 4, '#9be36a', 5, 1.4, 1.6);
     if (e.kind === 'animal') fx.burst(x, y - 4, '#fff1a8', 8, 1.8, 1.8), fx.ring(x, y, '#c8ff9a', TW * 0.8, 2);
     if (e.kind === 'build') fx.burst(x, y - 4, '#ffd27a', 10, 2, 2), fx.pop(x, y - 10, '🏠', '#ffffff', 14);
@@ -1347,7 +1348,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
     ctx.fillStyle = '#ffffff';
     ctx.font = `800 12px system-ui, sans-serif`;
     ctx.textAlign = 'left';
-    ctx.fillText(`${label} ${Math.max(0, v)}/${goals[0]}${ok ? ' ✓' : ''}`, x + 6, by + bh / 2 + 1);
+    ctx.fillText(goals[0] ? `${label} ${Math.max(0, v)}/${goals[0]}${ok ? ' ✓' : ''}` : `${label} ${Math.max(0, v)}`, x + 6, by + bh / 2 + 1);
   };
   bar(w * 0.03, '🏝️', s.area, GOAL_A[s.day], '#4fb3e8');
   bar(w * 0.515, '🌱', s.life, GOAL_L[s.day], '#e8b04f');
@@ -1385,11 +1386,11 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
     let ny = top + 14, shown = 0, slot = -1e9;
     ctx.textAlign = 'center';
     for (const n of s.notes) {
-      const start = Math.max(n.t, slot + 70);
+      const start = Math.max(n.t, slot + 45);
       slot = start;
       const age = s.t - start;
-      if (age < 0 || age > 200 || shown >= 2) continue;
-      const al = Math.min(1, (200 - age) / 30, age / 8 + 0.01);
+      if (age < 0 || age > 170 || shown >= 2) continue;
+      const al = Math.min(1, (170 - age) / 30, age / 8 + 0.01);
       ctx.globalAlpha = al;
       ctx.font = `800 13px system-ui, sans-serif`;
       const tw = ctx.measureText(n.text).width + 18;

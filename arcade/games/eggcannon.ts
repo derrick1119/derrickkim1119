@@ -19,10 +19,10 @@ const A = 1.15, TAU = Math.PI * 2, LZ = 0.5;
 /** 중력 · 황금알 무게 · 알이 나오는 곳(암탉 꽁지, 칸 단위) */
 const G = 0.0062, GOLDG = 1.3, HX = 0.95, HY = 2.0;
 /** 누른 시간 → 세기(날아가는 거리가 누른 시간에 거의 비례하도록 제곱근). FULL틱이면 가득, OVER틱이면 꼬꼬댁! 저절로 발사 */
-const VMIN = 0.07, VMAX = 0.34, FULL = 120, OVER = 170, MINH = 6, COOLT = 12;
+const VMIN = 0.07, VMAX = 0.26, FULL = 110, OVER = 165, MINH = 6, COOLT = 12;
 /** 용수철 위에서 까딱까딱: ROCK틱에 한 번, 28°~64° */
 const ROCK = 200, ANG0 = (46 * Math.PI) / 180, ANGA = (18 * Math.PI) / 180;
-const DAY = 60 * 45, NIGHT = 150, DAYS = 8, HATCH = 30, GUIDE = 62;
+const DAY = 60 * 45, NIGHT = 150, DAYS = 8, HATCH = 30, GUIDE = 50;
 const XMIN = -1.8, XMAX = 14.6, XL = -1.2, XR = 13.2;
 /** 소(타원 몸통, 튕김) · 트랙터 수레 · 풍차 · 여우 */
 const CRX = 0.85, CRY = 0.42, CY = 0.98, REST = 0.82;
@@ -587,6 +587,14 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
     ctx.fillStyle = mix('#6a4a2a', '#1a1410', dark);
     ctx.fillRect(tx - 1, ty + sz * 0.9, 2, sz * 0.7);
   }
+  // 판 바깥 들판 (디오라마가 놓인 너른 풀밭)
+  {
+    const mg = ctx.createLinearGradient(0, yB - R(0.02), 0, h);
+    mg.addColorStop(0, mix('#a6d68a', '#1c2a30', dark * 0.8));
+    mg.addColorStop(1, mix('#6fae58', '#121c1c', dark * 0.8));
+    ctx.fillStyle = mg;
+    ctx.fillRect(-12, yB - R(0.02), w + 24, h);
+  }
   // ── 받침대·판 ──
   const FL = [X(XL, 0), yF], FR = [X(XR, 0), yF], BR = [X(XR, 1), yB], BL = [X(XL, 1), yB];
   ell(w / 2 + 6, yF + T + R(0.035), w * 0.5, R(0.02), 'rgba(10,20,10,.35)');
@@ -673,6 +681,11 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
   if (s.seen.has('silo')) for (let k = 0; k < 3; k++) drawSheep(9.2 + k * 0.9 + Math.sin(s.t / 90 + k * 2) * 0.3, 0.74 + (k % 2) * 0.06, k);
   if (c.wind) drawSock(6.6, 0.93);
   drawCoop(1.9, 0.86);
+  if (!c.cow) {
+    // 구경꾼 소: 뒤 풀밭에서 되새김질, 병아리가 태어나면 음매~, 깨지면 음매?
+    const gx = 9.4 + Math.sin(s.t / 300) * 0.8, rg = s.t - s.lastGood, rb = s.t - s.lastBad;
+    drawCowAt(X(gx, 0.88), Y(0.88, 0), Math.cos(s.t / 300) >= 0 ? 1 : -1, 0.72, Math.min(rg, rb) < 26 ? Math.min(rg, rb) : 99, rg < 50 ? '음매~♪' : rb < 50 ? '음매?' : '', false);
+  }
   if (c.mill) drawMillTower();
   // ── 길 위: 둥지 · 울타리 · 소 · 트랙터 · 여우 · 풍차 · 암탉 ──
   for (let i = 0; i < s.nests.length; i++) if (s.nests[i].kind === 0) drawNest(i);
@@ -1392,17 +1405,20 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
     }
   }
   function drawCow() {
-    const cx = cowX(s, T0), dir = cowDir(s, T0), hit = s.t - s.cowHit, jump = hit < 26 ? Math.sin((hit / 26) * Math.PI) * S * 0.35 : 0;
-    const x = LX(cx), y = LY(0) - jump, walk = Math.sin(T0 / 9);
-    ell(x, LY(0) + 1, S * CRX * 1.1, S * 0.18, 'rgba(0,0,0,.25)');
+    const hit = s.t - s.cowHit;
+    drawCowAt(LX(cowX(s, T0)), LY(0), cowDir(s, T0), 1, hit, hit < 45 ? '음매?!' : '', true);
+  }
+  function drawCowAt(x: number, y0: number, dir: number, sc: number, hit: number, say: string, walking: boolean) {
+    const jump = hit < 26 ? Math.sin((hit / 26) * Math.PI) * S * 0.35 * sc : 0, y = y0 - jump;
+    ell(x, y0 + 1, S * CRX * 1.1 * sc, S * 0.18 * sc, 'rgba(0,0,0,.25)');
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(dir, 1);
-    const u = S;
+    const u = S * sc, T0w = walking ? T0 : 0;
     // 다리
     ctx.fillStyle = mix('#f4f0ea', '#5a5860', dark * 0.5);
     for (const [lx, ph] of [[-0.55, 0], [-0.3, Math.PI], [0.35, Math.PI], [0.6, 0]] as [number, number][]) {
-      const sw = Math.sin(T0 / 9 + ph) * 0.06;
+      const sw = Math.sin(T0w / 9 + ph) * 0.06;
       ctx.fillRect((lx + sw) * u - 2.2, -0.62 * u, 4.4, 0.62 * u);
       ell((lx + sw) * u, -1, 2.8, 1.8, '#3a3030');
     }
@@ -1450,8 +1466,7 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
     // 방울
     ell(0.62 * u, -0.78 * u, 2.6, 2.6, '#ffd23f');
     ctx.restore();
-    if (hit < 45) bubble(x + dir * S * 0.9, y - S * 1.95, '음매?!', R(0.034));
-    void walk;
+    if (say) bubble(x + dir * S * 0.9 * sc, y - S * 1.95 * sc, say, R(0.034));
   }
   function drawTractor() {
     const tx = tractorX(s, T0), dir = tractorDir(s, T0), x = LX(tx), y = LY(0), u = S, cx = LX(tx - dir * CARTD);

@@ -41,8 +41,8 @@ const UPS = [
   { key: 'sign', name: '🪧 새 간판', text: '🪧 간판을 달았어요 — 손님이 더 자주 와요', x: 0.6, y: 0.3, z: 0.55 },
   { key: 'terrace', name: '☂️ 테라스', text: '☂️ 테라스 — 딱 맞은 손님이 앉아서 먹어요', x: 0.91, y: 0.66, z: 0.1 },
   { key: 'oven2', name: '🔥 새 오븐', text: '🔥 새 오븐 — 다음 반죽이 금방 들어가요', x: 0.42, y: 0.93, z: 0.17 },
-  { key: 'flowers', name: '🌷 꽃길·가로등', text: '🌷 꽃길과 가로등 — 빵집이 환해졌어요', x: 0.5, y: 0.31, z: 0.04 },
-  { key: 'lantern', name: '🏮 축제 등불', text: '🏮 축제 등불 — 내일은 빵 축제!', x: 0.42, y: 0.3, z: 0.47 },
+  { key: 'flowers', name: '🌷 꽃길·가로등', text: '🌷 꽃길과 가로등 — 빵집이 환해졌어요', x: 0.015, y: 0.12, z: 0.2 },
+  { key: 'lantern', name: '🏮 축제 등불', text: '🏮 축제 등불 — 내일은 빵 축제!', x: 0.12, y: 0.3, z: 0.47 },
   { key: 'fireworks', name: '🎆 불꽃놀이', text: '🎆 6일 장사 끝! 동네 최고 빵집', x: 0.5, y: 0.6, z: 0.8 },
 ];
 
@@ -157,9 +157,9 @@ function spawn(s: BakeryState, x: number) {
   const e = type === FIRST ? '🐿️' : type === RUSH ? '🐇' : type === FICKLE ? '🦝' : type === VIP ? '🦁' : FOLK[Math.floor(r() * FOLK.length)];
   const v = V0 * (type === FIRST ? 1.2 : type === RUSH ? 2.3 : type === VIP ? 0.75 : 0.85 + r() * 0.3);
   s.custs.push({ id: s.cid++, x, v, e, type, want, alt, flipped: false, res: 0, pay: 0, land: 0, b: 0, dough: 0, wt: type === FIRST ? 600 : 0, stay: 0 });
-  if (type === RUSH) see(s, 'rush', '🐇 급한 토끼 — 휙 지나가요! 미리 눌러 두면 팁 두 배');
+  if (type === RUSH) see(s, 'rush', '🐇 급한 토끼 — 미리 눌러 둬요! 팁 두 배');
   if (type === FICKLE) see(s, 'fickle', '🦝 변덕 너구리 — 가까이 와서야 크기를 정해요');
-  if (type === VIP) see(s, 'vip', '🦁 사자 임금님 — 터지기 직전 초대왕 빵! 값 두 배');
+  if (type === VIP) see(s, 'vip', '🦁 사자 임금님 — 초대왕 빵! 값 두 배');
 }
 
 function nextDough(s: BakeryState) {
@@ -245,8 +245,8 @@ function startDay(s: BakeryState) {
   else spawn(s, SPOT - 0.3), spawn(s, 0.04), (s.nextSpawn = 120);
   const g = GOALS[s.day];
   note(s, `${s.retry ? '🔁' : '☀️'} ${s.day + 1}일째${s.retry ? ' 다시' : ''} — 목표 🪙${g[0]} (★★ ${g[1]} · ★★★ ${g[2]})`, s.retry ? '#ffd0d0' : '#ffffff');
-  if (s.day === 1) see(s, 'cat', '🐈 고양이 — 창가에 앉아 있을 땐 떼지 마요! 빵을 채 가요');
-  if (s.day === 2) see(s, 'dough', '🥐 반죽마다 부푸는 빠르기가 달라요 — 아래 다음 반죽을 봐요');
+  if (s.day === 1) see(s, 'cat', '🐈 고양이가 창가에 앉으면 떼지 마요!');
+  if (s.day === 2) see(s, 'dough', '🥐 반죽마다 빠르기가 달라요 — 아래 반죽을 봐요');
 }
 
 export const starsNow = (s: BakeryState) => GOALS[s.day].filter((g) => s.coins >= g).length;
@@ -355,8 +355,8 @@ export const bakery: GameDef<BakeryState> = {
     if (s.dayT >= DAY) endDay(s);
   },
   over: (s) => s.dead,
-  /** 별 하나 10점, 6일을 다 버티면 30점 더 */
-  score: (s) => s.stars * 10 + (s.won ? 30 : 0),
+  /** 번 돈 + 별 하나 10점 + 6일을 다 버티면 30점 더 */
+  score: (s) => s.total + s.stars * 10 + (s.won ? 30 : 0),
   draw(ctx, s, w, h, th: Theme) {
     drawBakery(ctx, s, w, h, th);
   },
@@ -1492,9 +1492,12 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
     if (!c.res && c.x > -0.03) {
       const fick = c.type === FICKLE && !c.flipped, show = fick && Math.floor(s.t / 24) % 2 ? c.alt : c.want;
       const bx = x - CS * 0.15, by = y - CS * 1.35 - (c.type === VIP ? CS * 0.3 : 0), bw = R(0.115), bh = R(0.085);
-      const near = inZone(c);
-      ctx.fillStyle = near ? '#fff4c0' : 'rgba(255,255,255,.93)';
-      ctx.strokeStyle = near ? '#e89a20' : 'rgba(120,90,60,.5)';
+      const near = inZone(c), hurry = near && c.x > SPOT + ZONE * 0.35;
+      // 창가를 곧 떠나려는 손님: 말풍선이 빨개지며 동동
+      ctx.save();
+      if (hurry) ctx.translate(Math.sin(s.t * 1.3) * 1.5, 0);
+      ctx.fillStyle = hurry ? '#ffd6c8' : near ? '#fff4c0' : 'rgba(255,255,255,.93)';
+      ctx.strokeStyle = hurry ? '#e8402a' : near ? '#e89a20' : 'rgba(120,90,60,.5)';
       ctx.lineWidth = near ? 2 : 1;
       ctx.beginPath();
       ctx.roundRect(bx - bw / 2, by - bh, bw, bh, 8);
@@ -1510,6 +1513,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
       ctx.fillStyle = show >= 5 ? '#d02020' : '#4a2a10';
       ctx.fillText(fick ? `${show}?` : String(show), bx + bw * 0.25, by - bh * 0.5);
       if (c.type === RUSH) shout(bx + bw * 0.55, by - bh + 4, '급해!', '#e86a20', F(0.03));
+      ctx.restore();
     }
     // 반응 글자
     if (landed && ag < 60) {
@@ -1730,7 +1734,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
       ctx.fillText('반죽', 8, midY);
       const list = [s.dough, ...s.tray];
       for (let q = 0; q < list.length; q++) {
-        const x = 8 + R(0.1) + q * R(0.1);
+        const x = 12 + R(0.14) + q * R(0.11);
         ctx.globalAlpha = q === 0 ? 1 : 0.75;
         emo(ctx, DOUGH[list[q]].e, x, midY - R(0.006), R(q === 0 ? 0.055 : 0.042));
         ctx.font = `800 ${F(0.026)}px system-ui, sans-serif`;

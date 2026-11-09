@@ -26,8 +26,8 @@ const NORMAL = 0, SUNF = 1, MOONF = 2;
 /** 종류별: 피는 물 · 녹는 물 · 정원 점수 */
 const BLOOM_AT = [2, 4, 2], MELT_AT = [4, 6, 4], WORTH = [1, 3, 2];
 const SPRAYS = [6, 6, 6, 6, 7, 7, 7];
-/** 새 봉오리 수 (1일째는 줄마다 셋씩 목마른 봉오리) */
-const BUDS = [0, 6, 5, 5, 6, 4, 5];
+/** 새 봉오리 수 (1일째 첫 아침은 줄마다 셋씩 목마른 봉오리, 다시 하면 목마른 봉오리 9) */
+const BUDS = [9, 6, 5, 5, 6, 4, 5];
 const WSEG = 200;
 /** 날마다 해 질 녘 정원 점수(핀 꽃 + 나비) 목표 ★·★★·★★★ — 핀 꽃은 남으니 앞서 키운 정원이 다음 날을 쉽게 한다 */
 const GOALS = [[6, 12, 16], [12, 19, 24], [17, 25, 31], [22, 31, 36], [27, 37, 44], [32, 44, 51], [37, 50, 58]];
@@ -312,7 +312,7 @@ function morning(s: ElephantState) {
   }
   s.frogs = [];
   s.onHead = 0;
-  if (d === 0) {
+  if (d === 0 && !s.retry) {
     // 1일째: 줄마다 목마른 봉오리 셋 — 첫 푸하(무지개 물보라)가 어느 줄에 떨어져도 한 줄이 핀다
     for (let r = 0; r < 5; r++) {
       const cs = [0, 1, 2, 3, 4, 5, 6];
@@ -328,7 +328,7 @@ function morning(s: ElephantState) {
   } else {
     if (d === 2 || d === 4 || d === 6) sprout(s, SUNF, 1, 0);
     if (d >= 5) sprout(s, MOONF, d === 5 ? 3 : 2, 0);
-    sprout(s, NORMAL, BUDS[d], 0.4);
+    sprout(s, NORMAL, BUDS[d], d === 0 ? 1 : 0.4);
   }
   // 졸린 개구리: 봉오리 옆 빈 흙에
   for (let i = 0; i < (d === 0 ? 0 : d === 1 ? 1 : 2); i++) {
@@ -1064,7 +1064,7 @@ function drawGarden(ctx: CanvasRenderingContext2D, s: ElephantState, w: number, 
     if (e.kind === 'press') fx.burst(tip[0], Y(-0.55), '#bfe8ff', 6, 1.5, 2);
     if (e.kind === 'spray') {
       fx.burst(tip[0], tip[1], '#bfe8ff', 14, 3, 2.4);
-      fx.pop(tip[0], tip[1] - 14, e.text!, '#e8f8ff', e.text === '퓨~' ? 15 : 20);
+      fx.pop(Math.min(w - R(0.16), tip[0] + eu * 0.9), tip[1] + eu * 0.2, e.text!, '#e8f8ff', e.text === '퓨~' ? 15 : 20);
       fx.kick(e.text === '퓨~' ? 2 : e.text === '푸하!' ? 4 : 7);
     }
     if (e.kind === 'land') {
@@ -1082,7 +1082,7 @@ function drawGarden(ctx: CanvasRenderingContext2D, s: ElephantState, w: number, 
     }
     if (e.kind === 'melt') fx.burst(x, y, '#5aa8e8', 16, 2, 2.4), fx.pop(x, y - U(1) * 0.8, e.text!, '#a8d8ff', 13), fx.kick(3);
     if (e.kind === 'soak') fx.burst(x, y - 6, '#9fdcff', 18, 3, 2.2), fx.pop(x, y - U(1) * 1.0, '💢', '#ff6a5a', 18);
-    if (e.kind === 'hiccup') fx.pop(elX + eu * 0.8, elY - eu * 2.3, e.text!, '#ffffff', 20), fx.kick(5), fx.burst(tip[0], tip[1], '#bfe8ff', 18, 3.2, 2.4);
+    if (e.kind === 'hiccup') fx.pop(Math.min(w - R(0.12), elX + eu * 1.2), elY - eu * 1.5, e.text!, '#ffffff', 20), fx.kick(5), fx.burst(tip[0], tip[1], '#bfe8ff', 18, 3.2, 2.4);
     if (e.kind === 'tap') fx.pop(elX, elY - eu * 2.4, e.text!, '#ffffff', 14);
     if (e.kind === 'sum') fx.pop(Math.max(R(0.2), Math.min(w - R(0.2), x)), y - U(1) * 1.25, e.text!, e.text!.includes('녹음') ? '#ffd0c0' : e.text === '물만 젖었어요' ? '#d8eefa' : '#fff4c8', 16);
     if (e.kind === 'sprout') fx.burst(x, y - 3, '#9be36a', 6, 1.4, 1.6);

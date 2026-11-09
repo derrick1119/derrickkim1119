@@ -17,12 +17,12 @@ const A = 1.2, TAU = Math.PI * 2, STAGES = 7;
 /** 앞으로 헤엄치는 속도(칸/틱) · 수면 높이 · 몸 반지름(쭈그렁 R0 → 빵빵 R0+R1) · 부력 */
 const V = 0.045, YS = 3.9, R0 = 0.3, R1 = 0.44, P0 = 0.35, BUOY = 0.008, DRAG = 0.93, INF = 1 / 40, DEF = 1 / 16;
 /** 산호가 되는 최소 바람 · 중간 산호 · 큰 산호 · 물이 닿는 거리(배 밑 → 모래) · 빵빵 한계(틱) · 기절 · 물기둥 */
-const PMIN = 0.3, PMID = 0.62, PBIG = 0.9, REACH = 0.85, FORCE = 60, STUN = 55, LIFT = 0.0036, JX = 0.3;
+const PMIN = 0.3, PMID = 0.62, PBIG = 0.9, REACH = 0.95, FORCE = 60, STUN = 55, LIFT = 0.0036, JX = 0.3;
 const PTS = [1, 2, 4], WID = [1.0, 1.45, 2.0], BED_BONUS = 5;
 const NAMES = ['산호 씨앗 모래밭', '바위 굴문', '해파리 숲', '물기둥 골짜기', '꽃게 마을', '고래 하품 바다', '반짝 동굴'];
 const LEN = [44, 48, 50, 52, 54, 56, 58];
 /** 판마다 별 목표 = 화단 길이 × 이 비율 (잘하는 봇·보통 사람 기준으로 맞춤) */
-const GOALF: [number, number, number][] = [[0.28, 0.75, 1.2], [0.4, 0.85, 1.25], [0.42, 0.8, 1.15], [0.42, 0.8, 1.1], [0.42, 0.75, 1.05], [0.4, 0.7, 0.98], [0.4, 0.72, 1.05]];
+const GOALF: [number, number, number][] = [[0.22, 0.7, 1.15], [0.4, 0.85, 1.25], [0.42, 0.8, 1.15], [0.42, 0.8, 1.1], [0.42, 0.75, 1.05], [0.4, 0.7, 0.98], [0.4, 0.72, 1.05]];
 const YAWN = 420, YAWN_ON = 110, HOLE = 0.95, PAUSE_CLEAR = 170;
 const SEE: Record<string, string> = {
   coral: '🪸 뿜은 물이 닿은 모래에 산호가 자라요',
@@ -151,7 +151,7 @@ export function makeCourse(seed: number, k: number): Course {
   return c;
 }
 
-const newBody = (): Body => ({ x: 0.2, y: 1.5, vy: 0, p: 0, jet: false, stun: 0, lock: false, maxT: 0 });
+const newBody = (): Body => ({ x: 0.2, y: 0.75, vy: 0, p: 0, jet: false, stun: 0, lock: false, maxT: 0 });
 type Cb = (kind: string, x: number, y: number, n?: number) => void;
 
 function bonk(b: Body, why: string, cb: Cb | undefined) {
@@ -1569,17 +1569,6 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: PufferState, w: number, h: 
     if (cr.flip > 0 && cr.flip % 60 > 30) label(ctx, '버둥버둥', cx, cy - S * 0.7, 12, '#ffe0d0');
     if (cr.snip > 25) label(ctx, '냠냠', cx, cy - S * 0.7, 12, '#ffd0d0');
   }
-  // ── 해파리 ──
-  const stungRecent = recent('sting', 60);
-  for (const j of c.jellies) {
-    if (!vis(j.x, 2)) continue;
-    const [jx, jy] = jellyPos(j, s.ct);
-    ctx.save();
-    ctx.translate(X(jx, L), Y(L, jy));
-    drawJelly(ctx, S * 0.3, s.t, j.ph, stungRecent && Math.abs(jx - b.x) < 2, inCave);
-    ctx.restore();
-    if (cave) glow.push([X(jx, L), Y(L, jy), S * 0.9, '#ff9ad8']);
-  }
   // ── 복어 ──
   const px = X(b.x, L), py = Y(L, b.y), R = radius(b.p) * S;
   // 바닥 그림자
@@ -1676,6 +1665,30 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: PufferState, w: number, h: 
       label(ctx, '★', px + Math.cos(a) * R * 1.2, py - R * 1.05 + Math.sin(a) * R * 0.3, 12, '#ffe27a');
     }
   if (cave) glow.push([px, py, S * (1.3 + b.p * 1.1), '#fff0b0']);
+  // ── 해파리 ──
+  const stungRecent = recent('sting', 60), zap = since('sting') < 14;
+  for (const j of c.jellies) {
+    if (!vis(j.x, 2)) continue;
+    const [jx, jy] = jellyPos(j, s.ct);
+    ctx.save();
+    ctx.translate(X(jx, L), Y(L, jy));
+    drawJelly(ctx, S * 0.3, s.t, j.ph, stungRecent && Math.abs(jx - b.x) < 2, inCave);
+    ctx.restore();
+    if (cave) glow.push([X(jx, L), Y(L, jy), S * 0.9, '#ff9ad8']);
+  }
+  // 찌릿! (해파리에 쏘인 순간)
+  if (zap) {
+    ctx.strokeStyle = '#fff36a';
+    ctx.lineWidth = 2;
+    for (let q = 0; q < 6; q++) {
+      const a = (q / 6) * TAU + s.t * 0.3, r1 = R * 1.05, r2 = R * 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px + Math.cos(a) * r1, py + Math.sin(a) * r1);
+      ctx.lineTo(px + Math.cos(a + 0.15) * (r1 + r2) / 2, py + Math.sin(a + 0.15) * (r1 + r2) / 2);
+      ctx.lineTo(px + Math.cos(a - 0.05) * r2, py + Math.sin(a - 0.05) * r2);
+      ctx.stroke();
+    }
+  }
   // 앞 소품 (조개·불가사리·바닷말)
   for (const d of c.deco) if (d.z <= 0.5) drawDeco(d);
   // ── 동굴: 낮은 천장 + 깜깜함, 산호·해파리·복어만 빛난다 ──
@@ -1687,21 +1700,31 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: PufferState, w: number, h: 
     ctx.fillStyle = dark;
     ctx.fillRect(-10, sB - 30, w + 20, h);
     // 천장 바위 (어둠 위에 실루엣 + 푸른 테두리 빛 → 천장 높이가 보인다)
-    ctx.fillStyle = '#121a28';
+    const rg = ctx.createLinearGradient(0, sB - 40, 0, Y(L, 2.4));
+    rg.addColorStop(0, '#1a2234');
+    rg.addColorStop(1, '#3a465e');
+    ctx.fillStyle = rg;
     ctx.beginPath();
     ctx.moveTo(X(cx0, L), sB - 40);
     for (let xx = cx0; xx <= x1 + 0.5; xx += 0.2) ctx.lineTo(X(xx, L), ceilY(xx));
     ctx.lineTo(X(x1 + 0.5, L), sB - 40);
     ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = '#1c2838';
     for (let xx = Math.ceil(cx0 * 2) / 2; xx <= x1; xx += 0.5) {
       const cy = ceilY(xx), ln = S * (0.12 + hsh(Math.floor(xx * 2)) * 0.3);
+      ctx.fillStyle = '#46546e';
       ctx.beginPath();
       ctx.moveTo(X(xx, L) - 6, cy - 3);
       ctx.lineTo(X(xx, L) + 6, cy - 3);
       ctx.lineTo(X(xx, L), cy + ln);
       ctx.fill();
+      ctx.fillStyle = 'rgba(160,190,230,.35)';
+      ctx.beginPath();
+      ctx.moveTo(X(xx, L) - 4, cy - 2);
+      ctx.lineTo(X(xx, L) - 1, cy - 2);
+      ctx.lineTo(X(xx, L), cy + ln * 0.8);
+      ctx.fill();
+      if (hsh(Math.floor(xx * 2) + 7) < 0.3) glow.push([X(xx, L) + 9, cy + 6, S * 0.5, '#7ff0ff']), (ctx.fillStyle = '#9ff6ff'), ctx.fillRect(X(xx, L) + 7, cy, 4, 7);
     }
     ctx.strokeStyle = `rgba(120,220,255,${0.55 * inCave})`;
     ctx.lineWidth = 2;

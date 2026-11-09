@@ -393,7 +393,7 @@ export const stretchcat: GameDef<CatState> = {
       if (r.pig.length) see(s, 'pigeon');
       if (r.pal) see(s, 'partner');
     }
-    if (s.phase === 'run' && s.ct >= s.limit && !(c.mode === 'pull' && c.to === goal)) failStage(s, s.k === STAGES - 1 ? '밤이 깊었어요… ♥ -1 · 다시!' : '해가 졌어요… ♥ -1 · 다시!');
+    if (!s.dead && s.phase === 'run' && s.ct >= s.limit && !(c.mode === 'pull' && c.to === goal)) failStage(s, s.k === STAGES - 1 ? '밤이 깊었어요… ♥ -1 · 다시!' : '해가 졌어요… ♥ -1 · 다시!');
   },
   over: (s) => s.dead,
   /** 별 하나 10점 · 데려간 새끼 하나 2점 · 생선 하나 3점 · 6판 다 지으면 30점 */
@@ -1989,7 +1989,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: CatState, w: number, h: num
       const z = CZ + 0.15 + (wait % 2) * 0.14;
       const watching = c.mode === 'stretch' || c.mode === 'fall' || c.mode === 'fly';
       const won = s.phase === 'pause' && s.cleared;
-      kitten(ctx, X(kx, z), Y(z, r.h), U * 1.1, col, s.t + i * 9, won ? 'happy' : watching && c.mode !== 'stretch' ? 'scared' : 'sit');
+      kitten(ctx, X(kx, z), Y(z, r.h), U * 1.1, col, s.t + i * 9, won || (c.mode === 'stretch' && c.L > 1.2) ? 'happy' : watching ? 'scared' : 'sit');
       if (c.mode === 'fly' && wait === 0 && flyP < 0.6) front.push(() => bubble(ctx, X(kx, z), Y(z, r.h) - S * 0.75, 'ㅋㅋㅋ', 12));
       if (c.mode === 'fall' && wait === 0 && c.timer > 40) front.push(() => bubble(ctx, X(kx, z), Y(z, r.h) - S * 0.75, '엄마?!', 12));
       wait++;
@@ -2296,7 +2296,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: CatState, w: number, h: num
     }
     emo(ctx, '🏠', mx1 + 12, my - 1, 13);
     emo(ctx, '🐱', Math.max(mx0, Math.min(mx1, M(hipX + 0.6))), my - 9, 14);
-    const cy = botY + (h - botY) * 0.76, alive2 = s.nk - s.lost;
+    const cy = botY + (h - botY) * 0.76;
     ctx.font = `800 ${Math.max(12, w * 0.035)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -2305,7 +2305,6 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: CatState, w: number, h: num
       ctx.fillStyle = ok ? '#ffd23f' : 'rgba(255,255,255,.6)';
       ctx.fillText(t2, w * (0.17 + i * 0.33), cy);
     });
-    void alive2;
   }
   // 새 소식 띠 (하늘 자리)
   let ny = top + w * 0.04;
