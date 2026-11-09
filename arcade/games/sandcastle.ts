@@ -353,7 +353,7 @@ export const sandcastle: GameDef<SandState> = {
   name: '밀물 모래성',
   genes: ['fortify', 'forecast', 'pointer'],
   twist: '하늘의 파도 예보판에 파도 높이·방향·순서가 뜨고, 파도는 여러 번 온다 — 부딪힌 모래벽은 파도마다 깎여서 깎인 자리로 다음 파도가 더 들어오니, 어디를 두껍게 쌓을지가 수가 된다',
-  rules: ['빈 모래를 톡 = 다음 조각(모래벽·돌·해자). 다 놓거나 ▶를 누르면 파도가 와요.', '파도는 높이만큼 들어와요. 벽보다 높으면 넘고, 부딪힌 모래벽은 깎여요(돌은 안 깎임).', '꽃게 임금님 성이 버티면 별! 성이 안 깎이고 조개까지 지키면 별 셋.'],
+  rules: ['모래를 톡 = 조각 놓기. ▶를 누르면 예보한 파도가 차례로 와요 — 꽃게 임금님 성을 지키면 별!', '파도는 높이만큼 들어오고 벽보다 높으면 넘어요. 부딪힌 모래벽은 깎여요(돌은 안 깎임).'],
   controls: 'touch',
   hint: '모래를 톡 = 조각 놓기 · ▶ 버티기 / 화살표로 고르고 스페이스',
   aspect: A,
@@ -1359,6 +1359,29 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
           for (let q = 0; q < wide * 3; q++) {
             const u0 = c + 0.08 + q * ((wide - 0.16) / (wide * 3)), u1 = u0 + ((wide - 0.16) / (wide * 3)) * 0.55;
             box(u0, r + 0.78, u1, r + 0.95, baseZ + 0.8, sand('#fde9b8', '#c99c5e', 0.6), sand('#e8ba78', '#a87f4c'), sand('#d0a062', '#94693e'));
+          }
+        // 저녁엔 횃불 (불빛 번짐)
+        if (dusk > 0.2 && hp > 0)
+          for (const u of wide > 1 ? [0.1, wide - 0.1] : [0.12]) {
+            const tx = X(PX(c + u, r + 0.97)), tyb = Y(PY(r + 0.97, baseZ + 0.8)), fl2 = Math.sin(t * 0.5 + u * 7) * R(0.002);
+            ctx.strokeStyle = '#6b4a2a';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(tx, tyb);
+            ctx.lineTo(tx, tyb - R(0.03));
+            ctx.stroke();
+            ctx.save();
+            ctx.shadowColor = '#ffb347';
+            ctx.shadowBlur = R(0.05) * dusk;
+            ctx.fillStyle = '#ffcf5a';
+            ctx.beginPath();
+            ctx.ellipse(tx + fl2, tyb - R(0.038), R(0.007), R(0.012), 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#ff7a2e';
+            ctx.beginPath();
+            ctx.ellipse(tx + fl2, tyb - R(0.035), R(0.004), R(0.007), 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
           }
         // 문 (아치)
         {
