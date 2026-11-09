@@ -10,7 +10,13 @@
  * 판 = 하루. 해 질 때까지 섬 넓이·생명 목표를 채우면 별 1~3개, 못 채우면 하트 -1 그날 다시. 7일째까지 키운 섬이 점수.
  * 펼쳐짐: 풀·숲·동물·🥥 코코넛·넘침(1일) → 마을·⛵ 이사 배(2일) → 작은 섬(3일, 이으면 내 섬) → 두 번째 분화구(4일, 반대쪽으로도)
  *        → 비구름(5일, 그 아래론 용암이 못 감·풀이 빨리 자람) → 바람(6일, 주둥이가 거꾸로) · 섬 모양 보너스(곶 끝 등대 · 오목한 만의 항구 · 바다를 감싸면 온천).
- * 휴대폰(폭 340px): 판을 15×15 네모에서 지름 12칸 둥근 접시로 줄이고, 카메라가 섬 크기를 따라 당겨 찍는다(칸 폭 ≈ 화면의 10%).
+ * 섬이 자라면 새벽마다 더 큰 접시로 옮겨 준다(반지름 5.5 → 7.3) — 바다 띠가 늘 2~3칸이라 날마다 '딱 맞는 양'을 다시 재야 한다.
+ * 휴대폰(폭 340px): 15×15 네모 판(칸 20px·동물 9px)을 둥근 접시로 바꾸고, 카메라가 접시 크기를 따라 당겨 찍는다
+ *   → 칸 폭이 첫날 37px, 7일째에도 29px(화면의 8.5%), 집·동물·코코넛·배는 칸 폭의 0.82배 이상(화면의 7% 이상).
+ *   첫날 시작은 화산 얼굴을 크게 잡았다가 뒤로 빠지며 섬을 보여 준다. 누르면 살짝 다가간다.
+ * 웃음(기준 10): 화산 표정(끙 힘줌·입 떡·우쭐 '헤헤'·사고 '앗… 미안'·심심하면 하품) · 분화구의 갈매기('깍!' 하고 날아갔다 돌아와 졸고, 실패하면 'ㅋㅋ')
+ *   · 주민 말풍선('안 돼~!'·'만세!'·'이사 왔어요~'·뿌웅 뒤 '킁킁… 누구야?') · 뱃사람('여기 여기!'·'안 돼!!', 뒤집히면 '앗 뜨거!!' 첨벙 헤엄)
+ *   · 코코넛 구이가 펑 튀어 빙글빙글 · 넘친 용암이 탁자로 주르륵, 받침이 시커멓게 탄 자국이 남아 연기가 오른다.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -658,8 +664,8 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
   if (s.charge > 0) tR *= 0.97;
   if (s.pending.length) {
     const k = s.pending[0].i;
-    tx += ((k % N) + 0.5 - tx) * 0.12;
-    ty += (((k / N) | 0) + 0.5 - ty) * 0.12;
+    tx += ((k % N) + 0.5 - tx) * 0.05;
+    ty += (((k / N) | 0) + 0.5 - ty) * 0.05;
   }
   if (M.camR === undefined) (M.camR = s.t < 40 ? 3.1 : tR), (M.camX = tx), (M.camY = ty);
   M.camR += (tR - M.camR) * 0.045;
@@ -1220,7 +1226,11 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
   for (const [x, y, t, hot] of says.slice(0, 2)) bubble(ctx, x, y, t, Math.max(12, TW * 0.34), hot);
   // ── 화산 얼굴 (주인공): 누르면 끙 힘주고, 쏟을 땐 입을 떡, 선물엔 우쭐, 사고엔 '앗…', 심심하면 하품 ──
   drawFace();
-  // ── 연출 ──
+  // ── 연출 ── (떠오르는 글자는 화면 밖으로 잘리지 않게 가운데 쪽으로)
+  const pop = (x: number, y: number, t: string, col: string, size: number) => {
+    const half = Math.min(w / 2, t.length * size * 0.48 + 6);
+    fx.pop(Math.max(half, Math.min(w - half, x)), y, t, col, size);
+  };
   const seenT = M.t ?? -1;
   for (const e of s.events) {
     if (e.t <= seenT) continue;
@@ -1228,29 +1238,29 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
     if (e.kind === 'erupt') {
       const yt = Math.max(top + 44, y - CONE * (e.k === CI ? 1 : 0.6));
       // 웃음: 아주 살짝 누르면 '뿌웅~' 하고 방귀 같은 연기만 퐁
-      if (e.text === '뿌웅~') fx.burst(x, yt, '#bdb6b0', 16, 2, 4), fx.ring(x, yt, '#d8d2cc', TW * 1.2, 3), fx.pop(x, yt - 18, e.text, '#e8e2dc', 18);
-      else fx.burst(x, yt, '#ff8a2a', 30, 4.5, 3), fx.burst(x, yt, '#ffe27a', 14, 3, 2), fx.ring(x, y, '#ffb347', TW * 2.4, 5), fx.kick(e.text === '부글' ? 4 : 9), fx.blink('#ff7a2a', 0.18), e.text && fx.pop(x, yt - 18, e.text, '#ffd27a', 19);
+      if (e.text === '뿌웅~') fx.burst(x, yt, '#bdb6b0', 16, 2, 4), fx.ring(x, yt, '#d8d2cc', TW * 1.2, 3), pop(x, yt - 18, e.text, '#e8e2dc', 18);
+      else fx.burst(x, yt, '#ff8a2a', 30, 4.5, 3), fx.burst(x, yt, '#ffe27a', 14, 3, 2), fx.ring(x, y, '#ffb347', TW * 2.4, 5), fx.kick(e.text === '부글' ? 4 : 9), fx.blink('#ff7a2a', 0.18), e.text && pop(x, yt - 18, e.text, '#ffd27a', 19);
     }
-    if (e.kind === 'hiss') fx.pop(x, y - 14, e.text!, '#ffffff', 20), fx.burst(x, y, '#e8f4ff', 18, 3, 3), fx.ring(x, y, '#ffffff', TW * 1.5, 3), fx.kick(4);
+    if (e.kind === 'hiss') pop(x, y - 14, e.text!, '#ffffff', 20), fx.burst(x, y, '#e8f4ff', 18, 3, 3), fx.ring(x, y, '#ffffff', TW * 1.5, 3), fx.kick(4);
     if (e.kind === 'steam') fx.burst(x, y, '#dff0ff', 4, 1.6, 2);
-    if (e.kind === 'bury') fx.burst(x, y, '#5a4a44', 10, 2.5, 2.5), Number(e.text) <= -3 && fx.pop(x, y - 8, e.text!, '#ff8080', 14);
-    if (e.kind === 'house') fx.burst(x, y, '#ff5a5a', 22, 3.5, 3), fx.pop(x, y - 12, e.text!, '#ff6b6b', 16), fx.kick(10), fx.blink('#ff3030', 0.2);
-    if (e.kind === 'spill') fx.burst(x, y, '#ff7a2a', 12, 2.5, 2.5), e.text && (fx.pop(x, y - 16, e.text, '#ffb08a', 16), fx.kick(6));
-    if (e.kind === 'roast') fx.burst(x, y, '#7a5030', 16, 3, 2.5), fx.pop(x, y - 18, `🔥 ${e.text} -${VIS_PEN[COCO]}`, '#ffb08a', 16), fx.kick(5);
-    if (e.kind === 'capsize') fx.burst(x, y, '#d8f2ff', 24, 3.5, 3), fx.ring(x, y, '#ffffff', TW * 1.6, 4), fx.pop(x, y - 24, `⛵ 풍덩! -${VIS_PEN[BOAT]}`, '#ff9a9a', 16), fx.kick(8);
-    if (e.kind === 'palm') fx.burst(x, y - 6, '#9be36a', 22, 3, 2.5), fx.ring(x, y, '#c8ff9a', TW * 1.6, 4), fx.pop(x, y - 24, e.text!, '#d8ffb0', 17);
-    if (e.kind === 'dock') fx.burst(x, y - 6, '#ffe08a', 22, 3, 2.5), fx.ring(x, y, '#ffe08a', TW * 1.8, 4), fx.pop(x, y - 24, e.text!, '#ffe08a', 17);
+    if (e.kind === 'bury') fx.burst(x, y, '#5a4a44', 10, 2.5, 2.5), Number(e.text) <= -3 && pop(x, y - 8, e.text!, '#ff8080', 14);
+    if (e.kind === 'house') fx.burst(x, y, '#ff5a5a', 22, 3.5, 3), pop(x, y - 12, e.text!, '#ff6b6b', 16), fx.kick(10), fx.blink('#ff3030', 0.2);
+    if (e.kind === 'spill') fx.burst(x, y, '#ff7a2a', 12, 2.5, 2.5), e.text && (pop(x, y - 16, e.text, '#ffb08a', 16), fx.kick(6));
+    if (e.kind === 'roast') fx.burst(x, y, '#7a5030', 16, 3, 2.5), pop(x, y - 18, `🔥 ${e.text} -${VIS_PEN[COCO]}`, '#ffb08a', 16), fx.kick(5);
+    if (e.kind === 'capsize') fx.burst(x, y, '#d8f2ff', 24, 3.5, 3), fx.ring(x, y, '#ffffff', TW * 1.6, 4), pop(x, y - 24, `⛵ 풍덩! -${VIS_PEN[BOAT]}`, '#ff9a9a', 16), fx.kick(8);
+    if (e.kind === 'palm') fx.burst(x, y - 6, '#9be36a', 22, 3, 2.5), fx.ring(x, y, '#c8ff9a', TW * 1.6, 4), pop(x, y - 24, e.text!, '#d8ffb0', 17);
+    if (e.kind === 'dock') fx.burst(x, y - 6, '#ffe08a', 22, 3, 2.5), fx.ring(x, y, '#ffe08a', TW * 1.8, 4), pop(x, y - 24, e.text!, '#ffe08a', 17);
     if (e.kind === 'arrive') fx.ring(x, y, '#ffffff', TW * 0.9, 2), fx.burst(x, y, '#e8f8ff', 8, 1.6, 2);
-    if (e.kind === 'plate') fx.ring(OX, OY, '#ffe08a', w * 0.5, 6), fx.blink('#fff6c8', 0.25), fx.pop(w / 2, OY - TW * 2.5, e.text!, '#ffe08a', 20);
-    if (e.kind === 'sum') fx.pop(w / 2, bot - 18, e.text!, '#fff4c8', 16);
+    if (e.kind === 'plate') fx.ring(OX, OY, '#ffe08a', w * 0.5, 6), fx.blink('#fff6c8', 0.25), pop(w / 2, OY - TW * 2.5, e.text!, '#ffe08a', 20);
+    if (e.kind === 'sum') pop(w / 2, bot - 18, e.text!, '#fff4c8', 16);
     if (e.kind === 'sprout') fx.burst(x, y - 4, '#9be36a', 5, 1.4, 1.6);
     if (e.kind === 'animal') fx.burst(x, y - 4, '#fff1a8', 8, 1.8, 1.8), fx.ring(x, y, '#c8ff9a', TW * 0.8, 2);
-    if (e.kind === 'build') fx.burst(x, y - 4, '#ffd27a', 10, 2, 2), fx.pop(x, y - 10, '🏠', '#ffffff', 14);
-    if (e.kind === 'feat' || e.kind === 'link' || e.kind === 'village' || e.kind === 'islet') fx.ring(x, y, '#ffe08a', TW * 2, 4), fx.burst(x, y - 4, '#ffe08a', 24, 3, 2.5), fx.pop(x, y - 16, e.text!, '#ffe08a', 16);
-    if (e.kind === 'clear') fx.burst(w / 2, h * 0.35, '#ffd23f', 60, 6, 3), fx.blink('#fff6c8', 0.25), fx.pop(w / 2, h * 0.33, e.text!, '#ffe27a', 24);
-    if (e.kind === 'fail') fx.kick(10), fx.blink('#ff4d5e', 0.25), fx.pop(w / 2, h * 0.36, e.text!, '#ff8a8a', 18);
-    if (e.kind === 'tap') fx.pop(x, y - CONE - 10, e.text!, '#ffffff', 15);
-    if (e.kind === 'ff') fx.pop(w / 2, bot - 26, e.text!, '#cfe8ff', 14);
+    if (e.kind === 'build') fx.burst(x, y - 4, '#ffd27a', 10, 2, 2), pop(x, y - 10, '🏠', '#ffffff', 14);
+    if (e.kind === 'feat' || e.kind === 'link' || e.kind === 'village' || e.kind === 'islet') fx.ring(x, y, '#ffe08a', TW * 2, 4), fx.burst(x, y - 4, '#ffe08a', 24, 3, 2.5), pop(x, y - 16, e.text!, '#ffe08a', 16);
+    if (e.kind === 'clear') fx.burst(w / 2, h * 0.35, '#ffd23f', 60, 6, 3), fx.blink('#fff6c8', 0.25), pop(w / 2, h * 0.33, e.text!, '#ffe27a', 24);
+    if (e.kind === 'fail') fx.kick(10), fx.blink('#ff4d5e', 0.25), pop(w / 2, h * 0.36, e.text!, '#ff8a8a', 18);
+    if (e.kind === 'tap') pop(x, y - CONE - 10, e.text!, '#ffffff', 15);
+    if (e.kind === 'ff') pop(w / 2, top + 66, e.text!, '#cfe8ff', 14);
   }
   M.t = s.t;
   // ── 누르는 중: 혀끝 길이·얻고 잃는 것 · 넘침 경고 · 게이지 ──
@@ -1817,7 +1827,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
       if (flying) (ctx.moveTo(gx - u * 0.6, gy - flap), ctx.lineTo(gx + u * 0.2, gy), ctx.lineTo(gx + u * 1.0, gy - flap));
       else (ctx.moveTo(gx - u * 0.3, gy - u * 0.1), ctx.lineTo(gx + u * 1.4, gy + u * 0.15));
       ctx.stroke();
-      if (startle >= 0 && startle < 40) shout(gx, gy - u * 1.6, '깍!', '#333333');
+      if (startle >= 0 && startle < 40) shout(Math.max(30, gx), Math.max(top + 30, gy - u * 1.6), '깍!', '#333333');
       if (!flying && s.idle > 300 && s.idle % 420 >= 100 && s.idle % 420 < 200) shout(gx + u, gy - u * 1.4, 'z', '#7a8aa0');
       if (!flying && sad) shout(gx, gy - u * 1.6, 'ㅋㅋ', '#555555');
     }
