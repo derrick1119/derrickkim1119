@@ -468,7 +468,7 @@ const SKY: [number, string, string][] = [
 ];
 
 function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: number, th: Theme) {
-  const fx = juice(s), c = s.cfg, R = (q: number) => q * w;
+  const fx = juice(s), c = s.cfg, R = (q: number) => q * w, F = (q: number) => Math.max(12, q * w);
   const topH = R(0.14), botH = R(0.09), D = R(0.36), skew = D * 0.35, S = (w - 12 - skew) / (XR - XL), OX = 6 - XL * S;
   const T = R(0.05), yF = h - botH - T - R(0.025) - 6, yB = yF - D;
   const X = (wx: number, z: number) => OX + wx * S + z * skew;
@@ -733,7 +733,7 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
         ctx.stroke();
         ctx.shadowBlur = 0;
       } else if (r === BOUNCE) {
-        ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
+        ctx.font = `900 ${F(0.036)}px system-ui, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.lineWidth = 3;
@@ -771,13 +771,22 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
     ell(x, LY(0), S * 0.22 * sh, S * 0.08 * sh, `rgba(0,0,0,${0.25 * sh})`);
     drawEgg(x, y, S * 0.27, e.spin, e.gold);
   }
+  // 깨진 알 자국 (계란 프라이처럼 땅에 철퍼덕, 천천히 사라짐)
+  for (const e of s.events) {
+    if (e.kind !== 'break' && e.kind !== 'foxhit') continue;
+    const age = s.t - e.t, gz = LZ - 0.04, x = X(e.x, gz), y = Y(gz, 0);
+    ctx.globalAlpha = Math.max(0, 1 - age / 100);
+    ell(x, y, S * 0.42, S * 0.15, '#fffaf0');
+    ell(x + S * 0.05, y - 1, S * 0.15, S * 0.08, '#ffc21a');
+    ctx.globalAlpha = 1;
+  }
   // ── 앞: 마당의 어미닭·병아리 · 길 잃은 병아리 ──
   drawYard();
   for (const l of s.lost) {
     const age = s.t - l.t, gx = l.x + 0.5 * Math.sin(age / 55 + l.d) + Math.min(1, age / 60) * 0.25 * Math.cos(l.d), gz = LZ - 0.13 + 0.05 * Math.sin(age / 37 + l.d * 2);
     const x = X(gx, gz), y = Y(gz, 0), dir = Math.cos(age / 55 + l.d) >= 0 ? 1 : -1, pop = Math.min(1, age / 10);
-    chick(x, y - (1 - pop) * 10, S * 0.24, { hat: true, dir, hop: Math.abs(Math.sin(age / 7)) * 2, dizzy: age < 90 });
-    if ((age + Math.floor(l.d * 40)) % 200 < 55) bubble(x, y - S * 0.95, age < 120 ? '삐약?' : '삐…약?', R(0.032));
+    chick(x, y - (1 - pop) * 10, S * 0.3, { hat: true, dir, hop: Math.abs(Math.sin(age / 7)) * 2, dizzy: age < 90 });
+    if ((age + Math.floor(l.d * 40)) % 200 < 55) bubble(x, y - S * 1.3, age < 120 ? '삐약?' : '삐…약?', F(0.032));
   }
   // ── 밤: 오늘 병아리가 닭장으로 줄줄이 ──
   if (s.phase === 'night') {
@@ -817,7 +826,7 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
   const seenT = fx.memo.t ?? -1;
   for (const e of s.events) {
     if (e.t <= seenT) continue;
-    const x = LX(e.x), y = LY(e.y), tx = Math.max(58, Math.min(w - 58, x));
+    const x = LX(e.x), y = LY(e.y), tx = Math.max(82, Math.min(w - 82, x));
     if (e.kind === 'fire') fx.burst(x, y, '#fff8e8', 14, 3, 2.5), fx.ring(x, y, '#ffffff', S * 1.3, 3), fx.pop(tx + 18, y - 8, e.text!, '#ffffff', 18), fx.kick(2 + s.lastPow * 5);
     else if (e.kind === 'over') fx.burst(x, y, '#ff6a50', 24, 4.5, 3), fx.burst(x, y, '#ffffff', 16, 3, 3), fx.pop(tx + 24, y - 24, e.text!, '#ff6a5a', 22), fx.kick(9), fx.blink('#ff8060', 0.2);
     else if (e.kind === 'land') fx.ring(x, y, '#ffe27a', S * 1.4, 3), fx.burst(x, y, '#f7d98a', 10, 2, 2), fx.pop(tx, y - 16, e.text!, '#ffffff', 16);
@@ -885,7 +894,7 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
     ctx.beginPath();
     ctx.roundRect(bx, by, Math.max(bh, at(v)), bh, bh / 2);
     ctx.fill();
-    ctx.font = `900 ${R(0.032)}px system-ui, sans-serif`;
+    ctx.font = `900 ${F(0.032)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     for (let i = 0; i < 3; i++) {
       const gx = bx + at(g[i]);
@@ -896,7 +905,7 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
     }
     ctx.fillStyle = '#2a1a0a';
     ctx.textAlign = 'left';
-    ctx.font = `900 ${R(0.032)}px system-ui, sans-serif`;
+    ctx.font = `900 ${F(0.032)}px system-ui, sans-serif`;
     ctx.fillText(`🐣 ${v} / ${g[0]}${ok ? ' ✓' : ''}`, bx + 8, by + bh / 2 + 1);
   }
   // 아래 띠: 남은 알 · 바람 · 어미닭
@@ -918,7 +927,7 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
     }
     ctx.globalAlpha = 1;
     ctx.textAlign = 'right';
-    ctx.font = `800 ${R(0.032)}px system-ui, sans-serif`;
+    ctx.font = `800 ${F(0.032)}px system-ui, sans-serif`;
     ctx.fillStyle = '#ffe9b8';
     const farm = s.hens + s.yardNew;
     let right = w - 8;
@@ -937,7 +946,7 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
     const age = s.t - n.t, al = Math.min(1, (220 - age) / 30, age / 8);
     if (al <= 0) continue;
     ctx.globalAlpha = al;
-    ctx.font = `800 ${R(0.033)}px system-ui, sans-serif`;
+    ctx.font = `800 ${F(0.033)}px system-ui, sans-serif`;
     const tw = Math.min(w - 8, ctx.measureText(n.text).width + 18);
     ctx.fillStyle = 'rgba(40,24,10,.66)';
     ctx.beginPath();
@@ -984,9 +993,9 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
     ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.moveTo(x - r * 0.3, yy - r * 0.2);
-    ctx.lineTo(x - r * 0.35, y);
+    ctx.lineTo(x - r * 0.35, yy);
     ctx.moveTo(x + r * 0.25, yy - r * 0.2);
-    ctx.lineTo(x + r * 0.3, y);
+    ctx.lineTo(x + r * 0.3, yy);
     ctx.stroke();
     const gr = ctx.createRadialGradient(x - r * 0.3, yy - r * 1.4, r * 0.15, x, yy - r, r * 1.15);
     gr.addColorStop(0, o.gold ? '#fffbe0' : '#fff7b0');
@@ -1052,7 +1061,7 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
     if (moon) lights.push([x, y, rw * 2.2, 'rgba(255,220,120,.5)']);
   }
   function tag(x: number, y: number, mult: number) {
-    ctx.font = `900 ${R(0.032)}px system-ui, sans-serif`;
+    ctx.font = `900 ${F(0.032)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const t = `×${mult}`, tw = ctx.measureText(t).width + 8;
@@ -1080,9 +1089,21 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
           ctx.stroke();
         }
       } else if (s.phase === 'day' || s.pause > NIGHT - 12) {
-        const k = Math.min(3, v), bob = dance ? Math.abs(Math.sin(s.t / 6 + j)) * 4 : Math.abs(Math.sin(s.t / 12 + n.x * 3 + j)) * 1.5;
-        for (let q = 0; q < k; q++) chick(x + ox + (q - (k - 1) / 2) * rw * 0.55, y + rw * 0.05, rw * 0.4, { dir: q % 2 ? -1 : 1, hop: bob + (q % 2) * 1.5, gold: v >= 4 });
-        if (s.phase === 'day' && j === 0 && s.nests.indexOf(n) === Math.floor(s.t / 110) % s.nests.length && s.t % 110 < 40 && s.t - s.cowHit > 45) bubble(x + ox, y - rw * 1.7, v >= 2 ? '삐약삐약' : '삐약', R(0.03));
+        // 갓 깨어남: 껍데기 두 쪽이 튀고 병아리가 껍데기 모자를 쓰고 퐁 솟는다
+        const born = s.phase === 'day' ? age - HATCH : 99, k = Math.min(3, v);
+        const bob = dance ? Math.abs(Math.sin(s.t / 6 + j)) * 4 : born < 20 ? Math.sin((born / 20) * Math.PI) * rw * 1.1 : Math.abs(Math.sin(s.t / 12 + n.x * 3 + j)) * 1.5;
+        if (born < 24)
+          for (const sd of [-1, 1]) {
+            const bx = x + ox + sd * (rw * 0.15 + born * rw * 0.06), by = y - rw * 0.3 - Math.sin((born / 24) * Math.PI) * rw * 0.9 + born * 0.3;
+            ctx.globalAlpha = 1 - born / 24;
+            ctx.fillStyle = '#fffaf0';
+            ctx.beginPath();
+            ctx.ellipse(bx, by, rw * 0.22, rw * 0.15, sd * (0.4 + born * 0.15), sd > 0 ? 0 : Math.PI, sd > 0 ? Math.PI : TAU);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+          }
+        for (let q = 0; q < k; q++) chick(x + ox + (q - (k - 1) / 2) * rw * 0.55, y + rw * 0.05, rw * 0.4 * (born < 20 ? 1 + 0.45 * Math.sin((born / 20) * Math.PI) : 1), { dir: q % 2 ? -1 : 1, hop: bob + (q % 2) * 1.5, gold: v >= 4, hat: born < 70 });
+        if (s.phase === 'day' && j === 0 && s.nests.indexOf(n) === Math.floor(s.t / 110) % s.nests.length && s.t % 110 < 40 && s.t - s.cowHit > 45) bubble(x + ox, y - rw * 1.7, v >= 2 ? '삐약삐약' : '삐약', F(0.03));
       }
     }
   }
@@ -1228,11 +1249,11 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
       const ph = (s.t % 26) / 26;
       ell(mx - u * 0.2, my - u * 0.6 + ph * 8, 1.8, 2.4, '#9fd8ff');
     }
-    if (bad && s.t - s.lastBad < 50) bubble(mx - u * 0.9, my - u * 1.55, '꼬꼬?!', R(0.034));
-    else if (ov > 0.3) bubble(mx - u * 0.9, my - u * 1.55, '끄으응…!', R(0.032), '#c02010');
+    if (bad && s.t - s.lastBad < 50) bubble(mx - u * 0.9, my - u * 1.55, '꼬꼬?!', F(0.034));
+    else if (ov > 0.3) bubble(mx - u * 0.9, my - u * 1.55, '끄으응…!', F(0.032), '#c02010');
     else if (sinceFire > 6 && sinceFire < 45 && s.phase === 'day') {
       ctx.globalAlpha = 1 - sinceFire / 45;
-      ctx.font = `800 ${R(0.034)}px system-ui, sans-serif`;
+      ctx.font = `800 ${F(0.034)}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillStyle = '#ffffff';
       ctx.fillText('후~', mx - u * 1.0, my - u * 1.3 - sinceFire * 0.3);
@@ -1308,8 +1329,8 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
     const rb = s.t - s.lastBad, rg = s.t - s.lastGood, jump = rb < 20 ? Math.sin((rb / 20) * Math.PI) * 7 : 0;
     const kx = x - wd * 0.22, ky = y - ht - S * 0.42 - jump;
     emo('🐈', kx, ky, S * 0.8);
-    if (rb < 45) bubble(kx, ky - S * 0.8, '냥?!', R(0.032));
-    else if (rg < 40 && s.dayChicks >= 2) bubble(kx, ky - S * 0.8, '냥~', R(0.032));
+    if (rb < 45) bubble(kx, ky - S * 0.8, '냥?!', F(0.032));
+    else if (rg < 40 && s.dayChicks >= 2) bubble(kx, ky - S * 0.8, '냥~', F(0.032));
   }
   function drawBarn(gx: number, gz: number) {
     const x = X(gx, gz), y = Y(gz, 0), wd = S * 2.2, ht = S * 1.5, dep = S * 0.7;
@@ -1489,7 +1510,7 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
     // 방울
     ell(0.62 * u, -0.78 * u, 2.6, 2.6, '#ffd23f');
     ctx.restore();
-    if (say) bubble(x + dir * S * 0.9 * sc, y - S * 1.95 * sc, say, R(0.034));
+    if (say) bubble(x + dir * S * 0.9 * sc, y - S * 1.95 * sc, say, F(0.034));
   }
   function drawTractor() {
     const tx = tractorX(s, T0), dir = tractorDir(s, T0), x = LX(tx), y = LY(0), u = S, cx = LX(tx - dir * CARTD);
@@ -1588,9 +1609,9 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
     ctx.stroke();
     if (fo.mode === 3) (ell(hx - u * 0.02, hy - u * 0.22, u * 0.2, u * 0.11, '#fffaf0'), ell(hx - u * 0.02, hy - u * 0.24, u * 0.1, u * 0.07, '#ffd23a'));
     ctx.restore();
-    if (fo.mode === 3) bubble(x, y - S * 1.45, '깨갱!', R(0.034));
-    else if (fo.mode === 2) bubble(x, y - S * 1.45, '히히', R(0.032));
-    else if (fo.tgt >= 0 && s.t % 90 < 45) bubble(x, y - S * 1.45, '킁킁…', R(0.032));
+    if (fo.mode === 3) bubble(x, y - S * 1.45, '깨갱!', F(0.034));
+    else if (fo.mode === 2) bubble(x, y - S * 1.45, '히히', F(0.032));
+    else if (fo.tgt >= 0 && s.t % 90 < 45) bubble(x, y - S * 1.45, '킁킁…', F(0.032));
   }
   function drawMillTower() {
     const m = c.mill!, hx = LX(m[0]), hy = LY(m[1]), bz = LZ + 0.24, bx = X(m[0], bz), by = Y(bz, 0);

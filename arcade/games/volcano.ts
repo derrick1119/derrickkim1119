@@ -37,8 +37,8 @@ const SPILL = 6;
 const G_GRASS = 360, G_FOREST = 700, G_ANIMAL = 800;
 const ERUPTS = [3, 3, 3, 3, 3, 3, 3];
 /** 날마다 해 질 녘 목표 ★·★★·★★★ (섬 넓이 칸 · 생명 — 별은 둘 다 넘어야) */
-const GOAL_A = [[36, 46, 54], [60, 70, 78], [78, 88, 96], [92, 102, 110], [100, 108, 116], [106, 114, 122], [112, 120, 128]];
-const GOAL_L = [[0, 50, 90], [150, 190, 230], [250, 290, 330], [330, 370, 410], [390, 430, 470], [430, 470, 510], [460, 500, 540]];
+const GOAL_A = [[36, 46, 54], [60, 70, 78], [78, 88, 96], [92, 100, 108], [98, 106, 114], [104, 112, 120], [108, 116, 124]];
+const GOAL_L = [[0, 60, 95], [170, 210, 245], [270, 310, 345], [340, 375, 410], [385, 425, 460], [420, 460, 495], [450, 490, 525]];
 
 const NB4: number[][] = [], NB8: number[][] = [];
 for (let k = 0; k < NN; k++) {
@@ -572,8 +572,8 @@ export const volcano: GameDef<VolcanoState> = {
         // 그날 다시: 섬은 그대로 하룻밤 더 자란 채로, 같은 목표에 분출을 새로 받는다
         startDay(s);
         note(s, `🔁 ${s.day + 1}일째 다시 — 넓이 ${s.areaGoal} · 생명 ${s.lifeGoal}`, '#ffd0d0');
-      } else if (++s.day >= DAYS) (s.dead = true), (s.won = true);
-      else newDay(s);
+      } else if (s.day + 1 >= DAYS) (s.dead = true), (s.won = true); // 마지막 날은 그대로 두고 끝 (그리기가 범위를 벗어나지 않게)
+      else s.day++, newDay(s);
       return;
     }
     const down = !!inp.hold, can = s.left > 0 && s.pending.length === 0;
@@ -963,7 +963,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
           tree(tx0, ty0, TW * 0.21 * grown * (0.85 + hsh(k + t) * 0.3), hsh(k * 5 + t) < 0.45);
         }
         // 동물 칸 절반쯤에만 동물을 크게 (다 그리면 동물원처럼 빽빽하다)
-        if (kd === ANIMAL && (hsh(k * 3) < 0.55 || preview[k] || dance)) {
+        if (kd === ANIMAL && (hsh(k * 3) < 0.4 || preview[k])) {
           const [ax, ay] = P(i + 0.55 + 0.12 * Math.sin(s.t / 50 + k), j + 0.66, z);
           // 평소엔 깡총, 용암이 올 자리면 '!' 하고 제자리 펄쩍펄쩍, 성공한 밤엔 다 같이 춤
           const scared = !!preview[k];
@@ -972,7 +972,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
           ctx.translate(ax, ay - hop);
           if (dance && Math.floor(s.t / 12 + k) % 2) ctx.scale(-1, 1);
           if (dance) ctx.rotate(Math.sin(s.t / 6) * 0.3);
-          emoji(ANIMALS[Math.floor(hsh(k * 7) * ANIMALS.length)], 0, 0, TW * (scared ? 0.78 : 0.68));
+          emoji(ANIMALS[Math.floor(hsh(k * 7) * ANIMALS.length)], 0, 0, TW * (scared ? 0.95 : 0.85));
           ctx.restore();
           if (scared) shout(ax, ay - hop - TW * 0.7, '!');
         }
@@ -1276,8 +1276,9 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
       ctx.arc(x, y, TW * 0.13, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
-      lab(x, y - TW * 0.25, `+${pvNew}🏝️`, '#fff2b0', Math.max(15, TW * 0.42));
-      if (pvLost) lab(x, y - TW * 0.25 - Math.max(15, TW * 0.42) * 1.05, `-${pvLost}`, '#ff9a8a', Math.max(14, TW * 0.38));
+      const ly = Math.max(top + 64, y - TW * 0.25);
+      lab(x, ly, `+${pvNew}🏝️`, '#fff2b0', Math.max(15, TW * 0.42));
+      if (pvLost) lab(x, ly - Math.max(15, TW * 0.42) * 1.05, `-${pvLost}`, '#ff9a8a', Math.max(14, TW * 0.38));
     }
     if (spillK >= 0) {
       const [x0, y0] = rimPt(spillK, 0), [, y1] = rimPt(spillK, -D - pd);
@@ -1290,7 +1291,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
       ctx.lineTo(x0, y1 + TW * 0.2);
       ctx.stroke();
       ctx.setLineDash([]);
-      lab(x0, y1 + TW * 0.2 + Math.max(15, TW * 0.4) + 4, `넘쳐요! -${pvSpill * SPILL}`, '#ff6b5a', Math.max(15, TW * 0.4));
+      lab(Math.max(60, Math.min(w - 60, x0)), Math.min(bot - 4, y1 + TW * 0.2 + Math.max(15, TW * 0.4) + 4), `넘쳐요! -${pvSpill * SPILL}`, '#ff6b5a', Math.max(15, TW * 0.4));
     }
     const gx = w - 14, gy0 = top + 40, gh = (bot - top) * 0.42;
     ctx.fillStyle = 'rgba(0,0,0,.45)';
@@ -1465,7 +1466,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
     ctx.fill();
   }
   function drawHouse(x: number, y: number, k: number) {
-    const sz = TW * 0.3, wh = TW * 0.3, roof = ['#e0533d', '#3d7fe0', '#e09a3d', '#9a4de0'][Math.floor(hsh(k * 11) * 4)];
+    const sz = TW * 0.36, wh = TW * 0.33, roof = ['#e0533d', '#3d7fe0', '#e09a3d', '#9a4de0'][Math.floor(hsh(k * 11) * 4)];
     const lit = dusk > 0.1 || s.phase === 'night';
     ctx.fillStyle = 'rgba(0,0,0,.25)';
     ctx.beginPath();
@@ -1499,11 +1500,11 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
     }
     if (scared) says.unshift([x, y - wh - sz * 1.6, '안 돼~!', true]);
     else if (dance && hsh(k) < 0.5) says.push([x, y - wh - sz * 1.6, '만세!', false]);
-    else if (recent(['dock'], 90) >= 0 && I.g[k] < 120) says.push([x, y - wh - sz * 1.6, '이사 왔어요~', false]);
+    else if (s.events.some((e) => e.kind === 'build' && e.k === k && s.t - e.t < 100) && recent(['dock'], 100) >= 0) says.push([x, y - wh - sz * 1.6, '이사 왔어요~', false]);
     else if (recent(['erupt'], 70) >= 0 && s.events.some((e) => e.kind === 'erupt' && e.text === '뿌웅~' && s.t - e.t < 70)) says.push([x, y - wh - sz * 1.6, '킁킁… 누구야?', false]);
   }
   function boat(x: number, y: number, sc: number, crew: boolean) {
-    const u = TW * 0.4 * sc;
+    const u = TW * 0.46 * sc;
     poly([[x - u, y - u * 0.25], [x + u, y - u * 0.25], [x + u * 0.7, y + u * 0.2], [x - u * 0.7, y + u * 0.2]], mix('#9a5a2a', '#3a2010', night * 0.5));
     poly([[x - u, y - u * 0.25], [x + u, y - u * 0.25], [x + u * 0.85, y - u * 0.1], [x - u * 0.85, y - u * 0.1]], mix('#c8844a', '#4a2a14', night * 0.5));
     ctx.strokeStyle = '#5a3a20';
@@ -1532,7 +1533,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
       ctx.save();
       ctx.translate(x, y + TW * 0.12);
       ctx.rotate(Math.sin(s.t / 20 + k) * 0.25 + (doomed ? Math.sin(s.t) * 0.3 : 0));
-      emoji('🥥', 0, 0, TW * 0.62);
+      emoji('🥥', 0, 0, TW * 0.82);
       ctx.restore();
     } else {
       boat(x, y, 1, true);
@@ -1586,7 +1587,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
     ctx.fill();
     // 게: 옆으로 종종종, 성공한 밤엔 집게 들고 춤
     const cxp = x + Math.sin(s.t / 18 + k) * TW * 0.25, hop = dance ? Math.abs(Math.sin(s.t / 5)) * TW * 0.15 : 0;
-    emoji('🦀', cxp, y + TW * 0.12 - hop, TW * 0.5);
+    emoji('🦀', cxp, y + TW * 0.14 - hop, TW * 0.6);
     if (preview[k]) shout(cxp, y - TW * 0.4, '!');
   }
   function drawCrater(x: number, y: number, sc: number) {
@@ -1798,7 +1799,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
       (flying = true), (gx = sitX - q * TW * 4), (gy = sitY - q * TW * 2.4);
     }
     if (gx > -20) {
-      const u = TW * 0.12, flap = flying ? Math.sin(s.t / 2) * u * 1.2 : 0;
+      const u = TW * 0.16, flap = flying ? Math.sin(s.t / 2) * u * 1.2 : 0;
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.ellipse(gx, gy, u * 1.3, u * 0.75, 0, 0, Math.PI * 2);
@@ -1818,6 +1819,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
       ctx.stroke();
       if (startle >= 0 && startle < 40) shout(gx, gy - u * 1.6, '깍!', '#333333');
       if (!flying && s.idle > 300 && s.idle % 420 >= 100 && s.idle % 420 < 200) shout(gx + u, gy - u * 1.4, 'z', '#7a8aa0');
+      if (!flying && sad) shout(gx, gy - u * 1.6, 'ㅋㅋ', '#555555');
     }
   }
   function drawLight(x: number, y: number) {
@@ -1954,7 +1956,7 @@ function judge(s: VolcanoState, f1: Flow, V1: number, f2: Flow | null, V2: numbe
   const late = 0.8 + (1.4 * s.dayT) / DAY;
   return g1 * 8 + g3 * 4 + (gain - g1 - g3) * 2.5 + gift - loss * late - spill * SPILL * late;
 }
-const HOLDS = [8, 13, 19, 26, 33, 41, 50, 60, 72, 90];
+const HOLDS = [8, 11, 14, 18, 22, 26, 30, 35, 40, 46, 52, 59, 66, 74, 82, 90];
 /** 앞으로 주둥이가 가리킬 각도마다 흐름을 한 번 계산하고, 누를 시간마다 '언제 눌러야 그 각도에서 떼게 되는지'를 거꾸로 맞춘다 */
 function plan(s: VolcanoState, holds = HOLDS) {
   const now = s.dayT, span = Math.max(40, Math.min(500, (DAY - now - 150) / Math.max(1, s.left)));
