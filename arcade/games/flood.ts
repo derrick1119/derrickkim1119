@@ -715,6 +715,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
       if (st.bonus[i]) top = '#7a5232';
       ctx.fillStyle = mix(top, '#1a2238', night * 0.55);
       ctx.fillRect(x, y, cw + 0.6, chh + 0.6);
+      // 아주 얕은 물은 젖은 땅으로만 (그 위의 것은 가리지 않게 먼저 칠한다)
+      if (W[i] > 1.5 && W[i] < 7) {
+        ctx.fillStyle = `rgba(40,70,110,${0.1 + W[i] * 0.025})`;
+        ctx.fillRect(x, y, cw + 0.6, chh + 0.6);
+      }
       // 뒤 칸이 더 높으면 그늘, 등고선
       const back = r > 0 ? m.g[i - COLS] : -9;
       if (back > g) {
@@ -837,10 +842,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
       if (st.deco[i] === 1) drawTree(ctx, x + cw / 2, y + chh * 0.62, cw, t, i, night);
       // 물 (칸마다 수면 높이로 · 앞으로 낮아지면 물 벽이 보인다). 아주 얕으면 젖은 땅만
       const wv = W[i];
-      if (wv > 1.5 && wv < 7) {
-        ctx.fillStyle = `rgba(40,70,110,${0.1 + wv * 0.025})`;
-        ctx.fillRect(x, ty(r, base(i)), cw + 0.6, chh + 0.6);
-      } else if (wv >= 7) {
+      if (wv >= 7) {
         const zs = surf(i), d = Math.min(1, wv / 110), yS = ty(r, zs);
         ctx.fillStyle = mix(mix('#62cdf4', '#1c64c0', d), '#0a1830', night * 0.5);
         ctx.globalAlpha = 0.72 + 0.2 * d;
@@ -1134,6 +1136,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
       fx.kick(e.j === STONE ? 4 : 2.5);
       if (e.text) fx.pop(pt.x, pt.y - R(0.04), e.text, '#fff3c4', R(0.042));
       else if (s.taps === 1) fx.pop(pt.x, pt.y - R(0.04), '쿵!', '#fff3c4', R(0.05));
+      // 옆에 쿵 하면 자던 고양이가 꿈틀
+      const nk = NB8[e.i].find((k) => st.prot[k] === CAT);
+      if (nk !== undefined && s.taps === 1) fx.pop(cx0(colOf(nk)) + cw * 0.9, ty(rowOf(nk), base(nk)) - R(0.03), '…냥?', '#ffffff', R(0.04));
     }
     if (e.kind === 'nope') fx.pop(pt.x, pt.y - R(0.03), e.text!, '#ffd0c8', R(0.038)), fx.kick(1.5);
     if (e.kind === 'undo') fx.ring(pt.x, pt.y, '#ffffff', R(0.05), 2);

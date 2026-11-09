@@ -1,1 +1,194 @@
-{}
+{
+ "fortress": {
+  "id": "fortress",
+  "name": "버텨라 블록성",
+  "n": 24,
+  "dumb": {
+   "score": 50,
+   "sec": 86.5
+  },
+  "smart": {
+   "score": 365,
+   "sec": 86.5,
+   "capped": 0
+  },
+  "skillGap": 7.18,
+  "reveals": [
+   6,
+   10.8,
+   12
+  ],
+  "dumbReveals": [
+   4,
+   5.8
+  ],
+  "parts": {
+   "skill": 0.948,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.964
+ },
+ "flood": {
+  "id": "flood",
+  "name": "홍수 버티기",
+  "n": 24,
+  "dumb": {
+   "score": 30,
+   "sec": 62.9
+  },
+  "smart": {
+   "score": 350,
+   "sec": 100.7,
+   "capped": 0
+  },
+  "skillGap": 11.32,
+  "reveals": [
+   7,
+   12,
+   15
+  ],
+  "dumbReveals": [
+   2.6,
+   3.8
+  ],
+  "parts": {
+   "skill": 1,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.978
+ },
+ "typhoon": {
+  "id": "typhoon",
+  "name": "태풍 캠핑장",
+  "n": 24,
+  "dumb": {
+   "score": 30,
+   "sec": 80.5
+  },
+  "smart": {
+   "score": 390,
+   "sec": 59.7,
+   "capped": 0
+  },
+  "skillGap": 12.61,
+  "reveals": [
+   10.4,
+   14,
+   14
+  ],
+  "dumbReveals": [
+   5.9,
+   6.6
+  ],
+  "parts": {
+   "skill": 1,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.978
+ },
+ "quake": {
+  "id": "quake",
+  "name": "흔들흔들 지진 탑",
+  "n": 24,
+  "dumb": {
+   "score": 30,
+   "sec": 52.9
+  },
+  "smart": {
+   "score": 390,
+   "sec": 99.8,
+   "capped": 0
+  },
+  "skillGap": 12.61,
+  "reveals": [
+   6.8,
+   10.3,
+   11.5
+  ],
+  "dumbReveals": [
+   4.6,
+   5.9
+  ],
+  "parts": {
+   "skill": 1,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.978
+ },
+ "landslide": {
+  "id": "landslide",
+  "name": "산사태 산장",
+  "n": 24,
+  "dumb": {
+   "score": 30,
+   "sec": 43
+  },
+  "smart": {
+   "score": 270,
+   "sec": 68.6,
+   "capped": 0
+  },
+  "skillGap": 8.74,
+  "reveals": [
+   11.3,
+   14.8,
+   14.8
+  ],
+  "dumbReveals": [
+   5,
+   5.5
+  ],
+  "parts": {
+   "skill": 1,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.978
+ },
+ "sandcastle": {
+  "id": "sandcastle",
+  "name": "밀물 모래성",
+  "n": 24,
+  "dumb": {
+   "score": 40,
+   "sec": 49.1
+  },
+  "smart": {
+   "score": 431.5,
+   "sec": 91.2,
+   "capped": 0
+  },
+  "skillGap": 10.55,
+  "reveals": [
+   6.5,
+   8.9,
+   9.9
+  ],
+  "dumbReveals": [
+   4.3,
+   4.3
+  ],
+  "parts": {
+   "skill": 1,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 1,
+   "unfold": 1
+  },
+  "fun": 1
+ }
+}
