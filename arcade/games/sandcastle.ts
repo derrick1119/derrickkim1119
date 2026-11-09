@@ -1710,10 +1710,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
   ctx.textAlign = 'left';
   ctx.fillStyle = th.ink;
   font(0.045, 900);
-  ctx.fillText(`🏖️ ${s.stage + 1}번째 밀물`, R(0.03), hb * 0.5);
+  const ttl = `🏖️ ${s.stage + 1}번째 밀물`, tw1 = ctx.measureText(ttl).width;
+  ctx.fillText(ttl, R(0.03), hb * 0.5);
   font(0.036, 800);
   ctx.fillStyle = th.muted;
-  ctx.fillText(` / ${STAGE_COUNT}`, R(0.03) + ctx.measureText(`🏖️ ${s.stage + 1}번째 밀물`).width * (0.045 / 0.034) * 0.98, hb * 0.55);
+  ctx.fillText(` / ${STAGE_COUNT}`, R(0.03) + tw1, hb * 0.55);
   ctx.textAlign = 'right';
   font(0.042, 900);
   ctx.fillStyle = '#ffd166';
