@@ -39,9 +39,9 @@ const STAGES: StageDef[] = [
   { waves: 'F5 S5 F6', pieces: 'WWRWW', shells: 1, boulders: 1, row: 4 },
   { waves: 'F6 F6 S5 F7', pieces: 'MWWMRW', shells: 2, boulders: 1, row: 5 },
   { waves: 'F4 F4 +F5 +F5', pieces: 'WWRMWW', shells: 1, boulders: 1, row: 5 },
-  { waves: 'F6 S4 F6 F7', pieces: 'WRWMWWR', shells: 1, boulders: 2, row: 5, twin: true },
+  { waves: 'F6 S3 F6 F7', pieces: 'WRWMWWR', shells: 1, boulders: 2, row: 5, twin: true },
   { waves: 'F7 L5 R5 F8', pieces: 'RWWMWWRW', shells: 2, boulders: 1, row: 5 },
-  { waves: 'F5 S4 +F6 S4 +F6', pieces: 'WRWMWWRWM', shells: 2, boulders: 2, row: 5, twin: true },
+  { waves: 'F5 S3 +F6 S3 F6', pieces: 'WRWMWWRWMW', shells: 2, boulders: 2, row: 5, twin: true },
 ];
 export const STAGE_COUNT = STAGES.length;
 const PIECE_NAME = ['모래벽', '돌', '해자'];

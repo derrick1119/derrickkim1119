@@ -5,7 +5,11 @@
  *       안 묶인 것들은 소·냄비·의자까지 우스꽝스럽게 날아가고, 날아간 것이 다른 것을 때려 연쇄로 날린다.
  * 바람은 칸 단위의 결정적인 '바람 지도'다: 막힌 칸 뒤는 바람 그늘(옆에서 돌아 들어와 점점 세짐),
  *       막힌 칸 바로 옆 틈은 밀려난 바람이 몰려 더 세다. 짓는 동안 칸마다 화살표 색으로 그대로 보인다(예보 = 실제).
- * 첫 3초: 텐트 앞이 반짝 — 돌 두 개를 톡톡 놓자 돌풍이 휙, 텐트는 버티고 옆 빨래만 하늘로 펄럭(나무에 걸림).
+ *       예보 띠의 돌풍 칩을 톡 하면 그 돌풍의 바람 지도를 골라 본다. 텐트 위 배지 = 그 칸 바람 vs 버팀 22.
+ * 고민: 돌은 낮아서 바람은 막지만 날아오는 소·냄비는 훌쩍 넘어 텐트를 때린다 → 말뚝으로 묶거나 높은 바람막이·나무로 막는다.
+ *       막은 칸 바로 옆은 바람이 더 세서, 텐트를 빙 둘러 막으면 오히려 텐트 칸으로 바람이 몰린다(6판 회오리).
+ * 첫 3초: 판 카드가 예보(← 30m/s)를 크게 보여 주고 텐트 앞 칸이 반짝 + 텐트 배지 '💨30 > 버팀22 위험!'.
+ *       돌을 톡 — 쿵 하며 화살표가 돌 뒤로 휘고 배지가 '안전'으로, 곰 표정이 놀람 → 편안. 두 개를 놓자 돌풍이 휙, 텐트는 버티고 옆 빨래만 펄럭(나무에 걸림).
  * 판 구조: 판마다 정해진 조각을 다 놓거나 '▶ 버티기'를 누르면 돌풍이 온다. 텐트가 무사하면 별
  *       (★ 버팀 · ★ 텐트 상처 없음 · ★ 잃은 물건 없음). 텐트가 날아가거나 무너지면 하트 -1, 그 판을 처음부터 다시 짓는다.
  * 펼쳐짐(하는 일이 바뀐다): 1판 돌(바람 그늘·틈 바람) → 2판 소·말뚝(묶기, 날아간 게 때리는 연쇄)
@@ -1346,23 +1350,6 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TyphoonState, w: number, h: n
     }
     emo(ctx, '⚡', bx, by + Math.sin(t / 7) * 3, Rr(0.05));
   }
-  // ── 첫 판 안내: 놓을 칸이 반짝 ──
-  if (s.phase === 'build' && s.pi < s.pieces.length && (s.stage === 0 || s.tries >= 2)) {
-    const key = `${s.stage}:${s.tries}:${s.pi}`;
-    if (!M.hint || M.hint.key !== key) M.hint = { key, cells: planCells(cloneCamp(s.camp), s.pieces.slice(s.pi), s.gusts, 3) };
-    const k = M.hint.cells[0];
-    if (k !== undefined) {
-      const a = 0.55 + 0.45 * Math.sin(t / 5);
-      ctx.strokeStyle = `rgba(255,240,140,${a})`;
-      ctx.lineWidth = 3;
-      ctx.shadowColor = '#fff3a0';
-      ctx.shadowBlur = 12;
-      quad(k, 0.08);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-      if (s.stage === 0 && s.pi === 0) emo(ctx, '👆', X(kx(k)) + Rr(0.025), Y(ky(k)) + Rr(0.035) + Math.sin(t / 6) * 3, Rr(0.06));
-    }
-  }
   // ── 세워진 것들 (뒤 줄부터) ──
   const tentGone = storming && sim ? sim.tentOut >= 0 && tau >= sim.tentOut : s.camp.gone;
   const tentFlat = storming && sim ? sim.downAt >= 0 && tau >= sim.downAt : s.camp.hp <= 0;
@@ -1430,6 +1417,23 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TyphoonState, w: number, h: n
       ground[k].forEach(({ i, p }, j) => drawItem(ctx, s, src.items[i], X(p.x) + j * Rr(0.02), Y(p.y) - j * Rr(0.012), Rr(0.072), p, pv, t, k));
     }
   }
+  // ── 첫 판 안내: 놓을 칸이 반짝 ──
+  if (s.phase === 'build' && s.pi < s.pieces.length && (s.stage === 0 || s.tries >= 2)) {
+    const key = `${s.stage}:${s.tries}:${s.pi}`;
+    if (!M.hint || M.hint.key !== key) M.hint = { key, cells: planCells(cloneCamp(s.camp), s.pieces.slice(s.pi), s.gusts, 3) };
+    const k = M.hint.cells[0];
+    if (k !== undefined) {
+      const a = 0.55 + 0.45 * Math.sin(t / 5);
+      ctx.strokeStyle = `rgba(255,240,140,${a})`;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = '#fff3a0';
+      ctx.shadowBlur = 12;
+      quad(k, 0.08);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      if (s.stage === 0 && s.pi === 0) emo(ctx, '👆', X(kx(k)) + Rr(0.025), Y(ky(k)) + Rr(0.035) + Math.sin(t / 6) * 3, Rr(0.06));
+    }
+  }
   // 하늘을 나는 것들 (그림자는 땅에)
   for (const { i, p } of itemsNow) {
     if (!p.air) continue;
@@ -1494,7 +1498,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TyphoonState, w: number, h: n
     if (e.kind === 'nope') say(x, y - Rr(0.05), e.text!, '#ffb3b3', Rr(0.036)), fx.kick(1.5);
     if (e.kind === 'go') fx.ring(x, y, '#ffe066', Rr(0.12), 4);
     if (e.kind === 'peek') fx.ring(x, y, '#ffffff', Rr(0.06), 3);
-    if (e.kind === 'warn') say(w / 2, Y(BY0 + 0.24), e.text!, '#ffffff', Rr(0.055)), fx.kick(2), racc('온다 온다…');
+    if (e.kind === 'warn') say(w / 2, Y(BY0 + 0.06), e.text!, '#ffffff', Rr(0.055)), fx.kick(2), racc('온다 온다…');
     if (e.kind === 'gust') fx.blink('#dbe8ff', 0.22), fx.kick(7);
     if (e.kind === 'fly') say(x, y - Rr(0.07), e.text!, '#ffffff', Rr(0.04)), fx.burst(x, y, '#b6e08a', 8, 2.5, 2), racc('ㅋㅋㅋ');
     if (e.kind === 'chain') say(x, y - Rr(0.07), e.text!, '#ffb347', Rr(0.042)), fx.ring(x, y, '#ffb347', Rr(0.08), 4), fx.kick(4);
@@ -1560,17 +1564,27 @@ function drawItem(ctx: CanvasRenderingContext2D, s: TyphoonState, it: Item, x: n
     emo(ctx, def.e, x + Math.sin(t / 7) * 1.5, y - size * 0.55, size * 0.75, wob * 2);
   } else emo(ctx, def.e, x, y - size * 0.45, size, p.rot + wob, p.a, it.k === 'cow' && p.air && Math.floor(t / 20) % 2 === 0);
   if (it.staked && !p.air) {
-    ctx.strokeStyle = '#e8d9a8';
-    ctx.lineWidth = 1.5;
+    // 말뚝 둘에 노란 밧줄로 꽁꽁 (멀리서도 '묶였다'가 보이게)
+    ctx.strokeStyle = '#ffd65a';
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(x - size * 0.1, y - size * 0.45);
-    ctx.quadraticCurveTo(x + size * 0.25, y - size * 0.1, x + size * 0.5, y + size * 0.02);
-    ctx.moveTo(x + size * 0.1, y - size * 0.45);
-    ctx.quadraticCurveTo(x - size * 0.25, y - size * 0.1, x - size * 0.5, y + size * 0.02);
+    ctx.moveTo(x - size * 0.05, y - size * 0.5);
+    ctx.quadraticCurveTo(x + size * 0.3, y - size * 0.15, x + size * 0.55, y - size * 0.05);
+    ctx.moveTo(x + size * 0.05, y - size * 0.5);
+    ctx.quadraticCurveTo(x - size * 0.3, y - size * 0.15, x - size * 0.55, y - size * 0.05);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(x, y - size * 0.32, size * 0.36, size * 0.1, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.fillStyle = '#8a5a2b';
-    ctx.fillRect(x + size * 0.46, y - size * 0.15, size * 0.09, size * 0.2);
-    ctx.fillRect(x - size * 0.55, y - size * 0.15, size * 0.09, size * 0.2);
+    for (const sd of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(x + sd * size * 0.5, y - size * 0.18);
+      ctx.lineTo(x + sd * size * 0.62, y - size * 0.18);
+      ctx.lineTo(x + sd * size * 0.56, y + size * 0.06);
+      ctx.fill();
+    }
   }
   if (willFly) {
     const bx = x + size * 0.42, by = y - size * 1.0 + Math.sin(t / 5) * 2;

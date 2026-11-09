@@ -873,6 +873,20 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
               ctx.fill();
             }
           }
+        // 물 아래 배수구: 소용돌이
+        if (m.piece[i] === PIPE) {
+          ctx.strokeStyle = 'rgba(255,255,255,.85)';
+          ctx.lineWidth = 1.6;
+          for (let k = 0; k < 3; k++) {
+            ctx.beginPath();
+            ctx.ellipse(x + cw / 2, yS + chh / 2, cw * (0.12 + k * 0.1), chh * (0.1 + k * 0.08), 0, t / 5 + k * 2, t / 5 + k * 2 + 3.6);
+            ctx.stroke();
+          }
+          ctx.fillStyle = 'rgba(10,30,60,.6)';
+          ctx.beginPath();
+          ctx.ellipse(x + cw / 2, yS + chh / 2, cw * 0.08, chh * 0.07, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
     }
   }
@@ -897,7 +911,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
       }
       const sd = wv.side, ex = sd === 'L' ? boardL : sd === 'R' ? boardR : cx0(c) + cw / 2, ey = sd === 'T' ? ty(0, m.g[i]) : ty(r, m.g[i]) + chh * 0.5;
       // 하수관 같은 둥근 관 입구
-      const px = sd === 'L' ? ex - R(0.035) : sd === 'R' ? ex + R(0.035) : ex, py = sd === 'T' ? ey - R(0.03) : ey;
+      const px = sd === 'L' ? ex - R(0.035) : sd === 'R' ? ex + R(0.035) : ex, py = sd === 'T' ? ey - R(0.006) : ey;
       ctx.fillStyle = mix('#9aa5ab', '#000000', night * 0.5);
       ctx.beginPath();
       ctx.ellipse(px, py, R(0.034), R(0.03), 0, 0, Math.PI * 2);
@@ -968,25 +982,44 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
       ctx.stroke();
     }
   }
-  // 밤엔 창문 불빛이 번진다
+  // 저녁·밤: 판 전체가 어둑해지고 창문 불빛이 번진다
+  if (night > 0.15) {
+    ctx.fillStyle = `rgba(10,18,48,${night * 0.42})`;
+    ctx.fillRect(-12, R(0.2), w + 24, h);
+  }
   for (const [lx, ly, a] of lights) {
     ctx.save();
-    ctx.globalAlpha = a;
-    const lg = ctx.createRadialGradient(lx, ly, 0, lx, ly, R(0.09));
-    lg.addColorStop(0, 'rgba(255,210,120,.55)');
-    lg.addColorStop(1, 'rgba(255,210,120,0)');
+    ctx.globalAlpha = Math.min(1, a * 1.3);
+    ctx.globalCompositeOperation = 'lighter';
+    const lg = ctx.createRadialGradient(lx, ly, 0, lx, ly, R(0.11));
+    lg.addColorStop(0, 'rgba(255,190,90,.5)');
+    lg.addColorStop(1, 'rgba(255,190,90,0)');
     ctx.fillStyle = lg;
     ctx.beginPath();
-    ctx.arc(lx, ly, R(0.09), 0, Math.PI * 2);
+    ctx.arc(lx, ly, R(0.11), 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
   // ── 예보 화살표 (짓는 동안 · 버티는 동안 기다리는 물결) ──
   const pending = st.waves.map((wv, k) => ({ wv, k })).filter(({ wv }) => s.phase === 'build' || (s.phase === 'watch' && m.n < wv.at + wv.dur));
+  const drawn = new Set<string>();
   for (const { wv, k } of pending) {
-    const bob = Math.sin(t / 10 + k) * 3, label = `${'①②③④'[k]} ${wv.L}L`;
+    // 같은 곳으로 오는 물결은 꼬리표 하나에: "① 1400L + ② 1050L"
+    const where = `${wv.kind}:${wv.cells.join(',')}`;
+    if (wv.kind !== 'rain' && drawn.has(where)) continue;
+    drawn.add(where);
+    const same = pending.filter((q) => q.wv.kind !== 'rain' && `${q.wv.kind}:${q.wv.cells.join(',')}` === where);
+    const bob = Math.sin(t / 10 + k) * 3, label = wv.kind === 'rain' ? `${'①②③④'[k]} ${wv.L}L` : same.map((q) => `${'①②③④'[q.k]} ${q.wv.L}L`).join(' + ');
     if (wv.kind === 'rain') {
-      fitText(ctx, `☔ ${label}`, w / 2 + (k % 2 ? R(0.22) : -R(0.22)), ty(0, 3.6) + bob, R(0.04), '#ffffff', R(0.4), 900);
+      // 비구름 꼬리표 (판 뒤쪽 위)
+      const cx = w / 2 + (k % 2 ? R(0.2) : -R(0.2)), cy = ty(0, 4.2) + R(0.03) + bob, wait = s.phase === 'watch' ? Math.max(0, (wv.at - m.n) / SPS) : 0;
+      ctx.fillStyle = 'rgba(90,104,120,.92)';
+      for (const [dx, dy, rr] of [[-0.05, 0.005, 0.03], [0, -0.012, 0.038], [0.05, 0.005, 0.03]] as [number, number, number][]) {
+        ctx.beginPath();
+        ctx.arc(cx + R(dx), cy + R(dy), R(rr), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      fitText(ctx, wait > 0.05 ? `☔ ${label} · ${wait.toFixed(0)}초` : `☔ ${label}`, cx, cy, R(0.036), '#ffffff', R(0.3), 900);
       continue;
     }
     const i = wv.cells[0], j = wv.cells[wv.cells.length - 1], r = (rowOf(i) + rowOf(j)) / 2, c = (colOf(i) + colOf(j)) / 2, sd = wv.side;
@@ -998,7 +1031,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
       ang = o.side === 'B' ? -Math.PI / 2 : o.side === 'L' ? 0 : Math.PI;
     } else {
       ax = sd === 'L' ? boardL - R(0.06) : sd === 'R' ? boardR + R(0.06) : cx0(c) + cw / 2;
-      ay = sd === 'T' ? ty(0, m.g[i]) - R(0.075) : ty(r, m.g[i]) + chh * 0.5;
+      ay = sd === 'T' ? ty(0, m.g[i]) + R(0.012) : ty(r, m.g[i]) + chh * 0.5;
       ang = sd === 'L' ? 0 : sd === 'R' ? Math.PI : Math.PI / 2;
     }
     const wait = s.phase === 'watch' ? Math.max(0, (wv.at - m.n) / SPS) : 0;
@@ -1024,7 +1057,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
     ctx.stroke();
     ctx.restore();
     // 리터 꼬리표
-    const lx = sd === 'T' || wv.kind === 'tide' ? ax : ax + (sd === 'L' ? R(0.005) : -R(0.005)), ly = sd === 'T' ? ay - R(0.04) : wv.kind === 'tide' ? ay + R(0.035) : ay - R(0.045);
+    const lx = wv.kind === 'tide' ? ax : sd === 'T' ? ax + (c < 4 ? R(0.15) : -R(0.15)) : ax + (sd === 'L' ? R(0.005) : -R(0.005)), ly = sd === 'T' ? ay : wv.kind === 'tide' ? ay + R(0.035) : ay - R(0.045);
     const tx = wait > 0.05 ? `${label} · ${wait.toFixed(0)}초` : label;
     ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
     const tw2 = ctx.measureText(tx).width + R(0.03), bx = Math.max(4, Math.min(w - tw2 - 4, lx - tw2 / 2));
@@ -1050,7 +1083,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
     if (e.kind === 'nope') fx.pop(pt.x, pt.y - R(0.03), e.text!, '#ffd0c8', R(0.038)), fx.kick(1.5);
     if (e.kind === 'undo') fx.ring(pt.x, pt.y, '#ffffff', R(0.05), 2);
     if (e.kind === 'go') fx.blink('#bfe9ff', 0.15);
-    if (e.kind === 'pour') fx.burst(pt.x, pt.y, '#bfefff', 30, 4, 3), fx.ring(pt.x, pt.y, '#8fdcff', R(0.12), 5), fx.kick(5), fx.pop(pt.x, pt.y - R(0.05), e.text!, '#e8fbff', R(0.05));
+    if (e.kind === 'pour') fx.burst(pt.x, pt.y, '#bfefff', 30, 4, 3), fx.ring(pt.x, pt.y, '#8fdcff', R(0.12), 5), fx.kick(5), fx.pop(Math.max(R(0.2), Math.min(w - R(0.2), pt.x)), Math.max(R(0.33), pt.y + R(0.06)), e.text!, '#e8fbff', R(0.05));
     if (e.kind === 'tide') fx.kick(6), fx.blink('#9fe3ff', 0.18), fx.pop(w / 2, R(0.62), e.text!, '#e8fbff', R(0.048));
     if (e.kind === 'rain') fx.blink('#cfe8ff', 0.2), fx.pop(w / 2, R(0.5), e.text!, '#e8fbff', R(0.05));
     if (e.kind === 'over') fx.burst(pt.x, pt.y - hz, '#dff6ff', 16, 3, 2.4), fx.pop(pt.x, pt.y - R(0.05), e.text!, e.col!, R(0.04)), fx.kick(2.5);
@@ -1208,7 +1241,7 @@ function drawPiece(ctx: CanvasRenderingContext2D, p: number, stack: number, x: n
 /** 지킬 것: 고양이 집 · 오리 둥지 · 꼬마 도서관 (물이 가까우면 깨고, 닿으면 웃기게 난리) */
 function drawKeeper(ctx: CanvasRenderingContext2D, s: FloodState, i: number, x: number, y: number, cw: number, t: number, W: Float64Array, lights: [number, number, number][], night: number) {
   const k = s.st.prot[i], wet = s.phase === 'result' && !s.ok && s.failCell === i, alert = s.near[i] && s.phase !== 'build', saved = s.phase === 'result' && s.ok;
-  const age = s.pt, z = cw;
+  const age = s.pt, z = cw * 1.15;
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,.25)';
   ctx.beginPath();
