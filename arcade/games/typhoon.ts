@@ -1425,10 +1425,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TyphoonState, w: number, h: n
     if (k !== undefined) {
       const a = 0.55 + 0.45 * Math.sin(t / 5);
       ctx.strokeStyle = `rgba(255,240,140,${a})`;
-      ctx.lineWidth = 3;
+      ctx.fillStyle = `rgba(255,240,140,${0.12 + 0.18 * a})`;
+      ctx.lineWidth = 3.5;
       ctx.shadowColor = '#fff3a0';
       ctx.shadowBlur = 12;
       quad(k, 0.08);
+      ctx.fill();
       ctx.stroke();
       ctx.shadowBlur = 0;
       if (s.stage === 0 && s.pi === 0) emo(ctx, '👆', X(kx(k)) + Rr(0.025), Y(ky(k)) + Rr(0.035) + Math.sin(t / 6) * 3, Rr(0.06));

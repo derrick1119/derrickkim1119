@@ -15,7 +15,7 @@ import type { Bot, GameDef, Input, Theme } from '../core.ts';
 import { juice } from '../juice.ts';
 
 export const COLS = 9, ROWS = 9, NN = COLS * ROWS;
-const A = 1.42;
+const A = 1.46;
 /** 칸 하나에 물 '한 칸 높이' = 100L */
 export const VL = 100;
 /** 물은 3틱(1/20초)마다 한 걸음 */
@@ -36,8 +36,8 @@ const PDESC = ['', '낮은 둑 · 같은 칸에 또 톡 = 한 단 더', '높은 
 export const CAT = 1, DUCK = 2, BOOK = 3;
 
 // ── 판의 배치 (너비 단위, y는 0~A) ──
-const X0 = 0.095, CW = 0.09, Y0 = 0.335, CH = 0.08, HZ = 0.024;
-const TRAY = 1.13, BTN = { x: 0.66, y: 1.155, w: 0.3, h: 0.105 }, UNDO = { x: 0.52, y: 1.155, w: 0.12, h: 0.105 };
+const X0 = 0.095, CW = 0.09, Y0 = 0.335, CH = 0.083, HZ = 0.024;
+const TRAY = 1.165, BTN = { x: 0.66, y: 1.19, w: 0.3, h: 0.105 }, UNDO = { x: 0.52, y: 1.19, w: 0.12, h: 0.105 };
 export const rowOf = (i: number) => (i / COLS) | 0, colOf = (i: number) => i % COLS;
 
 /** 물이 오가는 짝: 옆(오른쪽·아래)과 대각선 둘 */
@@ -192,7 +192,7 @@ export function buildStage(idx: number, mirror: boolean, rng: Rng): Stage {
   for (const o of outlets) outlet[o.i] = 1;
   // 물의 양은 판마다 조금씩 (50L 단위) — 같은 판을 다시 할 땐 그대로
   const waves: Wave[] = d.waves.map((w) => {
-    const L = Math.round((w.L * (0.92 + rng() * 0.16)) / 50) * 50;
+    const jit = rng(), L = idx === 0 ? w.L : Math.round((w.L * (0.92 + jit * 0.16)) / 50) * 50;
     const cells = w.kind === 'tide' ? outlets.map((o) => o.i) : (w.cells ?? []).map(([r, c]) => r * COLS + mc(c));
     for (const k of w.kind === 'pour' ? cells : []) entry[k] = 1;
     return { kind: w.kind, L, at: Math.round(w.at * SPS), dur: Math.round(w.dur * SPS), cells, side: w.kind === 'tide' ? outlets[0].side : ms(w.side ?? 'T') };
@@ -469,6 +469,7 @@ function watchStep(s: FloodState) {
   }
 }
 
+export const BTN_PT = { x: BTN.x + BTN.w / 2, y: (BTN.y + BTN.h / 2) / A };
 export const flood: GameDef<FloodState> = {
   id: 'flood',
   name: '홍수 버티기',
@@ -799,7 +800,16 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
         ctx.fill();
       }
       // 조각
-      drawPiece(ctx, m.piece[i], m.stack[i], x, y, cw, chh, hz, t, i, night, m.prev[i] > 3 && s.phase === 'watch');
+      // 막 놓은 조각은 위에서 쿵 떨어진다
+      let drop = 0;
+      for (const e of s.events) if (e.kind === 'place' && e.i === i && t - e.t < 14) drop = Math.max(drop, (1 - (t - e.t) / 14) ** 2 * R(0.09));
+      if (drop > 0) {
+        ctx.fillStyle = 'rgba(0,0,0,.25)';
+        ctx.beginPath();
+        ctx.ellipse(x + cw / 2, y + chh / 2, cw * 0.45 * (1 - drop / R(0.2)), chh * 0.35, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      drawPiece(ctx, m.piece[i], m.stack[i], x, y - drop, cw, chh, hz, t, i, night, m.prev[i] > 3 && s.phase === 'watch');
       // 처음 판: 놓을 자리 미리 보기 (점선 모래주머니)
       const hk = hint.indexOf(i);
       if (hk >= 0 && hint.slice(0, hk).every((q) => q !== i)) {
@@ -889,6 +899,27 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
         }
       }
     }
+  }
+  // 토끼 이웃: 뒤 언덕을 오가며 구경 (물이 오면 펄쩍, 버티면 만세, 잠기면 허둥지둥)
+  {
+    const span = (COLS - 3) * CW, u = 0.5 + 0.5 * Math.sin(t / 260), bx = X0 + CW * 1.5 + span * u, c = Math.min(COLS - 1, Math.floor((bx - X0) / CW));
+    const g0 = m.g[c] + m.wall[c] + (W[c] >= 7 ? W[c] / VL : 0), by = ty(0, g0) + chh * 0.55;
+    const panic = s.phase === 'result' && !s.ok, cheer = s.phase === 'result' && s.ok, wetHop = W[c] >= 7 || (s.phase === 'watch' && t % 70 < 12);
+    const hop = cheer || panic ? Math.abs(Math.sin(t / (panic ? 3 : 6))) * R(0.025) : wetHop ? Math.abs(Math.sin(t / 5)) * R(0.012) : Math.abs(Math.sin(t / 9)) * R(0.004);
+    drawBunny(ctx, R(bx) + (panic ? Math.sin(t / 2) * R(0.01) : 0), by - hop, R(0.05), Math.cos(t / 260) > 0 ? 1 : -1, cheer, panic, night);
+    if (panic && t % 60 < 30) fitText(ctx, '어떡해~', R(bx), by - R(0.07), R(0.036), '#ffe0e0', R(0.2), 900);
+    if (cheer && s.pt < 90) fitText(ctx, '만세!', R(bx), by - R(0.07), R(0.036), '#fff6c8', R(0.2), 900);
+  }
+  // 새 두 마리가 하늘을 지나간다
+  for (let k = 0; k < 2; k++) {
+    const bxx = ((t * (0.5 + k * 0.2) + k * 260) % (w + 80)) - 40, byy = R(0.215 + k * 0.025) + Math.sin(t / 20 + k) * 3, fl = Math.sin(t / 4 + k) * R(0.008);
+    ctx.strokeStyle = night > 0.4 ? 'rgba(220,230,255,.7)' : 'rgba(40,50,60,.75)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(bxx - R(0.014), byy - fl);
+    ctx.quadraticCurveTo(bxx - R(0.006), byy - R(0.006), bxx, byy);
+    ctx.quadraticCurveTo(bxx + R(0.006), byy - R(0.006), bxx + R(0.014), byy - fl);
+    ctx.stroke();
   }
   // ── 들어오는 물 · 배수로 폭포 ──
   for (const wv of st.waves) {
@@ -1125,6 +1156,59 @@ function drawTree(ctx: CanvasRenderingContext2D, x: number, y: number, cw: numbe
   ctx.beginPath();
   ctx.arc(x - cw * 0.06 + sway, y - cw * 0.7, cw * 0.09, 0, Math.PI * 2);
   ctx.fill();
+}
+
+function drawBunny(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, dir: number, cheer: boolean, panic: boolean, night: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(dir, 1);
+  ctx.fillStyle = 'rgba(0,0,0,.22)';
+  ctx.beginPath();
+  ctx.ellipse(0, z * 0.05, z * 0.35, z * 0.1, 0, 0, Math.PI * 2);
+  ctx.fill();
+  const fur = mix('#f4efe6', '#6a7090', night * 0.4);
+  ctx.fillStyle = fur;
+  ctx.beginPath();
+  ctx.ellipse(0, -z * 0.22, z * 0.26, z * 0.24, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(z * 0.12, -z * 0.5, z * 0.17, 0, Math.PI * 2);
+  ctx.fill();
+  // 귀 (만세엔 쫑긋, 허둥지둥엔 휘날림)
+  for (const k of [-1, 1]) {
+    ctx.save();
+    ctx.translate(z * (0.08 + k * 0.06), -z * 0.62);
+    ctx.rotate(panic ? -0.9 + k * 0.2 : cheer ? k * 0.15 : k * 0.25 - 0.1);
+    ctx.fillStyle = fur;
+    ctx.beginPath();
+    ctx.ellipse(0, -z * 0.18, z * 0.06, z * 0.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffb3c1';
+    ctx.beginPath();
+    ctx.ellipse(0, -z * 0.18, z * 0.03, z * 0.13, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  if (cheer) {
+    ctx.strokeStyle = fur;
+    ctx.lineWidth = z * 0.08;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-z * 0.1, -z * 0.32);
+    ctx.lineTo(-z * 0.3, -z * 0.62);
+    ctx.moveTo(z * 0.12, -z * 0.32);
+    ctx.lineTo(z * 0.34, -z * 0.6);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#222222';
+  ctx.beginPath();
+  ctx.arc(z * 0.2, -z * 0.53, z * (panic ? 0.045 : 0.03), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ff8fa3';
+  ctx.beginPath();
+  ctx.arc(z * 0.28, -z * 0.47, z * 0.025, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawFrog(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, t: number, happy: boolean) {
@@ -1585,10 +1669,10 @@ function drawHud(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
       ctx.save();
       ctx.shadowColor = '#ffe066';
       ctx.shadowBlur = 8 + 4 * Math.sin(t / 8);
-      pieceIcon(ctx, nx, R(0.12), ty0 + R(0.085), R(0.1), t);
+      pieceIcon(ctx, nx, R(0.12), ty0 + R(0.095), R(0.1), t);
       ctx.restore();
     } else fitText(ctx, '다 놓음', R(0.12), ty0 + R(0.085), R(0.036), '#cfeeff', R(0.16), 800);
-    fitText(ctx, '다음', R(0.12), ty0 + R(0.033), R(0.034), '#ffe08a', R(0.16), 900);
+    fitText(ctx, '다음', R(0.12), ty0 + R(0.03), R(0.034), '#ffe08a', R(0.16), 900);
     for (let k = 1; k <= 4 && s.qi + k < st.queue.length; k++) pieceIcon(ctx, st.queue[s.qi + k], R(0.205 + k * 0.068), ty0 + R(0.09), R(0.052), t);
     const left = st.queue.length - s.qi;
     if (left > 5) fitText(ctx, `+${left - 5}`, R(0.505), ty0 + R(0.09), R(0.036), '#cfeeff', R(0.05), 800);
@@ -1612,7 +1696,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
     fitText(ctx, '▶ 버티기', 0, 0, R(0.046), '#ffffff', R(b.w - 0.02), 900);
     ctx.restore();
     const desc = nx ? `${PNAME[nx]} — ${PDESC[nx]}` : '▶ 버티기를 누르면 물이 와요';
-    fitText(ctx, desc, w / 2, ty0 + R(0.185), R(0.038), '#dff2ff', w - R(0.06), 800);
+    fitText(ctx, desc, w / 2, ty0 + R(0.172), R(0.038), '#dff2ff', w - R(0.06), 800);
   } else {
     // 지킬 것마다 물 게이지: 🐱 ▓▓░░ 3/20L
     const ps = st.protCells, gw = (w - R(0.06)) / ps.length;
@@ -1650,7 +1734,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
     const age = s.t - s.news.t, a = Math.min(1, age / 10, (210 - age) / 20);
     ctx.globalAlpha = a;
     ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
-    const tx = `✨ ${s.news.text}`, tw2 = Math.min(w - 12, ctx.measureText(tx).width + 24), by = R(1.375);
+    const tx = `✨ ${s.news.text}`, tw2 = Math.min(w - 12, ctx.measureText(tx).width + 24), by = h - R(0.036);
     ctx.fillStyle = 'rgba(12,32,52,.9)';
     ctx.beginPath();
     ctx.roundRect(w / 2 - tw2 / 2, by - R(0.026), tw2, R(0.052), R(0.026));

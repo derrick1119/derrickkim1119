@@ -40,7 +40,7 @@ const STAGES: StageDef[] = [
   { waves: 'F6 F6 S5 F7', pieces: 'MWWMRW', shells: 2, boulders: 1, row: 5 },
   { waves: 'F4 F4 +F5 +F5', pieces: 'WWRMWW', shells: 1, boulders: 1, row: 5 },
   { waves: 'F6 S3 F6 F7', pieces: 'WRWMWWR', shells: 1, boulders: 2, row: 5, twin: true },
-  { waves: 'F7 L5 R5 F8', pieces: 'RWWMWWRW', shells: 2, boulders: 1, row: 5 },
+  { waves: 'F7 L4 R4 F8', pieces: 'RWWMWWRW', shells: 2, boulders: 1, row: 5 },
   { waves: 'F5 S3 +F6 S3 F6', pieces: 'WRWMWWRWMW', shells: 2, boulders: 2, row: 5, twin: true },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -204,7 +204,7 @@ function newStage(s: SandState) {
   s.castles = [{ cells: [row * COLS + c, row * COLS + c + 1], max: 3, prince: false }];
   if (d.twin) {
     const pc = c <= 3 ? 6 : 1;
-    s.castles.push({ cells: [(row - Math.floor(r() * 2)) * COLS + pc], max: 2, prince: true });
+    s.castles.push({ cells: [row * COLS + pc], max: 2, prince: true });
   }
   s.hp = s.castles.map((k) => k.max);
   s.castles.forEach((k, j) => k.cells.forEach((i) => ((s.K[i] = CASTLE), (s.cas[i] = j + 1))));
@@ -221,7 +221,7 @@ function newStage(s: SandState) {
     if (i >= 0) (s.K[i] = ROCK), (s.nat[i] = 1);
   }
   for (let k = 0; k < d.shells; k++) {
-    const i = free(Math.max(1, row - 3), Math.min(ROWS - 1, row + 1), (j) => near(j, 2) && !NB[j].some((n) => s.shell[n]));
+    const i = free(Math.max(1, row - 3), Math.min(ROWS - 1, row + 1), (j) => near(j, 2) && !NB[j].some((n) => s.shell[n] || s.cas[n]));
     if (i >= 0) s.shell[i] = 1;
   }
   s.shells0 = s.shell.reduce((a, b) => a + b, 0);
