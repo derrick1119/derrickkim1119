@@ -1304,6 +1304,12 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
       ctx.stroke();
       poly([[x + wd * 0.1, y - ht - S * 1.35], [x + wd * 0.1 + S * 0.45 + Math.sin(s.t / 10) * 2, y - ht - S * 1.2], [x + wd * 0.1, y - ht - S * 1.05]], '#ffd23f');
     }
+    // 지붕 위 고양이 (구경꾼): 알이 깨지면 펄쩍 '냥?!', 쌍둥이면 '냥~'
+    const rb = s.t - s.lastBad, rg = s.t - s.lastGood, jump = rb < 20 ? Math.sin((rb / 20) * Math.PI) * 7 : 0;
+    const kx = x - wd * 0.22, ky = y - ht - S * 0.42 - jump;
+    emo('🐈', kx, ky, S * 0.8);
+    if (rb < 45) bubble(kx, ky - S * 0.8, '냥?!', R(0.032));
+    else if (rg < 40 && s.dayChicks >= 2) bubble(kx, ky - S * 0.8, '냥~', R(0.032));
   }
   function drawBarn(gx: number, gz: number) {
     const x = X(gx, gz), y = Y(gz, 0), wd = S * 2.2, ht = S * 1.5, dep = S * 0.7;
