@@ -30,14 +30,14 @@ const LIFE = [0, 0, 0, 1, 2, 4, 6, 0, 0, 5];
 const FEAT_LIFE = [0, 8, 8, 4, 8];
 /** 바다 손님: 코코넛 · 이사 배. 덮으면 그날 생명에서 이만큼 빠진다 */
 const COCO = 1, BOAT = 2;
-const VIS_PEN = [0, 4, 8];
+const VIS_PEN = [0, 6, 12];
 /** 접시 밖으로 넘친 칸마다 그날 생명 − */
-const SPILL = 4;
+const SPILL = 6;
 /** 자라는 데 드는 양: 식은 땅 → 풀(혼자 6초) → 숲(혼자 12초) → 동물(숲이 셋 이상 모이면 13초) */
 const G_GRASS = 360, G_FOREST = 700, G_ANIMAL = 800;
 const ERUPTS = [3, 3, 3, 3, 3, 3, 3];
 /** 날마다 해 질 녘 목표 ★·★★·★★★ (섬 넓이 칸 · 생명 — 별은 둘 다 넘어야) */
-const GOAL_A = [[36, 46, 54], [60, 70, 78], [78, 88, 96], [92, 102, 110], [104, 114, 122], [114, 124, 132], [122, 132, 140]];
+const GOAL_A = [[36, 46, 54], [60, 70, 78], [78, 88, 96], [92, 102, 110], [100, 108, 116], [106, 114, 122], [112, 120, 128]];
 const GOAL_L = [[0, 50, 90], [150, 190, 230], [250, 290, 330], [330, 370, 410], [390, 430, 470], [430, 470, 510], [460, 500, 540]];
 
 const NB4: number[][] = [], NB8: number[][] = [];
@@ -1999,3 +1999,22 @@ export const volcanoAimOnly: Bot<VolcanoState> = {
     });
   },
 };
+
+/** 비교용(계기판 미등록): 아무 때나 누르지만(방향은 운), 누른 뒤엔 그 방향에서 가장 좋은 양만큼만 — '어느 쪽'이 결과를 얼마나 바꾸는지 잰다 */
+export const volcanoAmountOnly: Bot<VolcanoState> = {
+  name: '양만 장인',
+  act(s, rng) {
+    return holdBot(s, () => {
+      const wait = 20 + Math.floor(rng() * 150), now = s.dayT, block = rainMask(s.day, now + wait);
+      let best: Plan = { press: now + wait, hold: HOLDS[3], n: s.erupts, day: tag(s), v: -1e9, dt: 0 };
+      for (const H of HOLDS) {
+        const th = s.ang + s.spinDir * SPIN * (wait + H * HOLD_SPIN), V = vol(H);
+        const f1 = flowOrder(s.isle, CI, th, block, V), f2 = s.isle.vent >= 0 ? flowOrder(s.isle, s.isle.vent, th + Math.PI, block, V * 0.6) : null;
+        const v = judge(s, f1, V, f2, V * 0.6);
+        if (v > best.v) best = { ...best, hold: H, v };
+      }
+      return best;
+    });
+  },
+};
+

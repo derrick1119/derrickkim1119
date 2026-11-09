@@ -1104,6 +1104,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: PufferState, w: number, h: 
     ctx.lineTo(w + 10, Y(1, 0) + 2);
     ctx.fill();
   }
+  let whaleTxt: [string, number, number] | null = null;
   // 고래 (6판): 수면 가까이 둥실, 하품하면 입이 쩍 — 그쪽으로 물이 빨려 올라간다
   if (c.whale) {
     const ws = w * 0.24, wx = w * 0.7 + Math.sin(s.t / 200) * 8, wy = sFr + ws * 0.42;
@@ -1190,8 +1191,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: PufferState, w: number, h: 
         ctx.lineTo(qx + (mx - sx) * 0.08, qy + (my - sy) * 0.08);
         ctx.stroke();
       }
-      label(ctx, '하아아암~', wx - ws * 0.3, wy + ws * 0.7, 14, '#e8f4ff');
-    } else if (yawnSoon) label(ctx, '😪 곧 하품…', wx - ws * 0.2, wy + ws * 0.62, 13, 'rgba(232,244,255,.9)');
+      whaleTxt = ['하아아암~', wx + ws * 0.35, wy - ws * 0.3];
+    } else if (yawnSoon) whaleTxt = ['😪 곧 하품…', wx + ws * 0.35, wy - ws * 0.3];
   }
   // 먼 물고기 떼 (빵빵한 복어가 다가오면 흩어진다)
   {
@@ -1245,6 +1246,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: PufferState, w: number, h: 
       ctx.globalAlpha = 1;
     }
   }
+  if (whaleTxt) label(ctx, whaleTxt[0], whaleTxt[1], whaleTxt[2], 14, '#e8f4ff');
   // ── 모래 바닥 윗면 ──
   const sx0 = X(x0, 0), sx1 = X(x1, 0);
   const sandTop = ctx.createLinearGradient(0, Y(1, 0), 0, yF);

@@ -28,7 +28,7 @@ const GAP: [number, number][] = [[170, 250], [150, 230], [140, 220], [130, 210],
 const PRICE = [0, 2, 3, 4, 6, 9];
 const SIZE_NAME = ['', '꼬마빵', '보통빵', '큰빵', '왕빵', '초대왕'];
 /** 날마다 문 닫을 때 ★·★★·★★★ 번 돈 */
-const GOALS = [[5, 12, 20], [8, 18, 28], [9, 20, 32], [10, 24, 38], [11, 25, 38], [12, 28, 45]];
+const GOALS = [[4, 12, 20], [8, 18, 28], [9, 20, 32], [10, 24, 38], [11, 25, 38], [12, 28, 45]];
 const NORM = 0, FIRST = 1, RUSH = 2, FICKLE = 3, VIP = 4;
 const MISS = 1, RAW = 2, DROOP = 3, BIG = 4, GOOD = 5, JUST = 6, STOLEN = 7;
 const happy = (r: number) => r === GOOD || r === JUST;
@@ -1281,6 +1281,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
       if (dusk > 0.15) (ctx.shadowColor = '#ffd060'), (ctx.shadowBlur = 8);
       ctx.fillText('🍞 곰 아저씨 빵집', sx, sy - R(0.02) - bh / 2 + 1);
       ctx.shadowBlur = 0;
+      if (dusk > 0.1) lights.push([sx, sy - R(0.02) - bh / 2, 0.9, R(0.18)]);
     }
     // 천장에 붙은 빵 (펑!): 대롱대롱
     for (const c of s.ceil) {
@@ -1598,14 +1599,14 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
     }
     ctx.clip();
     const [rcx, rcy] = P(0.35, 0.7, 0.15), ig = ctx.createRadialGradient(rcx, rcy, R(0.04), rcx, rcy, R(0.5));
-    ig.addColorStop(0, `rgba(255,190,100,${dusk * 0.75})`);
-    ig.addColorStop(1, `rgba(255,140,60,${dusk * 0.25})`);
+    ig.addColorStop(0, `rgba(255,190,100,${dusk * 0.45})`);
+    ig.addColorStop(1, `rgba(255,140,60,${dusk * 0.18})`);
     ctx.fillStyle = ig;
     ctx.fillRect(0, 0, w, h);
     ctx.restore();
   }
   for (const [x, y, al, r] of lights) {
-    const k = al * (0.18 + dusk * 1.1);
+    const k = al * (0.16 + dusk * 0.8);
     const gl = ctx.createRadialGradient(x, y, 0, x, y, r);
     gl.addColorStop(0, `rgba(255,170,70,${Math.min(0.8, k)})`);
     gl.addColorStop(1, 'rgba(255,120,40,0)');
@@ -1825,7 +1826,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
     ctx.fillText(`오늘 번 돈 🪙${s.coins}`, w / 2, by + bh * 0.52);
     ctx.fillStyle = '#ffd27a';
     ctx.font = `800 ${F(0.03)}px system-ui, sans-serif`;
-    ctx.fillText(s.retry ? `♥ ${s.hearts} 남음 — 같은 날 다시!` : s.ups > 0 ? `${UPS[s.ups - 1].name} 완성!` : '', w / 2, by + bh * 0.78);
+    ctx.fillText(s.retry ? `♥ ${s.hearts} 남음 — 같은 날 다시!` : s.day === DAYS - 1 ? '🏆 동네 최고 빵집 완성!' : s.ups > 0 ? `${UPS[s.ups - 1].name} 완성!` : '', w / 2, by + bh * 0.78);
     ctx.globalAlpha = 1;
   }
 }

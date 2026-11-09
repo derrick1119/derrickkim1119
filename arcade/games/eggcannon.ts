@@ -39,12 +39,12 @@ interface DayCfg {
 const day = (c: Partial<DayCfg> & Pick<DayCfg, 'name' | 'eggs' | 'nests' | 'goal'>): DayCfg => ({ r: 0.5, fences: [], cow: null, tractor: null, wind: 0, mill: null, fox: false, gold: false, night: false, news: [], ...c });
 /** 날마다 둥지(x, 몇 쌍둥이)·장애물·목표(병아리 ★·★★·★★★) */
 const DAYC: DayCfg[] = [
-  day({ name: '앞마당', eggs: 5, nests: [[3.4, 1], [5.8, 1], [8.4, 2], [11.2, 1]], r: 0.6, goal: [2, 3, 5] }),
-  day({ name: '울타리 밭', eggs: 5, nests: [[3.3, 1], [7.5, 1], [9.3, 2], [11.7, 1]], fences: [{ x: 6.2, h: 2.4, hay: false }], goal: [2, 3, 5], news: ['fence'] }),
-  day({ name: '소 목장', eggs: 6, nests: [[3.4, 1], [6.4, 1], [8.8, 1], [11.9, 2]], fences: [{ x: 10.4, h: 2.9, hay: true }], cow: [4.6, 8.0], goal: [3, 5, 7], news: ['cow'] }),
-  day({ name: '트랙터 길', eggs: 6, nests: [[3.0, 1], [4.2, 1], [12.7, 2]], tractor: [6.6, 10.4], goal: [3, 5, 8], news: ['tractor'] }),
-  day({ name: '바람 언덕', eggs: 6, nests: [[3.6, 1], [6.8, 1], [9.2, 2], [11.8, 2]], fences: [{ x: 5.3, h: 1.8, hay: false }], wind: 0.0011, goal: [3, 4, 6], news: ['wind'] }),
-  day({ name: '풍차 마을', eggs: 6, nests: [[3.2, 1], [5.2, 1], [12.4, 1]], mill: [8.6, 4.6], goal: [3, 5, 8], news: ['mill'] }),
+  day({ name: '앞마당', eggs: 5, nests: [[3.3, 1], [4.9, 1], [6.5, 1], [8.1, 2], [9.9, 1], [11.7, 2]], r: 0.6, goal: [2, 4, 7] }),
+  day({ name: '울타리 밭', eggs: 5, nests: [[3.3, 1], [4.8, 1], [7.4, 1], [9.0, 2], [10.4, 1], [11.8, 2]], fences: [{ x: 6.2, h: 2.4, hay: false }], goal: [2, 4, 7], news: ['fence'] }),
+  day({ name: '소 목장', eggs: 6, nests: [[3.4, 1], [6.4, 1], [8.8, 1], [11.9, 2]], fences: [{ x: 10.4, h: 2.9, hay: true }], cow: [4.6, 8.0], goal: [3, 6, 9], news: ['cow'] }),
+  day({ name: '트랙터 길', eggs: 6, nests: [[3.0, 1], [4.2, 1], [12.7, 2]], tractor: [6.6, 10.4], goal: [3, 6, 9], news: ['tractor'] }),
+  day({ name: '바람 언덕', eggs: 5, nests: [[3.2, 1], [4.4, 1], [6.6, 1], [8.2, 1], [9.8, 2], [11.8, 2]], fences: [{ x: 5.4, h: 1.8, hay: false }], wind: 0.0011, goal: [3, 5, 7], news: ['wind'] }),
+  day({ name: '풍차 마을', eggs: 5, nests: [[3.2, 1], [5.2, 1], [12.4, 1]], mill: [8.6, 4.6], goal: [3, 5, 8], news: ['mill'] }),
   day({ name: '여우 숲가', eggs: 7, nests: [[3.4, 1], [6.0, 1], [8.6, 2], [11.0, 1], [12.6, 2]], cow: [4.6, 7.4], fox: true, goal: [3, 5, 7], news: ['fox'] }),
   day({ name: '보름달 밤', eggs: 7, nests: [[3.2, 1], [7.4, 2], [9.8, 1], [12.4, 2]], fences: [{ x: 5.6, h: 2.0, hay: false }], cow: [8.2, 11.2], wind: 0.0006, fox: true, gold: true, night: true, goal: [4, 7, 10], news: ['gold', 'moon'] }),
 ];
@@ -285,7 +285,7 @@ function startDay(s: EggState) {
     s.hens += s.yardNew;
     s.yardNew = 0;
   }
-  const bonus = Math.min(3, Math.floor(s.hens / 6));
+  const bonus = Math.min(2, Math.floor(s.hens / 8));
   s.total0 = s.left = c.eggs + bonus;
   s.shot = 0;
   s.dayChicks = 0;
@@ -1082,7 +1082,7 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
       } else if (s.phase === 'day' || s.pause > NIGHT - 12) {
         const k = Math.min(3, v), bob = dance ? Math.abs(Math.sin(s.t / 6 + j)) * 4 : Math.abs(Math.sin(s.t / 12 + n.x * 3 + j)) * 1.5;
         for (let q = 0; q < k; q++) chick(x + ox + (q - (k - 1) / 2) * rw * 0.55, y + rw * 0.05, rw * 0.4, { dir: q % 2 ? -1 : 1, hop: bob + (q % 2) * 1.5, gold: v >= 4 });
-        if (s.phase === 'day' && (s.t + Math.floor(n.x * 50)) % 260 < 40) bubble(x + ox, y - rw * 1.6, v >= 2 ? '삐약삐약' : '삐약', R(0.03));
+        if (s.phase === 'day' && j === 0 && s.nests.indexOf(n) === Math.floor(s.t / 110) % s.nests.length && s.t % 110 < 40 && s.t - s.cowHit > 45) bubble(x + ox, y - rw * 1.7, v >= 2 ? '삐약삐약' : '삐약', R(0.03));
       }
     }
   }
@@ -1578,7 +1578,10 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
   function drawMillTower() {
     const m = c.mill!, hx = LX(m[0]), hy = LY(m[1]), bz = LZ + 0.24, bx = X(m[0], bz), by = Y(bz, 0);
     ell(bx + 4, by + 2, S * 0.8, S * 0.2, 'rgba(0,0,0,.2)');
-    poly([[bx - S * 0.55, by], [bx + S * 0.55, by], [hx + S * 0.22, hy + S * 0.2], [hx - S * 0.22, hy + S * 0.2]], mix('#f4ece0', '#4a4850', dark * 0.6));
+    poly([[bx - S * 0.6, by], [bx + S * 0.6, by], [hx + S * 0.26, hy + S * 0.2], [hx - S * 0.26, hy + S * 0.2]], mix('#e2c79e', '#4a4038', dark * 0.6));
+    ctx.strokeStyle = mix('#8a6a44', '#2a2018', dark * 0.6);
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
     poly([[bx + S * 0.1, by], [bx + S * 0.55, by], [hx + S * 0.22, hy + S * 0.2], [hx + S * 0.04, hy + S * 0.2]], 'rgba(0,0,0,.1)');
     ctx.fillStyle = '#6a4024';
     ctx.beginPath();
@@ -1592,15 +1595,15 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
     const m = c.mill!, hx = LX(m[0]), hy = LY(m[1]), a0 = millA(s, T0);
     for (let k = 0; k < 3; k++) {
       const a = a0 + (k * TAU) / 3, dx = Math.cos(a), dy = -Math.sin(a), L = MR * S;
-      ctx.strokeStyle = mix('#7a5030', '#2a1a10', dark * 0.6);
-      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = mix('#6a4024', '#2a1a10', dark * 0.6);
+      ctx.lineWidth = 3.5;
       ctx.beginPath();
       ctx.moveTo(hx, hy);
       ctx.lineTo(hx + dx * L, hy + dy * L);
       ctx.stroke();
       // 날개 천 (격자)
-      const nx = -dy, ny = dx, w0 = S * 0.36;
-      poly([[hx + dx * L * 0.25, hy + dy * L * 0.25], [hx + dx * L * 0.92, hy + dy * L * 0.92], [hx + dx * L * 0.92 + nx * w0, hy + dy * L * 0.92 + ny * w0], [hx + dx * L * 0.25 + nx * w0 * 0.8, hy + dy * L * 0.25 + ny * w0 * 0.8]], mix('#faf4e8', '#4a4850', dark * 0.6));
+      const nx = -dy, ny = dx, w0 = S * 0.5;
+      poly([[hx + dx * L * 0.25, hy + dy * L * 0.25], [hx + dx * L * 0.92, hy + dy * L * 0.92], [hx + dx * L * 0.92 + nx * w0, hy + dy * L * 0.92 + ny * w0], [hx + dx * L * 0.25 + nx * w0 * 0.8, hy + dy * L * 0.25 + ny * w0 * 0.8]], mix(k === 0 ? '#ff7a5a' : '#fff6e6', '#4a4850', dark * 0.6));
       ctx.strokeStyle = 'rgba(120,80,50,.45)';
       ctx.lineWidth = 0.8;
       for (let q = 1; q < 4; q++) {
