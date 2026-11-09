@@ -479,7 +479,7 @@ function newDay(s: VolcanoState) {
   s.areaGoal = GOAL_A[d][0];
   s.lifeGoal = GOAL_L[d][0];
   startDay(s);
-  note(s, `☀️ ${d + 1}일째 — 넓이 ${s.areaGoal} · 생명 ${s.lifeGoal}`, '#ffffff');
+  note(s, `☀️ ${d + 1}일째 — 넓이 ${s.areaGoal}${s.lifeGoal ? ` · 생명 ${s.lifeGoal}` : ''}`, '#ffffff');
 }
 function startDay(s: VolcanoState) {
   s.left = ERUPTS[s.day];
@@ -1226,7 +1226,7 @@ function drawVolcano(ctx: CanvasRenderingContext2D, s: VolcanoState, w: number, 
     if (e.t <= seenT) continue;
     const i = e.k % N, j = (e.k / N) | 0, [x, y] = I.dish[e.k] ? P(i + 0.5, j + 0.5, zOf(e.k) + 4) : rimPt(e.k, 0);
     if (e.kind === 'erupt') {
-      const yt = y - CONE * (e.k === CI ? 1 : 0.6);
+      const yt = Math.max(top + 44, y - CONE * (e.k === CI ? 1 : 0.6));
       // 웃음: 아주 살짝 누르면 '뿌웅~' 하고 방귀 같은 연기만 퐁
       if (e.text === '뿌웅~') fx.burst(x, yt, '#bdb6b0', 16, 2, 4), fx.ring(x, yt, '#d8d2cc', TW * 1.2, 3), fx.pop(x, yt - 18, e.text, '#e8e2dc', 18);
       else fx.burst(x, yt, '#ff8a2a', 30, 4.5, 3), fx.burst(x, yt, '#ffe27a', 14, 3, 2), fx.ring(x, y, '#ffb347', TW * 2.4, 5), fx.kick(e.text === '부글' ? 4 : 9), fx.blink('#ff7a2a', 0.18), e.text && fx.pop(x, yt - 18, e.text, '#ffd27a', 19);

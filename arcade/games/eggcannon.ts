@@ -1382,7 +1382,7 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
     }
   }
   function drawFence(fe: Fence) {
-    const z0 = LZ - 0.3, z1 = LZ + 0.3, col = mix('#b07a44', '#2a1c10', dark * 0.6), col2 = mix('#8a5a30', '#1e140a', dark * 0.6);
+    const z0 = LZ - 0.18, z1 = LZ + 0.18, col = mix('#b07a44', '#2a1c10', dark * 0.6), col2 = mix('#8a5a30', '#1e140a', dark * 0.6);
     const rail = (hh: number) => poly([[X(fe.x - 0.06, z1), Y(z1, hh)], [X(fe.x - 0.06, z0), Y(z0, hh)], [X(fe.x - 0.06, z0), Y(z0, hh - 0.22)], [X(fe.x - 0.06, z1), Y(z1, hh - 0.22)]], col);
     for (const zz of [z1, LZ, z0]) {
       const x = X(fe.x, zz), y = Y(zz, 0), pw = S * 0.14;
@@ -1398,7 +1398,7 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
   function drawHay(fe: Fence) {
     const rows = Math.round(fe.h / 0.72);
     for (let r = 0; r < rows; r++) {
-      const h0 = r * (fe.h / rows), h1 = (r + 1) * (fe.h / rows), x0 = fe.x - 0.45 + (r % 2) * 0.08, x1 = fe.x + 0.45 + (r % 2) * 0.08, z0 = LZ - 0.32, z1 = LZ + 0.32;
+      const h0 = r * (fe.h / rows), h1 = (r + 1) * (fe.h / rows), x0 = fe.x - 0.42 + (r % 2) * 0.06, x1 = fe.x + 0.42 + (r % 2) * 0.06, z0 = LZ - 0.12, z1 = LZ + 0.12;
       poly([[X(x0, z0), Y(z0, h1)], [X(x1, z0), Y(z0, h1)], [X(x1, z1), Y(z1, h1)], [X(x0, z1), Y(z1, h1)]], mix('#f2d06a', '#4a3e1c', dark * 0.6));
       poly([[X(x0, z0), Y(z0, h1)], [X(x1, z0), Y(z0, h1)], [X(x1, z0), Y(z0, h0)], [X(x0, z0), Y(z0, h0)]], mix('#dcb048', '#3a3016', dark * 0.6));
       poly([[X(x1, z0), Y(z0, h1)], [X(x1, z1), Y(z1, h1)], [X(x1, z1), Y(z1, h0)], [X(x1, z0), Y(z0, h0)]], mix('#b88c2e', '#2a2210', dark * 0.6));
@@ -1533,7 +1533,7 @@ function drawFarm(ctx: CanvasRenderingContext2D, s: EggState, w: number, h: numb
     ctx.stroke();
   }
   function drawFox() {
-    const fo = s.fox, x = LX(fo.x), y = LY(0), u = S, run = fo.mode >= 2, dir = run ? 1 : -1, step = Math.sin(s.t / (run ? 3 : 6));
+    const fo = s.fox, x = LX(fo.x), y = LY(0), u = S * 1.35, run = fo.mode >= 2, dir = run ? 1 : -1, step = Math.sin(s.t / (run ? 3 : 6));
     ell(x, y + 1, u * 0.6, u * 0.14, 'rgba(0,0,0,.25)');
     ctx.save();
     ctx.translate(x, y - (run ? Math.abs(step) * 3 : 0));

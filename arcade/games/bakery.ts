@@ -31,6 +31,7 @@ const SIZE_NAME = ['', '꼬마빵', '보통빵', '큰빵', '왕빵', '초대왕'
 const GOALS = [[5, 12, 20], [8, 18, 28], [9, 20, 32], [10, 24, 38], [11, 25, 38], [12, 28, 45]];
 const NORM = 0, FIRST = 1, RUSH = 2, FICKLE = 3, VIP = 4;
 const MISS = 1, RAW = 2, DROOP = 3, BIG = 4, GOOD = 5, JUST = 6, STOLEN = 7;
+const happy = (r: number) => r === GOOD || r === JUST;
 const FOLK = ['🐿️', '🐹', '🦊', '🐻', '🐼', '🐷', '🐸', '🐧', '🦔', '🐨', '🐮', '🐔'];
 export const DOUGH = [
   { e: '🍞', name: '식빵', r: 1 },
@@ -98,7 +99,7 @@ export function custStep(c: Walker, day: number) {
     return;
   }
   if (c.res) {
-    c.x += c.res >= GOOD ? c.v * 1.5 : c.res === BIG ? c.v * 0.7 : c.v * 1.2;
+    c.x += happy(c.res) ? c.v * 1.5 : c.res === BIG ? c.v * 0.7 : c.v * 1.2;
     return;
   }
   if (c.type === FIRST && c.x >= SPOT - 0.004 && c.wt > 0) {
@@ -345,7 +346,7 @@ export const bakery: GameDef<BakeryState> = {
     for (const c of s.custs) {
       if (c.type === FICKLE && !c.flipped && c.x >= SPOT - 0.26) ((c.flipped = true), (c.want = c.alt), ev(s, 'fickle', c.x, '아니, 이거!'));
       if (!c.res && c.x > SPOT + ZONE) (c.res = MISS), (c.land = s.t), ev(s, 'miss', c.x, '흥…');
-      if (c.res >= GOOD && s.ups >= 2 && c.x > 0.86 && c.wt >= 0) {
+      if (happy(c.res) && s.ups >= 2 && c.x > 0.86 && c.wt >= 0) {
         c.wt = -1;
         s.seats.push(c.e);
         if (s.seats.length > 4) s.seats.shift();
@@ -1197,12 +1198,12 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
     const cxw = catAt(s, s.dayT);
     if (s.phase === 'day' && cxw !== null) {
       const [kx, ky] = P(cxw, 0.42, cz);
-      const sitting = Math.abs(cxw - SPOT) < 0.001, walkL = false;
+      const sitting = Math.abs(cxw - SPOT) < 0.001;
       ctx.fillStyle = 'rgba(0,0,0,.25)';
       ctx.beginPath();
       ctx.ellipse(kx, ky, R(0.03), R(0.008), 0, 0, TAU);
       ctx.fill();
-      emo(ctx, '🐈', kx, ky - R(0.03) - (sitting ? 0 : Math.abs(Math.sin(s.t / 6)) * 2), R(0.075), !walkL);
+      emo(ctx, '🐈', kx, ky - R(0.03) - (sitting ? 0 : Math.abs(Math.sin(s.t / 6)) * 2), R(0.075), true);
       if (catBlocks(s, s.dayT)) {
         if (s.charge > 0) shout(kx, ky - R(0.075), '냥?', '#e8202a', F(0.036));
         else if (sitting && s.t % 80 < 40) bubble(ctx, kx + R(0.02), ky - R(0.09), '…zZ', F(0.028));
@@ -1461,14 +1462,14 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
   for (const c of sorted) {
     if (s.phase === 'night' || (c.wt < 0 && s.ups >= 2)) continue; // 문 닫음 · 테라스에 앉았다
     const [x, y] = custXY(c), ag = c.land ? s.t - c.land : -1, landed = c.res && ag >= 0;
-    const walking = !(c.type === FIRST && c.wt > 0 && c.x >= SPOT - 0.004) && !(landed && ag < 30 && c.res >= GOOD);
-    const hop = walking ? Math.abs(Math.sin(s.t / (c.type === RUSH ? 3 : 7) + c.id)) * (c.type === RUSH ? 6 : c.res >= GOOD && landed ? 5 : 2.5) : 0;
+    const walking = !(c.type === FIRST && c.wt > 0 && c.x >= SPOT - 0.004) && !(landed && ag < 30 && happy(c.res));
+    const hop = walking ? Math.abs(Math.sin(s.t / (c.type === RUSH ? 3 : 7) + c.id)) * (c.type === RUSH ? 6 : happy(c.res) && landed ? 5 : 2.5) : 0;
     ctx.fillStyle = 'rgba(40,20,10,.25)';
     ctx.beginPath();
     ctx.ellipse(x, y, CS * 0.4, CS * 0.1, 0, 0, TAU);
     ctx.fill();
     let sx = 1, sy = 1, rot = 0;
-    if (landed && c.res >= GOOD && c.stay > 0) (sx = 1.38 + 0.08 * Math.sin(ag / 3)), (sy = 1.1 - 0.05 * Math.sin(ag / 3));
+    if (landed && happy(c.res) && c.stay > 0) (sx = 1.38 + 0.08 * Math.sin(ag / 3)), (sy = 1.1 - 0.05 * Math.sin(ag / 3));
     if (landed && c.res === BIG) (sy = 0.78 + 0.04 * Math.sin(s.t / 4)), (sx = 1.12), (rot = Math.sin(s.t / 6) * 0.15);
     ctx.save();
     ctx.translate(x, y - hop);
@@ -1477,7 +1478,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
     emo(ctx, c.e, 0, -CS * 0.55, CS, true);
     if (c.type === VIP) emo(ctx, '👑', 0, -CS * 1.15, CS * 0.45);
     // 볼 빵빵
-    if (landed && c.res >= GOOD && c.stay > 0) {
+    if (landed && happy(c.res) && c.stay > 0) {
       // 볼 빵빵: 얼굴이 옆으로 빵빵하게 부풀어 오물오물 + 부스러기 + 하트
       ctx.fillStyle = '#e9a14a';
       for (let q = 0; q < 3; q++) {
@@ -1488,7 +1489,7 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
       }
     }
     ctx.restore();
-    if (landed && c.res >= GOOD && c.stay > 0)
+    if (landed && happy(c.res) && c.stay > 0)
       for (let q = 0; q < 2; q++) {
         const ph = ((ag + q * 20) % 40) / 40;
         ctx.globalAlpha = 1 - ph;
@@ -1502,8 +1503,8 @@ function drawBakery(ctx: CanvasRenderingContext2D, s: BakeryState, w: number, h:
     if (landed && c.res !== STOLEN && c.res !== MISS) {
       const bw = sizeW(Math.min(5.5, c.b)) * (c.res === BIG ? 0.9 : 0.6);
       if (c.res === BIG) loaf(ctx, x, y - hop - CS * 0.95 * sy, bw, c.dough, Math.min(1.25, c.b / 3.4));
-      else if (c.res >= GOOD && c.stay > 0) loaf(ctx, x + CS * 0.42, y - CS * 0.22, bw * (1 - 0.3 * Math.min(1, ag / 75)), c.dough, Math.min(1.25, c.b / 3.4));
-      else if (c.res >= GOOD) loaf(ctx, x + CS * 0.12, y - hop - CS * 1.05, bw * 0.7, c.dough, Math.min(1.25, c.b / 3.4));
+      else if (happy(c.res) && c.stay > 0) loaf(ctx, x + CS * 0.42, y - CS * 0.22, bw * (1 - 0.3 * Math.min(1, ag / 75)), c.dough, Math.min(1.25, c.b / 3.4));
+      else if (happy(c.res)) loaf(ctx, x + CS * 0.12, y - hop - CS * 1.05, bw * 0.7, c.dough, Math.min(1.25, c.b / 3.4));
       else {
         // 축 처진 빵: 머리 위에 흐물흐물 늘어진다
         const sag = Math.min(1, ag / 14);
