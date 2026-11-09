@@ -1,14 +1,20 @@
 /**
  * 홍수 버티기 (21라운드, 오너 아이디어 #2) — 지어서 버티기 × 재난 예보 × 가리키기(톡).
  * 오너: "홍수 버티기 게임. 물이 몇리터 어디서 몰려오는지 노출되고 우리는 보호해야하는 뭔가를 감싸서 홍수를 버티는거지."
- * 구조: 예보(몇 L가 어디서 언제) → 짓기(다음 조각을 칸에 톡) → 버티기(물이 진짜로 흘러 차오른다, 십 초쯤).
- * 물은 칸마다 리터로 담기는 결정적 부피 시뮬레이션: 낮은 곳으로 흐르고 퍼지고, 수면보다 낮은 둑은 넘고, 대각선 틈으로도 샌다.
- * 와우: 강에서 물 1200L가 왼쪽 위에서 몰려온다는 예보 — 모래주머니로 잠자는 고양이 집을 감싸면 물이 콸콸 둘러 흘러가고 고양이는 계속 쿨쿨.
- * 웃음: 물이 닿으면 고양이가 지붕 위로 펄쩍(털이 쭈뼛, "냐아앙!!"), 오리 가족은 둥지째 둥실둥실 떠내려가며 신나고,
- *       부엉이 사서는 젖은 책을 들고 허둥지둥. 지켜내면 고양이가 기지개 "냐~ 잘 잤다", 개구리 구경꾼은 물만 오면 신난다.
- * 펼쳐짐(판마다 하는 일이 바뀐다): 1 막기(모래주머니) → 2 물이 많아 낮은 둑을 넘는다(겹쳐 쌓기·돌담) → 3 도랑(물 100L를 담는 구덩이·물길)
- *   → 4 두 곳에서 동시에 + 오리 둥지 → 5 비(감싼 안쪽에도 내린다 → 배수구로 빼기) → 6 밀물(강물이 거꾸로 밀려왔다 빠진다)
- *   → 7 시간차 물결 + 작은 도서관 → 8 대홍수(다 같이).
+ * 한 판 = 예보(몇 L가 · 어디서 · 몇 초 뒤) → 짓기(다음 조각을 칸에 톡, 시간 압박 없음, ↶ 되돌리기) → 버티기(물이 진짜로 흘러 차오른다, 8~13초).
+ * 물: 칸마다 리터를 담는 결정적 부피 시뮬레이션(1초 10걸음). 땅 높이 + 둑 높이 + 물 깊이(100L = 한 칸 높이)가 수면이고,
+ *     수면이 높은 칸에서 낮은 칸으로 8방향 흐른다 → 낮은 곳으로 흐르고, 고이고, 수면보다 낮은 둑은 넘고, 대각선 틈(모서리끼리만 닿은 둑)으로 샌다.
+ *     판 가장자리의 배수로(돌 홈)로 폭포처럼 빠지고, 배수구는 1초에 40L를 삼키고, 도랑은 땅을 한 칸 파서 100L를 담거나 물길이 된다.
+ * 와우: "💧 1200L ➡ 왼쪽 위에서" 예보 — 모래주머니를 톡톡 놓아 잠자는 고양이 집 위쪽을 막으면, 콸콸 들어온 물이 집을 비켜 계곡을 따라 흐르고 고양이는 계속 쿨쿨.
+ * 목표·보상: 지킬 것 칸에 물이 20L 차기 전에 다 버티면 통과(★), 텃밭도 지키면 ★, 조각을 하나라도 남기면 ★. 잠기면 하트 -1, 같은 판을 다시 짓는다. 8판(대홍수)까지.
+ * 웃음: 물이 차면 고양이가 지붕 위로 펄쩍(털이 쭈뼛 "냐아앙!!"), 오리는 둥지째 물 위로 둥실둥실 신나고(♪), 부엉이 사서는 날개를 퍼덕이며 책이 둥둥.
+ *       물이 다가오면 쿨쿨 자던 고양이가 번쩍(!), 버텨 내면 기지개 "냐~ 잘 잤다". 뒤 언덕 토끼 이웃은 만세/허둥지둥, 배수로 옆 개구리는 물만 오면 "개굴!".
+ * 펼쳐짐(판마다 하는 일이 바뀐다): 1 막기(모래주머니, 대각선 틈 주의) → 2 물이 많아 웅덩이가 차오른다(겹쳐 쌓기·돌담으로 높이)
+ *   → 3 막힌 웅덩이(도랑으로 둑을 파 배수로까지 물길 내기) → 4 두 곳에서 동시에 + 오리 둥지(조각 나눠 쓰기)
+ *   → 5 소나기(감싼 안쪽에도 비 → 배수구로 빼기) → 6 밀물(배수로에서 강물이 거꾸로 밀려왔다 빠진다 → 낮은 쪽을 막기)
+ *   → 7 시간차 물결 + 꼬마 도서관(두 번째 물결은 5초 뒤 다른 곳) → 8 대홍수(양쪽 물·비·밀물, 밤).
+ * 잘하는 봇: 물을 실제로 끝까지 흘려 보며 '지킬 것으로 물이 새어 든 칸'을 차례로 막는 빔 탐색(넘친 둑은 겹쳐 쌓거나 그 바깥, 도랑은 배수로 쪽으로 잇기).
+ * 못하는 봇: 아무 데나 아무 때나 톡.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -106,7 +112,7 @@ export const STAGES: StageDef[] = [
     waves: [{ kind: 'pour', L: 1400, at: 0.6, dur: 3, cells: [[0, 3], [0, 4]], side: 'T' }, { kind: 'pour', L: 1000, at: 5, dur: 2.5, cells: [[0, 3], [0, 4]], side: 'T' }],
     outlets: [[8, 4, 'B']],
     queue: 'SSWSSS',
-    news: [['many', '📈 물이 많으면 더 높이 차요 — 겹쳐 쌓거나 돌담!']],
+    news: [['over', '📈 물이 많으면 더 높이 차요 — 둑보다 높으면 넘쳐요! 겹쳐 쌓거나 돌담']],
   },
   {
     name: '막힌 웅덩이', goal: '🐱 물길을 파서 배수로로', sky: 2,
@@ -115,7 +121,7 @@ export const STAGES: StageDef[] = [
     waves: [{ kind: 'pour', L: 1600, at: 0.6, dur: 4, cells: [[1, 0], [2, 0]], side: 'L' }],
     outlets: [[4, 8, 'R']],
     queue: 'DDSSSD',
-    news: [['ditchnews', '⛏️ 도랑 — 땅을 파면 물 100L가 담기고, 이으면 물길이 돼요']],
+    news: [['ditch', '⛏️ 도랑 — 땅을 파면 물 100L가 담기고, 이으면 물길이 돼요']],
   },
   {
     name: '양쪽에서 동시에', goal: '🐱 고양이 집 + 🦆 오리 둥지', sky: 3,
@@ -133,7 +139,7 @@ export const STAGES: StageDef[] = [
     waves: [{ kind: 'rain', L: 1200, at: 0.6, dur: 6 }, { kind: 'pour', L: 400, at: 2, dur: 2, cells: [[0, 3], [0, 4]], side: 'T' }],
     outlets: [[8, 8, 'B']],
     queue: 'PPSSP',
-    news: [['pipenews', '🕳️ 배수구 — 1초에 물 40L를 꿀꺽']],
+    news: [['pipe', '🕳️ 배수구 — 1초에 물 40L를 꿀꺽'], ['rain', '☔ 비 — 감싼 안쪽에도 내려요 (지붕 위는 빼고)']],
   },
   {
     name: '밀물', goal: '🐱 강물이 거꾸로 밀려와요', sky: 5,
@@ -142,7 +148,7 @@ export const STAGES: StageDef[] = [
     waves: [{ kind: 'tide', L: 1600, at: 1, dur: 4.5 }],
     outlets: [[8, 0, 'B'], [8, 1, 'B']],
     queue: 'WSSSWS',
-    news: [['tidenews', '🌊 밀물 — 배수로로 강물이 거꾸로 들어왔다가 빠져요']],
+    news: [['tide', '🌊 밀물 — 배수로로 강물이 거꾸로 들어왔다가 빠져요']],
   },
   {
     name: '시간차 물결', goal: '📚 꼬마 도서관 + 🐱 고양이 집', sky: 6,
@@ -160,6 +166,7 @@ export const STAGES: StageDef[] = [
     waves: [{ kind: 'pour', L: 1000, at: 0.6, dur: 2.5, cells: [[1, 0], [2, 0]], side: 'L' }, { kind: 'pour', L: 1000, at: 4, dur: 2.5, cells: [[1, 8], [2, 8]], side: 'R' }, { kind: 'rain', L: 700, at: 2, dur: 5 }, { kind: 'tide', L: 900, at: 7, dur: 3 }],
     outlets: [[8, 4, 'B'], [8, 5, 'B']],
     queue: 'SSSSWSSPDWS',
+    news: [['storm', '⛈️ 대홍수 — 양쪽 물·비·밀물이 한꺼번에!']],
   },
 ];
 
@@ -330,14 +337,17 @@ export interface FloodState {
   ok: boolean; failCell: number; got: number; peak: number; bonusPeak: number; tries: number;
   hearts: number; stars: number; pts: number; cleared: number; won: boolean; dead: boolean;
   over: Set<number>; leaks: Set<number>; near: Uint8Array; hint: number[];
-  seen: Set<string>; events: Ev[]; news: { text: string; t: number } | null;
+  seen: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[];
 }
 const ev = (s: FloodState, kind: string, i: number, text?: string, col?: string, j?: number) => s.events.push({ t: s.t, kind, i, text, col, j });
+/** 새것: 처음 보는 것만 세고, 알림은 차례로 하나씩 (겹치면 줄을 선다) */
 function see(s: FloodState, key: string, text: string) {
   if (s.seen.has(key)) return;
   s.seen.add(key);
-  s.news = { text, t: s.t };
+  if (!s.news || s.t - s.news.t > NEWS_T) s.news = { text, t: s.t };
+  else s.newsQ.push(text);
 }
+const NEWS_T = 200;
 
 function startStage(s: FloodState, retry: boolean) {
   if (!retry || !s.st || s.st.idx !== s.stage) s.st = buildStage(s.stage, s.mirror[s.stage], s.rng);
@@ -415,7 +425,7 @@ function watchStep(s: FloodState) {
   const st = s.st, m = s.sim;
   for (const wv of st.waves)
     if (m.n === wv.at) {
-      if (wv.kind === 'rain') ev(s, 'rain', -1, `☔ 비 ${wv.L}L!`, '#cfe8ff'), see(s, 'rain', '☔ 비 — 감싼 안쪽에도 내려요 (지킬 것 지붕 위는 빼고)');
+      if (wv.kind === 'rain') ev(s, 'rain', -1, `☔ 비 ${wv.L}L!`, '#cfe8ff'), see(s, 'rain', '☔ 비 — 감싼 안쪽에도 내려요 (지붕 위는 빼고)');
       else if (wv.kind === 'tide') ev(s, 'tide', wv.cells[0], `🌊 강물이 거꾸로! ${wv.L}L`, '#9fe3ff'), see(s, 'tide', '🌊 밀물 — 강물이 배수로로 밀려왔다가 다시 빠져요');
       else ev(s, 'pour', wv.cells[0], `콸콸! ${wv.L}L`, '#bfefff');
     }
@@ -478,7 +488,7 @@ export const flood: GameDef<FloodState> = {
   rules: [
     '예보를 보고 칸을 톡 = 다음 조각(모래주머니·돌담·도랑·배수구)을 놓아요.',
     '물은 낮은 곳으로 흐르고, 둑보다 높으면 넘고, 대각선 틈으로도 새요.',
-    '지킬 것에 물이 안 닿으면 통과 — 텃밭도 지키고 조각을 남기면 별이 더!',
+    '지킬 것에 물이 20L 차지 않으면 통과 — 텃밭을 지키고 조각을 남기면 별이 더!',
   ],
   controls: 'touch',
   origin: '오너 아이디어 — "홍수 버티기: 물이 몇 리터 어디서 몰려오는지 보고, 보호할 것을 감싸서 버틴다" (2026-11-09)',
@@ -496,15 +506,16 @@ export const flood: GameDef<FloodState> = {
       rng, t: 0, mirror: STAGES.map(() => rng() < 0.5), stage: 0, st: null as unknown as Stage, sim: null as unknown as Sim,
       phase: 'build', pt: 0, qi: 0, placed: [], down: false, taps: 0, autoAt: -1, ok: false, failCell: -1, got: 0, peak: 0, bonusPeak: 0, tries: 0,
       hearts: 3, stars: 0, pts: 0, cleared: 0, won: false, dead: false, over: new Set(), leaks: new Set(), near: new Uint8Array(NN), hint: [],
-      seen: new Set<string>(), events: [], news: null,
+      seen: new Set<string>(), events: [], news: null, newsQ: [],
     } as FloodState;
     s.mirror[0] = false;
-    see(s, 'flow', '💧 물은 낮은 곳으로 흘러요');
+    s.seen.add('flow'); // 물은 낮은 곳으로 흐른다 — 처음부터 보이는 것 (알림은 모래주머니 설명이 먼저)
     startStage(s, false);
     return s;
   },
   step(s, inp: Input) {
     s.t++;
+    if (s.newsQ.length && (!s.news || s.t - s.news.t > NEWS_T)) s.news = { text: s.newsQ.shift()!, t: s.t };
     if (s.events.length && s.t - s.events[0].t > 120) s.events = s.events.filter((e) => s.t - e.t <= 120);
     const p = inp.pointer ?? null, press = !!p && !s.down;
     s.down = !!p;
@@ -657,7 +668,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
   }
   // ── 땅 덩어리 옆면(앞 흙층) ──
   for (let c = 0; c < COLS; c++) {
-    const i = (ROWS - 1) * COLS + c, x = cx0(c), yT = ty(ROWS, m.g[i]), yB = ty(ROWS, ZB);
+    const i = (ROWS - 1) * COLS + c, x = cx0(c), yT = ty(ROWS, m.g[i]);
     const bands = [m.g[i], m.g[i] - 0.5, -0.4, -1.1, ZB];
     for (let b = 0; b < 4; b++) {
       const a = ty(ROWS, Math.max(bands[b + 1], ZB)), top = b === 0 ? yT : ty(ROWS, bands[b]);
@@ -665,7 +676,6 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
       ctx.fillStyle = mix(b === 0 ? '#6c9a42' : SOIL[b], '#000000', night * 0.5);
       ctx.fillRect(x, top, cw + 0.6, a - top + 0.6);
     }
-    void yB;
   }
   // 옆면 흙 알갱이
   for (let k = 0; k < 40; k++) {
@@ -823,7 +833,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
       }
       // 지킬 것
       const floatUp = st.prot[i] && st.prot[i] !== CAT && isWet(s, i) && W[i] >= 7;
-      if (st.prot[i] && !floatUp) drawKeeper(ctx, s, i, x + cw / 2, ty(r, g) + chh * 0.72, cw, t, W, lights, night);
+      if (st.prot[i] && !floatUp) drawKeeper(ctx, s, i, x + cw / 2, ty(r, g) + chh * 0.72, cw, t, lights, night);
       if (st.deco[i] === 1) drawTree(ctx, x + cw / 2, y + chh * 0.62, cw, t, i, night);
       // 물 (칸마다 수면 높이로 · 앞으로 낮아지면 물 벽이 보인다). 아주 얕으면 젖은 땅만
       const wv = W[i];
@@ -900,7 +910,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
         }
       }
       // 오리 둥지·책은 물 위로 둥실 떠오른다
-      if (floatUp) drawKeeper(ctx, s, i, x + cw / 2, ty(r, surf(i)) + chh * 0.6, cw, t, W, lights, night);
+      if (floatUp) drawKeeper(ctx, s, i, x + cw / 2, ty(r, surf(i)) + chh * 0.6, cw, t, lights, night);
     }
   }
   // 토끼 이웃: 뒤 언덕을 오가며 구경 (물이 오면 펄쩍, 버티면 만세, 잠기면 허둥지둥)
@@ -968,7 +978,6 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
         ctx.ellipse(px, py, R(0.022), R(0.019), 0, 0, Math.PI * 2);
         ctx.fill();
       }
-      void z;
     }
   }
   for (const o of st.outlets) {
@@ -1001,8 +1010,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
     const fxp = o.side === 'B' ? cx0(c) + cw * (c > 4 ? -0.4 : 1.4) : o.side === 'L' ? boardL - R(0.07) : boardR + R(0.07);
     const fyp = o.side === 'B' ? ty(ROWS, ZB) + R(0.035) : ty(r + 1, ZB) + R(0.04);
     const happy = s.phase === 'watch' && W[o.i] > 3, jump = happy ? Math.abs(Math.sin(t / 8)) * R(0.02) : 0;
-    drawFrog(ctx, fxp, fyp - jump, R(0.05), t, happy);
-    if (happy && t % 120 < 50) fitText(ctx, '개굴!', fxp, fyp - jump - R(0.06), R(0.036), '#eaffd0', R(0.2), 900);
+    drawFrog(ctx, fxp, fyp - jump, R(0.05), happy);
+    if (happy && t % 120 < 50) fitText(ctx, '개굴!', Math.max(R(0.08), Math.min(w - R(0.08), fxp)), fyp - jump - R(0.06), R(0.036), '#eaffd0', R(0.2), 900);
   }
   // 짓는 동안: 배수로(물이 빠지는 곳) 꼬리표
   if (s.phase === 'build') {
@@ -1226,7 +1235,7 @@ function drawBunny(ctx: CanvasRenderingContext2D, x: number, y: number, z: numbe
   ctx.restore();
 }
 
-function drawFrog(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, t: number, happy: boolean) {
+function drawFrog(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, happy: boolean) {
   ctx.fillStyle = 'rgba(0,0,0,.25)';
   ctx.beginPath();
   ctx.ellipse(x, y + z * 0.32, z * 0.5, z * 0.12, 0, 0, Math.PI * 2);
@@ -1259,7 +1268,6 @@ function drawFrog(ctx: CanvasRenderingContext2D, x: number, y: number, z: number
   if (happy) ctx.arc(x, y - z * 0.1, z * 0.16, 0.2, Math.PI - 0.2);
   else (ctx.moveTo(x - z * 0.12, y - z * 0.04), ctx.lineTo(x + z * 0.12, y - z * 0.04));
   ctx.stroke();
-  void t;
 }
 
 /** 조각 그리기 (판 위 · 쟁반 아이콘 공용) */
@@ -1340,7 +1348,7 @@ function drawPiece(ctx: CanvasRenderingContext2D, p: number, stack: number, x: n
 /** 지킬 것: 고양이 집 · 오리 둥지 · 꼬마 도서관 (물이 가까우면 깨고, 닿으면 웃기게 난리) */
 /** 잠긴 지킬 것 (실패한 판에서 물이 문턱을 넘은 곳 모두) */
 const isWet = (s: FloodState, i: number) => s.phase === 'result' && !s.ok && (s.failCell === i || s.sim.w[i] >= FLOOD);
-function drawKeeper(ctx: CanvasRenderingContext2D, s: FloodState, i: number, x: number, y: number, cw: number, t: number, W: Float64Array, lights: [number, number, number][], night: number) {
+function drawKeeper(ctx: CanvasRenderingContext2D, s: FloodState, i: number, x: number, y: number, cw: number, t: number, lights: [number, number, number][], night: number) {
   const k = s.st.prot[i], wet = isWet(s, i), alert = s.near[i] && s.phase !== 'build', saved = s.phase === 'result' && s.ok;
   const age = s.pt, z = cw * 1.15;
   ctx.save();
@@ -1490,7 +1498,6 @@ function drawKeeper(ctx: CanvasRenderingContext2D, s: FloodState, i: number, x: 
     ctx.globalAlpha = 1;
   }
   ctx.restore();
-  void W;
 }
 
 function drawCat(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, t: number, pose: string) {
@@ -1747,8 +1754,8 @@ function drawHud(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
     }
   }
   // 새것 알림
-  if (s.news && s.t - s.news.t < 210) {
-    const age = s.t - s.news.t, a = Math.min(1, age / 10, (210 - age) / 20);
+  if (s.news && s.t - s.news.t < NEWS_T) {
+    const age = s.t - s.news.t, a = Math.min(1, age / 10, (NEWS_T - age) / 20);
     ctx.globalAlpha = a;
     ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
     const tx = `✨ ${s.news.text}`, tw2 = Math.min(w - 12, ctx.measureText(tx).width + 24), by = h - R(0.036);

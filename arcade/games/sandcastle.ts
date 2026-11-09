@@ -292,7 +292,11 @@ function waveStep(s: SandState) {
       if (s.arrive[i] !== s.wt) continue;
       const x = ccx(i), y = ccy(i);
       s.wet[i] = 1;
-      if (s.cas[i]) ev(s, 'chit', x, y, '앗 차가!', '#ffb3a8');
+      if (s.cas[i]) {
+        // 한 성에 한 번만 '앗 차가!'
+        const first = !s.castles[s.cas[i] - 1].cells.some((j) => j !== i && s.arrive[j] >= 0 && (s.arrive[j] < s.wt || (s.arrive[j] === s.wt && j < i)));
+        if (first) ev(s, 'chit', x, y, '앗 차가!', '#ffb3a8');
+      }
       else if ((s.K[i] === WALL || s.K[i] === ROCK) && f.over[i]) ev(s, 'over', x, y, '넘쳤다!', '#bfe9ff');
       else if (s.K[i] === WALL || s.K[i] === ROCK) ev(s, 'splash', x, y, s.K[i] === ROCK ? '탁!' : '철썩!', '#ffffff');
       else if (s.K[i] === MOAT) ev(s, 'moat', x, y);
@@ -1568,6 +1572,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
     else if (s.phase === 'result') (mood = s.ok ? 'happy' : 'dizzy'), (claws = s.ok ? 1 : 0.3), (y -= s.ok ? Math.abs(Math.sin(t * 0.3 + cb.off)) * 0.012 : 0);
     if (surf > 0) drawShell(ctx, X(x), Y(y) + R(0.004), R(0.02), t, '#fff0b3');
     drawCrab(ctx, X(x), Y(y), R(0.021), t + cb.off, mood, claws, { col: '#ff8a5c', tilt: surf ? Math.sin(t * 0.3) * 0.3 : 0 });
+    if (surf > 0 && wt - s.arrive[i] < 60) {
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('야호~', X(x), Y(y) - R(0.055));
+    }
     if (wave && wt < APPROACH && wt > 6) {
       ctx.fillStyle = '#ffffff';
       ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
