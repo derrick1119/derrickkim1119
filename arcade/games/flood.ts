@@ -112,17 +112,17 @@ export const STAGES: StageDef[] = [
     name: '막힌 웅덩이', goal: '🐱 물길을 파서 배수로로', sky: 2,
     h: ['777777777', '666666667', '655555567', '655555567', '655555563', '655555567', '655555567', '666666667', '777777777'],
     o: ['T.......T', '.........', '.........', '.........', '.........', '.....H...', '..G......', '.........', '..T...T..'],
-    waves: [{ kind: 'pour', L: 1200, at: 0.6, dur: 3, cells: [[1, 0], [2, 0]], side: 'L' }],
+    waves: [{ kind: 'pour', L: 1600, at: 0.6, dur: 4, cells: [[1, 0], [2, 0]], side: 'L' }],
     outlets: [[4, 8, 'R']],
     queue: 'DDSSSD',
     news: [['ditchnews', '⛏️ 도랑 — 땅을 파면 물 100L가 담기고, 이으면 물길이 돼요']],
   },
   {
     name: '양쪽에서 동시에', goal: '🐱 고양이 집 + 🦆 오리 둥지', sky: 3,
-    h: ['888888888', '777777777', '666666666', '555555555', '555545555', '444444444', '333333333', '333222333', '332212233'],
-    o: ['T.......T', '.........', '.........', '.........', '..H...N..', '....G....', '.........', '.........', 'T.......T'],
-    waves: [{ kind: 'pour', L: 900, at: 0.6, dur: 3, cells: [[1, 0], [2, 0]], side: 'L' }, { kind: 'pour', L: 900, at: 0.6, dur: 3, cells: [[1, 8], [2, 8]], side: 'R' }],
-    outlets: [[8, 3, 'B'], [8, 5, 'B']],
+    h: ['999999999', '887797788', '776696677', '665595566', '554393455', '443282344', '332262233', '221141122', '210000012'],
+    o: ['T...T...T', '....T....', '.........', '....R....', '...H.N...', '.........', '.G.......', '.........', 'T.......T'],
+    waves: [{ kind: 'pour', L: 900, at: 0.6, dur: 3.5, cells: [[1, 0], [2, 0]], side: 'L' }, { kind: 'pour', L: 900, at: 0.6, dur: 3.5, cells: [[1, 8], [2, 8]], side: 'R' }],
+    outlets: [[8, 3, 'B'], [8, 4, 'B'], [8, 5, 'B']],
     queue: 'SSSSSSS',
     news: [['twin', '↔️ 두 곳에서 동시에 — 조각을 나눠 써요'], ['duck', '🦆 오리 둥지 — 물이 닿으면 둥지째 둥실']],
   },
@@ -130,26 +130,28 @@ export const STAGES: StageDef[] = [
     name: '소나기', goal: '🐱 우묵한 곳의 집 — 빗물 빼기', sky: 4,
     h: ['777777777', '766666667', '765555567', '765444567', '765454567', '765444567', '765555567', '766666667', '777777776'],
     o: ['T.......T', '.........', '.........', '.........', '....H....', '.........', '.........', '..G......', 'T........'],
-    waves: [{ kind: 'rain', L: 1600, at: 0.6, dur: 5 }, { kind: 'pour', L: 500, at: 2, dur: 2, cells: [[0, 3], [0, 4]], side: 'T' }],
+    waves: [{ kind: 'rain', L: 1200, at: 0.6, dur: 6 }, { kind: 'pour', L: 400, at: 2, dur: 2, cells: [[0, 3], [0, 4]], side: 'T' }],
     outlets: [[8, 8, 'B']],
     queue: 'PPSSP',
     news: [['pipenews', '🕳️ 배수구 — 1초에 물 40L를 꿀꺽']],
   },
   {
     name: '밀물', goal: '🐱 강물이 거꾸로 밀려와요', sky: 5,
-    h: ['888888888', '777777777', '666666666', '555555555', '444444444', '333333333', '322233333', '322333333', '221112333'],
-    o: ['T...T...T', '.........', '.........', '.........', '.........', '.........', '.........', '...H.....', '.......G.'],
-    waves: [{ kind: 'pour', L: 600, at: 0.6, dur: 2, cells: [[0, 4], [0, 5]], side: 'T' }, { kind: 'tide', L: 1500, at: 3, dur: 4 }],
-    outlets: [[8, 2, 'B'], [8, 3, 'B']],
+    h: ['888888888', '777777777', '666666666', '555555555', '444444444', '333333333', '222223333', '111223333', '000112333'],
+    o: ['T...T...T', '.........', '..F......', '.........', '........T', '..G......', '....H....', '.........', '......T..'],
+    waves: [{ kind: 'tide', L: 1600, at: 1, dur: 4.5 }],
+    outlets: [[8, 0, 'B'], [8, 1, 'B']],
     queue: 'WSSSWS',
+    news: [['tidenews', '🌊 밀물 — 배수로로 강물이 거꾸로 들어왔다가 빠져요']],
   },
   {
-    name: '시간차 물결', goal: '🐱 고양이 집 + 📚 꼬마 도서관', sky: 6,
-    h: ['888888888', '777777777', '777666777', '666555666', '555544555', '444444444', '433333333', '333333322', '333332211'],
-    o: ['T.......T', '.........', '.........', '.........', '...B.....', '.........', '..H......', '......G..', '.........'],
-    waves: [{ kind: 'pour', L: 1000, at: 0.6, dur: 2.5, cells: [[1, 0], [2, 0]], side: 'L' }, { kind: 'pour', L: 1100, at: 5, dur: 2.5, cells: [[0, 6], [0, 7]], side: 'T' }],
-    outlets: [[8, 7, 'B'], [8, 8, 'B']],
-    queue: 'SSSDSSWSP',
+    name: '시간차 물결', goal: '📚 꼬마 도서관 + 🐱 고양이 집', sky: 6,
+    h: ['999999788', '887799677', '776698566', '665597455', '554495344', '443384334', '332263233', '221141122', '210000012'],
+    o: ['T...T....', '....T....', '.........', '.........', '...B.....', '......H..', '.G.......', '.........', 'T.......T'],
+    waves: [{ kind: 'pour', L: 1000, at: 0.6, dur: 3, cells: [[1, 0], [2, 0]], side: 'L' }, { kind: 'pour', L: 1100, at: 5, dur: 3, cells: [[0, 6], [0, 7]], side: 'T' }],
+    outlets: [[8, 3, 'B'], [8, 4, 'B'], [8, 5, 'B']],
+    queue: 'SSSDSSP',
+    news: [['book', '📚 꼬마 도서관 — 부엉이 사서가 책을 지켜요'], ['later', '⏱️ 두 번째 물결은 나중에, 다른 곳에서']],
   },
   {
     name: '대홍수', goal: '🐱🦆📚 모두 지켜요', sky: 7,
@@ -1504,32 +1506,35 @@ function drawHud(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
   const sw = ctx.measureText(`★${s.stars}`).width;
   ctx.fillStyle = th.hot;
   ctx.fillText('♥'.repeat(Math.max(0, s.hearts)) + '♡'.repeat(Math.max(0, 3 - s.hearts)), w - R(0.05) - sw, hb / 2);
-  // 예보판
-  const fy = R(0.095), fh = R(0.13);
-  ctx.fillStyle = 'rgba(12,32,52,.84)';
+  // 예보판: 몇 L가 어디서 언제 — 물결 수만큼 줄 (넷이면 두 칸씩)
+  const nW = st.waves.length, two = nW >= 4, rowsN = two ? Math.ceil(nW / 2) : nW, LH = R(0.034);
+  const fy = R(0.093), fh = R(0.046) + rowsN * LH + R(0.006);
+  ctx.fillStyle = 'rgba(12,32,52,.86)';
   ctx.beginPath();
   ctx.roundRect(R(0.03), fy, w - R(0.06), fh, R(0.025));
   ctx.fill();
   ctx.strokeStyle = 'rgba(120,200,255,.5)';
   ctx.lineWidth = 1.2;
   ctx.stroke();
-  const head = s.phase === 'build' ? '📢 홍수 예보' : s.phase === 'watch' ? '🌊 버티는 중' : s.ok ? '🎉 버텼다!' : '💦 잠겼다…';
-  fitText(ctx, head, R(0.06), fy + R(0.028), R(0.038), '#ffe08a', R(0.3), 900, 'left');
+  const head = s.phase === 'build' ? `📢 ${s.stage + 1}판 예보 · ${st.name}` : s.phase === 'watch' ? `🌊 버티는 중 · ${st.name}` : s.ok ? `🎉 버텼다! · ${st.name}` : `💦 잠겼다… · ${st.name}`;
+  fitText(ctx, head, R(0.06), fy + R(0.025), R(0.038), '#ffe08a', R(0.66), 900, 'left');
   const total = st.waves.reduce((a, wv) => a + wv.L, 0);
-  fitText(ctx, `모두 ${total}L`, w - R(0.06), fy + R(0.028), R(0.036), '#bfe6ff', R(0.3), 800, 'right');
-  const lines = st.waves.slice(0, 3);
-  lines.forEach((wv, k) => {
-    const y = fy + R(0.064) + k * R(0.034) * (lines.length > 2 ? 0.95 : 1.1);
+  fitText(ctx, `모두 ${total}L`, w - R(0.06), fy + R(0.025), R(0.036), '#bfe6ff', R(0.22), 800, 'right');
+  st.waves.forEach((wv, k) => {
+    const colW = two ? (w - R(0.12)) / 2 : w - R(0.12), x0 = R(0.06) + (two ? (k % 2) * colW : 0), y = fy + R(0.06) + (two ? Math.floor(k / 2) : k) * LH;
     const when = wv.at / SPS < 1 ? '바로' : `${Math.round(wv.at / SPS)}초 뒤`;
-    const what = wv.kind === 'rain' ? `☔ 비 ${wv.L}L · 판 전체에` : wv.kind === 'tide' ? `🌊 밀물 ${wv.L}L ${ARROW[wv.side]} 배수로에서 → 다시 빠짐` : `💧 ${wv.L}L ${ARROW[wv.side]} ${entryName(wv)}에서`;
+    const what = two
+      ? wv.kind === 'rain' ? `☔비 ${wv.L}L` : wv.kind === 'tide' ? `🌊밀물 ${wv.L}L` : `💧${wv.L}L ${ARROW[wv.side]}${DIR_NAME[wv.side]}`
+      : wv.kind === 'rain' ? `☔ 비 ${wv.L}L · 판 전체에` : wv.kind === 'tide' ? `🌊 밀물 ${wv.L}L ${ARROW[wv.side]} 배수로에서 → 다시 빠짐` : `💧 ${wv.L}L ${ARROW[wv.side]} ${entryName(wv)}에서`;
     let state = when, col = '#e8f6ff';
     if (s.phase !== 'build') {
-      if (m.n >= wv.at + wv.dur) (state = '✓ 지나감'), (col = '#9fb8c8');
+      if (m.n >= wv.at + wv.dur) (state = '✓'), (col = '#9fb8c8');
       else if (m.n >= wv.at) (state = '지금!'), (col = '#7fe0ff');
       else state = `${Math.ceil((wv.at - m.n) / SPS)}초 뒤`;
     }
-    fitText(ctx, `${'①②③'[k]} ${what}`, R(0.06), y, R(0.037), col, R(0.68), 800, 'left');
-    fitText(ctx, state, w - R(0.06), y, R(0.036), col, R(0.2), 900, 'right');
+    const sw2 = R(two ? 0.12 : 0.16);
+    fitText(ctx, `${'①②③④'[k]} ${what}`, x0, y, R(0.037), col, colW - sw2 - R(0.01), 800, 'left');
+    fitText(ctx, state, x0 + colW - R(two ? 0.015 : 0), y, R(0.035), col, sw2, 900, 'right');
   });
   // 아래 쟁반: 짓는 동안 = 다음 조각 · 줄 · ↶ · ▶ 버티기 / 버티는 동안 = 지킬 것 물 게이지
   const ty0 = R(TRAY);
@@ -1594,38 +1599,17 @@ function drawHud(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
       fitText(ctx, `${Math.round(v)}/${FLOOD}L`, bx + bw / 2, gy, R(0.036), '#ffffff', bw, 900);
     });
     const left = st.queue.length - s.qi, inL = Math.round(st.waves.reduce((a, wv) => a + (wv.L * Math.max(0, Math.min(wv.dur, m.n - wv.at))) / wv.dur, 0));
-    const msg = s.phase === 'watch' ? `들어온 물 ${inL}L · 빠진 물 ${Math.round(m.out + m.sunk)}L${left ? ` · 조각 ${left}개 남김` : ''}` : s.ok ? `${'★'.repeat(s.got)}${'☆'.repeat(3 - s.got)}  지킴 ✓${st.bonusCells.length ? (s.bonusPeak < FLOOD ? ' · 텃밭 ✓' : ' · 텃밭 ✗') : ' · 보너스 ✓'}${left ? ' · 조각 남김 ✓' : ' · 조각 남김 ✗'}` : s.hearts > 0 ? '하트 -1 · 같은 판을 다시 지어요' : '하트가 없어요 — 끝';
-    fitText(ctx, msg, w / 2, ty0 + R(0.135), R(0.04), s.phase === 'result' && !s.ok ? '#ffc0b8' : '#e8f6ff', w - R(0.06), 900);
-  }
-  // 판 카드: 시작 · 성공 · 실패
-  {
-    let head = '', sub = '', col = '#ffffff', age = 0;
-    if (s.phase === 'result') {
-      age = s.pt;
-      if (s.ok) (head = s.won ? '대홍수까지 다 버텼다!' : `${s.stage + 1}판 버텼다!`), (sub = `${'★'.repeat(s.got)}${'☆'.repeat(3 - s.got)}`), (col = '#ffe066');
-      else {
-        const k = st.prot[s.failCell];
-        head = k === CAT ? '냐아앙!! 집이 젖었어요' : k === DUCK ? '오리 둥지가 둥실~' : '도서관 책이 젖었어요';
-        sub = s.hearts > 0 ? `하트 -1 · 다시 지어요` : '끝 — 다음엔 더 높게!';
-        col = '#ffb3a8';
-      }
-    } else if (s.phase === 'build' && s.pt < 100) (head = `${s.stage + 1}판 · ${st.name}`), (sub = st.goal), (age = s.pt);
-    if (head) {
-      const sc = Math.min(1, 0.6 + age / 12), a = s.phase === 'result' ? 1 : Math.min(1, (100 - s.pt) / 20);
+    if (s.phase === 'watch') fitText(ctx, `들어온 물 ${inL}L · 빠진 물 ${Math.round(m.out + m.sunk)}L${left ? ` · 조각 ${left}개 남김` : ''}`, w / 2, ty0 + R(0.12), R(0.04), '#e8f6ff', w - R(0.06), 900);
+    else {
+      const k = st.prot[s.failCell], sc = Math.min(1, 0.5 + s.pt / 14);
+      const head = s.ok ? (s.won ? '대홍수까지 다 버텼다!' : `${s.stage + 1}판 버텼다! ${'★'.repeat(s.got)}${'☆'.repeat(3 - s.got)}`) : k === CAT ? '냐아앙!! 고양이 집이 젖었어요' : k === DUCK ? '오리 둥지가 둥실둥실~' : '부엉!? 도서관 책이 젖었어요';
+      const sub = s.ok ? `지킴 ✓${st.bonusCells.length ? (s.bonusPeak < FLOOD ? ' · 텃밭 ✓' : ' · 텃밭 ✗') : ' · 보너스 ✓'}${left ? ' · 조각 남김 ✓' : ' · 조각 남김 ✗'}` : s.hearts > 0 ? '하트 -1 · 같은 판을 다시 지어요' : '하트가 없어요 — 끝';
       ctx.save();
-      ctx.globalAlpha = a;
-      ctx.translate(w / 2, R(0.58));
+      ctx.translate(w / 2, ty0 + R(0.12));
       ctx.scale(sc, sc);
-      ctx.fillStyle = 'rgba(12,30,48,.88)';
-      ctx.beginPath();
-      ctx.roundRect(-R(0.4), -R(0.075), R(0.8), R(0.15), R(0.04));
-      ctx.fill();
-      ctx.strokeStyle = col;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      fitText(ctx, head, 0, -R(0.025), R(0.052), col, R(0.74), 900);
-      fitText(ctx, sub, 0, R(0.035), R(0.04), '#f0f8ff', R(0.74), 800);
+      fitText(ctx, head, 0, 0, R(0.054), s.ok ? '#ffe066' : '#ffb3a8', w - R(0.06), 900);
       ctx.restore();
+      fitText(ctx, sub, w / 2, ty0 + R(0.18), R(0.038), '#e8f6ff', w - R(0.06), 800);
     }
   }
   // 새것 알림
@@ -1736,7 +1720,14 @@ export function plan(st: Stage): number[] {
   return best.cells;
 }
 
-const plans = new WeakMap<object, { key: string; cells: number[]; k: number }>();
+const plans = new WeakMap<object, { key: string; cells: number[]; tries: number; qi: number }>();
+/** 칸을 실제로 고르는 점: 앞줄의 높은 둑에 가려지면 보이는 윗부분을 누른다 */
+function tapPoint(s: FloodState, i: number) {
+  const p = cellPt(s, i), y0 = p.y - CH / 2;
+  if (pick(s, p.x, p.y) === i) return p;
+  for (let k = 1; k < 10; k++) if (pick(s, p.x, y0 + (CH * k) / 10) === i) return { x: p.x, y: y0 + (CH * k) / 10 };
+  return null;
+}
 /** 잘하는 봇: 판마다 물을 미리 흘려 보고 정한 칸에 차례로 톡, 남길 조각이 있으면 ▶ 버티기 */
 export const floodSmart: Bot<FloodState> = {
   name: '물길 박사',
@@ -1745,11 +1736,14 @@ export const floodSmart: Bot<FloodState> = {
     if (s.phase !== 'build' || s.down || s.autoAt >= 0) return no;
     const key = `${s.stage}:${s.tries}:${s.hearts}`;
     let pl = plans.get(s);
-    if (!pl || pl.key !== key) plans.set(s, (pl = { key, cells: plan(s.st), k: 0 }));
-    if (s.qi < pl.cells.length) {
-      const pt = cellPt(s, pl.cells[s.qi]);
-      return { tap: false, dir: 0, pointer: { x: pt.x, y: pt.y / A } };
+    if (!pl || pl.key !== key) plans.set(s, (pl = { key, cells: plan(s.st), tries: 0, qi: -1 }));
+    if (pl.qi === s.qi) pl.tries++;
+    else (pl.qi = s.qi), (pl.tries = 0);
+    const start = { tap: false, dir: 0 as const, pointer: { x: BTN.x + BTN.w / 2, y: (BTN.y + BTN.h / 2) / A } };
+    if (s.qi < pl.cells.length && pl.tries < 4) {
+      const pt = tapPoint(s, pl.cells[s.qi]);
+      if (pt) return { tap: false, dir: 0, pointer: { x: pt.x, y: pt.y / A } };
     }
-    return { tap: false, dir: 0, pointer: { x: BTN.x + BTN.w / 2, y: (BTN.y + BTN.h / 2) / A } };
+    return start;
   },
 };

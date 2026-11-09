@@ -34,6 +34,11 @@ function cellAt(x: number, y: number): number {
 }
 const TRAY0 = 1.02, TRAY1 = 1.235, FOOT0 = 1.25;
 const BTN = { x0: 0.665, x1: 0.96, y0: 1.055, y1: 1.2 };
+/** 예보 띠: 머리말 폭 · 돌풍 칩 폭 · 칩 i의 가운데 x (톡 하면 그 돌풍의 바람 지도를 본다) */
+const PILL_Y = 0.12, PILL_H = 0.06, HEAD_W = 0.2;
+const chipW = (gs: Gust[]) => (gs.some((g) => g.bolt) ? 0.19 : 0.16);
+const pillW = (gs: Gust[]) => HEAD_W + gs.length * (chipW(gs) + 0.012) + 0.02;
+const chipX = (gs: Gust[], i: number) => 0.5 - pillW(gs) / 2 + HEAD_W + i * (chipW(gs) + 0.012) + chipW(gs) / 2;
 /** 텐트가 버티는 바람 · 텐트 튼튼함 */
 export const TENT_HOLD = 22, HP = 3;
 /** 바람 지도: 막힌 칸 옆으로 밀려나는 몫 · 줄마다 되살아나는 몫 · 최대 배율 */
@@ -41,11 +46,13 @@ const FUN = 0.25, REC = 0.15, MAXF = 1.5;
 /** 날아가던 것이 바람이 (버팀 × LAND)보다 약한 칸에 오면 떨어진다 */
 const LAND = 0.75;
 /** 돌풍 연출(틱): 예고 · 한 칸 날아가는 시간 · 꼬리 · 돌풍 사이 · 최소 길이 */
-const PRE = 46, STEP = 9, TAIL = 40, GAP = 18, MING = 80, RESULT_T = 130, AUTO = 20;
+const PRE = 46, STEP = 9, TAIL = 40, GAP = 18, MING = 80, RESULT_T = 140, AUTO = 40;
 const L = 0, D = 1, R = 2;
 const ARROW = ['←', '↓', '→'], FROM = ['오른쪽에서', '뒤에서', '왼쪽에서'];
 const NONE = 0, STONE = 1, FENCE = 2, TREE = 3, LOG = 4, STUMP = 5;
 const blocks = (b: number) => b >= STONE && b <= LOG;
+/** 날아오는 것을 막는 높은 것 (돌·쓰러진 통나무는 낮아서 훌쩍 넘어간다) */
+const tall = (b: number) => b === FENCE || b === TREE;
 
 export type Piece = 'stone' | 'fv' | 'fh' | 'stake' | 'rod';
 export type Kind = 'laundry' | 'parasol' | 'chair' | 'bike' | 'pot' | 'cow';
@@ -243,7 +250,15 @@ export function simStage(c: Camp, gusts: Gust[]): Sim {
         if (nx < 0) {
           it.lost = true;
           stop('off', 'off', cur);
-        } else if (blocks(c.blk[nx])) stop('block', 'bonk', nx);
+        } else if (tall(c.blk[nx])) stop('block', 'bonk', nx);
+        else if (blocks(c.blk[nx])) {
+          // 낮은 돌·통나무: 훌쩍 넘어 계속 날아간다 (그 위에선 떨어지지 않는다)
+          it.cell = nx;
+          q.f.path.push(nx);
+          q.mom = Math.max(q.mom, 1);
+          sim.tl.push({ at: now, kind: 'hop', cell: nx, it: q.it });
+          keep.push(q);
+        }
         else if (nx === c.tent && !c.gone && c.hp > 0) {
           const dmg = ITEM[it.k].dmg;
           c.hp -= dmg;
@@ -297,10 +312,10 @@ export const STAGES: Stage[] = [
     title: '소가 날아요',
     intro: '말뚝으로 묶으면 안 날아가요',
     gusts: [[L, 30]],
-    pieces: ['stake', 'stone', 'stone'],
+    pieces: ['stake', 'stone', 'stake', 'stone'],
     make(rng) {
       const tr = pick(rng, 2, 5), tc = pick(rng, 1, 2), up = tr >= 4 ? -1 : 1;
-      return { tent: at(tr, tc), items: [['cow', at(tr, tc + 5)], ['chair', at(tr, tc + 3)], ['parasol', at(tr + 2 * up, tc + 2)]], trees: [], big: -1 };
+      return { tent: at(tr, tc), items: [['cow', at(tr, tc + 5)], ['chair', at(tr, tc + 3)], ['parasol', at(tr + 2 * up, tc + 3)]], trees: [at(tr + 2 * up, 0)], big: -1 };
     },
   },
   {
@@ -337,8 +352,8 @@ export const STAGES: Stage[] = [
   {
     title: '도는 회오리',
     intro: '바람이 빙 돌아요 → ↓ ←',
-    gusts: [[L, 25], [D, 25], [R, 25]],
-    pieces: ['stone', 'fv', 'stake', 'stone', 'fh', 'stone'],
+    gusts: [[L, 24], [D, 24], [R, 24]],
+    pieces: ['stone', 'fv', 'stake', 'fh', 'stone'],
     make(rng) {
       const tr = pick(rng, 3, 4), tc = pick(rng, 3, 4);
       return { tent: at(tr, tc), items: [['cow', at(tr - 2, tc - 2)], ['chair', at(tr + 1, tc + 2)], ['pot', at(tr, tc - 3)], ['parasol', at(tr - 2, tc + 2)]], trees: [at(tr + 2, tc - 1)], big: -1 };
@@ -368,7 +383,7 @@ interface Ev { t: number; kind: string; x: number; y: number; text?: string; col
 export interface TyphoonState {
   rng: Rng; t: number; stage: number; phase: 'build' | 'storm' | 'result'; pt: number; tries: number;
   base: Camp; camp: Camp; pre: Camp | null; sim: Sim | null; gusts: Gust[]; pieces: Piece[]; pi: number; auto: number;
-  prev: Float32Array[]; boltPrev: number;
+  prev: Float32Array[]; boltPrev: number; pv: number;
   down: boolean; taps: number; hearts: number; stars: number; got: number; pts: number; ok: boolean; won: boolean; dead: boolean;
   seen: Set<string>; events: Ev[]; news: { text: string; t: number }[];
 }
@@ -396,6 +411,7 @@ function newStage(s: TyphoonState, retry: boolean) {
   s.pieces = st.pieces.slice();
   s.pi = 0;
   s.auto = 0;
+  s.pv = -1;
   s.phase = 'build';
   s.pt = 0;
   s.pre = null;
@@ -422,6 +438,8 @@ function startStorm(s: TyphoonState) {
 }
 
 function tapAt(s: TyphoonState, x: number, y: number) {
+  if (s.gusts.length > 1 && Math.abs(y - PILL_Y) < PILL_H / 2 + 0.01)
+    for (let i = 0; i < s.gusts.length; i++) if (Math.abs(x - chipX(s.gusts, i)) < chipW(s.gusts) / 2 + 0.006) return void ((s.pv = i), ev(s, 'peek', chipX(s.gusts, i), PILL_Y));
   if (x >= BTN.x0 && x <= BTN.x1 && y >= BTN.y0 && y <= BTN.y1) {
     s.taps++;
     ev(s, 'go', (BTN.x0 + BTN.x1) / 2, (BTN.y0 + BTN.y1) / 2);
@@ -457,6 +475,7 @@ function emit(s: TyphoonState) {
     else if (e.kind === 'fly') ev(s, 'fly', x, y, it!.fly), see(s, 'fly', '💨 바람이 버팀보다 세면 날아가요');
     else if (e.kind === 'chain') ev(s, 'chain', x, y, `연쇄! ${it!.fly}`), see(s, 'chain', '💥 날아간 게 다른 걸 때려 연쇄로 날려요');
     else if (e.kind === 'knock') ev(s, 'bonk', x, y, '퍽!');
+    else if (e.kind === 'hop') ev(s, 'hop', x, y, '훌쩍!'), see(s, 'hop', '🪨 돌은 낮아서 날아오는 건 훌쩍 넘어요 — 바람막이·나무는 막아요');
     else if (e.kind === 'bonk') ev(s, 'bonk', x, y, '쿵!');
     else if (e.kind === 'hit') ev(s, 'hit', x, y, it!.hit), see(s, 'chain', '💥 날아간 게 다른 걸 때려 연쇄로 날려요');
     else if (e.kind === 'off') ev(s, 'off', x, y, '안녕~');
@@ -506,7 +525,7 @@ export const typhoon: GameDef<TyphoonState> = {
   create(seed) {
     const s = {
       rng: mulberry32(seed), t: 0, stage: 0, phase: 'build', pt: 0, tries: 0, base: null as unknown as Camp, camp: null as unknown as Camp, pre: null, sim: null,
-      gusts: [], pieces: [], pi: 0, auto: 0, prev: [], boltPrev: -1, down: false, taps: 0, hearts: 3, stars: 0, got: 0, pts: 0, ok: false, won: false, dead: false,
+      gusts: [], pieces: [], pi: 0, auto: 0, prev: [], boltPrev: -1, pv: -1, down: false, taps: 0, hearts: 3, stars: 0, got: 0, pts: 0, ok: false, won: false, dead: false,
       seen: new Set<string>(), events: [], news: [],
     } as TyphoonState;
     newStage(s, false);
@@ -516,6 +535,7 @@ export const typhoon: GameDef<TyphoonState> = {
     s.t++;
     s.pt++;
     if (s.events.length > 40) s.events = s.events.filter((e) => s.t - e.t < 90);
+    if (s.news.length && ((s.phase === 'build' && s.pt < 110 && s.pi === 0) || s.phase === 'result')) s.news[0].t = s.t;
     if (s.news.length && s.t - s.news[0].t > 170) s.news.shift(), s.news.length && (s.news[0].t = s.t);
     const p = inp.pointer ?? null, press = !!p && !s.down;
     s.down = !!p;
@@ -809,10 +829,23 @@ function tentShape(ctx: CanvasRenderingContext2D, bx: number, by: number, W: num
   ctx.fill();
   // 곰 가족 (아빠·엄마·아기)
   if (!flat) {
-    const r = W * 0.13;
-    bear(ctx, -r * 0.95, -r * 1.05, r * 0.92, mood, '#a8703d', t);
-    bear(ctx, r * 0.95, -r * 1.0, r * 0.98, mood, '#86532a', t + 7);
-    bear(ctx, 0, -r * 0.55, r * 0.72, mood, '#c99057', t + 13);
+    const r = W * 0.145;
+    if (mood === 'smug') {
+      // 버텼다! 셋이 문 앞으로 나와 만세 (통통 뛴다)
+      ([[-1.25, '#a8703d', 0.95, 0], [1.25, '#86532a', 1.0, 9], [0, '#c99057', 0.78, 17]] as [number, string, number, number][]).forEach(([ox, fur, sz, ph]) => {
+        const hop = Math.abs(Math.sin((t + ph) / 7)) * r * 0.5, bx = ox * r, by = r * 0.35 - hop, rr = r * sz;
+        oval(ctx, bx, r * 0.55, rr * 0.7, rr * 0.18, 'rgba(20,30,15,.35)');
+        oval(ctx, bx, by, rr * 0.72, rr * 0.8, fur);
+        oval(ctx, bx, by + rr * 0.15, rr * 0.42, rr * 0.48, '#f4dcb4');
+        for (const sd of [-1, 1]) oval(ctx, bx + sd * rr * 0.75, by - rr * 0.75 - Math.sin((t + ph) / 4) * rr * 0.15, rr * 0.22, rr * 0.3, fur);
+        bear(ctx, bx, by - rr * 0.95, rr * 0.82, 'smug', fur, t + ph);
+      });
+    } else {
+      bear(ctx, -r * 0.95, -r * 1.05, r * 0.92, mood, '#a8703d', t);
+      bear(ctx, r * 0.95, -r * 1.0, r * 0.98, mood, '#86532a', t + 7);
+      bear(ctx, 0, -r * 0.55, r * 0.72, mood, '#c99057', t + 13);
+      if (mood === 'strain') for (const sd of [-1, 1]) oval(ctx, sd * dw * 0.92, -dh * 0.22, r * 0.28, r * 0.24, '#86532a');
+    }
   }
   // 반창고
   for (let k = 0; k < HP - Math.max(0, hp); k++) {
@@ -1017,9 +1050,18 @@ function stormCloud(ctx: CanvasRenderingContext2D, x: number, y: number, r: numb
   ctx.restore();
 }
 
-function rainLayer(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, amt: number, dir: number) {
+function rainLayer(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, amt: number, dir: number, leaves = 0) {
   if (amt <= 0.02) return;
   const [dx, dy] = DV[dir], sx = dx * 0.55 + (dy ? 0.12 : 0), n = Math.round(90 * amt);
+  // 바람에 날리는 잎사귀
+  for (let k = 0; k < Math.round(16 * leaves); k++) {
+    const sp = 3 + hsh(k + 70) * 3, lx = (((hsh(k + 71) * (w + 60) + t * sp * (dx || 0.25)) % (w + 60)) + w + 60) % (w + 60) - 30, ly = (((hsh(k + 72) * h + t * sp * (dy || 0.12) + Math.sin(t / 9 + k) * 12) % h) + h) % h;
+    ctx.save();
+    ctx.translate(lx, ly);
+    ctx.rotate(t * 0.2 + k);
+    oval(ctx, 0, 0, 4, 2, k % 3 ? '#7cc45a' : '#e0b84a');
+    ctx.restore();
+  }
   ctx.strokeStyle = `rgba(200,220,255,${0.25 + 0.3 * amt})`;
   ctx.lineWidth = 1.2;
   ctx.beginPath();
@@ -1034,7 +1076,7 @@ function rainLayer(ctx: CanvasRenderingContext2D, w: number, h: number, t: numbe
 /** 지금 화면에 보일 바람: 짓는 동안은 예보(돌아가며), 버티는 동안은 지금 부는 돌풍 */
 function liveWind(s: TyphoonState) {
   if (s.phase === 'build') {
-    const pv = s.gusts.length > 1 ? Math.floor(s.pt / 150) % s.gusts.length : 0;
+    const pv = s.pv >= 0 ? s.pv : s.gusts.length > 1 ? Math.floor(s.pt / 150) % s.gusts.length : 0;
     return { f: s.prev[pv], dir: s.gusts[pv].dir, W: s.gusts[pv].W, k: 1, gi: pv, on: false, pre: 0 };
   }
   if (s.phase === 'storm' && s.sim) {
@@ -1374,12 +1416,14 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TyphoonState, w: number, h: n
       // 텐트
       if (k === cam.tent && !tentGone) {
         const shake = storming && tau - lastHit < 14 ? Math.sin(tau * 2.3) * 3 : lw && lw.on ? Math.sin(t * 0.9) * 1.2 * lw.k : 0;
-        tentShape(ctx, x + shake, y + Rr(0.004), Rr(0.15), Rr(0.1), hpNow, mood, t, night, tentFlat);
+        tentShape(ctx, x + shake, y + Rr(0.004), Rr(0.17), Rr(0.115), hpNow, mood, t, night, tentFlat);
         // 텐트 바람 배지 (예보 바람 vs 버팀 22)
-        if (pv && !tentFlat) {
-          const v = Math.round(pv[k]), bad = v > TENT_HOLD, bw = Rr(0.25), by = Y(ky(k) - CH * 1.6), bxx = Math.max(bw / 2 + 2, Math.min(w - bw / 2 - 2, x));
+        // 짓는 동안은 예보, 돌풍이 부는 동안은 지금 바람 — 왜 버텼는지/날아갔는지 보이게
+        const bv = pv ? pv[k] : lw && lw.on && !tentFlat ? lw.f[k] : -1;
+        if (bv >= 0 && !tentFlat) {
+          const v = Math.round(bv), bad = v > TENT_HOLD, bw = Rr(pv ? 0.25 : 0.2), by = Y(ky(k) - CH * 1.75), bxx = Math.max(bw / 2 + 2, Math.min(w - bw / 2 - 2, x));
           pill(ctx, bxx, by, bw, Rr(0.05), bad ? 'rgba(170,30,45,.94)' : 'rgba(20,100,65,.92)', '#ffffff');
-          label(ctx, bad ? `💨${v} > 버팀${TENT_HOLD} 위험!` : `💨${v} ≤ 버팀${TENT_HOLD} 안전`, bxx, by, Rr(0.036), '#ffffff', 900, 'center', bw - 8);
+          label(ctx, pv ? (bad ? `💨${v} > 버팀${TENT_HOLD} 위험!` : `💨${v} ≤ 버팀${TENT_HOLD} 안전`) : bad ? `💨${v} 으아아!` : `💨${v} 버틴다!`, bxx, by, Rr(0.036), '#ffffff', 900, 'center', bw - 8);
         }
       }
       // 물건 (땅에 있는 것)
@@ -1402,7 +1446,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TyphoonState, w: number, h: n
     ctx.globalAlpha = Math.max(0, 1 - e / 90);
     ctx.translate(bx, by);
     ctx.rotate(e * 0.07 * (dx || 1));
-    tentShape(ctx, 0, 0, Rr(0.15), Rr(0.1), hpNow, 'wow', t, night);
+    tentShape(ctx, 0, 0, Rr(0.17), Rr(0.115), hpNow, 'wow', t, night);
     ctx.restore();
     ctx.globalAlpha = Math.max(0, 1 - e / 110);
     [['#a8703d', -1], ['#86532a', 0.3], ['#c99057', 1.2]].forEach(([fur, o], j) => {
@@ -1429,7 +1473,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TyphoonState, w: number, h: n
     raccoon(ctx, rx, ry, Rr(0.075), gustK, t);
   }
   // 비
-  rainLayer(ctx, w, Y(BY1 + SIDE), t, storming ? 0.25 + 0.75 * gustK : s.stage >= 4 ? 0.18 : 0, lw ? lw.dir : L);
+  rainLayer(ctx, w, Y(BY1 + SIDE), t, storming ? 0.25 + 0.75 * gustK : s.stage >= 4 ? 0.18 : 0, lw ? lw.dir : L, storming ? gustK : 0);
   // ── 사건 → 손맛 ──
   const seenT = fx.memo.t ?? -1;
   const say = (x: number, y: number, text: string, col: string, size: number) => {
@@ -1449,6 +1493,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TyphoonState, w: number, h: n
     if (e.kind === 'rodput') fx.ring(x, y, '#ffe066', Rr(0.08), 3), say(x, y - Rr(0.08), e.text!, '#ffe066', Rr(0.038));
     if (e.kind === 'nope') say(x, y - Rr(0.05), e.text!, '#ffb3b3', Rr(0.036)), fx.kick(1.5);
     if (e.kind === 'go') fx.ring(x, y, '#ffe066', Rr(0.12), 4);
+    if (e.kind === 'peek') fx.ring(x, y, '#ffffff', Rr(0.06), 3);
     if (e.kind === 'warn') say(w / 2, Y(BY0 + 0.24), e.text!, '#ffffff', Rr(0.055)), fx.kick(2), racc('온다 온다…');
     if (e.kind === 'gust') fx.blink('#dbe8ff', 0.22), fx.kick(7);
     if (e.kind === 'fly') say(x, y - Rr(0.07), e.text!, '#ffffff', Rr(0.04)), fx.burst(x, y, '#b6e08a', 8, 2.5, 2), racc('ㅋㅋㅋ');
@@ -1457,6 +1502,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TyphoonState, w: number, h: n
     if (e.kind === 'hit') say(x, y - Rr(0.11), e.text!, '#ff8a8a', Rr(0.05)), fx.ring(x, y, '#ff5d6c', Rr(0.1), 5), fx.kick(10), fx.blink('#ff5d6c', 0.18), racc('헉!');
     if (e.kind === 'off') say(Math.max(Rr(0.12), Math.min(w - Rr(0.12), x)), y - Rr(0.05), e.text!, '#cfe3ff', Rr(0.038));
     if (e.kind === 'land') fx.burst(x, y + Rr(0.02), '#d9c08a', 8, 2, 2);
+    if (e.kind === 'hop') say(x, y - Rr(0.09), e.text!, '#e0f0ff', Rr(0.036));
     if (e.kind === 'tentfly') say(x, y - Rr(0.12), e.text!, '#ff8a8a', Rr(0.055)), fx.kick(12), fx.blink('#ffffff', 0.3), racc('어어어?!');
     if (e.kind === 'collapse') say(x, y - Rr(0.1), e.text!, '#ff8a8a', Rr(0.055)), fx.burst(x, y, '#ffb04d', 26, 4, 3), fx.kick(10), racc('으앗!');
     if (e.kind === 'bolt') say(x, y - Rr(0.13), e.text!, '#fff3a0', Rr(0.05)), fx.burst(x, y - Rr(0.05), '#fff3a0', 30, 5, 3), fx.blink('#ffffff', 0.6), fx.kick(12), racc('번쩍!!');
@@ -1573,20 +1619,18 @@ function drawHud(ctx: CanvasRenderingContext2D, s: TyphoonState, w: number, h: n
   label(ctx, '♥'.repeat(Math.max(0, s.hearts)) + '♡'.repeat(Math.max(0, 3 - s.hearts)), w - 18 - sw, hb / 2, Rr(0.042), th.hot, 900, 'right');
   // 예보 띠 (무엇이·얼마나·어디서)
   {
-    const y = Y(0.12), chips = s.gusts.length, cur = lw ? lw.gi : -1;
-    ctx.font = `900 ${Rr(0.038)}px system-ui, sans-serif`;
-    const head = s.phase === 'storm' ? '🌪️ 돌풍!' : '🌪️ 예보', hw = ctx.measureText(head).width;
-    const chipW = Rr(s.gusts.some((g) => g.bolt) ? 0.19 : 0.16), total = hw + 14 + chips * (chipW + 5) + 10, x0 = w / 2 - total / 2;
-    pill(ctx, w / 2, y, total, Rr(0.06), 'rgba(18,24,38,.82)', 'rgba(255,255,255,.25)');
-    label(ctx, head, x0 + 8, y, Rr(0.038), '#ffffff', 900, 'left');
+    const y = Y(PILL_Y), chips = s.gusts.length, cur = lw ? lw.gi : -1, cw = Rr(chipW(s.gusts)), x0 = w / 2 - Rr(pillW(s.gusts)) / 2;
+    const head = s.phase === 'storm' ? '🌪️ 돌풍!' : '🌪️ 예보';
+    pill(ctx, w / 2, y, Rr(pillW(s.gusts)), Rr(PILL_H), 'rgba(18,24,38,.82)', 'rgba(255,255,255,.25)');
+    label(ctx, head, x0 + Rr(0.02), y, Rr(0.038), '#ffffff', 900, 'left', Rr(HEAD_W - 0.025));
     s.gusts.forEach((g, i) => {
-      const cxp = x0 + hw + 16 + i * (chipW + 5) + chipW / 2, on = i === cur;
-      pill(ctx, cxp, y, chipW, Rr(0.045), on ? windCol(g.W) : 'rgba(255,255,255,.12)', on ? '#ffffff' : undefined);
-      label(ctx, `${ARROW[g.dir]}${g.W}${g.bolt ? '⚡' : ''}`, cxp, y + 0.5, Rr(0.036), '#ffffff', 900, 'center', chipW - 4);
+      const cxp = Rr(chipX(s.gusts, i)), on = i === cur;
+      pill(ctx, cxp, y, cw, Rr(0.045), on ? windCol(g.W) : 'rgba(255,255,255,.12)', on ? '#ffffff' : undefined);
+      label(ctx, `${ARROW[g.dir]}${g.W}${g.bolt ? '⚡' : ''}`, cxp, y + 0.5, Rr(0.036), '#ffffff', 900, 'center', cw - 4);
     });
     // 바람이 오는 쪽 한마디
     const g = lw ? s.gusts[lw.gi] : s.gusts[0];
-    label(ctx, `${FROM[g.dir]} 풍속 ${g.W}m/s${chips > 1 ? ` (${(lw ? lw.gi : 0) + 1}번째)` : ''}`, w / 2, Y(0.172), Rr(0.036), '#ffffff', 800);
+    label(ctx, chips > 1 ? `${(lw ? lw.gi : 0) + 1}번째: ${FROM[g.dir]} ${g.W}m/s${s.phase === 'build' ? ' · 톡=골라 보기' : ''}` : `${FROM[g.dir]} 풍속 ${g.W}m/s`, w / 2, Y(0.172), Rr(0.036), '#ffffff', 800, 'center', w - 20);
   }
   // 새것 알림
   if (s.news.length) {
@@ -1662,7 +1706,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: TyphoonState, w: number, h: n
       let hp = HP, lost = 0;
       for (const q of sim.hits) if (s.phase !== 'storm' || s.pt >= q.at) hp -= q.dmg;
       for (const e of sim.tl) if (e.kind === 'off' && (s.phase !== 'storm' || s.pt >= e.at)) lost++;
-      label(ctx, `텐트 ${'❤'.repeat(Math.max(0, hp))}${'🤍'.repeat(Math.max(0, HP - Math.max(0, hp)))} · 날아간 물건 ${lost}`, w / 2, (y0 + y1) / 2 + Rr(0.04), Rr(0.036), '#ffd9a8', 800);
+      label(ctx, `텐트 ${'♥'.repeat(Math.max(0, hp))}${'♡'.repeat(Math.max(0, HP - Math.max(0, hp)))} · 잃은 물건 ${lost}`, w / 2, (y0 + y1) / 2 + Rr(0.04), Rr(0.038), '#ffb3b3', 800);
     }
   }
   // ── 아래 띠: 지금 할 일 ──
@@ -1690,7 +1734,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: TyphoonState, w: number, h: n
     const g = s.gusts;
     ctx.save();
     ctx.globalAlpha = a;
-    ctx.translate(w / 2, Y(0.4));
+    ctx.translate(w / 2, Y(0.165));
     ctx.scale(sc, sc);
     ctx.fillStyle = 'rgba(16,22,36,.9)';
     ctx.beginPath();
@@ -1709,9 +1753,14 @@ function drawHud(ctx: CanvasRenderingContext2D, s: TyphoonState, w: number, h: n
     const age = s.pt, sc = Math.min(1, 0.6 + age / 12);
     let head = '', sub = '', col = '#ffe066';
     if (s.ok) (head = s.won ? '🏆 태풍을 다 버텼어요!' : `${s.stage + 1}판 무사! ${'★'.repeat(s.got)}${'☆'.repeat(3 - s.got)}`), (sub = `${s.sim && s.sim.hp >= HP ? '텐트 상처 없음' : '텐트에 반창고'} · ${s.sim && s.sim.lost === 0 ? '잃은 물건 없음' : `잃은 물건 ${s.sim?.lost ?? 0}`}`);
-    else (head = s.sim && s.sim.tentOut >= 0 ? '텐트가 날아갔어요!' : '텐트가 폭삭!'), (sub = s.hearts > 0 ? `하트 -1 · 다시 짓기` : `캠핑 끝 · 별 ${s.stars}개`), (col = '#ff9a9a');
+    else {
+      const blew = !!s.sim && s.sim.tentOut >= 0, why = blew ? Math.round(Math.max(...s.sim!.gx.map((g) => g.f[s.pre ? s.pre.tent : s.camp.tent]))) : 0;
+      head = blew ? '텐트가 날아갔어요!' : '텐트가 폭삭!';
+      sub = `${blew ? `텐트 칸 바람 ${why} > 버팀 ${TENT_HOLD}` : '날아온 것에 맞았어요'} · ${s.hearts > 0 ? '하트 -1 다시' : `끝 · 별 ${s.stars}개`}`;
+      col = '#ff9a9a';
+    }
     ctx.save();
-    ctx.translate(w / 2, Y(0.47));
+    ctx.translate(w / 2, Y(0.165));
     ctx.scale(sc, sc);
     ctx.fillStyle = 'rgba(16,22,36,.9)';
     ctx.beginPath();

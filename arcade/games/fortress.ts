@@ -460,7 +460,7 @@ export const fortress: GameDef<FortState> = {
   id: 'fortress',
   name: '버텨라 블록성',
   genes: ['fortify', 'slingshot', 'rolereverse'],
-  twist: '앵그리버드를 뒤집어 내가 짓고 너구리 해적이 쏜다 — 날아올 궤적이 미리 보이고, 고무 블록에 맞은 탄은 온 길 그대로 되돌아가 쏜 너구리를 맞힌다',
+  twist: '새총 물리를 뒤집어 내가 짓고 너구리 해적이 쏜다 — 날아올 궤적이 미리 보이고, 고무 블록에 맞은 탄은 온 길 그대로 되돌아가 쏜 너구리를 맞힌다',
   rules: [
     '줄을 톡 치면 다음 블록이 그 줄에 떨어져 쌓여요. 날아올 탄의 궤적이 미리 보여요.',
     '다 놓거나 ▶를 누르면 너구리 해적이 쏴요 — 햄스터 집이 버티면 통과!',
@@ -1132,86 +1132,6 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FortState, w: number, h: numb
   // ── 너구리 언덕 (오른쪽, 두꺼운 흙 단면) ──
   const HX = (x: number) => X(X0 + x * CW), HYt = (x: number) => Y(Y0 + hillTop(x) * CH);
   const SLAB = 0.105, LW = 1.9;
-  {
-    const xs: number[] = [];
-    for (let x = HILL_X - 0.15; x <= 11.2; x += 0.1) xs.push(x);
-    const outline = (oy: number) => xs.map((x) => [HX(x) + ddx * oy, (x < HILL_X ? Y(GY) : HYt(x)) + ddy * oy]);
-    // 윗면(풀)
-    const back = outline(LW), front = outline(0);
-    ctx.fillStyle = mix('#7cc45a', '#4d5a6e', Math.max(0, p - 0.55));
-    ctx.beginPath();
-    front.forEach(([a, b], k) => (k ? ctx.lineTo(a, b) : ctx.moveTo(a, b)));
-    for (let k = back.length - 1; k >= 0; k--) ctx.lineTo(back[k][0], back[k][1]);
-    ctx.fill();
-    // 앞면 흙층
-    const bands = ['#6d4a2e', '#8a5f3a', '#a5764a', '#5e4030'];
-    for (let b = 0; b < 4; b++) {
-      ctx.fillStyle = mix(bands[b], '#2a2340', Math.max(0, p - 0.6) * 0.8);
-      ctx.beginPath();
-      front.forEach(([a, bb], k) => {
-        const yy = bb + (b === 0 ? 0 : R(0.028 * b + 0.01 * Math.sin(k * 0.5 + b)));
-        if (k) ctx.lineTo(a, yy);
-        else ctx.moveTo(a, yy);
-      });
-      ctx.lineTo(w + 10, Y(GY + SLAB));
-      ctx.lineTo(HX(HILL_X - 0.15), Y(GY + SLAB));
-      ctx.fill();
-    }
-    ctx.fillStyle = '#5fae45';
-    ctx.beginPath();
-    front.forEach(([a, b], k) => (k ? ctx.lineTo(a, b + R(0.012)) : ctx.moveTo(a, b + R(0.012))));
-    for (let k = front.length - 1; k >= 0; k--) ctx.lineTo(front[k][0], front[k][1]);
-    ctx.fill();
-    // 자갈
-    for (let k = 0; k < 14; k++) {
-      const x = HILL_X + 0.6 + hsh(k + 300) * 3, yy = HYt(x) + R(0.03 + hsh(k + 310) * 0.1), r = R(0.006 + hsh(k) * 0.006);
-      ctx.fillStyle = '#8b8178';
-      ctx.beginPath();
-      ctx.ellipse(HX(x), yy, r * 1.3, r, 0, 0, 7);
-      ctx.fill();
-    }
-    // 해적 깃발
-    const fxp = X(0.855), fyp = HYt(9);
-    ctx.strokeStyle = '#5a3b22';
-    ctx.lineWidth = R(0.007);
-    ctx.beginPath();
-    ctx.moveTo(fxp, fyp);
-    ctx.lineTo(fxp, fyp - R(0.17));
-    ctx.stroke();
-    ctx.fillStyle = '#1f1b2b';
-    ctx.beginPath();
-    ctx.moveTo(fxp, fyp - R(0.17));
-    for (let k = 0; k <= 6; k++) ctx.lineTo(fxp - R(0.012 * k), fyp - R(0.17) + R(0.006) * Math.sin(t * 0.2 + k) + (k === 6 ? 0 : 0));
-    ctx.lineTo(fxp - R(0.072), fyp - R(0.115) + R(0.006) * Math.sin(t * 0.2 + 6));
-    ctx.lineTo(fxp, fyp - R(0.115));
-    ctx.fill();
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `${R(0.032)}px system-ui, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🦝', fxp - R(0.036), fyp - R(0.142));
-  }
-  // ── 골짜기 강 ──
-  {
-    const x0 = X(X0 + COLS * CW), x1 = HX(HILL_X + 0.3), wy = Y(GY + 0.015);
-    const wg = ctx.createLinearGradient(0, wy, 0, Y(GY + SLAB));
-    wg.addColorStop(0, '#5cc2ef');
-    wg.addColorStop(1, '#1d5a93');
-    ctx.fillStyle = wg;
-    ctx.fillRect(x0 - 2, wy, x1 - x0 + 4, Y(GY + SLAB) - wy);
-    ctx.fillStyle = 'rgba(190,240,255,.7)';
-    poly(ctx, [x0 - 2, wy, x0 + ddx * LW, wy + ddy * LW, x1 + ddx * LW, wy + ddy * LW, x1, wy]);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,.7)';
-    ctx.lineWidth = 1.2;
-    for (let k = 0; k < 3; k++) {
-      const xx = x0 + ((t * 0.3 + k * 9) % Math.max(4, x1 - x0));
-      ctx.beginPath();
-      ctx.moveTo(xx, wy + R(0.012 + k * 0.012));
-      ctx.lineTo(xx + R(0.02), wy + R(0.012 + k * 0.012));
-      ctx.stroke();
-    }
-  }
   // ── 내 땅 (두꺼운 흙 덩어리) ──
   const PR = X(X0 + COLS * CW);
   {
@@ -1333,7 +1253,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FortState, w: number, h: numb
         ctx.ellipse(x + cz * (0.3 + 0.4 * hsh(c + r * 7)), y + cz * 0.6, cz * 0.1, cz * 0.07, 0, 0, 7);
         ctx.fill();
       } else if (k === RIVER) {
-        const sy = y + cz * 0.45;
+        const sy = y + cz * 0.55;
         ctx.fillStyle = '#4a3222';
         ctx.fillRect(x, y, cz, Y(GY + SLAB) - y);
         const wg = ctx.createLinearGradient(0, sy, 0, Y(GY + SLAB));
@@ -1353,6 +1273,151 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FortState, w: number, h: numb
         ctx.stroke();
       }
     }
+  // ── 골짜기 강 ──
+  {
+    const x0 = X(X0 + COLS * CW), x1 = HX(HILL_X + 0.3), wy = Y(GY + 0.045);
+    const wg = ctx.createLinearGradient(0, wy, 0, Y(GY + SLAB));
+    wg.addColorStop(0, '#5cc2ef');
+    wg.addColorStop(1, '#1d5a93');
+    ctx.fillStyle = wg;
+    ctx.fillRect(x0 - 2, wy, x1 - x0 + 4, Y(GY + SLAB) - wy);
+    ctx.fillStyle = 'rgba(190,240,255,.7)';
+    poly(ctx, [x0 - 2, wy, x0 + ddx * LW, wy + ddy * LW, x1 + ddx * LW, wy + ddy * LW, x1, wy]);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.7)';
+    ctx.lineWidth = 1.2;
+    for (let k = 0; k < 3; k++) {
+      const xx = x0 + ((t * 0.3 + k * 9) % Math.max(4, x1 - x0));
+      ctx.beginPath();
+      ctx.moveTo(xx, wy + R(0.012 + k * 0.012));
+      ctx.lineTo(xx + R(0.02), wy + R(0.012 + k * 0.012));
+      ctx.stroke();
+    }
+  }
+  // 너구리 언덕은 강보다 앞에 있다
+  {
+    const xs: number[] = [];
+    for (let x = HILL_X - 0.15; x <= 11.2; x += 0.1) xs.push(x);
+    const outline = (oy: number) => xs.map((x) => [HX(x) + ddx * oy, (x < HILL_X ? Y(GY) : HYt(x)) + ddy * oy]);
+    // 윗면(풀)
+    const back = outline(LW), front = outline(0);
+    ctx.fillStyle = mix('#7cc45a', '#4d5a6e', Math.max(0, p - 0.55));
+    ctx.beginPath();
+    front.forEach(([a, b], k) => (k ? ctx.lineTo(a, b) : ctx.moveTo(a, b)));
+    for (let k = back.length - 1; k >= 0; k--) ctx.lineTo(back[k][0], back[k][1]);
+    ctx.fill();
+    // 앞면 흙층
+    const bands = ['#6d4a2e', '#8a5f3a', '#a5764a', '#5e4030'];
+    for (let b = 0; b < 4; b++) {
+      ctx.fillStyle = mix(bands[b], '#2a2340', Math.max(0, p - 0.6) * 0.8);
+      ctx.beginPath();
+      front.forEach(([a, bb], k) => {
+        const yy = bb + (b === 0 ? 0 : R(0.028 * b + 0.01 * Math.sin(k * 0.5 + b)));
+        if (k) ctx.lineTo(a, yy);
+        else ctx.moveTo(a, yy);
+      });
+      ctx.lineTo(w + 10, Y(GY + SLAB));
+      ctx.lineTo(HX(HILL_X - 0.15), Y(GY + SLAB));
+      ctx.fill();
+    }
+    ctx.fillStyle = '#5fae45';
+    ctx.beginPath();
+    front.forEach(([a, b], k) => (k ? ctx.lineTo(a, b + R(0.012)) : ctx.moveTo(a, b + R(0.012))));
+    for (let k = front.length - 1; k >= 0; k--) ctx.lineTo(front[k][0], front[k][1]);
+    ctx.fill();
+    // 자갈
+    for (let k = 0; k < 14; k++) {
+      const x = HILL_X + 0.6 + hsh(k + 300) * 3, yy = HYt(x) + R(0.03 + hsh(k + 310) * 0.1), r = R(0.006 + hsh(k) * 0.006);
+      ctx.fillStyle = '#8b8178';
+      ctx.beginPath();
+      ctx.ellipse(HX(x), yy, r * 1.3, r, 0, 0, 7);
+      ctx.fill();
+    }
+    // 해적 깃발
+    const fxp = X(0.855), fyp = HYt(9);
+    ctx.strokeStyle = '#5a3b22';
+    ctx.lineWidth = R(0.007);
+    ctx.beginPath();
+    ctx.moveTo(fxp, fyp);
+    ctx.lineTo(fxp, fyp - R(0.17));
+    ctx.stroke();
+    ctx.fillStyle = '#1f1b2b';
+    ctx.beginPath();
+    ctx.moveTo(fxp, fyp - R(0.17));
+    for (let k = 0; k <= 6; k++) ctx.lineTo(fxp - R(0.012 * k), fyp - R(0.17) + R(0.006) * Math.sin(t * 0.2 + k) + (k === 6 ? 0 : 0));
+    ctx.lineTo(fxp - R(0.072), fyp - R(0.115) + R(0.006) * Math.sin(t * 0.2 + 6));
+    ctx.lineTo(fxp, fyp - R(0.115));
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `${R(0.032)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🦝', fxp - R(0.036), fyp - R(0.142));
+    // 저녁엔 횃불
+    if (p > 0.55) {
+      for (const tx of [0.81, 0.995]) {
+        const bx = X(tx), byy = HYt(9.5);
+        ctx.strokeStyle = '#5a3b22';
+        ctx.lineWidth = R(0.006);
+        ctx.beginPath();
+        ctx.moveTo(bx, byy);
+        ctx.lineTo(bx, byy - R(0.06));
+        ctx.stroke();
+        ctx.fillStyle = '#ffb347';
+        ctx.shadowColor = '#ff8a2e';
+        ctx.shadowBlur = R(0.05);
+        ctx.beginPath();
+        ctx.ellipse(bx, byy - R(0.07) + Math.sin(t * 0.4 + tx * 9) * 1.2, R(0.009), R(0.016), 0, 0, 7);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    }
+  }
+  // ── 구경꾼: 강의 개구리(쿵 하면 펄쩍, 되받아치기엔 박수) · 잔디 위 나비 ──
+  {
+    const bang = Math.min(age('splat'), age('thud'), age('boom'), age('break'), age('collapse'), age('splash')), cheer = age('bonk');
+    const lx = X(X0 + COLS * CW) + R(0.03), ly = Y(GY + 0.045) + ddy * 0.5, hop = bang < 24 ? Math.sin((bang / 24) * Math.PI) * R(0.04) : cheer < 60 ? Math.abs(Math.sin(cheer * 0.3)) * R(0.02) : 0;
+    ctx.fillStyle = '#3f9a4a';
+    ctx.beginPath();
+    ctx.ellipse(lx, ly + R(0.004), R(0.026), R(0.008), 0, 0, 7);
+    ctx.fill();
+    const fz = R(0.013), fy2 = ly - fz * 0.6 - hop;
+    ctx.fillStyle = '#6fcf5a';
+    ctx.beginPath();
+    ctx.ellipse(lx, fy2, fz * 1.1, fz * 0.8, 0, 0, 7);
+    ctx.fill();
+    for (const sx of [-1, 1]) {
+      ctx.fillStyle = '#6fcf5a';
+      ctx.beginPath();
+      ctx.arc(lx + sx * fz * 0.5, fy2 - fz * 0.6, fz * 0.38, 0, 7);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(lx + sx * fz * 0.5, fy2 - fz * 0.62, fz * (bang < 40 ? 0.3 : 0.24), 0, 7);
+      ctx.fill();
+      ctx.fillStyle = '#111';
+      ctx.beginPath();
+      ctx.arc(lx + sx * fz * 0.5 + fz * 0.05, fy2 - fz * 0.6, fz * 0.12, 0, 7);
+      ctx.fill();
+    }
+    ctx.strokeStyle = '#2f6a2a';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(lx, fy2 + fz * 0.05, fz * 0.4, 0.2, Math.PI - 0.2);
+    ctx.stroke();
+    if (cheer < 60) {
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `900 ${R(0.034)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('개굴!', lx, fy2 - R(0.04));
+    }
+    // 나비
+    const bxx = X(0.12 + 0.25 * (0.5 + 0.5 * Math.sin(t * 0.011))), byy = Y(GY - 0.05 + 0.025 * Math.sin(t * 0.037)), fl = Math.abs(Math.sin(t * 0.35));
+    ctx.fillStyle = p > 0.6 ? '#ffd27a' : '#ff9fd0';
+    for (const sx of [-1, 1]) (ctx.beginPath(), ctx.ellipse(bxx + sx * R(0.008) * fl, byy, R(0.008) * fl + 1, R(0.01), sx * 0.4, 0, 7), ctx.fill());
+    ctx.fillStyle = '#3a2a3a';
+    ctx.fillRect(bxx - 0.75, byy - R(0.008), 1.5, R(0.016));
+  }
   // ── 투석기와 너구리 해적단 ──
   const ht = HYt(10), relX = X(X0 + LX * CW), relY = Y(Y0 + LY * CH), pvx = relX + R(ARM * 0.26), pvy = relY + R(ARM * 0.966);
   {
@@ -1543,9 +1608,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FortState, w: number, h: numb
       ctx.strokeRect(x + 3, y + 3, cz - 6, cz - 6);
       if (river) {
         ctx.fillStyle = '#ffffff';
-        ctx.font = `800 ${R(0.026)}px system-ui, sans-serif`;
+        ctx.font = `800 ${R(0.036)}px system-ui, sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText(nk === STONE ? '가라앉음' : '둥둥~', x + cz / 2, y - R(0.012));
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(20,40,70,.7)';
+        ctx.strokeText(nk === STONE ? '가라앉음' : '둥둥~', x + cz / 2, y + cz * 1.05);
+        ctx.fillText(nk === STONE ? '가라앉음' : '둥둥~', x + cz / 2, y + cz * 1.05);
       }
     }
     ctx.setLineDash([]);
@@ -1640,10 +1708,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FortState, w: number, h: numb
     if (e.t <= seenT) continue;
     const x = X(X0 + e.x * CW), y = Y(Y0 + e.y * CH), mc = e.m && MAT[e.m] ? MAT[e.m][0] : '#ffffff';
     switch (e.kind) {
-      case 'place':
-        fx.burst(x, y + cz * 0.5, '#d9c7a0', 6, 1.5, 2), fx.kick(1.2);
-        if (s.taps === 1 && s.lv === 0) say(x - cz, y - cz * 0.4, '톡!', '#fff6c8', 15);
-        break;
+      case 'place': fx.burst(x, y + cz * 0.5, '#d9c7a0', 8, 1.8, 2.2), fx.ring(x, y + cz * 0.5, '#fff6c8', cz * 0.7, 2), fx.kick(1.5); break;
       case 'full': say(x, y, '꽉 찼어요', '#ffffff', 13); break;
       case 'sink': fx.burst(x, y, '#9fe0ff', 18, 3, 2.5), say(x, y - cz * 0.6, '꼬르륵 — 받침 완성!', '#cdefff', 13); break;
       case 'float': fx.burst(x, y, '#9fe0ff', 14, 2.5, 2.2), say(x, y - cz * 0.6, '둥둥~ 떠내려가요', '#cdefff', 13); break;
@@ -1691,17 +1756,30 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FortState, w: number, h: numb
     }
   }
   fx.memo.t = s.t;
-  // 예보 판정 글자 (블록 위에)
-  for (const q of warns) {
-    ctx.font = `900 ${R(0.034)}px system-ui, sans-serif`;
-    const tw = ctx.measureText(q.text).width + R(0.024), bx = Math.max(2, Math.min(w - tw - 2, q.x - tw / 2)), by = q.y - R(0.075);
+  // 예보 판정 글자 (짓는 동안만 · 같은 자리 같은 글자는 합치고, 겹치면 위로 비켜 쌓는다)
+  const lab: { x: number; y: number; text: string; col: string; n: number }[] = [];
+  if (fc)
+    for (const q of warns) {
+      const same = lab.find((o) => o.text === q.text && Math.abs(o.x - q.x) < cz && Math.abs(o.y - q.y) < cz);
+      if (same) same.n++;
+      else lab.push({ ...q, n: 1 });
+    }
+  lab.sort((a, b) => b.y - a.y);
+  ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
+  const placed: { x: number; y: number; w: number }[] = [];
+  for (const q of lab) {
+    const text = q.n > 1 ? `${q.text} ×${q.n}` : q.text;
+    const tw = ctx.measureText(text).width + R(0.024), bx = Math.max(2, Math.min(w - tw - 2, q.x - tw / 2));
+    let by = q.y - R(0.075);
+    for (let k = 0; k < 6 && placed.some((o) => Math.abs(o.x - bx) < (o.w + tw) / 2 + 2 && Math.abs(o.y - by) < R(0.048)); k++) by -= R(0.05);
+    placed.push({ x: bx, y: by, w: tw });
     ctx.fillStyle = 'rgba(30,22,45,.82)';
     rr(ctx, bx, by, tw, R(0.044), R(0.015));
     ctx.fill();
     ctx.fillStyle = q.col;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(q.text, bx + tw / 2, by + R(0.023));
+    ctx.fillText(text, bx + tw / 2, by + R(0.023));
   }
   // 판 끝: 햄스터 만세(지붕 꼭대기) / 데굴데굴
   if (s.phase === 'result') {
@@ -1713,7 +1791,28 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FortState, w: number, h: numb
       if (t % 24 === 0) fx.burst(hcx + cz / 2, gyy(top) - R(0.1), ['#ffe14d', '#ff8fb1', '#8be38b', '#7cc7ff'][(t / 24) % 4], 14, 4, 2.6);
     } else {
       const roll = Math.min(1, s.pt / 60);
-      hamster(ctx, hcx - cz * 0.2 - roll * cz * 1.2, Y(GY) - R(0.03), R(0.03), 'roll', t, 0);
+      hamster(ctx, hcx - cz * 0.2 - roll * cz * 1.2, Y(GY) - R(0.038), R(0.036), 'roll', t, 0);
+    }
+  }
+  // 막아 내면 햄스터가 창문에서 '휴~'
+  {
+    const blocked = Math.min(age('splat'), age('thud'), age('break'), age('crack'), age('plop'), age('miss'), age('splash'), age('boing'));
+    let hs = '';
+    if (s.phase === 'siege' && age('ouch') > 90 && blocked > 8 && blocked < 70 && !wd.p) hs = '휴~';
+    else if (s.phase === 'siege' && age('ouch') < 60 && !wd.broken) hs = '으앙!';
+    else if (s.phase === 'result' && s.ok) hs = '만세!';
+    if (hs && wd.hhp > 0) {
+      ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
+      const tw = ctx.measureText(hs).width + R(0.03), bx = Math.max(2, hcx - tw - R(0.005)), by = hcy - R(s.phase === 'result' ? 0.17 : 0.06);
+      ctx.fillStyle = 'rgba(255,255,255,.95)';
+      rr(ctx, bx, by, tw, R(0.048), R(0.02));
+      ctx.fill();
+      poly(ctx, [bx + tw - R(0.02), by + R(0.048), bx + tw - R(0.005), by + R(0.048), bx + tw + R(0.012), by + R(0.065)]);
+      ctx.fill();
+      ctx.fillStyle = '#7a3a22';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(hs, bx + tw / 2, by + R(0.025));
     }
   }
   // 저녁: 창문 불빛
@@ -1862,13 +1961,13 @@ function drawHud(ctx: CanvasRenderingContext2D, s: FortState, w: number, h: numb
     ctx.lineWidth = cur ? 2.5 : 1.5;
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
-    ctx.font = `900 ${R(0.032)}px system-ui, sans-serif`;
+    ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
     ctx.textAlign = 'left';
-    ctx.fillText(String(n + 1), cx + R(0.012), fy + fh / 2);
+    ctx.fillText(String(n + 1), cx + R(0.01), fy + fh / 2);
     ammo(ctx, sh.k, cx + R(0.055), fy + fh / 2, R(0.017), 0, t);
     ctx.fillStyle = AMMO_COL[sh.k];
-    ctx.font = `900 ${R(0.034)}px system-ui, sans-serif`;
-    ctx.fillText(sh.k === 'water' ? '💧' : String(AM[sh.k].dmg), cx + R(0.088), fy + fh / 2);
+    ctx.font = `900 ${R(0.038)}px system-ui, sans-serif`;
+    ctx.fillText(sh.k === 'water' ? '💧' : String(AM[sh.k].dmg), cx + R(0.086), fy + fh / 2);
     ctx.globalAlpha = 1;
     cx += cw + R(0.012);
   });
@@ -2031,8 +2130,8 @@ function drawHud(ctx: CanvasRenderingContext2D, s: FortState, w: number, h: numb
     }
   }
   // ── 새것 알림 ──
-  if (s.news && s.t - s.news.t < 300 && s.phase !== 'result' && s.phase !== 'intro') {
-    const ag = s.t - s.news.t, a = Math.min(1, ag / 10, (300 - ag) / 20);
+  if (s.news && s.t - s.news.t < 400 && s.phase === 'build') {
+    const ag = s.t - s.news.t, a = Math.min(1, ag / 10, (400 - ag) / 20);
     ctx.globalAlpha = a;
     ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';

@@ -4,9 +4,10 @@
  * 짓기(톡): 칸을 톡 치면 '지금 조각'이 그 칸에 놓인다. 조각은 방향을 갖고 나온다 — ＼ 오른쪽으로 꺾기 · ／ 왼쪽으로 꺾기 · ─ 멈춰 세우기.
  *   놓을 때마다 예보가 다시 그려진다(예보 = 실제와 같은 결정적 시뮬레이션). 되돌리기는 없다 → 다음 조각을 보며 '어디에'를 고민한다.
  * 버티기: 바위가 한 칸씩 굴러 내려와 통나무에 '통!' 꺾이고, 절벽에 '쿵' 튕기고, 멈춰 선 바위를 '딱!' 치면 친 바위는 서고 맞은 바위가 대신 굴러간다(당구).
- * 와우: 멈춰 세운 바위가 다음 바위의 당구공이 된다 — 하나 놓은 통나무가 두세 개 바위의 길을 연쇄로 바꾼다.
+ * 와우: 비탈에서 졸던 바위·멈춰 세운 바위가 다음 바위의 당구공이 된다 — 통나무 하나가 두세 개 바위의 길을 연쇄로 바꾼다.
+ * 판 고르기: 아무것도 안 놓으면 산장이 맞고, 한 수씩만 봐도 산장은 지키지만 ★★★은 다음 조각·당구까지 내다봐야 나오는 배치를 고른다.
  * 별: 산장 무사 ★ · 연못에 첨벙 ★ · 구경꾼(눈사람·소풍 토끼) 무사 ★. 산장이 맞으면 하트 −1, 그 판을 처음부터. 8판(아침 → 밤).
- * 펼쳐짐: 1판 바위·＼ 통나무·연못 첨벙 → 2판 ／·절벽 튕김·소풍 토끼 → 3판 ─ 멈춤·눈사람·당구 '딱!'
+ * 펼쳐짐: 1판 바위·＼ 통나무·연못 첨벙 → 2판 ／·절벽 튕김·소풍 토끼 → 3판 졸린 바위(치면 대신 굴러감, 당구 '딱!')·─ 멈춤·눈사람
  *        → 4판 눈덩이(구를수록 커져서 아래쪽 통나무를 부순다 → 위쪽에서 꺾어야) → 5판 굴러오는 통나무(안 꺾임 → 막아야)·나무
  *        → 6판 두 갈래 산길(지날 때마다 방향이 바뀜 → 순서를 세야) → 7판 눈사태(셋이 한꺼번에, 뭉치면 커짐) → 8판 큰 산사태.
  * 웃음: 염소 산장 주인의 표정(걱정·깜짝·휴·우쭐·어질어질) · 심통 난 얼굴의 바위 · 눈사람 머리가 날아감 · 연못 오리 '꽥!' · 토끼 소풍 '으악!'.
@@ -24,24 +25,25 @@ const PR = 1, PL = 2, PS = 3;
 const TREE = 1, FORK = 2, SNOWMAN = 3;
 /** 굴러오는 것 */
 const BOULDER = 0, SNOW = 1, LOG = 2, CLUMP = 3;
-const WAIT = 0, MOVE = 1, REST = 2, GONE = 3, NEXT = 4;
+const WAIT = 0, MOVE = 1, REST = 2, GONE = 3, NEXT = 4, SLEEP = 255;
 /** 골짜기(산 아래 줄) */
 const V_NONE = 0, V_CABIN = 1, V_POND = 2, V_PICNIC = 3;
 
-interface Tpl { name: string; b: (number | number[])[]; p: number[]; threat: number; snowman?: boolean; picnic?: boolean; trees?: number; fork?: boolean }
+interface Tpl { name: string; b: (number | number[])[]; p: number[]; threat: number; snowman?: boolean; picnic?: boolean; trees?: number; fork?: boolean; sleep?: number }
 const TPL: Tpl[] = [
   { name: '첫 바위', b: [BOULDER], p: [PR], threat: 1, picnic: true },
   { name: '바위 둘', b: [BOULDER, BOULDER], p: [PL, PR, PL], threat: 2, picnic: true },
-  { name: '멈춰 세우기', b: [BOULDER, BOULDER, BOULDER], p: [PS, PR, PL], threat: 2, snowman: true, picnic: true },
-  { name: '눈덩이', b: [SNOW, BOULDER, SNOW], p: [PR, PS, PL, PR], threat: 2, snowman: true, picnic: true },
+  { name: '졸린 바위', b: [BOULDER, BOULDER, BOULDER], p: [PS, PR, PL], threat: 2, snowman: true, picnic: true, sleep: 1 },
+  { name: '눈덩이', b: [SNOW, BOULDER, SNOW], p: [PR, PS, PL, PR], threat: 2, snowman: true, picnic: true, sleep: 1 },
   { name: '굴러오는 통나무', b: [LOG, BOULDER, LOG, BOULDER], p: [PS, PL, PS, PR], threat: 3, trees: 2, picnic: true },
-  { name: '두 갈래 산길', b: [BOULDER, BOULDER, BOULDER, BOULDER], p: [PS, PR, PL], threat: 2, fork: true, snowman: true, picnic: true },
-  { name: '눈사태', b: [[CLUMP, CLUMP, CLUMP], BOULDER, SNOW], p: [PL, PR, PS, PL], threat: 2, snowman: true, picnic: true, trees: 1 },
-  { name: '큰 산사태', b: [BOULDER, SNOW, LOG, BOULDER, BOULDER], p: [PR, PS, PL, PS, PR], threat: 3, fork: true, snowman: true, picnic: true, trees: 1 },
+  { name: '두 갈래 산길', b: [BOULDER, BOULDER, BOULDER, BOULDER], p: [PS, PR, PL], threat: 2, fork: true, snowman: true, picnic: true, sleep: 1 },
+  { name: '눈사태', b: [[CLUMP, CLUMP, CLUMP], BOULDER, SNOW], p: [PL, PR, PS, PL], threat: 2, snowman: true, picnic: true, trees: 1, sleep: 1 },
+  { name: '큰 산사태', b: [BOULDER, SNOW, LOG, BOULDER, BOULDER], p: [PR, PS, PL, PS, PR], threat: 3, fork: true, snowman: true, picnic: true, trees: 1, sleep: 2 },
 ];
 const LEVELS = TPL.length;
 
-export interface Level { tpl: number; n: number; kind: number[]; x0: number[]; d0: number[]; grp: number[]; ng: number; terr: Uint8Array; valley: Uint8Array; fork: number; pieces: number[]; best: number }
+/** grp 255 = 처음부터 비탈에 박혀 졸고 있는 바위 (y0 줄에서 쉬고 있다가, 맞으면 굴러간다) */
+export interface Level { tpl: number; n: number; kind: number[]; x0: number[]; y0: number[]; d0: number[]; grp: number[]; ng: number; terr: Uint8Array; valley: Uint8Array; fork: number; pieces: number[]; best: number }
 
 /** 산비탈 한 판의 결정적 세계 — 예보·실제·봇이 모두 이 코드를 쓴다 */
 export interface World {
@@ -65,7 +67,7 @@ function resetWorld(w: World, L: Level, piece: Uint8Array) {
   w.fork = L.fork;
   w.head = 1;
   w.n = L.n;
-  for (let i = 0; i < L.n; i++) (w.kind[i] = L.kind[i]), (w.x[i] = L.x0[i]), (w.y[i] = -1), (w.d[i] = L.d0[i]), (w.st[i] = WAIT), (w.size[i] = 1), (w.grp[i] = L.grp[i]), (w.out[i] = -1);
+  for (let i = 0; i < L.n; i++) (w.kind[i] = L.kind[i]), (w.x[i] = L.x0[i]), (w.y[i] = L.y0[i]), (w.d[i] = L.d0[i]), (w.st[i] = L.grp[i] === SLEEP ? REST : WAIT), (w.size[i] = 1), (w.grp[i] = L.grp[i]), (w.out[i] = -1);
   w.ng = L.ng;
   w.next = w.cool = w.hits = w.splash = w.harm = 0;
 }
@@ -84,6 +86,7 @@ function land(w: World, i: number, nx: number, d: number, hook: Hook | null) {
 }
 
 const ORD = new Int8Array(MB);
+let CLACKS = 0;
 /**
  * 한 스텝: 움직이는 것들이 한 칸씩 내려간다(앞에 있는 것부터). 움직이는 게 없으면 다음 무리를 굴려 보낸다.
  * 다 끝났으면 false. vis가 있으면 지나간 칸을 센다(봇·생성기가 '닿는 칸'만 시험하려고).
@@ -129,7 +132,7 @@ function wstep(w: World, hook: Hook | null, vis: Uint8Array | null): boolean {
       }
       w.d[i] = d;
       w.st[i] = REST;
-      if (w.st[o] === REST) (w.st[o] = NEXT), (w.d[o] = w.kind[o] === LOG ? 0 : d), hook?.('clack', o, nx, ny, i);
+      if (w.st[o] === REST) (w.st[o] = NEXT), (w.d[o] = w.kind[o] === LOG ? 0 : d), CLACKS++, hook?.('clack', o, nx, ny, i);
       else hook?.('bump', i, nx, ny, o);
       continue;
     }
@@ -168,12 +171,20 @@ const valueOf = (w: World) => (w.hits ? -1000 * w.hits - w.harm : 1000 + (w.spla
 const SW = newWorld();
 function evalPieces(L: Level, piece: Uint8Array, vis: Uint8Array | null): number {
   resetWorld(SW, L, piece);
+  CLACKS = 0;
   if (vis) vis.fill(0);
   for (let g = 0; wstep(SW, null, vis) && g < 600; g++);
   return valueOf(SW);
 }
 
-export interface Plan { cells: number[]; dump: number[]; val: number; stars: number }
+export interface Plan { cells: number[]; dump: number[]; val: number; stars: number; clacks: number }
+/** 조각을 놓을 수 없는 칸: 지형 · 졸린 바위 */
+export function blocked(L: Level): Uint8Array {
+  const b = new Uint8Array(NC);
+  for (let c = 0; c < NC; c++) b[c] = L.terr[c] ? 1 : 0;
+  for (let i = 0; i < L.n; i++) if (L.grp[i] === SLEEP) b[L.y0[i] * W + L.x0[i]] = 1;
+  return b;
+}
 const keyOf = (p: Uint8Array) => {
   let k = '';
   for (let c = 0; c < NC; c++) if (p[c]) k += String.fromCharCode(48 + c, 48 + p[c]);
@@ -185,7 +196,7 @@ const keyOf = (p: Uint8Array) => {
  */
 export function plan(L: Level, base: Uint8Array, from: number, B: number): Plan {
   interface St { piece: Uint8Array; cells: number[]; val: number; vis: Uint8Array }
-  const vis0 = new Uint8Array(NC);
+  const vis0 = new Uint8Array(NC), blk = blocked(L);
   let best: St = { piece: base, cells: [], val: evalPieces(L, base, vis0), vis: vis0 };
   let beam: St[] = [best];
   for (let k = from; k < L.pieces.length; k++) {
@@ -194,7 +205,7 @@ export function plan(L: Level, base: Uint8Array, from: number, B: number): Plan 
       const k0 = keyOf(st.piece);
       if (!keys.has(k0)) keys.add(k0), cand.push({ piece: st.piece, cells: [...st.cells, -1], val: st.val, vis: st.vis });
       for (let c = 0; c < NC; c++) {
-        if (!st.vis[c] || st.piece[c] || L.terr[c]) continue;
+        if (!st.vis[c] || st.piece[c] || blk[c]) continue;
         const p2 = st.piece.slice();
         p2[c] = pt;
         const key = keyOf(p2);
@@ -212,24 +223,41 @@ export function plan(L: Level, base: Uint8Array, from: number, B: number): Plan 
   while (cells.length && cells[cells.length - 1] < 0) cells.pop();
   const fin = new Uint8Array(NC);
   evalPieces(L, best.piece, fin);
-  const stars = starsOf(SW), dump: number[] = [];
-  for (let c = NC - 1; c >= 0; c--) if (!fin[c] && !best.piece[c] && !L.terr[c]) dump.push(c);
-  return { cells, dump, val: best.val, stars };
+  const stars = starsOf(SW), clacks = CLACKS, dump: number[] = [];
+  for (let c = NC - 1; c >= 0; c--) if (!fin[c] && !best.piece[c] && !blk[c]) dump.push(c);
+  return { cells, dump, val: best.val, stars, clacks };
 }
 
 // ───────────────────────────── 판 만들기 ─────────────────────────────
 function firstLevel(): Level {
   const valley = new Uint8Array([V_PICNIC, V_NONE, V_NONE, V_CABIN, V_POND, V_POND, V_POND]);
-  return { tpl: 0, n: 1, kind: [BOULDER], x0: [CAB], d0: [0], grp: [0], ng: 1, terr: new Uint8Array(NC), valley, fork: 1, pieces: [PR], best: 3 };
+  return { tpl: 0, n: 1, kind: [BOULDER], x0: [CAB], y0: [-1], d0: [0], grp: [0], ng: 1, terr: new Uint8Array(NC), valley, fork: 1, pieces: [PR], best: 3 };
 }
 
 function sample(tpl: number, rng: Rng): Level {
-  const T = TPL[tpl], kind: number[] = [], x0: number[] = [], d0: number[] = [], grp: number[] = [];
+  const T = TPL[tpl], kind: number[] = [], x0: number[] = [], y0: number[] = [], d0: number[] = [], grp: number[] = [];
+  // 무리마다 꼭대기 자리가 다르다 (번호표가 겹치지 않게)
+  const used = new Uint8Array(W), free = () => {
+    const f: number[] = [];
+    for (let x = 0; x < W; x++) if (!used[x]) f.push(x);
+    const x = f.length ? f[Math.floor(rng() * f.length)] : Math.floor(rng() * W);
+    used[x] = 1;
+    return x;
+  };
   T.b.forEach((b, g) => {
     if (Array.isArray(b)) {
       const d = rng() < 0.4 ? 0 : rng() < 0.5 ? -1 : 1, bx = Math.floor(rng() * (W - 2));
-      b.forEach((k, j) => (kind.push(k), x0.push(bx + j), d0.push(d), grp.push(g)));
-    } else kind.push(b), x0.push(Math.floor(rng() * W)), d0.push(b === LOG ? 0 : Math.floor(rng() * 3) - 1), grp.push(g);
+      b.forEach((k, j) => (kind.push(k), x0.push(bx + j), y0.push(-1), d0.push(d), grp.push(g), (used[bx + j] = 1)));
+    }
+  });
+  T.b.forEach((b, g) => {
+    if (!Array.isArray(b)) kind.push(b), x0.push(free()), y0.push(-1), d0.push(b === LOG ? 0 : Math.floor(rng() * 3) - 1), grp.push(g);
+  });
+  // 굴러오는 순서(무리 번호)대로 정렬해 둔다
+  const ord = kind.map((_, i) => i).sort((a, b) => grp[a] - grp[b] || a - b);
+  [kind, x0, y0, d0, grp].forEach((arr) => {
+    const c = ord.map((i) => arr[i]);
+    arr.splice(0, arr.length, ...c);
   });
   const valley = new Uint8Array(W);
   valley[CAB] = V_CABIN;
@@ -243,8 +271,8 @@ function sample(tpl: number, rng: Rng): Level {
       [pieces[i], pieces[j]] = [pieces[j], pieces[i]];
     }
   if (rng() < 0.5) pieces = pieces.map((p) => (p === PR ? PL : p === PL ? PR : p));
-  const L: Level = { tpl, n: kind.length, kind, x0, d0, grp, ng: T.b.length, terr: new Uint8Array(NC), valley, fork: rng() < 0.5 ? -1 : 1, pieces, best: 0 };
-  if (T.fork || T.snowman || T.trees) {
+  const L: Level = { tpl, n: kind.length, kind, x0, y0, d0, grp, ng: T.b.length, terr: new Uint8Array(NC), valley, fork: rng() < 0.5 ? -1 : 1, pieces, best: 0 };
+  if (T.fork || T.snowman || T.trees || T.sleep) {
     const cnt = new Uint8Array(NC);
     evalPieces(L, new Uint8Array(NC), cnt);
     const pick = (ok: (c: number) => boolean, want: number) => {
@@ -265,27 +293,59 @@ function sample(tpl: number, rng: Rng): Level {
       const c = pick((c) => ((c / W) | 0) >= 1 && ((c / W) | 0) <= 6 && c % W !== CAB, 99);
       if (c >= 0) L.terr[c] = TREE;
     }
+    // 졸린 바위: 누군가 지나가는 칸에 (맞으면 깨서 굴러간다 — 당구)
+    for (let k = 0; k < (T.sleep ?? 0); k++) {
+      const c = pick((c) => ((c / W) | 0) >= 1 && ((c / W) | 0) <= 5 && !L.kind.some((_, i) => L.grp[i] === SLEEP && L.y0[i] * W + L.x0[i] === c), 1);
+      if (c < 0) continue;
+      L.kind.push(BOULDER), L.x0.push(c % W), L.y0.push((c / W) | 0), L.d0.push(0), L.grp.push(SLEEP), L.n++;
+    }
   }
   return L;
 }
 
+/** 한 수씩만 보는 사람(조각마다 지금 당장 가장 좋아 보이는 칸): 별 몇 개까지 가나 */
+function greedy(L: Level): { stars: number; hits: number } {
+  const p = new Uint8Array(NC), blk = blocked(L);
+  for (const pt of L.pieces) {
+    let bc = -1, bv = -1e9;
+    for (let c = 0; c < NC; c++) {
+      if (p[c] || blk[c]) continue;
+      p[c] = pt;
+      const v = evalPieces(L, p, null);
+      p[c] = 0;
+      if (v > bv) (bv = v), (bc = c);
+    }
+    if (bc >= 0) p[bc] = pt;
+  }
+  evalPieces(L, p, null);
+  return { stars: starsOf(SW), hits: SW.hits };
+}
+
 const CACHE = new Map<number, Level>();
-/** 판 하나: 아무것도 안 놓으면 산장이 맞고(위협), 주어진 조각으로 별 둘 이상이 되는(풀리는) 배치만 고른다 */
+/**
+ * 판 하나: 아무것도 안 놓으면 산장이 맞고(위협), 주어진 조각으로 별 셋이 되는(풀리는) 배치만 고른다.
+ * 3판부터는 '한 수씩만 봐도 산장은 지키지만(너그러움) ★★★은 다음 조각까지 내다봐야 나오는' 배치를 더 좋아한다(고민 거리).
+ */
 export function genLevel(seed: number, tpl: number): Level {
   if (tpl === 0) return firstLevel();
   const key = seed * 16 + tpl, hit = CACHE.get(key);
   if (hit) return hit;
-  const rng = mulberry32(seed), T = TPL[tpl], empty = new Uint8Array(NC);
-  let best: Level | null = null, last: Level | null = null;
-  for (let a = 0; a < 80; a++) {
+  const rng = mulberry32(seed), T = TPL[tpl], empty = new Uint8Array(NC), top = tpl >= 2 ? (T.sleep ? 140 : 125) : 105;
+  let best: Level | null = null, bs = -1, last: Level | null = null;
+  for (let a = 0; a < 90; a++) {
     const L = sample(tpl, rng);
     last = L;
     evalPieces(L, empty, null);
     if (SW.hits < T.threat) continue;
     const p = plan(L, empty, 0, 6);
     L.best = p.stars;
-    if (!best || p.stars > best.best) best = L;
-    if (p.stars >= 3) break;
+    let sc = p.stars === 3 ? 100 : p.stars * 10;
+    if (tpl >= 2 && p.stars === 3) {
+      const g = greedy(L);
+      sc += (g.stars < 3 ? 20 : 0) + (g.hits ? 0 : 5) + (T.sleep && p.clacks ? 15 : 0);
+    } else if (p.stars === 3) sc += 5;
+    if (sc > bs) (bs = sc), (best = L);
+    if (sc >= top) break;
   }
   const L = best ?? last!;
   if (CACHE.size > 4000) CACHE.clear();
@@ -342,8 +402,8 @@ function see(s: SlideState, key: string, text: string) {
 
 const KIND_E = ['🪨', '☃️', '🪵', '❄️'];
 const KIND_N = ['바위', '눈덩이', '통나무', '눈사태'];
-const PIECE_N = ['', '＼ 비스듬 통나무', '／ 비스듬 통나무', '─ 가로 통나무'];
-const PIECE_TIP = ['', '바위를 오른쪽 아래로 꺾어요', '바위를 왼쪽 아래로 꺾어요', '바위를 멈춰 세워요 — 멈춘 바위는 당구공!'];
+const PIECE_N = ['', '＼ 통나무', '／ 통나무', '─ 통나무'];
+const PIECE_TIP = ['', '바위를 오른쪽 아래로 꺾어요', '바위를 왼쪽 아래로 꺾어요', '바위를 멈춰 세워요 · 멈춘 바위는 당구공!'];
 
 function startLevel(s: SlideState, fresh: boolean) {
   const L = s.L;
@@ -371,6 +431,7 @@ function startLevel(s: SlideState, fresh: boolean) {
     }
     note(s, `🔮 예보: ${[...cnt].map(([k, n]) => `${KIND_N[k]} ×${n}`).join(' · ')} 굴러와요!`, '#ffffff');
     if (s.lv === 0) see(s, 'forecast', '🔮 점선 = 바위가 굴러갈 길 · 💥 = 산장에 쾅');
+    if (L.grp.includes(SLEEP)) see(s, 'sleep', '😴 졸린 바위 — 바위로 딱! 치면 깨서 대신 굴러가요');
     for (const p of L.pieces) {
       if (p === PR || p === PL) see(s, 'slant', '／＼ 비스듬 통나무 — 바위가 그쪽으로 꺾여요');
       if (p === PS) see(s, 'stop', '─ 가로 통나무 — 바위를 멈춰 세워요');
@@ -407,7 +468,7 @@ function tapBuild(s: SlideState, X: number, Y: number) {
   if (c < 0) return;
   // 첫 판(안내): 같은 줄의 바위 길 위로, 너무 위쪽이면 가운데쯤으로 붙여 준다 — 첫 3초에 '통!'이 꼭 보이게
   if (s.lv === 0) c = Math.max(3, Math.min(H - 1, (c / W) | 0)) * W + s.L.x0[0];
-  if (s.L.terr[c] || s.piece[c]) return void ev(s, 'nope', 0, c % W, (c / W) | 0);
+  if (blocked(s.L)[c] || s.piece[c]) return void ev(s, 'nope', 0, c % W, (c / W) | 0);
   const p = s.L.pieces[s.used];
   s.piece[c] = p;
   s.placedT[c] = s.t;
@@ -514,10 +575,10 @@ export const landslide: GameDef<SlideState> = {
   id: 'landslide',
   name: '산사태 산장',
   genes: ['fortify', 'forecast', 'billiards'],
-  twist: '바위가 굴러올 길이 점선으로 다 보이고 톡 놓은 통나무가 그 길을 꺾는데, 멈춰 세운 바위가 다음 바위의 당구공이 되어 길이 연쇄로 바뀐다',
+  twist: '바위가 굴러올 길이 점선으로 다 보이고 톡 놓은 통나무가 그 길을 꺾는데, 비탈에서 졸던 바위나 멈춰 세운 바위를 딱 치면 친 바위는 서고 맞은 바위가 대신 굴러가 길이 연쇄로 바뀐다(당구)',
   rules: [
     '칸을 톡 치면 지금 조각이 놓여요 — ＼／는 바위를 꺾고, ─는 멈춰 세워요.',
-    '점선이 바위가 굴러갈 길이에요. 멈춘 바위를 치면 그 바위가 대신 굴러가요.',
+    '점선이 바위가 굴러갈 길이에요. 멈춘·졸린 바위를 치면 그 바위가 대신 굴러가요.',
     '산장을 지키면 ★, 연못에 첨벙 ★, 구경꾼 무사 ★ — 산장이 다치면 ♥−1, 그 판 다시.',
   ],
   controls: 'touch',
@@ -574,7 +635,7 @@ export const landslide: GameDef<SlideState> = {
 };
 
 // ───────────────────────────── 화면 배치 (가로 폭 = 1 단위) ─────────────────────────────
-const Y0 = 0.3, H0 = 0.082, DH = 0.0026, VAL = 9.65, PANEL = 1.285;
+const Y0 = 0.295, H0 = 0.084, DH = 0.0024, VAL = 9.65, PANEL = 1.285;
 const rowY = (r: number) => Y0 + r * H0 + ((r * (r - 1)) / 2) * DH;
 const halfW = (r: number) => 0.385 + 0.075 * (r / H);
 /** 칸 좌표(gx 0~W, gy -1.3~VAL) → 화면(폭 1 단위) */
@@ -624,7 +685,7 @@ export const landslideSmart: Bot<SlideState> = {
     if (i >= m.p.cells.length) return s.lv > 0 ? { tap: false, dir: 0, pointer: { x: BTN.x + BTN.w / 2, y: (BTN.y + BTN.h / 2) / A } } : no;
     let c = m.p.cells[i];
     if (c < 0) {
-      while (m.dump.length && (s.piece[m.dump[0]] || s.L.terr[m.dump[0]])) m.dump.shift();
+      while (m.dump.length && s.piece[m.dump[0]]) m.dump.shift();
       c = m.dump.shift() ?? -1;
       if (c < 0) return no;
     }
@@ -721,7 +782,7 @@ function drawSlide(ctx: CanvasRenderingContext2D, s: SlideState, w: number, h: n
     else if (e.k === 'nope') fx.pop(ex, ey, '✕', '#ff9a9a', big);
     else if (e.k === 'release') {
       const [rx, ry] = P(e.x + 0.5, -0.5);
-      fx.burst(rx, ry, '#e8edf2', 8, 1.6, 2.5), fx.pop(rx, ry - w * 0.05, '우르르…', '#ffffff', Math.max(12, w * 0.036)), fx.kick(1.5);
+      fx.burst(rx, ry, '#e8edf2', 8, 1.6, 2.5), fx.pop(rx + (e.x < W / 2 ? 1 : -1) * w * 0.12, ry + w * 0.03, '우르르…', '#ffffff', Math.max(12, w * 0.036)), fx.kick(1.5);
     } else if (e.k === 'wall') {
       const [wx, wy] = P(e.x, e.y);
       fx.burst(wx, wy, '#8e8a84', 10, 2.5, 2.5), fx.pop(wx + (e.x > 1 ? -w * 0.05 : w * 0.05), wy, '쿵!', '#ffe0b0', big * 0.85), fx.kick(2.5);
@@ -982,9 +1043,9 @@ function drawSlide(ctx: CanvasRenderingContext2D, s: SlideState, w: number, h: n
   const fc = s.fc, marksLater: [[number, number], string][] = [];
   if (showFc) {
     for (let i = 0; i < L.n; i++) {
-      if (rolling && wd.st[i] !== WAIT) continue;
-      const sg2 = fc.seg[i], g = L.grp[i], col = COL[g % COL.length], off = (g - (L.ng - 1) / 2) * 0.07;
-      ctx.globalAlpha = rolling ? 0.35 : 1;
+      if (rolling && wd.st[i] === GONE && s.landAt[i] <= t) continue;
+      const sg2 = fc.seg[i], g = L.grp[i], col = g === SLEEP ? '#f4f4f4' : COL[g % COL.length], off = g === SLEEP ? 0 : (g - (L.ng - 1) / 2) * 0.07;
+      ctx.globalAlpha = rolling ? (wd.st[i] === WAIT ? 0.4 : 0.25) : 1;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       const pts: [number, number][] = [];
@@ -1120,8 +1181,22 @@ function drawSlide(ctx: CanvasRenderingContext2D, s: SlideState, w: number, h: n
   }
   // 바위들
   const face = (x: number, y: number, r: number, mood: number, col = '#2a2420') => {
-    // mood 0 심통 · 1 어질 · 2 놀람 · 3 흥(멈춤)
+    // mood 0 심통 · 1 어질 · 2 놀람 · 3 흥(멈춤) · 4 쿨쿨(졸린 바위)
     ctx.fillStyle = '#ffffff';
+    if (mood === 4) {
+      ctx.strokeStyle = col;
+      ctx.lineWidth = Math.max(1.4, r * 0.1);
+      ctx.beginPath();
+      ctx.arc(x - r * 0.33, y - r * 0.12, r * 0.14, 0.15, Math.PI - 0.15);
+      ctx.moveTo(x + r * 0.47, y - r * 0.12);
+      ctx.arc(x + r * 0.33, y - r * 0.12, r * 0.14, 0.15, Math.PI - 0.15);
+      ctx.stroke();
+      const zz = (t % 70) / 70;
+      ctx.globalAlpha = 1 - zz;
+      shout(x + r * (0.8 + zz * 0.4), y - r * (0.9 + zz * 0.9), 'z', Math.max(11, r * (0.6 + zz * 0.4)), '#ffffff');
+      ctx.globalAlpha = 1;
+      return;
+    }
     if (mood === 1) {
       shout(x - r * 0.33, y - r * 0.1, '@', r * 0.55, '#ffffff');
       shout(x + r * 0.33, y - r * 0.1, '@', r * 0.55, '#ffffff');
@@ -1153,7 +1228,7 @@ function drawSlide(ctx: CanvasRenderingContext2D, s: SlideState, w: number, h: n
     const kd = wd.kind[i], [x, y] = P(gx, gy), c0 = cw(Math.max(-1, Math.min(VAL, gy))), moving = wd.st[i] === MOVE, rot = (s.moved[i] + (moving ? fr : 0)) * 1.4;
     const dz = moving && rolling ? Math.abs(Math.sin(fr * Math.PI)) * c0 * 0.08 : 0;
     const recent = (k: string) => s.events.some((e) => e.i === i && e.k === k && e.at <= t && t - e.at < 22);
-    const mood = recent('bonk') || recent('clack') ? 1 : wd.st[i] === REST && rolling ? 3 : moving && fc.out[i] === V_CABIN ? 0 : moving ? 2 : 0;
+    const mood = recent('bonk') || recent('clack') ? 1 : wd.grp[i] === SLEEP && wd.st[i] === REST && !s.moved[i] ? 4 : wd.st[i] === REST && rolling ? 3 : moving && fc.out[i] === V_CABIN ? 0 : moving ? 2 : 0;
     ctx.globalAlpha = alpha;
     if (kd === BOULDER) {
       const r = c0 * 0.36 * (1 - sink);
@@ -1174,7 +1249,7 @@ function drawSlide(ctx: CanvasRenderingContext2D, s: SlideState, w: number, h: n
       ell(x + Math.cos(rot) * r * 0.5, y - dz + Math.sin(rot) * r * 0.45, r * 0.18, r * 0.12, 'rgba(90,140,70,.55)');
       if (sink < 0.5) face(x, y - dz, r, mood);
     } else if (kd === SNOW) {
-      const r = c0 * (0.2 + 0.034 * Math.min(10, wd.size[i])) * (1 - sink), angry = wd.size[i] >= BIG;
+      const r = c0 * (0.27 + 0.028 * Math.min(10, wd.size[i])) * (1 - sink), angry = wd.size[i] >= BIG;
       ell(x + r * 0.15, y + r * 0.6, r * 0.95, r * 0.3, 'rgba(30,50,90,.25)');
       const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4 - dz, r * 0.1, x, y - dz, r);
       g.addColorStop(0, '#ffffff');

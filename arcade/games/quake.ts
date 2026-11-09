@@ -23,10 +23,10 @@ import type { Bot, GameDef, Input, Theme } from '../core.ts';
 import { juice } from '../juice.ts';
 
 // ───────────────────────────── 판 크기 (화면 폭 = 1, 세로 = A) ─────────────────────────────
-const A = 1.48;
-export const COLS = 7, ROWS = 8;
-const X0 = 0.12, CW = 0.76 / COLS, BH = 0.104, YG = 1.165;
-const TRAY = 1.33;
+const A = 1.4;
+export const COLS = 7, ROWS = 7;
+const X0 = 0.12, CW = 0.76 / COLS, BH = 0.104, YG = 1.085;
+const TRAY = 1.25;
 /** ▶ 버티기 단추 */
 const GO = { x0: 0.6, x1: 0.97, y0: TRAY + 0.018, y1: A - 0.018 };
 
@@ -42,7 +42,7 @@ const HOLD_SIDE: Record<Kind, number> = { J: 3.0, W: 2.4, S: 5.0, D: 5.0, H: 99 
 const HOLD_UP: Record<Kind, number> = { J: 1.4, W: 3.2, S: 8.0, D: 7.0, H: 99 };
 const CRACKS: Record<Kind, number> = { J: 2, W: 3, S: 2, D: 2, H: 99 };
 /** 흔들추가 든 기둥은 옆·회전 흔들림이 준다 — 높이 달수록 더 (진짜 고층 건물의 흔들추처럼) */
-export const damp = (r: number) => Math.max(0.35, 1 - 0.1 * (r + 1));
+export const damp = (r: number) => Math.max(0.3, 1 - 0.13 * (r + 1));
 export const NAME: Record<Kind, string> = { J: '젤리', W: '나무', S: '돌', D: '흔들추', H: '앵무새 집' };
 
 /** 땅: 1 보통 · 모래 1.5 · 바위 0.65 */
@@ -102,16 +102,19 @@ export interface QuakeState {
   parrot: { x: number; y: number; vx: number; vy: number; rot: number; on: boolean };
   debris: Debris[];
   hearts: number; stars: number; pts: number; cleared: number; won: boolean; dead: boolean;
-  seen: Set<string>; events: Ev[]; news: { text: string; t: number } | null;
+  /** 새것 알림: 한꺼번에 생기면 줄을 서서 차례로 (하나에 NEWS틱) */
+  seen: Set<string>; events: Ev[]; news: { text: string; t: number }[];
   /** 판마다 시드로 정한 조각 순서·땅 (다시 할 때도 같은 판) */
   plan: { pieces: Kind[]; ground: number[] }[];
 }
 
+const NEWS = 170;
 const ev = (s: QuakeState, kind: string, c = -1, r = -1, text?: string) => s.events.push({ t: s.t, kind, c, r, text });
 function see(s: QuakeState, key: string, text: string) {
   if (s.seen.has(key)) return;
   s.seen.add(key);
-  s.news = { text, t: s.t };
+  const last = s.news.at(-1);
+  s.news.push({ text, t: Math.max(s.t, last ? last.t + NEWS : 0) });
 }
 
 /** 앵무새 집 높이 (집 밑 블록 수) */
@@ -211,8 +214,7 @@ export function simulate(cols0: Block[][], hc: number, ground: number[], beats: 
 // ───────────────────────────── 판 진행 ─────────────────────────────
 const WARN = 50, SETTLE = 50, RESULT = 150, FORE = 50;
 
-function planFor(seed: number): QuakeState['plan'] {
-  const r = mulberry32(seed ^ 0x51ed);
+function planFor(r: Rng): QuakeState['plan'] {
   return STAGES.map((d, i) => {
     const p = d.pieces.split('') as Kind[];
     // 2판부터: 조각 순서를 조금 섞는다 (첫 조각은 그대로)
@@ -223,8 +225,12 @@ function planFor(seed: number): QuakeState['plan'] {
       }
     const ground = Array(COLS).fill(1);
     if (d.ground) {
-      // 모래 둘·바위 둘 (서로 떨어지게)
-      const order = [0, 1, 2, 3, 4, 5, 6].sort(() => r() - 0.5);
+      // 모래 둘·바위 둘 (자리는 시드마다)
+      const order = [0, 1, 2, 3, 4, 5, 6];
+      for (let k = order.length - 1; k > 0; k--) {
+        const j = Math.floor(r() * (k + 1));
+        [order[k], order[j]] = [order[j], order[k]];
+      }
       order.slice(0, 2).forEach((c) => (ground[c] = SAND));
       order.slice(2, 4).forEach((c) => (ground[c] = ROCK));
     }
@@ -262,7 +268,7 @@ export function startStage(s: QuakeState) {
   if (q0.fast) see(s, 'fast', '〰 빠른 덜덜 — 낮은 칸이 더 떨려요, 오히려 높게!');
   if (d.ground) see(s, 'ground', '🏖️ 모래 땅은 더 흔들리고, 🪨 바위 땅은 덜 흔들려요');
   if (d.q.length > 1) see(s, 'after', '⚡ 여진 — 본진 다음에 다른 흔들림이 한 번 더!');
-  if (s.queue.includes('D')) see(s, 'damper', '🔔 흔들추 — 든 기둥 전체의 옆 흔들림이 확 줄어요');
+  if (s.queue.includes('D')) see(s, 'damper', '🔔 흔들추 — 높이 달수록 그 기둥 전체가 덜 흔들려요');
   if (s.queue.includes('S')) see(s, 'stone', '🪨 돌 — 무겁고 단단해요, 높이 두면 아래가 힘들어요');
   if (s.queue.includes('J')) see(s, 'jelly', '🟩 젤리 — 흔들림을 말랑하게 먹어요');
   worries(s.cols, s.ground, s.beats);
@@ -292,7 +298,7 @@ function drop(s: QuakeState, c: number) {
   ev(s, 'place', c, r, k);
   if (s.hc !== before) ev(s, 'hop', s.hc, s.cols[s.hc].length - 1, '폴짝!'), see(s, 'hop', '🦜 앵무새는 가장 높은 기둥으로 폴짝 이사해요');
   else if (c === s.hc) ev(s, 'lift', c, s.cols[c].length - 1);
-  if (r > 0 && ((c > 0 && s.cols[c - 1].length > r) || (c < COLS - 1 && s.cols[c + 1].length > r)) && s.stage > 0) see(s, 'brace', '🤝 같은 높이에 옆 블록이 붙으면 서로 받쳐 줘요 (옆·회전)');
+  if (s.stage > 0 && ((c > 0 && s.cols[c - 1].length > r) || (c < COLS - 1 && s.cols[c + 1].length > r))) see(s, 'brace', '🤝 같은 높이에 옆 블록이 붙으면 서로 받쳐 줘요 (옆·회전)');
   worries(s.cols, s.ground, s.beats);
   // 판의 첫 조각: 작은 전진이 미리 한 번 (첫 3초의 큰 일 — 젤리가 푸딩처럼 출렁)
   if (s.qi === 1) (s.fore = FORE), ev(s, 'fore', 3, 0, '흔들!');
@@ -342,7 +348,8 @@ function stepDebris(s: QuakeState) {
     p.x += p.vx;
     p.y += p.vy;
     p.rot += p.vx * 30;
-    if (p.y > YG - 0.02 && p.vy > 0) (p.y = YG - 0.02), (p.vy *= -0.3), (p.vx *= 0.6);
+    if (p.x < 0.14 || p.x > 0.86) (p.x = Math.max(0.14, Math.min(0.86, p.x))), (p.vx *= -0.5);
+    if (p.y > YG - 0.02 && p.vy > 0) (p.y = YG - 0.02), (p.vy = Math.abs(p.vy) < 0.004 ? 0 : p.vy * -0.3), (p.vx *= 0.6);
   }
 }
 
@@ -387,7 +394,7 @@ function tapAt(s: QuakeState, x: number, y: number) {
     if (houseRow(s.cols, s.hc) >= s.G) return void startShake(s);
     return void ev(s, 'nogo', s.hc, houseRow(s.cols, s.hc), `깃발 ${s.G}층까지 쌓아야 해요`);
   }
-  if (y < 0.22 || y > TRAY || x < X0 - 0.03 || x > X0 + COLS * CW + 0.03) return;
+  if (y < 0.3 || y > TRAY || x < X0 - 0.03 || x > X0 + COLS * CW + 0.03) return;
   const c = Math.max(0, Math.min(COLS - 1, Math.floor((x - X0) / CW)));
   drop(s, c);
 }
@@ -398,9 +405,9 @@ export const quake: GameDef<QuakeState> = {
   genes: ['fortify', 'stack', 'forecast'],
   twist: '지진 예보(규모·방향·박자)를 보고 젤리·나무·돌을 톡톡 쌓아 꼭대기 앵무새 집을 지킨다 — 바닥의 젤리 한 칸이 옆 지진은 말랑하게 먹어 주지만 위아래 지진엔 무게에 눌려 퍽 터져서, 같은 블록도 예보에 따라 놓을 자리가 정반대가 된다',
   rules: [
-    '기둥을 톡 = 다음 블록이 그 꼭대기에 쿵. 앵무새는 가장 높은 기둥 꼭대기로 이사해요.',
-    '젤리는 흔들림을 먹고, 나무는 휘고, 돌은 무겁고 단단해요. 같은 높이 옆 블록은 서로 받쳐요.',
-    '앵무새 집을 깃발 높이까지 올리고 지진을 버티면 별! 금이 쌓인 블록이 부서지면 그 위는 와르르.',
+    '기둥을 톡 = 블록이 그 꼭대기에 쿵. 앵무새는 가장 높은 기둥으로 이사해요.',
+    '젤리는 흔들림을 먹지만 무거운 건 못 받쳐요. 돌은 무겁고 단단. 옆에 붙은 블록은 서로 받쳐요.',
+    '집을 🚩깃발 높이까지 올리고 지진을 버티면 별! 부서진 블록 위는 와르르.',
   ],
   controls: 'touch',
   hint: '기둥을 톡 = 블록 쌓기 · ▶ 버티기 / 화살표로 고르고 스페이스',
@@ -412,11 +419,12 @@ export const quake: GameDef<QuakeState> = {
   },
   reveals: (s) => s.seen.size,
   create(seed) {
+    const rng = mulberry32(seed);
     const s = {
-      rng: mulberry32(seed), t: 0, stage: 0, phase: 'build', pt: 0, cols: [], hc: 3, ground: [], queue: [], qi: 0, G: 2, q: [], beats: [], bi: 0,
+      rng, t: 0, stage: 0, phase: 'build', pt: 0, cols: [], hc: 3, ground: [], queue: [], qi: 0, G: 2, q: [], beats: [], bi: 0,
       down: false, taps: 0, fore: 0, nid: 1, attempt: 0, fell: false, broke: 0, cracks: 0, ok: false, got: 0, why: '',
       parrot: { x: 0, y: 0, vx: 0, vy: 0, rot: 0, on: true }, debris: [],
-      hearts: 3, stars: 0, pts: 0, cleared: 0, won: false, dead: false, seen: new Set<string>(), events: [], news: null, plan: planFor(seed),
+      hearts: 3, stars: 0, pts: 0, cleared: 0, won: false, dead: false, seen: new Set<string>(), events: [], news: [], plan: planFor(rng),
     } as QuakeState;
     startStage(s);
     return s;
@@ -425,6 +433,7 @@ export const quake: GameDef<QuakeState> = {
     s.t++;
     s.pt++;
     if (s.events.length && s.t - s.events[0].t > 120) s.events = s.events.filter((e) => s.t - e.t <= 120);
+    if (s.news.length && s.t - s.news[0].t > NEWS) s.news.shift();
     const p = inp.pointer ?? null, press = !!p && !s.down;
     s.down = !!p;
     if (s.dead) return;
@@ -499,7 +508,7 @@ const KCOL: Record<Kind, [string, string, string]> = {
 };
 /** 3/4 시점의 깊이 (블록 윗면·옆면이 오른쪽 위로) */
 const DX = 0.022, DY = -0.024;
-const SL0 = 0.03, SL1 = 0.93, SLB = 1.3;
+const SL0 = 0.03, SL1 = 0.93, SLB = 1.22;
 
 interface Gnd { d: number; kind: Shake; fast: boolean }
 /** 지금 땅이 얼마나 밀렸나 — 그리기 전용 (박자 하나 = 반 물결) */
@@ -839,7 +848,7 @@ function drawParrot(ctx: CanvasRenderingContext2D, x: number, y: number, z: numb
   ctx.rotate(rot);
   const hug = mood === 'worry' || mood === 'scream';
   const up = mood === 'dizzy';
-  if (up) ctx.scale(1, -1);
+  if (up) ctx.translate(0, -z * 1.25), ctx.scale(1, -1);
   const bob = mood === 'calm' ? Math.sin(t / 14) * z * 0.04 : mood === 'proud' ? -Math.abs(Math.sin(t / 6)) * z * 0.15 : 0;
   ctx.translate(0, bob);
   // 꼬리
@@ -1173,8 +1182,18 @@ function drawAll(ctx: CanvasRenderingContext2D, s: QuakeState, w: number, h: num
   const houses: [number, number, number, string, string][] = [[0.06, 0.13, 0.11, '#f4a6a0', '#b5524a'], [0.24, 0.1, 0.15, '#9fd3e6', '#3e7c9a'], [0.47, 0.14, 0.12, '#ffe39a', '#c9813a'], [0.69, 0.11, 0.17, '#c8b6f0', '#6b54a8'], [0.86, 0.12, 0.12, '#a8e0b0', '#4a8a5a']];
   for (const [hx, hw, hh, wall, roof] of houses) {
     const jig = quaking ? Math.sin(t * 0.9 + hx * 20) * Math.abs(gnd.d) * 2 : 0, bx = R(hx) + jig + px * 0.5, by = R(YG - 0.055);
+    ctx.fillStyle = mix(wall, '#2a2040', 0.35 + dusk * 0.3 + night);
+    ctx.beginPath();
+    ctx.moveTo(bx + R(hw), by);
+    ctx.lineTo(bx + R(hw + DX * 1.6), by + R(DY * 1.6));
+    ctx.lineTo(bx + R(hw + DX * 1.6), by - R(hh) + R(DY * 1.6));
+    ctx.lineTo(bx + R(hw), by - R(hh));
+    ctx.fill();
     ctx.fillStyle = mix(wall, '#5a4a70', dusk * 0.4 + night);
     ctx.fillRect(bx, by - R(hh), R(hw), R(hh));
+    // 문
+    ctx.fillStyle = mix(roof, '#2a2040', 0.3);
+    ctx.fillRect(bx + R(hw * 0.42), by - R(0.04), R(0.022), R(0.04));
     ctx.fillStyle = mix(roof, '#3a2a50', dusk * 0.3 + night);
     ctx.beginPath();
     ctx.moveTo(bx - R(0.012), by - R(hh));
@@ -1288,6 +1307,14 @@ function drawAll(ctx: CanvasRenderingContext2D, s: QuakeState, w: number, h: num
     ctx.lineTo(R(xa + 0.004 + DX * 1.6), R(YG + DY * 1.6));
     ctx.fill();
   }
+  // 돌바닥 자갈
+  for (let k = 0; k < 70; k++) {
+    const u = hsh(k * 7 + 3), v = hsh(k * 11 + 5), yy = fe + (be - fe) * v, xx = SL0 + 0.01 + (SL1 - SL0 - 0.02) * u + fs + (bs - fs) * v;
+    ctx.fillStyle = k % 2 ? 'rgba(255,255,255,.16)' : 'rgba(110,90,60,.16)';
+    ctx.beginPath();
+    ctx.ellipse(R(xx), R(yy), R(0.012), R(0.004), 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.strokeStyle = 'rgba(120,100,70,.35)';
   ctx.lineWidth = 1;
   for (let k = 1; k < 3; k++) {
@@ -1350,7 +1377,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: QuakeState, w: number, h: num
     ctx.lineTo(poleX, y - R(0.004));
     ctx.fill();
     ctx.fillStyle = n === s.G ? '#ffffff' : '#5a3a00';
-    ctx.font = `900 ${R(0.034)}px system-ui, sans-serif`;
+    ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(n === s.G ? `${n}층` : `★${n}`, poleX + R(0.03), y - R(0.026));
@@ -1482,7 +1509,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: QuakeState, w: number, h: num
       for (let k = 0; k < 4; k++) fx.burst(R(0.12 + 0.25 * k), R(YG + 0.01), '#cdb48a', 6, 2, 2.2);
       pop(R(0.3), R(YG - 0.3), '앗, 전진이다!', '#ffe0b0', R(0.048));
     }
-    if (e.kind === 'warn') fx.kick(3), pop(w / 2, R(0.5), '쿠르릉…', '#ffd0a0', R(0.06));
+    if (e.kind === 'warn') fx.kick(3), pop(w / 2, R(YG + 0.09), '쿠르릉…', '#ffd0a0', R(0.06)), fx.burst(w / 2, R(YG + 0.06), '#8a6a4a', 16, 2.5, 2.5);
     if (e.kind === 'go') fx.blink('#ffe6c8', 0.15), fx.ring(w / 2, R(YG), '#ffd0a0', R(0.5), 5);
     if (e.kind === 'beat') {
       const a = Number(e.text);
@@ -1511,7 +1538,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: QuakeState, w: number, h: num
   ctx.fillText(`${s.stage + 1}/${STAGES.length}판`, R(0.03), hb / 2);
   ctx.font = `800 ${R(0.038)}px system-ui, sans-serif`;
   ctx.fillStyle = '#ffd0c8';
-  ctx.fillText(`🚩 ${s.G}층 · 지금 ${hrow}층`, R(0.2), hb / 2);
+  ctx.fillText(s.fell ? `🚩 ${s.G}층 · 와르르!` : `🚩 ${s.G}층 · 지금 ${hrow}층`, R(0.2), hb / 2);
   ctx.textAlign = 'right';
   ctx.fillStyle = '#ffe066';
   ctx.font = `900 ${R(0.042)}px system-ui, sans-serif`;
@@ -1621,7 +1648,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: QuakeState, w: number, h: num
     ctx.moveTo(gx, gy);
     ctx.lineTo(gx + gw, gy);
     ctx.stroke();
-    const mxA = Math.max(...s.beats.map((b) => b.a), 0.01) / Math.min(1, amp(Math.max(...s.q.map((q) => q.mag))) / amp(7) + 0.35);
+    const mxA = 1.9;
     const played = s.phase === 'shake' ? s.pt : s.phase === 'settle' || s.phase === 'result' ? total : 0;
     for (const pass of [0, 1]) {
       ctx.strokeStyle = pass ? '#e8590c' : '#3a4a60';
@@ -1660,12 +1687,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: QuakeState, w: number, h: num
     }
   }
   // 새것 알림
-  if (s.news && s.t - s.news.t < 220) {
-    const age = s.t - s.news.t, a = Math.min(1, age / 10, (220 - age) / 20);
+  const nw = s.news.find((n) => s.t >= n.t && s.t - n.t < NEWS);
+  if (nw) {
+    const age = s.t - nw.t, a = Math.min(1, age / 10, (NEWS - age) / 15);
     ctx.globalAlpha = a;
     ctx.font = `900 ${R(0.037)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
-    const tx = `✨ ${s.news.text}`, tw2 = Math.min(w - 12, ctx.measureText(tx).width + 22), by2 = R(0.325);
+    const tx = `✨ ${nw.text}`, tw2 = Math.min(w - 12, ctx.measureText(tx).width + 22), by2 = R(0.325);
     ctx.fillStyle = 'rgba(25,35,55,.88)';
     rr(ctx, w / 2 - tw2 / 2, by2 - R(0.028), tw2, R(0.056), R(0.028));
     ctx.fill();
@@ -1744,7 +1772,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: QuakeState, w: number, h: num
       ctx.font = `900 ${R(0.048)}px system-ui, sans-serif`;
       ctx.fillText('▶ 버티기', bx0 + bwb / 2, by0 + bhb * (can ? 0.5 : 0.36));
       if (!can) {
-        ctx.font = `800 ${R(0.034) < 12 ? 12 : R(0.034)}px system-ui, sans-serif`;
+        ctx.font = `800 ${R(0.037)}px system-ui, sans-serif`;
         ctx.fillText(`🚩 ${s.G}층까지 쌓기`, bx0 + bwb / 2, by0 + bhb * 0.74);
       }
     } else {
@@ -1752,7 +1780,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: QuakeState, w: number, h: num
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#ffffff';
       ctx.font = `900 ${R(0.05)}px system-ui, sans-serif`;
-      const msg = ph === 'warn' ? '쿠르릉… 온다!' : ph === 'shake' ? (s.fell ? '와르르…' : `흔들흔들… 버텨라! ${Math.min(s.bi, s.beats.length)}/${s.beats.length}`) : ph === 'settle' ? (s.fell ? '앵무새가…!' : '멈췄다…?') : s.ok ? '다음 판 준비 중…' : s.hearts > 0 ? '다시 지어 봐요' : '끝!';
+      const msg = ph === 'warn' ? '쿠르릉… 온다!' : ph === 'shake' ? (s.fell ? '와르르…' : `흔들흔들… 버텨라! ${Math.min(s.bi, s.beats.length)}/${s.beats.length}`) : ph === 'settle' ? (s.fell ? '앵무새가…!' : '멈췄다…?') : s.won ? `끝! 별 ${s.stars}개 · ${s.pts}점` : s.ok ? '다음 판 준비 중…' : s.hearts > 0 ? '다시 지어 봐요' : '끝!';
       ctx.fillText(msg, w / 2, y0 + tb * 0.42);
       if (ph === 'shake') {
         ctx.fillStyle = 'rgba(255,255,255,.18)';
@@ -1764,7 +1792,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: QuakeState, w: number, h: num
   }
   // ── 판 카드: 성공(별) · 실패 ──
   if (ph === 'result') {
-    const age = s.pt, sc = Math.min(1, 0.6 + age / 12), cy = R(1.225);
+    const age = s.pt, sc = Math.min(1, 0.6 + age / 12), cy = R(YG + 0.07);
     let head: string, sub: string, col: string;
     if (s.ok) (head = s.won ? '지진 탑 완성! 🎉' : `${s.stage + 1}판 버텼다!`), (sub = `${'★'.repeat(s.got)}${'☆'.repeat(3 - s.got)}  ${s.got === 3 ? '높게 · 멀쩡하게!' : hrow >= s.G + 1 ? '높이 ★ · 부서진 블록이 있어요' : s.broke === 0 ? '멀쩡 ★ · 한 층 더 높이면 ★' : '한 층 더, 하나도 안 부서지게!'}`), (col = '#ffe066');
     else (head = s.fell ? '와르르! 앵무새가 떨어졌어요' : `🚩 ${s.G}층까지 못 올렸어요`), (sub = s.hearts > 0 ? `하트 −1 · ${s.stage + 1}판 다시 짓기` : `끝! 별 ${s.stars}개`), (col = '#ffb3a8');
@@ -1826,9 +1854,10 @@ export const quakeRandom: Bot<QuakeState> = {
 };
 
 /** 결과 값어치: 앵무새 무사 > 별 높이 > 안 부서짐 > 금 적게 */
-function value(o: Outcome, G: number) {
+function value(o: Outcome, G: number, hc = 3) {
   if (o.fell || o.row < G) return -1000 + o.lasted * 400 + Math.min(o.row, G) * 10 - o.cracks * 3;
-  return 1000 + (o.row >= G + 1 ? 300 : 0) + (o.broke === 0 ? 300 : -o.broke * 10) - o.cracks * 3 - o.row * 0.5;
+  // 같으면 가운데 쪽 탑이 보기 좋다 (아주 작은 덤)
+  return 1000 + (o.row >= G + 1 ? 300 : 0) + (o.broke === 0 ? 300 : -o.broke * 10) - o.cracks * 3 - o.row * 0.5 - Math.abs(hc - 3) * 0.2;
 }
 
 interface Node { cols: Block[][]; hc: number; seq: number[]; v: number }
@@ -1839,13 +1868,13 @@ export function planBuild(s: QuakeState, width = 28): number[] {
   /** 지금 판의 값어치: 그대로 흔들어 본 값과, '다음 조각들을 탑에 바로 얹으면' 흔들어 본 값 중 나은 쪽 (빔이 앞날을 보게) */
   const evalNode = (cols: Block[][], hc: number, i: number) => {
     const row = houseRow(cols, hc), left = n - i;
-    let v = row >= G ? value(simulate(cols, hc, s.ground, beats), G) : -5000;
+    let v = row >= G ? value(simulate(cols, hc, s.ground, beats), G, hc) : -5000;
     const use = Math.min(left, G + 1 - row);
     if (use > 0) {
       const c2 = clone(cols);
       let h2 = hc;
       for (let j = 0; j < use; j++) h2 = place(c2, h2, h2, s.queue[s.qi + i + j], 0);
-      v = Math.max(v, value(simulate(c2, h2, s.ground, beats), G) - use * 2);
+      v = Math.max(v, value(simulate(c2, h2, s.ground, beats), G, h2) - use * 2);
     }
     return v;
   };
@@ -1853,7 +1882,7 @@ export function planBuild(s: QuakeState, width = 28): number[] {
   let best: Node | null = null;
   const consider = (nd: Node) => {
     if (houseRow(nd.cols, nd.hc) < G) return;
-    const v = value(simulate(nd.cols, nd.hc, s.ground, beats), G);
+    const v = value(simulate(nd.cols, nd.hc, s.ground, beats), G, nd.hc);
     if (!best || v > best.v) best = { ...nd, v, seq: [...nd.seq, -1] };
   };
   for (let i = 0; i < n; i++) {
@@ -1887,7 +1916,7 @@ export function planBuild(s: QuakeState, width = 28): number[] {
     beam = kept;
   }
   for (const nd of beam) {
-    const v = value(simulate(nd.cols, nd.hc, s.ground, beats), G);
+    const v = value(simulate(nd.cols, nd.hc, s.ground, beats), G, nd.hc);
     if (!best || v > best.v) best = { ...nd, v };
   }
   if (!best) return [];
