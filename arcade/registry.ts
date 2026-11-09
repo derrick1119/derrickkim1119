@@ -5,26 +5,12 @@
  * 졸업한 게임은 스튜디오(`studio/<게임>/`)가 이어받는다(행성 수호대 2의 원본 `games/guardian2.ts`는 스튜디오 참고용으로 파일만 남김).
  */
 import type { Bot, GameDef } from './core.ts';
-import { isle, isleRandom, isleSmart } from './games/isle.ts';
-import { terrarium, terrariumRandom, terrariumSmart } from './games/terrarium.ts';
-import { train, trainRandom, trainSmart } from './games/train.ts';
 import { volcano, volcanoRandom, volcanoSmart } from './games/volcano.ts';
-import { dollhouse, dollhouseRandom, dollhouseSmart } from './games/dollhouse.ts';
-import { antfarm, antfarmRandom, antfarmSmart } from './games/antfarm.ts';
-import { seasons, seasonsRandom, seasonsSmart } from './games/seasons.ts';
-import { snowglobe, snowglobeRandom, snowglobeSmart } from './games/snowglobe.ts';
 import { turtle, turtleRandom, turtleSmart } from './games/turtle.ts';
 
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S> }
 
 export const GAMES: Entry[] = [
-  { game: isle, dumb: isleRandom, smart: isleSmart },
-  { game: terrarium, dumb: terrariumRandom, smart: terrariumSmart },
-  { game: train, dumb: trainRandom, smart: trainSmart },
   { game: volcano, dumb: volcanoRandom, smart: volcanoSmart },
-  { game: dollhouse, dumb: dollhouseRandom, smart: dollhouseSmart },
-  { game: antfarm, dumb: antfarmRandom, smart: antfarmSmart },
-  { game: seasons, dumb: seasonsRandom, smart: seasonsSmart },
-  { game: snowglobe, dumb: snowglobeRandom, smart: snowglobeSmart },
   { game: turtle, dumb: turtleRandom, smart: turtleSmart },
 ];
