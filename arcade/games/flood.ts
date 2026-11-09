@@ -822,7 +822,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
         if (hk === 0) fitText(ctx, '여기!', x + cw / 2, y - hz - R(0.02) - pul * 3, R(0.036), '#fff8d0', R(0.2), 900);
       }
       // 지킬 것
-      if (st.prot[i]) drawKeeper(ctx, s, i, x + cw / 2, ty(r, g) + chh * 0.72, cw, t, W, lights, night);
+      const floatUp = st.prot[i] && st.prot[i] !== CAT && isWet(s, i) && W[i] >= 7;
+      if (st.prot[i] && !floatUp) drawKeeper(ctx, s, i, x + cw / 2, ty(r, g) + chh * 0.72, cw, t, W, lights, night);
       if (st.deco[i] === 1) drawTree(ctx, x + cw / 2, y + chh * 0.62, cw, t, i, night);
       // 물 (칸마다 수면 높이로 · 앞으로 낮아지면 물 벽이 보인다). 아주 얕으면 젖은 땅만
       const wv = W[i];
@@ -898,6 +899,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
           ctx.fill();
         }
       }
+      // 오리 둥지·책은 물 위로 둥실 떠오른다
+      if (floatUp) drawKeeper(ctx, s, i, x + cw / 2, ty(r, surf(i)) + chh * 0.6, cw, t, W, lights, night);
     }
   }
   // 토끼 이웃: 뒤 언덕을 오가며 구경 (물이 오면 펄쩍, 버티면 만세, 잠기면 허둥지둥)
@@ -1001,6 +1004,18 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
     drawFrog(ctx, fxp, fyp - jump, R(0.05), t, happy);
     if (happy && t % 120 < 50) fitText(ctx, '개굴!', fxp, fyp - jump - R(0.06), R(0.036), '#eaffd0', R(0.2), 900);
   }
+  // 짓는 동안: 배수로(물이 빠지는 곳) 꼬리표
+  if (s.phase === 'build') {
+    const o = st.outlets[0], c = colOf(o.i), r = rowOf(o.i);
+    const lx = o.side === 'B' ? cx0(c) + cw / 2 : o.side === 'L' ? boardL + R(0.06) : boardR - R(0.06), ly = o.side === 'B' ? ty(ROWS, ZB) + R(0.012) : ty(r + 1, 0) + R(0.02);
+    ctx.font = `900 ${R(0.034)}px system-ui, sans-serif`;
+    const tw3 = ctx.measureText('⤓ 배수로').width + R(0.025);
+    ctx.fillStyle = 'rgba(20,50,80,.8)';
+    ctx.beginPath();
+    ctx.roundRect(lx - tw3 / 2, ly - R(0.02), tw3, R(0.04), R(0.02));
+    ctx.fill();
+    fitText(ctx, '⤓ 배수로', lx, ly, R(0.034), '#cfeeff', tw3, 900);
+  }
   // ── 비 ──
   if (raining) {
     ctx.strokeStyle = 'rgba(210,230,255,.55)';
@@ -1043,7 +1058,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
     const bob = Math.sin(t / 10 + k) * 3, label = wv.kind === 'rain' ? `${'①②③④'[k]} ${wv.L}L` : same.map((q) => `${'①②③④'[q.k]} ${q.wv.L}L`).join(' + ');
     if (wv.kind === 'rain') {
       // 비구름 꼬리표 (판 뒤쪽 위)
-      const cx = w / 2 + (k % 2 ? R(0.2) : -R(0.2)), cy = ty(0, 4.2) + R(0.03) + bob, wait = s.phase === 'watch' ? Math.max(0, (wv.at - m.n) / SPS) : 0;
+      const tLeft = st.waves.some((q) => q.kind === 'pour' && q.side === 'T' && colOf(q.cells[0]) < 4), cx = tLeft ? w - R(0.2) : R(0.2), cy = ty(0, 4.2) + R(0.03) + bob, wait = s.phase === 'watch' ? Math.max(0, (wv.at - m.n) / SPS) : 0;
       ctx.fillStyle = 'rgba(90,104,120,.92)';
       for (const [dx, dy, rr] of [[-0.05, 0.005, 0.03], [0, -0.012, 0.038], [0.05, 0.005, 0.03]] as [number, number, number][]) {
         ctx.beginPath();
@@ -1323,8 +1338,10 @@ function drawPiece(ctx: CanvasRenderingContext2D, p: number, stack: number, x: n
 }
 
 /** 지킬 것: 고양이 집 · 오리 둥지 · 꼬마 도서관 (물이 가까우면 깨고, 닿으면 웃기게 난리) */
+/** 잠긴 지킬 것 (실패한 판에서 물이 문턱을 넘은 곳 모두) */
+const isWet = (s: FloodState, i: number) => s.phase === 'result' && !s.ok && (s.failCell === i || s.sim.w[i] >= FLOOD);
 function drawKeeper(ctx: CanvasRenderingContext2D, s: FloodState, i: number, x: number, y: number, cw: number, t: number, W: Float64Array, lights: [number, number, number][], night: number) {
-  const k = s.st.prot[i], wet = s.phase === 'result' && !s.ok && s.failCell === i, alert = s.near[i] && s.phase !== 'build', saved = s.phase === 'result' && s.ok;
+  const k = s.st.prot[i], wet = isWet(s, i), alert = s.near[i] && s.phase !== 'build', saved = s.phase === 'result' && s.ok;
   const age = s.pt, z = cw * 1.15;
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,.25)';
@@ -1745,7 +1762,11 @@ function drawHud(ctx: CanvasRenderingContext2D, s: FloodState, w: number, h: num
     fitText(ctx, tx, w / 2, by, R(0.036), '#ffffff', w - 30, 900);
     ctx.globalAlpha = 1;
   }
-  // 처음 안내
+  // 처음 안내: 점선 칸 톡 → 다 놓으면 ▶ 버티기
+  if (s.stage === 0 && s.phase === 'build' && s.tries === 0 && s.hint.length && s.qi >= s.hint.length && s.qi < st.queue.length) {
+    const b = BTN, pul = Math.sin(t / 6) * R(0.008);
+    fitText(ctx, '👉 ▶ 버티기! 남긴 조각은 ★', R(b.x - 0.02), R(b.y - 0.035) + pul, R(0.038), '#fff6c8', R(0.62), 900, 'right');
+  }
   if (s.stage === 0 && s.taps === 0 && s.phase === 'build' && s.pt > 60) {
     const tx = '👆 점선 칸을 톡! 모래주머니로 물길을 막아요';
     ctx.font = `900 ${R(0.04)}px system-ui, sans-serif`;

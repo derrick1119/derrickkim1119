@@ -307,7 +307,7 @@ function waveStep(s: SandState) {
     if (r.crumble.length) see(s, 'erode', '모래벽이 깎였어요 — 깎인 자리로 다음 파도가 더 들어와요');
     s.lostThis += r.lost.length;
     r.dmg.forEach((d, k) => {
-      const c = s.castles[k], x = ccx(c.cells[0]) + (c.cells.length > 1 ? CW / 2 : 0), y = ccy(c.cells[0]) - (c.prince ? 0.17 : 0.24);
+      const c = s.castles[k], x = ccx(c.cells[0]) + (c.cells.length > 1 ? CW / 2 : 0), y = ccy(c.cells[0]) - 0.03;
       if (d > 0 && !k && s.stealT < 0) s.stealT = s.t;
       if (d > 0) (s.dmgThis += d), ev(s, s.hp[k] <= 0 ? 'fall' : 'dmg', x, y, s.hp[k] <= 0 ? '와르르르!' : `성이 깎였다 -${d}`, '#ffb3a8');
       else if (!k) ev(s, 'safe', x, y, s.wi === 0 && s.stage === 0 ? '막았다! 에헴!' : '끄떡없다!', '#fff1a8');
@@ -1506,6 +1506,37 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
       // 조개
       if (s.shell[i]) drawShell(ctx, X(ccx(i)), Y(ccy(i) + 0.012), R(0.02), t);
     }
+  // 미리 보기 표: 벽에 부딪히는 물 높이(넘치면 빨강), 성에 물이 닿으면 경고
+  if (pre) {
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i < N; i++) {
+      if (!pre.hit[i] || s.K[i] === CASTLE) continue;
+      const hz = s.K[i] === ROCK ? ROCK_H + 0.8 : s.Hh[i] + 1.4, bx = X(ccx(i)), by = Y(PY(vrowOf(i) + 0.55, hz)), over = pre.over[i] > 0;
+      ctx.fillStyle = over ? '#ff5a4a' : '#2f9be0';
+      ctx.beginPath();
+      ctx.arc(bx, by, R(0.022), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
+      ctx.fillText(String(pre.hit[i]), bx, by + 0.5);
+    }
+    s.castles.forEach((cs) => {
+      const hv = Math.max(...cs.cells.map((j) => pre!.hit[j]));
+      if (!hv) return;
+      const bx = X(ccx(cs.cells[0]) + (cs.cells.length > 1 ? CW / 2 : 0)), by = Y(ccy(cs.cells[0])) + R(0.005), pul = 0.6 + 0.4 * Math.sin(t * 0.2);
+      ctx.fillStyle = `rgba(255,70,60,${0.85 * pul})`;
+      ctx.beginPath();
+      ctx.roundRect(bx - R(0.1), by - R(0.022), R(0.2), R(0.044), R(0.022));
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
+      ctx.fillText(`물이 닿아요 -${hv}`, bx, by + 0.5);
+    });
+  }
   // 떠내려가는 조개 (방금 젖은 것)
   if (wave && fl)
     for (const e of s.events)
@@ -1515,7 +1546,16 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
       }
   // ── 꽃게 백성 (물이 닿으면 조개 서핑으로 '야호~') ──
   for (const cb of s.crabs) {
-    const i = cb.home, hx = ccx(i), hy = ccy(i) + 0.015;
+    // 집 자리에 벽이 서면 가까운 빈 모래로 비켜 선다 (그리기만)
+    let i = cb.home;
+    if (s.K[i] !== SAND) {
+      let bd = 99;
+      for (let j = 0; j < N; j++) {
+        const d = Math.abs(rowOf(j) - rowOf(cb.home)) + Math.abs(colOf(j) - colOf(cb.home));
+        if (s.K[j] === SAND && !s.shell[j] && d < bd) (bd = d), (i = j);
+      }
+    }
+    const hx = ccx(i), hy = ccy(i) + 0.015;
     let x = hx + Math.sin((t + cb.off) * 0.025) * CW * 0.28, y = hy, mood: Mood = 'calm', claws = 0.2, surf = 0;
     if (wave && fl && fl.lvl[i] > 0 && wt >= s.arrive[i]) {
       surf = Math.min(1, (wt - s.arrive[i]) / 50);
@@ -1545,7 +1585,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
     ctx.ellipse(px, py, R(0.008), R(0.003), 0, 0, Math.PI * 2);
     ctx.fill();
     const c0 = s.castles[0], fx0 = X(PX(colOf(c0.cells[0]) + c0.cells.length / 2, vrowOf(c0.cells[0]) + 0.42)) + R(0.03), fy0 = Y(PY(vrowOf(c0.cells[0]) + 0.42, 10)) - R(0.07);
-    const st = s.stealT >= 0 ? t - s.stealT : -1, gz = R(0.022);
+    const st = s.stealT >= 0 ? t - s.stealT : -1, gz = R(0.032);
     if (st >= 0 && st < 90) {
       let gx: number, gy: number;
       if (st < 30) (gx = px + (fx0 - px) * (st / 30)), (gy = py - R(0.02) + (fy0 - py) * (st / 30) - Math.sin((st / 30) * Math.PI) * R(0.08));
@@ -1671,7 +1711,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
   ctx.fillStyle = th.ink;
   font(0.045, 900);
   ctx.fillText(`🏖️ ${s.stage + 1}번째 밀물`, R(0.03), hb * 0.5);
-  font(0.034, 800);
+  font(0.036, 800);
   ctx.fillStyle = th.muted;
   ctx.fillText(` / ${STAGE_COUNT}`, R(0.03) + ctx.measureText(`🏖️ ${s.stage + 1}번째 밀물`).width * (0.045 / 0.034) * 0.98, hb * 0.55);
   ctx.textAlign = 'right';
@@ -1763,9 +1803,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
       ctx.strokeText(String(wv.h), X(cx0 + cw * 0.66), my + R(0.002));
       ctx.fillStyle = '#ffffff';
       ctx.fillText(String(wv.h), X(cx0 + cw * 0.66), my + R(0.002));
-      font(0.03, 800);
-      ctx.fillStyle = 'rgba(255,255,255,.9)';
-      ctx.fillText(`${k + 1}`, X(cx0 + 0.016), Y(cy0 + 0.016));
+      font(0.036, 900);
+      ctx.fillStyle = 'rgba(255,255,255,.95)';
+      ctx.fillText(`${k + 1}`, X(cx0 + 0.017), Y(cy0 + 0.02));
       if (wv.rise) {
         ctx.fillStyle = '#ffffff';
         font(0.03, 800);
@@ -1948,7 +1988,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
       font(0.05, 900);
       ctx.textAlign = 'center';
       ctx.fillText('▶ 버티기', X(BTN.x + BTN.w / 2), Y(BTN.y + BTN.h * 0.42));
-      font(0.03, 800);
+      font(0.036, 800);
       ctx.fillText(`남기면 +3점씩`, X(BTN.x + BTN.w / 2), Y(BTN.y + BTN.h * 0.8));
     } else {
       ctx.textAlign = 'left';
@@ -1986,8 +2026,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
     ctx.fillStyle = s.stage === 0 && s.pi === 0 && s.phase === 'build' ? '#ffffff' : '#ffe9c4';
     font(s.stage === 0 && s.pi === 0 && s.phase === 'build' ? 0.044 : 0.038, 900);
     ctx.fillText(hint, w / 2, Y(ty + 0.19), w - R(0.06));
-    ctx.fillStyle = 'rgba(255,233,196,.6)';
-    font(0.034, 700);
+    ctx.fillStyle = 'rgba(255,233,196,.65)';
+    font(0.036, 700);
     ctx.fillText(`점수 ${s.pts}`, w / 2, Y(ty + 0.24));
   }
 }
