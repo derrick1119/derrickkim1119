@@ -6,10 +6,16 @@
  */
 import type { Bot, GameDef } from './core.ts';
 import { sandcastle, sandcastleRandom, sandcastleSmart } from './games/sandcastle.ts';
+import { turtlebeach, turtlebeachRandom, turtlebeachSmart } from './games/turtlebeach.ts';
+import { crabpools, crabpoolsRandom, crabpoolsSmart } from './games/crabpools.ts';
+import { igloo, iglooRandom, iglooSmart } from './games/igloo.ts';
 
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S> }
 
 export const GAMES: Entry[] = [
-  // 21라운드 선택: 밀물 모래성 (오너 "6번만") — 22라운드에서 다듬은 판 + 같은 결 새 아이디어
+  // 22라운드 — 밀물 모래성 2(21라운드 선택, 다듬은 판) + 같은 결 새 아이디어 셋
   { game: sandcastle, dumb: sandcastleRandom, smart: sandcastleSmart },
+  { game: turtlebeach, dumb: turtlebeachRandom, smart: turtlebeachSmart },
+  { game: crabpools, dumb: crabpoolsRandom, smart: crabpoolsSmart },
+  { game: igloo, dumb: iglooRandom, smart: iglooSmart },
 ];

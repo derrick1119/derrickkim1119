@@ -1,26 +1,90 @@
 {
  "sandcastle": {
   "id": "sandcastle",
-  "name": "밀물 모래성",
+  "name": "밀물 모래성 2",
   "n": 24,
   "dumb": {
-   "score": 40,
-   "sec": 49.1
+   "score": 400,
+   "sec": 81.5
   },
   "smart": {
-   "score": 431.5,
-   "sec": 91.2,
+   "score": 2555,
+   "sec": 111.7,
    "capped": 0
   },
-  "skillGap": 10.55,
+  "skillGap": 6.37,
   "reveals": [
-   6.5,
-   8.9,
-   9.9
+   5,
+   7,
+   10
   ],
   "dumbReveals": [
-   4.3,
-   4.3
+   5,
+   5.6
+  ],
+  "parts": {
+   "skill": 0.891,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 1,
+   "unfold": 1
+  },
+  "fun": 0.969
+ },
+ "turtlebeach": {
+  "id": "turtlebeach",
+  "name": "아기 거북 해변",
+  "n": 24,
+  "dumb": {
+   "score": 95,
+   "sec": 69.6
+  },
+  "smart": {
+   "score": 594.5,
+   "sec": 102.2,
+   "capped": 0
+  },
+  "skillGap": 6.2,
+  "reveals": [
+   9,
+   11,
+   13
+  ],
+  "dumbReveals": [
+   5.5,
+   6.8
+  ],
+  "parts": {
+   "skill": 0.878,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 1,
+   "unfold": 1
+  },
+  "fun": 0.965
+ },
+ "crabpools": {
+  "id": "crabpools",
+  "name": "꽃게 갯벌 수로",
+  "n": 24,
+  "dumb": {
+   "score": 70,
+   "sec": 72.9
+  },
+  "smart": {
+   "score": 690.5,
+   "sec": 102.6,
+   "capped": 0
+  },
+  "skillGap": 9.74,
+  "reveals": [
+   8.4,
+   11.8,
+   12.9
+  ],
+  "dumbReveals": [
+   5.1,
+   6.3
   ],
   "parts": {
    "skill": 1,
@@ -30,5 +94,37 @@
    "unfold": 1
   },
   "fun": 1
+ },
+ "igloo": {
+  "id": "igloo",
+  "name": "눈보라 이글루",
+  "n": 24,
+  "dumb": {
+   "score": 82.5,
+   "sec": 88.7
+  },
+  "smart": {
+   "score": 406,
+   "sec": 107.1,
+   "capped": 0
+  },
+  "skillGap": 4.87,
+  "reveals": [
+   6,
+   9.6,
+   13
+  ],
+  "dumbReveals": [
+   6.4,
+   6.6
+  ],
+  "parts": {
+   "skill": 0.762,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 1,
+   "unfold": 1
+  },
+  "fun": 0.929
  }
 }
