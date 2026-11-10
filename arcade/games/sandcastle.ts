@@ -27,20 +27,24 @@ export const PW = 0, PR = 1, PM = 2;
 const WALL_H = 3, STACK = 2, MAX_H = 7, ROCK_H = 4, MOAT_D = 3;
 /** 파도 연출(틱): 다가오기 · 한 칸 번질 때마다 · 다 번진 뒤 머무름 · 빠짐 */
 const APPROACH = 34, STEP = 6, HOLD = 26, RECEDE = 44;
-const RESULT = 150, AUTO = 22, PREVIEW = 120;
+const RESULT = 150, RESULT_OK = 185, AUTO = 22, PREVIEW = 120;
+/** 느린 화면: 그 판의 마지막(가장 큰) 파도가 부딪히는 동안 장면 시계가 이 비율로 간다 */
+const SLOW = 0.4;
+/** 점수: 별이 중심 (별 하나 100점), 남긴 조각은 보너스 (하나 5점 — 다 남겨도 별 하나보다 작다) */
+const STAR_PTS = 100, LEFT_PTS = 5, WIN_PTS = 100;
 
 type From = 'F' | 'L' | 'R';
 export interface Wave { h: number; from: From; rise: boolean }
 interface StageDef { waves: string; pieces: string; shells: number; boulders: number; row: number; twin?: boolean }
 /** 판(밀물) 8개. waves: F=바다 쪽(앞)에서, S=옆(판마다 왼쪽·오른쪽), L/R=왼쪽·오른쪽, 앞에 +면 그 파도 전에 바다가 한 줄 올라온다(밀물) */
-const STAGES: StageDef[] = [
+export const STAGES: StageDef[] = [
   { waves: 'F4 F5', pieces: 'WW', shells: 0, boulders: 0, row: 4 },
-  { waves: 'F5 F6 F5', pieces: 'WRWW', shells: 1, boulders: 0, row: 4 },
+  { waves: 'F4 F4 F6', pieces: 'WRWWW', shells: 1, boulders: 0, row: 4 },
   { waves: 'F5 S5 F6', pieces: 'WWRWW', shells: 1, boulders: 1, row: 4 },
-  { waves: 'F6 F6 S5 F7', pieces: 'MWWMRW', shells: 2, boulders: 1, row: 5 },
+  { waves: 'F6 F6 S5 F7', pieces: 'MWWMRW', shells: 1, boulders: 1, row: 5 },
   { waves: 'F4 F4 +F5 +F5', pieces: 'WWRMWW', shells: 1, boulders: 1, row: 5 },
   { waves: 'F6 S3 F6 F7', pieces: 'WRWMWWR', shells: 1, boulders: 2, row: 5, twin: true },
-  { waves: 'F7 L4 R4 F8', pieces: 'RWWMWWRW', shells: 2, boulders: 1, row: 5 },
+  { waves: 'F6 L4 R4 F7', pieces: 'RWWMWWRW', shells: 1, boulders: 1, row: 5 },
   { waves: 'F5 S3 +F6 S3 F6', pieces: 'WRWMWWRWMW', shells: 2, boulders: 2, row: 5, twin: true },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -135,7 +139,7 @@ export function tideUp(B: Board) {
 }
 
 interface Castle { cells: number[]; max: number; prince: boolean }
-interface Ev { t: number; kind: string; x: number; y: number; text?: string; col?: string }
+interface Ev { t: number; kind: string; x: number; y: number; text?: string; col?: string; v?: number; z?: number }
 interface Crab { home: number; off: number }
 export interface SandState {
   rng: Rng; seed: number; t: number; stage: number; phase: 'build' | 'wave' | 'result'; pt: number;
@@ -144,10 +148,12 @@ export interface SandState {
   pieces: number[]; pi: number; auto: number; wet: Float32Array; shells0: number;
   hearts: number; stars: number; got: number; pts: number; ok: boolean; dmgThis: number; lostThis: number; keep: number;
   down: boolean; taps: number; seen: Set<string>; events: Ev[]; news: { text: string; t: number } | null; dead: boolean; won: boolean;
-  crabs: Crab[]; lastPlace: number; place: Int16Array; peak: Int8Array; stealT: number;
+  crabs: Crab[]; lastPlace: number; place: Int16Array; peak: Int8Array; stealT: number; layout: Record<number, number>;
+  /** 느린 화면 중인가 · 쌓인 시계 */
+  slow: boolean; slowAcc: number;
 }
 
-const ev = (s: SandState, kind: string, x: number, y: number, text?: string, col?: string) => s.events.push({ t: s.t, kind, x, y, text, col });
+const ev = (s: SandState, kind: string, x: number, y: number, text?: string, col?: string, v?: number, z?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v, z });
 function see(s: SandState, key: string, text: string) {
   if (s.seen.has(key)) return;
   s.seen.add(key);
@@ -187,9 +193,9 @@ function put(B: { K: Uint8Array; Hh: Int8Array }, i: number, p: number) {
   else B.K[i] = MOAT;
 }
 
-/** 판 구성: 같은 판은 다시 해도 같은 바닷가 (실패하면 '처음부터 다시 짓기') */
-function newStage(s: SandState) {
-  const d = STAGES[s.stage], r = mulberry32((s.seed * 31 + s.stage * 7919 + 17) >>> 0);
+/** 바닷가 하나 깔기 (try = 몇 번째 후보) */
+function layout(s: SandState, attempt: number) {
+  const d = STAGES[s.stage], r = mulberry32((s.seed * 31 + s.stage * 7919 + 17 + attempt * 104729) >>> 0);
   s.K = new Uint8Array(N);
   s.Hh = new Int8Array(N);
   s.shell = new Uint8Array(N);
@@ -221,7 +227,8 @@ function newStage(s: SandState) {
     if (i >= 0) (s.K[i] = ROCK), (s.nat[i] = 1);
   }
   for (let k = 0; k < d.shells; k++) {
-    const i = free(Math.max(1, row - 3), Math.min(ROWS - 1, row + 1), (j) => near(j, 2) && !NB[j].some((n) => s.shell[n] || s.cas[n]));
+    // 조개는 성 옆이나 성 뒤 (성과 같은 벽 줄로 지킬 수 있는 자리)
+    const i = free(row, Math.min(ROWS - 1, row + 1), (j) => near(j, 2) && !NB[j].some((n) => s.shell[n] || s.cas[n]));
     if (i >= 0) s.shell[i] = 1;
   }
   s.shells0 = s.shell.reduce((a, b) => a + b, 0);
@@ -251,14 +258,37 @@ function newStage(s: SandState) {
     const i = free(row - 1, Math.min(ROWS - 1, row + 1), (j) => near(j, 1) && !s.crabs.some((q) => q.home === j));
     if (i >= 0) s.crabs.push({ home: i, off: k * 37 });
   }
+}
+
+/** 잘하는 수로 ★★★가 나오고, 아무것도 안 놓으면 ★★★가 안 나오는 바닷가인가 */
+function fair(s: SandState) {
+  const B = boardOf(s), seq = plan(s, 0);
+  if (judge(s, B, 0).st >= 3) return false;
+  for (let k = 0; k < seq.length; k++) put(B, seq[k], s.pieces[k]);
+  return judge(s, B, 0).st >= 3;
+}
+
+/** 판 구성: 같은 판은 다시 해도 같은 바닷가 (실패하면 '처음부터 다시 짓기').
+ * 바닷가(조개·바위 자리)는 '★★★ 길이 있는지'를 내다보기로 확인해 고른다 — 별 셋은 늘 가능하지만 생각해야 받는다 */
+function newStage(s: SandState) {
+  const key = s.stage;
+  let k = s.layout[key];
+  if (k === undefined) {
+    for (k = 0; k < 10; k++) {
+      layout(s, k);
+      if (s.stage === 0 || fair(s)) break;
+    }
+    s.layout[key] = k = Math.min(k, 9);
+  }
+  layout(s, k);
   // 새것 알림
   see(s, 'wall', '🧱 모래벽 — 파도를 막지만 맞을 때마다 깎여요');
-  if (ps.includes(PR)) see(s, 'rock', '🪨 돌 — 더 높고 절대 안 깎여요 (대신 조금뿐)');
+  if (s.pieces.includes(PR)) see(s, 'rock', '🪨 돌 — 더 높고 절대 안 깎여요 (대신 조금뿐)');
   if (s.shells0) see(s, 'shell', '🐚 조개 — 젖지 않게 지키면 별 하나 더');
   if (s.waves.some((w) => w.from !== 'F')) see(s, 'side', '↔️ 옆 파도 — 옆에서도 밀려와요');
-  if (ps.includes(PM)) see(s, 'moat', '〰️ 해자 — 물이 안쪽으로 못 가고 옆으로 흘러요');
+  if (s.pieces.includes(PM)) see(s, 'moat', '〰️ 해자 — 물이 안쪽으로 못 가고 옆으로 흘러요');
   if (s.waves.some((w) => w.rise)) see(s, 'tide', '🌙 밀물 — 파도마다 바다가 한 줄씩 올라와요');
-  if (d.twin) see(s, 'prince', '👑 왕자님 성 — 두 성을 다 지켜요');
+  if (STAGES[s.stage].twin) see(s, 'prince', '👑 왕자님 성 — 두 성을 다 지켜요');
   if (s.waves.some((w) => w.from === 'L') && s.waves.some((w) => w.from === 'R')) see(s, 'storm', '⛈️ 폭풍 — 양쪽 옆에서 다 와요');
   ev(s, 'stage', 0.5, Y1 + 0.06, `${s.stage + 1}번째 밀물 — 파도 ${s.waves.length}번!`);
 }
@@ -287,6 +317,10 @@ function startWave(s: SandState) {
 function waveStep(s: SandState) {
   s.wt++;
   const f = s.fl!;
+  // 마지막(가장 큰) 파도는 부딪히는 순간 앞뒤로 느린 화면
+  const slow = s.wi === s.waves.length - 1 && s.wt >= APPROACH - 12 && s.wt < s.impact + 26;
+  if (slow && !s.slow) ev(s, 'slowmo', 0.5, 0.4, '느린 화면…', '#ffffff');
+  s.slow = slow;
   if (s.wt < s.impact) {
     for (let i = 0; i < N; i++) {
       if (s.arrive[i] !== s.wt) continue;
@@ -295,19 +329,19 @@ function waveStep(s: SandState) {
       if (s.cas[i]) {
         // 한 성에 한 번만 '앗 차가!'
         const first = !s.castles[s.cas[i] - 1].cells.some((j) => j !== i && s.arrive[j] >= 0 && (s.arrive[j] < s.wt || (s.arrive[j] === s.wt && j < i)));
-        if (first) ev(s, 'chit', x, y, '앗 차가!', '#ffb3a8');
+        if (first) ev(s, 'chit', x, y, '앗 차가!', '#ffb3a8', f.hit[i], 3);
       }
-      else if ((s.K[i] === WALL || s.K[i] === ROCK) && f.over[i]) ev(s, 'over', x, y, '넘쳤다!', '#bfe9ff');
-      else if (s.K[i] === WALL || s.K[i] === ROCK) ev(s, 'splash', x, y, s.K[i] === ROCK ? '탁!' : '철썩!', '#ffffff');
+      else if ((s.K[i] === WALL || s.K[i] === ROCK) && f.over[i]) ev(s, 'over', x, y, '넘쳤다!', '#bfe9ff', f.hit[i], s.K[i] === ROCK ? ROCK_H : s.Hh[i]);
+      else if (s.K[i] === WALL || s.K[i] === ROCK) ev(s, 'splash', x, y, s.K[i] === ROCK ? '탁!' : '철썩!', '#ffffff', f.hit[i], s.K[i] === ROCK ? ROCK_H : s.Hh[i]);
       else if (s.K[i] === MOAT) ev(s, 'moat', x, y);
       if (s.shell[i] && f.lvl[i] > 0) ev(s, 'shellgo', x, y, '조개가 둥실~', '#ffd6e8');
     }
   }
   if (s.wt === s.impact) {
-    const B: Board = { K: s.K, Hh: s.Hh, shell: s.shell, hp: s.hp, sea: s.sea };
+    const B: Board = { K: s.K, Hh: s.Hh, shell: s.shell, hp: s.hp, sea: s.sea }, H0 = s.Hh.slice();
     const r = settle(B, s.cas, f);
     s.lastDmg = r.dmg;
-    for (const i of r.crumble) ev(s, r.gone.includes(i) ? 'gone' : 'crumble', ccx(i), ccy(i) - 0.02, r.gone.includes(i) ? '와르르' : '-' + (f.over[i] ? 2 : 1), '#f3d9a4');
+    for (const i of r.crumble) ev(s, r.gone.includes(i) ? 'gone' : 'crumble', ccx(i), ccy(i) - 0.02, r.gone.includes(i) ? '와르르' : '-' + (f.over[i] ? 2 : 1), '#f3d9a4', H0[i] - s.Hh[i], H0[i]);
     if (r.crumble.length) see(s, 'erode', '모래벽이 깎였어요 — 깎인 자리로 다음 파도가 더 들어와요');
     s.lostThis += r.lost.length;
     r.dmg.forEach((d, k) => {
@@ -342,9 +376,9 @@ function endStage(s: SandState, ok: boolean) {
     s.got = st;
     s.stars += st;
     s.keep = left;
-    s.pts += 20 + st * 10 + kept * 5 + left * 3;
+    s.pts += st * STAR_PTS + left * LEFT_PTS;
     const last = s.stage === STAGES.length - 1;
-    if (last) (s.won = true), (s.pts += 30);
+    if (last) (s.won = true), (s.pts += WIN_PTS);
     ev(s, 'clear', 0.5, Y1 + 0.06, `${s.stage + 1}번째 밀물 막았다! ${'★'.repeat(st)}${'☆'.repeat(3 - st)}`);
   } else {
     s.hearts--;
@@ -374,20 +408,23 @@ export const sandcastle: GameDef<SandState> = {
       waves: [], wi: 0, wt: 0, fl: null, arrive: new Int16Array(N), impact: 0, end: 0, lastDmg: [],
       pieces: [], pi: 0, auto: 0, wet: new Float32Array(N), shells0: 0,
       hearts: 3, stars: 0, got: 0, pts: 0, ok: false, dmgThis: 0, lostThis: 0, keep: 0,
-      down: false, taps: 0, seen: new Set<string>(), events: [], news: null, dead: false, won: false, crabs: [], lastPlace: -999, place: new Int16Array(N), peak: new Int8Array(N), stealT: -1,
+      down: false, taps: 0, seen: new Set<string>(), events: [], news: null, dead: false, won: false, crabs: [], lastPlace: -999, place: new Int16Array(N), peak: new Int8Array(N), stealT: -1, layout: {}, slow: false, slowAcc: 0,
     } as SandState;
     newStage(s);
     return s;
   },
   step(s, inp: Input) {
+    const p = inp.pointer ?? null, press = !!p && !s.down;
+    s.down = !!p;
+    // 느린 화면: 장면 시계가 천천히 간다 (틱 몇 개를 건너뛴다 — 물·꽃게·글자가 모두 함께 느려진다)
+    if (s.slow && (s.slowAcc += SLOW) < 1) return;
+    if (s.slow) s.slowAcc -= 1;
     s.t++;
     s.pt++;
     s.events = s.events.filter((e) => s.t - e.t < 110);
     for (let i = 0; i < N; i++) if (s.wet[i] > 0 && s.phase !== 'wave') s.wet[i] = Math.max(0, s.wet[i] - 1 / 420);
-    const p = inp.pointer ?? null, press = !!p && !s.down;
-    s.down = !!p;
     if (s.phase === 'result') {
-      if (s.pt >= RESULT) {
+      if (s.pt >= (s.ok ? RESULT_OK : RESULT)) {
         if (s.ok) {
           if (s.won) s.dead = true;
           else s.stage++, newStage(s);
@@ -441,8 +478,8 @@ function judge(s: SandState, B0: Board, leftover: number) {
   }
   const kept = B.shell.reduce((a, b) => a + b, 0);
   const st = 1 + (dmg === 0 ? 1 : 0) + (kept === s.shells0 ? 1 : 0);
-  const pts = fail ? -400 + lived * 40 + B.hp.reduce((a, b) => a + b, 0) * 10 : 20 + st * 10 + kept * 5 + leftover * 3;
-  return { pts, press };
+  const pts = fail ? -1000 + lived * 40 + B.hp.reduce((a, b) => a + b, 0) * 10 : st * STAR_PTS + leftover * LEFT_PTS;
+  return { pts, press, st: fail ? 0 : st };
 }
 const NEAR = new WeakMap<object, Uint8Array>();
 function nearMask(s: SandState) {
@@ -453,7 +490,7 @@ function nearMask(s: SandState) {
 }
 
 /** 앞으로 놓을 조각을 차례로: 지금 조각(+다음 조각까지 두 수 앞)을 판 끝까지 돌려 보고 가장 좋은 자리. 몇 개까지 놓을지도 점수로 고른다 */
-function plan(s: SandState): number[] {
+function plan(s: SandState, wide = 5): number[] {
   nearMask(s);
   const B = boardOf(s), seq: number[] = [];
   const total = s.pieces.length;
@@ -471,9 +508,9 @@ function plan(s: SandState): number[] {
     if (!cands.length) break;
     cands.sort((a, b) => b.v - a.v);
     let pick = cands[0];
-    if (nx !== undefined) {
+    if (nx !== undefined && wide > 0) {
       let bv = -Infinity;
-      for (const c of cands.slice(0, 5)) {
+      for (const c of cands.slice(0, wide)) {
         const K2 = B.K.slice(), H2 = B.Hh.slice();
         put({ K: K2, Hh: H2 }, c.i, pc);
         let b2 = c.v;
@@ -550,12 +587,12 @@ const SKY: [string, string, string, string][] = [
 ];
 const recentSay = new WeakMap<object, { x: number; y: number; t: number }[]>();
 
-type Mood = 'calm' | 'wow' | 'proud' | 'strain' | 'dizzy' | 'happy' | 'sleep';
-/** 꽃게 (앞에서 본 모습). claws: 0 내림 ~ 1 번쩍 */
-function drawCrab(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, t: number, mood: Mood, claws: number, opt: { crown?: boolean; look?: number; tilt?: number; col?: string } = {}) {
+type Mood = 'calm' | 'wow' | 'proud' | 'strain' | 'dizzy' | 'happy' | 'sleep' | 'peek' | 'dance';
+/** 꽃게 (앞에서 본 모습). claws: 0 내림 ~ 1 번쩍. peek = 집게로 눈을 가리고 실눈으로 엿보기, dance = 집게를 번갈아 흔들며 춤 */
+function drawCrab(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, t: number, mood: Mood, claws: number, opt: { crown?: boolean; crownTilt?: number; bald?: boolean; look?: number; tilt?: number; col?: string } = {}) {
   ctx.save();
   ctx.translate(x, y);
-  ctx.rotate(opt.tilt ?? 0);
+  ctx.rotate((opt.tilt ?? 0) + (mood === 'peek' ? Math.sin(t * 1.1) * 0.035 : 0));
   const col = opt.col ?? '#ff6b45';
   // 그림자
   ctx.fillStyle = 'rgba(60,30,10,.25)';
@@ -575,9 +612,9 @@ function drawCrab(ctx: CanvasRenderingContext2D, x: number, y: number, z: number
       ctx.lineTo(sd * z * (1.2 + k * 0.1), z * 0.02 + sw * 0.5);
       ctx.stroke();
     }
-  // 집게 팔
-  const up = claws;
-  for (const sd of [-1, 1]) {
+  // 집게 팔 (엿볼 때는 눈을 가리느라 맨 나중에 그린다)
+  for (const sd of mood === 'peek' ? [] : [-1, 1]) {
+    const up = mood === 'dance' ? 0.5 + 0.5 * Math.sin(t * 0.3 + (sd > 0 ? Math.PI : 0)) : claws;
     const ax = sd * z * (0.9 + 0.25 * up), ay = -z * (0.75 + 1.0 * up) + Math.sin(t * 0.2 + sd) * z * 0.06 * (mood === 'happy' ? 3 : 1);
     ctx.strokeStyle = mix(col, '#9a2a12', 0.25);
     ctx.lineWidth = Math.max(1.5, z * 0.22);
@@ -586,7 +623,7 @@ function drawCrab(ctx: CanvasRenderingContext2D, x: number, y: number, z: number
     ctx.quadraticCurveTo(sd * z * 1.15, -z * (0.6 + 0.4 * up), ax, ay);
     ctx.stroke();
     // 집게 (두 갈래)
-    const open = 0.35 + 0.25 * Math.abs(Math.sin(t * (mood === 'happy' || mood === 'proud' ? 0.4 : 0.08) + sd));
+    const open = 0.35 + 0.25 * Math.abs(Math.sin(t * (mood === 'happy' || mood === 'proud' || mood === 'dance' ? 0.4 : 0.08) + sd));
     ctx.fillStyle = mix(col, '#ffffff', 0.08);
     ctx.save();
     ctx.translate(ax, ay);
@@ -643,7 +680,7 @@ function drawCrab(ctx: CanvasRenderingContext2D, x: number, y: number, z: number
     ctx.strokeStyle = '#2a0e06';
     ctx.fillStyle = '#2a0e06';
     ctx.lineWidth = Math.max(1, z * 0.1);
-    if (mood === 'proud' || mood === 'happy') {
+    if (mood === 'proud' || mood === 'happy' || mood === 'dance') {
       ctx.beginPath();
       ctx.arc(ex, ey + er * 0.25, er * 0.55, Math.PI * 1.1, Math.PI * 1.9);
       ctx.stroke();
@@ -680,14 +717,58 @@ function drawCrab(ctx: CanvasRenderingContext2D, x: number, y: number, z: number
   ctx.fillStyle = '#4a1206';
   ctx.lineWidth = Math.max(1, z * 0.1);
   ctx.beginPath();
-  if (mood === 'wow') (ctx.ellipse(0, -z * 0.38, z * 0.13, z * 0.17, 0, 0, Math.PI * 2), ctx.fill());
+  if (mood === 'wow' || mood === 'peek') (ctx.ellipse(0, -z * 0.38, z * (mood === 'peek' ? 0.09 : 0.13), z * (mood === 'peek' ? 0.11 : 0.17), 0, 0, Math.PI * 2), ctx.fill());
+  else if (mood === 'dance') (ctx.arc(0, -z * 0.42, z * 0.2, 0, Math.PI), ctx.fill());
   else if (mood === 'strain' || mood === 'dizzy') {
     ctx.moveTo(-z * 0.22, -z * 0.36);
     for (let k = 1; k <= 4; k++) ctx.lineTo(-z * 0.22 + k * z * 0.11, -z * 0.36 + (k % 2 ? -1 : 1) * z * 0.05);
     ctx.stroke();
   } else (ctx.arc(0, -z * 0.45, z * (mood === 'proud' || mood === 'happy' ? 0.24 : 0.16), 0.15 * Math.PI, 0.85 * Math.PI), ctx.stroke());
+  // 엿보기: 두 집게로 눈을 가린다 — 오른쪽 집게가 가끔 살짝 내려가 실눈으로 엿본다 (+ 식은땀)
+  if (mood === 'peek')
+    for (const sd of [-1, 1]) {
+      const peep = sd > 0 ? Math.max(0, Math.sin(t * 0.09)) : 0, ex = sd * z * 0.34, ey = -z * 1.36 + peep * z * 0.42;
+      ctx.strokeStyle = mix(col, '#9a2a12', 0.25);
+      ctx.lineWidth = Math.max(1.5, z * 0.22);
+      ctx.beginPath();
+      ctx.moveTo(sd * z * 0.7, -z * 0.55);
+      ctx.quadraticCurveTo(sd * z * 1.25, -z * 0.95, ex + sd * z * 0.18, ey + z * 0.22);
+      ctx.stroke();
+      ctx.fillStyle = mix(col, '#ffffff', 0.08);
+      ctx.beginPath();
+      ctx.ellipse(ex, ey, z * 0.42, z * 0.36, sd * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = mix(col, '#5a1206', 0.5);
+      ctx.lineWidth = Math.max(1, z * 0.08);
+      ctx.beginPath();
+      ctx.moveTo(ex - z * 0.3, ey + z * 0.04);
+      ctx.lineTo(ex + z * 0.3, ey - z * 0.04);
+      ctx.stroke();
+    }
+  if (mood === 'peek' || mood === 'strain') {
+    const dy = ((t * 0.04) % 1) * z * 0.5;
+    ctx.fillStyle = 'rgba(160,220,255,.9)';
+    ctx.beginPath();
+    ctx.ellipse(z * 0.85, -z * 1.05 + dy, z * 0.09, z * 0.14, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // 왕관을 뺏긴 맨머리: 머리카락 세 가닥
+  if (opt.bald) {
+    ctx.strokeStyle = '#4a1206';
+    ctx.lineWidth = Math.max(1, z * 0.07);
+    for (let q = -1; q <= 1; q++) {
+      ctx.beginPath();
+      ctx.moveTo(q * z * 0.12, -z * 1.08);
+      ctx.quadraticCurveTo(q * z * 0.2 + z * 0.1, -z * 1.35, q * z * 0.08 + Math.sin(t * 0.3 + q) * z * 0.06, -z * 1.45);
+      ctx.stroke();
+    }
+  }
   // 왕관
   if (opt.crown) {
+    ctx.save();
+    ctx.translate(0, -z * 1.02);
+    ctx.rotate(opt.crownTilt ?? 0);
+    ctx.translate(0, z * 1.02);
     ctx.fillStyle = '#ffd43b';
     ctx.strokeStyle = '#b07d0a';
     ctx.lineWidth = Math.max(0.8, z * 0.06);
@@ -707,8 +788,45 @@ function drawCrab(ctx: CanvasRenderingContext2D, x: number, y: number, z: number
     ctx.beginPath();
     ctx.arc(0, cy - z * 0.12, z * 0.08, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
   }
   ctx.restore();
+}
+
+/** 떨어지거나 물려 가는 왕관 하나 (임금님 머리 밖) */
+function drawCrown(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, rot: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  ctx.fillStyle = '#ffd43b';
+  ctx.strokeStyle = '#b07d0a';
+  ctx.lineWidth = Math.max(0.8, z * 0.06);
+  const cw = z * 0.5;
+  ctx.beginPath();
+  ctx.moveTo(-cw, 0);
+  ctx.lineTo(-cw, -z * 0.32);
+  ctx.lineTo(-cw * 0.5, -z * 0.14);
+  ctx.lineTo(0, -z * 0.42);
+  ctx.lineTo(cw * 0.5, -z * 0.14);
+  ctx.lineTo(cw, -z * 0.32);
+  ctx.lineTo(cw, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#ff4d6d';
+  ctx.beginPath();
+  ctx.arc(0, -z * 0.12, z * 0.08, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** 왕관 소동: 성을 하나도 안 깎이고 막아 임금님이 춤추면, 갈매기가 왕관을 노린다.
+ * 판마다 번갈아 ① 다시 비뚤게 씌워 준다 ② 꽃게 백성 머리에 떨어뜨린다. q: 0 출발 · 1 낚아챔 · 2 떨어뜨림 · 3 착지 */
+const GAG = [14, 44, 98, 122];
+function crownGag(s: SandState) {
+  const on = s.phase === 'result' && s.ok && s.lastDmg[0] === 0 && s.dmgThis === 0 && s.stealT < 0;
+  const p = s.pt, stage = GAG.findIndex((g, k) => p >= g && (k === GAG.length - 1 || p < GAG[k + 1]));
+  return { on: on && p >= GAG[0], p, stage, toCrab: s.stage % 2 === 1 && s.crabs.length > 0 };
 }
 
 /** 가리비 조개 */
@@ -872,8 +990,17 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
     fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), y, text, col, size);
   };
 
+  // 느린 화면(마지막 큰 파도): 성 쪽으로 살짝 다가가고, 위아래 검은 띠
+  const lastW = !!wave && s.wi === s.waves.length - 1;
+  const sm = lastW ? Math.max(0, Math.min(1, (wt - (APPROACH - 12)) / 10, (s.impact + 26 - wt) / 10)) : 0;
   ctx.save();
   fx.begin(ctx);
+  if (sm > 0) {
+    const c0 = s.castles[0], zx = X(ccx(c0.cells[0]) + CW / 2), zy = Y(ccy(c0.cells[0]) + 0.04), zf = 1 + 0.1 * sm;
+    ctx.translate(zx, zy);
+    ctx.scale(zf, zf);
+    ctx.translate(-zx, -zy);
+  }
   // ── 하늘 ──
   const sky = ctx.createLinearGradient(0, 0, 0, Y(HOR));
   sky.addColorStop(0, pal[0]);
@@ -1265,12 +1392,20 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
     }
   }
   // ── 세워진 것들 (뒤 줄부터 앞 줄로) ──
+  const gag = crownGag(s);
+  let kingAt: { x: number; y: number; z: number } | null = null, crabAt: { x: number; y: number; z: number } | null = null;
   const kingMood = (): { mood: Mood; claws: number } => {
-    if (s.phase === 'result') return s.ok ? { mood: 'happy', claws: 1 } : { mood: 'dizzy', claws: 0.6 };
+    if (s.phase === 'result') {
+      if (!s.ok) return { mood: 'dizzy', claws: 0.6 };
+      if (gag.on && (gag.stage === 1 || gag.stage === 2)) return { mood: 'wow', claws: 1 };
+      if (gag.on && gag.stage === 3) return gag.toCrab ? { mood: 'wow', claws: 0.3 } : { mood: 'proud', claws: 0.5 };
+      return s.dmgThis === 0 ? { mood: 'dance', claws: 1 } : { mood: 'happy', claws: 1 };
+    }
     if (wave && fl) {
-      const hitMe = s.castles[0].cells.some((i) => fl.hit[i] > 0);
-      if (wt < s.impact - 4) return hitMe ? { mood: 'strain', claws: 0.8 } : wt < APPROACH ? { mood: 'wow', claws: 0.5 } : { mood: 'calm', claws: 0.3 };
-      return s.lastDmg[0] > 0 ? { mood: 'dizzy', claws: 0.2 } : { mood: 'proud', claws: 1 };
+      // 파도를 보고 놀람 → 집게로 눈을 가리고 엿봄 → 막으면 성 위에서 춤, 깎이면 어질어질
+      if (wt < 14) return { mood: 'wow', claws: 0.5 };
+      if (wt < s.impact - 2) return { mood: 'peek', claws: 0 };
+      return s.lastDmg[0] > 0 ? { mood: 'dizzy', claws: 0.2 } : { mood: 'dance', claws: 1 };
     }
     if (s.pt > 900 && s.taps === 0) return { mood: 'sleep', claws: 0 };
     return { mood: t - s.lastPlace < 40 ? 'wow' : 'calm', claws: t - s.lastPlace < 40 ? 0.6 : 0.15 };
@@ -1489,10 +1624,37 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
           ctx.fillText(ci === 0 ? '으아아~' : '형님~!', kx, ky - kz * 2.6);
         } else if (hp > 0) {
           const mood = ci === 0 ? km : fail ? { mood: 'dizzy' as Mood, claws: 0.3 } : km;
-          const bob = mood.mood === 'happy' ? Math.abs(Math.sin(t * 0.25)) * R(0.012) : Math.sin(t * 0.05) * R(0.002);
-          const kx = top.x, ky = top.yt + top.rt * 0.15 - bob;
+          const dance = mood.mood === 'dance', jump = gag.on && ci === 0 && (gag.stage === 1 || gag.stage === 2);
+          const bob = mood.mood === 'happy' ? Math.abs(Math.sin(t * 0.25)) * R(0.012) : dance ? Math.abs(Math.sin(t * 0.3)) * R(0.018) : jump ? Math.abs(Math.sin(t * 0.45)) * R(0.03) : Math.sin(t * 0.05) * R(0.002);
+          const kx = top.x + (dance ? Math.sin(t * 0.15) * R(0.012) : 0), ky = top.yt + top.rt * 0.15 - bob;
           const look = s.lastPlace > 0 && t - s.lastPlace < 60 ? Math.sign(ccx(s.place.indexOf(s.lastPlace)) - PX(c + wide / 2, r)) : Math.sin(t * 0.02);
-          drawCrab(ctx, kx, ky, kz, t, mood.mood, mood.claws, { crown: true, look });
+          // 왕관 소동 중엔 맨머리 (돌려받으면 비뚤게)
+          const noCrown = ci === 0 && gag.on && gag.stage >= 1 && (gag.stage < 3 || gag.toCrab);
+          drawCrab(ctx, kx, ky, kz, t, mood.mood, mood.claws, { crown: !noCrown, bald: noCrown, crownTilt: ci === 0 && gag.on && gag.stage === 3 ? 0.42 : 0, look, tilt: dance ? Math.sin(t * 0.3) * 0.22 : 0 });
+          if (ci === 0) kingAt = { x: kx, y: ky, z: kz };
+          if (dance) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `900 ${R(0.04)}px system-ui, sans-serif`;
+            ctx.textAlign = 'center';
+            for (let q = 0; q < 2; q++) {
+              const nq = ((t * 0.02 + q * 0.5) % 1), sd = q ? 1 : -1;
+              ctx.globalAlpha = 1 - nq;
+              ctx.fillText(q ? '♫' : '♪', kx + sd * kz * (1.3 + nq * 0.6), ky - kz * (1.4 + nq * 1.6));
+            }
+            ctx.globalAlpha = 1;
+          }
+          if (ci === 0 && gag.on) {
+            const say2 = gag.stage === 1 || (gag.stage === 2 && gag.p < GAG[2] - 10) ? '내 왕관!!' : gag.stage === 3 && gag.p < GAG[3] + 55 ? (gag.toCrab ? '어?!' : '휴~') : '';
+            if (say2) {
+              ctx.font = `900 ${R(0.042)}px system-ui, sans-serif`;
+              ctx.textAlign = 'center';
+              ctx.lineWidth = 3;
+              ctx.strokeStyle = 'rgba(60,20,10,.6)';
+              ctx.strokeText(say2, kx - kz * 1.6, ky - kz * 2.3);
+              ctx.fillStyle = '#fff6c4';
+              ctx.fillText(say2, kx - kz * 1.6, ky - kz * 2.3);
+            }
+          }
           if (mood.mood === 'dizzy') {
             ctx.fillStyle = '#ffe066';
             ctx.font = `${R(0.03)}px system-ui, sans-serif`;
@@ -1550,6 +1712,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
       }
   // ── 꽃게 백성 (물이 닿으면 조개 서핑으로 '야호~') ──
   for (const cb of s.crabs) {
+    const crowned = cb === s.crabs[0] && gag.on && gag.toCrab && gag.stage === 3;
     // 집 자리에 벽이 서면 가까운 빈 모래로 비켜 선다 (그리기만)
     let i = cb.home;
     if (s.K[i] !== SAND) {
@@ -1570,8 +1733,19 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
       claws = 1;
     } else if (wave && wt < s.impact) (mood = 'wow'), (claws = 0.7);
     else if (s.phase === 'result') (mood = s.ok ? 'happy' : 'dizzy'), (claws = s.ok ? 1 : 0.3), (y -= s.ok ? Math.abs(Math.sin(t * 0.3 + cb.off)) * 0.012 : 0);
+    if (crowned) (mood = 'proud'), (claws = 1);
     if (surf > 0) drawShell(ctx, X(x), Y(y) + R(0.004), R(0.02), t, '#fff0b3');
-    drawCrab(ctx, X(x), Y(y), R(0.021), t + cb.off, mood, claws, { col: '#ff8a5c', tilt: surf ? Math.sin(t * 0.3) * 0.3 : 0 });
+    drawCrab(ctx, X(x), Y(y), R(0.021), t + cb.off, mood, claws, { col: '#ff8a5c', tilt: surf ? Math.sin(t * 0.3) * 0.3 : 0, crown: crowned, crownTilt: -0.2 });
+    if (cb === s.crabs[0]) crabAt = { x: X(x), y: Y(y), z: R(0.021) };
+    if (crowned && gag.p < GAG[3] + 60) {
+      ctx.font = `900 ${R(0.04)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(60,20,10,.6)';
+      ctx.strokeText('오늘부터 내가 임금!', X(x), Y(y) - R(0.065));
+      ctx.fillStyle = '#fff6c4';
+      ctx.fillText('오늘부터 내가 임금!', X(x), Y(y) - R(0.065));
+    }
     if (surf > 0 && wt - s.arrive[i] < 60) {
       ctx.fillStyle = '#ffffff';
       ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
@@ -1585,7 +1759,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
       ctx.fillText('!', X(x), Y(y) - R(0.05));
     }
   }
-  // ── 갈매기: 말뚝 위에서 구경 → 성이 깎이면 깃발을 낚아챈다 ──
+  // ── 갈매기: 말뚝 위에서 구경 → 성이 깎이면 깃발을, 춤추는 임금님은 왕관을 노린다 ──
   {
     const px = X(0.955), py = Y(Y1 + 0.035);
     ctx.fillStyle = '#7b5232';
@@ -1596,7 +1770,41 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
     ctx.fill();
     const c0 = s.castles[0], fx0 = X(PX(colOf(c0.cells[0]) + c0.cells.length / 2, vrowOf(c0.cells[0]) + 0.42)) + R(0.03), fy0 = Y(PY(vrowOf(c0.cells[0]) + 0.42, 10)) - R(0.07);
     const st = s.stealT >= 0 ? t - s.stealT : -1, gz = R(0.032);
-    if (st >= 0 && st < 90) {
+    if (gag.on && kingAt) {
+      // 왕관 소동: 말뚝 → 춤추는 임금님 머리 위로 → 왕관을 물고 성 위를 한 바퀴 → 떨어뜨리고 멀리
+      const K0 = kingAt as { x: number; y: number; z: number }, p = gag.p, cx0 = K0.x, cy0 = K0.y - K0.z * 1.1;
+      let gx: number, gy: number, dir = 1, carry = false;
+      if (p < GAG[1]) {
+        const q = (p - GAG[0]) / (GAG[1] - GAG[0]);
+        (gx = px + (cx0 - px) * q), (gy = py - R(0.02) + (cy0 - R(0.03) - py + R(0.02)) * q - Math.sin(q * Math.PI) * R(0.12)), (dir = cx0 < px ? -1 : 1);
+      } else if (p < GAG[2]) {
+        const q = (p - GAG[1]) / (GAG[2] - GAG[1]);
+        (gx = cx0 + Math.sin(q * Math.PI * 2) * R(0.13)), (gy = cy0 - R(0.03) - Math.sin(q * Math.PI) * R(0.13) - q * R(0.04)), (dir = Math.cos(q * Math.PI * 2) >= 0 ? 1 : -1), (carry = true);
+      } else {
+        const q = (p - GAG[2]) / 60;
+        (gx = cx0 + q * R(0.7)), (gy = cy0 - R(0.07) - q * R(0.25)), (dir = 1);
+      }
+      drawGull(ctx, gx, gy, gz, t, true, dir, false, Math.abs(p - GAG[1]) < 8 || Math.abs(p - GAG[2]) < 8);
+      if (carry) drawCrown(ctx, gx + dir * gz * 1.3, gy - gz * 0.1, K0.z * 0.85, 0.35 * dir);
+      if (p >= GAG[1] && p < GAG[1] + 36) {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `900 ${R(0.038)}px system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('왕관 득템~', gx, gy - R(0.05));
+      }
+      if (p >= GAG[2] && p < GAG[3]) {
+        // 떨어지는 왕관 (빙글빙글) — ① 임금님 머리로 ② 꽃게 백성 머리로
+        const q = (p - GAG[2]) / (GAG[3] - GAG[2]), x0 = cx0, y0 = cy0 - R(0.07);
+        const tg = gag.toCrab && crabAt ? crabAt as { x: number; y: number; z: number } : K0, tx = tg.x, ty = tg.y - tg.z * 1.02;
+        drawCrown(ctx, x0 + (tx - x0) * q, y0 + (ty - y0) * q * q, K0.z * (0.85 + (tg.z / K0.z - 0.85) * q), q * Math.PI * 3);
+      }
+      if (p >= GAG[2] && p < GAG[2] + 14) {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `900 ${R(0.038)}px system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('깍!', gx, gy - R(0.05));
+      }
+    } else if (st >= 0 && st < 90) {
       let gx: number, gy: number;
       if (st < 30) (gx = px + (fx0 - px) * (st / 30)), (gy = py - R(0.02) + (fy0 - py) * (st / 30) - Math.sin((st / 30) * Math.PI) * R(0.08));
       else (gx = fx0 + (st - 30) * R(0.006)), (gy = fy0 - (st - 30) * R(0.004));
@@ -1686,6 +1894,90 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
     ctx.textBaseline = 'middle';
     ctx.fillText('👆', X(ccx(tc)) + R(0.012), Y(ccy(tc)) + R(0.06) + bob);
   }
+  // ── 물보라 기둥 (벽에 부딪힌 파도가 하늘로 솟는다) · 깎여 나가는 모래알 ──
+  if (wave && fl)
+    for (let i = 0; i < N; i++) {
+      // 맞고 있는 모래벽에서 모래알이 떨어져 물에 실려 간다
+      if (s.K[i] !== WALL || !fl.hit[i] || wt < s.arrive[i] || fade <= 0) continue;
+      const bx = X(ccx(i)), by = Y(PY(vrowOf(i) + 0.9));
+      for (let k = 0; k < 7; k++) {
+        const q = (t * 0.022 + hsh(i * 7 + k)) % 1;
+        ctx.globalAlpha = (1 - q) * fade;
+        ctx.fillStyle = k % 2 ? '#e2b878' : '#c99a5c';
+        ctx.beginPath();
+        ctx.arc(bx + (hsh(i * 3 + k) - 0.5) * R(CW * 0.8) + Math.sin(q * 6 + k) * R(0.005), by - R(0.012) * (1 - q) + q * R(0.06), R(0.0035), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+  for (const e of s.events) {
+    const age = t - e.t, x0 = X(e.x), seed = Math.floor(e.x * 997 + e.y * 131 + e.t);
+    if ((e.kind === 'splash' || e.kind === 'over' || e.kind === 'chit') && age >= 0 && age < 64) {
+      const lvl = e.v ?? 2, yb = Y(e.y) - R((e.z ?? 3) * HZ), H = R(0.1 + 0.04 * lvl), T = 17;
+      // 기둥: 솟구쳤다가 무너진다
+      if (age < T + 16) {
+        const up = age < T ? 1 - Math.pow(1 - age / T, 2) : 1, al = age < T ? 1 : Math.max(0, 1 - (age - T) / 16);
+        const top = yb - H * up, bw = R(0.03 + 0.004 * lvl) * (0.7 + 0.5 * up);
+        const g = ctx.createLinearGradient(0, top, 0, yb);
+        g.addColorStop(0, `rgba(255,255,255,${0.95 * al})`);
+        g.addColorStop(0.45, `rgba(205,242,255,${0.8 * al})`);
+        g.addColorStop(1, `rgba(110,205,240,${0.3 * al})`);
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.moveTo(x0 - bw, yb);
+        ctx.quadraticCurveTo(x0 - bw * 0.2, yb - H * 0.5 * up, x0 - bw * 0.6, top + bw * 0.45);
+        ctx.quadraticCurveTo(x0, top - bw * 0.7, x0 + bw * 0.6, top + bw * 0.45);
+        ctx.quadraticCurveTo(x0 + bw * 0.2, yb - H * 0.5 * up, x0 + bw, yb);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = `rgba(255,255,255,${al})`;
+        for (let k = 0; k < 6; k++) {
+          const a = (k / 5 - 0.5) * 2.6;
+          ctx.beginPath();
+          ctx.arc(x0 + Math.sin(a) * bw * 0.7, top + bw * 0.35 - Math.cos(a) * bw * 0.4, bw * (0.3 + 0.12 * hsh(seed + k)), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      // 물방울: 포물선으로 흩어진다
+      const g2 = (2 * H) / (T * T);
+      for (let k = 0; k < 30; k++) {
+        const f = 0.4 + 0.7 * hsh(seed + k * 3), v0 = (f * 2 * H) / T, vx = (hsh(seed + k * 3 + 1) - 0.5) * R(0.0075) * (1 + lvl * 0.15);
+        const yy = yb - v0 * age + 0.5 * g2 * age * age;
+        if (yy > yb + R(0.03)) continue;
+        ctx.globalAlpha = Math.max(0, 1 - age / 64);
+        ctx.fillStyle = k % 3 ? '#ffffff' : '#a8e6ff';
+        ctx.beginPath();
+        ctx.arc(x0 + vx * age, yy, R(0.004 + 0.004 * hsh(seed + k * 3 + 2)), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // 바닥 물안개
+      if (age < 30) {
+        ctx.globalAlpha = 0.6 * (1 - age / 30);
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(x0, Y(e.y) + R(0.01), R(0.03 + age * 0.0025), R(0.012 + age * 0.0008), 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+    if ((e.kind === 'crumble' || e.kind === 'gone') && age >= 0 && age < 95) {
+      // 깎인 모래알: 벽 앞면에서 떨어져 바닥에 쌓였다가 물에 실려 바다 쪽으로
+      const n = e.kind === 'gone' ? 26 : 12 + 5 * (e.v ?? 1), yg = Y(e.y + 0.02) + R(0.014), zt = yg - R((e.z ?? 3) * HZ + 0.01), cw = R(CW * 0.8);
+      for (let k = 0; k < n; k++) {
+        const h1 = hsh(seed + k * 5), h2 = hsh(seed + k * 5 + 1), h3 = hsh(seed + k * 5 + 2), sx = x0 + (h1 - 0.5) * cw, sy = zt + (yg - zt) * h2 * 0.7, ft = 9 + 12 * h3;
+        let gx = sx + (h1 - 0.5) * R(0.03), gy = yg + (age - ft) * R(0.0012) * (0.5 + h2);
+        if (age < ft) {
+          const q = age / ft;
+          (gx = sx + (h1 - 0.5) * R(0.03) * q), (gy = sy + (yg - sy) * q * q);
+        } else gx += Math.sin((age - ft) * 0.12 + k) * R(0.004);
+        ctx.globalAlpha = Math.max(0, Math.min(1, (95 - age) / 30));
+        ctx.fillStyle = ['#f6e2b0', '#e2b878', '#c99a5c'][k % 3];
+        const sz = R(0.0032 + 0.003 * h3) * (e.kind === 'gone' && k % 4 === 0 ? 1.8 : 1);
+        ctx.fillRect(gx - sz, gy - sz, sz * 2, sz * 2);
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
   // ── 사건 연출 ──
   const seenT = fx.memo.t ?? -1;
   for (const e of s.events) {
@@ -1710,6 +2002,25 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
   }
   fx.memo.t = s.t;
   ctx.restore();
+  if (sm > 0) {
+    // 느린 화면: 가장자리 어둡게 + 위아래 검은 띠 + 자막
+    const vg = ctx.createRadialGradient(w / 2, Y(0.7), R(0.25), w / 2, Y(0.7), R(0.8));
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, `rgba(0,10,20,${0.45 * sm})`);
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, Y(0.22), w, Y(TY - 0.22));
+    const bh = R(0.055) * sm;
+    ctx.fillStyle = 'rgba(0,0,0,.88)';
+    ctx.fillRect(0, Y(0.222), w, bh);
+    ctx.fillRect(0, Y(TY) - bh, w, bh);
+    ctx.globalAlpha = sm;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `900 ${R(0.038)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🎬 느린 화면 — 마지막 큰 파도!', w / 2, Y(TY) - bh / 2);
+    ctx.globalAlpha = 1;
+  }
 
   // ═════════════ HUD ═════════════
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${R(sz)}px system-ui, sans-serif`);
