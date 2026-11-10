@@ -340,8 +340,7 @@ function startWave(s: PoolState) {
   }
   s.impact = APPROACH + STEP * w.h + 4;
   s.end = s.impact + HOLD + RECEDE + CARRY;
-  const what = w.cargo.map((it) => LOOT_NAME[it.k]).join('·');
-  ev(s, 'incoming', 0.5, 0.33, `${w.from === 'F' ? '파도' : '옆 파도'} ${s.wi + 1} — 높이 ${w.h}${what ? ` · ${what}` : ''}!`, '#e3f6ff');
+  ev(s, 'incoming', 0.5, 0.33, `${w.from === 'F' ? '파도' : '옆 파도'} ${s.wi + 1} — 높이 ${w.h}!${w.cargo.some((it) => it.k === OCTO) ? ' 문어다!' : ''}`, '#e3f6ff');
 }
 
 function waveStep(s: PoolState) {
@@ -370,7 +369,9 @@ function waveStep(s: PoolState) {
       s.wetHouse = s.houses.findIndex((h) => r.wetH.includes(h.cell));
       if (s.momT < 0) s.momT = s.t;
       for (const i of r.wetH) ev(s, 'flooded', ccx(i), ccy(i) - 0.03, '집에 물이 들었어요!', '#ffb3a8', i);
-    } else for (const hs of s.houses) if (s.houses.length === 1 || hs.mom) ev(s, 'safe', ccx(hs.cell), ccy(hs.cell) - 0.04, s.wi === 0 && s.stage === 0 ? '집은 뽀송!' : '뽀송뽀송!', '#fff1a8', hs.cell);
+    } else
+      for (const hs of s.houses)
+        if (NB[hs.cell].some((n) => f.lvl[n] > 0 || f.hit[n] > 0)) ev(s, 'safe', ccx(hs.cell), ccy(hs.cell) - 0.04, '휴~ 뽀송뽀송!', '#fff1a8', hs.cell);
     // 보물이 웅덩이에 퐁당
     let caught = 0;
     s.lands.forEach((L, j) => {
@@ -385,10 +386,10 @@ function waveStep(s: PoolState) {
         if (s.gullT < 0 && s.stage > 0) (s.gullT = s.t + 2), (s.gullCell = L.at);
       } else {
         const e = L.path.length ? L.path[L.path.length - 1] : -1;
-        ev(s, 'lost', e >= 0 ? ccx(e) : 0.5, e >= 0 ? ccy(e) : Y1, it.k === OCTO ? '문어가 바다로~' : '바다로~', '#cfe8ff', e);
+        ev(s, 'lost', e >= 0 ? ccx(e) : 0.5, e >= 0 ? ccy(e) : Y1, `${LOOT_NAME[it.k]} 바다로~`, '#cfe8ff', e);
       }
     });
-    if (caught) ev(s, 'yay', ccx(s.houses[0].cell), ccy(s.houses[0].cell) - 0.06, '와아!', '#fff1a8');
+    if (caught && s.kids.length) ev(s, 'yay', ccx(s.kids[0].home), ccy(s.kids[0].home) - 0.04, '와아!', '#fff1a8');
     if (s.K.some((k, i) => k === DUG && NB[i].some((n) => s.K[n] === DUG) && f.lvl[i] > 0)) see(s, 'channel', '〰️ 수로 — 판 칸을 이으면 물이 안 낮아지고 멀리 가요');
   }
   if (s.wt >= s.end) {
@@ -1108,6 +1109,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PoolState, w: number, h: numb
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
     for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.3 && Math.abs(q.y - y) < size + 4); k++) y -= size + 5;
+    y = Math.max(y, Y(FP.y + FP.h + 0.07));
     rec.push({ x, y, t: s.t });
     if (rec.length > 12) rec.shift();
     fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), y, text, col, size);
@@ -1341,12 +1343,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PoolState, w: number, h: numb
       }
       const mud = clamp01(1 - (rowOf(i) - s.sea) / 4), wv = Math.max(s.wet[i] * 0.8, mud * 0.55);
       const base = mix('#f8e4b6', '#f0d8a4', hsh(i * 7 + s.stage) * 0.5 + (vr / ROWS) * 0.3);
-      ctx.fillStyle = mix(base, '#b39364', wv);
+      ctx.fillStyle = mix(base, '#c6a676', wv);
       quad(c - 0.01, vr - 0.01, c + 1.01, vr + 1.01);
       ctx.fill();
       // 젖은 갯벌엔 하늘이 비친다
       if (wv > 0.25) {
-        ctx.fillStyle = `rgba(220,245,255,${(wv - 0.25) * 0.35})`;
+        ctx.fillStyle = `rgba(225,248,255,${(wv - 0.25) * 0.5})`;
         quad(c + 0.12 + hsh(i) * 0.2, vr + 0.2, c + 0.55 + hsh(i) * 0.2, vr + 0.42);
         ctx.fill();
       }
@@ -1379,6 +1381,16 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PoolState, w: number, h: numb
     ctx.ellipse(x + R(0.004), y + R(0.003), R(0.004), R(0.002), 0, 0, Math.PI * 2);
     ctx.fill();
   }
+  // 꽃게 발자국 (집에서 바다 쪽으로 사각사각)
+  {
+    const h0 = s.houses[0].cell;
+    ctx.fillStyle = 'rgba(120,85,45,.28)';
+    for (let k = 0; k < 10; k++) {
+      const vr = vrowOf(h0) + 0.9 + k * 0.32, c = colOf(h0) + 0.5 + Math.sin(k * 0.9 + s.stage) * 0.6;
+      if (vr >= vSea) break;
+      for (const sd of [-1, 1]) (ctx.beginPath(), ctx.ellipse(X(PX(c + sd * 0.12, vr)), Y(PY(vr)), R(0.0032), R(0.002), sd * 0.6, 0, Math.PI * 2), ctx.fill());
+    }
+  }
   // 칸 줄 (톡 칠 자리가 보이게)
   ctx.strokeStyle = 'rgba(120,85,40,.17)';
   ctx.lineWidth = 1;
@@ -1393,6 +1405,21 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PoolState, w: number, h: numb
   for (let i = 0; i < N; i++) {
     if (s.K[i] !== DUG) continue;
     const c = colOf(i), vr = vrowOf(i), age = t - s.place[i], pop = age < 12 ? 1 - age / 12 : 0;
+    // 파낸 모래 더미 (뒤·옆 가장자리)
+    for (let q = 0; q < 9; q++) {
+      const side = q < 5, u = side ? 0.1 + q * 0.2 : 0.25 + ((q - 5) % 2) * 0.4, cc = side ? c + u : q < 7 ? c + 0.03 : c + 0.97, vv = side ? vr + 0.06 : vr + u;
+      if (!side && NB[i].some((n) => s.K[n] === DUG && colOf(n) === (q < 7 ? c - 1 : c + 1))) continue;
+      if (side && NB[i].some((n) => s.K[n] === DUG && vrowOf(n) === vr - 1)) continue;
+      const bx = X(PX(cc, vv)), by = Y(PY(vv)), rr = R(0.011 + 0.004 * hsh(i * 9 + q));
+      ctx.fillStyle = '#d9b77f';
+      ctx.beginPath();
+      ctx.ellipse(bx, by, rr * 1.3, rr * 0.8, 0, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,245,215,.55)';
+      ctx.beginPath();
+      ctx.ellipse(bx - rr * 0.3, by - rr * 0.4, rr * 0.5, rr * 0.25, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.fillStyle = '#8c6c42';
     quad(c + 0.05, vr + 0.07, c + 0.95, vr + 0.93);
     ctx.fill();
@@ -1536,7 +1563,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PoolState, w: number, h: numb
     }
   }
   // ── 보물이 어디 있나 (파도 때): 물을 타고 제 줄을 따라 오다 → 웅덩이에 퐁당(파닥파닥) / 바다로 쓸려 감 ──
-  const CS = s.impact + HOLD + RECEDE / 2, span = Math.max(30, s.end - CS - 24);
+  const CS = s.impact + HOLD * 0.6, span = Math.max(30, s.end - CS - 24);
   /** 꽃게 아이 k가 보물을 나르는 진행 (0 집 → 0.45 웅덩이 → 1 집) */
   const carryQ = (k: number) => clamp01((wt - CS - k * 10) / span);
   const kidPos = (k: number) => {
@@ -1567,8 +1594,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PoolState, w: number, h: numb
         let m = 0;
         while (m + 1 < L.path.length && s.arrive[L.path[m + 1]] >= 0 && s.arrive[L.path[m + 1]] <= wt) m++;
         const i0 = L.path[m], nx = L.path[Math.min(L.path.length - 1, m + 1)], u = nx !== i0 && s.arrive[nx] > s.arrive[i0] ? clamp01((wt - s.arrive[i0]) / (s.arrive[nx] - s.arrive[i0])) * 0.5 : 0;
-        const x = ccx(i0) + (ccx(nx) - ccx(i0)) * u, y = ccy(i0) + (ccy(nx) - ccy(i0)) * u;
-        lootAt.push({ k: it.k, x, y: y - 0.012 - Math.abs(Math.sin(t * 0.15 + j)) * 0.006, rot: Math.sin(t * 0.1 + j) * 0.3, z: 0.024, a: 1, row: rowOf(i0) });
+        const li = wave.cargo.filter((q, jj) => jj < j && q.lane === it.lane).length, off = (li - 0.5 * wave.cargo.filter((q) => q.lane === it.lane).length + 0.5) * 0.036;
+        const x = ccx(i0) + (ccx(nx) - ccx(i0)) * u + (wave.from === 'F' ? off : 0), y = ccy(i0) + (ccy(nx) - ccy(i0)) * u + (wave.from === 'F' ? 0 : off * 0.8);
+        lootAt.push({ k: it.k, x, y: y - 0.014 - Math.abs(Math.sin(t * 0.15 + j)) * 0.008, rot: Math.sin(t * 0.1 + j) * 0.3, z: 0.027, a: 1, row: rowOf(i0) });
       } else if (L.at < 0) {
         // 웅덩이를 못 만나 바다로
         const q = clamp01((wt - s.impact - HOLD) / RECEDE), e = L.path[L.path.length - 1];
@@ -1583,8 +1611,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PoolState, w: number, h: numb
       if (q >= 0.45) return;
       const n = per.get(g.cell) ?? 0;
       per.set(g.cell, n + 1);
-      const flop = Math.max(0, Math.sin(t * 0.22 + n * 2 + g.cell));
-      lootAt.push({ k: g.k, x: ccx(g.cell) + (n - 0.5) * 0.034, y: ccy(g.cell) + 0.008 - flop * 0.026, rot: g.k === FISH ? Math.sin(t * 0.5 + n) * 0.9 * flop : 0, z: 0.027, a: 1, row: rowOf(g.cell) });
+      const flop = Math.max(0, Math.sin(t * 0.22 + n * 2 + g.cell)), leap = t - g.t < 26 ? Math.sin(((t - g.t) / 26) * Math.PI) * 0.055 : 0;
+      lootAt.push({ k: g.k, x: ccx(g.cell) + (n - 0.5) * 0.034, y: ccy(g.cell) + 0.008 - flop * 0.026 - leap, rot: g.k === FISH ? Math.sin(t * 0.5 + n) * 0.9 * flop : 0, z: 0.027, a: 1, row: rowOf(g.cell) });
     });
   }
   // ── 세워진 것들 (뒤 줄부터 앞 줄로) ──
@@ -1618,7 +1646,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PoolState, w: number, h: numb
           ctx.fillStyle = 'rgba(120,80,40,.35)';
           for (let q = 0; q < Math.min(4, lost + 1); q++) (ctx.beginPath(), ctx.arc(X(PX(c + 0.2 + q * 0.2, r + 0.9)), Y(PY(r + 0.9, hh * 0.5 + (q % 2))), R(0.005), 0, Math.PI * 2), ctx.fill());
         }
-        label(String(hh), X(PX(c + 0.5, r + 0.5)), Y(PY(r + 0.5, hh + 0.2)), 0.034, '#ffffff', 'rgba(90,55,20,.75)');
+        label(String(hh), X(PX(c + 0.5, r + 0.5)), Y(PY(r + 0.5, hh + 0.2)), 0.036, '#ffffff', 'rgba(90,55,20,.75)');
         if (wave && fl && fl.over[i] && wt >= s.arrive[i] && fade > 0) {
           ctx.fillStyle = `rgba(150,225,250,${0.7 * fade})`;
           quad(c + 0.05, r + 0.1, c + 0.95, r + 0.92, hh + 0.3);
@@ -1656,6 +1684,20 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PoolState, w: number, h: numb
         const wetc = flooded || hitNow ? 0.65 : s.wet[i] * 0.5;
         ctx.save();
         if (hitNow && wt < s.impact + HOLD) ctx.translate(Math.sin(t * 1.3) * 1.5, 0);
+        if (flooded) {
+          ctx.fillStyle = 'rgba(70,170,225,.7)';
+          ctx.beginPath();
+          ctx.ellipse(x, yb + R(0.004), hw * 1.6, hw * 0.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(255,255,255,.7)';
+          ctx.lineWidth = 1.2;
+          for (let q = 0; q < 2; q++) {
+            const rp = ((t * 0.015 + q * 0.5) % 1);
+            ctx.beginPath();
+            ctx.ellipse(x, yb + R(0.004), hw * (0.9 + rp * 0.7), hw * (0.28 + rp * 0.22), 0, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
         ctx.fillStyle = 'rgba(60,35,15,.3)';
         ctx.beginPath();
         ctx.ellipse(x, yb + R(0.004), hw * 1.15, hw * 0.34, 0, 0, Math.PI * 2);
@@ -1718,6 +1760,17 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PoolState, w: number, h: numb
           });
         }
         ctx.restore();
+        // 집 앞 보물 더미 (이번 물때에 아이들이 날라 온 것)
+        if (hi === 0) {
+          const pile: number[] = [];
+          const carried = wave ? s.held.filter((g) => carryQ(g.carrier) >= 1).length : s.held.length;
+          let inBag = s.bag.reduce((a2, b2) => a2 + b2, 0) - (wave ? s.held.length - carried : 0);
+          for (let kk = 3; kk >= 0 && inBag > 0; kk--) for (let q = 0; q < s.bag[kk] && inBag > 0; q++, inBag--) pile.push(kk);
+          pile.slice(0, 8).forEach((kk, q) => {
+            const px2 = x + hw * 0.55 + (q % 4) * hw * 0.32, py2 = yb + R(0.016) - Math.floor(q / 4) * R(0.014);
+            drawLoot(ctx, kk, px2, py2, R(0.013), t, kk === FISH ? Math.sin(t * 0.3 + q) * 0.3 : 0);
+          });
+        }
         // 집 주인: 엄마 꽃게(앞치마·머릿수건) / 이웃 할아버지(밀짚모자) — 물이 들면 빨래를 이고 허둥지둥
         const mp = momPos(hs), mz = R(0.03);
         let mood: Mood = 'calm', claws = 0.2;
@@ -1733,15 +1786,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PoolState, w: number, h: numb
           // 머리에 인 빨래 바구니
           ctx.fillStyle = '#c98d55';
           ctx.beginPath();
-          ctx.roundRect(mx - mz * 0.9, my - mz * 2.75, mz * 1.8, mz * 0.6, mz * 0.15);
+          ctx.roundRect(mx - mz * 1.1, my - mz * 2.8, mz * 2.2, mz * 0.7, mz * 0.18);
           ctx.fill();
           ['#74c0fc', '#ffd43b', '#ff8fab'].forEach((cc, q) => {
             ctx.fillStyle = cc;
-            ctx.fillRect(mx - mz * 0.75 + q * mz * 0.5, my - mz * 3.05 + Math.sin(t * 0.6 + q) * mz * 0.1, mz * 0.45, mz * 0.4);
+            ctx.fillRect(mx - mz * 0.95 + q * mz * 0.65, my - mz * 3.25 + Math.sin(t * 0.6 + q) * mz * 0.12, mz * 0.55, mz * 0.55);
           });
           ctx.fillStyle = '#9fe3ff';
           for (const sd of [-1, 1]) (ctx.beginPath(), ctx.ellipse(mx + sd * mz * 1.3, my - mz * 1.8 + ((t * 0.08) % 1) * mz, mz * 0.12, mz * 0.2, 0, 0, Math.PI * 2), ctx.fill());
-          label(hs.mom ? '어머머머!' : '아이고 내 집!', mx, my - mz * 3.6, 0.036, '#ffe3e0', 'rgba(90,20,10,.7)');
+          label(hs.mom ? '어머머머!' : '아이고 내 집!', mx, my - mz * 4.2, 0.04, '#ffe3e0', 'rgba(90,20,10,.75)');
         }
         if (mood === 'sleep') label('z', mx + mz * 1.2 + ((t / 25) % 1) * mz, my - mz * 2 - ((t / 25) % 1) * mz, 0.036);
       }
@@ -1821,7 +1874,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PoolState, w: number, h: numb
   if (pre) {
     for (let i = 0; i < N; i++) {
       if (!pre.f.hit[i] || pre.B.K[i] === HOUSE) continue;
-      const kk = pre.B.K[i], hz = kk === ROCK ? ROCK_H + 0.8 : Math.max(0, s.Hh[i]) + 1.9, bx = X(ccx(i)), by = Y(PY(vrowOf(i) + 0.55, hz)), over = pre.f.over[i] > 0;
+      const kk = pre.B.K[i], hz = kk === ROCK ? ROCK_H + 0.8 : Math.max(0, s.Hh[i]) + 2.7, bx = X(ccx(i)), by = Y(PY(vrowOf(i) + 0.55, hz)), over = pre.f.over[i] > 0;
       ctx.fillStyle = over ? '#ff5a4a' : '#2f9be0';
       ctx.beginPath();
       ctx.arc(bx, by, R(0.022), 0, Math.PI * 2);
@@ -1924,9 +1977,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PoolState, w: number, h: numb
       }
       ctx.globalAlpha = al;
       wave.cargo.forEach((it, j) => {
-        const x = X(PX(it.lane + 0.5, vSea)) + (wave.cargo.filter((q, jj) => jj < j && q.lane === it.lane).length) * R(0.03);
+        const x = X(PX(it.lane + 0.5, vSea)) + (wave.cargo.filter((q, jj) => jj < j && q.lane === it.lane).length) * R(0.04);
         ctx.fillStyle = '#ffffff';
-        drawLoot(ctx, it.k, x, lip(x) - R(0.012) + Math.sin(t * 0.3 + j) * R(0.006), R(it.k === OCTO ? 0.03 : 0.024), t, Math.sin(t * 0.2 + j) * 0.4);
+        drawLoot(ctx, it.k, x, lip(x) - R(0.014) + Math.sin(t * 0.3 + j) * R(0.006), R(it.k === OCTO ? 0.034 : 0.028), t, Math.sin(t * 0.2 + j) * 0.4);
       });
     } else {
       const Lw = wave.from === 'L', edge = Lw ? X(PX(0, ROWS / 2)) : X(PX(COLS, ROWS / 2)), from = Lw ? -R(0.05) : w + R(0.05), sd = Lw ? 1 : -1;
@@ -1983,12 +2036,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PoolState, w: number, h: numb
     if (e.kind === 'crumble') fx.burst(x, y, '#e2b878', 8, 2.2, 2.2), say(x, y - R(0.02), e.text!, '#ffe3b0', 12);
     if (e.kind === 'gone') fx.burst(x, y, '#d9ab6a', 26, 3.6, 3), fx.kick(4), say(x, y - R(0.02), e.text!, '#ffe3b0', 14);
     if (e.kind === 'safe') fx.burst(x, y - R(0.03), '#ffe066', 16, 3.4, 2.4), say(x, y - R(0.09), e.text!, e.col!, 15);
-    if (e.kind === 'catch') fx.burst(x, y, '#ffffff', 22, 3.8, 2.6), fx.burst(x, y, '#9fe3ff', 14, 3, 2.2), fx.ring(x, y, '#ffe066', R(0.08), 4), fx.kick(3), say(x, y - R(0.07), e.text!, e.col!, 17);
+    if (e.kind === 'catch') fx.burst(x, y - R(0.03), '#ffffff', 16, 4.6, 2.4), fx.burst(x, y, '#ffffff', 22, 3.8, 2.6), fx.burst(x, y, '#9fe3ff', 14, 3, 2.2), fx.ring(x, y, '#ffe066', R(0.08), 4), fx.kick(3), say(x, y - R(0.07), e.text!, e.col!, 17);
     if (e.kind === 'lost') say(x, y - R(0.04), e.text!, e.col!, 13);
     if (e.kind === 'yay') say(x, y - R(0.06), e.text!, e.col!, 17), fx.burst(x, y, '#ffe066', 20, 3.4, 2.4);
     if (e.kind === 'flooded') fx.burst(x, y, '#9fe3ff', 50, 5.5, 3.2), fx.kick(10), fx.blink('#bfe6ff', 0.25), say(x, y - R(0.09), e.text!, e.col!, 18);
     if (e.kind === 'tide') fx.blink('#bfe6ff', 0.2), fx.kick(3), say(w / 2, y - R(0.03), e.text!, e.col!, 15);
-    if (e.kind === 'incoming') fx.kick(2), say(w / 2, Y(SF - 0.03), e.text!, e.col!, 17);
+    if (e.kind === 'incoming') fx.kick(2), say(w / 2, Y(SF - 0.075), e.text!, e.col!, 17);
     if (e.kind === 'clear') fx.burst(w * 0.3, Y(0.45), '#9fe3ff', 30, 6, 3), fx.burst(w * 0.3, y, '#ffe066', 40, 6, 3.2), fx.burst(w * 0.7, y, '#ff8fb1', 40, 6, 3.2), fx.ring(w / 2, y, '#ffe066', R(0.4), 7), fx.blink('#fff6c8', 0.25);
     if (e.kind === 'fail') fx.kick(8), fx.blink(th.hot, 0.2);
   }

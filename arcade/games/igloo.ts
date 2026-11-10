@@ -214,7 +214,7 @@ const ccx = (i: number) => PX(colOf(i) + 0.5, vrowOf(i) + 0.5), ccy = (i: number
 /** 아래 쟁반: 조각 미리 보기 · '▶ 버티기' 단추 */
 const TY = Y1 + 0.195, BTN = { x: 0.635, y: TY + 0.03, w: 0.33, h: 0.11 };
 /** 예보판 칸 자리 (톡 하면 그 단계를 미리 본다) */
-const FC = { y0: 0.09, h: 0.13, cy: 0.127, ch: 0.085, gap: 0.012 };
+const FC = { y0: 0.088, h: 0.146, cy: 0.138, ch: 0.085, gap: 0.012 };
 function cardBox(k: number, n: number) {
   const cw = Math.min(0.15, (0.92 - FC.gap * (n - 1)) / n), x0 = 0.5 - (cw * n + FC.gap * (n - 1)) / 2;
   return { x: x0 + k * (cw + FC.gap), y: FC.cy, w: cw, h: FC.ch };
@@ -316,7 +316,7 @@ function newStage(s: IglooState) {
   // 펭귄 식구 둘 (이글루 옆 눈밭에서 논다 — 연출만)
   s.pengs = [];
   for (let k = 0; k < 2; k++) {
-    const i = free(row - 1, Math.min(ROWS - 1, row + 1), (j) => near(j, 1) && !s.ic.includes(j) && !s.pengs.some((q) => q.home === j));
+    const i = free(row - 1, row, (j) => near(j, 1) && !s.ic.includes(j) && !s.pengs.some((q) => q.home === j));
     if (i >= 0) s.pengs.push({ home: i, off: k * 37 });
   }
   // 새것 알림
@@ -1074,7 +1074,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
   const say = (x: number, y: number, text: string, col: string, size: number) => {
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
-    for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.3 && Math.abs(q.y - y) < size + 4); k++) y -= size + 5;
+    for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.16 && Math.abs(q.y - y) < size + 4); k++) y -= size + 5;
     rec.push({ x, y, t: s.t });
     if (rec.length > 12) rec.shift();
     fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), y, text, col, size);
@@ -1313,11 +1313,16 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
       ctx.fill();
     };
     // 양옆 (경사진 가장자리 아래로 얼음)
-    strata([PX(0, 0), PY(0), PX(0, ROWS), PY(ROWS), PX(0, ROWS), PY(ROWS) + T, PX(0, 0) - 0.004, PY(0) + T * 0.5], false);
-    strata([PX(COLS, 0), PY(0), PX(COLS, ROWS), PY(ROWS), PX(COLS, ROWS), PY(ROWS) + T, PX(COLS, 0) + 0.004, PY(0) + T * 0.5], false);
+    const SL = 0.02;
+    strata([PX(0, 0), PY(0), PX(0, ROWS), PY(ROWS), PX(0, ROWS) - SL, PY(ROWS) + T, PX(0, 0) - SL, PY(0) + T * 0.5], false);
+    strata([PX(COLS, 0), PY(0), PX(COLS, ROWS), PY(ROWS), PX(COLS, ROWS) + SL, PY(ROWS) + T, PX(COLS, 0) + SL, PY(0) + T * 0.5], false);
+    // 옆면 그늘 (빛은 왼쪽 위에서)
+    ctx.fillStyle = 'rgba(10,40,90,.18)';
+    poly([PX(COLS, 0), PY(0), PX(COLS, ROWS), PY(ROWS), PX(COLS, ROWS) + SL, PY(ROWS) + T, PX(COLS, 0) + SL, PY(0) + T * 0.5]);
+    ctx.fill();
     // 앞면
-    strata([PX(0, ROWS), PY(ROWS), PX(COLS, ROWS), PY(ROWS), PX(COLS, ROWS), PY(ROWS) + T, PX(0, ROWS), PY(ROWS) + T], true);
-    const x0 = PX(0, ROWS), x1 = PX(COLS, ROWS);
+    strata([PX(0, ROWS), PY(ROWS), PX(COLS, ROWS), PY(ROWS), PX(COLS, ROWS) + SL, PY(ROWS) + T, PX(0, ROWS) - SL, PY(ROWS) + T], true);
+    const x0 = PX(0, ROWS) - SL * 0.5, x1 = PX(COLS, ROWS) + SL * 0.5;
     // 얼음층 줄 · 금 · 갇힌 공기방울 · 얼어붙은 물고기
     ctx.strokeStyle = 'rgba(255,255,255,.35)';
     ctx.lineWidth = 1;
@@ -1362,6 +1367,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
     ctx.beginPath();
     for (let x = x0 - 0.02; x <= x1 + 0.02; x += 0.02) ctx.lineTo(X(x), Y(Y1 + T + 0.003 * Math.sin(x * 20 + t * 0.06)));
     ctx.stroke();
+    // 양옆 가장자리 눈 덮개 (울퉁불퉁 흘러내린 눈)
+    ctx.fillStyle = mix('#ffffff', '#a8b4dc', dark * 0.45);
+    for (const sd of [0, 1])
+      for (let k = 0; k <= 14; k++) {
+        const vr = (k / 14) * ROWS, ex = PX(sd * COLS, vr) + (sd ? 0.004 : -0.004), ey = PY(vr) + 0.006;
+        ctx.beginPath();
+        ctx.ellipse(X(ex), Y(ey), R(0.012 + 0.005 * hsh(k + sd * 20)), R(0.009 + 0.006 * hsh(k + 7 + sd * 20)), 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
   }
   // ── 눈밭 칸 ──
   for (let vr = 0; vr < ROWS; vr++)
@@ -1510,6 +1524,44 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
     return { mood: t - s.lastPlace < 40 ? 'wow' : 'calm', flap: t - s.lastPlace < 40 ? 0.6 : 0.1 };
   };
   const nightSt = st && st.k === 'night' ? st : null;
+  let sliding = false;
+  // ── 펭귄 식구 (바람이 닿으면 배로 미끄러져 썰매처럼 '슝~') ──
+  const pengAt = (pg: Peng) => {
+    let i = pg.home;
+    if (s.K[i] !== SNOW || s.fish[i]) {
+      let bd = 99;
+      for (let j = 0; j < N; j++) {
+        const d = Math.abs(rowOf(j) - rowOf(pg.home)) + Math.abs(colOf(j) - colOf(pg.home));
+        if (s.K[j] === SNOW && !s.fish[j] && j !== s.wc && d < bd) (bd = d), (i = j);
+      }
+    }
+    return i;
+  };
+  const drawPg = (pg: Peng) => {
+    const i = pengAt(pg);
+    const hx = ccx(i), hy = ccy(i) + 0.02;
+    let x = hx + Math.sin((t + pg.off) * 0.02) * CW * 0.25, y = hy, mood: Mood = 'calm', flap = 0.1, tilt = 0;
+    if (fl && fl.lvl[i] > 0 && wt >= s.arrive[i]) {
+      const q = Math.min(1, (wt - s.arrive[i]) / (s.end - s.arrive[i])), [dx, dy] = windDir(gust, i), go = Math.sin(q * Math.PI);
+      x = hx + dx * go * 0.22;
+      y = hy + dy * go * 0.16;
+      mood = 'happy';
+      flap = 0;
+      tilt = dx !== 0 ? Math.sign(dx) * Math.PI * 0.5 : Math.PI * 0.5;
+      sliding = true;
+    } else if (gust && wt < s.impact) (mood = 'wow'), (flap = 0.7);
+    else if (s.phase === 'result') (mood = s.ok ? 'happy' : 'dizzy'), (flap = s.ok ? 1 : 0.3), (y -= s.ok ? Math.abs(Math.sin(t * 0.3 + pg.off)) * 0.012 : 0);
+    else if (nightSt) mood = 'sleep';
+    if (tilt) {
+      ctx.strokeStyle = 'rgba(255,255,255,.8)';
+      ctx.lineWidth = 1.5;
+      const [dx, dy] = windDir(gust, i);
+      for (let q = 0; q < 3; q++) (ctx.beginPath(), ctx.moveTo(X(x) - dx * R(0.03 + q * 0.012), Y(y) - dy * R(0.03) - R(0.01) + q * R(0.008)), ctx.lineTo(X(x) - dx * R(0.06 + q * 0.012), Y(y) - dy * R(0.06) - R(0.01) + q * R(0.008)), ctx.stroke());
+    }
+    drawPeng(ctx, X(x), Y(y), R(0.03), t + pg.off, mood, flap, { tilt, scarf: pg.off ? '#5fb3ff' : '#ffd43b' });
+    if (tilt && wt - s.arrive[i] < 60) label('슝~', X(x), Y(y) - R(0.05), 0.036);
+    if (gust && wt < APPROACH && wt > 6) label('!', X(x), Y(y) - R(0.06), 0.036);
+    };
   for (let vr = 0; vr < ROWS; vr++)
     for (let c = 0; c < COLS; c++) {
       const i = (ROWS - 1 - vr) * COLS + c, k = s.K[i], age = t - s.place[i], drop = age < 10 ? Math.pow(1 - age / 10, 2) * 4 : 0;
@@ -1758,18 +1810,37 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
               const bx = ex + R(0.075) * out, byy = eb + R(0.055) * out;
               if (p < 80) drawPeng(ctx, bx, byy, z, t, 'dizzy', 0, { baby: true, tilt: (p - 30) * 0.35 });
               else drawPeng(ctx, bx, byy, z, t, p < 135 ? 'dizzy' : 'wow', 0.6, { baby: true });
-              if (p < 95) label('데굴데굴~', bx, byy - R(0.05), 0.032);
+              if (p < 95) label('데굴데굴~', bx, byy - R(0.05), 0.036);
               if (p >= 95) {
                 const m = p < 125 ? (p - 95) / 30 : 1, mx = ex + (bx - ex + R(0.028)) * m, my = eb + (byy - eb) * m;
                 drawPeng(ctx, mx, my, R(0.032), t, p < 135 ? 'strain' : 'calm', 0.7, { scarf: '#ff8fb1' });
-                if (p > 118 && p < 170) label('이 녀석!', mx + R(0.02), my - R(0.07), 0.032, '#ffd6e8');
+                if (p > 118 && p < 170) label('이 녀석!', mx + R(0.02), my - R(0.07), 0.036, '#ffd6e8');
               }
             }
           }
         } else {
-          // 무너진 눈 더미
-          ctx.fillStyle = '#e6f0fa';
-          for (let q = 0; q < 6; q++) (ctx.beginPath(), ctx.ellipse(cx2 + (q - 2.5) * rx * 0.33, by - R(0.008) - (q % 2) * R(0.008), rx * 0.2, rx * 0.12, q, 0, Math.PI * 2), ctx.fill());
+          // 무너진 눈 벽돌 더미 + 어질어질한 식구
+          for (let q = 0; q < 7; q++) {
+            const bx = cx2 + (hsh(q + gi * 9) - 0.5) * rx * 2.1, byy = by - R(0.004) - hsh(q + 3) * ryy * 1.4, bw = rx * (0.22 + hsh(q + 5) * 0.1);
+            ctx.save();
+            ctx.translate(bx, byy);
+            ctx.rotate((hsh(q + 7) - 0.5) * 1.4);
+            ctx.fillStyle = '#f6faff';
+            ctx.fillRect(-bw / 2, -bw * 0.35, bw, bw * 0.7);
+            ctx.strokeStyle = 'rgba(95,135,190,.8)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(-bw / 2, -bw * 0.35, bw, bw * 0.7);
+            ctx.restore();
+          }
+          if (gi === 0) {
+            const zf = R(0.026);
+            drawPeng(ctx, cx2 - rx * 0.25, by - ryy * 0.6, zf, t, 'dizzy', 0.4, { scarf: '#ff8fb1', tilt: Math.sin(t * 0.08) * 0.2 });
+            drawPeng(ctx, cx2 + rx * 0.2, by - ryy * 0.4, zf * 0.75, t + 9, 'dizzy', 0.6, { baby: true, tilt: -Math.sin(t * 0.08) * 0.25 });
+            ctx.fillStyle = '#ffe066';
+            ctx.font = `${R(0.026)}px system-ui, sans-serif`;
+            ctx.textAlign = 'center';
+            for (let q = 0; q < 3; q++) ctx.fillText('★', cx2 + Math.cos(t * 0.15 + q * 2.1) * rx * 0.5, by - ryy * 0.6 - zf * 2 + Math.sin(t * 0.15 + q * 2.1) * zf * 0.3);
+          }
         }
         // 지붕 위 아빠 펭귄 (큰 이글루) / 아기 이글루 위 아기
         const top = { x: cx2, y: by - ryy + R(0.004) };
@@ -1779,7 +1850,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
             // 배 썰매로 퇴장 '으아아~'
             const q = Math.min(1, s.pt / 110), kx = top.x + q * R(0.35) * (cx2 < w / 2 ? -1 : 1), ky = top.y + (Y(SF - 0.03) - top.y) * q;
             drawPeng(ctx, kx, ky, z, t, 'wow', 0, { scarf: '#e8485a', tilt: (cx2 < w / 2 ? -1 : 1) * Math.PI * 0.5 });
-            label('으아아~', kx, ky - z * 1.9, 0.04);
+            label('으아아~', Math.max(R(0.1), Math.min(w - R(0.1), kx)), ky - z * 1.9, 0.04);
           } else if (!crushed) {
             const bob = dm.mood === 'happy' ? Math.abs(Math.sin(t * 0.25)) * R(0.012) : Math.sin(t * 0.05) * R(0.002);
             const look = s.lastPlace > 0 && t - s.lastPlace < 60 ? Math.sign(X(ccx(s.place.indexOf(s.lastPlace))) - top.x) : Math.sin(t * 0.02);
@@ -1796,6 +1867,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
         ctx.restore();
       }
       if (s.fish[i]) drawCrate(ctx, X(ccx(i)), Y(ccy(i) + 0.022), R(0.02), t + i * 7);
+      if (c === COLS - 1) for (const pg of s.pengs) if (vrowOf(pengAt(pg)) === vr) drawPg(pg);
     }
   // ── 고드름 떨어질 칸 (벽 위에도 보이게 위에 그린다) ──
   if (!s.fell && !(st && st.k === 'icicle' && wt >= s.impact))
@@ -1844,10 +1916,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
     ctx.lineWidth = 1.5;
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
-    ctx.font = `900 ${R(0.034)}px system-ui, sans-serif`;
+    ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, x, y + 0.5);
+    ctx.fillText(text, x, y + 0.5, R(r * 2.6));
   };
   if (pre && pst) {
     if (pw) {
@@ -1861,12 +1933,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
         const k = s.K[i], hz = k === ICE && s.nat[i] ? BERG_H + 0.8 : k === MAN ? MAN_H + 1.6 : s.Hh[i] + 1.4;
         badge(X(ccx(i)), Y(PY(vrowOf(i) + 0.55, hz)), String(pw.hit[i]), pw.over[i] ? '#ff4a6a' : '#2f8fe0');
       }
-      for (let i = 0; i < N; i++) if (s.fish[i] && pw.lvl[i] > 0) label('날아가요!', X(ccx(i)), Y(ccy(i)) - R(0.045), 0.032, '#ffd6e8', 'rgba(120,30,60,.7)');
+      for (let i = 0; i < N; i++) if (s.fish[i] && pw.lvl[i] > 0) label('날아가요!', X(ccx(i)), Y(ccy(i)) - R(0.045), 0.036, '#ffd6e8', 'rgba(120,30,60,.7)');
     }
     if (pst.k === 'icicle')
       for (const i of s.ic) {
         const hit = s.K[i] === WALL || s.K[i] === MAN;
-        label(hit ? '🧊 부서져요!' : s.K[i] === ICE ? '🧊 버텨요' : '🧊 얼음 기둥', X(ccx(i)), Y(ccy(i)) - R(hit ? 0.07 : 0.03), 0.032, hit ? '#ffd0d8' : '#dff6ff', hit ? 'rgba(140,20,50,.75)' : 'rgba(20,70,130,.7)');
+        label(hit ? '🧊 부서져요!' : s.K[i] === ICE ? '🧊 버텨요' : '🧊 얼음 기둥', X(ccx(i)), Y(ccy(i)) - R(hit ? 0.07 : 0.03), 0.036, hit ? '#ffd0d8' : '#dff6ff', hit ? 'rgba(140,20,50,.75)' : 'rgba(20,70,130,.7)');
       }
     if (pre.path) {
       const sp = pre.path[pre.path.length - 1], k = pre.before.K[sp];
@@ -1883,10 +1955,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
       const bx = X(ccx(ic2.cells[0]) + (ic2.cells.length > 1 ? CW / 2 : 0)), by = Y(ccy(ic2.cells[0])) + R(0.015), pul = 0.6 + 0.4 * Math.sin(t * 0.2);
       ctx.fillStyle = `rgba(235,60,95,${0.85 * pul})`;
       ctx.beginPath();
-      ctx.roundRect(bx - R(0.11), by - R(0.022), R(0.22), R(0.044), R(0.022));
+      ctx.roundRect(bx - R(0.13), by - R(0.024), R(0.26), R(0.048), R(0.024));
       ctx.fill();
       ctx.fillStyle = '#ffffff';
-      ctx.font = `900 ${R(0.034)}px system-ui, sans-serif`;
+      ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillText(`바람이 닿아요 -${hv}`, bx, by + 0.5);
     });
@@ -1898,53 +1970,19 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
     ctx.save();
     ctx.translate(bx, by);
     ctx.scale(pul, pul);
-    ctx.fillStyle = '#7fd8ff';
+    ctx.fillStyle = '#56c8f5';
     ctx.beginPath();
-    ctx.roundRect(-R(0.032), -R(0.017), R(0.064), R(0.034), R(0.017));
+    ctx.arc(0, 0, R(0.022), 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1.2;
+    ctx.lineWidth = 1.5;
     ctx.stroke();
-    ctx.fillStyle = '#0d3a66';
-    ctx.font = `900 ${R(0.026)}px system-ui, sans-serif`;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('❄얼음', 0, 0.5);
+    ctx.fillText('❄', 0, R(0.002));
     ctx.restore();
-  }
-  // ── 펭귄 식구 (바람이 닿으면 배로 미끄러져 썰매처럼 '슝~') ──
-  let sliding = false;
-  for (const pg of s.pengs) {
-    let i = pg.home;
-    if (s.K[i] !== SNOW || s.fish[i]) {
-      let bd = 99;
-      for (let j = 0; j < N; j++) {
-        const d = Math.abs(rowOf(j) - rowOf(pg.home)) + Math.abs(colOf(j) - colOf(pg.home));
-        if (s.K[j] === SNOW && !s.fish[j] && j !== s.wc && d < bd) (bd = d), (i = j);
-      }
-    }
-    const hx = ccx(i), hy = ccy(i) + 0.02;
-    let x = hx + Math.sin((t + pg.off) * 0.02) * CW * 0.25, y = hy, mood: Mood = 'calm', flap = 0.1, tilt = 0;
-    if (fl && fl.lvl[i] > 0 && wt >= s.arrive[i]) {
-      const q = Math.min(1, (wt - s.arrive[i]) / (s.end - s.arrive[i])), [dx, dy] = windDir(gust, i), go = Math.sin(q * Math.PI);
-      x = hx + dx * go * 0.22;
-      y = hy + dy * go * 0.16;
-      mood = 'happy';
-      flap = 0;
-      tilt = dx !== 0 ? Math.sign(dx) * Math.PI * 0.5 : Math.PI * 0.5;
-      sliding = true;
-    } else if (gust && wt < s.impact) (mood = 'wow'), (flap = 0.7);
-    else if (s.phase === 'result') (mood = s.ok ? 'happy' : 'dizzy'), (flap = s.ok ? 1 : 0.3), (y -= s.ok ? Math.abs(Math.sin(t * 0.3 + pg.off)) * 0.012 : 0);
-    else if (nightSt) mood = 'sleep';
-    if (tilt) {
-      ctx.strokeStyle = 'rgba(255,255,255,.8)';
-      ctx.lineWidth = 1.5;
-      const [dx, dy] = windDir(gust, i);
-      for (let q = 0; q < 3; q++) (ctx.beginPath(), ctx.moveTo(X(x) - dx * R(0.03 + q * 0.012), Y(y) - dy * R(0.03) - R(0.01) + q * R(0.008)), ctx.lineTo(X(x) - dx * R(0.06 + q * 0.012), Y(y) - dy * R(0.06) - R(0.01) + q * R(0.008)), ctx.stroke());
-    }
-    drawPeng(ctx, X(x), Y(y), R(0.03), t + pg.off, mood, flap, { tilt, scarf: pg.off ? '#5fb3ff' : '#ffd43b' });
-    if (tilt && wt - s.arrive[i] < 60) label('슝~', X(x), Y(y) - R(0.05), 0.036);
-    if (gust && wt < APPROACH && wt > 6) label('!', X(x), Y(y) - R(0.06), 0.036);
   }
   // ── 굴러가는 눈사람 머리 (눈사람이 맞으면) ──
   for (const e of s.events)
@@ -1960,7 +1998,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
     if (q <= 110) {
       const p = q / 110, hx2 = bx - p * R(0.16), hy2 = by - R(0.045) + Math.min(1, p * 3) * R(0.04) - Math.abs(Math.sin(p * 10)) * R(0.012) * (1 - p);
       drawHead(ctx, hx2, hy2, R(0.008), -p * 12);
-      if (q < 50) label('데굴데굴~', hx2, hy2 - R(0.03), 0.032);
+      if (q < 50) label('데굴데굴~', hx2, hy2 - R(0.03), 0.036);
     }
   }
   // ── 고드름 떨어지기 ──
@@ -2092,8 +2130,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
     const clapE = s.events.some((e) => (e.kind === 'safe' || e.kind === 'clear') && t - e.t < 70) || (s.phase === 'result' && s.ok);
     const mood = sliding ? 'laugh' : clapE ? 'clap' : gust && wt < s.impact ? 'wow' : 'calm';
     drawSeal(ctx, fx0 + R(0.008), fy0, z, t, mood);
-    if (mood === 'clap' && t % 40 < 26) label('짝짝짝!', fx0 + R(0.035), fy0 - z * 2.3, 0.034, '#fff4b0');
-    if (mood === 'laugh') label('어우어우!', fx0 + R(0.04), fy0 - z * 2.3, 0.034, '#ffffff');
+    if (mood === 'clap' && t % 40 < 26) label('짝짝짝!', fx0 + R(0.035), fy0 - z * 2.3, 0.036, '#fff4b0');
+    if (mood === 'laugh') label('어우어우!', fx0 + R(0.04), fy0 - z * 2.3, 0.036, '#ffffff');
   }
   // ── 밤: 세상이 어두워지고, 창·등불은 번진다 ──
   if (dark > 0.02) {
@@ -2219,7 +2257,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
       ctx.save();
       if (cur) (ctx.shadowColor = '#9fe3ff'), (ctx.shadowBlur = R(0.03));
       const g = ctx.createLinearGradient(0, Y(b.y), 0, Y(b.y + b.h));
-      const [c0, c1] = q.k === 'night' ? (q.aurora ? ['#5a4fb0', '#1f6a7a'] : ['#3a4a8c', '#18234f']) : q.k === 'icicle' ? ['#bfeaff', '#5fb0dc'] : q.k === 'ball' ? ['#e9f2fb', '#9bb6d2'] : q.from === 'C' ? ['#b9a8f0', '#6c58c0'] : cur ? ['#7fd0ff', '#2a7fc4'] : ['#a9daf5', '#4a92c8'];
+      const [c0, c1] = q.k === 'night' ? (q.aurora ? ['#5a4fb0', '#1f6a7a'] : ['#3a4a8c', '#18234f']) : q.k === 'icicle' ? ['#bfeaff', '#5fb0dc'] : q.k === 'ball' ? ['#9db8d8', '#4f6f9a'] : q.from === 'C' ? ['#b9a8f0', '#6c58c0'] : cur ? ['#7fd0ff', '#2a7fc4'] : ['#a9daf5', '#4a92c8'];
       g.addColorStop(0, c0);
       g.addColorStop(1, c1);
       ctx.fillStyle = g;
@@ -2280,34 +2318,41 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
         ctx.fillText(String(q.h), X(b.x + b.w * 0.66), my);
       } else {
         ctx.fillStyle = '#ffffff';
-        font(0.05, 900);
-        ctx.fillText(q.k === 'night' ? (q.aurora ? '🌌' : '🌙') : q.k === 'icicle' ? '🧊' : '⚪', mx, my - R(0.004));
-        font(0.03, 900);
-        ctx.fillStyle = q.k === 'ball' ? '#23466e' : '#ffffff';
-        ctx.fillText(q.k === 'night' ? '밤' : q.k === 'icicle' ? `×${s.ic.length}` : '굴러요', mx, Y(b.y + b.h - 0.014));
+        font(0.042, 900);
+        ctx.fillText(q.k === 'night' ? (q.aurora ? '🌌' : '🌙') : q.k === 'icicle' ? '🧊' : '⚪', mx, Y(b.y + 0.038));
+        font(0.036, 900);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(q.k === 'night' ? (q.aurora ? '오로라' : '밤') : q.k === 'icicle' ? `×${s.ic.length}` : '굴러요', mx, Y(b.y + b.h - 0.017), R(b.w - 0.012));
       }
-      font(0.03, 900);
-      ctx.fillStyle = q.k === 'ball' ? '#23466e' : 'rgba(255,255,255,.95)';
-      ctx.fillText(`${k + 1}`, X(b.x + 0.014), Y(b.y + 0.016));
+      font(0.036, 900);
+      ctx.fillStyle = 'rgba(255,255,255,.95)';
+      ctx.fillText(`${k + 1}`, X(b.x + 0.016), Y(b.y + 0.017));
       // 카드 위 결과 미리 보기: 이글루가 깎이면 빨간 점, 밤엔 얼 벽 수
       if (fore) {
         const f = fore[k], d = f.dmg.reduce((a2, b2) => a2 + b2, 0);
         if (d > 0) {
           ctx.fillStyle = '#ff3d6a';
           ctx.beginPath();
-          ctx.arc(X(b.x + b.w - 0.014), Y(b.y + 0.014), R(0.017), 0, Math.PI * 2);
+          ctx.arc(X(b.x + b.w - 0.012), Y(b.y + 0.012), R(0.022), 0, Math.PI * 2);
           ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
           ctx.fillStyle = '#ffffff';
-          font(0.026, 900);
-          ctx.fillText(`-${d}`, X(b.x + b.w - 0.014), Y(b.y + 0.015));
+          font(0.036, 900);
+          ctx.fillText(`-${d}`, X(b.x + b.w - 0.012), Y(b.y + 0.013), R(0.04));
         } else if (f.frozen && f.frozen.length) {
           ctx.fillStyle = '#7fd8ff';
           ctx.beginPath();
-          ctx.arc(X(b.x + b.w - 0.016), Y(b.y + 0.016), R(0.019), 0, Math.PI * 2);
+          ctx.beginPath();
+          ctx.roundRect(X(b.x + b.w - 0.05), Y(b.y - 0.008), R(0.058), R(0.04), R(0.02));
           ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
           ctx.fillStyle = '#0d3a66';
-          font(0.024, 900);
-          ctx.fillText(`❄${f.frozen.length}`, X(b.x + b.w - 0.016), Y(b.y + 0.017));
+          font(0.036, 900);
+          ctx.fillText(`❄${f.frozen.length}`, X(b.x + b.w - 0.021), Y(b.y + 0.013), R(0.052));
         }
       }
       if (done) {
@@ -2325,7 +2370,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
     ctx.globalAlpha = a;
     font(0.036, 900);
     ctx.textAlign = 'center';
-    const tx = `✨ ${s.news.text}`, tw2 = Math.min(w - 12, ctx.measureText(tx).width + 22), by2 = Y(0.252) - drop;
+    const tx = `✨ ${s.news.text}`, tw2 = Math.min(w - 12, ctx.measureText(tx).width + 22), by2 = Y(0.262) - drop;
     ctx.fillStyle = 'rgba(18,34,70,.9)';
     ctx.beginPath();
     ctx.roundRect(w / 2 - tw2 / 2, by2 - R(0.026), tw2, R(0.052), R(0.026));
@@ -2414,7 +2459,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
         ctx.fillText('없음', X(x + ww / 2), Y(y + hh / 2));
         return;
       }
-      const mx = X(x + ww / 2), my = Y(y + hh * (big ? 0.45 : 0.5)), z = R(big ? 0.05 : 0.032);
+      const mx = X(x + ww / 2), my = Y(y + hh * (big ? 0.45 : 0.5)), z = R(big ? 0.05 : 0.036);
       if (pc === PW) {
         ctx.fillStyle = '#c9dcee';
         ctx.fillRect(mx - z, my - z * 0.1, z * 2, z * 0.7);

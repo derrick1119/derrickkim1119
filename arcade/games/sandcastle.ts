@@ -153,6 +153,8 @@ export interface SandState {
   slow: boolean; slowAcc: number;
   /** 별 셋(성 무사 · 안 깎임 · 조개) 중 놓친 별이 언제 날아갔나 (-1 = 아직) */
   miss: number[];
+  /** 지난 판(또는 무너진 판)에 섰던 모래벽 — 새 판이 시작되면 밤 밀물에 녹아 평평해진다 (그리기만) */
+  ghost: { i: number; h: number }[];
 }
 
 const ev = (s: SandState, kind: string, x: number, y: number, text?: string, col?: string, v?: number, z?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v, z });
@@ -274,6 +276,8 @@ function fair(s: SandState) {
 /** 판 구성: 같은 판은 다시 해도 같은 바닷가 (실패하면 '처음부터 다시 짓기').
  * 바닷가(조개·바위 자리)는 '★★★ 길이 있는지'를 내다보기로 확인해 고른다 — 별 셋은 늘 가능하지만 생각해야 받는다 */
 function newStage(s: SandState) {
+  s.ghost = [];
+  for (let i = 0; i < N; i++) if (s.K[i] === WALL) s.ghost.push({ i, h: s.Hh[i] });
   const key = s.stage;
   let k = s.layout[key];
   if (k === undefined) {
@@ -395,10 +399,10 @@ function endStage(s: SandState, ok: boolean) {
 
 export const sandcastle: GameDef<SandState> = {
   id: 'sandcastle',
-  name: '밀물 모래성',
+  name: '밀물 모래성 2',
   genes: ['fortify', 'forecast', 'pointer'],
   twist: '하늘의 파도 예보판에 파도 높이·방향·순서가 뜨고, 파도는 여러 번 온다 — 부딪힌 모래벽은 파도마다 깎여서 깎인 자리로 다음 파도가 더 들어오니, 어디를 두껍게 쌓을지가 수가 된다',
-  rules: ['모래를 톡 = 조각 놓기. ▶를 누르면 예보한 파도가 차례로 와요 — 꽃게 임금님 성을 지키면 별!', '파도는 높이만큼 들어오고 벽보다 높으면 넘어요. 부딪힌 모래벽은 깎여요(돌은 안 깎임).'],
+  rules: ['모래를 톡 = 조각 놓기. ▶를 누르면 예보한 파도가 차례로 와요 — 성 무사·안 깎임·조개 지킴 = 별 셋!', '파도는 높이만큼 들어오고 벽보다 높으면 넘어요. 부딪힌 모래벽은 깎여요(돌은 안 깎임).'],
   controls: 'touch',
   hint: '모래를 톡 = 조각 놓기 · ▶ 버티기 / 화살표로 고르고 스페이스',
   aspect: A,
@@ -415,7 +419,7 @@ export const sandcastle: GameDef<SandState> = {
       waves: [], wi: 0, wt: 0, fl: null, arrive: new Int16Array(N), impact: 0, end: 0, lastDmg: [],
       pieces: [], pi: 0, auto: 0, wet: new Float32Array(N), shells0: 0,
       hearts: 3, stars: 0, got: 0, pts: 0, ok: false, dmgThis: 0, lostThis: 0, keep: 0,
-      down: false, taps: 0, seen: new Set<string>(), events: [], news: null, dead: false, won: false, crabs: [], lastPlace: -999, place: new Int16Array(N), peak: new Int8Array(N), stealT: -1, layout: {}, slow: false, slowAcc: 0, miss: [-1, -1, -1],
+      down: false, taps: 0, seen: new Set<string>(), events: [], news: null, dead: false, won: false, crabs: [], lastPlace: -999, place: new Int16Array(N), peak: new Int8Array(N), stealT: -1, layout: {}, slow: false, slowAcc: 0, miss: [-1, -1, -1], ghost: [],
     } as SandState;
     newStage(s);
     return s;
@@ -759,7 +763,11 @@ function drawCrab(ctx: CanvasRenderingContext2D, x: number, y: number, z: number
       ctx.stroke();
       ctx.fillStyle = mix(col, '#ffffff', 0.08);
       ctx.beginPath();
-      ctx.ellipse(ex, ey, z * 0.42, z * 0.36, sd * 0.3, 0, Math.PI * 2);
+      ctx.ellipse(ex, ey, z * 0.5, z * 0.42, sd * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,240,220,.4)';
+      ctx.beginPath();
+      ctx.ellipse(ex - sd * z * 0.12, ey - z * 0.14, z * 0.16, z * 0.1, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = mix(col, '#5a1206', 0.5);
       ctx.lineWidth = Math.max(1, z * 0.08);
@@ -814,6 +822,16 @@ function drawCrab(ctx: CanvasRenderingContext2D, x: number, y: number, z: number
     ctx.restore();
   }
   ctx.restore();
+}
+
+/** 다섯 뿔 별 (원점 중심, 반지름 r) */
+function starPath(ctx: CanvasRenderingContext2D, r: number) {
+  ctx.beginPath();
+  for (let k = 0; k < 10; k++) {
+    const a = -Math.PI / 2 + (k * Math.PI) / 5, rr = k % 2 ? r * 0.45 : r;
+    ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+  }
+  ctx.closePath();
 }
 
 /** 떨어지거나 물려 가는 왕관 하나 (임금님 머리 밖) */
@@ -1334,6 +1352,20 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
       ctx.stroke();
     }
   }
+  // ── 지난 판의 모래벽이 밤 밀물에 녹아 평평해진다 (판이 같은 바닷가에서 이어지는 느낌, 규칙과는 무관) ──
+  if (s.phase === 'build' && s.pt < 50 && s.ghost.length) {
+    const q = s.pt / 50;
+    ctx.globalAlpha = 1 - q;
+    for (const g of s.ghost) {
+      if (s.K[g.i] !== SAND) continue;
+      const c = colOf(g.i), vr = vrowOf(g.i), hz = g.h * (1 - q) * (1 - q);
+      box(c + 0.07 + q * 0.06, vr + 0.12, c + 0.93 - q * 0.06, vr + 0.9, Math.max(0.05, hz), '#d9b57c', '#b98d55', '#a77d4a');
+      ctx.fillStyle = 'rgba(120,200,230,.5)';
+      quad(c - 0.05 * q, vr + 0.1, c + 1 + 0.05 * q, vr + 0.95);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
   // ── 물: 짓는 동안은 예보한 파도를 하나씩 미리 보기, 파도 때는 진짜 물 ──
   if (pre) {
     const on = (i: number) => pre.lvl[i] > 0;
@@ -1655,6 +1687,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
           const noCrown = ci === 0 && gag.on && gag.stage >= 1 && (gag.stage < 3 || gag.toCrab);
           drawCrab(ctx, kx, ky, kz, t, mood.mood, mood.claws, { crown: !noCrown, bald: noCrown, crownTilt: ci === 0 && gag.on && gag.stage === 3 ? 0.42 : 0, look, tilt: dance ? Math.sin(t * 0.3) * 0.22 : 0 });
           if (ci === 0) kingAt = { x: kx, y: ky, z: kz };
+          if (mood.mood === 'peek' && ci === 0) {
+            ctx.font = `900 ${R(0.034)}px system-ui, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('덜덜…', kx + kz * 1.9 + Math.sin(t * 1.3) * 1.2, ky - kz * 1.9);
+          }
           if (dance) {
             ctx.fillStyle = '#ffffff';
             ctx.font = `900 ${R(0.04)}px system-ui, sans-serif`;
@@ -1773,7 +1811,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
       ctx.fillStyle = '#ffffff';
       ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText('야호~', X(x), Y(y) - R(0.055));
+      ctx.fillText('야호~', X(x), Y(y) - R(0.055) - (cb === s.crabs[0] ? 0 : R(0.035)));
     }
     if (wave && wt < APPROACH && wt > 6) {
       ctx.fillStyle = '#ffffff';
@@ -1797,18 +1835,22 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
       // 왕관 소동: 말뚝 → 춤추는 임금님 머리 위로 → 왕관을 물고 성 위를 한 바퀴 → 떨어뜨리고 멀리
       const K0 = kingAt as { x: number; y: number; z: number }, p = gag.p, cx0 = K0.x, cy0 = K0.y - K0.z * 1.1;
       let gx: number, gy: number, dir = 1, carry = false;
+      // (예보판에 가리지 않게 하늘 아래쪽에서만 난다)
+      const sky0 = Y(0.262);
       if (p < GAG[1]) {
         const q = (p - GAG[0]) / (GAG[1] - GAG[0]);
-        (gx = px + (cx0 - px) * q), (gy = py - R(0.02) + (cy0 - R(0.03) - py + R(0.02)) * q - Math.sin(q * Math.PI) * R(0.12)), (dir = cx0 < px ? -1 : 1);
+        (gx = px + (cx0 - px) * q), (gy = py - R(0.02) + (cy0 - R(0.03) - py + R(0.02)) * q - Math.sin(q * Math.PI) * R(0.1)), (dir = cx0 < px ? -1 : 1);
       } else if (p < GAG[2]) {
+        // 왕관을 물고 성 위를 8자로 빙빙 — 임금님이 쫓아 폴짝
         const q = (p - GAG[1]) / (GAG[2] - GAG[1]);
-        (gx = cx0 + Math.sin(q * Math.PI * 2) * R(0.13)), (gy = cy0 - R(0.03) - Math.sin(q * Math.PI) * R(0.13) - q * R(0.04)), (dir = Math.cos(q * Math.PI * 2) >= 0 ? 1 : -1), (carry = true);
+        (gx = cx0 + Math.sin(q * Math.PI * 2) * R(0.2)), (gy = cy0 - R(0.045) - Math.abs(Math.sin(q * Math.PI * 2)) * R(0.035)), (dir = Math.cos(q * Math.PI * 2) >= 0 ? 1 : -1), (carry = true);
       } else {
         const q = (p - GAG[2]) / 60;
-        (gx = cx0 + q * R(0.7)), (gy = cy0 - R(0.07) - q * R(0.25)), (dir = 1);
+        (gx = cx0 + q * R(0.7)), (gy = cy0 - R(0.045) - q * R(0.12)), (dir = 1);
       }
-      drawGull(ctx, gx, gy, gz, t, true, dir, false, Math.abs(p - GAG[1]) < 8 || Math.abs(p - GAG[2]) < 8);
-      if (carry) drawCrown(ctx, gx + dir * gz * 1.3, gy - gz * 0.1, K0.z * 0.85, 0.35 * dir);
+      gy = Math.max(sky0, gy);
+      drawGull(ctx, gx, gy, gz * 1.3, t, true, dir, false, Math.abs(p - GAG[1]) < 8 || Math.abs(p - GAG[2]) < 8);
+      if (carry) drawCrown(ctx, gx + dir * gz * 1.7, gy - gz * 0.1, K0.z * 0.85, 0.35 * dir);
       if (p >= GAG[1] && p < GAG[1] + 36) {
         ctx.fillStyle = '#ffffff';
         ctx.font = `900 ${R(0.038)}px system-ui, sans-serif`;
@@ -1817,7 +1859,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
       }
       if (p >= GAG[2] && p < GAG[3]) {
         // 떨어지는 왕관 (빙글빙글) — ① 임금님 머리로 ② 꽃게 백성 머리로
-        const q = (p - GAG[2]) / (GAG[3] - GAG[2]), x0 = cx0, y0 = cy0 - R(0.07);
+        const q = (p - GAG[2]) / (GAG[3] - GAG[2]), x0 = cx0, y0 = Math.max(sky0, cy0 - R(0.045));
         const tg = gag.toCrab && crabAt ? crabAt as { x: number; y: number; z: number } : K0, tx = tg.x, ty = tg.y - tg.z * 1.02;
         drawCrown(ctx, x0 + (tx - x0) * q, y0 + (ty - y0) * q * q, K0.z * (0.85 + (tg.z / K0.z - 0.85) * q), q * Math.PI * 3);
       }
@@ -1933,18 +1975,22 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
       }
       ctx.globalAlpha = 1;
     }
+  // 한꺼번에 여러 벽을 때리면 가장 센 셋만 높이 솟고 나머지는 낮게 (화면이 하얀 벽이 되지 않게)
+  const sprays = s.events.filter((e) => (e.kind === 'splash' || e.kind === 'over' || e.kind === 'chit') && t - e.t >= 0 && t - e.t < 64);
+  const tall = new Set(sprays.filter((e) => e.kind !== 'over').sort((a, b) => (b.v ?? 0) - (a.v ?? 0)).slice(0, 3));
   for (const e of s.events) {
     const age = t - e.t, x0 = X(e.x), seed = Math.floor(e.x * 997 + e.y * 131 + e.t);
     if ((e.kind === 'splash' || e.kind === 'over' || e.kind === 'chit') && age >= 0 && age < 64) {
-      const lvl = e.v ?? 2, yb = Y(e.y) - R((e.z ?? 3) * HZ), H = R(0.15 + 0.045 * lvl), T = 18;
+      // 막힌 파도는 힘이 위로 — 하늘 높이 솟는다. 넘친 파도는 넘어가느라 낮게
+      const lvl = e.v ?? 2, yb = Y(e.y) - R((e.z ?? 3) * HZ), H = R(0.15 + 0.045 * lvl) * (tall.has(e) ? 1 : 0.45), T = 18;
       // 기둥: 솟구쳤다가 무너진다
       if (age < T + 16) {
         const up = age < T ? 1 - Math.pow(1 - age / T, 2) : 1, al = age < T ? 1 : Math.max(0, 1 - (age - T) / 16);
-        const top = yb - H * up, bw = R(0.034 + 0.004 * lvl) * (0.7 + 0.5 * up);
+        const top = yb - H * up, bw = R(0.027 + 0.003 * lvl) * (0.7 + 0.5 * up);
         const g = ctx.createLinearGradient(0, top, 0, yb);
         g.addColorStop(0, `rgba(255,255,255,${0.95 * al})`);
-        g.addColorStop(0.45, `rgba(205,242,255,${0.8 * al})`);
-        g.addColorStop(1, `rgba(110,205,240,${0.3 * al})`);
+        g.addColorStop(0.4, `rgba(215,245,255,${0.62 * al})`);
+        g.addColorStop(1, `rgba(110,205,240,${0.18 * al})`);
         ctx.fillStyle = g;
         ctx.beginPath();
         ctx.moveTo(x0 - bw, yb);
@@ -2237,11 +2283,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
           ctx.save();
           ctx.translate(sx, -R(0.02));
           ctx.scale(pop, pop);
-          ctx.textAlign = 'center';
-          if (got) (ctx.shadowColor = '#ffd166'), (ctx.shadowBlur = R(0.03));
-          ctx.fillStyle = got ? '#ffd166' : 'rgba(255,255,255,.3)';
-          font(0.058, 900);
-          ctx.fillText(got ? '★' : '☆', 0, 0);
+          starPath(ctx, R(0.024));
+          ctx.fillStyle = got ? '#ffd43b' : 'rgba(255,255,255,.12)';
+          ctx.fill();
+          ctx.strokeStyle = got ? '#fff3b0' : 'rgba(255,255,255,.45)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
           ctx.restore();
           if (got && (fx.memo['star' + k] ?? -1) < s.t - ag) (fx.memo['star' + k] = s.t - ag), fx.burst(w / 2 + sx, cyy - R(0.02), '#ffe066', 16, 3, 2.4), fx.ring(w / 2 + sx, cyy - R(0.02), '#ffe066', R(0.06), 3);
         }
@@ -2433,9 +2480,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
         ctx.textAlign = 'center';
         ctx.fillText(ok[k] ? '★' : '✗', cx1 + R(0.026), yy + R(0.002));
         ctx.fillStyle = ok[k] ? '#fff6dc' : 'rgba(255,255,255,.45)';
-        font(0.034, 800);
+        font(0.036, 800);
         ctx.textAlign = 'left';
-        ctx.fillText(labels[k], cx1 + R(0.05), yy + R(0.002), cw2 - R(0.055));
+        ctx.fillText(labels[k], cx1 + R(0.048), yy + R(0.002), cw2 - R(0.052));
         // 날아가는 별
         if (ag < 30 && s.phase !== 'build') {
           ctx.globalAlpha = 1 - ag / 30;
