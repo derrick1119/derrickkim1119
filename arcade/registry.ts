@@ -5,21 +5,11 @@
  * 졸업한 게임은 스튜디오(`studio/<게임>/`)가 이어받는다(행성 수호대 2의 원본 `games/guardian2.ts`는 스튜디오 참고용으로 파일만 남김).
  */
 import type { Bot, GameDef } from './core.ts';
-import { fortress, fortressRandom, fortressSmart } from './games/fortress.ts';
-import { flood, floodRandom, floodSmart } from './games/flood.ts';
-import { typhoon, typhoonRandom, typhoonSmart } from './games/typhoon.ts';
-import { quake, quakeRandom, quakeSmart } from './games/quake.ts';
-import { landslide, landslideRandom, landslideSmart } from './games/landslide.ts';
 import { sandcastle, sandcastleRandom, sandcastleSmart } from './games/sandcastle.ts';
 
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S> }
 
 export const GAMES: Entry[] = [
-  // 21라운드 — 지어서 버티기 (오너 아이디어 둘 + 변형 넷)
-  { game: fortress, dumb: fortressRandom, smart: fortressSmart },
-  { game: flood, dumb: floodRandom, smart: floodSmart },
-  { game: typhoon, dumb: typhoonRandom, smart: typhoonSmart },
-  { game: quake, dumb: quakeRandom, smart: quakeSmart },
-  { game: landslide, dumb: landslideRandom, smart: landslideSmart },
+  // 21라운드 선택: 밀물 모래성 (오너 "6번만") — 22라운드에서 다듬은 판 + 같은 결 새 아이디어
   { game: sandcastle, dumb: sandcastleRandom, smart: sandcastleSmart },
 ];
