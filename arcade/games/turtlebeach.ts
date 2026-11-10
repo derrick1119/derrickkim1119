@@ -31,7 +31,7 @@ const WALL_H = 3, STACK = 2, MAX_H = 7, ROCK_H = 4;
 const APPROACH = 34, STEP = 6, HOLD = 26, RECEDE = 44;
 const RESULT = 150, AUTO = 22, PREVIEW = 120;
 /** 부화 연출(틱): 알이 흔들리다 깨기 · 아기 거북 사이 간격 · 한 칸 걷기 · 뒤집혀 버둥 · 끝나고 머무름 */
-const CRACK = 40, STAG = 15, WALK = 11, FLIPT = 40, AFTER = 36, STUCK = 110;
+const CRACK = 34, STAG = 15, WALK = 10, FLIPT = 40, AFTER = 36, STUCK = 110;
 
 type From = 'F' | 'L' | 'R';
 /** 예보의 한 칸: 파도(높이·방향·밀물) 또는 부화(몇 번째 둥지) */
@@ -507,6 +507,7 @@ function hatchStep(s: TurtleState) {
     if (ht === CRACK + 20) (s.cryT = s.t), ev(s, 'stuck', ccx(c), ccy(c) - 0.05, '길이 막혔어요!', '#ffb3a8');
   } else {
     const p = h.path, L = h.L, last = p[L];
+    if (ht === babyStart(0) + 2) ev(s, 'go', ccx(p[0]), ccy(p[0]) - 0.02, '뒤뚱뒤뚱~', '#e9fff1');
     for (let b = 0; b < h.babies; b++) {
       if (b < h.caught) {
         if (ht === babyStart(b) + h.ca * WALK) {
@@ -1276,7 +1277,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: nu
   const say = (x: number, y: number, text: string, col: string, size: number) => {
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
-    for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.3 && Math.abs(q.y - y) < size + 4); k++) y -= size + 5;
+    for (let k = 0; k < 4 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.3 && Math.abs(q.y - y) < size + 4); k++) y -= size + 5;
+    if (y < Y(0.31)) (y = Y(0.31) + ((rec.length * 7) % 30)), (x += x < w / 2 ? w * 0.18 : -w * 0.18);
     rec.push({ x, y, t: s.t });
     if (rec.length > 12) rec.shift();
     fx.pop(Math.max(w * 0.16, Math.min(w * 0.84, x)), y, text, col, size);
@@ -1971,9 +1973,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: nu
       if (s.K[i] === WALL && hNow < s.Hh[i]) {
         ctx.fillStyle = 'rgba(90,55,20,.85)';
         ctx.beginPath();
-        ctx.roundRect(bx - R(0.05), by + R(0.022), R(0.1), R(0.036), R(0.012));
+        ctx.roundRect(bx - R(0.056), by + R(0.022), R(0.112), R(0.042), R(0.014));
         ctx.fill();
-        label(hNow > 0 ? `깎여 ${hNow}` : '깎여 0', bx, by + R(0.04), 0.03, '#ffe3b0', 'rgba(0,0,0,0)');
+        label(`깎여 ${Math.max(0, hNow)}`, bx, by + R(0.043), 0.036, '#ffe3b0', 'rgba(0,0,0,0)');
       }
     }
     s.nests.forEach((c, j) => {
@@ -2024,7 +2026,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: nu
   });
   // ── 갈매기: 사냥터 위를 맴돌다 그늘 없는 칸의 아기 거북을 낚아챈다 (없는 판엔 말뚝 위에서 구경) ──
   {
-    const gz = R(0.034);
+    const gz = R(zn ? 0.046 : 0.036);
     if (zn) {
       const cx = zx + Math.cos(t * 0.035) * 0.07, cy = zy - 0.15 + Math.sin(t * 0.07) * 0.012;
       ctx.fillStyle = 'rgba(30,20,10,.18)';
@@ -2115,7 +2117,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: nu
     if (e.kind === 'splash') fx.burst(x, y - R(0.02), '#ffffff', 18, 3.6, 2.6), fx.burst(x, y - R(0.02), '#8fdcff', 10, 3, 2.2), fx.ring(x, y, '#ffffff', R(0.07), 3), fx.kick(3), say(x, y - R(0.06), e.text!, '#ffffff', 16);
     if (e.kind === 'over') fx.burst(x, y - R(0.02), '#9fe3ff', 22, 4, 2.6), fx.kick(4), say(x, y - R(0.06), e.text!, e.col!, 15);
     if (e.kind === 'gulp') fx.burst(x, y, '#9fe3ff', 8, 2, 2), fx.ring(x, y, '#9fe3ff', R(0.05), 2), say(x, y - R(0.03), e.text!, e.col!, 13);
-    if (e.kind === 'chit') fx.burst(x, y - R(0.03), '#9fe3ff', 26, 4.5, 3), fx.kick(6), say(x, y - R(0.1), e.text!, e.col!, 16);
+    if (e.kind === 'chit') fx.burst(x, y - R(0.03), '#9fe3ff', 26, 4.5, 3), fx.ring(x, y, '#9fe3ff', R(0.08), 4), fx.kick(6);
     if (e.kind === 'crumble') fx.burst(x, y, '#e2b878', 8, 2.2, 2.2), say(x, y - R(0.02), e.text!, '#ffe3b0', 12);
     if (e.kind === 'gone') fx.burst(x, y, '#d9ab6a', 26, 3.6, 3), fx.kick(4), say(x, y - R(0.02), e.text!, '#ffe3b0', 14);
     if (e.kind === 'safe') fx.burst(x, y - R(0.03), '#ffe066', 22, 4, 2.6), fx.ring(x, y - R(0.03), '#ffe066', R(0.1), 4), say(x, y - R(0.08), e.text!, e.col!, 17);
@@ -2123,7 +2125,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: nu
     if (e.kind === 'eggsgone') fx.burst(x, y, '#ffffff', 40, 5, 3), fx.kick(10), fx.blink(th.hot, 0.2), say(x, y - R(0.07), e.text!, e.col!, 18);
     if (e.kind === 'tide') fx.blink('#bfe6ff', 0.2), fx.kick(3), say(w / 2, y - R(0.03), e.text!, e.col!, 15);
     if (e.kind === 'incoming') fx.kick(2), say(w / 2, Y(SF - 0.03), e.text!, e.col!, 18);
-    if (e.kind === 'wobble') say(x, y - R(0.05), e.text!, e.col!, 15);
+    if (e.kind === 'wobble' || e.kind === 'go') say(x, y - R(0.05), e.text!, e.col!, 15);
     if (e.kind === 'crack') fx.burst(x, y, '#fff6e0', 30, 4, 2.6), fx.ring(x, y, '#fff1a8', R(0.09), 4), fx.kick(4), say(x, y - R(0.06), e.text!, e.col!, 18);
     if (e.kind === 'stuck') fx.kick(6), fx.blink(th.hot, 0.15), say(x, y - R(0.05), e.text!, e.col!, 17);
     if (e.kind === 'snatch') fx.burst(x, y - R(0.03), '#ffffff', 24, 4, 2.4), fx.kick(7), fx.blink('#ffd2c8', 0.15), say(x, y - R(0.09), e.text!, e.col!, 16);
@@ -2216,12 +2218,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: nu
         ctx.fillStyle = '#1d2a1a';
         for (const sd of [-1, 1]) (ctx.beginPath(), ctx.arc(X(cx0 + cw * 0.36) + sd * R(0.004), my - R(0.026), R(0.0018), 0, Math.PI * 2), ctx.fill());
         ctx.fillStyle = '#4a3a10';
-        font(0.032, 900);
         ctx.textAlign = 'center';
-        ctx.fillText(s.nests.length > 1 ? `부화${it.nest + 1}` : '부화', X(cx0 + cw * 0.7), my + R(0.012), R(cw * 0.6));
+        if (s.nests.length > 1) font(0.05, 900), ctx.fillText(`${it.nest + 1}`, X(cx0 + cw * 0.72), my + R(0.006));
+        else font(0.036, 900), ctx.fillText('부화', X(cx0 + cw * 0.7), my + R(0.012), R(cw * 0.62));
         if (s.gulls) {
           ctx.fillStyle = '#ffffff';
-          font(0.03, 800);
+          font(0.034, 800);
           ctx.fillText('🐦', X(cx0 + cw - 0.018), Y(cy0 + 0.018));
         }
       } else {
@@ -2458,7 +2460,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: nu
       else hint = '파도가 곧 와요!';
     } else if (s.phase === 'wave' && wave) hint = `${wave.from === 'F' ? '바다' : wave.from === 'L' ? '왼쪽' : '오른쪽'}에서 높이 ${wave.h} — 한 칸에 1씩 낮아져요`;
     else if (s.phase === 'hatch') hint = hat && !hat.path ? '벽이 길을 다 막았어요!' : '초록 점선 = 아기 거북 길 · 벽·돌 옆은 그늘이라 안전';
-    else if (s.phase === 'result') hint = s.ok ? `별 ${s.got}개! 다음 해변은 더 세요` : s.why === 'stuck' ? '벽에 틈을 남기거나, 깎여 열리게 해 봐요' : s.why === 'gull' ? '길 옆에 벽을 세워 그늘을 만들어요' : '둥지 둘레를 벽으로 막아 봐요';
+    else if (s.phase === 'result') hint = s.won ? '해변의 아기 거북을 다 바다로 보냈어요! 🐢' : s.ok ? `별 ${s.got}개! 다음 해변은 더 세요` : s.why === 'stuck' ? '벽에 틈을 남기거나, 깎여 열리게 해 봐요' : s.why === 'gull' ? '길 옆에 벽을 세워 그늘을 만들어요' : '둥지 둘레를 벽으로 막아 봐요';
     ctx.textAlign = 'center';
     const first = s.stage === 0 && s.pi === 0 && s.phase === 'build';
     ctx.fillStyle = first ? '#ffffff' : '#ffe9c4';

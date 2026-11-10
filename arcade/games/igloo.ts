@@ -1075,7 +1075,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
     for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.16 && Math.abs(q.y - y) < size + 4); k++) y -= size + 5;
-    y = Math.max(Y(0.31), y);
+    if (y < Y(0.31)) {
+      y = Y(0.31);
+      for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.16 && Math.abs(q.y - y) < size + 4); k++) y += size + 5;
+    }
     rec.push({ x, y, t: s.t });
     if (rec.length > 12) rec.shift();
     fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), y, text, col, size);
@@ -1994,11 +1997,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
   // ── 구경하는 눈사람 (판 뒤 언덕): 눈벽이 깎이면 머리가 데굴데굴 ──
   {
     const lastC = s.events.filter((e) => e.kind === 'crumble' || e.kind === 'gone').reduce((a, e) => Math.max(a, e.t), -999), q = t - lastC;
-    const bx = X(0.885), by = Y(0.338);
+    const bx = X(0.2), by = Y(0.338);
     drawSnowman(ctx, bx, by, R(0.014), t, q > 110, gust ? 'wow' : s.phase === 'result' && s.ok ? 'happy' : 'calm');
     if (q <= 110) {
-      const p = q / 110, hx2 = bx - p * R(0.16), hy2 = by - R(0.045) + Math.min(1, p * 3) * R(0.04) - Math.abs(Math.sin(p * 10)) * R(0.012) * (1 - p);
-      drawHead(ctx, hx2, hy2, R(0.008), -p * 12);
+      const p = q / 110, hx2 = bx + p * R(0.16), hy2 = by - R(0.045) + Math.min(1, p * 3) * R(0.04) - Math.abs(Math.sin(p * 10)) * R(0.012) * (1 - p);
+      drawHead(ctx, hx2, hy2, R(0.008), p * 12);
       if (q < 50) label('데굴데굴~', hx2, hy2 - R(0.03), 0.036);
     }
   }
