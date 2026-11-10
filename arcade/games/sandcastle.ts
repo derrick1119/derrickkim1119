@@ -151,6 +151,8 @@ export interface SandState {
   crabs: Crab[]; lastPlace: number; place: Int16Array; peak: Int8Array; stealT: number; layout: Record<number, number>;
   /** 느린 화면 중인가 · 쌓인 시계 */
   slow: boolean; slowAcc: number;
+  /** 별 셋(성 무사 · 안 깎임 · 조개) 중 놓친 별이 언제 날아갔나 (-1 = 아직) */
+  miss: number[];
 }
 
 const ev = (s: SandState, kind: string, x: number, y: number, text?: string, col?: string, v?: number, z?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v, z });
@@ -251,6 +253,7 @@ function layout(s: SandState, attempt: number) {
   s.pt = 0;
   s.dmgThis = 0;
   s.lostThis = 0;
+  s.miss = [-1, -1, -1];
   s.lastDmg = s.hp.map(() => 0);
   // 꽃게 백성 둘 (성 옆 모래에서 논다 — 연출만)
   s.crabs = [];
@@ -344,6 +347,9 @@ function waveStep(s: SandState) {
     for (const i of r.crumble) ev(s, r.gone.includes(i) ? 'gone' : 'crumble', ccx(i), ccy(i) - 0.02, r.gone.includes(i) ? '와르르' : '-' + (f.over[i] ? 2 : 1), '#f3d9a4', H0[i] - s.Hh[i], H0[i]);
     if (r.crumble.length) see(s, 'erode', '모래벽이 깎였어요 — 깎인 자리로 다음 파도가 더 들어와요');
     s.lostThis += r.lost.length;
+    if (r.lost.length && s.miss[2] < 0) s.miss[2] = s.t;
+    if (r.dmg.some((d) => d > 0) && s.miss[1] < 0) s.miss[1] = s.t;
+    if (s.hp.some((h) => h <= 0) && s.miss[0] < 0) s.miss[0] = s.t;
     r.dmg.forEach((d, k) => {
       const c = s.castles[k], x = ccx(c.cells[0]) + (c.cells.length > 1 ? CW / 2 : 0), y = ccy(c.cells[0]) - 0.03;
       if (d > 0 && !k && s.stealT < 0) s.stealT = s.t;
@@ -360,6 +366,7 @@ function waveStep(s: SandState) {
       const lost = tideUp({ K: s.K, Hh: s.Hh, shell: s.shell, hp: s.hp, sea: s.sea });
       s.sea++;
       s.lostThis += lost.length;
+      if (lost.length && s.miss[2] < 0) s.miss[2] = s.t;
       ev(s, 'tide', 0.5, PY(ROWS - s.sea), '🌙 밀물! 바다가 한 줄 올라왔어요', '#cfe8ff');
     }
     startWave(s);
@@ -408,7 +415,7 @@ export const sandcastle: GameDef<SandState> = {
       waves: [], wi: 0, wt: 0, fl: null, arrive: new Int16Array(N), impact: 0, end: 0, lastDmg: [],
       pieces: [], pi: 0, auto: 0, wet: new Float32Array(N), shells0: 0,
       hearts: 3, stars: 0, got: 0, pts: 0, ok: false, dmgThis: 0, lostThis: 0, keep: 0,
-      down: false, taps: 0, seen: new Set<string>(), events: [], news: null, dead: false, won: false, crabs: [], lastPlace: -999, place: new Int16Array(N), peak: new Int8Array(N), stealT: -1, layout: {}, slow: false, slowAcc: 0,
+      down: false, taps: 0, seen: new Set<string>(), events: [], news: null, dead: false, won: false, crabs: [], lastPlace: -999, place: new Int16Array(N), peak: new Int8Array(N), stealT: -1, layout: {}, slow: false, slowAcc: 0, miss: [-1, -1, -1],
     } as SandState;
     newStage(s);
     return s;
@@ -459,6 +466,22 @@ export const sandcastle: GameDef<SandState> = {
     drawAll(ctx, s, w, h, th);
   },
 };
+
+/** 지금 쌓은 그대로 파도를 다 맞으면? (짓는 동안 별 셋 예상 — 결정적이라 실제와 같다) */
+function outcome(s: SandState) {
+  const B = boardOf(s);
+  let dmg = 0, fall = false;
+  for (let k = 0; k < s.waves.length; k++) {
+    if (k > 0 && s.waves[k].rise) tideUp(B);
+    const r = settle(B, s.cas, flood(B.K, B.Hh, s.waves[k], B.sea));
+    for (const d of r.dmg) dmg += d;
+    if (B.hp.some((h) => h <= 0)) {
+      fall = true;
+      break;
+    }
+  }
+  return { fall, dmg, kept: B.shell.reduce((a, b) => a + b, 0) };
+}
 
 // ───────────────────────────── 봇 ─────────────────────────────
 /** 잘하는 봇이 내다보는 값: 이 판을 끝까지 돌려 본 점수(실패면 음수) + 성 둘레에 차오른 물(같은 점수끼리 가르는 길잡이) */
@@ -1913,11 +1936,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
   for (const e of s.events) {
     const age = t - e.t, x0 = X(e.x), seed = Math.floor(e.x * 997 + e.y * 131 + e.t);
     if ((e.kind === 'splash' || e.kind === 'over' || e.kind === 'chit') && age >= 0 && age < 64) {
-      const lvl = e.v ?? 2, yb = Y(e.y) - R((e.z ?? 3) * HZ), H = R(0.1 + 0.04 * lvl), T = 17;
+      const lvl = e.v ?? 2, yb = Y(e.y) - R((e.z ?? 3) * HZ), H = R(0.15 + 0.045 * lvl), T = 18;
       // 기둥: 솟구쳤다가 무너진다
       if (age < T + 16) {
         const up = age < T ? 1 - Math.pow(1 - age / T, 2) : 1, al = age < T ? 1 : Math.max(0, 1 - (age - T) / 16);
-        const top = yb - H * up, bw = R(0.03 + 0.004 * lvl) * (0.7 + 0.5 * up);
+        const top = yb - H * up, bw = R(0.034 + 0.004 * lvl) * (0.7 + 0.5 * up);
         const g = ctx.createLinearGradient(0, top, 0, yb);
         g.addColorStop(0, `rgba(255,255,255,${0.95 * al})`);
         g.addColorStop(0.45, `rgba(205,242,255,${0.8 * al})`);
@@ -1929,7 +1952,14 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
         ctx.quadraticCurveTo(x0, top - bw * 0.7, x0 + bw * 0.6, top + bw * 0.45);
         ctx.quadraticCurveTo(x0 + bw * 0.2, yb - H * 0.5 * up, x0 + bw, yb);
         ctx.closePath();
+        ctx.save();
+        ctx.shadowColor = 'rgba(120,220,255,.9)';
+        ctx.shadowBlur = R(0.03);
         ctx.fill();
+        ctx.restore();
+        ctx.strokeStyle = `rgba(60,170,220,${0.55 * al})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
         ctx.fillStyle = `rgba(255,255,255,${al})`;
         for (let k = 0; k < 6; k++) {
           const a = (k / 5 - 0.5) * 2.6;
@@ -1947,7 +1977,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
         ctx.globalAlpha = Math.max(0, 1 - age / 64);
         ctx.fillStyle = k % 3 ? '#ffffff' : '#a8e6ff';
         ctx.beginPath();
-        ctx.arc(x0 + vx * age, yy, R(0.004 + 0.004 * hsh(seed + k * 3 + 2)), 0, Math.PI * 2);
+        ctx.arc(x0 + vx * age, yy, R(0.005 + 0.005 * hsh(seed + k * 3 + 2)), 0, Math.PI * 2);
         ctx.fill();
       }
       // 바닥 물안개
@@ -1999,6 +2029,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
     if (e.kind === 'incoming') fx.kick(2), say(w / 2, Y(SF - 0.03), e.text!, e.col!, 18);
     if (e.kind === 'clear') fx.burst(w * 0.3, Y(0.45), '#9fe3ff', 30, 6, 3), fx.burst(w * 0.3, y, '#ffe066', 40, 6, 3.2), fx.burst(w * 0.7, y, '#ff8fb1', 40, 6, 3.2), fx.ring(w / 2, y, '#ffe066', R(0.4), 7), fx.blink('#fff6c8', 0.25);
     if (e.kind === 'fail') fx.kick(8), fx.blink(th.hot, 0.2);
+    if (e.kind === 'slowmo') fx.blink('#ffffff', 0.18);
   }
   fx.memo.t = s.t;
   ctx.restore();
@@ -2039,7 +2070,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
   ctx.textAlign = 'right';
   font(0.042, 900);
   ctx.fillStyle = '#ffd166';
-  const stt = `★ ${s.stars}`;
+  const stt = `★ ${s.stars}/${STAGE_COUNT * 3}`;
   ctx.fillText(stt, w - R(0.03), hb * 0.5);
   ctx.fillStyle = th.hot;
   ctx.fillText('♥'.repeat(Math.max(0, s.hearts)) + '♡'.repeat(Math.max(0, 3 - s.hearts)), w - R(0.05) - ctx.measureText(stt).width, hb * 0.5);
@@ -2166,8 +2197,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
     if (s.phase === 'result') {
       age = s.pt;
       if (s.ok) {
-        head = s.won ? '바닷가를 다 지켰다! 🦀👑' : `막았다! ${'★'.repeat(s.got)}${'☆'.repeat(3 - s.got)}`;
-        sub = `${s.dmgThis ? '성이 조금 깎임' : '성 무사 ✓'}${s.shells0 ? ` · 조개 ${s.shell.reduce((q, b) => q + b, 0)}/${s.shells0}` : ''}${s.keep ? ` · 남긴 조각 ${s.keep}` : ''}`;
+        head = s.won ? '다 지켰다! 🦀👑' : '막았다!';
+        const kept = s.shell.reduce((q, b) => q + b, 0);
+        sub = `성 무사 ✓ · ${s.dmgThis ? '깎임 ✗' : '안 깎임 ✓'} · 조개 ${s.shells0 ? `${kept}/${s.shells0} ${kept === s.shells0 ? '✓' : '✗'}` : '없음 ✓'}${s.keep ? ` · 남김 +${s.keep * LEFT_PTS}` : ''}`;
         col = '#ffd166';
       } else (head = '와르르… 성이 무너졌어요'), (sub = s.hearts > 0 ? `하트 -1 · 같은 바닷가 처음부터 다시` : '끝 — 잘 버텼어요!'), (col = '#ffb3a8');
     } else if (s.phase === 'build' && s.pt < 140) {
@@ -2193,7 +2225,28 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
       ctx.textBaseline = 'middle';
       ctx.fillStyle = col;
       font(0.05, 900);
-      ctx.fillText(head, 0, -R(0.02), R(0.76));
+      if (s.phase === 'result' && s.ok) {
+        // 별이 하나씩 '팡' 박힌다 (못 받은 별은 회색 빈 별)
+        const hw = ctx.measureText(head).width, sw = R(0.058), x0 = -(hw + R(0.02) + sw * 3) / 2;
+        ctx.textAlign = 'left';
+        ctx.fillText(head, x0, -R(0.02));
+        for (let k = 0; k < 3; k++) {
+          const at = 10 + k * 13, ag = s.pt - at;
+          if (ag < 0) continue;
+          const got = k < s.got, pop = ag < 8 ? 1.9 - 0.9 * (ag / 8) : 1, sx = x0 + hw + R(0.02) + sw * (k + 0.5);
+          ctx.save();
+          ctx.translate(sx, -R(0.02));
+          ctx.scale(pop, pop);
+          ctx.textAlign = 'center';
+          if (got) (ctx.shadowColor = '#ffd166'), (ctx.shadowBlur = R(0.03));
+          ctx.fillStyle = got ? '#ffd166' : 'rgba(255,255,255,.3)';
+          font(0.058, 900);
+          ctx.fillText(got ? '★' : '☆', 0, 0);
+          ctx.restore();
+          if (got && (fx.memo['star' + k] ?? -1) < s.t - ag) (fx.memo['star' + k] = s.t - ag), fx.burst(w / 2 + sx, cyy - R(0.02), '#ffe066', 16, 3, 2.4), fx.ring(w / 2 + sx, cyy - R(0.02), '#ffe066', R(0.06), 3);
+        }
+        ctx.textAlign = 'center';
+      } else ctx.fillText(head, 0, -R(0.02), R(0.76));
       ctx.fillStyle = '#fffaf0';
       font(0.036, 800);
       ctx.fillText(sub, 0, R(0.033), R(0.76));
@@ -2311,7 +2364,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
       ctx.textAlign = 'center';
       ctx.fillText('▶ 버티기', X(BTN.x + BTN.w / 2), Y(BTN.y + BTN.h * 0.42));
       font(0.036, 800);
-      ctx.fillText(`남기면 +3점씩`, X(BTN.x + BTN.w / 2), Y(BTN.y + BTN.h * 0.8));
+      ctx.fillText(`남기면 +${LEFT_PTS}점씩`, X(BTN.x + BTN.w / 2), Y(BTN.y + BTN.h * 0.8));
     } else {
       ctx.textAlign = 'left';
       ctx.fillStyle = '#ffe9c4';
@@ -2348,8 +2401,51 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
     ctx.fillStyle = s.stage === 0 && s.pi === 0 && s.phase === 'build' ? '#ffffff' : '#ffe9c4';
     font(s.stage === 0 && s.pi === 0 && s.phase === 'build' ? 0.044 : 0.038, 900);
     ctx.fillText(hint, w / 2, Y(ty + 0.19), w - R(0.06));
-    ctx.fillStyle = 'rgba(255,233,196,.65)';
-    font(0.036, 700);
-    ctx.fillText(`점수 ${s.pts}`, w / 2, Y(ty + 0.24));
+    // 별 셋 목표: 짓는 동안은 '지금대로면' 예상(✓/✗), 파도 때는 실시간 — 놓치면 회색으로 흔들리며 날아간다
+    {
+      const kept = s.shell.reduce((q, b) => q + b, 0);
+      let ok: boolean[];
+      if (s.phase === 'build') {
+        const o = outcome(s);
+        ok = [!o.fall, !o.fall && o.dmg === 0, o.kept === s.shells0];
+      } else ok = [s.miss[0] < 0 && (s.phase !== 'result' || s.ok), s.miss[1] < 0, s.miss[2] < 0 && kept === s.shells0];
+      const labels = ['성 무사', '안 깎임', s.shells0 ? `조개 ${s.phase === 'build' ? s.shells0 : kept}/${s.shells0}` : '조개 없음'];
+      const yy = Y(ty + 0.243), lab = s.phase === 'build' ? '지금대로면' : '별 목표';
+      font(0.036, 900);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = 'rgba(255,233,196,.8)';
+      ctx.fillText(lab, X(0.03), yy);
+      const lx = X(0.03) + ctx.measureText(lab).width + R(0.02), cw2 = (w - R(0.03) - lx - R(0.02)) / 3;
+      for (let k = 0; k < 3; k++) {
+        const ag = s.miss[k] >= 0 ? s.t - s.miss[k] : 999, shake = ag < 24 ? Math.sin(ag * 1.4) * R(0.008) * (1 - ag / 24) : 0;
+        const cx1 = lx + k * (cw2 + R(0.01)) + shake;
+        ctx.fillStyle = ok[k] ? 'rgba(255,209,102,.22)' : 'rgba(0,0,0,.28)';
+        ctx.beginPath();
+        ctx.roundRect(cx1, yy - R(0.024), cw2, R(0.048), R(0.024));
+        ctx.fill();
+        ctx.strokeStyle = ok[k] ? '#ffd166' : 'rgba(255,255,255,.2)';
+        ctx.lineWidth = 1.5;
+        if (s.phase === 'build') ctx.setLineDash([R(0.01), R(0.007)]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = ok[k] ? '#ffd166' : 'rgba(255,255,255,.35)';
+        font(0.04, 900);
+        ctx.textAlign = 'center';
+        ctx.fillText(ok[k] ? '★' : '✗', cx1 + R(0.026), yy + R(0.002));
+        ctx.fillStyle = ok[k] ? '#fff6dc' : 'rgba(255,255,255,.45)';
+        font(0.034, 800);
+        ctx.textAlign = 'left';
+        ctx.fillText(labels[k], cx1 + R(0.05), yy + R(0.002), cw2 - R(0.055));
+        // 날아가는 별
+        if (ag < 30 && s.phase !== 'build') {
+          ctx.globalAlpha = 1 - ag / 30;
+          ctx.fillStyle = '#ffd166';
+          font(0.05, 900);
+          ctx.textAlign = 'center';
+          ctx.fillText('★', cx1 + R(0.026) + ag * R(0.002), yy - ag * R(0.004));
+          ctx.globalAlpha = 1;
+        }
+      }
+    }
   }
 }

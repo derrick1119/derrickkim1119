@@ -1424,21 +1424,6 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
     ctx.textBaseline = 'middle';
     if (!(gust && gust.from === 'C')) ctx.fillText('🌀', cx2, cy2 - R(0.012));
   }
-  if (!s.fell && !(st && st.k === 'icicle' && wt >= s.impact))
-    for (const i of s.ic) {
-      const cx2 = X(ccx(i)), cy2 = Y(ccy(i)), pul = 0.6 + 0.4 * Math.sin(t * 0.15);
-      ctx.save();
-      ctx.translate(cx2, cy2);
-      ctx.scale(1, 0.55);
-      ctx.strokeStyle = `rgba(230,70,110,${0.7 * pul})`;
-      ctx.lineWidth = 2.5;
-      ctx.setLineDash([R(0.01), R(0.007)]);
-      ctx.beginPath();
-      ctx.arc(0, 0, R(CW * 0.36), 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.restore();
-    }
   // ── 미리 보기: 바람이 들어오는 칸 (짓는 동안) ──
   const pw = pre?.wind;
   if (pw) {
@@ -1811,6 +1796,43 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
         ctx.restore();
       }
       if (s.fish[i]) drawCrate(ctx, X(ccx(i)), Y(ccy(i) + 0.022), R(0.02), t + i * 7);
+    }
+  // ── 고드름 떨어질 칸 (벽 위에도 보이게 위에 그린다) ──
+  if (!s.fell && !(st && st.k === 'icicle' && wt >= s.impact))
+    for (const i of s.ic) {
+      const cx2 = X(ccx(i)), cy2 = Y(ccy(i)), pul = 0.6 + 0.4 * Math.sin(t * 0.15);
+      ctx.save();
+      ctx.translate(cx2, cy2);
+      ctx.scale(1, 0.55);
+      ctx.strokeStyle = `rgba(230,70,110,${0.7 * pul})`;
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([R(0.01), R(0.007)]);
+      ctx.beginPath();
+      ctx.arc(0, 0, R(CW * 0.36), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+      // 매달린 고드름 표시 (떨어질 자리)
+      const bob = Math.sin(t * 0.1 + i) * R(0.004);
+      ctx.fillStyle = 'rgba(255,255,255,.95)';
+      ctx.strokeStyle = 'rgba(40,110,170,.9)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(cx2 - R(0.012), cy2 - R(0.075) + bob);
+      ctx.lineTo(cx2 + R(0.012), cy2 - R(0.075) + bob);
+      ctx.lineTo(cx2, cy2 - R(0.025) + bob);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = `rgba(230,70,110,${0.5 + 0.3 * pul})`;
+      ctx.beginPath();
+      ctx.moveTo(cx2 - R(0.008), cy2 - R(0.008));
+      ctx.lineTo(cx2 + R(0.008), cy2 + R(0.008));
+      ctx.moveTo(cx2 + R(0.008), cy2 - R(0.008));
+      ctx.lineTo(cx2 - R(0.008), cy2 + R(0.008));
+      ctx.strokeStyle = `rgba(230,70,110,${0.6 + 0.3 * pul})`;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
     }
   // ── 미리 보기 표: 벽에 부딪히는 바람 세기(넘치면 빨강), 이글루 경고, 밤에 얼 벽 ❄ ──
   const badge = (x: number, y: number, text: string, bg: string, r = 0.022) => {
