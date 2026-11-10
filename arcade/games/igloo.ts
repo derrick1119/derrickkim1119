@@ -1075,6 +1075,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
     for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.16 && Math.abs(q.y - y) < size + 4); k++) y -= size + 5;
+    y = Math.max(Y(0.31), y);
     rec.push({ x, y, t: s.t });
     if (rec.length > 12) rec.shift();
     fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), y, text, col, size);

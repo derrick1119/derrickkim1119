@@ -45,7 +45,7 @@ interface StageDef { waves: string; pieces: string; row: number; rocks?: number;
  */
 const STAGES: StageDef[] = [
   { waves: 'F3:ff', pieces: 'D', row: 5 },
-  { waves: 'F4:fs F4:ff', pieces: 'DWDD', row: 3 },
+  { waves: 'F4:fs F4:ff', pieces: 'DWDD', row: 4 },
   { waves: 'F4:fs F6:of F4:sf', pieces: 'DWDWD', row: 4 },
   { waves: 'F5:ft S4:fs F5:sf', pieces: 'WDWDDW', row: 4 },
   { waves: 'F5:ff F5:st F6:of', pieces: 'DWDWDW', row: 4, rocks: 2, weeds: 4 },
