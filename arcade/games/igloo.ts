@@ -42,7 +42,7 @@ interface StageDef { steps: string; pieces: string; fish: number; bergs: number;
  */
 const STAGES: StageDef[] = [
   { steps: 'F4 F5', pieces: 'WW', fish: 0, bergs: 0, row: 4 },
-  { steps: 'F4 N F6 F6', pieces: 'WWWW', fish: 1, bergs: 0, row: 4 },
+  { steps: 'F4 N F5 F5', pieces: 'WWWW', fish: 1, bergs: 0, row: 4 },
   { steps: 'F4 S4 N F6 S5', pieces: 'WWWWW', fish: 1, bergs: 1, row: 4 },
   { steps: 'F4 N F7 F7', pieces: 'SWWWW', fish: 1, bergs: 1, row: 4 },
   { steps: 'F5 I N F6 F7', pieces: 'WWSWW', fish: 1, bergs: 1, row: 4, icicles: 2 },
@@ -216,6 +216,12 @@ const TY = Y1 + 0.195, BTN = { x: 0.635, y: TY + 0.03, w: 0.33, h: 0.11 };
 /** 예보판 칸 자리 (톡 하면 그 단계를 미리 본다) */
 const FC = { y0: 0.088, h: 0.146, cy: 0.138, ch: 0.085, gap: 0.012 };
 function cardBox(k: number, n: number) {
+  if (n > 6) {
+    // 단계가 많으면 두 줄 (8판: 4장씩) — 340px 폭에서도 카드가 안 빽빽하게
+    const per = Math.ceil(n / 2), row = k < per ? 0 : 1, j = row ? k - per : k;
+    const cw = Math.min(0.2, (0.92 - FC.gap * (per - 1)) / per), x0 = 0.5 - (cw * per + FC.gap * (per - 1)) / 2;
+    return { x: x0 + j * (cw + FC.gap), y: 0.097 + row * 0.071, w: cw, h: 0.064 };
+  }
   const cw = Math.min(0.15, (0.92 - FC.gap * (n - 1)) / n), x0 = 0.5 - (cw * n + FC.gap * (n - 1)) / 2;
   return { x: x0 + k * (cw + FC.gap), y: FC.cy, w: cw, h: FC.ch };
 }
@@ -515,11 +521,10 @@ export const igloo: GameDef<IglooState> = {
     const x = p.x, y = p.y * A;
     if (x >= BTN.x && x <= BTN.x + BTN.w && y >= BTN.y && y <= BTN.y + BTN.h) return startStorm(s);
     // 예보 카드를 톡 = 그 단계 미리 보기 고정 (다시 톡 = 돌아가며 보기)
-    if (y >= FC.cy && y <= FC.cy + FC.ch)
-      for (let k = 0; k < s.steps.length; k++) {
-        const b = cardBox(k, s.steps.length);
-        if (x >= b.x && x <= b.x + b.w) return void (s.pin = s.pin === k ? -1 : k);
-      }
+    for (let k = 0; k < s.steps.length; k++) {
+      const b = cardBox(k, s.steps.length);
+      if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return void (s.pin = s.pin === k ? -1 : k);
+    }
     const i = cellAt(x, y), pc = s.pieces[s.pi];
     if (i < 0 || pc === undefined) return;
     if (!canPlace(s.K, s.Hh, s.fish, s.wc, i, pc))
@@ -2248,14 +2253,17 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
     ctx.strokeStyle = 'rgba(40,90,160,.5)';
     ctx.lineWidth = 1.5;
     ctx.stroke();
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#1d4a82';
-    font(0.036, 900);
-    ctx.fillText('🌨️ 눈보라 예보', X(0.045), Y(FC.y0 + 0.02));
-    ctx.textAlign = 'right';
-    font(0.036, 700);
-    ctx.fillStyle = '#4f72a0';
-    ctx.fillText(s.phase === 'build' ? '카드 톡 = 미리 보기' : '세기 = 바람이 들어오는 칸 수', X(0.955), Y(FC.y0 + 0.02));
+    const two = n > 6;
+    if (!two) {
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#1d4a82';
+      font(0.036, 900);
+      ctx.fillText('🌨️ 눈보라 예보', X(0.045), Y(FC.y0 + 0.02));
+      ctx.textAlign = 'right';
+      font(0.036, 700);
+      ctx.fillStyle = '#4f72a0';
+      ctx.fillText(s.phase === 'build' ? '카드 톡 = 미리 보기' : '세기 = 바람이 들어오는 칸 수', X(0.955), Y(FC.y0 + 0.02));
+    }
     for (let k = 0; k < n; k++) {
       const q = s.steps[k], b = cardBox(k, n), cur = s.phase === 'storm' && k === s.si, done = (s.phase === 'storm' && k < s.si) || s.phase === 'result', next = k === pv;
       ctx.save();
@@ -2277,7 +2285,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
         ctx.roundRect(X(b.x), Y(b.y), R(b.w), R(b.h), R(0.014));
         ctx.stroke();
       }
-      if (next) {
+      if (next && !two) {
         ctx.fillStyle = '#ffd166';
         ctx.beginPath();
         ctx.moveTo(X(b.x + b.w / 2 - 0.015), Y(b.y + b.h));
@@ -2321,12 +2329,14 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
         ctx.fillStyle = '#ffffff';
         ctx.fillText(String(q.h), X(b.x + b.w * 0.66), my);
       } else {
+        const icon = q.k === 'night' ? (q.aurora ? '🌌' : '🌙') : q.k === 'icicle' ? '🧊' : '⚪', word = q.k === 'night' ? (q.aurora ? '오로라' : '밤') : q.k === 'icicle' ? `×${s.ic.length}` : '굴러요';
         ctx.fillStyle = '#ffffff';
         font(0.042, 900);
-        ctx.fillText(q.k === 'night' ? (q.aurora ? '🌌' : '🌙') : q.k === 'icicle' ? '🧊' : '⚪', mx, Y(b.y + 0.038));
+        // 두 줄 카드(낮다)는 그림과 글자를 나란히
+        ctx.fillText(icon, two ? X(b.x + b.w * 0.3) : mx, two ? my : Y(b.y + 0.038));
         font(0.036, 900);
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(q.k === 'night' ? (q.aurora ? '오로라' : '밤') : q.k === 'icicle' ? `×${s.ic.length}` : '굴러요', mx, Y(b.y + b.h - 0.017), R(b.w - 0.012));
+        ctx.fillText(word, two ? X(b.x + b.w * 0.68) : mx, two ? my : Y(b.y + b.h - 0.017), R(two ? b.w * 0.55 : b.w - 0.012));
       }
       font(0.036, 900);
       ctx.fillStyle = 'rgba(255,255,255,.95)';

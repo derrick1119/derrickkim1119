@@ -3,7 +3,9 @@
  * 기준 9(손이 하는 일은 하나): 빈 모래를 톡 = 그 칸에 다음 조각(모래벽·돌). 다 놓거나 '▶ 버티기'를 톡 치면 예보대로 파도가 오고 알이 깬다.
  * 와우: 파도를 다 막고 나면 모래 속 알이 톡톡 깨어 아기 거북들이 바다로 가야 한다 — 방금 쌓은 내 벽이 이번엔 아기 거북의 길을 막는다.
  *       그래서 '막을 곳'과 '열어 둘 곳'을 처음부터 같이 계획한다(부화 때 하는 일은 없다: 길은 짓기 때 남겨 둔다 — 사람이 읽기 쉬운 쪽).
- * 물(밀물 모래성과 같은 칸 규칙): 파도 높이 H = 바닷가 첫 줄에 서는 물의 높이. 앞으로 한 칸 갈 때 1, 옆으로 번질 때 2씩 낮아진다.
+ * 물(밀물 모래성과 같은 결의 칸 규칙): 파도 높이 H = 바닷가 첫 줄에 서는 물의 높이. 어느 쪽으로든 한 칸 갈 때마다 1씩 낮아진다.
+ *   (밀물 모래성은 옆으로 2씩 — 그러면 물이 '세로 줄'이라 둥지 앞 벽 하나로 끝났다. 1로 통일하자 물이 벽을 돌아 들어와서
+ *    둥지를 둘러야 하고, 두른 벽이 아기 거북 길을 막는다 → 와우가 진짜 고민이 됐다.)
  *   모래벽(높이 3)·돌(높이 4)보다 낮은 물은 막히고, 높으면 넘는다(넘은 만큼만 이어 간다). 부딪힌 모래벽은 1, 넘친 모래벽은 2 깎인다.
  *   둥지에 닿은 물의 높이만큼 알이 떠내려간다. 게 구멍에 들어온 물은 땅속으로 빠진다(거기서 멈춘다).
  * 부화(결정적): 알이 깨면 아기 거북은 바다까지 가장 짧은 길로 간다(앞 → 왼 → 오른 → 뒤 순으로 고름). 벽·돌·바위·게 구멍은 못 지나간다.
@@ -14,7 +16,8 @@
  * 펼쳐짐(하는 일이 바뀐다): 1판 모래벽·알·길 → 2판 돌(안 깎이지만 길도 영영 막음)·바위 → 3판 갈매기(길 옆에 그늘을 만든다) → 4판 옆 파도·바위 틈 둥지(나갈 길이 하나)
  *   → 5판 게 구멍(물이 빠지지만 길이 돌아간다) → 6판 밀물(바다가 다가온다) → 7판 둥지 둘(먼저 깨는 둥지의 길은 파도 사이에 열려 있어야) → 8판 폭풍(전부).
  * 웃음(기준 10): 아기 거북이 물가에서 뒤집혀 버둥대다 파도에 다시 뒤집혀 퐁당, 엄마 거북 표정(두근·글썽·엉엉·감격의 눈물),
- *   꽃게 구경꾼 둘이 '가라~!' 응원하고 갈매기엔 '헉!', 알이 떠내려가면 꽃게가 조개 서핑으로 쫓아간다.
+ *   꽃게 구경꾼 둘이 '가라~!' 응원하고 갈매기엔 '헉!', 물이 닿으면 조개 서핑 '야호~'. 길이 막히면 아기 거북들이 둥지에서 '?!' 맴돈다.
+ * 엄마 거북은 바다 앞에서 아기들을 기다린다(목표 쪽에 얼굴이 있다).
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -81,7 +84,7 @@ export interface Flood { lvl: Int8Array; hit: Int8Array; over: Uint8Array }
 const BK: number[][] = Array.from({ length: 16 }, () => []);
 /**
  * 파도 하나가 어디까지 얼마나 높이 들어오나 (결정적, 미리 보기·봇·실제가 모두 같은 함수).
- * 높이 H의 물이 바닷가 첫 줄(옆 파도면 옆 첫 칸)에 선다. 파도가 오는 쪽으로 한 칸 갈 때마다 1, 옆으로 번질 땐 2씩 낮아진다.
+ * 높이 H의 물이 바닷가 첫 줄(옆 파도면 옆 첫 칸)에 선다. 어느 쪽으로든 한 칸 갈 때마다 1씩 낮아진다(벽을 돌아 들어온다).
  * 벽(모래벽·돌)은 자기 높이 이하의 물을 막고(hit 기록), 넘는 물은 넘은 만큼만 이어 간다. 둥지는 물을 받는다(hit). 게 구멍은 물을 삼킨다.
  */
 export function flood(K: Uint8Array, Hh: Int8Array, w: Item, sea: number): Flood {
@@ -211,7 +214,7 @@ export interface TurtleState {
   rng: Rng; seed: number; t: number; stage: number; phase: 'build' | 'wave' | 'hatch' | 'result'; pt: number;
   K: Uint8Array; Hh: Int8Array; nat: Uint8Array; zone: Uint8Array; gulls: number; nests: number[]; eggs: number[]; eggs0: number[]; sea: number;
   seq: Item[]; qi: number; wt: number; fl: Flood | null; arrive: Int16Array; impact: number; end: number; lastLost: number[];
-  hatch: Hatch | null; hatched: boolean[];
+  hatch: Hatch | null; hatched: boolean[]; reached: number[];
   pieces: number[]; pi: number; auto: number; wet: Float32Array;
   hearts: number; stars: number; got: number; pts: number; ok: boolean; lostThis: number; caughtThis: number; savedThis: number; saved: number; keep: number; why: string;
   down: boolean; taps: number; seen: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[]; dead: boolean; won: boolean;
@@ -329,6 +332,7 @@ function newStage(s: TurtleState) {
   s.eggs = d.eggs.slice();
   s.eggs0 = d.eggs.slice();
   s.hatched = d.eggs.map(() => false);
+  s.reached = d.eggs.map(() => 0);
   for (const c of s.nests) s.K[c] = NEST;
   const near = (i: number, dmax: number) => s.nests.some((j) => Math.abs(rowOf(i) - rowOf(j)) <= dmax && Math.abs(colOf(i) - colOf(j)) <= dmax);
   const free = (r0: number, r1: number, ok: (i: number) => boolean) => {
@@ -529,6 +533,7 @@ function hatchStep(s: TurtleState) {
     s.caughtThis += h.path ? h.caught : 0;
     const got = h.path ? h.babies - h.caught : 0;
     s.savedThis += got;
+    s.reached[h.j] = got;
     s.qi++;
     if (got <= 0) return (s.why = h.path ? 'gull' : 'stuck'), endStage(s, false);
     nextItem(s);
@@ -583,7 +588,7 @@ export const turtlebeach: GameDef<TurtleState> = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'build', pt: 0,
       K: new Uint8Array(N), Hh: new Int8Array(N), nat: new Uint8Array(N), zone: new Uint8Array(N), gulls: 0, nests: [], eggs: [], eggs0: [], sea: 0,
       seq: [], qi: 0, wt: 0, fl: null, arrive: new Int16Array(N), impact: 0, end: 0, lastLost: [],
-      hatch: null, hatched: [],
+      hatch: null, hatched: [], reached: [],
       pieces: [], pi: 0, auto: 0, wet: new Float32Array(N),
       hearts: 3, stars: 0, got: 0, pts: 0, ok: false, lostThis: 0, caughtThis: 0, savedThis: 0, saved: 0, keep: 0, why: '',
       down: false, taps: 0, seen: new Set<string>(), events: [], news: null, newsQ: [], dead: false, won: false,
@@ -1813,7 +1818,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: nu
         ctx.fillStyle = 'rgba(255,255,255,.85)';
         for (let a = 0; a < 6; a++) (ctx.beginPath(), ctx.arc(x - R(0.05) + a * R(0.02), y - R(0.006) - Math.sin(a + t * 0.3) * R(0.006), R(0.008), 0, Math.PI * 2), ctx.fill());
       }
-      if (q.k % 30 < 22) label('버둥버둥!', x + R(0.04), y - R(0.08), 0.038, '#fff6d6');
+      if (q.k % 30 < 22) label('버둥버둥!', x + (x < w * 0.6 ? R(0.12) : -R(0.12)), y - R(0.025), 0.038, '#fff6d6');
     } else if (q.st === 'swim') {
       ctx.globalAlpha = Math.max(0, 1 - q.k / 40);
       drawTurtle(ctx, x, y, z * 0.9, t + q.b * 5, 'happy', { walk: t * 0.05 });
@@ -1909,9 +1914,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: nu
           if (!hat.path && hat.ht >= CRACK) {
             // 길이 막힘: 아기 거북들이 둥지 안에서 맴돈다
             for (let b = 0; b < hat.babies; b++) {
-              const an = t * 0.08 + (b * Math.PI * 2) / hat.babies;
-              drawTurtle(ctx, x + Math.cos(an) * rw * 0.45, y + Math.sin(an) * rw * 0.2, R(0.022), t + b * 7, 'cry', { walk: t * 0.05, dir: -Math.sin(an) });
+              const an = t * 0.06 + (b * Math.PI * 2) / hat.babies;
+              drawTurtle(ctx, x + Math.cos(an) * rw * 0.8, y + Math.sin(an) * rw * 0.32 + rw * 0.2, R(0.026), t + b * 7, b % 2 ? 'cry' : 'wow', { walk: t * 0.05, dir: -Math.sin(an) });
             }
+            if (t % 40 < 30) label('?!', x, y - rw * 0.9, 0.044, '#ffe3b0');
             n = 0;
           }
         }
@@ -2361,7 +2367,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: nu
         ctx.fillText('없음', X(x + ww / 2), Y(y + hh / 2));
         return;
       }
-      const mx = X(x + ww / 2), my = Y(y + hh * (big ? 0.45 : 0.5)), z = R(big ? 0.05 : 0.032);
+      const mx = X(x + ww / 2), my = Y(y + hh * (big ? 0.38 : 0.5)), z = R(big ? 0.045 : 0.032);
       if (pc === PW) {
         ctx.fillStyle = '#d9ad66';
         ctx.fillRect(mx - z, my - z * 0.1, z * 2, z * 0.7);
@@ -2443,7 +2449,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: nu
         const left = s.K[c] === NEST ? s.eggs[j] : 0;
         for (let q = 0; q < s.eggs0[j]; q++) {
           const ex = lx + tw0 + R(0.03) + q * R(0.04);
-          ctx.fillStyle = q < left ? '#fff6e6' : s.hatched[j] && q < s.eggs0[j] ? 'rgba(126,224,168,.9)' : 'rgba(255,255,255,.18)';
+          ctx.fillStyle = q < left ? '#fff6e6' : q < left + s.reached[j] ? 'rgba(126,224,168,.95)' : 'rgba(255,255,255,.18)';
           ctx.beginPath();
           ctx.ellipse(ex, ly, R(0.012), R(0.016), 0, 0, Math.PI * 2);
           ctx.fill();
