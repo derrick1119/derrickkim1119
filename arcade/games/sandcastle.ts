@@ -15,7 +15,7 @@
  *   → 5판 밀물(파도마다 바다가 한 줄씩 올라와 앞쪽 벽이 잠긴다 → 성 가까이 짓는다) → 6판 왕자님 성(둘을 나눠 지킨다)
  *   → 7판 폭풍(양옆에서) → 8판 대왕 밀물(전부).
  * 연출: 막힌 파도는 물보라 기둥이 하늘로 솟고, 깎인 벽에서 모래알이 떨어져 물에 실려 간다. 판의 마지막(가장 큰) 파도는 느린 화면
- *   (장면 시계가 0.4배 — 성 쪽으로 살짝 다가가고 위아래 검은 띠). 새 판이 시작되면 지난 판의 벽이 밤 밀물에 녹아 평평해진다(그리기만).
+ *   (장면 시계가 0.4배 — 임금님 쪽으로 살짝 다가가고 가장자리가 어두워지며 아래 검은 띠에 자막). 새 판이 시작되면 지난 판의 벽이 밤 밀물에 녹아 평평해진다(그리기만).
  * 웃음(기준 10): 파도가 오면 꽃게 임금님이 집게로 눈을 가리고 덜덜(가끔 실눈으로 엿봄), 막으면 성 위에서 ♪ 춤, 깎이면 어질어질.
  *   성이 깎이면 갈매기가 깃발을 낚아채 가고, 하나도 안 깎이고 막아 춤추면 갈매기가 왕관을 채 간다 — 판마다 번갈아
  *   ① 다시 비뚤게 씌워 주고("휴~") ② 꽃게 백성 머리에 떨어뜨린다("오늘부터 내가 임금!" "어?!").
@@ -1037,13 +1037,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
     fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), y, text, col, size);
   };
 
-  // 느린 화면(마지막 큰 파도): 성 쪽으로 살짝 다가가고, 위아래 검은 띠
+  // 느린 화면(마지막 큰 파도): 임금님 쪽으로 살짝 다가가고, 아래 검은 띠 + 자막
   const lastW = !!wave && s.wi === s.waves.length - 1;
   const sm = lastW ? Math.max(0, Math.min(1, (wt - (APPROACH - 12)) / 10, (s.impact + 26 - wt) / 10)) : 0;
   ctx.save();
   fx.begin(ctx);
   if (sm > 0) {
-    const c0 = s.castles[0], zx = X(ccx(c0.cells[0]) + CW / 2), zy = Y(ccy(c0.cells[0]) + 0.04), zf = 1 + 0.1 * sm;
+    const c0 = s.castles[0], zx = X(ccx(c0.cells[0]) + CW / 2), zy = Y(ccy(c0.cells[0]) - 0.06), zf = 1 + 0.1 * sm;
     ctx.translate(zx, zy);
     ctx.scale(zf, zf);
     ctx.translate(-zx, -zy);
@@ -1697,7 +1697,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
             ctx.font = `900 ${R(0.034)}px system-ui, sans-serif`;
             ctx.textAlign = 'center';
             ctx.fillStyle = '#ffffff';
-            ctx.fillText('덜덜…', kx + kz * 1.9 + Math.sin(t * 1.3) * 1.2, ky - kz * 1.9);
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = 'rgba(60,20,10,.55)';
+            ctx.strokeText('덜덜…', kx + kz * 2.6 + Math.sin(t * 1.3) * 1.2, ky - kz * 0.7);
+            ctx.fillText('덜덜…', kx + kz * 2.6 + Math.sin(t * 1.3) * 1.2, ky - kz * 0.7);
           }
           if (dance) {
             ctx.fillStyle = '#ffffff';
@@ -2086,15 +2089,14 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SandState, w: number, h: numb
   fx.memo.t = s.t;
   ctx.restore();
   if (sm > 0) {
-    // 느린 화면: 가장자리 어둡게 + 위아래 검은 띠 + 자막
+    // 느린 화면: 가장자리 어둡게 + 아래 검은 띠 + 자막 (위 띠는 뒷줄 성의 임금님을 가려서 뺐다)
     const vg = ctx.createRadialGradient(w / 2, Y(0.7), R(0.25), w / 2, Y(0.7), R(0.8));
     vg.addColorStop(0, 'rgba(0,0,0,0)');
     vg.addColorStop(1, `rgba(0,10,20,${0.45 * sm})`);
     ctx.fillStyle = vg;
     ctx.fillRect(0, Y(0.22), w, Y(TY - 0.22));
-    const bh = R(0.055) * sm;
+    const bh = R(0.06) * sm;
     ctx.fillStyle = 'rgba(0,0,0,.88)';
-    ctx.fillRect(0, Y(0.222), w, bh);
     ctx.fillRect(0, Y(TY) - bh, w, bh);
     ctx.globalAlpha = sm;
     ctx.fillStyle = '#ffffff';

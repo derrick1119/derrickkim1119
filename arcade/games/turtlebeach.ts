@@ -516,7 +516,7 @@ function hatchStep(s: TurtleState) {
         continue;
       }
       const sx = ccx(last), sy = PY(ROWS - s.sea + 0.35);
-      if (b === flipper(h) && ht === babySea(L, b)) ev(s, 'flip', sx, sy, '뒤집혔다! 버둥버둥', '#fff6d6');
+      if (b === flipper(h) && ht === babySea(L, b)) ev(s, 'flip', sx, sy, '뒤집혔다!', '#fff6d6');
       if (ht === babySea(L, b) + (b === flipper(h) ? FLIPT : 0)) (s.joyT = s.t), ev(s, 'plop', sx, sy, '퐁당!', '#e3f6ff');
     }
   }
@@ -1797,7 +1797,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: nu
   const babies: { x: number; y: number; st: string; dx: number; u: number; k: number; b: number }[] = [];
   if (hat && hat.path) for (let b = 0; b < hat.babies; b++) babies.push({ ...babyAt(s, hat, b), b });
   const drawBaby = (q: (typeof babies)[number]) => {
-    const z = R(0.031), x = X(q.x), y = Y(q.y);
+    const z = R(0.036), x = X(q.x), y = Y(q.y);
     if (q.st === 'walk') {
       const wob = Math.sin(q.u * Math.PI * 2) * 0.12;
       ctx.save();
@@ -1811,7 +1811,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TurtleState, w: number, h: nu
         ctx.fillStyle = 'rgba(255,255,255,.85)';
         for (let a = 0; a < 6; a++) (ctx.beginPath(), ctx.arc(x - R(0.05) + a * R(0.02), y - R(0.006) - Math.sin(a + t * 0.3) * R(0.006), R(0.008), 0, Math.PI * 2), ctx.fill());
       }
-      if (q.k % 30 < 20) label('버둥버둥', x, y - R(0.07), 0.036, '#fff6d6');
+      if (q.k % 30 < 22) label('버둥버둥!', x + R(0.04), y - R(0.08), 0.038, '#fff6d6');
     } else if (q.st === 'swim') {
       ctx.globalAlpha = Math.max(0, 1 - q.k / 40);
       drawTurtle(ctx, x, y, z * 0.9, t + q.b * 5, 'happy', { walk: t * 0.05 });

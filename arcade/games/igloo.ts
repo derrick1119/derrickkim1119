@@ -1775,7 +1775,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
           ctx.stroke();
           if (lit) glows.push({ x: wx, y: wy, r: R(0.05), col: '#ffc861' });
           // 입구 굴 (앞) + 빼꼼 내다보는 식구
-          const ex = cx2 - rx * (wide > 1 ? 0.1 : 0), eb = by + R(0.006), erx = rx * (wide > 1 ? 0.36 : 0.5), ery = erx * 0.85;
+          const ex = cx2 - rx * (wide > 1 ? 0.12 : 0), eb = by + R(0.012), erx = rx * (wide > 1 ? 0.46 : 0.5), ery = erx * 0.92;
           ctx.fillStyle = '#f4f9ff';
           ctx.beginPath();
           ctx.moveTo(ex - erx, eb);
@@ -1798,9 +1798,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
             ctx.moveTo(ex - erx * 0.62, eb);
             ctx.ellipse(ex, eb, erx * 0.62, ery * 0.72, 0, Math.PI, Math.PI * 2);
             ctx.clip();
-            const fz = erx * 0.42;
-            drawPeng(ctx, ex - erx * 0.22, eb + fz * 1.65 - pk * fz * 0.6 + bob, fz, t, s.phase === 'result' && s.ok ? 'happy' : 'calm', 0.2, { look: Math.sin(t * 0.03) });
-            drawPeng(ctx, ex + erx * 0.25, eb + fz * 1.3 - pk * fz * 0.45 - bob, fz * 0.7, t + 20, 'wow', 0.3, { baby: true, look: -1 });
+            const fz = erx * 0.5;
+            drawPeng(ctx, ex - erx * 0.2, eb + fz * 1.55 - pk * fz * 0.75 + bob, fz, t, s.phase === 'result' && s.ok ? 'happy' : 'calm', 0.2, { look: Math.sin(t * 0.03), scarf: '#ff8fb1' });
+            drawPeng(ctx, ex + erx * 0.28, eb + fz * 1.25 - pk * fz * 0.55 - bob, fz * 0.72, t + 20, 'wow', 0.3, { baby: true, look: -1 });
             ctx.restore();
           }
           // 아기 펭귄이 데굴데굴 굴러 나왔다 엄마에게 끌려 들어간다 (판 시작마다)
@@ -1811,11 +1811,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
               const bx = ex + R(0.075) * out, byy = eb + R(0.055) * out;
               if (p < 80) drawPeng(ctx, bx, byy, z, t, 'dizzy', 0, { baby: true, tilt: (p - 30) * 0.35 });
               else drawPeng(ctx, bx, byy, z, t, p < 135 ? 'dizzy' : 'wow', 0.6, { baby: true });
-              if (p < 95) label('데굴데굴~', bx, byy - R(0.05), 0.036);
+              if (p < 95) label('데굴데굴~', bx + R(0.07), byy - R(0.01), 0.036);
               if (p >= 95) {
                 const m = p < 125 ? (p - 95) / 30 : 1, mx = ex + (bx - ex + R(0.028)) * m, my = eb + (byy - eb) * m;
                 drawPeng(ctx, mx, my, R(0.032), t, p < 135 ? 'strain' : 'calm', 0.7, { scarf: '#ff8fb1' });
-                if (p > 118 && p < 170) label('이 녀석!', mx + R(0.02), my - R(0.07), 0.036, '#ffd6e8');
+                if (p > 118 && p < 170) label('이 녀석!', mx + R(0.085), my - R(0.03), 0.036, '#ffd6e8');
               }
             }
           }
@@ -1953,7 +1953,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: IglooState, w: number, h: num
     s.igloos.forEach((ic2, k) => {
       const hv = pre.dmg[k];
       if (!hv) return;
-      const bx = X(ccx(ic2.cells[0]) + (ic2.cells.length > 1 ? CW / 2 : 0)), by = Y(ccy(ic2.cells[0])) + R(0.015), pul = 0.6 + 0.4 * Math.sin(t * 0.2);
+      const bx = X(ccx(ic2.cells[0]) + (ic2.cells.length > 1 ? CW / 2 : 0)), by = Y(ccy(ic2.cells[0])) - R(0.03), pul = 0.6 + 0.4 * Math.sin(t * 0.2);
       ctx.fillStyle = `rgba(235,60,95,${0.85 * pul})`;
       ctx.beginPath();
       ctx.roundRect(bx - R(0.13), by - R(0.024), R(0.26), R(0.048), R(0.024));
