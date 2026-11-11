@@ -522,7 +522,7 @@ export interface DogState {
 const ev = (s: DogState, kind: string, x: number, y: number, text?: string, col?: string, v?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v });
 /** 규칙 도움말 (새것 수에는 안 센다) */
 function tip(s: DogState, key: string, text: string) {
-  if (s.tips.has(key)) return;
+  if (s.tips.has(key) || s.newsQ.length) return;
   s.tips.add(key);
   s.newsQ.push(text);
 }
@@ -1174,17 +1174,18 @@ function drawDog(ctx: CanvasRenderingContext2D, x: number, y: number, z: number,
 }
 
 function drawGoat(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, faint: number, age: number, t: number) {
-  const body = '#efe7d4', sh = '#c9bea4';
+  const body = '#f4ecdb', sh = '#b9a888';
   ctx.save();
   ctx.fillStyle = 'rgba(30,45,15,.3)';
   ctx.beginPath();
   ctx.ellipse(x + z * 0.4, y + z * 0.05, z * (faint ? 1.7 : 1.25), z * 0.38, 0, 0, TAU);
   ctx.fill();
   ctx.translate(x, y);
-  // 뻣뻣하게 옆으로 쿵: 쓰러지는 데 10틱, 쓰러진 동안 다리가 하늘로
+  // 뻣뻣하게 쿵: 쓰러지는 데 10틱, 쓰러진 동안 네 다리가 하늘로 (부르르)
   const fall = faint ? Math.min(1, age / 10) : 0;
-  ctx.translate(0, -z * 0.15 * fall);
-  ctx.rotate(-Math.PI / 2 * fall * (fall < 1 ? 1 : 1) + (fall >= 1 ? Math.sin(t * 0.8) * 0.02 : 0));
+  ctx.translate(0, -z * 0.55);
+  ctx.rotate(Math.PI * fall * fall + (fall >= 1 ? Math.sin(t * 0.9) * 0.03 : 0));
+  ctx.translate(0, z * 0.55 - (fall >= 1 ? z * 0.45 : 0));
   // 다리 (뻣뻣)
   ctx.strokeStyle = '#8c7f6a';
   ctx.lineWidth = z * 0.16;
@@ -1202,6 +1203,17 @@ function drawGoat(ctx: CanvasRenderingContext2D, x: number, y: number, z: number
   ctx.fillStyle = g;
   ctx.beginPath();
   ctx.roundRect(-z * 0.75, -z * 1.05, z * 1.5, z * 0.62, z * 0.25);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(90,70,40,.55)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  // 갈색 얼룩
+  ctx.fillStyle = '#9a6a3c';
+  ctx.beginPath();
+  ctx.ellipse(-z * 0.3, -z * 0.85, z * 0.28, z * 0.18, 0.3, 0, TAU);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(z * 0.35, -z * 0.95, z * 0.18, z * 0.1, -0.2, 0, TAU);
   ctx.fill();
   ctx.fillStyle = body;
   ctx.beginPath();
@@ -1814,6 +1826,46 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       ctx.fill();
     }
   }
+  // 들판 장식: 짚더미 · 팻말 · 나비 (부딪히지 않는 가장자리)
+  {
+    const hx = PX(0.04, 0.95), hy = PY(0.95), hz = R(0.05);
+    ctx.fillStyle = 'rgba(30,45,15,.3)';
+    ctx.beginPath();
+    ctx.ellipse(hx + hz * 0.4, hy, hz * 1.2, hz * 0.3, 0, 0, TAU);
+    ctx.fill();
+    const hg = ctx.createLinearGradient(hx - hz, 0, hx + hz, 0);
+    hg.addColorStop(0, night ? '#7a6a3a' : '#f2d27a');
+    hg.addColorStop(1, night ? '#4a3e20' : '#c99a3e');
+    ctx.fillStyle = hg;
+    ctx.beginPath();
+    ctx.ellipse(hx, hy - hz * 0.55, hz, hz * 0.62, 0, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(140,100,30,.6)';
+    ctx.lineWidth = 1;
+    for (let k = 0; k < 4; k++) (ctx.beginPath(), ctx.ellipse(hx, hy - hz * 0.55, hz * (0.9 - k * 0.2), hz * (0.5 - k * 0.1), 0, Math.PI * 1.1, Math.PI * 1.9), ctx.stroke());
+    const sx = PX(0.97, 0.9), sy = PY(0.9), sz = R(0.045);
+    ctx.fillStyle = '#7a4f24';
+    ctx.fillRect(sx - 1.5, sy - sz * 1.4, 3, sz * 1.4);
+    ctx.fillStyle = night ? '#6e573c' : '#c8925a';
+    ctx.beginPath();
+    ctx.roundRect(sx - sz * 0.95, sy - sz * 1.7, sz * 1.1, sz * 0.6, 3);
+    ctx.fill();
+    ctx.fillStyle = '#3a2410';
+    ctx.font = `800 ${R(0.026)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🐑→', sx - sz * 0.4, sy - sz * 1.4);
+    if (!night)
+      for (let k = 0; k < 2; k++) {
+        const bx = 0.15 + 0.7 * hsh(k + 40) + Math.sin(t * 0.011 + k * 3) * 0.12, by = 0.5 + 0.35 * hsh(k + 41) + Math.cos(t * 0.017 + k) * 0.06;
+        const fl = Math.abs(Math.sin(t * 0.35 + k)) * R(0.012) + 1;
+        ctx.fillStyle = k ? '#ffe066' : '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(PX(bx, by) - fl * 0.6, PY(by) - R(0.07), fl, R(0.008), -0.5, 0, TAU);
+        ctx.ellipse(PX(bx, by) + fl * 0.6, PY(by) - R(0.07), fl, R(0.008), 0.5, 0, TAU);
+        ctx.fill();
+      }
+  }
   // ═════════ 서 있는 것들 (먼 것부터) ═════════
   const items: { d: number; f: () => void }[] = [];
   const postH = (fy0: number) => R(0.068) * scl(fy0);
@@ -1951,7 +2003,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   if (F.goat) {
     const gt = F.goat, faint = S.goatF > 0 || (flee?.goatFaint ?? false);
     const fAge = faint ? (s.phase === 'flee' && flee?.goatFaint ? s.pt : 30) : 0;
-    items.push({ d: gt.y, f: () => drawGoat(ctx, PX(gt.x, gt.y), PY(gt.y), R(0.046) * scl(gt.y), faint ? 1 : 0, fAge, t) });
+    items.push({ d: gt.y, f: () => drawGoat(ctx, PX(gt.x, gt.y), PY(gt.y), R(0.056) * scl(gt.y), faint ? 1 : 0, fAge, t) });
     if (faint && S.goatF > 0)
       items.push({
         d: 2,
@@ -2353,7 +2405,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     ctx.textAlign = 'center';
     const tx = `✨ ${s.news.text}`;
     let fs = 0.036;
-    while (ctx.measureText(tx).width > w - R(0.06) && fs > 0.03) font((fs -= 0.002), 900);
+    while (ctx.measureText(tx).width > w - R(0.05) && fs > 0.034) font((fs -= 0.001), 900);
     const tw2 = Math.min(w - 8, ctx.measureText(tx).width + 22), by2 = hb + R(0.04) - drop;
     ctx.fillStyle = 'rgba(30,40,24,.9)';
     ctx.beginPath();
@@ -2496,7 +2548,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       ctx.fill();
       ctx.stroke();
       ctx.textAlign = 'center';
-      font(0.035, 800);
+      font(0.036, 800);
       ctx.fillStyle = st === false ? 'rgba(255,255,255,.45)' : '#fff6e0';
       ctx.fillText(`${st === true ? '★' : st === false ? '✗' : '☆'} ${txt}`, gx + gw / 2, y2 + 1);
     });
@@ -2519,4 +2571,3 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   }
 }
 
-export function _jump(s: any, k: number) { s.stage = k; newStage(s); }
