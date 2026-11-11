@@ -3,14 +3,16 @@
  * 기준 9(손이 하는 일은 하나): 아무 줄이나 톡 = 그 줄 맨 위에서 햄스터 공 떨구기. 키보드는 ← → 로 줄을 고르고 스페이스.
  * 물리 없음(결정적 칸 규칙): 핀은 격자에 있고, 공은 한 칸씩 내려온다. 빈 칸은 곧장 아래로.
  *   ◀▶ 핀 = 공을 화살표 쪽 아래 칸으로 보내고, 공이 지나가면 방향이 뒤집힌다(토글).
- *   ✳ 갈라짐 핀 = 공이 양쪽 아래로 둘이 된다(마름모로 놓인 두 갈라짐 핀은 하나를 넷으로).
- *   🕳 구멍 = 공이 사라진다. 🍄 범퍼 = 화살표 쪽 위 칸으로 튕겨 올리고(+1) 뒤집힌다. 🧱 막힌 칸·벽 = 못 들어가고 반대쪽으로 튕긴다.
+ *   ▲ 갈라짐 핀 = 공이 양쪽 아래로 둘이 된다(마름모로 놓인 두 갈라짐 핀은 하나를 넷으로).
+ *   구멍 = 공이 사라진다. 🔴 범퍼 = 화살표 쪽 위 칸으로 튕겨 올리고(+1) 뒤집힌다(위 대각선 칸은 늘 비워 둬서 범퍼 옆 줄로 떨어진다). 🧱 막힌 칸·벽 = 못 들어가고 반대쪽으로 튕긴다.
  *   🔑 열쇠 = 지나가면 🏆 황금 컵의 뚜껑(문)이 열린다. 🔄 뒤집개 = 지나가면 판의 모든 화살표가 한꺼번에 뒤집힌다.
  * 와우: 공이 지나간 핀은 뒤집혀서, 같은 줄에 떨궈도 다음 공은 다른 길로 간다 — 떨구는 순서가 수다.
- * 읽힘: 떨구기 전에 줄마다 '지금 떨구면 동전 몇 개'(+2 · 🏆 · 🕳)가 위에 뜨고, 고른 줄은 공이 갈 길을 점선으로 보여 준다
+ * 읽힘: 떨구기 전에 줄마다 '지금 떨구면 동전 몇 개'(+2 · 🏆 · 구멍)가 위에 뜨고, 고른 줄은 공이 갈 길을 점선으로 보여 준다
  *   (시뮬레이션과 같은 함수로 돌린 결정적 예상 — 실제와 똑같다).
  * 판: 공 N개로 동전 목표를 채우면 통과. 별: ★ 목표 · ★ 공 K개 남기고 · ★ 🏆 황금 컵. 공을 다 써도 못 채우면 하트 -1, 같은 판을 처음부터.
- *   하트 셋을 다 잃거나 8판을 마치면 끝. 목표는 '아무렇게나 떨궈 본' 결과의 분포로 정한다(1판은 아무 데나 떨궈도 통과, 2판은 절반쯤).
+ *   하트 셋을 다 잃거나 8판을 마치면 끝. 목표는 '아무렇게나 떨궈 본' 결과의 분포로 정한다(1판은 아무 데나 떨궈도 통과, 2판은 절반 넘게).
+ *   🏆 문지기: 황금 컵 바로 위·양옆 핀은 처음에 🏆을 비켜 가게 놓인다 — 문지기 핀을 먼저 뒤집어야 🏆이 열린다(아무렇게나는 잘 안 들어간다).
+ *   판 구성은 후보 여럿 중 '내다보는 봇은 ★★★, 숫자만 보는 욕심쟁이는 ★★★ 못 받고, 아무렇게나는 별 ★2·★3을 잘 못 받는' 판을 고른다.
  * 펼쳐짐(하는 일이 바뀐다): 1 뒤집히는 핀·동전 컵·황금 컵 → 2 갈라짐(불리기) → 3 구멍(피하기) → 4 범퍼(위로 튕겨 다시 지나기)
  *   → 5 막힌 칸(벽에 튕겨 돌리기) → 6 움직이는 🎯 컵(언제 떨굴지) → 7 열쇠·문(먼저 열기) → 8 뒤집개(판 전체 뒤집기).
  * 웃음(기준 10): 공은 햄스터 볼 — 핀을 지날수록 어질어질 '빙글빙글', 갈라짐 핀에선 햄스터가 둘로 나뉘어 서로 "어?!",
@@ -443,7 +445,7 @@ export interface PState {
   down: boolean; cx: number; kbd: boolean;
   seen: Set<string>; news: { text: string; t: number }[]; events: Ev[]; gone: Gone[]; flipT: Int32Array;
   /** 연출: 마지막으로 컵에 들어간 때·값 (햄스터 가족 만세) · 구멍에 빠진 때 */
-  cheer: { t: number; v: number; c: number }; gasp: number; split: number; splitN: number;
+  cheer: { t: number; v: number; c: number }; gasp: number; split: number; splitN: number; waitAt: number;
 }
 
 const ev = (s: PState, kind: string, x: number, y: number, text?: string, col?: string, v?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v });
@@ -569,7 +571,7 @@ export const plinko: GameDef<PState> = {
       hearts: 3, stars: 0, got: 0, pts: 0, ok: false, won: false, dead: false,
       down: false, cx: 0.5, kbd: false,
       seen: new Set<string>(), news: [], events: [], gone: [], flipT: new Int32Array(NC),
-      cheer: { t: -999, v: 0, c: 3 }, gasp: -999, split: -999, splitN: 0,
+      cheer: { t: -999, v: 0, c: 3 }, gasp: -999, split: -999, splitN: 0, waitAt: -1,
     } as PState;
     newStage(s);
     return s;
@@ -611,6 +613,7 @@ export const plinko: GameDef<PState> = {
       }
     }
     if (s.endAt && s.t >= s.endAt) return endStage(s, s.T.coins >= s.goal);
+    if (press && s.fall && s.waitAt !== s.fall.t0) (s.waitAt = s.fall.t0), ev(s, 'wait', CX(colAt(s.cx)), DROP_Y, '잠깐! 공이 내려가는 중', '#ffe9c8');
     if (!press || s.fall || s.endAt || s.left <= 0) return;
     drop(s, colAt(s.cx));
   },
@@ -1373,9 +1376,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PState, w: number, h: number,
         const k = 1 - age / 24;
         hball(ctx, X(CX(g.c)), Y(RY(g.r)), R(BR) * k, 'scared', t, age * 0.6, false, k);
       } else if (age < 150) {
-        // 아래 파이프(왼쪽)에서 뿅! 튀어나와 데굴데굴
+        // 아래 파이프(왼쪽)에서 뿅! 튀어나와 데굴데굴 (그리기는 24틱 뒤부터)
+        if ((fx.memo['pop' + g.id] ?? -1) !== g.t) (fx.memo['pop' + g.id] = g.t), say(X(0.08), Y(FLOOR_Y - 0.05), '뿅!', '#ffffff', 16), fx.burst(X(0.04), Y(FLOOR_Y - 0.015), '#d6c7ff', 12, 3, 2);
         const a2 = age - 24, px = 0.035 + Math.min(1, a2 / 60) * 0.18, py = FLOOR_Y + 0.02 - Math.abs(Math.sin(Math.min(a2, 60) / 60 * Math.PI * 2)) * 0.06 * (1 - Math.min(1, a2 / 60));
-        hamster(ctx, X(px), Y(py), R(0.022), a2 < 60 ? 'dizzy' : 'scared', t, a2 < 60 ? a2 * 0.35 : Math.sin(t * 0.3) * 0.2);
+        hamster(ctx, X(px), Y(py - 0.008), R(0.03), a2 < 60 ? 'dizzy' : 'scared', t, a2 < 60 ? a2 * 0.35 : Math.sin(t * 0.3) * 0.2);
         if (a2 >= 60) {
           // 어질어질 별
           for (let q = 0; q < 3; q++) emoji('⭐', X(px + Math.cos(t * 0.12 + q * 2.1) * 0.025), Y(py - 0.035 + Math.sin(t * 0.12 + q * 2.1) * 0.008), 0.016);
@@ -1409,9 +1413,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PState, w: number, h: number,
       ctx.beginPath();
       ctx.ellipse(X(fx0), Y(FLOOR_Y + 0.022), R(rr * 0.9), R(rr * 0.25), 0, 0, Math.PI * 2);
       ctx.fill();
-      const mood: Mood = cheering ? 'happy' : gasp ? 'wow' : (t + k * 40) % 200 < 8 ? 'blink' : 'calm';
-      hamster(ctx, X(fx0), Y(fy), R(rr), mood, t + k * 7, 0, cheering ? 1 : 0, Math.max(-1, Math.min(1, (tx - fx0) * 4)));
-      if (k === 2 && cheering && ch < 40 && ch % 40 === 1) say(X(fx0), Y(fy - 0.05), '만세!', '#fff1a8', 13);
+      // 실패하면 가족이 데굴데굴 어질어질 (벌이 아니라 웃음)
+      const flop = s.phase === 'result' && !s.ok;
+      const mood: Mood = flop ? 'dizzy' : cheering ? 'happy' : gasp ? 'wow' : (t + k * 40) % 200 < 8 ? 'blink' : 'calm';
+      hamster(ctx, X(fx0 + (flop ? Math.sin(s.pt * 0.08 + k) * 0.02 : 0)), Y(fy), R(rr), mood, t + k * 7, flop ? s.pt * 0.12 * (k % 2 ? 1 : -1) : 0, cheering ? 1 : 0, Math.max(-1, Math.min(1, (tx - fx0) * 4)));
+      if (flop && k === 1 && s.pt >= 20 && (fx.memo.flop ?? -1) !== s.t - s.pt) (fx.memo.flop = s.t - s.pt), say(X(fx0), Y(fy - 0.06), '데굴데굴~', '#ffd0e0', 13);
+      if (k === 2 && cheering && (fx.memo.cheer ?? -1) !== s.cheer.t) (fx.memo.cheer = s.cheer.t), say(X(fx0), Y(fy - 0.05), '만세!', '#fff1a8', 13);
     }
   }
   // ═════════════ 줄 숫자 (지금 떨구면 동전 몇 개) · 기다리는 공 ═════════════
@@ -1488,12 +1495,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PState, w: number, h: number,
     if (e.kind === 'zero') say(x, y - R(0.05), e.text!, e.col!, 13);
     if (e.kind === 'gold' || e.kind === 'cup') fx.burst(x, y, '#ffe066', 40, 5, 3), fx.burst(x, y, '#ff8fb1', 20, 4, 2.6), fx.ring(x, y, '#ffe066', R(0.2), 5), fx.blink('#fff6c8', 0.25), fx.kick(6), say(x, y - R(0.07), e.text!, e.col!, 18);
     if (e.kind === 'stuck') say(x, y - R(0.05), e.text!, e.col!, 13);
+    if (e.kind === 'wait') say(x, y + R(0.07), e.text!, e.col!, 12);
     if (e.kind === 'clear') fx.burst(w * 0.3, y, '#ffe066', 40, 6, 3.2), fx.burst(w * 0.7, y, '#ff8fb1', 40, 6, 3.2), fx.ring(w / 2, y, '#ffe066', R(0.4), 7), fx.blink('#fff6c8', 0.25);
     if (e.kind === 'fail') fx.kick(7), fx.blink(th.hot, 0.2);
   }
   fx.memo.t = s.t;
   // 빙글빙글 (햄스터가 핀을 넷 이상 지나면 가끔)
-  for (const b of s.balls) if (b.alive && b.moves === 4 && s.fall && t - s.fall.last === 1 && (fx.memo['dz' + b.id] ?? -1) < 0) (fx.memo['dz' + b.id] = 1), say(X(CX(b.c)), Y(RY(Math.max(0, b.r)) - 0.06), '빙글빙글~', '#ffffff', 12);
+  for (const b of s.balls) if (b.alive && b.moves >= 4 && b.moves <= 5 && s.fall && fx.memo.dz !== s.fall.t0) (fx.memo.dz = s.fall.t0), say(X(CX(b.c)), Y(RY(Math.max(0, b.r)) - 0.06), '빙글빙글~', '#ffffff', 12);
   ctx.restore();
 
   // ═════════════ HUD ═════════════
@@ -1602,7 +1610,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PState, w: number, h: number,
     if (nw && nw.t >= 0) line = `✨ ${nw.text}`;
     else if (s.stage === 0 && s.drops < 2) line = '👆 줄을 톡 = 그 줄에 햄스터 공 떨구기';
     else if (idle) line = '위 숫자 = 지금 그 줄에 떨구면 받는 동전';
-    else if (s.fall) line = s.T.most >= 4 ? '와르르~ 공이 넷으로!' : '통통통…';
+    else if (s.fall) line = s.balls.length >= 4 ? '와르르~ 공이 넷으로!' : s.balls.length >= 2 ? '햄스터가 둘로!' : '통통통…';
     if (line) {
       font(0.038, 900);
       ctx.textAlign = 'center';

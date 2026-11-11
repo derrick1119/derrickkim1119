@@ -1857,7 +1857,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
   if (s.chainN >= 2 && s.phase === 'play') {
     const k = 1 + 0.3 * Math.max(0, 1 - (s.t - s.lastPop) / 8);
     ctx.save();
-    ctx.translate(w / 2, Y(0.165));
+    ctx.translate(w / 2, Y(s.news.length && s.t - s.news[0].t < NEWS_T ? 0.215 : 0.165));
     ctx.scale(k, k);
     font(0.07, 900);
     ctx.textAlign = 'center';

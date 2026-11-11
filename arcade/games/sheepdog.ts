@@ -68,7 +68,7 @@ const FIVE = [[-0.075, 0], [0.075, 0], [0, -0.04], [-0.04, 0.065], [0.045, 0.065
 /** 판 8개 */
 export const STAGES: StageDef[] = [
   {
-    key: 'start', name: '첫 울타리', news: '🐑 양 뒤쪽을 톡 — 강아지가 짖으면 양이 반대쪽으로!', max: 8, par: 1, bonus: 'flower',
+    key: 'start', name: '첫 울타리', news: '🐑 양 뒤를 톡 — 짖으면 양이 반대쪽으로!', max: 9, par: 1, bonus: 'flower',
     build: (r) => ({
       pens: [{ x0: 0.2, y0: 0.04, x1: 0.8, y1: 0.26, gx0: 0.2, gx1: 0.8, tag: 0, mat: 0.15 }],
       flowers: [{ x: 0.25, y: 0.35, r: 0.05 }, { x: 0.75, y: 0.35, r: 0.05 }],
@@ -76,18 +76,18 @@ export const STAGES: StageDef[] = [
     }),
   },
   {
-    key: 'black', name: '까만 양', news: '🐑‍⬛ 까만 양 — 짖으면 거꾸로 강아지 쪽으로 와요! 마지막 흰 양보다 먼저 넣으면 ★', max: 8, par: 3, bonus: 'black',
+    key: 'black', name: '까만 양', news: '🖤 까만 양 — 짖으면 거꾸로 강아지에게 와요!', max: 9, par: 3, bonus: 'black',
     build: (r) => {
       const left = r() < 0.5, bx = left ? 0.24 : 0.76;
       return {
-        pens: [{ ...PEN0(), gx0: 0.34, gx1: 0.66, mat: 0.13 }],
+        pens: [{ ...PEN0(), x0: 0.28, x1: 0.72, gx0: 0.32, gx1: 0.68, mat: 0.14 }],
         flowers: [{ x: left ? 0.8 : 0.2, y: 0.32, r: 0.06 }],
         sheep: [...flock(r, 0.5 + jit(r, 0.02), 0.29, [[-0.07, 0], [0.07, 0], [0, -0.025], [-0.035, 0.035], [0.04, 0.035]], 0.006), { x: bx + jit(r, 0.03), y: 0.56 + jit(r, 0.03), black: true }],
       };
     },
   },
   {
-    key: 'river', name: '개울과 다리', news: '🌉 개울 — 빠지면 풍덩! 다리로 한 줄로 건너요', max: 8, par: 4, bonus: 'flower',
+    key: 'river', name: '개울과 다리', news: '🌉 개울 — 빠지면 풍덩! 다리로 건너요', max: 8, par: 4, bonus: 'flower',
     build: (r) => ({
       pens: [PEN0()],
       river: { y0: 0.4, y1: 0.5, bx0: 0.41, bx1: 0.59 },
@@ -96,7 +96,7 @@ export const STAGES: StageDef[] = [
     }),
   },
   {
-    key: 'goat', name: '기절 염소', news: '🐐 염소 — 놀라면 꽥! 쓰러져 멍멍 세 번 동안 길을 막아요', max: 9, par: 4, bonus: 'black',
+    key: 'goat', name: '기절 염소', news: '🐐 염소 — 놀라면 꽥! 쓰러져 길을 막아요', max: 9, par: 4, bonus: 'black',
     build: (r) => ({
       pens: [PEN0()],
       hedges: [{ x0: 0, y0: 0.42, x1: 0.33, y1: 0.42 }, { x0: 0.67, y0: 0.42, x1: 1, y1: 0.42 }],
@@ -106,7 +106,7 @@ export const STAGES: StageDef[] = [
     }),
   },
   {
-    key: 'wolf', name: '늑대', news: '🐺 늑대 — 멍멍 할 때마다 한 걸음씩 다가와요. 원 안에서 짖으면 깨갱!', max: 9, par: 5, bonus: 'flower',
+    key: 'wolf', name: '늑대', news: '🐺 늑대 — 멍멍마다 한 걸음씩 다가와요!', max: 9, par: 5, bonus: 'flower',
     build: (r) => ({
       pens: [PEN0()],
       den: [0.035, 0.66],
@@ -115,7 +115,7 @@ export const STAGES: StageDef[] = [
     }),
   },
   {
-    key: 'wind', name: '바람 언덕', news: '🌬️ 바람 — 달아나는 양이 바람 쪽으로 더 밀려요', max: 9, par: 5, bonus: 'black',
+    key: 'wind', name: '바람 언덕', news: '🌬️ 바람 — 양이 바람 쪽으로 더 밀려요', max: 9, par: 5, bonus: 'black',
     build: (r) => {
       const dir = r() < 0.5 ? 1 : -1;
       return {
@@ -128,7 +128,7 @@ export const STAGES: StageDef[] = [
     },
   },
   {
-    key: 'twopens', name: '울타리 둘', news: '🎀 울타리 둘 — 빨간 리본은 빨간 울타리, 파란 리본은 파란 울타리로', max: 11, par: 6, bonus: 'flower',
+    key: 'twopens', name: '울타리 둘', news: '🎀 울타리 둘 — 리본 색과 같은 울타리로!', max: 11, par: 6, bonus: 'flower',
     build: (r) => {
       const offs = [[-0.15, -0.02], [-0.05, 0.03], [0.05, -0.03], [0.15, 0.02], [-0.09, 0.1], [0.09, 0.1]];
       const tags = r() < 0.5 ? [1, 2, 1, 2, 1, 2] : [1, 1, 2, 2, 2, 1];
@@ -143,7 +143,7 @@ export const STAGES: StageDef[] = [
     },
   },
   {
-    key: 'night', name: '밤 목장', news: '🔦 밤 — 강아지 손전등 둘레만 보여요. 늑대 눈을 조심!', max: 10, par: 6, bonus: 'black',
+    key: 'night', name: '밤 목장', news: '🔦 밤 — 손전등 둘레만 보여요. 늑대 조심!', max: 10, par: 6, bonus: 'black',
     build: (r) => {
       const left = r() < 0.5;
       return {
@@ -513,15 +513,22 @@ export interface DogState {
   dogX: number; dogY: number; fromX: number; fromY: number; toX: number; toY: number; runN: number;
   down: boolean; ax: number; ay: number; idle: number; tries: number;
   hearts: number; stars: number; got: number; pts: number; ok: boolean; why: string; won: boolean; dead: boolean;
-  seen: Set<string>; events: Ev[]; news: { text: string; t: number } | null; startT: number; clearT: number;
+  seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[]; startT: number; clearT: number;
 }
 
 const ev = (s: DogState, kind: string, x: number, y: number, text?: string, col?: string, v?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v });
+/** 규칙 도움말 (새것 수에는 안 센다) */
+function tip(s: DogState, key: string, text: string) {
+  if (s.tips.has(key)) return;
+  s.tips.add(key);
+  s.newsQ.push(text);
+}
 function see(s: DogState, key: string, text: string) {
   if (s.seen.has(key)) return;
   s.seen.add(key);
-  s.news = { text, t: s.t };
+  s.newsQ.push(text);
 }
+const NEWS_T = 200;
 
 function newStage(s: DogState) {
   const d = STAGES[s.stage];
@@ -543,7 +550,7 @@ function newStage(s: DogState) {
   s.startT = s.t;
   s.got = 0;
   see(s, d.key, d.news);
-  if (d.bonus === 'flower' && L.flowers.length) see(s, 'flower', '🌼 꽃밭 — 양이 안 밟고 지나가면 별 하나 더');
+  if (d.bonus === 'flower' && L.flowers.length) see(s, 'flower', '🌼 꽃밭 — 안 밟고 넣으면 별 하나 더');
   ev(s, 'stage', 0.5, 0.6, `${s.stage + 1}판 · ${d.name}`, '#fff6d6');
 }
 
@@ -627,7 +634,7 @@ export const sheepdog: GameDef<DogState> = {
       dogX: 0.5, dogY: 0.93, fromX: 0.5, fromY: 0.93, toX: 0.5, toY: 0.93, runN: 1,
       down: false, ax: 0, ay: 0, idle: 0, tries: 0,
       hearts: 3, stars: 0, got: 0, pts: 0, ok: false, why: '', won: false, dead: false,
-      seen: new Set<string>(), events: [], news: null, startT: 0, clearT: 0,
+      seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsQ: [], startT: 0, clearT: 0,
     } as unknown as DogState;
     newStage(s);
     return s;
@@ -638,6 +645,7 @@ export const sheepdog: GameDef<DogState> = {
     s.down = !!p;
     s.t++;
     s.pt++;
+    if (s.newsQ.length && (!s.news || s.t - s.news.t > NEWS_T)) s.news = { text: s.newsQ.shift()!, t: s.t };
     if (s.events.length > 40 || (s.events.length && s.t - s.events[0].t > 150)) s.events = s.events.filter((e) => s.t - e.t < 150);
     if (s.phase === 'result') {
       if (s.pt >= (s.ok ? RESULT_OK : RESULT_FAIL)) {
@@ -660,7 +668,7 @@ export const sheepdog: GameDef<DogState> = {
           s.S.dx = s.toX;
           s.S.dy = s.toY;
           ev(s, 'sniff', s.toX, s.toY, '킁킁… 아무도 없네', '#f3f0d8');
-          see(s, 'sniff', '아무도 없는 데서는 짖지 않아요 (멍멍 안 씀)');
+          tip(s, 'sniff', '아무도 없으면 안 짖어요 (멍멍 안 씀)');
           return;
         }
         const rec = newRec(s.F.n), S = s.S, penned0 = S.pen.filter((v) => v >= 0).length;
@@ -674,10 +682,10 @@ export const sheepdog: GameDef<DogState> = {
         if (rec.scare.some((v, i) => v === 3 && rec.path[i])) {
           const i = rec.scare.findIndex((v) => v === 3);
           ev(s, 'come', s.S.x[i], s.S.y[i], '?!', '#ffe0f0');
-          see(s, 'blackcome', '까만 양은 짖은 쪽으로 다가와요 — 앞에서 짖어 당겨 오세요');
+          tip(s, 'blackcome', '까만 양은 앞에서 짖어 당겨 와요');
         }
         if (rec.flowerNew.length) ev(s, 'trample', s.F.flowers[rec.flowerNew[0]].x, s.F.flowers[rec.flowerNew[0]].y, '앗, 꽃밭!', '#ffd6ec');
-        if (S.pen.filter((v) => v >= 0).length > penned0) see(s, 'pen', '울타리에 들어간 양은 다시 안 나와요');
+        if (S.pen.filter((v) => v >= 0).length > penned0) tip(s, 'pen', '들어간 양은 다시 안 나와요');
       }
       return;
     }
@@ -929,23 +937,25 @@ function drawSheep(ctx: CanvasRenderingContext2D, x: number, y: number, z: numbe
   for (const [px, py, pr] of P) (ctx.beginPath(), ctx.arc(px * z, py * z, pr * z * 0.94, 0, TAU), ctx.fill());
   ctx.fillStyle = o.black ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.75)';
   for (const [px, py, pr] of [[-0.35, -1.18, 0.18], [0.05, -1.25, 0.16], [-0.62, -0.9, 0.13]]) (ctx.beginPath(), ctx.arc(px * z, py * z, pr * z, 0, TAU), ctx.fill());
-  // 리본
+  // 리본 (등 위에 큼직하게)
   if (o.tag) {
+    const rx = -z * 0.05, ry = -z * 1.38;
     ctx.fillStyle = RIB[o.tag];
-    ctx.strokeStyle = 'rgba(0,0,0,.35)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(0,0,0,.4)';
+    ctx.lineWidth = 1.2;
     for (const sd of [-1, 1]) {
       ctx.beginPath();
-      ctx.moveTo(z * 0.62, -z * 0.62);
-      ctx.lineTo(z * 0.62 + sd * z * 0.24, -z * 0.62 - z * 0.16);
-      ctx.lineTo(z * 0.62 + sd * z * 0.24, -z * 0.62 + z * 0.16);
+      ctx.moveTo(rx, ry);
+      ctx.lineTo(rx + sd * z * 0.42, ry - z * 0.26);
+      ctx.lineTo(rx + sd * z * 0.42, ry + z * 0.24);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
     }
     ctx.beginPath();
-    ctx.arc(z * 0.62, -z * 0.62, z * 0.09, 0, TAU);
+    ctx.arc(rx, ry, z * 0.13, 0, TAU);
     ctx.fill();
+    ctx.stroke();
   }
   // 머리
   const hx = z * 0.92, hy = -z * 0.88 + (o.mood === 'calm' ? Math.sin(o.t * 0.05) * z * 0.05 : 0);
@@ -2262,7 +2272,17 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       if (flee.penAt[i] >= 0 && idx >= flee.penAt[i] && mk('in')) {
         const [a, b] = pathAt(pa, flee.penAt[i] / Math.max(1, m - 1));
         fx.burst(PX(a, b), PY(b) - R(0.03), '#ffffff', 12, 2.6, 2.6);
-        say(PX(a, b), PY(b) - R(0.08), F.black[i] ? '까만 양도 쏙!' : '쏙!', F.black[i] ? '#ffc8ec' : '#e8ffd0', 15);
+        fx.ring(PX(a, b), PY(b) - R(0.02), '#e8ffd0', R(0.05), 2);
+        if (F.black[i]) say(PX(a, b), PY(b) - R(0.07), '까만 양도 쏙!', '#ffc8ec', 15);
+        else if ((fx.memo.inPop ?? -1) !== key) {
+          fx.memo.inPop = key;
+          const nIn = flee.inNew.filter((j) => !F.black[j]).length;
+          say(PX(a, b), PY(b) - R(0.07), nIn > 1 ? `쏙! ×${nIn}` : '쏙!', '#e8ffd0', 17);
+        }
+      }
+      if (flee.scare[i] === 3 && q > 0.75 && !S.fell[i] && mk('love')) {
+        const [a, b] = sheepAt(i);
+        say(PX(a, b), PY(b) - R(0.09), '♥', '#ff8fc8', 18);
       }
       if (flee.fellAt[i] >= 0 && idx >= flee.fellAt[i] && mk('fell')) {
         const [a, b] = pathAt(pa, flee.fellAt[i] / Math.max(1, m - 1));
@@ -2274,9 +2294,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
         fx.burst(PX(a, b), PY(b), '#d9c9a0', 8, 2, 2);
         say(PX(a, b), PY(b) - R(0.07), '데굴~', '#fff2d0', 13);
       }
-      if (flee.scare[i] === 2 && q < 0.1 && i % 2 === 0 && mk('baa')) {
+      if (flee.scare[i] === 2 && q < 0.1 && (fx.memo.baa ?? -1) !== key && mk('baa')) {
+        fx.memo.baa = key;
         const [a, b] = sheepAt(i);
-        say(PX(a, b), PY(b) - R(0.08), '매애!', '#ffffff', 13);
+        say(PX(a, b), PY(b) - R(0.08), '매애애!', '#ffffff', 14);
       }
     }
     if (flee.caught >= 0 && q > 0.75) {
@@ -2313,8 +2334,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   ctx.fillStyle = th.hot;
   ctx.fillText('♥'.repeat(Math.max(0, s.hearts)) + '♡'.repeat(Math.max(0, 3 - s.hearts)), w - R(0.06) - ctx.measureText(stt).width, hb * 0.52);
   // 새것 알림
-  if (s.news && s.t - s.news.t < 240) {
-    const age = s.t - s.news.t, a = Math.min(1, age / 10, (240 - age) / 20), drop = Math.max(0, 10 - age) * 2;
+  if (s.news && s.t - s.news.t < NEWS_T + 20) {
+    const age = s.t - s.news.t, a = Math.min(1, age / 10, (NEWS_T + 20 - age) / 20), drop = Math.max(0, 10 - age) * 2;
     ctx.globalAlpha = a;
     font(0.036, 900);
     ctx.textAlign = 'center';
