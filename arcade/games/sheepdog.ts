@@ -26,7 +26,7 @@ export const R_IN = 0.13, R_OUT = 0.26, D_IN = 0.26, D_OUT = 0.14;
 /** 함께 놀란 양이 무리 평균 방향으로 쏠리는 정도 */
 const COH = 0.6;
 const STEP = 0.01, BLACK_STOP = 0.045;
-const WOLF_STEP = 0.1, WOLF_CATCH = 0.075, GOAT_R = 0.03, FAINT = 3;
+const WOLF_STEP = 0.13, WOLF_CATCH = 0.075, GOAT_R = 0.03, FAINT = 3;
 const DOG_SPEED = 0.05, FLEE_T = 40, RESULT_OK = 190, RESULT_FAIL = 150;
 const STAR_PTS = 100, LEFT_PTS = 5, WIN_PTS = 100;
 
@@ -102,7 +102,10 @@ export const STAGES: StageDef[] = [
       hedges: [{ x0: 0, y0: 0.42, x1: 0.33, y1: 0.42 }, { x0: 0.67, y0: 0.42, x1: 1, y1: 0.42 }],
       goat: { x: 0.43, y: 0.42 },
       flowers: [{ x: 0.85, y: 0.3, r: 0.06 }],
-      sheep: [...flock(r, 0.42 + jit(r, 0.05), 0.7, FIVE), { x: 0.8 + jit(r, 0.04), y: 0.58 + jit(r, 0.03), black: true }],
+      sheep: (() => {
+        const cx = 0.45 + jit(r, 0.05);
+        return [...flock(r, cx, 0.66, FIVE), { x: cx + 0.12 + jit(r, 0.03), y: 0.86 + jit(r, 0.02), black: true }];
+      })(),
     }),
   },
   {
@@ -111,7 +114,7 @@ export const STAGES: StageDef[] = [
       pens: [PEN0()],
       den: [0.035, 0.66],
       flowers: [{ x: 0.24 + jit(r, 0.02), y: 0.33, r: 0.06 }, { x: 0.76 + jit(r, 0.02), y: 0.33, r: 0.06 }],
-      sheep: flock(r, 0.58 + jit(r, 0.04), 0.6 + jit(r, 0.03), [[-0.09, 0], [0.09, 0], [0, -0.05], [-0.05, 0.07], [0.06, 0.07]]),
+      sheep: flock(r, 0.6 + jit(r, 0.03), 0.66 + jit(r, 0.03), [[-0.16, 0.02], [0.14, 0], [0, -0.06], [-0.07, 0.1], [0.08, 0.12]]),
     }),
   },
   {
@@ -123,7 +126,7 @@ export const STAGES: StageDef[] = [
         river: { y0: 0.4, y1: 0.5, bx0: 0.41, bx1: 0.59 },
         wind: [0.06 * dir, 0],
         flowers: [{ x: 0.5 + 0.3 * dir, y: 0.28, r: 0.06 }],
-        sheep: [...flock(r, 0.5 - 0.06 * dir + jit(r, 0.04), 0.7, FIVE), { x: 0.5 + 0.3 * dir + jit(r, 0.03), y: 0.8 + jit(r, 0.03), black: true }],
+        sheep: [...flock(r, 0.5 - 0.08 * dir + jit(r, 0.04), 0.68, FIVE), { x: 0.5 - 0.2 * dir + jit(r, 0.03), y: 0.88 + jit(r, 0.02), black: true }],
       };
     },
   },
@@ -151,7 +154,7 @@ export const STAGES: StageDef[] = [
         den: [left ? 0.965 : 0.035, 0.6],
         night: true,
         flowers: [],
-        sheep: [...flock(r, 0.5 + jit(r, 0.04), 0.68, FIVE), { x: (left ? 0.2 : 0.8) + jit(r, 0.03), y: 0.5 + jit(r, 0.03), black: true }],
+        sheep: [...flock(r, 0.5 + jit(r, 0.04), 0.62, [[-0.12, 0], [0.12, 0], [0, -0.04], [-0.06, 0.08], [0.07, 0.08]]), { x: (left ? 0.62 : 0.38) + jit(r, 0.03), y: 0.88 + jit(r, 0.02), black: true }],
       };
     },
   },
@@ -279,7 +282,7 @@ export function resolve(F: Field, S: Sim, px: number, py: number, rec?: Rec) {
       if (d < 1e-6) continue;
       ux[i] = -dx / d;
       uy[i] = -dy / d;
-      amt[i] = Math.max(0, Math.min(far, d - BLACK_STOP));
+      amt[i] = Math.max(0, d - BLACK_STOP);
     } else {
       ux[i] = d < 1e-6 ? 0 : dx / d;
       uy[i] = d < 1e-6 ? -1 : dy / d;
