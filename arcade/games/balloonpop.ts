@@ -1765,7 +1765,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
   for (const e of s.events) {
     if (e.t <= seenT) continue;
     const x = X(e.x), y = Y(e.y), col = e.col ?? '#ffffff', z = e.z ?? 1;
-    if (e.kind === 'pop') fx.burst(x, y, col, 14, 3.4, 2.8), fx.burst(x, y, '#ffffff', 5, 2, 1.5), fx.ring(x, y, col, R(e.v ?? 0.15), 2.5), fx.kick(1.2 + Math.min(3.5, z * 0.3)), say(x, y - R(0.055), e.text!, mix(col, '#ffffff', 0.35), 15 + Math.min(7, z));
+    if (e.kind === 'pop') {
+      fx.burst(x, y, col, 14, 3.4, 2.8), fx.burst(x, y, '#ffffff', 5, 2, 1.5), fx.ring(x, y, col, R(e.v ?? 0.15), 2.5), fx.kick(1.2 + Math.min(3.5, z * 0.3));
+      // 긴 연쇄에선 글자를 솎아 낸다 (연쇄 세기 글자가 묻히지 않게)
+      if (z <= 6 || z % 3 === 0) say(x, y - R(0.055), e.text!, mix(col, '#ffffff', 0.35), 15 + Math.min(5, z));
+    }
     if (e.kind === 'water') fx.burst(x, y, '#bdf0ff', 26, 4, 2.6), fx.burst(x, y + R(0.05), '#62cfff', 18, 3, 2.4), fx.ring(x, y, '#9fe3ff', R(e.v ?? 0.3), 3), fx.kick(4), say(x, y - R(0.055), e.text!, '#cdf3ff', 18);
     if (e.kind === 'fire') fx.burst(x, y, '#ffd166', 22, 4.5, 2.4), fx.burst(x, y, '#ff6a3d', 18, 4, 2.4), fx.kick(5), fx.blink('#ffe2b0', 0.12), say(x, y - R(0.055), e.text!, '#ffd166', 18);
     if (e.kind === 'king') {
@@ -1853,7 +1857,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
   if (s.chainN >= 2 && s.phase === 'play') {
     const k = 1 + 0.3 * Math.max(0, 1 - (s.t - s.lastPop) / 8);
     ctx.save();
-    ctx.translate(w / 2, Y(0.2));
+    ctx.translate(w / 2, Y(0.165));
     ctx.scale(k, k);
     font(0.07, 900);
     ctx.textAlign = 'center';
