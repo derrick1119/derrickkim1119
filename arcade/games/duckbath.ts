@@ -32,7 +32,8 @@ const DR = 0.045, BIG = 0.062;
 const NEST_TOUCH = 0.03;
 /** 배수구: 끌어당기는 반지름 · 빨려 드는 반지름 · 당기는 힘 */
 const PULL_R = 0.17, SUCK_R = 0.035, PULL = 0.0002;
-const SHARK_V = 0.0016, CHOMP = 0.085, STUN = 150;
+/** 상어: 다가오는 속도 · 닿으면 꿀꺽(몸이 닿는 거리보다 조금 넓게) · 물결 맞으면 어질어질 */
+const SHARK_V = 0.0015, CHOMP = 0.115, STUN = 150;
 const STREAM_V = 0.0045;
 const RESULT = 170, RESULT_OK = 200, NEWS_T = 170, CARD_T = 150;
 const STAR_PTS = 100, LEFT_PTS = 10, WIN_PTS = 300;
@@ -100,8 +101,8 @@ export const STAGES: StageDef[] = [
   },
   {
     key: 'shark', news: '🦈 고무 상어가 오리를 노려요! 물결로 밀어요', hint: '상어가 다가오면 물결로 밀어내요 (맞으면 잠깐 멈춰요)',
-    ducks: [[0.25, 0.45, 0], [0.75, 0.45, 0], [0.5, 0.3, 0]], gold: [0.5, 0.62],
-    shark: [0.5, 1.08],
+    ducks: [[0.22, 0.66, 0], [0.78, 0.66, 0], [0.5, 0.38, 0]], gold: [0.5, 0.6],
+    shark: [0.5, 0.88],
     nests: [[0.13, 0.13, 0.14, -1], [0.87, 0.13, 0.14, -1]],
     taps: 7, par: 3,
   },
@@ -2095,7 +2096,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     let hint = d.hint;
     const first = s.stage === 0 && !s.firstTap && s.phase === 'play';
     if (first) hint = '👆 오리들 한가운데 물을 톡! 찰박 물결이 밀어 줘요';
-    else if (s.down && s.phase === 'play') hint = s.taps > 0 ? '떼면 찰박! (점선 = 오리가 갈 길 · 물 밖에서 떼면 취소)' : '톡을 다 썼어요';
+    else if (s.down && s.phase === 'play') hint = s.taps > 0 ? '떼면 찰박! 점선 = 오리가 갈 길' : '톡을 다 썼어요';
     else if (s.phase === 'result') hint = s.ok ? (s.won ? '모든 목욕 끝! 오리들이 뽀득뽀득' : `★ ${s.got}개! 다음 목욕엔 새것이 나와요`) : '꾹 누르면 오리가 갈 길이 보여요';
     else if (s.stage === 0) hint = '꾹 누르고 있으면 오리가 갈 길이 점선으로 보여요';
     ctx.textAlign = 'center';
