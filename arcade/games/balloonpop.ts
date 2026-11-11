@@ -270,14 +270,15 @@ export function gen(d: SDef, r: Rng): Lay | null {
     const i = pickIn((b, j) => b.cl === c && b.k === NORM && b.an < 0 && !isFirst(j));
     if (i >= 0) (bs[i].k = FIRE), (bs[i].sz = 1);
   }
-  for (let k = 0; k < (d.king ?? 0); k++)
-    for (let q = 0; q < 120; q++) {
-      const x = 0.25 + r() * 0.5, y = 0.3 + r() * 0.42;
-      if (bs.every((b) => Math.hypot(b.x0 - x, b.y0 - y) >= KING_BR + BR[b.sz] + 0.025 + b.ax)) {
-        bs.push({ k: KING, sz: 2, x0: x, y0: y, ax: 0, ph: 0, vx: 0, an: -1, um: false, esc: Infinity, cl: nC, hue: 0 });
-        break;
-      }
+  for (let k = 0; k < (d.king ?? 0); k++) {
+    let ok = false;
+    for (let q = 0; q < 200 && !ok; q++) {
+      const x = 0.2 + r() * 0.6, y = 0.26 + r() * 0.5;
+      if (bs.every((b) => Math.hypot(b.x0 - x, b.y0 - y) >= KING_BR + BR[b.sz] + 0.02 + b.ax))
+        bs.push({ k: KING, sz: 2, x0: x, y0: y, ax: 0, ph: 0, vx: 0, an: -1, um: false, esc: Infinity, cl: nC, hue: 0 }), (ok = true);
     }
+    if (!ok) return null;
+  }
   // 트램펄린: 동물마다 흔들리다 '가끔' 위에 오는 자리 (늘 위면 고민이 없고, 안 오면 못 구한다)
   let tramp: Lay['tramp'] = null;
   if (anis.length) {

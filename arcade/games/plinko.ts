@@ -187,7 +187,7 @@ interface StageDef {
 /** 판 8개. pass = 아무렇게나 떨군 사람이 통과할 몫(목표를 이걸로 정한다). pots: 아래 컵 값(G = 🏆) */
 export const STAGES: StageDef[] = [
   { title: '뒤집히는 핀', balls: 5, keep: 2, pass: 1, min: 5, arrows: 9, splits: 0, holes: 0, bumps: 0, blocks: 0, key: false, cup: false, flip: false, pots: 'G111211' },
-  { title: '갈라짐 핀', balls: 5, keep: 1, pass: 0.58, min: 8, arrows: 6, splits: 2, holes: 0, bumps: 0, blocks: 0, key: false, cup: false, flip: false, pots: 'G102312' },
+  { title: '갈라짐 핀', balls: 5, keep: 1, pass: 0.66, min: 8, arrows: 6, splits: 2, holes: 0, bumps: 0, blocks: 0, key: false, cup: false, flip: false, pots: 'G102312' },
   { title: '구멍', balls: 5, keep: 1, pass: 0.33, min: 9, arrows: 6, splits: 2, holes: 2, bumps: 0, blocks: 0, key: false, cup: false, flip: false, pots: 'G102312' },
   { title: '범퍼', balls: 5, keep: 1, pass: 0.3, min: 10, arrows: 6, splits: 2, holes: 1, bumps: 2, blocks: 0, key: false, cup: false, flip: false, pots: 'G102312' },
   { title: '막힌 칸', balls: 5, keep: 1, pass: 0.28, min: 10, arrows: 6, splits: 2, holes: 1, bumps: 1, blocks: 3, key: false, cup: false, flip: false, pots: 'G102312' },
@@ -470,9 +470,9 @@ function newStage(s: PState) {
   const has = (q: number) => s.B.k.includes(q);
   see(s, 'arrow', '◀▶ 핀 — 공은 화살표 쪽으로 가요');
   see(s, 'gold', '🏆 황금 컵에 넣으면 별 하나 더!');
-  if (has(SPLIT)) see(s, 'split', '✳ 갈라짐 핀 — 공이 둘로! 둘이 넷으로!');
-  if (has(HOLE)) see(s, 'hole', '🕳 구멍 — 빠진 공은 사라져요');
-  if (has(BUMP)) see(s, 'bump', '🍄 범퍼 — 화살표 쪽 위로 튕겨요 (+1)');
+  if (has(SPLIT)) see(s, 'split', '▲ 갈라짐 핀 — 공이 둘로! 둘이 넷으로!');
+  if (has(HOLE)) see(s, 'hole', '구멍 — 빠진 공은 사라져요 (아래로 뿅!)');
+  if (has(BUMP)) see(s, 'bump', '🔴 범퍼 — 화살표 쪽 위로 튕겨요 (+1)');
   if (has(BLOCK)) see(s, 'block', '🧱 막힌 칸 — 부딪히면 반대쪽으로 튕겨요');
   if (s.B.cup) see(s, 'cup', '🎯 움직이는 컵 — 박자 맞춰 들어가면 +5');
   if (has(KEY)) see(s, 'key', '🔑 열쇠 칸을 지나가면 🏆 문이 열려요');
@@ -1422,7 +1422,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PState, w: number, h: number,
       if (idle) {
         const B2 = cp(B), T = tz();
         simDrop(B2, c, t + 1, T);
-        label = T.coins > 0 ? `+${T.coins}` : T.lost > 0 ? '🕳' : '0';
+        label = T.coins > 0 ? `+${T.coins}` : T.lost > 0 ? 'hole' : '0';
         if (T.gold) (label = T.coins > GOLD_PTS ? `🏆${T.coins}` : '🏆'), (bgc = 'rgba(120,80,0,.9)'), (col = '#ffe066');
         else if (T.cup) (bgc = 'rgba(140,30,30,.85)');
         else if (T.coins >= 4) col = '#ffe066';
@@ -1440,7 +1440,16 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PState, w: number, h: number,
       if (label) {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        if (/[🏆🕳]/u.test(label)) emoji(label, x, y + 1, 0.034);
+        if (label === 'hole') {
+          // 빠지는 줄: 작은 구멍 그림 (이모지 🕳은 어두운 칩 위에서 안 보인다)
+          ctx.fillStyle = '#0a0604';
+          ctx.beginPath();
+          ctx.ellipse(x, y + 1, R(0.022), R(0.012), 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#b48cff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        } else if (/🏆/u.test(label)) emoji(label, x, y + 1, 0.034);
         else {
           font(0.038, 900);
           ctx.fillStyle = col;
@@ -1459,7 +1468,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PState, w: number, h: number,
       ctx.lineTo(X(CX(aimC)), Y(DROP_Y + 0.063));
       ctx.fill();
       // 1판 첫 톡 전: 손가락이 통통 (여기를 톡!)
-      if (s.stage === 0 && s.drops === 0) emoji('👆', X(CX(aimC) + 0.075), Y(DROP_Y + 0.03) + Math.abs(Math.sin(t * 0.12)) * R(0.012), 0.05);
+      if (s.stage === 0 && s.drops === 0) emoji('👆', X(CX(aimC) + 0.072), Y(DROP_Y + 0.004) + Math.abs(Math.sin(t * 0.12)) * R(0.01), 0.046);
     }
   }
   // ═════════════ 사건 연출 ═════════════
@@ -1603,10 +1612,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PState, w: number, h: number,
     }
     // 규칙 그림 (이번 판에 있는 것들)
     const legend: [string, string][] = [['◀▶', '지나면 뒤집힘']];
-    if (B.k.includes(SPLIT)) legend.push(['✳', '둘로']);
-    if (B.k.includes(HOLE)) legend.push(['🕳', '사라짐']);
-    if (B.k.includes(BUMP)) legend.push(['🍄', '위로 +1']);
-    if (B.k.includes(BLOCK)) legend.push(['🧱', '튕김']);
+    if (B.k.includes(SPLIT)) legend.push(['▲', '갈라짐 둘로']);
+    if (B.k.includes(HOLE)) legend.push(['구멍', '사라짐']);
+    if (B.k.includes(BUMP)) legend.push(['🔴', '범퍼 위로 +1']);
+    if (B.k.includes(BLOCK)) legend.push(['🧱', '막힘 튕김']);
     if (B.cup) legend.push(['🎯', '+5']);
     if (B.k.includes(KEY) || B.lid.includes(1)) legend.push(['🔑', '문 열기']);
     if (B.k.includes(FLIP)) legend.push(['🔄', '전부 뒤집기']);

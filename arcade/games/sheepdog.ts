@@ -570,8 +570,8 @@ function finish(s: DogState, ok: boolean, why = '') {
 }
 
 /** 지금 가리킨 자리(화면 0~1, y는 0~1) → 목장 좌표. 목장 밖이면 null */
-const FY0 = 0.335, FH = 0.79, FXW = 0.96;
-const scl = (fy: number) => 0.84 + 0.16 * fy;
+const FY0 = 0.305, FH = 0.775, FXW = 0.92;
+const scl = (fy: number) => 0.8 + 0.25 * fy;
 const SX = (fx: number, fy: number) => 0.5 + (fx - 0.5) * FXW * scl(fy);
 const SY = (fy: number) => FY0 + fy * FH;
 function toField(x: number, y: number): [number, number] | null {
@@ -1441,7 +1441,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.3 && Math.abs(q.y - y) < size + 4); k++) y -= size + 5;
     rec.push({ x, y, t: s.t });
     if (rec.length > 12) rec.shift();
-    fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), Math.max(R(0.12), y), text, col, size);
+    fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), Math.max(R(0.19), y), text, col, size);
   };
   const flee = s.phase === 'flee' && s.rec ? s.rec : null, q = flee ? s.pt / FLEE_T : 1;
   /** 양 i가 지금 화면 어디에 (목장 좌표) */
@@ -1780,7 +1780,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   }
   // ═════════ 서 있는 것들 (먼 것부터) ═════════
   const items: { d: number; f: () => void }[] = [];
-  const postH = (fy0: number) => R(0.055) * scl(fy0);
+  const postH = (fy0: number) => R(0.068) * scl(fy0);
   const fenceCol = night ? ['#5a4630', '#3e2f20', '#6e573c'] : ['#a8743c', '#7a4f24', '#c8925a'];
   const drawFenceRun = (x0: number, y0: number, x1: number, y1: number, hgt = 1, posts = true) => {
     const L = Math.hypot(x1 - x0, (y1 - y0) * 0.9), n = Math.max(1, Math.round(L / 0.09));
@@ -1799,13 +1799,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     // 가로대 둘
     for (const hh of [0.42, 0.82]) {
       ctx.strokeStyle = fenceCol[1];
-      ctx.lineWidth = R(0.011);
+      ctx.lineWidth = R(0.014) * scl(y0);
       ctx.beginPath();
       ctx.moveTo(pts[0][0], pts[0][1] - pts[0][2] * hh + 1.2);
       for (const p of pts) ctx.lineTo(p[0], p[1] - p[2] * hh + 1.2);
       ctx.stroke();
       ctx.strokeStyle = fenceCol[0];
-      ctx.lineWidth = R(0.008);
+      ctx.lineWidth = R(0.009) * scl(y0);
       ctx.beginPath();
       ctx.moveTo(pts[0][0], pts[0][1] - pts[0][2] * hh);
       for (const p of pts) ctx.lineTo(p[0], p[1] - p[2] * hh);
@@ -1813,7 +1813,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     }
     if (posts)
       for (const [px, py, ph] of pts) {
-        const pw = R(0.011) * (ph / R(0.055));
+        const pw = R(0.015) * (ph / R(0.068));
         ctx.fillStyle = fenceCol[1];
         ctx.fillRect(px - pw / 2, py - ph, pw, ph);
         ctx.fillStyle = fenceCol[0];
@@ -1906,7 +1906,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     if (S.fell[i] && (!pa || q > 0.6)) mood = 'swim';
     if (S.caught === i && (s.phase === 'result' || q > 0.8)) mood = 'scared';
     if (!pa && mood === 'calm' && s.phase === 'run' && Math.hypot(s.toX - S.x[i], s.toY - S.y[i]) < R_OUT) mood = 'scared';
-    const z = R(0.036) * scl(sy0);
+    const z = R(0.044) * scl(sy0);
     let dx0 = sx0;
     if (S.fell[i] && s.phase === 'result') dx0 += Math.sin(s.pt * 0.05) * 0.01 + s.pt * 0.0006;
     items.push({ d: sy0, f: () => drawSheep(ctx, PX(dx0, sy0), PY(sy0), z, { black: F.black[i], tag: F.tag[i], face, run, t: t + i * 9, mood, hop, roll }) });
@@ -1915,7 +1915,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   if (F.goat) {
     const gt = F.goat, faint = S.goatF > 0 || (flee?.goatFaint ?? false);
     const fAge = faint ? (s.phase === 'flee' && flee?.goatFaint ? s.pt : 30) : 0;
-    items.push({ d: gt.y, f: () => drawGoat(ctx, PX(gt.x, gt.y), PY(gt.y), R(0.036) * scl(gt.y), faint ? 1 : 0, fAge, t) });
+    items.push({ d: gt.y, f: () => drawGoat(ctx, PX(gt.x, gt.y), PY(gt.y), R(0.046) * scl(gt.y), faint ? 1 : 0, fAge, t) });
     if (faint && S.goatF > 0)
       items.push({
         d: 2,
@@ -1941,7 +1941,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     let nearX = 0.5;
     for (let i = 0; i < F.n; i++) if (S.pen[i] < 0) nearX = S.x[i];
     const face = flee?.wolf === 2 ? (F.den[0] < 0.5 ? -1 : 1) : nearX >= wx ? 1 : -1;
-    items.push({ d: wy, f: () => drawWolf(ctx, PX(wx, wy), PY(wy), R(0.04) * scl(wy), face, mood, t) });
+    items.push({ d: wy, f: () => drawWolf(ctx, PX(wx, wy), PY(wy), R(0.05) * scl(wy), face, mood, t) });
   }
   // 강아지
   {
@@ -1962,7 +1962,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     const hopY = s.phase === 'run' ? Math.abs(Math.sin(s.pt * 0.5)) * 0.012 : 0;
     let ox = 0, oy = 0;
     if (mood === 'spin') (ox = Math.cos(t * 0.35) * 0.02), (oy = Math.sin(t * 0.35) * 0.012);
-    items.push({ d: s.dogY, f: () => drawDog(ctx, PX(s.dogX + ox, s.dogY + oy), PY(s.dogY + oy) - R(hopY), R(0.046) * scl(s.dogY), face, mood, t) });
+    items.push({ d: s.dogY, f: () => drawDog(ctx, PX(s.dogX + ox, s.dogY + oy), PY(s.dogY + oy) - R(hopY), R(0.056) * scl(s.dogY), face, mood, t) });
   }
   items.sort((a, b) => a.d - b.d);
   for (const it of items) it.f();
@@ -2166,7 +2166,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     for (let i = 0; i < F.n; i++) {
       const [a, b] = sheepAt(i);
       if (S.pen[i] >= 0 || lit(a, b)) continue;
-      const z = R(0.036) * scl(b), blink = (t + i * 50) % 200 < 6;
+      const z = R(0.044) * scl(b), blink = (t + i * 50) % 200 < 6;
       if (blink) continue;
       ctx.fillStyle = F.black[i] ? 'rgba(255,240,150,.95)' : 'rgba(255,255,220,.9)';
       const ex = PX(a, b) + z * 0.95 * (a < 0.5 ? 1 : -1), ey = PY(b) - z * 0.95;
@@ -2182,7 +2182,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       }
     }
     if (F.den && !lit(S.wx, S.wy)) {
-      const z = R(0.04) * scl(S.wy);
+      const z = R(0.05) * scl(S.wy);
       ctx.fillStyle = 'rgba(255,80,60,.95)';
       ctx.beginPath();
       ctx.arc(PX(S.wx, S.wy) + z * 0.8, PY(S.wy) - z * 0.85, Math.max(1.6, z * 0.09), 0, TAU);

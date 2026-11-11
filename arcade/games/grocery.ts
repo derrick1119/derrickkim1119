@@ -51,19 +51,19 @@ const WHO = ['할머니', '꼬마', '고양이 손님', '펭귄 손님'];
 export const STAGES: StageDef[] = [
   { who: 0, items: [0, 0, 0, 1, 1, 2, 2, 3], first: APPLE, order: { type: 'same', kind: APPLE, text: '🍎 사과는 한 봉투에 모아 줘요' }, target: 2 },
   { who: 1, items: [4, 4, 5, 0, 0, 1, 2, 2, 3, 3], order: { type: 'side', kind: CHIPS, side: 1, text: '🍪 과자는 오른쪽 봉투에!' }, target: 3 },
-  { who: 2, items: [10, 10, 0, 8, 9, 4, 2, 3, 1, 5], first: FISHK, order: { type: 'side', kind: FISHK, side: 0, text: '🐟 생선은 왼쪽 봉투에 냥' }, target: 3 },
-  { who: 3, items: [11, 11, 6, 7, 4, 5, 2, 3, 3, 1, 0], first: ICE, order: { type: 'together', tag: COLD, text: '🍦 아이스크림은 한 봉투에 꽥' }, target: 3 },
-  { who: 0, items: [13, 13, 12, 4, 4, 6, 8, 2, 3, 1, 0], first: MELON, order: { type: 'side', kind: MELON, side: 1, text: '🍉 수박은 오른쪽 봉투에' }, target: 3 },
-  { who: 1, box: true, items: [5, 5, 4, 4, 11, 6, 12, 2, 2, 3, 3, 0, 1], order: { type: 'side', kind: CHIPS, side: 1, text: '🍪 과자는 다 상자에!' }, target: 3 },
-  { who: 2, box: true, items: [14, 14, 10, 0, 4, 2, 2, 3, 3, 1, 5, 12], first: CAKE, order: { type: 'side', kind: FISHK, side: 0, text: '🐟 생선은 왼쪽 봉투에 냥' }, target: 3 },
-  { who: 3, box: true, fast: true, items: [14, 10, 11, 11, 7, 6, 4, 4, 13, 12, 9, 2, 3, 3], order: { type: 'together', tag: COLD, text: '🍦 차가운 건 한 봉투에 꽥' }, target: 4 },
+  { who: 2, items: [10, 10, 0, 8, 9, 4, 2, 3, 5], first: FISHK, order: { type: 'side', kind: FISHK, side: 0, text: '🐟 생선은 왼쪽 봉투에 냥' }, target: 3 },
+  { who: 3, items: [11, 11, 6, 7, 4, 5, 2, 3, 0], first: ICE, order: { type: 'together', tag: COLD, text: '🍦 아이스크림은 한 봉투에 꽥' }, target: 3 },
+  { who: 0, items: [13, 13, 12, 4, 4, 6, 8, 2, 3], first: MELON, order: { type: 'side', kind: MELON, side: 1, text: '🍉 수박은 오른쪽 봉투에' }, target: 3 },
+  { who: 1, box: true, items: [5, 5, 4, 4, 11, 6, 12, 2, 3, 0], order: { type: 'side', kind: CHIPS, side: 1, text: '🍪 과자는 다 상자에!' }, target: 3 },
+  { who: 2, box: true, items: [14, 14, 10, 0, 4, 2, 3, 1, 5, 12], first: CAKE, order: { type: 'side', kind: FISHK, side: 0, text: '🐟 생선은 왼쪽 봉투에 냥' }, target: 3 },
+  { who: 3, box: true, fast: true, items: [14, 10, 11, 11, 7, 6, 4, 13, 12, 9], order: { type: 'together', tag: COLD, text: '🍦 차가운 건 한 봉투에 꽥' }, target: 3 },
 ];
 export const STAGE_COUNT = STAGES.length;
 /** 망가진 게 이만큼 되면 그 손님은 실패 */
 const LIMIT = 3;
 const BAG_CAP = 4, BOX_CAP = 6;
 /** 시간(틱): 손님 들어옴 · 물건이 스캐너까지 굴러옴 · 벨트 끝까지 밀려가 저절로 왼쪽으로 · 결과 */
-const INTRO = 40, ROLL = 18, DRIFT = 420, DRIFT_FAST = 300, RES_OK = 150, RES_FAIL = 160, FLY = 16;
+const INTRO = 40, ROLL = 18, DRIFT = 420, DRIFT_FAST = 300, RES_OK = 125, RES_FAIL = 150, FLY = 16;
 const STAR_PTS = 100, CLEAR_PTS = 50, CAKE_PTS = 60, WIN_PTS = 100;
 
 const match = (o: Order, k: number) => (o.kind !== undefined ? k === o.kind : (KINDS[k].tag & (o.tag ?? 0)) !== 0);
