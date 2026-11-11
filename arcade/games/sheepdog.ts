@@ -96,17 +96,17 @@ export const STAGES: StageDef[] = [
     }),
   },
   {
-    key: 'goat', name: '기절 염소', news: '🐐 염소 — 놀라면 꽥! 쓰러져 길을 막아요', max: 9, par: 4, bonus: 'black',
-    build: (r) => ({
-      pens: [PEN0()],
-      hedges: [{ x0: 0, y0: 0.42, x1: 0.33, y1: 0.42 }, { x0: 0.67, y0: 0.42, x1: 1, y1: 0.42 }],
-      goat: { x: 0.43, y: 0.42 },
-      flowers: [{ x: 0.85, y: 0.3, r: 0.06 }],
-      sheep: (() => {
-        const cx = 0.45 + jit(r, 0.05);
-        return [...flock(r, cx, 0.66, FIVE), { x: cx + 0.12 + jit(r, 0.03), y: 0.86 + jit(r, 0.02), black: true }];
-      })(),
-    }),
+    key: 'goat', name: '기절 염소', news: '🐐 염소 — 놀라면 꽥! 쓰러져 길을 막아요', max: 9, par: 4, bonus: 'flower',
+    build: (r) => {
+      const side = r() < 0.5 ? -1 : 1;
+      return {
+        pens: [PEN0()],
+        hedges: [{ x0: 0, y0: 0.42, x1: 0.33, y1: 0.42 }, { x0: 0.67, y0: 0.42, x1: 1, y1: 0.42 }],
+        goat: { x: 0.5 + 0.07 * side, y: 0.42 },
+        flowers: [{ x: 0.5 - 0.2 * side, y: 0.33, r: 0.055 }],
+        sheep: flock(r, 0.5 + jit(r, 0.06), 0.68, FIVE),
+      };
+    },
   },
   {
     key: 'wolf', name: '늑대', news: '🐺 늑대 — 멍멍마다 한 걸음씩 다가와요!', max: 9, par: 5, bonus: 'flower',
@@ -118,7 +118,7 @@ export const STAGES: StageDef[] = [
     }),
   },
   {
-    key: 'wind', name: '바람 언덕', news: '🌬️ 바람 — 양이 바람 쪽으로 더 밀려요', max: 9, par: 5, bonus: 'black',
+    key: 'wind', name: '바람 언덕', news: '🌬️ 바람 — 양이 바람 쪽으로 더 밀려요', max: 10, par: 7, bonus: 'black',
     build: (r) => {
       const dir = r() < 0.5 ? 1 : -1;
       return {
@@ -737,7 +737,16 @@ function value(F: Field, S: Sim, d: StageDef): number {
   if (d.bonus === 'flower' && S.fh.some((x) => x)) v -= 700;
   if (F.den) v -= Math.max(0, 0.36 - wolfD) * 4000;
   v -= S.goatF * 60 + S.used * 120;
+  // 까만 양을 먼저 넣었으면 '별 둘은 이미 손에' — 남은 흰 양을 넣는 데 들 멍멍을 어림해 끝난 판과 견준다
+  if (d.bonus === 'black' && F.black.some((b, i) => b && S.pen[i] >= 0)) {
+    const rem = Math.ceil((nW - whitesIn) / 2.5);
+    return 1e6 + (2 + (S.used + rem <= d.par ? 1 : 0)) * 1e5 - (S.used + rem) * 1000 - 6e4 + v;
+  }
   return v;
+}
+/** 판이 끝난 상태인가 (실패 · 흰 양 다 들어감 · 멍멍 다 씀) */
+function ended(F: Field, S: Sim, d: StageDef) {
+  return S.fell.some((v) => v) || S.caught >= 0 || S.used >= d.max || F.black.every((b, i) => b || S.pen[i] >= 0);
 }
 
 /** 짖을 자리 후보: 양마다 '울타리 반대쪽' 뒤에서, 까만 양은 앞에서, 늑대 위, 그리고 목장 격자 */
@@ -800,7 +809,7 @@ function plan(F: Field, S0: Sim, d: StageDef): [number, number] {
         let root = nd.root;
         if (root < 0) (root = roots.length), roots.push({ x: cs[k], y: cs[k + 1], v });
         else if (v > roots[root].v) roots[root].v = v;
-        if (v < 9e5 && v > -1e6) kids.push({ S, root, v });
+        if (!ended(F, S, d)) kids.push({ S, root, v });
       }
     }
     // 첫 수로 별 셋이면 더 볼 것 없다. 아니면 좋은 갈래 몇 개만 더 깊이

@@ -442,7 +442,6 @@ function tap(s: DuckState, sx: number, sy: number) {
   splash(s, x, y);
   ev(s, 'splash', x, y, '찰박!');
   see(s, 'splash', '🌊 물결 고리가 닿은 오리를 바깥쪽으로 밀어요');
-  if (Math.hypot(x - CAT.x, y - CAT.y) < 0.4) s.catT = s.t + 6;
 }
 
 function endStage(s: DuckState, ok: boolean, why: string) {
@@ -569,8 +568,9 @@ function cosmetic(s: DuckState) {
         else o.face = n.x > o.x ? 1 : -1;
       });
   });
-  for (const g of s.rings) if (Math.abs(Math.hypot(g.x - CAT.x, g.y - CAT.y) - g.r) < RS * 1.2) s.catT = Math.max(s.catT, s.t);
-  if (s.catT === s.t) ev(s, 'cat', CAT.x - 0.04, -0.03, ['냐앗!', '히익!', '냥?!'][s.t % 3]);
+  // 물결 앞머리가 고양이 앞발에 닿으면 화들짝 (한 번 놀라면 잠깐은 다시 안 놀람)
+  const wet = s.rings.some((g) => g.r < RMAX && Math.abs(Math.hypot(g.x - CAT.x, g.y - CAT.y) - g.r) < RS * 1.2);
+  if (wet && s.t - s.catT > 60) (s.catT = s.t), ev(s, 'cat', CAT.x - 0.04, -0.03, ['냐앗!', '히익!', '냥?!'][s.t % 3]);
 }
 
 // ───────────────────────────── 봇 ─────────────────────────────
@@ -897,7 +897,7 @@ function drawDuck(ctx: CanvasRenderingContext2D, x: number, y: number, u: number
 }
 
 /** 고무 상어: 사팔눈에 혀를 내민 바보 얼굴. mood 0 다가옴 · 2 어질어질 · 5 쿨쿨 · 6 꿀꺽 */
-function drawShark(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, face: number, mood: number, t: number) {
+function drawShark(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, face: number, mood: number, t: number, gulp = false) {
   ctx.save();
   ctx.translate(x, y);
   ctx.fillStyle = 'rgba(0,55,80,.26)';
@@ -948,6 +948,23 @@ function drawShark(ctx: CanvasRenderingContext2D, x: number, y: number, u: numbe
     ctx.beginPath();
     ctx.roundRect(u * (0.68 + k * 0.15), u * (-0.08 - 0.1 * open), u * 0.1, u * 0.12, u * 0.04);
     ctx.fill();
+  }
+  if (gulp) {
+    // 입에 오리 꼬리가 삐죽 (꿀꺽 개그)
+    ctx.save();
+    ctx.translate(u * 1.15, u * 0.02);
+    ctx.rotate(-0.5 + Math.sin(t * 0.4) * 0.25);
+    ctx.fillStyle = '#ffd23a';
+    ctx.beginPath();
+    ctx.ellipse(u * 0.15, 0, u * 0.32, u * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ff8a2a';
+    for (const sd of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(u * 0.45, sd * u * 0.12, u * 0.13, u * 0.06, sd * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
   }
   if (mood !== 5) {
     ctx.fillStyle = '#ff7a9a';
@@ -1654,24 +1671,46 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     const a = Math.max(0, 1 - g.r / RMAX);
     for (let im = 0; im < 5; im++) {
       const k = im ? REFL : 1;
-      if (ringArc(g, im, g.r)) {
-        ctx.globalAlpha = 0.18 * a * k;
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = R(0.022) * a + 2;
-        ctx.stroke();
-        ctx.globalAlpha = 0.95 * a * k + 0.05;
-        ctx.lineWidth = R(0.008) * a + 1.2;
+      // 솟은 물마루(안쪽 밝은 띠) → 하얀 마루선 → 바깥 골(어두운 선)
+      if (g.r > 0.03 && ringArc(g, im, g.r - 0.022)) {
+        ctx.globalAlpha = 0.3 * a * k;
+        ctx.strokeStyle = '#e8fbff';
+        ctx.lineWidth = R(0.04) * a + 2;
         ctx.stroke();
       }
-      if (g.r > 0.02 && ringArc(g, im, g.r - 0.016)) {
-        ctx.globalAlpha = 0.35 * a * k;
-        ctx.strokeStyle = '#1f7f9e';
-        ctx.lineWidth = R(0.006) * a + 1;
+      if (ringArc(g, im, g.r)) {
+        ctx.globalAlpha = 0.25 * a * k;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = R(0.03) * a + 2;
+        ctx.stroke();
+        ctx.globalAlpha = Math.min(1, 1.1 * a * k + 0.08);
+        ctx.lineWidth = R(0.013) * a + 1.4;
+        ctx.stroke();
+      }
+      if (ringArc(g, im, g.r + 0.014)) {
+        ctx.globalAlpha = 0.42 * a * k;
+        ctx.strokeStyle = '#1a6f8c';
+        ctx.lineWidth = R(0.008) * a + 1;
         ctx.stroke();
       }
     }
   }
   ctx.globalAlpha = 1;
+  // 밀려 가는 것 뒤의 물살 (V자)
+  for (const o of s.objs) {
+    const sp = Math.hypot(o.vx, o.vy);
+    if (o.st !== FREE || sp < 0.002) continue;
+    const ux = o.vx / sp, uy = o.vy / sp, bx = o.x - ux * RAD[o.k] * 0.9, by = o.y - uy * RAD[o.k] * 0.9, L0 = Math.min(0.055, sp * 3.5);
+    ctx.strokeStyle = `rgba(255,255,255,${Math.min(0.85, sp * 60)})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (const sd of [-1, 1]) {
+      const ex = bx - ux * L0 + sd * -uy * L0 * 0.9, ey = by - uy * L0 + sd * ux * L0 * 0.9;
+      ctx.moveTo(SX(bx, by), SY(by));
+      ctx.lineTo(SX(ex, ey), SY(ey));
+    }
+    ctx.stroke();
+  }
   // 두 고리가 만나는 자리: 반짝
   for (let i = 0; i < s.rings.length; i++)
     for (let j = i + 1; j < s.rings.length; j++) {
@@ -1778,13 +1817,56 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     items.push({ y: my, f: () => drawDuck(ctx, SX(n.x, my), SY(my), R(0.05 * dep(my)), n.col === 1 ? DUCK_COL[1] : DUCK_COL[0], n.x > 0.5 ? -1 : 1, Math.sin(t * 0.05 + n.x * 9) * 0.06, 3, t + 7, 2) });
   });
   s.objs.forEach((o, i) => {
-    if (o.st === SUCKED || o.st === EATEN) return;
+    if (o.st === EATEN) return;
+    if (o.st === SUCKED) {
+      // 배수구에 엉덩이만 쏙 — 발을 버둥버둥 (실패는 웃음)
+      const dr = L.drains.reduce((a, b) => (Math.hypot(b.x - o.x, b.y - o.y) < Math.hypot(a.x - o.x, a.y - o.y) ? b : a), L.drains[0]);
+      if (!dr) return;
+      items.push({
+        y: dr.y,
+        f: () => {
+          const x = SX(dr.x, dr.y), y = SY(dr.y), u = R(0.046 * dep(dr.y)), col = o.k === GOLD ? GOLD_COL : DUCK_COL[o.col];
+          ctx.save();
+          ctx.translate(x, y - u * 0.2);
+          ctx.rotate(Math.sin(t * 0.3 + i) * 0.35);
+          ctx.fillStyle = col[1];
+          ctx.beginPath();
+          ctx.ellipse(0, -u * 0.35, u * 0.7, u * 0.55, 0, Math.PI, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = col[2];
+          ctx.beginPath();
+          ctx.moveTo(-u * 0.15, -u * 0.85);
+          ctx.lineTo(u * 0.05, -u * 1.25);
+          ctx.lineTo(u * 0.22, -u * 0.8);
+          ctx.fill();
+          ctx.fillStyle = '#ff8a2a';
+          for (const sd of [-1, 1]) {
+            ctx.save();
+            ctx.translate(sd * u * 0.35, -u * 0.8);
+            ctx.rotate(sd * (0.4 + Math.sin(t * 0.6 + sd) * 0.5));
+            ctx.beginPath();
+            ctx.ellipse(0, -u * 0.25, u * 0.13, u * 0.28, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+          ctx.restore();
+          ctx.fillStyle = 'rgba(255,255,255,.8)';
+          for (let k = 0; k < 3; k++) {
+            const age = (t + k * 13) % 40;
+            ctx.beginPath();
+            ctx.arc(x + Math.sin(k * 2 + t * 0.1) * u * 0.7, y - u - age * u * 0.05, u * 0.12 * (1 - age / 40) + 0.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        },
+      });
+      return;
+    }
     items.push({
       y: o.y,
       f: () => {
         const x = SX(o.x, o.y), y = SY(o.y) + Math.sin(t * 0.07 + i * 2) * R(0.003), u = R((o.k === SHARK ? 0.06 : o.k === BOAT ? 0.05 : 0.04) * dep(o.y));
         const tilt = Math.sin(t * 0.35 + i) * 0.35 * o.spin + Math.sin(t * 0.05 + i) * 0.04;
-        if (o.k === SHARK) drawShark(ctx, x, y, u, o.face, o.mood, t);
+        if (o.k === SHARK) drawShark(ctx, x, y, u, o.face, o.mood, t, s.objs.some((q) => q.st === EATEN));
         else if (o.k === BOAT) drawBoat(ctx, x, y, u, o.face, tilt);
         else drawDuck(ctx, x, y, u, o.k === GOLD ? GOLD_COL : DUCK_COL[o.col], o.face, tilt + (o.spin > 0.3 ? Math.sin(t * 0.5) * 0.2 * o.spin : 0), o.mood, t + i * 5, o.k === GOLD ? 1 : 0);
       },
