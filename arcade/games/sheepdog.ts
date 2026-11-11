@@ -1588,6 +1588,20 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     ctx.lineTo(PX(-0.1, y1), PY(y1));
     ctx.fill();
   }
+  // 언덕 굴곡: 볕 드는 둔덕과 그늘진 골
+  for (let k = 0; k < 4; k++) {
+    const yc = 0.12 + k * 0.25, amp = 0.05;
+    const g = ctx.createLinearGradient(0, PY(yc - amp), 0, PY(yc + amp));
+    g.addColorStop(0, 'rgba(255,250,200,0)');
+    g.addColorStop(0.45, k % 2 ? 'rgba(30,60,20,.10)' : 'rgba(255,245,190,.13)');
+    g.addColorStop(1, 'rgba(255,250,200,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(PX(-0.1, yc - amp), PY(yc - amp));
+    for (let x = -0.1; x <= 1.1; x += 0.05) ctx.lineTo(PX(x, yc - amp + 0.02 * Math.sin(x * 6 + k)), PY(yc - amp + 0.02 * Math.sin(x * 6 + k)));
+    for (let x = 1.1; x >= -0.1; x -= 0.05) ctx.lineTo(PX(x, yc + amp + 0.02 * Math.sin(x * 6 + k)), PY(yc + amp + 0.02 * Math.sin(x * 6 + k)));
+    ctx.fill();
+  }
   // 얼룩 (풀빛 차이)
   for (let k = 0; k < 14; k++) {
     const gx = hsh(k + 101), gy = hsh(k + 202);
@@ -2323,7 +2337,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       const a = Math.min(1, age / 8, (90 - age) / 20), sc = 1 + Math.max(0, 8 - age) * 0.04;
       ctx.globalAlpha = a;
       ctx.save();
-      ctx.translate(w / 2, Y(0.62));
+      ctx.translate(w / 2, Y(0.86));
       ctx.scale(sc, sc);
       font(0.075, 900);
       ctx.textAlign = 'center';
@@ -2346,11 +2360,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     const age = s.pt, a = Math.min(1, age / 10);
     ctx.globalAlpha = a;
     ctx.fillStyle = s.ok ? 'rgba(40,60,20,.55)' : 'rgba(70,20,20,.55)';
-    ctx.fillRect(0, Y(0.52), w, R(0.2));
+    ctx.fillRect(0, Y(0.8), w, R(0.2));
     ctx.textAlign = 'center';
-    font(0.06, 900);
+    font(s.ok ? 0.06 : 0.05, 900);
     ctx.fillStyle = s.ok ? '#fff1a8' : '#ffd0c8';
-    ctx.fillText(s.ok ? (s.won ? '목장 완성! 🎉' : `${s.stage + 1}판 통과!`) : s.why, w / 2, Y(0.575));
+    ctx.fillText(s.ok ? (s.won ? '목장 완성! 🎉' : `${s.stage + 1}판 통과!`) : s.why, w / 2, Y(0.855));
     if (s.ok) {
       for (let k = 0; k < 3; k++) {
         const ag = age - 14 - k * 10, got = k < s.got;
@@ -2358,18 +2372,50 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
         const sc = got ? 1 + Math.max(0, 1 - ag / 8) * 0.8 : 1;
         font(0.08 * sc, 900);
         ctx.fillStyle = got ? '#ffd166' : 'rgba(255,255,255,.35)';
-        ctx.fillText(got ? '★' : '☆', w / 2 + (k - 1) * R(0.1), Y(0.66));
-        if (got && (fx.memo['star' + k] ?? -1) < s.clearT) (fx.memo['star' + k] = s.clearT), fx.burst(w / 2 + (k - 1) * R(0.1), Y(0.66), '#ffe066', 14, 3, 2.4);
+        ctx.fillText(got ? '★' : '☆', w / 2 + (k - 1) * R(0.1), Y(0.94));
+        if (got && (fx.memo['star' + k] ?? -1) < s.clearT) (fx.memo['star' + k] = s.clearT), fx.burst(w / 2 + (k - 1) * R(0.1), Y(0.94), '#ffe066', 14, 3, 2.4);
       }
     } else {
       font(0.042, 800);
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(s.hearts > 0 ? '♥ -1 · 이 판을 처음부터 다시' : '하트를 다 썼어요 — 끝', w / 2, Y(0.66));
+      ctx.fillText(s.hearts > 0 ? '♥ -1 · 이 판을 처음부터 다시' : '하트를 다 썼어요 — 끝', w / 2, Y(0.94));
     }
     ctx.globalAlpha = 1;
   }
   // ═════════ 아래 띠: 멍멍 · 별 목표 · 안내 ═════════
-  const by = Y(SY(1) + 0.008);
+  // 디오라마 앞면: 풀 가장자리 · 흙 층 · 돌
+  {
+    const y0 = Y(SY(1)), y1 = Y(SY(1) + 0.04);
+    const sg = ctx.createLinearGradient(0, y0, 0, y1);
+    sg.addColorStop(0, night ? '#3a2c22' : '#7a5232');
+    sg.addColorStop(0.5, night ? '#2c2018' : '#5e3d22');
+    sg.addColorStop(1, night ? '#1c140e' : '#3e2814');
+    ctx.fillStyle = sg;
+    ctx.fillRect(0, y0, w, y1 - y0);
+    ctx.fillStyle = night ? 'rgba(90,80,70,.6)' : 'rgba(150,130,110,.75)';
+    for (let k = 0; k < 16; k++) {
+      ctx.beginPath();
+      ctx.ellipse(hsh(k + 700) * w, y0 + (0.3 + 0.5 * hsh(k + 710)) * (y1 - y0), R(0.012 + 0.01 * hsh(k)), R(0.006), 0, 0, TAU);
+      ctx.fill();
+    }
+    ctx.fillStyle = mix(pal[6], '#1d3a12', 0.25);
+    ctx.beginPath();
+    ctx.moveTo(0, y0 - 2);
+    for (let x = 0; x <= 1.0001; x += 0.025) ctx.lineTo(X(x), y0 + R(0.008) + R(0.006) * Math.sin(x * 40));
+    ctx.lineTo(w, y0 - 2);
+    ctx.fill();
+    // 앞쪽 큰 풀잎 (흔들흔들)
+    ctx.strokeStyle = mix(pal[6], '#0f2a08', 0.3);
+    ctx.lineWidth = 2;
+    for (let k = 0; k < 26; k++) {
+      const gx = X(hsh(k + 800)), gz = R(0.03 + 0.025 * hsh(k + 810)), sw = Math.sin(t * 0.04 + k) * gz * 0.25 + wind * gz * 6;
+      ctx.beginPath();
+      ctx.moveTo(gx, y0 + 2);
+      ctx.quadraticCurveTo(gx + sw * 0.3, y0 - gz * 0.6, gx + sw + (k % 2 ? 4 : -4), y0 - gz);
+      ctx.stroke();
+    }
+  }
+  const by = Y(SY(1) + 0.04);
   ctx.fillStyle = night ? 'rgba(12,18,40,.92)' : 'rgba(52,38,22,.92)';
   ctx.fillRect(0, by, w, Y(A) - by + 2);
   ctx.fillStyle = 'rgba(255,255,255,.12)';

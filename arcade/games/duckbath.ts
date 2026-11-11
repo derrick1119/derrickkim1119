@@ -72,14 +72,14 @@ export const STAGES: StageDef[] = [
     taps: 9, par: 1,
   },
   {
-    key: 'island', news: '🫧 거품 섬 — 뒤쪽은 물결 그늘, 숨은 오리는 안 밀려요', hint: '거품 섬 뒤에 숨은 오리는 안 밀려요 — 골라 밀기',
+    key: 'island', news: '🫧 거품 섬 뒤에 숨은 오리는 물결이 안 닿아요', hint: '거품 섬 뒤에 숨은 오리는 안 밀려요 — 골라 밀기',
     ducks: [[0.5, 0.38, 0], [0.3, 0.64, 0], [0.7, 0.64, 0]], gold: [0.5, 0.85],
     islands: [[0.5, 0.6, 0.1]],
     nests: [[0.5, 0.1, 0.15, -1], [0.9, 0.6, 0.15, -1], [0.1, 0.6, 0.15, -1], [0.5, 1.1, 0.15, -1], [0.1, 0.1, 0.13, -1, 0, 1], [0.9, 0.1, 0.13, -1, 0, 1], [0.1, 1.1, 0.13, -1, 0, 1], [0.9, 1.1, 0.13, -1, 0, 1]],
     taps: 8, par: 2,
   },
   {
-    key: 'drain', news: '🕳️ 배수구 — 가까이 멈추면 쭈욱 빨려 들어가요!', hint: '배수구 쪽에서 치면 밖으로, 바깥에서 치면 안으로!',
+    key: 'drain', news: '🕳️ 배수구 가까이 멈추면 쭈욱 빨려 가요!', hint: '배수구 쪽에서 치면 밖으로, 바깥에서 치면 안으로!',
     ducks: [[0.31, 0.44, 0], [0.69, 0.44, 0], [0.5, 0.88, 0]], gold: [0.72, 0.82],
     drains: [[0.5, 0.62]],
     nests: [[0.13, 0.16, 0.14, -1], [0.87, 0.16, 0.14, -1], [0.14, 1.05, 0.14, -1]],
@@ -92,14 +92,14 @@ export const STAGES: StageDef[] = [
     taps: 8, par: 5,
   },
   {
-    key: 'boat', news: '⛵ 장난감 배 — 무거워서 조금만 밀려요. 부두에 넣어요', hint: '배는 무거워요 — 바로 옆을 쳐야 움직여요',
+    key: 'boat', news: '⛵ 장난감 배는 무거워요 — 부두에 넣어요', hint: '배는 무거워요 — 바로 옆을 쳐야 움직여요',
     ducks: [[0.25, 0.5, 0], [0.75, 0.5, 0], [0.5, 0.28, 0]], gold: [0.24, 0.92],
     boat: [0.5, 0.72],
     nests: [[0.13, 0.13, 0.14, -1], [0.87, 0.13, 0.14, -1], [0.12, 1.07, 0.13, -1], [0.5, 1.1, 0.12, -1, 1]],
     taps: 7, par: 4,
   },
   {
-    key: 'shark', news: '🦈 고무 상어 — 오리를 노려요! 물결로 밀면 어질어질', hint: '상어가 다가오면 물결로 밀어내요 (맞으면 잠깐 멈춰요)',
+    key: 'shark', news: '🦈 고무 상어가 오리를 노려요! 물결로 밀어요', hint: '상어가 다가오면 물결로 밀어내요 (맞으면 잠깐 멈춰요)',
     ducks: [[0.25, 0.45, 0], [0.75, 0.45, 0], [0.5, 0.3, 0]], gold: [0.5, 0.62],
     shark: [0.5, 1.08],
     nests: [[0.13, 0.13, 0.14, -1], [0.87, 0.13, 0.14, -1]],
@@ -249,8 +249,8 @@ function phys(S: Sim, E: DuckState | null) {
           o.mood = o.k === SHARK ? 2 : 1;
           o.moodT = o.k === SHARK ? STUN : 34;
           if (dx) o.face = dx > 0 ? 1 : -1;
-          if (duo) ev(E, 'duo', o.x, o.y, '쌍물결! ×1.5'), see(E, 'duo', '💥 두 물결이 잇달아 닿으면 1.5배로 밀어요');
-          else if (im) ev(E, 'refl', o.x, o.y, '되돌아온 물결!'), see(E, 'wall', '↩️ 벽에 부딪힌 물결은 되돌아와 한 번 더 밀어요');
+          if (duo) ev(E, 'duo', o.x, o.y, '쌍물결! ×1.5'), see(E, 'duo', '💥 두 물결이 잇달아 닿으면 1.5배!');
+          else if (im) ev(E, 'refl', o.x, o.y, '되돌아온 물결!'), see(E, 'wall', '↩️ 벽에 부딪힌 물결은 되돌아와 또 밀어요');
           else if (o.k === SHARK) ev(E, 'stun', o.x, o.y, '어어? 어질어질~');
           else if (o.k === BOAT) ev(E, 'quack', o.x, o.y, '뿌우~', '#dff4ff');
           else ev(E, 'quack', o.x, o.y, o.k === GOLD ? '꽥! ✨' : '꽥!');
@@ -333,9 +333,9 @@ function phys(S: Sim, E: DuckState | null) {
       o.ord = S.t;
       if (E) {
         o.mood = 3;
-        if (o.k === GOLD) ev(E, 'gold', o.x, o.y, '황금 오리! ★'), see(E, 'gold', '👑 황금 오리 — 마지막 오리보다 먼저 넣으면 ★');
+        if (o.k === GOLD) ev(E, 'gold', o.x, o.y, '황금 오리! ★'), see(E, 'gold', '👑 황금 오리는 마지막 오리보다 먼저 넣으면 ★');
         else ev(E, 'nest', o.x, o.y, o.k === BOAT ? '부두 도착! ⚓' : ['쏙! 엄마~', '쪼르르~', '도착!'][(S.t + i) % 3]);
-        see(E, 'nest', '🫧 비누 둥지 — 들어간 오리는 멈춰서 엄마 옆으로 쪼르르');
+        see(E, 'nest', '🫧 둥지에 든 오리는 멈춰서 엄마 옆으로 쪼르르');
       }
       break;
     }
@@ -440,7 +440,7 @@ function tap(s: DuckState, sx: number, sy: number) {
   s.firstTap = true;
   splash(s, x, y);
   ev(s, 'splash', x, y, '찰박!');
-  see(s, 'splash', '🌊 물결은 고리로 퍼지며 닿은 오리를 바깥쪽으로 밀어요 (가까울수록 세게)');
+  see(s, 'splash', '🌊 물결 고리가 닿은 오리를 바깥쪽으로 밀어요');
   if (Math.hypot(x - CAT.x, y - CAT.y) < 0.4) s.catT = s.t + 6;
 }
 
@@ -514,8 +514,7 @@ export const duckbath: GameDef<DuckState> = {
     cosmetic(s);
     const gold = s.objs.find((o) => o.k === GOLD);
     if (gold && goldBefore === FREE && gold.st < FREE) s.goldLost = true;
-    const card = s.phase === 'result' || s.pt < CARD_T;
-    if (!card && (!s.news || s.t - s.news.t > NEWS_T)) s.news = s.newsQ.length ? { text: s.newsQ.shift()!, t: s.t } : s.news;
+    if (!s.news || s.t - s.news.t > NEWS_T) s.news = s.newsQ.length ? { text: s.newsQ.shift()!, t: s.t } : s.news;
     if (s.phase === 'result') {
       if (s.pt >= (s.ok ? RESULT_OK : RESULT)) {
         if (s.ok) {
@@ -1782,7 +1781,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     items.push({
       y: o.y,
       f: () => {
-        const x = SX(o.x, o.y), y = SY(o.y) + Math.sin(t * 0.07 + i * 2) * R(0.003), u = R((o.k >= BOAT ? 0.044 : 0.04) * dep(o.y));
+        const x = SX(o.x, o.y), y = SY(o.y) + Math.sin(t * 0.07 + i * 2) * R(0.003), u = R((o.k === SHARK ? 0.06 : o.k === BOAT ? 0.05 : 0.04) * dep(o.y));
         const tilt = Math.sin(t * 0.35 + i) * 0.35 * o.spin + Math.sin(t * 0.05 + i) * 0.04;
         if (o.k === SHARK) drawShark(ctx, x, y, u, o.face, o.mood, t);
         else if (o.k === BOAT) drawBoat(ctx, x, y, u, o.face, tilt);
@@ -1938,7 +1937,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     ctx.globalAlpha = a;
     font(0.036, 900);
     ctx.textAlign = 'center';
-    const tx = s.news.text, tw2 = Math.min(w - 10, ctx.measureText(tx).width + 24), by2 = Y(0.112) - drop;
+    const tx = s.news.text, tw2 = Math.min(w - 10, ctx.measureText(tx).width + 24), by2 = Y(BAND - 0.036) + drop;
     ctx.fillStyle = 'rgba(12,48,62,.92)';
     ctx.beginPath();
     ctx.roundRect(w / 2 - tw2 / 2, by2 - R(0.026), tw2, R(0.052), R(0.026));
@@ -1962,17 +1961,17 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
       a = Math.min(1, (CARD_T - s.pt) / 20);
       head = s.again ? `다시! ${s.stage + 1}번째 목욕` : `${s.stage + 1}번째 목욕`;
       sub = `오리 ${d.ducks.length}마리${d.boat ? ' + 배' : ''} · 톡 ${d.taps}번 · ★ 톡 ${d.par}번 이하`;
-      nw = d.news ? `새것! ${d.news}` : '';
+      nw = d.news;
     }
     if (head) {
-      const sc = Math.min(1, 0.6 + age / 12), cyy = Y(nw ? 0.19 : 0.2), ch = nw ? 0.16 : 0.11;
+      const sc = Math.min(1, 0.6 + age / 12), cyy = Y(nw ? 0.165 : 0.19), ch = nw ? 0.158 : 0.11;
       ctx.save();
       ctx.globalAlpha = a;
       ctx.translate(w / 2, cyy);
       ctx.scale(sc, sc);
       ctx.fillStyle = 'rgba(12,48,62,.92)';
       ctx.beginPath();
-      ctx.roundRect(-R(nw ? 0.47 : 0.38), -R(0.055), R(nw ? 0.94 : 0.76), R(ch), R(0.04));
+      ctx.roundRect(-R(nw ? 0.44 : 0.38), -R(0.055), R(nw ? 0.88 : 0.76), R(ch), R(0.04));
       ctx.fill();
       ctx.strokeStyle = col;
       ctx.lineWidth = 2;
@@ -2009,7 +2008,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
       if (nw) {
         ctx.fillStyle = '#ffe9a8';
         font(0.037, 900);
-        ctx.fillText(nw, 0, R(0.078), R(0.9));
+        ctx.fillText(nw, 0, R(0.077), R(0.84));
       }
       ctx.restore();
     }
