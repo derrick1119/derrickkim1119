@@ -1,0 +1,222 @@
+{
+  "at": "2026-11-12T22:26:52.179Z",
+  "숙련": {
+    "runs": 20,
+    "medScore": 2930,
+    "medSec": 67.75,
+    "winRate": 1,
+    "medReached": 9,
+    "stages": [
+      {
+        "stage": 1,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 1,
+        "medSec": 1.13,
+        "medTaps": 1,
+        "stars": 3,
+        "fails": []
+      },
+      {
+        "stage": 2,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 1,
+        "medSec": 1.9,
+        "medTaps": 2,
+        "stars": 3,
+        "fails": []
+      },
+      {
+        "stage": 3,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 1,
+        "medSec": 4.07,
+        "medTaps": 3,
+        "stars": 2.6,
+        "fails": []
+      },
+      {
+        "stage": 4,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 1,
+        "medSec": 6.85,
+        "medTaps": 5,
+        "stars": 3,
+        "fails": []
+      },
+      {
+        "stage": 5,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 1,
+        "medSec": 4.83,
+        "medTaps": 4,
+        "stars": 3,
+        "fails": []
+      },
+      {
+        "stage": 6,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 1,
+        "medSec": 4.57,
+        "medTaps": 3,
+        "stars": 2.65,
+        "fails": []
+      },
+      {
+        "stage": 7,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 1,
+        "medSec": 7.35,
+        "medTaps": 3,
+        "stars": 2.85,
+        "fails": []
+      },
+      {
+        "stage": 8,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 1,
+        "medSec": 9.92,
+        "medTaps": 6,
+        "stars": 2.6,
+        "fails": []
+      }
+    ]
+  },
+  "처음": {
+    "runs": 20,
+    "medScore": 450,
+    "medSec": 54.4,
+    "winRate": 0,
+    "medReached": 3,
+    "stages": [
+      {
+        "stage": 1,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 0.9,
+        "medSec": 6.32,
+        "medTaps": 4,
+        "stars": 1.9,
+        "fails": [
+          [
+            "톡을 다 썼어요",
+            2
+          ]
+        ]
+      },
+      {
+        "stage": 2,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 0.7,
+        "medSec": 7.58,
+        "medTaps": 5,
+        "stars": 1.55,
+        "fails": [
+          [
+            "톡을 다 썼어요",
+            7
+          ]
+        ]
+      },
+      {
+        "stage": 3,
+        "tried": 20,
+        "cleared": 4,
+        "clearRate": 0.2,
+        "firstTry": 0.05,
+        "medSec": 6.95,
+        "medTaps": 5,
+        "stars": 1.25,
+        "fails": [
+          [
+            "톡을 다 썼어요",
+            21
+          ],
+          [
+            "오리가 배수구로 쏙…",
+            21
+          ]
+        ]
+      },
+      {
+        "stage": 4,
+        "tried": 4,
+        "cleared": 0,
+        "clearRate": 0,
+        "firstTry": 0,
+        "medSec": null,
+        "medTaps": null,
+        "stars": 0,
+        "fails": [
+          [
+            "톡을 다 썼어요",
+            9
+          ]
+        ]
+      },
+      {
+        "stage": 5,
+        "tried": 0,
+        "cleared": 0,
+        "clearRate": null,
+        "firstTry": null,
+        "medSec": null,
+        "medTaps": null,
+        "stars": 0,
+        "fails": []
+      },
+      {
+        "stage": 6,
+        "tried": 0,
+        "cleared": 0,
+        "clearRate": null,
+        "firstTry": null,
+        "medSec": null,
+        "medTaps": null,
+        "stars": 0,
+        "fails": []
+      },
+      {
+        "stage": 7,
+        "tried": 0,
+        "cleared": 0,
+        "clearRate": null,
+        "firstTry": null,
+        "medSec": null,
+        "medTaps": null,
+        "stars": 0,
+        "fails": []
+      },
+      {
+        "stage": 8,
+        "tried": 0,
+        "cleared": 0,
+        "clearRate": null,
+        "firstTry": null,
+        "medSec": null,
+        "medTaps": null,
+        "stars": 0,
+        "fails": []
+      }
+    ]
+  },
+  "숙련격차": 6.51
+}
