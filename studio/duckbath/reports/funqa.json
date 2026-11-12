@@ -1,11 +1,13 @@
 {
-  "at": "2026-11-12T22:26:52.179Z",
+  "at": "2026-11-12T22:56:08.790Z",
   "숙련": {
     "runs": 20,
     "medScore": 2930,
     "medSec": 67.75,
     "winRate": 1,
-    "medReached": 9,
+    "medReached": 8,
+    "firstTapNest": 4,
+    "failWhy": [],
     "stages": [
       {
         "stage": 1,
@@ -97,12 +99,154 @@
       }
     ]
   },
+  "캐주얼": {
+    "runs": 20,
+    "medScore": 1930,
+    "medSec": 96.98,
+    "winRate": 0.85,
+    "medReached": 8,
+    "firstTapNest": 4,
+    "failWhy": [
+      [
+        "톡을 다 썼어요",
+        16
+      ],
+      [
+        "오리가 배수구로 쏙…",
+        16
+      ]
+    ],
+    "stages": [
+      {
+        "stage": 1,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 1,
+        "medSec": 1.22,
+        "medTaps": 1,
+        "stars": 2.35,
+        "fails": []
+      },
+      {
+        "stage": 2,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 1,
+        "medSec": 3.3,
+        "medTaps": 3,
+        "stars": 2,
+        "fails": []
+      },
+      {
+        "stage": 3,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 1,
+        "medSec": 4,
+        "medTaps": 3,
+        "stars": 1.8,
+        "fails": []
+      },
+      {
+        "stage": 4,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 0.75,
+        "medSec": 10.17,
+        "medTaps": 7,
+        "stars": 1.6,
+        "fails": [
+          [
+            "톡을 다 썼어요",
+            7
+          ]
+        ]
+      },
+      {
+        "stage": 5,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 1,
+        "medSec": 6.67,
+        "medTaps": 5,
+        "stars": 2.25,
+        "fails": []
+      },
+      {
+        "stage": 6,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 1,
+        "medSec": 6.8,
+        "medTaps": 5,
+        "stars": 1.25,
+        "fails": []
+      },
+      {
+        "stage": 7,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 0.9,
+        "medSec": 8.2,
+        "medTaps": 5,
+        "stars": 1.35,
+        "fails": [
+          [
+            "톡을 다 썼어요",
+            1
+          ],
+          [
+            "오리가 배수구로 쏙…",
+            1
+          ]
+        ]
+      },
+      {
+        "stage": 8,
+        "tried": 20,
+        "cleared": 17,
+        "clearRate": 0.85,
+        "firstTry": 0.5,
+        "medSec": 13.02,
+        "medTaps": 8,
+        "stars": 1.53,
+        "fails": [
+          [
+            "오리가 배수구로 쏙…",
+            15
+          ],
+          [
+            "톡을 다 썼어요",
+            8
+          ]
+        ]
+      }
+    ]
+  },
   "처음": {
     "runs": 20,
-    "medScore": 450,
-    "medSec": 54.4,
+    "medScore": 500,
+    "medSec": 83.03,
     "winRate": 0,
     "medReached": 3,
+    "firstTapNest": 3,
+    "failWhy": [
+      [
+        "톡을 다 썼어요",
+        77
+      ],
+      [
+        "오리가 배수구로 쏙…",
+        28
+      ]
+    ],
     "stages": [
       {
         "stage": 1,
@@ -139,26 +283,26 @@
       {
         "stage": 3,
         "tried": 20,
-        "cleared": 4,
-        "clearRate": 0.2,
+        "cleared": 9,
+        "clearRate": 0.45,
         "firstTry": 0.05,
-        "medSec": 6.95,
+        "medSec": 6.4,
         "medTaps": 5,
-        "stars": 1.25,
+        "stars": 1.33,
         "fails": [
           [
             "톡을 다 썼어요",
-            21
+            32
           ],
           [
             "오리가 배수구로 쏙…",
-            21
+            28
           ]
         ]
       },
       {
         "stage": 4,
-        "tried": 4,
+        "tried": 9,
         "cleared": 0,
         "clearRate": 0,
         "firstTry": 0,
@@ -168,7 +312,7 @@
         "fails": [
           [
             "톡을 다 썼어요",
-            9
+            36
           ]
         ]
       },
@@ -218,5 +362,6 @@
       }
     ]
   },
-  "숙련격차": 6.51
+  "숙련격차": 1.52,
+  "숙련격차_처음": 5.86
 }

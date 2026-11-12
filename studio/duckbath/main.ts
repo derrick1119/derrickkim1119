@@ -16,7 +16,7 @@ const aspect = g.aspect ?? 1;
 const canvas = document.createElement('canvas');
 canvas.className = 'g-canvas';
 canvas.tabIndex = 0;
-canvas.setAttribute('aria-label', `${g.name} 게임 화면. 물을 누르면 미리 보기, 떼면 찰박. 키보드는 화살표로 고르고 스페이스.`);
+canvas.setAttribute('aria-label', `${g.name} 게임 화면. ${g.rules.join(' ')} 키보드는 화살표로 고르고 스페이스.`);
 const overlay = document.createElement('button');
 overlay.type = 'button';
 overlay.className = 'g-overlay';
@@ -28,7 +28,9 @@ const keys = new Set<string>();
 (globalThis as any).__duck = { state: () => s, running: () => running };
 
 function size() {
-  const w = Math.min(root.clientWidth, 440), dpr = window.devicePixelRatio || 1;
+  // D001 (ART 10장 ①): 머리 44px를 뺀 화면 높이에 맞춘다 — 390×844에서 390×593(화면 70%)
+  const w = Math.min(root.clientWidth, 440, Math.floor((innerHeight - 44 - 8) / aspect)), dpr = window.devicePixelRatio || 1;
+  canvas.style.borderRadius = w >= 440 ? '14px' : '0';
   canvas.style.width = `${w}px`;
   canvas.style.height = `${w * aspect}px`;
   canvas.width = Math.round(w * dpr);
@@ -112,5 +114,7 @@ overlay.addEventListener('keydown', (e) => {
   if (e.key === ' ' || e.key === 'Enter') (e.preventDefault(), start());
 });
 size();
-show(`<b>시작</b><span>${g.hint}</span>`);
+// 규칙 2줄(GDD §2)은 머리 대신 시작 카드에 (ART 10장 ①·⑤ 1차)
+const touchFirst = !matchMedia('(hover:hover) and (pointer:fine)').matches;
+show(`<b>🦆 목욕 시작</b><span>물을 톡! 찰박 물결이 오리를 둥지로</span><span>${touchFirst ? '👆 꾹 누르면 갈 길 · 떼면 찰박!' : '⌨️ 화살표 · 스페이스 꾹 → 떼면 찰박'}</span>`);
 new ResizeObserver(size).observe(root);

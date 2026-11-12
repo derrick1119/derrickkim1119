@@ -10,13 +10,13 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0;background:#123a48;color:#fffaf0;font:16px/1.45 system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;overscroll-behavior:none}
-main{max-width:460px;margin:0 auto;padding:10px 10px 24px}
-h1{font-size:22px;margin:4px 0 2px;letter-spacing:-.01em}
+main{max-width:460px;margin:0 auto;padding:0 0 24px}
+@media (min-width:461px){main{padding:0 10px 24px}}
+header{height:44px;display:flex;align-items:center;padding:0 8px 0 12px}
+h1{font-size:20px;font-weight:900;margin:0;letter-spacing:-.01em}
 h1 span{color:#ffd84a}
-.rules{margin:0 0 10px;padding:0;list-style:none;color:#a9d3dc;font-size:14px}
-.rules li{margin:2px 0}
 #game{position:relative;touch-action:none;user-select:none;-webkit-user-select:none}
-.g-canvas{display:block;margin:0 auto;border-radius:14px;touch-action:none;outline:none}
+.g-canvas{display:block;margin:0 auto;border-radius:0;touch-action:none;outline:none}
 .g-canvas:focus-visible{box-shadow:0 0 0 3px #ffd84a}
 .g-overlay{position:absolute;inset:0;margin:auto;width:min(100%,440px);border:0;border-radius:14px;background:#123a48b8;color:#fffaf0;font:inherit;cursor:pointer;display:grid;place-content:center;gap:6px;text-align:center;padding:16px}
 .g-overlay b{font-size:34px}
@@ -27,13 +27,9 @@ h1 span{color:#ffd84a}
 </head>
 <body>
 <main>
-  <h1>🦆 욕조 물결 <span>오리</span></h1>
-  <ul class="rules">
-    <li>물을 톡 = 찰박! 물결이 닿은 오리를 바깥으로 밀어요 (가까울수록 세게, 벽에 닿은 물결은 되돌아와요).</li>
-    <li>오리를 모두 비누 둥지에 — 꾹 누르면 갈 길이 보이고, 떼면 찰박!</li>
-  </ul>
+  <header><h1>🦆 욕조 물결 <span>오리</span></h1></header>
   <div id="game"></div>
-  <p class="ver">스튜디오 빌드 M0 · 프로토타입 그대로</p>
+  <p class="ver">스튜디오 빌드 M1 작업 중 (D001)</p>
 </main>
 <script>/*BUNDLE*/</script>
 </body>

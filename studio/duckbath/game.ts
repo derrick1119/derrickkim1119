@@ -9,7 +9,7 @@
  *   (유체 계산 없음: 고리 = 원, 반사 = 벽 너머 거울 자리에서 퍼지는 원. 그래서 '여기 치면 저리 간다'가 읽힌다)
  * 와우: 첫 톡에 '찰박!' 고리가 퍼져 가운데 모인 오리 셋과 황금 오리가 사방의 비누 둥지로 둥둥 — 한 번에 넷.
  * 판(목욕) 8개: 목표 = 오리를 모두 둥지에. 별 = ★ 다 넣음 · ★ 톡 N번 이하 · ★ 황금 오리(마지막 오리보다 먼저 넣어야 — 순서가 수).
- *   실패 = 오리가 배수구로 쏙 / 상어가 꿀꺽 / 톡을 다 쓰고 물이 잔잔해짐 → 하트 -1, 같은 판 다시. 하트 셋을 다 잃거나 8판을 마치면 끝.
+ *   실패 = 오리가 배수구로 쏙 / 상어가 꿀꺽 / 톡을 다 쓰고 물이 잔잔해짐 → 같은 판 다시(스튜디오 D001: 하트 없음, 몇 번이든). 8판을 마치면 끝.
  * 펼쳐짐(하는 일이 바뀐다): 1판 넓은 둥지 → 2판 거품 섬(물결 그늘: 뒤에 숨은 오리는 안 밀림 → 골라 밀기) → 3판 배수구(바깥에서 치면
  *   빨려 듦 → 배수구 쪽에서 쳐서 밀어내기) → 4판 색깔 둥지(섞인 오리를 갈라 밀기) → 5판 장난감 배(무거워 바로 옆을 쳐야 함, 부두로)
  *   → 6판 고무 상어(오리에게 다가옴 → 물결로 밀면 어질어질) → 7판 수도꼭지 물줄기(태우면 저절로 실려 감) → 8판 비누 미끄럼(살살 쳐야).
@@ -147,7 +147,7 @@ interface Ev { t: number; kind: string; x: number; y: number; text?: string; col
 export interface DuckState extends Sim {
   rng: Rng; seed: number; stage: number; phase: 'play' | 'result'; pt: number;
   jit: { flip: boolean; j: number[] }[];
-  taps: number; used: number; lastTap: number; hearts: number; stars: number; got: number; starOk: boolean[]; pts: number;
+  taps: number; used: number; lastTap: number; stageTries: number; stars: number; got: number; starOk: boolean[]; pts: number;
   ok: boolean; why: string; down: boolean; aim: { x: number; y: number } | null;
   seen: Set<string>; newsQ: string[]; news: { text: string; t: number } | null;
   events: Ev[]; dead: boolean; won: boolean; catT: number; tries: number; goldLost: boolean; firstTap: boolean; again: boolean;
@@ -461,7 +461,7 @@ function endStage(s: DuckState, ok: boolean, why: string) {
     if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS);
     ev(s, 'clear', 0.5, 0.6, s.won ? '목욕 다 끝! 🛁' : '목욕 끝!');
   } else {
-    s.hearts--;
+    s.stageTries++;
     s.tries++;
     ev(s, 'fail', 0.5, 0.6, why);
   }
@@ -494,7 +494,7 @@ export const duckbath: GameDef<DuckState> = {
     const s = {
       rng, seed, t: 0, objs: [], rings: [], rid: 0, awake: false,
       L: { nests: [], islands: [], drains: [], streams: [], slicks: [] },
-      stage: 0, phase: 'play', pt: 0, jit, taps: 0, used: 0, lastTap: 0, hearts: 3, stars: 0, got: 0, starOk: [false, false, false], pts: 0,
+      stage: 0, phase: 'play', pt: 0, jit, taps: 0, used: 0, lastTap: 0, stageTries: 0, stars: 0, got: 0, starOk: [false, false, false], pts: 0,
       ok: false, why: '', down: false, aim: null, seen: new Set<string>(), newsQ: [], news: null, events: [], dead: false, won: false, catT: -999, tries: 0, goldLost: false, firstTap: false, again: false,
     } as DuckState;
     newStage(s);
@@ -521,9 +521,8 @@ export const duckbath: GameDef<DuckState> = {
       if (s.pt >= (s.ok ? RESULT_OK : RESULT)) {
         if (s.ok) {
           if (s.won) s.dead = true;
-          else (s.again = false), s.stage++, newStage(s);
-        } else if (s.hearts <= 0) s.dead = true;
-        else (s.again = true), newStage(s);
+          else (s.again = false), (s.stageTries = 0), s.stage++, newStage(s);
+        } else (s.again = true), newStage(s); // D001: 하트 없음 — 실패하면 그 판만 다시 (오너 기준 7)
       }
       return;
     }
@@ -670,7 +669,7 @@ export const duckbathSmart: Bot<DuckState> = {
     if (s.down || s.phase !== 'play' || s.taps <= 0) return NO;
     if (s.t - s.lastTap < 40 || s.rings.length) return NO;
     if (!calm(s) && s.t - s.lastTap < 150) return NO;
-    const key = `${s.stage}:${s.hearts}:${s.used}`;
+    const key = `${s.stage}:${s.tries}:${s.used}`;
     let m = brain.get(s);
     if (!m || m.key !== key) brain.set(s, (m = { key, ...plan(s) }));
     if (!m.p) {
@@ -678,6 +677,39 @@ export const duckbathSmart: Bot<DuckState> = {
       return NO;
     }
     return at(m.p.x, m.p.y);
+  },
+};
+
+const casMem = new WeakMap<object, { key: string; p: { x: number; y: number } | null }>();
+/**
+ * 봇(캐주얼, D001 · FUN.md 제안 1): 미리 보기를 쓰지 않고 '상식'으로 친다 — 아직 떠 있는 오리(황금 오리는 맨 나중) 하나를 골라
+ * 가장 가까운 맞는 둥지의 반대편 0.06~0.15 거리를 톡. 자리는 사람 손처럼 σ≈0.03 흔들린다. 물이 잔잔해지면 친다. 내다보기 없음.
+ */
+export const duckbathCasual: Bot<DuckState> = {
+  name: '캐주얼',
+  act(s, rng) {
+    if (s.down || s.phase !== 'play' || s.taps <= 0) return NO;
+    if (s.t - s.lastTap < 50 || s.rings.length) return NO;
+    if (!calm(s) && s.t - s.lastTap < 170) return NO;
+    const key = `${s.stage}:${s.tries}:${s.used}`;
+    let m = casMem.get(s);
+    if (!m || m.key !== key) {
+      const free = s.objs.filter((o) => o.st === FREE && o.k !== SHARK);
+      const pool = free.some((o) => o.k !== GOLD) && rng() < 0.75 ? free.filter((o) => o.k !== GOLD) : free;
+      const o = pool[Math.floor(rng() * pool.length)];
+      let p: { x: number; y: number } | null = null;
+      if (o) {
+        let n: Nest | null = null, nd = 9;
+        for (const q of s.L.nests) if (fits(o, q) && Math.hypot(o.x - q.x, o.y - q.y) < nd) (nd = Math.hypot(o.x - q.x, o.y - q.y)), (n = q);
+        if (n) {
+          const ux = (o.x - n.x) / (nd || 1), uy = (o.y - n.y) / (nd || 1), g = () => (rng() + rng() + rng() - 1.5) * 0.05;
+          const dd = 0.06 + rng() * 0.09;
+          p = { x: Math.max(0.01, Math.min(W - 0.01, o.x + ux * dd + g())), y: Math.max(0.01, Math.min(H - 0.01, o.y + uy * dd + g())) };
+        }
+      }
+      casMem.set(s, (m = { key, p }));
+    }
+    return m.p ? at(m.p.x, m.p.y) : NO;
   },
 };
 
@@ -2014,8 +2046,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
   ctx.fillStyle = '#ffd84a';
   const stt = `★ ${s.stars}/${STAGE_COUNT * 3}`;
   ctx.fillText(stt, w - R(0.03), hb * 0.52);
-  ctx.fillStyle = th.hot;
-  ctx.fillText('♥'.repeat(Math.max(0, s.hearts)) + '♡'.repeat(Math.max(0, 3 - s.hearts)), w - R(0.05) - ctx.measureText(stt).width, hb * 0.52);
+  if (s.stageTries > 0) {
+    font(0.036, 800);
+    ctx.fillStyle = th.soft;
+    ctx.fillText(`↺ ${s.stageTries}`, w - R(0.06) - ctx.measureText(stt).width * 1.15, hb * 0.52);
+  }
   // 새것 알림 (타일 벽 위 띠)
   if (s.news && s.t - s.news.t < NEWS_T) {
     const age = s.t - s.news.t, a = Math.min(1, age / 10, (NEWS_T - age) / 20), drop = Math.max(0, 10 - age) * 2;
@@ -2040,7 +2075,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     if (s.phase === 'result') {
       age = s.pt;
       if (s.ok) (head = s.won ? '목욕 다 끝! 🛁' : '목욕 끝!'), (sub = `다 넣음 ✓ · 톡 ${s.used}번${s.used <= d.par ? ' ✓' : ` (≤${d.par} ✗)`} · 황금 오리 ${s.starOk[2] ? '✓' : '✗'}`), (col = '#ffd84a');
-      else (head = `꽥… ${s.why}`), (sub = s.hearts > 0 ? '하트 -1 · 같은 목욕 다시' : '끝 — 오리들이 고마워해요!'), (col = '#ffb3a8');
+      else (head = `꽥… ${s.why}`), (sub = '괜찮아요 — 같은 목욕 다시!'), (col = '#ffb3a8');
     } else if (s.pt < CARD_T) {
       age = s.pt;
       a = Math.min(1, (CARD_T - s.pt) / 20);

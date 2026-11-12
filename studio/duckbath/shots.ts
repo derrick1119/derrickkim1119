@@ -35,6 +35,16 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.waitForTimeout(2500);
   await page.screenshot({ path: join(here, 'screens', `${name}-after.png`) });
   if ((await st(page)).used < 1) errors.push(`${name}: 터치로 찰박이 안 됨`);
+  // 실패 카드(D001: 하트 없이 같은 판 다시) — 확인용으로 톡을 0으로 만들어 실패시킨다
+  await page.waitForFunction(() => (globalThis as any).__duck.state().phase === 'play' && (globalThis as any).__duck.state().pt > 200, null, { timeout: 15_000 });
+  const stage0 = (await st(page)).stage;
+  await page.evaluate(() => ((globalThis as any).__duck.state().taps = 0));
+  await page.waitForFunction(() => (globalThis as any).__duck.state().phase === 'result', null, { timeout: 15_000 });
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: join(here, 'screens', `${name}-fail.png`) });
+  await page.waitForFunction(() => (globalThis as any).__duck.state().phase === 'play', null, { timeout: 15_000 });
+  const af = await st(page);
+  if (!af.running || af.stage !== stage0) errors.push(`${name}: 실패 뒤 같은 판 다시가 아님 ${JSON.stringify(af)}`);
   // 키보드만: 새로 열어 Enter로 시작 → 화살표로 커서 → 스페이스 꾹·떼기
   await page.goto(url);
   await page.waitForTimeout(300);

@@ -1,8 +1,8 @@
-/** 스튜디오 욕조 물결 오리 (M0): 결정성 · 봇 밸런스 하한 · 플레이 빌드 */
+/** 스튜디오 욕조 물결 오리 (M0~): 결정성 · 하트 없는 판 다시하기 · 봇 밸런스 하한 · 플레이 빌드 */
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
-import { STAGES, duckbath as g, duckbathRandom, duckbathSmart } from '../studio/duckbath/game.ts';
+import { STAGES, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart } from '../studio/duckbath/game.ts';
 import { play } from '../studio/duckbath/funqa.ts';
 
 describe('욕조 물결 오리 시뮬', () => {
@@ -19,6 +19,30 @@ describe('욕조 물결 오리 시뮬', () => {
       return s.objs.map((o) => [o.x.toFixed(5), o.y.toFixed(5), o.st]);
     };
     expect(run()).toEqual(run());
+  });
+
+  it('실패해도 게임이 끝나지 않고 그 판만 다시 (D001, 오너 기준 7)', () => {
+    const s = g.create(5), idle = { tap: false, dir: 0 as const, pointer: null };
+    s.taps = 0; // 톡을 다 쓴 상태로 만들어 실패시킨다
+    let fails = 0, prev = s.phase;
+    for (let k = 0; k < 60 * 60 && fails < 4; k++) {
+      g.step(s, idle);
+      if (prev === 'play' && s.phase === 'result') fails++;
+      if (s.phase === 'play' && s.pt === 1) s.taps = 0;
+      prev = s.phase;
+    }
+    expect(fails).toBe(4);
+    expect(g.over(s)).toBe(false);
+    expect(s.stage).toBe(0);
+    expect(s.stageTries).toBeGreaterThanOrEqual(4);
+  });
+
+  it('캐주얼 봇(상식으로 톡)은 1~2판을 첫 시도에 깬다', { timeout: 60_000 }, () => {
+    for (const seed of [3, 4, 5]) {
+      const r = play(duckbathCasual, seed);
+      expect(r.stages.find((l) => l.stage === 1)?.ok).toBe(true);
+      expect(r.stages.find((l) => l.stage === 2)?.ok).toBe(true);
+    }
   });
 
   it('숙련 봇은 8판을 모두 깬다 (모든 판이 풀린다)', { timeout: 60_000 }, () => {
