@@ -25,7 +25,8 @@ const MAXB = 12, DAD_EVERY = 3;
 const SPOT = 1, HIGH = 2, FORT = 4, DOOR = 8, TOY = 16, TEDDY = 32, BED = 64, WARD = 128;
 /** 시간(틱) */
 const HOP = 10, FLY = 15, LOCK = 30, LIGHTS = 50, BEAT = 50, FIRST_BEAT = 6, END_T = 118, RESULT_OK = 150, RESULT_FAIL = 130, NEWS_T = 200;
-const STAR_PTS = 100, WIN_PTS = 100;
+/** 별 하나의 점수 (뒤 판일수록 크다) · 다 깼을 때 */
+const starPts = (stage: number) => 100 + 25 * stage, WIN_PTS = 100;
 
 export type Kind = 'kid' | 'tiny' | 'blanket' | 'twin' | 'big' | 'sleepy';
 const HP: Record<Kind, number> = { kid: 3, tiny: 1, blanket: 3, twin: 3, big: 3, sleepy: 3 };
@@ -54,46 +55,46 @@ export const STAGES: StageDef[] = [
   },
   {
     key: 'blanket', name: '이불 방어', news: '🧣 이불 두른 아이 — 첫 베개를 한 번 막아요', tip: '🧣 이불 아이를 앞에 세우면 대신 맞아 줘요',
-    map: ['.....', '.....', '.o.o.', '..o..', 'BB.ot'],
-    foes: [[1, 0, 'v', 'kid'], [3, 1, 'v', 'blanket'], [2, 1, 'v', 'kid']],
+    map: ['.....', '.....', 'o..o.', '.B.t.', '.B.Wo'],
+    foes: [[1, 1, 'v', 'kid'], [3, 1, 'v', 'blanket']],
     hand: ['blanket', 'kid', 'kid'], bonus: 'teddy',
   },
   {
     key: 'twin', name: '쌍둥이', news: '👯 쌍둥이 — 나란히 놓으면 같이 던져요(2번 맞힘)', tip: '👯 두 번째 쌍둥이는 첫째 바로 옆에!',
-    map: ['.....', '.....', 'o.o.o', '.o.o.', 'oBB.o'],
-    foes: [[0, 0, 'v', 'kid'], [2, 0, 'v', 'blanket'], [4, 1, 'v', 'kid'], [1, 1, '>', 'kid']],
+    map: ['.....', '.....', 'oo.oo', 'BB.o.', 'BB.o.'],
+    foes: [[1, 0, 'v', 'kid'], [0, 1, 'v', 'blanket'], [3, 1, 'v', 'kid']],
     hand: ['twin', 'twin', 'kid', 'kid'], bonus: 'fast', fast: 3,
   },
   {
     key: 'big', name: '큰 베개 형', news: '💪 큰 베개 형 — 두 박자에 한 번, 앞 두 칸을 같이 맞혀요', tip: '💪 상대가 한 줄로 겹친 곳에 큰 형을!',
-    map: ['.....', '.....', 'o.o..', '..o.o', 'Bo..o'],
-    foes: [[0, 0, 'v', 'kid'], [0, 1, 'v', 'kid'], [2, 1, 'v', 'blanket'], [4, 0, 'v', 'big'], [3, 1, '<', 'kid']],
+    map: ['.....', '.....', 'o.o.o', 'B.o.t', 'B...W'],
+    foes: [[0, 0, 'v', 'kid'], [0, 1, 'v', 'kid'], [2, 1, 'v', 'blanket'], [4, 1, 'v', 'kid']],
     hand: ['big', 'kid', 'blanket', 'kid'], bonus: 'teddy',
   },
   {
     key: 'dad', name: '아빠 순찰', news: '🚪 아빠 순찰 — 문 앞 칸은 3박자마다 걸려요!', tip: '🚪 문 앞 빛 칸은 3박자째에 아빠한테 딱!',
-    map: ['..:..', '..:..', 'o.d.o', '.od..', 'BBd.o'],
-    foes: [[2, 0, 'v', 'kid'], [0, 0, 'v', 'blanket'], [4, 1, 'v', 'kid'], [1, 1, 'v', 'kid'], [3, 0, '<', 'kid']],
-    hand: ['kid', 'twin', 'twin', 'big', 'blanket'], bonus: 'fast', fast: 3,
+    map: ['..:..', '..:..', 'ood.o', 'BBdo.', '....W'],
+    foes: [[2, 1, 'v', 'kid'], [0, 1, 'v', 'blanket'], [1, 0, 'v', 'kid'], [4, 1, 'v', 'kid']],
+    hand: ['kid', 'big', 'blanket', 'kid'], bonus: 'fast', fast: 3,
   },
   {
     key: 'fort', name: '쿠션 요새', news: '🏰 쿠션 요새 — 바닥에서 던진 베개를 막아요. 높은 데선 넘겨요!', tip: '🏰 요새 너머는 침대·옷장 위에서!',
-    map: ['.....', '.....', '.FoF.', 'o..o.', 'BB.WW'],
-    foes: [[1, 0, 'v', 'kid'], [3, 1, 'v', 'blanket'], [0, 1, 'v', 'big'], [4, 0, 'v', 'kid'], [2, 1, 'v', 'kid']],
+    map: ['.....', '.....', 'oFoFo', 'tB.Wo', '.B.W.'],
+    foes: [[0, 1, 'v', 'kid'], [1, 0, 'v', 'kid'], [3, 1, 'v', 'blanket'], [4, 1, 'v', 'big']],
     hand: ['kid', 'blanket', 'kid', 'big', 'kid'], bonus: 'teddy',
   },
   {
     key: 'sleepy', name: '졸린 아이', news: '😪 졸린 아이 — 한 박자씩 꾸벅 졸아요', tip: '😪 졸린 상대 줄은 덜 위험해요',
-    map: ['.....', '.....', 'o.o.o', '.o.o.', 'BB.Wt'],
-    foes: [[0, 0, 'v', 'sleepy'], [1, 1, 'v', 'kid'], [2, 0, 'v', 'big'], [3, 1, 'v', 'sleepy'], [4, 0, 'v', 'blanket']],
-    hand: ['sleepy', 'kid', 'twin', 'twin', 'blanket'], bonus: 'teddy',
+    map: ['.....', '.....', 'oo.oo', 'BB.t.', 'BB..W'],
+    foes: [[1, 0, 'v', 'kid'], [0, 1, 'v', 'sleepy'], [3, 1, 'v', 'sleepy'], [4, 1, 'v', 'blanket']],
+    hand: ['sleepy', 'kid', 'kid', 'blanket'], bonus: 'teddy',
   },
   {
     key: 'dog', name: '강아지 난입', news: '🐶 강아지 — 발자국 칸의 아이를 핥아 박자를 멈춰요', tip: '🐶 발자국 길 위에 서면 간질간질 — 못 던져요',
-    map: ['.....', '.....', 'o.o.o', 'o.o.o', 'BB.WW'],
-    foes: [[0, 0, 'v', 'blanket'], [1, 1, 'v', 'kid'], [2, 0, 'v', 'big'], [3, 1, 'v', 'kid'], [4, 0, 'v', 'sleepy']],
+    map: ['.....', '.....', 'ooooo', 'BB.WW', 'BBo..'],
+    foes: [[0, 0, 'v', 'blanket'], [1, 1, 'v', 'kid'], [3, 1, 'v', 'kid'], [4, 0, 'v', 'sleepy']],
     hand: ['kid', 'twin', 'twin', 'big', 'blanket'], bonus: 'fast', fast: 4,
-    route: [[0, 2], [1, 3], [2, 2], [3, 3], [4, 2], [3, 3], [2, 2], [1, 3]],
+    route: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [3, 2], [2, 2], [1, 2]],
   },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -141,7 +142,6 @@ function occOf(S: Sim): Int8Array {
   });
   return o;
 }
-const rangeOf = (F: Field, k: Kid) => (F.cell[k.r * COLS + k.c] & HIGH ? RANGE_HI : RANGE);
 /** 화살표 줄에서 가장 가까운 상대 — {칸, 맞는 아이, 거리} · 요새에 막히면 tk -1 · 없으면 null */
 function scan(F: Field, S: Sim, occ: Int8Array, k: Kid, from = 1, reach = 0): { cell: number; tk: number; d: number } | null {
   const high = F.cell[k.r * COLS + k.c] & HIGH, R = reach || (high ? RANGE_HI : RANGE);
@@ -367,10 +367,9 @@ function endFight(s: PillowState, res: number, why: string) {
 function finish(s: PillowState) {
   s.phase = 'result';
   s.pt = 0;
-  const d = STAGES[s.stage];
   if (s.result > 0) {
     s.stars += s.got;
-    s.pts += s.got * STAR_PTS;
+    s.pts += s.got * starPts(s.stage);
     if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS);
     ev(s, 'clear', 2, 3, `${s.stage + 1}판 통과! ${'★'.repeat(s.got)}${'☆'.repeat(3 - s.got)}`, '#fff1a8', s.got);
   } else {
@@ -378,7 +377,6 @@ function finish(s: PillowState) {
     s.tries++;
     ev(s, 'fail', 2, 3, s.why, '#ffd0c8');
   }
-  void d;
 }
 
 /** 놓기: 아이를 자리에 두고 기습 베개를 예약한다 */
@@ -402,15 +400,15 @@ function place(s: PillowState, cell: number) {
 }
 /** 베개가 닿는 순간 */
 function land(s: PillowState) {
-  const F = s.F, S = s.S, th = s.fly;
-  const tedBefore = S.ted;
+  const S = s.S, th = s.fly;
+  const tedBefore = S.ted, shBefore = S.kids.map((k) => k.sh);
   const fell = applyThrows(S, th);
   for (const x of th) {
     if (x.tk >= 0) s.hitAt[x.tk] = s.t;
     const c = x.to % COLS, r = Math.floor(x.to / COLS);
-    if (x.tk === -1) ev(s, 'fort', c, r, '퐁', '#ffe8f0');
+    if (x.tk === -1) ev(s, 'fort', c, r, '퐁!', '#ffe8f0');
     else if (x.tk === -2) ev(s, 'teddy', c, r, '솜 펑!', '#ffd6e8');
-    else ev(s, 'hit', c, r, S.kids[x.tk].sh > 0 || (S.kids[x.tk].kind === 'blanket' && S.kids[x.tk].hitN === 1 && S.kids[x.tk].hp === HP.blanket) ? '이불 방어!' : x.joint ? '퍽퍽!' : x.pierce ? '퍽!!' : '퍽!', '#ffffff', x.tk);
+    else ev(s, 'hit', c, r, shBefore[x.tk] > 0 ? '이불 방어!' : x.joint ? '퍽퍽!' : x.pierce ? '꿰뚫기!' : '퍽!', shBefore[x.tk] > 0 ? '#cfe8ff' : '#ffffff', x.tk);
   }
   if (tedBefore && !S.ted) tip(s, 'tedlost', '🧸 곰 인형 앞에 우리 편을 세우면 막아 줘요');
   for (const i of fell) {
@@ -419,6 +417,7 @@ function land(s: PillowState) {
   }
   if (th.some((x) => x.joint)) tip(s, 'joint', '👯 나란히 선 쌍둥이는 한 상대에게 같이 던져요');
   if (th.some((x) => x.pierce)) tip(s, 'pierce', '💪 큰 베개는 뒤에 선 아이까지 맞혀요');
+  if (th.some((x) => x.tk === -1)) tip(s, 'fortblock', '🏰 바닥에서 던지면 요새에 막혀요 — 침대·옷장 위로!');
   s.fly = [];
 }
 
@@ -441,7 +440,6 @@ function nextBeat(s: PillowState) {
 
 /** 화면 좌표 → 칸 (화면 x 0~1, y 0~A) */
 const FY0 = 0.4, FH = 0.72, WB = 0.8, WF = 0.98;
-const vOf = (r: number) => r / ROWS;
 const PXf = (u: number, v: number) => 0.5 + (u - 0.5) * (WB + (WF - WB) * v);
 const PYf = (v: number) => FY0 + FH * v;
 const SCf = (v: number) => 0.84 + 0.22 * v;
@@ -587,8 +585,24 @@ function finalValue(F: Field, S0: Sim): number {
   }
   return -foeHp * 1e4 + ourHp * 100;
 }
-/** 빔 탐색: 남은 손패를 어디에 놓을지 (같은 판·같은 수 → 같은 답) */
-export function planSpots(F: Field, S0: Sim, beamW = 10): number[] {
+/** 남은 손패를 하나씩 '지금 가장 좋은 자리'에 놓아 끝까지 본 값 (빔 탐색의 중간 평가) */
+function rollout(F: Field, S0: Sim): number {
+  let S = S0;
+  while (S.hi < F.def.hand.length && outcome(F, S) === 0) {
+    let best: Sim | null = null, bv = -Infinity;
+    for (const p of freeSpots(F, S)) {
+      const S1 = cloneSim(S), i = placeKid(F, S1, p);
+      applyThrows(S1, openerThrows(F, S1, i));
+      const v = finalValue(F, S1);
+      if (v > bv) (bv = v), (best = S1);
+    }
+    if (!best) break;
+    S = best;
+  }
+  return finalValue(F, S);
+}
+/** 빔 탐색: 남은 손패를 어디에 놓을지 — 후보마다 나머지를 욕심껏 채워 끝까지 싸워 본다 (같은 판·같은 수 → 같은 답) */
+export function planSpots(F: Field, S0: Sim, beamW = 6): number[] {
   type Node = { S: Sim; seq: number[]; v: number; done: boolean };
   let beam: Node[] = [{ S: S0, seq: [], v: 0, done: false }];
   for (let j = S0.hi; j < F.def.hand.length; j++) {
@@ -601,8 +615,8 @@ export function planSpots(F: Field, S0: Sim, beamW = 10): number[] {
       for (const p of freeSpots(F, b.S)) {
         const S1 = cloneSim(b.S), i = placeKid(F, S1, p);
         applyThrows(S1, openerThrows(F, S1, i));
-        const won = outcome(F, S1) > 0, last = S1.hi >= F.def.hand.length;
-        next.push({ S: S1, seq: [...b.seq, p], v: finalValue(F, S1) + (won || last ? 0 : 0), done: won || last });
+        const done = outcome(F, S1) > 0 || S1.hi >= F.def.hand.length;
+        next.push({ S: S1, seq: [...b.seq, p], v: done ? finalValue(F, S1) : rollout(F, S1), done });
       }
     }
     next.sort((a, b) => b.v - a.v);
@@ -625,7 +639,7 @@ export const pillowfightSmart: Bot<PillowState> = {
     if (s.phase !== 'place' || s.down || s.t < s.lock || s.fly.length || s.queued >= 0) return NO;
     const key = `${s.stage}:${s.tries}:${s.S.hi}`;
     let m = brain.get(s);
-    if (!m || m.key !== key) brain.set(s, (m = { key, seq: planSpots(s.F, s.S) }));
+    if (!m || m.key !== key) brain.set(s, (m = { key, seq: planSpots(s.F, s.S, 4) }));
     const cell = m.seq[0];
     if (cell === undefined) return NO;
     return atCell(s.F, cell);
@@ -653,7 +667,7 @@ export const pillowfightRandom: Bot<PillowState> = {
 };
 
 /** 측정·도움용: 판 i를 아무 자리에 놓았을 때 / 잘 놓았을 때 */
-export function stageProbe(stage: number, mirror: boolean, rng: Rng | null): { win: boolean; stars: number; beats: number } {
+export function stageProbe(stage: number, mirror: boolean, rng: Rng | null, beamW = 6): { win: boolean; stars: number; beats: number } {
   const F = makeField(STAGES[stage], mirror), S = startSim(F);
   if (rng) {
     while (S.hi < F.def.hand.length && outcome(F, S) === 0) {
@@ -662,7 +676,7 @@ export function stageProbe(stage: number, mirror: boolean, rng: Rng | null): { w
       applyThrows(S, openerThrows(F, S, i));
     }
   } else {
-    for (const p of planSpots(F, S)) {
+    for (const p of planSpots(F, S, beamW)) {
       if (outcome(F, S) !== 0) break;
       const i = placeKid(F, S, p);
       applyThrows(S, openerThrows(F, S, i));
@@ -670,16 +684,6 @@ export function stageProbe(stage: number, mirror: boolean, rng: Rng | null): { w
   }
   const o = fightOut(F, S), st = starsOf(F, S, o > 0);
   return { win: o > 0, stars: st.filter(Boolean).length, beats: S.beat };
-}
-
-// ───────────────────────────── 그리기 ─────────────────────────────
-function drawAll(ctx: CanvasRenderingContext2D, s: PillowState, w: number, _h: number, th: Theme) {
-  const fx = juice(s);
-  ctx.save();
-  fx.begin(ctx);
-  ctx.fillStyle = th.bg;
-  ctx.fillRect(0, 0, w, w * A);
-  ctx.restore();
 }
 
 /** 측정·도움용: 판 하나의 모든 놓는 순서를 다 해 본다 → [이긴 비율, 별 분포, 최고 별, 빔 탐색 별] */
@@ -720,3 +724,5 @@ export function stageAscii(stage: number): string {
   }
   return rows.join('\n');
 }
+
+// @@DRAW@@

@@ -65,7 +65,7 @@ const chickens = (r: Rng, n: number) => Array.from({ length: n }, (_, i) => mob(
 /** 판 8개 */
 export const STAGES: StageDef[] = [
   {
-    key: 'cow', name: '첫 납치', news: '🐄 꾹 누르면 빔 원 — 떼면 원 안이 몽땅 둥실!', goal: 3, max: 9, par: 1,
+    key: 'cow', name: '첫 납치', news: '🐄 원 안은 몽땅 올라가요 — 👨‍🌾 농부만 빼고!', goal: 3, max: 9, par: 1,
     build: (r) => {
       const cx = 0.5 + jit(r, 0.04), cy = 0.6 + jit(r, 0.03);
       return [
@@ -86,7 +86,7 @@ export const STAGES: StageDef[] = [
     },
   },
   {
-    key: 'bull', name: '무거운 황소', news: '🐂 황소 — 빔 두 번! 처음엔 쿵 떨어져 어질어질 멈춰요', goal: 5, max: 9, par: 3,
+    key: 'bull', name: '무거운 황소', news: '🐂 황소 — 빔 두 번! 처음엔 쿵 떨어져 어질어질 멈춰요', goal: 5, max: 9, par: 2,
     build: (r) => [
       loopCow(r, 0.5, 0.6, 0.14, 0.1, 0.0035, 'bull'),
       loopCow(r, 0.33, 0.52, 0.12, 0.12, 0.006),
@@ -104,7 +104,7 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'dog', name: '경비견', news: '🐕 개 둘레에 빔이 닿으면 멍! — 둘레 안 소가 바깥으로 튀어요', goal: 6, max: 7, par: 3, kennel: [0.5, 0.58],
+    key: 'dog', name: '경비견', news: '🐕 개 둘레에 빔이 닿으면 멍! — 둘레 안 소가 바깥으로 튀어요', goal: 6, max: 7, par: 2, kennel: [0.5, 0.58],
     build: (r) => [
       mob('dog', 0.5, 0.6, 0.05, 0.035, 0.012, ang(r)),
       ...Array.from({ length: 7 }, (_, i) => mob('cow', 0.5, 0.6, 0.16 + 0.1 * r(), 0.14 + 0.08 * r(), (i % 2 ? -1 : 1) * (0.004 + 0.002 * r()), (i / 7) * TAU + jit(r, 0.3), ang(r))),
@@ -127,17 +127,21 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'scare', name: '허수아비', news: '🌾 허수아비 — 같이 올라가면 퉤! 뱉느라 빔 1번 더', goal: 7, max: 7, par: 4,
+    key: 'scare', name: '허수아비', news: '🌾 허수아비 — 같이 올라가면 퉤! 뱉느라 빔 1번 더', goal: 7, max: 8, par: 3,
     build: (r) => {
       const sp: [number, number][] = [[0.28 + jit(r, 0.03), 0.48], [0.72 + jit(r, 0.03), 0.5], [0.5 + jit(r, 0.04), 0.86]];
       const out: Mob[] = sp.map(([x, y]) => mob('scare', x, y, 0, 0, 0, 0, 0, 3));
-      for (const [x, y] of sp) for (let k = 0; k < 3; k++) out.push(mob('cow', x, y, 0.13, 0.11, (k % 2 ? -1 : 1) * 0.0055, (k / 3) * TAU + jit(r, 0.4), ang(r)));
+      // 소는 허수아비 곁을 스쳐 도는 고리 — 허수아비 쪽에 몰릴 때와 반대쪽에 몰릴 때가 번갈아 온다
+      sp.forEach(([x, y], j) => {
+        const ox = (j === 0 ? -1 : j === 1 ? 1 : 0) * 0.07, oy = j === 2 ? 0.06 : -0.05;
+        for (let k = 0; k < 3; k++) out.push(mob('cow', x + ox, y + oy, 0.15, 0.12, 0.0055, (k / 3) * 1.6 + jit(r, 0.2), ang(r)));
+      });
       out.push(mob('farmer', 0.5, 0.67, 0.36, 0.06, 0.004, ang(r)));
       return out;
     },
   },
   {
-    key: 'night', name: '깜깜한 밤', news: '🔦 손전등 — 비친 곳에서 빔을 쏘면 들켜요!', goal: 7, max: 7, par: 4, night: true,
+    key: 'night', name: '깜깜한 밤', news: '🔦 손전등 — 비친 곳에서 빔을 쏘면 들켜요!', goal: 7, max: 7, par: 3, night: true,
     build: (r) => [
       loopCow(r, 0.25, 0.35, 0.12, 0.09, 0.006),
       loopCow(r, 0.25, 0.35, 0.12, 0.09, 0.006),
@@ -153,7 +157,7 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'herd', name: '소 떼 박자', news: '🎵 소 떼가 박자 맞춰 8자로 — 엇갈리는 가운데를 노려요', goal: 8, max: 6, par: 3, herd: true,
+    key: 'herd', name: '소 떼 박자', news: '🎵 소 떼가 박자 맞춰 8자로 — 엇갈리는 가운데를 노려요', goal: 8, max: 6, par: 2, herd: true,
     build: (r) => {
       const a0 = ang(r), out: Mob[] = [];
       for (let i = 0; i < 10; i++) out.push(mob('cow', 0.5, 0.6, 0.36, 0.25, 0.24 / MOVE, a0 - i * 0.31, ang(r), 1));
@@ -163,7 +167,7 @@ export const STAGES: StageDef[] = [
     },
   },
   {
-    key: 'space', name: '우주 젖소', news: '🌌 우주 젖소 — 반짝이는 곳에 잠깐 내려앉아요 (2마리 +50)', goal: 8, max: 7, par: 4, roof: true, kennel: [0.66, 0.62],
+    key: 'space', name: '우주 젖소', news: '🌌 우주 젖소 — 반짝이는 곳에 잠깐 내려앉아요 (2마리 +50)', goal: 8, max: 7, par: 3, roof: true, kennel: [0.66, 0.62],
     build: (r) => {
       const hx = [0.62, 0.3, 0.78, 0.42].map((x) => x + jit(r, 0.03)), hy = [0.3, 0.72, 0.95, 0.5].map((y) => y + jit(r, 0.03));
       const sc = mob('space', 0.5, 0.5, 0, 0, 0, 0, Math.floor(r() * 4) * SPACE_P, 2);
@@ -321,10 +325,13 @@ export interface UfoState {
   seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[]; startT: number; clearT: number; total: number;
 }
 const ev = (s: UfoState, kind: string, x: number, y: number, text?: string, col?: string, v?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v });
-function see(s: UfoState, key: string, text: string) {
+function see(s: UfoState, key: string, text: string, front = false) {
   if (s.seen.has(key)) return;
   s.seen.add(key);
-  s.newsQ.push(text);
+  if (!front) return void s.newsQ.push(text);
+  // 판의 새것은 바로 보인다 (남은 도움말은 뒤로)
+  s.newsQ.unshift(text);
+  s.news = null;
 }
 function tip(s: UfoState, key: string, text: string) {
   if (s.tips.has(key) || s.newsQ.length) return;
@@ -344,8 +351,8 @@ function newStage(s: UfoState) {
   s.stagePts = 0;
   s.startT = s.t;
   s.gotStars = 0;
-  see(s, d.key, d.news);
-  if (s.stage === 0) see(s, 'farmer', '👨‍🌾 농부는 태우지 마요 — 퉁 떨어지고 ★ 하나 잃어요');
+  see(s, d.key, d.news, true);
+  if (s.stage === 0) s.seen.add('farmer');
   if (L.some((m) => m.k === 'chick')) see(s, 'chick', '🐔 닭은 보너스 (5점)');
   ev(s, 'stage', 0.5, 0.6, `${s.stage + 1}판 · ${d.name}`, '#e8f0ff');
 }
@@ -1488,9 +1495,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: UfoState, w: number, d: Sta
   ctx.fillRect(0, y0 - 2, w, y1 - y0 + 4);
   // 깎은 풀 줄무늬 (원근)
   for (let k = 0; k < 12; k++) {
-    if (k % 2) continue;
     const ya = (k / 12) * DEP, yb = ((k + 1) / 12) * DEP;
-    ctx.fillStyle = 'rgba(160,220,170,.05)';
+    ctx.fillStyle = k % 2 ? 'rgba(0,10,20,.07)' : 'rgba(170,230,180,.075)';
     ctx.beginPath();
     ctx.moveTo(PX(-0.1, ya), PY(ya));
     ctx.lineTo(PX(1.1, ya), PY(ya));
@@ -1504,6 +1510,57 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: UfoState, w: number, d: Sta
   ml.addColorStop(1, 'rgba(190,210,255,0)');
   ctx.fillStyle = ml;
   ctx.fillRect(0, y0, w, y1 - y0);
+  // 지평선 물안개
+  const mist = ctx.createLinearGradient(0, y0 - R(0.03), 0, y0 + R(0.08));
+  mist.addColorStop(0, 'rgba(170,190,240,0)');
+  mist.addColorStop(0.4, night ? 'rgba(120,140,200,.12)' : 'rgba(170,190,240,.2)');
+  mist.addColorStop(1, 'rgba(170,190,240,0)');
+  ctx.fillStyle = mist;
+  ctx.fillRect(0, y0 - R(0.03), w, R(0.11));
+  // 흙자리 (풀이 닳은 곳)
+  for (let k = 0; k < 7; k++) {
+    const x = 0.1 + hsh(k + 500) * 0.8, y = 0.15 + hsh(k + 520) * 0.95, rr = R(0.035 + 0.03 * hsh(k + 540)) * scl(y);
+    ctx.fillStyle = night ? 'rgba(70,60,40,.18)' : 'rgba(110,90,60,.22)';
+    ctx.beginPath();
+    ctx.ellipse(PX(x, y), PY(y), rr * 1.6, rr * 0.55, 0, 0, TAU);
+    ctx.fill();
+  }
+  // 울타리 밖: 건초 더미 · 물통
+  const bale = (x: number, y: number) => {
+    const bx = PX(x, y), by = PY(y), z = R(0.032) * scl(y);
+    shadow(ctx, bx, by, z * 1.4, z * 0.35, 0.4);
+    ctx.fillStyle = '#b8913e';
+    ctx.beginPath();
+    ctx.roundRect(bx - z * 1.2, by - z * 1.1, z * 2.4, z * 1.1, z * 0.3);
+    ctx.fill();
+    ctx.fillStyle = '#d9b45a';
+    ctx.beginPath();
+    ctx.ellipse(bx + z * 1.0, by - z * 0.55, z * 0.35, z * 0.55, 0, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = '#8a6a2a';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(bx + z * 1.0, by - z * 0.55, z * 0.18, z * 0.3, 0, 0, TAU);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(90,60,20,.6)';
+    for (const f of [-0.5, 0.2]) (ctx.beginPath(), ctx.moveTo(bx + f * z, by - z * 1.1), ctx.lineTo(bx + f * z, by), ctx.stroke());
+  };
+  bale(-0.1, 0.12);
+  bale(-0.07, 0.3);
+  {
+    const tx = PX(1.09, 0.32), ty = PY(0.32), z = R(0.03);
+    shadow(ctx, tx, ty, z * 1.3, z * 0.3, 0.4);
+    ctx.fillStyle = '#6f7a8c';
+    ctx.fillRect(tx - z * 1.1, ty - z * 0.8, z * 2.2, z * 0.8);
+    ctx.fillStyle = night ? '#2a3a6a' : '#4a6aaa';
+    ctx.beginPath();
+    ctx.ellipse(tx, ty - z * 0.8, z * 1.1, z * 0.22, 0, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,240,.5)';
+    ctx.beginPath();
+    ctx.ellipse(tx + z * 0.4, ty - z * 0.82, z * 0.25, z * 0.06, 0, 0, TAU);
+    ctx.fill();
+  }
   // 옥수수밭 (뒤 오른쪽)
   for (let row = 0; row < 3; row++)
     for (let k = 0; k < 11; k++) {
@@ -1604,30 +1661,42 @@ function drawWorld(ctx: CanvasRenderingContext2D, s: UfoState, w: number, d: Sta
 function drawRoof(ctx: CanvasRenderingContext2D, w: number, t: number) {
   const R = (r: number) => r * w, PX = (x: number, y: number) => SX(x, y) * w, PY = (y: number) => SY(y) * w, H = R(0.1);
   // 기둥
-  ctx.fillStyle = '#5a3a24';
-  for (const [x, y] of [[ROOF.x0 + 0.02, ROOF.y1], [ROOF.x1 - 0.02, ROOF.y1], [ROOF.x1 - 0.02, ROOF.y0 + 0.02]] as const) ctx.fillRect(PX(x, y) - 2.5, PY(y) - H, 5, H);
+  ctx.fillStyle = '#6a4a30';
+  for (const [x, y] of [[ROOF.x0 + 0.02, ROOF.y1], [ROOF.x1 - 0.02, ROOF.y1], [ROOF.x1 - 0.02, ROOF.y0 + 0.02], [ROOF.x0 + 0.02, ROOF.y0 + 0.02]] as const) ctx.fillRect(PX(x, y) - 3, PY(y) - H, 6, H);
   // 지붕판 (반투명: 아래 동물이 보이게)
   const pts = [[ROOF.x0 - 0.02, ROOF.y0 - 0.02], [ROOF.x1 + 0.02, ROOF.y0 - 0.02], [ROOF.x1 + 0.03, ROOF.y1 + 0.03], [ROOF.x0 - 0.03, ROOF.y1 + 0.03]];
-  ctx.globalAlpha = 0.72;
-  const g = ctx.createLinearGradient(0, PY(ROOF.y0) - H, 0, PY(ROOF.y1) - H);
-  g.addColorStop(0, '#a3332c');
-  g.addColorStop(1, '#6e1f1c');
+  // 함석지붕 (반투명: 아래 동물이 비쳐 보이게)
+  ctx.globalAlpha = 0.6;
+  const g = ctx.createLinearGradient(PX(ROOF.x0, ROOF.y0), PY(ROOF.y0) - H, PX(ROOF.x1, ROOF.y1), PY(ROOF.y1) - H);
+  g.addColorStop(0, '#c9d3e6');
+  g.addColorStop(0.5, '#8d9ab4');
+  g.addColorStop(1, '#5c6884');
   ctx.fillStyle = g;
   ctx.beginPath();
   for (const [x, y] of pts) ctx.lineTo(PX(x, y), PY(y) - H);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(255,200,180,.35)';
-  ctx.lineWidth = 1.2;
-  for (let k = 1; k < 9; k++) {
-    const x = ROOF.x0 - 0.02 + (k / 9) * (ROOF.x1 - ROOF.x0 + 0.04);
+  ctx.globalAlpha = 0.75;
+  for (let k = 1; k < 14; k++) {
+    const x = ROOF.x0 - 0.02 + (k / 14) * (ROOF.x1 - ROOF.x0 + 0.04);
+    ctx.strokeStyle = k % 2 ? 'rgba(255,255,255,.45)' : 'rgba(30,40,60,.45)';
+    ctx.lineWidth = 1.3;
     ctx.beginPath();
     ctx.moveTo(PX(x, ROOF.y0 - 0.02), PY(ROOF.y0 - 0.02) - H);
-    ctx.lineTo(PX(x, ROOF.y1 + 0.03), PY(ROOF.y1 + 0.03) - H);
+    ctx.lineTo(PX(x + 0.005, ROOF.y1 + 0.03), PY(ROOF.y1 + 0.03) - H);
     ctx.stroke();
   }
+  // 녹 얼룩 · 달빛 반짝
+  ctx.fillStyle = 'rgba(160,90,50,.35)';
+  for (const [x, y, r] of [[0.1, 0.12, 0.03], [0.3, 0.3, 0.025], [0.36, 0.08, 0.02]] as const) (ctx.beginPath(), ctx.ellipse(PX(x, y), PY(y) - H, R(r), R(r * 0.5), 0, 0, TAU), ctx.fill());
   ctx.globalAlpha = 1;
+  ctx.strokeStyle = 'rgba(230,240,255,.8)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (const [x, y] of pts) ctx.lineTo(PX(x, y), PY(y) - H);
+  ctx.closePath();
+  ctx.stroke();
   // 앞 처마 두께
-  ctx.fillStyle = '#4a1414';
+  ctx.fillStyle = '#3c465e';
   ctx.beginPath();
   ctx.moveTo(PX(pts[3][0], pts[3][1]), PY(pts[3][1]) - H);
   ctx.lineTo(PX(pts[2][0], pts[2][1]), PY(pts[2][1]) - H);
@@ -1653,7 +1722,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: UfoState, w: number, h: numbe
     for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.3 && Math.abs(q.y - y) < size + 4); k++) y -= size + 5;
     rec.push({ x, y, t: s.t });
     if (rec.length > 12) rec.shift();
-    fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), Math.max(R(0.13), y), text, col, size);
+    fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), Math.max(R(0.2), y), text, col, size);
   };
   const beaming = s.phase === 'beam', bq = beaming ? s.pt / BEAM_T : 0;
   // 미리 보기: 누르고 있는 동안 지금 떼면?
@@ -1779,8 +1848,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: UfoState, w: number, h: numbe
     ctx.closePath();
     const cx = PX(fx0 + Math.cos(dir) * LIGHT_L * 0.5, fy0 + Math.sin(dir) * LIGHT_L * 0.5), cy = PY(fy0 + Math.sin(dir) * LIGHT_L * 0.5);
     const lg = ctx.createRadialGradient(PX(fx0, fy0), PY(fy0), R(0.02), cx, cy, R(0.5));
-    lg.addColorStop(0, 'rgba(255,240,170,.42)');
-    lg.addColorStop(1, 'rgba(255,240,170,.08)');
+    lg.addColorStop(0, 'rgba(255,220,130,.3)');
+    lg.addColorStop(1, 'rgba(255,200,100,.05)');
     ctx.fillStyle = lg;
     ctx.fill();
     ctx.restore();
@@ -1799,7 +1868,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: UfoState, w: number, h: numbe
     if (m.gone || m.k === 'space') return;
     const ht = hideTill.get(i);
     if (ht !== undefined && bq < ht) return;
-    const [x, y] = pos(m, W.t), z = R(0.04) * scl(y);
+    const [x, y] = pos(m, W.t), z = R(0.045) * scl(y);
     const nx = pos({ ...m, a: m.a + (m.sp >= 0 ? 0.05 : -0.05) }, W.t)[0];
     const face = m.path === 3 ? 1 : nx >= x ? 1 : -1;
     const sx = PX(x, y), sy = PY(y);
@@ -1841,15 +1910,51 @@ function drawAll(ctx: CanvasRenderingContext2D, s: UfoState, w: number, h: numbe
   }
   // 구경꾼 염소
   {
-    const gz = R(0.036) * scl(s.gy), face = s.gx < (aimF ? aimF[0] : s.bx) ? 1 : -1;
+    const gz = R(0.044) * scl(s.gy), face = s.gx < (aimF ? aimF[0] : s.bx) ? 1 : -1;
     list.push({ y: s.gy, f: () => drawGoat(ctx, PX(s.gx, s.gy), PY(s.gy), gz, face, t, false) });
   }
   list.sort((a, b) => a.y - b.y);
   for (const it of list) it.f();
   if (d.roof) drawRoof(ctx, w, t);
+  // ═════════ 밤: 어둠 + 손전등만 밝다 ═════════
+  if (d.night) {
+    const vg = ctx.createRadialGradient(w / 2, R(0.8), R(0.2), w / 2, R(0.8), R(0.9));
+    vg.addColorStop(0, 'rgba(2,4,18,.5)');
+    vg.addColorStop(1, 'rgba(2,4,18,.72)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, R(FY0) - R(0.12), w, R(SY(DEP) - FY0 + 0.13));
+    if (farmerM) {
+      const [fx0, fy0] = pos(farmerM, W.t), dir = lightDir(W, farmerM);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.beginPath();
+      ctx.moveTo(PX(fx0, fy0), PY(fy0) - R(0.045));
+      for (let k = 0; k <= 14; k++) {
+        const a = dir - LIGHT_HALF + (2 * LIGHT_HALF * k) / 14, x = fx0 + Math.cos(a) * LIGHT_L, y = fy0 + Math.sin(a) * LIGHT_L;
+        ctx.lineTo(PX(x, y), PY(y));
+      }
+      ctx.closePath();
+      const lg = ctx.createRadialGradient(PX(fx0, fy0), PY(fy0), R(0.02), PX(fx0, fy0), PY(fy0), R(0.6));
+      lg.addColorStop(0, 'rgba(255,214,110,.5)');
+      lg.addColorStop(1, 'rgba(255,190,80,.06)');
+      ctx.fillStyle = lg;
+      ctx.fill();
+      ctx.restore();
+      // 어둠 속 소 눈빛
+      W.mobs.forEach((m, i) => {
+        if (m.gone || (m.k !== 'cow' && m.k !== 'chick') || lit(W, ...pos(m, W.t))) return;
+        if ((t + i * 37) % 160 < 6) return;
+        const [x, y] = pos(m, W.t), z = R(0.045) * scl(y), nx = pos({ ...m, a: m.a + (m.sp >= 0 ? 0.05 : -0.05) }, W.t)[0], f = nx >= x ? 1 : -1;
+        ctx.fillStyle = 'rgba(255,250,200,.9)';
+        ctx.beginPath();
+        ctx.arc(PX(x, y) + f * z * 1.08, PY(y) - z * (m.k === 'chick' ? 0.75 : 1.2), Math.max(1.4, z * 0.07), 0, TAU);
+        ctx.fill();
+      });
+    }
+  }
   // ═════════ 우주 젖소 (하늘을 날다 내려앉는다) ═════════
   if (spaceM && !(beaming && s.lifts.some((L) => L.k === 'space'))) {
-    const [gr, , q] = spaceState(spaceM, W.t), [x, y] = pos(spaceM, W.t), z = R(0.042) * scl(y);
+    const [gr, , q] = spaceState(spaceM, W.t), [x, y] = pos(spaceM, W.t), z = R(0.047) * scl(y);
     const alt = gr ? 0 : Math.sin(q * Math.PI) * R(0.22);
     shadow(ctx, PX(x, y), PY(y), z * (gr ? 1.2 : 0.8), z * 0.3, gr ? 0.35 : 0.18);
     ctx.save();
@@ -1895,7 +2000,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: UfoState, w: number, h: numbe
   // ═════════ 빔에 탄 것들 ═════════
   if (beaming) {
     for (const L of s.lifts) {
-      const x0 = PX(L.x, L.y), y0 = PY(L.y), z0 = R(0.04) * scl(L.y);
+      const x0 = PX(L.x, L.y), y0 = PY(L.y), z0 = R(0.045) * scl(L.y);
       let px = x0, py = y0, sc = 1, rot = 0, show = true;
       const topY = UY + ufoW * 0.05;
       if (L.fate === 'in') {
@@ -1953,7 +2058,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: UfoState, w: number, h: numbe
     else if (recent('farmerUp', 80) || recent('spitPre', 80) || (pv && pv.rec.lifted.some((q) => q.k === 'farmer'))) mood = 'huh';
     else if (recent('wow', 90) || (pv && pv.rec.cows >= 3)) mood = 'wow';
     else if (s.phase === 'result' && s.ok) mood = 'smug';
-    const fill = Math.min(5, Math.round((5 * W.got) / d.goal));
+    let flying = 0;
+    if (beaming && bq < 0.9) for (const L of s.lifts) if (L.fate === 'in') flying += L.k === 'bull' || L.k === 'space' ? 2 : L.k === 'cow' ? 1 : 0;
+    const fill = Math.min(5, Math.round((5 * Math.max(0, W.got - flying)) / d.goal));
     drawUfo(ctx, UX, UY, ufoW, t, mood, fill, beaming);
   }
   // ═════════ 미리 보기 말풍선 ═════════
@@ -2009,14 +2116,6 @@ function drawAll(ctx: CanvasRenderingContext2D, s: UfoState, w: number, h: numbe
     ctx.setLineDash([]);
     emoji(ctx, '👆', PX(cx, cy) + R(0.03), PY(cy) + R(0.06) + Math.abs(Math.sin(t * 0.12)) * R(0.02), R(0.08));
   }
-  // ═════════ 밤: 어둠 ═════════
-  if (d.night) {
-    const vg = ctx.createRadialGradient(w / 2, R(0.8), R(0.2), w / 2, R(0.8), R(0.9));
-    vg.addColorStop(0, 'rgba(2,4,16,.28)');
-    vg.addColorStop(1, 'rgba(2,4,16,.6)');
-    ctx.fillStyle = vg;
-    ctx.fillRect(0, R(FY0) - R(0.05), w, R(SY(DEP) - FY0 + 0.06));
-  }
   // 반딧불
   for (let k = 0; k < 9; k++) {
     const a = hsh(k + 900) + Math.sin(t * 0.01 + k) * 0.05, b = 0.1 + hsh(k + 950) * 1.05 + Math.cos(t * 0.013 + k) * 0.03;
@@ -2040,21 +2139,30 @@ function drawAll(ctx: CanvasRenderingContext2D, s: UfoState, w: number, h: numbe
       fx.ring(x, y, '#c8ffd8', BR * FXW * w * 1.3, 4), fx.kick(e.v ? 3 : 1.5), fx.blink('#b8ffcf', 0.12);
       fx.burst(x, y - R(0.02), '#d8ffe4', 16, 3, 2);
     }
-    if (e.kind === 'wow') say(UX, UY - R(0.1), `우와! ×${e.v}`, '#c8ffb0', 22);
+    if (e.kind === 'wow') say(UX + (UX < w / 2 ? 1 : -1) * ufoW * 0.75, UY + R(0.02), `우와! ×${e.v}`, '#c8ffb0', 22);
     if (e.kind === 'bark') say(x, y - R(0.07), '멍! 멍!', '#ffffff', 18), fx.ring(x, y - R(0.02), '#ffbe78', DR * FXW * w * 1.1, 3), fx.kick(3);
     if (e.kind === 'farmerUp') say(x, y - R(0.12), '이놈들!', '#ffd0c0', 16);
-    if (e.kind === 'spitPre') say(UX, UY - R(0.1), '엥?', '#fff3a0', 18);
+    if (e.kind === 'spitPre') say(UX + (UX < w / 2 ? 1 : -1) * ufoW * 0.7, UY + R(0.02), '엥?', '#fff3a0', 18);
     if (e.kind === 'empty') say(x, y - R(0.06), '텅~', '#e0e8ff', 16);
-    if (e.kind === 'spotted') fx.blink('#fff3a0', 0.5), fx.kick(6), say(x, y - R(0.1), '외계인이다!', '#fff3a0', 20), say(UX, UY - R(0.1), '헉!', '#ffd0d0', 20);
+    if (e.kind === 'spotted') fx.blink('#fff3a0', 0.5), fx.kick(6), say(x, y - R(0.1), '외계인이다!', '#fff3a0', 20), say(UX + (UX < w / 2 ? 1 : -1) * ufoW * 0.7, UY + R(0.02), '헉!', '#ffd0d0', 20);
     if (e.kind === 'nope') say(R(e.x), R(e.y), e.text!, e.col!, 14), fx.kick(1.5);
     if (e.kind === 'stage') fx.blink('#dfe8ff', 0.18);
     if (e.kind === 'clear') {
       fx.burst(UX, UY, '#ffe066', 40, 6, 3.2), fx.burst(UX, UY, '#7dffb2', 30, 5, 3), fx.ring(UX, UY, '#ffe066', R(0.3), 6), fx.blink('#e8fff0', 0.22);
-      say(UX, UY - R(0.11), '납치 완료!', '#ffffff', 20);
+      say(UX + (UX < w / 2 ? 1 : -1) * ufoW * 0.8, UY + R(0.03), '납치 완료!', '#ffffff', 20);
     }
     if (e.kind === 'fail') fx.kick(9), fx.blink(th.hot, 0.22);
   }
   fx.memo.t = s.t;
+  // 소 떼 박자: 걸음마다 ♪
+  if (d.herd && s.phase !== 'result' && W.t % BEAT < MOVE && (fx.memo.beat ?? -1) !== Math.floor(W.t / BEAT)) {
+    fx.memo.beat = Math.floor(W.t / BEAT);
+    const lead = W.mobs.find((m) => m.path === 1 && !m.gone);
+    if (lead) {
+      const [x, y] = pos(lead, W.t);
+      fx.pop(PX(x, y), PY(y) - R(0.09), fx.memo.beat % 2 ? '♪' : '♫', '#ffe9a8', 18);
+    }
+  }
   // 빔 안의 순간들 (음매 · 쏙 · 퉁 · 쿵 · 퉤)
   if (beaming) {
     for (const L of s.lifts) {
@@ -2067,7 +2175,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: UfoState, w: number, h: numbe
       if ((L.k === 'cow' || L.k === 'bull' || L.k === 'space') && L.fate === 'in' && bq > 0.15 && mk('moo') && (L.i % 2 === 0 || s.lifts.length < 3)) say(x0, y0 - R(0.12), L.k === 'bull' ? '음머어!' : L.k === 'space' ? '뿌잉~' : '음매~', '#ffffff', 15);
       if (L.k === 'chick' && bq > 0.2 && mk('ko')) say(x0, y0 - R(0.1), '꼬꼬?!', '#fff6c0', 13);
       if (L.fate === 'in' && bq > 0.88 && mk('in')) fx.burst(UX, UY + ufoW * 0.08, '#c8ffd8', 8, 2.4, 2), mk('inx') && L === s.lifts[0] && say(UX + ufoW * 0.4, UY, '쏙!', '#c8ffd8', 16);
-      if (L.fate === 'drop' && bq > 0.75 && mk('thud')) fx.burst(x0, y0, '#d9c9a0', 16, 3, 2.4), fx.kick(5), say(x0, y0 - R(0.08), '퉁!', '#ffe0c8', 20), say(x0, y0 - R(0.14), '아이고 엉덩이야', '#ffd0c0', 13);
+      if (L.fate === 'drop' && bq > 0.75 && mk('thud')) fx.burst(x0, y0, '#d9c9a0', 16, 3, 2.4), fx.kick(5), say(x0, y0 - R(0.07), '퉁!', '#ffe0c8', 22), fx.pop(Math.max(R(0.2), Math.min(w - R(0.2), x0 + R(0.16) * (L.x < 0.5 ? 1 : -1))), y0 - R(0.02), '아이고 엉덩이야', '#ffd0c0', 13);
       if (L.fate === 'bump' && bq > 0.12 && mk('ung')) say(x0, y0 - R(0.12), '끄응…', '#ffe0c8', 15);
       if (L.fate === 'bump' && bq > 0.5 && mk('kung')) fx.burst(x0, y0, '#d9c9a0', 18, 3.2, 2.6), fx.kick(6), say(x0, y0 - R(0.08), '쿵!', '#ffe0c8', 20);
       if (L.fate === 'spit' && bq > 0.55 && mk('spit')) say(UX, UY + R(0.05), '퉤!', '#fff3a0', 20), fx.burst(UX, UY, '#e8c35a', 14, 4, 2);
@@ -2106,9 +2214,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: UfoState, w: number, h: numbe
     ctx.globalAlpha = a;
     ctx.textAlign = 'center';
     const tx = `✨ ${s.news.text}`;
-    let fs = 0.037;
-    font(fs, 900);
-    while (ctx.measureText(tx).width > w - R(0.05) && fs > 0.034) font((fs -= 0.001), 900);
+    font(0.037, 900);
     const lines = ctx.measureText(tx).width > w - R(0.05) ? splitHalf(tx) : [tx];
     const lh = R(0.046), tw2 = Math.min(w - 8, Math.max(...lines.map((l) => ctx.measureText(l).width)) + 22), by2 = hb + R(0.04) - drop;
     ctx.fillStyle = 'rgba(20,28,64,.93)';
@@ -2125,11 +2231,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: UfoState, w: number, h: numbe
   // 판 시작 큰 글씨 (하늘에)
   {
     const age = t - s.startT;
-    if (age < 90 && s.phase !== 'result') {
-      const a = Math.min(1, age / 8, (90 - age) / 20), sc = 1 + Math.max(0, 8 - age) * 0.04;
+    if (age < 100 && s.phase === 'aim' && W.used === 0 && !s.down) {
+      const a = Math.min(1, age / 8, (100 - age) / 20), sc = 1 + Math.max(0, 8 - age) * 0.04;
       ctx.globalAlpha = a;
       ctx.save();
-      ctx.translate(w / 2, R(0.3));
+      ctx.translate(w / 2, R(SY(DEP) - 0.13));
       ctx.scale(sc, sc);
       font(0.07, 900);
       ctx.textAlign = 'center';
@@ -2252,7 +2358,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: UfoState, w: number, h: numbe
       ctx.fill();
       ctx.stroke();
       ctx.textAlign = 'center';
-      font(0.035, 800);
+      font(0.036, 800);
       ctx.fillStyle = st === false ? 'rgba(255,255,255,.45)' : '#eef3ff';
       ctx.fillText(`${st === true ? '★' : st === false ? '✗' : '☆'} ${txt}`, gx + gw / 2, y2 + 1);
     });
@@ -2272,7 +2378,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: UfoState, w: number, h: numbe
     else if (W.mobs.some((m) => m.k === 'bull' && m.hits === 1 && !m.gone)) tip = '🐂 어질어질 멈춘 황소 — 한 번 더!';
     else if (W.mobs.some((m) => m.k === 'scare' && !m.gone)) tip = '🌾 허수아비는 원 밖으로!';
     ctx.textAlign = 'center';
-    font(0.035, 800);
+    font(0.036, 800);
     ctx.fillStyle = 'rgba(232,240,255,.92)';
     ctx.fillText(tip, w / 2, y3);
   }
