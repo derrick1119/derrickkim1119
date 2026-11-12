@@ -4,7 +4,7 @@
  */
 import { TICK, type Input } from './core.ts';
 import { peek } from './juice.ts';
-import { sheepdog as g, type DogState } from './game.ts';
+import { sheepdog as g, starCount, type DogState } from './game.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('sheepdog:' + k) ?? 0); } catch { return 0; } },
@@ -63,7 +63,11 @@ function showTitle(html?: string) {
 }
 
 function start() {
+  // 다시 하기: 판별 최고 별은 그대로 두고 1판부터 (C002 FUN QA — 별 기록을 지우지 않는다)
+  const kept = s.best;
   s = g.create((Date.now() % 1_000_000) + 1);
+  s.best = [...kept];
+  s.stars = s.best.reduce((a, m) => a + starCount(m), 0);
   running = true;
   overlay.hidden = true;
   retryBtn.hidden = false;

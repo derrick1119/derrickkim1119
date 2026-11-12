@@ -2337,7 +2337,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       fx.burst(gx0, gy0 - R(0.05), '#ffe066', 40, 6, 3.2), fx.burst(gx0, gy0 - R(0.05), '#ff8fb1', 30, 5, 3), fx.ring(gx0, gy0, '#ffe066', R(0.3), 6), fx.blink('#fff6c8', 0.25);
       say(gx0, gy0 - R(0.1), '딸깍!', '#ffffff', 20);
     }
-    if (e.kind === 'fail') fx.kick(9), fx.blink(th.hot, 0.22);
+    if (e.kind === 'fail') fx.kick(3), fx.blink('#fff6d6', 0.12); // C002: 실패는 벌이 아니다 — 빨간 번쩍·큰 흔들림 없음
   }
   fx.memo.t = s.t;
   // 양 하나하나의 순간 (들어감 · 풍덩 · 데굴)
@@ -2370,7 +2370,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       }
       if (flee.fellAt[i] >= 0 && idx >= flee.fellAt[i] && mk('fell')) {
         const [a, b] = pathAt(pa, flee.fellAt[i] / Math.max(1, m - 1));
-        fx.burst(PX(a, b), PY(b), '#bfe9ff', 30, 4.5, 3), fx.ring(PX(a, b), PY(b), '#ffffff', R(0.08), 3), fx.kick(6);
+        fx.burst(PX(a, b), PY(b), '#bfe9ff', 30, 4.5, 3), fx.ring(PX(a, b), PY(b), '#ffffff', R(0.08), 3), fx.kick(4);
         say(PX(a, b), PY(b) - R(0.08), '풍덩!', '#bfe9ff', 20);
       }
       if (flee.trip[i] && q > 0.6 && mk('trip')) {
@@ -2389,7 +2389,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       if ((fx.memo[k2] ?? -1) !== key) {
         fx.memo[k2] = key;
         const i = flee.caught;
-        fx.kick(10), fx.blink('#ff5a5a', 0.25);
+        fx.kick(4), fx.blink('#e8ecff', 0.12);
         say(PX(S.x[i], S.y[i]), PY(S.y[i]) - R(0.1), '앙!', '#ffb3a8', 22);
       }
     }
