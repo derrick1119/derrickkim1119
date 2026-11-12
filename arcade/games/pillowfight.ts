@@ -1656,8 +1656,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PillowState, w: number, _h: n
     F.route.forEach((ci, k) => {
       if (seen.has(ci)) return;
       seen.add(ci);
-      const [px, py] = P((ci % COLS) + 0.5, Math.floor(ci / COLS) + 0.85);
-      for (const [ox, oy] of [[-0.035, 0], [0.035, -0.01]]) {
+      const [px, py] = P((ci % COLS) + 0.86, Math.floor(ci / COLS) + 0.45);
+      for (const [ox, oy] of [[-0.012, 0.012], [0.012, -0.012]]) {
         ctx.beginPath();
         ctx.ellipse(px + R(ox), py + R(oy), R(0.011), R(0.008), 0, 0, TAU);
         ctx.fill();
@@ -1975,19 +1975,21 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PillowState, w: number, _h: n
         drawKid(ctx, x, y - m.bounce, z, { team: k.team, kind: k.kind, mood: m.mood, t, sh: k.sh, messy: Math.min(3, k.hitN), seed: i + s.stage * 3, arm: m.arm, front: m.front });
       }
     }
-    // 강아지 (발자국 길을 박자마다 한 칸씩 — 그 칸 아이를 핥는다)
-    if (F.route.length && !hiding) {
-      const b0 = Math.max(0, S.beat - 1), cur = F.route[b0 % F.route.length], prev = F.route[Math.max(0, b0 - 1) % F.route.length];
-      const q = s.phase === 'battle' && S.beat > 1 ? clamp01((t - s.flyT + 12) / 12) : 1;
-      const dc = (cur % COLS) * q + (prev % COLS) * (1 - q), dr = Math.floor(cur / COLS) * q + Math.floor(prev / COLS) * (1 - q);
-      if (Math.round(dr) === r) {
-        const lickNow = s.phase === 'battle' && occ[cur] >= 0 && t - s.flyT < 40;
-        const [gx, gy] = P(dc + 0.78, dr + 0.7);
-        drawDog(ctx, gx, gy, zOf(r) * 0.95, t, lickNow, -1);
-      }
-    }
   };
   for (let r = 0; r < ROWS; r++) drawRowThings(r);
+  // 강아지 (발자국 길을 박자마다 한 칸씩 — 그 칸 아이를 핥는다). 작은 구경꾼이라 맨 위에 그린다
+  if (F.route.length && !hiding) {
+    const b0 = Math.max(0, S.beat - 1), cur = F.route[b0 % F.route.length], prev = F.route[Math.max(0, b0 - 1) % F.route.length];
+    const q = s.phase === 'battle' && S.beat > 1 ? clamp01((t - s.flyT + 12) / 12) : 1;
+    const dc = (cur % COLS) * q + (prev % COLS) * (1 - q), dr = Math.floor(cur / COLS) * q + Math.floor(prev / COLS) * (1 - q);
+    const lickNow = s.phase === 'battle' && occ[cur] >= 0 && t - s.flyT < 40;
+    const [gx, gy] = P(dc + 0.86, dr + 0.62);
+    drawDog(ctx, gx, gy, zOf(Math.round(dr)) * 0.95, t, lickNow, -1);
+    if (lickNow) {
+      ctx.fillStyle = '#ff9ec7';
+      drawHeart(ctx, gx - R(0.04), gy - R(0.09) - (t - s.flyT) * 0.4, R(0.01), true, '#ff9ec7');
+    }
+  }
   // 손패에서 날아오는 중인 아이 (맨 위에)
   if (s.phase === 'place' && s.placedI >= 0 && t - s.placedT < HOP) {
     const k = S.kids[s.placedI], [x, y] = kidAt(s.placedI);

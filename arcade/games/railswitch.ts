@@ -873,7 +873,7 @@ function forecast(S0: Sim, tg: { k: number; i: number } | null, H = 420): Fore {
     } else if (tr.dwell > 0 || tr.pend === 2) fin[i] = tr.pend === 2 || tr.dwell > 0;
   });
   // 서 있는 기차도 앞으로 갈 길은 보여 준다
-  S.trains.forEach((tr, i) => {
+  S.trains.forEach((_tr, i) => {
     if (fin[i] && !ends[i]) fin[i] = false;
   });
   let crash = -1, ct = 0;
@@ -1498,7 +1498,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
       dashPath(i, fc.paths[i], tr.fast ? '#ffb02e' : DASH[i % 2], R(0.011), changed ? 0.3 : 0.95, t * 0.6);
     });
     if (pv)
-      s.trains.forEach((tr, i) => {
+      s.trains.forEach((_tr, i) => {
         if (pv.paths[i].join() !== fc.paths[i].join()) dashPath(i, pv.paths[i], '#ffffff', R(0.015), 1, t * 0.9);
       });
   }
@@ -1730,7 +1730,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
     });
   });
   // 신호등
-  N.sigCell.forEach((c, i) => {
+  N.sigCell.forEach((_c, i) => {
     const hh = N.hits.find((q) => q.k === 1 && q.i === i)!, x0 = X(hh.x), y0 = Y(hh.y) + R(0.045);
     L.push({
       y: y0,
@@ -2146,11 +2146,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
     };
     N.stations.forEach((st) => glow(px(st.b), py(st.b) - R(0.03), R(0.1), 'rgba(255,200,90,.35)'));
     glow(px(N.dpl), py(N.dpl) - R(0.04), R(0.14), 'rgba(255,210,120,.35)');
-    N.sigCell.forEach((c, i) => {
+    N.sigCell.forEach((_c, i) => {
       const hh = N.hits.find((q) => q.k === 1 && q.i === i)!;
       glow(X(hh.x), Y(hh.y) - R(0.035), R(0.09), s.sig[i] ? 'rgba(255,60,40,.55)' : 'rgba(60,255,110,.45)');
     });
-    s.trains.forEach((tr, i) => {
+    s.trains.forEach((_tr, i) => {
       const q = trainPos[i][0];
       if (N.tun[q.c]) return;
       glow(q.x + Math.cos(q.phi) * R(0.08), q.y + Math.sin(q.phi) * KG * R(0.08) - R(0.02), R(0.1), 'rgba(255,240,160,.4)');
