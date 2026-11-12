@@ -29,11 +29,11 @@ const gx = (c: number) => c % COLS, gy = (c: number) => (c / COLS) | 0;
 const cid = (x: number, y: number) => y * COLS + x;
 const CXc = (c: number) => BX0 + (gx(c) + 0.5) * CW, CYc = (c: number) => BY0 + (gy(c) + 0.5) * RH;
 /** 한 칸 가는 틱(보통·급행) · 갈림길 앞 칸에서 느려지는 배수 · 역·출발역에 서 있는 틱 · 판 시작 뒤 출발까지 */
-const PER = 19, PER_FAST = 10, SLOW = 1.7, DW_ST = 38, DW_DEPOT = 32, INTRO = 90;
+const PER = 22, PER_FAST = 11, SLOW = 1.8, DW_ST = 38, DW_DEPOT = 32, INTRO = 90;
 const MAX_ANGER = 3;
 /** 소 떼: 풀 뜯다가(OFF) 건널목을 건넌다(ON, 이동안 기차는 건널목 앞에서 선다) */
 const COW_OFF = 330, COW_ON = 150;
-const RESULT_OK = 150, RESULT_FAIL = 150, NEWS_T = 170, CARD_T = 140;
+const RESULT_OK = 135, RESULT_FAIL = 150, NEWS_T = 170, CARD_T = 140;
 const STAR_PTS = 100, CLEAR_PTS = 20, WIN_PTS = 200;
 /** 손가락으로 누르는 자리(갈림길·신호등) 반지름 — 340px 폭에서 약 30px */
 const HIT_R = 0.088;
@@ -142,12 +142,13 @@ export const STAGES: StageDef[] = [
   },
   {
     key: 'cars', news: '🚃 화물칸 두 칸 — 앞 칸 손님부터 내려요', hint: '앞 칸 손님 역 먼저! 순서가 맞으면 한 바퀴에 둘',
-    map: ['.......', '.66662.', '.8...2.', '.a6662.', '98...2.', '88...2.', '.p4444.', '.......'],
-    jn: { a: ['8', '6'], p: ['8', '7'] },
-    st: [[3, 3, 0, 3, 2], [3, 1, 1, 3, 0], [0, 5, 2, 0, 6]],
+    map: ['.......', '.66662.', '.8...2.', '.a6662.', '98...2.', '8b6662.', '.p4444.', '.......'],
+    jn: { a: ['8', '6'], b: ['8', '6'], p: ['8', '7'] },
+    st: [[3, 5, 0, 3, 4], [3, 1, 1, 3, 0], [0, 5, 2, 0, 6]],
     depot: [3, 6, 3, 7],
+    sig: [[5, 2], [5, 4]],
     trains: [{ path: [[2, 6], [3, 6], [4, 6], [5, 6]], pax: [0, 2] }],
-    queue: [1, 2, 0, 1],
+    queue: [1, 2, 1],
     mix: true,
     par: 6, bonus: 'calm',
   },
@@ -162,7 +163,7 @@ export const STAGES: StageDef[] = [
     trains: [{ path: [[1, 5], [1, 6], [2, 6]], pax: [[0, 1]] }, { path: [[5, 1], [4, 1], [3, 1]], fast: true, pax: [] }],
     queue: [2, [1, 2], 0],
     mix: true,
-    par: 7, bonus: 'calm',
+    par: 10, bonus: 'calm',
   },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -537,9 +538,8 @@ export const railswitch: GameDef<RailState> = {
   genes: ['traffic', 'pointer', 'depth'],
   twist: '신호 대신 갈림길 하나를 톡 — 기차가 갈 길이 늘 점선으로 보이고, 누르고 있으면 바꾼 뒤의 길과 처음 서는 역(✓·💢)·부딪힐 자리(💥)가 미리 보인다',
   rules: [
-    '갈림길을 톡 = 철컥! 기차는 점선을 따라 저절로 가요 (꾹 누르면 바뀐 길이 보여요).',
-    '손님은 기차가 서는 역에서 내려요 — 같은 그림 역이면 띵동, 아니면 화내요(두 번이면 하트 −1).',
-    '기차끼리 부딪히면 쾅! 하트 −1.',
+    '갈림길을 톡 = 철컥! 기차는 점선을 따라 저절로 가요 (꾹 누르면 바뀐 길이 미리 보여요).',
+    '손님은 같은 그림 역에서 띵동 내려요 — 다른 역에 세 번 서거나 기차끼리 쾅 하면 하트 −1.',
   ],
   controls: 'touch',
   hint: '갈림길을 톡 = 철컥! (꾹 누르면 바뀐 길 미리 보기) / 화살표로 고르고 스페이스',
@@ -569,7 +569,9 @@ export const railswitch: GameDef<RailState> = {
     }
     s.pt++;
     s.events = s.events.filter((e) => s.t - e.t < 120);
-    if (!s.news || s.t - s.news.t > NEWS_T) s.news = s.newsQ.length ? { text: s.newsQ.shift()!, t: s.t } : s.news;
+    // 판 카드가 떠 있는 동안은 알림을 미룬다 (겹치지 않게)
+    const card = s.phase === 'result' || s.pt < CARD_T;
+    if ((!s.news || s.t - s.news.t > NEWS_T) && !card) s.news = s.newsQ.length ? { text: s.newsQ.shift()!, t: s.t } : s.news;
     if (s.phase === 'result') {
       s.t++;
       if (s.pt >= (s.ok ? RESULT_OK : RESULT_FAIL)) {
@@ -581,6 +583,9 @@ export const railswitch: GameDef<RailState> = {
       }
       return;
     }
+    // 1판 첫 판: 첫 톡을 할 때까지(최대 5초) 기차가 출발역 앞에서 기다린다 → 톡 하면 바로 출발
+    if (s.stage === 0 && !s.again && !s.firstTap && s.pt < INTRO + 300) s.go = Math.max(s.go, s.t + 2);
+    else if (s.stage === 0 && s.firstTap && s.go > s.t + 14) s.go = s.t + 14;
     tick(s, s);
     if (s.crash >= 0) {
       see(s, 'crash', '💥 두 기차가 한 칸에 들어가면 쾅!');
@@ -606,6 +611,8 @@ function legOf(S: Sim, tr: Train): { want: number; alt: number } | null {
     k = tr.pax.findIndex((p, i) => i > k && p !== null);
   }
   if (k >= 0) return { want: tr.pax[k]!.want, alt: tr.pax[k]!.alt };
+  // 출발역에서 막 태울 손님이 있으면 그 손님의 역
+  if (tr.pend === 2 && S.queue.length) return { want: S.queue[0].want, alt: S.queue[0].alt };
   if (tr.pend === 2 || S.queue.length) return { want: -1, alt: -1 };
   return null;
 }
@@ -1215,7 +1222,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
   const say = (x: number, y: number, text: string, col: string, size: number) => {
     let rec = sayMem.get(s);
     if (!rec) sayMem.set(s, (rec = []));
-    for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.28 && Math.abs(q.y - y) < size + 4); k++) y -= size + 4;
+    y = Math.max(Y(BY0 + 0.1), y);
+    const dir = y < Y(BY0 + 0.2) ? 1 : -1;
+    for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.28 && Math.abs(q.y - y) < size + 4); k++) y += dir * (size + 4);
     rec.push({ x, y, t: s.t });
     if (rec.length > 14) rec.shift();
     fx.pop(Math.max(w * 0.16, Math.min(w * 0.84, x)), y, text, col, size);
@@ -1492,7 +1501,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
       }
     }
   };
-  if (fc) {
+  const dashes = () => {
+    if (!fc) return;
     s.trains.forEach((tr, i) => {
       const changed = pv && pv.paths[i].join() !== fc.paths[i].join();
       dashPath(i, fc.paths[i], tr.fast ? '#ffb02e' : DASH[i % 2], R(0.011), changed ? 0.3 : 0.95, t * 0.6);
@@ -1501,7 +1511,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
       s.trains.forEach((_tr, i) => {
         if (pv.paths[i].join() !== fc.paths[i].join()) dashPath(i, pv.paths[i], '#ffffff', R(0.015), 1, t * 0.9);
       });
-  }
+  };
+  if (!night) dashes();
   // ═════════════ 땅 위 물건들 (뒤에서 앞으로) ═════════════
   type Dr = { y: number; f: () => void };
   const L: Dr[] = [];
@@ -1766,9 +1777,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
     for (let k = 0; k < 3; k++) {
       const ph = s.cowOn ? Math.min(1, (COW_ON - s.cowT) / 40) : Math.max(0, 1 - (COW_OFF - s.cowT) / 40);
       const onY = cy0 + (k - 1) * R(0.018), offY = up + (k - 1) * R(0.012);
-      const yy = offY + (onY - offY) * ph, xx = cx0 + (k - 1) * R(0.038) + Math.sin(t * 0.01 + k) * R(0.006);
+      const yy = offY + (onY - offY) * ph, xx = cx0 + (k - 1) * R(0.044) + Math.sin(t * 0.01 + k) * R(0.006);
       const grazing = (s.cowOn && ph >= 1) || (!s.cowOn && ph <= 0);
-      L.push({ y: yy, f: () => cow(ctx, xx, yy, R(0.026), k % 2 ? -1 : 1, grazing ? 1 : 0, t, k) });
+      L.push({ y: yy, f: () => cow(ctx, xx, yy, R(0.031), k % 2 ? -1 : 1, grazing ? 1 : 0, t, k) });
     }
     // 건널목 차단기·경고등
     L.push({
@@ -1815,28 +1826,30 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
           if (crashed) (ctx.translate(q.x, q.y), ctx.rotate(tilt), ctx.translate(-q.x, -q.y));
           ctx.fillStyle = 'rgba(0,0,0,.28)';
           ctx.beginPath();
-          ctx.ellipse(q.x + R(0.008), q.y + R(0.01), R(0.058), R(0.03), 0, 0, Math.PI * 2);
+          ctx.ellipse(q.x + R(0.008), q.y + R(0.01), R(0.066), R(0.034), 0, 0, Math.PI * 2);
           ctx.fill();
           // 바퀴
-          for (const [u, v] of [[0.03, 0.026], [-0.03, 0.026], [0.03, -0.026], [-0.03, -0.026]]) {
+          for (const [u, v] of [[0.034, 0.03], [-0.034, 0.03], [0.034, -0.03], [-0.034, -0.03]]) {
             const wx = q.x + R(u) * Math.cos(q.phi) - R(v) * Math.sin(q.phi), wy = q.y + (R(u) * Math.sin(q.phi) + R(v) * Math.cos(q.phi)) * KG;
             ctx.fillStyle = '#26292e';
             ctx.beginPath();
-            ctx.ellipse(wx, wy - R(0.008), R(0.012), R(0.01), 0, 0, Math.PI * 2);
+            ctx.ellipse(wx, wy - R(0.009), R(0.014), R(0.012), 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.fillStyle = col[2];
             ctx.beginPath();
-            ctx.arc(wx, wy - R(0.008), R(0.004), 0, Math.PI * 2);
+            ctx.arc(wx, wy - R(0.009), R(0.005), 0, Math.PI * 2);
             ctx.fill();
           }
           if (k === 0) {
             // 기관차: 받침 · 보일러 · 운전실 · 굴뚝
-            box(ctx, q.x, q.y + bob, q.phi, R(0.1), R(0.056), R(0.008), R(0.012), '#3a3d44', '#4a4e57', '#2a2c31');
+            box(ctx, q.x, q.y + bob, q.phi, R(0.114), R(0.064), R(0.009), R(0.014), '#3a3d44', '#4a4e57', '#2a2c31');
             const ca = Math.cos(q.phi), sa = Math.sin(q.phi);
-            const fxp = q.x + R(0.022) * ca, fyp = q.y + R(0.022) * sa * KG + bob;
-            box(ctx, fxp, fyp, q.phi, R(0.058), R(0.044), R(0.02), R(0.03), col[0], shade(col[0], 0.25), col[1]);
-            const bxp = q.x - R(0.03) * ca, byp = q.y - R(0.03) * sa * KG + bob;
-            const tp = box(ctx, bxp, byp, q.phi, R(0.04), R(0.054), R(0.02), R(0.05), col[1], shade(col[1], 0.2), shade(col[1], -0.2));
+            const fxp = q.x + R(0.024) * ca, fyp = q.y + R(0.024) * sa * KG + bob;
+            box(ctx, fxp, fyp, q.phi, R(0.066), R(0.05), R(0.023), R(0.034), col[0], shade(col[0], 0.25), col[1]);
+            // 보일러 금띠
+            box(ctx, fxp + R(0.012) * ca, fyp + R(0.012) * sa * KG, q.phi, R(0.008), R(0.052), R(0.023), R(0.036), col[2], col[2], shade(col[2], -0.2));
+            const bxp = q.x - R(0.034) * ca, byp = q.y - R(0.034) * sa * KG + bob;
+            const tp = box(ctx, bxp, byp, q.phi, R(0.046), R(0.062), R(0.023), R(0.056), col[1], shade(col[1], 0.2), shade(col[1], -0.2));
             // 지붕 테
             ctx.fillStyle = col[2];
             ctx.beginPath();
@@ -1844,18 +1857,18 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
             ctx.closePath();
             ctx.fill();
             // 굴뚝
-            const cx1 = q.x + R(0.04) * ca, cy1 = q.y + R(0.04) * sa * KG + bob - R(0.05);
+            const cx1 = q.x + R(0.046) * ca, cy1 = q.y + R(0.046) * sa * KG + bob - R(0.078);
             ctx.fillStyle = '#26292e';
-            ctx.fillRect(cx1 - R(0.009), cy1, R(0.018), R(0.026));
+            ctx.fillRect(cx1 - R(0.011), cy1, R(0.022), R(0.026));
             ctx.fillStyle = col[2];
             ctx.beginPath();
-            ctx.ellipse(cx1, cy1, R(0.013), R(0.006), 0, 0, Math.PI * 2);
+            ctx.ellipse(cx1, cy1, R(0.016), R(0.007), 0, 0, Math.PI * 2);
             ctx.fill();
             // 앞등
-            const hx = q.x + R(0.052) * ca, hy = q.y + R(0.052) * sa * KG + bob - R(0.03);
+            const hx = q.x + R(0.06) * ca, hy = q.y + R(0.06) * sa * KG + bob - R(0.036);
             ctx.fillStyle = '#fff6b0';
             ctx.beginPath();
-            ctx.arc(hx, hy, R(0.007), 0, Math.PI * 2);
+            ctx.arc(hx, hy, R(0.009), 0, Math.PI * 2);
             ctx.fill();
             if (tr.fast) {
               ctx.fillStyle = '#ffffff';
@@ -1866,22 +1879,32 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
             }
             // 너구리 기관사 (운전실 위로 고개)
             const mood = crashed ? 4 : danger.has(i) ? 3 : s.events.some((e) => e.kind === 'ding' && e.tr === i && s.t - e.t < 60) ? 1 : 0;
-            face(ctx, bxp, byp - R(0.088), R(0.022), 4, mood, t + i * 7);
+            face(ctx, bxp, byp - R(0.098), R(0.026), 4, mood, t + i * 7);
             // 기관사 모자
             ctx.fillStyle = '#2f4f8f';
             ctx.beginPath();
-            ctx.ellipse(bxp, byp - R(0.108), R(0.017), R(0.007), 0, Math.PI, 0);
+            ctx.ellipse(bxp, byp - R(0.122), R(0.02), R(0.008), 0, Math.PI, 0);
             ctx.fill();
             // 연기
             if (moving && t % 7 === 0) smoke!.push({ x: cx1, y: cy1 - R(0.005), t, dx: (Math.cos(q.phi) > 0 ? -1 : 1) * 0.15 });
           } else {
             // 손님 칸
-            box(ctx, q.x, q.y + bob, q.phi, R(0.088), R(0.052), R(0.008), R(0.032), shade(col[0], 0.1), shade(col[0], 0.35), col[1]);
+            const ctp = box(ctx, q.x, q.y + bob, q.phi, R(0.1), R(0.06), R(0.009), R(0.034), shade(col[0], 0.1), shade(col[0], 0.35), col[1]);
+            // 안쪽(손님 앉는 곳)은 어둡게
+            ctx.fillStyle = shade(col[1], -0.25);
+            ctx.beginPath();
+            ctp.forEach(([a2, c2], m) => {
+              const ix = q.x + (a2 - q.x) * 0.78, iy = (q.y + bob - R(0.043)) + (c2 - (q.y + bob - R(0.043))) * 0.7;
+              if (m) ctx.lineTo(ix, iy);
+              else ctx.moveTo(ix, iy);
+            });
+            ctx.closePath();
+            ctx.fill();
             const p = tr.pax[k - 1];
             if (p) {
               const atSt = tr.dwell > 0 && N.st[tr.hist[0]] >= 0 && k === 1;
               const mood = crashed ? 4 : p.anger > 0 && (atSt || t % 200 < 120) ? 2 : danger.has(i) ? 5 : 0;
-              face(ctx, q.x, q.y + bob - R(0.06), R(0.032), p.fox ? 3 : p.want, mood, t + k * 11, p.anger);
+              face(ctx, q.x, q.y + bob - R(0.066), R(0.037), p.fox ? 3 : p.want, mood, t + k * 11, p.anger);
               if (p.fox) {
                 // 관광 여우: 남은 갈 역 말풍선
                 const bw = p.alt >= 0 ? R(0.07) : R(0.04);
@@ -2054,6 +2077,35 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
     ctx.fill();
   }
   smokeMem.set(s, smoke.filter((p) => t - p.t <= 60 && t >= p.t));
+  // 밤: 어둠 + 불빛
+  if (night) {
+    ctx.fillStyle = 'rgba(8,14,44,.5)';
+    ctx.fillRect(0, Y(BY0 - 0.02), w, h);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const glow = (x: number, y: number, r: number, col: string) => {
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, col);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    };
+    N.stations.forEach((st) => glow(px(st.b), py(st.b) - R(0.03), R(0.1), 'rgba(255,200,90,.35)'));
+    glow(px(N.dpl), py(N.dpl) - R(0.04), R(0.14), 'rgba(255,210,120,.35)');
+    N.sigCell.forEach((_c, i) => {
+      const hh = N.hits.find((q) => q.k === 1 && q.i === i)!;
+      glow(X(hh.x), Y(hh.y) - R(0.035), R(0.09), s.sig[i] ? 'rgba(255,60,40,.55)' : 'rgba(60,255,110,.45)');
+    });
+    s.trains.forEach((_tr, i) => {
+      const q = trainPos[i][0];
+      if (N.tun[q.c]) return;
+      glow(q.x + Math.cos(q.phi) * R(0.08), q.y + Math.sin(q.phi) * KG * R(0.08) - R(0.02), R(0.1), 'rgba(255,240,160,.4)');
+    });
+    ctx.restore();
+    dashes();
+  }
   // ═════════════ 결과 표시: 처음 서는 역(✓·💢)과 부딪힐 자리(💥) ═════════════
   const mark = (f: Fore, strong: boolean) => {
     f.ends.forEach((e, i) => {
@@ -2120,40 +2172,37 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
     ctx.beginPath();
     ctx.ellipse(X(hh.x), Y(hh.y), R(0.03 + pulse * 0.07), R(0.03 + pulse * 0.07) * KG, 0, 0, Math.PI * 2);
     ctx.stroke();
-    const hx = X(hh.x) + R(0.07), hy = Y(hh.y) + R(0.05) + Math.sin(t * 0.15) * R(0.01);
-    font(0.06, 900);
+    const hx = X(hh.x) + R(0.035), hy = Y(hh.y) + R(0.045) + Math.abs(Math.sin(t * 0.12)) * R(0.02);
+    font(0.085, 900);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
     ctx.fillText('👆', hx, hy);
   }
-  // 밤: 어둠 + 불빛
-  if (night) {
-    ctx.fillStyle = 'rgba(8,14,44,.5)';
-    ctx.fillRect(0, Y(BY0 - 0.02), w, h);
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    const glow = (x: number, y: number, r: number, col: string) => {
-      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-      g.addColorStop(0, col);
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = g;
+  // 1판: 곰 손님의 바람 말풍선 (곰 역 가고 싶어요!)
+  if (s.stage === 0 && s.done === 0 && s.phase === 'play' && s.trains[0].pax[0]) {
+    const q = trainPos[0][1];
+    if (q) {
+      const bx = q.x + R(0.1), by = q.y - R(0.1);
+      ctx.fillStyle = 'rgba(255,255,255,.96)';
+      ctx.strokeStyle = '#6f4527';
+      ctx.lineWidth = R(0.004);
       ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.roundRect(bx - R(0.075), by - R(0.03), R(0.15), R(0.052), R(0.024));
       ctx.fill();
-    };
-    N.stations.forEach((st) => glow(px(st.b), py(st.b) - R(0.03), R(0.1), 'rgba(255,200,90,.35)'));
-    glow(px(N.dpl), py(N.dpl) - R(0.04), R(0.14), 'rgba(255,210,120,.35)');
-    N.sigCell.forEach((_c, i) => {
-      const hh = N.hits.find((q) => q.k === 1 && q.i === i)!;
-      glow(X(hh.x), Y(hh.y) - R(0.035), R(0.09), s.sig[i] ? 'rgba(255,60,40,.55)' : 'rgba(60,255,110,.45)');
-    });
-    s.trains.forEach((_tr, i) => {
-      const q = trainPos[i][0];
-      if (N.tun[q.c]) return;
-      glow(q.x + Math.cos(q.phi) * R(0.08), q.y + Math.sin(q.phi) * KG * R(0.08) - R(0.02), R(0.1), 'rgba(255,240,160,.4)');
-    });
-    ctx.restore();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(bx - R(0.06), by + R(0.018));
+      ctx.lineTo(bx - R(0.085), by + R(0.042));
+      ctx.lineTo(bx - R(0.04), by + R(0.02));
+      ctx.fill();
+      face(ctx, bx - R(0.045), by - R(0.004), R(0.017), 0, 0, t);
+      font(0.03, 900);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#6f4527';
+      ctx.fillText('역 가요!', bx - R(0.022), by - R(0.003));
+    }
   }
   // ═════════════ 사건 연출 ═════════════
   const seenT = fx.memo.t ?? -1;
@@ -2165,7 +2214,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
     if (e.kind === 'ding') fx.burst(x, y - R(0.04), '#ffe066', 22, 3.6, 2.6), fx.burst(x, y - R(0.04), '#ffffff', 10, 2.4, 2), fx.ring(x, y - R(0.03), '#ffe066', R(0.09), 4), say(x, y - R(0.12), e.text!, '#fff3a0', 17);
     if (e.kind === 'photo') fx.blink('#ffffff', 0.35), fx.burst(x, y - R(0.05), '#ffffff', 16, 3, 2.2), say(x, y - R(0.12), e.text!, '#ffffff', 15);
     if (e.kind === 'angry') fx.burst(x, y - R(0.05), '#ff6b5b', 14, 3, 2.2), fx.kick(4), say(x, y - R(0.12), e.text!, '#ffc2b8', 15);
-    if (e.kind === 'quit') fx.burst(x, y - R(0.05), '#ff3b30', 24, 4, 2.6), fx.kick(7), say(x, y - R(0.13), e.text!, '#ffb0a8', 17);
+    if (e.kind === 'quit') fx.burst(x, y - R(0.05), '#ff3b30', 24, 4, 2.6), fx.kick(7);
     if (e.kind === 'board') fx.burst(x, y - R(0.03), '#ffffff', 10, 2.2, 2), say(x, y - R(0.1), e.text!, '#e6fff0', 14);
     if (e.kind === 'brake') fx.burst(x, y, '#ffcc66', 10, 2.6, 1.8), say(x, y - R(0.1), '끼익!', '#ffe0b0', 15);
     if (e.kind === 'cowin') say(x, y - R(0.1), '음매~ 🐄', '#ffffff', 15);

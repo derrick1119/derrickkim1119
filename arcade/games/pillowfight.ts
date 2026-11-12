@@ -317,6 +317,8 @@ export interface PillowState {
   result: number; why: string; got: number; gotStars: [boolean, boolean, boolean];
   hearts: number; stars: number; pts: number; tries: number; won: boolean; dead: boolean;
   seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[]; startT: number; endT: number; dadT: number;
+  /** 불을 끈 틱 (-1 = 아직 켜짐) */
+  offT: number;
 }
 const ev = (s: PillowState, kind: string, x: number, y: number, text?: string, col?: string, v?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v });
 function tip(s: PillowState, key: string, text: string) {
@@ -348,6 +350,8 @@ function newStage(s: PillowState) {
   s.startT = s.t;
   s.placedT = -999;
   s.placedI = -1;
+  s.offT = -1;
+  s.dadT = 0;
   see(s, d.key, d.news);
   if (d.bonus === 'teddy' && s.stage === 0) tip(s, 'teddy', '🧸 곰 인형이 안 맞으면 별 하나 더');
   ev(s, 'stage', 2, 3, `${s.stage + 1}판 · ${d.name}`, '#fff6d6');
@@ -403,12 +407,18 @@ function land(s: PillowState) {
   const S = s.S, th = s.fly;
   const tedBefore = S.ted, shBefore = S.kids.map((k) => k.sh);
   const fell = applyThrows(S, th);
+  const byTarget = new Map<number, Throw[]>();
   for (const x of th) {
     if (x.tk >= 0) s.hitAt[x.tk] = s.t;
     const c = x.to % COLS, r = Math.floor(x.to / COLS);
     if (x.tk === -1) ev(s, 'fort', c, r, '퐁!', '#ffe8f0');
     else if (x.tk === -2) ev(s, 'teddy', c, r, '솜 펑!', '#ffd6e8');
-    else ev(s, 'hit', c, r, shBefore[x.tk] > 0 ? '이불 방어!' : x.joint ? '퍽퍽!' : x.pierce ? '꿰뚫기!' : '퍽!', shBefore[x.tk] > 0 ? '#cfe8ff' : '#ffffff', x.tk);
+    else byTarget.set(x.tk, [...(byTarget.get(x.tk) ?? []), x]);
+  }
+  for (const [tk, xs] of byTarget) {
+    const k = S.kids[tk], n = xs.length, blocked = shBefore[tk] > 0;
+    const text = blocked ? (n > 1 ? '이불 방어! 퍽!' : '이불 방어!') : xs.some((x) => x.joint) ? '퍽퍽!' : xs.some((x) => x.pierce) && n === 1 ? '꿰뚫기!' : n > 1 ? `퍽×${n}!` : '퍽!';
+    ev(s, 'hit', k.c, k.r, text, blocked ? '#cfe8ff' : '#ffffff', tk);
   }
   if (tedBefore && !S.ted) tip(s, 'tedlost', '🧸 곰 인형 앞에 우리 편을 세우면 막아 줘요');
   for (const i of fell) {
@@ -512,6 +522,7 @@ export const pillowfight: GameDef<PillowState> = {
       if (s.phase === 'place' && s.S.hi >= s.F.def.hand.length) {
         s.phase = 'lights';
         s.pt = 0;
+        s.offT = s.t;
         ev(s, 'lights', 2, 3, '불 끈다~ 하나 둘 셋!', '#fff6d6');
       }
     } else if (s.fly.length === 0 && s.phase === 'place' && s.hitT > 0 && s.t === s.hitT) {
@@ -519,6 +530,7 @@ export const pillowfight: GameDef<PillowState> = {
       if (s.S.hi >= s.F.def.hand.length) {
         s.phase = 'lights';
         s.pt = 0;
+        s.offT = s.t;
         ev(s, 'lights', 2, 3, '불 끈다~ 하나 둘 셋!', '#fff6d6');
       }
     }
@@ -684,45 +696,6 @@ export function stageProbe(stage: number, mirror: boolean, rng: Rng | null, beam
   }
   const o = fightOut(F, S), st = starsOf(F, S, o > 0);
   return { win: o > 0, stars: st.filter(Boolean).length, beats: S.beat };
-}
-
-/** 측정·도움용: 판 하나의 모든 놓는 순서를 다 해 본다 → [이긴 비율, 별 분포, 최고 별, 빔 탐색 별] */
-export function stageExhaust(stage: number, mirror = false) {
-  const F = makeField(STAGES[stage], mirror), S0 = startSim(F);
-  const dist = [0, 0, 0, 0];
-  let n = 0, wins = 0, best = 0, bestSeq: number[] = [];
-  const rec = (S: Sim, seq: number[]) => {
-    if (S.hi >= F.def.hand.length || outcome(F, S) !== 0) {
-      const S1 = cloneSim(S), o = fightOut(F, S1), st = starsOf(F, S1, o > 0).filter(Boolean).length;
-      n++;
-      if (o > 0) wins++;
-      dist[st]++;
-      if (st > best) (best = st), (bestSeq = seq);
-      return;
-    }
-    for (const p of freeSpots(F, S)) {
-      const S1 = cloneSim(S), i = placeKid(F, S1, p);
-      applyThrows(S1, openerThrows(F, S1, i));
-      rec(S1, [...seq, p]);
-    }
-  };
-  rec(S0, []);
-  return { n, win: wins / n, dist: dist.map((x) => x / n), best, bestSeq, F };
-}
-export function stageAscii(stage: number): string {
-  const F = makeField(STAGES[stage], false);
-  const rows: string[] = [];
-  for (let r = 0; r < ROWS; r++) {
-    let line = '';
-    for (let c = 0; c < COLS; c++) {
-      const i = r * COLS + c, f = F.foes.find((q) => q.r === r && q.c === c);
-      const fl = F.cell[i];
-      const base = fl & WARD ? 'W' : fl & BED ? 'B' : fl & FORT ? 'F' : fl & TEDDY ? 't' : fl & DOOR ? (fl & SPOT ? 'd' : ':') : fl & SPOT ? 'o' : fl & TOY ? 'x' : '.';
-      line += f ? `${'^>v<'[f.dir]}${f.kind[0]}${base} ` : ` ${base}  `;
-    }
-    rows.push(line);
-  }
-  return rows.join('\n');
 }
 
 // ───────────────────────────── 그리기 ─────────────────────────────
@@ -1072,11 +1045,23 @@ function drawLying(ctx: CanvasRenderingContext2D, x: number, y: number, z: numbe
   ctx.beginPath();
   ctx.arc(hx, hy, hz, 0, TAU);
   ctx.fill();
-  ctx.save();
-  ctx.translate(hx, hy);
-  ctx.rotate(-1.2);
-  drawHair(ctx, hz, hair, Math.min(1, messy), true, seed, t);
-  ctx.restore();
+  // 머리카락: 베개 쪽으로 (산발이면 삐침 두어 가닥)
+  ctx.fillStyle = hair;
+  ctx.beginPath();
+  ctx.arc(hx, hy, hz * 1.04, Math.PI * 0.55, Math.PI * 1.45);
+  ctx.quadraticCurveTo(hx - hz * 0.1, hy, hx - hz * 0.3, hy + hz * 0.98);
+  ctx.fill();
+  if (messy) {
+    ctx.strokeStyle = hair;
+    ctx.lineWidth = Math.max(1.2, hz * 0.18);
+    for (let k = 0; k < Math.min(3, messy + 1); k++) {
+      const a = Math.PI * (0.8 + k * 0.2);
+      ctx.beginPath();
+      ctx.moveTo(hx + Math.cos(a) * hz, hy + Math.sin(a) * hz);
+      ctx.lineTo(hx + Math.cos(a) * hz * 1.45, hy + Math.sin(a) * hz * 1.45 - hz * 0.1);
+      ctx.stroke();
+    }
+  }
   ctx.strokeStyle = '#3a2420';
   ctx.lineWidth = Math.max(1, hz * 0.14);
   ctx.lineCap = 'round';
@@ -1359,9 +1344,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PillowState, w: number, _h: n
   };
   const zOf = (r: number) => R(0.059) * SCf((r + 0.5) / ROWS);
   // 불: 0 켜짐 → 1 꺼짐
-  const dark = s.phase === 'place' ? 0 : s.phase === 'lights' ? clamp01((s.pt - 14) / 22) : 1;
+  const dark = s.offT < 0 ? 0 : clamp01((t - s.offT - 14) / 22);
   const doorQ = s.phase === 'end' ? clamp01((s.pt - 50) / 10) : s.phase === 'result' ? 1 - clamp01((s.pt - 110) / 15) : 0;
-  const peekQ = s.dadT && t - s.dadT < 50 && s.phase === 'battle' ? Math.sin(clamp01((t - s.dadT) / 50) * Math.PI) : 0;
+  const peekQ = s.dadT && t - s.dadT < 50 && (s.phase === 'battle' || s.phase === 'end') ? Math.sin(clamp01((t - s.dadT) / 50) * Math.PI) : 0;
   const hiding = (s.phase === 'end' && s.pt >= 58) || s.phase === 'result';
   const totalHits = S.kids.reduce((a, k) => a + k.hitN, 0);
 
@@ -1651,19 +1636,20 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PillowState, w: number, _h: n
   }
   // 강아지 발자국 길
   if (F.route.length) {
-    ctx.fillStyle = `rgba(255,240,220,${0.35 - dark * 0.1})`;
+    ctx.fillStyle = `rgba(120,70,40,${0.55 - dark * 0.15})`;
     const seen = new Set<number>();
-    F.route.forEach((ci, k) => {
-      if (seen.has(ci)) return;
+    for (const ci of F.route) {
+      if (seen.has(ci)) continue;
       seen.add(ci);
-      const [px, py] = P((ci % COLS) + 0.86, Math.floor(ci / COLS) + 0.45);
-      for (const [ox, oy] of [[-0.012, 0.012], [0.012, -0.012]]) {
+      const [px, py] = P((ci % COLS) + 0.86, Math.floor(ci / COLS) + 0.5);
+      for (const [ox, oy] of [[-0.014, 0.012], [0.014, -0.01]]) {
+        const bx = px + R(ox), by0 = py + R(oy);
         ctx.beginPath();
-        ctx.ellipse(px + R(ox), py + R(oy), R(0.011), R(0.008), 0, 0, TAU);
+        ctx.ellipse(bx, by0, R(0.008), R(0.006), 0, 0, TAU);
         ctx.fill();
+        for (const tx of [-1, 0, 1]) (ctx.beginPath(), ctx.arc(bx + tx * R(0.007), by0 - R(0.009) + Math.abs(tx) * R(0.002), R(0.0032), 0, TAU), ctx.fill());
       }
-      void k;
-    });
+    }
   }
   // ═════════ 줄마다 (먼 줄 → 가까운 줄): 가구 → 아이 ═════════
   const occ = occOf(S);
@@ -1990,6 +1976,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PillowState, w: number, _h: n
       drawHeart(ctx, gx - R(0.04), gy - R(0.09) - (t - s.flyT) * 0.4, R(0.01), true, '#ff9ec7');
     }
   }
+  // 아빠한테 걸린 아이: 문 쪽으로 질질 끌려 나간다
+  if (s.dadT && t - s.dadT < 40)
+    S.kids.forEach((k, i) => {
+      if (k.out !== 2) return;
+      const q = ease((t - s.dadT) / 40), [x0, y0] = feetPx(k.c, k.r), x1 = X(0.5), y1 = Y(FY0 + 0.01);
+      drawKid(ctx, x0 + (x1 - x0) * q, y0 + (y1 - y0) * q, zOf(k.r) * (1 - 0.3 * q), { team: k.team, kind: k.kind, mood: 'scared', t, sh: k.sh, messy: Math.min(3, k.hitN), seed: i + s.stage * 3, arm: 0, front: true, alpha: 1 - q * 0.7 });
+    });
   // 손패에서 날아오는 중인 아이 (맨 위에)
   if (s.phase === 'place' && s.placedI >= 0 && t - s.placedT < HOP) {
     const k = S.kids[s.placedI], [x, y] = kidAt(s.placedI);
@@ -2203,10 +2196,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PillowState, w: number, _h: n
         ctx.ellipse(ex, ey - zz * 1.2, zz * 1.35, zz * 1.9, 0, 0, TAU);
         ctx.stroke();
         ctx.setLineDash([]);
-        ctx.fillStyle = '#ffa63b';
+        ctx.fillStyle = '#ffffff';
         ctx.font = `900 ${Math.max(12, R(0.036))}px system-ui, sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText('⚠', ex + zz * 1.25, ey - zz * 2.9);
+        ctx.fillText('⚠️', ex + zz * 1.25, ey - zz * 2.9);
         ctx.setLineDash([3, 4]);
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -2258,7 +2251,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PillowState, w: number, _h: n
       fx.burst(x, y - z * 1.8, '#ffffff', 22, 4.2, 3);
       fx.burst(x, y - z * 1.8, '#fff0d8', 10, 2.5, 2.2);
       fx.ring(x, y - z * 1.6, e.col === '#cfe8ff' ? '#9ad0ff' : '#ffffff', R(0.09), 3);
-      fx.kick(e.text === '꿰뚫기!' || e.text === '퍽퍽!' ? 5 : 3);
+      fx.kick(e.text === '퍽!' ? 3 : 5);
       say(x, y - z * 3.4, e.text!, e.col!, 20);
     }
     if (e.kind === 'fort') {
@@ -2278,7 +2271,6 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PillowState, w: number, _h: n
       fx.ring(x, y - z, '#ffe8a0', R(0.12), 4);
       fx.kick(6);
       say(x, y - z * 3.8, e.text!, e.col!, 18);
-      if (S.kids[e.v ?? 0]?.team === 1) say(x + R(0.06), y - z * 2.4, '쿨쿨…', '#e0e6ff', 14);
     }
     if (e.kind === 'hop') {
       const [x, y] = cellXY();
@@ -2291,7 +2283,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PillowState, w: number, _h: n
       if (e.kind === 'caught') fx.blink('#fff2c0', 0.25), fx.kick(5);
     }
     if (e.kind === 'nope') say(X(e.x), Y(e.y), e.text!, e.col!, 15), fx.kick(1.5);
-    if (e.kind === 'lights') fx.blink('#000020', 0.35), say(w / 2, Y(0.3), e.text!, e.col!, 20);
+    if (e.kind === 'lights') fx.blink('#000020', 0.35);
     if (e.kind === 'peek') say(X(0.5), Y(0.22), e.text!, e.col!, 18), fx.blink('#fff2c0', 0.18);
     if (e.kind === 'door') fx.blink('#fff2c0', 0.4), fx.kick(4);
     if (e.kind === 'stage') fx.blink('#fff6d6', 0.15);
@@ -2305,10 +2297,25 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PillowState, w: number, _h: n
     if (e.kind === 'fail') fx.kick(8), fx.blink(th.hot, 0.2);
   }
   fx.memo.t = s.t;
+  // 불 끄기 큰 글씨
+  if (s.phase === 'lights') {
+    const a = Math.min(1, s.pt / 6, (LIGHTS + 10 - s.pt) / 12);
+    ctx.globalAlpha = Math.max(0, a);
+    ctx.font = `900 ${R(0.062)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = 'rgba(10,10,40,.8)';
+    const msg = s.pt < 22 ? '불 끈다~ 하나, 둘…' : '딸깍! 베개 싸움 시작!';
+    ctx.strokeText(msg, w / 2, Y(0.64));
+    ctx.fillStyle = '#fff6d6';
+    ctx.fillText(msg, w / 2, Y(0.64));
+    ctx.globalAlpha = 1;
+  }
   // 끝: 이김/짐 큰 글씨 · 아빠 말풍선
   if (s.phase === 'end') {
     if (s.pt < 56) {
-      const a = Math.min(1, s.pt / 8);
+      const a = clamp01((s.pt - 6) / 8);
       ctx.globalAlpha = a;
       ctx.font = `900 ${R(0.07)}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
@@ -2316,9 +2323,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PillowState, w: number, _h: n
       ctx.lineWidth = 5;
       ctx.strokeStyle = 'rgba(20,20,50,.75)';
       const msg = result > 0 ? '이겼다~! 방방!' : '졌다~ 쿨쿨…';
-      ctx.strokeText(msg, w / 2, Y(0.3));
+      ctx.strokeText(msg, w / 2, Y(0.64));
       ctx.fillStyle = result > 0 ? '#fff1a8' : '#ffd0c8';
-      ctx.fillText(msg, w / 2, Y(0.3));
+      ctx.fillText(msg, w / 2, Y(0.64));
       ctx.globalAlpha = 1;
     } else {
       const a = clamp01((s.pt - 56) / 6);
@@ -2350,7 +2357,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PillowState, w: number, _h: n
   ctx.restore();
 
   // ═════════ HUD ═════════
-  const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${R(sz)}px system-ui, sans-serif`);
+  const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, R(sz))}px system-ui, sans-serif`);
   const hb = R(WT);
   ctx.fillStyle = 'rgba(14,16,44,.92)';
   ctx.fillRect(0, 0, w, hb);
@@ -2486,11 +2493,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PillowState, w: number, _h: n
       font(0.042, 900);
       ctx.fillStyle = '#fff6d6';
       const b = S.beat;
-      ctx.fillText(s.phase === 'lights' ? '💡 딸깍 — 불 끈다!' : `🔔 박자 ${b}`, R(0.03), cy);
-      if (s.phase === 'battle' || s.phase === 'lights') {
+      const lab = s.phase === 'lights' ? '💡 딸깍 — 불 끈다!' : `🔔 박자 ${b}`;
+      ctx.fillText(lab, R(0.03), cy);
+      const dot0 = R(0.03) + ctx.measureText(lab).width + R(0.05);
+      if (s.phase === 'battle') {
         // 박자 점
         for (let k = 0; k < Math.max(6, b + 1); k++) {
-          const px = R(0.3) + k * R(0.045);
+          const px = dot0 + k * R(0.045);
           if (px > w - R(0.2)) break;
           ctx.fillStyle = k < b ? '#ffd36e' : 'rgba(255,255,255,.2)';
           ctx.beginPath();
@@ -2550,7 +2559,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PillowState, w: number, _h: n
     else if (s.phase === 'result') tip = result > 0 ? '다음 판으로!' : '같은 판을 다시 — 이번엔 꾹 눌러 보고 놓아요';
     ctx.textAlign = 'center';
     font(0.035, 800);
-    ctx.fillStyle = 'rgba(255,246,214,.92)';
+    ctx.fillStyle = '#fff6d6';
     let fs = 0.035;
     while (ctx.measureText(tip).width > w - R(0.04) && fs > 0.033) font((fs -= 0.001), 800);
     ctx.fillText(tip, w / 2, y3);
