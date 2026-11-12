@@ -1676,22 +1676,25 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SnowState, w: number, h: numb
     }
     ctx.setLineDash([]);
     ctx.restore();
-    // 칸마다 +1 / −1
+    // 칸마다 +1 / −1 (구슬처럼 꿴 작은 딱지)
     let prev = pvStart;
     for (const p of pv) {
       const px = ccx(p.c), py = ccy(p.c), dv = p.size - prev;
-      if (p.kind === 0 || p.kind === 1) {
-        if (dv !== 0 && p.kind === 0) {
-          font(0.034, 900);
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = 'rgba(20,30,80,.6)';
-          const tx = dv > 0 ? `+${dv}` : `−${-dv}`;
-          ctx.strokeText(tx, px, py + 1);
-          ctx.fillStyle = dv > 0 ? '#bfe8ff' : '#ffd2a0';
-          ctx.fillText(tx, px, py + 1);
-        }
+      if (p.kind === 0 && dv !== 0) {
+        const tx = dv > 0 ? `+${dv}` : `−${-dv}`;
+        font(0.033, 900);
+        const tw = ctx.measureText(tx).width + 8, th2 = Math.max(15, R(0.042));
+        ctx.fillStyle = dv > 0 ? 'rgba(40,96,210,.92)' : 'rgba(150,86,40,.92)';
+        ctx.beginPath();
+        ctx.roundRect(px - tw / 2, py - th2 / 2, tw, th2, th2 / 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,.85)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(tx, px, py + 0.5);
       }
       prev = p.size;
     }
@@ -1845,13 +1848,19 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SnowState, w: number, h: numb
     if (last.kind === 3) {
       badge(ctx, x, gy - uu * 1.0, Math.max(13, uu * 0.24), '✓', '#2fa968');
       font(0.04, 900);
+      const tx = `크기 ${last.size} → 완성!`, tw = ctx.measureText(tx).width + 16, th2 = R(0.056);
+      const lx = Math.max(tw / 2 + 4, Math.min(w - tw / 2 - 4, x)), ly = gy - uu * 1.0 - R(0.06);
+      ctx.fillStyle = 'rgba(18,80,50,.92)';
+      ctx.beginPath();
+      ctx.roundRect(lx - tw / 2, ly - th2 / 2, tw, th2, th2 / 2);
+      ctx.fill();
+      ctx.strokeStyle = '#8ff0b0';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = 'rgba(0,40,20,.6)';
-      const tx = `크기 ${last.size} → 완성!`;
-      ctx.strokeText(tx, x, gy - uu * 1.38);
-      ctx.fillStyle = '#c8ffd8';
-      ctx.fillText(tx, x, gy - uu * 1.38);
+      ctx.textBaseline = 'middle';
+      ctx.fillText(tx, lx, ly + 0.5);
     } else {
       const r = uu * ballK(endSize);
       ctx.globalAlpha = 0.5;

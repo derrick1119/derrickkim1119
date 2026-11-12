@@ -1806,86 +1806,86 @@ function drawAll(ctx: CanvasRenderingContext2D, s: VacState, w: number, h: numbe
   }
   // ── 미리 보기: 네 방향 '여기까지 가요' + 치울 먼지 수 ──
   const preview = (pass: number) => {
-  if (s.phase === 'play' && !s.mv && D.left > 0) {
-    const key = `${s.stage}:${keyOf(D)}`;
-    let c = PREV.get(s);
-    if (!c || c.key !== key) PREV.set(s, (c = { key, res: DIRS.map((d) => slide(R, cloneDyn(D), d)) }));
-    const first = s.stage === 0 && !s.firstMove;
-    const pulse = first ? 0.5 + 0.5 * Math.sin(t * 0.15) : 0;
-    const ox = rgx, oy = rgy;
-    for (const m of c.res) {
-      if (!m.changed) continue;
-      const e = m.steps.length ? m.steps[m.steps.length - 1].at : D.pos;
-      const ex = (e % C) + 0.5, ey = Math.floor(e / C) + 0.5;
-      const dx = DX[m.dir], dy = DY[m.dir];
-      const sx0 = SX(ox + dx * 0.42, oy + dy * 0.42), sy0 = SY(oy + dy * 0.42), sx1 = SX(ex, ey), sy1 = SY(ey);
-      if (m.steps.length && pass === 0) {
-        ctx.strokeStyle = 'rgba(40,20,8,.35)';
-        ctx.lineWidth = U(0.014) + 2;
-        ctx.setLineDash([U(0.018), U(0.012)]);
+    if (s.phase === 'play' && !s.mv && D.left > 0) {
+      const key = `${s.stage}:${keyOf(D)}`;
+      let c = PREV.get(s);
+      if (!c || c.key !== key) PREV.set(s, (c = { key, res: DIRS.map((d) => slide(R, cloneDyn(D), d)) }));
+      const first = s.stage === 0 && !s.firstMove;
+      const pulse = first ? 0.5 + 0.5 * Math.sin(t * 0.15) : 0;
+      const ox = rgx, oy = rgy;
+      for (const m of c.res) {
+        if (!m.changed) continue;
+        const e = m.steps.length ? m.steps[m.steps.length - 1].at : D.pos;
+        const ex = (e % C) + 0.5, ey = Math.floor(e / C) + 0.5;
+        const dx = DX[m.dir], dy = DY[m.dir];
+        const sx0 = SX(ox + dx * 0.42, oy + dy * 0.42), sy0 = SY(oy + dy * 0.42), sx1 = SX(ex, ey), sy1 = SY(ey);
+        if (m.steps.length && pass === 0) {
+          ctx.strokeStyle = 'rgba(40,20,8,.35)';
+          ctx.lineWidth = U(0.014) + 2;
+          ctx.setLineDash([U(0.018), U(0.012)]);
+          ctx.beginPath();
+          ctx.moveTo(sx0, sy0 + 1.5);
+          ctx.lineTo(sx1, sy1 + 1.5);
+          ctx.stroke();
+          ctx.strokeStyle = `rgba(255,255,255,${0.85 + pulse * 0.15})`;
+          ctx.lineWidth = U(0.011);
+          ctx.lineDashOffset = -t * 0.6;
+          ctx.beginPath();
+          ctx.moveTo(sx0, sy0);
+          ctx.lineTo(sx1, sy1);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.lineDashOffset = 0;
+          // 멈출 자리: 유령 고리
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2;
+          gEllipse(ex, ey + 0.05, 0.3, 0.3);
+          ctx.stroke();
+        }
+        if (pass === 0) continue;
+        if (m.steps.length) {
+          const ang = Math.atan2(sy1 - sy0, sx1 - sx0), ah = U(0.026) * (1 + pulse * 0.3);
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.moveTo(sx1 + Math.cos(ang) * ah * 0.6, sy1 + Math.sin(ang) * ah * 0.6);
+          ctx.lineTo(sx1 + Math.cos(ang + 2.5) * ah, sy1 + Math.sin(ang + 2.5) * ah);
+          ctx.lineTo(sx1 + Math.cos(ang - 2.5) * ah, sy1 + Math.sin(ang - 2.5) * ah);
+          ctx.closePath();
+          ctx.fill();
+        }
+        // 꼬리표: 치울 먼지 수 (+ 생선·충전·강아지·양말·폴짝)
+        const icons = (m.steps.some((q) => q.fish) ? '🐟' : '') + (m.steps.some((q) => q.chg) ? '⚡' : '') + (m.steps.some((q) => q.trash) ? '🗑️' : '') + (m.push ? '🐶' : '') + (m.end === 'sock' ? '🧦' : '') + (m.end === 'hop' ? '↷' : '');
+        const label = `${m.cleaned}`;
+        font(0.04, 900);
+        const iw = icons ? ctx.measureText(icons).width + U(0.008) : 0, lw = ctx.measureText(label).width;
+        const bw = lw + iw + U(0.05), bh = U(0.05);
+        let bx = sx1 + dx * U(0.055), by = sy1 - cu(ey) * 0.55 + dy * U(0.03);
+        if (m.dir === 'down') by = sy1 + U(0.01);
+        bx = Math.max(bw / 2 + 2, Math.min(w - bw / 2 - 2, bx));
+        ctx.fillStyle = m.cleaned > 0 ? 'rgba(255,207,90,.96)' : 'rgba(60,40,28,.82)';
         ctx.beginPath();
-        ctx.moveTo(sx0, sy0 + 1.5);
-        ctx.lineTo(sx1, sy1 + 1.5);
-        ctx.stroke();
-        ctx.strokeStyle = `rgba(255,255,255,${0.85 + pulse * 0.15})`;
-        ctx.lineWidth = U(0.011);
-        ctx.lineDashOffset = -t * 0.6;
-        ctx.beginPath();
-        ctx.moveTo(sx0, sy0);
-        ctx.lineTo(sx1, sy1);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.lineDashOffset = 0;
-        // 멈출 자리: 유령 고리
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        gEllipse(ex, ey + 0.05, 0.3, 0.3);
-        ctx.stroke();
-      }
-      if (pass === 0) continue;
-      if (m.steps.length) {
-        const ang = Math.atan2(sy1 - sy0, sx1 - sx0), ah = U(0.026) * (1 + pulse * 0.3);
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.moveTo(sx1 + Math.cos(ang) * ah * 0.6, sy1 + Math.sin(ang) * ah * 0.6);
-        ctx.lineTo(sx1 + Math.cos(ang + 2.5) * ah, sy1 + Math.sin(ang + 2.5) * ah);
-        ctx.lineTo(sx1 + Math.cos(ang - 2.5) * ah, sy1 + Math.sin(ang - 2.5) * ah);
-        ctx.closePath();
+        ctx.roundRect(bx - bw / 2, by - bh / 2, bw, bh, bh / 2);
         ctx.fill();
-      }
-      // 꼬리표: 치울 먼지 수 (+ 생선·충전·강아지·양말·폴짝)
-      const icons = (m.steps.some((q) => q.fish) ? '🐟' : '') + (m.steps.some((q) => q.chg) ? '⚡' : '') + (m.steps.some((q) => q.trash) ? '🗑️' : '') + (m.push ? '🐶' : '') + (m.end === 'sock' ? '🧦' : '') + (m.end === 'hop' ? '↷' : '');
-      const label = `${m.cleaned}`;
-      font(0.04, 900);
-      const iw = icons ? ctx.measureText(icons).width + U(0.008) : 0, lw = ctx.measureText(label).width;
-      const bw = lw + iw + U(0.05), bh = U(0.05);
-      let bx = sx1 + dx * U(0.055), by = sy1 - cu(ey) * 0.55 + dy * U(0.03);
-      if (m.dir === 'down') by = sy1 + U(0.01);
-      bx = Math.max(bw / 2 + 2, Math.min(w - bw / 2 - 2, bx));
-      ctx.fillStyle = m.cleaned > 0 ? 'rgba(255,207,90,.96)' : 'rgba(60,40,28,.82)';
-      ctx.beginPath();
-      ctx.roundRect(bx - bw / 2, by - bh / 2, bw, bh, bh / 2);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(60,30,10,.5)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      // 먼지 아이콘 (작은 솜털)
-      const dx0 = bx - bw / 2 + U(0.02);
-      ctx.fillStyle = m.cleaned > 0 ? '#8f877e' : '#a89a8a';
-      ctx.beginPath();
-      ctx.arc(dx0, by + U(0.004), U(0.009), 0, Math.PI * 2);
-      ctx.arc(dx0 + U(0.008), by - U(0.004), U(0.008), 0, Math.PI * 2);
-      ctx.fill();
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = m.cleaned > 0 ? '#3a2412' : '#f3e3c7';
-      ctx.fillText(label, dx0 + U(0.017), by + 1);
-      if (icons) {
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(icons, dx0 + U(0.017) + lw + U(0.006), by + 1);
+        ctx.strokeStyle = 'rgba(60,30,10,.5)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        // 먼지 아이콘 (작은 솜털)
+        const dx0 = bx - bw / 2 + U(0.02);
+        ctx.fillStyle = m.cleaned > 0 ? '#8f877e' : '#a89a8a';
+        ctx.beginPath();
+        ctx.arc(dx0, by + U(0.004), U(0.009), 0, Math.PI * 2);
+        ctx.arc(dx0 + U(0.008), by - U(0.004), U(0.008), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = m.cleaned > 0 ? '#3a2412' : '#f3e3c7';
+        ctx.fillText(label, dx0 + U(0.017), by + 1);
+        if (icons) {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(icons, dx0 + U(0.017) + lw + U(0.006), by + 1);
+        }
       }
     }
-  }
   };
   preview(0);
   items.sort((a, b) => a.y - b.y);
