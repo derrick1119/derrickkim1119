@@ -29,7 +29,7 @@ const FUSE = 2 * BEAT, ROSE_NEED = 7 * BEAT;
 /** 박쥐: 깨는 데 · 날아가는 데 · 먹는 데 · 떠나는 데 */
 const WAKE = 18, BAT_FLY = 40, BAT_EAT = 28, BAT_LEAVE = 56;
 /** 빛 앞머리가 틱마다 나아가는 칸 수 */
-const SPEED = 0.45;
+const SPEED = 0.22;
 const CLEAR_WAIT = 40, STALL = 220;
 const RESULT_OK = 210, RESULT_FAIL = 170, CARD_T = 150, NEWS_T = 170;
 const STAR_PTS = 100, LEFT_PTS = 10, WIN_PTS = 300;
@@ -90,12 +90,12 @@ export const STAGES: StageDef[] = [
     sun: [['N', 1]], cloud: [3, 2, 4], bonus: 'fly', extra: 2,
   },
   {
-    key: 'glass', news: '🔴 빨간 유리를 지난 빛은 빨개져요 — 튤립은 빨간 빛만!', hint: '튤립은 빨간 유리를 지난 빛으로',
+    key: 'glass', news: '🔴 빨간 유리를 지나면 빨간 빛! 튤립은 빨간 빛만', hint: '튤립은 빨간 유리를 지난 빛으로',
     map: ['......', '\\\\.G/.', 'S.....', '/.ST\\T', '......', 'F.....', 'H....H'],
     sun: [['N', 1]], bonus: 'fly', extra: 2,
   },
   {
-    key: 'sunmove', news: '☀️ 꽃이 피면 해가 옮겨 가요 — 빛 시작점이 바뀌어요', hint: '해가 옮겨 간 뒤의 빛길도 생각해요',
+    key: 'sunmove', news: '☀️ 꽃이 한 송이 피면 해가 옮겨 가요!', hint: '해가 옮겨 간 뒤의 빛길도 생각해요',
     map: ['......', './.S..', '......', './.S/S', '......', '.B....', 'H....H'],
     sun: [['N', 1], ['N', 4]], moveAt: 1, bonus: 'bat', extra: 2,
   },
@@ -415,7 +415,7 @@ function rotate(s: MirrorState, i: number) {
   s.firstTap = true;
   s.lastEvt = s.t;
   ev(s, 'click', m.x + 0.5, m.y + 0.5, '찰칵!');
-  see(s, 'tap', '🪞 거울을 톡 하면 찰칵 90° 돌아요');
+  see(s, 'tap', '✨ 거울을 톡 하면 찰칵 90° 돌아요');
 }
 
 function bloom(s: MirrorState, i: number) {
@@ -476,6 +476,14 @@ function simTick(s: MirrorState) {
   if (dmin < 1e9) s.reach = Math.min(s.reach, dmin - 0.5);
   s.reach = Math.min(s.reach + SPEED, 99);
   const on = (c: number) => tr.lit[c] >= 0 && tr.lit[c] <= s.reach;
+  // 다 먹은 박쥐는 선글라스를 쓴 채 날아가 버린다 (판이 끝나도 마저 날아간다)
+  const bt = s.bat;
+  if (bt && bt.st === 4) {
+    bt.t++;
+    bt.wy -= 0.06;
+    bt.wx += 0.04 * (bt.wx < C / 2 ? -1 : 1);
+    if (bt.t >= BAT_LEAVE) bt.st = 5;
+  }
   if (s.phase !== 'play') return;
   // 봉오리
   s.buds.forEach((b, i) => {
@@ -513,7 +521,6 @@ function simTick(s: MirrorState) {
     see(s, 'fly', '🦋 추운 나비에 빛을 비추면 보너스 ★');
   }
   // 박쥐
-  const bt = s.bat;
   if (bt) {
     if (bt.st === 0 && tr.batLit >= 0 && tr.batLit <= s.reach) {
       bt.st = 1;
@@ -547,12 +554,6 @@ function simTick(s: MirrorState) {
         see(s, 'eat', '🦇 깬 박쥐가 꽃을 먹었어요 — 다시 빛을 비춰요');
       }
     } else if (bt.st === 3 && ++bt.t >= BAT_EAT) (bt.st = 4), (bt.t = 0);
-    else if (bt.st === 4) {
-      bt.t++;
-      bt.wy -= 0.06;
-      bt.wx += 0.04 * (bt.wx < C / 2 ? -1 : 1);
-      if (bt.t >= BAT_LEAVE) bt.st = 5;
-    }
   }
   // 판 끝
   const all = s.buds.every((b) => b.st === 2);
@@ -566,7 +567,7 @@ function simTick(s: MirrorState) {
 export const sunmirror: GameDef<MirrorState> = {
   id: 'sunmirror',
   name: '햇빛 거울 정원',
-  genes: ['reflect', 'pointer', 'turnbased'],
+  genes: ['reflect', 'pointer'],
   twist: '빛길이 늘 보이는 칸 기반 반사 퍼즐인데, 봉오리는 빛이 "지나가기만" 해도 두 박자 뒤에 핀다 — 거울 하나를 톡 돌리면 햇빛이 꺾여 뻗으며 지나간 꽃들이 차례로 퐁퐁 핀다',
   rules: [
     '거울을 톡 = 찰칵 90° 돌아요. 햇빛은 곧게 가다 거울에서 꺾이고, 빛이 닿은 봉오리는 두 박자 뒤에 퐁 피어요.',
@@ -610,7 +611,7 @@ export const sunmirror: GameDef<MirrorState> = {
       s.down = false;
       const i = s.aim ? pick(s, s.aim) : -1;
       if (i >= 0) rotate(s, i);
-      else if (s.aim && s.phase === 'play') ev(s, 'miss', 0, 0);
+      else if (s.aim && s.phase === 'play') ev(s, 'miss', s.aim.x, s.aim.y, '거울을 톡 해요');
       s.aim = null;
       s.hover = -1;
     }
@@ -820,6 +821,17 @@ function drawFlower(ctx: CanvasRenderingContext2D, bx: number, by: number, u: nu
   ctx.moveTo(0, 0);
   ctx.quadraticCurveTo(u * 0.05, -stemH * 0.5, 0, -stemH);
   ctx.stroke();
+  if (b.k === ROSE) {
+    // 장미 가시
+    ctx.fillStyle = '#2f6a22';
+    for (const [ty, sd] of [[0.25, 1], [0.55, -1], [0.75, 1]]) {
+      ctx.beginPath();
+      ctx.moveTo(sd * u * 0.02, -stemH * ty - u * 0.03);
+      ctx.lineTo(sd * u * 0.09, -stemH * ty - u * 0.05);
+      ctx.lineTo(sd * u * 0.02, -stemH * ty + u * 0.01);
+      ctx.fill();
+    }
+  }
   // 잎 (기지개 = 잎을 팔처럼 위로)
   for (const sd of [-1, 1]) {
     ctx.save();
@@ -1276,11 +1288,14 @@ function drawAll(ctx: CanvasRenderingContext2D, s: MirrorState, w: number, h: nu
     ctx.moveTo(sun.x + R0(0.06), sun.y - R0(0.01));
     ctx.quadraticCurveTo((sun.x + g2.x) / 2, sun.y - R0(0.06), g2.x - R0(0.05), g2.y - R0(0.01));
     ctx.stroke();
-    ctx.fillStyle = '#fffbe8';
-    font(0.03, 900);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`꽃 ${L.moveAt}송이 피면`, g2.x, g2.y + R0(0.062));
+    font(0.036, 900);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(60,90,120,.6)';
+    ctx.strokeText(`꽃 ${L.moveAt}송이 피면 여기로`, g2.x, g2.y + R0(0.064));
+    ctx.fillStyle = '#fffbe8';
+    ctx.fillText(`꽃 ${L.moveAt}송이 피면 여기로`, g2.x, g2.y + R0(0.064));
   }
   {
     const r = R0(0.048);
@@ -1393,6 +1408,38 @@ function drawAll(ctx: CanvasRenderingContext2D, s: MirrorState, w: number, h: nu
       }
       ctx.stroke();
     }
+  // 담장 그늘 (뒷줄)
+  {
+    const wsg = ctx.createLinearGradient(0, Y(GY0), 0, SY(0.8));
+    wsg.addColorStop(0, 'rgba(30,40,10,.32)');
+    wsg.addColorStop(1, 'rgba(30,40,10,0)');
+    ctx.fillStyle = wsg;
+    poly([P(0, 0), P(C, 0), P(C, 0.8), P(0, 0.8)]);
+    ctx.fill();
+  }
+  // 양옆 돌 턱 (두께가 보이게)
+  for (const side of [0, 1]) {
+    const x0 = side ? C : 0, xo = side ? C + 0.14 : -0.14, hz = 0.2;
+    ctx.fillStyle = '#9a8a72';
+    poly([P(x0, 0, 0), P(x0, R, 0), P(x0, R, hz), P(x0, 0, hz)]);
+    ctx.fill();
+    const tg = ctx.createLinearGradient(SX(xo, R), 0, SX(x0, R), 0);
+    tg.addColorStop(0, '#e9dcc0');
+    tg.addColorStop(1, '#cbbb9a');
+    ctx.fillStyle = tg;
+    poly([P(xo, 0, hz), P(x0, 0, hz), P(x0, R, hz), P(xo, R, hz)]);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(80,60,40,.35)';
+    ctx.lineWidth = 1;
+    for (let y = 1; y < R; y++) {
+      const a = P(x0, y, 0), b = P(x0, y, hz), c2 = P(xo, y, hz);
+      ctx.beginPath();
+      ctx.moveTo(a[0], a[1]);
+      ctx.lineTo(b[0], b[1]);
+      ctx.lineTo(c2[0], c2[1]);
+      ctx.stroke();
+    }
+  }
   // 햇살이 비치는 쪽 따뜻하게
   {
     const wg = ctx.createRadialGradient(sun.x, Y(GY0), R0(0.05), sun.x, Y(GY0), R0(0.9));
@@ -1424,7 +1471,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: MirrorState, w: number, h: nu
     const u = v / len;
     vis.push({ x0: p.x0, y0: p.y0, x1: p.x0 + (p.x1 - p.x0) * u, y1: p.y0 + (p.y1 - p.y0) * u, col: p.col });
   }
-  const BCOL = [['rgba(255,190,70,', '#ffe9a0', '#fffbe8', '#ffc94a'], ['rgba(255,70,50,', '#ff9a8a', '#fff0ec', '#ff4a3a']];
+  const BCOL = [['rgba(255,190,70,', '#ffe9a0', '#fffbe8', '#ffc94a'], ['rgba(255,40,20,', '#ff3a22', '#ffb8a8', '#ff2a10']];
   // 땅에 비친 빛 (번짐)
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
@@ -1456,7 +1503,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: MirrorState, w: number, h: nu
   const beam = (x0: number, y0: number, x1: number, y1: number, col: number, z0 = ZB, z1 = ZB) => {
     const a = P(x0, y0, z0), b = P(x1, y1, z1), sc = scl((y0 + y1) / 2);
     ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalCompositeOperation = col ? 'source-over' : 'lighter';
     ctx.lineCap = 'round';
     ctx.shadowColor = BCOL[col][3];
     ctx.shadowBlur = R0(0.03);
@@ -1583,28 +1630,40 @@ function drawAll(ctx: CanvasRenderingContext2D, s: MirrorState, w: number, h: nu
           ctx.beginPath();
           ctx.ellipse(SX(cx, cy), SY(cy, 0.12), u * 0.3, u * 0.12, 0, 0, Math.PI * 2);
           ctx.fill();
+          // 세모 유리 기둥: 앞의 두 면 + 윗면, 무지개 띠
           const tri = [0, 1, 2].map((j) => {
-            const a = -Math.PI / 2 + (j * Math.PI * 2) / 3 + 0.3;
-            return [cx + Math.cos(a) * 0.3, cy + Math.sin(a) * 0.3];
+            const a = -Math.PI / 2 + (j * Math.PI * 2) / 3 + t * 0.004;
+            return [cx + Math.cos(a) * 0.36, cy + Math.sin(a) * 0.36];
           });
-          const z0 = 0.14, z1 = 0.78;
-          for (let j = 0; j < 3; j++) {
-            const a0 = tri[j], b0 = tri[(j + 1) % 3];
+          const z0 = 0.14, z1 = 0.95;
+          const faces = [0, 1, 2].map((j) => ({ a0: tri[j], b0: tri[(j + 1) % 3], my: (tri[j][1] + tri[(j + 1) % 3][1]) / 2 })).sort((p2, q2) => p2.my - q2.my);
+          faces.forEach(({ a0, b0 }, j) => {
             const fg = ctx.createLinearGradient(SX(a0[0], a0[1]), 0, SX(b0[0], b0[1]), 0);
-            fg.addColorStop(0, 'rgba(190,240,255,.75)');
-            fg.addColorStop(0.5, 'rgba(255,255,255,.9)');
-            fg.addColorStop(1, 'rgba(150,210,250,.75)');
+            fg.addColorStop(0, j === 2 ? 'rgba(120,200,255,.85)' : 'rgba(80,150,220,.7)');
+            fg.addColorStop(0.5, 'rgba(235,250,255,.95)');
+            fg.addColorStop(1, j === 2 ? 'rgba(160,120,255,.85)' : 'rgba(100,120,220,.7)');
             ctx.fillStyle = fg;
             poly([P(a0[0], a0[1], z0), P(b0[0], b0[1], z0), P(b0[0], b0[1], z1), P(a0[0], a0[1], z1)]);
             ctx.fill();
-            ctx.strokeStyle = 'rgba(255,255,255,.9)';
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(255,255,255,.95)';
+            ctx.lineWidth = 1.2;
             ctx.stroke();
-          }
-          ctx.fillStyle = 'rgba(230,250,255,.95)';
+          });
+          ctx.fillStyle = 'rgba(240,252,255,.97)';
           poly(tri.map((q) => P(q[0], q[1], z1)));
           ctx.fill();
           ctx.stroke();
+          ctx.save();
+          poly(tri.map((q) => P(q[0], q[1], z1)));
+          ctx.clip();
+          const rb = ['#ff6b6b', '#ffd23a', '#7ee06a', '#5ac8ff', '#c08aff'];
+          rb.forEach((col, j) => {
+            ctx.fillStyle = col;
+            ctx.globalAlpha = 0.55;
+            const q = P(cx - 0.3 + j * 0.15, cy, z1);
+            ctx.fillRect(q[0], q[1] - u * 0.3, u * 0.08, u * 0.6);
+          });
+          ctx.restore();
           if (on)
             for (let j = 0; j < 5; j++) {
               ctx.fillStyle = ['#ff6b6b', '#ffd23a', '#7ee06a', '#5ac8ff', '#c08aff'][j];
@@ -1965,7 +2024,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: MirrorState, w: number, h: nu
   const seenT = fx.memo.t ?? -1;
   for (const e of s.events) {
     if (e.t <= seenT) continue;
-    const q = P(e.x, Math.min(R, Math.max(0, e.y)), 0.6), x = q[0], y = q[1];
+    const q = e.kind === 'miss' ? [X(e.x), Y(e.y) + R0(0.04)] : P(e.x, Math.min(R, Math.max(0, e.y)), 0.6), x = q[0], y = q[1];
+    if (e.kind === 'miss') fx.burst(x, y - R0(0.04), '#d8f0c0', 6, 1.4, 1.6), say(x, y - R0(0.06), e.text!, '#e8ffd8', 13);
     if (e.kind === 'click') fx.burst(x, y, '#fff3b0', 12, 2.6, 2), fx.ring(x, y, '#ffffff', R0(0.07), 3), fx.kick(2), say(x, y - R0(0.06), e.text!, '#ffffff', 16);
     if (e.kind === 'touch') fx.ring(x, y, '#ffe14d', R0(0.05), 3), fx.burst(x, y, '#fff6c0', 6, 1.6, 1.6);
     if (e.kind === 'bloom') fx.burst(x, y, '#ffd23a', 24, 4, 2.8), fx.burst(x, y, '#ffffff', 10, 2.4, 2), fx.ring(x, y, '#ffe14d', R0(0.09), 4), fx.kick(3), say(x, y - R0(0.07), e.text!, '#fff3a0', 17);

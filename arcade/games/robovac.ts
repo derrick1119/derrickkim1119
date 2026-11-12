@@ -9,7 +9,8 @@
  * 펼쳐짐(하는 일이 바뀐다): 1판 미끄럼 청소·생선 과자 → 2판 양말(밟으면 딱 멈춤 = 중간 정지) → 3판 털 뭉치(두 번 지나가야 깨끗)
  *   → 4판 자는 강아지(부딪히면 한 칸 밀려나 방 모양이 바뀜) → 5판 충전 칸(지나가면 밀기 +2 — 들렀다 가기)
  *   → 6판 쏟은 우유(밟으면 바퀴가 미끄덩 — 다음 쿠션을 폴짝 넘어 한 칸 더) → 7판 먼지통(꽉 차면 비우는 자리를 지나야 더 담음)
- *   → 8판 방 둘(문틈으로 건너가기 + 지금까지 나온 것 모두).
+ *   → 8판 방 둘(칸막이 화단의 문틈과 줄을 맞춰 건너가기 + 양말).
+ * 판 지도는 손으로 고른 8장(시드로 좌우 뒤집기·생선 과자 자리)이고, 너비 우선 풀이기로 최소 밀기 수(★ 기준)를 판마다 잰다.
  * 웃음: 벽에 쿵 하면 근엄하던 고양이가 앞으로 미끄러져 납작. 강아지는 깨서 청소기를 쫓아오다 꽈당.
  *   쥐구멍의 생쥐가 청소기 소리에 쏙 숨고, 다 치우면 고양이가 소파로 폴짝 올라가 만족스러운 하품.
  */
@@ -34,7 +35,7 @@ const STAR_PTS = 100, LEFT_PTS = 5, WIN_PTS = 300;
  * 판 지도 (7칸 × 8줄). 0행이 뒷벽 쪽.
  *  .  바닥   d 먼지   h 털 뭉치(두 번)   R 청소기 시작   f 생선 과자 후보(시드로 하나)
  *  x  양말(밟으면 멈춤)   g 자는 강아지   m 우유   c 충전 칸(+2)   t 먼지 비우는 자리   o 쿠션(낮음)
- *  가구(막힘): B 책장 · S 소파 · T 탁자 · P 화분 · A 안락의자 · V 텔레비전 · W 벽 · L 스탠드 · D 서랍장
+ *  가구(막힘): B 책장 · S 소파 · T 탁자 · P 화분 · A 안락의자 · V 텔레비전 · W 칸막이 화단 · L 스탠드 · D 서랍장
  */
 export interface StageDef {
   key: string;
@@ -341,7 +342,7 @@ function push(s: VacState, dir: Dir) {
   s.firstMove = true;
   s.mv = { m, D2, k: 0, prog: 0 };
   s.wet = 0;
-  ev(s, 'go', s.D.pos, m.steps.length >= 3 ? '위이잉~' : '윙');
+  if (m.steps.length >= 3) ev(s, 'go', s.D.pos, '위이잉~');
 }
 
 const stepLen = (st: Step | undefined) => (st && st.hop ? 2 : 1);
@@ -775,6 +776,20 @@ function drawRobot(ctx: CanvasRenderingContext2D, x: number, y: number, u: numbe
         ctx.stroke();
       }
     }
+  if (moving) {
+    const mx = -DX[s.face], my = -DY[s.face];
+    ctx.strokeStyle = 'rgba(255,255,255,.55)';
+    ctx.lineWidth = Math.max(1.5, u * 0.03);
+    ctx.lineCap = 'round';
+    for (let q = -1; q <= 1; q++) {
+      const ox = x + (my !== 0 ? q * r * 0.6 : 0) + mx * r * 1.05, oy = yy - hgt * 0.5 + (mx !== 0 ? q * ry * 0.6 : 0) + my * ry * 1.05;
+      const len = u * (0.35 + 0.15 * Math.sin(t * 0.7 + q));
+      ctx.beginPath();
+      ctx.moveTo(ox, oy);
+      ctx.lineTo(ox + mx * len, oy + my * len * 0.75);
+      ctx.stroke();
+    }
+  }
   if (s.wet && moving) {
     ctx.fillStyle = 'rgba(255,255,255,.85)';
     for (let q = 0; q < 3; q++) {
@@ -785,19 +800,27 @@ function drawRobot(ctx: CanvasRenderingContext2D, x: number, y: number, u: numbe
   }
   if (!catOn) return;
   // 고양이: 근엄 · 달림 · 납작 · 냠
-  const bump = s.t - s.bumpT, sq = bump >= 0 && bump < 30 ? Math.max(0, 1 - bump / 30) ** 1.4 * (bump < 4 ? bump / 4 : 1) : 0;
+  const bump = s.t - s.bumpT, sq = bump >= 0 && bump < 42 ? Math.max(0, 1 - Math.max(0, bump - 14) / 28) ** 1.3 * (bump < 4 ? bump / 4 : 1) : 0;
   const dx = DX[s.bumpDir], dy = DY[s.bumpDir];
   let mood = moving ? 1 : 0;
   if (sq > 0.25) mood = 2;
   if (s.t - s.fishT < 45) mood = 3;
+  if (s.phase === 'result' && !s.ok) mood = 2;
   const dogAwake = s.dogFx.some((f) => s.t - f.t < 30);
   if (dogAwake && !moving) mood = 5;
   drawCat(ctx, x, yy - hgt - ry * 0.15, u, mood, sq, dx, dy, t);
+  if (sq > 0.3)
+    for (let q = 0; q < 3; q++) {
+      const a = t * 0.2 + (q * Math.PI * 2) / 3;
+      ctx.fillStyle = '#fff27a';
+      star(ctx, x + dx * u * 0.3 + Math.cos(a) * u * 0.28, yy - hgt - u * 0.55 + dy * u * 0.1 + Math.sin(a) * u * 0.08, u * 0.07);
+      ctx.fill();
+    }
 }
 
 /** 강아지. pose 0 쿨쿨 · 1 깜짝(앉음) · 2 달림 · 3 꽈당 */
 function drawDog(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, pose: number, face: number, t: number) {
-  const k = u * 0.3;
+  const k = u * 0.38;
   ctx.fillStyle = 'rgba(40,20,8,.25)';
   ctx.beginPath();
   ctx.ellipse(x, y + k * 0.1, k * 1.25, k * 0.45, 0, 0, Math.PI * 2);
@@ -812,6 +835,13 @@ function drawDog(ctx: CanvasRenderingContext2D, x: number, y: number, u: number,
     ctx.fillStyle = body;
     ctx.beginPath();
     ctx.ellipse(0, -k * 0.35, k * 1.1, k * 0.55, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(140,90,40,.6)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = '#e8505b';
+    ctx.beginPath();
+    ctx.ellipse(-k * 0.28, -k * 0.42, k * 0.1, k * 0.3, 0.2, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = 'rgba(150,100,50,.4)';
     ctx.lineWidth = 1;
@@ -848,10 +878,21 @@ function drawDog(ctx: CanvasRenderingContext2D, x: number, y: number, u: number,
       ctx.ellipse(lx * k + run * k * 0.15 * (lx > 0 ? 1 : -1), -k * 0.08, k * 0.16, k * 0.14, 0, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.fillStyle = '#e8505b';
+    ctx.beginPath();
+    ctx.ellipse(-k * 0.35, -k * 0.82, k * 0.32, k * 0.12, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffd25a';
+    ctx.beginPath();
+    ctx.arc(-k * 0.45, -k * 0.72, k * 0.08, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = body;
     ctx.beginPath();
     ctx.ellipse(-k * 0.55, -k * 1.1, k * 0.5, k * 0.45, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = 'rgba(140,90,40,.6)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
     ctx.fillStyle = dark;
     ctx.beginPath();
     ctx.ellipse(-k * 0.2, -k * 1.15, k * 0.17, k * 0.36, 0.3 + run * 0.4, 0, Math.PI * 2);
@@ -896,7 +937,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: VacState, w: number, h: numbe
     for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.22 && Math.abs(q.y - y) < size + 4); k++) y -= size + 4;
     rec.push({ x, y, t: s.t });
     if (rec.length > 14) rec.shift();
-    fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), Math.max(Y(HUDH + 0.04), y), text, col, size);
+    fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), Math.max(Y(HUDH) + 42, y), text, col, size);
   };
   const quad = (pts: number[][]) => {
     ctx.beginPath();
@@ -1342,8 +1383,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: VacState, w: number, h: numbe
     }
     if (R.sock[i]) {
       const bx = SX(cx, cy), by = SY(cy);
+      ctx.strokeStyle = 'rgba(255,110,110,.55)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]);
+      gEllipse(cx, cy + 0.04, 0.4, 0.36);
+      ctx.stroke();
+      ctx.setLineDash([]);
       ctx.save();
       ctx.translate(bx, by);
+      ctx.scale(1.5, 1.5);
       ctx.rotate(-0.35);
       ctx.fillStyle = 'rgba(40,20,8,.2)';
       ctx.fillRect(-u * 0.24, -u * 0.04, u * 0.48, u * 0.16);
@@ -1665,47 +1713,31 @@ function drawAll(ctx: CanvasRenderingContext2D, s: VacState, w: number, h: numbe
           ctx.arc(v[0], v[1] - uu * 0.27, uu * 0.06, 0, Math.PI * 2);
           ctx.fill();
         } else if (gl === 'W') {
-          // 하얀 울타리 (강아지 울타리) — 너머가 보여서 먼지가 가려지지 않는다
-          const vert = (r > 0 && R.glyph[i - C] === 'W') || (r < RW - 1 && R.glyph[i + C] === 'W');
-          const ln = (k: number): [number, number] => (vert ? [x0 + 0.5, r + k] : [x0 + k, r + 0.5]);
-          const H = 0.72;
-          ctx.fillStyle = 'rgba(50,25,8,.22)';
-          if (vert) cellQuad(x0 + 0.2, r, x0 + 0.5, r + 1);
-          else cellQuad(x0, r + 0.5, x1, r + 0.85);
+          // 칸막이 화단: 하얀 화분 상자에 잎이 무성 — 칸 하나를 꽉 막는다
+          box(x0 + 0.08, r + 0.06, x1 - 0.08, r + 0.94, 0, 0.36, '#f4efe4', '#5a3d28');
+          const gy = r + 0.94;
+          ctx.fillStyle = 'rgba(120,150,170,.35)';
+          quad([P3(x0 + 0.08, gy, 0.12), P3(x1 - 0.08, gy, 0.12), P3(x1 - 0.08, gy, 0.18), P3(x0 + 0.08, gy, 0.18)]);
           ctx.fill();
-          for (const z of [0.2, 0.56]) {
-            const [ax, ay] = ln(0), [bx2, by2] = ln(1), pa = P3(ax, ay, z), pb = P3(bx2, by2, z);
-            ctx.strokeStyle = '#c9b89c';
-            ctx.lineWidth = Math.max(2, cu(r) * 0.07);
-            ctx.beginPath();
-            ctx.moveTo(pa[0], pa[1]);
-            ctx.lineTo(pb[0], pb[1]);
-            ctx.stroke();
-          }
-          for (let k = 0; k < 4; k++) {
-            const [gx, gy] = ln(0.125 + k * 0.25), hw = 0.06;
-            const pl = P3(gx - hw, gy, 0), pr = P3(gx + hw, gy, 0), tl = P3(gx - hw, gy, H), tr = P3(gx + hw, gy, H), tp = P3(gx, gy, H + 0.12);
-            ctx.fillStyle = '#fbf6ec';
-            ctx.beginPath();
-            ctx.moveTo(pl[0], pl[1]);
-            ctx.lineTo(pr[0], pr[1]);
-            ctx.lineTo(tr[0], tr[1]);
-            ctx.lineTo(tp[0], tp[1]);
-            ctx.lineTo(tl[0], tl[1]);
-            ctx.closePath();
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(120,90,60,.55)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-          }
-          for (const z of [0.2, 0.56]) {
-            const [ax, ay] = ln(0), [bx2, by2] = ln(1), pa = P3(ax, ay, z), pb = P3(bx2, by2, z);
-            ctx.strokeStyle = 'rgba(255,255,255,.9)';
-            ctx.lineWidth = Math.max(1.5, cu(r) * 0.045);
-            ctx.beginPath();
-            ctx.moveTo(pa[0], pa[1]);
-            ctx.lineTo(pb[0], pb[1]);
-            ctx.stroke();
+          for (let k = 0; k < 5; k++) {
+            const lx = x0 + 0.22 + (k % 2) * 0.56, ly = r + 0.12 + k * 0.19, base = P3(lx, ly, 0.36), uu = cu(ly);
+            for (let q = 0; q < 4; q++) {
+              const a = -Math.PI / 2 + (q - 1.5) * 0.55 + Math.sin(t * 0.03 + k + q + i) * 0.06, len = uu * (0.32 + 0.14 * hsh(i * 5 + k * 3 + q));
+              ctx.fillStyle = (q + k) % 2 ? '#4f9a4a' : '#73c463';
+              ctx.save();
+              ctx.translate(base[0], base[1]);
+              ctx.rotate(a + Math.PI / 2);
+              ctx.beginPath();
+              ctx.ellipse(0, -len * 0.5, uu * 0.085, len * 0.5, 0, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+            }
+            if ((k + i) % 3 === 0) {
+              ctx.fillStyle = '#ff8fb1';
+              ctx.beginPath();
+              ctx.arc(base[0], base[1] - uu * 0.36, uu * 0.05, 0, Math.PI * 2);
+              ctx.fill();
+            }
           }
         } else if (gl === 'o') {
           box(x0 + 0.14, r + 0.24, x1 - 0.14, r + 0.86, 0, 0.2, '#e98aa3', '#f6b9c8');
@@ -1780,14 +1812,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: VacState, w: number, h: numbe
       drawRobot(ctx, SX(rgx, rgy), SY(rgy + 0.08), u, s, t, hopZ * u, catJump === 0);
       if (R.cap) {
         // 먼지통 눈금
-        const bx = SX(rgx, rgy), by = SY(rgy) - u * 1.02 - hopZ * u, n = R.cap, bw = u * 0.09;
+        const bx = SX(rgx, rgy), by = SY(rgy) - u * 1.18 - hopZ * u, n = R.cap, bw = u * 0.12, bh = u * 0.12;
+        ctx.fillStyle = 'rgba(40,20,8,.75)';
+        ctx.beginPath();
+        ctx.roundRect(bx - (n * bw) / 2 - 3, by - 3, n * bw + 6, bh + 6, 4);
+        ctx.fill();
         for (let k = 0; k < n; k++) {
-          ctx.fillStyle = k < D.bin ? (D.bin >= n ? '#ff6b5a' : '#c9a27a') : 'rgba(255,255,255,.35)';
-          ctx.fillRect(bx - (n * bw) / 2 + k * bw + 1, by, bw - 2, u * 0.08);
+          ctx.fillStyle = k < D.bin ? (D.bin >= n ? '#ff6b5a' : '#d9b48a') : 'rgba(255,255,255,.25)';
+          ctx.fillRect(bx - (n * bw) / 2 + k * bw + 1, by, bw - 2, bh);
         }
-        ctx.strokeStyle = 'rgba(40,20,8,.6)';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(bx - (n * bw) / 2, by, n * bw, u * 0.08);
       }
     },
   });
@@ -1910,7 +1943,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: VacState, w: number, h: numbe
     if (e.kind === 'dust') fx.burst(x, y - u * 0.05, '#bfb6ac', 7, 1.8, 2.2), fx.burst(x, y - u * 0.1, '#ffffff', 3, 1.2, 1.4);
     if (e.kind === 'hair') fx.burst(x, y, '#d9a06a', 14, 2.6, 2.4), say(x, y - u * 0.6, e.text!, '#ffd9b0', 13);
     if (e.kind === 'sum') fx.ring(x, y, '#ffcf5a', u * 0.9, 3), say(x, y - u * 1.25, e.text!, '#ffe08a', e.n! >= 5 ? 18 : 15);
-    if (e.kind === 'bump') fx.kick(5), fx.burst(x, y - u * 0.2, '#ffffff', 10, 2.6, 2.2), say(x, y - u * 0.75, e.text!, '#ffffff', 15);
+    if (e.kind === 'bump') {
+      const bx = x + DX[s.bumpDir] * u * 0.5, by = y - u * 0.15 + DY[s.bumpDir] * u * 0.35;
+      fx.kick(5), fx.burst(bx, by, '#ffffff', 6, 2.2, 1.8), say(x + u * 0.5, y - u * 0.95, e.text!, '#ffffff', 15);
+    }
     if (e.kind === 'nomove') fx.kick(2.5), say(x, y - u * 0.75, e.text!, '#ffe3cc', 13);
     if (e.kind === 'hmph') say(x + u * 0.5, y - u * 1.3, e.text!, '#e8ecf2', 15);
     if (e.kind === 'sock') fx.kick(3), fx.burst(x, y, '#ff8a8a', 10, 2.2, 2), say(x, y - u * 0.8, e.text!, '#ffd0d0', 15);
@@ -1976,70 +2012,6 @@ function drawHud(ctx: CanvasRenderingContext2D, s: VacState, w: number, h: numbe
     ctx.fillText(tx, w / 2, by2, w - 24);
     ctx.globalAlpha = 1;
   }
-  // 판 카드: 시작 · 청소 끝 · 실패 (뒷벽 위)
-  {
-    let head = '', sub = '', nw = '', col = '#ffffff', age = 0, a = 1;
-    if (s.phase === 'result') {
-      age = s.pt;
-      if (s.ok) (head = s.won ? '집 청소 끝! 🏠' : '청소 끝!'), (sub = `밀기 ${D.used}번${s.starOk[1] ? ' ✓' : ` (≤${s.par} ✗)`} · 생선 과자 ${s.starOk[2] ? '✓' : '✗'}`), (col = '#ffcf5a');
-      else (head = `윙… ${s.why}`), (sub = s.hearts > 0 ? '하트 -1 · 같은 방 다시' : '끝 — 고양이가 낮잠 자러 가요'), (col = '#ffb3a8');
-    } else if (s.pt < CARD_T && D.used === 0) {
-      age = s.pt;
-      a = Math.min(1, (CARD_T - s.pt) / 20);
-      head = s.again ? `다시! ${s.stage + 1}번째 방` : `${s.stage + 1}번째 방`;
-      sub = `먼지 ${s.dust0}개 · 밀기 ${s.lim}번 · ★ ${s.par}번 이하`;
-      nw = def.news;
-    }
-    if (head) {
-      const sc = Math.min(1, 0.6 + age / 12), cyy = Y(nw ? 0.175 : 0.19), ch = nw ? 0.158 : 0.11;
-      ctx.save();
-      ctx.globalAlpha = a;
-      ctx.translate(w / 2, cyy);
-      ctx.scale(sc, sc);
-      ctx.fillStyle = 'rgba(42,26,16,.93)';
-      ctx.beginPath();
-      ctx.roundRect(-U(nw ? 0.45 : 0.4), -U(0.055), U(nw ? 0.9 : 0.8), U(ch), U(0.04));
-      ctx.fill();
-      ctx.strokeStyle = col;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = col;
-      font(0.048, 900);
-      if (s.phase === 'result' && s.ok) {
-        const hw = ctx.measureText(head).width, sw = U(0.056), x0 = -(hw + U(0.02) + sw * 3) / 2;
-        ctx.textAlign = 'left';
-        ctx.fillText(head, x0, -U(0.018));
-        for (let k = 0; k < 3; k++) {
-          const ag = s.pt - (10 + k * 13);
-          if (ag < 0) continue;
-          const got = s.starOk[k], pop = ag < 8 ? 1.9 - 0.9 * (ag / 8) : 1, sx = x0 + hw + U(0.02) + sw * (k + 0.5);
-          ctx.save();
-          ctx.translate(sx, -U(0.018));
-          ctx.scale(pop, pop);
-          star(ctx, 0, 0, U(0.024));
-          ctx.fillStyle = got ? '#ffd43b' : 'rgba(255,255,255,.12)';
-          ctx.fill();
-          ctx.strokeStyle = got ? '#fff3b0' : 'rgba(255,255,255,.45)';
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-          ctx.restore();
-          if (got && (fx.memo['star' + k] ?? -1) < s.t - ag) (fx.memo['star' + k] = s.t - ag), fx.burst(w / 2 + sx, cyy - U(0.018), '#ffe066', 16, 3, 2.4);
-        }
-        ctx.textAlign = 'center';
-      } else ctx.fillText(head, 0, -U(0.018), U(0.76));
-      ctx.fillStyle = '#fff7ea';
-      font(0.036, 800);
-      ctx.fillText(sub, 0, U(0.03), U(0.76));
-      if (nw) {
-        ctx.fillStyle = '#ffe9a8';
-        font(0.037, 900);
-        ctx.fillText(nw, 0, U(0.077), U(0.86));
-      }
-      ctx.restore();
-    }
-  }
   // ═════════════ 아래 띠 ═════════════
   {
     const ty = BAND, tb = h / w;
@@ -2095,7 +2067,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: VacState, w: number, h: numbe
     const bad = [s.phase === 'result' && !s.ok, D.used > s.par, false];
     const labels = [`먼지 ${cleaned}/${s.dust0}`, `밀기 ≤${s.par}`, '🐟 생선 과자'];
     const r2 = Y(ty + 0.125), cw2 = U(0.3);
-    for (let k = 0; k < 3; k++) {
+    for (let k = 0; k < 3 && s.phase === 'play'; k++) {
       const cx1 = X(0.03) + k * (cw2 + U(0.017));
       ctx.fillStyle = okk[k] ? 'rgba(255,207,90,.25)' : bad[k] ? 'rgba(0,0,0,.35)' : 'rgba(255,255,255,.08)';
       ctx.beginPath();
@@ -2141,6 +2113,70 @@ function drawHud(ctx: CanvasRenderingContext2D, s: VacState, w: number, h: numbe
     font(0.03, 900);
     ctx.textAlign = 'right';
     ctx.fillText('✨', bx + bw + U(0.035), r4);
+  }
+  // 판 카드: 시작(뒷벽 위) · 청소 끝 · 실패(아래 띠 위)
+  {
+    let head = '', sub = '', nw = '', col = '#ffffff', age = 0, a = 1;
+    if (s.phase === 'result') {
+      age = s.pt;
+      if (s.ok) (head = s.won ? '집 청소 끝! 🏠' : '청소 끝!'), (sub = `밀기 ${D.used}번${s.starOk[1] ? ' ✓' : ` (≤${s.par} ✗)`} · 생선 과자 ${s.starOk[2] ? '✓' : '✗'}`), (col = '#ffcf5a');
+      else (head = `윙… ${s.why}`), (sub = s.hearts > 0 ? '하트 -1 · 같은 방 다시' : '끝 — 고양이가 낮잠 자러 가요'), (col = '#ffb3a8');
+    } else if (s.pt < CARD_T && D.used === 0) {
+      age = s.pt;
+      a = Math.min(1, (CARD_T - s.pt) / 20);
+      head = s.again ? `다시! ${s.stage + 1}번째 방` : `${s.stage + 1}번째 방`;
+      sub = `먼지 ${s.dust0}개 · 밀기 ${s.lim}번 · ★ ${s.par}번 이하`;
+      nw = def.news;
+    }
+    if (head) {
+      const sc = Math.min(1, 0.6 + age / 12), cyy = s.phase === 'result' ? Y(BAND + 0.115) : Y(nw ? 0.17 : 0.185), ch = nw ? 0.158 : 0.11;
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.translate(w / 2, cyy);
+      ctx.scale(sc, sc);
+      ctx.fillStyle = 'rgba(42,26,16,.93)';
+      ctx.beginPath();
+      ctx.roundRect(-U(nw ? 0.45 : 0.4), -U(0.055), U(nw ? 0.9 : 0.8), U(ch), U(0.04));
+      ctx.fill();
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = col;
+      font(0.048, 900);
+      if (s.phase === 'result' && s.ok) {
+        const hw = ctx.measureText(head).width, sw = U(0.056), x0 = -(hw + U(0.02) + sw * 3) / 2;
+        ctx.textAlign = 'left';
+        ctx.fillText(head, x0, -U(0.018));
+        for (let k = 0; k < 3; k++) {
+          const ag = s.pt - (10 + k * 13);
+          if (ag < 0) continue;
+          const got = s.starOk[k], pop = ag < 8 ? 1.9 - 0.9 * (ag / 8) : 1, sx = x0 + hw + U(0.02) + sw * (k + 0.5);
+          ctx.save();
+          ctx.translate(sx, -U(0.018));
+          ctx.scale(pop, pop);
+          star(ctx, 0, 0, U(0.024));
+          ctx.fillStyle = got ? '#ffd43b' : 'rgba(255,255,255,.12)';
+          ctx.fill();
+          ctx.strokeStyle = got ? '#fff3b0' : 'rgba(255,255,255,.45)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          ctx.restore();
+          if (got && (fx.memo['star' + k] ?? -1) < s.t - ag) (fx.memo['star' + k] = s.t - ag), fx.burst(w / 2 + sx, cyy - U(0.018), '#ffe066', 16, 3, 2.4);
+        }
+        ctx.textAlign = 'center';
+      } else ctx.fillText(head, 0, -U(0.018), U(0.76));
+      ctx.fillStyle = '#fff7ea';
+      font(0.036, 800);
+      ctx.fillText(sub, 0, U(0.03), U(0.76));
+      if (nw) {
+        ctx.fillStyle = '#ffe9a8';
+        font(0.037, 900);
+        ctx.fillText(nw, 0, U(0.077), U(0.86));
+      }
+      ctx.restore();
+    }
   }
 }
 const R_full = (s: VacState) => s.R.cap > 0 && s.D.bin >= s.R.cap && dustLeft(s.D) > 0;

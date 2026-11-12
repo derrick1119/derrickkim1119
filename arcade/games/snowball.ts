@@ -57,10 +57,10 @@ export const STAGES: StageDef[] = [
       '...S...',
       '.......',
       '.f..m..',
-      '.......',
+      '.....p.',
       '.......',
       'BBBBBBB',
-      '.p...f.',
+      '.....k.',
       '.......',
     ],
     bases: [[4, 0]],
@@ -71,7 +71,7 @@ export const STAGES: StageDef[] = [
     map: [
       ',..S..,',
       '..,.,..',
-      'c......',
+      'c....p.',
       '.,,.,,.',
       '......m',
       'BBBBBBB',
@@ -85,7 +85,7 @@ export const STAGES: StageDef[] = [
     key: 'ice', news: '🧊 얼음 위에선 멈추지 못하고 미끄러져 지나가요', hint: '얼음은 크기 그대로 — 건너편까지 쭈욱',
     map: [
       '...S...',
-      '.......',
+      '.....p.',
       '.......',
       ',~~~~~,',
       ',~~M~~,',
@@ -100,7 +100,7 @@ export const STAGES: StageDef[] = [
     key: 'tree', news: '🌲 나무보다 커지면 나무째로 말아 버려요!', hint: '나무 숫자보다 커져야 뚫고 지나가요',
     map: [
       'S......',
-      '.......',
+      '..k....',
       '..,.,..',
       '.......',
       'TTTTTTT',
@@ -116,7 +116,7 @@ export const STAGES: StageDef[] = [
     key: 'slope', news: '⛷️ 비탈에 올라서면 저절로 굴러 내려가요', hint: '비탈 꼭대기로 가면 저절로 데굴데굴',
     map: [
       '..S....',
-      'm......',
+      'm....p.',
       'vvvv,,,',
       'vvvv,f,',
       'vvvv,,,',
@@ -317,6 +317,7 @@ function complete(S: Sim, R: Roll, E: SnowState | null, b: Base, n: number) {
   S.size = 1;
   S.carry = [];
   R.done = true;
+  if (E && !done(S)) ev(E, 'spawn', S.spawn, '새 눈덩이!');
 }
 
 /** 굴리기 한 번이 끝난 뒤: 썰매가 움직이고, 눈 오는 판이면 눈이 쌓인다 */
@@ -642,7 +643,7 @@ function movesOf(S: Sim) {
 }
 
 /** 판 하나를 빔 탐색으로 푼다: 굴리기 순서(목표 칸들). 별(완성·굴리기 아낌·보너스)이 가장 많은 길을 찾는다 */
-export function solve(S0: Sim, beam: number, par: number): number[] {
+function solve(S0: Sim, beam: number, par: number): number[] {
   type Node = { S: Sim; path: number[]; v: number };
   let layer: Node[] = [{ S: S0, path: [], v: 0 }];
   let best = null as { path: number[]; key: number; stars: number; depth: number } | null;
@@ -680,7 +681,7 @@ export function solve(S0: Sim, beam: number, par: number): number[] {
 
 const NO: Input = { tap: false, dir: 0, pointer: null };
 /** 잘하는 봇: 굴리기 사이에 생각하는 틱 · 빔 너비 */
-const THINK = 30, BEAM = 120;
+const THINK = 30, BEAM = 300;
 /** 칸 가운데를 가리키는 포인터 입력 */
 const atCell = (c: number): Input => {
   const u = cx(c) + 0.5, v = cy(c) + 0.5;
@@ -742,7 +743,7 @@ type Trace = { c: number; size: number; kind: number }[];
 const PREV = new WeakMap<object, { key: string; path: Trace; start: number }>();
 const CHUNKS = new WeakMap<object, { t: number; x: number; y: number; vx: number; r: number }[]>();
 /** 크기 → 눈덩이 반지름 (칸 너비 비율) */
-const ballK = (size: number) => Math.min(1.0, 0.27 + 0.062 * size);
+const ballK = (size: number) => Math.min(1.0, 0.31 + 0.058 * size);
 
 function star(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
   ctx.beginPath();
@@ -908,7 +909,7 @@ function stuck(ctx: CanvasRenderingContext2D, o: number, x: number, y: number, r
   ctx.restore();
 }
 
-/** 주인공 눈덩이. mood: 0 방긋 · 1 데굴(신남) · 2 어질어질 · 3 우쭐(커짐) · 4 걱정(미리 보기에 ✗) */
+/** 주인공 눈덩이. mood: 0 방긋 · 1 데굴(신남) · 2 어질어질 · 3 우쭐(커짐) · 4 걱정(미리 보기에 ✗) · 5 깜빡 */
 function drawBall(ctx: CanvasRenderingContext2D, x: number, gy: number, r: number, spin: number, horiz: boolean, carry: number[], mood: number, t: number, sq = 0) {
   ell(ctx, x + r * 0.15, gy + r * 0.04, r * 1.08, r * 0.36, 'rgba(36,40,100,.3)');
   const y = gy - r * 0.9;
@@ -954,6 +955,11 @@ function drawBall(ctx: CanvasRenderingContext2D, x: number, gy: number, r: numbe
     } else if (mood === 3) {
       ctx.beginPath();
       ctx.arc(exx, ey + er * 0.5, er * 1.1, Math.PI * 1.15, Math.PI * 1.85);
+      ctx.stroke();
+    } else if (mood === 5) {
+      ctx.beginPath();
+      ctx.moveTo(exx - er, ey);
+      ctx.lineTo(exx + er, ey);
       ctx.stroke();
     } else if (mood === 1 || mood === 4) {
       ell(ctx, exx, ey, er * 1.5, er * 1.7, '#ffffff');
@@ -1016,21 +1022,30 @@ function drawSnowman(ctx: CanvasRenderingContext2D, x: number, gy: number, u: nu
   const rh = b.st === 2 ? (b.head ? u * Math.min(0.42, 0.18 + 0.035 * b.hs) : rb * 0.62) * (b.head ? pop : 1) : rb * 0.6;
   const hy = by - rb * 0.88 - rh * 0.82;
   if (b.st === 1) {
-    // 머리 자리: 점선 고리 + "딱 3"
-    ctx.setLineDash([3, 3]);
-    ctx.strokeStyle = 'rgba(255,255,255,.9)';
-    ctx.lineWidth = 2;
+    // 머리 자리: 점선 고리 + "딱 3" (눈밭 위에서도 보이게 파란 고리)
+    const hr2 = Math.max(11, rh), pulse = 1 + 0.06 * Math.sin(t * 0.15);
+    ctx.fillStyle = 'rgba(58,99,216,.22)';
     ctx.beginPath();
-    ctx.arc(x, hy, Math.max(10, rh), 0, Math.PI * 2);
+    ctx.arc(x, hy, hr2 * pulse, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.setLineDash([4, 3]);
+    ctx.strokeStyle = '#3a63d8';
+    ctx.lineWidth = 2.2;
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(255,255,255,.18)';
-    ctx.fill();
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `900 ${Math.max(12, rh * 0.95)}px system-ui, sans-serif`;
+    ctx.font = `900 ${Math.max(13, hr2 * 1.0)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#ffffff';
+    ctx.strokeText(`${b.head}`, x, hy + 1);
+    ctx.fillStyle = '#2a4bb8';
     ctx.fillText(`${b.head}`, x, hy + 1);
+    ctx.font = `900 12px system-ui, sans-serif`;
+    ctx.lineWidth = 3;
+    ctx.strokeText('머리', x, hy - hr2 - 8);
+    ctx.fillStyle = '#2a4bb8';
+    ctx.fillText('머리', x, hy - hr2 - 8);
   } else {
     sphere(ctx, x, hy, rh);
     // 얼굴: 윙크
@@ -1738,7 +1753,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SnowState, w: number, h: numb
           badge(ctx, x + uu * 0.28, by2, Math.max(8.5, uu * (o === TREE ? 0.17 : 0.13)), `${osz}`, can ? '#2fa968' : '#e0485a');
         }
         if (pvMark) {
-          const mx = x, my = gy - uu * (o === TREE ? 1.25 : 0.82);
+          const mx = x - uu * 0.26, my = gy - uu * (o === TREE ? 1.05 : 0.6);
           badge(ctx, mx, my, Math.max(10, uu * 0.18), pvMark.kind === 1 ? '✓' : '✗', pvMark.kind === 1 ? '#2fa968' : '#e0485a');
           if (pvMark.kind === 2) {
             font(0.034, 900);
@@ -1746,8 +1761,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SnowState, w: number, h: numb
             ctx.fillStyle = '#ffd6d6';
             ctx.strokeStyle = 'rgba(60,0,20,.6)';
             ctx.lineWidth = 3;
-            ctx.strokeText('퉁! 반쪽', mx, my - uu * 0.3);
-            ctx.fillText('퉁! 반쪽', mx, my - uu * 0.3);
+            ctx.strokeText('퉁! 반쪽', x, my - uu * 0.32);
+            ctx.fillText('퉁! 반쪽', x, my - uu * 0.32);
           }
         }
       },
@@ -1790,6 +1805,36 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SnowState, w: number, h: numb
       });
     }
   }
+  // 받침 가장자리의 등불 (따뜻한 빛 번짐)
+  for (const b of s.bases) {
+    const ends = b.cs.length > 1 ? [[b.cs[0], 0.08], [b.cs[b.cs.length - 1], 0.92]] : [[b.cs[0], 0.1]];
+    for (const [c, fu] of ends) {
+      const v0 = cy(c) + 0.18, uu = cw(v0), x = SX(cx(c) + fu, v0), gy = SY(v0);
+      items.push({
+        v: v0,
+        f: () => {
+          ctx.fillStyle = '#3a3050';
+          ctx.fillRect(x - 1.5, gy - uu * 0.55, 3, uu * 0.55);
+          const ly = gy - uu * 0.62, fl2 = 0.85 + 0.15 * Math.sin(t * 0.17 + c);
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          const gl = ctx.createRadialGradient(x, ly, 1, x, ly, uu * 0.75);
+          gl.addColorStop(0, `rgba(255,200,100,${0.55 * fl2})`);
+          gl.addColorStop(1, 'rgba(255,170,80,0)');
+          ctx.fillStyle = gl;
+          ctx.beginPath();
+          ctx.arc(x, ly, uu * 0.75, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+          ctx.fillStyle = '#ffd77a';
+          ctx.fillRect(x - uu * 0.06, ly - uu * 0.08, uu * 0.12, uu * 0.14);
+          ctx.fillStyle = '#3a3050';
+          ctx.fillRect(x - uu * 0.08, ly - uu * 0.11, uu * 0.16, uu * 0.04);
+          ell(ctx, x, ly - uu * 0.12, uu * 0.08, uu * 0.025, '#ffffff');
+        },
+      });
+    }
+  }
   // 받침이 완성될 수 있으면 반짝 고리
   for (const b of s.bases) {
     if (b.st === 2) continue;
@@ -1809,7 +1854,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SnowState, w: number, h: numb
     const v0 = cy(s.spawn) + 0.45, uu = cw(v0), x = SX(cx(s.spawn) + (cx(s.spawn) >= COLS - 1 ? 0.15 : 0.95), v0), gy = SY(v0) + uu * 0.1;
     const recent = (k: string, n: number) => s.events.some((e) => e.kind === k && t - e.t < n);
     const mood = recent('bounce', 60) || recent('fail', 100) ? 2 : recent('push', 30) || recent('body', 90) || recent('head', 90) || s.phase === 'result' ? 1 : 0;
-    items.push({ v: v0 + 0.02, f: () => drawKid(ctx, x, gy, uu * 1.15, mood, t) });
+    items.push({ v: v0 + 0.02, f: () => drawKid(ctx, x, gy, uu * 1.4, mood, t) });
   }
   // 주인공 눈덩이
   if (s.phase === 'play' || !s.ok) {
@@ -1817,7 +1862,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SnowState, w: number, h: numb
     const r = uu * ballK(shownSize) * grow;
     const x = SX(bu, bv), gy = SY(bv) + uu * 0.1;
     const rolling = !!s.roll || bp < 1;
-    const mood = s.dizzy > 0 ? 2 : pvBad ? 4 : rolling ? 1 : s.size >= 8 ? 3 : 0;
+    const mood = s.dizzy > 0 ? 2 : pvBad ? 4 : rolling ? 1 : s.size >= 8 ? 3 : t % 170 < 7 ? 5 : 0;
     const sq = s.bump > 0 ? Math.sin((s.bump / 14) * Math.PI) : 0;
     const spinA = (s.spin + (rolling ? bp : 0)) * 1.4 * (s.rdir === 1 || s.rdir === 2 ? 1 : -1);
     items.push({
@@ -1846,10 +1891,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SnowState, w: number, h: numb
     }
     const uu = cw(cy(endC) + 0.5), x = ccx(endC), gy = ccy(endC) + uu * 0.1;
     if (last.kind === 3) {
-      badge(ctx, x, gy - uu * 1.0, Math.max(13, uu * 0.24), '✓', '#2fa968');
+      badge(ctx, x, gy - uu * 0.4, Math.max(13, uu * 0.24), '✓', '#2fa968');
       font(0.04, 900);
       const tx = `크기 ${last.size} → 완성!`, tw = ctx.measureText(tx).width + 16, th2 = R(0.056);
-      const lx = Math.max(tw / 2 + 4, Math.min(w - tw / 2 - 4, x)), ly = gy - uu * 1.0 - R(0.06);
+      const br2 = Math.max(13, uu * 0.24), right = x + br2 + tw + 6 < w;
+      const lx = right ? x + br2 + 4 + tw / 2 : x - br2 - 4 - tw / 2, ly = gy - uu * 0.4;
       ctx.fillStyle = 'rgba(18,80,50,.92)';
       ctx.beginPath();
       ctx.roundRect(lx - tw / 2, ly - th2 / 2, tw, th2, th2 / 2);
@@ -1862,7 +1908,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SnowState, w: number, h: numb
       ctx.textBaseline = 'middle';
       ctx.fillText(tx, lx, ly + 0.5);
     } else {
-      const r = uu * ballK(endSize);
+      const r = uu * Math.min(0.8, ballK(endSize));
       ctx.globalAlpha = 0.5;
       sphere(ctx, x, gy - r * 0.9, r);
       ctx.globalAlpha = 1;
@@ -1928,7 +1974,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SnowState, w: number, h: numb
     if (e.kind === 'push') say(SX(cx(s.spawn) + 1.1, cy(s.spawn)), SY(cy(s.spawn)) - uu * 0.4, e.text!, '#fff1c2', 14), fx.burst(x, y, '#ffffff', 8, 2, 2);
     if (e.kind === 'grow') fx.burst(x, y, '#ffffff', 5, 1.6, 2.2), say(x, y - uu * 0.3, '+1', '#cfeeff', 12);
     if (e.kind === 'shrink') fx.burst(x, y, '#8fbf62', 6, 1.6, 2), say(x, y - uu * 0.3, '−1', '#ffd2a0', 12);
-    if (e.kind === 'stop') say(x, y - br * 2.1 - uu * 0.5, e.text!, '#ffffff', 17), fx.ring(x, y, '#ffffff', uu * 0.7, 3);
+    if (e.kind === 'stop') say(x, y - br * 2.2 - Math.max(22, uu * 0.4) - 14, e.text!, '#ffffff', s.used <= 1 && s.stage === 0 ? 22 : 17), fx.ring(x, y, '#ffffff', uu * 0.7, 3);
     if (e.kind === 'absorb') {
       const col = e.a === TREE ? '#2c6a4a' : e.a === SCARF ? '#e8414f' : e.a === CARROT ? '#ff8a24' : e.a === PUPPY ? '#c4844a' : e.a === SLED ? '#3d7bd9' : '#a0683a';
       fx.burst(x, y - uu * 0.2, col, 16, 3.2, 2.6), fx.burst(x, y - uu * 0.2, '#ffffff', 12, 2.6, 2.4), fx.ring(x, y, '#ffffff', uu * 0.8, 3), fx.kick(e.a === TREE ? 6 : 3);
@@ -1955,6 +2001,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SnowState, w: number, h: numb
       say(w / 2, Y(0.62), e.text!, '#ffffff', 18);
     }
     if (e.kind === 'nope') say(x, y - uu, e.text!, '#ffd6cc', 14);
+    if (e.kind === 'spawn') fx.burst(x, y - uu * 0.2, '#ffffff', 14, 2.6, 2.4), fx.ring(x, y, '#bfe8ff', uu * 0.6, 3), say(x, y - uu * 1.2, e.text!, '#cfeeff', 14);
     if (e.kind === 'clear') {
       for (let k = 0; k < 4; k++) fx.burst(X(0.2 + k * 0.2), Y(0.75), ['#ffe066', '#ff8fb0', '#8fe0ff', '#ffffff'][k], 34, 6, 3.2);
       fx.ring(w / 2, Y(0.8), '#ffe066', R(0.45), 7), fx.blink('#fff6c8', 0.25);
@@ -2120,8 +2167,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SnowState, w: number, h: numb
     ctx.fillText(`${s.left}번 남음`, X(0.97), r1);
     // 별 목표 셋
     const doneN = s.bases.filter((b) => b.st === 2).length;
-    const okk = s.phase === 'result' && s.ok ? s.starOk : [doneN === s.bases.length, s.used <= d.par && s.used > 0, s.got >= s.gotAll];
-    const bad = [s.phase === 'result' && !s.ok, s.used > d.par, false];
+    const failed = s.phase === 'result' && !s.ok;
+    const okk = s.phase === 'result' && s.ok ? s.starOk : failed ? [false, false, false] : [doneN === s.bases.length, s.used <= d.par && s.used > 0, s.got >= s.gotAll];
+    const bad = [failed, s.used > d.par, false];
     const labels = [`눈사람 ${doneN}/${s.bases.length}`, `굴리기 ≤${d.par}`, d.key === 'sled' ? `썰매 ${s.got}/${s.gotAll}` : `보너스 ${s.got}/${s.gotAll}`];
     const r2 = Y(ty + 0.112), cw2 = R(0.3);
     for (let k = 0; k < 3; k++) {
@@ -2155,5 +2203,3 @@ function drawAll(ctx: CanvasRenderingContext2D, s: SnowState, w: number, h: numb
     ctx.fillText(hint, w / 2, Y(ty + 0.19), w - R(0.05));
   }
 }
-
-export const __dbg = { layout, cloneSim, simRoll, solve, aimRoll, done, movesOf, newStage };
