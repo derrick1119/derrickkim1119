@@ -64,6 +64,11 @@ interface StageDef {
   slicks?: number[][];
   taps: number;
   par: number;
+  /** 판 시작 카드에 띄우는 '이 판의 질문' 한 줄 (CONTENT §1, D002) */
+  ask?: string;
+  /** 판별 배수구 끌림 반지름·세기 (없으면 PULL_R·PULL, CONTENT §1 3판) */
+  pullR?: number;
+  pull?: number;
 }
 
 /** 판(목욕) 8개. 좌표는 뒤집기 전 — 판마다 시드로 좌우를 뒤집고 오리 자리를 살짝 흔든다 */
@@ -72,27 +77,29 @@ export const STAGES: StageDef[] = [
     key: '', news: '', hint: '황금 오리는 마지막 오리보다 먼저 넣어야 ★',
     ducks: [[0.5, 0.42, 0], [0.62, 0.6, 0], [0.38, 0.6, 0]], gold: [0.5, 0.78],
     nests: [[0.5, 0.12, 0.2, -1], [0.88, 0.6, 0.2, -1], [0.12, 0.6, 0.2, -1], [0.5, 1.08, 0.2, -1], [0.1, 0.1, 0.15, -1, 0, 1], [0.9, 0.1, 0.15, -1, 0, 1], [0.1, 1.1, 0.15, -1, 0, 1], [0.9, 1.1, 0.15, -1, 0, 1]],
-    taps: 9, par: 1,
+    taps: 12, par: 1, ask: '가운데를 톡! 한 번에 몇 마리?', // D002 CONTENT §1: 톡 9→12 (첫 판은 거의 못 진다)
   },
   {
     key: 'island', news: '🫧 거품 섬 뒤에 숨은 오리는 물결이 안 닿아요', hint: '거품 섬 뒤에 숨은 오리는 안 밀려요 — 골라 밀기',
     ducks: [[0.5, 0.38, 0], [0.3, 0.64, 0], [0.7, 0.64, 0]], gold: [0.5, 0.85],
     islands: [[0.5, 0.6, 0.1]],
-    nests: [[0.5, 0.1, 0.15, -1], [0.9, 0.6, 0.15, -1], [0.1, 0.6, 0.15, -1], [0.5, 1.1, 0.15, -1], [0.1, 0.1, 0.13, -1, 0, 1], [0.9, 0.1, 0.13, -1, 0, 1], [0.1, 1.1, 0.13, -1, 0, 1], [0.9, 1.1, 0.13, -1, 0, 1]],
-    taps: 8, par: 2,
+    nests: [[0.5, 0.1, 0.16, -1], [0.9, 0.6, 0.16, -1], [0.1, 0.6, 0.16, -1], [0.5, 1.1, 0.16, -1], [0.1, 0.1, 0.13, -1, 0, 1], [0.9, 0.1, 0.13, -1, 0, 1], [0.1, 1.1, 0.13, -1, 0, 1], [0.9, 1.1, 0.13, -1, 0, 1]],
+    taps: 10, par: 2, ask: '섬 뒤에 숨은 오리까지, 두 번에 다!', // D002: 큰 둥지 r 0.15→0.16, 톡 8→10
   },
   {
     key: 'drain', news: '🕳️ 배수구 가까이 멈추면 쭈욱 빨려 가요!', hint: '배수구 쪽에서 치면 밖으로, 바깥에서 치면 안으로!',
-    ducks: [[0.31, 0.44, 0], [0.69, 0.44, 0], [0.5, 0.88, 0]], gold: [0.72, 0.82],
-    drains: [[0.5, 0.62]],
-    nests: [[0.13, 0.16, 0.14, -1], [0.87, 0.16, 0.14, -1], [0.14, 1.05, 0.14, -1]],
-    taps: 6, par: 3,
+    // D002 CONTENT §1 전면 재설계: 배수구를 셋이 둘러싸고 끌림을 약하게 — 배수구 바로 옆을 치면 밖으로 튕겨 나간다
+    ducks: [[0.5, 0.42, 0], [0.34, 0.72, 0], [0.66, 0.72, 0]], gold: [0.5, 0.84],
+    drains: [[0.5, 0.6]], pullR: 0.12, pull: 0.00012,
+    nests: [[0.12, 0.14, 0.17, -1], [0.88, 0.14, 0.17, -1], [0.12, 1.06, 0.17, -1], [0.88, 1.06, 0.17, -1], [0.1, 0.6, 0.14, -1, 0, 1], [0.9, 0.6, 0.14, -1, 0, 1]],
+    taps: 10, par: 2, ask: '배수구 바로 옆을 톡 — 오리가 밖으로 튕겨요!',
   },
   {
     key: 'color', news: '🎨 색깔 둥지 — 같은 색 오리만 들어가요', hint: '노랑은 노랑 둥지, 분홍은 분홍 둥지로 갈라 밀어요',
-    ducks: [[0.3, 0.45, 0], [0.7, 0.45, 1], [0.64, 0.76, 0], [0.36, 0.76, 1]], gold: [0.5, 0.3],
-    nests: [[0.12, 0.6, 0.16, 0], [0.88, 0.6, 0.16, 1]],
-    taps: 8, par: 5,
+    // D002 CONTENT §1: 색깔 소개는 오리 2마리 — 왼쪽 벽은 노랑, 오른쪽 벽은 분홍 (섞인 4마리는 M2 조합 판으로)
+    ducks: [[0.36, 0.6, 0], [0.64, 0.6, 1]], gold: [0.5, 0.32],
+    nests: [[0.12, 0.6, 0.2, 0], [0.88, 0.6, 0.2, 1], [0.12, 0.12, 0.15, 0, 0, 1], [0.88, 0.12, 0.15, 1, 0, 1], [0.12, 1.08, 0.15, 0, 0, 1], [0.88, 1.08, 0.15, 1, 0, 1]],
+    taps: 6, par: 1, ask: '가운데를 톡 — 노랑은 노랑 쪽, 분홍은 분홍 쪽!',
   },
   {
     key: 'boat', news: '⛵ 장난감 배는 무거워요 — 부두에 넣어요', hint: '배는 무거워요 — 바로 옆을 쳐야 움직여요',
@@ -130,6 +137,8 @@ export const STAGE_COUNT = STAGES.length;
 
 interface Obj {
   k: number; col: number; x: number; y: number; vx: number; vy: number;
+  /** 판 시작 자리 (뿅 재등장 겹침 예외용, CONTENT §0) */
+  sx: number; sy: number;
   /** FREE 떠 있음 · 0 이상 들어간 둥지 · SUCKED 배수구 · EATEN 상어 */
   st: number;
   hitT: number; hitR: number; stun: number; ord: number;
@@ -140,14 +149,16 @@ interface Ring { id: number; x: number; y: number; r: number; hit: number[] }
 interface Nest { x: number; y: number; r: number; col: number; dock: boolean; mom: boolean }
 interface Circle { x: number; y: number; r: number }
 interface Stream { x0: number; y0: number; x1: number; y1: number; dx: number; dy: number }
-interface Layout { nests: Nest[]; islands: Circle[]; drains: Circle[]; streams: Stream[]; slicks: Circle[] }
-interface Sim { t: number; objs: Obj[]; rings: Ring[]; rid: number; awake: boolean; L: Layout }
+interface Drain { x: number; y: number; r: number; pr: number; pw: number }
+interface Layout { nests: Nest[]; islands: Circle[]; drains: Drain[]; streams: Stream[]; slicks: Circle[] }
+/** pen = 이번 판에서 쏙·꿀꺽으로 재등장한 횟수 (= 잃은 톡 수, CONTENT §0) */
+interface Sim { pen: number; t: number; objs: Obj[]; rings: Ring[]; rid: number; awake: boolean; L: Layout }
 interface Ev { t: number; kind: string; x: number; y: number; text?: string; col?: string }
 
 export interface DuckState extends Sim {
   rng: Rng; seed: number; stage: number; phase: 'play' | 'result'; pt: number;
   jit: { flip: boolean; j: number[] }[];
-  taps: number; used: number; lastTap: number; stageTries: number; stars: number; got: number; starOk: boolean[]; pts: number;
+  taps: number; used: number; lastTap: number; penA: number; sucks: number; chomps: number; stageTries: number; stars: number; got: number; starOk: boolean[]; pts: number;
   ok: boolean; why: string; down: boolean; aim: { x: number; y: number } | null;
   seen: Set<string>; newsQ: string[]; news: { text: string; t: number } | null;
   events: Ev[]; dead: boolean; won: boolean; catT: number; tries: number; goldLost: boolean; firstTap: boolean; again: boolean;
@@ -174,7 +185,7 @@ function toPlane(sx: number, sy: number) {
 const inWater = (x: number, y: number, m = 0) => x >= m && x <= W - m && y >= m && y <= H - m;
 
 // ───────────────────────────── 시뮬레이션 ─────────────────────────────
-const mk = (k: number, col: number, x: number, y: number): Obj => ({ k, col, x, y, vx: 0, vy: 0, st: FREE, hitT: -99, hitR: -1, stun: 0, ord: 0, face: x < 0.5 ? 1 : -1, spin: 0, mood: k === SHARK ? 5 : 0, moodT: 0 });
+const mk = (k: number, col: number, x: number, y: number): Obj => ({ sx: x, sy: y, k, col, x, y, vx: 0, vy: 0, st: FREE, hitT: -99, hitR: -1, stun: 0, ord: 0, face: x < 0.5 ? 1 : -1, spin: 0, mood: k === SHARK ? 5 : 0, moodT: 0 });
 
 function fits(o: Obj, n: Nest) {
   if (o.k === BOAT) return n.dock;
@@ -214,6 +225,30 @@ function splash(S: Sim, x: number, y: number) {
 }
 
 /** 한 틱. E가 있으면(진짜 판) 연출 사건을 남긴다 — 미리 보기·봇의 내다보기는 E 없이 같은 규칙으로 돈다 */
+/** 수도꼭지 바로 앞 — 쏙·꿀꺽된 오리가 '뿅!' 하고 다시 나오는 자리 (CONTENT §0) */
+export const FAUCET = { x: 0.5, y: 0.06 };
+/**
+ * D002 (CONTENT §0): 배수구에 빨리거나 상어에게 먹힌 오리·황금 오리·배는 사라지지 않고 수도꼭지에서 '뿅!' 다시 나온다 — 대가는 톡 1개.
+ * 수도꼭지 자리가 둥지에 닿거나(공짜 입성)·배수구 끌림 안이거나(다시 쏙)·물줄기 안이면(공짜 운반) 그 오리의 판 시작 자리로.
+ */
+function respawn(S: Sim, o: Obj, E: DuckState | null) {
+  S.pen++;
+  let x = FAUCET.x, y = FAUCET.y;
+  const bad =
+    S.L.nests.some((n) => fits(o, n) && Math.hypot(x - n.x, y - n.y) < n.r + NEST_TOUCH + RAD[o.k]) ||
+    S.L.drains.some((d) => Math.hypot(x - d.x, y - d.y) < d.pr) ||
+    S.L.streams.some((st) => x > st.x0 && x < st.x1 && y > st.y0 && y < st.y1);
+  if (bad) (x = o.sx), (y = o.sy);
+  o.x = x;
+  o.y = y;
+  o.vx = o.vy = 0;
+  o.st = FREE;
+  o.stun = 0;
+  o.hitT = -99;
+  o.hitR = -1;
+  if (E) (o.mood = 4), (o.moodT = 70), (o.spin = 6), ev(E, 'pop', x, y, '뿅! 톡 −1');
+}
+
 function phys(S: Sim, E: DuckState | null) {
   S.t++;
   const L = S.L, objs = S.objs;
@@ -272,13 +307,17 @@ function phys(S: Sim, E: DuckState | null) {
     for (const dr of L.drains) {
       const dx = dr.x - o.x, dy = dr.y - o.y, d = Math.hypot(dx, dy);
       if (d < SUCK_R) {
-        o.st = SUCKED;
         o.vx = o.vy = 0;
         if (E) ev(E, 'suck', dr.x, dr.y, o.k === SHARK ? '상어도 쏙! 🦈' : o.k === GOLD ? '황금 오리 쏙…' : '쭈욱… 쏙!');
+        if (o.k === SHARK) o.st = SUCKED; // 상어가 빨리는 건 상 — 벌 없음
+        else {
+          if (E) E.sucks++;
+          respawn(S, o, E);
+        }
         break;
       }
-      if (d < PULL_R) {
-        const a = (PULL * (1 - d / PULL_R)) / Math.max(0.6, WEIGHT[o.k]);
+      if (d < dr.pr) {
+        const a = (dr.pw * (1 - d / dr.pr)) / Math.max(0.6, WEIGHT[o.k]);
         o.vx += (dx / d) * a;
         o.vy += (dy / d) * a;
       }
@@ -297,9 +336,9 @@ function phys(S: Sim, E: DuckState | null) {
         if (bj >= 0) {
           const q = objs[bj];
           if (bd < CHOMP) {
-            q.st = EATEN;
             o.stun = STUN;
-            if (E) (o.mood = 6), (o.moodT = 90), ev(E, 'chomp', q.x, q.y, q.k === GOLD ? '황금 오리 꿀꺽!' : '꿀꺽!');
+            if (E) (o.mood = 6), (o.moodT = 90), ev(E, 'chomp', q.x, q.y, q.k === GOLD ? '황금 오리 꿀꺽!' : '꿀꺽!'), E.chomps++;
+            respawn(S, q, E);
           } else {
             o.x += ((q.x - o.x) / bd) * SHARK_V;
             o.y += ((q.y - o.y) / bd) * SHARK_V;
@@ -382,7 +421,7 @@ function verdict(S: Sim) {
 }
 
 function clone(S: Sim): Sim {
-  return { t: S.t, objs: S.objs.map((o) => ({ ...o })), rings: S.rings.map((g) => ({ ...g, hit: g.hit.slice() })), rid: S.rid, awake: S.awake, L: S.L };
+  return { pen: S.pen, t: S.t, objs: S.objs.map((o) => ({ ...o })), rings: S.rings.map((g) => ({ ...g, hit: g.hit.slice() })), rid: S.rid, awake: S.awake, L: S.L };
 }
 /** 잔잔해질 때까지(또는 끝날 때까지) 돌린다 */
 function run(S: Sim, maxT: number) {
@@ -409,7 +448,7 @@ function newStage(s: DuckState) {
   s.L = {
     nests: d.nests.map(([x, y, r, col, dock, nomom]) => ({ x: fx(x), y, r, col, dock: !!dock, mom: !dock && !nomom })),
     islands: (d.islands ?? []).map(([x, y, r]) => ({ x: fx(x), y, r })),
-    drains: (d.drains ?? []).map(([x, y]) => ({ x: fx(x), y, r: SUCK_R })),
+    drains: (d.drains ?? []).map(([x, y]) => ({ x: fx(x), y, r: SUCK_R, pr: d.pullR ?? PULL_R, pw: d.pull ?? PULL })),
     streams: (d.streams ?? []).map(([x0, y0, x1, y1, dx, dy]) => (jt.flip ? { x0: W - x1, y0, x1: W - x0, y1, dx: -dx, dy } : { x0, y0, x1, y1, dx, dy })),
     slicks: (d.slicks ?? []).map(([x, y, r]) => ({ x: fx(x), y, r })),
   };
@@ -426,9 +465,18 @@ function newStage(s: DuckState) {
   s.phase = 'play';
   s.pt = 0;
   s.goldLost = false;
+  s.pen = s.penA = s.sucks = s.chomps = 0;
   s.starOk = [false, false, false];
   // 판의 새것은 판 카드 셋째 줄에 바로 보인다 (알림 띠 대기열에는 넣지 않는다)
   if (d.key) s.seen.add(d.key);
+}
+
+/** 테스트·측정용: i번째 판(0부터)을 처음부터 시작 */
+export function startStage(s: DuckState, i: number) {
+  s.stage = i;
+  s.stageTries = 0;
+  s.again = false;
+  newStage(s);
 }
 
 function tap(s: DuckState, sx: number, sy: number) {
@@ -492,7 +540,7 @@ export const duckbath: GameDef<DuckState> = {
     const rng = mulberry32(seed);
     const jit = STAGES.map(() => ({ flip: rng() < 0.5, j: Array.from({ length: 12 }, () => rng()) }));
     const s = {
-      rng, seed, t: 0, objs: [], rings: [], rid: 0, awake: false,
+      pen: 0, penA: 0, sucks: 0, chomps: 0, rng, seed, t: 0, objs: [], rings: [], rid: 0, awake: false,
       L: { nests: [], islands: [], drains: [], streams: [], slicks: [] },
       stage: 0, phase: 'play', pt: 0, jit, taps: 0, used: 0, lastTap: 0, stageTries: 0, stars: 0, got: 0, starOk: [false, false, false], pts: 0,
       ok: false, why: '', down: false, aim: null, seen: new Set<string>(), newsQ: [], news: null, events: [], dead: false, won: false, catT: -999, tries: 0, goldLost: false, firstTap: false, again: false,
@@ -513,6 +561,14 @@ export const duckbath: GameDef<DuckState> = {
     s.events = s.events.filter((e) => s.t - e.t < 110);
     const goldBefore = s.objs.find((o) => o.k === GOLD)?.st;
     phys(s, s);
+    // 쏙·꿀꺽 = 톡 1개 (쓴 톡으로도 센다 → ★톡에 영향). 실패 판정은 '뿅'을 볼 만큼 늦춘다 (CONTENT §0)
+    if (s.pen > s.penA) {
+      const k = s.pen - s.penA;
+      s.penA = s.pen;
+      s.taps = Math.max(0, s.taps - k);
+      s.used += k;
+      s.lastTap = s.t;
+    }
     cosmetic(s);
     const gold = s.objs.find((o) => o.k === GOLD);
     if (gold && goldBefore === FREE && gold.st < FREE) s.goldLost = true;
@@ -550,7 +606,7 @@ function cosmetic(s: DuckState) {
       if (Math.abs(o.vx) > 0.0015) o.face = o.vx > 0 ? 1 : -1;
       if (o.moodT <= 0) {
         let scared = false;
-        for (const d of s.L.drains) if (Math.hypot(o.x - d.x, o.y - d.y) < PULL_R + 0.03) scared = true;
+        for (const d of s.L.drains) if (Math.hypot(o.x - d.x, o.y - d.y) < d.pr + 0.03) scared = true;
         for (const q of s.objs) if (q.k === SHARK && q.st === FREE && s.awake && q.stun <= 0 && Math.hypot(o.x - q.x, o.y - q.y) < 0.25) scared = true;
         o.mood = scared ? 4 : 0;
       }
@@ -595,14 +651,15 @@ function value(s: DuckState, S: Sim, plies: number) {
       else v -= 450;
     }
   }
-  if (all) return 100000 + (goldIn ? 30000 : 0) + (s.used + plies <= d.par ? 30000 : 0) + (s.taps - plies) * 100;
+  v -= S.pen * 700;
+  if (all) return 100000 - S.pen * 30000 + (goldIn ? 30000 : 0) + (s.used + plies <= d.par ? 30000 : 0) + (s.taps - plies) * 100;
   const sh = S.objs.find((o) => o.k === SHARK && o.st === FREE);
   for (const o of S.objs) {
     if (o.st !== FREE || o.k === SHARK) continue;
     const wgt = o.k === GOLD ? 300 : 1600;
     for (const dr of S.L.drains) {
       const dd = Math.hypot(o.x - dr.x, o.y - dr.y);
-      if (dd < PULL_R + 0.05) v -= wgt * (1 - dd / (PULL_R + 0.05));
+      if (dd < dr.pr + 0.05) v -= wgt * (1 - dd / (dr.pr + 0.05));
     }
     if (sh) {
       const dd = Math.hypot(o.x - sh.x, o.y - sh.y);
@@ -1587,14 +1644,14 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
   // 배수구
   for (const dr of L.drains) {
     ctx.fillStyle = 'rgba(0,40,60,.18)';
-    pcircle(dr.x, dr.y, PULL_R);
+    pcircle(dr.x, dr.y, dr.pr);
     ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,.35)';
     ctx.lineWidth = 1.6;
     for (let k = 0; k < 4; k++) {
       ctx.beginPath();
       for (let q = 0; q <= 20; q++) {
-        const a = -t * 0.06 + (k * Math.PI) / 2 + q * 0.16, rr = PULL_R * (1 - q / 22);
+        const a = -t * 0.06 + (k * Math.PI) / 2 + q * 0.16, rr = dr.pr * (1 - q / 22);
         const px = dr.x + Math.cos(a) * rr, py = dr.y + Math.sin(a) * rr;
         if (q) ctx.lineTo(SX(px, py), SY(py));
         else ctx.moveTo(SX(px, py), SY(py));
@@ -1603,7 +1660,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     }
     ctx.strokeStyle = 'rgba(255,90,90,.45)';
     ctx.setLineDash([R(0.008), R(0.008)]);
-    pcircle(dr.x, dr.y, PULL_R);
+    pcircle(dr.x, dr.y, dr.pr);
     ctx.stroke();
     ctx.setLineDash([]);
     const cg = ctx.createLinearGradient(SX(dr.x, dr.y) - R(0.04), 0, SX(dr.x, dr.y) + R(0.04), 0);
@@ -2019,6 +2076,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     if (e.kind === 'nest') fx.burst(x, y - R(0.02), '#ffe066', 18, 3.4, 2.4), fx.burst(x, y, '#ffffff', 10, 2.4, 2.2), fx.ring(x, y, '#ffe066', R(0.07), 3), say(x, y - R(0.08), e.text!, '#fff3a0', 15);
     if (e.kind === 'gold') fx.burst(x, y - R(0.02), '#ffd43b', 32, 4.6, 2.8), fx.ring(x, y, '#ffe066', R(0.11), 5), fx.blink('#fff6c8', 0.18), say(x, y - R(0.08), e.text!, '#ffd84a', 17);
     if (e.kind === 'suck') fx.burst(x, y, '#9fdcef', 26, 4, 2.6), fx.ring(x, y, '#1d5a72', R(0.08), 4), fx.kick(7), say(x, y - R(0.07), e.text!, '#ffd0d0', 16);
+    if (e.kind === 'pop') fx.burst(x, y, '#bff3ff', 18, 3.4, 2.4), fx.ring(x, y, '#ffffff', R(0.06), 3), say(x, y + R(0.06), e.text!, '#ffe9a8', 18);
     if (e.kind === 'chomp') fx.burst(x, y, '#ffffff', 26, 4.4, 2.8), fx.kick(9), fx.blink(th.hot, 0.2), say(x, y - R(0.09), e.text!, '#ffb3b3', 18);
     if (e.kind === 'cat') fx.burst(x, y, '#ffb066', 10, 2.6, 2), say(x - R(0.06), y, e.text!, '#ffd9b0', 14);
     if (e.kind === 'nope') say(x, y, e.text!, '#ffd6cc', 13), fx.kick(1.5);
@@ -2075,12 +2133,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     if (s.phase === 'result') {
       age = s.pt;
       if (s.ok) (head = s.won ? '목욕 다 끝! 🛁' : '목욕 끝!'), (sub = `다 넣음 ✓ · 톡 ${s.used}번${s.used <= d.par ? ' ✓' : ` (≤${d.par} ✗)`} · 황금 오리 ${s.starOk[2] ? '✓' : '✗'}`), (col = '#ffd84a');
-      else (head = `꽥… ${s.why}`), (sub = '괜찮아요 — 같은 목욕 다시!'), (col = '#ffb3a8');
+      else (head = `꽥… ${s.why}`), (sub = `${s.sucks ? `쏙 ×${s.sucks} · ` : ''}${s.chomps ? `꿀꺽 ×${s.chomps} · ` : ''}괜찮아요 — 같은 목욕 다시!`), (col = '#ffb3a8');
     } else if (s.pt < CARD_T) {
       age = s.pt;
       a = Math.min(1, (CARD_T - s.pt) / 20);
       head = s.again ? `다시! ${s.stage + 1}번째 목욕` : `${s.stage + 1}번째 목욕`;
-      sub = `오리 ${d.ducks.length}마리${d.boat ? ' + 배' : ''} · 톡 ${d.taps}번 · ★ 톡 ${d.par}번 이하`;
+      sub = d.ask ?? `오리 ${d.ducks.length}마리${d.boat ? ' + 배' : ''} · 톡 ${d.taps}번 · ★ 톡 ${d.par}번 이하`;
       nw = d.news;
     }
     if (head) {
@@ -2191,7 +2249,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     const goldOk = !!gold && gold.st >= 0;
     const okk = s.phase === 'result' && s.ok ? s.starOk : [ducksIn === ducksAll, s.used <= d.par, goldOk];
     const bad = [s.phase === 'result' && !s.ok, s.used > d.par, s.goldLost];
-    const labels = [`오리 ${ducksIn}/${ducksAll}`, `톡 ≤${d.par}`, '황금 오리'];
+    const labels = [`오리 ${ducksIn}/${ducksAll}`, `톡 ≤${d.par}`, '👑 먼저']; // D002: 황금 오리 조건(마지막 오리보다 먼저)이 읽히게
     const r2 = Y(ty + 0.112), cw2 = R(0.3);
     for (let k = 0; k < 3; k++) {
       const cx1 = X(0.03) + k * (cw2 + R(0.017));

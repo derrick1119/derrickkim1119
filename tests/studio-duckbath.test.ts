@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
-import { STAGES, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart } from '../studio/duckbath/game.ts';
+import { FAUCET, STAGES, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, startStage } from '../studio/duckbath/game.ts';
 import { play } from '../studio/duckbath/funqa.ts';
 
 describe('욕조 물결 오리 시뮬', () => {
@@ -35,6 +35,50 @@ describe('욕조 물결 오리 시뮬', () => {
     expect(g.over(s)).toBe(false);
     expect(s.stage).toBe(0);
     expect(s.stageTries).toBeGreaterThanOrEqual(4);
+  });
+
+  describe('쏙·꿀꺽 = 톡 1개 잃고 수도꼭지에서 뿅 (D002, CONTENT §0)', () => {
+    const idle = { tap: false, dir: 0 as const, pointer: null };
+    const drainStage = () => {
+      const s = g.create(9);
+      startStage(s, 2); // 3판: 배수구
+      while (s.phase !== 'play' || s.pt < 2) g.step(s, idle);
+      return s;
+    };
+    it('배수구에 빠진 오리는 사라지지 않고 수도꼭지에서 다시 나온다, 톡 −1 · 쓴 톡 +1', () => {
+      const s = drainStage(), dr = s.L.drains[0], o = s.objs[0], t0 = s.taps, u0 = s.used;
+      o.x = dr.x;
+      o.y = dr.y;
+      g.step(s, idle);
+      expect(o.st).toBe(-1);
+      expect([o.x, o.y]).toEqual([FAUCET.x, FAUCET.y]);
+      expect(s.taps).toBe(t0 - 1);
+      expect(s.used).toBe(u0 + 1);
+      expect(s.sucks).toBe(1);
+    });
+    it('톡이 0이면 0에서 멈춘다(음수 없음)', () => {
+      const s = drainStage(), dr = s.L.drains[0], o = s.objs[1];
+      s.taps = 0;
+      o.x = dr.x;
+      o.y = dr.y;
+      g.step(s, idle);
+      expect(s.taps).toBe(0);
+      expect(o.st).toBe(-1);
+    });
+    it('수도꼭지 자리가 둥지에 닿는 판이면 판 시작 자리로 (공짜 입성 금지)', () => {
+      const s = g.create(9);
+      startStage(s, 0); // 1판: 뒤 가운데 둥지가 수도꼭지 앞에 있다
+      while (s.phase !== 'play' || s.pt < 2) g.step(s, idle);
+      s.L.drains.push({ x: 0.5, y: 0.6, r: 0.035, pr: 0.05, pw: 0 });
+      const o = s.objs[1], sx = o.sx, sy = o.sy;
+      o.x = 0.5;
+      o.y = 0.6;
+      g.step(s, idle);
+      expect([o.x, o.y]).toEqual([sx, sy]);
+    });
+    it('판 질문 한 줄이 판 1~4에 있다 (한 판 = 한 질문)', () => {
+      for (let i = 0; i < 4; i++) expect(STAGES[i].ask?.length ?? 0).toBeGreaterThan(5);
+    });
   });
 
   it('캐주얼 봇(상식으로 톡)은 1~2판을 첫 시도에 깬다', { timeout: 60_000 }, () => {
