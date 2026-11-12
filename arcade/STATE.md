@@ -46,9 +46,9 @@
 
 ## 졸업한 게임
 - 🎓 행성 수호대 2 (2026-11-07, 8라운드) → 스튜디오 `studio/planet-guardian/` (세션 session_01Nm4gExEyeU9e8MSuJic6vN) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/planet-guardian/
-- 🎓 🐑 양치기 멍멍 (2026-11-12, 23라운드) → 스튜디오 `studio/sheepdog/` · 플레이: https://derrick1119.github.io/derrickkim1119/studio/sheepdog/
-- 🎓 🎈 풍선 팡 연쇄 (2026-11-12, 23라운드) → 스튜디오 `studio/balloonpop/` · 플레이: https://derrick1119.github.io/derrickkim1119/studio/balloonpop/
-- 🎓 🦆 욕조 물결 오리 (2026-11-12, 23라운드) → 스튜디오 `studio/duckbath/` · 플레이: https://derrick1119.github.io/derrickkim1119/studio/duckbath/
+- 🎓 🐑 양치기 멍멍 (2026-11-12, 23라운드) → 스튜디오 `studio/sheepdog/` (세션 session_01Nm4gEtqTxd1g3bXRhfUUkf, 예약 trig_01PQudNicp6yyeG82ZWkARGg 매시 :25) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/sheepdog/
+- 🎓 🎈 풍선 팡 연쇄 (2026-11-12, 23라운드) → 스튜디오 `studio/balloonpop/` (세션 session_01Nm4gEwMGQKmVcbTyiNnpM8, 예약 trig_01QzQXzQo2G6ScKpQK9Hh6qa 매시 :35) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/balloonpop/
+- 🎓 🦆 욕조 물결 오리 (2026-11-12, 23라운드) → 스튜디오 `studio/duckbath/` (세션 session_01Nm4gEwhChP57z3P7TwMKSQ, 예약 trig_01CJ22VFfqfTBkM4quLJ1mdw 매시 :50) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/duckbath/
   - 세 게임 모두 팀 세션(PM·기획자·개발자·디자이너·FUN QA)이 맡는다. 마일스톤마다 오너 빌드 테스트, 최종 목표 상용화.
 
 ## 오너에게
