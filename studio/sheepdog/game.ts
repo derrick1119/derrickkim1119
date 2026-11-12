@@ -6,7 +6,9 @@
  *   함께 놀란 양들은 무리의 평균 방향으로 살짝 쏠린다(뭉침). 울타리·생울타리·다리 난간에 막히면 미끄러지듯 비켜 간다.
  *   울타리 안에 들어간 양은 다시 나오지 않는다. 흰 양을 모두 넣으면 문이 '딸깍' 닫힌다.
  * 판 구조: 판마다 양을 모두 울타리에 넣는다. ★ 다 넣음 · ★ 멍멍을 정해진 수 이하로 · ★ 보너스(꽃밭 안 밟기 / 까만 양도 넣기).
- *   실패(양이 개울에 풍덩 · 늑대에게 잡힘 · 멍멍을 다 씀) = 하트 -1, 그 판을 처음부터. 하트 셋을 다 잃거나 8판을 마치면 끝.
+ *   실패(양이 개울에 풍덩 · 늑대에게 잡힘 · 멍멍을 다 씀) = 웃긴 장면 1초 남짓 뒤 그 판만 처음부터(스튜디오 C002: 하트 없음, GDD §4.4).
+ *   별은 판마다 셋을 따로 기록해 최고 기록에 합친다(★2·★3을 다른 시도에서 따도 된다, GDD §4.3). 8판을 마치면 끝.
+ *   판 배치는 고정(LAYOUT_SEED) — 다시 해도 같은 판이라 배운 게 통한다(GDD §4.5). 언제든 ↺ 다시(Input.retry).
  * 펼쳐짐(하는 일이 바뀐다): 1판 몰기·꽃밭 → 2판 까만 양(거꾸로 와서 '당겨' 온다) → 3판 개울·다리(줄 세워 좁은 길로)
  *   → 4판 기절 염소(놀라면 '꽥' 쓰러져 생울타리 틈을 막는다 — 염소 몰래 짖기) → 5판 늑대(멍멍 한 번은 늑대 쫓기에)
  *   → 6판 바람 언덕(양이 바람 쪽으로 더 밀린다 — 비껴 짖기) → 7판 울타리 둘(리본 색대로 나눠 넣기) → 8판 밤(손전등 둘레만 보인다 + 늑대).
@@ -27,8 +29,8 @@ export const R_IN = 0.13, R_OUT = 0.26, D_IN = 0.26, D_OUT = 0.14;
 const COH = 0.6;
 const STEP = 0.01, BLACK_STOP = 0.045;
 const WOLF_STEP = 0.13, WOLF_CATCH = 0.075, GOAT_R = 0.03, FAINT = 3;
-const DOG_SPEED = 0.05, FLEE_T = 40, RESULT_OK = 190, RESULT_FAIL = 150;
-const STAR_PTS = 100, LEFT_PTS = 5, WIN_PTS = 100;
+const DOG_SPEED = 0.05, FLEE_T = 40, RESULT_OK = 190, RESULT_FAIL = 80;
+const STAR_PTS = 100, WIN_PTS = 100;
 
 interface Seg { x0: number; y0: number; x1: number; y1: number }
 interface Pen { x0: number; y0: number; x1: number; y1: number; gx0: number; gx1: number; tag: number; mat?: number }
@@ -160,6 +162,10 @@ export const STAGES: StageDef[] = [
   },
 ];
 export const STAGE_COUNT = STAGES.length;
+/** 판마다 고정 배치 시드 (C002: 숙련 봇이 별 셋을 모두 딸 수 있는 배치로 골랐다 — tests/studio-sheepdog.test.ts가 지킨다) */
+export const LAYOUT_SEED = [1, 1, 2, 2, 1, 1, 8, 3];
+/** 별 비트: 1 다 넣기 · 2 멍멍 par 이하 · 4 보너스 */
+export const starCount = (mask: number) => (mask & 1) + ((mask >> 1) & 1) + ((mask >> 2) & 1);
 
 // ───────── 부딪힘 ─────────
 function pushSeg(p: number[], g: Seg, rad: number) {
@@ -515,7 +521,8 @@ export interface DogState {
   /** 강아지 화면 위치(목장 좌표) · 달려가는 출발점·도착점 · 달리는 틱 수 */
   dogX: number; dogY: number; fromX: number; fromY: number; toX: number; toY: number; runN: number;
   down: boolean; ax: number; ay: number; idle: number; tries: number;
-  hearts: number; stars: number; got: number; pts: number; ok: boolean; why: string; won: boolean; dead: boolean;
+  /** stars = 판별 최고 별(best 비트)의 합 · got = 이번 시도의 별 비트 · gain = 이번 시도로 새로 늘어난 별 수 */
+  best: number[]; stars: number; got: number; gain: number; pts: number; ok: boolean; why: string; won: boolean; dead: boolean;
   seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[]; startT: number; clearT: number;
 }
 
@@ -536,7 +543,7 @@ const NEWS_T = 200;
 function newStage(s: DogState) {
   const d = STAGES[s.stage];
   let L = s.layouts[s.stage];
-  if (!L) s.layouts[s.stage] = L = d.build(mulberry32((s.seed * 31 + s.stage * 7919 + 17) >>> 0));
+  if (!L) s.layouts[s.stage] = L = d.build(mulberry32((LAYOUT_SEED[s.stage] * 31 + s.stage * 7919 + 17) >>> 0));
   s.F = makeField(L);
   const n = s.F.n;
   s.S = {
@@ -565,15 +572,17 @@ function finish(s: DogState, ok: boolean, why = '') {
   const d = STAGES[s.stage];
   if (ok) {
     const bonus = d.bonus === 'black' ? s.F.black.some((b, i) => b && s.S.pen[i] >= 0) : !s.S.fh.some((v) => v);
-    const st = 1 + (s.S.used <= d.par ? 1 : 0) + (bonus ? 1 : 0);
-    s.got = st;
-    s.stars += st;
-    s.pts += st * STAR_PTS + (d.max - s.S.used) * LEFT_PTS;
+    const mask = 1 | (s.S.used <= d.par ? 2 : 0) | (bonus ? 4 : 0), before = s.best[s.stage];
+    s.got = mask;
+    s.best[s.stage] = before | mask;
+    s.gain = starCount(s.best[s.stage]) - starCount(before);
+    s.stars = s.best.reduce((a, m) => a + starCount(m), 0);
+    s.pts += s.gain * STAR_PTS;
     s.clearT = s.t;
-    if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS);
+    if (s.stage === STAGES.length - 1 && !s.won) (s.won = true), (s.pts += WIN_PTS);
+    const st = starCount(mask);
     ev(s, 'clear', 0.5, 0.5, `${s.stage + 1}판 통과! ${'★'.repeat(st)}${'☆'.repeat(3 - st)}`, '#fff1a8', st);
   } else {
-    s.hearts--;
     s.tries++;
     ev(s, 'fail', 0.5, 0.5, why, '#ffd0c8');
   }
@@ -643,7 +652,7 @@ export const sheepdog: GameDef<DogState> = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'aim', pt: 0, rec: null, layouts: {},
       dogX: 0.5, dogY: 0.93, fromX: 0.5, fromY: 0.93, toX: 0.5, toY: 0.93, runN: 1,
       down: false, ax: 0, ay: 0, idle: 0, tries: 0,
-      hearts: 3, stars: 0, got: 0, pts: 0, ok: false, why: '', won: false, dead: false,
+      best: STAGES.map(() => 0), stars: 0, got: 0, gain: 0, pts: 0, ok: false, why: '', won: false, dead: false,
       seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsQ: [], startT: 0, clearT: 0,
     } as unknown as DogState;
     newStage(s);
@@ -657,13 +666,17 @@ export const sheepdog: GameDef<DogState> = {
     s.pt++;
     if (s.newsQ.length && (!s.news || s.t - s.news.t > NEWS_T)) s.news = { text: s.newsQ.shift()!, t: s.t };
     if (s.events.length > 40 || (s.events.length && s.t - s.events[0].t > 150)) s.events = s.events.filter((e) => s.t - e.t < 150);
+    // ↺ 다시: 언제든 지금 판을 처음부터 (통과 화면에서 누르면 별 더 따기)
+    if (inp.retry && s.phase !== 'run' && s.phase !== 'flee') {
+      s.tries++;
+      s.down = false;
+      return newStage(s);
+    }
     if (s.phase === 'result') {
       if (s.pt >= (s.ok ? RESULT_OK : RESULT_FAIL)) {
-        if (s.ok) {
-          if (s.won) s.dead = true;
-          else s.stage++, newStage(s);
-        } else if (s.hearts <= 0) s.dead = true;
-        else newStage(s);
+        if (!s.ok) newStage(s); // 실패하면 그 판만 다시 — 잃는 것 없음
+        else if (s.won && s.stage === STAGES.length - 1) s.dead = true;
+        else s.stage++, (s.tries = 0), newStage(s);
       }
       return;
     }
@@ -2401,9 +2414,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   font(0.042, 900);
   ctx.fillStyle = '#ffd166';
   const stt = `★ ${s.stars}`;
-  ctx.fillText(stt, w - R(0.03), hb * 0.52);
-  ctx.fillStyle = th.hot;
-  ctx.fillText('♥'.repeat(Math.max(0, s.hearts)) + '♡'.repeat(Math.max(0, 3 - s.hearts)), w - R(0.06) - ctx.measureText(stt).width, hb * 0.52);
+  ctx.fillText(stt, w - R(0.135), hb * 0.52);
   // 새것 알림
   if (s.news && s.t - s.news.t < NEWS_T + 20) {
     const age = s.t - s.news.t, a = Math.min(1, age / 10, (NEWS_T + 20 - age) / 20), drop = Math.max(0, 10 - age) * 2;
@@ -2451,15 +2462,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   if (s.phase === 'result') {
     const age = s.pt, a = Math.min(1, age / 10);
     ctx.globalAlpha = a;
-    ctx.fillStyle = s.ok ? 'rgba(40,60,20,.55)' : 'rgba(70,20,20,.55)';
+    ctx.fillStyle = s.ok ? 'rgba(40,60,20,.55)' : 'rgba(60,50,30,.55)';
     ctx.fillRect(0, Y(0.8), w, R(0.2));
     ctx.textAlign = 'center';
     font(s.ok ? 0.06 : 0.05, 900);
-    ctx.fillStyle = s.ok ? '#fff1a8' : '#ffd0c8';
+    ctx.fillStyle = s.ok ? '#fff1a8' : '#fff6d6';
     ctx.fillText(s.ok ? (s.won ? '목장 완성! 🎉' : `${s.stage + 1}판 통과!`) : s.why, w / 2, Y(0.855));
     if (s.ok) {
       for (let k = 0; k < 3; k++) {
-        const ag = age - 14 - k * 10, got = k < s.got;
+        const ag = age - 14 - k * 10, got = ((s.got >> k) & 1) === 1;
         if (ag < 0) continue;
         const sc = got ? 1 + Math.max(0, 1 - ag / 8) * 0.8 : 1;
         font(0.08 * sc, 900);
@@ -2470,7 +2481,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     } else {
       font(0.042, 800);
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(s.hearts > 0 ? '♥ -1 · 이 판을 처음부터 다시' : '하트를 다 썼어요 — 끝', w / 2, Y(0.94));
+      ctx.fillText('멍… 괜찮아, 같은 판 한 번 더!', w / 2, Y(0.94));
     }
     ctx.globalAlpha = 1;
   }
@@ -2546,9 +2557,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       [d.bonus === 'black' ? '까만 양도' : '꽃밭 안 밟기', d.bonus === 'flower' && !bonusOk ? false : bonusOk && (allIn || d.bonus === 'black') ? true : allIn ? false : null],
     ];
     goals.forEach(([txt, st], k) => {
-      const gx = R(0.03) + k * gw;
-      ctx.fillStyle = st === true ? 'rgba(255,209,102,.3)' : st === false ? 'rgba(120,120,120,.25)' : 'rgba(255,255,255,.08)';
-      ctx.strokeStyle = st === true ? '#ffd166' : st === false ? 'rgba(200,200,200,.4)' : 'rgba(255,230,180,.55)';
+      const gx = R(0.03) + k * gw, had = st !== true && ((s.best[s.stage] >> k) & 1) === 1; // 지난 시도에서 이미 딴 별
+      ctx.fillStyle = st === true ? 'rgba(255,209,102,.3)' : had ? 'rgba(255,209,102,.14)' : st === false ? 'rgba(120,120,120,.25)' : 'rgba(255,255,255,.08)';
+      ctx.strokeStyle = st === true || had ? '#ffd166' : st === false ? 'rgba(200,200,200,.4)' : 'rgba(255,230,180,.55)';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.roundRect(gx + 2, y2 - R(0.026), gw - 4, R(0.052), R(0.026));
@@ -2557,7 +2568,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       ctx.textAlign = 'center';
       font(0.036, 800);
       ctx.fillStyle = st === false ? 'rgba(255,255,255,.45)' : '#fff6e0';
-      ctx.fillText(`${st === true ? '★' : st === false ? '✗' : '☆'} ${txt}`, gx + gw / 2, y2 + 1);
+      ctx.fillText(`${st === true || had ? '★' : st === false ? '✗' : '☆'} ${txt}`, gx + gw / 2, y2 + 1);
     });
   }
   // 안내 한 줄

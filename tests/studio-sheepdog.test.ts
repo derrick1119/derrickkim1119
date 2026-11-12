@@ -1,9 +1,9 @@
-/** 스튜디오 양치기 멍멍 (M0): 프로토타입 이전 — 결정성 · 첫 판 쉬움 · 판 이동 · 플레이 빌드 */
+/** 스튜디오 양치기 멍멍: M0 프로토타입 이전(결정성·첫 판 쉬움·플레이 빌드) · M1-1 하트 없음·그 판만 다시·판 고정·별 따로 따기 */
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/sheepdog/core.ts';
-import { STAGES, jumpTo, sheepdog as g, sheepdogRandom, sheepdogSmart } from '../studio/sheepdog/game.ts';
+import { STAGES, jumpTo, starCount, sheepdog as g, sheepdogRandom, sheepdogSmart, type DogState } from '../studio/sheepdog/game.ts';
 import { mulberry32 } from '../studio/sheepdog/rng.ts';
 
 const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y } });
@@ -44,15 +44,109 @@ describe('양치기 멍멍 시뮬', () => {
     expect(ok).toBeGreaterThanOrEqual(16);
   });
 
-  it('잘하는 봇은 판마다 통과한다 (판 이동 jumpTo)', () => {
+  it('잘하는 봇은 판마다 별 셋을 딴다, par 여유는 0~1 (GDD §12)', () => {
     for (let k = 0; k < STAGES.length; k++) {
-      const s = g.create(11), rng = mulberry32(11);
+      const s = g.create(11);
       jumpTo(s, k);
       expect(s.stage).toBe(k);
-      for (let t = 0; t < 60 * 120 && s.phase !== 'result'; t++) g.step(s, sheepdogSmart.act(s, rng));
+      play(s, 'smart', 11);
       expect(s.ok, `${k + 1}판`).toBe(true);
+      expect(s.got, `${k + 1}판 별`).toBe(7);
+      expect(STAGES[k].par - s.S.used, `${k + 1}판 par 여유`).toBeGreaterThanOrEqual(0);
+      expect(STAGES[k].par - s.S.used, `${k + 1}판 par 여유`).toBeLessThanOrEqual(1);
     }
   }, 60_000);
+});
+
+/** 결과(통과/실패)가 나올 때까지 봇으로 한 시도 */
+function play(s: DogState, who: 'smart' | 'random', seed: number) {
+  const rng = mulberry32(seed), bot = who === 'smart' ? sheepdogSmart : sheepdogRandom;
+  for (let t = 0; t < 60 * 120 && s.phase !== 'result'; t++) g.step(s, bot.act(s, rng));
+}
+const phaseOf = (s: DogState) => s.phase; // 시뮬이 step 안에서 phase를 바꾸므로 TS 좁히기를 피한다
+const pos = (s: DogState) => JSON.stringify([s.S.x, s.S.y]);
+
+describe('M1-1 시스템: 실패는 벌이 아니다 (GDD §4.3~4.5, FUN F7)', () => {
+  it('하트가 없다 — 몇 번을 실패해도 끝나지 않는다', () => {
+    const s = g.create(5);
+    expect('hearts' in s).toBe(false);
+    jumpTo(s, 2); // 개울과 다리: 아무 데나 봇은 거의 못 깬다
+    const start = pos(s);
+    let fails = 0;
+    for (let n = 0; n < 6; n++) {
+      play(s, 'random', 40 + n);
+      if (s.phase === 'result' && !s.ok) fails++;
+      for (let t = 0; t < 400 && s.phase === 'result'; t++) g.step(s, up);
+      if (!s.ok) {
+        expect(s.dead).toBe(false);
+        expect(s.stage).toBe(2); // 그 판만 다시
+        expect(pos(s)).toBe(start); // 같은 배치로
+      }
+    }
+    expect(fails).toBeGreaterThanOrEqual(4);
+  });
+
+  it('실패 화면은 1.5초 안에 끝나고 같은 판이 다시 시작된다', () => {
+    const s = g.create(5);
+    jumpTo(s, 2);
+    play(s, 'random', 41);
+    expect(s.ok).toBe(false);
+    let t = 0;
+    while (s.phase === 'result') (g.step(s, up), t++);
+    expect(t).toBeLessThanOrEqual(90);
+    expect([s.stage, s.S.used, s.phase]).toEqual([2, 0, 'aim']);
+  });
+
+  it('판 배치는 고정 — 시드가 달라도 같은 판 (다시 하면 배운 게 통한다)', () => {
+    for (let k = 0; k < STAGES.length; k++) {
+      const a = g.create(1), b = g.create(98765);
+      jumpTo(a, k);
+      jumpTo(b, k);
+      expect(pos(a), `${k + 1}판`).toBe(pos(b));
+    }
+  });
+
+  it('↺ 다시(retry)는 언제든 지금 판을 처음부터', () => {
+    const s = g.create(3);
+    jumpTo(s, 1);
+    const start = pos(s), rng = mulberry32(3);
+    while (s.S.used === 0) g.step(s, sheepdogSmart.act(s, rng));
+    while (s.phase !== 'aim') g.step(s, up);
+    expect(pos(s)).not.toBe(start);
+    g.step(s, { ...up, retry: true });
+    expect([s.stage, s.S.used, s.phase, pos(s)]).toEqual([1, 0, 'aim', start]);
+  });
+
+  it('별은 판마다 셋을 따로 기록하고 최고 기록에 합친다', () => {
+    const s = g.create(3);
+    jumpTo(s, 1);
+    s.best[1] = 4; // 지난 시도에서 보너스(까만 양)만 땄다
+    play(s, 'smart', 3);
+    expect([s.got, s.best[1], s.gain, s.stars]).toEqual([7, 7, 2, 3]);
+    // 이미 다 딴 판을 덜 잘 깨도 별은 줄지 않는다
+    for (let seed = 1; seed < 30; seed++) {
+      const r = g.create(3);
+      jumpTo(r, 1);
+      r.best[1] = 6;
+      play(r, 'random', seed);
+      if (!r.ok) continue;
+      expect(r.best[1]).toBe(6 | r.got);
+      expect(r.stars).toBe(starCount(r.best[1]));
+      return;
+    }
+    throw new Error('아무 데나 봇이 2판을 한 번도 못 깸');
+  });
+
+  it('통과하면 다음 판, 마지막 판을 깨면 끝', () => {
+    const s = g.create(9);
+    play(s, 'smart', 9);
+    while (s.phase === 'result') g.step(s, up);
+    expect(s.stage).toBe(1);
+    jumpTo(s, STAGES.length - 1);
+    play(s, 'smart', 9);
+    while (phaseOf(s) === 'result' && !s.dead) g.step(s, up);
+    expect([s.won, s.dead]).toEqual([true, true]);
+  });
 });
 
 describe('플레이 빌드', () => {

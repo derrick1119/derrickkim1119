@@ -21,6 +21,8 @@ export interface Input {
   pick?: number;
   /** 'swipe' 게임: 이번 틱에 밀어낸 방향 (한 번만 들어온다, 0022) */
   move?: 'left' | 'right' | 'up' | 'down';
+  /** ↺ 다시: 지금 판을 처음부터 (스튜디오 C002) */
+  retry?: boolean;
 }
 
 export const NO_INPUT: Input = { tap: false, dir: 0 };

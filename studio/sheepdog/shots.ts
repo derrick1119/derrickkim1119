@@ -48,10 +48,23 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   const u1 = await st(page, 's.toX + "," + s.toY');
   if (u1 === u0) errors.push(`${name}: 키보드로 안 짖음`);
   await page.screenshot({ path: join(here, 'screens', `${name}-keyboard.png`) });
-  // 결과 화면: 하트를 다 잃게 해서 끝낸다
-  await page.evaluate(() => { const s = (globalThis as any).__sd.state(); s.hearts = 0; s.phase = 'result'; s.ok = false; s.pt = 0; });
-  await page.waitForTimeout(3500);
-  if (await page.locator('#overlay').isHidden()) errors.push(`${name}: 결과 화면 안 뜸`);
+  // ↺ 다시: R 키 → 이 판 처음부터 (멍멍 0)
+  await page.waitForFunction(() => (globalThis as any).__sd.state().phase === 'aim', null, { timeout: 10_000 });
+  await page.keyboard.press('KeyR');
+  await page.waitForTimeout(150);
+  if ((await st(page, 's.S.used')) !== 0) errors.push(`${name}: R로 다시 안 됨`);
+  await page.screenshot({ path: join(here, 'screens', `${name}-retry.png`) });
+  // 실패 연출: 하트 없이 같은 판을 1.5초 안에 다시
+  const stage0 = await st(page, 's.stage');
+  await page.evaluate(() => { const s = (globalThis as any).__sd.state(); s.phase = 'result'; s.ok = false; s.why = '양이 개울에 풍덩!'; s.pt = 0; });
+  await page.waitForTimeout(450);
+  await page.screenshot({ path: join(here, 'screens', `${name}-fail.png`) });
+  await page.waitForTimeout(1100);
+  if ((await st(page, 's.phase + s.stage + s.S.used')) !== `aim${stage0}0`) errors.push(`${name}: 실패 뒤 같은 판으로 안 돌아옴`);
+  // 끝 화면: 마지막 판까지 마친 것으로
+  await page.evaluate(() => { const s = (globalThis as any).__sd.state(); s.won = true; s.dead = true; });
+  await page.waitForTimeout(400);
+  if (await page.locator('#overlay').isHidden()) errors.push(`${name}: 끝 화면 안 뜸`);
   await page.screenshot({ path: join(here, 'screens', `${name}-result.png`) });
   await page.close();
 }
