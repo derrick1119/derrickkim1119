@@ -1,22 +1,25 @@
 /**
- * 기찻길 전환 (24라운드: 새 장르) — 교차로 신호 × 가리키기(톡) × 판마다 새것.
- * 기준 9(손이 하는 일은 하나): 갈림길을 톡 = '철컥!' 선로가 바뀐다. 누르고 있는 동안 바꾼 뒤의 기찻길이 밝은 점선으로 보이고
- *   (처음 서는 역에 ✓·💢, 부딪힐 자리에 💥), 손을 떼는 순간 철컥(갈림길이 아닌 곳에서 떼면 취소). 키보드는 화살표 커서 + 스페이스.
- * 규칙(칸 기반·결정적): 기차는 한 방향 선로를 따라 칸마다 같은 빠르기로 저절로 간다(갈림길 앞 칸에서는 느려진다).
+ * 기찻길 전환 (24라운드: 새 장르) — 교차로 신호 × 가리키기(톡) × 깊어지는 판.
+ * 기준 9(손이 하는 일은 하나): 갈림길을 톡 = '철컥!' 선로가 바뀐다. 누르고 있는 동안 바꾼 뒤의 기찻길이 흰 점선으로 보이고
+ *   (처음 서는 역에 ✓·✗, 부딪힐 자리에 💥 쾅), 손을 떼는 순간 철컥(갈림길이 아닌 곳에서 떼면 취소). 3판부터는 신호등도 같은 톡(빨강·초록).
+ *   키보드는 화살표 커서 + 스페이스.
+ * 규칙(칸 기반·결정적): 기차는 한 방향 선로를 따라 칸마다 같은 빠르기로 저절로 간다(갈림길 앞 칸에서는 1.8배 느려진다).
  *   갈림길은 기차 머리가 그 칸에 들어서는 순간의 방향으로 간다. 손님을 태운 기차는 지나가는 역마다 선다 —
- *   맨 앞 손님이 같은 그림 역이면 '띵동' 내리고, 아니면 화를 낸다(두 번 화나면 짐을 들고 내려 버린다 = 하트 −1).
- *   빈 기차는 역을 그냥 지나고, 출발역에서 다음 손님을 태운다. 두 기차가 한 칸에 들어가면 쾅(하트 −1).
+ *   맨 앞 손님이 같은 그림 역이면 '띵동' 내리고, 아니면 화를 낸다(세 번 화나면 짐을 들고 내려 버린다 = 하트 −1).
+ *   빈 기차는 역을 그냥 지나고, 출발역에서 다음 손님을 태운다(먼저 탄 손님이 앞 칸). 빨간불 앞·소 떼 앞에서는 선다.
+ *   같은 선로 바로 앞에 기차가 있으면 뒤 기차는 '끼익' 서서 기다린다. 쾅은 옆 선로에서 합류점으로 끼어들 때만(하트 −1) — 합류점 앞엔 신호등.
  *   기차가 앞으로 갈 길(처음 서는 역까지)은 늘 점선으로 보인다.
  * 와우: 첫 톡에 선로가 철컥 바뀌고, 점선이 곰 역으로 꺾이고, 칙칙폭폭 기차가 곰 손님을 곰 역에 '띵동' 내려 준다(곰이 손을 흔든다).
- * 판 8개: 목표 = 손님 N명을 제 역에. 별 = ★ 다 내려 줌 · ★ 철컥 N번 이하 · ★ 보너스(헛바퀴 없이 / 손님 화 안 냄).
- *   실패(기차끼리 쾅 · 손님이 두 번 화나서 내림) = 하트 −1, 그 판 다시. 하트 셋을 다 잃거나 8판을 마치면 끝.
- * 펼쳐짐(하는 일이 바뀐다): 1판 곰 역·풍경 길 → 2판 토끼 역(손님마다 바꾸기) → 3판 기차 둘(앞 기차가 지나간 뒤 바꾸기, 합류점 쾅 조심)
- *   → 4판 건널목 소 떼(소가 다 건널 때까지 기차가 선다 — 뒤 기차는 딴 길로) → 5판 급행(두 배 빠른 기차 — 갈림길을 일찍 정하고, 느린 기차 뒤에 끼익 막히지 않게 딴 길로)
- *   → 6판 터널(안이 안 보이고, 기차가 들어가면 터널 갈림길이 잠긴다 — 미리 정하기) → 7판 화물칸(두 칸 기차 — 앞 칸 손님부터, 들를 순서대로)
- *   → 8판 밤 신호등(톡 하면 빨강·초록, 빨간불엔 기차가 선다 — 세워서 비켜 주기) + 마음 바뀌는 여우 손님(🔄 길을 지나면 갈 역이 바뀐다).
- * 끼익: 같은 선로 바로 앞에 기차가 있으면 뒤 기차는 서서 기다린다(급행도). 쾅은 옆 선로에서 합류점으로 끼어들 때만 — 합류점 앞엔 신호등.
- * 웃음: 잘못 선 역에서 손님이 짐가방을 들고 발을 동동·💢, 두 번이면 짐을 들고 내려 '다음 기차 탈 거야!' 하며 씩씩.
- *   기차끼리 아슬아슬하면 기관사 너구리가 두 손으로 눈을 가린다(지나가면 '휴~'). 소 떼는 선로 위에서 느긋하게 풀을 뜯는다(음매~).
+ *   1판은 첫 톡을 할 때까지(최대 5초) 기차가 기다렸다가, 톡 하면 바로 출발한다.
+ * 판 8개: 목표 = 손님 N명을 제 역에. 별 = ★ 다 내려 줌 · ★ 철컥 N번 이하 · ★ 보너스(1판 헛바퀴 없이 / 2판부터 손님 화 안 냄).
+ *   실패(기차끼리 쾅 · 손님이 세 번 화나서 내림) = 하트 −1, 그 판 다시. 하트 셋을 다 잃거나 8판을 마치면 끝.
+ * 펼쳐짐(하는 일이 바뀐다): 1판 곰 역·풍경 길(한 번 철컥) → 2판 토끼 역(손님마다 바꾸기)
+ *   → 3판 기차 둘 + 신호등(앞 기차가 지나간 뒤 바꾸기, 합류점 💥이면 빨간불로 세우기) → 4판 건널목 소 떼(소가 건너는 동안 기차가 선다 — 딴 길로)
+ *   → 5판 급행(두 배 빠른 기차 — 갈림길을 일찍 정하고 느린 기차 뒤에 막히지 않게) → 6판 터널(안이 안 보이고 기차가 들어가면 갈림길이 잠긴다 — 미리 정하기)
+ *   → 7판 화물칸(두 칸 기차, 앞 칸 손님부터 — 순서가 맞으면 왼쪽 돼지 역 샛길로 한 바퀴에 둘) → 8판 밤 + 관광 여우(첫 역에서 📸 찍고 다음 역으로 — 역 바꾸기 손님).
+ * 웃음: 잘못 선 역에서 손님이 짐가방을 들고 내려 발을 동동·💢, 세 번째엔 '흥! 다음 기차 탈 거야!' 하며 짐 들고 씩씩.
+ *   기차끼리 아슬아슬하거나 끼익 서면 기관사 너구리가 두 손으로 눈을 가린다(쾅이면 어질어질). 소 떼는 건널목 위에서 느긋하게 풀을 뜯는다(음매~).
+ *   선로 옆 구경꾼 아이들은 기차가 지나가면 폴짝 뛰며 '칙칙폭폭!'.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -114,7 +117,7 @@ export const STAGES: StageDef[] = [
     trains: [{ path: [[1, 6], [2, 6], [3, 6]], pax: [0] }, { path: [[5, 2], [5, 1], [4, 1]], pax: [] }],
     queue: [2, 1, 2],
     mix: true,
-    par: 6, bonus: 'calm',
+    par: 5, bonus: 'calm',
   },
   {
     key: 'express', news: '⚡ 급행 기차 — 두 배 빨라요! 갈림길을 일찍 정해요', hint: '급행은 금방 와요 — 합류점 💥 보이면 빨간불, 막히면 딴 길로',
@@ -126,7 +129,7 @@ export const STAGES: StageDef[] = [
     trains: [{ path: [[1, 3], [1, 4], [1, 5]], pax: [1] }, { path: [[5, 5], [5, 4], [5, 3]], fast: true, pax: [] }],
     queue: [0, 2, 1, 0],
     mix: true,
-    par: 7, bonus: 'calm',
+    par: 6, bonus: 'calm',
   },
   {
     key: 'tunnel', news: '⛰️ 터널 — 안이 안 보여요. 기차가 들어가면 잠겨요', hint: '터널 갈림길은 기차가 들어가기 전에 정해요 🔒',
@@ -229,7 +232,7 @@ function net(stage: number): Net {
 
 // ───────────────────────────── 시뮬레이션 ─────────────────────────────
 /** 손님: 갈 역(동물) · 관광 여우면 그다음 역(alt, 없으면 -1) */
-interface Pax { id: number; want: number; alt: number; anger: number; fox: boolean }
+interface Pax { id: number; want: number; alt: number; anger: number; fox: boolean; out?: number }
 interface Train {
   id: number;
   /** 머리부터 칸들: [머리, 1칸, …, 꼬리, 꼬리가 온 칸] */
@@ -294,7 +297,7 @@ export interface RailState extends Sim {
   firstTap: boolean;
   pid: number;
   /** 연출: 내린 손님(역으로 걸어가 손 흔들기) · 화나서 내린 손님 · 부딪힌 자리 */
-  off: { a: number; c: number; t: number; mad: boolean; fox: boolean }[];
+  off: { a: number; c: number; t: number; mad: boolean; fox: boolean; tmp?: boolean; c2?: number }[];
 }
 
 const ev = (s: RailState, kind: string, c: number, text?: string, a?: number, tr?: number) => s.events.push({ t: s.t, kind, c, text, a, tr });
@@ -353,8 +356,14 @@ function stop(S: Sim, tr: Train, E: RailState | null) {
         tr.pax.splice(k, 1);
         tr.pax.push(null);
         S.quit = c;
-        if (E) ev(E, 'quit', c, '흥! 다음 기차 탈 거야!', p.want, tr.id), E.off.push({ a: p.want, c, t: E.t, mad: true, fox: p.fox });
-      } else if (E) ev(E, 'angry', c, `여긴 ${AN[stn.animal]} 역이잖아! 💢`, p.want, tr.id), see(E, 'angry', '💢 다른 그림 역에 서면 손님이 화내요 — 두 번이면 내려 버려요');
+        if (E) ev(E, 'quit', c, '흥! 다음 기차 탈 거야!', p.want, tr.id), E.off.push({ a: p.want, c, t: E.t, mad: true, fox: p.fox, c2: tr.hist[1] });
+      } else if (E) {
+        ev(E, 'angry', c, `여긴 ${AN[stn.animal]} 역이잖아! 💢`, p.want, tr.id);
+        see(E, 'angry', '💢 다른 그림 역에 서면 손님이 화내요 — 세 번이면 내려 버려요');
+        // 연출: 짐 들고 승강장에 내려 발을 동동 구르다 다시 탄다
+        p.out = E.t + DW_ST;
+        E.off.push({ a: p.want, c, t: E.t, mad: true, fox: p.fox, tmp: true, c2: tr.hist[1] });
+      }
     }
     tr.dwell = DW_ST;
   } else if (tr.pend === 2) {
@@ -1300,6 +1309,18 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
       for (const [dx, dy, r] of [[0, 0, 0.03], [0.03, -0.012, 0.025], [-0.03, 0.004, 0.022], [0.055, 0.004, 0.018]]) ctx.beginPath(), ctx.arc(cx0 + R(dx), cy0 + R(dy), R(r), 0, Math.PI * 2), ctx.fill();
     }
   }
+  // 하늘을 가로지르는 새 셋 (밤엔 반딧불은 판 위에)
+  if (!night)
+    for (let k = 0; k < 3; k++) {
+      const bx = ((t * (0.5 + k * 0.12) + k * 140) % (w + 60)) - 30, by = Y(0.12 + k * 0.025) + Math.sin(t * 0.05 + k) * R(0.008), fl = Math.sin(t * 0.3 + k) * R(0.008);
+      ctx.strokeStyle = '#3a4a5a';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(bx - R(0.014), by - fl);
+      ctx.quadraticCurveTo(bx - R(0.006), by - R(0.008), bx, by);
+      ctx.quadraticCurveTo(bx + R(0.006), by - R(0.008), bx + R(0.014), by - fl);
+      ctx.stroke();
+    }
   // 먼 언덕 둘
   for (const [base, amp, col, ph] of [[0.215, 0.04, night ? '#22345a' : '#9fd88a', 0.5], [0.245, 0.03, night ? '#1b2b4a' : '#7cc56e', 2.1]] as [number, number, string, number][]) {
     ctx.fillStyle = col;
@@ -1522,6 +1543,44 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
   for (const st of N.stations) used.add(st.b);
   used.add(N.dpl);
   if (N.cow >= 0) used.add(N.cow - COLS);
+  // 구경꾼 아이 둘: 기차가 가까이 오면 폴짝 뛰며 손을 흔든다
+  const watch = [cid(0, 2), cid(6, 4), cid(0, 6), cid(6, 1), cid(6, 6)].filter((c) => !used.has(c)).slice(0, 2);
+  watch.forEach((c, k) => {
+    used.add(c);
+    const x0 = px(c) + R(k ? -0.01 : 0.012), y0 = py(c);
+    let near = 9;
+    trainPos.forEach((P) => P.forEach((q) => (near = Math.min(near, Math.hypot(q.x - x0, (q.y - y0) / KG) / R(CW)))));
+    const cheer = near < 1.6 && s.phase === 'play';
+    const jump = cheer ? Math.abs(Math.sin(t * 0.3 + k)) * R(0.018) : 0;
+    const kind = [1, 0, 2][(c + s.stage) % 3];
+    L.push({
+      y: y0,
+      f: () => {
+        ctx.fillStyle = 'rgba(0,0,0,.2)';
+        ctx.beginPath();
+        ctx.ellipse(x0, y0 + R(0.004), R(0.02), R(0.007), 0, 0, Math.PI * 2);
+        ctx.fill();
+        // 몸(작은 옷)
+        ctx.fillStyle = ['#ff7a8a', '#5aa9ff', '#ffd84a'][(c + k) % 3];
+        ctx.beginPath();
+        ctx.roundRect(x0 - R(0.014), y0 - R(0.03) - jump, R(0.028), R(0.03), R(0.008));
+        ctx.fill();
+        face(ctx, x0, y0 - R(0.048) - jump, R(0.022), kind, cheer ? 1 : 0, t + k * 17);
+        if (cheer) {
+          ctx.strokeStyle = AC[kind][1];
+          ctx.lineWidth = R(0.007);
+          ctx.lineCap = 'round';
+          for (const sd of [-1, 1]) {
+            ctx.beginPath();
+            ctx.moveTo(x0 + sd * R(0.012), y0 - R(0.026) - jump);
+            ctx.lineTo(x0 + sd * R(0.03), y0 - R(0.058) - jump + Math.sin(t * 0.5 + sd) * R(0.006));
+            ctx.stroke();
+          }
+          if ((t + k * 20) % 90 === 0) fx.pop(x0, y0 - R(0.09), ['와~!', '칙칙폭폭!', '안녕~'][(t / 90 + k) % 3 | 0], '#ffffff', 13);
+        }
+      },
+    });
+  });
   // 장식: 빈 칸마다 나무·집·꽃밭 (판마다 같은 배치)
   for (let c = 0; c < NC; c++) {
     if (used.has(c)) continue;
@@ -1639,7 +1698,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
         });
         if (s.queue.length > 5) {
           ctx.fillStyle = '#ffffff';
-          font(0.03, 900);
+          font(0.036, 900);
           ctx.textAlign = 'center';
           ctx.fillText(`+${s.queue.length - 5}`, plx - R(0.2), ply - R(0.02));
         }
@@ -1654,16 +1713,16 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
         for (const xx of [sx0 - R(0.035), sx0 + R(0.035)]) ctx.fillRect(xx - R(0.004), sy0 - R(0.06), R(0.008), R(0.06));
         ctx.fillStyle = night ? '#7a2a22' : '#d9483a';
         ctx.beginPath();
-        ctx.roundRect(sx0 - R(0.052), sy0 - R(0.1), R(0.104), R(0.044), R(0.01));
+        ctx.roundRect(sx0 - R(0.065), sy0 - R(0.104), R(0.13), R(0.05), R(0.012));
         ctx.fill();
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = R(0.004);
         ctx.stroke();
         ctx.fillStyle = '#ffffff';
-        font(0.026, 900);
+        font(0.036, 900);
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('출발역', sx0, sy0 - R(0.077));
+        ctx.fillText('출발역', sx0, sy0 - R(0.078));
         house(ctx, plx - R(0.215), ply + R(0.01), R(0.036), '#fff1d6', '#d9483a', night);
         void dx0;
         void dy0;
@@ -1902,7 +1961,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
             ctx.closePath();
             ctx.fill();
             const p = tr.pax[k - 1];
-            if (p) {
+            if (p && !(p.out && p.out > s.t)) {
               const atSt = tr.dwell > 0 && N.st[tr.hist[0]] >= 0 && k === 1;
               const mood = crashed ? 4 : p.anger > 0 && (atSt || t % 200 < 120) ? 2 : danger.has(i) ? 5 : 0;
               face(ctx, q.x, q.y + bob - R(0.066), R(0.037), p.fox ? 3 : p.want, mood, t + k * 11, p.anger);
@@ -1933,10 +1992,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
   // 내린 손님: 역 건물로 쪼르르 걸어가 손 흔들기 / 화나서 내린 손님은 짐가방 들고 씩씩
   for (const o of s.off) {
     const st = N.stations[N.st[o.c]], age = s.t - o.t;
-    if (!o.mad && age > 260) continue;
+    if ((!o.mad && age > 260) || (o.tmp && age > DW_ST)) continue;
     const k0 = Math.min(1, age / 50), x0 = px(o.c), y0 = py(o.c) + (st && gy(st.b) > gy(o.c) ? R(0.04) : -R(0.04));
     const bxp = st ? px(st.b) : x0, byp = st ? py(st.b) : y0;
-    const xx = o.mad ? x0 + R(0.04) : x0 + (bxp - x0) * k0 * 0.55 + R(0.03), yy = o.mad ? y0 : y0 + (byp - y0) * k0 * 0.4;
+    // 화난 손님은 손님 칸 바로 앞(보는 쪽)에서 짐 들고 발을 동동
+    const cc = o.c2 ?? o.c;
+    const xx = o.mad ? px(cc) + R(0.012) : x0 + (bxp - x0) * k0 * 0.55 + R(0.03), yy = o.mad ? py(cc) + R(0.062) : y0 + (byp - y0) * k0 * 0.4;
     const hop = o.mad ? Math.abs(Math.sin(t * 0.35)) * R(0.012) : Math.abs(Math.sin(age * 0.25)) * R(0.008) * (1 - k0 * 0.5);
     L.push({
       y: yy,
@@ -2094,6 +2155,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
       ctx.fill();
     };
     N.stations.forEach((st) => glow(px(st.b), py(st.b) - R(0.03), R(0.1), 'rgba(255,200,90,.35)'));
+    for (let k = 0; k < 14; k++) {
+      const fx0 = X(BX0) + hsh(k * 3) * R(CW * COLS) + Math.sin(t * 0.02 + k) * R(0.03), fy0 = Y(BY0) + hsh(k * 7) * R(RH * ROWS) + Math.cos(t * 0.017 + k * 2) * R(0.02);
+      glow(fx0, fy0, R(0.012), `rgba(220,255,120,${0.35 + 0.35 * Math.sin(t * 0.08 + k)})`);
+    }
     glow(px(N.dpl), py(N.dpl) - R(0.04), R(0.14), 'rgba(255,210,120,.35)');
     N.sigCell.forEach((_c, i) => {
       const hh = N.hits.find((q) => q.k === 1 && q.i === i)!;
@@ -2173,7 +2238,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
     ctx.beginPath();
     ctx.ellipse(X(hh.x), Y(hh.y), R(0.03 + pulse * 0.07), R(0.03 + pulse * 0.07) * KG, 0, 0, Math.PI * 2);
     ctx.stroke();
-    const hx = X(hh.x) + R(0.035), hy = Y(hh.y) + R(0.045) + Math.abs(Math.sin(t * 0.12)) * R(0.02);
+    const hx = X(hh.x) + R(0.085) + Math.abs(Math.sin(t * 0.12)) * R(0.015), hy = Y(hh.y) + R(0.02);
     font(0.085, 900);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -2181,7 +2246,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
     ctx.fillText('👆', hx, hy);
   }
   // 1판: 곰 손님의 바람 말풍선 (곰 역 가고 싶어요!)
-  if (s.stage === 0 && s.done === 0 && s.phase === 'play' && s.trains[0].pax[0]) {
+  if (s.stage === 0 && s.done === 0 && s.phase === 'play' && s.trains[0].pax[0] && fc && fc.ends[0]?.ok !== 1) {
     const q = trainPos[0][1];
     if (q) {
       const bx = q.x + R(0.1), by = q.y - R(0.1);
@@ -2189,7 +2254,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
       ctx.strokeStyle = '#6f4527';
       ctx.lineWidth = R(0.004);
       ctx.beginPath();
-      ctx.roundRect(bx - R(0.075), by - R(0.03), R(0.15), R(0.052), R(0.024));
+      ctx.roundRect(bx - R(0.08), by - R(0.032), R(0.175), R(0.058), R(0.026));
       ctx.fill();
       ctx.stroke();
       ctx.beginPath();
@@ -2197,12 +2262,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
       ctx.lineTo(bx - R(0.085), by + R(0.042));
       ctx.lineTo(bx - R(0.04), by + R(0.02));
       ctx.fill();
-      face(ctx, bx - R(0.045), by - R(0.004), R(0.017), 0, 0, t);
-      font(0.03, 900);
+      face(ctx, bx - R(0.05), by - R(0.003), R(0.019), 0, 0, t);
+      font(0.037, 900);
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#6f4527';
-      ctx.fillText('역 가요!', bx - R(0.022), by - R(0.003));
+      ctx.fillText('역 가요!', bx - R(0.026), by - R(0.002));
     }
   }
   // ═════════════ 사건 연출 ═════════════
@@ -2330,7 +2395,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
         ctx.textAlign = 'center';
       } else ctx.fillText(head, 0, -R(0.018), R(0.84));
       ctx.fillStyle = '#fffaf0';
-      font(0.034, 800);
+      font(0.036, 800);
       ctx.fillText(sub, 0, R(0.03), R(0.86));
       if (nw) {
         ctx.fillStyle = '#ffe9a8';
@@ -2357,13 +2422,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
     ctx.fillStyle = '#e6fff0';
     font(0.038, 900);
     ctx.fillText(`손님 ${s.done}/${s.total}`, X(0.03), r1);
-    font(0.032, 800);
+    font(0.036, 800);
     ctx.fillStyle = th.muted;
     ctx.fillText('다음', X(0.3), r1);
     s.queue.slice(0, 6).forEach((p, k) => face(ctx, X(0.4) + k * R(0.07), r1, R(0.024), p.fox ? 3 : p.want, 0, t + k * 5));
     ctx.textAlign = 'right';
     ctx.fillStyle = s.tog <= d.par ? '#e6fff0' : '#ffb3a8';
-    font(0.034, 800);
+    font(0.036, 800);
     ctx.fillText(`철컥 ${s.tog}`, X(0.97), r1);
     // 별 목표 셋
     const okk = s.phase === 'result' && s.ok ? s.starOk : [s.done >= s.total, s.tog <= d.par, d.bonus === 'nolap' ? s.laps === 0 : s.wrong === 0];
@@ -2384,7 +2449,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
       ctx.textAlign = 'center';
       ctx.fillText(bad[k] ? '✗' : '★', cx1 + R(0.03), r2 + R(0.002));
       ctx.fillStyle = okk[k] && !bad[k] ? '#fff6dc' : bad[k] ? 'rgba(255,255,255,.4)' : '#e6f8ff';
-      font(0.034, 800);
+      font(0.036, 800);
       ctx.textAlign = 'left';
       ctx.fillText(labels[k], cx1 + R(0.058), r2 + R(0.002), cw2 - R(0.066));
     }

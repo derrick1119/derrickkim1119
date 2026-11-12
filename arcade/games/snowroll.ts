@@ -494,8 +494,8 @@ function endStage(s: SnowState, ok: boolean, why: string) {
   }
 }
 
-export const snowball: GameDef<SnowState> = {
-  id: 'snowball',
+export const snowroll: GameDef<SnowState> = {
+  id: 'snowroll',
   name: '눈덩이 굴리기',
   genes: ['absorb', 'pointer', 'pushbox'],
   twist: '톡 한 곳까지 눈덩이가 한 줄로 굴러가며 눈 칸마다 +1, 맨땅 −1로 정확히 커진다 — 지나간 자리는 맨땅이 되고, 크기보다 작은 울타리·강아지·나무까지 말아 버린다',
@@ -690,7 +690,7 @@ const atCell = (c: number): Input => {
 const brain = new WeakMap<object, { key: string; plan: number[]; base: number; hold: number }>();
 
 /** 봇: 판이 시작되면 빔 탐색으로 별이 가장 많은 굴리기 순서를 찾고, 하나씩 (사람처럼 잠깐 생각하고 꾹 눌러 본 뒤) 굴린다 */
-export const snowballSmart: Bot<SnowState> = {
+export const snowrollSmart: Bot<SnowState> = {
   name: '눈사람 장인',
   act(s) {
     if (s.phase !== 'play' || s.roll || s.left <= 0 || done(s)) return NO;
@@ -713,7 +713,7 @@ export const snowballSmart: Bot<SnowState> = {
 
 const dumbMem = new WeakMap<object, { next: number; hold: number; x: number; y: number }>();
 /** 봇: 아무 때나 눈밭 아무 데나 톡 (가끔 화면 아무 데나) */
-export const snowballRandom: Bot<SnowState> = {
+export const snowrollRandom: Bot<SnowState> = {
   name: '아무 데나 톡',
   act(s, rng) {
     let m = dumbMem.get(s);
