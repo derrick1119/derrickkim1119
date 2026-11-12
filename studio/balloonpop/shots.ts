@@ -42,6 +42,11 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   if ((await page.evaluate(() => (globalThis as any).__bp.state().used)) < 2) errors.push(`${name}: 마우스 톡이 먹지 않음`);
   await page.waitForTimeout(3500);
   await page.screenshot({ path: join(here, 'screens', `${name}-later.png`) });
+  // 결과(완주) 화면: 8판을 실제로 다 하기엔 길어서 확인용 훅으로 바로 띄운다
+  await page.evaluate(() => (globalThis as any).__bp.finish());
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: join(here, 'screens', `${name}-result.png`) });
+  if (await page.evaluate(() => document.getElementById('result')!.hidden)) errors.push(`${name}: 결과 화면이 안 뜸`);
   await page.close();
 }
 // 레이아웃 지표 (FUN §4): 캔버스 세로 점유 · 위아래 빈 띠 · 일시정지 버튼 ∩ 캔버스 위 HUD 띠(캔버스 폭 × 0.085)

@@ -5,7 +5,8 @@
  * 규칙(결정적): 크기·색마다 반경이 다르다(빨강 작게 · 노랑 보통 · 파랑 크게). 반경 원을 늘 흐리게 보여 준다.
  *   연쇄는 한 박자(BEAT틱)씩 퍼진다(누가 누구를 터뜨리는지 불꽃 줄이 따라간다). 풍선은 판에 따라 둥실둥실 흔들리거나
  *   바람에 흘러서, 무리끼리 가까워지는 '때'에 누르는 것도 수가 된다.
- * 판: 목표(풍선 N개 팡 / 동물 구하기) · 별 = ★목표 ★톡 두 번 안에 목표 ★모두 팡. 못 채우면 하트 -1, 그 판 다시. 하트 셋 또는 8판이면 끝.
+ * 판: 목표(풍선 N개 팡 / 동물 구하기) · 별 = ★목표 ★톡 두 번 안에 목표 ★모두 팡. 못 채우면 같은 하늘을 1초 안에 다시(하트 없음, C002).
+ *   같은 판 두 번 실패하면 도움 반짝(봇이 고른 첫 톡 풍선이 빛남) — 그 시도는 ★2(두 번 안에)를 받을 수 없다. 8판을 깨면 끝.
  * 펼쳐짐(하는 일이 바뀐다):
  *   1판 기본 풍선(크기마다 반경)·우산 고양이 → 2판 철 풍선(안 터지고 연쇄를 막는다 → 막힌 무리를 따로 톡)
  *   → 3판 트램펄린(우산 없는 동물 — 흔들리다 트램펄린 위에 왔을 때 터뜨려야 산다 → '언제')
@@ -26,6 +27,12 @@ export const BEAT = 9;
 /** 폭죽: 이만큼 떨어질 때마다 한 박자 더 */
 const FIRE_STEP = 0.24;
 const INTRO = 50, RESULT = 175, WAIT_END = 40, NEWS_T = 190;
+/** 실패 결과 화면 → 같은 하늘 다시까지(틱). 오너 기준 7 · GDD §2.5 "1초 안에" */
+export const FAIL_RESULT = 60;
+/** 이 횟수만큼 실패하면 도움 반짝 */
+export const HELP_AFTER = 2;
+/** 다시 하기 카드 길이(틱) — 처음 소개보다 짧게, 풍선을 오래 가리지 않게 */
+const RETRY_CARD = 40;
 /** 땅(동물이 내려앉는 곳) · 풍선 중심 → 매달린 동물 · 떨어지는 속도(우산/맨몸) */
 export const GY = 1.2;
 const HANG = 0.088, FALL_UM = 0.0045, FALL_NO = 0.0085;
@@ -388,7 +395,9 @@ export interface PopState {
   clouds: (Cloud & { gone: number })[];
   taps: number; used: number; popped: number; pop2: number; saved: number; save2: number; flown: number; chainN: number; lastPop: number;
   falls: Fall[]; wait: number; m2: boolean; all: boolean;
-  hearts: number; stars: number; got: number; ok: boolean; pts: number; dead: boolean; won: boolean;
+  stars: number; got: number; ok: boolean; pts: number; dead: boolean; won: boolean;
+  /** 실패한 횟수(이번 런 전체) · 도움 반짝 풍선(-1 없음)과 누를 때 · 이번 시도가 도움을 받았나(★2 잠금) */
+  fails: number; help: number; helpAt: number; helped: boolean;
   down: boolean; seen: Set<string>; events: Ev[]; news: { text: string; t: number }[];
 }
 
@@ -414,8 +423,16 @@ function newStage(s: PopState, retry: boolean) {
   s.lastPop = -999;
   s.falls = [];
   s.m2 = s.all = false;
-  s.phase = s.t === 0 ? 'play' : 'intro';
+  s.phase = s.t === 0 || retry ? 'play' : 'intro';
   s.tries = retry ? s.tries + 1 : 0;
+  s.help = -1;
+  s.helped = s.tries >= HELP_AFTER;
+  if (s.helped) {
+    // 도움 반짝: 숙련 봇과 같은 내다보기로 첫 톡 풍선과 때를 고른다 (결정적)
+    const r = search(L, new Uint8Array(n).fill(1), 1, 3, 0, { pop: 0, pop2: 0, save: 0, save2: 0 }, BEAM, L.Ds);
+    s.help = r.i;
+    s.helpAt = 1 + r.d;
+  }
   const d = STAGES[s.stage];
   see(s, d.key, d.news);
   if (d.lanes) see(s, 'fly', '🎈 화면 밖으로 흘러간 풍선은 못 터뜨려요');
@@ -468,7 +485,7 @@ function endStage(s: PopState) {
   s.phase = 'result';
   s.pt = 0;
   const G = s.L.goal, met = s.popped >= G.pop && s.saved >= G.save;
-  s.m2 = s.pop2 >= G.pop && s.save2 >= G.save;
+  s.m2 = !s.helped && s.pop2 >= G.pop && s.save2 >= G.save;
   s.all = s.popped >= s.L.total;
   s.ok = met;
   if (met) {
@@ -479,7 +496,7 @@ function endStage(s: PopState) {
     if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS);
     ev(s, 'clear', 0.5, 0.5);
   } else {
-    s.hearts--;
+    s.fails++;
     ev(s, 'fail', 0.5, 0.5);
   }
 }
@@ -539,7 +556,7 @@ export const balloonpop: GameDef<PopState> = {
   create(seed) {
     const s = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, tries: 0, phase: 'play', pt: 0, st: 0,
-      hearts: 3, stars: 0, got: 0, ok: false, pts: 0, dead: false, won: false, down: false, seen: new Set<string>(), events: [], news: [],
+      fails: 0, stars: 0, got: 0, ok: false, pts: 0, dead: false, won: false, down: false, seen: new Set<string>(), events: [], news: [],
     } as unknown as PopState;
     newStage(s, false);
     return s;
@@ -555,12 +572,10 @@ export const balloonpop: GameDef<PopState> = {
       if (s.news.length) s.news[0].t = s.t;
     }
     if (s.phase === 'result') {
-      if (s.pt >= RESULT) {
-        if (s.ok) {
-          if (s.won) s.dead = true;
-          else s.stage++, newStage(s, false);
-        } else if (s.hearts <= 0) s.dead = true;
-        else newStage(s, true);
+      if (s.pt >= (s.ok ? RESULT : FAIL_RESULT)) {
+        if (!s.ok) newStage(s, true);
+        else if (s.won) s.dead = true;
+        else s.stage++, newStage(s, false);
       }
       return;
     }
@@ -1836,10 +1851,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     ctx.fillStyle = '#ffd166';
     const stt = `★ ${s.stars}`;
     ctx.fillText(stt, w - R(0.03), hb * 0.52);
-    ctx.fillStyle = th.hot;
-    const hearts = '♥'.repeat(Math.max(0, s.hearts)) + '♡'.repeat(Math.max(0, 3 - s.hearts));
-    ctx.fillText(hearts, w - R(0.06) - ctx.measureText(stt).width, hb * 0.52);
-    const right = w - R(0.06) - ctx.measureText(stt).width - ctx.measureText(hearts).width;
+    const right = w - R(0.06) - ctx.measureText(stt).width;
     font(0.036, 800);
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffe9f0';
@@ -1904,24 +1916,48 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     ctx.fillStyle = '#5a2a8a';
     ctx.fillText(msg, mx2, hy + R(0.085));
   }
+  // 도움 반짝 (두 번 실패한 판): 숙련 봇이 고른 첫 톡 풍선에 금빛 고리 — 누를 때가 오면 '지금!'
+  if (s.help >= 0 && s.phase === 'play' && s.used === 0 && s.alive[s.help] === 1) {
+    const i = s.help, now = st >= s.helpAt - 4, pulse = 0.5 + 0.5 * Math.sin(t * 0.25);
+    const hx = X(SX[i]), hy = Y(SY[i]), hr = R(brOf(L.bs[i])) * (1.7 + pulse * 0.35);
+    ctx.save();
+    ctx.strokeStyle = now ? '#fff3a0' : 'rgba(255,225,120,.75)';
+    ctx.lineWidth = now ? R(0.012) : R(0.007);
+    ctx.shadowColor = '#ffd166';
+    ctx.shadowBlur = now ? R(0.05) : R(0.025);
+    ctx.beginPath();
+    ctx.arc(hx, hy, hr, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    font(0.04, 900);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = now ? '#fff3a0' : 'rgba(255,255,255,.85)';
+    ctx.fillText(now ? '✨ 지금!' : '✨ 이 풍선', hx, Math.max(Y(HB) + R(0.04), hy - hr - R(0.03)));
+    ctx.restore();
+  }
   // 판 시작 카드 · 판 끝 카드
   {
     let head = '', sub = '', sub2 = '', a = 0, stars = -1;
-    if (s.phase === 'intro' || (s.phase === 'play' && s.pt < 70 && stage + s.tries > 0)) {
+    if (s.phase === 'play' && s.tries > 0 && s.pt < RETRY_CARD) {
+      a = Math.min(1, s.pt / 4, (RETRY_CARD - s.pt) / 10);
+      head = `다시! ${stage + 1}판 · ${s.tries + 1}번째`;
+      sub = s.helped ? '✨ 반짝이는 풍선부터 톡 해 봐요 (★ 두 번 안에는 쉬어요)' : STAGES[stage].tip;
+    } else if (s.phase === 'intro' || (s.phase === 'play' && s.pt < 70 && stage > 0 && s.tries === 0)) {
       const age = s.phase === 'intro' ? s.pt : INTRO + s.pt;
       a = Math.min(1, age / 8, (INTRO + 70 - age) / 15);
       head = `${stage + 1}판 · ${STAGES[stage].title}${s.tries ? ' (다시)' : ''}`;
       sub = STAGES[stage].tip;
       sub2 = `🎯 ${G.pop ? `풍선 ${G.pop}개 팡` : ''}${G.pop && G.save ? ' + ' : ''}${G.save ? `동물 ${G.save}마리 구하기` : ''} · 톡 3번`;
     } else if (s.phase === 'result') {
-      a = Math.min(1, s.pt / 10, (RESULT - s.pt) / 15);
+      a = Math.min(1, s.pt / (s.ok ? 10 : 5), ((s.ok ? RESULT : FAIL_RESULT) - s.pt) / 10);
       if (s.ok) {
         head = s.won ? '축제 대성공! 🎉' : s.got === 3 ? '모두 팡! 완벽해요' : '목표 달성!';
         stars = s.got;
-        sub = `목표 ✓ · 두 번 안에 ${s.m2 ? '✓' : '✗'} · 모두 팡 ${s.all ? '✓' : `✗ (${s.popped}/${L.total})`}`;
+        sub = `목표 ✓ · 두 번 안에 ${s.helped ? '쉼(도움)' : s.m2 ? '✓' : '✗'} · 모두 팡 ${s.all ? '✓' : `✗ (${s.popped}/${L.total})`}`;
       } else {
-        head = '앗, 모자라요…';
-        sub = s.hearts > 0 ? '하트 -1 · 같은 하늘 다시!' : '끝 — 잘했어요!';
+        head = '앗, 아깝다!';
+        sub = '같은 하늘 바로 다시!';
         sub2 = G.save ? `구한 동물 ${s.saved}/${G.save}` : `터뜨린 풍선 ${s.popped}/${G.pop}`;
       }
     }

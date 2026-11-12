@@ -4,7 +4,7 @@
  */
 import { TICK, type Input } from './core.ts';
 import { peek } from './juice.ts';
-import { balloonpop as g, bxAt, byAt, IRON, type PopState } from './game.ts';
+import { balloonpop as g, bxAt, byAt, IRON, STAGE_COUNT, type PopState } from './game.ts';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const canvas = $<HTMLCanvasElement>('game'), ctx = canvas.getContext('2d')!;
@@ -29,7 +29,7 @@ function size() {
   canvas.width = Math.round(w * dpr);
   canvas.height = Math.round(w * A * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  // 일시정지 버튼: 캔버스 위에 빈 띠가 있으면 그 띠에, 옆 공간이 있으면 캔버스 오른쪽 바깥에 — 캔버스 HUD(별·하트)를 가리지 않게
+  // 일시정지 버튼: 캔버스 위에 빈 띠가 있으면 그 띠에, 옆 공간이 있으면 캔버스 오른쪽 바깥에 — 캔버스 HUD(판·별)를 가리지 않게
   const top = (wrap.clientHeight - w * A) / 2, side = (wrap.clientWidth - w) / 2;
   if (top < 52 && side >= 56) (hud.style.top = `${top + 4}px`), (hud.style.right = `${side - 52}px`);
   else (hud.style.top = ''), (hud.style.right = '');
@@ -67,9 +67,9 @@ function finish() {
   const sc = g.score(s), best = Math.max(sc, store.get('best')), stars = Math.max(s.stars, store.get('stars'));
   store.set('best', best);
   store.set('stars', stars);
-  $('r-title').textContent = s.won ? '축제 하늘 완주!' : '하트를 다 썼어요';
+  $('r-title').textContent = '축제 하늘 완주!';
   $('r-score').textContent = `${sc}점`;
-  $('r-stars').textContent = `★ ${s.stars}개 · ${s.stage + 1}판까지`;
+  $('r-stars').textContent = `★ ${s.stars}개 / ${STAGE_COUNT * 3} · 다시 하기 ${s.fails}번`;
   $('r-best').textContent = `최고 ${best}점`;
   result.hidden = false;
   $('again').focus();
@@ -152,4 +152,6 @@ $('start').focus();
     return { x: bxAt(b, s.st + 1), y: byAt(b, s.st + 1) / A };
   },
   aim(p: { x: number; y: number }) { keyboard = true; cursor = { ...p }; },
+  /** 결과 화면 확인용: 지금 판에서 바로 완주 화면으로 */
+  finish() { if (running) finish(); },
 };
