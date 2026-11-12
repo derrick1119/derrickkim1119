@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/balloonpop/core.ts';
-import { balloonpop as g, balloonpopRandom, balloonpopSmart, STAGE_COUNT } from '../studio/balloonpop/game.ts';
-import { measure } from '../studio/balloonpop/funqa.ts';
+import { balloonpop as g, balloonpopRandom, balloonpopSmart, density, STAGE_COUNT } from '../studio/balloonpop/game.ts';
+import { humanCasual, measure } from '../studio/balloonpop/funqa.ts';
 
 describe('풍선 팡 연쇄 시뮬', () => {
   it('같은 시드·같은 봇이면 같은 결과', () => {
@@ -31,6 +31,23 @@ describe('풍선 팡 연쇄 시뮬', () => {
     const c = measure(balloonpopRandom, 20), e = measure(balloonpopSmart, 20);
     expect(c.firstTry[0]).toBeGreaterThanOrEqual(0.9);
     expect(e.score / Math.max(1, c.score)).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('FUN v1 측정 (C001)', () => {
+  it('사람형 캐주얼 봇은 풍선 위만 누른다 — 헛톡이 없어 처음 봇보다 1판 첫 톡 연쇄가 0이 아니다', () => {
+    const h = measure(humanCasual, 12);
+    expect(h.n[0]).toBe(12);
+    expect(h.firstChain[0]).toBeGreaterThanOrEqual(1);
+    expect(h.death.reduce((a, b) => a + b, 0)).toBeCloseTo(h.finish < 1 ? 1 : 0, 1);
+  });
+
+  it('밀도: 같은 시드·판이면 같은 값, 겹침 지수는 0~1', () => {
+    const a = density(1000, 1), b = density(1000, 1);
+    expect(a).toEqual(b);
+    expect(a.overlap).toBeGreaterThanOrEqual(0);
+    expect(a.overlap).toBeLessThanOrEqual(1);
+    expect(a.n).toBeGreaterThan(3);
   });
 });
 

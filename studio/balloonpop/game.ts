@@ -20,7 +20,7 @@ import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from './core.ts';
 import { juice } from './juice.ts';
 
-const A = 1.45;
+export const A = 1.45;
 /** 연쇄 한 박자(틱) */
 export const BEAT = 9;
 /** 폭죽: 이만큼 떨어질 때마다 한 박자 더 */
@@ -326,6 +326,18 @@ function randomRuns(L: Lay, r: Rng, plays: number) {
     out.push(c);
   }
   return out;
+}
+
+/** 밀도 (FUN §4): 판 시작 배치의 풍선 수(철 포함)와 반경 원 겹침 지수(겹치는 쌍 ÷ 전체 쌍, 철·폭죽 제외) */
+export function density(seed: number, stage: number): { n: number; overlap: number } {
+  const bs = layoutFor(seed, stage).bs, rs = bs.filter((b) => reachOf(b) > 0);
+  let pairs = 0, hit = 0;
+  for (let i = 0; i < rs.length; i++)
+    for (let j = i + 1; j < rs.length; j++) {
+      pairs++;
+      if (Math.hypot(bxAt(rs[i], 0) - bxAt(rs[j], 0), byAt(rs[i], 0) - byAt(rs[j], 0)) < reachOf(rs[i]) + reachOf(rs[j])) hit++;
+    }
+  return { n: bs.length, overlap: pairs ? hit / pairs : 0 };
 }
 
 const LAY = new Map<string, Lay>();

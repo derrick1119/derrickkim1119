@@ -3,6 +3,7 @@
  *   npx tsx studio/balloonpop/shots.ts  → studio/balloonpop/screens/*.png  (에러가 있으면 종료 코드 1)
  */
 import { createRequire } from 'node:module';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -43,6 +44,25 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.screenshot({ path: join(here, 'screens', `${name}-later.png`) });
   await page.close();
 }
+// 레이아웃 지표 (FUN §4): 캔버스 세로 점유 · 위아래 빈 띠 · 일시정지 버튼 ∩ 캔버스 위 HUD 띠(캔버스 폭 × 0.085)
+const layout: Record<string, unknown> = {};
+for (const vp of [{ width: 360, height: 780 }, { width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1280, height: 800 }]) {
+  const page = await browser.newPage({ viewport: vp, deviceScaleFactor: 1 });
+  await page.goto(url);
+  await page.click('#start');
+  await page.waitForTimeout(300);
+  const m = await page.evaluate(() => {
+    const c = document.getElementById('game')!.getBoundingClientRect(), b = document.getElementById('pausebtn')!.getBoundingClientRect(), H = innerHeight;
+    const hud = { top: c.top, bottom: c.top + c.width * 0.085, left: c.left, right: c.right };
+    const hit = b.right > hud.left && b.left < hud.right && b.bottom > hud.top && b.top < hud.bottom;
+    return { fill: c.height / H, topBand: c.top / H, bottomBand: (H - c.bottom) / H, pauseOverHud: hit };
+  });
+  const r2 = (x: number) => Math.round(x * 100) / 100;
+  layout[`${vp.width}x${vp.height}`] = { fill: r2(m.fill), topBand: r2(m.topBand), bottomBand: r2(m.bottomBand), pauseOverHud: m.pauseOverHud };
+  await page.close();
+}
+writeFileSync(join(here, 'reports', 'layout.json'), JSON.stringify(layout, null, 2) + '\n');
+console.table(layout);
 await browser.close();
 if (errors.length) {
   console.error(errors.join('\n'));

@@ -23,12 +23,16 @@ const keys = new Set<string>();
 
 function size() {
   const wrap = canvas.parentElement!, dpr = window.devicePixelRatio || 1;
-  const w = Math.min(wrap.clientWidth, wrap.clientHeight / A);
+  const w = Math.min(wrap.clientWidth, 620, wrap.clientHeight / A);
   canvas.style.width = `${w}px`;
   canvas.style.height = `${w * A}px`;
   canvas.width = Math.round(w * dpr);
   canvas.height = Math.round(w * A * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // 일시정지 버튼: 캔버스 위에 빈 띠가 있으면 그 띠에, 옆 공간이 있으면 캔버스 오른쪽 바깥에 — 캔버스 HUD(별·하트)를 가리지 않게
+  const top = (wrap.clientHeight - w * A) / 2, side = (wrap.clientWidth - w) / 2;
+  if (top < 52 && side >= 56) (hud.style.top = `${top + 4}px`), (hud.style.right = `${side - 52}px`);
+  else (hud.style.top = ''), (hud.style.right = '');
   draw();
 }
 

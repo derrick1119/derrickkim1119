@@ -1,0 +1,26 @@
+{
+  "360x780": {
+    "fill": 0.67,
+    "topBand": 0.17,
+    "bottomBand": 0.17,
+    "pauseOverHud": false
+  },
+  "390x844": {
+    "fill": 0.67,
+    "topBand": 0.16,
+    "bottomBand": 0.16,
+    "pauseOverHud": false
+  },
+  "768x1024": {
+    "fill": 0.88,
+    "topBand": 0.06,
+    "bottomBand": 0.06,
+    "pauseOverHud": false
+  },
+  "1280x800": {
+    "fill": 1,
+    "topBand": 0,
+    "bottomBand": 0,
+    "pauseOverHud": false
+  }
+}
