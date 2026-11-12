@@ -1592,7 +1592,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
       },
     });
   });
-  // 출발역: 지붕 있는 승강장 + 기다리는 손님 줄
+  // 출발역: 승강장 + 기다리는 손님 줄 + 역 이름판
   {
     const dx0 = px(N.depot), dy0 = py(N.depot), plx = px(N.dpl), ply = py(N.dpl);
     L.push({
@@ -1657,7 +1657,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
         void dy0;
       },
     });
-  });
+  }
   // 갈림길 레버 (갈림길 칸 옆 작은 신호 상자 + 방향 화살표 표지)
   let lev = leverMem.get(s);
   if (!lev || lev.length !== N.jcell.length) leverMem.set(s, (lev = N.jcell.map((_, j) => s.sw[j])));
