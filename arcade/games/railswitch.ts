@@ -1633,33 +1633,31 @@ function drawAll(ctx: CanvasRenderingContext2D, s: RailState, w: number, h: numb
         }
       },
     });
-    // 지붕 (기둥 넷)
+    // 역 이름판(오른쪽 끝) + 표 파는 작은 집(왼쪽 끝)
     L.push({
-      y: ply + R(0.04),
+      y: ply + R(0.004),
       f: () => {
-        const rx0 = plx - R(0.18), rx1 = plx + R(0.18), ry = ply - R(0.1);
+        const sx0 = plx + R(0.205), sy0 = ply - R(0.005);
         ctx.fillStyle = '#7a4b2a';
-        for (const xx of [rx0 + R(0.02), rx1 - R(0.02)]) ctx.fillRect(xx - R(0.004), ry, R(0.008), R(0.1));
+        for (const xx of [sx0 - R(0.035), sx0 + R(0.035)]) ctx.fillRect(xx - R(0.004), sy0 - R(0.06), R(0.008), R(0.06));
         ctx.fillStyle = night ? '#7a2a22' : '#d9483a';
         ctx.beginPath();
-        ctx.moveTo(rx0 - R(0.01), ry + R(0.01));
-        ctx.lineTo(rx1 + R(0.01), ry + R(0.01));
-        ctx.lineTo(rx1 - R(0.01), ry - R(0.03));
-        ctx.lineTo(rx0 + R(0.01), ry - R(0.03));
-        ctx.closePath();
+        ctx.roundRect(sx0 - R(0.052), sy0 - R(0.1), R(0.104), R(0.044), R(0.01));
         ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        for (let k = 0; k < 7; k++) ctx.fillRect(rx0 + R(0.005) + k * R(0.052), ry + R(0.004), R(0.026), R(0.007));
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = R(0.004);
+        ctx.stroke();
         ctx.fillStyle = '#ffffff';
         font(0.026, 900);
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('🚉 출발역', plx, ry - R(0.011));
+        ctx.fillText('출발역', sx0, sy0 - R(0.077));
+        house(ctx, plx - R(0.215), ply + R(0.01), R(0.036), '#fff1d6', '#d9483a', night);
         void dx0;
         void dy0;
       },
     });
-  }
+  });
   // 갈림길 레버 (갈림길 칸 옆 작은 신호 상자 + 방향 화살표 표지)
   let lev = leverMem.get(s);
   if (!lev || lev.length !== N.jcell.length) leverMem.set(s, (lev = N.jcell.map((_, j) => s.sw[j])));
