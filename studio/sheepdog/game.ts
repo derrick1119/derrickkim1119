@@ -1,0 +1,2580 @@
+/**
+ * 양치기 멍멍 (23라운드: 완전히 다른 장르) — 몰이 × 가리키기(톡) × 턴제화.
+ * 기준 9(손이 하는 일은 하나): 목장을 톡 = 강아지가 그 자리로 달려가 '멍!'. 누르고 있는 동안 짖는 원과 양마다 갈 자리가 흐리게 보이고, 떼면 짖는다.
+ * 와우: 톡 한 곳에서 '멍!' 하면 양 떼가 반대쪽으로 우르르 달아난다 — 그런데 까만 양 한 마리는 거꾸로 강아지 쪽으로 온다.
+ * 규칙(결정적): 짖은 곳에서 가까운 원 안의 양은 곧장 멀어지는 쪽으로 멀리(0.26), 바깥 원 안의 양은 조금(0.14) 달아난다.
+ *   함께 놀란 양들은 무리의 평균 방향으로 살짝 쏠린다(뭉침). 울타리·생울타리·다리 난간에 막히면 미끄러지듯 비켜 간다.
+ *   울타리 안에 들어간 양은 다시 나오지 않는다. 흰 양을 모두 넣으면 문이 '딸깍' 닫힌다.
+ * 판 구조: 판마다 양을 모두 울타리에 넣는다. ★ 다 넣음 · ★ 멍멍을 정해진 수 이하로 · ★ 보너스(꽃밭 안 밟기 / 까만 양도 넣기).
+ *   실패(양이 개울에 풍덩 · 늑대에게 잡힘 · 멍멍을 다 씀) = 하트 -1, 그 판을 처음부터. 하트 셋을 다 잃거나 8판을 마치면 끝.
+ * 펼쳐짐(하는 일이 바뀐다): 1판 몰기·꽃밭 → 2판 까만 양(거꾸로 와서 '당겨' 온다) → 3판 개울·다리(줄 세워 좁은 길로)
+ *   → 4판 기절 염소(놀라면 '꽥' 쓰러져 생울타리 틈을 막는다 — 염소 몰래 짖기) → 5판 늑대(멍멍 한 번은 늑대 쫓기에)
+ *   → 6판 바람 언덕(양이 바람 쪽으로 더 밀린다 — 비껴 짖기) → 7판 울타리 둘(리본 색대로 나눠 넣기) → 8판 밤(손전등 둘레만 보인다 + 늑대).
+ * 웃음: 놀란 양이 뛰다 데굴 넘어짐 · 염소가 뻣뻣하게 옆으로 쿵 · 한참 안 누르면 강아지가 제 꼬리를 쫓아 뱅뱅 ·
+ *   다 넣으면 양들이 울타리 안에서 폴짝폴짝 · 언덕 위 목동 할아버지가 모자를 흔들거나 이마를 짚는다(졸기도 한다).
+ */
+import { mulberry32, type Rng } from './rng.ts';
+import type { Bot, GameDef, Input, Theme } from './core.ts';
+import { juice } from './juice.ts';
+
+const A = 1.36;
+// ───────── 목장 좌표: x 0~1 (왼→오), y 0~1 (먼 언덕 → 가까운 쪽) ─────────
+/** 양 몸 반지름(부딪힘) · 울타리 두께의 반 */
+const SR = 0.026, WT = 0.008;
+/** 짖는 원: 가까운 원(멀리 달아남) · 바깥 원(조금) */
+export const R_IN = 0.13, R_OUT = 0.26, D_IN = 0.26, D_OUT = 0.14;
+/** 함께 놀란 양이 무리 평균 방향으로 쏠리는 정도 */
+const COH = 0.6;
+const STEP = 0.01, BLACK_STOP = 0.045;
+const WOLF_STEP = 0.13, WOLF_CATCH = 0.075, GOAT_R = 0.03, FAINT = 3;
+const DOG_SPEED = 0.05, FLEE_T = 40, RESULT_OK = 190, RESULT_FAIL = 150;
+const STAR_PTS = 100, LEFT_PTS = 5, WIN_PTS = 100;
+
+interface Seg { x0: number; y0: number; x1: number; y1: number }
+interface Pen { x0: number; y0: number; x1: number; y1: number; gx0: number; gx1: number; tag: number; mat?: number }
+interface River { y0: number; y1: number; bx0: number; bx1: number }
+interface FlowerBed { x: number; y: number; r: number }
+type Bonus = 'flower' | 'black';
+
+/** 판 하나의 변하지 않는 것들 (봇이 내다볼 때도 같은 것) */
+interface Field {
+  n: number; black: boolean[]; tag: number[];
+  walls: Seg[]; hedges: Seg[]; fences: Seg[]; block: Seg[][]; pens: Pen[]; river: River | null; flowers: FlowerBed[];
+  goat: { x: number; y: number } | null; den: [number, number] | null; wind: [number, number]; night: boolean;
+  dist: Float32Array[];
+}
+/** 판의 움직이는 것들 (복사해서 내다본다) */
+interface Sim {
+  x: number[]; y: number[]; pen: number[]; fell: number[]; fh: number[];
+  goatF: number; wx: number; wy: number; used: number; caught: number; dx: number; dy: number;
+}
+/** 한 번 짖은 결과 (연출·미리 보기용) */
+interface Rec {
+  path: (number[] | null)[]; penAt: number[]; fellAt: number[]; scare: number[]; trip: boolean[];
+  goatFaint: boolean; wolf: 0 | 1 | 2; wolfPath: number[] | null; caught: number; flowerNew: number[]; inNew: number[];
+}
+
+interface StageDef { key: string; name: string; news: string; max: number; par: number; bonus: Bonus; build(r: Rng): Layout }
+interface Layout {
+  pens: Pen[]; river?: River; hedges?: Seg[]; fences?: Seg[]; flowers: FlowerBed[]; sheep: { x: number; y: number; black?: boolean; tag?: number }[];
+  goat?: { x: number; y: number }; den?: [number, number]; wind?: [number, number]; night?: boolean;
+}
+
+const jit = (r: Rng, a: number) => (r() - 0.5) * 2 * a;
+const PEN0 = (): Pen => ({ x0: 0.31, y0: 0.04, x1: 0.69, y1: 0.22, gx0: 0.38, gx1: 0.62, tag: 0 });
+const flock = (r: Rng, cx: number, cy: number, offs: number[][], j = 0.012) => offs.map(([dx, dy]) => ({ x: cx + dx + jit(r, j), y: cy + dy + jit(r, j) }));
+const FIVE = [[-0.075, 0], [0.075, 0], [0, -0.04], [-0.04, 0.065], [0.045, 0.065]];
+
+/** 판 8개 */
+export const STAGES: StageDef[] = [
+  {
+    key: 'start', name: '첫 울타리', news: '🐑 양 뒤를 톡 — 짖으면 양이 반대쪽으로!', max: 9, par: 1, bonus: 'flower',
+    build: (r) => ({
+      pens: [{ x0: 0.2, y0: 0.04, x1: 0.8, y1: 0.26, gx0: 0.2, gx1: 0.8, tag: 0, mat: 0.15 }],
+      flowers: [{ x: 0.25, y: 0.35, r: 0.05 }, { x: 0.75, y: 0.35, r: 0.05 }],
+      sheep: flock(r, 0.5 + jit(r, 0.015), 0.32, [[-0.075, 0], [0.075, 0], [0, -0.03], [-0.04, 0.04], [0.045, 0.04]], 0.006),
+    }),
+  },
+  {
+    key: 'black', name: '까만 양', news: '🖤 까만 양 — 짖으면 거꾸로 강아지에게 와요!', max: 9, par: 3, bonus: 'black',
+    build: (r) => {
+      const left = r() < 0.5, bx = left ? 0.24 : 0.76;
+      return {
+        pens: [{ ...PEN0(), x0: 0.28, x1: 0.72, gx0: 0.32, gx1: 0.68, mat: 0.14 }],
+        flowers: [{ x: left ? 0.8 : 0.2, y: 0.32, r: 0.06 }],
+        sheep: [...flock(r, 0.5 + jit(r, 0.02), 0.29, [[-0.07, 0], [0.07, 0], [0, -0.025], [-0.035, 0.035], [0.04, 0.035]], 0.006), { x: bx + jit(r, 0.03), y: 0.56 + jit(r, 0.03), black: true }],
+      };
+    },
+  },
+  {
+    key: 'river', name: '개울과 다리', news: '🌉 개울 — 빠지면 풍덩! 다리로 건너요', max: 8, par: 4, bonus: 'flower',
+    build: (r) => ({
+      pens: [PEN0()],
+      river: { y0: 0.4, y1: 0.5, bx0: 0.41, bx1: 0.59 },
+      flowers: [{ x: 0.26 + jit(r, 0.02), y: 0.31, r: 0.06 }, { x: 0.74 + jit(r, 0.02), y: 0.31, r: 0.06 }],
+      sheep: flock(r, 0.5 + jit(r, 0.06), 0.68, [[-0.12, 0], [0.12, 0], [0, -0.03], [-0.05, 0.08], [0.06, 0.08]]),
+    }),
+  },
+  {
+    key: 'goat', name: '기절 염소', news: '🐐 염소 — 놀라면 꽥! 쓰러져 길을 막아요', max: 9, par: 4, bonus: 'flower',
+    build: (r) => {
+      const side = r() < 0.5 ? -1 : 1;
+      return {
+        pens: [PEN0()],
+        hedges: [{ x0: 0, y0: 0.42, x1: 0.33, y1: 0.42 }, { x0: 0.67, y0: 0.42, x1: 1, y1: 0.42 }],
+        goat: { x: 0.5 + 0.07 * side, y: 0.42 },
+        flowers: [{ x: 0.5 - 0.2 * side, y: 0.33, r: 0.055 }],
+        sheep: flock(r, 0.5 + jit(r, 0.06), 0.68, FIVE),
+      };
+    },
+  },
+  {
+    key: 'wolf', name: '늑대', news: '🐺 늑대 — 멍멍마다 한 걸음씩 다가와요!', max: 9, par: 5, bonus: 'flower',
+    build: (r) => ({
+      pens: [PEN0()],
+      den: [0.035, 0.66],
+      flowers: [{ x: 0.24 + jit(r, 0.02), y: 0.33, r: 0.06 }, { x: 0.76 + jit(r, 0.02), y: 0.33, r: 0.06 }],
+      sheep: flock(r, 0.6 + jit(r, 0.03), 0.66 + jit(r, 0.03), [[-0.16, 0.02], [0.14, 0], [0, -0.06], [-0.07, 0.1], [0.08, 0.12]]),
+    }),
+  },
+  {
+    key: 'wind', name: '바람 언덕', news: '🌬️ 바람 — 양이 바람 쪽으로 더 밀려요', max: 10, par: 7, bonus: 'black',
+    build: (r) => {
+      const dir = r() < 0.5 ? 1 : -1;
+      return {
+        pens: [PEN0()],
+        river: { y0: 0.4, y1: 0.5, bx0: 0.41, bx1: 0.59 },
+        wind: [0.06 * dir, 0],
+        flowers: [{ x: 0.5 + 0.3 * dir, y: 0.28, r: 0.06 }],
+        sheep: [...flock(r, 0.5 - 0.08 * dir + jit(r, 0.04), 0.68, FIVE), { x: 0.5 - 0.2 * dir + jit(r, 0.03), y: 0.88 + jit(r, 0.02), black: true }],
+      };
+    },
+  },
+  {
+    key: 'twopens', name: '울타리 둘', news: '🎀 울타리 둘 — 리본 색과 같은 울타리로!', max: 11, par: 6, bonus: 'flower',
+    build: (r) => {
+      const offs = [[-0.15, -0.02], [-0.05, 0.03], [0.05, -0.03], [0.15, 0.02], [-0.09, 0.1], [0.09, 0.1]];
+      const tags = r() < 0.5 ? [1, 2, 1, 2, 1, 2] : [1, 1, 2, 2, 2, 1];
+      return {
+        pens: [
+          { x0: 0.04, y0: 0.04, x1: 0.4, y1: 0.22, gx0: 0.11, gx1: 0.33, tag: 1 },
+          { x0: 0.6, y0: 0.04, x1: 0.96, y1: 0.22, gx0: 0.67, gx1: 0.89, tag: 2 },
+        ],
+        flowers: [{ x: 0.5, y: 0.2, r: 0.065 }],
+        sheep: offs.map(([dx, dy], k) => ({ x: 0.5 + dx + jit(r, 0.015), y: 0.58 + dy + jit(r, 0.015), tag: tags[k] })),
+      };
+    },
+  },
+  {
+    key: 'night', name: '밤 목장', news: '🔦 밤 — 손전등 둘레만 보여요. 늑대 조심!', max: 10, par: 6, bonus: 'black',
+    build: (r) => {
+      const left = r() < 0.5;
+      return {
+        pens: [PEN0()],
+        den: [left ? 0.965 : 0.035, 0.6],
+        night: true,
+        flowers: [],
+        sheep: [...flock(r, 0.5 + jit(r, 0.04), 0.62, [[-0.12, 0], [0.12, 0], [0, -0.04], [-0.06, 0.08], [0.07, 0.08]]), { x: (left ? 0.62 : 0.38) + jit(r, 0.03), y: 0.88 + jit(r, 0.02), black: true }],
+      };
+    },
+  },
+];
+export const STAGE_COUNT = STAGES.length;
+
+// ───────── 부딪힘 ─────────
+function pushSeg(p: number[], g: Seg, rad: number) {
+  const vx = g.x1 - g.x0, vy = g.y1 - g.y0, L2 = vx * vx + vy * vy;
+  let u = L2 > 0 ? ((p[0] - g.x0) * vx + (p[1] - g.y0) * vy) / L2 : 0;
+  u = u < 0 ? 0 : u > 1 ? 1 : u;
+  const cx = g.x0 + vx * u, cy = g.y0 + vy * u, dx = p[0] - cx, dy = p[1] - cy, d = Math.hypot(dx, dy);
+  if (d >= rad) return;
+  if (d < 1e-9) return void (p[1] = cy + rad);
+  p[0] = cx + (dx / d) * rad;
+  p[1] = cy + (dy / d) * rad;
+}
+function pushCircle(p: number[], x: number, y: number, rad: number) {
+  const dx = p[0] - x, dy = p[1] - y, d = Math.hypot(dx, dy);
+  if (d >= rad) return;
+  if (d < 1e-9) return void (p[1] = y + rad);
+  p[0] = x + (dx / d) * rad;
+  p[1] = y + (dy / d) * rad;
+}
+const goatSeg = (F: Field): Seg => ({ x0: F.goat!.x - 0.07, y0: F.goat!.y, x1: F.goat!.x + 0.07, y1: F.goat!.y });
+function collide(F: Field, goatF: number, tag: number, p: number[]) {
+  for (let it = 0; it < 2; it++) {
+    for (const g of F.walls) pushSeg(p, g, SR + WT);
+    if (tag) for (const g of F.block[tag]) pushSeg(p, g, SR + WT);
+    if (F.goat) goatF > 0 ? pushSeg(p, goatSeg(F), SR + 0.014) : pushCircle(p, F.goat.x, F.goat.y, SR + GOAT_R);
+  }
+  p[0] = Math.max(0.03, Math.min(0.97, p[0]));
+  p[1] = Math.max(0.025, Math.min(0.975, p[1]));
+}
+const wet = (F: Field, x: number, y: number) => !!F.river && y > F.river.y0 && y < F.river.y1 && !(x > F.river.bx0 && x < F.river.bx1);
+function penOf(F: Field, tag: number, x: number, y: number) {
+  for (let k = 0; k < F.pens.length; k++) {
+    const p = F.pens[k];
+    if ((!p.tag || p.tag === tag) && x > p.x0 && x < p.x1 && y > p.y0 && y < p.y1) return k;
+  }
+  return -1;
+}
+
+/** 문 앞 흙자리: 여기 멈춘 양은 알아서 쏙 들어간다 */
+const MAT = 0.1;
+function matOf(F: Field, tag: number, x: number, y: number) {
+  for (let k = 0; k < F.pens.length; k++) {
+    const p = F.pens[k];
+    if ((!p.tag || p.tag === tag) && x > p.gx0 && x < p.gx1 && y >= p.y1 && y < p.y1 + (p.mat ?? MAT)) return k;
+  }
+  return -1;
+}
+
+function makeField(L: Layout): Field {
+  const walls: Seg[] = [];
+  for (const p of L.pens) {
+    walls.push({ x0: p.x0, y0: p.y0, x1: p.x1, y1: p.y0 }, { x0: p.x0, y0: p.y0, x1: p.x0, y1: p.y1 }, { x0: p.x1, y0: p.y0, x1: p.x1, y1: p.y1 });
+    walls.push({ x0: p.x0, y0: p.y1, x1: p.gx0, y1: p.y1 }, { x0: p.gx1, y0: p.y1, x1: p.x1, y1: p.y1 });
+  }
+  if (L.river) {
+    const rv = L.river;
+    walls.push({ x0: rv.bx0, y0: rv.y0 - 0.012, x1: rv.bx0, y1: rv.y1 + 0.012 }, { x0: rv.bx1, y0: rv.y0 - 0.012, x1: rv.bx1, y1: rv.y1 + 0.012 });
+  }
+  for (const h of L.hedges ?? []) walls.push(h);
+  for (const h of L.fences ?? []) walls.push(h);
+  // 리본 색이 다른 울타리의 문은 그 양에게 벽이다
+  const block: Seg[][] = [[], [], []];
+  for (const p of L.pens) if (p.tag) for (let tg = 1; tg <= 2; tg++) if (tg !== p.tag) block[tg].push({ x0: p.gx0, y0: p.y1, x1: p.gx1, y1: p.y1 });
+  const F: Field = {
+    n: L.sheep.length, black: L.sheep.map((q) => !!q.black), tag: L.sheep.map((q) => q.tag ?? 0),
+    walls, hedges: L.hedges ?? [], fences: L.fences ?? [], block, pens: L.pens, river: L.river ?? null, flowers: L.flowers,
+    goat: L.goat ?? null, den: L.den ?? null, wind: L.wind ?? [0, 0], night: !!L.night, dist: [],
+  };
+  for (let tg = 0; tg <= 2; tg++) F.dist.push(distField(F, tg));
+  return F;
+}
+
+// ───────── 짖기 한 번 (결정적, 봇이 내다볼 때도 같은 함수) ─────────
+function cloneSim(a: Sim): Sim {
+  return { ...a, x: a.x.slice(), y: a.y.slice(), pen: a.pen.slice(), fell: a.fell.slice(), fh: a.fh.slice() };
+}
+const hash2 = (a: number, b: number) => {
+  const x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
+  return x - Math.floor(x);
+};
+
+/** 울타리 안의 빈자리 (들어간 양이 걸어가 서는 곳) */
+function slotFor(F: Field, S: Sim, k: number, x: number, y: number, i: number): [number, number] {
+  const p = F.pens[k];
+  let best: [number, number] = [x, y], bd = 1e9;
+  for (let r = 0; r < 2; r++)
+    for (let c = 0; c < 4; c++) {
+      const sx = p.x0 + ((c + 0.5 + (r ? 0.35 : -0.1)) / 4) * (p.x1 - p.x0), sy = p.y0 + ((r + 0.5) / 2) * (p.y1 - p.y0);
+      let taken = false;
+      for (let j = 0; j < F.n; j++) if (j !== i && S.pen[j] === k && Math.abs(S.x[j] - sx) < 0.02 && Math.abs(S.y[j] - sy) < 0.02) taken = true;
+      const d = (sx - x) ** 2 + (sy - y) ** 2 + (taken ? 10 : 0);
+      if (d < bd) (bd = d), (best = [sx, sy]);
+    }
+  return best;
+}
+
+/** 짖으면 누가 놀라나? (아무도 없으면 강아지는 킁킁 냄새만 맡고 멍멍을 안 쓴다) */
+export function anyone(F: Field, S: Sim, px: number, py: number) {
+  for (let i = 0; i < F.n; i++) if (S.pen[i] < 0 && !S.fell[i] && Math.hypot(S.x[i] - px, S.y[i] - py) < R_OUT) return true;
+  if (F.den && Math.hypot(S.wx - px, S.wy - py) < R_OUT) return true;
+  return !!F.goat && Math.hypot(F.goat.x - px, F.goat.y - py) < R_OUT;
+}
+
+export function resolve(F: Field, S: Sim, px: number, py: number, rec?: Rec) {
+  S.used++;
+  const n = F.n;
+  if (F.goat && Math.hypot(F.goat.x - px, F.goat.y - py) < R_OUT) {
+    S.goatF = FAINT;
+    if (rec) rec.goatFaint = true;
+  }
+  const ux = new Array<number>(n).fill(0), uy = new Array<number>(n).fill(0), amt = new Array<number>(n).fill(0);
+  let mx = 0, my = 0;
+  for (let i = 0; i < n; i++) {
+    if (S.pen[i] >= 0 || S.fell[i]) continue;
+    const dx = S.x[i] - px, dy = S.y[i] - py, d = Math.hypot(dx, dy);
+    if (d >= R_OUT) continue;
+    const far = d < R_IN ? D_IN : D_OUT;
+    if (rec) rec.scare[i] = F.black[i] ? 3 : d < R_IN ? 2 : 1;
+    if (F.black[i]) {
+      if (d < 1e-6) continue;
+      ux[i] = -dx / d;
+      uy[i] = -dy / d;
+      amt[i] = Math.max(0, d - BLACK_STOP);
+    } else {
+      ux[i] = d < 1e-6 ? 0 : dx / d;
+      uy[i] = d < 1e-6 ? -1 : dy / d;
+      amt[i] = far;
+      mx += ux[i];
+      my += uy[i];
+    }
+  }
+  const ml = Math.hypot(mx, my);
+  if (ml > 1e-6) (mx /= ml), (my /= ml);
+  const before = S.pen.slice(), x0 = S.x.slice(), y0 = S.y.slice();
+  const p = [0, 0];
+  for (let i = 0; i < n; i++) {
+    if (amt[i] <= 0) continue;
+    let vx = ux[i], vy = uy[i];
+    if (!F.black[i]) {
+      vx += COH * mx;
+      vy += COH * my;
+      const vl = Math.hypot(vx, vy) || 1;
+      vx /= vl;
+      vy /= vl;
+    }
+    const tx = vx * amt[i] + F.wind[0], ty = vy * amt[i] + F.wind[1];
+    const L = Math.hypot(tx, ty), steps = Math.max(1, Math.ceil(L / STEP)), sx = tx / steps, sy = ty / steps;
+    const path = rec ? [S.x[i], S.y[i]] : null;
+    let x = S.x[i], y = S.y[i];
+    for (let k = 0; k < steps; k++) {
+      p[0] = x + sx;
+      p[1] = y + sy;
+      collide(F, S.goatF, F.tag[i], p);
+      x = p[0];
+      y = p[1];
+      if (path) path.push(x, y);
+      for (let f = 0; f < F.flowers.length; f++)
+        if (!S.fh[f] && Math.hypot(x - F.flowers[f].x, y - F.flowers[f].y) < F.flowers[f].r) {
+          S.fh[f] = 1;
+          if (rec) rec.flowerNew.push(f);
+        }
+      if (wet(F, x, y)) {
+        S.fell[i] = 1;
+        if (rec) rec.fellAt[i] = path!.length / 2 - 1;
+        break;
+      }
+      if (S.pen[i] < 0) {
+        const k2 = penOf(F, F.tag[i], x, y);
+        if (k2 >= 0) {
+          S.pen[i] = k2;
+          if (rec) rec.penAt[i] = path!.length / 2 - 1;
+        }
+      }
+    }
+    S.x[i] = x;
+    S.y[i] = y;
+    if (rec) rec.path[i] = path;
+    if (rec && rec.scare[i] === 2 && !S.fell[i] && S.pen[i] < 0 && hash2(i + 1, S.used) < 0.35) rec.trip[i] = true;
+  }
+  // 겹친 양은 살짝 비켜 선다 (밖에 있는 양끼리)
+  for (let it = 0; it < 3; it++)
+    for (let i = 0; i < n; i++) {
+      if (S.pen[i] >= 0 || S.fell[i]) continue;
+      for (let j = i + 1; j < n; j++) {
+        if (S.pen[j] >= 0 || S.fell[j]) continue;
+        let dx = S.x[j] - S.x[i], dy = S.y[j] - S.y[i];
+        const d = Math.hypot(dx, dy);
+        if (d >= SR * 2) continue;
+        if (d < 1e-6) (dx = 1), (dy = 0);
+        else (dx /= d), (dy /= d);
+        const o = (SR * 2 - Math.max(d, 1e-6)) / 2;
+        for (const [k, sg] of [[i, -1], [j, 1]] as const) {
+          p[0] = S.x[k] + dx * o * sg;
+          p[1] = S.y[k] + dy * o * sg;
+          collide(F, S.goatF, F.tag[k], p);
+          if (wet(F, p[0], p[1])) continue;
+          S.x[k] = p[0];
+          S.y[k] = p[1];
+          const k2 = penOf(F, F.tag[k], p[0], p[1]);
+          if (k2 >= 0) S.pen[k] = k2;
+        }
+      }
+    }
+  // 문 앞 흙자리에서 놀란 양은 쏙 들어간다
+  for (let i = 0; i < n; i++) if (amt[i] > 0 && S.pen[i] < 0 && !S.fell[i]) {
+    const k = matOf(F, F.tag[i], S.x[i], S.y[i]);
+    if (k >= 0) {
+      if (rec && rec.path[i]) rec.penAt[i] = rec.path[i]!.length / 2 - 1;
+      S.pen[i] = k;
+    }
+  }
+  // 새로 들어간 양은 울타리 안 빈자리로 걸어간다
+  for (let i = 0; i < n; i++) {
+    if (rec && !S.fell[i] && (S.x[i] !== x0[i] || S.y[i] !== y0[i])) {
+      const pa = rec.path[i] ?? [x0[i], y0[i]];
+      const lx = pa[pa.length - 2], ly = pa[pa.length - 1];
+      if (lx !== S.x[i] || ly !== S.y[i]) pa.push(S.x[i], S.y[i]);
+      rec.path[i] = pa;
+    }
+    if (before[i] < 0 && S.pen[i] >= 0) {
+      const [sx, sy] = slotFor(F, S, S.pen[i], S.x[i], S.y[i], i);
+      S.x[i] = sx;
+      S.y[i] = sy;
+      if (rec) {
+        const pa = rec.path[i] ?? [x0[i], y0[i]];
+        if (rec.penAt[i] < 0) rec.penAt[i] = pa.length / 2 - 1;
+        pa.push(sx, sy);
+        rec.path[i] = pa;
+        rec.inNew.push(i);
+      }
+    }
+  }
+  // 늑대: 원 안에서 짖으면 굴로 깨갱, 아니면 가장 가까운 양에게 한 걸음
+  if (F.den) {
+    const wx0 = S.wx, wy0 = S.wy;
+    if (Math.hypot(S.wx - px, S.wy - py) < R_OUT) {
+      S.wx = F.den[0];
+      S.wy = F.den[1];
+      if (rec) rec.wolf = 2;
+    } else {
+      let bi = -1, bd = 1e9;
+      for (let i = 0; i < n; i++) {
+        if (S.pen[i] >= 0 || S.fell[i]) continue;
+        const d = Math.hypot(S.x[i] - S.wx, S.y[i] - S.wy);
+        if (d < bd) (bd = d), (bi = i);
+      }
+      if (bi >= 0) {
+        if (bd - WOLF_STEP < WOLF_CATCH) {
+          S.caught = bi;
+          S.wx = S.x[bi] - ((S.x[bi] - S.wx) / bd) * 0.04;
+          S.wy = S.y[bi] - ((S.y[bi] - S.wy) / bd) * 0.04;
+        } else {
+          S.wx += ((S.x[bi] - S.wx) / bd) * WOLF_STEP;
+          S.wy += ((S.y[bi] - S.wy) / bd) * WOLF_STEP;
+        }
+        if (rec) rec.wolf = 1;
+      }
+    }
+    if (rec) (rec.wolfPath = [wx0, wy0, S.wx, S.wy]), (rec.caught = S.caught);
+  }
+  if (S.goatF > 0) S.goatF--;
+  S.dx = px;
+  S.dy = py;
+}
+
+function newRec(n: number): Rec {
+  return {
+    path: new Array(n).fill(null), penAt: new Array(n).fill(-1), fellAt: new Array(n).fill(-1), scare: new Array(n).fill(0), trip: new Array(n).fill(false),
+    goatFaint: false, wolf: 0, wolfPath: null, caught: -1, flowerNew: [], inNew: [],
+  };
+}
+
+// ───────── 거리 지도 (잘하는 봇이 '울타리까지 얼마나 남았나'를 재는 데 쓴다) ─────────
+const G = 40;
+function distField(F: Field, tag: number): Float32Array {
+  const D = new Float32Array(G * G).fill(1e9), ok = new Uint8Array(G * G), p = [0, 0];
+  const heap: number[] = [];
+  const push = (v: number, i: number) => {
+    heap.push(v * 4096 + i);
+    let k = heap.length - 1;
+    while (k > 0) {
+      const q = (k - 1) >> 1;
+      if (heap[q] <= heap[k]) break;
+      [heap[q], heap[k]] = [heap[k], heap[q]];
+      k = q;
+    }
+  };
+  const pop = () => {
+    const top = heap[0], last = heap.pop()!;
+    if (heap.length) {
+      heap[0] = last;
+      let k = 0;
+      for (;;) {
+        const a = 2 * k + 1, b = a + 1;
+        let m = k;
+        if (a < heap.length && heap[a] < heap[m]) m = a;
+        if (b < heap.length && heap[b] < heap[m]) m = b;
+        if (m === k) break;
+        [heap[m], heap[k]] = [heap[k], heap[m]];
+        k = m;
+      }
+    }
+    return top;
+  };
+  for (let j = 0; j < G; j++)
+    for (let i = 0; i < G; i++) {
+      const cx = (i + 0.5) / G, cy = (j + 0.5) / G;
+      if (wet(F, cx, cy)) continue;
+      p[0] = cx;
+      p[1] = cy;
+      for (const g of F.walls) pushSeg(p, g, SR + WT - 0.006);
+      if (tag) for (const g of F.block[tag]) pushSeg(p, g, SR + WT - 0.006);
+      if (Math.abs(p[0] - cx) > 1e-9 || Math.abs(p[1] - cy) > 1e-9) continue;
+      ok[j * G + i] = 1;
+      if (penOf(F, tag, cx, cy) >= 0 || matOf(F, tag, cx, cy) >= 0) (D[j * G + i] = 0), push(0, j * G + i);
+    }
+  while (heap.length) {
+    const top = pop(), c = top % 4096, v = (top - c) / 4096;
+    if (v > D[c] + 1e-6) continue;
+    const i = c % G, j = (c - i) / G;
+    for (let dj = -1; dj <= 1; dj++)
+      for (let di = -1; di <= 1; di++) {
+        if (!di && !dj) continue;
+        const a = i + di, b = j + dj;
+        if (a < 0 || b < 0 || a >= G || b >= G || !ok[b * G + a]) continue;
+        if (di && dj && (!ok[j * G + a] || !ok[b * G + i])) continue;
+        const nv = D[c] + (di && dj ? 1.4142 : 1);
+        if (nv < D[b * G + a]) (D[b * G + a] = nv), push(nv, b * G + a);
+      }
+  }
+  for (let k = 0; k < D.length; k++) D[k] = D[k] < 1e8 ? D[k] / G : 1e9;
+  return D;
+}
+function dget(F: Field, tag: number, x: number, y: number) {
+  const D = F.dist[tag], i = Math.max(0, Math.min(G - 1, Math.floor(x * G))), j = Math.max(0, Math.min(G - 1, Math.floor(y * G)));
+  if (D[j * G + i] < 1e8) return D[j * G + i];
+  let m = 1e9;
+  for (let dj = -2; dj <= 2; dj++)
+    for (let di = -2; di <= 2; di++) {
+      const a = i + di, b = j + dj;
+      if (a < 0 || b < 0 || a >= G || b >= G) continue;
+      const v = D[b * G + a] + Math.hypot(di, dj) / G;
+      if (v < m) m = v;
+    }
+  return m < 1e8 ? m : 3;
+}
+
+// ───────── 상태 ─────────
+interface Ev { t: number; kind: string; x: number; y: number; text?: string; col?: string; v?: number }
+export interface DogState {
+  rng: Rng; seed: number; t: number; stage: number; phase: 'aim' | 'run' | 'flee' | 'result'; pt: number;
+  F: Field; S: Sim; S0: Sim; rec: Rec | null; layouts: Record<number, Layout>;
+  /** 강아지 화면 위치(목장 좌표) · 달려가는 출발점·도착점 · 달리는 틱 수 */
+  dogX: number; dogY: number; fromX: number; fromY: number; toX: number; toY: number; runN: number;
+  down: boolean; ax: number; ay: number; idle: number; tries: number;
+  hearts: number; stars: number; got: number; pts: number; ok: boolean; why: string; won: boolean; dead: boolean;
+  seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[]; startT: number; clearT: number;
+}
+
+const ev = (s: DogState, kind: string, x: number, y: number, text?: string, col?: string, v?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v });
+/** 규칙 도움말 (새것 수에는 안 센다) */
+function tip(s: DogState, key: string, text: string) {
+  if (s.tips.has(key) || s.newsQ.length) return;
+  s.tips.add(key);
+  s.newsQ.push(text);
+}
+function see(s: DogState, key: string, text: string) {
+  if (s.seen.has(key)) return;
+  s.seen.add(key);
+  s.newsQ.push(text);
+}
+const NEWS_T = 200;
+
+function newStage(s: DogState) {
+  const d = STAGES[s.stage];
+  let L = s.layouts[s.stage];
+  if (!L) s.layouts[s.stage] = L = d.build(mulberry32((s.seed * 31 + s.stage * 7919 + 17) >>> 0));
+  s.F = makeField(L);
+  const n = s.F.n;
+  s.S = {
+    x: L.sheep.map((q) => q.x), y: L.sheep.map((q) => q.y), pen: new Array(n).fill(-1), fell: new Array(n).fill(0), fh: L.flowers.map(() => 0),
+    goatF: 0, wx: L.den ? L.den[0] : 0, wy: L.den ? L.den[1] : 0, used: 0, caught: -1, dx: 0.5, dy: 0.93,
+  };
+  s.S0 = cloneSim(s.S);
+  s.rec = null;
+  s.phase = 'aim';
+  s.pt = 0;
+  s.dogX = s.fromX = s.toX = 0.5;
+  s.dogY = s.fromY = s.toY = 0.93;
+  s.idle = 0;
+  s.startT = s.t;
+  s.got = 0;
+  see(s, d.key, d.news);
+  if (d.bonus === 'flower' && L.flowers.length) see(s, 'flower', '🌼 꽃밭 — 안 밟고 넣으면 별 하나 더');
+  ev(s, 'stage', 0.5, 0.6, `${s.stage + 1}판 · ${d.name}`, '#fff6d6');
+}
+
+function finish(s: DogState, ok: boolean, why = '') {
+  s.phase = 'result';
+  s.pt = 0;
+  s.ok = ok;
+  s.why = why;
+  const d = STAGES[s.stage];
+  if (ok) {
+    const bonus = d.bonus === 'black' ? s.F.black.some((b, i) => b && s.S.pen[i] >= 0) : !s.S.fh.some((v) => v);
+    const st = 1 + (s.S.used <= d.par ? 1 : 0) + (bonus ? 1 : 0);
+    s.got = st;
+    s.stars += st;
+    s.pts += st * STAR_PTS + (d.max - s.S.used) * LEFT_PTS;
+    s.clearT = s.t;
+    if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS);
+    ev(s, 'clear', 0.5, 0.5, `${s.stage + 1}판 통과! ${'★'.repeat(st)}${'☆'.repeat(3 - st)}`, '#fff1a8', st);
+  } else {
+    s.hearts--;
+    s.tries++;
+    ev(s, 'fail', 0.5, 0.5, why, '#ffd0c8');
+  }
+}
+
+/** 지금 가리킨 자리(화면 0~1, y는 0~1) → 목장 좌표. 목장 밖이면 null */
+const FY0 = 0.305, FH = 0.775, FXW = 0.92;
+const scl = (fy: number) => 0.8 + 0.25 * fy;
+const SX = (fx: number, fy: number) => 0.5 + (fx - 0.5) * FXW * scl(fy);
+const SY = (fy: number) => FY0 + fy * FH;
+function toField(x: number, y: number): [number, number] | null {
+  const fy = (y - FY0) / FH;
+  if (fy < -0.03 || fy > 1.03) return null;
+  const fx = 0.5 + (x - 0.5) / (FXW * scl(fy));
+  if (fx < -0.03 || fx > 1.03) return null;
+  return [Math.max(0.02, Math.min(0.98, fx)), Math.max(0.02, Math.min(0.98, fy))];
+}
+const inAnyPen = (F: Field, x: number, y: number) => F.pens.some((p) => x > p.x0 && x < p.x1 && y > p.y0 && y < p.y1);
+
+function bark(s: DogState, fx: number, fy: number) {
+  s.phase = 'run';
+  s.pt = 0;
+  s.fromX = s.dogX;
+  s.fromY = s.dogY;
+  s.toX = fx;
+  s.toY = fy;
+  s.runN = Math.max(6, Math.min(22, Math.round(Math.hypot(fx - s.dogX, fy - s.dogY) / DOG_SPEED)));
+  s.idle = 0;
+}
+
+function afterFlee(s: DogState) {
+  const d = STAGES[s.stage], F = s.F, S = s.S;
+  const fell = S.fell.findIndex((v) => v);
+  if (fell >= 0) return finish(s, false, F.black[fell] ? '까만 양이 개울에 풍덩!' : '양이 개울에 풍덩!');
+  if (S.caught >= 0) return finish(s, false, '늑대가 양을 물어 갔어요!');
+  const whitesIn = F.black.every((b, i) => b || S.pen[i] >= 0);
+  if (whitesIn) return finish(s, true);
+  if (S.used >= d.max) return finish(s, false, '멍멍을 다 썼어요… 목이 쉬었어요');
+  s.phase = 'aim';
+  s.pt = 0;
+}
+
+/** 판 고르기·측정용: 그 판을 처음부터 (하트·점수는 그대로) */
+export function jumpTo(s: DogState, stage: number) {
+  s.stage = Math.max(0, Math.min(STAGES.length - 1, stage));
+  s.tries = 0;
+  newStage(s);
+}
+
+export const sheepdog: GameDef<DogState> = {
+  id: 'sheepdog',
+  name: '양치기 멍멍',
+  genes: ['herd', 'pointer', 'turnbased'],
+  twist: '톡 한 곳으로 강아지가 달려가 \'멍!\' 하면 양 떼가 반대쪽으로 우르르 달아나는데, 까만 양 한 마리는 거꾸로 강아지 쪽으로 온다 — 누르고 있으면 양마다 갈 자리가 미리 보여서, 어디서 짖을지가 수가 된다',
+  rules: ['목장을 톡 = 강아지가 달려가 \'멍!\' — 원 안의 양은 반대쪽으로 달아나요. 가까울수록 멀리!', '양을 모두 울타리에 넣으면 통과. 누르고 있으면 양이 갈 자리가 보여요.'],
+  controls: 'touch',
+  hint: '목장을 누르면 갈 자리가 보이고, 떼면 멍! / 화살표로 고르고 스페이스',
+  aspect: A,
+  art: {
+    concept: '해 질 녘 언덕 목장 디오라마',
+    mood: '노을빛이 비스듬히 드는 언덕 목장 — 뭉게뭉게 양털에 긴 그림자, 바람에 흔들리는 풀, 나무 울타리. 판이 지날수록 해가 기울어 밤이 오고, 언덕 위에서 목동 할아버지가 구경한다.',
+    palette: { bg: '#2b3b2a', ink: '#fffaf0', muted: '#c9d6b8', accent: '#ffc857', hot: '#ff6b5a', soft: '#f3e3c0' },
+  },
+  reveals: (s) => s.seen.size,
+  create(seed) {
+    const s = {
+      rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'aim', pt: 0, rec: null, layouts: {},
+      dogX: 0.5, dogY: 0.93, fromX: 0.5, fromY: 0.93, toX: 0.5, toY: 0.93, runN: 1,
+      down: false, ax: 0, ay: 0, idle: 0, tries: 0,
+      hearts: 3, stars: 0, got: 0, pts: 0, ok: false, why: '', won: false, dead: false,
+      seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsQ: [], startT: 0, clearT: 0,
+    } as unknown as DogState;
+    newStage(s);
+    return s;
+  },
+  step(s, inp: Input) {
+    const p = inp.pointer ?? null, release = !p && s.down;
+    if (p) (s.ax = p.x), (s.ay = p.y);
+    s.down = !!p;
+    s.t++;
+    s.pt++;
+    if (s.newsQ.length && (!s.news || s.t - s.news.t > NEWS_T)) s.news = { text: s.newsQ.shift()!, t: s.t };
+    if (s.events.length > 40 || (s.events.length && s.t - s.events[0].t > 150)) s.events = s.events.filter((e) => s.t - e.t < 150);
+    if (s.phase === 'result') {
+      if (s.pt >= (s.ok ? RESULT_OK : RESULT_FAIL)) {
+        if (s.ok) {
+          if (s.won) s.dead = true;
+          else s.stage++, newStage(s);
+        } else if (s.hearts <= 0) s.dead = true;
+        else newStage(s);
+      }
+      return;
+    }
+    if (s.phase === 'run') {
+      const q = Math.min(1, s.pt / s.runN);
+      s.dogX = s.fromX + (s.toX - s.fromX) * q;
+      s.dogY = s.fromY + (s.toY - s.fromY) * q;
+      if (s.pt >= s.runN) {
+        if (!anyone(s.F, s.S, s.toX, s.toY)) {
+          s.phase = 'aim';
+          s.pt = 0;
+          s.S.dx = s.toX;
+          s.S.dy = s.toY;
+          ev(s, 'sniff', s.toX, s.toY, '킁킁… 아무도 없네', '#f3f0d8');
+          tip(s, 'sniff', '아무도 없으면 안 짖어요 (멍멍 안 씀)');
+          return;
+        }
+        const rec = newRec(s.F.n), S = s.S, penned0 = S.pen.filter((v) => v >= 0).length;
+        resolve(s.F, S, s.toX, s.toY, rec);
+        s.rec = rec;
+        s.phase = 'flee';
+        s.pt = 0;
+        ev(s, 'bark', s.toX, s.toY, '멍!', '#ffffff');
+        if (rec.goatFaint) ev(s, 'faint', s.F.goat!.x, s.F.goat!.y, '꽥!', '#fff3a0');
+        if (rec.wolf === 2) ev(s, 'yelp', rec.wolfPath![0], rec.wolfPath![1], '깨갱!', '#e8ecff');
+        if (rec.scare.some((v, i) => v === 3 && rec.path[i])) {
+          const i = rec.scare.findIndex((v) => v === 3);
+          ev(s, 'come', s.S.x[i], s.S.y[i], '?!', '#ffe0f0');
+          tip(s, 'blackcome', '까만 양은 앞에서 짖어 당겨 와요');
+        }
+        if (rec.flowerNew.length) ev(s, 'trample', s.F.flowers[rec.flowerNew[0]].x, s.F.flowers[rec.flowerNew[0]].y, '앗, 꽃밭!', '#ffd6ec');
+        if (S.pen.filter((v) => v >= 0).length > penned0) tip(s, 'pen', '들어간 양은 다시 안 나와요');
+      }
+      return;
+    }
+    if (s.phase === 'flee') {
+      if (s.pt >= FLEE_T) afterFlee(s);
+      return;
+    }
+    // 겨누기: 누르는 동안 미리 보기, 떼면 짖는다
+    s.idle++;
+    if (!release) return;
+    const f = toField(s.ax, s.ay * A);
+    if (!f) return void ev(s, 'nope', Math.max(0.15, Math.min(0.85, s.ax)), Math.max(0.4, Math.min(1.05, s.ay * A)), '목장 안을 톡!', '#ffe3d6');
+    if (inAnyPen(s.F, f[0], f[1])) return void ev(s, 'nope', f[0], f[1], '울타리 안이에요', '#ffe3d6');
+    bark(s, f[0], f[1]);
+  },
+  over: (s) => s.dead,
+  score: (s) => s.pts,
+  draw(ctx, s, w, h, th: Theme) {
+    drawAll(ctx, s, w, h, th);
+  },
+};
+
+// ───────────────────────────── 봇 ─────────────────────────────
+/** 잘하는 봇이 보는 판의 값: 들어간 양 · 울타리까지 남은 길 · 늑대와의 거리 · 별 */
+function value(F: Field, S: Sim, d: StageDef): number {
+  if (S.fell.some((v) => v) || S.caught >= 0) return -1e7;
+  let whitesIn = 0, nW = 0, v = 0, wolfD = 9;
+  for (let i = 0; i < F.n; i++) {
+    if (!F.black[i]) nW++;
+    if (S.pen[i] >= 0) {
+      if (!F.black[i]) whitesIn++;
+      else if (d.bonus === 'black') v += 900;
+      continue;
+    }
+    const dd = dget(F, F.tag[i], S.x[i], S.y[i]);
+    if (!F.black[i]) v -= dd * 1500;
+    else if (d.bonus === 'black') v -= dd * 700;
+    if (F.den) wolfD = Math.min(wolfD, Math.hypot(S.x[i] - S.wx, S.y[i] - S.wy));
+  }
+  if (whitesIn === nW) {
+    const bonus = d.bonus === 'black' ? F.black.some((b, i) => b && S.pen[i] >= 0) : !S.fh.some((x) => x);
+    return 1e6 + ((S.used <= d.par ? 1 : 0) + (bonus ? 1 : 0)) * 1e5 - S.used * 1000;
+  }
+  if (S.used >= d.max) return -1e7;
+  v += whitesIn * 1100;
+  if (d.bonus === 'flower' && S.fh.some((x) => x)) v -= 700;
+  if (F.den) v -= Math.max(0, 0.36 - wolfD) * 4000;
+  v -= S.goatF * 60 + S.used * 120;
+  // 까만 양을 먼저 넣었으면 '별 둘은 이미 손에' — 남은 흰 양을 넣는 데 들 멍멍을 어림해 끝난 판과 견준다
+  if (d.bonus === 'black' && F.black.some((b, i) => b && S.pen[i] >= 0)) {
+    const rem = Math.ceil((nW - whitesIn) / 2.5);
+    return 1e6 + (2 + (S.used + rem <= d.par ? 1 : 0)) * 1e5 - (S.used + rem) * 1000 - 6e4 + v;
+  }
+  return v;
+}
+/** 판이 끝난 상태인가 (실패 · 흰 양 다 들어감 · 멍멍 다 씀) */
+function ended(F: Field, S: Sim, d: StageDef) {
+  return S.fell.some((v) => v) || S.caught >= 0 || S.used >= d.max || F.black.every((b, i) => b || S.pen[i] >= 0);
+}
+
+/** 짖을 자리 후보: 양마다 '울타리 반대쪽' 뒤에서, 까만 양은 앞에서, 늑대 위, 그리고 목장 격자 */
+function candidates(F: Field, S: Sim, d: StageDef): number[] {
+  const out: number[] = [];
+  const add = (x: number, y: number) => {
+    if (x < 0.02 || x > 0.98 || y < 0.02 || y > 0.98 || inAnyPen(F, x, y)) return;
+    out.push(x, y);
+  };
+  const grad = (i: number): [number, number] => {
+    const x = S.x[i], y = S.y[i], tg = F.tag[i], e = 0.03;
+    let gx = dget(F, tg, x - e, y) - dget(F, tg, x + e, y), gy = dget(F, tg, x, y - e) - dget(F, tg, x, y + e);
+    const l = Math.hypot(gx, gy);
+    if (l < 1e-6) {
+      const pn = F.pens.find((q) => !q.tag || q.tag === tg) ?? F.pens[0];
+      (gx = (pn.gx0 + pn.gx1) / 2 - x), (gy = pn.y1 - y);
+      const l2 = Math.hypot(gx, gy) || 1;
+      return [gx / l2, gy / l2];
+    }
+    return [gx / l, gy / l];
+  };
+  let cx = 0, cy = 0, cn = 0;
+  for (let i = 0; i < F.n; i++) {
+    if (S.pen[i] >= 0 || S.fell[i]) continue;
+    const [gx, gy] = grad(i);
+    if (F.black[i]) {
+      if (d.bonus !== 'black') continue;
+      for (const k of [0.1, 0.17, 0.24]) for (const a of [-0.35, 0, 0.35]) add(S.x[i] + (gx * Math.cos(a) - gy * Math.sin(a)) * k, S.y[i] + (gx * Math.sin(a) + gy * Math.cos(a)) * k);
+      continue;
+    }
+    cx += S.x[i];
+    cy += S.y[i];
+    cn++;
+    for (const k of [0.04, 0.09, 0.15, 0.21]) for (const a of [-0.5, 0, 0.5]) add(S.x[i] - (gx * Math.cos(a) - gy * Math.sin(a)) * k, S.y[i] - (gx * Math.sin(a) + gy * Math.cos(a)) * k);
+  }
+  if (cn) {
+    (cx /= cn), (cy /= cn);
+    for (const k of [0.08, 0.14, 0.2]) for (const [ax, ay] of [[0, 1], [0.5, 0.85], [-0.5, 0.85]]) add(cx + ax * k, cy + ay * k);
+  }
+  if (F.den) for (const [ox, oy] of [[0, 0], [0.12, 0], [-0.12, 0], [0, 0.12], [0, -0.12], [0.18, 0.1], [-0.18, 0.1]]) add(S.wx + ox, S.wy + oy);
+  for (let a = 0; a < 6; a++) for (let b = 0; b < 6; b++) add(0.1 + a * 0.16, 0.12 + b * 0.16);
+  return out;
+}
+
+/** 몇 수 앞까지 내다보고(빔 탐색) 가장 좋은 첫 자리. 판이 끝나는 수(별 수)를 찾으면 그쪽을 고른다 */
+const DEPTH = 3, BEAM = 4, TOP3 = 1e6 + 3e5 - 1e4;
+function plan(F: Field, S0: Sim, d: StageDef): [number, number] {
+  interface Node { S: Sim; root: number; v: number }
+  const roots: { x: number; y: number; v: number }[] = [];
+  let beam: Node[] = [{ S: S0, root: -1, v: 0 }];
+  for (let depth = 0; depth < DEPTH && beam.length; depth++) {
+    const kids: Node[] = [];
+    for (const nd of beam) {
+      const cs = candidates(F, nd.S, d);
+      for (let k = 0; k < cs.length; k += 2) {
+        if (!anyone(F, nd.S, cs[k], cs[k + 1])) continue;
+        const S = cloneSim(nd.S);
+        resolve(F, S, cs[k], cs[k + 1]);
+        const v = value(F, S, d) - depth * 5;
+        let root = nd.root;
+        if (root < 0) (root = roots.length), roots.push({ x: cs[k], y: cs[k + 1], v });
+        else if (v > roots[root].v) roots[root].v = v;
+        if (!ended(F, S, d)) kids.push({ S, root, v });
+      }
+    }
+    // 첫 수로 별 셋이면 더 볼 것 없다. 아니면 좋은 갈래 몇 개만 더 깊이
+    if (roots.some((r) => r.v >= TOP3)) break;
+    kids.sort((a, b) => b.v - a.v);
+    const pick: Node[] = [], used = new Set<number>();
+    for (const k of kids) {
+      if (pick.length >= BEAM) break;
+      if (used.has(k.root) && pick.length < BEAM - 1) continue;
+      used.add(k.root);
+      pick.push(k);
+    }
+    beam = pick;
+  }
+  let best = roots[0];
+  for (const r of roots) if (r.v > best.v) best = r;
+  return [best.x, best.y];
+}
+
+const brain = new WeakMap<object, { key: string; p: [number, number] }>();
+const NO: Input = { tap: false, dir: 0, pointer: null };
+const at = (fx: number, fy: number): Input => ({ tap: false, dir: 0, pointer: { x: SX(fx, fy), y: SY(fy) / A } });
+
+/** 봇: 세 수 앞까지 시뮬레이션해 짖을 자리를 고른다 */
+export const sheepdogSmart: Bot<DogState> = {
+  name: '양치기 박사',
+  act(s) {
+    if (s.phase !== 'aim' || s.down) return NO;
+    const key = `${s.stage}:${s.tries}:${s.S.used}`;
+    let m = brain.get(s);
+    if (!m || m.key !== key) brain.set(s, (m = { key, p: plan(s.F, s.S, STAGES[s.stage]) }));
+    return at(m.p[0], m.p[1]);
+  },
+};
+
+const dumbAt = new WeakMap<object, { next: number; until: number; p: { x: number; y: number } }>();
+/** 봇: 아무 때나 목장 아무 데나 톡 (가끔 화면 아무 데나) */
+export const sheepdogRandom: Bot<DogState> = {
+  name: '아무 데나 톡',
+  act(s, rng) {
+    let m = dumbAt.get(s);
+    if (!m) dumbAt.set(s, (m = { next: 20 + Math.floor(rng() * 60), until: -1, p: { x: 0, y: 0 } }));
+    if (s.t < m.until) return { tap: false, dir: 0, pointer: m.p };
+    if (s.t < m.next) return NO;
+    m.next = s.t + 30 + Math.floor(rng() * 110);
+    m.until = s.t + 2 + Math.floor(rng() * 4);
+    if (rng() < 0.1) m.p = { x: rng(), y: rng() };
+    else {
+      const fx = 0.02 + rng() * 0.96, fy = 0.02 + rng() * 0.96;
+      m.p = { x: SX(fx, fy), y: SY(fy) / A };
+    }
+    return { tap: false, dir: 0, pointer: m.p };
+  },
+};
+
+/** 미리 보기용: 지금 상태에서 (fx, fy)에 짖으면? */
+function preview(s: DogState, fx: number, fy: number) {
+  const S = cloneSim(s.S), rec = newRec(s.F.n);
+  resolve(s.F, S, fx, fy, rec);
+  return { S, rec };
+}
+
+// ───────────────────────────── 그리기 ─────────────────────────────
+const TAU = Math.PI * 2;
+const hsh = (k: number) => {
+  const x = Math.sin(k * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+};
+const hex = (c: string) => [1, 3, 5].map((k) => parseInt(c.slice(k, k + 2), 16));
+const mix = (a: string, b: string, t: number) => {
+  const p = hex(a), q = hex(b), k = Math.max(0, Math.min(1, t));
+  return '#' + p.map((v, j) => Math.round(v + (q[j] - v) * k).toString(16).padStart(2, '0')).join('');
+};
+const ease = (q: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, q)), 2.2);
+function pathAt(pa: number[], q: number): [number, number] {
+  const m = pa.length / 2;
+  if (m <= 1) return [pa[0], pa[1]];
+  const f = Math.max(0, Math.min(1, q)) * (m - 1), i = Math.min(m - 2, Math.floor(f)), r = f - i;
+  return [pa[i * 2] + (pa[i * 2 + 2] - pa[i * 2]) * r, pa[i * 2 + 1] + (pa[i * 2 + 3] - pa[i * 2 + 1]) * r];
+}
+/** 판마다 해가 기운다: 하늘 위·아래, 해, 먼 언덕, 가까운 언덕, 먼 풀, 가까운 풀 */
+const SKY: string[][] = [
+  ['#7cc6ee', '#fdf2cc', '#fff6c8', '#a4cc8e', '#86bb6e', '#a8d66c', '#6caa46'],
+  ['#76bce8', '#fde5b4', '#fff0b0', '#9cc588', '#80b569', '#a2d068', '#67a543'],
+  ['#71b0df', '#fcd8a0', '#ffe49c', '#93bd80', '#79ad62', '#9cca63', '#62a040'],
+  ['#6ea3d6', '#fbc88a', '#ffd488', '#8bb179', '#71a45c', '#95c05f', '#5d983d'],
+  ['#7090cb', '#f8b27a', '#ffc078', '#85a372', '#6a9757', '#8db35b', '#588e3b'],
+  ['#6676b6', '#f2986c', '#ffa868', '#7c916a', '#628252', '#84a356', '#527f39'],
+  ['#4d5797', '#e78464', '#ff9462', '#6e7c62', '#576d4c', '#768e52', '#486e35'],
+  ['#141c46', '#323a74', '#eef0ff', '#2a3848', '#24313d', '#3b5b3e', '#2b4631'],
+];
+type SheepMood = 'calm' | 'scared' | 'happy' | 'swim' | 'dark';
+interface SheepLook { black: boolean; tag: number; face: number; run: number; t: number; mood: SheepMood; hop: number; roll: number; alpha?: number }
+const RIB = ['', '#e8414f', '#3a86ff'];
+
+function drawSheep(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, o: SheepLook) {
+  const wool = o.black ? '#4b4549' : '#f8f4ea', sh = o.black ? '#2a252a' : '#d6ccb9', hi = o.black ? '#6d646b' : '#ffffff', fc = o.black ? '#1c181b' : '#3a3234';
+  ctx.save();
+  if (o.alpha !== undefined) ctx.globalAlpha = o.alpha;
+  if (o.mood !== 'swim') {
+    ctx.fillStyle = 'rgba(30,45,15,.3)';
+    ctx.beginPath();
+    ctx.ellipse(x + z * 0.45, y + z * 0.06, z * 1.45 * (1 - o.hop / (z * 4)), z * 0.42, 0.05, 0, TAU);
+    ctx.fill();
+  }
+  ctx.translate(x, y - o.hop);
+  if (o.mood === 'swim') ctx.translate(0, z * 0.55 + Math.sin(o.t * 0.15) * z * 0.12);
+  if (o.roll) {
+    ctx.translate(0, -z * 0.7);
+    ctx.rotate(o.roll);
+    ctx.translate(0, z * 0.7);
+  }
+  ctx.scale(o.face, 1);
+  // 다리 (뛰면 바쁘게)
+  if (o.mood !== 'swim') {
+    ctx.strokeStyle = fc;
+    ctx.lineWidth = z * 0.2;
+    ctx.lineCap = 'round';
+    const legs = [[-0.52, 0], [-0.2, Math.PI], [0.28, Math.PI], [0.58, 0]];
+    for (const [lx, ph] of legs) {
+      const sw = o.run ? Math.sin(o.t * 0.85 + ph) * z * 0.28 * o.run : 0;
+      ctx.beginPath();
+      ctx.moveTo(lx * z, -z * 0.45);
+      ctx.lineTo(lx * z + sw, -z * 0.02 - (o.run ? Math.max(0, -Math.cos(o.t * 0.85 + ph)) * z * 0.12 : 0));
+      ctx.stroke();
+    }
+  }
+  // 양털: 그늘 뭉치 → 밝은 뭉치 → 반짝
+  const P = [[-0.62, -0.78, 0.42], [-0.32, -1.1, 0.46], [0.12, -1.16, 0.48], [0.5, -0.92, 0.42], [0.42, -0.55, 0.4], [0, -0.5, 0.44], [-0.42, -0.5, 0.4], [-0.05, -0.82, 0.55]];
+  ctx.fillStyle = sh;
+  for (const [px, py, pr] of P) (ctx.beginPath(), ctx.arc(px * z + z * 0.06, py * z + z * 0.08, pr * z * 1.04, 0, TAU), ctx.fill());
+  const g = ctx.createRadialGradient(-z * 0.35, -z * 1.15, z * 0.1, 0, -z * 0.75, z * 1.25);
+  g.addColorStop(0, hi);
+  g.addColorStop(0.55, wool);
+  g.addColorStop(1, sh);
+  ctx.fillStyle = g;
+  for (const [px, py, pr] of P) (ctx.beginPath(), ctx.arc(px * z, py * z, pr * z * 0.94, 0, TAU), ctx.fill());
+  ctx.fillStyle = o.black ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.75)';
+  for (const [px, py, pr] of [[-0.35, -1.18, 0.18], [0.05, -1.25, 0.16], [-0.62, -0.9, 0.13]]) (ctx.beginPath(), ctx.arc(px * z, py * z, pr * z, 0, TAU), ctx.fill());
+  // 리본 (등 위에 큼직하게)
+  if (o.tag) {
+    const rx = -z * 0.05, ry = -z * 1.38;
+    ctx.fillStyle = RIB[o.tag];
+    ctx.strokeStyle = 'rgba(0,0,0,.4)';
+    ctx.lineWidth = 1.2;
+    for (const sd of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(rx, ry);
+      ctx.lineTo(rx + sd * z * 0.42, ry - z * 0.26);
+      ctx.lineTo(rx + sd * z * 0.42, ry + z * 0.24);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.arc(rx, ry, z * 0.13, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+  }
+  // 머리
+  const hx = z * 0.92, hy = -z * 0.88 + (o.mood === 'calm' ? Math.sin(o.t * 0.05) * z * 0.05 : 0);
+  ctx.fillStyle = fc;
+  ctx.save();
+  ctx.translate(hx, hy);
+  ctx.rotate(o.mood === 'scared' ? -0.25 : o.mood === 'calm' ? 0.25 : 0);
+  for (const sd of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(-z * 0.12, -z * 0.05 + sd * z * 0.22, z * 0.26, z * 0.1, sd * (o.mood === 'scared' ? -0.9 : 0.5), 0, TAU);
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.ellipse(z * 0.08, 0, z * 0.32, z * 0.4, 0.35, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = wool;
+  for (const [px, py, pr] of [[-0.12, -0.36, 0.17], [0.06, -0.42, 0.15], [-0.25, -0.22, 0.13]]) (ctx.beginPath(), ctx.arc(px * z, py * z, pr * z, 0, TAU), ctx.fill());
+  // 눈·입
+  const ex = z * 0.12, ey = -z * 0.08;
+  if (o.mood === 'happy') {
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(1.2, z * 0.08);
+    ctx.beginPath();
+    ctx.arc(ex, ey + z * 0.04, z * 0.09, Math.PI * 1.1, Math.PI * 1.9);
+    ctx.stroke();
+  } else {
+    const big = o.mood === 'scared' ? 1.5 : 1;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.ellipse(ex, ey, z * 0.11 * big, z * (o.mood === 'calm' ? 0.06 : 0.11) * big, 0, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = o.mood === 'dark' ? '#fff3a0' : '#111111';
+    ctx.beginPath();
+    ctx.arc(ex + z * 0.03, ey + (o.mood === 'calm' ? z * 0.01 : 0), z * (o.mood === 'scared' ? 0.045 : 0.055), 0, TAU);
+    ctx.fill();
+  }
+  if (o.mood === 'scared') {
+    ctx.fillStyle = '#ffb3c0';
+    ctx.beginPath();
+    ctx.ellipse(z * 0.22, z * 0.22, z * 0.07, z * 0.09, 0, 0, TAU);
+    ctx.fill();
+  } else {
+    ctx.strokeStyle = 'rgba(255,255,255,.55)';
+    ctx.lineWidth = Math.max(1, z * 0.05);
+    ctx.beginPath();
+    ctx.moveTo(z * 0.12, z * 0.24);
+    ctx.lineTo(z * 0.24 + (o.mood === 'calm' ? Math.sin(o.t * 0.3) * z * 0.04 : 0), z * 0.22);
+    ctx.stroke();
+  }
+  ctx.restore();
+  if (o.mood === 'scared') {
+    // 땀방울
+    ctx.fillStyle = 'rgba(160,220,255,.95)';
+    ctx.beginPath();
+    ctx.moveTo(-z * 0.2, -z * 1.75);
+    ctx.quadraticCurveTo(-z * 0.05, -z * 1.45, -z * 0.2, -z * 1.4);
+    ctx.quadraticCurveTo(-z * 0.35, -z * 1.45, -z * 0.2, -z * 1.75);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+type DogMood = 'idle' | 'run' | 'bark' | 'proud' | 'surprise' | 'dizzy' | 'spin' | 'sniff';
+function drawDog(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, face: number, mood: DogMood, t: number) {
+  const fur = '#e39a4c', furD = '#b86e2c', cream = '#fff3df';
+  ctx.save();
+  ctx.fillStyle = 'rgba(30,45,15,.32)';
+  ctx.beginPath();
+  ctx.ellipse(x + z * 0.4, y + z * 0.05, z * 1.35, z * 0.36, 0, 0, TAU);
+  ctx.fill();
+  ctx.translate(x, y);
+  if (mood === 'spin') ctx.scale(Math.cos(t * 0.35) >= 0 ? 1 : -1, 1);
+  else ctx.scale(face, 1);
+  if (mood === 'bark') ctx.translate(0, -Math.abs(Math.sin(t * 0.6)) * z * 0.15);
+  const run = mood === 'run' || mood === 'spin' ? 1 : 0;
+  // 다리
+  ctx.strokeStyle = cream;
+  ctx.lineCap = 'round';
+  ctx.lineWidth = z * 0.24;
+  for (const [lx, ph] of [[-0.55, 0], [-0.3, Math.PI], [0.35, Math.PI], [0.6, 0]]) {
+    const sw = run ? Math.sin(t * 0.9 + ph) * z * 0.3 : 0;
+    ctx.beginPath();
+    ctx.moveTo(lx * z, -z * 0.4);
+    ctx.lineTo(lx * z + sw, -z * 0.04);
+    ctx.stroke();
+  }
+  // 꼬리 (살랑살랑, 뱅뱅 돌 땐 빙글)
+  const wag = Math.sin(t * (mood === 'proud' || mood === 'spin' ? 0.7 : 0.35)) * 0.5;
+  ctx.save();
+  ctx.translate(-z * 0.85, -z * 0.7);
+  ctx.rotate(-0.9 + wag);
+  ctx.fillStyle = fur;
+  ctx.beginPath();
+  ctx.ellipse(0, -z * 0.3, z * 0.17, z * 0.38, 0, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = cream;
+  ctx.beginPath();
+  ctx.ellipse(0, -z * 0.55, z * 0.12, z * 0.15, 0, 0, TAU);
+  ctx.fill();
+  ctx.restore();
+  // 몸
+  const g = ctx.createLinearGradient(0, -z * 1.05, 0, -z * 0.3);
+  g.addColorStop(0, mix(fur, '#ffffff', 0.15));
+  g.addColorStop(1, furD);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.ellipse(0, -z * 0.65, z * 0.92, z * 0.42, 0, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = cream;
+  ctx.beginPath();
+  ctx.ellipse(z * 0.25, -z * 0.45, z * 0.5, z * 0.2, 0, 0, TAU);
+  ctx.fill();
+  // 목걸이
+  ctx.fillStyle = '#e63946';
+  ctx.beginPath();
+  ctx.ellipse(z * 0.62, -z * 0.82, z * 0.12, z * 0.3, 0.4, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#ffd166';
+  ctx.beginPath();
+  ctx.arc(z * 0.72, -z * 0.6, z * 0.07, 0, TAU);
+  ctx.fill();
+  // 머리
+  const up = mood === 'bark' || mood === 'proud' ? -0.35 : mood === 'sniff' ? 0.45 : 0;
+  ctx.save();
+  ctx.translate(z * 0.82, -z * 1.12 + (mood === 'sniff' ? z * 0.35 : 0));
+  ctx.rotate(up);
+  // 귀
+  for (const [ex, flop] of [[-0.25, mood === 'run' ? 0.5 : 0.1], [0.12, mood === 'surprise' ? -0.2 : 0.15]]) {
+    ctx.fillStyle = furD;
+    ctx.beginPath();
+    ctx.moveTo(ex * z - z * 0.14, -z * 0.25);
+    ctx.lineTo(ex * z + Math.sin(t * 0.4) * z * 0.04 - flop * z, -z * 0.78);
+    ctx.lineTo(ex * z + z * 0.16, -z * 0.28);
+    ctx.fill();
+    ctx.fillStyle = '#f7b7a3';
+    ctx.beginPath();
+    ctx.moveTo(ex * z - z * 0.07, -z * 0.3);
+    ctx.lineTo(ex * z - flop * z * 0.8, -z * 0.62);
+    ctx.lineTo(ex * z + z * 0.08, -z * 0.32);
+    ctx.fill();
+  }
+  const hg = ctx.createRadialGradient(-z * 0.1, -z * 0.15, z * 0.05, 0, 0, z * 0.5);
+  hg.addColorStop(0, mix(fur, '#ffffff', 0.25));
+  hg.addColorStop(1, furD);
+  ctx.fillStyle = hg;
+  ctx.beginPath();
+  ctx.arc(0, 0, z * 0.45, 0, TAU);
+  ctx.fill();
+  // 주둥이
+  ctx.fillStyle = cream;
+  ctx.beginPath();
+  ctx.ellipse(z * 0.32, z * 0.12, z * 0.28, z * 0.2, 0, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#2a1a14';
+  ctx.beginPath();
+  ctx.ellipse(z * 0.56, z * 0.04, z * 0.09, z * 0.07, 0, 0, TAU);
+  ctx.fill();
+  // 입
+  if (mood === 'bark') {
+    ctx.fillStyle = '#7a1f2b';
+    ctx.beginPath();
+    ctx.ellipse(z * 0.38, z * 0.27, z * 0.16, z * 0.12 + Math.abs(Math.sin(t * 0.6)) * z * 0.08, 0, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#ff8fa3';
+    ctx.beginPath();
+    ctx.ellipse(z * 0.38, z * 0.34, z * 0.09, z * 0.05, 0, 0, TAU);
+    ctx.fill();
+  } else if (mood === 'idle' || mood === 'run' || mood === 'spin' || mood === 'proud') {
+    ctx.fillStyle = '#ff7f96';
+    ctx.beginPath();
+    ctx.ellipse(z * 0.34, z * 0.3 + Math.sin(t * 0.5) * z * 0.03, z * 0.08, z * 0.14, 0.2, 0, TAU);
+    ctx.fill();
+  }
+  // 눈
+  ctx.fillStyle = '#1a1110';
+  ctx.strokeStyle = '#1a1110';
+  ctx.lineWidth = Math.max(1.2, z * 0.07);
+  if (mood === 'proud') {
+    ctx.beginPath();
+    ctx.arc(z * 0.1, -z * 0.05, z * 0.08, Math.PI * 1.1, Math.PI * 1.9);
+    ctx.stroke();
+  } else if (mood === 'dizzy') {
+    ctx.beginPath();
+    for (let a = 0; a < 9; a += 0.4) ctx.lineTo(z * 0.1 + Math.cos(a + t * 0.3) * a * z * 0.012, -z * 0.06 + Math.sin(a + t * 0.3) * a * z * 0.012);
+    ctx.stroke();
+  } else if (mood === 'bark') {
+    ctx.beginPath();
+    ctx.moveTo(z * 0.02, -z * 0.12);
+    ctx.lineTo(z * 0.16, -z * 0.05);
+    ctx.lineTo(z * 0.02, z * 0.0);
+    ctx.stroke();
+  } else {
+    const r = mood === 'surprise' ? z * 0.11 : z * 0.08;
+    ctx.beginPath();
+    ctx.arc(z * 0.1, -z * 0.06, r, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(z * 0.13, -z * 0.09, r * 0.35, 0, TAU);
+    ctx.fill();
+  }
+  ctx.restore();
+  ctx.restore();
+}
+
+function drawGoat(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, faint: number, age: number, t: number) {
+  const body = '#f4ecdb', sh = '#b9a888';
+  ctx.save();
+  ctx.fillStyle = 'rgba(30,45,15,.3)';
+  ctx.beginPath();
+  ctx.ellipse(x + z * 0.4, y + z * 0.05, z * (faint ? 1.7 : 1.25), z * 0.38, 0, 0, TAU);
+  ctx.fill();
+  ctx.translate(x, y);
+  // 뻣뻣하게 쿵: 쓰러지는 데 10틱, 쓰러진 동안 네 다리가 하늘로 (부르르)
+  const fall = faint ? Math.min(1, age / 10) : 0;
+  ctx.translate(0, -z * 0.55);
+  ctx.rotate(Math.PI * fall * fall + (fall >= 1 ? Math.sin(t * 0.9) * 0.03 : 0));
+  ctx.translate(0, z * 0.55 - (fall >= 1 ? z * 0.45 : 0));
+  // 다리 (뻣뻣)
+  ctx.strokeStyle = '#8c7f6a';
+  ctx.lineWidth = z * 0.16;
+  ctx.lineCap = 'round';
+  for (const lx of [-0.5, -0.25, 0.3, 0.55]) {
+    ctx.beginPath();
+    ctx.moveTo(lx * z, -z * 0.5);
+    ctx.lineTo(lx * z + (faint ? 0 : Math.sin(t * 0.05 + lx) * z * 0.03), 0);
+    ctx.stroke();
+  }
+  // 몸
+  const g = ctx.createLinearGradient(0, -z * 1.2, 0, -z * 0.4);
+  g.addColorStop(0, '#ffffff');
+  g.addColorStop(1, sh);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.roundRect(-z * 0.75, -z * 1.05, z * 1.5, z * 0.62, z * 0.25);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(90,70,40,.55)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  // 갈색 얼룩
+  ctx.fillStyle = '#9a6a3c';
+  ctx.beginPath();
+  ctx.ellipse(-z * 0.3, -z * 0.85, z * 0.28, z * 0.18, 0.3, 0, TAU);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(z * 0.35, -z * 0.95, z * 0.18, z * 0.1, -0.2, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.ellipse(-z * 0.78, -z * 0.95, z * 0.1, z * 0.16, -0.6, 0, TAU);
+  ctx.fill();
+  // 머리
+  ctx.save();
+  ctx.translate(z * 0.82, -z * 1.18);
+  ctx.rotate(faint ? 0.3 : Math.sin(t * 0.04) * 0.15 + 0.2);
+  ctx.strokeStyle = '#7d7466';
+  ctx.lineWidth = z * 0.1;
+  for (const sd of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(sd * z * 0.08, -z * 0.22);
+    ctx.quadraticCurveTo(sd * z * 0.05 - z * 0.25, -z * 0.6, -z * 0.35 + sd * z * 0.06, -z * 0.42);
+    ctx.stroke();
+  }
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.ellipse(z * 0.08, 0, z * 0.24, z * 0.32, 0.3, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = sh;
+  ctx.beginPath();
+  ctx.ellipse(-z * 0.2, -z * 0.05, z * 0.18, z * 0.07, 0.5, 0, TAU);
+  ctx.fill();
+  // 수염
+  ctx.fillStyle = '#d8ccb0';
+  ctx.beginPath();
+  ctx.moveTo(z * 0.12, z * 0.25);
+  ctx.lineTo(z * 0.2, z * 0.55);
+  ctx.lineTo(z * 0.26, z * 0.24);
+  ctx.fill();
+  if (faint) {
+    ctx.strokeStyle = '#3a2c25';
+    ctx.lineWidth = Math.max(1.2, z * 0.06);
+    for (const [a, b] of [[-1, 1], [1, -1]]) (ctx.beginPath(), ctx.moveTo(z * 0.05 + a * z * 0.06, -z * 0.12 - z * 0.06), ctx.lineTo(z * 0.05 + b * z * 0.06, -z * 0.12 + z * 0.06), ctx.stroke());
+    ctx.fillStyle = '#ff8fa3';
+    ctx.beginPath();
+    ctx.ellipse(z * 0.3, z * 0.2, z * 0.05, z * 0.1, 0.4, 0, TAU);
+    ctx.fill();
+  } else {
+    ctx.fillStyle = '#ffe28a';
+    ctx.beginPath();
+    ctx.ellipse(z * 0.08, -z * 0.1, z * 0.08, z * 0.07, 0, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#222';
+    ctx.fillRect(z * 0.03, -z * 0.115, z * 0.1, z * 0.035);
+  }
+  ctx.restore();
+  ctx.restore();
+  if (faint && fall >= 1) {
+    // 머리 위 어질어질 별
+    ctx.fillStyle = '#ffe066';
+    for (let k = 0; k < 3; k++) {
+      const a = t * 0.12 + (k * TAU) / 3;
+      ctx.beginPath();
+      ctx.arc(x - z * 0.9 + Math.cos(a) * z * 0.45, y - z * 1.2 + Math.sin(a) * z * 0.15, z * 0.1, 0, TAU);
+      ctx.fill();
+    }
+  }
+}
+
+function drawWolf(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, face: number, mood: 'sneak' | 'yelp' | 'grin', t: number) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(20,30,10,.32)';
+  ctx.beginPath();
+  ctx.ellipse(x + z * 0.4, y + z * 0.05, z * 1.4, z * 0.36, 0, 0, TAU);
+  ctx.fill();
+  ctx.translate(x, y);
+  ctx.scale(face, 1);
+  const run = mood === 'yelp' ? 1 : 0.4;
+  ctx.strokeStyle = '#5a5f6b';
+  ctx.lineWidth = z * 0.18;
+  ctx.lineCap = 'round';
+  for (const [lx, ph] of [[-0.6, 0], [-0.35, Math.PI], [0.35, Math.PI], [0.6, 0]]) {
+    ctx.beginPath();
+    ctx.moveTo(lx * z, -z * 0.45);
+    ctx.lineTo(lx * z + Math.sin(t * 0.7 + ph) * z * 0.25 * run, -z * 0.02);
+    ctx.stroke();
+  }
+  // 꼬리: 슬금슬금이면 들고, 깨갱이면 다리 사이로
+  ctx.fillStyle = '#7b8090';
+  ctx.save();
+  ctx.translate(-z * 0.9, -z * 0.7);
+  ctx.rotate(mood === 'yelp' ? 0.9 : -0.5 + Math.sin(t * 0.1) * 0.15);
+  ctx.beginPath();
+  ctx.ellipse(-z * 0.3, 0, z * 0.42, z * 0.14, 0, 0, TAU);
+  ctx.fill();
+  ctx.restore();
+  const g = ctx.createLinearGradient(0, -z * 1.1, 0, -z * 0.35);
+  g.addColorStop(0, '#9aa0ad');
+  g.addColorStop(1, '#5e6370');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.ellipse(0, -z * 0.68, z * 0.95, z * 0.38, mood === 'sneak' ? 0.08 : 0, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#d9dce3';
+  ctx.beginPath();
+  ctx.ellipse(z * 0.35, -z * 0.5, z * 0.4, z * 0.15, 0, 0, TAU);
+  ctx.fill();
+  // 머리
+  ctx.save();
+  ctx.translate(z * 0.9, -z * (mood === 'sneak' ? 0.8 : 1.05));
+  ctx.fillStyle = '#878c99';
+  for (const ex of [-0.15, 0.12]) {
+    ctx.beginPath();
+    ctx.moveTo(ex * z - z * 0.13, -z * 0.2);
+    ctx.lineTo(ex * z + (mood === 'yelp' ? -z * 0.3 : 0), -z * (mood === 'yelp' ? 0.35 : 0.62));
+    ctx.lineTo(ex * z + z * 0.13, -z * 0.22);
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.ellipse(0, 0, z * 0.36, z * 0.3, 0, 0, TAU);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(z * 0.15, -z * 0.12);
+  ctx.lineTo(z * 0.7, z * 0.05);
+  ctx.lineTo(z * 0.15, z * 0.2);
+  ctx.fill();
+  ctx.fillStyle = '#222';
+  ctx.beginPath();
+  ctx.arc(z * 0.68, z * 0.03, z * 0.07, 0, TAU);
+  ctx.fill();
+  if (mood === 'yelp') {
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = Math.max(1.2, z * 0.07);
+    ctx.beginPath();
+    ctx.moveTo(-z * 0.02, -z * 0.1);
+    ctx.lineTo(z * 0.12, -z * 0.04);
+    ctx.lineTo(-z * 0.02, z * 0.02);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(150,210,255,.9)';
+    ctx.beginPath();
+    ctx.ellipse(-z * 0.05, z * 0.15, z * 0.05, z * 0.09, 0, 0, TAU);
+    ctx.fill();
+  } else {
+    ctx.fillStyle = '#ffd23f';
+    ctx.beginPath();
+    ctx.ellipse(z * 0.05, -z * 0.05, z * 0.09, z * 0.07, 0, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.fillRect(z * 0.04, -z * 0.11, z * 0.03, z * 0.12);
+    // 씨익
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(1, z * 0.05);
+    ctx.beginPath();
+    ctx.moveTo(z * 0.25, z * 0.14);
+    for (let k = 1; k <= 4; k++) ctx.lineTo(z * (0.25 + k * 0.08), z * (0.14 + (k % 2 ? 0.05 : 0)));
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.restore();
+}
+
+type GrandpaMood = 'watch' | 'cheer' | 'facepalm' | 'doze';
+function drawGrandpa(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, mood: GrandpaMood, t: number) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(20,30,10,.3)';
+  ctx.beginPath();
+  ctx.ellipse(x + z * 0.3, y, z * 0.7, z * 0.18, 0, 0, TAU);
+  ctx.fill();
+  ctx.translate(x, y);
+  // 지팡이
+  ctx.strokeStyle = '#8a5a2b';
+  ctx.lineWidth = z * 0.09;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(z * 0.55, 0);
+  ctx.lineTo(z * 0.55, -z * 1.7);
+  ctx.arc(z * 0.4, -z * 1.7, z * 0.15, 0, Math.PI, true);
+  ctx.stroke();
+  // 다리·몸
+  ctx.fillStyle = '#3d5a80';
+  ctx.fillRect(-z * 0.25, -z * 0.6, z * 0.2, z * 0.6);
+  ctx.fillRect(z * 0.05, -z * 0.6, z * 0.2, z * 0.6);
+  ctx.fillStyle = '#5b8c5a';
+  ctx.beginPath();
+  ctx.roundRect(-z * 0.35, -z * 1.35, z * 0.7, z * 0.8, z * 0.2);
+  ctx.fill();
+  // 팔
+  ctx.strokeStyle = '#5b8c5a';
+  ctx.lineWidth = z * 0.16;
+  const wave = Math.sin(t * 0.4);
+  if (mood === 'cheer') {
+    ctx.beginPath();
+    ctx.moveTo(-z * 0.3, -z * 1.2);
+    ctx.lineTo(-z * 0.55 + wave * z * 0.1, -z * 1.75);
+    ctx.stroke();
+  } else if (mood === 'facepalm') {
+    ctx.beginPath();
+    ctx.moveTo(-z * 0.3, -z * 1.2);
+    ctx.quadraticCurveTo(-z * 0.4, -z * 1.55, -z * 0.05, -z * 1.72);
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.moveTo(z * 0.3, -z * 1.2);
+  ctx.lineTo(z * 0.52, -z * 1.0);
+  ctx.stroke();
+  // 머리
+  const nod = mood === 'doze' ? 0.35 : mood === 'watch' ? Math.sin(t * 0.03) * 0.06 : 0;
+  ctx.save();
+  ctx.translate(0, -z * 1.6);
+  ctx.rotate(nod);
+  ctx.fillStyle = '#f2c9a5';
+  ctx.beginPath();
+  ctx.arc(0, 0, z * 0.3, 0, TAU);
+  ctx.fill();
+  // 수염
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(-z * 0.26, z * 0.02);
+  ctx.quadraticCurveTo(0, z * 0.6, z * 0.26, z * 0.02);
+  ctx.quadraticCurveTo(0, z * 0.18, -z * 0.26, z * 0.02);
+  ctx.fill();
+  ctx.fillStyle = '#c97b63';
+  ctx.beginPath();
+  ctx.arc(z * 0.02, z * 0.0, z * 0.06, 0, TAU);
+  ctx.fill();
+  ctx.strokeStyle = '#3a2a20';
+  ctx.lineWidth = Math.max(1, z * 0.05);
+  for (const sd of [-1, 1]) {
+    ctx.beginPath();
+    if (mood === 'cheer' || mood === 'doze') ctx.arc(sd * z * 0.11, -z * 0.06, z * 0.05, Math.PI * 1.1, Math.PI * 1.9);
+    else ctx.arc(sd * z * 0.11, -z * 0.07, z * 0.03, 0, TAU);
+    ctx.stroke();
+  }
+  // 밀짚모자 (환호하면 손에)
+  const hatUp = mood === 'cheer' ? 1 : 0;
+  ctx.restore();
+  ctx.save();
+  if (hatUp) ctx.translate(-z * 0.55 + wave * z * 0.1, -z * 1.95);
+  else ctx.translate(0, -z * 1.82), ctx.rotate(nod);
+  ctx.fillStyle = '#e9c46a';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, z * 0.5, z * 0.13, 0, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#f4d58d';
+  ctx.beginPath();
+  ctx.ellipse(0, -z * 0.1, z * 0.28, z * 0.2, 0, Math.PI, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#c0392b';
+  ctx.fillRect(-z * 0.28, -z * 0.12, z * 0.56, z * 0.06);
+  ctx.restore();
+  ctx.restore();
+}
+
+const recentSay = new WeakMap<object, { x: number; y: number; t: number }[]>();
+let darkCv: HTMLCanvasElement | null = null;
+
+function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: number, th: Theme) {
+  const fx = juice(s), t = s.t, F = s.F, S = s.S, d = STAGES[s.stage];
+  const X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w;
+  const PX = (fx0: number, fy0: number) => X(SX(fx0, fy0)), PY = (fy0: number) => Y(SY(fy0));
+  const pal = SKY[Math.min(SKY.length - 1, s.stage)], night = F.night, dusk = s.stage / 7;
+  const wind = F.wind[0];
+  const say = (x: number, y: number, text: string, col: string, size: number) => {
+    let rec = recentSay.get(s);
+    if (!rec) recentSay.set(s, (rec = []));
+    for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.3 && Math.abs(q.y - y) < size + 4); k++) y -= size + 5;
+    rec.push({ x, y, t: s.t });
+    if (rec.length > 12) rec.shift();
+    fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), Math.max(R(0.19), y), text, col, size);
+  };
+  const flee = s.phase === 'flee' && s.rec ? s.rec : null, q = flee ? s.pt / FLEE_T : 1;
+  /** 양 i가 지금 화면 어디에 (목장 좌표) */
+  const sheepAt = (i: number): [number, number] => {
+    if (flee && flee.path[i]) return pathAt(flee.path[i]!, ease(q));
+    return [S.x[i], S.y[i]];
+  };
+  ctx.save();
+  fx.begin(ctx);
+  // ═════════ 하늘 ═════════
+  const HZ = SY(0) - 0.03;
+  const sky = ctx.createLinearGradient(0, 0, 0, Y(HZ));
+  sky.addColorStop(0, pal[0]);
+  sky.addColorStop(1, pal[1]);
+  ctx.fillStyle = sky;
+  ctx.fillRect(-10, -10, w + 20, Y(HZ) + 30);
+  if (night)
+    for (let k = 0; k < 40; k++) {
+      ctx.fillStyle = `rgba(255,255,240,${0.35 + 0.55 * Math.abs(Math.sin(t / 40 + k))})`;
+      ctx.fillRect(hsh(k) * w, Y(0.09 + hsh(k + 40) * 0.2), 1.6, 1.6);
+    }
+  {
+    // 해 (판마다 낮아진다) · 밤엔 달
+    const sx = X(0.2 + 0.05 * dusk), sy = Y(night ? 0.14 : 0.13 + 0.12 * dusk);
+    ctx.save();
+    ctx.shadowColor = night ? '#cfd8ff' : mix('#fff2a8', '#ff7a4a', dusk);
+    ctx.shadowBlur = R(0.12);
+    ctx.fillStyle = pal[2];
+    ctx.beginPath();
+    ctx.arc(sx, sy, R(night ? 0.04 : 0.05), 0, TAU);
+    ctx.fill();
+    ctx.restore();
+    if (night) {
+      ctx.fillStyle = pal[0];
+      ctx.beginPath();
+      ctx.arc(sx + R(0.018), sy - R(0.01), R(0.036), 0, TAU);
+      ctx.fill();
+    } else {
+      // 비스듬한 햇살
+      ctx.save();
+      ctx.globalAlpha = 0.12 + 0.1 * dusk;
+      ctx.fillStyle = mix('#fff6c8', '#ffb070', dusk);
+      for (let k = 0; k < 4; k++) {
+        const a0 = 0.15 + k * 0.17 + Math.sin(t * 0.01 + k) * 0.02;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(sx + Math.cos(a0) * w * 1.6, sy + Math.sin(a0) * w * 1.6);
+        ctx.lineTo(sx + Math.cos(a0 + 0.05) * w * 1.6, sy + Math.sin(a0 + 0.05) * w * 1.6);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+  // 구름
+  for (let k = 0; k < 4; k++) {
+    const cx0 = ((k * 0.31 + t * 0.00005 * (1 + (k % 2)) + (wind ? t * 0.0004 * Math.sign(wind) : 0)) % 1.4 + 1.4) % 1.4 - 0.2, cy0 = 0.12 + (k % 3) * 0.035;
+    ctx.fillStyle = night ? 'rgba(120,130,180,.35)' : mix('#ffffff', '#ffc2a0', dusk * 0.8);
+    ctx.globalAlpha = night ? 1 : 0.85;
+    for (const [dx, dy, rr] of [[0, 0, 0.035], [0.035, 0.006, 0.026], [-0.035, 0.008, 0.024], [0.012, -0.013, 0.026]]) (ctx.beginPath(), ctx.arc(X(cx0 + dx), Y(cy0 + dy), R(rr), 0, TAU), ctx.fill());
+    ctx.globalAlpha = 1;
+  }
+  // 새 (V)
+  if (!night) {
+    ctx.strokeStyle = 'rgba(40,40,60,.55)';
+    ctx.lineWidth = 1.3;
+    for (let k = 0; k < 3; k++) {
+      const bx = ((t * 0.0012 + k * 0.13) % 1.3) - 0.15, by = 0.15 + k * 0.025 + Math.sin(t * 0.02 + k) * 0.006, fl = Math.sin(t * 0.25 + k) * R(0.008);
+      ctx.beginPath();
+      ctx.moveTo(X(bx) - R(0.012), Y(by) - fl);
+      ctx.lineTo(X(bx), Y(by));
+      ctx.lineTo(X(bx) + R(0.012), Y(by) - fl);
+      ctx.stroke();
+    }
+  }
+  // 먼 언덕 두 겹 + 헛간·나무
+  const hill = (base: number, amp: number, col: string, ph: number) => {
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(-10, Y(HZ + 0.06));
+    for (let x = -0.02; x <= 1.03; x += 0.02) ctx.lineTo(X(x), Y(base - amp * (0.5 + 0.5 * Math.sin(x * 5.2 + ph)) - amp * 0.4 * Math.sin(x * 11 + ph * 2)));
+    ctx.lineTo(w + 10, Y(HZ + 0.06));
+    ctx.fill();
+  };
+  hill(0.27, 0.05, night ? '#26304a' : mix(pal[3], pal[1], 0.35), 1.3);
+  // 헛간
+  {
+    const bx = X(0.8), by = Y(0.255), bz = R(0.05);
+    ctx.fillStyle = night ? '#3a2830' : '#b5403a';
+    ctx.fillRect(bx - bz, by - bz * 0.9, bz * 2, bz * 0.9);
+    ctx.fillStyle = night ? '#2a1c22' : '#8e2f2b';
+    ctx.beginPath();
+    ctx.moveTo(bx - bz * 1.15, by - bz * 0.85);
+    ctx.lineTo(bx, by - bz * 1.6);
+    ctx.lineTo(bx + bz * 1.15, by - bz * 0.85);
+    ctx.fill();
+    ctx.fillStyle = night ? '#ffd27a' : '#f4e3c3';
+    ctx.fillRect(bx - bz * 0.3, by - bz * 0.6, bz * 0.6, bz * 0.6);
+    ctx.strokeStyle = night ? '#3a2830' : '#b5403a';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(bx - bz * 0.3, by - bz * 0.6);
+    ctx.lineTo(bx + bz * 0.3, by);
+    ctx.moveTo(bx + bz * 0.3, by - bz * 0.6);
+    ctx.lineTo(bx - bz * 0.3, by);
+    ctx.stroke();
+  }
+  hill(0.3, 0.035, night ? '#1f2a38' : pal[4], 4.1);
+  // 언덕 위 동그란 나무들
+  for (let k = 0; k < 7; k++) {
+    const tx = 0.05 + hsh(k + 3) * 0.9;
+    if (Math.abs(tx - 0.8) < 0.08) continue;
+    const ty = 0.29 - 0.02 * hsh(k + 9), tz = R(0.022 + 0.012 * hsh(k));
+    ctx.fillStyle = night ? '#1a2430' : mix(pal[4], '#2f5a2a', 0.5);
+    ctx.fillRect(X(tx) - tz * 0.15, Y(ty) - tz * 0.5, tz * 0.3, tz * 0.6);
+    ctx.fillStyle = night ? '#1f2c3a' : mix(pal[4], '#3d7a35', 0.45);
+    ctx.beginPath();
+    ctx.arc(X(tx), Y(ty) - tz, tz, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,240,200,.18)';
+    ctx.beginPath();
+    ctx.arc(X(tx) - tz * 0.35, Y(ty) - tz * 1.3, tz * 0.45, 0, TAU);
+    ctx.fill();
+  }
+  // ═════════ 목장 바닥 ═════════
+  const ground = ctx.createLinearGradient(0, Y(HZ), 0, Y(SY(1)));
+  ground.addColorStop(0, pal[5]);
+  ground.addColorStop(1, pal[6]);
+  ctx.fillStyle = ground;
+  ctx.beginPath();
+  ctx.moveTo(-10, Y(HZ + 0.02));
+  for (let x = -0.02; x <= 1.03; x += 0.04) ctx.lineTo(X(x), Y(HZ + 0.012 + 0.008 * Math.sin(x * 7 + 1)));
+  ctx.lineTo(w + 10, Y(SY(1) + 0.02));
+  ctx.lineTo(-10, Y(SY(1) + 0.02));
+  ctx.fill();
+  // 잔디 깎은 줄무늬 (원근)
+  for (let k = 0; k < 10; k++) {
+    if (k % 2) continue;
+    const y0 = k / 10, y1 = (k + 1) / 10;
+    ctx.fillStyle = 'rgba(255,255,220,.07)';
+    ctx.beginPath();
+    ctx.moveTo(PX(-0.1, y0), PY(y0));
+    ctx.lineTo(PX(1.1, y0), PY(y0));
+    ctx.lineTo(PX(1.1, y1), PY(y1));
+    ctx.lineTo(PX(-0.1, y1), PY(y1));
+    ctx.fill();
+  }
+  // 언덕 굴곡: 볕 드는 둔덕과 그늘진 골
+  for (let k = 0; k < 4; k++) {
+    const yc = 0.12 + k * 0.25, amp = 0.05;
+    const g = ctx.createLinearGradient(0, PY(yc - amp), 0, PY(yc + amp));
+    g.addColorStop(0, 'rgba(255,250,200,0)');
+    g.addColorStop(0.45, k % 2 ? 'rgba(30,60,20,.10)' : 'rgba(255,245,190,.13)');
+    g.addColorStop(1, 'rgba(255,250,200,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(PX(-0.1, yc - amp), PY(yc - amp));
+    for (let x = -0.1; x <= 1.1; x += 0.05) ctx.lineTo(PX(x, yc - amp + 0.02 * Math.sin(x * 6 + k)), PY(yc - amp + 0.02 * Math.sin(x * 6 + k)));
+    for (let x = 1.1; x >= -0.1; x -= 0.05) ctx.lineTo(PX(x, yc + amp + 0.02 * Math.sin(x * 6 + k)), PY(yc + amp + 0.02 * Math.sin(x * 6 + k)));
+    ctx.fill();
+  }
+  // 얼룩 (풀빛 차이)
+  for (let k = 0; k < 14; k++) {
+    const gx = hsh(k + 101), gy = hsh(k + 202);
+    ctx.fillStyle = k % 2 ? 'rgba(40,80,20,.08)' : 'rgba(255,255,200,.07)';
+    ctx.beginPath();
+    ctx.ellipse(PX(gx, gy), PY(gy), R(0.08) * scl(gy), R(0.03) * scl(gy), 0, 0, TAU);
+    ctx.fill();
+  }
+  // ── 개울 ──
+  if (F.river) {
+    const rv = F.river;
+    const band = (y0: number, y1: number) => {
+      ctx.beginPath();
+      ctx.moveTo(PX(-0.1, y0), PY(y0));
+      for (let x = -0.1; x <= 1.1; x += 0.05) ctx.lineTo(PX(x, y0 + 0.006 * Math.sin(x * 13)), PY(y0 + 0.006 * Math.sin(x * 13)));
+      for (let x = 1.1; x >= -0.1; x -= 0.05) ctx.lineTo(PX(x, y1 + 0.006 * Math.sin(x * 11 + 2)), PY(y1 + 0.006 * Math.sin(x * 11 + 2)));
+      ctx.closePath();
+    };
+    ctx.fillStyle = night ? '#4a4a3a' : '#a88a5c';
+    band(rv.y0 - 0.018, rv.y1 + 0.022);
+    ctx.fill();
+    const wg = ctx.createLinearGradient(0, PY(rv.y0), 0, PY(rv.y1));
+    wg.addColorStop(0, night ? '#1e3a5c' : '#3f8fcf');
+    wg.addColorStop(1, night ? '#2a5480' : '#6cc0ea');
+    ctx.fillStyle = wg;
+    band(rv.y0, rv.y1);
+    ctx.fill();
+    ctx.save();
+    band(rv.y0, rv.y1);
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(255,255,255,.45)';
+    ctx.lineWidth = 1.3;
+    for (let k = 0; k < 9; k++) {
+      const yy = rv.y0 + ((k * 0.37) % 1) * (rv.y1 - rv.y0), xo = ((t * 0.003 + k * 0.29) % 1.3) - 0.15;
+      ctx.beginPath();
+      ctx.moveTo(PX(xo, yy), PY(yy));
+      ctx.lineTo(PX(xo + 0.06, yy), PY(yy));
+      ctx.stroke();
+    }
+    ctx.restore();
+    // 돌
+    for (let k = 0; k < 8; k++) {
+      const sx0 = hsh(k + 50), sy0 = k % 2 ? rv.y0 - 0.008 : rv.y1 + 0.01;
+      if (sx0 > rv.bx0 - 0.04 && sx0 < rv.bx1 + 0.04) continue;
+      ctx.fillStyle = night ? '#5a5a60' : '#9a9a92';
+      ctx.beginPath();
+      ctx.ellipse(PX(sx0, sy0), PY(sy0), R(0.016), R(0.008), 0, 0, TAU);
+      ctx.fill();
+    }
+    // 다리 판자
+    const by0 = rv.y0 - 0.016, by1 = rv.y1 + 0.016;
+    ctx.fillStyle = '#6b4520';
+    ctx.beginPath();
+    ctx.moveTo(PX(rv.bx0, by1), PY(by1));
+    ctx.lineTo(PX(rv.bx1, by1), PY(by1));
+    ctx.lineTo(PX(rv.bx1, by1), PY(by1) + R(0.018));
+    ctx.lineTo(PX(rv.bx0, by1), PY(by1) + R(0.018));
+    ctx.fill();
+    ctx.fillStyle = night ? '#7a5a3a' : '#c08a4e';
+    ctx.beginPath();
+    ctx.moveTo(PX(rv.bx0, by0), PY(by0));
+    ctx.lineTo(PX(rv.bx1, by0), PY(by0));
+    ctx.lineTo(PX(rv.bx1, by1), PY(by1));
+    ctx.lineTo(PX(rv.bx0, by1), PY(by1));
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(70,40,15,.55)';
+    ctx.lineWidth = 1;
+    for (let k = 1; k < 8; k++) {
+      const yy = by0 + (k / 8) * (by1 - by0);
+      ctx.beginPath();
+      ctx.moveTo(PX(rv.bx0, yy), PY(yy));
+      ctx.lineTo(PX(rv.bx1, yy), PY(yy));
+      ctx.stroke();
+    }
+  }
+  // ── 문 앞 흙자리 ──
+  for (const p of F.pens) {
+    const m = p.mat ?? MAT, y0 = p.y1, y1 = p.y1 + m;
+    ctx.fillStyle = night ? 'rgba(90,70,50,.55)' : 'rgba(160,118,70,.5)';
+    ctx.beginPath();
+    ctx.moveTo(PX(p.gx0 + 0.01, y0), PY(y0));
+    ctx.lineTo(PX(p.gx1 - 0.01, y0), PY(y0));
+    ctx.quadraticCurveTo(PX(p.gx1, y1), PY(y1), PX((p.gx0 + p.gx1) / 2, y1 + 0.01), PY(y1 + 0.01));
+    ctx.quadraticCurveTo(PX(p.gx0, y1), PY(y1), PX(p.gx0 + 0.01, y0), PY(y0));
+    ctx.fill();
+    ctx.fillStyle = 'rgba(90,60,30,.35)';
+    for (let k = 0; k < 8; k++) {
+      const hx = p.gx0 + 0.03 + hsh(k + p.gx0 * 100) * (p.gx1 - p.gx0 - 0.06), hy = y0 + 0.015 + hsh(k + 7) * (m - 0.03);
+      ctx.beginPath();
+      ctx.ellipse(PX(hx, hy), PY(hy), R(0.006), R(0.004), 0, 0, TAU);
+      ctx.fill();
+    }
+    // 울타리 안 짚더미 바닥
+    ctx.fillStyle = night ? 'rgba(120,100,60,.4)' : 'rgba(230,200,120,.45)';
+    ctx.beginPath();
+    ctx.moveTo(PX(p.x0, p.y0), PY(p.y0));
+    ctx.lineTo(PX(p.x1, p.y0), PY(p.y0));
+    ctx.lineTo(PX(p.x1, p.y1), PY(p.y1));
+    ctx.lineTo(PX(p.x0, p.y1), PY(p.y1));
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(200,160,80,.5)';
+    ctx.lineWidth = 1;
+    for (let k = 0; k < 16; k++) {
+      const hx = p.x0 + 0.02 + hsh(k + 300 + p.x0 * 10) * (p.x1 - p.x0 - 0.04), hy = p.y0 + 0.02 + hsh(k + 400) * (p.y1 - p.y0 - 0.04);
+      ctx.beginPath();
+      ctx.moveTo(PX(hx, hy), PY(hy));
+      ctx.lineTo(PX(hx, hy) + R(0.014), PY(hy) - R(0.004));
+      ctx.stroke();
+    }
+    if (p.tag) {
+      // 리본 깃발
+      const fxp = PX(p.gx1 + 0.02, p.y1), fyp = PY(p.y1);
+      ctx.strokeStyle = '#6b4520';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(fxp, fyp);
+      ctx.lineTo(fxp, fyp - R(0.1));
+      ctx.stroke();
+      ctx.fillStyle = RIB[p.tag];
+      ctx.beginPath();
+      ctx.moveTo(fxp, fyp - R(0.1));
+      ctx.lineTo(fxp + R(0.05), fyp - R(0.085) + Math.sin(t * 0.15) * R(0.005));
+      ctx.lineTo(fxp, fyp - R(0.065));
+      ctx.fill();
+    }
+  }
+  // ── 꽃밭 ──
+  F.flowers.forEach((f, k) => {
+    const hit = S.fh[k] && !(flee && flee.flowerNew.includes(k) && q < 0.3);
+    ctx.fillStyle = hit ? 'rgba(110,80,40,.35)' : 'rgba(60,110,30,.3)';
+    ctx.beginPath();
+    ctx.ellipse(PX(f.x, f.y), PY(f.y), R(f.r) * scl(f.y), R(f.r * 0.8) * FH * scl(f.y), 0, 0, TAU);
+    ctx.fill();
+    const cols = ['#ff7eb3', '#ffd166', '#ffffff', '#c77dff', '#ff9f68'];
+    for (let j = 0; j < 9; j++) {
+      const a = hsh(j + k * 13) * TAU, rr = Math.sqrt(hsh(j + k * 17 + 5)) * f.r * 0.85, px = f.x + Math.cos(a) * rr, py = f.y + Math.sin(a) * rr * 0.8;
+      const sx = PX(px, py), sy = PY(py), fz = R(0.009) * scl(py);
+      if (hit) {
+        ctx.fillStyle = 'rgba(120,90,50,.6)';
+        ctx.beginPath();
+        ctx.ellipse(sx, sy, fz * 1.4, fz * 0.5, 0.3, 0, TAU);
+        ctx.fill();
+        continue;
+      }
+      const sway = Math.sin(t * 0.05 + j) * fz * 0.4 + wind * fz * 8;
+      ctx.strokeStyle = '#3f7a2a';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx + sway, sy - fz * 2.2);
+      ctx.stroke();
+      ctx.fillStyle = cols[(j + k) % cols.length];
+      for (let pp = 0; pp < 5; pp++) (ctx.beginPath(), ctx.arc(sx + sway + Math.cos((pp * TAU) / 5) * fz * 0.7, sy - fz * 2.2 + Math.sin((pp * TAU) / 5) * fz * 0.7, fz * 0.55, 0, TAU), ctx.fill());
+      ctx.fillStyle = '#ffe066';
+      ctx.beginPath();
+      ctx.arc(sx + sway, sy - fz * 2.2, fz * 0.35, 0, TAU);
+      ctx.fill();
+    }
+  });
+  // ── 풀포기 (바람에 살랑) ──
+  ctx.strokeStyle = mix(pal[6], '#1d3a12', 0.35);
+  ctx.lineWidth = 1.2;
+  for (let k = 0; k < 70; k++) {
+    const gx = hsh(k + 500) * 1.1 - 0.05, gy = hsh(k + 600);
+    if (F.river && gy > F.river.y0 - 0.02 && gy < F.river.y1 + 0.02) continue;
+    if (F.pens.some((p) => gx > p.x0 - 0.02 && gx < p.x1 + 0.02 && gy > p.y0 - 0.02 && gy < p.y1 + (p.mat ?? MAT))) continue;
+    const sx = PX(gx, gy), sy = PY(gy), gz = R(0.013) * scl(gy);
+    const sw = Math.sin(t * 0.05 + k * 1.7) * gz * 0.35 + wind * gz * (9 + 4 * Math.sin(t * 0.13 + k));
+    ctx.beginPath();
+    for (let b = -1; b <= 1; b++) {
+      ctx.moveTo(sx + b * gz * 0.3, sy);
+      ctx.quadraticCurveTo(sx + b * gz * 0.4 + sw * 0.4, sy - gz * 0.7, sx + b * gz * 0.6 + sw, sy - gz * (1.1 - Math.abs(b) * 0.25));
+    }
+    ctx.stroke();
+  }
+  // 늑대 굴 (덤불)
+  if (F.den) {
+    const dx0 = F.den[0] < 0.5 ? -0.03 : 1.03, dy0 = F.den[1];
+    for (let k = 0; k < 5; k++) {
+      const bx = dx0 + (F.den[0] < 0.5 ? 1 : -1) * (k % 2) * 0.03, by = dy0 - 0.08 + k * 0.04, bz = R(0.045) * scl(by);
+      ctx.fillStyle = night ? '#13201a' : '#2e5a2a';
+      ctx.beginPath();
+      ctx.arc(PX(bx, by), PY(by) - bz * 0.6, bz, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = night ? '#1a2a22' : '#3f7a35';
+      ctx.beginPath();
+      ctx.arc(PX(bx, by) - bz * 0.3, PY(by) - bz * 0.9, bz * 0.55, 0, TAU);
+      ctx.fill();
+    }
+  }
+  // 들판 장식: 짚더미 · 팻말 · 나비 (부딪히지 않는 가장자리)
+  {
+    const hx = PX(0.04, 0.95), hy = PY(0.95), hz = R(0.05);
+    ctx.fillStyle = 'rgba(30,45,15,.3)';
+    ctx.beginPath();
+    ctx.ellipse(hx + hz * 0.4, hy, hz * 1.2, hz * 0.3, 0, 0, TAU);
+    ctx.fill();
+    const hg = ctx.createLinearGradient(hx - hz, 0, hx + hz, 0);
+    hg.addColorStop(0, night ? '#7a6a3a' : '#f2d27a');
+    hg.addColorStop(1, night ? '#4a3e20' : '#c99a3e');
+    ctx.fillStyle = hg;
+    ctx.beginPath();
+    ctx.ellipse(hx, hy - hz * 0.55, hz, hz * 0.62, 0, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(140,100,30,.6)';
+    ctx.lineWidth = 1;
+    for (let k = 0; k < 4; k++) (ctx.beginPath(), ctx.ellipse(hx, hy - hz * 0.55, hz * (0.9 - k * 0.2), hz * (0.5 - k * 0.1), 0, Math.PI * 1.1, Math.PI * 1.9), ctx.stroke());
+    const sx = PX(0.97, 0.9), sy = PY(0.9), sz = R(0.045);
+    ctx.fillStyle = '#7a4f24';
+    ctx.fillRect(sx - 1.5, sy - sz * 1.4, 3, sz * 1.4);
+    ctx.fillStyle = night ? '#6e573c' : '#c8925a';
+    ctx.beginPath();
+    ctx.roundRect(sx - sz * 0.95, sy - sz * 1.7, sz * 1.1, sz * 0.6, 3);
+    ctx.fill();
+    ctx.fillStyle = '#3a2410';
+    ctx.font = `800 ${R(0.026)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🐑→', sx - sz * 0.4, sy - sz * 1.4);
+    if (!night)
+      for (let k = 0; k < 2; k++) {
+        const bx = 0.15 + 0.7 * hsh(k + 40) + Math.sin(t * 0.011 + k * 3) * 0.12, by = 0.5 + 0.35 * hsh(k + 41) + Math.cos(t * 0.017 + k) * 0.06;
+        const fl = Math.abs(Math.sin(t * 0.35 + k)) * R(0.012) + 1;
+        ctx.fillStyle = k ? '#ffe066' : '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(PX(bx, by) - fl * 0.6, PY(by) - R(0.07), fl, R(0.008), -0.5, 0, TAU);
+        ctx.ellipse(PX(bx, by) + fl * 0.6, PY(by) - R(0.07), fl, R(0.008), 0.5, 0, TAU);
+        ctx.fill();
+      }
+  }
+  // ═════════ 서 있는 것들 (먼 것부터) ═════════
+  const items: { d: number; f: () => void }[] = [];
+  const postH = (fy0: number) => R(0.068) * scl(fy0);
+  const fenceCol = night ? ['#5a4630', '#3e2f20', '#6e573c'] : ['#a8743c', '#7a4f24', '#c8925a'];
+  const drawFenceRun = (x0: number, y0: number, x1: number, y1: number, hgt = 1, posts = true) => {
+    const L = Math.hypot(x1 - x0, (y1 - y0) * 0.9), n = Math.max(1, Math.round(L / 0.09));
+    const pts: [number, number, number][] = [];
+    for (let k = 0; k <= n; k++) {
+      const fxk = x0 + ((x1 - x0) * k) / n, fyk = y0 + ((y1 - y0) * k) / n;
+      pts.push([PX(fxk, fyk), PY(fyk), postH(fyk) * hgt]);
+    }
+    // 그림자
+    ctx.strokeStyle = 'rgba(20,40,10,.25)';
+    ctx.lineWidth = R(0.012);
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0] + R(0.02), pts[0][1] + R(0.004));
+    ctx.lineTo(pts[n][0] + R(0.02), pts[n][1] + R(0.004));
+    ctx.stroke();
+    // 가로대 둘
+    for (const hh of [0.42, 0.82]) {
+      ctx.strokeStyle = fenceCol[1];
+      ctx.lineWidth = R(0.014) * scl(y0);
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pts[0][1] - pts[0][2] * hh + 1.2);
+      for (const p of pts) ctx.lineTo(p[0], p[1] - p[2] * hh + 1.2);
+      ctx.stroke();
+      ctx.strokeStyle = fenceCol[0];
+      ctx.lineWidth = R(0.009) * scl(y0);
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pts[0][1] - pts[0][2] * hh);
+      for (const p of pts) ctx.lineTo(p[0], p[1] - p[2] * hh);
+      ctx.stroke();
+    }
+    if (posts)
+      for (const [px, py, ph] of pts) {
+        const pw = R(0.015) * (ph / R(0.068));
+        ctx.fillStyle = fenceCol[1];
+        ctx.fillRect(px - pw / 2, py - ph, pw, ph);
+        ctx.fillStyle = fenceCol[0];
+        ctx.fillRect(px - pw / 2, py - ph, pw * 0.55, ph);
+        ctx.fillStyle = fenceCol[2];
+        ctx.beginPath();
+        ctx.ellipse(px, py - ph, pw * 0.6, pw * 0.3, 0, 0, TAU);
+        ctx.fill();
+      }
+  };
+  /** 울타리 줄 하나를 깊이 조각으로 나눠 넣는다 (세로 줄은 조각마다) */
+  const addFence = (g: Seg, hgt = 1) => {
+    if (Math.abs(g.x1 - g.x0) < 1e-6 && Math.abs(g.y1 - g.y0) < 1e-6) return;
+    if (Math.abs(g.y1 - g.y0) < 0.01) return void items.push({ d: Math.max(g.y0, g.y1) + 0.001, f: () => drawFenceRun(g.x0, g.y0, g.x1, g.y1, hgt) });
+    const n = Math.max(1, Math.round(Math.abs(g.y1 - g.y0) / 0.06));
+    for (let k = 0; k < n; k++) {
+      const a = k / n, b = (k + 1) / n;
+      const xa = g.x0 + (g.x1 - g.x0) * a, ya = g.y0 + (g.y1 - g.y0) * a, xb = g.x0 + (g.x1 - g.x0) * b, yb = g.y0 + (g.y1 - g.y0) * b;
+      items.push({ d: Math.max(ya, yb) + 0.001, f: () => drawFenceRun(xa, ya, xb, yb, hgt) });
+    }
+  };
+  const clearAge = s.phase === 'result' && s.ok ? s.pt : -1;
+  for (const p of F.pens) {
+    addFence({ x0: p.x0, y0: p.y0, x1: p.x1, y1: p.y0 });
+    addFence({ x0: p.x0, y0: p.y0, x1: p.x0, y1: p.y1 });
+    addFence({ x0: p.x1, y0: p.y0, x1: p.x1, y1: p.y1 });
+    addFence({ x0: p.x0, y0: p.y1, x1: p.gx0, y1: p.y1 });
+    addFence({ x0: p.gx1, y0: p.y1, x1: p.x1, y1: p.y1 });
+    // 문 두 짝: 열려 있다가 다 넣으면 '딸깍'
+    const close = clearAge >= 0 ? Math.min(1, clearAge / 16) : 0, L = (p.gx1 - p.gx0) / 2;
+    for (const sd of [1, -1]) {
+      const hx = sd > 0 ? p.gx0 : p.gx1, th0 = (close * close * Math.PI) / 2;
+      const ex = hx + sd * Math.sin(th0) * L, ey = p.y1 - Math.cos(th0) * L * 0.9;
+      items.push({ d: p.y1 + 0.002, f: () => drawFenceRun(hx, p.y1, ex, ey, 0.85) });
+    }
+  }
+  for (const g of F.fences) addFence(g);
+  if (F.river) {
+    const rv = F.river;
+    addFence({ x0: rv.bx0, y0: rv.y0 - 0.012, x1: rv.bx0, y1: rv.y1 + 0.012 }, 0.6);
+    addFence({ x0: rv.bx1, y0: rv.y0 - 0.012, x1: rv.bx1, y1: rv.y1 + 0.012 }, 0.6);
+  }
+  for (const hg of F.hedges)
+    items.push({
+      d: hg.y0,
+      f: () => {
+        const n = Math.max(2, Math.round(Math.abs(hg.x1 - hg.x0) / 0.035));
+        for (let k = 0; k <= n; k++) {
+          const hx = hg.x0 + ((hg.x1 - hg.x0) * k) / n, sx = PX(hx, hg.y0), sy = PY(hg.y0), bz = R(0.03) * scl(hg.y0);
+          ctx.fillStyle = 'rgba(20,40,10,.3)';
+          ctx.beginPath();
+          ctx.ellipse(sx + bz * 0.5, sy + bz * 0.1, bz * 1.1, bz * 0.35, 0, 0, TAU);
+          ctx.fill();
+          ctx.fillStyle = night ? '#1c3020' : '#2f6b2c';
+          ctx.beginPath();
+          ctx.arc(sx, sy - bz * 0.8, bz * (1 + 0.15 * hsh(k)), 0, TAU);
+          ctx.fill();
+          ctx.fillStyle = night ? '#24402a' : '#4b9440';
+          ctx.beginPath();
+          ctx.arc(sx - bz * 0.25, sy - bz * 1.15, bz * 0.6, 0, TAU);
+          ctx.fill();
+          if (k % 3 === 1) {
+            ctx.fillStyle = '#ff6b8a';
+            ctx.beginPath();
+            ctx.arc(sx + bz * 0.3, sy - bz * 1.0, bz * 0.13, 0, TAU);
+            ctx.fill();
+          }
+        }
+      },
+    });
+  // 양
+  const doneHop = s.phase === 'result' && s.ok;
+  for (let i = 0; i < F.n; i++) {
+    const [sx0, sy0] = sheepAt(i);
+    const pa = flee?.path[i];
+    let face = sx0 < 0.5 ? 1 : -1, run = 0, mood: SheepMood = 'calm', roll = 0, hop = 0;
+    if (pa && q < 1) {
+      const [nx] = pathAt(pa, Math.min(1, ease(q) + 0.05));
+      face = nx >= sx0 ? 1 : -1;
+      run = Math.max(0, 1 - q * 1.1);
+      mood = flee!.scare[i] === 3 ? 'happy' : 'scared';
+      if (flee!.trip[i] && q > 0.55) roll = Math.min(1, (q - 0.55) / 0.4) * TAU * (face > 0 ? 1 : -1);
+    }
+    if (S.pen[i] >= 0) {
+      mood = 'happy';
+      const ag = doneHop ? s.pt : t - s.startT;
+      hop = doneHop ? Math.abs(Math.sin(ag * 0.22 + i * 1.3)) * R(0.03) : (t + i * 37) % 160 < 14 ? Math.sin((((t + i * 37) % 160) / 14) * Math.PI) * R(0.012) : 0;
+      if (!pa || q >= 1) face = Math.sin(t * 0.01 + i) > 0 ? 1 : -1;
+    }
+    if (S.fell[i] && (!pa || q > 0.6)) mood = 'swim';
+    if (S.caught === i && (s.phase === 'result' || q > 0.8)) mood = 'scared';
+    if (!pa && mood === 'calm' && s.phase === 'run' && Math.hypot(s.toX - S.x[i], s.toY - S.y[i]) < R_OUT) mood = 'scared';
+    const z = R(0.044) * scl(sy0);
+    let dx0 = sx0;
+    if (S.fell[i] && s.phase === 'result') dx0 += Math.sin(s.pt * 0.05) * 0.01 + s.pt * 0.0006;
+    items.push({ d: sy0, f: () => drawSheep(ctx, PX(dx0, sy0), PY(sy0), z, { black: F.black[i], tag: F.tag[i], face, run, t: t + i * 9, mood, hop, roll }) });
+  }
+  // 염소
+  if (F.goat) {
+    const gt = F.goat, faint = S.goatF > 0 || (flee?.goatFaint ?? false);
+    const fAge = faint ? (s.phase === 'flee' && flee?.goatFaint ? s.pt : 30) : 0;
+    items.push({ d: gt.y, f: () => drawGoat(ctx, PX(gt.x, gt.y), PY(gt.y), R(0.056) * scl(gt.y), faint ? 1 : 0, fAge, t) });
+    if (faint && S.goatF > 0)
+      items.push({
+        d: 2,
+        f: () => {
+          ctx.fillStyle = '#ffffff';
+          ctx.font = `900 ${R(0.036)}px system-ui, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`💫${S.goatF}`, PX(gt.x, gt.y), PY(gt.y) - R(0.075));
+        },
+      });
+  }
+  // 늑대
+  if (F.den) {
+    let wx = S.wx, wy = S.wy, mood: 'sneak' | 'yelp' | 'grin' = 'sneak';
+    if (flee && flee.wolfPath) {
+      const wq = flee.wolf === 2 ? ease(q) : ease(Math.min(1, q * 1.3));
+      wx = flee.wolfPath[0] + (flee.wolfPath[2] - flee.wolfPath[0]) * wq;
+      wy = flee.wolfPath[1] + (flee.wolfPath[3] - flee.wolfPath[1]) * wq;
+      if (flee.wolf === 2) mood = 'yelp';
+    }
+    if (S.caught >= 0) mood = 'grin';
+    let nearX = 0.5;
+    for (let i = 0; i < F.n; i++) if (S.pen[i] < 0) nearX = S.x[i];
+    const face = flee?.wolf === 2 ? (F.den[0] < 0.5 ? -1 : 1) : nearX >= wx ? 1 : -1;
+    items.push({ d: wy, f: () => drawWolf(ctx, PX(wx, wy), PY(wy), R(0.05) * scl(wy), face, mood, t) });
+  }
+  // 강아지
+  {
+    let mood: DogMood = 'idle';
+    const anyIn = flee ? flee.inNew.length > 0 : false;
+    if (s.phase === 'run') mood = 'run';
+    else if (s.phase === 'flee') mood = s.pt < 22 ? 'bark' : flee?.scare.some((v) => v === 3) ? 'surprise' : anyIn ? 'proud' : 'idle';
+    else if (s.phase === 'result') mood = s.ok ? 'proud' : 'dizzy';
+    else if (s.idle > 300 && s.stage + s.S.used > 0) mood = 'spin';
+    if (s.events.some((e) => e.kind === 'sniff' && t - e.t < 40)) mood = 'sniff';
+    let face = 1;
+    if (s.phase === 'run') face = s.toX >= s.fromX ? 1 : -1;
+    else {
+      let cx = 0, cn = 0;
+      for (let i = 0; i < F.n; i++) if (S.pen[i] < 0) (cx += S.x[i]), cn++;
+      face = (cn ? cx / cn : 0.5) >= s.dogX ? 1 : -1;
+    }
+    const hopY = s.phase === 'run' ? Math.abs(Math.sin(s.pt * 0.5)) * 0.012 : 0;
+    let ox = 0, oy = 0;
+    if (mood === 'spin') (ox = Math.cos(t * 0.35) * 0.02), (oy = Math.sin(t * 0.35) * 0.012);
+    items.push({ d: s.dogY, f: () => drawDog(ctx, PX(s.dogX + ox, s.dogY + oy), PY(s.dogY + oy) - R(hopY), R(0.056) * scl(s.dogY), face, mood, t) });
+  }
+  items.sort((a, b) => a.d - b.d);
+  for (const it of items) it.f();
+  // 짖는 소리 물결 (짖은 직후)
+  if (s.phase === 'flee' && s.pt < 26) {
+    const bx = PX(s.dogX, s.dogY), by = PY(s.dogY) - R(0.06);
+    ctx.strokeStyle = `rgba(255,255,255,${0.8 - s.pt / 32})`;
+    ctx.lineWidth = 2.5;
+    for (let k = 0; k < 3; k++) {
+      const rr = R(0.04 + k * 0.03 + s.pt * 0.006);
+      ctx.beginPath();
+      ctx.ellipse(bx, by + R(0.04), rr * 1.3, rr * 0.75, 0, Math.PI * 1.05, Math.PI * 1.95);
+      ctx.stroke();
+    }
+    // 바닥 원 (짖는 원이 퍼진다)
+    const gr = Math.min(1, s.pt / 14);
+    ctx.strokeStyle = `rgba(255,250,210,${0.7 * (1 - s.pt / 26)})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(PX(s.dogX, s.dogY), PY(s.dogY), R(R_OUT * FXW) * scl(s.dogY) * gr, R(R_OUT * FH) * gr, 0, 0, TAU);
+    ctx.stroke();
+  }
+  // 바람 줄기
+  if (wind) {
+    ctx.strokeStyle = 'rgba(255,255,255,.55)';
+    ctx.lineWidth = 1.5;
+    for (let k = 0; k < 9; k++) {
+      const yy = 0.36 + hsh(k + 70) * 0.7, ph = ((t * 0.012 * Math.sign(wind) + hsh(k + 80)) % 1 + 1) % 1, xx = ph * 1.4 - 0.2;
+      ctx.globalAlpha = Math.sin(ph * Math.PI) * 0.8;
+      ctx.beginPath();
+      ctx.moveTo(X(xx), Y(yy));
+      ctx.quadraticCurveTo(X(xx + 0.05 * Math.sign(wind)), Y(yy - 0.01), X(xx + 0.1 * Math.sign(wind)), Y(yy));
+      ctx.stroke();
+      ctx.fillStyle = k % 2 ? '#ffb3c6' : '#c7f0a0';
+      ctx.fillRect(X(xx + 0.12 * Math.sign(wind)), Y(yy - 0.004 + Math.sin(t * 0.2 + k) * 0.006), 3, 2);
+    }
+    ctx.globalAlpha = 1;
+  }
+  // 목동 할아버지 (언덕 위 구경꾼)
+  {
+    const lastFail = s.phase === 'result' && !s.ok, cheer = s.phase === 'result' && s.ok;
+    const mood: GrandpaMood = cheer ? 'cheer' : lastFail ? 'facepalm' : s.idle > 480 ? 'doze' : 'watch';
+    const gx = X(0.075), gy = Y(SY(0) + 0.02);
+    drawGrandpa(ctx, gx, gy, R(0.05), mood, t);
+    if (mood === 'doze') {
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `800 ${R(0.036)}px system-ui, sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText('z', gx + R(0.03), gy - R(0.13) - ((t * 0.3) % 12));
+    }
+  }
+  // ═════════ 미리 보기 (누르고 있는 동안) ═════════
+  let pvNote = '';
+  if (s.phase === 'aim' && s.down) {
+    const f = toField(s.ax, s.ay * A);
+    if (f && !inAnyPen(F, f[0], f[1])) {
+      const [pxf, pyf] = f, cx = PX(pxf, pyf), cy = PY(pyf);
+      const some = anyone(F, S, pxf, pyf);
+      for (const [rr, lab] of [[R_OUT, '조금'], [R_IN, '멀리']] as const) {
+        ctx.fillStyle = rr === R_IN ? 'rgba(255,230,120,.16)' : 'rgba(255,255,255,.1)';
+        ctx.strokeStyle = 'rgba(255,255,255,.75)';
+        ctx.setLineDash([5, 4]);
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, R(rr * FXW) * scl(pyf), R(rr * FH), 0, 0, TAU);
+        ctx.fill();
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(255,255,255,.9)';
+        ctx.font = `800 ${R(0.036)}px system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(lab, cx, cy + R(rr * FH) - R(0.02));
+      }
+      if (some) {
+        const pv = preview(s, pxf, pyf);
+        let inN = 0, bad = '';
+        for (let i = 0; i < F.n; i++) {
+          const pa = pv.rec.path[i];
+          if (!pa) continue;
+          const ok = pv.S.pen[i] >= 0 && S.pen[i] < 0, fell = pv.S.fell[i] > 0;
+          if (ok && !F.black[i]) inN++;
+          if (fell) bad = '💦 풍덩!';
+          const col = fell ? '#ff5a5a' : ok ? '#b6ff7a' : F.black[i] ? '#ffb3e0' : '#ffffff';
+          ctx.strokeStyle = 'rgba(0,0,0,.35)';
+          ctx.lineWidth = 5;
+          ctx.lineCap = 'round';
+          const line = () => {
+            ctx.beginPath();
+            const m = pa.length / 2, stepK = Math.max(1, Math.floor(m / 8));
+            for (let k = 0; k < m; k += stepK) ctx.lineTo(PX(pa[k * 2], pa[k * 2 + 1]), PY(pa[k * 2 + 1]) - R(0.02));
+            ctx.lineTo(PX(pa[m * 2 - 2], pa[m * 2 - 1]), PY(pa[m * 2 - 1]) - R(0.02));
+            ctx.stroke();
+          };
+          line();
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 2.5;
+          line();
+          const ex = PX(pa[pa.length - 2], pa[pa.length - 1]), ey = PY(pa[pa.length - 1]) - R(0.02);
+          const m = pa.length / 2, k0 = Math.max(0, m - 3), ax = PX(pa[k0 * 2], pa[k0 * 2 + 1]), ay = PY(pa[k0 * 2 + 1]) - R(0.02), an = Math.atan2(ey - ay, ex - ax);
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          ctx.moveTo(ex + Math.cos(an) * 6, ey + Math.sin(an) * 6);
+          ctx.lineTo(ex + Math.cos(an + 2.5) * 7, ey + Math.sin(an + 2.5) * 7);
+          ctx.lineTo(ex + Math.cos(an - 2.5) * 7, ey + Math.sin(an - 2.5) * 7);
+          ctx.fill();
+          if (fell) {
+            ctx.font = `${R(0.04)}px system-ui, sans-serif`;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('💦', ex, ey - R(0.025));
+          }
+        }
+        if (pv.rec.goatFaint && F.goat) {
+          ctx.font = `${R(0.045)}px system-ui, sans-serif`;
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText('💫', PX(F.goat.x, F.goat.y), PY(F.goat.y) - R(0.08));
+          if (!bad) bad = '🐐 꽥!';
+        }
+        if (F.den && pv.rec.wolfPath) {
+          const [a0, b0, a1, b1] = pv.rec.wolfPath;
+          ctx.strokeStyle = pv.rec.wolf === 2 ? 'rgba(200,220,255,.9)' : 'rgba(255,90,90,.95)';
+          ctx.setLineDash([3, 4]);
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(PX(a0, b0), PY(b0) - R(0.02));
+          ctx.lineTo(PX(a1, b1), PY(b1) - R(0.02));
+          ctx.stroke();
+          ctx.setLineDash([]);
+          if (pv.S.caught >= 0) bad = '🐺 잡혀요!';
+        }
+        pvNote = bad || (inN ? `🐑 ${inN}마리 쏙!` : '');
+        if (pv.rec.flowerNew.length && d.bonus === 'flower') pvNote = (pvNote ? pvNote + ' · ' : '') + '🌼 밟아요';
+      } else pvNote = '킁킁 — 아무도 없어요';
+      // 발자국 표시
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `${R(0.05)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('🐾', cx, cy);
+      if (pvNote) {
+        ctx.font = `900 ${R(0.04)}px system-ui, sans-serif`;
+        const tw = ctx.measureText(pvNote).width + R(0.04), bx = Math.max(tw / 2 + 4, Math.min(w - tw / 2 - 4, cx)), by = Math.max(Y(0.4), cy - R(0.25 * FH) - R(0.04));
+        ctx.fillStyle = pvNote.includes('💦') || pvNote.includes('🐺') ? 'rgba(170,30,30,.9)' : 'rgba(20,40,20,.82)';
+        ctx.beginPath();
+        ctx.roundRect(bx - tw / 2, by - R(0.028), tw, R(0.056), R(0.028));
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(pvNote, bx, by + 1);
+      }
+    }
+  }
+  // 첫 판 첫 톡 안내: 양 뒤쪽에 손가락
+  if (s.stage === 0 && s.S.used === 0 && s.phase === 'aim' && !s.down && s.tries === 0) {
+    let cx = 0, cy = 0;
+    for (let i = 0; i < F.n; i++) (cx += S.x[i] / F.n), (cy += S.y[i] / F.n);
+    const hy = cy + 0.15, bob = Math.abs(Math.sin(t * 0.12)) * R(0.02);
+    ctx.strokeStyle = `rgba(255,255,255,${0.5 + 0.4 * Math.sin(t * 0.12)})`;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.ellipse(PX(cx, hy), PY(hy), R(0.05), R(0.025), 0, 0, TAU);
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `${R(0.07)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('👆', PX(cx, hy) + R(0.01), PY(hy) + R(0.045) + bob);
+  }
+  // ═════════ 밤: 손전등 둘레만 ═════════
+  if (night) {
+    if (!darkCv) darkCv = document.createElement('canvas');
+    const dc = darkCv, cw = ctx.canvas.width, chh = ctx.canvas.height, k = cw / w;
+    if (dc.width !== cw || dc.height !== chh) (dc.width = cw), (dc.height = chh);
+    const dctx = dc.getContext('2d')!;
+    dctx.setTransform(1, 0, 0, 1, 0, 0);
+    dctx.clearRect(0, 0, cw, chh);
+    dctx.fillStyle = 'rgba(6,10,30,.82)';
+    dctx.fillRect(0, Y(SY(0) - 0.02) * k, cw, chh);
+    dctx.globalCompositeOperation = 'destination-out';
+    const hole = (x: number, y: number, r: number) => {
+      const g = dctx.createRadialGradient(x * k, y * k, r * 0.4 * k, x * k, y * k, r * k);
+      g.addColorStop(0, 'rgba(0,0,0,1)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      dctx.fillStyle = g;
+      dctx.beginPath();
+      dctx.ellipse(x * k, y * k, r * k, r * 0.7 * k, 0, 0, TAU);
+      dctx.fill();
+    };
+    hole(PX(s.dogX, s.dogY), PY(s.dogY), R(0.34));
+    const p0 = F.pens[0];
+    hole(PX((p0.x0 + p0.x1) / 2, p0.y1), PY(p0.y1) - R(0.03), R(0.24));
+    if (s.down) {
+      const f = toField(s.ax, s.ay * A);
+      if (f) hole(PX(f[0], f[1]), PY(f[1]), R(0.16));
+    }
+    dctx.globalCompositeOperation = 'source-over';
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(dc, 0, 0);
+    ctx.restore();
+    // 어둠 속 눈빛 (양은 노란 점 둘, 늑대는 붉은 점 둘)
+    const lit = (fx0: number, fy0: number) => Math.hypot((PX(fx0, fy0) - PX(s.dogX, s.dogY)) / R(0.34), (PY(fy0) - PY(s.dogY)) / R(0.34 * 0.7)) < 0.8;
+    for (let i = 0; i < F.n; i++) {
+      const [a, b] = sheepAt(i);
+      if (S.pen[i] >= 0 || lit(a, b)) continue;
+      const z = R(0.044) * scl(b), blink = (t + i * 50) % 200 < 6;
+      if (blink) continue;
+      ctx.fillStyle = F.black[i] ? 'rgba(255,240,150,.95)' : 'rgba(255,255,220,.9)';
+      const ex = PX(a, b) + z * 0.95 * (a < 0.5 ? 1 : -1), ey = PY(b) - z * 0.95;
+      ctx.beginPath();
+      ctx.arc(ex - z * 0.1, ey, Math.max(1.5, z * 0.08), 0, TAU);
+      ctx.arc(ex + z * 0.12, ey, Math.max(1.5, z * 0.08), 0, TAU);
+      ctx.fill();
+      if (!F.black[i]) {
+        ctx.fillStyle = 'rgba(240,240,255,.12)';
+        ctx.beginPath();
+        ctx.ellipse(PX(a, b), PY(b) - z * 0.8, z * 1.0, z * 0.6, 0, 0, TAU);
+        ctx.fill();
+      }
+    }
+    if (F.den && !lit(S.wx, S.wy)) {
+      const z = R(0.05) * scl(S.wy);
+      ctx.fillStyle = 'rgba(255,80,60,.95)';
+      ctx.beginPath();
+      ctx.arc(PX(S.wx, S.wy) + z * 0.8, PY(S.wy) - z * 0.85, Math.max(1.6, z * 0.09), 0, TAU);
+      ctx.arc(PX(S.wx, S.wy) + z * 1.05, PY(S.wy) - z * 0.85, Math.max(1.6, z * 0.09), 0, TAU);
+      ctx.fill();
+    }
+    // 반딧불
+    for (let k2 = 0; k2 < 10; k2++) {
+      const a = hsh(k2 + 900) + Math.sin(t * 0.01 + k2) * 0.04, b = 0.1 + hsh(k2 + 950) * 0.85 + Math.cos(t * 0.013 + k2) * 0.03;
+      ctx.fillStyle = `rgba(220,255,120,${0.3 + 0.6 * Math.abs(Math.sin(t * 0.05 + k2))})`;
+      ctx.beginPath();
+      ctx.arc(PX(a, b), PY(b) - R(0.05), 1.8, 0, TAU);
+      ctx.fill();
+    }
+  } else {
+    // 노을빛: 해 쪽은 따뜻하게, 반대편은 살짝 어둡게
+    const lg = ctx.createLinearGradient(0, Y(0.3), w, Y(1.1));
+    lg.addColorStop(0, `rgba(255,200,120,${0.08 + 0.18 * dusk})`);
+    lg.addColorStop(1, `rgba(60,30,90,${0.05 + 0.2 * dusk})`);
+    ctx.fillStyle = lg;
+    ctx.fillRect(0, Y(HZ), w, Y(SY(1) - HZ + 0.01));
+  }
+  // 가장자리 어둡게
+  const vg = ctx.createRadialGradient(w / 2, Y(0.7), R(0.35), w / 2, Y(0.7), R(0.85));
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(10,20,10,.32)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, Y(0.08), w, Y(SY(1) - 0.08));
+  // ═════════ 사건 연출 ═════════
+  const seenT = fx.memo.t ?? -1;
+  for (const e of s.events) {
+    if (e.t <= seenT) continue;
+    const x = PX(e.x, e.y), y = PY(e.y);
+    if (e.kind === 'bark') fx.ring(x, y - R(0.03), '#ffffff', R(0.16), 4), fx.kick(4), say(x, y - R(0.12), '멍!', '#ffffff', 24), fx.burst(x, y - R(0.04), '#fff6d0', 10, 2.6, 2);
+    if (e.kind === 'faint') fx.burst(x, y - R(0.04), '#ffe066', 18, 3, 2.6), fx.kick(3), say(x, y - R(0.1), '꽥!', '#fff3a0', 20);
+    if (e.kind === 'yelp') say(x, y - R(0.08), '깨갱!', '#e8ecff', 18);
+    if (e.kind === 'come') say(PX(s.dogX, s.dogY), PY(s.dogY) - R(0.13), '?!', '#ffe0f0', 20);
+    if (e.kind === 'trample') fx.burst(x, y - R(0.02), '#ff9ec7', 22, 3.4, 2.4), say(x, y - R(0.06), e.text!, e.col!, 14);
+    if (e.kind === 'sniff') say(x, y - R(0.08), e.text!, e.col!, 14);
+    if (e.kind === 'nope') say(X(e.x), Y(e.y), e.text!, e.col!, 14), fx.kick(1.5);
+    if (e.kind === 'stage') fx.blink('#fff6d6', 0.18);
+    if (e.kind === 'clear') {
+      const p0 = F.pens[0], gx0 = PX((p0.gx0 + p0.gx1) / 2, p0.y1), gy0 = PY(p0.y1);
+      fx.burst(gx0, gy0 - R(0.05), '#ffe066', 40, 6, 3.2), fx.burst(gx0, gy0 - R(0.05), '#ff8fb1', 30, 5, 3), fx.ring(gx0, gy0, '#ffe066', R(0.3), 6), fx.blink('#fff6c8', 0.25);
+      say(gx0, gy0 - R(0.1), '딸깍!', '#ffffff', 20);
+    }
+    if (e.kind === 'fail') fx.kick(9), fx.blink(th.hot, 0.22);
+  }
+  fx.memo.t = s.t;
+  // 양 하나하나의 순간 (들어감 · 풍덩 · 데굴)
+  if (flee) {
+    const key = s.S.used * 100;
+    for (let i = 0; i < F.n; i++) {
+      const pa = flee.path[i];
+      if (!pa) continue;
+      const m = pa.length / 2, idx = ease(q) * (m - 1);
+      const mk = (name: string) => {
+        const k2 = name + i;
+        if ((fx.memo[k2] ?? -1) === key) return false;
+        fx.memo[k2] = key;
+        return true;
+      };
+      if (flee.penAt[i] >= 0 && idx >= flee.penAt[i] && mk('in')) {
+        const [a, b] = pathAt(pa, flee.penAt[i] / Math.max(1, m - 1));
+        fx.burst(PX(a, b), PY(b) - R(0.03), '#ffffff', 12, 2.6, 2.6);
+        fx.ring(PX(a, b), PY(b) - R(0.02), '#e8ffd0', R(0.05), 2);
+        if (F.black[i]) say(PX(a, b), PY(b) - R(0.07), '까만 양도 쏙!', '#ffc8ec', 15);
+        else if ((fx.memo.inPop ?? -1) !== key) {
+          fx.memo.inPop = key;
+          const nIn = flee.inNew.filter((j) => !F.black[j]).length;
+          say(PX(a, b), PY(b) - R(0.07), nIn > 1 ? `쏙! ×${nIn}` : '쏙!', '#e8ffd0', 17);
+        }
+      }
+      if (flee.scare[i] === 3 && q > 0.75 && !S.fell[i] && mk('love')) {
+        const [a, b] = sheepAt(i);
+        say(PX(a, b), PY(b) - R(0.09), '♥', '#ff8fc8', 18);
+      }
+      if (flee.fellAt[i] >= 0 && idx >= flee.fellAt[i] && mk('fell')) {
+        const [a, b] = pathAt(pa, flee.fellAt[i] / Math.max(1, m - 1));
+        fx.burst(PX(a, b), PY(b), '#bfe9ff', 30, 4.5, 3), fx.ring(PX(a, b), PY(b), '#ffffff', R(0.08), 3), fx.kick(6);
+        say(PX(a, b), PY(b) - R(0.08), '풍덩!', '#bfe9ff', 20);
+      }
+      if (flee.trip[i] && q > 0.6 && mk('trip')) {
+        const [a, b] = sheepAt(i);
+        fx.burst(PX(a, b), PY(b), '#d9c9a0', 8, 2, 2);
+        say(PX(a, b), PY(b) - R(0.07), '데굴~', '#fff2d0', 13);
+      }
+      if (flee.scare[i] === 2 && q < 0.1 && (fx.memo.baa ?? -1) !== key && mk('baa')) {
+        fx.memo.baa = key;
+        const [a, b] = sheepAt(i);
+        say(PX(a, b), PY(b) - R(0.08), '매애애!', '#ffffff', 14);
+      }
+    }
+    if (flee.caught >= 0 && q > 0.75) {
+      const k2 = 'caught';
+      if ((fx.memo[k2] ?? -1) !== key) {
+        fx.memo[k2] = key;
+        const i = flee.caught;
+        fx.kick(10), fx.blink('#ff5a5a', 0.25);
+        say(PX(S.x[i], S.y[i]), PY(S.y[i]) - R(0.1), '앙!', '#ffb3a8', 22);
+      }
+    }
+  }
+  ctx.restore();
+
+  // ═════════ HUD ═════════
+  const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${R(sz)}px system-ui, sans-serif`);
+  const hb = R(0.082);
+  ctx.fillStyle = night ? 'rgba(12,18,40,.88)' : 'rgba(38,58,30,.86)';
+  ctx.fillRect(0, 0, w, hb);
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = th.ink;
+  font(0.045, 900);
+  const ttl = `🐑 ${s.stage + 1}판`, tw1 = ctx.measureText(ttl).width;
+  ctx.fillText(ttl, R(0.03), hb * 0.52);
+  font(0.037, 800);
+  ctx.fillStyle = th.muted;
+  ctx.fillText(` / ${STAGE_COUNT} · ${d.name}`, R(0.03) + tw1, hb * 0.55);
+  ctx.textAlign = 'right';
+  font(0.042, 900);
+  ctx.fillStyle = '#ffd166';
+  const stt = `★ ${s.stars}`;
+  ctx.fillText(stt, w - R(0.03), hb * 0.52);
+  ctx.fillStyle = th.hot;
+  ctx.fillText('♥'.repeat(Math.max(0, s.hearts)) + '♡'.repeat(Math.max(0, 3 - s.hearts)), w - R(0.06) - ctx.measureText(stt).width, hb * 0.52);
+  // 새것 알림
+  if (s.news && s.t - s.news.t < NEWS_T + 20) {
+    const age = s.t - s.news.t, a = Math.min(1, age / 10, (NEWS_T + 20 - age) / 20), drop = Math.max(0, 10 - age) * 2;
+    ctx.globalAlpha = a;
+    font(0.036, 900);
+    ctx.textAlign = 'center';
+    const tx = `✨ ${s.news.text}`;
+    let fs = 0.036;
+    while (ctx.measureText(tx).width > w - R(0.05) && fs > 0.034) font((fs -= 0.001), 900);
+    const tw2 = Math.min(w - 8, ctx.measureText(tx).width + 22), by2 = hb + R(0.04) - drop;
+    ctx.fillStyle = 'rgba(30,40,24,.9)';
+    ctx.beginPath();
+    ctx.roundRect(w / 2 - tw2 / 2, by2 - R(0.027), tw2, R(0.054), R(0.027));
+    ctx.fill();
+    ctx.fillStyle = '#fff6d6';
+    ctx.fillText(tx, w / 2, by2 + 1);
+    ctx.globalAlpha = 1;
+  }
+  // 판 시작 큰 글씨
+  {
+    const age = t - s.startT;
+    if (age < 90 && s.phase !== 'result') {
+      const a = Math.min(1, age / 8, (90 - age) / 20), sc = 1 + Math.max(0, 8 - age) * 0.04;
+      ctx.globalAlpha = a;
+      ctx.save();
+      ctx.translate(w / 2, Y(0.86));
+      ctx.scale(sc, sc);
+      font(0.075, 900);
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = 'rgba(30,40,20,.7)';
+      const big = `${s.stage + 1}판 · ${d.name}`;
+      ctx.strokeText(big, 0, 0);
+      ctx.fillStyle = '#fff6d6';
+      ctx.fillText(big, 0, 0);
+      font(0.04, 800);
+      const sub = `멍멍 ${d.max}번 안에 ${F.black.some((b) => !b) ? '흰 양 ' + F.black.filter((b) => !b).length + '마리' : ''}`;
+      ctx.strokeText(sub, 0, R(0.06));
+      ctx.fillText(sub, 0, R(0.06));
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+  }
+  // 결과
+  if (s.phase === 'result') {
+    const age = s.pt, a = Math.min(1, age / 10);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = s.ok ? 'rgba(40,60,20,.55)' : 'rgba(70,20,20,.55)';
+    ctx.fillRect(0, Y(0.8), w, R(0.2));
+    ctx.textAlign = 'center';
+    font(s.ok ? 0.06 : 0.05, 900);
+    ctx.fillStyle = s.ok ? '#fff1a8' : '#ffd0c8';
+    ctx.fillText(s.ok ? (s.won ? '목장 완성! 🎉' : `${s.stage + 1}판 통과!`) : s.why, w / 2, Y(0.855));
+    if (s.ok) {
+      for (let k = 0; k < 3; k++) {
+        const ag = age - 14 - k * 10, got = k < s.got;
+        if (ag < 0) continue;
+        const sc = got ? 1 + Math.max(0, 1 - ag / 8) * 0.8 : 1;
+        font(0.08 * sc, 900);
+        ctx.fillStyle = got ? '#ffd166' : 'rgba(255,255,255,.35)';
+        ctx.fillText(got ? '★' : '☆', w / 2 + (k - 1) * R(0.1), Y(0.94));
+        if (got && (fx.memo['star' + k] ?? -1) < s.clearT) (fx.memo['star' + k] = s.clearT), fx.burst(w / 2 + (k - 1) * R(0.1), Y(0.94), '#ffe066', 14, 3, 2.4);
+      }
+    } else {
+      font(0.042, 800);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(s.hearts > 0 ? '♥ -1 · 이 판을 처음부터 다시' : '하트를 다 썼어요 — 끝', w / 2, Y(0.94));
+    }
+    ctx.globalAlpha = 1;
+  }
+  // ═════════ 아래 띠: 멍멍 · 별 목표 · 안내 ═════════
+  // 디오라마 앞면: 풀 가장자리 · 흙 층 · 돌
+  {
+    const y0 = Y(SY(1)), y1 = Y(SY(1) + 0.04);
+    const sg = ctx.createLinearGradient(0, y0, 0, y1);
+    sg.addColorStop(0, night ? '#3a2c22' : '#7a5232');
+    sg.addColorStop(0.5, night ? '#2c2018' : '#5e3d22');
+    sg.addColorStop(1, night ? '#1c140e' : '#3e2814');
+    ctx.fillStyle = sg;
+    ctx.fillRect(0, y0, w, y1 - y0);
+    ctx.fillStyle = night ? 'rgba(90,80,70,.6)' : 'rgba(150,130,110,.75)';
+    for (let k = 0; k < 16; k++) {
+      ctx.beginPath();
+      ctx.ellipse(hsh(k + 700) * w, y0 + (0.3 + 0.5 * hsh(k + 710)) * (y1 - y0), R(0.012 + 0.01 * hsh(k)), R(0.006), 0, 0, TAU);
+      ctx.fill();
+    }
+    ctx.fillStyle = mix(pal[6], '#1d3a12', 0.25);
+    ctx.beginPath();
+    ctx.moveTo(0, y0 - 2);
+    for (let x = 0; x <= 1.0001; x += 0.025) ctx.lineTo(X(x), y0 + R(0.008) + R(0.006) * Math.sin(x * 40));
+    ctx.lineTo(w, y0 - 2);
+    ctx.fill();
+    // 앞쪽 큰 풀잎 (흔들흔들)
+    ctx.strokeStyle = mix(pal[6], '#0f2a08', 0.3);
+    ctx.lineWidth = 2;
+    for (let k = 0; k < 26; k++) {
+      const gx = X(hsh(k + 800)), gz = R(0.03 + 0.025 * hsh(k + 810)), sw = Math.sin(t * 0.04 + k) * gz * 0.25 + wind * gz * 6;
+      ctx.beginPath();
+      ctx.moveTo(gx, y0 + 2);
+      ctx.quadraticCurveTo(gx + sw * 0.3, y0 - gz * 0.6, gx + sw + (k % 2 ? 4 : -4), y0 - gz);
+      ctx.stroke();
+    }
+  }
+  const by = Y(SY(1) + 0.04);
+  ctx.fillStyle = night ? 'rgba(12,18,40,.92)' : 'rgba(52,38,22,.92)';
+  ctx.fillRect(0, by, w, Y(A) - by + 2);
+  ctx.fillStyle = 'rgba(255,255,255,.12)';
+  ctx.fillRect(0, by, w, 1.5);
+  // 멍멍 (뼈다귀) 남은 수
+  {
+    const y1 = by + R(0.045);
+    ctx.textAlign = 'left';
+    font(0.038, 900);
+    ctx.fillStyle = '#fff6d6';
+    ctx.fillText('멍멍', R(0.03), y1);
+    const x0 = R(0.03) + ctx.measureText('멍멍 ').width, left = d.max - S.used;
+    const gap = Math.min(R(0.052), (w * 0.62 - x0) / d.max);
+    for (let k = 0; k < d.max; k++) {
+      const on = k < left, bx = x0 + k * gap + gap / 2, bz = gap * 0.42;
+      ctx.globalAlpha = on ? 1 : 0.25;
+      ctx.fillStyle = k === d.par - 1 ? '#ffe9a8' : '#fff6e6';
+      ctx.fillRect(bx - bz * 0.6, y1 - bz * 0.18, bz * 1.2, bz * 0.36);
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) (ctx.beginPath(), ctx.arc(bx + sx * bz * 0.6, y1 + sy * bz * 0.2, bz * 0.24, 0, TAU), ctx.fill());
+      ctx.globalAlpha = 1;
+    }
+    ctx.textAlign = 'right';
+    font(0.038, 900);
+    const inW = F.black.filter((b, i) => !b && S.pen[i] >= 0).length, nW = F.black.filter((b) => !b).length;
+    ctx.fillStyle = '#e8ffd0';
+    ctx.fillText(`🐑 ${inW}/${nW}`, w - R(0.03), y1);
+  }
+  // 별 목표 셋
+  {
+    const y2 = by + R(0.105), gw = (w - R(0.06)) / 3;
+    const allIn = s.phase === 'result' && s.ok;
+    const bonusOk = d.bonus === 'black' ? F.black.some((b, i) => b && S.pen[i] >= 0) : !S.fh.some((v) => v);
+    const goals: [string, boolean | null][] = [
+      ['다 넣기', allIn ? true : null],
+      [`멍멍 ${d.par}번 이하`, S.used > d.par ? false : allIn ? true : null],
+      [d.bonus === 'black' ? '까만 양도' : '꽃밭 안 밟기', d.bonus === 'flower' && !bonusOk ? false : bonusOk && (allIn || d.bonus === 'black') ? true : allIn ? false : null],
+    ];
+    goals.forEach(([txt, st], k) => {
+      const gx = R(0.03) + k * gw;
+      ctx.fillStyle = st === true ? 'rgba(255,209,102,.3)' : st === false ? 'rgba(120,120,120,.25)' : 'rgba(255,255,255,.08)';
+      ctx.strokeStyle = st === true ? '#ffd166' : st === false ? 'rgba(200,200,200,.4)' : 'rgba(255,230,180,.55)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(gx + 2, y2 - R(0.026), gw - 4, R(0.052), R(0.026));
+      ctx.fill();
+      ctx.stroke();
+      ctx.textAlign = 'center';
+      font(0.036, 800);
+      ctx.fillStyle = st === false ? 'rgba(255,255,255,.45)' : '#fff6e0';
+      ctx.fillText(`${st === true ? '★' : st === false ? '✗' : '☆'} ${txt}`, gx + gw / 2, y2 + 1);
+    });
+  }
+  // 안내 한 줄
+  {
+    const y3 = by + R(0.168);
+    let tip = '👆 누르면 양이 갈 자리가 보여요 — 떼면 멍!';
+    if (s.stage === 0 && S.used === 0) tip = '👆 양 뒤쪽을 꾹 — 갈 자리를 보고, 떼면 멍!';
+    else if (pvNote) tip = '떼면 멍! · 다른 데로 옮기면 다시 계산해요';
+    else if (s.phase === 'result') tip = s.ok ? (d.bonus === 'black' && !F.black.some((b, i) => b && S.pen[i] >= 0) ? '까만 양은 마지막 흰 양보다 먼저!' : '잘했어요!') : '같은 판을 다시 — 이번엔 미리 보고 짖어요';
+    else if (F.den) tip = '🐺 늑대는 멍멍마다 한 걸음 — 원 안에서 짖으면 깨갱!';
+    else if (F.goat && S.goatF > 0) tip = `🐐 염소가 기절했어요 — 멍멍 ${S.goatF}번 뒤 일어나요`;
+    else if (wind) tip = `🌬️ 바람이 ${wind > 0 ? '오른쪽' : '왼쪽'}으로 — 달아난 양이 더 밀려요`;
+    else if (F.pens.length > 1) tip = '🎀 리본 색과 같은 울타리로!';
+    ctx.textAlign = 'center';
+    font(0.036, 800);
+    ctx.fillStyle = 'rgba(255,246,214,.92)';
+    ctx.fillText(tip, w / 2, y3);
+  }
+}
+

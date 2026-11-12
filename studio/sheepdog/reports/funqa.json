@@ -1,0 +1,115 @@
+{
+ "at": "2026-11-12",
+ "runs": 20,
+ "stages": {
+  "1": {
+   "name": "첫 울타리",
+   "max": 9,
+   "par": 1,
+   "smart": {
+    "clear": 1,
+    "stars": 3,
+    "used": 1
+   },
+   "random": {
+    "clear": 0.9
+   }
+  },
+  "2": {
+   "name": "까만 양",
+   "max": 9,
+   "par": 3,
+   "smart": {
+    "clear": 1,
+    "stars": 3,
+    "used": 3
+   },
+   "random": {
+    "clear": 0.55
+   }
+  },
+  "3": {
+   "name": "개울과 다리",
+   "max": 8,
+   "par": 4,
+   "smart": {
+    "clear": 1,
+    "stars": 2.45,
+    "used": 4.55
+   },
+   "random": {
+    "clear": 0
+   }
+  },
+  "4": {
+   "name": "기절 염소",
+   "max": 9,
+   "par": 4,
+   "smart": {
+    "clear": 1,
+    "stars": 2.75,
+    "used": 4.25
+   },
+   "random": {
+    "clear": 0
+   }
+  },
+  "5": {
+   "name": "늑대",
+   "max": 9,
+   "par": 5,
+   "smart": {
+    "clear": 1,
+    "stars": 2.85,
+    "used": 4.3
+   },
+   "random": {
+    "clear": 0
+   }
+  },
+  "6": {
+   "name": "바람 언덕",
+   "max": 10,
+   "par": 7,
+   "smart": {
+    "clear": 1,
+    "stars": 2.25,
+    "used": 7.95
+   },
+   "random": {
+    "clear": 0
+   }
+  },
+  "7": {
+   "name": "울타리 둘",
+   "max": 11,
+   "par": 6,
+   "smart": {
+    "clear": 0.8,
+    "stars": 1.85,
+    "used": 7.06
+   },
+   "random": {
+    "clear": 0
+   }
+  },
+  "8": {
+   "name": "밤 목장",
+   "max": 10,
+   "par": 6,
+   "smart": {
+    "clear": 1,
+    "stars": 2,
+    "used": 3.45
+   },
+   "random": {
+    "clear": 0
+   }
+  }
+ },
+ "run": {
+  "smartMean": 2248,
+  "randomMean": 461,
+  "skillGap": 4.9
+ }
+}
