@@ -14,7 +14,8 @@ const browser = await chromium.launch();
 const errors: string[] = [];
 const st = (page: any) => page.evaluate(() => { const s = (globalThis as any).__duck.state(); return { t: s.t, used: s.used, stage: s.stage, running: (globalThis as any).__duck.running() }; });
 for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', { width: 1280, height: 800 }]] as const) {
-  const page = await browser.newPage({ viewport: vp, deviceScaleFactor: 1 });
+  // D001 FUN QA: 모바일은 터치 기기로 흉내 내야 시작 카드가 터치 안내를 보인다
+  const page = await browser.newPage({ viewport: vp, deviceScaleFactor: 1, ...(name === 'mobile' ? { hasTouch: true, isMobile: true } : {}) });
   page.on('console', (m: any) => m.type() === 'error' && errors.push(`${name}: ${m.text()}`));
   page.on('pageerror', (e: Error) => errors.push(`${name}: ${e.message}`));
   await page.goto(url);

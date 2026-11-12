@@ -77,7 +77,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   writeFileSync(join(import.meta.dirname, 'reports/funqa.json'), JSON.stringify({ at: new Date().toISOString(), ...res }, null, 2) + '\n');
   for (const k of ['숙련', '캐주얼', '처음'] as const) {
     const g2 = res[k] as { medScore: number; medSec: number; winRate: number; medReached: number; firstTapNest: number; failWhy: [string, number][]; stages: { stage: number; tried: number; clearRate: number | null; firstTry: number | null; medSec: number; medTaps: number; stars: number }[] };
-    console.log(`\n[${k}] 점수 중앙 ${g2.medScore} · 한 판 ${g2.medSec}초 · 완주 ${g2.winRate} · 도달 판 중앙 ${g2.medReached} · 첫 톡 3초 뒤 둥지 ${g2.firstTapNest}마리`);
+    console.log(`\n[${k}] 점수 중앙 ${g2.medScore} · 런 전체 ${g2.medSec}초 · 완주 ${g2.winRate} · 도달 판 중앙 ${g2.medReached} · 첫 톡 3초 뒤 둥지 ${g2.firstTapNest}마리`);
     console.log(`  실패 이유: ${g2.failWhy.map(([w, n]) => `${w} ${n}`).join(' · ') || '없음'}`);
     console.log('판 | 도전 | 클리어율 | 첫 시도 | 초 | 톡 | 별');
     for (const st of g2.stages) console.log(`${st.stage} | ${st.tried} | ${st.clearRate} | ${st.firstTry} | ${st.medSec} | ${st.medTaps} | ${st.stars}`);
