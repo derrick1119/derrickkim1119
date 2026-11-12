@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2a1f52">
+<meta name="description" content="풍선을 톡! 터진 풍선이 둘레 풍선을 터뜨려 하늘 전체가 팡팡팡. 톡은 한 판에 세 번.">
+<title>풍선 팡 연쇄</title>
+<style>
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;background:#2a1f52;color:#fffaf2;font:16px/1.45 system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;overflow:hidden;overscroll-behavior:none}
+#wrap{position:relative;height:100dvh;max-width:620px;margin:0 auto;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;outline:none;border-radius:0}
+#hud{position:absolute;top:8px;right:8px;display:flex;gap:6px}
+.icon{width:44px;height:44px;border-radius:12px;border:1px solid #5a4a96;background:#2a1f52cc;color:#fffaf2;font-size:20px;cursor:pointer}
+.icon:focus-visible,.btn:focus-visible{outline:3px solid #ffd166;outline-offset:2px}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;background:linear-gradient(#2a1f52dd 0%,#2a1f5299 45%,#2a1f52f0 100%)}
+h1{font-size:clamp(34px,10vw,52px);line-height:1.05;margin:0 0 4px;letter-spacing:-.02em}
+h1 span{color:#ff5d7a}
+.tag{color:#c9b8e8;margin:0 0 22px}
+ol.rules{list-style:none;padding:0;margin:0 0 24px;max-width:340px;text-align:left}
+ol.rules li{display:flex;gap:10px;align-items:flex-start;margin:0 0 10px;background:#3a2c6ed9;border:1px solid #5a4a96;border-radius:12px;padding:10px 12px}
+ol.rules b{flex:none;width:24px;height:24px;border-radius:50%;background:#ffd166;color:#2a1f52;display:grid;place-items:center;font-size:14px}
+.btn{min-width:200px;min-height:52px;border:0;border-radius:14px;background:#ffd166;color:#2a1f52;font:800 19px system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 0 #b8902f;margin:6px}
+.btn:active{transform:translateY(3px);box-shadow:0 3px 0 #b8902f}
+.keys{color:#c9b8e8;font-size:13px;margin-top:14px}
+kbd{background:#3a2c6e;border-radius:4px;padding:1px 5px;font:inherit}
+#result{justify-content:flex-end;padding-bottom:40px;background:linear-gradient(#2a1f5200 0%,#2a1f5200 30%,#2a1f52f0 62%)}
+.big{font-size:56px;font-weight:900;margin:0;color:#ffd166;line-height:1}
+#r-title{margin:0 0 6px;font-size:22px}
+#r-stars{margin:6px 0 2px;font-weight:700}
+#r-best{color:#ff9fb2;margin:2px 0 14px;font-weight:700}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" tabindex="0" aria-label="풍선 팡 연쇄 게임 화면. 풍선을 톡 하거나 화살표로 고르고 스페이스"></canvas>
+  <div id="hud" hidden>
+    <button class="icon" id="pausebtn" aria-label="일시정지">⏸</button>
+  </div>
+  <section class="screen" id="title" aria-labelledby="t-h">
+    <h1 id="t-h">풍선 <span>팡</span> 연쇄</h1>
+    <p class="tag">톡 한 번에 하늘 전체가 팡팡팡</p>
+    <ol class="rules">
+      <li><b>1</b><span>풍선을 톡 하면 팡! 터진 풍선은 둘레 원 안의 풍선을 터뜨려요. 큰 풍선일수록 원이 커요.</span></li>
+      <li><b>2</b><span>톡은 한 판에 세 번. 목표를 채우면 ★, 두 번 안에 채우거나 모두 터뜨리면 ★ 더!</span></li>
+    </ol>
+    <button class="btn" id="start">하늘로 가기</button>
+    <p class="keys">키보드: <kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd> 커서 · <kbd>스페이스</kbd> 톡 · <kbd>P</kbd> 일시정지</p>
+    <p class="keys" id="best"></p>
+  </section>
+  <section class="screen" id="result" hidden aria-live="polite">
+    <h2 id="r-title"></h2>
+    <p class="big" id="r-score"></p>
+    <p id="r-stars"></p>
+    <p id="r-best"></p>
+    <button class="btn" id="again">다시 하기</button>
+  </section>
+</div>
+<script>/*BUNDLE*/</script>
+</body>
+</html>
