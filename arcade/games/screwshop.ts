@@ -92,17 +92,19 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'flower', name: '해바라기', emoji: '🌻', news: '🪟 유리 화병 — 속이 비쳐 보이지만 막고 있어요', tip: '🪟 유리 밑 나사는 보여도 막혀 있어요', boxes: 2, colors: 5, P: 1, C: 10,
+    key: 'flower', name: '해바라기', emoji: '🌻', news: '🪟 유리 화병 — 속이 비쳐 보이지만 막고 있어요', tip: '🪟 유리 밑 나사는 보여도 막혀 있어요', boxes: 2, colors: 5, P: 1, C: 8,
     toy: () => [
-      bar(0.5, 1.11, 0.5, 0.68, 0.03, '#3f9d4a', [[0.5, 0.78], [0.5, 0.985]]),
-      plate(0.39, 0.85, 0.2, 0.075, -0.45, 0.037, '#58b85e', [[0.335, 0.875], [0.43, 0.83]], { deco: 'leaf' }),
-      plate(0.61, 0.81, 0.2, 0.075, 0.45, 0.037, '#58b85e', [[0.57, 0.79], [0.665, 0.835]], { deco: 'leaf' }),
+      bar(0.5, 1.1, 0.5, 0.7, 0.03, '#3f9d4a', [[0.5, 0.79], [0.5, 0.885], [0.5, 0.985]]),
+      plate(0.405, 0.85, 0.22, 0.08, -0.42, 0.04, '#58b85e', [[0.345, 0.875], [0.43, 0.84]], { deco: 'leaf' }),
+      plate(0.6, 0.955, 0.22, 0.08, -0.42, 0.04, '#4fae55', [[0.565, 0.97], [0.66, 0.93]], { deco: 'leaf' }),
+      disc(0.5, 0.63, 0.07, '#7a4a2a', [[0.5, 0.63]], { deco: 'seeds' }),
       ...[-150, -90, -30].map((deg, j) => {
         const c = Math.cos((deg * Math.PI) / 180), sn = Math.sin((deg * Math.PI) / 180);
-        return bar(0.5 + 0.03 * c, 0.63 + 0.03 * sn, 0.5 + 0.215 * c, 0.63 + 0.215 * sn, 0.044, j === 1 ? '#ffcf3a' : '#ffbe2e', [[0.5 + 0.115 * c, 0.63 + 0.115 * sn], [0.5 + 0.2 * c, 0.63 + 0.2 * sn]], { deco: 'petal' });
+        return bar(0.5 + 0.02 * c, 0.63 + 0.02 * sn, 0.5 + 0.2 * c, 0.63 + 0.2 * sn, 0.044, j === 1 ? '#ffcf3a' : '#ffbe2e', [[0.5 + 0.1 * c, 0.63 + 0.1 * sn], [0.5 + 0.185 * c, 0.63 + 0.185 * sn]], { deco: 'petal' });
       }),
-      disc(0.5, 0.63, 0.062, '#7a4a2a', [[0.5, 0.63]], { deco: 'seeds' }),
-      plate(0.5, 1.03, 0.32, 0.16, 0, 0.05, GLASS, [[0.38, 1.03], [0.62, 1.03]], { kind: 'glass' }),
+      plate(0.5, 1.06, 0.32, 0.14, 0, 0.05, GLASS, [[0.38, 1.06], [0.62, 1.06]], { kind: 'glass' }),
+      disc(0.725, 0.49, 0.062, '#ffd23a', [[0.725, 0.49]], { deco: 'bee' }),
+      disc(0.29, 0.83, 0.05, '#e8414f', [[0.29, 0.83]], { deco: 'bug' }),
     ],
   },
   {
@@ -1652,6 +1654,24 @@ function drawDeco(ctx: CanvasRenderingContext2D, P: Src, R: (r: number) => numbe
       ctx.fillStyle = 'rgba(255,255,255,.3)';
       ctx.beginPath();
       ctx.ellipse(hx * 0.2, -hy * 0.3, hx * 0.5, hy * 0.25, 0, 0, TAU);
+      ctx.fill();
+      break;
+    case 'bee':
+      ctx.fillStyle = '#2a1a10';
+      for (const x of [-0.35, 0.25]) ctx.fillRect(x * hx, -hy, hx * 0.22, hy * 2);
+      ctx.fillStyle = 'rgba(220,240,255,.85)';
+      ctx.beginPath();
+      ctx.ellipse(-hx * 0.2, -hy * 1.05, hx * 0.35, hy * 0.25, -0.3, 0, TAU);
+      ctx.ellipse(hx * 0.3, -hy * 1.05, hx * 0.35, hy * 0.25, 0.3, 0, TAU);
+      ctx.fill();
+      eye(hx * 0.62, -hy * 0.2, R(0.011));
+      break;
+    case 'bug':
+      ctx.fillStyle = '#2a1a10';
+      ctx.fillRect(-R(0.003), -hy, R(0.006), hy * 2);
+      for (const [x, y] of [[-0.45, -0.4], [0.45, -0.35], [-0.4, 0.4], [0.42, 0.45]]) (ctx.beginPath(), ctx.arc(x * hx, y * hy, R(0.009), 0, TAU), ctx.fill());
+      ctx.beginPath();
+      ctx.arc(0, -hy * 0.95, hx * 0.38, 0, TAU);
       ctx.fill();
       break;
     case 'spike':

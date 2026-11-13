@@ -1399,7 +1399,13 @@ function pose(o: Outcome, i: number, b: Blk, tau: number) {
       cx = g.px + rx;
       cy = g.py + ry + g.lift * e;
       a = g.dir * th;
-    } else (cx = g.ax + 0.5 + (g.bx - g.ax) * u), (cy = g.ay + 0.5 + (g.by - g.ay) * u + Math.sin(u * Math.PI) * 0.35), (a = 0);
+    } else {
+      // 조각: 옆으로는 고르게, 아래로는 중력처럼 (위로 살짝 튀었다가)
+      const down = g.by < g.ay;
+      cx = g.ax + 0.5 + (g.bx - g.ax) * Math.min(1, u * 1.3);
+      cy = g.ay + 0.5 + (g.by - g.ay) * (down ? u * u : u) + (down ? Math.sin(u * Math.PI) * 0.15 : Math.sin(u * Math.PI) * 0.35);
+      a = 0;
+    }
   }
   const rub = o.rubT[i] >= 0 && tau >= o.rubT[i];
   return { x: cx, y: cy, a, rub, gone: false, moving };
@@ -1535,7 +1541,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DemoState, w: number, h: numb
     ctx.lineTo(fx0, gl - R(0.05));
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
-    font(0.03, 900);
+    font(0.036, 900);
     ctx.textAlign = L.granny > 0 ? 'left' : 'right';
     ctx.textBaseline = 'bottom';
     ctx.fillText('목표', fx0 + (L.granny > 0 ? 3 : -3), gl - R(0.012));
@@ -1561,43 +1567,76 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DemoState, w: number, h: numb
     ctx.lineTo(side < 0 ? -R(0.05) : w + R(0.05), top - R(0.12));
     ctx.closePath();
     ctx.fill();
-    // 창문
-    const wx = side < 0 ? x1 - R(0.012) - Math.min(hw * 0.7, R(0.13)) : x0 + R(0.012), ww = Math.min(hw * 0.7, R(0.13)), wy = top + R(0.05), wh = R(0.11);
-    ctx.fillStyle = '#5a3a40';
-    ctx.fillRect(wx - 2, wy - 2, ww + 4, wh + 4);
-    const lg = ctx.createLinearGradient(0, wy, 0, wy + wh);
-    lg.addColorStop(0, '#ffe9a8');
-    lg.addColorStop(1, '#ffb366');
-    ctx.fillStyle = lg;
-    ctx.fillRect(wx, wy, ww, wh);
-    if (mine) granny(ctx, wx + ww / 2, wy + wh * 0.55, Math.min(R(0.055), ww * 0.45), s.granny, t, side < 0 ? 1 : -1);
-    else {
-      // 비둘기
-      const fly = s.phase === 'boom' && s.pt > 0 ? Math.min(1, s.pt / 60) : 0;
-      const px = wx + ww / 2 - side * fly * R(0.3), py = top - R(0.07) - fly * R(0.25);
-      ctx.fillStyle = '#b9b3c9';
+    if (mine) {
+      // 고양이 할머니의 내민 창 (울타리 위로 살짝 나와 공사장을 내려다본다)
+      const bw = R(0.19), bh = R(0.16), bx = side < 0 ? x1 + R(0.05) - bw : x0 - R(0.05), by = Y(GY - 6.3 * CW);
+      ctx.fillStyle = 'rgba(40,20,30,.25)';
+      ctx.fillRect(bx + 3, by + 4, bw, bh);
+      ctx.fillStyle = '#8a5a4a';
+      ctx.fillRect(bx - 3, by - 3, bw + 6, bh + 6);
+      const lg = ctx.createLinearGradient(0, by, 0, by + bh);
+      lg.addColorStop(0, '#fff1c0');
+      lg.addColorStop(1, '#ffb366');
+      ctx.fillStyle = lg;
+      ctx.fillRect(bx, by, bw, bh);
+      // 커튼
+      ctx.fillStyle = '#ff9fb8';
       ctx.beginPath();
-      ctx.ellipse(px, py, R(0.022), R(0.016), 0, 0, Math.PI * 2);
+      ctx.moveTo(bx, by);
+      ctx.quadraticCurveTo(bx + bw * 0.22, by + bh * 0.3, bx + bw * 0.08, by + bh);
+      ctx.lineTo(bx, by + bh);
+      ctx.closePath();
+      ctx.moveTo(bx + bw, by);
+      ctx.quadraticCurveTo(bx + bw * 0.78, by + bh * 0.3, bx + bw * 0.92, by + bh);
+      ctx.lineTo(bx + bw, by + bh);
+      ctx.closePath();
       ctx.fill();
-      ctx.beginPath();
-      ctx.arc(px - side * R(0.016), py - R(0.014), R(0.011), 0, Math.PI * 2);
-      ctx.fill();
-      if (fly) {
+      granny(ctx, bx + bw / 2, by + bh * 0.52, R(0.062), s.granny, t, side < 0 ? 1 : -1);
+      // 줄무늬 차양
+      for (let k = 0; k < 6; k++) {
+        ctx.fillStyle = k % 2 ? '#ffffff' : '#e8577a';
         ctx.beginPath();
-        ctx.ellipse(px, py - R(0.012), R(0.02), R(0.006), Math.sin(t * 0.8) * 0.8, 0, Math.PI * 2);
+        ctx.moveTo(bx - 4 + (k * (bw + 8)) / 6, by - 3);
+        ctx.lineTo(bx - 4 + ((k + 1) * (bw + 8)) / 6, by - 3);
+        ctx.lineTo(bx - 4 + ((k + 1) * (bw + 8)) / 6, by - R(0.035));
+        ctx.lineTo(bx - 4 + (k * (bw + 8)) / 6, by - R(0.035));
         ctx.fill();
       }
-    }
-    ctx.fillStyle = '#5a3a40';
-    ctx.fillRect(wx, wy + wh * 0.48, ww, 2);
-    // 화분
-    ctx.fillStyle = '#c0583a';
-    ctx.fillRect(wx, wy + wh + 2, ww, R(0.018));
-    for (let k = 0; k < 3; k++) {
-      ctx.fillStyle = ['#ff6b8a', '#ffd23a', '#ff9f1c'][k];
+      // 화분 상자
+      ctx.fillStyle = '#c0583a';
+      ctx.fillRect(bx - 3, by + bh + 3, bw + 6, R(0.022));
+      for (let k = 0; k < 4; k++) {
+        ctx.fillStyle = ['#ff6b8a', '#ffd23a', '#ff9f1c', '#ff6b8a'][k];
+        ctx.beginPath();
+        ctx.arc(bx + bw * (0.14 + k * 0.24), by + bh + 2, R(0.013), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      const ww = Math.min(hw * 0.7, R(0.13)), wx = side < 0 ? x1 - R(0.012) - ww : x0 + R(0.012), wy = top + R(0.05), wh = R(0.11);
+      ctx.fillStyle = '#5a3a40';
+      ctx.fillRect(wx - 2, wy - 2, ww + 4, wh + 4);
+      ctx.fillStyle = '#ffd99a';
+      ctx.fillRect(wx, wy, ww, wh);
+      ctx.fillStyle = '#5a3a40';
+      ctx.fillRect(wx, wy + wh * 0.48, ww, 2);
+      // 비둘기 (쾅 하면 날아간다)
+      const fly = s.phase === 'boom' || s.phase === 'result' ? Math.min(1, (s.phase === 'boom' ? s.pt : 99) / 60) : 0;
+      const px = (side < 0 ? x1 - R(0.05) : x0 + R(0.05)) - side * fly * R(0.3), py = top - R(0.08) - fly * R(0.25);
+      ctx.fillStyle = '#c9c3d9';
       ctx.beginPath();
-      ctx.arc(wx + ww * (0.2 + k * 0.3), wy + wh, R(0.01), 0, Math.PI * 2);
+      ctx.ellipse(px, py, R(0.024), R(0.017), 0, 0, Math.PI * 2);
       ctx.fill();
+      ctx.beginPath();
+      ctx.arc(px - side * R(0.018), py - R(0.015), R(0.012), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ff9f1c';
+      ctx.fillRect(px - side * R(0.03) - 2, py - R(0.016), 4, 2);
+      if (fly) {
+        ctx.fillStyle = '#c9c3d9';
+        ctx.beginPath();
+        ctx.ellipse(px, py - R(0.014), R(0.024), R(0.007), Math.sin(t * 0.8) * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     // 울타리 + 빨간 선
     const lx = side < 0 ? lotX0 : lotX1;
@@ -1835,8 +1874,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DemoState, w: number, h: numb
     ctx.fillRect(0, Y(HB), w, R(0.035) * k);
     ctx.fillRect(0, gy + R(0.13) - R(0.035) * k, w, R(0.035) * k);
     if (k > 0.5) {
-      ctx.fillStyle = 'rgba(255,255,255,.8)';
-      font(0.03, 800);
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      font(0.034, 800);
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       ctx.fillText('▶▶ 느린 화면', R(0.03), Y(HB) + R(0.018));
@@ -1898,7 +1937,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DemoState, w: number, h: numb
   ctx.fillStyle = th.hot;
   ctx.fillText('♥'.repeat(Math.max(0, s.hearts)) + '♡'.repeat(Math.max(0, 3 - s.hearts)), w - R(0.05) - ctx.measureText(stt).width, hb * 0.52);
   // 새것 알림
-  if (s.news && s.t - s.news.t < NEWS_T && s.phase !== 'count') {
+  const cardUp = s.phase === 'result' || (s.phase === 'play' && s.pt < CARD_T && !s.down);
+  if (s.news && s.t - s.news.t < NEWS_T && s.phase !== 'count' && !cardUp && !(s.down && s.phase === 'play')) {
     const age = s.t - s.news.t, a = Math.min(1, age / 10, (NEWS_T - age) / 20), drop = Math.max(0, 10 - age) * 2;
     ctx.globalAlpha = a;
     font(0.036, 900);

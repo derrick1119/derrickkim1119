@@ -35,7 +35,7 @@ const CUR = { x: 0.215, y: TRAY_Y, w: 0.3, h: TRAY_H };
 const NXT = [{ x: 0.545, y: TRAY_Y + 0.025, w: 0.2, h: TRAY_H - 0.035 }, { x: 0.77, y: TRAY_Y + 0.025, w: 0.2, h: TRAY_H - 0.035 }];
 const BAND = 1.375;
 const MOLE = { x: 0.105, y: TRAY_Y + 0.175 };
-const RESULT_OK = 210, RESULT_FAIL = 170, NEWS_T = 170, CARD_T = 130, CARD_DELAY = 45;
+const RESULT_OK = 210, RESULT_FAIL = 170, NEWS_T = 170, CARD_T = 130, CARD_DELAY = 55;
 const STAR_PTS = 100, LEFT_PTS = 10, WIN_PTS = 300;
 const MAXM = 8;
 
@@ -206,8 +206,13 @@ const MARK = new Uint8Array(NN);
 /** 조각을 놓고(물뿌리개면 그 칸의 가로·세로를) 찬 줄을 피운다. 돌은 한 번 맞으면 금, 두 번이면 깨짐 */
 function applyMove(b: Board, sh: number, ox: number, oy: number, bee: number, rec: boolean): Res {
   const r: Res = { lines: 0, rows: [], cols: [], seeds: 0, gold: 0, weeds: 0, hits: 0, broke: 0, bee: 0, cells: [], kinds: [] };
-  if (sh === CAN) r.rows.push(oy), r.cols.push(ox);
-  else {
+  if (sh === CAN) {
+    // 물뿌리개: 그 칸의 가로·세로 줄을 통째로 (빈 줄은 세지 않는다)
+    let rowAny = false, colAny = false;
+    for (let k = 0; k < N; k++) (rowAny ||= b.k[oy * N + k] !== EMPTY), (colAny ||= b.k[k * N + ox] !== EMPTY);
+    if (rowAny) r.rows.push(oy);
+    if (colAny) r.cols.push(ox);
+  } else {
     for (const [dx, dy] of SHAPES[sh]) {
       const i = (oy + dy) * N + ox + dx;
       b.k[i] = SEED;
@@ -1222,7 +1227,7 @@ function drawMole(ctx: CanvasRenderingContext2D, x: number, y: number, u: number
     sc = 1 + 0.06 * p;
   }
   if (mood === 5) jump = Math.abs(Math.sin(t * 0.1)) * u * 0.1;
-  if (mood === 6) rot = -Math.PI / 2 + Math.sin(t * 0.3) * 0.12;
+  if (mood === 6) (rot = -Math.PI / 2 + Math.sin(t * 0.3) * 0.12), ctx.translate(u * 1.05, -u * 0.15);
   ctx.translate(0, -jump);
   ctx.rotate(rot);
   ctx.scale(sc, sc);
@@ -1381,7 +1386,7 @@ function drawMole(ctx: CanvasRenderingContext2D, x: number, y: number, u: number
     for (let k = 0; k < 3; k++) {
       const a = t * 0.12 + (k * Math.PI * 2) / 3;
       ctx.fillStyle = '#fff27a';
-      star(ctx, x - u * 0.8 + Math.cos(a) * u * 0.5, y - u * 0.75 + Math.sin(a) * u * 0.18, u * 0.14);
+      star(ctx, x + u * 0.2 + Math.cos(a) * u * 0.5, y - u * 0.75 + Math.sin(a) * u * 0.18, u * 0.14);
       ctx.fill();
     }
 }
@@ -2109,7 +2114,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BGState, w: number, h: number
     const ft = `🌸 ${Math.min(s.flowers, 999)}/${d.goal}`;
     ctx.fillText(ft, px0 + X(0.02), mid + 1);
     const fw = ctx.measureText(ft).width;
-    const barX = px0 + X(0.03) + fw, barW = pw - fw - X(0.28), prog = Math.min(1, s.flowers / d.goal);
+    const combo = s.streak >= 1 && s.phase === 'play';
+    const barX = px0 + X(0.03) + fw, barW = pw - fw - X(combo ? 0.39 : 0.28), prog = Math.min(1, s.flowers / d.goal);
     ctx.fillStyle = 'rgba(90,52,24,.25)';
     ctx.beginPath();
     ctx.roundRect(barX, mid - X(0.012), barW, X(0.024), X(0.012));
@@ -2127,17 +2133,22 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BGState, w: number, h: number
     font(0.038, 900);
     ctx.fillStyle = s.left <= 3 ? '#c0392b' : '#5a3418';
     ctx.fillText(`🌱 모종 ${s.left}`, px0 + pw - X(0.02), mid + 1);
-    if (s.streak >= 1 && s.phase === 'play') {
+    if (combo) {
+      // 콤보 배지: 다음에 또 지우면 배수가 오른다
       ctx.textAlign = 'center';
       font(0.036, 900);
-      const ct = `콤보 ${s.streak}`;
-      const cw = ctx.measureText(ct).width + X(0.03);
-      ctx.fillStyle = '#ff8a3a';
+      const ct = `🔥${s.streak}`, cx3 = barX + barW + X(0.055);
+      const pul = 1 + 0.08 * Math.sin(t * 0.25);
+      ctx.save();
+      ctx.translate(cx3, mid);
+      ctx.scale(pul, pul);
+      ctx.fillStyle = '#ff7a2a';
       ctx.beginPath();
-      ctx.roundRect(w / 2 - cw / 2, py + ph + X(0.004), cw, X(0.04), X(0.02));
+      ctx.roundRect(-X(0.04), -X(0.021), X(0.08), X(0.042), X(0.021));
       ctx.fill();
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(ct, w / 2, py + ph + X(0.025));
+      ctx.fillText(ct, 0, 1);
+      ctx.restore();
     }
   }
   // 새것 알림 띠 (담장 아래쪽)
