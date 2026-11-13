@@ -74,6 +74,14 @@ describe('M1-2 W1 아침 들판 (CONTENT.md W1)', () => {
     }
   }, 60_000);
 
+  it('1-4 까만 양은 흰 무리 바로 옆 — 무리를 미는 첫 짖기에 까만 양도 겪는다 (C005, FUN F3)', () => {
+    const s = g.create(1);
+    jumpTo(s, 3);
+    const b = s.F.black.indexOf(true);
+    const near = Math.min(...s.S.x.map((x, i) => (s.F.black[i] ? 9 : Math.hypot(x - s.S.x[b], s.S.y[i] - s.S.y[b]))));
+    expect(near).toBeLessThan(0.2);
+  });
+
   it('🍀 클로버: 흰 양이 지나가면 보너스 별', () => {
     const s = g.create(2);
     jumpTo(s, 2); // 흩어진 양
@@ -92,14 +100,14 @@ describe('M1-2a 개울 판 도움 깃발 (📐 C004)', () => {
   };
   const retry = (s: DogState) => g.step(s, { ...up, retry: true });
 
-  it('1-6은 첫 풍덩 뒤, 1-7·1-8은 두 번째 풍덩 뒤에 깃발 ①② — 개울 없는 판엔 없다', () => {
+  it('1-6·1-8은 첫 풍덩 뒤, 1-7은 두 번째 풍덩 뒤에 깃발 ①② — 개울 없는 판엔 없다 (C005: 1-8 당김)', () => {
     const s = g.create(7);
     jumpTo(s, 5);
     expect(s.flags.length).toBe(0);
     s.splashes = 1;
     retry(s);
     expect(s.flags.length).toBe(2);
-    for (const [k, need] of [[6, 2], [7, 2]]) {
+    for (const [k, need] of [[6, 2], [7, 1]]) {
       jumpTo(s, k);
       s.splashes = need - 1;
       retry(s);

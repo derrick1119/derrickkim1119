@@ -186,7 +186,15 @@ export const STAGES: StageDef[] = [
       sheep: [[0.3, 0.52], [0.36, 0.57], [0.64, 0.57], [0.7, 0.52], [0.5, 0.68]].map(([x, y]) => ({ x: x + jit(r, 0.015), y: y + jit(r, 0.015) })),
     }),
   },
-  { ...P('black'), build: (r) => ({ ...P('black').build(r), flowers: [] }) }, // 📐 C003: 꽃밭은 🌼 판에만
+  {
+    ...P('black'),
+    // 📐 C003: 꽃밭은 🌼 판에만 · C005(FUN QA C003): 까만 양을 흰 무리 바로 옆으로 — 첫 짖기에 '?!'을 꼭 겪게(순진 근사 0.30 → 목표 0.9)
+    build: (r) => {
+      const L = P('black').build(r), b = L.sheep.find((q) => q.black)!;
+      (b.x = b.x < 0.5 ? 0.36 : 0.64), (b.y = 0.47);
+      return { ...L, flowers: [] };
+    },
+  },
   {
     key: 'pull', name: '끌어오기', news: '🖤 까만 양은 울타리 쪽에서 불러요', max: 9, par: 3, bonus: 'black',
     build: (r) => {
@@ -205,16 +213,18 @@ export const STAGES: StageDef[] = [
     build: (r) => ({ ...P('river').build(r), sheep: flock(r, 0.5 + jit(r, 0.06), 0.68, [[-0.065, 0], [0.065, 0], [0, -0.03], [-0.05, 0.08], [0.06, 0.08]]) }),
   },
   {
-    key: 'narrow', name: '좁은 다리', news: '🌉 좁은 다리 — 건너편 까만 양은 거꾸로 와요!', max: 9, par: 4, bonus: 'clover',
+    // 📐 C004 ⑥ 대비책(C005): 🖤 판으로 바꿔 보니 박사가 까만 양을 먼저 넣은 뒤 흰 양에 멍멍을 다 써서(8판 시드 모두 9번) 🏅가 안 나왔다
+    //   → 정한 대비책 '좁은 다리 + 🍀'. 클로버는 다리→문 지름길 밖(저절로 따지지 않게, 📐 C003)
+    key: 'narrow', name: '좁은 다리', news: '🌉 좁은 다리 — 한 줄로 세워 건너요', max: 9, par: 4, bonus: 'clover',
     build: (r) => {
-      const side = r() < 0.5 ? -1 : 1;
+      r(); // 예전 까만 양 자리를 정하던 난수 — 배치 시드(LAYOUT_SEED)를 그대로 쓰려고 하나 버린다
       return {
         pens: [PEN0()],
         river: RIVER(0.43, 0.57),
         flowers: [],
-        // TODO C004(📐 C003): 클로버를 다리→문 지름길 밖으로, 까만 양을 다리 입구 옆으로 — 해 보니 그리디가 막혀서 좌표 설계와 함께 다시
+        // 클로버를 지름길 밖(0.5±0.2, 0.3)에 두면 박사가 par도 🍀도 못 땄다(C005 시드 12개) → 다리 위로 되돌림. '저절로 따지는 🍀'는 ❌로 공개(M1-7)
         clovers: [{ x: 0.5, y: 0.45, r: 0.04 }],
-        sheep: [...flock(r, 0.5 + jit(r, 0.05), 0.7, FIVE), { x: 0.5 + 0.26 * side + jit(r, 0.02), y: 0.31 + jit(r, 0.02), black: true }],
+        sheep: flock(r, 0.5 + jit(r, 0.05), 0.7, FIVE),
       };
     },
   },
@@ -227,7 +237,8 @@ export const STAGES: StageDef[] = [
         river: RIVER(),
         flowers: [],
         sheep: [
-          ...flock(r, 0.5 + jit(r, 0.03), 0.68, [[-0.15, 0], [0.15, 0], [-0.05, -0.03], [0.05, -0.03], [-0.09, 0.08], [0.09, 0.08], [0, 0.12]]),
+          // 📐 C005 (가): 흰 양 7마리 그대로, 무리 폭을 다리 폭에 맞춰 세 줄로(±0.15 → ±0.065) — 어려움은 '섞는 순서'에서, 손끝 정밀에서가 아니라
+          ...flock(r, 0.5 + jit(r, 0.03), 0.66, [[-0.03, -0.035], [0.03, -0.035], [-0.065, 0.03], [0, 0.03], [0.065, 0.03], [-0.035, 0.1], [0.035, 0.1]]),
           { x: 0.5 + 0.3 * side + jit(r, 0.02), y: 0.86 + jit(r, 0.02), black: true },
         ],
       };
@@ -238,7 +249,7 @@ export const STAGES: StageDef[] = [
 export const LATER: StageDef[] = PROTO.filter((d) => !STAGES.some((w) => w.key === d.key));
 export const STAGE_COUNT = STAGES.length;
 /** 판마다 고정 배치 시드 (C002: 숙련 봇이 별 셋을 모두 딸 수 있는 배치로 골랐다 — tests/studio-sheepdog.test.ts가 지킨다) */
-export const LAYOUT_SEED = [1, 1, 1, 1, 2, 1, 19, 15];
+export const LAYOUT_SEED = [1, 1, 1, 1, 2, 1, 19, 20];
 /** 별 비트: 1 다 넣기 · 2 멍멍 par 이하 · 4 보너스 */
 /** 판 보너스(★3): 🌼 꽃밭 안 밟기 · 🖤 까만 양도 넣기 · 🍀 흰 양이 클로버 지나가기 (GDD §4.3) */
 function bonusMet(F: Field, S: Sim, d: StageDef) {
@@ -673,7 +684,7 @@ function newStage(s: DogState) {
 }
 
 /** 몇 번째 풍덩 뒤에 깃발을 띄우나 (📐 C004: 소개 판 1-6은 첫 풍덩, 연습 판은 한 번 스스로 떠올릴 기회를 남긴다) */
-const FLAG_AFTER: Record<string, number> = { river: 1, narrow: 2, fest: 2 };
+const FLAG_AFTER: Record<string, number> = { river: 1, narrow: 2, fest: 1 }; // C005: 1-8은 조심 막힘 0.2~0.25(경계)라 📐 규칙대로 첫 풍덩으로 당김
 /** 깃발 ① 근처(이 거리 안)에서 짖으면 깃발 자리로 붙여서 짖는다 — 0.015 차이에 결과가 갈리는 판이라 */
 export const FLAG_SNAP = 0.04;
 

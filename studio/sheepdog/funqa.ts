@@ -11,6 +11,8 @@ import { STAGES, jumpTo, starCount, sheepdog as g, sheepdogCareful, sheepdogGree
 import { mulberry32 } from './rng.ts';
 
 const N = Number(process.argv[2] ?? 20);
+/** --deep: 경계 판(1-8)의 조심 막힘을 200회로 (C005 PM: 20·60회로는 0.20과 0.25를 못 가른다) */
+const DEEP = process.argv.includes('--deep');
 const here = import.meta.dirname;
 
 /** 한 판(stage)만 따로: 그 판에서 시작해 통과/실패까지. 별 수와 쓴 멍멍 */
@@ -64,7 +66,7 @@ for (let k = 0; k < STAGES.length; k++) {
   const rd = Array.from({ length: N }, (_, i) => onStage(bots.random, 1000 + i, k));
   const gr = onStage(bots.greedy, 1000, k); // 판 고정이라 그리디 결과는 한 번이면 된다
   const st = Array.from({ length: Math.min(N, 10) }, (_, i) => +stuck25(2000 + i, k));
-  const care = Array.from({ length: N }, (_, i) => triesToClear(bots.careful, 3000 + i, k));
+  const care = Array.from({ length: DEEP && d.key === 'fest' ? 200 : N }, (_, i) => triesToClear(bots.careful, 3000 + i, k));
   const intro = ['black', 'river'].includes(d.key) ? avg(Array.from({ length: N }, (_, i) => +experiences(bots.naive, 4000 + i, k))) : null;
   per[k + 1] = {
     name: d.name, max: d.max, par: d.par, parGap: +(d.par - Math.min(...sm.filter((r) => r.ok).map((r) => r.used))).toFixed(2),

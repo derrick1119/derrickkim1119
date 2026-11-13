@@ -93,8 +93,8 @@
    },
    "greedy": {
     "clear": 1,
-    "used": 1,
-    "overPar": -2
+    "used": 2,
+    "overPar": -1
    },
    "random": {
     "clear": 1,
@@ -104,7 +104,7 @@
     "stuck25": 0,
     "tries": 1
    },
-   "naiveSeesNew": 0.3
+   "naiveSeesNew": 1
   },
   "5": {
    "name": "끌어오기",
@@ -176,11 +176,11 @@
    },
    "random": {
     "clear": 0,
-    "stuck25": 1
+    "stuck25": 0.9
    },
    "careful": {
     "stuck25": 0,
-    "tries": 3.3
+    "tries": 3.25
    },
    "naiveSeesNew": null
   },
@@ -197,23 +197,23 @@
    },
    "greedy": {
     "clear": 1,
-    "used": 9,
-    "overPar": 2
+    "used": 8,
+    "overPar": 1
    },
    "random": {
     "clear": 0,
-    "stuck25": 1
+    "stuck25": 0.9
    },
    "careful": {
-    "stuck25": 0.2,
-    "tries": 7.5
+    "stuck25": 0,
+    "tries": 2.83
    },
    "naiveSeesNew": null
   }
  },
  "run": {
   "smartMean": 2500,
-  "randomMean": 660,
+  "randomMean": 665,
   "skillGap": 3.8
  }
 }
