@@ -114,6 +114,48 @@ describe('욕조 물결 오리 시뮬', () => {
     expect(s.crisisT).toBe(-1);
   });
 
+  describe('💤 잠꾸러기 (D013, CONTENT §2: 처음 맞은 물결엔 깨기만 · 자는 동안 꼼짝 안 함)', () => {
+    const idle = { tap: false, dir: 0 as const, pointer: null };
+    const ready = () => {
+      const s = g.create(3);
+      startStage(s, 0);
+      while (s.phase !== 'play' || s.pt < 2) g.step(s, idle);
+      const [a, b, c] = s.objs.filter((o) => o.k === 0), gold = s.objs.find((o) => o.k === 1)!;
+      c.st = gold.st = 0; // 확인용: 두 마리만 물 위에
+      Object.assign(a, { zz: 1, x: 0.5, y: 0.6, vx: 0, vy: 0 });
+      Object.assign(b, { x: 0.62, y: 0.6, vx: 0, vy: 0 });
+      return { s, a, b };
+    };
+    it('자는 오리는 다른 오리가 부딪혀도 그 자리 그대로 — 부딪힌 쪽이 튕긴다', () => {
+      const { s, a, b } = ready();
+      b.vx = -0.012;
+      for (let k = 0; k < 30; k++) g.step(s, idle);
+      expect([a.x, a.y, a.zz]).toEqual([0.5, 0.6, 1]);
+      expect(b.x).toBeGreaterThan(0.55);
+      expect(b.vx).toBeGreaterThanOrEqual(0);
+    });
+    it('처음 닿은 물결엔 깨기만(안 밀림), 깬 뒤 다음 물결엔 밀린다', () => {
+      const { s, a } = ready();
+      s.rings.push({ id: s.rid++, x: 0.4, y: 0.6, r: 0, hit: [0, 0, 0, 0, 0] });
+      let k = 0;
+      while (a.zz && k++ < 60) g.step(s, idle);
+      expect(a.zz).toBe(0);
+      expect([a.x, a.y, a.vx, a.vy]).toEqual([0.5, 0.6, 0, 0]);
+      s.rings = [{ id: s.rid++, x: 0.4, y: 0.6, r: 0, hit: [0, 0, 0, 0, 0] }];
+      for (k = 0; k < 20; k++) g.step(s, idle);
+      expect(a.x).toBeGreaterThan(0.5);
+    });
+    it('자는 오리는 배수구에도 안 끌린다', () => {
+      const s = g.create(9);
+      startStage(s, 2);
+      while (s.phase !== 'play' || s.pt < 2) g.step(s, idle);
+      const dr = s.L.drains[0], o = s.objs[0];
+      Object.assign(o, { zz: 1, x: dr.x + dr.pr * 0.5, y: dr.y, vx: 0, vy: 0 });
+      for (let k = 0; k < 30; k++) g.step(s, idle);
+      expect([o.x, o.y, o.st]).toEqual([dr.x + dr.pr * 0.5, dr.y, -1]);
+    });
+  });
+
   it('판 흔들기는 (시드, 판 id)로만 정해진다 — 판을 끼워 넣어도 다른 판의 흔들림·뒤집힘이 그대로 (D010)', () => {
     const s = g.create(1007);
     STAGES.forEach((d, i) => expect(s.jit[i]).toEqual(jitFor(1007, d.id)));

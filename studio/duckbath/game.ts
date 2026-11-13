@@ -52,7 +52,7 @@ interface StageDef {
   key: string;
   news: string;
   hint: string;
-  /** [x, y, 색(0 노랑·1 분홍)] */
+  /** [x, y, 색(0 노랑·1 분홍), 잠꾸러기(1 = 💤, D013)] */
   ducks: number[][];
   gold: number[];
   boat?: number[];
@@ -248,6 +248,8 @@ interface Obj {
   /** FREE 떠 있음 · 0 이상 들어간 둥지 · SUCKED 배수구 · EATEN 상어 */
   st: number;
   hitT: number; hitR: number; stun: number; ord: number;
+  /** D013 💤 잠꾸러기 (CONTENT §2): 1 = 자는 중 — 처음 맞은 물결엔 깨기만, 자는 동안 꼼짝 안 함 */
+  zz: number;
   // 연출 (시뮬레이션 결과와 무관)
   face: number; spin: number; mood: number; moodT: number;
 }
@@ -297,7 +299,7 @@ function toPlane(sx: number, sy: number) {
 const inWater = (x: number, y: number, m = 0) => x >= m && x <= W - m && y >= m && y <= H - m;
 
 // ───────────────────────────── 시뮬레이션 ─────────────────────────────
-const mk = (k: number, col: number, x: number, y: number): Obj => ({ sx: x, sy: y, k, col, x, y, vx: 0, vy: 0, st: FREE, hitT: -99, hitR: -1, stun: 0, ord: 0, face: x < 0.5 ? 1 : -1, spin: 0, mood: k === SHARK ? 5 : 0, moodT: 0 });
+const mk = (k: number, col: number, x: number, y: number): Obj => ({ sx: x, sy: y, k, col, x, y, vx: 0, vy: 0, st: FREE, hitT: -99, hitR: -1, stun: 0, ord: 0, zz: 0, face: x < 0.5 ? 1 : -1, spin: 0, mood: k === SHARK ? 5 : 0, moodT: 0 });
 
 function fits(o: Obj, n: Nest) {
   if (o.k === BOAT) return n.dock;
@@ -356,6 +358,7 @@ function respawn(S: Sim, o: Obj, E: DuckState | null) {
   o.vx = o.vy = 0;
   o.st = FREE;
   o.stun = 0;
+  o.zz = 0;
   o.hitT = -99;
   o.hitR = -1;
   if (E) (o.mood = 4), (o.moodT = 70), (o.spin = 6), ev(E, 'pop', x, y, '뿅! 톡 −1');
@@ -381,6 +384,14 @@ function phys(S: Sim, E: DuckState | null) {
         if (d > g.r || d < g.r - 4 * RS) continue;
         g.hit[im] |= 1 << i;
         if (L.islands.length && shadow(L, g.x, g.y, ix, iy, o.x, o.y, im)) continue;
+        if (o.zz) {
+          // 💤 처음 맞은 물결엔 깨기만 — 밀지 않는다. 같은 톡의 반사 물결(다른 im)은 깬 뒤라 민다
+          o.zz = 0;
+          o.hitT = S.t;
+          o.hitR = g.id * 8 + im;
+          if (E) (o.mood = 1), (o.moodT = 40), (o.spin = 1.2), ev(E, 'wake', o.x, o.y, '번쩍! 깼다!');
+          continue;
+        }
         if (d < 0.02) {
           if (E) (o.mood = 1), (o.moodT = 40), (o.spin = 1), ev(E, 'quack', o.x, o.y, '꽥?!');
           continue;
@@ -411,7 +422,7 @@ function phys(S: Sim, E: DuckState | null) {
   // 2) 흐름 · 배수구 · 상어 · 마찰 · 벽 · 섬 · 둥지
   for (let i = 0; i < objs.length; i++) {
     const o = objs[i];
-    if (o.st !== FREE) continue;
+    if (o.st !== FREE || o.zz) continue; // 💤 자는 동안은 흐름·배수구·이동 없이 꼼짝 안 함
     let f = FR;
     for (const sl of L.slicks) if ((o.x - sl.x) ** 2 + (o.y - sl.y) ** 2 < sl.r * sl.r) f = FR_SLICK;
     for (const st of L.streams)
@@ -504,6 +515,15 @@ function phys(S: Sim, E: DuckState | null) {
       const dx = b.x - a.x, dy = b.y - a.y, m = RAD[a.k] + RAD[b.k], d2 = dx * dx + dy * dy;
       if (d2 >= m * m || d2 < 1e-10) continue;
       const d = Math.sqrt(d2), nx = dx / d, ny = dy / d, ma = MASS[a.k], mb = MASS[b.k], ov = m - d;
+      if (a.zz || b.zz) {
+        // 💤 자는 오리는 벽처럼 꼼짝 안 함 — 부딪힌 쪽만 밀려나고 튕긴다
+        if (a.zz && b.zz) continue;
+        const q = a.zz ? b : a, sg = a.zz ? 1 : -1, rv = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+        q.x += sg * nx * ov;
+        q.y += sg * ny * ov;
+        if (rv < 0) (q.vx -= sg * 1.8 * rv * nx), (q.vy -= sg * 1.8 * rv * ny); // 무한 질량과 부딪힘 (반발 .8)
+        continue;
+      }
       a.x -= nx * ov * (mb / (ma + mb));
       a.y -= ny * ov * (mb / (ma + mb));
       b.x += nx * ov * (ma / (ma + mb));
@@ -565,7 +585,7 @@ function newStage(s: DuckState) {
     slicks: (d.slicks ?? []).map(([x, y, r]) => ({ x: fx(x), y, r })),
   };
   s.objs = [];
-  for (const [x, y, col] of d.ducks) s.objs.push(mk(DUCK, col, fx(x) + J(0.02), y + J(0.02)));
+  for (const [x, y, col, zz] of d.ducks) s.objs.push({ ...mk(DUCK, col, fx(x) + J(0.02), y + J(0.02)), zz: zz ? 1 : 0 });
   s.objs.push(mk(GOLD, 0, fx(d.gold[0]) + J(0.02), d.gold[1] + J(0.02)));
   if (d.boat) s.objs.push(mk(BOAT, 0, fx(d.boat[0]), d.boat[1]));
   if (d.shark) s.objs.push(mk(SHARK, 0, fx(d.shark[0]), d.shark[1]));
@@ -795,7 +815,7 @@ function cosmetic(s: DuckState) {
         let scared = false;
         for (const d of s.L.drains) if (Math.hypot(o.x - d.x, o.y - d.y) < d.pr + 0.03) scared = true;
         for (const q of s.objs) if (q.k === SHARK && q.st === FREE && s.awake && q.stun <= 0 && Math.hypot(o.x - q.x, o.y - q.y) < 0.25) scared = true;
-        o.mood = scared ? 4 : 0;
+        o.mood = o.zz ? 7 : scared ? 4 : 0;
       }
     }
     if (o.k === SHARK && o.st === FREE && o.moodT <= 0) o.mood = !s.awake ? 5 : o.stun > 0 ? 2 : 0;
@@ -1175,6 +1195,11 @@ function drawDuck(ctx: CanvasRenderingContext2D, x: number, y: number, u: number
     ctx.beginPath();
     ctx.arc(ex, ey + u * 0.04, u * 0.1, Math.PI * 1.1, Math.PI * 1.9);
     ctx.stroke();
+  } else if (mood === 7) {
+    // 💤 감은 눈
+    ctx.beginPath();
+    ctx.arc(ex, ey - u * 0.02, u * 0.09, Math.PI * 0.15, Math.PI * 0.85);
+    ctx.stroke();
   } else {
     ctx.beginPath();
     ctx.ellipse(ex, ey, u * 0.075, u * 0.1, 0, 0, Math.PI * 2);
@@ -1203,6 +1228,21 @@ function drawDuck(ctx: CanvasRenderingContext2D, x: number, y: number, u: number
     }
     ctx.beginPath();
     ctx.arc(hx - hr * 0.2, hy - hr * 0.86, hr * 0.15, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  if (mood === 7) {
+    // 💤 뜨개 나이트캡 (CONTENT §2 그림 단서) — 머리 뒤로 늘어진 고깔 + 방울
+    ctx.fillStyle = '#5b7cfa';
+    ctx.beginPath();
+    ctx.moveTo(hx - hr * 0.85, hy - hr * 0.45);
+    ctx.quadraticCurveTo(hx - hr * 0.1, hy - hr * 1.5, hx + hr * 0.75, hy - hr * 0.5);
+    ctx.quadraticCurveTo(hx - hr * 0.6, hy - hr * 1.1, hx - hr * 1.5, hy - hr * 0.2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(hx - hr * 0.85, hy - hr * 0.62, hr * 1.6, hr * 0.2);
+    ctx.beginPath();
+    ctx.arc(hx - hr * 1.5, hy - hr * 0.2, hr * 0.2, 0, Math.PI * 2);
     ctx.fill();
   }
   if (extra === 1 || extra === 3) {
@@ -1247,6 +1287,20 @@ function drawDuck(ctx: CanvasRenderingContext2D, x: number, y: number, u: number
       star(ctx, x + face * u * 0.4 + Math.cos(a) * u * 0.55, y - u * 1.45 + Math.sin(a) * u * 0.18, u * 0.16);
       ctx.fill();
     }
+  if (mood === 7) {
+    // 'Z z' 거품 — 위로 천천히 (reduced-motion이면 제자리)
+    const k = CALM ? 0.5 : (t % 90) / 90;
+    ctx.fillStyle = 'rgba(255,255,255,.92)';
+    ctx.strokeStyle = 'rgba(30,60,120,.55)';
+    ctx.lineWidth = 1;
+    ctx.font = `900 ${Math.round(u * 0.55)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.strokeText('Z', x + face * u * 0.9, y - u * (1.1 + k * 0.5));
+    ctx.fillText('Z', x + face * u * 0.9, y - u * (1.1 + k * 0.5));
+    ctx.font = `900 ${Math.round(u * 0.38)}px system-ui, sans-serif`;
+    ctx.strokeText('z', x + face * u * 1.35, y - u * (1.6 + k * 0.5));
+    ctx.fillText('z', x + face * u * 1.35, y - u * (1.6 + k * 0.5));
+  }
   if ((extra === 1 || extra === 3) && (t + Math.floor(x)) % 40 < 20) {
     ctx.fillStyle = '#fffbe0';
     star(ctx, x - face * u * 0.7, y - u * 0.9, u * 0.14 * (1 + Math.sin(t * 0.3)));
@@ -2373,6 +2427,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     const x = SX(e.x, e.y), y = e.kind === 'cat' ? Y(WY0 - 0.15) : SY(e.y);
     if (e.kind === 'splash') fx.burst(x, y, '#ffffff', 22, 3.6, 2.6), fx.burst(x, y, '#8fe6ff', 14, 2.8, 2.2), fx.ring(x, y, '#ffffff', R(0.1), 4), fx.kick(3), say(x, y - R(0.05), e.text!, '#ffffff', 17);
     if (e.kind === 'quack') fx.burst(x, y - R(0.02), '#ffffff', 6, 1.8, 1.8), say(x, y - R(0.07), e.text!, e.col ?? '#fff3a0', 13);
+    if (e.kind === 'wake') fx.burst(x, y - R(0.04), '#5b7cfa', 10, 2.6, 2.2), fx.burst(x, y - R(0.03), '#ffffff', 8, 2, 2), say(x, y - R(0.08), e.text!, '#dfe6ff', 15);
     if (e.kind === 'refl') fx.ring(x, y, '#bff3ff', R(0.06), 2), say(x, y - R(0.07), e.text!, '#bff3ff', 13);
     if (e.kind === 'duo') fx.burst(x, y, '#bff3ff', 20, 4, 2.4), fx.ring(x, y, '#ffffff', R(0.08), 4), fx.kick(5), say(x, y - R(0.08), e.text!, '#9ff0ff', 15);
     if (e.kind === 'bonk') fx.burst(x, y - R(0.02), '#ffffff', 8, 2.2, 2), fx.kick(2), say(x, y - R(0.06), e.text!, '#ffe3b0', 13);
