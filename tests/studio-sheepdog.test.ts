@@ -65,12 +65,14 @@ describe('M1-2 W1 아침 들판 (CONTENT.md W1)', () => {
     expect(LATER.map((d) => d.key)).toEqual(['goat', 'wolf', 'wind', 'twopens', 'night']);
   });
 
-  it('막힘 0: 미리 보고 한 수만 두는 그리디 봇도 W1 모든 판을 깬다 (FUN F10)', () => {
+  it('막힘 0: 미리 보고 한 수만 두는 그리디 봇도 W1 모든 판을 깬다 (FUN F10) · 소개 판이 아니면 그리디 ≥ par+1 (📐 C003, M1-7 ② 1-3·1-5)', () => {
+    const intro = ['start', 'preview', 'black', 'river'];
     for (let k = 0; k < STAGES.length; k++) {
       const s = g.create(4);
       jumpTo(s, k);
       play(s, 'greedy', 4);
       expect(s.ok, `${k + 1}판`).toBe(true);
+      if (!intro.includes(STAGES[k].key)) expect(s.S.used, `${k + 1}판 그리디 멍멍`).toBeGreaterThanOrEqual(STAGES[k].par + 1);
     }
   }, 60_000);
 

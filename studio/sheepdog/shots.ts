@@ -11,10 +11,15 @@ const here = import.meta.dirname, url = pathToFileURL(join(here, '../../web/publ
 const browser = await chromium.launch();
 const errors: string[] = [];
 /** 완료 기준(🎨 §12-10, C009): HUD·카드·타이틀 DOM에 그림 글자(이모지) 0 */
+/** Q7 스포일러: 결과 카드·끝 화면 글에 좌표·짖을 자리 같은 답이 없다 */
+const noSpoiler = async (page: any, at: string) => {
+  const t: string = await page.evaluate(() => ['#card', '#msg'].map((q) => document.querySelector(q)?.textContent ?? '').join(' '));
+  if (/\d\.\d|자리|좌표|여기서 짖/.test(t)) errors.push(`${at}: 결과 글에 답이 보임 — ${t.slice(0, 60)}`);
+};
 const noEmoji = async (page: any, at: string) => {
   const bad: string = await page.evaluate(() =>
     ['#hudTop', '#hudBot', '#news', '#card', '#overlay', '#retry']
-      .map((q) => [...(document.querySelector(q)?.textContent ?? '')].filter((c) => /\p{Extended_Pictographic}/u.test(c)).join(''))
+      .map((q) => [...(document.querySelector(q)?.textContent ?? '')].filter((c) => /[\p{Extended_Pictographic}☆★↺↻▶◀]/u.test(c)).join(''))
       .join(''),
   );
   if (bad) errors.push(`${at}: 이모지 ${bad}`);
@@ -78,6 +83,7 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   if (await page.locator('#card').isHidden()) errors.push(`${name}: 결과 카드 안 뜸`);
   await page.screenshot({ path: join(here, 'screens', `${name}-card-medal.png`) });
   await noEmoji(page, `${name}-card`);
+  await noSpoiler(page, `${name}-card`);
   if (!(await page.locator('#hudBot').evaluate((e: HTMLElement) => getComputedStyle(e).visibility === 'hidden'))) errors.push(`${name}: 카드가 떴는데 아래 HUD가 보임`);
   await page.waitForTimeout(1500);
   if ((await st(page, 's.stage')) !== 0) errors.push(`${name}: 결과 카드에서 저절로 넘어감`);
@@ -129,6 +135,26 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
       await page.waitForTimeout(1700);
       await page.screenshot({ path: join(here, 'screens', `${name}-w1-${k + 1}.png`) });
     }
+  // 1-4 까만 양이 거꾸로 와서 강아지가 뒤로 폴짝·'?!' 멈춤 순간 (모바일만, C007 → M1-7 ①)
+  if (name === 'mobile') {
+    await page.evaluate(() => (globalThis as any).__sd.jump(3));
+    // 멈춤은 판을 끝내는 짖기(흰 양이 다 들고 까만 양이 거꾸로 온 짖기)에만 온다 → 순진 근사 봇 자리(양 뒤에서 문 쪽, 한 번에 그렇게 됨)를 진짜로 누른다
+    let held = false;
+    for (let k = 0; k < 5 && !held; k++) {
+      await page.waitForFunction(() => (globalThis as any).__sd.state().phase === 'aim', null, { timeout: 10_000 });
+      const q = await page.evaluate(() => (globalThis as any).__sd.bot('naive')), bb = await page.locator('#game').boundingBox();
+      await page.mouse.move(bb.x + q.x * bb.width, bb.y + q.y * bb.height);
+      await page.mouse.down();
+      await page.waitForTimeout(80);
+      await page.mouse.up();
+      await page.waitForFunction(() => (globalThis as any).__sd.state().phase !== 'aim', null, { timeout: 3000 });
+      const r = await page.waitForFunction(() => { const sd = (globalThis as any).__sd, ph = sd.state().phase; return sd.hold() ? 'hold' : ph === 'aim' || ph === 'result' ? ph : false; }, null, { timeout: 8000, polling: 16 });
+      held = (await r.jsonValue()) === 'hold';
+      if (!held && (await st(page, 's.phase')) === 'result') break;
+    }
+    if (held) await page.waitForTimeout(120), await page.screenshot({ path: join(here, 'screens', `${name}-w1-4-come.png`) });
+    else errors.push(`${name}: 1-4에서 까만 양 멈춤(폴짝)을 못 찍음`);
+  }
   // 개울 판 도움 깃발 ①② (모바일만): 1-6에서 한 번 풍덩한 셈 치고 R로 다시
   if (name === 'mobile') {
     await page.evaluate(() => { const sd = (globalThis as any).__sd; sd.jump(5); sd.state().splashes = 1; });
@@ -172,7 +198,21 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.keyboard.press('KeyR');
   await page.waitForTimeout(200);
   // 끝 화면: 1-8을 깬 결과 카드(상태를 놓음)에서 진짜 '끝 ▶' 버튼을 눌러 간다 — 카드가 끝 화면 위에 남지 않는지 (FUN QA C008)
-  await page.evaluate(() => { const sd = (globalThis as any).__sd; sd.jump(7); const s = sd.state(); s.phase = 'result'; s.ok = true; s.won = true; s.got = 7; s.best[7] = 7; s.clearT = s.t; s.pt = 0; });
+  // 1-8은 박사 봇 자리를 진짜로 눌러 깬다(상태를 놓지 않음, PM C008 → M1-7 ①)
+  await page.evaluate(() => (globalThis as any).__sd.jump(7));
+  await page.waitForTimeout(300);
+  for (let k = 0; k < 12 && (await st(page, 's.phase')) !== 'result'; k++) {
+    await page.waitForFunction(() => ['aim', 'result'].includes((globalThis as any).__sd.state().phase), null, { timeout: 15_000 });
+    if ((await st(page, 's.phase')) === 'result') break;
+    const q = await page.evaluate(() => (globalThis as any).__sd.bot('smart')), bb = await page.locator('#game').boundingBox();
+    await page.mouse.move(bb.x + q.x * bb.width, bb.y + q.y * bb.height);
+    await page.mouse.down();
+    await page.waitForTimeout(80);
+    await page.mouse.up();
+    await page.waitForTimeout(150);
+  }
+  await page.waitForFunction(() => (globalThis as any).__sd.state().phase === 'result', null, { timeout: 15_000 });
+  if ((await st(page, 's.ok + "," + s.won')) !== 'true,true') errors.push(`${name}: 1-8을 진짜로 못 깸`);
   await page.waitForTimeout(150);
   await page.keyboard.press('Enter'); // 카드가 막 뜬 때 누른 '다음'도 들고 있다가 넘긴다
   await page.waitForTimeout(900);
@@ -180,6 +220,7 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   if (await page.locator('#card').isVisible()) errors.push(`${name}: 끝 화면 위에 결과 카드가 남음`);
   await page.screenshot({ path: join(here, 'screens', `${name}-end.png`) });
   await noEmoji(page, `${name}-end`);
+  await noSpoiler(page, `${name}-end`);
   const emo: string[] = await page.evaluate(() => [...(window as any).__emo]);
   if (emo.length) errors.push(`${name}: 캔버스 글자에 그림 글자 ${emo.join(' | ')}`);
   if (await page.locator('#hudTop').isVisible()) errors.push(`${name}: 끝 화면에 HUD가 남음`);
@@ -207,6 +248,20 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   if (!(await fits('#card [data-act=next]'))) errors.push('se: 결과 카드 버튼이 화면 밖');
   if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) errors.push('se: 가로 스크롤');
   await page.close();
+}
+// 터치 폰(hasTouch): 타이틀 키보드 안내 줄이 숨는다 (C009 → M1-7 ①) · 다크 모드(Q2): 글자가 패널·외곽선 위라 그대로 읽히는지 샷
+for (const [tag, opt] of [['touch', { hasTouch: true, isMobile: true }], ['dark', { colorScheme: 'dark' }]] as const) {
+  const c = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, ...opt });
+  const pg = await c.newPage();
+  pg.on('pageerror', (e: Error) => errors.push(`${tag}: ${e.message}`));
+  await pg.goto(url);
+  await pg.waitForTimeout(500);
+  await pg.screenshot({ path: join(here, 'screens', `${tag}-title.png`) });
+  if (tag === 'touch' && (await pg.locator('.keys').isVisible())) errors.push('touch: 터치 폰 타이틀에 키보드 안내가 보임');
+  await pg.locator('#start').click();
+  await pg.waitForTimeout(1200);
+  await pg.screenshot({ path: join(here, 'screens', `${tag}-play.png`) });
+  await c.close();
 }
 // localStorage 막힌 환경
 const ctx = await browser.newContext();

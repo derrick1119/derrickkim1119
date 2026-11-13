@@ -193,7 +193,8 @@ export const STAGES: StageDef[] = [
       pens: [WIDE()],
       flowers: [],
       clovers: [{ x: 0.5, y: 0.42, r: 0.05 }],
-      sheep: [[0.3, 0.52], [0.36, 0.57], [0.64, 0.57], [0.7, 0.52], [0.5, 0.68]].map(([x, y]) => ({ x: x + jit(r, 0.015), y: y + jit(r, 0.015) })),
+      // C011 M1-7 ②: 그리디(미리 보고 한 수) = par → par+1이 되는 자리로(시드 지터를 빼고 좌표를 박음). 박사 3멍 ★3 한 번에·조심 막힘 0 그대로
+      sheep: [[0.293, 0.528], [0.366, 0.56], [0.649, 0.577], [0.683, 0.512], [0.503, 0.659]].map(([x, y]) => (r(), r(), { x, y })),
     }),
   },
   {
@@ -208,14 +209,13 @@ export const STAGES: StageDef[] = [
   },
   {
     key: 'pull', name: '끌어오기', news: '🖤 까만 양은 울타리 쪽에서 불러요', max: 9, par: 3, bonus: 'black',
-    build: (r) => {
-      const side = r() < 0.5 ? -1 : 1;
-      return {
-        pens: [WIDE()],
-        flowers: [],
-        sheep: [...flock(r, 0.5 - 0.05 * side, 0.64, [[-0.06, 0], [0.06, 0], [-0.03, 0.06], [0.04, 0.06]], 0.01), { x: 0.5 + 0.1 * side + jit(r, 0.02), y: 0.4 + jit(r, 0.02), black: true }],
-      };
-    },
+    // C011 M1-7 ②: 그리디 = par → par+1이 되는 자리로(좌표를 박음, 셋째 자리에서 반올림한 값으로 쟀다). 📐 C005 방향: 까만 양을 흰 무리와 울타리 사이 길목에 —
+    // 흰 양을 위로 미는 자연스러운 자리의 바깥 원에 까만 양이 걸려 강아지 쪽으로 끌려 내려온다. 박사 3멍 ★3 한 번에·조심 막힘 0
+    build: () => ({
+      pens: [WIDE()],
+      flowers: [],
+      sheep: [...[[0.486, 0.649], [0.61, 0.642], [0.544, 0.681], [0.592, 0.691]].map(([x, y]) => ({ x, y })), { x: 0.517, y: 0.469, black: true }],
+    }),
   },
   {
     ...P('river'),
@@ -770,6 +770,8 @@ const FY0 = 0.305, FH = 0.775, FXW = 0.92;
 const scl = (fy: number) => 0.8 + 0.25 * fy;
 const SX = (fx: number, fy: number) => 0.5 + (fx - 0.5) * FXW * scl(fy);
 const SY = (fy: number) => FY0 + fy * FH;
+/** 줄이기 설정(prefers-reduced-motion) — 브라우저에서만 */
+const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 /** 미리 보기 쪽지 한 조각 (아이콘 + 글) */
 interface Part { icon?: IconKind; text: string }
 const HUD_FONT = 'system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
@@ -2445,6 +2447,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       mood = 'happy';
       const ag = doneHop ? s.pt : t - s.startT;
       hop = doneHop ? Math.abs(Math.sin(ag * 0.22 + i * 1.3)) * R(0.03) : (t + i * 37) % 160 < 14 ? Math.sin((((t + i * 37) % 160) / 14) * Math.PI) * R(0.012) : 0;
+      // 딸깍 폴짝 (ART §7, C011 ③-d): 막 들어간 양은 250ms(15틱) 동안 0.4z 높이로 한 번 뛴다
+      const inT = fx.memo[`inT${i}`], dIn = inT === undefined ? 99 : t - inT;
+      if (dIn < 15) hop = Math.max(hop, Math.sin((Math.PI * dIn) / 15) * 0.4 * R(0.044) * scl(sy0));
       if (!pa || q >= 1) face = Math.sin(t * 0.01 + i) > 0 ? 1 : -1;
     }
     if (S.fell[i] && (!pa || q > 0.6)) mood = 'swim';
@@ -2819,7 +2824,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   for (const e of s.events) {
     if (e.t <= seenT) continue;
     const x = PX(e.x, e.y), y = PY(e.y);
-    if (e.kind === 'bark') cue('bark', 1 + (((e.t * 7919) % 101) - 50) / 1000), fx.ring(x, y - R(0.03), '#ffffff', R(0.16), 4), fx.kick(4), say(x, y - R(0.1), '멍!', 26, { g: 'A', rot: -0.14 }), fx.burst(x, y - R(0.04), '#fff6d0', 10, 2.6, 2);
+    if (e.kind === 'bark') cue('bark', 1 + (((e.t * 7919) % 101) - 50) / 1000), fx.ring(x, y, '#ffffff', R(0.16), 4, 0, 0.5), fx.ring(x, y, '#ffffff', R(0.2), 3, 5, 0.5), fx.kick(4), // 🎨 ART §7 짖기 충격파: 바닥 타원 2겹(두 번째 80ms 늦게) (C011 ③-c)
+      say(x, y - R(0.1), '멍!', 26, { g: 'A', rot: -0.14 }), fx.burst(x, y - R(0.04), '#fff6d0', 10, 2.6, 2);
     if (e.kind === 'faint') fx.burst(x, y - R(0.04), '#ffe066', 18, 3, 2.6), fx.kick(3), say(x, y - R(0.1), '꽥!', 15, { g: 'A' });
     if (e.kind === 'yelp') say(x, y - R(0.1), '깨갱!', 15, { g: 'A' });
     // 강아지 머리 위는 벡터 '!'(drawDog surprise)가 맡는다 — 글자는 까만 양 위 하나만 (🎨 C007)
@@ -2853,7 +2859,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
         fx.memo[k2] = key;
         return true;
       };
+      // 양털 (ART §7, C011 ③-d): 놀란 양마다 흰 털뭉치 5개(줄이기 설정이면 2개)
+      if (flee.scare[i] > 0 && q < 0.08 && mk('wool')) {
+        const [a, b] = sheepAt(i);
+        fx.burst(PX(a, b), PY(b) - R(0.03), '#ffffff', REDUCED ? 2 : 5, 2.2, 4);
+      }
       if (flee.penAt[i] >= 0 && idx >= flee.penAt[i] && mk('in')) {
+        fx.memo[`inT${i}`] = t;
         const [a, b] = pathAt(pa, flee.penAt[i] / Math.max(1, m - 1));
         fx.burst(PX(a, b), PY(b) - R(0.03), '#ffffff', 12, 2.6, 2.6);
         fx.ring(PX(a, b), PY(b) - R(0.02), '#e8ffd0', R(0.05), 2);
@@ -2907,8 +2919,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   ctx.restore();
 
   // ── 도움 깃발 ①② (C004) ──
+  // 깃발 ① 깜빡임 (🎨 C011 ③-b, 🧪 C009 ②): 말풍선이 뜨는 틱(판 시작 + INTRO_T)부터 30틱마다 3번, 앞 12틱 동안 발밑 기준 1→1.35→1 + 천에 흰빛
+  const fa = t - s.startT - INTRO_T, blink = fa >= 0 && fa < 90 && fa % 30 < 12 ? Math.sin((Math.PI * (fa % 30)) / 12) : 0;
   s.flags.forEach(([qx, qy], k) => {
-    const sx = PX(qx, qy), sy = PY(qy), hgt = R(0.09) * scl(qy), first = k === 0, wave = Math.sin(t * 0.12 + k) * R(0.004);
+    const sx = PX(qx, qy), sy = PY(qy), hgt = R(0.09) * scl(qy), first = k === 0, wave = Math.sin(t * 0.12 + k) * R(0.004), bl = first ? blink : 0;
+    ctx.save();
+    if (bl && !REDUCED) ctx.translate(sx, sy), ctx.scale(1 + 0.35 * bl, 1 + 0.35 * bl), ctx.translate(-sx, -sy);
     ctx.globalAlpha = first ? 1 : 0.5;
     ctx.fillStyle = 'rgba(40,30,10,.3)';
     ctx.beginPath();
@@ -2926,12 +2942,14 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     ctx.lineTo(sx + hgt * 0.55, sy - hgt * 0.8 + wave);
     ctx.lineTo(sx, sy - hgt * 0.6);
     ctx.fill();
+    if (bl) (ctx.fillStyle = `rgba(255,255,255,${0.5 * bl})`), ctx.fill();
     ctx.fillStyle = '#ffffff';
     ctx.font = `900 ${Math.round(hgt * 0.3)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(k === 0 && s.flags.length === 2 ? '1' : '2', sx + hgt * 0.2, sy - hgt * 0.8);
     ctx.globalAlpha = 1;
+    ctx.restore();
   });
   // ═════════ HUD ═════════
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${R(sz)}px system-ui, sans-serif`);
@@ -2939,7 +2957,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   // 판 시작 큰 글씨
   {
     const age = t - s.startT;
-    if (age < INTRO_T && s.phase !== 'result') {
+    if (age < INTRO_T && s.phase === 'aim' && S.used === 0) { // 짖으면 바로 걷는다(C011: 1-4 첫 짖기의 ?!·멍!과 겹침)
       const a = Math.min(1, age / 8, (INTRO_T - age) / 20), sc = 1 + Math.max(0, 8 - age) * 0.04;
       ctx.globalAlpha = a;
       ctx.save();

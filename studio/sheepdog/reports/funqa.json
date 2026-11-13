@@ -67,16 +67,16 @@
    },
    "greedy": {
     "clear": 1,
-    "used": 3,
-    "overPar": 0
+    "used": 4,
+    "overPar": 1
    },
    "random": {
-    "clear": 0.05,
-    "stuck25": 0.4
+    "clear": 0,
+    "stuck25": 0.7
    },
    "careful": {
     "stuck25": 0,
-    "tries": 1.95
+    "tries": 1.9
    },
    "naiveSeesNew": null
   },
@@ -119,16 +119,16 @@
    },
    "greedy": {
     "clear": 1,
-    "used": 3,
-    "overPar": 0
+    "used": 4,
+    "overPar": 1
    },
    "random": {
-    "clear": 0.1,
-    "stuck25": 0.5
+    "clear": 0.05,
+    "stuck25": 0.3
    },
    "careful": {
     "stuck25": 0,
-    "tries": 1.35
+    "tries": 1.1
    },
    "naiveSeesNew": null
   },
@@ -213,7 +213,7 @@
  },
  "run": {
   "smartMean": 2500,
-  "randomMean": 690,
-  "skillGap": 3.6
+  "randomMean": 635,
+  "skillGap": 3.9
  }
 }

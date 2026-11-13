@@ -89,6 +89,8 @@ export function mountHud(root: HTMLElement): Hud {
           ? `${ICON.bone(true, h.used < h.par)}<b>×${left}</b>`
           : // 뼈는 오른쪽부터 사라진다 → 먼저 사라질 오른쪽 par개가 금뼈, 금뼈를 다 쓰면 '멍멍 par번' 별 끝 (🧪 C009 ①: 눈금이 왼쪽 par번째라 거꾸로 읽힘)
             Array.from({ length: h.max }, (_, k) => `<i class="${k === h.max - h.par ? 'par' : ''}">${ICON.bone(k < left, k >= h.max - h.par)}</i>`).join('');
+      // 양 수 알약 펄스 (ART §7 딸깍, C011 ③-d): 들어간 수가 늘면 한 번 튄다
+      if (sc.textContent && h.sheepIn > Number(sc.textContent.split('/')[0])) sc.parentElement!.classList.remove('pulse'), void (sc.parentElement as HTMLElement).offsetWidth, sc.parentElement!.classList.add('pulse');
       sc.textContent = `${h.sheepIn}/${h.sheepN}`;
       chips.innerHTML = h.goals.map((g) => `<span class="chip ${g.st}">${ICON.star(g.st === 'on' || g.st === 'had')}<span>${g.label}</span></span>`).join('');
       bot.classList.toggle('card', h.card);

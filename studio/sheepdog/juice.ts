@@ -24,7 +24,7 @@ const boxOf = (p: { x: number; y: number; text: string; size: number; icon?: Ico
 export class Juice {
   particles: Particle[] = [];
   popups: Popup[] = [];
-  rings: { x: number; y: number; color: string; r: number; max: number; width: number; life: number }[] = [];
+  rings: { x: number; y: number; color: string; r: number; max: number; width: number; life: number; wait: number; sy: number }[] = [];
   shake = 0;
   flash = 0;
   flashColor = '#ffffff';
@@ -81,9 +81,9 @@ export class Juice {
     }
   }
 
-  /** 퍼져 나가는 충격파 고리 (0026) */
-  ring(x: number, y: number, color: string, max = 60, width = 4) {
-    this.rings.push({ x, y, color, r: 4, max, width, life: 24 });
+  /** 퍼져 나가는 충격파 고리 (0026) · wait틱 뒤에 시작, sy = 세로 눌림(바닥 원근 타원, C011) */
+  ring(x: number, y: number, color: string, max = 60, width = 4, wait = 0, sy = 1) {
+    this.rings.push({ x, y, color, r: 4, max, width, life: 24, wait, sy });
     if (this.rings.length > 20) this.rings.shift();
   }
 
@@ -107,13 +107,14 @@ export class Juice {
   /** 다 그린 뒤 부른다: 파티클·글자·번쩍을 덧그린다 */
   render(ctx: CanvasRenderingContext2D, w: number, h: number) {
     for (const r of this.rings) {
+      if (r.wait > 0 && r.wait--) continue;
       r.life--;
       r.r += (r.max - r.r) * 0.18;
       ctx.globalAlpha = Math.max(0, r.life / 24);
       ctx.strokeStyle = r.color;
       ctx.lineWidth = r.width * (r.life / 24) + 0.5;
       ctx.beginPath();
-      ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
+      ctx.ellipse(r.x, r.y, r.r, r.r * r.sy, 0, 0, Math.PI * 2);
       ctx.stroke();
     }
     this.rings = this.rings.filter((r) => r.life > 0);

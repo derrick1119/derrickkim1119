@@ -3,7 +3,7 @@
  * 샘플 파일 없이 WebAudio로 합성한다. **첫 입력(시작 누름) 전에는 AudioContext를 만들지 않는다**, 꺼 두었으면 아예 만들지 않는다.
  * 시뮬레이션은 모른다 — 그림(draw)·카드가 순간에 cue를 부른다(결정성·봇 측정에 영향 없음).
  */
-export type Cue = 'bark' | 'baa' | 'baaBlack' | 'click' | 'splash' | 'star';
+export type Cue = 'bark' | 'baa' | 'baaBlack' | 'click' | 'splash' | 'star' | 'stamp';
 
 type AC = AudioContext;
 let ac: AC | null = null, master: GainNode | null = null, noise: AudioBuffer | null = null, muted = false;
@@ -68,6 +68,13 @@ const SYNTH: Record<Cue, (t: number, v: number, last: boolean) => void> = {
     tone('sine', 300, 80, t, 0.35, 0.4, master!);
     tone('sine', 420, 980, t + 0.04, 0.14, 0.4, master!); // 오르는 '퐁'
   },
+  // 🏅 '한 번에!' 도장 (🎨 C011): 쿵(삼각 240→70Hz) + 탁(노이즈) + 70ms 뒤 짠(G6 + 1.5배) — 별 띵 C·D·E 다음을 G로 맺는다
+  stamp(t) {
+    tone('triangle', 240, 70, t, 0.18, 0.6, filter('lowpass', 900));
+    hiss(t, 0.04, 0.4, filter('lowpass', 1500));
+    tone('sine', 1568, 1568, t + 0.07, 0.5, 0.3, master!);
+    tone('sine', 2352, 2352, t + 0.07, 0.5, 0.15, master!);
+  },
   star(t, k) {
     const f = 1046.5 * semi(2 * k); // C6 → D6 → E6
     tone('sine', f, f, t, 0.4, 0.35, master!);
@@ -95,7 +102,7 @@ export const sfx = {
   wake() {
     if (muted) return;
     if (!ac) {
-      const Ctor = (globalThis as unknown as { AudioContext?: new () => AC }).AudioContext;
+      const G = globalThis as unknown as { AudioContext?: new () => AC; webkitAudioContext?: new () => AC }, Ctor = G.AudioContext ?? G.webkitAudioContext; // 옛 사파리 (PM C010)
       if (!Ctor) return;
       ac = new Ctor();
       master = ac.createGain();
@@ -105,7 +112,15 @@ export const sfx = {
       const d = noise.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     }
-    if (ac.state === 'suspended') void ac.resume();
+    // 앱을 오가거나 화면이 잠기면 suspended(아이폰은 interrupted)가 된다 → 누를 때마다 다시 깨운다 (PM C010, M1-7 ①)
+    if (ac.state !== 'running') {
+      void ac.resume().catch(() => {});
+      // 아이폰 잠금 풀기: 무음 한 샘플을 사용자 입력 안에서 튼다
+      const src = ac.createBufferSource();
+      src.buffer = ac.createBuffer(1, 1, ac.sampleRate);
+      src.connect(ac.destination);
+      src.start(0);
+    }
   },
   /** 소리 하나. delay(초) 뒤에 */
   play(c: Cue, v = 1, last = false, delay = 0) {

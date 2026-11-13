@@ -6,8 +6,9 @@ import { TICK, type Input } from './core.ts';
 import { mountResultCard } from './ui.ts';
 import { ICON, mountHud } from './hud.ts';
 import { sfx } from './sfx.ts';
+import { mulberry32 } from './rng.ts';
 import { peek } from './juice.ts';
-import { RESULT_MIN, at, jumpTo, preview, setCue, sheepdog as g, sheepdogGreedy, starCount, type DogState } from './game.ts';
+import { RESULT_MIN, at, comeHold, jumpTo, preview, setCue, sheepdog as g, sheepdogGreedy, sheepdogNaive, sheepdogSmart, starCount, type DogState } from './game.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('sheepdog:' + k) ?? 0); } catch { return 0; } },
@@ -197,6 +198,8 @@ sfx.setMuted(store.get('mute') === 1);
 setCue((c, v, last) => sfx.play(c, v, last));
 showSound();
 soundBtn.addEventListener('click', () => toggleSound());
+// 판 누름마다 소리를 다시 깨운다 — 첫 입력 전엔 만들지 않고, 꺼 두었으면 아무것도 안 한다 (PM C010: 폰에서 앱 전환·화면 잠금 뒤 무음)
+for (const k of ['pointerup', 'touchend', 'click', 'keydown']) window.addEventListener(k, () => running && sfx.wake(), { passive: true });
 retryBtn.addEventListener('click', () => {
   retry = true;
   canvas.focus({ preventScroll: true });
@@ -214,5 +217,6 @@ function splashPoint() {
     }
   return null;
 }
-// bot: 그리디 봇이 지금 짖을 자리(캔버스 비율) — shots가 진짜 ★2 카드를 찍을 때 (PM C008)
-(globalThis as unknown as { __sd: { state: () => DogState; jump: (k: number) => void; splash: () => unknown; bot: () => unknown } }).__sd = { state: () => s, jump: (k) => jumpTo(s, k), splash: splashPoint, bot: () => sheepdogGreedy.act(s, Math.random).pointer };
+// 순진 봇은 씨앗 5로 — 1-4 첫 짖기에 흰 양을 다 넣고 까만 양이 거꾸로 온다(멈춤·폴짝 샷)
+// bot: 그리디(기본)·박사·순진 봇이 지금 짖을 자리(캔버스 비율) — shots가 진짜 ★2 카드·1-8 진짜 클리어를 찍을 때 (PM C008·C010) · hold: 까만 양 '?!' 멈춤 중인가
+(globalThis as unknown as { __sd: { state: () => DogState; jump: (k: number) => void; splash: () => unknown; bot: (who?: 'smart' | 'naive') => unknown; hold: () => boolean } }).__sd = { state: () => s, jump: (k) => jumpTo(s, k), splash: splashPoint, bot: (who) => (who === 'smart' ? sheepdogSmart : who === 'naive' ? sheepdogNaive : sheepdogGreedy).act(s, mulberry32(5)).pointer, hold: () => comeHold(s) };

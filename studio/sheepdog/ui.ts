@@ -6,6 +6,9 @@ import { STAGES, goalLabels, medalOf, starCount, type DogState } from './game.ts
 import { ICON } from './hud.ts';
 import { sfx } from './sfx.ts';
 
+/** 별 반짝이 ✦ 8개(큰 12px·작은 8px 번갈아, 별마다 k×22.5° 돌림) + 후광 (🎨 C011 ③-a) */
+const SPARK = '<svg viewBox="0 0 24 24"><path d="M12 1l2.6 8.4L23 12l-8.4 2.6L12 23l-2.6-8.4L1 12l8.4-2.6z" fill="#ffc857" stroke="#7a3e1d" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+const sparks = (k: number) => `<i class="halo"></i>${Array.from({ length: 8 }, (_, i) => `<b class="sp${i % 2 ? '' : ' big'}" style="--a:${i * 45 + k * 22.5}deg">${SPARK}</b>`).join('')}`;
 const STAR = (on: boolean) =>
   `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 6 6.5.9-4.7 4.6 1.1 6.5L12 17.5l-5.8 3.1 1.1-6.5L2.6 9.5l6.5-.9z" fill="${on ? '#ffc857' : 'none'}" stroke="${on ? '#7a3e1d' : '#9c8566'}" stroke-width="2" stroke-linejoin="round"/></svg>`;
 
@@ -57,7 +60,7 @@ export function mountResultCard(root: HTMLElement, onNext: () => void, onRetry: 
       starsEl.innerHTML = goals
         .map((g, k) => {
           const on = ((got >> k) & 1) === 1, had = !on && ((s.best[s.stage] >> k) & 1) === 1;
-          return `<figure class="${on ? 'on' : had ? 'had' : 'off'}" style="--k:${k}">${STAR(on || had)}<figcaption>${g}</figcaption></figure>`;
+          return `<figure class="${on ? 'on' : had ? 'had' : 'off'}" style="--k:${k}">${on ? sparks(k) : ''}${STAR(on || had)}<figcaption>${g}</figcaption></figure>`;
         })
         .join('');
       // 🏅 한 번에! — 한 시도에 ★★★(깃발 도움 없이)면 세 번째 별 뒤 쿵, 나눠 모은 ★★★면 회색 점선 (📐 C003·C004)
@@ -65,6 +68,7 @@ export function mountResultCard(root: HTMLElement, onNext: () => void, onRetry: 
       // 별 띵: 별이 켜지는 때(.3s + 칸 × .25s)에 맞춰, 켜진 별마다 2반음씩 올림 C6 → D6 → E6 (🎨 C010: 통과 팡파르 대신)
       let nth = 0;
       for (let k = 0; k < 3; k++) if ((got >> k) & 1) sfx.play('star', nth++, false, 0.3 + k * 0.25);
+      if (medalOf(s) === 'gold') sfx.play('stamp', 1, false, 1.56); // 🎨 C011: 도장 착지(1.35s + .3s의 70%). 회색 점선 도장은 소리 없음
       // ★3이면 [다음 ▶] + 작은 '↺ 다시', 아니면 [↺ ☆ 더 따기] + [다음 ▶] (자동으로 넘기지 않는다)
       retryB.innerHTML = `${ICON.retry}${n === 3 ? '다시' : `${ICON.star(false)}더 따기`}`; // ☆ 글자도 SVG로 (🎨 C009)
       retryB.classList.toggle('small', n === 3);

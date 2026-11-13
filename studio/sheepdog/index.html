@@ -60,9 +60,9 @@ canvas:focus-visible{outline:3px solid #ffc857;outline-offset:-3px}
 #card .say::after{content:"";position:absolute;left:18px;bottom:-8px;border:6px solid transparent;border-top-color:#7a3e1d}
 #card .stars{display:flex;justify-content:center;gap:10px;margin:2px 0 8px}
 #card figure{margin:0;width:84px}
-#card figure svg{width:48px;height:48px;display:block;margin:0 auto}
-#card figure.on svg{animation:starPop .36s cubic-bezier(.2,1.6,.4,1) both;animation-delay:calc(.3s + var(--k) * .25s)}
-#card figure.had svg{opacity:.55}
+#card figure>svg{width:48px;height:48px;display:block;margin:0 auto}
+#card figure.on>svg{animation:starPop .36s cubic-bezier(.2,1.6,.4,1) both;animation-delay:calc(.3s + var(--k) * .25s)}
+#card figure.had>svg{opacity:.55}
 @keyframes starPop{0%{transform:scale(0)}60%{transform:scale(1.4)}100%{transform:scale(1)}}
 #card figcaption{font:800 13px/1.2 system-ui,sans-serif;color:#6b5444;white-space:nowrap}
 #card .medal{position:absolute;right:-10px;top:-18px;width:64px;height:64px;border-radius:50%;display:grid;place-items:center;transform:rotate(-12deg);font:900 13px/1 system-ui,sans-serif}
@@ -76,7 +76,19 @@ canvas:focus-visible{outline:3px solid #ffc857;outline-offset:-3px}
 #card .btn:focus-visible{outline:3px solid #7a3e1d;outline-offset:3px}
 #card .btn.ghost{background:#fff6e4;color:#3b2a1e;border:3px solid #7a3e1d;box-shadow:0 4px 0 #7a3e1d}
 #card .btn.ghost.small{flex:0 0 auto;padding:0 12px;font-size:14px}
-@media (prefers-reduced-motion:reduce){#card.up,#card figure.on svg,#card .medal.gold{animation:none}}
+/* 별 반짝이·후광 (🎨 C011 ③-a): 별이 1.4배에 닿는 순간(.5s + k×.25s)에 ✦ 8개가 16px → 40/30px로 나가고, 화면 번쩍 대신 72px 후광 */
+#card figure{position:relative}
+#card .sp,#card .halo{position:absolute;left:50%;top:24px;pointer-events:none}
+#card .sp{width:8px;height:8px;margin:-4px 0 0 -4px;opacity:0;--d:30px;animation:spark .42s cubic-bezier(.15,.8,.3,1) calc(.5s + var(--k) * .25s) both}
+#card .sp.big{width:12px;height:12px;margin:-6px 0 0 -6px;--d:40px;--r:90deg}
+#card .sp svg{width:100%;height:100%;display:block}
+@keyframes spark{0%{transform:rotate(var(--a)) translateX(16px) scale(0);opacity:1}30%{transform:rotate(var(--a)) translateX(calc(var(--d) * .7)) scale(1) rotate(calc(var(--r,0deg) * .3));opacity:1}60%{opacity:1}100%{transform:rotate(var(--a)) translateX(var(--d)) scale(.4) rotate(var(--r,0deg));opacity:0}}
+#card .halo{width:72px;height:72px;margin:-36px 0 0 -36px;border-radius:50%;background:radial-gradient(rgba(255,200,87,.7),transparent 70%);opacity:0;animation:halo .3s ease-out calc(.5s + var(--k) * .25s) both}
+@keyframes halo{0%{transform:scale(.5);opacity:0}40%{opacity:1}100%{transform:scale(1.15);opacity:0}}
+#card figure>svg{position:relative}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes twinkle{0%,100%{opacity:0}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){#card.up,#card figure.on>svg{animation:none}#card .medal.gold{animation:fadeIn .12s 1.56s both}#card .halo,#card .sp:not(.big){display:none}#card .sp.big{transform:rotate(var(--a)) translateX(30px);animation:twinkle .3s calc(.5s + var(--k) * .25s) both}}
 /* HUD (C009 M1-5b, 🎨 ART §12-3·4·5·10): 캔버스 밖 DOM — 이모지 없이 SVG */
 .pill{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 12px 0 7px;background:#fff6e4;border:2px solid #7a3e1d;border-radius:20px;box-shadow:0 3px 0 #7a3e1d;color:#3b2a1e;font:900 15px/1 system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;white-space:nowrap}
 .pill svg{flex:none}
@@ -105,6 +117,7 @@ canvas:focus-visible{outline:3px solid #ffc857;outline-offset:-3px}
 #hudBot .sheep{padding:0 12px 0 6px}
 #hudBot .sheep svg{width:24px;height:24px}
 #hudBot .sheep b{font-size:18px}
+#hudBot .sheep.pulse{animation:chipPop .25s ease-out}
 #hudBot .chips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
 .chip{display:inline-flex;align-items:center;gap:4px;height:34px;padding:0 10px 0 6px;border-radius:17px;border:2px solid #7a3e1d;background:#fff6e4;color:#3b2a1e;font:800 13px/1 system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;white-space:nowrap;position:relative}
 .chip svg{width:18px;height:18px}
@@ -113,7 +126,7 @@ canvas:focus-visible{outline:3px solid #ffc857;outline-offset:-3px}
 .chip.off{background:#d9d0c0;color:#6b5444;border-color:#9c8566}
 .chip.off::before{content:"";position:absolute;left:5px;top:16px;width:22px;height:2px;background:#6b5444;transform:rotate(-40deg)}
 @keyframes chipPop{0%{transform:scale(1)}40%{transform:scale(1.3)}100%{transform:scale(1)}}
-@media (prefers-reduced-motion:reduce){#news.pop,.chip.on{animation:none}}
+@media (prefers-reduced-motion:reduce){#news.pop,.chip.on,#hudBot .sheep.pulse{animation:none}}
 /* 빈 하늘 구름 (🎨 C010): 세로 화면 위 하늘 띠에 셋, 천천히 좌우로 */
 #sky{position:fixed;left:0;top:0;width:100%;pointer-events:none;z-index:1;overflow:hidden}
 #sky svg{position:absolute;animation:sway 18s ease-in-out infinite alternate}
