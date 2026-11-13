@@ -3,12 +3,13 @@
  * 조작: 물을 꾹 누르면 미리 보기, 떼면 찰박 · 키보드 화살표로 커서, 스페이스를 누르는 동안 미리 보기 → 떼면 찰박.
  */
 import { TICK, type Input } from './core.ts';
-import { STAGES, advance, duckbath as g, failText, hintPoint, precomputeHint, startStage, type DuckState } from './game.ts';
+import { SLOTS, STAGES, WORLDS, advance, duckbath as g, failText, hintPoint, precomputeHint, startStage, type DuckState } from './game.ts';
 import { peek } from './juice.ts';
 import { makeStore } from './save.ts';
 
-/** D005: 판별 최고 별·열린 판 저장 (막히면 메모리) */
-const save = makeStore(STAGES.length);
+/** D005: 판별 최고 별·열린 판 저장 (막히면 메모리). D007: 판 id 기준 */
+const IDS = STAGES.map((d) => d.id);
+const save = makeStore(IDS);
 /** 이번 세션의 판별 ↺ 횟수 (판 고르기를 다녀와도 👆 유지, 🧪 D005) */
 const tries: number[] = STAGES.map(() => 0);
 
@@ -28,7 +29,7 @@ card.className = 'card';
 card.setAttribute('role', 'dialog');
 card.setAttribute('aria-live', 'polite');
 card.hidden = true;
-// D005: 판 고르기 화면 (욕실 하나 = 판 8개, 별로 다음 판이 열린다)
+// D005: 판 고르기 화면 (별로 다음 판이 열린다) · D007: 욕실 셋 × 10칸, 아직 없는 판은 '준비 중'
 const levels = document.createElement('section');
 levels.className = 'levels';
 levels.setAttribute('aria-label', '판 고르기');
@@ -94,9 +95,9 @@ function renderCard() {
   if (s.ok) {
     const [, tapOk, goldOk] = s.starOk, n = s.got;
     const line = (ok: boolean, yes: string, no: string) => `<li class="${ok ? 'ok' : 'todo'}"><i>${ok ? '★' : '☆'}</i>${esc(ok ? yes : no)}</li>`;
-    save.clear(s.stage, n); // D005: 깬 판 저장 → 다음 판이 열린다
+    save.clear(d.id, n); // D005: 깬 판 저장 → 다음 판이 열린다
     card.className = 'card win';
-    card.innerHTML = `<h2>${last ? '목욕 다 끝! 🛁' : n === 3 ? '깨끗!' : n === 2 ? '뽀득!' : '목욕 끝!'}</h2><ul>${line(true, '오리 모두 둥지에 쏙', '')}${line(tapOk, `톡 ${s.used}번 — ${d.par}번 안에!`, `톡 ${s.used}번 · ${d.par}번 안이면 ★`)}${line(goldOk, '황금 오리 먼저 쏙!', '👑 황금 오리가 꼴찌만 아니면 ★')}</ul><div class="row"><button type="button" class="ico" data-a="levels" aria-label="판 고르기">▦</button><button type="button" class="btn2" data-a="retry">↺ 다시</button><button type="button" class="btn" data-a="next">${last ? '판 고르기 ▶' : '다음 목욕 ▶'}</button></div>`;
+    card.innerHTML = `<h2>${last ? '목욕 다 끝! 🛁' : n === 3 ? '깨끗!' : n === 2 ? '뽀득!' : '목욕 끝!'}</h2><ul>${line(true, '오리 모두 둥지에 쏙', '')}${line(tapOk, `톡 ${s.used}번 — ${d.par}번 안에!`, `톡 ${s.used}번 · ${d.par}번 안이면 ★`)}${line(goldOk, '👑 황금 오리 꼴찌 탈출!', '👑 황금 오리가 꼴찌만 아니면 ★')}</ul><div class="row"><button type="button" class="ico" data-a="levels" aria-label="판 고르기">▦</button><button type="button" class="btn2" data-a="retry">↺ 다시</button><button type="button" class="btn" data-a="next">${last ? '판 고르기 ▶' : '다음 목욕 ▶'}</button></div>`;
   } else {
     // 🎨 D004: 뿅 규칙 뒤로 실패는 늘 '톡 다 씀' — 문구는 톡을 가져간 주범으로 고른다
     // D005: 주범이 클 때만 주범 제목, 아니면 '톡 바닥' + 그 판의 교훈(failText, 🧪 N4)
@@ -133,36 +134,48 @@ card.addEventListener('click', (e) => {
   if (a === 'levels') showLevels(false);
 });
 
-/** 판마다 처음 나오는 새것 (잠긴 칸 예고, FUN S9) */
-const NEW_ICON: Record<number, string> = { 1: '🫧', 2: '🕳️', 3: '🎨', 4: '⛵', 5: '🦈', 6: '🚰', 7: '🧼' };
-/** D005 판 고르기: 열린 판은 번호 + 최고 별, 잠긴 판은 거품. Tab·Enter·화살표 */
+/** 판마다 처음 나오는 새것 (잠긴 칸 예고, FUN S9) — D007: 판 id로 */
+const NEW_ICON: Record<string, string> = { '1-2': '🫧', '1-3': '🕳️', '2-1': '🎨', '2-4': '⛵', '2-9': '🧼', '3-2': '🦈', '3-4': '🚰' };
+const COLS = 5;
+/** D005 판 고르기 → D007 욕실별(🎨 ART 11장): 욕실 머리 + 5×2 칸. 열린 판은 번호 + 최고 별, 잠긴 판은 새것 예고, 없는 판은 '준비 중'. Tab·Enter·화살표 */
 function showLevels(done: boolean) {
   running = false;
   card.hidden = true;
   cardFor = '';
   overlay.hidden = true;
-  const b = save.data.best, total = b.reduce((x, y) => x + y, 0), open = save.data.open;
+  const open = save.open, total = IDS.reduce((x, id) => x + save.stars(id), 0);
   const stars = (n: number) => '★'.repeat(n) + '☆'.repeat(3 - n);
-  levels.innerHTML = `<h2>${done ? '목욕 다 끝! 🛁' : '🛁 민트 욕실'}</h2><p class="sum">★ ${total} / ${STAGES.length * 3}</p><div class="grid">${STAGES.map((_, i) =>
-    i < open
-      ? `<button type="button" class="lv${i === open - 1 && !b[i] ? ' next' : ''}" data-i="${i}" aria-label="${i + 1}번째 목욕, 별 ${b[i]}개"><b>${i + 1}</b><span>${stars(b[i])}</span></button>`
-      : `<button type="button" class="lv" disabled aria-label="${i + 1}번째 목욕, 잠김"><b>${NEW_ICON[i] ?? '🫧'}</b><span>${i + 1} · 잠김</span></button>`, // 🧪 D005 S9: 잠긴 칸이 그 판의 새것을 예고
-  ).join('')}</div>${save.persistent ? '' : '<p class="note">이 브라우저에선 진행이 저장되지 않아요</p>'}`;
+  const tile = (id: string, label: string) => {
+    const i = IDS.indexOf(id);
+    if (i < 0) return `<button type="button" class="lv soon" disabled aria-label="${label}, 준비 중"><b>·</b><span>준비 중</span></button>`;
+    const b = save.stars(id);
+    if (i >= open) return `<button type="button" class="lv" disabled aria-label="${label}, 잠김"><b>${NEW_ICON[id] ?? '🫧'}</b><span>${id} · 잠김</span></button>`; // 🧪 D005 S9: 잠긴 칸이 그 판의 새것을 예고
+    return `<button type="button" class="lv${i === open - 1 && !b ? ' next' : ''}" data-i="${i}" aria-label="${label}, 별 ${b}개"><b>${id}</b><span>${stars(b)}</span></button>`;
+  };
+  const worlds = WORLDS.map((w, wi) => {
+    const ids = Array.from({ length: SLOTS }, (_, k) => `${wi + 1}-${k + 1}`), built = ids.filter((id) => IDS.includes(id));
+    const got = built.reduce((x, id) => x + save.stars(id), 0);
+    return `<section class="world"><h3>${w.emoji} ${w.name}<small>★ ${got}/${built.length * 3}</small></h3><div class="grid">${ids.map((id, k) => tile(id, `${w.name} ${k + 1}번째 목욕`)).join('')}</div></section>`;
+  });
+  levels.innerHTML = `<div class="in"><h2>${done ? '목욕 다 끝! 🛁' : '목욕 고르기'}</h2><p class="sum">★ ${total} / ${IDS.length * 3}</p>${worlds.join('')}${save.persistent ? '' : '<p class="note">이 브라우저에선 진행이 저장되지 않아요</p>'}</div>`;
   levels.hidden = false;
-  const focus = levels.querySelector<HTMLButtonElement>('.lv.next') ?? levels.querySelectorAll<HTMLButtonElement>('.lv:not([disabled])')[Math.max(0, Math.min(open, STAGES.length) - 1)];
+  levels.scrollTop = 0;
+  const focus = levels.querySelector<HTMLButtonElement>('.lv.next') ?? levels.querySelector<HTMLButtonElement>(`.lv[data-i="${Math.min(open, IDS.length) - 1}"]`);
   focus?.focus({ preventScroll: true });
+  focus?.scrollIntoView({ block: 'nearest' });
 }
 levels.addEventListener('click', (e) => {
   const i = (e.target as HTMLElement).closest<HTMLButtonElement>('button.lv:not([disabled])')?.dataset.i;
   if (i !== undefined) play(Number(i));
 });
 levels.addEventListener('keydown', (e) => {
-  const d = ({ ArrowRight: 1, ArrowLeft: -1, ArrowDown: 4, ArrowUp: -4 } as Record<string, number>)[e.key];
+  const d = ({ ArrowRight: 1, ArrowLeft: -1, ArrowDown: COLS, ArrowUp: -COLS } as Record<string, number>)[e.key];
   if (!d) return;
   e.preventDefault();
-  const bs = [...levels.querySelectorAll<HTMLButtonElement>('.lv')], k = bs.indexOf(document.activeElement as HTMLButtonElement);
-  const t = bs[Math.max(0, Math.min(bs.length - 1, k + d))];
-  if (t && !t.disabled) t.focus();
+  // 칸은 욕실마다 5×2라 한 줄로 펴도 ±5가 위아래 — 잠긴·준비 중 칸은 건너뛴다
+  const bs = [...levels.querySelectorAll<HTMLButtonElement>('.lv')];
+  for (let k = bs.indexOf(document.activeElement as HTMLButtonElement) + d; k >= 0 && k < bs.length; k += d)
+    if (!bs[k].disabled) return bs[k].focus();
 });
 window.addEventListener('keydown', (e) => {
   if (!card.hidden && (e.key === 'r' || e.key === 'R')) (e.preventDefault(), act('retry'));
@@ -170,13 +183,13 @@ window.addEventListener('keydown', (e) => {
 
 /** 처음 오는 사람은 바로 1판(GDD §8), 다녀간 사람은 판 고르기 */
 function start() {
-  if (save.data.open <= 1 && !save.data.best[0]) play(0);
+  if (save.open <= 1 && !save.stars(IDS[0])) play(0);
   else showLevels(false);
 }
 function play(i: number) {
   s = g.create((Date.now() % 1_000_000) + 1);
   s.manual = true; // D004: 결과·실패 카드에서 버튼을 기다린다
-  s.best = save.data.best.slice();
+  s.best = IDS.map((id) => save.stars(id));
   s.stars = s.best.reduce((x, y) => x + y, 0);
   if (i > 0) startStage(s, i);
   s.stageTries = tries[i];
@@ -241,6 +254,6 @@ overlay.addEventListener('keydown', (e) => {
 size();
 // D006: 처음 온 사람은 카드 없이 바로 1판(🧪 허들 1: 첫 톡이 곧 찰박 — 1판 판 질문 띠와 👆 안내가 규칙을 말한다).
 // 다녀간 사람은 판 고르기가 바로 — 한 번 눌러 시작
-if (save.data.open > 1 || save.data.best[0]) showLevels(false);
+if (save.open > 1 || save.stars(IDS[0])) showLevels(false);
 else play(0);
 new ResizeObserver(size).observe(root);

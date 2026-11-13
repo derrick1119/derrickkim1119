@@ -2,8 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
-import { FAUCET, STAGES, advance, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, failText, hintPoint, startStage } from '../studio/duckbath/game.ts';
-import { SAVE_KEY, makeStore } from '../studio/duckbath/save.ts';
+import { FAUCET, SLOTS, STAGES, WORLDS, advance, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, failText, hintPoint, startStage } from '../studio/duckbath/game.ts';
+import { OLD_IDS, SAVE_KEY, makeStore } from '../studio/duckbath/save.ts';
 import { play } from '../studio/duckbath/funqa.ts';
 
 describe('욕조 물결 오리 시뮬', () => {
@@ -170,41 +170,53 @@ describe('욕조 물결 오리 시뮬', () => {
   });
 });
 
-describe('저장·판 고르기 (D005)', () => {
+describe('저장·판 고르기 (D005 → D007 판 id)', () => {
+  const IDS = STAGES.map((d) => d.id);
   const fake = () => {
     const m = new Map<string, string>();
     return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k), m } as unknown as Storage & { m: Map<string, string> };
   };
   it('판을 깨면 다음 판이 열리고, 다시 열어도 남아 있다 (최고 별만)', () => {
-    const ls = fake(), a = makeStore(8, () => ls);
+    const ls = fake(), a = makeStore(IDS, () => ls);
     expect(a.persistent).toBe(true);
-    expect(a.data.open).toBe(1);
-    a.clear(0, 2);
-    a.clear(0, 1); // 낮은 별로 다시 깨도 최고 별 유지
-    expect([a.data.best[0], a.data.open]).toEqual([2, 2]);
-    const b = makeStore(8, () => ls);
-    expect([b.data.best[0], b.data.open]).toEqual([2, 2]);
-    b.clear(7, 3);
-    expect(b.data.open).toBe(8); // 마지막 판 너머로 열리지 않는다
+    expect(a.open).toBe(1);
+    a.clear('1-1', 2);
+    a.clear('1-1', 1); // 낮은 별로 다시 깨도 최고 별 유지
+    expect([a.stars('1-1'), a.open]).toEqual([2, 2]);
+    const b = makeStore(IDS, () => ls);
+    expect([b.stars('1-1'), b.open]).toEqual([2, 2]);
+    b.clear(IDS[IDS.length - 1], 3);
+    expect(b.open).toBe(IDS.length); // 마지막 판 너머로 열리지 않는다
+  });
+  it('옛 번호 저장(ver 1)은 판 id로 옮긴다 — 판 순서가 바뀌어도 별이 그 판에 남는다 (CONTENT v0.3 §5)', () => {
+    expect(OLD_IDS.every((id) => IDS.includes(id))).toBe(true);
+    const ls = fake();
+    ls.m.set(SAVE_KEY, JSON.stringify({ ver: 1, best: [3, 2, 1, 3, 2, 1, 0, 2], open: 8 }));
+    const a = makeStore(IDS, () => ls);
+    expect(OLD_IDS.map((id) => a.stars(id))).toEqual([3, 2, 1, 3, 2, 1, 0, 2]); // 옛 8판(비누) = 2-9, 옛 7판(물줄기) = 3-4
+    expect(a.open).toBe(IDS.indexOf('3-2') + 2); // 깬 판 중 가장 뒤(3-2)의 다음 판까지
+    expect(JSON.parse(ls.m.get(SAVE_KEY)!)).toMatchObject({ ver: 2, best: { '1-1': 3, '2-9': 2, '3-2': 1 } }); // 새 모양으로 고쳐 쓴다
+    ls.m.set(SAVE_KEY, JSON.stringify({ ver: 2, best: { '1-1': 9, '9-9': 3, '1-2': -1, '2-1': 'x' } }));
+    expect(makeStore(IDS, () => ls).data.best).toEqual({ '1-1': 3 }); // 모르는 판·이상한 별은 버리거나 깎는다
   });
   it('localStorage가 막혀도(접근 예외·쓰기 예외·깨진 데이터) 메모리로 계속 간다', () => {
-    const thrower = makeStore(8, () => { throw new Error('SecurityError'); });
+    const thrower = makeStore(IDS, () => { throw new Error('SecurityError'); });
     expect(thrower.persistent).toBe(false);
-    expect(() => thrower.clear(0, 3)).not.toThrow();
-    expect(thrower.data.open).toBe(2);
+    expect(() => thrower.clear('1-1', 3)).not.toThrow();
+    expect(thrower.open).toBe(2);
     const full = fake();
     full.setItem = () => { throw new Error('QuotaExceeded'); };
-    const q = makeStore(8, () => full);
-    expect(() => q.clear(1, 1)).not.toThrow();
+    const q = makeStore(IDS, () => full);
+    expect(() => q.clear('1-2', 1)).not.toThrow();
     const bad = fake();
     bad.m.set(SAVE_KEY, '{not json');
-    expect(makeStore(8, () => bad).data.open).toBe(1);
+    expect(makeStore(IDS, () => bad).open).toBe(1);
   });
   it('실패 카드: 주범이 쓴 톡의 25% 미만이면 톡 바닥 + 그 판의 교훈, 이상이면 주범 제목 (테스트로 옮긴 v1.4 N4)', () => {
-    const s = g.create(2);
-    startStage(s, 7);
+    const s = g.create(2), i = IDS.indexOf('2-9'); // 옛 8판(비누) — D007부터 2-9
+    startStage(s, i);
     Object.assign(s, { used: 12, sucks: 1, chomps: 0 });
-    expect(failText(s)).toMatchObject({ kind: 'taps', tip: STAGES[7].hint });
+    expect(failText(s)).toMatchObject({ kind: 'taps', tip: STAGES[i].hint });
     Object.assign(s, { sucks: 2 }); // 12톡 중 2톡 = 17% → 아직 '톡 바닥' (🧪 D005: 2톡 조항 뺌)
     expect(failText(s).kind).toBe('taps');
     Object.assign(s, { sucks: 3 }); // 25%
@@ -214,6 +226,51 @@ describe('저장·판 고르기 (D005)', () => {
   });
 });
 
+
+describe('판 데이터 검증 (D007 뼈대, CONTENT v0.3 §5 — 판이 늘 때마다 같이 돈다)', () => {
+  const idle = { tap: false, dir: 0 as const, pointer: null };
+  const num = (id: string) => id.split('-').map(Number);
+  it('판 id는 겹치지 않고 욕실 × 칸 안, 놀이 순서 = 욕실 순서', () => {
+    const ids = STAGES.map((d) => d.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const id of ids) {
+      expect(id).toMatch(/^[1-9]\d*-[1-9]\d*$/);
+      const [w, k] = num(id);
+      expect(w).toBeLessThanOrEqual(WORLDS.length);
+      expect(k).toBeLessThanOrEqual(SLOTS);
+    }
+    const order = ids.map((id) => num(id)[0] * 100 + num(id)[1]);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+  });
+  it('모든 판에 판 질문(ask)과 교훈(hint) 한 줄', () => {
+    for (const d of STAGES) {
+      expect(d.ask?.length ?? 0, d.id).toBeGreaterThan(5);
+      expect(d.hint.length, d.id).toBeGreaterThan(5);
+    }
+  });
+  it('시작 자리: 오리·황금·배·상어가 둥지·섬·배수구 안에서 시작하지 않는다 (뒤집기·흔들기 뒤, 시드 8개)', () => {
+    for (let seed = 1; seed <= 8; seed++)
+      for (let i = 0; i < STAGES.length; i++) {
+        const s = g.create(seed);
+        startStage(s, i);
+        for (const o of s.objs) {
+          const at = `${STAGES[i].id} 시드 ${seed} (${o.x.toFixed(2)}, ${o.y.toFixed(2)})`;
+          for (const n of s.L.nests) expect(Math.hypot(o.x - n.x, o.y - n.y), `둥지 ${at}`).toBeGreaterThan(n.r);
+          for (const l of s.L.islands) expect(Math.hypot(o.x - l.x, o.y - l.y), `섬 ${at}`).toBeGreaterThan(l.r);
+          for (const dr of s.L.drains) expect(Math.hypot(o.x - dr.x, o.y - dr.y), `배수구 ${at}`).toBeGreaterThan(dr.r);
+        }
+      }
+  });
+  it('가만히 두면 아무 일도 없다 — 저절로 깨지거나 쏙 빠지는 판 없음 (4초)', () => {
+    for (let i = 0; i < STAGES.length; i++) {
+      const s = g.create(5);
+      startStage(s, i);
+      for (let k = 0; k < 240; k++) g.step(s, idle);
+      expect(s.phase, STAGES[i].id).toBe('play');
+      expect(s.objs.filter((o) => o.k !== 3 && o.st !== -1).length, STAGES[i].id).toBe(0);
+    }
+  });
+});
 describe('플레이 빌드', () => {
   const path = 'web/public/studio/duckbath/index.html';
   it('빌드가 있고 한 장짜리 HTML, gzip 60KB 이하', () => {

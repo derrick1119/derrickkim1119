@@ -118,6 +118,35 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   if (!k.running || k.used < 1) errors.push(`${name}: 키보드로 찰박이 안 됨 ${JSON.stringify(k)}`);
   await page.close();
 }
+// D007: 옛 번호 저장(ver 1)을 가진 사람 — 판 id로 옮겨져 욕실별 판 고르기에 별이 그대로 (옛 8판 비누 = 2-9)
+const mctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+await mctx.addInitScript(() => { if (!sessionStorage.getItem('seeded')) (sessionStorage.setItem('seeded', '1'), localStorage.setItem('duckbath.v1', JSON.stringify({ ver: 1, best: [3, 3, 2, 3, 2, 1, 0, 2], open: 8 }))); });
+const mp = await mctx.newPage();
+mp.on('pageerror', (e: Error) => errors.push(`migrate: ${e.message}`));
+await mp.goto(url);
+await mp.waitForTimeout(400);
+await mp.screenshot({ path: join(here, 'screens', 'mobile-levels-worlds.png') });
+const mig = await mp.evaluate(() => ({
+  worlds: document.querySelectorAll('.levels .world').length,
+  tiles: document.querySelectorAll('.levels .lv').length,
+  open: document.querySelectorAll('.lv:not([disabled])').length,
+  soap: document.querySelector('.lv[aria-label^="할머니 댁 욕조 9번째"]')?.textContent ?? '',
+  hscroll: document.documentElement.scrollWidth > innerWidth,
+  saved: JSON.parse(localStorage.getItem('duckbath.v1') ?? '{}').ver,
+}));
+if (mig.worlds !== 3 || mig.tiles !== 30) errors.push(`migrate: 욕실 3 × 10칸이 아님 ${JSON.stringify(mig)}`);
+if (mig.open !== 8 || !mig.soap.includes('★★☆') || mig.saved !== 2) errors.push(`migrate: 옛 저장 이전이 틀림 ${JSON.stringify(mig)}`);
+if (mig.hscroll) errors.push('migrate: 판 고르기 가로 스크롤');
+await mp.evaluate(() => document.querySelector('.levels')!.scrollTo(0, 9999));
+await mp.waitForTimeout(150);
+await mp.screenshot({ path: join(here, 'screens', 'mobile-levels-worlds-bottom.png') });
+// 키보드: 아래 화살표로 다음 욕실로 건너간다(잠긴 칸은 건너뜀)
+await mp.focus('.lv[data-i="0"]');
+await mp.keyboard.press('ArrowDown');
+await mp.keyboard.press('ArrowDown');
+const kf = await mp.evaluate(() => (document.activeElement as HTMLElement)?.getAttribute('aria-label') ?? '');
+if (!kf.startsWith('할머니 댁 욕조 1번째')) errors.push(`migrate: 아래 화살표가 다음 욕실로 안 감 (${kf})`);
+await mctx.close();
 // localStorage가 막힌 환경에서도 시작된다
 const ctx = await browser.newContext();
 await ctx.addInitScript(() => Object.defineProperty(window, 'localStorage', { get() { throw new Error('blocked'); } }));

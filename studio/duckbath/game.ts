@@ -47,6 +47,8 @@ const RAD = [DR, DR, BIG, BIG];
 const MASS = [1, 1, 2.5, 1.3];
 
 interface StageDef {
+  /** 판 id '욕실-번호' (D007, CONTENT v0.3) — 저장·판 고르기의 열쇠. 순서는 STAGES 배열 순서 */
+  id: string;
   key: string;
   news: string;
   hint: string;
@@ -73,23 +75,33 @@ interface StageDef {
   pull?: number;
 }
 
-/** 판(목욕) 8개. 좌표는 뒤집기 전 — 판마다 시드로 좌우를 뒤집고 오리 자리를 살짝 흔든다 */
+/** 욕실(월드) 3개 × 10칸 (D007, CONTENT v0.3). 아직 안 만든 칸은 판 고르기에서 '준비 중' */
+export const WORLDS = [
+  { name: '민트 욕실', emoji: '🛁' },
+  { name: '할머니 댁 욕조', emoji: '🧶' },
+  { name: '놀이 욕조', emoji: '🧸' },
+];
+export const SLOTS = 10;
+/**
+ * 만든 판들(욕실 순서). 좌표는 뒤집기 전 — 판마다 시드로 좌우를 뒤집고 오리 자리를 살짝 흔든다.
+ * D007: M1의 8판을 CONTENT v0.3 자리로 옮겼다(1-1·1-2·1-3·2-1·2-4·2-9·3-2·3-4). 판 순서가 바뀌어 판 번호(인덱스)도 바뀜.
+ */
 export const STAGES: StageDef[] = [
   {
-    key: '', news: '', hint: '황금 오리는 마지막 오리보다 먼저 넣어야 ★', failHint: '오리 무리 한가운데를 톡 — 사방으로 밀려 나가요',
+    id: '1-1', key: '', news: '', hint: '👑 황금 오리가 꼴찌만 아니면 ★', failHint: '오리 무리 한가운데를 톡 — 사방으로 밀려 나가요',
     ducks: [[0.5, 0.42, 0], [0.62, 0.6, 0], [0.38, 0.6, 0]], gold: [0.5, 0.78],
     nests: [[0.5, 0.12, 0.2, -1], [0.88, 0.6, 0.2, -1], [0.12, 0.6, 0.2, -1], [0.5, 1.08, 0.2, -1], [0.1, 0.1, 0.15, -1, 0, 1], [0.9, 0.1, 0.15, -1, 0, 1], [0.1, 1.1, 0.15, -1, 0, 1], [0.9, 1.1, 0.15, -1, 0, 1]],
     taps: 12, par: 1, ask: '가운데를 톡! 한 번에 몇 마리?', // D002 CONTENT §1: 톡 9→12 (첫 판은 거의 못 진다)
   },
   {
-    key: 'island', news: '🫧 거품 섬 뒤에 숨은 오리는 물결이 안 닿아요', hint: '거품 섬 뒤에 숨은 오리는 안 밀려요 — 골라 밀기',
+    id: '1-2', key: 'island', news: '🫧 거품 섬 뒤에 숨은 오리는 물결이 안 닿아요', hint: '거품 섬 뒤에 숨은 오리는 안 밀려요 — 골라 밀기',
     ducks: [[0.5, 0.38, 0], [0.3, 0.64, 0], [0.7, 0.64, 0]], gold: [0.5, 0.85],
     islands: [[0.5, 0.6, 0.1]],
     nests: [[0.5, 0.1, 0.16, -1], [0.9, 0.6, 0.16, -1], [0.1, 0.6, 0.16, -1], [0.5, 1.1, 0.16, -1], [0.1, 0.1, 0.13, -1, 0, 1], [0.9, 0.1, 0.13, -1, 0, 1], [0.1, 1.1, 0.13, -1, 0, 1], [0.9, 1.1, 0.13, -1, 0, 1]],
     taps: 10, par: 2, ask: '섬 뒤에 숨은 오리까지, 두 번에 다!', // D002: 큰 둥지 r 0.15→0.16, 톡 8→10
   },
   {
-    key: 'drain', news: '🕳️ 배수구 가까이 멈추면 쭈욱 빨려 가요!', hint: '배수구 쪽에서 치면 밖으로, 바깥에서 치면 안으로!',
+    id: '1-3', key: 'drain', news: '🕳️ 배수구 가까이 멈추면 쭈욱 빨려 가요!', hint: '배수구 쪽에서 치면 밖으로, 바깥에서 치면 안으로!',
     // D002 CONTENT §1 전면 재설계: 배수구를 셋이 둘러싸고 끌림을 약하게 — 배수구 바로 옆을 치면 밖으로 튕겨 나간다
     ducks: [[0.5, 0.42, 0], [0.34, 0.72, 0], [0.66, 0.72, 0]], gold: [0.5, 0.84],
     drains: [[0.5, 0.6]], pullR: 0.12, pull: 0.00012,
@@ -97,7 +109,7 @@ export const STAGES: StageDef[] = [
     taps: 10, par: 2, ask: '배수구 바로 옆을 톡 — 오리가 밖으로 튕겨요!',
   },
   {
-    key: 'color', news: '🎨 색깔 둥지 — 같은 색 오리만 들어가요', hint: '오리는 톡 반대쪽으로 밀려요 — 같은 색 둥지 쪽으로!',
+    id: '2-1', key: 'color', news: '🎨 색깔 둥지 — 같은 색 오리만 들어가요', hint: '오리는 톡 반대쪽으로 밀려요 — 같은 색 둥지 쪽으로!',
     // D003 CONTENT v0.2: '오리 바로 뒤를 톡'을 가르치는 판. 노랑은 위·분홍은 아래로 엇갈려 세운다 — 가운데 톡이면 둘 다 위아래 벽으로 가서 0마리.
     // 큰 둥지는 제 벽 가운데, 작은 구석 둥지는 반대 색(틀린 벽에 붙어도 구석으로 미끄러져 빠져나온다)
     ducks: [[0.46, 0.4, 0], [0.54, 0.8, 1]], gold: [0.5, 0.6],
@@ -105,35 +117,35 @@ export const STAGES: StageDef[] = [
     taps: 8, par: 2, ask: '노랑은 노랑 둥지로! 어디를 톡 해야 할까?',
   },
   {
-    key: 'boat', news: '⛵ 장난감 배는 무거워요 — 부두에 넣어요', hint: '배는 무거워요 — 바로 옆을 쳐야 움직여요',
+    id: '2-4', key: 'boat', news: '⛵ 장난감 배는 무거워요 — 부두에 넣어요', hint: '배는 무거워요 — 바로 옆을 쳐야 움직여요',
     ducks: [[0.25, 0.5, 0], [0.75, 0.5, 0], [0.5, 0.28, 0]], gold: [0.24, 0.92],
     boat: [0.5, 0.72],
     nests: [[0.13, 0.13, 0.14, -1], [0.87, 0.13, 0.14, -1], [0.12, 1.07, 0.13, -1], [0.5, 1.1, 0.12, -1, 1]],
-    taps: 12, par: 4, // D003 CONTENT v0.2: 톡 7→12 (배우는 처음 봇 첫 시도 0.2→0.4, 여유 꺾임 완화)
+    taps: 12, par: 4, ask: '배와 오리 셋 — 배가 길을 막아요', // D003 CONTENT v0.2: 톡 7→12 (배우는 처음 봇 첫 시도 0.2→0.4, 여유 꺾임 완화)
   },
   {
-    key: 'shark', news: '🦈 고무 상어가 오리를 노려요! 물결로 밀어요', hint: '상어가 다가오면 물결로 밀어내요 (맞으면 잠깐 멈춰요)',
-    ducks: [[0.22, 0.66, 0], [0.78, 0.66, 0], [0.5, 0.38, 0]], gold: [0.5, 0.6],
-    shark: [0.5, 0.88],
-    nests: [[0.13, 0.13, 0.14, -1], [0.87, 0.13, 0.14, -1]],
-    taps: 7, par: 5, // D003: par 3→5 (FUN E6) · D004: 5→4를 시도했으나 판정 캐주얼(황금 50%, FUN v1.3)로 ★톡 .22 < .30 → PM 규칙대로 5로 되돌림, E2 2는 천장 빚
-  },
-  {
-    key: 'stream', news: '🚰 수도꼭지 물줄기 — 태우면 저절로 실려 가요', hint: '물줄기에 밀어 넣으면 둥지까지 흘러가요',
-    ducks: [[0.2, 0.26, 0], [0.8, 0.5, 0], [0.22, 0.76, 0]], gold: [0.82, 0.2],
-    streams: [[0.4, 0, 0.6, 0.95, 0, 1]],
-    drains: [[0.86, 1.02]],
-    nests: [[0.5, 1.07, 0.13, -1]],
-    taps: 6, par: 4, // D003: par 3→4 (FUN E6)
-  },
-  {
-    key: 'slick', news: '🧼 비누 미끄럼 — 밀리면 훨씬 멀리 미끄러져요', hint: '비누 위의 오리는 살살 — 멀리서 쳐요',
+    id: '2-9', key: 'slick', news: '🧼 비누 미끄럼 — 밀리면 훨씬 멀리 미끄러져요', hint: '비누 위의 오리는 살살 — 멀리서 쳐요',
     ducks: [[0.3, 0.56, 0], [0.68, 0.78, 0], [0.64, 0.42, 1], [0.36, 0.86, 1]], gold: [0.5, 0.62],
     slicks: [[0.5, 0.62, 0.21]],
     islands: [[0.86, 0.6, 0.08]],
     drains: [[0.14, 0.22]],
     nests: [[0.12, 1.07, 0.13, 0], [0.88, 0.13, 0.13, 1]],
-    taps: 12, par: 8, // D003: 톡 9→10 · par 6→8 (FUN E6) · D004: 톡 10→12 (🧪 여유 비율 r 2.0, 배우는 봇 C5 — 톡은 12가 상한, 배수구 이동은 M2)
+    taps: 12, par: 8, ask: '미끄러운 비누판 — 배수구를 피해 색깔대로!', // D003: 톡 9→10 · par 6→8 (FUN E6) · D004: 톡 10→12 (🧪 여유 비율 r 2.0, 배우는 봇 C5 — 톡은 12가 상한, 배수구 이동은 M2)
+  },
+  {
+    id: '3-2', key: 'shark', news: '🦈 고무 상어가 오리를 노려요! 물결로 밀어요', hint: '상어가 다가오면 물결로 밀어내요 (맞으면 잠깐 멈춰요)',
+    ducks: [[0.22, 0.66, 0], [0.78, 0.66, 0], [0.5, 0.38, 0]], gold: [0.5, 0.6],
+    shark: [0.5, 0.88],
+    nests: [[0.13, 0.13, 0.14, -1], [0.87, 0.13, 0.14, -1]],
+    taps: 7, par: 5, ask: '상어 하나, 오리 셋 — 누구부터 피난?', // D003: par 3→5 (FUN E6) · D004: 5→4를 시도했으나 판정 캐주얼(황금 50%, FUN v1.3)로 ★톡 .22 < .30 → PM 규칙대로 5로 되돌림, E2 2는 천장 빚
+  },
+  {
+    id: '3-4', key: 'stream', news: '🚰 수도꼭지 물줄기 — 태우면 저절로 실려 가요', hint: '물줄기에 밀어 넣으면 둥지까지 흘러가요',
+    ducks: [[0.2, 0.26, 0], [0.8, 0.5, 0], [0.22, 0.76, 0]], gold: [0.82, 0.2],
+    streams: [[0.4, 0, 0.6, 0.95, 0, 1]],
+    drains: [[0.86, 1.02]],
+    nests: [[0.5, 1.07, 0.13, -1]],
+    taps: 6, par: 4, ask: '물줄기 옆 배수구 조심 — 셋 다 태워 보내기!', // D003: par 3→4 (FUN E6)
   },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -382,7 +394,7 @@ function phys(S: Sim, E: DuckState | null) {
       o.ord = S.t;
       if (E) {
         o.mood = 3;
-        if (o.k === GOLD) ev(E, 'gold', o.x, o.y, '황금 오리! ★'), see(E, 'gold', '👑 황금 오리는 마지막 오리보다 먼저 넣으면 ★');
+        if (o.k === GOLD) ev(E, 'gold', o.x, o.y, '황금 오리! ★'), see(E, 'gold', '👑 황금 오리가 꼴찌만 아니면 ★');
         else ev(E, 'nest', o.x, o.y, o.k === BOAT ? '부두 도착! ⚓' : ['쏙! 엄마~', '쪼르르~', '도착!'][(S.t + i) % 3]);
         see(E, 'nest', '🫧 둥지에 든 오리는 멈춰서 엄마 옆으로 쪼르르');
       }
@@ -607,7 +619,7 @@ export const duckbath: GameDef<DuckState> = {
   reveals: (s) => s.seen.size,
   create(seed) {
     const rng = mulberry32(seed);
-    const jit = STAGES.map(() => ({ flip: rng() < 0.5, j: Array.from({ length: 12 }, () => rng()) }));
+    const jit = STAGES.map(() => ({ flip: rng() < 0.5, j: Array.from({ length: 24 }, () => rng()) }));
     const s = {
       pen: 0, penA: 0, sucks: 0, chomps: 0, rng, seed, t: 0, objs: [], rings: [], rid: 0, awake: false,
       L: { nests: [], islands: [], drains: [], streams: [], slicks: [] },
@@ -2383,7 +2395,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     const goldOk = !!gold && gold.st >= 0;
     const okk = s.phase === 'result' && s.ok ? s.starOk : [ducksIn === ducksAll, s.used <= d.par, goldOk];
     const bad = [s.phase === 'result' && !s.ok, s.used > d.par, s.goldLost];
-    const labels = [`${d.boat ? '오리·배' : '오리'} ${ducksIn}/${ducksAll}`, `톡 ≤${d.par}`, '👑 먼저']; // D002: 황금 오리 조건(마지막 오리보다 먼저)이 읽히게
+    const labels = [`${d.boat ? '오리·배' : '오리'} ${ducksIn}/${ducksAll}`, `톡 ≤${d.par}`, '👑 꼴찌 말고']; // D007 CONTENT v0.3 ③: 황금 문구 통일 — 기준 문장 '👑 황금 오리가 꼴찌만 아니면 ★'
+    // D007 ③ 꼴찌 위기: 남은 오리 1마리인데 황금 오리가 아직 떠 있으면 셋째 칩이 주황으로 깜박
+    const crisis = s.phase === 'play' && !!gold && gold.st === FREE && ducksAll - ducksIn === 1;
+    if (crisis && (t >> 4) % 2 === 0) labels[2] = '👑 꼴찌 될라!';
     const r2 = Y(ty + 0.112), cw2 = R(0.3);
     for (let k = 0; k < 3; k++) {
       const cx1 = X(0.03) + k * (cw2 + R(0.017));
@@ -2391,7 +2406,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
       ctx.beginPath();
       ctx.roundRect(cx1, r2 - R(0.026), cw2, R(0.052), R(0.026));
       ctx.fill();
-      ctx.strokeStyle = okk[k] ? '#ffd84a' : bad[k] ? 'rgba(255,255,255,.15)' : 'rgba(255,255,255,.3)';
+      ctx.strokeStyle = k === 2 && crisis ? '#ff9f43' : okk[k] ? '#ffd84a' : bad[k] ? 'rgba(255,255,255,.15)' : 'rgba(255,255,255,.3)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
       ctx.fillStyle = okk[k] ? '#ffd84a' : bad[k] ? 'rgba(255,255,255,.3)' : 'rgba(255,255,255,.6)';
