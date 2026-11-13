@@ -745,12 +745,7 @@ function newStage(s: DogState) {
   // 개울 판 도움 깃발 (C004 📐): 풍덩을 FLAG_AFTER번 하면 다시 할 때 박사의 첫 두 자리에 ①② 깃발
   s.flags = [];
   const after = FLAG_AFTER[d.key];
-  if (after && s.splashes + (FLAG_ANY_FAIL.has(d.key) ? s.outs : 0) >= after) {
-    const p1 = plan(s.F, s.S, d), S2 = cloneSim(s.S);
-    resolve(s.F, S2, p1[0], p1[1]);
-    s.flags.push(p1);
-    if (!ended(s.F, S2, d)) s.flags.push(plan(s.F, S2, d));
-  }
+  if (after && s.splashes + (FLAG_ANY_FAIL.has(d.key) ? s.outs : 0) >= after) s.flags = flagsFor(s.F, s.S, d);
   see(s, d.key, d.news);
   if (d.bonus === 'flower' && L.flowers.length) see(s, 'flower', '🌼 꽃밭 — 안 밟고 넣으면 별 하나 더');
   if (d.bonus === 'clover' && L.clovers?.length) see(s, 'clover', '🍀 클로버 — 흰 양이 지나가면 별 하나 더');
@@ -759,6 +754,23 @@ function newStage(s: DogState) {
 
 /** 몇 번째 풍덩 뒤에 깃발을 띄우나 (📐 C004: 소개 판 1-6은 첫 풍덩, 연습 판은 한 번 스스로 떠올릴 기회를 남긴다) */
 const FLAG_AFTER: Record<string, number> = { river: 1, narrow: 2, fest: 1 }; // 📐 C006: 1-8 두 번째 풍덩(졸업 판은 한 번 더 혼자) → PM C016 ⓐ: 1-8은 첫 실패(멍멍 다 씀 포함) 뒤 — 두 번째면 조심 평균 5.0번, 첫 실패면 3.55번(선 ≤ 4)
+/**
+ * 깃발 ①② = 박사의 첫 두 수. 📐 C016 (나): 1-7은 🍀를 뺀 박사(빔 8)의 par 길 — 깃발이 🍀 정답 표지판이 되지 않게(🧪 C015, 조심 깬 시도 중 🍀 1.0 → 0.10).
+ * 시작 상태가 늘 같으니 판·배치마다 한 번만 계산해 둔다(📐: 빔 8 두 번 160~260ms).
+ */
+const FLAG_NO_BONUS = new Set(['narrow']);
+const flagCache = new Map<string, [number, number][]>();
+export function flagsFor(F: Field, S: Sim, d: StageDef): [number, number][] {
+  const key = `${d.key}|${d.par}|${S.x.join()}|${S.y.join()}|${JSON.stringify(F.clovers)}`;
+  const hit = flagCache.get(key);
+  if (hit) return hit.map((p) => [p[0], p[1]] as [number, number]);
+  const nb = FLAG_NO_BONUS.has(d.key), fd: StageDef = nb ? { ...d, bonus: 'flower' } : d, w = nb ? 8 : BEAM;
+  const p1 = plan(F, S, fd, DEPTH, w), S2 = cloneSim(S), out: [number, number][] = [p1];
+  resolve(F, S2, p1[0], p1[1]);
+  if (!ended(F, S2, fd)) out.push(plan(F, S2, fd, DEPTH, w));
+  flagCache.set(key, out);
+  return out.map((p) => [p[0], p[1]] as [number, number]);
+}
 /** 풍덩만이 아니라 '멍멍 다 씀' 실패(outs)도 깃발 셈에 넣는 판 (PM C016 F01-c ⓐ: 1-8 첫 실패 뒤) */
 const FLAG_ANY_FAIL = new Set(['fest']);
 /** 깃발 ① 근처(이 거리 안)에서 짖으면 깃발 자리로 붙여서 짖는다 — 0.015 차이에 결과가 갈리는 판이라 */
@@ -1007,7 +1019,7 @@ function value(F: Field, S: Sim, d: StageDef): number {
   return v;
 }
 /** 측정용(funqa 정답 폭, 📐 C015): 순수 시뮬 — 박사 계획 · 끝남 · 복사 · 판 값 · 보너스 (게임 동작은 안 바꾼다) */
-export const pure = { plan: (F: Field, S: Sim, d: StageDef, depth?: number) => plan(F, S, d, depth), ended, cloneSim, value, bonusMet };
+export const pure = { plan: (F: Field, S: Sim, d: StageDef, depth?: number, width?: number) => plan(F, S, d, depth, width), ended, cloneSim, value, bonusMet };
 /** 판이 끝난 상태인가 (실패 · 흰 양 다 들어감 · 멍멍 다 씀) */
 function ended(F: Field, S: Sim, d: StageDef) {
   return S.fell.some((v) => v) || S.caught >= 0 || S.used >= d.max || allIn(F, S, d);
@@ -1057,7 +1069,7 @@ function candidates(F: Field, S: Sim, d: StageDef): number[] {
 
 /** 몇 수 앞까지 내다보고(빔 탐색) 가장 좋은 첫 자리. 판이 끝나는 수(별 수)를 찾으면 그쪽을 고른다 */
 const DEPTH = 3, BEAM = 4, TOP3 = 1e6 + 3e5 - 1e4;
-function plan(F: Field, S0: Sim, d: StageDef, maxDepth = DEPTH): [number, number] {
+function plan(F: Field, S0: Sim, d: StageDef, maxDepth = DEPTH, width = BEAM): [number, number] {
   interface Node { S: Sim; root: number; v: number }
   const roots: { x: number; y: number; v: number }[] = [];
   let beam: Node[] = [{ S: S0, root: -1, v: 0 }];
@@ -1085,8 +1097,8 @@ function plan(F: Field, S0: Sim, d: StageDef, maxDepth = DEPTH): [number, number
     kids.sort((a, b) => b.v - a.v);
     const pick: Node[] = [], used = new Set<number>();
     for (const k of kids) {
-      if (pick.length >= BEAM) break;
-      if (used.has(k.root) && pick.length < BEAM - 1) continue;
+      if (pick.length >= width) break;
+      if (used.has(k.root) && pick.length < width - 1) continue;
       used.add(k.root);
       pick.push(k);
     }

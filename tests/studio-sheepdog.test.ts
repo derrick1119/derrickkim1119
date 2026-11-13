@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/sheepdog/core.ts';
-import { BLACK_TIP, COME_HOLD, goalLabels, hudState, medalOf, FLAG_SNAP, LATER, SKY, STAGES, WORLD_TIME, at as atField, blackCame, comeHold, jumpTo, preview, starCount, sheepdog as g, sheepdogGreedy, sheepdogNaive, sheepdogRandom, sheepdogSmart, topOf, type DogState } from '../studio/sheepdog/game.ts';
+import { BLACK_TIP, COME_HOLD, goalLabels, hudState, medalOf, FLAG_SNAP, LATER, SKY, STAGES, WORLD_TIME, at as atField, blackCame, comeHold, jumpTo, preview, pure, resolve, starCount, sheepdog as g, sheepdogGreedy, sheepdogNaive, sheepdogRandom, sheepdogSmart, topOf, type DogState } from '../studio/sheepdog/game.ts';
 import { mulberry32 } from '../studio/sheepdog/rng.ts';
 
 const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y } });
@@ -138,6 +138,26 @@ describe('M1-2a 개울 판 도움 깃발 (📐 C004)', () => {
     retry(s);
     expect(s.flags.length).toBe(0);
   });
+
+  it('1-7 깃발은 🍀를 뺀 박사 par 길(빔 8)의 첫 두 수 — 그 길을 끝까지 따르면 다 넣고 par 안, 🍀는 안 밟는다 (📐 C016 (나), 🧪 C015 정답 표지판)', () => {
+    const s = g.create(7);
+    jumpTo(s, 6);
+    s.splashes = 2;
+    retry(s);
+    for (let t = 0; t < 400 && phaseOf(s) !== 'aim'; t++) g.step(s, up);
+    const d = STAGES[6], fd = { ...d, bonus: 'flower' as const };
+    expect(s.flags).toEqual([pure.plan(s.F, s.S, fd, 3, 8), (() => { const S2 = pure.cloneSim(s.S), p = pure.plan(s.F, s.S, fd, 3, 8); resolve(s.F, S2, p[0], p[1]); return pure.plan(s.F, S2, fd, 3, 8); })()]);
+    for (const [x, y] of s.flags.slice()) barkAt(s, x, y);
+    expect(s.helped).toBe(true);
+    for (let n = 0; n < 9 && phaseOf(s) === 'aim'; n++) {
+      const [x, y] = pure.plan(s.F, s.S, fd, 3, 8);
+      barkAt(s, x, y);
+    }
+    expect(phaseOf(s)).toBe('result');
+    expect(s.ok).toBe(true);
+    expect(s.S.used).toBeLessThanOrEqual(d.par);
+    expect(s.S.ch.some((v) => v)).toBe(false);
+  }, 60_000);
 
   it('1-8만 \'멍멍 다 씀\' 실패도 깃발 셈에 든다 — 다시 할 때 깃발 ①② (1-7은 풍덩만 센다) (PM C016 F01-c ⓐ)', () => {
     for (const [k, flags] of [[7, 2], [6, 0]]) {

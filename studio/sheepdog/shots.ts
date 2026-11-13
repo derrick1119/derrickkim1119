@@ -163,6 +163,13 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
     await page.waitForTimeout(500);
     if ((await st(page, 's.flags.length')) !== 2) errors.push(`${name}: 풍덩 뒤 깃발이 안 뜸`);
     await page.screenshot({ path: join(here, 'screens', `${name}-flags.png`) });
+    // 📐 C016 (나): 1-7 깃발은 🍀를 뺀 par 길 — 두 번 풍덩한 셈 치고 다시(🎨 리뷰용)
+    await page.evaluate(() => { const sd = (globalThis as any).__sd; sd.jump(6); sd.state().splashes = 2; });
+    await page.waitForTimeout(300);
+    await page.keyboard.press('KeyR');
+    await page.waitForTimeout(500);
+    if ((await st(page, 's.flags.length')) !== 2) errors.push(`${name}: 1-7 두 번 풍덩 뒤 깃발이 안 뜸`);
+    await page.screenshot({ path: join(here, 'screens', `${name}-w1-7-flags.png`) });
   }
   // ★2 결과 카드 — 진짜 플레이(PM C008): 1-2에서 첫 멍을 그리디 자리 옆 0.08로 헛짖고, 나머지는 그리디 봇 자리를 진짜로 눌러 깬다 → par 넘김 = ★2
   await page.evaluate(() => (globalThis as any).__sd.jump(1));
