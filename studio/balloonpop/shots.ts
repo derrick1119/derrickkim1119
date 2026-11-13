@@ -98,7 +98,8 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
 }
 // 레이아웃 지표 (FUN §4): 캔버스 세로 점유 · 위아래 빈 띠 · 일시정지 버튼 ∩ 캔버스 위 HUD 띠(캔버스 폭 × 0.085)
 const layout: Record<string, unknown> = {};
-for (const vp of [{ width: 360, height: 780 }, { width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1280, height: 800 }]) {
+// 390×664·360×640 = 브라우저 막대가 있는 폰 높이 (C008 🧪)
+for (const vp of [{ width: 360, height: 780 }, { width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1280, height: 800 }, { width: 390, height: 664 }, { width: 360, height: 640 }]) {
   const page = await browser.newPage({ viewport: vp, deviceScaleFactor: 1 });
   await page.goto(url);
   await page.click('#start');

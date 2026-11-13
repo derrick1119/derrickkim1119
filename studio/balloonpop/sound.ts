@@ -35,6 +35,8 @@ export function cues(evs: SimEv[]): Cue[] {
     else if (e.kind === 'flop') out.push({ f: 160, type: 'sine', at: 0, dur: 0.12, gain: 0.18 });
     // 클리어: C–E–G–C 아르페지오
     else if (e.kind === 'clear') [523.25, 659.25, 783.99, 1046.5].forEach((f, j) => out.push({ f, type: 'triangle', at: j * 0.09, dur: 0.2, gain: 0.12 }));
+    // 큰 연쇄(≥7)의 끝맺음: 꼭대기 음 반복으로 밋밋하게 끝나지 않게 반짝 두 음 (C008 🧪 ⑥3)
+    else if (e.kind === 'chainEnd' && (e.v ?? 0) >= 7) [1567.98, 2093].forEach((f, j) => out.push({ f, type: 'triangle', at: 0.06 + j * 0.09, dur: 0.28, gain: 0.11 }));
     // 실패는 장난스러운 하강(장조, 단조 금지)
     else if (e.kind === 'fail') [783.99, 659.25, 587.33, 523.25].forEach((f, j) => out.push({ f, type: 'sine', at: j * 0.07, dur: 0.12, gain: 0.1 }));
   }

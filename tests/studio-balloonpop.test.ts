@@ -312,7 +312,8 @@ describe('휴대폰 살펴보기 — 빈 하늘 톡 (C007, 오너 답 없음 →
       g.step(s, { tap: false, dir: 0, pointer: null });
     }
     expect(s.news.length - n0).toBe(1);
-    expect(s.news[s.news.length - 1].text).toContain('살펴보기');
+    // 판 소식 줄을 새치기해 바로 보인다 (C008 🧪)
+    expect(s.news[0].text).toContain('살펴보기');
     expect(s.taps).toBe(3);
   });
 
@@ -372,6 +373,11 @@ describe('사운드 v0 — 첫 터치 뒤에만, 음소거 저장 (C008, QC)', (
     expect(f(1)).toBe(PENTA[0]);
     expect(f(30)).toBe(PENTA[PENTA.length - 1]);
     expect(cues(pops(8)).filter((c) => c.type !== 'noise').length).toBe(MAX_POP_VOICES);
+  });
+
+  it('큰 연쇄(≥7)는 끝맺음 음이 있고, 작은 연쇄는 없다 (C008 🧪)', () => {
+    expect(cues([{ kind: 'chainEnd', v: 7 }]).length).toBeGreaterThan(0);
+    expect(cues([{ kind: 'chainEnd', v: 3 }]).length).toBe(0);
   });
 });
 

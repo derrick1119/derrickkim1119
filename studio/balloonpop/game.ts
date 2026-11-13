@@ -720,9 +720,9 @@ function play(s: PopState, p: { x: number; y: number } | null) {
         if (dd < pd) (pd = dd), (pj = j);
       }
       if (pj >= 0) (s.peek = pj), (s.peekAt = s.st);
-      ev(s, 'miss', p.x, p.y * A, pj < 0 ? '휙~' : s.seen.has('peek') ? '👀' : '👀 살펴보기 (톡 안 씀)', '#ffffff');
-      // 첫 살펴보기에 한 줄 — 빈 하늘 톡이 무엇인지 (C008 🧪 ⑤1)
-      if (pj >= 0) see(s, 'peek', '👀 빈 하늘 톡 = 살펴보기 (톡은 안 써요)');
+      ev(s, 'miss', p.x, p.y * A, pj < 0 ? '휙~' : s.seen.has('peek') ? '👀' : '👀 살펴보기', '#ffffff');
+      // 첫 살펴보기에 한 줄 — 빈 하늘 톡이 무엇인지. 판 소식 줄을 새치기해 그 순간에 뜬다 (C008 🧪 ⑤1·⑥2)
+      if (pj >= 0 && !s.seen.has('peek')) s.seen.add('peek'), s.news.unshift({ text: '👀 빈 하늘 톡 = 살펴보기 (톡은 안 써요)', t: s.t });
     }
     else if (L.bs[i].k === IRON) ev(s, 'clang', SX[i], SY[i], '깡! 안 터져요', '#e3e8ee');
     else {
@@ -2349,9 +2349,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     }
     if (a > 0) {
       ctx.globalAlpha = a;
-      // 판 시작·다시는 토스트 — 풍선 띠를 가리지 않는다: 세로 화면은 위 하늘(소식 띠 아래), 위 하늘이 없는 넓은 화면은 아래 광장. 결과만 가운데 카드 (C008)
+      // 판 시작·다시는 토스트 — 풍선 띠를 가리지 않는다: 토스트가 통째로 들어가는 위 하늘이 있으면 거기(소식 띠 아래), 아니면 아래 광장(브라우저 막대가 있는 폰·넓은 화면). 결과만 가운데 카드 (C008 🧪)
       const toast = s.phase !== 'result';
-      const ch = R(stars >= 0 ? 0.25 : toast ? (sub2 ? 0.16 : 0.115) : 0.2), cy = !toast ? Y(0.5) : TOP >= HUD_TALL ? -TOP + HUD_TALL + R(0.075) + ch / 2 : Y(1.2);
+      const ch = R(stars >= 0 ? 0.25 : toast ? (sub2 ? 0.16 : 0.115) : 0.2), cy = !toast ? Y(0.5) : TOP >= HUD_TALL + R(0.075) + ch ? -TOP + HUD_TALL + R(0.075) + ch / 2 : Y(1.2);
       ctx.fillStyle = 'rgba(40,20,80,.86)';
       ctx.beginPath();
       ctx.roundRect(R(0.07), cy - ch / 2, w - R(0.14), ch, R(0.04));
