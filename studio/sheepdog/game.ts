@@ -2460,6 +2460,14 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       if (!pa || q >= 1) face = Math.sin(t * 0.01 + i) > 0 ? 1 : -1;
     }
     if (S.fell[i] && (!pa || q > 0.6)) mood = 'swim';
+    // 허우적 (🎨 C012 ⓔ, 허들 ③): 풍덩한 틱부터 18틱 — 두 번 솟고(0.3z, 줄이기 ½) ±10° 번갈아 기울며 다리를 휘젓는다
+    const fT = fx.memo[`fellT${i}`], fl = fT === undefined || !S.fell[i] ? 99 : t - fT;
+    if (fl < 18) {
+      const zz = R(0.044) * scl(sy0);
+      hop = Math.abs(Math.sin((Math.PI * fl) / 9)) * 0.3 * zz * (REDUCED ? 0.5 : 1);
+      roll = REDUCED ? 0 : (Math.floor(fl / 4.5) % 2 ? 1 : -1) * 0.17;
+      run = 1;
+    }
     if (S.caught === i && (s.phase === 'result' || q > 0.8)) mood = 'scared';
     if (!pa && mood === 'calm' && s.phase === 'run' && Math.hypot(s.toX - S.x[i], s.toY - S.y[i]) < R_OUT) mood = 'scared';
     const z = R(0.044) * scl(sy0);
@@ -2506,6 +2514,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     if (s.phase === 'run') mood = 'run';
     else if (s.phase === 'flee') mood = s.pt < 22 ? 'bark' : flee?.scare.some((v) => v === 3) ? 'surprise' : anyIn ? 'proud' : 'idle';
     else if (s.phase === 'result') mood = s.ok ? 'proud' : 'dizzy';
+    const fellT = Math.max(-1, ...F.black.map((_, i) => (S.fell[i] ? fx.memo[`fellT${i}`] ?? -1 : -1)));
+    if (fellT >= 0 && t - fellT < 24 && (s.phase === 'flee' || (s.phase === 'result' && !s.ok))) mood = 'surprise'; // 🎨 C012 ⓔ
     else if (s.idle > 300 && s.stage + s.S.used > 0) mood = 'spin';
     if (s.events.some((e) => e.kind === 'sniff' && t - e.t < 40)) mood = 'sniff';
     let face: number = 1;
@@ -2847,7 +2857,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       fx.burst(gx0, gy0 - R(0.05), '#ffe066', 40, 6, 3.2), fx.burst(gx0, gy0 - R(0.05), '#ff8fb1', 30, 5, 3), fx.ring(gx0, gy0, '#ffe066', R(0.3), 6), fx.blink('#fff6c8', 0.25);
       say(rx0, ry0, '딸깍!', 15, { g: 'B', icon: 'starW', id: 'in0' }); // 🎨 C010: 쏙 알약 자리(뒤 가로대 위)를 고쳐 쓴다
     }
-    if (e.kind === 'fail') for (const p of fx.popups) if (p.g === 'C') p.life = Math.min(p.life, 8); // 🎨 C010: 실패 카드에 말풍선이 닿지 않게
+    if (e.kind === 'fail') for (const p of fx.popups) if (p.g === 'C') p.life = Math.min(p.life, S.fell.some((v) => v) ? 14 : 8); // 🎨 C010: 실패 카드에 말풍선이 닿지 않게 (풍덩은 카드가 뜨는 12틱 무렵까지, C012)
     if (e.kind === 'fail') fx.kick(3), fx.blink('#fff6d6', 0.12); // C002: 실패는 벌이 아니다 — 빨간 번쩍·큰 흔들림 없음
   }
   fx.memo.t = s.t;
@@ -2901,6 +2911,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       if (flee.fellAt[i] >= 0 && idx >= flee.fellAt[i] - 1.5 && mk('fell')) {
         const [a, b] = pathAt(pa, flee.fellAt[i] / Math.max(1, m - 1));
         fx.burst(PX(a, b), PY(b), '#bfe9ff', 30, 4.5, 3), fx.ring(PX(a, b), PY(b), '#ffffff', R(0.08), 3), fx.kick(3), cue('splash');
+        fx.ring(PX(a, b), PY(b), '#ffffff', R(0.05), 2, 4, 0.35), fx.ring(PX(a, b), PY(b), '#ffffff', R(0.05), 2, 13, 0.35);
+        fx.memo[`fellT${i}`] = t;
         say(PX(a, b), PY(b) - R(0.09), '풍덩!', 16, { g: 'C', bg: '#d8f3ff', id: `fell${i}`, who: i, life: 60 });
       }
       if (flee.trip[i] && q > 0.6 && mk('trip')) {
@@ -2989,8 +3001,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     }
   }
   // 실패: 위쪽 크림 알약 카드 (C008, 🎨 §12-7 — 빨강 없음). 통과는 DOM 결과 카드(ui.ts)가 맡는다
-  if (s.phase === 'result' && !s.ok) {
-    const a = Math.min(1, s.pt / 8), cw = Math.min(w - R(0.08), R(0.86)), cx0 = (w - cw) / 2, cy0 = Y(0.34), ch = R(0.15);
+  const splashFail = s.phase === 'result' && !s.ok && S.fell.some((v) => v), cardFrom = splashFail ? 12 : 0; // 🎨 C012 ⓔ: 허우적이 끝까지 보이게 (다시 시작 60틱은 그대로, 📐 C003)
+  if (s.phase === 'result' && !s.ok && s.pt >= cardFrom) {
+    const a = Math.min(1, (s.pt - cardFrom) / 8), cw = Math.min(w - R(0.08), R(0.86)), cx0 = (w - cw) / 2, cy0 = Y(0.34), ch = R(0.15);
     ctx.globalAlpha = a;
     ctx.fillStyle = '#c98a4a'; // 두께는 결과 카드와 같은 색 (🎨 C008)
     ctx.beginPath();

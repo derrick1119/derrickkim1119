@@ -67,6 +67,8 @@ const SYNTH: Record<Cue, (t: number, v: number, last: boolean) => void> = {
     hiss(t, 0.35, 0.5, lp);
     tone('sine', 300, 80, t, 0.35, 0.4, master!);
     tone('sine', 420, 980, t + 0.04, 0.14, 0.4, master!); // 오르는 '퐁'
+    // 허우적 물방울 퐁 셋 (🎨 C012 ⓔ): 양이 솟는 꼭대기에 맞춰 +75·+225ms, 끝에 +300ms
+    for (const [d, f0, f1] of [[0.075, 1100, 1900], [0.225, 1300, 2100], [0.3, 900, 1500]]) tone('sine', f0, f1, t + d, 0.05, 0.25, master!);
   },
   // 🏅 '한 번에!' 도장 (🎨 C011): 쿵(삼각 240→70Hz) + 탁(노이즈) + 70ms 뒤 짠(G6 + 1.5배) — 별 띵 C·D·E 다음을 G로 맺는다
   stamp(t) {

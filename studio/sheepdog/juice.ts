@@ -59,7 +59,13 @@ export class Juice {
     const g = o.g ?? 'A', same = o.id ? this.popups.find((p) => p.id === o.id) : undefined;
     if (same) return void Object.assign(same, { x, y, text, icon: o.icon, life: same.max, age: Math.min(same.age, 3) });
     const p: Popup = { ...o, g, x, y, text, color, size, life: o.life ?? LIFE[g], max: o.life ?? LIFE[g], age: 0 };
-    if (g !== 'C')
+    const hits = (a: ReturnType<typeof boxOf>, q: Popup) => { const c = boxOf(q); return c.x0 < a.x1 && a.x0 < c.x1 && c.y0 < a.y1 && a.y0 < c.y1; };
+    // B 보상은 밀려 사라지지 않는다 (🎨 C012 ⓓ): B끼리 겹치면 뒤에 온 B만 31px 위로 한 번, 자리 잡은 B에 겹친 A·D는 곧 거둔다
+    if (g === 'B') {
+      if (this.popups.some((q) => q.g === 'B' && hits(boxOf(p), q))) p.y -= 31;
+      const b = boxOf(p);
+      for (const q of this.popups) if ((q.g === 'A' || q.g === 'D') && hits(b, q)) q.life = Math.min(q.life, 6);
+    } else if (g !== 'C')
       for (let k = 0; ; k++) {
         const b = boxOf(p), hit = this.popups.some((q) => { const c = boxOf(q); return c.x0 < b.x1 && b.x0 < c.x1 && c.y0 < b.y1 && b.y0 < c.y1; });
         if (!hit) break;
