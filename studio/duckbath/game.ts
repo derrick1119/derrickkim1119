@@ -1607,7 +1607,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
   }
   // 고양이 (뒤 오른쪽 모서리 테두리 위)
   {
-    const cAge = s.t - s.catT, mode = cAge >= 0 && cAge < 55 ? 2 : t % 420 > 300 ? 1 : 0;
+    // D006 (🧪 S4): 실패 카드가 떠 있는 동안 고양이는 계속 깔깔(펄쩍) 자세
+    const cAge = s.t - s.catT, mode = (cAge >= 0 && cAge < 55) || (s.manual && s.phase === 'result' && !s.ok) ? 2 : t % 420 > 300 ? 1 : 0;
     drawCat(ctx, X(0.9), Y(WY0 - 0.04), R(0.07), mode, t);
   }
 
@@ -2343,7 +2344,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     const goldOk = !!gold && gold.st >= 0;
     const okk = s.phase === 'result' && s.ok ? s.starOk : [ducksIn === ducksAll, s.used <= d.par, goldOk];
     const bad = [s.phase === 'result' && !s.ok, s.used > d.par, s.goldLost];
-    const labels = [`오리 ${ducksIn}/${ducksAll}`, `톡 ≤${d.par}`, '👑 먼저']; // D002: 황금 오리 조건(마지막 오리보다 먼저)이 읽히게
+    const labels = [`${d.boat ? '오리·배' : '오리'} ${ducksIn}/${ducksAll}`, `톡 ≤${d.par}`, '👑 먼저']; // D002: 황금 오리 조건(마지막 오리보다 먼저)이 읽히게
     const r2 = Y(ty + 0.112), cw2 = R(0.3);
     for (let k = 0; k < 3; k++) {
       const cx1 = X(0.03) + k * (cw2 + R(0.017));

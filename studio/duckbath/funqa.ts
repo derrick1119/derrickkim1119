@@ -89,6 +89,7 @@ function group(bot: Bot<DuckState>, n: number, retry: number) {
       stars: r2(oks.reduce((a, l) => a + l.stars, 0) / Math.max(1, oks.length)),
       tapStar: rate(oks.map((l) => l.tapStar)), goldStar: rate(oks.map((l) => l.goldStar)), // E6 (클리어한 시도 중)
       try3: rate(byRun.filter((B) => B.length > 2).map((B) => B[2].ok)), // H1: 세 번째 시도(👆가 뜨는 시도) 클리어율
+      try3n: byRun.filter((B) => B.length > 2).length,
       fails: L.filter((l) => !l.ok).length, pen: r2(L.reduce((a, l) => a + l.sucks + l.chomps, 0) / Math.max(1, L.length)),
       slack: d.taps - d.par, slackRatio: r2(d.taps / d.par), // W2
     };
@@ -120,7 +121,7 @@ export function measure(n = 20) {
   // H1 (FUN v1.4): 판별 세 번째 시도 클리어율 — 👆 따름 − 안 따름 ≤ 0.35, 따름 < 0.85
   {
     const a = (out['배우는처음'] as ReturnType<typeof group>).stages, b = (out['배우는처음_힌트없음'] as ReturnType<typeof group>).stages;
-    out['H1'] = a.map((p, i) => ({ stage: i + 1, follow: p.try3, none: b[i].try3, gain: p.try3 !== null && b[i].try3 !== null ? r2(p.try3 - b[i].try3) : null }));
+    out['H1'] = a.map((p, i) => ({ stage: i + 1, follow: p.try3, none: b[i].try3, n: [p.try3n, b[i].try3n], gain: p.try3 !== null && b[i].try3 !== null ? r2(p.try3 - b[i].try3) : null }));
   }
   // W2 (D003): par가 사람 기준이 됐으니 여유는 '톡 ÷ 숙련 봇 톡 수'로 잰다 (판 사이 꺾임이 벽)
   out['W2'] = STAGES.map((d, i) => r2(d.taps / Math.max(1, (out['숙련'] as ReturnType<typeof group>).stages[i].medTaps)));
@@ -173,7 +174,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   console.log(`\nW2 톡÷숙련 톡: ${(res['W2'] as number[]).join(' · ')}  |  (참고) 톡−par: ${s0.map((p) => p.slack).join(' · ')}`);
   const e6 = res['E6황금'] as Record<string, (number | null)[]>;
   console.log(`E6 캐주얼 ★황금 (황금을 맨 나중에 미는 확률별): ${Object.entries(e6).map(([k, v]) => `${k}: ${v.join(' ')}`).join('  |  ')}`);
-  console.log(`H1 (세 번째 시도 클리어율 👆 따름/안 따름 → 차이): ${(res['H1'] as { stage: number; follow: number | null; none: number | null; gain: number | null }[]).filter((h) => h.follow !== null).map((h) => `${h.stage}판 ${h.follow}/${h.none} → ${h.gain}`).join(' · ')}`);
+  console.log(`H1 (세 번째 시도 클리어율 👆 따름/안 따름 → 차이): ${(res['H1'] as { stage: number; follow: number | null; none: number | null; n: number[]; gain: number | null }[]).filter((h) => h.follow !== null).map((h) => `${h.stage}판 ${h.follow}/${h.none} → ${h.gain} (n ${h.n.join('/')})`).join(' · ')}`);
   if (res['C4']) console.log(`C4 (par 1 판, %): ${(res['C4'] as ReturnType<typeof area>).filter((c) => c.oneTap !== null).map((c) => `${c.stage}판 한 톡에 다 ${c.oneTap} · ★3 ${c.oneTap3}`).join('  |  ')}`);
   console.log(`숙련 격차(숙련÷캐주얼) ${res['숙련격차']}× (보고만) · 숙련÷처음 ${res['숙련격차_처음']}×`);
 }

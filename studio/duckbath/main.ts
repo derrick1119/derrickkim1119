@@ -18,7 +18,8 @@ const canvas = document.createElement('canvas');
 canvas.className = 'g-canvas';
 canvas.tabIndex = 0;
 canvas.setAttribute('aria-label', `${g.name} 게임 화면. ${g.rules.join(' ')} 키보드는 화살표로 고르고 스페이스.`);
-const overlay = document.createElement('button');
+const overlay = document.createElement('button'); // D006부터 시작 카드는 쓰지 않음(처음 온 사람은 바로 1판) — 끝난 뒤 다시 시작용 자리로만
+overlay.hidden = true;
 overlay.type = 'button';
 overlay.className = 'g-overlay';
 // D004 (ART 10장 ⑥): 결과·실패 카드는 DOM — 버튼을 Tab·Enter·R로 누를 수 있게
@@ -81,10 +82,6 @@ function draw() {
     ctx.arc(cursor.x * w, cursor.y * h, spaceDown ? 7 : 10, 0, Math.PI * 2);
     ctx.stroke();
   }
-}
-function show(html: string) {
-  overlay.innerHTML = html;
-  overlay.hidden = false;
 }
 const esc = (t: string) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
 let cardFor = '';
@@ -242,9 +239,8 @@ overlay.addEventListener('keydown', (e) => {
   if (e.key === ' ' || e.key === 'Enter') (e.preventDefault(), start());
 });
 size();
-// 규칙 2줄(GDD §2)은 머리 대신 시작 카드에 (ART 10장 ①·⑤ 1차)
-const touchFirst = !matchMedia('(hover:hover) and (pointer:fine)').matches;
-// D006: 다녀간 사람은 판 고르기가 바로 — 한 번 눌러 시작
+// D006: 처음 온 사람은 카드 없이 바로 1판(🧪 허들 1: 첫 톡이 곧 찰박 — 1판 판 질문 띠와 👆 안내가 규칙을 말한다).
+// 다녀간 사람은 판 고르기가 바로 — 한 번 눌러 시작
 if (save.data.open > 1 || save.data.best[0]) showLevels(false);
-else show(`<b>🦆 목욕 시작</b><span>물을 톡! 찰박 물결이 오리를 둥지로</span><span>${touchFirst ? '👆 꾹 누르면 갈 길 · 떼면 찰박!' : '⌨️ 화살표 · 스페이스 꾹 → 떼면 찰박'}</span>`);
+else play(0);
 new ResizeObserver(size).observe(root);

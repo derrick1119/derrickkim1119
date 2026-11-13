@@ -23,7 +23,9 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.screenshot({ path: join(here, 'screens', `${name}-title.png`) });
   if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) errors.push(`${name}: 가로 스크롤`);
   // 터치: 시작 → 물 가운데 아래쪽을 꾹(미리 보기) → 떼기(찰박)
-  await page.click('.g-overlay');
+  // D006: 처음 온 사람은 시작 카드 없이 바로 1판 — 카드가 있으면(다녀간 사람이 아니면 없어야 함) 누른다
+  if (await page.locator('.g-overlay:not([hidden])').count()) await page.click('.g-overlay');
+  if (!(await st(page)).running) errors.push(`${name}: 처음 온 사람이 바로 1판에 들어가지 않음`);
   await page.waitForTimeout(1600);
   const box = await page.locator('.g-canvas').boundingBox();
   await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.62);
@@ -122,7 +124,7 @@ await ctx.addInitScript(() => Object.defineProperty(window, 'localStorage', { ge
 const p2 = await ctx.newPage();
 p2.on('pageerror', (e: Error) => errors.push(`nostorage: ${e.message}`));
 await p2.goto(url);
-await p2.click('.g-overlay');
+if (await p2.locator('.g-overlay:not([hidden])').count()) await p2.click('.g-overlay');
 await p2.waitForTimeout(400);
 if (!(await st(p2)).running) errors.push('nostorage: 시작 안 됨');
 await browser.close();
