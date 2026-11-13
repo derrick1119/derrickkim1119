@@ -200,12 +200,14 @@ describe('저장·판 고르기 (D005)', () => {
     bad.m.set(SAVE_KEY, '{not json');
     expect(makeStore(8, () => bad).data.open).toBe(1);
   });
-  it('실패 카드: 주범이 작으면(1톡·25% 미만) 톡 바닥 + 그 판의 교훈, 크면 주범 제목 (FUN v1.4 N4)', () => {
+  it('실패 카드: 주범이 쓴 톡의 25% 미만이면 톡 바닥 + 그 판의 교훈, 이상이면 주범 제목 (테스트로 옮긴 v1.4 N4)', () => {
     const s = g.create(2);
     startStage(s, 7);
     Object.assign(s, { used: 12, sucks: 1, chomps: 0 });
     expect(failText(s)).toMatchObject({ kind: 'taps', tip: STAGES[7].hint });
-    Object.assign(s, { sucks: 2 });
+    Object.assign(s, { sucks: 2 }); // 12톡 중 2톡 = 17% → 아직 '톡 바닥' (🧪 D005: 2톡 조항 뺌)
+    expect(failText(s).kind).toBe('taps');
+    Object.assign(s, { sucks: 3 }); // 25%
     expect(failText(s).kind).toBe('suck');
     Object.assign(s, { used: 4, sucks: 0, chomps: 1 });
     expect(failText(s).kind).toBe('chomp');

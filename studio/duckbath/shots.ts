@@ -45,6 +45,8 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.waitForTimeout(500);
   await page.screenshot({ path: join(here, 'screens', `${name}-stars.png`) });
   if (!(await page.locator('.card.win').count())) errors.push(`${name}: 1판 가운데 톡이 결과 카드가 아님`);
+  const ch = (await page.locator('.card').boundingBox())?.height ?? 0;
+  if (ch > 190) errors.push(`${name}: 결과 카드 높이 ${Math.round(ch)}px > 190 (🧪 D005 차단)`);
   else {
     await page.click('.card .btn');
     await page.waitForTimeout(200);
