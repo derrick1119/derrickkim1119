@@ -1343,25 +1343,45 @@ function granny(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, 
   ctx.restore();
   // 찻잔 · 빗자루 (기울지 않음)
   if (mood === 3) {
-    const a = -0.9 + Math.sin(t * 0.5) * 0.7;
+    // 빗자루를 울타리 너머로 휘휘 (공사장 쪽으로)
+    const th = 0.35 + 0.75 * (0.5 + 0.5 * Math.sin(t * 0.45));
     ctx.save();
-    ctx.translate(x + face * u * 0.55, y + u * 0.4);
-    ctx.rotate(a * face);
+    ctx.translate(x + face * u * 0.75, y + u * 0.55);
+    ctx.rotate(face * th);
     ctx.strokeStyle = '#8a5a2a';
-    ctx.lineWidth = u * 0.1;
+    ctx.lineWidth = u * 0.13;
+    ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    ctx.lineTo(0, -u * 1.1);
+    ctx.lineTo(0, -u * 1.6);
     ctx.stroke();
     ctx.fillStyle = '#e8c35a';
     ctx.beginPath();
-    ctx.moveTo(-u * 0.2, -u * 1.05);
-    ctx.lineTo(u * 0.2, -u * 1.05);
-    ctx.lineTo(u * 0.3, -u * 1.55);
-    ctx.lineTo(-u * 0.3, -u * 1.55);
+    ctx.moveTo(-u * 0.22, -u * 1.5);
+    ctx.lineTo(u * 0.22, -u * 1.5);
+    ctx.lineTo(u * 0.38, -u * 2.2);
+    ctx.lineTo(-u * 0.38, -u * 2.2);
     ctx.closePath();
     ctx.fill();
+    ctx.strokeStyle = '#b8902a';
+    ctx.lineWidth = 1;
+    for (let k = -2; k <= 2; k++) {
+      ctx.beginPath();
+      ctx.moveTo(k * u * 0.06, -u * 1.55);
+      ctx.lineTo(k * u * 0.13, -u * 2.18);
+      ctx.stroke();
+    }
     ctx.restore();
+    // 💢
+    ctx.strokeStyle = '#ff3b4a';
+    ctx.lineWidth = 2;
+    const ax = x - face * u * 0.45, ay = y - u * 0.55, k = u * (0.16 + 0.03 * Math.sin(t * 0.6));
+    for (const [sx, sy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+      ctx.beginPath();
+      ctx.moveTo(ax + sx * k * 0.3, ay + sy * k);
+      ctx.quadraticCurveTo(ax + sx * k * 0.3, ay + sy * k * 0.3, ax + sx * k, ay + sy * k * 0.3);
+      ctx.stroke();
+    }
   } else {
     const cx = x + face * u * 0.45, cy = y + u * 0.5 - (mood === 0 ? Math.abs(Math.sin(t * 0.03)) * u * 0.15 : 0);
     ctx.fillStyle = '#ffffff';

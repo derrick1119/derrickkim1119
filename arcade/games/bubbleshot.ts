@@ -475,8 +475,7 @@ function release(s: BubState, ax: number, ay: number) {
   s.cur = s.nxt;
   s.nxt = roll(s, s.shotNo + 1);
   s.firstShot = true;
-  s.face = 1;
-  s.faceT = 24;
+  if (s.face !== 6) (s.face = 1), (s.faceT = 24);
   ev(s, 'fire', LX, LY);
 }
 
@@ -534,7 +533,7 @@ function land(s: BubState) {
     s.pts += gain;
     if (res.dropped >= 5 || res.snacks >= 2) s.big = { pts: gain, n: res.dropped, k: res.snacks, t: s.t };
     if (res.dropped || res.snacks) (s.face = res.snacks >= 2 ? 6 : res.snacks ? 3 : 2), (s.faceT = res.snacks >= 2 ? 130 : 70);
-    if (res.snacks >= 2) ev(s, 'drool', EATX, LY - 0.09, ['츄릅… 감동이야ㅠㅠ', '침 질질~ 냠냠 예약!', '이게 다 내 거?!'][s.used % 3], '#fff1f5');
+    if (res.snacks >= 2) ev(s, 'drool', EATX, LY, ['츄릅… 감동이야ㅠㅠ', '침 질질~ 냠냠 예약!', '이게 다 내 거?!'][s.used % 3], '#fff1f5');
     if (res.dropped >= d.big) ev(s, 'bigstar', 0.5, 0.6, `한 발에 ${res.dropped}개 우수수! ★`, '#ffe066');
   }
   // 얼음 천장
@@ -573,8 +572,7 @@ function endStage(s: BubState, ok: boolean, why: string) {
     s.tally.left = (s.tally.left ?? 0) + s.shots * LEFT_PTS;
     if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS);
     ev(s, 'clear', 0.5, 0.6, s.won ? '양동이 가득! 🐟' : '다 받았다!');
-    s.face = 3;
-    s.faceT = 200;
+    if (s.face !== 6) (s.face = 3), (s.faceT = 200);
   } else {
     s.hearts--;
     s.tries++;
@@ -1004,10 +1002,10 @@ function drawBubble(ctx: CanvasRenderingContext2D, x: number, y: number, r: numb
     ctx.fillStyle = bg;
     circle(ctx, x, y, r);
     ctx.fill();
-    drawSnack(ctx, x, y + r * 0.05, r * 0.52, sd % 3, t, sd, true);
-    const g = ctx.createRadialGradient(x, y, r * 0.35, x, y, r);
-    g.addColorStop(0, 'rgba(225,246,255,.18)');
-    g.addColorStop(1, 'rgba(225,246,255,.7)');
+    drawSnack(ctx, x, y + r * 0.04, r * 0.6, sd % 3, t, sd, true);
+    const g = ctx.createRadialGradient(x, y, r * 0.55, x, y, r);
+    g.addColorStop(0, 'rgba(225,246,255,0)');
+    g.addColorStop(1, 'rgba(225,246,255,.75)');
     ctx.fillStyle = g;
     circle(ctx, x, y, r);
     ctx.fill();
@@ -2006,6 +2004,27 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BubState, w: number, h: numbe
       ctx.stroke();
     }
     drawEater(ctx, dx, dy, u, mood, t, puff, aimA, pipe, Math.min(1, s.bucket / 24));
+    if (mood === 6) {
+      let txt = '';
+      for (const e of s.events) if (e.kind === 'drool') txt = e.text ?? '';
+      if (txt) {
+        font(0.036, 900);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const tw = ctx.measureText(txt).width + Rr(0.04), bx = Math.max(tw / 2 + 4, dx - Rr(0.02)), by = dy - u * 2.35;
+        ctx.fillStyle = 'rgba(255,255,255,.95)';
+        ctx.beginPath();
+        ctx.roundRect(bx - tw / 2, by - Rr(0.026), tw, Rr(0.052), Rr(0.026));
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(dx + u * 0.1, by + Rr(0.024));
+        ctx.lineTo(dx + u * 0.3, by + Rr(0.05));
+        ctx.lineTo(dx + u * 0.4, by + Rr(0.024));
+        ctx.fill();
+        ctx.fillStyle = '#c2185b';
+        ctx.fillText(txt, bx, by + 1);
+      }
+    }
     if (s.phase === 'play' && !(s.fly && s.fly.k < 5)) {
       const grow = s.fly ? 1 : Math.min(1, 0.4 + (COOL - s.cool) / COOL), bob = Math.sin(t * 0.08) * Rr(0.003);
       drawBubble(ctx, X(LX), Y(LY) + bob, Rr(R * 0.97 * (s.cool > 0 ? grow : 1)), s.cur, t, 55);
@@ -2046,7 +2065,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BubState, w: number, h: numbe
   }
   // 양동이로 파닥파닥 튀어 가는 간식
   for (const c of s.flops) {
-    const x = X(c.x), y = Y(c.y), u = Rr(0.03);
+    const x = X(c.x), y = Y(c.y), u = Rr(0.037);
     ctx.fillStyle = 'rgba(200,240,255,.55)';
     for (let q = 1; q <= 3; q++) {
       const p = Math.max(0, (t - c.t0 - q * 3) / c.dur), px = c.x0 + (c.tx - c.x0) * p, py = c.y0 + (c.ty - c.y0) * p - 0.16 * 4 * p * (1 - p);
@@ -2076,7 +2095,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BubState, w: number, h: numbe
     if (e.kind === 'eat') fx.burst(x, y, '#c49a6c', 18, 3.4, 2.4), fx.kick(4), say(x, y - Rr(0.07), e.text!, '#ffe0b0', 17);
     if (e.kind === 'thaw') fx.burst(x, y, '#e6f8ff', 16, 3.2, 2.4), fx.ring(x, y, '#ffffff', Rr(0.05), 3), say(x, y - Rr(0.05), e.text!, '#e6f8ff', 14);
     if (e.kind === 'plop') fx.burst(x, y, '#9fdcff', 12, 2.6, 2.2), fx.burst(x, y, '#ffffff', 6, 2, 1.8), say(x, y - Rr(0.07), e.text!, '#fff6d6', 14);
-    if (e.kind === 'drool') fx.burst(x, y, '#ff9ec4', 12, 2.4, 2.2), say(x, y - Rr(0.04), e.text!, '#fff1f5', 15);
+    if (e.kind === 'drool') fx.burst(x + Rr(0.04), y, '#ff9ec4', 12, 2.4, 2.2);
     if (e.kind === 'splat') fx.burst(x, y, col, 8, 2.4, 2);
     if (e.kind === 'bigstar') say(w / 2, Y(0.98), e.text!, '#ffe066', 16);
     if (e.kind === 'cancel') say(x, y, e.text!, '#dff6ff', 13);
