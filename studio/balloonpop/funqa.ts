@@ -6,7 +6,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mulberry32, type Rng } from '../../engine/rng.ts';
-import { A, balloonpop as g, balloonpopRandom, balloonpopSmart, bxAt, byAt, density, IRON, RETRY_CARD, STAGE_COUNT, STAGES, type PopState } from './game.ts';
+import { A, balloonpop as g, balloonpopRandom, balloonpopSmart, bxAt, byAt, density, IRON, STAGE_COUNT, TAP_BLOCK, STAGES, type PopState } from './game.ts';
 import type { Bot, Input } from './core.ts';
 
 const NO: Input = { tap: false, dir: 0, pointer: null };
@@ -33,7 +33,7 @@ export function makeHuman(name: string, opt: { late?: boolean; follow?: number }
           if (!m || m.key !== key) seen.set(s, (m = { key, tap: -1, go: opt.follow === undefined || rng() < opt.follow }));
           go = m.go;
           if (go && opt.late) {
-            const card = s.tries > 0 && s.pt < RETRY_CARD, now = s.st >= s.helpAt - 4;
+            const card = s.tries > 0 && s.pt < TAP_BLOCK, now = s.st >= s.helpAt - 4;
             if (m.tap < 0) {
               if (card || !now) return NO;
               m.tap = s.t + 12 + Math.floor(rng() * 13);

@@ -31,8 +31,10 @@ const INTRO = 50, RESULT = 175, WAIT_END = 40, NEWS_T = 190;
 export const FAIL_RESULT = 60;
 /** 이 횟수만큼 실패하면 도움 반짝 */
 export const HELP_AFTER = 2;
-/** 다시 하기 카드 길이(틱) — 처음 소개보다 짧게, 풍선을 오래 가리지 않게 */
+/** 다시 하기 토스트 길이(틱) — 처음 소개보다 짧게 */
 export const RETRY_CARD = 40;
+/** 다시 토스트의 첫 12틱 톡은 받지 않는다 — 결과를 닫으려던 손짓이 톡을 써 버리지 않게. 토스트는 위 하늘이라 풍선을 안 가린다 (C008, FUN v1.5 ⑤) */
+export const TAP_BLOCK = 12;
 /** 땅(동물이 내려앉는 곳) · 풍선 중심 → 매달린 동물 · 떨어지는 속도(우산/맨몸) */
 export const GY = 1.2;
 const HANG = 0.088, FALL_UM = 0.0045, FALL_NO = 0.0085;
@@ -788,8 +790,8 @@ export const balloonpop: GameDef<PopState> = {
       if (s.pt >= INTRO) (s.phase = 'play'), (s.pt = 0);
       return;
     }
-    // 다시 카드가 떠 있는 동안의 톡은 받지 않는다 — 카드를 닫으려던 손짓이 톡 하나를 써 버리지 않게 (C003 🧪)
-    play(s, press && !(s.tries > 0 && s.pt < RETRY_CARD) ? p : null);
+    // 다시 토스트 첫 TAP_BLOCK틱의 톡은 받지 않는다 — 결과를 닫으려던 손짓이 톡 하나를 써 버리지 않게 (C003 🧪 → C008 토스트)
+    play(s, press && !(s.tries > 0 && s.pt < TAP_BLOCK) ? p : null);
   },
   over: (s) => s.dead,
   score: (s) => s.pts,
@@ -1889,6 +1891,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
   // ══ 흔들 레일 · 다리 밧줄 (C007, ART §11) — 답이 아니라 범위·연결만 ══
   {
     const first = s.tries === 0 && s.used === 0, quiet = busy || fi >= 0 ? 0.5 : 1, ink = night > 0.5 ? '#fffaf2' : '#3a2a6a';
+    // 첫 강조는 판 시작 토스트(놀이 70틱)가 걷힌 뒤 20틱에 걸쳐 (C008 🧪 ②)
+    const emph = first ? clamp01((st - 70) / 20) : 0;
     // 흔들 레일: 흔들 무리마다 무리 아래 짧은 줄 + 무리와 같이 움직이는 추. 두 무리면 마주 보는 끝 ›‹가 거리만큼 진해진다
     const rails: { cx: number; ax: number; ph: number; ry: number; bob: number }[] = [];
     for (const c of [...new Set(L.bs.filter((b, i) => b.ax > 0 && b.an < 0 && s.alive[i] === 1).map((b) => b.cl))]) {
@@ -1900,7 +1904,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     ctx.save();
     ctx.lineCap = 'round';
     for (const rl of rails) {
-      ctx.strokeStyle = rgba(ink, (first ? 0.65 : 0.45) * quiet * intro);
+      ctx.strokeStyle = rgba(ink, (0.45 + 0.2 * emph) * quiet * intro);
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(X(rl.cx - rl.ax), Y(rl.ry));
@@ -2278,8 +2282,14 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     font(0.04, 900);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    // 받침: 노랑 원·하늘 위에서도 글자가 읽히게 (C008)
+    const lb = now ? '✨ 지금!' : '✨ 이 풍선', ly = Math.max(Y(HB) + R(0.04), hy - hr - R(0.03)), lw = ctx.measureText(lb).width + R(0.04);
+    ctx.fillStyle = now ? 'rgba(90,42,138,.92)' : 'rgba(40,20,80,.7)';
+    ctx.beginPath();
+    ctx.roundRect(hx - lw / 2, ly - R(0.026), lw, R(0.052), R(0.026));
+    ctx.fill();
     ctx.fillStyle = now ? '#fff3a0' : 'rgba(255,255,255,.85)';
-    ctx.fillText(now ? '✨ 지금!' : '✨ 이 풍선', hx, Math.max(Y(HB) + R(0.04), hy - hr - R(0.03)));
+    ctx.fillText(lb, hx, ly);
     ctx.restore();
   }
   // 판 시작 카드 · 판 끝 카드
@@ -2309,7 +2319,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     }
     if (a > 0) {
       ctx.globalAlpha = a;
-      const cy = Y(s.phase === 'result' ? 0.5 : 0.52), ch = R(stars >= 0 ? 0.25 : 0.2);
+      // 판 시작·다시는 토스트 — 풍선 띠를 가리지 않는다: 세로 화면은 위 하늘(소식 띠 아래), 위 하늘이 없는 넓은 화면은 아래 광장. 결과만 가운데 카드 (C008)
+      const toast = s.phase !== 'result';
+      const ch = R(stars >= 0 ? 0.25 : toast ? (sub2 ? 0.16 : 0.115) : 0.2), cy = !toast ? Y(0.5) : TOP >= HUD_TALL ? -TOP + HUD_TALL + R(0.075) + ch / 2 : Y(1.2);
       ctx.fillStyle = 'rgba(40,20,80,.86)';
       ctx.beginPath();
       ctx.roundRect(R(0.07), cy - ch / 2, w - R(0.14), ch, R(0.04));
@@ -2319,7 +2331,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
       ctx.stroke();
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      let yy = cy - ch / 2 + R(0.045);
+      // 토스트는 글자를 조금 작고 촘촘하게
+      const k1 = toast ? 0.034 : 0.045, k2 = toast ? 0.043 : 0.06, k3 = toast ? 0.083 : 0.11;
+      let yy = cy - ch / 2 + R(k1);
       if (stars >= 0) {
         for (let q = 0; q < 3; q++) {
           const ap = clamp01((s.pt - 12 - q * 12) / 8), sc = q < stars ? 1 + 0.4 * Math.max(0, 1 - ap) * (ap > 0 ? 1 : 0) : 1;
@@ -2333,15 +2347,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
         }
         yy += R(0.07);
       }
-      font(0.055, 900);
+      font(toast ? 0.046 : 0.055, 900);
       ctx.fillStyle = s.phase === 'result' && !s.ok ? '#ffb3c0' : '#fff1a8';
       ctx.fillText(head, w / 2, yy, w - R(0.18));
-      font(0.038, 800);
+      font(toast ? 0.035 : 0.038, 800);
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(sub, w / 2, yy + R(0.06), w - R(0.18));
+      ctx.fillText(sub, w / 2, yy + R(k2), w - R(0.18));
       if (sub2) {
         ctx.fillStyle = th.muted;
-        ctx.fillText(sub2, w / 2, yy + R(0.11), w - R(0.18));
+        ctx.fillText(sub2, w / 2, yy + R(k3), w - R(0.18));
       }
       ctx.globalAlpha = 1;
     }

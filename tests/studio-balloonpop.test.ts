@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/balloonpop/core.ts';
-import { A, balloonpop as g, balloonpopRandom, balloonpopSmart, BEAT, bxAt, byAt, density, emptyNear, FAIL_RESULT, fitCanvas, HELP_AFTER, IRON, KING, playTop, RETRY_CARD, STAGE_COUNT, STAGES, startAt, type PopState } from '../studio/balloonpop/game.ts';
+import { A, balloonpop as g, balloonpopRandom, balloonpopSmart, BEAT, bxAt, byAt, density, emptyNear, FAIL_RESULT, fitCanvas, HELP_AFTER, IRON, KING, playTop, RETRY_CARD, STAGE_COUNT, TAP_BLOCK, STAGES, startAt, type PopState } from '../studio/balloonpop/game.ts';
 import { densityTable, humanCasual, humanLate, measure } from '../studio/balloonpop/funqa.ts';
 import { mulberry32 } from '../engine/rng.ts';
 import { cues, makeSound, MAX_POP_VOICES, PENTA } from '../studio/balloonpop/sound.ts';
@@ -107,6 +107,18 @@ describe('하트 없음 · 즉시 재도전 · 도움 반짝 (C002)', () => {
     expect(s.taps).toBe(3);
     while (s.pt < RETRY_CARD) g.step(s, { tap: false, dir: 0, pointer: null });
     g.step(s, { tap: false, dir: 0, pointer: at() });
+    expect(s.taps).toBe(2);
+  });
+
+  it('다시 토스트는 첫 TAP_BLOCK틱만 톡을 막고, 토스트가 떠 있어도 그 뒤엔 받는다 (C008, FUN v1.5 ⑤)', () => {
+    expect(TAP_BLOCK).toBeLessThan(RETRY_CARD);
+    const s = g.create(5);
+    expect(runUntil(s, (x) => x.phase === 'result' && !x.ok)).toBe(true);
+    while (s.phase === 'result') g.step(s, { tap: false, dir: 0, pointer: null });
+    const i = s.L.bs.findIndex((b, k) => s.alive[k] === 1 && b.k !== IRON), b = s.L.bs[i];
+    while (s.pt < TAP_BLOCK) g.step(s, { tap: false, dir: 0, pointer: null });
+    g.step(s, { tap: false, dir: 0, pointer: { x: bxAt(b, s.st + 1), y: byAt(b, s.st + 1) / A } });
+    expect(s.pt).toBeLessThan(RETRY_CARD);
     expect(s.taps).toBe(2);
   });
 
