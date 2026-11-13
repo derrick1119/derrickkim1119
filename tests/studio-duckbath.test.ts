@@ -76,6 +76,17 @@ describe('욕조 물결 오리 시뮬', () => {
       g.step(s, idle);
       expect([o.x, o.y]).toEqual([sx, sy]);
     });
+    it('4판(색깔): 두 오리 한가운데를 한 톡 치면 둥지에 드는 오리가 0 — 가운데 톡은 틀린 답 (D003 CONTENT v0.2)', () => {
+      const A = g.aspect!, PX = (x: number, y: number) => 0.5 + (x - 0.5) * (0.74 + 0.14 * (y / 1.2)), PY = (y: number) => 0.36 + y * 0.66;
+      for (const seed of [1000, 1007, 1014]) {
+        const s = g.create(seed);
+        startStage(s, 3);
+        const [a, b] = s.objs.filter((o) => o.k === 0), cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+        g.step(s, { tap: false, dir: 0, pointer: { x: PX(cx, cy), y: PY(cy) / A } });
+        for (let k = 0; k < 600; k++) g.step(s, idle);
+        expect(s.objs.filter((o) => o.k === 0 && o.st >= 0).length).toBe(0);
+      }
+    });
     it('판 질문 한 줄이 판 1~4에 있다 (한 판 = 한 질문)', () => {
       for (let i = 0; i < 4; i++) expect(STAGES[i].ask?.length ?? 0).toBeGreaterThan(5);
     });

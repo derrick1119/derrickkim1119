@@ -98,6 +98,8 @@ export function measure(n = 20) {
   // E6 황금 정책 범위: 캐주얼이 황금 오리를 맨 나중에 미는 확률 0 · 0.5 · 0.75 → 판별 ★황금
   out['E6황금'] = Object.fromEntries([0, 0.5].map((gl) => [String(gl), group(makeCasual(gl), n, RETRY).stages.map((p) => p.goldStar)]));
   (out['E6황금'] as Record<string, unknown>)['0.75'] = (out['캐주얼'] as ReturnType<typeof group>).stages.map((p) => p.goldStar);
+  // W2 (D003): par가 사람 기준이 됐으니 여유는 '톡 ÷ 숙련 봇 톡 수'로 잰다 (판 사이 꺾임이 벽)
+  out['W2'] = STAGES.map((d, i) => r2(d.taps / Math.max(1, (out['숙련'] as ReturnType<typeof group>).stages[i].medTaps)));
   const sk = out['숙련'] as { medScore: number }, cs = out['캐주얼'] as { medScore: number }, nv = out['처음'] as { medScore: number };
   out['숙련격차'] = r2(sk.medScore / Math.max(1, cs.medScore));
   out['숙련격차_처음'] = r2(sk.medScore / Math.max(1, nv.medScore));
@@ -144,7 +146,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     for (const st of g2.stages) console.log(`${st.stage} | ${st.tried} | ${st.clearRate} | ${st.firstTry} | ${st.retryMed}/${st.retryP90} | ${st.humanSec} | ${st.medTaps} | ${st.stars} | ${st.tapStar} | ${st.goldStar} | ${st.pen}`);
   }
   const s0 = (res['숙련'] as ReturnType<typeof group>).stages;
-  console.log(`\nW2 여유 톡(톡−par): ${s0.map((p) => p.slack).join(' · ')}  |  톡÷par: ${s0.map((p) => p.slackRatio).join(' · ')}`);
+  console.log(`\nW2 톡÷숙련 톡: ${(res['W2'] as number[]).join(' · ')}  |  (참고) 톡−par: ${s0.map((p) => p.slack).join(' · ')}`);
   const e6 = res['E6황금'] as Record<string, (number | null)[]>;
   console.log(`E6 캐주얼 ★황금 (황금을 맨 나중에 미는 확률별): ${Object.entries(e6).map(([k, v]) => `${k}: ${v.join(' ')}`).join('  |  ')}`);
   if (res['C4']) console.log(`C4 (par 1 판, %): ${(res['C4'] as ReturnType<typeof area>).filter((c) => c.oneTap !== null).map((c) => `${c.stage}판 한 톡에 다 ${c.oneTap} · ★3 ${c.oneTap3}`).join('  |  ')}`);
