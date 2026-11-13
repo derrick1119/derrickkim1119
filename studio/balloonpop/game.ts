@@ -637,12 +637,14 @@ function helpNext(s: PopState) {
   s.helpAt = m.at;
 }
 
+/** 누름 판정 반경 — 풍선 몸보다 조금 넓다(손가락) */
+const hitR = (b: Bal) => Math.max(0.066, brOf(b) + 0.02);
 function pick(s: PopState, x: number, y: number): number {
   const L = s.L;
   let best = -1, bd = Infinity;
   for (let i = 0; i < L.bs.length; i++) {
     if (s.alive[i] !== 1) continue;
-    const b = L.bs[i], r = Math.max(0.066, brOf(b) + 0.02);
+    const b = L.bs[i], r = hitR(b);
     let d = Math.hypot(SX[i] - x, SY[i] - y);
     if (b.an >= 0) d = Math.min(d, Math.hypot(SX[i] - x, SY[i] + HANG - y) * 1.1);
     if (d < r && d < bd) (bd = d), (best = i);
@@ -718,7 +720,9 @@ function play(s: PopState, p: { x: number; y: number } | null) {
         if (dd < pd) (pd = dd), (pj = j);
       }
       if (pj >= 0) (s.peek = pj), (s.peekAt = s.st);
-      ev(s, 'miss', p.x, p.y * A, pj >= 0 ? '👀' : '휙~', '#ffffff');
+      ev(s, 'miss', p.x, p.y * A, pj < 0 ? '휙~' : s.seen.has('peek') ? '👀' : '👀 살펴보기 (톡 안 씀)', '#ffffff');
+      // 첫 살펴보기에 한 줄 — 빈 하늘 톡이 무엇인지 (C008 🧪 ⑤1)
+      if (pj >= 0) see(s, 'peek', '👀 빈 하늘 톡 = 살펴보기 (톡은 안 써요)');
     }
     else if (L.bs[i].k === IRON) ev(s, 'clang', SX[i], SY[i], '깡! 안 터져요', '#e3e8ee');
     else {
@@ -887,11 +891,12 @@ function puff(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, li
 }
 
 /** 고무풍선 하나 (광택·몸통 그늘·매듭). fused = 곧 터짐(헉 얼굴), kind별 무늬 */
-function drawBalloon(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, col: string, k: number, t: number, fused: number, tilt: number) {
+function drawBalloon(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, col: string, k: number, t: number, fused: number, tilt: number, sz = 1) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(tilt);
-  const ry = r * 1.17;
+  // 크기 3종 = 색 + 모양 + 무늬 (ART §2, C008): 콩 동그란 공 1.05 · 통 달걀 1.17 + 띠 1줄 · 왕 물방울 1.3 + 띠 2줄 + 별
+  const plain = k === NORM, ry = r * (plain ? [1.05, 1.17, 1.3][sz] : 1.17);
   if (fused > 0) {
     ctx.shadowColor = '#fff6c8';
     ctx.shadowBlur = r * 0.9;
@@ -936,6 +941,18 @@ function drawBalloon(ctx: CanvasRenderingContext2D, x: number, y: number, r: num
     ctx.beginPath();
     ctx.arc(r * 0.2, ry * 0.45 - ((t * 0.4) % (ry * 0.6)), r * 0.08, 0, Math.PI * 2);
     ctx.fill();
+  } else if (plain && sz > 0) {
+    ctx.fillStyle = 'rgba(255,255,255,.32)';
+    for (const by of sz === 1 ? [0.18] : [0.08, 0.3]) ctx.fillRect(-r, ry * by, 2 * r, ry * 0.09);
+    if (sz === 2) {
+      ctx.fillStyle = 'rgba(255,255,255,.75)';
+      ctx.beginPath();
+      for (let q = 0; q < 10; q++) {
+        const a = -Math.PI / 2 + (q * Math.PI) / 5, rr = (q % 2 ? 0.07 : 0.16) * r;
+        ctx.lineTo(r * 0.3 + rr * Math.cos(a), -ry * 0.12 + rr * Math.sin(a));
+      }
+      ctx.fill();
+    }
   } else if (k === IRON) {
     ctx.fillStyle = 'rgba(60,70,82,.55)';
     ctx.fillRect(-r, -ry * 0.12, 2 * r, ry * 0.2);
@@ -1888,6 +1905,16 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     ctx.fillRect(X(e.x) - spread * w, Y(e.y) - R(0.02), spread * w * 2, R(0.04));
   }
 
+  // 살펴보기 중: 누르면 톡이 되는 자리(누름 판정 원)를 옅게 — 그 밖 빈 하늘은 살펴보기 (C008 🧪 ⑤1)
+  if (peeking && fi === s.peek) {
+    const k = 1 - (st - s.peekAt) / PEEK_T, p0 = s.peek;
+    ctx.save();
+    ctx.setLineDash([R(0.006), R(0.008)]);
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = `rgba(255,255,255,${(0.55 * k).toFixed(3)})`;
+    for (let i = 0; i < n; i++) if (s.alive[i] === 1 && Math.hypot(SX[i] - SX[p0], SY[i] - SY[p0]) < 0.3) ctx.beginPath(), ctx.arc(X(SX[i]), Y(SY[i]), R(hitR(L.bs[i])), 0, Math.PI * 2), ctx.stroke();
+    ctx.restore();
+  }
   // ══ 흔들 레일 · 다리 밧줄 (C007, ART §11) — 답이 아니라 범위·연결만 ══
   {
     const first = s.tries === 0 && s.used === 0, quiet = busy || fi >= 0 ? 0.5 : 1, ink = night > 0.5 ? '#fffaf2' : '#3a2a6a';
@@ -1996,7 +2023,19 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
         ctx.stroke();
       }
     }
-    drawBalloon(ctx, x, y, r, colOf(b), b.k, t + i * 7, fused, sw * 0.5);
+    drawBalloon(ctx, x, y, r, colOf(b), b.k, t + i * 7, fused, sw * 0.5, b.sz);
+    // 다리 풍선: 몸에 두 끝 풍선을 잇는 사선 밧줄 띠 — 가닥이 짧아도 '두 무리를 묶은 풍선'으로 (ART §11.1, C008 🧪 ⑤3)
+    if (b.bt) {
+      const [p, q] = b.bt, ang = Math.atan2(SY[q] - SY[p], SX[q] - SX[p]);
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(ang);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, r * 0.98, r * 0.98, 0, 0, Math.PI * 2);
+      ctx.clip();
+      for (const [wd, col, dash] of [[r * 0.34, 'rgba(243,221,179,.6)', []], [r * 0.16, 'rgba(122,78,42,.9)', [r * 0.22, r * 0.12]]] as [number, string, number[]][]) (ctx.lineWidth = wd), (ctx.strokeStyle = col), ctx.setLineDash(dash), ctx.beginPath(), ctx.moveTo(-r, 0), ctx.lineTo(r, 0), ctx.stroke();
+      ctx.restore();
+    }
   }
   // 구름 (속에 풍선이 숨어 있다)
   for (const c of s.clouds) {
@@ -2255,16 +2294,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('👆', hx, hy + R(0.02));
-    font(0.04, 900);
-    // 안내 글은 풍선이 없는 위 하늘에 — 원·풍선을 가리지 않게 (C006)
-    const msg = '톡! 원 안까지 팡팡', mw = ctx.measureText(msg).width + R(0.04), mx2 = Math.max(mw / 2 + 4, Math.min(w - mw / 2 - 4, X(SX[bi])));
-    const my = TOP >= HUD_TALL ? -TOP + HUD_TALL + R(0.09) : Y(0.12);
-    ctx.fillStyle = 'rgba(255,255,255,.95)';
-    ctx.beginPath();
-    ctx.roundRect(mx2 - mw / 2, my, mw, R(0.05), R(0.025));
-    ctx.fill();
-    ctx.fillStyle = '#5a2a8a';
-    ctx.fillText(msg, mx2, my + R(0.025));
+    // 안내 글('톡! 원 안까지 팡팡')은 뺐다 — 시작 토스트·소식 띠와 같은 말을 세 번 하고 데스크톱에선 소식 띠와 겹쳤다 (C008 🧪)
   }
   // 도움 반짝 (두 번 실패한 판): 숙련 봇이 고른 다음 톡 풍선에 금빛 고리 — 누를 때가 오면 '지금!' (톡마다 옮겨 감)
   if (s.help >= 0 && s.phase === 'play' && s.alive[s.help] === 1) {

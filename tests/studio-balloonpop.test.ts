@@ -304,6 +304,18 @@ describe('휴대폰 살펴보기 — 빈 하늘 톡 (C007, 오너 답 없음 →
     expect(s.alive[s.peek]).toBe(1);
   });
 
+  it('첫 살펴보기에 한 줄 소식이 뜨고(한 번만), 두 번째엔 다시 안 뜬다 (C008)', () => {
+    const s = startAt(1000, 1), i = s.L.bs.findIndex((b) => b.k !== IRON), p = emptyNear(s, i)!;
+    const n0 = s.news.length;
+    for (let k = 0; k < 2; k++) {
+      g.step(s, { tap: false, dir: 0, pointer: { x: p.x, y: p.y / A } });
+      g.step(s, { tap: false, dir: 0, pointer: null });
+    }
+    expect(s.news.length - n0).toBe(1);
+    expect(s.news[s.news.length - 1].text).toContain('살펴보기');
+    expect(s.taps).toBe(3);
+  });
+
   it('모든 판에서 빈 하늘 자리가 있다 — 가장 빽빽한 판도 풍선의 절반 이상 곁에서 살펴볼 수 있다', () => {
     for (let k = 0; k < STAGE_COUNT; k++) {
       const s = startAt(1000, k), live = s.L.bs.map((b, j) => (b.k !== IRON ? j : -1)).filter((j) => j >= 0);
