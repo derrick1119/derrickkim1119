@@ -2030,7 +2030,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     if (ripple.size) {
       const fs = Math.max(15, R(0.042)), msg = `헉 ×${ripple.size}`;
       ctx.font = `900 ${fs}px system-ui, sans-serif`;
-      const mw = ctx.measureText(msg).width, yMin = (TOP >= HUD_TALL ? -TOP + HUD_TALL : Y(HB)) + R(0.08);
+      // 소식 띠가 떠 있으면(살펴보기 '👀'도 소식) 띠 아래로 — 띠가 나중에 그려져 글자를 덮는다 (C007 🧪)
+      const newsOn = s.news.length > 0 && s.t - s.news[0].t < NEWS_T;
+      const mw = ctx.measureText(msg).width, yMin = (TOP >= HUD_TALL ? -TOP + HUD_TALL : Y(HB)) + (newsOn ? R(0.07) + fs * 0.5 + 4 : R(0.08));
       // 같이 터질 풍선들 바로 위에 (가리킨 풍선이 아니라 고리 풍선 곁, C007)
       let sx = 0, top = Infinity;
       for (const k of ripple) (sx += SX[k]), (top = Math.min(top, SY[k] - brOf(L.bs[k]) * 1.4));
