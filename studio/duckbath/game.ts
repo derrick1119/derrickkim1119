@@ -162,6 +162,10 @@ export interface DuckState extends Sim {
   taps: number; used: number; lastTap: number; penA: number; sucks: number; chomps: number; stageTries: number; stars: number; got: number; starOk: boolean[]; pts: number;
   ok: boolean; why: string; down: boolean; aim: { x: number; y: number } | null;
   seen: Set<string>; newsQ: string[]; news: { text: string; t: number } | null;
+  /** D004: 브라우저는 결과·실패 카드에서 버튼을 기다린다(봇·측정은 false = 예전처럼 저절로 넘어감) */
+  manual: boolean;
+  /** D004: 판별 최고 별·점수 — 같은 판을 다시 해도 별이 두 번 쌓이지 않는다 */
+  best: number[]; bestPts: number[];
   events: Ev[]; dead: boolean; won: boolean; catT: number; tries: number; goldLost: boolean; firstTap: boolean; again: boolean;
 }
 
@@ -472,6 +476,37 @@ function newStage(s: DuckState) {
   if (d.key) s.seen.add(d.key);
 }
 
+/**
+ * D004 (브라우저 카드 버튼): 결과·실패 카드에서 '다음' 또는 '다시'.
+ * 실패 카드의 '다시'와 결과 카드의 '다시'는 같은 판을 처음부터. 마지막 판의 '다음'은 게임 끝(점수 화면).
+ */
+export function advance(s: DuckState, action: 'next' | 'retry') {
+  if (s.phase !== 'result') return;
+  if (s.ok && action === 'next') {
+    if (s.stage === STAGES.length - 1) return void (s.dead = true);
+    s.again = false;
+    s.stageTries = 0;
+    s.stage++;
+  } else s.again = true;
+  newStage(s);
+}
+
+const hintMemo = new WeakMap<object, { key: string; p: { x: number; y: number } | null }>();
+/**
+ * D004 ↺2 손가락 힌트: 같은 판을 두 번 넘게 실패하고 다시 시작했을 때(아직 톡 전) 숙련 봇의 첫 톡 자리.
+ * 화면 좌표(캔버스 폭 0~1, 높이 0~1)로 돌려준다. 판·시도마다 한 번만 계산한다.
+ */
+export function hintPoint(s: DuckState): { x: number; y: number } | null {
+  if (s.phase !== 'play' || s.stageTries < 2 || s.used > 0) return null;
+  const key = `${s.stage}:${s.tries}`;
+  let m = hintMemo.get(s);
+  if (!m || m.key !== key) {
+    const p = plan(s).p;
+    hintMemo.set(s, (m = { key, p: p ? { x: PX(p.x, p.y), y: PY(p.y) / A } : null }));
+  }
+  return m.p;
+}
+
 /** 테스트·측정용: i번째 판(0부터)을 처음부터 시작 */
 export function startStage(s: DuckState, i: number) {
   s.stage = i;
@@ -505,9 +540,11 @@ function endStage(s: DuckState, ok: boolean, why: string) {
     const gold = s.objs.find((o) => o.k === GOLD);
     s.starOk = [true, s.used <= d.par, !!gold && gold.st >= 0];
     s.got = s.starOk.filter(Boolean).length;
-    s.stars += s.got;
-    s.pts += s.got * STAR_PTS + s.taps * LEFT_PTS;
-    if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS);
+    s.best[s.stage] = Math.max(s.best[s.stage], s.got);
+    s.bestPts[s.stage] = Math.max(s.bestPts[s.stage], s.got * STAR_PTS + s.taps * LEFT_PTS);
+    if (s.stage === STAGES.length - 1) s.won = true;
+    s.stars = s.best.reduce((a, b) => a + b, 0);
+    s.pts = s.bestPts.reduce((a, b) => a + b, 0) + (s.won ? WIN_PTS : 0);
     ev(s, 'clear', 0.5, 0.6, s.won ? '목욕 다 끝! 🛁' : '목욕 끝!');
   } else {
     s.stageTries++;
@@ -543,7 +580,7 @@ export const duckbath: GameDef<DuckState> = {
     const s = {
       pen: 0, penA: 0, sucks: 0, chomps: 0, rng, seed, t: 0, objs: [], rings: [], rid: 0, awake: false,
       L: { nests: [], islands: [], drains: [], streams: [], slicks: [] },
-      stage: 0, phase: 'play', pt: 0, jit, taps: 0, used: 0, lastTap: 0, stageTries: 0, stars: 0, got: 0, starOk: [false, false, false], pts: 0,
+      stage: 0, phase: 'play', pt: 0, jit, taps: 0, used: 0, lastTap: 0, stageTries: 0, stars: 0, got: 0, starOk: [false, false, false], pts: 0, manual: false, best: STAGES.map(() => 0), bestPts: STAGES.map(() => 0),
       ok: false, why: '', down: false, aim: null, seen: new Set<string>(), newsQ: [], news: null, events: [], dead: false, won: false, catT: -999, tries: 0, goldLost: false, firstTap: false, again: false,
     } as DuckState;
     newStage(s);
@@ -575,7 +612,7 @@ export const duckbath: GameDef<DuckState> = {
     if (gold && goldBefore === FREE && gold.st < FREE) s.goldLost = true;
     if (!s.news || s.t - s.news.t > NEWS_T) s.news = s.newsQ.length ? { text: s.newsQ.shift()!, t: s.t } : s.news;
     if (s.phase === 'result') {
-      if (s.pt >= (s.ok ? RESULT_OK : RESULT)) {
+      if (!s.manual && s.pt >= (s.ok ? RESULT_OK : RESULT)) {
         if (s.ok) {
           if (s.won) s.dead = true;
           else (s.again = false), (s.stageTries = 0), s.stage++, newStage(s);
@@ -2135,7 +2172,28 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
   // 판 카드: 시작 · 목욕 끝 · 실패
   {
     let head = '', sub = '', nw = '', col = '#ffffff', age = 0, a = 1;
-    if (s.phase === 'result') {
+    if (s.phase === 'result' && s.manual) {
+      // D004: 결과·실패 카드는 DOM(main.ts)이 그린다. 실패 때는 남은 오리에 '?' 표시
+      if (!s.ok)
+        for (const o of s.objs) {
+          if (o.st !== FREE || (o.k !== DUCK && o.k !== GOLD && o.k !== BOAT)) continue;
+          const x = SX(o.x, o.y), y = SY(o.y), rr = R(0.06 * dep(o.y));
+          ctx.strokeStyle = '#ff6b6b';
+          ctx.lineWidth = 3;
+          ctx.setLineDash([R(0.01), R(0.008)]);
+          ctx.beginPath();
+          ctx.arc(x, y - rr * 0.3, rr, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          font(0.05, 900);
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#ffffff';
+          ctx.strokeStyle = '#123a48';
+          ctx.lineWidth = 4;
+          ctx.strokeText('?', x, y - rr * 1.5);
+          ctx.fillText('?', x, y - rr * 1.5);
+        }
+    } else if (s.phase === 'result') {
       age = s.pt;
       if (s.ok) (head = s.won ? '목욕 다 끝! 🛁' : '목욕 끝!'), (sub = `다 넣음 ✓ · 톡 ${s.used}번${s.used <= d.par ? ' ✓' : ` (≤${d.par} ✗)`} · 황금 오리 ${s.starOk[2] ? '✓' : '✗'}`), (col = '#ffd84a');
       else (head = `꽥… ${s.why}`), (sub = `${s.sucks ? `쏙 ×${s.sucks} · ` : ''}${s.chomps ? `꿀꺽 ×${s.chomps} · ` : ''}괜찮아요 — 같은 목욕 다시!`), (col = '#ffb3a8');
