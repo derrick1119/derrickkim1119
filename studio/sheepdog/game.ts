@@ -2924,9 +2924,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   if (s.phase === 'result' && !s.ok) {
     const a = Math.min(1, s.pt / 8), cw = Math.min(w - R(0.08), R(0.86)), cx0 = (w - cw) / 2, cy0 = Y(0.34), ch = R(0.15);
     ctx.globalAlpha = a;
-    ctx.fillStyle = '#7a3e1d';
+    ctx.fillStyle = '#c98a4a'; // 두께는 결과 카드와 같은 색 (🎨 C008)
     ctx.beginPath();
-    ctx.roundRect(cx0, cy0 + 4, cw, ch, R(0.04));
+    ctx.roundRect(cx0, cy0 + 6, cw, ch, R(0.04));
     ctx.fill();
     ctx.fillStyle = '#fff6e4';
     ctx.strokeStyle = '#7a3e1d';
@@ -3005,8 +3005,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     ctx.fillStyle = '#e8ffd0';
     ctx.fillText(`🐑 ${inW}/${nW}`, w - R(0.03), y1);
   }
-  // 별 목표 셋
-  {
+  // 별 목표 셋 — 통과 결과 카드가 떠 있으면 카드가 대신 보여 준다(가로 화면에서 칩이 카드 양옆으로 삐져나오던 것, 🎨 C008)
+  const cardUp = s.phase === 'result' && s.ok;
+  if (!cardUp) {
     const y2 = by + R(0.105), gw = (w - R(0.06)) / 3;
     const allIn = s.phase === 'result' && s.ok;
     const bonusOk = bonusMet(F, S, d);
@@ -3031,7 +3032,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     });
   }
   // 안내 한 줄
-  {
+  if (!cardUp) {
     const y3 = by + R(0.168);
     let tip = '👆 누르면 양이 갈 자리가 보여요 — 떼면 멍!';
     if (s.stage === 0 && S.used === 0) tip = '👆 양 뒤쪽을 꾹 — 갈 자리를 보고, 떼면 멍!';

@@ -46,11 +46,13 @@ ol b{flex:none;width:24px;height:24px;border-radius:50%;background:#ffc857;color
 #card figcaption{font:800 13px/1.2 system-ui,sans-serif;color:#6b5444;white-space:nowrap}
 #card .medal{position:absolute;right:-10px;top:-18px;width:64px;height:64px;border-radius:50%;display:grid;place-items:center;transform:rotate(-12deg);font:900 13px/1 system-ui,sans-serif}
 #card .medal.none{display:none}
-#card .medal.gold{background:#fff6e4;border:3px solid #e8414f;color:#e8414f;animation:stamp .3s cubic-bezier(.3,1.6,.5,1) 1.35s both}
-#card .medal.grey{background:#f3ece0;border:3px dashed #b8ad9c;color:#9a8f80}
-@keyframes stamp{0%{transform:rotate(-12deg) scale(1.6);opacity:0}100%{transform:rotate(-12deg) scale(1);opacity:1}}
+#card .medal.gold{background:#fff6e4;border:3px solid #e8414f;color:#c62f3c;animation:stamp .3s cubic-bezier(.3,1.6,.5,1) 1.35s both}
+#card .medal.grey{background:#f3ece0;border:3px dashed #b8ad9c;color:#6b5444}
+@keyframes stamp{0%{transform:rotate(-12deg) scale(1.6);opacity:0}70%{transform:rotate(-12deg) scale(1) translateX(2px);opacity:1}85%{transform:rotate(-12deg) translateX(-2px)}100%{transform:rotate(-12deg) scale(1);opacity:1}}
 #card .row{display:flex;gap:8px;justify-content:center;align-items:center}
-#card .btn{min-width:0;flex:1;margin:0;min-height:48px;font-size:17px}
+#card .btn{min-width:0;flex:1;margin:0;min-height:48px;font-size:17px;border:3px solid #7a3e1d;box-shadow:0 4px 0 #7a3e1d;transition:transform 60ms,box-shadow 60ms}
+#card .btn:active{transform:translateY(2px);box-shadow:0 2px 0 #7a3e1d}
+#card .btn:focus-visible{outline:3px solid #7a3e1d;outline-offset:3px}
 #card .btn.ghost{background:#fff6e4;color:#3b2a1e;border:3px solid #7a3e1d;box-shadow:0 4px 0 #7a3e1d}
 #card .btn.ghost.small{flex:0 0 auto;padding:0 12px;font-size:14px}
 @media (prefers-reduced-motion:reduce){#card.up,#card figure.on svg,#card .medal.gold{animation:none}}
@@ -58,6 +60,7 @@ kbd{background:#1d281c;border-radius:4px;padding:1px 5px;font:inherit}
 </style>
 </head>
 <body>
+<i id="safe" style="position:fixed;top:0;height:env(safe-area-inset-top,0px);width:0;visibility:hidden"></i>
 <main id="stage">
   <canvas id="game" tabindex="0" aria-label="양치기 멍멍 게임 화면. 목장을 누르고 있으면 양이 갈 자리가 보이고, 떼면 강아지가 짖어요. 키보드는 화살표로 고르고 스페이스."></canvas>
   <button id="retry" type="button" aria-label="이 판 처음부터 다시 (R)" title="이 판 처음부터 다시 (R)" hidden>↺</button>

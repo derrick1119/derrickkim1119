@@ -5,7 +5,7 @@
 import { STAGES, medalOf, starCount, type DogState } from './game.ts';
 
 const STAR = (on: boolean) =>
-  `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 6 6.5.9-4.7 4.6 1.1 6.5L12 17.5l-5.8 3.1 1.1-6.5L2.6 9.5l6.5-.9z" fill="${on ? '#ffc857' : 'none'}" stroke="${on ? '#7a3e1d' : '#c9b79a'}" stroke-width="2" stroke-linejoin="round"/></svg>`;
+  `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 6 6.5.9-4.7 4.6 1.1 6.5L12 17.5l-5.8 3.1 1.1-6.5L2.6 9.5l6.5-.9z" fill="${on ? '#ffc857' : 'none'}" stroke="${on ? '#7a3e1d' : '#9c8566'}" stroke-width="2" stroke-linejoin="round"/></svg>`;
 
 /** 할아버지 한 줄 (별 수에 따라) */
 const GRANDPA = ['', '허허, 들어갔구나!', '좋아, 다음엔 별 하나 더?', '허허, 이 할애비도 못 하겠다!'];

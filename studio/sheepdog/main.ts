@@ -35,7 +35,8 @@ function size() {
   canvas.style.height = `${H}px`;
   // 세로 화면(C008, 🎨 §12-1): 캔버스를 위로 붙이고 위 띠는 하늘(60px까지), 남는 높이는 모두 아래 탁자(엄지 영역)로. 가로·데스크톱은 가운데
   const extra = Math.max(0, avH - H), portrait = avH / avW > 5 / 3;
-  canvas.style.marginTop = `${portrait ? Math.min(extra, 60) : extra / 2}px`;
+  const safeTop = document.getElementById('safe')?.offsetHeight ?? 0; // 노치 폰 상태바 (🎨 C008: 명세는 inset + 60)
+  canvas.style.marginTop = `${portrait ? Math.min(extra, 60 + safeTop) : extra / 2}px`;
   canvas.width = Math.round(W * dpr);
   canvas.height = Math.round(H * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -43,7 +44,8 @@ function size() {
   retryBtn.style.left = `${canvas.offsetLeft + W - 46}px`;
   retryBtn.style.top = `${canvas.offsetTop + 2}px`;
   // 🎨 C007 ④-a: 캔버스 아래 빈 띠를 디오라마를 올린 탁자색으로 잇는다(세로 화면)
-  document.body.style.background = `linear-gradient(#8ecff0 ${canvas.offsetTop + 1}px, #4a3322 ${canvas.offsetTop + 1}px)`;
+  // 가로·데스크톱은 탁자색 하나 (하늘 줄이 넓은 화면 전체 폭에 깔리면 어색하다, 🎨 C008)
+  document.body.style.background = portrait ? `linear-gradient(#8ecff0 ${canvas.offsetTop + 1}px, #4a3322 ${canvas.offsetTop + 1}px)` : '#4a3322';
   draw();
 }
 
