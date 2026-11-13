@@ -59,9 +59,13 @@ export const FOLLOW = 0.75;
 
 /** 봇 한 판(8판을 마치거나 한 판에서 retry번 넘게 실패할 때까지). 판이 끝날 때마다 기록 */
 export function play(bot: Bot<DuckState>, seed: number, maxSec = 900, retry = RETRY): Run {
-  const s = g.create(seed), rng = mulberry32(seed ^ 0x9e3779b9), logs: StageLog[] = [];
+  const s = g.create(seed), logs: StageLog[] = [];
+  // D010 (🧪 D009·D010 차단): 판을 처음 시작할 때마다 봇 난수를 (시드, 판 id)로 다시 — 앞 판을 고쳐도 뒤 판의 봇 손이 그대로(다시 하기는 같은 줄을 이어 쓴다)
+  const stageRng = (i: number) => { let h = 0x811c9dc5; for (const c of STAGES[i].id) h = Math.imul(h ^ c.charCodeAt(0), 0x01000193); return mulberry32((seed ^ h ^ 0x9e3779b9) >>> 0); };
+  let rng = stageRng(0), rngStage = 0;
   let phase = s.phase, t0 = 0, gaveUp = 0, tap1 = -1, firstTapNest = -1, cr = 0, crMax = 0;
   while (!g.over(s) && s.t < maxSec * 60) {
+    if (s.stage !== rngStage) (rng = stageRng(s.stage)), (rngStage = s.stage);
     g.step(s, bot.act(s, rng));
     cr = crisisShown(s) ? cr + 1 : 0;
     crMax = Math.max(crMax, cr);
