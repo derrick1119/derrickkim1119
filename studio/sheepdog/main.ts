@@ -38,6 +38,8 @@ function size() {
   // ↺ 다시 버튼: 캔버스 오른쪽 위 모서리
   retryBtn.style.left = `${canvas.offsetLeft + W - 46}px`;
   retryBtn.style.top = `${canvas.offsetTop + 2}px`;
+  // 🎨 C007 ④-a: 캔버스 아래 빈 띠를 디오라마를 올린 탁자색으로 잇는다(세로 화면)
+  document.body.style.background = `linear-gradient(#2b3b2a ${canvas.offsetTop + H - 1}px, #4a3322 0)`;
   draw();
 }
 

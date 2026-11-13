@@ -1137,10 +1137,10 @@ function pathAt(pa: number[], q: number): [number, number] {
   return [pa[i * 2] + (pa[i * 2 + 2] - pa[i * 2]) * r, pa[i * 2 + 1] + (pa[i * 2 + 3] - pa[i * 2 + 1]) * r];
 }
 /** 월드마다 시간대(SKY 줄 번호): W1 아침 0 → W2 한낮 · W3 오후 · W4 노을 · W5 밤 (GDD §5) */
-const WORLD_TIME = [0, 1, 3, 5, 7];
+export const WORLD_TIME = [0, 1, 3, 5, 7];
 /** 시간대 키: 하늘 위·아래, 해, 먼 언덕, 가까운 언덕, 먼 풀, 가까운 풀 */
-const SKY: string[][] = [
-  ['#7cc6ee', '#fdf2cc', '#fff6c8', '#a4cc8e', '#86bb6e', '#a8d66c', '#6caa46'],
+export const SKY: string[][] = [
+  ['#8ecff0', '#ffe9c4', '#fff4cf', '#a3d29c', '#84c172', '#b4dc74', '#72ae4c'], // 🎨 C007 W1 아침 키
   ['#76bce8', '#fde5b4', '#fff0b0', '#9cc588', '#80b569', '#a2d068', '#67a543'],
   ['#71b0df', '#fcd8a0', '#ffe49c', '#93bd80', '#79ad62', '#9cca63', '#62a040'],
   ['#6ea3d6', '#fbc88a', '#ffd488', '#8bb179', '#71a45c', '#95c05f', '#5d983d'],
@@ -1154,11 +1154,12 @@ interface SheepLook { black: boolean; tag: number; face: number; run: number; t:
 const RIB = ['', '#e8414f', '#3a86ff'];
 
 function drawSheep(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, o: SheepLook) {
-  const wool = o.black ? '#4b4549' : '#f8f4ea', sh = o.black ? '#2a252a' : '#d6ccb9', hi = o.black ? '#6d646b' : '#ffffff', fc = o.black ? '#1c181b' : '#3a3234';
+  const wool = o.black ? '#4b4549' : '#f8f4ea', sh = o.black ? '#2a252a' : '#d6ccb9', hi = o.black ? '#6d646b' : '#fffbea', fc = o.black ? '#1c181b' : '#3a3234';
+  const OL = o.black ? '#17131a' : '#5e5142', ow = olw(z), lf = o.face; // 외곽선(🎨 C007 §4.0) · 빛은 늘 화면 왼쪽 위
   ctx.save();
   if (o.alpha !== undefined) ctx.globalAlpha = o.alpha;
   if (o.mood !== 'swim') {
-    ctx.fillStyle = 'rgba(30,45,15,.3)';
+    ctx.fillStyle = SHADE;
     ctx.beginPath();
     ctx.ellipse(x + z * 0.45, y + z * 0.06, z * 1.45 * (1 - o.hop / (z * 4)), z * 0.42, 0.05, 0, TAU);
     ctx.fill();
@@ -1187,16 +1188,21 @@ function drawSheep(ctx: CanvasRenderingContext2D, x: number, y: number, z: numbe
   }
   // 양털: 그늘 뭉치 → 밝은 뭉치 → 반짝
   const P = [[-0.62, -0.78, 0.42], [-0.32, -1.1, 0.46], [0.12, -1.16, 0.48], [0.5, -0.92, 0.42], [0.42, -0.55, 0.4], [0, -0.5, 0.44], [-0.42, -0.5, 0.4], [-0.05, -0.82, 0.55]];
+  // 외곽선: 그늘 뭉치와 같은 원을 ow만큼 키워 먼저 칠한다 — 바깥 둘레만, 안쪽 겹친 선은 안 생긴다 (유령 양은 빼고)
+  if (o.alpha === undefined) {
+    ctx.fillStyle = OL;
+    for (const [px, py, pr] of P) (ctx.beginPath(), ctx.arc(px * z + z * 0.06 * lf, py * z + z * 0.08, pr * z * 1.04 + ow, 0, TAU), ctx.fill());
+  }
   ctx.fillStyle = sh;
-  for (const [px, py, pr] of P) (ctx.beginPath(), ctx.arc(px * z + z * 0.06, py * z + z * 0.08, pr * z * 1.04, 0, TAU), ctx.fill());
-  const g = ctx.createRadialGradient(-z * 0.35, -z * 1.15, z * 0.1, 0, -z * 0.75, z * 1.25);
+  for (const [px, py, pr] of P) (ctx.beginPath(), ctx.arc(px * z + z * 0.06 * lf, py * z + z * 0.08, pr * z * 1.04, 0, TAU), ctx.fill());
+  const g = ctx.createRadialGradient(-z * 0.35 * lf, -z * 1.15, z * 0.1, 0, -z * 0.75, z * 1.25);
   g.addColorStop(0, hi);
   g.addColorStop(0.55, wool);
   g.addColorStop(1, sh);
   ctx.fillStyle = g;
   for (const [px, py, pr] of P) (ctx.beginPath(), ctx.arc(px * z, py * z, pr * z * 0.94, 0, TAU), ctx.fill());
   ctx.fillStyle = o.black ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.75)';
-  for (const [px, py, pr] of [[-0.35, -1.18, 0.18], [0.05, -1.25, 0.16], [-0.62, -0.9, 0.13]]) (ctx.beginPath(), ctx.arc(px * z, py * z, pr * z, 0, TAU), ctx.fill());
+  for (const [px, py, pr] of [[-0.35, -1.18, 0.18], [0.05, -1.25, 0.16], [-0.62, -0.9, 0.13]]) (ctx.beginPath(), ctx.arc(px * z * lf, py * z, pr * z, 0, TAU), ctx.fill());
   // 리본 (등 위에 큼직하게)
   if (o.tag) {
     const rx = -z * 0.05, ry = -z * 1.38;
@@ -1279,37 +1285,53 @@ function drawSheep(ctx: CanvasRenderingContext2D, x: number, y: number, z: numbe
 }
 
 type DogMood = 'idle' | 'run' | 'bark' | 'proud' | 'surprise' | 'dizzy' | 'spin' | 'sniff';
-function drawDog(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, face: number, mood: DogMood, t: number) {
-  const fur = '#e39a4c', furD = '#b86e2c', cream = '#fff3df';
+/** 그림자 색: 시간대 토큰 (🎨 C007: 아침은 청록, 검정·풀색 금지) — drawAll 맨 앞에서 정한다 */
+let SHADE = 'rgba(30,45,15,.30)';
+/** 외곽선 두께 (🎨 C007 §4.0): 몸 단위 z에 비례, 1.5~2.5px */
+const olw = (z: number) => Math.max(1.5, Math.min(2.5, z * 0.08));
+interface DogPose { sx?: number; sy?: number; lift?: number; age?: number }
+function drawDog(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, face: number, mood: DogMood, t: number, o: DogPose = {}) {
+  const fur = '#e39a4c', furD = '#b86e2c', cream = '#fff3df', OL = '#5a2e0e', ow = olw(z);
+  const sx = o.sx ?? 1, sy = o.sy ?? 1, lift = o.lift ?? 0, age = o.age ?? 99;
   ctx.save();
-  ctx.fillStyle = 'rgba(30,45,15,.32)';
+  // 그림자는 바닥에 남고, 몸이 뜨면 작아진다
+  const shk = Math.max(0.5, 1 - lift / (4 * z));
+  ctx.fillStyle = SHADE;
   ctx.beginPath();
-  ctx.ellipse(x + z * 0.4, y + z * 0.05, z * 1.35, z * 0.36, 0, 0, TAU);
+  ctx.ellipse(x + z * 0.4 * face, y + z * 0.05, z * 1.35 * shk, z * 0.36 * shk, 0, 0, TAU);
   ctx.fill();
-  ctx.translate(x, y);
+  ctx.translate(x, y - lift);
+  ctx.scale(sx, sy);
   if (mood === 'spin') ctx.scale(Math.cos(t * 0.35) >= 0 ? 1 : -1, 1);
   else ctx.scale(face, 1);
+  const lf = mood === 'spin' ? 1 : face; // 빛은 늘 화면 왼쪽 위 — face로 뒤집힌 x를 되돌린다
   if (mood === 'bark') ctx.translate(0, -Math.abs(Math.sin(t * 0.6)) * z * 0.15);
   const run = mood === 'run' || mood === 'spin' ? 1 : 0;
-  // 다리
-  ctx.strokeStyle = cream;
+  ctx.lineJoin = 'round';
+  // 다리: 외곽선 색으로 굵게 먼저, 그 위에 크림
   ctx.lineCap = 'round';
-  ctx.lineWidth = z * 0.24;
-  for (const [lx, ph] of [[-0.55, 0], [-0.3, Math.PI], [0.35, Math.PI], [0.6, 0]]) {
-    const sw = run ? Math.sin(t * 0.9 + ph) * z * 0.3 : 0;
-    ctx.beginPath();
-    ctx.moveTo(lx * z, -z * 0.4);
-    ctx.lineTo(lx * z + sw, -z * 0.04);
-    ctx.stroke();
+  for (const [col, lw] of [[OL, z * 0.24 + 2 * ow], [cream, z * 0.24]] as const) {
+    ctx.strokeStyle = col;
+    ctx.lineWidth = lw;
+    for (const [lx, ph] of [[-0.55, 0], [-0.3, Math.PI], [0.35, Math.PI], [0.6, 0]]) {
+      const sw = run ? Math.sin(t * 0.9 + ph) * z * 0.3 : 0;
+      ctx.beginPath();
+      ctx.moveTo(lx * z, -z * 0.4);
+      ctx.lineTo(lx * z + sw, -z * 0.04);
+      ctx.stroke();
+    }
   }
-  // 꼬리 (살랑살랑, 뱅뱅 돌 땐 빙글)
-  const wag = Math.sin(t * (mood === 'proud' || mood === 'spin' ? 0.7 : 0.35)) * 0.5;
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2 * ow;
+  // 꼬리 (살랑살랑, 뿌듯하면 프로펠러)
+  const wag = Math.sin(t * (mood === 'proud' ? 1.15 : mood === 'spin' ? 0.7 : 0.35)) * 0.5;
   ctx.save();
   ctx.translate(-z * 0.85, -z * 0.7);
   ctx.rotate(-0.9 + wag);
   ctx.fillStyle = fur;
   ctx.beginPath();
   ctx.ellipse(0, -z * 0.3, z * 0.17, z * 0.38, 0, 0, TAU);
+  ctx.stroke();
   ctx.fill();
   ctx.fillStyle = cream;
   ctx.beginPath();
@@ -1317,12 +1339,21 @@ function drawDog(ctx: CanvasRenderingContext2D, x: number, y: number, z: number,
   ctx.fill();
   ctx.restore();
   // 몸
+  const bs = mood === 'surprise' ? [0.94, 1.08] : mood === 'proud' ? [1, 1.04] : [1, 1];
   const g = ctx.createLinearGradient(0, -z * 1.05, 0, -z * 0.3);
-  g.addColorStop(0, mix(fur, '#ffffff', 0.15));
+  g.addColorStop(0, mix(fur, '#fff2b0', 0.2));
   g.addColorStop(1, furD);
   ctx.fillStyle = g;
   ctx.beginPath();
-  ctx.ellipse(0, -z * 0.65, z * 0.92, z * 0.42, 0, 0, TAU);
+  ctx.ellipse(0, -z * 0.65, z * 0.92 * bs[0], z * 0.42 * bs[1], 0, 0, TAU);
+  ctx.stroke();
+  ctx.fill();
+  const bh = ctx.createRadialGradient(-z * 0.35 * lf, -z * 0.9, 0, -z * 0.35 * lf, -z * 0.9, z * 0.6);
+  bh.addColorStop(0, mix(fur, '#fff2b0', 0.35));
+  bh.addColorStop(1, 'rgba(255,242,176,0)');
+  ctx.fillStyle = bh;
+  ctx.beginPath();
+  ctx.ellipse(0, -z * 0.65, z * 0.92 * bs[0], z * 0.42 * bs[1], 0, 0, TAU);
   ctx.fill();
   ctx.fillStyle = cream;
   ctx.beginPath();
@@ -1337,18 +1368,22 @@ function drawDog(ctx: CanvasRenderingContext2D, x: number, y: number, z: number,
   ctx.beginPath();
   ctx.arc(z * 0.72, -z * 0.6, z * 0.07, 0, TAU);
   ctx.fill();
-  // 머리
-  const up = mood === 'bark' || mood === 'proud' ? -0.35 : mood === 'sniff' ? 0.45 : 0;
+  // 머리 (×1.25 — 390px에서 표정이 읽히게, 🎨 C007)
+  const up = mood === 'bark' || mood === 'proud' ? -0.35 : mood === 'sniff' ? 0.45 : mood === 'surprise' ? -0.12 : 0;
   ctx.save();
-  ctx.translate(z * 0.82, -z * 1.12 + (mood === 'sniff' ? z * 0.35 : 0));
+  ctx.translate(z * 0.84, -z * 1.2 + (mood === 'sniff' ? z * 0.35 : 0));
   ctx.rotate(up);
+  ctx.scale(1.25, 1.25);
+  ctx.lineWidth = (2 * ow) / 1.25;
   // 귀
-  for (const [ex, flop] of [[-0.25, mood === 'run' ? 0.5 : 0.1], [0.12, mood === 'surprise' ? -0.2 : 0.15]]) {
+  for (const [ex, flop] of [[-0.25, mood === 'run' ? 0.5 : mood === 'surprise' ? -0.35 : 0.1], [0.12, mood === 'surprise' ? -0.35 : 0.15]]) {
     ctx.fillStyle = furD;
     ctx.beginPath();
     ctx.moveTo(ex * z - z * 0.14, -z * 0.25);
     ctx.lineTo(ex * z + Math.sin(t * 0.4) * z * 0.04 - flop * z, -z * 0.78);
     ctx.lineTo(ex * z + z * 0.16, -z * 0.28);
+    ctx.closePath();
+    ctx.stroke();
     ctx.fill();
     ctx.fillStyle = '#f7b7a3';
     ctx.beginPath();
@@ -1357,17 +1392,19 @@ function drawDog(ctx: CanvasRenderingContext2D, x: number, y: number, z: number,
     ctx.lineTo(ex * z + z * 0.08, -z * 0.32);
     ctx.fill();
   }
-  const hg = ctx.createRadialGradient(-z * 0.1, -z * 0.15, z * 0.05, 0, 0, z * 0.5);
-  hg.addColorStop(0, mix(fur, '#ffffff', 0.25));
+  const hg = ctx.createRadialGradient(-z * 0.1 * lf, -z * 0.15, z * 0.05, 0, 0, z * 0.5);
+  hg.addColorStop(0, mix(fur, '#fff2b0', 0.3));
   hg.addColorStop(1, furD);
   ctx.fillStyle = hg;
   ctx.beginPath();
   ctx.arc(0, 0, z * 0.45, 0, TAU);
+  ctx.stroke();
   ctx.fill();
   // 주둥이
   ctx.fillStyle = cream;
   ctx.beginPath();
   ctx.ellipse(z * 0.32, z * 0.12, z * 0.28, z * 0.2, 0, 0, TAU);
+  ctx.stroke();
   ctx.fill();
   ctx.fillStyle = '#2a1a14';
   ctx.beginPath();
@@ -1377,13 +1414,37 @@ function drawDog(ctx: CanvasRenderingContext2D, x: number, y: number, z: number,
   if (mood === 'bark') {
     ctx.fillStyle = '#7a1f2b';
     ctx.beginPath();
-    ctx.ellipse(z * 0.38, z * 0.27, z * 0.16, z * 0.12 + Math.abs(Math.sin(t * 0.6)) * z * 0.08, 0, 0, TAU);
+    ctx.ellipse(z * 0.38, z * 0.27, z * 0.2, z * 0.14 + Math.abs(Math.sin(t * 0.6)) * z * 0.08, 0, 0, TAU);
     ctx.fill();
     ctx.fillStyle = '#ff8fa3';
     ctx.beginPath();
-    ctx.ellipse(z * 0.38, z * 0.34, z * 0.09, z * 0.05, 0, 0, TAU);
+    ctx.ellipse(z * 0.38, z * 0.36, z * 0.11, z * 0.06, 0, 0, TAU);
     ctx.fill();
-  } else if (mood === 'idle' || mood === 'run' || mood === 'spin' || mood === 'proud') {
+  } else if (mood === 'surprise') {
+    ctx.fillStyle = '#5a1a22';
+    ctx.beginPath();
+    ctx.ellipse(z * 0.36, z * 0.3, z * 0.06, z * 0.08, 0, 0, TAU);
+    ctx.fill();
+  } else if (mood === 'proud') {
+    ctx.strokeStyle = '#3b1a10';
+    ctx.lineWidth = Math.max(1.2, z * 0.05);
+    ctx.beginPath();
+    ctx.arc(z * 0.36, z * 0.22, z * 0.09, Math.PI * 0.15, Math.PI * 0.85);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,179,160,.9)';
+    ctx.beginPath();
+    ctx.ellipse(z * 0.16, z * 0.14, z * 0.09, z * 0.06, 0, 0, TAU);
+    ctx.fill();
+  } else if (mood === 'dizzy') {
+    ctx.fillStyle = '#ff7f96';
+    ctx.save();
+    ctx.translate(z * 0.42, z * 0.33);
+    ctx.rotate(0.7);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, z * 0.07, z * 0.14, 0, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+  } else if (mood === 'idle' || mood === 'run' || mood === 'spin') {
     ctx.fillStyle = '#ff7f96';
     ctx.beginPath();
     ctx.ellipse(z * 0.34, z * 0.3 + Math.sin(t * 0.5) * z * 0.03, z * 0.08, z * 0.14, 0.2, 0, TAU);
@@ -1392,39 +1453,80 @@ function drawDog(ctx: CanvasRenderingContext2D, x: number, y: number, z: number,
   // 눈
   ctx.fillStyle = '#1a1110';
   ctx.strokeStyle = '#1a1110';
-  ctx.lineWidth = Math.max(1.2, z * 0.07);
   if (mood === 'proud') {
+    ctx.lineWidth = Math.max(1.8, z * 0.08) / 1.25;
     ctx.beginPath();
-    ctx.arc(z * 0.1, -z * 0.05, z * 0.08, Math.PI * 1.1, Math.PI * 1.9);
+    ctx.arc(z * 0.1, -z * 0.02, z * 0.1, Math.PI * 1.15, Math.PI * 1.85);
     ctx.stroke();
   } else if (mood === 'dizzy') {
+    ctx.lineWidth = Math.max(1.2, z * 0.07) / 1.25;
     ctx.beginPath();
-    for (let a = 0; a < 9; a += 0.4) ctx.lineTo(z * 0.1 + Math.cos(a + t * 0.3) * a * z * 0.012, -z * 0.06 + Math.sin(a + t * 0.3) * a * z * 0.012);
+    for (let a = 0; a < 9; a += 0.4) ctx.lineTo(z * 0.1 + Math.cos(a + t * 0.3) * a * z * 0.016, -z * 0.06 + Math.sin(a + t * 0.3) * a * z * 0.016);
     ctx.stroke();
   } else if (mood === 'bark') {
+    ctx.lineWidth = Math.max(1.8, z * 0.08) / 1.25;
     ctx.beginPath();
-    ctx.moveTo(z * 0.02, -z * 0.12);
-    ctx.lineTo(z * 0.16, -z * 0.05);
-    ctx.lineTo(z * 0.02, z * 0.0);
+    ctx.moveTo(z * 0.02, -z * 0.13);
+    ctx.lineTo(z * 0.18, -z * 0.06);
+    ctx.lineTo(z * 0.02, z * 0.01);
     ctx.stroke();
-  } else {
-    const r = mood === 'surprise' ? z * 0.11 : z * 0.08;
+  } else if (mood === 'surprise') {
+    ctx.fillStyle = '#ffffff';
+    ctx.lineWidth = Math.max(1, z * 0.035) / 1.25;
     ctx.beginPath();
-    ctx.arc(z * 0.1, -z * 0.06, r, 0, TAU);
+    ctx.arc(z * 0.1, -z * 0.06, z * 0.15, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#1a1110';
+    ctx.beginPath();
+    ctx.arc(z * 0.12, -z * 0.06, z * 0.055, 0, TAU);
     ctx.fill();
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.arc(z * 0.13, -z * 0.09, r * 0.35, 0, TAU);
+    ctx.arc(z * 0.135, -z * 0.08, z * 0.025, 0, TAU);
+    ctx.fill();
+  } else if (mood === 'idle' && t % 150 < 5) {
+    ctx.lineWidth = Math.max(1.5, z * 0.06) / 1.25;
+    ctx.beginPath();
+    ctx.moveTo(z * 0.02, -z * 0.06);
+    ctx.lineTo(z * 0.18, -z * 0.06);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.arc(z * 0.1, -z * 0.06, z * 0.1, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(z * 0.13, -z * 0.09, z * 0.04, 0, TAU);
     ctx.fill();
   }
   ctx.restore();
+  // 놀람: 머리 위 '!' 아이콘 (벡터, 글자 아님) — 0→1.3→1로 튀어나온다
+  if (mood === 'surprise') {
+    const k = age < 4 ? (age / 4) * 1.3 : age < 8 ? 1.3 - ((age - 4) / 4) * 0.3 : 1;
+    ctx.save();
+    ctx.translate(z * 0.75, -z * 2.7);
+    ctx.scale(k, k);
+    ctx.fillStyle = '#ffd166';
+    ctx.strokeStyle = '#3b2a1e';
+    ctx.lineWidth = Math.max(1.5, z * 0.05);
+    ctx.beginPath();
+    ctx.roundRect(-z * 0.08, -z * 0.3, z * 0.16, z * 0.45, z * 0.06);
+    ctx.stroke();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, z * 0.3, z * 0.09, 0, TAU);
+    ctx.stroke();
+    ctx.fill();
+    ctx.restore();
+  }
   ctx.restore();
 }
 
 function drawGoat(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, faint: number, age: number, t: number) {
   const body = '#f4ecdb', sh = '#b9a888';
   ctx.save();
-  ctx.fillStyle = 'rgba(30,45,15,.3)';
+  ctx.fillStyle = SHADE;
   ctx.beginPath();
   ctx.ellipse(x + z * 0.4, y + z * 0.05, z * (faint ? 1.7 : 1.25), z * 0.38, 0, 0, TAU);
   ctx.fill();
@@ -1717,11 +1819,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   const PX = (fx0: number, fy0: number) => X(SX(fx0, fy0)), PY = (fy0: number) => Y(SY(fy0));
   // 시간대는 판 번호가 아니라 월드로 (C007 M1-4, 🎨): W1 '아침 들판'은 8판 모두 아침 키 하나. 밤 판만 밤 키
   const tod = F.night ? SKY.length - 1 : WORLD_TIME[0], pal = SKY[tod], night = F.night, dusk = F.night ? 1 : tod / 7;
+  SHADE = tod === 0 ? 'rgba(36,74,62,.30)' : tod >= 7 ? 'rgba(5,8,25,.45)' : tod >= 4 ? 'rgba(60,30,40,.34)' : 'rgba(30,45,15,.30)';
   const wind = F.wind[0];
-  const say = (x: number, y: number, text: string, col: string, size: number) => {
+  /** pin: 겹침 피하기에서 빼고 그 자리에 고정(뒤에 오는 글자가 피해 간다) — 🎨 C007 '?!' */
+  const say = (x: number, y: number, text: string, col: string, size: number, pin = false) => {
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
-    for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.3 && Math.abs(q.y - y) < size + 4); k++) y -= size + 5;
+    for (let k = 0; k < 6 && !pin && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.3 && Math.abs(q.y - y) < size + 4); k++) y -= size + 5;
     rec.push({ x, y, t: s.t });
     if (rec.length > 12) rec.shift();
     fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), Math.max(R(0.19), y), text, col, size);
@@ -1750,13 +1854,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     }
   {
     // 해 (판마다 낮아진다) · 밤엔 달
-    const sx = X(0.2 + 0.05 * dusk), sy = Y(night ? 0.14 : 0.13 + 0.12 * dusk);
+    // 아침(tod 0)은 왼쪽 언덕 뒤로 반쯤 떠오르는 해 — 알림띠 아래, 할아버지·헛간과 안 겹치게 (🎨 C007)
+    const morning = tod === 0;
+    const sx = morning ? X(0.3) : X(0.2 + 0.05 * dusk), sy = morning ? Y(0.215) : Y(night ? 0.14 : 0.13 + 0.12 * dusk);
     ctx.save();
-    ctx.shadowColor = night ? '#cfd8ff' : mix('#fff2a8', '#ff7a4a', dusk);
-    ctx.shadowBlur = R(0.12);
+    ctx.shadowColor = night ? '#cfd8ff' : morning ? '#ffe7a3' : mix('#fff2a8', '#ff7a4a', dusk);
+    ctx.shadowBlur = R(morning ? 0.14 : 0.12);
     ctx.fillStyle = pal[2];
     ctx.beginPath();
-    ctx.arc(sx, sy, R(night ? 0.04 : 0.05), 0, TAU);
+    ctx.arc(sx, sy, R(night ? 0.04 : morning ? 0.055 : 0.05), 0, TAU);
     ctx.fill();
     ctx.restore();
     if (night) {
@@ -1767,8 +1873,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     } else {
       // 비스듬한 햇살
       ctx.save();
-      ctx.globalAlpha = 0.12 + 0.1 * dusk;
-      ctx.fillStyle = mix('#fff6c8', '#ffb070', dusk);
+      ctx.globalAlpha = morning ? 0.1 : 0.12 + 0.1 * dusk;
+      ctx.fillStyle = morning ? '#fff6d0' : mix('#fff6c8', '#ffb070', dusk);
       for (let k = 0; k < 4; k++) {
         const a0 = 0.15 + k * 0.17 + Math.sin(t * 0.01 + k) * 0.02;
         ctx.beginPath();
@@ -1832,6 +1938,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     ctx.moveTo(bx + bz * 0.3, by - bz * 0.6);
     ctx.lineTo(bx - bz * 0.3, by);
     ctx.stroke();
+  }
+  // 아침 안개 (🎨 C007): 먼 언덕 아래를 엷게 덮는다
+  if (tod === 0) {
+    const mist = ctx.createLinearGradient(0, Y(0.2), 0, Y(0.31));
+    mist.addColorStop(0, 'rgba(240,248,255,0)');
+    mist.addColorStop(0.6, 'rgba(240,248,255,.38)');
+    mist.addColorStop(1, 'rgba(240,248,255,0)');
+    ctx.fillStyle = mist;
+    ctx.fillRect(0, Y(0.2), w, Y(0.11));
   }
   hill(0.3, 0.035, night ? '#1f2a38' : pal[4], 4.1);
   // 언덕 위 동그란 나무들
@@ -2115,7 +2230,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   // 들판 장식: 짚더미 · 팻말 · 나비 (부딪히지 않는 가장자리)
   {
     const hx = PX(0.04, 0.95), hy = PY(0.95), hz = R(0.05);
-    ctx.fillStyle = 'rgba(30,45,15,.3)';
+    ctx.fillStyle = SHADE;
     ctx.beginPath();
     ctx.ellipse(hx + hz * 0.4, hy, hz * 1.2, hz * 0.3, 0, 0, TAU);
     ctx.fill();
@@ -2237,7 +2352,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
         const n = Math.max(2, Math.round(Math.abs(hg.x1 - hg.x0) / 0.035));
         for (let k = 0; k <= n; k++) {
           const hx = hg.x0 + ((hg.x1 - hg.x0) * k) / n, sx = PX(hx, hg.y0), sy = PY(hg.y0), bz = R(0.03) * scl(hg.y0);
-          ctx.fillStyle = 'rgba(20,40,10,.3)';
+          ctx.fillStyle = SHADE;
           ctx.beginPath();
           ctx.ellipse(sx + bz * 0.5, sy + bz * 0.1, bz * 1.1, bz * 0.35, 0, 0, TAU);
           ctx.fill();
@@ -2326,17 +2441,46 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     else if (s.phase === 'result') mood = s.ok ? 'proud' : 'dizzy';
     else if (s.idle > 300 && s.stage + s.S.used > 0) mood = 'spin';
     if (s.events.some((e) => e.kind === 'sniff' && t - e.t < 40)) mood = 'sniff';
-    let face = 1;
+    let face: number = 1;
     if (s.phase === 'run') face = s.toX >= s.fromX ? 1 : -1;
     else {
       let cx = 0, cn = 0;
       for (let i = 0; i < F.n; i++) if (S.pen[i] < 0) (cx += S.x[i]), cn++;
       face = (cn ? cx / cn : 0.5) >= s.dogX ? 1 : -1;
     }
-    const hopY = s.phase === 'run' ? Math.abs(Math.sin(s.pt * 0.5)) * 0.012 : 0;
     let ox = 0, oy = 0;
+    const pose: DogPose = { lift: s.phase === 'run' ? R(Math.abs(Math.sin(s.pt * 0.5)) * 0.012) : 0 };
     if (mood === 'spin') (ox = Math.cos(t * 0.35) * 0.02), (oy = Math.sin(t * 0.35) * 0.012);
-    items.push({ d: s.dogY, f: () => drawDog(ctx, PX(s.dogX + ox, s.dogY + oy), PY(s.dogY + oy) - R(hopY), R(0.056) * scl(s.dogY), face, mood, t) });
+    if (mood === 'bark') {
+      const ag = s.pt;
+      pose.sy = ag < 3 ? 0.9 : ag < 10 ? 1 + 0.15 * Math.sin(((ag - 3) / 7) * Math.PI) : 1;
+      pose.sx = 1 / Math.sqrt(pose.sy);
+    }
+    // 1-4 판이 끝나는 짖기: 까만 양이 오면 뒤로 폴짝 → 놀란 채 굳음 → 결과에선 뿌듯하게 제자리로 (🎨 C007 ②-d, 그림만 — 시뮬 위치는 그대로)
+    const bi = flee ? flee.scare.findIndex((v, i) => v === 3 && F.black[i]) : -1;
+    if (bi >= 0 && s.phase === 'flee' && comeHold(s) && s.pt >= 32) {
+      const dir = Math.sign(sheepAt(bi)[0] - s.dogX) || 1, u = s.pt - 32;
+      face = dir;
+      mood = 'surprise';
+      pose.age = u;
+      if (u < 5) (pose.sx = 1.15), (pose.sy = 0.85);
+      else if (u < 17) {
+        ox = -dir * 0.04 * ease(Math.min(1, (u - 5) / 12));
+        pose.lift = Math.sin((Math.PI * Math.min(12, u - 5)) / 12) * R(0.03);
+        pose.sx = u < 11 ? 0.92 : 1;
+        pose.sy = u < 11 ? 1.12 : 1.04;
+      } else {
+        ox = -dir * 0.04 + (u >= 22 ? Math.sin(t * 1.7) * 0.002 : 0);
+        if (u < 22) (pose.sx = 1.18 - ((u - 17) / 5) * 0.18), (pose.sy = 0.82 + ((u - 17) / 5) * 0.18);
+      }
+    } else if (s.phase === 'result' && s.ok && s.rec && s.rec.scare.some((v, i) => v === 3 && F.black[i]) && F.black.every((b, i) => b || S.pen[i] >= 0)) {
+      const bj = s.rec.scare.findIndex((v, i) => v === 3 && F.black[i]);
+      const dir = Math.sign(S.x[bj] - s.dogX) || 1;
+      ox = -dir * 0.04 * Math.max(0, 1 - s.pt / 14);
+    }
+    if (mood === 'surprise' && pose.age === undefined && flee) pose.age = s.pt - 22;
+    const dz = R(0.06) * scl(s.dogY);
+    items.push({ d: s.dogY, f: () => drawDog(ctx, PX(s.dogX + ox, s.dogY + oy), PY(s.dogY + oy), dz, face, mood, t, pose) });
   }
   items.sort((a, b) => a.d - b.d);
   for (const it of items) it.f();
@@ -2576,10 +2720,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       ctx.fill();
     }
   } else {
-    // 노을빛: 해 쪽은 따뜻하게, 반대편은 살짝 어둡게
+    // 빛 덧칠: 해 쪽은 따뜻하게, 반대편은 살짝 차갑게 (아침은 금빛 → 푸른 그늘, 🎨 C007)
     const lg = ctx.createLinearGradient(0, Y(0.3), w, Y(1.1));
-    lg.addColorStop(0, `rgba(255,200,120,${0.08 + 0.18 * dusk})`);
-    lg.addColorStop(1, `rgba(60,30,90,${0.05 + 0.2 * dusk})`);
+    lg.addColorStop(0, tod === 0 ? 'rgba(255,226,160,.12)' : `rgba(255,200,120,${0.08 + 0.18 * dusk})`);
+    lg.addColorStop(1, tod === 0 ? 'rgba(70,120,160,.07)' : `rgba(60,30,90,${0.05 + 0.2 * dusk})`);
     ctx.fillStyle = lg;
     ctx.fillRect(0, Y(HZ), w, Y(SY(1) - HZ + 0.01));
   }
@@ -2597,7 +2741,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     if (e.kind === 'bark') fx.ring(x, y - R(0.03), '#ffffff', R(0.16), 4), fx.kick(4), say(x, y - R(0.12), '멍!', '#ffffff', 24), fx.burst(x, y - R(0.04), '#fff6d0', 10, 2.6, 2);
     if (e.kind === 'faint') fx.burst(x, y - R(0.04), '#ffe066', 18, 3, 2.6), fx.kick(3), say(x, y - R(0.1), '꽥!', '#fff3a0', 20);
     if (e.kind === 'yelp') say(x, y - R(0.08), '깨갱!', '#e8ecff', 18);
-    if (e.kind === 'come') say(PX(s.dogX, s.dogY), PY(s.dogY) - R(0.13), '?!', '#ffe0f0', 20), say(PX(e.x, e.y), PY(e.y) - R(0.08), '?!', '#ffffff', 18), fx.ring(PX(e.x, e.y), PY(e.y), '#ffe0f0', R(0.07), 3);
+    // 강아지 머리 위는 벡터 '!'(drawDog surprise)가 맡는다 — 글자는 까만 양 위 하나만 (🎨 C007)
+    if (e.kind === 'come') say(PX(e.x, e.y), PY(e.y) - R(0.09), '?!', '#ffd166', 20, true), fx.ring(PX(e.x, e.y), PY(e.y), '#ffe0f0', R(0.07), 3);
     if (e.kind === 'clover') fx.burst(x, y - R(0.02), '#ffe066', 18, 3, 2.2), say(x, y - R(0.06), e.text!, e.col!, 14);
     if (e.kind === 'trample') fx.burst(x, y - R(0.02), '#ff9ec7', 22, 3.4, 2.4), say(x, y - R(0.06), e.text!, e.col!, 14);
     if (e.kind === 'sniff') say(x, y - R(0.08), e.text!, e.col!, 14);
@@ -2639,9 +2784,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       if (flee.scare[i] === 3 && s.pt >= FLEE_T && comeHold(s) && mk('come2')) {
         const [a, b] = sheepAt(i);
         fx.ring(PX(a, b), PY(b), '#ffe0f0', R(0.09), 4);
-        say(PX(a, b), PY(b) - R(0.1), '?!', '#ffe0f0', 26);
+        say(PX(a, b), PY(b) - R(0.11), '?!', '#ffd166', 26, true);
       }
-      if (flee.scare[i] === 3 && q > 0.75 && !S.fell[i] && mk('love')) {
+      if (flee.scare[i] === 3 && q > 0.75 && !S.fell[i] && !comeHold(s) && mk('love')) {
         const [a, b] = sheepAt(i);
         say(PX(a, b), PY(b) - R(0.09), '♥', '#ff8fc8', 18);
       }
@@ -2826,7 +2971,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     }
   }
   const by = Y(SY(1) + 0.04);
-  ctx.fillStyle = night ? 'rgba(12,18,40,.92)' : 'rgba(52,38,22,.92)';
+  ctx.fillStyle = night ? 'rgba(12,18,40,.92)' : '#4a3322'; // 🎨 C007 ④-a: 불투명 탁자색 — 캔버스 아래 빈 띠(body)와 이어진다
   ctx.fillRect(0, by, w, Y(A) - by + 2);
   ctx.fillStyle = 'rgba(255,255,255,.12)';
   ctx.fillRect(0, by, w, 1.5);

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/sheepdog/core.ts';
-import { BLACK_TIP, COME_HOLD, FLAG_SNAP, LATER, STAGES, at as atField, blackCame, comeHold, jumpTo, preview, starCount, sheepdog as g, sheepdogGreedy, sheepdogRandom, sheepdogSmart, type DogState } from '../studio/sheepdog/game.ts';
+import { BLACK_TIP, COME_HOLD, FLAG_SNAP, LATER, SKY, STAGES, WORLD_TIME, at as atField, blackCame, comeHold, jumpTo, preview, starCount, sheepdog as g, sheepdogGreedy, sheepdogRandom, sheepdogSmart, type DogState } from '../studio/sheepdog/game.ts';
 import { mulberry32 } from '../studio/sheepdog/rng.ts';
 
 const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y } });
@@ -174,6 +174,25 @@ describe('M1-2a 개울 판 도움 깃발 (📐 C004)', () => {
     barkAt(s, f1[0] + 0.15, Math.min(0.95, f1[1] + 0.05));
     expect(s.flags.length).toBe(0);
     expect(s.helped).toBe(false);
+  });
+});
+
+describe('M1-4 아트 (C007, 🎨)', () => {
+  const lum = (hex: string) => {
+    const c = [1, 3, 5].map((k) => parseInt(hex.slice(k, k + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  const contrast = (a: string, b: string) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  it('W1 8판은 모두 같은 아침 키, 밤 판 없음', () => {
+    expect(WORLD_TIME[0]).toBe(0);
+    for (let k = 0; k < STAGES.length; k++) {
+      const s = g.create(1);
+      jumpTo(s, k);
+      expect(s.F.night, `${k + 1}판`).toBe(false);
+    }
+  });
+  it('까만 양 털은 W1 가까운 풀과 3:1 이상 (8판에서 풀에 묻히던 문제)', () => {
+    expect(contrast('#4b4549', SKY[WORLD_TIME[0]][6])).toBeGreaterThanOrEqual(3);
   });
 });
 
