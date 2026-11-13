@@ -46,7 +46,7 @@ const WATER_REACH = 0.36, KING_REACH = 0.46, KING_BR = 0.072, FIRE_BAND = 0.055,
 export const NORM = 0, IRON = 1, WATER = 2, FIRE = 3, KING = 4;
 
 
-export interface Bal { k: number; sz: number; x0: number; y0: number; ax: number; ph: number; vx: number; an: number; um: boolean; esc: number; cl: number; hue: number }
+export interface Bal { k: number; sz: number; x0: number; y0: number; ax: number; ph: number; vx: number; an: number; um: boolean; esc: number; cl: number; hue: number; bridge?: boolean }
 interface Cloud { x: number; y: number; rx: number; ry: number; vx: number }
 export interface Goal { pop: number; save: number }
 export interface Lay { bs: Bal[]; iron: number[]; tramp: { x: number; w: number } | null; clouds: Cloud[]; Ds: number[]; goal: Goal; total: number }
@@ -54,19 +54,28 @@ export interface Lay { bs: Bal[]; iron: number[]; tramp: { x: number; w: number 
 interface SDef {
   cl: number[]; lanes?: boolean; dense?: boolean; iron?: number; water?: number; fire?: number; king?: number; ani?: number; cat?: number;
   sway?: number; wind?: number; clouds?: number; tw?: number; goal: Goal; rand: [number, number]; key: string; title: string; tip: string; news: string;
-  /** 쉼 판: 긴장을 푸는 판 — 숙련 격차 계산에서 뺀다(FUN v1.4) */
+  /** 쉼 판: 긴장을 푸는 판 — 숙련 격차 계산에서 빼고, 아무렇게나 눌러도 별이 잘 나오게 둔다(FUN v1.4) */
   rest?: boolean;
+  /** 다른 무리끼리 거리 ≥ apart×(두 반경 합) — 무리 사이 원이 엉키지 않게 (CONTENT v0.1) */
+  apart?: number;
+  /** 무리 풍선 크기(작게·보통·크게) 가중치 */
+  szw?: number[];
+  /** 다리 풍선 수: 무리 0·1 사이에 큰 풍선 하나 — 한 톡에 두 무리 (CONTENT v0.1) */
+  bridge?: number;
+  /** 대왕 자리: 'root' = 모든 무리의 뿌리(첫 풍선)가 대왕 원 안 → 대왕 한 톡에 하늘 전체 (CONTENT v0.1) */
+  kingAt?: 'root';
 }
 /** 판 8개. cl = 무리 크기들, rand = 아무렇게나 눌러 목표를 채우는 비율로 고를 범위 */
 export const STAGES: SDef[] = [
-  { cl: [11, 2, 2], dense: true, cat: 1, goal: { pop: 9, save: 0 }, rand: [0.95, 1], key: 'pop', title: '첫 팡!', tip: '풍선을 톡! 원 안의 풍선까지 팡팡', news: '🎈 톡! 터진 풍선은 둘레 원 안의 풍선을 터뜨려요' },
-  { cl: [8, 8, 3], iron: 3, goal: { pop: 8, save: 0 }, rand: [0.55, 0.85], key: 'iron', title: '철 풍선', tip: '철 풍선은 안 터지고 연쇄를 막아요', news: '🔩 철 풍선 — 안 터지고, 그 뒤로 연쇄가 못 가요' },
-  { cl: [7, 5, 4], ani: 2, sway: 0.1, tw: 0.17, goal: { pop: 0, save: 2 }, rand: [0.15, 0.6], key: 'tramp', title: '트램펄린 구조대', tip: '동물이 트램펄린 위에 올 때 팡!', news: '🐶 우산 없는 동물 — 트램펄린 위일 때 터뜨려야 퐁!' },
-  { cl: [6, 6, 6], water: 3, goal: { pop: 9, save: 0 }, rand: [0.15, 0.6], key: 'water', title: '물풍선', tip: '물풍선은 넓게, 하지만 아래로만', news: '💧 물풍선 — 아주 넓게, 하지만 아래로만 튀어요' },
-  { cl: [6, 6, 5], lanes: true, wind: 0.001, goal: { pop: 8, save: 0 }, rand: [0.1, 0.55], key: 'wind', title: '바람', tip: '높은 풍선일수록 빨리 날아가요', news: '🌬️ 바람 — 높이 뜬 풍선일수록 빨리 흘러가요' },
-  { cl: [6, 5, 4, 3], fire: 2, ani: 2, sway: 0.1, tw: 0.17, goal: { pop: 0, save: 2 }, rand: [0.05, 0.5], key: 'fire', title: '폭죽 풍선', tip: '폭죽 풍선은 그 줄을 쭉!', news: '🎆 폭죽 풍선 — 그 줄을 끝까지 쭉 터뜨려요' },
-  { cl: [7, 6, 5], clouds: 3, goal: { pop: 9, save: 0 }, rand: [0.05, 0.5], key: 'cloud', title: '구름', tip: '구름 속에 풍선이 숨어 있어요', news: '☁️ 구름 — 속에 풍선이 숨어 있어요. 팡 하면 걷혀요' },
-  { cl: [7, 6, 5, 4], king: 1, iron: 2, water: 1, fire: 1, ani: 1, cat: 1, sway: 0.09, tw: 0.18, goal: { pop: 10, save: 1 }, rand: [0.03, 0.45], key: 'king', title: '대왕 풍선 축제', tip: '무지개 대왕 풍선은 아주 멀리까지!', news: '🌈 무지개 대왕 풍선 — 아주 멀리까지 팡!' },
+  // CONTENT.md v0.1 (C005): 월드 1 "한낮 소풍"의 앞 8판 — 새것은 판당 하나, 움직이는 판(트램펄린·물·바람·폭죽·구름)은 M2부터
+  { cl: [10, 2, 2], dense: true, goal: { pop: 8, save: 0 }, rand: [0.95, 1], key: 'pop', title: '첫 팡!', tip: '풍선을 톡! 원 안의 풍선까지 팡팡', news: '🎈 톡! 터진 풍선은 둘레 원 안의 풍선을 터뜨려요' },
+  { cl: [6, 4, 3], apart: 0.8, goal: { pop: 8, save: 0 }, rand: [0.85, 0.95], key: 'size2', title: '큰 풍선, 큰 원', tip: '큰 풍선일수록 원이 커요 — 큰 것부터!', news: '🔵 큰 풍선은 원이 커서 멀리까지 팡' },
+  { cl: [6, 4, 3], apart: 0.8, cat: 1, goal: { pop: 8, save: 1 }, rand: [0.85, 0.95], key: 'cat', title: '우산 고양이', tip: '고양이 풍선이 터지면 우산을 펴고 내려와요', news: '☂️ 우산 고양이 — 풍선이 터지면 둥실둥실 내려와요' },
+  { cl: [6, 5, 3], apart: 0.8, goal: { pop: 10, save: 0 }, rand: [0.65, 0.85], key: 'split', title: '떨어진 무리', tip: '한 번에 안 닿으면 톡을 나눠 써요', news: '🎈 🎈 떨어진 무리 — 톡을 나눠 써요' },
+  { cl: [4, 4, 4, 3], bridge: 1, apart: 0.8, szw: [0.5, 0.4, 0.1], goal: { pop: 11, save: 0 }, rand: [0.55, 0.75], key: 'bridge', title: '다리 풍선', tip: '두 무리 사이 큰 풍선이 다리예요', news: '🌉 다리 풍선 — 두 무리를 한 번에 이어요' },
+  { cl: [7, 4, 3], apart: 0.8, iron: 1, goal: { pop: 9, save: 0 }, rand: [0.55, 0.8], key: 'iron', title: '철 풍선', tip: '철 풍선은 안 터지고 연쇄를 막아요', news: '🔩 철 풍선 — 안 터지고, 그 뒤로 연쇄가 못 가요' },
+  { cl: [8, 4, 3], apart: 0.8, iron: 2, goal: { pop: 9, save: 0 }, rand: [0.45, 0.7], key: 'iron2', title: '철 사이 틈', tip: '철 두 개 사이 틈으로 연쇄를 보내요', news: '🔩🔩 철 사이 틈 — 연쇄가 빠져나갈 길을 찾아요' },
+  { cl: [10, 3, 2], dense: true, king: 1, kingAt: 'root', rest: true, goal: { pop: 11, save: 0 }, rand: [0.85, 1], key: 'king', title: '대왕 풍선', tip: '무지개 대왕 풍선은 아주 멀리까지!', news: '🌈 무지개 대왕 풍선 — 아주 멀리까지 팡!' },
 ];
 export const STAGE_COUNT = STAGES.length;
 
@@ -214,6 +223,9 @@ export function gen(d: SDef, r: Rng): Lay | null {
     if (b.cl === c) return dist >= brs + 0.012;
     // 다른 무리: 처음엔 서로 닿지 않고, 흔들리거나 흘러가며 겹쳐 보이지 않게
     if (dist < Math.max(REACH[b.sz], REACH[sz]) + 0.02) return false;
+    // 다른 무리끼리 원이 엉키지 않게 (다리로 잇는 무리 0·1 사이는 빼고)
+    const linked = d.bridge && b.cl + c === 1;
+    if (d.apart && !linked && dist < d.apart * (REACH[b.sz] + REACH[sz])) return false;
     if (d.lanes) return dy >= brs + 0.012;
     const sw = b.ax + axs[c];
     return !sw || dy >= brs + 0.012 || dx >= brs + sw + 0.012;
@@ -224,7 +236,7 @@ export function gen(d: SDef, r: Rng): Lay | null {
       let sz: number, x: number, y: number;
       if (!mem.length) (sz = 2), (x = cs[c].x + (k ? (r() - 0.5) * 0.24 : 0)), (y = cs[c].y + (k ? (r() - 0.5) * (d.lanes ? 0.04 : 0.16) : 0));
       else {
-        sz = pickSz(r, c === 0 && d.dense ? [0.05, 0.5, 0.45] : [0.36, 0.4, 0.24]);
+        sz = pickSz(r, c === 0 && d.dense ? [0.05, 0.5, 0.45] : d.szw ?? [0.36, 0.4, 0.24]);
         const p = mem[Math.floor(r() * mem.length)], lo = BR[p.sz] + BR[sz] + 0.014, hi = REACH[p.sz] * 0.92;
         const dd = lo + r() * Math.max(0, hi - lo), a = r() * Math.PI * 2;
         x = p.x0 + Math.cos(a) * dd;
@@ -241,6 +253,31 @@ export function gen(d: SDef, r: Rng): Lay | null {
   for (let k = 0; k < mx; k++) for (let c = 0; c < nC; c++) if (k < d.cl[c]) add(c);
   const want = d.cl.reduce((a, b) => a + b, 0);
   if (bs.length < want * 0.85) return null;
+  // 다리 풍선: 무리 0·1에서 '그 풍선에서 자기 무리 전체로 연쇄가 가는' 풍선끼리 가장 가까운 쌍을 잇는 큰 풍선 (CONTENT v0.1)
+  for (let q = 0; q < (d.bridge ?? 0); q++) {
+    const full = (a: Bal) => {
+      const mem = bs.filter((o) => o.cl === a.cl), seen = new Set([a]), stk = [a];
+      while (stk.length) {
+        const p = stk.pop()!;
+        for (const o of mem) if (!seen.has(o) && Math.hypot(p.x0 - o.x0, p.y0 - o.y0) <= REACH[p.sz]) seen.add(o), stk.push(o);
+      }
+      return seen.size === mem.length;
+    };
+    const prs: [Bal, Bal, number][] = [];
+    for (const a of bs) if (a.cl === 0 && full(a)) for (const b of bs) if (b.cl === 1 && full(b)) prs.push([a, b, Math.hypot(a.x0 - b.x0, a.y0 - b.y0)]);
+    prs.sort((u, v) => u[2] - v[2]);
+    let ok = false;
+    for (const [a, b] of prs.slice(0, 4))
+      for (let k = 0; k < 30 && !ok; k++) {
+        const f = 0.35 + r() * 0.3, x = a.x0 + (b.x0 - a.x0) * f, y = a.y0 + (b.y0 - a.y0) * f;
+        if (Math.hypot(a.x0 - x, a.y0 - y) > Math.min(REACH[a.sz], REACH[2]) * 0.95 || Math.hypot(b.x0 - x, b.y0 - y) > Math.min(REACH[b.sz], REACH[2]) * 0.95) continue;
+        if (!bs.every((o) => Math.hypot(o.x0 - x, o.y0 - y) >= BR[o.sz] + BR[2] + 0.012)) continue;
+        if (!bs.every((o) => o.cl <= 1 || Math.hypot(o.x0 - x, o.y0 - y) >= REACH[2] + 0.02)) continue;
+        bs.push({ k: NORM, sz: 2, x0: x, y0: y, ax: 0, ph: 0, vx: 0, an: -1, um: false, esc: Infinity, cl: 0, hue: Math.floor(r() * 3), bridge: true });
+        ok = true;
+      }
+    if (!ok) return null;
+  }
   const isFirst = (i: number) => bs.findIndex((b) => b.cl === bs[i].cl) === i;
   const pickIn = (ok: (b: Bal, i: number) => boolean) => {
     const c = bs.map((b, i) => (ok(b, i) ? i : -1)).filter((i) => i >= 0);
@@ -283,6 +320,9 @@ export function gen(d: SDef, r: Rng): Lay | null {
     let ok = false;
     for (let q = 0; q < 200 && !ok; q++) {
       const x = 0.2 + r() * 0.6, y = 0.26 + r() * 0.5;
+      // 'root': 모든 무리의 뿌리가 대왕 원 안 → 대왕 한 톡에 하늘 전체 (자식은 부모 원 안에만 놓여 연쇄가 뿌리에서 아래로 흐른다)
+      const rootIn = (c: number) => { const b = bs.find((o) => o.cl === c)!; return Math.hypot(b.x0 - x, b.y0 - y) <= KING_REACH * 0.9; };
+      if (d.kingAt === 'root' && ![...Array(nC).keys()].every(rootIn)) continue;
       if (bs.every((b) => Math.hypot(b.x0 - x, b.y0 - y) >= KING_BR + BR[b.sz] + 0.02 + b.ax))
         bs.push({ k: KING, sz: 2, x0: x, y0: y, ax: 0, ph: 0, vx: 0, an: -1, um: false, esc: Infinity, cl: nC, hue: 0 }), (ok = true);
     }
@@ -315,6 +355,8 @@ export function gen(d: SDef, r: Rng): Lay | null {
     const cx = mem.reduce((a, b) => a + b.x0, 0) / mem.length, cy = mem.reduce((a, b) => a + b.y0, 0) / mem.length;
     clouds.push({ x: cx + (r() - 0.5) * 0.05, y: cy + (r() - 0.5) * 0.04, rx: 0.17 + r() * 0.04, ry: 0.11 + r() * 0.02, vx: (k % 2 ? -1 : 1) * (0.00016 + r() * 0.0001) });
   }
+  // 다리로 이은 무리 1은 무리 0과 한 무리로 센다 (겹침 지표·배치 규칙이 둘을 하나로 보게)
+  if (d.bridge) for (const b of bs) if (b.cl === 1) b.cl = 0;
   const iron = bs.map((b, i) => (b.k === IRON ? i : -1)).filter((i) => i >= 0);
   const Ds = d.wind ? [0, 30, 60, 90, 120, 150, 180, 240] : sway ? [0, 21, 42, 63, 84, 105, 126, 147, 168, 189, 210, 231] : [0];
   return { bs, iron, tramp, clouds, Ds, goal: d.goal, total: bs.filter((b) => b.k !== IRON).length };
@@ -383,7 +425,7 @@ function layoutFor(seed: number, stage: number): Lay {
     const v = search(L, new Uint8Array(L.bs.length).fill(1), 1, 3, 0, { pop: 0, pop2: 0, save: 0, save2: 0 }, [0, 0, 2, 2], L.Ds.filter((_, k) => k % 2 === 0)).v;
     const met = v >= 10000, all = v - 10000 >= 4000, m2 = (v - 10000) % 4000 >= 2000;
     const off = rp < d.rand[0] ? d.rand[0] - rp : rp > d.rand[1] ? rp - d.rand[1] : 0;
-    const fr = Math.max(0, r2 - (stage ? 0.45 : 0.85)) + Math.max(0, ra - (stage ? 0.3 : 0.4));
+    const easy = !stage || d.rest, fr = Math.max(0, r2 - (easy ? 0.85 : 0.45)) + Math.max(0, ra - (easy ? 0.4 : 0.3));
     const sc = (met ? 100 : 0) + (all ? 15 : 0) + (m2 ? 10 : 0) - off * 120 - fr * 40;
     if (sc > bsc) (bsc = sc), (best = L);
     pool.push({ L, sc });
@@ -428,6 +470,13 @@ export function fitCanvas(cw: number, ch: number) {
 export const view: { hudRight: number; focus: { x: number; y: number } | null } = { hudRight: 0, focus: null };
 /** 화면이 세로로 길 때 HUD 띠 높이(px) — 일시정지 버튼(44px)이 띠 안에 들어가게 */
 const HUD_TALL = 56;
+
+/** 확인용(테스트·funqa): 그 판의 처음 상태 (소개 카드 없이 바로 놀이) */
+export function startAt(seed: number, stage: number): PopState {
+  const s = blank(seed, stage);
+  newStage(s, false);
+  return s;
+}
 
 /** 판 생성 시간 재기용(캐시 없이 새로 만든다) */
 export function layoutTime(seed: number, stage: number) {
@@ -1678,8 +1727,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     ctx.strokeStyle = rgba(mix(col, night > 0.5 ? '#ffffff' : '#3a2a6a', 0.12), a);
     ctx.fillStyle = rgba(col, (fused ? 0.16 : on ? 0.14 : 0.04) * intro);
     ctx.lineWidth = fused || on ? 2.4 : 1.6;
-    if (tails && !fused && !on && b.k !== FIRE) {
-      // 원이 많으면 둘레의 짧은 호 넷만 — 하늘이 거미줄처럼 안 보이게
+    if (tails && !fused && !on && b.k !== FIRE && b.k !== KING && b.sz < 2) {
+      // 원이 많으면 작은·보통 풍선은 둘레의 짧은 호 넷만 — 하늘이 거미줄처럼 안 보이게. 큰 풍선·대왕은 늘 온전한 원(판 시작에도 '큰 풍선 = 큰 원'이 읽히게, C005)
+      ctx.strokeStyle = rgba(mix(col, night > 0.5 ? '#ffffff' : '#3a2a6a', 0.12), (fi >= 0 ? 0.3 : 0.6) * intro);
+      ctx.lineWidth = 2;
       ctx.beginPath();
       for (let q = 0; q < 4; q++) {
         const a0 = q * (Math.PI / 2) + Math.PI / 4 - 0.18;
@@ -1832,15 +1883,20 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.font = `900 ${Math.max(14, R(0.038))}px system-ui, sans-serif`;
+    }
+    // 글자는 하나로 모아 가리킨 원 위에 — 화면 밖으로 잘리지 않게 (C005)
+    if (ripple.size) {
+      const fs = Math.max(15, R(0.042)), msg = `헉 ×${ripple.size}`;
+      ctx.font = `900 ${fs}px system-ui, sans-serif`;
+      const mw = ctx.measureText(msg).width, yMin = (TOP >= HUD_TALL ? -TOP + HUD_TALL : Y(HB)) + R(0.08);
+      const lx = Math.max(mw / 2 + 6, Math.min(w - mw / 2 - 6, X(SX[fi]))), ly = Math.max(yMin, Y(SY[fi]) - R(reachOf(L.bs[fi])) - fs * 0.7);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = 'rgba(58,16,48,.85)';
-      ctx.strokeText('헉!', x + r * 0.8, y - r * 0.9);
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = 'rgba(58,16,48,.9)';
+      ctx.strokeText(msg, lx, ly);
       ctx.fillStyle = '#ffffff';
-      ctx.fillText('헉!', x + r * 0.8, y - r * 0.9);
-      ctx.lineWidth = 2;
+      ctx.fillText(msg, lx, ly);
     }
     ctx.restore();
   }
@@ -2048,13 +2104,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     ctx.textBaseline = 'middle';
     ctx.fillText('👆', hx, hy + R(0.02));
     font(0.04, 900);
-    const msg = '톡! 원 안까지 팡팡', mw = ctx.measureText(msg).width + R(0.04), mx2 = Math.max(mw / 2 + 4, Math.min(w - mw / 2 - 4, hx));
+    // 안내 글은 원 밖(아래)에 — 원 안 풍선을 가리지 않게 (C005)
+    const msg = '톡! 원 안까지 팡팡', mw = ctx.measureText(msg).width + R(0.04), mx2 = Math.max(mw / 2 + 4, Math.min(w - mw / 2 - 4, X(SX[bi])));
+    const my = Y(SY[bi]) + R(reachOf(L.bs[bi])) + R(0.02);
     ctx.fillStyle = 'rgba(255,255,255,.95)';
     ctx.beginPath();
-    ctx.roundRect(mx2 - mw / 2, hy + R(0.06), mw, R(0.05), R(0.025));
+    ctx.roundRect(mx2 - mw / 2, my, mw, R(0.05), R(0.025));
     ctx.fill();
     ctx.fillStyle = '#5a2a8a';
-    ctx.fillText(msg, mx2, hy + R(0.085));
+    ctx.fillText(msg, mx2, my + R(0.025));
   }
   // 도움 반짝 (두 번 실패한 판): 숙련 봇이 고른 다음 톡 풍선에 금빛 고리 — 누를 때가 오면 '지금!' (톡마다 옮겨 감)
   if (s.help >= 0 && s.phase === 'play' && s.alive[s.help] === 1) {

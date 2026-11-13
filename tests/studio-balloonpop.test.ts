@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/balloonpop/core.ts';
-import { A, balloonpop as g, balloonpopRandom, balloonpopSmart, BEAT, bxAt, byAt, density, FAIL_RESULT, fitCanvas, HELP_AFTER, IRON, playTop, RETRY_CARD, STAGE_COUNT, type PopState } from '../studio/balloonpop/game.ts';
-import { humanCasual, measure } from '../studio/balloonpop/funqa.ts';
+import { A, balloonpop as g, balloonpopRandom, balloonpopSmart, BEAT, bxAt, byAt, density, FAIL_RESULT, fitCanvas, HELP_AFTER, IRON, KING, playTop, RETRY_CARD, STAGE_COUNT, STAGES, startAt, type PopState } from '../studio/balloonpop/game.ts';
+import { densityTable, humanCasual, humanLate, measure } from '../studio/balloonpop/funqa.ts';
 import { mulberry32 } from '../engine/rng.ts';
 
 describe('풍선 팡 연쇄 시뮬', () => {
@@ -120,6 +120,63 @@ describe('FUN v1 측정 (C001)', () => {
     expect(a.overlap).toBeGreaterThanOrEqual(0);
     expect(a.overlap).toBeLessThanOrEqual(1);
     expect(a.n).toBeGreaterThan(3);
+  });
+});
+
+describe('월드 1 앞 8판 (C005, CONTENT v0.1)', () => {
+  const SEEDS = [1000, 8919, 16838, 24757, 32676, 40595];
+  const idx = (key: string) => STAGES.findIndex((d) => d.key === key);
+  /** 그 판 처음 상태에서 풍선 i를 톡 하고 연쇄가 끝날 때까지 */
+  const tapAndWait = (s: PopState, i: number) => {
+    const b = s.L.bs[i];
+    g.step(s, { tap: false, dir: 0, pointer: { x: bxAt(b, s.st + 1), y: byAt(b, s.st + 1) / A } });
+    for (let k = 0; k < 600 && s.popT.some((v, j) => v >= 0 && s.alive[j] === 1); k++) g.step(s, { tap: false, dir: 0, pointer: null });
+  };
+
+  it('판당 풍선 ≤18, 2~7판 다른 무리끼리 겹침 ≤0.2, 1·8판 전체 겹침 ≤0.6 (FUN §4)', () => {
+    const d = densityTable(40);
+    expect(Math.max(...d.map((x) => x.nMax))).toBeLessThanOrEqual(18);
+    for (let k = 1; k <= 6; k++) expect(d[k].overlapX).toBeLessThanOrEqual(0.2);
+    expect(d[0].overlap).toBeLessThanOrEqual(0.6);
+    expect(d[7].overlap).toBeLessThanOrEqual(0.6);
+  });
+
+  it('8판은 쉼 판(대왕 맛보기): 사람형 캐주얼(humanLate) 첫 시도 ≥0.85 (FUN v1.4)', () => {
+    expect(STAGES[7].rest).toBe(true);
+    expect(measure(humanLate, 40).firstTry[7]).toBeGreaterThanOrEqual(0.85);
+  });
+
+  it('새것이 정답에 쓰인다: 우산 고양이는 목표, 다리 한 톡에 두 무리, 대왕 한 톡에 하늘 전체, 철은 연쇄를 막는다', () => {
+    for (const seed of SEEDS) {
+      // 3판 ☂️: 고양이를 구해야 목표
+      const c = startAt(seed, idx('cat'));
+      expect(c.L.goal.save).toBe(1);
+      expect(c.L.bs.some((b) => b.um)).toBe(true);
+      // 5판 🌉: 다리를 톡 하면 이은 두 무리(cl 0)가 다 터진다
+      const s = startAt(seed, idx('bridge')), bi = s.L.bs.findIndex((b) => b.bridge);
+      expect(bi).toBeGreaterThanOrEqual(0);
+      tapAndWait(s, bi);
+      expect(s.L.bs.every((b, j) => b.cl !== 0 || s.alive[j] !== 1)).toBe(true);
+      expect(s.L.bs.some((b, j) => b.cl !== 0 && s.alive[j] === 1)).toBe(true); // 하늘 전체는 아니다(고를 게 남는다)
+      // 8판 🌈: 대왕 한 톡에 하늘 전체
+      const k8 = startAt(seed, idx('king')), ki = k8.L.bs.findIndex((b) => b.k === KING);
+      tapAndWait(k8, ki);
+      expect(k8.L.bs.every((b, j) => b.k === IRON || k8.alive[j] !== 1)).toBe(true);
+    }
+    // 6·7판 🔩: 철이 있는 무리에서, 어떤 풍선을 톡 해도 무리가 다 안 터지는 경우가 있다(철이 막는다)
+    for (const key of ['iron', 'iron2']) {
+      let blocked = 0;
+      for (const seed of SEEDS) {
+        const s0 = startAt(seed, idx(key)), ic = s0.L.bs[s0.L.iron[0]].cl;
+        const mem = s0.L.bs.map((b, j) => (b.cl === ic && b.k !== IRON ? j : -1)).filter((j) => j >= 0);
+        for (const j of mem) {
+          const s = startAt(seed, idx(key));
+          tapAndWait(s, j);
+          if (mem.some((m) => s.alive[m] === 1)) blocked++;
+        }
+      }
+      expect(blocked).toBeGreaterThan(0);
+    }
   });
 });
 

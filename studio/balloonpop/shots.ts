@@ -20,8 +20,15 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.screenshot({ path: join(here, 'screens', `${name}-title.png`) });
   if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) errors.push(`${name}: 가로 스크롤`);
   // 키보드만으로 시작 → 첫 풍선 쪽으로 커서를 옮겨 스페이스로 톡
+  // 타이틀 규칙은 390px에서 각 2행 이하 (FUN §1)
+  if (name === 'mobile') {
+    const rows = await page.evaluate(() => [...document.querySelectorAll('ol.rules li span')].map((e) => Math.round(e.getBoundingClientRect().height / parseFloat(getComputedStyle(e).lineHeight))));
+    if (!rows.length || rows.some((r: number) => r > 2)) errors.push(`mobile: 규칙 문장이 2행 넘음 ${rows}`);
+  }
   await page.keyboard.press('Enter');
   await page.waitForTimeout(400);
+  // 판 시작(톡 전): 원이 읽히는가 (C005)
+  await page.screenshot({ path: join(here, 'screens', `${name}-start.png`) });
   const st0 = await page.evaluate(() => (globalThis as any).__bp.state().taps);
   await page.keyboard.press('ArrowLeft');
   await page.evaluate(() => { const b = (globalThis as any).__bp; b.aim(b.target()); });
