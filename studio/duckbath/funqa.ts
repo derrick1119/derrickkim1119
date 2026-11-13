@@ -324,8 +324,8 @@ if (import.meta.url === `file://${process.argv[1]}` && d1Arg) {
   const res = diversity(only, process.argv.includes('--full'), tStar).filter(Boolean);
   mkdirSync(join(import.meta.dirname, 'reports'), { recursive: true });
   writeFileSync(join(import.meta.dirname, 'reports/funqa-d1' + (process.argv.includes('--full') ? '-full' : '') + '.json'), JSON.stringify({ at: new Date().toISOString(), D1: res }, null, 2) + '\n');
-  console.log('D1 정답 다양성 (FUN v1.10 g) — 판 | par | T*(출처) · 시드별 T* · 뒤집힘 | 정밀 칸/물(전수면 =) | 해 칸 | D1 · T*+1 · 연결 .10 → 판정 | 무리 칸 수 | 가장 큰 몫 | 옛 자: 시드별 T* D1 · 3★만 D1 | 초(캐시면 0)');
-  for (const r of res) if (r) console.log(`${r.id}${r.sym ? '(대칭)' : ''} | ${r.par} | ${r.T}(${r.tSrc}) · ${r.seedT.join('·')} · ${r.flip} | ${r.refined}/${r.water}${r.exact ? '=' : ''} | ${r.solCells} | ${r.D1} · ${r.D1plus} · ${r.D1link10} → ${r.pass ? '✓' : '✗'} | ${r.sizes.join('·') || '-'} | ${r.top} | ${r.D1seedT} · ${r.oldD1} | ${r.cached ? '캐시' : r.sec}`);
+  console.log('D1 정답 다양성 (FUN v1.10 g · v1.11 d 가장 큰 몫 ≤ .6) — 판 | par | T*(출처) · 시드별 T* · 뒤집힘 | 정밀 칸/물(전수면 =) | 해 칸 | D1 · T*+1 · 연결 .10 → 판정 | 무리 칸 수 | 가장 큰 몫 | 옛 자: 시드별 T* D1 · 3★만 D1 | 초(캐시면 0)');
+  for (const r of res) if (r) console.log(`${r.id}${r.sym ? '(대칭)' : ''} | ${r.par} | ${r.T}(${r.tSrc}) · ${r.seedT.join('·')} · ${r.flip} | ${r.refined}/${r.water}${r.exact ? '=' : ''} | ${r.solCells} | ${r.D1} · ${r.D1plus} · ${r.D1link10} → ${r.pass && r.top <= 0.6 ? '✓' : r.pass ? '✗(몫 > .6, v1.11 d)' : '✗'} | ${r.sizes.join('·') || '-'} | ${r.top} | ${r.D1seedT} · ${r.oldD1} | ${r.cached ? '캐시' : r.sec}`);
   console.log(`판 ${res.length}개 · ${r2((performance.now() - t0) / 1000)}초 (30판 목표 ≤ 15분)`);
 } else if (import.meta.url === `file://${process.argv[1]}`) {
   const n = Number(process.argv.find((a) => /^\d+$/.test(a)) ?? 20), res = measure(n) as Record<string, unknown>;

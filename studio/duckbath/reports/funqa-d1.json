@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-13T20:13:15.699Z",
+  "at": "2026-11-13T21:00:26.596Z",
   "D1": [
     {
       "id": "1-1",
@@ -39,7 +39,7 @@
       ],
       "pass": false,
       "sec": 0.25,
-      "cached": false
+      "cached": true
     },
     {
       "id": "1-2",
@@ -83,7 +83,7 @@
       ],
       "pass": true,
       "sec": 14.04,
-      "cached": false
+      "cached": true
     },
     {
       "id": "1-3",
@@ -125,7 +125,7 @@
       ],
       "pass": true,
       "sec": 25.51,
-      "cached": false
+      "cached": true
     },
     {
       "id": "1-4",
@@ -165,7 +165,7 @@
       ],
       "pass": true,
       "sec": 92.51,
-      "cached": false
+      "cached": true
     },
     {
       "id": "1-5",
@@ -205,7 +205,7 @@
       ],
       "pass": true,
       "sec": 69.45,
-      "cached": false
+      "cached": true
     },
     {
       "id": "1-6",
@@ -246,7 +246,7 @@
       ],
       "pass": true,
       "sec": 60.49,
-      "cached": false
+      "cached": true
     },
     {
       "id": "1-7",
@@ -288,7 +288,7 @@
       ],
       "pass": true,
       "sec": 28.76,
-      "cached": false
+      "cached": true
     },
     {
       "id": "1-8",
@@ -329,7 +329,7 @@
       ],
       "pass": true,
       "sec": 131.32,
-      "cached": false
+      "cached": true
     },
     {
       "id": "1-9",
@@ -369,7 +369,7 @@
       ],
       "pass": true,
       "sec": 42.81,
-      "cached": false
+      "cached": true
     },
     {
       "id": "1-10",
@@ -410,7 +410,7 @@
       ],
       "pass": true,
       "sec": 275.97,
-      "cached": false
+      "cached": true
     },
     {
       "id": "2-1",
@@ -454,7 +454,94 @@
       ],
       "pass": true,
       "sec": 7.28,
-      "cached": false
+      "cached": true
+    },
+    {
+      "id": "2-2",
+      "par": 5,
+      "sym": false,
+      "T": 4,
+      "tSrc": "n300",
+      "seedT": [
+        4,
+        4,
+        4
+      ],
+      "flip": "F-F",
+      "exact": true,
+      "coarse": 83,
+      "refined": 488,
+      "runs": 1464,
+      "water": 488,
+      "solCells": 83,
+      "D1": 4,
+      "sizes": [
+        40,
+        36,
+        3,
+        3
+      ],
+      "top": 0.08,
+      "D1plus": 2,
+      "plusSizes": [
+        342
+      ],
+      "D1link10": 3,
+      "link10Sizes": [
+        37,
+        32,
+        3
+      ],
+      "D1seedT": 4,
+      "oldD1": 2,
+      "oldSizes": [
+        342
+      ],
+      "pass": true,
+      "sec": 91.16,
+      "cached": true
+    },
+    {
+      "id": "2-3",
+      "par": 6,
+      "sym": false,
+      "T": 5,
+      "tSrc": "n300",
+      "seedT": [
+        6,
+        6,
+        5
+      ],
+      "flip": "F--",
+      "exact": true,
+      "coarse": 69,
+      "refined": 500,
+      "runs": 1500,
+      "water": 500,
+      "solCells": 34,
+      "D1": 2,
+      "sizes": [
+        25,
+        9
+      ],
+      "top": 0.05,
+      "D1plus": 2,
+      "plusSizes": [
+        286
+      ],
+      "D1link10": 2,
+      "link10Sizes": [
+        25,
+        9
+      ],
+      "D1seedT": 2,
+      "oldD1": 2,
+      "oldSizes": [
+        286
+      ],
+      "pass": true,
+      "sec": 18.61,
+      "cached": true
     },
     {
       "id": "2-4",
@@ -493,8 +580,50 @@
         297
       ],
       "pass": true,
-      "sec": 45.35,
-      "cached": false
+      "sec": 40.02,
+      "cached": true
+    },
+    {
+      "id": "2-5",
+      "par": 6,
+      "sym": false,
+      "T": 4,
+      "tSrc": "n300",
+      "seedT": [
+        4,
+        4,
+        4
+      ],
+      "flip": "FFF",
+      "exact": true,
+      "coarse": 112,
+      "refined": 500,
+      "runs": 1500,
+      "water": 500,
+      "solCells": 62,
+      "D1": 2,
+      "sizes": [
+        28,
+        27
+      ],
+      "top": 0.06,
+      "D1plus": 2,
+      "plusSizes": [
+        340
+      ],
+      "D1link10": 2,
+      "link10Sizes": [
+        28,
+        25
+      ],
+      "D1seedT": 2,
+      "oldD1": 2,
+      "oldSizes": [
+        487
+      ],
+      "pass": true,
+      "sec": 117.41,
+      "cached": true
     },
     {
       "id": "2-9",
@@ -539,8 +668,8 @@
         436
       ],
       "pass": true,
-      "sec": 135.43,
-      "cached": false
+      "sec": 133.01,
+      "cached": true
     },
     {
       "id": "3-2",
@@ -580,7 +709,7 @@
       ],
       "pass": true,
       "sec": 59.4,
-      "cached": false
+      "cached": true
     },
     {
       "id": "3-4",
@@ -624,7 +753,7 @@
       ],
       "pass": true,
       "sec": 55.29,
-      "cached": false
+      "cached": true
     }
   ]
 }
