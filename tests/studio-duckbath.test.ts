@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
-import { CRISIS_DELAY, FAUCET, SLOTS, STAGES, WORLDS, advance, crisisShown, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, failText, hintPoint, startStage } from '../studio/duckbath/game.ts';
+import { CRISIS_DELAY, FAUCET, SLOTS, STAGES, WORLDS, advance, crisisShown, jitFor, starChips, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, failText, hintPoint, startStage } from '../studio/duckbath/game.ts';
 import { OLD_IDS, SAVE_KEY, makeStore } from '../studio/duckbath/save.ts';
 import { play } from '../studio/duckbath/funqa.ts';
 
@@ -112,6 +112,36 @@ describe('욕조 물결 오리 시뮬', () => {
     gold.st = 0;
     g.step(s, idle);
     expect(s.crisisT).toBe(-1);
+  });
+
+  it('판 흔들기는 (시드, 판 id)로만 정해진다 — 판을 끼워 넣어도 다른 판의 흔들림·뒤집힘이 그대로 (D010)', () => {
+    const s = g.create(1007);
+    STAGES.forEach((d, i) => expect(s.jit[i]).toEqual(jitFor(1007, d.id)));
+    const before = jitFor(1007, '2-9');
+    STAGES.splice(3, 0, { ...STAGES[0], id: '1-9' }); // 가짜 판을 앞에 끼운다
+    try {
+      const t = g.create(1007);
+      expect(t.jit[STAGES.findIndex((d) => d.id === '2-9')]).toEqual(before);
+    } finally {
+      STAGES.splice(3, 1);
+    }
+    expect(jitFor(1007, '2-9')).not.toEqual(jitFor(1007, '3-2'));
+  });
+
+  it('셋째 별 칩: 깼는데 황금이 물 위면 꺼짐(bad), 황금이 먼저 들면 켜짐 (D009 goldLost 정리)', () => {
+    const idle = { tap: false, dir: 0 as const, pointer: null };
+    for (const goldIn of [false, true]) {
+      const s = g.create(3);
+      startStage(s, 0);
+      while (s.phase !== 'play' || s.pt < 2) g.step(s, idle);
+      const gold = s.objs.find((o) => o.k === 1)!;
+      if (goldIn) gold.st = 0;
+      for (const o of s.objs.filter((o) => o.k === 0)) o.st = 0; // 확인용: 보통 오리를 모두 둥지에 → 판 끝
+      for (let k = 0; k < 3 && s.phase === 'play'; k++) g.step(s, idle);
+      expect(s.phase).toBe('result');
+      const c = starChips(s);
+      expect([c.okk[2], c.bad[2]]).toEqual(goldIn ? [true, false] : [false, true]);
+    }
   });
 
   describe('결과·실패 카드 버튼 (D004)', () => {

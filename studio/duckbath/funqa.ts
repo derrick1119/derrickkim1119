@@ -12,7 +12,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mulberry32 } from '../../engine/rng.ts';
 import type { Bot, Input } from './core.ts';
-import { STAGES, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, failText, hintPoint, makeCasual, makePreviewer, startStage, type DuckState } from './game.ts';
+import { STAGES, crisisShown, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, failText, hintPoint, makeCasual, makePreviewer, startStage, type DuckState } from './game.ts';
 /** D007: 판 번호(1부터) → 판 id. 판이 욕실 순서로 다시 놓여 표는 id로 읽는다 */
 const ID = (n: number) => STAGES[n - 1]?.id ?? String(n);
 
@@ -28,7 +28,7 @@ export const RETRY = 3;
 /** 배우는 처음 봇의 다시 한도 (C5 p90을 재려고 넉넉히) */
 export const RETRY_LEARN = 30;
 
-export interface StageLog { stage: number; ok: boolean; sec: number; taps: number; stars: number; why: string; tapStar: boolean; goldStar: boolean; sucks: number; chomps: number; failKind?: string }
+export interface StageLog { stage: number; ok: boolean; sec: number; taps: number; stars: number; why: string; tapStar: boolean; goldStar: boolean; sucks: number; chomps: number; failKind?: string; /** D010: 황금 위기가 화면에 보인 가장 긴 연속 틱 (0 = 안 보임) */ crisis: number }
 export interface Run { stages: StageLog[]; score: number; sec: number; reached: number; won: boolean; gaveUp: number; firstTapNest: number }
 
 /**
@@ -60,14 +60,17 @@ export const FOLLOW = 0.75;
 /** 봇 한 판(8판을 마치거나 한 판에서 retry번 넘게 실패할 때까지). 판이 끝날 때마다 기록 */
 export function play(bot: Bot<DuckState>, seed: number, maxSec = 900, retry = RETRY): Run {
   const s = g.create(seed), rng = mulberry32(seed ^ 0x9e3779b9), logs: StageLog[] = [];
-  let phase = s.phase, t0 = 0, gaveUp = 0, tap1 = -1, firstTapNest = -1;
+  let phase = s.phase, t0 = 0, gaveUp = 0, tap1 = -1, firstTapNest = -1, cr = 0, crMax = 0;
   while (!g.over(s) && s.t < maxSec * 60) {
     g.step(s, bot.act(s, rng));
+    cr = crisisShown(s) ? cr + 1 : 0;
+    crMax = Math.max(crMax, cr);
     // 첫 판 첫 톡 3초 뒤 둥지에 든 오리 수 (FUN N3 · M1 허들 1)
     if (tap1 < 0 && s.used > 0) tap1 = s.t;
     if (tap1 >= 0 && firstTapNest < 0 && s.t - tap1 >= 180) firstTapNest = s.objs.filter((o) => o.k <= 1 && o.st >= 0).length;
     if (phase === 'play' && s.phase === 'result') {
-      logs.push({ stage: s.stage + 1, ok: s.ok, sec: (s.t - t0) / 60, taps: s.used, stars: s.ok ? s.got : 0, why: s.why, tapStar: s.ok && s.starOk[1], goldStar: s.ok && s.starOk[2], sucks: s.sucks, chomps: s.chomps, failKind: s.ok ? undefined : failText(s).kind });
+      logs.push({ stage: s.stage + 1, ok: s.ok, sec: (s.t - t0) / 60, taps: s.used, stars: s.ok ? s.got : 0, why: s.why, tapStar: s.ok && s.starOk[1], goldStar: s.ok && s.starOk[2], sucks: s.sucks, chomps: s.chomps, failKind: s.ok ? undefined : failText(s).kind, crisis: crMax });
+      crMax = cr = 0;
       if (!s.ok && s.stageTries > retry) {
         gaveUp = s.stage + 1;
         break;
@@ -96,6 +99,10 @@ function group(bot: Bot<DuckState>, n: number, retry: number) {
       firstTry: byRun.length ? r2(byRun.filter((B) => B[0].ok).length / byRun.length) : null,
       retryMed: med(retries), retryP90: pct(retries, 0.9), // C5
       medSec: r2(med(oks.map((l) => l.sec))), humanSec: r2(med(oks.map((l) => l.sec + 3 * l.taps))), medTaps: med(oks.map((l) => l.taps)),
+      // FUN v1.9 d: 이산 중앙값 옆에 평균
+      humanMean: r2(oks.reduce((a, l) => a + l.sec + 3 * l.taps, 0) / Math.max(1, oks.length)), tapsMean: r2(oks.reduce((a, l) => a + l.taps, 0) / Math.max(1, oks.length)),
+      // D010 (🧪 D009 4): 황금 위기 표시 — 시도 중 보인 비율 · 보인 것 중 30틱 미만 비율
+      crisisRate: rate(L.map((l) => l.crisis > 0)), crisisShort: rate(L.filter((l) => l.crisis > 0).map((l) => l.crisis < 30)),
       stars: r2(oks.reduce((a, l) => a + l.stars, 0) / Math.max(1, oks.length)),
       tapStar: rate(oks.map((l) => l.tapStar)), goldStar: rate(oks.map((l) => l.goldStar)), // E6 (클리어한 시도 중)
       try3: rate(byRun.filter((B) => B.length > 2).map((B) => B[2].ok)), // H1: 세 번째 시도(👆가 뜨는 시도) 클리어율
@@ -287,8 +294,8 @@ if (import.meta.url === `file://${process.argv[1]}` && d1Arg) {
     const g2 = res[k] as ReturnType<typeof group>;
     console.log(`\n[${k}] 다시 한도 ${g2.retry} · 점수 중앙 ${g2.medScore} · 런 전체 ${g2.medSec}초 · 완주 ${g2.winRate} · 도달 판 중앙 ${g2.medReached} · 첫 톡 3초 뒤 둥지 ${g2.firstTapNest}마리 · W1 ${g2.W1.share}(${ID(g2.W1.stage)})${k === '배우는처음' ? ' ← C5·W1 판정(👆 0.75 따름, FUN v1.4)' : k === '배우는처음_힌트없음' ? ' (옛 자 — 보고만)' : ' (보고만)'} · N4(v1.4 문턱 일치 — 판정 아님, v1.5 환급 반사실은 미측정) ${g2.N4}`);
     console.log(`  실패 이유: ${g2.failWhy.map(([w, c]) => `${w} ${c}`).join(' · ') || '없음'}`);
-    console.log('판(id) | 도전 | 클리어 | 첫 시도 | 다시 중앙/p90 | 사람초 | 톡 | 별 | ★톡 | ★황금 | 시도당 쏙꿀꺽');
-    for (const st of g2.stages) console.log(`${ID(st.stage)} | ${st.tried} | ${st.clearRate} | ${st.firstTry} | ${st.retryMed}/${st.retryP90} | ${st.humanSec} | ${st.medTaps} | ${st.stars} | ${st.tapStar} | ${st.goldStar} | ${st.pen}`);
+    console.log('판(id) | 도전 | 클리어 | 첫 시도 | 다시 중앙/p90 | 사람초 중앙(평균) | 톡 중앙(평균) | 별 | ★톡 | ★황금 | 시도당 쏙꿀꺽 | 위기 보임 · 그중 30틱 미만');
+    for (const st of g2.stages) console.log(`${ID(st.stage)} | ${st.tried} | ${st.clearRate} | ${st.firstTry} | ${st.retryMed}/${st.retryP90} | ${st.humanSec}(${st.humanMean}) | ${st.medTaps}(${st.tapsMean}) | ${st.stars} | ${st.tapStar} | ${st.goldStar} | ${st.pen} | ${st.crisisRate} · ${st.crisisShort}`);
   }
   const s0 = (res['숙련'] as ReturnType<typeof group>).stages;
   console.log(`\n판 순서(아래 줄들의 차례): ${STAGES.map((d) => d.id).join(' · ')}`);

@@ -1,0 +1,315 @@
+{
+  "at": "2026-11-13T18:11:06.881Z",
+  "D1": [
+    {
+      "id": "1-1",
+      "par": 1,
+      "sym": true,
+      "T": [
+        1,
+        1,
+        1
+      ],
+      "flip": "---",
+      "exact": false,
+      "coarse": 2,
+      "refined": 22,
+      "runs": 52,
+      "water": 500,
+      "solCells": 14,
+      "D1": 1,
+      "sizes": [
+        14
+      ],
+      "top": 0.03,
+      "oldD1": 1,
+      "oldSizes": [
+        14
+      ],
+      "sec": 0.35
+    },
+    {
+      "id": "1-2",
+      "par": 2,
+      "sym": true,
+      "T": [
+        2,
+        2,
+        2
+      ],
+      "flip": "FFF",
+      "exact": true,
+      "coarse": 45,
+      "refined": 484,
+      "runs": 1095,
+      "water": 484,
+      "solCells": 147,
+      "D1": 3,
+      "sizes": [
+        135,
+        12
+      ],
+      "top": 0.28,
+      "oldD1": 3,
+      "oldSizes": [
+        135,
+        12
+      ],
+      "sec": 12.9
+    },
+    {
+      "id": "1-3",
+      "par": 3,
+      "sym": true,
+      "T": [
+        2,
+        2,
+        2
+      ],
+      "flip": "--F",
+      "exact": true,
+      "coarse": 84,
+      "refined": 500,
+      "runs": 1117,
+      "water": 500,
+      "solCells": 62,
+      "D1": 2,
+      "sizes": [
+        32,
+        30
+      ],
+      "top": 0.06,
+      "oldD1": 2,
+      "oldSizes": [
+        352
+      ],
+      "sec": 21.88
+    },
+    {
+      "id": "1-4",
+      "par": 4,
+      "sym": false,
+      "T": [
+        2,
+        2,
+        2
+      ],
+      "flip": "--F",
+      "exact": true,
+      "coarse": 112,
+      "refined": 480,
+      "runs": 985,
+      "water": 480,
+      "solCells": 70,
+      "D1": 1,
+      "sizes": [
+        70
+      ],
+      "top": 0.15,
+      "oldD1": 2,
+      "oldSizes": [
+        480
+      ],
+      "sec": 30.04
+    },
+    {
+      "id": "1-5",
+      "par": 4,
+      "sym": false,
+      "T": [
+        3,
+        3,
+        3
+      ],
+      "flip": "F--",
+      "exact": true,
+      "coarse": 89,
+      "refined": 490,
+      "runs": 1094,
+      "water": 490,
+      "solCells": 36,
+      "D1": 4,
+      "sizes": [
+        13,
+        7,
+        7,
+        7
+      ],
+      "top": 0.03,
+      "oldD1": 2,
+      "oldSizes": [
+        383
+      ],
+      "sec": 59.58
+    },
+    {
+      "id": "1-6",
+      "par": 5,
+      "sym": true,
+      "T": [
+        3,
+        3,
+        3
+      ],
+      "flip": "--F",
+      "exact": true,
+      "coarse": 87,
+      "refined": 500,
+      "runs": 1117,
+      "water": 500,
+      "solCells": 80,
+      "D1": 1,
+      "sizes": [
+        80
+      ],
+      "top": 0.16,
+      "oldD1": 2,
+      "oldSizes": [
+        376
+      ],
+      "sec": 54.91
+    },
+    {
+      "id": "2-1",
+      "par": 2,
+      "sym": false,
+      "T": [
+        2,
+        2,
+        2
+      ],
+      "flip": "---",
+      "exact": false,
+      "coarse": 31,
+      "refined": 188,
+      "runs": 395,
+      "water": 500,
+      "solCells": 133,
+      "D1": 2,
+      "sizes": [
+        69,
+        64
+      ],
+      "top": 0.14,
+      "oldD1": 2,
+      "oldSizes": [
+        69,
+        64
+      ],
+      "sec": 5.71
+    },
+    {
+      "id": "2-4",
+      "par": 4,
+      "sym": false,
+      "T": [
+        4,
+        4,
+        4
+      ],
+      "flip": "-F-",
+      "exact": true,
+      "coarse": 68,
+      "refined": 500,
+      "runs": 1089,
+      "water": 500,
+      "solCells": 298,
+      "D1": 2,
+      "sizes": [
+        297
+      ],
+      "top": 0.59,
+      "oldD1": 2,
+      "oldSizes": [
+        297
+      ],
+      "sec": 37.61
+    },
+    {
+      "id": "2-9",
+      "par": 8,
+      "sym": false,
+      "T": [
+        6,
+        6,
+        6
+      ],
+      "flip": "--F",
+      "exact": true,
+      "coarse": 94,
+      "refined": 493,
+      "runs": 1189,
+      "water": 493,
+      "solCells": 59,
+      "D1": 4,
+      "sizes": [
+        30,
+        12,
+        8,
+        4
+      ],
+      "top": 0.06,
+      "oldD1": 2,
+      "oldSizes": [
+        436
+      ],
+      "sec": 122.14
+    },
+    {
+      "id": "3-2",
+      "par": 5,
+      "sym": true,
+      "T": [
+        3,
+        3,
+        3
+      ],
+      "flip": "--F",
+      "exact": true,
+      "coarse": 72,
+      "refined": 500,
+      "runs": 1067,
+      "water": 500,
+      "solCells": 11,
+      "D1": 1,
+      "sizes": [
+        11
+      ],
+      "top": 0.02,
+      "oldD1": 2,
+      "oldSizes": [
+        306
+      ],
+      "sec": 49.9
+    },
+    {
+      "id": "3-4",
+      "par": 4,
+      "sym": false,
+      "T": [
+        3,
+        3,
+        3
+      ],
+      "flip": "-F-",
+      "exact": true,
+      "coarse": 92,
+      "refined": 500,
+      "runs": 1096,
+      "water": 500,
+      "solCells": 64,
+      "D1": 3,
+      "sizes": [
+        40,
+        21,
+        3
+      ],
+      "top": 0.08,
+      "oldD1": 2,
+      "oldSizes": [
+        402
+      ],
+      "sec": 46.51
+    }
+  ]
+}

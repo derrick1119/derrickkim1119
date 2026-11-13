@@ -1,32 +1,61 @@
 {
-  "at": "2026-11-13T17:19:59.376Z",
+  "at": "2026-11-13T18:12:57.180Z",
   "D1": [
     {
-      "id": "1-2",
-      "par": 2,
-      "sym": true,
+      "id": "1-4",
+      "par": 4,
+      "sym": false,
       "T": [
         2,
         2,
         2
       ],
-      "flip": "FFF",
+      "flip": "--F",
       "exact": true,
-      "coarse": 52,
-      "refined": 484,
-      "runs": 1105,
-      "water": 484,
-      "solCells": 166,
-      "D1": 2,
+      "coarse": 112,
+      "refined": 480,
+      "runs": 988,
+      "water": 480,
+      "solCells": 57,
+      "D1": 1,
       "sizes": [
-        166
+        57
       ],
-      "top": 0.34,
+      "top": 0.12,
       "oldD1": 2,
       "oldSizes": [
-        166
+        480
       ],
-      "sec": 12.99
+      "sec": 30.2
+    },
+    {
+      "id": "1-5",
+      "par": 4,
+      "sym": false,
+      "T": [
+        3,
+        3,
+        3
+      ],
+      "flip": "F--",
+      "exact": true,
+      "coarse": 80,
+      "refined": 490,
+      "runs": 1127,
+      "water": 490,
+      "solCells": 41,
+      "D1": 3,
+      "sizes": [
+        23,
+        9,
+        4
+      ],
+      "top": 0.05,
+      "oldD1": 2,
+      "oldSizes": [
+        352
+      ],
+      "sec": 64.92
     }
   ]
 }

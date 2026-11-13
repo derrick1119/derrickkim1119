@@ -118,7 +118,7 @@ export const STAGES: StageDef[] = [
     id: '1-4', key: '', news: '', hint: '숨은 오리는 섬 반대쪽에서 — 그늘 밖에서 톡', failHint: '섬 그늘에 숨은 오리는 섬을 돌아가는 물결로 꺼내요',
     // 섬 둘을 왼쪽 위·오른쪽 아래로 떼어 무리마다 따로 친다(D1 '어느 무리부터' 두 길). 둥지는 네 구석 + 양옆 작은 둥지, 황금은 왼쪽 아래 무리 옆
     // D009: 첫 배치(섬 (0.3,0.5)·(0.7,0.7))는 숙련 2톡 풀이가 한 자리뿐이라 D1 0 ✗ → 이 배치로 D1 2(39·28)
-    ducks: [[0.32, 0.26, 0], [0.3, 0.58, 0], [0.14, 0.4, 0], [0.7, 0.62, 0], [0.68, 0.94, 0], [0.86, 0.8, 0]], gold: [0.24, 0.76],
+    ducks: [[0.32, 0.26, 0], [0.3, 0.58, 0], [0.14, 0.4, 0], [0.7, 0.62, 0], [0.68, 0.94, 0], [0.86, 0.8, 0]], gold: [0.62, 0.42], // D010 (🧪 D009 5.1): 황금 (0.24, 0.76) → (0.62, 0.42) — 왼쪽 아래 작은 둥지 옆이라 ★황금이 공짜(.94)였다 → .76 · K1 숙련 − k3 ★톡 .11
     islands: [[0.3, 0.4, 0.09], [0.7, 0.8, 0.09]],
     nests: [[0.12, 0.12, 0.17, -1], [0.88, 0.12, 0.17, -1], [0.12, 1.08, 0.17, -1], [0.88, 1.08, 0.17, -1], [0.08, 0.6, 0.12, -1, 0, 1], [0.92, 0.6, 0.12, -1, 0, 1]],
     taps: 10, par: 4, ask: '섬이 둘 — 숨은 오리를 누구부터 꺼낼까?', // P1: par 3이면 캐주얼 ★톡 .14 → 4 (E2 2 = 천장 빚, 🏅로)
@@ -126,7 +126,7 @@ export const STAGES: StageDef[] = [
   {
     id: '1-5', key: '', news: '', hint: '배수구 쪽에서 치면 밖으로 — 섬 그늘도 써 봐요', failHint: '섬 뒤 배수구 — 오리를 배수구 쪽으로 미는 톡은 피해요',
     // 섬이 배수구 위를 가린다. 오리 여섯이 배수구를 둘러싸고, 황금은 왼쪽 위 구석 가까이(입성 거리 r + 0.03에서 0.08 떨어뜨림 — 흔들기로 저절로 들지 않게)
-    ducks: [[0.5, 0.3, 0], [0.28, 0.62, 0], [0.72, 0.62, 0], [0.3, 0.92, 0], [0.7, 0.92, 0], [0.5, 0.98, 0]], gold: [0.26, 0.36],
+    ducks: [[0.5, 0.3, 0], [0.28, 0.62, 0], [0.72, 0.62, 0], [0.3, 0.92, 0], [0.7, 0.92, 0], [0.5, 0.98, 0]], gold: [0.38, 0.86], // D010 (🧪 D009 5.1): 황금 (0.26, 0.36) → (0.38, 0.86) — 왼쪽 위 구석 둥지 옆이라 공짜(.97) → .64 · K1 .17
     islands: [[0.5, 0.5, 0.09]], drains: [[0.5, 0.72]], pullR: 0.12, pull: 0.00012,
     nests: [[0.12, 0.12, 0.17, -1], [0.88, 0.12, 0.17, -1], [0.12, 1.08, 0.17, -1], [0.88, 1.08, 0.17, -1]],
     taps: 9, par: 4, ask: '섬이 배수구를 가려요. 어디서 쳐야 안 빨릴까?', // D009: 톡 11 → 9 — 무작위 봇이 새 판에서 별을 모아 '잘하는 사람이 확실히 더 높다'(3×)가 깨짐
@@ -655,7 +655,7 @@ export const duckbath: GameDef<DuckState> = {
   reveals: (s) => s.seen.size,
   create(seed) {
     const rng = mulberry32(seed);
-    const jit = STAGES.map(() => ({ flip: rng() < 0.5, j: Array.from({ length: 24 }, () => rng()) }));
+    const jit = STAGES.map((d) => jitFor(seed, d.id));
     const s = {
       pen: 0, penA: 0, sucks: 0, chomps: 0, rng, seed, t: 0, objs: [], rings: [], rid: 0, awake: false,
       L: { nests: [], islands: [], drains: [], streams: [], slicks: [] },
@@ -979,6 +979,25 @@ function star(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
 }
 
 /** 고무 오리 (비스듬히 본 옆모습). mood: 0 평온 · 1 꽥(놀람) · 2 어질어질 · 3 행복 · 4 겁먹음 */
+/** HUD 별 칩 셋의 상태 (D010: 테스트하려고 그리기에서 뺐다). ok = 노란 테, bad = 흐린 테(그 별은 이번 시도에서 끝남) */
+export function starChips(s: DuckState) {
+  const d = STAGES[s.stage];
+  const ducksIn = s.objs.filter((o) => (o.k === DUCK || o.k === BOAT) && o.st >= 0).length, ducksAll = s.objs.filter((o) => o.k === DUCK || o.k === BOAT).length;
+  const gold = s.objs.find((o) => o.k === GOLD);
+  const okk = s.phase === 'result' && s.ok ? s.starOk : [ducksIn === ducksAll, s.used <= d.par, !!gold && gold.st >= 0];
+  // D009: 셋째 칩은 황금이 꼴찌로 확정된 판(깼는데 황금이 아직 물 위)에서 꺼진다 — 옛 goldLost는 켜지는 길이 없었다(🧪 D008)
+  const bad = [s.phase === 'result' && !s.ok, s.used > d.par, s.phase === 'result' && s.ok && !s.starOk[2]];
+  return { ducksIn, ducksAll, okk, bad };
+}
+
+/** D010 (🧪 D009 5.3): 판 흔들기 난수는 (시드, 판 id)에서 — 판을 끼워 넣어도 다른 판의 흔들림·뒤집힘이 그대로. 옛: 시드 하나에서 판 순서대로 뽑았다 */
+export function jitFor(seed: number, id: string) {
+  let h = 0x811c9dc5;
+  for (const c of id) h = Math.imul(h ^ c.charCodeAt(0), 0x01000193);
+  const r = mulberry32((seed ^ h) >>> 0);
+  return { flip: r() < 0.5, j: Array.from({ length: 24 }, () => r()) };
+}
+
 /** 🧪 D009: 위기가 이만큼(틱) 이어져야 보인다 — 1-1에서 위기가 시도의 84%에 켜지지만 지속 중앙 4틱(0.07초)이라 손쓸 수 없는 번쩍임이었다 */
 export const CRISIS_DELAY = 18;
 /** 화면에 보이는 위기인가 (그리기·칩 공통) */
@@ -2482,12 +2501,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     ctx.fillStyle = s.taps > 0 ? '#bfeaf2' : '#ffb3a8';
     ctx.fillText(`${s.taps}번 남음`, X(0.97), r1);
     // 별 목표 셋
-    const ducksIn = s.objs.filter((o) => (o.k === DUCK || o.k === BOAT) && o.st >= 0).length, ducksAll = s.objs.filter((o) => o.k === DUCK || o.k === BOAT).length;
-    const gold = s.objs.find((o) => o.k === GOLD);
-    const goldOk = !!gold && gold.st >= 0;
-    const okk = s.phase === 'result' && s.ok ? s.starOk : [ducksIn === ducksAll, s.used <= d.par, goldOk];
-    // D009: 셋째 칩은 황금이 꼴찌로 확정된 판(깼는데 황금이 아직 물 위)에서 꺼진다 — 옛 goldLost는 켜지는 길이 없었다(🧪 D008)
-    const bad = [s.phase === 'result' && !s.ok, s.used > d.par, s.phase === 'result' && s.ok && !s.starOk[2]];
+    const { ducksIn, ducksAll, okk, bad } = starChips(s);
     const labels = [`${d.boat ? '오리·배' : '오리'} ${ducksIn}/${ducksAll}`, `톡 ≤${d.par}`, '👑 꼴찌 말고']; // D007 CONTENT v0.3 ③: 황금 문구 통일 — 기준 문장 '👑 황금 오리가 꼴찌만 아니면 ★'
     // D007 ③ 꼴찌 위기: 남은 오리 1마리인데 황금 오리가 아직 떠 있으면 셋째 칩이 주황으로 깜박
     // ART 12장 3: 위기 동안 글자는 '👑 꼴찌 될라!'로 고정, 주황 테만 몸과 같은 32틱으로 숨쉰다
