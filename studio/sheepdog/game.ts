@@ -2617,6 +2617,42 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     const dz = R(0.06) * scl(s.dogY);
     items.push({ d: s.dogY, f: () => drawDog(ctx, PX(s.dogX + ox, s.dogY + oy), PY(s.dogY + oy), dz, face, mood, t, pose) });
   }
+  // ── 도움 깃발 ①② (C004) — 🎨 C016: 깊이 정렬에 넣어 양 위·강아지 뒤에. 밑동이 강아지 몸 안이면 깃대만 길게(천은 귀 위), 천·숫자는 강아지 반대쪽으로 ──
+  // 깃발 ① 깜빡임 (🎨 C011 ③-b, 🧪 C009 ②): 말풍선이 뜨는 틱(판 시작 + INTRO_T)부터 30틱마다 3번, 앞 12틱 동안 발밑 기준 1→1.35→1 + 천에 흰빛
+  const fa = t - s.startT - INTRO_T, blink = fa >= 0 && fa < 90 && fa % 30 < 12 ? Math.sin((Math.PI * (fa % 30)) / 12) : 0;
+  s.flags.forEach(([qx, qy], k) => items.push({ d: qy, f: () => {
+    const sx = PX(qx, qy), sy = PY(qy), hgt = R(0.09) * scl(qy), first = k === 0, wave = Math.sin(t * 0.12 + k) * R(0.004), bl = first ? blink : 0;
+    const ddx = sx - PX(s.dogX, s.dogY), ddy = PY(s.dogY) - sy, behind = Math.abs(ddx) < R(0.11) && ddy >= 0 && ddy < R(0.15);
+    const pole = behind ? R(0.17) * scl(qy) : hgt, dir = behind ? Math.sign(qx - s.dogX) || 1 : 1, top = sy - pole;
+    ctx.save();
+    if (bl && !REDUCED) ctx.translate(sx, sy), ctx.scale(1 + 0.35 * bl, 1 + 0.35 * bl), ctx.translate(-sx, -sy);
+    ctx.globalAlpha = first ? 1 : 0.5;
+    ctx.fillStyle = 'rgba(40,30,10,.3)';
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, R(0.012), R(0.005), 0, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = '#6b4a2a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(sx, top);
+    ctx.stroke();
+    ctx.fillStyle = first ? '#ff5a4f' : '#ffb3a8';
+    ctx.beginPath();
+    ctx.moveTo(sx, top);
+    ctx.lineTo(sx + dir * hgt * 0.55, top + hgt * 0.2 + wave);
+    ctx.lineTo(sx, top + hgt * 0.4);
+    ctx.fill();
+    if (bl) (ctx.fillStyle = `rgba(255,255,255,${0.5 * bl})`), ctx.fill();
+    // 🎨 C016 ⚠️: 깃발 ②(반투명 천)의 숫자는 불투명 갈색 — 흰 반투명 글자는 대비 1.4:1이었다
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = first ? '#ffffff' : '#7a3e1d';
+    ctx.font = `900 ${Math.round(hgt * 0.3)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(k === 0 && s.flags.length === 2 ? '1' : '2', sx + dir * hgt * 0.2, top + hgt * 0.2);
+    ctx.restore();
+  } }));
   items.sort((a, b) => a.d - b.d);
   for (const it of items) it.f();
   // 짖는 소리 물결 (짖은 직후)
@@ -2996,39 +3032,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   }
   ctx.restore();
 
-  // ── 도움 깃발 ①② (C004) ──
-  // 깃발 ① 깜빡임 (🎨 C011 ③-b, 🧪 C009 ②): 말풍선이 뜨는 틱(판 시작 + INTRO_T)부터 30틱마다 3번, 앞 12틱 동안 발밑 기준 1→1.35→1 + 천에 흰빛
-  const fa = t - s.startT - INTRO_T, blink = fa >= 0 && fa < 90 && fa % 30 < 12 ? Math.sin((Math.PI * (fa % 30)) / 12) : 0;
-  s.flags.forEach(([qx, qy], k) => {
-    const sx = PX(qx, qy), sy = PY(qy), hgt = R(0.09) * scl(qy), first = k === 0, wave = Math.sin(t * 0.12 + k) * R(0.004), bl = first ? blink : 0;
-    ctx.save();
-    if (bl && !REDUCED) ctx.translate(sx, sy), ctx.scale(1 + 0.35 * bl, 1 + 0.35 * bl), ctx.translate(-sx, -sy);
-    ctx.globalAlpha = first ? 1 : 0.5;
-    ctx.fillStyle = 'rgba(40,30,10,.3)';
-    ctx.beginPath();
-    ctx.ellipse(sx, sy, R(0.012), R(0.005), 0, 0, TAU);
-    ctx.fill();
-    ctx.strokeStyle = '#6b4a2a';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(sx, sy);
-    ctx.lineTo(sx, sy - hgt);
-    ctx.stroke();
-    ctx.fillStyle = first ? '#ff5a4f' : '#ffb3a8';
-    ctx.beginPath();
-    ctx.moveTo(sx, sy - hgt);
-    ctx.lineTo(sx + hgt * 0.55, sy - hgt * 0.8 + wave);
-    ctx.lineTo(sx, sy - hgt * 0.6);
-    ctx.fill();
-    if (bl) (ctx.fillStyle = `rgba(255,255,255,${0.5 * bl})`), ctx.fill();
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `900 ${Math.round(hgt * 0.3)}px system-ui, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(k === 0 && s.flags.length === 2 ? '1' : '2', sx + hgt * 0.2, sy - hgt * 0.8);
-    ctx.globalAlpha = 1;
-    ctx.restore();
-  });
+  // 도움 깃발 ①②는 깊이 정렬(items) 안에서 그린다 — 🎨 C016 ❌: 맨 위에 그리면 강아지 주둥이·눈을 덮었다
   // ═════════ HUD ═════════
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${R(sz)}px system-ui, sans-serif`);
   // 위 줄(판·별)과 새것 알림은 DOM(hud.ts)이 맡는다 (C009 M1-5b, 🎨 §12-3·4)
@@ -3039,7 +3043,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       const a = Math.min(1, age / 8, (INTRO_T - age) / 20), sc = 1 + Math.max(0, 8 - age) * 0.04;
       ctx.globalAlpha = a;
       ctx.save();
-      ctx.translate(w / 2, Y(introTop ? 0.17 : 0.83)); // 🎨 C015: 세로 화면은 캔버스 하늘 띠(Y 0.17, 들판 0.305 위) — 양·클로버·개울을 덮지 않게 · 데스크톱 0.86 → 0.83(부제가 강아지 귀를 덮음)
+      ctx.translate(w / 2, Y(introTop ? 0.17 : 0.81)); // 🎨 C015: 세로 화면은 캔버스 하늘 띠(Y 0.17, 들판 0.305 위) — 양·클로버·개울을 덮지 않게 · 데스크톱 0.86 → 0.83 → 0.81(🎨 C016: 부제가 강아지 귀 끝에 닿음)
       ctx.scale(sc, sc);
       font(0.075, 900);
       ctx.textAlign = 'center';
