@@ -106,10 +106,13 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.keyboard.press('KeyR');
   await page.waitForTimeout(200);
   if ((await st(page, 's.stage + s.phase')) !== '1aim') errors.push(`${name}: 카드에서 R로 다시 안 됨`);
-  // 끝 화면: 마지막 판까지 마친 것으로
-  await page.evaluate(() => { const s = (globalThis as any).__sd.state(); s.won = true; s.dead = true; });
-  await page.waitForTimeout(400);
+  // 끝 화면: 1-8을 깬 결과 카드(상태를 놓음)에서 진짜 '끝 ▶' 버튼을 눌러 간다 — 카드가 끝 화면 위에 남지 않는지 (FUN QA C008)
+  await page.evaluate(() => { const sd = (globalThis as any).__sd; sd.jump(7); const s = sd.state(); s.phase = 'result'; s.ok = true; s.won = true; s.got = 7; s.best[7] = 7; s.clearT = s.t; s.pt = 0; });
+  await page.waitForTimeout(150);
+  await page.keyboard.press('Enter'); // 카드가 막 뜬 때 누른 '다음'도 들고 있다가 넘긴다
+  await page.waitForTimeout(900);
   if (await page.locator('#overlay').isHidden()) errors.push(`${name}: 끝 화면 안 뜸`);
+  if (await page.locator('#card').isVisible()) errors.push(`${name}: 끝 화면 위에 결과 카드가 남음`);
   await page.screenshot({ path: join(here, 'screens', `${name}-end.png`) });
   await page.close();
 }

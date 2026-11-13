@@ -41,7 +41,7 @@ export function mountResultCard(root: HTMLElement, onNext: () => void, onRetry: 
   return {
     open: () => !el.hidden,
     sync(s) {
-      const want = s.phase === 'result' && s.ok;
+      const want = s.phase === 'result' && s.ok && !s.dead; // 끝나면(마지막 판 '끝 ▶') 카드를 거둔다 — 끝 화면 위에 남던 버그 (FUN QA C008)
       if (!want) {
         if (!el.hidden) (el.hidden = true), (shownFor = -1);
         return;

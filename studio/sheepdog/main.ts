@@ -5,7 +5,7 @@
 import { TICK, type Input } from './core.ts';
 import { mountResultCard } from './ui.ts';
 import { peek } from './juice.ts';
-import { at, jumpTo, preview, sheepdog as g, starCount, type DogState } from './game.ts';
+import { RESULT_MIN, at, jumpTo, preview, sheepdog as g, starCount, type DogState } from './game.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('sheepdog:' + k) ?? 0); } catch { return 0; } },
@@ -97,13 +97,15 @@ function loop(now: number) {
     const input: Input = { tap: false, dir: 0, pointer: card.open() ? null : pointer ?? latch, retry, next };
     latch = null;
     retry = false;
-    next = false;
     g.step(s, input);
+    // 카드가 막 올라오는 동안(RESULT_MIN 전) 누른 '다음'은 버리지 않고 들고 있다가 넘긴다 (FUN QA C008)
+    next = next && s.phase === 'result' && s.ok && s.pt <= RESULT_MIN;
     acc -= TICK;
     if (g.over(s)) {
       running = false;
       const sc = g.score(s), b = Math.max(sc, store.get('best'));
       store.set('best', b);
+      card.sync(s);
       draw();
       showTitle(`<p class="big">★ ${s.stars} / ${s.best.length * 3}</p><p>${s.won ? '모든 목장의 양을 집에 데려다줬어요! 🐑' : '오늘은 여기까지 — 다시 해 볼까요?'} · ${sc}점</p>`);
       startBtn.textContent = '다시 하기';
