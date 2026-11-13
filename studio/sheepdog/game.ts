@@ -688,7 +688,7 @@ export interface DogState {
   /** stars = 판별 최고 별(best 비트)의 합 · got = 이번 시도의 별 비트 · gain = 이번 시도로 새로 늘어난 별 수 */
   best: number[]; stars: number; got: number; gain: number; pts: number; ok: boolean; why: string; won: boolean; dead: boolean;
   /** 개울 판 도움 깃발(목장 좌표, 박사의 첫 수부터) · 이 판에서 풍덩한 횟수 · 이 시도에서 깃발대로 짖었나(🏅 안 줌) (C004) */
-  flags: [number, number][]; splashes: number; helped: boolean;
+  flags: [number, number][]; splashes: number; outs: number; helped: boolean; // outs: 멍멍 다 씀 실패 수(깃발 셈은 FLAG_ANY_FAIL 판만, PM C016)
   seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsStage: number; newsQ: { key: string; text: string; tip: boolean }[]; startT: number; clearT: number;
 }
 
@@ -745,7 +745,7 @@ function newStage(s: DogState) {
   // 개울 판 도움 깃발 (C004 📐): 풍덩을 FLAG_AFTER번 하면 다시 할 때 박사의 첫 두 자리에 ①② 깃발
   s.flags = [];
   const after = FLAG_AFTER[d.key];
-  if (after && s.splashes >= after) {
+  if (after && s.splashes + (FLAG_ANY_FAIL.has(d.key) ? s.outs : 0) >= after) {
     const p1 = plan(s.F, s.S, d), S2 = cloneSim(s.S);
     resolve(s.F, S2, p1[0], p1[1]);
     s.flags.push(p1);
@@ -758,7 +758,9 @@ function newStage(s: DogState) {
 }
 
 /** 몇 번째 풍덩 뒤에 깃발을 띄우나 (📐 C004: 소개 판 1-6은 첫 풍덩, 연습 판은 한 번 스스로 떠올릴 기회를 남긴다) */
-const FLAG_AFTER: Record<string, number> = { river: 1, narrow: 2, fest: 2 }; // 📐 C006: 1-8을 좁힌 뒤 두 번째 풍덩으로 되돌림(졸업 판은 한 번 더 혼자) — 조건 조심 막힘 ≤ 0.2(N 200)
+const FLAG_AFTER: Record<string, number> = { river: 1, narrow: 2, fest: 1 }; // 📐 C006: 1-8 두 번째 풍덩(졸업 판은 한 번 더 혼자) → PM C016 ⓐ: 1-8은 첫 실패(멍멍 다 씀 포함) 뒤 — 두 번째면 조심 평균 5.0번, 첫 실패면 3.55번(선 ≤ 4)
+/** 풍덩만이 아니라 '멍멍 다 씀' 실패(outs)도 깃발 셈에 넣는 판 (PM C016 F01-c ⓐ: 1-8 첫 실패 뒤) */
+const FLAG_ANY_FAIL = new Set(['fest']);
 /** 깃발 ① 근처(이 거리 안)에서 짖으면 깃발 자리로 붙여서 짖는다 — 0.015 차이에 결과가 갈리는 판이라 */
 export const FLAG_SNAP = 0.04;
 
@@ -772,7 +774,7 @@ function finish(s: DogState, ok: boolean, why = '') {
     const bonus = bonusMet(s.F, s.S, d);
     const mask = 1 | (s.S.used <= d.par ? 2 : 0) | (bonus ? 4 : 0), before = s.best[s.stage];
     s.got = mask;
-    s.splashes = 0;
+    s.splashes = s.outs = 0;
     s.best[s.stage] = before | mask;
     s.gain = starCount(s.best[s.stage]) - starCount(before);
     s.stars = s.best.reduce((a, m) => a + starCount(m), 0);
@@ -850,7 +852,8 @@ function afterFlee(s: DogState) {
   if (fell >= 0) return ev(s, 'splash', S.x[fell], S.y[fell], undefined, undefined, fell), s.splashes++, finish(s, false, F.black[fell] ? '까만 양이 개울에 풍덩!' : '양이 개울에 풍덩!');
   if (S.caught >= 0) return finish(s, false, '늑대가 양을 물어 갔어요!');
   if (allIn(F, S, d)) return finish(s, true);
-  if (S.used >= d.max) return finish(s, false, '멍멍을 다 썼어요… 목이 쉬었어요');
+  // PM C016 ⓐ: '멍멍 다 씀'도 센다 — 깃발 셈에는 FLAG_ANY_FAIL 판(1-8)만 든다(🧪 C015 캐주얼 3.8. 조심 손 실패는 풍덩이 더 많다)
+  if (S.used >= d.max) return s.outs++, finish(s, false, '멍멍을 다 썼어요… 목이 쉬었어요');
   s.phase = 'aim';
   s.pt = 0;
 }
@@ -859,7 +862,7 @@ function afterFlee(s: DogState) {
 export function jumpTo(s: DogState, stage: number) {
   s.stage = Math.max(0, Math.min(STAGES.length - 1, stage));
   s.tries = 0;
-  s.splashes = 0;
+  s.splashes = s.outs = 0;
   newStage(s);
 }
 
@@ -883,7 +886,7 @@ export const sheepdog: GameDef<DogState> = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'aim', pt: 0, rec: null, layouts: {},
       dogX: 0.5, dogY: 0.93, fromX: 0.5, fromY: 0.93, toX: 0.5, toY: 0.93, runN: 1,
       down: false, ax: 0, ay: 0, idle: 0, tries: 0,
-      flags: [], splashes: 0, helped: false,
+      flags: [], splashes: 0, outs: 0, helped: false,
       best: STAGES.map(() => 0), stars: 0, got: 0, gain: 0, pts: 0, ok: false, why: '', won: false, dead: false,
       seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsStage: -1, newsQ: [], startT: 0, clearT: 0,
     } as unknown as DogState;
@@ -909,7 +912,7 @@ export const sheepdog: GameDef<DogState> = {
       if (!s.ok && s.pt >= RESULT_FAIL) newStage(s);
       else if (s.ok && inp.next && s.pt >= RESULT_MIN) {
         if (s.won && s.stage === STAGES.length - 1) s.dead = true;
-        else s.stage++, (s.tries = 0), (s.splashes = 0), newStage(s);
+        else s.stage++, (s.tries = 0), (s.splashes = s.outs = 0), newStage(s);
       }
       return;
     }

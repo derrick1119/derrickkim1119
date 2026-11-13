@@ -117,14 +117,14 @@ describe('M1-2a 개울 판 도움 깃발 (📐 C004)', () => {
   };
   const retry = (s: DogState) => g.step(s, { ...up, retry: true });
 
-  it('1-6은 첫 풍덩 뒤, 1-7·1-8은 두 번째 풍덩 뒤에 깃발 ①② — 개울 없는 판엔 없다 (📐 C006: 1-8 되돌림)', () => {
+  it('1-6은 첫 풍덩 뒤, 1-7은 두 번째 풍덩 뒤, 1-8은 첫 실패 뒤에 깃발 ①② — 개울 없는 판엔 없다 (📐 C006 · PM C016 F01-c ⓐ: 1-8 캐주얼)', () => {
     const s = g.create(7);
     jumpTo(s, 5);
     expect(s.flags.length).toBe(0);
     s.splashes = 1;
     retry(s);
     expect(s.flags.length).toBe(2);
-    for (const [k, need] of [[6, 2], [7, 2]]) {
+    for (const [k, need] of [[6, 2], [7, 1]]) {
       jumpTo(s, k);
       s.splashes = need - 1;
       retry(s);
@@ -137,6 +137,29 @@ describe('M1-2a 개울 판 도움 깃발 (📐 C004)', () => {
     s.splashes = 9;
     retry(s);
     expect(s.flags.length).toBe(0);
+  });
+
+  it('1-8만 \'멍멍 다 씀\' 실패도 깃발 셈에 든다 — 다시 할 때 깃발 ①② (1-7은 풍덩만 센다) (PM C016 F01-c ⓐ)', () => {
+    for (const [k, flags] of [[7, 2], [6, 0]]) {
+      const s = g.create(9);
+      jumpTo(s, k);
+      for (let t = 0; t < 400 && phaseOf(s) !== 'aim'; t++) g.step(s, up);
+      // 마지막 멍멍 한 번만 남기고, 아무도 개울에 빠지지 않고 양이 움직이는 자리에서 짖는다
+      s.S.used = STAGES[k].max - 1;
+      let spot: [number, number] | null = null;
+      for (let fy = 0.5; fy < 0.98 && !spot; fy += 0.04)
+        for (let fx = 0.1; fx < 0.9 && !spot; fx += 0.04) {
+          const p = preview(s, fx, fy);
+          if (p.rec.scare.some((v) => v > 0) && !p.S.fell.some((v) => v) && p.S.pen.some((v, i) => v < 0 && !s.F.black[i])) spot = [fx, fy];
+        }
+      expect(spot, `${k + 1}판 짖을 자리`).not.toBeNull();
+      g.step(s, atField(spot![0], spot![1]));
+      g.step(s, up);
+      for (let t = 0; t < 400 && phaseOf(s) !== 'result'; t++) g.step(s, up);
+      expect([s.ok, s.why.startsWith('멍멍을 다 썼어요')], `${k + 1}판 실패 이유`).toEqual([false, true]);
+      for (let t = 0; t < 400 && phaseOf(s) === 'result'; t++) g.step(s, up); // 실패 → 같은 판 다시
+      expect(s.flags.length, `${k + 1}판 다시 할 때 깃발`).toBe(flags);
+    }
   });
 
   it('깃발 말은 판 시작 글씨가 걷힌 뒤 할아버지 말풍선으로 — HUD 칩 문구 = 결과 카드 캡션 (🧪·🎨 C009)', () => {
