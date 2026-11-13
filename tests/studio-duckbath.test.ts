@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
-import { FAUCET, SLOTS, STAGES, WORLDS, advance, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, failText, hintPoint, startStage } from '../studio/duckbath/game.ts';
+import { CRISIS_DELAY, FAUCET, SLOTS, STAGES, WORLDS, advance, crisisShown, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, failText, hintPoint, startStage } from '../studio/duckbath/game.ts';
 import { OLD_IDS, SAVE_KEY, makeStore } from '../studio/duckbath/save.ts';
 import { play } from '../studio/duckbath/funqa.ts';
 
@@ -104,9 +104,11 @@ describe('욕조 물결 오리 시뮬', () => {
     for (const o of ducks.slice(1)) o.st = 0; // 확인용: 한 마리만 남기고 둥지에
     g.step(s, idle);
     expect(s.crisisT).toBeGreaterThanOrEqual(0);
+    expect(crisisShown(s)).toBe(false); // 🧪 D009: 순간 번쩍임은 안 보인다
     const on = s.crisisT;
-    g.step(s, idle);
+    for (let k = 0; k < CRISIS_DELAY; k++) g.step(s, idle);
     expect(s.crisisT).toBe(on); // 켜진 틱을 기억(말풍선 90틱)
+    expect(crisisShown(s)).toBe(true);
     gold.st = 0;
     g.step(s, idle);
     expect(s.crisisT).toBe(-1);

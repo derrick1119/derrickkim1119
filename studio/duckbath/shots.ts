@@ -15,8 +15,9 @@ const browser = await chromium.launch();
 const errors: string[] = [];
 const st = (page: any) => page.evaluate(() => { const s = (globalThis as any).__duck.state(); return { t: s.t, used: s.used, stage: s.stage, running: (globalThis as any).__duck.running() }; });
 const crisisShot = async (page: any, file: string, label: string) => {
-  // D009 황금 꼴찌 위기(ART 12장): 1-1에서 보통 오리 한 마리만 남기고 둥지에 → 주황 고리·왕관·말풍선 '나 먼저!'와 칩 '👑 꼴찌 될라!'
-  await page.evaluate(() => (globalThis as any).__duck.jump(0));
+  // D009 황금 꼴찌 위기(ART 12장): 보통 오리 한 마리만 남기고 둥지에 → 주황 고리·왕관·말풍선 '나 먼저!'와 칩 '👑 꼴찌 될라!'
+  // 🧪 D009: 위기가 실제로 쓸모 있게 오래 나는 3-2에서 찍는다(1-1은 대개 순간)
+  await page.evaluate((i: number) => (globalThis as any).__duck.jump(i), STAGES.findIndex((d) => d.id === '3-2'));
   await page.waitForTimeout(300);
   await page.evaluate(() => { const s = (globalThis as any).__duck.state(); s.objs.filter((o: any) => o.k === 0).slice(1).forEach((o: any) => (o.st = 0)); });
   await page.waitForTimeout(450);

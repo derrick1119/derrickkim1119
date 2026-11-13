@@ -117,7 +117,7 @@ export const STAGES: StageDef[] = [
   {
     id: '1-4', key: '', news: '', hint: '숨은 오리는 섬 반대쪽에서 — 그늘 밖에서 톡', failHint: '섬 그늘에 숨은 오리는 섬을 돌아가는 물결로 꺼내요',
     // 섬 둘을 왼쪽 위·오른쪽 아래로 떼어 무리마다 따로 친다(D1 '어느 무리부터' 두 길). 둥지는 네 구석 + 양옆 작은 둥지, 황금은 왼쪽 아래 무리 옆
-    // D009: 첫 배치(섬 (0.3,0.5)·(0.7,0.7))는 숙련 2톡 풀이가 한 자리뿐이라 D1 0 ✗ → 이 배치로 D1 2(44·29)
+    // D009: 첫 배치(섬 (0.3,0.5)·(0.7,0.7))는 숙련 2톡 풀이가 한 자리뿐이라 D1 0 ✗ → 이 배치로 D1 2(39·28)
     ducks: [[0.32, 0.26, 0], [0.3, 0.58, 0], [0.14, 0.4, 0], [0.7, 0.62, 0], [0.68, 0.94, 0], [0.86, 0.8, 0]], gold: [0.24, 0.76],
     islands: [[0.3, 0.4, 0.09], [0.7, 0.8, 0.09]],
     nests: [[0.12, 0.12, 0.17, -1], [0.88, 0.12, 0.17, -1], [0.12, 1.08, 0.17, -1], [0.88, 1.08, 0.17, -1], [0.08, 0.6, 0.12, -1, 0, 1], [0.92, 0.6, 0.12, -1, 0, 1]],
@@ -979,6 +979,10 @@ function star(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
 }
 
 /** 고무 오리 (비스듬히 본 옆모습). mood: 0 평온 · 1 꽥(놀람) · 2 어질어질 · 3 행복 · 4 겁먹음 */
+/** 🧪 D009: 위기가 이만큼(틱) 이어져야 보인다 — 1-1에서 위기가 시도의 84%에 켜지지만 지속 중앙 4틱(0.07초)이라 손쓸 수 없는 번쩍임이었다 */
+export const CRISIS_DELAY = 18;
+/** 화면에 보이는 위기인가 (그리기·칩 공통) */
+export const crisisShown = (s: DuckState) => s.crisisT >= 0 && s.t - s.crisisT >= CRISIS_DELAY;
 /** 브라우저의 '동작 줄이기' (ART 12장 ④). 노드(봇·테스트)에서는 false */
 const CALM = !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -2137,7 +2141,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
         if (o.k === SHARK) drawShark(ctx, x, y, u, o.face, o.mood, t, s.objs.some((q) => q.st === EATEN));
         else if (o.k === BOAT) drawBoat(ctx, x, y, u, o.face, tilt);
         else {
-          const cr = o.k === GOLD && s.crisisT >= 0; // ART 12장: 황금 '꼴찌 위기'는 얼굴·몸은 그대로, 발밑 고리·왕관·말풍선만
+          const cr = o.k === GOLD && crisisShown(s); // ART 12장: 황금 '꼴찌 위기'는 얼굴·몸은 그대로, 발밑 고리·왕관·말풍선만
           if (cr) {
             // ① 물 위 주황 고리 — 크기 고정, 알파 .35↔.95 (32틱), reduced-motion이면 .8
             ctx.save();
@@ -2150,14 +2154,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
             ctx.restore();
           }
           drawDuck(ctx, x, y, u, o.k === GOLD ? GOLD_COL : DUCK_COL[o.col], o.face, tilt + (o.spin > 0.3 ? Math.sin(t * 0.5) * 0.2 * o.spin : 0), o.mood, cr ? t : t + i * 5, o.k === GOLD ? (cr ? 3 : 1) : 0);
-          const age = s.t - s.crisisT;
+          const age = s.t - s.crisisT - CRISIS_DELAY;
           if (cr && age < 90) {
-            // ③ 첫 진입 말풍선 '나 먼저!' 90틱, 마지막 12틱 페이드, 머리 위 2.1u · 욕조 안쪽으로 클램프
+            // ③ 첫 진입 말풍선 '나 먼저!' 90틱, 마지막 12틱 페이드 · 🧪 D009: 머리 위 대신 옆(욕조 가운데 쪽) — 황금을 칠 물을 가리지 않게
             ctx.save();
             ctx.globalAlpha = age > 78 ? (90 - age) / 12 : 1;
             font(0.036, 900);
             const txt = '나 먼저!', bw = ctx.measureText(txt).width + R(0.04), bh = R(0.05);
-            const bx = Math.max(X(0.08), Math.min(X(0.92) - bw, x - bw / 2)), by = y - u * 2.1 - bh;
+            const side = x < X(0.5) ? 1 : -1, bx0 = side > 0 ? x + u * 1.5 : x - u * 1.5 - bw;
+            const bx = Math.max(X(0.08), Math.min(X(0.92) - bw, bx0)), by = y - u * 1.3 - bh / 2;
             ctx.fillStyle = '#fffaf0';
             ctx.strokeStyle = '#ff9f43';
             ctx.lineWidth = 2;
@@ -2486,7 +2491,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     const labels = [`${d.boat ? '오리·배' : '오리'} ${ducksIn}/${ducksAll}`, `톡 ≤${d.par}`, '👑 꼴찌 말고']; // D007 CONTENT v0.3 ③: 황금 문구 통일 — 기준 문장 '👑 황금 오리가 꼴찌만 아니면 ★'
     // D007 ③ 꼴찌 위기: 남은 오리 1마리인데 황금 오리가 아직 떠 있으면 셋째 칩이 주황으로 깜박
     // ART 12장 3: 위기 동안 글자는 '👑 꼴찌 될라!'로 고정, 주황 테만 몸과 같은 32틱으로 숨쉰다
-    const crisis = s.crisisT >= 0;
+    const crisis = crisisShown(s);
     if (crisis) labels[2] = '👑 꼴찌 될라!';
     const r2 = Y(ty + 0.112), cw2 = R(0.3);
     for (let k = 0; k < 3; k++) {
