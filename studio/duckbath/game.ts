@@ -843,6 +843,44 @@ export function makeCasual(goldLast = 0.75): Bot<DuckState> {
 /** 기본(판정) 캐주얼: 황금 오리를 50% 확률로 맨 나중에 민다 (FUN v1.3, D004 — 전에는 75%) */
 export const duckbathCasual = makeCasual(0.5);
 
+/**
+ * D007 미리 보기 봇 (M2, FUN P1 후보): 사람이 꾹 눌러 점선을 보며 고르는 것처럼 — 캐주얼식 후보 k곳(오리 뒤·둥지 반대편, 흔들림)을
+ * 실제 물리로 한 번씩 미리 돌려 보고(미리 보기 = 같은 시뮬레이션), 둥지에 든 오리가 가장 많고 쏙·꿀꺽이 적은 곳을 친다. 두 수 앞은 안 본다.
+ * k가 작아도 숙련 봇만큼 풀리면 '미리 보기 끌기로 다 풀린다'(고민 없음, 기준 1·6).
+ */
+export function makePreviewer(k: number): Bot<DuckState> {
+  const memo = new WeakMap<object, { key: string; p: { x: number; y: number } | null }>();
+  return {
+    name: `미리 보기 k=${k}`,
+    act(s, rng) {
+      if (s.down || s.phase !== 'play' || s.taps <= 0) return NO;
+      if (s.t - s.lastTap < 50 || s.rings.length) return NO;
+      if (!calm(s) && s.t - s.lastTap < 170) return NO;
+      const key = `${s.stage}:${s.tries}:${s.used}`;
+      let m = memo.get(s);
+      if (!m || m.key !== key) {
+        const free = s.objs.filter((o) => o.st === FREE && o.k !== SHARK);
+        let best: { x: number; y: number } | null = null, bv = -Infinity;
+        for (let c = 0; c < k && free.length; c++) {
+          const o = free[Math.floor(rng() * free.length)];
+          let n: Nest | null = null, nd = 9;
+          for (const q of s.L.nests) if (fits(o, q) && Math.hypot(o.x - q.x, o.y - q.y) < nd) (nd = Math.hypot(o.x - q.x, o.y - q.y)), (n = q);
+          if (!n) continue;
+          const ux = (o.x - n.x) / (nd || 1), uy = (o.y - n.y) / (nd || 1), g = () => (rng() + rng() + rng() - 1.5) * 0.05, dd = 0.06 + rng() * 0.09;
+          const x = Math.max(0.01, Math.min(W - 0.01, o.x + ux * dd + g())), y = Math.max(0.01, Math.min(H - 0.01, o.y + uy * dd + g()));
+          const S = clone(s);
+          splash(S, x, y);
+          run(S, 170);
+          const v = S.objs.filter((q) => (q.k === DUCK || q.k === GOLD || q.k === BOAT) && q.st >= 0).length * 10 - S.pen * 15 + (S.objs.some((q) => q.k === GOLD && q.st >= 0) ? 3 : 0);
+          if (v > bv) (bv = v), (best = { x, y });
+        }
+        memo.set(s, (m = { key, p: best }));
+      }
+      return m.p ? at(m.p.x, m.p.y) : NO;
+    },
+  };
+}
+
 const dumbMem = new WeakMap<object, { next: number; hold: number; x: number; y: number }>();
 /** 봇: 아무 데나, 아무 때나 찰박 (대개 물 위, 가끔 화면 아무 데나) */
 export const duckbathRandom: Bot<DuckState> = {

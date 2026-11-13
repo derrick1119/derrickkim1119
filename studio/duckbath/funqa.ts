@@ -11,7 +11,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mulberry32 } from '../../engine/rng.ts';
 import type { Bot, Input } from './core.ts';
-import { STAGES, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, failText, hintPoint, makeCasual, startStage, type DuckState } from './game.ts';
+import { STAGES, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, failText, hintPoint, makeCasual, makePreviewer, startStage, type DuckState } from './game.ts';
 
 /** 한 판에서 다시 하기 허용 횟수 (첫 시도 + 3번) */
 export const RETRY = 3;
@@ -118,6 +118,9 @@ export function measure(n = 20) {
   // FUN v1.3: 판정은 황금 정책 50%(= 기본 캐주얼 봇). 0%·75%는 보고만
   out['E6황금'] = Object.fromEntries([0, 0.75].map((gl) => [String(gl), group(makeCasual(gl), n, RETRY).stages.map((p) => p.goldStar)]));
   (out['E6황금'] as Record<string, unknown>)['0.5(판정)'] = (out['캐주얼'] as ReturnType<typeof group>).stages.map((p) => p.goldStar);
+  // P1 (D007, M2): 미리 보기 봇 k=3·10 — 판별 첫 시도·★톡 (숙련 봇과 가까울수록 '미리 보기로 다 풀린다')
+  out['미리보기3'] = group(makePreviewer(3), n, RETRY);
+  out['미리보기10'] = group(makePreviewer(10), n, RETRY);
   // H1 (FUN v1.4): 판별 세 번째 시도 클리어율 — 👆 따름 − 안 따름 ≤ 0.35, 따름 < 0.85
   {
     const a = (out['배우는처음'] as ReturnType<typeof group>).stages, b = (out['배우는처음_힌트없음'] as ReturnType<typeof group>).stages;
@@ -163,7 +166,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (process.argv.includes('--area')) res['C4'] = area();
   mkdirSync(join(import.meta.dirname, 'reports'), { recursive: true });
   writeFileSync(join(import.meta.dirname, 'reports/funqa.json'), JSON.stringify({ at: new Date().toISOString(), ...res }, null, 2) + '\n');
-  for (const k of ['숙련', '캐주얼', '처음', '배우는처음', '배우는처음_힌트없음'] as const) {
+  for (const k of ['숙련', '캐주얼', '처음', '배우는처음', '배우는처음_힌트없음', '미리보기3', '미리보기10'] as const) {
     const g2 = res[k] as ReturnType<typeof group>;
     console.log(`\n[${k}] 다시 한도 ${g2.retry} · 점수 중앙 ${g2.medScore} · 런 전체 ${g2.medSec}초 · 완주 ${g2.winRate} · 도달 판 중앙 ${g2.medReached} · 첫 톡 3초 뒤 둥지 ${g2.firstTapNest}마리 · W1 ${g2.W1.share}(${g2.W1.stage}판)${k === '배우는처음' ? ' ← C5·W1 판정(👆 0.75 따름, FUN v1.4)' : k === '배우는처음_힌트없음' ? ' (옛 자 — 보고만)' : ' (보고만)'} · N4(v1.4 문턱 일치 — 판정 아님, v1.5 환급 반사실은 미측정) ${g2.N4}`);
     console.log(`  실패 이유: ${g2.failWhy.map(([w, c]) => `${w} ${c}`).join(' · ') || '없음'}`);
