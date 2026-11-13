@@ -50,14 +50,15 @@ const SYNTH: Record<Cue, (t: number, v: number, last: boolean) => void> = {
     tone('sawtooth', 220 * v, 110 * v, t, 0.16, 0.15, lp);
   },
   baa(t) { baa(t + 0.06, 520, 7, 0.45); },
-  baaBlack(t) { baa(t + 0.06, 340, 5, 0.5); },
+  baaBlack(t) { baa(t + 0.26, 340, 5, 0.5); }, // 🧪 C010: 멍!·흰 매에와 0.2초 떼기
   click(t, n, last) {
     for (let k = 0; k < Math.min(3, Math.max(1, n)); k++) {
       const tk = t + k * 0.09;
-      hiss(tk, 0.015, 0.35, filter('highpass', 3000));
-      tone('sine', 1800 * semi(2 * k), 1800 * semi(2 * k), tk, 0.02, 0.3, master!);
+      hiss(tk, 0.03, 0.45, filter('highpass', 2500));
+      tone('sine', 1800 * semi(2 * k), 1800 * semi(2 * k), tk, 0.05, 0.45, master!);
+      tone('triangle', 900 * semi(2 * k), 700 * semi(2 * k), tk, 0.06, 0.3, master!);
     }
-    if (last) tone('square', 120, 90, t + Math.min(3, n) * 0.09, 0.08, 0.35, filter('lowpass', 600));
+    if (last) tone('square', 260, 180, t + Math.min(3, n) * 0.09, 0.1, 0.45, filter('lowpass', 1400));
   },
   splash(t) {
     const lp = filter('lowpass', 800);
@@ -65,6 +66,7 @@ const SYNTH: Record<Cue, (t: number, v: number, last: boolean) => void> = {
     lp.frequency.exponentialRampToValueAtTime(200, t + 0.35);
     hiss(t, 0.35, 0.5, lp);
     tone('sine', 300, 80, t, 0.35, 0.4, master!);
+    tone('sine', 420, 980, t + 0.04, 0.14, 0.4, master!); // 오르는 '퐁'
   },
   star(t, k) {
     const f = 1046.5 * semi(2 * k); // C6 → D6 → E6

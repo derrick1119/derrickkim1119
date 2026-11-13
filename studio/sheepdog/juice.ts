@@ -57,7 +57,7 @@ export class Juice {
   /** 팝 글자 (🎨 C010 그룹 규칙: 같은 id면 고쳐 쓰고, 그룹별 A1·B2·C2·D1·모두 3개까지, 겹치면 뒤에 온 것을 (높이+4)px씩 최대 2번 올리고 그래도 겹치면 안 띄움. C는 안 움직임) */
   pop(x: number, y: number, text: string, color = '#fff6e4', size = 15, o: PopOpt = {}) {
     const g = o.g ?? 'A', same = o.id ? this.popups.find((p) => p.id === o.id) : undefined;
-    if (same) return void Object.assign(same, { x, y, text, life: same.max, age: Math.min(same.age, 3) });
+    if (same) return void Object.assign(same, { x, y, text, icon: o.icon, life: same.max, age: Math.min(same.age, 3) });
     const p: Popup = { ...o, g, x, y, text, color, size, life: o.life ?? LIFE[g], max: o.life ?? LIFE[g], age: 0 };
     if (g !== 'C')
       for (let k = 0; ; k++) {
@@ -66,6 +66,11 @@ export class Juice {
         if (k === 2) return;
         p.y -= b.h + 4;
       }
+    // 늦게 온 C(말풍선)는 안 움직이니, 겹친 A를 C 위 4px로 올린다 (🎨 C010: 1-4 ?!이 멍!을 덮음)
+    if (g === 'C') {
+      const b = boxOf(p);
+      for (const q of this.popups) if (q.g === 'A') { const c = boxOf(q); if (c.x0 < b.x1 && b.x0 < c.x1 && c.y0 < b.y1 && b.y0 < c.y1) q.y = b.y0 - 4 - c.h / 2; }
+    }
     this.popups.push(p);
     const n = (gg: PopGroup) => this.popups.filter((q) => q.g === gg).length;
     while (n(g) > CAP[g]) this.popups.splice(this.popups.findIndex((q) => q.g === g), 1);

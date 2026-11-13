@@ -120,6 +120,8 @@ canvas:focus-visible{outline:3px solid #ffc857;outline-offset:-3px}
 #sky svg:nth-child(1){left:5%;top:30%}
 #sky svg:nth-child(2){left:60%;top:12%;animation-duration:24s}
 #sky svg:nth-child(3){left:74%;top:62%;animation-duration:30s}
+#sky.title svg:nth-child(1){left:3%;top:78%}
+#sky.title svg:nth-child(3){left:72%;top:70%}
 @keyframes sway{from{transform:translateX(-12px)}to{transform:translateX(12px)}}
 @media (prefers-reduced-motion:reduce){#sky svg{animation:none}}
 kbd{background:#fbeed6;border:1px solid #e3d3b8;border-radius:4px;padding:1px 5px;font:inherit}
@@ -132,7 +134,7 @@ kbd{background:#fbeed6;border:1px solid #e3d3b8;border-radius:4px;padding:1px 5p
 <main id="stage">
   <canvas id="game" tabindex="0" aria-label="양치기 멍멍 게임 화면. 목장을 누르고 있으면 양이 갈 자리가 보이고, 떼면 강아지가 짖어요. 키보드는 화살표로 고르고 스페이스."></canvas>
   <button id="sound" type="button" aria-label="소리 (M)" title="소리 켬/끔 (M)"></button>
-  <button id="retry" type="button aria-label="이 판 처음부터 다시 (R)" title="이 판 처음부터 다시 (R)" hidden>↺</button>
+  <button id="retry" type="button" aria-label="이 판 처음부터 다시 (R)" title="이 판 처음부터 다시 (R)" hidden>↺</button>
   <section id="overlay">
     <h1 class="logo"><span class="a">양치기</span> <span class="b">멍멍</span></h1>
     <p class="tag">아침 들판, 양 떼를 집으로!</p>

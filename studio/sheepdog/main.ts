@@ -62,7 +62,8 @@ function placeSound(rowTop = soundRow) {
   const safeTop = document.getElementById('safe')?.offsetHeight ?? 0;
   // 빈 하늘 (🎨 C010): 구름 띠 = 플레이는 위 줄 12px 위까지, 타이틀은 캔버스 꼭대기까지. 타이틀 로고 묶음은 그 띠 가운데로
   const band = running ? rowTop - 12 : canvas.offsetTop, sky = document.getElementById('sky')!;
-  sky.hidden = band < 70;
+  sky.hidden = band < (running ? 70 : 220); // 🎨 C010: 타이틀 띠가 좁으면(SE) 구름이 로고와 겹친다
+  sky.classList.toggle('title', !running);
   sky.style.height = `${band}px`;
   overlay.style.paddingTop = `${Math.max(safeTop + 20, (canvas.offsetTop - 110) / 2)}px`;
   soundBtn.style.left = `${running ? canvas.offsetLeft + W - 104 : root.clientWidth - 56}px`;

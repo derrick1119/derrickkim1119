@@ -430,5 +430,7 @@ describe('플레이 빌드', () => {
     expect(html).toContain('id="start"');
     expect(html).toContain('id="game"');
     expect(html).not.toContain('/*BUNDLE*/');
+    // 🎨 C010: ↺ 버튼 type 따옴표가 빠져 접근성 이름이 사라졌던 것 — 버튼 속성 값에 다른 속성이 섞이지 않는다
+    expect(html).not.toMatch(/<button[^>]*="[^"]*\s[a-z-]+="/);
   });
 });

@@ -2828,12 +2828,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     if (e.kind === 'trample') fx.burst(x, y - R(0.02), '#ff9ec7', 22, 3.4, 2.4), say(x, y - R(0.06), '앗, 꽃밭!', 16, { g: 'C', bg: '#ffe0ef', life: 54 });
     if (e.kind === 'sniff') say(x, y - R(0.08), e.text!, 14, { g: 'D' });
     if (e.kind === 'nope') say(X(e.x), Y(e.y), e.text!, 14, { g: 'D' }), fx.kick(1.5);
-    if (e.kind === 'stage') fx.blink('#fff6d6', 0.18);
+    if (e.kind === 'stage') fx.blink('#fff6d6', 0.18), (fx.popups.length = 0); // 🎨 C010: 다시 한 판에 지난 말풍선이 남지 않게
     if (e.kind === 'clear') {
-      const p0 = F.pens[0], gx0 = PX((p0.gx0 + p0.gx1) / 2, p0.y1), gy0 = PY(p0.y1);
+      const p0 = F.pens[0], gx0 = PX((p0.gx0 + p0.gx1) / 2, p0.y1), gy0 = PY(p0.y1), rx0 = PX((p0.x0 + p0.x1) / 2, p0.y0), ry0 = PY(p0.y0) - 18;
       fx.burst(gx0, gy0 - R(0.05), '#ffe066', 40, 6, 3.2), fx.burst(gx0, gy0 - R(0.05), '#ff8fb1', 30, 5, 3), fx.ring(gx0, gy0, '#ffe066', R(0.3), 6), fx.blink('#fff6c8', 0.25);
-      say(gx0, gy0 - R(0.1), '딸깍!', 15, { g: 'B', icon: 'star', id: 'in0' });
+      say(rx0, ry0, '딸깍!', 15, { g: 'B', icon: 'star', id: 'in0' }); // 🎨 C010: 쏙 알약 자리(뒤 가로대 위)를 고쳐 쓴다
     }
+    if (e.kind === 'fail') for (const p of fx.popups) if (p.g === 'C') p.life = Math.min(p.life, 8); // 🎨 C010: 실패 카드에 말풍선이 닿지 않게
     if (e.kind === 'fail') fx.kick(3), fx.blink('#fff6d6', 0.12); // C002: 실패는 벌이 아니다 — 빨간 번쩍·큰 흔들림 없음
   }
   fx.memo.t = s.t;
@@ -2857,6 +2858,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
         fx.burst(PX(a, b), PY(b) - R(0.03), '#ffffff', 12, 2.6, 2.6);
         fx.ring(PX(a, b), PY(b) - R(0.02), '#e8ffd0', R(0.05), 2);
         const pn = F.pens[Math.max(0, S.pen[i])], rx = PX((pn.x0 + pn.x1) / 2, pn.y0), ry = PY(pn.y0) - 18; // 🎨 C010: 그 울타리 뒤 가로대 위 18px 가운데
+        // 🧪 C010: 까만 양이 들어가면 그 '?!'를 거둔다(쏙! 알약에 깔림)
+        for (const p of fx.popups) if (p.id === `come${i}`) p.life = Math.min(p.life, 6);
         if (F.black[i]) cue('click', 1), say(rx, ry, '까만 양도 쏙!', 15, { g: 'B', icon: 'black', id: 'inB' });
         else if ((fx.memo.inPop ?? -1) !== key) {
           fx.memo.inPop = key;
