@@ -130,11 +130,11 @@ const mig = await mp.evaluate(() => ({
   worlds: document.querySelectorAll('.levels .world').length,
   tiles: document.querySelectorAll('.levels .lv').length,
   open: document.querySelectorAll('.lv:not([disabled])').length,
-  soap: document.querySelector('.lv[aria-label^="할머니 댁 욕조 9번째"]')?.textContent ?? '',
+  soap: document.querySelector('.lv[aria-label^="할머니 댁 욕조 2-9"]')?.textContent ?? '',
   hscroll: document.documentElement.scrollWidth > innerWidth,
   saved: JSON.parse(localStorage.getItem('duckbath.v1') ?? '{}').ver,
 }));
-if (mig.worlds !== 3 || mig.tiles !== 30) errors.push(`migrate: 욕실 3 × 10칸이 아님 ${JSON.stringify(mig)}`);
+if (mig.worlds !== 3 || mig.tiles !== 20) errors.push(`migrate: 욕실 3개 · 만든 판이 있는 줄만 4줄(20칸)이 아님 ${JSON.stringify(mig)}`);
 if (mig.open !== 8 || !mig.soap.includes('★★☆') || mig.saved !== 2) errors.push(`migrate: 옛 저장 이전이 틀림 ${JSON.stringify(mig)}`);
 if (mig.hscroll) errors.push('migrate: 판 고르기 가로 스크롤');
 await mp.evaluate(() => document.querySelector('.levels')!.scrollTo(0, 9999));
@@ -145,7 +145,7 @@ await mp.focus('.lv[data-i="0"]');
 await mp.keyboard.press('ArrowDown');
 await mp.keyboard.press('ArrowDown');
 const kf = await mp.evaluate(() => (document.activeElement as HTMLElement)?.getAttribute('aria-label') ?? '');
-if (!kf.startsWith('할머니 댁 욕조 1번째')) errors.push(`migrate: 아래 화살표가 다음 욕실로 안 감 (${kf})`);
+if (!kf.startsWith('할머니 댁 욕조 2-1')) errors.push(`migrate: 아래 화살표가 다음 욕실로 안 감 (${kf})`);
 await mctx.close();
 // localStorage가 막힌 환경에서도 시작된다
 const ctx = await browser.newContext();

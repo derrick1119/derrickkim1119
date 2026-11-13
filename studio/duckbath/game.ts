@@ -82,6 +82,8 @@ export const WORLDS = [
   { name: '놀이 욕조', emoji: '🧸' },
 ];
 export const SLOTS = 10;
+/** 판 id의 욕실 (D007 🧪: 판 이름을 HUD·띠·판 고르기에서 하나로) */
+export const worldOf = (id: string) => WORLDS[Number(id.split('-')[0]) - 1] ?? WORLDS[0];
 /**
  * 만든 판들(욕실 순서). 좌표는 뒤집기 전 — 판마다 시드로 좌우를 뒤집고 오리 자리를 살짝 흔든다.
  * D007: M1의 8판을 CONTENT v0.3 자리로 옮겼다(1-1·1-2·1-3·2-1·2-4·2-9·3-2·3-4). 판 순서가 바뀌어 판 번호(인덱스)도 바뀜.
@@ -145,7 +147,7 @@ export const STAGES: StageDef[] = [
     streams: [[0.4, 0, 0.6, 0.95, 0, 1]],
     drains: [[0.86, 1.02]],
     nests: [[0.5, 1.07, 0.13, -1]],
-    taps: 6, par: 4, ask: '물줄기 옆 배수구 조심 — 셋 다 태워 보내기!', // D003: par 3→4 (FUN E6)
+    taps: 6, par: 4, ask: '물줄기 옆 배수구 조심 — 황금이까지 다 태워 보내기!', // D003: par 3→4 (FUN E6)
   },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -2219,11 +2221,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
   ctx.textAlign = 'left';
   ctx.fillStyle = '#ffffff';
   font(0.045, 900);
-  const ttl = `🛁 ${s.stage + 1}번째 목욕`, tw1 = ctx.measureText(ttl).width;
+  const wd = worldOf(STAGES[s.stage].id), ttl = `${wd.emoji} ${STAGES[s.stage].id}`, tw1 = ctx.measureText(ttl).width; // D007 🧪: 판 고르기와 같은 이름
   ctx.fillText(ttl, R(0.03), hb * 0.52);
-  font(0.036, 800);
+  font(0.034, 800);
   ctx.fillStyle = th.muted;
-  ctx.fillText(` / ${STAGE_COUNT}`, R(0.03) + tw1, hb * 0.56);
+  ctx.fillText(` ${wd.name}`, R(0.03) + tw1, hb * 0.56);
   ctx.textAlign = 'right';
   font(0.042, 900);
   ctx.fillStyle = '#ffd84a';
@@ -2283,7 +2285,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     } else if (s.pt < CARD_T) {
       age = s.pt;
       a = Math.min(1, (CARD_T - s.pt) / 20);
-      head = s.again ? `다시! ${s.stage + 1}번째 목욕` : `${s.stage + 1}번째 목욕`;
+      head = `${s.again ? '다시! ' : ''}${worldOf(d.id).emoji} ${d.id} 목욕`;
       sub = d.ask ?? `오리 ${d.ducks.length}마리${d.boat ? ' + 배' : ''} · 톡 ${d.taps}번 · ★ 톡 ${d.par}번 이하`;
       nw = d.news;
     }

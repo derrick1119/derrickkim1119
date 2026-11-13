@@ -157,7 +157,10 @@ function showLevels(done: boolean) {
   const worlds = WORLDS.map((w, wi) => {
     const ids = Array.from({ length: SLOTS }, (_, k) => `${wi + 1}-${k + 1}`), built = ids.filter((id) => IDS.includes(id));
     const got = built.reduce((x, id) => x + save.stars(id), 0);
-    return `<section class="world w${wi + 1}"><h3>${w.emoji} ${w.name}<small>★ ${got}/${built.length * 3}</small></h3><div class="grid">${ids.map((id, k) => tile(id, `${w.name} ${k + 1}번째 목욕`)).join('')}</div></section>`;
+    // 🧪 D007: 만든 판이 하나도 없는 줄은 접고 욕실마다 한 줄로 (빈 틀이 화면을 덮지 않게)
+    const rows = [ids.slice(0, COLS), ids.slice(COLS)].filter((r) => r.some((id) => IDS.includes(id)));
+    const soon = SLOTS - built.length ? `<p class="todo">🫧 새 목욕 ${SLOTS - built.length}개 준비 중</p>` : '';
+    return `<section class="world w${wi + 1}"><h3>${w.emoji} ${w.name}<small>★ ${got}/${built.length * 3}</small></h3><div class="grid">${rows.flat().map((id) => tile(id, `${w.name} ${id}`)).join('')}</div>${soon}</section>`;
   });
   const go = next >= 0 ? `<button type="button" class="go" data-i="${next}">▶ ${IDS[next]} 이어서 목욕</button>` : ''; // 🎨 D007 ④ 엄지 자리
   levels.innerHTML = `<div class="in"><h2>${done ? '목욕 다 끝! 🛁' : '목욕 고르기'}</h2><p class="sum">★ ${total} / ${IDS.length * 3}</p>${worlds.join('')}${save.persistent ? '' : '<p class="note">이 브라우저에선 진행이 저장되지 않아요</p>'}${go}</div>`;
