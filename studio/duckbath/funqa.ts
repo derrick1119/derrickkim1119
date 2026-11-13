@@ -144,7 +144,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   writeFileSync(join(import.meta.dirname, 'reports/funqa.json'), JSON.stringify({ at: new Date().toISOString(), ...res }, null, 2) + '\n');
   for (const k of ['숙련', '캐주얼', '처음', '배우는처음'] as const) {
     const g2 = res[k] as ReturnType<typeof group>;
-    console.log(`\n[${k}] 다시 한도 ${g2.retry} · 점수 중앙 ${g2.medScore} · 런 전체 ${g2.medSec}초 · 완주 ${g2.winRate} · 도달 판 중앙 ${g2.medReached} · 첫 톡 3초 뒤 둥지 ${g2.firstTapNest}마리 · W1 ${g2.W1.share}(${g2.W1.stage}판)${k === '배우는처음' ? ' ← W1·N4 판정(FUN v1.2·v1.4)' : ' (보고만)'} · N4 ${g2.N4}`);
+    console.log(`\n[${k}] 다시 한도 ${g2.retry} · 점수 중앙 ${g2.medScore} · 런 전체 ${g2.medSec}초 · 완주 ${g2.winRate} · 도달 판 중앙 ${g2.medReached} · 첫 톡 3초 뒤 둥지 ${g2.firstTapNest}마리 · W1 ${g2.W1.share}(${g2.W1.stage}판)${k === '배우는처음' ? ' ← W1 판정(FUN v1.2)' : ' (보고만)'} · N4(v1.4 문턱 일치 — 판정 아님, v1.5 환급 반사실은 미측정) ${g2.N4}`);
     console.log(`  실패 이유: ${g2.failWhy.map(([w, c]) => `${w} ${c}`).join(' · ') || '없음'}`);
     console.log('판 | 도전 | 클리어 | 첫 시도 | 다시 중앙/p90 | 사람초 | 톡 | 별 | ★톡 | ★황금 | 시도당 쏙꿀꺽');
     for (const st of g2.stages) console.log(`${st.stage} | ${st.tried} | ${st.clearRate} | ${st.firstTry} | ${st.retryMed}/${st.retryP90} | ${st.humanSec} | ${st.medTaps} | ${st.stars} | ${st.tapStar} | ${st.goldStar} | ${st.pen}`);
