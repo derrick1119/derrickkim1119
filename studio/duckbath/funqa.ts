@@ -174,6 +174,9 @@ function toPointer(x: number, y: number) {
  * 무리 = 해 칸끼리 거리 < 0.15 단일 연결, 3칸 이상만. 무리 하나가 물의 25% 이상이면 2로 센다. 옛 자 = 'T* 대신 톡 ≤ par'(= 3★만).
  * 운영(FUN v1.6): 거친 격자 10×12 × 시드 1에서 3★ 칸을 찾고 → 그 0.1 안쪽의 20×25 칸만 시드 3으로 정밀. 쏙·꿀꺽·황금 손실·톡 초과면 그 자리에서 자른다.
  * 판정 값(해 칸)은 게임의 결과(별·쓴 톡)로만 정하고, 게임 코드의 문턱·후보 함수는 쓰지 않는다(측정 원칙). 숙련 봇은 정의대로 '이어 치는 손'으로만 쓴다.
+ * D008 🧪 고침: 칸은 **판 데이터 좌표**로 두고, 시드가 판을 좌우로 뒤집으면(jit.flip) 그 시드에서는 x → 1 − x 자리를 친다(전에는 화면 칸을 그대로 쳐서
+ * 뒤집힌 시드끼리 다른 자리를 '같은 칸'으로 셌다) · 섬은 판 데이터로 거른다 · 연결은 '< 0.15'를 부동소수 오차 없이(가로 3칸 = 정확히 0.15는 끊김)
+ * · 정밀 칸이 물의 절반 이상이면 근사 대신 전수.
  */
 export function diversity(only?: string[], full = false) {
   const SEEDS = [1000, 1007, 1014], H = 1.2, NO: Input = { tap: false, dir: 0, pointer: null };
@@ -187,12 +190,13 @@ export function diversity(only?: string[], full = false) {
       for (let k = 0; k < 20000 && s.phase === 'play'; k++) g.step(s, duckbathSmart.act(s, rng));
       return s.ok ? s.used : d.taps;
     });
-    const water = (x: number, y: number) => { const s = g.create(SEEDS[0]); startStage(s, i); return !s.L.islands.some((c) => Math.hypot(x - c.x, y - c.y) < c.r); };
+    const FLIP = SEEDS.map((seed) => g.create(seed).jit[i].flip);
+    const water = (x: number, y: number) => !(d.islands ?? []).some(([cx, cy, r]) => Math.hypot(x - cx, y - cy) < r);
     /** 한 자리 한 시드: 3★인가 · 쓴 톡 (자르면 star3 false) */
     const one = (x: number, y: number, k: number) => {
       const seed = SEEDS[k], s = g.create(seed), rng = mulberry32(seed ^ 0x9e3779b9), cap = Math.max(T[k], d.par);
       startStage(s, i);
-      g.step(s, { tap: false, dir: 0, pointer: toPointer(x, y) });
+      g.step(s, { tap: false, dir: 0, pointer: toPointer(FLIP[k] ? 1 - x : x, y) });
       g.step(s, NO);
       for (let f = 0; f < 20000 && s.phase === 'play'; f++) {
         if (s.goldLost || s.pen > 0 || s.used > cap) return { star3: false, used: s.used };
@@ -209,33 +213,38 @@ export function diversity(only?: string[], full = false) {
         if (water(x, y) && one(x, y, 0).star3) coarse.push({ x, y });
       }
     // 정밀: 20×25 중 거친 3★ 칸 0.1 안쪽만 시드 3 (2개가 같으면 셋째는 생략)
-    const fine: { x: number; y: number; sol: boolean; old: boolean }[] = [];
-    let waterN = 0, runs = 0;
+    const fine: { x: number; y: number; gx: number; gy: number; sol: boolean; old: boolean }[] = [];
+    const cells: { x: number; y: number; gx: number; gy: number }[] = [];
     for (let gx = 0; gx < 20; gx++)
       for (let gy = 0; gy < 25; gy++) {
         const x = (gx + 0.5) / 20, y = ((gy + 0.5) / 25) * H;
-        if (!water(x, y)) continue;
-        waterN++;
-        if (!full && !coarse.some((c) => Math.hypot(c.x - x, c.y - y) <= 0.1 + 1e-9)) continue;
-        let sol = 0, old = 0;
-        for (let k = 0; k < 3; k++) {
-          if (k === 2 && sol !== 1 && old !== 1) break;
-          const r = one(x, y, k);
-          runs++;
-          if (r.star3) (old++, r.used <= T[k] && sol++);
-        }
-        fine.push({ x, y, sol: sol >= 2, old: old >= 2 });
+        if (water(x, y)) cells.push({ x, y, gx, gy });
       }
-    const groups = (cells: { x: number; y: number }[]) => {
+    const waterN = cells.length, near = cells.filter((c) => coarse.some((q) => Math.hypot(q.x - c.x, q.y - c.y) <= 0.1 + 1e-9));
+    const exact = full || near.length >= waterN / 2; // 🧪 D008: 아끼는 몫이 작으면 전수
+    let runs = 0;
+    for (const { x, y, gx, gy } of exact ? cells : near) {
+      let sol = 0, old = 0;
+      for (let k = 0; k < 3; k++) {
+        if (k === 2 && sol !== 1 && old !== 1) break;
+        const r = one(x, y, k);
+        runs++;
+        if (r.star3) (old++, r.used <= T[k] && sol++);
+      }
+      fine.push({ x, y, gx, gy, sol: sol >= 2, old: old >= 2 });
+    }
+    // 거리는 칸 번호 차로 다시 계산해 부동소수 오차를 없앤다 (칸 간격 0.05 × 0.048)
+    const dist = (a: { gx: number; gy: number }, b: { gx: number; gy: number }) => Math.hypot((a.gx - b.gx) * 0.05, (a.gy - b.gy) * (H / 25));
+    const groups = (cells: { gx: number; gy: number }[]) => {
       const par = cells.map((_, k) => k), find = (k: number): number => (par[k] === k ? k : (par[k] = find(par[k])));
-      for (let a = 0; a < cells.length; a++) for (let b = a + 1; b < cells.length; b++) if (Math.hypot(cells[a].x - cells[b].x, cells[a].y - cells[b].y) < 0.15) par[find(a)] = find(b);
+      for (let a = 0; a < cells.length; a++) for (let b = a + 1; b < cells.length; b++) if (dist(cells[a], cells[b]) < 0.15 - 1e-9) par[find(a)] = find(b);
       const size = new Map<number, number>();
       cells.forEach((_, k) => size.set(find(k), (size.get(find(k)) ?? 0) + 1));
       const sizes = [...size.values()].filter((n) => n >= 3).sort((a, b) => b - a);
       return { sizes, count: sizes.reduce((a, n) => a + (n >= 0.25 * waterN ? 2 : 1), 0), top: sizes.length ? r2(sizes[0] / waterN) : 0 };
     };
     const cur = groups(fine.filter((c) => c.sol)), old = groups(fine.filter((c) => c.old));
-    return { id: d.id, par: d.par, T, coarse: coarse.length, refined: fine.length, runs, water: waterN, solCells: fine.filter((c) => c.sol).length, D1: cur.count, sizes: cur.sizes, top: cur.top, oldD1: old.count, oldSizes: old.sizes, sec: r2((performance.now() - t0) / 1000) };
+    return { id: d.id, par: d.par, T, flip: FLIP.map((f) => (f ? 'F' : '-')).join(''), exact, coarse: coarse.length, refined: fine.length, runs, water: waterN, solCells: fine.filter((c) => c.sol).length, D1: cur.count, sizes: cur.sizes, top: cur.top, oldD1: old.count, oldSizes: old.sizes, sec: r2((performance.now() - t0) / 1000) };
   });
 }
 
@@ -245,8 +254,8 @@ if (import.meta.url === `file://${process.argv[1]}` && d1Arg) {
   const res = diversity(only, process.argv.includes('--full')).filter(Boolean);
   mkdirSync(join(import.meta.dirname, 'reports'), { recursive: true });
   writeFileSync(join(import.meta.dirname, 'reports/funqa-d1' + (process.argv.includes('--full') ? '-full' : '') + '.json'), JSON.stringify({ at: new Date().toISOString(), D1: res }, null, 2) + '\n');
-  console.log('D1 정답 다양성 (FUN v1.6) — 판 | par | T*(시드 3) | 거친 3★ | 정밀 칸/물 | 해 칸 | D1 | 무리 칸 수 | 가장 큰 몫 | 옛 자(3★만) D1 · 무리 | 초');
-  for (const r of res) if (r) console.log(`${r.id} | ${r.par} | ${r.T.join('·')} | ${r.coarse} | ${r.refined}/${r.water} | ${r.solCells} | ${r.D1}${r.D1 >= 2 ? ' ✓' : ' ✗'} | ${r.sizes.join('·') || '-'} | ${r.top} | ${r.oldD1} · ${r.oldSizes.join('·') || '-'} | ${r.sec}`);
+  console.log('D1 정답 다양성 (FUN v1.6) — 판 | par | T*(시드 3) · 뒤집힘 | 거친 3★ | 정밀 칸/물(전수면 =) | 해 칸 | D1 | 무리 칸 수 | 가장 큰 몫 | 옛 자(3★만) D1 · 무리 | 초');
+  for (const r of res) if (r) console.log(`${r.id} | ${r.par} | ${r.T.join('·')} · ${r.flip} | ${r.coarse} | ${r.refined}/${r.water}${r.exact ? '=' : ''} | ${r.solCells} | ${r.D1}${r.D1 >= 2 ? ' ✓' : ' ✗'} | ${r.sizes.join('·') || '-'} | ${r.top} | ${r.oldD1} · ${r.oldSizes.join('·') || '-'} | ${r.sec}`);
   console.log(`판 ${res.length}개 · ${r2((performance.now() - t0) / 1000)}초 (30판 목표 ≤ 15분)`);
 } else if (import.meta.url === `file://${process.argv[1]}`) {
   const n = Number(process.argv.find((a) => /^\d+$/.test(a)) ?? 20), res = measure(n) as Record<string, unknown>;
