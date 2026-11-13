@@ -32,7 +32,7 @@ export const FAIL_RESULT = 60;
 /** 이 횟수만큼 실패하면 도움 반짝 */
 export const HELP_AFTER = 2;
 /** 다시 하기 카드 길이(틱) — 처음 소개보다 짧게, 풍선을 오래 가리지 않게 */
-const RETRY_CARD = 40;
+export const RETRY_CARD = 40;
 /** 땅(동물이 내려앉는 곳) · 풍선 중심 → 매달린 동물 · 떨어지는 속도(우산/맨몸) */
 export const GY = 1.2;
 const HANG = 0.088, FALL_UM = 0.0045, FALL_NO = 0.0085;
@@ -54,6 +54,8 @@ export interface Lay { bs: Bal[]; iron: number[]; tramp: { x: number; w: number 
 interface SDef {
   cl: number[]; lanes?: boolean; dense?: boolean; iron?: number; water?: number; fire?: number; king?: number; ani?: number; cat?: number;
   sway?: number; wind?: number; clouds?: number; tw?: number; goal: Goal; rand: [number, number]; key: string; title: string; tip: string; news: string;
+  /** 쉼 판: 긴장을 푸는 판 — 숙련 격차 계산에서 뺀다(FUN v1.4) */
+  rest?: boolean;
 }
 /** 판 8개. cl = 무리 크기들, rand = 아무렇게나 눌러 목표를 채우는 비율로 고를 범위 */
 export const STAGES: SDef[] = [
@@ -410,6 +412,23 @@ function layoutFor(seed: number, stage: number): Lay {
   LAY.set(key, out);
   return out;
 }
+/**
+ * 세로 화면 채우기 (C004, M1-3): 캔버스가 놀이 세계(가로 1 × 세로 A)보다 길면 남는 높이의 60%는 위 하늘, 40%는 아래 광장으로 늘린다.
+ * HUD 띠는 화면 맨 위, 목표 띠는 화면 맨 아래에 붙는다. 플레이어(main.ts)가 포인터를 세계 좌표로 바꿀 때도 같은 식을 쓴다.
+ */
+export const playTop = (w: number, h: number) => Math.round(Math.max(0, h - w * A) * 0.6);
+/** 캔버스 세로 ÷ 가로 상한 — 아주 긴 화면에서도 하늘만 끝없이 늘지 않게 */
+export const MAX_TALL = 2.3;
+/** 화면(px)에 맞춘 캔버스 크기: 가로는 놀이 세계가 들어가는 만큼(최대 620), 세로는 화면 끝까지(최대 MAX_TALL배) */
+export function fitCanvas(cw: number, ch: number) {
+  const W = Math.min(cw, 620, ch / A), H = Math.max(W * A, Math.min(ch, W * MAX_TALL));
+  return { W, H, TOP: playTop(W, H) };
+}
+/** 화면에 같이 그려지는 DOM 버튼이 HUD 띠 오른쪽에 올라앉을 때 비워 둘 너비(px) — main.ts가 정한다 */
+export const view: { hudRight: number; focus: { x: number; y: number } | null } = { hudRight: 0, focus: null };
+/** 화면이 세로로 길 때 HUD 띠 높이(px) — 일시정지 버튼(44px)이 띠 안에 들어가게 */
+const HUD_TALL = 56;
+
 /** 판 생성 시간 재기용(캐시 없이 새로 만든다) */
 export function layoutTime(seed: number, stage: number) {
   LAY.delete(seed + ':' + stage);
@@ -647,7 +666,8 @@ export const balloonpop: GameDef<PopState> = {
       if (s.pt >= INTRO) (s.phase = 'play'), (s.pt = 0);
       return;
     }
-    play(s, press ? p : null);
+    // 다시 카드가 떠 있는 동안의 톡은 받지 않는다 — 카드를 닫으려던 손짓이 톡 하나를 써 버리지 않게 (C003 🧪)
+    play(s, press && !(s.tries > 0 && s.pt < RETRY_CARD) ? p : null);
   },
   over: (s) => s.dead,
   score: (s) => s.pts,
@@ -1358,19 +1378,30 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     return null;
   };
 
+  const TOP = playTop(w, h), BOTX = Math.max(0, h - w * A) - TOP;
   ctx.save();
   fx.begin(ctx);
-  // ══ 하늘 ══
-  const sky = ctx.createLinearGradient(0, 0, 0, Y(HZ));
+  ctx.translate(0, TOP);
+  // ══ 하늘 (세로 화면이면 위로 늘어난다) ══
+  const sky = ctx.createLinearGradient(0, -TOP, 0, Y(HZ));
   sky.addColorStop(0, pal[0]);
   sky.addColorStop(1, pal[1]);
   ctx.fillStyle = sky;
-  ctx.fillRect(-10, -10, w + 20, Y(HZ) + 12);
+  ctx.fillRect(-10, -TOP - 10, w + 20, Y(HZ) + TOP + 12);
   if (night > 0)
-    for (let k = 0; k < 40; k++) {
+    for (let k = 0; k < 40 + Math.round(TOP / 8); k++) {
       ctx.fillStyle = `rgba(255,255,255,${night * (0.3 + 0.6 * Math.abs(Math.sin(t / 37 + k * 1.7)))})`;
-      ctx.fillRect(hsh(k) * w, Y(HB + hsh(k + 50) * 0.6), 1.6, 1.6);
+      ctx.fillRect(hsh(k) * w, -TOP + hsh(k + 50) * (TOP + Y(HB + 0.6)), 1.6, 1.6);
     }
+  // 늘어난 위 하늘: 높은 구름 띠 (풍선과 겨루지 않게 옅게)
+  for (let k = 0; k < Math.round(TOP / 60); k++) {
+    const cy = -TOP + (k + 0.6) * 60, cx = ((hsh(k + 90) * 1.4 + t * 0.00012 * (1 + k * 0.3)) % 1.4 - 0.2) * w;
+    ctx.fillStyle = `rgba(255,255,255,${0.18 - night * 0.1})`;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, R(0.16 + hsh(k) * 0.1), R(0.025), 0, 0, Math.PI * 2);
+    ctx.ellipse(cx + R(0.1), cy - R(0.012), R(0.09), R(0.03), 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
   {
     // 해 → 노을 해 → 달
     const p = stage / (STAGE_COUNT - 1), sx = X(0.82 - 0.55 * p), sy = Y(0.2 + 0.25 * Math.sin(p * Math.PI * 0.5) * (1 - night) + night * 0.0);
@@ -1476,6 +1507,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     gg.addColorStop(1, mix('#5fb357', '#24383a', dusk * 0.9));
     ctx.fillStyle = gg;
     ctx.fillRect(-10, Y(HZ), w + 20, Y(BOT - HZ) + 2);
+    // 늘어난 아래 광장 (세로 화면)
+    if (BOTX > 0) (ctx.fillStyle = mix('#5fb357', '#24383a', dusk * 0.9)), ctx.fillRect(-10, Y(BOT), w + 20, BOTX + 2);
     // 광장 (밝은 바닥 타일)
     ctx.fillStyle = mix('#f3e3c0', '#5a5070', dusk * 0.8);
     ctx.beginPath();
@@ -1628,17 +1661,35 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     drawTramp(ctx, X(tr.x), Y(GY), R(tr.w / 2), dip, glow);
   }
 
-  // ══ 반경 원 (흐리게) ══
+  // ══ 반경 원 — 2단 (C004, ART §4): 평소엔 조용히(많으면 짧은 호 꼬리만), 가리킨 풍선은 선명하게 + 첫 파문에 같이 터질 풍선 '헉' ══
   const hidden = (i: number) => s.clouds.some((c) => c.gone < 0 && ((SX[i] - c.x) / c.rx) ** 2 + ((SY[i] - c.y) / c.ry) ** 2 < 0.85);
+  let busy = false, shown = 0;
+  for (let i = 0; i < n; i++) if (s.alive[i] === 1) (s.popT[i] >= 0 && (busy = true)), L.bs[i].k !== IRON && !hidden(i) && shown++;
+  const fi = s.phase === 'play' && !busy && s.taps > 0 && view.focus ? pick(s, view.focus.x, view.focus.y * A) : -1;
+  const ripple = new Set<number>();
+  if (fi >= 0 && L.bs[fi].k !== IRON) for (let k = 0; k < n; k++) if (k !== fi && s.alive[k] === 1 && st < L.bs[k].esc && delay(L, fi, k)) ripple.add(k);
+  const tails = shown > 10;
   for (let i = 0; i < n; i++) {
     const b = L.bs[i];
     if (s.alive[i] !== 1 || b.k === IRON || hidden(i)) continue;
-    const x = X(SX[i]), y = Y(yOf(i)), col = b.k === KING ? '#c77dff' : colOf(b), fused = s.popT[i] >= 0, rr = R(reachOf(b));
-    const a = (fused ? 1 : 0.85) * intro;
-    ctx.setLineDash(fused ? [] : [R(0.014), R(0.01)]);
+    const x = X(SX[i]), y = Y(yOf(i)), col = b.k === KING ? '#c77dff' : colOf(b), fused = s.popT[i] >= 0, rr = R(reachOf(b)), on = i === fi;
+    const a = (fused || on ? 1 : fi >= 0 ? 0.2 : 0.35) * intro;
+    ctx.setLineDash(fused || on ? [] : [R(0.014), R(0.01)]);
     ctx.strokeStyle = rgba(mix(col, night > 0.5 ? '#ffffff' : '#3a2a6a', 0.12), a);
-    ctx.fillStyle = rgba(col, (fused ? 0.16 : 0.09) * intro);
-    ctx.lineWidth = fused ? 2.4 : 1.6;
+    ctx.fillStyle = rgba(col, (fused ? 0.16 : on ? 0.14 : 0.04) * intro);
+    ctx.lineWidth = fused || on ? 2.4 : 1.6;
+    if (tails && !fused && !on && b.k !== FIRE) {
+      // 원이 많으면 둘레의 짧은 호 넷만 — 하늘이 거미줄처럼 안 보이게
+      ctx.beginPath();
+      for (let q = 0; q < 4; q++) {
+        const a0 = q * (Math.PI / 2) + Math.PI / 4 - 0.18;
+        if (b.k === WATER && q < 2) continue;
+        ctx.moveTo(x + rr * Math.cos(a0), y + rr * Math.sin(a0));
+        ctx.arc(x, y, rr, a0, a0 + 0.36);
+      }
+      ctx.stroke();
+      continue;
+    }
     ctx.beginPath();
     if (b.k === FIRE) {
       ctx.rect(-10, y - R(FIRE_BAND), w + 20, R(FIRE_BAND * 2));
@@ -1770,6 +1821,29 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     }
   }
 
+  // 첫 파문 미리 보기: 가리킨 풍선을 톡 하면 첫 박자에 같이 터질 풍선 — 깜빡이는 고리와 '헉' (그 뒤 박자는 숨긴다: 고민은 남게)
+  if (fi >= 0) {
+    const pulse = 0.55 + 0.45 * Math.sin(t * 0.3);
+    ctx.save();
+    ctx.lineWidth = 2;
+    for (const k of ripple) {
+      const x = X(SX[k]), y = Y(SY[k]), r = R(brOf(L.bs[k])) * 1.35;
+      ctx.strokeStyle = `rgba(255,255,255,${0.5 + 0.5 * pulse})`;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.font = `900 ${Math.max(14, R(0.038))}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(58,16,48,.85)';
+      ctx.strokeText('헉!', x + r * 0.8, y - r * 0.9);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('헉!', x + r * 0.8, y - r * 0.9);
+      ctx.lineWidth = 2;
+    }
+    ctx.restore();
+  }
   // ══ 떨어지는 · 내려앉은 동물 ══
   for (const f of s.falls) {
     const age = st - f.t0, z = R(0.03);
@@ -1884,12 +1958,19 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
   }
   fx.memo.t = s.t;
   ctx.restore();
+  // HUD·카드·목표 띠도 놀이 세계 좌표로 (흔들림 없이)
+  ctx.save();
+  ctx.translate(0, TOP);
 
   // ═════════════ HUD ═════════════
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${R(sz)}px system-ui, sans-serif`);
   const G = L.goal, metNow = s.popped >= G.pop && s.saved >= G.save, m2Now = s.pop2 >= G.pop && s.save2 >= G.save, allNow = s.popped >= L.total;
+  // 위 HUD 띠는 화면 맨 위에 (늘어난 하늘 위)
+  const hudTall = TOP >= HUD_TALL;
+  ctx.save();
+  ctx.translate(0, -TOP);
   {
-    const hb = R(HB), bg = ctx.createLinearGradient(0, 0, 0, hb);
+    const hb = hudTall ? Math.max(R(HB), HUD_TALL) : R(HB), bg = ctx.createLinearGradient(0, 0, 0, hb);
     bg.addColorStop(0, 'rgba(52,28,92,.92)');
     bg.addColorStop(1, 'rgba(36,18,70,.92)');
     ctx.fillStyle = bg;
@@ -1908,8 +1989,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     font(0.044, 900);
     ctx.fillStyle = '#ffd166';
     const stt = `★ ${s.stars}`;
-    ctx.fillText(stt, w - R(0.03), hb * 0.52);
-    const right = w - R(0.06) - ctx.measureText(stt).width;
+    ctx.fillText(stt, w - R(0.03) - view.hudRight, hb * 0.52);
+    const right = w - R(0.06) - view.hudRight - ctx.measureText(stt).width;
     font(0.036, 800);
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffe9f0';
@@ -1923,7 +2004,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     font(0.037, 900);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const tx = nw.text, tw3 = Math.min(w - 10, ctx.measureText(tx).width + R(0.06)), by2 = Y(HB + 0.042) - drop;
+    const tx = nw.text, tw3 = Math.min(w - 10, ctx.measureText(tx).width + R(0.06)), by2 = (hudTall ? HUD_TALL + R(0.036) : Y(HB + 0.042)) - drop;
     ctx.fillStyle = 'rgba(48,24,88,.9)';
     ctx.beginPath();
     ctx.roundRect(w / 2 - tw3 / 2, by2 - R(0.026), tw3, R(0.052), R(0.026));
@@ -1935,6 +2016,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     ctx.fillText(tx, w / 2, by2, w - R(0.06));
     ctx.globalAlpha = 1;
   }
+  ctx.restore();
   // 연쇄 세기 (지금 몇 개째)
   if (s.chainN >= 2 && s.phase === 'play') {
     const k = 1 + 0.3 * Math.max(0, 1 - (s.t - s.lastPop) / 8);
@@ -2060,7 +2142,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
   }
   // 아래 띠: 목표 · 남은 톡 · 별 조건
   {
-    const by = Y(BOT), bh = h - by, bg = ctx.createLinearGradient(0, by, 0, h);
+    const by = Y(BOT) + BOTX, bh = h - TOP - by, bg = ctx.createLinearGradient(0, by, 0, by + bh);
     bg.addColorStop(0, 'rgba(36,18,70,.94)');
     bg.addColorStop(1, 'rgba(52,28,92,.94)');
     ctx.fillStyle = bg;
@@ -2109,4 +2191,5 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
       xx += ctx.measureText(lb).width + R(0.045);
     }
   }
+  ctx.restore();
 }

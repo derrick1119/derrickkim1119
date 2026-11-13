@@ -4,7 +4,7 @@
  */
 import { TICK, type Input } from './core.ts';
 import { peek } from './juice.ts';
-import { balloonpop as g, bxAt, byAt, HELP_AFTER, IRON, STAGE_COUNT, type PopState } from './game.ts';
+import { balloonpop as g, bxAt, byAt, fitCanvas, HELP_AFTER, IRON, STAGE_COUNT, view, type PopState } from './game.ts';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const canvas = $<HTMLCanvasElement>('game'), ctx = canvas.getContext('2d')!;
@@ -21,32 +21,42 @@ let pointer: { x: number; y: number } | null = null, latch: { x: number; y: numb
 let cursor = { x: 0.5, y: 0.5 }, keyboard = false, spaceDown = false;
 const keys = new Set<string>();
 
+/** 캔버스 크기(CSS px)와 놀이 세계가 시작하는 높이(TOP) — game.ts playTop과 같은 식 */
+let W = 1, H = A, TOP = 0;
+
 function size() {
   const wrap = canvas.parentElement!, dpr = window.devicePixelRatio || 1;
-  const w = Math.min(wrap.clientWidth, 620, wrap.clientHeight / A);
-  canvas.style.width = `${w}px`;
-  canvas.style.height = `${w * A}px`;
-  canvas.width = Math.round(w * dpr);
-  canvas.height = Math.round(w * A * dpr);
+  // 세로 화면 채우기 (C004, M1-3): 가로는 놀이 세계가 들어가는 만큼, 세로는 화면 끝까지(남는 높이는 하늘·광장으로)
+  ({ W, H, TOP } = fitCanvas(wrap.clientWidth, wrap.clientHeight));
+  canvas.style.width = `${W}px`;
+  canvas.style.height = `${H}px`;
+  canvas.width = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  // 일시정지 버튼: 캔버스 위에 빈 띠가 있으면 그 띠에, 옆 공간이 있으면 캔버스 오른쪽 바깥에 — 캔버스 HUD(판·별)를 가리지 않게
-  const top = (wrap.clientHeight - w * A) / 2, side = (wrap.clientWidth - w) / 2;
-  if (top < 52 && side >= 56) (hud.style.top = `${top + 4}px`), (hud.style.right = `${side - 52}px`);
-  else (hud.style.top = ''), (hud.style.right = '');
+  // 일시정지 버튼: 옆 공간이 있으면 캔버스 오른쪽 바깥에, 없으면 HUD 띠 오른쪽 끝(그 자리는 HUD가 비워 둔다)
+  const top = (wrap.clientHeight - H) / 2, side = (wrap.clientWidth - W) / 2;
+  if (side >= 56) (hud.style.top = `${top + 4}px`), (hud.style.right = `${side - 52}px`), (view.hudRight = 0);
+  else (hud.style.top = `${top + 6}px`), (hud.style.right = `${side + 6}px`), (view.hudRight = 50);
   draw();
 }
 
+let hover: { x: number; y: number } | null = null;
 function draw() {
-  const dpr = window.devicePixelRatio || 1, w = canvas.width / dpr, h = canvas.height / dpr;
-  g.draw(ctx, s, w, h, g.art!.palette);
-  peek(s)?.render(ctx, w, h);
+  // 미리 보기 초점: 키보드 커서 또는 마우스가 올라간 곳 (터치는 누르는 순간 터지므로 없음)
+  view.focus = running && !paused ? (keyboard ? cursor : hover) : null;
+  g.draw(ctx, s, W, H, g.art!.palette);
+  // 공용 연출과 키보드 커서는 놀이 세계 좌표(TOP만큼 내려온 곳)에
+  ctx.save();
+  ctx.translate(0, TOP);
+  peek(s)?.render(ctx, W, H, -TOP);
   if (keyboard && running) {
     ctx.strokeStyle = spaceDown ? '#ffffff' : 'rgba(255,255,255,.75)';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.arc(cursor.x * w, cursor.y * h, spaceDown ? 8 : 12, 0, Math.PI * 2);
+    ctx.arc(cursor.x * W, cursor.y * W * A, spaceDown ? 8 : 12, 0, Math.PI * 2);
     ctx.stroke();
   }
+  ctx.restore();
 }
 
 function start() {
@@ -95,9 +105,10 @@ function loop(now: number) {
   requestAnimationFrame(loop);
 }
 
+/** 화면의 점 → 놀이 세계 좌표(가로 0~1, 세로 0~1 = 세계 높이 A) */
 const toPoint = (e: PointerEvent) => {
   const r = canvas.getBoundingClientRect();
-  return { x: Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), y: Math.max(0, Math.min(1, (e.clientY - r.top) / r.height)) };
+  return { x: Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), y: Math.max(0, Math.min(1, (e.clientY - r.top - TOP) / (W * A))) };
 };
 canvas.addEventListener('pointerdown', (e) => {
   e.preventDefault();
@@ -105,9 +116,12 @@ canvas.addEventListener('pointerdown', (e) => {
   keyboard = false;
   pointer = latch = toPoint(e);
 });
-canvas.addEventListener('pointermove', (e) => void (pointer && e.buttons && (pointer = toPoint(e))));
+canvas.addEventListener('pointermove', (e) => {
+  if (e.pointerType === 'mouse') (hover = toPoint(e)), (keyboard = false);
+  if (pointer && e.buttons) pointer = toPoint(e);
+});
 window.addEventListener('pointerup', () => (pointer = null));
-canvas.addEventListener('pointerleave', () => (pointer = null));
+canvas.addEventListener('pointerleave', () => ((pointer = null), (hover = null)));
 
 function togglePause() {
   if (!running) return;
@@ -152,6 +166,9 @@ $('start').focus();
     return { x: bxAt(b, s.st + 1), y: byAt(b, s.st + 1) / A };
   },
   aim(p: { x: number; y: number }) { keyboard = true; cursor = { ...p }; },
+  hudRight: () => view.hudRight,
+  /** 세계 좌표 → 캔버스 안 px (shots.ts가 마우스로 누를 자리) */
+  toScreen(p: { x: number; y: number }) { return { x: p.x * W, y: TOP + p.y * W * A }; },
   /** 도움 반짝 확인용: 지금 판을 실패한 것으로 치고 → 1초 뒤 같은 하늘을 도움 반짝과 함께 다시 */
   failToHelp() { s.tries = HELP_AFTER - 1; s.phase = 'result'; s.ok = false; s.pt = 0; },
   /** 결과 화면 확인용: 지금 판에서 바로 완주 화면으로 */

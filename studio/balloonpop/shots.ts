@@ -25,6 +25,9 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   const st0 = await page.evaluate(() => (globalThis as any).__bp.state().taps);
   await page.keyboard.press('ArrowLeft');
   await page.evaluate(() => { const b = (globalThis as any).__bp; b.aim(b.target()); });
+  await page.waitForTimeout(150);
+  // 미리 보기: 커서가 올라간 풍선의 원이 선명해지고 첫 파문에 같이 터질 풍선에 '헉' (C004)
+  await page.screenshot({ path: join(here, 'screens', `${name}-preview.png`) });
   await page.keyboard.press('Space');
   await page.waitForTimeout(700);
   await page.screenshot({ path: join(here, 'screens', `${name}-chain.png`) });
@@ -33,9 +36,9 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   // 마우스/터치: 살아 있는 풍선을 직접 눌러 본다
   await page.waitForTimeout(1500);
   for (let k = 0; k < 2; k++) {
-    const p = await page.evaluate(() => (globalThis as any).__bp.target());
+    const p = await page.evaluate(() => { const b = (globalThis as any).__bp, q = b.target(); return q && b.toScreen(q); });
     const box = await page.locator('#game').boundingBox();
-    if (p && box) await page.mouse.click(box.x + p.x * box.width, box.y + p.y * box.height);
+    if (p && box) await page.mouse.click(box.x + p.x, box.y + p.y);
     await page.waitForTimeout(k ? 400 : 1500);
   }
   await page.screenshot({ path: join(here, 'screens', `${name}-tap.png`) });
@@ -66,7 +69,8 @@ for (const vp of [{ width: 360, height: 780 }, { width: 390, height: 844 }, { wi
   await page.waitForTimeout(300);
   const m = await page.evaluate(() => {
     const c = document.getElementById('game')!.getBoundingClientRect(), b = document.getElementById('pausebtn')!.getBoundingClientRect(), H = innerHeight;
-    const hud = { top: c.top, bottom: c.top + c.width * 0.085, left: c.left, right: c.right };
+    // HUD 글자가 있는 곳 = 캔버스 위 띠에서 HUD가 비워 둔 오른쪽 끝(view.hudRight)을 뺀 곳
+    const hud = { top: c.top, bottom: c.top + Math.max(c.width * 0.085, 56), left: c.left, right: c.right - (globalThis as any).__bp.hudRight() };
     const hit = b.right > hud.left && b.left < hud.right && b.bottom > hud.top && b.top < hud.bottom;
     return { fill: c.height / H, topBand: c.top / H, bottomBand: (H - c.bottom) / H, pauseOverHud: hit };
   });

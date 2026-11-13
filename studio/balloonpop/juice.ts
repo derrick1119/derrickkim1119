@@ -72,7 +72,7 @@ export class Juice {
   }
 
   /** 다 그린 뒤 부른다: 파티클·글자·번쩍을 덧그린다 */
-  render(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  render(ctx: CanvasRenderingContext2D, w: number, h: number, y0 = 0) {
     for (const r of this.rings) {
       r.life--;
       r.r += (r.max - r.r) * 0.18;
@@ -114,7 +114,7 @@ export class Juice {
     if (this.flash > 0.01) {
       ctx.globalAlpha = this.flash;
       ctx.fillStyle = this.flashColor;
-      ctx.fillRect(0, 0, w, h);
+      ctx.fillRect(0, y0, w, h);
       this.flash *= 0.82;
     }
     ctx.globalAlpha = 1;

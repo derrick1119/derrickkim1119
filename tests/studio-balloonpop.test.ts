@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/balloonpop/core.ts';
-import { balloonpop as g, balloonpopRandom, balloonpopSmart, BEAT, density, FAIL_RESULT, HELP_AFTER, STAGE_COUNT, type PopState } from '../studio/balloonpop/game.ts';
+import { A, balloonpop as g, balloonpopRandom, balloonpopSmart, BEAT, bxAt, byAt, density, FAIL_RESULT, fitCanvas, HELP_AFTER, IRON, playTop, RETRY_CARD, STAGE_COUNT, type PopState } from '../studio/balloonpop/game.ts';
 import { humanCasual, measure } from '../studio/balloonpop/funqa.ts';
 import { mulberry32 } from '../engine/rng.ts';
 
@@ -85,6 +85,21 @@ describe('하트 없음 · 즉시 재도전 · 도움 반짝 (C002)', () => {
     expect(h.stuckRate).toBeLessThanOrEqual(0.05);
   });
 
+  it('다시 카드가 떠 있는 동안의 톡은 받지 않는다 (C004)', () => {
+    const s = g.create(5);
+    expect(runUntil(s, (x) => x.phase === 'result' && !x.ok)).toBe(true);
+    while (s.phase === 'result') g.step(s, { tap: false, dir: 0, pointer: null });
+    const i = s.L.bs.findIndex((b, k) => s.alive[k] === 1 && b.k !== IRON), b = s.L.bs[i];
+    const at = () => ({ x: bxAt(b, s.st + 1), y: byAt(b, s.st + 1) / A });
+    g.step(s, { tap: false, dir: 0, pointer: at() });
+    g.step(s, { tap: false, dir: 0, pointer: null });
+    expect(s.pt).toBeLessThan(RETRY_CARD);
+    expect(s.taps).toBe(3);
+    while (s.pt < RETRY_CARD) g.step(s, { tap: false, dir: 0, pointer: null });
+    g.step(s, { tap: false, dir: 0, pointer: at() });
+    expect(s.taps).toBe(2);
+  });
+
   it('톡 → 다음 팡(연쇄 첫 박자)은 1초 안 (FUN v1.1)', () => {
     expect(BEAT).toBeLessThanOrEqual(60);
   });
@@ -105,6 +120,21 @@ describe('FUN v1 측정 (C001)', () => {
     expect(a.overlap).toBeGreaterThanOrEqual(0);
     expect(a.overlap).toBeLessThanOrEqual(1);
     expect(a.n).toBeGreaterThan(3);
+  });
+});
+
+describe('세로 화면 채우기 (C004, M1-3)', () => {
+  it('휴대폰·태블릿·데스크톱에서 캔버스가 세로 ≥75%, 위·아래 빈 띠 각 ≤10% (FUN §4)', () => {
+    for (const [cw, ch] of [[360, 780], [390, 844], [768, 1024], [1280, 800]]) {
+      const { W, H, TOP } = fitCanvas(cw, ch);
+      expect(H / ch).toBeGreaterThanOrEqual(0.75);
+      expect((ch - H) / 2 / ch).toBeLessThanOrEqual(0.1);
+      expect(W).toBeLessThanOrEqual(cw);
+      // 놀이 세계(가로 1 × 세로 A)는 늘 통째로 들어가고, 남는 높이는 위 하늘·아래 광장으로
+      expect(H).toBeGreaterThanOrEqual(W * A - 1e-9);
+      expect(TOP).toBe(playTop(W, H));
+      expect(TOP).toBeLessThanOrEqual(H - W * A + 1e-9);
+    }
   });
 });
 

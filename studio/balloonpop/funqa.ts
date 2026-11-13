@@ -1,42 +1,71 @@
 /**
- * FUN QA 계기판 — 유저군별 재미 지표를 봇으로 잰다. 기준·정의는 FUN.md(v1). 결과는 reports/funqa.json.
+ * FUN QA 계기판 — 유저군별 재미 지표를 봇으로 잰다. 기준·정의는 FUN.md(v1.4). 결과는 reports/funqa.json.
  *   npx tsx studio/balloonpop/funqa.ts [판 수=40]
- * 유저군: 처음 = 아무 데나 톡(random) · 캐주얼 = 사람형(human, 풍선 위만 + 0.3~0.8초 반응) · 숙련 = 내다보는 봇(smart)
+ * 유저군: 처음 = 아무 데나 톡(random) · 캐주얼 = 사람형 humanLate(판정) / humanCasual(완벽한 손, 참고) · 숙련 = 내다보는 봇(smart)
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mulberry32, type Rng } from '../../engine/rng.ts';
-import { A, balloonpop as g, balloonpopRandom, balloonpopSmart, bxAt, byAt, density, IRON, STAGE_COUNT, type PopState } from './game.ts';
+import { A, balloonpop as g, balloonpopRandom, balloonpopSmart, bxAt, byAt, density, IRON, RETRY_CARD, STAGE_COUNT, STAGES, type PopState } from './game.ts';
 import type { Bot, Input } from './core.ts';
 
 const NO: Input = { tap: false, dir: 0, pointer: null };
-const humanAt = new WeakMap<object, number>();
-/** 사람형 캐주얼: 연쇄가 다 끝나고 0.3~0.8초 뒤, 화면 안에 보이는 보통 풍선 하나를 무작위로 톡. 도움 반짝이 뜨면 그것부터 */
-export const humanCasual: Bot<PopState> = {
-  name: '사람형 캐주얼',
-  act(s, rng) {
-    if (s.phase !== 'play' || s.down || s.taps <= 0) return humanAt.delete(s), NO;
-    for (let i = 0; i < s.alive.length; i++) if (s.alive[i] === 1 && s.popT[i] >= 0) return humanAt.delete(s), NO;
-    if (!humanAt.has(s)) humanAt.set(s, s.t + 18 + Math.floor(rng() * 31));
-    if (s.t < humanAt.get(s)!) return NO;
-    // 도움 반짝(두 번 실패한 판)이 있으면 사람처럼 그 풍선을 '지금!'일 때 누른다
-    if (s.help >= 0 && s.alive[s.help] === 1) {
-      if (s.st + 1 < s.helpAt) return NO;
-      humanAt.delete(s);
-      const hb = s.L.bs[s.help];
-      return { tap: false, dir: 0, pointer: { x: bxAt(hb, s.st + 1), y: byAt(hb, s.st + 1) / A } };
-    }
-    humanAt.delete(s);
-    const al: number[] = [];
-    for (let i = 0; i < s.alive.length; i++) {
-      const b = s.L.bs[i], x = bxAt(b, s.st + 1);
-      if (s.alive[i] === 1 && b.k !== IRON && x > 0.03 && x < 0.97) al.push(i);
-    }
-    if (!al.length) return NO;
-    const b = s.L.bs[al[Math.floor(rng() * al.length)]];
-    return { tap: false, dir: 0, pointer: { x: bxAt(b, s.st + 1), y: byAt(b, s.st + 1) / A } };
-  },
-};
+/**
+ * 사람형 캐주얼 봇: 연쇄가 다 끝나고 0.3~0.8초 뒤, 화면 안에 보이는 보통 풍선 하나를 무작위로 톡. 도움 반짝이 뜨면 그것부터.
+ *  late   — '✨ 지금!'(helpAt − 4틱부터 보임)을 보고 12~24틱 뒤 누름, 다시 카드가 떠 있는 동안은 고리를 못 봄 (FUN v1.4 판정 봇)
+ *  follow — 도움을 따르는 비율(1 = 늘)
+ */
+export function makeHuman(name: string, opt: { late?: boolean; follow?: number } = {}): Bot<PopState> {
+  const at = new WeakMap<object, number>(), seen = new WeakMap<object, { key: string; tap: number; go: boolean }>();
+  return {
+    name,
+    act(s, rng) {
+      if (s.phase !== 'play' || s.down || s.taps <= 0) return at.delete(s), NO;
+      for (let i = 0; i < s.alive.length; i++) if (s.alive[i] === 1 && s.popT[i] >= 0) return at.delete(s), NO;
+      if (!at.has(s)) at.set(s, s.t + 18 + Math.floor(rng() * 31));
+      if (s.t < at.get(s)!) return NO;
+      // 도움 반짝(두 번 실패한 판)이 있으면 그 풍선을 '지금!'일 때 누른다
+      if (s.help >= 0 && s.alive[s.help] === 1) {
+        let go = true;
+        if (opt.late || opt.follow !== undefined) {
+          const key = `${s.stage}:${s.tries}:${s.used}:${s.help}`;
+          let m = seen.get(s);
+          if (!m || m.key !== key) seen.set(s, (m = { key, tap: -1, go: opt.follow === undefined || rng() < opt.follow }));
+          go = m.go;
+          if (go && opt.late) {
+            const card = s.tries > 0 && s.pt < RETRY_CARD, now = s.st >= s.helpAt - 4;
+            if (m.tap < 0) {
+              if (card || !now) return NO;
+              m.tap = s.t + 12 + Math.floor(rng() * 13);
+            }
+            if (s.t < m.tap) return NO;
+          }
+        }
+        if (go) {
+          if (!opt.late && s.st + 1 < s.helpAt) return NO;
+          at.delete(s);
+          const hb = s.L.bs[s.help];
+          return { tap: false, dir: 0, pointer: { x: bxAt(hb, s.st + 1), y: byAt(hb, s.st + 1) / A } };
+        }
+      }
+      at.delete(s);
+      const al: number[] = [];
+      for (let i = 0; i < s.alive.length; i++) {
+        const b = s.L.bs[i], x = bxAt(b, s.st + 1);
+        if (s.alive[i] === 1 && b.k !== IRON && x > 0.03 && x < 0.97) al.push(i);
+      }
+      if (!al.length) return NO;
+      const b = s.L.bs[al[Math.floor(rng() * al.length)]];
+      return { tap: false, dir: 0, pointer: { x: bxAt(b, s.st + 1), y: byAt(b, s.st + 1) / A } };
+    },
+  };
+}
+/** 완벽한 손: 도움 고리를 '지금!' 그 틱에 누른다 — 도움 상한 참고값 (FUN v1.4) */
+export const humanCasual = makeHuman('사람형 캐주얼(완벽한 손)');
+/** 판정 봇 (FUN v1.4): '지금!'을 보고 0.2~0.4초 뒤, 다시 카드 중엔 고리를 못 봄 */
+export const humanLate = makeHuman('사람형 캐주얼', { late: true });
+/** 참고: 도움을 80%만 따름 */
+export const humanLate80 = makeHuman('사람형 캐주얼(도움 80%)', { late: true, follow: 0.8 });
 
 export interface GroupStat {
   /** 판별 도착 런 수 (10 미만이면 그 판 수치는 표본 부족) */
@@ -63,6 +92,8 @@ export interface GroupStat {
   starsPerTry: number;
   /** 판당 세 번째 시도까지만 센 시도당 별 — 숙련 격차의 바탕 (FUN v1.3) */
   starsPerTry3: number;
+  /** 위와 같되 쉼 판(STAGES의 rest) 제외 — 숙련 격차의 바탕 (FUN v1.4) */
+  starsPerTry3Work: number;
   /** 8판을 모두 세 번째 시도 안에 깬 런 비율 (FUN v1.3) */
   finish3: number;
   /** 판별: 첫 시도에 ★2 이상으로 깬 비율 (숙련 판 검증, FUN v1.3) */
@@ -87,7 +118,7 @@ const median = (xs: number[]) => (xs.length ? [...xs].sort((a, b) => a - b)[Math
 export function measure(bot: Bot<PopState>, runs: number): GroupStat {
   const K = STAGE_COUNT, z = () => new Array(K).fill(0);
   const tried = z(), first = z(), starSum = z(), star3 = z(), cleared = z(), tSum = z(), tN = z(), dead = z(), w3 = z(), f2 = z(), hbT = z(), hbC = z(), haT = z(), haC = z();
-  let s3 = 0, t3 = 0, fin3 = 0;
+  let s3 = 0, t3 = 0, fin3 = 0, s3w = 0, t3w = 0;
   const chains: number[][] = Array.from({ length: K }, () => []);
   let fin = 0, reach = 0, score = 0, ticks = 0, c3 = 0, c3n = 0, stuckRuns = 0, fpSum = 0, fpN = 0;
   for (let r = 0; r < runs; r++) {
@@ -113,6 +144,7 @@ export function measure(bot: Bot<PopState>, runs: number): GroupStat {
         chainDone();
         if (s.ok) (cleared[stage]++, (starSum[stage] += s.got), s.got === 3 && star3[stage]++, attempt === 0 && first[stage]++, attempt < 3 && w3[stage]++, attempt === 0 && s.got >= 2 && f2[stage]++);
         if (attempt < 3) (t3++, s.ok && (s3 += s.got));
+        if (attempt < 3 && !STAGES[stage].rest) (t3w++, s.ok && (s3w += s.got));
         else if (attempt === 3) all3 = false;
         if (s.helped) (haT[stage]++, s.ok && haC[stage]++);
         else (hbT[stage]++, s.ok && hbC[stage]++);
@@ -146,6 +178,7 @@ export function measure(bot: Bot<PopState>, runs: number): GroupStat {
     firstPopSec: fpN ? r2(fpSum / fpN / 60) : 0,
     starsPerTry: r2(starSum.reduce((a, b) => a + b, 0) / Math.max(1, tN.reduce((a, b) => a + b, 0))),
     starsPerTry3: r2(s3 / Math.max(1, t3)),
+    starsPerTry3Work: r2(s3w / Math.max(1, t3w)),
     finish3: r2(fin3 / runs),
     firstStar2: per(f2, tried),
     helpBefore: per(hbC, hbT),
@@ -170,14 +203,21 @@ export function densityTable(seeds = 40) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const runs = Number(process.argv[2] ?? 40), t0 = Date.now();
-  const novice = measure(balloonpopRandom, runs), casual = measure(humanCasual, runs), expert = measure(balloonpopSmart, runs);
+  const novice = measure(balloonpopRandom, runs), casual = measure(humanLate, runs), perfect = measure(humanCasual, runs), late80 = measure(humanLate80, runs), expert = measure(balloonpopSmart, runs);
   const out = {
     runs,
     novice,
+    /** 판정 봇 humanLate (FUN v1.4) */
     casual,
+    /** 참고: 완벽한 손(humanCasual) — 도움 상한 */
+    perfect,
+    /** 참고: 도움 80%만 따름 */
+    late80,
     expert,
-    /** 숙련 격차: 판당 3회로 자른 시도당 별의 숙련 ÷ 사람형 캐주얼 (FUN v1.3 — 막힘 10연패가 격차를 부풀리지 않게) */
-    skillGap: Math.round((expert.starsPerTry3 / Math.max(0.01, casual.starsPerTry3)) * 100) / 100,
+    /** 숙련 격차: 쉼 판을 뺀, 판당 3회로 자른 시도당 별의 숙련 ÷ humanLate (FUN v1.4) */
+    skillGap: Math.round((expert.starsPerTry3Work / Math.max(0.01, casual.starsPerTry3Work)) * 100) / 100,
+    /** 참고: 전 판 격차 (쉼 판 포함) */
+    skillGapAll: Math.round((expert.starsPerTry3 / Math.max(0.01, casual.starsPerTry3)) * 100) / 100,
     /** 참고: 예전 정의(점수비) */
     scoreGap: Math.round((expert.score / Math.max(1, casual.score)) * 100) / 100,
     density: densityTable(),
@@ -186,7 +226,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   mkdirSync(join(import.meta.dirname, 'reports'), { recursive: true });
   writeFileSync(join(import.meta.dirname, 'reports/funqa.json'), JSON.stringify(out, null, 2) + '\n');
   const row = (x: GroupStat) => Object.fromEntries(Object.entries(x).map(([k, v]) => [k, Array.isArray(v) ? v.join(' ') : v]));
-  console.table({ 처음: row(novice), 캐주얼: row(casual), 숙련: row(expert) });
+  console.table({ 처음: row(novice), 캐주얼: row(casual), '완벽한 손': row(perfect), '도움 80%': row(late80), 숙련: row(expert) });
   console.table(out.density);
   console.log(`숙련 격차 ${out.skillGap}× · ${out.sec}s`);
 }
