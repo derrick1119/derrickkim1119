@@ -2537,7 +2537,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     let mood: DogMood = 'idle';
     const anyIn = flee ? flee.inNew.length > 0 : false;
     if (s.phase === 'run') mood = 'run';
-    else if (s.phase === 'flee') mood = s.pt < 22 ? 'bark' : flee?.scare.some((v) => v === 3) ? 'surprise' : anyIn ? 'proud' : 'idle';
+    else if (s.phase === 'flee') mood = s.pt < 22 ? 'bark' : flee?.scare.some((v, i) => v === 3 && S.pen[i] < 0) ? 'surprise' : anyIn ? 'proud' : 'idle'; // 🎨 C014: 까만 양이 들면 놀람 대신 뿌듯
     else if (s.phase === 'result') mood = s.ok ? 'proud' : 'dizzy';
     const fellT = Math.max(-1, ...F.black.map((_, i) => (S.fell[i] ? fx.memo[`fellT${i}`] ?? -1 : -1)));
     if (fellT >= 0 && t - fellT < 24 && (s.phase === 'flee' || (s.phase === 'result' && !s.ok))) mood = 'surprise'; // 🎨 C012 ⓔ
@@ -2923,7 +2923,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
         }
       }
       // 판이 끝나는 짖기의 0.5초 멈춤: 까만 양 머리 위에 '?!'를 다시 크게 (허들 ②)
-      if (flee.scare[i] === 3 && s.pt >= FLEE_T && comeHold(s) && mk('come2')) {
+      // 🎨 C014: 까만 양이 울타리에 든 짖기(필수 판의 마지막 짖기)엔 '?!'를 다시 띄우지 않는다 — '까만 양 쏙!'을 가렸다
+      if (flee.scare[i] === 3 && s.pt >= FLEE_T && comeHold(s) && S.pen[i] < 0 && mk('come2')) {
         const [a, b] = sheepAt(i);
         fx.ring(PX(a, b), PY(b), '#ffe0f0', R(0.09), 4);
         say(PX(a, b), PY(b) - R(0.09), '?!', 16, { g: 'C', bg: '#ffc857', id: `come${i}`, who: i });
@@ -3018,7 +3019,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       ctx.fillText(big, 0, 0);
       font(0.04, 800);
       // 🧪 C009: '멍멍 9번 안에'가 칩 '멍멍 1번'과 같이 떠 헷갈림 · 📐·🎨 C014: 까만 양 필수 판은 '양 N마리 넣기 · 까만 양도!'(뒷부분 금색)
-      const sub = d.needBlack ? `양 ${F.n}마리 넣기 · ` : `흰 양 ${F.black.filter((b) => !b).length}마리 넣기`, tail = d.needBlack ? '까만 양도!' : '';
+      const sub = d.needBlack ? `양 ${F.black.filter((b) => !b).length}마리 넣기 · ` : `흰 양 ${F.black.filter((b) => !b).length}마리 넣기`, tail = d.needBlack ? '까만 양도!' : '';
       ctx.lineWidth = 4; // 🎨 C010: 부제는 6px 외곽에 글자 속이 막혀 4px
       const w1 = ctx.measureText(sub).width, w2 = ctx.measureText(tail).width, x0 = -(w1 + w2) / 2;
       ctx.textAlign = 'left';

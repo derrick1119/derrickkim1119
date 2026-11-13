@@ -16,7 +16,7 @@ export const ICON = {
   next: svg('<path d="M8 4.5 17 12l-9 7.5z" fill="#3b2a1e" stroke="#3b2a1e" stroke-width="2" stroke-linejoin="round"/>'),
   // 말풍선 요소 아이콘 (🎨 C009 ②) — 알림 글 맨 앞 그림 글자로 고른다
   blackSheep: svg('<g stroke="#17131a" stroke-width="1.6"><circle cx="9" cy="12" r="5" fill="#3a3234"/><circle cx="14" cy="10" r="5" fill="#3a3234"/><circle cx="12" cy="15" r="5" fill="#3a3234"/><ellipse cx="18.5" cy="13" rx="3" ry="3.6" fill="#17131a"/></g><circle cx="19.3" cy="12.3" r=".9" fill="#fff"/>'),
-  blackSlot: svg('<g stroke="#6b5444" stroke-width="1.6" fill="#e9dfcc"><circle cx="9" cy="12" r="5"/><circle cx="14" cy="10" r="5"/><circle cx="12" cy="15" r="5"/><ellipse cx="18.5" cy="13" rx="3" ry="3.6"/></g>'),
+  blackSlot: svg('<g stroke="#6b5444" stroke-width="1.6" fill="rgba(58,50,52,.35)"><circle cx="9" cy="12" r="5"/><circle cx="14" cy="10" r="5"/><circle cx="12" cy="15" r="5"/><ellipse cx="18.5" cy="13" rx="3" ry="3.6"/></g>'),
   bridge: svg('<path d="M2 19h20" stroke="#5aa9d6" stroke-width="2.4" stroke-linecap="round"/><path d="M3 15q9-8 18 0" fill="none" stroke="#7a3e1d" stroke-width="2.4" stroke-linecap="round"/><path d="M7 11.2v4m5-5.6v5.6m5-4v4" stroke="#a0662f" stroke-width="2" stroke-linecap="round"/>'),
   flower: svg('<g fill="#f7a8c6" stroke="#7a3e1d" stroke-width="1.2"><circle cx="12" cy="6.5" r="3.4"/><circle cx="17.2" cy="10.3" r="3.4"/><circle cx="15.2" cy="16.4" r="3.4"/><circle cx="8.8" cy="16.4" r="3.4"/><circle cx="6.8" cy="10.3" r="3.4"/></g><circle cx="12" cy="11.8" r="2.6" fill="#ffc857" stroke="#7a3e1d" stroke-width="1.2"/>'),
   clover: svg('<path d="M12 13l1.5 8" stroke="#3d7a2a" stroke-width="2" stroke-linecap="round"/><g fill="#5fa83a" stroke="#2f5e20" stroke-width="1.2"><circle cx="12" cy="7.2" r="3.8"/><circle cx="7.6" cy="12.6" r="3.8"/><circle cx="16.4" cy="12.6" r="3.8"/></g>'),
@@ -98,6 +98,9 @@ export function mountHud(root: HTMLElement): Hud {
       if (h.blackN) {
         const html = `${h.blackIn >= h.blackN ? ICON.blackSheep : ICON.blackSlot}${h.blackN > 1 ? `<b>${h.blackIn}/${h.blackN}</b>` : ''}`;
         if (bs) bs.innerHTML = html; else sc.insertAdjacentHTML('afterend', `<i class="bk">${html}</i>`);
+        // 🎨 C014: 흰 양이 다 차고 까만 양만 남으면 칸에 금 테 + 한 번 튐 (빈 칸이 흰 양처럼 흐리게 읽혔다)
+        const bk = sc.parentElement!.querySelector('.bk')!, want = h.sheepIn >= h.sheepN && h.blackIn < h.blackN;
+        if (want && !bk.classList.contains('want')) bk.classList.add('want', 'pop'); else if (!want) bk.classList.remove('want', 'pop');
         sc.parentElement!.setAttribute('aria-label', `흰 양 ${h.sheepIn}/${h.sheepN}, 까만 양 ${h.blackIn >= h.blackN ? '들어감' : '아직'}`);
       } else if (bs) bs.remove();
       chips.innerHTML = h.goals.map((g) => `<span class="chip ${g.st}">${ICON.star(g.st === 'on' || g.st === 'had')}<span>${g.label}</span></span>`).join('');
