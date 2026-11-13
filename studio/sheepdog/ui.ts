@@ -62,7 +62,7 @@ export function mountResultCard(root: HTMLElement, onNext: () => void, onRetry: 
       // 🏅 한 번에! — 한 시도에 ★★★(깃발 도움 없이)면 세 번째 별 뒤 쿵, 나눠 모은 ★★★면 회색 점선 (📐 C003·C004)
       medal.className = `medal ${medalOf(s)}`;
       // ★3이면 [다음 ▶] + 작은 '↺ 다시', 아니면 [↺ ☆ 더 따기] + [다음 ▶] (자동으로 넘기지 않는다)
-      retryB.innerHTML = `${ICON.retry}${n === 3 ? '다시' : '☆ 더 따기'}`;
+      retryB.innerHTML = `${ICON.retry}${n === 3 ? '다시' : `${ICON.star(false)}더 따기`}`; // ☆ 글자도 SVG로 (🎨 C009)
       retryB.classList.toggle('small', n === 3);
       nextB.innerHTML = `${s.won ? '끝' : '다음'}${ICON.next}`; // ▶는 그림 글자로 보이는 폰이 있어 SVG (C009 이모지 0)
       el.hidden = false;

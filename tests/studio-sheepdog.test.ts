@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/sheepdog/core.ts';
-import { BLACK_TIP, COME_HOLD, medalOf, FLAG_SNAP, LATER, SKY, STAGES, WORLD_TIME, at as atField, blackCame, comeHold, jumpTo, preview, starCount, sheepdog as g, sheepdogGreedy, sheepdogRandom, sheepdogSmart, type DogState } from '../studio/sheepdog/game.ts';
+import { BLACK_TIP, COME_HOLD, goalLabels, hudState, medalOf, FLAG_SNAP, LATER, SKY, STAGES, WORLD_TIME, at as atField, blackCame, comeHold, jumpTo, preview, starCount, sheepdog as g, sheepdogGreedy, sheepdogRandom, sheepdogSmart, type DogState } from '../studio/sheepdog/game.ts';
 import { mulberry32 } from '../studio/sheepdog/rng.ts';
 
 const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y } });
@@ -120,6 +120,19 @@ describe('M1-2a 개울 판 도움 깃발 (📐 C004)', () => {
     s.splashes = 9;
     retry(s);
     expect(s.flags.length).toBe(0);
+  });
+
+  it('깃발 말은 판 시작 글씨가 걷힌 뒤 할아버지 말풍선으로 — HUD 칩 문구 = 결과 카드 캡션 (🧪·🎨 C009)', () => {
+    const s = g.create(7);
+    jumpTo(s, 5);
+    s.splashes = 1;
+    retry(s);
+    expect(s.flags.length).toBe(2);
+    expect(hudState(s).hint).toBeNull();
+    for (let t = 0; t < 100; t++) g.step(s, up);
+    expect(hudState(s).hint).toContain('깃발 ①');
+    expect(hudState(s).goals.map((x) => x.label)).toEqual(goalLabels(STAGES[5]));
+    expect(goalLabels(STAGES[5])[1]).toBe(`멍멍 ${STAGES[5].par}번`);
   });
 
   it('진짜 풍덩이 셈을 올리고, 판을 깨면 0으로', () => {

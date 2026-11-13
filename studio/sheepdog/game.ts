@@ -287,7 +287,7 @@ export function hudState(s: DogState): HudState {
     return { label, st: st === true ? ('on' as const) : had ? ('had' as const) : st === false ? ('off' as const) : ('wait' as const) };
   });
   // 안내문 줄은 없앴다(🎨 §12-5, C009): 1-1·1-2는 캔버스 손 아이콘, 깃발 말은 할아버지 말풍선으로
-  const hint = s.flags.length && s.phase === 'aim' ? `할아버지 깃발 ${s.flags.length === 2 ? '①' : '②'} 자리에서 짖어 보렴` : null;
+  const hint = s.flags.length && s.phase === 'aim' && s.t - s.startT >= INTRO_T ? `할아버지 깃발 ${s.flags.length === 2 ? '①' : '②'} 자리에서 짖어 보렴` : null;
   const nW = F.black.filter((b) => !b).length;
   return {
     stage: s.stage, name: d.name, stars: s.stars, max: d.max, par: d.par, used: S.used,
@@ -684,6 +684,8 @@ function see(s: DogState, key: string, text: string) {
   s.newsQ.push({ key, text, tip: false });
 }
 const NEWS_T = 200;
+/** 판 시작 큰 글씨가 떠 있는 틱 */
+const INTRO_T = 90;
 
 function newStage(s: DogState) {
   const d = STAGES[s.stage];
@@ -725,7 +727,7 @@ function newStage(s: DogState) {
   see(s, d.key, d.news);
   if (d.bonus === 'flower' && L.flowers.length) see(s, 'flower', '🌼 꽃밭 — 안 밟고 넣으면 별 하나 더');
   if (d.bonus === 'clover' && L.clovers?.length) see(s, 'clover', '🍀 클로버 — 흰 양이 지나가면 별 하나 더');
-  ev(s, 'stage', 0.5, 0.6, `${s.stage + 1}판 · ${d.name}`, '#fff6d6');
+  ev(s, 'stage', 0.5, 0.6, `1-${s.stage + 1} ${d.name}`, '#fff6d6');
 }
 
 /** 몇 번째 풍덩 뒤에 깃발을 띄우나 (📐 C004: 소개 판 1-6은 첫 풍덩, 연습 판은 한 번 스스로 떠올릴 기회를 남긴다) */
@@ -763,6 +765,13 @@ const FY0 = 0.305, FH = 0.775, FXW = 0.92;
 const scl = (fy: number) => 0.8 + 0.25 * fy;
 const SX = (fx: number, fy: number) => 0.5 + (fx - 0.5) * FXW * scl(fy);
 const SY = (fy: number) => FY0 + fy * FH;
+/** 1-1·1-2 첫 톡 손 안내: 양 무리 뒤(필드 좌표)와 1-2 '꾹' 고리 진행 k(1 이상이면 미리 보기 맛보기, 94틱 주기) */
+function handHint(s: DogState): { fx: number; fy: number; k: number } | null {
+  if (s.stage > 1 || s.S.used !== 0 || s.phase !== 'aim' || s.down || s.tries !== 0) return null;
+  let cx = 0, cy = 0;
+  for (let i = 0; i < s.F.n; i++) (cx += s.S.x[i] / s.F.n), (cy += s.S.y[i] / s.F.n);
+  return { fx: cx, fy: cy + 0.15, k: s.stage === 1 ? (s.t % 94) / 70 : 0 };
+}
 /** 손 아이콘(hud.ts ICON.hand와 같은 24 격자 경로) — 그릴 때 처음 만든다 */
 let HAND_P: Path2D | null = null;
 const HAND_D = 'M9 13V5.5a1.6 1.6 0 0 1 3.2 0V11l.1-1.2a1.5 1.5 0 0 1 3 .2v1.5a1.5 1.5 0 0 1 3 .1V15c0 3.6-2.4 6-5.6 6h-1.2c-2 0-3.4-.9-4.6-2.6L4.6 15a1.6 1.6 0 0 1 2.6-1.9z';
@@ -2574,8 +2583,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   }
   // ═════════ 미리 보기 (누르고 있는 동안) ═════════
   let pvNote = '';
-  if (s.phase === 'aim' && s.down) {
-    const f = aimPoint(s);
+  // 1-2 '꾹' 고리가 다 차면 0.4초 동안 미리 보기를 반투명으로 맛보인다 (🎨 C009: 고리만으로는 '미리 보기'가 안 전해짐)
+  const hh = handHint(s), ghost = !!hh && hh.k >= 1;
+  if (s.phase === 'aim' && (s.down || ghost)) {
+    const f = s.down ? aimPoint(s) : ([hh!.fx, hh!.fy] as [number, number]);
+    if (!s.down) ctx.globalAlpha = 0.5;
     const snapped = !!f && s.flags.length > 0 && f[0] === s.flags[0][0] && f[1] === s.flags[0][1];
     if (f && !inAnyPen(F, f[0], f[1])) {
       const [pxf, pyf] = f, cx = PX(pxf, pyf), cy = PY(pyf);
@@ -2674,12 +2686,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
         ctx.fillText(pvNote, bx, by + 1);
       }
     }
+    ctx.globalAlpha = 1;
   }
   // 1-1·1-2 첫 톡 안내: 양 뒤쪽에 그린 손 (C009: 이모지 대신 벡터, 1-2는 '꾹' 고리가 차오른다)
-  if (s.stage <= 1 && s.S.used === 0 && s.phase === 'aim' && !s.down && s.tries === 0) {
-    let cx = 0, cy = 0;
-    for (let i = 0; i < F.n; i++) (cx += S.x[i] / F.n), (cy += S.y[i] / F.n);
-    const hy = cy + 0.15, hx = PX(cx, hy), py = PY(hy), hold = s.stage === 1, k = hold ? (t % 90) / 70 : 0;
+  if (hh) {
+    const hx = PX(hh.fx, hh.fy), py = PY(hh.fy), hold = s.stage === 1, k = hh.k;
     const bob = hold ? Math.min(1, k * 3) * R(0.012) : Math.abs(Math.sin(t * 0.12)) * R(0.02);
     ctx.lineWidth = 2.5;
     ctx.strokeStyle = hold ? 'rgba(255,255,255,.45)' : `rgba(255,255,255,${0.5 + 0.4 * Math.sin(t * 0.12)})`;
@@ -2907,22 +2918,23 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   // 판 시작 큰 글씨
   {
     const age = t - s.startT;
-    if (age < 90 && s.phase !== 'result') {
-      const a = Math.min(1, age / 8, (90 - age) / 20), sc = 1 + Math.max(0, 8 - age) * 0.04;
+    if (age < INTRO_T && s.phase !== 'result') {
+      const a = Math.min(1, age / 8, (INTRO_T - age) / 20), sc = 1 + Math.max(0, 8 - age) * 0.04;
       ctx.globalAlpha = a;
       ctx.save();
       ctx.translate(w / 2, Y(0.86));
       ctx.scale(sc, sc);
       font(0.075, 900);
       ctx.textAlign = 'center';
-      ctx.lineWidth = 5;
-      ctx.strokeStyle = 'rgba(30,40,20,.7)';
-      const big = `${s.stage + 1}판 · ${d.name}`;
+      ctx.lineWidth = 6;
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#7a3e1d'; // 🎨 C009: 흰 글씨 + 초록 외곽은 강아지와 겹쳐 안 읽힘 → 크림 + 갈색 6px
+      const big = `1-${s.stage + 1} ${d.name}`;
       ctx.strokeText(big, 0, 0);
-      ctx.fillStyle = '#fff6d6';
+      ctx.fillStyle = '#fff6e4';
       ctx.fillText(big, 0, 0);
       font(0.04, 800);
-      const sub = `멍멍 ${d.max}번 안에 ${F.black.some((b) => !b) ? '흰 양 ' + F.black.filter((b) => !b).length + '마리' : ''}`;
+      const sub = `흰 양 ${F.black.filter((b) => !b).length}마리 넣기`; // 🧪 C009: '멍멍 9번 안에'가 칩 '멍멍 1번'과 같이 떠 헷갈림
       ctx.strokeText(sub, 0, R(0.06));
       ctx.fillText(sub, 0, R(0.06));
       ctx.restore();

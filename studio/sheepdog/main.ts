@@ -34,21 +34,21 @@ function size() {
   H = W * aspect;
   canvas.style.width = `${W}px`;
   canvas.style.height = `${H}px`;
-  // 세로 화면(C008, 🎨 §12-1): 캔버스를 위로 붙이고 위 띠는 하늘(60px까지), 남는 높이는 모두 아래 탁자(엄지 영역)로. 가로·데스크톱은 가운데
+  // 세로 화면(🎨 C009, §12-1을 뒤집음): 엄지 자리에 누를 곳(들판)이 오게 캔버스를 아래로 붙인다. 남는 위는 하늘 — 위 줄·말풍선이 거기 산다. 가로·데스크톱은 가운데
   const extra = Math.max(0, avH - H), portrait = avH / avW > 5 / 3;
-  const safeTop = document.getElementById('safe')?.offsetHeight ?? 0; // 노치 폰 상태바 (🎨 C008: 명세는 inset + 60)
-  canvas.style.marginTop = `${portrait ? Math.min(extra, 60 + safeTop) : extra / 2}px`;
+  const safeTop = document.getElementById('safe')?.offsetHeight ?? 0, safeBot = document.getElementById('safeB')?.offsetHeight ?? 0; // 노치·홈 막대
+  canvas.style.marginTop = `${portrait ? Math.min(extra, Math.max(60 + safeTop, extra - Math.max(16, safeBot))) : extra / 2}px`;
   canvas.width = Math.round(W * dpr);
   canvas.height = Math.round(H * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  // 위 줄(🎨 §12-3): 띠가 64px 이상이면 띠에, 아니면 캔버스 위 8px. ↺는 그 줄 오른쪽 끝(금테 모서리를 덮지 않는다)
-  const rowTop = canvas.offsetTop >= 64 ? canvas.offsetTop - 52 : canvas.offsetTop + 8;
+  // 위 줄(🎨 §12-3, C009): 하늘이 124px 이상이면 캔버스 위 116px(말풍선은 그 아래 = 캔버스 위 64px), 아니면 캔버스 위 8px. ↺는 그 줄 오른쪽 끝
+  const rowTop = canvas.offsetTop >= 124 ? canvas.offsetTop - 116 : canvas.offsetTop + 8;
   hud.place(canvas.offsetLeft, rowTop - 6, canvas.offsetTop, W, root.clientHeight - canvas.offsetTop);
   retryBtn.style.left = `${canvas.offsetLeft + W - 52}px`;
   retryBtn.style.top = `${rowTop - 2}px`;
   // 🎨 C007 ④-a: 캔버스 아래 빈 띠를 디오라마를 올린 탁자색으로 잇는다(세로 화면)
   // 가로·데스크톱은 탁자색 하나 (하늘 줄이 넓은 화면 전체 폭에 깔리면 어색하다, 🎨 C008)
-  document.body.style.background = portrait ? `linear-gradient(#8ecff0 ${canvas.offsetTop + 1}px, #4a3322 ${canvas.offsetTop + 1}px)` : '#4a3322';
+  document.body.style.background = portrait ? `linear-gradient(#6ec3ee, #8ecff0 ${canvas.offsetTop + 1}px, #4a3322 ${canvas.offsetTop + 1}px)` : '#4a3322';
   draw();
 }
 
@@ -115,7 +115,7 @@ function loop(now: number) {
       draw();
       // 끝 화면 (🎨 §12-9): 제목 → ★ N / 24 → 판 8칸 미니 격자 → 점수 → [다시 하기]. 이모지 없이 SVG
       const grid = s.best.map((m, k) => `<li>1-${k + 1}<span>${[0, 1, 2].map((j) => ICON.star(((m >> j) & 1) === 1)).join('')}</span></li>`).join('');
-      showTitle(`<h2>${s.won ? 'W1 아침 들판 완성!' : '오늘은 여기까지'}</h2><p class="big">${ICON.star(true)}<span>${s.stars} / ${s.best.length * 3}</span></p><ol class="grid" aria-label="판별 별">${grid}</ol><p class="score">${sc}점</p>`);
+      showTitle(`<h2>${s.won ? 'W1 아침 들판 완성!' : '오늘은 여기까지'}</h2><p class="big">${ICON.star(true)}<span>${s.best.reduce((n, m) => n + starCount(m), 0)} / ${s.best.length * 3}</span></p><ol class="grid" aria-label="판별 별">${grid}</ol><p class="score">${sc}점</p>`);
       startBtn.textContent = '다시 하기';
       return;
     }

@@ -96,7 +96,7 @@ canvas:focus-visible{outline:3px solid #ffc857;outline-offset:-3px}
 #hudBot .bones{gap:3px;padding:0 12px}
 #hudBot .bones i{display:inline-flex;align-items:center;position:relative}
 #hudBot .bones svg{width:22px;height:15px}
-#hudBot .bones i.par::after{content:"";position:absolute;right:-3px;top:-6px;width:3px;height:27px;border-radius:2px;background:#ffc857;box-shadow:0 0 0 1px #7a3e1d}
+#hudBot .bones i.par::before{content:"";position:absolute;left:-3px;top:-6px;width:3px;height:27px;border-radius:2px;background:#ffc857;box-shadow:0 0 0 1px #7a3e1d}
 #hudBot .bones b{font-size:17px;margin-left:2px}
 #hudBot .sheep{padding:0 12px 0 6px}
 #hudBot .sheep svg{width:24px;height:24px}
@@ -115,6 +115,7 @@ kbd{background:#fbeed6;border:1px solid #e3d3b8;border-radius:4px;padding:1px 5p
 </head>
 <body>
 <i id="safe" style="position:fixed;top:0;height:env(safe-area-inset-top,0px);width:0;visibility:hidden"></i>
+<i id="safeB" style="position:fixed;bottom:0;height:env(safe-area-inset-bottom,0px);width:0;visibility:hidden"></i>
 <main id="stage">
   <canvas id="game" tabindex="0" aria-label="양치기 멍멍 게임 화면. 목장을 누르고 있으면 양이 갈 자리가 보이고, 떼면 강아지가 짖어요. 키보드는 화살표로 고르고 스페이스."></canvas>
   <button id="retry" type="button" aria-label="이 판 처음부터 다시 (R)" title="이 판 처음부터 다시 (R)" hidden>↺</button>
