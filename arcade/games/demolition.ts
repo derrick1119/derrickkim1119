@@ -517,6 +517,8 @@ export interface DemoState {
   /** 할머니: 0 차 마심 · 1 내다봄 · 2 휴~ · 3 빗자루 '이놈들!' */
   granny: number;
   grannyT: number;
+  /** 판이 바뀐 뒤엔 손을 한 번 뗐다가 새로 눌러야 붙인다 (누른 채로 넘어온 손가락이 폭약을 붙이지 않게) */
+  wait: boolean;
 }
 
 const ev = (s: DemoState, kind: string, x: number, y: number, text?: string, col?: string, id?: number) => s.events.push({ t: s.t, kind, x, y, text, col, id });
@@ -557,6 +559,7 @@ function newStage(s: DemoState) {
   s.granny = 0;
   s.down = false;
   s.aim = null;
+  s.wait = true;
   if (d.key) s.seen.add(d.key);
 }
 
@@ -671,7 +674,7 @@ export const demolition: GameDef<DemoState> = {
       rng, seed, t: 0, stage: 0, phase: 'play', pt: 0, flips, L: layoutOf(STAGES[0], flips[0]), ch: new Int8Array(0), placed: [], left: 0,
       down: false, aim: null, out: null, hearts: 3, stars: 0, got: 0, starOk: [false, false, false], pts: 0, ok: false, why: '',
       seen: new Set<string>(), newsQ: [], news: null, events: [], dead: false, won: false, tries: 0, again: false, firstTap: false,
-      beaver: 0, granny: 0, grannyT: 0,
+      beaver: 0, granny: 0, grannyT: 0, wait: false,
     } as DemoState;
     newStage(s);
     return s;
@@ -679,7 +682,8 @@ export const demolition: GameDef<DemoState> = {
   step(s, inp: Input) {
     // 손을 대고 있는 동안은 겨누기(미리 보기), 떼는 순간 붙이기
     const p = inp.pointer ?? null;
-    if (p && s.phase === 'play') (s.down = true), (s.aim = { x: p.x, y: p.y * A });
+    if (s.wait && !p) s.wait = false;
+    if (p && s.phase === 'play' && !s.wait) (s.down = true), (s.aim = { x: p.x, y: p.y * A });
     else if (s.down) {
       s.down = false;
       if (s.aim) place(s, s.aim.x, s.aim.y);
@@ -1375,7 +1379,7 @@ function granny(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, 
     // 💢
     ctx.strokeStyle = '#ff3b4a';
     ctx.lineWidth = 2;
-    const ax = x - face * u * 0.45, ay = y - u * 0.55, k = u * (0.16 + 0.03 * Math.sin(t * 0.6));
+    const ax = x + face * u * 0.5, ay = y - u * 0.62, k = u * (0.16 + 0.03 * Math.sin(t * 0.6));
     for (const [sx, sy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
       ctx.beginPath();
       ctx.moveTo(ax + sx * k * 0.3, ay + sy * k);
@@ -1985,7 +1989,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DemoState, w: number, h: numb
     ctx.fillRect(0, Y(BAND) - R(0.035) * k, w, R(0.035) * k);
     if (k > 0.5) {
       ctx.fillStyle = 'rgba(255,255,255,.85)';
-      font(0.034, 800);
+      font(0.036, 800);
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       ctx.fillText('▶▶ 느린 화면', R(0.03), Y(BAND) - R(0.018));
@@ -2087,8 +2091,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DemoState, w: number, h: numb
     font(0.046, 900);
     ctx.fillText(line, w / 2, by3 - R(0.01), w - R(0.2));
     ctx.fillStyle = '#e9ddff';
-    font(0.032, 800);
-    ctx.fillText(sub, w / 2, by3 + R(0.028), w - R(0.2));
+    font(0.036, 800);
+    ctx.fillText(sub, w / 2, by3 + R(0.03), w - R(0.2));
   }
   // 판 카드: 시작 · 결과
   {
@@ -2203,7 +2207,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DemoState, w: number, h: numb
       ctx.textAlign = 'center';
       ctx.fillText(bad[k] ? '✗' : '★', cx1 + R(0.03), r2 + R(0.002));
       ctx.fillStyle = okk[k] ? '#fff6dc' : bad[k] ? 'rgba(255,255,255,.4)' : '#f1e6ff';
-      font(0.034, 800);
+      font(0.036, 800);
       ctx.textAlign = 'left';
       ctx.fillText(labels[k], cx1 + R(0.058), r2 + R(0.002), cw2 - R(0.066));
     }
