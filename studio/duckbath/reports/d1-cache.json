@@ -1,0 +1,90 @@
+{
+ "1-1": {
+  "key": "7e2af6549e1341a3a05fd42731319142a2a64d5a",
+  "res": {
+   "id": "1-1",
+   "par": 1,
+   "sym": true,
+   "T": 1,
+   "tSrc": "n300",
+   "seedT": [
+    1,
+    1,
+    1
+   ],
+   "flip": "---",
+   "exact": false,
+   "coarse": 2,
+   "refined": 22,
+   "runs": 66,
+   "water": 500,
+   "solCells": 14,
+   "D1": 1,
+   "sizes": [
+    14
+   ],
+   "top": 0.03,
+   "D1plus": 1,
+   "plusSizes": [
+    14
+   ],
+   "D1link10": 1,
+   "link10Sizes": [
+    14
+   ],
+   "D1seedT": 1,
+   "oldD1": 1,
+   "oldSizes": [
+    14
+   ],
+   "pass": false,
+   "sec": 0.24
+  }
+ },
+ "2-1": {
+  "key": "8d27cca9c1d7c765f10c5d70ec4715d2a6879654",
+  "res": {
+   "id": "2-1",
+   "par": 2,
+   "sym": false,
+   "T": 2,
+   "tSrc": "n300",
+   "seedT": [
+    2,
+    2,
+    2
+   ],
+   "flip": "---",
+   "exact": false,
+   "coarse": 31,
+   "refined": 188,
+   "runs": 564,
+   "water": 500,
+   "solCells": 133,
+   "D1": 2,
+   "sizes": [
+    69,
+    64
+   ],
+   "top": 0.14,
+   "D1plus": 2,
+   "plusSizes": [
+    69,
+    64
+   ],
+   "D1link10": 2,
+   "link10Sizes": [
+    69,
+    64
+   ],
+   "D1seedT": 2,
+   "oldD1": 2,
+   "oldSizes": [
+    69,
+    64
+   ],
+   "pass": true,
+   "sec": 6.77
+  }
+ }
+}

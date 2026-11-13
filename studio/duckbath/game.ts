@@ -564,11 +564,20 @@ export function hintPoint(s: DuckState): { x: number; y: number } | null {
  * D005 실패 카드 문구 (🧪 D004·D005): 톡을 가져간 주범(쏙·꿀꺽)이 크면(쓴 톡의 25% 이상) 주범 제목,
  * 아니면 '톡 바닥' 제목에 그 판의 hint 줄(판의 교훈). 브라우저 카드와 funqa N4가 같은 함수를 쓴다.
  */
+/** 실패 카드 제목 (갈래마다 셋, 같은 판 다시 횟수로 돌림 — D011 N6-a) */
+export const FAIL_TITLES = {
+  suck: ['꼬르륵~ 톡이 배수구로 샜어요', '쭈욱~ 배수구 미끄럼틀을 또 탔대요', '퐁당! 오리가 배수구 구경 갔어요'],
+  chomp: ['냠! 상어 간식인 줄 알았대요', '꿀꺽! 상어가 오리랑 놀고 싶었대요', '앙! 고무 상어가 또 배고팠대요'],
+  taps: ['톡이 바닥! 오리들 아직 둥둥~', '톡 다 썼다! 오리들은 아직 수영 중~', '물결이 모자랐어요 — 오리들 둥실둥실'],
+};
+
 export function failText(s: DuckState): { kind: 'suck' | 'chomp' | 'taps'; title: string; tip: string } {
   const pen = s.sucks + s.chomps, big = s.used > 0 && pen / s.used >= 0.25; // 🧪 D005: '2톡 이상' 조항은 8판(톡 12)에서 틀린 제목을 만들어 뺐다
-  if (big && s.sucks >= s.chomps) return { kind: 'suck', title: '꼬르륵~ 톡이 배수구로 샜어요', tip: '빙글 원 안으로는 밀지 말기' };
-  if (big) return { kind: 'chomp', title: '냠! 상어 간식인 줄 알았대요', tip: '물결을 맞히면 상어가 어질어질' };
-  return { kind: 'taps', title: '톡이 바닥! 오리들 아직 둥둥~', tip: STAGES[s.stage].failHint ?? STAGES[s.stage].hint };
+  // D011 (N6-a): 같은 판을 거푸 지면 제목을 돌려 쓴다 — 같은 카드가 되풀이되면 웃음이 닳는다(FUN N6). 팁(그 판의 교훈)은 그대로
+  const pick = (xs: string[]) => xs[Math.max(0, s.stageTries - 1) % xs.length];
+  if (big && s.sucks >= s.chomps) return { kind: 'suck', title: pick(FAIL_TITLES.suck), tip: '빙글 원 안으로는 밀지 말기' };
+  if (big) return { kind: 'chomp', title: pick(FAIL_TITLES.chomp), tip: '물결을 맞히면 상어가 어질어질' };
+  return { kind: 'taps', title: pick(FAIL_TITLES.taps), tip: STAGES[s.stage].failHint ?? STAGES[s.stage].hint };
 }
 
 /**

@@ -8,7 +8,8 @@
  *   (배우는 처음 봇만 RETRY_LEARN번 — 다시 횟수 분포(C5)를 보려고).
  * D003 추가: 판별 ★톡·★황금(E6, 황금 정책 0·50·75%) · 다시 횟수 중앙/p90(C5) · 실패 집중도(W1) · 여유 톡 곡선(W2) · --area 정답 면적(C4, par 1 판).
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mulberry32 } from '../../engine/rng.ts';
 import type { Bot, Input } from './core.ts';
@@ -104,6 +105,7 @@ function group(bot: Bot<DuckState>, n: number, retry: number) {
       retryMed: med(retries), retryP90: pct(retries, 0.9), // C5
       medSec: r2(med(oks.map((l) => l.sec))), humanSec: r2(med(oks.map((l) => l.sec + 3 * l.taps))), medTaps: med(oks.map((l) => l.taps)),
       // FUN v1.9 d: 이산 중앙값 옆에 평균
+      tapsUp: rate(oks.map((l) => l.taps > med(oks.map((x) => x.taps)))), // FUN v1.10 g: 중앙보다 많이 쓴 몫 (≥ .35면 T* = 중앙 + 1)
       humanMean: r2(oks.reduce((a, l) => a + l.sec + 3 * l.taps, 0) / Math.max(1, oks.length)), tapsMean: r2(oks.reduce((a, l) => a + l.taps, 0) / Math.max(1, oks.length)),
       // D010 (🧪 D009 4): 황금 위기 표시 — 시도 중 보인 비율 · 보인 것 중 30틱 미만 비율
       crisisRate: rate(L.map((l) => l.crisis > 0)), crisisShort: rate(L.filter((l) => l.crisis > 0).map((l) => l.crisis < 30)),
@@ -208,28 +210,46 @@ function symmetric(d: (typeof STAGES)[number]) {
   return same(d.ducks, mx) && same([d.gold], mx) && same(d.boat ? [d.boat] : [], mx) && same(d.shark ? [d.shark] : [], mx) && same(d.nests, mx) && same(d.islands ?? [], mx) && same(d.drains ?? [], mx) && same(d.slicks ?? [], mx) && same(d.streams ?? [], (v) => [1 - v[2], v[1], 1 - v[0], v[3], -v[4], v[5]]);
 }
 
-export function diversity(only?: string[], full = false) {
+export function diversity(only?: string[], full = false, tStar?: Record<string, number>) {
   const SEEDS = [1000, 1007, 1014], H = 1.2, NO: Input = { tap: false, dir: 0, pointer: null };
-  return STAGES.map((d, i) => {
+  // D011 (📋 D010 ①): 캐시 — 열쇠 = 판 데이터 + game.ts에서 판 목록(STAGES)을 뺀 코드 + T* + 계측 판. 안 바뀐 판은 다시 재지 않는다
+  const VER = 'd1-v1.10', cacheFile = join(import.meta.dirname, 'reports/d1-cache.json');
+  const cache: Record<string, { key: string; res: unknown }> = existsSync(cacheFile) ? JSON.parse(readFileSync(cacheFile, 'utf8')) : {};
+  const src = readFileSync(join(import.meta.dirname, 'game.ts'), 'utf8'), a0 = src.indexOf('export const STAGES'), a1 = src.indexOf('export const STAGE_COUNT');
+  const code = a0 >= 0 && a1 > a0 ? src.slice(0, a0) + src.slice(a1) : src;
+  const out = STAGES.map((d, i) => {
     if (only && !only.includes(d.id)) return null;
+    const key = createHash('sha1').update([VER, JSON.stringify(d), code, tStar?.[d.id] ?? '', full].join('|')).digest('hex');
+    if (cache[d.id]?.key === key) return { ...(cache[d.id].res as ReturnType<typeof measureOne>), cached: true };
+    const res = measureOne(d, i);
+    cache[d.id] = { key, res };
+    writeFileSync(cacheFile, JSON.stringify(cache, null, 1) + '\n');
+    return { ...res, cached: false };
+  });
+  return out;
+
+  function measureOne(d: (typeof STAGES)[number], i: number) {
     const t0 = performance.now();
-    // T*: 같은 시드 새 판에서 숙련 봇이 쓴 톡 (깨지 못하면 그 판 톡 전부)
-    const T = SEEDS.map((seed) => {
+    // 옛 자 T*: 같은 시드 새 판에서 숙련 봇이 쓴 톡 (깨지 못하면 그 판 톡 전부)
+    const seedT = SEEDS.map((seed) => {
       const s = g.create(seed), rng = mulberry32(seed ^ 0x9e3779b9);
       startStage(s, i);
       for (let k = 0; k < 20000 && s.phase === 'play'; k++) g.step(s, duckbathSmart.act(s, rng));
       return s.ok ? s.used : d.taps;
     });
+    // FUN v1.10 g: T*는 funqa n300 숙련 톡 분포에서 판마다 하나 (없으면 시드 셋의 중앙)
+    const Tg = tStar?.[d.id] ?? [...seedT].sort((a, b) => a - b)[1], tSrc = tStar?.[d.id] !== undefined ? 'n300' : '시드3';
+    const cap = Math.max(Tg + 1, d.par, ...seedT);
     const FLIP = SEEDS.map((seed) => g.create(seed).jit[i].flip), sym = symmetric(d);
     const water = (x: number, y: number) => !(d.islands ?? []).some(([cx, cy, r]) => Math.hypot(x - cx, y - cy) < r);
     /** 한 자리 한 시드: 3★인가 · 쓴 톡 (자르면 star3 false) */
     const one = (x: number, y: number, k: number) => {
-      const seed = SEEDS[k], s = g.create(seed), rng = mulberry32(seed ^ 0x9e3779b9), cap = Math.max(T[k], d.par);
+      const seed = SEEDS[k], s = g.create(seed), rng = mulberry32(seed ^ 0x9e3779b9);
       startStage(s, i);
       g.step(s, { tap: false, dir: 0, pointer: toPointer(FLIP[k] ? 1 - x : x, y) });
       g.step(s, NO);
       for (let f = 0; f < 20000 && s.phase === 'play'; f++) {
-        if (s.pen > 0 || s.used > cap) return { star3: false, used: s.used }; // D009: goldLost는 켜지는 길이 없어 지움(🧪 D008)
+        if (s.pen > 0 || s.used > cap) return { star3: false, used: s.used };
         g.step(s, d.par === 1 ? NO : duckbathSmart.act(s, rng));
         if (d.par === 1 && f > 700) break;
       }
@@ -242,8 +262,9 @@ export function diversity(only?: string[], full = false) {
         const x = (gx + 0.5) / 10, y = ((gy + 0.5) / 12) * H;
         if (water(x, y) && one(x, y, 0).star3) coarse.push({ x, y });
       }
-    // 정밀: 20×25 중 거친 3★ 칸 0.1 안쪽만 시드 3 (2개가 같으면 셋째는 생략)
-    const fine: { x: number; y: number; gx: number; gy: number; sol: boolean; old: boolean }[] = [];
+    // 정밀: 20×25 중 거친 3★ 칸 0.1 안쪽 (정밀 칸 ≥ 물 절반이면 전수) × 시드 3 — 자 넷을 같이 세려고 셋째 시드도 늘 친다
+    type Cell = { x: number; y: number; gx: number; gy: number; main: boolean; plus: boolean; seedT: boolean; three: boolean };
+    const fine: Cell[] = [];
     const cells: { x: number; y: number; gx: number; gy: number }[] = [];
     for (let gx = 0; gx < 20; gx++)
       for (let gy = 0; gy < 25; gy++) {
@@ -251,43 +272,51 @@ export function diversity(only?: string[], full = false) {
         if (water(x, y)) cells.push({ x, y, gx, gy });
       }
     const waterN = cells.length, near = cells.filter((c) => coarse.some((q) => Math.hypot(q.x - c.x, q.y - c.y) <= 0.1 + 1e-9));
-    const exact = full || near.length >= waterN / 2; // 🧪 D008: 아끼는 몫이 작으면 전수
+    const exact = full || near.length >= waterN / 2;
     let runs = 0;
-    for (const { x, y, gx, gy } of exact ? cells : near) {
-      let sol = 0, old = 0;
-      for (let k = 0; k < 3; k++) {
-        if (k === 2 && sol !== 1 && old !== 1) break;
-        const r = one(x, y, k);
-        runs++;
-        if (r.star3) (old++, r.used <= T[k] && sol++);
-      }
-      fine.push({ x, y, gx, gy, sol: sol >= 2, old: old >= 2 });
+    for (const c of exact ? cells : near) {
+      const rs = [0, 1, 2].map((k) => (runs++, one(c.x, c.y, k)));
+      const n = (f: (r: { star3: boolean; used: number }, k: number) => boolean) => rs.filter(f).length >= 2;
+      fine.push({ ...c, main: n((r) => r.star3 && r.used <= Tg), plus: n((r) => r.star3 && r.used <= Tg + 1), seedT: n((r, k) => r.star3 && r.used <= seedT[k]), three: n((r) => r.star3 && r.used <= d.par) });
     }
-    // 거리는 칸 번호 차로 다시 계산해 부동소수 오차를 없앤다 (칸 간격 0.05 × 0.048)
+    // 거리는 칸 번호 차로 다시 계산 (칸 간격 0.05 × 0.048)
     const dist = (a: { gx: number; gy: number }, b: { gx: number; gy: number }) => Math.hypot((a.gx - b.gx) * 0.05, (a.gy - b.gy) * (H / 25));
-    const groups = (cells: { gx: number; gy: number }[]) => {
-      const par = cells.map((_, k) => k), find = (k: number): number => (par[k] === k ? k : (par[k] = find(par[k])));
-      for (let a = 0; a < cells.length; a++) for (let b = a + 1; b < cells.length; b++) if (dist(cells[a], cells[b]) < 0.15 - 1e-9) par[find(a)] = find(b);
-      // FUN v1.8 ③: 대칭 판이면 칸의 거울(gx → 19 − gx)이 든 무리와 하나로 — 게임이 판을 뒤집으니 거울 해는 같은 해
-      if (sym) cells.forEach((c, a) => { const b = cells.findIndex((q) => q.gx === 19 - c.gx && q.gy === c.gy); if (b >= 0) par[find(a)] = find(b); });
+    const groups = (cs: { gx: number; gy: number }[], link = 0.15) => {
+      const par = cs.map((_, k) => k), find = (k: number): number => (par[k] === k ? k : (par[k] = find(par[k])));
+      for (let a = 0; a < cs.length; a++) for (let b = a + 1; b < cs.length; b++) if (dist(cs[a], cs[b]) < link - 1e-9) par[find(a)] = find(b);
+      // FUN v1.8 ③: 대칭 판이면 칸의 거울(gx → 19 − gx)이 든 무리와 하나로
+      if (sym) cs.forEach((c, a) => { const b = cs.findIndex((q) => q.gx === 19 - c.gx && q.gy === c.gy); if (b >= 0) par[find(a)] = find(b); });
       const size = new Map<number, number>();
-      cells.forEach((_, k) => size.set(find(k), (size.get(find(k)) ?? 0) + 1));
+      cs.forEach((_, k) => size.set(find(k), (size.get(find(k)) ?? 0) + 1));
       const sizes = [...size.values()].filter((n) => n >= 3).sort((a, b) => b - a);
       return { sizes, count: sizes.reduce((a, n) => a + (n >= 0.25 * waterN ? 2 : 1), 0), top: sizes.length ? r2(sizes[0] / waterN) : 0 };
     };
-    const cur = groups(fine.filter((c) => c.sol)), old = groups(fine.filter((c) => c.old));
-    return { id: d.id, par: d.par, sym, T, flip: FLIP.map((f) => (f ? 'F' : '-')).join(''), exact, coarse: coarse.length, refined: fine.length, runs, water: waterN, solCells: fine.filter((c) => c.sol).length, D1: cur.count, sizes: cur.sizes, top: cur.top, oldD1: old.count, oldSizes: old.sizes, sec: r2((performance.now() - t0) / 1000) };
-  });
+    const cur = groups(fine.filter((c) => c.main)), plus = groups(fine.filter((c) => c.plus)), link10 = groups(fine.filter((c) => c.main), 0.1);
+    const seedTg = groups(fine.filter((c) => c.seedT)), old = groups(fine.filter((c) => c.three));
+    const pass = cur.count >= 2 || plus.count >= 2 || link10.count >= 2; // FUN v1.10 g: 셋 다 < 2일 때만 ❌
+    return {
+      id: d.id, par: d.par, sym, T: Tg, tSrc, seedT, flip: FLIP.map((f) => (f ? 'F' : '-')).join(''), exact, coarse: coarse.length, refined: fine.length, runs, water: waterN,
+      solCells: fine.filter((c) => c.main).length, D1: cur.count, sizes: cur.sizes, top: cur.top, D1plus: plus.count, plusSizes: plus.sizes, D1link10: link10.count, link10Sizes: link10.sizes,
+      D1seedT: seedTg.count, oldD1: old.count, oldSizes: old.sizes, pass, sec: r2((performance.now() - t0) / 1000),
+    };
+  }
 }
 
 const d1Arg = process.argv.find((a) => a.startsWith('--d1'));
 if (import.meta.url === `file://${process.argv[1]}` && d1Arg) {
   const only = d1Arg.includes('=') ? d1Arg.split('=')[1].split(',') : undefined, t0 = performance.now();
-  const res = diversity(only, process.argv.includes('--full')).filter(Boolean);
+  // FUN v1.10 g: --tstar=<funqa n300 json> → 판마다 T* = 숙련 톡 중앙 (+1 if 중앙보다 많이 쓴 몫 ≥ .35)
+  const tArg = process.argv.find((a) => a.startsWith('--tstar='));
+  let tStar: Record<string, number> | undefined;
+  if (tArg) {
+    const j = JSON.parse(readFileSync(tArg.split('=')[1], 'utf8')) as { 숙련: { stages: { stage: number; medTaps: number; tapsUp: number | null }[] } };
+    tStar = Object.fromEntries(j.숙련.stages.map((p) => [STAGES[p.stage - 1].id, p.medTaps + ((p.tapsUp ?? 0) >= 0.35 ? 1 : 0)]));
+  }
+  const res = diversity(only, process.argv.includes('--full'), tStar).filter(Boolean);
   mkdirSync(join(import.meta.dirname, 'reports'), { recursive: true });
   writeFileSync(join(import.meta.dirname, 'reports/funqa-d1' + (process.argv.includes('--full') ? '-full' : '') + '.json'), JSON.stringify({ at: new Date().toISOString(), D1: res }, null, 2) + '\n');
-  console.log('D1 정답 다양성 (FUN v1.6) — 판 | par | T*(시드 3) · 뒤집힘 | 거친 3★ | 정밀 칸/물(전수면 =) | 해 칸 | D1 | 무리 칸 수 | 가장 큰 몫 | 옛 자(3★만) D1 · 무리 | 초');
-  for (const r of res) if (r) console.log(`${r.id}${r.sym ? '(대칭)' : ''} | ${r.par} | ${r.T.join('·')} · ${r.flip} | ${r.coarse} | ${r.refined}/${r.water}${r.exact ? '=' : ''} | ${r.solCells} | ${r.D1}${r.D1 >= 2 ? ' ✓' : ' ✗'} | ${r.sizes.join('·') || '-'} | ${r.top} | ${r.oldD1} · ${r.oldSizes.join('·') || '-'} | ${r.sec}`);
+  console.log('D1 정답 다양성 (FUN v1.10 g) — 판 | par | T*(출처) · 시드별 T* · 뒤집힘 | 정밀 칸/물(전수면 =) | 해 칸 | D1 · T*+1 · 연결 .10 → 판정 | 무리 칸 수 | 가장 큰 몫 | 옛 자: 시드별 T* D1 · 3★만 D1 | 초(캐시면 0)');
+  for (const r of res) if (r) console.log(`${r.id}${r.sym ? '(대칭)' : ''} | ${r.par} | ${r.T}(${r.tSrc}) · ${r.seedT.join('·')} · ${r.flip} | ${r.refined}/${r.water}${r.exact ? '=' : ''} | ${r.solCells} | ${r.D1} · ${r.D1plus} · ${r.D1link10} → ${r.pass ? '✓' : '✗'} | ${r.sizes.join('·') || '-'} | ${r.top} | ${r.D1seedT} · ${r.oldD1} | ${r.cached ? '캐시' : r.sec}`);
   console.log(`판 ${res.length}개 · ${r2((performance.now() - t0) / 1000)}초 (30판 목표 ≤ 15분)`);
 } else if (import.meta.url === `file://${process.argv[1]}`) {
   const n = Number(process.argv.find((a) => /^\d+$/.test(a)) ?? 20), res = measure(n) as Record<string, unknown>;
