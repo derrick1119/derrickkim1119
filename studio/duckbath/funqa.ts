@@ -11,14 +11,14 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mulberry32 } from '../../engine/rng.ts';
 import type { Bot, Input } from './core.ts';
-import { STAGES, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, makeCasual, startStage, type DuckState } from './game.ts';
+import { STAGES, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, failText, makeCasual, startStage, type DuckState } from './game.ts';
 
 /** 한 판에서 다시 하기 허용 횟수 (첫 시도 + 3번) */
 export const RETRY = 3;
 /** 배우는 처음 봇의 다시 한도 (C5 p90을 재려고 넉넉히) */
 export const RETRY_LEARN = 30;
 
-export interface StageLog { stage: number; ok: boolean; sec: number; taps: number; stars: number; why: string; tapStar: boolean; goldStar: boolean; sucks: number; chomps: number }
+export interface StageLog { stage: number; ok: boolean; sec: number; taps: number; stars: number; why: string; tapStar: boolean; goldStar: boolean; sucks: number; chomps: number; failKind?: string }
 export interface Run { stages: StageLog[]; score: number; sec: number; reached: number; won: boolean; gaveUp: number; firstTapNest: number }
 
 /** 배우는 처음 봇 (FUN N2): 판 시도마다 캐주얼식으로 칠 확률 0.25 → 0.5 → 0.75, 아니면 무작위 */
@@ -45,7 +45,7 @@ export function play(bot: Bot<DuckState>, seed: number, maxSec = 900, retry = RE
     if (tap1 < 0 && s.used > 0) tap1 = s.t;
     if (tap1 >= 0 && firstTapNest < 0 && s.t - tap1 >= 180) firstTapNest = s.objs.filter((o) => o.k <= 1 && o.st >= 0).length;
     if (phase === 'play' && s.phase === 'result') {
-      logs.push({ stage: s.stage + 1, ok: s.ok, sec: (s.t - t0) / 60, taps: s.used, stars: s.ok ? s.got : 0, why: s.why, tapStar: s.ok && s.starOk[1], goldStar: s.ok && s.starOk[2], sucks: s.sucks, chomps: s.chomps });
+      logs.push({ stage: s.stage + 1, ok: s.ok, sec: (s.t - t0) / 60, taps: s.used, stars: s.ok ? s.got : 0, why: s.why, tapStar: s.ok && s.starOk[1], goldStar: s.ok && s.starOk[2], sucks: s.sucks, chomps: s.chomps, failKind: s.ok ? undefined : failText(s).kind });
       if (!s.ok && s.stageTries > retry) {
         gaveUp = s.stage + 1;
         break;
@@ -82,8 +82,11 @@ function group(bot: Bot<DuckState>, n: number, retry: number) {
   });
   const fails = per.map((p) => p.fails), totalFails = fails.reduce((a, b) => a + b, 0);
   const worst = fails.indexOf(Math.max(...fails));
+  // N4 (FUN v1.4): 실패 카드 제목이 맞는 비율 — 주범 제목이면 주범 몫 ≥ 25% 또는 ≥ 2톡, '톡 바닥'이면 그 밖
+  const fl = runs.flatMap((r) => r.stages.filter((l) => !l.ok)), big = (l: StageLog) => l.sucks + l.chomps >= 2 || (l.taps > 0 && (l.sucks + l.chomps) / l.taps >= 0.25);
+  const N4 = fl.length ? r2(fl.filter((l) => (l.failKind !== 'taps') === big(l)).length / fl.length) : null;
   return {
-    runs: n, retry, medScore: med(runs.map((r) => r.score)), medSec: r2(med(runs.map((r) => r.sec))), winRate: r2(runs.filter((r) => r.won).length / n),
+    N4, runs: n, retry, medScore: med(runs.map((r) => r.score)), medSec: r2(med(runs.map((r) => r.sec))), winRate: r2(runs.filter((r) => r.won).length / n),
     medReached: med(runs.map((r) => r.reached)), firstTapNest: med(runs.map((r) => r.firstTapNest)),
     failWhy: Object.entries(runs.flatMap((r) => r.stages.filter((l) => !l.ok)).reduce<Record<string, number>>((a, l) => ((a[l.why] = (a[l.why] ?? 0) + 1), a), {})),
     W1: { stage: totalFails ? worst + 1 : 0, share: totalFails ? r2(fails[worst] / totalFails) : 0 }, // 실패 집중도
@@ -141,7 +144,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   writeFileSync(join(import.meta.dirname, 'reports/funqa.json'), JSON.stringify({ at: new Date().toISOString(), ...res }, null, 2) + '\n');
   for (const k of ['숙련', '캐주얼', '처음', '배우는처음'] as const) {
     const g2 = res[k] as ReturnType<typeof group>;
-    console.log(`\n[${k}] 다시 한도 ${g2.retry} · 점수 중앙 ${g2.medScore} · 런 전체 ${g2.medSec}초 · 완주 ${g2.winRate} · 도달 판 중앙 ${g2.medReached} · 첫 톡 3초 뒤 둥지 ${g2.firstTapNest}마리 · W1 ${g2.W1.share}(${g2.W1.stage}판)`);
+    console.log(`\n[${k}] 다시 한도 ${g2.retry} · 점수 중앙 ${g2.medScore} · 런 전체 ${g2.medSec}초 · 완주 ${g2.winRate} · 도달 판 중앙 ${g2.medReached} · 첫 톡 3초 뒤 둥지 ${g2.firstTapNest}마리 · W1 ${g2.W1.share}(${g2.W1.stage}판)${k === '배우는처음' ? ' ← W1·N4 판정(FUN v1.2·v1.4)' : ' (보고만)'} · N4 ${g2.N4}`);
     console.log(`  실패 이유: ${g2.failWhy.map(([w, c]) => `${w} ${c}`).join(' · ') || '없음'}`);
     console.log('판 | 도전 | 클리어 | 첫 시도 | 다시 중앙/p90 | 사람초 | 톡 | 별 | ★톡 | ★황금 | 시도당 쏙꿀꺽');
     for (const st of g2.stages) console.log(`${st.stage} | ${st.tried} | ${st.clearRate} | ${st.firstTry} | ${st.retryMed}/${st.retryP90} | ${st.humanSec} | ${st.medTaps} | ${st.stars} | ${st.tapStar} | ${st.goldStar} | ${st.pen}`);

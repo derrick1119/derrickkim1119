@@ -2,7 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
-import { FAUCET, STAGES, advance, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, hintPoint, startStage } from '../studio/duckbath/game.ts';
+import { FAUCET, STAGES, advance, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, failText, hintPoint, startStage } from '../studio/duckbath/game.ts';
+import { SAVE_KEY, makeStore } from '../studio/duckbath/save.ts';
 import { play } from '../studio/duckbath/funqa.ts';
 
 describe('욕조 물결 오리 시뮬', () => {
@@ -166,6 +167,48 @@ describe('욕조 물결 오리 시뮬', () => {
     const smart = med([1, 2, 3, 4, 5].map((k) => play(duckbathSmart, 900 + k).score));
     const rnd = med([1, 2, 3, 4, 5].map((k) => play(duckbathRandom, 900 + k).score));
     expect(smart).toBeGreaterThan(rnd * 3);
+  });
+});
+
+describe('저장·판 고르기 (D005)', () => {
+  const fake = () => {
+    const m = new Map<string, string>();
+    return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k), m } as unknown as Storage & { m: Map<string, string> };
+  };
+  it('판을 깨면 다음 판이 열리고, 다시 열어도 남아 있다 (최고 별만)', () => {
+    const ls = fake(), a = makeStore(8, () => ls);
+    expect(a.persistent).toBe(true);
+    expect(a.data.open).toBe(1);
+    a.clear(0, 2);
+    a.clear(0, 1); // 낮은 별로 다시 깨도 최고 별 유지
+    expect([a.data.best[0], a.data.open]).toEqual([2, 2]);
+    const b = makeStore(8, () => ls);
+    expect([b.data.best[0], b.data.open]).toEqual([2, 2]);
+    b.clear(7, 3);
+    expect(b.data.open).toBe(8); // 마지막 판 너머로 열리지 않는다
+  });
+  it('localStorage가 막혀도(접근 예외·쓰기 예외·깨진 데이터) 메모리로 계속 간다', () => {
+    const thrower = makeStore(8, () => { throw new Error('SecurityError'); });
+    expect(thrower.persistent).toBe(false);
+    expect(() => thrower.clear(0, 3)).not.toThrow();
+    expect(thrower.data.open).toBe(2);
+    const full = fake();
+    full.setItem = () => { throw new Error('QuotaExceeded'); };
+    const q = makeStore(8, () => full);
+    expect(() => q.clear(1, 1)).not.toThrow();
+    const bad = fake();
+    bad.m.set(SAVE_KEY, '{not json');
+    expect(makeStore(8, () => bad).data.open).toBe(1);
+  });
+  it('실패 카드: 주범이 작으면(1톡·25% 미만) 톡 바닥 + 그 판의 교훈, 크면 주범 제목 (FUN v1.4 N4)', () => {
+    const s = g.create(2);
+    startStage(s, 7);
+    Object.assign(s, { used: 12, sucks: 1, chomps: 0 });
+    expect(failText(s)).toMatchObject({ kind: 'taps', tip: STAGES[7].hint });
+    Object.assign(s, { sucks: 2 });
+    expect(failText(s).kind).toBe('suck');
+    Object.assign(s, { used: 4, sucks: 0, chomps: 1 });
+    expect(failText(s).kind).toBe('chomp');
   });
 });
 

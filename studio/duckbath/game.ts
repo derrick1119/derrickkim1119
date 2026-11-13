@@ -510,6 +510,29 @@ export function hintPoint(s: DuckState): { x: number; y: number } | null {
   return m.p;
 }
 
+/**
+ * D005 실패 카드 문구 (🧪 D004 · FUN v1.4 N4): 톡을 가져간 주범(쏙·꿀꺽)이 크면(2톡 이상이거나 쓴 톡의 25% 이상) 주범 제목,
+ * 아니면 '톡 바닥' 제목에 그 판의 hint 줄(판의 교훈). 브라우저 카드와 funqa N4가 같은 함수를 쓴다.
+ */
+export function failText(s: DuckState): { kind: 'suck' | 'chomp' | 'taps'; title: string; tip: string } {
+  const pen = s.sucks + s.chomps, big = pen >= 2 || (s.used > 0 && pen / s.used >= 0.25);
+  if (big && s.sucks >= s.chomps) return { kind: 'suck', title: '꼬르륵~ 톡이 배수구로 샜어요', tip: '빙글 원 안으로는 밀지 말기' };
+  if (big) return { kind: 'chomp', title: '냠! 상어 간식인 줄 알았대요', tip: '물결을 맞히면 상어가 어질어질' };
+  return { kind: 'taps', title: '톡이 바닥! 오리들 아직 둥둥~', tip: STAGES[s.stage].hint };
+}
+
+/**
+ * D005 👆 미리 계산 (🧪 D004: 첫 프레임 탐색 20~82ms → 폰에서 멈칫): 실패 카드가 떠 있는 동안 부른다.
+ * 같은 시드·같은 판은 늘 같은 배치라 새 상태로 판 시작을 만들어 숙련 봇 첫 톡을 구해 두고, 다시 시작한 판의 hintPoint가 그대로 쓴다.
+ */
+export function precomputeHint(s: DuckState) {
+  if (s.phase !== 'result' || s.ok || s.stageTries < 2) return;
+  const t = duckbath.create(s.seed);
+  startStage(t, s.stage);
+  const p = plan(t).p;
+  hintMemo.set(s, { key: `${s.stage}:${s.tries}`, p: p ? { x: PX(p.x, p.y), y: PY(p.y) / A } : null });
+}
+
 /** 테스트·측정용: i번째 판(0부터)을 처음부터 시작 */
 export function startStage(s: DuckState, i: number) {
   s.stage = i;

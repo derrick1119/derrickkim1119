@@ -39,13 +39,25 @@ h1 span{color:#ffd84a}
 .card .btn{flex:1.5;min-height:52px;border:0;border-radius:26px;background:#ffd23a;color:#3a2a00;font:800 18px system-ui,sans-serif;box-shadow:0 4px 0 #e29a00;cursor:pointer}
 .card .btn2{flex:1;min-height:44px;align-self:center;border:2px solid #2e6576;border-radius:22px;background:#1b4b5b;color:#fffaf0;font:800 16px system-ui,sans-serif;cursor:pointer}
 .card button:focus-visible{outline:3px solid #ffd84a;outline-offset:2px}
+.card .lnk{margin-top:8px;min-height:44px;border:0;background:none;color:#a9d3dc;font:700 15px system-ui,sans-serif;text-decoration:underline;cursor:pointer}
+.levels{position:absolute;inset:0;z-index:4;background:#123a48f2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;text-align:center}
+.levels h2{margin:0;font-size:26px;font-weight:900}
+.levels .sum{margin:0 0 6px;font-size:18px;font-weight:800;color:#ffd84a}
+.levels .grid{display:grid;grid-template-columns:repeat(4,72px);gap:12px}
+.lv{width:72px;height:72px;border-radius:16px;border:2px solid #3e7f92;background:#1b4b5b;color:#fffaf0;font:800 22px system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:0}
+.lv span{font-size:13px;color:#ffd84a;letter-spacing:1px}
+.lv:disabled{opacity:.5;cursor:default}
+.lv:disabled span{color:#a9d3dc;letter-spacing:0}
+.lv.next{border-color:#ffd23a;box-shadow:0 0 0 3px #ffd23a55}
+.lv:focus-visible{outline:3px solid #ffd84a;outline-offset:2px}
+.levels .note{margin:6px 0 0;font-size:13px;color:#a9d3dc}
 </style>
 </head>
 <body>
 <main>
   <header><h1>🦆 욕조 물결 <span>오리</span></h1></header>
   <div id="game"></div>
-  <p class="ver">스튜디오 빌드 M1 작업 중 (D004)</p>
+  <p class="ver">스튜디오 빌드 M1 작업 중 (D005)</p>
 </main>
 <script>/*BUNDLE*/</script>
 </body>

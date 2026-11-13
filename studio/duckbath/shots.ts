@@ -50,14 +50,17 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
     await page.waitForTimeout(200);
     if ((await st(page)).stage !== 1) errors.push(`${name}: '다음 목욕'을 눌러도 2판이 아님`);
   }
-  // D004 실패 카드(실제 쏙): 3판에서 마지막 톡이 남았을 때 오리 하나가 배수구로 → 톡 0 → 원인별 카드 → R로 같은 판 다시
+  // D005 실패 카드(실제 플레이, 연출 없음): 3판에서 배수구 바깥쪽 같은 자리만 계속 톡 → 톡을 다 쓰면 원인 카드 → R로 같은 판 다시
   await page.evaluate(() => (globalThis as any).__duck.jump(2));
   await page.waitForTimeout(300);
-  await page.evaluate(() => { const s = (globalThis as any).__duck.state(), dr = s.L.drains[0], o = s.objs[0]; s.taps = 1; o.x = dr.x; o.y = dr.y; });
-  await page.waitForSelector('.card.lose:not([hidden])', { timeout: 20_000 });
+  for (let k = 0; k < 14 && !(await page.locator('.card:not([hidden])').count()); k++) {
+    await page.mouse.click(box.x + box.width * 0.5, box.y + box.height * ((0.36 + 0.3 * 0.66) / 1.52));
+    await page.waitForTimeout(1500);
+  }
+  await page.waitForSelector('.card:not([hidden])', { timeout: 20_000 });
   await page.waitForTimeout(300);
   await page.screenshot({ path: join(here, 'screens', `${name}-fail.png`) });
-  if (!(await page.locator('.card.lose h2').innerText()).includes('꼬르륵')) errors.push(`${name}: 쏙 실패인데 카드 제목이 쏙 원인이 아님`);
+  if (!(await page.locator('.card.lose').count())) errors.push(`${name}: 3판 같은 자리 톡이 실패 카드가 아님`);
   await page.keyboard.press('r');
   await page.waitForTimeout(200);
   const af = await st(page);
@@ -67,12 +70,31 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.waitForTimeout(900);
   await page.screenshot({ path: join(here, 'screens', `${name}-hint.png`) });
   void D;
+  // D005 판 고르기: 1판을 깼으니 2판까지 열려 있다 → 2판 누르면 2판 시작
+  await page.evaluate(() => (globalThis as any).__duck.levels());
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: join(here, 'screens', `${name}-levels.png`) });
+  const opened = await page.locator('.lv:not([disabled])').count();
+  if (opened < 2) errors.push(`${name}: 1판을 깼는데 2판이 안 열림 (${opened})`);
+  else {
+    await page.locator('.lv:not([disabled])').nth(1).click();
+    await page.waitForTimeout(200);
+    const lv = await st(page);
+    if (!lv.running || lv.stage !== 1) errors.push(`${name}: 판 고르기에서 2판이 안 시작됨 ${JSON.stringify(lv)}`);
+  }
   // 키보드만: 새로 열어 Enter로 시작 → 화살표로 커서 → 스페이스 꾹·떼기
   await page.goto(url);
   await page.waitForTimeout(300);
   await page.focus('.g-overlay');
   await page.keyboard.press('Enter');
-  await page.waitForTimeout(1600);
+  await page.waitForTimeout(300);
+  // D005: 다녀간 사람은 판 고르기가 먼저 — 포커스된 판(다음 판)을 Enter로
+  if (await page.locator('.levels:not([hidden])').count()) {
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(300);
+    if (!(await st(page)).running) errors.push(`${name}: 판 고르기에서 Enter로 시작 안 됨`);
+  }
+  await page.waitForTimeout(1300);
   await page.keyboard.down('ArrowDown');
   await page.waitForTimeout(250);
   await page.keyboard.up('ArrowDown');
