@@ -637,7 +637,7 @@ export interface DogState {
   best: number[]; stars: number; got: number; gain: number; pts: number; ok: boolean; why: string; won: boolean; dead: boolean;
   /** 개울 판 도움 깃발(목장 좌표, 박사의 첫 수부터) · 이 판에서 풍덩한 횟수 · 이 시도에서 깃발대로 짖었나(🏅 안 줌) (C004) */
   flags: [number, number][]; splashes: number; helped: boolean;
-  seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[]; startT: number; clearT: number;
+  seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsStage: number; newsQ: { key: string; text: string; tip: boolean }[]; startT: number; clearT: number;
 }
 
 const ev = (s: DogState, kind: string, x: number, y: number, text?: string, col?: string, v?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v });
@@ -645,17 +645,25 @@ const ev = (s: DogState, kind: string, x: number, y: number, text?: string, col?
 function tip(s: DogState, key: string, text: string) {
   if (s.tips.has(key) || s.newsQ.length) return;
   s.tips.add(key);
-  s.newsQ.push(text);
+  s.newsQ.push({ key, text, tip: true });
 }
 function see(s: DogState, key: string, text: string) {
   if (s.seen.has(key)) return;
   s.seen.add(key);
-  s.newsQ.push(text);
+  s.newsQ.push({ key, text, tip: false });
 }
 const NEWS_T = 200;
 
 function newStage(s: DogState) {
   const d = STAGES[s.stage];
+  // 판이 바뀌면 앞 판에서 못 보여 준 알림은 버리고(나중에 그 요소를 만나면 다시 뜨게 '본 것'에서도 뺀다), 이 판 알림을 바로 띄운다
+  // (C007, FUN QA C005·C006: 알림이 200틱씩 줄 서서 7판에 3판 알림이 뜨던 문제)
+  if (s.newsStage !== s.stage) {
+    for (const q of s.newsQ) (q.tip ? s.tips : s.seen).delete(q.key);
+    s.newsQ = [];
+    s.news = null;
+    s.newsStage = s.stage;
+  }
   let L = s.layouts[s.stage];
   if (!L) s.layouts[s.stage] = L = d.build(mulberry32((LAYOUT_SEED[s.stage] * 31 + s.stage * 7919 + 17) >>> 0));
   s.F = makeField(L);
@@ -792,7 +800,7 @@ export const sheepdog: GameDef<DogState> = {
       down: false, ax: 0, ay: 0, idle: 0, tries: 0,
       flags: [], splashes: 0, helped: false,
       best: STAGES.map(() => 0), stars: 0, got: 0, gain: 0, pts: 0, ok: false, why: '', won: false, dead: false,
-      seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsQ: [], startT: 0, clearT: 0,
+      seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsStage: -1, newsQ: [], startT: 0, clearT: 0,
     } as unknown as DogState;
     newStage(s);
     return s;
@@ -803,7 +811,7 @@ export const sheepdog: GameDef<DogState> = {
     s.down = !!p;
     s.t++;
     s.pt++;
-    if (s.newsQ.length && (!s.news || s.t - s.news.t > NEWS_T)) s.news = { text: s.newsQ.shift()!, t: s.t };
+    if (s.newsQ.length && (!s.news || s.t - s.news.t > NEWS_T)) s.news = { text: s.newsQ.shift()!.text, t: s.t };
     if (s.events.length > 40 || (s.events.length && s.t - s.events[0].t > 150)) s.events = s.events.filter((e) => s.t - e.t < 150);
     // ↺ 다시: 언제든 지금 판을 처음부터 (통과 화면에서 누르면 별 더 따기)
     if (inp.retry && s.phase !== 'run' && s.phase !== 'flee') {
@@ -1118,7 +1126,9 @@ function pathAt(pa: number[], q: number): [number, number] {
   const f = Math.max(0, Math.min(1, q)) * (m - 1), i = Math.min(m - 2, Math.floor(f)), r = f - i;
   return [pa[i * 2] + (pa[i * 2 + 2] - pa[i * 2]) * r, pa[i * 2 + 1] + (pa[i * 2 + 3] - pa[i * 2 + 1]) * r];
 }
-/** 판마다 해가 기운다: 하늘 위·아래, 해, 먼 언덕, 가까운 언덕, 먼 풀, 가까운 풀 */
+/** 월드마다 시간대(SKY 줄 번호): W1 아침 0 → W2 한낮 · W3 오후 · W4 노을 · W5 밤 (GDD §5) */
+const WORLD_TIME = [0, 1, 3, 5, 7];
+/** 시간대 키: 하늘 위·아래, 해, 먼 언덕, 가까운 언덕, 먼 풀, 가까운 풀 */
 const SKY: string[][] = [
   ['#7cc6ee', '#fdf2cc', '#fff6c8', '#a4cc8e', '#86bb6e', '#a8d66c', '#6caa46'],
   ['#76bce8', '#fde5b4', '#fff0b0', '#9cc588', '#80b569', '#a2d068', '#67a543'],
@@ -1695,7 +1705,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   const fx = juice(s), t = s.t, F = s.F, S = s.S, d = STAGES[s.stage];
   const X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w;
   const PX = (fx0: number, fy0: number) => X(SX(fx0, fy0)), PY = (fy0: number) => Y(SY(fy0));
-  const pal = SKY[Math.min(SKY.length - 1, s.stage)], night = F.night, dusk = s.stage / 7;
+  // 시간대는 판 번호가 아니라 월드로 (C007 M1-4, 🎨): W1 '아침 들판'은 8판 모두 아침 키 하나. 밤 판만 밤 키
+  const tod = F.night ? SKY.length - 1 : WORLD_TIME[0], pal = SKY[tod], night = F.night, dusk = F.night ? 1 : tod / 7;
   const wind = F.wind[0];
   const say = (x: number, y: number, text: string, col: string, size: number) => {
     let rec = recentSay.get(s);

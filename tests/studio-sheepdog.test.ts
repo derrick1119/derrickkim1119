@@ -177,6 +177,17 @@ describe('M1-2a 개울 판 도움 깃발 (📐 C004)', () => {
   });
 });
 
+describe('판 알림 (C007)', () => {
+  it('판을 건너뛰어도 그 판의 알림이 먼저 뜬다 — 앞 판 알림이 줄 서서 밀려 나오지 않는다', () => {
+    const s = g.create(1);
+    for (const k of [2, 6, 7]) {
+      jumpTo(s, k);
+      g.step(s, up);
+      expect(s.news?.text, `${k + 1}판`).toBe(STAGES[k].news);
+    }
+  });
+});
+
 describe('M1-3 숨은 규칙을 보이게 (C006)', () => {
   it('미리 보기 = 실제: 누르고 있을 때 보인 도착 자리·들어감·풍덩이 떼고 난 결과와 같다 (F8, 허들 ④)', () => {
     for (const k of [0, 3, 5, 7]) {
