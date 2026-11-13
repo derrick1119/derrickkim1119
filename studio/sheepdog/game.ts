@@ -1505,7 +1505,7 @@ function drawDog(ctx: CanvasRenderingContext2D, x: number, y: number, z: number,
   if (mood === 'surprise') {
     const k = age < 4 ? (age / 4) * 1.3 : age < 8 ? 1.3 - ((age - 4) / 4) * 0.3 : 1;
     ctx.save();
-    ctx.translate(z * 0.75, -z * 2.7);
+    ctx.translate(z * 0.1, -z * 2.75); // 머리 뒤쪽 위 — 까만 양 위 '?!'와 붙어 '?!!'로 읽히지 않게 (FUN QA C007)
     ctx.scale(k, k);
     ctx.fillStyle = '#ffd166';
     ctx.strokeStyle = '#3b2a1e';
@@ -2465,18 +2465,18 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       pose.age = u;
       if (u < 5) (pose.sx = 1.15), (pose.sy = 0.85);
       else if (u < 17) {
-        ox = -dir * 0.04 * ease(Math.min(1, (u - 5) / 12));
+        ox = -dir * 0.08 * ease(Math.min(1, (u - 5) / 12));
         pose.lift = Math.sin((Math.PI * Math.min(12, u - 5)) / 12) * R(0.03);
         pose.sx = u < 11 ? 0.92 : 1;
         pose.sy = u < 11 ? 1.12 : 1.04;
       } else {
-        ox = -dir * 0.04 + (u >= 22 ? Math.sin(t * 1.7) * 0.002 : 0);
+        ox = -dir * 0.08 + (u >= 22 ? Math.sin(t * 1.7) * 0.002 : 0);
         if (u < 22) (pose.sx = 1.18 - ((u - 17) / 5) * 0.18), (pose.sy = 0.82 + ((u - 17) / 5) * 0.18);
       }
     } else if (s.phase === 'result' && s.ok && s.rec && s.rec.scare.some((v, i) => v === 3 && F.black[i]) && F.black.every((b, i) => b || S.pen[i] >= 0)) {
       const bj = s.rec.scare.findIndex((v, i) => v === 3 && F.black[i]);
       const dir = Math.sign(S.x[bj] - s.dogX) || 1;
-      ox = -dir * 0.04 * Math.max(0, 1 - s.pt / 14);
+      ox = -dir * 0.08 * Math.max(0, 1 - s.pt / 14);
     }
     if (mood === 'surprise' && pose.age === undefined && flee) pose.age = s.pt - 22;
     const dz = R(0.06) * scl(s.dogY);
