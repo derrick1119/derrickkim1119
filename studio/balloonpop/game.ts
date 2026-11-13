@@ -58,7 +58,7 @@ interface SDef {
   rest?: boolean;
   /** 다른 무리끼리 거리 ≥ apart×(두 반경 합) — 무리 사이 원이 엉키지 않게 (CONTENT v0.1) */
   apart?: number;
-  /** 무리 풍선 크기(작게·보통·크게) 가중치 */
+  /** 무리 풍선 크기(작게·보통·크게) 가중치 — 크게가 0이면 무리 뿌리도 보통: 큰 풍선이 없는 판 (CONTENT v0.3, 1판) */
   szw?: number[];
   /** 다리 풍선 수: 무리 0·1 사이에 큰 풍선 하나 — 한 톡에 두 무리 (CONTENT v0.1) */
   bridge?: number;
@@ -69,9 +69,9 @@ interface SDef {
 }
 /** 판 8개. cl = 무리 크기들, rand = 아무렇게나 눌러 목표를 채우는 비율로 고를 범위 */
 export const STAGES: SDef[] = [
-  // CONTENT.md v0.1 (C005): 월드 1 "한낮 소풍"의 앞 8판 — 새것은 판당 하나, 움직이는 판(트램펄린·물·바람·폭죽·구름)은 M2부터
-  { cl: [10, 2, 2], dense: true, goal: { pop: 8, save: 0 }, rand: [0.95, 1], key: 'pop', title: '첫 팡!', tip: '풍선을 톡! 원 안의 풍선까지 팡팡', news: '🎈 톡! 터진 풍선은 둘레 원 안의 풍선을 터뜨려요' },
-  { cl: [6, 4, 3], apart: 0.8, goal: { pop: 8, save: 0 }, rand: [0.85, 0.95], key: 'size2', title: '큰 풍선, 큰 원', tip: '큰 풍선일수록 원이 커요 — 큰 것부터!', news: '🔵 큰 풍선은 원이 커서 멀리까지 팡' },
+  // CONTENT.md v0.1 (C005)·v0.3 (C008, 1·2판): 월드 1 "한낮 소풍"의 앞 8판 — 새것은 판당 하나, 움직이는 판(트램펄린·물·바람·폭죽·구름)은 M2부터
+  { cl: [12, 3, 3], szw: [0.2, 0.8, 0], goal: { pop: 8, save: 0 }, rand: [0.95, 1], key: 'pop', title: '첫 팡!', tip: '풍선을 톡! 원 안의 풍선까지 팡팡', news: '🎈 톡! 터진 풍선은 둘레 원 안의 풍선을 터뜨려요' },
+  { cl: [6, 4, 3], apart: 0.8, szw: [0.45, 0.45, 0.1], goal: { pop: 8, save: 0 }, rand: [0.87, 0.97], key: 'size2', title: '큰 풍선, 큰 원', tip: '큰 풍선일수록 원이 커요 — 큰 것부터!', news: '🔵 큰 풍선은 원이 커서 멀리까지 팡' },
   { cl: [6, 4, 3], apart: 0.8, cat: 1, goal: { pop: 8, save: 1 }, rand: [0.85, 0.95], key: 'cat', title: '우산 고양이', tip: '고양이 풍선이 터지면 우산을 펴고 내려와요', news: '☂️ 우산 고양이 — 풍선이 터지면 둥실둥실 내려와요' },
   { cl: [5, 4, 3, 2], apart: 0.8, sway: 0.1, swayCl: [0, 1], goal: { pop: 10, save: 0 }, rand: [0.65, 0.85], key: 'sway', title: '흔들 무리', tip: '두 무리가 가까워질 때 톡 하면 한 번에 팡!', news: '↔️ 흔들 무리 — 기다렸다 가까워질 때 톡, 두 무리가 한 번에' },
   { cl: [4, 4, 4, 3], bridge: 1, apart: 0.8, szw: [0.5, 0.4, 0.1], goal: { pop: 11, save: 0 }, rand: [0.55, 0.75], key: 'bridge', title: '다리 풍선', tip: '두 무리 사이 큰 풍선이 다리예요', news: '🌉 다리 풍선 — 두 무리를 한 번에 이어요' },
@@ -238,7 +238,7 @@ export function gen(d: SDef, r: Rng): Lay | null {
     const mem = bs.filter((b) => b.cl === c);
     for (let k = 0; k < 70; k++) {
       let sz: number, x: number, y: number;
-      if (!mem.length) (sz = 2), (x = cs[c].x + (k ? (r() - 0.5) * 0.24 : 0)), (y = cs[c].y + (k ? (r() - 0.5) * (d.lanes ? 0.04 : 0.16) : 0));
+      if (!mem.length) (sz = d.szw?.[2] === 0 ? 1 : 2), (x = cs[c].x + (k ? (r() - 0.5) * 0.24 : 0)), (y = cs[c].y + (k ? (r() - 0.5) * (d.lanes ? 0.04 : 0.16) : 0));
       else {
         sz = pickSz(r, c === 0 && d.dense ? [0.05, 0.5, 0.45] : d.szw ?? [0.36, 0.4, 0.24]);
         const p = mem[Math.floor(r() * mem.length)], lo = BR[p.sz] + BR[sz] + 0.014, hi = REACH[p.sz] * 0.92;
@@ -1794,10 +1794,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
   const ripple = new Set<number>();
   if (fi >= 0 && L.bs[fi].k !== IRON) for (let k = 0; k < n; k++) if (k !== fi && s.alive[k] === 1 && st < L.bs[k].esc && delay(L, fi, k)) ripple.add(k);
   const tails = shown > 10;
+  // 1판 첫 톡 전: 손가락 풍선(0번)은 온전한 원 — 1판엔 큰 풍선이 없어 판 시작에 온전한 원이 하나도 없게 되므로 (CONTENT v0.3)
+  const lead = stage === 0 && s.used === 0 && s.tries === 0 && fi < 0 && s.phase === 'play';
   for (let i = 0; i < n; i++) {
     const b = L.bs[i];
     if (s.alive[i] !== 1 || b.k === IRON || hidden(i)) continue;
-    const x = X(SX[i]), y = Y(yOf(i)), col = b.k === KING ? '#c77dff' : colOf(b), fused = s.popT[i] >= 0, rr = R(reachOf(b)), on = i === fi;
+    const x = X(SX[i]), y = Y(yOf(i)), col = b.k === KING ? '#c77dff' : colOf(b), fused = s.popT[i] >= 0, rr = R(reachOf(b)), on = i === fi || (lead && i === 0);
     const a = (fused || on ? 1 : fi >= 0 ? 0.2 : 0.35) * intro;
     ctx.setLineDash(fused || on ? [] : [R(0.014), R(0.01)]);
     ctx.strokeStyle = rgba(mix(col, night > 0.5 ? '#ffffff' : '#3a2a6a', 0.12), a);
@@ -2240,10 +2242,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     ctx.fillText(tx, 0, 0);
     ctx.restore();
   }
-  // 첫 판 안내: 손가락이 큰 무리를 가리킨다
+  // 첫 판 안내: 손가락이 큰 무리의 뿌리(0번)를 가리킨다 — 1판엔 큰 풍선이 없다 (CONTENT v0.3)
   if (stage === 0 && s.used === 0 && s.phase === 'play' && s.tries === 0) {
-    let bi = 0;
-    for (let i = 0; i < n; i++) if (L.bs[i].cl === 0 && L.bs[i].sz === 2 && s.alive[i] === 1) (bi = i), (i = n);
+    const bi = 0;
     const hx = X(SX[bi]) + R(0.03), hy = Y(SY[bi]) + R(0.06) + Math.abs(Math.sin(t * 0.12)) * R(0.02);
     ctx.fillStyle = '#ffffff';
     font(0.07, 400);

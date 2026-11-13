@@ -245,6 +245,39 @@ describe('월드 1 앞 8판 (C005, CONTENT v0.1)', () => {
       expect(blocked).toBeGreaterThan(0);
     }
   });
+  // CONTENT v0.3 (C008): 1판은 작은·보통 풍선만, 큰 풍선은 2판에서 처음. 1판 지표는 고친 셈(둘째 톡 풍선 안 셈)
+  const RUN_SEEDS = Array.from({ length: 40 }, (_, r) => 1000 + r * 7919);
+  it('1판엔 큰 풍선이 없고, 2판엔 시드마다 큰 풍선이 있다 (CONTENT v0.3)', () => {
+    for (const seed of RUN_SEEDS) {
+      expect(startAt(seed, 0).L.bs.every((b) => b.sz <= 1)).toBe(true);
+      expect(startAt(seed, 1).L.bs.some((b) => b.sz === 2)).toBe(true);
+    }
+  });
+
+  it('1판 와우·2판 문턱은 그대로 (CONTENT v0.3 가드, 고친 셈)', () => {
+    const c = measure(humanLate, 40);
+    expect(c.firstTry[0]).toBeGreaterThanOrEqual(0.95);
+    expect(c.firstChain[0]).toBeGreaterThanOrEqual(7);
+    expect(c.firstTry[1]).toBeGreaterThanOrEqual(0.85);
+    expect(measure(balloonpopRandom, 40).chain3).toBeGreaterThanOrEqual(0.85);
+  });
+
+  it('2판: 큰 풍선을 톡 하면 그 무리가 다 터진다 — 다른 풍선보다 확실히 (CONTENT v0.3)', () => {
+    let big = 0, bigN = 0, oth = 0, othN = 0;
+    for (const seed of RUN_SEEDS) {
+      const bs = startAt(seed, 1).L.bs;
+      bs.forEach((b, i) => {
+        if (b.k === IRON) return;
+        const s = startAt(seed, 1), mem = bs.map((o, j) => (o.cl === b.cl ? j : -1)).filter((j) => j >= 0);
+        tapAndWait(s, i);
+        const whole = mem.every((m) => s.alive[m] === 0);
+        if (b.sz === 2) (bigN++, whole && big++);
+        else (othN++, whole && oth++);
+      });
+    }
+    expect(big / bigN).toBeGreaterThanOrEqual(0.9);
+    expect(big / bigN - oth / othN).toBeGreaterThanOrEqual(0.2);
+  });
 });
 
 describe('휴대폰 살펴보기 — 빈 하늘 톡 (C007, 오너 답 없음 → ①)', () => {

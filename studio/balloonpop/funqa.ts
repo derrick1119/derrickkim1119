@@ -155,7 +155,9 @@ export function measure(bot: Bot<PopState>, runs: number): GroupStat {
     let stage = -1, attempt = 0, t = 0, wasResult = false, t0 = 0, base = -1, stuck = false, firstPop = -1, all3 = true;
     const chainDone = () => {
       if (base < 0) return;
-      const c = s.popped - base;
+      // 첫 톡이 터뜨린 풍선만 센다. 둘째 톡 풍선은 그 틱에 이미 popped에 더해져 popped 차이로 세면 +1 (FUN 측정 정의 C008 정정)
+      let c = 0;
+      for (let i = 0; i < s.alive.length; i++) if (s.alive[i] === 0 && s.tapOf[i] === 1) c++;
       chains[stage].push(c);
       if (stage === 0 && attempt === 0) (c3n++, c >= 3 && c3++);
       base = -1;
