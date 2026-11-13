@@ -8,7 +8,7 @@ import { ICON, mountHud } from './hud.ts';
 import { sfx } from './sfx.ts';
 import { mulberry32 } from './rng.ts';
 import { peek } from './juice.ts';
-import { RESULT_MIN, at, comeHold, jumpTo, preview, setCue, sheepdog as g, sheepdogGreedy, sheepdogNaive, sheepdogSmart, starCount, type DogState } from './game.ts';
+import { RESULT_MIN, at, comeHold, jumpTo, preview, setCue, setIntroTop, sheepdog as g, sheepdogGreedy, sheepdogNaive, sheepdogSmart, starCount, type DogState } from './game.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('sheepdog:' + k) ?? 0); } catch { return 0; } },
@@ -46,6 +46,7 @@ function size() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   // 위 줄(🎨 §12-3, C009): 하늘이 124px 이상이면 캔버스 위 116px(말풍선은 그 아래 = 캔버스 위 64px), 아니면 캔버스 위 8px. ↺는 그 줄 오른쪽 끝
   const rowTop = canvas.offsetTop >= 124 ? canvas.offsetTop - 116 : canvas.offsetTop + 8;
+  setIntroTop(canvas.offsetTop >= 124); // 🎨 C015: 위 줄이 캔버스 밖이면 판 시작 큰 글씨를 캔버스 하늘 띠로
   hud.place(canvas.offsetLeft, rowTop - 6, canvas.offsetTop, W, root.clientHeight - canvas.offsetTop);
   retryBtn.style.left = `${canvas.offsetLeft + W - 52}px`;
   retryBtn.style.top = `${rowTop - 2}px`;

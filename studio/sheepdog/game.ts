@@ -691,6 +691,9 @@ export interface DogState {
   seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsStage: number; newsQ: { key: string; text: string; tip: boolean }[]; startT: number; clearT: number;
 }
 
+/** 판 시작 큰 글씨를 캔버스 하늘 띠에 둘지 (🎨 C015: 위 줄이 캔버스 밖 하늘에 있는 세로 화면만 — main.ts가 정한다) */
+let introTop = false;
+export const setIntroTop = (on: boolean) => void (introTop = on);
 /** 효과음 신호 — 브라우저 플레이어(main.ts)만 꽂는다. 봇·테스트에선 아무것도 안 한다 (C010 M1-6) */
 let cue: (c: Cue, v?: number, last?: boolean) => void = () => {};
 export const setCue = (f: typeof cue) => void (cue = f);
@@ -2499,7 +2502,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
         ctx.lineWidth = 2.5, ctx.strokeStyle = '#ffc857', ctx.stroke();
       } });
     }
-    items.push({ d: sy0, f: () => drawSheep(ctx, PX(dx0, sy0), PY(sy0), z, { black: F.black[i], tag: F.tag[i], face, run, t: t + i * 9, mood, hop, roll }) });
+    // 🎨 C015: 거꾸로 끌려와 강아지 0.15 안에 든 까만 양은 강아지 바로 위 레이어에(그림 순서만, 시뮬은 그대로 — 🧪 C014 '강아지에 가림')
+    const front = F.black[i] && S.pen[i] < 0 && s.rec?.scare[i] === 3 && Math.hypot(sx0 - s.dogX, sy0 - s.dogY) < 0.15;
+    items.push({ d: front ? Math.max(sy0, s.dogY + 0.002) : sy0, f: () => drawSheep(ctx, PX(dx0, sy0), PY(sy0), z, { black: F.black[i], tag: F.tag[i], face, run, t: t + i * 9, mood, hop, roll }) });
   }
   // 염소
   if (F.goat) {
@@ -3007,7 +3012,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       const a = Math.min(1, age / 8, (INTRO_T - age) / 20), sc = 1 + Math.max(0, 8 - age) * 0.04;
       ctx.globalAlpha = a;
       ctx.save();
-      ctx.translate(w / 2, Y(0.86));
+      ctx.translate(w / 2, Y(introTop ? 0.17 : 0.86)); // 🎨 C015: 세로 화면은 캔버스 하늘 띠(Y 0.17, 들판 0.305 위) — 양·클로버·개울을 덮지 않게
       ctx.scale(sc, sc);
       font(0.075, 900);
       ctx.textAlign = 'center';
