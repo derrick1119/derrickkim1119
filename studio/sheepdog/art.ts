@@ -2,7 +2,7 @@
  * 양치기 멍멍 — 캔버스 작은 아이콘 (C010 M1-6 ②, 🎨 C010 결정 2). 캔버스에 남던 그림 글자(🐑🌼🍀🚩💦🐾)를 그린다.
  * 24 격자 모양은 hud.ts ICON(DOM SVG)과 같다. 크기 z = 한 변 px, (x, y) = 가운데.
  */
-export type IconKind = 'sheep' | 'black' | 'flower' | 'clover' | 'flag' | 'drop' | 'paw' | 'heart' | 'star';
+export type IconKind = 'sheep' | 'black' | 'flower' | 'clover' | 'flag' | 'drop' | 'paw' | 'heart' | 'star' | 'starW';
 
 const INK = '#7a3e1d';
 const P: Record<string, Path2D> = {};
@@ -62,8 +62,8 @@ export function drawIcon(ctx: CanvasRenderingContext2D, kind: IconKind, x: numbe
     ctx.lineWidth = 1.4;
     const h = path('heart', 'M12 20.5 4.2 12.8A4.7 4.7 0 0 1 12 6.6a4.7 4.7 0 0 1 7.8 6.2z');
     ctx.fill(h), ctx.stroke(h);
-  } else if (kind === 'star') {
-    ctx.fillStyle = '#ffc857';
+  } else if (kind === 'star' || kind === 'starW') {
+    ctx.fillStyle = kind === 'star' ? '#ffc857' : '#fff6e4'; // starW: 금 알약 위에서 빈 별로 읽히지 않게 크림 (🎨 C011)
     ctx.strokeStyle = INK;
     ctx.lineWidth = 2;
     const st = path('star', 'M12 2.6l2.9 6 6.5.9-4.7 4.6 1.1 6.5L12 17.5l-5.8 3.1 1.1-6.5L2.6 9.5l6.5-.9z');

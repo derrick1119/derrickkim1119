@@ -277,6 +277,13 @@ export function goalLabels(d: StageDef) {
   return ['다 넣기', `멍멍 ${d.par}번`, BONUS_LABEL[d.bonus]];
 }
 export interface HudState { stage: number; name: string; stars: number; max: number; par: number; used: number; sheepIn: number; sheepN: number; goals: { label: string; st: 'on' | 'had' | 'off' | 'wait' }[]; hint: string | null; news: string | null; card: boolean }
+/** 지금 화면에서 울타리에 든 양인가 — 달아나는 동안엔 길에서 울타리에 닿은 양만 (🎨 C011: 양 수가 짖는 틱에 미리 5/5로 튐 → 쏙!과 함께 하나씩) */
+function inNow(s: DogState, i: number) {
+  const fl = s.phase === 'flee' && s.rec ? s.rec : null, pa = fl?.path[i];
+  if (s.S.pen[i] < 0) return false;
+  if (!fl || !pa || fl.penAt[i] < 0) return true;
+  return ease(Math.min(1, s.pt / FLEE_T)) * (pa.length / 2 - 1) >= fl.penAt[i];
+}
 export function hudState(s: DogState): HudState {
   const d = STAGES[s.stage], F = s.F, S = s.S, allIn = s.phase === 'result' && s.ok, bonusOk = bonusMet(F, S, d);
   const now: (boolean | null)[] = [
@@ -293,7 +300,7 @@ export function hudState(s: DogState): HudState {
   const nW = F.black.filter((b) => !b).length;
   return {
     stage: s.stage, name: d.name, stars: s.stars, max: d.max, par: d.par, used: S.used,
-    sheepIn: F.black.filter((b, i) => !b && S.pen[i] >= 0).length, sheepN: nW, goals, hint,
+    sheepIn: F.black.filter((b, i) => !b && inNow(s, i)).length, sheepN: nW, goals, hint,
     news: s.news && s.t - s.news.t < NEWS_T + 20 ? s.news.text : null, card: allIn,
   };
 }
@@ -2838,7 +2845,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     if (e.kind === 'clear') {
       const p0 = F.pens[0], gx0 = PX((p0.gx0 + p0.gx1) / 2, p0.y1), gy0 = PY(p0.y1), rx0 = PX((p0.x0 + p0.x1) / 2, p0.y0), ry0 = PY(p0.y0) - 18;
       fx.burst(gx0, gy0 - R(0.05), '#ffe066', 40, 6, 3.2), fx.burst(gx0, gy0 - R(0.05), '#ff8fb1', 30, 5, 3), fx.ring(gx0, gy0, '#ffe066', R(0.3), 6), fx.blink('#fff6c8', 0.25);
-      say(rx0, ry0, '딸깍!', 15, { g: 'B', icon: 'star', id: 'in0' }); // 🎨 C010: 쏙 알약 자리(뒤 가로대 위)를 고쳐 쓴다
+      say(rx0, ry0, '딸깍!', 15, { g: 'B', icon: 'starW', id: 'in0' }); // 🎨 C010: 쏙 알약 자리(뒤 가로대 위)를 고쳐 쓴다
     }
     if (e.kind === 'fail') for (const p of fx.popups) if (p.g === 'C') p.life = Math.min(p.life, 8); // 🎨 C010: 실패 카드에 말풍선이 닿지 않게
     if (e.kind === 'fail') fx.kick(3), fx.blink('#fff6d6', 0.12); // C002: 실패는 벌이 아니다 — 빨간 번쩍·큰 흔들림 없음

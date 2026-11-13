@@ -198,6 +198,9 @@ sfx.setMuted(store.get('mute') === 1);
 setCue((c, v, last) => sfx.play(c, v, last));
 showSound();
 soundBtn.addEventListener('click', () => toggleSound());
+// 키보드를 쓰면 캔버스 금테(포커스)를 보이고, 누르면 감춘다 (🎨 C011)
+window.addEventListener('keydown', (e) => { if (e.key.startsWith('Arrow') || e.key === ' ' || e.key === 'Enter' || e.key === 'Tab') document.body.classList.add('kb'); });
+window.addEventListener('pointerdown', () => document.body.classList.remove('kb'));
 // 판 누름마다 소리를 다시 깨운다 — 첫 입력 전엔 만들지 않고, 꺼 두었으면 아무것도 안 한다 (PM C010: 폰에서 앱 전환·화면 잠금 뒤 무음)
 for (const k of ['pointerup', 'touchend', 'click', 'keydown']) window.addEventListener(k, () => running && sfx.wake(), { passive: true });
 retryBtn.addEventListener('click', () => {

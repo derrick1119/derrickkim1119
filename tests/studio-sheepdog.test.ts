@@ -159,6 +159,19 @@ describe('M1-2a 개울 판 도움 깃발 (📐 C004)', () => {
     expect(seen.size).toBe(inc);
   });
 
+  it('양 수 알약은 달아나는 동안 길에서 울타리에 닿은 양만 센다 — 짖는 틱에 미리 5/5로 튀지 않는다 (🎨 C011)', () => {
+    const s = g.create(1);
+    jumpTo(s, 0);
+    for (let t = 0; t < 300 && phaseOf(s) !== 'aim'; t++) g.step(s, up);
+    const p = sheepdogSmart.act(s, mulberry32(1));
+    for (let t = 0; t < 300 && phaseOf(s) !== 'flee'; t++) g.step(s, t < 3 ? p : up);
+    const seen: number[] = [];
+    for (let t = 0; t < 120 && phaseOf(s) === 'flee'; t++) seen.push(hudState(s).sheepIn), g.step(s, up);
+    expect(seen[0]).toBe(0);
+    expect(seen.at(-1)).toBe(5);
+    expect(seen.every((v, k) => k === 0 || v >= seen[k - 1])).toBe(true);
+  });
+
   it('진짜 풍덩이 셈을 올리고, 판을 깨면 0으로', () => {
     const s = g.create(5);
     jumpTo(s, 5);
