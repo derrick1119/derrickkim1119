@@ -5,6 +5,7 @@
 import { TICK, type Input } from './core.ts';
 import { peek } from './juice.ts';
 import { balloonpop as g, bxAt, byAt, emptyNear, fitCanvas, HELP_AFTER, IRON, STAGE_COUNT, startAt, view, type PopState } from './game.ts';
+import { makeSound } from './sound.ts';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const canvas = $<HTMLCanvasElement>('game'), ctx = canvas.getContext('2d')!;
@@ -17,6 +18,20 @@ const store = {
 };
 
 let s: PopState = g.create(1), running = false, paused = false, acc = 0, last = 0;
+// 사운드 v0 (C008): 첫 손짓에 켜지고, 시뮬 사건을 틱마다 소리로. heard = 이미 소리 낸 사건의 마지막 시각
+const sound = makeSound(store);
+let heard = -1, heardS: PopState | null = null;
+function renderMute() {
+  for (const id of ['mutebtn', 'mute-title']) {
+    const b = $(id);
+    b.textContent = id === 'mutebtn' ? (sound.muted ? '🔇' : '🔊') : sound.muted ? '🔇 소리 꺼짐' : '🔊 소리 켜짐';
+    b.setAttribute('aria-pressed', String(sound.muted));
+    b.setAttribute('aria-label', sound.muted ? '소리 켜기' : '소리 끄기');
+  }
+}
+const toggleMute = () => (sound.toggle(), renderMute());
+// 자동 재생 규칙: AudioContext는 사용자 손짓 안에서만 만든다 → 첫 터치 전엔 소리 없음
+for (const t of ['pointerdown', 'keydown'] as const) window.addEventListener(t, () => sound.unlock(), { capture: true });
 let pointer: { x: number; y: number } | null = null, latch: { x: number; y: number } | null = null;
 let cursor = { x: 0.5, y: 0.5 }, keyboard = false, spaceDown = false;
 const keys = new Set<string>();
@@ -97,6 +112,9 @@ function loop(now: number) {
     const input: Input = { tap: false, dir: 0, pointer: pointer ?? latch };
     latch = null;
     g.step(s, input);
+    if (heardS !== s) (heardS = s), (heard = -1);
+    const fresh = s.events.filter((e) => e.t > heard);
+    if (fresh.length) (heard = fresh[fresh.length - 1].t), sound.play(fresh);
     acc -= TICK;
     if (g.over(s)) return finish();
   }
@@ -128,6 +146,8 @@ function togglePause() {
   paused = !paused;
   $('pausebtn').textContent = paused ? '▶' : '⏸';
   $('pausebtn').setAttribute('aria-label', paused ? '계속하기' : '일시정지');
+  // 일시정지 중에만 음소거 버튼 — 놀이 중 HUD 띠의 글자 자리를 지킨다 (C008)
+  $('mutebtn').hidden = !paused;
 }
 
 window.addEventListener('keydown', (e) => {
@@ -137,6 +157,7 @@ window.addEventListener('keydown', (e) => {
     return;
   }
   if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') return togglePause();
+  if (e.key === 'm' || e.key === 'M') return toggleMute();
   if (e.key.startsWith('Arrow')) (keyboard = true), keys.add(e.key);
   if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) (keyboard = true), (spaceDown = true), (pointer = latch = { ...cursor });
 });
@@ -148,6 +169,9 @@ window.addEventListener('keyup', (e) => {
 $('start').addEventListener('click', start);
 $('again').addEventListener('click', start);
 $('pausebtn').addEventListener('click', togglePause);
+$('mutebtn').addEventListener('click', toggleMute);
+$('mute-title').addEventListener('click', toggleMute);
+renderMute();
 const best = store.get('best');
 if (best) $('best').textContent = `최고 ${best}점 · 모은 별 ${store.get('stars')}개`;
 new ResizeObserver(size).observe(canvas.parentElement!);
@@ -157,6 +181,7 @@ $('start').focus();
 // 확인용(shots.ts): 상태 읽기
 (globalThis as unknown as { __bp: unknown }).__bp = {
   state: () => s,
+  sound: () => ({ ready: sound.ready, muted: sound.muted }),
   running: () => running,
   /** 살아 있는 보통 풍선 하나의 다음 틱 위치(캔버스 0~1) */
   target() {

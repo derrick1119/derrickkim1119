@@ -25,8 +25,15 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
     const rows = await page.evaluate(() => [...document.querySelectorAll('ol.rules li span')].map((e) => Math.round(e.getBoundingClientRect().height / parseFloat(getComputedStyle(e).lineHeight))));
     if (!rows.length || rows.some((r: number) => r > 2)) errors.push(`mobile: 규칙 문장이 2행 넘음 ${rows}`);
   }
+  if (await page.evaluate(() => (globalThis as any).__bp.sound().ready)) errors.push(`${name}: 첫 손짓 전에 소리가 켜짐`);
   await page.keyboard.press('Enter');
   await page.waitForTimeout(400);
+  // 사운드 v0 (C008): 첫 손짓 뒤에 켜지고, M으로 음소거·해제
+  const sd0 = await page.evaluate(() => (globalThis as any).__bp.sound());
+  await page.keyboard.press('m');
+  const sd1 = await page.evaluate(() => (globalThis as any).__bp.sound());
+  await page.keyboard.press('m');
+  if (!sd0.ready || sd0.muted || !sd1.muted) errors.push(`${name}: 소리 켜짐·음소거가 안 됨 ${JSON.stringify({ sd0, sd1 })}`);
   // 판 시작(톡 전): 원이 읽히는가 (C005)
   await page.screenshot({ path: join(here, 'screens', `${name}-start.png`) });
   const st0 = await page.evaluate(() => (globalThis as any).__bp.state().taps);

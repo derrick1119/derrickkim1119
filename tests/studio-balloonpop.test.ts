@@ -6,6 +6,7 @@ import { runBot } from '../studio/balloonpop/core.ts';
 import { A, balloonpop as g, balloonpopRandom, balloonpopSmart, BEAT, bxAt, byAt, density, emptyNear, FAIL_RESULT, fitCanvas, HELP_AFTER, IRON, KING, playTop, RETRY_CARD, STAGE_COUNT, STAGES, startAt, type PopState } from '../studio/balloonpop/game.ts';
 import { densityTable, humanCasual, humanLate, measure } from '../studio/balloonpop/funqa.ts';
 import { mulberry32 } from '../engine/rng.ts';
+import { cues, makeSound, MAX_POP_VOICES, PENTA } from '../studio/balloonpop/sound.ts';
 
 describe('풍선 팡 연쇄 시뮬', () => {
   it('같은 시드·같은 봇이면 같은 결과', () => {
@@ -297,6 +298,56 @@ describe('휴대폰 살펴보기 — 빈 하늘 톡 (C007, 오너 답 없음 →
       const ok = live.filter((j) => emptyNear(s, j)).length;
       expect(ok / live.length).toBeGreaterThanOrEqual(0.5);
     }
+  });
+});
+
+describe('사운드 v0 — 첫 터치 뒤에만, 음소거 저장 (C008, QC)', () => {
+  /** 가짜 AudioContext: 소리를 낸 수만 센다 */
+  const fake = () => {
+    const node = () => ({ connect() {}, gain: { value: 1, setValueAtTime() {}, exponentialRampToValueAtTime() {} } });
+    const ctx = {
+      started: 0, currentTime: 0, sampleRate: 8000, destination: {}, resume() {},
+      createGain: node, createDynamicsCompressor: node,
+      createBuffer: (_c: number, n: number) => ({ getChannelData: () => new Float32Array(n) }),
+      createBufferSource: () => ({ connect() {}, start: () => ctx.started++, buffer: null }),
+      createOscillator: () => ({ connect() {}, type: 'sine', frequency: { setValueAtTime() {}, exponentialRampToValueAtTime() {} }, start: () => ctx.started++, stop() {} }),
+    };
+    return ctx;
+  };
+  const mem = () => { const m = new Map<string, number>(); return { get: (k: string) => m.get(k) ?? 0, set: (k: string, v: number) => void m.set(k, v) }; };
+  const pops = (n: number) => Array.from({ length: n }, (_, k) => ({ kind: 'pop', v: 0.2, z: k + 1 }));
+
+  it('첫 손짓(unlock) 전에는 AudioContext도 소리도 없다', () => {
+    let made = 0;
+    const ctx = fake(), snd = makeSound(mem(), () => (made++, ctx as unknown as AudioContext));
+    expect(snd.play(pops(2))).toBe(0);
+    expect(made).toBe(0);
+    snd.unlock();
+    expect(made).toBe(1);
+    expect(snd.play(pops(2))).toBeGreaterThan(0);
+    expect(ctx.started).toBeGreaterThan(0);
+  });
+
+  it('음소거는 저장되고 다음에 켜도 꺼져 있다 · 저장소가 막혀도 이번 세션은 동작', () => {
+    const st = mem(), a = makeSound(st, () => fake() as unknown as AudioContext);
+    a.unlock();
+    expect(a.toggle()).toBe(true);
+    expect(a.play(pops(3))).toBe(0);
+    expect(makeSound(st).muted).toBe(true);
+    const blocked = makeSound({ get: () => 0, set: () => { /* localStorage 없음 */ } }, () => fake() as unknown as AudioContext);
+    blocked.unlock();
+    expect(blocked.toggle()).toBe(true);
+    expect(blocked.play(pops(1))).toBe(0);
+    expect(blocked.toggle()).toBe(false);
+    expect(blocked.play(pops(1))).toBeGreaterThan(0);
+  });
+
+  it('연쇄 n번째마다 펜타토닉 한 칸 위로(10칸 상한), 같은 틱 팡은 최대 3보이스', () => {
+    const f = (z: number) => cues([{ kind: 'pop', v: 0.2, z }]).find((c) => c.type !== 'noise')!.f;
+    for (let z = 1; z < 14; z++) expect(f(z + 1)).toBeGreaterThanOrEqual(f(z));
+    expect(f(1)).toBe(PENTA[0]);
+    expect(f(30)).toBe(PENTA[PENTA.length - 1]);
+    expect(cues(pops(8)).filter((c) => c.type !== 'noise').length).toBe(MAX_POP_VOICES);
   });
 });
 
