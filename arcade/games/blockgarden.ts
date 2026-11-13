@@ -5,15 +5,18 @@
  * 기준 9(손이 하는 일은 하나): 밭을 누르고 있으면 그 자리에 놓일 모양이 반투명으로 보이고(못 놓으면 빨강, 채워질 줄은 반짝),
  *   떼면 심긴다. 끌기 없음. '지금 조각' 상자를 톡 하면 다음 조각과 맞바꾼다(보관 칸 1개). 키보드는 화살표 커서 + 스페이스.
  * 규칙(결정적, 2줄): 누른 자리에 조각이 놓인다 / 가로·세로 한 줄이 꽉 차면 꽃이 활짝 피며 사라진다, 놓을 데가 없으면 실패.
- *   꽃 = 지운 칸 수 × 콤보(놓을 때마다 연달아 줄을 지우면 ×2, ×3 …). 돌·잡초·황금 씨앗도 '찬 칸'으로 센다.
+ *   꽃 = 지운 칸 수 × 배수(한 번에 지운 줄 수 + 연달아 지운 횟수 — 2줄이면 ×2, 다음 수에 또 지우면 +1). 돌·잡초·황금 씨앗도 '찬 칸'.
+ *   배우는 판(1·2판)에서는 놓을 데가 없으면 두더지가 한 칸짜리 모종으로 바꿔 준다.
  * 와우: 한 줄을 채우면 모종이 한꺼번에 활짝 피며 꽃잎이 흩날리고, 두 줄 이상이면 꽃가루 폭죽 + 두더지 정원사의 춤(콤보가 클수록 크게).
- *   1판은 거의 찬 줄 셋이 고랑 하나만 비워 두고 깔려 있어서, 첫 놓기에 세 줄이 한꺼번에 팡팡.
+ *   1판은 거의 찬 줄 셋이 세로 고랑 하나만 비워 두고 깔려 있고(반짝 + 👆), 첫 조각이 딱 맞는 세로 셋 — 첫 놓기에 세 줄이 팡팡, 밭 완성.
  * 판(밭) 8개: 목표 = 꽃 N송이를 모종 K개 안에. 별 = ★ 목표 · ★ 모종 R개 이상 남기기 · ★ 판마다 다른 숙제(목표를 채우는 순간 판이
  *   끝나므로 숙제를 '먼저' 해야 한다 — 무엇을 먼저 할지가 수). 실패(놓을 데 없음 · 모종이 다 떨어짐) = 하트 -1, 같은 밭 다시.
  * 펼쳐짐(하는 일이 바뀐다): 1판 고랑 채우기 → 2판 바꿔 심기(다음 조각과 맞바꿔 순서 고르기, 숙제 콤보 ×3) → 3판 돌(두 번 피워야
- *   깨짐 — 돌이 든 줄을 노려 두 번) → 4판 번지는 잡초(3수마다 옆으로 번짐 — 잡초 줄부터 지우기) → 5판 물뿌리개(아무 칸에나 놓으면
+ *   깨짐, 가로·세로가 한꺼번에 지나가면 한 번에 와장창 — 돌이 든 줄을 노려 두 번) → 4판 번지는 잡초(3수마다 옆으로 번짐 — 잡초 줄부터 지우기) → 5판 물뿌리개(아무 칸에나 놓으면
  *   그 칸의 가로·세로 줄이 통째로 핌 — 꽉 찬 십자를 만들어 두고 아꼈다 쓰기) → 6판 황금 씨앗(몇 수 뒤 시든다 — 서둘러 그 줄 채우기)
  *   → 7판 꿀벌 줄(그 줄을 지우면 꽃 두 배, 꿀벌이 다른 줄로 옮김 — 쫓아가기) → 8판 꽃 잔치(돌·잡초·황금·물뿌리개 모두).
+ * 전략(브리프 13): '왼쪽 위부터' 버릇 봇은 3판부터 ★3 0~3%, '지금 가장 많이 지우기' 버릇 봇도 0~8%. 두 수 앞 + 바꾸기를 쓰는
+ *   봇은 33~75% — 바꾸기(보관 칸)를 빼면 ★3 53% → 32%로 떨어져서 남겼다.
  * 웃음: 두더지 정원사는 놓을 때마다 고개를 끄덕이고, 줄이 피면 만세, 여러 줄이면 밀짚모자를 던지며 빙글빙글 춤.
  *   밭이 꽉 차 오면 땀을 뻘뻘, 실패하면 벌러덩 뒤집혀 어질어질 별. 담장 위 참새들은 꽃가루 폭죽에 놀라 폴짝,
  *   잡초 녀석은 심술궂게 히죽 웃다가 뽑힐 때 '으악!'.
@@ -34,7 +37,7 @@ const TRAY_Y = 1.15, TRAY_H = 0.2;
 const CUR = { x: 0.215, y: TRAY_Y, w: 0.3, h: TRAY_H };
 const NXT = [{ x: 0.545, y: TRAY_Y + 0.025, w: 0.2, h: TRAY_H - 0.035 }, { x: 0.77, y: TRAY_Y + 0.025, w: 0.2, h: TRAY_H - 0.035 }];
 const BAND = 1.375;
-const MOLE = { x: 0.105, y: TRAY_Y + 0.175 };
+const MOLE = { x: 0.1, y: TRAY_Y + 0.185 };
 const RESULT_OK = 210, RESULT_FAIL = 170, NEWS_T = 170, CARD_T = 130, CARD_DELAY = 55;
 const STAR_PTS = 100, LEFT_PTS = 10, WIN_PTS = 300;
 const MAXM = 8;
@@ -346,7 +349,7 @@ function newStage(s: BGState) {
 function special(s: { b: Board; tint?: Int8Array; best: number; multi: number; canBest: number; beeHits: number; goldGot: number; gold0: number; goldLost: number; weeds0: number; stones0: number; streak: number }, d: StageDef): { done: boolean; can: boolean; prog: number } {
   const stonesLeft = () => {
     let n = 0, hp = 0;
-    for (let i = 0; i < NN; i++) if (s.b.k[i] === STONE && !(s.tint && s.tint[i] === WITHER) && s.b.hp[i] > 0 && (s.tint ? true : s.b.hp[i] <= 2)) (n++, (hp += s.b.hp[i]));
+    for (let i = 0; i < NN; i++) if (s.b.k[i] === STONE && !(s.tint && s.tint[i] === WITHER) && s.b.hp[i] > 0) (n++, (hp += s.b.hp[i]));
     return { n, hp };
   };
   switch (d.star3) {
@@ -451,12 +454,11 @@ function place(s: BGState, sx: number, sy: number) {
   if (!p) return; // 밭 밖에서 떼면 취소
   if (!fits(s.b, sh, p.ox, p.oy)) return void ev(s, 'nope', p.ox + shW(sh) / 2, p.oy + shH(sh) / 2, '자리가 없어요');
   const d = STAGES[s.stage];
-  const pre = s.b.k.slice();
-  const r = applyMove(s.b, sh, p.ox, p.oy, s.bee, true);
   for (const [dx, dy] of cellsOf(sh)) {
     const i = (p.oy + dy) * N + p.ox + dx;
     if (sh !== CAN) (s.tint[i] = s.cur.tint), (s.drop[i] = s.t);
   }
+  const r = applyMove(s.b, sh, p.ox, p.oy, s.bee, true);
   s.left--;
   s.used++;
   s.lastPlace = s.t;
@@ -516,7 +518,6 @@ function place(s: BGState, sx: number, sy: number) {
       for (const i of out) ev(s, 'wilt', (i % N) + 0.5, Math.floor(i / N) + 0.5, '시들었다…');
     }
   }
-  void pre;
   // 다음 조각
   s.cur = s.nx[0];
   s.nx = [s.nx[1], drawPiece(s)];
@@ -1392,7 +1393,7 @@ function drawMole(ctx: CanvasRenderingContext2D, x: number, y: number, u: number
 }
 
 /** 담장 위 참새 */
-function sparrow(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, face: number, hop: number, t: number, k: number) {
+function sparrow(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, face: number, hop: number, t: number) {
   ctx.save();
   ctx.translate(x, y - hop);
   ctx.scale(face, 1);
@@ -1447,7 +1448,6 @@ function sparrow(ctx: CanvasRenderingContext2D, x: number, y: number, u: number,
   ctx.lineTo(u * 0.15, u * 0.04);
   ctx.stroke();
   ctx.restore();
-  void k;
 }
 
 function bee(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, t: number, face: number) {
@@ -1591,7 +1591,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BGState, w: number, h: number
   // 참새 셋 (큰 사건에 폴짝)
   for (let k = 0; k < 3; k++) {
     const sx = X([0.24, 0.5, 0.74][k]), hop = bigAge < 50 ? Math.abs(Math.sin((bigAge + k * 6) * 0.25)) * X(0.04) * Math.min(3, bigN) * 0.5 : t % (240 + k * 50) < 10 ? Math.abs(Math.sin(t * 0.6)) * X(0.01) : 0;
-    sparrow(ctx, sx, wy0 - X(0.004), X(0.04), k === 1 ? -1 : 1, hop, t, k);
+    sparrow(ctx, sx, wy0 - X(0.004), X(0.04), k === 1 ? -1 : 1, hop, t);
   }
 
   // ═════ 나무 틀 텃밭 ═════
@@ -1930,7 +1930,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BGState, w: number, h: number
   crate(NXT[0], false, false, false);
   crate(NXT[1], false, true, false);
   {
-    const cc = Math.min(X(0.052), (X(CUR.w) - X(0.05)) / Math.max(shW(s.cur.sh), 1), (X(CUR.h) - X(0.06)) / Math.max(shH(s.cur.sh), 1));
+    const cc = Math.min(X(0.07), (X(CUR.w) - X(0.05)) / Math.max(shW(s.cur.sh), 1), (X(CUR.h) - X(0.06)) / Math.max(shH(s.cur.sh), 1));
     const pop = t - s.swapT < 12 ? 1 + 0.25 * Math.sin(((t - s.swapT) / 12) * Math.PI) : 1;
     ctx.save();
     ctx.translate(X(CUR.x + CUR.w / 2), X(CUR.y + CUR.h / 2 - 0.008));
@@ -1948,7 +1948,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BGState, w: number, h: number
         ctx.fillText('—', X(bxx.x + bxx.w / 2), X(bxx.y + bxx.h / 2 - 0.01));
         continue;
       }
-      const c2 = Math.min(X(0.034), (X(bxx.w) - X(0.04)) / shW(p.sh), (X(bxx.h) - X(0.05)) / shH(p.sh));
+      const c2 = Math.min(X(0.042), (X(bxx.w) - X(0.04)) / shW(p.sh), (X(bxx.h) - X(0.05)) / shH(p.sh));
       pieceMini(ctx, p, X(bxx.x + bxx.w / 2), X(bxx.y + bxx.h / 2 - 0.008), c2, t, k ? 0.75 : 0.95);
     }
     // 이름표
@@ -1977,7 +1977,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BGState, w: number, h: number
       for (let i = 0; i < NN; i++) if (s.b.k[i]) filled++;
       if (s.stuck || filled > 46) mood = 2;
     }
-    drawMole(ctx, X(MOLE.x), X(MOLE.y), X(0.066), mood, t, s.power);
+    drawMole(ctx, X(MOLE.x), X(MOLE.y), X(0.074), mood, t, s.power);
     if (mood === 4 && s.moodT > 0) {
       ctx.fillStyle = '#ffffff';
       font(0.05, 900);

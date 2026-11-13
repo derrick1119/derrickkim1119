@@ -1,22 +1,23 @@
 /**
  * 펭귄 거품 쏘기 (25라운드: 검증된 요즘 캐주얼 뼈대 × 공장의 와우) — 버블 슈터 × 가리키기 × 연쇄.
- * 기준 9(손이 하는 일은 하나): 화면을 누르고 있으면 아빠 펭귄의 거품 대롱에서 그쪽으로 조준선(벽 튕김 포함)과 붙을 자리가 보이고,
+ * 기준 9(손이 하는 일은 하나): 화면을 누르고 있으면 먹보 펭귄의 거품 대롱에서 그쪽으로 조준선(벽 튕김 포함)과 붙을 자리가 보이고,
  *   떼면 발사. 발사대 아래에서 떼면 취소. 키보드는 화살표로 커서 + 스페이스(누르는 동안 조준, 떼면 발사).
  * 규칙(결정적, 2줄): 거품은 곧게 날아가 옆벽에 거울처럼 튕기고, 천장이나 다른 거품에 닿으면 가장 가까운 육각 칸에 붙는다.
  *   같은 색이 3개 이상 이어지면 펑. 그 뒤 천장과 이어진 길이 끊긴 거품은 모두 우수수 떨어진다.
- * 와우(비틀기): 아기 펭귄이 갇힌 거품은 색이 없어서 절대 안 터진다 — 매달린 줄기를 끊어 덩어리째 떨어뜨려야
- *   거품이 '퐁' 깨지며 아기 펭귄이 작은 낙하산을 펴고 아빠 품으로 둥실둥실. 한 발에 여럿 구하면 점수가 (마리 수)²로 커진다.
- * 첫 3초: 1판 첫 거품은 아기 셋을 감싼 껍질과 같은 색 — 하얀 고리 쪽으로 쏘면 껍질 열 개가 펑, 매달린 일곱 개가 우수수, 펭귄 셋이 낙하산.
- * 판 8개: 목표 = 아기 펭귄 N마리 모두 구하기(거품 K발 안에). 별 = ★ 다 구함 · ★ P발 안에 · ★ 한 발에 M개 이상 우수수.
+ * 와우(비틀기): 얼린 물고기 간식(생선·새우·오징어)이 든 얼음 거품은 색이 없어서 절대 안 터진다 — 매달린 줄기를 끊어 덩어리째
+ *   떨어뜨려야 얼음이 '쨍' 깨지며 간식이 파닥파닥 튀어 먹보 펭귄 뒤 양동이로 철퍼덕. 한 발에 k마리면 점수가 k²배, 펭귄은 침을 흘리며 감동.
+ * 첫 3초: 1판 첫 거품은 간식 셋을 감싼 껍질과 같은 색 — 하얀 고리 쪽으로 쏘면 껍질 열 개가 펑, 매달린 일곱 개가 우수수, 간식 셋이 양동이로.
+ * 판 8개: 목표 = 얼린 간식 N마리 모두 받기(거품 K발 안에). 별 = ★ 다 받음 · ★ P발 안에 · ★ 한 발에 M개 이상 우수수.
  *   실패 = 거품을 다 씀 / 거품이 아래 얼음 선을 넘음 → 하트 -1, 그 판 다시. 하트 셋을 다 잃거나 8판을 마치면 끝.
  * 펼쳐짐(하는 일이 바뀐다): 1판 껍질 터뜨려 떨구기 → 2판 돌 거품(안 터지고 곧게 쏘면 막힘 — 옆으로 돌아 껍질을 노린다) → 3판 얼음 천장(4발마다
  *   한 줄씩 내려옴 — 아껴 쏘기) → 4판 얼음 거품(두 번 맞혀야 와장창 — 같은 자리를 두 번) → 5판 무지개 거품(2·6·10번째 발, 아무 색 — 어디에 아껴 둘지)
- *   → 6판 폭탄 거품(맞히면 쾅 둘레가 통째로, 펭귄은 풀려남 — 폭탄을 노린다) → 7판 눈보라 바람(조준선이 휜다, 3발마다 방향이 바뀜 — 휘는 만큼 비켜 겨누기)
+ *   → 6판 폭탄 거품(맞히면 쾅 둘레가 통째로, 간식은 양동이로 날아감 — 폭탄을 노린다) → 7판 눈보라 바람(조준선이 휜다, 3발마다 방향이 바뀜 — 휘는 만큼 비켜 겨누기)
  *   → 8판 도둑 갈매기(오가며 거품을 가로챈다 — 비켜 쏘거나 미끼로 한 발 주고 기절한 틈에).
  * 3판부터의 지도는 무작위 지도 수백 장을 봇으로 재서 골랐다: 내다보는 봇은 ★3이 잘 나오고, '같은 색이 가장 많이 붙는 자리에 바로 쏘기'
  *   버릇 봇은 ★3이 절반을 못 넘는 지도(★ 문턱 P·M도 그 측정으로 정함). 판마다 시드로 색을 섞고 좌우를 뒤집는다.
- * 웃음: 아빠 펭귄은 겨눌 때 혀를 빼물고 힘주고, 많이 떨어지면 눈이 휘둥그레, 구하면 가슴을 내밀고 우쭐, 실패하면 벌러덩 뒤집혀 버둥.
- *   갇힌 아기들은 거품 안에서 날개를 파닥이며 '삐!' 하고, 구경꾼 물범은 큰 낙하에 박수, 갈매기는 거품을 삼키다 '끄억'.
+ * 웃음: 먹보 펭귄은 겨눌 때 볼을 빵빵하게 힘주고, 많이 떨어지면 눈이 휘둥그레, 간식을 받으면 우쭐, 한 발에 여럿이면 눈을 반짝이며
+ *   침을 질질 흘리고 감동, 받을수록 배가 빵빵해진다. 실패하면 벌러덩 뒤집혀 버둥. 얼린 간식은 얼음 속에서 눈만 끔뻑,
+ *   구경꾼 물범은 큰 낙하에 박수치며 군침, 갈매기는 거품을 삼키다 '끄억'.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -28,8 +29,8 @@ const COLS = 8, ROWS = 15, NC = ROWS * COLS;
 const WL = 0.06, WR = 0.94, D = (WR - WL) / COLS, R = D / 2, ROWH = (D * Math.sqrt(3)) / 2;
 /** 얼음 천장의 처음 높이 · 이 선을 넘으면 실패 · 발사대 */
 const CEIL0 = 0.13, DEADY = 1.1, LX = 0.5, LY = 1.215;
-/** 얼음 바닥(작은 친구들 발 높이) · 구한 아기들이 서는 자리 · 아래 띠 시작 */
-const FLOOR = 1.322, SLOT0 = 0.068, SLOTW = 0.043, BAND = 1.355, DADX = 0.352;
+/** 얼음 바닥(발 높이) · 간식 양동이 자리 · 아래 띠 시작 · 먹보 펭귄 자리 */
+const FLOOR = 1.322, BUCKX = 0.165, BAND = 1.355, EATX = 0.352;
 /** 날아가는 속도(틱당) · 한 틱을 SUB번 나눠 부딪힘을 본다 · 거품끼리 부딪히는 거리(지름보다 조금 작게 — 틈을 빠져나갈 수 있다) */
 const V = 0.026, SUB = 3, SS = V / SUB, CR = D * 0.8;
 /** 가장 눕힌 발사 각도(라디안) */
@@ -41,7 +42,7 @@ const SKY = 0.97, SKR = 0.06, SKP = 420, SKSTUN = 360;
 const COOL = 16, RESULT = 170, RESULT_OK = 230, NEWS_T = 180, CARD_T = 150;
 const STAR_PTS = 500, LEFT_PTS = 60, WIN_PTS = 1000;
 
-const EMPTY = -1, PENG = 10, STONE = 11, ICE = 12, ICE2 = 13, BOMB = 14, WILD = 15;
+const EMPTY = -1, SNACK = 10, STONE = 11, ICE = 12, ICE2 = 13, BOMB = 14, WILD = 15;
 const isCol = (v: number) => v >= 0 && v < 6;
 const hsh = (k: number) => {
   const x = Math.sin(k * 127.1 + 311.7) * 43758.5453;
@@ -53,7 +54,7 @@ interface StageDef {
   title: string;
   news: string;
   hint: string;
-  /** 육각 판(짝수 줄 8칸·홀수 줄 7칸). a~e = 판의 색, ? = 아무 색, P = 아기 펭귄, S = 돌, I = 얼음, B = 폭탄, . = 빈칸 */
+  /** 육각 판(짝수 줄 8칸·홀수 줄 7칸). a~e = 판의 색, ? = 아무 색, P = 얼린 간식, S = 돌, I = 얼음, B = 폭탄, . = 빈칸 */
   map: string[];
   shots: number;
   par: number;
@@ -72,7 +73,7 @@ interface StageDef {
 /** 판 8개. 판마다 시드로 색을 섞고 좌우를 뒤집는다(같은 판은 다시 해도 같은 배치) */
 export const STAGES: StageDef[] = [
   {
-    key: '', title: '첫 구출', news: '', hint: '같은 색 껍질을 터뜨리면 매달린 게 통째로 우수수!',
+    key: '', title: '첫 간식', news: '', hint: '같은 색 껍질을 터뜨리면 매달린 게 통째로 우수수!',
     map: ['bb.aa.bb', 'b.aPa.b', 'b.aPPa.b', '.baaab.', '..b..b..'],
     shots: 15, par: 1, big: 7, first: 'ab',
   },
@@ -97,7 +98,7 @@ export const STAGES: StageDef[] = [
     shots: 14, par: 10, big: 5, wild: [1, 5, 9],
   },
   {
-    key: 'bomb', title: '폭탄 거품', news: '💣 폭탄 거품 — 맞히면 쾅! 둘레가 통째로', hint: '폭탄을 맞히면 둘레가 날아가요 (펭귄은 풀려나요)',
+    key: 'bomb', title: '폭탄 거품', news: '💣 폭탄 거품 — 맞히면 쾅! 둘레가 통째로', hint: '폭탄을 맞히면 둘레가 날아가요 (간식은 양동이로 쏙)',
     map: ['dbbadddd', 'ddbbbdb', '..BPccP.', '.B...cb', 'dP....P.', '.d.....'],
     shots: 14, par: 5, big: 5, drop: 6,
   },
@@ -231,7 +232,7 @@ function done(pts: number[], path: number[], cell: number, hit: number, bounces:
 interface Res {
   popped: number;
   dropped: number;
-  rescued: number;
+  snacks: number;
   blasted: number;
   /** 연출용 [칸, 값] 목록 */
   pop: number[];
@@ -241,7 +242,7 @@ interface Res {
   crack: number[];
   shatter: number[];
 }
-const newRes = (): Res => ({ popped: 0, dropped: 0, rescued: 0, blasted: 0, pop: [], drop: [], boom: [], free: [], crack: [], shatter: [] });
+const newRes = (): Res => ({ popped: 0, dropped: 0, snacks: 0, blasted: 0, pop: [], drop: [], boom: [], free: [], crack: [], shatter: [] });
 
 const mark = new Int32Array(NC);
 let markGen = 1;
@@ -304,7 +305,7 @@ function resolve(g: Int8Array, cell: number, v: number, hit: number, det: boolea
       if (det) res.shatter.push(i);
     }
   }
-  // 폭탄: 둘레를 날린다(펭귄은 풀려나고, 옆 폭탄은 이어서 쾅)
+  // 폭탄: 둘레를 날린다(간식은 풀려나 양동이로, 옆 폭탄은 이어서 쾅)
   for (let k = 0; k < booms.length; k++) {
     const b = booms[k];
     if (g[b] !== BOMB) continue;
@@ -317,7 +318,7 @@ function resolve(g: Int8Array, cell: number, v: number, hit: number, det: boolea
         booms.push(j);
         continue;
       }
-      if (w === PENG) (res.rescued++, det && res.free.push(j, w));
+      if (w === SNACK) (res.snacks++, det && res.free.push(j, w));
       else det && res.pop.push(j, w);
       g[j] = EMPTY;
       res.blasted++;
@@ -333,7 +334,7 @@ function resolve(g: Int8Array, cell: number, v: number, hit: number, det: boolea
   }
   for (const i of VALID) {
     if (g[i] < 0 || mark[i] === gen) continue;
-    if (g[i] === PENG) res.rescued++;
+    if (g[i] === SNACK) res.snacks++;
     if (det) res.drop.push(i, g[i]);
     g[i] = EMPTY;
     res.dropped++;
@@ -341,9 +342,9 @@ function resolve(g: Int8Array, cell: number, v: number, hit: number, det: boolea
   return res;
 }
 
-const pengLeft = (g: Int8Array) => {
+const snackLeft = (g: Int8Array) => {
   let n = 0;
-  for (const i of VALID) if (g[i] === PENG) n++;
+  for (const i of VALID) if (g[i] === SNACK) n++;
   return n;
 };
 /** 아래 얼음 선을 넘었나 */
@@ -355,21 +356,24 @@ const overLine = (g: Int8Array, ceil: number) => {
 // ───────── 상태 ─────────
 interface Ev { t: number; kind: string; x: number; y: number; text?: string; col?: string; v?: number; n?: number }
 interface Fly { tr: Tr; v: number; k: number; n: number }
-interface Fall { x: number; y: number; vx: number; vy: number; v: number; rot: number; t0: number }
-interface Chute { x: number; y: number; vx: number; vy: number; tx: number; t0: number; st: number; ph: number }
+interface Fall { x: number; y: number; vx: number; vy: number; v: number; rot: number; t0: number; sd: number }
+/** 얼음이 깨져 양동이로 튀어 가는 간식 (연출) */
+interface Flop { x: number; y: number; x0: number; y0: number; tx: number; ty: number; t0: number; dur: number; st: number; ph: number; kind: number }
 interface Lay { g: Int8Array; flip: boolean; pal: number[] }
 
 export interface BubState {
   rng: Rng; seed: number; t: number; stage: number; phase: 'play' | 'result'; pt: number;
   lays: Lay[];
   g: Int8Array; ceil: number; cur: number; nxt: number; shotNo: number; shots: number; used: number;
-  penTotal: number; saved: number; bestDrop: number; wind: number; sk: Skua | null;
+  snackTotal: number; caught: number; bestDrop: number; wind: number; sk: Skua | null;
   fly: Fly | null; cool: number;
   hearts: number; stars: number; got: number; starOk: boolean[]; pts: number; ok: boolean; why: string; won: boolean; dead: boolean; again: boolean; tries: number;
   down: boolean; aim: { x: number; y: number } | null; firstShot: boolean;
   seen: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; events: Ev[];
-  falls: Fall[]; chutes: Chute[]; huddle: number; savedAll: number;
-  dad: number; dadT: number; big: { pts: number; n: number; k: number; t: number } | null;
+  falls: Fall[]; flops: Flop[]; flopN: number; caughtAll: number;
+  /** 양동이에 들어간 간식 수(연출 — 배가 빵빵해진다) */
+  bucket: number;
+  face: number; faceT: number; big: { pts: number; n: number; k: number; t: number } | null;
   /** 이번 판에 새것을 몇 번 썼나 (측정용) */
   use: Record<string, number>;
   /** 점수가 어디서 왔나 (측정용) */
@@ -399,7 +403,7 @@ function buildLay(d: StageDef, rng: Rng): Lay {
       const ch = row[c], cc = flip ? w - 1 - c : c, i = r * COLS + cc;
       if (letters.includes(ch)) g[i] = pal[letters.indexOf(ch)];
       else if (ch === '?') g[i] = pal[Math.floor(rng() * n)];
-      else if (ch === 'P') g[i] = PENG;
+      else if (ch === 'P') g[i] = SNACK;
       else if (ch === 'S') g[i] = STONE;
       else if (ch === 'I') g[i] = ICE;
       else if (ch === 'B') g[i] = BOMB;
@@ -434,8 +438,8 @@ function newStage(s: BubState) {
   s.shots = d.shots;
   s.used = 0;
   s.shotNo = 0;
-  s.penTotal = pengLeft(s.g);
-  s.saved = 0;
+  s.snackTotal = snackLeft(s.g);
+  s.caught = 0;
   s.bestDrop = 0;
   s.wind = d.wind ?? 0;
   s.sk = d.skua ? { ph: s.rng() * Math.PI * 2, stun: 0 } : null;
@@ -471,8 +475,8 @@ function release(s: BubState, ax: number, ay: number) {
   s.cur = s.nxt;
   s.nxt = roll(s, s.shotNo + 1);
   s.firstShot = true;
-  s.dad = 1;
-  s.dadT = 24;
+  s.face = 1;
+  s.faceT = 24;
   ev(s, 'fire', LX, LY);
 }
 
@@ -496,7 +500,7 @@ function land(s: BubState) {
     if (hv === ICE || hv === ICE2) see(s, 'ice', '🧊 얼음 거품 — 두 번 맞히면(옆에서 펑 해도) 와장창');
     if (res.crack.length || res.shatter.length) use('ice');
     if (res.boom.length) use('bomb');
-    if (res.rescued && res.dropped) use('dropsave');
+    if (res.snacks && res.dropped) use('dropsave');
     let gain = 0;
     const tal = (k: string, v: number) => ((s.tally[k] = (s.tally[k] ?? 0) + v), (gain += v));
     if (res.popped) {
@@ -511,29 +515,30 @@ function land(s: BubState) {
     for (const i of res.crack) ev(s, 'crack', CX[i], s.ceil + RY[i], '쩍!', '#dff6ff');
     for (const i of res.shatter) ev(s, 'shatter', CX[i], s.ceil + RY[i], '와장창!', '#dff6ff');
     for (const b of res.boom) ev(s, 'boom', CX[b], s.ceil + RY[b], '쾅!', '#ffd08a'), see(s, 'bomb', '💣 폭탄 거품 — 맞히면 쾅! 둘레가 통째로 날아가요');
-    for (let k = 0; k < res.free.length; k += 2) addChute(s, CX[res.free[k]], s.ceil + RY[res.free[k]]);
+    for (let k = 0; k < res.free.length; k += 2) addFlop(s, CX[res.free[k]], s.ceil + RY[res.free[k]], res.free[k] % 3);
     if (res.dropped) {
       for (let k = 0; k < res.drop.length; k += 2) {
         const i = res.drop[k], v = res.drop[k + 1];
-        s.falls.push({ x: CX[i], y: s.ceil + RY[i], vx: (hsh(i + s.t) - 0.5) * 0.004, vy: -0.004 - hsh(i * 7 + s.t) * 0.004, v, rot: hsh(i) * 6, t0: s.t });
+        s.falls.push({ x: CX[i], y: s.ceil + RY[i], vx: (hsh(i + s.t) - 0.5) * 0.004, vy: -0.004 - hsh(i * 7 + s.t) * 0.004, v, rot: hsh(i) * 6, t0: s.t, sd: i });
       }
       tal('drop', (10 * res.dropped * (res.dropped + 1)) / 2);
       see(s, 'drop', '⬇️ 천장과 이어진 데가 없어지면 우수수 떨어져요');
     }
-    if (res.rescued) {
-      tal('peng', 100 * res.rescued * res.rescued);
-      see(s, 'chute', '🪂 아기 펭귄은 떨어뜨려야 구해요 — 한 발에 여럿이면 점수가 제곱!');
+    if (res.snacks) {
+      tal('snack', 100 * res.snacks * res.snacks);
+      see(s, 'snack', '🐟 얼린 간식은 떨궈야 양동이로 쏙 — 한 발에 여럿이면 제곱!');
     }
-    s.saved += res.rescued;
-    s.savedAll += res.rescued;
+    s.caught += res.snacks;
+    s.caughtAll += res.snacks;
     s.bestDrop = Math.max(s.bestDrop, res.dropped);
     s.pts += gain;
-    if (res.dropped >= 5 || res.rescued >= 2) s.big = { pts: gain, n: res.dropped, k: res.rescued, t: s.t };
-    if (res.dropped || res.rescued) (s.dad = res.rescued ? 3 : 2), (s.dadT = 70);
+    if (res.dropped >= 5 || res.snacks >= 2) s.big = { pts: gain, n: res.dropped, k: res.snacks, t: s.t };
+    if (res.dropped || res.snacks) (s.face = res.snacks >= 2 ? 6 : res.snacks ? 3 : 2), (s.faceT = res.snacks >= 2 ? 130 : 70);
+    if (res.snacks >= 2) ev(s, 'drool', EATX, LY - 0.09, ['츄릅… 감동이야ㅠㅠ', '침 질질~ 냠냠 예약!', '이게 다 내 거?!'][s.used % 3], '#fff1f5');
     if (res.dropped >= d.big) ev(s, 'bigstar', 0.5, 0.6, `한 발에 ${res.dropped}개 우수수! ★`, '#ffe066');
   }
   // 얼음 천장
-  if (d.drop && s.used % d.drop === 0 && pengLeft(s.g) > 0) {
+  if (d.drop && s.used % d.drop === 0 && snackLeft(s.g) > 0) {
     s.ceil += ROWH;
     ev(s, 'ceil', 0.5, s.ceil, '쿵! 얼음 천장이 내려와요', '#dff6ff');
   }
@@ -543,14 +548,14 @@ function land(s: BubState) {
   }
   if (!hasCol(s.g, s.cur)) s.cur = roll(s, -1);
   if (!hasCol(s.g, s.nxt)) s.nxt = roll(s, -1);
-  if (pengLeft(s.g) === 0) return endStage(s, true, '');
+  if (snackLeft(s.g) === 0) return endStage(s, true, '');
   if (overLine(s.g, s.ceil)) return endStage(s, false, '거품이 얼음 선을 넘었어요');
   if (s.shots <= 0) return endStage(s, false, '거품을 다 썼어요');
 }
 
-function addChute(s: BubState, x: number, y: number) {
-  const k = s.huddle++;
-  s.chutes.push({ x, y, vx: (hsh(k * 3.1 + s.t) - 0.5) * 0.006, vy: -0.006, tx: SLOT0 + (k % 6) * SLOTW, t0: s.t, st: 0, ph: hsh(k + 7) * 6 });
+function addFlop(s: BubState, x: number, y: number, kind: number) {
+  const k = s.flopN++, tx = BUCKX + (hsh(k * 1.7) - 0.5) * 0.05, ty = FLOOR - 0.06;
+  s.flops.push({ x, y, x0: x, y0: y, tx, ty, t0: s.t, dur: Math.round(34 + Math.hypot(tx - x, ty - y) * 34), st: 0, ph: hsh(k + 7) * 6, kind });
 }
 
 function endStage(s: BubState, ok: boolean, why: string) {
@@ -567,19 +572,19 @@ function endStage(s: BubState, ok: boolean, why: string) {
     s.tally.star = (s.tally.star ?? 0) + s.got * STAR_PTS;
     s.tally.left = (s.tally.left ?? 0) + s.shots * LEFT_PTS;
     if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS);
-    ev(s, 'clear', 0.5, 0.6, s.won ? '모두 구했다! 🐧' : '다 구했다!');
-    s.dad = 3;
-    s.dadT = 200;
+    ev(s, 'clear', 0.5, 0.6, s.won ? '양동이 가득! 🐟' : '다 받았다!');
+    s.face = 3;
+    s.faceT = 200;
   } else {
     s.hearts--;
     s.tries++;
-    s.dad = 4;
-    s.dadT = 160;
+    s.face = 4;
+    s.faceT = 160;
     ev(s, 'fail', 0.5, 0.6, why);
   }
 }
 
-/** 연출: 떨어지는 거품 · 낙하산 · 아빠 표정 (시뮬레이션 결과와 무관 — 난수 대신 해시를 쓴다) */
+/** 연출: 떨어지는 거품 · 양동이로 튀는 간식 · 먹보 표정 (시뮬레이션 결과와 무관 — 난수 대신 해시를 쓴다) */
 function cosmetic(s: BubState) {
   for (const f of s.falls) {
     f.vy += 0.0011;
@@ -587,10 +592,10 @@ function cosmetic(s: BubState) {
     f.y += f.vy;
     f.rot += f.vx * 20;
     if (f.x < WL + R * 0.6 || f.x > WR - R * 0.6) f.vx = -f.vx;
-    if (f.v === PENG && s.t - f.t0 > 14 && f.vy > 0) {
-      // 펭귄 거품은 떨어지다 '퐁' 깨지고 낙하산이 펴진다
-      addChute(s, f.x, f.y);
-      ev(s, 'chute', f.x, f.y, ['삐약!', '아빠~!', '꺄아!', '살았다!'][(s.t + Math.round(f.x * 10)) % 4], '#fff6d6');
+    if (f.v === SNACK && s.t - f.t0 > 12 && f.vy > 0) {
+      // 간식 얼음은 떨어지다 '쨍' 깨지고, 간식이 파닥파닥 양동이로
+      addFlop(s, f.x, f.y, f.sd % 3);
+      ev(s, 'thaw', f.x, f.y, ['쨍!', '파닥!', '풀려났다!', '퐁!'][(s.t + Math.round(f.x * 10)) % 4], '#e6f8ff');
       f.v = -9;
     }
   }
@@ -602,39 +607,32 @@ function cosmetic(s: BubState) {
     }
     return true;
   });
-  for (const c of s.chutes) {
-    if (c.st === 0) {
-      // 낙하산이 펴지며 천천히 아빠 옆 자리로
-      c.vy = Math.min(0.0047, c.vy + 0.0006);
-      c.vx += (c.tx - c.x) * 0.0005 - c.vx * 0.04;
-      c.x = Math.max(0.05, Math.min(0.95, c.x + c.vx + Math.sin(s.t * 0.05 + c.ph) * 0.0012));
-      c.y += c.vy;
-      if (c.y >= FLOOR) (c.y = FLOOR), (c.st = 1), (c.t0 = s.t), ev(s, 'hug', c.x, c.y, ['아빠!', '포근해~', '삐!'][s.huddle % 3], '#ffe9f0');
-    } else {
-      // 내려앉은 뒤엔 제자리로 아장아장
-      c.x += (c.tx - c.x) * 0.03;
-      if (c.st === 1 && s.t - c.t0 > 40) c.st = 2;
-    }
+  for (const c of s.flops) {
+    if (c.st !== 0) continue;
+    const p = Math.min(1, (s.t - c.t0) / c.dur);
+    c.x = c.x0 + (c.tx - c.x0) * p;
+    c.y = c.y0 + (c.ty - c.y0) * p - 0.16 * 4 * p * (1 - p);
+    if (p >= 1) (c.st = 1), s.bucket++, ev(s, 'plop', c.tx, c.ty, ['철퍼덕!', '쏙!', '냠 예약!', '풍덩!'][s.bucket % 4], '#fff6d6');
   }
-  if (s.chutes.length > 30) s.chutes.splice(0, s.chutes.length - 30);
-  if (s.dadT > 0 && --s.dadT === 0) s.dad = 0;
+  s.flops = s.flops.filter((c) => c.st === 0);
+  if (s.faceT > 0 && --s.faceT === 0) s.face = 0;
 }
 
 export const bubbleshot: GameDef<BubState> = {
   id: 'bubbleshot',
   name: '펭귄 거품 쏘기',
   genes: ['bubble', 'pointer', 'chain'],
-  twist: '아기 펭귄이 갇힌 거품은 색이 없어 절대 안 터진다 — 매달린 줄기를 끊어 덩어리째 떨어뜨려야 아기들이 낙하산을 펴고 아빠 품으로 내려오고, 한 발에 여럿 구할수록 점수가 제곱으로 커진다',
+  twist: '얼린 물고기 간식이 든 얼음 거품은 색이 없어 절대 안 터진다 — 매달린 줄기를 끊어 덩어리째 떨어뜨려야 간식이 파닥파닥 튀어 먹보 펭귄의 양동이로 철퍼덕, 한 발에 여럿 받을수록 점수가 제곱으로 커지고 펭귄은 침을 흘리며 감동한다',
   rules: [
     '누르고 있으면 조준선이 보이고, 떼면 거품이 날아가요 (벽에 튕겨요).',
-    '같은 색 3개가 붙으면 펑! 매달린 데가 없어진 거품은 우수수 — 갇힌 아기 펭귄을 떨어뜨려 구해요.',
+    '같은 색 3개가 붙으면 펑! 매달린 데가 없어진 거품은 우수수 — 얼린 간식을 떨어뜨려 양동이로 받아요.',
   ],
   controls: 'touch',
   hint: '누르면 조준선, 떼면 발사! / 화살표로 겨누고 스페이스',
   aspect: A,
   art: {
-    concept: '남극 얼음 동굴 디오라마 — 아기 펭귄 구조 작전',
-    mood: '푸르게 빛나는 얼음 동굴, 천장에 고드름이 반짝이고 갈라진 틈으로 오로라가 일렁인다. 얼음 바닥에 선 아빠 펭귄이 거품 대롱으로 색 거품을 쏘고, 거품에 갇혀 매달린 아기 펭귄들이 낙하산을 펴고 내려와 아빠 품에 안긴다. 구석의 물범이 박수를 친다.',
+    concept: '남극 얼음 동굴 디오라마 — 먹보 펭귄의 얼린 간식 사냥',
+    mood: '푸르게 빛나는 얼음 동굴, 천장에 고드름이 반짝이고 갈라진 틈으로 오로라가 일렁인다. 얼음 바닥에 선 먹보 펭귄이 거품 대롱으로 색 거품을 쏘고, 천장에 얼어붙은 생선·새우·오징어 간식이 우수수 떨어져 파닥파닥 양동이로 들어간다. 받을수록 펭귄 배가 빵빵해지고, 구석의 물범이 군침을 흘리며 박수를 친다.',
     palette: { bg: '#0d2a44', ink: '#f4fbff', muted: '#9cc3dc', accent: '#7fe0ff', hot: '#ff6b7a', soft: '#cfefff' },
   },
   reveals: (s) => s.seen.size,
@@ -644,10 +642,10 @@ export const bubbleshot: GameDef<BubState> = {
     const s = {
       rng, seed, t: 0, stage: 0, phase: 'play', pt: 0, lays,
       g: new Int8Array(NC), ceil: CEIL0, cur: 0, nxt: 0, shotNo: 0, shots: 0, used: 0,
-      penTotal: 0, saved: 0, bestDrop: 0, wind: 0, sk: null, fly: null, cool: 0,
+      snackTotal: 0, caught: 0, bestDrop: 0, wind: 0, sk: null, fly: null, cool: 0,
       hearts: 3, stars: 0, got: 0, starOk: [false, false, false], pts: 0, ok: false, why: '', won: false, dead: false, again: false, tries: 0,
       down: false, aim: null, firstShot: false, seen: new Set<string>(), newsQ: [], news: null, events: [],
-      falls: [], chutes: [], huddle: 0, savedAll: 0, dad: 0, dadT: 0, big: null, use: {}, tally: {},
+      falls: [], flops: [], flopN: 0, caughtAll: 0, bucket: 0, face: 0, faceT: 0, big: null, use: {}, tally: {},
     } as BubState;
     newStage(s);
     return s;
@@ -703,16 +701,16 @@ function options(g: Int8Array, ceil: number, env: Env, angs: number[]): Opt[] {
   return [...by.entries()].map(([key, e]) => ({ key, tr: e.tr, ang: e.angs[(e.angs.length - 1) >> 1] }));
 }
 
-/** 판의 모양 값: 펭귄이 매달린 덩어리의 천장 닻이 적을수록, 거품이 적을수록, 아래 선에서 멀수록 좋다 */
+/** 판의 모양 값: 간식이 매달린 덩어리의 천장 닻이 적을수록, 거품이 적을수록, 아래 선에서 멀수록 좋다 */
 function shape(g: Int8Array, ceil: number) {
   if (overLine(g, ceil)) return -1e6;
   let v = 0, occ = 0;
   for (const i of VALID) if (g[i] >= 0) occ++;
   v -= occ * 4;
-  // 펭귄에서 출발해 닿는 천장 닻 수
+  // 간식에서 출발해 닿는 천장 닻 수
   const gen = ++markGen;
   let sp = 0, anchors = 0, peng = 0;
-  for (const i of VALID) if (g[i] === PENG && mark[i] !== gen) (mark[i] = gen), (stack[sp++] = i), peng++;
+  for (const i of VALID) if (g[i] === SNACK && mark[i] !== gen) (mark[i] = gen), (stack[sp++] = i), peng++;
   while (sp) {
     const i = stack[--sp];
     if (i < COLS) anchors++;
@@ -725,7 +723,7 @@ function shape(g: Int8Array, ceil: number) {
   return v;
 }
 function gain(res: Res, st: { big: number; bestDrop: number }) {
-  return res.rescued * 1000 + res.rescued * res.rescued * 150 + res.popped * 6 + res.dropped * 15 + res.blasted * 6 + (res.dropped >= st.big && st.bestDrop < st.big ? 2500 : 0);
+  return res.snacks * 1000 + res.snacks * res.snacks * 150 + res.popped * 6 + res.dropped * 15 + res.blasted * 6 + (res.dropped >= st.big && st.bestDrop < st.big ? 2500 : 0);
 }
 
 function plan(s: BubState, dt: number): number {
@@ -738,15 +736,15 @@ function plan(s: BubState, dt: number): number {
     if (o.tr.eaten) v = -400;
     else if (o.tr.cell >= 0) v = gain(resolve(g, o.tr.cell, s.cur, o.tr.hit, false), st);
     const ceil = s.ceil + (willDrop(1) ? ROWH : 0);
-    const left = pengLeft(g);
+    const left = snackLeft(g);
     const sh = left ? shape(g, ceil) : 30000 + (s.used + 1 <= d.par ? 4000 : 0);
     return { o, g, ceil, v, sh, total: v + sh };
   });
   scored.sort((a, b) => b.total - a.total);
   let best = scored[0], bv = best.total;
-  if (s.shots >= 2 && pengLeft(best.g) > 0) {
+  if (s.shots >= 2 && snackLeft(best.g) > 0) {
     for (const c of scored.slice(0, 6)) {
-      if (!pengLeft(c.g) || c.sh < -1e5) continue;
+      if (!snackLeft(c.g) || c.sh < -1e5) continue;
       const st2 = { big: d.big, bestDrop: Math.max(s.bestDrop, 0) };
       const nv = s.nxt;
       for (const o2 of options(c.g, c.ceil, { ...env, t0: env.t0 + 60 }, ANGS2)) {
@@ -755,7 +753,7 @@ function plan(s: BubState, dt: number): number {
         if (o2.tr.eaten) v2 = -400;
         else if (o2.tr.cell >= 0) v2 = gain(resolve(g2, o2.tr.cell, nv, o2.tr.hit, false), st2);
         const ceil2 = c.ceil + (willDrop(2) ? ROWH : 0);
-        const sh2 = pengLeft(g2) ? shape(g2, ceil2) : 30000 + (s.used + 2 <= d.par ? 4000 : 0) - 500;
+        const sh2 = snackLeft(g2) ? shape(g2, ceil2) : 30000 + (s.used + 2 <= d.par ? 4000 : 0) - 500;
         const tot = c.v + 0.95 * v2 + sh2;
         if (tot > bv) (bv = tot), (best = c);
       }
@@ -764,7 +762,7 @@ function plan(s: BubState, dt: number): number {
   return best.o.ang;
 }
 
-/** 버릇 봇: 같은 색이 가장 많이 붙는 자리에 바로 쏜다(떨어질 것·펭귄은 안 본다) */
+/** 버릇 봇: 같은 색이 가장 많이 붙는 자리에 바로 쏜다(떨어질 것·간식은 안 본다) */
 function habitPlan(s: BubState, dt: number): number {
   const opts = options(s.g, s.ceil, envOf(s, dt), ANGS);
   let best = opts[0], bv = -1;
@@ -798,8 +796,8 @@ function shooter(name: string, pick: (s: BubState, dt: number) => number): Bot<B
   };
 }
 
-/** 봇: 쏠 수 있는 자리를 모두 내다보고(지금 거품 + 다음 거품 두 발 앞까지) 펭귄을 가장 많이·빨리 떨어뜨리는 자리 */
-export const bubbleshotSmart: Bot<BubState> = shooter('구조대장 펭귄', plan);
+/** 봇: 쏠 수 있는 자리를 모두 내다보고(지금 거품 + 다음 거품 두 발 앞까지) 간식을 가장 많이·빨리 떨어뜨리는 자리 */
+export const bubbleshotSmart: Bot<BubState> = shooter('간식 사냥꾼', plan);
 /** 버릇 봇(측정용): 같은 색이 가장 많이 붙는 자리에 바로 */
 export const bubbleshotHabit: Bot<BubState> = shooter('같은 색 많은 데', habitPlan);
 
@@ -878,100 +876,115 @@ function glyph(ctx: CanvasRenderingContext2D, v: number, x: number, y: number, r
   ctx.fill();
 }
 
-/** 아기 펭귄 (회색 솜털 · 까만 머리 · 하얀 얼굴). mood 0 두리번 · 1 겁먹음 · 2 신남 */
-function drawChick(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, mood: number, t: number, sd: number) {
-  const flap = Math.sin(t * (mood === 1 ? 0.5 : 0.18) + sd) * (mood === 0 ? 0.25 : 0.7);
+/** 얼린 간식: kind 0 생선 · 1 새우 · 2 오징어. frozen이면 얼음 속에서 눈만 끔뻑, 아니면 파닥파닥 (u = 몸 반 길이) */
+function drawSnack(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, kind: number, t: number, sd: number, frozen: boolean) {
+  const wig = frozen ? 0 : Math.sin(t * 0.9 + sd) * 0.35;
+  const blink = frozen && (t + sd * 53) % 190 < 8;
   ctx.save();
   ctx.translate(x, y);
-  // 날개
-  ctx.fillStyle = '#7d8a99';
-  for (const s2 of [-1, 1]) {
-    ctx.save();
-    ctx.translate(s2 * u * 0.62, u * 0.15);
-    ctx.rotate(s2 * (0.5 + flap));
-    ctx.beginPath();
-    ctx.ellipse(0, u * 0.25, u * 0.17, u * 0.38, 0, 0, Math.PI * 2);
+  ctx.rotate(frozen ? -0.25 + 0.5 * hsh(sd) : wig);
+  const eye = (ex: number, ey: number, er: number) => {
+    ctx.fillStyle = '#ffffff';
+    circle(ctx, ex, ey, er);
     ctx.fill();
-    ctx.restore();
-  }
-  // 몸
-  const g = ctx.createRadialGradient(-u * 0.2, -u * 0.1, u * 0.1, 0, u * 0.2, u * 0.85);
-  g.addColorStop(0, '#d6dde6');
-  g.addColorStop(1, '#8a97a6');
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.ellipse(0, u * 0.25, u * 0.66, u * 0.7, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // 솜털 삐침
-  ctx.strokeStyle = '#c7d0da';
-  ctx.lineWidth = Math.max(1, u * 0.08);
-  ctx.beginPath();
-  ctx.moveTo(-u * 0.1, -u * 0.82);
-  ctx.quadraticCurveTo(u * 0.05, -u * 1.05, u * 0.18, -u * 0.95);
-  ctx.stroke();
-  // 머리(까만 모자) · 하얀 얼굴
-  ctx.fillStyle = '#26303d';
-  circle(ctx, 0, -u * 0.42, u * 0.5);
-  ctx.fill();
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.ellipse(-u * 0.19, -u * 0.36, u * 0.21, u * 0.25, 0.2, 0, Math.PI * 2);
-  ctx.ellipse(u * 0.19, -u * 0.36, u * 0.21, u * 0.25, -0.2, 0, Math.PI * 2);
-  ctx.fill();
-  // 눈
-  ctx.fillStyle = '#141a22';
-  ctx.strokeStyle = '#141a22';
-  ctx.lineWidth = Math.max(1, u * 0.08);
-  const blink = (t + sd * 50) % 170 < 7;
-  for (const s2 of [-1, 1]) {
-    const ex = s2 * u * 0.19, ey = -u * 0.38;
-    if (mood === 2) {
+    ctx.fillStyle = '#141a22';
+    if (blink) ctx.fillRect(ex - er, ey - er * 0.15, er * 2, er * 0.3);
+    else (circle(ctx, ex + er * 0.2, ey, er * 0.55), ctx.fill());
+  };
+  if (kind === 0) {
+    // 생선 (주황 고등어빛 · 꼬리 파닥)
+    ctx.fillStyle = '#ff8f5e';
+    ctx.beginPath();
+    ctx.moveTo(-u * 0.75, 0);
+    ctx.lineTo(-u * 1.2, -u * 0.45 + wig * u * 0.3);
+    ctx.lineTo(-u * 1.15, u * 0.45 + wig * u * 0.3);
+    ctx.closePath();
+    ctx.fill();
+    const g = ctx.createLinearGradient(0, -u * 0.5, 0, u * 0.5);
+    g.addColorStop(0, '#ffb48a');
+    g.addColorStop(0.55, '#ff7a4a');
+    g.addColorStop(1, '#ffe2c8');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, u * 0.9, u * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(160,60,30,.45)';
+    ctx.lineWidth = Math.max(1, u * 0.06);
+    for (const k of [-0.25, 0.05]) {
       ctx.beginPath();
-      ctx.arc(ex, ey + u * 0.04, u * 0.09, Math.PI * 1.1, Math.PI * 1.9);
+      ctx.arc(u * k, 0, u * 0.32, -0.9, 0.9);
       ctx.stroke();
-    } else if (mood === 1) {
-      ctx.beginPath();
-      ctx.moveTo(ex - u * 0.08, ey - u * 0.07);
-      ctx.lineTo(ex + u * 0.06 * s2, ey);
-      ctx.lineTo(ex - u * 0.08, ey + u * 0.07);
-      ctx.stroke();
-    } else if (blink) {
-      ctx.beginPath();
-      ctx.moveTo(ex - u * 0.08, ey);
-      ctx.lineTo(ex + u * 0.08, ey);
-      ctx.stroke();
-    } else {
-      circle(ctx, ex + Math.sin(t * 0.03 + sd) * u * 0.03, ey, u * 0.085);
-      ctx.fill();
-      ctx.fillStyle = '#ffffff';
-      circle(ctx, ex + u * 0.03, ey - u * 0.035, u * 0.03);
-      ctx.fill();
-      ctx.fillStyle = '#141a22';
     }
-  }
-  // 부리 · 볼
-  ctx.fillStyle = mood === 1 ? '#3a2a2a' : '#4a4f5a';
-  ctx.beginPath();
-  if (mood === 1) ctx.ellipse(0, -u * 0.18, u * 0.08, u * 0.1, 0, 0, Math.PI * 2);
-  else (ctx.moveTo(-u * 0.08, -u * 0.22), ctx.lineTo(u * 0.08, -u * 0.22), ctx.lineTo(0, -u * 0.1));
-  ctx.fill();
-  ctx.fillStyle = 'rgba(255,140,170,.55)';
-  for (const s2 of [-1, 1]) {
+    eye(u * 0.5, -u * 0.12, u * 0.15);
+    ctx.strokeStyle = '#a8402a';
     ctx.beginPath();
-    ctx.ellipse(s2 * u * 0.33, -u * 0.22, u * 0.09, u * 0.055, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  // 발
-  ctx.fillStyle = '#ff9a3c';
-  for (const s2 of [-1, 1]) {
+    ctx.arc(u * 0.82, u * 0.12, u * 0.08, 0.3, Math.PI - 0.3);
+    ctx.stroke();
+  } else if (kind === 1) {
+    // 새우 (동그랗게 말린 몸 · 마디 · 꼬리 부채)
+    ctx.strokeStyle = '#ff6f4f';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = u * 0.55;
     ctx.beginPath();
-    ctx.ellipse(s2 * u * 0.22, u * 0.93, u * 0.17, u * 0.08, 0, 0, Math.PI * 2);
+    ctx.arc(0, 0, u * 0.55, -Math.PI * 0.9, Math.PI * 0.45);
+    ctx.stroke();
+    ctx.strokeStyle = '#ffd2b8';
+    ctx.lineWidth = Math.max(1, u * 0.07);
+    for (let k = 0; k < 4; k++) {
+      const a = -Math.PI * 0.7 + k * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * u * 0.32, Math.sin(a) * u * 0.32);
+      ctx.lineTo(Math.cos(a) * u * 0.8, Math.sin(a) * u * 0.8);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#ff8a5c';
+    const tx0 = Math.cos(Math.PI * 0.45) * u * 0.55, ty0 = Math.sin(Math.PI * 0.45) * u * 0.55;
+    ctx.beginPath();
+    ctx.moveTo(tx0, ty0);
+    ctx.lineTo(tx0 - u * 0.45, ty0 + u * 0.25 + wig * u * 0.2);
+    ctx.lineTo(tx0 - u * 0.1, ty0 + u * 0.45);
+    ctx.closePath();
     ctx.fill();
+    ctx.strokeStyle = '#ff6f4f';
+    ctx.lineWidth = Math.max(1, u * 0.05);
+    ctx.beginPath();
+    ctx.moveTo(-u * 0.5, -u * 0.35);
+    ctx.quadraticCurveTo(-u * 0.9, -u * 1.0, -u * 0.2 + wig * u, -u * 1.15);
+    ctx.stroke();
+    eye(-u * 0.3, -u * 0.5, u * 0.13);
+  } else {
+    // 오징어 (보라빛 몸통 · 지느러미 · 다리 꼬물)
+    ctx.fillStyle = '#c98bff';
+    ctx.beginPath();
+    ctx.moveTo(0, -u * 1.0);
+    ctx.lineTo(-u * 0.55, -u * 0.6);
+    ctx.lineTo(u * 0.55, -u * 0.6);
+    ctx.closePath();
+    ctx.fill();
+    const g = ctx.createLinearGradient(-u * 0.4, 0, u * 0.4, 0);
+    g.addColorStop(0, '#e7c7ff');
+    g.addColorStop(1, '#a86ef0');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(0, -u * 0.2, u * 0.38, u * 0.62, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#b57bf5';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = Math.max(1.2, u * 0.12);
+    for (let k = 0; k < 5; k++) {
+      const x0 = (k - 2) * u * 0.15;
+      ctx.beginPath();
+      ctx.moveTo(x0, u * 0.3);
+      ctx.quadraticCurveTo(x0 + Math.sin(t * 0.4 + k) * u * (frozen ? 0.05 : 0.25), u * 0.7, x0 * 1.3, u * 1.0);
+      ctx.stroke();
+    }
+    eye(-u * 0.15, u * 0.05, u * 0.12);
+    eye(u * 0.15, u * 0.05, u * 0.12);
   }
   ctx.restore();
 }
 
-/** 거품 한 알. v = 색 0~5 · 펭귄 · 돌 · 얼음 · 폭탄 · 무지개 */
+/** 거품 한 알. v = 색 0~5 · 얼린 간식 · 돌 · 얼음 · 폭탄 · 무지개 */
 function drawBubble(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, v: number, t: number, sd: number) {
   if (isCol(v)) {
     const c = BCOL[v], g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.42, r * 0.08, x, y, r);
@@ -982,23 +995,40 @@ function drawBubble(ctx: CanvasRenderingContext2D, x: number, y: number, r: numb
     circle(ctx, x, y, r);
     ctx.fill();
     glyph(ctx, v, x + r * 0.04, y + r * 0.08, r * 0.4);
-  } else if (v === PENG) {
-    const scared = (t + sd * 37) % 260 < 50;
-    drawChick(ctx, x, y + r * 0.02, r * 0.64, scared ? 1 : 0, t, sd);
-    const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.05, x, y, r);
-    g.addColorStop(0, 'rgba(255,255,255,.42)');
-    g.addColorStop(0.65, 'rgba(210,240,255,.1)');
-    g.addColorStop(1, 'rgba(170,225,255,.55)');
+  } else if (v === SNACK) {
+    // 색 없는 얼음 거품 속에 얼린 간식
+    const bg = ctx.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.05, x, y, r);
+    bg.addColorStop(0, '#f4fcff');
+    bg.addColorStop(0.7, '#cdeefc');
+    bg.addColorStop(1, '#8cc9ea');
+    ctx.fillStyle = bg;
+    circle(ctx, x, y, r);
+    ctx.fill();
+    drawSnack(ctx, x, y + r * 0.05, r * 0.52, sd % 3, t, sd, true);
+    const g = ctx.createRadialGradient(x, y, r * 0.35, x, y, r);
+    g.addColorStop(0, 'rgba(225,246,255,.18)');
+    g.addColorStop(1, 'rgba(225,246,255,.7)');
     ctx.fillStyle = g;
     circle(ctx, x, y, r);
     ctx.fill();
-    ctx.lineWidth = Math.max(1.2, r * 0.09);
-    for (let k = 0; k < 6; k++) {
-      ctx.strokeStyle = `hsla(${(t * 2 + k * 60 + sd * 40) % 360}, 95%, 72%, .75)`;
-      ctx.beginPath();
-      ctx.arc(x, y, r * 0.94, (k * Math.PI) / 3, ((k + 1) * Math.PI) / 3);
-      ctx.stroke();
-    }
+    ctx.strokeStyle = 'rgba(255,255,255,.75)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x + r * 0.2, y - r * 0.75);
+    ctx.lineTo(x + r * 0.45, y - r * 0.35);
+    ctx.lineTo(x + r * 0.7, y - r * 0.4);
+    ctx.moveTo(x - r * 0.7, y + r * 0.3);
+    ctx.lineTo(x - r * 0.4, y + r * 0.5);
+    ctx.stroke();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(1.4, r * 0.08);
+    circle(ctx, x, y, r * 0.95);
+    ctx.stroke();
+    // 반짝 눈송이
+    const tw = 0.5 + 0.5 * Math.sin(t * 0.12 + sd);
+    ctx.fillStyle = `rgba(255,255,255,${0.5 + 0.5 * tw})`;
+    starPath(ctx, x + r * 0.55, y + r * 0.5, r * 0.16 * (0.6 + 0.4 * tw));
+    ctx.fill();
   } else if (v === STONE) {
     const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.4, r * 0.1, x, y, r);
     g.addColorStop(0, '#a3afbd');
@@ -1108,7 +1138,7 @@ function drawBubble(ctx: CanvasRenderingContext2D, x: number, y: number, r: numb
     starPath(ctx, x, y + r * 0.05, r * 0.45);
     ctx.fill();
   }
-  if (v !== PENG && v !== ICE && v !== ICE2) {
+  if (v !== SNACK && v !== ICE && v !== ICE2) {
     // 테두리 빛(얼음 반사) · 반짝
     ctx.strokeStyle = 'rgba(205,240,255,.5)';
     ctx.lineWidth = Math.max(1, r * 0.09);
@@ -1125,9 +1155,9 @@ function drawBubble(ctx: CanvasRenderingContext2D, x: number, y: number, r: numb
   ctx.fill();
 }
 
-/** 아빠 펭귄 (오른쪽을 비스듬히 보며 거품 대롱을 문다). mood 0 평소 · 1 후!(불었다) · 2 깜짝 · 3 우쭐 · 4 벌러덩 · 5 겨누는 중(볼 빵빵)
- *  puff = 볼이 부푼 정도(0~1), look = 눈이 보는 방향(라디안, 위 = π/2) */
-function drawDad(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, mood: number, t: number, puff: number, look: number, pipe: boolean) {
+/** 먹보 펭귄 (오른쪽을 비스듬히 보며 거품 대롱을 문다). mood 0 평소 · 1 후!(불었다) · 2 깜짝 · 3 우쭐 · 4 벌러덩 · 5 겨누는 중(볼 빵빵)
+ *  · 6 감동(눈 반짝 · 침 질질). puff = 볼이 부푼 정도(0~1), look = 눈이 보는 방향(라디안, 위 = π/2), full = 배 부른 정도(0~1) */
+function drawEater(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, mood: number, t: number, puff: number, look: number, pipe: boolean, full: number) {
   ctx.fillStyle = 'rgba(10,40,70,.3)';
   ctx.beginPath();
   ctx.ellipse(x, y, u * 0.8, u * 0.17, 0, 0, Math.PI * 2);
@@ -1136,7 +1166,7 @@ function drawDad(ctx: CanvasRenderingContext2D, x: number, y: number, u: number,
   ctx.translate(x, y);
   if (mood === 4) (ctx.rotate(-1.45), ctx.translate(u * 0.6, -u * 0.3));
   else if (mood === 3) ctx.rotate(-0.08);
-  const chest = mood === 3 ? 1.1 : 1;
+  const chest = (mood === 3 || mood === 6 ? 1.1 : 1) * (1 + 0.32 * full);
   // 발
   ctx.fillStyle = '#ff9a2e';
   for (const s2 of [-1, 1]) {
@@ -1211,6 +1241,22 @@ function drawDad(ctx: CanvasRenderingContext2D, x: number, y: number, u: number,
       ctx.beginPath();
       ctx.arc(ex, ey + u * 0.04, u * 0.08, Math.PI * 1.15, Math.PI * 1.85);
       ctx.stroke();
+    } else if (mood === 6) {
+      // 감동: 반짝반짝 큰 눈 + 눈물 그렁
+      circle(ctx, ex, ey, u * 0.13);
+      ctx.fill();
+      ctx.fillStyle = '#10141c';
+      circle(ctx, ex + u * 0.01, ey + u * 0.01, u * 0.085);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      starPath(ctx, ex - u * 0.025, ey - u * 0.03, u * 0.05 * (1 + 0.3 * Math.sin(t * 0.4)));
+      ctx.fill();
+      circle(ctx, ex + u * 0.04, ey + u * 0.04, u * 0.02);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(150,215,255,.85)';
+      ctx.beginPath();
+      ctx.ellipse(ex - u * 0.05, ey + u * 0.16 + ((t * 0.6) % 8) * u * 0.01, u * 0.03, u * 0.05, 0, 0, Math.PI * 2);
+      ctx.fill();
     } else if (mood === 1) {
       ctx.beginPath();
       ctx.moveTo(ex - u * 0.08, ey - u * 0.04);
@@ -1262,10 +1308,22 @@ function drawDad(ctx: CanvasRenderingContext2D, x: number, y: number, u: number,
     ctx.lineTo(bx - u * 0.06, by + u * 0.08);
   }
   ctx.fill();
-  if (mood === 3) {
+  if (mood === 3 || mood === 6) {
     ctx.fillStyle = 'rgba(255,120,150,.6)';
     ctx.beginPath();
     ctx.ellipse(hx + u * 0.28, hy + u * 0.14, u * 0.08, u * 0.05, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  if (mood === 6) {
+    // 침 질질 (늘어났다 똑)
+    const dl = ((t * 0.7) % 30) / 30;
+    ctx.fillStyle = 'rgba(190,235,255,.95)';
+    ctx.beginPath();
+    ctx.moveTo(bx + u * 0.08, by + u * 0.06);
+    ctx.quadraticCurveTo(bx + u * 0.06, by + u * (0.1 + 0.35 * dl), bx + u * 0.1, by + u * (0.12 + 0.38 * dl));
+    ctx.quadraticCurveTo(bx + u * 0.14, by + u * (0.1 + 0.3 * dl), bx + u * 0.13, by + u * 0.06);
+    ctx.fill();
+    circle(ctx, bx + u * 0.1, by + u * (0.14 + 0.4 * dl), u * 0.045);
     ctx.fill();
   }
   // 앞쪽 날개 (오른쪽) — 대롱을 받쳐 든다
@@ -1285,6 +1343,82 @@ function drawDad(ctx: CanvasRenderingContext2D, x: number, y: number, u: number,
       starPath(ctx, x - u * 1.0 + Math.cos(a) * u * 0.5, y - u * 0.75 + Math.sin(a) * u * 0.15, u * 0.15);
       ctx.fill();
     }
+}
+
+/** 간식 양동이: 받은 만큼 생선 꼬리·새우·오징어 다리가 삐죽, 막 들어오면 물이 철퍼덕 */
+function drawBucket(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, n: number, t: number, plopAge: number) {
+  const top = y - u * 1.25, wob = plopAge < 20 ? Math.sin(plopAge * 0.9) * (1 - plopAge / 20) * u * 0.08 : 0;
+  ctx.fillStyle = 'rgba(10,40,70,.3)';
+  ctx.beginPath();
+  ctx.ellipse(x, y, u * 1.05, u * 0.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 안쪽(뒤 테두리) · 물
+  ctx.fillStyle = '#3b2a1e';
+  ctx.beginPath();
+  ctx.ellipse(x, top, u * 0.95, u * 0.26, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#4aa8d8';
+  ctx.beginPath();
+  ctx.ellipse(x, top + u * 0.05 + wob, u * 0.82, u * 0.18, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 받은 간식이 삐죽
+  const m = Math.min(9, n);
+  for (let k = 0; k < m; k++) {
+    const px = x + (((k * 0.37 + 0.13) % 1) - 0.5) * u * 1.4, py = top - u * (0.05 + 0.12 * (k % 3)) + wob;
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(-0.9 + ((k * 0.61) % 1) * 1.8 + Math.sin(t * 0.08 + k) * 0.08);
+    drawSnack(ctx, 0, -u * 0.15, u * 0.42, k % 3, t, k * 13, true);
+    ctx.restore();
+  }
+  // 앞면 (나무통 + 쇠테)
+  const g = ctx.createLinearGradient(x - u, 0, x + u, 0);
+  g.addColorStop(0, '#8a5a32');
+  g.addColorStop(0.45, '#c98d55');
+  g.addColorStop(1, '#6e4426');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(x - u * 0.95, top);
+  ctx.ellipse(x, top, u * 0.95, u * 0.26, 0, Math.PI, 0, true);
+  ctx.lineTo(x + u * 0.78, y - u * 0.05);
+  ctx.ellipse(x, y - u * 0.05, u * 0.78, u * 0.2, 0, 0, Math.PI);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(60,35,20,.45)';
+  ctx.lineWidth = 1;
+  for (const k of [-0.5, 0, 0.5]) {
+    ctx.beginPath();
+    ctx.moveTo(x + k * u * 0.95, top + u * 0.25);
+    ctx.lineTo(x + k * u * 0.78, y + u * 0.12);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = '#b8c4cc';
+  ctx.lineWidth = Math.max(1.5, u * 0.1);
+  for (const f of [0.3, 0.75]) {
+    const yy = top + (y - top) * f, ww = u * (0.95 - 0.17 * f);
+    ctx.beginPath();
+    ctx.ellipse(x, yy, ww, u * 0.23, 0, 0.05, Math.PI - 0.05);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = '#e8d2b0';
+  ctx.lineWidth = Math.max(1.2, u * 0.07);
+  ctx.beginPath();
+  ctx.ellipse(x, top, u * 0.95, u * 0.26, 0, 0, Math.PI);
+  ctx.stroke();
+  // 손잡이
+  ctx.strokeStyle = '#9aa6ae';
+  ctx.lineWidth = Math.max(1.2, u * 0.06);
+  ctx.beginPath();
+  ctx.arc(x, top, u * 0.95, Math.PI * 1.08, Math.PI * 1.92);
+  ctx.stroke();
+  if (plopAge < 16) {
+    ctx.fillStyle = 'rgba(200,240,255,.9)';
+    for (let k = 0; k < 5; k++) {
+      const a = Math.PI * (1.15 + k * 0.17), rr = u * (0.5 + plopAge * 0.05);
+      circle(ctx, x + Math.cos(a) * rr, top + Math.sin(a) * rr * 0.9, u * 0.08 * (1 - plopAge / 16) + 0.5);
+      ctx.fill();
+    }
+  }
 }
 
 /** 구경꾼 물범: 큰 낙하에 박수 */
@@ -1751,7 +1885,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BubState, w: number, h: numbe
         }
         for (let k = 0; k < res.drop.length; k += 2) {
           const i = res.drop[k], px = X(CX[i]), py = Y(ceil + RY[i]);
-          ctx.fillStyle = res.drop[k + 1] === PENG ? 'rgba(255,230,120,.5)' : 'rgba(10,30,60,.35)';
+          ctx.fillStyle = res.drop[k + 1] === SNACK ? 'rgba(255,230,120,.5)' : 'rgba(10,30,60,.35)';
           circle(ctx, px, py, Rr(R * 0.97));
           ctx.fill();
           ctx.fillStyle = '#ffffff';
@@ -1772,17 +1906,17 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BubState, w: number, h: numbe
       circle(ctx, cx, cy, Rr(R));
       ctx.stroke();
       ctx.setLineDash([]);
-      if (res && (res.popped || res.dropped || res.rescued)) {
-        const lab = `${res.popped ? `펑 ${res.popped}` : ''}${res.dropped ? ` 우수수 ${res.dropped}` : ''}${res.rescued ? ` 🐧${res.rescued}` : ''}`.trim();
+      if (res && (res.popped || res.dropped || res.snacks)) {
+        const lab = `${res.popped ? `펑 ${res.popped}` : ''}${res.dropped ? ` 우수수 ${res.dropped}` : ''}${res.snacks ? ` 🐟${res.snacks}` : ''}`.trim();
         font(0.036, 900);
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         const tw = ctx.measureText(lab).width + Rr(0.03), lx = Math.max(tw / 2 + 4, Math.min(w - tw / 2 - 4, cx)), ly = cy + Rr(R + 0.035);
-        ctx.fillStyle = res.rescued ? 'rgba(255,200,60,.95)' : 'rgba(10,40,70,.85)';
+        ctx.fillStyle = res.snacks ? 'rgba(255,200,60,.95)' : 'rgba(10,40,70,.85)';
         ctx.beginPath();
         ctx.roundRect(lx - tw / 2, ly - Rr(0.024), tw, Rr(0.048), Rr(0.024));
         ctx.fill();
-        ctx.fillStyle = res.rescued ? '#3a2400' : '#ffffff';
+        ctx.fillStyle = res.snacks ? '#3a2400' : '#ffffff';
         ctx.fillText(lab, lx, ly);
       }
     }
@@ -1816,20 +1950,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BubState, w: number, h: numbe
     ctx.fill();
   }
 
-  // ── 바닥의 친구들: 구한 아기들 · 아빠 · 다음 거품 · 물범 ──
-  // 구한 아기들 (발을 동동)
-  for (const c of s.chutes) {
-    if (c.st === 0) continue;
-    const hop = c.st === 1 ? Math.abs(Math.sin((t - c.t0) * 0.25)) * Rr(0.02) : Math.abs(Math.sin(t * 0.08 + c.ph)) * Rr(0.004);
-    ctx.fillStyle = 'rgba(10,40,70,.25)';
-    ctx.beginPath();
-    ctx.ellipse(X(c.x), Y(FLOOR + 0.004), Rr(0.022), Rr(0.006), 0, 0, Math.PI * 2);
-    ctx.fill();
-    drawChick(ctx, X(c.x), Y(FLOOR - 0.03) - hop, Rr(0.03), c.st === 1 ? 2 : 0, t, c.ph);
+  // ── 바닥의 친구들: 간식 양동이 · 먹보 펭귄 · 다음 거품 · 물범 ──
+  {
+    let pl = -999;
+    for (const e of s.events) if (e.kind === 'plop') pl = e.t;
+    drawBucket(ctx, X(BUCKX), Y(FLOOR + 0.006), Rr(0.062), s.bucket, t, t - pl);
   }
   // 물범 구경꾼
   {
-    const bigAge = s.big ? t - s.big.t : 999, clap = bigAge < 110 || (s.phase === 'result' && s.ok) ? 1 : 0;
+    const bigAge = s.big ? t - s.big.t : 999, clap = bigAge < 110 || s.face === 6 || (s.phase === 'result' && s.ok) ? 1 : 0;
     drawSeal(ctx, X(0.86), Y(FLOOR + 0.008), Rr(0.06), clap, t);
   }
   // 다음 거품 (눈 그릇에)
@@ -1849,14 +1978,14 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BubState, w: number, h: numbe
     ctx.strokeText('다음', nx, ny - Rr(0.058));
     ctx.fillText('다음', nx, ny - Rr(0.058));
   }
-  // 아빠 펭귄 + 거품 대롱 + 대롱 끝의 거품
+  // 먹보 펭귄 + 거품 대롱 + 대롱 끝의 거품
   {
     const aimA = s.down && s.aim && canAim(s.aim.y) ? aimAngle(s.aim.x, s.aim.y) : Math.PI / 2;
-    const blew = s.dad === 1 && s.dadT > 8;
-    const mood = s.dad === 4 ? 4 : s.dad === 2 ? 2 : s.dad === 3 ? 3 : blew ? 1 : s.down && ready ? 5 : 0;
+    const blew = s.face === 1 && s.faceT > 8;
+    const mood = s.face === 4 ? 4 : s.face === 6 ? 6 : s.face === 2 ? 2 : s.face === 3 ? 3 : blew ? 1 : s.down && ready ? 5 : 0;
     const holdT = (fx.memo.hold = s.down && ready ? (fx.memo.hold ?? 0) + 1 : 0);
     const puff = mood === 5 ? Math.min(1, holdT / 25) : mood === 1 ? 0.3 : 0;
-    const u = Rr(0.08), dx = X(DADX), dy = Y(FLOOR + 0.012), pipe = mood !== 4 && s.phase === 'play';
+    const u = Rr(0.08), dx = X(EATX), dy = Y(FLOOR + 0.012), pipe = mood !== 4 && s.phase === 'play';
     if (pipe) {
       // 대롱: 부리 끝에서 거품 아래 고리까지
       const px0 = dx + u * 0.75, py0 = dy - u * 1.4, px1 = X(LX) - Rr(R * 0.55), py1 = Y(LY) + Rr(R * 0.75);
@@ -1876,7 +2005,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BubState, w: number, h: numbe
       ctx.ellipse(X(LX), Y(LY) + Rr(R * 0.92), Rr(R * 0.62), Rr(R * 0.2), 0, 0, Math.PI * 2);
       ctx.stroke();
     }
-    drawDad(ctx, dx, dy, u, mood, t, puff, aimA, pipe);
+    drawEater(ctx, dx, dy, u, mood, t, puff, aimA, pipe, Math.min(1, s.bucket / 24));
     if (s.phase === 'play' && !(s.fly && s.fly.k < 5)) {
       const grow = s.fly ? 1 : Math.min(1, 0.4 + (COOL - s.cool) / COOL), bob = Math.sin(t * 0.08) * Rr(0.003);
       drawBubble(ctx, X(LX), Y(LY) + bob, Rr(R * 0.97 * (s.cool > 0 ? grow : 1)), s.cur, t, 55);
@@ -1912,37 +2041,23 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BubState, w: number, h: numbe
     ctx.save();
     ctx.translate(X(f.x), Y(f.y));
     ctx.rotate(f.rot * 0.2);
-    drawBubble(ctx, 0, 0, Rr(R * 0.97), f.v, t, 3);
+    drawBubble(ctx, 0, 0, Rr(R * 0.97), f.v, t, f.sd);
     ctx.restore();
   }
-  // 낙하산 아기들
-  for (const c of s.chutes) {
-    if (c.st !== 0) continue;
-    const x = X(c.x), y = Y(c.y), u = Rr(0.034), sw = Math.sin(t * 0.07 + c.ph) * 0.18, open = Math.min(1, (t - c.t0) / 14);
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(sw);
-    ctx.strokeStyle = 'rgba(255,255,255,.8)';
-    ctx.lineWidth = 1;
-    const cw = u * 2.1 * open, ch2 = u * 2.4;
-    ctx.beginPath();
-    ctx.moveTo(-cw, -ch2);
-    ctx.lineTo(-u * 0.3, -u * 0.3);
-    ctx.moveTo(cw, -ch2);
-    ctx.lineTo(u * 0.3, -u * 0.3);
-    ctx.moveTo(0, -ch2 - cw * 0.3);
-    ctx.lineTo(0, -u * 0.5);
-    ctx.stroke();
-    for (let q = 0; q < 4; q++) {
-      ctx.fillStyle = q % 2 ? '#ffffff' : ['#ff5c7a', '#ffb02e', '#35a4ff', '#36cf78'][Math.floor(c.ph * 10) % 4];
-      ctx.beginPath();
-      ctx.moveTo(0, -ch2);
-      ctx.arc(0, -ch2, cw, Math.PI + (q * Math.PI) / 4, Math.PI + ((q + 1) * Math.PI) / 4);
-      ctx.closePath();
+  // 양동이로 파닥파닥 튀어 가는 간식
+  for (const c of s.flops) {
+    const x = X(c.x), y = Y(c.y), u = Rr(0.03);
+    ctx.fillStyle = 'rgba(200,240,255,.55)';
+    for (let q = 1; q <= 3; q++) {
+      const p = Math.max(0, (t - c.t0 - q * 3) / c.dur), px = c.x0 + (c.tx - c.x0) * p, py = c.y0 + (c.ty - c.y0) * p - 0.16 * 4 * p * (1 - p);
+      circle(ctx, X(px), Y(py), Rr(0.006) * (4 - q) * 0.5);
       ctx.fill();
     }
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((t - c.t0) * 0.25 + c.ph);
+    drawSnack(ctx, 0, 0, u, c.kind, t, c.ph * 10, false);
     ctx.restore();
-    drawChick(ctx, x + Math.sin(sw) * u * 0.3, y, u, 2, t, c.ph);
   }
 
   // ── 사건 연출 ──
@@ -1950,7 +2065,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BubState, w: number, h: numbe
   for (const e of s.events) {
     if (e.t <= seenT) continue;
     const x = X(e.x), y = Y(e.y), col = e.v !== undefined && isCol(e.v) ? COLHEX[e.v] : '#dff6ff';
-    if (e.kind === 'fire') fx.burst(X(LX), Y(LY), '#ffffff', 10, 2.4, 2), fx.kick(1.5), say(X(DADX + 0.06), Y(LY - 0.06), ['후!', '푸우~', '얍!'][s.shotNo % 3], '#ffffff', 14);
+    if (e.kind === 'fire') fx.burst(X(LX), Y(LY), '#ffffff', 10, 2.4, 2), fx.kick(1.5), say(X(EATX + 0.06), Y(LY - 0.06), ['후!', '푸우~', '얍!'][s.shotNo % 3], '#ffffff', 14);
     if (e.kind === 'land') fx.ring(x, y, '#ffffff', Rr(0.06), 2);
     if (e.kind === 'pop') fx.burst(x, y, col, 12, 3.2, 2.6), fx.burst(x, y, '#ffffff', 5, 2, 1.8), fx.ring(x, y, col, Rr(0.05), 3), fx.kick(2.5);
     if (e.kind === 'popsay') say(x, y - Rr(0.05), e.text!, e.col ?? '#ffffff', 17);
@@ -1959,8 +2074,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BubState, w: number, h: numbe
     if (e.kind === 'boom') fx.burst(x, y, '#ffb347', 40, 6, 3.4), fx.burst(x, y, '#ffffff', 24, 5, 2.8), fx.ring(x, y, '#ffd08a', Rr(0.22), 7), fx.kick(12), fx.blink('#fff1c8', 0.35), say(x, y - Rr(0.07), e.text!, '#ffd08a', 24);
     if (e.kind === 'ceil') fx.kick(9), fx.burst(w * 0.3, Y(e.y), '#ffffff', 16, 3, 2.2), fx.burst(w * 0.7, Y(e.y), '#ffffff', 16, 3, 2.2), say(w / 2, Y(e.y + 0.06), e.text!, '#dff6ff', 16);
     if (e.kind === 'eat') fx.burst(x, y, '#c49a6c', 18, 3.4, 2.4), fx.kick(4), say(x, y - Rr(0.07), e.text!, '#ffe0b0', 17);
-    if (e.kind === 'chute') fx.burst(x, y, '#e6f8ff', 14, 3, 2.2), fx.ring(x, y, '#ffffff', Rr(0.05), 3), say(x, y - Rr(0.05), e.text!, '#fff6d6', 14);
-    if (e.kind === 'hug') fx.burst(x, y - Rr(0.03), '#ff9ec4', 10, 2.2, 2), say(x, y - Rr(0.08), e.text!, '#ffe9f0', 13);
+    if (e.kind === 'thaw') fx.burst(x, y, '#e6f8ff', 16, 3.2, 2.4), fx.ring(x, y, '#ffffff', Rr(0.05), 3), say(x, y - Rr(0.05), e.text!, '#e6f8ff', 14);
+    if (e.kind === 'plop') fx.burst(x, y, '#9fdcff', 12, 2.6, 2.2), fx.burst(x, y, '#ffffff', 6, 2, 1.8), say(x, y - Rr(0.07), e.text!, '#fff6d6', 14);
+    if (e.kind === 'drool') fx.burst(x, y, '#ff9ec4', 12, 2.4, 2.2), say(x, y - Rr(0.04), e.text!, '#fff1f5', 15);
     if (e.kind === 'splat') fx.burst(x, y, col, 8, 2.4, 2);
     if (e.kind === 'bigstar') say(w / 2, Y(0.98), e.text!, '#ffe066', 16);
     if (e.kind === 'cancel') say(x, y, e.text!, '#dff6ff', 13);
@@ -1986,7 +2102,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BubState, w: number, h: numbe
     ctx.fillStyle = '#ffe066';
     ctx.fillText(`+${val}`, 0, 0);
     font(0.042, 900);
-    const sub = `${s.big.n ? `우수수 ×${s.big.n}` : ''}${s.big.k ? `  🐧×${s.big.k}${s.big.k > 1 ? ` (점수 ×${s.big.k * s.big.k}!)` : ''}` : ''}`.trim();
+    const sub = `${s.big.n ? `우수수 ×${s.big.n}` : ''}${s.big.k ? `  🐟×${s.big.k}${s.big.k > 1 ? ` (점수 ×${s.big.k * s.big.k}!)` : ''}` : ''}`.trim();
     ctx.lineWidth = 4;
     ctx.strokeText(sub, 0, Rr(0.07));
     ctx.fillStyle = '#ffffff';
@@ -2038,13 +2154,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BubState, w: number, h: numbe
     let head = '', sub = '', nw = '', col = '#ffffff', age = 0, a = 1;
     if (s.phase === 'result' && s.pt >= (s.ok ? 60 : 20)) {
       age = s.pt - (s.ok ? 60 : 20);
-      if (s.ok) (head = s.won ? `모두 구했다! 🐧${s.savedAll}` : '다 구했다!'), (sub = `${s.used}발${s.used <= d.par ? ' ✓' : ` (≤${d.par} ✗)`} · 한 발 최고 ${s.bestDrop}개${s.bestDrop >= d.big ? ' ✓' : ` (≥${d.big} ✗)`}`), (col = '#ffd84a');
-      else (head = `삐약… ${s.why}`), (sub = s.hearts > 0 ? '하트 -1 · 같은 판 다시' : `끝 — 아기 ${s.savedAll}마리를 구했어요!`), (col = '#ffb3a8');
+      if (s.ok) (head = s.won ? `양동이 가득! 🐟${s.caughtAll}` : '다 받았다!'), (sub = `${s.used}발${s.used <= d.par ? ' ✓' : ` (≤${d.par} ✗)`} · 한 발 최고 ${s.bestDrop}개${s.bestDrop >= d.big ? ' ✓' : ` (≥${d.big} ✗)`}`), (col = '#ffd84a');
+      else (head = `끼잉… ${s.why}`), (sub = s.hearts > 0 ? '하트 -1 · 같은 판 다시' : `끝 — 간식 ${s.caughtAll}마리 냠냠!`), (col = '#ffb3a8');
     } else if (s.phase === 'play' && s.pt < CARD_T) {
       age = s.pt;
       a = Math.min(1, (CARD_T - s.pt) / 20) * (s.down ? 0.25 : 1);
       head = s.again ? `다시! ${s.stage + 1}판 ${d.title}` : `${s.stage + 1}판 · ${d.title}`;
-      sub = `아기 펭귄 ${s.penTotal}마리 구하기 · 거품 ${d.shots}발`;
+      sub = `얼린 간식 ${s.snackTotal}마리 받기 · 거품 ${d.shots}발`;
       nw = d.news;
     }
     if (head) {
@@ -2143,9 +2259,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BubState, w: number, h: numbe
     ctx.fillStyle = s.shots > 0 ? '#bfeaf2' : '#ffb3a8';
     ctx.fillText(`${s.shots}발`, X(0.97), r1);
     // 별 목표 셋
-    const okk = s.phase === 'result' && s.ok ? s.starOk : [s.saved >= s.penTotal, s.used <= d.par, s.bestDrop >= d.big];
+    const okk = s.phase === 'result' && s.ok ? s.starOk : [s.caught >= s.snackTotal, s.used <= d.par, s.bestDrop >= d.big];
     const bad = [s.phase === 'result' && !s.ok, s.used > d.par, false];
-    const labels = [`🐧 ${s.saved}/${s.penTotal}`, `${d.par}발 안에`, `한 발 ${d.big}개 우수수`];
+    const labels = [`🐟 ${s.caught}/${s.snackTotal}`, `${d.par}발 안에`, `한 발 ${d.big}개 우수수`];
     const r2 = Y(ty + 0.103), cws = [0.22, 0.26, 0.42];
     let cx1 = X(0.03);
     for (let k = 0; k < 3; k++) {
@@ -2172,7 +2288,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BubState, w: number, h: numbe
     const first = s.stage === 0 && !s.firstShot && s.phase === 'play';
     if (first) hint = '👆 하얀 고리 쪽을 누른 채 겨누고 → 떼면 발사!';
     else if (s.down && s.phase === 'play') hint = !s.aim || !canAim(s.aim.y) ? '여기서 떼면 취소' : ready ? '떼면 발사! 하얀 고리 = 펑, 어두운 칸 = 우수수' : '거품 채우는 중…';
-    else if (s.phase === 'result') hint = s.ok ? (s.won ? '아기 펭귄을 모두 구했어요!' : `★ ${s.got}개! 다음 판엔 새것이 나와요`) : '누르고 있으면 붙을 자리가 보여요';
+    else if (s.phase === 'result') hint = s.ok ? (s.won ? '양동이 가득! 배가 빵빵해요' : `★ ${s.got}개! 다음 판엔 새것이 나와요`) : '누르고 있으면 붙을 자리가 보여요';
     ctx.textAlign = 'center';
     ctx.fillStyle = first ? '#ffffff' : '#ffe9a8';
     font(first ? 0.04 : 0.036, 900);
@@ -2181,4 +2297,4 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BubState, w: number, h: numbe
 }
 
 // 측정 도구용 (판 지도 찾기·판별 측정 스크립트가 쓴다 — 게임 동작과 무관)
-export const _dev = { newStage, STAGES, trace, resolve, buildLay, pengLeft, CX, RY, COLS, ROWS, NC, VALID, CEIL0, LX, LY, ROWH, D, R, PENG, STONE, ICE, BOMB, WILD, EMPTY, envOf };
+export const _dev = { newStage, STAGES, trace, resolve, buildLay, snackLeft, CX, RY, COLS, ROWS, NC, VALID, CEIL0, LX, LY, ROWH, D, R, SNACK, STONE, ICE, BOMB, WILD, EMPTY, envOf };

@@ -22,7 +22,7 @@ import { juice } from '../juice.ts';
 
 const A = 1.45;
 /** 나사 머리 반지름 · 손가락 닿는 반지름 · 빈칸 수 · 미리 보이는 다음 상자 수 */
-const SR = 0.03, HIT = 0.075, SLOTS = 5, PEEK = 2;
+const SR = 0.032, HIT = 0.075, SLOTS = 5, PEEK = 2;
 /** 판자 가장자리가 나사 머리를 덮는 정도: sd < COVER면 막힘, sd < HIDE면 아예 안 보임 */
 const COVER = 0.021, HIDE = -0.026;
 const COOL = 8, SPIN = 9, FLY = 17, RESULT_OK = 200, RESULT_FAIL = 160, NEWS_T = 200;
@@ -1002,6 +1002,28 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       if ((S.gone >> i) & 1) continue;
       drawScrew(ctx, X(L.px[i]), Y(L.py[i]), R(SR), L.col[i], 0, { lock: !S.key && !!((L.lockM >> i) & 1), key: !!((L.keyM >> i) & 1), t, hot: i === pressK, tick: L.tmr[i] ? L.tmr[i] - S.taps : 0 });
     }
+  }
+  // 못 날개 경고: 나사 하나 남은 못 판자가 매달릴 자리와 거기 깔릴 나사(⚠)를 늘 흐리게
+  for (let k = 0; k < L.pl.length; k++) {
+    const P = L.pl[k], rem = L.pm[k] & ~S.gone;
+    if (P.kind !== 'nail' || !rem || rem & (rem - 1) || s.pv[k].fall) continue;
+    const q = L.poses[k][1], under = L.cov[k][1] & L.all & ~S.gone;
+    ctx.save();
+    ctx.translate(X(q.cx), Y(q.cy));
+    ctx.rotate(q.a);
+    ctx.strokeStyle = under ? 'rgba(255,120,90,.55)' : 'rgba(255,255,255,.35)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 5]);
+    plankPath(ctx, P, R);
+    ctx.stroke();
+    ctx.restore();
+    for (let i = 0; i < L.N; i++)
+      if ((under >> i) & 1) {
+        ctx.font = `900 ${Math.max(12, R(0.04))}px system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('⚠️', X(L.px[i]) - R(0.035), Y(L.py[i]) - R(0.03) + Math.sin(t * 0.2) * 1.5);
+      }
   }
   // 놓친 표시: 막힌 나사를 누르면 가린 판자를 빨갛게
   if (pre && pre.state === 'blocked')
@@ -2109,12 +2131,13 @@ function drawBird(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   const age = t - lastFall, fly = age < 50 ? Math.sin((age / 50) * Math.PI) : 0;
   const ph = (t % 600) / 600, walk = ph < 0.1 ? ph / 0.1 : ph < 0.5 ? 1 : ph < 0.6 ? 1 - (ph - 0.5) / 0.1 : 0;
   const hop = (ph < 0.1 || (ph > 0.5 && ph < 0.6)) && t % 12 < 6 ? R(0.012) : 0;
-  const x = X(0.88 - 0.1 * walk), y = Y(BY0) - R(0.024) - fly * R(0.09) - hop, u = R(0.064);
+  const x = X(0.92 - 0.12 * walk), y = Y(1.2) - fly * R(0.1) - hop, u = R(0.064);
   ctx.save();
   ctx.translate(x, y);
+  ctx.scale(-1, 1);
   ctx.fillStyle = 'rgba(0,0,0,.25)';
   ctx.beginPath();
-  ctx.ellipse(0, R(0.02) + fly * R(0.08), u * 0.5, u * 0.12, 0, 0, TAU);
+  ctx.ellipse(0, u * 0.36 + fly * R(0.1) + hop, u * 0.5, u * 0.12, 0, 0, TAU);
   ctx.fill();
   ctx.fillStyle = '#8a5a3a';
   ctx.beginPath();
@@ -2152,7 +2175,7 @@ function drawBird(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
     ctx.fillStyle = '#ffffff';
     ctx.font = `800 ${Math.max(12, R(0.034))}px system-ui`;
     ctx.textAlign = 'center';
-    ctx.fillText('짹!', x - R(0.06), y - R(0.03));
+    ctx.fillText('짹!', x - R(0.02), y - R(0.07));
   }
 }
 

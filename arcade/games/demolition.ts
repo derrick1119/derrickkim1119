@@ -70,7 +70,7 @@ export const STAGES: StageDef[] = [
   {
     key: 'tip', title: '두 다리 망루', news: '↙️ 한쪽 다리를 끊으면 그쪽으로 넘어져요', hint: '꽃밭 반대쪽 다리를 끊어 넘어뜨려요',
     map: [
-      '....ppppp...',
+      '....MpppM...',
       '.....w.w....',
       '.....w.w....',
       '.....w.w....',
@@ -101,7 +101,7 @@ export const STAGES: StageDef[] = [
     lot: [1, 10], goal: 4, flat: 3, flowers: [9, 10], charges: 1, granny: 1,
   },
   {
-    key: 'domino', title: '도미노 골목', news: '🁢 넘어진 탑이 옆 건물을 치면 같이 와르르', hint: '폭약이 모자라요 — 하나로 둘을 쓰러뜨려요',
+    key: 'domino', title: '도미노 골목', news: '🧱 넘어진 탑이 옆 건물을 치면 같이 와르르', hint: '폭약이 모자라요 — 하나로 둘을 쓰러뜨려요',
     map: [
       '..rrr..rr...',
       '..ppp..yy...',
@@ -1761,8 +1761,19 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DemoState, w: number, h: numb
     const b = B[i], p = poses[i];
     if (p.gone) continue;
     const px = X(SX(p.x - 0.5)), py = Y(SY(p.y - 0.5));
-    if (p.rub) {
+    if (p.rub && !p.moving) {
       rubble(ctx, b, px + u / 2, py + u / 2, u * 0.95, i * 7 + b.x);
+      continue;
+    }
+    if (p.rub) {
+      // 굴러떨어지는 조각: 아직 통 블록 모양으로 데굴데굴 (바닥에 닿으면 부서진다)
+      ctx.save();
+      ctx.translate(px + u / 2, py + u / 2);
+      ctx.rotate((hsh(i) - 0.5) * 2 + tau * 0.12 * (hsh(i + 3) > 0.5 ? 1 : -1));
+      ctx.scale(0.86, 0.86);
+      ctx.translate(-u / 2, -u / 2);
+      face(ctx, b, u, false);
+      ctx.restore();
       continue;
     }
     if (p.moving || p.a !== 0) {
@@ -1939,8 +1950,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DemoState, w: number, h: numb
     p.life--;
     p.x += p.vx;
     p.y -= 0.25;
-    p.r += 0.35;
-    ctx.fillStyle = `rgba(214,190,160,${0.5 * (p.life / p.max)})`;
+    p.r += 0.25;
+    ctx.fillStyle = `rgba(222,198,170,${0.36 * (p.life / p.max)})`;
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
     ctx.fill();
@@ -1951,13 +1962,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DemoState, w: number, h: numb
     const k = Math.min(1, (tau - 10) / 12, (o.end - 20 - tau) / 12);
     ctx.fillStyle = 'rgba(10,6,20,.55)';
     ctx.fillRect(0, Y(HB), w, R(0.035) * k);
-    ctx.fillRect(0, gy + R(0.13) - R(0.035) * k, w, R(0.035) * k);
+    ctx.fillRect(0, Y(BAND) - R(0.035) * k, w, R(0.035) * k);
     if (k > 0.5) {
       ctx.fillStyle = 'rgba(255,255,255,.85)';
       font(0.034, 800);
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      ctx.fillText('▶▶ 느린 화면', R(0.03), Y(HB) + R(0.018));
+      ctx.fillText('▶▶ 느린 화면', R(0.03), Y(BAND) - R(0.018));
     }
   }
   // 3·2·1
