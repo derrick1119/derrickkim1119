@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/sheepdog/core.ts';
-import { FLAG_SNAP, LATER, STAGES, at as atField, jumpTo, starCount, sheepdog as g, sheepdogGreedy, sheepdogRandom, sheepdogSmart, type DogState } from '../studio/sheepdog/game.ts';
+import { COME_HOLD, FLAG_SNAP, LATER, STAGES, at as atField, blackCame, jumpTo, preview, starCount, sheepdog as g, sheepdogGreedy, sheepdogRandom, sheepdogSmart, type DogState } from '../studio/sheepdog/game.ts';
 import { mulberry32 } from '../studio/sheepdog/rng.ts';
 
 const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y } });
@@ -100,14 +100,14 @@ describe('M1-2a 개울 판 도움 깃발 (📐 C004)', () => {
   };
   const retry = (s: DogState) => g.step(s, { ...up, retry: true });
 
-  it('1-6·1-8은 첫 풍덩 뒤, 1-7은 두 번째 풍덩 뒤에 깃발 ①② — 개울 없는 판엔 없다 (C005: 1-8 당김)', () => {
+  it('1-6은 첫 풍덩 뒤, 1-7·1-8은 두 번째 풍덩 뒤에 깃발 ①② — 개울 없는 판엔 없다 (📐 C006: 1-8 되돌림)', () => {
     const s = g.create(7);
     jumpTo(s, 5);
     expect(s.flags.length).toBe(0);
     s.splashes = 1;
     retry(s);
     expect(s.flags.length).toBe(2);
-    for (const [k, need] of [[6, 2], [7, 1]]) {
+    for (const [k, need] of [[6, 2], [7, 2]]) {
       jumpTo(s, k);
       s.splashes = need - 1;
       retry(s);
@@ -176,6 +176,47 @@ describe('M1-2a 개울 판 도움 깃발 (📐 C004)', () => {
     expect(s.helped).toBe(false);
   });
 });
+
+describe('M1-3 숨은 규칙을 보이게 (C006)', () => {
+  it('미리 보기 = 실제: 누르고 있을 때 보인 도착 자리·들어감·풍덩이 떼고 난 결과와 같다 (F8, 허들 ④)', () => {
+    for (const k of [0, 3, 5, 7]) {
+      const s = g.create(3), rng = mulberry32(3);
+      jumpTo(s, k);
+      for (let n = 0; n < 3 && phaseOf(s) === 'aim'; n++) {
+        const inp = sheepdogRandom.act(s, rng); // 아무 데나 — 미리 보기는 어디서든 맞아야 한다
+        if (!inp.pointer) { g.step(s, inp); continue; }
+        g.step(s, inp);
+        g.step(s, up);
+        if (phaseOf(s) !== 'run') continue; // 목장 밖·울타리 안·킁킁
+        const pv = preview(s, s.toX, s.toY);
+        for (let t = 0; t < 300 && (phaseOf(s) === 'run' || phaseOf(s) === 'flee'); t++) g.step(s, up);
+        expect(JSON.stringify([s.S.x, s.S.y, s.S.pen, s.S.fell]), `${k + 1}판`).toBe(JSON.stringify([pv.S.x, pv.S.y, pv.S.pen, pv.S.fell]));
+        if (phaseOf(s) === 'result') break;
+      }
+    }
+  });
+
+  it("1-4: 까만 양이 온 짖기는 결과를 0.5초 늦게 낸다 — '?!'가 통과 축하에 묻히지 않게 (허들 ②)", () => {
+    const s = g.create(1);
+    jumpTo(s, 3);
+    const rng = mulberry32(1);
+    let fleeTicks = 0, came = false;
+    for (let t = 0; t < 60 * 60 && phaseOf(s) !== 'result'; t++) {
+      g.step(s, sheepdogNaiveLike(s, rng));
+      if (phaseOf(s) === 'flee') (fleeTicks++, (came ||= blackCame(s)));
+    }
+    expect(came).toBe(true);
+    expect(fleeTicks).toBeGreaterThanOrEqual(40 + COME_HOLD - 1);
+  });
+});
+
+/** 흰 무리 바로 아래를 누르는 순진한 손 (1-4 테스트용) */
+function sheepdogNaiveLike(s: DogState, _rng: () => number) {
+  if (phaseOf(s) !== 'aim' || s.down) return up;
+  const ws = s.S.x.map((x, i) => [x, s.S.y[i], i] as const).filter(([, , i]) => !s.F.black[i] && s.S.pen[i] < 0);
+  const cx = ws.reduce((a, w) => a + w[0], 0) / ws.length, cy = ws.reduce((a, w) => a + w[1], 0) / ws.length;
+  return atField(cx, cy + 0.12);
+}
 
 /** 결과(통과/실패)가 나올 때까지 봇으로 한 시도 */
 function play(s: DogState, who: 'smart' | 'greedy' | 'random', seed: number) {

@@ -97,7 +97,7 @@
     "overPar": -1
    },
    "random": {
-    "clear": 1,
+    "clear": 0.95,
     "stuck25": 0
    },
    "careful": {
@@ -124,7 +124,7 @@
    },
    "random": {
     "clear": 0.1,
-    "stuck25": 0.5
+    "stuck25": 0.4
    },
    "careful": {
     "stuck25": 0,
@@ -206,14 +206,14 @@
    },
    "careful": {
     "stuck25": 0,
-    "tries": 2.83
+    "tries": 3.87
    },
    "naiveSeesNew": null
   }
  },
  "run": {
   "smartMean": 2500,
-  "randomMean": 665,
-  "skillGap": 3.8
+  "randomMean": 675,
+  "skillGap": 3.7
  }
 }

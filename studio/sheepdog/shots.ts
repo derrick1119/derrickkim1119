@@ -54,13 +54,24 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.waitForTimeout(150);
   if ((await st(page, 's.S.used')) !== 0) errors.push(`${name}: R로 다시 안 됨`);
   await page.screenshot({ path: join(here, 'screens', `${name}-retry.png`) });
-  // 실패 연출: 하트 없이 같은 판을 1.5초 안에 다시
-  const stage0 = await st(page, 's.stage');
-  await page.evaluate(() => { const s = (globalThis as any).__sd.state(); s.phase = 'result'; s.ok = false; s.why = '양이 개울에 풍덩!'; s.pt = 0; });
-  await page.waitForTimeout(450);
-  await page.screenshot({ path: join(here, 'screens', `${name}-fail.png`) });
-  await page.waitForTimeout(1100);
-  if ((await st(page, 's.phase + s.stage + s.S.used')) !== `aim${stage0}0`) errors.push(`${name}: 실패 뒤 같은 판으로 안 돌아옴`);
+  // 실패 연출: 1-6에서 진짜로 양을 개울에 빠뜨린다(상태 강제 금지, C006) → 같은 판이 1초 안에 다시
+  await page.evaluate(() => (globalThis as any).__sd.jump(5));
+  await page.waitForTimeout(1800);
+  const sp = await page.evaluate(() => (globalThis as any).__sd.splash());
+  if (!sp) errors.push(`${name}: 풍덩 자리를 못 찾음`);
+  else {
+    const bx = await page.locator('#game').boundingBox();
+    await page.mouse.move(bx.x + sp.x * bx.width, bx.y + sp.y * bx.height);
+    await page.mouse.down();
+    await page.waitForTimeout(120);
+    await page.mouse.up();
+    await page.waitForFunction(() => (globalThis as any).__sd.state().phase === 'result', null, { timeout: 5000 });
+    await page.waitForTimeout(350);
+    await page.screenshot({ path: join(here, 'screens', `${name}-fail.png`) });
+    if ((await st(page, 's.ok')) !== false) errors.push(`${name}: 풍덩했는데 실패가 아님`);
+    await page.waitForTimeout(1200);
+    if ((await st(page, 's.phase + s.stage + s.S.used')) !== 'aim50') errors.push(`${name}: 실패 뒤 같은 판으로 안 돌아옴`);
+  }
   // W1 새 판 둘러보기 (모바일만): 1-3 클로버 · 1-7 좁은 다리 · 1-8 아침 축제
   if (name === 'mobile')
     for (const k of [2, 6, 7]) {

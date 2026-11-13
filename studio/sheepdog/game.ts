@@ -30,6 +30,10 @@ const COH = 0.6;
 const STEP = 0.01, BLACK_STOP = 0.045;
 const WOLF_STEP = 0.13, WOLF_CATCH = 0.075, GOAT_R = 0.03, FAINT = 3;
 const DOG_SPEED = 0.05, FLEE_T = 40, RESULT_OK = 190, RESULT_FAIL = 60;
+/** 까만 양이 강아지 쪽으로 온 짖기는 결과를 이만큼(약 0.5초) 늦게 낸다 — '?!'가 통과 축하에 묻히지 않게 (C006, FUN QA C005) */
+export const COME_HOLD = 30;
+/** 이번 짖기에 까만 양이 거꾸로 왔나 */
+export const blackCame = (s: DogState) => !!s.rec && s.rec.scare.some((v, i) => v === 3 && s.F.black[i]);
 const STAR_PTS = 100, WIN_PTS = 100;
 
 interface Seg { x0: number; y0: number; x1: number; y1: number }
@@ -684,7 +688,7 @@ function newStage(s: DogState) {
 }
 
 /** 몇 번째 풍덩 뒤에 깃발을 띄우나 (📐 C004: 소개 판 1-6은 첫 풍덩, 연습 판은 한 번 스스로 떠올릴 기회를 남긴다) */
-const FLAG_AFTER: Record<string, number> = { river: 1, narrow: 2, fest: 1 }; // C005: 1-8은 조심 막힘 0.2~0.25(경계)라 📐 규칙대로 첫 풍덩으로 당김
+const FLAG_AFTER: Record<string, number> = { river: 1, narrow: 2, fest: 2 }; // 📐 C006: 1-8을 좁힌 뒤 두 번째 풍덩으로 되돌림(졸업 판은 한 번 더 혼자) — 조건 조심 막힘 ≤ 0.2(N 200)
 /** 깃발 ① 근처(이 거리 안)에서 짖으면 깃발 자리로 붙여서 짖는다 — 0.015 차이에 결과가 갈리는 판이라 */
 export const FLAG_SNAP = 0.04;
 
@@ -847,7 +851,7 @@ export const sheepdog: GameDef<DogState> = {
       return;
     }
     if (s.phase === 'flee') {
-      if (s.pt >= FLEE_T) afterFlee(s);
+      if (s.pt >= FLEE_T + (blackCame(s) ? COME_HOLD : 0)) afterFlee(s);
       return;
     }
     // 겨누기: 누르는 동안 미리 보기, 떼면 짖는다
@@ -1088,7 +1092,7 @@ export const sheepdogRandom: Bot<DogState> = {
 };
 
 /** 미리 보기용: 지금 상태에서 (fx, fy)에 짖으면? */
-function preview(s: DogState, fx: number, fy: number) {
+export function preview(s: DogState, fx: number, fy: number) {
   const S = cloneSim(s.S), rec = newRec(s.F.n);
   resolve(s.F, S, fx, fy, rec);
   return { S, rec };
@@ -1699,7 +1703,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     if (rec.length > 12) rec.shift();
     fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), Math.max(R(0.19), y), text, col, size);
   };
-  const flee = s.phase === 'flee' && s.rec ? s.rec : null, q = flee ? s.pt / FLEE_T : 1;
+  const flee = s.phase === 'flee' && s.rec ? s.rec : null, q = flee ? Math.min(1, s.pt / FLEE_T) : 1;
   /** 양 i가 지금 화면 어디에 (목장 좌표) */
   const sheepAt = (i: number): [number, number] => {
     if (flee && flee.path[i]) return pathAt(flee.path[i]!, ease(q));
@@ -1933,17 +1937,27 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       ctx.stroke();
     }
   }
-  // ── 문 앞 흙자리 ──
+  // ── 문 앞 앞마당 = 울타리 땅 (C006 M1-3, GDD §10-1: 그림이 곧 규칙 — 울타리 안과 같은 짚 바닥 + 낮은 나무 테두리) ──
   for (const p of F.pens) {
     const m = p.mat ?? MAT, y0 = p.y1, y1 = p.y1 + m;
-    ctx.fillStyle = night ? 'rgba(90,70,50,.55)' : 'rgba(160,118,70,.5)';
+    ctx.fillStyle = night ? 'rgba(120,100,60,.5)' : 'rgba(230,200,120,.55)';
     ctx.beginPath();
     ctx.moveTo(PX(p.gx0 + 0.01, y0), PY(y0));
     ctx.lineTo(PX(p.gx1 - 0.01, y0), PY(y0));
     ctx.quadraticCurveTo(PX(p.gx1, y1), PY(y1), PX((p.gx0 + p.gx1) / 2, y1 + 0.01), PY(y1 + 0.01));
     ctx.quadraticCurveTo(PX(p.gx0, y1), PY(y1), PX(p.gx0 + 0.01, y0), PY(y0));
     ctx.fill();
-    ctx.fillStyle = 'rgba(90,60,30,.35)';
+    // 낮은 테두리(점선 나무 말뚝) — 여기까지가 울타리 땅
+    ctx.strokeStyle = night ? 'rgba(160,120,80,.7)' : 'rgba(150,100,50,.85)';
+    ctx.lineWidth = Math.max(1.5, R(0.006));
+    ctx.setLineDash([R(0.012), R(0.008)]);
+    ctx.beginPath();
+    ctx.moveTo(PX(p.gx0 + 0.01, y0), PY(y0));
+    ctx.quadraticCurveTo(PX(p.gx0, y1), PY(y1), PX((p.gx0 + p.gx1) / 2, y1 + 0.01), PY(y1 + 0.01));
+    ctx.quadraticCurveTo(PX(p.gx1, y1), PY(y1), PX(p.gx1 - 0.01, y0), PY(y0));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(200,160,80,.35)';
     for (let k = 0; k < 8; k++) {
       const hx = p.gx0 + 0.03 + hsh(k + p.gx0 * 100) * (p.gx1 - p.gx0 - 0.06), hy = y0 + 0.015 + hsh(k + 7) * (m - 0.03);
       ctx.beginPath();
@@ -2358,8 +2372,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       const [pxf, pyf] = f, cx = PX(pxf, pyf), cy = PY(pyf);
       const some = anyone(F, S, pxf, pyf);
       for (const [rr, lab] of [[R_OUT, '조금'], [R_IN, '멀리']] as const) {
-        ctx.fillStyle = rr === R_IN ? 'rgba(255,230,120,.16)' : 'rgba(255,255,255,.1)';
-        ctx.strokeStyle = 'rgba(255,255,255,.75)';
+        // 원 안에 아무도 없으면 회색 원 — 떼도 멍멍을 안 쓴다는 걸 미리 보여 준다 (C006 M1-3, GDD §10-2)
+        ctx.fillStyle = !some ? 'rgba(120,120,120,.14)' : rr === R_IN ? 'rgba(255,230,120,.16)' : 'rgba(255,255,255,.1)';
+        ctx.strokeStyle = !some ? 'rgba(190,190,190,.8)' : 'rgba(255,255,255,.75)';
         ctx.setLineDash([5, 4]);
         ctx.lineWidth = 1.8;
         ctx.beginPath();
@@ -2432,7 +2447,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
         pvNote = bad || (inN ? `🐑 ${inN}마리 쏙!` : '');
         if (pv.rec.flowerNew.length && d.bonus === 'flower') pvNote = (pvNote ? pvNote + ' · ' : '') + '🌼 밟아요';
         if (pv.rec.cloverNew.length && d.bonus === 'clover') pvNote = (pvNote ? pvNote + ' · ' : '') + '🍀 지나가요';
-      } else pvNote = '킁킁 — 아무도 없어요';
+      } else pvNote = '킁? 아무도 없어요 — 멍멍 안 써요';
       if (snapped) pvNote = `🚩 깃발 자리 · ${pvNote}`;
       // 발자국 표시
       ctx.fillStyle = '#ffffff';
@@ -2557,7 +2572,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     if (e.kind === 'bark') fx.ring(x, y - R(0.03), '#ffffff', R(0.16), 4), fx.kick(4), say(x, y - R(0.12), '멍!', '#ffffff', 24), fx.burst(x, y - R(0.04), '#fff6d0', 10, 2.6, 2);
     if (e.kind === 'faint') fx.burst(x, y - R(0.04), '#ffe066', 18, 3, 2.6), fx.kick(3), say(x, y - R(0.1), '꽥!', '#fff3a0', 20);
     if (e.kind === 'yelp') say(x, y - R(0.08), '깨갱!', '#e8ecff', 18);
-    if (e.kind === 'come') say(PX(s.dogX, s.dogY), PY(s.dogY) - R(0.13), '?!', '#ffe0f0', 20);
+    if (e.kind === 'come') say(PX(s.dogX, s.dogY), PY(s.dogY) - R(0.13), '?!', '#ffe0f0', 20), say(PX(e.x, e.y), PY(e.y) - R(0.08), '?!', '#ffffff', 18), fx.ring(PX(e.x, e.y), PY(e.y), '#ffe0f0', R(0.07), 3);
     if (e.kind === 'clover') fx.burst(x, y - R(0.02), '#ffe066', 18, 3, 2.2), say(x, y - R(0.06), e.text!, e.col!, 14);
     if (e.kind === 'trample') fx.burst(x, y - R(0.02), '#ff9ec7', 22, 3.4, 2.4), say(x, y - R(0.06), e.text!, e.col!, 14);
     if (e.kind === 'sniff') say(x, y - R(0.08), e.text!, e.col!, 14);
@@ -2601,7 +2616,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       }
       if (flee.fellAt[i] >= 0 && idx >= flee.fellAt[i] && mk('fell')) {
         const [a, b] = pathAt(pa, flee.fellAt[i] / Math.max(1, m - 1));
-        fx.burst(PX(a, b), PY(b), '#bfe9ff', 30, 4.5, 3), fx.ring(PX(a, b), PY(b), '#ffffff', R(0.08), 3), fx.kick(4);
+        fx.burst(PX(a, b), PY(b), '#bfe9ff', 30, 4.5, 3), fx.ring(PX(a, b), PY(b), '#ffffff', R(0.08), 3), fx.kick(3);
         say(PX(a, b), PY(b) - R(0.08), '풍덩!', '#bfe9ff', 20);
       }
       if (flee.trip[i] && q > 0.6 && mk('trip')) {
@@ -2620,7 +2635,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       if ((fx.memo[k2] ?? -1) !== key) {
         fx.memo[k2] = key;
         const i = flee.caught;
-        fx.kick(4), fx.blink('#e8ecff', 0.12);
+        fx.kick(3), fx.blink('#e8ecff', 0.12);
         say(PX(S.x[i], S.y[i]), PY(S.y[i]) - R(0.1), '앙!', '#ffb3a8', 22);
       }
     }
@@ -2720,12 +2735,14 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   if (s.phase === 'result') {
     const age = s.pt, a = Math.min(1, age / 10);
     ctx.globalAlpha = a;
-    ctx.fillStyle = s.ok ? 'rgba(40,60,20,.55)' : 'rgba(60,50,30,.55)';
-    ctx.fillRect(0, Y(0.8), w, R(0.2));
+    // 실패 띠는 위(울타리 쪽)에 — 강아지와 풍덩 자리를 가리지 않게 (C006, FUN QA C002)
+    const by = s.ok ? 0.8 : 0.33;
+    ctx.fillStyle = s.ok ? 'rgba(40,60,20,.55)' : 'rgba(60,50,30,.62)';
+    ctx.fillRect(0, Y(by), w, R(s.ok ? 0.2 : 0.17));
     ctx.textAlign = 'center';
     font(s.ok ? 0.06 : 0.05, 900);
     ctx.fillStyle = s.ok ? '#fff1a8' : '#fff6d6';
-    ctx.fillText(s.ok ? (s.won ? '목장 완성! 🎉' : `${s.stage + 1}판 통과!`) : s.why, w / 2, Y(0.855));
+    ctx.fillText(s.ok ? (s.won ? '목장 완성! 🎉' : `${s.stage + 1}판 통과!`) : s.why, w / 2, Y(by + 0.055));
     if (s.ok) {
       for (let k = 0; k < 3; k++) {
         const ag = age - 14 - k * 10, got = ((s.got >> k) & 1) === 1;
@@ -2739,7 +2756,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     } else {
       font(0.042, 800);
       ctx.fillStyle = '#ffffff';
-      ctx.fillText('멍… 괜찮아, 같은 판 한 번 더!', w / 2, Y(0.94));
+      ctx.fillText('멍… 괜찮아, 같은 판 한 번 더!', w / 2, Y(by + 0.125));
     }
     ctx.globalAlpha = 1;
   }

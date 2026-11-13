@@ -4,7 +4,7 @@
  */
 import { TICK, type Input } from './core.ts';
 import { peek } from './juice.ts';
-import { jumpTo, sheepdog as g, starCount, type DogState } from './game.ts';
+import { at, jumpTo, preview, sheepdog as g, starCount, type DogState } from './game.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('sheepdog:' + k) ?? 0); } catch { return 0; } },
@@ -138,4 +138,13 @@ new ResizeObserver(size).observe(root);
 size();
 showTitle();
 // 확인용(shots.ts): 지금 상태 읽기
-(globalThis as unknown as { __sd: { state: () => DogState; jump: (k: number) => void } }).__sd = { state: () => s, jump: (k) => jumpTo(s, k) };
+/** 확인용: 지금 판에서 짖으면 양이 개울에 빠지는 자리(캔버스 비율 좌표) — shots가 '진짜 풍덩'을 찍을 때 */
+function splashPoint() {
+  for (let fy = 0.95; fy > 0.3; fy -= 0.03)
+    for (let fx = 0.1; fx < 0.9; fx += 0.03) {
+      const pv = preview(s, fx, fy);
+      if (pv.rec.scare.some((v) => v > 0) && pv.S.fell.some((v) => v)) return at(fx, fy).pointer;
+    }
+  return null;
+}
+(globalThis as unknown as { __sd: { state: () => DogState; jump: (k: number) => void; splash: () => unknown } }).__sd = { state: () => s, jump: (k) => jumpTo(s, k), splash: splashPoint };
