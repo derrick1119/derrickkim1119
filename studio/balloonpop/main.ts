@@ -24,14 +24,14 @@ let heard = -1, heardS: PopState | null = null;
 function renderMute() {
   for (const id of ['mutebtn', 'mute-title']) {
     const b = $(id);
-    b.textContent = id === 'mutebtn' ? (sound.muted ? '🔇' : '🔊') : sound.muted ? '🔇 소리 꺼짐' : '🔊 소리 켜짐';
+    b.textContent = sound.muted ? '🔇 소리 꺼짐' : '🔊 소리 켜짐';
     b.setAttribute('aria-pressed', String(sound.muted));
     b.setAttribute('aria-label', sound.muted ? '소리 켜기' : '소리 끄기');
   }
 }
 const toggleMute = () => (sound.toggle(), renderMute());
 // 자동 재생 규칙: AudioContext는 사용자 손짓 안에서만 만든다 → 첫 터치 전엔 소리 없음
-for (const t of ['pointerdown', 'keydown'] as const) window.addEventListener(t, () => sound.unlock(), { capture: true });
+for (const t of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'] as const) window.addEventListener(t, () => sound.unlock(), { capture: true });
 let pointer: { x: number; y: number } | null = null, latch: { x: number; y: number } | null = null;
 let cursor = { x: 0.5, y: 0.5 }, keyboard = false, spaceDown = false;
 const keys = new Set<string>();
@@ -146,11 +146,19 @@ function togglePause() {
   paused = !paused;
   $('pausebtn').textContent = paused ? '▶' : '⏸';
   $('pausebtn').setAttribute('aria-label', paused ? '계속하기' : '일시정지');
-  // 일시정지 중에만 음소거 버튼 — 놀이 중 HUD 띠의 글자 자리를 지킨다 (C008)
-  $('mutebtn').hidden = !paused;
+  // 일시정지 판: '일시정지' · 계속하기 · 소리 — HUD 띠의 ★ 자리를 덮지 않게 가운데에 (C009 🧪)
+  $('pausepanel').hidden = !paused;
+  if (paused) $('resume').focus();
+  else canvas.focus({ preventScroll: true });
 }
 
 window.addEventListener('keydown', (e) => {
+  if (running && paused) {
+    // 일시정지 판: P·Esc = 계속, M = 소리, 그 밖(Enter·스페이스·Tab)은 판의 버튼이 그대로 받는다 — 판에 톡이 남지 않게 (C009)
+    if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') togglePause();
+    else if (e.key === 'm' || e.key === 'M') toggleMute();
+    return;
+  }
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key)) e.preventDefault();
   if (!running) {
     if ((e.key === 'Enter' || e.key === ' ') && !(document.activeElement instanceof HTMLButtonElement)) start();
@@ -170,6 +178,7 @@ $('start').addEventListener('click', start);
 $('again').addEventListener('click', start);
 $('pausebtn').addEventListener('click', togglePause);
 $('mutebtn').addEventListener('click', toggleMute);
+$('resume').addEventListener('click', togglePause);
 $('mute-title').addEventListener('click', toggleMute);
 renderMute();
 const best = store.get('best');

@@ -111,7 +111,7 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.keyboard.press('m');
   const m1 = await bp();
   await page.keyboard.press('p');
-  const paused = await page.evaluate(() => ({ btn: document.getElementById('pausebtn')!.textContent, mute: !document.getElementById('mutebtn')!.hidden }));
+  const paused = await page.evaluate(() => ({ btn: document.getElementById('pausebtn')!.textContent, mute: !document.getElementById('pausepanel')!.hidden }));
   await page.keyboard.press('p');
   await page.evaluate(() => { const b = (globalThis as any).__bp; b.aim(b.target()); });
   await page.keyboard.press('Space');

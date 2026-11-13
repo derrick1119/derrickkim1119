@@ -77,7 +77,9 @@ export function makeSound(store: SoundStore, make: () => AudioContext | null = (
     get ready() { return !!ctx; },
     /** 사용자 손짓(pointerdown·keydown) 안에서만 부른다 — 브라우저 자동 재생 규칙 */
     unlock() {
-      if (ctx) return void ctx.resume?.();
+      // iOS Safari는 touchend·click 손짓에서만 소리를 여는 일이 있어 손짓마다 resume + 무음 한 샘플을 튼다 (C009 🧪)
+      const kick = () => { try { void ctx!.resume?.(); const b = ctx!.createBufferSource(); b.buffer = ctx!.createBuffer(1, 1, ctx!.sampleRate); b.connect(ctx!.destination); b.start(0); } catch { /* 소리 없이도 동작 */ } };
+      if (ctx) return kick();
       ctx = make();
       if (!ctx) return;
       master = ctx.createGain();
@@ -89,6 +91,7 @@ export function makeSound(store: SoundStore, make: () => AudioContext | null = (
       noiseBuf = ctx.createBuffer(1, n, ctx.sampleRate);
       const d = noiseBuf.getChannelData(0);
       for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      kick();
     },
     toggle() {
       muted = !muted;
