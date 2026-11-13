@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
-import { runBot } from '../studio/balloonpop/core.ts';
+import { runBot, type Input } from '../studio/balloonpop/core.ts';
 import { A, balloonpop as g, balloonpopRandom, balloonpopSmart, BEAT, bxAt, byAt, density, emptyNear, FAIL_RESULT, fitCanvas, HELP_AFTER, IRON, KING, playTop, RETRY_CARD, STAGE_COUNT, TAP_BLOCK, STAGES, startAt, type PopState } from '../studio/balloonpop/game.ts';
 import { densityTable, humanCasual, humanLate, measure } from '../studio/balloonpop/funqa.ts';
 import { mulberry32 } from '../engine/rng.ts';
@@ -120,6 +120,20 @@ describe('하트 없음 · 즉시 재도전 · 도움 반짝 (C002)', () => {
     g.step(s, { tap: false, dir: 0, pointer: { x: bxAt(b, s.st + 1), y: byAt(b, s.st + 1) / A } });
     expect(s.pt).toBeLessThan(RETRY_CARD);
     expect(s.taps).toBe(2);
+  });
+
+  it('실패 카드 중 누름 = 바로 다시, 그 누름은 톡이 되지 않는다 (C009 🧪)', () => {
+    const s = g.create(5);
+    expect(runUntil(s, (x) => x.phase === 'result' && !x.ok)).toBe(true);
+    const tries = s.tries;
+    g.step(s, { tap: false, dir: 0, pointer: null });
+    // 카드 한가운데를 누른다 — 그 자리에 새 하늘의 풍선이 있어도 톡이 아니다
+    g.step(s, { tap: false, dir: 0, pointer: { x: 0.5, y: 0.5 } });
+    expect(s.phase).toBe('play');
+    expect(s.tries).toBe(tries + 1);
+    for (let k = 0; k < TAP_BLOCK + 5; k++) g.step(s, { tap: false, dir: 0, pointer: { x: 0.5, y: 0.5 } });
+    expect(s.taps).toBe(3);
+    expect(s.used).toBe(0);
   });
 
   it('톡 → 다음 팡(연쇄 첫 박자)은 1초 안 (FUN v1.1)', () => {
@@ -378,6 +392,38 @@ describe('사운드 v0 — 첫 터치 뒤에만, 음소거 저장 (C008, QC)', (
   it('큰 연쇄(≥7)는 끝맺음 음이 있고, 작은 연쇄는 없다 (C008 🧪)', () => {
     expect(cues([{ kind: 'chainEnd', v: 7 }]).length).toBeGreaterThan(0);
     expect(cues([{ kind: 'chainEnd', v: 3 }]).length).toBe(0);
+  });
+});
+
+describe('키보드만으로 1~8판 (C009 QC)', () => {
+  it('화살표 커서(틱당 0.012)와 스페이스만으로 1~8판을 끝까지 깬다 — main.ts와 같은 변환', () => {
+    // main.ts: 화살표 = 커서 이동(틱당 0.012, 0~1로 자름) · 스페이스 = 커서 자리를 누름. 숙련 봇이 고른 풍선으로 커서를 몰고 가서 누른다
+    const s = g.create(7), rng = mulberry32(3), NO: Input = { tap: false, dir: 0, pointer: null };
+    let cur = { x: 0.5, y: 0.5 }, want = -1, cleared = 0, stage = 0;
+    for (let k = 0; k < 60 * 60 * 20 && !g.over(s); k++) {
+      if (s.stage !== stage) (stage = s.stage), cleared++;
+      let inp: Input = NO;
+      if (s.phase === 'play' && want < 0) {
+        const a = balloonpopSmart.act(s, rng);
+        if (a.pointer) {
+          let bd = Infinity;
+          s.L.bs.forEach((b, i) => {
+            const d = Math.hypot(bxAt(b, s.st + 1) - a.pointer!.x, byAt(b, s.st + 1) / A - a.pointer!.y);
+            if (s.alive[i] === 1 && d < bd) (bd = d), (want = i);
+          });
+        }
+      }
+      if (want >= 0 && s.phase === 'play' && s.alive[want] === 1) {
+        const b = s.L.bs[want], tx = bxAt(b, s.st + 1), ty = byAt(b, s.st + 1) / A;
+        const step = (v: number, to: number) => Math.max(0, Math.min(1, v + Math.sign(to - v) * Math.min(0.012, Math.abs(to - v))));
+        cur = { x: step(cur.x, tx), y: step(cur.y, ty) };
+        if (Math.hypot(cur.x - tx, (cur.y - ty) * A) < 0.02) (inp = { tap: false, dir: 0, pointer: { ...cur } }), (want = -1);
+      } else want = -1;
+      g.step(s, inp);
+    }
+    expect(g.over(s)).toBe(true);
+    expect(cleared).toBe(STAGE_COUNT - 1);
+    expect(s.won).toBe(true);
   });
 });
 

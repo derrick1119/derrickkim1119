@@ -3,13 +3,14 @@
  *   npx tsx studio/balloonpop/shots.ts  → studio/balloonpop/screens/*.png  (에러가 있으면 종료 코드 1)
  */
 import { createRequire } from 'node:module';
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const { chromium } = createRequire(import.meta.url)('playwright') as { chromium: any }; // eslint-disable-line
 const here = import.meta.dirname, url = pathToFileURL(join(here, '../../web/public/studio/balloonpop/index.html')).href;
 const browser = await chromium.launch();
+mkdirSync(join(here, 'screens', 'qc'), { recursive: true });
 const errors: string[] = [];
 for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', { width: 1280, height: 800 }]] as const) {
   const page = await browser.newPage({ viewport: vp, deviceScaleFactor: 1 });
@@ -96,14 +97,68 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   if (await page.evaluate(() => document.getElementById('result')!.hidden)) errors.push(`${name}: 결과 화면이 안 뜸`);
   await page.close();
 }
+// localStorage 없이 동작 (C009 QC): 저장소를 읽고 쓰면 던지는 브라우저에서 타이틀 → 판 → 실패·다시 → 결과 → 다시 하기 · 음소거(M) · 일시정지(P)
+{
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+  await page.addInitScript(() => Object.defineProperty(window, 'localStorage', { get() { throw new Error('저장소 막힘'); } }));
+  page.on('console', (m: any) => m.type() === 'error' && errors.push(`no-storage: ${m.text()}`));
+  page.on('pageerror', (e: Error) => errors.push(`no-storage: ${e.message}`));
+  await page.goto(url);
+  await page.waitForTimeout(400);
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(300);
+  const bp = () => page.evaluate(() => { const b = (globalThis as any).__bp, s = b.state(); return { used: s.used, tries: s.tries, phase: s.phase, muted: b.sound().muted, running: b.running() }; });
+  await page.keyboard.press('m');
+  const m1 = await bp();
+  await page.keyboard.press('p');
+  const paused = await page.evaluate(() => ({ btn: document.getElementById('pausebtn')!.textContent, mute: !document.getElementById('mutebtn')!.hidden }));
+  await page.keyboard.press('p');
+  await page.evaluate(() => { const b = (globalThis as any).__bp; b.aim(b.target()); });
+  await page.keyboard.press('Space');
+  await page.waitForTimeout(600);
+  const m2 = await bp();
+  await page.evaluate(() => (globalThis as any).__bp.failToHelp());
+  await page.waitForTimeout(1250);
+  const m3 = await bp();
+  await page.evaluate(() => (globalThis as any).__bp.finish());
+  await page.waitForTimeout(300);
+  const shown = await page.evaluate(() => !document.getElementById('result')!.hidden);
+  await page.click('#again');
+  await page.waitForTimeout(300);
+  const m4 = await bp();
+  if (!m1.muted || paused.btn !== '▶' || !paused.mute || m2.used < 1 || m3.tries < 1 || m3.phase !== 'play' || !shown || !m4.running || m4.used !== 0)
+    errors.push(`no-storage: 흐름이 끊김 ${JSON.stringify({ m1, paused, m2, m3, shown, m4 })}`);
+  await page.close();
+}
 // 레이아웃 지표 (FUN §4): 캔버스 세로 점유 · 위아래 빈 띠 · 일시정지 버튼 ∩ 캔버스 위 HUD 띠(캔버스 폭 × 0.085)
 const layout: Record<string, unknown> = {};
 // 390×664·360×640 = 브라우저 막대가 있는 폰 높이 (C008 🧪)
 for (const vp of [{ width: 360, height: 780 }, { width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1280, height: 800 }, { width: 390, height: 664 }, { width: 360, height: 640 }]) {
   const page = await browser.newPage({ viewport: vp, deviceScaleFactor: 1 });
   await page.goto(url);
+  const qc = (k: string) => join(here, 'screens', 'qc', `${vp.width}x${vp.height}-${k}.png`), four = [360, 390, 768, 1280].includes(vp.width) && vp.height !== 664 && vp.height !== 640;
+  if (four) await page.screenshot({ path: qc('title') });
   await page.click('#start');
   await page.waitForTimeout(300);
+  // 4폭 × 5화면 (C009 QC, PM 확인용 — screens/qc는 커밋하지 않음): 진행 · 연쇄 · 일시정지 · 결과
+  if (four) {
+    await page.screenshot({ path: qc('play') });
+    await page.evaluate(() => { const b = (globalThis as any).__bp; b.aim(b.target()); });
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: qc('chain') });
+    await page.keyboard.press('p');
+    await page.waitForTimeout(100);
+    await page.screenshot({ path: qc('pause') });
+    await page.keyboard.press('p');
+  }
+  // 토스트 가림(참고): 4판 소개 토스트 · 다시 토스트가 덮은 풍선 몸 수
+  await page.evaluate(() => { const b = (globalThis as any).__bp; b.toastCover(); b.intro(3); });
+  await page.waitForTimeout(900);
+  const toastStart = await page.evaluate(() => (globalThis as any).__bp.toastCover());
+  await page.evaluate(() => (globalThis as any).__bp.failToHelp());
+  await page.waitForTimeout(1300);
+  const toastRetry = await page.evaluate(() => (globalThis as any).__bp.toastCover());
   const m = await page.evaluate(() => {
     const c = document.getElementById('game')!.getBoundingClientRect(), b = document.getElementById('pausebtn')!.getBoundingClientRect(), H = innerHeight;
     // HUD 글자가 있는 곳 = 캔버스 위 띠에서 HUD가 비워 둔 오른쪽 끝(view.hudRight)을 뺀 곳
@@ -112,7 +167,12 @@ for (const vp of [{ width: 360, height: 780 }, { width: 390, height: 844 }, { wi
     return { fill: c.height / H, topBand: c.top / H, bottomBand: (H - c.bottom) / H, pauseOverHud: hit };
   });
   const r2 = (x: number) => Math.round(x * 100) / 100;
-  layout[`${vp.width}x${vp.height}`] = { fill: r2(m.fill), topBand: r2(m.topBand), bottomBand: r2(m.bottomBand), pauseOverHud: m.pauseOverHud };
+  layout[`${vp.width}x${vp.height}`] = { fill: r2(m.fill), topBand: r2(m.topBand), bottomBand: r2(m.bottomBand), pauseOverHud: m.pauseOverHud, toastStart, toastRetry };
+  if (four) {
+    await page.evaluate(() => (globalThis as any).__bp.finish());
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: qc('result') });
+  }
   await page.close();
 }
 writeFileSync(join(here, 'reports', 'layout.json'), JSON.stringify(layout, null, 2) + '\n');

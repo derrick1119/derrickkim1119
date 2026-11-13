@@ -479,7 +479,7 @@ export function fitCanvas(cw: number, ch: number) {
   return { W, H, TOP: playTop(W, H) };
 }
 /** 화면에 같이 그려지는 DOM 버튼이 HUD 띠 오른쪽에 올라앉을 때 비워 둘 너비(px) — main.ts가 정한다 */
-export const view: { hudRight: number; focus: { x: number; y: number } | null } = { hudRight: 0, focus: null };
+export const view: { hudRight: number; focus: { x: number; y: number } | null; toastCover: number } = { hudRight: 0, focus: null, toastCover: 0 };
 /** 화면이 세로로 길 때 HUD 띠 높이(px) — 일시정지 버튼(44px)이 띠 안에 들어가게 */
 const HUD_TALL = 56;
 
@@ -783,6 +783,8 @@ export const balloonpop: GameDef<PopState> = {
       if (s.news.length) s.news[0].t = s.t;
     }
     if (s.phase === 'result') {
+      // 실패 카드 중 누름 = 바로 다시. 그 누름은 여기서 쓰여 톡이 되지 않는다(닫으려던 손짓이 새 하늘의 풍선을 터뜨리지 않게, C009 🧪)
+      if (!s.ok && press) return newStage(s, true);
       if (s.pt >= (s.ok ? RESULT : FAIL_RESULT)) {
         if (!s.ok) newStage(s, true);
         else if (s.won) s.dead = true;
@@ -2081,7 +2083,20 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
       // 같이 터질 풍선들 바로 위에 (가리킨 풍선이 아니라 고리 풍선 곁, C007)
       let sx = 0, top = Infinity;
       for (const k of ripple) (sx += SX[k]), (top = Math.min(top, SY[k] - brOf(L.bs[k]) * 1.4));
-      const lx = Math.max(mw / 2 + 6, Math.min(w - mw / 2 - 6, X(sx / ripple.size))), ly = Math.max(yMin, Y(top) - fs * 0.8);
+      const lx = Math.max(mw / 2 + 6, Math.min(w - mw / 2 - 6, X(sx / ripple.size)));
+      let ly = Math.max(yMin, Y(top) - fs * 0.8);
+      // 글자끼리 겹침 0 (C009 QC): 도움 받침('✨ 지금!')이나 막 뜬 '👀' 글자(50틱 동안 35px 올라감)와 겹치면 풍선들 아래로
+      const taken: [number, number, number, number][] = [], miss = recent('miss', 50);
+      if (miss) taken.push([X(miss.x) - R(0.12), Y(miss.y) - R(0.03) - 45, X(miss.x) + R(0.12), Y(miss.y) - R(0.03) + 10]);
+      if (s.help >= 0 && s.alive[s.help] === 1) {
+        const hb = L.bs[s.help], hy2 = Math.max(Y(HB) + R(0.04), Y(SY[s.help]) - R(brOf(hb)) * 2.05 - R(0.03));
+        taken.push([X(SX[s.help]) - R(0.14), hy2 - R(0.03), X(SX[s.help]) + R(0.14), hy2 + R(0.03)]);
+      }
+      if (taken.some(([x0, y0, x1, y1]) => lx + mw / 2 > x0 && lx - mw / 2 < x1 && ly + fs / 2 > y0 && ly - fs / 2 < y1)) {
+        let bot = -Infinity;
+        for (const k of ripple) bot = Math.max(bot, SY[k] + brOf(L.bs[k]) * 1.4);
+        ly = Y(bot) + fs;
+      }
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.lineWidth = 4;
@@ -2352,6 +2367,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
       // 판 시작·다시는 토스트 — 풍선 띠를 가리지 않는다: 토스트가 통째로 들어가는 위 하늘이 있으면 거기(소식 띠 아래), 아니면 아래 광장(브라우저 막대가 있는 폰·넓은 화면). 결과만 가운데 카드 (C008 🧪)
       const toast = s.phase !== 'result';
       const ch = R(stars >= 0 ? 0.25 : toast ? (sub2 ? 0.16 : 0.115) : 0.2), cy = !toast ? Y(0.5) : TOP >= HUD_TALL + R(0.075) + ch ? -TOP + HUD_TALL + R(0.075) + ch / 2 : Y(1.2);
+      // QC 참고(C009): 토스트가 덮은 풍선 몸 수의 최댓값 — shots가 해상도마다 layout.json에 남긴다
+      if (toast)
+        for (let i = 0, c = 0; i < n; i++) {
+          const bx = X(SX[i]), by = Y(SY[i]), br = R(brOf(L.bs[i]));
+          if (s.alive[i] === 1 && bx + br > R(0.07) && bx - br < w - R(0.07) && by + br * 1.2 > cy - ch / 2 && by - br * 1.2 < cy + ch / 2) view.toastCover = Math.max(view.toastCover, ++c);
+        }
       ctx.fillStyle = 'rgba(40,20,80,.86)';
       ctx.beginPath();
       ctx.roundRect(R(0.07), cy - ch / 2, w - R(0.14), ch, R(0.04));

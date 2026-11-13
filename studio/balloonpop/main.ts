@@ -196,6 +196,9 @@ $('start').focus();
   toScreen(p: { x: number; y: number }) { return { x: p.x * W, y: TOP + p.y * W * A }; },
   /** 도움 반짝 확인용: 지금 판을 실패한 것으로 치고 → 1초 뒤 같은 하늘을 도움 반짝과 함께 다시 */
   failToHelp() { s.tries = HELP_AFTER - 1; s.phase = 'result'; s.ok = false; s.pt = 0; },
+  /** QC(shots): 그 판을 소개 토스트부터 · 토스트가 덮은 풍선 수(최댓값, 읽으면 0으로) */
+  intro(k: number) { s = startAt((Date.now() % 1_000_000) + 1, k); s.phase = 'intro'; s.pt = 0; },
+  toastCover() { const c = view.toastCover; view.toastCover = 0; return c; },
   /** 판 확인용(shots): 그 판 처음으로 바로 (소개 카드 없이) */
   stage(k: number) { s = startAt((Date.now() % 1_000_000) + 1, k); },
   /** 살펴보기 확인용(shots): 첫 풍선 곁 빈 하늘 한 점(캔버스 px) */

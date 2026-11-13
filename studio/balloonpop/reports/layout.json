@@ -3,36 +3,48 @@
     "fill": 1,
     "topBand": 0,
     "bottomBand": 0,
-    "pauseOverHud": false
+    "pauseOverHud": false,
+    "toastStart": 0,
+    "toastRetry": 0
   },
   "390x844": {
     "fill": 1,
     "topBand": 0,
     "bottomBand": 0,
-    "pauseOverHud": false
+    "pauseOverHud": false,
+    "toastStart": 0,
+    "toastRetry": 0
   },
   "768x1024": {
     "fill": 1,
     "topBand": 0,
     "bottomBand": 0,
-    "pauseOverHud": false
+    "pauseOverHud": false,
+    "toastStart": 0,
+    "toastRetry": 0
   },
   "1280x800": {
     "fill": 1,
     "topBand": 0,
     "bottomBand": 0,
-    "pauseOverHud": false
+    "pauseOverHud": false,
+    "toastStart": 0,
+    "toastRetry": 0
   },
   "390x664": {
     "fill": 1,
     "topBand": 0,
     "bottomBand": 0,
-    "pauseOverHud": false
+    "pauseOverHud": false,
+    "toastStart": 0,
+    "toastRetry": 0
   },
   "360x640": {
     "fill": 1,
     "topBand": 0,
     "bottomBand": 0,
-    "pauseOverHud": false
+    "pauseOverHud": false,
+    "toastStart": 0,
+    "toastRetry": 0
   }
 }
