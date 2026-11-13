@@ -193,8 +193,8 @@ export const STAGES: StageDef[] = [
       pens: [WIDE()],
       flowers: [],
       clovers: [{ x: 0.5, y: 0.42, r: 0.05 }],
-      // C011 M1-7 ②: 그리디(미리 보고 한 수) = par → par+1이 되는 자리로(시드 지터를 빼고 좌표를 박음). 박사 3멍 ★3 한 번에·조심 막힘 0 그대로
-      sheep: [[0.293, 0.528], [0.366, 0.56], [0.649, 0.577], [0.683, 0.512], [0.503, 0.659]].map(([x, y]) => (r(), r(), { x, y })),
+      // C012 M1-7 ② 2차(📐 C012 우선순위: 막힘 0 > ±3px 박사 ★3 ≥ 0.7 > 그리디 par+1(정확·정수 px)). 손 떨림 ★3 0.98·그리디 4(par+1)·정수 px 4·par 이하 0
+      sheep: [[0.272, 0.568], [0.358, 0.6], [0.692, 0.534], [0.701, 0.523], [0.528, 0.633]].map(([x, y]) => (r(), r(), { x, y })),
     }),
   },
   {
@@ -209,12 +209,11 @@ export const STAGES: StageDef[] = [
   },
   {
     key: 'pull', name: '끌어오기', news: '🖤 까만 양은 울타리 쪽에서 불러요', max: 9, par: 3, bonus: 'black',
-    // C011 M1-7 ②: 그리디 = par → par+1이 되는 자리로(좌표를 박음, 셋째 자리에서 반올림한 값으로 쟀다). 📐 C005 방향: 까만 양을 흰 무리와 울타리 사이 길목에 —
-    // 흰 양을 위로 미는 자연스러운 자리의 바깥 원에 까만 양이 걸려 강아지 쪽으로 끌려 내려온다. 박사 3멍 ★3 한 번에·조심 막힘 0
+    // C012 M1-7 ② 2차(📐 C012): 울타리 뒤 끼임을 시뮬에서 막은(topOf) 뒤 손 떨림 ★3를 올렸다. ★3 0.98·그리디 9(끌어오기라 par+6)·정수 px도 깸·par 이하 0·조심 막힘 0
     build: () => ({
       pens: [WIDE()],
       flowers: [],
-      sheep: [...[[0.486, 0.649], [0.61, 0.642], [0.544, 0.681], [0.592, 0.691]].map(([x, y]) => ({ x, y })), { x: 0.517, y: 0.469, black: true }],
+      sheep: [...[[0.505, 0.643], [0.621, 0.63], [0.589, 0.682], [0.596, 0.703]].map(([x, y]) => ({ x, y })), { x: 0.488, y: 0.491, black: true }],
     }),
   },
   {
@@ -332,8 +331,10 @@ function collide(F: Field, goatF: number, tag: number, p: number[]) {
     if (F.goat) goatF > 0 ? pushSeg(p, goatSeg(F), SR + 0.014) : pushCircle(p, F.goat.x, F.goat.y, SR + GOAT_R);
   }
   p[0] = Math.max(0.03, Math.min(0.97, p[0]));
-  p[1] = Math.max(0.025, Math.min(0.975, p[1]));
+  p[1] = Math.max(topOf(F), Math.min(0.975, p[1]));
 }
+/** 목장 위 경계 (📐 C012 ⓐ): 울타리 뒤 가로대 + 양 몸 두께. 0.025였을 때는 경계가 울타리 밀어내기를 이겨 양이 가로대 뒤로 끼었다(🧪 C011 1-5) */
+export const topOf = (F: Field) => Math.max(0.025, Math.min(...F.pens.map((p) => p.y0)) + SR + WT);
 const wet = (F: Field, x: number, y: number) => !!F.river && y > F.river.y0 && y < F.river.y1 && !(x > F.river.bx0 && x < F.river.bx1);
 function penOf(F: Field, tag: number, x: number, y: number) {
   for (let k = 0; k < F.pens.length; k++) {

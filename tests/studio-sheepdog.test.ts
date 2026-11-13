@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/sheepdog/core.ts';
-import { BLACK_TIP, COME_HOLD, goalLabels, hudState, medalOf, FLAG_SNAP, LATER, SKY, STAGES, WORLD_TIME, at as atField, blackCame, comeHold, jumpTo, preview, starCount, sheepdog as g, sheepdogGreedy, sheepdogRandom, sheepdogSmart, type DogState } from '../studio/sheepdog/game.ts';
+import { BLACK_TIP, COME_HOLD, goalLabels, hudState, medalOf, FLAG_SNAP, LATER, SKY, STAGES, WORLD_TIME, at as atField, blackCame, comeHold, jumpTo, preview, starCount, sheepdog as g, sheepdogGreedy, sheepdogRandom, sheepdogSmart, topOf, type DogState } from '../studio/sheepdog/game.ts';
 import { mulberry32 } from '../studio/sheepdog/rng.ts';
 
 const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y } });
@@ -64,6 +64,19 @@ describe('M1-2 W1 아침 들판 (CONTENT.md W1)', () => {
     expect(STAGES.map((d) => d.bonus)).toEqual(['flower', 'flower', 'clover', 'black', 'black', 'flower', 'clover', 'black']);
     expect(LATER.map((d) => d.key)).toEqual(['goat', 'wolf', 'wind', 'twopens', 'night']);
   });
+
+  it('울타리 뒤 끼임 0: 어떤 봇·어느 판에서도 흰 양이 목장 위 경계(울타리 뒤 가로대)보다 위로 못 간다 (📐 C012 ⓐ, 🧪 C011 1-5)', () => {
+    for (let k = 0; k < STAGES.length; k++)
+      for (const bot of [sheepdogRandom, sheepdogGreedy, sheepdogSmart]) {
+        const s = g.create(50 + k);
+        jumpTo(s, k);
+        const top = topOf(s.F);
+        for (let t = 0; t < 60 * 90 && s.phase !== 'result'; t++) {
+          g.step(s, bot.act(s, mulberry32(50 + k)));
+          for (let i = 0; i < s.F.n; i++) if (!s.F.black[i] && s.S.pen[i] < 0) expect(s.S.y[i], `${k + 1}판 양 ${i} y`).toBeGreaterThanOrEqual(top - 1e-6);
+        }
+      }
+  }, 60_000);
 
   it('막힘 0: 미리 보고 한 수만 두는 그리디 봇도 W1 모든 판을 깬다 (FUN F10) · 소개 판이 아니면 그리디 ≥ par+1 (📐 C003, M1-7 ② 1-3·1-5)', () => {
     const intro = ['start', 'preview', 'black', 'river'];
