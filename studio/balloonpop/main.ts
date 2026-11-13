@@ -4,7 +4,7 @@
  */
 import { TICK, type Input } from './core.ts';
 import { peek } from './juice.ts';
-import { balloonpop as g, bxAt, byAt, fitCanvas, HELP_AFTER, IRON, STAGE_COUNT, startAt, view, type PopState } from './game.ts';
+import { balloonpop as g, bxAt, byAt, emptyNear, fitCanvas, HELP_AFTER, IRON, STAGE_COUNT, startAt, view, type PopState } from './game.ts';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const canvas = $<HTMLCanvasElement>('game'), ctx = canvas.getContext('2d')!;
@@ -173,6 +173,8 @@ $('start').focus();
   failToHelp() { s.tries = HELP_AFTER - 1; s.phase = 'result'; s.ok = false; s.pt = 0; },
   /** 판 확인용(shots): 그 판 처음으로 바로 (소개 카드 없이) */
   stage(k: number) { s = startAt((Date.now() % 1_000_000) + 1, k); },
+  /** 살펴보기 확인용(shots): 첫 풍선 곁 빈 하늘 한 점(캔버스 px) */
+  emptySpot() { const i = s.L.bs.findIndex((b, k) => s.alive[k] === 1 && b.k !== IRON), p = i >= 0 ? emptyNear(s, i) : null; return p && { x: p.x * W, y: TOP + p.y * W }; },
   /** 결과 화면 확인용: 지금 판에서 바로 완주 화면으로 */
   finish() { if (running) finish(); },
 };

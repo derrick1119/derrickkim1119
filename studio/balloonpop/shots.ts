@@ -60,6 +60,22 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.screenshot({ path: join(here, 'screens', `${name}-help.png`) });
   const hs = await page.evaluate(() => { const s = (globalThis as any).__bp.state(); return { helped: s.helped, help: s.help, tries: s.tries }; });
   if (!hs.helped || hs.help < 0) errors.push(`${name}: 도움 반짝이 안 뜸 ${JSON.stringify(hs)}`);
+  // 휴대폰 살펴보기: 7판(빽빽한 판)에서 빈 하늘을 눌러(톡 안 씀) 가까운 풍선 미리 보기 (C007)
+  await page.evaluate(() => (globalThis as any).__bp.stage(6));
+  await page.mouse.move(1, 1);
+  await page.waitForTimeout(1300);
+  const sp = await page.evaluate(() => (globalThis as any).__bp.emptySpot());
+  const gb = await page.locator('#game').boundingBox();
+  if (sp && gb) await page.mouse.click(gb.x + sp.x, gb.y + sp.y);
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: join(here, 'screens', `${name}-peek.png`) });
+  const pk = await page.evaluate(() => { const s = (globalThis as any).__bp.state(); return { peek: s.peek, taps: s.taps }; });
+  if (!sp || pk.peek < 0 || pk.taps !== 3) errors.push(`${name}: 살펴보기가 안 됨 ${JSON.stringify({ sp, pk })}`);
+  // 5판 다리 풍선: 밧줄 (C007). 살펴보기 클릭 자리에 남은 마우스가 미리 보기를 띄우지 않게 치운다
+  await page.mouse.move(1, 1);
+  await page.evaluate(() => (globalThis as any).__bp.stage(4));
+  await page.waitForTimeout(1300);
+  await page.screenshot({ path: join(here, 'screens', `${name}-bridge.png`) });
   // 4판 흔들 무리: 시작 직후(가장 멀 때)와 약 2초 뒤(두 무리 원이 닿을 때) (C006)
   await page.evaluate(() => (globalThis as any).__bp.stage(3));
   await page.waitForTimeout(150);

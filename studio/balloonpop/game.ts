@@ -46,7 +46,7 @@ const WATER_REACH = 0.36, KING_REACH = 0.46, KING_BR = 0.072, FIRE_BAND = 0.055,
 export const NORM = 0, IRON = 1, WATER = 2, FIRE = 3, KING = 4;
 
 
-export interface Bal { k: number; sz: number; x0: number; y0: number; ax: number; ph: number; vx: number; an: number; um: boolean; esc: number; cl: number; hue: number; bridge?: boolean }
+export interface Bal { k: number; sz: number; x0: number; y0: number; ax: number; ph: number; vx: number; an: number; um: boolean; esc: number; cl: number; hue: number; bridge?: boolean; bt?: [number, number] }
 interface Cloud { x: number; y: number; rx: number; ry: number; vx: number }
 export interface Goal { pop: number; save: number }
 export interface Lay { bs: Bal[]; iron: number[]; tramp: { x: number; w: number } | null; clouds: Cloud[]; Ds: number[]; goal: Goal; total: number }
@@ -277,7 +277,7 @@ export function gen(d: SDef, r: Rng): Lay | null {
         if (Math.hypot(a.x0 - x, a.y0 - y) > Math.min(REACH[a.sz], REACH[2]) * 0.95 || Math.hypot(b.x0 - x, b.y0 - y) > Math.min(REACH[b.sz], REACH[2]) * 0.95) continue;
         if (!bs.every((o) => Math.hypot(o.x0 - x, o.y0 - y) >= BR[o.sz] + BR[2] + 0.012)) continue;
         if (!bs.every((o) => o.cl <= 1 || Math.hypot(o.x0 - x, o.y0 - y) >= REACH[2] + 0.02)) continue;
-        bs.push({ k: NORM, sz: 2, x0: x, y0: y, ax: 0, ph: 0, vx: 0, an: -1, um: false, esc: Infinity, cl: 0, hue: Math.floor(r() * 3), bridge: true });
+        bs.push({ k: NORM, sz: 2, x0: x, y0: y, ax: 0, ph: 0, vx: 0, an: -1, um: false, esc: Infinity, cl: 0, hue: Math.floor(r() * 3), bridge: true, bt: [bs.indexOf(a), bs.indexOf(b)] });
         ok = true;
       }
     if (!ok) return null;
@@ -409,8 +409,11 @@ function layoutFor(seed: number, stage: number): Lay {
   if (hit) return hit;
   const d = STAGES[stage], PL = 40, mid = (d.rand[0] + d.rand[1]) / 2;
   let best: Lay | null = null, bsc = -Infinity, sure: Lay | null = null;
-  const pool: { L: Lay; sc: number }[] = [];
-  for (let a = 0; a < 40 && (a < 14 || !best); a++) {
+  const pool: { L: Lay; sc: number; p: boolean }[] = [];
+  // 흔들 무리 둘인 판: 카드의 약속('두 무리가 한 번에')이 이 하늘에서 지켜지는가 (CONTENT v0.2.1)
+  const needP = d.swayCl?.length === 2;
+  let anyP = !needP;
+  for (let a = 0; a < 40 && (a < 14 || !best || !anyP); a++) {
     const r = mulberry32((seed * 31 + stage * 7919 + a * 104729 + 17) >>> 0);
     const L = gen(d, r);
     if (!L) continue;
@@ -432,8 +435,10 @@ function layoutFor(seed: number, stage: number): Lay {
     const easy = !stage || d.rest, fr = Math.max(0, r2 - (easy ? 0.85 : 0.45)) + Math.max(0, ra - (easy ? 0.4 : 0.3));
     const sc = (met ? 100 : 0) + (all ? 15 : 0) + (m2 ? 10 : 0) - off * 120 - fr * 40;
     if (sc > bsc) (bsc = sc), (best = L);
-    pool.push({ L, sc });
-    if (met && all && m2 && off === 0 && fr === 0) {
+    const p = !needP || promiseWindow(L, d.swayCl![0], d.swayCl![1]) >= PROMISE_MIN;
+    if (p) anyP = true;
+    pool.push({ L, sc, p });
+    if (p && met && all && m2 && off === 0 && fr === 0) {
       const v = verify(seed, stage, L);
       if (v.ok && v.m2) {
         sure = L;
@@ -444,7 +449,8 @@ function layoutFor(seed: number, stage: number): Lay {
   // 내다보기 값만 믿지 않고, 점수 순으로 숙련 봇이 실제로 ★1·★2를 내는 배치를 고른다 (시드 64352 5판: 목표 16/17을 못 냄, C002 🧪)
   if (!sure) {
     let okOnly: Lay | null = null;
-    for (const c of pool.sort((x, y) => y.sc - x.sc).slice(0, 8)) {
+    const keep = pool.some((c) => c.p) ? pool.filter((c) => c.p) : pool;
+    for (const c of keep.sort((x, y) => y.sc - x.sc).slice(0, 8)) {
       const v = verify(seed, stage, c.L);
       if (v.ok && v.m2) {
         sure = c.L;
@@ -482,6 +488,45 @@ export function startAt(seed: number, stage: number): PopState {
   return s;
 }
 
+/** 살펴보기: 빈 하늘 톡에서 이 거리(화면 폭 비율) 안의 가장 가까운 풍선을, 이 틱 동안 미리 본다 (ART §10.5 A) */
+export const PEEK_R = 0.16, PEEK_T = 120;
+/** 살펴보기 자리(확인용): 풍선 i에서 PEEK_R 안이면서 어느 풍선도 안 눌리는 빈 하늘 한 점(세계 좌표, y는 0~A), 없으면 null */
+export function emptyNear(s: PopState, i: number): { x: number; y: number } | null {
+  const b = s.L.bs[i], st = s.st + 1, x0 = bxAt(b, st), y0 = byAt(b, st);
+  for (const r of [0.1, 0.12, 0.14])
+    for (let k = 0; k < 16; k++) {
+      const x = x0 + r * Math.cos((k * Math.PI) / 8), y = y0 + r * Math.sin((k * Math.PI) / 8);
+      if (x < 0.03 || x > 0.97 || y < 0.15 || y > 1.0) continue;
+      if (s.L.bs.every((o, j) => s.alive[j] !== 1 || Math.hypot(bxAt(o, st) - x, byAt(o, st) - y) > Math.max(0.066, brOf(o) + 0.02) + 0.01)) return { x, y };
+    }
+  return null;
+}
+/** 약속한 다리 창의 최소 길이(틱) — 0.5초 (FUN v1.5) */
+export const PROMISE_MIN = 30;
+/**
+ * 약속한 다리 창 (FUN v1.5): 한 주기 동안 step틱마다, 무리 a·b의 풍선 하나를 톡 하면 두 무리(철 제외)가 다 터지는가 →
+ * 그런 때가 가장 길게 이어지는 길이(틱). 흔들 무리 판의 카드 약속을 배치에서 지킬 때 쓴다.
+ */
+export function promiseWindow(L: Lay, a: number, b: number, step = 4): number {
+  const mem = L.bs.map((x, i) => (x.k !== IRON && (x.cl === a || x.cl === b) ? i : -1)).filter((i) => i >= 0);
+  const per = Math.round((2 * Math.PI) / SWAY_W);
+  let best = 0, run = 0;
+  for (let T = 1; T <= per; T += step) {
+    let ok = false;
+    for (const j of mem) {
+      const al = new Uint8Array(L.bs.length).fill(1);
+      chainSim(L, al, j, T, 1, { pop: 0, pop2: 0, save: 0, save2: 0 });
+      if (mem.every((m) => al[m] === 0)) {
+        ok = true;
+        break;
+      }
+    }
+    run = ok ? run + step : 0;
+    best = Math.max(best, run);
+  }
+  return best;
+}
+
 /** 판 생성 시간 재기용(캐시 없이 새로 만든다) */
 export function layoutTime(seed: number, stage: number) {
   LAY.delete(seed + ':' + stage);
@@ -500,6 +545,8 @@ export interface PopState {
   stars: number; got: number; ok: boolean; pts: number; dead: boolean; won: boolean;
   /** 실패한 횟수(이번 런 전체) · 도움 반짝 풍선(-1 없음)과 누를 때 · 이번 시도가 도움을 받았나(★2 잠금) */
   fails: number; help: number; helpAt: number; helped: boolean;
+  /** 살펴보기(C007): 빈 하늘을 톡 하면 가까운 풍선 미리 보기 — 그 풍선(-1 없음)과 시작 판 틱 */
+  peek: number; peekAt: number;
   down: boolean; seen: Set<string>; events: Ev[]; news: { text: string; t: number }[];
 }
 
@@ -543,6 +590,7 @@ function newStage(s: PopState, retry: boolean, lay?: Lay) {
   s.phase = s.t === 0 || retry ? 'play' : 'intro';
   s.tries = retry ? s.tries + 1 : 0;
   s.help = -1;
+  s.peek = -1;
   s.helped = s.tries >= HELP_AFTER;
   // 도움 반짝: 숙련 봇과 **같은 계획**(plan)으로 첫 톡 풍선과 때를 고른다 — 그대로 따라 하면 숙련 봇의 판이 된다(배치 검증으로 깨지는 것이 보장됨)
   if (s.helped) helpNext(s);
@@ -659,7 +707,17 @@ function play(s: PopState, p: { x: number; y: number } | null) {
   for (let i = 0; i < n; i++) if (s.alive[i] === 1 && s.popT[i] === s.st) pop(s, i);
   if (p && s.taps > 0) {
     const i = pick(s, p.x, p.y * A);
-    if (i < 0) ev(s, 'miss', p.x, p.y * A, '휙~', '#ffffff');
+    if (i < 0) {
+      // 빈 하늘 톡 = 살펴보기(톡 안 씀): 가까운 풍선을 가리킨 것처럼 첫 파문 미리 보기 (C007, 휴대폰은 누르는 순간 터져서 미리 볼 틈이 없다)
+      let pj = -1, pd = PEEK_R;
+      for (let j = 0; j < n; j++) {
+        if (s.alive[j] !== 1 || L.bs[j].k === IRON) continue;
+        const dd = Math.hypot(SX[j] - p.x, SY[j] - p.y * A);
+        if (dd < pd) (pd = dd), (pj = j);
+      }
+      if (pj >= 0) (s.peek = pj), (s.peekAt = s.st);
+      ev(s, 'miss', p.x, p.y * A, pj >= 0 ? '👀' : '휙~', '#ffffff');
+    }
     else if (L.bs[i].k === IRON) ev(s, 'clang', SX[i], SY[i], '깡! 안 터져요', '#e3e8ee');
     else {
       s.taps--;
@@ -1729,7 +1787,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
   const hidden = (i: number) => s.clouds.some((c) => c.gone < 0 && ((SX[i] - c.x) / c.rx) ** 2 + ((SY[i] - c.y) / c.ry) ** 2 < 0.85);
   let busy = false, shown = 0;
   for (let i = 0; i < n; i++) if (s.alive[i] === 1) (s.popT[i] >= 0 && (busy = true)), L.bs[i].k !== IRON && !hidden(i) && shown++;
-  const fi = s.phase === 'play' && !busy && s.taps > 0 && view.focus ? pick(s, view.focus.x, view.focus.y * A) : -1;
+  const peeking = s.peek >= 0 && s.alive[s.peek] === 1 && st - s.peekAt < PEEK_T;
+  // 가리킨 풍선(마우스·키보드)이 먼저, 빈 곳을 가리키면 살펴보기
+  const ff = view.focus ? pick(s, view.focus.x, view.focus.y * A) : -1;
+  const fi = s.phase !== 'play' || busy || s.taps <= 0 ? -1 : ff >= 0 ? ff : peeking ? s.peek : -1;
   const ripple = new Set<number>();
   if (fi >= 0 && L.bs[fi].k !== IRON) for (let k = 0; k < n; k++) if (k !== fi && s.alive[k] === 1 && st < L.bs[k].esc && delay(L, fi, k)) ripple.add(k);
   const tails = shown > 10;
@@ -1748,11 +1809,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
       ctx.lineWidth = 2;
       ctx.setLineDash([]); // 짧은 호는 실선 — 점선이면 점 2~3개로 끊겨 꽃가루처럼 보인다 (C005 🧪)
       ctx.beginPath();
-      for (let q = 0; q < 4; q++) {
-        const a0 = q * (Math.PI / 2) + Math.PI / 4 - 0.18;
-        if (b.k === WATER && q < 2) continue;
+      // 둘·각 60° — 원 모양이 남게 (FUN v1.5). 물풍선은 아래쪽 하나만
+      for (let q = 0; q < 2; q++) {
+        if (b.k === WATER && q === 1) continue;
+        const a0 = Math.PI / 4 + q * Math.PI - Math.PI / 6;
         ctx.moveTo(x + rr * Math.cos(a0), y + rr * Math.sin(a0));
-        ctx.arc(x, y, rr, a0, a0 + 0.36);
+        ctx.arc(x, y, rr, a0, a0 + Math.PI / 3);
       }
       ctx.stroke();
       continue;
@@ -1820,6 +1882,70 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     ctx.fillStyle = g2;
     const spread = Math.min(1, age / 10);
     ctx.fillRect(X(e.x) - spread * w, Y(e.y) - R(0.02), spread * w * 2, R(0.04));
+  }
+
+  // ══ 흔들 레일 · 다리 밧줄 (C007, ART §11) — 답이 아니라 범위·연결만 ══
+  {
+    const first = s.tries === 0 && s.used === 0, quiet = busy || fi >= 0 ? 0.5 : 1, ink = night > 0.5 ? '#fffaf2' : '#3a2a6a';
+    // 흔들 레일: 흔들 무리마다 무리 아래 짧은 줄 + 무리와 같이 움직이는 추. 두 무리면 마주 보는 끝 ›‹가 거리만큼 진해진다
+    const rails: { cx: number; ax: number; ph: number; ry: number; bob: number }[] = [];
+    for (const c of [...new Set(L.bs.filter((b, i) => b.ax > 0 && b.an < 0 && s.alive[i] === 1).map((b) => b.cl))]) {
+      const mem = L.bs.filter((b, i) => b.cl === c && s.alive[i] === 1);
+      const cx = mem.reduce((a, b) => a + b.x0, 0) / mem.length, ax = mem[0].ax, ph = mem[0].ph;
+      const ry = Math.min(GY - 0.06, Math.max(...mem.map((b) => b.y0 + BR[b.sz] * 1.17)) + 0.085);
+      rails.push({ cx, ax, ph, ry, bob: cx + ax * Math.sin(st * SWAY_W + ph) });
+    }
+    ctx.save();
+    ctx.lineCap = 'round';
+    for (const rl of rails) {
+      ctx.strokeStyle = rgba(ink, (first ? 0.65 : 0.45) * quiet * intro);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(X(rl.cx - rl.ax), Y(rl.ry));
+      ctx.lineTo(X(rl.cx + rl.ax), Y(rl.ry));
+      for (const e of [-1, 1]) ctx.moveTo(X(rl.cx + e * rl.ax), Y(rl.ry) - R(0.01)), ctx.lineTo(X(rl.cx + e * rl.ax), Y(rl.ry) + R(0.01));
+      ctx.stroke();
+      ctx.fillStyle = rgba(ink, 0.7 * quiet * intro);
+      ctx.beginPath();
+      ctx.arc(X(rl.bob), Y(rl.ry), R(0.009), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (rails.length === 2 && !s.helped) {
+      const [p, q] = rails[0].cx < rails[1].cx ? rails : [rails[1], rails[0]], D = q.cx - p.cx, gap = q.bob - p.bob;
+      const gmin = D - p.ax - q.ax, gmax = D + p.ax + q.ax, k = clamp01((gmax - gap) / Math.max(1e-6, gmax - gmin));
+      ctx.strokeStyle = rgba(ink, (0.15 + 0.4 * k) * quiet * intro);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (const [rl, dir] of [[p, 1], [q, -1]] as const) {
+        const ex = X(rl.cx + dir * rl.ax) + dir * R(0.012), ey = Y(rl.ry), arm = R(0.014);
+        ctx.moveTo(ex, ey - arm), ctx.lineTo(ex + dir * arm, ey), ctx.lineTo(ex, ey + arm);
+      }
+      ctx.stroke();
+    }
+    // 다리 밧줄: 다리 풍선에서 양 끝 풍선까지 처진 줄 두 가닥 (갈색 = 판에 묶인 연결)
+    L.bs.forEach((b, i) => {
+      if (!b.bt || s.alive[i] !== 1) return;
+      for (const j of b.bt) {
+        if (s.alive[j] !== 1) continue;
+        const x1 = X(SX[i]), y1 = Y(SY[i]), x2 = X(SX[j]), y2 = Y(SY[j]), len = Math.hypot(x2 - x1, y2 - y1), sag = len * 0.1 + Math.sin(t * 0.05) * R(0.003);
+        const ux = (x2 - x1) / len, uy = (y2 - y1) / len, ra = R(brOf(b)), rb = R(brOf(L.bs[j]));
+        const ax0 = x1 + ux * ra, ay0 = y1 + uy * ra, bx0 = x2 - ux * rb, by0 = y2 - uy * rb, mx = (ax0 + bx0) / 2, my = (ay0 + by0) / 2 + sag;
+        const layers: [number, string, number[]][] = [[3.5, 'rgba(243,221,179,.45)', []], [first ? 2.5 : 2, first ? 'rgba(122,78,42,.9)' : 'rgba(122,78,42,.75)', [R(0.012), R(0.008)]]];
+        for (const [wd, col, dash] of layers) {
+          ctx.setLineDash(dash);
+          ctx.strokeStyle = col;
+          ctx.lineWidth = wd;
+          ctx.beginPath();
+          ctx.moveTo(ax0, ay0);
+          ctx.quadraticCurveTo(mx, my, bx0, by0);
+          ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#7a4e2a';
+        for (const [kx, ky] of [[ax0, ay0], [bx0, by0]]) ctx.beginPath(), ctx.arc(kx, ky, R(0.006), 0, Math.PI * 2), ctx.fill();
+      }
+    });
+    ctx.restore();
   }
 
   // ══ 풍선 · 매달린 동물 ══
@@ -1905,7 +2031,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
       const fs = Math.max(15, R(0.042)), msg = `헉 ×${ripple.size}`;
       ctx.font = `900 ${fs}px system-ui, sans-serif`;
       const mw = ctx.measureText(msg).width, yMin = (TOP >= HUD_TALL ? -TOP + HUD_TALL : Y(HB)) + R(0.08);
-      const lx = Math.max(mw / 2 + 6, Math.min(w - mw / 2 - 6, X(SX[fi]))), ly = Math.max(yMin, Y(SY[fi]) - R(reachOf(L.bs[fi])) - fs * 0.7);
+      // 같이 터질 풍선들 바로 위에 (가리킨 풍선이 아니라 고리 풍선 곁, C007)
+      let sx = 0, top = Infinity;
+      for (const k of ripple) (sx += SX[k]), (top = Math.min(top, SY[k] - brOf(L.bs[k]) * 1.4));
+      const lx = Math.max(mw / 2 + 6, Math.min(w - mw / 2 - 6, X(sx / ripple.size))), ly = Math.max(yMin, Y(top) - fs * 0.8);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.lineWidth = 4;

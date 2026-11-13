@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/balloonpop/core.ts';
-import { A, balloonpop as g, balloonpopRandom, balloonpopSmart, BEAT, bxAt, byAt, density, FAIL_RESULT, fitCanvas, HELP_AFTER, IRON, KING, playTop, RETRY_CARD, STAGE_COUNT, STAGES, startAt, type PopState } from '../studio/balloonpop/game.ts';
+import { A, balloonpop as g, balloonpopRandom, balloonpopSmart, BEAT, bxAt, byAt, density, emptyNear, FAIL_RESULT, fitCanvas, HELP_AFTER, IRON, KING, playTop, RETRY_CARD, STAGE_COUNT, STAGES, startAt, type PopState } from '../studio/balloonpop/game.ts';
 import { densityTable, humanCasual, humanLate, measure } from '../studio/balloonpop/funqa.ts';
 import { mulberry32 } from '../engine/rng.ts';
 
@@ -174,6 +174,38 @@ describe('월드 1 앞 8판 (C005, CONTENT v0.1)', () => {
     expect(e.firstStar2[k]).toBeGreaterThanOrEqual(0.95);
   });
 
+  it('4판 카드의 약속: 모든 하늘에 두 흔들 무리가 한 톡에 이어지는 때가 ≥0.5초, 숙련 첫 톡은 대개 두 무리를 다 (FUN v1.5, 게임 시뮬로 잼)', () => {
+    const k = idx('sway');
+    const both = (s: PopState) => s.L.bs.every((b, j) => b.k === IRON || (b.cl !== 0 && b.cl !== 1) || s.alive[j] !== 1);
+    for (const seed of SEEDS) {
+      // 그 때로 판을 옮겨(톡 전엔 흔들림만 바뀐다) 흔들 무리 풍선 하나를 톡 → 연쇄가 끝날 때까지
+      const s0 = startAt(seed, k), mem = s0.L.bs.map((b, j) => (b.k !== IRON && b.cl <= 1 ? j : -1)).filter((j) => j >= 0);
+      let run = 0, best = 0;
+      for (let T = 1; T <= 260; T += 4) {
+        let ok = false;
+        for (const j of mem) {
+          const s = startAt(seed, k);
+          s.st = T - 1;
+          tapAndWait(s, j);
+          if (both(s)) {
+            ok = true;
+            break;
+          }
+        }
+        run = ok ? run + 4 : 0;
+        best = Math.max(best, run);
+      }
+      expect(best).toBeGreaterThanOrEqual(30);
+    }
+    let hit = 0;
+    for (let r = 0; r < 40; r++) {
+      const s = startAt(1000 + r * 7919, k);
+      for (let q = 0; q < 900 && !(s.used === 1 && !s.popT.some((v, j) => v >= 0 && s.alive[j] === 1)); q++) g.step(s, balloonpopSmart.act(s, () => 0.5));
+      if (both(s)) hit++;
+    }
+    expect(hit / 40).toBeGreaterThanOrEqual(0.8);
+  });
+
   it('늦은 손(humanLate)도 막히지 않는다: 막힌 런 ≤0.05, 전 판 3회 안 ≥0.9, 도움 시도 10번 이상인 판은 도움이 손해가 아님 (FUN v1.4)', () => {
     const h = measure(humanLate, 40);
     expect(h.stuckRate).toBeLessThanOrEqual(0.05);
@@ -211,6 +243,26 @@ describe('월드 1 앞 8판 (C005, CONTENT v0.1)', () => {
         }
       }
       expect(blocked).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('휴대폰 살펴보기 — 빈 하늘 톡 (C007, 오너 답 없음 → ①)', () => {
+  it('빈 하늘을 톡 하면 톡은 그대로, 가까운 풍선 미리 보기가 켜진다', () => {
+    const s = startAt(1000, 1), i = s.L.bs.findIndex((b) => b.k !== IRON), p = emptyNear(s, i)!;
+    expect(p).not.toBeNull();
+    g.step(s, { tap: false, dir: 0, pointer: { x: p.x, y: p.y / A } });
+    expect(s.taps).toBe(3);
+    expect(s.used).toBe(0);
+    expect(s.peek).toBeGreaterThanOrEqual(0);
+    expect(s.alive[s.peek]).toBe(1);
+  });
+
+  it('모든 판에서 빈 하늘 자리가 있다 — 가장 빽빽한 판도 풍선의 절반 이상 곁에서 살펴볼 수 있다', () => {
+    for (let k = 0; k < STAGE_COUNT; k++) {
+      const s = startAt(1000, k), live = s.L.bs.map((b, j) => (b.k !== IRON ? j : -1)).filter((j) => j >= 0);
+      const ok = live.filter((j) => emptyNear(s, j)).length;
+      expect(ok / live.length).toBeGreaterThanOrEqual(0.5);
     }
   });
 });

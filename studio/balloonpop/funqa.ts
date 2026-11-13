@@ -60,6 +60,35 @@ export function makeHuman(name: string, opt: { late?: boolean; follow?: number }
     },
   };
 }
+/**
+ * 참고 봇 humanWait (FUN v1.5): 흔들 무리 둘인 판에서 첫 톡은 두 무리 첫 풍선 사이가 가장 가까운 때(한 주기 안)에
+ * 흔들 무리 풍선 아무거나 — "카드 말대로 기다렸다 누르는 캐주얼". 그 밖은 humanLate와 같다. 판정 아님.
+ */
+export function makeWaiter(): Bot<PopState> {
+  const base = makeHuman('기다리는 캐주얼', { late: true }), when = new WeakMap<object, number>();
+  return {
+    name: '기다리는 캐주얼',
+    act(s, rng) {
+      const sc = STAGES[s.stage].swayCl;
+      if (!sc || sc.length !== 2 || s.used !== 0 || s.phase !== 'play' || s.down) return base.act(s, rng);
+      const a = s.L.bs.find((b) => b.cl === sc[0])!, b = s.L.bs.find((b) => b.cl === sc[1])!;
+      if (!when.has(s) || when.get(s)! < s.st) {
+        let bt = s.st + 1, bd = Infinity;
+        for (let T = s.st + 1; T <= s.st + 260; T++) {
+          const dd = Math.abs(bxAt(a, T) - bxAt(b, T));
+          if (dd < bd) (bd = dd), (bt = T);
+        }
+        when.set(s, bt);
+      }
+      if (s.st + 1 < when.get(s)!) return NO;
+      const mem = s.L.bs.map((x, i) => (s.alive[i] === 1 && x.k !== IRON && (x.cl === sc[0] || x.cl === sc[1]) ? i : -1)).filter((i) => i >= 0);
+      const p = s.L.bs[mem[Math.floor(rng() * mem.length)]];
+      return { tap: false, dir: 0, pointer: { x: bxAt(p, s.st + 1), y: byAt(p, s.st + 1) / A } };
+    },
+  };
+}
+export const humanWait = makeWaiter();
+
 /** 완벽한 손: 도움 고리를 '지금!' 그 틱에 누른다 — 도움 상한 참고값 (FUN v1.4) */
 export const humanCasual = makeHuman('사람형 캐주얼(완벽한 손)');
 /** 판정 봇 (FUN v1.4): '지금!'을 보고 0.2~0.4초 뒤, 다시 카드 중엔 고리를 못 봄 */
@@ -203,7 +232,7 @@ export function densityTable(seeds = 40) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const runs = Number(process.argv[2] ?? 40), t0 = Date.now();
-  const novice = measure(balloonpopRandom, runs), casual = measure(humanLate, runs), perfect = measure(humanCasual, runs), late80 = measure(humanLate80, runs), expert = measure(balloonpopSmart, runs);
+  const novice = measure(balloonpopRandom, runs), casual = measure(humanLate, runs), perfect = measure(humanCasual, runs), late80 = measure(humanLate80, runs), wait = measure(humanWait, runs), expert = measure(balloonpopSmart, runs);
   const out = {
     runs,
     novice,
@@ -213,6 +242,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     perfect,
     /** 참고: 도움 80%만 따름 */
     late80,
+    /** 참고: 흔들 판에서 가장 가까울 때 흔들 무리 풍선 톡 (FUN v1.5) */
+    wait,
     expert,
     /** 숙련 격차: 쉼 판을 뺀, 판당 3회로 자른 시도당 별의 숙련 ÷ humanLate (FUN v1.4) */
     skillGap: Math.round((expert.starsPerTry3Work / Math.max(0.01, casual.starsPerTry3Work)) * 100) / 100,
