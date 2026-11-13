@@ -29,7 +29,7 @@ export const R_IN = 0.13, R_OUT = 0.26, D_IN = 0.26, D_OUT = 0.14;
 const COH = 0.6;
 const STEP = 0.01, BLACK_STOP = 0.045;
 const WOLF_STEP = 0.13, WOLF_CATCH = 0.075, GOAT_R = 0.03, FAINT = 3;
-const DOG_SPEED = 0.05, FLEE_T = 40, RESULT_OK = 190, RESULT_FAIL = 80;
+const DOG_SPEED = 0.05, FLEE_T = 40, RESULT_OK = 190, RESULT_FAIL = 60;
 const STAR_PTS = 100, WIN_PTS = 100;
 
 interface Seg { x0: number; y0: number; x1: number; y1: number }
@@ -169,11 +169,12 @@ const RIVER = (bx0 = 0.41, bx1 = 0.59): River => ({ y0: 0.4, y1: 0.5, bx0, bx1 }
 export const STAGES: StageDef[] = [
   P('start'),
   {
-    key: 'preview', name: '미리 보기', news: '👆 누르고 있으면 양이 갈 자리가 보여요', max: 9, par: 2, bonus: 'flower',
+    key: 'preview', name: '미리 보기', news: '👆 누르고 있으면 양이 갈 자리가 보여요', max: 9, par: 1, bonus: 'flower',
+    // 📐 C003: 1-1을 뒤집은 모양 — 두 무리가 앞마당 양끝, 꽃밭은 가운데. 가운데 아래서 짖으면 다 쏙, 옆에서 짖으면 꽃밭을 가로지른다
     build: (r) => ({
-      pens: [WIDE()],
-      flowers: [{ x: 0.42, y: 0.4, r: 0.045 }],
-      sheep: flock(r, 0.52 + jit(r, 0.02), 0.5, FIVE, 0.008),
+      pens: [{ x0: 0.2, y0: 0.04, x1: 0.8, y1: 0.26, gx0: 0.2, gx1: 0.8, tag: 0, mat: 0.15 }],
+      flowers: [{ x: 0.5, y: 0.4, r: 0.07 }],
+      sheep: [[0.27, 0.33], [0.33, 0.37], [0.3, 0.39], [0.67, 0.37], [0.73, 0.33]].map(([x, y]) => ({ x: x + jit(r, 0.006), y: y + jit(r, 0.006) })),
     }),
   },
   {
@@ -185,7 +186,7 @@ export const STAGES: StageDef[] = [
       sheep: [[0.3, 0.52], [0.36, 0.57], [0.64, 0.57], [0.7, 0.52], [0.5, 0.68]].map(([x, y]) => ({ x: x + jit(r, 0.015), y: y + jit(r, 0.015) })),
     }),
   },
-  P('black'),
+  { ...P('black'), build: (r) => ({ ...P('black').build(r), flowers: [] }) }, // 📐 C003: 꽃밭은 🌼 판에만
   {
     key: 'pull', name: '끌어오기', news: '🖤 까만 양은 울타리 쪽에서 불러요', max: 9, par: 3, bonus: 'black',
     build: (r) => {
@@ -206,6 +207,7 @@ export const STAGES: StageDef[] = [
         pens: [PEN0()],
         river: RIVER(0.43, 0.57),
         flowers: [],
+        // TODO C004(📐 C003): 클로버를 다리→문 지름길 밖으로, 까만 양을 다리 입구 옆으로 — 해 보니 그리디가 막혀서 좌표 설계와 함께 다시
         clovers: [{ x: 0.5, y: 0.45, r: 0.04 }],
         sheep: [...flock(r, 0.5 + jit(r, 0.05), 0.7, FIVE), { x: 0.5 + 0.26 * side + jit(r, 0.02), y: 0.31 + jit(r, 0.02), black: true }],
       };
@@ -218,7 +220,7 @@ export const STAGES: StageDef[] = [
       return {
         pens: [PEN0()],
         river: RIVER(),
-        flowers: [{ x: 0.24, y: 0.31, r: 0.06 }, { x: 0.76, y: 0.31, r: 0.06 }],
+        flowers: [],
         sheep: [
           ...flock(r, 0.5 + jit(r, 0.03), 0.68, [[-0.15, 0], [0.15, 0], [-0.05, -0.03], [0.05, -0.03], [-0.09, 0.08], [0.09, 0.08], [0, 0.12]]),
           { x: 0.5 + 0.3 * side + jit(r, 0.02), y: 0.86 + jit(r, 0.02), black: true },
@@ -228,7 +230,7 @@ export const STAGES: StageDef[] = [
   },
 ];
 /** 다음 월드에서 쓸 프로토타입 판 (P4 염소 · P5 늑대 · P6 바람 · P7 울타리 둘 · P8 밤) */
-export const LATER: StageDef[] = PROTO.filter((d) => !STAGES.includes(d));
+export const LATER: StageDef[] = PROTO.filter((d) => !STAGES.some((w) => w.key === d.key));
 export const STAGE_COUNT = STAGES.length;
 /** 판마다 고정 배치 시드 (C002: 숙련 봇이 별 셋을 모두 딸 수 있는 배치로 골랐다 — tests/studio-sheepdog.test.ts가 지킨다) */
 export const LAYOUT_SEED = [1, 1, 1, 1, 2, 1, 19, 15];
@@ -403,7 +405,7 @@ export function resolve(F: Field, S: Sim, px: number, py: number, rec?: Rec) {
           if (rec) rec.flowerNew.push(f);
         }
       for (let c = 0; c < F.clovers.length; c++)
-        if (!S.ch[c] && !F.black[i] && Math.hypot(x - F.clovers[c].x, y - F.clovers[c].y) < F.clovers[c].r) {
+        if (!S.ch[c] && !F.black[i] && Math.hypot(x - F.clovers[c].x, y - F.clovers[c].y) < F.clovers[c].r + SR) { // 몸이 닿으면 (📐 C003: 애매하면 플레이어 편)
           S.ch[c] = 1;
           if (rec) rec.cloverNew.push(c);
         }

@@ -26,22 +26,22 @@
   "2": {
    "name": "미리 보기",
    "max": 9,
-   "par": 2,
+   "par": 1,
    "parGap": 0,
    "smart": {
     "clear": 1,
     "stars": 3,
-    "used": 2,
+    "used": 1,
     "mask": 7
    },
    "greedy": {
     "clear": 1,
-    "used": 2,
+    "used": 1,
     "overPar": 0
    },
    "random": {
-    "clear": 0.15,
-    "stuck25": 0.1
+    "clear": 1,
+    "stuck25": 0
    }
   },
   "3": {
@@ -173,7 +173,7 @@
  },
  "run": {
   "smartMean": 2500,
-  "randomMean": 400,
-  "skillGap": 6.3
+  "randomMean": 660,
+  "skillGap": 3.8
  }
 }

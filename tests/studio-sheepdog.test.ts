@@ -111,14 +111,14 @@ describe('M1-1 시스템: 실패는 벌이 아니다 (GDD §4.3~4.5, FUN F7)', (
     expect(fails).toBeGreaterThanOrEqual(4);
   });
 
-  it('실패 화면은 1.5초 안에 끝나고 같은 판이 다시 시작된다', () => {
+  it('실패하면 1초(60틱) 안에 같은 판이 다시 시작된다 (📐 C003)', () => {
     const s = g.create(5);
     jumpTo(s, 2);
     play(s, 'random', 41);
     expect(s.ok).toBe(false);
     let t = 0;
     while (s.phase === 'result') (g.step(s, up), t++);
-    expect(t).toBeLessThanOrEqual(90);
+    expect(t).toBeLessThanOrEqual(60);
     expect([s.stage, s.S.used, s.phase]).toEqual([2, 0, 'aim']);
   });
 
@@ -133,13 +133,13 @@ describe('M1-1 시스템: 실패는 벌이 아니다 (GDD §4.3~4.5, FUN F7)', (
 
   it('↺ 다시(retry)는 언제든 지금 판을 처음부터', () => {
     const s = g.create(3);
-    jumpTo(s, 1);
+    jumpTo(s, 2); // 흩어진 양: 한 번에 안 끝나는 판
     const start = pos(s), rng = mulberry32(3);
     while (s.S.used === 0) g.step(s, sheepdogSmart.act(s, rng));
     while (s.phase !== 'aim') g.step(s, up);
     expect(pos(s)).not.toBe(start);
     g.step(s, { ...up, retry: true });
-    expect([s.stage, s.S.used, s.phase, pos(s)]).toEqual([1, 0, 'aim', start]);
+    expect([s.stage, s.S.used, s.phase, pos(s)]).toEqual([2, 0, 'aim', start]);
   });
 
   it('별은 판마다 셋을 따로 기록하고 최고 기록에 합친다', () => {
