@@ -244,7 +244,7 @@ export const STAGES: StageDef[] = [
     },
   },
   {
-    key: 'fest', name: '아침 축제', news: '🎉 아침 축제 — 오늘 배운 걸 다 써요!', max: 12, par: 6, bonus: 'clover', needBlack: true, // 📐 C015: 까만 양 필수(1-4부터 하나의 규칙) · 🍀 문 오른쪽 아래(0.69, 0.30) · par 7 → 6(박사 6)
+    key: 'fest', name: '아침 축제', news: '🎉 아침 축제 — 오늘 배운 걸 다 써요!', max: 14, par: 6, bonus: 'clover', needBlack: true, // 🧪 C015 ①: max 12 → 14(끝판 실패가 지루한 '멍멍 다 씀' — 별은 그대로) · 📐 C015: 까만 양 필수(1-4부터 하나의 규칙) · 🍀 문 오른쪽 아래(0.69, 0.30) · par 7 → 6(박사 6)
     build: (r) => {
       const side = r() < 0.5 ? -1 : 1;
       return {
