@@ -145,6 +145,18 @@ describe('M1-2a 개울 판 도움 깃발 (📐 C004)', () => {
     expect(pos(a)).toBe(pos(b));
   });
 
+  it('깃발 근처를 누르고 있으면 미리 보기도 깃발 자리로 붙는다 — 미리 보기 = 실제 (FUN QA C004)', () => {
+    const s = g.create(7);
+    jumpTo(s, 6);
+    s.splashes = 2;
+    retry(s);
+    const [f1] = s.flags;
+    g.step(s, atField(f1[0] + FLAG_SNAP * 0.7, f1[1]));
+    // 화면 그리기 없이: 누른 자리 → 짖는 자리 계산이 깃발과 같다
+    g.step(s, up);
+    expect([s.toX, s.toY]).toEqual(f1);
+  });
+
   it('깃발 밖에서 짖으면 그 시도의 깃발은 모두 거둔다', () => {
     const s = g.create(7);
     jumpTo(s, 5);

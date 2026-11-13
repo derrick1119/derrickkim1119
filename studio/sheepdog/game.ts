@@ -714,6 +714,12 @@ function toField(x: number, y: number): [number, number] | null {
   if (fx < -0.03 || fx > 1.03) return null;
   return [Math.max(0.02, Math.min(0.98, fx)), Math.max(0.02, Math.min(0.98, fy))];
 }
+/** 지금 누른 자리(목장 좌표). 깃발 ① 근처면 깃발 자리로 붙는다 — 미리 보기와 실제 짖기가 늘 같은 자리 (C004 FUN QA: 숨은 규칙이 되지 않게) */
+function aimPoint(s: DogState): [number, number] | null {
+  const f = toField(s.ax, s.ay * A);
+  if (f && s.flags.length && Math.hypot(f[0] - s.flags[0][0], f[1] - s.flags[0][1]) < FLAG_SNAP) return [s.flags[0][0], s.flags[0][1]];
+  return f;
+}
 const inAnyPen = (F: Field, x: number, y: number) => F.pens.some((p) => x > p.x0 && x < p.x1 && y > p.y0 && y < p.y1);
 
 function bark(s: DogState, fx: number, fy: number) {
@@ -836,12 +842,11 @@ export const sheepdog: GameDef<DogState> = {
     // 겨누기: 누르는 동안 미리 보기, 떼면 짖는다
     s.idle++;
     if (!release) return;
-    const f = toField(s.ax, s.ay * A);
+    const f = aimPoint(s);
     if (!f) return void ev(s, 'nope', Math.max(0.15, Math.min(0.85, s.ax)), Math.max(0.4, Math.min(1.05, s.ay * A)), '목장 안을 톡!', '#ffe3d6');
     if (inAnyPen(s.F, f[0], f[1])) return void ev(s, 'nope', f[0], f[1], '울타리 안이에요', '#ffe3d6');
     if (s.flags.length) {
-      const [qx, qy] = s.flags[0];
-      if (Math.hypot(f[0] - qx, f[1] - qy) < FLAG_SNAP) (f[0] = qx), (f[1] = qy), s.flags.shift(), (s.helped = true);
+      if (f[0] === s.flags[0][0] && f[1] === s.flags[0][1]) s.flags.shift(), (s.helped = true);
       else s.flags = []; // 깃발 밖에서 짖으면 이 시도의 깃발은 거둔다(판이 달라져 거짓 안내가 되니까)
     }
     bark(s, f[0], f[1]);
@@ -2336,7 +2341,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   // ═════════ 미리 보기 (누르고 있는 동안) ═════════
   let pvNote = '';
   if (s.phase === 'aim' && s.down) {
-    const f = toField(s.ax, s.ay * A);
+    const f = aimPoint(s);
+    const snapped = !!f && s.flags.length > 0 && f[0] === s.flags[0][0] && f[1] === s.flags[0][1];
     if (f && !inAnyPen(F, f[0], f[1])) {
       const [pxf, pyf] = f, cx = PX(pxf, pyf), cy = PY(pyf);
       const some = anyone(F, S, pxf, pyf);
@@ -2416,6 +2422,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
         if (pv.rec.flowerNew.length && d.bonus === 'flower') pvNote = (pvNote ? pvNote + ' · ' : '') + '🌼 밟아요';
         if (pv.rec.cloverNew.length && d.bonus === 'clover') pvNote = (pvNote ? pvNote + ' · ' : '') + '🍀 지나가요';
       } else pvNote = '킁킁 — 아무도 없어요';
+      if (snapped) pvNote = `🚩 깃발 자리 · ${pvNote}`;
       // 발자국 표시
       ctx.fillStyle = '#ffffff';
       ctx.font = `${R(0.05)}px system-ui, sans-serif`;
@@ -2473,7 +2480,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     const p0 = F.pens[0];
     hole(PX((p0.x0 + p0.x1) / 2, p0.y1), PY(p0.y1) - R(0.03), R(0.24));
     if (s.down) {
-      const f = toField(s.ax, s.ay * A);
+      const f = aimPoint(s);
       if (f) hole(PX(f[0], f[1]), PY(f[1]), R(0.16));
     }
     dctx.globalCompositeOperation = 'source-over';
