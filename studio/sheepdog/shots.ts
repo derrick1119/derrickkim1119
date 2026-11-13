@@ -61,6 +61,13 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.screenshot({ path: join(here, 'screens', `${name}-fail.png`) });
   await page.waitForTimeout(1100);
   if ((await st(page, 's.phase + s.stage + s.S.used')) !== `aim${stage0}0`) errors.push(`${name}: 실패 뒤 같은 판으로 안 돌아옴`);
+  // W1 새 판 둘러보기 (모바일만): 1-3 클로버 · 1-7 좁은 다리 · 1-8 아침 축제
+  if (name === 'mobile')
+    for (const k of [2, 6, 7]) {
+      await page.evaluate((kk: number) => (globalThis as any).__sd.jump(kk), k);
+      await page.waitForTimeout(1700);
+      await page.screenshot({ path: join(here, 'screens', `${name}-w1-${k + 1}.png`) });
+    }
   // 끝 화면: 마지막 판까지 마친 것으로
   await page.evaluate(() => { const s = (globalThis as any).__sd.state(); s.won = true; s.dead = true; });
   await page.waitForTimeout(400);

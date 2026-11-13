@@ -36,29 +36,29 @@ interface Seg { x0: number; y0: number; x1: number; y1: number }
 interface Pen { x0: number; y0: number; x1: number; y1: number; gx0: number; gx1: number; tag: number; mat?: number }
 interface River { y0: number; y1: number; bx0: number; bx1: number }
 interface FlowerBed { x: number; y: number; r: number }
-type Bonus = 'flower' | 'black';
+type Bonus = 'flower' | 'black' | 'clover';
 
 /** 판 하나의 변하지 않는 것들 (봇이 내다볼 때도 같은 것) */
 interface Field {
   n: number; black: boolean[]; tag: number[];
-  walls: Seg[]; hedges: Seg[]; fences: Seg[]; block: Seg[][]; pens: Pen[]; river: River | null; flowers: FlowerBed[];
+  walls: Seg[]; hedges: Seg[]; fences: Seg[]; block: Seg[][]; pens: Pen[]; river: River | null; flowers: FlowerBed[]; clovers: FlowerBed[];
   goat: { x: number; y: number } | null; den: [number, number] | null; wind: [number, number]; night: boolean;
   dist: Float32Array[];
 }
 /** 판의 움직이는 것들 (복사해서 내다본다) */
 interface Sim {
-  x: number[]; y: number[]; pen: number[]; fell: number[]; fh: number[];
+  x: number[]; y: number[]; pen: number[]; fell: number[]; fh: number[]; ch: number[];
   goatF: number; wx: number; wy: number; used: number; caught: number; dx: number; dy: number;
 }
 /** 한 번 짖은 결과 (연출·미리 보기용) */
 interface Rec {
   path: (number[] | null)[]; penAt: number[]; fellAt: number[]; scare: number[]; trip: boolean[];
-  goatFaint: boolean; wolf: 0 | 1 | 2; wolfPath: number[] | null; caught: number; flowerNew: number[]; inNew: number[];
+  goatFaint: boolean; wolf: 0 | 1 | 2; wolfPath: number[] | null; caught: number; flowerNew: number[]; cloverNew: number[]; inNew: number[];
 }
 
 interface StageDef { key: string; name: string; news: string; max: number; par: number; bonus: Bonus; build(r: Rng): Layout }
 interface Layout {
-  pens: Pen[]; river?: River; hedges?: Seg[]; fences?: Seg[]; flowers: FlowerBed[]; sheep: { x: number; y: number; black?: boolean; tag?: number }[];
+  pens: Pen[]; river?: River; hedges?: Seg[]; fences?: Seg[]; flowers: FlowerBed[]; clovers?: FlowerBed[]; sheep: { x: number; y: number; black?: boolean; tag?: number }[];
   goat?: { x: number; y: number }; den?: [number, number]; wind?: [number, number]; night?: boolean;
 }
 
@@ -67,8 +67,8 @@ const PEN0 = (): Pen => ({ x0: 0.31, y0: 0.04, x1: 0.69, y1: 0.22, gx0: 0.38, gx
 const flock = (r: Rng, cx: number, cy: number, offs: number[][], j = 0.012) => offs.map(([dx, dy]) => ({ x: cx + dx + jit(r, j), y: cy + dy + jit(r, j) }));
 const FIVE = [[-0.075, 0], [0.075, 0], [0, -0.04], [-0.04, 0.065], [0.045, 0.065]];
 
-/** 판 8개 */
-export const STAGES: StageDef[] = [
+/** 공장 프로토타입 판 8개(P1~P8). C003부터 W1은 CONTENT.md 표대로 다시 짰고, P4~P8은 W2~W5에서 쓴다(LATER) */
+const PROTO: StageDef[] = [
   {
     key: 'start', name: '첫 울타리', news: '🐑 양 뒤를 톡 — 짖으면 양이 반대쪽으로!', max: 9, par: 1, bonus: 'flower',
     build: (r) => ({
@@ -161,10 +161,85 @@ export const STAGES: StageDef[] = [
     },
   },
 ];
+const P = (key: string) => PROTO.find((d) => d.key === key)!;
+/** 앞이 다 열린 울타리 (W1 앞쪽 판: 문 옆 짧은 벽에 양이 눌려 꼼짝 못 하던 문제, C003) */
+const WIDE = (mat = 0.12): Pen => ({ ...PEN0(), x0: 0.3, x1: 0.7, gx0: 0.3, gx1: 0.7, mat });
+const RIVER = (bx0 = 0.41, bx1 = 0.59): River => ({ y0: 0.4, y1: 0.5, bx0, bx1 });
+/** W1 아침 들판 (CONTENT.md W1, C003): 몰기 → 🖤 당기기 → 🌉 줄 세우기. 소개 판은 1-1·1-2·1-4·1-6 */
+export const STAGES: StageDef[] = [
+  P('start'),
+  {
+    key: 'preview', name: '미리 보기', news: '👆 누르고 있으면 양이 갈 자리가 보여요', max: 9, par: 2, bonus: 'flower',
+    build: (r) => ({
+      pens: [WIDE()],
+      flowers: [{ x: 0.42, y: 0.4, r: 0.045 }],
+      sheep: flock(r, 0.52 + jit(r, 0.02), 0.5, FIVE, 0.008),
+    }),
+  },
+  {
+    key: 'scatter', name: '흩어진 양', news: '🐑 가까이서 짖으면 멀리, 바깥 원은 조금!', max: 9, par: 3, bonus: 'clover',
+    build: (r) => ({
+      pens: [WIDE()],
+      flowers: [],
+      clovers: [{ x: 0.5, y: 0.42, r: 0.05 }],
+      sheep: [[0.3, 0.52], [0.36, 0.57], [0.64, 0.57], [0.7, 0.52], [0.5, 0.68]].map(([x, y]) => ({ x: x + jit(r, 0.015), y: y + jit(r, 0.015) })),
+    }),
+  },
+  P('black'),
+  {
+    key: 'pull', name: '끌어오기', news: '🖤 까만 양은 울타리 쪽에서 불러요', max: 9, par: 3, bonus: 'black',
+    build: (r) => {
+      const side = r() < 0.5 ? -1 : 1;
+      return {
+        pens: [WIDE()],
+        flowers: [],
+        sheep: [...flock(r, 0.5 - 0.05 * side, 0.64, [[-0.06, 0], [0.06, 0], [-0.03, 0.06], [0.04, 0.06]], 0.01), { x: 0.5 + 0.1 * side + jit(r, 0.02), y: 0.4 + jit(r, 0.02), black: true }],
+      };
+    },
+  },
+  P('river'),
+  {
+    key: 'narrow', name: '좁은 다리', news: '🌉 좁은 다리 — 건너편 까만 양은 거꾸로 와요!', max: 9, par: 4, bonus: 'clover',
+    build: (r) => {
+      const side = r() < 0.5 ? -1 : 1;
+      return {
+        pens: [PEN0()],
+        river: RIVER(0.43, 0.57),
+        flowers: [],
+        clovers: [{ x: 0.5, y: 0.45, r: 0.04 }],
+        sheep: [...flock(r, 0.5 + jit(r, 0.05), 0.7, FIVE), { x: 0.5 + 0.26 * side + jit(r, 0.02), y: 0.31 + jit(r, 0.02), black: true }],
+      };
+    },
+  },
+  {
+    key: 'fest', name: '아침 축제', news: '🎉 아침 축제 — 오늘 배운 걸 다 써요!', max: 12, par: 7, bonus: 'black',
+    build: (r) => {
+      const side = r() < 0.5 ? -1 : 1;
+      return {
+        pens: [PEN0()],
+        river: RIVER(),
+        flowers: [{ x: 0.24, y: 0.31, r: 0.06 }, { x: 0.76, y: 0.31, r: 0.06 }],
+        sheep: [
+          ...flock(r, 0.5 + jit(r, 0.03), 0.68, [[-0.15, 0], [0.15, 0], [-0.05, -0.03], [0.05, -0.03], [-0.09, 0.08], [0.09, 0.08], [0, 0.12]]),
+          { x: 0.5 + 0.3 * side + jit(r, 0.02), y: 0.86 + jit(r, 0.02), black: true },
+        ],
+      };
+    },
+  },
+];
+/** 다음 월드에서 쓸 프로토타입 판 (P4 염소 · P5 늑대 · P6 바람 · P7 울타리 둘 · P8 밤) */
+export const LATER: StageDef[] = PROTO.filter((d) => !STAGES.includes(d));
 export const STAGE_COUNT = STAGES.length;
 /** 판마다 고정 배치 시드 (C002: 숙련 봇이 별 셋을 모두 딸 수 있는 배치로 골랐다 — tests/studio-sheepdog.test.ts가 지킨다) */
-export const LAYOUT_SEED = [1, 1, 2, 2, 1, 1, 8, 3];
+export const LAYOUT_SEED = [1, 1, 1, 1, 2, 1, 19, 15];
 /** 별 비트: 1 다 넣기 · 2 멍멍 par 이하 · 4 보너스 */
+/** 판 보너스(★3): 🌼 꽃밭 안 밟기 · 🖤 까만 양도 넣기 · 🍀 흰 양이 클로버 지나가기 (GDD §4.3) */
+function bonusMet(F: Field, S: Sim, d: StageDef) {
+  if (d.bonus === 'black') return F.black.some((b, i) => b && S.pen[i] >= 0);
+  if (d.bonus === 'clover') return S.ch.some((v) => v);
+  return !S.fh.some((v) => v);
+}
+const BONUS_LABEL: Record<Bonus, string> = { flower: '꽃밭 안 밟기', black: '까만 양도', clover: '클로버 밟기' };
 export const starCount = (mask: number) => (mask & 1) + ((mask >> 1) & 1) + ((mask >> 2) & 1);
 
 // ───────── 부딪힘 ─────────
@@ -204,12 +279,12 @@ function penOf(F: Field, tag: number, x: number, y: number) {
   return -1;
 }
 
-/** 문 앞 흙자리: 여기 멈춘 양은 알아서 쏙 들어간다 */
-const MAT = 0.1;
+/** 문 앞 흙자리: 여기 멈춘 양은 알아서 쏙 들어간다. 문기둥에 몸이 걸친 양도(C003: 기둥에 걸려 영영 못 들어가던 버그) */
+const MAT = 0.1, POST = SR;
 function matOf(F: Field, tag: number, x: number, y: number) {
   for (let k = 0; k < F.pens.length; k++) {
     const p = F.pens[k];
-    if ((!p.tag || p.tag === tag) && x > p.gx0 && x < p.gx1 && y >= p.y1 && y < p.y1 + (p.mat ?? MAT)) return k;
+    if ((!p.tag || p.tag === tag) && x > p.gx0 - POST && x < p.gx1 + POST && y >= p.y1 && y < p.y1 + (p.mat ?? MAT)) return k;
   }
   return -1;
 }
@@ -231,7 +306,7 @@ function makeField(L: Layout): Field {
   for (const p of L.pens) if (p.tag) for (let tg = 1; tg <= 2; tg++) if (tg !== p.tag) block[tg].push({ x0: p.gx0, y0: p.y1, x1: p.gx1, y1: p.y1 });
   const F: Field = {
     n: L.sheep.length, black: L.sheep.map((q) => !!q.black), tag: L.sheep.map((q) => q.tag ?? 0),
-    walls, hedges: L.hedges ?? [], fences: L.fences ?? [], block, pens: L.pens, river: L.river ?? null, flowers: L.flowers,
+    walls, hedges: L.hedges ?? [], fences: L.fences ?? [], block, pens: L.pens, river: L.river ?? null, flowers: L.flowers, clovers: L.clovers ?? [],
     goat: L.goat ?? null, den: L.den ?? null, wind: L.wind ?? [0, 0], night: !!L.night, dist: [],
   };
   for (let tg = 0; tg <= 2; tg++) F.dist.push(distField(F, tg));
@@ -240,7 +315,7 @@ function makeField(L: Layout): Field {
 
 // ───────── 짖기 한 번 (결정적, 봇이 내다볼 때도 같은 함수) ─────────
 function cloneSim(a: Sim): Sim {
-  return { ...a, x: a.x.slice(), y: a.y.slice(), pen: a.pen.slice(), fell: a.fell.slice(), fh: a.fh.slice() };
+  return { ...a, x: a.x.slice(), y: a.y.slice(), pen: a.pen.slice(), fell: a.fell.slice(), fh: a.fh.slice(), ch: a.ch.slice() };
 }
 const hash2 = (a: number, b: number) => {
   const x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
@@ -327,6 +402,11 @@ export function resolve(F: Field, S: Sim, px: number, py: number, rec?: Rec) {
           S.fh[f] = 1;
           if (rec) rec.flowerNew.push(f);
         }
+      for (let c = 0; c < F.clovers.length; c++)
+        if (!S.ch[c] && !F.black[i] && Math.hypot(x - F.clovers[c].x, y - F.clovers[c].y) < F.clovers[c].r) {
+          S.ch[c] = 1;
+          if (rec) rec.cloverNew.push(c);
+        }
       if (wet(F, x, y)) {
         S.fell[i] = 1;
         if (rec) rec.fellAt[i] = path!.length / 2 - 1;
@@ -337,6 +417,14 @@ export function resolve(F: Field, S: Sim, px: number, py: number, rec?: Rec) {
         if (k2 >= 0) {
           S.pen[i] = k2;
           if (rec) rec.penAt[i] = path!.length / 2 - 1;
+        } else {
+          // 앞마당(문 앞 흙자리)은 울타리 땅이다 — 지나가기만 해도 쏙 (GDD §10-1, C003: 문 앞을 미끄러져 지나치던 양)
+          const km = matOf(F, F.tag[i], x, y);
+          if (km >= 0) {
+            S.pen[i] = km;
+            if (rec) rec.penAt[i] = path!.length / 2 - 1;
+            break;
+          }
         }
       }
     }
@@ -434,7 +522,7 @@ export function resolve(F: Field, S: Sim, px: number, py: number, rec?: Rec) {
 function newRec(n: number): Rec {
   return {
     path: new Array(n).fill(null), penAt: new Array(n).fill(-1), fellAt: new Array(n).fill(-1), scare: new Array(n).fill(0), trip: new Array(n).fill(false),
-    goatFaint: false, wolf: 0, wolfPath: null, caught: -1, flowerNew: [], inNew: [],
+    goatFaint: false, wolf: 0, wolfPath: null, caught: -1, flowerNew: [], cloverNew: [], inNew: [],
   };
 }
 
@@ -547,7 +635,7 @@ function newStage(s: DogState) {
   s.F = makeField(L);
   const n = s.F.n;
   s.S = {
-    x: L.sheep.map((q) => q.x), y: L.sheep.map((q) => q.y), pen: new Array(n).fill(-1), fell: new Array(n).fill(0), fh: L.flowers.map(() => 0),
+    x: L.sheep.map((q) => q.x), y: L.sheep.map((q) => q.y), pen: new Array(n).fill(-1), fell: new Array(n).fill(0), fh: L.flowers.map(() => 0), ch: (L.clovers ?? []).map(() => 0),
     goatF: 0, wx: L.den ? L.den[0] : 0, wy: L.den ? L.den[1] : 0, used: 0, caught: -1, dx: 0.5, dy: 0.93,
   };
   s.S0 = cloneSim(s.S);
@@ -561,6 +649,7 @@ function newStage(s: DogState) {
   s.got = 0;
   see(s, d.key, d.news);
   if (d.bonus === 'flower' && L.flowers.length) see(s, 'flower', '🌼 꽃밭 — 안 밟고 넣으면 별 하나 더');
+  if (d.bonus === 'clover' && L.clovers?.length) see(s, 'clover', '🍀 클로버 — 흰 양이 지나가면 별 하나 더');
   ev(s, 'stage', 0.5, 0.6, `${s.stage + 1}판 · ${d.name}`, '#fff6d6');
 }
 
@@ -571,7 +660,7 @@ function finish(s: DogState, ok: boolean, why = '') {
   s.why = why;
   const d = STAGES[s.stage];
   if (ok) {
-    const bonus = d.bonus === 'black' ? s.F.black.some((b, i) => b && s.S.pen[i] >= 0) : !s.S.fh.some((v) => v);
+    const bonus = bonusMet(s.F, s.S, d);
     const mask = 1 | (s.S.used <= d.par ? 2 : 0) | (bonus ? 4 : 0), before = s.best[s.stage];
     s.got = mask;
     s.best[s.stage] = before | mask;
@@ -707,6 +796,7 @@ export const sheepdog: GameDef<DogState> = {
           ev(s, 'come', s.S.x[i], s.S.y[i], '?!', '#ffe0f0');
           tip(s, 'blackcome', '까만 양은 앞에서 짖어 당겨 와요');
         }
+        if (rec.cloverNew.length) ev(s, 'clover', s.F.clovers[rec.cloverNew[0]].x, s.F.clovers[rec.cloverNew[0]].y, '🍀 클로버!', '#d8ffc0');
         if (rec.flowerNew.length) ev(s, 'trample', s.F.flowers[rec.flowerNew[0]].x, s.F.flowers[rec.flowerNew[0]].y, '앗, 꽃밭!', '#ffd6ec');
         if (S.pen.filter((v) => v >= 0).length > penned0) tip(s, 'pen', '들어간 양은 다시 안 나와요');
       }
@@ -749,12 +839,13 @@ function value(F: Field, S: Sim, d: StageDef): number {
     if (F.den) wolfD = Math.min(wolfD, Math.hypot(S.x[i] - S.wx, S.y[i] - S.wy));
   }
   if (whitesIn === nW) {
-    const bonus = d.bonus === 'black' ? F.black.some((b, i) => b && S.pen[i] >= 0) : !S.fh.some((x) => x);
+    const bonus = bonusMet(F, S, d);
     return 1e6 + ((S.used <= d.par ? 1 : 0) + (bonus ? 1 : 0)) * 1e5 - S.used * 1000;
   }
   if (S.used >= d.max) return -1e7;
   v += whitesIn * 1100;
   if (d.bonus === 'flower' && S.fh.some((x) => x)) v -= 700;
+  if (d.bonus === 'clover' && S.ch.some((x) => x)) v += 700;
   if (F.den) v -= Math.max(0, 0.36 - wolfD) * 4000;
   v -= S.goatF * 60 + S.used * 120;
   // 까만 양을 먼저 넣었으면 '별 둘은 이미 손에' — 남은 흰 양을 넣는 데 들 멍멍을 어림해 끝난 판과 견준다
@@ -813,11 +904,11 @@ function candidates(F: Field, S: Sim, d: StageDef): number[] {
 
 /** 몇 수 앞까지 내다보고(빔 탐색) 가장 좋은 첫 자리. 판이 끝나는 수(별 수)를 찾으면 그쪽을 고른다 */
 const DEPTH = 3, BEAM = 4, TOP3 = 1e6 + 3e5 - 1e4;
-function plan(F: Field, S0: Sim, d: StageDef): [number, number] {
+function plan(F: Field, S0: Sim, d: StageDef, maxDepth = DEPTH): [number, number] {
   interface Node { S: Sim; root: number; v: number }
   const roots: { x: number; y: number; v: number }[] = [];
   let beam: Node[] = [{ S: S0, root: -1, v: 0 }];
-  for (let depth = 0; depth < DEPTH && beam.length; depth++) {
+  for (let depth = 0; depth < maxDepth && beam.length; depth++) {
     const kids: Node[] = [];
     for (const nd of beam) {
       const cs = candidates(F, nd.S, d);
@@ -825,6 +916,10 @@ function plan(F: Field, S0: Sim, d: StageDef): [number, number] {
         if (!anyone(F, nd.S, cs[k], cs[k + 1])) continue;
         const S = cloneSim(nd.S);
         resolve(F, S, cs[k], cs[k + 1]);
+        // 아무 양도 안 움직이는 짖기(벽에 눌린 양 바로 뒤 등)는 버린다 — 같은 자리를 영영 되풀이하지 않게 (C003)
+        let moved = 0;
+        for (let i = 0; i < F.n; i++) moved += Math.abs(S.x[i] - nd.S.x[i]) + Math.abs(S.y[i] - nd.S.y[i]) + (S.pen[i] !== nd.S.pen[i] ? 1 : 0);
+        if (moved < 0.01) continue;
         const v = value(F, S, d) - depth * 5;
         let root = nd.root;
         if (root < 0) (root = roots.length), roots.push({ x: cs[k], y: cs[k + 1], v });
@@ -861,6 +956,19 @@ export const sheepdogSmart: Bot<DogState> = {
     const key = `${s.stage}:${s.tries}:${s.S.used}`;
     let m = brain.get(s);
     if (!m || m.key !== key) brain.set(s, (m = { key, p: plan(s.F, s.S, STAGES[s.stage]) }));
+    return at(m.p[0], m.p[1]);
+  },
+};
+
+const greedyBrain = new WeakMap<object, { key: string; p: [number, number] }>();
+/** 봇: 사람 근사(C003, FUN QA 제안) — 미리 보기로 여러 자리를 눌러 보고 '한 수 뒤'가 가장 좋은 자리에서 짖는다. 앞을 내다보지 않는다 */
+export const sheepdogGreedy: Bot<DogState> = {
+  name: '미리 보고 한 수',
+  act(s) {
+    if (s.phase !== 'aim' || s.down) return NO;
+    const key = `${s.stage}:${s.tries}:${s.S.used}`;
+    let m = greedyBrain.get(s);
+    if (!m || m.key !== key) greedyBrain.set(s, (m = { key, p: plan(s.F, s.S, STAGES[s.stage], 1) }));
     return at(m.p[0], m.p[1]);
   },
 };
@@ -1815,6 +1923,31 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       ctx.fill();
     }
   });
+  // ── 클로버 (C003, 🍀 보너스: 흰 양이 지나가면 별) ──
+  F.clovers.forEach((c, k) => {
+    const got = S.ch[k] && !(flee && flee.cloverNew.includes(k) && q < 0.5);
+    ctx.fillStyle = got ? 'rgba(255,224,102,.32)' : 'rgba(120,200,80,.28)';
+    ctx.beginPath();
+    ctx.ellipse(PX(c.x, c.y), PY(c.y), R(c.r) * scl(c.y), R(c.r * 0.8) * FH * scl(c.y), 0, 0, TAU);
+    ctx.fill();
+    for (let j = 0; j < 7; j++) {
+      const a = hsh(j + k * 29 + 3) * TAU, rr = Math.sqrt(hsh(j + k * 31 + 7)) * c.r * 0.8, px = c.x + Math.cos(a) * rr, py = c.y + Math.sin(a) * rr * 0.8;
+      const sx = PX(px, py), sy = PY(py), fz = R(0.008) * scl(py), bob = Math.sin(t * 0.06 + j) * fz * 0.3;
+      ctx.fillStyle = got ? '#ffe066' : j % 3 ? '#4caf50' : '#2e8b3a';
+      for (let l = 0; l < 3; l++) {
+        const la = (l * TAU) / 3 - Math.PI / 2;
+        ctx.beginPath();
+        ctx.arc(sx + Math.cos(la) * fz * 0.75, sy - fz * 1.6 + bob + Math.sin(la) * fz * 0.75, fz * 0.62, 0, TAU);
+        ctx.fill();
+      }
+      ctx.strokeStyle = '#2e6b2a';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx, sy - fz * 1.4 + bob);
+      ctx.stroke();
+    }
+  });
   // ── 풀포기 (바람에 살랑) ──
   ctx.strokeStyle = mix(pal[6], '#1d3a12', 0.35);
   ctx.lineWidth = 1.2;
@@ -2203,6 +2336,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
         }
         pvNote = bad || (inN ? `🐑 ${inN}마리 쏙!` : '');
         if (pv.rec.flowerNew.length && d.bonus === 'flower') pvNote = (pvNote ? pvNote + ' · ' : '') + '🌼 밟아요';
+        if (pv.rec.cloverNew.length && d.bonus === 'clover') pvNote = (pvNote ? pvNote + ' · ' : '') + '🍀 지나가요';
       } else pvNote = '킁킁 — 아무도 없어요';
       // 발자국 표시
       ctx.fillStyle = '#ffffff';
@@ -2328,6 +2462,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     if (e.kind === 'faint') fx.burst(x, y - R(0.04), '#ffe066', 18, 3, 2.6), fx.kick(3), say(x, y - R(0.1), '꽥!', '#fff3a0', 20);
     if (e.kind === 'yelp') say(x, y - R(0.08), '깨갱!', '#e8ecff', 18);
     if (e.kind === 'come') say(PX(s.dogX, s.dogY), PY(s.dogY) - R(0.13), '?!', '#ffe0f0', 20);
+    if (e.kind === 'clover') fx.burst(x, y - R(0.02), '#ffe066', 18, 3, 2.2), say(x, y - R(0.06), e.text!, e.col!, 14);
     if (e.kind === 'trample') fx.burst(x, y - R(0.02), '#ff9ec7', 22, 3.4, 2.4), say(x, y - R(0.06), e.text!, e.col!, 14);
     if (e.kind === 'sniff') say(x, y - R(0.08), e.text!, e.col!, 14);
     if (e.kind === 'nope') say(X(e.x), Y(e.y), e.text!, e.col!, 14), fx.kick(1.5);
@@ -2550,11 +2685,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   {
     const y2 = by + R(0.105), gw = (w - R(0.06)) / 3;
     const allIn = s.phase === 'result' && s.ok;
-    const bonusOk = d.bonus === 'black' ? F.black.some((b, i) => b && S.pen[i] >= 0) : !S.fh.some((v) => v);
+    const bonusOk = bonusMet(F, S, d);
     const goals: [string, boolean | null][] = [
       ['다 넣기', allIn ? true : null],
       [`멍멍 ${d.par}번 이하`, S.used > d.par ? false : allIn ? true : null],
-      [d.bonus === 'black' ? '까만 양도' : '꽃밭 안 밟기', d.bonus === 'flower' && !bonusOk ? false : bonusOk && (allIn || d.bonus === 'black') ? true : allIn ? false : null],
+      [BONUS_LABEL[d.bonus], d.bonus === 'flower' && !bonusOk ? false : bonusOk && (allIn || d.bonus !== 'flower') ? true : allIn ? false : null],
     ];
     goals.forEach(([txt, st], k) => {
       const gx = R(0.03) + k * gw, had = st !== true && ((s.best[s.stage] >> k) & 1) === 1; // 지난 시도에서 이미 딴 별

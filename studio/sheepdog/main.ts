@@ -4,7 +4,7 @@
  */
 import { TICK, type Input } from './core.ts';
 import { peek } from './juice.ts';
-import { sheepdog as g, starCount, type DogState } from './game.ts';
+import { jumpTo, sheepdog as g, starCount, type DogState } from './game.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('sheepdog:' + k) ?? 0); } catch { return 0; } },
@@ -138,4 +138,4 @@ new ResizeObserver(size).observe(root);
 size();
 showTitle();
 // 확인용(shots.ts): 지금 상태 읽기
-(globalThis as unknown as { __sd: { state: () => DogState } }).__sd = { state: () => s };
+(globalThis as unknown as { __sd: { state: () => DogState; jump: (k: number) => void } }).__sd = { state: () => s, jump: (k) => jumpTo(s, k) };

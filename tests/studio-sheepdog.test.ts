@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/sheepdog/core.ts';
-import { STAGES, jumpTo, starCount, sheepdog as g, sheepdogRandom, sheepdogSmart, type DogState } from '../studio/sheepdog/game.ts';
+import { LATER, STAGES, jumpTo, starCount, sheepdog as g, sheepdogGreedy, sheepdogRandom, sheepdogSmart, type DogState } from '../studio/sheepdog/game.ts';
 import { mulberry32 } from '../studio/sheepdog/rng.ts';
 
 const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y } });
@@ -15,7 +15,7 @@ describe('양치기 멍멍 시뮬', () => {
     expect(a).toEqual(b);
   });
 
-  it('판은 8개, 짖으면 멍멍 수가 늘고 양이 움직인다', () => {
+  it('W1은 8판, 짖으면 멍멍 수가 늘고 양이 움직인다', () => {
     expect(STAGES.length).toBe(8);
     const s = g.create(3), x0 = [...s.S.x], y0 = [...s.S.y];
     // 양 무리 바로 아래(화면 가운데)를 누르고 떼기
@@ -58,9 +58,34 @@ describe('양치기 멍멍 시뮬', () => {
   }, 60_000);
 });
 
+describe('M1-2 W1 아침 들판 (CONTENT.md W1)', () => {
+  it('W1 8판이 CONTENT 표 순서와 같고, 프로토타입 P4~P8은 다음 월드용으로 남는다', () => {
+    expect(STAGES.map((d) => d.name)).toEqual(['첫 울타리', '미리 보기', '흩어진 양', '까만 양', '끌어오기', '개울과 다리', '좁은 다리', '아침 축제']);
+    expect(STAGES.map((d) => d.bonus)).toEqual(['flower', 'flower', 'clover', 'black', 'black', 'flower', 'clover', 'black']);
+    expect(LATER.map((d) => d.key)).toEqual(['goat', 'wolf', 'wind', 'twopens', 'night']);
+  });
+
+  it('막힘 0: 미리 보고 한 수만 두는 그리디 봇도 W1 모든 판을 깬다 (FUN F10)', () => {
+    for (let k = 0; k < STAGES.length; k++) {
+      const s = g.create(4);
+      jumpTo(s, k);
+      play(s, 'greedy', 4);
+      expect(s.ok, `${k + 1}판`).toBe(true);
+    }
+  }, 60_000);
+
+  it('🍀 클로버: 흰 양이 지나가면 보너스 별', () => {
+    const s = g.create(2);
+    jumpTo(s, 2); // 흩어진 양
+    play(s, 'smart', 2);
+    expect(s.got & 4).toBe(4);
+    expect(s.S.ch.some((v) => v)).toBe(true);
+  });
+});
+
 /** 결과(통과/실패)가 나올 때까지 봇으로 한 시도 */
-function play(s: DogState, who: 'smart' | 'random', seed: number) {
-  const rng = mulberry32(seed), bot = who === 'smart' ? sheepdogSmart : sheepdogRandom;
+function play(s: DogState, who: 'smart' | 'greedy' | 'random', seed: number) {
+  const rng = mulberry32(seed), bot = who === 'smart' ? sheepdogSmart : who === 'greedy' ? sheepdogGreedy : sheepdogRandom;
   for (let t = 0; t < 60 * 120 && s.phase !== 'result'; t++) g.step(s, bot.act(s, rng));
 }
 const phaseOf = (s: DogState) => s.phase; // 시뮬이 step 안에서 phase를 바꾸므로 TS 좁히기를 피한다
