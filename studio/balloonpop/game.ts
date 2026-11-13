@@ -170,12 +170,12 @@ function final(L: Lay, c: Acc, alive: Uint8Array) {
 
 interface Cand { i: number; d: number; a2: Uint8Array; c2: Acc; end: number; v: number }
 /** 남은 톡 k번을 내다보기: 지금(또는 조금 기다렸다) 어느 풍선을 톡 할지. beam[k] = 그 깊이에서 더 내다볼 후보 수 */
-function search(L: Lay, alive: Uint8Array, T: number, k: number, used: number, c: Acc, beam: number[], Ds: number[]): { v: number; i: number; d: number } {
+function search(L: Lay, alive: Uint8Array, T: number, k: number, used: number, c: Acc, beam: number[], Ds: number[], only = -1): { v: number; i: number; d: number } {
   const n = L.bs.length, out: Cand[] = [], seen = new Set<string>();
   for (const d of Ds)
     for (let i = 0; i < n; i++) {
       const b = L.bs[i];
-      if (alive[i] !== 1 || b.k === IRON || T + d >= b.esc) continue;
+      if (alive[i] !== 1 || b.k === IRON || T + d >= b.esc || (only >= 0 && i !== only)) continue;
       const a2 = alive.slice(), c2 = { ...c };
       const end = chainSim(L, a2, i, T + d, used + 1, c2);
       const key = d + ':' + a2.join('') + ':' + c2.save;
@@ -552,8 +552,8 @@ function plan(s: PopState, lead = 0): { key: string; i: number; at: number; v: n
   const key = `${s.stage}:${s.tries}:${s.used}:${lead}`;
   let m = brain.get(s);
   if (!m || m.key !== key) {
-    const T = s.st + 1 + lead, c: Acc = { pop: s.popped, pop2: s.pop2, save: s.saved + pendingOk(s, 9), save2: s.save2 + pendingOk(s, 2) };
-    const r = search(s.L, s.alive.slice(), T, s.taps, s.used, c, BEAM, s.L.Ds);
+    const T = s.st + 1 + lead;
+    const r = search(s.L, s.alive.slice(), T, s.taps, s.used, accOf(s), BEAM, s.L.Ds);
     brain.set(s, (m = { key, i: r.i, at: T + r.d, v: r.v }));
   }
   return m;
@@ -561,12 +561,24 @@ function plan(s: PopState, lead = 0): { key: string; i: number; at: number; v: n
 /** 도움 반짝의 여유(틱): 고리가 뜨고 '지금!'까지 사람이 보고 손을 옮길 시간 — 길게부터, 목표를 못 채우면 짧게 (바람 판은 기다리면 날아감) */
 export const HELP_LEADS = [48, 30, 18, 0];
 /** 도움 반짝을 다음 톡으로 옮긴다 (C003: 첫 톡만이 아니라 톡마다, 사람이 반응할 여유를 두고) */
+/** 지금까지의 진행(연쇄 중 떨어지는 동물 포함) — 숙련 봇·도움이 내다볼 때의 출발점 */
+const accOf = (s: PopState): Acc => ({ pop: s.popped, pop2: s.pop2, save: s.saved + pendingOk(s, 9), save2: s.save2 + pendingOk(s, 2) });
+/** 늦은 손 안전망(C006): '지금!'보다 이만큼 늦게 눌러도 목표(★1)를 채우는 계획을 고른다 — 사람은 보고 0.2~0.4초 뒤에 누른다 */
+export const HELP_LATE = [12, 24];
 function helpNext(s: PopState) {
-  let m = plan(s, HELP_LEADS[0]);
-  for (const lead of HELP_LEADS.slice(1)) {
-    if (m.v >= 10000) break; // 이 여유로도 목표(★1)를 채우는 계획
+  // 여유가 긴 계획부터: 목표를 채우고, 늦게 눌러도 채우는 첫 계획. 없으면 목표만 채우는 첫 계획, 그것도 없으면 마지막 것
+  const lateOK = (m: { i: number; at: number }) => m.i >= 0 && HELP_LATE.every((dl) => search(s.L, s.alive.slice(), m.at + dl, s.taps, s.used, accOf(s), BEAM, [0], m.i).v >= 10000);
+  let m = plan(s, HELP_LEADS[0]), first: typeof m | null = null;
+  for (const lead of HELP_LEADS) {
     m = plan(s, lead);
+    if (m.v < 10000) continue;
+    first ??= m;
+    if (lateOK(m)) {
+      first = m;
+      break;
+    }
   }
+  m = first ?? m;
   s.help = m.i;
   s.helpAt = m.at;
 }
@@ -653,7 +665,6 @@ function play(s: PopState, p: { x: number; y: number } | null) {
       s.src[i] = -1;
       ev(s, 'tap', SX[i], SY[i]);
       pop(s, i);
-      if (s.used === 1 && s.stage === 0) see(s, 'size', '🔴 작은 풍선은 원이 작고 🔵 큰 풍선은 멀리까지');
     }
   }
   for (const c of s.clouds) if (c.gone < 0) c.x += c.vx;
@@ -1731,6 +1742,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
       // 원이 많으면 작은·보통 풍선은 둘레의 짧은 호 넷만 — 하늘이 거미줄처럼 안 보이게. 큰 풍선·대왕은 늘 온전한 원(판 시작에도 '큰 풍선 = 큰 원'이 읽히게, C005)
       ctx.strokeStyle = rgba(mix(col, night > 0.5 ? '#ffffff' : '#3a2a6a', 0.12), (fi >= 0 ? 0.3 : 0.6) * intro);
       ctx.lineWidth = 2;
+      ctx.setLineDash([]); // 짧은 호는 실선 — 점선이면 점 2~3개로 끊겨 꽃가루처럼 보인다 (C005 🧪)
       ctx.beginPath();
       for (let q = 0; q < 4; q++) {
         const a0 = q * (Math.PI / 2) + Math.PI / 4 - 0.18;
@@ -2104,9 +2116,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     ctx.textBaseline = 'middle';
     ctx.fillText('👆', hx, hy + R(0.02));
     font(0.04, 900);
-    // 안내 글은 원 밖(아래)에 — 원 안 풍선을 가리지 않게 (C005)
+    // 안내 글은 풍선이 없는 위 하늘에 — 원·풍선을 가리지 않게 (C006)
     const msg = '톡! 원 안까지 팡팡', mw = ctx.measureText(msg).width + R(0.04), mx2 = Math.max(mw / 2 + 4, Math.min(w - mw / 2 - 4, X(SX[bi])));
-    const my = Y(SY[bi]) + R(reachOf(L.bs[bi])) + R(0.02);
+    const my = TOP >= HUD_TALL ? -TOP + HUD_TALL + R(0.09) : Y(0.12);
     ctx.fillStyle = 'rgba(255,255,255,.95)';
     ctx.beginPath();
     ctx.roundRect(mx2 - mw / 2, my, mw, R(0.05), R(0.025));
