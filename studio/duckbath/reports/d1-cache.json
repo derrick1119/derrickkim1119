@@ -567,7 +567,7 @@
   }
  },
  "3-2": {
-  "key": "ea34950d46edebdf2bdef68b9e1f705e89b53611",
+  "key": "b52c95d86a816df9563f76b6409d17f44e11d076",
   "res": {
    "id": "3-2",
    "par": 5,
@@ -605,7 +605,7 @@
     306
    ],
    "pass": true,
-   "sec": 59.4
+   "sec": 50
   }
  },
  "3-4": {
@@ -831,7 +831,7 @@
   }
  },
  "2-7": {
-  "key": "ac13194882fa96c9e937b9b12796b7128c95d8b3",
+  "key": "7921083596a0a8bf0c1b5f6a6fadcc3737e54137",
   "res": {
    "id": "2-7",
    "par": 3,
@@ -840,36 +840,37 @@
    "tSrc": "n300",
    "seedT": [
     3,
-    2,
-    2
+    3,
+    3
    ],
    "flip": "FF-",
    "exact": true,
-   "coarse": 103,
+   "coarse": 62,
    "refined": 500,
    "runs": 1500,
    "water": 500,
-   "solCells": 445,
+   "solCells": 257,
    "D1": 2,
    "sizes": [
-    445
+    257
    ],
-   "top": 0.89,
+   "top": 0.51,
    "D1plus": 2,
    "plusSizes": [
-    445
+    257
    ],
-   "D1link10": 2,
+   "D1link10": 3,
    "link10Sizes": [
-    445
+    241,
+    16
    ],
    "D1seedT": 2,
    "oldD1": 2,
    "oldSizes": [
-    445
+    257
    ],
    "pass": true,
-   "sec": 16.92
+   "sec": 20.47
   }
  },
  "2-8": {
@@ -912,6 +913,93 @@
    ],
    "pass": true,
    "sec": 56.63
+  }
+ },
+ "2-10": {
+  "key": "214d557e080fb98260367893d357419966b61ece",
+  "res": {
+   "id": "2-10",
+   "par": 5,
+   "sym": false,
+   "T": 4,
+   "tSrc": "n300",
+   "seedT": [
+    4,
+    4,
+    4
+   ],
+   "flip": "F--",
+   "exact": true,
+   "coarse": 115,
+   "refined": 500,
+   "runs": 1500,
+   "water": 500,
+   "solCells": 245,
+   "D1": 2,
+   "sizes": [
+    245
+   ],
+   "top": 0.49,
+   "D1plus": 2,
+   "plusSizes": [
+    497
+   ],
+   "D1link10": 4,
+   "link10Sizes": [
+    222,
+    12,
+    5
+   ],
+   "D1seedT": 2,
+   "oldD1": 2,
+   "oldSizes": [
+    497
+   ],
+   "pass": true,
+   "sec": 94.9
+  }
+ },
+ "3-1": {
+  "key": "469d19c5f5a097ae5c7a90cccce502fbe00afb71",
+  "res": {
+   "id": "3-1",
+   "par": 4,
+   "sym": false,
+   "T": 4,
+   "tSrc": "n300",
+   "seedT": [
+    4,
+    4,
+    4
+   ],
+   "flip": "--F",
+   "exact": false,
+   "coarse": 15,
+   "refined": 107,
+   "runs": 321,
+   "water": 500,
+   "solCells": 61,
+   "D1": 1,
+   "sizes": [
+    61
+   ],
+   "top": 0.12,
+   "D1plus": 1,
+   "plusSizes": [
+    61
+   ],
+   "D1link10": 2,
+   "link10Sizes": [
+    36,
+    25
+   ],
+   "D1seedT": 1,
+   "oldD1": 1,
+   "oldSizes": [
+    61
+   ],
+   "pass": true,
+   "sec": 8.57
   }
  }
 }
