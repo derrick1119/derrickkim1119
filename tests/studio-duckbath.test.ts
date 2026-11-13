@@ -280,13 +280,14 @@ describe('판 데이터 검증 (D007 뼈대, CONTENT v0.3 §5 — 판이 늘 때
         }
       }
   });
-  it('가만히 두면 아무 일도 없다 — 저절로 깨지거나 쏙 빠지는 판 없음 (4초)', () => {
-    for (let i = 0; i < STAGES.length; i++) {
-      const s = g.create(5);
+  it('가만히 두면 아무 일도 없다 — 저절로 깨지거나 쏙 빠지는 판 없음 (4초, 시드 8 — 흔들기·뒤집기로 둥지 입성 거리에 닿는 자리를 잡는다, D009)', () => {
+    for (let i = 0; i < STAGES.length; i++)
+    for (let seed = 1; seed <= 8; seed++) {
+      const s = g.create(seed);
       startStage(s, i);
       for (let k = 0; k < 240; k++) g.step(s, idle);
-      expect(s.phase, STAGES[i].id).toBe('play');
-      expect(s.objs.filter((o) => o.k !== 3 && o.st !== -1).length, STAGES[i].id).toBe(0);
+      expect(s.phase, `${STAGES[i].id} 시드 ${seed}`).toBe('play');
+      expect(s.objs.filter((o) => o.k !== 3 && o.st !== -1).length, `${STAGES[i].id} 시드 ${seed}`).toBe(0);
     }
   });
 });
