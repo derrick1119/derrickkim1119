@@ -870,8 +870,9 @@ export function makePreviewer(k: number): Bot<DuckState> {
           const x = Math.max(0.01, Math.min(W - 0.01, o.x + ux * dd + g())), y = Math.max(0.01, Math.min(H - 0.01, o.y + uy * dd + g()));
           const S = clone(s);
           splash(S, x, y);
-          run(S, 170);
-          const v = S.objs.filter((q) => (q.k === DUCK || q.k === GOLD || q.k === BOAT) && q.st >= 0).length * 10 - S.pen * 15 + (S.objs.some((q) => q.k === GOLD && q.st >= 0) ? 3 : 0);
+          run(S, 200);
+          // FUN v1.6 K1 고르는 순서: 쏙·꿀꺽 0 > 둥지에 든 오리·배 수 > 황금 입성 > 먼저 뽑은 곳 (끝 상태만, value() 안 씀)
+          const v = (S.pen === 0 ? 1000 : 0) + S.objs.filter((q) => (q.k === DUCK || q.k === BOAT) && q.st >= 0).length * 10 + (S.objs.some((q) => q.k === GOLD && q.st >= 0) ? 1 : 0);
           if (v > bv) (bv = v), (best = { x, y });
         }
         memo.set(s, (m = { key, p: best }));
