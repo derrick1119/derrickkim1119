@@ -1312,16 +1312,18 @@ function drawDuck(ctx: CanvasRenderingContext2D, x: number, y: number, u: number
   if (mood === 7) {
     // 'Z z' 거품 — 위로 천천히 (reduced-motion이면 제자리)
     const k = CALM ? 0.5 : (t % 90) / 90;
-    ctx.fillStyle = 'rgba(255,255,255,.92)';
-    ctx.strokeStyle = 'rgba(30,60,120,.55)';
-    ctx.lineWidth = 1;
-    ctx.font = `900 ${Math.round(u * 0.55)}px system-ui, sans-serif`;
+    // 🖐 D013: 390px에서 오리(u ≈ 10px)보다 Z가 작아 안 읽혀 — Z를 오리 머리만큼 키우고 테두리를 굵게
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#2b4a9a';
+    ctx.lineWidth = Math.max(2, u * 0.16);
+    ctx.lineJoin = 'round';
+    ctx.font = `900 ${Math.round(u * 0.95)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
-    ctx.strokeText('Z', x + face * u * 0.9, y - u * (1.1 + k * 0.5));
-    ctx.fillText('Z', x + face * u * 0.9, y - u * (1.1 + k * 0.5));
-    ctx.font = `900 ${Math.round(u * 0.38)}px system-ui, sans-serif`;
-    ctx.strokeText('z', x + face * u * 1.35, y - u * (1.6 + k * 0.5));
-    ctx.fillText('z', x + face * u * 1.35, y - u * (1.6 + k * 0.5));
+    ctx.strokeText('Z', x + face * u * 1.0, y - u * (1.2 + k * 0.5));
+    ctx.fillText('Z', x + face * u * 1.0, y - u * (1.2 + k * 0.5));
+    ctx.font = `900 ${Math.round(u * 0.65)}px system-ui, sans-serif`;
+    ctx.strokeText('z', x + face * u * 1.75, y - u * (1.95 + k * 0.5));
+    ctx.fillText('z', x + face * u * 1.75, y - u * (1.95 + k * 0.5));
   }
   if ((extra === 1 || extra === 3) && (t + Math.floor(x)) % 40 < 20) {
     ctx.fillStyle = '#fffbe0';
