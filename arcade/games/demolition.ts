@@ -1383,6 +1383,66 @@ function granny(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, 
   }
 }
 
+/** 장난감 덤프트럭 (앞마당 구경꾼). face 1 = 오른쪽을 봄 */
+function truck(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, face: number, t: number, jig: number) {
+  ctx.save();
+  ctx.translate(x, y + jig);
+  ctx.scale(face, 1);
+  ctx.fillStyle = 'rgba(40,20,20,.28)';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, u * 2.1, u * 0.3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 짐칸
+  ctx.fillStyle = '#ffc533';
+  ctx.beginPath();
+  ctx.moveTo(-u * 1.9, -u * 1.5);
+  ctx.lineTo(u * 0.3, -u * 1.5);
+  ctx.lineTo(u * 0.1, -u * 0.55);
+  ctx.lineTo(-u * 1.7, -u * 0.55);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#e0a21a';
+  ctx.fillRect(-u * 1.75, -u * 1.2, u * 1.95, u * 0.12);
+  ctx.fillRect(-u * 1.7, -u * 0.85, u * 1.85, u * 0.1);
+  // 운전석
+  ctx.fillStyle = '#ff6b3d';
+  ctx.beginPath();
+  ctx.roundRect(u * 0.25, -u * 1.25, u * 1.15, u * 0.75, u * 0.15);
+  ctx.fill();
+  ctx.fillStyle = '#bfe6ff';
+  ctx.beginPath();
+  ctx.roundRect(u * 0.55, -u * 1.15, u * 0.7, u * 0.35, u * 0.08);
+  ctx.fill();
+  // 눈 (장난감 트럭의 헤드라이트 얼굴)
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(u * 1.3, -u * 0.7, u * 0.12, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#2a1a1a';
+  ctx.beginPath();
+  ctx.arc(u * 1.33, -u * 0.7, u * 0.05, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#c0412a';
+  ctx.fillRect(-u * 1.9, -u * 0.6, u * 3.3, u * 0.22);
+  for (const wx of [-1.3, -0.5, 0.9]) {
+    ctx.fillStyle = '#2b2530';
+    ctx.beginPath();
+    ctx.arc(u * wx, -u * 0.3, u * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#cfc8d6';
+    ctx.beginPath();
+    ctx.arc(u * wx, -u * 0.3, u * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#2b2530';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(u * wx + Math.cos(t * 0.02) * u * 0.12, -u * 0.3 + Math.sin(t * 0.02) * u * 0.12);
+    ctx.lineTo(u * wx, -u * 0.3);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 /** 블록의 그 틱 모습: 칸 좌표 중심(x,y), 기울기(화면 시계 방향 +), 조각인가, 사라졌나 */
 function pose(o: Outcome, i: number, b: Blk, tau: number) {
   let cx = b.x + 0.5, cy = b.y + 0.5, a = 0, moving = false;
@@ -1818,7 +1878,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DemoState, w: number, h: numb
     // 전선: 기폭 상자 → 건물
     const tgt = B.find((_, i) => s.ch[i] > 0);
     if (tgt && !o) {
-      const sx = X(bxp + side * -0.06), sy = Y(byp - 0.04), ex = X(SX(tgt.x) + CW / 2), ey = Y(SY(tgt.y) + CW * 0.9);
+      const sx = X(bxp + side * -0.076), sy = Y(byp - 0.05), ex = X(SX(tgt.x) + CW / 2), ey = Y(SY(tgt.y) + CW * 0.9);
       ctx.strokeStyle = s.phase === 'count' && t % 10 < 5 ? '#ffe14d' : '#c9a227';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -1826,7 +1886,26 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DemoState, w: number, h: numb
       ctx.bezierCurveTo(sx, gy + R(0.05), ex, gy + R(0.02), ex, ey);
       ctx.stroke();
     }
-    beaver(ctx, X(bxp), Y(byp), R(0.052), s.beaver, t, side < 0 ? 1 : -1, plunge);
+    // 앞마당 소품: 장난감 덤프트럭 · 고깔 · 공사중 표지
+    const tx = side < 0 ? 0.8 : 0.2, tf = side < 0 ? -1 : 1;
+    truck(ctx, X(tx), Y(byp + 0.005), R(0.05), tf, t, s.phase === 'boom' ? Math.sin(t * 0.9) * R(0.003) : 0);
+    for (const cxp of [0.32, 0.5, 0.66]) {
+      const cx = X(side < 0 ? cxp : 1 - cxp), cy = Y(byp + 0.01), ch3 = R(0.045);
+      ctx.fillStyle = 'rgba(60,30,30,.25)';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, R(0.024), R(0.007), 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ff7a1a';
+      ctx.beginPath();
+      ctx.moveTo(cx - R(0.018), cy);
+      ctx.lineTo(cx, cy - ch3);
+      ctx.lineTo(cx + R(0.018), cy);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(cx - R(0.01), cy - ch3 * 0.55, R(0.02), ch3 * 0.16);
+    }
+    beaver(ctx, X(bxp), Y(byp), R(0.066), s.beaver, t, side < 0 ? 1 : -1, plunge);
   }
 
   // ── 쾅! 연출 ──

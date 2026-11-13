@@ -623,13 +623,17 @@ function tapScrew(s: ShopState, k: number) {
     setMood(s, 'huh');
     return;
   }
-  const rec: RE[] = [];
+  const rec: RE[] = [], vis0 = visibleM(L, S.gone), free0 = freeM(L, S);
   apply(L, S, k, rec);
   s.cool = s.t + COOL;
   s.lastTap = s.t;
   s.taps++;
   playRec(s, rec);
-  s.known |= visibleM(L, S.gone);
+  // 판자가 비켜서 드러난(또는 풀린) 나사는 반짝
+  const vis1 = visibleM(L, S.gone), shown = (vis1 & ~vis0) | (freeM(L, S) & ~free0 & ~S.gone);
+  const late = rec.some((e) => e.k === 'fall') ? SPIN + 16 : SPIN + 6;
+  for (let i = 0; i < L.N; i++) if ((shown >> i) & 1) ev(s, 'reveal', L.px[i], L.py[i], (vis1 & ~vis0) >> i & 1 ? '!' : undefined, '#fff6a8', s.t + late);
+  s.known |= vis1;
   if (S.fail) {
     s.phase = 'settle';
     s.pt = 0;
@@ -978,6 +982,14 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     ctx.roundRect(x0, y0, x1 - x0, y1 - y0, R(0.02));
     ctx.stroke();
   }
+  // 작업등 빛 속 먼지
+  for (let k = 0; k < 18; k++) {
+    const px = 0.15 + hsh(k + 300) * 0.7, py = BY0 + ((hsh(k + 310) * (BY1 - BY0) + t * 0.0004 * (1 + (k % 3))) % (BY1 - BY0));
+    ctx.fillStyle = `rgba(255,240,200,${0.18 + 0.22 * Math.abs(Math.sin(t / 60 + k))})`;
+    ctx.beginPath();
+    ctx.arc(X(px + 0.01 * Math.sin(t / 90 + k)), Y(py), R(0.004 + 0.003 * (k % 2)), 0, TAU);
+    ctx.fill();
+  }
   // ═════════ 판자와 나사 ═════════
   const pressK = s.down && s.phase === 'play' ? s.press : -1, pre = pressK >= 0 ? preview(s, pressK) : null;
   const flying = new Set<number>();
@@ -1078,9 +1090,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
   };
   const seenT = fx.memo.t ?? -1;
   for (const e of s.events) {
-    const due = e.v !== undefined && ['in', 'slot', 'pull', 'done', 'swing', 'fall', 'boing', 'key', 'jam', 'streak', 'tick'].includes(e.kind) ? e.v : e.t;
+    const due = e.v !== undefined && ['in', 'slot', 'pull', 'done', 'swing', 'fall', 'boing', 'key', 'jam', 'streak', 'tick', 'reveal'].includes(e.kind) ? e.v : e.t;
     if (due <= seenT || due > t) continue;
     const x = X(e.x), y = Y(e.y);
+    if (e.kind === 'reveal') fx.ring(x, y, '#fff6a8', R(0.06), 3), fx.burst(x, y, '#fff6a8', 6, 1.6, 1.5), e.text && fx.pop(x + R(0.03), y - R(0.04), e.text, e.col!, 16);
     if (e.kind === 'in') fx.burst(x, y, '#fff3b0', 10, 2.2, 1.8);
     if (e.kind === 'pull') fx.burst(x, y, '#c8f7c5', 10, 2.2, 1.8), fx.ring(X(e.x), Y(TRAY_Y), '#c8f7c5', R(0.05), 2);
     if (e.kind === 'slot') fx.burst(x, y, '#d6dde6', 6, 1.6, 1.6), fx.kick(1.5);
@@ -2094,8 +2107,9 @@ function drawBird(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   // 판자가 떨어지면 폴짝 날아오른다
   const lastFall = s.events.reduce((m, e) => (e.kind === 'fall' && e.v !== undefined && e.v <= t ? Math.max(m, e.v) : m), -999);
   const age = t - lastFall, fly = age < 50 ? Math.sin((age / 50) * Math.PI) : 0;
-  const hop = Math.max(0, Math.sin(t * 0.06)) > 0.97 ? 3 : 0;
-  const x = X(0.86), y = Y(BY0) - R(0.02) - fly * R(0.08) - hop, u = R(0.05);
+  const ph = (t % 600) / 600, walk = ph < 0.1 ? ph / 0.1 : ph < 0.5 ? 1 : ph < 0.6 ? 1 - (ph - 0.5) / 0.1 : 0;
+  const hop = (ph < 0.1 || (ph > 0.5 && ph < 0.6)) && t % 12 < 6 ? R(0.012) : 0;
+  const x = X(0.88 - 0.1 * walk), y = Y(BY0) - R(0.024) - fly * R(0.09) - hop, u = R(0.064);
   ctx.save();
   ctx.translate(x, y);
   ctx.fillStyle = 'rgba(0,0,0,.25)';

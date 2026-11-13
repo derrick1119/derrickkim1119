@@ -630,7 +630,7 @@ const aimFor = (sh: number, ox: number, oy: number) => ptr(BX + (ox + shW(sh) / 
 const THINK = 42;
 
 /** 봇의 저울 (실험용으로 밖에서 바꿀 수 있게) */
-export const TUNE = { fw: 900, sw: 1800, spw: 9000, perMove: 10, reserve: 1, depth2: 16, mix: 0.75, ew: 120, hole: 900, rough: 45, conv: 120, open: 300 };
+export const TUNE = { fw: 900, sw: 1800, spw: 9000, perMove: 10, reserve: 1, depth2: 16, mix: 0.75, ew: 120, hole: 900, rough: 45, conv: 120, open: 300, swap: 1 };
 const fillRow = (b: Board, y: number) => { let n = 0; for (let x = 0; x < N; x++) if (b.k[y * N + x] !== EMPTY) n++; return n; };
 const fillCol = (b: Board, x: number) => { let n = 0; for (let y = 0; y < N; y++) if (b.k[y * N + x] !== EMPTY) n++; return n; };
 /** 판의 생김새 점수: 빈 칸·구멍·큰 조각이 들어갈 자리·울퉁불퉁함·잡초 */
@@ -771,7 +771,7 @@ function plan(s: BGState): { swap: boolean; ox: number; oy: number } | null {
   const sp0 = special(s, d);
   const phaseA = !sp0.done && sp0.can && s.left - 1 > estMoves(d.goal - s.flowers) + TUNE.reserve;
   const opts: { swap: boolean; sh: number; rest: number[] }[] = [{ swap: false, sh: q[0], rest: q.slice(1) }];
-  if (q.length >= 2 && q[1] !== q[0]) opts.push({ swap: true, sh: q[1], rest: [q[0], ...q.slice(2)] });
+  if (TUNE.swap && q.length >= 2 && q[1] !== q[0]) opts.push({ swap: true, sh: q[1], rest: [q[0], ...q.slice(2)] });
   const first: { o: (typeof opts)[0]; pos: number; S: SimS; v: number }[] = [];
   for (const o of opts)
     for (const pos of placements(s.b, o.sh)) {
@@ -786,7 +786,7 @@ function plan(s: BGState): { swap: boolean; ox: number; oy: number } | null {
     if (f.S.flowers < d.goal && f.o.rest.length && f.S.left > 0) {
       let v2 = -Infinity;
       const rest = f.o.rest.slice(0, 2);
-      for (let k = 0; k < rest.length; k++) {
+      for (let k = 0; k < (TUNE.swap ? rest.length : 1); k++) {
         const sh2 = rest[k], rest2 = rest.filter((_, j) => j !== k);
         for (const pos of placements(f.S.b, sh2)) {
           const { S } = simMove(f.S, sh2, pos % N, Math.floor(pos / N), d);
