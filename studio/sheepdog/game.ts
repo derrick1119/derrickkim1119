@@ -300,14 +300,17 @@ export function hudState(s: DogState): HudState {
     return { label, st: st === true ? ('on' as const) : had ? ('had' as const) : st === false ? ('off' as const) : ('wait' as const) };
   });
   // 안내문 줄은 없앴다(🎨 §12-5, C009): 1-1·1-2는 캔버스 손 아이콘, 깃발 말은 할아버지 말풍선으로
-  const hint = s.flags.length && s.phase === 'aim' && s.t - s.startT >= INTRO_T ? `할아버지 깃발 ${s.flags.length === 2 ? '①' : '②'} 자리에서 짖어 보렴` : null;
+  // 📐 C014: 흰 양만 다 들고 까만 양이 남으면 할아버지 말풍선이 그동안 내내 말한다(🧪 C014: 알림 줄로는 3초 늦고, 판에 바로 들어가면 빠졌다)
+  const wantBlack = !!d.needBlack && s.phase === 'aim' && F.black.every((b, i) => b || S.pen[i] >= 0) && F.black.some((b, i) => b && S.pen[i] < 0);
+  const hint = wantBlack ? '🖤 까만 양도 넣어야 통과 — 짖는 쪽으로 와요' : s.flags.length && s.phase === 'aim' && s.t - s.startT >= INTRO_T ? `할아버지 깃발 ${s.flags.length === 2 ? '①' : '②'} 자리에서 짖어 보렴` : null;
   const nW = F.black.filter((b) => !b).length;
   return {
     stage: s.stage, name: d.name, stars: s.stars, max: d.max, par: d.par, used: S.used,
     sheepIn: F.black.filter((b, i) => !b && inNow(s, i)).length, sheepN: nW, goals, hint,
     // 까만 양 필수 판(📐 C014): 알약 끝에 까만 양 칸 — 아니면 0
     blackN: d.needBlack ? F.black.filter((b) => b).length : 0, blackIn: d.needBlack ? F.black.filter((b, i) => b && inNow(s, i)).length : 0,
-    news: s.news && s.t - s.news.t < NEWS_T + 20 ? s.news.text : null, card: allIn,
+    // 까만 양 필수 말풍선이 떠야 할 때는 같은 뜻의 까만 양 설명(BLACK_TIP)보다 먼저 (말풍선은 news ?? hint 순)
+    news: s.news && s.t - s.news.t < NEWS_T + 20 && !(wantBlack && s.news.text === BLACK_TIP) ? s.news.text : null, card: allIn,
   };
 }
 export const starCount = (mask: number) => (mask & 1) + ((mask >> 1) & 1) + ((mask >> 2) & 1);
@@ -843,8 +846,6 @@ function afterFlee(s: DogState) {
   if (fell >= 0) return ev(s, 'splash', S.x[fell], S.y[fell], undefined, undefined, fell), s.splashes++, finish(s, false, F.black[fell] ? '까만 양이 개울에 풍덩!' : '양이 개울에 풍덩!');
   if (S.caught >= 0) return finish(s, false, '늑대가 양을 물어 갔어요!');
   if (allIn(F, S, d)) return finish(s, true);
-  // 📐 C014: 흰 양만 다 들면 문은 열어 두고 한 번 — 같은 틱에 까만 양 설명(BLACK_TIP)이 떴으면 그 뒤에 줄 선다(덮어쓰지 않게)
-  if (d.needBlack && F.black.every((b, i) => b || S.pen[i] >= 0)) (s.news?.text === BLACK_TIP && s.news.t === s.t ? tip : tipNow)(s, 'needblack', '🖤 까만 양도 넣어야 통과!');
   if (S.used >= d.max) return finish(s, false, '멍멍을 다 썼어요… 목이 쉬었어요');
   s.phase = 'aim';
   s.pt = 0;

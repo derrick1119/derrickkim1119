@@ -75,7 +75,7 @@ export function mountHud(root: HTMLElement): Hud {
         lastNews = say;
         bubble.hidden = !say;
         bubble.classList.remove('pop');
-        if (say) (bubble.innerHTML = `${say === h.hint ? ICON.flag : leadIcon(say)}<span>${noEmoji(say)}</span>`), void bubble.offsetWidth, bubble.classList.toggle('pop', say === h.news);
+        if (say) (bubble.innerHTML = `${say === h.hint && !say.startsWith('🖤') ? ICON.flag : leadIcon(say)}<span>${noEmoji(say)}</span>`), void bubble.offsetWidth, bubble.classList.toggle('pop', say === h.news);
       }
       const key = JSON.stringify(h, (k, v) => (k === 'news' || k === 'hint' ? undefined : v));
       if (key === last) return;

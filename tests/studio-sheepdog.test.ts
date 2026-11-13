@@ -336,6 +336,20 @@ describe('M1-3 숨은 규칙을 보이게 (C006)', () => {
     }
   });
 
+  it('까만 양 필수 판: 흰 양만 다 들면 할아버지 말풍선이 그동안 내내 \'까만 양도 넣어야 통과\' (📐·🧪 C014: 숨은 규칙 0)', () => {
+    const s = g.create(1);
+    jumpTo(s, 3);
+    expect(hudState(s).blackN).toBe(1);
+    for (let t = 0; t < 600 && !(phaseOf(s) === 'aim' && s.F.black.every((b, i) => b || s.S.pen[i] >= 0)); t++) {
+      const ws = s.F.black.some((b, i) => !b && s.S.pen[i] < 0);
+      g.step(s, ws ? sheepdogNaiveLike(s, mulberry32(1)) : up);
+    }
+    expect(s.F.black.some((b, i) => b && s.S.pen[i] < 0)).toBe(true);
+    for (let t = 0; t < 250; t++) g.step(s, up);
+    expect(hudState(s).hint).toContain('까만 양도 넣어야 통과');
+    expect(hudState(s).blackIn).toBe(0);
+  });
+
   it("1-4: 까만 양이 온 짖기는 결과를 0.5초 늦게 낸다 — '?!'가 통과 축하에 묻히지 않게 (허들 ②)", () => {
     const s = g.create(1);
     jumpTo(s, 3);
