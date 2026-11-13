@@ -111,6 +111,31 @@ export const STAGES: StageDef[] = [
     nests: [[0.12, 0.14, 0.17, -1], [0.88, 0.14, 0.17, -1], [0.12, 1.06, 0.17, -1], [0.88, 1.06, 0.17, -1], [0.1, 0.6, 0.14, -1, 0, 1], [0.9, 0.6, 0.14, -1, 0, 1]],
     taps: 14, par: 3, ask: '배수구 바로 옆을 톡 — 오리가 밖으로 튕겨요!',
   },
+  // D009 첫 새 판 (CONTENT v0.3 §1 1욕실 조합 판). 좌표·톡·par는 ✏️가 판 하나 실험(scratchpad d009)으로 정하고 funqa로 다시 잼.
+  {
+    id: '1-4', key: '', news: '', hint: '숨은 오리는 섬 반대쪽에서 — 그늘 밖에서 톡', failHint: '섬 그늘에 숨은 오리는 섬을 돌아가는 물결로 꺼내요',
+    // 섬 둘에 오리 셋씩(위·옆·그늘 속). 둥지는 네 구석 + 아래 가운데 작은 둥지 — 무리마다 두 번은 쳐야 한다
+    ducks: [[0.3, 0.32, 0], [0.3, 0.68, 0], [0.16, 0.5, 0], [0.7, 0.52, 0], [0.7, 0.88, 0], [0.84, 0.7, 0]], gold: [0.5, 0.9],
+    islands: [[0.3, 0.5, 0.09], [0.7, 0.7, 0.09]],
+    nests: [[0.12, 0.12, 0.17, -1], [0.88, 0.12, 0.17, -1], [0.12, 1.08, 0.17, -1], [0.88, 1.08, 0.17, -1], [0.5, 1.12, 0.13, -1, 0, 1]],
+    taps: 10, par: 4, ask: '섬이 둘 — 숨은 오리를 누구부터 꺼낼까?',
+  },
+  {
+    id: '1-5', key: '', news: '', hint: '배수구 쪽에서 치면 밖으로 — 섬 그늘도 써 봐요', failHint: '섬 뒤 배수구 — 오리를 배수구 쪽으로 미는 톡은 피해요',
+    // 섬이 배수구 위를 가린다. 오리 여섯이 배수구를 둘러싸고, 황금은 왼쪽 위 구석 가까이(입성 거리 r + 0.03에서 0.08 떨어뜨림 — 흔들기로 저절로 들지 않게)
+    ducks: [[0.5, 0.3, 0], [0.28, 0.62, 0], [0.72, 0.62, 0], [0.3, 0.92, 0], [0.7, 0.92, 0], [0.5, 0.98, 0]], gold: [0.26, 0.36],
+    islands: [[0.5, 0.5, 0.09]], drains: [[0.5, 0.72]], pullR: 0.12, pull: 0.00012,
+    nests: [[0.12, 0.12, 0.17, -1], [0.88, 0.12, 0.17, -1], [0.12, 1.08, 0.17, -1], [0.88, 1.08, 0.17, -1]],
+    taps: 11, par: 4, ask: '섬이 배수구를 가려요. 어디서 쳐야 안 빨릴까?',
+  },
+  {
+    id: '1-6', key: '', news: '', hint: '두 배수구 사이 틈으로 — 가운데 오리는 위나 아래로', failHint: '배수구 둘 사이에서는 위·아래로만 밀어요',
+    // 배수구 둘이 가운데 줄을 막는다. 가운데 세 마리는 위·아래 틈으로, 양옆 둘은 벽 쪽으로
+    ducks: [[0.5, 0.6, 0], [0.5, 0.42, 0], [0.5, 0.8, 0], [0.16, 0.6, 0], [0.84, 0.6, 0]], gold: [0.5, 0.25],
+    drains: [[0.3, 0.6], [0.7, 0.6]], pullR: 0.11, pull: 0.00012,
+    nests: [[0.2, 0.1, 0.16, -1], [0.8, 0.1, 0.16, -1], [0.2, 1.1, 0.16, -1], [0.8, 1.1, 0.16, -1]],
+    taps: 10, par: 5, ask: '배수구가 둘! 오리를 어느 틈으로 빼낼까?',
+  },
   {
     id: '2-1', key: 'color', news: '🎨 색깔 둥지 — 같은 색 오리만 들어가요', hint: '오리는 톡 반대쪽으로 밀려요 — 같은 색 둥지 쪽으로!',
     // D003 CONTENT v0.2: '오리 바로 뒤를 톡'을 가르치는 판. 노랑은 위·분홍은 아래로 엇갈려 세운다 — 가운데 톡이면 둘 다 위아래 벽으로 가서 0마리.
@@ -146,7 +171,8 @@ export const STAGES: StageDef[] = [
   },
   {
     id: '3-4', key: 'stream', news: '🚰 수도꼭지 물줄기 — 태우면 저절로 실려 가요', hint: '물줄기에 밀어 넣으면 둥지까지 흘러가요',
-    ducks: [[0.2, 0.26, 0], [0.8, 0.5, 0], [0.22, 0.76, 0]], gold: [0.82, 0.2],
+    // D009 (🧪 D008 4.3): 황금 첫 자리 (0.82, 0.2) → (0.66, 0.3) — 하나뿐인 둥지에서 가장 먼 구석이라 늘 꼴찌가 되던 자리 (캐주얼 ★황금 판 하나 .32 → .69)
+    ducks: [[0.2, 0.26, 0], [0.8, 0.5, 0], [0.22, 0.76, 0]], gold: [0.66, 0.3],
     streams: [[0.4, 0, 0.6, 0.95, 0, 1]],
     drains: [[0.86, 1.02]],
     nests: [[0.5, 1.07, 0.13, -1]],
@@ -185,7 +211,9 @@ export interface DuckState extends Sim {
   manual: boolean;
   /** D004: 판별 최고 별·점수 — 같은 판을 다시 해도 별이 두 번 쌓이지 않는다 */
   best: number[]; bestPts: number[];
-  events: Ev[]; dead: boolean; won: boolean; catT: number; tries: number; goldLost: boolean; firstTap: boolean; again: boolean;
+  events: Ev[]; dead: boolean; won: boolean; catT: number; tries: number; firstTap: boolean;
+  /** D009 (ART 12장): 황금 '꼴찌 위기'가 켜진 틱 (-1 = 꺼짐) — 연출 전용 */
+  crisisT: number; again: boolean;
 }
 
 const ev = (s: DuckState, kind: string, x: number, y: number, text?: string, col?: string) => s.events.push({ t: s.t, kind, x, y, text, col });
@@ -488,7 +516,7 @@ function newStage(s: DuckState) {
   s.lastTap = s.t;
   s.phase = 'play';
   s.pt = 0;
-  s.goldLost = false;
+  s.crisisT = -1;
   s.pen = s.penA = s.sucks = s.chomps = 0;
   s.starOk = [false, false, false];
   // 판의 새것은 판 카드 셋째 줄에 바로 보인다 (알림 띠 대기열에는 넣지 않는다)
@@ -629,7 +657,7 @@ export const duckbath: GameDef<DuckState> = {
       pen: 0, penA: 0, sucks: 0, chomps: 0, rng, seed, t: 0, objs: [], rings: [], rid: 0, awake: false,
       L: { nests: [], islands: [], drains: [], streams: [], slicks: [] },
       stage: 0, phase: 'play', pt: 0, jit, taps: 0, used: 0, lastTap: 0, stageTries: 0, stars: 0, got: 0, starOk: [false, false, false], pts: 0, manual: false, best: STAGES.map(() => 0), bestPts: STAGES.map(() => 0),
-      ok: false, why: '', down: false, aim: null, seen: new Set<string>(), newsQ: [], news: null, events: [], dead: false, won: false, catT: -999, tries: 0, goldLost: false, firstTap: false, again: false,
+      ok: false, why: '', down: false, aim: null, seen: new Set<string>(), newsQ: [], news: null, events: [], dead: false, won: false, catT: -999, tries: 0, crisisT: -1, firstTap: false, again: false,
     } as DuckState;
     newStage(s);
     return s;
@@ -645,7 +673,6 @@ export const duckbath: GameDef<DuckState> = {
     }
     s.pt++;
     s.events = s.events.filter((e) => s.t - e.t < 110);
-    const goldBefore = s.objs.find((o) => o.k === GOLD)?.st;
     phys(s, s);
     // 쏙·꿀꺽 = 톡 1개 (쓴 톡으로도 센다 → ★톡에 영향). 실패 판정은 '뿅'을 볼 만큼 늦춘다 (CONTENT §0)
     if (s.pen > s.penA) {
@@ -656,8 +683,11 @@ export const duckbath: GameDef<DuckState> = {
       s.lastTap = s.t;
     }
     cosmetic(s);
-    const gold = s.objs.find((o) => o.k === GOLD);
-    if (gold && goldBefore === FREE && gold.st < FREE) s.goldLost = true;
+    // D009 (🧪 D008): 옛 goldLost(황금이 쏙·꿀꺽당함)는 뿅 규칙(D002) 뒤로 켜지는 길이 없어 지웠다 — 황금 별은 '꼴찌'로만 잃는다.
+    // 꼴찌 위기 = 남은 보통 오리(배 포함) 1 + 황금이 아직 물 위 (ART 12장 ①: 켜진 틱을 기억, 조건이 깨지면 바로 끔)
+    const gold = s.objs.find((o) => o.k === GOLD), left = s.objs.filter((o) => (o.k === DUCK || o.k === BOAT) && o.st === FREE).length;
+    const crisis = s.phase === 'play' && !!gold && gold.st === FREE && left === 1;
+    s.crisisT = crisis ? (s.crisisT < 0 ? s.t : s.crisisT) : -1;
     if (!s.news || s.t - s.news.t > NEWS_T) s.news = s.newsQ.length ? { text: s.newsQ.shift()!, t: s.t } : s.news;
     if (s.phase === 'result') {
       if (!s.manual && s.pt >= (s.ok ? RESULT_OK : RESULT)) {
@@ -946,6 +976,9 @@ function star(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
 }
 
 /** 고무 오리 (비스듬히 본 옆모습). mood: 0 평온 · 1 꽥(놀람) · 2 어질어질 · 3 행복 · 4 겁먹음 */
+/** 브라우저의 '동작 줄이기' (ART 12장 ④). 노드(봇·테스트)에서는 false */
+const CALM = !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
 function drawDuck(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, col: string[], face: number, tilt: number, mood: number, t: number, extra: number) {
   ctx.save();
   ctx.translate(x, y);
@@ -1078,12 +1111,23 @@ function drawDuck(ctx: CanvasRenderingContext2D, x: number, y: number, u: number
     ctx.arc(hx - hr * 0.2, hy - hr * 0.86, hr * 0.15, 0, Math.PI * 2);
     ctx.fill();
   }
-  if (extra === 1) {
+  if (extra === 1 || extra === 3) {
     ctx.fillStyle = '#ffe14d';
-    ctx.strokeStyle = '#b97800';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = extra === 3 ? '#ff9f43' : '#b97800';
+    ctx.lineWidth = extra === 3 ? 2 : 1;
     ctx.beginPath();
-    const cx = hx - hr * 0.05, cy = hy - hr * 0.88, cw = hr * 0.5;
+    const cx = hx - hr * 0.05, cw = hr * 0.5;
+    let cy = hy - hr * 0.88;
+    if (extra === 3) {
+      // ART 12장 ②: 왕관 들썩 — 밑변 가운데를 축으로 ±0.3rad, 위로 0.12u, 32틱 (t = 전역 s.t, 칩과 같은 박자). reduced-motion이면 회전 0
+      const ph = Math.sin((t / 32) * Math.PI * 2);
+      cy -= u * 0.12 * Math.max(0, ph);
+      if (!CALM) {
+        ctx.translate(cx, cy + cw * 0.5);
+        ctx.rotate(0.3 * ph);
+        ctx.translate(-cx, -(cy + cw * 0.5));
+      }
+    }
     ctx.moveTo(cx - cw, cy + cw * 0.5);
     ctx.lineTo(cx - cw, cy - cw * 0.3);
     ctx.lineTo(cx - cw * 0.5, cy + cw * 0.1);
@@ -1109,7 +1153,7 @@ function drawDuck(ctx: CanvasRenderingContext2D, x: number, y: number, u: number
       star(ctx, x + face * u * 0.4 + Math.cos(a) * u * 0.55, y - u * 1.45 + Math.sin(a) * u * 0.18, u * 0.16);
       ctx.fill();
     }
-  if (extra === 1 && (t + Math.floor(x)) % 40 < 20) {
+  if ((extra === 1 || extra === 3) && (t + Math.floor(x)) % 40 < 20) {
     ctx.fillStyle = '#fffbe0';
     star(ctx, x - face * u * 0.7, y - u * 0.9, u * 0.14 * (1 + Math.sin(t * 0.3)));
     ctx.fill();
@@ -2089,7 +2133,42 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
         const tilt = Math.sin(t * 0.35 + i) * 0.35 * o.spin + Math.sin(t * 0.05 + i) * 0.04;
         if (o.k === SHARK) drawShark(ctx, x, y, u, o.face, o.mood, t, s.objs.some((q) => q.st === EATEN));
         else if (o.k === BOAT) drawBoat(ctx, x, y, u, o.face, tilt);
-        else drawDuck(ctx, x, y, u, o.k === GOLD ? GOLD_COL : DUCK_COL[o.col], o.face, tilt + (o.spin > 0.3 ? Math.sin(t * 0.5) * 0.2 * o.spin : 0), o.mood, t + i * 5, o.k === GOLD ? 1 : 0);
+        else {
+          const cr = o.k === GOLD && s.crisisT >= 0; // ART 12장: 황금 '꼴찌 위기'는 얼굴·몸은 그대로, 발밑 고리·왕관·말풍선만
+          if (cr) {
+            // ① 물 위 주황 고리 — 크기 고정, 알파 .35↔.95 (32틱), reduced-motion이면 .8
+            ctx.save();
+            ctx.globalAlpha = CALM ? 0.8 : 0.65 + 0.3 * Math.sin((t / 32) * Math.PI * 2);
+            ctx.strokeStyle = '#ff9f43';
+            ctx.lineWidth = Math.max(2, w * 0.007);
+            ctx.beginPath();
+            ctx.ellipse(x, y + u * 0.3, u * 1.35, u * 0.42, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+          }
+          drawDuck(ctx, x, y, u, o.k === GOLD ? GOLD_COL : DUCK_COL[o.col], o.face, tilt + (o.spin > 0.3 ? Math.sin(t * 0.5) * 0.2 * o.spin : 0), o.mood, cr ? t : t + i * 5, o.k === GOLD ? (cr ? 3 : 1) : 0);
+          const age = s.t - s.crisisT;
+          if (cr && age < 90) {
+            // ③ 첫 진입 말풍선 '나 먼저!' 90틱, 마지막 12틱 페이드, 머리 위 2.1u · 욕조 안쪽으로 클램프
+            ctx.save();
+            ctx.globalAlpha = age > 78 ? (90 - age) / 12 : 1;
+            font(0.036, 900);
+            const txt = '나 먼저!', bw = ctx.measureText(txt).width + R(0.04), bh = R(0.05);
+            const bx = Math.max(X(0.08), Math.min(X(0.92) - bw, x - bw / 2)), by = y - u * 2.1 - bh;
+            ctx.fillStyle = '#fffaf0';
+            ctx.strokeStyle = '#ff9f43';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(bx, by, bw, bh, bh / 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#123a48';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(txt, bx + bw / 2, by + bh / 2);
+            ctx.restore();
+          }
+        }
       },
     });
   });
@@ -2399,11 +2478,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     const gold = s.objs.find((o) => o.k === GOLD);
     const goldOk = !!gold && gold.st >= 0;
     const okk = s.phase === 'result' && s.ok ? s.starOk : [ducksIn === ducksAll, s.used <= d.par, goldOk];
-    const bad = [s.phase === 'result' && !s.ok, s.used > d.par, s.goldLost];
+    // D009: 셋째 칩은 황금이 꼴찌로 확정된 판(깼는데 황금이 아직 물 위)에서 꺼진다 — 옛 goldLost는 켜지는 길이 없었다(🧪 D008)
+    const bad = [s.phase === 'result' && !s.ok, s.used > d.par, s.phase === 'result' && s.ok && !s.starOk[2]];
     const labels = [`${d.boat ? '오리·배' : '오리'} ${ducksIn}/${ducksAll}`, `톡 ≤${d.par}`, '👑 꼴찌 말고']; // D007 CONTENT v0.3 ③: 황금 문구 통일 — 기준 문장 '👑 황금 오리가 꼴찌만 아니면 ★'
     // D007 ③ 꼴찌 위기: 남은 오리 1마리인데 황금 오리가 아직 떠 있으면 셋째 칩이 주황으로 깜박
-    const crisis = s.phase === 'play' && !!gold && gold.st === FREE && ducksAll - ducksIn === 1;
-    if (crisis && (t >> 4) % 2 === 0) labels[2] = '👑 꼴찌 될라!';
+    // ART 12장 3: 위기 동안 글자는 '👑 꼴찌 될라!'로 고정, 주황 테만 몸과 같은 32틱으로 숨쉰다
+    const crisis = s.crisisT >= 0;
+    if (crisis) labels[2] = '👑 꼴찌 될라!';
     const r2 = Y(ty + 0.112), cw2 = R(0.3);
     for (let k = 0; k < 3; k++) {
       const cx1 = X(0.03) + k * (cw2 + R(0.017));
@@ -2411,7 +2492,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
       ctx.beginPath();
       ctx.roundRect(cx1, r2 - R(0.026), cw2, R(0.052), R(0.026));
       ctx.fill();
-      ctx.strokeStyle = k === 2 && crisis ? '#ff9f43' : okk[k] ? '#ffd84a' : bad[k] ? 'rgba(255,255,255,.15)' : 'rgba(255,255,255,.3)';
+      ctx.strokeStyle = k === 2 && crisis ? `rgba(255,159,67,${CALM ? 0.8 : 0.65 + 0.3 * Math.sin((t / 32) * Math.PI * 2)})` : okk[k] ? '#ffd84a' : bad[k] ? 'rgba(255,255,255,.15)' : 'rgba(255,255,255,.3)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
       ctx.fillStyle = okk[k] ? '#ffd84a' : bad[k] ? 'rgba(255,255,255,.3)' : 'rgba(255,255,255,.6)';

@@ -77,11 +77,11 @@ describe('욕조 물결 오리 시뮬', () => {
       g.step(s, idle);
       expect([o.x, o.y]).toEqual([sx, sy]);
     });
-    it('4판(색깔): 두 오리 한가운데를 한 톡 치면 둥지에 드는 오리가 0 — 가운데 톡은 틀린 답 (D003 CONTENT v0.2)', () => {
+    it('2-1(색깔): 두 오리 한가운데를 한 톡 치면 둥지에 드는 오리가 0 — 가운데 톡은 틀린 답 (D003 CONTENT v0.2)', () => {
       const A = g.aspect!, PX = (x: number, y: number) => 0.5 + (x - 0.5) * (0.74 + 0.14 * (y / 1.2)), PY = (y: number) => 0.36 + y * 0.66;
       for (const seed of [1000, 1007, 1014]) {
         const s = g.create(seed);
-        startStage(s, 3);
+        startStage(s, STAGES.findIndex((d) => d.id === '2-1')); // D009: 판이 늘어 인덱스 대신 판 id
         const [a, b] = s.objs.filter((o) => o.k === 0), cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
         g.step(s, { tap: false, dir: 0, pointer: { x: PX(cx, cy), y: PY(cy) / A } });
         for (let k = 0; k < 600; k++) g.step(s, idle);
@@ -91,6 +91,25 @@ describe('욕조 물결 오리 시뮬', () => {
     it('판 질문 한 줄이 판 1~4에 있다 (한 판 = 한 질문)', () => {
       for (let i = 0; i < 4; i++) expect(STAGES[i].ask?.length ?? 0).toBeGreaterThan(5);
     });
+  });
+
+  it('황금 꼴찌 위기(D009, ART 12장): 남은 보통 오리 1 + 황금이 물 위면 켜지고, 황금이 둥지에 들면 바로 꺼진다', () => {
+    const idle = { tap: false, dir: 0 as const, pointer: null };
+    const s = g.create(3);
+    startStage(s, 0);
+    while (s.phase !== 'play' || s.pt < 2) g.step(s, idle);
+    g.step(s, idle);
+    expect(s.crisisT).toBe(-1);
+    const ducks = s.objs.filter((o) => o.k === 0), gold = s.objs.find((o) => o.k === 1)!;
+    for (const o of ducks.slice(1)) o.st = 0; // 확인용: 한 마리만 남기고 둥지에
+    g.step(s, idle);
+    expect(s.crisisT).toBeGreaterThanOrEqual(0);
+    const on = s.crisisT;
+    g.step(s, idle);
+    expect(s.crisisT).toBe(on); // 켜진 틱을 기억(말풍선 90틱)
+    gold.st = 0;
+    g.step(s, idle);
+    expect(s.crisisT).toBe(-1);
   });
 
   describe('결과·실패 카드 버튼 (D004)', () => {
@@ -121,7 +140,7 @@ describe('욕조 물결 오리 시뮬', () => {
     });
     it('↺2 손가락: 같은 판을 두 번 넘게 실패하면 첫 톡 자리를 보여 준다(그 전엔 없음)', () => {
       const s = g.create(4);
-      startStage(s, 4);
+      startStage(s, STAGES.findIndex((d) => d.id === '2-4')); // D009: 판 id로 (옛 5판)
       expect(hintPoint(s)).toBeNull();
       s.stageTries = 2;
       const p = hintPoint(s)!;
@@ -148,7 +167,7 @@ describe('욕조 물결 오리 시뮬', () => {
     }
   });
 
-  it('숙련 봇은 8판을 모두 깬다 (모든 판이 풀린다)', { timeout: 60_000 }, () => {
+  it('숙련 봇은 모든 판을 깬다 (모든 판이 풀린다)', { timeout: 60_000 }, () => {
     for (const seed of [11, 22, 33]) {
       const r = play(duckbathSmart, seed);
       expect(r.won).toBe(true);

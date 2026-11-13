@@ -16,6 +16,13 @@ import { STAGES, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, f
 /** D007: 판 번호(1부터) → 판 id. 판이 욕실 순서로 다시 놓여 표는 id로 읽는다 */
 const ID = (n: number) => STAGES[n - 1]?.id ?? String(n);
 
+/** CONTENT v0.3 §1 판별 설계 '사람 초' (사람초 합 비교용, D009) */
+const DESIGN_SEC: Record<string, number> = {
+  '1-1': 5, '1-2': 15, '1-3': 25, '1-4': 35, '1-5': 35, '1-6': 45, '1-7': 30, '1-8': 50, '1-9': 55, '1-10': 80,
+  '2-1': 30, '2-2': 50, '2-3': 35, '2-4': 45, '2-5': 45, '2-6': 60, '2-7': 45, '2-8': 65, '2-9': 65, '2-10': 90,
+  '3-1': 40, '3-2': 45, '3-3': 45, '3-4': 50, '3-5': 50, '3-6': 70, '3-7': 55, '3-8': 75, '3-9': 85, '3-10': 90,
+};
+
 /** 한 판에서 다시 하기 허용 횟수 (첫 시도 + 3번) */
 export const RETRY = 3;
 /** 배우는 처음 봇의 다시 한도 (C5 p90을 재려고 넉넉히) */
@@ -102,7 +109,12 @@ function group(bot: Bot<DuckState>, n: number, retry: number) {
   // N4 (FUN v1.4): 실패 카드 제목이 맞는 비율 — 주범 제목이면 주범 몫 ≥ 25% 또는 ≥ 2톡, '톡 바닥'이면 그 밖
   const fl = runs.flatMap((r) => r.stages.filter((l) => !l.ok)), big = (l: StageLog) => l.sucks + l.chomps >= 2 || (l.taps > 0 && (l.sucks + l.chomps) / l.taps >= 0.25);
   const N4 = fl.length ? r2(fl.filter((l) => (l.failKind !== 'taps') === big(l)).length / fl.length) : null;
+  // D009 (📋 D008 ③): 사람초 합 — 클리어한 시도만이 아니라 모든 시도의 (봇 초 + 3초 × 톡), 런마다 더해 중앙값. 욕실별·설계(CONTENT v0.3 §1) 대비
+  const human = (l: StageLog) => l.sec + 3 * l.taps, world = (l: StageLog) => STAGES[l.stage - 1].id.split('-')[0];
+  const allSec = med(runs.map((r) => r.stages.reduce((a, l) => a + human(l), 0)));
+  const worldSec = ['1', '2', '3'].map((w) => r2(med(runs.map((r) => r.stages.filter((l) => world(l) === w).reduce((a, l) => a + human(l), 0)))));
   return {
+    allSec: r2(allSec), worldSec,
     N4, runs: n, retry, medScore: med(runs.map((r) => r.score)), medSec: r2(med(runs.map((r) => r.sec))), winRate: r2(runs.filter((r) => r.won).length / n),
     medReached: med(runs.map((r) => r.reached)), firstTapNest: med(runs.map((r) => r.firstTapNest)),
     failWhy: Object.entries(runs.flatMap((r) => r.stages.filter((l) => !l.ok)).reduce<Record<string, number>>((a, l) => ((a[l.why] = (a[l.why] ?? 0) + 1), a), {})),
@@ -178,6 +190,13 @@ function toPointer(x: number, y: number) {
  * 뒤집힌 시드끼리 다른 자리를 '같은 칸'으로 셌다) · 섬은 판 데이터로 거른다 · 연결은 '< 0.15'를 부동소수 오차 없이(가로 3칸 = 정확히 0.15는 끊김)
  * · 정밀 칸이 물의 절반 이상이면 근사 대신 전수.
  */
+/** 판 데이터가 좌우 대칭인가(색·부두까지) — FUN v1.8 D1 ③: 대칭 판에서는 서로 거울인 무리를 하나로 센다 */
+function symmetric(d: (typeof STAGES)[number]) {
+  const same = (a: number[][], f: (v: number[]) => number[]) => a.every((v) => a.some((q) => q.length === v.length && f(v).every((x, k) => Math.abs(x - q[k]) < 1e-6)));
+  const mx = (v: number[]) => [1 - v[0], ...v.slice(1)];
+  return same(d.ducks, mx) && same([d.gold], mx) && same(d.boat ? [d.boat] : [], mx) && same(d.shark ? [d.shark] : [], mx) && same(d.nests, mx) && same(d.islands ?? [], mx) && same(d.drains ?? [], mx) && same(d.slicks ?? [], mx) && same(d.streams ?? [], (v) => [1 - v[2], v[1], 1 - v[0], v[3], -v[4], v[5]]);
+}
+
 export function diversity(only?: string[], full = false) {
   const SEEDS = [1000, 1007, 1014], H = 1.2, NO: Input = { tap: false, dir: 0, pointer: null };
   return STAGES.map((d, i) => {
@@ -190,7 +209,7 @@ export function diversity(only?: string[], full = false) {
       for (let k = 0; k < 20000 && s.phase === 'play'; k++) g.step(s, duckbathSmart.act(s, rng));
       return s.ok ? s.used : d.taps;
     });
-    const FLIP = SEEDS.map((seed) => g.create(seed).jit[i].flip);
+    const FLIP = SEEDS.map((seed) => g.create(seed).jit[i].flip), sym = symmetric(d);
     const water = (x: number, y: number) => !(d.islands ?? []).some(([cx, cy, r]) => Math.hypot(x - cx, y - cy) < r);
     /** 한 자리 한 시드: 3★인가 · 쓴 톡 (자르면 star3 false) */
     const one = (x: number, y: number, k: number) => {
@@ -199,7 +218,7 @@ export function diversity(only?: string[], full = false) {
       g.step(s, { tap: false, dir: 0, pointer: toPointer(FLIP[k] ? 1 - x : x, y) });
       g.step(s, NO);
       for (let f = 0; f < 20000 && s.phase === 'play'; f++) {
-        if (s.goldLost || s.pen > 0 || s.used > cap) return { star3: false, used: s.used };
+        if (s.pen > 0 || s.used > cap) return { star3: false, used: s.used }; // D009: goldLost는 켜지는 길이 없어 지움(🧪 D008)
         g.step(s, d.par === 1 ? NO : duckbathSmart.act(s, rng));
         if (d.par === 1 && f > 700) break;
       }
@@ -238,13 +257,15 @@ export function diversity(only?: string[], full = false) {
     const groups = (cells: { gx: number; gy: number }[]) => {
       const par = cells.map((_, k) => k), find = (k: number): number => (par[k] === k ? k : (par[k] = find(par[k])));
       for (let a = 0; a < cells.length; a++) for (let b = a + 1; b < cells.length; b++) if (dist(cells[a], cells[b]) < 0.15 - 1e-9) par[find(a)] = find(b);
+      // FUN v1.8 ③: 대칭 판이면 칸의 거울(gx → 19 − gx)이 든 무리와 하나로 — 게임이 판을 뒤집으니 거울 해는 같은 해
+      if (sym) cells.forEach((c, a) => { const b = cells.findIndex((q) => q.gx === 19 - c.gx && q.gy === c.gy); if (b >= 0) par[find(a)] = find(b); });
       const size = new Map<number, number>();
       cells.forEach((_, k) => size.set(find(k), (size.get(find(k)) ?? 0) + 1));
       const sizes = [...size.values()].filter((n) => n >= 3).sort((a, b) => b - a);
       return { sizes, count: sizes.reduce((a, n) => a + (n >= 0.25 * waterN ? 2 : 1), 0), top: sizes.length ? r2(sizes[0] / waterN) : 0 };
     };
     const cur = groups(fine.filter((c) => c.sol)), old = groups(fine.filter((c) => c.old));
-    return { id: d.id, par: d.par, T, flip: FLIP.map((f) => (f ? 'F' : '-')).join(''), exact, coarse: coarse.length, refined: fine.length, runs, water: waterN, solCells: fine.filter((c) => c.sol).length, D1: cur.count, sizes: cur.sizes, top: cur.top, oldD1: old.count, oldSizes: old.sizes, sec: r2((performance.now() - t0) / 1000) };
+    return { id: d.id, par: d.par, sym, T, flip: FLIP.map((f) => (f ? 'F' : '-')).join(''), exact, coarse: coarse.length, refined: fine.length, runs, water: waterN, solCells: fine.filter((c) => c.sol).length, D1: cur.count, sizes: cur.sizes, top: cur.top, oldD1: old.count, oldSizes: old.sizes, sec: r2((performance.now() - t0) / 1000) };
   });
 }
 
@@ -255,7 +276,7 @@ if (import.meta.url === `file://${process.argv[1]}` && d1Arg) {
   mkdirSync(join(import.meta.dirname, 'reports'), { recursive: true });
   writeFileSync(join(import.meta.dirname, 'reports/funqa-d1' + (process.argv.includes('--full') ? '-full' : '') + '.json'), JSON.stringify({ at: new Date().toISOString(), D1: res }, null, 2) + '\n');
   console.log('D1 정답 다양성 (FUN v1.6) — 판 | par | T*(시드 3) · 뒤집힘 | 거친 3★ | 정밀 칸/물(전수면 =) | 해 칸 | D1 | 무리 칸 수 | 가장 큰 몫 | 옛 자(3★만) D1 · 무리 | 초');
-  for (const r of res) if (r) console.log(`${r.id} | ${r.par} | ${r.T.join('·')} · ${r.flip} | ${r.coarse} | ${r.refined}/${r.water}${r.exact ? '=' : ''} | ${r.solCells} | ${r.D1}${r.D1 >= 2 ? ' ✓' : ' ✗'} | ${r.sizes.join('·') || '-'} | ${r.top} | ${r.oldD1} · ${r.oldSizes.join('·') || '-'} | ${r.sec}`);
+  for (const r of res) if (r) console.log(`${r.id}${r.sym ? '(대칭)' : ''} | ${r.par} | ${r.T.join('·')} · ${r.flip} | ${r.coarse} | ${r.refined}/${r.water}${r.exact ? '=' : ''} | ${r.solCells} | ${r.D1}${r.D1 >= 2 ? ' ✓' : ' ✗'} | ${r.sizes.join('·') || '-'} | ${r.top} | ${r.oldD1} · ${r.oldSizes.join('·') || '-'} | ${r.sec}`);
   console.log(`판 ${res.length}개 · ${r2((performance.now() - t0) / 1000)}초 (30판 목표 ≤ 15분)`);
 } else if (import.meta.url === `file://${process.argv[1]}`) {
   const n = Number(process.argv.find((a) => /^\d+$/.test(a)) ?? 20), res = measure(n) as Record<string, unknown>;
@@ -276,5 +297,13 @@ if (import.meta.url === `file://${process.argv[1]}` && d1Arg) {
   console.log(`E6 캐주얼 ★황금 (황금을 맨 나중에 미는 확률별): ${Object.entries(e6).map(([k, v]) => `${k}: ${v.join(' ')}`).join('  |  ')}`);
   console.log(`H1 (세 번째 시도 클리어율 👆 따름/안 따름 → 차이): ${(res['H1'] as { stage: number; follow: number | null; none: number | null; n: number[]; gain: number | null }[]).filter((h) => h.follow !== null).map((h) => `${ID(h.stage)} ${h.follow}/${h.none} → ${h.gain} (n ${h.n.join('/')})`).join(' · ')}`);
   if (res['C4']) console.log(`C4 (par 1 판, %): ${(res['C4'] as ReturnType<typeof area>).filter((c) => c.oneTap !== null).map((c) => `${ID(c.stage)} 한 톡에 다 ${c.oneTap} · ★3 ${c.oneTap3}`).join('  |  ')}`);
+  {
+    // D009: 사람초 합 (모든 시도) — 설계는 CONTENT v0.3 §1 '사람 초'(만든 판만 더함)
+    const ds = STAGES.reduce((a, d) => ((a[d.id.split('-')[0]] = (a[d.id.split('-')[0]] ?? 0) + (DESIGN_SEC[d.id] ?? 0)), a), {} as Record<string, number>);
+    for (const k of ['캐주얼', '배우는처음'] as const) {
+      const g2 = res[k] as ReturnType<typeof group>;
+      console.log(`사람초 합(${k}, 모든 시도, 런 중앙): 전체 ${g2.allSec}초 = ${r2(g2.allSec / 60)}분 · 욕실 1·2·3 ${g2.worldSec.join(' · ')}초 | 설계(만든 판) ${['1', '2', '3'].map((w) => ds[w] ?? 0).join(' · ')}초 · 30판 설계 합 ${Object.values(DESIGN_SEC).reduce((a, b) => a + b, 0)}초(CONTENT 글의 1,515는 2욕실 합 530을 535로 적은 것)`);
+    }
+  }
   console.log(`숙련 격차(숙련÷캐주얼) ${res['숙련격차']}× (보고만) · 숙련÷처음 ${res['숙련격차_처음']}×`);
 }

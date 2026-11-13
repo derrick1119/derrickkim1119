@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { SLOTS, STAGES } from './game.ts';
 
 const { chromium } = createRequire(import.meta.url)('playwright') as { chromium: any }; // eslint-disable-line
 const here = import.meta.dirname, url = pathToFileURL(join(here, '../../web/public/studio/duckbath/index.html')).href;
@@ -13,6 +14,16 @@ mkdirSync(join(here, 'screens'), { recursive: true });
 const browser = await chromium.launch();
 const errors: string[] = [];
 const st = (page: any) => page.evaluate(() => { const s = (globalThis as any).__duck.state(); return { t: s.t, used: s.used, stage: s.stage, running: (globalThis as any).__duck.running() }; });
+const crisisShot = async (page: any, file: string, label: string) => {
+  // D009 황금 꼴찌 위기(ART 12장): 1-1에서 보통 오리 한 마리만 남기고 둥지에 → 주황 고리·왕관·말풍선 '나 먼저!'와 칩 '👑 꼴찌 될라!'
+  await page.evaluate(() => (globalThis as any).__duck.jump(0));
+  await page.waitForTimeout(300);
+  await page.evaluate(() => { const s = (globalThis as any).__duck.state(); s.objs.filter((o: any) => o.k === 0).slice(1).forEach((o: any) => (o.st = 0)); });
+  await page.waitForTimeout(450);
+  const cr = await page.evaluate(() => (globalThis as any).__duck.state().crisisT);
+  await page.screenshot({ path: join(here, 'screens', file) });
+  if (!(cr >= 0)) errors.push(`${label}: 황금 꼴찌 위기가 안 켜짐 (crisisT ${cr})`);
+};
 for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', { width: 1280, height: 800 }]] as const) {
   // D001 FUN QA: 모바일은 터치 기기로 흉내 내야 시작 카드가 터치 안내를 보인다
   const page = await browser.newPage({ viewport: vp, deviceScaleFactor: 1, ...(name === 'mobile' ? { hasTouch: true, isMobile: true } : {}) });
@@ -77,6 +88,7 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.waitForTimeout(900);
   await page.screenshot({ path: join(here, 'screens', `${name}-hint.png`) });
   void D;
+  await crisisShot(page, `${name}-crisis.png`, name);
   // D005 판 고르기: 1판을 깼으니 2판까지 열려 있다 → 2판 누르면 2판 시작
   await page.evaluate(() => (globalThis as any).__duck.levels());
   await page.waitForTimeout(300);
@@ -134,8 +146,10 @@ const mig = await mp.evaluate(() => ({
   hscroll: document.documentElement.scrollWidth > innerWidth,
   saved: JSON.parse(localStorage.getItem('duckbath.v1') ?? '{}').ver,
 }));
-if (mig.worlds !== 3 || mig.tiles !== 20) errors.push(`migrate: 욕실 3개 · 만든 판이 있는 줄만 4줄(20칸)이 아님 ${JSON.stringify(mig)}`);
-if (mig.open !== 8 || !mig.soap.includes('★★☆') || mig.saved !== 2) errors.push(`migrate: 옛 저장 이전이 틀림 ${JSON.stringify(mig)}`);
+// 만든 판이 있는 줄(5칸)만 보인다 — 판이 늘면 기대값도 판 데이터에서 (D009)
+const rowsShown = [1, 2, 3].reduce((a, w) => a + [0, 5].filter((r) => STAGES.some((d) => { const [dw, k] = d.id.split('-').map(Number); return dw === w && k > r && k <= r + 5; })).length, 0) * 5;
+if (mig.worlds !== 3 || mig.tiles !== rowsShown) errors.push(`migrate: 욕실 3개 · 만든 판이 있는 줄만 ${rowsShown}칸이 아님 ${JSON.stringify(mig)} (SLOTS ${SLOTS})`);
+if (mig.open !== STAGES.length || !mig.soap.includes('★★☆') || mig.saved !== 2) errors.push(`migrate: 옛 저장 이전이 틀림 ${JSON.stringify(mig)}`);
 if (mig.hscroll) errors.push('migrate: 판 고르기 가로 스크롤');
 await mp.evaluate(() => document.querySelector('.levels')!.scrollTo(0, 9999));
 await mp.waitForTimeout(150);
@@ -147,6 +161,15 @@ await mp.keyboard.press('ArrowDown');
 const kf = await mp.evaluate(() => (document.activeElement as HTMLElement)?.getAttribute('aria-label') ?? '');
 if (!kf.startsWith('할머니 댁 욕조 2-1')) errors.push(`migrate: 아래 화살표가 다음 욕실로 안 감 (${kf})`);
 await mctx.close();
+// D009 동작 줄이기(prefers-reduced-motion): 왕관 회전 0 · 고리 알파 고정 (ART 12장 ④)
+const rctx = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+const rp = await rctx.newPage();
+rp.on('pageerror', (e: Error) => errors.push(`calm: ${e.message}`));
+await rp.goto(url);
+await rp.waitForTimeout(300);
+if (!(await rp.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches))) errors.push('calm: reduced-motion 흉내가 안 됨');
+await crisisShot(rp, 'mobile-crisis-calm.png', 'calm');
+await rctx.close();
 // localStorage가 막힌 환경에서도 시작된다
 const ctx = await browser.newContext();
 await ctx.addInitScript(() => Object.defineProperty(window, 'localStorage', { get() { throw new Error('blocked'); } }));
