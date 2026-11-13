@@ -64,6 +64,8 @@ interface StageDef {
   slicks?: number[][];
   taps: number;
   par: number;
+  /** 실패 카드 팁(없으면 hint). 1판 hint는 별 조건이라 실패 이유가 아니다 (🧪 D005) */
+  failHint?: string;
   /** 판 시작 카드에 띄우는 '이 판의 질문' 한 줄 (CONTENT §1, D002) */
   ask?: string;
   /** 판별 배수구 끌림 반지름·세기 (없으면 PULL_R·PULL, CONTENT §1 3판) */
@@ -74,7 +76,7 @@ interface StageDef {
 /** 판(목욕) 8개. 좌표는 뒤집기 전 — 판마다 시드로 좌우를 뒤집고 오리 자리를 살짝 흔든다 */
 export const STAGES: StageDef[] = [
   {
-    key: '', news: '', hint: '황금 오리는 마지막 오리보다 먼저 넣어야 ★',
+    key: '', news: '', hint: '황금 오리는 마지막 오리보다 먼저 넣어야 ★', failHint: '오리 무리 한가운데를 톡 — 사방으로 밀려 나가요',
     ducks: [[0.5, 0.42, 0], [0.62, 0.6, 0], [0.38, 0.6, 0]], gold: [0.5, 0.78],
     nests: [[0.5, 0.12, 0.2, -1], [0.88, 0.6, 0.2, -1], [0.12, 0.6, 0.2, -1], [0.5, 1.08, 0.2, -1], [0.1, 0.1, 0.15, -1, 0, 1], [0.9, 0.1, 0.15, -1, 0, 1], [0.1, 1.1, 0.15, -1, 0, 1], [0.9, 1.1, 0.15, -1, 0, 1]],
     taps: 12, par: 1, ask: '가운데를 톡! 한 번에 몇 마리?', // D002 CONTENT §1: 톡 9→12 (첫 판은 거의 못 진다)
@@ -518,7 +520,7 @@ export function failText(s: DuckState): { kind: 'suck' | 'chomp' | 'taps'; title
   const pen = s.sucks + s.chomps, big = s.used > 0 && pen / s.used >= 0.25; // 🧪 D005: '2톡 이상' 조항은 8판(톡 12)에서 틀린 제목을 만들어 뺐다
   if (big && s.sucks >= s.chomps) return { kind: 'suck', title: '꼬르륵~ 톡이 배수구로 샜어요', tip: '빙글 원 안으로는 밀지 말기' };
   if (big) return { kind: 'chomp', title: '냠! 상어 간식인 줄 알았대요', tip: '물결을 맞히면 상어가 어질어질' };
-  return { kind: 'taps', title: '톡이 바닥! 오리들 아직 둥둥~', tip: STAGES[s.stage].hint };
+  return { kind: 'taps', title: '톡이 바닥! 오리들 아직 둥둥~', tip: STAGES[s.stage].failHint ?? STAGES[s.stage].hint };
 }
 
 /**
@@ -576,6 +578,9 @@ function endStage(s: DuckState, ok: boolean, why: string) {
     s.stageTries++;
     s.tries++;
     ev(s, 'fail', 0.5, 0.6, why);
+    // D006 (S4): 실패하는 순간 고양이가 웃는다 — 실패는 벌이 아니라 웃음
+    s.catT = s.t;
+    ev(s, 'cat', CAT.x - 0.04, -0.03, ['냐하하!', '꽥?! 냥~', '냐핫!'][s.tries % 3]);
   }
 }
 
@@ -2363,7 +2368,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     const first = s.stage === 0 && !s.firstTap && s.phase === 'play';
     if (first) hint = '👆 오리들 한가운데 물을 톡! 찰박 물결이 밀어 줘요';
     else if (s.down && s.phase === 'play') hint = s.taps > 0 ? '떼면 찰박! 점선 = 오리가 갈 길' : '톡을 다 썼어요';
-    else if (s.phase === 'result') hint = s.ok ? (s.won ? '모든 목욕 끝! 오리들이 뽀득뽀득' : `★ ${s.got}개! 다음 목욕엔 새것이 나와요`) : '꾹 누르면 오리가 갈 길이 보여요';
+    else if (s.phase === 'result') hint = s.ok ? (s.won ? '모든 목욕 끝! 오리들이 뽀득뽀득' : `★ ${s.got}개! 다음 목욕엔 새것이 나와요`) : s.manual ? '' : '꾹 누르면 오리가 갈 길이 보여요'; // D006: 실패 카드가 팁을 말하는 동안 HUD 팁은 숨김(S7)
     else if (s.stage === 0) hint = '꾹 누르고 있으면 오리가 갈 길이 점선으로 보여요';
     ctx.textAlign = 'center';
     ctx.fillStyle = first ? '#ffffff' : '#ffe9a8';

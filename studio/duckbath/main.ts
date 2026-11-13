@@ -244,5 +244,7 @@ overlay.addEventListener('keydown', (e) => {
 size();
 // 규칙 2줄(GDD §2)은 머리 대신 시작 카드에 (ART 10장 ①·⑤ 1차)
 const touchFirst = !matchMedia('(hover:hover) and (pointer:fine)').matches;
-show(`<b>🦆 목욕 시작</b><span>물을 톡! 찰박 물결이 오리를 둥지로</span><span>${touchFirst ? '👆 꾹 누르면 갈 길 · 떼면 찰박!' : '⌨️ 화살표 · 스페이스 꾹 → 떼면 찰박'}</span>`);
+// D006: 다녀간 사람은 판 고르기가 바로 — 한 번 눌러 시작
+if (save.data.open > 1 || save.data.best[0]) showLevels(false);
+else show(`<b>🦆 목욕 시작</b><span>물을 톡! 찰박 물결이 오리를 둥지로</span><span>${touchFirst ? '👆 꾹 누르면 갈 길 · 떼면 찰박!' : '⌨️ 화살표 · 스페이스 꾹 → 떼면 찰박'}</span>`);
 new ResizeObserver(size).observe(root);

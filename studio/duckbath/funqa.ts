@@ -11,7 +11,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mulberry32 } from '../../engine/rng.ts';
 import type { Bot, Input } from './core.ts';
-import { STAGES, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, failText, makeCasual, startStage, type DuckState } from './game.ts';
+import { STAGES, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, failText, hintPoint, makeCasual, startStage, type DuckState } from './game.ts';
 
 /** 한 판에서 다시 하기 허용 횟수 (첫 시도 + 3번) */
 export const RETRY = 3;
@@ -21,12 +21,22 @@ export const RETRY_LEARN = 30;
 export interface StageLog { stage: number; ok: boolean; sec: number; taps: number; stars: number; why: string; tapStar: boolean; goldStar: boolean; sucks: number; chomps: number; failKind?: string }
 export interface Run { stages: StageLog[]; score: number; sec: number; reached: number; won: boolean; gaveUp: number; firstTapNest: number }
 
-/** 배우는 처음 봇 (FUN N2): 판 시도마다 캐주얼식으로 칠 확률 0.25 → 0.5 → 0.75, 아니면 무작위 */
-export function makeLearner(): Bot<DuckState> {
-  const mem = new WeakMap<object, { key: string; cas: boolean }>();
+/**
+ * 배우는 처음 봇 (FUN N2): 판 시도마다 캐주얼식으로 칠 확률 0.25 → 0.5 → 0.75, 아니면 무작위.
+ * follow > 0 (D006, FUN v1.4 H1): 👆 힌트가 뜬 시도의 첫 톡은 그 확률로 손가락 자리를 친다(사람이 힌트를 따르는 것처럼).
+ */
+export function makeLearner(follow = 0): Bot<DuckState> {
+  const mem = new WeakMap<object, { key: string; cas: boolean }>(), fol = new WeakMap<object, { key: string; on: boolean }>();
   return {
-    name: '배우는 처음',
+    name: follow ? `배우는 처음(👆 따름 ${follow})` : '배우는 처음',
     act(s, rng): Input {
+      if (follow && s.phase === 'play' && s.used === 0 && s.stageTries >= 2) {
+        const fk = `${s.stage}:${s.tries}`;
+        let f = fol.get(s);
+        if (!f || f.key !== fk) fol.set(s, (f = { key: fk, on: rng() < follow }));
+        const hp = f.on ? hintPoint(s) : null;
+        if (hp) return s.down || s.t - s.lastTap < 40 ? { tap: false, dir: 0, pointer: null } : { tap: false, dir: 0, pointer: hp };
+      }
       const key = `${s.stage}:${s.tries}:${s.used}`;
       let m = mem.get(s);
       if (!m || m.key !== key) mem.set(s, (m = { key, cas: rng() < [0.25, 0.5, 0.75][Math.min(2, s.stageTries)] }));
@@ -34,6 +44,8 @@ export function makeLearner(): Bot<DuckState> {
     },
   };
 }
+/** 판정 배우는 봇은 👆를 0.75로 따른다 (FUN v1.4: C5·W1은 힌트를 따르는 봇으로 판정, 힌트 없는 값은 보고만) */
+export const FOLLOW = 0.75;
 
 /** 봇 한 판(8판을 마치거나 한 판에서 retry번 넘게 실패할 때까지). 판이 끝날 때마다 기록 */
 export function play(bot: Bot<DuckState>, seed: number, maxSec = 900, retry = RETRY): Run {
@@ -76,6 +88,7 @@ function group(bot: Bot<DuckState>, n: number, retry: number) {
       medSec: r2(med(oks.map((l) => l.sec))), humanSec: r2(med(oks.map((l) => l.sec + 3 * l.taps))), medTaps: med(oks.map((l) => l.taps)),
       stars: r2(oks.reduce((a, l) => a + l.stars, 0) / Math.max(1, oks.length)),
       tapStar: rate(oks.map((l) => l.tapStar)), goldStar: rate(oks.map((l) => l.goldStar)), // E6 (클리어한 시도 중)
+      try3: rate(byRun.filter((B) => B.length > 2).map((B) => B[2].ok)), // H1: 세 번째 시도(👆가 뜨는 시도) 클리어율
       fails: L.filter((l) => !l.ok).length, pen: r2(L.reduce((a, l) => a + l.sucks + l.chomps, 0) / Math.max(1, L.length)),
       slack: d.taps - d.par, slackRatio: r2(d.taps / d.par), // W2
     };
@@ -96,12 +109,19 @@ function group(bot: Bot<DuckState>, n: number, retry: number) {
 
 export function measure(n = 20) {
   const out: Record<string, unknown> = {
-    숙련: group(duckbathSmart, n, RETRY), 캐주얼: group(duckbathCasual, n, RETRY), 처음: group(duckbathRandom, n, RETRY), 배우는처음: group(makeLearner(), n, RETRY_LEARN),
+    숙련: group(duckbathSmart, n, RETRY), 캐주얼: group(duckbathCasual, n, RETRY), 처음: group(duckbathRandom, n, RETRY), 배우는처음: group(makeLearner(FOLLOW), n, RETRY_LEARN),
+    // 옛 자(👆 안 따름) — 자 교체 규칙(FUN v1.4)으로 같이 낸다, H1의 비교군
+    배우는처음_힌트없음: group(makeLearner(0), n, RETRY_LEARN),
   };
   // E6 황금 정책 범위: 캐주얼이 황금 오리를 맨 나중에 미는 확률 0 · 0.5 · 0.75 → 판별 ★황금
   // FUN v1.3: 판정은 황금 정책 50%(= 기본 캐주얼 봇). 0%·75%는 보고만
   out['E6황금'] = Object.fromEntries([0, 0.75].map((gl) => [String(gl), group(makeCasual(gl), n, RETRY).stages.map((p) => p.goldStar)]));
   (out['E6황금'] as Record<string, unknown>)['0.5(판정)'] = (out['캐주얼'] as ReturnType<typeof group>).stages.map((p) => p.goldStar);
+  // H1 (FUN v1.4): 판별 세 번째 시도 클리어율 — 👆 따름 − 안 따름 ≤ 0.35, 따름 < 0.85
+  {
+    const a = (out['배우는처음'] as ReturnType<typeof group>).stages, b = (out['배우는처음_힌트없음'] as ReturnType<typeof group>).stages;
+    out['H1'] = a.map((p, i) => ({ stage: i + 1, follow: p.try3, none: b[i].try3, gain: p.try3 !== null && b[i].try3 !== null ? r2(p.try3 - b[i].try3) : null }));
+  }
   // W2 (D003): par가 사람 기준이 됐으니 여유는 '톡 ÷ 숙련 봇 톡 수'로 잰다 (판 사이 꺾임이 벽)
   out['W2'] = STAGES.map((d, i) => r2(d.taps / Math.max(1, (out['숙련'] as ReturnType<typeof group>).stages[i].medTaps)));
   const sk = out['숙련'] as { medScore: number }, cs = out['캐주얼'] as { medScore: number }, nv = out['처음'] as { medScore: number };
@@ -142,9 +162,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (process.argv.includes('--area')) res['C4'] = area();
   mkdirSync(join(import.meta.dirname, 'reports'), { recursive: true });
   writeFileSync(join(import.meta.dirname, 'reports/funqa.json'), JSON.stringify({ at: new Date().toISOString(), ...res }, null, 2) + '\n');
-  for (const k of ['숙련', '캐주얼', '처음', '배우는처음'] as const) {
+  for (const k of ['숙련', '캐주얼', '처음', '배우는처음', '배우는처음_힌트없음'] as const) {
     const g2 = res[k] as ReturnType<typeof group>;
-    console.log(`\n[${k}] 다시 한도 ${g2.retry} · 점수 중앙 ${g2.medScore} · 런 전체 ${g2.medSec}초 · 완주 ${g2.winRate} · 도달 판 중앙 ${g2.medReached} · 첫 톡 3초 뒤 둥지 ${g2.firstTapNest}마리 · W1 ${g2.W1.share}(${g2.W1.stage}판)${k === '배우는처음' ? ' ← W1 판정(FUN v1.2)' : ' (보고만)'} · N4(v1.4 문턱 일치 — 판정 아님, v1.5 환급 반사실은 미측정) ${g2.N4}`);
+    console.log(`\n[${k}] 다시 한도 ${g2.retry} · 점수 중앙 ${g2.medScore} · 런 전체 ${g2.medSec}초 · 완주 ${g2.winRate} · 도달 판 중앙 ${g2.medReached} · 첫 톡 3초 뒤 둥지 ${g2.firstTapNest}마리 · W1 ${g2.W1.share}(${g2.W1.stage}판)${k === '배우는처음' ? ' ← C5·W1 판정(👆 0.75 따름, FUN v1.4)' : k === '배우는처음_힌트없음' ? ' (옛 자 — 보고만)' : ' (보고만)'} · N4(v1.4 문턱 일치 — 판정 아님, v1.5 환급 반사실은 미측정) ${g2.N4}`);
     console.log(`  실패 이유: ${g2.failWhy.map(([w, c]) => `${w} ${c}`).join(' · ') || '없음'}`);
     console.log('판 | 도전 | 클리어 | 첫 시도 | 다시 중앙/p90 | 사람초 | 톡 | 별 | ★톡 | ★황금 | 시도당 쏙꿀꺽');
     for (const st of g2.stages) console.log(`${st.stage} | ${st.tried} | ${st.clearRate} | ${st.firstTry} | ${st.retryMed}/${st.retryP90} | ${st.humanSec} | ${st.medTaps} | ${st.stars} | ${st.tapStar} | ${st.goldStar} | ${st.pen}`);
@@ -153,6 +173,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   console.log(`\nW2 톡÷숙련 톡: ${(res['W2'] as number[]).join(' · ')}  |  (참고) 톡−par: ${s0.map((p) => p.slack).join(' · ')}`);
   const e6 = res['E6황금'] as Record<string, (number | null)[]>;
   console.log(`E6 캐주얼 ★황금 (황금을 맨 나중에 미는 확률별): ${Object.entries(e6).map(([k, v]) => `${k}: ${v.join(' ')}`).join('  |  ')}`);
+  console.log(`H1 (세 번째 시도 클리어율 👆 따름/안 따름 → 차이): ${(res['H1'] as { stage: number; follow: number | null; none: number | null; gain: number | null }[]).filter((h) => h.follow !== null).map((h) => `${h.stage}판 ${h.follow}/${h.none} → ${h.gain}`).join(' · ')}`);
   if (res['C4']) console.log(`C4 (par 1 판, %): ${(res['C4'] as ReturnType<typeof area>).filter((c) => c.oneTap !== null).map((c) => `${c.stage}판 한 톡에 다 ${c.oneTap} · ★3 ${c.oneTap3}`).join('  |  ')}`);
   console.log(`숙련 격차(숙련÷캐주얼) ${res['숙련격차']}× (보고만) · 숙련÷처음 ${res['숙련격차_처음']}×`);
 }

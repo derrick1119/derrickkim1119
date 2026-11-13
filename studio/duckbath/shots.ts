@@ -45,6 +45,9 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.waitForTimeout(500);
   await page.screenshot({ path: join(here, 'screens', `${name}-stars.png`) });
   if (!(await page.locator('.card.win').count())) errors.push(`${name}: 1판 가운데 톡이 결과 카드가 아님`);
+  // D006 QC: 카드 버튼은 엄지로 눌린다(≥ 44px)
+  const small = await page.evaluate(() => [...document.querySelectorAll('.card button')].map((b) => b.getBoundingClientRect()).filter((r) => r.height < 44 || r.width < 44).length);
+  if (small) errors.push(`${name}: 결과 카드 버튼 ${small}개가 44px보다 작음`);
   const ch = (await page.locator('.card').boundingBox())?.height ?? 0;
   if (ch > 190) errors.push(`${name}: 결과 카드 높이 ${Math.round(ch)}px > 190 (🧪 D005 차단)`);
   else {
@@ -76,6 +79,8 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.evaluate(() => (globalThis as any).__duck.levels());
   await page.waitForTimeout(300);
   await page.screenshot({ path: join(here, 'screens', `${name}-levels.png`) });
+  const smallLv = await page.evaluate(() => [...document.querySelectorAll('.lv')].filter((b) => b.getBoundingClientRect().height < 44).length);
+  if (smallLv) errors.push(`${name}: 판 칸 ${smallLv}개가 44px보다 작음`);
   const opened = await page.locator('.lv:not([disabled])').count();
   if (opened < 2) errors.push(`${name}: 1판을 깼는데 2판이 안 열림 (${opened})`);
   else {
@@ -87,10 +92,13 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   // 키보드만: 새로 열어 Enter로 시작 → 화살표로 커서 → 스페이스 꾹·떼기
   await page.goto(url);
   await page.waitForTimeout(300);
-  await page.focus('.g-overlay');
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
-  // D005: 다녀간 사람은 판 고르기가 먼저 — 포커스된 판(다음 판)을 Enter로
+  // D006: 다녀간 사람은 시작 카드 없이 판 고르기가 바로 뜬다
+  if (await page.locator('.g-overlay:not([hidden])').count()) {
+    await page.focus('.g-overlay');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(300);
+  }
+  // D005: 판 고르기 — 포커스된 판(다음 판)을 Enter로
   if (await page.locator('.levels:not([hidden])').count()) {
     await page.keyboard.press('Enter');
     await page.waitForTimeout(300);
