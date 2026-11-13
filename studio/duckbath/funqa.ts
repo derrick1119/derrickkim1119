@@ -121,6 +121,49 @@ export function firstInDirect(bot: Bot<DuckState>, i: number, n: number, seed0 =
   return Math.round((hit / n) * 100) / 100;
 }
 
+/** D013 → D014 (FUN v1.13 a): 판 하나를 바로 시작해 n번 — 첫 시도 클리어 · 클리어 시도의 톡·★톡 · 💤 '첫 톡에 깸'(둘째 톡 전에 잠꾸러기가 하나라도 깸) */
+export function stageDirect(bot: Bot<DuckState>, i: number, n: number, retry = RETRY, seed0 = 1000) {
+  let first = 0, wake1 = 0, zzRuns = 0;
+  const taps: number[] = [], star: boolean[] = [];
+  for (let k = 0; k < n; k++) {
+    const seed = seed0 + 7 * k, s = g.create(seed);
+    let h = 0x811c9dc5;
+    for (const c of STAGES[i].id) h = Math.imul(h ^ c.charCodeAt(0), 0x01000193);
+    const rng = mulberry32((seed ^ h ^ 0x9e3779b9) >>> 0);
+    startStage(s, i);
+    const zz0 = s.objs.filter((o) => o.zz).length;
+    let tries = 0, phase = s.phase, woke: boolean | null = null;
+    if (zz0) zzRuns++;
+    for (let f = 0; f < 60 * 600; f++) {
+      g.step(s, bot.act(s, rng));
+      if (zz0 && woke === null && tries === 0 && s.phase === 'play' && s.used >= 2) woke = false;
+      if (zz0 && woke === null && tries === 0 && s.used === 1 && s.objs.filter((o) => o.zz).length < zz0) woke = true;
+      if (phase === 'play' && s.phase === 'result') {
+        if (tries === 0 && s.ok) first++;
+        if (s.ok) (taps.push(s.used), star.push(s.starOk[1]));
+        if (s.ok || ++tries > retry || s.stage !== i) break;
+      }
+      phase = s.phase;
+    }
+    if (woke) wake1++;
+  }
+  return { first: r2(first / n), taps: med(taps), tapsMean: r2(taps.reduce((a, b) => a + b, 0) / Math.max(1, taps.length)), tapStar: rate(star), wake1: zzRuns ? r2(wake1 / zzRuns) : null };
+}
+/** FUN v1.13 a: 새것 끔 반사실 — 판 데이터에서 💤(잠꾸러기)·🦈(상어)만 끈 같은 판과 비교. 숙련 톡 차 ≥ +.5 또는 캐주얼 ★톡 차 ≤ −.1이면 새것이 판단을 만든다 */
+export function counterfactual(i: number, n: number) {
+  const d = STAGES[i], has = { zz: d.ducks.some((x) => x[3]), shark: !!d.shark };
+  if (!has.zz && !has.shark) return null;
+  const on = { sk: stageDirect(duckbathSmart, i, n), ca: stageDirect(duckbathCasual, i, n) };
+  const keep = { ducks: d.ducks, shark: d.shark };
+  d.ducks = d.ducks.map((x) => x.slice(0, 3));
+  delete d.shark;
+  const off = { sk: stageDirect(duckbathSmart, i, n), ca: stageDirect(duckbathCasual, i, n) };
+  d.ducks = keep.ducks;
+  if (keep.shark) d.shark = keep.shark;
+  const dTaps = r2(on.sk.tapsMean - off.sk.tapsMean), dStar = on.ca.tapStar !== null && off.ca.tapStar !== null ? r2(on.ca.tapStar - off.ca.tapStar) : null;
+  return { id: d.id, what: has.zz ? '💤' : '🦈', on, off, dTaps, dStar, wake1: on.sk.wake1, pass: (dTaps >= 0.5 || (dStar !== null && dStar <= -0.1)) && (!has.zz || (on.sk.wake1 ?? 1) <= 0.5) };
+}
+
 const med = (xs: number[]) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] : NaN);
 const pct = (xs: number[], p: number) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.min(xs.length - 1, Math.floor(xs.length * p))] : NaN);
 const r2 = (x: number) => Math.round(x * 100) / 100;
@@ -158,6 +201,8 @@ export function group(bot: Bot<DuckState>, n: number, retry: number, seed0 = 100
   // D013 (FUN v1.12 a) N6: 런 전체에서 같은 실패 제목을 본 최대 횟수 → p90 · 판을 넘은 첫 제목 반복(실패가 있는 판의 첫 실패 제목 = 바로 앞 실패 판의 첫 실패 제목)
   const title = (l: StageLog) => (l.failCard ?? '').split('|')[0];
   const n6max = pct(runs.map((r) => { const c: Record<string, number> = {}; for (const l of r.stages) if (!l.ok) c[title(l)] = (c[title(l)] ?? 0) + 1; return Math.max(0, ...Object.values(c)); }), 0.9);
+  // v1.13 d: 실패 6번 창 안 같은 제목 최대 → p90
+  const n6win = pct(runs.map((r) => { const t = r.stages.filter((l) => !l.ok).map(title); let best = 0; for (let a = 0; a < t.length; a++) { const c: Record<string, number> = {}; for (const x of t.slice(a, a + 6)) best = Math.max(best, (c[x] = (c[x] ?? 0) + 1)); } return best; }), 0.9);
   const n6cross = rate(runs.flatMap((r) => { const firsts: string[] = []; let last = -1; for (const l of r.stages) if (!l.ok && l.stage !== last) (last = l.stage), firsts.push(title(l)); else if (l.ok) last = l.stage; return firsts.slice(1).map((t, i) => t === firsts[i]); }));
   const fails = per.map((p) => p.fails), totalFails = fails.reduce((a, b) => a + b, 0);
   const worst = fails.indexOf(Math.max(...fails));
@@ -169,7 +214,7 @@ export function group(bot: Bot<DuckState>, n: number, retry: number, seed0 = 100
   const allSec = med(runs.map((r) => r.stages.reduce((a, l) => a + human(l), 0)));
   const worldSec = ['1', '2', '3'].map((w) => r2(med(runs.map((r) => r.stages.filter((l) => world(l) === w).reduce((a, l) => a + human(l), 0)))));
   return {
-    allSec: r2(allSec), worldSec, n6max, n6cross,
+    allSec: r2(allSec), worldSec, n6max, n6cross, n6win,
     N4, runs: n, retry, medScore: med(runs.map((r) => r.score)), medSec: r2(med(runs.map((r) => r.sec))), winRate: r2(runs.filter((r) => r.won).length / n),
     medReached: med(runs.map((r) => r.reached)), firstTapNest: med(runs.map((r) => r.firstTapNest)),
     failWhy: Object.entries(runs.flatMap((r) => r.stages.filter((l) => !l.ok)).reduce<Record<string, number>>((a, l) => ((a[l.why] = (a[l.why] ?? 0) + 1), a), {})),
@@ -186,7 +231,7 @@ export function measure(n = 20) {
   };
   // E6 황금 정책 범위: 캐주얼이 황금 오리를 맨 나중에 미는 확률 0 · 0.5 · 0.75 → 판별 ★황금
   // FUN v1.3: 판정은 황금 정책 50%(= 기본 캐주얼 봇). 0%·75%는 보고만
-  out['E6황금'] = Object.fromEntries([0, 0.75].map((gl) => [String(gl), group(makeCasual(gl), n, RETRY).stages.map((p) => p.goldStar)]));
+  out['E6황금'] = Object.fromEntries([0, 0.75, 1].map((gl) => [String(gl), group(makeCasual(gl), n, RETRY).stages.map((p) => p.goldStar)]));
   (out['E6황금'] as Record<string, unknown>)['0.5(판정)'] = (out['캐주얼'] as ReturnType<typeof group>).stages.map((p) => p.goldStar);
   // P1 (D007, M2): 미리 보기 봇 k=3·10 — 판별 첫 시도·★톡 (숙련 봇과 가까울수록 '미리 보기로 다 풀린다')
   out['미리보기3'] = group(makePreviewer(3), n, RETRY);
@@ -200,6 +245,8 @@ export function measure(n = 20) {
   out['W2'] = STAGES.map((d, i) => r2(d.taps / Math.max(1, (out['숙련'] as ReturnType<typeof group>).stages[i].medTaps)));
   const sk = out['숙련'] as { medScore: number }, cs = out['캐주얼'] as { medScore: number }, nv = out['처음'] as { medScore: number };
   // D013 (FUN v1.11 a): T1·T2 — 판마다 바로 시작해 캐주얼·무작위 n번
+  // FUN v1.13 a: 새것 끔 반사실(💤·🦈가 있는 판)
+  out['새것끔'] = STAGES.map((_, i) => counterfactual(i, n)).filter(Boolean);
   out['T1T2'] = STAGES.map((d, i) => ({ id: d.id, casual: firstInDirect(duckbathCasual, i, n), random: firstInDirect(duckbathRandom, i, n) }));
   out['숙련격차'] = r2(sk.medScore / Math.max(1, cs.medScore));
   out['숙련격차_처음'] = r2(sk.medScore / Math.max(1, nv.medScore));
@@ -360,7 +407,7 @@ if (import.meta.url === `file://${process.argv[1]}` && d1Arg) {
   mkdirSync(join(import.meta.dirname, 'reports'), { recursive: true });
   writeFileSync(join(import.meta.dirname, 'reports/funqa-d1' + (process.argv.includes('--full') ? '-full' : '') + '.json'), JSON.stringify({ at: new Date().toISOString(), D1: res }, null, 2) + '\n');
   console.log('D1 정답 다양성 (FUN v1.10 g · v1.11 d 가장 큰 몫 ≤ .6) — 판 | par | T*(출처) · 시드별 T* · 뒤집힘 | 정밀 칸/물(전수면 =) | 해 칸 | D1 · T*+1 · 연결 .10 → 판정 | 무리 칸 수 | 가장 큰 몫 | 옛 자: 시드별 T* D1 · 3★만 D1 | 초(캐시면 0)');
-  for (const r of res) if (r) console.log(`${r.id}${r.sym ? '(대칭)' : ''} | ${r.par} | ${r.T}(${r.tSrc}) · ${r.seedT.join('·')} · ${r.flip} | ${r.refined}/${r.water}${r.exact ? '=' : ''} | ${r.solCells} | ${r.D1} · ${r.D1plus} · ${r.D1link10} → ${r.pass && r.top <= 0.6 ? '✓' : r.pass ? '✗(몫 > .6, v1.11 d)' : '✗'} | ${r.sizes.join('·') || '-'} | ${r.top} | ${r.D1seedT} · ${r.oldD1} | ${r.cached ? '캐시' : r.sec}`);
+  for (const r of res) if (r) console.log(`${r.id}${r.sym ? '(대칭)' : ''} | ${r.par} | ${r.T}(${r.tSrc}) · ${r.seedT.join('·')} · ${r.flip} | ${r.refined}/${r.water}${r.exact ? '=' : ''} | ${r.solCells} | ${r.D1} · ${r.D1plus} · ${r.D1link10} → ${r.pass && r.top <= 0.6 ? '✓' : r.pass ? '✗(몫 > .6, v1.11 d)' : '✗'}${r.D1 >= 2 && r.sizes.length === 1 ? '(단일, v1.13 f)' : ''} | ${r.sizes.join('·') || '-'} | ${r.top} | ${r.D1seedT} · ${r.oldD1} | ${r.cached ? '캐시' : r.sec}`);
   console.log(`판 ${res.length}개 · ${r2((performance.now() - t0) / 1000)}초 (30판 목표 ≤ 15분)`);
 } else if (import.meta.url === `file://${process.argv[1]}`) {
   const n = Number(process.argv.find((a) => /^\d+$/.test(a)) ?? 20), res = measure(n) as Record<string, unknown>;
@@ -385,13 +432,15 @@ if (import.meta.url === `file://${process.argv[1]}` && d1Arg) {
     // D012 (FUN N6, M2 판정 후보 ≤ 2): 배우는 처음 봇 — 같은 실패 카드 연속 p90
     const ls = (res['배우는처음'] as ReturnType<typeof group>).stages;
     const lg = res['배우는처음'] as ReturnType<typeof group>;
-    console.log(`N6 (v1.12 a, 배우는 처음): 런 전체 같은 실패 제목 최대 횟수 p90 ${lg.n6max} · 판을 넘은 첫 제목 반복 ${lg.n6cross}`);
+    console.log(`N6 (v1.13 d, 배우는 처음): 실패 6번 창 같은 제목 최대 p90 ${lg.n6win} · 판을 넘은 첫 제목 반복 ${lg.n6cross} (M2 후보 ≤ 2 · ≤ .1) | 보고만: 런 전체 최대 p90 ${lg.n6max}(v1.12 a — 실패 총량)`);
     console.log(`N6 옛 자(판 안 같은 실패 카드 연속 p90 — 제목이 판 안에서 도는 구조라 늘 1, 측정 원칙 위반으로 버림): ${ls.filter((p) => !Number.isNaN(p.n6)).map((p) => `${ID(p.stage)} ${p.n6}`).join(' · ')}`);
   }
   {
     // D011 (FUN T1·T2): 판마다 '첫 톡에 둥지 입성' 비율 캐주얼 − 무작위 (소개 판 = T1, 소개 판 다음 판 = T2 — 갈래는 FUN.md)
     const cs = (res['캐주얼'] as ReturnType<typeof group>).stages, rs = (res['처음'] as ReturnType<typeof group>).stages;
     console.log(`T1/T2 옛 자(런 안 무작위 — 생존 편향): ${cs.map((c, i) => `${ID(c.stage)} ${c.firstIn !== null && rs[i].firstIn !== null ? r2(c.firstIn - rs[i].firstIn) : '-'}(${rs[i].firstIn ?? '-'})`).join(' · ')}`);
+    const cf = res['새것끔'] as NonNullable<ReturnType<typeof counterfactual>>[];
+    console.log(`새것 끔 반사실(v1.13 a, 판 바로 시작 n${n}): ${cf.map((c) => `${c.id} ${c.what} 숙련 톡 ${c.on.sk.tapsMean}→끔 ${c.off.sk.tapsMean}(차 ${c.dTaps}) · 캐주얼 ★톡 ${c.on.ca.tapStar}→끔 ${c.off.ca.tapStar}(차 ${c.dStar})${c.wake1 !== null ? ` · 숙련 첫 톡 깸 ${c.wake1}` : ''} → ${c.pass ? '✓' : '✗'}`).join(' | ')}`);
     const dir = res['T1T2'] as { id: string; casual: number; random: number }[];
     console.log(`T1/T2 (v1.11 a: 판마다 바로 시작 n${n}) 캐주얼 − 무작위(캐주얼 · 무작위): ${dir.map((d) => `${d.id} ${r2(d.casual - d.random)}(${d.casual} · ${d.random})`).join(' · ')}`);
   }
