@@ -26,7 +26,12 @@
     "stuck25": 0,
     "tries": 1
    },
-   "naiveSeesNew": null
+   "naiveSeesNew": null,
+   "shake": {
+    "smartStar3": 1,
+    "greedyFail": 0,
+    "behindPen": 0
+   }
   },
   "2": {
    "name": "미리 보기",
@@ -52,7 +57,12 @@
     "stuck25": 0,
     "tries": 1
    },
-   "naiveSeesNew": null
+   "naiveSeesNew": null,
+   "shake": {
+    "smartStar3": 0.9,
+    "greedyFail": 0,
+    "behindPen": 0
+   }
   },
   "3": {
    "name": "흩어진 양",
@@ -78,7 +88,12 @@
     "stuck25": 0,
     "tries": 1.9
    },
-   "naiveSeesNew": null
+   "naiveSeesNew": null,
+   "shake": {
+    "smartStar3": 0.5,
+    "greedyFail": 0,
+    "behindPen": 0
+   }
   },
   "4": {
    "name": "까만 양",
@@ -104,7 +119,12 @@
     "stuck25": 0,
     "tries": 1
    },
-   "naiveSeesNew": 1
+   "naiveSeesNew": 1,
+   "shake": {
+    "smartStar3": 1,
+    "greedyFail": 0,
+    "behindPen": 0
+   }
   },
   "5": {
    "name": "끌어오기",
@@ -130,7 +150,12 @@
     "stuck25": 0,
     "tries": 1.1
    },
-   "naiveSeesNew": null
+   "naiveSeesNew": null,
+   "shake": {
+    "smartStar3": 0.3,
+    "greedyFail": 0.35,
+    "behindPen": 0.23
+   }
   },
   "6": {
    "name": "개울과 다리",
@@ -156,7 +181,12 @@
     "stuck25": 0,
     "tries": 2.3
    },
-   "naiveSeesNew": 1
+   "naiveSeesNew": 1,
+   "shake": {
+    "smartStar3": 0.8,
+    "greedyFail": 0,
+    "behindPen": 0
+   }
   },
   "7": {
    "name": "좁은 다리",
@@ -182,7 +212,12 @@
     "stuck25": 0,
     "tries": 3.25
    },
-   "naiveSeesNew": null
+   "naiveSeesNew": null,
+   "shake": {
+    "smartStar3": 0.6,
+    "greedyFail": 0.45,
+    "behindPen": 0
+   }
   },
   "8": {
    "name": "아침 축제",
@@ -208,7 +243,12 @@
     "stuck25": 0,
     "tries": 3.85
    },
-   "naiveSeesNew": null
+   "naiveSeesNew": null,
+   "shake": {
+    "smartStar3": 0.4,
+    "greedyFail": 0.2,
+    "behindPen": 0
+   }
   }
  },
  "run": {

@@ -58,8 +58,25 @@ function stuck25(seed: number, stage: number) {
   for (let n = 0; n < 25; n++) if (onStage(bots.random, seed * 100 + n, stage).ok) return false;
   return true;
 }
+/**
+ * 손 떨림 ±3px (390px 화면 기준, PM C011 ④ⓑ): 봇이 짖을 자리를 한 수마다 ±3px 안에서 흔든다.
+ * 한 번 시도 결과와, 못 깼을 때 흰 양이 울타리 높이(울타리 옆·뒤)에 남았는지(끼임, 🧪 C011 1-5)
+ */
+const SHAKE_X = 3 / 390, SHAKE_Y = 3 / (390 * 1.36);
+function shaky(bot: Bot<DogState>, seed: number, stage: number) {
+  const s = g.create(seed), rng = mulberry32(seed ^ 0x3c6ef372), rr = mulberry32(seed * 7 + 11), jit = new Map<string, [number, number]>();
+  jumpTo(s, stage);
+  for (let t = 0; t < 60 * 120 && s.phase !== 'result'; t++) {
+    const a = bot.act(s, rng), key = `${s.tries}:${s.S.used}`;
+    if (a.pointer && !jit.has(key)) jit.set(key, [(rr() * 2 - 1) * SHAKE_X, (rr() * 2 - 1) * SHAKE_Y]);
+    const [dx, dy] = jit.get(key) ?? [0, 0];
+    g.step(s, a.pointer ? { ...a, pointer: { x: a.pointer.x + dx, y: a.pointer.y + dy } } : a);
+  }
+  const pen = s.F.pens[0], behind = s.F.black.some((b, i) => !b && s.S.pen[i] < 0 && !s.S.fell[i] && s.S.y[i] < pen.y1 - 0.01);
+  return { ok: s.phase === 'result' && s.ok, star3: s.phase === 'result' && s.ok && s.got === 7, behind };
+}
   const avg = (xs: number[]) => +(xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(2);
-const per: Record<string, { name: string; max: number; par: number; parGap: number; smart: { clear: number; stars: number; used: number; mask: number }; greedy: { clear: number; used: number; overPar: number }; random: { clear: number; stuck25: number }; careful: { stuck25: number; tries: number }; naiveSeesNew: number | null }> = {};
+const per: Record<string, { name: string; max: number; par: number; parGap: number; smart: { clear: number; stars: number; used: number; mask: number }; greedy: { clear: number; used: number; overPar: number }; random: { clear: number; stuck25: number }; careful: { stuck25: number; tries: number }; naiveSeesNew: number | null; shake: { smartStar3: number; greedyFail: number; behindPen: number } }> = {};
 for (let k = 0; k < STAGES.length; k++) {
   const d = STAGES[k];
   const sm = Array.from({ length: N }, (_, i) => onStage(bots.smart, 1000 + i, k));
@@ -67,6 +84,7 @@ for (let k = 0; k < STAGES.length; k++) {
   const gr = onStage(bots.greedy, 1000, k); // 판 고정이라 그리디 결과는 한 번이면 된다
   const st = Array.from({ length: Math.min(N, 10) }, (_, i) => +stuck25(2000 + i, k));
   const care = Array.from({ length: DEEP && d.key === 'fest' ? 200 : N }, (_, i) => triesToClear(bots.careful, 3000 + i, k));
+  const shS = Array.from({ length: N }, (_, i) => shaky(bots.smart, 6000 + i, k)), shG = Array.from({ length: N }, (_, i) => shaky(bots.greedy, 6000 + i, k));
   const intro = ['black', 'river'].includes(d.key) ? avg(Array.from({ length: N }, (_, i) => +experiences(bots.naive, 4000 + i, k))) : null;
   per[k + 1] = {
     name: d.name, max: d.max, par: d.par, parGap: +(d.par - Math.min(...sm.filter((r) => r.ok).map((r) => r.used))).toFixed(2),
@@ -75,6 +93,7 @@ for (let k = 0; k < STAGES.length; k++) {
     random: { clear: avg(rd.map((r) => +r.ok)), stuck25: avg(st) },
     careful: { stuck25: avg(care.map((n) => +(n === 0))), tries: care.some((n) => n) ? avg(care.filter((n) => n)) : 99 },
     naiveSeesNew: intro,
+    shake: { smartStar3: avg(shS.map((r) => +r.star3)), greedyFail: avg(shG.map((r) => +!r.ok)), behindPen: avg([...shS, ...shG].map((r) => +r.behind)) },
   };
 }
 const full = (bot: Bot<DogState>) => Array.from({ length: N }, (_, i) => runBot(g, bot, 5000 + i, 60 * 60 * 15, 1).score);
@@ -86,5 +105,5 @@ const report = {
 };
 mkdirSync(join(here, 'reports'), { recursive: true });
 writeFileSync(join(here, 'reports', 'funqa.json'), JSON.stringify(report, null, 1) + '\n');
-console.table(Object.entries(per).map(([k, v]) => ({ 판: k, 이름: v.name, 'par/max': `${v.par}/${v.max}`, 'par여유': v.parGap, 박사별: v.smart.stars, 박사멍멍: v.smart.used, 그리디: v.greedy.clear ? `${v.greedy.used}(par${v.greedy.overPar >= 0 ? '+' : ''}${v.greedy.overPar})` : '못 깸', 아무데나통과: v.random.clear, '조심 25번 막힘': v.careful.stuck25, '조심 평균 시도': v.careful.tries, '순진 새것 겪기': v.naiveSeesNew ?? '' })));
+console.table(Object.entries(per).map(([k, v]) => ({ 판: k, 이름: v.name, 'par/max': `${v.par}/${v.max}`, 'par여유': v.parGap, 박사별: v.smart.stars, 박사멍멍: v.smart.used, 그리디: v.greedy.clear ? `${v.greedy.used}(par${v.greedy.overPar >= 0 ? '+' : ''}${v.greedy.overPar})` : '못 깸', 아무데나통과: v.random.clear, '조심 25번 막힘': v.careful.stuck25, '조심 평균 시도': v.careful.tries, '순진 새것 겪기': v.naiveSeesNew ?? '', '±3px 박사★3': v.shake.smartStar3, '±3px 그리디 실패': v.shake.greedyFail, '울타리 뒤 끼임': v.shake.behindPen })));
 console.log('한 판 전체 점수', report.run);
