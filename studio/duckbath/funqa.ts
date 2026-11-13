@@ -29,7 +29,7 @@ export const RETRY = 3;
 /** 배우는 처음 봇의 다시 한도 (C5 p90을 재려고 넉넉히) */
 export const RETRY_LEARN = 30;
 
-export interface StageLog { stage: number; ok: boolean; sec: number; taps: number; stars: number; why: string; tapStar: boolean; goldStar: boolean; sucks: number; chomps: number; failKind?: string; /** D010: 황금 위기가 화면에 보인 가장 긴 연속 틱 (0 = 안 보임) */ crisis: number; /** D011 (FUN T1/T2): 그 시도의 첫 톡 뒤 3초(또는 둘째 톡 전)에 둥지에 든 것이 늘었나 */ firstIn: boolean }
+export interface StageLog { stage: number; ok: boolean; sec: number; taps: number; stars: number; why: string; tapStar: boolean; goldStar: boolean; sucks: number; chomps: number; failKind?: string; /** D010: 황금 위기가 화면에 보인 가장 긴 연속 틱 (0 = 안 보임) */ crisis: number; /** D011 (FUN T1/T2): 그 시도의 첫 톡 뒤 3초(또는 둘째 톡 전)에 둥지에 든 것이 늘었나 */ firstIn: boolean; /** D012 (N6-b): 실패 카드 제목·팁 */ failCard?: string }
 export interface Run { stages: StageLog[]; score: number; sec: number; reached: number; won: boolean; gaveUp: number; firstTapNest: number }
 
 /**
@@ -79,7 +79,7 @@ export function play(bot: Bot<DuckState>, seed: number, maxSec = 900, retry = RE
     if (tap1 < 0 && s.used > 0) tap1 = s.t;
     if (tap1 >= 0 && firstTapNest < 0 && s.t - tap1 >= 180) firstTapNest = s.objs.filter((o) => o.k <= 1 && o.st >= 0).length;
     if (phase === 'play' && s.phase === 'result') {
-      logs.push({ stage: s.stage + 1, ok: s.ok, sec: (s.t - t0) / 60, taps: s.used, stars: s.ok ? s.got : 0, why: s.why, tapStar: s.ok && s.starOk[1], goldStar: s.ok && s.starOk[2], sucks: s.sucks, chomps: s.chomps, failKind: s.ok ? undefined : failText(s).kind, crisis: crMax, firstIn: firstIn ?? (at1 >= 0 && nested() > n1) });
+      logs.push({ stage: s.stage + 1, ok: s.ok, sec: (s.t - t0) / 60, taps: s.used, stars: s.ok ? s.got : 0, why: s.why, tapStar: s.ok && s.starOk[1], goldStar: s.ok && s.starOk[2], sucks: s.sucks, chomps: s.chomps, failKind: s.ok ? undefined : failText(s).kind, failCard: s.ok ? undefined : (({ title, tip }) => `${title}|${tip}`)(failText(s)), crisis: crMax, firstIn: firstIn ?? (at1 >= 0 && nested() > n1) });
       crMax = cr = 0;
       (at1 = -1), (firstIn = null);
       if (!s.ok && s.stageTries > retry) {
@@ -115,6 +115,8 @@ function group(bot: Bot<DuckState>, n: number, retry: number) {
       humanMean: r2(oks.reduce((a, l) => a + l.sec + 3 * l.taps, 0) / Math.max(1, oks.length)), tapsMean: r2(oks.reduce((a, l) => a + l.taps, 0) / Math.max(1, oks.length)),
       // D010 (🧪 D009 4): 황금 위기 표시 — 시도 중 보인 비율 · 보인 것 중 30틱 미만 비율
       firstIn: rate(L.map((l) => l.firstIn)), // T1/T2: 첫 톡에 둥지 입성
+      // D012 N6-b: 같은 판에서 같은 실패 카드(제목·팁)를 연속으로 본 가장 긴 횟수 — 실패가 있는 (런, 판)마다 → p90
+      n6: pct(byRun.filter((B) => B.some((l) => !l.ok)).map((B) => { let best = 0, run = 0, prev = ''; for (const l of B) { if (l.ok) break; run = l.failCard === prev ? run + 1 : 1; prev = l.failCard ?? ''; best = Math.max(best, run); } return best; }), 0.9),
       crisisRate: rate(L.map((l) => l.crisis > 0)), crisisShort: rate(L.filter((l) => l.crisis > 0).map((l) => l.crisis < 30)),
       stars: r2(oks.reduce((a, l) => a + l.stars, 0) / Math.max(1, oks.length)),
       tapStar: rate(oks.map((l) => l.tapStar)), goldStar: rate(oks.map((l) => l.goldStar)), // E6 (클리어한 시도 중)
@@ -344,6 +346,11 @@ if (import.meta.url === `file://${process.argv[1]}` && d1Arg) {
   console.log(`E6 캐주얼 ★황금 (황금을 맨 나중에 미는 확률별): ${Object.entries(e6).map(([k, v]) => `${k}: ${v.join(' ')}`).join('  |  ')}`);
   console.log(`H1 (세 번째 시도 클리어율 👆 따름/안 따름 → 차이): ${(res['H1'] as { stage: number; follow: number | null; none: number | null; n: number[]; gain: number | null }[]).filter((h) => h.follow !== null).map((h) => `${ID(h.stage)} ${h.follow}/${h.none} → ${h.gain} (n ${h.n.join('/')})`).join(' · ')}`);
   if (res['C4']) console.log(`C4 (par 1 판, %): ${(res['C4'] as ReturnType<typeof area>).filter((c) => c.oneTap !== null).map((c) => `${ID(c.stage)} 한 톡에 다 ${c.oneTap} · ★3 ${c.oneTap3}`).join('  |  ')}`);
+  {
+    // D012 (FUN N6, M2 판정 후보 ≤ 2): 배우는 처음 봇 — 같은 실패 카드 연속 p90
+    const ls = (res['배우는처음'] as ReturnType<typeof group>).stages;
+    console.log(`N6 같은 실패 카드 연속 p90(배우는 처음, 실패가 있는 판만): ${ls.filter((p) => !Number.isNaN(p.n6)).map((p) => `${ID(p.stage)} ${p.n6}`).join(' · ')}`);
+  }
   {
     // D011 (FUN T1·T2): 판마다 '첫 톡에 둥지 입성' 비율 캐주얼 − 무작위 (소개 판 = T1, 소개 판 다음 판 = T2 — 갈래는 FUN.md)
     const cs = (res['캐주얼'] as ReturnType<typeof group>).stages, rs = (res['처음'] as ReturnType<typeof group>).stages;
