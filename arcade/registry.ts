@@ -8,6 +8,7 @@ import type { Bot, GameDef } from './core.ts';
 import { screwshop, screwshopRandom, screwshopSmart } from './games/screwshop.ts';
 import { animalbus, animalbusRandom, animalbusSmart } from './games/animalbus.ts';
 import { blockgarden, blockgardenRandom, blockgardenSmart } from './games/blockgarden.ts';
+import { demolition, demolitionRandom, demolitionSmart } from './games/demolition.ts';
 import { catcards, catcardsRandom, catcardsSmart } from './games/catcards.ts';
 import { bubbleshot, bubbleshotRandom, bubbleshotSmart } from './games/bubbleshot.ts';
 
@@ -18,6 +19,7 @@ export const GAMES: Entry[] = [
   { game: screwshop, dumb: screwshopRandom, smart: screwshopSmart },
   { game: animalbus, dumb: animalbusRandom, smart: animalbusSmart },
   { game: blockgarden, dumb: blockgardenRandom, smart: blockgardenSmart },
+  { game: demolition, dumb: demolitionRandom, smart: demolitionSmart },
   { game: catcards, dumb: catcardsRandom, smart: catcardsSmart },
   { game: bubbleshot, dumb: bubbleshotRandom, smart: bubbleshotSmart },
 ];

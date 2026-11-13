@@ -95,6 +95,38 @@
   },
   "fun": 0.975
  },
+ "demolition": {
+  "id": "demolition",
+  "name": "비버 철거반",
+  "n": 24,
+  "dumb": {
+   "score": 600,
+   "sec": 151.7
+  },
+  "smart": {
+   "score": 2700,
+   "sec": 82.6,
+   "capped": 0
+  },
+  "skillGap": 4.49,
+  "reveals": [
+   4,
+   9,
+   11
+  ],
+  "dumbReveals": [
+   3.4,
+   5.3
+  ],
+  "parts": {
+   "skill": 0.723,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 1,
+   "unfold": 1
+  },
+  "fun": 0.916
+ },
  "catcards": {
   "id": "catcards",
   "name": "고양이 카드 원정",
