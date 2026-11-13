@@ -144,20 +144,23 @@ function showLevels(done: boolean) {
   cardFor = '';
   overlay.hidden = true;
   const open = save.open, total = IDS.reduce((x, id) => x + save.stars(id), 0);
-  const stars = (n: number) => '★'.repeat(n) + '☆'.repeat(3 - n);
+  // 이어서 할 판 = 열린 판 중 아직 안 깬 첫 판 (다 깼으면 없음 — 🎨 D007 ③④)
+  const next = IDS.findIndex((id, i) => i < open && !save.stars(id));
+  const stars = (n: number) => '★'.repeat(n) + (n < 3 ? `<i>${'☆'.repeat(3 - n)}</i>` : '');
   const tile = (id: string, label: string) => {
     const i = IDS.indexOf(id);
-    if (i < 0) return `<button type="button" class="lv soon" disabled aria-label="${label}, 준비 중"><b>·</b><span>준비 중</span></button>`;
+    if (i < 0) return `<button type="button" class="lv soon" disabled aria-label="${label}, 준비 중"></button>`; // 🎨 D007 ①: 점선 틀만
     const b = save.stars(id);
-    if (i >= open) return `<button type="button" class="lv" disabled aria-label="${label}, 잠김"><b>${NEW_ICON[id] ?? '🫧'}</b><span>${id} · 잠김</span></button>`; // 🧪 D005 S9: 잠긴 칸이 그 판의 새것을 예고
-    return `<button type="button" class="lv${i === open - 1 && !b ? ' next' : ''}" data-i="${i}" aria-label="${label}, 별 ${b}개"><b>${id}</b><span>${stars(b)}</span></button>`;
+    if (i >= open) return `<button type="button" class="lv" disabled aria-label="${label}, 잠김"><b>${NEW_ICON[id] ?? '🫧'}</b><span>🔒${id}</span></button>`; // 🧪 D005 S9: 잠긴 칸이 그 판의 새것을 예고
+    return `<button type="button" class="lv${i === next ? ' next' : ''}" data-i="${i}" aria-label="${label}, 별 ${b}개"><b>${id}</b><span>${stars(b)}</span>${i === next ? '<em class="duck" aria-hidden="true">🦆</em>' : ''}</button>`;
   };
   const worlds = WORLDS.map((w, wi) => {
     const ids = Array.from({ length: SLOTS }, (_, k) => `${wi + 1}-${k + 1}`), built = ids.filter((id) => IDS.includes(id));
     const got = built.reduce((x, id) => x + save.stars(id), 0);
-    return `<section class="world"><h3>${w.emoji} ${w.name}<small>★ ${got}/${built.length * 3}</small></h3><div class="grid">${ids.map((id, k) => tile(id, `${w.name} ${k + 1}번째 목욕`)).join('')}</div></section>`;
+    return `<section class="world w${wi + 1}"><h3>${w.emoji} ${w.name}<small>★ ${got}/${built.length * 3}</small></h3><div class="grid">${ids.map((id, k) => tile(id, `${w.name} ${k + 1}번째 목욕`)).join('')}</div></section>`;
   });
-  levels.innerHTML = `<div class="in"><h2>${done ? '목욕 다 끝! 🛁' : '목욕 고르기'}</h2><p class="sum">★ ${total} / ${IDS.length * 3}</p>${worlds.join('')}${save.persistent ? '' : '<p class="note">이 브라우저에선 진행이 저장되지 않아요</p>'}</div>`;
+  const go = next >= 0 ? `<button type="button" class="go" data-i="${next}">▶ ${IDS[next]} 이어서 목욕</button>` : ''; // 🎨 D007 ④ 엄지 자리
+  levels.innerHTML = `<div class="in"><h2>${done ? '목욕 다 끝! 🛁' : '목욕 고르기'}</h2><p class="sum">★ ${total} / ${IDS.length * 3}</p>${worlds.join('')}${save.persistent ? '' : '<p class="note">이 브라우저에선 진행이 저장되지 않아요</p>'}${go}</div>`;
   levels.hidden = false;
   levels.scrollTop = 0;
   const focus = levels.querySelector<HTMLButtonElement>('.lv.next') ?? levels.querySelector<HTMLButtonElement>(`.lv[data-i="${Math.min(open, IDS.length) - 1}"]`);
@@ -165,7 +168,7 @@ function showLevels(done: boolean) {
   focus?.scrollIntoView({ block: 'nearest' });
 }
 levels.addEventListener('click', (e) => {
-  const i = (e.target as HTMLElement).closest<HTMLButtonElement>('button.lv:not([disabled])')?.dataset.i;
+  const i = (e.target as HTMLElement).closest<HTMLButtonElement>('button.lv:not([disabled]), button.go')?.dataset.i;
   if (i !== undefined) play(Number(i));
 });
 levels.addEventListener('keydown', (e) => {
