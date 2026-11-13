@@ -15,9 +15,11 @@
  * 웃음: 놀란 양이 뛰다 데굴 넘어짐 · 염소가 뻣뻣하게 옆으로 쿵 · 한참 안 누르면 강아지가 제 꼬리를 쫓아 뱅뱅 ·
  *   다 넣으면 양들이 울타리 안에서 폴짝폴짝 · 언덕 위 목동 할아버지가 모자를 흔들거나 이마를 짚는다(졸기도 한다).
  */
+import type { Cue } from './sfx.ts';
 import { mulberry32, type Rng } from './rng.ts';
 import type { Bot, GameDef, Input, Theme } from './core.ts';
-import { juice } from './juice.ts';
+import { juice, type PopOpt } from './juice.ts';
+import { drawIcon, type IconKind } from './art.ts';
 
 const A = 1.36;
 // ───────── 목장 좌표: x 0~1 (왼→오), y 0~1 (먼 언덕 → 가까운 쪽) ─────────
@@ -671,6 +673,9 @@ export interface DogState {
   seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsStage: number; newsQ: { key: string; text: string; tip: boolean }[]; startT: number; clearT: number;
 }
 
+/** 효과음 신호 — 브라우저 플레이어(main.ts)만 꽂는다. 봇·테스트에선 아무것도 안 한다 (C010 M1-6) */
+let cue: (c: Cue, v?: number, last?: boolean) => void = () => {};
+export const setCue = (f: typeof cue) => void (cue = f);
 const ev = (s: DogState, kind: string, x: number, y: number, text?: string, col?: string, v?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v });
 /** 규칙 도움말 (새것 수에는 안 센다) */
 function tip(s: DogState, key: string, text: string) {
@@ -765,6 +770,9 @@ const FY0 = 0.305, FH = 0.775, FXW = 0.92;
 const scl = (fy: number) => 0.8 + 0.25 * fy;
 const SX = (fx: number, fy: number) => 0.5 + (fx - 0.5) * FXW * scl(fy);
 const SY = (fy: number) => FY0 + fy * FH;
+/** 미리 보기 쪽지 한 조각 (아이콘 + 글) */
+interface Part { icon?: IconKind; text: string }
+const HUD_FONT = 'system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
 /** 1-1·1-2 첫 톡 손 안내: 양 무리 뒤(필드 좌표)와 1-2 '꾹' 고리 진행 k(1 이상이면 미리 보기 맛보기, 94틱 주기) */
 function handHint(s: DogState): { fx: number; fy: number; k: number } | null {
   if (s.stage > 1 || s.S.used !== 0 || s.phase !== 'aim' || s.down || s.tries !== 0) return null;
@@ -814,7 +822,8 @@ function afterFlee(s: DogState) {
   // 📐 C007: 까만 양 설명은 '?!' 웃음이 다 닿은 뒤에(짖은 틱이 아니라 그 짖기의 연출이 끝난 때)
   if (blackCame(s)) tipNow(s, 'blackcome', BLACK_TIP);
   const fell = S.fell.findIndex((v) => v);
-  if (fell >= 0) return s.splashes++, finish(s, false, F.black[fell] ? '까만 양이 개울에 풍덩!' : '양이 개울에 풍덩!');
+  // 풍덩 이벤트(빠진 양 자리) — '풍덩한 짖기에는 풍덩 연출'을 테스트로 본다 (🧪 C006 → C010 M1-6 ③)
+  if (fell >= 0) return ev(s, 'splash', S.x[fell], S.y[fell], undefined, undefined, fell), s.splashes++, finish(s, false, F.black[fell] ? '까만 양이 개울에 풍덩!' : '양이 개울에 풍덩!');
   if (S.caught >= 0) return finish(s, false, '늑대가 양을 물어 갔어요!');
   const whitesIn = F.black.every((b, i) => b || S.pen[i] >= 0);
   if (whitesIn) return finish(s, true);
@@ -905,9 +914,9 @@ export const sheepdog: GameDef<DogState> = {
         if (rec.wolf === 2) ev(s, 'yelp', rec.wolfPath![0], rec.wolfPath![1], '깨갱!', '#e8ecff');
         if (rec.scare.some((v, i) => v === 3 && rec.path[i])) {
           const i = rec.scare.findIndex((v) => v === 3);
-          ev(s, 'come', s.S.x[i], s.S.y[i], '?!', '#ffe0f0');
+          ev(s, 'come', s.S.x[i], s.S.y[i], '?!', '#ffe0f0', i);
         }
-        if (rec.cloverNew.length) ev(s, 'clover', s.F.clovers[rec.cloverNew[0]].x, s.F.clovers[rec.cloverNew[0]].y, '🍀 클로버!', '#d8ffc0');
+        if (rec.cloverNew.length) ev(s, 'clover', s.F.clovers[rec.cloverNew[0]].x, s.F.clovers[rec.cloverNew[0]].y, '클로버!', '#d8ffc0');
         if (rec.flowerNew.length) ev(s, 'trample', s.F.flowers[rec.flowerNew[0]].x, s.F.flowers[rec.flowerNew[0]].y, '앗, 꽃밭!', '#ffd6ec');
         if (S.pen.filter((v) => v >= 0).length > penned0) tip(s, 'pen', '들어간 양은 다시 안 나와요');
       }
@@ -1859,7 +1868,6 @@ function drawGrandpa(ctx: CanvasRenderingContext2D, x: number, y: number, z: num
   ctx.restore();
 }
 
-const recentSay = new WeakMap<object, { x: number; y: number; t: number }[]>();
 let darkCv: HTMLCanvasElement | null = null;
 
 function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: number, _th: Theme) {
@@ -1871,14 +1879,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   SHADE = tod === 0 ? 'rgba(36,74,62,.30)' : tod >= 7 ? 'rgba(5,8,25,.45)' : tod >= 4 ? 'rgba(60,30,40,.34)' : 'rgba(30,45,15,.30)';
   const wind = F.wind[0];
   /** pin: 겹침 피하기에서 빼고 그 자리에 고정(뒤에 오는 글자가 피해 간다) — 🎨 C007 '?!' */
-  const say = (x: number, y: number, text: string, col: string, size: number, pin = false) => {
-    let rec = recentSay.get(s);
-    if (!rec) recentSay.set(s, (rec = []));
-    for (let k = 0; k < 6 && !pin && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.3 && Math.abs(q.y - y) < size + 4); k++) y -= size + 5;
-    rec.push({ x, y, t: s.t });
-    if (rec.length > 12) rec.shift();
-    fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), Math.max(R(0.19), y), text, col, size);
-  };
+  // 팝 글자 (🎨 C010 4그룹 A 소리 · B 보상 · C 경고 · D 안내 — 겹침·개수 규칙은 juice.pop)
+  const say = (x: number, y: number, text: string, size: number, o: PopOpt) => fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), Math.max(R(0.19), y), text, '#fff6e4', size, o);
   const flee = s.phase === 'flee' && s.rec ? s.rec : null, q = flee ? Math.min(1, s.pt / FLEE_T) : 1;
   /** 양 i가 지금 화면 어디에 (목장 좌표) */
   const sheepAt = (i: number): [number, number] => {
@@ -2300,11 +2302,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     ctx.beginPath();
     ctx.roundRect(sx - sz * 0.95, sy - sz * 1.7, sz * 1.1, sz * 0.6, 3);
     ctx.fill();
-    ctx.fillStyle = '#3a2410';
-    ctx.font = `800 ${R(0.026)}px system-ui, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🐑→', sx - sz * 0.4, sy - sz * 1.4);
+    // 🎨 C010: '🐑→' 글자 → 판 안 왼쪽에 양, 오른쪽에 화살표
+    drawIcon(ctx, 'sheep', sx - sz * 0.62, sy - sz * 1.4, sz * 0.55);
+    ctx.strokeStyle = '#3a2410';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(sx - sz * 0.3, sy - sz * 1.4), ctx.lineTo(sx - sz * 0.02, sy - sz * 1.4);
+    ctx.moveTo(sx - sz * 0.12, sy - sz * 1.52), ctx.lineTo(sx - sz * 0.02, sy - sz * 1.4), ctx.lineTo(sx - sz * 0.12, sy - sz * 1.28);
+    ctx.stroke();
     if (!night)
       for (let k = 0; k < 2; k++) {
         const bx = 0.15 + 0.7 * hsh(k + 40) + Math.sin(t * 0.011 + k * 3) * 0.12, by = 0.5 + 0.35 * hsh(k + 41) + Math.cos(t * 0.017 + k) * 0.06;
@@ -2582,7 +2588,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     }
   }
   // ═════════ 미리 보기 (누르고 있는 동안) ═════════
-  let pvNote = '';
+  let pvNote: Part[] = [], warn = false;
   // 1-2 '꾹' 고리가 다 차면 0.4초 동안 미리 보기를 반투명으로 맛보인다 (🎨 C009: 고리만으로는 '미리 보기'가 안 전해짐)
   const hh = handHint(s), ghost = !!hh && hh.k >= 1;
   if (s.phase === 'aim' && (s.down || ghost)) {
@@ -2611,13 +2617,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       }
       if (some) {
         const pv = preview(s, pxf, pyf);
-        let inN = 0, bad = '';
+        let inN = 0, bad: Part | null = null;
         for (let i = 0; i < F.n; i++) {
           const pa = pv.rec.path[i];
           if (!pa) continue;
           const ok = pv.S.pen[i] >= 0 && S.pen[i] < 0, fell = pv.S.fell[i] > 0;
           if (ok && !F.black[i]) inN++;
-          if (fell) bad = '💦 풍덩!';
+          if (fell) bad = { icon: 'drop', text: '풍덩!' };
           const col = fell ? '#ff5a5a' : ok ? '#b6ff7a' : F.black[i] ? '#ffb3e0' : '#ffffff';
           ctx.strokeStyle = 'rgba(0,0,0,.35)';
           ctx.lineWidth = 5;
@@ -2644,14 +2650,14 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
           if (fell) {
             ctx.font = `${R(0.04)}px system-ui, sans-serif`;
             ctx.fillStyle = '#ffffff';
-            ctx.fillText('💦', ex, ey - R(0.025));
+            drawIcon(ctx, 'drop', ex, ey - 10, 16);
           }
         }
         if (pv.rec.goatFaint && F.goat) {
           ctx.font = `${R(0.045)}px system-ui, sans-serif`;
           ctx.fillStyle = '#ffffff';
           ctx.fillText('💫', PX(F.goat.x, F.goat.y), PY(F.goat.y) - R(0.08));
-          if (!bad) bad = '🐐 꽥!';
+          if (!bad) bad = { text: '염소 꽥!' };
         }
         if (F.den && pv.rec.wolfPath) {
           const [a0, b0, a1, b1] = pv.rec.wolfPath;
@@ -2663,27 +2669,36 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
           ctx.lineTo(PX(a1, b1), PY(b1) - R(0.02));
           ctx.stroke();
           ctx.setLineDash([]);
-          if (pv.S.caught >= 0) bad = '🐺 잡혀요!';
+          if (pv.S.caught >= 0) bad = { text: '늑대에게 잡혀요!' };
         }
-        pvNote = bad || (inN ? `🐑 ${inN}마리 쏙!` : '');
-        if (pv.rec.flowerNew.length && d.bonus === 'flower') pvNote = (pvNote ? pvNote + ' · ' : '') + '🌼 밟아요';
-        if (pv.rec.cloverNew.length && d.bonus === 'clover') pvNote = (pvNote ? pvNote + ' · ' : '') + '🍀 지나가요';
-      } else pvNote = '킁? 아무도 없어요 — 멍멍 안 써요';
-      if (snapped) pvNote = `🚩 깃발 자리 · ${pvNote}`;
-      // 발자국 표시
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `${R(0.05)}px system-ui, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.fillText('🐾', cx, cy);
-      if (pvNote) {
-        ctx.font = `900 ${R(0.04)}px system-ui, sans-serif`;
-        const tw = ctx.measureText(pvNote).width + R(0.04), bx = Math.max(tw / 2 + 4, Math.min(w - tw / 2 - 4, cx)), by = Math.max(Y(0.4), cy - R(0.25 * FH) - R(0.04));
-        ctx.fillStyle = pvNote.includes('💦') || pvNote.includes('🐺') ? 'rgba(170,30,30,.9)' : 'rgba(20,40,20,.82)';
+        warn = !!bad;
+        pvNote = bad ? [bad] : inN ? [{ icon: 'sheep', text: `${inN}마리 쏙!` }] : [];
+        if (pv.rec.flowerNew.length && d.bonus === 'flower') pvNote.push({ icon: 'flower', text: '밟아요' });
+        if (pv.rec.cloverNew.length && d.bonus === 'clover') pvNote.push({ icon: 'clover', text: '지나가요' });
+      } else pvNote = [{ text: '킁? 아무도 없어요 — 멍멍 안 써요' }];
+      if (snapped) pvNote.unshift({ icon: 'flag', text: '깃발 자리' });
+      // 발자국 표시 (🎨 C010: 🐾 → 그린 발바닥)
+      drawIcon(ctx, 'paw', cx, cy, 18);
+      if (pvNote.length) {
+        // 🎨 C010 D 안내: 잉크 알약 α.9(풍덩·늑대는 #9a2f22) + 크림 14px/800, 높이 28, 아이콘 16px
+        ctx.font = `800 14px ${HUD_FONT}`;
+        const sep = ctx.measureText(' · ').width, ws = pvNote.map((q) => (q.icon ? 21 : 0) + ctx.measureText(q.text).width);
+        const tw = ws.reduce((a, b) => a + b, 0) + sep * (pvNote.length - 1) + 20, bx = Math.max(tw / 2 + 4, Math.min(w - tw / 2 - 4, cx)), by = Math.max(Y(0.4), cy - R(0.25 * FH) - R(0.04));
+        ctx.fillStyle = warn ? '#9a2f22' : 'rgba(59,42,30,.9)';
         ctx.beginPath();
-        ctx.roundRect(bx - tw / 2, by - R(0.028), tw, R(0.056), R(0.028));
+        ctx.roundRect(bx - tw / 2, by - 14, tw, 28, 14);
         ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(pvNote, bx, by + 1);
+        ctx.fillStyle = '#fff6e4';
+        ctx.textAlign = 'left';
+        let px = bx - tw / 2 + 10;
+        pvNote.forEach((q, k) => {
+          if (k) (ctx.fillText(' · ', px, by + 1), (px += sep));
+          if (q.icon) drawIcon(ctx, q.icon, px + 8, by, 16), (px += 21);
+          ctx.fillStyle = '#fff6e4';
+          ctx.fillText(q.text, px, by + 1);
+          px += ctx.measureText(q.text).width;
+        });
+        ctx.textAlign = 'center';
       }
     }
     ctx.globalAlpha = 1;
@@ -2804,24 +2819,26 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   for (const e of s.events) {
     if (e.t <= seenT) continue;
     const x = PX(e.x, e.y), y = PY(e.y);
-    if (e.kind === 'bark') fx.ring(x, y - R(0.03), '#ffffff', R(0.16), 4), fx.kick(4), say(x, y - R(0.12), '멍!', '#ffffff', 24), fx.burst(x, y - R(0.04), '#fff6d0', 10, 2.6, 2);
-    if (e.kind === 'faint') fx.burst(x, y - R(0.04), '#ffe066', 18, 3, 2.6), fx.kick(3), say(x, y - R(0.1), '꽥!', '#fff3a0', 20);
-    if (e.kind === 'yelp') say(x, y - R(0.08), '깨갱!', '#e8ecff', 18);
+    if (e.kind === 'bark') cue('bark', 1 + (((e.t * 7919) % 101) - 50) / 1000), fx.ring(x, y - R(0.03), '#ffffff', R(0.16), 4), fx.kick(4), say(x, y - R(0.1), '멍!', 26, { g: 'A', rot: -0.14 }), fx.burst(x, y - R(0.04), '#fff6d0', 10, 2.6, 2);
+    if (e.kind === 'faint') fx.burst(x, y - R(0.04), '#ffe066', 18, 3, 2.6), fx.kick(3), say(x, y - R(0.1), '꽥!', 15, { g: 'A' });
+    if (e.kind === 'yelp') say(x, y - R(0.1), '깨갱!', 15, { g: 'A' });
     // 강아지 머리 위는 벡터 '!'(drawDog surprise)가 맡는다 — 글자는 까만 양 위 하나만 (🎨 C007)
-    if (e.kind === 'come') say(PX(e.x, e.y), PY(e.y) - R(0.09), '?!', '#ffd166', 20, true), fx.ring(PX(e.x, e.y), PY(e.y), '#ffe0f0', R(0.07), 3);
-    if (e.kind === 'clover') fx.burst(x, y - R(0.02), '#ffe066', 18, 3, 2.2), say(x, y - R(0.06), e.text!, e.col!, 14);
-    if (e.kind === 'trample') fx.burst(x, y - R(0.02), '#ff9ec7', 22, 3.4, 2.4), say(x, y - R(0.06), e.text!, e.col!, 14);
-    if (e.kind === 'sniff') say(x, y - R(0.08), e.text!, e.col!, 14);
-    if (e.kind === 'nope') say(X(e.x), Y(e.y), e.text!, e.col!, 14), fx.kick(1.5);
+    if (e.kind === 'come') cue('baaBlack'), say(PX(e.x, e.y), PY(e.y) - R(0.09), '?!', 16, { g: 'C', bg: '#ffc857', id: `come${e.v}`, who: e.v }), fx.ring(PX(e.x, e.y), PY(e.y), '#ffe0f0', R(0.07), 3);
+    if (e.kind === 'clover') fx.burst(x, y - R(0.02), '#ffe066', 18, 3, 2.2), say(x, y - R(0.06), '클로버!', 15, { g: 'B', icon: 'clover' });
+    if (e.kind === 'trample') fx.burst(x, y - R(0.02), '#ff9ec7', 22, 3.4, 2.4), say(x, y - R(0.06), '앗, 꽃밭!', 16, { g: 'C', bg: '#ffe0ef', life: 54 });
+    if (e.kind === 'sniff') say(x, y - R(0.08), e.text!, 14, { g: 'D' });
+    if (e.kind === 'nope') say(X(e.x), Y(e.y), e.text!, 14, { g: 'D' }), fx.kick(1.5);
     if (e.kind === 'stage') fx.blink('#fff6d6', 0.18);
     if (e.kind === 'clear') {
       const p0 = F.pens[0], gx0 = PX((p0.gx0 + p0.gx1) / 2, p0.y1), gy0 = PY(p0.y1);
       fx.burst(gx0, gy0 - R(0.05), '#ffe066', 40, 6, 3.2), fx.burst(gx0, gy0 - R(0.05), '#ff8fb1', 30, 5, 3), fx.ring(gx0, gy0, '#ffe066', R(0.3), 6), fx.blink('#fff6c8', 0.25);
-      say(gx0, gy0 - R(0.1), '딸깍!', '#ffffff', 20);
+      say(gx0, gy0 - R(0.1), '딸깍!', 15, { g: 'B', icon: 'star', id: 'in0' });
     }
     if (e.kind === 'fail') fx.kick(3), fx.blink('#fff6d6', 0.12); // C002: 실패는 벌이 아니다 — 빨간 번쩍·큰 흔들림 없음
   }
   fx.memo.t = s.t;
+  // C 말풍선은 대상 양 머리 위 6px에 매 프레임 따라붙는다 (🎨 C010)
+  for (const p of fx.popups) if (p.who !== undefined && p.who < F.n) { const [a, b] = sheepAt(p.who); p.x = Math.max(w * 0.14, Math.min(w * 0.86, PX(a, b))); p.y = PY(b) - R(0.07) - 6 - 14; }
   // 양 하나하나의 순간 (들어감 · 풍덩 · 데굴)
   if (flee) {
     const key = s.S.used * 100;
@@ -2839,38 +2856,39 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
         const [a, b] = pathAt(pa, flee.penAt[i] / Math.max(1, m - 1));
         fx.burst(PX(a, b), PY(b) - R(0.03), '#ffffff', 12, 2.6, 2.6);
         fx.ring(PX(a, b), PY(b) - R(0.02), '#e8ffd0', R(0.05), 2);
-        if (F.black[i]) say(PX(a, b), PY(b) - R(0.07), '까만 양도 쏙!', '#ffc8ec', 15);
+        const pn = F.pens[Math.max(0, S.pen[i])], rx = PX((pn.x0 + pn.x1) / 2, pn.y0), ry = PY(pn.y0) - 18; // 🎨 C010: 그 울타리 뒤 가로대 위 18px 가운데
+        if (F.black[i]) cue('click', 1), say(rx, ry, '까만 양도 쏙!', 15, { g: 'B', icon: 'black', id: 'inB' });
         else if ((fx.memo.inPop ?? -1) !== key) {
           fx.memo.inPop = key;
           const nIn = flee.inNew.filter((j) => !F.black[j]).length;
-          say(PX(a, b), PY(b) - R(0.07), nIn > 1 ? `쏙! ×${nIn}` : '쏙!', '#e8ffd0', 17);
+          cue('click', nIn, F.black.every((bk, j) => bk || S.pen[j] >= 0));
+          say(rx, ry, nIn > 1 ? `쏙! ×${nIn}` : '쏙!', 15, { g: 'B', icon: 'sheep', id: `in${S.pen[i]}` });
         }
       }
       // 판이 끝나는 짖기의 0.5초 멈춤: 까만 양 머리 위에 '?!'를 다시 크게 (허들 ②)
       if (flee.scare[i] === 3 && s.pt >= FLEE_T && comeHold(s) && mk('come2')) {
         const [a, b] = sheepAt(i);
         fx.ring(PX(a, b), PY(b), '#ffe0f0', R(0.09), 4);
-        say(PX(a, b), PY(b) - R(0.11), '?!', '#ffd166', 26, true);
+        say(PX(a, b), PY(b) - R(0.09), '?!', 16, { g: 'C', bg: '#ffc857', id: `come${i}`, who: i });
       }
       if (flee.scare[i] === 3 && q > 0.75 && !S.fell[i] && !comeHold(s) && mk('love')) {
         const [a, b] = sheepAt(i);
-        say(PX(a, b), PY(b) - R(0.09), '♥', '#ff8fc8', 18);
+        say(PX(a, b), PY(b) - R(0.1), '', 12, { g: 'A', icon: 'heart' });
       }
       // 빠지는 칸은 경로의 마지막 칸이라 q = 1이 되기 한 칸 앞에서 터뜨린다 (C006 FUN QA: q = 1 틱엔 이미 결과 화면이라 178번 중 161번 안 보였다)
       if (flee.fellAt[i] >= 0 && idx >= flee.fellAt[i] - 1.5 && mk('fell')) {
         const [a, b] = pathAt(pa, flee.fellAt[i] / Math.max(1, m - 1));
-        fx.burst(PX(a, b), PY(b), '#bfe9ff', 30, 4.5, 3), fx.ring(PX(a, b), PY(b), '#ffffff', R(0.08), 3), fx.kick(3);
-        say(PX(a, b), PY(b) - R(0.08), '풍덩!', '#bfe9ff', 20);
+        fx.burst(PX(a, b), PY(b), '#bfe9ff', 30, 4.5, 3), fx.ring(PX(a, b), PY(b), '#ffffff', R(0.08), 3), fx.kick(3), cue('splash');
+        say(PX(a, b), PY(b) - R(0.09), '풍덩!', 16, { g: 'C', bg: '#d8f3ff', id: `fell${i}`, who: i, life: 60 });
       }
       if (flee.trip[i] && q > 0.6 && mk('trip')) {
         const [a, b] = sheepAt(i);
         fx.burst(PX(a, b), PY(b), '#d9c9a0', 8, 2, 2);
-        say(PX(a, b), PY(b) - R(0.07), '데굴~', '#fff2d0', 13);
+        say(PX(a, b), PY(b) - R(0.1), '데굴~', 15, { g: 'A' });
       }
       if (flee.scare[i] === 2 && q < 0.1 && (fx.memo.baa ?? -1) !== key && mk('baa')) {
         fx.memo.baa = key;
-        const [a, b] = sheepAt(i);
-        say(PX(a, b), PY(b) - R(0.08), '매애애!', '#ffffff', 14);
+        cue('baa'); // 🎨 C010: '매애애!' 글자는 없애고 소리가 대신한다
       }
     }
     if (flee.caught >= 0 && q > 0.75) {
@@ -2879,7 +2897,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
         fx.memo[k2] = key;
         const i = flee.caught;
         fx.kick(3), fx.blink('#e8ecff', 0.12);
-        say(PX(S.x[i], S.y[i]), PY(S.y[i]) - R(0.1), '앙!', '#ffb3a8', 22);
+        say(PX(S.x[i], S.y[i]), PY(S.y[i]) - R(0.1), '앙!', 15, { g: 'A' });
       }
     }
   }
@@ -2935,6 +2953,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       ctx.fillText(big, 0, 0);
       font(0.04, 800);
       const sub = `흰 양 ${F.black.filter((b) => !b).length}마리 넣기`; // 🧪 C009: '멍멍 9번 안에'가 칩 '멍멍 1번'과 같이 떠 헷갈림
+      ctx.lineWidth = 4; // 🎨 C010: 부제는 6px 외곽에 글자 속이 막혀 4px
       ctx.strokeText(sub, 0, R(0.06));
       ctx.fillText(sub, 0, R(0.06));
       ctx.restore();

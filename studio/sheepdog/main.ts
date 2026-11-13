@@ -5,8 +5,9 @@
 import { TICK, type Input } from './core.ts';
 import { mountResultCard } from './ui.ts';
 import { ICON, mountHud } from './hud.ts';
+import { sfx } from './sfx.ts';
 import { peek } from './juice.ts';
-import { RESULT_MIN, at, jumpTo, preview, sheepdog as g, sheepdogGreedy, starCount, type DogState } from './game.ts';
+import { RESULT_MIN, at, jumpTo, preview, setCue, sheepdog as g, sheepdogGreedy, starCount, type DogState } from './game.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('sheepdog:' + k) ?? 0); } catch { return 0; } },
@@ -19,6 +20,7 @@ const overlay = document.getElementById('overlay') as HTMLElement;
 const startBtn = document.getElementById('start') as HTMLButtonElement;
 const best = document.getElementById('best')!;
 const retryBtn = document.getElementById('retry') as HTMLButtonElement;
+const soundBtn = document.getElementById('sound') as HTMLButtonElement;
 const ctx = canvas.getContext('2d')!;
 const aspect = g.aspect ?? 1;
 
@@ -46,10 +48,35 @@ function size() {
   hud.place(canvas.offsetLeft, rowTop - 6, canvas.offsetTop, W, root.clientHeight - canvas.offsetTop);
   retryBtn.style.left = `${canvas.offsetLeft + W - 52}px`;
   retryBtn.style.top = `${rowTop - 2}px`;
+  placeSound(rowTop);
   // 🎨 C007 ④-a: 캔버스 아래 빈 띠를 디오라마를 올린 탁자색으로 잇는다(세로 화면)
   // 가로·데스크톱은 탁자색 하나 (하늘 줄이 넓은 화면 전체 폭에 깔리면 어색하다, 🎨 C008)
   document.body.style.background = portrait ? `linear-gradient(#6ec3ee, #8ecff0 ${canvas.offsetTop + 1}px, #4a3322 ${canvas.offsetTop + 1}px)` : '#4a3322';
   draw();
+}
+
+// 소리 켬/끔 (🎨 C010): 플레이 중엔 위 줄 [별][소리][↺], 타이틀·끝 화면엔 오른쪽 위. M키도 같다. 꺼 두면 AudioContext를 만들지 않는다
+let soundRow = 0;
+function placeSound(rowTop = soundRow) {
+  soundRow = rowTop;
+  const safeTop = document.getElementById('safe')?.offsetHeight ?? 0;
+  // 빈 하늘 (🎨 C010): 구름 띠 = 플레이는 위 줄 12px 위까지, 타이틀은 캔버스 꼭대기까지. 타이틀 로고 묶음은 그 띠 가운데로
+  const band = running ? rowTop - 12 : canvas.offsetTop, sky = document.getElementById('sky')!;
+  sky.hidden = band < 70;
+  sky.style.height = `${band}px`;
+  overlay.style.paddingTop = `${Math.max(safeTop + 20, (canvas.offsetTop - 110) / 2)}px`;
+  soundBtn.style.left = `${running ? canvas.offsetLeft + W - 104 : root.clientWidth - 56}px`;
+  soundBtn.style.top = `${running ? rowTop - 2 : 12 + safeTop}px`;
+}
+function showSound() {
+  soundBtn.innerHTML = sfx.muted ? ICON.soundOff : ICON.soundOn;
+  soundBtn.setAttribute('aria-pressed', String(!sfx.muted));
+}
+function toggleSound() {
+  sfx.setMuted(!sfx.muted);
+  store.set('mute', sfx.muted ? 1 : 0);
+  if (!sfx.muted) sfx.wake(), sfx.play('bark', 1.1); // 켜는 누름도 사용자 입력 — 바로 들려준다
+  showSound();
 }
 
 function draw() {
@@ -72,10 +99,14 @@ function showTitle(html?: string) {
   overlay.hidden = false;
   retryBtn.hidden = true;
   hud.show(false);
+  placeSound();
   startBtn.focus({ preventScroll: true });
 }
 
 function start() {
+  // 첫 소리는 '시작' 누름에서 (🎨 C010): 여기서 처음 AudioContext를 만든다 — 멍!(피치 +10%)
+  sfx.wake();
+  sfx.play('bark', 1.1);
   // 다시 하기: 판별 최고 별은 그대로 두고 1판부터 (C002 FUN QA — 별 기록을 지우지 않는다)
   const kept = s.best;
   s = g.create((Date.now() % 1_000_000) + 1);
@@ -85,6 +116,7 @@ function start() {
   overlay.hidden = true;
   retryBtn.hidden = false;
   hud.show(true);
+  placeSound();
   acc = 0;
   last = performance.now();
   canvas.focus({ preventScroll: true });
@@ -144,6 +176,7 @@ canvas.addEventListener('keydown', (e) => {
   if (!running) return;
   if (e.key.startsWith('Arrow')) (keys.add(e.key), (keyboard = true));
   if ((e.key === 'r' || e.key === 'R') && !e.repeat) retry = true;
+  if ((e.key === 'm' || e.key === 'M') && !e.repeat) toggleSound();
   if (e.key === ' ' || e.key === 'Enter') (keyboard = true), (spaceDown = true), (pointer = { ...cursor });
 });
 canvas.addEventListener('keyup', (e) => {
@@ -157,7 +190,12 @@ retryBtn.innerHTML = ICON.retry;
 const card = mountResultCard(root, () => ((next = true), canvas.focus({ preventScroll: true })), () => ((retry = true), canvas.focus({ preventScroll: true })));
 document.addEventListener('keydown', (e) => {
   if (card.open() && (e.key === 'r' || e.key === 'R') && !e.repeat) (retry = true), canvas.focus({ preventScroll: true });
+  if (e.target !== canvas && (e.key === 'm' || e.key === 'M') && !e.repeat) toggleSound();
 });
+sfx.setMuted(store.get('mute') === 1);
+setCue((c, v, last) => sfx.play(c, v, last));
+showSound();
+soundBtn.addEventListener('click', () => toggleSound());
 retryBtn.addEventListener('click', () => {
   retry = true;
   canvas.focus({ preventScroll: true });

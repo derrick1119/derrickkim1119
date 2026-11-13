@@ -10,6 +10,9 @@ export const ICON = {
   bone: (on: boolean, gold = false) => svg(`<path d="M5 5.5a2.4 2.4 0 0 1 4.2 1.6L9.6 7h4.8l.4.1A2.4 2.4 0 1 1 19 9a2.4 2.4 0 1 1-4.2 2.1l-.4-.1H9.6l-.4.1A2.4 2.4 0 1 1 5 9a2.4 2.4 0 0 1 0-3.5z" fill="${on ? (gold ? '#ffc857' : '#fff6e4') : 'none'}" stroke="${on ? '#7a3e1d' : '#9c8566'}" stroke-width="1.6" stroke-linejoin="round"/>`, '0 0 24 16'),
   sheep: svg('<g stroke="#7a3e1d" stroke-width="1.6"><circle cx="9" cy="12" r="5" fill="#fff6e4"/><circle cx="14" cy="10" r="5" fill="#fff6e4"/><circle cx="12" cy="15" r="5" fill="#fff6e4"/><ellipse cx="18.5" cy="13" rx="3" ry="3.6" fill="#3a3234"/></g><circle cx="19.3" cy="12.3" r=".9" fill="#fff"/>'),
   retry: svg('<path d="M5.5 12a6.5 6.5 0 1 0 2-4.7" fill="none" stroke="#3b2a1e" stroke-width="2.6" stroke-linecap="round"/><path d="M4.2 3.8v5.3h5.3" fill="none" stroke="#3b2a1e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>'),
+  // 소리 켬/끔 (🎨 C010): 스피커 + 물결 2줄 / 스피커 + X
+  soundOn: svg('<path d="M4 9h4l5-4v14l-5-4H4z" fill="#3b2a1e" stroke="#3b2a1e" stroke-width="1.5" stroke-linejoin="round"/><path d="M16 9.5a3.5 3.5 0 0 1 0 5M18.6 7a7 7 0 0 1 0 10" fill="none" stroke="#3b2a1e" stroke-width="2.4" stroke-linecap="round"/>'),
+  soundOff: svg('<path d="M4 9h4l5-4v14l-5-4H4z" fill="#3b2a1e" stroke="#3b2a1e" stroke-width="1.5" stroke-linejoin="round"/><path d="M16 9l5 6M21 9l-5 6" fill="none" stroke="#3b2a1e" stroke-width="2.4" stroke-linecap="round"/>'),
   next: svg('<path d="M8 4.5 17 12l-9 7.5z" fill="#3b2a1e" stroke="#3b2a1e" stroke-width="2" stroke-linejoin="round"/>'),
   // 말풍선 요소 아이콘 (🎨 C009 ②) — 알림 글 맨 앞 그림 글자로 고른다
   blackSheep: svg('<g stroke="#17131a" stroke-width="1.6"><circle cx="9" cy="12" r="5" fill="#3a3234"/><circle cx="14" cy="10" r="5" fill="#3a3234"/><circle cx="12" cy="15" r="5" fill="#3a3234"/><ellipse cx="18.5" cy="13" rx="3" ry="3.6" fill="#17131a"/></g><circle cx="19.3" cy="12.3" r=".9" fill="#fff"/>'),

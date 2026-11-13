@@ -7,7 +7,19 @@
  * 상태 객체마다 하나씩 WeakMap에 붙어서, 새 판이 시작되면 자동으로 새로 생긴다.
  */
 interface Particle { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number }
-interface Popup { x: number; y: number; text: string; color: string; life: number; size: number }
+import { drawIcon, type IconKind } from './art.ts';
+/**
+ * 팝 글자 4그룹 (🎨 C010): A 소리(크림 글씨 + 잉크 외곽, 오름) · B 보상(금 알약 + 아이콘, 고정) · C 경고(말풍선, 대상 따라감) · D 안내(잉크 알약, 고정)
+ */
+export type PopGroup = 'A' | 'B' | 'C' | 'D';
+export interface PopOpt { g?: PopGroup; icon?: IconKind; id?: string; who?: number; rot?: number; bg?: string; life?: number }
+interface Popup extends PopOpt { x: number; y: number; text: string; color: string; life: number; max: number; size: number; age: number }
+const CAP: Record<PopGroup, number> = { A: 1, B: 2, C: 2, D: 1 }, LOW: PopGroup[] = ['D', 'A', 'B', 'C'], LIFE: Record<PopGroup, number> = { A: 36, B: 54, C: 72, D: 60 };
+const FONT = 'system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
+const boxOf = (p: { x: number; y: number; text: string; size: number; icon?: IconKind }) => {
+  const w = p.text.length * p.size * 0.95 + (p.icon ? p.size + 6 : 0) + 20, h = p.size + 12;
+  return { x0: p.x - w / 2, x1: p.x + w / 2, y0: p.y - h / 2, y1: p.y + h / 2, h };
+};
 
 export class Juice {
   particles: Particle[] = [];
@@ -42,10 +54,26 @@ export class Juice {
     if (this.particles.length > 400) this.particles.splice(0, this.particles.length - 400);
   }
 
-  /** 떠오르는 글자 (+1, 연쇄!, 건설!) */
-  pop(x: number, y: number, text: string, color = '#ffffff', size = 16) {
-    this.popups.push({ x, y, text, color, life: 50, size });
-    if (this.popups.length > 30) this.popups.shift();
+  /** 팝 글자 (🎨 C010 그룹 규칙: 같은 id면 고쳐 쓰고, 그룹별 A1·B2·C2·D1·모두 3개까지, 겹치면 뒤에 온 것을 (높이+4)px씩 최대 2번 올리고 그래도 겹치면 안 띄움. C는 안 움직임) */
+  pop(x: number, y: number, text: string, color = '#fff6e4', size = 15, o: PopOpt = {}) {
+    const g = o.g ?? 'A', same = o.id ? this.popups.find((p) => p.id === o.id) : undefined;
+    if (same) return void Object.assign(same, { x, y, text, life: same.max, age: Math.min(same.age, 3) });
+    const p: Popup = { ...o, g, x, y, text, color, size, life: o.life ?? LIFE[g], max: o.life ?? LIFE[g], age: 0 };
+    if (g !== 'C')
+      for (let k = 0; ; k++) {
+        const b = boxOf(p), hit = this.popups.some((q) => { const c = boxOf(q); return c.x0 < b.x1 && b.x0 < c.x1 && c.y0 < b.y1 && b.y0 < c.y1; });
+        if (!hit) break;
+        if (k === 2) return;
+        p.y -= b.h + 4;
+      }
+    this.popups.push(p);
+    const n = (gg: PopGroup) => this.popups.filter((q) => q.g === gg).length;
+    while (n(g) > CAP[g]) this.popups.splice(this.popups.findIndex((q) => q.g === g), 1);
+    while (this.popups.length > 3) {
+      const low = LOW.find((gg) => n(gg) > (gg === g ? 1 : 0));
+      if (!low) break;
+      this.popups.splice(this.popups.findIndex((q) => q.g === low), 1);
+    }
   }
 
   /** 퍼져 나가는 충격파 고리 (0026) */
@@ -101,14 +129,34 @@ export class Juice {
     ctx.textBaseline = 'middle';
     for (const t of this.popups) {
       t.life--;
-      t.y -= 0.7;
-      ctx.globalAlpha = Math.min(1, t.life / 20);
-      ctx.font = `800 ${t.size}px system-ui, sans-serif`;
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = 'rgba(0,0,0,.45)';
-      ctx.strokeText(t.text, t.x, t.y);
-      ctx.fillStyle = t.color;
-      ctx.fillText(t.text, t.x, t.y);
+      t.age++;
+      if (t.g === 'A') t.y -= 0.4;
+      // 0.6 → 1.15 → 1 (120ms = 7틱)에 커지고, 마지막 200ms(12틱)에 흐려진다
+      const u = Math.min(1, t.age / 7), sc = u < 0.6 ? 0.6 + 0.55 * (u / 0.6) : 1.15 - 0.15 * ((u - 0.6) / 0.4);
+      ctx.globalAlpha = Math.max(0, Math.min(1, t.life / 12));
+      ctx.save();
+      ctx.translate(t.x, t.y);
+      ctx.scale(sc, sc);
+      if (t.rot) ctx.rotate(t.rot);
+      ctx.font = `${t.g === 'D' ? 800 : 900} ${t.size}px ${FONT}`;
+      const tw = ctx.measureText(t.text).width, iz = t.icon ? t.size + 1 : 0, gap = t.icon && t.text ? 5 : 0, w = tw + iz + gap, h = t.g === 'B' ? 26 : t.size + 13;
+      if (t.g === 'A') {
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#3b2a1e';
+        if (t.text) ctx.strokeText(t.text, iz ? (iz + gap) / 2 : 0, 0);
+      } else {
+        ctx.beginPath();
+        ctx.roundRect(-w / 2 - 10, -h / 2, w + 20, h, t.g === 'C' ? 10 : h / 2);
+        if (t.g === 'C') (ctx.moveTo(-5, h / 2), ctx.lineTo(0, h / 2 + 6), ctx.lineTo(5, h / 2));
+        ctx.fillStyle = t.g === 'B' ? '#ffc857' : t.g === 'C' ? t.bg ?? '#fff6e4' : t.bg ?? 'rgba(59,42,30,.9)';
+        ctx.fill();
+        if (t.g !== 'D') (ctx.lineWidth = 2), (ctx.strokeStyle = '#7a3e1d'), ctx.stroke();
+      }
+      if (t.icon) drawIcon(ctx, t.icon, -w / 2 + iz / 2, 0, iz);
+      ctx.fillStyle = t.g === 'A' || t.g === 'D' ? '#fff6e4' : '#3b2a1e';
+      if (t.text) ctx.fillText(t.text, -w / 2 + iz + gap + tw / 2, 1);
+      ctx.restore();
     }
     this.popups = this.popups.filter((t) => t.life > 0);
     if (this.flash > 0.01) {

@@ -4,6 +4,7 @@
  */
 import { STAGES, goalLabels, medalOf, starCount, type DogState } from './game.ts';
 import { ICON } from './hud.ts';
+import { sfx } from './sfx.ts';
 
 const STAR = (on: boolean) =>
   `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 6 6.5.9-4.7 4.6 1.1 6.5L12 17.5l-5.8 3.1 1.1-6.5L2.6 9.5l6.5-.9z" fill="${on ? '#ffc857' : 'none'}" stroke="${on ? '#7a3e1d' : '#9c8566'}" stroke-width="2" stroke-linejoin="round"/></svg>`;
@@ -61,6 +62,9 @@ export function mountResultCard(root: HTMLElement, onNext: () => void, onRetry: 
         .join('');
       // 🏅 한 번에! — 한 시도에 ★★★(깃발 도움 없이)면 세 번째 별 뒤 쿵, 나눠 모은 ★★★면 회색 점선 (📐 C003·C004)
       medal.className = `medal ${medalOf(s)}`;
+      // 별 띵: 별이 켜지는 때(.3s + 칸 × .25s)에 맞춰, 켜진 별마다 2반음씩 올림 C6 → D6 → E6 (🎨 C010: 통과 팡파르 대신)
+      let nth = 0;
+      for (let k = 0; k < 3; k++) if ((got >> k) & 1) sfx.play('star', nth++, false, 0.3 + k * 0.25);
       // ★3이면 [다음 ▶] + 작은 '↺ 다시', 아니면 [↺ ☆ 더 따기] + [다음 ▶] (자동으로 넘기지 않는다)
       retryB.innerHTML = `${ICON.retry}${n === 3 ? '다시' : `${ICON.star(false)}더 따기`}`; // ☆ 글자도 SVG로 (🎨 C009)
       retryB.classList.toggle('small', n === 3);

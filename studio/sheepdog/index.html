@@ -44,7 +44,11 @@ canvas:focus-visible{outline:3px solid #ffc857;outline-offset:-3px}
 .keys{display:none;color:#6b5444;font-size:13px;margin:6px 0 0}
 @media (hover:hover) and (pointer:fine){.keys{display:block}}
 #retry{position:absolute;z-index:3;width:44px;height:44px;border-radius:22px;border:3px solid #7a3e1d;background:#fff6e4;color:#3b2a1e;font:900 22px system-ui,sans-serif;cursor:pointer;box-shadow:0 4px 0 #7a3e1d;padding:0;display:grid;place-items:center}
-#retry svg{width:24px;height:24px}
+#retry svg,#sound svg{width:24px;height:24px}
+#sound{position:absolute;z-index:5;width:44px;height:44px;border-radius:22px;border:3px solid #7a3e1d;background:#fff6e4;cursor:pointer;box-shadow:0 4px 0 #7a3e1d;padding:0;display:grid;place-items:center}
+#sound[aria-pressed=false]{background:#d9d0c0}
+#sound:active{transform:translateY(2px);box-shadow:0 2px 0 #7a3e1d}
+#sound:focus-visible{outline:3px solid #7a3e1d;outline-offset:3px}
 #retry:active{transform:translateY(2px);box-shadow:0 1px 0 #7a3e1d}
 #retry:focus-visible{outline:3px solid #ffc857;outline-offset:2px}
 /* 결과 카드 (C008 M1-5a, 🎨 ART §12-6): 탁자에서 올라오는 크림 카드 */
@@ -77,7 +81,7 @@ canvas:focus-visible{outline:3px solid #ffc857;outline-offset:-3px}
 .pill{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 12px 0 7px;background:#fff6e4;border:2px solid #7a3e1d;border-radius:20px;box-shadow:0 3px 0 #7a3e1d;color:#3b2a1e;font:900 15px/1 system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;white-space:nowrap}
 .pill svg{flex:none}
 #hudTop,#hudBot,#news{position:absolute;pointer-events:none;z-index:2}
-#hudTop{display:flex;align-items:center;gap:8px;padding:0 58px 0 8px}
+#hudTop{display:flex;align-items:center;gap:8px;padding:0 110px 0 8px}
 #hudTop .no{width:26px;height:26px;border-radius:50%;background:#7a3e1d;color:#fff6e4;display:grid;place-items:center;font:900 13px/1 system-ui,sans-serif}
 #hudTop .nm{overflow:hidden;text-overflow:ellipsis}
 #hudTop .stage{min-width:0}
@@ -110,15 +114,25 @@ canvas:focus-visible{outline:3px solid #ffc857;outline-offset:-3px}
 .chip.off::before{content:"";position:absolute;left:5px;top:16px;width:22px;height:2px;background:#6b5444;transform:rotate(-40deg)}
 @keyframes chipPop{0%{transform:scale(1)}40%{transform:scale(1.3)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){#news.pop,.chip.on{animation:none}}
+/* 빈 하늘 구름 (🎨 C010): 세로 화면 위 하늘 띠에 셋, 천천히 좌우로 */
+#sky{position:fixed;left:0;top:0;width:100%;pointer-events:none;z-index:1;overflow:hidden}
+#sky svg{position:absolute;animation:sway 18s ease-in-out infinite alternate}
+#sky svg:nth-child(1){left:5%;top:30%}
+#sky svg:nth-child(2){left:60%;top:12%;animation-duration:24s}
+#sky svg:nth-child(3){left:74%;top:62%;animation-duration:30s}
+@keyframes sway{from{transform:translateX(-12px)}to{transform:translateX(12px)}}
+@media (prefers-reduced-motion:reduce){#sky svg{animation:none}}
 kbd{background:#fbeed6;border:1px solid #e3d3b8;border-radius:4px;padding:1px 5px;font:inherit}
 </style>
 </head>
 <body>
+<div id="sky" aria-hidden="true"><svg viewBox="0 0 104 44" width="104" height="44" aria-hidden="true"><g fill="#fff" fill-opacity=".85"><circle cx="26" cy="30" r="14"/><circle cx="48" cy="20" r="18"/><circle cx="72" cy="26" r="15"/><rect x="14" y="28" width="76" height="16" rx="8"/></g></svg><svg viewBox="0 0 104 44" width="76" height="32" aria-hidden="true"><g fill="#fff" fill-opacity=".85"><circle cx="26" cy="30" r="14"/><circle cx="48" cy="20" r="18"/><circle cx="72" cy="26" r="15"/><rect x="14" y="28" width="76" height="16" rx="8"/></g></svg><svg viewBox="0 0 104 44" width="60" height="26" aria-hidden="true"><g fill="#fff" fill-opacity=".85"><circle cx="26" cy="30" r="14"/><circle cx="48" cy="20" r="18"/><circle cx="72" cy="26" r="15"/><rect x="14" y="28" width="76" height="16" rx="8"/></g></svg></div>
 <i id="safe" style="position:fixed;top:0;height:env(safe-area-inset-top,0px);width:0;visibility:hidden"></i>
 <i id="safeB" style="position:fixed;bottom:0;height:env(safe-area-inset-bottom,0px);width:0;visibility:hidden"></i>
 <main id="stage">
   <canvas id="game" tabindex="0" aria-label="양치기 멍멍 게임 화면. 목장을 누르고 있으면 양이 갈 자리가 보이고, 떼면 강아지가 짖어요. 키보드는 화살표로 고르고 스페이스."></canvas>
-  <button id="retry" type="button" aria-label="이 판 처음부터 다시 (R)" title="이 판 처음부터 다시 (R)" hidden>↺</button>
+  <button id="sound" type="button" aria-label="소리 (M)" title="소리 켬/끔 (M)"></button>
+  <button id="retry" type="button aria-label="이 판 처음부터 다시 (R)" title="이 판 처음부터 다시 (R)" hidden>↺</button>
   <section id="overlay">
     <h1 class="logo"><span class="a">양치기</span> <span class="b">멍멍</span></h1>
     <p class="tag">아침 들판, 양 떼를 집으로!</p>
@@ -130,7 +144,7 @@ kbd{background:#fbeed6;border:1px solid #e3d3b8;border-radius:4px;padding:1px 5p
       </ul>
       <button id="start" class="btn main" type="button">시작</button>
       <p id="best"></p>
-      <p class="keys">키보드: <kbd>← ↑ → ↓</kbd> 고르기 · <kbd>스페이스</kbd> 누르고 떼면 멍! · <kbd>R</kbd> 다시</p>
+      <p class="keys">키보드: <kbd>← ↑ → ↓</kbd> 고르기 · <kbd>스페이스</kbd> 누르고 떼면 멍! · <kbd>R</kbd> 다시 · <kbd>M</kbd> 소리</p>
     </div>
   </section>
 </main>

@@ -135,6 +135,28 @@ describe('M1-2a 개울 판 도움 깃발 (📐 C004)', () => {
     expect(goalLabels(STAGES[5])[1]).toBe(`멍멍 ${STAGES[5].par}번`);
   });
 
+  it('풍덩한 짖기마다 풍덩 이벤트가 하나(빠진 양 번호·개울 근처), 안 빠진 짖기엔 없다 (🧪 C006 → C010 M1-6 ③)', () => {
+    const s = g.create(11), rng = mulberry32(4), seen = new Set<number>();
+    let inc = 0;
+    for (const k of [5, 6, 7]) {
+      jumpTo(s, k);
+      let prev = s.splashes;
+      for (let t = 0; t < 60 * 90; t++) {
+        g.step(s, sheepdogRandom.act(s, rng));
+        if (s.splashes > prev) inc++;
+        prev = s.splashes;
+        for (const e of s.events)
+          if (e.kind === 'splash' && !seen.has(e.t)) {
+            seen.add(e.t);
+            expect(s.S.fell[e.v!], `${k + 1}판 빠진 양`).toBeTruthy();
+            expect(Math.abs(e.y - (s.F.river!.y0 + s.F.river!.y1) / 2)).toBeLessThan(0.12);
+          }
+      }
+    }
+    expect(inc).toBeGreaterThan(2);
+    expect(seen.size).toBe(inc);
+  });
+
   it('진짜 풍덩이 셈을 올리고, 판을 깨면 0으로', () => {
     const s = g.create(5);
     jumpTo(s, 5);

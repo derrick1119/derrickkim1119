@@ -19,13 +19,34 @@ const noEmoji = async (page: any, at: string) => {
   );
   if (bad) errors.push(`${at}: 이모지 ${bad}`);
 };
+/** AudioContext를 몇 번 만들었나 세는 스크립트 (C010: 첫 입력 전 0, 꺼 두면 0) */
+const countAC = () => {
+  const w = window as any, A = w.AudioContext;
+  w.__acN = 0;
+  if (A) w.AudioContext = class extends A { constructor(...a: any[]) { super(...a); w.__acN++; } };
+};
+/** 캔버스 글자에 그림 글자가 섞였나 모은다 (C010 M1-6 ②: W1 플레이 동안 0) */
+const watchCanvasText = () => {
+  const w = window as any, P = w.CanvasRenderingContext2D.prototype, seen = (w.__emo = new Set<string>());
+  for (const k of ['fillText', 'strokeText']) {
+    const f = P[k];
+    P[k] = function (this: any, t: string, ...a: any[]) {
+      if (/\p{Extended_Pictographic}/u.test(String(t))) seen.add(String(t));
+      return f.call(this, t, ...a);
+    };
+  }
+};
+const acN = (page: any): Promise<number> => page.evaluate(() => (window as any).__acN);
 const st = (page: any, expr: string) => page.evaluate(`(() => { const s = globalThis.__sd.state(); return ${expr}; })()`);
 for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', { width: 1280, height: 800 }]] as const) {
   const page = await browser.newPage({ viewport: vp, deviceScaleFactor: 1 });
   page.on('console', (m: any) => m.type() === 'error' && errors.push(`${name}: ${m.text()}`));
   page.on('pageerror', (e: Error) => errors.push(`${name}: ${e.message}`));
+  await page.addInitScript(countAC);
+  await page.addInitScript(watchCanvasText);
   await page.goto(url);
   await page.waitForTimeout(600);
+  if ((await acN(page)) !== 0) errors.push(`${name}: 입력 전에 AudioContext를 만듦`);
   await page.screenshot({ path: join(here, 'screens', `${name}-title.png`) });
   await noEmoji(page, `${name}-title`);
   if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) errors.push(`${name}: 가로 스크롤`);
@@ -34,6 +55,12 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.waitForTimeout(1200);
   await page.screenshot({ path: join(here, 'screens', `${name}-play.png`) });
   await noEmoji(page, `${name}-play`);
+  if ((await acN(page)) !== 1) errors.push(`${name}: 시작을 눌렀는데 AudioContext ${await acN(page)}개`);
+  // M으로 소리 끔 → 켬 (버튼 aria-pressed)
+  await page.keyboard.press('KeyM');
+  if ((await page.locator('#sound').getAttribute('aria-pressed')) !== 'false') errors.push(`${name}: M으로 소리가 안 꺼짐`);
+  await page.keyboard.press('KeyM');
+  if ((await page.locator('#sound').getAttribute('aria-pressed')) !== 'true') errors.push(`${name}: M으로 소리가 안 켜짐`);
   // 첫 판: 양 무리 아래쪽을 꾹 누르고 있기(미리 보기) → 떼기(멍!)
   const box = await page.locator('#game').boundingBox();
   const [px, py] = [box.x + box.width * 0.5, box.y + box.height * 0.5]  // 첫 판 양 무리 바로 아래;
@@ -153,6 +180,8 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   if (await page.locator('#card').isVisible()) errors.push(`${name}: 끝 화면 위에 결과 카드가 남음`);
   await page.screenshot({ path: join(here, 'screens', `${name}-end.png`) });
   await noEmoji(page, `${name}-end`);
+  const emo: string[] = await page.evaluate(() => [...(window as any).__emo]);
+  if (emo.length) errors.push(`${name}: 캔버스 글자에 그림 글자 ${emo.join(' | ')}`);
   if (await page.locator('#hudTop').isVisible()) errors.push(`${name}: 끝 화면에 HUD가 남음`);
   await page.close();
 }
@@ -160,6 +189,8 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
 {
   const page = await browser.newPage({ viewport: { width: 375, height: 667 }, deviceScaleFactor: 1 });
   page.on('pageerror', (e: Error) => errors.push(`se: ${e.message}`));
+  await page.addInitScript(countAC);
+  await page.addInitScript(() => { try { localStorage.setItem('sheepdog:mute', '1'); } catch { /* */ } });
   await page.goto(url);
   await page.waitForTimeout(500);
   await page.screenshot({ path: join(here, 'screens', 'se-title.png') });
@@ -168,6 +199,7 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.keyboard.press('Enter');
   await page.waitForTimeout(1200);
   await page.screenshot({ path: join(here, 'screens', 'se-play.png') });
+  if ((await acN(page)) !== 0) errors.push('se: 소리를 꺼 뒀는데 AudioContext를 만듦');
   if (!(await fits('#hudBot .chips'))) errors.push('se: 별 목표 칩이 화면 밖');
   await page.evaluate(() => { const s = (globalThis as any).__sd.state(); s.phase = 'result'; s.ok = true; s.got = 7; s.best[0] = 7; s.clearT = s.t; s.pt = 0; });
   await page.waitForTimeout(1900);
