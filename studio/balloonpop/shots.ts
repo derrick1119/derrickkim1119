@@ -42,6 +42,14 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   if ((await page.evaluate(() => (globalThis as any).__bp.state().used)) < 2) errors.push(`${name}: 마우스 톡이 먹지 않음`);
   await page.waitForTimeout(3500);
   await page.screenshot({ path: join(here, 'screens', `${name}-later.png`) });
+  // 다시 카드 · 도움 반짝(두 번 실패한 판): 확인용 훅으로 실패를 만들고 1초 뒤 같은 하늘을 다시
+  await page.evaluate(() => (globalThis as any).__bp.failToHelp());
+  await page.waitForTimeout(1250);
+  await page.screenshot({ path: join(here, 'screens', `${name}-retry.png`) });
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: join(here, 'screens', `${name}-help.png`) });
+  const hs = await page.evaluate(() => { const s = (globalThis as any).__bp.state(); return { helped: s.helped, help: s.help, tries: s.tries }; });
+  if (!hs.helped || hs.help < 0) errors.push(`${name}: 도움 반짝이 안 뜸 ${JSON.stringify(hs)}`);
   // 결과(완주) 화면: 8판을 실제로 다 하기엔 길어서 확인용 훅으로 바로 띄운다
   await page.evaluate(() => (globalThis as any).__bp.finish());
   await page.waitForTimeout(300);

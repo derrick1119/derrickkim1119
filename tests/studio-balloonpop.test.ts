@@ -67,6 +67,24 @@ describe('하트 없음 · 즉시 재도전 · 도움 반짝 (C002)', () => {
     expect(s.m2).toBe(false);
   });
 
+  it('도움 반짝은 톡마다 다음 풍선으로 옮겨 간다 (C003)', () => {
+    const s = g.create(5);
+    expect(runUntil(s, (x) => x.helped && x.used === 1 && x.phase === 'play' && x.help >= 0)).toBe(true);
+    expect(s.alive[s.help]).toBe(1);
+  });
+
+  it('숙련 봇은 모든 판·모든 시드에서 첫 시도에 ★2 이상 (배치 검증, FUN v1.3)', () => {
+    const e = measure(balloonpopSmart, 12);
+    expect(e.firstTry.every((x) => x === 1)).toBe(true);
+    expect(e.firstStar2.every((x) => x >= 0.95)).toBe(true);
+  });
+
+  it('도움 반짝을 따르면 도움 없을 때보다 못하지 않다 (도움 시도 10번 이상인 판, FUN v1.3)', () => {
+    const h = measure(humanCasual, 40);
+    for (let k = 0; k < STAGE_COUNT; k++) if (h.helpN[k] >= 10) expect(h.helpAfter[k]).toBeGreaterThanOrEqual(h.helpBefore[k]);
+    expect(h.stuckRate).toBeLessThanOrEqual(0.05);
+  });
+
   it('톡 → 다음 팡(연쇄 첫 박자)은 1초 안 (FUN v1.1)', () => {
     expect(BEAT).toBeLessThanOrEqual(60);
   });

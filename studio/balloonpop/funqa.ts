@@ -20,7 +20,7 @@ export const humanCasual: Bot<PopState> = {
     if (!humanAt.has(s)) humanAt.set(s, s.t + 18 + Math.floor(rng() * 31));
     if (s.t < humanAt.get(s)!) return NO;
     // 도움 반짝(두 번 실패한 판)이 있으면 사람처럼 그 풍선을 '지금!'일 때 누른다
-    if (s.help >= 0 && s.used === 0 && s.alive[s.help] === 1) {
+    if (s.help >= 0 && s.alive[s.help] === 1) {
       if (s.st + 1 < s.helpAt) return NO;
       humanAt.delete(s);
       const hb = s.L.bs[s.help];
@@ -59,8 +59,18 @@ export interface GroupStat {
   stuckRate: number;
   /** 게임 시작 → 첫 팡(초), 런 평균 */
   firstPopSec: number;
-  /** 시도당 별 = 모은 별 ÷ 판 시도 수 (실패한 시도는 0별). 숙련 격차의 바탕 (FUN v1.2) */
+  /** 시도당 별 = 모은 별 ÷ 판 시도 수 (실패한 시도는 0별) */
   starsPerTry: number;
+  /** 판당 세 번째 시도까지만 센 시도당 별 — 숙련 격차의 바탕 (FUN v1.3) */
+  starsPerTry3: number;
+  /** 8판을 모두 세 번째 시도 안에 깬 런 비율 (FUN v1.3) */
+  finish3: number;
+  /** 판별: 첫 시도에 ★2 이상으로 깬 비율 (숙련 판 검증, FUN v1.3) */
+  firstStar2: number[];
+  /** 판별: 도움 없는 시도·도움 시도의 클리어율과 도움 시도 수 (FUN v1.3) */
+  helpBefore: number[];
+  helpAfter: number[];
+  helpN: number[];
   finish: number;
   reach: number;
   score: number;
@@ -76,12 +86,13 @@ const median = (xs: number[]) => (xs.length ? [...xs].sort((a, b) => a - b)[Math
 
 export function measure(bot: Bot<PopState>, runs: number): GroupStat {
   const K = STAGE_COUNT, z = () => new Array(K).fill(0);
-  const tried = z(), first = z(), starSum = z(), star3 = z(), cleared = z(), tSum = z(), tN = z(), dead = z(), w3 = z();
+  const tried = z(), first = z(), starSum = z(), star3 = z(), cleared = z(), tSum = z(), tN = z(), dead = z(), w3 = z(), f2 = z(), hbT = z(), hbC = z(), haT = z(), haC = z();
+  let s3 = 0, t3 = 0, fin3 = 0;
   const chains: number[][] = Array.from({ length: K }, () => []);
   let fin = 0, reach = 0, score = 0, ticks = 0, c3 = 0, c3n = 0, stuckRuns = 0, fpSum = 0, fpN = 0;
   for (let r = 0; r < runs; r++) {
     const seed = 1000 + r * 7919, s = g.create(seed), rng: Rng = mulberry32(seed ^ 0x9e3779b9);
-    let stage = -1, attempt = 0, t = 0, wasResult = false, t0 = 0, base = -1, stuck = false, firstPop = -1;
+    let stage = -1, attempt = 0, t = 0, wasResult = false, t0 = 0, base = -1, stuck = false, firstPop = -1, all3 = true;
     const chainDone = () => {
       if (base < 0) return;
       const c = s.popped - base;
@@ -100,7 +111,11 @@ export function measure(bot: Bot<PopState>, runs: number): GroupStat {
       const isResult = s.phase === 'result';
       if (isResult && !wasResult) {
         chainDone();
-        if (s.ok) (cleared[stage]++, (starSum[stage] += s.got), s.got === 3 && star3[stage]++, attempt === 0 && first[stage]++, attempt < 3 && w3[stage]++);
+        if (s.ok) (cleared[stage]++, (starSum[stage] += s.got), s.got === 3 && star3[stage]++, attempt === 0 && first[stage]++, attempt < 3 && w3[stage]++, attempt === 0 && s.got >= 2 && f2[stage]++);
+        if (attempt < 3) (t3++, s.ok && (s3 += s.got));
+        else if (attempt === 3) all3 = false;
+        if (s.helped) (haT[stage]++, s.ok && haC[stage]++);
+        else (hbT[stage]++, s.ok && hbC[stage]++);
         tSum[stage] += t - t0;
         tN[stage]++;
         t0 = t;
@@ -111,7 +126,7 @@ export function measure(bot: Bot<PopState>, runs: number): GroupStat {
       if (stuck) break;
     }
     if (firstPop >= 0) (fpSum += firstPop), fpN++;
-    if (s.won) fin++;
+    if (s.won) (fin++, all3 && fin3++);
     else if (stuck) stuckRuns++, dead[s.stage]++;
     reach += s.stage + 1;
     score += s.pts;
@@ -130,6 +145,12 @@ export function measure(bot: Bot<PopState>, runs: number): GroupStat {
     stuckRate: r2(stuckRuns / runs),
     firstPopSec: fpN ? r2(fpSum / fpN / 60) : 0,
     starsPerTry: r2(starSum.reduce((a, b) => a + b, 0) / Math.max(1, tN.reduce((a, b) => a + b, 0))),
+    starsPerTry3: r2(s3 / Math.max(1, t3)),
+    finish3: r2(fin3 / runs),
+    firstStar2: per(f2, tried),
+    helpBefore: per(hbC, hbT),
+    helpAfter: per(haC, haT),
+    helpN: haT,
     finish: r2(fin / runs),
     reach: r2(reach / runs),
     score: Math.round(score / runs),
@@ -142,8 +163,8 @@ export function measure(bot: Bot<PopState>, runs: number): GroupStat {
 export function densityTable(seeds = 40) {
   return Array.from({ length: STAGE_COUNT }, (_, k) => {
     const ds = Array.from({ length: seeds }, (_, r) => density(1000 + r * 7919, k));
-    const avg = (f: (d: { n: number; overlap: number }) => number) => Math.round((ds.reduce((a, d) => a + f(d), 0) / seeds) * 100) / 100;
-    return { n: avg((d) => d.n), nMax: Math.max(...ds.map((d) => d.n)), overlap: avg((d) => d.overlap) };
+    const avg = (f: (d: { n: number; overlap: number; overlapX: number }) => number) => Math.round((ds.reduce((a, d) => a + f(d), 0) / seeds) * 100) / 100;
+    return { n: avg((d) => d.n), nMax: Math.max(...ds.map((d) => d.n)), overlap: avg((d) => d.overlap), overlapX: avg((d) => d.overlapX) };
   });
 }
 
@@ -155,8 +176,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     novice,
     casual,
     expert,
-    /** 숙련 격차: 숙련 시도당 별 ÷ 사람형 캐주얼 시도당 별 (고민 거리가 있는가, FUN v1.2 — 하트가 없어져 점수비는 완주만 재게 됨) */
-    skillGap: Math.round((expert.starsPerTry / Math.max(0.01, casual.starsPerTry)) * 100) / 100,
+    /** 숙련 격차: 판당 3회로 자른 시도당 별의 숙련 ÷ 사람형 캐주얼 (FUN v1.3 — 막힘 10연패가 격차를 부풀리지 않게) */
+    skillGap: Math.round((expert.starsPerTry3 / Math.max(0.01, casual.starsPerTry3)) * 100) / 100,
     /** 참고: 예전 정의(점수비) */
     scoreGap: Math.round((expert.score / Math.max(1, casual.score)) * 100) / 100,
     density: densityTable(),

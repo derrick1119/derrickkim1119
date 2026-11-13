@@ -335,16 +335,19 @@ function randomRuns(L: Lay, r: Rng, plays: number) {
   return out;
 }
 
-/** 밀도 (FUN §4): 판 시작 배치의 풍선 수(철 포함)와 반경 원 겹침 지수(겹치는 쌍 ÷ 전체 쌍, 철·폭죽 제외) */
-export function density(seed: number, stage: number): { n: number; overlap: number } {
-  const bs = layoutFor(seed, stage).bs, rs = bs.filter((b) => reachOf(b) > 0);
-  let pairs = 0, hit = 0;
+/** 밀도 (FUN §4): 판 시작 배치의 풍선 수(철 포함)와 반경 원 겹침 지수(겹치는 쌍 ÷ 전체 쌍, 철·폭죽·대왕 제외), 다른 무리끼리 겹침 */
+export function density(seed: number, stage: number): { n: number; overlap: number; overlapX: number } {
+  const bs = layoutFor(seed, stage).bs, rs = bs.filter((b) => reachOf(b) > 0 && b.k !== KING);
+  let pairs = 0, hit = 0, xp = 0, xh = 0;
   for (let i = 0; i < rs.length; i++)
     for (let j = i + 1; j < rs.length; j++) {
+      const o = Math.hypot(bxAt(rs[i], 0) - bxAt(rs[j], 0), byAt(rs[i], 0) - byAt(rs[j], 0)) < reachOf(rs[i]) + reachOf(rs[j]);
       pairs++;
-      if (Math.hypot(bxAt(rs[i], 0) - bxAt(rs[j], 0), byAt(rs[i], 0) - byAt(rs[j], 0)) < reachOf(rs[i]) + reachOf(rs[j])) hit++;
+      if (o) hit++;
+      // 다른 무리끼리 (FUN v1.3): 무리 사이가 엉키면 어디까지 갈지 안 읽힌다
+      if (rs[i].cl !== rs[j].cl) (xp++, o && xh++);
     }
-  return { n: bs.length, overlap: pairs ? hit / pairs : 0 };
+  return { n: bs.length, overlap: pairs ? hit / pairs : 0, overlapX: xp ? xh / xp : 0 };
 }
 
 const LAY = new Map<string, Lay>();
@@ -357,7 +360,8 @@ function layoutFor(seed: number, stage: number): Lay {
   const key = seed + ':' + stage, hit = LAY.get(key);
   if (hit) return hit;
   const d = STAGES[stage], PL = 40, mid = (d.rand[0] + d.rand[1]) / 2;
-  let best: Lay | null = null, bsc = -Infinity;
+  let best: Lay | null = null, bsc = -Infinity, sure: Lay | null = null;
+  const pool: { L: Lay; sc: number }[] = [];
   for (let a = 0; a < 40 && (a < 14 || !best); a++) {
     const r = mulberry32((seed * 31 + stage * 7919 + a * 104729 + 17) >>> 0);
     const L = gen(d, r);
@@ -380,10 +384,36 @@ function layoutFor(seed: number, stage: number): Lay {
     const fr = Math.max(0, r2 - (stage ? 0.45 : 0.85)) + Math.max(0, ra - (stage ? 0.3 : 0.4));
     const sc = (met ? 100 : 0) + (all ? 15 : 0) + (m2 ? 10 : 0) - off * 120 - fr * 40;
     if (sc > bsc) (bsc = sc), (best = L);
-    if (met && all && m2 && off === 0 && fr === 0) break;
+    pool.push({ L, sc });
+    if (met && all && m2 && off === 0 && fr === 0) {
+      const v = verify(seed, stage, L);
+      if (v.ok && v.m2) {
+        sure = L;
+        break;
+      }
+    }
   }
-  LAY.set(key, best!);
-  return best!;
+  // 내다보기 값만 믿지 않고, 점수 순으로 숙련 봇이 실제로 ★1·★2를 내는 배치를 고른다 (시드 64352 5판: 목표 16/17을 못 냄, C002 🧪)
+  if (!sure) {
+    let okOnly: Lay | null = null;
+    for (const c of pool.sort((x, y) => y.sc - x.sc).slice(0, 8)) {
+      const v = verify(seed, stage, c.L);
+      if (v.ok && v.m2) {
+        sure = c.L;
+        break;
+      }
+      if (v.ok && !okOnly) okOnly = c.L;
+    }
+    sure ??= okOnly;
+  }
+  const out = sure ?? best!;
+  LAY.set(key, out);
+  return out;
+}
+/** 판 생성 시간 재기용(캐시 없이 새로 만든다) */
+export function layoutTime(seed: number, stage: number) {
+  LAY.delete(seed + ':' + stage);
+  return layoutFor(seed, stage);
 }
 
 // ───────────────────────────── 상태 ─────────────────────────────
@@ -401,6 +431,21 @@ export interface PopState {
   down: boolean; seen: Set<string>; events: Ev[]; news: { text: string; t: number }[];
 }
 
+function blank(seed: number, stage: number): PopState {
+  return {
+    rng: mulberry32(seed), seed, t: 0, stage, tries: 0, phase: 'play', pt: 0, st: 0,
+    fails: 0, stars: 0, got: 0, ok: false, pts: 0, dead: false, won: false, down: false, seen: new Set<string>(), events: [], news: [],
+  } as unknown as PopState;
+}
+/** 배치 검증 (C003): 숙련 봇이 이 배치를 실제로 한 판 해 본다 → 목표(★1)와 두 번 안에(★2)를 냈나 */
+function verify(seed: number, stage: number, L: Lay): { ok: boolean; m2: boolean } {
+  const s = blank(seed, stage);
+  newStage(s, false, L);
+  const rng = () => 0.5;
+  for (let k = 0; k < 60 * 120 && s.phase !== 'result'; k++) balloonpop.step(s, balloonpopSmart.act(s, rng));
+  return { ok: s.phase === 'result' && s.ok, m2: s.phase === 'result' && s.m2 };
+}
+
 const ev = (s: PopState, kind: string, x: number, y: number, text?: string, col?: string, v?: number, z?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v, z });
 function see(s: PopState, key: string, text: string) {
   if (s.seen.has(key)) return;
@@ -408,8 +453,8 @@ function see(s: PopState, key: string, text: string) {
   s.news.push({ text, t: s.t });
 }
 
-function newStage(s: PopState, retry: boolean) {
-  const L = (s.L = layoutFor(s.seed, s.stage)), n = L.bs.length;
+function newStage(s: PopState, retry: boolean, lay?: Lay) {
+  const L = (s.L = lay ?? layoutFor(s.seed, s.stage)), n = L.bs.length;
   s.alive = new Uint8Array(n).fill(1);
   s.popT = new Int32Array(n).fill(-1);
   s.tapOf = new Int8Array(n);
@@ -427,15 +472,35 @@ function newStage(s: PopState, retry: boolean) {
   s.tries = retry ? s.tries + 1 : 0;
   s.help = -1;
   s.helped = s.tries >= HELP_AFTER;
-  if (s.helped) {
-    // 도움 반짝: 숙련 봇과 같은 내다보기로 첫 톡 풍선과 때를 고른다 (결정적)
-    const r = search(L, new Uint8Array(n).fill(1), 1, 3, 0, { pop: 0, pop2: 0, save: 0, save2: 0 }, BEAM, L.Ds);
-    s.help = r.i;
-    s.helpAt = 1 + r.d;
-  }
+  // 도움 반짝: 숙련 봇과 **같은 계획**(plan)으로 첫 톡 풍선과 때를 고른다 — 그대로 따라 하면 숙련 봇의 판이 된다(배치 검증으로 깨지는 것이 보장됨)
+  if (s.helped) helpNext(s);
   const d = STAGES[s.stage];
   see(s, d.key, d.news);
   if (d.lanes) see(s, 'fly', '🎈 화면 밖으로 흘러간 풍선은 못 터뜨려요');
+}
+
+/** 숙련 봇의 계획: 지금 상태에서 남은 톡을 내다보고 다음 톡 풍선과 때. 같은 상태·같은 톡 번호면 한 번만 계산 */
+function plan(s: PopState, lead = 0): { key: string; i: number; at: number; v: number } {
+  const key = `${s.stage}:${s.tries}:${s.used}:${lead}`;
+  let m = brain.get(s);
+  if (!m || m.key !== key) {
+    const T = s.st + 1 + lead, c: Acc = { pop: s.popped, pop2: s.pop2, save: s.saved + pendingOk(s, 9), save2: s.save2 + pendingOk(s, 2) };
+    const r = search(s.L, s.alive.slice(), T, s.taps, s.used, c, BEAM, s.L.Ds);
+    brain.set(s, (m = { key, i: r.i, at: T + r.d, v: r.v }));
+  }
+  return m;
+}
+/** 도움 반짝의 여유(틱): 고리가 뜨고 '지금!'까지 사람이 보고 손을 옮길 시간 — 길게부터, 목표를 못 채우면 짧게 (바람 판은 기다리면 날아감) */
+export const HELP_LEADS = [48, 30, 18, 0];
+/** 도움 반짝을 다음 톡으로 옮긴다 (C003: 첫 톡만이 아니라 톡마다, 사람이 반응할 여유를 두고) */
+function helpNext(s: PopState) {
+  let m = plan(s, HELP_LEADS[0]);
+  for (const lead of HELP_LEADS.slice(1)) {
+    if (m.v >= 10000) break; // 이 여유로도 목표(★1)를 채우는 계획
+    m = plan(s, lead);
+  }
+  s.help = m.i;
+  s.helpAt = m.at;
 }
 
 function pick(s: PopState, x: number, y: number): number {
@@ -515,6 +580,7 @@ function play(s: PopState, p: { x: number; y: number } | null) {
     else {
       s.taps--;
       s.used++;
+      s.help = -1;
       s.tapOf[i] = s.used;
       s.src[i] = -1;
       ev(s, 'tap', SX[i], SY[i]);
@@ -532,6 +598,7 @@ function play(s: PopState, p: { x: number; y: number } | null) {
   let pending = false, left = false;
   for (let i = 0; i < n; i++) if (s.alive[i] === 1) (s.popT[i] >= 0 && (pending = true)), L.bs[i].k !== IRON && (left = true);
   if (!pending && s.chainN > 0) ev(s, 'chainEnd', 0.5, 0.3, undefined, undefined, s.chainN), (s.chainN = 0);
+  if (s.helped && !pending && s.help < 0 && s.taps > 0 && left) helpNext(s);
   const falling = s.falls.some((f) => !f.done);
   if (!pending && !falling && (s.taps === 0 || !left)) {
     if (++s.wait >= WAIT_END) endStage(s);
@@ -554,10 +621,7 @@ export const balloonpop: GameDef<PopState> = {
   },
   reveals: (s) => s.seen.size,
   create(seed) {
-    const s = {
-      rng: mulberry32(seed), seed, t: 0, stage: 0, tries: 0, phase: 'play', pt: 0, st: 0,
-      fails: 0, stars: 0, got: 0, ok: false, pts: 0, dead: false, won: false, down: false, seen: new Set<string>(), events: [], news: [],
-    } as unknown as PopState;
+    const s = blank(seed, 0);
     newStage(s, false);
     return s;
   },
@@ -596,20 +660,14 @@ export const balloonpop: GameDef<PopState> = {
 const NO: Input = { tap: false, dir: 0, pointer: null };
 const BEAM = [0, 0, 3, 3];
 const pendingOk = (s: PopState, maxTap: number) => s.falls.filter((f) => !f.done && f.ok && f.tap <= maxTap).length;
-const brain = new WeakMap<object, { key: string; i: number; at: number }>();
+const brain = new WeakMap<object, { key: string; i: number; at: number; v: number }>();
 /** 봇: 남은 톡을 끝까지 내다보며(연쇄를 그대로 돌려 봄) 어느 풍선을, 언제(흔들림·바람) 톡 할지 고른다 */
 export const balloonpopSmart: Bot<PopState> = {
   name: '연쇄 박사',
   act(s) {
     if (s.phase !== 'play' || s.down || s.taps <= 0) return NO;
     for (let i = 0; i < s.alive.length; i++) if (s.alive[i] === 1 && s.popT[i] >= 0) return NO;
-    const key = `${s.stage}:${s.tries}:${s.used}`;
-    let m = brain.get(s);
-    if (!m || m.key !== key) {
-      const T = s.st + 1, c: Acc = { pop: s.popped, pop2: s.pop2, save: s.saved + pendingOk(s, 9), save2: s.save2 + pendingOk(s, 2) };
-      const r = search(s.L, s.alive.slice(), T, s.taps, s.used, c, BEAM, s.L.Ds);
-      brain.set(s, (m = { key, i: r.i, at: T + r.d }));
-    }
+    const m = plan(s);
     if (m.i < 0 || s.st + 1 < m.at) return NO;
     if (s.alive[m.i] !== 1) return brain.delete(s), NO;
     const b = s.L.bs[m.i];
@@ -1916,8 +1974,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     ctx.fillStyle = '#5a2a8a';
     ctx.fillText(msg, mx2, hy + R(0.085));
   }
-  // 도움 반짝 (두 번 실패한 판): 숙련 봇이 고른 첫 톡 풍선에 금빛 고리 — 누를 때가 오면 '지금!'
-  if (s.help >= 0 && s.phase === 'play' && s.used === 0 && s.alive[s.help] === 1) {
+  // 도움 반짝 (두 번 실패한 판): 숙련 봇이 고른 다음 톡 풍선에 금빛 고리 — 누를 때가 오면 '지금!' (톡마다 옮겨 감)
+  if (s.help >= 0 && s.phase === 'play' && s.alive[s.help] === 1) {
     const i = s.help, now = st >= s.helpAt - 4, pulse = 0.5 + 0.5 * Math.sin(t * 0.25);
     const hx = X(SX[i]), hy = Y(SY[i]), hr = R(brOf(L.bs[i])) * (1.7 + pulse * 0.35);
     ctx.save();

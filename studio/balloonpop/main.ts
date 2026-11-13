@@ -4,7 +4,7 @@
  */
 import { TICK, type Input } from './core.ts';
 import { peek } from './juice.ts';
-import { balloonpop as g, bxAt, byAt, IRON, STAGE_COUNT, type PopState } from './game.ts';
+import { balloonpop as g, bxAt, byAt, HELP_AFTER, IRON, STAGE_COUNT, type PopState } from './game.ts';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const canvas = $<HTMLCanvasElement>('game'), ctx = canvas.getContext('2d')!;
@@ -152,6 +152,8 @@ $('start').focus();
     return { x: bxAt(b, s.st + 1), y: byAt(b, s.st + 1) / A };
   },
   aim(p: { x: number; y: number }) { keyboard = true; cursor = { ...p }; },
+  /** 도움 반짝 확인용: 지금 판을 실패한 것으로 치고 → 1초 뒤 같은 하늘을 도움 반짝과 함께 다시 */
+  failToHelp() { s.tries = HELP_AFTER - 1; s.phase = 'result'; s.ok = false; s.pt = 0; },
   /** 결과 화면 확인용: 지금 판에서 바로 완주 화면으로 */
   finish() { if (running) finish(); },
 };
