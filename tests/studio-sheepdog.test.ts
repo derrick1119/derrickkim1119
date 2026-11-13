@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/sheepdog/core.ts';
-import { COME_HOLD, FLAG_SNAP, LATER, STAGES, at as atField, blackCame, comeHold, jumpTo, preview, starCount, sheepdog as g, sheepdogGreedy, sheepdogRandom, sheepdogSmart, type DogState } from '../studio/sheepdog/game.ts';
+import { BLACK_TIP, COME_HOLD, FLAG_SNAP, LATER, STAGES, at as atField, blackCame, comeHold, jumpTo, preview, starCount, sheepdog as g, sheepdogGreedy, sheepdogRandom, sheepdogSmart, type DogState } from '../studio/sheepdog/game.ts';
 import { mulberry32 } from '../studio/sheepdog/rng.ts';
 
 const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y } });
@@ -178,6 +178,20 @@ describe('M1-2a 개울 판 도움 깃발 (📐 C004)', () => {
 });
 
 describe('판 알림 (C007)', () => {
+  it("1-4 까만 양 설명은 '?!' 연출이 끝난 뒤에 뜬다 — 짖은 틱에 뜨지 않는다 (📐 C007)", () => {
+    const s = g.create(1), rng = mulberry32(1);
+    jumpTo(s, 3);
+    expect(STAGES[3].news).not.toContain('거꾸로'); // 시작 알림은 놀람을 미리 말하지 않는다
+    let fleeStart = -1, tipAt = -1;
+    for (let t = 0; t < 60 * 60 && tipAt < 0; t++) {
+      g.step(s, sheepdogNaiveLike(s, rng));
+      if (phaseOf(s) === 'flee' && fleeStart < 0 && blackCame(s)) fleeStart = s.t;
+      if (s.news?.text === BLACK_TIP) tipAt = s.t;
+    }
+    expect(fleeStart).toBeGreaterThan(0);
+    expect(tipAt - fleeStart).toBeGreaterThanOrEqual(39);
+  });
+
   it('판을 건너뛰어도 그 판의 알림이 먼저 뜬다 — 앞 판 알림이 줄 서서 밀려 나오지 않는다', () => {
     const s = g.create(1);
     for (const k of [2, 6, 7]) {

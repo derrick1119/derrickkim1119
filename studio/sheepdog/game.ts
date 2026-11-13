@@ -194,6 +194,7 @@ export const STAGES: StageDef[] = [
   },
   {
     ...P('black'),
+    news: '🖤 까만 양도 울타리에 넣어 볼까요?', // 📐 C007: 놀람을 미리 말하지 않는다 — 기대가 단단할수록 '?!'가 커진다
     // 📐 C003: 꽃밭은 🌼 판에만 · C005(FUN QA C003): 까만 양을 흰 무리 바로 옆으로 — 첫 짖기에 '?!'을 꼭 겪게(순진 근사 0.30 → 목표 0.9)
     build: (r) => {
       const L = P('black').build(r), b = L.sheep.find((q) => q.black)!;
@@ -758,8 +759,18 @@ function bark(s: DogState, fx: number, fy: number) {
   s.idle = 0;
 }
 
+/** 도움말을 줄 세우지 않고 지금 바로 띄운다(한 번만) */
+function tipNow(s: DogState, key: string, text: string) {
+  if (s.tips.has(key)) return;
+  s.tips.add(key);
+  s.news = { text, t: s.t };
+}
+export const BLACK_TIP = '🖤 까만 양만 거꾸로 — 짖는 쪽으로!';
+
 function afterFlee(s: DogState) {
   const d = STAGES[s.stage], F = s.F, S = s.S;
+  // 📐 C007: 까만 양 설명은 '?!' 웃음이 다 닿은 뒤에(짖은 틱이 아니라 그 짖기의 연출이 끝난 때)
+  if (blackCame(s)) tipNow(s, 'blackcome', BLACK_TIP);
   const fell = S.fell.findIndex((v) => v);
   if (fell >= 0) return s.splashes++, finish(s, false, F.black[fell] ? '까만 양이 개울에 풍덩!' : '양이 개울에 풍덩!');
   if (S.caught >= 0) return finish(s, false, '늑대가 양을 물어 갔어요!');
@@ -852,7 +863,6 @@ export const sheepdog: GameDef<DogState> = {
         if (rec.scare.some((v, i) => v === 3 && rec.path[i])) {
           const i = rec.scare.findIndex((v) => v === 3);
           ev(s, 'come', s.S.x[i], s.S.y[i], '?!', '#ffe0f0');
-          tip(s, 'blackcome', '까만 양은 앞에서 짖어 당겨 와요');
         }
         if (rec.cloverNew.length) ev(s, 'clover', s.F.clovers[rec.cloverNew[0]].x, s.F.clovers[rec.cloverNew[0]].y, '🍀 클로버!', '#d8ffc0');
         if (rec.flowerNew.length) ev(s, 'trample', s.F.flowers[rec.flowerNew[0]].x, s.F.flowers[rec.flowerNew[0]].y, '앗, 꽃밭!', '#ffd6ec');
