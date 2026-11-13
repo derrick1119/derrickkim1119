@@ -1,53 +1,89 @@
 {
-  "at": "2026-11-13T16:06:11.334Z",
+  "at": "2026-11-13T17:10:32.394Z",
   "D1": [
     {
-      "id": "1-1",
-      "par": 1,
+      "id": "1-4",
+      "par": 4,
+      "sym": false,
       "T": [
-        1,
-        1,
-        1
+        2,
+        2,
+        3
       ],
-      "coarse": 3,
-      "refined": 500,
-      "runs": 1017,
-      "water": 500,
-      "solCells": 14,
-      "D1": 1,
-      "sizes": [
-        13
-      ],
-      "top": 0.03,
-      "oldD1": 1,
+      "flip": "-FF",
+      "exact": true,
+      "coarse": 105,
+      "refined": 480,
+      "runs": 992,
+      "water": 480,
+      "solCells": 3,
+      "D1": 0,
+      "sizes": [],
+      "top": 0,
+      "oldD1": 2,
       "oldSizes": [
-        13
+        465
       ],
-      "sec": 0.78
+      "sec": 57.63
     },
     {
-      "id": "1-2",
+      "id": "1-5",
+      "par": 4,
+      "sym": false,
+      "T": [
+        3,
+        3,
+        4
+      ],
+      "flip": "FFF",
+      "exact": true,
+      "coarse": 86,
+      "refined": 490,
+      "runs": 1121,
+      "water": 490,
+      "solCells": 83,
+      "D1": 4,
+      "sizes": [
+        33,
+        19,
+        17,
+        13
+      ],
+      "top": 0.07,
+      "oldD1": 2,
+      "oldSizes": [
+        379
+      ],
+      "sec": 59.81
+    },
+    {
+      "id": "2-1",
       "par": 2,
+      "sym": false,
       "T": [
         2,
         2,
         2
       ],
-      "coarse": 56,
-      "refined": 484,
-      "runs": 1106,
-      "water": 484,
-      "solCells": 193,
+      "flip": "--F",
+      "exact": true,
+      "coarse": 38,
+      "refined": 500,
+      "runs": 1045,
+      "water": 500,
+      "solCells": 144,
       "D1": 2,
       "sizes": [
-        193
+        73,
+        69
       ],
-      "top": 0.4,
+      "top": 0.15,
       "oldD1": 2,
       "oldSizes": [
-        193
+        73,
+        69
       ],
-      "sec": 13.63
+      "sec": 18.76
     }
   ]
 }
