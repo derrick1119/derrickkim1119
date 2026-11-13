@@ -29,7 +29,7 @@ export const RETRY = 3;
 /** 배우는 처음 봇의 다시 한도 (C5 p90을 재려고 넉넉히) */
 export const RETRY_LEARN = 30;
 
-export interface StageLog { stage: number; ok: boolean; sec: number; taps: number; stars: number; why: string; tapStar: boolean; goldStar: boolean; sucks: number; chomps: number; failKind?: string; /** D010: 황금 위기가 화면에 보인 가장 긴 연속 틱 (0 = 안 보임) */ crisis: number }
+export interface StageLog { stage: number; ok: boolean; sec: number; taps: number; stars: number; why: string; tapStar: boolean; goldStar: boolean; sucks: number; chomps: number; failKind?: string; /** D010: 황금 위기가 화면에 보인 가장 긴 연속 틱 (0 = 안 보임) */ crisis: number; /** D011 (FUN T1/T2): 그 시도의 첫 톡 뒤 3초(또는 둘째 톡 전)에 둥지에 든 것이 늘었나 */ firstIn: boolean }
 export interface Run { stages: StageLog[]; score: number; sec: number; reached: number; won: boolean; gaveUp: number; firstTapNest: number }
 
 /**
@@ -64,18 +64,24 @@ export function play(bot: Bot<DuckState>, seed: number, maxSec = 900, retry = RE
   // D010 (🧪 D009·D010 차단): 판을 처음 시작할 때마다 봇 난수를 (시드, 판 id)로 다시 — 앞 판을 고쳐도 뒤 판의 봇 손이 그대로(다시 하기는 같은 줄을 이어 쓴다)
   const stageRng = (i: number) => { let h = 0x811c9dc5; for (const c of STAGES[i].id) h = Math.imul(h ^ c.charCodeAt(0), 0x01000193); return mulberry32((seed ^ h ^ 0x9e3779b9) >>> 0); };
   let rng = stageRng(0), rngStage = 0;
-  let phase = s.phase, t0 = 0, gaveUp = 0, tap1 = -1, firstTapNest = -1, cr = 0, crMax = 0;
+  let phase = s.phase, t0 = 0, gaveUp = 0, tap1 = -1, firstTapNest = -1, cr = 0, crMax = 0, at1 = -1, n1 = 0, firstIn: boolean | null = null;
+  const nested = () => s.objs.filter((o) => o.k !== 3 && o.st >= 0).length;
   while (!g.over(s) && s.t < maxSec * 60) {
     if (s.stage !== rngStage) (rng = stageRng(s.stage)), (rngStage = s.stage);
     g.step(s, bot.act(s, rng));
     cr = crisisShown(s) ? cr + 1 : 0;
     crMax = Math.max(crMax, cr);
+    if (s.phase === 'play') {
+      if (at1 < 0 && s.used >= 1) (at1 = s.t), (n1 = nested());
+      if (at1 >= 0 && firstIn === null && (s.used >= 2 || s.t - at1 >= 180)) firstIn = nested() > n1;
+    }
     // 첫 판 첫 톡 3초 뒤 둥지에 든 오리 수 (FUN N3 · M1 허들 1)
     if (tap1 < 0 && s.used > 0) tap1 = s.t;
     if (tap1 >= 0 && firstTapNest < 0 && s.t - tap1 >= 180) firstTapNest = s.objs.filter((o) => o.k <= 1 && o.st >= 0).length;
     if (phase === 'play' && s.phase === 'result') {
-      logs.push({ stage: s.stage + 1, ok: s.ok, sec: (s.t - t0) / 60, taps: s.used, stars: s.ok ? s.got : 0, why: s.why, tapStar: s.ok && s.starOk[1], goldStar: s.ok && s.starOk[2], sucks: s.sucks, chomps: s.chomps, failKind: s.ok ? undefined : failText(s).kind, crisis: crMax });
+      logs.push({ stage: s.stage + 1, ok: s.ok, sec: (s.t - t0) / 60, taps: s.used, stars: s.ok ? s.got : 0, why: s.why, tapStar: s.ok && s.starOk[1], goldStar: s.ok && s.starOk[2], sucks: s.sucks, chomps: s.chomps, failKind: s.ok ? undefined : failText(s).kind, crisis: crMax, firstIn: firstIn ?? (at1 >= 0 && nested() > n1) });
       crMax = cr = 0;
+      (at1 = -1), (firstIn = null);
       if (!s.ok && s.stageTries > retry) {
         gaveUp = s.stage + 1;
         break;
@@ -108,6 +114,7 @@ function group(bot: Bot<DuckState>, n: number, retry: number) {
       tapsUp: rate(oks.map((l) => l.taps > med(oks.map((x) => x.taps)))), // FUN v1.10 g: 중앙보다 많이 쓴 몫 (≥ .35면 T* = 중앙 + 1)
       humanMean: r2(oks.reduce((a, l) => a + l.sec + 3 * l.taps, 0) / Math.max(1, oks.length)), tapsMean: r2(oks.reduce((a, l) => a + l.taps, 0) / Math.max(1, oks.length)),
       // D010 (🧪 D009 4): 황금 위기 표시 — 시도 중 보인 비율 · 보인 것 중 30틱 미만 비율
+      firstIn: rate(L.map((l) => l.firstIn)), // T1/T2: 첫 톡에 둥지 입성
       crisisRate: rate(L.map((l) => l.crisis > 0)), crisisShort: rate(L.filter((l) => l.crisis > 0).map((l) => l.crisis < 30)),
       stars: r2(oks.reduce((a, l) => a + l.stars, 0) / Math.max(1, oks.length)),
       tapStar: rate(oks.map((l) => l.tapStar)), goldStar: rate(oks.map((l) => l.goldStar)), // E6 (클리어한 시도 중)
@@ -337,6 +344,11 @@ if (import.meta.url === `file://${process.argv[1]}` && d1Arg) {
   console.log(`E6 캐주얼 ★황금 (황금을 맨 나중에 미는 확률별): ${Object.entries(e6).map(([k, v]) => `${k}: ${v.join(' ')}`).join('  |  ')}`);
   console.log(`H1 (세 번째 시도 클리어율 👆 따름/안 따름 → 차이): ${(res['H1'] as { stage: number; follow: number | null; none: number | null; n: number[]; gain: number | null }[]).filter((h) => h.follow !== null).map((h) => `${ID(h.stage)} ${h.follow}/${h.none} → ${h.gain} (n ${h.n.join('/')})`).join(' · ')}`);
   if (res['C4']) console.log(`C4 (par 1 판, %): ${(res['C4'] as ReturnType<typeof area>).filter((c) => c.oneTap !== null).map((c) => `${ID(c.stage)} 한 톡에 다 ${c.oneTap} · ★3 ${c.oneTap3}`).join('  |  ')}`);
+  {
+    // D011 (FUN T1·T2): 판마다 '첫 톡에 둥지 입성' 비율 캐주얼 − 무작위 (소개 판 = T1, 소개 판 다음 판 = T2 — 갈래는 FUN.md)
+    const cs = (res['캐주얼'] as ReturnType<typeof group>).stages, rs = (res['처음'] as ReturnType<typeof group>).stages;
+    console.log(`T1/T2 첫 톡 둥지 입성 캐주얼 − 무작위(무작위 값): ${cs.map((c, i) => `${ID(c.stage)} ${c.firstIn !== null && rs[i].firstIn !== null ? r2(c.firstIn - rs[i].firstIn) : '-'}(${rs[i].firstIn ?? '-'})`).join(' · ')}`);
+  }
   {
     // D009: 사람초 합 (모든 시도) — 설계는 CONTENT v0.3 §1 '사람 초'(만든 판만 더함)
     const ds = STAGES.reduce((a, d) => ((a[d.id.split('-')[0]] = (a[d.id.split('-')[0]] ?? 0) + (DESIGN_SEC[d.id] ?? 0)), a), {} as Record<string, number>);

@@ -299,6 +299,33 @@ describe('판 데이터 검증 (D007 뼈대, CONTENT v0.3 §5 — 판이 늘 때
     const order = ids.map((id) => num(id)[0] * 100 + num(id)[1]);
     expect(order).toEqual([...order].sort((a, b) => a - b));
   });
+  it('새것 간격 ≤ 4판 — 1번 칸부터 빈 칸 없이 이어진 만든 판 구간에서 (CONTENT v0.3 §1, D011 1욕실 완성)', () => {
+    const slot = (id: string) => { const [w, k] = num(id); return (w - 1) * SLOTS + k; };
+    const built = new Map(STAGES.map((d) => [slot(d.id), d]));
+    let n = 1;
+    while (built.has(n + 1)) n++;
+    expect(n).toBeGreaterThanOrEqual(SLOTS); // 1욕실 10판이 다 있다
+    const seen = new Set<string>();
+    let last = 1;
+    for (let k = 1; k <= n; k++) {
+      const d = built.get(k)!;
+      if (d.key && !seen.has(d.key)) {
+        seen.add(d.key);
+        expect(k - last, `${d.id} 새것 '${d.key}'`).toBeLessThanOrEqual(4);
+        last = k;
+      }
+    }
+  });
+  it('들 수 없는 둥지·갈 곳 없는 오리가 없다 — 색 둥지엔 그 색 오리, 부두엔 배 (D011 도달 불가 둥지 검사)', () => {
+    for (const d of STAGES) {
+      for (const n of d.nests) {
+        if (n[4]) expect(!!d.boat, `${d.id} 부두`).toBe(true);
+        else if (n[3] >= 0) expect(d.ducks.some((q) => q[2] === n[3]), `${d.id} 색 ${n[3]} 둥지`).toBe(true);
+      }
+      for (const q of d.ducks) expect(d.nests.some((n) => !n[4] && (n[3] < 0 || n[3] === q[2])), `${d.id} 오리 색 ${q[2]}`).toBe(true);
+      if (d.boat) expect(d.nests.some((n) => n[4]), `${d.id} 배`).toBe(true);
+    }
+  });
   it('모든 판에 판 질문(ask)과 교훈(hint) 한 줄', () => {
     for (const d of STAGES) {
       expect(d.ask?.length ?? 0, d.id).toBeGreaterThan(5);
