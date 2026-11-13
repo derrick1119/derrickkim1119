@@ -1825,7 +1825,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     ctx.setLineDash(fused || on ? [] : [R(0.014), R(0.01)]);
     ctx.strokeStyle = rgba(mix(col, night > 0.5 ? '#ffffff' : '#3a2a6a', 0.12), a);
     ctx.fillStyle = rgba(col, (fused ? 0.16 : on ? 0.14 : 0.04) * intro);
-    ctx.lineWidth = fused || on ? 2.4 : 1.6;
+    ctx.lineWidth = lead && i === 0 ? 3.4 : fused || on ? 2.4 : 1.6; // 1판 0번 원은 금색 짧은 호 사이에서도 보이게 (C009)
     if (tails && !fused && !on && b.k !== FIRE && b.k !== KING && b.sz < 2) {
       // 원이 많으면 작은·보통 풍선은 둘레의 짧은 호 넷만 — 하늘이 거미줄처럼 안 보이게. 큰 풍선·대왕은 늘 온전한 원(판 시작에도 '큰 풍선 = 큰 원'이 읽히게, C005)
       ctx.strokeStyle = rgba(mix(col, night > 0.5 ? '#ffffff' : '#3a2a6a', 0.12), (fi >= 0 ? 0.3 : 0.6) * intro);
@@ -1835,7 +1835,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
       // 둘·각 60° — 원 모양이 남게 (FUN v1.5). 물풍선은 아래쪽 하나만
       for (let q = 0; q < 2; q++) {
         if (b.k === WATER && q === 1) continue;
-        const a0 = Math.PI / 4 + q * Math.PI - Math.PI / 6;
+        const a0 = Math.PI / 4 + q * Math.PI - Math.PI / 6 + ((i % 3) * Math.PI) / 3; // 풍선마다 방향을 돌려 평행 리본 무늬가 안 되게 (C009)
         ctx.moveTo(x + rr * Math.cos(a0), y + rr * Math.sin(a0));
         ctx.arc(x, y, rr, a0, a0 + Math.PI / 3);
       }
@@ -1911,10 +1911,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
   if (peeking && fi === s.peek) {
     const k = 1 - (st - s.peekAt) / PEEK_T, p0 = s.peek;
     ctx.save();
-    ctx.setLineDash([R(0.006), R(0.008)]);
-    ctx.lineWidth = 1.5;
-    ctx.strokeStyle = `rgba(255,255,255,${(0.55 * k).toFixed(3)})`;
-    for (let i = 0; i < n; i++) if (s.alive[i] === 1 && Math.hypot(SX[i] - SX[p0], SY[i] - SY[p0]) < 0.3) ctx.beginPath(), ctx.arc(X(SX[i]), Y(SY[i]), R(hitR(L.bs[i])), 0, Math.PI * 2), ctx.stroke();
+    // 테두리 없는 옅은 원판 — '헉'의 흰 고리와 헷갈리지 않게 (C009)
+    ctx.fillStyle = `rgba(255,255,255,${(0.16 * k).toFixed(3)})`;
+    for (let i = 0; i < n; i++) if (s.alive[i] === 1 && Math.hypot(SX[i] - SX[p0], SY[i] - SY[p0]) < 0.3) ctx.beginPath(), ctx.arc(X(SX[i]), Y(SY[i]), R(hitR(L.bs[i])), 0, Math.PI * 2), ctx.fill();
     ctx.restore();
   }
   // ══ 흔들 레일 · 다리 밧줄 (C007, ART §11) — 답이 아니라 범위·연결만 ══
@@ -1933,6 +1932,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PopState, w: number, h: numbe
     ctx.save();
     ctx.lineCap = 'round';
     for (const rl of rails) {
+      // 받침: 만국기 높이에서도 레일이 묻히지 않게 (C009 🧪)
+      ctx.fillStyle = rgba(night > 0.5 ? '#2a1f52' : '#ffffff', 0.45 * quiet * intro);
+      ctx.beginPath();
+      ctx.roundRect(X(rl.cx - rl.ax) - R(0.02), Y(rl.ry) - R(0.016), R(2 * rl.ax + 0.04), R(0.032), R(0.016));
+      ctx.fill();
       ctx.strokeStyle = rgba(ink, (0.45 + 0.2 * emph) * quiet * intro);
       ctx.lineWidth = 2;
       ctx.beginPath();
