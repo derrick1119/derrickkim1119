@@ -5,9 +5,19 @@
  * 졸업한 게임은 스튜디오(`studio/<게임>/`)가 이어받는다(원본 `games/guardian2.ts`·`sheepdog.ts`·`balloonpop.ts`·`duckbath.ts`는 스튜디오 참고용으로 파일만 남김).
  */
 import type { Bot, GameDef } from './core.ts';
+import { screwshop, screwshopRandom, screwshopSmart } from './games/screwshop.ts';
+import { animalbus, animalbusRandom, animalbusSmart } from './games/animalbus.ts';
+import { blockgarden, blockgardenRandom, blockgardenSmart } from './games/blockgarden.ts';
+import { catcards, catcardsRandom, catcardsSmart } from './games/catcards.ts';
+import { bubbleshot, bubbleshotRandom, bubbleshotSmart } from './games/bubbleshot.ts';
 
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S> }
 
 export const GAMES: Entry[] = [
-  // 24라운드 다 폐기(2026-11-13) — 25라운드 만드는 중
+  // 25라운드 — 요즘 잘 팔리는 캐주얼 퍼즐 뼈대 × 공장의 와우 (24라운드 다 폐기 뒤)
+  { game: screwshop, dumb: screwshopRandom, smart: screwshopSmart },
+  { game: animalbus, dumb: animalbusRandom, smart: animalbusSmart },
+  { game: blockgarden, dumb: blockgardenRandom, smart: blockgardenSmart },
+  { game: catcards, dumb: catcardsRandom, smart: catcardsSmart },
+  { game: bubbleshot, dumb: bubbleshotRandom, smart: bubbleshotSmart },
 ];

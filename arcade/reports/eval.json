@@ -1,194 +1,162 @@
 {
- "ufo": {
-  "id": "ufo",
-  "name": "UFO 소 납치",
+ "screwshop": {
+  "id": "screwshop",
+  "name": "나사 풀기 공방",
   "n": 24,
   "dumb": {
-   "score": 517.5,
-   "sec": 73.7
+   "score": 398,
+   "sec": 113.9
   },
   "smart": {
-   "score": 3525,
-   "sec": 50.5,
+   "score": 2924,
+   "sec": 94.6,
    "capped": 0
   },
-  "skillGap": 6.8,
+  "skillGap": 7.33,
   "reveals": [
-   7.4,
-   10,
-   10
+   4.4,
+   8.8,
+   11
   ],
   "dumbReveals": [
-   4.4,
+   3.4,
    5
   ],
   "parts": {
-   "skill": 0.922,
+   "skill": 0.958,
    "onboarding": 1,
    "session": 1,
    "simplicity": 1,
    "unfold": 1
   },
-  "fun": 0.978
+  "fun": 0.988
  },
- "robovac": {
-  "id": "robovac",
-  "name": "고양이 청소기",
+ "animalbus": {
+  "id": "animalbus",
+  "name": "동물 버스 정류장",
   "n": 24,
   "dumb": {
-   "score": 582.5,
-   "sec": 97
+   "score": 345,
+   "sec": 180
   },
   "smart": {
-   "score": 2885,
-   "sec": 65.5,
+   "score": 2930,
+   "sec": 140.1,
    "capped": 0
   },
-  "skillGap": 4.95,
+  "skillGap": 8.47,
   "reveals": [
-   4,
-   8,
-   8
+   4.5,
+   6.6,
+   9.6
   ],
   "dumbReveals": [
-   2.3,
-   3.8
+   2,
+   4.1
   ],
   "parts": {
-   "skill": 0.769,
+   "skill": 1,
    "onboarding": 1,
    "session": 1,
    "simplicity": 1,
    "unfold": 1
   },
-  "fun": 0.931
+  "fun": 1
  },
- "snowroll": {
-  "id": "snowroll",
-  "name": "눈덩이 굴리기",
+ "blockgarden": {
+  "id": "blockgarden",
+  "name": "블록 꽉꽉 정원",
   "n": 24,
   "dumb": {
-   "score": 640,
-   "sec": 64.5
+   "score": 410,
+   "sec": 180
   },
   "smart": {
-   "score": 3840,
-   "sec": 70.4,
+   "score": 2735,
+   "sec": 118.7,
    "capped": 0
   },
-  "skillGap": 5.99,
+  "skillGap": 6.66,
   "reveals": [
-   8,
-   15,
-   15
-  ],
-  "dumbReveals": [
-   5.6,
-   6.9
-  ],
-  "parts": {
-   "skill": 0.861,
-   "onboarding": 1,
-   "session": 1,
-   "simplicity": 0.85,
-   "unfold": 1
-  },
-  "fun": 0.939
- },
- "pillowfight": {
-  "id": "pillowfight",
-  "name": "베개 싸움",
-  "n": 24,
-  "dumb": {
-   "score": 800,
-   "sec": 156.6
-  },
-  "smart": {
-   "score": 4600,
-   "sec": 75.2,
-   "capped": 0
-  },
-  "skillGap": 5.74,
-  "reveals": [
-   4,
+   5.1,
    7,
-   8
+   10
   ],
   "dumbReveals": [
-   1.3,
-   2.9
+   1.9,
+   3.3
   ],
   "parts": {
-   "skill": 0.841,
+   "skill": 0.912,
    "onboarding": 1,
    "session": 1,
    "simplicity": 1,
    "unfold": 1
   },
-  "fun": 0.954
+  "fun": 0.975
  },
- "sunmirror": {
-  "id": "sunmirror",
-  "name": "햇빛 거울 정원",
+ "catcards": {
+  "id": "catcards",
+  "name": "고양이 카드 원정",
   "n": 24,
   "dumb": {
-   "score": 705,
-   "sec": 76.9
+   "score": 750,
+   "sec": 71.9
   },
   "smart": {
-   "score": 2870,
-   "sec": 62,
+   "score": 2750,
+   "sec": 46.2,
    "capped": 0
   },
-  "skillGap": 4.07,
+  "skillGap": 3.66,
   "reveals": [
-   7,
+   8.3,
    10,
    10
   ],
   "dumbReveals": [
-   5.4,
-   6.8
+   5.3,
+   7.4
   ],
   "parts": {
-   "skill": 0.675,
+   "skill": 0.624,
    "onboarding": 1,
    "session": 1,
    "simplicity": 1,
    "unfold": 1
   },
-  "fun": 0.899
+  "fun": 0.881
  },
- "railswitch": {
-  "id": "railswitch",
-  "name": "기찻길 전환",
+ "bubbleshot": {
+  "id": "bubbleshot",
+  "name": "펭귄 거품 쏘기",
   "n": 24,
   "dumb": {
-   "score": 360,
-   "sec": 180
+   "score": 6795,
+   "sec": 91.8
   },
   "smart": {
-   "score": 2660,
-   "sec": 155.9,
+   "score": 26950,
+   "sec": 75.7,
    "capped": 0
   },
-  "skillGap": 7.37,
+  "skillGap": 3.97,
   "reveals": [
-   3,
-   6.4,
-   10.9
+   7.6,
+   10.3,
+   11
   ],
   "dumbReveals": [
-   2.8,
-   7.1
+   5.4,
+   6.1
   ],
   "parts": {
-   "skill": 0.961,
+   "skill": 0.663,
    "onboarding": 1,
    "session": 1,
    "simplicity": 1,
    "unfold": 1
   },
-  "fun": 0.989
+  "fun": 0.895
  }
 }
