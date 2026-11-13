@@ -244,14 +244,14 @@ export const STAGES: StageDef[] = [
     },
   },
   {
-    key: 'fest', name: '아침 축제', news: '🎉 아침 축제 — 오늘 배운 걸 다 써요!', max: 12, par: 6, bonus: 'clover', needBlack: true, // 📐 C015: 까만 양 필수(1-4부터 하나의 규칙) · 🍀 문 오른쪽(0.68, 0.28) · par 7 → 6(박사 6)
+    key: 'fest', name: '아침 축제', news: '🎉 아침 축제 — 오늘 배운 걸 다 써요!', max: 12, par: 6, bonus: 'clover', needBlack: true, // 📐 C015: 까만 양 필수(1-4부터 하나의 규칙) · 🍀 문 오른쪽 아래(0.69, 0.30) · par 7 → 6(박사 6)
     build: (r) => {
       const side = r() < 0.5 ? -1 : 1;
       return {
         pens: [PEN0()],
         river: RIVER(),
         flowers: [],
-        clovers: [{ x: 0.68, y: 0.28, r: 0.045 }],
+        clovers: [{ x: 0.69, y: 0.3, r: 0.045 }], // 🎨 C015 ⚠️: (0.68, 0.28)은 울타리 기둥과 3px — 기둥 장식처럼 읽힘 → 아래로(0.70·0.30은 박사 ★2)
         sheep: [
           // 📐 C005 (가): 흰 양 7마리 그대로, 무리 폭을 다리 폭에 맞춰 세 줄로(±0.15 → ±0.065) — 어려움은 '섞는 순서'에서, 손끝 정밀에서가 아니라
           ...flock(r, 0.5 + jit(r, 0.03), 0.66, [[-0.03, -0.035], [0.03, -0.035], [-0.065, 0.03], [0, 0.03], [0.065, 0.03], [-0.035, 0.1], [0.035, 0.1]]),
@@ -2257,10 +2257,19 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   // ── 클로버 (C003, 🍀 보너스: 흰 양이 지나가면 별) ──
   F.clovers.forEach((c, k) => {
     const got = S.ch[k] && !(flee && flee.cloverNew.includes(k) && q < 0.5);
-    ctx.fillStyle = got ? 'rgba(255,224,102,.32)' : 'rgba(120,200,80,.28)';
+    // 🎨 C015 ⚠️: 연두 후광은 풀과 대비 1.02~1.08이라 밟을 범위가 안 읽힘 → 크림 후광 + 크림 1.5px 점선 테
+    ctx.fillStyle = got ? 'rgba(255,224,102,.32)' : 'rgba(255,246,228,.4)';
     ctx.beginPath();
     ctx.ellipse(PX(c.x, c.y), PY(c.y), R(c.r) * scl(c.y), R(c.r * 0.8) * FH * scl(c.y), 0, 0, TAU);
     ctx.fill();
+    if (!got) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,246,228,.9)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]);
+      ctx.stroke();
+      ctx.restore();
+    }
     for (let j = 0; j < 7; j++) {
       const a = hsh(j + k * 29 + 3) * TAU, rr = Math.sqrt(hsh(j + k * 31 + 7)) * c.r * 0.8, px = c.x + Math.cos(a) * rr, py = c.y + Math.sin(a) * rr * 0.8;
       const sx = PX(px, py), sy = PY(py), fz = R(0.008) * scl(py), bob = Math.sin(t * 0.06 + j) * fz * 0.3;
@@ -3015,7 +3024,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       const a = Math.min(1, age / 8, (INTRO_T - age) / 20), sc = 1 + Math.max(0, 8 - age) * 0.04;
       ctx.globalAlpha = a;
       ctx.save();
-      ctx.translate(w / 2, Y(introTop ? 0.17 : 0.86)); // 🎨 C015: 세로 화면은 캔버스 하늘 띠(Y 0.17, 들판 0.305 위) — 양·클로버·개울을 덮지 않게
+      ctx.translate(w / 2, Y(introTop ? 0.17 : 0.83)); // 🎨 C015: 세로 화면은 캔버스 하늘 띠(Y 0.17, 들판 0.305 위) — 양·클로버·개울을 덮지 않게 · 데스크톱 0.86 → 0.83(부제가 강아지 귀를 덮음)
       ctx.scale(sc, sc);
       font(0.075, 900);
       ctx.textAlign = 'center';

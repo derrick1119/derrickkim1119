@@ -33,13 +33,17 @@ const bots = { smart: sheepdogSmart, greedy: sheepdogGreedy, random: sheepdogRan
 const NO = { tap: false, dir: 0 as const, pointer: null };
 /** 같은 판을 실패하면 그 자리에서 다시(게임 그대로 — 풍덩 깃발도 뜬다) 하며 통과까지 몇 번? cap번 안에 못 깨면 0 */
 /** 깬 시도의 보너스 별·깃발 도움도 남긴다 (📐 C015: 조심 손의 🍀는 '깃발 없이 깬 시도 중'으로 본다) */
-const clears: { k: number; bonus: boolean; helped: boolean }[] = [];
-function triesToClear(bot: Bot<DogState>, seed: number, stage: number, cap = 25) {
+const clears: { k: number; bonus: boolean; helped: boolean; noFlag: boolean }[] = [];
+/** noFlag: 깃발을 늘 비워 둔다(측정만 — 📐 C015 '깃발 끈 조심 🍀'. 깃발을 켜면 1-7 조심 손이 깬 시도는 모두 깃발 도움이라 표본이 0) */
+function triesToClear(bot: Bot<DogState>, seed: number, stage: number, cap = 25, noFlag = false) {
   const s = g.create(seed), rng = mulberry32(seed ^ 0x51ed);
   jumpTo(s, stage);
   for (let n = 1; n <= cap; n++) {
-    for (let t = 0; t < 60 * 120 && s.phase !== 'result'; t++) g.step(s, bot.act(s, rng));
-    if (s.phase === 'result' && s.ok) return clears.push({ k: stage, bonus: ((s.got >> 2) & 1) === 1, helped: s.helped }), n;
+    for (let t = 0; t < 60 * 120 && s.phase !== 'result'; t++) {
+      if (noFlag) s.flags.length = 0;
+      g.step(s, bot.act(s, rng));
+    }
+    if (s.phase === 'result' && s.ok) return clears.push({ k: stage, bonus: ((s.got >> 2) & 1) === 1, helped: s.helped, noFlag }), n;
     for (let t = 0; t < 400 && s.phase === 'result'; t++) g.step(s, NO); // 실패 → 같은 판 다시
   }
   return 0;
@@ -136,7 +140,7 @@ function width(stage: number, top = 6) {
   return +(win / Math.max(1, moving)).toFixed(2);
 }
   const avg = (xs: number[]) => +(xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(2);
-const per: Record<string, { name: string; max: number; par: number; parGap: number; smart: { clear: number; stars: number; used: number; mask: number }; greedy: { clear: number; used: number; overPar: number }; random: { clear: number; stuck25: number }; careful: { stuck25: number; tries: number; bonus: number; selfN: number; bonusSelf: number }; naiveSeesNew: number | null; depth: { habitClear: number; habitBonus: number; width: number; greedyEqSmart: boolean }; shake: { smartStar3: number; greedyFail: number; greedyParOrLess: number; behindPen: number; void: number; greedyPx: number } }> = {};
+const per: Record<string, { name: string; max: number; par: number; parGap: number; smart: { clear: number; stars: number; used: number; mask: number }; greedy: { clear: number; used: number; overPar: number }; random: { clear: number; stuck25: number }; careful: { stuck25: number; tries: number; bonus: number; selfN: number; bonusSelf: number; noFlag: { stuck25: number; bonus: number } | null }; naiveSeesNew: number | null; depth: { habitClear: number; habitBonus: number; width: number; greedyEqSmart: boolean }; shake: { smartStar3: number; greedyFail: number; greedyParOrLess: number; behindPen: number; void: number; greedyPx: number } }> = {};
 for (let k = 0; k < STAGES.length; k++) {
   const d = STAGES[k];
   const sm = Array.from({ length: N }, (_, i) => onStage(bots.smart, 1000 + i, k));
@@ -152,8 +156,11 @@ for (let k = 0; k < STAGES.length; k++) {
     greedy: { clear: +gr.ok, used: gr.used, overPar: gr.ok ? gr.used - d.par : 99 },
     random: { clear: avg(rd.map((r) => +r.ok)), stuck25: avg(st) },
     careful: (() => {
-      const c = clears.filter((r) => r.k === k), self = c.filter((r) => !r.helped);
-      return { stuck25: avg(care.map((n) => +(n === 0))), tries: care.some((n) => n) ? avg(care.filter((n) => n)) : 99, bonus: c.length ? avg(c.map((r) => +r.bonus)) : 0, selfN: self.length, bonusSelf: self.length ? avg(self.map((r) => +r.bonus)) : -1 };
+      const c = clears.filter((r) => r.k === k && !r.noFlag), self = c.filter((r) => !r.helped);
+      // 📐 C015: 개울 판(깃발이 뜨는 판)만 깃발 끈 조심 손을 따로 잰다 — 깬 시도 중 보너스(1-7 ③ 선 ≤ 0.3)
+      const nf = d.key === 'narrow' || d.key === 'fest' ? Array.from({ length: N }, (_, i) => triesToClear(bots.careful, 3000 + i, k, 25, true)) : null, cn = clears.filter((r) => r.k === k && r.noFlag);
+      return { stuck25: avg(care.map((n) => +(n === 0))), tries: care.some((n) => n) ? avg(care.filter((n) => n)) : 99, bonus: c.length ? avg(c.map((r) => +r.bonus)) : 0, selfN: self.length, bonusSelf: self.length ? avg(self.map((r) => +r.bonus)) : -1,
+        noFlag: nf && { stuck25: avg(nf.map((n) => +(n === 0))), bonus: cn.length ? avg(cn.map((r) => +r.bonus)) : 0 } };
     })(),
     naiveSeesNew: intro,
     depth: (() => { const h = Array.from({ length: N }, (_, i) => habitFirst(4000 + i, k)); return { habitClear: avg(h.map((r) => +r.ok)), habitBonus: avg(h.map((r) => +r.bonus)), width: F11.includes(d.key) ? width(k) : -1, greedyEqSmart: gr.ok && gr.used === Math.min(...sm.filter((r) => r.ok).map((r) => r.used)) }; })(),
@@ -169,5 +176,5 @@ const report = {
 };
 mkdirSync(join(here, 'reports'), { recursive: true });
 writeFileSync(join(here, 'reports', 'funqa.json'), JSON.stringify(report, null, 1) + '\n');
-console.table(Object.entries(per).map(([k, v]) => ({ 판: k, 이름: v.name, 'par/max': `${v.par}/${v.max}`, 'par여유': v.parGap, 박사별: v.smart.stars, 박사멍멍: v.smart.used, 그리디: v.greedy.clear ? `${v.greedy.used}(par${v.greedy.overPar >= 0 ? '+' : ''}${v.greedy.overPar})` : '못 깸', 아무데나통과: v.random.clear, '조심 25번 막힘': v.careful.stuck25, '조심 평균 시도': v.careful.tries, '조심 보너스': v.careful.bonus, '깃발 없이 깬 조심 보너스': v.careful.selfN ? `${v.careful.bonusSelf}(${v.careful.selfN})` : '', '순진 새것 겪기': v.naiveSeesNew ?? '', '습관 통과': v.depth.habitClear, '습관 보너스': v.depth.habitBonus, '정답 폭': v.depth.width, '±3px 박사★3': v.shake.smartStar3, '±3px 그리디 실패': v.shake.greedyFail, '±3px 그리디 par 이하': v.shake.greedyParOrLess, 'px 그리디−par': v.shake.greedyPx, '뒤 끼임': v.shake.behindPen, 무효: v.shake.void })));
+console.table(Object.entries(per).map(([k, v]) => ({ 판: k, 이름: v.name, 'par/max': `${v.par}/${v.max}`, 'par여유': v.parGap, 박사별: v.smart.stars, 박사멍멍: v.smart.used, 그리디: v.greedy.clear ? `${v.greedy.used}(par${v.greedy.overPar >= 0 ? '+' : ''}${v.greedy.overPar})` : '못 깸', 아무데나통과: v.random.clear, '조심 25번 막힘': v.careful.stuck25, '조심 평균 시도': v.careful.tries, '조심 보너스': v.careful.bonus, '깃발 없이 깬 조심 보너스': v.careful.selfN ? `${v.careful.bonusSelf}(${v.careful.selfN})` : '', '깃발 끈 조심 막힘·보너스': v.careful.noFlag ? `${v.careful.noFlag.stuck25}·${v.careful.noFlag.bonus}` : '', '순진 새것 겪기': v.naiveSeesNew ?? '', '습관 통과': v.depth.habitClear, '습관 보너스': v.depth.habitBonus, '정답 폭': v.depth.width, '±3px 박사★3': v.shake.smartStar3, '±3px 그리디 실패': v.shake.greedyFail, '±3px 그리디 par 이하': v.shake.greedyParOrLess, 'px 그리디−par': v.shake.greedyPx, '뒤 끼임': v.shake.behindPen, 무효: v.shake.void })));
 console.log('한 판 전체 점수', report.run);

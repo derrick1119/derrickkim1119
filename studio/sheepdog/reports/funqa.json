@@ -24,13 +24,17 @@
    },
    "careful": {
     "stuck25": 0,
-    "tries": 1
+    "tries": 1,
+    "bonus": 1,
+    "selfN": 20,
+    "bonusSelf": 1,
+    "noFlag": null
    },
    "naiveSeesNew": null,
    "depth": {
     "habitClear": 1,
     "habitBonus": 1,
-    "width": 0.65,
+    "width": -1,
     "greedyEqSmart": true
    },
    "shake": {
@@ -64,13 +68,17 @@
    },
    "careful": {
     "stuck25": 0,
-    "tries": 1
+    "tries": 1,
+    "bonus": 1,
+    "selfN": 20,
+    "bonusSelf": 1,
+    "noFlag": null
    },
    "naiveSeesNew": null,
    "depth": {
     "habitClear": 1,
     "habitBonus": 1,
-    "width": 0.25,
+    "width": -1,
     "greedyEqSmart": true
    },
    "shake": {
@@ -84,7 +92,7 @@
   },
   "3": {
    "name": "흩어진 양",
-   "max": 9,
+   "max": 7,
    "par": 3,
    "parGap": 0,
    "smart": {
@@ -99,22 +107,26 @@
     "overPar": 1
    },
    "random": {
-    "clear": 0.05,
-    "stuck25": 0.8
+    "clear": 0,
+    "stuck25": 0.9
    },
    "careful": {
     "stuck25": 0,
-    "tries": 2.15
+    "tries": 2.7,
+    "bonus": 0.55,
+    "selfN": 20,
+    "bonusSelf": 0.55,
+    "noFlag": null
    },
    "naiveSeesNew": null,
    "depth": {
-    "habitClear": 0.6,
-    "habitBonus": 0.45,
-    "width": 0.12,
+    "habitClear": 0.4,
+    "habitBonus": 0.15,
+    "width": 0.16,
     "greedyEqSmart": false
    },
    "shake": {
-    "smartStar3": 0.97,
+    "smartStar3": 0.9,
     "greedyFail": 0,
     "greedyParOrLess": 0,
     "behindPen": 0,
@@ -144,13 +156,17 @@
    },
    "careful": {
     "stuck25": 0,
-    "tries": 1
+    "tries": 1,
+    "bonus": 1,
+    "selfN": 20,
+    "bonusSelf": 1,
+    "noFlag": null
    },
    "naiveSeesNew": 1,
    "depth": {
     "habitClear": 1,
     "habitBonus": 1,
-    "width": 0.88,
+    "width": -1,
     "greedyEqSmart": true
    },
    "shake": {
@@ -184,13 +200,17 @@
    },
    "careful": {
     "stuck25": 0,
-    "tries": 2.25
+    "tries": 2.25,
+    "bonus": 0.5,
+    "selfN": 20,
+    "bonusSelf": 0.5,
+    "noFlag": null
    },
    "naiveSeesNew": null,
    "depth": {
     "habitClear": 0.45,
     "habitBonus": 0.25,
-    "width": 0.08,
+    "width": 0.15,
     "greedyEqSmart": false
    },
    "shake": {
@@ -224,13 +244,17 @@
    },
    "careful": {
     "stuck25": 0,
-    "tries": 2.3
+    "tries": 2.3,
+    "bonus": 1,
+    "selfN": 0,
+    "bonusSelf": -1,
+    "noFlag": null
    },
    "naiveSeesNew": 1,
    "depth": {
     "habitClear": 0,
     "habitBonus": 0,
-    "width": 0.36,
+    "width": -1,
     "greedyEqSmart": true
    },
    "shake": {
@@ -245,8 +269,8 @@
   "7": {
    "name": "좁은 다리",
    "max": 9,
-   "par": 4,
-   "parGap": 0,
+   "par": 5,
+   "parGap": 1,
    "smart": {
     "clear": 1,
     "stars": 3,
@@ -256,46 +280,6 @@
    "greedy": {
     "clear": 1,
     "used": 6,
-    "overPar": 2
-   },
-   "random": {
-    "clear": 0,
-    "stuck25": 0.9
-   },
-   "careful": {
-    "stuck25": 0,
-    "tries": 3.25
-   },
-   "naiveSeesNew": null,
-   "depth": {
-    "habitClear": 0.05,
-    "habitBonus": 0.05,
-    "width": 0.1,
-    "greedyEqSmart": false
-   },
-   "shake": {
-    "smartStar3": 0.53,
-    "greedyFail": 0.47,
-    "greedyParOrLess": 0.1,
-    "behindPen": 0,
-    "void": 0,
-    "greedyPx": 3
-   }
-  },
-  "8": {
-   "name": "아침 축제",
-   "max": 12,
-   "par": 7,
-   "parGap": 0,
-   "smart": {
-    "clear": 1,
-    "stars": 3,
-    "used": 7,
-    "mask": 7
-   },
-   "greedy": {
-    "clear": 1,
-    "used": 8,
     "overPar": 1
    },
    "random": {
@@ -304,28 +288,82 @@
    },
    "careful": {
     "stuck25": 0,
-    "tries": 3.85
+    "tries": 3.25,
+    "bonus": 1,
+    "selfN": 0,
+    "bonusSelf": -1,
+    "noFlag": {
+     "stuck25": 0.9,
+     "bonus": 0
+    }
+   },
+   "naiveSeesNew": null,
+   "depth": {
+    "habitClear": 0.05,
+    "habitBonus": 0.05,
+    "width": 0.35,
+    "greedyEqSmart": false
+   },
+   "shake": {
+    "smartStar3": 0.6,
+    "greedyFail": 0.47,
+    "greedyParOrLess": 0.1,
+    "behindPen": 0,
+    "void": 0,
+    "greedyPx": 2
+   }
+  },
+  "8": {
+   "name": "아침 축제",
+   "max": 12,
+   "par": 6,
+   "parGap": 0,
+   "smart": {
+    "clear": 1,
+    "stars": 3,
+    "used": 6,
+    "mask": 7
+   },
+   "greedy": {
+    "clear": 1,
+    "used": 9,
+    "overPar": 3
+   },
+   "random": {
+    "clear": 0,
+    "stuck25": 1
+   },
+   "careful": {
+    "stuck25": 0,
+    "tries": 5.65,
+    "bonus": 0.1,
+    "selfN": 0,
+    "bonusSelf": -1,
+    "noFlag": {
+     "stuck25": 1,
+     "bonus": 0
+    }
    },
    "naiveSeesNew": null,
    "depth": {
     "habitClear": 0,
     "habitBonus": 0,
-    "width": 0.16,
+    "width": 0.34,
     "greedyEqSmart": false
    },
    "shake": {
-    "smartStar3": 0.4,
+    "smartStar3": 0.55,
     "greedyFail": 0.3,
-    "greedyParOrLess": 0.57,
+    "greedyParOrLess": 0,
     "behindPen": 0,
-    "void": 1,
-    "greedyPx": -3
+    "void": 0,
+    "greedyPx": 2
    }
   }
  },
  "run": {
   "smartMean": 2500,
-  "randomMean": 565,
-  "skillGap": 4.4
+  "randomMean": 530,
+  "skillGap": 4.7
  }
 }
