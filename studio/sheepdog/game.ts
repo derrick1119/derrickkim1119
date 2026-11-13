@@ -29,7 +29,9 @@ export const R_IN = 0.13, R_OUT = 0.26, D_IN = 0.26, D_OUT = 0.14;
 const COH = 0.6;
 const STEP = 0.01, BLACK_STOP = 0.045;
 const WOLF_STEP = 0.13, WOLF_CATCH = 0.075, GOAT_R = 0.03, FAINT = 3;
-const DOG_SPEED = 0.05, FLEE_T = 40, RESULT_OK = 190, RESULT_FAIL = 60;
+const DOG_SPEED = 0.05, FLEE_T = 40, RESULT_FAIL = 60;
+/** 통과 결과 카드는 이만큼 지난 뒤부터 '다음'을 받는다(별이 켜지는 동안 실수로 넘기지 않게) */
+export const RESULT_MIN = 20;
 /** 까만 양이 강아지 쪽으로 온 짖기는 결과를 이만큼(약 0.5초) 늦게 낸다 — '?!'가 통과 축하에 묻히지 않게 (C006, FUN QA C005) */
 export const COME_HOLD = 30;
 /** 이번 짖기에 까만 양이 거꾸로 왔나 */
@@ -265,6 +267,9 @@ function bonusMet(F: Field, S: Sim, d: StageDef) {
   return !S.fh.some((v) => v);
 }
 const BONUS_LABEL: Record<Bonus, string> = { flower: '꽃밭 안 밟기', black: '까만 양도', clover: '클로버 밟기' };
+/** 🏅 '한 번에!' (📐 C003·C004): 한 시도에 ★★★(깃발 도움 없이) = gold, 나눠 모은 ★★★ = grey, 아니면 none. 별 수에는 안 센다 */
+export const medalOf = (s: DogState): 'gold' | 'grey' | 'none' =>
+  s.phase === 'result' && s.ok && s.got === 7 && !s.helped ? 'gold' : s.best[s.stage] === 7 ? 'grey' : 'none';
 export const starCount = (mask: number) => (mask & 1) + ((mask >> 1) & 1) + ((mask >> 2) & 1);
 
 // ───────── 부딪힘 ─────────
@@ -831,9 +836,10 @@ export const sheepdog: GameDef<DogState> = {
       return newStage(s);
     }
     if (s.phase === 'result') {
-      if (s.pt >= (s.ok ? RESULT_OK : RESULT_FAIL)) {
-        if (!s.ok) newStage(s); // 실패하면 그 판만 다시 — 잃는 것 없음
-        else if (s.won && s.stage === STAGES.length - 1) s.dead = true;
+      // 실패하면 1초 뒤 그 판만 다시(잃는 것 없음). 통과하면 결과 카드에서 '다음'을 누를 때까지 기다린다 (C008 M1-5a: 3초 뒤 저절로 넘어가지 않는다)
+      if (!s.ok && s.pt >= RESULT_FAIL) newStage(s);
+      else if (s.ok && inp.next && s.pt >= RESULT_MIN) {
+        if (s.won && s.stage === STAGES.length - 1) s.dead = true;
         else s.stage++, (s.tries = 0), (s.splashes = 0), newStage(s);
       }
       return;
@@ -1018,6 +1024,8 @@ function plan(F: Field, S0: Sim, d: StageDef, maxDepth = DEPTH): [number, number
 
 const brain = new WeakMap<object, { key: string; p: [number, number] }>();
 const NO: Input = { tap: false, dir: 0, pointer: null };
+/** 봇: 통과 결과 카드에서는 '다음' */
+const NEXT: Input = { tap: false, dir: 0, pointer: null, next: true };
 /** 목장 좌표 (fx, fy)를 누르는 입력 (봇·테스트용) */
 export const at = (fx: number, fy: number): Input => ({ tap: false, dir: 0, pointer: { x: SX(fx, fy), y: SY(fy) / A } });
 
@@ -1025,6 +1033,7 @@ export const at = (fx: number, fy: number): Input => ({ tap: false, dir: 0, poin
 export const sheepdogSmart: Bot<DogState> = {
   name: '양치기 박사',
   act(s) {
+    if (s.phase === 'result' && s.ok) return NEXT;
     if (s.phase !== 'aim' || s.down) return NO;
     const key = `${s.stage}:${s.tries}:${s.S.used}`;
     let m = brain.get(s);
@@ -1038,6 +1047,7 @@ const greedyBrain = new WeakMap<object, { key: string; p: [number, number] }>();
 export const sheepdogGreedy: Bot<DogState> = {
   name: '미리 보고 한 수',
   act(s) {
+    if (s.phase === 'result' && s.ok) return NEXT;
     if (s.phase !== 'aim' || s.down) return NO;
     const key = `${s.stage}:${s.tries}:${s.S.used}`;
     let m = greedyBrain.get(s);
@@ -1075,6 +1085,7 @@ function humanBot(name: string, looks: number): Bot<DogState> {
   return {
     name,
     act(s, rng) {
+      if (s.phase === 'result' && s.ok) return NEXT;
       if (s.phase !== 'aim' || s.down) return NO;
       if (looks > 0 && s.flags.length) return at(s.flags[0][0], s.flags[0][1]);
       let p = naiveAim(s.F, s.S, rng);
@@ -1096,6 +1107,7 @@ const dumbAt = new WeakMap<object, { next: number; until: number; p: { x: number
 export const sheepdogRandom: Bot<DogState> = {
   name: '아무 데나 톡',
   act(s, rng) {
+    if (s.phase === 'result' && s.ok) return NEXT;
     let m = dumbAt.get(s);
     if (!m) dumbAt.set(s, (m = { next: 20 + Math.floor(rng() * 60), until: -1, p: { x: 0, y: 0 } }));
     if (s.t < m.until) return { tap: false, dir: 0, pointer: m.p };
@@ -2908,33 +2920,28 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       ctx.globalAlpha = 1;
     }
   }
-  // 결과
-  if (s.phase === 'result') {
-    const age = s.pt, a = Math.min(1, age / 10);
+  // 실패: 위쪽 크림 알약 카드 (C008, 🎨 §12-7 — 빨강 없음). 통과는 DOM 결과 카드(ui.ts)가 맡는다
+  if (s.phase === 'result' && !s.ok) {
+    const a = Math.min(1, s.pt / 8), cw = Math.min(w - R(0.08), R(0.86)), cx0 = (w - cw) / 2, cy0 = Y(0.34), ch = R(0.15);
     ctx.globalAlpha = a;
-    // 실패 띠는 위(울타리 쪽)에 — 강아지와 풍덩 자리를 가리지 않게 (C006, FUN QA C002)
-    const by = s.ok ? 0.8 : 0.33;
-    ctx.fillStyle = s.ok ? 'rgba(40,60,20,.55)' : 'rgba(60,50,30,.62)';
-    ctx.fillRect(0, Y(by), w, R(s.ok ? 0.2 : 0.17));
+    ctx.fillStyle = '#7a3e1d';
+    ctx.beginPath();
+    ctx.roundRect(cx0, cy0 + 4, cw, ch, R(0.04));
+    ctx.fill();
+    ctx.fillStyle = '#fff6e4';
+    ctx.strokeStyle = '#7a3e1d';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(cx0, cy0, cw, ch, R(0.04));
+    ctx.fill();
+    ctx.stroke();
     ctx.textAlign = 'center';
-    font(s.ok ? 0.06 : 0.05, 900);
-    ctx.fillStyle = s.ok ? '#fff1a8' : '#fff6d6';
-    ctx.fillText(s.ok ? (s.won ? '목장 완성! 🎉' : `${s.stage + 1}판 통과!`) : s.why, w / 2, Y(by + 0.055));
-    if (s.ok) {
-      for (let k = 0; k < 3; k++) {
-        const ag = age - 14 - k * 10, got = ((s.got >> k) & 1) === 1;
-        if (ag < 0) continue;
-        const sc = got ? 1 + Math.max(0, 1 - ag / 8) * 0.8 : 1;
-        font(0.08 * sc, 900);
-        ctx.fillStyle = got ? '#ffd166' : 'rgba(255,255,255,.35)';
-        ctx.fillText(got ? '★' : '☆', w / 2 + (k - 1) * R(0.1), Y(0.94));
-        if (got && (fx.memo['star' + k] ?? -1) < s.clearT) (fx.memo['star' + k] = s.clearT), fx.burst(w / 2 + (k - 1) * R(0.1), Y(0.94), '#ffe066', 14, 3, 2.4);
-      }
-    } else {
-      font(0.042, 800);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText('멍… 괜찮아, 같은 판 한 번 더!', w / 2, Y(by + 0.125));
-    }
+    font(0.05, 900);
+    ctx.fillStyle = '#3b2a1e';
+    ctx.fillText(s.why, w / 2, cy0 + ch * 0.38);
+    font(0.038, 800);
+    ctx.fillStyle = '#6b5444';
+    ctx.fillText('멍… 괜찮아, 같은 판 한 번 더!', w / 2, cy0 + ch * 0.74);
     ctx.globalAlpha = 1;
   }
   // ═════════ 아래 띠: 멍멍 · 별 목표 · 안내 ═════════

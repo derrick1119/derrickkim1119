@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/sheepdog/core.ts';
-import { BLACK_TIP, COME_HOLD, FLAG_SNAP, LATER, SKY, STAGES, WORLD_TIME, at as atField, blackCame, comeHold, jumpTo, preview, starCount, sheepdog as g, sheepdogGreedy, sheepdogRandom, sheepdogSmart, type DogState } from '../studio/sheepdog/game.ts';
+import { BLACK_TIP, COME_HOLD, medalOf, FLAG_SNAP, LATER, SKY, STAGES, WORLD_TIME, at as atField, blackCame, comeHold, jumpTo, preview, starCount, sheepdog as g, sheepdogGreedy, sheepdogRandom, sheepdogSmart, type DogState } from '../studio/sheepdog/game.ts';
 import { mulberry32 } from '../studio/sheepdog/rng.ts';
 
 const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y } });
@@ -177,6 +177,37 @@ describe('M1-2a 개울 판 도움 깃발 (📐 C004)', () => {
   });
 });
 
+describe('M1-5a 결과 카드 (C008)', () => {
+  it('🏅: 한 시도에 ★★★면 gold, 깃발 도움을 받았거나 나눠 모은 ★★★면 grey, 아니면 없음', () => {
+    const s = g.create(1);
+    play(s, 'smart', 1);
+    expect([s.got, medalOf(s)]).toEqual([7, 'gold']);
+    s.helped = true;
+    expect(medalOf(s)).toBe('grey');
+    const r = g.create(1);
+    jumpTo(r, 1);
+    r.best[1] = 3;
+    play(r, 'smart', 1);
+    r.got = 3; // 이번 시도 ★★
+    r.best[1] = 3;
+    expect(medalOf(r)).toBe('none');
+    r.best[1] = 7;
+    expect(medalOf(r)).toBe('grey');
+  });
+
+  it('카드가 떠 있는 동안 강아지는 안 짖고, 다음은 RESULT_MIN 뒤부터 받는다', () => {
+    const s = g.create(1);
+    play(s, 'smart', 1);
+    const used = s.S.used;
+    g.step(s, { ...up, next: true }); // 너무 이르면 무시(별이 켜지는 중)
+    expect(s.stage).toBe(0);
+    for (let t = 0; t < 30; t++) g.step(s, atField(0.5, 0.6));
+    expect([s.stage, s.S.used, s.phase]).toEqual([0, used, 'result']);
+    g.step(s, { ...up, next: true });
+    expect(s.stage).toBe(1);
+  });
+});
+
 describe('M1-4 아트 (C007, 🎨)', () => {
   const lum = (hex: string) => {
     const c = [1, 3, 5].map((k) => parseInt(hex.slice(k, k + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
@@ -344,11 +375,13 @@ describe('M1-1 시스템: 실패는 벌이 아니다 (GDD §4.3~4.5, FUN F7)', (
   it('통과하면 다음 판, 마지막 판을 깨면 끝', () => {
     const s = g.create(9);
     play(s, 'smart', 9);
-    while (s.phase === 'result') g.step(s, up);
+    for (let t = 0; t < 300; t++) g.step(s, up);
+    expect([s.stage, s.phase]).toEqual([0, 'result']); // C008: 통과하면 카드에서 기다린다 — 저절로 안 넘어감
+    g.step(s, { ...up, next: true });
     expect(s.stage).toBe(1);
     jumpTo(s, STAGES.length - 1);
     play(s, 'smart', 9);
-    while (phaseOf(s) === 'result' && !s.dead) g.step(s, up);
+    for (let t = 0; t < 40 && phaseOf(s) === 'result' && !s.dead; t++) g.step(s, { ...up, next: true });
     expect([s.won, s.dead]).toEqual([true, true]);
   });
 });

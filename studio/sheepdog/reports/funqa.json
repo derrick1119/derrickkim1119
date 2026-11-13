@@ -213,7 +213,7 @@
  },
  "run": {
   "smartMean": 2500,
-  "randomMean": 665,
-  "skillGap": 3.8
+  "randomMean": 690,
+  "skillGap": 3.6
  }
 }

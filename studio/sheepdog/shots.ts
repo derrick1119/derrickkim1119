@@ -34,6 +34,16 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.waitForTimeout(700);
   await page.screenshot({ path: join(here, 'screens', `${name}-bark.png`) });
   if ((await st(page, 's.S.used + (s.phase === "result" ? 1 : 0)')) === 0) errors.push(`${name}: 눌렀다 떼도 안 짖음`);
+  // 판 결과 카드(C008): 1-1 한 번에 ★★★ → 🏅. 저절로 안 넘어가고, 엔터(포커스된 '다음 ▶')로 다음 판
+  await page.waitForFunction(() => (globalThis as any).__sd.state().phase === 'result', null, { timeout: 5000 });
+  await page.waitForTimeout(1900);
+  if (await page.locator('#card').isHidden()) errors.push(`${name}: 결과 카드 안 뜸`);
+  await page.screenshot({ path: join(here, 'screens', `${name}-card-medal.png`) });
+  await page.waitForTimeout(1500);
+  if ((await st(page, 's.stage')) !== 0) errors.push(`${name}: 결과 카드에서 저절로 넘어감`);
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(200);
+  if ((await st(page, 's.stage + s.phase')) !== '1aim') errors.push(`${name}: 엔터로 다음 판 안 감`);
   // 키보드로도 짖기: 스페이스 누르고 떼기
   await page.waitForFunction(() => (globalThis as any).__sd.state().phase === 'aim', null, { timeout: 10_000 });
   // 스페이스를 떼면 그 자리로 달려간다(짖거나, 아무도 없으면 킁킁) — 어느 쪽이든 강아지가 움직였는지 본다
@@ -88,11 +98,19 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
     if ((await st(page, 's.flags.length')) !== 2) errors.push(`${name}: 풍덩 뒤 깃발이 안 뜸`);
     await page.screenshot({ path: join(here, 'screens', `${name}-flags.png`) });
   }
+  // ★2 결과 카드(모양 확인용 — 한 번에 '다 넣기+꽃밭 밟음'이 되는 자리가 없어 결과 상태를 직접 놓는다): ☆ 더 따기 / 다음, R로 다시
+  await page.evaluate(() => { const sd = (globalThis as any).__sd; sd.jump(1); const s = sd.state(); s.phase = 'result'; s.ok = true; s.got = 5; s.best[1] = 5; s.clearT = s.t; s.pt = 0; });
+  await page.waitForTimeout(1600);
+  await page.screenshot({ path: join(here, 'screens', `${name}-card-2star.png`) });
+  if (!(await page.locator('#card [data-act=retry]').textContent())?.includes('더 따기')) errors.push(`${name}: ★2인데 ☆ 더 따기가 없음`);
+  await page.keyboard.press('KeyR');
+  await page.waitForTimeout(200);
+  if ((await st(page, 's.stage + s.phase')) !== '1aim') errors.push(`${name}: 카드에서 R로 다시 안 됨`);
   // 끝 화면: 마지막 판까지 마친 것으로
   await page.evaluate(() => { const s = (globalThis as any).__sd.state(); s.won = true; s.dead = true; });
   await page.waitForTimeout(400);
   if (await page.locator('#overlay').isHidden()) errors.push(`${name}: 끝 화면 안 뜸`);
-  await page.screenshot({ path: join(here, 'screens', `${name}-result.png`) });
+  await page.screenshot({ path: join(here, 'screens', `${name}-end.png`) });
   await page.close();
 }
 // localStorage 막힌 환경

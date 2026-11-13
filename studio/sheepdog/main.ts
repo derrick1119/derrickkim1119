@@ -3,6 +3,7 @@
  * 시뮬레이션과 같은 코드로 60fps 고정 틱. 조작: 목장을 누르고 있으면 미리 보기, 떼면 멍! · 화살표로 커서 + 스페이스.
  */
 import { TICK, type Input } from './core.ts';
+import { mountResultCard } from './ui.ts';
 import { peek } from './juice.ts';
 import { at, jumpTo, preview, sheepdog as g, starCount, type DogState } from './game.ts';
 
@@ -20,7 +21,7 @@ const retryBtn = document.getElementById('retry') as HTMLButtonElement;
 const ctx = canvas.getContext('2d')!;
 const aspect = g.aspect ?? 1;
 
-let s: DogState = g.create(1), running = false, acc = 0, last = 0, keyboard = false, spaceDown = false, retry = false;
+let s: DogState = g.create(1), running = false, acc = 0, last = 0, keyboard = false, spaceDown = false, retry = false, next = false;
 let pointer: { x: number; y: number } | null = null, latch: { x: number; y: number } | null = null, cursor = { x: 0.5, y: 0.55 };
 const keys = new Set<string>();
 let W = 0, H = 0;
@@ -32,6 +33,9 @@ function size() {
   H = W * aspect;
   canvas.style.width = `${W}px`;
   canvas.style.height = `${H}px`;
+  // 세로 화면(C008, 🎨 §12-1): 캔버스를 위로 붙이고 위 띠는 하늘(60px까지), 남는 높이는 모두 아래 탁자(엄지 영역)로. 가로·데스크톱은 가운데
+  const extra = Math.max(0, avH - H), portrait = avH / avW > 5 / 3;
+  canvas.style.marginTop = `${portrait ? Math.min(extra, 60) : extra / 2}px`;
   canvas.width = Math.round(W * dpr);
   canvas.height = Math.round(H * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -39,7 +43,7 @@ function size() {
   retryBtn.style.left = `${canvas.offsetLeft + W - 46}px`;
   retryBtn.style.top = `${canvas.offsetTop + 2}px`;
   // 🎨 C007 ④-a: 캔버스 아래 빈 띠를 디오라마를 올린 탁자색으로 잇는다(세로 화면)
-  document.body.style.background = `linear-gradient(#2b3b2a ${canvas.offsetTop + H - 1}px, #4a3322 0)`;
+  document.body.style.background = `linear-gradient(#8ecff0 ${canvas.offsetTop + 1}px, #4a3322 ${canvas.offsetTop + 1}px)`;
   draw();
 }
 
@@ -88,9 +92,10 @@ function loop(now: number) {
     cursor = { x: Math.max(0, Math.min(1, cursor.x + kx * 0.012)), y: Math.max(0, Math.min(1, cursor.y + ky * 0.012)) };
     if (spaceDown) pointer = { ...cursor };
     // 아주 짧은 탭도 최소 한 틱은 '누름'으로 보이게
-    const input: Input = { tap: false, dir: 0, pointer: pointer ?? latch, retry };
+    const input: Input = { tap: false, dir: 0, pointer: card.open() ? null : pointer ?? latch, retry, next };
     latch = null;
     retry = false;
+    next = false;
     g.step(s, input);
     acc -= TICK;
     if (g.over(s)) {
@@ -103,6 +108,7 @@ function loop(now: number) {
       return;
     }
   }
+  card.sync(s);
   draw();
   requestAnimationFrame(loop);
 }
@@ -132,6 +138,11 @@ canvas.addEventListener('keyup', (e) => {
   if (e.key === ' ' || e.key === 'Enter') (spaceDown = false), (pointer = null);
 });
 startBtn.addEventListener('click', start);
+// 판 결과 카드 (C008): 버튼은 다음 틱 입력으로 — 시뮬과 같은 길(봇·테스트와 같음)
+const card = mountResultCard(root, () => ((next = true), canvas.focus({ preventScroll: true })), () => ((retry = true), canvas.focus({ preventScroll: true })));
+document.addEventListener('keydown', (e) => {
+  if (card.open() && (e.key === 'r' || e.key === 'R') && !e.repeat) (retry = true), canvas.focus({ preventScroll: true });
+});
 retryBtn.addEventListener('click', () => {
   retry = true;
   canvas.focus({ preventScroll: true });

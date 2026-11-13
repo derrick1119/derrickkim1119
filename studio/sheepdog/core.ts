@@ -23,6 +23,8 @@ export interface Input {
   move?: 'left' | 'right' | 'up' | 'down';
   /** ↺ 다시: 지금 판을 처음부터 (스튜디오 C002) */
   retry?: boolean;
+  /** 결과 카드 '다음 ▶' (스튜디오 C008) */
+  next?: boolean;
 }
 
 export const NO_INPUT: Input = { tap: false, dir: 0 };

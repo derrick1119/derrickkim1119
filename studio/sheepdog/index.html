@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#2b3b2a">
+<meta name="theme-color" content="#8ecff0">
 <meta name="description" content="목장을 톡 하면 강아지가 달려가 멍! 양 떼를 울타리에 몰아 넣는 한 손 퍼즐.">
 <title>양치기 멍멍</title>
 <style>
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0;height:100%;background:#2b3b2a;color:#fffaf0;font:16px/1.45 system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;overflow:hidden;overscroll-behavior:none}
-#stage{position:relative;height:100dvh;max-width:560px;margin:0 auto;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none}
+#stage{position:relative;height:100dvh;max-width:560px;margin:0 auto;display:flex;align-items:flex-start;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none}
 canvas{display:block;outline:none;touch-action:none}
 canvas:focus-visible{outline:3px solid #ffc857;outline-offset:-3px}
 #overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;background:linear-gradient(#2b3b2acc 0%,#2b3b2a99 45%,#1d281cf0 100%)}
@@ -30,6 +30,30 @@ ol b{flex:none;width:24px;height:24px;border-radius:50%;background:#ffc857;color
 #retry{position:absolute;width:44px;height:44px;border-radius:12px;border:2px solid #7a3e1d;background:#fff6e4;color:#3b2a1e;font:900 22px system-ui,sans-serif;cursor:pointer;box-shadow:0 3px 0 #7a3e1d;padding:0}
 #retry:active{transform:translateY(2px);box-shadow:0 1px 0 #7a3e1d}
 #retry:focus-visible{outline:3px solid #ffc857;outline-offset:2px}
+/* 결과 카드 (C008 M1-5a, 🎨 ART §12-6): 탁자에서 올라오는 크림 카드 */
+#card{position:absolute;left:50%;bottom:max(12px,env(safe-area-inset-bottom));width:min(340px,88vw);transform:translateX(-50%);background:#fff6e4;color:#3b2a1e;border:3px solid #7a3e1d;border-radius:20px;box-shadow:0 6px 0 #c98a4a,0 14px 30px rgba(20,12,6,.45);padding:14px 16px 16px;text-align:center;z-index:3}
+#card.up{animation:cardUp .32s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes cardUp{from{transform:translate(-50%,120%)}to{transform:translate(-50%,0)}}
+#card h2{margin:2px 0 6px;font:900 24px/1.2 system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+#card .say{position:absolute;left:10px;top:-34px;margin:0;background:#fff6e4;border:2px solid #7a3e1d;border-radius:14px;padding:4px 10px;font:800 13px/1.3 system-ui,sans-serif;color:#3b2a1e;white-space:nowrap}
+#card .say::after{content:"";position:absolute;left:18px;bottom:-8px;border:6px solid transparent;border-top-color:#7a3e1d}
+#card .stars{display:flex;justify-content:center;gap:10px;margin:2px 0 8px}
+#card figure{margin:0;width:84px}
+#card figure svg{width:48px;height:48px;display:block;margin:0 auto}
+#card figure.on svg{animation:starPop .36s cubic-bezier(.2,1.6,.4,1) both;animation-delay:calc(.3s + var(--k) * .25s)}
+#card figure.had svg{opacity:.55}
+@keyframes starPop{0%{transform:scale(0)}60%{transform:scale(1.4)}100%{transform:scale(1)}}
+#card figcaption{font:800 13px/1.2 system-ui,sans-serif;color:#6b5444;white-space:nowrap}
+#card .medal{position:absolute;right:-10px;top:-18px;width:64px;height:64px;border-radius:50%;display:grid;place-items:center;transform:rotate(-12deg);font:900 13px/1 system-ui,sans-serif}
+#card .medal.none{display:none}
+#card .medal.gold{background:#fff6e4;border:3px solid #e8414f;color:#e8414f;animation:stamp .3s cubic-bezier(.3,1.6,.5,1) 1.35s both}
+#card .medal.grey{background:#f3ece0;border:3px dashed #b8ad9c;color:#9a8f80}
+@keyframes stamp{0%{transform:rotate(-12deg) scale(1.6);opacity:0}100%{transform:rotate(-12deg) scale(1);opacity:1}}
+#card .row{display:flex;gap:8px;justify-content:center;align-items:center}
+#card .btn{min-width:0;flex:1;margin:0;min-height:48px;font-size:17px}
+#card .btn.ghost{background:#fff6e4;color:#3b2a1e;border:3px solid #7a3e1d;box-shadow:0 4px 0 #7a3e1d}
+#card .btn.ghost.small{flex:0 0 auto;padding:0 12px;font-size:14px}
+@media (prefers-reduced-motion:reduce){#card.up,#card figure.on svg,#card .medal.gold{animation:none}}
 kbd{background:#1d281c;border-radius:4px;padding:1px 5px;font:inherit}
 </style>
 </head>
