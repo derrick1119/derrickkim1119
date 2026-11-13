@@ -125,21 +125,21 @@
   "4": {
    "name": "까만 양",
    "max": 9,
-   "par": 3,
+   "par": 2,
    "parGap": 1,
    "smart": {
     "clear": 1,
     "stars": 3,
-    "used": 2,
+    "used": 1,
     "mask": 7
    },
    "greedy": {
     "clear": 1,
-    "used": 2,
+    "used": 1,
     "overPar": -1
    },
    "random": {
-    "clear": 1,
+    "clear": 0.6,
     "stuck25": 0
    },
    "careful": {
@@ -149,8 +149,8 @@
    "naiveSeesNew": 1,
    "depth": {
     "habitClear": 1,
-    "habitBonus": 0,
-    "width": 0.82,
+    "habitBonus": 1,
+    "width": 0.88,
     "greedyEqSmart": true
    },
    "shake": {
@@ -165,41 +165,41 @@
   "5": {
    "name": "끌어오기",
    "max": 9,
-   "par": 3,
+   "par": 4,
    "parGap": 0,
    "smart": {
     "clear": 1,
     "stars": 3,
-    "used": 3,
+    "used": 4,
     "mask": 7
    },
    "greedy": {
     "clear": 1,
-    "used": 9,
-    "overPar": 6
+    "used": 5,
+    "overPar": 1
    },
    "random": {
-    "clear": 0.05,
-    "stuck25": 0.6
+    "clear": 0,
+    "stuck25": 1
    },
    "careful": {
     "stuck25": 0,
-    "tries": 1.15
+    "tries": 2.25
    },
    "naiveSeesNew": null,
    "depth": {
-    "habitClear": 0.95,
-    "habitBonus": 0,
-    "width": 0.05,
+    "habitClear": 0.45,
+    "habitBonus": 0.25,
+    "width": 0.08,
     "greedyEqSmart": false
    },
    "shake": {
-    "smartStar3": 0.97,
+    "smartStar3": 0.82,
     "greedyFail": 0,
-    "greedyParOrLess": 0,
+    "greedyParOrLess": 0.1,
     "behindPen": 0,
     "void": 0,
-    "greedyPx": 6
+    "greedyPx": 1
    }
   },
   "6": {
@@ -325,7 +325,7 @@
  },
  "run": {
   "smartMean": 2500,
-  "randomMean": 580,
-  "skillGap": 4.3
+  "randomMean": 565,
+  "skillGap": 4.4
  }
 }

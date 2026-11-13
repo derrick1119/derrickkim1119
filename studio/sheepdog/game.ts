@@ -39,7 +39,9 @@ export const COME_HOLD = 30;
 /** 이번 짖기에 까만 양이 거꾸로 왔나 */
 export const blackCame = (s: DogState) => !!s.rec && s.rec.scare.some((v, i) => v === 3 && s.F.black[i]);
 /** 까만 양이 온 짖기가 판을 끝내는가 — 그때만 0.5초 멈춘다(C006 FUN QA: 당길 때마다 멈추면 입력이 막힌다) */
-export const comeHold = (s: DogState) => blackCame(s) && s.F.black.every((b, i) => b || s.S.pen[i] >= 0);
+export const comeHold = (s: DogState) => blackCame(s) && allIn(s.F, s.S, STAGES[s.stage]);
+/** 판을 깰 만큼 다 들었나: 흰 양 모두 + (까만 양 필수 판이면) 까만 양도 (📐 C014) */
+export const allIn = (F: Field, S: Sim, d: StageDef | undefined) => F.black.every((b, i) => (b && !d?.needBlack) || S.pen[i] >= 0);
 const STAR_PTS = 100, WIN_PTS = 100;
 
 interface Seg { x0: number; y0: number; x1: number; y1: number }
@@ -66,7 +68,8 @@ interface Rec {
   goatFaint: boolean; wolf: 0 | 1 | 2; wolfPath: number[] | null; caught: number; flowerNew: number[]; cloverNew: number[]; inNew: number[];
 }
 
-interface StageDef { key: string; name: string; news: string; max: number; par: number; bonus: Bonus; build(r: Rng): Layout }
+/** needBlack (📐 C014, F01): 까만 양까지 울타리에 넣어야 통과 — 1-4부터 하나의 규칙 '양을 모두'. 🖤 보너스는 없어진다 */
+interface StageDef { key: string; name: string; news: string; max: number; par: number; bonus: Bonus; needBlack?: boolean; build(r: Rng): Layout }
 interface Layout {
   pens: Pen[]; river?: River; hedges?: Seg[]; fences?: Seg[]; flowers: FlowerBed[]; clovers?: FlowerBed[]; sheep: { x: number; y: number; black?: boolean; tag?: number }[];
   goat?: { x: number; y: number }; den?: [number, number]; wind?: [number, number]; night?: boolean;
@@ -199,21 +202,23 @@ export const STAGES: StageDef[] = [
   },
   {
     ...P('black'),
-    news: '🖤 까만 양도 울타리에 넣어 볼까요?', // 📐 C007: 놀람을 미리 말하지 않는다 — 기대가 단단할수록 '?!'가 커진다
+    news: '🖤 까만 양도 넣어야 통과예요!', // 📐 C014(F01): 1-4부터 까만 양 필수 — 놀람(거꾸로 옴)은 여전히 미리 말하지 않는다(📐 C007)
+    needBlack: true, bonus: 'flower', par: 2, // 🖤 보너스 → 🌼 꽃밭(까만 양 반대쪽 0.8|0.2, 0.32, r 0.06), par 3 → 2(박사 2)
     // 📐 C003: 꽃밭은 🌼 판에만 · C005(FUN QA C003): 까만 양을 흰 무리 바로 옆으로 — 첫 짖기에 '?!'을 꼭 겪게(순진 근사 0.30 → 목표 0.9)
     build: (r) => {
       const L = P('black').build(r), b = L.sheep.find((q) => q.black)!;
       (b.x = b.x < 0.5 ? 0.36 : 0.64), (b.y = 0.47);
-      return { ...L, flowers: [] };
+      return L;
     },
   },
   {
-    key: 'pull', name: '끌어오기', news: '🖤 까만 양은 울타리 쪽에서 불러요', max: 9, par: 3, bonus: 'black',
-    // C012 M1-7 ② 2차(📐 C012): 울타리 뒤 끼임을 시뮬에서 막은(topOf) 뒤 손 떨림 ★3를 올렸다. ★3 0.98·그리디 9(끌어오기라 par+6)·정수 px도 깸·par 이하 0·조심 막힘 0
+    key: 'pull', name: '끌어오기', news: '🖤 까만 양을 부르면 흰 양은 달아나요', max: 9, par: 4, bonus: 'clover', needBlack: true,
+    // C014 F01-a(📐 C014): 까만 양까지 넣어야 통과 · 보너스는 par 길 밖 🍀(울타리 오른쪽 위) — 끌어오기와 다툰다(★2 vs ★3). 까만 양이 흰 무리 바로 위(길목)
     build: () => ({
       pens: [WIDE()],
       flowers: [],
-      sheep: [...[[0.505, 0.643], [0.621, 0.63], [0.589, 0.682], [0.596, 0.703]].map(([x, y]) => ({ x, y })), { x: 0.488, y: 0.491, black: true }],
+      clovers: [{ x: 0.711, y: 0.369, r: 0.045 }],
+      sheep: [...[[0.481, 0.728], [0.475, 0.759], [0.471, 0.729], [0.528, 0.721]].map(([x, y]) => ({ x, y })), { x: 0.523, y: 0.609, black: true }],
     }),
   },
   {
@@ -275,7 +280,7 @@ export const medalOf = (s: DogState): 'gold' | 'grey' | 'none' =>
 export function goalLabels(d: StageDef) {
   return ['다 넣기', `멍멍 ${d.par}번`, BONUS_LABEL[d.bonus]];
 }
-export interface HudState { stage: number; name: string; stars: number; max: number; par: number; used: number; sheepIn: number; sheepN: number; goals: { label: string; st: 'on' | 'had' | 'off' | 'wait' }[]; hint: string | null; news: string | null; card: boolean }
+export interface HudState { stage: number; name: string; stars: number; max: number; par: number; used: number; sheepIn: number; sheepN: number; blackIn: number; blackN: number; goals: { label: string; st: 'on' | 'had' | 'off' | 'wait' }[]; hint: string | null; news: string | null; card: boolean }
 /** 지금 화면에서 울타리에 든 양인가 — 달아나는 동안엔 길에서 울타리에 닿은 양만 (🎨 C011: 양 수가 짖는 틱에 미리 5/5로 튐 → 쏙!과 함께 하나씩) */
 function inNow(s: DogState, i: number) {
   const fl = s.phase === 'flee' && s.rec ? s.rec : null, pa = fl?.path[i];
@@ -300,6 +305,8 @@ export function hudState(s: DogState): HudState {
   return {
     stage: s.stage, name: d.name, stars: s.stars, max: d.max, par: d.par, used: S.used,
     sheepIn: F.black.filter((b, i) => !b && inNow(s, i)).length, sheepN: nW, goals, hint,
+    // 까만 양 필수 판(📐 C014): 알약 끝에 까만 양 칸 — 아니면 0
+    blackN: d.needBlack ? F.black.filter((b) => b).length : 0, blackIn: d.needBlack ? F.black.filter((b, i) => b && inNow(s, i)).length : 0,
     news: s.news && s.t - s.news.t < NEWS_T + 20 ? s.news.text : null, card: allIn,
   };
 }
@@ -835,8 +842,9 @@ function afterFlee(s: DogState) {
   // 풍덩 이벤트(빠진 양 자리) — '풍덩한 짖기에는 풍덩 연출'을 테스트로 본다 (🧪 C006 → C010 M1-6 ③)
   if (fell >= 0) return ev(s, 'splash', S.x[fell], S.y[fell], undefined, undefined, fell), s.splashes++, finish(s, false, F.black[fell] ? '까만 양이 개울에 풍덩!' : '양이 개울에 풍덩!');
   if (S.caught >= 0) return finish(s, false, '늑대가 양을 물어 갔어요!');
-  const whitesIn = F.black.every((b, i) => b || S.pen[i] >= 0);
-  if (whitesIn) return finish(s, true);
+  if (allIn(F, S, d)) return finish(s, true);
+  // 📐 C014: 흰 양만 다 들면 문은 열어 두고 한 번 — 같은 틱에 까만 양 설명(BLACK_TIP)이 떴으면 그 뒤에 줄 선다(덮어쓰지 않게)
+  if (d.needBlack && F.black.every((b, i) => b || S.pen[i] >= 0)) (s.news?.text === BLACK_TIP && s.news.t === s.t ? tip : tipNow)(s, 'needblack', '🖤 까만 양도 넣어야 통과!');
   if (S.used >= d.max) return finish(s, false, '멍멍을 다 썼어요… 목이 쉬었어요');
   s.phase = 'aim';
   s.pt = 0;
@@ -960,15 +968,16 @@ export const sheepdog: GameDef<DogState> = {
 function value(F: Field, S: Sim, d: StageDef): number {
   if (S.fell.some((v) => v) || S.caught >= 0) return -1e7;
   let whitesIn = 0, nW = 0, v = 0, wolfD = 9;
+  const need = (i: number) => !F.black[i] || !!d.needBlack; // 📐 C014: 까만 양 필수 판은 까만 양도 흰 양과 같은 무게
   for (let i = 0; i < F.n; i++) {
-    if (!F.black[i]) nW++;
+    if (need(i)) nW++;
     if (S.pen[i] >= 0) {
-      if (!F.black[i]) whitesIn++;
+      if (need(i)) whitesIn++;
       else if (d.bonus === 'black') v += 900;
       continue;
     }
     const dd = dget(F, F.tag[i], S.x[i], S.y[i]);
-    if (!F.black[i]) v -= dd * 1500;
+    if (need(i)) v -= dd * 1500;
     else if (d.bonus === 'black') v -= dd * 700;
     if (F.den) wolfD = Math.min(wolfD, Math.hypot(S.x[i] - S.wx, S.y[i] - S.wy));
   }
@@ -991,7 +1000,7 @@ function value(F: Field, S: Sim, d: StageDef): number {
 }
 /** 판이 끝난 상태인가 (실패 · 흰 양 다 들어감 · 멍멍 다 씀) */
 function ended(F: Field, S: Sim, d: StageDef) {
-  return S.fell.some((v) => v) || S.caught >= 0 || S.used >= d.max || F.black.every((b, i) => b || S.pen[i] >= 0);
+  return S.fell.some((v) => v) || S.caught >= 0 || S.used >= d.max || allIn(F, S, d);
 }
 
 /** 짖을 자리 후보: 양마다 '울타리 반대쪽' 뒤에서, 까만 양은 앞에서, 늑대 위, 그리고 목장 격자 */
@@ -1117,9 +1126,16 @@ export const sheepdogGreedy: Bot<DogState> = {
  *   순진: 미리 보기 없이 흰 양(또는 무리 가운데) 뒤에서 문 쪽으로 대충 누른다.
  *   조심: 같은 습관인데, 누르고 있는 동안 미리 보기에 풍덩이 보이면 다른 자리로 N번까지 다시 겨눈다. 깃발이 있으면 깃발을 따른다.
  */
-function naiveAim(F: Field, S: Sim, rng: Rng): [number, number] {
+function naiveAim(F: Field, S: Sim, rng: Rng, d?: StageDef): [number, number] {
   const ws: number[] = [];
   for (let i = 0; i < F.n; i++) if (!F.black[i] && S.pen[i] < 0 && !S.fell[i]) ws.push(i);
+  const pn = F.pens[0], gx = (pn.gx0 + pn.gx1) / 2, gy = pn.y1;
+  // 📐 C014: 까만 양은 거꾸로 오니 '양과 문 사이'에서 부른다
+  const bi = d?.needBlack ? F.black.findIndex((b, i) => b && S.pen[i] < 0 && !S.fell[i]) : -1;
+  if (bi >= 0 && (!ws.length || rng() < 2 / (ws.length + 1))) {
+    const dx = gx - S.x[bi], dy = gy - S.y[bi], l = Math.hypot(dx, dy) || 1, dist = 0.08 + rng() * 0.1;
+    return [S.x[bi] + (dx / l) * dist + (rng() - 0.5) * 0.06, S.y[bi] + (dy / l) * dist + (rng() - 0.5) * 0.06];
+  }
   if (!ws.length) return [0.5, 0.5];
   let cx = 0, cy = 0;
   if (rng() < 0.5) {
@@ -1129,7 +1145,6 @@ function naiveAim(F: Field, S: Sim, rng: Rng): [number, number] {
     const i = ws[Math.floor(rng() * ws.length)];
     (cx = S.x[i]), (cy = S.y[i]);
   }
-  const pn = F.pens[0], gx = (pn.gx0 + pn.gx1) / 2, gy = pn.y1;
   let dx = cx - gx, dy = cy - gy;
   const l = Math.hypot(dx, dy) || 1;
   (dx /= l), (dy /= l);
@@ -1144,12 +1159,12 @@ function humanBot(name: string, looks: number): Bot<DogState> {
       if (s.phase === 'result' && s.ok) return NEXT;
       if (s.phase !== 'aim' || s.down) return NO;
       if (looks > 0 && s.flags.length) return at(s.flags[0][0], s.flags[0][1]);
-      let p = naiveAim(s.F, s.S, rng);
+      let p = naiveAim(s.F, s.S, rng, STAGES[s.stage]);
       for (let k = 1; k < looks; k++) {
         const S2 = cloneSim(s.S);
         if (anyone(s.F, S2, p[0], p[1])) resolve(s.F, S2, p[0], p[1]);
         if (!S2.fell.some((v) => v)) break;
-        p = naiveAim(s.F, s.S, rng);
+        p = naiveAim(s.F, s.S, rng, STAGES[s.stage]);
       }
       return at(Math.max(0.02, Math.min(0.98, p[0])), Math.max(0.02, Math.min(0.98, p[1])));
     },
@@ -2474,6 +2489,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     const z = R(0.044) * scl(sy0);
     let dx0 = sx0;
     if (S.fell[i] && s.phase === 'result') dx0 += Math.sin(s.pt * 0.05) * 0.01 + s.pt * 0.0006;
+    const mark = d.needBlack && F.black[i] && S.used === 0 && s.phase === 'aim' && t - s.startT < INTRO_T && S.pen[i] < 0;
+    if (mark) {
+      const ag = t - s.startT; // 🎨 C014: 까만 양 필수 표시 — 첫 짖기 전까지만(그 뒤는 HUD 알약이 맡는다)
+      if (ag % 30 < 12 && ag < 60) hop = Math.max(hop, Math.sin((Math.PI * (ag % 30)) / 12) * R(0.03));
+      items.push({ d: sy0 - 0.001, f: () => {
+        ctx.lineWidth = 3.5, ctx.strokeStyle = '#7a3e1d', ctx.beginPath(), ctx.ellipse(PX(dx0, sy0), PY(sy0) + z * 0.3, z * 1.3, z * 0.5, 0, 0, TAU), ctx.stroke();
+        ctx.lineWidth = 2.5, ctx.strokeStyle = '#ffc857', ctx.stroke();
+      } });
+    }
     items.push({ d: sy0, f: () => drawSheep(ctx, PX(dx0, sy0), PY(sy0), z, { black: F.black[i], tag: F.tag[i], face, run, t: t + i * 9, mood, hop, roll }) });
   }
   // 염소
@@ -2890,7 +2914,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
         const pn = F.pens[Math.max(0, S.pen[i])], rx = PX((pn.x0 + pn.x1) / 2, pn.y0), ry = PY(pn.y0) - 18; // 🎨 C010: 그 울타리 뒤 가로대 위 18px 가운데
         // 🧪 C010: 까만 양이 들어가면 그 '?!'를 거둔다(쏙! 알약에 깔림)
         for (const p of fx.popups) if (p.id === `come${i}`) p.life = Math.min(p.life, 6);
-        if (F.black[i]) cue('click', 1), say(rx, ry, '까만 양도 쏙!', 15, { g: 'B', icon: 'black', id: 'inB' });
+        if (F.black[i]) cue('click', 1), say(rx, ry, d.needBlack ? '까만 양 쏙!' : '까만 양도 쏙!', 15, { g: 'B', icon: 'black', id: 'inB' }); // 🎨 C014
         else if ((fx.memo.inPop ?? -1) !== key) {
           fx.memo.inPop = key;
           const nIn = flee.inNew.filter((j) => !F.black[j]).length;
@@ -2993,10 +3017,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       ctx.fillStyle = '#fff6e4';
       ctx.fillText(big, 0, 0);
       font(0.04, 800);
-      const sub = `흰 양 ${F.black.filter((b) => !b).length}마리 넣기`; // 🧪 C009: '멍멍 9번 안에'가 칩 '멍멍 1번'과 같이 떠 헷갈림
+      // 🧪 C009: '멍멍 9번 안에'가 칩 '멍멍 1번'과 같이 떠 헷갈림 · 📐·🎨 C014: 까만 양 필수 판은 '양 N마리 넣기 · 까만 양도!'(뒷부분 금색)
+      const sub = d.needBlack ? `양 ${F.n}마리 넣기 · ` : `흰 양 ${F.black.filter((b) => !b).length}마리 넣기`, tail = d.needBlack ? '까만 양도!' : '';
       ctx.lineWidth = 4; // 🎨 C010: 부제는 6px 외곽에 글자 속이 막혀 4px
-      ctx.strokeText(sub, 0, R(0.06));
-      ctx.fillText(sub, 0, R(0.06));
+      const w1 = ctx.measureText(sub).width, w2 = ctx.measureText(tail).width, x0 = -(w1 + w2) / 2;
+      ctx.textAlign = 'left';
+      ctx.strokeText(sub, x0, R(0.06));
+      ctx.fillText(sub, x0, R(0.06));
+      if (tail) ctx.strokeText(tail, x0 + w1, R(0.06)), (ctx.fillStyle = '#ffc857'), ctx.fillText(tail, x0 + w1, R(0.06));
+      ctx.textAlign = 'center';
       ctx.restore();
       ctx.globalAlpha = 1;
     }

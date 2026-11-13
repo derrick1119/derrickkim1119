@@ -61,7 +61,9 @@ describe('양치기 멍멍 시뮬', () => {
 describe('M1-2 W1 아침 들판 (CONTENT.md W1)', () => {
   it('W1 8판이 CONTENT 표 순서와 같고, 프로토타입 P4~P8은 다음 월드용으로 남는다', () => {
     expect(STAGES.map((d) => d.name)).toEqual(['첫 울타리', '미리 보기', '흩어진 양', '까만 양', '끌어오기', '개울과 다리', '좁은 다리', '아침 축제']);
-    expect(STAGES.map((d) => d.bonus)).toEqual(['flower', 'flower', 'clover', 'black', 'black', 'flower', 'clover', 'black']);
+    // 📐 C014(F01): 1-4·1-5는 까만 양까지 넣어야 통과(규칙 '양을 모두'), 🖤 보너스 대신 🌼·🍀 (1-8은 C015에)
+    expect(STAGES.map((d) => d.bonus)).toEqual(['flower', 'flower', 'clover', 'flower', 'clover', 'flower', 'clover', 'black']);
+    expect(STAGES.map((d) => !!d.needBlack)).toEqual([false, false, false, true, true, false, false, false]);
     expect(LATER.map((d) => d.key)).toEqual(['goat', 'wolf', 'wind', 'twopens', 'night']);
   });
 
@@ -338,11 +340,16 @@ describe('M1-3 숨은 규칙을 보이게 (C006)', () => {
     const s = g.create(1);
     jumpTo(s, 3);
     const rng = mulberry32(1);
-    let fleeTicks = 0, came = false;
+    // 📐 C014: 1-4부터 까만 양까지 넣어야 통과 → 판을 끝내는 짖기는 까만 양을 부르는 짖기다. 그 마지막 달아나기만 잰다(앞 짖기의 달아나기를 더하지 않음)
+    let fleeTicks = 0, came = false, wasFlee = false;
     for (let t = 0; t < 60 * 60 && phaseOf(s) !== 'result'; t++) {
       g.step(s, sheepdogNaiveLike(s, rng));
-      if (phaseOf(s) === 'flee') (fleeTicks++, (came ||= blackCame(s) && comeHold(s)));
+      const fl = phaseOf(s) === 'flee';
+      if (fl && !wasFlee) (fleeTicks = 0), (came = false);
+      if (fl) (fleeTicks++, (came ||= blackCame(s) && comeHold(s)));
+      wasFlee = fl;
     }
+    expect(s.ok).toBe(true);
     expect(came).toBe(true);
     expect(fleeTicks).toBeGreaterThanOrEqual(40 + COME_HOLD - 1);
   });
@@ -352,6 +359,13 @@ describe('M1-3 숨은 규칙을 보이게 (C006)', () => {
 function sheepdogNaiveLike(s: DogState, _rng: () => number) {
   if (phaseOf(s) !== 'aim' || s.down) return up;
   const ws = s.S.x.map((x, i) => [x, s.S.y[i], i] as const).filter(([, , i]) => !s.F.black[i] && s.S.pen[i] < 0);
+  if (!ws.length) {
+    // 흰 양이 다 들고 까만 양이 남으면(📐 C014 까만 양 필수) 까만 양과 문 사이에서 부른다
+    const b = s.F.black.findIndex((bk, i) => bk && s.S.pen[i] < 0), pn = s.F.pens[0], gx = (pn.gx0 + pn.gx1) / 2, gy = pn.y1;
+    if (b < 0) return up;
+    const dx = gx - s.S.x[b], dy = gy - s.S.y[b], l = Math.hypot(dx, dy) || 1;
+    return atField(s.S.x[b] + (dx / l) * 0.1, s.S.y[b] + (dy / l) * 0.1);
+  }
   const cx = ws.reduce((a, w) => a + w[0], 0) / ws.length, cy = ws.reduce((a, w) => a + w[1], 0) / ws.length;
   return atField(cx, cy + 0.12);
 }

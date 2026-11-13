@@ -130,7 +130,7 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   }
   // W1 새 판 둘러보기 (모바일만): 1-3 클로버 · 1-7 좁은 다리 · 1-8 아침 축제
   if (name === 'mobile')
-    for (const k of [2, 6, 7]) {
+    for (const k of [2, 4, 6, 7]) { // 1-5: 🎨 C014 까만 양 필수 알약·부제 확인
       await page.evaluate((kk: number) => (globalThis as any).__sd.jump(kk), k);
       await page.waitForTimeout(1700);
       await page.screenshot({ path: join(here, 'screens', `${name}-w1-${k + 1}.png`) });
@@ -138,11 +138,11 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   // 1-4 까만 양이 거꾸로 와서 강아지가 뒤로 폴짝·'?!' 멈춤 순간 (모바일만, C007 → M1-7 ①)
   if (name === 'mobile') {
     await page.evaluate(() => (globalThis as any).__sd.jump(3));
-    // 멈춤은 판을 끝내는 짖기(흰 양이 다 들고 까만 양이 거꾸로 온 짖기)에만 온다 → 순진 근사 봇 자리(양 뒤에서 문 쪽, 한 번에 그렇게 됨)를 진짜로 누른다
+    // 멈춤은 판을 끝내는 짖기(다 들고 까만 양이 거꾸로 온 짖기)에만 온다. 📐 C014부터 1-4는 까만 양까지 넣어야 통과라 그리디 한 수가 그렇다
     let held = false;
     for (let k = 0; k < 5 && !held; k++) {
       await page.waitForFunction(() => (globalThis as any).__sd.state().phase === 'aim', null, { timeout: 10_000 });
-      const q = await page.evaluate(() => (globalThis as any).__sd.bot('naive')), bb = await page.locator('#game').boundingBox();
+      const q = await page.evaluate(() => (globalThis as any).__sd.bot()), bb = await page.locator('#game').boundingBox();
       await page.mouse.move(bb.x + q.x * bb.width, bb.y + q.y * bb.height);
       await page.mouse.down();
       await page.waitForTimeout(80);
