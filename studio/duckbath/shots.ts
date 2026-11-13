@@ -90,6 +90,14 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.screenshot({ path: join(here, 'screens', `${name}-hint.png`) });
   void D;
   await crisisShot(page, `${name}-crisis.png`, name);
+  // D013 💤 잠꾸러기(CONTENT §2 그림 단서): 감은 눈·나이트캡·Z z — 2-7 시작 직후
+  if (STAGES.some((d) => d.id === '2-7')) {
+    await page.evaluate((i: number) => (globalThis as any).__duck.jump(i), STAGES.findIndex((d) => d.id === '2-7'));
+    await page.waitForTimeout(700);
+    const zz = await page.evaluate(() => (globalThis as any).__duck.state().objs.filter((o: any) => o.zz).length);
+    await page.screenshot({ path: join(here, 'screens', `${name}-sleepy.png`) });
+    if (!(zz > 0)) errors.push(`${name}: 2-7에 자는 오리가 없음`);
+  }
   // D011 🎨 13장 ③: 황금을 물 위에 둔 채 깨면 결과 카드 셋째 줄이 '황금이 꼴찌였어요'
   await page.evaluate(() => (globalThis as any).__duck.jump(0));
   await page.waitForTimeout(300);
