@@ -288,8 +288,8 @@
    },
    "careful": {
     "stuck25": 0,
-    "tries": 3.25,
-    "bonus": 1,
+    "tries": 4.05,
+    "bonus": 0.1,
     "selfN": 0,
     "bonusSelf": -1,
     "noFlag": {
@@ -335,8 +335,8 @@
    },
    "careful": {
     "stuck25": 0,
-    "tries": 5.15,
-    "bonus": 0.15,
+    "tries": 3.55,
+    "bonus": 0.3,
     "selfN": 0,
     "bonusSelf": -1,
     "noFlag": {
