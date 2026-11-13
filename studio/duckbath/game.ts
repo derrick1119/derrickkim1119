@@ -487,7 +487,10 @@ export function advance(s: DuckState, action: 'next' | 'retry') {
     s.again = false;
     s.stageTries = 0;
     s.stage++;
-  } else s.again = true;
+  } else {
+    s.again = true;
+    if (s.ok) s.stageTries = 0; // 🧪 D004: 깬 판을 별 사냥으로 다시 할 때는 ↺2 손가락을 끈다
+  }
   newStage(s);
 }
 
@@ -2176,7 +2179,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
       // D004: 결과·실패 카드는 DOM(main.ts)이 그린다. 실패 때는 남은 오리에 '?' 표시
       if (!s.ok)
         for (const o of s.objs) {
-          if (o.st !== FREE || (o.k !== DUCK && o.k !== GOLD && o.k !== BOAT)) continue;
+          if (o.st !== FREE || (o.k !== DUCK && o.k !== BOAT)) continue; // 🧪 D004: '?'는 '🦆 n마리 남음'과 같은 것만(황금 오리 제외)
           const x = SX(o.x, o.y), y = SY(o.y), rr = R(0.06 * dep(o.y));
           ctx.strokeStyle = '#ff6b6b';
           ctx.lineWidth = 3;

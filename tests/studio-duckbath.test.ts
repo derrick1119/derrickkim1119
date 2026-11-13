@@ -129,6 +129,14 @@ describe('욕조 물결 오리 시뮬', () => {
       expect(p.y).toBeGreaterThan(0);
       expect(p.y).toBeLessThan(1);
     });
+    it("깬 판을 '다시' 하면 ↺2 손가락은 안 뜬다 (별 사냥의 첫 수를 공짜로 주지 않음)", () => {
+      const s = g.create(4);
+      s.manual = true;
+      s.stageTries = 3;
+      clear1(s);
+      advance(s, 'retry');
+      expect(hintPoint(s)).toBeNull();
+    });
   });
 
   it('캐주얼 봇(상식으로 톡)은 1~2판을 첫 시도에 깬다', { timeout: 60_000 }, () => {

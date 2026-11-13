@@ -92,7 +92,7 @@ function renderCard() {
     const [, tapOk, goldOk] = s.starOk, n = s.got;
     const line = (ok: boolean, yes: string, no: string) => `<li class="${ok ? 'ok' : 'todo'}"><i>${ok ? '★' : '☆'}</i>${esc(ok ? yes : no)}</li>`;
     card.className = 'card win';
-    card.innerHTML = `<h2>${last ? '목욕 다 끝! 🛁' : n === 3 ? '깨끗!' : n === 2 ? '뽀득!' : '목욕 끝!'}</h2><ul>${line(true, '오리 모두 둥지에 쏙', '')}${line(tapOk, `톡 ${s.used}번 — ${d.par}번 안에!`, `톡 ${s.used}번 · ${d.par}번 안이면 ★`)}${line(goldOk, '황금 오리 먼저 쏙!', '👑 황금 오리를 먼저 넣으면 ★')}</ul><div class="row"><button type="button" class="btn2" data-a="retry">↺ 다시</button><button type="button" class="btn" data-a="next">${last ? '목욕 다 끝! ▶' : '다음 목욕 ▶'}</button></div>`;
+    card.innerHTML = `<h2>${last ? '목욕 다 끝! 🛁' : n === 3 ? '깨끗!' : n === 2 ? '뽀득!' : '목욕 끝!'}</h2><ul>${line(true, '오리 모두 둥지에 쏙', '')}${line(tapOk, `톡 ${s.used}번 — ${d.par}번 안에!`, `톡 ${s.used}번 · ${d.par}번 안이면 ★`)}${line(goldOk, '황금 오리 먼저 쏙!', '👑 황금 오리가 꼴찌만 아니면 ★')}</ul><div class="row"><button type="button" class="btn2" data-a="retry">↺ 다시</button><button type="button" class="btn" data-a="next">${last ? '목욕 다 끝! ▶' : '다음 목욕 ▶'}</button></div>`;
   } else {
     // 🎨 D004: 뿅 규칙 뒤로 실패는 늘 '톡 다 씀' — 문구는 톡을 가져간 주범으로 고른다
     const [title, tip] = s.sucks > 0 && s.sucks >= s.chomps ? ['꼬르륵~ 톡이 배수구로 샜어요', '빙글 원 안으로는 밀지 말기'] : s.chomps ? ['냠! 상어 간식인 줄 알았대요', '물결을 맞히면 상어가 어질어질'] : ['톡이 바닥! 오리들 아직 둥둥~', '꾹 눌러 갈 길 먼저 보기'];
