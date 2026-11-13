@@ -198,7 +198,12 @@ export const STAGES: StageDef[] = [
       };
     },
   },
-  P('river'),
+  {
+    ...P('river'),
+    news: '🌉 옆에서 짖어 한 줄로 → 다리로',
+    // C004 (FUN QA C003): 무리 폭을 다리 폭에 맞춘다 (가로 ±0.12 → ±0.065) — '양 뒤에서 문 쪽' 습관이 매번 풍덩하던 절벽
+    build: (r) => ({ ...P('river').build(r), sheep: flock(r, 0.5 + jit(r, 0.06), 0.68, [[-0.065, 0], [0.065, 0], [0, -0.03], [-0.05, 0.08], [0.06, 0.08]]) }),
+  },
   {
     key: 'narrow', name: '좁은 다리', news: '🌉 좁은 다리 — 건너편 까만 양은 거꾸로 와요!', max: 9, par: 4, bonus: 'clover',
     build: (r) => {
@@ -613,6 +618,8 @@ export interface DogState {
   down: boolean; ax: number; ay: number; idle: number; tries: number;
   /** stars = 판별 최고 별(best 비트)의 합 · got = 이번 시도의 별 비트 · gain = 이번 시도로 새로 늘어난 별 수 */
   best: number[]; stars: number; got: number; gain: number; pts: number; ok: boolean; why: string; won: boolean; dead: boolean;
+  /** 개울 판 도움 깃발(목장 좌표, 박사의 첫 수부터) · 이 판에서 풍덩한 횟수 · 이 시도에서 깃발대로 짖었나(🏅 안 줌) (C004) */
+  flags: [number, number][]; splashes: number; helped: boolean;
   seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[]; startT: number; clearT: number;
 }
 
@@ -649,11 +656,26 @@ function newStage(s: DogState) {
   s.idle = 0;
   s.startT = s.t;
   s.got = 0;
+  s.helped = false;
+  // 개울 판 도움 깃발 (C004 📐): 풍덩을 FLAG_AFTER번 하면 다시 할 때 박사의 첫 두 자리에 ①② 깃발
+  s.flags = [];
+  const after = FLAG_AFTER[d.key];
+  if (after && s.splashes >= after) {
+    const p1 = plan(s.F, s.S, d), S2 = cloneSim(s.S);
+    resolve(s.F, S2, p1[0], p1[1]);
+    s.flags.push(p1);
+    if (!ended(s.F, S2, d)) s.flags.push(plan(s.F, S2, d));
+  }
   see(s, d.key, d.news);
   if (d.bonus === 'flower' && L.flowers.length) see(s, 'flower', '🌼 꽃밭 — 안 밟고 넣으면 별 하나 더');
   if (d.bonus === 'clover' && L.clovers?.length) see(s, 'clover', '🍀 클로버 — 흰 양이 지나가면 별 하나 더');
   ev(s, 'stage', 0.5, 0.6, `${s.stage + 1}판 · ${d.name}`, '#fff6d6');
 }
+
+/** 몇 번째 풍덩 뒤에 깃발을 띄우나 (📐 C004: 소개 판 1-6은 첫 풍덩, 연습 판은 한 번 스스로 떠올릴 기회를 남긴다) */
+const FLAG_AFTER: Record<string, number> = { river: 1, narrow: 2, fest: 2 };
+/** 깃발 ① 근처(이 거리 안)에서 짖으면 깃발 자리로 붙여서 짖는다 — 0.015 차이에 결과가 갈리는 판이라 */
+export const FLAG_SNAP = 0.04;
 
 function finish(s: DogState, ok: boolean, why = '') {
   s.phase = 'result';
@@ -665,6 +687,7 @@ function finish(s: DogState, ok: boolean, why = '') {
     const bonus = bonusMet(s.F, s.S, d);
     const mask = 1 | (s.S.used <= d.par ? 2 : 0) | (bonus ? 4 : 0), before = s.best[s.stage];
     s.got = mask;
+    s.splashes = 0;
     s.best[s.stage] = before | mask;
     s.gain = starCount(s.best[s.stage]) - starCount(before);
     s.stars = s.best.reduce((a, m) => a + starCount(m), 0);
@@ -707,7 +730,7 @@ function bark(s: DogState, fx: number, fy: number) {
 function afterFlee(s: DogState) {
   const d = STAGES[s.stage], F = s.F, S = s.S;
   const fell = S.fell.findIndex((v) => v);
-  if (fell >= 0) return finish(s, false, F.black[fell] ? '까만 양이 개울에 풍덩!' : '양이 개울에 풍덩!');
+  if (fell >= 0) return s.splashes++, finish(s, false, F.black[fell] ? '까만 양이 개울에 풍덩!' : '양이 개울에 풍덩!');
   if (S.caught >= 0) return finish(s, false, '늑대가 양을 물어 갔어요!');
   const whitesIn = F.black.every((b, i) => b || S.pen[i] >= 0);
   if (whitesIn) return finish(s, true);
@@ -720,6 +743,7 @@ function afterFlee(s: DogState) {
 export function jumpTo(s: DogState, stage: number) {
   s.stage = Math.max(0, Math.min(STAGES.length - 1, stage));
   s.tries = 0;
+  s.splashes = 0;
   newStage(s);
 }
 
@@ -743,6 +767,7 @@ export const sheepdog: GameDef<DogState> = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'aim', pt: 0, rec: null, layouts: {},
       dogX: 0.5, dogY: 0.93, fromX: 0.5, fromY: 0.93, toX: 0.5, toY: 0.93, runN: 1,
       down: false, ax: 0, ay: 0, idle: 0, tries: 0,
+      flags: [], splashes: 0, helped: false,
       best: STAGES.map(() => 0), stars: 0, got: 0, gain: 0, pts: 0, ok: false, why: '', won: false, dead: false,
       seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsQ: [], startT: 0, clearT: 0,
     } as unknown as DogState;
@@ -767,7 +792,7 @@ export const sheepdog: GameDef<DogState> = {
       if (s.pt >= (s.ok ? RESULT_OK : RESULT_FAIL)) {
         if (!s.ok) newStage(s); // 실패하면 그 판만 다시 — 잃는 것 없음
         else if (s.won && s.stage === STAGES.length - 1) s.dead = true;
-        else s.stage++, (s.tries = 0), newStage(s);
+        else s.stage++, (s.tries = 0), (s.splashes = 0), newStage(s);
       }
       return;
     }
@@ -814,6 +839,11 @@ export const sheepdog: GameDef<DogState> = {
     const f = toField(s.ax, s.ay * A);
     if (!f) return void ev(s, 'nope', Math.max(0.15, Math.min(0.85, s.ax)), Math.max(0.4, Math.min(1.05, s.ay * A)), '목장 안을 톡!', '#ffe3d6');
     if (inAnyPen(s.F, f[0], f[1])) return void ev(s, 'nope', f[0], f[1], '울타리 안이에요', '#ffe3d6');
+    if (s.flags.length) {
+      const [qx, qy] = s.flags[0];
+      if (Math.hypot(f[0] - qx, f[1] - qy) < FLAG_SNAP) (f[0] = qx), (f[1] = qy), s.flags.shift(), (s.helped = true);
+      else s.flags = []; // 깃발 밖에서 짖으면 이 시도의 깃발은 거둔다(판이 달라져 거짓 안내가 되니까)
+    }
     bark(s, f[0], f[1]);
   },
   over: (s) => s.dead,
@@ -948,7 +978,8 @@ function plan(F: Field, S0: Sim, d: StageDef, maxDepth = DEPTH): [number, number
 
 const brain = new WeakMap<object, { key: string; p: [number, number] }>();
 const NO: Input = { tap: false, dir: 0, pointer: null };
-const at = (fx: number, fy: number): Input => ({ tap: false, dir: 0, pointer: { x: SX(fx, fy), y: SY(fy) / A } });
+/** 목장 좌표 (fx, fy)를 누르는 입력 (봇·테스트용) */
+export const at = (fx: number, fy: number): Input => ({ tap: false, dir: 0, pointer: { x: SX(fx, fy), y: SY(fy) / A } });
 
 /** 봇: 세 수 앞까지 시뮬레이션해 짖을 자리를 고른다 */
 export const sheepdogSmart: Bot<DogState> = {
@@ -974,6 +1005,51 @@ export const sheepdogGreedy: Bot<DogState> = {
     return at(m.p[0], m.p[1]);
   },
 };
+
+/**
+ * 사람 근사 봇 (C004, FUN QA C003 모형). 박사·그리디는 '사람 상한'이라 캐주얼 절벽을 못 잡는다.
+ *   순진: 미리 보기 없이 흰 양(또는 무리 가운데) 뒤에서 문 쪽으로 대충 누른다.
+ *   조심: 같은 습관인데, 누르고 있는 동안 미리 보기에 풍덩이 보이면 다른 자리로 N번까지 다시 겨눈다. 깃발이 있으면 깃발을 따른다.
+ */
+function naiveAim(F: Field, S: Sim, rng: Rng): [number, number] {
+  const ws: number[] = [];
+  for (let i = 0; i < F.n; i++) if (!F.black[i] && S.pen[i] < 0 && !S.fell[i]) ws.push(i);
+  if (!ws.length) return [0.5, 0.5];
+  let cx = 0, cy = 0;
+  if (rng() < 0.5) {
+    for (const i of ws) (cx += S.x[i]), (cy += S.y[i]);
+    (cx /= ws.length), (cy /= ws.length);
+  } else {
+    const i = ws[Math.floor(rng() * ws.length)];
+    (cx = S.x[i]), (cy = S.y[i]);
+  }
+  const pn = F.pens[0], gx = (pn.gx0 + pn.gx1) / 2, gy = pn.y1;
+  let dx = cx - gx, dy = cy - gy;
+  const l = Math.hypot(dx, dy) || 1;
+  (dx /= l), (dy /= l);
+  const a = (rng() - 0.5) * 0.9, dist = 0.05 + rng() * 0.13;
+  const rx = dx * Math.cos(a) - dy * Math.sin(a), ry = dx * Math.sin(a) + dy * Math.cos(a);
+  return [cx + rx * dist + (rng() - 0.5) * 0.06, cy + ry * dist + (rng() - 0.5) * 0.06];
+}
+function humanBot(name: string, looks: number): Bot<DogState> {
+  return {
+    name,
+    act(s, rng) {
+      if (s.phase !== 'aim' || s.down) return NO;
+      if (looks > 0 && s.flags.length) return at(s.flags[0][0], s.flags[0][1]);
+      let p = naiveAim(s.F, s.S, rng);
+      for (let k = 1; k < looks; k++) {
+        const S2 = cloneSim(s.S);
+        if (anyone(s.F, S2, p[0], p[1])) resolve(s.F, S2, p[0], p[1]);
+        if (!S2.fell.some((v) => v)) break;
+        p = naiveAim(s.F, s.S, rng);
+      }
+      return at(Math.max(0.02, Math.min(0.98, p[0])), Math.max(0.02, Math.min(0.98, p[1])));
+    },
+  };
+}
+export const sheepdogNaive = humanBot('순진(미리 보기 없음)', 0);
+export const sheepdogCareful = humanBot('조심(풍덩이 보이면 6번까지 다시 겨눔 · 깃발 따름)', 6);
 
 const dumbAt = new WeakMap<object, { next: number; until: number; p: { x: number; y: number } }>();
 /** 봇: 아무 때나 목장 아무 데나 톡 (가끔 화면 아무 데나) */
@@ -2533,6 +2609,33 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   }
   ctx.restore();
 
+  // ── 도움 깃발 ①② (C004) ──
+  s.flags.forEach(([qx, qy], k) => {
+    const sx = PX(qx, qy), sy = PY(qy), hgt = R(0.09) * scl(qy), first = k === 0, wave = Math.sin(t * 0.12 + k) * R(0.004);
+    ctx.globalAlpha = first ? 1 : 0.5;
+    ctx.fillStyle = 'rgba(40,30,10,.3)';
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, R(0.012), R(0.005), 0, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = '#6b4a2a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(sx, sy - hgt);
+    ctx.stroke();
+    ctx.fillStyle = first ? '#ff5a4f' : '#ffb3a8';
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - hgt);
+    ctx.lineTo(sx + hgt * 0.55, sy - hgt * 0.8 + wave);
+    ctx.lineTo(sx, sy - hgt * 0.6);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `900 ${Math.round(hgt * 0.3)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(k === 0 && s.flags.length === 2 ? '1' : '2', sx + hgt * 0.2, sy - hgt * 0.8);
+    ctx.globalAlpha = 1;
+  });
   // ═════════ HUD ═════════
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${R(sz)}px system-ui, sans-serif`);
   const hb = R(0.082);
@@ -2713,6 +2816,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
     const y3 = by + R(0.168);
     let tip = '👆 누르면 양이 갈 자리가 보여요 — 떼면 멍!';
     if (s.stage === 0 && S.used === 0) tip = '👆 양 뒤쪽을 꾹 — 갈 자리를 보고, 떼면 멍!';
+    else if (s.flags.length && s.phase === 'aim') tip = `🚩 할아버지 깃발 ${s.flags.length === 2 ? '①' : '②'} 자리에서 짖어 보렴`;
     else if (pvNote) tip = '떼면 멍! · 다른 데로 옮기면 다시 계산해요';
     else if (s.phase === 'result') tip = s.ok ? (d.bonus === 'black' && !F.black.some((b, i) => b && S.pen[i] >= 0) ? '까만 양은 마지막 흰 양보다 먼저!' : '잘했어요!') : '같은 판을 다시 — 이번엔 미리 보고 짖어요';
     else if (F.den) tip = '🐺 늑대는 멍멍마다 한 걸음 — 원 안에서 짖으면 깨갱!';

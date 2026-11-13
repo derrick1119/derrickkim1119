@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/sheepdog/core.ts';
-import { LATER, STAGES, jumpTo, starCount, sheepdog as g, sheepdogGreedy, sheepdogRandom, sheepdogSmart, type DogState } from '../studio/sheepdog/game.ts';
+import { FLAG_SNAP, LATER, STAGES, at as atField, jumpTo, starCount, sheepdog as g, sheepdogGreedy, sheepdogRandom, sheepdogSmart, type DogState } from '../studio/sheepdog/game.ts';
 import { mulberry32 } from '../studio/sheepdog/rng.ts';
 
 const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y } });
@@ -80,6 +80,80 @@ describe('M1-2 W1 아침 들판 (CONTENT.md W1)', () => {
     play(s, 'smart', 2);
     expect(s.got & 4).toBe(4);
     expect(s.S.ch.some((v) => v)).toBe(true);
+  });
+});
+
+describe('M1-2a 개울 판 도움 깃발 (📐 C004)', () => {
+  /** 목장 좌표에서 한 번 눌렀다 떼고, 양이 다 멈출 때까지 */
+  const barkAt = (s: DogState, fx: number, fy: number) => {
+    g.step(s, atField(fx, fy));
+    g.step(s, up);
+    for (let t = 0; t < 200 && phaseOf(s) !== 'aim' && phaseOf(s) !== 'result'; t++) g.step(s, up);
+  };
+  const retry = (s: DogState) => g.step(s, { ...up, retry: true });
+
+  it('1-6은 첫 풍덩 뒤, 1-7·1-8은 두 번째 풍덩 뒤에 깃발 ①② — 개울 없는 판엔 없다', () => {
+    const s = g.create(7);
+    jumpTo(s, 5);
+    expect(s.flags.length).toBe(0);
+    s.splashes = 1;
+    retry(s);
+    expect(s.flags.length).toBe(2);
+    for (const [k, need] of [[6, 2], [7, 2]]) {
+      jumpTo(s, k);
+      s.splashes = need - 1;
+      retry(s);
+      expect(s.flags.length, `${k + 1}판 ${need - 1}번`).toBe(0);
+      s.splashes = need;
+      retry(s);
+      expect(s.flags.length, `${k + 1}판 ${need}번`).toBe(2);
+    }
+    jumpTo(s, 2);
+    s.splashes = 9;
+    retry(s);
+    expect(s.flags.length).toBe(0);
+  });
+
+  it('진짜 풍덩이 셈을 올리고, 판을 깨면 0으로', () => {
+    const s = g.create(5);
+    jumpTo(s, 5);
+    for (let n = 0; n < 30 && s.splashes === 0; n++) {
+      play(s, 'random', 60 + n);
+      for (let t = 0; t < 200 && phaseOf(s) === 'result'; t++) g.step(s, up);
+    }
+    expect(s.splashes).toBeGreaterThan(0);
+    expect(s.flags.length).toBe(2);
+    play(s, 'smart', 1);
+    expect(s.ok).toBe(true);
+    expect(s.splashes).toBe(0);
+  });
+
+  it('깃발대로 두 번 짖은 상태 = 박사가 두 번 짖은 상태 (깃발 근처면 깃발 자리로 붙는다)', () => {
+    const a = g.create(7);
+    jumpTo(a, 5);
+    a.splashes = 1;
+    retry(a);
+    const [f1, f2] = a.flags;
+    barkAt(a, f1[0] + FLAG_SNAP * 0.6, f1[1]); // 조금 빗나가게 눌러도
+    expect(a.flags).toEqual([f2]);
+    barkAt(a, f2[0], f2[1] - FLAG_SNAP * 0.6);
+    expect(a.flags.length).toBe(0);
+    expect(a.helped).toBe(true);
+    const b = g.create(7), rng = mulberry32(7);
+    jumpTo(b, 5);
+    while (b.S.used < 2 || phaseOf(b) !== 'aim') g.step(b, sheepdogSmart.act(b, rng));
+    expect(pos(a)).toBe(pos(b));
+  });
+
+  it('깃발 밖에서 짖으면 그 시도의 깃발은 모두 거둔다', () => {
+    const s = g.create(7);
+    jumpTo(s, 5);
+    s.splashes = 1;
+    retry(s);
+    const [f1] = s.flags;
+    barkAt(s, f1[0] + 0.15, Math.min(0.95, f1[1] + 0.05));
+    expect(s.flags.length).toBe(0);
+    expect(s.helped).toBe(false);
   });
 });
 

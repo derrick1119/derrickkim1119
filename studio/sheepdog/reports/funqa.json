@@ -21,7 +21,12 @@
    "random": {
     "clear": 1,
     "stuck25": 0
-   }
+   },
+   "careful": {
+    "stuck25": 0,
+    "tries": 1
+   },
+   "naiveSeesNew": null
   },
   "2": {
    "name": "미리 보기",
@@ -42,7 +47,12 @@
    "random": {
     "clear": 1,
     "stuck25": 0
-   }
+   },
+   "careful": {
+    "stuck25": 0,
+    "tries": 1
+   },
+   "naiveSeesNew": null
   },
   "3": {
    "name": "흩어진 양",
@@ -63,7 +73,12 @@
    "random": {
     "clear": 0.05,
     "stuck25": 0.4
-   }
+   },
+   "careful": {
+    "stuck25": 0,
+    "tries": 1.95
+   },
+   "naiveSeesNew": null
   },
   "4": {
    "name": "까만 양",
@@ -84,7 +99,12 @@
    "random": {
     "clear": 1,
     "stuck25": 0
-   }
+   },
+   "careful": {
+    "stuck25": 0,
+    "tries": 1
+   },
+   "naiveSeesNew": 0.3
   },
   "5": {
    "name": "끌어오기",
@@ -105,7 +125,12 @@
    "random": {
     "clear": 0.1,
     "stuck25": 0.5
-   }
+   },
+   "careful": {
+    "stuck25": 0,
+    "tries": 1.35
+   },
+   "naiveSeesNew": null
   },
   "6": {
    "name": "개울과 다리",
@@ -120,13 +145,18 @@
    },
    "greedy": {
     "clear": 1,
-    "used": 5,
-    "overPar": 1
+    "used": 4,
+    "overPar": 0
    },
    "random": {
     "clear": 0,
     "stuck25": 1
-   }
+   },
+   "careful": {
+    "stuck25": 0,
+    "tries": 2.3
+   },
+   "naiveSeesNew": 1
   },
   "7": {
    "name": "좁은 다리",
@@ -147,7 +177,12 @@
    "random": {
     "clear": 0,
     "stuck25": 1
-   }
+   },
+   "careful": {
+    "stuck25": 0,
+    "tries": 3.3
+   },
+   "naiveSeesNew": null
   },
   "8": {
    "name": "아침 축제",
@@ -168,7 +203,12 @@
    "random": {
     "clear": 0,
     "stuck25": 1
-   }
+   },
+   "careful": {
+    "stuck25": 0.2,
+    "tries": 7.5
+   },
+   "naiveSeesNew": null
   }
  },
  "run": {

@@ -68,6 +68,15 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
       await page.waitForTimeout(1700);
       await page.screenshot({ path: join(here, 'screens', `${name}-w1-${k + 1}.png`) });
     }
+  // 개울 판 도움 깃발 ①② (모바일만): 1-6에서 한 번 풍덩한 셈 치고 R로 다시
+  if (name === 'mobile') {
+    await page.evaluate(() => { const sd = (globalThis as any).__sd; sd.jump(5); sd.state().splashes = 1; });
+    await page.waitForTimeout(300);
+    await page.keyboard.press('KeyR');
+    await page.waitForTimeout(500);
+    if ((await st(page, 's.flags.length')) !== 2) errors.push(`${name}: 풍덩 뒤 깃발이 안 뜸`);
+    await page.screenshot({ path: join(here, 'screens', `${name}-flags.png`) });
+  }
   // 끝 화면: 마지막 판까지 마친 것으로
   await page.evaluate(() => { const s = (globalThis as any).__sd.state(); s.won = true; s.dead = true; });
   await page.waitForTimeout(400);
