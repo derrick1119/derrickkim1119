@@ -90,6 +90,17 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.screenshot({ path: join(here, 'screens', `${name}-hint.png`) });
   void D;
   await crisisShot(page, `${name}-crisis.png`, name);
+  // D011 🎨 13장 ③: 황금을 물 위에 둔 채 깨면 결과 카드 셋째 줄이 '황금이 꼴찌였어요'
+  await page.evaluate(() => (globalThis as any).__duck.jump(0));
+  await page.waitForTimeout(300);
+  await page.evaluate(() => { const s = (globalThis as any).__duck.state(); s.objs.filter((o: any) => o.k === 0).forEach((o: any) => (o.st = 0)); });
+  await page.waitForSelector('.card:not([hidden])', { timeout: 10_000 });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: join(here, 'screens', `${name}-gold-last.png`) });
+  const gl = await page.evaluate(() => document.querySelector('.card li.gold b')?.textContent ?? '');
+  if (gl !== '황금이 꼴찌였어요') errors.push(`${name}: 황금 꼴찌 카드 문장이 안 뜸 (${gl})`);
+  const gh = (await page.locator('.card').boundingBox())?.height ?? 0;
+  if (gh > 190) errors.push(`${name}: 황금 꼴찌 결과 카드 높이 ${Math.round(gh)}px > 190`);
   // D005 판 고르기: 1판을 깼으니 2판까지 열려 있다 → 2판 누르면 2판 시작
   await page.evaluate(() => (globalThis as any).__duck.levels());
   await page.waitForTimeout(300);

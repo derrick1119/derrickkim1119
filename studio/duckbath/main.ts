@@ -97,7 +97,7 @@ function renderCard() {
     const line = (ok: boolean, yes: string, no: string) => `<li class="${ok ? 'ok' : 'todo'}"><i>${ok ? '★' : '☆'}</i>${esc(ok ? yes : no)}</li>`;
     save.clear(d.id, n); // D005: 깬 판 저장 → 다음 판이 열린다
     card.className = 'card win';
-    card.innerHTML = `<h2>${last ? '목욕 다 끝! 🛁' : n === 3 ? '깨끗!' : n === 2 ? '뽀득!' : '목욕 끝!'}</h2><ul>${line(true, '오리 모두 둥지에 쏙', '')}${line(tapOk, `톡 ${s.used}번 — ${d.par}번 안에!`, `톡 ${s.used}번 · ${d.par}번 안이면 ★`)}${line(goldOk, '👑 황금 오리 꼴찌 탈출!', '👑 황금 오리가 꼴찌만 아니면 ★')}</ul><div class="row"><button type="button" class="ico" data-a="levels" aria-label="판 고르기">▦</button><button type="button" class="btn2" data-a="retry">↺ 다시</button><button type="button" class="btn" data-a="next">${last ? '판 고르기 ▶' : '다음 목욕 ▶'}</button></div>`;
+    card.innerHTML = `<h2>${last ? '목욕 다 끝! 🛁' : n === 3 ? '깨끗!' : n === 2 ? '뽀득!' : '목욕 끝!'}</h2><ul>${line(true, '오리 모두 둥지에 쏙', '')}${line(tapOk, `톡 ${s.used}번 — ${d.par}번 안에!`, `톡 ${s.used}번 · ${d.par}번 안이면 ★`)}${goldOk ? line(true, '👑 황금 오리 꼴찌 탈출!', '') : '<li class="todo gold"><i>☆</i><span>👑 <b>황금이 꼴찌였어요</b> · 꼴찌만 아니면 ★</span></li>' /* 🎨 D011 ③: 깬 판에서 황금 별을 놓치는 길은 꼴찌 하나뿐 — 모든 판 같은 문장 */}</ul><div class="row"><button type="button" class="ico" data-a="levels" aria-label="판 고르기">▦</button><button type="button" class="btn2" data-a="retry">↺ 다시</button><button type="button" class="btn" data-a="next">${last ? '판 고르기 ▶' : '다음 목욕 ▶'}</button></div>`;
   } else {
     // 🎨 D004: 뿅 규칙 뒤로 실패는 늘 '톡 다 씀' — 문구는 톡을 가져간 주범으로 고른다
     // D005: 주범이 클 때만 주범 제목, 아니면 '톡 바닥' + 그 판의 교훈(failText, 🧪 N4)
