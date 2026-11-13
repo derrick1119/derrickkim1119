@@ -1,958 +1,1025 @@
 {
- "champion": null,
- "rounds": [
-  {
-   "round": 1,
-   "openedAt": "2026-11-06",
-   "A": "orbit",
-   "B": "brickdef",
-   "winner": "orbit",
-   "decidedAt": "2026-11-06",
-   "machinePick": "orbit",
-   "note": "피벗 첫 라운드. 오너: \"A가 낫네.\" 봇 재미 추정(0.97 vs 0.76)과 일치"
-  },
-  {
-   "round": 2,
-   "openedAt": "2026-11-06",
-   "A": "orbit",
-   "B": "guard",
-   "winner": "guard",
-   "note": "챔피언 궤도 꼬리 vs 도전자 궤도 수비(봇 재미 추정 0.92, 후보 중 1위) · 오너: \"B\". 봇 재미 추정은 A(0.97)를 더 높게 봤음 → 기계 추천 빗나감(1/2)",
-   "decidedAt": "2026-11-06",
-   "machinePick": "orbit"
-  },
-  {
-   "round": 3,
-   "openedAt": "2026-11-06",
-   "A": "guard",
-   "B": "mergetower",
-   "winner": "guard",
-   "note": "챔피언 궤도 수비 vs 새 도전자 합체 탑(타이밍 쌓기 × 2048 × 원버튼, 봇 재미 추정 0.97) · 오너: \"A\". 봇은 합체 탑(0.934)을 근소하게 높게 봤음 → 빗나감. 성장 연출 있는 쪽이 다시 이김",
-   "decidedAt": "2026-11-07",
-   "machinePick": "mergetower"
-  },
-  {
-   "round": 4,
-   "openedAt": "2026-11-07",
-   "A": "guard",
-   "B": "stomp",
-   "winner": "guard",
-   "note": "챔피언 궤도 수비 vs 밟기 러너(러너 × 서바이버식 성장 × 원버튼) — 둘 다 원버튼+성장, 몸놀림만 다름(공전 vs 점프) · 오너: \"A\". 봇 재미 추정(0.914 vs 0.855)과 일치. 오너 요청: A를 더 발전시켜라(아군·행성 수호·채굴·기지 건설)",
-   "decidedAt": "2026-11-07",
-   "machinePick": "guard"
-  },
-  {
-   "round": 5,
-   "openedAt": "2026-11-07",
-   "A": "guard",
-   "B": "guardian",
-   "winner": "guardian",
-   "note": "원본 궤도 수비 vs 오너 요청으로 확장한 행성 수호대(아군 위성·행성 내구도·채굴·기지 건설·확대 연출) · 오너: \"B\". 확장판이 이김 — 오너가 요청한 방향(아군·채굴·기지 건설)이 맞았음. 봇 추정(0.97 vs 0.91)과 일치",
-   "decidedAt": "2026-11-07",
-   "machinePick": "guardian"
-  },
-  {
-   "round": 6,
-   "openedAt": "2026-11-07",
-   "A": "guardian",
-   "B": "beat",
-   "winner": "guardian",
-   "note": "챔피언 행성 수호대 vs 박자 포탑(디펜스 × 리듬 × 원버튼, 라운드에 나온 적 없는 후보 중 봇 재미 추정 1위 0.97) · 오너: \"A\". 봇은 박자 포탑(0.97)을 조금 높게 봤음 → 빗나감. 오너: \"굳이 원버튼을 고집할 필요 없어\"",
-   "decidedAt": "2026-11-07",
-   "machinePick": "beat"
-  },
-  {
-   "round": 7,
-   "openedAt": "2026-11-07",
-   "A": "guardian",
-   "B": "pool",
-   "winner": "guardian",
-   "note": "챔피언 행성 수호대 vs 먹보 당구(당구 × 덩치 키우기 · 꾹 눌렀다 떼기 · 콤보 피버, 라운드에 나온 적 없는 후보 중 재미 추정 1위 0.93) · 오너: \"A\". 봇 추정(0.97 vs 0.93)과 일치",
-   "decidedAt": "2026-11-07",
-   "machinePick": "guardian"
-  },
-  {
-   "round": 8,
-   "openedAt": "2026-11-07",
-   "A": "guardian",
-   "B": "guardian2",
-   "winner": "guardian2",
-   "note": "챔피언 행성 수호대 vs 행성 수호대 2(원버튼 제약 해제 후 확장판: 좌우 누르기 이동 · 건설 카드 셋 중 하나 직접 선택 · 건물 레벨 3단계 · 위성 3기 · 판 끝 기지 전경) · 오너: \"B. 내가 선택한 건 더 디벨롭해줘.\" → 최종 선택, 스튜디오로 졸업(studio/planet-guardian). 봇은 1편(0.97)을 근소하게 높게 봤음 → 빗나감",
-   "decidedAt": "2026-11-07",
-   "machinePick": "guardian"
-  },
-  {
-   "round": 9,
-   "openedAt": "2026-11-07",
-   "A": "drift",
-   "B": "gridwar",
-   "winner": "none",
-   "note": "행성 수호대 2 졸업 뒤 빈자리 — 이번 사이클 새 게임 둘끼리: 링 드리프트(드리프트 × 서바이버 · 꾹 누르기 · 좁아지는 판) vs 한 칸 우주전(슈팅 × 자동 전투 · 스와이프 · 턴제화) · 오너: \"둘다 별로야\" → 둘 다 탈락, 챔피언 없음 유지",
-   "decidedAt": "2026-11-07",
-   "machinePick": "drift"
-  },
-  {
-   "round": 10,
-   "openedAt": "2026-11-07",
-   "A": "lantern",
-   "B": "rope",
-   "winner": "lantern",
-   "note": "필수 기준 셋(손에 붙는 조작·펼쳐짐·연출) 첫 적용. 취향 쪽 등불 마을(타워 디펜스 × 농사 · 가리키기 · 낮과 밤: 누른 곳에 빛, 낮엔 밭을 키워 마을이 커지고 밤엔 그림자를 태움) vs 탐험 쪽 밧줄 동굴(밧줄 그네 × 피하기 · 가리키기 · 깊어지는 판: 누른 고리로 끌려가 흔들려 내려감, 무너지는 동굴에 쫓김, 깊이마다 새 구역) · 오너: \"A\" → 등불 마을이 챔피언. 기계 추천(밧줄 동굴)은 빗나감(4/10). 밧줄 동굴은 폐기",
-   "machinePick": "rope",
-   "decidedAt": "2026-11-07"
-  },
-  {
-   "round": 11,
-   "openedAt": "2026-11-07",
-   "A": "lantern",
-   "B": "sling",
-   "winner": "none",
-   "note": "챔피언 등불 마을 vs 도전자 돌팔매 성(새총 물리 × 타워 디펜스 · 드래그 조준 · 영구 해금: 누른 채 겨누고 떼면 돌, 빗나간 돌은 돌무더기 바리케이드, 금으로 성벽 뒤 마을이 커짐). 같은 사이클의 심해 낚시는 게이트 미달로 폐기 · 오너: \"둘다 별로\" → 둘 다 탈락(챔피언 등불 마을 포함), 챔피언 없음",
-   "machinePick": "sling",
-   "decidedAt": "2026-11-07"
-  },
-  {
-   "round": 12,
-   "openedAt": "2026-11-07",
-   "A": "echo",
-   "B": "lasso",
-   "winner": "none",
-   "note": "11라운드 '둘 다 별로'(와우 포인트·뻔함·밋밋) 뒤, 완전히 다른 장르 × 와우 포인트. 분신 받아치기(퐁 × 받아내기 · 좌우 미끄러지기 · 유령 경주: 8초마다 방금 8초의 나를 반복하는 분신) vs 올가미(땅따먹기 × 3매치 · 가리키기 · 연쇄: 그린 선이 닫히면 안이 터짐, 같은 색만 감싸면 개수²) · 오너: \"둘다 별로\" → 둘 다 탈락, 챔피언 없음",
-   "machinePick": "lasso",
-   "decidedAt": "2026-11-08"
-  },
-  {
-   "round": 13,
-   "openedAt": "2026-11-08",
-   "A": "illusion",
-   "B": "cascade",
-   "winner": "none",
-   "note": "12라운드 '둘 다 별로'(와우 약함·바로 재미 X·손맛·목표/보상 부족) 뒤. A 착시 속 정답(오너 아이디어) vs B 곱셈 폭포(곱하기 문 × 받아내기 · 가리키기 · 이월: 따른 구슬이 ×2·×3 문을 지나 수백 개로, 판마다 목표·별 3개, 많이 담을수록 다음 판 구슬 증가) · 오너: \"둘다 별로\" → 둘 다 탈락(오너 아이디어 착시 포함), 챔피언 없음. 9·11·12·13라운드 연속 둘 다 탈락",
-   "machinePick": "cascade",
-   "decidedAt": "2026-11-08"
-  },
-  {
-   "round": 14,
-   "openedAt": "2026-11-08",
-   "A": "garden",
-   "B": "domino",
-   "winner": "domino",
-   "note": "아이디어 메뉴(오너: '다 좋은데 시도해바') 첫 둘. 물길 정원(땅을 파면 물이 흘러 씨앗이 꽃핌, 핀 꽃이 내 정원에 쌓임) vs 도미노 도시(그은 선에 도미노가 깔리고 톡 치면 연쇄 쇼). 이긴 쪽이 다음 차례 '그림자 도둑'과 · 오너: \"B\" → 도미노 도시 챔피언(9라운드 이후 첫 선택). 기계 추천(물길 정원) 빗나감",
-   "machinePick": "garden",
-   "decidedAt": "2026-11-08"
-  },
-  {
-   "round": 15,
-   "openedAt": "2026-11-08",
-   "A": "domino",
-   "B": "shadow",
-   "winner": "none",
-   "note": "챔피언 도미노 도시 vs 메뉴 다음 차례 그림자 도둑(잠입 × 낮과 밤 · 가리키기: 손가락이 해, 끌면 모든 그림자가 돌고 도둑은 그림자를 타고 달림) · 오너: \"둘다 조작이 너무 필요해서 별로야\" → 둘 다 탈락, 챔피언 없음. 같은 답에서 오너 아이디어: \"길건너친구들 같은 아이디어도 한번 생각해바\"",
-   "machinePick": "domino",
-   "decidedAt": "2026-11-08"
-  },
-  {
-   "round": 16,
-   "openedAt": "2026-11-08",
-   "A": "ducks",
-   "B": null,
-   "winner": "none",
-   "note": "오너 아이디어 한 게임(좋아/별로): 줄줄이 오리 — 길 건너기 × 스네이크 · 원버튼(탭 하나). 15라운드 이유(조작이 너무 필요함)에 맞춰 탭 하나로만. 다음 차례 자석 우주선은 원버튼으로 줄이자 게이트 미달 → 보류 · 오너: \"별로\" (질문 답: 와우가 약함 · 너무 어렵·금방 죽음 · 화면·연출이 밋밋) → 탈락, 챔피언 없음",
-   "machinePick": "ducks",
-   "decidedAt": "2026-11-08"
-  },
-  {
-   "round": 17,
-   "openedAt": "2026-11-08",
-   "A": "pour",
-   "B": "rewind",
-   "winner": "pour",
-   "note": "메뉴 차례(오너 선택): A 중력 쏟기(합치기 × 중력 뒤집기 · 한 번 밀기) vs B 되감기 골프(미니 골프 × 되감기 · 꾹 눌렀다 떼기). 둘 다 기준 9(조작 최소) · 오너: \"A가 좀 가능성 있네. 근데 한곳으로 모으면 합쳐지기 너무 쉬워서 더 고민이 필요할듯\" → 중력 쏟기 승(기계 추천 빗나감), 되감기 골프 폐기. 챔피언을 다듬음(0037: 같은 색·같은 숫자만 · 제 줄로 떨어짐 · 다음 구슬 미리 보기 · 병 넘침)",
-   "machinePick": "rewind",
-   "decidedAt": "2026-11-08"
-  },
-  {
-   "round": 18,
-   "openedAt": "2026-11-08",
-   "A": "pour",
-   "B": "chef",
-   "winner": "none",
-   "note": "챔피언 중력 쏟기(오너 지적 반영판: 같은 색·같은 숫자만 합쳐짐, 구슬이 제 줄로 곧장 떨어짐, 다음 구슬 미리 보기, 병이 넘치면 하트 -1) vs 메뉴 다음 차례 몬스터 요리사(주문 처리 × 합치기 · 지나가는 재료 탭) · 오너: \"일단 둘 다 폐기., 디오라마를 꾸미거나 키우는 아이디어로 한번 구상해바\" → 둘 다 탈락, 챔피언 없음 → 19라운드 아이디어 메뉴(디오라마)",
-   "machinePick": "chef",
-   "decidedAt": "2026-11-08"
-  },
-  {
-   "round": 19,
-   "openedAt": "2026-11-08",
-   "A": null,
-   "B": null,
-   "games": [
-    "isle",
-    "terrarium",
-    "train",
-    "volcano",
-    "dollhouse",
-    "antfarm",
-    "seasons",
-    "snowglobe",
-    "turtle"
-   ],
-   "winner": "volcano,turtle",
-   "note": "오너 요청으로 A|B 대신 아이디어 전부: 디오라마 메뉴 8개(타일 섬·유리병 정원·기차 마을·화산섬·인형의 집·개미 정원·계절 숲·스노볼 마을) + 오너 아이디어 스케이트 거북이. 오너가 마음에 드는 번호를 고른다 · 오너: \"4, 9번\" → 화산섬 키우기 · 스케이트 거북이 남김(둘 다 꾹 눌렀다 떼기 + 웃긴 주인공), 나머지 7개 폐기. 기계 추천(스케이트 거북이) 적중",
-   "machinePick": "turtle",
-   "decidedAt": "2026-11-09"
-  },
-  {
-   "round": 20,
-   "openedAt": "2026-11-09",
-   "A": null,
-   "B": null,
-   "games": [
-    "volcano",
-    "turtle",
-    "stretchcat",
-    "hedgehog",
-    "elephant",
-    "puffer",
-    "bakery",
-    "eggcannon"
-   ],
-   "winner": "none",
-   "note": "19라운드 선택(화산섬·거북이)의 다듬은 판 2 + 같은 결(꾹 눌렀다 떼기 + 웃긴 주인공 + 작은 세계)의 새 아이디어 6(쭉쭉 고양이·데굴데굴 고슴도치·코끼리 물뿌리개 정원·복어 산호 정원·곰 아저씨 빵집·꼬꼬 알 대포 농장). 오너가 고른다 · 오너: \"다 폐기.\" + 새 아이디어 둘(거꾸로 새총: 내가 지은 건물이 날아오는 것을 버팀 / 홍수 버티기) → 8개 모두 폐기",
-   "machinePick": "turtle",
-   "decidedAt": "2026-11-09"
-  },
-  {
-   "round": 21,
-   "openedAt": "2026-11-09",
-   "A": null,
-   "B": null,
-   "games": [
-    "fortress",
-    "flood",
-    "typhoon",
-    "quake",
-    "landslide",
-    "sandcastle"
-   ],
-   "winner": "sandcastle",
-   "note": "20라운드 다 폐기 + 오너 아이디어 둘(버텨라 블록성: 내가 지은 성을 너구리 해적단이 투석기로 공격 / 홍수 버티기: 몇 L가 어디서 오는지 보고 모래주머니로 감싸기) + 같은 결 '예보 보고 짓고 → 버티는 걸 지켜보기' 변형 넷(태풍 캠핑장·흔들흔들 지진 탑·산사태 산장·밀물 모래성). 오너가 고른다 · 오너: \"6번만 나머지 아웃\" → 밀물 모래성만 남기고 5개 폐기. 기계 추천(밀물 모래성) 적중",
-   "machinePick": "sandcastle",
-   "decidedAt": "2026-11-10"
-  },
-  {
-   "round": 22,
-   "openedAt": "2026-11-10",
-   "A": null,
-   "B": null,
-   "games": [
-    "sandcastle",
-    "turtlebeach",
-    "crabpools",
-    "igloo"
-   ],
-   "winner": "none",
-   "note": "21라운드 선택(밀물 모래성)의 다듬은 판 + 무엇이 좋았는지 갈라 보는 새 아이디어 셋: 같은 해변·다른 놀이(아기 거북 해변 — 막은 벽이 길을 막음 / 꽃게 갯벌 수로 — 물을 들여 보물) · 같은 놀이·다른 세계(눈보라 이글루 — 맞은 눈벽이 밤에 얼음벽). 오너가 고른다 · 오너: \"다 폐기해줘\" → 4개 모두 폐기(21라운드에 고른 밀물 모래성의 다듬은 판 포함)",
-   "machinePick": "crabpools",
-   "decidedAt": "2026-11-11"
-  },
-  {
-   "round": 23,
-   "openedAt": "2026-11-11",
-   "A": null,
-   "B": null,
-   "games": [
-    "sheepdog",
-    "balloonpop",
-    "clawgame",
-    "duckbath",
-    "grocery",
-    "plinko"
-   ],
-   "winner": "sheepdog,balloonpop,duckbath",
-   "note": "22라운드 다 폐기 + 오너 답 \"1\"(완전히 다른 장르) → 안 써 본 핵심 놀이 6개: 양치기 멍멍(몰이) · 풍선 팡 연쇄(연쇄) · 줄줄이 인형 뽑기 · 욕조 물결 오리(물결 밀기) · 장바구니 척척(분류) · 핀 떨구기. 모두 손짓 하나·규칙 2~3줄·미리 보기. 오너가 고른다 · 오너: \"1,2,4 아이디어 좋네 따로 세션으로 보내서 개발을 진행하자\" → 양치기 멍멍·풍선 팡 연쇄·욕조 물결 오리 스튜디오로 졸업(게임마다 팀 세션), 인형 뽑기·장바구니·핀 떨구기 폐기. 기계 추천(욕조 물결 오리) 적중",
-   "machinePick": "duckbath",
-   "decidedAt": "2026-11-12"
-  },
-  {
-   "round": 24,
-   "openedAt": "2026-11-13",
-   "A": null,
-   "B": null,
-   "games": [
-    "ufo",
-    "robovac",
-    "snowroll",
-    "pillowfight",
-    "sunmirror",
-    "railswitch"
-   ],
-   "winner": null,
-   "note": "23라운드 셋 스튜디오 졸업 뒤 오너: \"공장을 계속 돌려야지. 새로운 장르로 시도해봐\" → 안 써 본 장르 6개(UFO 소 납치·고양이 청소기·눈덩이 굴리기·베개 싸움·햇빛 거울 정원·기찻길 전환), 모두 '한 수의 결과가 미리 보임'. 오너가 고른다",
-   "machinePick": "railswitch"
-  }
- ],
- "graduated": [
-  {
-   "id": "guardian2",
-   "name": "행성 수호대 2",
-   "at": "2026-11-07",
-   "round": 8,
-   "studio": "studio/planet-guardian",
-   "play": "https://derrick1119.github.io/derrickkim1119/studio/planet-guardian/",
-   "genes": [
-    "survivor",
-    "defense",
-    "idle",
-    "pick3",
-    "twobutton"
-   ]
-  },
-  {
-   "id": "sheepdog",
-   "name": "양치기 멍멍",
-   "at": "2026-11-12",
-   "round": 23,
-   "studio": "studio/sheepdog",
-   "play": "https://derrick1119.github.io/derrickkim1119/studio/sheepdog/",
-   "genes": [
-    "herd",
-    "pointer",
-    "turnbased"
-   ]
-  },
-  {
-   "id": "balloonpop",
-   "name": "풍선 팡 연쇄",
-   "at": "2026-11-12",
-   "round": 23,
-   "studio": "studio/balloonpop",
-   "play": "https://derrick1119.github.io/derrickkim1119/studio/balloonpop/",
-   "genes": [
-    "chain",
-    "pointer"
-   ]
-  },
-  {
-   "id": "duckbath",
-   "name": "욕조 물결 오리",
-   "at": "2026-11-12",
-   "round": 23,
-   "studio": "studio/duckbath",
-   "play": "https://derrick1119.github.io/derrickkim1119/studio/duckbath/",
-   "genes": [
-    "ripple",
-    "pointer",
-    "pushbox"
-   ]
-  }
- ],
- "discarded": [
-  {
-   "id": "orbit",
-   "name": "궤도 꼬리",
-   "genes": [
-    "snake",
-    "onebutton",
-    "orbit"
-   ],
-   "at": "2026-11-07",
-   "why": "2라운드에서 선택받지 못함"
-  },
-  {
-   "id": "brickdef",
-   "name": "벽돌 수비대",
-   "genes": [
-    "brick",
-    "defense",
-    "gacha"
-   ],
-   "at": "2026-11-07",
-   "why": "1라운드에서 선택받지 못함"
-  },
-  {
-   "id": "guard",
-   "name": "궤도 수비",
-   "genes": [
-    "survivor",
-    "defense",
-    "onebutton"
-   ],
-   "at": "2026-11-07",
-   "why": "5라운드에서 선택받지 못함"
-  },
-  {
-   "id": "guardian",
-   "name": "행성 수호대",
-   "genes": [
-    "survivor",
-    "defense",
-    "idle",
-    "onebutton"
-   ],
-   "at": "2026-11-07",
-   "why": "8라운드에서 선택받지 못함"
-  },
-  {
-   "id": "mergetower",
-   "name": "합체 탑",
-   "genes": [
-    "stack",
-    "merge",
-    "onebutton"
-   ],
-   "at": "2026-11-07",
-   "why": "3라운드에서 선택받지 못함"
-  },
-  {
-   "id": "stomp",
-   "name": "밟기 러너",
-   "genes": [
-    "endless",
-    "survivor",
-    "onebutton"
-   ],
-   "at": "2026-11-07",
-   "why": "4라운드에서 선택받지 못함"
-  },
-  {
-   "id": "beat",
-   "name": "박자 포탑",
-   "genes": [
-    "defense",
-    "rhythm",
-    "onebutton"
-   ],
-   "at": "2026-11-07",
-   "why": "6라운드에서 선택받지 못함"
-  },
-  {
-   "id": "snowball",
-   "name": "눈덩이 비탈",
-   "genes": [
-    "endless",
-    "absorb",
-    "onebutton"
-   ],
-   "at": "2026-11-07",
-   "why": "라운드에 오르지 못한 후보"
-  },
-  {
-   "id": "pool",
-   "name": "먹보 당구",
-   "genes": [
-    "billiards",
-    "absorb",
-    "hold",
-    "combo"
-   ],
-   "at": "2026-11-07",
-   "why": "7라운드에서 선택받지 못함"
-  },
-  {
-   "id": "pinbrick",
-   "name": "핀볼 블록",
-   "genes": [
-    "pinball",
-    "brick",
-    "onebutton",
-    "chain"
-   ],
-   "at": "2026-11-07",
-   "why": "라운드에 오르지 못한 후보"
-  },
-  {
-   "id": "drift",
-   "name": "링 드리프트",
-   "genes": [
-    "drift",
-    "survivor",
-    "hold",
-    "shrink"
-   ],
-   "at": "2026-11-07",
-   "why": "9라운드에서 선택받지 못함"
-  },
-  {
-   "id": "gridwar",
-   "name": "한 칸 우주전",
-   "genes": [
-    "shmup",
-    "autobattle",
-    "swipe",
-    "turnbased"
-   ],
-   "at": "2026-11-07",
-   "why": "9라운드에서 선택받지 못함"
-  },
-  {
-   "id": "rope",
-   "name": "밧줄 동굴",
-   "genes": [
-    "grapple",
-    "dodge",
-    "pointer",
-    "depth"
-   ],
-   "at": "2026-11-07",
-   "why": "10라운드에서 선택받지 못함"
-  },
-  {
-   "id": "fish",
-   "name": "심해 낚시",
-   "genes": [
-    "fishing",
-    "dodge",
-    "pointer",
-    "collect"
-   ],
-   "at": "2026-11-07",
-   "why": "0024 게이트 미달(잘하는 봇이 매번 3분 버팀, 재미 0.63) — 도전자 후보에서 탈락, 오너에게 보이지 않음"
-  },
-  {
-   "id": "lantern",
-   "name": "등불 마을",
-   "genes": [
-    "defense",
-    "farm",
-    "pointer",
-    "daynight"
-   ],
-   "at": "2026-11-07",
-   "why": "11라운드에서 둘 다 별로"
-  },
-  {
-   "id": "sling",
-   "name": "돌팔매 성",
-   "genes": [
-    "slingshot",
-    "defense",
-    "dragaim",
-    "unlock"
-   ],
-   "at": "2026-11-07",
-   "why": "11라운드에서 둘 다 별로"
-  },
-  {
-   "id": "echo",
-   "name": "분신 받아치기",
-   "genes": [
-    "pong",
-    "catch",
-    "slide",
-    "ghost"
-   ],
-   "at": "2026-11-08",
-   "why": "12라운드에서 둘 다 별로"
-  },
-  {
-   "id": "lasso",
-   "name": "올가미",
-   "genes": [
-    "territory",
-    "match3",
-    "pointer",
-    "chain"
-   ],
-   "at": "2026-11-08",
-   "why": "12라운드에서 둘 다 별로"
-  },
-  {
-   "id": "illusion",
-   "name": "착시 속 정답",
-   "genes": [
-    "illusion",
-    "whack",
-    "pointer"
-   ],
-   "at": "2026-11-08",
-   "why": "13라운드에서 둘 다 별로"
-  },
-  {
-   "id": "cascade",
-   "name": "곱셈 폭포",
-   "genes": [
-    "multiply",
-    "catch",
-    "pointer",
-    "unlock"
-   ],
-   "at": "2026-11-08",
-   "why": "13라운드에서 둘 다 별로"
-  },
-  {
-   "id": "garden",
-   "name": "물길 정원",
-   "genes": [
-    "farm",
-    "territory",
-    "pointer"
-   ],
-   "at": "2026-11-08",
-   "why": "14라운드에서 선택받지 못함"
-  },
-  {
-   "id": "domino",
-   "name": "도미노 도시",
-   "genes": [
-    "chain",
-    "territory",
-    "pointer"
-   ],
-   "at": "2026-11-08",
-   "why": "15라운드 둘 다 별로 — 조작이 너무 필요함(선 긋기 + 톡)"
-  },
-  {
-   "id": "shadow",
-   "name": "그림자 도둑",
-   "genes": [
-    "dodge",
-    "daynight",
-    "pointer"
-   ],
-   "at": "2026-11-08",
-   "why": "15라운드 둘 다 별로 — 조작이 너무 필요함(해를 계속 끌기)"
-  },
-  {
-   "id": "ducks",
-   "name": "줄줄이 오리",
-   "genes": [
-    "crossing",
-    "snake",
-    "onebutton"
-   ],
-   "at": "2026-11-08",
-   "why": "16라운드 별로 — 와우 약함 · 너무 어렵·금방 죽음 · 화면 밋밋"
-  },
-  {
-   "id": "rewind",
-   "name": "되감기 골프",
-   "genes": [
-    "golf",
-    "rewind",
-    "hold"
-   ],
-   "at": "2026-11-08",
-   "why": "17라운드에서 선택받지 못함(중력 쏟기 승)"
-  },
-  {
-   "id": "pour",
-   "name": "중력 쏟기",
-   "genes": [
-    "merge",
-    "gravityflip",
-    "swipe"
-   ],
-   "at": "2026-11-08",
-   "why": "18라운드 둘 다 폐기(17라운드 챔피언, 다듬은 판도)"
-  },
-  {
-   "id": "chef",
-   "name": "몬스터 요리사",
-   "genes": [
-    "order",
-    "merge",
-    "onebutton"
-   ],
-   "at": "2026-11-08",
-   "why": "18라운드 둘 다 폐기"
-  },
-  {
-   "id": "isle",
-   "name": "타일 섬",
-   "genes": [
-    "tiles",
-    "decorate",
-    "onebutton"
-   ],
-   "at": "2026-11-09",
-   "why": "19라운드(9개 중 고르기)에서 선택받지 못함"
-  },
-  {
-   "id": "terrarium",
-   "name": "기울이는 유리병 정원",
-   "genes": [
-    "farm",
-    "gravityflip",
-    "swipe"
-   ],
-   "at": "2026-11-09",
-   "why": "19라운드(9개 중 고르기)에서 선택받지 못함"
-  },
-  {
-   "id": "train",
-   "name": "장난감 기차 마을",
-   "genes": [
-    "endless",
-    "decorate",
-    "onebutton"
-   ],
-   "at": "2026-11-09",
-   "why": "19라운드(9개 중 고르기)에서 선택받지 못함"
-  },
-  {
-   "id": "dollhouse",
-   "name": "단면 인형의 집",
-   "genes": [
-    "stack",
-    "decorate",
-    "onebutton"
-   ],
-   "at": "2026-11-09",
-   "why": "19라운드(9개 중 고르기)에서 선택받지 못함"
-  },
-  {
-   "id": "antfarm",
-   "name": "개미 단면 정원",
-   "genes": [
-    "territory",
-    "farm",
-    "pointer"
-   ],
-   "at": "2026-11-09",
-   "why": "19라운드(9개 중 고르기)에서 선택받지 못함"
-  },
-  {
-   "id": "seasons",
-   "name": "계절 숲",
-   "genes": [
-    "idle",
-    "daynight",
-    "onebutton"
-   ],
-   "at": "2026-11-09",
-   "why": "19라운드(9개 중 고르기)에서 선택받지 못함"
-  },
-  {
-   "id": "snowglobe",
-   "name": "스노볼 마을",
-   "genes": [
-    "decorate",
-    "chain",
-    "swipe"
-   ],
-   "at": "2026-11-09",
-   "why": "19라운드(9개 중 고르기)에서 선택받지 못함"
-  },
-  {
-   "id": "volcano",
-   "name": "화산섬 키우기 2",
-   "genes": [
-    "farm",
-    "hold",
-    "decorate"
-   ],
-   "at": "2026-11-09",
-   "why": "20라운드 \"다 폐기\""
-  },
-  {
-   "id": "turtle",
-   "name": "스케이트 거북이 2",
-   "genes": [
-    "endless",
-    "hold",
-    "combo"
-   ],
-   "at": "2026-11-09",
-   "why": "20라운드 \"다 폐기\""
-  },
-  {
-   "id": "stretchcat",
-   "name": "쭉쭉 고양이",
-   "genes": [
-    "stack",
-    "hold",
-    "decorate"
-   ],
-   "at": "2026-11-09",
-   "why": "20라운드 \"다 폐기\""
-  },
-  {
-   "id": "hedgehog",
-   "name": "데굴데굴 고슴도치",
-   "genes": [
-    "hold",
-    "billiards",
-    "collect"
-   ],
-   "at": "2026-11-09",
-   "why": "20라운드 \"다 폐기\""
-  },
-  {
-   "id": "elephant",
-   "name": "코끼리 물뿌리개 정원",
-   "genes": [
-    "hold",
-    "farm",
-    "decorate"
-   ],
-   "at": "2026-11-09",
-   "why": "20라운드 \"다 폐기\""
-  },
-  {
-   "id": "puffer",
-   "name": "복어 산호 정원",
-   "genes": [
-    "flap",
-    "hold",
-    "farm"
-   ],
-   "at": "2026-11-09",
-   "why": "20라운드 \"다 폐기\""
-  },
-  {
-   "id": "bakery",
-   "name": "곰 아저씨 빵집",
-   "genes": [
-    "hold",
-    "order",
-    "decorate"
-   ],
-   "at": "2026-11-09",
-   "why": "20라운드 \"다 폐기\""
-  },
-  {
-   "id": "eggcannon",
-   "name": "꼬꼬 알 대포 농장",
-   "genes": [
-    "hold",
-    "artillery",
-    "farm"
-   ],
-   "at": "2026-11-09",
-   "why": "20라운드 \"다 폐기\""
-  },
-  {
-   "id": "fortress",
-   "name": "버텨라 블록성",
-   "genes": [
-    "fortify",
-    "slingshot",
-    "rolereverse"
-   ],
-   "at": "2026-11-10",
-   "why": "21라운드 \"6번만 나머지 아웃\" (코드: git 6bda858)"
-  },
-  {
-   "id": "flood",
-   "name": "홍수 버티기",
-   "genes": [
-    "fortify",
-    "forecast",
-    "pointer"
-   ],
-   "at": "2026-11-10",
-   "why": "21라운드 \"6번만 나머지 아웃\" (코드: git 6bda858)"
-  },
-  {
-   "id": "typhoon",
-   "name": "태풍 캠핑장",
-   "genes": [
-    "fortify",
-    "forecast",
-    "chain"
-   ],
-   "at": "2026-11-10",
-   "why": "21라운드 \"6번만 나머지 아웃\" (코드: git 6bda858)"
-  },
-  {
-   "id": "quake",
-   "name": "흔들흔들 지진 탑",
-   "genes": [
-    "fortify",
-    "stack",
-    "forecast"
-   ],
-   "at": "2026-11-10",
-   "why": "21라운드 \"6번만 나머지 아웃\" (코드: git 6bda858)"
-  },
-  {
-   "id": "landslide",
-   "name": "산사태 산장",
-   "genes": [
-    "fortify",
-    "forecast",
-    "billiards"
-   ],
-   "at": "2026-11-10",
-   "why": "21라운드 \"6번만 나머지 아웃\" (코드: git 6bda858)"
-  },
-  {
-   "id": "sandcastle",
-   "name": "밀물 모래성 2",
-   "genes": [
-    "fortify",
-    "forecast",
-    "pointer"
-   ],
-   "at": "2026-11-11",
-   "why": "22라운드 \"다 폐기해줘\" (코드: git 081caa7)"
-  },
-  {
-   "id": "turtlebeach",
-   "name": "아기 거북 해변",
-   "genes": [
-    "fortify",
-    "forecast",
-    "pointer"
-   ],
-   "at": "2026-11-11",
-   "why": "22라운드 \"다 폐기해줘\" (코드: git 081caa7)"
-  },
-  {
-   "id": "crabpools",
-   "name": "꽃게 갯벌 수로",
-   "genes": [
-    "fortify",
-    "forecast",
-    "pointer"
-   ],
-   "at": "2026-11-11",
-   "why": "22라운드 \"다 폐기해줘\" (코드: git 081caa7)"
-  },
-  {
-   "id": "igloo",
-   "name": "눈보라 이글루",
-   "genes": [
-    "fortify",
-    "forecast",
-    "pointer"
-   ],
-   "at": "2026-11-11",
-   "why": "22라운드 \"다 폐기해줘\" (코드: git 081caa7)"
-  },
-  {
-   "id": "clawgame",
-   "name": "줄줄이 인형 뽑기",
-   "genes": [
-    "claw",
-    "onebutton",
-    "chain"
-   ],
-   "at": "2026-11-12",
-   "why": "23라운드 선택 안 됨 (코드: git e4dd718)"
-  },
-  {
-   "id": "grocery",
-   "name": "장바구니 척척",
-   "genes": [
-    "sort",
-    "swipe",
-    "order"
-   ],
-   "at": "2026-11-12",
-   "why": "23라운드 선택 안 됨 (코드: git e4dd718)"
-  },
-  {
-   "id": "plinko",
-   "name": "핀 떨구기",
-   "genes": [
-    "pegdrop",
-    "pointer",
-    "multiply"
-   ],
-   "at": "2026-11-12",
-   "why": "23라운드 선택 안 됨 (코드: git e4dd718)"
-  }
- ]
+  "champion": null,
+  "rounds": [
+    {
+      "round": 1,
+      "openedAt": "2026-11-06",
+      "A": "orbit",
+      "B": "brickdef",
+      "winner": "orbit",
+      "decidedAt": "2026-11-06",
+      "machinePick": "orbit",
+      "note": "피벗 첫 라운드. 오너: \"A가 낫네.\" 봇 재미 추정(0.97 vs 0.76)과 일치"
+    },
+    {
+      "round": 2,
+      "openedAt": "2026-11-06",
+      "A": "orbit",
+      "B": "guard",
+      "winner": "guard",
+      "note": "챔피언 궤도 꼬리 vs 도전자 궤도 수비(봇 재미 추정 0.92, 후보 중 1위) · 오너: \"B\". 봇 재미 추정은 A(0.97)를 더 높게 봤음 → 기계 추천 빗나감(1/2)",
+      "decidedAt": "2026-11-06",
+      "machinePick": "orbit"
+    },
+    {
+      "round": 3,
+      "openedAt": "2026-11-06",
+      "A": "guard",
+      "B": "mergetower",
+      "winner": "guard",
+      "note": "챔피언 궤도 수비 vs 새 도전자 합체 탑(타이밍 쌓기 × 2048 × 원버튼, 봇 재미 추정 0.97) · 오너: \"A\". 봇은 합체 탑(0.934)을 근소하게 높게 봤음 → 빗나감. 성장 연출 있는 쪽이 다시 이김",
+      "decidedAt": "2026-11-07",
+      "machinePick": "mergetower"
+    },
+    {
+      "round": 4,
+      "openedAt": "2026-11-07",
+      "A": "guard",
+      "B": "stomp",
+      "winner": "guard",
+      "note": "챔피언 궤도 수비 vs 밟기 러너(러너 × 서바이버식 성장 × 원버튼) — 둘 다 원버튼+성장, 몸놀림만 다름(공전 vs 점프) · 오너: \"A\". 봇 재미 추정(0.914 vs 0.855)과 일치. 오너 요청: A를 더 발전시켜라(아군·행성 수호·채굴·기지 건설)",
+      "decidedAt": "2026-11-07",
+      "machinePick": "guard"
+    },
+    {
+      "round": 5,
+      "openedAt": "2026-11-07",
+      "A": "guard",
+      "B": "guardian",
+      "winner": "guardian",
+      "note": "원본 궤도 수비 vs 오너 요청으로 확장한 행성 수호대(아군 위성·행성 내구도·채굴·기지 건설·확대 연출) · 오너: \"B\". 확장판이 이김 — 오너가 요청한 방향(아군·채굴·기지 건설)이 맞았음. 봇 추정(0.97 vs 0.91)과 일치",
+      "decidedAt": "2026-11-07",
+      "machinePick": "guardian"
+    },
+    {
+      "round": 6,
+      "openedAt": "2026-11-07",
+      "A": "guardian",
+      "B": "beat",
+      "winner": "guardian",
+      "note": "챔피언 행성 수호대 vs 박자 포탑(디펜스 × 리듬 × 원버튼, 라운드에 나온 적 없는 후보 중 봇 재미 추정 1위 0.97) · 오너: \"A\". 봇은 박자 포탑(0.97)을 조금 높게 봤음 → 빗나감. 오너: \"굳이 원버튼을 고집할 필요 없어\"",
+      "decidedAt": "2026-11-07",
+      "machinePick": "beat"
+    },
+    {
+      "round": 7,
+      "openedAt": "2026-11-07",
+      "A": "guardian",
+      "B": "pool",
+      "winner": "guardian",
+      "note": "챔피언 행성 수호대 vs 먹보 당구(당구 × 덩치 키우기 · 꾹 눌렀다 떼기 · 콤보 피버, 라운드에 나온 적 없는 후보 중 재미 추정 1위 0.93) · 오너: \"A\". 봇 추정(0.97 vs 0.93)과 일치",
+      "decidedAt": "2026-11-07",
+      "machinePick": "guardian"
+    },
+    {
+      "round": 8,
+      "openedAt": "2026-11-07",
+      "A": "guardian",
+      "B": "guardian2",
+      "winner": "guardian2",
+      "note": "챔피언 행성 수호대 vs 행성 수호대 2(원버튼 제약 해제 후 확장판: 좌우 누르기 이동 · 건설 카드 셋 중 하나 직접 선택 · 건물 레벨 3단계 · 위성 3기 · 판 끝 기지 전경) · 오너: \"B. 내가 선택한 건 더 디벨롭해줘.\" → 최종 선택, 스튜디오로 졸업(studio/planet-guardian). 봇은 1편(0.97)을 근소하게 높게 봤음 → 빗나감",
+      "decidedAt": "2026-11-07",
+      "machinePick": "guardian"
+    },
+    {
+      "round": 9,
+      "openedAt": "2026-11-07",
+      "A": "drift",
+      "B": "gridwar",
+      "winner": "none",
+      "note": "행성 수호대 2 졸업 뒤 빈자리 — 이번 사이클 새 게임 둘끼리: 링 드리프트(드리프트 × 서바이버 · 꾹 누르기 · 좁아지는 판) vs 한 칸 우주전(슈팅 × 자동 전투 · 스와이프 · 턴제화) · 오너: \"둘다 별로야\" → 둘 다 탈락, 챔피언 없음 유지",
+      "decidedAt": "2026-11-07",
+      "machinePick": "drift"
+    },
+    {
+      "round": 10,
+      "openedAt": "2026-11-07",
+      "A": "lantern",
+      "B": "rope",
+      "winner": "lantern",
+      "note": "필수 기준 셋(손에 붙는 조작·펼쳐짐·연출) 첫 적용. 취향 쪽 등불 마을(타워 디펜스 × 농사 · 가리키기 · 낮과 밤: 누른 곳에 빛, 낮엔 밭을 키워 마을이 커지고 밤엔 그림자를 태움) vs 탐험 쪽 밧줄 동굴(밧줄 그네 × 피하기 · 가리키기 · 깊어지는 판: 누른 고리로 끌려가 흔들려 내려감, 무너지는 동굴에 쫓김, 깊이마다 새 구역) · 오너: \"A\" → 등불 마을이 챔피언. 기계 추천(밧줄 동굴)은 빗나감(4/10). 밧줄 동굴은 폐기",
+      "machinePick": "rope",
+      "decidedAt": "2026-11-07"
+    },
+    {
+      "round": 11,
+      "openedAt": "2026-11-07",
+      "A": "lantern",
+      "B": "sling",
+      "winner": "none",
+      "note": "챔피언 등불 마을 vs 도전자 돌팔매 성(새총 물리 × 타워 디펜스 · 드래그 조준 · 영구 해금: 누른 채 겨누고 떼면 돌, 빗나간 돌은 돌무더기 바리케이드, 금으로 성벽 뒤 마을이 커짐). 같은 사이클의 심해 낚시는 게이트 미달로 폐기 · 오너: \"둘다 별로\" → 둘 다 탈락(챔피언 등불 마을 포함), 챔피언 없음",
+      "machinePick": "sling",
+      "decidedAt": "2026-11-07"
+    },
+    {
+      "round": 12,
+      "openedAt": "2026-11-07",
+      "A": "echo",
+      "B": "lasso",
+      "winner": "none",
+      "note": "11라운드 '둘 다 별로'(와우 포인트·뻔함·밋밋) 뒤, 완전히 다른 장르 × 와우 포인트. 분신 받아치기(퐁 × 받아내기 · 좌우 미끄러지기 · 유령 경주: 8초마다 방금 8초의 나를 반복하는 분신) vs 올가미(땅따먹기 × 3매치 · 가리키기 · 연쇄: 그린 선이 닫히면 안이 터짐, 같은 색만 감싸면 개수²) · 오너: \"둘다 별로\" → 둘 다 탈락, 챔피언 없음",
+      "machinePick": "lasso",
+      "decidedAt": "2026-11-08"
+    },
+    {
+      "round": 13,
+      "openedAt": "2026-11-08",
+      "A": "illusion",
+      "B": "cascade",
+      "winner": "none",
+      "note": "12라운드 '둘 다 별로'(와우 약함·바로 재미 X·손맛·목표/보상 부족) 뒤. A 착시 속 정답(오너 아이디어) vs B 곱셈 폭포(곱하기 문 × 받아내기 · 가리키기 · 이월: 따른 구슬이 ×2·×3 문을 지나 수백 개로, 판마다 목표·별 3개, 많이 담을수록 다음 판 구슬 증가) · 오너: \"둘다 별로\" → 둘 다 탈락(오너 아이디어 착시 포함), 챔피언 없음. 9·11·12·13라운드 연속 둘 다 탈락",
+      "machinePick": "cascade",
+      "decidedAt": "2026-11-08"
+    },
+    {
+      "round": 14,
+      "openedAt": "2026-11-08",
+      "A": "garden",
+      "B": "domino",
+      "winner": "domino",
+      "note": "아이디어 메뉴(오너: '다 좋은데 시도해바') 첫 둘. 물길 정원(땅을 파면 물이 흘러 씨앗이 꽃핌, 핀 꽃이 내 정원에 쌓임) vs 도미노 도시(그은 선에 도미노가 깔리고 톡 치면 연쇄 쇼). 이긴 쪽이 다음 차례 '그림자 도둑'과 · 오너: \"B\" → 도미노 도시 챔피언(9라운드 이후 첫 선택). 기계 추천(물길 정원) 빗나감",
+      "machinePick": "garden",
+      "decidedAt": "2026-11-08"
+    },
+    {
+      "round": 15,
+      "openedAt": "2026-11-08",
+      "A": "domino",
+      "B": "shadow",
+      "winner": "none",
+      "note": "챔피언 도미노 도시 vs 메뉴 다음 차례 그림자 도둑(잠입 × 낮과 밤 · 가리키기: 손가락이 해, 끌면 모든 그림자가 돌고 도둑은 그림자를 타고 달림) · 오너: \"둘다 조작이 너무 필요해서 별로야\" → 둘 다 탈락, 챔피언 없음. 같은 답에서 오너 아이디어: \"길건너친구들 같은 아이디어도 한번 생각해바\"",
+      "machinePick": "domino",
+      "decidedAt": "2026-11-08"
+    },
+    {
+      "round": 16,
+      "openedAt": "2026-11-08",
+      "A": "ducks",
+      "B": null,
+      "winner": "none",
+      "note": "오너 아이디어 한 게임(좋아/별로): 줄줄이 오리 — 길 건너기 × 스네이크 · 원버튼(탭 하나). 15라운드 이유(조작이 너무 필요함)에 맞춰 탭 하나로만. 다음 차례 자석 우주선은 원버튼으로 줄이자 게이트 미달 → 보류 · 오너: \"별로\" (질문 답: 와우가 약함 · 너무 어렵·금방 죽음 · 화면·연출이 밋밋) → 탈락, 챔피언 없음",
+      "machinePick": "ducks",
+      "decidedAt": "2026-11-08"
+    },
+    {
+      "round": 17,
+      "openedAt": "2026-11-08",
+      "A": "pour",
+      "B": "rewind",
+      "winner": "pour",
+      "note": "메뉴 차례(오너 선택): A 중력 쏟기(합치기 × 중력 뒤집기 · 한 번 밀기) vs B 되감기 골프(미니 골프 × 되감기 · 꾹 눌렀다 떼기). 둘 다 기준 9(조작 최소) · 오너: \"A가 좀 가능성 있네. 근데 한곳으로 모으면 합쳐지기 너무 쉬워서 더 고민이 필요할듯\" → 중력 쏟기 승(기계 추천 빗나감), 되감기 골프 폐기. 챔피언을 다듬음(0037: 같은 색·같은 숫자만 · 제 줄로 떨어짐 · 다음 구슬 미리 보기 · 병 넘침)",
+      "machinePick": "rewind",
+      "decidedAt": "2026-11-08"
+    },
+    {
+      "round": 18,
+      "openedAt": "2026-11-08",
+      "A": "pour",
+      "B": "chef",
+      "winner": "none",
+      "note": "챔피언 중력 쏟기(오너 지적 반영판: 같은 색·같은 숫자만 합쳐짐, 구슬이 제 줄로 곧장 떨어짐, 다음 구슬 미리 보기, 병이 넘치면 하트 -1) vs 메뉴 다음 차례 몬스터 요리사(주문 처리 × 합치기 · 지나가는 재료 탭) · 오너: \"일단 둘 다 폐기., 디오라마를 꾸미거나 키우는 아이디어로 한번 구상해바\" → 둘 다 탈락, 챔피언 없음 → 19라운드 아이디어 메뉴(디오라마)",
+      "machinePick": "chef",
+      "decidedAt": "2026-11-08"
+    },
+    {
+      "round": 19,
+      "openedAt": "2026-11-08",
+      "A": null,
+      "B": null,
+      "games": [
+        "isle",
+        "terrarium",
+        "train",
+        "volcano",
+        "dollhouse",
+        "antfarm",
+        "seasons",
+        "snowglobe",
+        "turtle"
+      ],
+      "winner": "volcano,turtle",
+      "note": "오너 요청으로 A|B 대신 아이디어 전부: 디오라마 메뉴 8개(타일 섬·유리병 정원·기차 마을·화산섬·인형의 집·개미 정원·계절 숲·스노볼 마을) + 오너 아이디어 스케이트 거북이. 오너가 마음에 드는 번호를 고른다 · 오너: \"4, 9번\" → 화산섬 키우기 · 스케이트 거북이 남김(둘 다 꾹 눌렀다 떼기 + 웃긴 주인공), 나머지 7개 폐기. 기계 추천(스케이트 거북이) 적중",
+      "machinePick": "turtle",
+      "decidedAt": "2026-11-09"
+    },
+    {
+      "round": 20,
+      "openedAt": "2026-11-09",
+      "A": null,
+      "B": null,
+      "games": [
+        "volcano",
+        "turtle",
+        "stretchcat",
+        "hedgehog",
+        "elephant",
+        "puffer",
+        "bakery",
+        "eggcannon"
+      ],
+      "winner": "none",
+      "note": "19라운드 선택(화산섬·거북이)의 다듬은 판 2 + 같은 결(꾹 눌렀다 떼기 + 웃긴 주인공 + 작은 세계)의 새 아이디어 6(쭉쭉 고양이·데굴데굴 고슴도치·코끼리 물뿌리개 정원·복어 산호 정원·곰 아저씨 빵집·꼬꼬 알 대포 농장). 오너가 고른다 · 오너: \"다 폐기.\" + 새 아이디어 둘(거꾸로 새총: 내가 지은 건물이 날아오는 것을 버팀 / 홍수 버티기) → 8개 모두 폐기",
+      "machinePick": "turtle",
+      "decidedAt": "2026-11-09"
+    },
+    {
+      "round": 21,
+      "openedAt": "2026-11-09",
+      "A": null,
+      "B": null,
+      "games": [
+        "fortress",
+        "flood",
+        "typhoon",
+        "quake",
+        "landslide",
+        "sandcastle"
+      ],
+      "winner": "sandcastle",
+      "note": "20라운드 다 폐기 + 오너 아이디어 둘(버텨라 블록성: 내가 지은 성을 너구리 해적단이 투석기로 공격 / 홍수 버티기: 몇 L가 어디서 오는지 보고 모래주머니로 감싸기) + 같은 결 '예보 보고 짓고 → 버티는 걸 지켜보기' 변형 넷(태풍 캠핑장·흔들흔들 지진 탑·산사태 산장·밀물 모래성). 오너가 고른다 · 오너: \"6번만 나머지 아웃\" → 밀물 모래성만 남기고 5개 폐기. 기계 추천(밀물 모래성) 적중",
+      "machinePick": "sandcastle",
+      "decidedAt": "2026-11-10"
+    },
+    {
+      "round": 22,
+      "openedAt": "2026-11-10",
+      "A": null,
+      "B": null,
+      "games": [
+        "sandcastle",
+        "turtlebeach",
+        "crabpools",
+        "igloo"
+      ],
+      "winner": "none",
+      "note": "21라운드 선택(밀물 모래성)의 다듬은 판 + 무엇이 좋았는지 갈라 보는 새 아이디어 셋: 같은 해변·다른 놀이(아기 거북 해변 — 막은 벽이 길을 막음 / 꽃게 갯벌 수로 — 물을 들여 보물) · 같은 놀이·다른 세계(눈보라 이글루 — 맞은 눈벽이 밤에 얼음벽). 오너가 고른다 · 오너: \"다 폐기해줘\" → 4개 모두 폐기(21라운드에 고른 밀물 모래성의 다듬은 판 포함)",
+      "machinePick": "crabpools",
+      "decidedAt": "2026-11-11"
+    },
+    {
+      "round": 23,
+      "openedAt": "2026-11-11",
+      "A": null,
+      "B": null,
+      "games": [
+        "sheepdog",
+        "balloonpop",
+        "clawgame",
+        "duckbath",
+        "grocery",
+        "plinko"
+      ],
+      "winner": "sheepdog,balloonpop,duckbath",
+      "note": "22라운드 다 폐기 + 오너 답 \"1\"(완전히 다른 장르) → 안 써 본 핵심 놀이 6개: 양치기 멍멍(몰이) · 풍선 팡 연쇄(연쇄) · 줄줄이 인형 뽑기 · 욕조 물결 오리(물결 밀기) · 장바구니 척척(분류) · 핀 떨구기. 모두 손짓 하나·규칙 2~3줄·미리 보기. 오너가 고른다 · 오너: \"1,2,4 아이디어 좋네 따로 세션으로 보내서 개발을 진행하자\" → 양치기 멍멍·풍선 팡 연쇄·욕조 물결 오리 스튜디오로 졸업(게임마다 팀 세션), 인형 뽑기·장바구니·핀 떨구기 폐기. 기계 추천(욕조 물결 오리) 적중",
+      "machinePick": "duckbath",
+      "decidedAt": "2026-11-12"
+    },
+    {
+      "round": 24,
+      "openedAt": "2026-11-13",
+      "A": null,
+      "B": null,
+      "games": [
+        "ufo",
+        "robovac",
+        "snowroll",
+        "pillowfight",
+        "sunmirror",
+        "railswitch"
+      ],
+      "winner": "none",
+      "note": "23라운드 셋 스튜디오 졸업 뒤 오너: \"공장을 계속 돌려야지. 새로운 장르로 시도해봐\" → 안 써 본 장르 6개(UFO 소 납치·고양이 청소기·눈덩이 굴리기·베개 싸움·햇빛 거울 정원·기찻길 전환), 모두 '한 수의 결과가 미리 보임'. 오너가 고른다 · 오너: \"다 폐기\" → 6개 모두 폐기. 기계 추천(기찻길 전환) 판정 없음",
+      "machinePick": "railswitch",
+      "decidedAt": "2026-11-13"
+    }
+  ],
+  "graduated": [
+    {
+      "id": "guardian2",
+      "name": "행성 수호대 2",
+      "at": "2026-11-07",
+      "round": 8,
+      "studio": "studio/planet-guardian",
+      "play": "https://derrick1119.github.io/derrickkim1119/studio/planet-guardian/",
+      "genes": [
+        "survivor",
+        "defense",
+        "idle",
+        "pick3",
+        "twobutton"
+      ]
+    },
+    {
+      "id": "sheepdog",
+      "name": "양치기 멍멍",
+      "at": "2026-11-12",
+      "round": 23,
+      "studio": "studio/sheepdog",
+      "play": "https://derrick1119.github.io/derrickkim1119/studio/sheepdog/",
+      "genes": [
+        "herd",
+        "pointer",
+        "turnbased"
+      ]
+    },
+    {
+      "id": "balloonpop",
+      "name": "풍선 팡 연쇄",
+      "at": "2026-11-12",
+      "round": 23,
+      "studio": "studio/balloonpop",
+      "play": "https://derrick1119.github.io/derrickkim1119/studio/balloonpop/",
+      "genes": [
+        "chain",
+        "pointer"
+      ],
+      "ended": "2026-11-13 스튜디오 폐기 (오너: \"넌 폐기 종료\")"
+    },
+    {
+      "id": "duckbath",
+      "name": "욕조 물결 오리",
+      "at": "2026-11-12",
+      "round": 23,
+      "studio": "studio/duckbath",
+      "play": "https://derrick1119.github.io/derrickkim1119/studio/duckbath/",
+      "genes": [
+        "ripple",
+        "pointer",
+        "pushbox"
+      ]
+    }
+  ],
+  "discarded": [
+    {
+      "id": "orbit",
+      "name": "궤도 꼬리",
+      "genes": [
+        "snake",
+        "onebutton",
+        "orbit"
+      ],
+      "at": "2026-11-07",
+      "why": "2라운드에서 선택받지 못함"
+    },
+    {
+      "id": "brickdef",
+      "name": "벽돌 수비대",
+      "genes": [
+        "brick",
+        "defense",
+        "gacha"
+      ],
+      "at": "2026-11-07",
+      "why": "1라운드에서 선택받지 못함"
+    },
+    {
+      "id": "guard",
+      "name": "궤도 수비",
+      "genes": [
+        "survivor",
+        "defense",
+        "onebutton"
+      ],
+      "at": "2026-11-07",
+      "why": "5라운드에서 선택받지 못함"
+    },
+    {
+      "id": "guardian",
+      "name": "행성 수호대",
+      "genes": [
+        "survivor",
+        "defense",
+        "idle",
+        "onebutton"
+      ],
+      "at": "2026-11-07",
+      "why": "8라운드에서 선택받지 못함"
+    },
+    {
+      "id": "mergetower",
+      "name": "합체 탑",
+      "genes": [
+        "stack",
+        "merge",
+        "onebutton"
+      ],
+      "at": "2026-11-07",
+      "why": "3라운드에서 선택받지 못함"
+    },
+    {
+      "id": "stomp",
+      "name": "밟기 러너",
+      "genes": [
+        "endless",
+        "survivor",
+        "onebutton"
+      ],
+      "at": "2026-11-07",
+      "why": "4라운드에서 선택받지 못함"
+    },
+    {
+      "id": "beat",
+      "name": "박자 포탑",
+      "genes": [
+        "defense",
+        "rhythm",
+        "onebutton"
+      ],
+      "at": "2026-11-07",
+      "why": "6라운드에서 선택받지 못함"
+    },
+    {
+      "id": "snowball",
+      "name": "눈덩이 비탈",
+      "genes": [
+        "endless",
+        "absorb",
+        "onebutton"
+      ],
+      "at": "2026-11-07",
+      "why": "라운드에 오르지 못한 후보"
+    },
+    {
+      "id": "pool",
+      "name": "먹보 당구",
+      "genes": [
+        "billiards",
+        "absorb",
+        "hold",
+        "combo"
+      ],
+      "at": "2026-11-07",
+      "why": "7라운드에서 선택받지 못함"
+    },
+    {
+      "id": "pinbrick",
+      "name": "핀볼 블록",
+      "genes": [
+        "pinball",
+        "brick",
+        "onebutton",
+        "chain"
+      ],
+      "at": "2026-11-07",
+      "why": "라운드에 오르지 못한 후보"
+    },
+    {
+      "id": "drift",
+      "name": "링 드리프트",
+      "genes": [
+        "drift",
+        "survivor",
+        "hold",
+        "shrink"
+      ],
+      "at": "2026-11-07",
+      "why": "9라운드에서 선택받지 못함"
+    },
+    {
+      "id": "gridwar",
+      "name": "한 칸 우주전",
+      "genes": [
+        "shmup",
+        "autobattle",
+        "swipe",
+        "turnbased"
+      ],
+      "at": "2026-11-07",
+      "why": "9라운드에서 선택받지 못함"
+    },
+    {
+      "id": "rope",
+      "name": "밧줄 동굴",
+      "genes": [
+        "grapple",
+        "dodge",
+        "pointer",
+        "depth"
+      ],
+      "at": "2026-11-07",
+      "why": "10라운드에서 선택받지 못함"
+    },
+    {
+      "id": "fish",
+      "name": "심해 낚시",
+      "genes": [
+        "fishing",
+        "dodge",
+        "pointer",
+        "collect"
+      ],
+      "at": "2026-11-07",
+      "why": "0024 게이트 미달(잘하는 봇이 매번 3분 버팀, 재미 0.63) — 도전자 후보에서 탈락, 오너에게 보이지 않음"
+    },
+    {
+      "id": "lantern",
+      "name": "등불 마을",
+      "genes": [
+        "defense",
+        "farm",
+        "pointer",
+        "daynight"
+      ],
+      "at": "2026-11-07",
+      "why": "11라운드에서 둘 다 별로"
+    },
+    {
+      "id": "sling",
+      "name": "돌팔매 성",
+      "genes": [
+        "slingshot",
+        "defense",
+        "dragaim",
+        "unlock"
+      ],
+      "at": "2026-11-07",
+      "why": "11라운드에서 둘 다 별로"
+    },
+    {
+      "id": "echo",
+      "name": "분신 받아치기",
+      "genes": [
+        "pong",
+        "catch",
+        "slide",
+        "ghost"
+      ],
+      "at": "2026-11-08",
+      "why": "12라운드에서 둘 다 별로"
+    },
+    {
+      "id": "lasso",
+      "name": "올가미",
+      "genes": [
+        "territory",
+        "match3",
+        "pointer",
+        "chain"
+      ],
+      "at": "2026-11-08",
+      "why": "12라운드에서 둘 다 별로"
+    },
+    {
+      "id": "illusion",
+      "name": "착시 속 정답",
+      "genes": [
+        "illusion",
+        "whack",
+        "pointer"
+      ],
+      "at": "2026-11-08",
+      "why": "13라운드에서 둘 다 별로"
+    },
+    {
+      "id": "cascade",
+      "name": "곱셈 폭포",
+      "genes": [
+        "multiply",
+        "catch",
+        "pointer",
+        "unlock"
+      ],
+      "at": "2026-11-08",
+      "why": "13라운드에서 둘 다 별로"
+    },
+    {
+      "id": "garden",
+      "name": "물길 정원",
+      "genes": [
+        "farm",
+        "territory",
+        "pointer"
+      ],
+      "at": "2026-11-08",
+      "why": "14라운드에서 선택받지 못함"
+    },
+    {
+      "id": "domino",
+      "name": "도미노 도시",
+      "genes": [
+        "chain",
+        "territory",
+        "pointer"
+      ],
+      "at": "2026-11-08",
+      "why": "15라운드 둘 다 별로 — 조작이 너무 필요함(선 긋기 + 톡)"
+    },
+    {
+      "id": "shadow",
+      "name": "그림자 도둑",
+      "genes": [
+        "dodge",
+        "daynight",
+        "pointer"
+      ],
+      "at": "2026-11-08",
+      "why": "15라운드 둘 다 별로 — 조작이 너무 필요함(해를 계속 끌기)"
+    },
+    {
+      "id": "ducks",
+      "name": "줄줄이 오리",
+      "genes": [
+        "crossing",
+        "snake",
+        "onebutton"
+      ],
+      "at": "2026-11-08",
+      "why": "16라운드 별로 — 와우 약함 · 너무 어렵·금방 죽음 · 화면 밋밋"
+    },
+    {
+      "id": "rewind",
+      "name": "되감기 골프",
+      "genes": [
+        "golf",
+        "rewind",
+        "hold"
+      ],
+      "at": "2026-11-08",
+      "why": "17라운드에서 선택받지 못함(중력 쏟기 승)"
+    },
+    {
+      "id": "pour",
+      "name": "중력 쏟기",
+      "genes": [
+        "merge",
+        "gravityflip",
+        "swipe"
+      ],
+      "at": "2026-11-08",
+      "why": "18라운드 둘 다 폐기(17라운드 챔피언, 다듬은 판도)"
+    },
+    {
+      "id": "chef",
+      "name": "몬스터 요리사",
+      "genes": [
+        "order",
+        "merge",
+        "onebutton"
+      ],
+      "at": "2026-11-08",
+      "why": "18라운드 둘 다 폐기"
+    },
+    {
+      "id": "isle",
+      "name": "타일 섬",
+      "genes": [
+        "tiles",
+        "decorate",
+        "onebutton"
+      ],
+      "at": "2026-11-09",
+      "why": "19라운드(9개 중 고르기)에서 선택받지 못함"
+    },
+    {
+      "id": "terrarium",
+      "name": "기울이는 유리병 정원",
+      "genes": [
+        "farm",
+        "gravityflip",
+        "swipe"
+      ],
+      "at": "2026-11-09",
+      "why": "19라운드(9개 중 고르기)에서 선택받지 못함"
+    },
+    {
+      "id": "train",
+      "name": "장난감 기차 마을",
+      "genes": [
+        "endless",
+        "decorate",
+        "onebutton"
+      ],
+      "at": "2026-11-09",
+      "why": "19라운드(9개 중 고르기)에서 선택받지 못함"
+    },
+    {
+      "id": "dollhouse",
+      "name": "단면 인형의 집",
+      "genes": [
+        "stack",
+        "decorate",
+        "onebutton"
+      ],
+      "at": "2026-11-09",
+      "why": "19라운드(9개 중 고르기)에서 선택받지 못함"
+    },
+    {
+      "id": "antfarm",
+      "name": "개미 단면 정원",
+      "genes": [
+        "territory",
+        "farm",
+        "pointer"
+      ],
+      "at": "2026-11-09",
+      "why": "19라운드(9개 중 고르기)에서 선택받지 못함"
+    },
+    {
+      "id": "seasons",
+      "name": "계절 숲",
+      "genes": [
+        "idle",
+        "daynight",
+        "onebutton"
+      ],
+      "at": "2026-11-09",
+      "why": "19라운드(9개 중 고르기)에서 선택받지 못함"
+    },
+    {
+      "id": "snowglobe",
+      "name": "스노볼 마을",
+      "genes": [
+        "decorate",
+        "chain",
+        "swipe"
+      ],
+      "at": "2026-11-09",
+      "why": "19라운드(9개 중 고르기)에서 선택받지 못함"
+    },
+    {
+      "id": "volcano",
+      "name": "화산섬 키우기 2",
+      "genes": [
+        "farm",
+        "hold",
+        "decorate"
+      ],
+      "at": "2026-11-09",
+      "why": "20라운드 \"다 폐기\""
+    },
+    {
+      "id": "turtle",
+      "name": "스케이트 거북이 2",
+      "genes": [
+        "endless",
+        "hold",
+        "combo"
+      ],
+      "at": "2026-11-09",
+      "why": "20라운드 \"다 폐기\""
+    },
+    {
+      "id": "stretchcat",
+      "name": "쭉쭉 고양이",
+      "genes": [
+        "stack",
+        "hold",
+        "decorate"
+      ],
+      "at": "2026-11-09",
+      "why": "20라운드 \"다 폐기\""
+    },
+    {
+      "id": "hedgehog",
+      "name": "데굴데굴 고슴도치",
+      "genes": [
+        "hold",
+        "billiards",
+        "collect"
+      ],
+      "at": "2026-11-09",
+      "why": "20라운드 \"다 폐기\""
+    },
+    {
+      "id": "elephant",
+      "name": "코끼리 물뿌리개 정원",
+      "genes": [
+        "hold",
+        "farm",
+        "decorate"
+      ],
+      "at": "2026-11-09",
+      "why": "20라운드 \"다 폐기\""
+    },
+    {
+      "id": "puffer",
+      "name": "복어 산호 정원",
+      "genes": [
+        "flap",
+        "hold",
+        "farm"
+      ],
+      "at": "2026-11-09",
+      "why": "20라운드 \"다 폐기\""
+    },
+    {
+      "id": "bakery",
+      "name": "곰 아저씨 빵집",
+      "genes": [
+        "hold",
+        "order",
+        "decorate"
+      ],
+      "at": "2026-11-09",
+      "why": "20라운드 \"다 폐기\""
+    },
+    {
+      "id": "eggcannon",
+      "name": "꼬꼬 알 대포 농장",
+      "genes": [
+        "hold",
+        "artillery",
+        "farm"
+      ],
+      "at": "2026-11-09",
+      "why": "20라운드 \"다 폐기\""
+    },
+    {
+      "id": "fortress",
+      "name": "버텨라 블록성",
+      "genes": [
+        "fortify",
+        "slingshot",
+        "rolereverse"
+      ],
+      "at": "2026-11-10",
+      "why": "21라운드 \"6번만 나머지 아웃\" (코드: git 6bda858)"
+    },
+    {
+      "id": "flood",
+      "name": "홍수 버티기",
+      "genes": [
+        "fortify",
+        "forecast",
+        "pointer"
+      ],
+      "at": "2026-11-10",
+      "why": "21라운드 \"6번만 나머지 아웃\" (코드: git 6bda858)"
+    },
+    {
+      "id": "typhoon",
+      "name": "태풍 캠핑장",
+      "genes": [
+        "fortify",
+        "forecast",
+        "chain"
+      ],
+      "at": "2026-11-10",
+      "why": "21라운드 \"6번만 나머지 아웃\" (코드: git 6bda858)"
+    },
+    {
+      "id": "quake",
+      "name": "흔들흔들 지진 탑",
+      "genes": [
+        "fortify",
+        "stack",
+        "forecast"
+      ],
+      "at": "2026-11-10",
+      "why": "21라운드 \"6번만 나머지 아웃\" (코드: git 6bda858)"
+    },
+    {
+      "id": "landslide",
+      "name": "산사태 산장",
+      "genes": [
+        "fortify",
+        "forecast",
+        "billiards"
+      ],
+      "at": "2026-11-10",
+      "why": "21라운드 \"6번만 나머지 아웃\" (코드: git 6bda858)"
+    },
+    {
+      "id": "sandcastle",
+      "name": "밀물 모래성 2",
+      "genes": [
+        "fortify",
+        "forecast",
+        "pointer"
+      ],
+      "at": "2026-11-11",
+      "why": "22라운드 \"다 폐기해줘\" (코드: git 081caa7)"
+    },
+    {
+      "id": "turtlebeach",
+      "name": "아기 거북 해변",
+      "genes": [
+        "fortify",
+        "forecast",
+        "pointer"
+      ],
+      "at": "2026-11-11",
+      "why": "22라운드 \"다 폐기해줘\" (코드: git 081caa7)"
+    },
+    {
+      "id": "crabpools",
+      "name": "꽃게 갯벌 수로",
+      "genes": [
+        "fortify",
+        "forecast",
+        "pointer"
+      ],
+      "at": "2026-11-11",
+      "why": "22라운드 \"다 폐기해줘\" (코드: git 081caa7)"
+    },
+    {
+      "id": "igloo",
+      "name": "눈보라 이글루",
+      "genes": [
+        "fortify",
+        "forecast",
+        "pointer"
+      ],
+      "at": "2026-11-11",
+      "why": "22라운드 \"다 폐기해줘\" (코드: git 081caa7)"
+    },
+    {
+      "id": "clawgame",
+      "name": "줄줄이 인형 뽑기",
+      "genes": [
+        "claw",
+        "onebutton",
+        "chain"
+      ],
+      "at": "2026-11-12",
+      "why": "23라운드 선택 안 됨 (코드: git e4dd718)"
+    },
+    {
+      "id": "grocery",
+      "name": "장바구니 척척",
+      "genes": [
+        "sort",
+        "swipe",
+        "order"
+      ],
+      "at": "2026-11-12",
+      "why": "23라운드 선택 안 됨 (코드: git e4dd718)"
+    },
+    {
+      "id": "plinko",
+      "name": "핀 떨구기",
+      "genes": [
+        "pegdrop",
+        "pointer",
+        "multiply"
+      ],
+      "at": "2026-11-12",
+      "why": "23라운드 선택 안 됨 (코드: git e4dd718)"
+    },
+    {
+      "id": "ufo",
+      "name": "UFO 소 납치",
+      "genes": [
+        "catch",
+        "pointer",
+        "gravityflip"
+      ],
+      "at": "2026-11-13",
+      "why": "24라운드 다 폐기 (코드: git a0689f9)"
+    },
+    {
+      "id": "robovac",
+      "name": "고양이 청소기",
+      "genes": [
+        "pushbox",
+        "territory",
+        "swipe"
+      ],
+      "at": "2026-11-13",
+      "why": "24라운드 다 폐기 (코드: git a0689f9)"
+    },
+    {
+      "id": "snowroll",
+      "name": "눈덩이 굴리기",
+      "genes": [
+        "absorb",
+        "pointer",
+        "pushbox"
+      ],
+      "at": "2026-11-13",
+      "why": "24라운드 다 폐기 (코드: git a0689f9)"
+    },
+    {
+      "id": "pillowfight",
+      "name": "베개 싸움",
+      "genes": [
+        "autobattle",
+        "pointer",
+        "turnbased"
+      ],
+      "at": "2026-11-13",
+      "why": "24라운드 다 폐기 (코드: git a0689f9)"
+    },
+    {
+      "id": "sunmirror",
+      "name": "햇빛 거울 정원",
+      "genes": [
+        "reflect",
+        "pointer"
+      ],
+      "at": "2026-11-13",
+      "why": "24라운드 다 폐기 (코드: git a0689f9)"
+    },
+    {
+      "id": "railswitch",
+      "name": "기찻길 전환",
+      "genes": [
+        "traffic",
+        "pointer",
+        "depth"
+      ],
+      "at": "2026-11-13",
+      "why": "24라운드 다 폐기 (코드: git a0689f9)"
+    }
+  ]
 }

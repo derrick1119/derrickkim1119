@@ -1,114 +1,78 @@
 {
- "unused": 28,
- "total": 60,
+ "unused": 7,
+ "total": 73,
  "ideas": [
   {
    "core": [
-    "deck",
-    "stack"
+    "memory",
+    "rhythm"
    ],
-   "control": "slide",
-   "spice": "unlock",
-   "fresh": 3
+   "control": "twobutton",
+   "spice": "mirror",
+   "fresh": 2
   },
   {
    "core": [
     "racing",
-    "grapple"
-   ],
-   "control": "dragaim",
-   "spice": "gravityflip",
-   "fresh": 3
-  },
-  {
-   "core": [
-    "flap",
-    "dodge"
-   ],
-   "control": "onebutton",
-   "spice": "rolereverse",
-   "fresh": 2
-  },
-  {
-   "core": [
-    "traffic",
-    "endless"
-   ],
-   "control": "slide",
-   "spice": "ghost",
-   "fresh": 3
-  },
-  {
-   "core": [
-    "order",
-    "rhythm"
-   ],
-   "control": "dragaim",
-   "spice": "mirror",
-   "fresh": 3
-  },
-  {
-   "core": [
-    "memory",
-    "endless"
-   ],
-   "control": "onebutton",
-   "spice": "rewind",
-   "fresh": 2
-  },
-  {
-   "core": [
-    "fishing",
-    "pushbox"
+    "pong"
    ],
    "control": "swipe",
-   "spice": "collect",
-   "fresh": 3
-  },
-  {
-   "core": [
-    "slingshot",
-    "rhythm"
-   ],
-   "control": "slide",
-   "spice": "chain",
-   "fresh": 2
-  },
-  {
-   "core": [
-    "artillery",
-    "endless"
-   ],
-   "control": "slide",
-   "spice": "gacha",
-   "fresh": 2
-  },
-  {
-   "core": [
-    "territory",
-    "snake"
-   ],
-   "control": "pointer",
-   "spice": "orbit",
+   "spice": "ghost",
    "fresh": 1
   },
   {
    "core": [
-    "golf",
-    "dodge"
+    "lane",
+    "territory"
    ],
-   "control": "onebutton",
-   "spice": "daynight",
+   "control": "twobutton",
+   "spice": "pick3",
+   "fresh": 1
+  },
+  {
+   "core": [
+    "deck",
+    "reflect"
+   ],
+   "control": "dragaim",
+   "spice": "shrink",
    "fresh": 1
   },
   {
    "core": [
     "bubble",
-    "fishing"
+    "tiles"
    ],
-   "control": "onebutton",
-   "spice": "combo",
-   "fresh": 2
+   "control": "swipe",
+   "spice": "rewind",
+   "fresh": 1
+  },
+  {
+   "core": [
+    "fallblock",
+    "pushbox"
+   ],
+   "control": "twobutton",
+   "spice": "gacha",
+   "fresh": 1
+  },
+  {
+   "core": [
+    "traffic",
+    "drift"
+   ],
+   "control": "slide",
+   "spice": "orbit",
+   "fresh": 0
+  },
+  {
+   "core": [
+    "claw",
+    "pinball"
+   ],
+   "control": "pointer",
+   "spice": "rolereverse",
+   "fresh": 0
   }
  ]
 }
