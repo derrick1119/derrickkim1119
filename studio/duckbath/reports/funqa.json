@@ -1,13 +1,18 @@
 {
-  "at": "2026-11-12T23:51:52.798Z",
+  "at": "2026-11-13T00:52:25.190Z",
   "숙련": {
     "runs": 20,
+    "retry": 3,
     "medScore": 3050,
     "medSec": 60.42,
     "winRate": 1,
     "medReached": 8,
     "firstTapNest": 4,
     "failWhy": [],
+    "W1": {
+      "stage": 0,
+      "share": 0
+    },
     "stages": [
       {
         "stage": 1,
@@ -15,10 +20,18 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 1,
+        "retryMed": 0,
+        "retryP90": 0,
         "medSec": 1.13,
+        "humanSec": 4.13,
         "medTaps": 1,
         "stars": 3,
-        "fails": []
+        "tapStar": 1,
+        "goldStar": 1,
+        "fails": 0,
+        "pen": 0,
+        "slack": 11,
+        "slackRatio": 12
       },
       {
         "stage": 2,
@@ -26,10 +39,18 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 1,
+        "retryMed": 0,
+        "retryP90": 0,
         "medSec": 1.88,
+        "humanSec": 7.87,
         "medTaps": 2,
         "stars": 3,
-        "fails": []
+        "tapStar": 1,
+        "goldStar": 1,
+        "fails": 0,
+        "pen": 0,
+        "slack": 8,
+        "slackRatio": 5
       },
       {
         "stage": 3,
@@ -37,10 +58,18 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 1,
+        "retryMed": 0,
+        "retryP90": 0,
         "medSec": 2.33,
+        "humanSec": 8.33,
         "medTaps": 2,
         "stars": 3,
-        "fails": []
+        "tapStar": 1,
+        "goldStar": 1,
+        "fails": 0,
+        "pen": 0,
+        "slack": 8,
+        "slackRatio": 5
       },
       {
         "stage": 4,
@@ -48,10 +77,18 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 1,
+        "retryMed": 0,
+        "retryP90": 0,
         "medSec": 1.23,
+        "humanSec": 4.23,
         "medTaps": 1,
         "stars": 2.7,
-        "fails": []
+        "tapStar": 1,
+        "goldStar": 0.7,
+        "fails": 0,
+        "pen": 0,
+        "slack": 5,
+        "slackRatio": 6
       },
       {
         "stage": 5,
@@ -59,10 +96,18 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 1,
+        "retryMed": 0,
+        "retryP90": 0,
         "medSec": 4.83,
+        "humanSec": 16.83,
         "medTaps": 4,
         "stars": 3,
-        "fails": []
+        "tapStar": 1,
+        "goldStar": 1,
+        "fails": 0,
+        "pen": 0,
+        "slack": 3,
+        "slackRatio": 1.75
       },
       {
         "stage": 6,
@@ -70,10 +115,18 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 1,
+        "retryMed": 0,
+        "retryP90": 0,
         "medSec": 4.57,
+        "humanSec": 13.57,
         "medTaps": 3,
         "stars": 2.65,
-        "fails": []
+        "tapStar": 0.95,
+        "goldStar": 0.7,
+        "fails": 0,
+        "pen": 0,
+        "slack": 4,
+        "slackRatio": 2.33
       },
       {
         "stage": 7,
@@ -81,10 +134,18 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 1,
+        "retryMed": 0,
+        "retryP90": 0,
         "medSec": 7.35,
+        "humanSec": 16.35,
         "medTaps": 3,
         "stars": 2.85,
-        "fails": []
+        "tapStar": 1,
+        "goldStar": 0.85,
+        "fails": 0,
+        "pen": 0,
+        "slack": 3,
+        "slackRatio": 2
       },
       {
         "stage": 8,
@@ -92,15 +153,24 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 1,
+        "retryMed": 0,
+        "retryP90": 0,
         "medSec": 9.92,
+        "humanSec": 27.93,
         "medTaps": 6,
         "stars": 2.6,
-        "fails": []
+        "tapStar": 0.6,
+        "goldStar": 1,
+        "fails": 0,
+        "pen": 0,
+        "slack": 3,
+        "slackRatio": 1.5
       }
     ]
   },
   "캐주얼": {
     "runs": 20,
+    "retry": 3,
     "medScore": 2190,
     "medSec": 83.32,
     "winRate": 1,
@@ -112,6 +182,10 @@
         16
       ]
     ],
+    "W1": {
+      "stage": 8,
+      "share": 0.94
+    },
     "stages": [
       {
         "stage": 1,
@@ -119,10 +193,18 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 1,
+        "retryMed": 0,
+        "retryP90": 0,
         "medSec": 1.22,
+        "humanSec": 4.22,
         "medTaps": 1,
         "stars": 2.35,
-        "fails": []
+        "tapStar": 1,
+        "goldStar": 0.35,
+        "fails": 0,
+        "pen": 0,
+        "slack": 11,
+        "slackRatio": 12
       },
       {
         "stage": 2,
@@ -130,10 +212,18 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 1,
+        "retryMed": 0,
+        "retryP90": 0,
         "medSec": 3.23,
+        "humanSec": 12.23,
         "medTaps": 3,
         "stars": 2.1,
-        "fails": []
+        "tapStar": 0.3,
+        "goldStar": 0.8,
+        "fails": 0,
+        "pen": 0,
+        "slack": 8,
+        "slackRatio": 5
       },
       {
         "stage": 3,
@@ -141,10 +231,18 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 1,
+        "retryMed": 0,
+        "retryP90": 0,
         "medSec": 2.73,
+        "humanSec": 8.73,
         "medTaps": 2,
         "stars": 2.5,
-        "fails": []
+        "tapStar": 0.75,
+        "goldStar": 0.75,
+        "fails": 0,
+        "pen": 0,
+        "slack": 8,
+        "slackRatio": 5
       },
       {
         "stage": 4,
@@ -152,10 +250,18 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 1,
+        "retryMed": 0,
+        "retryP90": 0,
         "medSec": 1.15,
+        "humanSec": 4.15,
         "medTaps": 1,
         "stars": 2,
-        "fails": []
+        "tapStar": 1,
+        "goldStar": 0,
+        "fails": 0,
+        "pen": 0,
+        "slack": 5,
+        "slackRatio": 6
       },
       {
         "stage": 5,
@@ -163,10 +269,18 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 1,
+        "retryMed": 0,
+        "retryP90": 0,
         "medSec": 6.4,
+        "humanSec": 21.4,
         "medTaps": 5,
         "stars": 2.45,
-        "fails": []
+        "tapStar": 0.45,
+        "goldStar": 1,
+        "fails": 0,
+        "pen": 0,
+        "slack": 3,
+        "slackRatio": 1.75
       },
       {
         "stage": 6,
@@ -174,10 +288,18 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 1,
+        "retryMed": 0,
+        "retryP90": 0,
         "medSec": 6.8,
+        "humanSec": 22.03,
         "medTaps": 5,
         "stars": 1.35,
-        "fails": []
+        "tapStar": 0,
+        "goldStar": 0.35,
+        "fails": 0,
+        "pen": 0.35,
+        "slack": 4,
+        "slackRatio": 2.33
       },
       {
         "stage": 7,
@@ -185,15 +307,18 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 0.95,
+        "retryMed": 0,
+        "retryP90": 0,
         "medSec": 7.55,
+        "humanSec": 22.3,
         "medTaps": 5,
         "stars": 1.25,
-        "fails": [
-          [
-            "톡을 다 썼어요",
-            1
-          ]
-        ]
+        "tapStar": 0.1,
+        "goldStar": 0.15,
+        "fails": 1,
+        "pen": 0.05,
+        "slack": 3,
+        "slackRatio": 2
       },
       {
         "stage": 8,
@@ -201,20 +326,24 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 0.5,
+        "retryMed": 1,
+        "retryP90": 2,
         "medSec": 12.48,
+        "humanSec": 36.22,
         "medTaps": 8,
         "stars": 1.6,
-        "fails": [
-          [
-            "톡을 다 썼어요",
-            15
-          ]
-        ]
+        "tapStar": 0.1,
+        "goldStar": 0.5,
+        "fails": 15,
+        "pen": 0.43,
+        "slack": 3,
+        "slackRatio": 1.5
       }
     ]
   },
   "처음": {
     "runs": 20,
+    "retry": 3,
     "medScore": 870,
     "medSec": 112.5,
     "winRate": 0,
@@ -226,6 +355,10 @@
         102
       ]
     ],
+    "W1": {
+      "stage": 5,
+      "share": 0.74
+    },
     "stages": [
       {
         "stage": 1,
@@ -233,10 +366,18 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 1,
+        "retryMed": 0,
+        "retryP90": 0,
         "medSec": 7.32,
+        "humanSec": 23.07,
         "medTaps": 5,
         "stars": 1.95,
-        "fails": []
+        "tapStar": 0.1,
+        "goldStar": 0.85,
+        "fails": 0,
+        "pen": 0,
+        "slack": 11,
+        "slackRatio": 12
       },
       {
         "stage": 2,
@@ -244,10 +385,18 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 1,
+        "retryMed": 0,
+        "retryP90": 0,
         "medSec": 10.22,
+        "humanSec": 31.28,
         "medTaps": 7,
         "stars": 1.7,
-        "fails": []
+        "tapStar": 0.05,
+        "goldStar": 0.65,
+        "fails": 0,
+        "pen": 0,
+        "slack": 8,
+        "slackRatio": 5
       },
       {
         "stage": 3,
@@ -255,15 +404,18 @@
         "cleared": 20,
         "clearRate": 1,
         "firstTry": 0.8,
+        "retryMed": 0,
+        "retryP90": 2,
         "medSec": 8.75,
+        "humanSec": 28.3,
         "medTaps": 6,
         "stars": 1.6,
-        "fails": [
-          [
-            "톡을 다 썼어요",
-            7
-          ]
-        ]
+        "tapStar": 0.1,
+        "goldStar": 0.5,
+        "fails": 7,
+        "pen": 0.59,
+        "slack": 8,
+        "slackRatio": 5
       },
       {
         "stage": 4,
@@ -271,15 +423,18 @@
         "cleared": 19,
         "clearRate": 0.95,
         "firstTry": 0.55,
+        "retryMed": 0,
+        "retryP90": 2,
         "medSec": 2.77,
+        "humanSec": 8.5,
         "medTaps": 2,
         "stars": 1.58,
-        "fails": [
-          [
-            "톡을 다 썼어요",
-            16
-          ]
-        ]
+        "tapStar": 0.37,
+        "goldStar": 0.21,
+        "fails": 16,
+        "pen": 0,
+        "slack": 5,
+        "slackRatio": 6
       },
       {
         "stage": 5,
@@ -287,15 +442,18 @@
         "cleared": 1,
         "clearRate": 0.05,
         "firstTry": 0,
+        "retryMed": 3,
+        "retryP90": 3,
         "medSec": 6.12,
+        "humanSec": 21.12,
         "medTaps": 5,
         "stars": 2,
-        "fails": [
-          [
-            "톡을 다 썼어요",
-            75
-          ]
-        ]
+        "tapStar": 0,
+        "goldStar": 1,
+        "fails": 75,
+        "pen": 0,
+        "slack": 3,
+        "slackRatio": 1.75
       },
       {
         "stage": 6,
@@ -303,15 +461,18 @@
         "cleared": 0,
         "clearRate": 0,
         "firstTry": 0,
+        "retryMed": null,
+        "retryP90": null,
         "medSec": null,
+        "humanSec": null,
         "medTaps": null,
         "stars": 0,
-        "fails": [
-          [
-            "톡을 다 썼어요",
-            4
-          ]
-        ]
+        "tapStar": null,
+        "goldStar": null,
+        "fails": 4,
+        "pen": 0.25,
+        "slack": 4,
+        "slackRatio": 2.33
       },
       {
         "stage": 7,
@@ -319,10 +480,18 @@
         "cleared": 0,
         "clearRate": null,
         "firstTry": null,
+        "retryMed": null,
+        "retryP90": null,
         "medSec": null,
+        "humanSec": null,
         "medTaps": null,
         "stars": 0,
-        "fails": []
+        "tapStar": null,
+        "goldStar": null,
+        "fails": 0,
+        "pen": 0,
+        "slack": 3,
+        "slackRatio": 2
       },
       {
         "stage": 8,
@@ -330,13 +499,276 @@
         "cleared": 0,
         "clearRate": null,
         "firstTry": null,
+        "retryMed": null,
+        "retryP90": null,
         "medSec": null,
+        "humanSec": null,
         "medTaps": null,
         "stars": 0,
-        "fails": []
+        "tapStar": null,
+        "goldStar": null,
+        "fails": 0,
+        "pen": 0,
+        "slack": 3,
+        "slackRatio": 1.5
       }
     ]
   },
+  "배우는처음": {
+    "runs": 20,
+    "retry": 30,
+    "medScore": 1910,
+    "medSec": 287.8,
+    "winRate": 1,
+    "medReached": 8,
+    "firstTapNest": 4,
+    "failWhy": [
+      [
+        "톡을 다 썼어요",
+        271
+      ]
+    ],
+    "W1": {
+      "stage": 8,
+      "share": 0.62
+    },
+    "stages": [
+      {
+        "stage": 1,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 1,
+        "retryMed": 0,
+        "retryP90": 0,
+        "medSec": 3.23,
+        "humanSec": 12.23,
+        "medTaps": 3,
+        "stars": 2,
+        "tapStar": 0.25,
+        "goldStar": 0.75,
+        "fails": 0,
+        "pen": 0,
+        "slack": 11,
+        "slackRatio": 12
+      },
+      {
+        "stage": 2,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 0.95,
+        "retryMed": 0,
+        "retryP90": 0,
+        "medSec": 6.25,
+        "humanSec": 22.02,
+        "medTaps": 5,
+        "stars": 1.7,
+        "tapStar": 0.05,
+        "goldStar": 0.65,
+        "fails": 1,
+        "pen": 0,
+        "slack": 8,
+        "slackRatio": 5
+      },
+      {
+        "stage": 3,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 0.95,
+        "retryMed": 0,
+        "retryP90": 0,
+        "medSec": 5.47,
+        "humanSec": 23.05,
+        "medTaps": 6,
+        "stars": 1.65,
+        "tapStar": 0.05,
+        "goldStar": 0.6,
+        "fails": 1,
+        "pen": 0.57,
+        "slack": 8,
+        "slackRatio": 5
+      },
+      {
+        "stage": 4,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 0.85,
+        "retryMed": 0,
+        "retryP90": 1,
+        "medSec": 2.68,
+        "humanSec": 9.75,
+        "medTaps": 2,
+        "stars": 1.6,
+        "tapStar": 0.4,
+        "goldStar": 0.2,
+        "fails": 3,
+        "pen": 0,
+        "slack": 5,
+        "slackRatio": 6
+      },
+      {
+        "stage": 5,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 0.2,
+        "retryMed": 1,
+        "retryP90": 3,
+        "medSec": 6.43,
+        "humanSec": 24.13,
+        "medTaps": 6,
+        "stars": 2.05,
+        "tapStar": 0.1,
+        "goldStar": 0.95,
+        "fails": 27,
+        "pen": 0,
+        "slack": 3,
+        "slackRatio": 1.75
+      },
+      {
+        "stage": 6,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 0.25,
+        "retryMed": 2,
+        "retryP90": 3,
+        "medSec": 7.12,
+        "humanSec": 25.08,
+        "medTaps": 6,
+        "stars": 1.35,
+        "tapStar": 0,
+        "goldStar": 0.35,
+        "fails": 28,
+        "pen": 0.38,
+        "slack": 4,
+        "slackRatio": 2.33
+      },
+      {
+        "stage": 7,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 0,
+        "retryMed": 2,
+        "retryP90": 3,
+        "medSec": 7.72,
+        "humanSec": 25.3,
+        "medTaps": 6,
+        "stars": 1.25,
+        "tapStar": 0,
+        "goldStar": 0.25,
+        "fails": 44,
+        "pen": 0.23,
+        "slack": 3,
+        "slackRatio": 2
+      },
+      {
+        "stage": 8,
+        "tried": 20,
+        "cleared": 20,
+        "clearRate": 1,
+        "firstTry": 0,
+        "retryMed": 8,
+        "retryP90": 16,
+        "medSec": 12.7,
+        "humanSec": 39.57,
+        "medTaps": 9,
+        "stars": 1.6,
+        "tapStar": 0,
+        "goldStar": 0.6,
+        "fails": 167,
+        "pen": 0.61,
+        "slack": 3,
+        "slackRatio": 1.5
+      }
+    ]
+  },
+  "E6황금": {
+    "0": [
+      0.5,
+      0.85,
+      0.85,
+      0.1,
+      1,
+      0.9,
+      0.65,
+      0.71
+    ],
+    "0.5": [
+      0.4,
+      0.8,
+      0.75,
+      0,
+      1,
+      0.65,
+      0.35,
+      0.65
+    ],
+    "0.75": [
+      0.35,
+      0.8,
+      0.75,
+      0,
+      1,
+      0.35,
+      0.15,
+      0.5
+    ]
+  },
   "숙련격차": 1.39,
-  "숙련격차_처음": 3.51
+  "숙련격차_처음": 3.51,
+  "C4": [
+    {
+      "stage": 1,
+      "par": 1,
+      "oneTap": 6.8,
+      "oneTap3": 3.13
+    },
+    {
+      "stage": 2,
+      "par": 2,
+      "oneTap": null,
+      "oneTap3": null
+    },
+    {
+      "stage": 3,
+      "par": 2,
+      "oneTap": null,
+      "oneTap3": null
+    },
+    {
+      "stage": 4,
+      "par": 1,
+      "oneTap": 21.2,
+      "oneTap3": 0.4
+    },
+    {
+      "stage": 5,
+      "par": 4,
+      "oneTap": null,
+      "oneTap3": null
+    },
+    {
+      "stage": 6,
+      "par": 3,
+      "oneTap": null,
+      "oneTap3": null
+    },
+    {
+      "stage": 7,
+      "par": 3,
+      "oneTap": null,
+      "oneTap3": null
+    },
+    {
+      "stage": 8,
+      "par": 6,
+      "oneTap": null,
+      "oneTap3": null
+    }
+  ]
 }

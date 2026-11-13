@@ -737,13 +737,14 @@ export const duckbathSmart: Bot<DuckState> = {
   },
 };
 
-const casMem = new WeakMap<object, { key: string; p: { x: number; y: number } | null }>();
 /**
- * 봇(캐주얼, D001 · FUN.md 제안 1): 미리 보기를 쓰지 않고 '상식'으로 친다 — 아직 떠 있는 오리(황금 오리는 맨 나중) 하나를 골라
+ * 봇(캐주얼, D001 · FUN.md 제안 1): 미리 보기를 쓰지 않고 '상식'으로 친다 — 아직 떠 있는 오리(goldLast 확률로 황금 오리는 맨 나중, D003 FUN E6) 하나를 골라
  * 가장 가까운 맞는 둥지의 반대편 0.06~0.15 거리를 톡. 자리는 사람 손처럼 σ≈0.03 흔들린다. 물이 잔잔해지면 친다. 내다보기 없음.
  */
-export const duckbathCasual: Bot<DuckState> = {
-  name: '캐주얼',
+export function makeCasual(goldLast = 0.75): Bot<DuckState> {
+  const casMem = new WeakMap<object, { key: string; p: { x: number; y: number } | null }>();
+  return {
+  name: goldLast === 0.75 ? '캐주얼' : `캐주얼(황금 나중 ${goldLast})`,
   act(s, rng) {
     if (s.down || s.phase !== 'play' || s.taps <= 0) return NO;
     if (s.t - s.lastTap < 50 || s.rings.length) return NO;
@@ -752,7 +753,7 @@ export const duckbathCasual: Bot<DuckState> = {
     let m = casMem.get(s);
     if (!m || m.key !== key) {
       const free = s.objs.filter((o) => o.st === FREE && o.k !== SHARK);
-      const pool = free.some((o) => o.k !== GOLD) && rng() < 0.75 ? free.filter((o) => o.k !== GOLD) : free;
+      const pool = free.some((o) => o.k !== GOLD) && rng() < goldLast ? free.filter((o) => o.k !== GOLD) : free;
       const o = pool[Math.floor(rng() * pool.length)];
       let p: { x: number; y: number } | null = null;
       if (o) {
@@ -769,6 +770,9 @@ export const duckbathCasual: Bot<DuckState> = {
     return m.p ? at(m.p.x, m.p.y) : NO;
   },
 };
+}
+/** 기본 캐주얼: 황금 오리를 75% 확률로 맨 나중에 민다 */
+export const duckbathCasual = makeCasual(0.75);
 
 const dumbMem = new WeakMap<object, { next: number; hold: number; x: number; y: number }>();
 /** 봇: 아무 데나, 아무 때나 찰박 (대개 물 위, 가끔 화면 아무 데나) */
