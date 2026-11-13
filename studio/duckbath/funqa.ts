@@ -1,6 +1,7 @@
 /**
  * FUN QA 계기판 — 유저군 봇으로 판별 재미 지표를 잰다. 기준과 이유는 FUN.md. 결과는 reports/funqa.json (+ 표를 콘솔에).
  *   npx tsx studio/duckbath/funqa.ts [런 수=20] [--area]
+ *   npx tsx studio/duckbath/funqa.ts --d1[=1-3,2-9] [--full]   → D1 정답 다양성만 (reports/funqa-d1.json, D008). --full = 거친 격자 없이 전수(운영 근사 검증용)
  * 유저군: 숙련 = 물결 박사(두 수 앞 탐색) · 캐주얼 = 상식으로 오리 뒤를 톡(내다보기 없음, D001) · 처음 = 아무 데나 찰박(무작위)
  *   · 배우는 처음 = 다시 할수록 캐주얼식으로 칠 확률 0.25→0.5→0.75 (FUN v1 N2·C5, D003).
  * D001: 하트가 없어져 실패하면 그 판만 다시 한다. 사람은 무한히 다시 하지 않으니, 봇은 한 판에서 RETRY번 다시 하고도 못 깨면 그만둔다
@@ -141,9 +142,7 @@ export function measure(n = 20) {
  * par ≥ 2 판의 정의(첫 수 뒤 숙련 봇이 par 안에)는 미리 보기 봇과 함께 M2에서.
  */
 export function area() {
-  const A = g.aspect!, WY0 = 0.36, KY = 0.66, SB = 0.74, SF = 0.88, H = 1.2;
-  const PX = (x: number, y: number) => 0.5 + (x - 0.5) * (SB + (SF - SB) * (y / H)), PY = (y: number) => WY0 + y * KY;
-  const NO: Input = { tap: false, dir: 0, pointer: null };
+  const H = 1.2, NO: Input = { tap: false, dir: 0, pointer: null };
   return STAGES.map((d, i) => {
     if (d.par !== 1) return { stage: i + 1, par: d.par, oneTap: null, oneTap3: null };
     let tot = 0, ok = 0, ok3 = 0;
@@ -153,7 +152,7 @@ export function area() {
           const x = (gx + 0.5) / 20, y = ((gy + 0.5) / 25) * H, s = g.create(seed);
           startStage(s, i);
           if (s.L.islands.some((c) => Math.hypot(x - c.x, y - c.y) < c.r)) continue;
-          g.step(s, { tap: false, dir: 0, pointer: { x: PX(x, y), y: PY(y) / A } });
+          g.step(s, { tap: false, dir: 0, pointer: toPointer(x, y) });
           for (let k = 0; k < 700 && s.phase === 'play'; k++) g.step(s, NO);
           // 한 톡만 쓰고 끝까지 본다: 다음 톡을 치지 않으니 '톡을 다 썼어요' 전까지 물결이 다 퍼진다
           tot++;
@@ -163,7 +162,93 @@ export function area() {
   });
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/** 물 좌표(x 0~1, y 0~1.2) → 화면 포인터 (area·diversity 공통, 화면 사다리꼴 원근) */
+function toPointer(x: number, y: number) {
+  const A = g.aspect!, WY0 = 0.36, KY = 0.66, SB = 0.74, SF = 0.88, H = 1.2;
+  return { x: 0.5 + (x - 0.5) * (SB + (SF - SB) * (y / H)), y: (WY0 + y * KY) / A };
+}
+
+/**
+ * D1 정답 다양성 (FUN v1.6, D008): 판 시작 프레임에 첫 톡 → par 1 판은 그 톡만으로, par ≥ 2 판은 숙련 봇이 이어 친다.
+ * 해 칸 = 3★ + 쓴 톡 ≤ T*(같은 시드 새 판에서 숙련 봇이 쓴 톡), 시드 3개 중 2개 이상.
+ * 무리 = 해 칸끼리 거리 < 0.15 단일 연결, 3칸 이상만. 무리 하나가 물의 25% 이상이면 2로 센다. 옛 자 = 'T* 대신 톡 ≤ par'(= 3★만).
+ * 운영(FUN v1.6): 거친 격자 10×12 × 시드 1에서 3★ 칸을 찾고 → 그 0.1 안쪽의 20×25 칸만 시드 3으로 정밀. 쏙·꿀꺽·황금 손실·톡 초과면 그 자리에서 자른다.
+ * 판정 값(해 칸)은 게임의 결과(별·쓴 톡)로만 정하고, 게임 코드의 문턱·후보 함수는 쓰지 않는다(측정 원칙). 숙련 봇은 정의대로 '이어 치는 손'으로만 쓴다.
+ */
+export function diversity(only?: string[], full = false) {
+  const SEEDS = [1000, 1007, 1014], H = 1.2, NO: Input = { tap: false, dir: 0, pointer: null };
+  return STAGES.map((d, i) => {
+    if (only && !only.includes(d.id)) return null;
+    const t0 = performance.now();
+    // T*: 같은 시드 새 판에서 숙련 봇이 쓴 톡 (깨지 못하면 그 판 톡 전부)
+    const T = SEEDS.map((seed) => {
+      const s = g.create(seed), rng = mulberry32(seed ^ 0x9e3779b9);
+      startStage(s, i);
+      for (let k = 0; k < 20000 && s.phase === 'play'; k++) g.step(s, duckbathSmart.act(s, rng));
+      return s.ok ? s.used : d.taps;
+    });
+    const water = (x: number, y: number) => { const s = g.create(SEEDS[0]); startStage(s, i); return !s.L.islands.some((c) => Math.hypot(x - c.x, y - c.y) < c.r); };
+    /** 한 자리 한 시드: 3★인가 · 쓴 톡 (자르면 star3 false) */
+    const one = (x: number, y: number, k: number) => {
+      const seed = SEEDS[k], s = g.create(seed), rng = mulberry32(seed ^ 0x9e3779b9), cap = Math.max(T[k], d.par);
+      startStage(s, i);
+      g.step(s, { tap: false, dir: 0, pointer: toPointer(x, y) });
+      g.step(s, NO);
+      for (let f = 0; f < 20000 && s.phase === 'play'; f++) {
+        if (s.goldLost || s.pen > 0 || s.used > cap) return { star3: false, used: s.used };
+        g.step(s, d.par === 1 ? NO : duckbathSmart.act(s, rng));
+        if (d.par === 1 && f > 700) break;
+      }
+      return { star3: s.phase === 'result' && s.ok && s.starOk.every(Boolean), used: s.used };
+    };
+    // 거친 격자
+    const coarse: { x: number; y: number }[] = [];
+    for (let gx = 0; gx < 10; gx++)
+      for (let gy = 0; gy < 12; gy++) {
+        const x = (gx + 0.5) / 10, y = ((gy + 0.5) / 12) * H;
+        if (water(x, y) && one(x, y, 0).star3) coarse.push({ x, y });
+      }
+    // 정밀: 20×25 중 거친 3★ 칸 0.1 안쪽만 시드 3 (2개가 같으면 셋째는 생략)
+    const fine: { x: number; y: number; sol: boolean; old: boolean }[] = [];
+    let waterN = 0, runs = 0;
+    for (let gx = 0; gx < 20; gx++)
+      for (let gy = 0; gy < 25; gy++) {
+        const x = (gx + 0.5) / 20, y = ((gy + 0.5) / 25) * H;
+        if (!water(x, y)) continue;
+        waterN++;
+        if (!full && !coarse.some((c) => Math.hypot(c.x - x, c.y - y) <= 0.1 + 1e-9)) continue;
+        let sol = 0, old = 0;
+        for (let k = 0; k < 3; k++) {
+          if (k === 2 && sol !== 1 && old !== 1) break;
+          const r = one(x, y, k);
+          runs++;
+          if (r.star3) (old++, r.used <= T[k] && sol++);
+        }
+        fine.push({ x, y, sol: sol >= 2, old: old >= 2 });
+      }
+    const groups = (cells: { x: number; y: number }[]) => {
+      const par = cells.map((_, k) => k), find = (k: number): number => (par[k] === k ? k : (par[k] = find(par[k])));
+      for (let a = 0; a < cells.length; a++) for (let b = a + 1; b < cells.length; b++) if (Math.hypot(cells[a].x - cells[b].x, cells[a].y - cells[b].y) < 0.15) par[find(a)] = find(b);
+      const size = new Map<number, number>();
+      cells.forEach((_, k) => size.set(find(k), (size.get(find(k)) ?? 0) + 1));
+      const sizes = [...size.values()].filter((n) => n >= 3).sort((a, b) => b - a);
+      return { sizes, count: sizes.reduce((a, n) => a + (n >= 0.25 * waterN ? 2 : 1), 0), top: sizes.length ? r2(sizes[0] / waterN) : 0 };
+    };
+    const cur = groups(fine.filter((c) => c.sol)), old = groups(fine.filter((c) => c.old));
+    return { id: d.id, par: d.par, T, coarse: coarse.length, refined: fine.length, runs, water: waterN, solCells: fine.filter((c) => c.sol).length, D1: cur.count, sizes: cur.sizes, top: cur.top, oldD1: old.count, oldSizes: old.sizes, sec: r2((performance.now() - t0) / 1000) };
+  });
+}
+
+const d1Arg = process.argv.find((a) => a.startsWith('--d1'));
+if (import.meta.url === `file://${process.argv[1]}` && d1Arg) {
+  const only = d1Arg.includes('=') ? d1Arg.split('=')[1].split(',') : undefined, t0 = performance.now();
+  const res = diversity(only, process.argv.includes('--full')).filter(Boolean);
+  mkdirSync(join(import.meta.dirname, 'reports'), { recursive: true });
+  writeFileSync(join(import.meta.dirname, 'reports/funqa-d1' + (process.argv.includes('--full') ? '-full' : '') + '.json'), JSON.stringify({ at: new Date().toISOString(), D1: res }, null, 2) + '\n');
+  console.log('D1 정답 다양성 (FUN v1.6) — 판 | par | T*(시드 3) | 거친 3★ | 정밀 칸/물 | 해 칸 | D1 | 무리 칸 수 | 가장 큰 몫 | 옛 자(3★만) D1 · 무리 | 초');
+  for (const r of res) if (r) console.log(`${r.id} | ${r.par} | ${r.T.join('·')} | ${r.coarse} | ${r.refined}/${r.water} | ${r.solCells} | ${r.D1}${r.D1 >= 2 ? ' ✓' : ' ✗'} | ${r.sizes.join('·') || '-'} | ${r.top} | ${r.oldD1} · ${r.oldSizes.join('·') || '-'} | ${r.sec}`);
+  console.log(`판 ${res.length}개 · ${r2((performance.now() - t0) / 1000)}초 (30판 목표 ≤ 15분)`);
+} else if (import.meta.url === `file://${process.argv[1]}`) {
   const n = Number(process.argv.find((a) => /^\d+$/.test(a)) ?? 20), res = measure(n) as Record<string, unknown>;
   if (process.argv.includes('--area')) res['C4'] = area();
   mkdirSync(join(import.meta.dirname, 'reports'), { recursive: true });
