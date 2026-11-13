@@ -631,7 +631,8 @@ export const FAIL_TITLES = {
 export function failText(s: DuckState): { kind: 'suck' | 'chomp' | 'taps'; title: string; tip: string } {
   const pen = s.sucks + s.chomps, big = s.used > 0 && pen / s.used >= 0.25; // 🧪 D005: '2톡 이상' 조항은 8판(톡 12)에서 틀린 제목을 만들어 뺐다
   // D011 (N6-a): 같은 판을 거푸 지면 제목을 돌려 쓴다 — 같은 카드가 되풀이되면 웃음이 닳는다(FUN N6). 팁(그 판의 교훈)은 그대로
-  const pick = (xs: string[]) => xs[Math.max(0, s.stageTries - 1) % xs.length];
+  // 🧪 D012: 판마다 0으로 돌아가는 다시 횟수 대신 런 전체 실패 수로 — 판마다 첫 실패 제목이 늘 같던 것을 없앤다
+  const pick = (xs: string[]) => xs[Math.max(0, s.tries - 1) % xs.length];
   if (big && s.sucks >= s.chomps) return { kind: 'suck', title: pick(FAIL_TITLES.suck), tip: '빙글 원 안으로는 밀지 말기' };
   if (big) return { kind: 'chomp', title: pick(FAIL_TITLES.chomp), tip: '물결을 맞히면 상어가 어질어질' };
   return { kind: 'taps', title: pick(FAIL_TITLES.taps), tip: STAGES[s.stage].failHint ?? STAGES[s.stage].hint };
@@ -754,8 +755,9 @@ export const duckbath: GameDef<DuckState> = {
     cosmetic(s);
     // D009 (🧪 D008): 옛 goldLost(황금이 쏙·꿀꺽당함)는 뿅 규칙(D002) 뒤로 켜지는 길이 없어 지웠다 — 황금 별은 '꼴찌'로만 잃는다.
     // 꼴찌 위기 = 남은 보통 오리(배 포함) 1 + 황금이 아직 물 위 (ART 12장 ①: 켜진 틱을 기억, 조건이 깨지면 바로 끔)
-    const gold = s.objs.find((o) => o.k === GOLD), left = s.objs.filter((o) => (o.k === DUCK || o.k === BOAT) && o.st === FREE).length;
-    const crisis = s.phase === 'play' && !!gold && gold.st === FREE && left === 1;
+    const gold = s.objs.find((o) => o.k === GOLD), all = s.objs.filter((o) => o.k === DUCK || o.k === BOAT), left = all.filter((o) => o.st === FREE).length;
+    // 🧪 D012: 보통 오리(배 포함)가 처음부터 하나뿐인 판(2-3 배 혼자)은 판 내내 켜져 경보가 닳는다 → 둘 이상인 판에서만
+    const crisis = s.phase === 'play' && !!gold && gold.st === FREE && left === 1 && all.length >= 2;
     s.crisisT = crisis ? (s.crisisT < 0 ? s.t : s.crisisT) : -1;
     if (!s.news || s.t - s.news.t > NEWS_T) s.news = s.newsQ.length ? { text: s.newsQ.shift()!, t: s.t } : s.news;
     if (s.phase === 'result') {

@@ -274,9 +274,9 @@ describe('저장·판 고르기 (D005 → D007 판 id)', () => {
     expect(failText(s).kind).toBe('suck');
     Object.assign(s, { used: 4, sucks: 0, chomps: 1 });
     expect(failText(s).kind).toBe('chomp');
-    // D011 N6-a: 같은 판을 거푸 지면 제목이 돌아간다(팁은 그대로)
+    // D011 N6-a → D012: 실패할 때마다(런 전체) 제목이 돌아간다(팁은 그대로)
     Object.assign(s, { used: 12, sucks: 0, chomps: 0 });
-    const titles = [1, 2, 3, 4].map((k) => (Object.assign(s, { stageTries: k }), failText(s)));
+    const titles = [1, 2, 3, 4].map((k) => (Object.assign(s, { tries: k }), failText(s))); // D012: 런 전체 실패 수로 돌림
     expect(new Set(titles.slice(0, 3).map((f) => f.title)).size).toBe(3);
     expect(titles[3].title).toBe(titles[0].title);
     expect(new Set(titles.map((f) => f.tip)).size).toBe(1);
