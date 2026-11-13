@@ -114,7 +114,7 @@ export const STAGES: StageDef[] = [
     ducks: [[0.22, 0.66, 0], [0.78, 0.66, 0], [0.5, 0.38, 0]], gold: [0.5, 0.6],
     shark: [0.5, 0.88],
     nests: [[0.13, 0.13, 0.14, -1], [0.87, 0.13, 0.14, -1]],
-    taps: 7, par: 4, // D003: par 3→5 (FUN E6) · D004: 5→4 (🧪 — E6 하한과 E2를 같이 맞추는 값, FUN P1)
+    taps: 7, par: 5, // D003: par 3→5 (FUN E6) · D004: 5→4를 시도했으나 판정 캐주얼(황금 50%, FUN v1.3)로 ★톡 .22 < .30 → PM 규칙대로 5로 되돌림, E2 2는 천장 빚
   },
   {
     key: 'stream', news: '🚰 수도꼭지 물줄기 — 태우면 저절로 실려 가요', hint: '물줄기에 밀어 넣으면 둥지까지 흘러가요',
@@ -782,7 +782,7 @@ export const duckbathSmart: Bot<DuckState> = {
 export function makeCasual(goldLast = 0.75): Bot<DuckState> {
   const casMem = new WeakMap<object, { key: string; p: { x: number; y: number } | null }>();
   return {
-  name: goldLast === 0.75 ? '캐주얼' : `캐주얼(황금 나중 ${goldLast})`,
+  name: goldLast === 0.5 ? '캐주얼' : `캐주얼(황금 나중 ${goldLast})`,
   act(s, rng) {
     if (s.down || s.phase !== 'play' || s.taps <= 0) return NO;
     if (s.t - s.lastTap < 50 || s.rings.length) return NO;
@@ -809,8 +809,8 @@ export function makeCasual(goldLast = 0.75): Bot<DuckState> {
   },
 };
 }
-/** 기본 캐주얼: 황금 오리를 75% 확률로 맨 나중에 민다 */
-export const duckbathCasual = makeCasual(0.75);
+/** 기본(판정) 캐주얼: 황금 오리를 50% 확률로 맨 나중에 민다 (FUN v1.3, D004 — 전에는 75%) */
+export const duckbathCasual = makeCasual(0.5);
 
 const dumbMem = new WeakMap<object, { next: number; hold: number; x: number; y: number }>();
 /** 봇: 아무 데나, 아무 때나 찰박 (대개 물 위, 가끔 화면 아무 데나) */

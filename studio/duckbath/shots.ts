@@ -36,16 +36,37 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.waitForTimeout(2500);
   await page.screenshot({ path: join(here, 'screens', `${name}-after.png`) });
   if ((await st(page)).used < 1) errors.push(`${name}: 터치로 찰박이 안 됨`);
-  // 실패 카드(D001: 하트 없이 같은 판 다시) — 확인용으로 톡을 0으로 만들어 실패시킨다
-  await page.waitForFunction(() => (globalThis as any).__duck.state().phase === 'play' && (globalThis as any).__duck.state().pt > 200, null, { timeout: 15_000 });
-  const stage0 = (await st(page)).stage;
-  await page.evaluate(() => ((globalThis as any).__duck.state().taps = 0));
-  await page.waitForFunction(() => (globalThis as any).__duck.state().phase === 'result', null, { timeout: 15_000 });
-  await page.waitForTimeout(700);
+  // D004 결과 카드: 1판을 처음부터 — 오리 무리 한가운데를 톡(판 질문대로) → 별 카드 → '다음 목욕'
+  const D = '(globalThis as any).__duck';
+  await page.evaluate(() => (globalThis as any).__duck.jump(0));
+  await page.waitForTimeout(400);
+  await page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.476);
+  await page.waitForSelector('.card:not([hidden])', { timeout: 20_000 });
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: join(here, 'screens', `${name}-stars.png`) });
+  if (!(await page.locator('.card.win').count())) errors.push(`${name}: 1판 가운데 톡이 결과 카드가 아님`);
+  else {
+    await page.click('.card .btn');
+    await page.waitForTimeout(200);
+    if ((await st(page)).stage !== 1) errors.push(`${name}: '다음 목욕'을 눌러도 2판이 아님`);
+  }
+  // D004 실패 카드(실제 쏙): 3판에서 마지막 톡이 남았을 때 오리 하나가 배수구로 → 톡 0 → 원인별 카드 → R로 같은 판 다시
+  await page.evaluate(() => (globalThis as any).__duck.jump(2));
+  await page.waitForTimeout(300);
+  await page.evaluate(() => { const s = (globalThis as any).__duck.state(), dr = s.L.drains[0], o = s.objs[0]; s.taps = 1; o.x = dr.x; o.y = dr.y; });
+  await page.waitForSelector('.card.lose:not([hidden])', { timeout: 20_000 });
+  await page.waitForTimeout(300);
   await page.screenshot({ path: join(here, 'screens', `${name}-fail.png`) });
-  await page.waitForFunction(() => (globalThis as any).__duck.state().phase === 'play', null, { timeout: 15_000 });
+  if (!(await page.locator('.card.lose h2').innerText()).includes('꼬르륵')) errors.push(`${name}: 쏙 실패인데 카드 제목이 쏙 원인이 아님`);
+  await page.keyboard.press('r');
+  await page.waitForTimeout(200);
   const af = await st(page);
-  if (!af.running || af.stage !== stage0) errors.push(`${name}: 실패 뒤 같은 판 다시가 아님 ${JSON.stringify(af)}`);
+  if (!af.running || af.stage !== 2 || !(await page.locator('.card').isHidden())) errors.push(`${name}: R로 같은 판 다시가 아님 ${JSON.stringify(af)}`);
+  // D004 ↺2 손가락: 5판을 두 번 넘게 실패한 상태로 다시 시작
+  await page.evaluate(() => { const d = (globalThis as any).__duck; d.jump(4); d.state().stageTries = 2; });
+  await page.waitForTimeout(900);
+  await page.screenshot({ path: join(here, 'screens', `${name}-hint.png`) });
+  void D;
   // 키보드만: 새로 열어 Enter로 시작 → 화살표로 커서 → 스페이스 꾹·떼기
   await page.goto(url);
   await page.waitForTimeout(300);

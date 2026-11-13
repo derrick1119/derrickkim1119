@@ -96,8 +96,9 @@ export function measure(n = 20) {
     숙련: group(duckbathSmart, n, RETRY), 캐주얼: group(duckbathCasual, n, RETRY), 처음: group(duckbathRandom, n, RETRY), 배우는처음: group(makeLearner(), n, RETRY_LEARN),
   };
   // E6 황금 정책 범위: 캐주얼이 황금 오리를 맨 나중에 미는 확률 0 · 0.5 · 0.75 → 판별 ★황금
-  out['E6황금'] = Object.fromEntries([0, 0.5].map((gl) => [String(gl), group(makeCasual(gl), n, RETRY).stages.map((p) => p.goldStar)]));
-  (out['E6황금'] as Record<string, unknown>)['0.75'] = (out['캐주얼'] as ReturnType<typeof group>).stages.map((p) => p.goldStar);
+  // FUN v1.3: 판정은 황금 정책 50%(= 기본 캐주얼 봇). 0%·75%는 보고만
+  out['E6황금'] = Object.fromEntries([0, 0.75].map((gl) => [String(gl), group(makeCasual(gl), n, RETRY).stages.map((p) => p.goldStar)]));
+  (out['E6황금'] as Record<string, unknown>)['0.5(판정)'] = (out['캐주얼'] as ReturnType<typeof group>).stages.map((p) => p.goldStar);
   // W2 (D003): par가 사람 기준이 됐으니 여유는 '톡 ÷ 숙련 봇 톡 수'로 잰다 (판 사이 꺾임이 벽)
   out['W2'] = STAGES.map((d, i) => r2(d.taps / Math.max(1, (out['숙련'] as ReturnType<typeof group>).stages[i].medTaps)));
   const sk = out['숙련'] as { medScore: number }, cs = out['캐주얼'] as { medScore: number }, nv = out['처음'] as { medScore: number };

@@ -3,7 +3,7 @@
  * 조작: 물을 꾹 누르면 미리 보기, 떼면 찰박 · 키보드 화살표로 커서, 스페이스를 누르는 동안 미리 보기 → 떼면 찰박.
  */
 import { TICK, type Input } from './core.ts';
-import { duckbath as g, type DuckState } from './game.ts';
+import { STAGES, advance, duckbath as g, hintPoint, startStage, type DuckState } from './game.ts';
 import { peek } from './juice.ts';
 
 const store = {
@@ -20,12 +20,19 @@ canvas.setAttribute('aria-label', `${g.name} 게임 화면. ${g.rules.join(' ')}
 const overlay = document.createElement('button');
 overlay.type = 'button';
 overlay.className = 'g-overlay';
-root.append(canvas, overlay);
+// D004 (ART 10장 ⑥): 결과·실패 카드는 DOM — 버튼을 Tab·Enter·R로 누를 수 있게
+const card = document.createElement('div');
+card.className = 'card';
+card.setAttribute('role', 'dialog');
+card.setAttribute('aria-live', 'polite');
+card.hidden = true;
+root.append(canvas, overlay, card);
 const ctx = canvas.getContext('2d')!;
 let s: DuckState = g.create(1), running = false, acc = 0, last = 0, keyboard = false, spaceDown = false;
 let pointer: { x: number; y: number } | null = null, latch: { x: number; y: number } | null = null, cursor = { x: 0.5, y: 0.5 };
 const keys = new Set<string>();
-(globalThis as any).__duck = { state: () => s, running: () => running };
+// 확인용(shots.ts): 상태 보기 · i번째 판으로 건너뛰기
+(globalThis as any).__duck = { state: () => s, running: () => running, jump: (i: number) => (startStage(s, i), (card.hidden = true), (cardFor = '')) };
 
 function size() {
   // D001 (ART 10장 ①): 머리 44px를 뺀 화면 높이에 맞춘다 — 390×844에서 390×593(화면 70%)
@@ -33,6 +40,7 @@ function size() {
   canvas.style.borderRadius = w >= 440 ? '14px' : '0';
   canvas.style.width = `${w}px`;
   canvas.style.height = `${w * aspect}px`;
+  root.style.setProperty('--cw', `${w}px`);
   canvas.width = Math.round(w * dpr);
   canvas.height = Math.round(w * aspect * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -42,6 +50,24 @@ function draw() {
   const dpr = window.devicePixelRatio || 1, w = canvas.width / dpr, h = canvas.height / dpr;
   g.draw(ctx, s, w, h, g.art!.palette);
   peek(s)?.render(ctx, w, h);
+  // D004 ↺2 손가락: 같은 판을 두 번 넘게 실패하면 숙련 봇의 첫 톡 자리를 두드린다
+  const hp = running ? hintPoint(s) : null;
+  if (hp) {
+    const k = (performance.now() / 800) % 1, bob = Math.sin(k * Math.PI * 2) * 6;
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(hp.x * w, hp.y * h, 10 + k * 18, 0, Math.PI * 2);
+    ctx.globalAlpha = 0.9 * (1 - k);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.font = '28px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('👆', hp.x * w + 4, hp.y * h + 30 + bob);
+    ctx.restore();
+  }
   if (keyboard && running) {
     ctx.strokeStyle = spaceDown ? '#ffffff' : 'rgba(255,255,255,.6)';
     ctx.lineWidth = 2;
@@ -54,8 +80,58 @@ function show(html: string) {
   overlay.innerHTML = html;
   overlay.hidden = false;
 }
+const esc = (t: string) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
+let cardFor = '';
+/** 결과 카드: 별마다 이유 한 줄 · 실패 카드: 원인별 웃긴 제목 + 팁 + 남은 오리 (ART 10장 ⑥, 하트 없음) */
+function renderCard() {
+  const key = `${s.stage}:${s.tries}:${s.ok}:${s.got}`;
+  if (cardFor === key) return;
+  cardFor = key;
+  const d = STAGES[s.stage], last = s.stage === STAGES.length - 1;
+  if (s.ok) {
+    const [, tapOk, goldOk] = s.starOk, n = s.got;
+    const line = (ok: boolean, yes: string, no: string) => `<li class="${ok ? 'ok' : 'todo'}"><i>${ok ? '★' : '☆'}</i>${esc(ok ? yes : no)}</li>`;
+    card.className = 'card win';
+    card.innerHTML = `<h2>${last ? '목욕 다 끝! 🛁' : n === 3 ? '깨끗!' : n === 2 ? '뽀득!' : '목욕 끝!'}</h2><ul>${line(true, '오리 모두 둥지에 쏙', '')}${line(tapOk, `톡 ${s.used}번 — ${d.par}번 안에!`, `톡 ${s.used}번 · ${d.par}번 안이면 ★`)}${line(goldOk, '황금 오리 먼저 쏙!', '👑 황금 오리를 먼저 넣으면 ★')}</ul><div class="row"><button type="button" class="btn2" data-a="retry">↺ 다시</button><button type="button" class="btn" data-a="next">${last ? '목욕 다 끝! ▶' : '다음 목욕 ▶'}</button></div>`;
+  } else {
+    // 🎨 D004: 뿅 규칙 뒤로 실패는 늘 '톡 다 씀' — 문구는 톡을 가져간 주범으로 고른다
+    const [title, tip] = s.sucks > 0 && s.sucks >= s.chomps ? ['꼬르륵~ 톡이 배수구로 샜어요', '빙글 원 안으로는 밀지 말기'] : s.chomps ? ['냠! 상어 간식인 줄 알았대요', '물결을 맞히면 상어가 어질어질'] : ['톡이 바닥! 오리들 아직 둥둥~', '꾹 눌러 갈 길 먼저 보기'];
+    const left = s.objs.filter((o) => o.st === -1 && (o.k === 0 || o.k === 2)).length;
+    const why = [left ? `🦆 ${left}마리 남음` : '', s.sucks ? `쏙 ×${s.sucks}` : '', s.chomps ? `꿀꺽 ×${s.chomps}` : ''].filter(Boolean).join(' · ');
+    card.className = 'card lose';
+    card.innerHTML = `<h2>${esc(title)}</h2><p class="tip">💡 ${esc(tip)}</p>${why ? `<p class="why">${esc(why)}</p>` : ''}<div class="row"><button type="button" class="btn" data-a="retry">↺ 같은 목욕 다시</button></div>`;
+  }
+  card.hidden = false;
+  placeCard();
+  card.querySelector<HTMLButtonElement>('.btn')!.focus({ preventScroll: true });
+}
+/** 🎨 D004 '엄지 도킹': 캔버스 아래 빈 자리가 넉넉하면 거기, 모자라면 캔버스 아래쪽 위로 올라와 겹친다 */
+function placeCard() {
+  if (card.hidden) return;
+  const r = canvas.getBoundingClientRect();
+  card.style.top = `${Math.round(Math.max(r.top + 52, Math.min(r.bottom + 12, innerHeight - 12 - card.offsetHeight)))}px`;
+}
+window.addEventListener('resize', placeCard);
+function act(a: 'next' | 'retry') {
+  if (!running || s.phase !== 'result') return;
+  advance(s, a);
+  card.hidden = true;
+  cardFor = '';
+  canvas.focus({ preventScroll: true });
+}
+card.addEventListener('click', (e) => {
+  const a = (e.target as HTMLElement).closest('button')?.dataset.a;
+  if (a === 'next' || a === 'retry') act(a);
+});
+window.addEventListener('keydown', (e) => {
+  if (!card.hidden && (e.key === 'r' || e.key === 'R')) (e.preventDefault(), act('retry'));
+});
+
 function start() {
   s = g.create((Date.now() % 1_000_000) + 1);
+  s.manual = true; // D004: 결과·실패 카드에서 버튼을 기다린다
+  card.hidden = true;
+  cardFor = '';
   running = true;
   overlay.hidden = true;
   last = performance.now();
@@ -76,6 +152,8 @@ function loop(now: number) {
     latch = null;
     g.step(s, input);
     acc -= TICK;
+    // 결과는 잠깐 연출을 본 뒤(성공 0.7초 · 실패 1초) 카드
+    if (s.phase === 'result' && s.pt >= (s.ok ? 30 : 60)) renderCard();
     if (g.over(s)) {
       running = false;
       const sc = g.score(s), best = Math.max(sc, store.get('best'));

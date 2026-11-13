@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
-import { FAUCET, STAGES, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, startStage } from '../studio/duckbath/game.ts';
+import { FAUCET, STAGES, advance, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, hintPoint, startStage } from '../studio/duckbath/game.ts';
 import { play } from '../studio/duckbath/funqa.ts';
 
 describe('욕조 물결 오리 시뮬', () => {
@@ -89,6 +89,45 @@ describe('욕조 물결 오리 시뮬', () => {
     });
     it('판 질문 한 줄이 판 1~4에 있다 (한 판 = 한 질문)', () => {
       for (let i = 0; i < 4; i++) expect(STAGES[i].ask?.length ?? 0).toBeGreaterThan(5);
+    });
+  });
+
+  describe('결과·실패 카드 버튼 (D004)', () => {
+    const idle = { tap: false, dir: 0 as const, pointer: null };
+    const clear1 = (s: ReturnType<typeof g.create>) => {
+      for (const o of s.objs) if (o.k === 0 || o.k === 1) o.st = 0; // 확인용: 오리를 모두 둥지에
+      for (let k = 0; k < 5 && s.phase === 'play'; k++) g.step(s, idle);
+    };
+    it('브라우저(manual)는 결과에서 버튼을 기다린다 — 저절로 넘어가지 않는다', () => {
+      const s = g.create(4);
+      s.manual = true;
+      clear1(s);
+      expect(s.phase).toBe('result');
+      for (let k = 0; k < 600; k++) g.step(s, idle);
+      expect([s.phase, s.stage]).toEqual(['result', 0]);
+      advance(s, 'next');
+      expect([s.phase, s.stage]).toEqual(['play', 1]);
+    });
+    it("같은 판을 '다시' 깨도 별은 판별 최고만 센다 (두 번 쌓이지 않음)", () => {
+      const s = g.create(4);
+      s.manual = true;
+      clear1(s);
+      const once = s.stars;
+      advance(s, 'retry');
+      expect([s.phase, s.stage]).toEqual(['play', 0]);
+      clear1(s);
+      expect(s.stars).toBe(once);
+    });
+    it('↺2 손가락: 같은 판을 두 번 넘게 실패하면 첫 톡 자리를 보여 준다(그 전엔 없음)', () => {
+      const s = g.create(4);
+      startStage(s, 4);
+      expect(hintPoint(s)).toBeNull();
+      s.stageTries = 2;
+      const p = hintPoint(s)!;
+      expect(p.x).toBeGreaterThan(0);
+      expect(p.x).toBeLessThan(1);
+      expect(p.y).toBeGreaterThan(0);
+      expect(p.y).toBeLessThan(1);
     });
   });
 

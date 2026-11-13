@@ -23,13 +23,29 @@ h1 span{color:#ffd84a}
 .g-overlay span{font-size:15px;color:#bfeaf2}
 .g-overlay:focus-visible{outline:3px solid #ffd84a}
 .ver{color:#6f9fab;font-size:12px;text-align:center;margin-top:10px}
+.card{position:fixed;left:50%;top:0;z-index:5;transform:translateX(-50%);width:min(calc(var(--cw,390px) - 24px),360px);box-sizing:border-box;background:#0b2c39f5;border:2px solid #3e7f92;border-radius:20px;padding:16px;box-shadow:0 8px 24px #0006;color:#fffaf0;text-align:center}
+.card.lose{border-color:#ffb3a8}
+.card h2{margin:0 0 8px;font-size:22px;font-weight:900;line-height:1.25}
+.card.win h2{font-size:34px;color:#ffd84a}
+.card ul{list-style:none;margin:0 0 12px;padding:0;text-align:left}
+.card li{font-size:15px;font-weight:700;margin:4px 0;display:flex;gap:8px;align-items:center}
+.card li i{font-style:normal;font-size:20px;color:#ffd84a;width:22px;text-align:center}
+.card li.todo{color:#a9d3dc}
+.card li.todo i{color:#6f9fab}
+.card li:first-child:empty{display:none}
+.card .tip{margin:0 0 6px;font-size:15px;font-weight:700;color:#ffe9a8}
+.card .why{margin:0 0 12px;font-size:15px;color:#a9d3dc}
+.card .row{display:flex;gap:8px}
+.card .btn{flex:1.5;min-height:52px;border:0;border-radius:26px;background:#ffd23a;color:#3a2a00;font:800 18px system-ui,sans-serif;box-shadow:0 4px 0 #e29a00;cursor:pointer}
+.card .btn2{flex:1;min-height:44px;align-self:center;border:2px solid #2e6576;border-radius:22px;background:#1b4b5b;color:#fffaf0;font:800 16px system-ui,sans-serif;cursor:pointer}
+.card button:focus-visible{outline:3px solid #ffd84a;outline-offset:2px}
 </style>
 </head>
 <body>
 <main>
   <header><h1>🦆 욕조 물결 <span>오리</span></h1></header>
   <div id="game"></div>
-  <p class="ver">스튜디오 빌드 M1 작업 중 (D003)</p>
+  <p class="ver">스튜디오 빌드 M1 작업 중 (D004)</p>
 </main>
 <script>/*BUNDLE*/</script>
 </body>
