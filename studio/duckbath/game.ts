@@ -385,10 +385,9 @@ function phys(S: Sim, E: DuckState | null) {
         g.hit[im] |= 1 << i;
         if (L.islands.length && shadow(L, g.x, g.y, ix, iy, o.x, o.y, im)) continue;
         if (o.zz) {
-          // 💤 처음 맞은 물결엔 깨기만 — 밀지 않는다. 같은 톡의 반사 물결(다른 im)은 깬 뒤라 민다
+          // 💤 처음 맞은 물결엔 깨기만 — 밀지 않는다. 같은 톡의 반사 물결(다른 im)은 깬 뒤라 민다.
+          // 🧪 D013: 깨운 물결은 쌍물결 짝으로 치지 않는다(hitT를 찍지 않음 — 규칙 2줄에 없는 ×1.5 덤 방지)
           o.zz = 0;
-          o.hitT = S.t;
-          o.hitR = g.id * 8 + im;
           if (E) (o.mood = 1), (o.moodT = 40), (o.spin = 1.2), ev(E, 'wake', o.x, o.y, '번쩍! 깼다!');
           continue;
         }
