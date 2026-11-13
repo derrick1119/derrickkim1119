@@ -6,7 +6,7 @@ import { TICK, type Input } from './core.ts';
 import { mountResultCard } from './ui.ts';
 import { ICON, mountHud } from './hud.ts';
 import { peek } from './juice.ts';
-import { RESULT_MIN, at, jumpTo, preview, sheepdog as g, starCount, type DogState } from './game.ts';
+import { RESULT_MIN, at, jumpTo, preview, sheepdog as g, sheepdogGreedy, starCount, type DogState } from './game.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('sheepdog:' + k) ?? 0); } catch { return 0; } },
@@ -175,4 +175,5 @@ function splashPoint() {
     }
   return null;
 }
-(globalThis as unknown as { __sd: { state: () => DogState; jump: (k: number) => void; splash: () => unknown } }).__sd = { state: () => s, jump: (k) => jumpTo(s, k), splash: splashPoint };
+// bot: 그리디 봇이 지금 짖을 자리(캔버스 비율) — shots가 진짜 ★2 카드를 찍을 때 (PM C008)
+(globalThis as unknown as { __sd: { state: () => DogState; jump: (k: number) => void; splash: () => unknown; bot: () => unknown } }).__sd = { state: () => s, jump: (k) => jumpTo(s, k), splash: splashPoint, bot: () => sheepdogGreedy.act(s, Math.random).pointer };

@@ -111,9 +111,27 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
     if ((await st(page, 's.flags.length')) !== 2) errors.push(`${name}: 풍덩 뒤 깃발이 안 뜸`);
     await page.screenshot({ path: join(here, 'screens', `${name}-flags.png`) });
   }
-  // ★2 결과 카드(모양 확인용 — 한 번에 '다 넣기+꽃밭 밟음'이 되는 자리가 없어 결과 상태를 직접 놓는다): ☆ 더 따기 / 다음, R로 다시
-  await page.evaluate(() => { const sd = (globalThis as any).__sd; sd.jump(1); const s = sd.state(); s.phase = 'result'; s.ok = true; s.got = 5; s.best[1] = 5; s.clearT = s.t; s.pt = 0; });
-  await page.waitForTimeout(1600);
+  // ★2 결과 카드 — 진짜 플레이(PM C008): 1-2에서 첫 멍을 그리디 자리 옆 0.08로 헛짖고, 나머지는 그리디 봇 자리를 진짜로 눌러 깬다 → par 넘김 = ★2
+  await page.evaluate(() => (globalThis as any).__sd.jump(1));
+  const bark = async (dx: number) => {
+    await page.waitForFunction(() => { const s = (globalThis as any).__sd.state(); return s.phase === 'aim' && !s.down; }, null, { timeout: 10_000 });
+    const q = await page.evaluate(() => (globalThis as any).__sd.bot()), bb = await page.locator('#game').boundingBox();
+    await page.mouse.move(bb.x + (q.x + dx) * bb.width, bb.y + q.y * bb.height);
+    await page.mouse.down();
+    await page.waitForTimeout(80);
+    await page.mouse.up();
+    await page.waitForFunction(() => { const s = (globalThis as any).__sd.state(); return s.phase !== 'aim' || s.down === false; }, null, { timeout: 5000 });
+    await page.waitForTimeout(100);
+  };
+  await bark(0.08);
+  for (let k = 0; k < 8 && (await st(page, 's.phase')) !== 'result'; k++) {
+    await page.waitForFunction(() => ['aim', 'result'].includes((globalThis as any).__sd.state().phase), null, { timeout: 10_000 });
+    if ((await st(page, 's.phase')) === 'result') break;
+    await bark(0);
+  }
+  await page.waitForFunction(() => (globalThis as any).__sd.state().phase === 'result', null, { timeout: 10_000 });
+  await page.waitForTimeout(1900);
+  if ((await st(page, 's.ok + "," + (s.got === 7)')) !== 'true,false') errors.push(`${name}: 진짜 ★2 카드를 못 만듦`);
   await page.screenshot({ path: join(here, 'screens', `${name}-card-2star.png`) });
   if (!(await page.locator('#card [data-act=retry]').textContent())?.includes('더 따기')) errors.push(`${name}: ★2인데 ☆ 더 따기가 없음`);
   await page.keyboard.press('KeyR');
