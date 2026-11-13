@@ -10,6 +10,15 @@ const { chromium } = createRequire(import.meta.url)('playwright') as { chromium:
 const here = import.meta.dirname, url = pathToFileURL(join(here, '../../web/public/studio/sheepdog/index.html')).href;
 const browser = await chromium.launch();
 const errors: string[] = [];
+/** 완료 기준(🎨 §12-10, C009): HUD·카드·타이틀 DOM에 그림 글자(이모지) 0 */
+const noEmoji = async (page: any, at: string) => {
+  const bad: string = await page.evaluate(() =>
+    ['#hudTop', '#hudBot', '#news', '#card', '#overlay', '#retry']
+      .map((q) => [...(document.querySelector(q)?.textContent ?? '')].filter((c) => /\p{Extended_Pictographic}/u.test(c)).join(''))
+      .join(''),
+  );
+  if (bad) errors.push(`${at}: 이모지 ${bad}`);
+};
 const st = (page: any, expr: string) => page.evaluate(`(() => { const s = globalThis.__sd.state(); return ${expr}; })()`);
 for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', { width: 1280, height: 800 }]] as const) {
   const page = await browser.newPage({ viewport: vp, deviceScaleFactor: 1 });
@@ -18,11 +27,13 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.goto(url);
   await page.waitForTimeout(600);
   await page.screenshot({ path: join(here, 'screens', `${name}-title.png`) });
+  await noEmoji(page, `${name}-title`);
   if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) errors.push(`${name}: 가로 스크롤`);
   // 키보드만으로 시작
   await page.keyboard.press('Enter');
   await page.waitForTimeout(1200);
   await page.screenshot({ path: join(here, 'screens', `${name}-play.png`) });
+  await noEmoji(page, `${name}-play`);
   // 첫 판: 양 무리 아래쪽을 꾹 누르고 있기(미리 보기) → 떼기(멍!)
   const box = await page.locator('#game').boundingBox();
   const [px, py] = [box.x + box.width * 0.5, box.y + box.height * 0.5]  // 첫 판 양 무리 바로 아래;
@@ -39,6 +50,8 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.waitForTimeout(1900);
   if (await page.locator('#card').isHidden()) errors.push(`${name}: 결과 카드 안 뜸`);
   await page.screenshot({ path: join(here, 'screens', `${name}-card-medal.png`) });
+  await noEmoji(page, `${name}-card`);
+  if (!(await page.locator('#hudBot').evaluate((e: HTMLElement) => getComputedStyle(e).visibility === 'hidden'))) errors.push(`${name}: 카드가 떴는데 아래 HUD가 보임`);
   await page.waitForTimeout(1500);
   if ((await st(page, 's.stage')) !== 0) errors.push(`${name}: 결과 카드에서 저절로 넘어감`);
   await page.keyboard.press('Enter');
@@ -106,6 +119,13 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.keyboard.press('KeyR');
   await page.waitForTimeout(200);
   if ((await st(page, 's.stage + s.phase')) !== '1aim') errors.push(`${name}: 카드에서 R로 다시 안 됨`);
+  // 회색 도장(나눠 모은 ★★★, 📐 C003): 이번엔 ★2인데 예전에 다른 별을 따 둠 → 별은 '예전'으로, 도장은 회색 점선
+  await page.evaluate(() => { const sd = (globalThis as any).__sd; sd.jump(2); const s = sd.state(); s.phase = 'result'; s.ok = true; s.got = 3; s.best[2] = 7; s.clearT = s.t; s.pt = 0; });
+  await page.waitForTimeout(1600);
+  if (!(await page.locator('#card .medal.grey').isVisible())) errors.push(`${name}: 나눠 모은 ★★★인데 회색 도장이 없음`);
+  await page.screenshot({ path: join(here, 'screens', `${name}-card-grey.png`) });
+  await page.keyboard.press('KeyR');
+  await page.waitForTimeout(200);
   // 끝 화면: 1-8을 깬 결과 카드(상태를 놓음)에서 진짜 '끝 ▶' 버튼을 눌러 간다 — 카드가 끝 화면 위에 남지 않는지 (FUN QA C008)
   await page.evaluate(() => { const sd = (globalThis as any).__sd; sd.jump(7); const s = sd.state(); s.phase = 'result'; s.ok = true; s.won = true; s.got = 7; s.best[7] = 7; s.clearT = s.t; s.pt = 0; });
   await page.waitForTimeout(150);
@@ -114,6 +134,28 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   if (await page.locator('#overlay').isHidden()) errors.push(`${name}: 끝 화면 안 뜸`);
   if (await page.locator('#card').isVisible()) errors.push(`${name}: 끝 화면 위에 결과 카드가 남음`);
   await page.screenshot({ path: join(here, 'screens', `${name}-end.png`) });
+  await noEmoji(page, `${name}-end`);
+  if (await page.locator('#hudTop').isVisible()) errors.push(`${name}: 끝 화면에 HUD가 남음`);
+  await page.close();
+}
+// 작은 폰(375×667): 타이틀·플레이·결과 카드가 잘리지 않는지 (PM C008 ④)
+{
+  const page = await browser.newPage({ viewport: { width: 375, height: 667 }, deviceScaleFactor: 1 });
+  page.on('pageerror', (e: Error) => errors.push(`se: ${e.message}`));
+  await page.goto(url);
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: join(here, 'screens', 'se-title.png') });
+  const fits = (q: string) => page.evaluate((qq: string) => { const r = document.querySelector(qq)!.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth; }, q);
+  if (!(await fits('#start'))) errors.push('se: 시작 버튼이 화면 밖');
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: join(here, 'screens', 'se-play.png') });
+  if (!(await fits('#hudBot .chips'))) errors.push('se: 별 목표 칩이 화면 밖');
+  await page.evaluate(() => { const s = (globalThis as any).__sd.state(); s.phase = 'result'; s.ok = true; s.got = 7; s.best[0] = 7; s.clearT = s.t; s.pt = 0; });
+  await page.waitForTimeout(1900);
+  await page.screenshot({ path: join(here, 'screens', 'se-card.png') });
+  if (!(await fits('#card [data-act=next]'))) errors.push('se: 결과 카드 버튼이 화면 밖');
+  if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) errors.push('se: 가로 스크롤');
   await page.close();
 }
 // localStorage 막힌 환경

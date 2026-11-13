@@ -4,6 +4,7 @@
  */
 import { TICK, type Input } from './core.ts';
 import { mountResultCard } from './ui.ts';
+import { ICON, mountHud } from './hud.ts';
 import { peek } from './juice.ts';
 import { RESULT_MIN, at, jumpTo, preview, sheepdog as g, starCount, type DogState } from './game.ts';
 
@@ -40,9 +41,11 @@ function size() {
   canvas.width = Math.round(W * dpr);
   canvas.height = Math.round(H * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  // ↺ 다시 버튼: 캔버스 오른쪽 위 모서리
-  retryBtn.style.left = `${canvas.offsetLeft + W - 46}px`;
-  retryBtn.style.top = `${canvas.offsetTop + 2}px`;
+  // 위 줄(🎨 §12-3): 띠가 64px 이상이면 띠에, 아니면 캔버스 위 8px. ↺는 그 줄 오른쪽 끝(금테 모서리를 덮지 않는다)
+  const rowTop = canvas.offsetTop >= 64 ? canvas.offsetTop - 52 : canvas.offsetTop + 8;
+  hud.place(canvas.offsetLeft, rowTop - 6, canvas.offsetTop, W, root.clientHeight - canvas.offsetTop);
+  retryBtn.style.left = `${canvas.offsetLeft + W - 52}px`;
+  retryBtn.style.top = `${rowTop - 2}px`;
   // 🎨 C007 ④-a: 캔버스 아래 빈 띠를 디오라마를 올린 탁자색으로 잇는다(세로 화면)
   // 가로·데스크톱은 탁자색 하나 (하늘 줄이 넓은 화면 전체 폭에 깔리면 어색하다, 🎨 C008)
   document.body.style.background = portrait ? `linear-gradient(#8ecff0 ${canvas.offsetTop + 1}px, #4a3322 ${canvas.offsetTop + 1}px)` : '#4a3322';
@@ -63,10 +66,12 @@ function draw() {
 
 function showTitle(html?: string) {
   if (html) document.getElementById('msg')!.innerHTML = html;
+  document.getElementById('rules')!.hidden = !!html; // 끝 화면은 규칙 대신 결과 (🎨 §12-9)
   const b = store.get('best');
   best.textContent = b ? `최고 ${b}점` : '';
   overlay.hidden = false;
   retryBtn.hidden = true;
+  hud.show(false);
   startBtn.focus({ preventScroll: true });
 }
 
@@ -79,6 +84,7 @@ function start() {
   running = true;
   overlay.hidden = true;
   retryBtn.hidden = false;
+  hud.show(true);
   acc = 0;
   last = performance.now();
   canvas.focus({ preventScroll: true });
@@ -107,12 +113,15 @@ function loop(now: number) {
       store.set('best', b);
       card.sync(s);
       draw();
-      showTitle(`<p class="big">★ ${s.stars} / ${s.best.length * 3}</p><p>${s.won ? '모든 목장의 양을 집에 데려다줬어요! 🐑' : '오늘은 여기까지 — 다시 해 볼까요?'} · ${sc}점</p>`);
+      // 끝 화면 (🎨 §12-9): 제목 → ★ N / 24 → 판 8칸 미니 격자 → 점수 → [다시 하기]. 이모지 없이 SVG
+      const grid = s.best.map((m, k) => `<li>1-${k + 1}<span>${[0, 1, 2].map((j) => ICON.star(((m >> j) & 1) === 1)).join('')}</span></li>`).join('');
+      showTitle(`<h2>${s.won ? 'W1 아침 들판 완성!' : '오늘은 여기까지'}</h2><p class="big">${ICON.star(true)}<span>${s.stars} / ${s.best.length * 3}</span></p><ol class="grid" aria-label="판별 별">${grid}</ol><p class="score">${sc}점</p>`);
       startBtn.textContent = '다시 하기';
       return;
     }
   }
   card.sync(s);
+  hud.sync(s);
   draw();
   requestAnimationFrame(loop);
 }
@@ -142,6 +151,8 @@ canvas.addEventListener('keyup', (e) => {
   if (e.key === ' ' || e.key === 'Enter') (spaceDown = false), (pointer = null);
 });
 startBtn.addEventListener('click', start);
+const hud = mountHud(root);
+retryBtn.innerHTML = ICON.retry;
 // 판 결과 카드 (C008): 버튼은 다음 틱 입력으로 — 시뮬과 같은 길(봇·테스트와 같음)
 const card = mountResultCard(root, () => ((next = true), canvas.focus({ preventScroll: true })), () => ((retry = true), canvas.focus({ preventScroll: true })));
 document.addEventListener('keydown', (e) => {

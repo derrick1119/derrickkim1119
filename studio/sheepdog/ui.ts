@@ -2,7 +2,8 @@
  * 양치기 멍멍 — 캔버스 밖 DOM UI (C008 M1-5a, 🎨 ART §12): 판 결과 카드.
  * 시뮬은 건드리지 않는다. main.ts가 매 프레임 sync(s)를 부르고, 버튼은 다음 틱의 입력(next·retry)으로 들어간다.
  */
-import { STAGES, medalOf, starCount, type DogState } from './game.ts';
+import { STAGES, goalLabels, medalOf, starCount, type DogState } from './game.ts';
+import { ICON } from './hud.ts';
 
 const STAR = (on: boolean) =>
   `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 6 6.5.9-4.7 4.6 1.1 6.5L12 17.5l-5.8 3.1 1.1-6.5L2.6 9.5l6.5-.9z" fill="${on ? '#ffc857' : 'none'}" stroke="${on ? '#7a3e1d' : '#9c8566'}" stroke-width="2" stroke-linejoin="round"/></svg>`;
@@ -30,7 +31,7 @@ export function mountResultCard(root: HTMLElement, onNext: () => void, onRetry: 
     <div class="medal" aria-hidden="true"><span>한 번에!</span></div>
     <div class="row">
       <button type="button" class="btn ghost" data-act="retry"></button>
-      <button type="button" class="btn" data-act="next">다음 ▶</button>
+      <button type="button" class="btn" data-act="next"></button>
     </div>`;
   root.append(el);
   const h2 = el.querySelector('h2')!, starsEl = el.querySelector('.stars')!, say = el.querySelector('.say')!, medal = el.querySelector<HTMLElement>('.medal')!;
@@ -49,7 +50,7 @@ export function mountResultCard(root: HTMLElement, onNext: () => void, onRetry: 
       if (shownFor === s.clearT) return;
       shownFor = s.clearT;
       const d = STAGES[s.stage], got = s.got, n = starCount(got);
-      const goals = ['다 넣기', `멍멍 ${d.par}번`, d.bonus === 'black' ? '까만 양도' : d.bonus === 'clover' ? '클로버 밟기' : '꽃밭 안 밟기'];
+      const goals = goalLabels(d); // HUD 칩과 같은 소스 (C009)
       h2.textContent = s.won ? 'W1 아침 들판 완성!' : `1-${s.stage + 1} 통과!`;
       say.textContent = GRANDPA[n];
       starsEl.innerHTML = goals
@@ -61,9 +62,9 @@ export function mountResultCard(root: HTMLElement, onNext: () => void, onRetry: 
       // 🏅 한 번에! — 한 시도에 ★★★(깃발 도움 없이)면 세 번째 별 뒤 쿵, 나눠 모은 ★★★면 회색 점선 (📐 C003·C004)
       medal.className = `medal ${medalOf(s)}`;
       // ★3이면 [다음 ▶] + 작은 '↺ 다시', 아니면 [↺ ☆ 더 따기] + [다음 ▶] (자동으로 넘기지 않는다)
-      retryB.textContent = n === 3 ? '↺ 다시' : '↺ ☆ 더 따기';
+      retryB.innerHTML = `${ICON.retry}${n === 3 ? '다시' : '☆ 더 따기'}`;
       retryB.classList.toggle('small', n === 3);
-      nextB.textContent = s.won ? '끝 ▶' : '다음 ▶';
+      nextB.innerHTML = `${s.won ? '끝' : '다음'}${ICON.next}`; // ▶는 그림 글자로 보이는 폰이 있어 SVG (C009 이모지 0)
       el.hidden = false;
       el.classList.remove('up');
       void el.offsetWidth; // 애니메이션 다시

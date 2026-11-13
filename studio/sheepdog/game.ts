@@ -270,6 +270,31 @@ const BONUS_LABEL: Record<Bonus, string> = { flower: '꽃밭 안 밟기', black:
 /** 🏅 '한 번에!' (📐 C003·C004): 한 시도에 ★★★(깃발 도움 없이) = gold, 나눠 모은 ★★★ = grey, 아니면 none. 별 수에는 안 센다 */
 export const medalOf = (s: DogState): 'gold' | 'grey' | 'none' =>
   s.phase === 'result' && s.ok && s.got === 7 && !s.helped ? 'gold' : s.best[s.stage] === 7 ? 'grey' : 'none';
+/** HUD(DOM)가 그릴 것 — 결과 카드와 같은 소스에서 (🎨 C008: 칩 문구와 카드 캡션이 갈리지 않게) */
+export function goalLabels(d: StageDef) {
+  return ['다 넣기', `멍멍 ${d.par}번`, BONUS_LABEL[d.bonus]];
+}
+export interface HudState { stage: number; name: string; stars: number; max: number; par: number; used: number; sheepIn: number; sheepN: number; goals: { label: string; st: 'on' | 'had' | 'off' | 'wait' }[]; hint: string | null; news: string | null; card: boolean }
+export function hudState(s: DogState): HudState {
+  const d = STAGES[s.stage], F = s.F, S = s.S, allIn = s.phase === 'result' && s.ok, bonusOk = bonusMet(F, S, d);
+  const now: (boolean | null)[] = [
+    allIn ? true : null,
+    S.used > d.par ? false : allIn ? true : null,
+    d.bonus === 'flower' && !bonusOk ? false : bonusOk && (allIn || d.bonus !== 'flower') ? true : allIn ? false : null,
+  ];
+  const goals = goalLabels(d).map((label, k) => {
+    const st = now[k], had = ((s.best[s.stage] >> k) & 1) === 1;
+    return { label, st: st === true ? ('on' as const) : had ? ('had' as const) : st === false ? ('off' as const) : ('wait' as const) };
+  });
+  // 안내문 줄은 없앴다(🎨 §12-5, C009): 1-1·1-2는 캔버스 손 아이콘, 깃발 말은 할아버지 말풍선으로
+  const hint = s.flags.length && s.phase === 'aim' ? `할아버지 깃발 ${s.flags.length === 2 ? '①' : '②'} 자리에서 짖어 보렴` : null;
+  const nW = F.black.filter((b) => !b).length;
+  return {
+    stage: s.stage, name: d.name, stars: s.stars, max: d.max, par: d.par, used: S.used,
+    sheepIn: F.black.filter((b, i) => !b && S.pen[i] >= 0).length, sheepN: nW, goals, hint,
+    news: s.news && s.t - s.news.t < NEWS_T + 20 ? s.news.text : null, card: allIn,
+  };
+}
 export const starCount = (mask: number) => (mask & 1) + ((mask >> 1) & 1) + ((mask >> 2) & 1);
 
 // ───────── 부딪힘 ─────────
@@ -738,6 +763,9 @@ const FY0 = 0.305, FH = 0.775, FXW = 0.92;
 const scl = (fy: number) => 0.8 + 0.25 * fy;
 const SX = (fx: number, fy: number) => 0.5 + (fx - 0.5) * FXW * scl(fy);
 const SY = (fy: number) => FY0 + fy * FH;
+/** 손 아이콘(hud.ts ICON.hand와 같은 24 격자 경로) — 그릴 때 처음 만든다 */
+let HAND_P: Path2D | null = null;
+const HAND_D = 'M9 13V5.5a1.6 1.6 0 0 1 3.2 0V11l.1-1.2a1.5 1.5 0 0 1 3 .2v1.5a1.5 1.5 0 0 1 3 .1V15c0 3.6-2.4 6-5.6 6h-1.2c-2 0-3.4-.9-4.6-2.6L4.6 15a1.6 1.6 0 0 1 2.6-1.9z';
 function toField(x: number, y: number): [number, number] | null {
   const fy = (y - FY0) / FH;
   if (fy < -0.03 || fy > 1.03) return null;
@@ -1825,7 +1853,7 @@ function drawGrandpa(ctx: CanvasRenderingContext2D, x: number, y: number, z: num
 const recentSay = new WeakMap<object, { x: number; y: number; t: number }[]>();
 let darkCv: HTMLCanvasElement | null = null;
 
-function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: number, th: Theme) {
+function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: number, _th: Theme) {
   const fx = juice(s), t = s.t, F = s.F, S = s.S, d = STAGES[s.stage];
   const X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w;
   const PX = (fx0: number, fy0: number) => X(SX(fx0, fy0)), PY = (fy0: number) => Y(SY(fy0));
@@ -2647,21 +2675,36 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       }
     }
   }
-  // 첫 판 첫 톡 안내: 양 뒤쪽에 손가락
-  if (s.stage === 0 && s.S.used === 0 && s.phase === 'aim' && !s.down && s.tries === 0) {
+  // 1-1·1-2 첫 톡 안내: 양 뒤쪽에 그린 손 (C009: 이모지 대신 벡터, 1-2는 '꾹' 고리가 차오른다)
+  if (s.stage <= 1 && s.S.used === 0 && s.phase === 'aim' && !s.down && s.tries === 0) {
     let cx = 0, cy = 0;
     for (let i = 0; i < F.n; i++) (cx += S.x[i] / F.n), (cy += S.y[i] / F.n);
-    const hy = cy + 0.15, bob = Math.abs(Math.sin(t * 0.12)) * R(0.02);
-    ctx.strokeStyle = `rgba(255,255,255,${0.5 + 0.4 * Math.sin(t * 0.12)})`;
+    const hy = cy + 0.15, hx = PX(cx, hy), py = PY(hy), hold = s.stage === 1, k = hold ? (t % 90) / 70 : 0;
+    const bob = hold ? Math.min(1, k * 3) * R(0.012) : Math.abs(Math.sin(t * 0.12)) * R(0.02);
     ctx.lineWidth = 2.5;
+    ctx.strokeStyle = hold ? 'rgba(255,255,255,.45)' : `rgba(255,255,255,${0.5 + 0.4 * Math.sin(t * 0.12)})`;
     ctx.beginPath();
-    ctx.ellipse(PX(cx, hy), PY(hy), R(0.05), R(0.025), 0, 0, TAU);
+    ctx.ellipse(hx, py, R(0.05), R(0.025), 0, 0, TAU);
     ctx.stroke();
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `${R(0.07)}px system-ui, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('👆', PX(cx, hy) + R(0.01), PY(hy) + R(0.045) + bob);
+    if (hold && k > 0) {
+      ctx.strokeStyle = '#ffc857';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.ellipse(hx, py, R(0.05), R(0.025), 0, -Math.PI / 2, -Math.PI / 2 + TAU * Math.min(1, k));
+      ctx.stroke();
+    }
+    const z = R(0.075) / 24;
+    ctx.save();
+    ctx.translate(hx - 10.6 * z, py - 3.6 * z + bob);
+    ctx.scale(z, z);
+    ctx.fillStyle = '#fff6e4';
+    ctx.strokeStyle = '#7a3e1d';
+    ctx.lineWidth = 1.8;
+    ctx.lineJoin = 'round';
+    const HAND = (HAND_P ??= new Path2D(HAND_D));
+    ctx.fill(HAND);
+    ctx.stroke(HAND);
+    ctx.restore();
   }
   // ═════════ 밤: 손전등 둘레만 ═════════
   if (night) {
@@ -2860,41 +2903,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   });
   // ═════════ HUD ═════════
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${R(sz)}px system-ui, sans-serif`);
-  const hb = R(0.082);
-  ctx.fillStyle = night ? 'rgba(12,18,40,.88)' : 'rgba(38,58,30,.86)';
-  ctx.fillRect(0, 0, w, hb);
-  ctx.textBaseline = 'middle';
-  ctx.textAlign = 'left';
-  ctx.fillStyle = th.ink;
-  font(0.045, 900);
-  const ttl = `🐑 ${s.stage + 1}판`, tw1 = ctx.measureText(ttl).width;
-  ctx.fillText(ttl, R(0.03), hb * 0.52);
-  font(0.037, 800);
-  ctx.fillStyle = th.muted;
-  ctx.fillText(` / ${STAGE_COUNT} · ${d.name}`, R(0.03) + tw1, hb * 0.55);
-  ctx.textAlign = 'right';
-  font(0.042, 900);
-  ctx.fillStyle = '#ffd166';
-  const stt = `★ ${s.stars}`;
-  ctx.fillText(stt, w - R(0.135), hb * 0.52);
-  // 새것 알림
-  if (s.news && s.t - s.news.t < NEWS_T + 20) {
-    const age = s.t - s.news.t, a = Math.min(1, age / 10, (NEWS_T + 20 - age) / 20), drop = Math.max(0, 10 - age) * 2;
-    ctx.globalAlpha = a;
-    font(0.036, 900);
-    ctx.textAlign = 'center';
-    const tx = `✨ ${s.news.text}`;
-    let fs = 0.036;
-    while (ctx.measureText(tx).width > w - R(0.05) && fs > 0.034) font((fs -= 0.001), 900);
-    const tw2 = Math.min(w - 8, ctx.measureText(tx).width + 22), by2 = hb + R(0.04) - drop;
-    ctx.fillStyle = 'rgba(30,40,24,.9)';
-    ctx.beginPath();
-    ctx.roundRect(w / 2 - tw2 / 2, by2 - R(0.027), tw2, R(0.054), R(0.027));
-    ctx.fill();
-    ctx.fillStyle = '#fff6d6';
-    ctx.fillText(tx, w / 2, by2 + 1);
-    ctx.globalAlpha = 1;
-  }
+  // 위 줄(판·별)과 새것 알림은 DOM(hud.ts)이 맡는다 (C009 M1-5b, 🎨 §12-3·4)
   // 판 시작 큰 글씨
   {
     const age = t - s.startT;
@@ -2982,71 +2991,6 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   ctx.fillRect(0, by, w, Y(A) - by + 2);
   ctx.fillStyle = 'rgba(255,255,255,.12)';
   ctx.fillRect(0, by, w, 1.5);
-  // 멍멍 (뼈다귀) 남은 수
-  {
-    const y1 = by + R(0.045);
-    ctx.textAlign = 'left';
-    font(0.038, 900);
-    ctx.fillStyle = '#fff6d6';
-    ctx.fillText('멍멍', R(0.03), y1);
-    const x0 = R(0.03) + ctx.measureText('멍멍 ').width, left = d.max - S.used;
-    const gap = Math.min(R(0.052), (w * 0.62 - x0) / d.max);
-    for (let k = 0; k < d.max; k++) {
-      const on = k < left, bx = x0 + k * gap + gap / 2, bz = gap * 0.42;
-      ctx.globalAlpha = on ? 1 : 0.25;
-      ctx.fillStyle = k === d.par - 1 ? '#ffe9a8' : '#fff6e6';
-      ctx.fillRect(bx - bz * 0.6, y1 - bz * 0.18, bz * 1.2, bz * 0.36);
-      for (const sx of [-1, 1]) for (const sy of [-1, 1]) (ctx.beginPath(), ctx.arc(bx + sx * bz * 0.6, y1 + sy * bz * 0.2, bz * 0.24, 0, TAU), ctx.fill());
-      ctx.globalAlpha = 1;
-    }
-    ctx.textAlign = 'right';
-    font(0.038, 900);
-    const inW = F.black.filter((b, i) => !b && S.pen[i] >= 0).length, nW = F.black.filter((b) => !b).length;
-    ctx.fillStyle = '#e8ffd0';
-    ctx.fillText(`🐑 ${inW}/${nW}`, w - R(0.03), y1);
-  }
-  // 별 목표 셋 — 통과 결과 카드가 떠 있으면 카드가 대신 보여 준다(가로 화면에서 칩이 카드 양옆으로 삐져나오던 것, 🎨 C008)
-  const cardUp = s.phase === 'result' && s.ok;
-  if (!cardUp) {
-    const y2 = by + R(0.105), gw = (w - R(0.06)) / 3;
-    const allIn = s.phase === 'result' && s.ok;
-    const bonusOk = bonusMet(F, S, d);
-    const goals: [string, boolean | null][] = [
-      ['다 넣기', allIn ? true : null],
-      [`멍멍 ${d.par}번 이하`, S.used > d.par ? false : allIn ? true : null],
-      [BONUS_LABEL[d.bonus], d.bonus === 'flower' && !bonusOk ? false : bonusOk && (allIn || d.bonus !== 'flower') ? true : allIn ? false : null],
-    ];
-    goals.forEach(([txt, st], k) => {
-      const gx = R(0.03) + k * gw, had = st !== true && ((s.best[s.stage] >> k) & 1) === 1; // 지난 시도에서 이미 딴 별
-      ctx.fillStyle = st === true ? 'rgba(255,209,102,.3)' : had ? 'rgba(255,209,102,.14)' : st === false ? 'rgba(120,120,120,.25)' : 'rgba(255,255,255,.08)';
-      ctx.strokeStyle = st === true || had ? '#ffd166' : st === false ? 'rgba(200,200,200,.4)' : 'rgba(255,230,180,.55)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.roundRect(gx + 2, y2 - R(0.026), gw - 4, R(0.052), R(0.026));
-      ctx.fill();
-      ctx.stroke();
-      ctx.textAlign = 'center';
-      font(0.036, 800);
-      ctx.fillStyle = st === false ? 'rgba(255,255,255,.45)' : '#fff6e0';
-      ctx.fillText(`${st === true || had ? '★' : st === false ? '✗' : '☆'} ${txt}`, gx + gw / 2, y2 + 1);
-    });
-  }
-  // 안내 한 줄
-  if (!cardUp) {
-    const y3 = by + R(0.168);
-    let tip = '👆 누르면 양이 갈 자리가 보여요 — 떼면 멍!';
-    if (s.stage === 0 && S.used === 0) tip = '👆 양 뒤쪽을 꾹 — 갈 자리를 보고, 떼면 멍!';
-    else if (s.flags.length && s.phase === 'aim') tip = `🚩 할아버지 깃발 ${s.flags.length === 2 ? '①' : '②'} 자리에서 짖어 보렴`;
-    else if (pvNote) tip = '떼면 멍! · 다른 데로 옮기면 다시 계산해요';
-    else if (s.phase === 'result') tip = s.ok ? (d.bonus === 'black' && !F.black.some((b, i) => b && S.pen[i] >= 0) ? '까만 양은 마지막 흰 양보다 먼저!' : '잘했어요!') : '같은 판을 다시 — 이번엔 미리 보고 짖어요';
-    else if (F.den) tip = '🐺 늑대는 멍멍마다 한 걸음 — 원 안에서 짖으면 깨갱!';
-    else if (F.goat && S.goatF > 0) tip = `🐐 염소가 기절했어요 — 멍멍 ${S.goatF}번 뒤 일어나요`;
-    else if (wind) tip = `🌬️ 바람이 ${wind > 0 ? '오른쪽' : '왼쪽'}으로 — 달아난 양이 더 밀려요`;
-    else if (F.pens.length > 1) tip = '🎀 리본 색과 같은 울타리로!';
-    ctx.textAlign = 'center';
-    font(0.036, 800);
-    ctx.fillStyle = 'rgba(255,246,214,.92)';
-    ctx.fillText(tip, w / 2, y3);
-  }
+  // 멍멍·양 알약, 별 목표 칩, 안내 줄은 DOM(hud.ts)이 맡는다 (C009 M1-5b, 🎨 §12-5)
 }
 
