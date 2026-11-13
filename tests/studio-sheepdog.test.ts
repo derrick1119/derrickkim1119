@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/sheepdog/core.ts';
-import { BLACK_TIP, COME_HOLD, goalLabels, hudState, medalOf, FLAG_SNAP, LATER, SKY, STAGES, WORLD_TIME, at as atField, blackCame, comeHold, jumpTo, preview, starCount, sheepdog as g, sheepdogGreedy, sheepdogRandom, sheepdogSmart, topOf, type DogState } from '../studio/sheepdog/game.ts';
+import { BLACK_TIP, COME_HOLD, goalLabels, hudState, medalOf, FLAG_SNAP, LATER, SKY, STAGES, WORLD_TIME, at as atField, blackCame, comeHold, jumpTo, preview, starCount, sheepdog as g, sheepdogGreedy, sheepdogNaive, sheepdogRandom, sheepdogSmart, topOf, type DogState } from '../studio/sheepdog/game.ts';
 import { mulberry32 } from '../studio/sheepdog/rng.ts';
 
 const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y } });
@@ -61,9 +61,9 @@ describe('양치기 멍멍 시뮬', () => {
 describe('M1-2 W1 아침 들판 (CONTENT.md W1)', () => {
   it('W1 8판이 CONTENT 표 순서와 같고, 프로토타입 P4~P8은 다음 월드용으로 남는다', () => {
     expect(STAGES.map((d) => d.name)).toEqual(['첫 울타리', '미리 보기', '흩어진 양', '까만 양', '끌어오기', '개울과 다리', '좁은 다리', '아침 축제']);
-    // 📐 C014(F01): 1-4·1-5는 까만 양까지 넣어야 통과(규칙 '양을 모두'), 🖤 보너스 대신 🌼·🍀 (1-8은 C015에)
-    expect(STAGES.map((d) => d.bonus)).toEqual(['flower', 'flower', 'clover', 'flower', 'clover', 'flower', 'clover', 'black']);
-    expect(STAGES.map((d) => !!d.needBlack)).toEqual([false, false, false, true, true, false, false, false]);
+    // 📐 C014(F01): 1-4·1-5는 까만 양까지 넣어야 통과(규칙 '양을 모두'), 🖤 보너스 대신 🌼·🍀 · 📐 C015: 1-8도 까만 양 필수 + 🍀 (1-4부터 하나의 규칙)
+    expect(STAGES.map((d) => d.bonus)).toEqual(['flower', 'flower', 'clover', 'flower', 'clover', 'flower', 'clover', 'clover']);
+    expect(STAGES.map((d) => !!d.needBlack)).toEqual([false, false, false, true, true, false, false, true]);
     expect(LATER.map((d) => d.key)).toEqual(['goat', 'wolf', 'wind', 'twopens', 'night']);
   });
 
@@ -475,6 +475,48 @@ describe('M1-1 시스템: 실패는 벌이 아니다 (GDD §4.3~4.5, FUN F7)', (
     for (let t = 0; t < 40 && phaseOf(s) === 'result' && !s.dead; t++) g.step(s, { ...up, next: true });
     expect([s.won, s.dead]).toEqual([true, true]);
   });
+});
+
+describe('F01 전략 깊이 (오너 1차 \'전략이 조금 단순해지는 느낌\' → FUN F11, 📐 C015)', () => {
+  /** 목장 좌표에서 한 번 눌렀다 떼고, 양이 다 멈출 때까지 */
+  const bark = (s: DogState, fx: number, fy: number) => {
+    g.step(s, atField(fx, fy));
+    g.step(s, up);
+    for (let t = 0; t < 400 && phaseOf(s) !== 'aim' && phaseOf(s) !== 'result'; t++) g.step(s, up);
+  };
+
+  it('습관 손(미리 보기 없이 \'양 뒤에서 문 쪽\')은 1-3·1-5·1-7·1-8 첫 시도 통과 ≤ 0.5, 보너스 ≤ 0.3', () => {
+    for (const k of [2, 4, 6, 7]) {
+      let ok = 0, bonus = 0;
+      for (let i = 0; i < 20; i++) {
+        const seed = 4000 + i, s = g.create(seed), rng = mulberry32(seed ^ 0x9e3779b9);
+        jumpTo(s, k);
+        for (let t = 0; t < 60 * 120 && s.stage === k && phaseOf(s) !== 'result'; t++) g.step(s, sheepdogNaive.act(s, rng));
+        if (phaseOf(s) === 'result' && s.ok) (ok++, (bonus += (s.got >> 2) & 1));
+      }
+      expect(ok / 20, `${k + 1}판 습관 통과`).toBeLessThanOrEqual(0.5);
+      expect(bonus / 20, `${k + 1}판 습관 보너스`).toBeLessThanOrEqual(0.3);
+    }
+  }, 120_000);
+
+  it('1-5 끌어오기: 사람이 짚을 만한 길(먼저 까만 양 아래 → 흰 무리 뒤 → 문 앞)로도 한 번에 ★3 (🧪 C014 손 길, 📐 C015)', () => {
+    const s = g.create(11);
+    jumpTo(s, 4);
+    for (let t = 0; t < 400 && phaseOf(s) !== 'aim'; t++) g.step(s, up);
+    for (const [x, y] of [[0.5, 0.835], [0.4, 0.56], [0.46, 0.45], [0.44, 0.29]]) if (phaseOf(s) !== 'result') bark(s, x, y);
+    expect(phaseOf(s)).toBe('result');
+    expect([s.ok, s.got]).toEqual([true, 7]);
+    expect(s.S.used).toBeLessThanOrEqual(STAGES[4].par);
+  });
+
+  it('1-8 아침 축제도 까만 양까지 넣어야 통과, 박사는 한 번에 ★3·par 안 (📐 C015: 1-4부터 하나의 규칙)', () => {
+    const s = g.create(1000);
+    jumpTo(s, 7);
+    play(s, 'smart', 1000 ^ 0x9e3779b9);
+    expect([s.ok, s.got]).toEqual([true, 7]);
+    expect(s.S.used).toBeLessThanOrEqual(STAGES[7].par);
+    expect(s.F.black.every((b, i) => !b || s.S.pen[i] >= 0)).toBe(true);
+  }, 60_000);
 });
 
 describe('플레이 빌드', () => {

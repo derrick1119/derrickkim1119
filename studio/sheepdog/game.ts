@@ -191,11 +191,11 @@ export const STAGES: StageDef[] = [
     }),
   },
   {
-    key: 'scatter', name: '흩어진 양', news: '🐑 가까이서 짖으면 멀리, 바깥 원은 조금!', max: 9, par: 3, bonus: 'clover',
+    key: 'scatter', name: '흩어진 양', news: '🐑 가까이서 짖으면 멀리, 바깥 원은 조금!', max: 7, par: 3, bonus: 'clover', // 📐 C015: max 9 → 7, 🍀 왼쪽 위로(습관 0.40·보너스 0.15·폭 0.17)
     build: (r) => ({
       pens: [WIDE()],
       flowers: [],
-      clovers: [{ x: 0.5, y: 0.42, r: 0.05 }],
+      clovers: [{ x: 0.22, y: 0.42, r: 0.05 }],
       // C012 M1-7 ② 2차(📐 C012 우선순위: 막힘 0 > ±3px 박사 ★3 ≥ 0.7 > 그리디 par+1(정확·정수 px)). 손 떨림 ★3 0.98·그리디 4(par+1)·정수 px 4·par 이하 0
       sheep: [[0.272, 0.568], [0.358, 0.6], [0.692, 0.534], [0.701, 0.523], [0.528, 0.633]].map(([x, y]) => (r(), r(), { x, y })),
     }),
@@ -230,7 +230,7 @@ export const STAGES: StageDef[] = [
   {
     // 📐 C004 ⑥ 대비책(C005): 🖤 판으로 바꿔 보니 박사가 까만 양을 먼저 넣은 뒤 흰 양에 멍멍을 다 써서(8판 시드 모두 9번) 🏅가 안 나왔다
     //   → 정한 대비책 '좁은 다리 + 🍀'. 클로버는 다리→문 지름길 밖(저절로 따지지 않게, 📐 C003)
-    key: 'narrow', name: '좁은 다리', news: '🌉 좁은 다리 — 한 줄로 세워 건너요', max: 9, par: 4, bonus: 'clover',
+    key: 'narrow', name: '좁은 다리', news: '🌉 좁은 다리 — 한 줄로 세워 건너요', max: 9, par: 5, bonus: 'clover', // 📐 C015: 🍀를 다리 위 지름길 → 개울 아래 왼쪽(par 길 밖), par 4 → 5(박사 4, 폭 0.39)
     build: (r) => {
       r(); // 예전 까만 양 자리를 정하던 난수 — 배치 시드(LAYOUT_SEED)를 그대로 쓰려고 하나 버린다
       return {
@@ -238,19 +238,20 @@ export const STAGES: StageDef[] = [
         river: RIVER(0.43, 0.57),
         flowers: [],
         // 클로버를 지름길 밖(0.5±0.2, 0.3)에 두면 박사가 par도 🍀도 못 땄다(C005 시드 12개) → 다리 위로 되돌림. '저절로 따지는 🍀'는 ❌로 공개(M1-7)
-        clovers: [{ x: 0.5, y: 0.45, r: 0.04 }],
+        clovers: [{ x: 0.35, y: 0.75, r: 0.04 }],
         sheep: flock(r, 0.5 + jit(r, 0.05), 0.7, FIVE),
       };
     },
   },
   {
-    key: 'fest', name: '아침 축제', news: '🎉 아침 축제 — 오늘 배운 걸 다 써요!', max: 12, par: 7, bonus: 'black',
+    key: 'fest', name: '아침 축제', news: '🎉 아침 축제 — 오늘 배운 걸 다 써요!', max: 12, par: 6, bonus: 'clover', needBlack: true, // 📐 C015: 까만 양 필수(1-4부터 하나의 규칙) · 🍀 문 오른쪽(0.68, 0.28) · par 7 → 6(박사 6)
     build: (r) => {
       const side = r() < 0.5 ? -1 : 1;
       return {
         pens: [PEN0()],
         river: RIVER(),
         flowers: [],
+        clovers: [{ x: 0.68, y: 0.28, r: 0.045 }],
         sheep: [
           // 📐 C005 (가): 흰 양 7마리 그대로, 무리 폭을 다리 폭에 맞춰 세 줄로(±0.15 → ±0.065) — 어려움은 '섞는 순서'에서, 손끝 정밀에서가 아니라
           ...flock(r, 0.5 + jit(r, 0.03), 0.66, [[-0.03, -0.035], [0.03, -0.035], [-0.065, 0.03], [0, 0.03], [0.065, 0.03], [-0.035, 0.1], [0.035, 0.1]]),
@@ -1002,6 +1003,8 @@ function value(F: Field, S: Sim, d: StageDef): number {
   }
   return v;
 }
+/** 측정용(funqa 정답 폭, 📐 C015): 순수 시뮬 — 박사 계획 · 끝남 · 복사 · 판 값 · 보너스 (게임 동작은 안 바꾼다) */
+export const pure = { plan: (F: Field, S: Sim, d: StageDef, depth?: number) => plan(F, S, d, depth), ended, cloneSim, value, bonusMet };
 /** 판이 끝난 상태인가 (실패 · 흰 양 다 들어감 · 멍멍 다 씀) */
 function ended(F: Field, S: Sim, d: StageDef) {
   return S.fell.some((v) => v) || S.caught >= 0 || S.used >= d.max || allIn(F, S, d);
