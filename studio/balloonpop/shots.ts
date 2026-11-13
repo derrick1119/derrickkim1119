@@ -60,6 +60,12 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   await page.screenshot({ path: join(here, 'screens', `${name}-help.png`) });
   const hs = await page.evaluate(() => { const s = (globalThis as any).__bp.state(); return { helped: s.helped, help: s.help, tries: s.tries }; });
   if (!hs.helped || hs.help < 0) errors.push(`${name}: 도움 반짝이 안 뜸 ${JSON.stringify(hs)}`);
+  // 4판 흔들 무리: 시작 직후(가장 멀 때)와 약 2초 뒤(두 무리 원이 닿을 때) (C006)
+  await page.evaluate(() => (globalThis as any).__bp.stage(3));
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: join(here, 'screens', `${name}-sway0.png`) });
+  await page.waitForTimeout(1900);
+  await page.screenshot({ path: join(here, 'screens', `${name}-sway.png`) });
   // 결과(완주) 화면: 8판을 실제로 다 하기엔 길어서 확인용 훅으로 바로 띄운다
   await page.evaluate(() => (globalThis as any).__bp.finish());
   await page.waitForTimeout(300);

@@ -58,9 +58,18 @@ describe('하트 없음 · 즉시 재도전 · 도움 반짝 (C002)', () => {
     expect(s).not.toHaveProperty('hearts');
   });
 
+  /** 정해 둔 시드들 중 cond에 닿는 첫 런 (판이 쉬워져 한 시드가 두 번 실패하지 않을 수 있어서, C006) */
+  const firstRun = (cond: (s: PopState) => boolean) => {
+    for (let seed = 1; seed <= 60; seed++) {
+      const s = g.create(seed);
+      if (runUntil(s, cond)) return s;
+    }
+    return null;
+  };
+
   it(`${HELP_AFTER}번 실패하면 도움 반짝이 뜨고, 그 시도는 ★ 두 번 안에를 받을 수 없다`, () => {
-    const s = g.create(5);
-    expect(runUntil(s, (x) => x.tries >= HELP_AFTER && x.phase === 'play')).toBe(true);
+    const s = firstRun((x) => x.tries >= HELP_AFTER && x.phase === 'play')!;
+    expect(s).not.toBeNull();
     expect(s.helped).toBe(true);
     expect(s.help).toBeGreaterThanOrEqual(0);
     expect(runUntil(s, (x) => x.phase === 'result')).toBe(true);
@@ -68,8 +77,8 @@ describe('하트 없음 · 즉시 재도전 · 도움 반짝 (C002)', () => {
   });
 
   it('도움 반짝은 톡마다 다음 풍선으로 옮겨 간다 (C003)', () => {
-    const s = g.create(5);
-    expect(runUntil(s, (x) => x.helped && x.used === 1 && x.phase === 'play' && x.help >= 0)).toBe(true);
+    const s = firstRun((x) => x.helped && x.used === 1 && x.phase === 'play' && x.help >= 0)!;
+    expect(s).not.toBeNull();
     expect(s.alive[s.help]).toBe(1);
   });
 
@@ -144,6 +153,32 @@ describe('월드 1 앞 8판 (C005, CONTENT v0.1)', () => {
   it('8판은 쉼 판(대왕 맛보기): 사람형 캐주얼(humanLate) 첫 시도 ≥0.85 (FUN v1.4)', () => {
     expect(STAGES[7].rest).toBe(true);
     expect(measure(humanLate, 40).firstTry[7]).toBeGreaterThanOrEqual(0.85);
+  });
+
+  it('4판 흔들 무리: 하늘이 처음 움직이고(동물 없이), 숙련은 대개 기다렸다 톡 한다 (CONTENT v0.2 판정선)', () => {
+    const k = idx('sway');
+    let waited = 0;
+    for (let r = 0; r < 40; r++) {
+      const s = startAt(1000 + r * 7919, k);
+      expect(s.L.bs.some((b) => b.ax > 0)).toBe(true);
+      expect(s.L.bs.every((b) => b.an < 0)).toBe(true);
+      for (let q = 0; q < 600 && s.used === 0; q++) g.step(s, balloonpopSmart.act(s, () => 0.5));
+      if (s.st > 1) waited++;
+    }
+    expect(waited / 40).toBeGreaterThanOrEqual(0.5);
+    const h = measure(humanLate, 40), e = measure(balloonpopSmart, 40);
+    expect(h.firstTry[k]).toBeGreaterThanOrEqual(0.65);
+    expect(h.firstTry[k]).toBeLessThanOrEqual(0.85);
+    expect(h.within3[k]).toBeGreaterThanOrEqual(0.9);
+    expect(e.firstTry[k]).toBe(1);
+    expect(e.firstStar2[k]).toBeGreaterThanOrEqual(0.95);
+  });
+
+  it('늦은 손(humanLate)도 막히지 않는다: 막힌 런 ≤0.05, 전 판 3회 안 ≥0.9, 도움 시도 10번 이상인 판은 도움이 손해가 아님 (FUN v1.4)', () => {
+    const h = measure(humanLate, 40);
+    expect(h.stuckRate).toBeLessThanOrEqual(0.05);
+    expect(h.within3.every((x) => x >= 0.9)).toBe(true);
+    for (let k = 0; k < STAGE_COUNT; k++) if (h.helpN[k] >= 10) expect(h.helpAfter[k]).toBeGreaterThanOrEqual(h.helpBefore[k]);
   });
 
   it('새것이 정답에 쓰인다: 우산 고양이는 목표, 다리 한 톡에 두 무리, 대왕 한 톡에 하늘 전체, 철은 연쇄를 막는다', () => {

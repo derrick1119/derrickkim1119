@@ -64,6 +64,8 @@ interface SDef {
   bridge?: number;
   /** 대왕 자리: 'root' = 모든 무리의 뿌리(첫 풍선)가 대왕 원 안 → 대왕 한 톡에 하늘 전체 (CONTENT v0.1) */
   kingAt?: 'root';
+  /** 흔들 무리(동물과 무관): 있으면 이 무리들만 sway 폭으로 흔든다. 둘이면 판 시작에 서로 가장 먼 쪽 끝 (CONTENT v0.2, 4판) */
+  swayCl?: number[];
 }
 /** 판 8개. cl = 무리 크기들, rand = 아무렇게나 눌러 목표를 채우는 비율로 고를 범위 */
 export const STAGES: SDef[] = [
@@ -71,7 +73,7 @@ export const STAGES: SDef[] = [
   { cl: [10, 2, 2], dense: true, goal: { pop: 8, save: 0 }, rand: [0.95, 1], key: 'pop', title: '첫 팡!', tip: '풍선을 톡! 원 안의 풍선까지 팡팡', news: '🎈 톡! 터진 풍선은 둘레 원 안의 풍선을 터뜨려요' },
   { cl: [6, 4, 3], apart: 0.8, goal: { pop: 8, save: 0 }, rand: [0.85, 0.95], key: 'size2', title: '큰 풍선, 큰 원', tip: '큰 풍선일수록 원이 커요 — 큰 것부터!', news: '🔵 큰 풍선은 원이 커서 멀리까지 팡' },
   { cl: [6, 4, 3], apart: 0.8, cat: 1, goal: { pop: 8, save: 1 }, rand: [0.85, 0.95], key: 'cat', title: '우산 고양이', tip: '고양이 풍선이 터지면 우산을 펴고 내려와요', news: '☂️ 우산 고양이 — 풍선이 터지면 둥실둥실 내려와요' },
-  { cl: [6, 5, 3], apart: 0.8, goal: { pop: 10, save: 0 }, rand: [0.65, 0.85], key: 'split', title: '떨어진 무리', tip: '한 번에 안 닿으면 톡을 나눠 써요', news: '🎈 🎈 떨어진 무리 — 톡을 나눠 써요' },
+  { cl: [5, 4, 3, 2], apart: 0.8, sway: 0.1, swayCl: [0, 1], goal: { pop: 10, save: 0 }, rand: [0.65, 0.85], key: 'sway', title: '흔들 무리', tip: '두 무리가 가까워질 때 톡 하면 한 번에 팡!', news: '↔️ 흔들 무리 — 기다렸다 가까워질 때 톡, 두 무리가 한 번에' },
   { cl: [4, 4, 4, 3], bridge: 1, apart: 0.8, szw: [0.5, 0.4, 0.1], goal: { pop: 11, save: 0 }, rand: [0.55, 0.75], key: 'bridge', title: '다리 풍선', tip: '두 무리 사이 큰 풍선이 다리예요', news: '🌉 다리 풍선 — 두 무리를 한 번에 이어요' },
   { cl: [7, 4, 3], apart: 0.8, iron: 1, goal: { pop: 9, save: 0 }, rand: [0.55, 0.8], key: 'iron', title: '철 풍선', tip: '철 풍선은 안 터지고 연쇄를 막아요', news: '🔩 철 풍선 — 안 터지고, 그 뒤로 연쇄가 못 가요' },
   { cl: [8, 4, 3], apart: 0.8, iron: 2, goal: { pop: 9, save: 0 }, rand: [0.45, 0.7], key: 'iron2', title: '철 사이 틈', tip: '철 두 개 사이 틈으로 연쇄를 보내요', news: '🔩🔩 철 사이 틈 — 연쇄가 빠져나갈 길을 찾아요' },
@@ -202,20 +204,22 @@ const pickSz = (r: Rng, w: number[]) => {
 
 export function gen(d: SDef, r: Rng): Lay | null {
   const bs: Bal[] = [], nC = d.cl.length, sway = d.sway ?? 0, nAni = d.ani ?? 0;
-  /** 동물이 매달린 무리만 흔들린다 (1번 무리부터) */
-  const swayCl = (c: number) => sway > 0 && c >= 1 && c <= nAni;
+  /** 흔들 무리: swayCl이 있으면 그 무리만, 없으면 동물이 매달린 무리(1번부터) */
+  const swayCl = (c: number) => sway > 0 && (d.swayCl ? d.swayCl.includes(c) : c >= 1 && c <= nAni);
   const cs: { x: number; y: number }[] = [];
   for (let c = 0; c < nC; c++) {
     let ok = false;
     for (let k = 0; k < 120 && !ok; k++) {
-      const x = d.lanes ? 0.14 + r() * 0.5 : swayCl(c) ? 0.32 + r() * 0.36 : 0.18 + r() * 0.64;
-      const y = d.lanes ? 0.27 + (c / Math.max(1, nC - 1)) * 0.53 : swayCl(c) ? 0.42 + r() * 0.34 : 0.3 + r() * 0.46;
+      const x = d.lanes ? 0.14 + r() * 0.5 : nAni && swayCl(c) ? 0.32 + r() * 0.36 : 0.18 + r() * 0.64;
+      const y = d.lanes ? 0.27 + (c / Math.max(1, nC - 1)) * 0.53 : nAni && swayCl(c) ? 0.42 + r() * 0.34 : 0.3 + r() * 0.46;
       const need = (a: number) => (0.24 + 0.013 * (d.cl[a] + d.cl[c])) * (1 - k / 240);
       if (d.lanes || cs.every((q, a) => Math.hypot(q.x - x, q.y - y) > need(a))) (ok = true), cs.push({ x, y });
     }
     if (!ok) return null;
   }
   const ph = cs.map(() => r() * Math.PI * 2);
+  // 흔들 무리 둘은 판 시작에 서로 가장 먼 쪽 끝 → 약 2초(130틱) 뒤 가장 가까워진다 (CONTENT v0.2)
+  if (d.swayCl?.length === 2) { const [a, b] = d.swayCl, sg = cs[a].x < cs[b].x ? -1 : 1; (ph[a] = (sg * Math.PI) / 2), (ph[b] = (-sg * Math.PI) / 2); }
   const vxs = cs.map((q) => (d.wind ? d.wind * (0.5 + Math.max(0, 0.78 - q.y) / 0.5) : 0));
   const axs = cs.map((_, c) => (swayCl(c) ? sway : 0));
   const sepOK = (b: Bal, x: number, y: number, sz: number, c: number) => {
@@ -242,7 +246,7 @@ export function gen(d: SDef, r: Rng): Lay | null {
         x = p.x0 + Math.cos(a) * dd;
         y = p.y0 + Math.sin(a) * dd * (d.lanes ? 0.35 : 1);
       }
-      if (x < 0.07 || x > 0.93 || y < 0.2 || y > 0.86) continue;
+      if (x < 0.07 + axs[c] || x > 0.93 - axs[c] || y < 0.2 || y > 0.86) continue; // 흔들려도 몸이 화면 안
       if (!bs.every((b) => sepOK(b, x, y, sz, c))) continue;
       bs.push({ k: NORM, sz, x0: x, y0: y, ax: axs[c], ph: ph[c], vx: vxs[c], an: -1, um: false, esc: Infinity, cl: c, hue: Math.floor(r() * 3) });
       return true;
