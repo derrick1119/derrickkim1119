@@ -710,6 +710,8 @@ function tap(s: DuckState, sx: number, sy: number) {
   s.used++;
   s.lastTap = s.t;
   s.firstTap = true;
+  const sh = s.awake ? undefined : s.objs.find((o) => o.k === SHARK && o.st === FREE);
+  if (sh) ev(s, 'pong', sh.x, sh.y, '퐁! 상어 깼다'); // ART 14장 2③: 상어는 물결이 닿을 때가 아니라 톡 한 순간 깬다
   splash(s, x, y);
   ev(s, 'splash', x, y, '찰박!');
   see(s, 'splash', '🌊 물결 고리가 닿은 오리를 바깥쪽으로 밀어요');
@@ -1218,9 +1220,10 @@ function drawDuck(ctx: CanvasRenderingContext2D, x: number, y: number, u: number
     ctx.arc(ex, ey + u * 0.04, u * 0.1, Math.PI * 1.1, Math.PI * 1.9);
     ctx.stroke();
   } else if (mood === 7) {
-    // 💤 감은 눈
+    // 💤 감은 눈 (ART 14장 ③: 굵게)
+    ctx.lineWidth = Math.max(1.8, u * 0.13);
     ctx.beginPath();
-    ctx.arc(ex, ey - u * 0.02, u * 0.09, Math.PI * 0.15, Math.PI * 0.85);
+    ctx.arc(ex, ey - u * 0.02, u * 0.14, Math.PI * 0.15, Math.PI * 0.85);
     ctx.stroke();
   } else {
     ctx.beginPath();
@@ -1253,19 +1256,28 @@ function drawDuck(ctx: CanvasRenderingContext2D, x: number, y: number, u: number
     ctx.fill();
   }
   if (mood === 7) {
-    // 💤 뜨개 나이트캡 (CONTENT §2 그림 단서) — 머리 뒤로 늘어진 고깔 + 방울
-    ctx.fillStyle = '#5b7cfa';
+    // 💤 뜨개 나이트캡 (ART 14장 ①②, 🎨 D014): 남색 고깔이 머리 뒤로 늘어지고 끝에 흰 방울 — 1배에서 실루엣이 달라 보이게
+    const tipX = hx - u * 0.95, tipY = hy - u * 0.6;
+    ctx.strokeStyle = '#1C2E73';
+    ctx.lineWidth = Math.max(1, u * 0.06);
+    ctx.fillStyle = '#3B5BDB';
     ctx.beginPath();
-    ctx.moveTo(hx - hr * 0.85, hy - hr * 0.45);
-    ctx.quadraticCurveTo(hx - hr * 0.1, hy - hr * 1.5, hx + hr * 0.75, hy - hr * 0.5);
-    ctx.quadraticCurveTo(hx - hr * 0.6, hy - hr * 1.1, hx - hr * 1.5, hy - hr * 0.2);
+    ctx.moveTo(hx - u * 0.5, hy - u * 0.32);
+    ctx.quadraticCurveTo(hx - u * 0.55, hy - u * 0.9, tipX, tipY);
+    ctx.quadraticCurveTo(hx + u * 0.05, hy - u * 1.25, hx + u * 0.4, hy - u * 0.32);
     ctx.closePath();
     ctx.fill();
+    ctx.stroke();
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(hx - hr * 0.85, hy - hr * 0.62, hr * 1.6, hr * 0.2);
     ctx.beginPath();
-    ctx.arc(hx - hr * 1.5, hy - hr * 0.2, hr * 0.2, 0, Math.PI * 2);
+    ctx.roundRect(hx - u * 0.5, hy - u * 0.4, u * 0.9, u * 0.2, u * 0.1);
     ctx.fill();
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(tipX, tipY, u * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
   }
   if (extra === 1 || extra === 3) {
     ctx.fillStyle = '#ffe14d';
@@ -1314,16 +1326,16 @@ function drawDuck(ctx: CanvasRenderingContext2D, x: number, y: number, u: number
     const k = CALM ? 0.5 : (t % 90) / 90;
     // 🖐 D013: 390px에서 오리(u ≈ 10px)보다 Z가 작아 안 읽혀 — Z를 오리 머리만큼 키우고 테두리를 굵게
     ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = '#2b4a9a';
+    ctx.strokeStyle = '#1C2E73'; // ART 14장 ④: 'Z'와 남색은 💤 오리만
     ctx.lineWidth = Math.max(2, u * 0.16);
     ctx.lineJoin = 'round';
     ctx.font = `900 ${Math.round(u * 0.95)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
-    ctx.strokeText('Z', x + face * u * 1.0, y - u * (1.2 + k * 0.5));
-    ctx.fillText('Z', x + face * u * 1.0, y - u * (1.2 + k * 0.5));
+    ctx.strokeText('Z', x + face * u * 1.2, y - u * (1.2 + k * 0.5));
+    ctx.fillText('Z', x + face * u * 1.2, y - u * (1.2 + k * 0.5));
     ctx.font = `900 ${Math.round(u * 0.65)}px system-ui, sans-serif`;
-    ctx.strokeText('z', x + face * u * 1.75, y - u * (1.95 + k * 0.5));
-    ctx.fillText('z', x + face * u * 1.75, y - u * (1.95 + k * 0.5));
+    ctx.strokeText('z', x + face * u * 1.95, y - u * (1.95 + k * 0.5));
+    ctx.fillText('z', x + face * u * 1.95, y - u * (1.95 + k * 0.5));
   }
   if ((extra === 1 || extra === 3) && (t + Math.floor(x)) % 40 < 20) {
     ctx.fillStyle = '#fffbe0';
@@ -1442,16 +1454,25 @@ function drawShark(ctx: CanvasRenderingContext2D, x: number, y: number, u: numbe
       ctx.fill();
     }
   }
-  ctx.restore();
-  ctx.fillStyle = '#ffffff';
   if (mood === 5) {
-    ctx.font = `800 ${Math.max(12, u * 0.6)}px system-ui, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.globalAlpha = 0.85;
-    ctx.fillText('z', x + u * 0.6, y - u * 1.3 - (t % 60) * u * 0.012);
-    ctx.fillText('Z', x + u * 1.0, y - u * 1.8 - ((t + 30) % 60) * u * 0.012);
-    ctx.globalAlpha = 1;
+    // ART 14장 2 (🎨 D014): 잠든 상어는 Z 없이 콧방울 — 💤 오리('첫 물결은 막아 줌')와 다른 규칙('아무 톡에나 퐁, 그대로 밀림')
+    const r = u * (CALM ? 0.3 : 0.275 + 0.125 * Math.sin((t / 120) * Math.PI * 2)), cx = u * 1.3 + 0.9 * r, cy = -u * 0.3 - 0.3 * r;
+    ctx.fillStyle = 'rgba(230,250,255,.45)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(18,58,72,.55)';
+    ctx.lineWidth = Math.max(3, u * 0.12);
+    ctx.stroke();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(1.5, u * 0.07);
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.4, cy - r * 0.4, u * 0.07, 0, Math.PI * 2);
+    ctx.fill();
   }
+  ctx.restore();
   if (mood === 2)
     for (let k = 0; k < 3; k++) {
       const a = t * 0.12 + (k * Math.PI * 2) / 3;
@@ -2451,6 +2472,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     const x = SX(e.x, e.y), y = e.kind === 'cat' ? Y(WY0 - 0.15) : SY(e.y);
     if (e.kind === 'splash') fx.burst(x, y, '#ffffff', 22, 3.6, 2.6), fx.burst(x, y, '#8fe6ff', 14, 2.8, 2.2), fx.ring(x, y, '#ffffff', R(0.1), 4), fx.kick(3), say(x, y - R(0.05), e.text!, '#ffffff', 17);
     if (e.kind === 'quack') fx.burst(x, y - R(0.02), '#ffffff', 6, 1.8, 1.8), say(x, y - R(0.07), e.text!, e.col ?? '#fff3a0', 13);
+    if (e.kind === 'pong') (CALM || fx.burst(x + R(0.04), y - R(0.02), '#ffffff', 5, 1.8, 1.6)), say(x, y - R(0.09), e.text!, '#dff4ff', 14);
     if (e.kind === 'wake') fx.burst(x, y - R(0.04), '#5b7cfa', 10, 2.6, 2.2), fx.burst(x, y - R(0.03), '#ffffff', 8, 2, 2), say(x, y - R(0.08), e.text!, '#dfe6ff', 15);
     if (e.kind === 'refl') fx.ring(x, y, '#bff3ff', R(0.06), 2), say(x, y - R(0.07), e.text!, '#bff3ff', 13);
     if (e.kind === 'duo') fx.burst(x, y, '#bff3ff', 20, 4, 2.4), fx.ring(x, y, '#ffffff', R(0.08), 4), fx.kick(5), say(x, y - R(0.08), e.text!, '#9ff0ff', 15);
