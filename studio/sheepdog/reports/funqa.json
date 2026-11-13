@@ -27,6 +27,12 @@
     "tries": 1
    },
    "naiveSeesNew": null,
+   "depth": {
+    "habitClear": 1,
+    "habitBonus": 1,
+    "width": 0.65,
+    "greedyEqSmart": true
+   },
    "shake": {
     "smartStar3": 1,
     "greedyFail": 0,
@@ -61,6 +67,12 @@
     "tries": 1
    },
    "naiveSeesNew": null,
+   "depth": {
+    "habitClear": 1,
+    "habitBonus": 1,
+    "width": 0.25,
+    "greedyEqSmart": true
+   },
    "shake": {
     "smartStar3": 0.82,
     "greedyFail": 0,
@@ -95,6 +107,12 @@
     "tries": 2.15
    },
    "naiveSeesNew": null,
+   "depth": {
+    "habitClear": 0.6,
+    "habitBonus": 0.45,
+    "width": 0.12,
+    "greedyEqSmart": false
+   },
    "shake": {
     "smartStar3": 0.97,
     "greedyFail": 0,
@@ -129,6 +147,12 @@
     "tries": 1
    },
    "naiveSeesNew": 1,
+   "depth": {
+    "habitClear": 1,
+    "habitBonus": 0,
+    "width": 0.82,
+    "greedyEqSmart": true
+   },
    "shake": {
     "smartStar3": 1,
     "greedyFail": 0,
@@ -163,6 +187,12 @@
     "tries": 1.15
    },
    "naiveSeesNew": null,
+   "depth": {
+    "habitClear": 0.95,
+    "habitBonus": 0,
+    "width": 0.05,
+    "greedyEqSmart": false
+   },
    "shake": {
     "smartStar3": 0.97,
     "greedyFail": 0,
@@ -197,6 +227,12 @@
     "tries": 2.3
    },
    "naiveSeesNew": 1,
+   "depth": {
+    "habitClear": 0,
+    "habitBonus": 0,
+    "width": 0.36,
+    "greedyEqSmart": true
+   },
    "shake": {
     "smartStar3": 0.75,
     "greedyFail": 0.07,
@@ -231,6 +267,12 @@
     "tries": 3.25
    },
    "naiveSeesNew": null,
+   "depth": {
+    "habitClear": 0.05,
+    "habitBonus": 0.05,
+    "width": 0.1,
+    "greedyEqSmart": false
+   },
    "shake": {
     "smartStar3": 0.53,
     "greedyFail": 0.47,
@@ -265,6 +307,12 @@
     "tries": 3.85
    },
    "naiveSeesNew": null,
+   "depth": {
+    "habitClear": 0,
+    "habitBonus": 0,
+    "width": 0.16,
+    "greedyEqSmart": false
+   },
    "shake": {
     "smartStar3": 0.4,
     "greedyFail": 0.3,

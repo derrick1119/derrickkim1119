@@ -7,7 +7,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { runBot, type Bot } from './core.ts';
-import { STAGES, jumpTo, starCount, topOf, sheepdog as g, sheepdogCareful, sheepdogGreedy, sheepdogNaive, sheepdogRandom, sheepdogSmart, type DogState } from './game.ts';
+import { STAGES, at, jumpTo, preview, starCount, topOf, sheepdog as g, sheepdogCareful, sheepdogGreedy, sheepdogNaive, sheepdogRandom, sheepdogSmart, type DogState } from './game.ts';
 import { mulberry32 } from './rng.ts';
 
 const N = Number(process.argv[2] ?? 20);
@@ -81,8 +81,35 @@ function shaky(bot: Bot<DogState>, seed: number, stage: number, mode: 'shake' | 
   const done = s.phase === 'result';
   return { ok: done && s.ok, star3: done && s.ok && s.got === 7, behind, timeout: !done, parOrLess: done && s.ok && s.S.used <= STAGES[stage].par, used: s.S.used };
 }
+/**
+ * F11 전략 깊이 (오너 1차 "전략이 조금 단순해지는 느낌", C013 → F01-a): ① 습관 봇(미리 보기 없이 '양 뒤에서 문 쪽') 첫 시도 통과·보너스 별
+ * ② 정답 폭: 첫 짖기 격자(0.04 간격, 양이 움직이는 자리만) 가운데 박사가 이어 받아 ★3 한 번에(par 안) 되는 자리 비율
+ */
+function habitFirst(seed: number, stage: number) {
+  const r = onStage(bots.naive, seed, stage);
+  return { ok: r.ok, bonus: r.ok && ((r.mask >> 2) & 1) === 1 };
+}
+function width(stage: number) {
+  const s0 = g.create(1);
+  jumpTo(s0, stage);
+  let moving = 0, win = 0;
+  for (let fy = 0.06; fy < 0.98; fy += 0.04)
+    for (let fx = 0.06; fx < 0.96; fx += 0.04) {
+      if (!preview(s0, fx, fy).rec.scare.some((v) => v > 0)) continue;
+      moving++;
+      const s = g.create(1000), rng = mulberry32(1000 ^ 0x9e3779b9);
+      jumpTo(s, stage);
+      let first = true;
+      for (let t = 0; t < 60 * 120 && s.phase !== 'result'; t++) {
+        if (first && s.phase === 'aim' && !s.down) (g.step(s, at(fx, fy)), g.step(s, NO), (first = false));
+        else g.step(s, bots.smart.act(s, rng));
+      }
+      if (s.phase === 'result' && s.ok && s.got === 7 && s.S.used <= STAGES[stage].par) win++;
+    }
+  return +(win / Math.max(1, moving)).toFixed(2);
+}
   const avg = (xs: number[]) => +(xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(2);
-const per: Record<string, { name: string; max: number; par: number; parGap: number; smart: { clear: number; stars: number; used: number; mask: number }; greedy: { clear: number; used: number; overPar: number }; random: { clear: number; stuck25: number }; careful: { stuck25: number; tries: number }; naiveSeesNew: number | null; shake: { smartStar3: number; greedyFail: number; greedyParOrLess: number; behindPen: number; void: number; greedyPx: number } }> = {};
+const per: Record<string, { name: string; max: number; par: number; parGap: number; smart: { clear: number; stars: number; used: number; mask: number }; greedy: { clear: number; used: number; overPar: number }; random: { clear: number; stuck25: number }; careful: { stuck25: number; tries: number }; naiveSeesNew: number | null; depth: { habitClear: number; habitBonus: number; width: number; greedyEqSmart: boolean }; shake: { smartStar3: number; greedyFail: number; greedyParOrLess: number; behindPen: number; void: number; greedyPx: number } }> = {};
 for (let k = 0; k < STAGES.length; k++) {
   const d = STAGES[k];
   const sm = Array.from({ length: N }, (_, i) => onStage(bots.smart, 1000 + i, k));
@@ -99,6 +126,7 @@ for (let k = 0; k < STAGES.length; k++) {
     random: { clear: avg(rd.map((r) => +r.ok)), stuck25: avg(st) },
     careful: { stuck25: avg(care.map((n) => +(n === 0))), tries: care.some((n) => n) ? avg(care.filter((n) => n)) : 99 },
     naiveSeesNew: intro,
+    depth: (() => { const h = Array.from({ length: N }, (_, i) => habitFirst(4000 + i, k)); return { habitClear: avg(h.map((r) => +r.ok)), habitBonus: avg(h.map((r) => +r.bonus)), width: width(k), greedyEqSmart: gr.ok && gr.used === Math.min(...sm.filter((r) => r.ok).map((r) => r.used)) }; })(),
     shake: { smartStar3: avg(shS.map((r) => +r.star3)), greedyFail: avg(shG.map((r) => +(!r.ok && !r.timeout))), greedyParOrLess: avg(shG.map((r) => +r.parOrLess)), behindPen: avg([...shS, ...shG, px].map((r) => +r.behind)), void: [...shS, ...shG].filter((r) => r.timeout).length, greedyPx: px.ok ? px.used - d.par : 99 },
   };
 }
@@ -111,5 +139,5 @@ const report = {
 };
 mkdirSync(join(here, 'reports'), { recursive: true });
 writeFileSync(join(here, 'reports', 'funqa.json'), JSON.stringify(report, null, 1) + '\n');
-console.table(Object.entries(per).map(([k, v]) => ({ 판: k, 이름: v.name, 'par/max': `${v.par}/${v.max}`, 'par여유': v.parGap, 박사별: v.smart.stars, 박사멍멍: v.smart.used, 그리디: v.greedy.clear ? `${v.greedy.used}(par${v.greedy.overPar >= 0 ? '+' : ''}${v.greedy.overPar})` : '못 깸', 아무데나통과: v.random.clear, '조심 25번 막힘': v.careful.stuck25, '조심 평균 시도': v.careful.tries, '순진 새것 겪기': v.naiveSeesNew ?? '', '±3px 박사★3': v.shake.smartStar3, '±3px 그리디 실패': v.shake.greedyFail, '±3px 그리디 par 이하': v.shake.greedyParOrLess, 'px 그리디−par': v.shake.greedyPx, '뒤 끼임': v.shake.behindPen, 무효: v.shake.void })));
+console.table(Object.entries(per).map(([k, v]) => ({ 판: k, 이름: v.name, 'par/max': `${v.par}/${v.max}`, 'par여유': v.parGap, 박사별: v.smart.stars, 박사멍멍: v.smart.used, 그리디: v.greedy.clear ? `${v.greedy.used}(par${v.greedy.overPar >= 0 ? '+' : ''}${v.greedy.overPar})` : '못 깸', 아무데나통과: v.random.clear, '조심 25번 막힘': v.careful.stuck25, '조심 평균 시도': v.careful.tries, '순진 새것 겪기': v.naiveSeesNew ?? '', '습관 통과': v.depth.habitClear, '습관 보너스': v.depth.habitBonus, '정답 폭': v.depth.width, '±3px 박사★3': v.shake.smartStar3, '±3px 그리디 실패': v.shake.greedyFail, '±3px 그리디 par 이하': v.shake.greedyParOrLess, 'px 그리디−par': v.shake.greedyPx, '뒤 끼임': v.shake.behindPen, 무효: v.shake.void })));
 console.log('한 판 전체 점수', report.run);
