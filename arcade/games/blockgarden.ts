@@ -117,7 +117,7 @@ export const STAGES: StageDef[] = [
   {
     key: '', name: '첫 꽃밭', news: '', hint: '빈 고랑을 채우면 세 줄이 한꺼번에!',
     map: ['xxx.xxxx', 'xxx.xxxx', 'xxx.xxxx', 'xxxxx.xx', 'xxxxx.xx', 'xxxxx.xx', '..x.x.xx', 'xx.x.x..'],
-    goal: 72, pieces: 10, spare: 8, star3: 'multi', pool: [8, 2, 0], mercy: 12, first: [4, 4, 1], rescue: true,
+    goal: 60, pieces: 12, spare: 10, star3: 'multi', pool: [8, 2, 0], mercy: 12, first: [4, 4, 1], rescue: true,
   },
   {
     key: 'swap', name: '바꿔 심기', news: '🔄 지금 조각을 톡 = 다음 조각과 맞바꾸기', hint: '연달아 줄을 지우면 콤보 ×2, ×3!',

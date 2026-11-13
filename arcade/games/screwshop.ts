@@ -604,7 +604,8 @@ function playRec(s: ShopState, rec: RE[]) {
   if (S.slots.length >= 3 && !S.fail) setMood(s, 'worry');
   else if (rec.some((e) => e.k === 'fall' || (e.k === 'hang' && Math.abs(L.poses[e.p][e.pose].d) > 0.3))) setMood(s, 'wow');
   else if (rec.some((e) => e.k === 'done') || S.streak >= 4) setMood(s, 'smug');
-  if (S.streak >= 3 && rec.some((e) => e.k === 'box')) ev(s, 'streak', 0.5, BOX_Y, `연속 쏙 ${S.streak}!`, '#bff7c4', s.t + SPIN + FLY);
+  const C = STAGES[s.stage].C;
+  if ((S.streak === 3 || S.streak === C || (S.streak > C && S.streak % 4 === 0)) && rec.some((e) => e.k === 'box')) ev(s, 'streak', 0.5, BOX_Y, S.streak >= C ? `★ 연속 쏙 ${S.streak}!` : `연속 쏙 ${S.streak}!`, S.streak >= C ? '#ffd166' : '#bff7c4', s.t + SPIN + FLY);
 }
 
 function tapScrew(s: ShopState, k: number) {
@@ -1069,7 +1070,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     for (let k = 0; k < 6 && rec.some((q) => t - q.t < 45 && Math.abs(q.x - x) < w * 0.32 && Math.abs(q.y - y) < size + 5); k++) y += size + 6;
     rec.push({ x, y, t });
     if (rec.length > 12) rec.shift();
-    fx.pop(Math.max(w * 0.2, Math.min(w * 0.8, x)), y, text, col, size);
+    ctx.font = `800 ${size}px system-ui, sans-serif`;
+    const hw = ctx.measureText(text).width / 2 + 6;
+    fx.pop(Math.max(hw, Math.min(w - hw, x)), y, text, col, size);
   };
   const seenT = fx.memo.t ?? -1;
   for (const e of s.events) {
@@ -1130,7 +1133,7 @@ function drawShelf(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =
       continue;
     }
     const lid = Math.min(1, u / 8), up = Math.max(0, u - 10);
-    drawBox(ctx, X(boxX(L, l.bi) + up * up * 0.0004), Y(BOX_Y - up * 0.006), R, l.col, 3, lid, 1 - Math.max(0, (up - 20) / 14), t);
+    drawBox(ctx, X(boxX(L, l.bi) + up * up * 0.0011), Y(BOX_Y - Math.sin(Math.min(1, up / 6) * Math.PI) * 0.012), R, l.col, 3, lid, 1 - Math.max(0, (up - 18) / 14), t);
     if (u < 26) {
       font(0.045, 900);
       ctx.textAlign = 'center';
@@ -1198,25 +1201,39 @@ function drawBox(ctx: CanvasRenderingContext2D, x: number, y: number, R: (r: num
   ctx.beginPath();
   ctx.roundRect(x - bw / 2, y - bh * 0.18, bw, bh * 0.68, bh * 0.1);
   ctx.fill();
-  // 윗면 (3/4 시점)
-  ctx.fillStyle = mix(c, '#ffffff', 0.3);
+  // 윗면 테두리 (3/4 시점) + 열린 속
+  ctx.fillStyle = mix(c, '#ffffff', 0.35);
   ctx.beginPath();
   ctx.moveTo(x - bw / 2, y - bh * 0.18);
-  ctx.lineTo(x - bw / 2 + bw * 0.06, y - bh * 0.5);
-  ctx.lineTo(x + bw / 2 - bw * 0.06, y - bh * 0.5);
+  ctx.lineTo(x - bw / 2 + bw * 0.06, y - bh * 0.52);
+  ctx.lineTo(x + bw / 2 - bw * 0.06, y - bh * 0.52);
   ctx.lineTo(x + bw / 2, y - bh * 0.18);
   ctx.closePath();
   ctx.fill();
-  // 널빤지 결
-  ctx.strokeStyle = 'rgba(0,0,0,.15)';
+  const ig = ctx.createLinearGradient(0, y - bh * 0.46, 0, y - bh * 0.22);
+  ig.addColorStop(0, mix(c, '#000000', 0.62));
+  ig.addColorStop(1, mix(c, '#000000', 0.35));
+  ctx.fillStyle = ig;
+  ctx.beginPath();
+  ctx.moveTo(x - bw / 2 + bw * 0.05, y - bh * 0.23);
+  ctx.lineTo(x - bw / 2 + bw * 0.09, y - bh * 0.46);
+  ctx.lineTo(x + bw / 2 - bw * 0.09, y - bh * 0.46);
+  ctx.lineTo(x + bw / 2 - bw * 0.05, y - bh * 0.23);
+  ctx.closePath();
+  ctx.fill();
+  // 세로 널빤지 결 · 모서리 기둥
+  ctx.strokeStyle = 'rgba(0,0,0,.18)';
   ctx.lineWidth = 1;
-  for (let k = 1; k < 3; k++) (ctx.beginPath(), ctx.moveTo(x - bw / 2 + 3, y - bh * 0.18 + (bh * 0.68 * k) / 3), ctx.lineTo(x + bw / 2 - 3, y - bh * 0.18 + (bh * 0.68 * k) / 3), ctx.stroke());
-  // 구멍 셋
+  for (let k = 1; k < 5; k++) (ctx.beginPath(), ctx.moveTo(x - bw / 2 + (bw * k) / 5, y - bh * 0.16), ctx.lineTo(x - bw / 2 + (bw * k) / 5, y + bh * 0.48), ctx.stroke());
+  ctx.fillStyle = mix(c, '#000000', 0.3);
+  ctx.fillRect(x - bw / 2, y - bh * 0.18, bw * 0.06, bh * 0.68);
+  ctx.fillRect(x + bw / 2 - bw * 0.06, y - bh * 0.18, bw * 0.06, bh * 0.68);
+  // 칸 셋 (들어간 나사가 꽂힌다)
   for (let hh = 0; hh < 3; hh++) {
     const hx = x + (hh - 1) * bw * 0.28, hy = y - bh * 0.34;
-    ctx.fillStyle = 'rgba(30,15,5,.55)';
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
     ctx.beginPath();
-    ctx.ellipse(hx, hy, bw * 0.1, bh * 0.1, 0, 0, TAU);
+    ctx.ellipse(hx, hy + bh * 0.02, bw * 0.085, bh * 0.075, 0, 0, TAU);
     ctx.fill();
     if (hh < n) drawScrew(ctx, hx, hy - bh * 0.02, bw * 0.095, col, hh * 0.7, { t });
   }

@@ -810,3 +810,1263 @@ export const demolitionHabit: Bot<DemoState> = {
     return NO;
   },
 };
+
+// ───────────────────────────── 그리기 ─────────────────────────────
+/** 칠 색: [앞면, 윗면, 옆면] — 0 생나무 · 1 분홍 · 2 노랑 · 3 하늘 · 4 연두 · 5 빨간 지붕 */
+const PAINT = [
+  ['#d9a066', '#ecc08a', '#a8733f'],
+  ['#f29bb2', '#ffc4d3', '#c66d86'],
+  ['#ffd36b', '#ffe7a6', '#d1a23c'],
+  ['#86bde8', '#b9dcf6', '#5b8fbd'],
+  ['#9ad68f', '#c4ebb9', '#6aa35f'],
+  ['#e0574f', '#f2857c', '#a8352f'],
+];
+const STONE_C = ['#aaa6b9', '#cdc9da', '#7c788c'];
+const GAS_C = ['#e8453a', '#ff7a6b', '#a92a22'];
+const METAL_C = [['#7f8896', '#a9b2bf', '#5a626e'], ['#8fb0c8', '#bcd5e6', '#5f7f98']];
+const colOf = (b: Blk) => (b.m === STONE ? STONE_C : b.m === GAS ? GAS_C : b.m === METAL ? METAL_C[b.paint] : PAINT[b.paint]);
+
+const PREV = new WeakMap<object, { key: string; o: Outcome }>();
+const PUFFS = new WeakMap<object, { x: number; y: number; r: number; life: number; max: number; vx: number }[]>();
+const recentSay = new WeakMap<object, { x: number; y: number; t: number }[]>();
+
+function star(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
+  ctx.beginPath();
+  for (let k = 0; k < 10; k++) {
+    const a = -Math.PI / 2 + (k * Math.PI) / 5, rr = k % 2 ? r * 0.45 : r;
+    ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+  }
+  ctx.closePath();
+}
+
+/** 블록 앞면 무늬 (0,0 = 앞면 왼쪽 위, 한 변 u) */
+function face(ctx: CanvasRenderingContext2D, b: Blk, u: number, cracked: boolean) {
+  const c = colOf(b);
+  const g = ctx.createLinearGradient(0, 0, u * 0.3, u);
+  g.addColorStop(0, c[1]);
+  g.addColorStop(0.25, c[0]);
+  g.addColorStop(1, c[2]);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, u, u);
+  ctx.lineWidth = Math.max(1, u * 0.04);
+  if (b.m === WOOD && b.paint === 5) {
+    // 지붕 기와
+    ctx.strokeStyle = 'rgba(110,20,20,.45)';
+    for (let r = 0; r < 3; r++)
+      for (let k = 0; k < 3; k++) {
+        ctx.beginPath();
+        ctx.arc(u * (k / 3 + 1 / 6) + (r % 2 ? u / 6 : 0), u * (r / 3 + 0.3), u / 6, 0, Math.PI);
+        ctx.stroke();
+      }
+  } else if (b.m === WOOD) {
+    // 판자 줄 + 못
+    ctx.strokeStyle = 'rgba(80,40,10,.22)';
+    for (const k of [0.33, 0.66]) {
+      ctx.beginPath();
+      ctx.moveTo(0, u * k);
+      ctx.lineTo(u, u * k);
+      ctx.stroke();
+    }
+    if (b.win && b.paint) {
+      ctx.fillStyle = '#5a3a2a';
+      ctx.fillRect(u * 0.24, u * 0.2, u * 0.52, u * 0.56);
+      const wg = ctx.createLinearGradient(0, u * 0.24, 0, u * 0.72);
+      wg.addColorStop(0, '#fff2b8');
+      wg.addColorStop(1, '#ffb85c');
+      ctx.fillStyle = wg;
+      ctx.fillRect(u * 0.3, u * 0.26, u * 0.4, u * 0.44);
+      ctx.fillStyle = '#5a3a2a';
+      ctx.fillRect(u * 0.48, u * 0.26, u * 0.04, u * 0.44);
+      ctx.fillRect(u * 0.3, u * 0.46, u * 0.4, u * 0.04);
+    } else {
+      ctx.fillStyle = 'rgba(60,30,10,.35)';
+      for (const [px, py] of [[0.12, 0.16], [0.88, 0.16], [0.12, 0.84], [0.88, 0.84]]) {
+        ctx.beginPath();
+        ctx.arc(u * px, u * py, u * 0.035, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  } else if (b.m === STONE) {
+    ctx.strokeStyle = 'rgba(50,45,70,.4)';
+    for (let r = 0; r < 3; r++) {
+      ctx.beginPath();
+      ctx.moveTo(0, u * (r + 1) / 3);
+      ctx.lineTo(u, u * (r + 1) / 3);
+      ctx.stroke();
+      const off = r % 2 ? 0.25 : 0.6;
+      ctx.beginPath();
+      ctx.moveTo(u * off, u * r / 3);
+      ctx.lineTo(u * off, u * (r + 1) / 3);
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,.18)';
+    ctx.fillRect(u * 0.06, u * 0.06, u * 0.3, u * 0.06);
+    // 돌 표시: 폭약 둘
+    ctx.fillStyle = 'rgba(40,36,60,.55)';
+    ctx.font = `900 ${u * 0.3}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('×2', u * 0.5, u * 0.55);
+  } else if (b.m === GAS) {
+    ctx.fillStyle = '#ffd23a';
+    ctx.fillRect(0, u * 0.36, u, u * 0.26);
+    ctx.fillStyle = '#2a1a1a';
+    ctx.beginPath();
+    ctx.moveTo(u * 0.5, u * 0.38);
+    ctx.lineTo(u * 0.62, u * 0.6);
+    ctx.lineTo(u * 0.38, u * 0.6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#ffd23a';
+    ctx.fillRect(u * 0.485, u * 0.45, u * 0.03, u * 0.08);
+    ctx.fillStyle = 'rgba(255,255,255,.35)';
+    ctx.fillRect(u * 0.12, u * 0.06, u * 0.1, u * 0.86);
+    ctx.fillStyle = '#7a1a14';
+    ctx.fillRect(u * 0.38, -u * 0.02, u * 0.24, u * 0.1);
+  } else {
+    // 쇠: 리벳
+    ctx.fillStyle = 'rgba(255,255,255,.3)';
+    ctx.fillRect(u * 0.08, u * 0.08, u * 0.84, u * 0.06);
+    ctx.fillStyle = 'rgba(30,40,55,.55)';
+    for (const [px, py] of [[0.16, 0.24], [0.84, 0.24], [0.16, 0.84], [0.84, 0.84], [0.5, 0.24], [0.5, 0.84]]) {
+      ctx.beginPath();
+      ctx.arc(u * px, u * py, u * 0.045, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (b.paint === 0) {
+      ctx.fillStyle = 'rgba(30,40,55,.3)';
+      ctx.fillRect(u * 0.4, u * 0.3, u * 0.2, u * 0.45);
+    }
+  }
+  if (cracked) {
+    ctx.strokeStyle = 'rgba(30,20,30,.7)';
+    ctx.lineWidth = Math.max(1, u * 0.05);
+    ctx.beginPath();
+    ctx.moveTo(u * 0.2, u * 0.1);
+    ctx.lineTo(u * 0.45, u * 0.45);
+    ctx.lineTo(u * 0.35, u * 0.6);
+    ctx.lineTo(u * 0.7, u * 0.9);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(40,20,30,.35)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(0.5, 0.5, u - 1, u - 1);
+}
+
+/** 서 있는 블록: 앞면 + (드러난) 윗면·옆면 — 작은 입체 장난감 블록 */
+function blockAt(ctx: CanvasRenderingContext2D, b: Blk, x: number, y: number, u: number, top: boolean, side: boolean, cracked: boolean) {
+  const c = colOf(b), dx = u * (DX / CW), dy = u * (DY / CW);
+  if (side) {
+    ctx.fillStyle = c[2];
+    ctx.beginPath();
+    ctx.moveTo(x + u, y);
+    ctx.lineTo(x + u + dx, y - dy);
+    ctx.lineTo(x + u + dx, y + u - dy);
+    ctx.lineTo(x + u, y + u);
+    ctx.closePath();
+    ctx.fill();
+  }
+  if (top) {
+    ctx.fillStyle = c[1];
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + dx, y - dy);
+    ctx.lineTo(x + u + dx, y - dy);
+    ctx.lineTo(x + u, y);
+    ctx.closePath();
+    ctx.fill();
+    if (b.m === GAS) {
+      ctx.fillStyle = '#7a1a14';
+      ctx.beginPath();
+      ctx.ellipse(x + u * 0.5 + dx * 0.5, y - dy * 0.5, u * 0.14, dy * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.save();
+  ctx.translate(x, y);
+  face(ctx, b, u, cracked);
+  ctx.restore();
+}
+
+/** 다이너마이트 묶음 (깜빡이는 불) */
+function dynamite(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, t: number, fast: boolean, ghost = false) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.globalAlpha = ghost ? 0.6 : 1;
+  for (let k = -1; k <= 1; k++) {
+    const g = ctx.createLinearGradient(k * u * 0.16 - u * 0.08, 0, k * u * 0.16 + u * 0.08, 0);
+    g.addColorStop(0, '#b3201a');
+    g.addColorStop(0.5, '#ff5a46');
+    g.addColorStop(1, '#8a1410');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.roundRect(k * u * 0.16 - u * 0.08, -u * 0.3, u * 0.16, u * 0.6, u * 0.05);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#3a2a2a';
+  ctx.fillRect(-u * 0.26, -u * 0.06, u * 0.52, u * 0.12);
+  // 타이머 상자 + 불
+  ctx.fillStyle = '#2b2b33';
+  ctx.beginPath();
+  ctx.roundRect(-u * 0.14, -u * 0.12, u * 0.28, u * 0.2, u * 0.03);
+  ctx.fill();
+  const on = fast ? t % 8 < 4 : t % 40 < 20;
+  ctx.fillStyle = on ? '#ff3b30' : '#5a1a18';
+  if (on) (ctx.shadowColor = '#ff3b30'), (ctx.shadowBlur = u * 0.4);
+  ctx.beginPath();
+  ctx.arc(0, -u * 0.02, u * 0.06, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  // 전선
+  ctx.strokeStyle = '#ffd23a';
+  ctx.lineWidth = Math.max(1, u * 0.04);
+  ctx.beginPath();
+  ctx.moveTo(u * 0.14, -u * 0.02);
+  ctx.bezierCurveTo(u * 0.35, -u * 0.25, u * 0.4, u * 0.2, u * 0.3, u * 0.38);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** 부서진 조각 (작고 들쭉날쭉) */
+function rubble(ctx: CanvasRenderingContext2D, b: Blk, x: number, y: number, u: number, k: number) {
+  const c = colOf(b);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate((hsh(k) - 0.5) * 0.9);
+  ctx.fillStyle = 'rgba(40,25,30,.25)';
+  ctx.beginPath();
+  ctx.ellipse(u * 0.04, u * 0.42, u * 0.5, u * 0.12, 0, 0, Math.PI * 2);
+  ctx.fill();
+  for (let p = 0; p < 2; p++) {
+    const sx = p ? u * 0.2 : -u * 0.12, sy = p ? u * 0.12 : -u * 0.05, r = u * (p ? 0.3 : 0.42);
+    ctx.fillStyle = c[p ? 2 : 0];
+    ctx.beginPath();
+    for (let q = 0; q < 6; q++) {
+      const a = (q / 6) * Math.PI * 2 + hsh(k * 3 + p), rr = r * (0.7 + 0.45 * hsh(k * 7 + q + p * 11));
+      ctx.lineTo(sx + Math.cos(a) * rr, sy + Math.sin(a) * rr * 0.85);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = c[1];
+    ctx.beginPath();
+    ctx.arc(sx - r * 0.25, sy - r * 0.3, r * 0.22, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** 비버 반장. mood 0 보통 · 1 힘줌 · 2 귀 막음 · 3 우쭐 · 4 먼지 범벅 어질어질 */
+function beaver(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, mood: number, t: number, face: number, plunge: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  // 그림자
+  ctx.fillStyle = 'rgba(40,20,20,.3)';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, u * 1.3, u * 0.28, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 기폭 상자 (앞쪽)
+  const bx = face * u * 1.15;
+  ctx.fillStyle = '#c0392b';
+  ctx.beginPath();
+  ctx.roundRect(bx - u * 0.42, -u * 0.62, u * 0.84, u * 0.62, u * 0.08);
+  ctx.fill();
+  ctx.fillStyle = '#ffd23a';
+  ctx.fillRect(bx - u * 0.42, -u * 0.42, u * 0.84, u * 0.12);
+  ctx.fillStyle = '#2a1a1a';
+  ctx.font = `900 ${u * 0.28}px system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('TNT', bx, -u * 0.17);
+  const hy = -u * 0.62 - u * 0.55 * (1 - plunge);
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = u * 0.1;
+  ctx.beginPath();
+  ctx.moveTo(bx, -u * 0.62);
+  ctx.lineTo(bx, hy);
+  ctx.stroke();
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = u * 0.14;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(bx - u * 0.3, hy);
+  ctx.lineTo(bx + u * 0.3, hy);
+  ctx.stroke();
+  ctx.scale(face, 1);
+  const bob = mood === 3 ? Math.abs(Math.sin(t * 0.25)) * u * 0.15 : mood === 4 ? Math.sin(t * 0.2) * u * 0.05 : 0;
+  ctx.translate(0, -bob);
+  // 꼬리 (넓적)
+  ctx.save();
+  ctx.translate(-u * 0.7, -u * 0.25);
+  ctx.rotate(-0.5 + Math.sin(t * 0.1) * 0.1);
+  ctx.fillStyle = '#5b3a29';
+  ctx.beginPath();
+  ctx.ellipse(-u * 0.25, 0, u * 0.42, u * 0.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,.25)';
+  ctx.lineWidth = 1;
+  for (let k = -2; k <= 2; k++) {
+    ctx.beginPath();
+    ctx.moveTo(-u * 0.25 + k * u * 0.12, -u * 0.18);
+    ctx.lineTo(-u * 0.25 + k * u * 0.12, u * 0.18);
+    ctx.stroke();
+  }
+  ctx.restore();
+  // 몸
+  const g = ctx.createLinearGradient(0, -u * 1.4, 0, 0);
+  g.addColorStop(0, '#b77b4b');
+  g.addColorStop(1, '#8a5532');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.ellipse(0, -u * 0.6, u * 0.62, u * 0.66, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#f0d2a8';
+  ctx.beginPath();
+  ctx.ellipse(u * 0.12, -u * 0.5, u * 0.36, u * 0.46, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 조끼 (형광)
+  ctx.fillStyle = '#ff9f1c';
+  ctx.beginPath();
+  ctx.ellipse(-u * 0.25, -u * 0.62, u * 0.3, u * 0.5, 0.15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#fff6d0';
+  ctx.fillRect(-u * 0.5, -u * 0.62, u * 0.45, u * 0.07);
+  // 발
+  ctx.fillStyle = '#4a2c1c';
+  for (const px of [-0.25, 0.3]) {
+    ctx.beginPath();
+    ctx.ellipse(u * px, -u * 0.02, u * 0.2, u * 0.09, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // 머리
+  const hx = u * 0.15, hy2 = -u * 1.38;
+  ctx.fillStyle = '#a56d42';
+  ctx.beginPath();
+  ctx.ellipse(hx, hy2, u * 0.48, u * 0.42, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 주둥이 · 이빨
+  ctx.fillStyle = '#e8c7a0';
+  ctx.beginPath();
+  ctx.ellipse(hx + u * 0.3, hy2 + u * 0.12, u * 0.24, u * 0.17, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#2a1a12';
+  ctx.beginPath();
+  ctx.ellipse(hx + u * 0.46, hy2 + u * 0.02, u * 0.08, u * 0.06, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#8a7a6a';
+  ctx.lineWidth = 0.8;
+  const tooth = mood === 1 ? 0.24 : 0.2;
+  ctx.fillRect(hx + u * 0.26, hy2 + u * 0.22, u * 0.09, u * tooth);
+  ctx.strokeRect(hx + u * 0.26, hy2 + u * 0.22, u * 0.09, u * tooth);
+  ctx.fillRect(hx + u * 0.36, hy2 + u * 0.22, u * 0.09, u * tooth);
+  ctx.strokeRect(hx + u * 0.36, hy2 + u * 0.22, u * 0.09, u * tooth);
+  // 눈
+  const ex = hx + u * 0.2, ey = hy2 - u * 0.1;
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.fillStyle = '#1a1a1a';
+  ctx.lineWidth = Math.max(1.2, u * 0.07);
+  if (mood === 2 || mood === 1) {
+    // 질끈 감음 > <
+    ctx.beginPath();
+    ctx.moveTo(ex - u * 0.1, ey - u * 0.06);
+    ctx.lineTo(ex + u * 0.02, ey);
+    ctx.lineTo(ex - u * 0.1, ey + u * 0.06);
+    ctx.stroke();
+  } else if (mood === 3) {
+    ctx.beginPath();
+    ctx.arc(ex - u * 0.03, ey + u * 0.04, u * 0.08, Math.PI * 1.1, Math.PI * 1.9);
+    ctx.stroke();
+  } else if (mood === 4) {
+    ctx.beginPath();
+    for (let k = 0; k < 12; k++) {
+      const a = k * 0.7 + t * 0.3, rr = (k / 12) * u * 0.1;
+      ctx.lineTo(ex + Math.cos(a) * rr, ey + Math.sin(a) * rr);
+    }
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.arc(ex, ey, u * 0.065, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(ex + u * 0.02, ey - u * 0.025, u * 0.022, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // 귀 · 팔 (귀 막기)
+  ctx.fillStyle = '#8a5532';
+  ctx.beginPath();
+  ctx.arc(hx - u * 0.3, hy2 - u * 0.24, u * 0.11, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#8a5532';
+  ctx.lineCap = 'round';
+  ctx.lineWidth = u * 0.16;
+  ctx.beginPath();
+  if (mood === 2) {
+    ctx.moveTo(-u * 0.35, -u * 0.85);
+    ctx.quadraticCurveTo(-u * 0.6, -u * 1.2, hx - u * 0.36, hy2 - u * 0.18);
+    ctx.moveTo(u * 0.35, -u * 0.85);
+    ctx.quadraticCurveTo(u * 0.75, -u * 1.25, hx + u * 0.42, hy2 - u * 0.2);
+  } else if (mood === 3) {
+    ctx.moveTo(u * 0.4, -u * 0.8);
+    ctx.lineTo(u * 0.75, -u * 1.25);
+    ctx.moveTo(-u * 0.4, -u * 0.8);
+    ctx.lineTo(-u * 0.7, -u * 0.45);
+  } else {
+    ctx.moveTo(u * 0.4, -u * 0.8);
+    ctx.quadraticCurveTo(u * 0.85, -u * 0.75, u * 1.0, -u * (0.95 + 0.45 * (1 - plunge)));
+    ctx.moveTo(-u * 0.4, -u * 0.8);
+    ctx.lineTo(-u * 0.6, -u * 0.45);
+  }
+  ctx.stroke();
+  if (mood === 3) {
+    // 엄지 척
+    ctx.fillStyle = '#8a5532';
+    ctx.beginPath();
+    ctx.arc(u * 0.78, -u * 1.3, u * 0.11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(u * 0.74, -u * 1.52, u * 0.08, u * 0.2);
+  }
+  // 안전모
+  ctx.fillStyle = '#ffd23a';
+  ctx.beginPath();
+  ctx.ellipse(hx - u * 0.02, hy2 - u * 0.22, u * 0.46, u * 0.3, 0, Math.PI, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#e6b400';
+  ctx.beginPath();
+  ctx.ellipse(hx + u * 0.08, hy2 - u * 0.22, u * 0.6, u * 0.09, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#fff3b0';
+  ctx.fillRect(hx - u * 0.06, hy2 - u * 0.5, u * 0.08, u * 0.26);
+  if (mood === 4) {
+    // 먼지 범벅 · 어질어질 별
+    ctx.fillStyle = 'rgba(90,80,70,.35)';
+    ctx.beginPath();
+    ctx.ellipse(hx + u * 0.1, hy2 + u * 0.05, u * 0.4, u * 0.25, 0, 0, Math.PI * 2);
+    ctx.fill();
+    for (let k = 0; k < 3; k++) {
+      const a = t * 0.12 + (k * Math.PI * 2) / 3;
+      ctx.fillStyle = '#fff27a';
+      star(ctx, hx + Math.cos(a) * u * 0.5, hy2 - u * 0.62 + Math.sin(a) * u * 0.15, u * 0.12);
+      ctx.fill();
+    }
+  }
+  if (mood === 2) {
+    // 움찔 땀
+    ctx.fillStyle = '#9fe3ff';
+    ctx.beginPath();
+    ctx.ellipse(hx - u * 0.45, hy2 + (t % 20) * u * 0.01, u * 0.06, u * 0.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** 고양이 할머니 (창문 안). mood 0 차 · 1 내다봄 · 2 휴~ · 3 빗자루 */
+function granny(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, mood: number, t: number, face: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(face, 1);
+  // 숄
+  ctx.fillStyle = '#d6739a';
+  ctx.beginPath();
+  ctx.ellipse(0, u * 0.75, u * 0.75, u * 0.45, 0, Math.PI, Math.PI * 2);
+  ctx.fill();
+  // 머리
+  const sh = mood === 3 ? Math.sin(t * 0.6) * u * 0.06 : 0;
+  ctx.translate(sh, mood === 1 ? -u * 0.08 : 0);
+  ctx.fillStyle = '#e9e4ea';
+  for (const sd of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(sd * u * 0.42, -u * 0.05);
+    ctx.lineTo(sd * u * 0.36, -u * (mood === 3 ? 0.7 : 0.58));
+    ctx.lineTo(sd * u * 0.1, -u * 0.32);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.ellipse(0, 0, u * 0.48, u * 0.42, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#b8b0bd';
+  ctx.beginPath();
+  ctx.ellipse(-u * 0.18, -u * 0.18, u * 0.16, u * 0.12, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  // 쪽머리
+  ctx.fillStyle = '#cfc8d6';
+  ctx.beginPath();
+  ctx.arc(0, -u * 0.46, u * 0.16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#ffd23a';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-u * 0.2, -u * 0.52);
+  ctx.lineTo(u * 0.22, -u * 0.4);
+  ctx.stroke();
+  // 안경 · 눈
+  for (const sd of [-1, 1]) {
+    const ex = sd * u * 0.17, ey = -u * 0.02;
+    ctx.strokeStyle = '#6a5a3a';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.arc(ex, ey, u * 0.13, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.fillStyle = '#1a1a1a';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    if (mood === 2) ctx.arc(ex, ey + u * 0.03, u * 0.06, Math.PI * 1.1, Math.PI * 1.9);
+    else if (mood === 3) (ctx.moveTo(ex - u * 0.07, ey - u * 0.06 * sd), ctx.lineTo(ex + u * 0.07, ey + u * 0.03 * sd));
+    else if (mood === 1) ctx.arc(ex, ey, u * 0.06, 0, Math.PI * 2);
+    else ctx.arc(ex, ey + u * 0.02, u * 0.05, Math.PI * 0.1, Math.PI * 0.9);
+    if (mood === 1) ctx.fill();
+    else ctx.stroke();
+  }
+  ctx.fillStyle = '#ff9fb2';
+  ctx.beginPath();
+  ctx.moveTo(-u * 0.05, u * 0.12);
+  ctx.lineTo(u * 0.05, u * 0.12);
+  ctx.lineTo(0, u * 0.18);
+  ctx.fill();
+  ctx.strokeStyle = '#6a4a4a';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  if (mood === 3) ctx.ellipse(0, u * 0.28, u * 0.08, u * 0.07, 0, 0, Math.PI * 2);
+  else if (mood === 2) ctx.ellipse(0, u * 0.26, u * 0.06, u * 0.04, 0, 0, Math.PI * 2);
+  else (ctx.arc(-u * 0.05, u * 0.19, u * 0.05, 0, Math.PI), ctx.arc(u * 0.05, u * 0.19, u * 0.05, 0, Math.PI));
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,.85)';
+  for (const sd of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(sd * u * 0.2, u * 0.14);
+    ctx.lineTo(sd * u * 0.55, u * 0.1);
+    ctx.stroke();
+  }
+  ctx.restore();
+  // 찻잔 · 빗자루 (기울지 않음)
+  if (mood === 3) {
+    const a = -0.9 + Math.sin(t * 0.5) * 0.7;
+    ctx.save();
+    ctx.translate(x + face * u * 0.55, y + u * 0.4);
+    ctx.rotate(a * face);
+    ctx.strokeStyle = '#8a5a2a';
+    ctx.lineWidth = u * 0.1;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -u * 1.1);
+    ctx.stroke();
+    ctx.fillStyle = '#e8c35a';
+    ctx.beginPath();
+    ctx.moveTo(-u * 0.2, -u * 1.05);
+    ctx.lineTo(u * 0.2, -u * 1.05);
+    ctx.lineTo(u * 0.3, -u * 1.55);
+    ctx.lineTo(-u * 0.3, -u * 1.55);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  } else {
+    const cx = x + face * u * 0.45, cy = y + u * 0.5 - (mood === 0 ? Math.abs(Math.sin(t * 0.03)) * u * 0.15 : 0);
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.roundRect(cx - u * 0.13, cy - u * 0.12, u * 0.26, u * 0.2, u * 0.05);
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(cx + u * 0.15, cy - u * 0.02, u * 0.06, -Math.PI / 2, Math.PI / 2);
+    ctx.stroke();
+    if (mood === 0 && t % 90 < 50) {
+      ctx.strokeStyle = 'rgba(255,255,255,.6)';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - u * 0.15);
+      ctx.quadraticCurveTo(cx + u * 0.08, cy - u * 0.3, cx, cy - u * 0.45);
+      ctx.stroke();
+    }
+  }
+}
+
+/** 블록의 그 틱 모습: 칸 좌표 중심(x,y), 기울기(화면 시계 방향 +), 조각인가, 사라졌나 */
+function pose(o: Outcome, i: number, b: Blk, tau: number) {
+  let cx = b.x + 0.5, cy = b.y + 0.5, a = 0, moving = false;
+  if (o.die[i] >= 0 && tau >= o.die[i]) return { x: cx, y: cy, a, rub: false, gone: true, moving };
+  for (const g of o.segs![i]) {
+    if (tau < g.t0) break;
+    const u = Math.min(1, (tau - g.t0) / Math.max(1, g.t1 - g.t0));
+    if (u < 1) moving = true;
+    if (g.k === 2) (cx = g.ax + 0.5), (cy = g.ay + 0.5 + (g.by - g.ay) * u * u), (a = 0);
+    else if (g.k === 1) {
+      const e = u * u * (1.6 - 0.6 * u), th = (e * Math.PI) / 2, dx = g.ax + 0.5 - g.px, dy = g.ay + 0.5 - g.py;
+      const c = Math.cos(th), s = Math.sin(th);
+      const rx = g.dir > 0 ? dx * c + dy * s : dx * c - dy * s, ry = g.dir > 0 ? -dx * s + dy * c : dx * s + dy * c;
+      cx = g.px + rx;
+      cy = g.py + ry + g.lift * e;
+      a = g.dir * th;
+    } else (cx = g.ax + 0.5 + (g.bx - g.ax) * u), (cy = g.ay + 0.5 + (g.by - g.ay) * u + Math.sin(u * Math.PI) * 0.35), (a = 0);
+  }
+  const rub = o.rubT[i] >= 0 && tau >= o.rubT[i];
+  return { x: cx, y: cy, a, rub, gone: false, moving };
+}
+
+function drawAll(ctx: CanvasRenderingContext2D, s: DemoState, w: number, h: number, th: Theme) {
+  const fx = juice(s), X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w, t = s.t;
+  const L = s.L, d = STAGES[s.stage], B = L.blocks, u = R(CW);
+  const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${R(sz)}px system-ui, sans-serif`);
+  const say = (x: number, y: number, text: string, col: string, size: number) => {
+    let rec = recentSay.get(s);
+    if (!rec) recentSay.set(s, (rec = []));
+    for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.25 && Math.abs(q.y - y) < size + 4); k++) y -= size + 4;
+    rec.push({ x, y, t: s.t });
+    if (rec.length > 14) rec.shift();
+    fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), Math.max(R(HB) + size, y), text, col, size);
+  };
+  const o = s.phase === 'boom' || (s.phase === 'result' && s.out) ? s.out : null;
+  const tau = s.phase === 'boom' ? s.pt : s.phase === 'result' ? 9999 : -1;
+  const lotX0 = X(SX(L.L)), lotX1 = X(SX(L.R + 1)), gy = Y(GY);
+
+  ctx.save();
+  fx.begin(ctx);
+  // ── 하늘 (노을) ──
+  const sky = ctx.createLinearGradient(0, 0, 0, gy);
+  sky.addColorStop(0, '#3b2d5c');
+  sky.addColorStop(0.45, '#a9568a');
+  sky.addColorStop(0.78, '#f08a5d');
+  sky.addColorStop(1, '#ffd59a');
+  ctx.fillStyle = sky;
+  ctx.fillRect(-10, -10, w + 20, gy + 10);
+  // 해
+  {
+    const sx = X(0.5), sy = Y(GY - 0.12);
+    const sg = ctx.createRadialGradient(sx, sy, R(0.02), sx, sy, R(0.45));
+    sg.addColorStop(0, 'rgba(255,240,190,.95)');
+    sg.addColorStop(0.18, 'rgba(255,214,140,.55)');
+    sg.addColorStop(1, 'rgba(255,170,120,0)');
+    ctx.fillStyle = sg;
+    ctx.fillRect(0, 0, w, gy);
+    ctx.fillStyle = '#fff1c4';
+    ctx.beginPath();
+    ctx.arc(sx, sy, R(0.07), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // 구름
+  for (let k = 0; k < 4; k++) {
+    const cx = ((hsh(k + 3) * 1.4 + t * 0.00012 * (1 + k * 0.3)) % 1.4) - 0.2, cy = 0.14 + hsh(k + 9) * 0.3;
+    ctx.fillStyle = 'rgba(255,228,214,.32)';
+    for (let q = 0; q < 4; q++) {
+      ctx.beginPath();
+      ctx.ellipse(X(cx + q * 0.035), Y(cy - (q % 2) * 0.012), R(0.05 + 0.01 * q), R(0.022), 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  // 먼 장난감 마을 (실루엣 두 겹)
+  for (let layer = 0; layer < 2; layer++) {
+    ctx.fillStyle = layer ? 'rgba(120,70,120,.55)' : 'rgba(90,55,110,.4)';
+    let x = -0.05 + hsh(layer * 5) * 0.05;
+    while (x < 1.05) {
+      const bw = 0.06 + hsh(x * 31 + layer) * 0.07, bh = (layer ? 0.1 : 0.17) + hsh(x * 17 + layer * 3) * 0.12;
+      const by = GY - DY * 2 - (layer ? 0 : 0.04);
+      ctx.fillRect(X(x), Y(by - bh), R(bw), R(bh));
+      ctx.beginPath();
+      ctx.moveTo(X(x - 0.005), Y(by - bh));
+      ctx.lineTo(X(x + bw / 2), Y(by - bh - 0.035));
+      ctx.lineTo(X(x + bw + 0.005), Y(by - bh));
+      ctx.fill();
+      if (layer) {
+        ctx.fillStyle = 'rgba(255,214,140,.55)';
+        for (let k = 0; k < 2; k++) ctx.fillRect(X(x + bw * (0.25 + k * 0.35)), Y(by - bh * 0.7), R(0.012), R(0.016));
+        ctx.fillStyle = 'rgba(120,70,120,.55)';
+      }
+      x += bw + 0.015;
+    }
+  }
+  // ── 땅: 공사장 바닥 윗면 + 앞면 흙 ──
+  {
+    const top = gy - R(DY) * 1.6;
+    const gg = ctx.createLinearGradient(0, top, 0, gy);
+    gg.addColorStop(0, '#d9a774');
+    gg.addColorStop(1, '#c28a58');
+    ctx.fillStyle = gg;
+    ctx.fillRect(0, top, w, gy - top + 1);
+    // 이웃 마당 (풀)
+    ctx.fillStyle = '#7fae5c';
+    ctx.fillRect(0, top, lotX0, gy - top + 1);
+    ctx.fillRect(lotX1, top, w - lotX1, gy - top + 1);
+    // 바퀴 자국
+    ctx.strokeStyle = 'rgba(120,80,50,.3)';
+    ctx.lineWidth = 2;
+    for (const k of [0.35, 0.7]) {
+      ctx.beginPath();
+      ctx.moveTo(lotX0, top + (gy - top) * k);
+      ctx.lineTo(lotX1, top + (gy - top) * k);
+      ctx.stroke();
+    }
+    const fg = ctx.createLinearGradient(0, gy, 0, Y(BAND));
+    fg.addColorStop(0, '#8a5a3a');
+    fg.addColorStop(0.18, '#734a30');
+    fg.addColorStop(0.2, '#e3b67f');
+    fg.addColorStop(1, '#cfa06c');
+    ctx.fillStyle = fg;
+    ctx.fillRect(0, gy, w, Y(BAND) - gy + 2);
+    ctx.fillStyle = 'rgba(255,255,255,.12)';
+    for (let k = 0; k < 18; k++) ctx.fillRect(X(hsh(k * 3) * 1), gy + R(0.04) + hsh(k * 7) * R(0.14), R(0.01), R(0.006));
+  }
+  // 목표 높이 · 별 높이 선
+  {
+    const gl = Y(GY - L.goal * CW), fl = Y(GY - L.flat * CW);
+    ctx.setLineDash([R(0.016), R(0.012)]);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255,255,255,.75)';
+    ctx.beginPath();
+    ctx.moveTo(lotX0, gl);
+    ctx.lineTo(lotX1, gl);
+    ctx.stroke();
+    if (L.flat < L.goal) {
+      ctx.strokeStyle = 'rgba(255,214,90,.7)';
+      ctx.setLineDash([R(0.006), R(0.01)]);
+      ctx.beginPath();
+      ctx.moveTo(lotX0, fl);
+      ctx.lineTo(lotX1, fl);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    // 깃발
+    const fx0 = L.granny > 0 ? lotX0 + R(0.012) : lotX1 - R(0.012);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(fx0, gl);
+    ctx.lineTo(fx0, gl - R(0.05));
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    font(0.03, 900);
+    ctx.textAlign = L.granny > 0 ? 'left' : 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('목표', fx0 + (L.granny > 0 ? 3 : -3), gl - R(0.012));
+    if (L.flat < L.goal) {
+      ctx.fillStyle = '#ffd65a';
+      ctx.fillText('★', fx0 + (L.granny > 0 ? 3 : -3), fl - R(0.004));
+    }
+  }
+  // 이웃집 (빨간 선 밖)
+  for (const side of [-1, 1]) {
+    const x0 = side < 0 ? 0 : lotX1, x1 = side < 0 ? lotX0 : w, mine = L.granny === side;
+    const hw = x1 - x0, top = Y(GY - (mine ? 6.4 : 5.2) * CW), base = gy - R(DY) * 0.8;
+    const wallC = mine ? '#f4a6b8' : '#8fd3c1', roofC = mine ? '#9a4a6a' : '#3f7f74';
+    ctx.fillStyle = wallC;
+    ctx.fillRect(x0 - 2, top, hw + 4, base - top);
+    ctx.fillStyle = 'rgba(0,0,0,.12)';
+    ctx.fillRect(side < 0 ? x1 - R(0.012) : x0, top, R(0.012), base - top);
+    ctx.fillStyle = roofC;
+    ctx.beginPath();
+    ctx.moveTo(x0 - R(0.04), top + 2);
+    ctx.lineTo(side < 0 ? x1 + R(0.02) : x0 - R(0.02), top + 2);
+    ctx.lineTo(side < 0 ? x1 - R(0.03) : x0 + R(0.03), top - R(0.06));
+    ctx.lineTo(side < 0 ? -R(0.05) : w + R(0.05), top - R(0.12));
+    ctx.closePath();
+    ctx.fill();
+    // 창문
+    const wx = side < 0 ? x1 - R(0.012) - Math.min(hw * 0.7, R(0.13)) : x0 + R(0.012), ww = Math.min(hw * 0.7, R(0.13)), wy = top + R(0.05), wh = R(0.11);
+    ctx.fillStyle = '#5a3a40';
+    ctx.fillRect(wx - 2, wy - 2, ww + 4, wh + 4);
+    const lg = ctx.createLinearGradient(0, wy, 0, wy + wh);
+    lg.addColorStop(0, '#ffe9a8');
+    lg.addColorStop(1, '#ffb366');
+    ctx.fillStyle = lg;
+    ctx.fillRect(wx, wy, ww, wh);
+    if (mine) granny(ctx, wx + ww / 2, wy + wh * 0.55, Math.min(R(0.055), ww * 0.45), s.granny, t, side < 0 ? 1 : -1);
+    else {
+      // 비둘기
+      const fly = s.phase === 'boom' && s.pt > 0 ? Math.min(1, s.pt / 60) : 0;
+      const px = wx + ww / 2 - side * fly * R(0.3), py = top - R(0.07) - fly * R(0.25);
+      ctx.fillStyle = '#b9b3c9';
+      ctx.beginPath();
+      ctx.ellipse(px, py, R(0.022), R(0.016), 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(px - side * R(0.016), py - R(0.014), R(0.011), 0, Math.PI * 2);
+      ctx.fill();
+      if (fly) {
+        ctx.beginPath();
+        ctx.ellipse(px, py - R(0.012), R(0.02), R(0.006), Math.sin(t * 0.8) * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.fillStyle = '#5a3a40';
+    ctx.fillRect(wx, wy + wh * 0.48, ww, 2);
+    // 화분
+    ctx.fillStyle = '#c0583a';
+    ctx.fillRect(wx, wy + wh + 2, ww, R(0.018));
+    for (let k = 0; k < 3; k++) {
+      ctx.fillStyle = ['#ff6b8a', '#ffd23a', '#ff9f1c'][k];
+      ctx.beginPath();
+      ctx.arc(wx + ww * (0.2 + k * 0.3), wy + wh, R(0.01), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // 울타리 + 빨간 선
+    const lx = side < 0 ? lotX0 : lotX1;
+    ctx.strokeStyle = 'rgba(255,70,60,.65)';
+    ctx.setLineDash([R(0.012), R(0.01)]);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(lx, gy);
+    ctx.lineTo(lx, Y(HB + 0.03));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    for (let k = 0; k < 4; k++) {
+      ctx.fillStyle = k % 2 ? '#ffffff' : '#ff4b3e';
+      ctx.fillRect(lx - R(0.008), gy - R(0.07) + k * R(0.0175), R(0.016), R(0.0175));
+    }
+  }
+  // 꽃밭
+  for (const fxc of L.flowers) {
+    const x0 = X(SX(fxc));
+    const squashed = o && tau >= o.end - 30 && o.flowers > 0 && o.segs && B.some((_, i) => o.die[i] < 0 && o.rubT[i] >= 0 && o.fx[i] === fxc);
+    ctx.fillStyle = '#6a4a2a';
+    ctx.fillRect(x0 + 2, gy - R(DY) * 0.9, u - 4, R(DY) * 0.9);
+    for (let k = 0; k < 3; k++) {
+      const px = x0 + u * (0.2 + k * 0.3), py = gy - R(DY) * 0.5, sw = Math.sin(t * 0.05 + k + fxc) * 1.5;
+      ctx.strokeStyle = '#3f8f3a';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px + sw, py - (squashed ? u * 0.1 : u * 0.38));
+      ctx.stroke();
+      ctx.fillStyle = squashed ? '#8a6a5a' : ['#ff5c8a', '#ffd23a', '#ff8a3a'][(k + fxc) % 3];
+      ctx.beginPath();
+      ctx.ellipse(px + sw, py - (squashed ? u * 0.1 : u * 0.42), u * 0.09, squashed ? u * 0.04 : u * 0.11, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ── 블록 ──
+  const cracked = (i: number) => B[i].m === STONE && s.ch[i] === 1 && s.phase !== 'play';
+  const stat = new Int16Array(GW * GH).fill(-1);
+  const poses = B.map((b, i) => (o ? pose(o, i, b, tau) : { x: b.x + 0.5, y: b.y + 0.5, a: 0, rub: false, gone: false, moving: false }));
+  B.forEach((_, i) => {
+    const p = poses[i];
+    if (p.gone || p.rub || p.moving || p.a !== 0) return;
+    const gx = Math.round(p.x - 0.5), gyy = Math.round(p.y - 0.5);
+    if (Math.abs(p.x - 0.5 - gx) < 0.01 && Math.abs(p.y - 0.5 - gyy) < 0.01 && gyy >= 0 && gyy < GH) stat[gyy * GW + gx] = i;
+  });
+  // 그림자 (땅 위)
+  ctx.fillStyle = 'rgba(60,30,30,.22)';
+  B.forEach((_, i) => {
+    const p = poses[i];
+    if (p.gone) return;
+    const hgt = Math.max(0, p.y - 0.5);
+    ctx.globalAlpha = Math.max(0.05, 0.3 - hgt * 0.03);
+    ctx.beginPath();
+    ctx.ellipse(X(SX(p.x - 0.5) + CW * 0.6), gy - R(DY) * 0.45, u * 0.62, R(DY) * 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+  const order = B.map((_, i) => i).sort((a, b) => poses[a].y - poses[b].y || poses[b].x - poses[a].x);
+  for (const i of order) {
+    const b = B[i], p = poses[i];
+    if (p.gone) continue;
+    const px = X(SX(p.x - 0.5)), py = Y(SY(p.y - 0.5));
+    if (p.rub) {
+      rubble(ctx, b, px + u / 2, py + u / 2, u * 0.95, i * 7 + b.x);
+      continue;
+    }
+    if (p.moving || p.a !== 0) {
+      ctx.save();
+      ctx.translate(px + u / 2, py + u / 2);
+      ctx.rotate(p.a);
+      ctx.translate(-u / 2, -u / 2);
+      face(ctx, b, u, cracked(i));
+      ctx.restore();
+    } else {
+      const gx = Math.round(p.x - 0.5), gyy = Math.round(p.y - 0.5);
+      const above = gyy + 1 < GH ? stat[(gyy + 1) * GW + gx] : -1, right = gx + 1 < GW ? stat[gyy * GW + gx + 1] : -1;
+      blockAt(ctx, b, px, py, u, above < 0, right < 0, cracked(i));
+    }
+    // 붙은 폭약 (쾅 전까지)
+    if (s.ch[i] > 0 && !o) for (let k = 0; k < s.ch[i]; k++) dynamite(ctx, px + u * (0.5 + (s.ch[i] > 1 ? (k - 0.5) * 0.36 : 0)), py + u * 0.52, u * (s.ch[i] > 1 ? 0.7 : 0.85), t + i * 5, s.phase === 'count');
+  }
+  // 1판 첫 톡 전: 여기를 톡!
+  if (s.stage === 0 && !s.firstTap && s.phase === 'play') {
+    const pole = B.find((b) => b.m === WOOD && b.y === 2) ?? B[0];
+    const cx = X(SX(pole.x) + CW / 2), cy = Y(SY(pole.y) + CW / 2), pulse = (t % 50) / 50;
+    ctx.strokeStyle = `rgba(255,255,255,${1 - pulse})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, u * (0.4 + pulse * 0.6), 0, Math.PI * 2);
+    ctx.stroke();
+    font(0.06, 900);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('👆', cx + u * 0.9, cy + u * 0.5 + Math.sin(t * 0.15) * 3);
+  }
+
+  // ── 미리 보기 (꾹 누르는 동안): 지금 붙인 폭약 + 이 자리가 터지면 ──
+  let pv: Outcome | null = null, hv = -1;
+  if (s.down && s.aim && s.phase === 'play') {
+    hv = pickBlock(L, s.aim.x, s.aim.y);
+    if (hv >= 0 && s.ch[hv] < capOf(B[hv])) {
+      const key = `${s.placed.join(',')}|${hv}`, c = PREV.get(s);
+      if (c && c.key === key) pv = c.o;
+      else {
+        const ch = s.ch.slice();
+        ch[hv]++;
+        pv = simulate(L, ch);
+        PREV.set(s, { key, o: pv });
+      }
+    }
+    if (hv >= 0) {
+      const b = B[hv], px = X(SX(b.x)), py = Y(SY(b.y));
+      ctx.strokeStyle = B[hv].m === METAL || s.ch[hv] >= capOf(B[hv]) ? '#ff8a7a' : '#ffffff';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(px - 1, py - 1, u + 2, u + 2);
+      if (pv) dynamite(ctx, px + u / 2, py + u * 0.52, u * 0.8, t, false, true);
+    }
+  }
+  if (pv) {
+    const bad = (x: number) => x < L.L || x > L.R;
+    B.forEach((b, i) => {
+      const ox = X(SX(b.x)), oy = Y(SY(b.y));
+      if (pv!.die[i] >= 0 && !pv!.dust[i]) {
+        ctx.strokeStyle = '#ff5a4a';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(ox + u * 0.2, oy + u * 0.2);
+        ctx.lineTo(ox + u * 0.8, oy + u * 0.8);
+        ctx.moveTo(ox + u * 0.8, oy + u * 0.2);
+        ctx.lineTo(ox + u * 0.2, oy + u * 0.8);
+        ctx.stroke();
+        return;
+      }
+      if (pv!.rubT[i] < 0) return;
+      // 무너지는 블록: 원래 자리를 흐리게 + 떨어질 자리에 윤곽
+      ctx.fillStyle = 'rgba(40,20,40,.35)';
+      ctx.fillRect(ox, oy, u, u);
+      if (pv!.dust[i]) return;
+      const fx2 = X(SX(pv!.fx[i])), fy2 = Y(SY(pv!.fy[i]));
+      ctx.setLineDash([R(0.008), R(0.006)]);
+      ctx.strokeStyle = bad(pv!.fx[i]) ? '#ff5a4a' : '#ffffff';
+      ctx.fillStyle = bad(pv!.fx[i]) ? 'rgba(255,80,70,.35)' : 'rgba(255,255,255,.22)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(fx2 + u * 0.08, fy2 + u * 0.08, u * 0.84, u * 0.84, u * 0.15);
+      ctx.fill();
+      ctx.stroke();
+      ctx.setLineDash([]);
+    });
+    // 넘어질 방향 화살표
+    for (const tp of pv.tips) {
+      const top = tp.ids.reduce((a, j) => (B[j].y > B[a].y ? j : a), tp.ids[0]);
+      const cx = X(SX(B[top].x) + CW / 2), cy = Y(SY(B[top].y)), rr = u * 1.3;
+      ctx.strokeStyle = '#ffe14d';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      const a0 = -Math.PI / 2, a1 = a0 + tp.dir * 1.1;
+      ctx.arc(cx, cy + rr, rr, Math.min(a0, a1), Math.max(a0, a1));
+      ctx.stroke();
+      const ex = cx + Math.cos(a1) * rr, ey = cy + rr + Math.sin(a1) * rr, ang = a1 + (tp.dir * Math.PI) / 2;
+      ctx.fillStyle = '#ffe14d';
+      ctx.beginPath();
+      ctx.moveTo(ex + Math.cos(ang) * u * 0.35, ey + Math.sin(ang) * u * 0.35);
+      ctx.lineTo(ex + Math.cos(ang + 2.4) * u * 0.3, ey + Math.sin(ang + 2.4) * u * 0.3);
+      ctx.lineTo(ex + Math.cos(ang - 2.4) * u * 0.3, ey + Math.sin(ang - 2.4) * u * 0.3);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  // ── 비버 반장 (앞마당) ──
+  {
+    const side = -L.granny, bxp = side < 0 ? 0.1 : 0.9, byp = BAND - 0.035;
+    const plunge = s.phase === 'count' ? Math.min(1, s.pt / (COUNT_T * 3)) : s.phase === 'boom' || s.phase === 'result' ? 1 : 0;
+    // 전선: 기폭 상자 → 건물
+    const tgt = B.find((_, i) => s.ch[i] > 0);
+    if (tgt && !o) {
+      const sx = X(bxp + side * -0.06), sy = Y(byp - 0.04), ex = X(SX(tgt.x) + CW / 2), ey = Y(SY(tgt.y) + CW * 0.9);
+      ctx.strokeStyle = s.phase === 'count' && t % 10 < 5 ? '#ffe14d' : '#c9a227';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.bezierCurveTo(sx, gy + R(0.05), ex, gy + R(0.02), ex, ey);
+      ctx.stroke();
+    }
+    beaver(ctx, X(bxp), Y(byp), R(0.052), s.beaver, t, side < 0 ? 1 : -1, plunge);
+  }
+
+  // ── 쾅! 연출 ──
+  let puffs = PUFFS.get(s);
+  if (!puffs) PUFFS.set(s, (puffs = []));
+  const seenT = fx.memo.t ?? -1;
+  for (const e of s.events) {
+    if (e.t <= seenT) continue;
+    const x = X(e.x), y = Y(e.y);
+    if (e.kind === 'stick') fx.burst(x, y, '#ffe14d', 10, 2.4, 2), fx.ring(x, y, '#ffffff', u * 0.8, 3), say(x, y - u * 0.8, e.text!, '#fff3c4', 14);
+    if (e.kind === 'nope') say(x, y - u * 0.7, e.text!, '#ffd0c8', 13), fx.kick(1.5);
+    if (e.kind === 'beep') fx.kick(2), fx.blink('#ff3b30', 0.06);
+    if (e.kind === 'boom') fx.kick(14), fx.blink('#fff3c4', 0.55);
+    if (e.kind === 'blast' || e.kind === 'gas') {
+      const big = e.kind === 'gas';
+      fx.burst(x, y, '#ffe14d', big ? 40 : 26, big ? 6 : 4.6, 3.2), fx.burst(x, y, '#ff6a3a', big ? 30 : 18, big ? 5 : 3.8, 3), fx.ring(x, y, '#fff3c4', u * (big ? 2.6 : 1.4), 6);
+      if (big) fx.kick(12), say(x, y - u, '가스 펑!', '#ffb36b', 18);
+      for (let k = 0; k < (big ? 6 : 3); k++) puffs.push({ x: x + (hsh(e.t + k) - 0.5) * u, y: y + (hsh(k * 3 + e.t) - 0.5) * u, r: u * (0.4 + hsh(k) * 0.3), life: 70, max: 70, vx: (hsh(k + 9) - 0.5) * 0.6 });
+    }
+    if (e.kind === 'dust') for (let k = 0; k < 2; k++) puffs.push({ x: x + (hsh(e.id! + k) - 0.5) * u, y, r: u * (0.5 + hsh(e.id! * 3 + k) * 0.3), life: 90, max: 90, vx: (hsh(e.id! + k * 5) - 0.5) * 0.8 });
+    if (e.kind === 'land') fx.burst(x, y + u * 0.3, '#d9b38c', 6, 2.2, 2.2), fx.kick(3);
+    if (e.kind === 'tip') say(x, y - u * 0.5, e.text!, '#ffe14d', 16);
+    if (e.kind === 'hit') fx.kick(10), fx.blink(th.hot, 0.3), fx.burst(x, y, '#ff8a7a', 24, 4.5, 2.6), say(x, y - u, e.text!, '#ffb3a8', 20);
+    if (e.kind === 'phew') say(x, y, e.text!, '#ffd6e6', 17);
+    if (e.kind === 'clear') fx.burst(w * 0.3, Y(0.45), '#ffe14d', 40, 6, 3.2), fx.burst(w * 0.7, Y(0.45), '#ff9ec4', 40, 6, 3.2), fx.ring(w / 2, Y(0.5), '#ffe14d', R(0.45), 7), fx.blink('#fff6c8', 0.2);
+    if (e.kind === 'fail') fx.kick(6), fx.blink(th.hot, 0.15);
+  }
+  fx.memo.t = s.t;
+  // 먼지 구름
+  for (const p of puffs) {
+    p.life--;
+    p.x += p.vx;
+    p.y -= 0.25;
+    p.r += 0.35;
+    ctx.fillStyle = `rgba(214,190,160,${0.5 * (p.life / p.max)})`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  PUFFS.set(s, puffs.filter((p) => p.life > 0).slice(-80));
+  // 느린 화면: 넘어지는 동안 위아래 검은 띠
+  if (o && s.phase === 'boom' && o.tips.length && tau > 10 && tau < o.end - 20) {
+    const k = Math.min(1, (tau - 10) / 12, (o.end - 20 - tau) / 12);
+    ctx.fillStyle = 'rgba(10,6,20,.55)';
+    ctx.fillRect(0, Y(HB), w, R(0.035) * k);
+    ctx.fillRect(0, gy + R(0.13) - R(0.035) * k, w, R(0.035) * k);
+    if (k > 0.5) {
+      ctx.fillStyle = 'rgba(255,255,255,.8)';
+      font(0.03, 800);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('▶▶ 느린 화면', R(0.03), Y(HB) + R(0.018));
+    }
+  }
+  // 3·2·1
+  if (s.phase === 'count') {
+    const n = 3 - Math.floor(s.pt / COUNT_T), age = s.pt % COUNT_T, sc = 1.6 - Math.min(0.6, age / 10);
+    ctx.save();
+    ctx.translate(w / 2, Y(0.36));
+    ctx.scale(sc, sc);
+    ctx.globalAlpha = Math.min(1, (COUNT_T - age) / 10);
+    font(0.16, 900);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = 'rgba(60,10,10,.6)';
+    ctx.strokeText(String(n), 0, 0);
+    ctx.fillStyle = '#ffe14d';
+    ctx.fillText(String(n), 0, 0);
+    ctx.restore();
+  }
+  if (s.phase === 'boom' && tau < 30) {
+    const sc = 0.8 + tau / 20;
+    ctx.save();
+    ctx.translate(w / 2, Y(0.34));
+    ctx.scale(sc, sc);
+    ctx.globalAlpha = Math.max(0, 1 - tau / 30);
+    font(0.13, 900);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = 'rgba(80,20,10,.7)';
+    ctx.strokeText('쾅!', 0, 0);
+    ctx.fillStyle = '#ff7a3a';
+    ctx.fillText('쾅!', 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // ═════════════ HUD (위 띠) ═════════════
+  const hb = R(HB);
+  ctx.fillStyle = 'rgba(30,22,52,.9)';
+  ctx.fillRect(0, 0, w, hb);
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#ffffff';
+  font(0.045, 900);
+  const ttl = `🏗️ ${s.stage + 1}번째 현장`, tw1 = ctx.measureText(ttl).width;
+  ctx.fillText(ttl, R(0.03), hb * 0.52);
+  font(0.036, 800);
+  ctx.fillStyle = th.muted;
+  ctx.fillText(` / ${STAGE_COUNT}`, R(0.03) + tw1, hb * 0.56);
+  ctx.textAlign = 'right';
+  font(0.042, 900);
+  ctx.fillStyle = '#ffd84a';
+  const stt = `★ ${s.stars}/${STAGE_COUNT * 3}`;
+  ctx.fillText(stt, w - R(0.03), hb * 0.52);
+  ctx.fillStyle = th.hot;
+  ctx.fillText('♥'.repeat(Math.max(0, s.hearts)) + '♡'.repeat(Math.max(0, 3 - s.hearts)), w - R(0.05) - ctx.measureText(stt).width, hb * 0.52);
+  // 새것 알림
+  if (s.news && s.t - s.news.t < NEWS_T && s.phase !== 'count') {
+    const age = s.t - s.news.t, a = Math.min(1, age / 10, (NEWS_T - age) / 20), drop = Math.max(0, 10 - age) * 2;
+    ctx.globalAlpha = a;
+    font(0.036, 900);
+    ctx.textAlign = 'center';
+    const tx = s.news.text, tw2 = Math.min(w - 10, ctx.measureText(tx).width + 24), by2 = hb + R(0.04) + drop;
+    ctx.fillStyle = 'rgba(30,22,52,.92)';
+    ctx.beginPath();
+    ctx.roundRect(w / 2 - tw2 / 2, by2 - R(0.026), tw2, R(0.052), R(0.026));
+    ctx.fill();
+    ctx.strokeStyle = th.accent;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(tx, w / 2, by2, w - 24);
+    ctx.globalAlpha = 1;
+  }
+  // 미리 보기 말풍선
+  if (s.down && s.phase === 'play' && hv >= 0) {
+    let line = '', col = '#ffffff';
+    if (!pv) (line = B[hv].m === METAL ? '쇠에는 폭약이 안 붙어요' : '이미 붙었어요'), (col = '#ffb3a8');
+    else if (pv.hitL + pv.hitR > 0) (line = '✗ 이웃집 쾅!'), (col = '#ff9a8a');
+    else if (!pv.moved) (line = B[hv].m === STONE && s.ch[hv] === 0 ? '돌은 폭약 하나로는 안 터져요' : '✗ 꿈쩍도 안 해요'), (col = '#ffd0a0');
+    else if (!pv.ok) (line = `✗ 아직 높아요 (${pv.height}칸)`), (col = '#ffd0a0');
+    else (line = `✓ 철거 성공 ${pv.star.map((k) => (k ? '★' : '☆')).join('')}`), (col = '#bff7a8');
+    const sub = s.left > 1 ? `지금 쾅 하면 — 폭약 ${s.left - 1}개 더 붙여야 진짜 쾅` : '떼면 붙이고 3·2·1 쾅!';
+    const by3 = hb + R(0.1);
+    ctx.fillStyle = 'rgba(30,22,52,.9)';
+    ctx.beginPath();
+    ctx.roundRect(R(0.08), by3 - R(0.04), w - R(0.16), R(0.09), R(0.03));
+    ctx.fill();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = col;
+    font(0.046, 900);
+    ctx.fillText(line, w / 2, by3 - R(0.01), w - R(0.2));
+    ctx.fillStyle = '#e9ddff';
+    font(0.032, 800);
+    ctx.fillText(sub, w / 2, by3 + R(0.028), w - R(0.2));
+  }
+  // 판 카드: 시작 · 결과
+  {
+    let head = '', sub = '', nw = '', col = '#ffffff', age = 0, a = 1;
+    if (s.phase === 'result') {
+      age = s.pt;
+      if (s.ok) (head = s.won ? '마을 철거 끝! 🏗️' : '철거 성공!'), (sub = `높이 ${s.out!.height}칸 · 꽃밭 ${s.starOk[1] ? '✓' : '✗'} · 납작 ${s.starOk[2] ? '✓' : '✗'}`), (col = '#ffd84a');
+      else (head = `앗… ${s.why}`), (sub = s.hearts > 0 ? '하트 -1 · 같은 현장 다시' : '끝 — 비버들이 먼지를 털어요'), (col = '#ffb3a8');
+    } else if (s.phase === 'play' && s.pt < CARD_T && !s.down) {
+      age = s.pt;
+      a = Math.min(1, (CARD_T - s.pt) / 20);
+      head = s.again ? `다시! ${d.title}` : d.title;
+      sub = `폭약 ${d.charges}개 · 목표 ${d.goal}칸 아래 · ★ ${d.flat}칸`;
+      nw = d.news;
+    }
+    if (head) {
+      const sc = Math.min(1, 0.6 + age / 12), cyy = Y(HB + (nw ? 0.1 : 0.09)), ch2 = nw ? 0.158 : 0.11;
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.translate(w / 2, cyy);
+      ctx.scale(sc, sc);
+      ctx.fillStyle = 'rgba(30,22,52,.92)';
+      ctx.beginPath();
+      ctx.roundRect(-R(nw ? 0.45 : 0.4), -R(0.055), R(nw ? 0.9 : 0.8), R(ch2), R(0.04));
+      ctx.fill();
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = col;
+      font(0.05, 900);
+      if (s.phase === 'result' && s.ok) {
+        const hw = ctx.measureText(head).width, sw = R(0.056), x0 = -(hw + R(0.02) + sw * 3) / 2;
+        ctx.textAlign = 'left';
+        ctx.fillText(head, x0, -R(0.018));
+        for (let k = 0; k < 3; k++) {
+          const ag = s.pt - (10 + k * 13);
+          if (ag < 0) continue;
+          const got = s.starOk[k], pop = ag < 8 ? 1.9 - 0.9 * (ag / 8) : 1, sx = x0 + hw + R(0.02) + sw * (k + 0.5);
+          ctx.save();
+          ctx.translate(sx, -R(0.018));
+          ctx.scale(pop, pop);
+          star(ctx, 0, 0, R(0.024));
+          ctx.fillStyle = got ? '#ffd43b' : 'rgba(255,255,255,.12)';
+          ctx.fill();
+          ctx.strokeStyle = got ? '#fff3b0' : 'rgba(255,255,255,.45)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          ctx.restore();
+          if (got && (fx.memo['star' + k] ?? -1) < s.t - ag) (fx.memo['star' + k] = s.t - ag), fx.burst(w / 2 + sx, cyy - R(0.018), '#ffe066', 16, 3, 2.4);
+        }
+        ctx.textAlign = 'center';
+      } else ctx.fillText(head, 0, -R(0.018), R(0.76));
+      ctx.fillStyle = '#fff8ec';
+      font(0.036, 800);
+      ctx.fillText(sub, 0, R(0.03), R(0.76));
+      if (nw) {
+        ctx.fillStyle = '#ffe9a8';
+        font(0.036, 900);
+        ctx.fillText(nw, 0, R(0.077), R(0.86));
+      }
+      ctx.restore();
+    }
+  }
+  // ═════════════ 아래 띠 ═════════════
+  {
+    const ty = BAND, tb = h / w;
+    const g = ctx.createLinearGradient(0, Y(ty), 0, Y(tb));
+    g.addColorStop(0, 'rgba(36,26,60,.95)');
+    g.addColorStop(1, 'rgba(22,16,38,.98)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.roundRect(0, Y(ty), w, Y(tb - ty) + 4, [R(0.03), R(0.03), 0, 0]);
+    ctx.fill();
+    // 폭약 남은 수
+    const r1 = Y(ty + 0.045);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffe9d6';
+    font(0.038, 900);
+    ctx.fillText('폭약', X(0.03), r1);
+    for (let k = 0; k < d.charges; k++) {
+      const cx = X(0.16) + k * R(0.07);
+      if (k < s.placed.length) {
+        ctx.strokeStyle = 'rgba(255,255,255,.3)';
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(cx - R(0.018), r1 - R(0.026), R(0.036), R(0.052));
+      } else dynamite(ctx, cx, r1, R(0.06), t + k * 9, false);
+    }
+    ctx.textAlign = 'right';
+    font(0.036, 800);
+    ctx.fillStyle = s.left > 0 ? '#ffd9a8' : '#ffb3a8';
+    ctx.fillText(s.phase === 'play' ? `${s.left}개 남음` : s.phase === 'count' ? '3·2·1…' : '쾅!', X(0.97), r1);
+    // 별 목표 셋
+    const done = s.phase === 'result' && s.ok;
+    const okk = done ? s.starOk : [false, false, false];
+    const bad = [s.phase === 'result' && !s.ok, done && !s.starOk[1], done && !s.starOk[2]];
+    const labels = ['철거!', L.flowers.length ? '꽃밭 무사' : '꽃밭 (없음)', `납작 ≤${L.flat}칸`];
+    const r2 = Y(ty + 0.12), cw2 = R(0.3);
+    for (let k = 0; k < 3; k++) {
+      const cx1 = X(0.03) + k * (cw2 + R(0.017));
+      ctx.fillStyle = okk[k] ? 'rgba(255,216,74,.25)' : bad[k] ? 'rgba(0,0,0,.35)' : 'rgba(255,255,255,.08)';
+      ctx.beginPath();
+      ctx.roundRect(cx1, r2 - R(0.026), cw2, R(0.052), R(0.026));
+      ctx.fill();
+      ctx.strokeStyle = okk[k] ? '#ffd84a' : bad[k] ? 'rgba(255,255,255,.15)' : 'rgba(255,255,255,.3)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = okk[k] ? '#ffd84a' : bad[k] ? 'rgba(255,255,255,.3)' : 'rgba(255,255,255,.6)';
+      font(0.04, 900);
+      ctx.textAlign = 'center';
+      ctx.fillText(bad[k] ? '✗' : '★', cx1 + R(0.03), r2 + R(0.002));
+      ctx.fillStyle = okk[k] ? '#fff6dc' : bad[k] ? 'rgba(255,255,255,.4)' : '#f1e6ff';
+      font(0.034, 800);
+      ctx.textAlign = 'left';
+      ctx.fillText(labels[k], cx1 + R(0.058), r2 + R(0.002), cw2 - R(0.066));
+    }
+    // 안내 한 줄
+    let hint = d.hint;
+    const first = s.stage === 0 && !s.firstTap && s.phase === 'play';
+    if (first) hint = '👆 기둥을 톡! 폭약을 붙이면 3·2·1 쾅!';
+    else if (s.down && s.phase === 'play') hint = '떼면 폭약을 붙여요 · 빈 곳에서 떼면 취소';
+    else if (s.phase === 'count') hint = '비버 반장: 귀 막아요!';
+    else if (s.phase === 'result') hint = s.ok ? (s.won ? '장난감 마을이 새 집을 지을 자리를 얻었어요' : `★ ${s.got}개! 다음 현장엔 새것이 나와요`) : '꾹 누르면 무너질 모양이 보여요';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = first ? '#ffffff' : '#ffe9a8';
+    font(first ? 0.042 : 0.037, 900);
+    ctx.fillText(hint, w / 2, Y(ty + 0.2), w - R(0.05));
+  }
+}
