@@ -93,7 +93,8 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   // D011 🎨 13장 ③: 황금을 물 위에 둔 채 깨면 결과 카드 셋째 줄이 '황금이 꼴찌였어요'
   await page.evaluate(() => (globalThis as any).__duck.jump(0));
   await page.waitForTimeout(300);
-  await page.evaluate(() => { const s = (globalThis as any).__duck.state(); s.objs.filter((o: any) => o.k === 0).forEach((o: any) => (o.st = 0)); });
+  // 🧪 D011: 카드가 판과 맞게 — 톡 1번을 쓴 뒤 보통 오리만 둥지에(황금은 물 위 = 꼴찌)
+  await page.evaluate(() => { const s = (globalThis as any).__duck.state(); s.used = 1; s.taps -= 1; s.objs.filter((o: any) => o.k === 0).forEach((o: any) => (o.st = 0)); });
   await page.waitForSelector('.card:not([hidden])', { timeout: 10_000 });
   await page.waitForTimeout(300);
   await page.screenshot({ path: join(here, 'screens', `${name}-gold-last.png`) });
