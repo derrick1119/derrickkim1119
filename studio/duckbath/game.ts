@@ -114,7 +114,7 @@ export const STAGES: StageDef[] = [
     ducks: [[0.22, 0.66, 0], [0.78, 0.66, 0], [0.5, 0.38, 0]], gold: [0.5, 0.6],
     shark: [0.5, 0.88],
     nests: [[0.13, 0.13, 0.14, -1], [0.87, 0.13, 0.14, -1]],
-    taps: 7, par: 5, // D003: par 3→5 (FUN E6 — 사람 기준 ★톡, 꿀꺽이 톡을 먹는다)
+    taps: 7, par: 4, // D003: par 3→5 (FUN E6) · D004: 5→4 (🧪 — E6 하한과 E2를 같이 맞추는 값, FUN P1)
   },
   {
     key: 'stream', news: '🚰 수도꼭지 물줄기 — 태우면 저절로 실려 가요', hint: '물줄기에 밀어 넣으면 둥지까지 흘러가요',
@@ -131,7 +131,7 @@ export const STAGES: StageDef[] = [
     islands: [[0.86, 0.6, 0.08]],
     drains: [[0.14, 0.22]],
     nests: [[0.12, 1.07, 0.13, 0], [0.88, 0.13, 0.13, 1]],
-    taps: 10, par: 8, // D003: 톡 9→10 (배우는 봇 다시 횟수, 배수구 이동은 M2) · par 6→8 (FUN E6)
+    taps: 12, par: 8, // D003: 톡 9→10 · par 6→8 (FUN E6) · D004: 톡 10→12 (🧪 여유 비율 r 2.0, 배우는 봇 C5 — 톡은 12가 상한, 배수구 이동은 M2)
   },
 ];
 export const STAGE_COUNT = STAGES.length;
