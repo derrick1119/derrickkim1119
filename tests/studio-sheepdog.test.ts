@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/sheepdog/core.ts';
-import { COME_HOLD, FLAG_SNAP, LATER, STAGES, at as atField, blackCame, jumpTo, preview, starCount, sheepdog as g, sheepdogGreedy, sheepdogRandom, sheepdogSmart, type DogState } from '../studio/sheepdog/game.ts';
+import { COME_HOLD, FLAG_SNAP, LATER, STAGES, at as atField, blackCame, comeHold, jumpTo, preview, starCount, sheepdog as g, sheepdogGreedy, sheepdogRandom, sheepdogSmart, type DogState } from '../studio/sheepdog/game.ts';
 import { mulberry32 } from '../studio/sheepdog/rng.ts';
 
 const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y } });
@@ -203,7 +203,7 @@ describe('M1-3 숨은 규칙을 보이게 (C006)', () => {
     let fleeTicks = 0, came = false;
     for (let t = 0; t < 60 * 60 && phaseOf(s) !== 'result'; t++) {
       g.step(s, sheepdogNaiveLike(s, rng));
-      if (phaseOf(s) === 'flee') (fleeTicks++, (came ||= blackCame(s)));
+      if (phaseOf(s) === 'flee') (fleeTicks++, (came ||= blackCame(s) && comeHold(s)));
     }
     expect(came).toBe(true);
     expect(fleeTicks).toBeGreaterThanOrEqual(40 + COME_HOLD - 1);

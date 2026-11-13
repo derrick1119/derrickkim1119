@@ -34,6 +34,8 @@ const DOG_SPEED = 0.05, FLEE_T = 40, RESULT_OK = 190, RESULT_FAIL = 60;
 export const COME_HOLD = 30;
 /** 이번 짖기에 까만 양이 거꾸로 왔나 */
 export const blackCame = (s: DogState) => !!s.rec && s.rec.scare.some((v, i) => v === 3 && s.F.black[i]);
+/** 까만 양이 온 짖기가 판을 끝내는가 — 그때만 0.5초 멈춘다(C006 FUN QA: 당길 때마다 멈추면 입력이 막힌다) */
+export const comeHold = (s: DogState) => blackCame(s) && s.F.black.every((b, i) => b || s.S.pen[i] >= 0);
 const STAR_PTS = 100, WIN_PTS = 100;
 
 interface Seg { x0: number; y0: number; x1: number; y1: number }
@@ -851,7 +853,7 @@ export const sheepdog: GameDef<DogState> = {
       return;
     }
     if (s.phase === 'flee') {
-      if (s.pt >= FLEE_T + (blackCame(s) ? COME_HOLD : 0)) afterFlee(s);
+      if (s.pt >= FLEE_T + (comeHold(s) ? COME_HOLD : 0)) afterFlee(s);
       return;
     }
     // 겨누기: 누르는 동안 미리 보기, 떼면 짖는다
@@ -1706,8 +1708,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   const flee = s.phase === 'flee' && s.rec ? s.rec : null, q = flee ? Math.min(1, s.pt / FLEE_T) : 1;
   /** 양 i가 지금 화면 어디에 (목장 좌표) */
   const sheepAt = (i: number): [number, number] => {
-    if (flee && flee.path[i]) return pathAt(flee.path[i]!, ease(q));
-    return [S.x[i], S.y[i]];
+    const p: [number, number] = flee && flee.path[i] ? pathAt(flee.path[i]!, ease(q)) : [S.x[i], S.y[i]];
+    // 풍덩한 양은 개울 가운데서 허우적 (C006 FUN QA: 둑 선에 서 있어 안 빠진 것처럼 보였다)
+    if (S.fell[i] && F.river && (!flee || !flee.path[i] || q > 0.6)) p[1] = (F.river.y0 + F.river.y1) / 2;
+    return p;
   };
   ctx.save();
   fx.begin(ctx);
@@ -2610,11 +2614,18 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
           say(PX(a, b), PY(b) - R(0.07), nIn > 1 ? `쏙! ×${nIn}` : '쏙!', '#e8ffd0', 17);
         }
       }
+      // 판이 끝나는 짖기의 0.5초 멈춤: 까만 양 머리 위에 '?!'를 다시 크게 (허들 ②)
+      if (flee.scare[i] === 3 && s.pt >= FLEE_T && comeHold(s) && mk('come2')) {
+        const [a, b] = sheepAt(i);
+        fx.ring(PX(a, b), PY(b), '#ffe0f0', R(0.09), 4);
+        say(PX(a, b), PY(b) - R(0.1), '?!', '#ffe0f0', 26);
+      }
       if (flee.scare[i] === 3 && q > 0.75 && !S.fell[i] && mk('love')) {
         const [a, b] = sheepAt(i);
         say(PX(a, b), PY(b) - R(0.09), '♥', '#ff8fc8', 18);
       }
-      if (flee.fellAt[i] >= 0 && idx >= flee.fellAt[i] && mk('fell')) {
+      // 빠지는 칸은 경로의 마지막 칸이라 q = 1이 되기 한 칸 앞에서 터뜨린다 (C006 FUN QA: q = 1 틱엔 이미 결과 화면이라 178번 중 161번 안 보였다)
+      if (flee.fellAt[i] >= 0 && idx >= flee.fellAt[i] - 1.5 && mk('fell')) {
         const [a, b] = pathAt(pa, flee.fellAt[i] / Math.max(1, m - 1));
         fx.burst(PX(a, b), PY(b), '#bfe9ff', 30, 4.5, 3), fx.ring(PX(a, b), PY(b), '#ffffff', R(0.08), 3), fx.kick(3);
         say(PX(a, b), PY(b) - R(0.08), '풍덩!', '#bfe9ff', 20);
