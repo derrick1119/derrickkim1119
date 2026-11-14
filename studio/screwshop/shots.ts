@@ -166,6 +166,22 @@ for (const scheme of ['light', 'dark'] as const) {
       }
     }
   }
+  // 🤡 뿅에 맡겨요(✏️ S014): 3-2 처음에 모자 맨 위 나사를 꾹 → 알약 · 나사 밖에서 떼어 취소
+  {
+    const k = STAGES.findIndex((d) => d.key === 'jackbox'), J = g.create(42);
+    startStage(J, k);
+    const L7 = J.L, hat = [...L7.ps[L7.jack![1]]].sort((a, b) => L7.py[a] - L7.py[b])[0];
+    await page.goto(url + `?seed=42&stage=${k + 1}`);
+    await page.click('.g-overlay');
+    await page.waitForTimeout(900);
+    const b7 = (await page.locator('canvas').boundingBox())!;
+    await page.mouse.move(b7.x + L7.px[hat] * b7.width, b7.y + L7.py[hat] * b7.width);
+    await page.mouse.down();
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: join(out, '48-w3-2-early.png') });
+    await page.mouse.move(b7.x + 0.02 * b7.width, b7.y + 0.02 * b7.width);
+    await page.mouse.up();
+  }
   // ★3을 못 딴 결과(별 이유 + ↺ 다시 · 다음): 망치를 반대로 매다는 순서로 1판을 푼다
   await page.goto(url + '?seed=42');
   await page.click('.g-overlay');

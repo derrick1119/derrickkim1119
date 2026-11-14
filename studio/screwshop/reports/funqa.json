@@ -1,6 +1,6 @@
 {
  "at": "2026-11-14",
- "build": "M2-S013",
+ "build": "M2-S014",
  "seeds": 24,
  "summary": {
   "smartStars": 3,
@@ -27,6 +27,14 @@
   "f13_38min": 0.95,
   "f16min": 0.83,
   "pairMin": 0.79,
+  "dev": [
+   [
+    "3-2",
+    0.22,
+    0.83
+   ]
+  ],
+  "onlyLastSmallN": 0.94,
   "f15t": [
    [
     "1-6",
@@ -160,6 +168,7 @@
     "v21": null,
     "airFails": 0,
     "pair": null,
+    "onlyLast": null,
     "by": {}
    }
   },
@@ -254,6 +263,7 @@
     "v21": 1,
     "airFails": 0,
     "pair": null,
+    "onlyLast": 0,
     "by": {
      "③통나무": [
       11,
@@ -353,6 +363,7 @@
     "v21": 1,
     "airFails": 0,
     "pair": null,
+    "onlyLast": 0.54,
     "by": {
      "④태엽": [
       61,
@@ -456,6 +467,7 @@
     "v21": 0.98,
     "airFails": 27,
     "pair": 0.85,
+    "onlyLast": 0.65,
     "by": {
      "①색": [
       2,
@@ -559,6 +571,7 @@
     "v21": 1,
     "airFails": 7,
     "pair": 1,
+    "onlyLast": 0.84,
     "by": {
      "①색": [
       2,
@@ -666,6 +679,7 @@
     "v21": 0.86,
     "airFails": 0,
     "pair": null,
+    "onlyLast": 0.91,
     "by": {
      "①색": [
       7,
@@ -772,6 +786,7 @@
     "v21": 1,
     "airFails": 5,
     "pair": 1,
+    "onlyLast": 0.51,
     "by": {
      "④태엽": [
       62,
@@ -879,6 +894,7 @@
     "v21": 1,
     "airFails": 0,
     "pair": null,
+    "onlyLast": 0.66,
     "by": {
      "④태엽": [
       64,
@@ -982,6 +998,7 @@
     "v21": 1,
     "airFails": 14,
     "pair": 0.93,
+    "onlyLast": 0.81,
     "by": {
      "①색": [
       3,
@@ -1092,6 +1109,7 @@
     "v21": 1,
     "airFails": 4,
     "pair": 1,
+    "onlyLast": 0.45,
     "by": {
      "④태엽": [
       62,
@@ -1206,6 +1224,7 @@
     "v21": 0.96,
     "airFails": 10,
     "pair": 0.9,
+    "onlyLast": 0.69,
     "by": {
      "②진자": [
       7,
@@ -1317,6 +1336,7 @@
     "v21": 0.83,
     "airFails": 0,
     "pair": null,
+    "onlyLast": 0.94,
     "by": {
      "①색": [
       4,
@@ -1420,6 +1440,7 @@
     "v21": 1,
     "airFails": 1,
     "pair": 1,
+    "onlyLast": 0.73,
     "by": {
      "④태엽": [
       62,
@@ -1527,6 +1548,7 @@
     "v21": 1,
     "airFails": 0,
     "pair": null,
+    "onlyLast": 0.85,
     "by": {
      "③통나무": [
       12,
@@ -1630,6 +1652,7 @@
     "v21": 1,
     "airFails": 19,
     "pair": 0.79,
+    "onlyLast": 0.73,
     "by": {
      "①색": [
       6,
@@ -1733,6 +1756,7 @@
     "v21": 0.9,
     "airFails": 4,
     "pair": 1,
+    "onlyLast": 0.76,
     "by": {
      "①색": [
       19,
@@ -1836,6 +1860,7 @@
     "v21": 0.96,
     "airFails": 16,
     "pair": 0.88,
+    "onlyLast": 0.8,
     "by": {
      "①색": [
       1,
@@ -1939,6 +1964,7 @@
     "v21": 1,
     "airFails": 0,
     "pair": null,
+    "onlyLast": 0.63,
     "by": {
      "①색": [
       35,
@@ -2034,16 +2060,26 @@
    },
    "f16": {
     "fails": 83,
-    "n": 1,
+    "n": 49,
     "v21": 1,
     "airFails": 0,
     "pair": null,
+    "onlyLast": 0.41,
     "by": {
+     "③뿅": [
+      49,
+      49
+     ],
      "①색": [
-      1,
-      1
+      0,
+      0
      ]
     }
+   },
+   "dev": {
+    "fires": 72,
+    "avg": 0.22,
+    "empty": 0.83
    }
   },
   {
@@ -2137,6 +2173,7 @@
     "v21": 0.9,
     "airFails": 0,
     "pair": null,
+    "onlyLast": 0.86,
     "by": {
      "④태엽": [
       37,

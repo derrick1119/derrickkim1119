@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Bot, Input } from './core.ts';
 import { mulberry32 } from './rng.ts';
-import { STAGES, apply, cloneSim, freeM, logLate, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, startStage, starsOf, type Level, type ShopState, type Sim, type StageDef } from './game.ts';
+import { STAGES, apply, cloneSim, freeM, jackEarly, logLate, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, startStage, starsOf, type Level, type ShopState, type Sim, type StageDef } from './game.ts';
 
 export interface Try { ok: boolean; stars: number; sec: number; peak: number; best: number; shot: number; taps: number; /** 끝난 판(되짚기·F13용) */ s: ShopState }
 
@@ -158,7 +158,7 @@ function warnOf(L: Level, d: StageDef, h: ShopState['hist'][number], c: string, 
   const air = r.some((e) => e.k === 'hang' && pl[e.p!].ham && e.pose! >= 1 && !hit('bonk', e.p)) || r.some((e) => e.k === 'fall' && pl[e.p!].kind === 'spring' && pl[e.p!].tgt !== undefined && !hit('boing', e.p));
   const log = (r.some((e) => e.k === 'fall' && pl[e.p!].heavy) && !(d.H !== undefined ? r.filter((e) => e.k === 'box').length >= d.H : r.some((e) => e.k === 'crash'))) || logLate(L, past, p.rec); // ✏️ S013: '🪵 통나무가 먼저 떨어져 → 빈칸' 알약
   const wi = r.findIndex((e) => e.k === 'wind'), wind = wi >= 0 && (d.H !== undefined ? r : r.slice(wi)).some((e) => e.k === 'slot'); // 🔑 알약 '빈칸 M'(한 방 판은 톡 전체 · ✏️ S012)
-  const by: Record<string, boolean> = { '①색': toSlot, '②진자': cover, '②못': cover || stuck, '①연쇄': chainSlot, '③통나무': log, '③허공': air, '④태엽': wind };
+  const by: Record<string, boolean> = { '①색': toSlot, '②진자': cover, '②못': cover || stuck, '①연쇄': chainSlot, '③통나무': log, '③허공': air, '③뿅': jackEarly(L, h.S0.gone, h.s, p.rec), '④태엽': wind }; // ③뿅: '🤡 뿅에 맡겨요' 알약(✏️ S014)
   return by[c] ?? (toSlot || cover || stuck || chainSlot || air || log || wind);
 }
 /** 🎯 과녁 알약(drawPreview와 같은 식): 아직 쉬는 망치 · 스프링이 칠 나사 k */
@@ -175,12 +175,13 @@ function targetOf(L: Level, g0: number, k: number) {
  */
 export function f16(k: number, seeds = 100, hands = 1) {
   const d = STAGES[k];
-  let fails = 0, n = 0, w = 0, af = 0, aw = 0;
+  let fails = 0, n = 0, w = 0, af = 0, aw = 0, last1 = 0;
   const by: Record<string, [number, number]> = {}; // 원인별 [톡, 경고]
   for (let i = 0; i < seeds; i++) for (let j = 0; j < hands; j++) {
     const seed = 1000 + i * 7, s = tryStage(screwshopMash, seed, k, 600, seed + j * 100003).s, b = s.blame, L = s.L, H = s.hist;
     if (s.ok || !b) continue;
     fails++;
+    last1 += +b.t.every((t) => t === H.length - 1); // 카드가 마지막 톡만 짚음(📋 S013: n < 10인 새 판의 판정 칸 ≤ .8)
     const c = b.c, P = L.pl[b.k], tg = c !== '③허공' ? [] : P.ham ? L.hamT[b.k].map((q) => q[0]) : P.tgt !== undefined ? L.ps[P.tgt] : [];
     const ok = (t: number) => warnOf(L, d, H[t], c, H.slice(0, t)) || (c === '③허공' && (targetOf(L, H[t].S0.gone, H[t].s) || (tg.includes(H[t].s) && poseOf(L, b.k, H[t].S0.gone) >= 1 && warnOf(L, d, H[t], '①색'))));
     const taps = new Set(c === '④태엽' ? [] : b.t.filter((t) => t !== H.length - 1));
@@ -193,7 +194,7 @@ export function f16(k: number, seeds = 100, hands = 1) {
     const o = (by[c] ??= [0, 0]);
     for (const t of taps) { const x = +ok(t); n++, (w += x), o[0]++, (o[1] += x); }
   }
-  return { fails, n, v21: n ? +(w / n).toFixed(2) : null, airFails: af, pair: af ? +(aw / af).toFixed(2) : null, by };
+  return { fails, n, v21: n ? +(w / n).toFixed(2) : null, airFails: af, pair: af ? +(aw / af).toFixed(2) : null, onlyLast: fails ? +(last1 / fails).toFixed(2) : null, by };
 }
 /** F15ᵗ(🧪 S011 · 📋 S012, 🐹 쿵 판): ① 쿵 빼기 장인 ★3 낙차(F19 식, ≥ .4) ② 판당 쿵 덜컹 나사 장인 ÷ 처음 봇(≥ 2×) · 빈 쿵 비율(처음 봇) */
 export function f15t(k: number, seeds = 24) {
@@ -210,6 +211,21 @@ export function f15t(k: number, seeds = 24) {
   const sum = (bot: Bot<ShopState>, off: boolean) => Array.from({ length: seeds }, (_, i) => run(bot, 1000 + i * 7, off)).reduce((a, x) => ({ s3: a.s3 + x.s3, dk: a.dk + x.dk, th: a.th + x.th, empty: a.empty + x.empty }));
   const on = sum(screwshopSmart, false), off = sum(screwshopSmart, true), nb = sum(screwshopNewbie, false);
   return { drop: +((on.s3 - off.s3) / seeds).toFixed(2), ratio: nb.dk ? +(on.dk / nb.dk).toFixed(1) : null, smartDk: +(on.dk / seeds).toFixed(2), newbieDk: +(nb.dk / seeds).toFixed(2), newbieEmpty: nb.th ? +(nb.empty / nb.th).toFixed(2) : null };
+}
+/** 빈 장치(📋 S013 · 소개 판 gate ≥ 1): 처음 봇(3손)이 🤡 뿅을 낸 톡마다 뿅 뒤에 튄 나사 수 — 평균 · 빈(0) 비율 */
+export function devChain(k: number, seeds = 24) {
+  let fires = 0, pops = 0, empty = 0;
+  for (let i = 0; i < seeds; i++)
+    for (let j = 0; j < 3; j++) {
+      const seed = 1000 + i * 7, s = tryStage(screwshopNewbie, seed, k, 600, seed + j * 100003).s;
+      for (const h of s.hist) {
+        const ji = h.rec.findIndex((e) => e.k === 'jack');
+        if (ji < 0) continue;
+        const n = h.rec.slice(ji).filter((e) => e.k === 'out').length;
+        fires++, (pops += n), (empty += +!n);
+      }
+    }
+  return { fires, avg: fires ? +(pops / fires).toFixed(2) : 0, empty: fires ? +(empty / fires).toFixed(2) : null };
 }
 /** 한 판만 빠르게 (테스트용): 봇별 클리어·★3 */
 export function measureStage(k: number, seeds: number, bots: (keyof typeof BOTS)[]) {
@@ -257,6 +273,7 @@ export function measure(seeds = 12) {
   stages.forEach((row, k) => {
     row.f16 = f16(k); // F16 v2.1 + 카드 짝(막 누르기 100시드 — 🧪 m1b와 같은 손)
     if (STAGES[k].thump) row.f15t = f15t(k, seeds);
+    if (STAGES[k].jack) row.dev = devChain(k, seeds); // 빈 장치(🤡)
   });
   const avg = (bot: string, key: string) => +(stages.reduce((a, r) => a + (r[bot] as Record<string, number>)[key], 0) / stages.length).toFixed(2);
   const summary = {
@@ -288,6 +305,9 @@ export function measure(seeds = 12) {
     /** F16 v2.1 · 카드 짝: 막 누르기 실패 10건 이상인 판의 최저(📋 S012 ③ 각 ≥ .8) */
     f16min: Math.min(...stages.map((r) => r.f16 as ReturnType<typeof f16>).filter((f) => f.fails >= 10 && f.v21 !== null).map((f) => f.v21!)),
     pairMin: Math.min(...stages.map((r) => r.f16 as ReturnType<typeof f16>).filter((f) => f.airFails >= 10).map((f) => f.pair!)),
+    /** 빈 장치(🤡 판): [자리, 처음 봇 뿅 연쇄 평균, 빈 뿅 비율] · F16 n < 10 판의 '마지막 톡만' 최고 */
+    dev: stages.filter((r) => r.dev).map((r) => [r.slot, (r.dev as ReturnType<typeof devChain>).avg, (r.dev as ReturnType<typeof devChain>).empty]),
+    onlyLastSmallN: Math.max(0, ...stages.map((r) => r.f16 as ReturnType<typeof f16>).filter((x) => x.n < 10 && x.fails >= 10).map((x) => x.onlyLast ?? 0)),
     /** F15ᵗ(쿵 판): [자리, 쿵 빼기 낙차, 덜컹 배율] */
     f15t: stages.filter((r) => r.f15t).map((r) => [r.slot, (r.f15t as ReturnType<typeof f15t>).drop, (r.f15t as ReturnType<typeof f15t>).ratio]),
     /** 사람 시간 추정(초): 판별 장인 톡 × 5 + 6 */

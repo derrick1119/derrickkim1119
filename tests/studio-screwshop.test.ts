@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, logLate, paintStage, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
+import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, jackEarly, logLate, paintStage, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
 import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { f16, screwshopMash, screwshopNewbie, tryStage } from '../studio/screwshop/funqa.ts';
@@ -195,8 +195,8 @@ describe('실패 되짚기 retrace (📐 S003)', () => {
     expect(b.c).toBe('③통나무');
     expect(b.t[0]).toBe(0);
   });
-  it('막 누르기가 3~8판에서 진 판은 전부 짚을 톡이 1~2개, 원인 9갈래 중 하나', () => {
-    const kinds = ['①색', '①연쇄', '①깔림', '①잠김', '②진자', '②못', '③통나무', '③허공', '④태엽'];
+  it('막 누르기가 3~8판에서 진 판은 전부 짚을 톡이 1~2개, 원인 10갈래 중 하나(✏️ S014 ③뿅 더함)', () => {
+    const kinds = ['①색', '①연쇄', '①깔림', '①잠김', '②진자', '②못', '③통나무', '③허공', '③뿅', '④태엽'];
     let lost = 0;
     for (let k = 2; k < STAGES.length; k++) // ✏️ S010: 3판 뒤 모든 판(새 판 포함)
       for (let i = 0; i < 6; i++) {
@@ -608,6 +608,22 @@ describe('🐹 쿵을 별에 · 빈 쿵 · F16 v2.1 (✏️ S012 · 📐B 1-6 ·
 
 describe('🪵 통나무가 먼저 떨어져 → 빈칸 (✏️ S013 · 🧪 S012 F16 v2.1 ③ · 📋 경고로 푼다)', () => {
   const at = (key: string) => STAGES.findIndex((d) => d.key === key);
+  it('🤡 ③뿅(✏️ S014 · 🧪 S013 카드가 뿅을 안 짚음): 뿅 전에 모자 나사를 손으로 빈칸에 보낸 실패는 카드가 그 톡을 짚고 그 톡 꾹에 \'뿅에 맡겨요\'(jackEarly) · 3-2 F16 v2.1 n ≥ 10 · ≥ .8 · 마지막 톡만 ≤ .8', () => {
+    const k = at('jackbox');
+    let cards = 0;
+    for (let i = 0; i < 40; i++) {
+      const s = tryStage(screwshopMash, 1000 + i * 7, k).s, b = s.blame;
+      if (s.ok || !b || b.c !== '③뿅') continue;
+      cards++;
+      const h = s.hist[b.t[0]];
+      expect(jackEarly(s.L, h.S0.gone, h.s, h.rec), `시드 ${i}`).toBe(true);
+    }
+    expect(cards).toBeGreaterThan(3);
+    const f = f16(k);
+    expect(f.n).toBeGreaterThanOrEqual(10);
+    expect(f.v21!).toBeGreaterThanOrEqual(0.8);
+    expect(f.onlyLast!).toBeLessThanOrEqual(0.8);
+  });
   it('🤡 깜짝 상자(📐B S013 3-2): 상자 판자가 다 풀린 톡에 뿅 → 겨눈 모자 나사가 위에서부터 튄다 · 뿅을 끄면 장인 ★3 0(F19) · 다른 판엔 jack 없음', () => {
     const k = at('jackbox');
     for (const seed of [1000, 1007, 1014]) {

@@ -692,7 +692,7 @@ export function startStage(s: ShopState, k: number) {
 
 // ───────────────────────────── 실패 되짚기 (📐 S003) ─────────────────────────────
 interface Hist { s: number; S0: Sim; known: number; rec: RE[] }
-export interface Why { c: '①색' | '①연쇄' | '①깔림' | '①잠김' | '②진자' | '②못' | '③통나무' | '③허공' | '④태엽'; t: number[]; k: number; via?: string; s?: number; /** ②진자 짝 힌트(✏️ S007, 📋 S006 '그때 짝을 먼저'): 매단 톡 때 짝 나사 — 이걸 먼저 뺐으면 덜 덮었다 */ p?: number }
+export interface Why { c: '①색' | '①연쇄' | '①깔림' | '①잠김' | '②진자' | '②못' | '③통나무' | '③허공' | '③뿅' | '④태엽'; t: number[]; k: number; via?: string; s?: number; /** ②진자 짝 힌트(✏️ S007, 📋 S006 '그때 짝을 먼저'): 매단 톡 때 짝 나사 — 이걸 먼저 뺐으면 덜 덮었다 */ p?: number }
 /** 되짚기 전용 전지 탐색: 이 상태에서 끝까지 깰 수 있나 (예산 b.n을 다 쓰면 '못 깬다'로 — 실패 판은 막다른 길이라 보통 수십 칸) */
 function canWin(L: Level, S: Sim, memo: Map<string, boolean>, b: { n: number }): boolean {
   if (S.fail || b.n <= 0) return false;
@@ -711,6 +711,8 @@ function canWin(L: Level, S: Sim, memo: Map<string, boolean>, b: { n: number }):
   memo.set(key, ok);
   return ok;
 }
+/** 🤡 뿅 전에 겨눈 모자 나사를 손으로 빼는 톡인가(상자 판자에 나사가 남았고 이 톡에 뿅이 안 남) — 꾹 알약 '🤡 뿅에 맡겨요' · 실패 카드 ③뿅과 같은 식(✏️ S014) */
+export const jackEarly = (L: Level, g0: number, k: number, rec: RE[]) => !!L.jack && L.ps[L.jack[1]].includes(k) && !!(L.pm[L.jack[0]] & ~g0) && !rec.some((e) => e.k === 'jack');
 /** 🪵 통나무가 와르르 없이 먼저 떨어진 뒤, 그 통나무 없이는 못 빼던 나사(늦은 무리)가 이 톡에 빈칸으로 가는가 — 실패 카드 ③통나무 둘째 톡과 같은 식(✏️ S013 · 📋 S012 '경고로 푼다') */
 export function logLate(L: Level, H: { rec: RE[] }[], rec: RE[]) {
   let late = 0;
@@ -807,6 +809,8 @@ export function retrace(L: Level, H: Hist[], S: Sim): Why {
   if (wt >= 0 && E.some((x) => x.t === wt && x.ch && (L.lockM >> x.s) & 1)) return { c: '④태엽', t: two(wt, la), k: -1 }; // 🔑 일찍 뺀 태엽: 튄 🔒가 빈칸에 남았다
   if (l3) return { c: '③통나무', t: [l3.lg!.t, l3.t], k: l3.lg!.k };
   if (a3) return { c: '③허공', t: [a3.air!.t, a3.t].sort((a, b) => a - b), k: a3.air!.k };
+  const j3 = L.jack ? last(E.filter((x) => !x.ch && jackEarly(L, H[x.t].S0.gone, x.s, H[x.t].rec))) : undefined; // 🤡 모자 나사를 뿅 전에 손으로 빼 빈칸으로(✏️ S013 · 🧪 S013 '카드가 뿅을 안 짚음')
+  if (j3) return { c: '③뿅', t: two(j3.t, la), k: L.jack![1] };
   const c2 = E.filter((x) => x.cov >= 0), c1 = E.filter((x) => x.alt);
   if (c2.length && c2.length >= c1.length) {
     const x = last(c2);
@@ -838,6 +842,7 @@ export function blameText(L: Level, H: Hist[], b: Why, fail: number): [string, s
     case '②진자': return [fail === 2 ? '빙글 판자가 나사를 이불처럼 덮음' : '빙글 판자가 나사를 덮었어요', '다른 나사를 남기면 덮지 않아요'];
     case '②못': return ['못 날개가 나사를 깔고 앉았어요', '꾹 눌러 ⚠ 뜨는 나사는 맨 나중에!']; // 🧪 S003: '밑'이 모호
     case '③통나무': return bloomOf(L) ? ['꽃 머리가 먼저 쿵! 우수수 0', '꽃잎 셋을 매단 뒤 꽃 머리를 톡!'] : ['통나무가 먼저 쿵! 와르르 0', '판자를 다 매단 뒤 통나무를 톡!']; // 🧪 S005: 5판 말 맞추기
+    case '③뿅': return ['뿅 전에 모자 나사를 손으로 → 빈칸', '🤡 모자는 두고 상자부터 — 뿅에 맡겨요'];
     case '③허공': return L.pl[b.k]?.kind === 'spring' ? ['띠용이 허공에, 나사는 빈칸', '🌀가 칠 나사는 손으로 빼지 말고 남겨요'] : ['망치는 허공에 쾅, 나사는 빈칸', '망치 옆 나사를 먼저 톡 → 끄덕 쾅!'];
   }
 }
@@ -1187,8 +1192,8 @@ export const screwshop: GameDef<ShopState> = {
     if (!release) return;
     const ty = s.ay * A - (A - 0.15), tool = tools() && Math.abs(ty) < 0.06 ? Math.min(2, Math.floor(s.ax * 3)) : -1; // 도구 줄(✏️ S013): 0 🗺️ 판 · 1 💡 귀띔 · 2 ↺ 다시
     if (tool === 0) return void ((s.press = -1), (s.menu = true));
-    if (tool === 1) return void ((s.press = -1), s.sf >= 3 && (s.hint = true)); // 판 중엔 켜기만(끄기는 실패 카드에서 — 따라 한 뒤 ★3 막음)
-    if ((s.ay * A < RETRY_Y && s.ax > 0.55 && s.ax < 0.84) || tool === 2) {
+    if (tool === 1) return void ((s.press = -1), s.hint ? ev(s, 'miss', 0.5, A - 0.27, '💡 끄기는 실패 카드에서 — 따라 한 뒤 ★3은 없어요', '#fff3df') : s.sf >= 3 && (s.hint = true)); // 판 중엔 켜기만(끄기는 실패 카드에서 — 따라 한 뒤 ★3 막음)
+    if ((!tools() && s.ay * A < RETRY_Y && s.ax > 0.55 && s.ax < 0.84) || tool === 2) {
       // ↺ 지금 다시 (위 줄의 버튼 · 도구 줄) — 같은 판·같은 칠로 처음부터
       s.press = -1;
       s.retries++;
@@ -2522,11 +2527,17 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
     ctx.fillText(msg, x, y + 1);
     return;
   }
+  // 🤡 뿅에 맡겨요(✏️ S014 · 🧪 S013 빈 뿅): 상자가 남았는데 모자 나사를 손으로 — 뿅이 그만큼 빈다
+  if (jackEarly(L, s.S.gone, k, pre.rec)) {
+    font(0.03, 900);
+    const lab = '🤡 뿅에 맡겨요 (몽땅 −1)', hw = ctx.measureText(lab).width / 2 + 10;
+    pill(ctx, Math.max(hw, Math.min(X(1) - hw, X(L.px[k]))), Y(L.py[k] < 0.58 ? L.py[k] + 0.11 : L.py[k] - 0.13), lab, '#ffb36b', R(0.044)); // 위쪽 나사면 아래에(안내 띠에 안 가리게)
+  }
   // 🪵 통나무가 먼저 떨어져 → 빈칸(✏️ S013 · 🧪 S012 F16 ③): 와르르 없이 떨어진 통나무 밑 나사가 이 톡에 빈칸으로 — 실패 카드 ③통나무가 짚을 톡
   if (logLate(L, s.hist, pre.rec)) {
     font(0.03, 900);
     const lab = `${bloomOf(L) ? '🌻 꽃 머리' : '🪵 통나무'}가 먼저 떨어져 → 빈칸`, hw = ctx.measureText(lab).width / 2 + 10;
-    pill(ctx, Math.max(hw, Math.min(X(1) - hw, X(L.px[k]))), Y(L.py[k]) - R(0.13), lab, '#ffb36b', R(0.044));
+    pill(ctx, Math.max(hw, Math.min(X(1) - hw, X(L.px[k]))), Y(L.py[k] < 0.58 ? L.py[k] + 0.11 : L.py[k] - 0.13), lab, '#ffb36b', R(0.044));
   }
   // 🪵 통나무 꾹(🧪 S002 ①): 와르르 몇 장 → 한 방 몇 — 장전 전엔 주황, 다 장전하면 초록 + 맞을 나사 🎯
   const logFall = pre.rec.find((e) => e.k === 'fall' && L.pl[e.p].heavy) as { p: number } | undefined;
@@ -3152,8 +3163,8 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
   const stt = `★ ${s.stars}`;
   ctx.fillText(stt, w - R(0.03), hb * 0.52);
   ctx.fillStyle = th.hot;
-  // ↺ 지금 다시 (하트 대신, S003): 판 중 언제든 같은 판을 처음부터 — 한 방 칩이 ✗면 반짝
-  {
+  // ↺ 지금 다시 (하트 대신, S003): 판 중 언제든 같은 판을 처음부터 — 한 방 칩이 ✗면 반짝 · 도구 줄이 있으면 그쪽으로(🎨 ART §6 · ✏️ S014)
+  if (!tools()) {
     const bx = w - R(0.06) - ctx.measureText(stt).width - R(0.02), bw = R(0.17), dead = s.phase === 'play' && (shotDead(d, s.L, S) || bonkDead(d, s.L, S) || (d.T !== undefined && S.taps > d.T) || S.peak > d.P);
     ctx.fillStyle = dead ? `rgba(255,209,102,${0.55 + 0.3 * Math.sin(t * 0.15)})` : 'rgba(255,240,214,.16)';
     ctx.beginPath();
@@ -3318,15 +3329,16 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     ctx.fillText(tip, w / 2 + R(0.06), y3);
     if (tools()) { // 도구 줄(🎨 ART §6 · ✏️ S013): 🗺️ 판 · 💡 귀띔(진 횟수 ●●○) · ↺ 다시
       const ty = Y(A - 0.15), bw = (w - R(0.08)) / 3, bh = R(0.12), sf = Math.min(3, s.sf);
-      ['🗺️ 판', s.hint ? '💡 귀띔 켬' : `💡 ${sf >= 3 ? '귀띔' : '●'.repeat(sf) + '○'.repeat(3 - sf)}`, '↺ 다시'].forEach((lab, k) => {
+      const dead = s.phase === 'play' && (shotDead(d, s.L, S) || bonkDead(d, s.L, S) || (d.T !== undefined && S.taps > d.T) || S.peak > d.P); // ★3을 이제 못 딴다 → ↺ 반짝(위 띠에서 옮김)
+      ['🗺️ 판', s.hint ? '💡 켬 · ★2까지' : `💡 ${sf >= 3 ? '귀띔' : '●'.repeat(sf) + '○'.repeat(3 - sf)}`, '↺ 다시'].forEach((lab, k) => {
         const bx = R(0.02) + k * (bw + R(0.02)), on = k !== 1 || sf >= 3;
-        ctx.fillStyle = k === 1 && s.hint ? 'rgba(200,247,197,.3)' : on ? 'rgba(255,240,210,.16)' : 'rgba(255,240,210,.06)';
+        ctx.fillStyle = k === 2 && dead ? `rgba(255,209,102,${0.55 + 0.3 * Math.sin(t * 0.15)})` : k === 1 && s.hint ? 'rgba(200,247,197,.3)' : on ? 'rgba(255,240,210,.16)' : 'rgba(255,240,210,.06)';
         ctx.beginPath();
         ctx.roundRect(bx, ty - bh / 2, bw, bh, R(0.03));
         ctx.fill();
         font(0.04, 800);
         ctx.textAlign = 'center';
-        ctx.fillStyle = on ? '#fff1d6' : 'rgba(255,241,214,.4)';
+        ctx.fillStyle = k === 2 && dead ? '#3a2a00' : on ? '#fff1d6' : 'rgba(255,241,214,.4)';
         ctx.fillText(lab, bx + bw / 2, ty + 1);
       });
     }
