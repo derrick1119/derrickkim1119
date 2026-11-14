@@ -137,16 +137,26 @@ await pf.mouse.down();
 await frames(130);
 await pf.waitForTimeout(2600);
 const holdF = await p95of();
+// ①′ 손가락 옮기는 꾹(📋 C007 · 🧪 C013 ②): 누른 채 다리·마루를 오가기(4걸음씩 · 180ms 쉼) — 끝나면 같은 다리로 돌아와 뗀다
+const pts = await Promise.all([atF(8, 0, 6), atF(6, 2, 6), atF(8, 2, 6), atF(6, 0, 6), atF(7, 2, 6)]);
+await frames(260);
+for (const k of [1, 2, 3, 4, 0, 2, 1, 4, 3, 0, 1, 2]) {
+  await pf.mouse.move(pts[k][0], pts[k][1], { steps: 4 });
+  await pf.waitForTimeout(180);
+}
+const moveF = await p95of();
+await pf.mouse.move(hx, hy, { steps: 2 });
+await pf.waitForTimeout(150);
 // ② 쾅: 떼는 순간부터 결과까지
 await frames(400);
 await pf.mouse.up();
 await pf.waitForFunction(() => (window as any).__d3.state().done, null, { timeout: 30000 });
 const boom = await p95of();
 await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
-const worst = Math.max(holdF.p95, boom.p95);
-console.log('꾹 프레임 가장 긴 8개', holdF.top.join(' '), '· 쾅', boom.top.join(' '));
-console.log(`성능 DPR 3 · CPU ×4 · 1-2: 말풍선 꾹 p95 ${holdF.p95.toFixed(1)}ms(중앙 ${holdF.med.toFixed(1)}) · 쾅 p95 ${boom.p95.toFixed(1)}ms(중앙 ${boom.med.toFixed(1)}, ${boom.n}프레임) → 최악 ${worst.toFixed(1)} (기준 ≤ 33)`);
+const worst = Math.max(holdF.p95, moveF.p95, boom.p95);
+console.log('꾹 프레임 가장 긴 8개', holdF.top.join(' '), '· 옮김', moveF.top.join(' '), '· 쾅', boom.top.join(' '));
+console.log(`성능 DPR 3 · CPU ×4 · 1-2: 말풍선 꾹 p95 ${holdF.p95.toFixed(1)}ms(중앙 ${holdF.med.toFixed(1)}) · 손가락 옮기는 꾹 p95 ${moveF.p95.toFixed(1)}ms(${moveF.n}프레임) · 쾅 p95 ${boom.p95.toFixed(1)}ms(중앙 ${boom.med.toFixed(1)}, ${boom.n}프레임) → 최악 ${worst.toFixed(1)} (기준 ≤ 33)`);
 if (worst > 33) errors.push('성능 p95 > 33ms');
-writeFileSync(join(here, 'reports', 'perf.json'), JSON.stringify({ at: 'C009', dpr: 3, cpu: 4, hold: holdF, boom, worst }, null, 1) + '\n');
+writeFileSync(join(here, 'reports', 'perf.json'), JSON.stringify({ at: 'C013', dpr: 3, cpu: 4, hold: holdF, move: moveF, boom, worst }, null, 1) + '\n');
 await browser.close();
 console.log(errors.length ? `콘솔 에러 ${errors.length}: ${errors.join(' | ')}` : '콘솔 에러 0');
