@@ -98,6 +98,27 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
     await page.screenshot({ path: join(here, 'screens', `${name}-sleepy.png`) });
     if (!(zz > 0)) errors.push(`${name}: 2-7에 자는 오리가 없음`);
   }
+  // D015 (🧪 D014 보완 8): 2-10 큰 판 · 3-1 상어 소개 시작과 첫 톡 '퐁! 상어 깼다' · 3-5 🎈 — 모바일만
+  if (name === 'mobile') {
+    const scene = async (id: string, file: string) => {
+      if (!STAGES.some((d) => d.id === id)) return false;
+      await page.evaluate((i: number) => (globalThis as any).__duck.jump(i), STAGES.findIndex((d) => d.id === id));
+      await page.waitForTimeout(700);
+      await page.screenshot({ path: join(here, 'screens', file) });
+      return true;
+    };
+    await scene('2-10', 'mobile-2-10.png');
+    if (await scene('3-1', 'mobile-shark-intro.png')) {
+      const cb = await page.locator('.g-canvas').boundingBox();
+      await page.mouse.move(cb.x + cb.width * 0.3, cb.y + cb.height * 0.75);
+      await page.mouse.down();
+      await page.mouse.up();
+      await page.waitForTimeout(180);
+      await page.screenshot({ path: join(here, 'screens', 'mobile-pong.png') });
+      if (!(await page.evaluate(() => (globalThis as any).__duck.state().awake))) errors.push('mobile: 3-1 첫 톡에 상어가 안 깸');
+    }
+    if (await scene('3-5', 'mobile-balloon.png') && !(await page.evaluate(() => (globalThis as any).__duck.state().L.balloons.length))) errors.push('mobile: 3-5에 물풍선이 없음');
+  }
   // D011 🎨 13장 ③: 황금을 물 위에 둔 채 깨면 결과 카드 셋째 줄이 '황금이 꼴찌였어요'
   await page.evaluate(() => (globalThis as any).__duck.jump(0));
   await page.waitForTimeout(300);
