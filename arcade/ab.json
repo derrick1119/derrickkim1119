@@ -323,9 +323,10 @@
         "potionsort",
         "picnicswap"
       ],
-      "winner": null,
-      "note": "25라운드 1·2·4 졸업 뒤 같은 가설(검증된 요즘 캐주얼 뼈대 × 공장의 와우 × 전략 깊이)로 새 뼈대 6개. 물리 디오라마 넷(동물 떨구기 합체 온천·경단 핀 뽑기·꼬인 산책줄·장난감 더미 셋 맞추기) + 추상 퍼즐 둘(마녀 고양이 물약 정렬·소풍 바구니 바꾸기)로 '고른 쪽 = 물리 디오라마' 되짚기를 갈라 본다. 오너 피드백(나사 공방) '쾌감·기믹 부족'을 6개 모두에 반영. 오너가 고른다",
-      "machinePick": "potionsort"
+      "winner": "potionsort",
+      "note": "25라운드 1·2·4 졸업 뒤 같은 가설(검증된 요즘 캐주얼 뼈대 × 공장의 와우 × 전략 깊이)로 새 뼈대 6개. 물리 디오라마 넷(동물 떨구기 합체 온천·경단 핀 뽑기·꼬인 산책줄·장난감 더미 셋 맞추기) + 추상 퍼즐 둘(마녀 고양이 물약 정렬·소풍 바구니 바꾸기)로 '고른 쪽 = 물리 디오라마' 되짚기를 갈라 본다. 오너 피드백(나사 공방) '쾌감·기믹 부족'을 6개 모두에 반영. 오너가 고른다 · 오너: \"5번 스튜디오 개설 나머지 다 폐기\" → 마녀 고양이 물약 정렬 스튜디오로 졸업, 나머지 5개 폐기. 기계 추천(물약 정렬) 적중 — 고른 것은 추상 퍼즐(물리 디오라마 되짚기는 빗나감)",
+      "machinePick": "potionsort",
+      "decidedAt": "2026-11-14"
     }
   ],
   "graduated": [
@@ -419,6 +420,18 @@
       "genes": [
         "demolish",
         "chain",
+        "pointer"
+      ]
+    },
+    {
+      "id": "potionsort",
+      "name": "마녀 고양이 물약 정렬",
+      "at": "2026-11-14",
+      "round": 26,
+      "studio": "studio/potionsort",
+      "play": "https://derrick1119.github.io/derrickkim1119/studio/potionsort/",
+      "genes": [
+        "pourmix",
         "pointer"
       ]
     }
@@ -1127,6 +1140,60 @@
       ],
       "at": "2026-11-14",
       "why": "25라운드 선택 안 됨 (코드: git 746a55b)"
+    },
+    {
+      "id": "dropmerge",
+      "name": "동물 떨구기 합체 온천",
+      "genes": [
+        "merge",
+        "pointer",
+        "chain"
+      ],
+      "at": "2026-11-14",
+      "why": "26라운드 선택 안 됨 (코드: git a978f32)"
+    },
+    {
+      "id": "pullpin",
+      "name": "경단 핀 뽑기",
+      "genes": [
+        "pinpull",
+        "pointer",
+        "chain"
+      ],
+      "at": "2026-11-14",
+      "why": "26라운드 선택 안 됨 (코드: git a978f32)"
+    },
+    {
+      "id": "leashtangle",
+      "name": "꼬인 산책줄",
+      "genes": [
+        "untangle",
+        "pointer"
+      ],
+      "at": "2026-11-14",
+      "why": "26라운드 선택 안 됨 (코드: git a978f32)"
+    },
+    {
+      "id": "toypile",
+      "name": "장난감 더미 셋 맞추기",
+      "genes": [
+        "triple",
+        "pointer",
+        "collect"
+      ],
+      "at": "2026-11-14",
+      "why": "26라운드 선택 안 됨 (코드: git a978f32)"
+    },
+    {
+      "id": "picnicswap",
+      "name": "소풍 바구니 바꾸기",
+      "genes": [
+        "match3",
+        "pointer",
+        "combo"
+      ],
+      "at": "2026-11-14",
+      "why": "26라운드 선택 안 됨 (코드: git a978f32)"
     }
   ]
 }
