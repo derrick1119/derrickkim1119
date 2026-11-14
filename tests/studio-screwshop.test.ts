@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, jackEarly, logLate, paintStage, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
+import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, jackEarly, logLate, paintStage, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setAspect, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
 import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { f16, screwshopMash, screwshopNewbie, tryStage } from '../studio/screwshop/funqa.ts';
@@ -664,6 +664,28 @@ describe('🪵 통나무가 먼저 떨어져 → 빈칸 (✏️ S013 · 🧪 S01
     fail();
     g.step(s, { tap: false, dir: 0, pointer: { x: 0.5, y: HINT_Y / A } }), g.step(s, { tap: false, dir: 0, pointer: null });
     expect([s.hint, s.phase]).toEqual([true, 'play']);
+  });
+  it('💡 도구 줄 단추: 켠 뒤 톡 0이면 다시 눌러 끈다 · 톡한 뒤엔 못 끈다(✏️ S015 · 🧪 S014 ⑤ — 끄기는 실패 카드에서)', () => {
+    setAspect(1.75);
+    try {
+      const s = g.create(7), A = 1.75, up = { tap: false, dir: 0 as const, pointer: null }, rng = mulberry32(3);
+      const press = () => (g.step(s, { tap: false, dir: 0, pointer: { x: 0.5, y: (A - 0.15) / A } }), g.step(s, up));
+      startStage(s, at('rocket'));
+      s.sf = 3;
+      for (let i = 0; i < 40; i++) g.step(s, up);
+      press();
+      expect(s.hint, '켬').toBe(true);
+      press();
+      expect(s.hint, '톡 0 → 끔').toBe(false);
+      press();
+      for (let i = 0; i < 600 && s.S.taps === 0; i++) g.step(s, screwshopSmart.act(s, rng));
+      for (let i = 0; i < 40; i++) g.step(s, up);
+      expect([s.S.taps > 0, s.phase], '한 번 톡').toEqual([true, 'play']);
+      press();
+      expect(s.hint, '톡한 뒤엔 그대로').toBe(true);
+    } finally {
+      setAspect(1.45);
+    }
   });
   it('실패 카드 ③통나무의 둘째 톡(와르르 없이 떨어진 통나무 밑 나사 → 빈칸)에 알약 조건 logLate가 선다 · 2-4 🦀 · 1-2 ⛵ F16 v2.1 ≥ .8', () => {
     let cards = 0;

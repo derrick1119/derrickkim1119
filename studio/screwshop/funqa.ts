@@ -227,6 +227,20 @@ export function devChain(k: number, seeds = 24) {
     }
   return { fires, avg: fires ? +(pops / fires).toFixed(2) : 0, empty: fires ? +(empty / fires).toFixed(2) : null };
 }
+/** 대표 순간(🧪 S014 · 📋 S015 F23 바닥 · 판박이): 장인 최대 연쇄 m → 큰 순간 = 한 톡 연쇄 ≥ max(2, m − 1). 처음 봇 · 막 누르기(3손)의 큰 순간 비율 · 장인 큰 순간의 장치 줄(core) · 장인 첫 톡 판자 장치(first) */
+export function bigOf(k: number, seeds = 24) {
+  const pops = (h: ShopState['hist'][number]) => h.rec.filter((e) => e.k === 'out' && e.pop).length;
+  const top = (h: ShopState['hist']) => h.reduce((b, x) => (pops(x) > pops(b) ? x : b), h[0]);
+  const mode = (a: string[]) => { const c: Record<string, number> = {}; for (const x of a) c[x] = (c[x] ?? 0) + 1; return Object.entries(c).sort((x, y) => y[1] - x[1] || (x[0] < y[0] ? -1 : 1))[0][0]; };
+  const dev = (L: Level, i: number) => { const p = L.owner[i], P = L.pl[p]; return (P.ham ? '🔨' : '') + (P.heavy ? '🪵' : '') + (P.key !== undefined ? '🔑' : '') + (P.kind === 'nail' ? '📌' : P.kind === 'spring' ? '🌀' : P.kind === 'glass' ? '🪟' : '') + (P.tick ? '⏰' : '') + (L.jack?.[0] === p ? '🤡' : '') || '·'; };
+  const DI: Record<string, string> = { bonk: '🔨', crash: '🪵', wind: '🔑', boing: '🌀', tick: '⏰', jack: '🤡', thump: '🐹' };
+  const sm = Array.from({ length: seeds }, (_, i) => tryStage(screwshopSmart, 1000 + i * 7, k).s), m = Math.max(0, ...sm.flatMap((s) => s.hist.map(pops))), big = Math.max(2, m - 1);
+  const rate = (bot: Bot<ShopState>) => { let c = 0; for (let i = 0; i < seeds; i++) for (let j = 0; j < 3; j++) { const seed = 1000 + i * 7, h = tryStage(bot, seed, k, 600, seed + j * 100003).s.hist; c += +(h.length > 0 && pops(top(h)) >= big); } return +(c / seeds / 3).toFixed(2); };
+  const core = mode(sm.map((s) => (s.hist.length ? top(s.hist).rec.flatMap((e) => DI[e.k] ?? []).filter((x, i, a) => x !== a[i - 1]).join('') : '') || '·'));
+  return { m, big, newbie: rate(screwshopNewbie), mash: rate(screwshopMash), core, first: mode(sm.filter((s) => s.hist.length).map((s) => dev(s.L, s.hist[0].s))) };
+}
+/** 판박이(🧪 S014 · 📋 S015): 같은 월드 · 장인 큰 순간 장치 줄이 같은 두 판은 장인 최대 연쇄 또는 장인 첫 톡 장치가 달라야 한다 → 걸린 짝 [자리, 자리] */
+export const twinsOf = (rows: { slot: string; big: ReturnType<typeof bigOf> }[]) => rows.flatMap((a, i) => rows.slice(i + 1).filter((b) => a.slot[0] === b.slot[0] && a.big.core === b.big.core && a.big.m === b.big.m && a.big.first === b.big.first).map((b) => [a.slot, b.slot]));
 /** 한 판만 빠르게 (테스트용): 봇별 클리어·★3 */
 export function measureStage(k: number, seeds: number, bots: (keyof typeof BOTS)[]) {
   return Object.fromEntries(bots.map((b) => {
@@ -274,6 +288,7 @@ export function measure(seeds = 12) {
     row.f16 = f16(k); // F16 v2.1 + 카드 짝(막 누르기 100시드 — 🧪 m1b와 같은 손)
     if (STAGES[k].thump) row.f15t = f15t(k, seeds);
     if (STAGES[k].jack) row.dev = devChain(k, seeds); // 빈 장치(🤡)
+    row.big = bigOf(k, seeds); // 대표 순간(F23 바닥 · 판박이)
   });
   const avg = (bot: string, key: string) => +(stages.reduce((a, r) => a + (r[bot] as Record<string, number>)[key], 0) / stages.length).toFixed(2);
   const summary = {
@@ -308,6 +323,9 @@ export function measure(seeds = 12) {
     /** 빈 장치(🤡 판): [자리, 처음 봇 뿅 연쇄 평균, 빈 뿅 비율] · F16 n < 10 판의 '마지막 톡만' 최고 */
     dev: stages.filter((r) => r.dev).map((r) => [r.slot, (r.dev as ReturnType<typeof devChain>).avg, (r.dev as ReturnType<typeof devChain>).empty]),
     onlyLastSmallN: Math.max(0, ...stages.map((r) => r.f16 as ReturnType<typeof f16>).filter((x) => x.n < 10 && x.fails >= 10).map((x) => x.onlyLast ?? 0)),
+    /** F23 바닥(📋 S015 새 판 gate ≥ .25): M1′ 8판 밖에서 처음 봇 큰 순간이 .25 밑인 판 [자리, 값] · 판박이 짝 */
+    f23low: stages.filter((r) => (r.id as number) >= 8 && (r.big as ReturnType<typeof bigOf>).newbie < 0.25).map((r) => [r.slot, (r.big as ReturnType<typeof bigOf>).newbie]),
+    twins: twinsOf(stages as { slot: string; big: ReturnType<typeof bigOf> }[]),
     /** F15ᵗ(쿵 판): [자리, 쿵 빼기 낙차, 덜컹 배율] */
     f15t: stages.filter((r) => r.f15t).map((r) => [r.slot, (r.f15t as ReturnType<typeof f15t>).drop, (r.f15t as ReturnType<typeof f15t>).ratio]),
     /** 사람 시간 추정(초): 판별 장인 톡 × 5 + 6 */

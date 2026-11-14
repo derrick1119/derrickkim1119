@@ -1,6 +1,6 @@
 /** 스튜디오 나사 풀기 공방 — 판별 반증 · 실린 칠 지문 (✏️ S009, 📋 M2 CI 대책: studio-screwshop.test.ts에서 판별 측정을 옮기고 '실린 판 = 표'를 지문으로 바꿈) */
 import { describe, expect, it } from 'vitest';
-import { STAGES, paintStage, screwshop as g, startStage } from '../studio/screwshop/game.ts';
+import { STAGES, paintStage, screwshop as g, screwshopSmart, startStage } from '../studio/screwshop/game.ts';
 import { measure, measureStage, pnrHit, screwshopMash, screwshopNewbie, tryStage } from '../studio/screwshop/funqa.ts';
 import { N, geomSig, paintSig, valueOf } from '../studio/screwshop/pick.ts';
 import { PICKS } from '../studio/screwshop/picks.ts';
@@ -29,6 +29,22 @@ describe('실린 칠 지문 (판·칠하기·고르기 식을 바꾸면 npx tsx 
       for (let i = 1; i < seq.length; i++) expect(seq[i - 1][1] > seq[i][1] || (seq[i - 1][1] === seq[i][1] && seq[i - 1][0] < seq[i][0]), `${i}위 → ${i + 1}위`).toBe(true);
     }),
   );
+  it('판 검증(✏️ S015 · 📋 M2 완료 기준): 자리는 30판 표 꼴 · 겹침 없음 · 자리 순 · M2 새 판은 N 12~18 · 색 3~6 · 상자 2 · 나사 y 0.47~1.17 · 실린 칠 24개가 다 다름', () => {
+    const order = (x: string) => { const [w, b] = x.split('-').map(Number); return w * 100 + b; };
+    STAGES.forEach((d, k) => {
+      expect(d.slot, `${k + 1}판 자리`).toMatch(/^[1-3]-([1-9]|10)$/);
+      if (k) expect(order(d.slot), `${d.slot} 자리 순`).toBeGreaterThan(order(STAGES[k - 1].slot));
+      expect(new Set(PICKS[d.id]).size, `${d.slot} 실린 칠 다름`).toBe(N);
+      if (d.id < 8) return; // M1′ 8판은 그대로(지문)
+      const L = paintStage(k, PICKS[d.id][0]);
+      expect([L.N >= 12 && L.N <= 18, d.colors >= 3 && d.colors <= 6, d.boxes], `${d.slot} N ${L.N} · 색 ${d.colors} · 상자`).toEqual([true, true, 2]);
+      expect([Math.min(...L.py) >= 0.47, Math.max(...L.py) <= 1.17], `${d.slot} 나사 높이`).toEqual([true, true]);
+    });
+  });
+  it('판 검증: 실린 판마다 실린 칠 24개 전부에 장인 ★3 수순이 있다(장인 봇이 ★3 — 📋 M2 \'판 검증 테스트\')', () => {
+    for (let k = 0; k < STAGES.length; k++)
+      for (let p = 0; p < N; p++) expect(tryStage(screwshopSmart, N * 50 + p, k).stars, `${STAGES[k].slot} 칠 ${PICKS[STAGES[k].id][p]}`).toBe(3);
+  });
   it('게임이 싣는 칠 = PICKS[id][seed % N] (시드 1..N, 판마다)', () => {
     for (let k = 0; k < STAGES.length; k++)
       for (let seed = 1; seed <= N; seed++) {
