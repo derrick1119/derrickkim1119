@@ -1462,6 +1462,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PotionState, w: number, h: nu
     if (!rec) recentSay.set(s, (rec = []));
     y = Math.max(Y(0.16), Math.min(Y(1.24), y));
     for (let k = 0; k < 6 && rec.some((q) => t - q.t < 45 && Math.abs(q.x - x) < w * 0.32 && Math.abs(q.y - y) < size + 5); k++) y -= size + 6;
+    if (y < Y(0.15)) y += (size + 6) * 3; // 위 띠 밑으로 숨지 않게 아래로
     rec.push({ x, y, t });
     if (rec.length > 12) rec.shift();
     ctx.font = `800 ${size}px system-ui, sans-serif`;
