@@ -405,5 +405,5 @@ if (process.argv[1]?.endsWith('funqa.ts')) {
   for (const x of r3) console.log(`   FUN v1: 붙일 블록 ${x.attachable}(≤24) 속 ${x.inner}(0) · 죽은 첫 톡 ${x.deadFirstTap.toFixed(2)} 가중 ${x.deadFirstTapW.toFixed(2)} · 살아 있는 첫 톡 반응 ${x.liveFirstTapReact.toFixed(2)} · 처음 봇 1회 ${x.firstTimer1.toFixed(2)} 5회 ${x.firstTimer5.toFixed(2)} · 칸 ${x.cellPx.toFixed(1)}px(≥36) · 시작 시점 ★3 블록 최소 ${x.startViewStar3MinFaces.toFixed(2)}면`);
   const dir = join(import.meta.dirname, 'reports');
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: 'C012', f11n: F11N, ...r, stages3d: measure3D() }, null, 1) + '\n');
+  writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: 'C013', f11n: F11N, ...r, stages3d: measure3D() }, null, 1) + '\n');
 }

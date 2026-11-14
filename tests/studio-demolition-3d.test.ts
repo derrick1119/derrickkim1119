@@ -110,11 +110,13 @@ describe('3D 칸 물리', () => {
   });
 
   it('1-2 네 다리 망루(C004 5×5판): 앞 두 다리 = ★3 · 왼쪽 = 꽃밭(★2) · 오른쪽·뒤 = 이웃집 · 대각 = 꿈쩍 안 함', () => {
-    const L = layoutOf3(STAGES3.find((d) => d.key === 'tip4')!), id = (x: number, z: number) => L.blocks.findIndex((b) => b.x === x && b.y === 0 && b.z === z);
+    // 다리 = 기둥(x,z)마다 붙일 수 있는 가장 낮은 블록(C013: 뒤오른 받침이 쇠가 되어 그 기둥은 위 칸을 끊는다) — 단언은 그대로
+    const L = layoutOf3(STAGES3.find((d) => d.key === 'tip4')!);
+    const id = (x: number, z: number) => L.blocks.reduce((best, b, i) => (b.x === x && b.z === z && capOf3(b) > 0 && (best < 0 || b.y < L.blocks[best].y) ? i : best), -1);
     const run = (a: [number, number], b: [number, number]) => {
       const ch = new Int8Array(L.blocks.length);
-      ch[id(...a)]++;
-      ch[id(...b)]++;
+      ch[id(...a)] = capOf3(L.blocks[id(...a)]);
+      ch[id(...b)] = capOf3(L.blocks[id(...b)]);
       return simulate3(L, ch);
     };
     const front = run([6, 6], [8, 6]), left = run([6, 6], [6, 8]), right = run([8, 6], [8, 8]), back = run([6, 8], [8, 8]);
