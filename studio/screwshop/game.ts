@@ -167,18 +167,22 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'rocket', name: '로켓', emoji: '🚀', news: '🚀 마지막 장난감 — 다 나와요!', tip: '🚀 열쇠·스프링·째깍·유리 — 다 섞였어요', boxes: 2, colors: 6, P: 2, C: 6,
+    // 📐 S007 8판 🚀 로켓 — 🔑 발사 태엽(🔒 5) + 🌀 지느러미가 해치를 친다. 해치(나사 둘)가 🔑를 덮는다:
+    //   어느 해치 나사를 남겨 매다느냐(진자)가 🔑를 드러내며 🌀가 칠 나사를 남겨 두고, 상자 둘이 맞을 때 🔑를 톡 → 쏙 한 방 7
+    key: 'rocket', name: '로켓', emoji: '🚀', news: '🚀 발사! 🔑 하나로 🔒 다섯이 한꺼번에', tip: '🚀 해치는 🔑 쪽 나사만 빼고 하나는 남겨요', tip2: '🚀 🔒 색 상자 둘이 열릴 때까지 🔑를 아껴요', boxes: 2, colors: 6, P: 2, C: 6, H: 7, wind: true,
+    // 나사 번호: #0 #1 발사대 · #2~#5 몸통(위·창 밑·🔒왼·🔒오른) · #6 🔒 불꽃 · #7 🔒 🌀 왼 날개(→ 해치) · #8 🔒 오른 날개 · #9 #10 왼 부스터 · #11 #12 오른 부스터 · #13 🪟 창 · #14 코 · #15 🔑 · #16 #17 해치(왼·오른)
     toy: () => [
       plate(0.5, 1.125, 0.62, 0.055, 0, 0.0275, '#7d7f86', [[0.25, 1.125], [0.75, 1.125]], { deco: 'rail' }),
-      plate(0.5, 0.8, 0.26, 0.52, 0, 0.12, '#eef1f6', [[0.445, 0.6], [0.555, 0.6], [0.5, 0.79], [0.445, 0.98], [0.555, 0.98]], { key: 2 }),
-      plate(0.5, 0.49, 0.15, 0.15, Math.PI / 4, 0.035, '#ef4b4b', [[0.5, 0.49]], { deco: 'nose', tick: [[0, 6]] }),
-      plate(0.28, 0.97, 0.12, 0.2, -0.35, 0.04, '#ef4b4b', [[0.29, 0.92], [0.255, 1.02]], { kind: 'spring', tgt: 4 }),
-      plate(0.72, 0.97, 0.12, 0.2, 0.35, 0.04, '#ef4b4b', [[0.71, 0.92], [0.745, 1.02]], { lock: [0] }),
-      disc(0.5, 0.775, 0.07, GLASS, [[0.5, 0.72]], { kind: 'glass' }),
-      plate(0.5, 0.88, 0.24, 0.06, 0, 0.03, '#f7c531', [[0.415, 0.88], [0.5, 0.88], [0.585, 0.88]]),
+      plate(0.5, 0.8, 0.26, 0.52, 0, 0.12, '#eef1f6', [[0.5, 0.585], [0.5, 0.83], [0.445, 0.98], [0.555, 0.98]], { lock: [2, 3] }),
       bar(0.5, 1.035, 0.5, 1.12, 0.04, '#ff9f2b', [[0.5, 1.075]], { deco: 'flame', lock: [0] }),
-      bar(0.36, 0.56, 0.36, 0.78, 0.024, '#3b82f6', [[0.36, 0.6], [0.36, 0.74]], { deco: 'stripe' }),
-      bar(0.64, 0.56, 0.64, 0.78, 0.024, '#3b82f6', [[0.64, 0.6], [0.64, 0.74]], { deco: 'stripe', tick: [[1, 11]] }),
+      plate(0.28, 0.97, 0.12, 0.2, -0.35, 0.04, '#ef4b4b', [[0.285, 0.95]], { kind: 'spring', tgt: 10, lock: [0] }),
+      plate(0.72, 0.97, 0.12, 0.2, 0.35, 0.04, '#ef4b4b', [[0.715, 0.95]], { lock: [0] }),
+      bar(0.2, 0.66, 0.2, 0.92, 0.035, '#3b82f6', [[0.2, 0.7], [0.2, 0.88]], { deco: 'stripe' }),
+      bar(0.8, 0.66, 0.8, 0.92, 0.035, '#3b82f6', [[0.8, 0.7], [0.8, 0.88]], { deco: 'stripe' }),
+      disc(0.5, 0.815, 0.065, GLASS, [[0.5, 0.79]], { kind: 'glass' }),
+      plate(0.5, 0.49, 0.15, 0.15, Math.PI / 4, 0.035, '#ef4b4b', [[0.5, 0.49]], { deco: 'nose' }),
+      plate(0.56, 0.745, 0.1, 0.08, 0, 0.03, '#ffd23a', [[0.56, 0.745]], { deco: 'windkey', key: 0 }),
+      plate(0.51, 0.7, 0.24, 0.12, 0, 0.03, '#f7c531', [[0.42, 0.68], [0.6, 0.685]], { deco: 'door' }),
     ],
   },
 ];
@@ -454,7 +458,7 @@ export function apply(L: Level, S: Sim, s: number, rec?: RE[]) {
 /** ★3 조건: 톡 T번 이하(T가 있으면) 또는 연속 쏙 C번 */
 export const star3 = (d: StageDef, S: Sim) => (d.H !== undefined ? S.shot >= d.H : d.T !== undefined ? S.taps <= d.T : S.best >= d.C);
 /** ★3 '한 방 H'를 이제 못 딴다: 아직 못 땄고 남은 통나무가 없다 (🧪 S002: 와르르 0 뒤에도 칩이 ☆라 헛민다) */
-export const shotDead = (d: StageDef, L: Level, S: Sim) => d.H !== undefined && S.shot < d.H && !L.pl.some((p, k) => p.heavy && L.pm[k] & ~S.gone);
+export const shotDead = (d: StageDef, L: Level, S: Sim) => d.H !== undefined && S.shot < d.H && !L.pl.some((p, k) => p.heavy && L.pm[k] & ~S.gone) && !(L.wind && !S.key); // 📐 S007: 🔑 태엽 판은 🔑 전엔 살아 있음(8판)
 export const starsOf = (d: StageDef, S: Sim) => (d.B !== undefined ? (S.bonks >= d.B ? (S.peak <= d.P ? 3 : 2) : 1) : 1 + (S.peak <= d.P ? 1 : 0) + (star3(d, S) ? 1 : 0));
 /** 🔨 ★2(쾅 B번)를 이제 못 딴다: 아직 칠 수 있는 망치(아직 안 매달렸고 칠 나사가 살아 있음)를 다 더해도 B에 못 미친다 */
 /** 🔨 아직 칠 수 있는 망치 수: 아직 안 매달렸고 칠 나사가 살아 있음 */
@@ -587,6 +591,19 @@ function paint(G: Level, d: StageDef, r: Rng): Level {
     let j = 0;
     for (let i = 0; i < G.N; i++) col[i] = (zm >> i) & 1 ? A : pool[j++];
     return { ...G, col, queue: [A, ...shuffle([...rest, ex], r)], boxes: d.boxes, pal };
+  }
+  if (d.key === 'rocket' && lk.length === 5 && G.keyM && d.colors * 3 === G.N) {
+    // 📐 S007 8판 🚀: 상자 [X, Y, Z, V, U, T]. 🌀 날개가 겨눈 해치(나사 둘)가 🔑를 덮는다. a = 거기 매달리면 🔑가 드러나는 '남길' 나사, b = '뺄' 나사.
+    //   a = Z(위), b = Y — X를 닫아 Z·Y가 같이 열리면 둘 다 맞는 색이라 버릇은 더 위인 a부터 빼서 해치가 🔑 위로 매달린다(🌀가 칠 나사도 사라짐).
+    //   🔑 = Z · 🔒(왼→오른) = V(🌀) Z V U V. X·Y를 다 닫아 Z·V가 열린 때 쏘면 🔑 Z → 🌀 → a Z → Z(닫힘, U) → V → U → V = 쏙 한 방 7.
+    //   나머지 10 = X 3 · Y 2 · U 2 · T 3 섞기
+    const kk = 31 - Math.clz32(G.keyM), h = G.pl[G.pl.findIndex((p) => p.kind === 'spring')].tgt!, [X, Y, Z, V, U, T] = pal;
+    const [a, b] = G.ps[h].slice().sort((i, j) => ((G.cov[h][1 + G.si[i]] >> kk) & 1) - ((G.cov[h][1 + G.si[j]] >> kk) & 1));
+    const lc = [V, Z, V, U, V], pool = shuffle([X, X, X, Y, Y, U, U, T, T, T], r);
+    lk.sort((i, j) => G.px[i] - G.px[j]);
+    let j = 0;
+    for (let i = 0; i < G.N; i++) col[i] = i === kk || i === a ? Z : i === b ? Y : (G.lockM >> i) & 1 ? lc[lk.indexOf(i)] : pool[j++];
+    return { ...G, col, queue: pal.slice(), boxes: d.boxes, pal };
   }
   const L: Level = { ...G, col, queue, boxes: d.boxes, pal };
   if (d.first !== undefined) {
@@ -845,8 +862,8 @@ export function blameText(L: Level, H: Hist[], b: Why, fail: number): [string, s
       return [m, b.via === 'tick' ? '숫자가 0 되기 전에 그 색 상자를!' : '칠 나사 색 상자가 열렸을 때 쏴요'];
     }
     case '①깔림': return ['맞는 색 나사는 판자 밑에서 쿨쿨…', '위 판자부터 풀면 맞는 색이 나와요'];
-    case '①잠김': return ['맞는 색 나사는 🔒 안에서 쿨쿨…', L.wind ? '🔒 바퀴 색 상자가 다 열리면 🔑를 톡!' : '🔑 열쇠 나사부터 빼요'];
-    case '④태엽': return ['태엽을 일찍 뺐어요! 🔒가 빈칸으로', '🔒 바퀴 색 상자가 다 열리면 🔑를 톡!'];
+    case '①잠김': return ['맞는 색 나사는 🔒 안에서 쿨쿨…', L.wind ? '🔒 색 상자가 다 열리면 🔑를 톡!' : '🔑 열쇠 나사부터 빼요'];
+    case '④태엽': return ['태엽을 일찍 뺐어요! 🔒가 빈칸으로', '🔒 색 상자가 다 열리면 🔑를 톡!'];
     case '②진자': return [fail === 2 ? '빙글 판자가 나사를 이불처럼 덮음' : '빙글 판자가 나사를 덮었어요', '다른 나사를 남기면 덮지 않아요'];
     case '②못': return ['못 날개가 나사를 깔고 앉았어요', '꾹 눌러 ⚠ 뜨는 나사는 맨 나중에!']; // 🧪 S003: '밑'이 모호
     case '③통나무': return bloomOf(L) ? ['꽃 머리가 먼저 쿵! 우수수 0', '꽃잎 셋을 매단 뒤 꽃 머리를 톡!'] : ['통나무가 먼저 쿵! 와르르 0', '판자를 다 매단 뒤 통나무를 톡!']; // 🧪 S005: 5판 말 맞추기
@@ -2502,8 +2519,9 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
   if (wi >= 0) {
     const after = pre.rec.slice(wi), nb = after.filter((e) => e.k === 'box').length, ns = after.filter((e) => e.k === 'slot').length;
     font(0.032, 900);
-    const lab = `🔑 드르륵 → 🔒 쏙 ${nb}${ns ? ` · 빈칸 ${ns}` : '!'}`, hw = ctx.measureText(lab).width / 2 + 10;
-    pill(ctx, Math.max(hw, Math.min(X(1) - hw, X(L.px[k]))), Y(L.py[k]) - R(0.13), lab, ns ? '#ffb36b' : '#c8ffc8', R(0.044)); // '쏙!' 알약보다 위, 화면 안
+    const H = STAGES[s.stage].H, all = pre.rec.filter((e) => e.k === 'box').length; // 📐 S007 8판: ★3이 한 방인 태엽 판은 🔑 자신까지 센 쏙 한 방 / H
+    const lab = H !== undefined ? `🔑 드르륵 → 쏙 한 방 ${all} / ${H}${all >= H ? '!' : ''}` : `🔑 드르륵 → 🔒 쏙 ${nb}${ns ? ` · 빈칸 ${ns}` : '!'}`, hw = ctx.measureText(lab).width / 2 + 10;
+    pill(ctx, Math.max(hw, Math.min(X(1) - hw, X(L.px[k]))), Y(L.py[k]) - R(0.13), lab, (H !== undefined ? all < H : ns) ? '#ffb36b' : '#c8ffc8', R(0.044)); // '쏙!' 알약보다 위, 화면 안 · 한 방 판은 H에 닿으면 초록
   }
   // 매달릴/떨어질 판자의 유령
   for (const e of pre.rec) {

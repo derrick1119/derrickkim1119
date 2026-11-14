@@ -285,8 +285,8 @@ describe('🔑 3판 태엽 기차 · 📌🔨 4판 풍차 (📐 S004)', () => {
     for (const i of L.ps[nail[0]]) apply(L, S, i);
     expect(S.fail).toBe(2);
   });
-  it('3~7판 반증(24시드): 장인 ★3 ≥ 0.7 · 버릇 3종 ★3 ≤ 0.15 · 따라 하기 ★3 ≤ 0.25 · 4판 무작위 ≥ 0.5 · 버릇 클리어 ≥ 0.4 (S005 5판 🌻 · S006 6판 🦕 · S007 7판 🏰 더함)', () => {
-    for (const k of [2, 3, 4, 5, 6]) {
+  it('3~8판 반증(24시드): 장인 ★3 ≥ 0.7 · 버릇 3종 ★3 ≤ 0.15 · 따라 하기 ★3 ≤ 0.25 · 4판 무작위 ≥ 0.5 · 버릇 클리어 ≥ 0.4 (S005 5판 🌻 · S006 6판 🦕 · S007 7판 🏰 · 8판 🚀 더함)', () => {
+    for (const k of [2, 3, 4, 5, 6, 7]) {
       const r = measureStage(k, 24, ['smart', 'habit', 'top', 'reveal', 'preview', 'random']);
       expect(r.smart.star3, `${k + 1}판 장인`).toBeGreaterThanOrEqual(0.7);
       for (const b of ['habit', 'top', 'reveal']) expect(r[b].star3, `${k + 1}판 ${b}`).toBeLessThanOrEqual(0.15);
@@ -454,5 +454,21 @@ describe('되짚기 원인별 (✏️ S007 · 📋 S004 이월 ①②)', () => {
     expect(seen['①색'] ?? 0).toBeGreaterThan(0);
     expect(seen['②진자'] ?? 0).toBeGreaterThan(0);
     expect(pair).toBeGreaterThan(0);
+  });
+});
+
+describe('🚀 8판 로켓 발사 (M1′ S007 · 📐 CONTENT 8판)', () => {
+  it('장인 수순: 해치를 🔑 쪽 나사만 빼 비켜 세우고 🔒 색 상자 둘이 열린 때 🔑 → 드르륵 · 🔒 다섯 · 🌀 띠용 → 💥 쏙 한 방 7 (★3)', () => {
+    for (const seed of [1, 9, 17]) {
+      const r = tryStage(screwshopSmart, seed, 7);
+      expect(r.ok, `seed ${seed}`).toBe(true);
+      expect(r.shot).toBe(7);
+      expect(r.stars).toBe(3);
+    }
+  });
+  it('🔑 전에는 ★3 한 방 칩이 살아 있다 (🪵 없는 한 방 판 — shotDead)', () => {
+    const s = g.create(4);
+    startStage(s, 7);
+    expect(shotDead(STAGES[7], s.L, s.S)).toBe(false);
   });
 });

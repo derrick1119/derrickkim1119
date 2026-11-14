@@ -10,7 +10,7 @@ import { STAGES, apply, bestMove, cloneSim, freeM, habitPick, newSim, paintStage
 import { mulberry32, type Rng } from './rng.ts';
 
 /** 판별 칠 수 · 칠해 볼 sub 수(2판은 장인 ★3 칠이 96개 중 22개뿐이고 상한 3.9에 닿는 칠은 그 절반이라 384 — ✏️ S005) */
-export const N = 24, SCAN = [96, 1536, 96, 96, 96, 96, 1536, 96]; // ✏️ S007: 2판 384 → 1536(진자 칠이 384칠 중 21칠뿐)
+export const N = 24, SCAN = [96, 1536, 96, 96, 96, 96, 1536, 1536]; // ✏️ S007: 2판 384 → 1536(진자 칠이 384칠 중 21칠뿐) · 📐 S007 7·8판 1536
 
 /** 아무 나사나 빼는 사람이 이 판을 깰 확률 */
 function randomPass(L: Level, r: Rng, n: number) {
@@ -78,11 +78,6 @@ const pv1Of = (L: Level, r: Rng) => (S: Sim) => {
   return pick[Math.floor(r() * pick.length)];
 };
 
-/** 버릇대로 두면 ★3이 안 나오고 내다보고 두면 ★3이 나오는 판 (M0 식, 5~8판) */
-const m0 = (L: Level, d: StageDef, r: Rng) => {
-  const h = playOut(L, d, habitOf(L)), m = playOut(L, d, smartOf(L, d));
-  return (h < 3 ? 2 : 0) + (m === 3 ? 1.5 : m ? 0.4 : 0) + randomPass(L, r, 10) * 0.3;
-};
 /** 판별 가치(클수록 좋음)와 '이만하면 됐다' 상한 — 예전 buildLevel의 고르기 식·멈춤 값 그대로 */
 export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   // 📐 1판: 장인(손가락 첫 톡) ★3 ×2 + 장인 스스로 ★3 + 무작위 클리어 − 막 누르기(손가락 첫 톡 뒤) ★2 이상 ×2 (📋 S002 표본 100)
@@ -143,9 +138,17 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
     for (let k = 0; k < 100; k++) m += playOut(L, d, mashOf(L, r)) ? 1 : 0;
     return (smartSeen(L, d, true) === 3 ? 0 : 2) + (h ? 1 : 0) + 1 - m / 100;
   },
-  m0,
+  // 📐 8판 🚀 (S007): 장인 ★3이 아니거나 버릇 ★3이면 탈락 · 장인−진자가 ★3을 놓치면 +1(F15) · 버릇 클리어(처음 하는 사람 숨통) + (1 − 막 누르기 클리어, 100판)
+  (L, d, r) => {
+    if (smartSeen(L, d) !== 3) return -9;
+    const h = playOut(L, d, habitOf(L));
+    if (h === 3) return -5;
+    let m = 0;
+    for (let k = 0; k < 100; k++) m += playOut(L, d, mashOf(L, r)) ? 1 : 0;
+    return (smartSeen(L, d, true) === 3 ? 0 : 1) + (h ? 1 : 0) + 1 - m / 100;
+  },
 ];
-export const CAP = [Infinity, 4.5, 3.65, 3.5, 1.96, 2.95, 3.95, 3.65];
+export const CAP = [Infinity, 4.5, 3.65, 3.5, 1.96, 2.95, 3.95, 2.95];
 
 /** k판의 칠 번호 N개 */
 export function pickStage(k: number, n = N, scan = SCAN[k]) {
