@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, logLate, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
+import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, logLate, paintStage, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
 import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { f16, screwshopMash, screwshopNewbie, tryStage } from '../studio/screwshop/funqa.ts';
@@ -608,6 +608,24 @@ describe('🐹 쿵을 별에 · 빈 쿵 · F16 v2.1 (✏️ S012 · 📐B 1-6 ·
 
 describe('🪵 통나무가 먼저 떨어져 → 빈칸 (✏️ S013 · 🧪 S012 F16 v2.1 ③ · 📋 경고로 푼다)', () => {
   const at = (key: string) => STAGES.findIndex((d) => d.key === key);
+  it('🤡 깜짝 상자(📐B S013 3-2): 상자 판자가 다 풀린 톡에 뿅 → 겨눈 모자 나사가 위에서부터 튄다 · 뿅을 끄면 장인 ★3 0(F19) · 다른 판엔 jack 없음', () => {
+    const k = at('jackbox');
+    for (const seed of [1000, 1007, 1014]) {
+      const x = tryStage(screwshopSmart, seed, k), h = x.s.hist.find((e) => e.rec.some((r) => r.k === 'jack'));
+      expect(x.stars, `시드 ${seed} 장인 ★3`).toBe(3);
+      expect(h, `시드 ${seed} 뿅`).toBeTruthy();
+      const r = h!.rec, ys = r.slice(r.findIndex((e) => e.k === 'jack')).flatMap((e) => (e.k === 'out' ? [x.s.L.py[e.s]] : []));
+      expect(ys.length).toBeGreaterThan(0);
+      expect(ys, '위에서부터').toEqual([...ys].sort((a, b) => a - b));
+      const t = g.create(seed), rng = mulberry32(seed ^ 0x9e3779b9);
+      startStage(t, k);
+      t.L = { ...t.L, jack: undefined };
+      for (let i = 0; i < 600 * 60 && t.phase !== 'result'; i++) g.step(t, screwshopSmart.act(t, rng));
+      expect(t.hist.some((e) => e.rec.some((r) => r.k === 'jack')), '뿅 끔').toBe(false);
+      expect(t.ok && t.S.shot >= 4, `시드 ${seed} 뿅 없이 ★3(F19)`).toBe(false);
+    }
+    STAGES.forEach((_, j) => j !== k && expect(paintStage(j, 1).jack, STAGES[j].slot).toBeUndefined());
+  });
   it('💡 귀띔은 실패 카드 단추로 켜고 끈다(✏️ S013 · 🧪 S012 \'같은 판에서 못 끔\') — 끄면 그 판 ★3이 다시 열린다', () => {
     const s = g.create(7), A = 1.45, rng = mulberry32(5);
     startStage(s, at('rocket'));
