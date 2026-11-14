@@ -213,7 +213,7 @@ function goalLine(c: Cam, strong: boolean) {
   ctx.globalAlpha = strong ? 0.9 : 0.5;
   poly(q, undefined, '#1f6fb2', 2.5, [8, 5]);
   const left = q.reduce((a, p) => (p[0] < a[0] ? p : a), q[0]);
-  ctx.font = '800 15px system-ui,sans-serif';
+  ctx.font = '800 16px system-ui,sans-serif'; // QC 글자 ≥ 16px(C014)
   ctx.textAlign = 'left';
   ctx.fillStyle = '#1f6fb2';
   ctx.fillText(`목표 ${y}칸`, left[0] + 4, left[1] - 6);
@@ -820,7 +820,7 @@ function centerOf(c: Cam, i: number): [number, number] {
     yaw = yawOf(view);
     rotT = 1;
   },
-  state: () => ({ bitsMax, bits: bits.length, left, view, done: played(), playing: !!out && !played(), ok: out?.ok ?? null, stars: out?.stars ?? 0, cellPx: cams[0].s }),
+  state: () => ({ bitsMax, bits: bits.length, aim, stage: stageIx, left, view, done: played(), playing: !!out && !played(), ok: out?.ok ?? null, stars: out?.stars ?? 0, cellPx: cams[0].s }),
 };
 size();
 hudText();

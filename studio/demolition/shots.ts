@@ -157,6 +157,6 @@ const worst = Math.max(holdF.p95, moveF.p95, boom.p95);
 console.log('꾹 프레임 가장 긴 8개', holdF.top.join(' '), '· 옮김', moveF.top.join(' '), '· 쾅', boom.top.join(' '));
 console.log(`성능 DPR 3 · CPU ×4 · 1-2: 말풍선 꾹 p95 ${holdF.p95.toFixed(1)}ms(중앙 ${holdF.med.toFixed(1)}) · 손가락 옮기는 꾹 p95 ${moveF.p95.toFixed(1)}ms(${moveF.n}프레임) · 쾅 p95 ${boom.p95.toFixed(1)}ms(중앙 ${boom.med.toFixed(1)}, ${boom.n}프레임) → 최악 ${worst.toFixed(1)} (기준 ≤ 33)`);
 if (worst > 33) errors.push('성능 p95 > 33ms');
-writeFileSync(join(here, 'reports', 'perf.json'), JSON.stringify({ at: 'C013', dpr: 3, cpu: 4, hold: holdF, move: moveF, boom, worst }, null, 1) + '\n');
+writeFileSync(join(here, 'reports', 'perf.json'), JSON.stringify({ at: 'C014', dpr: 3, cpu: 4, hold: holdF, move: moveF, boom, worst }, null, 1) + '\n');
 await browser.close();
 console.log(errors.length ? `콘솔 에러 ${errors.length}: ${errors.join(' | ')}` : '콘솔 에러 0');
