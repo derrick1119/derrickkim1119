@@ -183,14 +183,14 @@ describe('3D 칸 물리', () => {
     }
   });
 
-  it('손가락 적중(FUN v1.3 F11, σ16px · 말풍선 보고 한 번 고쳐 누름 · 가려진 시점은 ⟳): 판마다 평균 ≥ .9 · 취소 ≤ .03 · 블록별 ≥ .9 (n200 — 게이트는 funqa --n1000)', () => {
-    for (const d of STAGES3) {
-      const m = measureStage3(d);
+  // 판마다 따로(C010: 한 테스트에 판 넷을 몰아 재면 CI 일꾼이 오래 묶여 vitest 통신 시간 초과가 났다) · 봇 몬테카를로는 빼고 F11만
+  for (const d of STAGES3)
+    it(`손가락 적중(FUN v1.3 F11, σ16px · 말풍선 보고 한 번 고쳐 누름 · 가려진 시점은 ⟳) ${d.title}: 평균 ≥ .9 · 취소 ≤ .03 · 블록별 ≥ .9 (n200 — 게이트는 funqa --n1000)`, () => {
+      const m = measureStage3(d, { bots: false });
       expect(m.f11, d.title).toBeGreaterThanOrEqual(0.9);
       expect(m.f11miss, d.title).toBeLessThanOrEqual(0.03);
       expect(m.f11min, `${d.title} ${m.f11minAt}`).toBeGreaterThanOrEqual(0.9);
-    }
-  }, 60000);
+    }, 60000);
 });
 
 describe('꼬리표 규칙 holdTags (🧪 C007 ④ · 시험 빚 ③)', () => {

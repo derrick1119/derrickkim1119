@@ -12,7 +12,7 @@ import { measureStage3 } from '../studio/demolition/funqa.ts';
 describe('깊이 사다리 (3D 판마다)', () => {
   for (const d of STAGES3.filter((x) => x.charges >= 2)) {
     it(`${d.title}: greedy1 ≤ .4 · look2 ≥ .8 · greedy1 ≤ look2 ≤ 1`, () => {
-      const L = layoutOf3(d), c = simCache(L), m = measureStage3(d), l2 = look2(L, d, c);
+      const L = layoutOf3(d), c = simCache(L), m = measureStage3(d, { bots: false }), l2 = look2(L, d, c);
       expect(m.greedyStar3).toBeLessThanOrEqual(0.4);
       expect(l2).toBeGreaterThanOrEqual(0.8);
       expect(m.greedyStar3).toBeLessThanOrEqual(l2);

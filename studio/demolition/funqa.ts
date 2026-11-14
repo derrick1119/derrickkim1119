@@ -134,12 +134,14 @@ export function fingerHit(c: Cam, L: Layout3, i: number, n = 200, sigma = 16, se
 }
 
 export function measure3D() {
-  return STAGES3.map(measureStage3);
+  return STAGES3.map((d) => measureStage3(d));
 }
 
 /** 3D 판 하나의 FUN v1.1 측정 (후보 판 비교에도 쓴다) */
 export { plansOf } from './bots3d.ts';
-export function measureStage3(d: StageDef3) {
+/** opt.bots = false: 처음 봇 몬테카를로·look2·버릇·오해 봇을 건너뛴다(테스트가 F11·greedy만 볼 때 — 값은 0으로) */
+export function measureStage3(d: StageDef3, opt: { bots?: boolean } = {}) {
+  const bots = opt.bots !== false;
   {
     const L = layoutOf3(d);
     let plans = 0, ok = 0, s3 = 0, best = 0;
@@ -275,9 +277,9 @@ export function measureStage3(d: StageDef3) {
       return simulate3(L, c1).moved || feetKey(c1) !== base;
     }).length / Math.max(1, essIds.length);
     // v1.4 ⓐ 처음 봇(꾹 3번 · 그려진 것만 · 글은 읽음 · 막다른 길 떼기 q .5) · ⓓ look2(F9)·고정 시점 look2·버릇 봇(F10)
-    const ftS3 = { star3: 0 }, ftPrev = firstTimer(L, d, wMix, 'prev', 2000, C, 20, ftS3), ftBlind = firstTimer(L, d, wMix, 'blind', 2000, C);
+    const ftS3 = { star3: 0 }, ftPrev = bots ? firstTimer(L, d, wMix, 'prev', 2000, C, 20, ftS3) : 0, ftBlind = bots ? firstTimer(L, d, wMix, 'blind', 2000, C) : 0;
     const ft1 = Math.min(ftPrev, ftBlind), ft5 = 1 - (1 - ft1) ** 5;
-    const habitStar3 = habit(L, d, C, false), habitFlowerStar3 = habit(L, d, C, true), mis = misread(L, d, C);
+    const habitStar3 = bots ? habit(L, d, C, false) : 0, habitFlowerStar3 = bots ? habit(L, d, C, true) : 0, mis = bots ? misread(L, d, C) : { clear: 0, star3: 0 };
     // F4b-죽음(v1.3 ⓑ): 변화가 있는 죽은 첫 톡 뒤, 둘째 꾹(마지막 폭약이면 결과 꼬리표)에서 실패 기호가 뜨는 비율.
     // 화면 규칙: 마지막 폭약을 겨누면 늘 결과 꼬리표(verdict3) — 실패 계획이면 빨간 글. 마지막이 아니면 💥/빨간 상자가 있을 때만
     let dSig = 0, dAll = 0;
@@ -335,7 +337,7 @@ export function measureStage3(d: StageDef3) {
     const innerHit = taps.filter((_, k) => hits[k].every((x) => x.hit < 0.5)).length;
     const f11miss = taps.length ? hits.reduce((a, h) => a + h.reduce((b, x) => b + x.miss, 0) / 4, 0) / taps.length : 0;
     // v1.5 ⓐ·ⓔ: 고정 시점 look2 = 시작 시점 σ16 적중 ≥ .5인 블록만 · 돌려 보기 가치 = look2 − 고정 시점 look2
-    const look2Star3 = look2(L, d, C), look2Fixed = look2(L, d, C, (i) => taps.includes(i) && raw[taps.indexOf(i)][0].hit >= 0.5), rotateValue = look2Star3 - look2Fixed;
+    const look2Star3 = bots ? look2(L, d, C) : 0, look2Fixed = bots ? look2(L, d, C, (i) => taps.includes(i) && raw[taps.indexOf(i)][0].hit >= 0.5) : 0, rotateValue = look2Star3 - look2Fixed;
     let f13 = 0;
     plansOf(L, d, (ch, plan) => {
       // 시작 시점 넓이 0인 블록은 0으로(📐 C010: ⟳ 대신 값이 들어가 F13이 부풀었다)
