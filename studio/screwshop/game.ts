@@ -593,6 +593,8 @@ const BX0 = 0.035, BX1 = 0.965, BY0 = 0.37, BY1 = 1.19;
 const BOX_Y = 0.165, BOX_W = 0.25, BOX_H = 0.12, TRAY_Y = 0.312;
 /** 결과 화면 ↺·다음 버튼 줄 높이(작업판 좌표) */
 export const RES_BY = 0.935;
+/** 위 줄 ↺ 다시 버튼 높이(작업판 좌표, 이보다 위) */
+export const RETRY_Y = 0.07;
 const boxX = (L: Level, bi: number) => (L.boxes === 1 ? 0.34 : bi === 0 ? 0.19 : 0.47);
 const holeXY = (L: Level, bi: number, h: number): [number, number] => [boxX(L, bi) + (h - 1) * 0.07, BOX_Y - 0.022];
 const slotXY = (i: number): [number, number] => [0.5 + (i - 2) * 0.13, TRAY_Y];
@@ -645,7 +647,6 @@ function finish(s: ShopState) {
     ev(s, 'clear', 0.5, 0.75, `${d.emoji} 완성! ${'★'.repeat(st)}${'☆'.repeat(3 - st)}`, '#fff1a8', st);
     setMood(s, 'cheer');
   } else {
-    s.hearts--;
     s.tries++;
     ev(s, 'fail', 0.5, 0.75, s.why, '#ffd0c8');
     setMood(s, 'dizzy');
@@ -927,8 +928,7 @@ export const screwshop: GameDef<ShopState> = {
         if (s.ok) {
           if (s.won) s.dead = true;
           else s.stage++, newStage(s);
-        } else if (s.hearts <= 0) s.dead = true;
-        else newStage(s);
+        } else newStage(s); // 하트 없음 — 그 판만 다시 (M1′ S003, 오너 기준 7)
       }
       return;
     }
@@ -938,6 +938,13 @@ export const screwshop: GameDef<ShopState> = {
     }
     if (p) s.press = pickScrew(s, p.x, p.y * A);
     if (!release) return;
+    if (s.ay * A < RETRY_Y && s.ax > 0.55 && s.ax < 0.84) {
+      // ↺ 지금 다시 (위 줄의 버튼) — 같은 판·같은 칠로 처음부터
+      s.press = -1;
+      s.retries++;
+      newStage(s);
+      return;
+    }
     const k = s.press;
     s.press = -1;
     if (k < 0) {
@@ -2582,7 +2589,18 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
   const stt = `★ ${s.stars}`;
   ctx.fillText(stt, w - R(0.03), hb * 0.52);
   ctx.fillStyle = th.hot;
-  ctx.fillText('♥'.repeat(Math.max(0, s.hearts)) + '♡'.repeat(Math.max(0, 3 - s.hearts)), w - R(0.06) - ctx.measureText(stt).width, hb * 0.52);
+  // ↺ 지금 다시 (하트 대신, S003): 판 중 언제든 같은 판을 처음부터 — 한 방 칩이 ✗면 반짝
+  {
+    const bx = w - R(0.06) - ctx.measureText(stt).width - R(0.02), bw = R(0.17), dead = s.phase === 'play' && (shotDead(d, s.L, S) || (d.T !== undefined && S.taps > d.T) || S.peak > d.P);
+    ctx.fillStyle = dead ? `rgba(255,209,102,${0.55 + 0.3 * Math.sin(t * 0.15)})` : 'rgba(255,240,214,.16)';
+    ctx.beginPath();
+    ctx.roundRect(bx - bw, hb * 0.14, bw, hb * 0.72, hb * 0.36);
+    ctx.fill();
+    font(0.034, 900);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = dead ? '#3a2a00' : '#fff1d6';
+    ctx.fillText('↺ 다시', bx - bw / 2, hb * 0.53);
+  }
   // 새것 알림
   if (s.news && t - s.news.t < NEWS_T + 20 && s.phase !== 'result') { // 🧪 M0.1: 완성 띠 위에 안내가 겹치지 않게
     const age = t - s.news.t, a = Math.min(1, age / 10, (NEWS_T + 20 - age) / 20), drop = Math.max(0, 10 - age) * 2;
@@ -2676,7 +2694,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     } else {
       font(0.042, 800);
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(s.hearts > 0 ? '♥ -1 · 이 장난감을 처음부터 다시' : '하트를 다 썼어요 — 끝', w / 2, Y(0.75));
+      ctx.fillText('괜찮아요 — 같은 장난감을 다시!', w / 2, Y(0.75));
     }
     ctx.globalAlpha = 1;
   }

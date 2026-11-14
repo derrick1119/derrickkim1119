@@ -10,7 +10,7 @@ import type { Bot, Input } from './core.ts';
 import { mulberry32 } from './rng.ts';
 import { STAGES, apply, cloneSim, freeM, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, startStage, starsOf, type ShopState } from './game.ts';
 
-export interface Try { ok: boolean; stars: number; sec: number; peak: number; best: number; shot: number }
+export interface Try { ok: boolean; stars: number; sec: number; peak: number; best: number; shot: number; taps: number }
 
 /** k판을 한 번 도전(첫 결과가 나올 때까지) */
 export function tryStage(bot: Bot<ShopState>, seed: number, k: number, maxSec = 600): Try {
@@ -19,7 +19,7 @@ export function tryStage(bot: Bot<ShopState>, seed: number, k: number, maxSec = 
   const rng = mulberry32(seed ^ 0x9e3779b9), t0 = s.t;
   while (s.phase !== 'result' && s.t - t0 < maxSec * 60) g.step(s, bot.act(s, rng));
   const ok = s.phase === 'result' && s.ok;
-  return { ok, stars: ok ? starsOf(STAGES[k], s.S) : 0, sec: (s.t - t0) / 60, peak: s.S.peak, best: s.S.best, shot: s.S.shot };
+  return { ok, stars: ok ? starsOf(STAGES[k], s.S) : 0, sec: (s.t - t0) / 60, peak: s.S.peak, best: s.S.best, shot: s.S.shot, taps: s.S.taps };
 }
 
 const NO: Input = { tap: false, dir: 0, pointer: null };
@@ -110,6 +110,19 @@ export const screwshopFingerMash: Bot<ShopState> = {
   },
 };
 
+/** 처음 하는 사람 (M1′ 완료 기준 ④): 70%는 '맞는 색 먼저' 버릇, 30%는 뺄 수 있는 아무 나사 */
+export const screwshopNewbie: Bot<ShopState> = {
+  name: '처음 하는 사람',
+  act(s, rng) {
+    if (!ready(s)) return NO;
+    if (rng() < 0.3) {
+      const o = knownFree(s);
+      return o.length ? tapI(s, o[Math.floor(rng() * o.length)]) : NO;
+    }
+    return screwshopHabit.act(s, rng);
+  },
+};
+
 export const BOTS = { smart: screwshopSmart, habit: screwshopHabit, top: screwshopTop, reveal: screwshopReveal, random: screwshopRandom, mash: screwshopMash, finger: screwshopFingerMash, preview: screwshopPreview };
 
 export function measure(seeds = 12) {
@@ -123,11 +136,23 @@ export function measure(seeds = 12) {
         stars: +(r.reduce((a, x) => a + x.stars, 0) / seeds).toFixed(2),
         ge2: +(r.filter((x) => x.stars >= 2).length / seeds).toFixed(2),
         sec: +(r.reduce((a, x) => a + x.sec, 0) / seeds).toFixed(1),
+        /** 사람 시간 추정(초): 장인 톡 수 × 5초 + 연출 6초 (MILESTONES: 판당 60~120초) — 장인 행에서만 의미 */
+        human: +(r.reduce((a, x) => a + x.taps * 5 + 6, 0) / seeds).toFixed(0),
         /** 한 방: 톡 한 번에 빠진 나사 수 최대(판 평균) */
         shot: +(r.reduce((a, x) => a + x.shot, 0) / seeds).toFixed(2),
       };
     }
     return row;
+  });
+  // 처음 하는 사람: 판마다 다시 3번 안에 깨는 비율 (시드마다 다른 손)
+  stages.forEach((row, k) => {
+    let first = 0, three = 0;
+    for (let i = 0; i < seeds; i++) {
+      const tries = [0, 1, 2].map((j) => tryStage(screwshopNewbie, 1000 + i * 7 + j * 100003, k).ok);
+      first += +tries[0];
+      three += +tries.some(Boolean);
+    }
+    row.newbie = { clear1: +(first / seeds).toFixed(2), clear3: +(three / seeds).toFixed(2) };
   });
   const avg = (bot: string, key: string) => +(stages.reduce((a, r) => a + (r[bot] as Record<string, number>)[key], 0) / stages.length).toFixed(2);
   const summary = {
@@ -148,6 +173,11 @@ export function measure(seeds = 12) {
     /** 한 방 최대 판 평균: 장인 / 막 누르기 (M1′ ②: 장인 ≥ 3 · 막 누르기 ≤ 1.5) */
     smartShot: avg('smart', 'shot'), mashShot: avg('mash', 'shot'),
     smartSec: avg('smart', 'sec'),
+    /** 처음 하는 사람: 다시 3번 안에 클리어 — 1~3판 최저 / 1~8판 평균 (M1′ ④: ≥ 0.9 / ≥ 0.75) */
+    newbie3_13: Math.min(...stages.slice(0, 3).map((r) => (r.newbie as Record<string, number>).clear3)),
+    newbie3_avg: +(stages.reduce((a, r) => a + (r.newbie as Record<string, number>).clear3, 0) / stages.length).toFixed(2),
+    /** 사람 시간 추정(초): 판별 장인 톡 × 5 + 6 */
+    humanSec: stages.map((r) => (r.smart as Record<string, number>).human),
     /** 숙련 격차: 장인 평균 별 / 무작위 평균 별 */
     skillGap: +(avg('smart', 'stars') / Math.max(0.05, avg('random', 'stars'))).toFixed(2),
   };

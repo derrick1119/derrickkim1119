@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { RES_BY, STAGES, apply, newSim, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
+import { RES_BY, RETRY_Y, STAGES, apply, newSim, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { measure, screwshopMash, tryStage } from '../studio/screwshop/funqa.ts';
 
@@ -109,6 +109,35 @@ describe('🪵 통나무 · 2판 돛단배 (M1′ S002 · 📐 CONTENT 2판)', (
   });
 });
 
+describe('하트 없음 · ↺ 지금 다시 (M1′ S003, 오너 기준 7)', () => {
+  it('몇 번을 실패해도 게임이 끝나지 않고 그 판만 다시 (같은 칠)', () => {
+    const s = g.create(9);
+    startStage(s, 2);
+    const col0 = s.L.col.join(), rng = () => 0.5;
+    let fails = 0;
+    for (let k = 0; k < 60 * 400 && fails < 5; k++) {
+      const was = s.phase;
+      g.step(s, screwshopMash.act(s, rng));
+      if (was !== 'result' && s.phase === 'result' && !s.ok) fails++;
+      if (s.phase === 'result' && s.ok) break;
+    }
+    expect(fails).toBeGreaterThanOrEqual(3);
+    expect(g.over(s)).toBe(false);
+    expect(s.stage).toBe(2);
+    expect(s.L.col.join()).toBe(col0);
+  });
+  it('위 줄 ↺를 누르면 판 중에도 같은 판을 처음부터', () => {
+    const s = g.create(4), L0 = s.L;
+    for (let k = 0; k < 60; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+    apply(s.L, s.S, STAGES[0].first!);
+    expect(s.S.n).toBeGreaterThan(0);
+    g.step(s, { tap: false, dir: 0, pointer: { x: 0.7, y: (RETRY_Y * 0.5) / 1.45 } });
+    g.step(s, { tap: false, dir: 0, pointer: null });
+    expect([s.S.n, s.stage, s.retries, s.phase]).toEqual([0, 0, 1, 'play']);
+    expect(s.L).toBe(L0);
+  });
+});
+
 describe('결과 화면 ↺ (S002 · 🧪 S001 "★1도 자동 다음 판")', () => {
   const toResult = (seed: number) => {
     const s = g.create(seed), rng = () => 0.37;
@@ -164,6 +193,6 @@ describe('플레이 빌드', () => {
     expect(html).not.toContain('/*BUNDLE*/');
     expect(html).toContain('나사 풀기 공방');
     expect(html).toContain('id="sound"');
-    expect(gzipSync(html).length).toBeLessThan(120 * 1024);
+    expect(gzipSync(html).length).toBeLessThan(36 * 1024); // M1′ 상한 (📋 S002: 120 → 36KB로 조임)
   });
 });
