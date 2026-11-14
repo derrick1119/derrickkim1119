@@ -296,19 +296,20 @@ export function skeletons() {
 }
 /** news 순간(🧪 S015 news.mts · 📋 S016 같이 봄): news 문장이 말하는 톡을 처음 봇(3손) · 막 누르기(3손)가 보는 비율 — 판 key별 정의(📐가 새 판에 더한다) */
 const after = (r: ShopState['hist'][number]['rec'], k: string) => { const i = r.findIndex((e) => e.k === k); return i < 0 ? -1 : r.slice(i).filter((e) => e.k === 'out' && e.pop).length; };
-export const NEWS: Record<string, (r: ShopState['hist'][number]['rec']) => boolean> = {
+export const NEWS: Record<string, (r: ShopState['hist'][number]['rec'], L: Level) => boolean> = {
   dolphin: (r) => after(r, 'crash') >= 2,
   lighthouse: (r) => r.some((e) => e.k === 'bonk') && r.filter((e) => e.k === 'boing').length >= 2,
   popcorn: (r) => after(r, 'jack') >= 0 && r.some((e) => e.k === 'crash') && after(r, 'crash') >= 1,
   coaster: (r) => r.some((e) => e.k === 'tick') && after(r, 'crash') >= 2,
   showcase: (r) => after(r, 'jack') >= 3,
   jackbox: (r) => after(r, 'jack') >= 2,
+  range: (r, L) => r.some((e) => e.k === 'boing' && L.tmr[e.s] > 0), // 🧪 S016: '총이 떨어지면 ⏰를 탕' = 띠용이 ⏰ 나사를 친 톡
 };
 export function newsOf(k: number, seeds = 24) {
   const f = NEWS[STAGES[k].key];
   if (!f) return undefined;
-  const rate = (bot: Bot<ShopState>) => { let c = 0; for (let i = 0; i < seeds; i++) for (let j = 0; j < 3; j++) { const seed = 1000 + i * 7; c += +tryStage(bot, seed, k, 600, seed + j * 100003).s.hist.some((h) => f(h.rec)); } return +(c / seeds / 3).toFixed(2); };
-  return { newbie: rate(screwshopNewbie), mash: rate(screwshopMash) };
+  const rate = (bot: Bot<ShopState>) => { let c = 0; for (let i = 0; i < seeds; i++) for (let j = 0; j < 3; j++) { const seed = 1000 + i * 7; const t = tryStage(bot, seed, k, 600, seed + j * 100003).s; c += +t.hist.some((h) => f(h.rec, t.L)); } return +(c / seeds / 3).toFixed(2); };
+  return { newbie: rate(screwshopNewbie), mash: rate(screwshopMash), smart: rate(screwshopSmart) }; // 🧪 S016: 장인도 그 순간을 보는가
 }
 /** 판박이(🧪 S014 · 📋 S015): 같은 월드 · 장인 큰 순간 장치 줄이 같은 두 판은 장인 최대 연쇄 또는 장인 첫 톡 장치가 달라야 한다 → 걸린 짝 [자리, 자리] */
 export const twinsOf = (rows: { slot: string; big: ReturnType<typeof bigOf> }[]) => rows.flatMap((a, i) => rows.slice(i + 1).filter((b) => a.slot[0] === b.slot[0] && a.big.core === b.big.core && a.big.m === b.big.m && a.big.first === b.big.first).map((b) => [a.slot, b.slot]));
