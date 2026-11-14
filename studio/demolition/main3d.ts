@@ -424,11 +424,23 @@ function holdInfo(a: number): Hold {
  * (🧪 C006: 매 프레임 그리면 DPR 3·CPU ×4에서 꾹 p95 33ms). ✕는 깜빡이지 않고 알파 1.
  */
 let ovKey = '', ovc: HTMLCanvasElement | null = null;
+/** 겹그림을 최근 8장까지 모아 둔다(🧪 C013 ②: 손가락이 이웃 블록을 오가면 겨눔마다 전체 캔버스를 다시 칠해 2 vsync였다 — 4장으론 모자랐음, DPR 2에서 장당 ≈2.9MB) — 판·폭약·시점이 바뀌면 비움 */
+const ovPool = new Map<string, HTMLCanvasElement>();
+let ovBase = '';
 function holdOverlay(c: Cam, h: ReturnType<typeof holdInfo>) {
-  const key = `${hKey}|${c.yaw.toFixed(5)}|${canvas.width}|${left}`;
+  const key = `${hKey}|${c.yaw.toFixed(5)}|${canvas.width}|${left}|${noText}`, base = `${stageIx}|${ch.join('')}|${c.yaw.toFixed(5)}|${canvas.width}|${noText}`;
+  if (base !== ovBase) (ovBase = base), ovPool.clear();
+  const hit = ovPool.get(key);
+  if (hit && key !== ovKey) (ovKey = key), (ovc = hit), ovPool.delete(key), ovPool.set(key, hit);
   if (key !== ovKey || !ovc) {
     ovKey = key;
-    ovc ??= document.createElement('canvas');
+    // 새 장: 8장이 차면 가장 오래된 것을 다시 쓴다
+    if (ovPool.size >= 8) {
+      const old = ovPool.keys().next().value!;
+      ovc = ovPool.get(old)!;
+      ovPool.delete(old);
+    } else ovc = document.createElement('canvas');
+    ovPool.set(key, ovc);
     // 크기가 같으면 다시 잡지 않는다(🧪 C007 ②: 겨눔이 바뀔 때마다 780×936 캔버스를 새로 할당해 30fps로 떨어졌다)
     if (ovc.width !== canvas.width || ovc.height !== canvas.height) (ovc.width = canvas.width), (ovc.height = canvas.height);
     const keep = ctx;
@@ -455,30 +467,18 @@ function holdOverlay(c: Cam, h: ReturnType<typeof holdInfo>) {
   ctx.drawImage(ovc, 0, 0, W, H);
 }
 
-function draw() {
-  const c = cam();
-  if (inMagnifier) {
-    // 말풍선 안: 땅 한 장 + 블록 + 노란 테만(가볍게)
-    ctx.fillStyle = '#f4c7a0';
-    ctx.fillRect(-W, -H, 3 * W, 3 * H);
-    const { x0, x1, z0, z1 } = L.lot;
-    poly(ground(c, x0, z0, x1 + 1, z1 + 1), '#e3b67f', '#c7362e', 2);
-  } else background(c);
-  // 블록 (먼 것부터)
-  const cb = cubes();
-  for (const k of drawOrder(c, cb)) {
-    if (inMagnifier && touch) {
-      // 말풍선 안에는 손가락 둘레 블록만 (반지름 54px ÷ 2배 = 27px 안이 보인다)
-      const q = proj(c, cb[k].x + 0.5, cb[k].y + 0.5, cb[k].z + 0.5);
-      if (Math.abs(q[0] - touch[0]) > 27 + c.s || Math.abs(q[1] - touch[1]) > 27 + c.s) continue;
-    }
-    const b = L.blocks[cb[k].i], col0 = MAT[b.m] ?? PAINT[b.paint % PAINT.length];
+/** 판 그림 한 장(배경 + 블록) 캐시를 쓸 수 있나: 쾅 전 · 회전 중 아님 */
+const sceneOk = () => !out && rotT >= 1;
+let scKey = '', scc: HTMLCanvasElement | null = null;
+/** 블록 하나(면 3 + 돌 구멍) */
+function drawBlock(c: Cam, q0: Cube & { i: number }) {
+    const b = L.blocks[q0.i], col0 = MAT[b.m] ?? PAINT[b.paint % PAINT.length];
     // 남은 폭약으로 못 붙이는 블록(돌 −2인데 1개 남음)은 흐린 회색(📐 C010 · C012 🎨) — 붙인 것·결과 중엔 원래 색
-    const col = !out && !ch[cb[k].i] && capOf3(b) > left && capOf3(b) > 0 ? ['#c9c4cf', '#ddd8e2', '#a8a3ae'] : col0;
-    for (const fc of faces(c, cb[k])) poly(fc.pts, fc.f === 'top' ? col[1] : fc.f === 'zm' || fc.f === 'zp' ? col[0] : col[2], INK, 1.2);
+    const col = !out && !ch[q0.i] && capOf3(b) > left && capOf3(b) > 0 ? ['#c9c4cf', '#ddd8e2', '#a8a3ae'] : col0;
+    for (const fc of faces(c, q0)) poly(fc.pts, fc.f === 'top' ? col[1] : fc.f === 'zm' || fc.f === 'zp' ? col[0] : col[2], INK, 1.2);
     if (b.m === STONE && !inMagnifier)
       // 돌 = 톡 한 번에 −2(📐 GDD §10 값표): 보이는 면마다 폭약 구멍 2개 — 윗면이 덮여도 옆면에서 쇠와 구분되게(🧪 C010 ①)
-      for (const fc of faces(c, cb[k])) {
+      for (const fc of faces(c, q0)) {
         const [a, b2, , d4] = fc.pts, mx = fc.pts.reduce((t, q) => t + q[0], 0) / 4, my = fc.pts.reduce((t, q) => t + q[1], 0) / 4;
         const ux = (b2[0] - a[0]) * 0.2, uy = (b2[1] - a[1]) * 0.2, vx = (d4[0] - a[0]) * 0.11, vy = (d4[1] - a[1]) * 0.11;
         ctx.fillStyle = '#4a4458';
@@ -492,8 +492,50 @@ function draw() {
           ctx.fill();
         }
       }
-    if (!out && cb[k].i === aim && holding) for (const fc of faces(c, cb[k])) poly(fc.pts, undefined, '#ffc93c', 3.5);
-  }
+}
+
+function draw() {
+  const c = cam();
+  if (inMagnifier) {
+    // 말풍선 안: 땅 한 장 + 블록 + 노란 테만(가볍게)
+    ctx.fillStyle = '#f4c7a0';
+    ctx.fillRect(-W, -H, 3 * W, 3 * H);
+    const { x0, x1, z0, z1 } = L.lot;
+    poly(ground(c, x0, z0, x1 + 1, z1 + 1), '#e3b67f', '#c7362e', 2);
+  } else if (!(sceneOk() && !inMagnifier)) background(c);
+  // 블록 (먼 것부터)
+  const cb = cubes(), order = drawOrder(c, cb);
+  if (!inMagnifier && sceneOk()) {
+    // 🧪 C013 ② 성능: 손가락을 옮길 때마다 판 전체(블록 17개 × 면 3)를 다시 칠하던 것 → 배경 + 블록을 한 장으로 미리 그려 두고 붙인 뒤,
+    // 노란 테만 그리고 그 블록보다 가까운 블록만 다시 칠해 가림을 되살린다(보이는 것 = 누르는 것 그대로)
+    const key = `${c.yaw.toFixed(5)}|${canvas.width}|${canvas.height}|${stageIx}|${ch.join('')}|${left}`;
+    if (key !== scKey || !scc) {
+      scKey = key;
+      scc ??= document.createElement('canvas');
+      if (scc.width !== canvas.width || scc.height !== canvas.height) (scc.width = canvas.width), (scc.height = canvas.height);
+      const keep = ctx;
+      ctx = scc.getContext('2d')!;
+      ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
+      background(c);
+      for (const k of order) drawBlock(c, cb[k]);
+      ctx = keep;
+    }
+    ctx.drawImage(scc, 0, 0, W, H);
+    const at = holding && aim >= 0 ? order.findIndex((k) => cb[k].i === aim) : -1;
+    if (at >= 0) {
+      for (const fc of faces(c, cb[order[at]])) poly(fc.pts, undefined, '#ffc93c', 3.5);
+      for (let n = at + 1; n < order.length; n++) drawBlock(c, cb[order[n]]);
+    }
+  } else
+    for (const k of order) {
+      if (inMagnifier && touch) {
+        // 말풍선 안에는 손가락 둘레 블록만 (반지름 54px ÷ 2배 = 27px 안이 보인다)
+        const q = proj(c, cb[k].x + 0.5, cb[k].y + 0.5, cb[k].z + 0.5);
+        if (Math.abs(q[0] - touch[0]) > 27 + c.s || Math.abs(q[1] - touch[1]) > 27 + c.s) continue;
+      }
+      drawBlock(c, cb[k]);
+      if (!out && cb[k].i === aim && holding) for (const fc of faces(c, cb[k])) poly(fc.pts, undefined, '#ffc93c', 3.5);
+    }
   if (inMagnifier) return;
   // 쾅: 터진 블록 자리에 먼지 뭉게 (터진 뒤 24틱)
   if (out && bt >= 0)
@@ -771,7 +813,7 @@ function centerOf(c: Cam, i: number): [number, number] {
     hudText();
   },
   /** 판독 시험용: 글자표(꼬리표·'변화 없음'·'떼기')를 끈다 */
-  setNoText: (v: boolean) => void ((noText = v), (ovKey = '')),
+  setNoText: (v: boolean) => void ((noText = v), (ovKey = ''), ovPool.clear()),
   /** 판독 시험용: 시점을 바로 바꾼다(회전 애니메이션 없이) */
   setView: (v: number) => {
     view = ((v % 4) + 4) % 4;
