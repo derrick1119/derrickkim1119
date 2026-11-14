@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Bot, Input } from './core.ts';
 import { mulberry32 } from './rng.ts';
-import { STAGES, apply, cloneSim, freeM, jackEarly, logLate, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, startStage, starsOf, type Level, type ShopState, type Sim, type StageDef } from './game.ts';
+import { STAGES, apply, cloneSim, freeM, jackEarly, logLate, paintStage, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, startStage, starsOf, type Level, type ShopState, type Sim, type StageDef } from './game.ts';
 
 export interface Try { ok: boolean; stars: number; sec: number; peak: number; best: number; shot: number; taps: number; /** 끝난 판(되짚기·F13용) */ s: ShopState }
 
@@ -236,9 +236,79 @@ export function bigOf(k: number, seeds = 24, got: { sm?: ShopState[]; nb?: ShopS
   const DI: Record<string, string> = { bonk: '🔨', crash: '🪵', wind: '🔑', boing: '🌀', tick: '⏰', jack: '🤡', thump: '🐹' };
   const sm = got.sm ?? Array.from({ length: seeds }, (_, i) => tryStage(screwshopSmart, 1000 + i * 7, k).s), m = Math.max(0, ...sm.flatMap((s) => s.hist.map(pops))), big = Math.max(2, m - 1);
   // measure()가 이미 돌린 판(장인 · 처음 봇 3손 · 막 누르기 첫 손)은 다시 돌리지 않는다(✏️ S015 테스트 시간) — 같은 시드 · 같은 손이라 값이 같다
-  const rate = (bot: Bot<ShopState>, done?: ShopState['hist'][], per = 3) => { let c = 0; for (let i = 0; i < seeds; i++) for (let j = 0; j < 3; j++) { const seed = 1000 + i * 7, h = done && done.length === seeds * per && j < per ? done[i * per + j] : tryStage(bot, seed, k, 600, seed + j * 100003).s.hist; c += +(h.length > 0 && pops(top(h)) >= big); } return +(c / seeds / 3).toFixed(2); };
+  const rate = (bot: Bot<ShopState>, done?: ShopState['hist'][], per = 3, thr = big) => { let c = 0; for (let i = 0; i < seeds; i++) for (let j = 0; j < 3; j++) { const seed = 1000 + i * 7, h = done && done.length === seeds * per && j < per ? done[i * per + j] : tryStage(bot, seed, k, 600, seed + j * 100003).s.hist; c += +(h.length > 0 && pops(top(h)) >= thr); } return +(c / seeds / 3).toFixed(2); };
   const core = mode(sm.map((s) => (s.hist.length ? top(s.hist).rec.flatMap((e) => DI[e.k] ?? []).filter((x, i, a) => x !== a[i - 1]).join('') : '') || '·'));
-  return { m, big, newbie: rate(screwshopNewbie, got.nb), mash: rate(screwshopMash, got.mash0, 1), core, first: mode(sm.filter((s) => s.hist.length).map((s) => dev(s.L, s.hist[0].s))) };
+  // 📋 S015: m ≥ 5 쿵 · 한 방 판은 문턱 m − 1이 곧 장인 수순 → 문턱 3 값(n3)을 같이 본다
+  return { m, big, newbie: rate(screwshopNewbie, got.nb), mash: rate(screwshopMash, got.mash0, 1), core, first: mode(sm.filter((s) => s.hist.length).map((s) => dev(s.L, s.hist[0].s))), ...(m >= 5 ? { n3: rate(screwshopNewbie, got.nb, 3, 3) } : {}) };
+}
+/** 장치 끄기(🧪 S015 m3.mts 'f19'와 같은 식): 판 Level에서 그 장치만 없앤다 */
+export const OFF: Record<string, (L: Level) => Level> = {
+  '🤡': (L) => ({ ...L, jack: undefined }),
+  '🪵': (L) => ({ ...L, pl: L.pl.map((P) => ({ ...P, heavy: false })) }),
+  '🌀': (L) => ({ ...L, pl: L.pl.map((P) => (P.kind === 'spring' ? { ...P, kind: undefined as never, tgt: undefined } : P)) }),
+  '⏰': (L) => ({ ...L, tmr: L.tmr.map(() => 0) }),
+  '🔑': (L) => ({ ...L, wind: false }),
+  '🪟': (L) => ({ ...L, pl: L.pl.map((P) => (P.kind === 'glass' ? { ...P, kind: undefined as never } : P)) }),
+  '🔨': (L) => ({ ...L, pl: L.pl.map((P) => ({ ...P, ham: undefined })) }),
+  '🐹': (L) => ({ ...L, thump: false }),
+};
+/** F19 식: 장치를 끈 판에서 장인 ★3 낙차(켬 − 끔) */
+export function f19(k: number, dev: string, seeds = 24) {
+  const d = STAGES[k];
+  let on = 0, off = 0;
+  for (let i = 0; i < seeds; i++) {
+    const seed = 1000 + i * 7, a = tryStage(screwshopSmart, seed, k).s;
+    on += +(a.ok && starsOf(d, a.S) === 3);
+    const s = g.create(seed);
+    if (k) startStage(s, k);
+    s.L = OFF[dev](s.L);
+    const rng = mulberry32(seed ^ 0x9e3779b9), t0 = s.t;
+    while (s.phase !== 'result' && s.t - t0 < 600 * 60) g.step(s, screwshopSmart.act(s, rng));
+    off += +(s.ok && starsOf(d, s.S) === 3);
+  }
+  return +((on - off) / seeds).toFixed(2);
+}
+/** 판박이 v2(🧪 S015 · 📋 S016 gate): 같은 월드 · core 같은 짝이 first로 갈렸으면 그 first 장치의 F19 ≥ .4, m 차 1로만 갈렸으면 한쪽에만 있는 장치 중 하나의 F19 ≥ .4 — 걸린 짝 [자리, 자리, 까닭] */
+export function twins2(rows: { slot: string; k: number; big: ReturnType<typeof bigOf> }[]) {
+  // 장치 수(판자 단위): 같은 종류라도 한쪽이 더 많으면 '덧붙인 장치'(2-10의 둘째 🌀 문 같은 것)
+  const cnt = (k: number) => { const L = paintStage(k, 1); return Object.fromEntries(Object.keys(OFF).map((e) => [e, e === '🤡' ? +!!L.jack : e === '🪵' ? L.pl.filter((P) => P.heavy).length : e === '🌀' ? L.pl.filter((P) => P.kind === 'spring').length : e === '⏰' ? L.tmr.filter((t) => t > 0).length : e === '🔑' ? +!!L.wind : e === '🪟' ? L.pl.filter((P) => P.kind === 'glass').length : e === '🔨' ? L.pl.filter((P) => P.ham).length : +!!L.thump])) as Record<string, number>; };
+  const out: [string, string, string][] = [];
+  rows.forEach((a, i) => rows.slice(i + 1).forEach((b) => {
+    if (a.slot[0] !== b.slot[0] || a.big.core !== b.big.core) return;
+    const dm = Math.abs(a.big.m - b.big.m);
+    if (a.big.first !== b.big.first) {
+      const ok = [a, b].some((x) => [...x.big.first].some((e) => OFF[e] && f19(x.k, e) >= 0.4));
+      if (!ok && dm < 2) out.push([a.slot, b.slot, `first ${a.big.first}/${b.big.first} 장치 F19 < .4`]);
+    } else if (dm === 1) {
+      const ca = cnt(a.k), cb = cnt(b.k), only = Object.keys(OFF).flatMap((e) => (ca[e] > cb[e] ? [[a.k, e] as const] : cb[e] > ca[e] ? [[b.k, e] as const] : []));
+      if (!only.some(([k, e]) => f19(k, e) >= 0.4)) out.push([a.slot, b.slot, `m ${a.big.m}/${b.big.m} · 한쪽 장치 F19 < .4`]);
+    }
+  }));
+  return out;
+}
+/** 같은 뼈대(🧪 S015 · 📋 S016 gate): 실린 두 판의 같은 좌표 판자(cx · cy · hx · hy · a) 수가 작은 판의 절반 이상인 짝 [자리, 자리, 같은 수, 작은 판 판자 수] */
+export function skeletons() {
+  const key = (P: { cx: number; cy: number; hx: number; hy: number; a: number }) => [P.cx, P.cy, P.hx, P.hy, P.a].map((v) => v.toFixed(3)).join(',');
+  const K = STAGES.map((d) => d.toy().map(key));
+  const out: [string, string, number, number][] = [];
+  K.forEach((a, i) => K.slice(i + 1).forEach((b, j) => { const sb = new Set(b), same = a.filter((x) => sb.has(x)).length, n = Math.min(a.length, b.length); if (same * 2 >= n) out.push([STAGES[i].slot, STAGES[i + 1 + j].slot, same, n]); }));
+  return out;
+}
+/** news 순간(🧪 S015 news.mts · 📋 S016 같이 봄): news 문장이 말하는 톡을 처음 봇(3손) · 막 누르기(3손)가 보는 비율 — 판 key별 정의(📐가 새 판에 더한다) */
+const after = (r: ShopState['hist'][number]['rec'], k: string) => { const i = r.findIndex((e) => e.k === k); return i < 0 ? -1 : r.slice(i).filter((e) => e.k === 'out' && e.pop).length; };
+export const NEWS: Record<string, (r: ShopState['hist'][number]['rec']) => boolean> = {
+  dolphin: (r) => after(r, 'crash') >= 2,
+  lighthouse: (r) => r.some((e) => e.k === 'bonk') && r.filter((e) => e.k === 'boing').length >= 2,
+  popcorn: (r) => after(r, 'jack') >= 0 && r.some((e) => e.k === 'crash') && after(r, 'crash') >= 1,
+  coaster: (r) => r.some((e) => e.k === 'tick') && after(r, 'crash') >= 2,
+  showcase: (r) => after(r, 'jack') >= 3,
+  jackbox: (r) => after(r, 'jack') >= 2,
+};
+export function newsOf(k: number, seeds = 24) {
+  const f = NEWS[STAGES[k].key];
+  if (!f) return undefined;
+  const rate = (bot: Bot<ShopState>) => { let c = 0; for (let i = 0; i < seeds; i++) for (let j = 0; j < 3; j++) { const seed = 1000 + i * 7; c += +tryStage(bot, seed, k, 600, seed + j * 100003).s.hist.some((h) => f(h.rec)); } return +(c / seeds / 3).toFixed(2); };
+  return { newbie: rate(screwshopNewbie), mash: rate(screwshopMash) };
 }
 /** 판박이(🧪 S014 · 📋 S015): 같은 월드 · 장인 큰 순간 장치 줄이 같은 두 판은 장인 최대 연쇄 또는 장인 첫 톡 장치가 달라야 한다 → 걸린 짝 [자리, 자리] */
 export const twinsOf = (rows: { slot: string; big: ReturnType<typeof bigOf> }[]) => rows.flatMap((a, i) => rows.slice(i + 1).filter((b) => a.slot[0] === b.slot[0] && a.big.core === b.big.core && a.big.m === b.big.m && a.big.first === b.big.first).map((b) => [a.slot, b.slot]));
@@ -294,6 +364,12 @@ export function measure(seeds = 12) {
     if (STAGES[k].thump) row.f15t = f15t(k, seeds);
     if (STAGES[k].jack) row.dev = devChain(k, seeds); // 빈 장치(🤡)
     row.big = bigOf(k, seeds, keep[k]); // 대표 순간(F23 바닥 · 판박이)
+    if (seeds >= 24) { // 📋 S016: 바닥 ±.03 판 96손 · news 순간(테스트의 measure(6)에서는 돌지 않는다)
+      const b = row.big as ReturnType<typeof bigOf>;
+      if (b.newbie >= 0.22 && b.newbie <= 0.28) row.big96 = bigOf(k, 96).newbie;
+      const nw = newsOf(k, seeds);
+      if (nw) row.news = nw;
+    }
   });
   const avg = (bot: string, key: string) => +(stages.reduce((a, r) => a + (r[bot] as Record<string, number>)[key], 0) / stages.length).toFixed(2);
   const summary = {
@@ -331,6 +407,8 @@ export function measure(seeds = 12) {
     /** F23 바닥(📋 S015 새 판 gate ≥ .25): M1′ 8판 밖에서 처음 봇 큰 순간이 .25 밑인 판 [자리, 값] · 판박이 짝 */
     f23low: stages.filter((r) => (r.id as number) >= 8 && (r.big as ReturnType<typeof bigOf>).newbie < 0.25).map((r) => [r.slot, (r.big as ReturnType<typeof bigOf>).newbie]),
     twins: twinsOf(stages as { slot: string; big: ReturnType<typeof bigOf> }[]),
+    /** 📋 S016: 판박이 v2 · 같은 뼈대 · 바닥 96손 · m ≥ 5 문턱 3 · news 순간(24시드 이상에서만) */
+    ...(seeds >= 24 ? { twins2: twins2(stages.map((r, k) => ({ slot: r.slot as string, k, big: r.big as ReturnType<typeof bigOf> }))), skeletons: skeletons(), big96: stages.filter((r) => r.big96 !== undefined).map((r) => [r.slot, r.big96]), n3: stages.filter((r) => (r.big as ReturnType<typeof bigOf>).n3 !== undefined).map((r) => [r.slot, (r.big as ReturnType<typeof bigOf>).n3]), news: stages.filter((r) => r.news).map((r) => [r.slot, (r.news as { newbie: number }).newbie, (r.news as { mash: number }).mash]) } : {}),
     /** F15ᵗ(쿵 판): [자리, 쿵 빼기 낙차, 덜컹 배율] */
     f15t: stages.filter((r) => r.f15t).map((r) => [r.slot, (r.f15t as ReturnType<typeof f15t>).drop, (r.f15t as ReturnType<typeof f15t>).ratio]),
     /** 사람 시간 추정(초): 판별 장인 톡 × 5 + 6 */

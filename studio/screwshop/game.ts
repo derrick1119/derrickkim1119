@@ -2517,7 +2517,7 @@ function drawDeco(ctx: CanvasRenderingContext2D, P: Src, R: (r: number) => numbe
 
 function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre: Preview, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, font: (sz: number, w?: number) => void) {
   const L = s.L, t = s.t;
-  const Q: (() => void)[] = [], pl = (...a: Parameters<typeof pill>) => { const f = ctx.font; Q.push(() => ((ctx.font = f), pill(...a))); }; // ✏️ S015(🧪 S014 49): 알약은 유령 판자 · 궤적 위에 맨 나중에
+  const Q: [string, Parameters<typeof pill>][] = [], pl = (...a: Parameters<typeof pill>) => void Q.push([ctx.font, a]); // ✏️ S015(🧪 S014 49): 알약은 유령 판자 · 궤적 위에 맨 나중에
   if (pre.state !== 'ok') {
     font(0.036, 900);
     ctx.textAlign = 'center';
@@ -2832,7 +2832,14 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
     const lx = X(max(0.2, min(0.8, x0))), ly = Y(max(BY0 + 0.1, y0 - 0.075));
     pl(ctx, lx, ly, lab, pre.S.fail ? '#ffb4a8' : first.k === 'box' ? '#c8ffc8' : '#ffffff', R(0.05));
   }
-  for (const f of Q) f();
+  // ✏️ S016(🧪 S015 53 · 59): 먼저 놓인 알약과 겹치면 아래로 비킨다(최대 3번)
+  const put: number[][] = [];
+  for (const [f, a] of Q) {
+    ctx.font = f;
+    const w = ctx.measureText(a[3]).width + 14, h = a[5];
+    for (let n = 0; n < 3 && put.some(([x, y, pw, ph]) => abs(x - a[1]) < (pw + w) / 2 && abs(y - a[2]) < (ph + h) / 2); n++) a[2] += h + 2;
+    put.push([a[1], a[2], w, h]), pill(...a);
+  }
 }
 
 function drawTray(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, font: (sz: number, w?: number) => void) {

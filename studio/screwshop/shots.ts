@@ -134,6 +134,12 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.mouse.click(b5.x + 0.5 * b5.width, b5.y + 1.408 * b5.width); // 💡 귀띔 단추(셋째 실패 · ✏️ S012 · S013 자리)
       await page.waitForTimeout(1500);
       await page.screenshot({ path: join(out, '32-hint.png') });
+      // ✏️ S016(🧪 S015 ⑦): 💡를 켠 뒤 아직 톡 0 → 아래 도구 줄 💡 단추로 끔(폰 화면 비율일 때만 도구 줄이 있다)
+      if (b5.height / b5.width >= 1.62) {
+        await page.mouse.click(b5.x + 0.5 * b5.width, b5.y + (b5.height / b5.width - 0.15) * b5.width);
+        await page.waitForTimeout(700);
+        await page.screenshot({ path: join(out, '61-hint-off.png') });
+      }
     }
   }
   // 🪵 통나무가 먼저 떨어져 → 빈칸(✏️ S013 · 🧪 S012 F16 ③): 2-4 🦀를 막 누르기로 — 와르르 없이 등딱지가 떨어진 뒤 그 밑 나사를 꾹
