@@ -4,22 +4,22 @@
  "seeds": 24,
  "summary": {
   "smartStars": 3,
-  "habitStars": 1.8,
-  "randomStars": 0.37,
+  "habitStars": 1.82,
+  "randomStars": 0.38,
   "smartStar3": 1,
   "habitStar3": 0.06,
   "randomClear1": 1,
   "mashClear12": 0.98,
   "mashClear38": 0.22,
-  "mashStars": 0.4,
+  "mashStars": 0.38,
   "habit3Star3_2": 0,
-  "habit3Star3_38max": 0,
+  "habit3Star3_38max": 0.08,
   "fingerGe2_1": 0.04,
   "fingerGe2_2": 0.17,
   "previewStar3_38": 0.06,
-  "smartShot": 3.79,
-  "mashShot": 1.45,
-  "smartSec": 5.92,
+  "smartShot": 3.89,
+  "mashShot": 1.44,
+  "smartSec": 5.89,
   "newbie3_13": 1,
   "newbie3_avg": 0.99,
   "f13_38min": 0.95,
@@ -31,12 +31,13 @@
    61,
    61,
    61,
+   61,
    63,
    86,
    91,
    66
   ],
-  "skillGap": 8.11
+  "skillGap": 7.89
  },
  "stages": [
   {
@@ -333,13 +334,13 @@
     "shot": 1.21
    },
    "random": {
-    "clear": 0.04,
+    "clear": 0.08,
     "star3": 0,
-    "stars": 0.04,
+    "stars": 0.08,
     "ge2": 0,
-    "sec": 12.8,
+    "sec": 12.7,
     "human": 45,
-    "shot": 1
+    "shot": 0.96
    },
    "mash": {
     "clear": 0.13,
@@ -545,6 +546,90 @@
   },
   {
    "stage": 7,
+   "slot": "1-8",
+   "id": 12,
+   "name": "🐴 흔들목마",
+   "smart": {
+    "clear": 1,
+    "star3": 1,
+    "stars": 3,
+    "ge2": 1,
+    "sec": 5.6,
+    "human": 61,
+    "shot": 5
+   },
+   "habit": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 1.96,
+    "ge2": 0.96,
+    "sec": 6.4,
+    "human": 70,
+    "shot": 1.96
+   },
+   "top": {
+    "clear": 0.08,
+    "star3": 0,
+    "stars": 0.08,
+    "ge2": 0,
+    "sec": 4.6,
+    "human": 48,
+    "shot": 1.21
+   },
+   "reveal": {
+    "clear": 1,
+    "star3": 0.08,
+    "stars": 2.08,
+    "ge2": 1,
+    "sec": 6.2,
+    "human": 67,
+    "shot": 3.71
+   },
+   "random": {
+    "clear": 0.33,
+    "star3": 0,
+    "stars": 0.38,
+    "ge2": 0.04,
+    "sec": 17.3,
+    "human": 47,
+    "shot": 1.46
+   },
+   "mash": {
+    "clear": 0.17,
+    "star3": 0,
+    "stars": 0.17,
+    "ge2": 0,
+    "sec": 2.9,
+    "human": 47,
+    "shot": 1.33
+   },
+   "finger": {
+    "clear": 0.17,
+    "star3": 0,
+    "stars": 0.17,
+    "ge2": 0,
+    "sec": 2.9,
+    "human": 47,
+    "shot": 1.33
+   },
+   "preview": {
+    "clear": 1,
+    "star3": 0.08,
+    "stars": 2.08,
+    "ge2": 1,
+    "sec": 6.2,
+    "human": 68,
+    "shot": 3.13
+   },
+   "newbie": {
+    "clear1": 1,
+    "clear3": 1,
+    "fails": 1,
+    "f13": 1
+   }
+  },
+  {
+   "stage": 8,
    "slot": "2-1",
    "id": 3,
    "name": "🌬️ 풍차",
@@ -628,7 +713,7 @@
    }
   },
   {
-   "stage": 8,
+   "stage": 9,
    "slot": "2-2",
    "id": 4,
    "name": "🌻 해바라기",
@@ -712,7 +797,7 @@
    }
   },
   {
-   "stage": 9,
+   "stage": 10,
    "slot": "2-6",
    "id": 5,
    "name": "🦕 공룡",
@@ -796,7 +881,7 @@
    }
   },
   {
-   "stage": 10,
+   "stage": 11,
    "slot": "3-1",
    "id": 6,
    "name": "🏰 성",
@@ -880,7 +965,7 @@
    }
   },
   {
-   "stage": 11,
+   "stage": 12,
    "slot": "3-10",
    "id": 7,
    "name": "🚀 로켓",
