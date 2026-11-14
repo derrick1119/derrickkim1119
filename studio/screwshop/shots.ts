@@ -85,6 +85,7 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.mouse.move(b4.x + x * b4.width, b4.y + y * b4.height);
       await page.mouse.down();
       await page.waitForTimeout(60);
+      if (idx === 11) await page.waitForTimeout(450), await page.screenshot({ path: join(out, '09-stage2-hold.png') }); // 장전 끝난 활대 꾹 = 와르르 미리 보기
       await page.mouse.up();
       if (idx === 11) {
         await page.waitForTimeout(620);

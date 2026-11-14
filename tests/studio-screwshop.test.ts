@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { STAGES, apply, newSim, setCue, screwshop as g, screwshopSmart, startStage } from '../studio/screwshop/game.ts';
+import { RES_BY, STAGES, apply, newSim, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { measure, screwshopMash, tryStage } from '../studio/screwshop/funqa.ts';
 
@@ -93,11 +93,13 @@ describe('🪵 통나무 · 2판 돛단배 (M1′ S002 · 📐 CONTENT 2판)', (
       expect(S.shot).toBe(3);
     }
   });
-  it('활대를 먼저 치면 와르르 0 — 한 방 1', () => {
+  it('활대를 먼저 치면 와르르 0 — 한 방 1, ★3 칩은 바로 ✗ (shotDead)', () => {
     const L = lvl(5), S = newSim(L), rec: { k: string }[] = [];
+    expect(shotDead(STAGES[1], L, S)).toBe(false);
     apply(L, S, 11, rec as never);
     expect(rec.some((e) => e.k === 'crash')).toBe(false);
     expect(S.shot).toBe(1);
+    expect(shotDead(STAGES[1], L, S)).toBe(true);
   });
   it('2판 목표: 장인 ★3 · 버릇 3종 ★3 ≤ 0.4 · 무작위 클리어 ≥ 0.9 (24시드)', () => {
     const r = measure(24).stages[1] as Record<string, Record<string, number>>;
@@ -123,13 +125,15 @@ describe('결과 화면 ↺ (S002 · 🧪 S001 "★1도 자동 다음 판")', ()
     const stars = s.stars;
     for (let k = 0; k < 400; k++) g.step(s, { tap: false, dir: 0, pointer: null });
     expect(s.phase).toBe('result');
-    tapAt(s, 0.25, 0.65);
+    tapAt(s, 0.25, 0.5); // 버튼 밖(카드 위) — 아무 일 없음 (🧪 S002)
+    expect(s.phase).toBe('result');
+    tapAt(s, 0.25, RES_BY / 1.45);
     expect([s.stage, s.phase, s.retries]).toEqual([0, 'play', 1]);
     expect(s.stars).toBe(stars);
     s = toResult(11);
     for (let sd = 12; !(s.ok && s.got < 3); sd++) s = toResult(sd);
     for (let k = 0; k < 40; k++) g.step(s, { tap: false, dir: 0, pointer: null });
-    tapAt(s, 0.75, 0.65);
+    tapAt(s, 0.75, RES_BY / 1.45);
     expect(s.stage).toBe(1);
   });
 });

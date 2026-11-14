@@ -414,6 +414,8 @@ export function apply(L: Level, S: Sim, s: number, rec?: RE[]) {
 }
 /** ★3 조건: 톡 T번 이하(T가 있으면) 또는 연속 쏙 C번 */
 export const star3 = (d: StageDef, S: Sim) => (d.H !== undefined ? S.shot >= d.H : d.T !== undefined ? S.taps <= d.T : S.best >= d.C);
+/** ★3 '한 방 H'를 이제 못 딴다: 아직 못 땄고 남은 통나무가 없다 (🧪 S002: 와르르 0 뒤에도 칩이 ☆라 헛민다) */
+export const shotDead = (d: StageDef, L: Level, S: Sim) => d.H !== undefined && S.shot < d.H && !L.pl.some((p, k) => p.heavy && L.pm[k] & ~S.gone);
 export const starsOf = (d: StageDef, S: Sim) => 1 + (S.peak <= d.P ? 1 : 0) + (star3(d, S) ? 1 : 0);
 
 // ───────────────────────────── 판 만들기(색칠 + 고르기) ─────────────────────────────
@@ -589,6 +591,8 @@ const setMood = (s: ShopState, m: string) => ((s.mood = m), (s.moodT = s.t));
 // 화면 배치 (가로 0~1, 세로 0~A)
 const BX0 = 0.035, BX1 = 0.965, BY0 = 0.37, BY1 = 1.19;
 const BOX_Y = 0.165, BOX_W = 0.25, BOX_H = 0.12, TRAY_Y = 0.312;
+/** 결과 화면 ↺·다음 버튼 줄 높이(작업판 좌표) */
+export const RES_BY = 0.935;
 const boxX = (L: Level, bi: number) => (L.boxes === 1 ? 0.34 : bi === 0 ? 0.19 : 0.47);
 const holeXY = (L: Level, bi: number, h: number): [number, number] => [boxX(L, bi) + (h - 1) * 0.07, BOX_Y - 0.022];
 const slotXY = (i: number): [number, number] => [0.5 + (i - 2) * 0.13, TRAY_Y];
@@ -911,9 +915,10 @@ export const screwshop: GameDef<ShopState> = {
     if (s.phase === 'result') {
       // ★3을 못 땄으면 자동으로 안 넘어간다(🧪 S001: ★1도 만세 + 자동 다음 판이라 놓친 걸 못 느낌) — 왼쪽 ↺ 다시 · 오른쪽 다음
       if (s.ok && s.got < 3) {
-        if (release && s.pt > 30 && s.ay * A > 0.5) {
-          if (s.ax < 0.5) s.retries++, newStage(s);
-          else if (s.won) s.dead = true;
+        const yy = s.ay * A, inBtn = release && s.pt > 30 && Math.abs(yy - RES_BY) < 0.045;
+        if (inBtn && s.ax > 0.06 && s.ax < 0.47) s.retries++, newStage(s);
+        else if (inBtn && s.ax > 0.53 && s.ax < 0.94) {
+          if (s.won) s.dead = true;
           else s.stage++, newStage(s);
         }
         return;
@@ -1339,8 +1344,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     if (e.kind === 'crash') {
       const i = e.n ?? 1;
       fx.burst(x, y, e.col!, 6 + 2 * i, 2.8 + 0.3 * i, 2.2), fx.burst(x, y, '#e9d3a6', 8, 2.4, 1.6), fx.ring(x, y, '#e9d3a6', R(0.05 + 0.01 * i), 3);
-      fx.kick(Math.min(7, 2 + 1.5 * i)), fx.hold(1), cue('crash', i);
-      if (e.text) say(x, y - R(0.06), e.text, '#f2d7a6', 22);
+      fx.kick(Math.min(7, 2 + 1.5 * i)), fx.hold(2), cue('crash', i); // 🧪 S002: 멈춤 1 → 2
+      if (e.text) say(x, y - R(0.06), e.text, '#ffb347', 26, true);
     }
     if (e.kind === 'air') fx.burst(x, y, '#e8dcc8', 6, 1.4, 1.6), say(x, y - R(0.04), e.text!, e.col!, 15), cue('blocked');
     if (e.kind === 'shot') {
@@ -2047,6 +2052,28 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
     ctx.fillText(msg, x, y + 1);
     return;
   }
+  // 🪵 통나무 꾹(🧪 S002 ①): 와르르 몇 장 → 한 방 몇 — 장전 전엔 주황, 다 장전하면 초록 + 맞을 나사 🎯
+  const logFall = pre.rec.find((e) => e.k === 'fall' && L.pl[e.p].heavy) as { p: number } | undefined;
+  if (logFall) {
+    const crashes = pre.rec.filter((e) => e.k === 'crash') as { s: number }[], h = pre.S.n - s.S.n, d = STAGES[s.stage], good = d.H !== undefined ? h >= d.H : crashes.length > 0;
+    for (const c of crashes) {
+      ctx.strokeStyle = '#ffe08a';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(X(L.px[c.s]), Y(L.py[c.s]), R(SR) * 1.7, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    const q = L.poses[logFall.p][Math.max(0, poseOf(L, logFall.p, s.S.gone))], lab = `🪵 와르르 ${crashes.length} → 한 방 ${h}${good ? '!' : ''}`;
+    font(0.034, 900);
+    const lw = ctx.measureText(lab).width + 16, px = Math.max(lw / 2 + 4, Math.min(X(1) - lw / 2 - 4, X(q.cx))), py = Y(q.cy) + R(0.075); // 위엔 '쏙 → 상자' 알약이 온다
+    ctx.fillStyle = 'rgba(30,18,8,.9)';
+    ctx.beginPath();
+    ctx.roundRect(px - lw / 2, py - R(0.024), lw, R(0.048), R(0.024));
+    ctx.fill();
+    ctx.fillStyle = good ? '#c8ffc8' : '#ffb36b';
+    ctx.textAlign = 'center';
+    ctx.fillText(lab, px, py + 1);
+  }
   // 매달릴/떨어질 판자의 유령
   for (const e of pre.rec) {
     if (e.k === 'bonk') {
@@ -2604,7 +2631,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     const age = s.pt, a = Math.min(1, age / 10);
     ctx.globalAlpha = a;
     ctx.fillStyle = s.ok ? 'rgba(40,50,20,.62)' : 'rgba(70,20,20,.62)';
-    ctx.fillRect(0, Y(0.6), w, R(s.ok && s.got < 3 ? 0.36 : 0.26)); // ↺·다음 버튼까지
+    ctx.fillRect(0, Y(0.6), w, R(s.ok && s.got < 3 ? 0.39 : 0.26)); // 방법 줄 · ↺·다음 버튼까지
     ctx.textAlign = 'center';
     font(s.ok ? 0.06 : 0.052, 900);
     ctx.fillStyle = s.ok ? '#fff1a8' : '#ffd0c8';
@@ -2624,12 +2651,18 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       const t3 = d.H !== undefined ? `한 방 ${S.shot} / ${d.H}` : d.T !== undefined ? `톡 ${S.taps} / ${d.T}` : `연속 쏙 ${S.best} / ${d.C}`;
       font(0.04, 900);
       ctx.fillStyle = ok2 ? '#c8ffc8' : '#ffb36b';
-      ctx.fillText(`${ok2 ? '✓' : '✗'} 빈칸 ${S.peak} / ${d.P}`, w / 2 - R(0.2), Y(0.825));
+      ctx.fillText(`${ok2 ? '✓' : '✗'} 빈칸 ${S.peak} / ${d.P}`, w / 2 - R(0.2), Y(0.815));
       ctx.fillStyle = ok3 ? '#c8ffc8' : '#ffb36b';
-      ctx.fillText(`${ok3 ? '✓' : '✗'} ${t3}`, w / 2 + R(0.2), Y(0.825));
+      ctx.fillText(`${ok3 ? '✓' : '✗'} ${t3}`, w / 2 + R(0.2), Y(0.815));
+      if (s.got < 3) {
+        // 방법 한 줄 (🧪 S002 ③: ✗만 있고 '어떻게'가 없다)
+        font(0.032, 800);
+        ctx.fillStyle = '#fff1d6';
+        ctx.fillText(`💡 ${d.tip.replace(/^\S+\s/, '')}`, w / 2, Y(0.865));
+      }
       if (s.got < 3 && age > 30) {
-        // ↺ 다시 · 다음 ▶ (화면 왼쪽 절반 · 오른쪽 절반 아무 데나)
-        const by = Y(0.905), bh = R(0.075);
+        // ↺ 다시 · 다음 ▶ — 버튼 안만 받는다(🧪 S002: 막 누르는 손이 카드를 읽기 전에 누른다)
+        const by = Y(RES_BY), bh = R(0.075);
         ([[0.06, '↺ 다시 (★3 도전)', '#ffd166', '#3a2a00'], [0.53, s.won ? '끝내기 ▶' : '다음 판 ▶', 'rgba(255,248,236,.18)', '#fff8ec']] as const).forEach(([x0, txt, bg, fg]) => {
           ctx.fillStyle = bg;
           ctx.beginPath();
@@ -2652,7 +2685,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     const y2 = Y(1.3), chips = [
       { txt: '완성', st: s.phase === 'result' && s.ok ? true : null },
       { txt: d.P === 0 ? '빈칸 안 쓰기' : `빈칸 ${d.P}칸까지`, st: S.peak > d.P ? false : s.phase === 'result' && s.ok ? true : null },
-      d.H !== undefined ? { txt: `한 방 ${d.H}`, st: S.shot >= d.H ? true : null } : d.T !== undefined ? { txt: `톡 ${d.T}번 이하`, st: S.taps > d.T ? false : s.phase === 'result' && s.ok ? true : null } : { txt: `연속 쏙 ${d.C}`, st: S.best >= d.C ? true : null },
+      d.H !== undefined ? { txt: `한 방 ${d.H}`, st: S.shot >= d.H ? true : shotDead(d, s.L, S) ? false : null } : d.T !== undefined ? { txt: `톡 ${d.T}번 이하`, st: S.taps > d.T ? false : s.phase === 'result' && s.ok ? true : null } : { txt: `연속 쏙 ${d.C}`, st: S.best >= d.C ? true : null },
     ];
     const gx0 = R(0.225), gw = (w - gx0 - R(0.015)) / 3;
     chips.forEach(({ txt, st }, k) => {

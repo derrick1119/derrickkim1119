@@ -74,6 +74,7 @@ const SYNTH: Record<Cue, (t: number, v: number) => void> = {
     const f = 392 * Math.pow(2, [0, 2, 5, 7, 9, 12][Math.min(i, 6) - 1] / 12);
     tone('sine', f, f, t, 0.09, 0.3), tone('triangle', f * 2.56, f * 2.56, t, 0.03, 0.1), hiss(t, 0.015, 0.12, filt('bandpass', f * 2, 3));
     thud(t, 150 - 8 * i, 0.55);
+    tone('triangle', 1400 + 120 * i, 1000, t, 0.035, 0.16); // 🧪 S002: 폰 스피커용 1~2kHz 나무 '탁' 층
   },
   // 🎨 §2.4 한 방 h: G 장난감 종이 빠르게 C7까지 (2·3·4·5+)
   shot(t, h) {
