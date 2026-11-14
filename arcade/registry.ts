@@ -5,9 +5,21 @@
  * 졸업한 게임은 스튜디오(`studio/<게임>/`)가 이어받는다(원본 `games/guardian2.ts`·`sheepdog.ts`·`balloonpop.ts`·`duckbath.ts`·`screwshop.ts`·`animalbus.ts`·`demolition.ts`·`potionsort.ts`는 스튜디오 참고용으로 파일만 남김).
  */
 import type { Bot, GameDef } from './core.ts';
+import { numpair, numpairRandom, numpairSmart } from './games/numpair.ts';
+import { cardpeaks, cardpeaksRandom, cardpeaksSmart } from './games/cardpeaks.ts';
+import { flipduel, flipduelRandom, flipduelSmart } from './games/flipduel.ts';
+import { dicehand, dicehandRandom, dicehandSmart } from './games/dicehand.ts';
+import { pipespin, pipespinRandom, pipespinSmart } from './games/pipespin.ts';
+import { frogjump, frogjumpRandom, frogjumpSmart } from './games/frogjump.ts';
 
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S> }
 
 export const GAMES: Entry[] = [
-  // 26라운드 판정(2026-11-14): 마녀 고양이 물약 정렬 스튜디오 졸업 — 27라운드 만드는 중
+  // 27라운드 — 전략이 깊은 검증된 캐주얼 뼈대 6개 (숙련 격차 목표 ≥ 6)
+  { game: numpair, dumb: numpairRandom, smart: numpairSmart },
+  { game: cardpeaks, dumb: cardpeaksRandom, smart: cardpeaksSmart },
+  { game: flipduel, dumb: flipduelRandom, smart: flipduelSmart },
+  { game: dicehand, dumb: dicehandRandom, smart: dicehandSmart },
+  { game: pipespin, dumb: pipespinRandom, smart: pipespinSmart },
+  { game: frogjump, dumb: frogjumpRandom, smart: frogjumpSmart },
 ];
