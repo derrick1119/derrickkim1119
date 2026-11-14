@@ -20,6 +20,7 @@
 import { mulberry32, type Rng } from './rng.ts';
 import type { Bot, GameDef, Input, Theme } from './core.ts';
 import { juice } from './juice.ts';
+import { PICKS } from './picks.ts';
 import type { Cue } from './sfx.ts';
 
 /** 소리 연결(🎨 ART §2): 그림(draw)의 사건 루프에서만 부른다 — 시뮬레이션·봇은 소리를 모른다. main.ts가 sfx.play를 꽂는다 */
@@ -45,7 +46,7 @@ const bar = (x1: number, y1: number, x2: number, y2: number, t: number, tone: st
 const plate = (cx: number, cy: number, w: number, h: number, a: number, rr: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, w / 2, h / 2, a, rr, tone, sc, o);
 const disc = (cx: number, cy: number, r: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, r, r, 0, r, tone, sc, o);
 
-interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; /** 첫 판 손가락이 가리킬 나사 번호(판자 목록 순서로 0부터) */ first?: number; /** ★3을 '한 방 H 이상'으로 (톡 한 번에 빠진 나사 수) */ H?: number; /** 🔑 태엽(M1′ S004): 열쇠 나사를 빼면 남은 🔒가 왼쪽부터 한꺼번에 튀어나온다 */ wind?: boolean; /** 🔨 겹별(📐 S003): ★2 = 쾅 B번 이상, ★3 = ★2 + 빈칸 P칸까지 */ B?: number; /** ★2는 땄고 ★3을 놓쳤을 때 💡 */ tip2?: string; /** 🪵 통나무가 떨어져야 풀리는 나사 3개(늦은 무리)를 한 색으로 칠하고 그 색 상자를 queue[late]에 — 통나무 나사 색은 첫 상자 (📐 2판) */ late?: number; toy(): Src[] }
+export interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; /** 첫 판 손가락이 가리킬 나사 번호(판자 목록 순서로 0부터) */ first?: number; /** ★3을 '한 방 H 이상'으로 (톡 한 번에 빠진 나사 수) */ H?: number; /** 🔑 태엽(M1′ S004): 열쇠 나사를 빼면 남은 🔒가 왼쪽부터 한꺼번에 튀어나온다 */ wind?: boolean; /** 🔨 겹별(📐 S003): ★2 = 쾅 B번 이상, ★3 = ★2 + 빈칸 P칸까지 */ B?: number; /** ★2는 땄고 ★3을 놓쳤을 때 💡 */ tip2?: string; /** 🪵 통나무가 떨어져야 풀리는 나사 3개(늦은 무리)를 한 색으로 칠하고 그 색 상자를 queue[late]에 — 통나무 나사 색은 첫 상자 (📐 2판) */ late?: number; toy(): Src[] }
 
 const GIR = '#f4bf4a', GIR2 = '#e7a93a', DINO = '#52b66c', DINO2 = '#3f9a58', BLADE = '#fff6e6', STONE = '#b9aea0', STONE2 = '#a69a8b', GLASS = '#cfe9ff';
 export const STAGES: StageDef[] = [
@@ -268,7 +269,7 @@ function geometry(pl: Src[]): Level {
 }
 
 // ───────────────────────────── 규칙(시뮬레이션) ─────────────────────────────
-export interface Sim { gone: number; box: number[]; bn: number[]; qi: number; slots: number[]; peak: number; streak: number; best: number; key: boolean; fail: number; n: number; taps: number; /** 한 방: 톡 한 번에 빠진 나사 수의 최대(톡한 것 포함) */ shot: number; /** 🔨 쾅 횟수 */ bonks: number }
+export interface Sim { gone: number; box: number[]; bn: number[]; qi: number; slots: number[]; peak: number; streak: number; best: number; key: boolean; fail: number; n: number; taps: number; /** 쏙 한 방: 톡 한 번에 상자로 바로 들어간 나사 수의 최대(톡한 것 포함, 빈칸으로 간 것은 안 셈 — 📋 S004) */ shot: number; /** 🔨 쾅 횟수 */ bonks: number }
 type RE =
   | { k: 'out'; s: number; pop: boolean }
   | { k: 'box'; s: number; col: number; bi: number; hole: number; n: number }
@@ -324,12 +325,14 @@ export function stuckM(L: Level, gone: number) {
 const visibleM = (L: Level, gone: number) => L.all & ~gone & ~hiddenM(L, gone);
 export const freeM = (L: Level, S: Sim) => L.all & ~S.gone & ~blockedM(L, S.gone) & (S.key ? -1 : ~L.lockM);
 
+let ins = 0; // 이번 톡에 상자로 바로 들어간 나사 수(쏙 한 방)
 function place(L: Level, S: Sim, col: number, s: number, rec?: RE[]) {
   let bi = -1;
   for (let i = 0; i < S.box.length; i++) if (S.box[i] === col && S.bn[i] < 3 && (bi < 0 || S.bn[i] > S.bn[bi])) bi = i;
   if (bi >= 0) {
     S.bn[bi]++;
     S.streak++;
+    ins++;
     if (S.streak > S.best) S.best = S.streak;
     rec?.push({ k: 'box', s, col, bi, hole: S.bn[bi] - 1, n: S.streak });
     if (S.bn[bi] === 3) complete(L, S, bi, rec);
@@ -420,7 +423,8 @@ function removeScrew(L: Level, S: Sim, s: number, pop: boolean, rec: RE[] | unde
 /** 나사 s를 뺀다 (막힘·자물쇠는 부르는 쪽이 확인) */
 export function apply(L: Level, S: Sim, s: number, rec?: RE[]) {
   S.taps++;
-  const n0 = S.n, k0 = S.key;
+  const k0 = S.key;
+  ins = 0;
   removeScrew(L, S, s, false, rec, 0);
   // 🔑 태엽: 이번 톡으로 열쇠가 빠졌으면 남은 🔒가 왼쪽부터 한꺼번에 튀어나온다(덮여 있어도)
   if (L.wind && !k0 && S.key) {
@@ -435,7 +439,7 @@ export function apply(L: Level, S: Sim, s: number, rec?: RE[]) {
       rec?.push({ k: 'tick', s: i });
       removeScrew(L, S, i, true, rec, 0);
     }
-  S.shot = Math.max(S.shot, S.n - n0);
+  S.shot = Math.max(S.shot, ins);
   if (S.slots.length >= SLOTS) S.fail = 1;
   else if (S.n < L.N && (!freeM(L, S) || stuckM(L, S.gone))) S.fail = 2;
 }
@@ -531,20 +535,6 @@ function paint(G: Level, d: StageDef, r: Rng): Level {
   }
   return L;
 }
-/** 아무 나사나 빼는 사람이 이 판을 깰 확률 */
-function randomPass(L: Level, r: Rng, n: number) {
-  let ok = 0;
-  for (let k = 0; k < n; k++) {
-    const S = newSim(L);
-    while (!S.fail && S.n < L.N) {
-      const f = freeM(L, S), list: number[] = [];
-      for (let i = 0; i < L.N; i++) if ((f >> i) & 1) list.push(i);
-      apply(L, S, list[Math.floor(r() * list.length)]);
-    }
-    if (!S.fail) ok++;
-  }
-  return ok / n;
-}
 /** 버릇 하나: 맞는 상자가 있는 나사부터(위에서부터), 없으면 맨 위 나사 */
 export function habitPick(L: Level, S: Sim, known = L.all) {
   const f = freeM(L, S) & known;
@@ -556,81 +546,20 @@ export function habitPick(L: Level, S: Sim, known = L.all) {
     }
   return best;
 }
-/** 시뮬 한 판(그림 없이): 받은 고르기로 끝까지 — 별 수(실패 0) */
-function playOut(L: Level, d: StageDef, pick: (S: Sim) => number, first?: number) {
-  const S = newSim(L);
-  if (first !== undefined) apply(L, S, first);
-  while (!S.fail && S.n < L.N) apply(L, S, pick(S));
-  return S.fail ? 0 : starsOf(d, S);
-}
-/** 막 누르기(고르기용): 뺄 수 있는 나사 아무거나 */
-const mashOf = (L: Level, r: Rng) => (S: Sim) => {
-  const f = freeM(L, S), o: number[] = [];
-  for (let i = 0; i < L.N; i++) if ((f >> i) & 1) o.push(i);
-  return o[Math.floor(r() * o.length)];
-};
 const levelCache = new Map<string, Level>();
+/** k판을 칠 번호 sub로 칠한 판 (✏️ S005: 판 고르기는 빌드 때 — pick.ts가 sub를 고르고 picks.ts에 적는다) */
+export function paintStage(stage: number, sub: number): Level {
+  const d = STAGES[stage], G = geometry(d.toy());
+  G.wind = !!d.wind;
+  return paint(G, d, mulberry32((sub * 31 + stage * 7919 + 17) >>> 0));
+}
 function buildLevel(seed: number, stage: number): Level {
   const ck = `${seed}:${stage}`, hit = levelCache.get(ck);
   if (hit) return hit;
-  const d = STAGES[stage], G = geometry(d.toy()), r = mulberry32((seed * 31 + stage * 7919 + 17) >>> 0);
-  G.wind = !!d.wind;
-  let pick: Level | null = null, bv = -1e9;
-  const K = stage === 1 ? 12 : stage < 2 ? 8 : 10;
-  for (let c = 0; c < K; c++) {
-    const L = paint(G, d, r);
-    let v: number;
-    if (stage === 0 && d.first !== undefined) {
-      // 📐 1판 고르기: 장인(손가락 첫 톡) ★3 ×2 + 장인 스스로 ★3 + 무작위 클리어 − 막 누르기(손가락 첫 톡 뒤) ★2 이상 ×2
-      const smart = (S: Sim) => bestMove(L, S, d), mash = (S: Sim) => {
-        const f = freeM(L, S), o: number[] = [];
-        for (let i = 0; i < L.N; i++) if ((f >> i) & 1) o.push(i);
-        return o[Math.floor(r() * o.length)];
-      };
-      let mg = 0;
-      for (let k = 0; k < 100; k++) mg += playOut(L, d, mash, d.first) >= 2 ? 1 : 0; // 📋 S002: 표본 20 → 100
-      const rp = randomPass(L, r, 30);
-      v = (playOut(L, d, smart, d.first) === 3 ? 2 : 0) + (playOut(L, d, smart) === 3 ? 1 : 0) + Math.min(1, rp / 0.95) - (mg / 100) * 2;
-    } else if (stage === 0) v = randomPass(L, r, 30);
-    else if (stage === 1) {
-      // 📐 2판 고르기: 장인 ★3이 안 되면 탈락 · 버릇①(맞는 색 먼저)이 ★3이면 탈락 · 그다음 무작위 클리어(0.92까지) − 막 누르기 ★2 이상(0.1 넘는 만큼)
-      const mash = (S: Sim) => {
-        const f = freeM(L, S), o: number[] = [];
-        for (let i = 0; i < L.N; i++) if ((f >> i) & 1) o.push(i);
-        return o[Math.floor(r() * o.length)];
-      };
-      if (playOut(L, d, (S) => bestMove(L, S, d)) !== 3) v = -9 + randomPass(L, r, 10);
-      else if (playOut(L, d, (S) => habitPick(L, S)) === 3) v = -3;
-      else {
-        let mg = 0;
-        for (let k = 0; k < 12; k++) mg += playOut(L, d, mash) >= 2 ? 1 : 0;
-        v = 2 + 2 * Math.min(1, randomPass(L, r, 20) / 0.92) - Math.max(0, mg / 12 - 0.1) * 4;
-      }
-    }
-    else if (stage < 4) {
-      // 📐 3·4판 고르기(S004): 버릇 3종·따라 하기의 ★3 실패는 칠하기 구조가 맡고, 여기서는 싼 것부터 잰 뒤 나을 때만 장인 ★3을 본다.
-      //   3판 🔑: 막 누르기 클리어가 낮을수록(0.3 이하면 멈춤) · 4판 📌🔨: 버릇 클리어 + 무작위 클리어 0.6까지(첫 못 판 숨통)
-      let m = 0;
-      if (stage === 2) for (let k = 0; k < 16; k++) m += playOut(L, d, mashOf(L, r)) ? 1 : 0;
-      v = stage === 2 ? 3.95 - m / 16 : (playOut(L, d, (S) => habitPick(L, S)) ? 2.65 : 0) + Math.min(1, randomPass(L, r, 16) / 0.6);
-      if (v > bv && playOut(L, d, (S) => bestMove(L, S, d)) !== 3) v = -9;
-    }
-    else {
-      // 버릇대로 두면 별 셋이 안 나오고, 내다보고 두면 별 셋이 나오는 판을 고른다 (무엇을 먼저 뺄지가 수가 되게)
-      const H = newSim(L);
-      while (!H.fail && H.n < L.N) apply(L, H, habitPick(L, H));
-      const M = newSim(L);
-      while (!M.fail && M.n < L.N) apply(L, M, bestMove(L, M, d));
-      v = (H.fail || starsOf(d, H) < 3 ? 2 : 0) + (M.fail ? 0 : starsOf(d, M) === 3 ? 1.5 : 0.4) + randomPass(L, r, 10) * 0.3;
-    }
-    if (v > bv) (bv = v), (pick = L);
-    if (stage === 3 && bv >= 3.5) break; // 📐 4판: 장인 ★3 · 버릇 클리어 · 무작위 ≥ 0.5(16판)
-    if (stage >= 2 && bv >= 3.5 + 0.3 * 0.5) break;
-    if (stage === 1 && bv >= 3.9) break; // 📐 2판: 장인 ★3 · 버릇① 실패 · 무작위 ≥ 0.87 · 막 누르기 ★2 이상 ≤ 1/12
-  }
+  const P = PICKS[stage], L = paintStage(stage, P[seed % P.length]);
   if (levelCache.size > 400) levelCache.clear();
-  levelCache.set(ck, pick!);
-  return pick!;
+  levelCache.set(ck, L);
+  return L;
 }
 
 // ───────────────────────────── 상태 ─────────────────────────────
@@ -1001,8 +930,8 @@ function playRec(s: ShopState, rec: RE[]) {
   if (S.slots.length >= 3 && !S.fail) setMood(s, 'worry');
   else if (rec.some((e) => e.k === 'fall' || (e.k === 'hang' && Math.abs(L.poses[e.p][e.pose].d) > 0.3))) setMood(s, 'wow');
   else if (rec.some((e) => e.k === 'done') || S.streak >= 4) setMood(s, 'smug');
-  // 🎨 §2.4 한 방: 톡 한 번에 2개 이상 빠지면(빈칸으로 간 게 절반 이상이면 작게)
-  if (shotN >= 2) ev(s, 'shot', shotX / shotN, shotY / shotN - 0.09, shotBad * 2 >= shotN ? 'bad' : undefined, undefined, lastLand, shotN);
+  // 🎨 §2.4 한 방: 톡 한 번에 상자로 2개 이상 쏙(📋 S004 쏙 한 방 — 빈칸으로 간 것은 안 셈, 빈칸이 절반 이상이면 작게)
+  if (shotN - shotBad >= 2) ev(s, 'shot', shotX / shotN, shotY / shotN - 0.09, shotBad * 2 >= shotN ? 'bad' : undefined, undefined, lastLand, shotN - shotBad);
   const C = STAGES[s.stage].C;
   if ((S.streak === 3 || S.streak === C || (S.streak > C && S.streak % 4 === 0)) && rec.some((e) => e.k === 'box')) ev(s, 'streak', 0.5, BOX_Y, S.streak >= C ? `★ 연속 쏙 ${S.streak}!` : `연속 쏙 ${S.streak}!`, S.streak >= C ? '#ffd166' : '#bff7c4', s.t + SPIN + FLY);
 }
@@ -1227,7 +1156,7 @@ function search(V: Level, S: Sim, d: StageDef, depth: number): number {
   return best;
 }
 /** 보이는 것(V)만으로 몇 수 앞까지 시뮬레이션해 가장 좋은 나사 */
-function bestMove(V: Level, S0: Sim, d: StageDef): number {
+export function bestMove(V: Level, S0: Sim, d: StageDef): number {
   const mv = movesOf(V, S0);
   if (!mv.length) return habitPick(V, S0);
   if (mv.length === 1) return mv[0];

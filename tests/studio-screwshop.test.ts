@@ -6,6 +6,8 @@ import { runBot } from '../studio/screwshop/core.ts';
 import { RES_BY, RETRY_Y, STAGES, apply, bonkDead, cloneSim, freeM, newSim, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { measure, measureStage, pnrHit, screwshopMash, screwshopNewbie, tryStage } from '../studio/screwshop/funqa.ts';
+import { pickStage } from '../studio/screwshop/pick.ts';
+import { PICKS } from '../studio/screwshop/picks.ts';
 
 describe('나사 풀기 공방 시뮬', () => {
   it('같은 시드·같은 봇이면 같은 판', () => {
@@ -42,10 +44,36 @@ describe('나사 풀기 공방 시뮬', () => {
     expect(r.smartStars).toBeGreaterThan(r.habitStars);
   });
 
-  it('막 누르기로는 3판부터 거의 못 깬다 (오너 2026-11-14 "막 누르면 되는 게임?" — 퇴행 방지)', () => {
+  it('막 누르기로는 3판부터 ★2를 거의 못 따고 5판부터 거의 못 깬다 (오너 2026-11-14 "막 누르면 되는 게임?" — 퇴행 방지 · 📋 S004 기준 ① 개정)', () => {
+    // 📋 S004: '3~8판 클리어 ≤ 0.15'(6시드 평균) → 3~8판 판별 ★2 이상 ≤ 0.2 + 5~8판 판별 클리어 ≤ 0.15 (24시드, 하트가 없어 클리어는 '몇 번 다시'라서)
+    for (let k = 2; k < STAGES.length; k++) {
+      const m = Array.from({ length: 24 }, (_, i) => tryStage(screwshopMash, 1000 + i * 7, k));
+      expect(m.filter((x) => x.stars >= 2).length / 24, `${k + 1}판 ★2 이상`).toBeLessThanOrEqual(0.2);
+      if (k >= 4) expect(m.filter((x) => x.ok).length / 24, `${k + 1}판 클리어`).toBeLessThanOrEqual(0.15);
+    }
     const r = measure(6).summary;
-    expect(r.mashClear38).toBeLessThanOrEqual(0.15);
     expect(r.mashStars).toBeLessThan(r.smartStars / 3);
+  });
+
+  it('쏙 한 방 = 톡 한 번에 상자로 바로 들어간 나사 수의 최대 (빈칸으로 간 것은 안 셈 — 📋 S004)', () => {
+    for (let k = 0; k < STAGES.length; k++) {
+      const s = g.create(5 + k);
+      startStage(s, k);
+      const L = s.L, S = newSim(L), r = (n: number) => (n * 7919 + k) % 97;
+      let best = 0;
+      for (let t = 0; !S.fail && S.n < L.N; t++) {
+        const f = freeM(L, S), o: number[] = [];
+        for (let i = 0; i < L.N; i++) if ((f >> i) & 1) o.push(i);
+        const rec: { k: string }[] = [];
+        apply(L, S, o[r(t) % o.length], rec as never);
+        best = Math.max(best, rec.filter((e) => e.k === 'box').length);
+      }
+      expect(S.shot, `${k + 1}판`).toBe(best);
+    }
+  });
+
+  it('실린 판 = 빌드 때 고른 표 (✏️ S005: 판·칠하기를 바꾸면 npx tsx studio/screwshop/pick.ts)', () => {
+    expect(STAGES.map((_, k) => pickStage(k))).toEqual(PICKS);
   });
 });
 
@@ -97,11 +125,17 @@ describe('🪵 통나무 · 2판 돛단배 (M1′ S002 · 📐 CONTENT 2판)', (
   it('돛 둘을 나사 하나씩 매단 뒤 활대(#11)를 치면 와르르 — 한 방 3, 결정적', () => {
     for (const seed of [1, 42, 777]) {
       const L = lvl(seed), S = newSim(L);
-      for (const i of [4, 5, 7, 8, 9]) apply(L, S, i); // 작은 돛 #6 · 큰 돛 #10에 매달림
+      let ins = 0;
+      for (const i of [4, 5, 7, 8, 9]) {
+        const r0: { k: string }[] = [];
+        apply(L, S, i, r0 as never); // 작은 돛 #6 · 큰 돛 #10에 매달림
+        ins = Math.max(ins, r0.filter((e) => e.k === 'box').length);
+      }
       const rec: { k: string }[] = [];
       apply(L, S, 11, rec as never);
       expect(rec.filter((e) => e.k === 'crash').length, `seed ${seed}`).toBe(2);
-      expect(S.shot).toBe(3);
+      expect(rec.filter((e) => e.k === 'out').length).toBe(3); // 활대 + 돛 둘
+      expect(S.shot).toBe(Math.max(ins, rec.filter((e) => e.k === 'box').length)); // 쏙 한 방(📋 S004): 그중 상자로 간 것
     }
   });
   it('활대를 먼저 치면 와르르 0 — 한 방 1, ★3 칩은 바로 ✗ (shotDead)', () => {
@@ -123,7 +157,7 @@ describe('🪵 통나무 · 2판 돛단배 (M1′ S002 · 📐 CONTENT 2판)', (
 describe('하트 없음 · ↺ 지금 다시 (M1′ S003, 오너 기준 7)', () => {
   it('몇 번을 실패해도 게임이 끝나지 않고 그 판만 다시 (같은 칠)', () => {
     const s = g.create(9);
-    startStage(s, 4); // 📐 S004: 3·4판 맞바꿈 뒤 막 누르기가 늘 지는 판(5판)으로
+    startStage(s, 7); // 막 누르기가 늘 지는 판 (✏️ S005: 빌드 때 고르기 뒤 5판은 막 누르기 클리어 0.13이라 8판 0.00으로)
     const col0 = s.L.col.join(), rng = () => 0.5;
     let fails = 0;
     for (let k = 0; k < 60 * 400 && fails < 5; k++) {
@@ -136,7 +170,7 @@ describe('하트 없음 · ↺ 지금 다시 (M1′ S003, 오너 기준 7)', () 
     }
     expect(fails).toBeGreaterThanOrEqual(3);
     expect(g.over(s)).toBe(false);
-    expect(s.stage).toBe(4);
+    expect(s.stage).toBe(7);
     expect(s.L.col.join()).toBe(col0);
   });
   it('위 줄 ↺를 누르면 판 중에도 같은 판을 처음부터', () => {
