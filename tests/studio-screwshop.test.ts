@@ -283,8 +283,8 @@ describe('🔑 3판 태엽 기차 · 📌🔨 4판 풍차 (📐 S004)', () => {
     for (const i of L.ps[nail[0]]) apply(L, S, i);
     expect(S.fail).toBe(2);
   });
-  it('3·4판 반증(24시드): 장인 ★3 ≥ 0.7 · 버릇 3종 ★3 ≤ 0.15 · 따라 하기 ★3 ≤ 0.25 · 4판 무작위 ≥ 0.5 · 버릇 클리어 ≥ 0.4', () => {
-    for (const k of [2, 3]) {
+  it('3~6판 반증(24시드): 장인 ★3 ≥ 0.7 · 버릇 3종 ★3 ≤ 0.15 · 따라 하기 ★3 ≤ 0.25 · 4판 무작위 ≥ 0.5 · 버릇 클리어 ≥ 0.4 (S005 5판 🌻 · S006 6판 🦕 더함)', () => {
+    for (const k of [2, 3, 4, 5]) {
       const r = measureStage(k, 24, ['smart', 'habit', 'top', 'reveal', 'preview', 'random']);
       expect(r.smart.star3, `${k + 1}판 장인`).toBeGreaterThanOrEqual(0.7);
       for (const b of ['habit', 'top', 'reveal']) expect(r[b].star3, `${k + 1}판 ${b}`).toBeLessThanOrEqual(0.15);
@@ -380,8 +380,10 @@ describe('미리 보기 = 실제 결과 (✏️ S006 · 📋 S004 이월)', () =
           expect(p.rec, `${k + 1}판 톡 ${h}`).toEqual(H.rec); // 쾅·와르르·드르륵·띠용·째깍과 나사마다 갈 곳(상자 구멍/빈칸 칸)
           expect(p.S.gone).toBe(s.S.gone);
           expect(p.S.slots).toEqual(s.S.slots);
-          // ⚠ = 이 톡 전엔 안 막혔고 뒤엔 막힌 나사 (매달린 판자가 덮음)
-          expect(p.cover).toBe(blockedM(L, s.S.gone) & ~blockedM(L, H.S0.gone) & L.all & ~s.S.gone);
+          // ⚠ = 새로 막힌 나사 + 이 톡에 매달린 판자가 (계속) 덮는 나사 — 떼고 나면 전부 정말 막혀 있다
+          const nw = blockedM(L, s.S.gone) & ~blockedM(L, H.S0.gone) & L.all & ~s.S.gone;
+          expect(p.cover & nw).toBe(nw);
+          expect(p.cover & ~blockedM(L, s.S.gone)).toBe(0);
           n++;
           cov += p.cover ? 1 : 0;
           chain += p.rec.filter((e) => e.k === 'out' && e.pop).length;
@@ -390,5 +392,31 @@ describe('미리 보기 = 실제 결과 (✏️ S006 · 📋 S004 이월)', () =
     expect(n).toBeGreaterThan(60);
     expect(cov).toBeGreaterThan(0);
     expect(chain).toBeGreaterThan(0);
+  });
+});
+
+describe('🌀 → 🌀 · 6판 공룡 (M1′ S006 · 📐 CONTENT 6판)', () => {
+  const lvl = (seed: number) => {
+    const s = g.create(seed);
+    startStage(s, 5);
+    return s.L;
+  };
+  it('🌀 쪽 가시 나사(#16)를 빼면 가시가 비켜 꼬리뿌리 🌀(#15)가 드러나고, #15 톡 → 띠용 → 띠용 (한 톡에 3개), 결정적', () => {
+    for (const seed of [1, 42, 777]) {
+      const L = lvl(seed), S = newSim(L);
+      expect((freeM(L, S) >> 15) & 1).toBe(0);
+      apply(L, S, 16);
+      expect((freeM(L, S) >> 15) & 1, `seed ${seed}`).toBe(1);
+      const rec: { k: string }[] = [];
+      apply(L, S, 15, rec as never);
+      expect(rec.filter((e) => e.k === 'boing').length).toBe(2);
+      expect(rec.filter((e) => e.k === 'out').length).toBe(3);
+    }
+  });
+  it('#17을 먼저 빼면 가시가 #15를 계속 덮는다 — 꾹 미리 보기에 ⚠', () => {
+    const L = lvl(5), S = newSim(L);
+    expect((peek(L, S, 17).cover >> 15) & 1).toBe(1);
+    apply(L, S, 17);
+    expect((freeM(L, S) >> 15) & 1).toBe(0);
   });
 });

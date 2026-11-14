@@ -66,8 +66,8 @@ for (const scheme of ['light', 'dark'] as const) {
   }
   await page.waitForTimeout(1500);
   await page.screenshot({ path: join(out, '06-clear.png') });
-  // 🪵 방아쇠 판: 장인 봇의 수순(시드 42)을 그대로 누르고, 방아쇠를 꾹(미리 보기) → 친 직후를 찍는다 — 2판 활대 #11 와르르 · 5판 꽃 머리 #14 우수수(✏️ S005)
-  for (const [k, trig, holdPng, hitPng] of [[1, 11, '09-stage2-hold.png', '08-stage2-crash.png'], [4, 14, '11-stage5-hold.png', '12-stage5-bloom.png']] as const) {
+  // 🪵 방아쇠 판: 장인 봇의 수순(시드 42)을 그대로 누르고, 방아쇠를 꾹(미리 보기) → 친 직후를 찍는다 — 2판 활대 #11 와르르 · 5판 꽃 머리 #14 우수수(✏️ S005) · 6판 꼬리뿌리 🌀 #15 띠용 띠용(✏️ S006)
+  for (const [k, trig, holdPng, hitPng] of [[1, 11, '09-stage2-hold.png', '08-stage2-crash.png'], [4, 14, '11-stage5-hold.png', '12-stage5-bloom.png'], [5, 15, '13-stage6-hold.png', '14-stage6-boing.png']] as const) {
     const sim = g.create(42), rng = mulberry32(1), plan2: [number, number, number][] = [];
     startStage(sim, k);
     let was = false;

@@ -46,7 +46,7 @@ const bar = (x1: number, y1: number, x2: number, y2: number, t: number, tone: st
 const plate = (cx: number, cy: number, w: number, h: number, a: number, rr: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, w / 2, h / 2, a, rr, tone, sc, o);
 const disc = (cx: number, cy: number, r: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, r, r, 0, r, tone, sc, o);
 
-export interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; /** 첫 판 손가락이 가리킬 나사 번호(판자 목록 순서로 0부터) */ first?: number; /** ★3을 '한 방 H 이상'으로 (톡 한 번에 빠진 나사 수) */ H?: number; /** 🔑 태엽(M1′ S004): 열쇠 나사를 빼면 남은 🔒가 왼쪽부터 한꺼번에 튀어나온다 */ wind?: boolean; /** 🔨 겹별(📐 S003): ★2 = 쾅 B번 이상, ★3 = ★2 + 빈칸 P칸까지 */ B?: number; /** ★2는 땄고 ★3을 놓쳤을 때 💡 */ tip2?: string; /** 🪵 통나무가 떨어져야 풀리는 나사 3개(늦은 무리)를 한 색으로 칠하고 그 색 상자를 queue[late]에 — 통나무 나사 색은 첫 상자 (📐 2판) */ late?: number; /** 🌻 꽃 머리 장전 칠하기(📐 S005 5판): 상자 [B, X, A, C, D] · 꽃 머리 = A · 꽃 머리가 덮은 꽃잎 안쪽 셋 = X · 꽃잎 바깥 = A·B·C */ bloom?: boolean; toy(): Src[] }
+export interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; /** 첫 판 손가락이 가리킬 나사 번호(판자 목록 순서로 0부터) */ first?: number; /** ★3을 '한 방 H 이상'으로 (톡 한 번에 빠진 나사 수) */ H?: number; /** 🔑 태엽(M1′ S004): 열쇠 나사를 빼면 남은 🔒가 왼쪽부터 한꺼번에 튀어나온다 */ wind?: boolean; /** 🔨 겹별(📐 S003): ★2 = 쾅 B번 이상, ★3 = ★2 + 빈칸 P칸까지 */ B?: number; /** ★2는 땄고 ★3을 놓쳤을 때 💡 */ tip2?: string; /** 🪵 통나무가 떨어져야 풀리는 나사 3개(늦은 무리)를 한 색으로 칠하고 그 색 상자를 queue[late]에 — 통나무 나사 색은 첫 상자 (📐 2판) */ late?: number; /** 🌻 꽃 머리 장전 칠하기(📐 S005 5판): 상자 [B, X, A, C, D] · 꽃 머리 = A · 꽃 머리가 덮은 꽃잎 안쪽 셋 = X · 꽃잎 바깥 = A·B·C */ bloom?: boolean; /** 🦕 진자 드러내기 칠하기(📐 S006 6판): 둘째 🌀의 '남길' 나사 = 첫 상자 색(버릇이 먼저 뺀다) · '뺄' 나사 = 둘째 상자 색 */ swing?: boolean; toy(): Src[] }
 
 const GIR = '#f4bf4a', GIR2 = '#e7a93a', DINO = '#52b66c', DINO2 = '#3f9a58', BLADE = '#fff6e6', STONE = '#b9aea0', STONE2 = '#a69a8b', GLASS = '#cfe9ff';
 export const STAGES: StageDef[] = [
@@ -131,17 +131,19 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'dino', name: '공룡', emoji: '🦕', news: '🌀 스프링 판자 — 떨어지면 튕겨서 옆 판자 나사를 톡!', tip: '🌀 스프링이 쳐 낼 나사 색 상자가 열렸을 때 떨궈요', boxes: 2, colors: 6, P: 2, C: 5,
+    // 📐 CONTENT.md M1′ 6판 (S006): 🦕 공룡 — 🌀 → 🌀 연쇄 1단. 등 가시 🌀(둘째)가 꼬리뿌리 🌀(첫째)의 나사를 덮는다.
+    //   등 가시의 어느 나사를 남겨 매다느냐(진자)가 첫째 🌀를 드러내느냐 가리느냐를 정한다. "가시가 비켜 가게 매달고, 꼬리뿌리 🌀를 톡"
+    key: 'dino', name: '공룡', emoji: '🦕', news: '🌀 스프링이 스프링을 튕겨요 — 띠용 띠용!', tip: '🦕 🌀 쪽 가시 나사부터 빼고 🌀를 톡!', tip2: '🦕 가시가 🌀를 덮으면 띠용이 하나 줄어요', boxes: 2, colors: 6, P: 2, C: 5, T: 16, swing: true,
+    // 나사 번호: #0~#2 꼬리(뿌리→끝) · #3 #4 뒷다리 · #5 #6 앞다리 · #7~#9 몸통 · #10~#12 목(밑→위) · #13 #14 머리(뒤·주둥이) · #15 🌀 꼬리뿌리(→ 등 가시) · #16 #17 🌀 등 가시(왼·오른, → 머리)
     toy: () => [
       bar(0.32, 0.85, 0.15, 0.7, 0.042, DINO, [[0.31, 0.845], [0.235, 0.775], [0.17, 0.715]], { deco: 'spots' }),
       bar(0.4, 0.93, 0.4, 1.1, 0.04, DINO2, [[0.4, 0.945], [0.4, 1.07]], { deco: 'hoof' }),
       bar(0.62, 0.93, 0.62, 1.1, 0.04, DINO2, [[0.62, 0.945], [0.62, 1.07]], { deco: 'hoof' }),
-      plate(0.5, 0.86, 0.42, 0.18, 0, 0.08, DINO, [[0.4, 0.86], [0.51, 0.89], [0.6, 0.855]], { deco: 'spots' }),
-      bar(0.66, 0.8, 0.79, 0.57, 0.045, DINO, [[0.685, 0.755], [0.725, 0.685], [0.765, 0.615]]),
-      plate(0.83, 0.52, 0.17, 0.09, -0.15, 0.04, DINO, [[0.795, 0.53], [0.875, 0.515]], { deco: 'dHead' }),
-      plate(0.36, 0.735, 0.1, 0.1, Math.PI / 4, 0.02, '#ff8a5b', [[0.36, 0.735]], { kind: 'spring', tgt: 0, deco: 'spike' }),
-      plate(0.47, 0.725, 0.1, 0.1, Math.PI / 4, 0.02, '#ff8a5b', [[0.47, 0.725]], { kind: 'spring', tgt: 4, deco: 'spike' }),
-      plate(0.58, 0.72, 0.09, 0.09, Math.PI / 4, 0.02, '#ff8a5b', [[0.58, 0.72]], { kind: 'spring', tgt: 5, deco: 'spike' }),
+      plate(0.51, 0.83, 0.42, 0.2, 0, 0.08, DINO, [[0.42, 0.88], [0.535, 0.76], [0.6, 0.76]], { deco: 'spots' }),
+      bar(0.68, 0.81, 0.8, 0.58, 0.045, DINO, [[0.7, 0.765], [0.74, 0.695], [0.775, 0.625]]),
+      plate(0.84, 0.53, 0.17, 0.09, -0.15, 0.04, DINO, [[0.805, 0.54], [0.885, 0.525]], { deco: 'dHead' }),
+      plate(0.37, 0.77, 0.08, 0.08, Math.PI / 4, 0.02, '#ff8a5b', [[0.37, 0.77]], { kind: 'spring', tgt: 7, deco: 'spike' }),
+      bar(0.31, 0.72, 0.65, 0.71, 0.032, '#ff8a5b', [[0.37, 0.72], [0.57, 0.712]], { kind: 'spring', tgt: 5, deco: 'spike' }),
     ],
   },
   {
@@ -514,6 +516,20 @@ function paint(G: Level, d: StageDef, r: Rng): Level {
       let j = 0;
       for (let i = 0; i < G.N; i++) col[i] = (late >> i) & 1 ? X : G.ps[hv].includes(i) ? A : out.includes(i) ? oc[out.indexOf(i)] : pool[j++];
       return { ...G, col, queue: [B, X, A, C, D], boxes: d.boxes, pal };
+    }
+  }
+  if (d.swing && d.colors * 3 === G.N) {
+    // 📐 6판 🦕: 첫째 🌀(나사 a) → 둘째 🌀(나사 둘, a를 덮음) → 머리. 둘째의 '남길' 나사 k = 거기 매달리면 a가 드러나는 쪽 · '뺄' 나사 u = 다른 쪽.
+    //   k = 첫 상자 X(맞는 색 · 위에서부터 버릇이 먼저 빼서 둘째가 a 위로 매달린다) · u = a = 둘째가 칠 머리 나사 h = 둘째 상자 Y.
+    //   정답: u → a 톡 → k 튐(X) → h 튐(Y 닫힘) = 쏙 한 방 3. 나머지 14 = X 2 + 네 색 셋씩
+    const ia = G.pl.findIndex((p) => p.kind === 'spring' && p.tgt !== undefined && G.pl[p.tgt].kind === 'spring'), ib = G.pl[ia]?.tgt ?? -1;
+    if (ia >= 0 && G.ps[ib].length === 2) {
+      const a = G.ps[ia][0], [k, u] = G.ps[ib].slice().sort((i, j) => ((G.cov[ib][1 + G.si[i]] >> a) & 1) - ((G.cov[ib][1 + G.si[j]] >> a) & 1)), B = G.pl[ib], t = B.tgt!;
+      const h = G.ps[t].reduce((m, i) => (Math.hypot(G.px[i] - B.cx, G.py[i] - B.cy) < Math.hypot(G.px[m] - B.cx, G.py[m] - B.cy) ? i : m));
+      const [X, Y, ...rest] = pal, pool = shuffle([X, X, ...rest.flatMap((c) => [c, c, c])], r);
+      let j = 0;
+      for (let i = 0; i < G.N; i++) col[i] = i === k ? X : i === u || i === a || i === h ? Y : pool[j++];
+      return { ...G, col, queue: [X, Y, ...shuffle(rest.slice(), r)], boxes: d.boxes, pal };
     }
   }
   const lk: number[] = [];
@@ -906,6 +922,7 @@ function playRec(s: ShopState, rec: RE[]) {
       pv.pose = -1;
       pv.fall = { x: tr.cx, y: tr.cy, vx: -lever * (tr.cy - pv.py) + (sp ? 0 : 0.002 * (tr.cx < 0.5 ? -1 : 1)), vy: sp ? -0.028 : -0.006, a: tr.a, va: lever * 0.6 + (tr.cx < 0.5 ? -0.03 : 0.03), hit: 0, t: s.t + delay + SPIN - 2 };
       ev(s, 'fall', tr.cx, tr.cy, '덜컹!', '#ffe9c4', s.t + delay + SPIN + 18);
+      if (sp && L.pl[e.p].tgt !== undefined && !rec.some((b) => b.k === 'boing' && b.p === e.p)) ev(s, 'air', tr.cx, tr.cy - 0.05, '🌀 💨 허공', '#d8c3a5', s.t + delay + SPIN + 12), see(s, 'sair', '🌀 💨 허공! 칠 판자가 먼저 떨어졌어요'); // 📐 S006: 띠용이 칠 나사가 없다
       continue;
     }
     if (e.k === 'boing') {
@@ -1266,12 +1283,14 @@ const ease = (q: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, q)), 2.2);
 export const COLS = ['#ef4b4b', '#3b82f6', '#f7c531', '#2fb86a', '#a45ee0', '#ff8a2b'];
 
 /** 미리 보기: 지금 이 나사를 빼면? */
-interface Preview { rec: RE[]; S: Sim; freed: number; blockers: number[]; state: 'ok' | 'blocked' | 'locked'; /** 이 톡으로 새로 덮일 나사(진자·📌가 매달려 덮음 — ⚠, 🧪 S005 F16) */ cover: number }
+interface Preview { rec: RE[]; S: Sim; freed: number; blockers: number[]; state: 'ok' | 'blocked' | 'locked'; /** 이 톡으로 덮일 나사: 새로 막힘 + 이 톡에 매달린 판자 밑(진자·📌 — ⚠, 🧪 S005 F16 · 📐 S006) */ cover: number }
 /** 미리 보기의 알맹이(✏️ S006): 나사 k를 빼면 일어날 일 — 그림과 '미리 보기 = 실제 결과' 테스트가 같이 쓴다 */
 export function peek(L: Level, S0: Sim, k: number) {
   const S = cloneSim(S0), rec: RE[] = [], blk = blockedM(L, S0.gone), f0 = freeM(L, S0);
   apply(L, S, k, rec);
-  return { S, rec, freed: freeM(L, S) & ~f0 & ~S.gone, cover: blockedM(L, S.gone) & ~blk & L.all & ~S.gone };
+  let cover = blockedM(L, S.gone) & ~blk;
+  for (const e of rec) if (e.k === 'hang' && poseOf(L, e.p, S.gone) > 0) cover |= L.cov[e.p][poseOf(L, e.p, S.gone)]; // 📐 S006: 매달려 '계속' 덮는 것도(6판 가시가 🌀를)
+  return { S, rec, freed: freeM(L, S) & ~f0 & ~S.gone, cover: cover & L.all & ~S.gone };
 }
 const pvCache = new WeakMap<object, { key: string; p: Preview }>();
 function preview(s: ShopState, k: number): Preview {
@@ -2563,6 +2582,7 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       // 🎨 S004: 노란 판자 위 흰 글자가 흐리다 → 어두운 알약, 유령 판자와 같이 내려앉는다(🎯 고리 밑 R(0.05))
       font(0.03, 900);
       if (!pre.rec.some((c) => c.k === 'crash' && (c.p === e.p || L.pl[e.p].heavy))) pill(ctx, X(tr.cx), Y(tr.cy) + dy + R(0.02), '⬇ 덜컹', '#ffe9c4', R(0.044)); // 🧪 S005: 🪵에 맞을 판자와 🪵 자신의 '덜컹'은 생략(우수수 알약을 덮던 것)
+      if (P.kind === 'spring' && P.tgt !== undefined && !pre.rec.some((b) => b.k === 'boing' && b.p === e.p)) pill(ctx, X(tr.cx), Y(tr.cy) + dy - R(0.035), '🌀 💨 허공', '#ffb36b', R(0.044)); // 📐 S006: 칠 판자에 나사가 없다
     }
     if (e.k === 'boing') {
       ctx.strokeStyle = 'rgba(255,170,90,.95)';

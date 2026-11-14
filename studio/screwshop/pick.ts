@@ -40,12 +40,21 @@ export const mashOf = (L: Level, r: Rng) => (S: Sim) => {
   return o[Math.floor(r() * o.length)];
 };
 const smartOf = (L: Level, d: StageDef) => (S: Sim) => bestMove(L, S, d);
-/** 장인이 게임·funqa와 같은 눈일 때(본 나사 색 + 다음 상자 2개만 앎 — 📐 S005 · ✏️ S005) 별 수 */
-function smartSeen(L: Level, d: StageDef) {
+/** 장인이 게임·funqa와 같은 눈일 때(본 나사 색 + 다음 상자 2개만 앎 — 📐 S005 · ✏️ S005) 별 수
+ *  pend: 🧪 F15 '장인−진자' — 나사 둘 남은 판자(못 판자 제외)에서 짝도 뺄 수 있으면 둘 중 버릇 순서(맞는 색 → 위)로 (📐 S006) */
+function smartSeen(L: Level, d: StageDef, pend = false) {
   const S = newSim(L);
   let known = visibleM(L, 0);
   while (!S.fail && S.n < L.N) {
-    const m = bestMove({ ...L, col: L.col.map((c, i) => ((known >> i) & 1 ? c : -1)), queue: L.queue.map((c, i) => (i < S.qi + 2 ? c : -2)) }, S, d);
+    let m = bestMove({ ...L, col: L.col.map((c, i) => ((known >> i) & 1 ? c : -1)), queue: L.queue.map((c, i) => (i < S.qi + 2 ? c : -2)) }, S, d);
+    if (pend && m >= 0 && L.pl[L.owner[m]].kind !== 'nail') {
+      const rem = L.pm[L.owner[m]] & ~S.gone, p = 31 - Math.clz32(rem & ~(1 << m));
+      const x = rem & (rem - 1);
+      if (x && !(x & (x - 1)) && (freeM(L, S) >> p) & 1 && (known >> p) & 1) { // 딱 둘 남았고 짝도 뺄 수 있고 본 적 있음
+        const v = (i: number) => (S.box.includes(L.col[i]) ? 0 : 10) + L.py[i];
+        if (v(p) < v(m)) m = p;
+      }
+    }
     apply(L, S, m >= 0 ? m : habitPick(L, S));
     known |= visibleM(L, S.gone);
   }
@@ -96,9 +105,18 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
     const h = playOut(L, d, habitOf(L)), sm = smartSeen(L, d);
     return (h ? 1 : 0) + 1 - m / 200 - (h === 3 ? 5 : 0) - (sm === 3 ? 0 : 9);
   },
-  m0, m0, m0,
+  // 📐 6판 🦕 (S006): 장인 ★3이 아니거나 버릇 ★3이면 탈락 · 장인−진자가 ★3을 놓치면 +1(F15) · 버릇 클리어(처음 하는 사람 숨통) + (1 − 막 누르기 클리어, 100판)
+  (L, d, r) => {
+    if (smartSeen(L, d) !== 3) return -9;
+    const h = playOut(L, d, habitOf(L));
+    if (h === 3) return -5;
+    let m = 0;
+    for (let k = 0; k < 100; k++) m += playOut(L, d, mashOf(L, r)) ? 1 : 0;
+    return (smartSeen(L, d, true) === 3 ? 0 : 1) + (h ? 1 : 0) + 1 - m / 100;
+  },
+  m0, m0,
 ];
-export const CAP = [Infinity, 4, 3.65, 3.5, 1.96, 3.65, 3.65, 3.65];
+export const CAP = [Infinity, 4, 3.65, 3.5, 1.96, 2.95, 3.65, 3.65];
 
 /** k판의 칠 번호 N개 */
 export function pickStage(k: number, n = N, scan = SCAN[k]) {
