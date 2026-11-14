@@ -94,7 +94,7 @@ export function play(bot: Bot<DuckState>, seed: number, maxSec = 900, retry = RE
     if (phase === 'result' && s.phase === 'play') t0 = s.t;
     phase = s.phase;
   }
-  return { stages: logs, score: g.score(s), sec: s.t / 60, reached: Math.min(STAGES.length, Math.max(1, ...logs.filter((l) => l.ok).map((l) => l.stage + 1))), won: s.won, gaveUp, firstTapNest: Math.max(0, firstTapNest), cut: !gaveUp && !g.over(s) && s.t >= maxSec * 60 };
+  return { stages: logs, score: g.score(s), sec: s.t / 60, reached: Math.min(STAGES.length, Math.max(1, ...logs.filter((l) => l.ok).map((l) => l.stage + 1))), won: s.won, gaveUp, firstTapNest: Math.max(0, firstTapNest), cut: !gaveUp && !s.won && !g.over(s) && s.t >= maxSec * 60 }; // 다 깨고 결과 카드에서 상한에 걸린 런은 잘림이 아니다
 }
 
 /** D013 (FUN v1.11 a): 판 하나를 바로 시작해(startStage) 첫 시도의 '첫 톡에 둥지 입성'만 판마다 n번 — 무작위 봇이 그 판까지 살아남은 런만 세던 생존 편향을 없앤다. 봇 난수는 play()와 같은 (시드, 판 id) */
@@ -459,6 +459,8 @@ if (import.meta.url === `file://${process.argv[1]}` && d1Arg) {
 } else if (import.meta.url === `file://${process.argv[1]}`) {
   const n = Number(process.argv.find((a) => /^\d+$/.test(a)) ?? 20), par = Number(process.argv.find((a) => a.startsWith('--par='))?.split('=')[1] ?? 1);
   const pre: Record<string, unknown> = {}, preSecs: Record<string, number> = {};
+  // 스크래치 하네스(CJS)가 이 파일을 import할 수 있게 최상위 await 대신 async 함수로 (D018 📐)
+  void (async () => {
   if (par > 1) {
     const keys = Object.keys(JOBS(n));
     let next = 0;
@@ -522,4 +524,5 @@ if (import.meta.url === `file://${process.argv[1]}` && d1Arg) {
   }
   console.log(`숙련 격차(숙련÷캐주얼) ${res['숙련격차']}× (보고만) · 숙련÷처음 ${res['숙련격차_처음']}×`);
   console.log(`걸린 초(갈래별): ${Object.entries(res['걸린초'] as Record<string, number>).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
+  })();
 }
