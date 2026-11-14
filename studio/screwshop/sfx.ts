@@ -43,7 +43,8 @@ function hiss(t0: number, dur: number, vol: number, out: AudioNode) {
 /** M(f) 마림바 톡 */
 const mar = (t: number, f: number, v = 1) => (tone('sine', f, f, t, 0.22, 0.38 * v), tone('sine', f * 3.98, f * 3.98, t, 0.045, 0.12 * v), hiss(t, 0.008, 0.08 * v, filt('highpass', 4000)));
 /** T(f) 나무 쿵 */
-const thud = (t: number, f: number, v = 1) => (tone('triangle', f, f * 0.45, t, 0.16, 0.5 * v, filt('lowpass', 900)), hiss(t, 0.05, 0.22 * v, filt('lowpass', 1200)));
+// 🧪 M0.1: 폰 스피커는 200Hz 아래가 거의 안 나온다 → 900Hz 나무 '탁' 층을 얹는다
+const thud = (t: number, f: number, v = 1) => (tone('triangle', f, f * 0.45, t, 0.16, 0.5 * v, filt('lowpass', 900)), tone('triangle', 900, 600, t, 0.04, 0.22 * v), hiss(t, 0.05, 0.22 * v, filt('lowpass', 1200)));
 /** K 끼익 (dur·vol 조절) */
 function creak(t: number, dur = 0.38, vol = 0.22) {
   const bp = filt('bandpass', 1100, 9), lfo = ac!.createOscillator(), lg = ac!.createGain();
