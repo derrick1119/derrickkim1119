@@ -268,10 +268,11 @@ export function f19(k: number, dev: string, seeds = 24) {
   }
   return +((on - off) / seeds).toFixed(2);
 }
+/** 판에 들어 있는 장치 수(판자 단위) — 판박이 v2 · 장치 F19 일괄이 쓴다 */
+export const cnt = (k: number) => { const L = paintStage(k, 1); return Object.fromEntries(Object.keys(OFF).map((e) => [e, e === '🤡' ? +!!L.jack : e === '🪵' ? L.pl.filter((P) => P.heavy).length : e === '🌀' ? L.pl.filter((P) => P.kind === 'spring').length : e === '⏰' ? L.tmr.filter((t) => t > 0).length : e === '🔑' ? +!!L.wind : e === '🪟' ? L.pl.filter((P) => P.kind === 'glass').length : e === '🔨' ? L.pl.filter((P) => P.ham).length : +!!L.thump])) as Record<string, number>; };
 /** 판박이 v2(🧪 S015 · 📋 S016 gate): 같은 월드 · core 같은 짝이 first로 갈렸으면 그 first 장치의 F19 ≥ .4, m 차 1로만 갈렸으면 한쪽에만 있는 장치 중 하나의 F19 ≥ .4 — 걸린 짝 [자리, 자리, 까닭] */
 export function twins2(rows: { slot: string; k: number; big: ReturnType<typeof bigOf> }[]) {
   // 장치 수(판자 단위): 같은 종류라도 한쪽이 더 많으면 '덧붙인 장치'(2-10의 둘째 🌀 문 같은 것)
-  const cnt = (k: number) => { const L = paintStage(k, 1); return Object.fromEntries(Object.keys(OFF).map((e) => [e, e === '🤡' ? +!!L.jack : e === '🪵' ? L.pl.filter((P) => P.heavy).length : e === '🌀' ? L.pl.filter((P) => P.kind === 'spring').length : e === '⏰' ? L.tmr.filter((t) => t > 0).length : e === '🔑' ? +!!L.wind : e === '🪟' ? L.pl.filter((P) => P.kind === 'glass').length : e === '🔨' ? L.pl.filter((P) => P.ham).length : +!!L.thump])) as Record<string, number>; };
   const out: [string, string, string][] = [];
   rows.forEach((a, i) => rows.slice(i + 1).forEach((b) => {
     if (a.slot[0] !== b.slot[0] || a.big.core !== b.big.core) return;
@@ -370,6 +371,9 @@ export function measure(seeds = 12) {
       if (b.newbie >= 0.22 && b.newbie <= 0.28) row.big96 = bigOf(k, 96).newbie;
       const nw = newsOf(k, seeds);
       if (nw) row.news = nw;
+      // 📋 S017: 장치 F19 일괄(들어 있는 장치마다 끄기 낙차) · 카드 짝 3손(막 누르기 100시드 × 3손)
+      row.f19 = Object.fromEntries(Object.entries(cnt(k)).filter(([, n]) => n > 0).map(([e]) => [e, f19(k, e, seeds)]));
+      row.f16x3 = (({ airFails, pair, n, v21 }) => ({ airFails, pair, n, v21 }))(f16(k, 100, 3));
     }
   });
   const avg = (bot: string, key: string) => +(stages.reduce((a, r) => a + (r[bot] as Record<string, number>)[key], 0) / stages.length).toFixed(2);
@@ -409,7 +413,11 @@ export function measure(seeds = 12) {
     f23low: stages.filter((r) => (r.id as number) >= 8 && (r.big as ReturnType<typeof bigOf>).newbie < 0.25).map((r) => [r.slot, (r.big as ReturnType<typeof bigOf>).newbie]),
     twins: twinsOf(stages as { slot: string; big: ReturnType<typeof bigOf> }[]),
     /** 📋 S016: 판박이 v2 · 같은 뼈대 · 바닥 96손 · m ≥ 5 문턱 3 · news 순간(24시드 이상에서만) */
-    ...(seeds >= 24 ? { twins2: twins2(stages.map((r, k) => ({ slot: r.slot as string, k, big: r.big as ReturnType<typeof bigOf> }))), skeletons: skeletons(), big96: stages.filter((r) => r.big96 !== undefined).map((r) => [r.slot, r.big96]), n3: stages.filter((r) => (r.big as ReturnType<typeof bigOf>).n3 !== undefined).map((r) => [r.slot, (r.big as ReturnType<typeof bigOf>).n3]), news: stages.filter((r) => r.news).map((r) => [r.slot, (r.news as { newbie: number }).newbie, (r.news as { mash: number }).mash]) } : {}),
+    ...(seeds >= 24 ? { twins2: twins2(stages.map((r, k) => ({ slot: r.slot as string, k, big: r.big as ReturnType<typeof bigOf> }))), skeletons: skeletons(), big96: stages.filter((r) => r.big96 !== undefined).map((r) => [r.slot, r.big96]), n3: stages.filter((r) => (r.big as ReturnType<typeof bigOf>).n3 !== undefined).map((r) => [r.slot, (r.big as ReturnType<typeof bigOf>).n3]), news: stages.filter((r) => r.news).map((r) => [r.slot, (r.news as { newbie: number }).newbie, (r.news as { mash: number }).mash, (r.news as { smart: number }).smart]),
+      /** 📋 S017: 장치 F19 < .4 [자리, 장치, 낙차](M1′ 8판 포함 · id < 8은 지문 판) · 카드 짝 3손(허공 ≥ 10) 최저 · .8 밑 판 */
+      f19low: stages.flatMap((r) => Object.entries((r.f19 ?? {}) as Record<string, number>).filter(([, v]) => v < 0.4).map(([e, v]) => [r.slot, e, v])),
+      pairMin3: Math.min(...stages.map((r) => r.f16x3 as { airFails: number; pair: number | null }).filter((f) => f && f.airFails >= 10).map((f) => f.pair!)),
+      pair3low: stages.filter((r) => { const f = r.f16x3 as { airFails: number; pair: number | null }; return f && f.airFails >= 10 && f.pair! < 0.8; }).map((r) => [r.slot, (r.f16x3 as { pair: number }).pair]) } : {}),
     /** F15ᵗ(쿵 판): [자리, 쿵 빼기 낙차, 덜컹 배율] */
     f15t: stages.filter((r) => r.f15t).map((r) => [r.slot, (r.f15t as ReturnType<typeof f15t>).drop, (r.f15t as ReturnType<typeof f15t>).ratio]),
     /** 사람 시간 추정(초): 판별 장인 톡 × 5 + 6 */
