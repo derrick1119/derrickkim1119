@@ -65,7 +65,52 @@ export const screwshopPreview: Bot<ShopState> = {
   },
 };
 
-export const BOTS = { smart: screwshopSmart, habit: screwshopHabit, random: screwshopRandom, mash: screwshopMash, preview: screwshopPreview };
+const ready = (s: ShopState) => s.phase === 'play' && !s.down && s.t >= s.cool && s.t - s.lastTap >= 24 && s.t - s.startT >= 30;
+const tapI = (s: ShopState, i: number): Input => ({ tap: false, dir: 0, pointer: { x: s.L.px[i], y: s.L.py[i] / (g.aspect ?? 1.45) } });
+const knownFree = (s: ShopState) => {
+  const f = freeM(s.L, s.S) & s.known, o: number[] = [];
+  for (let i = 0; i < s.L.N; i++) if ((f >> i) & 1) o.push(i);
+  return o;
+};
+/** 버릇 ② 위에서부터 (MILESTONES M1′): 뺄 수 있는 나사 중 가장 위 */
+export const screwshopTop: Bot<ShopState> = {
+  name: '버릇: 위에서부터',
+  act(s) {
+    if (!ready(s)) return NO;
+    const o = knownFree(s);
+    return o.length ? tapI(s, o.reduce((a, b) => (s.L.py[b] < s.L.py[a] ? b : a))) : NO;
+  },
+};
+/** 버릇 ③ ✨ 최다: 빼면 새로 풀리는(✨) 나사가 가장 많은 것 — 같으면 맞는 색 */
+export const screwshopReveal: Bot<ShopState> = {
+  name: '버릇: ✨ 최다',
+  act(s) {
+    if (!ready(s)) return NO;
+    const V = viewOf(s), free0 = freeM(V, s.S);
+    let best = -1, bi = -1;
+    for (const i of knownFree(s)) {
+      const S2 = cloneSim(s.S);
+      apply(V, S2, i);
+      let v = 0;
+      const nf = freeM(V, S2) & ~free0 & ~S2.gone;
+      for (let j = 0; j < V.N; j++) if ((nf >> j) & 1) v += 10;
+      if (s.S.box.includes(V.col[i])) v += 1;
+      if (v > best) (best = v), (bi = i);
+    }
+    return bi >= 0 ? tapI(s, bi) : NO;
+  },
+};
+/** 손가락 → 막 누르기 (🧪 F2 개정): 1판 손가락 첫 톡만 따르고 나머지는 막 누름 — 사람의 '막 누르기'에 가장 가깝다 */
+export const screwshopFingerMash: Bot<ShopState> = {
+  name: '손가락 → 막 누르기',
+  act(s, rng) {
+    const d = STAGES[s.stage];
+    if (d.first !== undefined && s.S.taps === 0) return ready(s) ? tapI(s, d.first) : NO;
+    return screwshopMash.act(s, rng);
+  },
+};
+
+export const BOTS = { smart: screwshopSmart, habit: screwshopHabit, top: screwshopTop, reveal: screwshopReveal, random: screwshopRandom, mash: screwshopMash, finger: screwshopFingerMash, preview: screwshopPreview };
 
 export function measure(seeds = 12) {
   const stages = STAGES.map((d, k) => {
@@ -76,6 +121,7 @@ export function measure(seeds = 12) {
         clear: +(r.filter((x) => x.ok).length / seeds).toFixed(2),
         star3: +(r.filter((x) => x.stars === 3).length / seeds).toFixed(2),
         stars: +(r.reduce((a, x) => a + x.stars, 0) / seeds).toFixed(2),
+        ge2: +(r.filter((x) => x.stars >= 2).length / seeds).toFixed(2),
         sec: +(r.reduce((a, x) => a + x.sec, 0) / seeds).toFixed(1),
         /** 한 방: 톡 한 번에 빠진 나사 수 최대(판 평균) */
         shot: +(r.reduce((a, x) => a + x.shot, 0) / seeds).toFixed(2),
@@ -92,6 +138,11 @@ export function measure(seeds = 12) {
     mashClear12: +((stages.slice(0, 2).reduce((a, r) => a + (r.mash as Record<string, number>).clear, 0)) / 2).toFixed(2),
     mashClear38: +((stages.slice(2).reduce((a, r) => a + (r.mash as Record<string, number>).clear, 0)) / (stages.length - 2)).toFixed(2),
     mashStars: avg('mash', 'stars'),
+    /** 버릇 3종 ★3 판별 최고 (2판 / 3~8판 최고) — M1′ ① */
+    habit3Star3_2: Math.max(...['habit', 'top', 'reveal'].map((b) => (stages[1][b] as Record<string, number>).star3)),
+    habit3Star3_38max: Math.max(...stages.slice(2).flatMap((r) => ['habit', 'top', 'reveal'].map((b) => (r[b] as Record<string, number>).star3))),
+    /** 손가락 → 막 누르기 1·2판 ★2 이상 (≤ 0.2) */
+    fingerGe2_1: (stages[0].finger as Record<string, number>).ge2, fingerGe2_2: (stages[1].finger as Record<string, number>).ge2,
     /** 🧪 F4: 미리 보기 따라 하기 ★3 (3~8판 평균, 낮을수록 미리 보기가 정답 안내가 아니다) */
     previewStar3_38: +(stages.slice(2).reduce((a, r) => a + (r.preview as Record<string, number>).star3, 0) / (stages.length - 2)).toFixed(2),
     /** 한 방 최대 판 평균: 장인 / 막 누르기 (M1′ ②: 장인 ≥ 3 · 막 누르기 ≤ 1.5) */

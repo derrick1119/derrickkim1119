@@ -494,9 +494,9 @@ function buildLevel(seed: number, stage: number): Level {
         return o[Math.floor(r() * o.length)];
       };
       let mg = 0;
-      for (let k = 0; k < 20; k++) mg += playOut(L, d, mash, d.first) >= 2 ? 1 : 0;
+      for (let k = 0; k < 100; k++) mg += playOut(L, d, mash, d.first) >= 2 ? 1 : 0; // 📋 S002: 표본 20 → 100
       const rp = randomPass(L, r, 30);
-      v = (playOut(L, d, smart, d.first) === 3 ? 2 : 0) + (playOut(L, d, smart) === 3 ? 1 : 0) + Math.min(1, rp / 0.95) - (mg / 20) * 2;
+      v = (playOut(L, d, smart, d.first) === 3 ? 2 : 0) + (playOut(L, d, smart) === 3 ? 1 : 0) + Math.min(1, rp / 0.95) - (mg / 100) * 2;
     } else if (stage === 0) v = randomPass(L, r, 30);
     else if (stage === 1) v = -Math.abs(randomPass(L, r, 30) - 0.75);
     else {
