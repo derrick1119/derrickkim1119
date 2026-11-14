@@ -7,6 +7,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { SLOTS, STAGES } from './game.ts';
+import { OLD_IDS } from './save.ts';
 
 const { chromium } = createRequire(import.meta.url)('playwright') as { chromium: any }; // eslint-disable-line
 const here = import.meta.dirname, url = pathToFileURL(join(here, '../../web/public/studio/duckbath/index.html')).href;
@@ -191,7 +192,10 @@ const mig = await mp.evaluate(() => ({
 // 만든 판이 있는 줄(5칸)만 보인다 — 판이 늘면 기대값도 판 데이터에서 (D009)
 const rowsShown = [1, 2, 3].reduce((a, w) => a + [0, 5].filter((r) => STAGES.some((d) => { const [dw, k] = d.id.split('-').map(Number); return dw === w && k > r && k <= r + 5; })).length, 0) * 5;
 if (mig.worlds !== 3 || mig.tiles !== rowsShown) errors.push(`migrate: 욕실 3개 · 만든 판이 있는 줄만 ${rowsShown}칸이 아님 ${JSON.stringify(mig)} (SLOTS ${SLOTS})`);
-if (mig.open !== STAGES.length || !mig.soap.includes('★★☆') || mig.saved !== 2) errors.push(`migrate: 옛 저장 이전이 틀림 ${JSON.stringify(mig)}`);
+// D015: 열린 판 = 옛 저장에서 깬 판(OLD_IDS 중 별 > 0) 가운데 놀이 순서로 가장 뒤 판의 다음 판까지 — 예전 '= 판 수'는 3-2가 끝에서 둘째였던 우연
+const oldBest = [3, 3, 2, 3, 2, 1, 0, 2], lastOld = Math.max(...OLD_IDS.filter((_, i) => oldBest[i] > 0).map((id) => STAGES.findIndex((d) => d.id === id)));
+const openWant = Math.min(STAGES.length, lastOld + 2);
+if (mig.open !== openWant || !mig.soap.includes('★★☆') || mig.saved !== 2) errors.push(`migrate: 옛 저장 이전이 틀림 ${JSON.stringify(mig)} (기대 열린 판 ${openWant})`);
 if (mig.hscroll) errors.push('migrate: 판 고르기 가로 스크롤');
 await mp.evaluate(() => document.querySelector('.levels')!.scrollTo(0, 9999));
 await mp.waitForTimeout(150);
