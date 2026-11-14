@@ -3183,7 +3183,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
   }
   // 새것 알림
   if (s.news && t - s.news.t < NEWS_T + 20 && s.phase !== 'result') { // 🧪 M0.1: 완성 띠 위에 안내가 겹치지 않게
-    const age = t - s.news.t, a = min(1, age / 10, (NEWS_T + 20 - age) / 20), drop = max(0, 10 - age) * 2;
+    const age = t - s.news.t, a = min(1, age / 10, (NEWS_T + 20 - age) / 20) * (s.down && s.press >= 0 ? 0.2 : 1), drop = max(0, 10 - age) * 2; // ✏️ S015(🧪 S015 57): 꾹 누르는 동안은 소식 띠도 흐리게 — 꼭대기 나사 · 알약이 띠 밑에 가리지 않게
     ctx.globalAlpha = a;
     font(0.036, 900);
     ctx.textAlign = 'center';
