@@ -102,7 +102,7 @@ const PROTO: StageDef[] = [
     },
   },
   {
-    key: 'river', name: '개울과 다리', news: '🌉 개울 — 빠지면 풍덩! 울타리 따라 다리로', max: 8, par: 4, bonus: 'flower',
+    key: 'river', name: '개울과 다리', news: '🌉 개울 — 빠지면 풍덩! 다리로 건너요', max: 8, par: 4, bonus: 'flower',
     build: (r) => ({
       pens: [PEN0()],
       river: { y0: 0.4, y1: 0.5, bx0: 0.41, bx1: 0.59 },
@@ -223,7 +223,7 @@ export const STAGES: StageDef[] = [
   },
   {
     ...P('river'),
-    news: '🌉 옆에서 짖어 한 줄로 → 다리로',
+    news: '🌉 개울 — 빠지면 풍덩! 울타리 따라 다리로', // 🎨 C018 ❌: 이 줄이 P('river') 알림을 가렸다 — '한 줄로'는 오너 2차가 불편하다고 한 동작
     // C004 (FUN QA C003): 무리 폭을 다리 폭에 맞춘다 (가로 ±0.12 → ±0.065) — '양 뒤에서 문 쪽' 습관이 매번 풍덩하던 절벽
     build: (r) => ({ ...P('river').build(r), sheep: flock(r, 0.5 + jit(r, 0.06), 0.68, [[-0.065, 0], [0.065, 0], [0, -0.03], [-0.05, 0.08], [0.06, 0.08]]) }),
   },
@@ -2420,18 +2420,35 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       for (const p of pts) ctx.lineTo(p[0], p[1] - p[2] * hh);
       ctx.stroke();
     }
-    if (posts)
-      for (const [px, py, ph] of pts) {
-        const pw = R(0.015) * (ph / R(0.068));
-        ctx.fillStyle = fenceCol[1];
-        ctx.fillRect(px - pw / 2, py - ph, pw, ph);
-        ctx.fillStyle = fenceCol[0];
-        ctx.fillRect(px - pw / 2, py - ph, pw * 0.55, ph);
-        ctx.fillStyle = fenceCol[2];
-        ctx.beginPath();
-        ctx.ellipse(px, py - ph, pw * 0.6, pw * 0.3, 0, 0, TAU);
-        ctx.fill();
-      }
+    if (posts) for (const [px, py, ph] of pts) drawPost(px, py, ph);
+  };
+  const drawPost = (px: number, py: number, ph: number) => {
+    const pw = R(0.015) * (ph / R(0.068));
+    ctx.fillStyle = fenceCol[1];
+    ctx.fillRect(px - pw / 2, py - ph, pw, ph);
+    ctx.fillStyle = fenceCol[0];
+    ctx.fillRect(px - pw / 2, py - ph, pw * 0.55, ph);
+    ctx.fillStyle = fenceCol[2];
+    ctx.beginPath();
+    ctx.ellipse(px, py - ph, pw * 0.6, pw * 0.3, 0, 0, TAU);
+    ctx.fill();
+  };
+  /**
+   * 다리 입구 날개 울타리 (🎨 C018 ❌): 깔때기 안 양이 날개에 붙으면 조각 아래 끝 y 기준 깊이로는 기둥·가로대가 양 위에 덮여
+   * '울타리 밖에 걸린' 것처럼 보였다 → 가로대는 y 0.02 조각마다 가운데 y로, 기둥은 각자 자기 y로 깊이 정렬(위치·길이·시뮬 그대로)
+   */
+  const addWing = (g: Seg) => {
+    const m = Math.max(1, Math.round(Math.abs(g.y1 - g.y0) / 0.02));
+    for (let k = 0; k < m; k++) {
+      const a = k / m, b = (k + 1) / m;
+      const xa = g.x0 + (g.x1 - g.x0) * a, ya = g.y0 + (g.y1 - g.y0) * a, xb = g.x0 + (g.x1 - g.x0) * b, yb = g.y0 + (g.y1 - g.y0) * b;
+      items.push({ d: (ya + yb) / 2, f: () => drawFenceRun(xa, ya, xb, yb, 1, false) });
+    }
+    const n = Math.max(1, Math.round(Math.hypot(g.x1 - g.x0, (g.y1 - g.y0) * 0.9) / 0.09));
+    for (let k = 0; k <= n; k++) {
+      const fx = g.x0 + ((g.x1 - g.x0) * k) / n, fy = g.y0 + ((g.y1 - g.y0) * k) / n;
+      items.push({ d: fy + 0.001, f: () => drawPost(PX(fx, fy), PY(fy), postH(fy)) });
+    }
   };
   /** 울타리 줄 하나를 깊이 조각으로 나눠 넣는다 (세로 줄은 조각마다) */
   const addFence = (g: Seg, hgt = 1) => {
@@ -2459,7 +2476,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
       items.push({ d: p.y1 + 0.002, f: () => drawFenceRun(hx, p.y1, ex, ey, 0.85) });
     }
   }
-  for (const g of F.fences) addFence(g);
+  for (const g of F.fences) (F.river && (g.x1 === F.river.bx0 || g.x1 === F.river.bx1) && Math.abs(g.y1 - (F.river.y1 + 0.012)) < 1e-9 ? addWing : addFence)(g);
   if (F.river) {
     const rv = F.river;
     addFence({ x0: rv.bx0, y0: rv.y0 - 0.012, x1: rv.bx0, y1: rv.y1 + 0.012 }, 0.6);
