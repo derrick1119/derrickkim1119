@@ -615,7 +615,8 @@ export interface PairState {
   unl: { x: number; y: number; t0: number }[]; rays: { x: number; y: number; t0: number; n: number; col: string }[];
   /** 판을 비운 순간 주판알 폭죽 */
   confetti: { x: number; y: number; vx: number; vy: number; v: number; t0: number }[];
-  chainShow: number; stopUntil: number; comboShow: number; comboT: number;
+  /** 콤보가 오른 때 (불꽃이 커진다) */
+  comboT: number;
   /** 이 판을 처음 하는가 (새 장치 스포트라이트는 처음에만) */
   retry: boolean;
 }
@@ -652,9 +653,6 @@ function newStage(s: PairState) {
   s.unl = [];
   s.rays = [];
   s.confetti = [];
-  s.chainShow = 0;
-  s.stopUntil = -1;
-  s.comboShow = 0;
   s.comboT = -99;
   s.retry = s.tips.has('try:' + s.stage);
   s.tips.add('try:' + s.stage);
@@ -804,8 +802,6 @@ function doPair(s: PairState, a: number, b: number) {
     }
   }
   s.pts += 10;
-  s.chainShow = chain;
-  if (chain >= 3) s.stopUntil = t0 + stepT(maxSt) + 10;
   const hasRows = rec.some((e) => e.k === 'rows');
   s.busyUntil = t0 + stepT(maxSt) + (hasRows ? SHIFT_T + 10 : 6);
   s.flickT = t0;
@@ -820,7 +816,6 @@ function doPair(s: PairState, a: number, b: number) {
   if (chain >= 3) see(s, 'chain3', '🔥 딸깍 연쇄 ×4 — 톡톡 한 번에 여덟 알!');
   if (golds) see(s, 'goldPop', '🌟 황금 알이 터지면 같은 수가 모두 날아가요');
   if (S.combo >= 2) {
-    s.comboShow = S.combo;
     s.comboT = t0 + stepT(maxSt);
     s.pts += 5 * S.combo;
     ev(s, 'combo', 0.86, RBY - 0.055, `콤보 ×${S.combo}`, '#ffb3e6', t0 + stepT(maxSt) + 6, S.combo);
@@ -910,7 +905,7 @@ export const numpair: GameDef<PairState> = {
       hearts: 3, stars: 0, got: 0, pts: 0, ok: false, why: '', won: false, dead: false, tries: 0,
       seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsQ: [], startT: 0, clearT: 0,
       mood: 'idle', moodT: 0, guest: 'wait', guestT: 0, catT: -99, flickT: -99,
-      fly: [], shift: null, gone: [], adds: [], unl: [], rays: [], confetti: [], chainShow: 0, stopUntil: -1, comboShow: 0, comboT: -99, retry: false,
+      fly: [], shift: null, gone: [], adds: [], unl: [], rays: [], confetti: [], comboT: -99, retry: false,
     } as unknown as PairState;
     newStage(s);
     return s;
@@ -1221,7 +1216,7 @@ function partnersOf(c: number[], i: number): number[] {
 
 const recentSay = new WeakMap<object, { x: number; y: number; t: number }[]>();
 function drawAll(ctx: CanvasRenderingContext2D, s: PairState, w: number, h: number, th: Theme) {
-  const fx = juice(s), t = s.t, L = s.L, S = s.S, d = STAGES[s.stage];
+  const fx = juice(s), t = s.t, d = STAGES[s.stage];
   const X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w;
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, R(sz))}px system-ui, sans-serif`);
   ctx.save();
@@ -1317,8 +1312,6 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PairState, w: number, h: numb
   if (s.catT >= 0 && (fx.memo.cat ?? -1) !== s.catT && t >= s.catT) (fx.memo.cat = s.catT), say(X(0.54), Y(0.13), '냐앗!', '#ffe0f0', 13);
   ctx.restore();
   drawHud(ctx, s, d, w, X, Y, R, font, th);
-  void L;
-  void S;
 }
 
 // ═════════ 가게 (벽·창·손님·등불·선반·고양이·계산대·너구리) ═════════
@@ -1379,7 +1372,7 @@ function drawShop(ctx: CanvasRenderingContext2D, s: PairState, w: number, X: F, 
       ctx.fillStyle = `rgba(255,255,230,${0.3 + 0.5 * Math.abs(Math.sin(t / 45 + k * 1.7))})`;
       ctx.fillRect(x0 + hsh(k + 40) * (x1 - x0), y0 + hsh(k + 60) * (y1 - y0) * 0.35, 1.6, 1.6);
     }
-    drawGuests(ctx, s, X, Y, R, t, y1);
+    drawGuests(ctx, s, X, R, t, y1);
     ctx.restore();
     // 창살
     ctx.strokeStyle = '#2a170c';
@@ -1519,7 +1512,7 @@ function drawLantern(ctx: CanvasRenderingContext2D, x: number, y: number, u: num
 }
 
 /** 창가 손님: 다람쥐·토끼 (여우 손님 판엔 여우가 주문 쪽지를 든다) */
-function drawGuests(ctx: CanvasRenderingContext2D, s: PairState, X: F, Y: F, R: F, t: number, sill: number) {
+function drawGuests(ctx: CanvasRenderingContext2D, s: PairState, X: F, R: F, t: number, sill: number) {
   const m = s.guest, age = t - s.guestT, L = s.L;
   const hop = (k: number) => (m === 'clap' || m === 'happy' ? Math.abs(Math.sin(age * 0.25 + k)) * R(0.02) : m === 'laugh' ? Math.abs(Math.sin(age * 0.5 + k)) * R(0.008) : Math.sin(t * 0.04 + k) * R(0.003));
   const order = L.goal === 'count';
@@ -1582,7 +1575,6 @@ function drawGuests(ctx: CanvasRenderingContext2D, s: PairState, X: F, Y: F, R: 
       paws(ctx, x, y, u, '#efe6dc', m, age);
     }
   }
-  void Y;
 }
 function face(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, m: string, t: number, age: number) {
   const blink = m === 'wait' && t % 160 < 6;
@@ -2075,7 +2067,7 @@ function drawFrame(ctx: CanvasRenderingContext2D, s: PairState, X: F, Y: F, R: F
 
 // ═════════ 판 위의 알 ═════════
 function drawBoard(ctx: CanvasRenderingContext2D, s: PairState, X: F, Y: F, R: F, t: number) {
-  const S = s.S, L = s.L, c = S.c, rows = rowsOf(c.length), u = R(BWU) * Math.min(1, pitchOf(rows) / PY0 + 0.12);
+  const S = s.S, c = S.c, rows = rowsOf(c.length), u = R(BWU) * Math.min(1, pitchOf(rows) / PY0 + 0.12);
   const play = s.phase === 'play';
   const sel = play && s.sel >= 0 && s.sel < c.length && c[s.sel] ? s.sel : -1, selQ = sel >= 0 ? ease((t - s.selT) / 6) : 0;
   const parts = sel >= 0 ? partnersOf(c, sel) : [];
@@ -2165,7 +2157,6 @@ function drawBoard(ctx: CanvasRenderingContext2D, s: PairState, X: F, Y: F, R: F
     ctx.fillStyle = '#ffe9c4';
     ctx.fillText('지울 짝이 없어요 → 아래 ➕ 톡!', X(0.5), Y(0.415));
   }
-  void L;
 }
 
 // ═════════ ➕ 다시 붙이기 나무패 · 촛불 · 콤보 ═════════
@@ -2232,7 +2223,8 @@ function drawReaddTag(ctx: CanvasRenderingContext2D, s: PairState, X: F, Y: F, R
   // 콤보 불꽃
   if (S.combo >= 2 && s.phase === 'play') {
     const x = cx + bw / 2 + R(0.085), y = cy, k = Math.min(5, S.combo);
-    const fl = 1 + 0.1 * Math.sin(t * 0.4);
+    const pop = t >= s.comboT && t - s.comboT < 12 ? 1 + 0.5 * (1 - (t - s.comboT) / 12) : 1;
+    const fl = (1 + 0.1 * Math.sin(t * 0.4)) * pop;
     ctx.fillStyle = '#ffffff';
     ctx.font = `${Math.max(16, R(0.05 + 0.006 * k) * fl)}px system-ui`;
     ctx.fillText('🔥', x - R(0.03), y);

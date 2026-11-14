@@ -29,7 +29,7 @@ export const rotm = (m: number, k: number) => {
 const opp = (d: number) => (d + 2) & 3;
 const popc = (m: number) => (m & 1) + ((m >> 1) & 1) + ((m >> 2) & 1) + ((m >> 3) & 1);
 const I_ = 5, L_ = 3, T_ = 7, X_ = 15;
-const STAR_PTS = 100, WIN_PTS = 100, LEFT_PTS = 3, FIELD_PTS = 15;
+const STAR_PTS = 100, WIN_PTS = 100, LEFT_PTS = 15, FIELD_PTS = 15;
 /** 한 번 톡에 밭 n곳이 처음 물을 받으면 밭마다 이만큼 (연쇄일수록 크게) */
 export const chainPts = (n: number) => (FIELD_PTS * n * (n + 1)) / 2;
 const RESULT_OK = 170, RESULT_FAIL = 150, NEWS_T = 200;
@@ -1010,7 +1010,8 @@ function finish(s: PipeState) {
     const st = starsOf(L, S);
     s.got = st;
     s.stars += st;
-    s.pts += st * STAR_PTS + Math.min(30, Math.max(0, L.limit - S.rots) * LEFT_PTS);
+    // 아낀 돌리기 보너스: ★ 기준(P)보다 덜 돌린 만큼
+    s.pts += st * STAR_PTS + Math.min(30, Math.max(0, L.P - S.rots) * LEFT_PTS);
     s.clearT = s.t;
     if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS);
     ev(s, 'clear', 0.5, 0.62, `${STAGES[s.stage].emoji} 풍년! ${'★'.repeat(st)}${'☆'.repeat(3 - st)}`, '#fff1a8', st);
