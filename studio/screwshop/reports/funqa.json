@@ -1,27 +1,27 @@
 {
  "at": "2026-11-14",
- "build": "M2-S014",
+ "build": "M2-S015",
  "seeds": 24,
  "summary": {
   "smartStars": 3,
-  "habitStars": 1.65,
+  "habitStars": 1.61,
   "randomStars": 0.26,
   "smartStar3": 1,
   "habitStar3": 0.03,
   "randomClear1": 1,
   "mashClear12": 0.98,
-  "mashClear38": 0.18,
-  "mashStars": 0.28,
+  "mashClear38": 0.17,
+  "mashStars": 0.27,
   "habit3Star3_2": 0,
   "habit3Star3_38max": 0.08,
   "fingerGe2_1": 0.04,
   "fingerGe2_2": 0.17,
   "previewStar3_38": 0.06,
-  "smartShot": 4.09,
+  "smartShot": 4.12,
   "mashShot": 1.33,
   "smartSec": 6.02,
   "newbie3_13": 1,
-  "newbie3_avg": 0.99,
+  "newbie3_avg": 0.98,
   "hintMin": 1,
   "hint3": 0,
   "f13_38min": 0.95,
@@ -31,6 +31,16 @@
    [
     "3-2",
     2.06,
+    0
+   ],
+   [
+    "3-3",
+    1.07,
+    0
+   ],
+   [
+    "3-6",
+    2.45,
     0
    ]
   ],
@@ -102,7 +112,9 @@
    66,
    91,
    66,
+   71,
    75,
+   61,
    66
   ],
   "skillGap": 11.54
@@ -2615,6 +2627,131 @@
   },
   {
    "stage": 23,
+   "slot": "3-3",
+   "id": 23,
+   "name": "🍿 팝콘 수레",
+   "smart": {
+    "clear": 1,
+    "star3": 1,
+    "stars": 3,
+    "ge2": 1,
+    "sec": 6.5,
+    "human": 71,
+    "shot": 4
+   },
+   "habit": {
+    "clear": 0.96,
+    "star3": 0,
+    "stars": 0.96,
+    "ge2": 0,
+    "sec": 6.8,
+    "human": 74,
+    "shot": 2.25
+   },
+   "top": {
+    "clear": 0.13,
+    "star3": 0,
+    "stars": 0.13,
+    "ge2": 0,
+    "sec": 4,
+    "human": 40,
+    "shot": 1.63
+   },
+   "reveal": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 1,
+    "ge2": 0,
+    "sec": 6.9,
+    "human": 76,
+    "shot": 2.75
+   },
+   "random": {
+    "clear": 0.29,
+    "star3": 0,
+    "stars": 0.46,
+    "ge2": 0.17,
+    "sec": 20.3,
+    "human": 46,
+    "shot": 1.79
+   },
+   "mash": {
+    "clear": 0.08,
+    "star3": 0,
+    "stars": 0.17,
+    "ge2": 0.08,
+    "sec": 2.7,
+    "human": 41,
+    "shot": 1.63
+   },
+   "finger": {
+    "clear": 0.08,
+    "star3": 0,
+    "stars": 0.17,
+    "ge2": 0.08,
+    "sec": 2.7,
+    "human": 41,
+    "shot": 1.63
+   },
+   "preview": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 1.75,
+    "ge2": 0.75,
+    "sec": 6.7,
+    "human": 73,
+    "shot": 3.42
+   },
+   "newbie": {
+    "clear1": 0.83,
+    "clear3": 0.92,
+    "fails": 14,
+    "f13": 1,
+    "hint": 1,
+    "hint3": 0
+   },
+   "f16": {
+    "fails": 81,
+    "n": 63,
+    "v21": 1,
+    "airFails": 0,
+    "pair": null,
+    "onlyLast": 0.6,
+    "by": {
+     "④태엽": [
+      49,
+      49
+     ],
+     "①색": [
+      0,
+      0
+     ],
+     "①연쇄": [
+      8,
+      8
+     ],
+     "③통나무": [
+      6,
+      6
+     ]
+    }
+   },
+   "dev": {
+    "fires": 72,
+    "avg": 1.07,
+    "empty": 0
+   },
+   "big": {
+    "m": 3,
+    "big": 2,
+    "newbie": 1,
+    "mash": 0.75,
+    "core": "🔑",
+    "first": "·"
+   }
+  },
+  {
+   "stage": 24,
    "slot": "3-4",
    "id": 24,
    "name": "🎢 롤러코스터",
@@ -2726,7 +2863,132 @@
    }
   },
   {
-   "stage": 24,
+   "stage": 25,
+   "slot": "3-6",
+   "id": 26,
+   "name": "🤡 깜짝 진열장",
+   "smart": {
+    "clear": 1,
+    "star3": 1,
+    "stars": 3,
+    "ge2": 1,
+    "sec": 5.6,
+    "human": 61,
+    "shot": 5
+   },
+   "habit": {
+    "clear": 0.88,
+    "star3": 0,
+    "stars": 1.21,
+    "ge2": 0.33,
+    "sec": 6.2,
+    "human": 67,
+    "shot": 2.38
+   },
+   "top": {
+    "clear": 0.38,
+    "star3": 0,
+    "stars": 0.42,
+    "ge2": 0.04,
+    "sec": 5,
+    "human": 52,
+    "shot": 1.17
+   },
+   "reveal": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 1.71,
+    "ge2": 0.71,
+    "sec": 6.4,
+    "human": 70,
+    "shot": 2.54
+   },
+   "random": {
+    "clear": 0.17,
+    "star3": 0,
+    "stars": 0.17,
+    "ge2": 0,
+    "sec": 22.2,
+    "human": 46,
+    "shot": 1.54
+   },
+   "mash": {
+    "clear": 0.04,
+    "star3": 0,
+    "stars": 0.04,
+    "ge2": 0,
+    "sec": 2.8,
+    "human": 43,
+    "shot": 1.08
+   },
+   "finger": {
+    "clear": 0.04,
+    "star3": 0,
+    "stars": 0.04,
+    "ge2": 0,
+    "sec": 2.8,
+    "human": 43,
+    "shot": 1.08
+   },
+   "preview": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 2,
+    "ge2": 1,
+    "sec": 5.8,
+    "human": 62,
+    "shot": 3.79
+   },
+   "newbie": {
+    "clear1": 0.71,
+    "clear3": 0.83,
+    "fails": 21,
+    "f13": 1,
+    "hint": 1,
+    "hint3": 0
+   },
+   "f16": {
+    "fails": 85,
+    "n": 42,
+    "v21": 0.95,
+    "airFails": 0,
+    "pair": null,
+    "onlyLast": 0.55,
+    "by": {
+     "①연쇄": [
+      1,
+      1
+     ],
+     "①색": [
+      27,
+      27
+     ],
+     "③뿅": [
+      9,
+      9
+     ],
+     "②진자": [
+      5,
+      3
+     ]
+    }
+   },
+   "dev": {
+    "fires": 51,
+    "avg": 2.45,
+    "empty": 0
+   },
+   "big": {
+    "m": 4,
+    "big": 3,
+    "newbie": 0.28,
+    "mash": 0.15,
+    "core": "🤡",
+    "first": "·"
+   }
+  },
+  {
+   "stage": 26,
    "slot": "3-10",
    "id": 7,
    "name": "🚀 로켓",

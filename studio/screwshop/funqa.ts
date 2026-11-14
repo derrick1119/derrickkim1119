@@ -228,16 +228,17 @@ export function devChain(k: number, seeds = 24) {
   return { fires, avg: fires ? +(pops / fires).toFixed(2) : 0, empty: fires ? +(empty / fires).toFixed(2) : null };
 }
 /** 대표 순간(🧪 S014 · 📋 S015 F23 바닥 · 판박이): 장인 최대 연쇄 m → 큰 순간 = 한 톡 연쇄 ≥ max(2, m − 1). 처음 봇 · 막 누르기(3손)의 큰 순간 비율 · 장인 큰 순간의 장치 줄(core) · 장인 첫 톡 판자 장치(first) */
-export function bigOf(k: number, seeds = 24) {
+export function bigOf(k: number, seeds = 24, got: { sm?: ShopState[]; nb?: ShopState['hist'][]; mash0?: ShopState['hist'][] } = {}) {
   const pops = (h: ShopState['hist'][number]) => h.rec.filter((e) => e.k === 'out' && e.pop).length;
   const top = (h: ShopState['hist']) => h.reduce((b, x) => (pops(x) > pops(b) ? x : b), h[0]);
   const mode = (a: string[]) => { const c: Record<string, number> = {}; for (const x of a) c[x] = (c[x] ?? 0) + 1; return Object.entries(c).sort((x, y) => y[1] - x[1] || (x[0] < y[0] ? -1 : 1))[0][0]; };
   const dev = (L: Level, i: number) => { const p = L.owner[i], P = L.pl[p]; return (P.ham ? '🔨' : '') + (P.heavy ? '🪵' : '') + (P.key !== undefined ? '🔑' : '') + (P.kind === 'nail' ? '📌' : P.kind === 'spring' ? '🌀' : P.kind === 'glass' ? '🪟' : '') + (P.tick ? '⏰' : '') + (L.jack?.[0] === p ? '🤡' : '') || '·'; };
   const DI: Record<string, string> = { bonk: '🔨', crash: '🪵', wind: '🔑', boing: '🌀', tick: '⏰', jack: '🤡', thump: '🐹' };
-  const sm = Array.from({ length: seeds }, (_, i) => tryStage(screwshopSmart, 1000 + i * 7, k).s), m = Math.max(0, ...sm.flatMap((s) => s.hist.map(pops))), big = Math.max(2, m - 1);
-  const rate = (bot: Bot<ShopState>) => { let c = 0; for (let i = 0; i < seeds; i++) for (let j = 0; j < 3; j++) { const seed = 1000 + i * 7, h = tryStage(bot, seed, k, 600, seed + j * 100003).s.hist; c += +(h.length > 0 && pops(top(h)) >= big); } return +(c / seeds / 3).toFixed(2); };
+  const sm = got.sm ?? Array.from({ length: seeds }, (_, i) => tryStage(screwshopSmart, 1000 + i * 7, k).s), m = Math.max(0, ...sm.flatMap((s) => s.hist.map(pops))), big = Math.max(2, m - 1);
+  // measure()가 이미 돌린 판(장인 · 처음 봇 3손 · 막 누르기 첫 손)은 다시 돌리지 않는다(✏️ S015 테스트 시간) — 같은 시드 · 같은 손이라 값이 같다
+  const rate = (bot: Bot<ShopState>, done?: ShopState['hist'][], per = 3) => { let c = 0; for (let i = 0; i < seeds; i++) for (let j = 0; j < 3; j++) { const seed = 1000 + i * 7, h = done && done.length === seeds * per && j < per ? done[i * per + j] : tryStage(bot, seed, k, 600, seed + j * 100003).s.hist; c += +(h.length > 0 && pops(top(h)) >= big); } return +(c / seeds / 3).toFixed(2); };
   const core = mode(sm.map((s) => (s.hist.length ? top(s.hist).rec.flatMap((e) => DI[e.k] ?? []).filter((x, i, a) => x !== a[i - 1]).join('') : '') || '·'));
-  return { m, big, newbie: rate(screwshopNewbie), mash: rate(screwshopMash), core, first: mode(sm.filter((s) => s.hist.length).map((s) => dev(s.L, s.hist[0].s))) };
+  return { m, big, newbie: rate(screwshopNewbie, got.nb), mash: rate(screwshopMash, got.mash0, 1), core, first: mode(sm.filter((s) => s.hist.length).map((s) => dev(s.L, s.hist[0].s))) };
 }
 /** 판박이(🧪 S014 · 📋 S015): 같은 월드 · 장인 큰 순간 장치 줄이 같은 두 판은 장인 최대 연쇄 또는 장인 첫 톡 장치가 달라야 한다 → 걸린 짝 [자리, 자리] */
 export const twinsOf = (rows: { slot: string; big: ReturnType<typeof bigOf> }[]) => rows.flatMap((a, i) => rows.slice(i + 1).filter((b) => a.slot[0] === b.slot[0] && a.big.core === b.big.core && a.big.m === b.big.m && a.big.first === b.big.first).map((b) => [a.slot, b.slot]));
@@ -250,10 +251,13 @@ export function measureStage(k: number, seeds: number, bots: (keyof typeof BOTS)
 }
 
 export function measure(seeds = 12) {
+  const keep: { sm?: ShopState[]; mash0?: ShopState['hist'][]; nb: ShopState['hist'][] }[] = STAGES.map(() => ({ nb: [] }));
   const stages = STAGES.map((d, k) => {
     const row: Record<string, unknown> = { stage: k + 1, slot: d.slot, id: d.id, name: `${d.emoji} ${d.name}` };
     for (const [name, bot] of Object.entries(BOTS)) {
       const r = Array.from({ length: seeds }, (_, i) => tryStage(bot, 1000 + i * 7, k));
+      if (name === 'smart') keep[k].sm = r.map((x) => x.s);
+      if (name === 'mash') keep[k].mash0 = r.map((x) => x.s.hist);
       row[name] = {
         clear: +(r.filter((x) => x.ok).length / seeds).toFixed(2),
         star3: +(r.filter((x) => x.stars === 3).length / seeds).toFixed(2),
@@ -273,6 +277,7 @@ export function measure(seeds = 12) {
     let first = 0, three = 0, fails = 0, hit = 0, hinted = 0, hint3 = 0;
     for (let i = 0; i < seeds; i++) {
       const tries = [0, 1, 2].map((j) => tryStage(screwshopNewbie, 1000 + i * 7, k, 600, 1000 + i * 7 + j * 100003)); // 같은 판 다시 3번
+      keep[k].nb.push(...tries.map((x) => x.s.hist));
       first += +tries[0].ok;
       three += +tries.some((x) => x.ok);
       if (!tries.some((x) => x.ok)) { // 💡 귀띔 봇(📋 M2 ③): 3번 지면 귀띔을 켜고 손가락(장인 수)을 따른다
@@ -288,7 +293,7 @@ export function measure(seeds = 12) {
     row.f16 = f16(k); // F16 v2.1 + 카드 짝(막 누르기 100시드 — 🧪 m1b와 같은 손)
     if (STAGES[k].thump) row.f15t = f15t(k, seeds);
     if (STAGES[k].jack) row.dev = devChain(k, seeds); // 빈 장치(🤡)
-    row.big = bigOf(k, seeds); // 대표 순간(F23 바닥 · 판박이)
+    row.big = bigOf(k, seeds, keep[k]); // 대표 순간(F23 바닥 · 판박이)
   });
   const avg = (bot: string, key: string) => +(stages.reduce((a, r) => a + (r[bot] as Record<string, number>)[key], 0) / stages.length).toFixed(2);
   const summary = {
