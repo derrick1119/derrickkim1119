@@ -11,10 +11,13 @@
 [hidden]{display:none!important}
 html,body{margin:0;background:#3a2a20;color:#fff8ec;font:16px/1.45 system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;overscroll-behavior:none}
 main{max-width:460px;margin:0 auto;padding:0 0 16px}
-header{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 12px}
+header{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 12px}
 h1{font-size:20px;font-weight:900;margin:0;letter-spacing:-.01em}
 h1 span{color:#ffc65c}
-header small{color:#d8c3a5;font-size:12px}
+header small{color:#d8c3a5;font-size:12px;margin-right:4px}
+.tg{display:flex;align-items:center;gap:4px}
+.tg button{width:44px;height:44px;border:0;border-radius:22px;background:transparent;font-size:20px;cursor:pointer;padding:0}
+.tg button:focus-visible{outline:3px solid #ffc65c}
 #game{position:relative;touch-action:none;user-select:none;-webkit-user-select:none}
 .g-canvas{display:block;margin:0 auto;touch-action:none;outline:none}
 .g-canvas:focus-visible{box-shadow:0 0 0 3px #ffc65c}
@@ -33,7 +36,7 @@ header small{color:#d8c3a5;font-size:12px}
 </head>
 <body>
 <main>
-  <header><h1>🔩 나사 풀기 <span>공방</span></h1><small>스튜디오 빌드 M0</small></header>
+  <header><h1>🔩 나사 풀기 <span>공방</span></h1><div class="tg"><small>빌드 M0.1</small><button id="buzz" type="button" aria-label="진동 켜고 끄기">📳</button><button id="sound" type="button" aria-label="소리 끄기">🔊</button></div></header>
   <div id="game"></div>
 </main>
 <script>/*BUNDLE*/</script>

@@ -20,6 +20,11 @@
 import { mulberry32, type Rng } from './rng.ts';
 import type { Bot, GameDef, Input, Theme } from './core.ts';
 import { juice } from './juice.ts';
+import type { Cue } from './sfx.ts';
+
+/** 소리 연결(🎨 ART §2): 그림(draw)의 사건 루프에서만 부른다 — 시뮬레이션·봇은 소리를 모른다. main.ts가 sfx.play를 꽂는다 */
+let cue: (c: Cue, v?: number) => void = () => {};
+export const setCue = (f: (c: Cue, v?: number) => void) => void (cue = f);
 
 const A = 1.45;
 /** 나사 머리 반지름 · 손가락 닿는 반지름 · 빈칸 수 · 미리 보이는 다음 상자 수 */
@@ -225,8 +230,8 @@ function geometry(pl: Src[]): Level {
 export interface Sim { gone: number; box: number[]; bn: number[]; qi: number; slots: number[]; peak: number; streak: number; best: number; key: boolean; fail: number; n: number; taps: number }
 type RE =
   | { k: 'out'; s: number; pop: boolean }
-  | { k: 'box'; s: number; col: number; bi: number; hole: number }
-  | { k: 'slot'; s: number; col: number; idx: number }
+  | { k: 'box'; s: number; col: number; bi: number; hole: number; n: number }
+  | { k: 'slot'; s: number; col: number; idx: number; lost: number }
   | { k: 'pull'; idx: number; col: number; bi: number; hole: number }
   | { k: 'done'; bi: number; col: number; next: number }
   | { k: 'hang'; p: number; pose: number }
@@ -282,13 +287,14 @@ function place(L: Level, S: Sim, col: number, s: number, rec?: RE[]) {
     S.bn[bi]++;
     S.streak++;
     if (S.streak > S.best) S.best = S.streak;
-    rec?.push({ k: 'box', s, col, bi, hole: S.bn[bi] - 1 });
+    rec?.push({ k: 'box', s, col, bi, hole: S.bn[bi] - 1, n: S.streak });
     if (S.bn[bi] === 3) complete(L, S, bi, rec);
   } else {
     S.slots.push(col);
+    const lost = S.streak;
     S.streak = 0;
     if (S.slots.length > S.peak) S.peak = S.slots.length;
-    rec?.push({ k: 'slot', s, col, idx: S.slots.length - 1 });
+    rec?.push({ k: 'slot', s, col, idx: S.slots.length - 1, lost });
   }
 }
 function complete(L: Level, S: Sim, bi: number, rec?: RE[]) {
@@ -422,7 +428,7 @@ function buildLevel(seed: number, stage: number): Level {
 }
 
 // ───────────────────────────── 상태 ─────────────────────────────
-interface Ev { t: number; kind: string; x: number; y: number; text?: string; col?: string; v?: number }
+interface Ev { t: number; kind: string; x: number; y: number; text?: string; col?: string; v?: number; n?: number }
 interface PV { pose: number; px: number; py: number; phi: number; vp: number; tgt: number; wait: number; wob: number; wv: number; fall: null | { x: number; y: number; vx: number; vy: number; a: number; va: number; hit: number; t: number }; boing: number; bx: number; by: number }
 interface Fl { col: number; key: boolean; x0: number; y0: number; x1: number; y1: number; t0: number; dur: number; spin: number; to: number; sc: number }
 interface VBox { col: number; t0: number; land: number[] }
@@ -436,7 +442,7 @@ export interface ShopState {
   mood: string; moodT: number; bird: number;
 }
 
-const ev = (s: ShopState, kind: string, x: number, y: number, text?: string, col?: string, v?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v });
+const ev = (s: ShopState, kind: string, x: number, y: number, text?: string, col?: string, v?: number, n?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v, n });
 function tip(s: ShopState, key: string, text: string) {
   if (s.tips.has(key) || s.newsQ.length) return;
   s.tips.add(key);
@@ -536,14 +542,17 @@ function playRec(s: ShopState, rec: RE[]) {
       const t0 = s.t + delay, dur = SPIN + FLY + (e.k === 'slot' ? 2 : 0);
       const [x1, y1] = e.k === 'box' ? holeXY(L, e.bi, e.hole) : slotXY(e.idx);
       s.fl.push({ col: e.col, key: !!((L.keyM >> e.s) & 1), x0: L.px[e.s], y0: L.py[e.s], x1, y1, t0, dur, spin: SPIN, to: e.k === 'box' ? 0 : 1, sc: e.k === 'box' ? 0.82 : 0.95 });
+      // 🎨 손맛 4박: 드르륵(풀림 시작) → 뽁(구멍을 떠남) → 쏙/통(착지)
+      ev(s, 'twist', L.px[e.s], L.py[e.s], undefined, undefined, t0);
+      ev(s, 'pluck', L.px[e.s], L.py[e.s], undefined, L.pl[L.owner[e.s]].tone, t0 + SPIN);
       if (e.k === 'box') {
         s.vb[e.bi].land[e.hole] = t0 + dur;
         s.ready[e.bi] = Math.max(s.ready[e.bi], t0 + dur);
-        ev(s, 'in', x1, y1, undefined, undefined, t0 + dur);
+        ev(s, 'in', x1, y1, undefined, COLS[e.col], t0 + dur, e.n);
       } else {
         s.vs.push({ col: e.col, at: t0 + dur, x: x1 });
         slotsHit = true;
-        ev(s, 'slot', x1, y1, undefined, undefined, t0 + dur);
+        ev(s, 'slot', x1, y1, undefined, undefined, t0 + dur, e.lost);
       }
       continue;
     }
@@ -560,7 +569,7 @@ function playRec(s: ShopState, rec: RE[]) {
     if (e.k === 'done') {
       const tc = s.ready[e.bi] + 4;
       s.lv.push({ col: e.col, bi: e.bi, t0: tc });
-      ev(s, 'done', boxX(L, e.bi), BOX_Y, undefined, undefined, tc);
+      ev(s, 'done', boxX(L, e.bi), BOX_Y, undefined, COLS[e.col], tc + 8); // 🎨: 뚜껑이 닿는 순간
       s.vb[e.bi] = { col: e.next, t0: tc + 22, land: [Infinity, Infinity, Infinity] };
       s.ready[e.bi] = tc + 34;
       continue;
@@ -1007,7 +1016,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     drawPlank(ctx, s, k, plankXf(s, k), X, Y, R, t);
     for (const i of L.ps[k]) {
       if ((S.gone >> i) & 1) continue;
-      drawScrew(ctx, X(L.px[i]), Y(L.py[i]), R(SR), L.col[i], 0, { lock: !S.key && !!((L.lockM >> i) & 1), key: !!((L.keyM >> i) & 1), t, hot: i === pressK, tick: L.tmr[i] ? L.tmr[i] - S.taps : 0 });
+      drawScrew(ctx, X(L.px[i]), Y(L.py[i]), R(SR) * (i === pressK ? 0.9 : 1), L.col[i], 0, { lock: !S.key && !!((L.lockM >> i) & 1), key: !!((L.keyM >> i) & 1), t, hot: i === pressK, tick: L.tmr[i] ? L.tmr[i] - S.taps : 0 });
     }
   }
   // 못 날개 경고: 나사 하나 남은 못 판자가 매달릴 자리와 거기 깔릴 나사(⚠)를 늘 흐리게
@@ -1071,7 +1080,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       const q = u / f.spin;
       x = f.x0;
       y = f.y0 - 0.012 * q;
-      sc = 1 + 0.35 * q;
+      sc = 1.2 + 0.15 * q; // 🎨: 떼는 첫 프레임에 바로 1.2
       rot = u * 0.9;
       // 나사산 (빠져나오는 몸통)
       ctx.fillStyle = '#9aa3ad';
@@ -1118,29 +1127,53 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     fx.pop(Math.max(hw, Math.min(w - hw, x)), y, text, col, size);
   };
   const seenT = fx.memo.t ?? -1;
+  let reveals = 0;
+  // 누름 첫 틱: '딸' (🎨)
+  if (pressK >= 0 && fx.memo.pk !== pressK && t > seenT) cue('press');
+  fx.memo.pk = pressK;
   for (const e of s.events) {
-    const due = e.v !== undefined && ['in', 'slot', 'pull', 'done', 'swing', 'fall', 'boing', 'key', 'jam', 'streak', 'tick', 'reveal'].includes(e.kind) ? e.v : e.t;
+    const due = e.v !== undefined && ['in', 'slot', 'pull', 'done', 'swing', 'fall', 'boing', 'key', 'jam', 'streak', 'tick', 'reveal', 'twist', 'pluck'].includes(e.kind) ? e.v : e.t;
     if (due <= seenT || due > t) continue;
     const x = X(e.x), y = Y(e.y);
-    if (e.kind === 'reveal') fx.ring(x, y, '#fff6a8', R(0.06), 3), fx.burst(x, y, '#fff6a8', 6, 1.6, 1.5), e.text && fx.pop(x + R(0.03), y - R(0.04), e.text, e.col!, 16);
-    if (e.kind === 'in') fx.burst(x, y, '#fff3b0', 10, 2.2, 1.8);
-    if (e.kind === 'pull') fx.burst(x, y, '#c8f7c5', 10, 2.2, 1.8), fx.ring(X(e.x), Y(TRAY_Y), '#c8f7c5', R(0.05), 2);
-    if (e.kind === 'slot') fx.burst(x, y, '#d6dde6', 6, 1.6, 1.6), fx.kick(1.5);
-    if (e.kind === 'done') fx.burst(x, y, '#ffe066', 22, 4, 2.6), fx.ring(x, y, '#ffe066', R(0.16), 4), fx.kick(2.5);
-    if (e.kind === 'swing') fx.ring(x, y, '#fff3c4', R(0.07), 3), say(x + R(0.05), y - R(0.05), e.text!, e.col!, 14);
-    if (e.kind === 'fall') fx.kick(6), fx.burst(x, Y(1.2), '#e8cfa0', 22, 3.6, 2.6), say(x, Math.min(y, Y(1.05)), e.text!, e.col!, 20);
-    if (e.kind === 'boing') fx.ring(x, y, '#ffd6a8', R(0.1), 5), fx.kick(4), say(x, y - R(0.05), e.text!, e.col!, 18), fx.burst(x, y, '#ffb36b', 16, 3.4, 2.4);
-    if (e.kind === 'tick') fx.burst(x, y, '#ffb36b', 14, 3, 2.2), fx.kick(3), say(x, y + R(0.07), e.text!, e.col!, 15);
-    if (e.kind === 'key') fx.blink('#fff1a8', 0.25), say(w / 2, Y(0.62), e.text!, e.col!, 17);
-    if (e.kind === 'jam') fx.kick(8), fx.blink(th.hot, 0.25), fx.ring(X(0.5), Y(TRAY_Y), '#ff6a5a', R(0.3), 6);
-    if (e.kind === 'streak') fx.pop(X(0.82), Y(1.27), e.text!, e.col!, 16);
-    if (e.kind === 'blocked' || e.kind === 'locked') say(x, y - R(0.06), e.text!, e.col!, 15), fx.kick(2);
+    if (e.kind === 'reveal') fx.ring(x, y, '#fff6a8', R(0.06), 3), fx.burst(x, y, '#fff6a8', 6, 1.6, 1.5), e.text && fx.pop(x + R(0.03), y - R(0.04), e.text, e.col!, 16), cue('reveal', reveals++);
+    if (e.kind === 'twist') fx.ring(x, y, '#ffffff', R(0.06), 2), fx.burst(x, y, '#eef2f6', 4, 2, 1.4), cue('twist');
+    if (e.kind === 'pluck') fx.ring(x, y, '#fff3c4', R(0.045), 2), fx.burst(x, y, e.col!, 6, 2.4, 1.8), fx.burst(x, y, '#ffffff', 3, 2, 1.2), cue('pluck');
+    if (e.kind === 'in') {
+      // 🎨 §3 연속 쏙: 음계가 오르고, 상자 앞에 숫자가 커지며 뜬다
+      const n = e.n ?? 1;
+      fx.burst(x, y, e.col!, 8, 2.6, 2.2), fx.burst(x, y, '#ffffff', 4, 2.6, 2.2), fx.hold(n >= 5 ? 3 : 2), cue('in', n);
+      if (n >= 5) fx.burst(x, y, '#ffd166', 4, 3, 2.2);
+      if (n >= 8) fx.kick(1.5);
+      if (n >= 2) {
+        const C = d.C, txt = n === C ? `★ 연속 ${n}!` : n >= 11 ? `${n} 🔥` : n >= 8 ? `${n} 착착착!` : n === 5 ? '5 착착!' : String(n);
+        const col = n === C || (n > 5 && n < 8) ? '#ffd166' : n >= 8 ? '#ffb347' : n === 5 ? '#ffd166' : n >= 3 ? '#bff7c4' : '#fff6e0';
+        fx.pop(Math.max(R(0.1), Math.min(w - R(0.1), x)), Y(BOX_Y + 0.03), txt, col, Math.min(36, 14 + 2.6 * n), true);
+        if (n === C) fx.burst(x, y, '#ffd166', 12, 3.4, 2.4), fx.ring(x, y, '#ffd166', R(0.1), 3);
+      }
+    }
+    if (e.kind === 'pull') fx.burst(x, y, '#c8f7c5', 10, 2.2, 1.8), fx.ring(X(e.x), Y(TRAY_Y), '#c8f7c5', R(0.05), 2), cue('pull');
+    if (e.kind === 'slot') {
+      fx.burst(x, y, '#d6dde6', 6, 1.6, 1.6), fx.kick(1), cue('slot');
+      if ((e.n ?? 0) >= 3) say(x, y + R(0.06), `연속 ${e.n} 끝`, '#d8c3a5', 13), cue('brk');
+    }
+    if (e.kind === 'done') fx.burst(x, y, e.col!, 16, 4, 2.6), fx.burst(x, y, '#ffe066', 10, 4, 2.6), fx.ring(x, y, '#ffe066', R(0.16), 4), fx.kick(4), fx.hold(4), cue('done'); // '딸깍!' 글자는 연속 숫자와 겹쳐 뺐다(✏️ → 🎨)
+    if (e.kind === 'swing') fx.ring(x, y, '#ffffff', R(0.09), 3), fx.burst(x, y, '#e8cfa0', 6, 1.8, 1.8), say(x + R(0.05), y - R(0.05), e.text!, e.col!, 20), cue('swing');
+    if (e.kind === 'fall') fx.kick(1.5), say(x, Math.min(y, Y(1.05)), e.text!, e.col!, 20), cue('fall');
+    if (e.kind === 'boing') fx.ring(x, y, '#ffd6a8', R(0.1), 5), fx.kick(4), fx.hold(4), say(x, y - R(0.05), e.text!, e.col!, 18), fx.burst(x, y, '#ffb36b', 16, 3.4, 2.4), cue('boing');
+    if (e.kind === 'tick') fx.burst(x, y, '#ffb36b', 14, 3, 2.2), fx.kick(3), fx.hold(2), say(x, y + R(0.07), e.text!, e.col!, 15), cue('tick');
+    if (e.kind === 'key') fx.blink('#fff1a8', 0.25), say(w / 2, Y(0.62), e.text!, e.col!, 17), cue('key');
+    // 🎨: 실패는 벌이 아니라 웃음 — 빨간 번쩍을 빼고 쟁반 나사가 '뻥' 튀어 오른다
+    if (e.kind === 'jam') {
+      fx.kick(4), fx.ring(X(0.5), Y(TRAY_Y), '#ffb36b', R(0.3), 6), cue('jam');
+      S.slots.forEach((c, i) => fx.burst(X(slotXY(i)[0]), Y(TRAY_Y), COLS[c], 2, 3, 4));
+    }
+    if (e.kind === 'blocked' || e.kind === 'locked') say(x, y - R(0.06), e.text!, e.col!, 15), cue('blocked');
     if (e.kind === 'miss') say(x, y, e.text!, e.col!, 14);
     if (e.kind === 'stage') fx.blink('#fff6d6', 0.18);
     if (e.kind === 'clear') {
-      fx.burst(X(0.5), Y(0.75), '#ffe066', 46, 6, 3.2), fx.burst(X(0.5), Y(0.75), '#ff8fb1', 30, 5, 3), fx.ring(X(0.5), Y(0.75), '#ffe066', R(0.35), 6), fx.blink('#fff6c8', 0.25);
+      fx.burst(X(0.5), Y(0.75), '#ffe066', 46, 6, 3.2), fx.burst(X(0.5), Y(0.75), '#ff8fb1', 30, 5, 3), fx.ring(X(0.5), Y(0.75), '#ffe066', R(0.35), 6), fx.blink('#fff6c8', 0.25), fx.hold(6), cue('clear');
     }
-    if (e.kind === 'fail') fx.kick(9), fx.blink(th.hot, 0.22);
+    if (e.kind === 'fail') fx.kick(3), fx.blink('#ffe0b0', 0.1), cue('fail');
   }
   fx.memo.t = t;
   // 떨어진 판자가 작업대에 '덜컹'
@@ -1148,8 +1181,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     const f = s.pv[k].fall;
     if (f && f.hit === 1 && (fx.memo['hit' + k] ?? -1) !== s.startT) {
       fx.memo['hit' + k] = s.startT;
-      fx.kick(5);
-      fx.burst(X(f.x), Y(1.2), '#e9d3a6', 18, 3, 2.4);
+      // 🎨: 덜컹은 작업대에 닿을 때 크게 — 큰 판자일수록 낮은 쿵
+      const P = L.pl[k];
+      fx.kick(7), fx.hold(3), cue('thud', Math.max(85, Math.min(160, 170 - 600 * Math.sqrt(P.hx * P.hy))));
+      fx.burst(X(f.x), Y(1.2), '#e9d3a6', 26, 3.6, 2.6);
     }
   }
   ctx.restore();
@@ -1176,7 +1211,7 @@ function drawShelf(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =
       drawBox(ctx, X(boxX(L, l.bi)), Y(BOX_Y), R, l.col, 3, 0, 1, t);
       continue;
     }
-    const lid = Math.min(1, u / 8), up = Math.max(0, u - 10);
+    const lid = Math.min(1, (u / 8) ** 2), up = Math.max(0, u - 10); // 🎨: 뚜껑 가속 하강
     drawBox(ctx, X(boxX(L, l.bi) + up * up * 0.0011), Y(BOX_Y - Math.sin(Math.min(1, up / 6) * Math.PI) * 0.012), R, l.col, 3, lid, 1 - Math.max(0, (up - 18) / 14), t);
     if (u < 26) {
       font(0.045, 900);
@@ -2263,7 +2298,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
         font(0.08 * sc, 900);
         ctx.fillStyle = got ? '#ffd166' : 'rgba(255,255,255,.35)';
         ctx.fillText(got ? '★' : '☆', w / 2 + (k - 1) * R(0.1), Y(0.75));
-        if (got && (juice(s).memo['star' + k] ?? -1) < s.clearT) (juice(s).memo['star' + k] = s.clearT), juice(s).burst(w / 2 + (k - 1) * R(0.1), Y(0.75), '#ffe066', 14, 3, 2.4);
+        if (got && (juice(s).memo['star' + k] ?? -1) < s.clearT) (juice(s).memo['star' + k] = s.clearT), juice(s).burst(w / 2 + (k - 1) * R(0.1), Y(0.75), '#ffe066', k === 2 ? 28 : 14, 3, 2.4), cue('star', k);
       }
       font(0.036, 800);
       ctx.fillStyle = '#ffffff';

@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { STAGES, screwshop as g, screwshopSmart, startStage } from '../studio/screwshop/game.ts';
+import { STAGES, setCue, screwshop as g, screwshopSmart, startStage } from '../studio/screwshop/game.ts';
+import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { measure, tryStage } from '../studio/screwshop/funqa.ts';
 
 describe('나사 풀기 공방 시뮬', () => {
@@ -48,6 +49,24 @@ describe('나사 풀기 공방 시뮬', () => {
   });
 });
 
+describe('손맛 (🎨 ART §2 — 오너 "쾌감이 좀 부족해")', () => {
+  it('시작 전에는 AudioContext를 만들지 않고, 시뮬레이션은 소리를 부르지 않는다(봇·결정성 무관)', () => {
+    let calls = 0;
+    setCue(() => calls++);
+    runBot(g, screwshopSmart, 5, 60 * 60);
+    setCue(() => {});
+    expect(calls).toBe(0);
+    expect(sfx.made).toBe(false);
+  });
+  it('연속 쏙 음계는 C5에서 C7까지 오르고 그 위는 고정', () => {
+    expect(Math.round(streakHz(1))).toBe(523);
+    expect(Math.round(streakHz(6))).toBe(1047);
+    expect(Math.round(streakHz(11))).toBe(2093);
+    expect(streakHz(20)).toBe(streakHz(11));
+    for (let n = 1; n < 11; n++) expect(streakHz(n + 1)).toBeGreaterThan(streakHz(n));
+  });
+});
+
 describe('플레이 빌드', () => {
   const f = 'web/public/studio/screwshop/index.html';
   it('web/public/studio/screwshop/index.html이 있고 번들이 들어 있다', () => {
@@ -55,6 +74,7 @@ describe('플레이 빌드', () => {
     const html = readFileSync(f, 'utf8');
     expect(html).not.toContain('/*BUNDLE*/');
     expect(html).toContain('나사 풀기 공방');
+    expect(html).toContain('id="sound"');
     expect(gzipSync(html).length).toBeLessThan(120 * 1024);
   });
 });

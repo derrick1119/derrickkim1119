@@ -3,8 +3,9 @@
  * 시뮬레이션과 같은 코드로 60fps 고정 틱. 조작: 나사를 누르고 있으면 미리 보기, 떼면 풀기 · 화살표로 커서 + 스페이스.
  */
 import { TICK, type Input } from './core.ts';
-import { peek } from './juice.ts';
-import { STAGES, screwshop as g, type ShopState } from './game.ts';
+import { juice, peek } from './juice.ts';
+import { sfx } from './sfx.ts';
+import { STAGES, setCue, screwshop as g, type ShopState } from './game.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('screwshop:' + k) ?? 0); } catch { return 0; } },
@@ -26,7 +27,37 @@ const aspect = g.aspect ?? 1.45;
 let s: ShopState = g.create(1), running = false, acc = 0, last = 0, keyboard = false, spaceDown = false;
 let pointer: { x: number; y: number } | null = null, latch: { x: number; y: number } | null = null, cursor = { x: 0.5, y: 0.6 };
 const keys = new Set<string>();
-let W = 0, H = 0;
+let W = 0, H = 0, steps = 0, slow = false; // slow: 슬로모 틱 번갈이(프레임을 넘어 유지해야 한다 — 프레임마다 되돌리면 60Hz에서 멈춘다)
+const calm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// 소리·진동 (🎨 ART §5): 헤더 오른쪽 🔊 · 📳(진동 API가 있을 때만). 저장, M키. 첫 소리는 '시작' 누름에서
+setCue((c, v) => sfx.play(c, v));
+sfx.muted = store.get('mute') === 1;
+sfx.noBuzz = store.get('nobuzz') === 1;
+const soundBtn = document.getElementById('sound') as HTMLButtonElement, buzzBtn = document.getElementById('buzz') as HTMLButtonElement;
+buzzBtn.hidden = typeof navigator.vibrate !== 'function';
+function showToggles() {
+  soundBtn.textContent = sfx.muted ? '🔇' : '🔊';
+  soundBtn.setAttribute('aria-pressed', String(!sfx.muted));
+  soundBtn.setAttribute('aria-label', sfx.muted ? '소리 켜기' : '소리 끄기');
+  buzzBtn.style.opacity = sfx.noBuzz ? '.4' : '1';
+  buzzBtn.setAttribute('aria-pressed', String(!sfx.noBuzz));
+}
+function toggleSound() {
+  sfx.setMuted(!sfx.muted);
+  store.set('mute', sfx.muted ? 1 : 0);
+  if (!sfx.muted) sfx.wake(), sfx.play('in', 1); // 켜는 누름도 사용자 입력 — 미리 듣기 쏙
+  showToggles();
+}
+soundBtn.addEventListener('click', toggleSound);
+buzzBtn.addEventListener('click', () => {
+  sfx.noBuzz = !sfx.noBuzz;
+  store.set('nobuzz', sfx.noBuzz ? 1 : 0);
+  if (!sfx.noBuzz) sfx.wake(), sfx.buzz('done');
+  showToggles();
+});
+showToggles();
+document.addEventListener('visibilitychange', () => (document.hidden ? sfx.sleep() : running && sfx.wake()));
 
 function size() {
   const dpr = window.devicePixelRatio || 1;
@@ -44,7 +75,8 @@ function size() {
 
 function draw() {
   g.draw(ctx, s, W, H, g.art!.palette);
-  peek(s)?.render(ctx, W, H); // 공용 연출은 여기서 한 번에
+  peek(s)?.render(ctx, W, H, steps); // 공용 연출은 여기서 한 번에 — 이번 프레임에 흐른 1/60초 조각 수만큼만 움직인다(120Hz 폰 보정)
+  steps = 0;
   if (keyboard && running) {
     ctx.strokeStyle = spaceDown ? '#ffffff' : 'rgba(255,255,255,.7)';
     ctx.lineWidth = 2;
@@ -68,7 +100,11 @@ function title() {
 }
 
 function start() {
-  s = g.create((Date.now() % 1_000_000) + 1);
+  sfx.wake(); // 첫 AudioContext는 여기서(자동재생 정책)
+  sfx.play('press');
+  const fixed = Number(new URLSearchParams(location.search).get('seed')); // ?seed=N: 같은 판 다시 보기(스크린샷·버그 제보)
+  s = g.create(fixed > 0 ? fixed : (Date.now() % 1_000_000) + 1);
+  juice(s).calm = calm;
   running = true;
   overlay.hidden = true;
   acc = 0;
@@ -92,6 +128,16 @@ function loop(now: number) {
   acc += Math.min(0.25, (now - last) / 1000);
   last = now;
   while (acc >= TICK) {
+    acc -= TICK;
+    steps++;
+    // 히트스톱(🎨): 시뮬만 멈추고 연출은 흐른다. 누른 입력은 latch에 남아 다음 틱에 들어간다
+    const j = peek(s);
+    if (j?.stop) {
+      j.stop--;
+      continue;
+    }
+    // 마지막 나사 슬로모(🎨): 판이 다 풀리는 순간 40틱을 0.5배로
+    if (s.phase === 'settle' && s.ok && s.pt < 40 && !calm && (slow = !slow)) continue;
     const kx = (keys.has('ArrowRight') ? 1 : 0) - (keys.has('ArrowLeft') ? 1 : 0), ky = (keys.has('ArrowDown') ? 1 : 0) - (keys.has('ArrowUp') ? 1 : 0);
     cursor = { x: Math.max(0, Math.min(1, cursor.x + kx * 0.012)), y: Math.max(0, Math.min(1, cursor.y + ky * 0.012)) };
     if (spaceDown) pointer = { ...cursor };
@@ -99,7 +145,6 @@ function loop(now: number) {
     const input: Input = { tap: false, dir: 0, pointer: pointer ?? latch };
     latch = null;
     g.step(s, input);
-    acc -= TICK;
     if (g.over(s)) return end();
   }
   draw();
@@ -120,6 +165,10 @@ canvas.addEventListener('pointermove', (e) => void (pointer && e.buttons && (poi
 canvas.addEventListener('pointerleave', () => void (pointer = null));
 window.addEventListener('pointerup', () => void (pointer = null));
 window.addEventListener('pointercancel', () => void (pointer = null));
+window.addEventListener('pointerup', () => running && sfx.wake());
+window.addEventListener('keydown', (e) => {
+  if ((e.key === 'm' || e.key === 'M') && !e.repeat) toggleSound();
+});
 canvas.addEventListener('keydown', (e) => {
   if (e.key === ' ' || e.key.startsWith('Arrow') || e.key === 'Enter') e.preventDefault();
   if (!running) return;

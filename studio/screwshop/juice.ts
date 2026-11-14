@@ -7,7 +7,7 @@
  * 상태 객체마다 하나씩 WeakMap에 붙어서, 새 판이 시작되면 자동으로 새로 생긴다.
  */
 interface Particle { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number }
-interface Popup { x: number; y: number; text: string; color: string; life: number; size: number }
+interface Popup { x: number; y: number; text: string; color: string; life: number; size: number; punch?: boolean }
 
 export class Juice {
   particles: Particle[] = [];
@@ -15,6 +15,10 @@ export class Juice {
   rings: { x: number; y: number; color: string; r: number; max: number; width: number; life: number }[] = [];
   shake = 0;
   flash = 0;
+  /** 히트스톱: 남은 멈춤 틱 수 — 플레이어(main.ts)가 시뮬 틱을 이만큼 건너뛴다 (🎨 ART §2) */
+  stop = 0;
+  /** 줄어든 움직임(prefers-reduced-motion): 흔들림·번쩍·멈춤을 줄인다 */
+  calm = false;
   flashColor = '#ffffff';
   /** 게임이 직전 프레임 값을 기억해 두는 곳 (예: 지난번 처치 수 → 늘었으면 터뜨리기) */
   memo: Record<string, number> = {};
@@ -43,8 +47,8 @@ export class Juice {
   }
 
   /** 떠오르는 글자 (+1, 연쇄!, 건설!) */
-  pop(x: number, y: number, text: string, color = '#ffffff', size = 16) {
-    this.popups.push({ x, y, text, color, life: 50, size });
+  pop(x: number, y: number, text: string, color = '#ffffff', size = 16, punch = false) {
+    this.popups.push({ x, y, text, color, life: 50, size, punch });
     if (this.popups.length > 30) this.popups.shift();
   }
 
@@ -56,26 +60,44 @@ export class Juice {
 
   /** 화면 흔들림 */
   kick(amount: number) {
-    this.shake = Math.max(this.shake, amount);
+    this.shake = Math.max(this.shake, amount * (this.calm ? 0.3 : 1));
+  }
+
+  /** 히트스톱 n틱 */
+  hold(n: number) {
+    if (!this.calm) this.stop = Math.max(this.stop, n);
   }
 
   /** 화면 번쩍 */
   blink(color = '#ffffff', amount = 0.35) {
-    this.flash = Math.max(this.flash, amount);
+    this.flash = Math.max(this.flash, amount * (this.calm ? 0.3 : 1));
     this.flashColor = color;
   }
 
   /** 그리기 전에 부른다: 흔들림 오프셋을 적용한다 (ctx.save가 되어 있어야 함) */
   begin(ctx: CanvasRenderingContext2D) {
     if (this.shake > 0.3) ctx.translate((this.rand() - 0.5) * this.shake * 2, (this.rand() - 0.5) * this.shake * 2);
+  }
+
+  /** 1/60초 한 조각만큼 움직인다 (🎨: 120Hz 폰에서 파티클이 2배 빨리 사라지던 것 — 화면 프레임이 아니라 시간으로) */
+  private advance() {
     this.shake *= 0.86;
+    for (const r of this.rings) (r.life--, (r.r += (r.max - r.r) * 0.18));
+    for (const p of this.particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.94;
+      p.vy = p.vy * 0.94 + 0.05;
+      p.life--;
+    }
+    for (const t of this.popups) (t.life--, (t.y -= 0.7));
+    this.flash *= 0.82;
   }
 
   /** 다 그린 뒤 부른다: 파티클·글자·번쩍을 덧그린다 */
-  render(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  render(ctx: CanvasRenderingContext2D, w: number, h: number, steps = 1) {
+    for (let k = 0; k < steps; k++) this.advance();
     for (const r of this.rings) {
-      r.life--;
-      r.r += (r.max - r.r) * 0.18;
       ctx.globalAlpha = Math.max(0, r.life / 24);
       ctx.strokeStyle = r.color;
       ctx.lineWidth = r.width * (r.life / 24) + 0.5;
@@ -85,11 +107,6 @@ export class Juice {
     }
     this.rings = this.rings.filter((r) => r.life > 0);
     for (const p of this.particles) {
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vx *= 0.94;
-      p.vy = p.vy * 0.94 + 0.05;
-      p.life--;
       ctx.globalAlpha = Math.max(0, p.life / p.max);
       ctx.fillStyle = p.color;
       ctx.beginPath();
@@ -100,10 +117,9 @@ export class Juice {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (const t of this.popups) {
-      t.life--;
-      t.y -= 0.7;
+      const age = 50 - t.life, punch = t.punch && age < 6 ? 1 + 0.6 * (1 - age / 6) : 1;
       ctx.globalAlpha = Math.min(1, t.life / 20);
-      ctx.font = `800 ${t.size}px system-ui, sans-serif`;
+      ctx.font = `800 ${t.size * punch}px system-ui, sans-serif`;
       ctx.lineWidth = 3;
       ctx.strokeStyle = 'rgba(0,0,0,.45)';
       ctx.strokeText(t.text, t.x, t.y);
@@ -115,7 +131,6 @@ export class Juice {
       ctx.globalAlpha = this.flash;
       ctx.fillStyle = this.flashColor;
       ctx.fillRect(0, 0, w, h);
-      this.flash *= 0.82;
     }
     ctx.globalAlpha = 1;
   }
