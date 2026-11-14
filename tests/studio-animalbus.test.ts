@@ -140,7 +140,7 @@ describe('판 재배치 1차 (C003, M1-4a)', () => {
     expect(T.eleBench).toBe(1);
   });
   it('판 고르기가 남긴 기록: 못 지킨 조건은 정해진 이름만', () => {
-    for (let i = 0; i < STAGES.length; i++) for (const f of layoutFor(1000, i).relax) expect(['block1', 'bot3', 'follow1', 'greedy1', 'width', 'fallback']).toContain(f);
+    for (let i = 0; i < STAGES.length; i++) for (const f of layoutFor(1000, i).relax) expect(['bot3', 'follow1', 'greedy1', 'width', 'fallback']).toContain(f);
   });
 });
 

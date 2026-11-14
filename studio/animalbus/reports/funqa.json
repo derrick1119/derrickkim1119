@@ -1,6 +1,7 @@
 {
  "at": "2026-11-14",
  "seeds": 12,
+ "dseeds": 48,
  "stages": [
   {
    "stage": 1,
@@ -33,7 +34,7 @@
    },
    "habit": {
     "win": 1,
-    "star3": 0.917,
+    "star3": 0.75,
     "sec": 8.4
    },
    "random": {
@@ -49,17 +50,17 @@
    "smart": {
     "win": 1,
     "star3": 1,
-    "sec": 11.7
+    "sec": 12.1
    },
    "habit": {
-    "win": 1,
-    "star3": 0.083,
-    "sec": 12.2
-   },
-   "random": {
     "win": 0.417,
     "star3": 0,
-    "sec": 60.2
+    "sec": 8.1
+   },
+   "random": {
+    "win": 0.167,
+    "star3": 0,
+    "sec": 41.1
    }
   },
   {
@@ -69,17 +70,17 @@
    "smart": {
     "win": 1,
     "star3": 1,
-    "sec": 14
+    "sec": 12.4
    },
    "habit": {
-    "win": 1,
+    "win": 0.917,
     "star3": 0,
-    "sec": 15
+    "sec": 12.2
    },
    "random": {
     "win": 0.25,
     "star3": 0,
-    "sec": 59.5
+    "sec": 64.9
    }
   },
   {
@@ -89,17 +90,17 @@
    "smart": {
     "win": 1,
     "star3": 1,
-    "sec": 14.5
+    "sec": 12.5
    },
    "habit": {
-    "win": 0.75,
+    "win": 1,
     "star3": 0,
-    "sec": 12.4
+    "sec": 12.7
    },
    "random": {
-    "win": 0,
+    "win": 0.5,
     "star3": 0,
-    "sec": 37.4
+    "sec": 82.1
    }
   },
   {
@@ -109,17 +110,17 @@
    "smart": {
     "win": 1,
     "star3": 1,
-    "sec": 12.9
+    "sec": 12.5
    },
    "habit": {
-    "win": 0.583,
+    "win": 0.833,
     "star3": 0,
-    "sec": 10
+    "sec": 11.6
    },
    "random": {
     "win": 0.083,
     "star3": 0,
-    "sec": 38.5
+    "sec": 51
    }
   },
   {
@@ -129,17 +130,17 @@
    "smart": {
     "win": 1,
     "star3": 1,
-    "sec": 16.7
+    "sec": 16.9
    },
    "habit": {
-    "win": 0.75,
+    "win": 0.5,
     "star3": 0,
-    "sec": 14.4
+    "sec": 11
    },
    "random": {
-    "win": 0.083,
+    "win": 0,
     "star3": 0,
-    "sec": 62.7
+    "sec": 54.2
    }
   },
   {
@@ -149,17 +150,17 @@
    "smart": {
     "win": 1,
     "star3": 1,
-    "sec": 14.7
+    "sec": 14.8
    },
    "habit": {
-    "win": 0.667,
+    "win": 0.583,
     "star3": 0,
     "sec": 11.9
    },
    "random": {
-    "win": 0.083,
+    "win": 0,
     "star3": 0,
-    "sec": 43.2
+    "sec": 49.8
    }
   }
  ],
@@ -167,20 +168,26 @@
   {
    "stage": 1,
    "name": "첫 버스",
+   "mis": "combo",
    "habit": {
     "win": 1,
     "star3": 1,
-    "taps": 5.4
+    "taps": 5.3
    },
    "follow": {
     "win": 1,
     "star3": 1,
-    "taps": 5.4
+    "taps": 5.3
    },
    "greedy": {
     "win": 1,
     "star3": 1,
-    "taps": 5.4
+    "taps": 5.3
+   },
+   "greedy2": {
+    "win": 1,
+    "star3": 0.958,
+    "taps": 5.2
    },
    "honest": {
     "win": 1,
@@ -188,195 +195,268 @@
     "taps": 5.3
    },
    "animals": 9,
-   "width": 1
+   "width": 1,
+   "relax": {},
+   "density": 0
   },
   {
    "stage": 2,
    "name": "대기 의자",
+   "mis": "combo",
    "habit": {
     "win": 1,
-    "star3": 0.917,
-    "taps": 7.7
+    "star3": 0.75,
+    "taps": 7.9
    },
    "follow": {
     "win": 1,
-    "star3": 1,
-    "taps": 7.8
+    "star3": 0.729,
+    "taps": 7.9
    },
    "greedy": {
     "win": 1,
-    "star3": 1,
-    "taps": 7.4
+    "star3": 0.875,
+    "taps": 7.7
+   },
+   "greedy2": {
+    "win": 1,
+    "star3": 0.771,
+    "taps": 7.7
    },
    "honest": {
     "win": 1,
     "star3": 1,
-    "taps": 7.8
+    "taps": 7.9
    },
    "animals": 12,
-   "width": 1
+   "width": 0.509,
+   "relax": {},
+   "density": 0.635
   },
   {
    "stage": 3,
    "name": "큰 코끼리",
+   "mis": "ele",
    "habit": {
-    "win": 1,
-    "star3": 0.083,
-    "taps": 12.4
+    "win": 0.521,
+    "star3": 0,
+    "taps": 10.8
    },
    "follow": {
-    "win": 1,
-    "star3": 0.083,
-    "taps": 12.3
+    "win": 0.938,
+    "star3": 0,
+    "taps": 12.6
    },
    "greedy": {
+    "win": 0.958,
+    "star3": 0.021,
+    "taps": 12.9
+   },
+   "greedy2": {
     "win": 1,
-    "star3": 0.833,
-    "taps": 11.1
+    "star3": 0.208,
+    "taps": 12.4
    },
    "honest": {
     "win": 1,
     "star3": 1,
-    "taps": 11.9
+    "taps": 13.1
    },
    "animals": 16,
-   "width": 0.882
+   "width": 0.856,
+   "relax": {
+    "width": 41,
+    "bot3": 1,
+    "greedy1": 2,
+    "follow1": 3
+   },
+   "density": 0.155
   },
   {
    "stage": 4,
    "name": "잠꾸러기",
+   "mis": "combo",
    "habit": {
-    "win": 1,
+    "win": 0.854,
     "star3": 0,
-    "taps": 16.8
+    "taps": 13.9
    },
    "follow": {
-    "win": 0.917,
-    "star3": 0.167,
-    "taps": 16
+    "win": 1,
+    "star3": 0,
+    "taps": 14.4
    },
    "greedy": {
     "win": 1,
-    "star3": 0.5,
-    "taps": 14.1
+    "star3": 0,
+    "taps": 13.6
+   },
+   "greedy2": {
+    "win": 1,
+    "star3": 0.104,
+    "taps": 13.5
    },
    "honest": {
     "win": 1,
     "star3": 1,
-    "taps": 14.7
+    "taps": 14
    },
-   "animals": 21,
-   "width": 0.972
+   "animals": 18,
+   "width": 0.69,
+   "relax": {
+    "width": 27
+   },
+   "density": 0.477
   },
   {
    "stage": 5,
    "name": "우비 친구",
+   "mis": "combo",
    "habit": {
-    "win": 0.75,
-    "star3": 0,
-    "taps": 15.1
-   },
-   "follow": {
-    "win": 0.833,
-    "star3": 0.083,
-    "taps": 16.2
-   },
-   "greedy": {
     "win": 1,
-    "star3": 0.75,
-    "taps": 16.5
-   },
-   "honest": {
-    "win": 1,
-    "star3": 1,
-    "taps": 17.3
-   },
-   "animals": 21,
-   "width": 0.986
-  },
-  {
-   "stage": 6,
-   "name": "2층 버스",
-   "habit": {
-    "win": 0.583,
-    "star3": 0,
-    "taps": 13
-   },
-   "follow": {
-    "win": 0.667,
-    "star3": 0.333,
-    "taps": 13.7
-   },
-   "greedy": {
-    "win": 1,
-    "star3": 0.833,
-    "taps": 14.9
-   },
-   "honest": {
-    "win": 1,
-    "star3": 1,
-    "taps": 15.4
-   },
-   "animals": 21,
-   "width": 0.931
-  },
-  {
-   "stage": 7,
-   "name": "분수 광장",
-   "habit": {
-    "win": 0.75,
-    "star3": 0,
-    "taps": 16.4
-   },
-   "follow": {
-    "win": 0.667,
-    "star3": 0.167,
-    "taps": 15.8
-   },
-   "greedy": {
-    "win": 0.917,
-    "star3": 0.667,
-    "taps": 17.8
-   },
-   "honest": {
-    "win": 1,
-    "star3": 1,
-    "taps": 19.1
-   },
-   "animals": 23,
-   "width": 0.967
-  },
-  {
-   "stage": 8,
-   "name": "퇴근길",
-   "habit": {
-    "win": 0.667,
     "star3": 0,
     "taps": 14.4
    },
    "follow": {
-    "win": 0.5,
-    "star3": 0.25,
-    "taps": 13.3
+    "win": 1,
+    "star3": 0,
+    "taps": 14.1
    },
    "greedy": {
-    "win": 0.917,
-    "star3": 0.583,
-    "taps": 15.7
+    "win": 1,
+    "star3": 0,
+    "taps": 13.6
+   },
+   "greedy2": {
+    "win": 0.979,
+    "star3": 0.188,
+    "taps": 13.5
+   },
+   "honest": {
+    "win": 1,
+    "star3": 0.979,
+    "taps": 13.8
+   },
+   "animals": 18,
+   "width": 0.92,
+   "relax": {
+    "width": 44
+   },
+   "density": 0.199
+  },
+  {
+   "stage": 6,
+   "name": "2층 버스",
+   "mis": "combo",
+   "habit": {
+    "win": 0.771,
+    "star3": 0,
+    "taps": 13.8
+   },
+   "follow": {
+    "win": 1,
+    "star3": 0,
+    "taps": 15
+   },
+   "greedy": {
+    "win": 1,
+    "star3": 0,
+    "taps": 13.6
+   },
+   "greedy2": {
+    "win": 0.979,
+    "star3": 0.167,
+    "taps": 13.5
+   },
+   "honest": {
+    "win": 1,
+    "star3": 0.979,
+    "taps": 13.7
+   },
+   "animals": 21,
+   "width": 0.674,
+   "relax": {
+    "width": 30
+   },
+   "density": 0.541
+  },
+  {
+   "stage": 7,
+   "name": "분수 광장",
+   "mis": "combo",
+   "habit": {
+    "win": 0.521,
+    "star3": 0,
+    "taps": 14.9
+   },
+   "follow": {
+    "win": 1,
+    "star3": 0,
+    "taps": 20
+   },
+   "greedy": {
+    "win": 1,
+    "star3": 0,
+    "taps": 19.2
+   },
+   "greedy2": {
+    "win": 1,
+    "star3": 0.167,
+    "taps": 18.8
+   },
+   "honest": {
+    "win": 1,
+    "star3": 0.958,
+    "taps": 19.4
+   },
+   "animals": 23,
+   "width": 0.641,
+   "relax": {
+    "width": 23
+   },
+   "density": 0.744
+  },
+  {
+   "stage": 8,
+   "name": "퇴근길",
+   "mis": "combo",
+   "habit": {
+    "win": 0.667,
+    "star3": 0,
+    "taps": 14.9
+   },
+   "follow": {
+    "win": 1,
+    "star3": 0,
+    "taps": 17.9
+   },
+   "greedy": {
+    "win": 1,
+    "star3": 0,
+    "taps": 16.6
+   },
+   "greedy2": {
+    "win": 1,
+    "star3": 0.292,
+    "taps": 16.5
    },
    "honest": {
     "win": 1,
     "star3": 1,
-    "taps": 16.5
+    "taps": 17
    },
    "animals": 23,
-   "width": 0.938
+   "width": 0.784,
+   "relax": {
+    "width": 40
+   },
+   "density": 0.525
   }
  ],
  "full": {
-  "smart": 2920,
-  "habit": 1223.3,
-  "random": 456.7
+  "smart": 2930,
+  "habit": 976.7,
+  "random": 455
  },
- "skillGap": 6.39
+ "skillGap": 6.44
 }

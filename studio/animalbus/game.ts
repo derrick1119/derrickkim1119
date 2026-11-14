@@ -500,13 +500,11 @@ export function layoutFor(seed: number, si: number): Layout {
     L.sol = p2.seq;
     L.combo = Math.max(2, p2.best - d.cslack);
     L.habit = habitRun(L);
-    // C003 탈락 조건(📐 CONTENT §4, 📋 C002): 못 지킨 조건마다 감점 — 버릇·따라 하기·탐욕 ★3(−1000, 끝까지 지킴) › 따라 하기·탐욕 ★1 실패(−100 씩) › 2판 첫 버스 색이 처음부터 트임(−50) › 첫 수 ★3 정답 폭 10~50% 밖(−10~)
+    // C003 탈락 조건(📐 CONTENT §4, 📋 C002): 못 지킨 조건마다 감점 — 버릇·따라 하기·탐욕 ★3(−1000, 끝까지 지킴) › 따라 하기·탐욕 ★1 실패(−100 씩) › 첫 수 ★3 정답 폭 10~50% 밖(−10~)
     const fails: string[] = [];
     let sc = Math.min(3, L.habit.peak - p1.peak) * 3 + Math.min(3, p2.best - L.habit.best) * 3;
-    if (si === 1) {
-      if (moves(L, newSim(L)).some((i) => L.an[i].col === L.buses[0].col)) fails.push('block1'), (sc -= 50);
-      if (L.habit.ok && L.habit.peak <= L.par && missionOk(L, habitSim(L))) sc -= 100;
-    }
+    // (C003: 📐의 '2판 첫 버스 색이 처음부터 막힘'은 4×4 판에서 48판 중 0판 — 못 지키는 조건이 2판을 어렵게 고르게 해서(무작위 2판 0.92 → 0.50) 뺐다. 2판 재설계는 📐 C005)
+    if (si === 1 && L.habit.ok && L.habit.peak <= L.par && missionOk(L, habitSim(L))) sc -= 100;
     if (si >= 2) {
       const runs = [habit, follow, greedy].map((bot) => runSim(L, bot, 1));
       if (runs.some((x) => x.stars === 3)) fails.push('bot3'), (sc -= 1000);
