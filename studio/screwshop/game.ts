@@ -1570,6 +1570,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
     y = max(Y(BY0 + 0.1), min(Y(BY1 - 0.02), y));
+    if (s.news && t - s.news.t < NEWS_T + 20 && s.phase !== 'result') y = max(y, Y(BY0 + 0.062) + size * 0.6 + 36); // ✏️ S018(🧪 S017 65): 떠오르는 글(50틱 × 0.7)이 소식 띠에 닿지 않게
     for (let k = 0; k < 6 && rec.some((q) => t - q.t < 45 && abs(q.x - x) < w * 0.32 && abs(q.y - y) < size + 5); k++) y += size + 6;
     rec.push({ x, y, t });
     if (rec.length > 12) rec.shift();
@@ -2834,8 +2835,9 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
     const lx = X(max(0.2, min(0.8, x0))), ly = Y(max(BY0 + 0.1, y0 - 0.075));
     pl(ctx, lx, ly, lab, pre.S.fail ? '#ffb4a8' : first.k === 'box' ? '#c8ffc8' : '#ffffff', R(0.05));
   }
-  // ✏️ S016(🧪 S015 53 · 59): 먼저 놓인 알약과 겹치면 아래로 비킨다(최대 3번)
+  // ✏️ S016(🧪 S015 53 · 59): 먼저 놓인 알약과 겹치면 아래로 비킨다(최대 3번) · S018(🧪 S017 64 · 65): 쉬는 자세의 🔒 · 🔑 나사도 먼저 놓인 것
   const put: number[][] = [];
+  for (let i = 0; i < L.N; i++) if (((L.lockM | L.keyM) >> i) & 1 && !((s.S.gone >> i) & 1) && s.pv[L.owner[i]].pose === 0) put.push([X(L.px[i]), Y(L.py[i]), R(0.06), R(0.06)]);
   for (const [f, a] of Q) {
     ctx.font = f;
     const w = ctx.measureText(a[3]).width + 14, h = a[5];
