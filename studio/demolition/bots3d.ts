@@ -27,7 +27,9 @@ type Cache = ReturnType<typeof simCache>;
 
 /** 계획 모두: 손잡이 판(save)은 폭약 1개~주는 수까지, 아니면 주는 수를 다 써야 쾅 */
 export function plansOf(L: Layout3, d: StageDef3, f: (ch: Int8Array, plan: number[]) => void) {
-  for (let k = d.save !== undefined ? 1 : d.charges; k <= d.charges; k++) forEachPlan(L, k, f);
+  // 돌 반쪽(폭약 1개만 붙은 돌)은 게임에서 둘 수 없는 계획이라 뺀다(📐 C010: F7·꼭 필요한 톡이 부풀었다)
+  const whole = (ch: Int8Array) => ch.every((v, i) => !v || v === capOf3(L.blocks[i]));
+  for (let k = d.save !== undefined ? 1 : d.charges; k <= d.charges; k++) forEachPlan(L, k, (ch, plan) => whole(ch) && f(ch, plan));
 }
 
 /**

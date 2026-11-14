@@ -338,7 +338,8 @@ export function measureStage3(d: StageDef3) {
     const look2Star3 = look2(L, d, C), look2Fixed = look2(L, d, C, (i) => taps.includes(i) && raw[taps.indexOf(i)][0].hit >= 0.5), rotateValue = look2Star3 - look2Fixed;
     let f13 = 0;
     plansOf(L, d, (ch, plan) => {
-      if (simulate3(L, ch).stars === 3) f13 = Math.max(f13, Math.min(...plan.map((i) => hits[taps.indexOf(i)][0].hit)));
+      // 시작 시점 넓이 0인 블록은 0으로(📐 C010: ⟳ 대신 값이 들어가 F13이 부풀었다)
+      if (simulate3(L, ch).stars === 3) f13 = Math.max(f13, Math.min(...plan.map((i) => (area[0][i] > 0 ? raw[taps.indexOf(i)][0].hit : 0))));
     });
     return { title: d.title, blocks: L.blocks.length, charges: d.charges, plans, clear: ok / plans, star3: s3 / plans, best, greedyStar3: gStar3 / 20, greedyClear: gClear / 20, firstTapStill: still / open,
       attachable: taps.length, inner, deadFirstTap: deadU, deadFirstTapW: deadW, liveFirstTapReact: reactNew, liveFirstTapReactOld: react,

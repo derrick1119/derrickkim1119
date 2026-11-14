@@ -97,6 +97,11 @@ await p3.waitForTimeout(200);
 await p3.screenshot({ path: join(out, '3d-14-save-result.png') });
 const st4 = await p3.evaluate(() => (window as any).__d3.state());
 console.log('1-4 손잡이 쾅:', JSON.stringify(st4));
+// 1-5 돌 받침 여관(C010): 시작 → 앞오른 돌 꾹(🧨×2 · 표시줄 '4 → 2개')
+await p3.click('#again');
+await p3.waitForTimeout(200);
+await p3.screenshot({ path: join(out, '3d-15-stone-start.png') });
+await hold(7, 0, 5, '3d-16-stone-hold.png');
 console.log('1-1:', JSON.stringify(st1), '· 1-2:', JSON.stringify(st2));
 const st3 = st2;
 console.log('3D:', JSON.stringify(st3), scroll ? '가로 스크롤 있음 ❌' : '가로 스크롤 없음');
