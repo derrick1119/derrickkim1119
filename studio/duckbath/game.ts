@@ -44,6 +44,8 @@ const DUCK = 0, GOLD = 1, BOAT = 2, SHARK = 3;
 const FREE = -1, SUCKED = -2, EATEN = -3;
 const WEIGHT = [1, 1, 0.45, 0.8];
 const RAD = [DR, DR, BIG, BIG];
+/** 🐥 아기 오리는 0.6배 (D016) — 앞과 0.06 간격으로 붙어 다녀도 부딪혀 밀려나지 않게 */
+const rad = (o: { k: number; lead: number }) => (o.lead >= 0 ? RAD[o.k] * 0.6 : RAD[o.k]);
 const MASS = [1, 1, 2.5, 1.3];
 
 interface StageDef {
@@ -57,6 +59,10 @@ interface StageDef {
   gold: number[];
   boat?: number[];
   shark?: number[];
+  /** D016 상어 여럿 [x, y][] (3-9) — shark와 함께 써도 된다 */
+  sharks?: number[][];
+  /** D016 🐥 오리 가족 줄 [앞 오리 번호(ducks 안), 마리 수, 줄 방향 x, y(기본 0, −1 = 위로)] (CONTENT §2) */
+  chicks?: number[][];
   /** [x, y, 반지름, 색(-1 아무나), 부두(1), 엄마 없음(1)] */
   nests: number[][];
   islands?: number[][];
@@ -314,6 +320,8 @@ interface Obj {
   hitT: number; hitR: number; stun: number; ord: number;
   /** D013 💤 잠꾸러기 (CONTENT §2): 1 = 자는 중 — 처음 맞은 물결엔 깨기만, 자는 동안 꼼짝 안 함 */
   zz: number;
+  /** D016 🐥 아기 오리면 따라가는 앞 것(objs 번호), 아니면 −1 — 물결에 안 밀리고 졸졸 */
+  lead: number;
   // 연출 (시뮬레이션 결과와 무관)
   face: number; spin: number; mood: number; moodT: number;
 }
@@ -364,7 +372,7 @@ function toPlane(sx: number, sy: number) {
 const inWater = (x: number, y: number, m = 0) => x >= m && x <= W - m && y >= m && y <= H - m;
 
 // ───────────────────────────── 시뮬레이션 ─────────────────────────────
-const mk = (k: number, col: number, x: number, y: number): Obj => ({ sx: x, sy: y, k, col, x, y, vx: 0, vy: 0, st: FREE, hitT: -99, hitR: -1, stun: 0, ord: 0, zz: 0, face: x < 0.5 ? 1 : -1, spin: 0, mood: k === SHARK ? 5 : 0, moodT: 0 });
+const mk = (k: number, col: number, x: number, y: number): Obj => ({ sx: x, sy: y, k, col, x, y, vx: 0, vy: 0, st: FREE, hitT: -99, hitR: -1, stun: 0, ord: 0, zz: 0, lead: -1, face: x < 0.5 ? 1 : -1, spin: 0, mood: k === SHARK ? 5 : 0, moodT: 0 });
 
 function fits(o: Obj, n: Nest) {
   if (o.k === BOAT) return n.dock;
@@ -444,7 +452,7 @@ function phys(S: Sim, E: DuckState | null) {
       const ix = imgX(g, im), iy = imgY(g, im);
       for (let i = 0; i < objs.length; i++) {
         const o = objs[i];
-        if (o.st !== FREE || (g.hit[im] >> i) & 1) continue;
+        if (o.st !== FREE || o.lead >= 0 || (g.hit[im] >> i) & 1) continue; // 🐥 아기는 고리에 안 밀린다
         const dx = o.x - ix, dy = o.y - iy, d = Math.hypot(dx, dy);
         if (d > g.r || d < g.r - 4 * RS) continue;
         g.hit[im] |= 1 << i;
@@ -505,6 +513,17 @@ function phys(S: Sim, E: DuckState | null) {
   for (let i = 0; i < objs.length; i++) {
     const o = objs[i];
     if (o.st !== FREE || o.zz) continue; // 💤 자는 동안은 흐름·배수구·이동 없이 꼼짝 안 함
+    if (o.lead >= 0) {
+      // 🐥 앞(오리·아기)과 0.06을 넘게 떨어지면 넘은 만큼 ×0.12씩(틱당 ≤ 0.006) 다가간다. 앞이 둥지에 들었으면 그 둥지 가운데로 따라 들어간다
+      const ld = objs[o.lead], tg = ld.st >= 0 ? L.nests[ld.st] : ld, gap = ld.st >= 0 ? 0 : 0.06;
+      const dx = tg.x - o.x, dy = tg.y - o.y, d = Math.hypot(dx, dy);
+      if (d > gap + 1e-9) {
+        const m = Math.min(0.006, (d - gap) * 0.12, d);
+        o.x += (dx / d) * m;
+        o.y += (dy / d) * m;
+      }
+      o.vx = o.vy = 0;
+    }
     let f = FR;
     for (const sl of L.slicks) if ((o.x - sl.x) ** 2 + (o.y - sl.y) ** 2 < sl.r * sl.r) f = FR_SLICK;
     for (const st of L.streams)
@@ -556,7 +575,7 @@ function phys(S: Sim, E: DuckState | null) {
     o.vy *= f;
     o.x += o.vx;
     o.y += o.vy;
-    const rr = RAD[o.k];
+    const rr = rad(o);
     let bonk = 0;
     if (o.x < rr) (o.x = rr), o.vx < 0 && ((bonk = -o.vx), (o.vx = -o.vx * 0.45));
     if (o.x > W - rr) (o.x = W - rr), o.vx > 0 && ((bonk = o.vx), (o.vx = -o.vx * 0.45));
@@ -594,7 +613,8 @@ function phys(S: Sim, E: DuckState | null) {
     for (let j = i + 1; j < objs.length; j++) {
       const b = objs[j];
       if (b.st !== FREE) continue;
-      const dx = b.x - a.x, dy = b.y - a.y, m = RAD[a.k] + RAD[b.k], d2 = dx * dx + dy * dy;
+      if (a.lead === j || b.lead === i) continue; // 🐥 줄(앞 ↔ 바로 뒤 아기)끼리는 서로 밀지 않는다
+      const dx = b.x - a.x, dy = b.y - a.y, m = rad(a) + rad(b), d2 = dx * dx + dy * dy;
       if (d2 >= m * m || d2 < 1e-10) continue;
       const d = Math.sqrt(d2), nx = dx / d, ny = dy / d, ma = MASS[a.k], mb = MASS[b.k], ov = m - d;
       if (a.zz || b.zz) {
@@ -670,9 +690,17 @@ function newStage(s: DuckState) {
   s.popped = 0;
   s.objs = [];
   for (const [x, y, col, zz] of d.ducks) s.objs.push({ ...mk(DUCK, col, fx(x) + J(0.02), y + J(0.02)), zz: zz ? 1 : 0 });
+  for (const [li, n, ux = 0, uy = -1] of d.chicks ?? []) {
+    const h = Math.hypot(ux, uy) || 1, ax = ((jt.flip ? -ux : ux) / h) * 0.06, ay = (uy / h) * 0.06, front = s.objs[li];
+    for (let k = 1, prev = li; k <= n; k++) {
+      s.objs.push({ ...mk(DUCK, front.col, front.x + ax * k, front.y + ay * k), lead: prev });
+      prev = s.objs.length - 1;
+    }
+  }
   s.objs.push(mk(GOLD, 0, fx(d.gold[0]) + J(0.02), d.gold[1] + J(0.02)));
   if (d.boat) s.objs.push(mk(BOAT, 0, fx(d.boat[0]), d.boat[1]));
   if (d.shark) s.objs.push(mk(SHARK, 0, fx(d.shark[0]), d.shark[1]));
+  for (const [x, y] of d.sharks ?? []) s.objs.push(mk(SHARK, 0, fx(x), y));
   s.rings = [];
   s.awake = false;
   s.taps = d.taps;
@@ -946,7 +974,7 @@ function value(s: DuckState, S: Sim, plies: number) {
   }
   v -= S.pen * 700;
   if (all) return 100000 - S.pen * 30000 + (goldIn ? 30000 : 0) + (s.used + plies <= d.par ? 30000 : 0) + (s.taps - plies) * 100;
-  const sh = S.objs.find((o) => o.k === SHARK && o.st === FREE);
+  const shs = S.objs.filter((o) => o.k === SHARK && o.st === FREE); // D016 sharks[]: 상어 여럿
   for (const o of S.objs) {
     if (o.st !== FREE || o.k === SHARK) continue;
     const wgt = o.k === GOLD ? 300 : 1600;
@@ -954,7 +982,7 @@ function value(s: DuckState, S: Sim, plies: number) {
       const dd = Math.hypot(o.x - dr.x, o.y - dr.y);
       if (dd < dr.pr + 0.05) v -= wgt * (1 - dd / (dr.pr + 0.05));
     }
-    if (sh) {
+    for (const sh of shs) {
       const dd = Math.hypot(o.x - sh.x, o.y - sh.y);
       if (dd < 0.45) v -= (o.k === GOLD ? 400 : 1300) * (0.45 - dd) * (sh.stun > 30 ? 0.4 : 1);
     }
@@ -1045,7 +1073,7 @@ export function makeCasual(goldLast = 0.75): Bot<DuckState> {
     const key = `${s.stage}:${s.tries}:${s.used}`;
     let m = casMem.get(s);
     if (!m || m.key !== key) {
-      const free = s.objs.filter((o) => o.st === FREE && o.k !== SHARK);
+      const free = s.objs.filter((o) => o.st === FREE && o.k !== SHARK && o.lead < 0); // 🐥 앞 오리만 겨눈다
       const pool = free.some((o) => o.k !== GOLD) && rng() < goldLast ? free.filter((o) => o.k !== GOLD) : free;
       const o = pool[Math.floor(rng() * pool.length)];
       let p: { x: number; y: number } | null = null;
@@ -1083,7 +1111,7 @@ export function makePreviewer(k: number): Bot<DuckState> {
       const key = `${s.stage}:${s.tries}:${s.used}`;
       let m = memo.get(s);
       if (!m || m.key !== key) {
-        const free = s.objs.filter((o) => o.st === FREE && o.k !== SHARK);
+        const free = s.objs.filter((o) => o.st === FREE && o.k !== SHARK && o.lead < 0); // 🐥 앞 오리만 겨눈다
         let best: { x: number; y: number } | null = null, bv = -Infinity;
         for (let c = 0; c < k && free.length; c++) {
           const o = free[Math.floor(rng() * free.length)];
@@ -2417,7 +2445,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     items.push({
       y: o.y,
       f: () => {
-        const x = SX(o.x, o.y), y = SY(o.y) + Math.sin(t * 0.07 + i * 2) * R(0.003), u = R((o.k === SHARK ? 0.06 : o.k === BOAT ? 0.05 : 0.04) * dep(o.y));
+        const x = SX(o.x, o.y), y = SY(o.y) + Math.sin(t * 0.07 + i * 2) * R(0.003), u = R((o.k === SHARK ? 0.06 : o.k === BOAT ? 0.05 : o.lead >= 0 ? 0.026 : 0.04) * dep(o.y)); // 🐥 아기는 0.65배
         const tilt = Math.sin(t * 0.35 + i) * 0.35 * o.spin + Math.sin(t * 0.05 + i) * 0.04;
         if (o.k === SHARK) drawShark(ctx, x, y, u, o.face, o.mood, t, s.objs.some((q) => q.st === EATEN));
         else if (o.k === BOAT) drawBoat(ctx, x, y, u, o.face, tilt);

@@ -156,6 +156,8 @@ const STRIP: Record<string, { what: string; has: (d: (typeof STAGES)[number]) =>
   shark: { what: '🦈', has: (d) => !!d.shark, off: (d) => void delete d.shark },
   stream: { what: '🚰', has: (d) => !!d.streams?.length, off: (d) => void delete d.streams },
   balloon: { what: '🎈', has: (d) => !!d.balloons?.length, off: (d) => void delete d.balloons },
+  chicks: { what: '🐥', has: (d) => !!d.chicks?.length, off: (d) => void delete d.chicks },
+  sharks: { what: '🦈🦈', has: (d) => !!d.sharks?.length, off: (d) => void delete d.sharks },
 };
 export function counterfactual(i: number, n: number) {
   const d = STAGES[i], out = [];

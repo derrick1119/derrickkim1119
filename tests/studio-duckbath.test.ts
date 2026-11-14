@@ -195,6 +195,64 @@ describe('욕조 물결 오리 시뮬', () => {
     });
   });
 
+  describe('🐥 오리 가족 줄 · 상어 여럿 (D016, CONTENT §2: 아기는 물결에 안 밀리고 앞을 졸졸 · 앞이 둥지에 들면 따라 들어감)', () => {
+    const idle = { tap: false, dir: 0 as const, pointer: null };
+    const withStage = (patch: Record<string, unknown>, f: (s: ReturnType<typeof g.create>) => void) => {
+      const keep = { ...STAGES[0] };
+      Object.assign(STAGES[0], patch);
+      try {
+        const s = g.create(3);
+        startStage(s, 0);
+        while (s.phase !== 'play' || s.pt < 2) g.step(s, idle);
+        f(s);
+      } finally {
+        for (const k of Object.keys(patch)) delete (STAGES[0] as unknown as Record<string, unknown>)[k];
+        Object.assign(STAGES[0], keep);
+      }
+    };
+    it('아기는 앞 오리 뒤에 줄지어 나오고, 물결에 안 밀린다', () =>
+      withStage({ chicks: [[0, 2]] }, (s) => {
+        const kids = s.objs.filter((o) => o.lead >= 0), lead = s.objs[0];
+        expect(kids.length).toBe(2);
+        expect(Math.hypot(kids[0].x - lead.x, kids[0].y - lead.y)).toBeCloseTo(0.06, 5);
+        s.L.nests = [];
+        for (const o of s.objs) if (o.lead < 0 && o !== lead) o.st = 0; // 확인용: 다른 것은 치움
+        lead.zz = 1; // 앞 오리는 자게 해서(첫 물결엔 안 밀림) 아기가 따라 움직일 일이 없게
+        Object.assign(lead, { x: 0.3, y: 0.6, st: -1 });
+        Object.assign(kids[0], { x: 0.36, y: 0.6, st: -1 });
+        Object.assign(kids[1], { x: 0.42, y: 0.6, st: -1 });
+        const [x0, y0] = [kids[1].x, kids[1].y];
+        s.rings = [{ id: s.rid++, x: kids[1].x - 0.05, y: kids[1].y, r: 0, hit: [0, 0, 0, 0, 0] }];
+        for (let k = 0; k < 10; k++) g.step(s, idle);
+        expect(Math.hypot(kids[1].x - x0, kids[1].y - y0)).toBeLessThan(1e-6);
+      }));
+    it('앞 오리가 밀려 가면 0.06 간격으로 졸졸 따라온다', () =>
+      withStage({ chicks: [[0, 2]] }, (s) => {
+        const kids = s.objs.filter((o) => o.lead >= 0), lead = s.objs[0];
+        s.L.nests = [];
+        for (const o of s.objs) if (o.lead < 0 && o !== lead) o.st = 0;
+        Object.assign(lead, { x: 0.3, y: 0.6, st: -1 });
+        Object.assign(kids[0], { x: 0.36, y: 0.6, st: -1 });
+        Object.assign(kids[1], { x: 0.42, y: 0.6, st: -1 });
+        lead.y = 0.3; // 앞 오리가 0.3 밀려 감
+        for (let k = 0; k < 200; k++) g.step(s, idle);
+        expect(Math.hypot(kids[0].x - lead.x, kids[0].y - lead.y)).toBeLessThan(0.07);
+        expect(Math.hypot(kids[1].x - kids[0].x, kids[1].y - kids[0].y)).toBeLessThan(0.07);
+      }));
+    it('앞 오리가 둥지에 들면 아기도 따라 들어가 판을 깰 수 있다(오리 수에 셈)', () =>
+      withStage({ chicks: [[0, 1]] }, (s) => {
+        const kid = s.objs.find((o) => o.lead >= 0)!, lead = s.objs[0];
+        lead.st = 0;
+        for (let k = 0; k < 400 && kid.st < 0; k++) g.step(s, idle);
+        expect(kid.st).toBe(0);
+        expect(starChips(s).ducksAll).toBe(s.objs.filter((o) => o.k === 0).length);
+      }));
+    it('상어 여럿(sharks[])이 다 나온다', () =>
+      withStage({ sharks: [[0.2, 0.9], [0.8, 0.9]] }, (s) => {
+        expect(s.objs.filter((o) => o.k === 3).length).toBe(2);
+      }));
+  });
+
   it('판 흔들기는 (시드, 판 id)로만 정해진다 — 판을 끼워 넣어도 다른 판의 흔들림·뒤집힘이 그대로 (D010)', () => {
     const s = g.create(1007);
     STAGES.forEach((d, i) => expect(s.jit[i]).toEqual(jitFor(1007, d.id)));
