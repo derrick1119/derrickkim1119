@@ -2071,7 +2071,7 @@ function preview(s: PinState, p: number): Pre {
 }
 
 /** 판마다 새 장치를 눈에 띄게: 판이 시작되면 장치를 하나씩 비추고 '무엇을 해야 하나'를 한 줄로 */
-interface Spot { x: number; y: number; r: number; text: string }
+interface Spot { x: number; y: number; r: number; text: string; ch: number; pin: number }
 const spotCache = new WeakMap<object, Spot[]>();
 function spotsOf(s: PinState): Spot[] {
   const lv = s.lv, hit = spotCache.get(lv);
@@ -2080,26 +2080,29 @@ function spotsOf(s: PinState): Spot[] {
   v.fills.forEach((f, ci) => {
     if (!f) return;
     const c = L.chs[ci], y = (c.top + c.fy) / 2;
-    if (f.k === 1 && (key === 'gray' || key === 'party')) a.push({ x: c.cx, y, r: c.w * 0.62, text: '⚪ 회색 반죽 — 색 경단을 먼저 만나게!' });
-    if (f.k === 2 && (key === 'pepper' || key === 'mouse' || key === 'syrup')) a.push({ x: c.cx, y, r: c.w * 0.62, text: '🌶️ 고춧가루 — 경단에 닿으면 매워요' });
+    if (f.k === 1 && (key === 'gray' || key === 'party')) a.push({ x: c.cx, y, r: c.w * 0.62, text: '⚪ 회색 반죽 — 색 경단을 먼저 만나게!', ch: ci, pin: -1 });
+    if (f.k === 2 && (key === 'pepper' || key === 'mouse' || key === 'syrup')) a.push({ x: c.cx, y, r: c.w * 0.62, text: '🌶️ 고춧가루 — 경단에 닿으면 매워요', ch: ci, pin: -1 });
   });
   for (const p of L.tap)
     if (L.pins[p].kind === 1) {
       const sg = L.segs[L.pins[p].seg];
-      a.push({ x: (sg.ax + sg.bx) / 2, y: (sg.ay + sg.by) / 2, r: 0.2, text: v.bc ? '↘️ 줄무늬 꼬치 = 길 바꾸기 (있으면 왼쪽)' : '↘️ 줄무늬 꼬치 — 있으면 🏺로, 빼면 그릇으로' });
+      a.push({ x: (sg.ax + sg.bx) / 2, y: (sg.ay + sg.by) / 2, r: 0.2, text: v.bc ? '↘️ 줄무늬 꼬치 = 길 바꾸기 (있으면 왼쪽)' : '↘️ 줄무늬 꼬치 — 있으면 🏺로, 빼면 그릇으로', ch: -1, pin: p });
     }
-  if (L.pot && key !== 'party') a.push({ x: L.pot.x, y: 1.12, r: 0.12, text: '🏺 김치 항아리 — 고춧가루는 여기로' });
-  L.chs.forEach((c) => c.W && a.push({ x: c.cx, y: c.top + c.h / 2, r: c.w * 0.62, text: `⚖️ 저울 — ${v.W ?? 6}개 모여야 덜컥! 모아서 보내요` }));
-  if (v.bc) L.bowls.forEach((bw, i) => a.push({ x: bw.x, y: 1.13, r: 0.13, text: `🥣 ${i ? '오른쪽' : '왼쪽'} 그릇은 ${CNAME[v.bc![i]]}만!` }));
-  if (L.mouse) a.push({ x: L.mouse.x + 0.02, y: L.mouse.y, r: 0.1, text: '🐭 경단 도둑 — 🌶️가 먼저 지나가면 에취!' });
-  if (L.syrup) a.push({ x: L.syrup.x, y: L.syrup.y + 0.02, r: 0.1, text: '🍯 조청 — 맨 처음 지나간 것만 찰싹!' });
+  if (L.pot && key !== 'party') a.push({ x: L.pot.x, y: 1.12, r: 0.12, text: '🏺 김치 항아리 — 고춧가루는 여기로', ch: -1, pin: -1 });
+  L.chs.forEach((c) => c.W && a.push({ x: c.cx, y: c.top + c.h / 2, r: c.w * 0.62, text: `⚖️ 저울 — ${v.W ?? 6}개 모여야 덜컥! 모아서 보내요`, ch: -1, pin: -1 }));
+  if (v.bc) L.bowls.forEach((bw, i) => a.push({ x: bw.x, y: 1.13, r: 0.13, text: `🥣 ${i ? '오른쪽' : '왼쪽'} 그릇은 ${CNAME[v.bc![i]]}만!`, ch: -1, pin: -1 }));
+  if (L.mouse) a.push({ x: L.mouse.x + 0.02, y: L.mouse.y, r: 0.1, text: '🐭 경단 도둑 — 🌶️가 먼저 지나가면 에취!', ch: -1, pin: -1 });
+  if (L.syrup) a.push({ x: L.syrup.x, y: L.syrup.y + 0.02, r: 0.1, text: '🍯 조청 — 맨 처음 지나간 것만 찰싹!', ch: -1, pin: -1 });
   spotCache.set(lv, a);
   return a;
 }
-const SPOT0 = 70, SPOT_T = 85;
+const SPOT0 = 50, SPOT_T = 85;
 function drawSpots(k: Kit, s: PinState) {
   if (s.tries > 0 || s.phase !== 'play') return;
-  const { ctx, X, Y, R, w, h, t } = k, list = spotsOf(s), age = t - s.startT - SPOT0;
+  const L = s.lv.L, W = s.W;
+  // 이미 빠진 꼬치·비어 버린 단지는 건너뛴다
+  const list = spotsOf(s).filter((sp) => (sp.pin < 0 || (W.on >> sp.pin) & 1) && (sp.ch < 0 || W.b.some((b) => !b.st && chAt(L, b.x, b.y) === sp.ch)));
+  const { ctx, X, Y, R, w, h, t } = k, age = t - s.startT - SPOT0;
   if (age < 0 || age >= list.length * SPOT_T) return;
   const i = Math.floor(age / SPOT_T), u = age - i * SPOT_T, sp = list[i];
   const a = Math.min(1, u / 10, (SPOT_T - u) / 12), pr = R(sp.r) * (1 + 0.05 * Math.sin(t * 0.2));
@@ -2592,8 +2595,8 @@ function drawHud(k: Kit, s: PinState, d: StageDef, th: Theme) {
   // 판 시작 큰 글씨
   {
     const age = t - s.startT;
-    if (age < 110 && s.phase === 'play') {
-      const a = Math.min(1, age / 8, (110 - age) / 20), sc = 1 + Math.max(0, 8 - age) * 0.04;
+    if (age < 64 && s.phase === 'play') {
+      const a = Math.min(1, age / 8, (64 - age) / 14), sc = 1 + Math.max(0, 8 - age) * 0.04;
       ctx.globalAlpha = a;
       ctx.save();
       ctx.translate(w / 2, Y(0.58));
