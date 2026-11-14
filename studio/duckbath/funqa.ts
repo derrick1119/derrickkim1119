@@ -153,6 +153,7 @@ export function stageDirect(bot: Bot<DuckState>, i: number, n: number, retry = R
 }
 /** FUN v1.13 a + v1.14 a·b: 새것 끔 반사실 — 판 데이터에서 새것 하나(💤·🦈·🚰·🎈)만 끈 같은 판과 비교. 판마다 새것별로 한 줄.
  *  v1.13 a: 숙련 톡 차 ≥ +.5 또는 캐주얼 ★톡 차 ≤ −.1(💤는 숙련 첫 톡 깸 ≤ .5도) · v1.14 a: 격차 차 Δ = (캐주얼 톡 − 숙련 톡)있음 − (같은 값)끔 ≥ +.3 · v1.14 b(T2 본 판): 숙련 톡 차 < 0이면 ❌ */
+const wallOff = (x: number, y: number): [number, number] | null => (x <= 0.05 ? [0.06, 0] : x >= 0.95 ? [-0.06, 0] : y <= 0.05 ? [0, 0.06] : y >= 1.15 ? [0, -0.06] : null);
 const STRIP: Record<string, { what: string; has: (d: (typeof STAGES)[number]) => boolean; off: (d: (typeof STAGES)[number]) => void }> = {
   zz: { what: '💤', has: (d) => d.ducks.some((x) => x[3]), off: (d) => void (d.ducks = d.ducks.map((x) => x.slice(0, 3))) },
   shark: { what: '🦈', has: (d) => !!d.shark, off: (d) => void delete d.shark },
@@ -160,6 +161,12 @@ const STRIP: Record<string, { what: string; has: (d: (typeof STAGES)[number]) =>
   balloon: { what: '🎈', has: (d) => !!d.balloons?.length, off: (d) => void delete d.balloons },
   chicks: { what: '🐥', has: (d) => !!d.chicks?.length, off: (d) => void delete d.chicks },
   sharks: { what: '🦈🦈', has: (d) => !!d.sharks?.length, off: (d) => void delete d.sharks },
+  // FUN v1.19 b: 🧱 벽 오리 끔 — 벽에서 .05 안(왼·오른·뒤·앞벽) 오리를 안쪽 .06 떼고, 그 오리에서 .2 안의 섬도 함께 옮긴다(상대 기하 유지)
+  wall: { what: '🧱', has: (d) => d.ducks.some((x) => !!wallOff(x[0], x[1])), off: (d) => {
+    const ws = d.ducks.filter((x) => wallOff(x[0], x[1]));
+    if (d.islands) d.islands = d.islands.map((s) => { const w = ws.find((x) => Math.hypot(x[0] - s[0], x[1] - s[1]) < 0.2), o = w && wallOff(w[0], w[1]); return o ? [s[0] + o[0], s[1] + o[1], ...s.slice(2)] : s; });
+    d.ducks = d.ducks.map((x) => { const o = wallOff(x[0], x[1]); return o ? [x[0] + o[0], x[1] + o[1], ...x.slice(2)] : x; });
+  } },
 };
 export function counterfactual(i: number, n: number) {
   const d = STAGES[i], out = [];
