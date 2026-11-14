@@ -461,17 +461,22 @@ function draw() {
     }
     const b = L.blocks[cb[k].i], col = MAT[b.m] ?? PAINT[b.paint % PAINT.length];
     for (const fc of faces(c, cb[k])) poly(fc.pts, fc.f === 'top' ? col[1] : fc.f === 'zm' || fc.f === 'zp' ? col[0] : col[2], INK, 1.2);
-    if (b.m === STONE && !inMagnifier) {
-      // 돌 윗면 폭약 구멍 2개(📐 GDD §10 값표: 돌 = 톡 한 번에 −2)
-      const q = cb[k];
-      for (const dx of [0.32, 0.68]) {
-        const p = proj(c, q.x + dx, q.y + 1, q.z + 0.5);
+    if (b.m === STONE && !inMagnifier)
+      // 돌 = 톡 한 번에 −2(📐 GDD §10 값표): 보이는 면마다 폭약 구멍 2개 — 윗면이 덮여도 옆면에서 쇠와 구분되게(🧪 C010 ①)
+      for (const fc of faces(c, cb[k])) {
+        const [a, b2, , d4] = fc.pts, mx = fc.pts.reduce((t, q) => t + q[0], 0) / 4, my = fc.pts.reduce((t, q) => t + q[1], 0) / 4;
+        const ux = (b2[0] - a[0]) * 0.2, uy = (b2[1] - a[1]) * 0.2, vx = (d4[0] - a[0]) * 0.11, vy = (d4[1] - a[1]) * 0.11;
         ctx.fillStyle = '#4a4458';
-        ctx.beginPath();
-        ctx.ellipse(p[0], p[1], c.s * 0.09, c.s * 0.055, 0, 0, Math.PI * 2);
-        ctx.fill();
+        for (const sgn of [-1, 1]) {
+          ctx.beginPath();
+          ctx.moveTo(mx + sgn * ux + vx, my + sgn * uy + vy);
+          ctx.lineTo(mx + sgn * ux + ux * 0.45, my + sgn * uy + uy * 0.45);
+          ctx.lineTo(mx + sgn * ux - vx, my + sgn * uy - vy);
+          ctx.lineTo(mx + sgn * ux - ux * 0.45, my + sgn * uy - uy * 0.45);
+          ctx.closePath();
+          ctx.fill();
+        }
       }
-    }
     if (!out && cb[k].i === aim && holding) for (const fc of faces(c, cb[k])) poly(fc.pts, undefined, '#ffc93c', 3.5);
   }
   if (inMagnifier) return;

@@ -37,7 +37,7 @@ export function plansOf(L: Layout3, d: StageDef3, f: (ch: Int8Array, plan: numbe
  * prev(미리 보기형): 수마다 넓이 비례로 꾹 3번, 화면에 그려진 것만 본다 — 성공 결과 꼬리표가 뜬 블록 > 무엇이든 움직이는 블록(실패 꼬리표 빼고) > 나머지.
  * blind(안 보는 형): 넓이 비례로 아무 데나. 둘 다 글은 읽는다 — 손잡이 둘째 줄이 성공이면 당기고, '막다른 길'이면 q .5로 방금 붙인 것을 뗀다.
  */
-export function firstTimer(L: Layout3, d: StageDef3, wMix: number[], mode: 'prev' | 'blind', n: number, c: Cache, seed = 20): number {
+export function firstTimer(L: Layout3, d: StageDef3, wMix: number[], mode: 'prev' | 'blind', n: number, c: Cache, seed = 20, out?: { star3: number }): number {
   const rng = mulberry32(seed), N = L.blocks.length, save = d.save !== undefined;
   const taps = L.blocks.map((_, i) => i).filter((i) => capOf3(L.blocks[i]) > 0);
   const wpick = (cs: number[]) => {
@@ -46,7 +46,7 @@ export function firstTimer(L: Layout3, d: StageDef3, wMix: number[], mode: 'prev
     for (const i of cs) if ((x -= wMix[i]) <= 0) return i;
     return cs[cs.length - 1];
   };
-  let win = 0;
+  let win = 0, s3 = 0;
   for (let run = 0; run < n; run++) {
     const ch = new Int8Array(N);
     let left = d.charges, ok = false;
@@ -76,7 +76,9 @@ export function firstTimer(L: Layout3, d: StageDef3, wMix: number[], mode: 'prev
       if (c.reach1(ch) === 0 && rng() < 0.5) (left += ch[pick]), (ch[pick] = 0); // 막다른 길 → 떼기 q .5
     }
     if (ok) win++;
+    if (ok && c.sim(ch).stars === 3) s3++;
   }
+  if (out) out.star3 = s3 / n; // 첫 시도 ★3률(FUN v1.5 ⓓ 보고)
   return win / n;
 }
 
