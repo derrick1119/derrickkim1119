@@ -549,7 +549,7 @@ function hudText() {
     again.hidden = false;
     again.textContent = out.ok ? (stageIx + 1 < STAGES3.length ? '다음 판 ▶' : '처음부터') : '다시';
     // 별이 모자라면 같은 판 '다시'도 (🧪 C004 ⑤)
-    retry.hidden = !(out.ok && out.stars < 3);
+    retry.hidden = !(out.ok && (out.stars < 3 || stageIx === STAGES3.length - 1)); // 마지막 판은 ★3 뒤에도 '다시'(🧪 C009 ②)
   } else {
     msg.textContent = out ? '3·2·1…' : stuck ? '🚧 막다른 길 · 🧨 톡 하면 떼요' : [d.news, d.hint].filter(Boolean).join(' · ');
     again.hidden = true;
