@@ -438,7 +438,8 @@
         "demolish",
         "chain",
         "pointer"
-      ]
+      ],
+      "ended": "2026-11-14 스튜디오 폐기 (오너: \"폐기\", M1 테스트 요청 뒤)"
     },
     {
       "id": "potionsort",

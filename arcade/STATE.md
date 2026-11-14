@@ -60,7 +60,7 @@
 - 🎓 🦆 욕조 물결 오리 (2026-11-12, 23라운드) → 스튜디오 `studio/duckbath/` (세션 session_01Nm4gEwhChP57z3P7TwMKSQ, 예약 trig_01CJ22VFfqfTBkM4quLJ1mdw 매시 :50) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/duckbath/
 - 🎓 🔩 나사 풀기 공방 (2026-11-14, 25라운드) → 스튜디오 `studio/screwshop/` (세션 session_01Nm4gEw2cEQo3wbu11pmQWw, 예약 trig_01Kii7D6kRrervseM11PKLDo 매시 :05) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/screwshop/
 - 🎓 🚌 동물 버스 정류장 (2026-11-14, 25라운드) → 스튜디오 `studio/animalbus/` (세션 session_01Nm4gEuj9Udgh4PxgDYj41y, 예약 trig_01LJZMkhVwKkRx2ymNok3Qro 매시 :35) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/animalbus/
-- 🎓 💥 비버 철거반 (2026-11-14, 25라운드) → 스튜디오 `studio/demolition/` (세션 session_01Nm4gExNgWFq5hVQtNWzQtn, 예약 trig_018RL6S7cddLqPYyJ5odNkPe 매시 :40) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/demolition/
+- ~~🎓 💥 비버 철거반~~ (2026-11-14 졸업 → **2026-11-14 스튜디오 폐기**, 오너: "폐기"(M1 테스트 요청 뒤), 팀이 예약 사이클을 끔) · 기록: `studio/demolition/`
 - 🎓 🧪 마녀 고양이 물약 정렬 (2026-11-14, 26라운드) → 스튜디오 `studio/potionsort/` (세션 session_01Nm4gEtTNAmov8psrYZvLdN, 예약 trig_01UnQE5C66Dvguh8ZcdEHkdq 매시 :15) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/potionsort/
   - 욕조 물결 오리: M1 오너 통과("코어 재미가 느껴진다") → M2. 양치기 멍멍: M1 "재밌는데 전략이 조금 단순해지는 느낌이야" → 재수립 중.
   - 남은 두 게임 모두 팀 세션(PM·기획자·개발자·디자이너·FUN QA)이 맡는다. 마일스톤마다 오너 빌드 테스트, 최종 목표 상용화.
@@ -75,4 +75,4 @@
   5. 🔧 두더지 물길 관 돌리기 — 수문을 아껴 두면 한 번에 물이 내달려 새싹 연쇄 (6.93×)
   6. 🐸 연잎 개구리 뛰어넘기 — 넘긴 개구리는 풍덩, 마지막 한 마리를 👑 연잎에 (7.83×)
 - 주의: 사람 한 판은 4~7분일 수 있음 · 뒤집기·주사위 족보는 장르 규칙 그대로(상표명은 안 씀).
-- 스튜디오 여섯 팀(양치기 멍멍·욕조 물결 오리·나사 풀기 공방·동물 버스 정류장·비버 철거반·물약 정렬)이 각자 진행합니다.
+- 스튜디오 다섯 팀(양치기 멍멍·욕조 물결 오리·나사 풀기 공방·동물 버스 정류장·물약 정렬)이 각자 진행합니다. 비버 철거반은 M1 테스트 뒤 오너가 폐기했습니다.
