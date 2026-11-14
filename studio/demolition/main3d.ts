@@ -369,11 +369,13 @@ function magnifier() {
  */
 function blockTag() {
   if (out || aim < 0 || !holding || rotT < 1) return;
-  const h = holdInfo(aim), t = holdTags(capOf3(L.blocks[aim]), ch[aim], left, !!h.quiet, L.save !== undefined, !!h.pv?.moved).block;
+  const h = holdInfo(aim), cap = capOf3(L.blocks[aim]), t0 = holdTags(cap, ch[aim], left, !!h.quiet, L.save !== undefined, !!h.pv?.moved).block;
+  // 돌 = 톡 한 번에 폭약 2개(📐 GDD §10 값표 · C010): 붙이기 전 꾹에는 늘 '🧨×2'
+  const t = !ch[aim] && cap >= 2 ? (t0 ? `${t0} · 🧨×${cap}` : `🧨×${cap}`) : t0;
   if (!t) return;
   const m = magPos(), b = L.blocks[aim], p = proj(cam(), b.x + 0.5, b.y + 1.15, b.z + 0.5);
   const [x, y] = m?.above ? [m.cx, m.cy - MAG_R - 4] : [p[0], p[1]];
-  tag(x, y, t, t === '떼기' ? '#3a2a3f' : '#7a5a6e', '#fff6e8');
+  tag(x, y, t, t === '떼기' ? '#3a2a3f' : t.startsWith('🧨') ? '#8a3a2e' : '#7a5a6e', '#fff6e8');
 }
 
 /**
@@ -459,6 +461,17 @@ function draw() {
     }
     const b = L.blocks[cb[k].i], col = MAT[b.m] ?? PAINT[b.paint % PAINT.length];
     for (const fc of faces(c, cb[k])) poly(fc.pts, fc.f === 'top' ? col[1] : fc.f === 'zm' || fc.f === 'zp' ? col[0] : col[2], INK, 1.2);
+    if (b.m === STONE && !inMagnifier) {
+      // 돌 윗면 폭약 구멍 2개(📐 GDD §10 값표: 돌 = 톡 한 번에 −2)
+      const q = cb[k];
+      for (const dx of [0.32, 0.68]) {
+        const p = proj(c, q.x + dx, q.y + 1, q.z + 0.5);
+        ctx.fillStyle = '#4a4458';
+        ctx.beginPath();
+        ctx.ellipse(p[0], p[1], c.s * 0.09, c.s * 0.055, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
     if (!out && cb[k].i === aim && holding) for (const fc of faces(c, cb[k])) poly(fc.pts, undefined, '#ffc93c', 3.5);
   }
   if (inMagnifier) return;
@@ -532,9 +545,14 @@ function draw() {
 
 /** 막다른 길(📐 C008): 붙인 폭약이 있고 남은 폭약으로 어떻게 해도 성공이 없으면 알린다 — 붙일 때·뗄 때만 계산 */
 let stuck = false, stuckT = -1e9;
+/** 표시줄: 꾹 하는 동안은 쓸 개수만큼 미리 빼서 보여 준다(돌 −2가 읽히게, 📐 값표 · C010) */
+function hudTop() {
+  const d = STAGES3[stageIx], spend = !out && holding && aim >= 0 && !ch[aim] ? capOf3(L.blocks[aim]) : 0;
+  hud.textContent = `🏗️ ${stageIx + 1}. ${d.title} · 🧨 ${spend ? `${left} → ${left - spend}개` : `${left}개 남음`}${L.save !== undefined ? ` · 🧨 ${L.save}개로 ★` : ''}`;
+}
 function hudText() {
   const d = STAGES3[stageIx], used = L.charges - left;
-  hud.textContent = `🏗️ ${stageIx + 1}. ${d.title} · 🧨 ${left}개 남음${L.save !== undefined ? ` · 🧨 ${L.save}개로 ★` : ''}`;
+  hudTop();
   const showH = L.save !== undefined && used > 0 && !out;
   hrow.style.display = L.save !== undefined ? '' : 'none';
   if (showH && handle.hidden) handle.classList.remove('pop'), void handle.offsetWidth, handle.classList.add('pop'); // 나타날 때 한 번 통통
@@ -648,12 +666,14 @@ canvas.addEventListener('pointerdown', (e) => {
   const [x, y] = toXY(e);
   touch = [x, y];
   aim = aimAt(cam(), L.blocks, canAim, x, y);
+  hudTop();
 });
 canvas.addEventListener('pointermove', (e) => {
   if (!holding || !e.buttons || rotT < 1) return;
   const [x, y] = toXY(e);
   touch = [x, y];
   aim = aimAt(cam(), L.blocks, canAim, x, y);
+  hudTop();
 });
 // 시스템이 손가락을 가져가면(스크롤·알림 등) 붙이지 않고 겨눔만 지운다 (🧪 C003 ⑦)
 window.addEventListener('pointercancel', () => {
@@ -667,6 +687,7 @@ window.addEventListener('pointerup', () => {
   touch = null;
   attach(aim);
   aim = -1;
+  hudTop();
 });
 rotL.addEventListener('click', () => rotate(-1));
 rotR.addEventListener('click', () => rotate(1));

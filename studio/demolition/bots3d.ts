@@ -177,3 +177,41 @@ export function essentialTaps(L: Layout3, d: StageDef3, c: Cache): boolean[] {
   });
   return ess;
 }
+
+/**
+ * 오해 봇(FUN.md 봇 표 · MILESTONES R3 c): 돌을 폭약 1개짜리로 믿고 greedy1처럼 한다 — 미리 보기는 진짜(그려진 대로)지만
+ * '몇 개 남았나'를 잘못 세어, 돌을 붙인 뒤 남은 폭약이 생각보다 적다. 게임은 남은 수보다 비싼 블록을 못 붙이게 하므로 그다음 좋은 곳으로.
+ * 반환 = 성공률·★3률(시드 20, 동점 무작위)
+ */
+export function misread(L: Layout3, d: StageDef3, c: Cache): { clear: number; star3: number } {
+  const save = d.save !== undefined;
+  const score = (o: Outcome3) => o.stars * 1000 + (o.ok ? 0 : -5000) - o.height * 10 - o.flowers * 30 - o.hits.reduce((a, b) => a + b, 0);
+  let ok = 0, s3 = 0;
+  for (let seed = 1; seed <= 20; seed++) {
+    const rng = mulberry32(seed), ch = new Int8Array(L.blocks.length);
+    let left = d.charges, believed = d.charges;
+    while (left > 0 && believed > 0) {
+      let bv = -1e9, ties: number[] = [];
+      L.blocks.forEach((b, i) => {
+        const k = capOf3(b);
+        if (!k || ch[i] || k > left) return; // 게임이 막는다
+        const c2 = ch.slice();
+        c2[i] = k;
+        // 믿음: 이것이 마지막 폭약이라고 생각할 때만 '결과'로 본다 — 그 밖엔 미리 보기 점수 그대로
+        const v = score(c.sim(c2));
+        if (v > bv) (bv = v), (ties = [i]);
+        else if (v === bv) ties.push(i);
+      });
+      if (!ties.length) break;
+      const i = ties[Math.floor(rng() * ties.length)];
+      ch[i] = capOf3(L.blocks[i]);
+      left -= ch[i];
+      believed -= 1;
+      if (save && c.sim(ch).ok) break; // greedy1: 성공이 뜨면 손잡이
+    }
+    const o = c.sim(ch);
+    if (o.ok) ok++;
+    if (o.ok && o.stars === 3) s3++;
+  }
+  return { clear: ok / 20, star3: s3 / 20 };
+}

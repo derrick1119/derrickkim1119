@@ -13,7 +13,7 @@ import { STAGES, bestPlan, capOf, demolition as g, demolitionRandom, demolitionS
 import type { Bot } from './core.ts';
 import type { DemoState } from './game.ts';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { essentialTaps, firstTimer, habit, look2, plansOf, simCache } from './bots3d.ts';
+import { essentialTaps, firstTimer, habit, look2, misread, plansOf, simCache } from './bots3d.ts';
 import { bestReach, capOf3, feetKey3, isQuiet, layoutOf3, lostFeet, simulate3, support3, type Layout3, type StageDef3 } from './sim3d.ts';
 import { aimAt, cellPx, drawOrder, faces, fitCams, MAGNET, pickAt, visibleArea, YAW0, type Cam } from './view3d.ts';
 import { STAGES3 } from './stages3d.ts';
@@ -277,7 +277,7 @@ export function measureStage3(d: StageDef3) {
     // v1.4 ⓐ 처음 봇(꾹 3번 · 그려진 것만 · 글은 읽음 · 막다른 길 떼기 q .5) · ⓓ look2(F9)·고정 시점 look2·버릇 봇(F10)
     const ftPrev = firstTimer(L, d, wMix, 'prev', 2000, C), ftBlind = firstTimer(L, d, wMix, 'blind', 2000, C);
     const ft1 = Math.min(ftPrev, ftBlind), ft5 = 1 - (1 - ft1) ** 5;
-    const habitStar3 = habit(L, d, C, false), habitFlowerStar3 = habit(L, d, C, true);
+    const habitStar3 = habit(L, d, C, false), habitFlowerStar3 = habit(L, d, C, true), mis = misread(L, d, C);
     // F4b-죽음(v1.3 ⓑ): 변화가 있는 죽은 첫 톡 뒤, 둘째 꾹(마지막 폭약이면 결과 꼬리표)에서 실패 기호가 뜨는 비율.
     // 화면 규칙: 마지막 폭약을 겨누면 늘 결과 꼬리표(verdict3) — 실패 계획이면 빨간 글. 마지막이 아니면 💥/빨간 상자가 있을 때만
     let dSig = 0, dAll = 0;
@@ -343,7 +343,7 @@ export function measureStage3(d: StageDef3) {
     return { title: d.title, blocks: L.blocks.length, charges: d.charges, plans, clear: ok / plans, star3: s3 / plans, best, greedyStar3: gStar3 / 20, greedyClear: gClear / 20, firstTapStill: still / open,
       attachable: taps.length, inner, deadFirstTap: deadU, deadFirstTapW: deadW, liveFirstTapReact: reactNew, liveFirstTapReactOld: react,
       firstTimer5: ft5, firstTimer1: ft1, firstTimerPrev: ftPrev, firstTimerBlind: ftBlind, firstTimer5Old: first5, firstTimer1Old: p1,
-      look2Star3, look2Fixed, rotateValue, habitStar3, habitFlowerStar3, f4bLiveOld, f4bLiveStar3, cellPx: cellPx(cams[0]), sidePx: cams[0].s * Math.sin(YAW0), startViewStar3MinFaces: Math.max(0, star3Vis),
+      look2Star3, look2Fixed, rotateValue, misreadClear: mis.clear, misreadStar3: mis.star3, habitStar3, habitFlowerStar3, f4bLiveOld, f4bLiveStar3, cellPx: cellPx(cams[0]), sidePx: cams[0].s * Math.sin(YAW0), startViewStar3MinFaces: Math.max(0, star3Vis),
       stars: { only1, two, three, freeStars }, f11, f11first, f11miss, f13, innerHit, f4bLive, f4bDead, f4bQuietDead, f11min, f11minAt: f11minAt === undefined ? '' : `${L.blocks[f11minAt].x},${L.blocks[f11minAt].y},${L.blocks[f11minAt].z}`, rotations };
   }
 }
@@ -374,7 +374,7 @@ if (process.argv[1]?.endsWith('funqa.ts')) {
   const r3 = measure3D();
   for (const x of r3) console.log(`3D ${x.title} 블록${x.blocks} 폭약${x.charges} 계획${x.plans} 성공${(x.clear * 100).toFixed(1)}% ★3 ${(x.star3 * 100).toFixed(1)}% 최선★${x.best} 미리보기탐욕(동점 무작위) ★3 ${x.greedyStar3} 성공 ${x.greedyClear} 첫 톡 꿈쩍 안 함 ${(x.firstTapStill * 100).toFixed(0)}%`);
   for (const x of r3) console.log(`   v1.1: 별 기울기 ★1만 ${x.stars.only1} ★2 ${x.stars.two} ★3 ${x.stars.three} 공짜 별 ${x.stars.freeStars} · F11 σ16px 떼는 순간 ${x.f11.toFixed(3)}(첫 닿음 ${x.f11first.toFixed(2)}) 취소 ${x.f11miss.toFixed(3)} 블록별 최저 ${x.f11min.toFixed(3)}@${x.f11minAt} ⟳${x.rotations} · 속(σ16 < .5) ${x.innerHit} · F4b 살아 있는 첫 톡 신호 ${x.f4bLive.toFixed(2)} F4b-죽음(둘째 꾹 실패 기호) ${x.f4bDead.toFixed(2)} · (옛 v1.2 '변화 없음' ${x.f4bQuietDead.toFixed(2)}) · F13 ${x.f13.toFixed(2)} · 옆면 ${x.sidePx.toFixed(1)}px`);
-  for (const x of r3) console.log(`   FUN v1.5: 처음 봇(꾹 3번) 미리 보기형 ${x.firstTimerPrev.toFixed(2)} · 안 보는 형 ${x.firstTimerBlind.toFixed(2)} → 5회 ${x.firstTimer5.toFixed(2)} (옛 ${x.firstTimer5Old.toFixed(2)}) · look2 ★3 ${x.look2Star3.toFixed(2)} · 고정 시점 look2 ${x.look2Fixed.toFixed(2)} · 돌려 보기 가치 ${x.rotateValue.toFixed(2)} · 버릇 ${x.habitStar3.toFixed(2)} · 꽃 피함 버릇 ${x.habitFlowerStar3.toFixed(2)} · F4b ⓒ 꼭 필요한 톡 ${x.f4bLive.toFixed(2)} (옛 ${x.f4bLiveOld.toFixed(2)} · ★3 톡 ${x.f4bLiveStar3.toFixed(2)}) · F5 ${x.liveFirstTapReact.toFixed(2)} (옛 ${x.liveFirstTapReactOld.toFixed(2)})`);
+  for (const x of r3) console.log(`   FUN v1.5: 처음 봇(꾹 3번) 미리 보기형 ${x.firstTimerPrev.toFixed(2)} · 안 보는 형 ${x.firstTimerBlind.toFixed(2)} → 5회 ${x.firstTimer5.toFixed(2)} (옛 ${x.firstTimer5Old.toFixed(2)}) · look2 ★3 ${x.look2Star3.toFixed(2)} · 고정 시점 look2 ${x.look2Fixed.toFixed(2)} · 돌려 보기 가치 ${x.rotateValue.toFixed(2)} · 오해 봇 성공 ${x.misreadClear.toFixed(2)} ★3 ${x.misreadStar3.toFixed(2)} · 버릇 ${x.habitStar3.toFixed(2)} · 꽃 피함 버릇 ${x.habitFlowerStar3.toFixed(2)} · F4b ⓒ 꼭 필요한 톡 ${x.f4bLive.toFixed(2)} (옛 ${x.f4bLiveOld.toFixed(2)} · ★3 톡 ${x.f4bLiveStar3.toFixed(2)}) · F5 ${x.liveFirstTapReact.toFixed(2)} (옛 ${x.liveFirstTapReactOld.toFixed(2)})`);
   for (const x of r3) console.log(`   FUN v1: 붙일 블록 ${x.attachable}(≤24) 속 ${x.inner}(0) · 죽은 첫 톡 ${x.deadFirstTap.toFixed(2)} 가중 ${x.deadFirstTapW.toFixed(2)} · 살아 있는 첫 톡 반응 ${x.liveFirstTapReact.toFixed(2)} · 처음 봇 1회 ${x.firstTimer1.toFixed(2)} 5회 ${x.firstTimer5.toFixed(2)} · 칸 ${x.cellPx.toFixed(1)}px(≥36) · 시작 시점 ★3 블록 최소 ${x.startViewStar3MinFaces.toFixed(2)}면`);
   const dir = join(import.meta.dirname, 'reports');
   mkdirSync(dir, { recursive: true });
