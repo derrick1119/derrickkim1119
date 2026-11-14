@@ -472,3 +472,24 @@ describe('🚀 8판 로켓 발사 (M1′ S007 · 📐 CONTENT 8판)', () => {
     expect(shotDead(STAGES[7], s.L, s.S)).toBe(false);
   });
 });
+
+describe('🌻 5판 진자 좌표 (M1′ S008 · 📐 CONTENT 5판)', () => {
+  it('왼 꽃잎: 바깥 #9를 빼면 안쪽 #8에 매달려 꽃 머리 톡에 우수수 · 안쪽 #8을 먼저 빼면 바깥 축에 매달려 안 맞고 잎 #3을 덮는다', () => {
+    for (const seed of [1, 5, 42]) {
+      const s = g.create(seed);
+      startStage(s, 4);
+      const L = s.L;
+      let S = newSim(L);
+      apply(L, S, 9);
+      const r1: { k: string; p?: number }[] = [];
+      apply(L, S, 14, r1 as never);
+      expect(r1.some((e) => e.k === 'crash' && e.p === 4), `seed ${seed} 바른 쪽`).toBe(true);
+      S = newSim(L);
+      apply(L, S, 8);
+      expect((blockedM(L, S.gone) >> 3) & 1).toBe(1);
+      const r2: { k: string; p?: number }[] = [];
+      apply(L, S, 14, r2 as never);
+      expect(r2.some((e) => e.k === 'crash' && e.p === 4), `seed ${seed} 틀린 쪽`).toBe(false);
+    }
+  });
+});

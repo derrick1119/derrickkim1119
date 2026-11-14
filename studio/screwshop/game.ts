@@ -46,7 +46,7 @@ const bar = (x1: number, y1: number, x2: number, y2: number, t: number, tone: st
 const plate = (cx: number, cy: number, w: number, h: number, a: number, rr: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, w / 2, h / 2, a, rr, tone, sc, o);
 const disc = (cx: number, cy: number, r: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, r, r, 0, r, tone, sc, o);
 
-export interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; /** 첫 판 손가락이 가리킬 나사 번호(판자 목록 순서로 0부터) */ first?: number; /** ★3을 '한 방 H 이상'으로 (톡 한 번에 빠진 나사 수) */ H?: number; /** 🔑 태엽(M1′ S004): 열쇠 나사를 빼면 남은 🔒가 왼쪽부터 한꺼번에 튀어나온다 */ wind?: boolean; /** 🔨 겹별(📐 S003): ★2 = 쾅 B번 이상, ★3 = ★2 + 빈칸 P칸까지 */ B?: number; /** ★2는 땄고 ★3을 놓쳤을 때 💡 */ tip2?: string; /** 🪵 통나무가 떨어져야 풀리는 나사 3개(늦은 무리)를 한 색으로 칠하고 그 색 상자를 queue[late]에 — 통나무 나사 색은 첫 상자 (📐 2판) */ late?: number; /** 🌻 꽃 머리 장전 칠하기(📐 S005 5판): 상자 [B, X, A, C, D] · 꽃 머리 = A · 꽃 머리가 덮은 꽃잎 안쪽 셋 = X · 꽃잎 바깥 = A·B·C */ bloom?: boolean; /** 🦕 진자 드러내기 칠하기(📐 S006 6판): 둘째 🌀의 '남길' 나사 = 첫 상자 색(버릇이 먼저 뺀다) · '뺄' 나사 = 둘째 상자 색 */ swing?: boolean; toy(): Src[] }
+export interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; /** 첫 판 손가락이 가리킬 나사 번호(판자 목록 순서로 0부터) */ first?: number; /** ★3을 '한 방 H 이상'으로 (톡 한 번에 빠진 나사 수) */ H?: number; /** 🔑 태엽(M1′ S004): 열쇠 나사를 빼면 남은 🔒가 왼쪽부터 한꺼번에 튀어나온다 */ wind?: boolean; /** 🔨 겹별(📐 S003): ★2 = 쾅 B번 이상, ★3 = ★2 + 빈칸 P칸까지 */ B?: number; /** ★2는 땄고 ★3을 놓쳤을 때 💡 */ tip2?: string; /** 🪵 통나무가 떨어져야 풀리는 나사 3개(늦은 무리)를 한 색으로 칠하고 그 색 상자를 queue[late]에 — 통나무 나사 색은 첫 상자 (📐 2판) */ late?: number; /** 🌻 꽃 머리 장전 칠하기(📐 S005 5판): 상자 [B, X, A, C, D] · 꽃 머리 = A · 꽃잎 안쪽 셋 = X(📐 S008) · 꽃잎 바깥 = A·B·C */ bloom?: boolean; /** 🦕 진자 드러내기 칠하기(📐 S006 6판): 둘째 🌀의 '남길' 나사 = 첫 상자 색(버릇이 먼저 뺀다) · '뺄' 나사 = 둘째 상자 색 */ swing?: boolean; toy(): Src[] }
 
 const GIR = '#f4bf4a', GIR2 = '#e7a93a', DINO = '#52b66c', DINO2 = '#3f9a58', BLADE = '#fff6e6', STONE = '#b9aea0', STONE2 = '#a69a8b', GLASS = '#cfe9ff';
 export const STAGES: StageDef[] = [
@@ -114,18 +114,20 @@ export const STAGES: StageDef[] = [
   },
   {
     // 📐 CONTENT.md M1′ 5판 (S005): 🌻 해바라기 — 🪵 꽃 머리(통나무)가 떨어지면 밑에 매달린 꽃잎을 우수수 + 🪟 유리 화병(비쳐도 막음)
-    key: 'flower', name: '해바라기', emoji: '🌻', news: '🌻 꽃 머리는 통나무 — 매달린 꽃잎을 우수수!', tip: '🌻 꽃잎 셋을 매단 뒤 꽃 머리를 톡!', tip2: '🌻 빈칸 하나는 셋째 꽃잎 몫으로 아껴요', boxes: 2, colors: 5, P: 1, C: 8, H: 4, bloom: true,
+    key: 'flower', name: '해바라기', emoji: '🌻', news: '🌻 꽃 머리는 통나무 — 매달린 꽃잎을 우수수!', tip: '🌻 꽃잎 셋을 매단 뒤 꽃 머리를 톡!', tip2: '🌻 꽃잎은 바깥 나사부터 — 안쪽에 매달아야 우수수', boxes: 2, colors: 5, P: 1, C: 8, H: 4, bloom: true,
     // 나사 번호: #0 #1 줄기(위·🪟 밑) · #2 #3 왼 잎(끝·밑동) · #4 #5 오른 잎(밑동·끝) · #6 #7 🪟 화병(왼·오른) · #8 #9 왼 꽃잎(안·바깥) · #10 #11 가운데 꽃잎 · #12 #13 오른 꽃잎 · #14 🪵 꽃 머리(방아쇠)
-    // 판자 순서 = 겹침 순서(뒤가 위). 꽃 머리가 꽃잎 안쪽 나사 셋(#8 #10 #12)을 덮는다 → 꽃잎은 바깥 나사만 빼서 안쪽 나사로 매달 수 있다.
+    // 판자 순서 = 겹침 순서(뒤가 위). 꽃 머리는 가운데 꽃잎 안쪽 #10만 덮는다(가운데는 바깥 #11부터 — 강제).
+    // 📐 S008 진자: 양옆 꽃잎은 두 나사가 다 풀려 있다 — 안쪽(#8 #12, 더 위 · X 상자가 열려 있어 '맞는 색')을 남겨야 축이 폭 안.
+    //   버릇(맞는 색 → 위)은 안쪽을 먼저 빼서 바깥(#9 #13) 축으로 매단다 → 폭 밖이라 우수수에 안 맞고, 왼쪽은 잎 #3을 덮는다.
     // 우수수 과녁 = 꽃 머리 폭(±0.085) 안·아래에 매달린 판자: 꽃잎 셋(안쪽 축)과 줄기. 잎은 축이 폭 밖이라 안 맞는다.
     toy: () => [
       bar(0.5, 0.7, 0.5, 1.12, 0.026, '#3f9d4a', [[0.5, 0.87], [0.5, 1.0]]),
       plate(0.33, 0.88, 0.22, 0.08, -0.42, 0.04, '#58b85e', [[0.27, 0.905], [0.38, 0.86]], { deco: 'leaf' }),
       plate(0.67, 0.95, 0.22, 0.08, 0.42, 0.04, '#4fae55', [[0.62, 0.93], [0.73, 0.975]], { deco: 'leaf' }),
       plate(0.5, 1.07, 0.3, 0.15, 0, 0.05, GLASS, [[0.4, 1.07], [0.6, 1.07]], { kind: 'glass' }),
-      ...[140, 90, 40].map((deg, j) => {
+      ...[135, 90, 45].map((deg, j) => {
         const c = Math.cos((deg * Math.PI) / 180), sn = Math.sin((deg * Math.PI) / 180), at = (r: number) => [0.5 + r * c, 0.56 + r * sn];
-        return bar(0.5 + 0.04 * c, 0.56 + 0.04 * sn, 0.5 + 0.21 * c, 0.56 + 0.21 * sn, 0.042, j === 1 ? '#ffcf3a' : '#ffbe2e', [at(0.095), at(0.18)], { deco: 'petal' });
+        return bar(0.5 + 0.04 * c, 0.56 + 0.04 * sn, 0.5 + 0.21 * c, 0.56 + 0.21 * sn, 0.042, j === 1 ? '#ffcf3a' : '#ffbe2e', [at(j === 1 ? 0.095 : 0.112), at(0.18)], { deco: 'petal' }); // 📐 S008: 양옆 안쪽 r 0.112 = 꽃 머리 밖(뺄 수 있음)·폭 안(우수수)
       }),
       disc(0.5, 0.56, 0.085, '#7a4a2a', [[0.5, 0.56]], { deco: 'seeds', heavy: true }),
     ],
@@ -515,9 +517,10 @@ function paint(G: Level, d: StageDef, r: Rng): Level {
   }
   if (d.bloom && hv >= 0 && d.colors * 3 === G.N) {
     // 📐 5판 🌻: 상자 순서 [B, X, A, C, D]. 꽃 머리(🪵) = A — A 상자는 B가 닫혀야 열린다(일찍 쏘면 빈칸).
-    //   꽃 머리가 덮은 꽃잎 안쪽 나사 셋 = X — X 상자는 처음부터 열려 있지만 꽃 머리가 떨어지기 전엔 못 채운다(우수수로 한꺼번에).
+    //   꽃잎 안쪽 나사 셋 = X — X 상자는 처음부터 열려 있지만 가운데 안쪽(꽃 머리 밑) 때문에 꽃 머리가 떨어지기 전엔 못 닫는다(우수수로 한꺼번에).
+    //   📐 S008: 양옆 안쪽은 손으로도 뺄 수 있다 — 맞는 색이라 버릇은 먼저 빼서 꽃잎을 바깥 축(폭 밖)에 매단다(진자 결정)
     //   꽃잎 바깥 나사 = A·B·C 하나씩 → 꽃잎 셋을 다 매달면 C 하나는 빈칸에 앉는다(장전의 대가 = ★2 한도 1칸). 나머지 8 = A 1 · B 2 · C 2 · D 3
-    const late = G.cov[hv][0], [A, B, X, C, D] = [pal[1], pal[2], pal[0], pal[3], pal[4]], out: number[] = [];
+    const late = G.pl.reduce((m, p, k) => (p.deco === 'petal' ? m | (1 << G.ps[k][0]) : m), 0), [A, B, X, C, D] = [pal[1], pal[2], pal[0], pal[3], pal[4]], out: number[] = [];
     G.pl.forEach((_, k) => G.ps[k].some((i) => (late >> i) & 1) && G.ps[k].forEach((i) => !((late >> i) & 1) && out.push(i)));
     if (pop(late) === 3 && out.length === 3) {
       const oc = shuffle([A, B, C], r), pool = shuffle([A, B, B, C, C, D, D, D], r);
