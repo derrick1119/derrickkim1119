@@ -305,9 +305,10 @@
         "catcards",
         "bubbleshot"
       ],
-      "winner": null,
-      "note": "24라운드 다 폐기 → 고른 결로 넓히기를 그만두고, 요즘 잘 팔리는 캐주얼 퍼즐 뼈대(나사 풀기·버스 태우기·블록 줄 지우기·철거·덱 빌딩·버블 슈터) × 공장의 와우(물리 반응·웃긴 주인공·디오라마) × 전략 깊이(버릇 봇은 3판부터 ★3 못 따게). 오너가 고른다",
-      "machinePick": "animalbus"
+      "winner": "screwshop,animalbus,demolition",
+      "note": "24라운드 다 폐기 → 고른 결로 넓히기를 그만두고, 요즘 잘 팔리는 캐주얼 퍼즐 뼈대(나사 풀기·버스 태우기·블록 줄 지우기·철거·덱 빌딩·버블 슈터) × 공장의 와우(물리 반응·웃긴 주인공·디오라마) × 전략 깊이(버릇 봇은 3판부터 ★3 못 따게). 오너가 고른다 · 오너: \"1,2,4 스튜디오 개설해 나머지 폐기.\" → 나사 풀기 공방·동물 버스 정류장·비버 철거반 스튜디오로 졸업(게임마다 팀 세션), 블록 꽉꽉 정원·고양이 카드 원정·펭귄 거품 쏘기 폐기. 기계 추천(동물 버스 정류장) 적중",
+      "machinePick": "animalbus",
+      "decidedAt": "2026-11-14"
     }
   ],
   "graduated": [
@@ -363,6 +364,45 @@
         "ripple",
         "pointer",
         "pushbox"
+      ]
+    },
+    {
+      "id": "screwshop",
+      "name": "나사 풀기 공방",
+      "at": "2026-11-14",
+      "round": 25,
+      "studio": "studio/screwshop",
+      "play": "https://derrick1119.github.io/derrickkim1119/studio/screwshop/",
+      "genes": [
+        "unscrew",
+        "sort",
+        "pointer"
+      ]
+    },
+    {
+      "id": "animalbus",
+      "name": "동물 버스 정류장",
+      "at": "2026-11-14",
+      "round": 25,
+      "studio": "studio/animalbus",
+      "play": "https://derrick1119.github.io/derrickkim1119/studio/animalbus/",
+      "genes": [
+        "boarding",
+        "sort",
+        "pointer"
+      ]
+    },
+    {
+      "id": "demolition",
+      "name": "비버 철거반",
+      "at": "2026-11-14",
+      "round": 25,
+      "studio": "studio/demolition",
+      "play": "https://derrick1119.github.io/derrickkim1119/studio/demolition/",
+      "genes": [
+        "demolish",
+        "chain",
+        "pointer"
       ]
     }
   ],
@@ -1037,6 +1077,39 @@
       ],
       "at": "2026-11-13",
       "why": "24라운드 다 폐기 (코드: git a0689f9)"
+    },
+    {
+      "id": "blockgarden",
+      "name": "블록 꽉꽉 정원",
+      "genes": [
+        "linefill",
+        "tiles",
+        "combo"
+      ],
+      "at": "2026-11-14",
+      "why": "25라운드 선택 안 됨 (코드: git 746a55b)"
+    },
+    {
+      "id": "catcards",
+      "name": "고양이 카드 원정",
+      "genes": [
+        "deck",
+        "pick3",
+        "turnbased"
+      ],
+      "at": "2026-11-14",
+      "why": "25라운드 선택 안 됨 (코드: git 746a55b)"
+    },
+    {
+      "id": "bubbleshot",
+      "name": "펭귄 거품 쏘기",
+      "genes": [
+        "bubble",
+        "pointer",
+        "chain"
+      ],
+      "at": "2026-11-14",
+      "why": "25라운드 선택 안 됨 (코드: git 746a55b)"
     }
   ]
 }
