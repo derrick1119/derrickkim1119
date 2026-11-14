@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { STAGES, layoutOf, simulate } from '../studio/demolition/game.ts';
 import { STAGES3 } from '../studio/demolition/stages3d.ts';
 import { cellPx, fitCams, visibleArea, YAW0 } from '../studio/demolition/view3d.ts';
-import { fingerHit } from '../studio/demolition/funqa.ts';
+import { fingerHit, measureStage3 } from '../studio/demolition/funqa.ts';
 import { GAS, capOf3, isQuiet, lostFeet, support3, verdict3, forEachPlan, from2D, layoutOf3, simulate3, type StageDef3 } from '../studio/demolition/sim3d.ts';
 
 const stage = (layers: string[][], extra: Partial<StageDef3> = {}): StageDef3 => ({
@@ -163,7 +163,6 @@ describe('3D 칸 물리', () => {
         const c1 = none.slice();
         c1[i] = capOf3(b);
         const moved = simulate3(L, c1).moved, lost = lostFeet(now, support3(L, c1)).length;
-        expect(isQuiet(L, none, i)).toBe(!moved && lost === 0 && isQuiet(L, none, i));
         if (moved || lost) expect(isQuiet(L, none, i)).toBe(false);
       });
     }
@@ -183,4 +182,13 @@ describe('3D 칸 물리', () => {
       });
     }
   });
+
+  it('손가락 적중(FUN v1.3 F11, σ16px · 말풍선 보고 한 번 고쳐 누름 · 가려진 시점은 ⟳): 판마다 평균 ≥ .9 · 취소 ≤ .03 · 블록별 ≥ .9 (n200 — 게이트는 funqa --n1000)', () => {
+    for (const d of STAGES3) {
+      const m = measureStage3(d);
+      expect(m.f11, d.title).toBeGreaterThanOrEqual(0.9);
+      expect(m.f11miss, d.title).toBeLessThanOrEqual(0.03);
+      expect(m.f11min, `${d.title} ${m.f11minAt}`).toBeGreaterThanOrEqual(0.9);
+    }
+  }, 60000);
 });

@@ -13,7 +13,7 @@ import { STAGES, bestPlan, capOf, demolition as g, demolitionRandom, demolitionS
 import type { Bot } from './core.ts';
 import type { DemoState } from './game.ts';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { capOf3, feetKey3, forEachPlan, layoutOf3, lostFeet, simulate3, support3, type Layout3, type StageDef3 } from './sim3d.ts';
+import { capOf3, feetKey3, forEachPlan, isQuiet, layoutOf3, lostFeet, simulate3, support3, type Layout3, type StageDef3 } from './sim3d.ts';
 import { aimAt, cellPx, drawOrder, faces, fitCams, MAGNET, pickAt, visibleArea, YAW0, type Cam } from './view3d.ts';
 import { STAGES3 } from './stages3d.ts';
 import { join } from 'node:path';
@@ -253,7 +253,29 @@ export function measureStage3(d: StageDef3) {
       if (alive[i]) (liveW += w), (liveSig += signal ? w : 0);
       else (deadW2 += w), (deadQuiet += quiet ? w : 0);
     });
-    const f4bLive = liveW ? liveSig / liveW : 1, f4bDead = deadW2 ? deadQuiet / deadW2 : 1;
+    const f4bLive = liveW ? liveSig / liveW : 1, f4bQuietDead = deadW2 ? deadQuiet / deadW2 : 1;
+    // F4b-죽음(v1.3 ⓑ): 변화가 있는 죽은 첫 톡 뒤, 둘째 꾹(마지막 폭약이면 결과 꼬리표)에서 실패 기호가 뜨는 비율.
+    // 화면 규칙: 마지막 폭약을 겨누면 늘 결과 꼬리표(verdict3) — 실패 계획이면 빨간 글. 마지막이 아니면 💥/빨간 상자가 있을 때만
+    let dSig = 0, dAll = 0;
+    taps.forEach((i) => {
+      if (alive[i]) return;
+      const c1 = new Int8Array(N);
+      c1[i] = capOf3(L.blocks[i]);
+      if (isQuiet(L, new Int8Array(N), i)) return;
+      const leftAfter = d.charges - c1[i];
+      taps.forEach((j) => {
+        if (j === i || capOf3(L.blocks[j]) > leftAfter) return;
+        const c2 = c1.slice();
+        c2[j] = capOf3(L.blocks[j]);
+        const o = simulate3(L, c2);
+        if (o.ok) return;
+        dAll++;
+        const last = capOf3(L.blocks[j]) >= leftAfter;
+        const drawn = last || o.hits.some((h) => h > 0) || L.blocks.some((_, k) => o.die[k] < 0 && o.fy[k] + 1 > L.goal && (o.fx[k] !== L.blocks[k].x || o.fz[k] !== L.blocks[k].z || o.fy[k] !== L.blocks[k].y));
+        if (drawn) dSig++;
+      });
+    });
+    const f4bDead = dAll ? dSig / dAll : 1;
     // F7 별 기울기: 성공 계획 안의 ★1만·★2·★3 수, 공짜 별(모든 성공 계획이 받는 꽃밭·납작 별)
     let only1 = 0, two = 0, three = 0, okN = 0, flowerAll = true, flatAll = true;
     forEachPlan(L, d.charges, (ch) => {
@@ -293,7 +315,7 @@ export function measureStage3(d: StageDef3) {
     return { title: d.title, blocks: L.blocks.length, charges: d.charges, plans, clear: ok / plans, star3: s3 / plans, best, greedyStar3: gStar3 / 20, greedyClear: gClear / 20, firstTapStill: still / open,
       attachable: taps.length, inner, deadFirstTap: deadU, deadFirstTapW: deadW, liveFirstTapReact: react,
       firstTimer5: first5, firstTimer1: p1, cellPx: cellPx(cams[0]), sidePx: cams[0].s * Math.sin(YAW0), startViewStar3MinFaces: Math.max(0, star3Vis),
-      stars: { only1, two, three, freeStars }, f11, f11first, f11miss, f13, innerHit, f4bLive, f4bDead, f11min, f11minAt: f11minAt === undefined ? '' : `${L.blocks[f11minAt].x},${L.blocks[f11minAt].y},${L.blocks[f11minAt].z}`, rotations };
+      stars: { only1, two, three, freeStars }, f11, f11first, f11miss, f13, innerHit, f4bLive, f4bDead, f4bQuietDead, f11min, f11minAt: f11minAt === undefined ? '' : `${L.blocks[f11minAt].x},${L.blocks[f11minAt].y},${L.blocks[f11minAt].z}`, rotations };
   }
 }
 
@@ -322,9 +344,9 @@ if (process.argv[1]?.endsWith('funqa.ts')) {
   console.log(r.summary, r.runs);
   const r3 = measure3D();
   for (const x of r3) console.log(`3D ${x.title} 블록${x.blocks} 폭약${x.charges} 계획${x.plans} 성공${(x.clear * 100).toFixed(1)}% ★3 ${(x.star3 * 100).toFixed(1)}% 최선★${x.best} 미리보기탐욕(동점 무작위) ★3 ${x.greedyStar3} 성공 ${x.greedyClear} 첫 톡 꿈쩍 안 함 ${(x.firstTapStill * 100).toFixed(0)}%`);
-  for (const x of r3) console.log(`   v1.1: 별 기울기 ★1만 ${x.stars.only1} ★2 ${x.stars.two} ★3 ${x.stars.three} 공짜 별 ${x.stars.freeStars} · F11 σ16px 떼는 순간 ${x.f11.toFixed(3)}(첫 닿음 ${x.f11first.toFixed(2)}) 취소 ${x.f11miss.toFixed(3)} 블록별 최저 ${x.f11min.toFixed(3)}@${x.f11minAt} ⟳${x.rotations} · 속(σ16 < .5) ${x.innerHit} · F4b 살아 있는 첫 톡 신호 ${x.f4bLive.toFixed(2)} 죽은 첫 톡 '변화 없음' ${x.f4bDead.toFixed(2)} · F13 ${x.f13.toFixed(2)} · 옆면 ${x.sidePx.toFixed(1)}px`);
+  for (const x of r3) console.log(`   v1.1: 별 기울기 ★1만 ${x.stars.only1} ★2 ${x.stars.two} ★3 ${x.stars.three} 공짜 별 ${x.stars.freeStars} · F11 σ16px 떼는 순간 ${x.f11.toFixed(3)}(첫 닿음 ${x.f11first.toFixed(2)}) 취소 ${x.f11miss.toFixed(3)} 블록별 최저 ${x.f11min.toFixed(3)}@${x.f11minAt} ⟳${x.rotations} · 속(σ16 < .5) ${x.innerHit} · F4b 살아 있는 첫 톡 신호 ${x.f4bLive.toFixed(2)} F4b-죽음(둘째 꾹 실패 기호) ${x.f4bDead.toFixed(2)} · (옛 v1.2 '변화 없음' ${x.f4bQuietDead.toFixed(2)}) · F13 ${x.f13.toFixed(2)} · 옆면 ${x.sidePx.toFixed(1)}px`);
   for (const x of r3) console.log(`   FUN v1: 붙일 블록 ${x.attachable}(≤24) 속 ${x.inner}(0) · 죽은 첫 톡 ${x.deadFirstTap.toFixed(2)} 가중 ${x.deadFirstTapW.toFixed(2)} · 살아 있는 첫 톡 반응 ${x.liveFirstTapReact.toFixed(2)} · 처음 봇 1회 ${x.firstTimer1.toFixed(2)} 5회 ${x.firstTimer5.toFixed(2)} · 칸 ${x.cellPx.toFixed(1)}px(≥36) · 시작 시점 ★3 블록 최소 ${x.startViewStar3MinFaces.toFixed(2)}면`);
   const dir = join(import.meta.dirname, 'reports');
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: 'C006', f11n: F11N, ...r, stages3d: measure3D() }, null, 1) + '\n');
+  writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: 'C007', f11n: F11N, ...r, stages3d: measure3D() }, null, 1) + '\n');
 }
