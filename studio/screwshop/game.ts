@@ -46,13 +46,13 @@ const bar = (x1: number, y1: number, x2: number, y2: number, t: number, tone: st
 const plate = (cx: number, cy: number, w: number, h: number, a: number, rr: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, w / 2, h / 2, a, rr, tone, sc, o);
 const disc = (cx: number, cy: number, r: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, r, r, 0, r, tone, sc, o);
 
-export interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; /** 첫 판 손가락이 가리킬 나사 번호(판자 목록 순서로 0부터) */ first?: number; /** ★3을 '한 방 H 이상'으로 (톡 한 번에 빠진 나사 수) */ H?: number; /** 🔑 태엽(M1′ S004): 열쇠 나사를 빼면 남은 🔒가 왼쪽부터 한꺼번에 튀어나온다 */ wind?: boolean; /** 🔨 겹별(📐 S003): ★2 = 쾅 B번 이상, ★3 = ★2 + 빈칸 P칸까지 */ B?: number; /** ★2는 땄고 ★3을 놓쳤을 때 💡 */ tip2?: string; /** 🪵 통나무가 떨어져야 풀리는 나사 3개(늦은 무리)를 한 색으로 칠하고 그 색 상자를 queue[late]에 — 통나무 나사 색은 첫 상자 (📐 2판) */ late?: number; /** 🌻 꽃 머리 장전 칠하기(📐 S005 5판): 상자 [B, X, A, C, D] · 꽃 머리 = A · 꽃잎 안쪽 셋 = X(📐 S008) · 꽃잎 바깥 = A·B·C */ bloom?: boolean; /** 🦕 진자 드러내기 칠하기(📐 S006 6판): 둘째 🌀의 '남길' 나사 = 첫 상자 색(버릇이 먼저 뺀다) · '뺄' 나사 = 둘째 상자 색 */ swing?: boolean; toy(): Src[] }
+export interface StageDef { /** 판 고유 번호(✏️ S009, 📋 M2): 칠 씨앗 · PICKS · pick.ts VALUE/CAP/SCAN을 이 번호로 찾는다 — 판 순서를 바꿔도 칠이 같다. M1′ 8판 = 0~7 */ id: number; key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; /** 첫 판 손가락이 가리킬 나사 번호(판자 목록 순서로 0부터) */ first?: number; /** ★3을 '한 방 H 이상'으로 (톡 한 번에 빠진 나사 수) */ H?: number; /** 🔑 태엽(M1′ S004): 열쇠 나사를 빼면 남은 🔒가 왼쪽부터 한꺼번에 튀어나온다 */ wind?: boolean; /** 🔨 겹별(📐 S003): ★2 = 쾅 B번 이상, ★3 = ★2 + 빈칸 P칸까지 */ B?: number; /** ★2는 땄고 ★3을 놓쳤을 때 💡 */ tip2?: string; /** 🪵 통나무가 떨어져야 풀리는 나사 3개(늦은 무리)를 한 색으로 칠하고 그 색 상자를 queue[late]에 — 통나무 나사 색은 첫 상자 (📐 2판) */ late?: number; /** 🌻 꽃 머리 장전 칠하기(📐 S005 5판): 상자 [B, X, A, C, D] · 꽃 머리 = A · 꽃잎 안쪽 셋 = X(📐 S008) · 꽃잎 바깥 = A·B·C */ bloom?: boolean; /** 🦕 진자 드러내기 칠하기(📐 S006 6판): 둘째 🌀의 '남길' 나사 = 첫 상자 색(버릇이 먼저 뺀다) · '뺄' 나사 = 둘째 상자 색 */ swing?: boolean; toy(): Src[] }
 
 const GIR = '#f4bf4a', GIR2 = '#e7a93a', DINO = '#52b66c', DINO2 = '#3f9a58', BLADE = '#fff6e6', STONE = '#b9aea0', STONE2 = '#a69a8b', GLASS = '#cfe9ff';
 export const STAGES: StageDef[] = [
   {
     // 📐 CONTENT.md M1′ 1판 (S001): 기린은 망치 장난감 — 머리·꼬리·몸통이 각각 망치. "칠 나사 바로 위 나사를 남기면 끄덕 쾅"
-    key: 'giraffe', name: '기린', emoji: '🦒', news: '🔩 나사를 톡 → 같은 색 상자로 쏙!', tip: '🔨 망치 옆 나사를 먼저 톡 → 끄덕 쾅!', boxes: 2, colors: 3, P: 0, C: 6, T: 6, B: 3, first: 8, tip2: '📦 칠 나사 색 상자가 열렸을 때 망치를 톡',
+    id: 0, key: 'giraffe', name: '기린', emoji: '🦒', news: '🔩 나사를 톡 → 같은 색 상자로 쏙!', tip: '🔨 망치 옆 나사를 먼저 톡 → 끄덕 쾅!', boxes: 2, colors: 3, P: 0, C: 6, T: 6, B: 3, first: 8, tip2: '📦 칠 나사 색 상자가 열렸을 때 망치를 톡',
     // 나사 번호: #0 뒷다리 · #1 앞다리 · #2 #3 몸통(왼·오른) · #4 #5 꼬리(뿌리·끝) · #6 목 · #7 #8 머리(뒤통수·주둥이)
     // 판자 순서 = 겹침 순서(뒤가 위). 다리·목은 나사가 무게중심 바로 위라 처음부터 돌지 않는다.
     toy: () => [
@@ -66,7 +66,7 @@ export const STAGES: StageDef[] = [
   },
   {
     // 📐 CONTENT.md M1′ 2판 (S002): 돛단배는 통나무 장난감 — 🪵 활대가 떨어지면 밑에 매달린 돛을 와르르. "돛은 나사 하나만 남겨 매달고, 활대는 마지막에"
-    key: 'boat', name: '돛단배', emoji: '⛵', news: '🪵 활대는 통나무 — 떨어지면 밑에 매달린 판자를 와르르!', tip: '🪵 돛은 나사 하나만 남겨 매달고, 활대는 마지막에!', boxes: 2, colors: 4, P: 1, C: 6, H: 3, late: 2,
+    id: 1, key: 'boat', name: '돛단배', emoji: '⛵', news: '🪵 활대는 통나무 — 떨어지면 밑에 매달린 판자를 와르르!', tip: '🪵 돛은 나사 하나만 남겨 매달고, 활대는 마지막에!', boxes: 2, colors: 4, P: 1, C: 6, H: 3, late: 2,
     // 나사 번호: #0 #1 선체(위·아래) · #2 #3 돛대(꼭대기·활대 밑) · #4~#6 작은 돛(위·가운데·아래) · #7~#10 큰 돛(위→아래) · #11 활대 한가운데(방아쇠)
     // 판자 순서 = 겹침 순서(뒤가 위). 활대가 #3을, 돛대가 선체 #0 #1을 누른다 → 셋은 활대가 떨어진 뒤에만 풀린다(늦은 무리 = 한 색, 셋째 상자).
     // 와르르 과녁은 돛 둘뿐: 돛대 나사는 둘 다 활대 중심(0.56)보다 위, 선체는 와르르 때 늘 나사 2개. 돛 나사는 좌우로 엇갈려 매달리면 기우뚱(14°)·빙글(37~170°).
@@ -80,7 +80,7 @@ export const STAGES: StageDef[] = [
   },
   {
     // 📐 CONTENT.md M1′ 3판 (S004): 🚂 태엽 기차 — 🔑 태엽 열쇠를 빼면 🔒 바퀴 4개가 왼쪽부터 한꺼번에 튀어나온다
-    key: 'train', name: '태엽 기차', emoji: '🚂', news: '🔑 태엽 열쇠 — 빼면 🔒 바퀴가 한꺼번에 튀어나와요!', tip: '🔑 🔒 바퀴 색 상자가 다 열렸을 때 열쇠를 톡!', tip2: '🔑 바퀴 색 상자 둘이 같이 열릴 때까지 아껴요', boxes: 2, colors: 5, P: 2, C: 13, wind: true,
+    id: 2, key: 'train', name: '태엽 기차', emoji: '🚂', news: '🔑 태엽 열쇠 — 빼면 🔒 바퀴가 한꺼번에 튀어나와요!', tip: '🔑 🔒 바퀴 색 상자가 다 열렸을 때 열쇠를 톡!', tip2: '🔑 바퀴 색 상자 둘이 같이 열릴 때까지 아껴요', boxes: 2, colors: 5, P: 2, C: 13, wind: true,
     // 나사 번호: #0 레일 · #1~#3 보일러(왼·가운데·오른) · #4 #5 운전실(위·아래) · #6 #7 굴뚝(위·아래) · #8 앞 등 · #9 증기 돔 · #10 🔑 태엽 열쇠 · #11~#14 🔒 바퀴(왼→오른)
     // 판자 순서 = 겹침 순서(뒤가 위). 태엽 열쇠 판자가 운전실 위 나사 #4를 누른다(열쇠를 빼야 #4가 풀린다).
     toy: () => [
@@ -99,7 +99,7 @@ export const STAGES: StageDef[] = [
   },
   {
     // 📐 CONTENT.md M1′ 4판 (S004 · S008 연쇄): 🌬️ 풍차 — 아래 날개 둘은 📌 못 날개(다 풀면 못에 매달려 영영 가림) + 날개 끝 🔨(매달리는 순간 🎯를 쾅)
-    key: 'mill', name: '풍차', emoji: '🌬️', news: '📌 못 날개 — 다 풀어도 못에 매달려 계속 가려요', tip: '📌 꾹 눌러 ⚠ 뜨는 나사는 맨 나중에!', tip2: '🎯 망치가 칠 나사는 손으로 빼지 말고 남겨요', boxes: 2, colors: 4, P: 2, C: 6, T: 11,
+    id: 3, key: 'mill', name: '풍차', emoji: '🌬️', news: '📌 못 날개 — 다 풀어도 못에 매달려 계속 가려요', tip: '📌 꾹 눌러 ⚠ 뜨는 나사는 맨 나중에!', tip2: '🎯 망치가 칠 나사는 손으로 빼지 말고 남겨요', boxes: 2, colors: 4, P: 2, C: 6, T: 11,
     // 나사 번호: #0 탑 가운데(⚠ 두 못 날개가 다 덮는 자리) · #1 #2 탑 🎯(왼·오른 날개 끝 🔨가 칠 곳) · #3 #4 지붕(왼·오른) · #5 문
     //   · #6 #7 왼쪽 위 날개(안·끝) · #8 #9 오른쪽 위 날개 · #10 #11 📌 왼쪽 아래 날개 · #12 #13 📌 오른쪽 아래 날개 · #14 축
     // 위 날개 둘은 보통 판자(다 풀면 덜컹). 아래 날개 둘은 축 테두리의 제 못(0.06 안쪽)에 매달려 바로 아래로 — 끝 🔨가 🎯(#1·#2)를 쾅.
@@ -116,7 +116,7 @@ export const STAGES: StageDef[] = [
   },
   {
     // 📐 CONTENT.md M1′ 5판 (S005): 🌻 해바라기 — 🪵 꽃 머리(통나무)가 떨어지면 밑에 매달린 꽃잎을 우수수 + 🪟 유리 화병(비쳐도 막음)
-    key: 'flower', name: '해바라기', emoji: '🌻', news: '🌻 꽃 머리는 통나무 — 매달린 꽃잎을 우수수!', tip: '🌻 꽃잎 셋을 매단 뒤 꽃 머리를 톡!', tip2: '🌻 꽃잎은 바깥 나사부터 — 안쪽에 매달아야 우수수', boxes: 2, colors: 5, P: 1, C: 8, H: 4, bloom: true,
+    id: 4, key: 'flower', name: '해바라기', emoji: '🌻', news: '🌻 꽃 머리는 통나무 — 매달린 꽃잎을 우수수!', tip: '🌻 꽃잎 셋을 매단 뒤 꽃 머리를 톡!', tip2: '🌻 꽃잎은 바깥 나사부터 — 안쪽에 매달아야 우수수', boxes: 2, colors: 5, P: 1, C: 8, H: 4, bloom: true,
     // 나사 번호: #0 #1 줄기(위·🪟 밑) · #2 #3 왼 잎(끝·밑동) · #4 #5 오른 잎(밑동·끝) · #6 #7 🪟 화병(왼·오른) · #8 #9 왼 꽃잎(안·바깥) · #10 #11 가운데 꽃잎 · #12 #13 오른 꽃잎 · #14 🪵 꽃 머리(방아쇠)
     // 판자 순서 = 겹침 순서(뒤가 위). 꽃 머리는 가운데 꽃잎 안쪽 #10만 덮는다(가운데는 바깥 #11부터 — 강제).
     // 📐 S008 진자: 양옆 꽃잎은 두 나사가 다 풀려 있다 — 안쪽(#8 #12, 더 위 · X 상자가 열려 있어 '맞는 색')을 남겨야 축이 폭 안.
@@ -137,7 +137,7 @@ export const STAGES: StageDef[] = [
   {
     // 📐 CONTENT.md M1′ 6판 (S006): 🦕 공룡 — 🌀 → 🌀 연쇄 1단. 등 가시 🌀(둘째)가 꼬리뿌리 🌀(첫째)의 나사를 덮는다.
     //   등 가시의 어느 나사를 남겨 매다느냐(진자)가 첫째 🌀를 드러내느냐 가리느냐를 정한다. "가시가 비켜 가게 매달고, 꼬리뿌리 🌀를 톡"
-    key: 'dino', name: '공룡', emoji: '🦕', news: '🌀 스프링이 스프링을 튕겨요 — 띠용 띠용!', tip: '🦕 꼬리 쪽 가시 나사부터 빼고 🌀를 톡!', tip2: '🦕 가시가 🌀를 덮으면 띠용이 하나 줄어요', boxes: 2, colors: 6, P: 2, C: 5, T: 16, swing: true,
+    id: 5, key: 'dino', name: '공룡', emoji: '🦕', news: '🌀 스프링이 스프링을 튕겨요 — 띠용 띠용!', tip: '🦕 꼬리 쪽 가시 나사부터 빼고 🌀를 톡!', tip2: '🦕 가시가 🌀를 덮으면 띠용이 하나 줄어요', boxes: 2, colors: 6, P: 2, C: 5, T: 16, swing: true,
     // 나사 번호: #0~#2 꼬리(뿌리→끝) · #3 #4 뒷다리 · #5 #6 앞다리 · #7~#9 몸통 · #10~#12 목(밑→위) · #13 #14 머리(뒤·주둥이) · #15 🌀 꼬리뿌리(→ 등 가시) · #16 #17 🌀 등 가시(왼·오른, → 머리)
     toy: () => [
       bar(0.32, 0.85, 0.15, 0.7, 0.042, DINO, [[0.31, 0.845], [0.235, 0.775], [0.17, 0.715]], { deco: 'spots' }),
@@ -153,7 +153,7 @@ export const STAGES: StageDef[] = [
   {
     // 📐 S007 7판 🏰 성: 겹겹이 덮기 — 지붕 → 탑 위 · 창 → 탑 아래 · 문 → 벽 아래 둘 · 깃발 → 깃대 위 · 🪟 큰 창(나사 둘) → 벽 가운데 둘(#2 #3)
     //   큰 창을 어느 나사에 매다느냐(진자)가 #2(⏰)를 드러내느냐 덮느냐를 정한다. "⏰ 색 상자가 마감 톡에 열려 있게 앞 상자를 먼저 닫는다"
-    key: 'castle', name: '성', emoji: '🏰', news: '⏰ 째깍 나사 — 숫자만큼 톡 안에 안 빼면 혼자 튀어나와요', tip: '⏰ 숫자 = 남은 톡 — 0이 되면 혼자 튀어나와요', tip2: '⏰ 색 상자가 마감에 열리게 앞 상자부터 닫아요', boxes: 2, colors: 6, P: 1, C: 18,
+    id: 6, key: 'castle', name: '성', emoji: '🏰', news: '⏰ 째깍 나사 — 숫자만큼 톡 안에 안 빼면 혼자 튀어나와요', tip: '⏰ 숫자 = 남은 톡 — 0이 되면 혼자 튀어나와요', tip2: '⏰ 색 상자가 마감에 열리게 앞 상자부터 닫아요', boxes: 2, colors: 6, P: 1, C: 18,
     // 나사 번호: #0 #1 벽 아래(왼·오른, 🚪 밑) · #2 #3 벽 가운데(왼 ⏰·오른, 🪟 밑) · #4 #5 왼 탑(위·아래) · #6 #7 오른 탑 · #8 문 · #9 #10 지붕(왼·오른)
     //   · #11 #12 🪟 큰 창(왼·오른) · #13 #14 깃대(밑·위) · #15 깃발 · #16 #17 🪟 탑 창(왼·오른)
     toy: () => [
@@ -173,7 +173,7 @@ export const STAGES: StageDef[] = [
   {
     // 📐 S007 8판 🚀 로켓 — 🔑 발사 태엽(🔒 5) + 🌀 지느러미가 해치를 친다. 해치(나사 둘)가 🔑를 덮는다:
     //   어느 해치 나사를 남겨 매다느냐(진자)가 🔑를 드러내며 🌀가 칠 나사를 남겨 두고, 상자 둘이 맞을 때 🔑를 톡 → 쏙 한 방 7
-    key: 'rocket', name: '로켓', emoji: '🚀', news: '🚀 발사! 🔑 하나로 🔒 다섯이 한꺼번에', tip: '🚀 해치를 매달아 🔑를 드러내요 — 꾹 눌러 봐요', tip2: '🚀 🔒 색 상자 둘이 열릴 때까지 🔑를 아껴요', boxes: 2, colors: 6, P: 2, C: 6, H: 7, wind: true,
+    id: 7, key: 'rocket', name: '로켓', emoji: '🚀', news: '🚀 발사! 🔑 하나로 🔒 다섯이 한꺼번에', tip: '🚀 해치를 매달아 🔑를 드러내요 — 꾹 눌러 봐요', tip2: '🚀 🔒 색 상자 둘이 열릴 때까지 🔑를 아껴요', boxes: 2, colors: 6, P: 2, C: 6, H: 7, wind: true,
     // 나사 번호: #0 #1 발사대 · #2~#5 몸통(위·창 밑·🔒왼·🔒오른) · #6 🔒 불꽃 · #7 🔒 🌀 왼 날개(→ 해치) · #8 🔒 오른 날개 · #9 #10 왼 부스터 · #11 #12 오른 부스터 · #13 🪟 창 · #14 코 · #15 🔑 · #16 #17 해치(왼·오른)
     toy: () => [
       plate(0.5, 1.125, 0.62, 0.055, 0, 0.0275, '#7d7f86', [[0.25, 1.125], [0.75, 1.125]], { deco: 'rail' }),
@@ -643,16 +643,16 @@ export function habitPick(L: Level, S: Sim, known = L.all) {
   return best;
 }
 const levelCache = new Map<string, Level>();
-/** k판을 칠 번호 sub로 칠한 판 (✏️ S005: 판 고르기는 빌드 때 — pick.ts가 sub를 고르고 picks.ts에 적는다) */
+/** k번째 판(순서)을 칠 번호 sub로 칠한 판 (✏️ S005: 판 고르기는 빌드 때 — pick.ts가 sub를 고르고 picks.ts에 적는다 · 씨앗은 판 id — ✏️ S009) */
 export function paintStage(stage: number, sub: number): Level {
   const d = STAGES[stage], G = geometry(d.toy());
   G.wind = !!d.wind;
-  return paint(G, d, mulberry32((sub * 31 + stage * 7919 + 17) >>> 0));
+  return paint(G, d, mulberry32((sub * 31 + d.id * 7919 + 17) >>> 0));
 }
 function buildLevel(seed: number, stage: number): Level {
   const ck = `${seed}:${stage}`, hit = levelCache.get(ck);
   if (hit) return hit;
-  const P = PICKS[stage], L = paintStage(stage, P[seed % P.length]);
+  const P = PICKS[STAGES[stage].id], L = paintStage(stage, P[seed % P.length]);
   if (levelCache.size > 400) levelCache.clear();
   levelCache.set(ck, L);
   return L;

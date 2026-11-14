@@ -2,9 +2,11 @@
  * 판 고르기(빌드 때) — ✏️ S005 (📋 S004 '빌드 때 고르기'): 판마다 칠 번호 sub 1..SCAN을 칠해 보고
  *   v = min(가치, CAP)이 큰 순(같으면 작은 sub 먼저)으로 N개를 골라 picks.ts에 적는다. 게임은 PICKS[판][seed % N]만 칠한다
  *   (고르기 시뮬이 번들·폰에서 빠지고, funqa 시드 1..N이 실린 칠을 전부 잰다).
- *   npx tsx studio/screwshop/pick.ts  → picks.ts 다시 쓰기 (판·칠하기를 바꾸면 꼭 다시)
+ *   npx tsx studio/screwshop/pick.ts          → picks.ts · picks.sig.ts 다시 쓰기 (판·칠하기·고르기 식을 바꾸면 꼭 다시)
+ *   npx tsx studio/screwshop/pick.ts --check  → 전체를 다시 골라 두 파일과 다르면 종료 코드 1 (판을 고친 사이클마다 — ✏️ S009)
+ *   VALUE · CAP · SCAN · PICKS · SIG는 판 순서가 아니라 판 고유 번호 `id`로 찾는다(✏️ S009, 📋 M2 — M1′ 8판 = 0~7).
  */
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { STAGES, apply, bestMove, cloneSim, freeM, habitPick, newSim, paintStage, starsOf, stuckM, visibleM, type Level, type Sim, type StageDef } from './game.ts';
 import { mulberry32, type Rng } from './rng.ts';
@@ -191,15 +193,58 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
 ];
 export const CAP = [Infinity, 4.5, 3.65, 5.15, 3.5, 2.95, 3.95, 2.95];
 
-/** k판의 칠 번호 N개 */
-export function pickStage(k: number, n = N, scan = SCAN[k]) {
-  const d = STAGES[k], all: [number, number][] = [];
-  for (let sub = 1; sub <= scan; sub++) all.push([Math.min(CAP[k], VALUE[k](paintStage(k, sub), d, mulberry32((sub * 0x9e3779b1 + k) >>> 0))), sub]);
-  return all.sort((a, b) => b[0] - a[0] || a[1] - b[1]).slice(0, n).map((x) => x[1]);
+/** k번째 판(순서)의 칠 sub 고르기 값 = min(가치, 상한) — 난수 씨앗은 판 id */
+export function valueOf(k: number, sub: number, L = paintStage(k, sub)) {
+  const d = STAGES[k];
+  return Math.min(CAP[d.id], VALUE[d.id](L, d, mulberry32((sub * 0x9e3779b1 + d.id) >>> 0)));
+}
+/** k번째 판의 칠 sub 1..scan을 고르기 값이 큰 순(같으면 작은 sub 먼저)으로 — [값, sub] */
+function scanStage(k: number, scan = SCAN[STAGES[k].id]) {
+  const all: [number, number][] = [];
+  for (let sub = 1; sub <= scan; sub++) all.push([valueOf(k, sub), sub]);
+  return all.sort((a, b) => b[0] - a[0] || a[1] - b[1]);
+}
+/** k번째 판의 칠 번호 N개 */
+export function pickStage(k: number, n = N, scan?: number) {
+  return scanStage(k, scan).slice(0, n).map((x) => x[1]);
 }
 
+/** FNV-1a 32비트 */
+function fnv(s: string) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 0x01000193) >>> 0;
+  return h;
+}
+/** 판 모양 지문(✏️ S009): 시뮬이 쓰는 기하 — 나사 자리 · 주인 · 모든 자세의 덮임 · 숨김 · 🔨 과녁 · 째깍 · 🔒 · 🔑 · 못 판자.
+ *  실루엣 몸통(M2)이 M1′ 판의 이 값을 바꾸면 오너가 통과시킨 판이 바뀐 것이다 */
+export function geomSig(L: Level) {
+  return fnv(JSON.stringify([L.N, L.px.map((x) => x.toFixed(5)), L.py.map((y) => y.toFixed(5)), L.owner, L.ps, L.cov, L.hid, L.hamT, L.tmr, L.lockM, L.keyM, L.pl.map((p) => p.kind ?? ''), !!L.wind]));
+}
+/** 칠 지문(✏️ S009): 나사 색 · 상자 줄 · 상자 수 · 팔레트 */
+export function paintSig(L: Level) {
+  return fnv(JSON.stringify([L.col, L.queue, L.boxes, L.pal]));
+}
+/** 판 id별 실린 칠 지문: g 판 모양 · p 실린 칠 [sub, 고르기 값, 칠 지문] N개 · cut 컷 바로 아래(N+1위) 칠 */
+export interface Sig { g: number; p: [number, number, number][]; cut: [number, number, number] }
+const row = (k: number, v: number, sub: number): [number, number, number] => [sub, v, paintSig(paintStage(k, sub))];
+
 if (process.argv[1]?.endsWith('pick.ts')) {
-  const t0 = Date.now(), rows = STAGES.map((_, k) => pickStage(k));
-  writeFileSync(join(import.meta.dirname, 'picks.ts'), `/** 자동 생성 — npx tsx studio/screwshop/pick.ts (판별 칠 번호 ${N}개, 게임은 seed % ${N}로 고른다) */\nexport const PICKS: number[][] = [\n${rows.map((r) => `  [${r.join(',')}],`).join('\n')}\n];\n`);
-  console.log(`picks.ts ${rows.length}판 × ${N} · ${((Date.now() - t0) / 1000).toFixed(1)}초`);
+  const t0 = Date.now(), check = process.argv.includes('--check'), rows: number[][] = [], sig: Sig[] = [];
+  STAGES.forEach((d, k) => {
+    const all = scanStage(k);
+    rows[d.id] = all.slice(0, N).map((x) => x[1]);
+    sig[d.id] = { g: geomSig(paintStage(k, all[0][1])), p: all.slice(0, N).map(([v, s]) => row(k, v, s)), cut: row(k, all[N][0], all[N][1]) };
+  });
+  const out: [string, string][] = [
+    ['picks.ts', `/** 자동 생성 — npx tsx studio/screwshop/pick.ts (판 id별 칠 번호 ${N}개, 게임은 seed % ${N}로 고른다) */\nexport const PICKS: number[][] = [\n${rows.map((r) => `  [${r.join(',')}],`).join('\n')}\n];\n`],
+    ['picks.sig.ts', `/** 자동 생성 — npx tsx studio/screwshop/pick.ts (판 id별 실린 칠 지문 — 테스트가 이 25칠만 다시 칠해 본다 · 게임은 읽지 않는다) */\nimport type { Sig } from './pick.ts';\nexport const SIG: Sig[] = [\n${sig.map((s) => `  { g: ${s.g}, p: ${JSON.stringify(s.p)}, cut: ${JSON.stringify(s.cut)} },`).join('\n')}\n];\n`],
+  ];
+  const sec = ((Date.now() - t0) / 1000).toFixed(1);
+  if (check) {
+    const bad = out.filter(([f, s]) => { try { return readFileSync(join(import.meta.dirname, f), 'utf8') !== s; } catch { return true; } }).map(([f]) => f);
+    console.log(bad.length ? `✗ ${bad.join(' · ')}가 다시 고른 것과 다르다 — npx tsx studio/screwshop/pick.ts 로 다시 쓰고 funqa로 재요 (${sec}초)` : `✓ picks.ts · picks.sig.ts = 다시 고른 것 (${rows.length}판 × ${N} · ${sec}초)`);
+    process.exit(bad.length ? 1 : 0);
+  }
+  for (const [f, s] of out) writeFileSync(join(import.meta.dirname, f), s);
+  console.log(`picks.ts · picks.sig.ts ${rows.length}판 × ${N} · ${sec}초`);
 }
