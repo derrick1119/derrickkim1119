@@ -3,10 +3,10 @@
  * 2D `simulate`(game.ts)의 규칙 ①②③을 x(가로)·z(깊이)·y(높이) 칸 격자로 일반화했다. 결정적 — 미리 보기 = 실제.
  *   ① 폭약 = 그 블록을 날린다(돌은 둘, 쇠는 안 붙음). 가스통이 터지면 둘레 26칸(3×3×3)에 폭약 하나씩 — 연쇄.
  *   ② 남은 블록은 면으로 붙은 것끼리(6이웃) 한 덩어리. 받침이 없으면 떨어지고, 무게중심이 받침 네모(땅을 딛은 칸들의 x·z 범위)
- *      밖으로 나가면 그쪽으로 90° 넘어진다 — 앞·뒤·좌·우 4방향. 두 축이 다 넘치면 더 많이 넘친 축, 똑같으면 x축(대각 동률:
- *      판 검증기가 0건으로 막는다 → `diagTies`). 떨어지거나 넘어진 덩어리가 자기보다 가볍거나 같은 건물을 치면 그것도 와르르.
+ *      밖으로 **한 축에서만** 나가면 그쪽으로 90° 넘어진다 — 앞·뒤·좌·우 4방향. 두 축 다 나가면(모서리 하나로 서면) 넘어지지 않고
+ *      **제자리에서 주저앉는다**(📐 GDD §10.1 — 격자엔 대각으로 넘어질 길이 없다). 떨어지거나 넘어진 덩어리가 자기보다 가볍거나 같은 건물을 치면 그것도 와르르.
  *   ③ 무너진 블록은 반(3D 바둑판 칸 (x+y+z)&1)이 먼지로 날아가고, 나머지는 조각이 되어 흘러내린다
- *      (아래가 비면 떨어지고, 옆이 두 칸 넘게 비면 옆으로 — 먼저 밀려온 쪽, 그다음 반대쪽, 그다음 옆 두 쪽).
+ *      (아래가 비면 떨어지고, 옆이 두 칸 넘게 비면 옆으로 — 먼저 밀려온 쪽, 그다음 옆 두 쪽, 그다음 반대쪽).
  * 시뮬레이션은 판의 원래 좌표에서만 돈다. 시점 회전·거울은 그리기·입력 변환일 뿐이다(PM 재수립 1차).
  * 깊이 1짜리 판(D = 1)은 2D `simulate`와 결과가 같다 — tests/studio-demolition-3d.test.ts가 지킨다.
  */
@@ -15,7 +15,7 @@ const MASS = [0, 1, 2, 1, 2];
 const HP = [0, 1, 2, 1, 99];
 /** 넘어지거나 떨어진 조각이 쌓일 수 있는 높이(칸) */
 export const SH3 = 26;
-const CHAIN_T = 10, TIP_T = 66, SLIDE_T = 4, EPS = 1e-3;
+const CHAIN_T = 10, TIP_T = 66, SLIDE_T = 4, SLUMP_T = 30, EPS = 1e-3;
 
 export interface Blk3 { m: number; paint: number; x: number; y: number; z: number; par: number }
 export interface Lot { x0: number; x1: number; z0: number; z1: number }
@@ -56,8 +56,8 @@ export interface Outcome3 {
   ok: boolean;
   star: boolean[];
   stars: number;
-  /** 두 축이 똑같이 넘쳐 x축을 고른 횟수 (판 검증기: 0이어야 한다) */
-  diagTies: number;
+  /** 모서리 하나로 서서 제자리에서 주저앉은 덩어리 수 */
+  slumps: number;
   end: number;
 }
 
@@ -106,7 +106,7 @@ export function simulate3(Lay: Layout3, ch: ArrayLike<number>, rec = false): Out
   }
   let T = (q.length ? die[q[q.length - 1]] : 0) + 14;
   const { x0, x1, z0, z1 } = Lay.lot;
-  let moved = false, falls = 0, crushes = 0, hitT = -1, diagTies = 0;
+  let moved = false, falls = 0, crushes = 0, hitT = -1, slumps = 0;
   const hits: [number, number, number, number] = [0, 0, 0, 0];
   const tips: Tip3[] = [];
   const comp = new Int16Array(n);
@@ -162,7 +162,7 @@ export function simulate3(Lay: Layout3, ch: ArrayLike<number>, rec = false): Out
       }
       comps.push(list);
     }
-    /** 0 그대로 · 1 떨어짐 · 2 넘어짐 · 4 깔림 */
+    /** 0 그대로 · 1 떨어짐 · 2 넘어짐 · 4 깔림·주저앉음 */
     const C = comps.length;
     const act = new Int8Array(C), axis = new Int8Array(C), dirs = new Int8Array(C), piv = new Float32Array(C), pivY = new Int16Array(C);
     const cxs = new Float32Array(C), czs = new Float32Array(C), crushAt = new Int16Array(C);
@@ -187,11 +187,17 @@ export function simulate3(Lay: Layout3, ch: ArrayLike<number>, rec = false): Out
       const ox = cx < sx0 - EPS ? sx0 - cx : cx > sx1 + 1 + EPS ? cx - sx1 - 1 : 0;
       const oz = cz < sz0 - EPS ? sz0 - cz : cz > sz1 + 1 + EPS ? cz - sz1 - 1 : 0;
       if (!ox && !oz) continue;
-      if (ox && oz && Math.abs(ox - oz) < EPS) diagTies++;
-      act[c] = 2;
       any = true;
+      if (ox && oz) {
+        // 모서리 하나로 섰다: 제자리에서 와르르 (깔림과 같은 처리)
+        act[c] = 4;
+        crushAt[c] = T + SLUMP_T;
+        slumps++;
+        continue;
+      }
+      act[c] = 2;
       pivY[c] = sy;
-      if (ox >= oz - EPS) (axis[c] = 0), (dirs[c] = cx > sx1 + 1 ? 1 : -1), (piv[c] = dirs[c] > 0 ? sx1 + 1 : sx0);
+      if (ox) (axis[c] = 0), (dirs[c] = cx > sx1 + 1 ? 1 : -1), (piv[c] = dirs[c] > 0 ? sx1 + 1 : sx0);
       else (axis[c] = 1), (dirs[c] = cz > sz1 + 1 ? 1 : -1), (piv[c] = dirs[c] > 0 ? sz1 + 1 : sz0);
     }
     if (!any) break;
@@ -302,8 +308,8 @@ export function simulate3(Lay: Layout3, ch: ArrayLike<number>, rec = false): Out
             if (occ[at(x, y - 1, z)] < 0) (tx = x), (tz = z);
             else {
               const a = prefA[j], d = prefD[j];
-              // 먼저 밀려온 쪽 → 반대쪽 → 다른 축 양쪽
-              const tries = [a, d, a, -d, 1 - a, 1, 1 - a, -1];
+              // 먼저 밀려온 쪽 → 다른 축 양쪽 → 반대쪽 (📐 §10.1 ③)
+              const tries = [a, d, 1 - a, 1, 1 - a, -1, a, -d];
               for (let e = 0; e < 8; e += 2) {
                 const xx = x + (tries[e] === 0 ? tries[e + 1] : 0), zz = z + (tries[e] === 1 ? tries[e + 1] : 0);
                 if (xx >= 0 && xx < W && zz >= 0 && zz < D && occ[at(xx, y, zz)] < 0 && occ[at(xx, y - 1, zz)] < 0 && (y < 2 || occ[at(xx, y - 2, zz)] < 0)) {
@@ -345,7 +351,7 @@ export function simulate3(Lay: Layout3, ch: ArrayLike<number>, rec = false): Out
   const star = [ok, ok && fl.size === 0, ok && height <= Lay.flat];
   return {
     die, fx: X, fy: Y, fz: Z, rubT, dust, segs, tips, falls, crushes, hits, hitT, flowers: fl.size, height, moved, ok, star,
-    stars: star.filter(Boolean).length, diagTies, end: T + 10,
+    stars: star.filter(Boolean).length, slumps, end: T + 10,
   };
 }
 

@@ -1,6 +1,7 @@
 /** 스튜디오 비버 철거반 3D 칸 물리 (C002, 재수립 1차): 깊이 1 = 2D 회귀 · 결정성 · 미리 보기 = 실제 · 4방향 넘어짐 · 깔림 · 26칸 가스 */
 import { describe, expect, it } from 'vitest';
 import { STAGES, layoutOf, simulate } from '../studio/demolition/game.ts';
+import { STAGES3 } from '../studio/demolition/stages3d.ts';
 import { GAS, forEachPlan, from2D, layoutOf3, simulate3, type StageDef3 } from '../studio/demolition/sim3d.ts';
 
 const stage = (layers: string[][], extra: Partial<StageDef3> = {}): StageDef3 => ({
@@ -51,19 +52,19 @@ describe('3D 칸 물리', () => {
       const { o } = fire(tower(), at);
       expect(o.tips.length).toBe(1);
       expect([o.tips[0].axis, o.tips[0].dir]).toEqual([axis, dir]);
-      expect(o.diagTies).toBe(0);
+      expect(o.slumps).toBe(0);
     }
   });
 
-  it('대각 동률(무게중심이 두 축으로 똑같이 넘침)은 세어 둔다 — 판 검증기가 0건으로 막을 것', () => {
-    // 3×3 판을 한 귀퉁이 다리 하나가 받친다: 무게중심 (2.4, 2.4)가 받침 [1,2]×[1,2] 밖으로 x·z 똑같이 0.4 넘친다
+  it('모서리 하나로 서면(무게중심이 두 축으로 다 넘침) 넘어지지 않고 제자리에서 주저앉는다 (📐 §10.1)', () => {
+    // 3×3 판을 한 귀퉁이 다리 하나가 받친다: 무게중심 (2.4, 2.4)가 받침 [1,2]×[1,2] 밖으로 x·z 둘 다 넘친다
     const d = stage([
       ['.....', '.w...', '.....', '.....', '.....'],
       ['.....', '.www.', '.www.', '.www.', '.....'],
     ], { lot: { x0: 0, x1: 4, z0: 0, z1: 4 } });
     const L = layoutOf3(d), r = simulate3(L, new Int8Array(L.blocks.length));
-    expect(r.diagTies).toBe(1);
-    expect(r.tips[0].axis).toBe(0);
+    expect([r.slumps, r.tips.length, r.moved]).toEqual([1, 0, true]);
+    expect(r.hits).toEqual([0, 0, 0, 0]);
   });
 
   it('같은 폭약이면 rec 유무와 상관없이 결과가 같다 (미리 보기 = 실제) · 두 번 돌려도 같다', () => {
@@ -104,5 +105,28 @@ describe('3D 칸 물리', () => {
     expect(o.tips.length).toBeGreaterThan(0);
     expect([o.tips[0].axis, o.tips[0].dir]).toEqual([0, 1]);
     expect(o.crushes).toBeGreaterThan(0);
+  });
+
+  it('1-2 네 다리 망루(📐 §10.5): 같은 쪽 다리 둘 = 그쪽으로 · 왼쪽·뒤 = ★3 · 앞 = 꽃밭(★2) · 오른쪽 = 할머니 집 · 대각 = 꿈쩍 안 함', () => {
+    const L = layoutOf3(STAGES3[0]), id = (x: number, z: number) => L.blocks.findIndex((b) => b.x === x && b.y === 0 && b.z === z);
+    const run = (a: [number, number], b: [number, number]) => {
+      const ch = new Int8Array(L.blocks.length);
+      ch[id(...a)]++;
+      ch[id(...b)]++;
+      return simulate3(L, ch);
+    };
+    const left = run([5, 5], [5, 7]), back = run([5, 7], [7, 7]), front = run([5, 5], [7, 5]), right = run([7, 5], [7, 7]), diag = run([5, 5], [7, 7]);
+    expect([left.stars, left.tips[0].axis, left.tips[0].dir]).toEqual([3, 0, -1]);
+    expect([back.stars, back.tips[0].axis, back.tips[0].dir]).toEqual([3, 1, 1]);
+    expect([front.ok, front.flowers > 0, front.stars]).toEqual([true, true, 2]);
+    expect([right.ok, right.hits[1] > 0]).toEqual([false, true]);
+    expect([diag.moved, run([7, 5], [5, 7]).moved]).toEqual([false, false]);
+    let star3 = 0, plans = 0;
+    forEachPlan(L, 2, (ch) => {
+      plans++;
+      if (simulate3(L, ch).stars === 3) star3++;
+    });
+    expect(star3).toBeGreaterThan(0);
+    expect(star3 / plans).toBeLessThan(0.1); // 아무 데나 둘 붙여서는 거의 안 나온다
   });
 });

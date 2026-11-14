@@ -13,6 +13,8 @@ import { STAGES, bestPlan, capOf, demolition as g, demolitionRandom, demolitionS
 import type { Bot } from './core.ts';
 import type { DemoState } from './game.ts';
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { capOf3, forEachPlan, layoutOf3, simulate3, type Layout3 } from './sim3d.ts';
+import { STAGES3 } from './stages3d.ts';
 import { join } from 'node:path';
 
 const val = (L: Layout, ch: Int8Array) => {
@@ -84,6 +86,47 @@ function runBot(bot: Bot<DemoState>, seed: number, maxTicks = 60 * 60 * 15) {
   return { stage: s.stage + 1, stars: s.stars, won: s.won, hearts: s.hearts, sec: Math.round(t / 60) };
 }
 
+/** 3D 판(C002~): 모든 폭약 계획 중 성공·★3 비율, 박사(최선) ★, 미리 보기 탐욕 ★, 꿈쩍 안 하는 첫 톡 비율 */
+export function measure3D() {
+  const v3 = (L: Layout3, ch: Int8Array) => {
+    const o = simulate3(L, ch);
+    return o.stars * 1000 + (o.ok ? 0 : -5000) - o.height * 10 - o.flowers * 30 - o.hits.reduce((a, b) => a + b, 0);
+  };
+  return STAGES3.map((d) => {
+    const L = layoutOf3(d);
+    let plans = 0, ok = 0, s3 = 0, best = 0;
+    forEachPlan(L, d.charges, (ch) => {
+      const o = simulate3(L, ch);
+      plans++;
+      if (o.ok) ok++;
+      if (o.ok && o.stars === 3) s3++;
+      best = Math.max(best, o.ok ? o.stars : 0);
+    });
+    const ch = new Int8Array(L.blocks.length);
+    for (let k = 0; k < d.charges; k++) {
+      let bi = -1, bv = -1e9;
+      L.blocks.forEach((b, i) => {
+        if (ch[i] >= capOf3(b)) return;
+        ch[i]++;
+        const v = v3(L, ch);
+        ch[i]--;
+        if (v > bv) (bv = v), (bi = i);
+      });
+      ch[bi]++;
+    }
+    const g = simulate3(L, ch);
+    let still = 0, open = 0;
+    L.blocks.forEach((b, i) => {
+      if (!capOf3(b)) return;
+      open++;
+      const c1 = new Int8Array(L.blocks.length);
+      c1[i] = capOf3(b);
+      if (!simulate3(L, c1).moved) still++;
+    });
+    return { title: d.title, blocks: L.blocks.length, charges: d.charges, plans, clear: ok / plans, star3: s3 / plans, best, greedy: g.ok ? g.stars : 0, firstTapStill: still / open };
+  });
+}
+
 export function measure() {
   const stages = STAGES.map((d, k) => {
     const L = layoutOf(d, false);
@@ -106,7 +149,9 @@ if (process.argv[1]?.endsWith('funqa.ts')) {
   const r = measure();
   for (const x of r.stages) console.log(`${x.n} ${x.title.padEnd(10)} 폭약${x.charges} 최선★${x.best} 미리보기★${x.greedy} 버릇★${x.habit} 무작위 성공${(x.random.clear * 100).toFixed(0)}% ★3 ${(x.random.star3 * 100).toFixed(0)}%`);
   console.log(r.summary, r.runs);
+  const r3 = measure3D();
+  for (const x of r3) console.log(`3D ${x.title} 블록${x.blocks} 폭약${x.charges} 계획${x.plans} 성공${(x.clear * 100).toFixed(1)}% ★3 ${(x.star3 * 100).toFixed(1)}% 최선★${x.best} 미리보기탐욕★${x.greedy} 첫 톡 꿈쩍 안 함 ${(x.firstTapStill * 100).toFixed(0)}%`);
   const dir = join(import.meta.dirname, 'reports');
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: 'M0', ...r }, null, 1) + '\n');
+  writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: 'C002', ...r, stages3d: measure3D() }, null, 1) + '\n');
 }
