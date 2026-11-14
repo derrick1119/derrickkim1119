@@ -12,6 +12,9 @@
   "mashClear12": 0.92,
   "mashClear38": 0.06,
   "mashStars": 0.37,
+  "previewStar3_38": 0.88,
+  "smartShot": 1.38,
+  "mashShot": 1.3,
   "smartSec": 7.49,
   "skillGap": 7.45
  },
@@ -23,25 +26,36 @@
     "clear": 1,
     "star3": 1,
     "stars": 3,
-    "sec": 4.8
+    "sec": 4.8,
+    "shot": 1
    },
    "habit": {
     "clear": 1,
     "star3": 0.63,
     "stars": 2.54,
-    "sec": 4.8
+    "sec": 4.8,
+    "shot": 1
    },
    "random": {
     "clear": 1,
     "star3": 0.21,
     "stars": 1.63,
-    "sec": 24.3
+    "sec": 24.3,
+    "shot": 1
    },
    "mash": {
     "clear": 1,
     "star3": 0.13,
     "stars": 1.38,
-    "sec": 3
+    "sec": 3,
+    "shot": 1
+   },
+   "preview": {
+    "clear": 1,
+    "star3": 0.83,
+    "stars": 2.83,
+    "sec": 4.8,
+    "shot": 1
    }
   },
   {
@@ -51,25 +65,36 @@
     "clear": 1,
     "star3": 1,
     "stars": 3,
-    "sec": 6.1
+    "sec": 6.1,
+    "shot": 1
    },
    "habit": {
     "clear": 1,
     "star3": 0.92,
     "stars": 2.92,
-    "sec": 6.1
+    "sec": 6.1,
+    "shot": 1
    },
    "random": {
     "clear": 0.83,
     "star3": 0.04,
     "stars": 1.13,
-    "sec": 24.7
+    "sec": 24.7,
+    "shot": 1
    },
    "mash": {
     "clear": 0.83,
     "star3": 0,
     "stars": 1,
-    "sec": 3.5
+    "sec": 3.5,
+    "shot": 1
+   },
+   "preview": {
+    "clear": 1,
+    "star3": 1,
+    "stars": 3,
+    "sec": 6.1,
+    "shot": 1
    }
   },
   {
@@ -79,25 +104,36 @@
     "clear": 1,
     "star3": 1,
     "stars": 3,
-    "sec": 7.4
+    "sec": 7.4,
+    "shot": 1
    },
    "habit": {
     "clear": 0.04,
     "star3": 0,
     "stars": 0.08,
-    "sec": 2.7
+    "sec": 2.7,
+    "shot": 1
    },
    "random": {
     "clear": 0.13,
     "star3": 0,
     "stars": 0.21,
-    "sec": 14.7
+    "sec": 14.7,
+    "shot": 1
    },
    "mash": {
     "clear": 0.21,
     "star3": 0,
     "stars": 0.33,
-    "sec": 2.7
+    "sec": 2.7,
+    "shot": 1
+   },
+   "preview": {
+    "clear": 0.96,
+    "star3": 0.75,
+    "stars": 2.67,
+    "sec": 7.3,
+    "shot": 1
    }
   },
   {
@@ -107,25 +143,36 @@
     "clear": 1,
     "star3": 1,
     "stars": 3,
-    "sec": 8.7
+    "sec": 8.7,
+    "shot": 1
    },
    "habit": {
     "clear": 0.71,
     "star3": 0.04,
     "stars": 1.46,
-    "sec": 7.7
+    "sec": 7.7,
+    "shot": 1
    },
    "random": {
     "clear": 0,
     "star3": 0,
     "stars": 0,
-    "sec": 21.4
+    "sec": 21.4,
+    "shot": 1
    },
    "mash": {
     "clear": 0.04,
     "star3": 0,
     "stars": 0.08,
-    "sec": 2.9
+    "sec": 2.9,
+    "shot": 1
+   },
+   "preview": {
+    "clear": 1,
+    "star3": 1,
+    "stars": 3,
+    "sec": 8.7,
+    "shot": 1
    }
   },
   {
@@ -135,25 +182,36 @@
     "clear": 1,
     "star3": 1,
     "stars": 3,
-    "sec": 8.7
+    "sec": 8.7,
+    "shot": 1
    },
    "habit": {
     "clear": 0.5,
     "star3": 0.04,
     "stars": 0.96,
-    "sec": 7.3
+    "sec": 7.3,
+    "shot": 1
    },
    "random": {
     "clear": 0.04,
     "star3": 0,
     "stars": 0.04,
-    "sec": 17.6
+    "sec": 17.6,
+    "shot": 1
    },
    "mash": {
     "clear": 0.08,
     "star3": 0,
     "stars": 0.13,
-    "sec": 3
+    "sec": 3,
+    "shot": 1
+   },
+   "preview": {
+    "clear": 1,
+    "star3": 0.83,
+    "stars": 2.83,
+    "sec": 8.7,
+    "shot": 1
    }
   },
   {
@@ -163,25 +221,36 @@
     "clear": 1,
     "star3": 1,
     "stars": 3,
-    "sec": 7.6
+    "sec": 7.6,
+    "shot": 2
    },
    "habit": {
     "clear": 0.42,
     "star3": 0,
     "stars": 0.75,
-    "sec": 6.3
+    "sec": 6.3,
+    "shot": 1.92
    },
    "random": {
     "clear": 0.04,
     "star3": 0.04,
     "stars": 0.13,
-    "sec": 14
+    "sec": 14,
+    "shot": 1.96
    },
    "mash": {
     "clear": 0.04,
     "star3": 0,
     "stars": 0.04,
-    "sec": 2.4
+    "sec": 2.4,
+    "shot": 1.92
+   },
+   "preview": {
+    "clear": 1,
+    "star3": 0.92,
+    "stars": 2.92,
+    "sec": 7.5,
+    "shot": 2
    }
   },
   {
@@ -191,25 +260,36 @@
     "clear": 1,
     "star3": 0.92,
     "stars": 2.92,
-    "sec": 7.5
+    "sec": 7.5,
+    "shot": 2
    },
    "habit": {
     "clear": 1,
     "star3": 0,
     "stars": 1.67,
-    "sec": 7.8
+    "sec": 7.8,
+    "shot": 2
    },
    "random": {
     "clear": 0,
     "star3": 0,
     "stars": 0,
-    "sec": 11.7
+    "sec": 11.7,
+    "shot": 1.92
    },
    "mash": {
     "clear": 0,
     "star3": 0,
     "stars": 0,
-    "sec": 2.4
+    "sec": 2.4,
+    "shot": 1.92
+   },
+   "preview": {
+    "clear": 1,
+    "star3": 0.88,
+    "stars": 2.83,
+    "sec": 7.6,
+    "shot": 2
    }
   },
   {
@@ -219,25 +299,36 @@
     "clear": 1,
     "star3": 0.92,
     "stars": 2.92,
-    "sec": 9.1
+    "sec": 9.1,
+    "shot": 2
    },
    "habit": {
     "clear": 0.83,
     "star3": 0.04,
     "stars": 1.71,
-    "sec": 8.6
+    "sec": 8.6,
+    "shot": 1.92
    },
    "random": {
     "clear": 0.04,
     "star3": 0,
     "stars": 0.08,
-    "sec": 16.1
+    "sec": 16.1,
+    "shot": 1.71
    },
    "mash": {
     "clear": 0,
     "star3": 0,
     "stars": 0,
-    "sec": 2.5
+    "sec": 2.5,
+    "shot": 1.58
+   },
+   "preview": {
+    "clear": 1,
+    "star3": 0.92,
+    "stars": 2.92,
+    "sec": 9.2,
+    "shot": 2.04
    }
   }
  ]

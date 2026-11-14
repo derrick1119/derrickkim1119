@@ -4,7 +4,7 @@
  * **첫 입력(시작 누름) 전에는 AudioContext를 만들지 않는다**, 꺼 두었으면 아예 만들지 않는다.
  * 시뮬레이션은 모른다 — 그림(draw)의 사건 루프가 cue를 부른다(결정성·봇 측정에 영향 없음).
  */
-export type Cue = 'press' | 'twist' | 'pluck' | 'in' | 'slot' | 'brk' | 'pull' | 'done' | 'swing' | 'fall' | 'thud' | 'reveal' | 'boing' | 'tick' | 'key' | 'blocked' | 'clear' | 'star' | 'jam' | 'fail';
+export type Cue = 'bonk' | 'press' | 'twist' | 'pluck' | 'in' | 'slot' | 'brk' | 'pull' | 'done' | 'swing' | 'fall' | 'thud' | 'reveal' | 'boing' | 'tick' | 'key' | 'blocked' | 'clear' | 'star' | 'jam' | 'fail';
 
 let ac: AudioContext | null = null, master: GainNode | null = null, noise: AudioBuffer | null = null;
 const last: Partial<Record<Cue, number>> = {};
@@ -62,6 +62,12 @@ export const streakHz = (n: number) => {
 };
 
 const SYNTH: Record<Cue, (t: number, v: number) => void> = {
+  // 🔨 쾅 (임시 — 🎨 S001 기믹 4행으로 바꾼다): 나무 쿵 + 쇠 '깡' 배음 + 짧은 노이즈
+  bonk(t) {
+    thud(t, 200, 1.1);
+    tone('square', 1480, 1180, t, 0.09, 0.08, filt('bandpass', 2600, 3));
+    tone('sine', 2960, 2960, t, 0.25, 0.08);
+  },
   press: (t) => void tone('triangle', 1100, 900, t, 0.025, 0.1),
   twist(t) { for (let k = 0; k < 5; k++) hiss(t + k * 0.03, 0.012, 0.14 + k * 0.04, filt('bandpass', 2400 + 450 * k, 8)); },
   pluck: (t) => void (tone('sine', 380, 980, t, 0.07, 0.32), hiss(t, 0.02, 0.1, filt('highpass', 2000))),
@@ -120,6 +126,7 @@ const SYNTH: Record<Cue, (t: number, v: number) => void> = {
 
 /** 진동 패턴 (🎨 §2 — 안드로이드만, 지원 안 되면 무시) */
 const BUZZ: Partial<Record<Cue, number | number[]>> = {
+  bonk: [30, 20, 20],
   press: 8, twist: [6, 28, 6, 28, 6], pluck: 10, slot: 20, pull: 10, done: [25, 30, 15], swing: [10, 70, 10], thud: 40,
   boing: [15, 30, 15], tick: 25, key: [10, 40, 20], blocked: [10, 40, 10], clear: [20, 40, 20, 40, 80], star: 15, jam: [40, 60, 30], fail: [30, 60, 30],
 };

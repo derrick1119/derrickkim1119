@@ -37,7 +37,7 @@ const STAR_PTS = 100, WIN_PTS = 100;
 // ───────────────────────────── 장난감(판) ─────────────────────────────
 type Kind = 'wood' | 'glass' | 'spring' | 'nail';
 /** 판자 하나: 둥근 네모(가운데 cx,cy · 반폭 hx,hy · 각 a · 모서리 rr). sc = 나사 자리(작업판 좌표) */
-interface Src { cx: number; cy: number; hx: number; hy: number; a: number; rr: number; kind: Kind; tone: string; deco: string; sc: number[][]; lock?: number[]; key?: number; nail?: number[]; tgt?: number; tick?: number[][] }
+interface Src { cx: number; cy: number; hx: number; hy: number; a: number; rr: number; kind: Kind; tone: string; deco: string; sc: number[][]; lock?: number[]; key?: number; nail?: number[]; tgt?: number; tick?: number[][]; /** 🔨 망치 머리(정지 자세의 작업판 좌표) — 나사 하나에 매달리는 순간 그 근처 나사를 쾅 (M1′ S001, GIMMICKS §2) */ ham?: number[] }
 type O = Partial<Src>;
 const mk = (cx: number, cy: number, hx: number, hy: number, a: number, rr: number, tone: string, sc: number[][], o: O = {}): Src => ({ cx, cy, hx, hy, a, rr: Math.min(rr, hx, hy), kind: 'wood', tone, deco: '', sc, ...o });
 const bar = (x1: number, y1: number, x2: number, y2: number, t: number, tone: string, sc: number[][], o: O = {}) =>
@@ -45,7 +45,7 @@ const bar = (x1: number, y1: number, x2: number, y2: number, t: number, tone: st
 const plate = (cx: number, cy: number, w: number, h: number, a: number, rr: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, w / 2, h / 2, a, rr, tone, sc, o);
 const disc = (cx: number, cy: number, r: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, r, r, 0, r, tone, sc, o);
 
-interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; toy(): Src[] }
+interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; toy(): Src[] }
 
 const GIR = '#f4bf4a', GIR2 = '#e7a93a', DINO = '#52b66c', DINO2 = '#3f9a58', BLADE = '#fff6e6', STONE = '#b9aea0', STONE2 = '#a69a8b', GLASS = '#cfe9ff';
 export const STAGES: StageDef[] = [
@@ -168,7 +168,12 @@ export interface Level {
   ps: number[][]; pm: number[]; si: number[]; poses: Pose[][]; cov: number[][]; hid: number[][]; queue: number[]; boxes: number; pal: number[];
   /** 째깍 나사: 이 톡 수가 되면 혼자 튀어나온다 (0 = 없음) */
   tmr: number[];
+  /** 🔨 판자 k가 자세 q로 매달렸을 때 망치 머리 자리 [x,y]와 칠 수 있는 나사 후보(가까운 순, HAM 안) */
+  hamP: number[][][];
+  hamT: number[][][];
 }
+/** 🔨 망치 머리가 닿는 거리 */
+export const HAM = 0.06;
 
 /** 둥근 네모까지의 거리(안쪽이면 음수) */
 function sdf(cx: number, cy: number, a: number, hx: number, hy: number, rr: number, px: number, py: number) {
@@ -222,12 +227,24 @@ function geometry(pl: Src[]): Level {
     return m;
   };
   const cov = poses.map((arr, k) => arr.map((q) => mask(k, q, COVER, true)));
+  // 🔨 망치: 정지 자세의 머리 지점을 매달린 자세로 돌려 옮긴다(피벗 둘레로 d만큼)
+  const hamP = pl.map((p, k) => poses[k].map((q) => {
+    if (!p.ham) return [];
+    const [hx, hy] = p.ham, c = Math.cos(q.d), s = Math.sin(q.d);
+    return [q.px + (hx - q.px) * c - (hy - q.py) * s, q.py + (hx - q.px) * s + (hy - q.py) * c];
+  }));
+  const hamT = pl.map((_, k) => hamP[k].map((h, q) => {
+    if (!h.length || q === 0) return [];
+    const near: [number, number][] = [];
+    for (let i = 0; i < N; i++) if (owner[i] !== k) { const dd = Math.hypot(px[i] - h[0], py[i] - h[1]); if (dd < HAM) near.push([dd, i]); }
+    return near.sort((a, b) => a[0] - b[0]).map((e) => e[1]);
+  }));
   const hid = poses.map((arr, k) => arr.map((q) => mask(k, q, HIDE, false)));
-  return { pl, N, all: (1 << N) - 1, px, py, owner, col: [], lockM, keyM, ps, pm, si, poses, cov, hid, queue: [], boxes: 1, pal: [], tmr };
+  return { pl, N, all: (1 << N) - 1, px, py, owner, col: [], lockM, keyM, ps, pm, si, poses, cov, hid, queue: [], boxes: 1, pal: [], tmr, hamP, hamT };
 }
 
 // ───────────────────────────── 규칙(시뮬레이션) ─────────────────────────────
-export interface Sim { gone: number; box: number[]; bn: number[]; qi: number; slots: number[]; peak: number; streak: number; best: number; key: boolean; fail: number; n: number; taps: number }
+export interface Sim { gone: number; box: number[]; bn: number[]; qi: number; slots: number[]; peak: number; streak: number; best: number; key: boolean; fail: number; n: number; taps: number; /** 한 방: 톡 한 번에 빠진 나사 수의 최대(톡한 것 포함) */ shot: number }
 type RE =
   | { k: 'out'; s: number; pop: boolean }
   | { k: 'box'; s: number; col: number; bi: number; hole: number; n: number }
@@ -238,15 +255,16 @@ type RE =
   | { k: 'fall'; p: number }
   | { k: 'boing'; p: number; t: number; s: number }
   | { k: 'key' }
-  | { k: 'tick'; s: number };
+  | { k: 'tick'; s: number }
+  | { k: 'bonk'; p: number; s: number; x: number; y: number };
 
 export function newSim(L: Level): Sim {
   const box: number[] = [], bn: number[] = [];
   let qi = 0;
   for (let b = 0; b < L.boxes; b++) box.push(qi < L.queue.length ? L.queue[qi++] : -1), bn.push(0);
-  return { gone: 0, box, bn, qi, slots: [], peak: 0, streak: 0, best: 0, key: !L.keyM, fail: 0, n: 0, taps: 0 };
+  return { gone: 0, box, bn, qi, slots: [], peak: 0, streak: 0, best: 0, key: !L.keyM, fail: 0, n: 0, taps: 0, shot: 0 };
 }
-const cloneSim = (S: Sim): Sim => ({ ...S, box: S.box.slice(), bn: S.bn.slice(), slots: S.slots.slice() });
+export const cloneSim = (S: Sim): Sim => ({ ...S, box: S.box.slice(), bn: S.bn.slice(), slots: S.slots.slice() });
 
 export function poseOf(L: Level, k: number, gone: number) {
   const rem = L.pm[k] & ~gone;
@@ -323,7 +341,19 @@ function removeScrew(L: Level, S: Sim, s: number, pop: boolean, rec: RE[] | unde
   place(L, S, L.col[s], s, rec);
   const after = poseOf(L, k, S.gone);
   if (after === before) return;
-  if (after >= 0) return void rec?.push({ k: 'hang', p: k, pose: after });
+  if (after >= 0) {
+    rec?.push({ k: 'hang', p: k, pose: after });
+    // 🔨 망치: 막 매달린 판자의 망치 머리가 닿는 나사 하나를 쾅(덮여 있어도, 🔒는 열쇠 전엔 못 침)
+    if (after >= 1 && depth <= 3) {
+      const hit = L.hamT[k][after].find((i) => !((S.gone >> i) & 1) && (S.key || !((L.lockM >> i) & 1)));
+      if (hit !== undefined) {
+        const [hx, hy] = L.hamP[k][after];
+        rec?.push({ k: 'bonk', p: k, s: hit, x: hx, y: hy });
+        removeScrew(L, S, hit, true, rec, depth + 1);
+      }
+    }
+    return;
+  }
   rec?.push({ k: 'fall', p: k });
   const P = L.pl[k];
   if (P.kind !== 'spring' || P.tgt === undefined || depth > 3) return;
@@ -342,6 +372,7 @@ function removeScrew(L: Level, S: Sim, s: number, pop: boolean, rec: RE[] | unde
 /** 나사 s를 뺀다 (막힘·자물쇠는 부르는 쪽이 확인) */
 export function apply(L: Level, S: Sim, s: number, rec?: RE[]) {
   S.taps++;
+  const n0 = S.n;
   removeScrew(L, S, s, false, rec, 0);
   // 째깍 나사: 정해진 톡 수가 지나도 남아 있으면 혼자 튀어나온다
   for (let i = 0; i < L.N; i++)
@@ -349,10 +380,13 @@ export function apply(L: Level, S: Sim, s: number, rec?: RE[]) {
       rec?.push({ k: 'tick', s: i });
       removeScrew(L, S, i, true, rec, 0);
     }
+  S.shot = Math.max(S.shot, S.n - n0);
   if (S.slots.length >= SLOTS) S.fail = 1;
   else if (S.n < L.N && (!freeM(L, S) || stuckM(L, S.gone))) S.fail = 2;
 }
-export const starsOf = (d: StageDef, S: Sim) => 1 + (S.peak <= d.P ? 1 : 0) + (S.best >= d.C ? 1 : 0);
+/** ★3 조건: 톡 T번 이하(T가 있으면) 또는 연속 쏙 C번 */
+export const star3 = (d: StageDef, S: Sim) => (d.T !== undefined ? S.taps <= d.T : S.best >= d.C);
+export const starsOf = (d: StageDef, S: Sim) => 1 + (S.peak <= d.P ? 1 : 0) + (star3(d, S) ? 1 : 0);
 
 // ───────────────────────────── 판 만들기(색칠 + 고르기) ─────────────────────────────
 function paint(G: Level, d: StageDef, r: Rng): Level {
@@ -531,9 +565,10 @@ function pickScrew(s: ShopState, x: number, y: number) {
 /** 나사 하나를 뺀 결과를 화면 연출(날아가는 나사·상자·빈칸·판자)로 옮긴다 */
 function playRec(s: ShopState, rec: RE[]) {
   const L = s.L;
-  let delay = 0, slotsHit = false;
+  let delay = 0, slotsHit = false, popped = false;
   for (const e of rec) {
     if (e.k === 'out') {
+      popped = e.pop;
       const pv = s.pv[L.owner[e.s]];
       if (!e.pop) pv.wv += 0.035 * (L.px[e.s] < L.pl[L.owner[e.s]].cx ? 1 : -1);
       continue;
@@ -543,8 +578,7 @@ function playRec(s: ShopState, rec: RE[]) {
       const [x1, y1] = e.k === 'box' ? holeXY(L, e.bi, e.hole) : slotXY(e.idx);
       s.fl.push({ col: e.col, key: !!((L.keyM >> e.s) & 1), x0: L.px[e.s], y0: L.py[e.s], x1, y1, t0, dur, spin: SPIN, to: e.k === 'box' ? 0 : 1, sc: e.k === 'box' ? 0.82 : 0.95 });
       // 🎨 손맛 4박: 드르륵(풀림 시작) → 뽁(구멍을 떠남) → 쏙/통(착지)
-      ev(s, 'twist', L.px[e.s], L.py[e.s], undefined, undefined, t0);
-      ev(s, 'pluck', L.px[e.s], L.py[e.s], undefined, L.pl[L.owner[e.s]].tone, t0 + SPIN);
+      if (!popped) ev(s, 'twist', L.px[e.s], L.py[e.s], undefined, undefined, t0), ev(s, 'pluck', L.px[e.s], L.py[e.s], undefined, L.pl[L.owner[e.s]].tone, t0 + SPIN);
       if (e.k === 'box') {
         s.vb[e.bi].land[e.hole] = t0 + dur;
         s.ready[e.bi] = Math.max(s.ready[e.bi], t0 + dur);
@@ -604,6 +638,13 @@ function playRec(s: ShopState, rec: RE[]) {
       ev(s, 'boing', pv.bx, pv.by, '띠용~ 퉁!', '#ffd6a8', s.t + delay + SPIN + 16);
       delay += 18;
       see(s, 'spring', '🌀 스프링 판자 — 떨어지면 튕겨서 옆 판자 나사를 톡!');
+      continue;
+    }
+    if (e.k === 'bonk') {
+      // 🔨 쾅: 판자가 빙글 매달려 망치가 닿는 순간
+      ev(s, 'bonk', e.x, e.y, '쾅!', '#ffe08a', s.t + delay + SPIN + 10);
+      delay += SPIN + 10; // 맞은 나사는 망치가 닿는 순간 튀어나간다
+      see(s, 'hammer', '🔨 망치 판자 — 매달리면 끄덕! 닿는 나사를 쾅 쳐서 빼요');
       continue;
     }
     if (e.k === 'tick') {
@@ -784,7 +825,7 @@ export const screwshop: GameDef<ShopState> = {
 
 // ───────────────────────────── 봇 ─────────────────────────────
 /** 봇이 아는 것만: 본 적 없는(판자 밑에 숨은) 나사 색은 모르고, 상자는 열린 것 + 다음 PEEK개까지만 안다 */
-function viewOf(s: ShopState): Level {
+export function viewOf(s: ShopState): Level {
   const L = s.L;
   return { ...L, col: L.col.map((c, i) => ((s.known >> i) & 1 ? c : -1)), queue: L.queue.map((c, i) => (i < s.S.qi + PEEK ? c : -2)) };
 }
@@ -792,7 +833,8 @@ function value(V: Level, S: Sim, d: StageDef) {
   if (S.fail) return -1e7 + S.n * 1000;
   let v = S.n * 100 - S.slots.length * 45 - S.peak * 20;
   if (S.peak > d.P) v -= 350 + 120 * (S.peak - d.P);
-  v += Math.min(S.best, d.C) * 35 + (S.best >= d.C ? 260 : 0) + Math.min(S.streak, d.C) * 12;
+  if (d.T !== undefined) v += (S.n - S.taps) * 60 - Math.max(0, S.taps - d.T) * 120 + Math.min(S.streak, 6) * 10;
+  else v += Math.min(S.best, d.C) * 35 + (S.best >= d.C ? 260 : 0) + Math.min(S.streak, d.C) * 12;
   const f = freeM(V, S);
   for (let i = 0; i < V.N; i++)
     if ((f >> i) & 1) {
@@ -1132,7 +1174,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
   if (pressK >= 0 && fx.memo.pk !== pressK && t > seenT) cue('press');
   fx.memo.pk = pressK;
   for (const e of s.events) {
-    const due = e.v !== undefined && ['in', 'slot', 'pull', 'done', 'swing', 'fall', 'boing', 'key', 'jam', 'streak', 'tick', 'reveal', 'twist', 'pluck'].includes(e.kind) ? e.v : e.t;
+    const due = e.v !== undefined && ['in', 'slot', 'pull', 'done', 'swing', 'fall', 'boing', 'key', 'jam', 'streak', 'tick', 'reveal', 'twist', 'pluck', 'bonk'].includes(e.kind) ? e.v : e.t;
     if (due <= seenT || due > t) continue;
     const x = X(e.x), y = Y(e.y);
     if (e.kind === 'reveal') fx.ring(x, y, '#fff6a8', R(0.06), 3), fx.burst(x, y, '#fff6a8', 6, 1.6, 1.5), e.text && fx.pop(x + R(0.03), y - R(0.04), e.text, e.col!, 16), cue('reveal', reveals++);
@@ -1159,6 +1201,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     if (e.kind === 'done') fx.burst(x, y, e.col!, 16, 4, 2.6), fx.burst(x, y, '#ffe066', 10, 4, 2.6), fx.ring(x, y, '#ffe066', R(0.16), 4), fx.kick(4), fx.hold(4), cue('done'); // '딸깍!' 글자는 연속 숫자와 겹쳐 뺐다(✏️ → 🎨)
     if (e.kind === 'swing') fx.ring(x, y, '#ffffff', R(0.09), 3), fx.burst(x, y, '#e8cfa0', 6, 1.8, 1.8), say(x + R(0.05), y - R(0.05), e.text!, e.col!, 20), cue('swing');
     if (e.kind === 'fall') fx.kick(1.5), say(x, Math.min(y, Y(1.05)), e.text!, e.col!, 20), cue('fall');
+    if (e.kind === 'bonk') fx.ring(x, y, '#fff3c4', R(0.09), 4), fx.burst(x, y, '#ffe08a', 14, 3.6, 2.4), fx.burst(x, y, '#c9ced6', 6, 3, 1.6), fx.kick(5), fx.hold(4), say(x, y - R(0.06), e.text!, e.col!, 24), cue('bonk');
     if (e.kind === 'boing') fx.ring(x, y, '#ffd6a8', R(0.1), 5), fx.kick(4), fx.hold(4), say(x, y - R(0.05), e.text!, e.col!, 18), fx.burst(x, y, '#ffb36b', 16, 3.4, 2.4), cue('boing');
     if (e.kind === 'tick') fx.burst(x, y, '#ffb36b', 14, 3, 2.2), fx.kick(3), fx.hold(2), say(x, y + R(0.07), e.text!, e.col!, 15), cue('tick');
     if (e.kind === 'key') fx.blink('#fff1a8', 0.25), say(w / 2, Y(0.62), e.text!, e.col!, 17), cue('key');
@@ -1444,6 +1487,28 @@ function plankPath(ctx: CanvasRenderingContext2D, P: Src, R: (r: number) => numb
   ctx.roundRect(-R(P.hx), -R(P.hy), R(P.hx * 2), R(P.hy * 2), R(P.rr));
 }
 
+/** 🔨 망치 머리: 판자 앞면 좌표계(가운데 원점, 판자 각도) 안에 쇠머리 + 손잡이 띠 */
+function drawHammerHead(ctx: CanvasRenderingContext2D, P: Src, R: (r: number) => number) {
+  const dx = P.ham![0] - P.cx, dy = P.ham![1] - P.cy, c = Math.cos(-P.a), s = Math.sin(-P.a);
+  const lx = R(dx * c - dy * s), ly = R(dx * s + dy * c), ang = Math.atan2(ly, lx);
+  ctx.save();
+  ctx.translate(lx, ly);
+  ctx.rotate(ang);
+  ctx.fillStyle = '#7a4a2a';
+  ctx.fillRect(-R(0.05), -R(0.008), R(0.05), R(0.016)); // 손잡이(판자 쪽으로)
+  const g = ctx.createLinearGradient(0, -R(0.03), 0, R(0.03));
+  g.addColorStop(0, '#eef2f6');
+  g.addColorStop(1, '#8b939c');
+  ctx.fillStyle = g;
+  ctx.strokeStyle = '#4b525a';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(-R(0.014), -R(0.03), R(0.03), R(0.06), R(0.006));
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: { cx: number; cy: number; a: number }, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, t: number) {
   const L = s.L, P = L.pl[k], S = s.S, pv = s.pv[k];
   const glass = P.kind === 'glass';
@@ -1469,6 +1534,7 @@ function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: {
   ctx.translate(X(tr.cx), Y(tr.cy));
   ctx.rotate(tr.a);
   const hx = R(P.hx), hy = R(P.hy);
+  if (P.ham) drawHammerHead(ctx, P, R);
   if (glass) {
     ctx.fillStyle = 'rgba(205,235,255,.28)';
     plankPath(ctx, P, R);
@@ -1788,6 +1854,30 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
   }
   // 매달릴/떨어질 판자의 유령
   for (const e of pre.rec) {
+    if (e.k === 'bonk') {
+      // 🎯 망치가 칠 나사 (🎨 C S001 전 임시 표시: 노란 겨냥 고리 + 점선)
+      const tx = X(L.px[e.s]), ty = Y(L.py[e.s]);
+      ctx.save();
+      ctx.strokeStyle = '#ffe08a';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(tx, ty, R(SR) * 1.7, 0, Math.PI * 2);
+      ctx.stroke();
+      for (let k = 0; k < 4; k++) {
+        const a = (k * Math.PI) / 2 + t * 0.05;
+        ctx.beginPath();
+        ctx.moveTo(tx + Math.cos(a) * R(SR) * 1.3, ty + Math.sin(a) * R(SR) * 1.3);
+        ctx.lineTo(tx + Math.cos(a) * R(SR) * 2.2, ty + Math.sin(a) * R(SR) * 2.2);
+        ctx.stroke();
+      }
+      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(X(e.x), Y(e.y));
+      ctx.lineTo(tx, ty);
+      ctx.stroke();
+      ctx.restore();
+    }
     if (e.k === 'hang') {
       const P = L.pl[e.p], q = L.poses[e.p][e.pose];
       ctx.save();
@@ -2302,7 +2392,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       }
       font(0.036, 800);
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(`빈칸 최대 ${S.peak}칸 · 연속 쏙 ${S.best}번`, w / 2, Y(0.82));
+      ctx.fillText(d.T !== undefined ? `빈칸 최대 ${S.peak}칸 · 톡 ${S.taps}번 / ${d.T}` : `빈칸 최대 ${S.peak}칸 · 연속 쏙 ${S.best}번`, w / 2, Y(0.82));
     } else {
       font(0.042, 800);
       ctx.fillStyle = '#ffffff';
@@ -2315,7 +2405,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     const y2 = Y(1.3), chips = [
       { txt: '완성', st: s.phase === 'result' && s.ok ? true : null },
       { txt: `빈칸 ${d.P}칸까지`, st: S.peak > d.P ? false : s.phase === 'result' && s.ok ? true : null },
-      { txt: `연속 쏙 ${d.C}`, st: S.best >= d.C ? true : null },
+      d.T !== undefined ? { txt: `톡 ${d.T}번 이하`, st: S.taps > d.T ? false : s.phase === 'result' && s.ok ? true : null } : { txt: `연속 쏙 ${d.C}`, st: S.best >= d.C ? true : null },
     ];
     const gx0 = R(0.225), gw = (w - gx0 - R(0.015)) / 3;
     chips.forEach(({ txt, st }, k) => {
