@@ -125,16 +125,6 @@ function draw() {
     ctx.arc(p[0], p[1], c.s * 0.16, 0, Math.PI * 2);
     ctx.fill();
   }
-  // 이웃집 팻말: 울타리가 판 끝보다 안쪽인 면
-  const signs: [boolean, number, number][] = [[x0 > 0, x0 - 0.5, (z0 + z1 + 1) / 2], [x1 < L.W - 1, x1 + 1.5, (z0 + z1 + 1) / 2], [z0 > 0, (x0 + x1 + 1) / 2, z0 - 0.5], [z1 < L.D - 1, (x0 + x1 + 1) / 2, z1 + 1.5]];
-  ctx.font = `800 ${Math.round(Math.max(14, c.s * 0.45))}px system-ui,sans-serif`;
-  ctx.textAlign = 'center';
-  for (const [on, sx, sz] of signs) {
-    if (!on) continue;
-    const p = proj(c, sx, 0, sz);
-    ctx.fillStyle = '#c7362e';
-    ctx.fillText('🏠 이웃집', p[0], p[1]);
-  }
   // 블록 (먼 것부터)
   const cb = cubes() as (Cube & { m?: number })[], ids = out ? L.blocks.map((_, i) => i).filter((i) => out!.die[i] < 0) : L.blocks.map((_, i) => i);
   for (const k of drawOrder(c, cb)) {
@@ -151,6 +141,16 @@ function draw() {
       c2[aim] = capOf3(L.blocks[aim]);
       for (const f of support3(L, c2)) drawFooting(c, f, true);
     } else for (const f of now) drawFooting(c, f, false);
+  }
+  // 이웃집 팻말: 울타리가 판 끝보다 안쪽인 면 — 블록에 가리지 않게 블록 뒤에 그린다(🧪 C003 ①)
+  const signs: [boolean, number, number][] = [[x0 > 0, x0 - 0.5, (z0 + z1 + 1) / 2], [x1 < L.W - 1, x1 + 1.5, (z0 + z1 + 1) / 2], [z0 > 0, (x0 + x1 + 1) / 2, z0 - 0.5], [z1 < L.D - 1, (x0 + x1 + 1) / 2, z1 + 1.5]];
+  ctx.font = `800 ${Math.round(Math.max(14, c.s * 0.45))}px system-ui,sans-serif`;
+  ctx.textAlign = 'center';
+  for (const [on, sx, sz] of signs) {
+    if (!on) continue;
+    const p = proj(c, sx, 0, sz);
+    ctx.fillStyle = '#c7362e';
+    ctx.fillText('🏠 이웃집', p[0], p[1]);
   }
   // 붙인 폭약: 가려져도 보이게(엑스레이)
   if (!out)
@@ -175,7 +175,7 @@ function hudText() {
   hud.textContent = `🏗️ ${d.title} · 🧨 ${left}개 남음`;
   if (out) {
     const why = out.ok ? `철거 성공! ${'★'.repeat(out.stars)}${'☆'.repeat(3 - out.stars)}` : out.hits.some((h) => h) ? '이웃집을 쳤어요!' : !out.moved ? '꿈쩍도 안 했어요' : `아직 높아요 (${out.height}칸 > ${L.goal}칸)`;
-    msg.textContent = `${why} — 쾅 애니메이션은 다음 빌드에서 (지금은 결과 모양만)`;
+    msg.textContent = why;
     again.hidden = false;
   } else {
     msg.textContent = d.news;
@@ -237,6 +237,11 @@ canvas.addEventListener('pointermove', (e) => {
   if (!holding || !e.buttons || rotT < 1) return;
   const [x, y] = toXY(e);
   aim = aimAt(cam(), L.blocks, canAttach, x, y);
+});
+// 시스템이 손가락을 가져가면(스크롤·알림 등) 붙이지 않고 겨눔만 지운다 (🧪 C003 ⑦)
+window.addEventListener('pointercancel', () => {
+  holding = false;
+  aim = -1;
 });
 window.addEventListener('pointerup', () => {
   if (!holding) return;
