@@ -1,20 +1,20 @@
 {
  "at": "2026-11-14",
- "build": "M1′-S002",
+ "build": "M1′-S003",
  "seeds": 24,
  "summary": {
   "smartStars": 2.98,
-  "habitStars": 1.42,
-  "randomStars": 0.35,
+  "habitStars": 1.41,
+  "randomStars": 0.33,
   "smartStar3": 0.98,
   "habitStar3": 0.11,
   "randomClear1": 1,
   "mashClear12": 0.98,
   "mashClear38": 0.06,
-  "mashStars": 0.34,
+  "mashStars": 0.33,
   "habit3Star3_2": 0,
   "habit3Star3_38max": 0.79,
-  "fingerGe2_1": 0.21,
+  "fingerGe2_1": 0.04,
   "fingerGe2_2": 0.13,
   "previewStar3_38": 0.88,
   "smartShot": 1.75,
@@ -32,7 +32,7 @@
    83,
    101
   ],
-  "skillGap": 8.51
+  "skillGap": 9.03
  },
  "stages": [
   {
@@ -50,16 +50,16 @@
    "habit": {
     "clear": 1,
     "star3": 0.75,
-    "stars": 2.75,
-    "ge2": 1,
+    "stars": 2.67,
+    "ge2": 0.92,
     "sec": 3.5,
     "human": 36,
     "shot": 2
    },
    "top": {
     "clear": 1,
-    "star3": 0.29,
-    "stars": 2.29,
+    "star3": 0.42,
+    "stars": 2.42,
     "ge2": 1,
     "sec": 3.5,
     "human": 36,
@@ -68,17 +68,17 @@
    "reveal": {
     "clear": 1,
     "star3": 0,
-    "stars": 1.33,
-    "ge2": 0.33,
+    "stars": 1,
+    "ge2": 0,
     "sec": 4.5,
-    "human": 47,
-    "shot": 1.71
+    "human": 48,
+    "shot": 1.54
    },
    "random": {
     "clear": 1,
     "star3": 0,
-    "stars": 1.21,
-    "ge2": 0.21,
+    "stars": 1.08,
+    "ge2": 0.08,
     "sec": 13.3,
     "human": 46,
     "shot": 1.63
@@ -86,8 +86,8 @@
    "mash": {
     "clear": 1,
     "star3": 0,
-    "stars": 1.08,
-    "ge2": 0.08,
+    "stars": 1,
+    "ge2": 0,
     "sec": 2.8,
     "human": 47,
     "shot": 1.75
@@ -95,19 +95,19 @@
    "finger": {
     "clear": 1,
     "star3": 0,
-    "stars": 1.21,
-    "ge2": 0.21,
+    "stars": 1.04,
+    "ge2": 0.04,
     "sec": 2.8,
     "human": 43,
     "shot": 2
    },
    "preview": {
     "clear": 1,
-    "star3": 0.92,
-    "stars": 2.92,
-    "ge2": 1,
+    "star3": 0.83,
+    "stars": 2.67,
+    "ge2": 0.83,
     "sec": 3.5,
-    "human": 36,
+    "human": 37,
     "shot": 2
    },
    "newbie": {
@@ -212,7 +212,7 @@
     "star3": 0,
     "stars": 0.08,
     "ge2": 0.04,
-    "sec": 2.7,
+    "sec": 2.9,
     "human": 28,
     "shot": 1
    },
@@ -221,7 +221,7 @@
     "star3": 0,
     "stars": 0,
     "ge2": 0,
-    "sec": 2.1,
+    "sec": 2.3,
     "human": 21,
     "shot": 1
    },
@@ -230,7 +230,7 @@
     "star3": 0.5,
     "stars": 1.67,
     "ge2": 0.58,
-    "sec": 5.5,
+    "sec": 5.6,
     "human": 60,
     "shot": 1
    },
@@ -239,7 +239,7 @@
     "star3": 0,
     "stars": 0.21,
     "ge2": 0.08,
-    "sec": 14.7,
+    "sec": 14.9,
     "human": 43,
     "shot": 1
    },
@@ -248,7 +248,7 @@
     "star3": 0,
     "stars": 0.33,
     "ge2": 0.13,
-    "sec": 2.7,
+    "sec": 2.9,
     "human": 46,
     "shot": 1
    },
@@ -257,7 +257,7 @@
     "star3": 0,
     "stars": 0.33,
     "ge2": 0.13,
-    "sec": 2.7,
+    "sec": 2.9,
     "human": 46,
     "shot": 1
    },
@@ -292,7 +292,7 @@
     "star3": 0.04,
     "stars": 1.46,
     "ge2": 0.71,
-    "sec": 7.7,
+    "sec": 7.8,
     "human": 85,
     "shot": 1
    },
@@ -301,7 +301,7 @@
     "star3": 0,
     "stars": 0.21,
     "ge2": 0.08,
-    "sec": 4.8,
+    "sec": 5,
     "human": 52,
     "shot": 1
    },
@@ -319,7 +319,7 @@
     "star3": 0,
     "stars": 0,
     "ge2": 0,
-    "sec": 21.4,
+    "sec": 21.6,
     "human": 54,
     "shot": 1
    },
@@ -328,7 +328,7 @@
     "star3": 0,
     "stars": 0.08,
     "ge2": 0.04,
-    "sec": 2.9,
+    "sec": 3.1,
     "human": 50,
     "shot": 1
    },
@@ -337,7 +337,7 @@
     "star3": 0,
     "stars": 0.08,
     "ge2": 0.04,
-    "sec": 2.9,
+    "sec": 3.1,
     "human": 50,
     "shot": 1
    },
@@ -372,7 +372,7 @@
     "star3": 0.04,
     "stars": 0.96,
     "ge2": 0.42,
-    "sec": 7.3,
+    "sec": 7.4,
     "human": 81,
     "shot": 1
    },
@@ -381,7 +381,7 @@
     "star3": 0,
     "stars": 0.04,
     "ge2": 0,
-    "sec": 4.9,
+    "sec": 5.1,
     "human": 54,
     "shot": 1
    },
@@ -399,7 +399,7 @@
     "star3": 0,
     "stars": 0.04,
     "ge2": 0,
-    "sec": 17.6,
+    "sec": 17.9,
     "human": 48,
     "shot": 1
    },
@@ -408,7 +408,7 @@
     "star3": 0,
     "stars": 0.13,
     "ge2": 0.04,
-    "sec": 3,
+    "sec": 3.2,
     "human": 52,
     "shot": 1
    },
@@ -417,7 +417,7 @@
     "star3": 0,
     "stars": 0.13,
     "ge2": 0.04,
-    "sec": 3,
+    "sec": 3.2,
     "human": 52,
     "shot": 1
    },
@@ -452,7 +452,7 @@
     "star3": 0,
     "stars": 0.75,
     "ge2": 0.33,
-    "sec": 6.3,
+    "sec": 6.5,
     "human": 70,
     "shot": 1.92
    },
@@ -461,7 +461,7 @@
     "star3": 0,
     "stars": 0,
     "ge2": 0,
-    "sec": 3.8,
+    "sec": 4,
     "human": 41,
     "shot": 1.63
    },
@@ -479,7 +479,7 @@
     "star3": 0.04,
     "stars": 0.13,
     "ge2": 0.04,
-    "sec": 14,
+    "sec": 14.2,
     "human": 41,
     "shot": 1.96
    },
@@ -488,7 +488,7 @@
     "star3": 0,
     "stars": 0.04,
     "ge2": 0,
-    "sec": 2.4,
+    "sec": 2.7,
     "human": 41,
     "shot": 1.92
    },
@@ -497,7 +497,7 @@
     "star3": 0,
     "stars": 0.04,
     "ge2": 0,
-    "sec": 2.4,
+    "sec": 2.7,
     "human": 41,
     "shot": 1.92
    },
@@ -541,7 +541,7 @@
     "star3": 0,
     "stars": 0,
     "ge2": 0,
-    "sec": 3.8,
+    "sec": 4.1,
     "human": 41,
     "shot": 1
    },
@@ -559,7 +559,7 @@
     "star3": 0,
     "stars": 0,
     "ge2": 0,
-    "sec": 11.7,
+    "sec": 11.9,
     "human": 38,
     "shot": 1.92
    },
@@ -568,7 +568,7 @@
     "star3": 0,
     "stars": 0,
     "ge2": 0,
-    "sec": 2.4,
+    "sec": 2.7,
     "human": 40,
     "shot": 1.92
    },
@@ -577,7 +577,7 @@
     "star3": 0,
     "stars": 0,
     "ge2": 0,
-    "sec": 2.4,
+    "sec": 2.7,
     "human": 40,
     "shot": 1.92
    },
@@ -612,7 +612,7 @@
     "star3": 0.04,
     "stars": 1.71,
     "ge2": 0.83,
-    "sec": 8.6,
+    "sec": 8.7,
     "human": 96,
     "shot": 1.92
    },
@@ -621,7 +621,7 @@
     "star3": 0,
     "stars": 0,
     "ge2": 0,
-    "sec": 4.1,
+    "sec": 4.4,
     "human": 45,
     "shot": 1
    },
@@ -639,7 +639,7 @@
     "star3": 0,
     "stars": 0.08,
     "ge2": 0.04,
-    "sec": 16.1,
+    "sec": 16.4,
     "human": 46,
     "shot": 1.71
    },
@@ -648,7 +648,7 @@
     "star3": 0,
     "stars": 0,
     "ge2": 0,
-    "sec": 2.5,
+    "sec": 2.8,
     "human": 43,
     "shot": 1.58
    },
@@ -657,7 +657,7 @@
     "star3": 0,
     "stars": 0,
     "ge2": 0,
-    "sec": 2.5,
+    "sec": 2.8,
     "human": 43,
     "shot": 1.58
    },

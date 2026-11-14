@@ -95,6 +95,34 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.waitForTimeout(800);
     }
   }
+  // 실패 카드(🎨 §2.7): 3판을 막 누르기 수순(노드에서 미리 계산, 시드 42)으로 져 본다 → 진 톡 짚기 + 카드
+  {
+    const { screwshopMash } = await import('./funqa.ts');
+    const sim = g.create(42), rng = mulberry32(7), seq: number[] = [];
+    startStage(sim, 2);
+    let was = false;
+    while (sim.phase !== 'result' && sim.t < 60 * 300) {
+      const i = screwshopMash.act(sim, rng);
+      if (i.pointer && !was) seq.push(sim.L.px.findIndex((x, j) => x === i.pointer!.x && sim.L.py[j] / 1.45 === i.pointer!.y));
+      was = !!i.pointer;
+      g.step(sim, i);
+    }
+    if (!sim.ok) {
+      await page.goto(url + '?seed=42&stage=3');
+      await page.click('.g-overlay');
+      await page.waitForTimeout(900);
+      const b5 = (await page.locator('canvas').boundingBox())!;
+      for (const i of seq) {
+        await page.mouse.move(b5.x + sim.L.px[i] * b5.width, b5.y + (sim.L.py[i] / 1.45) * b5.height);
+        await page.mouse.down();
+        await page.waitForTimeout(60);
+        await page.mouse.up();
+        await page.waitForTimeout(700);
+      }
+      await page.waitForTimeout(2600);
+      await page.screenshot({ path: join(out, '10-fail.png') });
+    }
+  }
   // ★3을 못 딴 결과(별 이유 + ↺ 다시 · 다음): 망치를 반대로 매다는 순서로 1판을 푼다
   await page.goto(url + '?seed=42');
   await page.click('.g-overlay');

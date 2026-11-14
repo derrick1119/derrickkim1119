@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { RES_BY, RETRY_Y, STAGES, apply, newSim, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
+import { RES_BY, RETRY_Y, STAGES, apply, bonkDead, cloneSim, freeM, newSim, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { measure, measureStage, screwshopMash, tryStage } from '../studio/screwshop/funqa.ts';
 
@@ -68,7 +68,18 @@ describe('🔨 망치 판자 (M1′ S001 · 📐 CONTENT 1판)', () => {
     expect(rec.some((e) => e.k === 'hang')).toBe(true);
     expect(rec.some((e) => e.k === 'bonk')).toBe(false);
   });
-  it('1판 ★3은 톡 6 이하: 장인은 늘 ★3, 막 누르기는 깨도 ★2 이상 ≤ 0.2 (허들 ① "막 누르면 ★1")', () => {
+  it('1판 겹별(📐 S003): #7 먼저 톡하면 머리 망치가 허공 → ★2(쾅 3번)를 이제 못 딴다', () => {
+    const L = g.create(5).L, S = newSim(L);
+    expect(bonkDead(STAGES[0], L, S)).toBe(false);
+    apply(L, S, 7);
+    expect(bonkDead(STAGES[0], L, S)).toBe(true);
+  });
+  it('1판 손가락 → 막 누르기 ★2 이상 ≤ 0.2 (100시드, 허들 ①)', async () => {
+    const { screwshopFingerMash } = await import('../studio/screwshop/funqa.ts');
+    const r = Array.from({ length: 100 }, (_, i) => tryStage(screwshopFingerMash, 1000 + i * 7, 0));
+    expect(r.filter((x) => x.stars >= 2).length / 100).toBeLessThanOrEqual(0.2);
+  });
+  it('1판 ★3: 장인은 늘 ★3, 막 누르기는 깨도 ★2 이상 ≤ 0.2 (허들 ① "막 누르면 ★1")', () => {
     const seeds = Array.from({ length: 24 }, (_, i) => 1000 + i * 7);
     expect(seeds.every((sd) => tryStage(screwshopSmart, sd, 0).stars === 3)).toBe(true);
     const m = seeds.map((sd) => tryStage(screwshopMash, sd, 0));
@@ -117,8 +128,10 @@ describe('하트 없음 · ↺ 지금 다시 (M1′ S003, 오너 기준 7)', () 
     let fails = 0;
     for (let k = 0; k < 60 * 400 && fails < 5; k++) {
       const was = s.phase;
-      g.step(s, screwshopMash.act(s, rng));
-      if (was !== 'result' && s.phase === 'result' && !s.ok) fails++;
+      // 실패 카드는 자동으로 안 넘어간다 — 45틱 뒤 아무 데나 톡 (🎨 §2.7)
+      const inp = s.phase === 'result' && !s.ok ? { tap: false, dir: 0 as const, pointer: s.pt > 50 && s.pt % 2 ? { x: 0.5, y: 0.9 } : null } : screwshopMash.act(s, rng);
+      g.step(s, inp);
+      if (was !== 'result' && s.phase === 'result' && !s.ok) fails++, expect(s.blame).not.toBeNull();
       if (s.phase === 'result' && s.ok) break;
     }
     expect(fails).toBeGreaterThanOrEqual(3);
@@ -135,6 +148,59 @@ describe('하트 없음 · ↺ 지금 다시 (M1′ S003, 오너 기준 7)', () 
     g.step(s, { tap: false, dir: 0, pointer: null });
     expect([s.S.n, s.stage, s.retries, s.phase]).toEqual([0, 0, 1, 'play']);
     expect(s.L).toBe(L0);
+  });
+});
+
+describe('실패 되짚기 retrace (📐 S003)', () => {
+  type H = { s: number; S0: ReturnType<typeof newSim>; known: number; rec: { k: string }[] };
+  const play = (L: ReturnType<typeof g.create>['L'], S: ReturnType<typeof newSim>, H: H[], i: number) => {
+    const S0 = cloneSim(S), rec: { k: string }[] = [];
+    apply(L, S, i, rec as never);
+    H.push({ s: i, S0, known: L.all, rec });
+  };
+  it('③허공: 머리 망치를 반대로 매단 뒤(#7) 과녁 목 나사(#6)를 빈칸에 → 두 톡을 짚는다', () => {
+    const L = { ...g.create(5).L };
+    L.col = [0, 0, 1, 1, 1, 0, 2, 2, 2];
+    L.queue = [0, 1, 2];
+    const S2 = newSim(L), H2: H[] = [];
+    play(L, S2, H2, 7);
+    play(L, S2, H2, 6);
+    const b = retrace(L, H2 as never, S2);
+    expect([b.c, b.t]).toEqual(['③허공', [0, 1]]);
+  });
+  it('③통나무: 2판 활대(#11)를 먼저 치고 막 빼다 빈칸이 넘치면 "통나무가 먼저 쿵"', () => {
+    const s = g.create(1000);
+    startStage(s, 1);
+    const L = s.L, S = newSim(L), H: H[] = [];
+    play(L, S, H, 11);
+    for (let n = 0; !S.fail && n < 20; n++) {
+      const f = freeM(L, S);
+      let pick = -1;
+      for (let i = 0; i < L.N; i++) if ((f >> i) & 1 && (pick < 0 || !S.box.includes(L.col[i]))) pick = i;
+      play(L, S, H, pick);
+    }
+    expect(S.fail).toBe(1);
+    const b = retrace(L, H as never, S);
+    expect(b.c).toBe('③통나무');
+    expect(b.t[0]).toBe(0);
+  });
+  it('막 누르기가 3~8판에서 진 판은 전부 짚을 톡이 1~2개, 원인 8갈래 중 하나', () => {
+    const kinds = ['①색', '①연쇄', '①깔림', '①잠김', '②진자', '②못', '③통나무', '③허공'];
+    let lost = 0;
+    for (let k = 2; k < 8; k++)
+      for (let i = 0; i < 6; i++) {
+        const s = g.create(1000 + i * 7);
+        startStage(s, k);
+        const rng = () => ((i * 9301 + k * 49297 + s.t * 233) % 1000) / 1000;
+        while (s.phase !== 'result' && s.t < 60 * 300) g.step(s, screwshopMash.act(s, rng));
+        if (s.ok) continue;
+        lost++;
+        expect(kinds).toContain(s.blame!.c);
+        expect(s.blame!.t.length).toBeGreaterThanOrEqual(1);
+        expect(s.blame!.t.length).toBeLessThanOrEqual(2);
+        for (const ti of s.blame!.t) expect(ti >= 0 && ti < s.hist.length).toBe(true);
+      }
+    expect(lost).toBeGreaterThan(20);
   });
 });
 

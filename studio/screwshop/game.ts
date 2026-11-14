@@ -31,7 +31,7 @@ const A = 1.45;
 const SR = 0.032, HIT = 0.075, SLOTS = 5, PEEK = 2;
 /** 판자 가장자리가 나사 머리를 덮는 정도: sd < COVER면 막힘, sd < HIDE면 아예 안 보임 */
 const COVER = 0.021, HIDE = -0.026;
-const COOL = 8, SPIN = 9, FLY = 17, RESULT_OK = 200, RESULT_FAIL = 160, NEWS_T = 200;
+const COOL = 8, SPIN = 9, FLY = 17, RESULT_OK = 200, NEWS_T = 200;
 const STAR_PTS = 100, WIN_PTS = 100;
 
 // ───────────────────────────── 장난감(판) ─────────────────────────────
@@ -45,13 +45,13 @@ const bar = (x1: number, y1: number, x2: number, y2: number, t: number, tone: st
 const plate = (cx: number, cy: number, w: number, h: number, a: number, rr: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, w / 2, h / 2, a, rr, tone, sc, o);
 const disc = (cx: number, cy: number, r: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, r, r, 0, r, tone, sc, o);
 
-interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; /** 첫 판 손가락이 가리킬 나사 번호(판자 목록 순서로 0부터) */ first?: number; /** ★3을 '한 방 H 이상'으로 (톡 한 번에 빠진 나사 수) */ H?: number; /** 🪵 통나무가 떨어져야 풀리는 나사 3개(늦은 무리)를 한 색으로 칠하고 그 색 상자를 queue[late]에 — 통나무 나사 색은 첫 상자 (📐 2판) */ late?: number; toy(): Src[] }
+interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; /** 첫 판 손가락이 가리킬 나사 번호(판자 목록 순서로 0부터) */ first?: number; /** ★3을 '한 방 H 이상'으로 (톡 한 번에 빠진 나사 수) */ H?: number; /** 🔨 겹별(📐 S003): ★2 = 쾅 B번 이상, ★3 = ★2 + 빈칸 P칸까지 */ B?: number; /** ★2는 땄고 ★3을 놓쳤을 때 💡 */ tip2?: string; /** 🪵 통나무가 떨어져야 풀리는 나사 3개(늦은 무리)를 한 색으로 칠하고 그 색 상자를 queue[late]에 — 통나무 나사 색은 첫 상자 (📐 2판) */ late?: number; toy(): Src[] }
 
 const GIR = '#f4bf4a', GIR2 = '#e7a93a', DINO = '#52b66c', DINO2 = '#3f9a58', BLADE = '#fff6e6', STONE = '#b9aea0', STONE2 = '#a69a8b', GLASS = '#cfe9ff';
 export const STAGES: StageDef[] = [
   {
     // 📐 CONTENT.md M1′ 1판 (S001): 기린은 망치 장난감 — 머리·꼬리·몸통이 각각 망치. "칠 나사 바로 위 나사를 남기면 끄덕 쾅"
-    key: 'giraffe', name: '기린', emoji: '🦒', news: '🔩 나사를 톡 → 같은 색 상자로 쏙!', tip: '🔨 망치 옆 나사를 먼저 톡 → 끄덕 쾅!', boxes: 2, colors: 3, P: 0, C: 6, T: 6, first: 8,
+    key: 'giraffe', name: '기린', emoji: '🦒', news: '🔩 나사를 톡 → 같은 색 상자로 쏙!', tip: '🔨 망치 옆 나사를 먼저 톡 → 끄덕 쾅!', boxes: 2, colors: 3, P: 0, C: 6, T: 6, B: 3, first: 8, tip2: '📦 칠 나사 색 상자가 열렸을 때 망치를 톡',
     // 나사 번호: #0 뒷다리 · #1 앞다리 · #2 #3 몸통(왼·오른) · #4 #5 꼬리(뿌리·끝) · #6 목 · #7 #8 머리(뒤통수·주둥이)
     // 판자 순서 = 겹침 순서(뒤가 위). 다리·목은 나사가 무게중심 바로 위라 처음부터 돌지 않는다.
     toy: () => [
@@ -258,7 +258,7 @@ function geometry(pl: Src[]): Level {
 }
 
 // ───────────────────────────── 규칙(시뮬레이션) ─────────────────────────────
-export interface Sim { gone: number; box: number[]; bn: number[]; qi: number; slots: number[]; peak: number; streak: number; best: number; key: boolean; fail: number; n: number; taps: number; /** 한 방: 톡 한 번에 빠진 나사 수의 최대(톡한 것 포함) */ shot: number }
+export interface Sim { gone: number; box: number[]; bn: number[]; qi: number; slots: number[]; peak: number; streak: number; best: number; key: boolean; fail: number; n: number; taps: number; /** 한 방: 톡 한 번에 빠진 나사 수의 최대(톡한 것 포함) */ shot: number; /** 🔨 쾅 횟수 */ bonks: number }
 type RE =
   | { k: 'out'; s: number; pop: boolean }
   | { k: 'box'; s: number; col: number; bi: number; hole: number; n: number }
@@ -277,7 +277,7 @@ export function newSim(L: Level): Sim {
   const box: number[] = [], bn: number[] = [];
   let qi = 0;
   for (let b = 0; b < L.boxes; b++) box.push(qi < L.queue.length ? L.queue[qi++] : -1), bn.push(0);
-  return { gone: 0, box, bn, qi, slots: [], peak: 0, streak: 0, best: 0, key: !L.keyM, fail: 0, n: 0, taps: 0, shot: 0 };
+  return { gone: 0, box, bn, qi, slots: [], peak: 0, streak: 0, best: 0, key: !L.keyM, fail: 0, n: 0, taps: 0, shot: 0, bonks: 0 };
 }
 export const cloneSim = (S: Sim): Sim => ({ ...S, box: S.box.slice(), bn: S.bn.slice(), slots: S.slots.slice() });
 
@@ -362,6 +362,7 @@ function removeScrew(L: Level, S: Sim, s: number, pop: boolean, rec: RE[] | unde
     if (after >= 1 && depth <= 3) {
       const hit = L.hamT[k][after].find((i) => !((S.gone >> i) & 1) && (S.key || !((L.lockM >> i) & 1)));
       if (hit !== undefined) {
+        S.bonks++;
         const [hx, hy] = L.hamP[k][after];
         rec?.push({ k: 'bonk', p: k, s: hit, x: hx, y: hy });
         removeScrew(L, S, hit, true, rec, depth + 1);
@@ -424,7 +425,9 @@ export function apply(L: Level, S: Sim, s: number, rec?: RE[]) {
 export const star3 = (d: StageDef, S: Sim) => (d.H !== undefined ? S.shot >= d.H : d.T !== undefined ? S.taps <= d.T : S.best >= d.C);
 /** ★3 '한 방 H'를 이제 못 딴다: 아직 못 땄고 남은 통나무가 없다 (🧪 S002: 와르르 0 뒤에도 칩이 ☆라 헛민다) */
 export const shotDead = (d: StageDef, L: Level, S: Sim) => d.H !== undefined && S.shot < d.H && !L.pl.some((p, k) => p.heavy && L.pm[k] & ~S.gone);
-export const starsOf = (d: StageDef, S: Sim) => 1 + (S.peak <= d.P ? 1 : 0) + (star3(d, S) ? 1 : 0);
+export const starsOf = (d: StageDef, S: Sim) => (d.B !== undefined ? (S.bonks >= d.B ? (S.peak <= d.P ? 3 : 2) : 1) : 1 + (S.peak <= d.P ? 1 : 0) + (star3(d, S) ? 1 : 0));
+/** 🔨 ★2(쾅 B번)를 이제 못 딴다: 아직 칠 수 있는 망치(아직 안 매달렸고 칠 나사가 살아 있음)를 다 더해도 B에 못 미친다 */
+export const bonkDead = (d: StageDef, L: Level, S: Sim) => d.B !== undefined && S.bonks + L.pl.filter((p, k) => p.ham && poseOf(L, k, S.gone) === 0 && L.hamT[k].some((c) => c.some((i) => !((S.gone >> i) & 1)))).length < d.B;
 
 // ───────────────────────────── 판 만들기(색칠 + 고르기) ─────────────────────────────
 function paint(G: Level, d: StageDef, r: Rng): Level {
@@ -578,6 +581,8 @@ export interface ShopState {
   hearts: number; stars: number; got: number; pts: number; ok: boolean; why: string; won: boolean; dead: boolean; tries: number;
   /** 판별 최고 별·점수 (↺ 다시 해도 합계는 최고만) · ★3 못 땄을 때 결과 화면에서 기다리는 중 */
   bestSt: number[]; bestPts: number[]; retries: number;
+  /** 실패 되짚기(📐 S003): 톡마다 그 전 상태·결과 · 진 이유 */
+  hist: Hist[]; blame: Why | null;
   seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[]; startT: number; clearT: number;
   pv: PV[]; fl: Fl[]; vb: VBox[]; lv: { col: number; bi: number; t0: number }[]; vs: { col: number; at: number; x: number }[]; ready: number[];
   mood: string; moodT: number; bird: number;
@@ -623,6 +628,8 @@ function newStage(s: ShopState) {
   s.vs = [];
   s.ready = s.S.box.map(() => s.t);
   s.known = visibleM(L, 0);
+  s.hist = [];
+  s.blame = null;
   s.phase = 'play';
   s.pt = 0;
   s.press = -1;
@@ -638,6 +645,99 @@ function newStage(s: ShopState) {
 export function startStage(s: ShopState, k: number) {
   s.stage = Math.max(0, Math.min(STAGES.length - 1, k));
   newStage(s);
+}
+
+// ───────────────────────────── 실패 되짚기 (📐 S003) ─────────────────────────────
+interface Hist { s: number; S0: Sim; known: number; rec: RE[] }
+export interface Why { c: '①색' | '①연쇄' | '①깔림' | '①잠김' | '②진자' | '②못' | '③통나무' | '③허공'; t: number[]; k: number; via?: string; s?: number }
+/** 진 이유: ③통나무·허공 > ②진자·못 > ①색·연쇄·깔림 순으로 처음 걸리는 것. t = 짚을 톡 번호(hist 순서) */
+export function retrace(L: Level, H: Hist[], S: Sim): Why {
+  const tray: { t: number; s: number; ch: boolean }[] = [], air: { t: number; k: number; tg: number[] }[] = [], logs: { t: number; k: number; late: number }[] = [];
+  const hangs = (k: number, before: number) => {
+    let h = -1;
+    H.forEach((e, t) => {
+      if (t < before && e.rec.some((r) => r.k === 'hang' && r.p === k)) h = t;
+    });
+    return h;
+  };
+  H.forEach((e, t) =>
+    e.rec.forEach((r) => {
+      if (r.k === 'slot') tray.push({ t, s: r.s, ch: r.s !== e.s });
+      else if (r.k === 'pull') tray.splice(r.idx, 1);
+      else if (r.k === 'hang' && L.pl[r.p].ham && r.pose > 0 && !e.rec.some((b) => b.k === 'bonk' && b.p === r.p)) air.push({ t, k: r.p, tg: L.hamT[r.p].map((c) => c[0]) });
+      else if (r.k === 'fall' && L.pl[r.p].heavy && !e.rec.some((c) => c.k === 'crash' && c.by === r.p)) {
+        let g = 0; // 늦은 무리 = 이 통나무 없이는 못 빼는 나사
+        for (let f = 1; f; g |= f) f = L.all & ~g & ~blockedM(L, g) & ~L.pm[r.p];
+        logs.push({ t, k: r.p, late: L.all & ~g & ~L.pm[r.p] });
+      }
+    }),
+  );
+  const N = H.length;
+  if (S.fail === 2) {
+    const rem = L.all & ~S.gone;
+    let k = -1, bn = 0;
+    L.pl.forEach((_, j) => {
+      const q = poseOf(L, j, S.gone);
+      if (q < 1 || hangs(j, N) < 0) return;
+      let c = 0;
+      for (let m = L.cov[j][q] & rem; m; m &= m - 1) c++;
+      if (c > bn) (bn = c), (k = j);
+    });
+    return { c: k >= 0 && L.pl[k].kind === 'nail' ? '②못' : '②진자', t: [k >= 0 ? hangs(k, N) : N - 1], k };
+  }
+  const E = tray.map((x) => {
+    const { S0, known } = H[x.t], fr = freeM(L, S0) & known, blk = blockedM(L, S0.gone);
+    let alt = false, cov = -1, why = '';
+    for (let i = 0; i < L.N; i++) {
+      if ((S0.gone >> i) & 1 || !S0.box.includes(L.col[i])) continue;
+      if ((fr >> i) & 1 && i !== H[x.t].s) alt = true;
+      else if (!S0.key && (L.lockM >> i) & 1) why ||= '①잠김';
+      else if ((blk >> i) & 1) {
+        why ||= '①깔림';
+        L.pl.forEach((_, j) => {
+          const q = poseOf(L, j, S0.gone);
+          if (q > 0 && (L.cov[j][q] >> i) & 1 && hangs(j, x.t) >= 0) cov = j;
+        });
+      }
+    }
+    return { ...x, alt: alt && !x.ch, cov: alt || x.ch ? -1 : cov, why, lg: logs.find((g) => g.t <= x.t && (g.late >> x.s) & 1), air: air.find((a) => a.tg.includes(x.s)) };
+  });
+  const last = <T,>(a: T[]) => a[a.length - 1];
+  const l3 = last(E.filter((x) => x.lg)), a3 = last(E.filter((x) => x.air));
+  if (l3) return { c: '③통나무', t: [l3.lg!.t, l3.t], k: l3.lg!.k };
+  if (a3) return { c: '③허공', t: [a3.air!.t, a3.t].sort((a, b) => a - b), k: a3.air!.k };
+  const c2 = E.filter((x) => x.cov >= 0), c1 = E.filter((x) => x.alt);
+  if (c2.length && c2.length >= c1.length) {
+    const x = last(c2);
+    return { c: '②진자', t: [hangs(x.cov, x.t), x.t], k: x.cov };
+  }
+  if (c1.length) return { c: '①색', t: [...new Set(c1.map((x) => x.t))].slice(-2), k: -1 };
+  const ch = last(E.filter((x) => x.ch));
+  if (ch) return { c: '①연쇄', t: [ch.t], k: -1, s: ch.s, via: H[ch.t].rec.find((r) => ['bonk', 'crash', 'boing', 'tick'].includes(r.k))?.k };
+  const f = last(E.filter((x) => x.why)) ?? last(E);
+  return { c: (f?.why || '①깔림') as Why['c'], t: [f ? f.t : N - 1], k: -1 };
+}
+const CN = ['빨강', '파랑', '노랑', '초록', '보라', '주황'];
+/** 되짚기 한 줄 + 💡 (📐 S003 표, 22자 이내) */
+export function blameText(L: Level, H: { s: number }[], b: Why, fail: number): [string, string] {
+  const c = (t: number) => CN[L.col[H[t]?.s ?? 0]] ?? '';
+  switch (b.c) {
+    case '①색': {
+      const cs = [...new Set(b.t.map(c))];
+      return [`${cs.length > 1 ? cs.join('·') : cs[0] + ' 나사'}, 상자 없이 빈칸에 퐁당!`, "꾹 눌러 '빈칸으로'면 다른 나사를!"];
+    }
+    case '①연쇄': {
+      const cc = CN[L.col[b.s ?? 0]];
+      const m = b.via === 'bonk' ? `쾅! ${cc} 나사가 빈칸으로 튕~` : b.via === 'crash' ? `와르르! ${cc} 나사가 빈칸으로` : b.via === 'boing' ? `띠용! ${cc} 나사가 빈칸으로 퉁` : `펑! ${cc} 나사가 혼자 빈칸행`;
+      return [m, b.via === 'tick' ? '숫자가 0 되기 전에 그 색 상자를!' : '칠 나사 색 상자가 열렸을 때 쏴요'];
+    }
+    case '①깔림': return ['맞는 색 나사는 판자 밑에서 쿨쿨…', '위 판자부터 풀면 맞는 색이 나와요'];
+    case '①잠김': return ['맞는 색 나사는 🔒 안에서 쿨쿨…', '🔑 열쇠 나사부터 빼요'];
+    case '②진자': return [fail === 2 ? '빙글 판자가 나사를 이불처럼 덮음' : '빙글 판자가 나사를 덮었어요', '다른 나사를 남기면 덮지 않아요'];
+    case '②못': return ['못 날개가 나사를 깔고 앉았어요', '못 날개는 밑 나사부터 빼요'];
+    case '③통나무': return ['통나무가 먼저 쿵! 와르르 0', '판자를 다 매단 뒤 통나무를 톡!'];
+    case '③허공': return ['망치는 허공에 쾅, 나사는 빈칸', '망치 옆 나사를 먼저 톡 → 끄덕 쾅!'];
+  }
 }
 
 function finish(s: ShopState) {
@@ -811,8 +911,9 @@ function tapScrew(s: ShopState, k: number) {
     setMood(s, 'huh');
     return;
   }
-  const rec: RE[] = [], vis0 = visibleM(L, S.gone), free0 = freeM(L, S);
+  const rec: RE[] = [], vis0 = visibleM(L, S.gone), free0 = freeM(L, S), S0 = cloneSim(S), known0 = s.known;
   apply(L, S, k, rec);
+  s.hist.push({ s: k, S0, known: known0, rec });
   s.cool = s.t + COOL;
   s.lastTap = s.t;
   s.taps++;
@@ -826,7 +927,8 @@ function tapScrew(s: ShopState, k: number) {
     s.phase = 'settle';
     s.pt = 0;
     s.ok = false;
-    s.why = S.fail === 1 ? '빈칸이 꽉 찼어요!' : stuckM(L, S.gone) ? '못 날개에 깔려 영영 못 빼요!' : '더 뺄 나사가 없어요!';
+    s.why = S.fail === 1 ? '꽉! 빈칸이 넘쳤다' : stuckM(L, S.gone) ? '납작! 못 날개에 깔렸다' : '어라? 뺄 나사가 없네'; // 🎨 §2.7
+    s.blame = retrace(L, s.hist, S);
     ev(s, 'jam', 0.5, TRAY_Y, S.fail === 1 ? '꽉!' : '꽉 막혔다…', '#ffb4a8', s.t + SPIN + FLY);
   } else if (S.n === L.N) {
     s.phase = 'settle';
@@ -904,7 +1006,7 @@ export const screwshop: GameDef<ShopState> = {
     const s = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'play', pt: 0, known: 0,
       down: false, ax: 0, ay: 0, press: -1, cool: 0, lastTap: -99, taps: 0,
-      hearts: 3, stars: 0, got: 0, bestSt: [], bestPts: [], retries: 0, pts: 0, ok: false, why: '', won: false, dead: false, tries: 0,
+      hearts: 3, stars: 0, got: 0, bestSt: [], bestPts: [], retries: 0, hist: [], blame: null, pts: 0, ok: false, why: '', won: false, dead: false, tries: 0,
       seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsQ: [], startT: 0, clearT: 0,
       pv: [], fl: [], vb: [], lv: [], vs: [], ready: [], mood: 'idle', moodT: 0, bird: 0,
     } as unknown as ShopState;
@@ -932,16 +1034,19 @@ export const screwshop: GameDef<ShopState> = {
         }
         return;
       }
-      if (s.pt >= (s.ok ? RESULT_OK : RESULT_FAIL)) {
-        if (s.ok) {
-          if (s.won) s.dead = true;
-          else s.stage++, newStage(s);
-        } else newStage(s); // 하트 없음 — 그 판만 다시 (M1′ S003, 오너 기준 7)
+      // 실패: 하트 없음, 자동 재시작도 없음 — 되짚기를 볼 시간 뒤(45틱) 아무 데나 톡하면 그 판만 다시 (🎨 §2.7)
+      if (!s.ok) {
+        if (release && s.pt > 45) s.retries++, newStage(s);
+        return;
+      }
+      if (s.pt >= RESULT_OK) {
+        if (s.won) s.dead = true;
+        else s.stage++, newStage(s);
       }
       return;
     }
     if (s.phase === 'settle') {
-      if (s.pt >= (s.ok ? 46 : 40)) finish(s);
+      if (s.pt >= (s.ok ? 46 : 56)) finish(s); // 🎨: 실패 settle 56 — 휘슬이 카드와 안 겹치게
       return;
     }
     if (p) s.press = pickScrew(s, p.x, p.y * A);
@@ -1295,7 +1400,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     drawScrew(ctx, X(x), Y(y), R(SR) * sc, f.col, rot, { t, key: f.key });
   }
   // ═════════ 햄스터 목수 + 참새 ═════════
-  drawHamster(ctx, X(0.11), Y(1.235), R(0.19), s, t);
+  if (!(s.phase === 'result' && !s.ok)) drawHamster(ctx, X(0.11), Y(1.235), R(0.19), s, t); // 실패 땐 카드 위에서 (🎨 §2.7)
   drawBird(ctx, s, X, Y, R, t);
   // 가장자리 어둡게
   const vg = ctx.createRadialGradient(w / 2, h * 0.5, R(0.45), w / 2, h * 0.5, R(1.05));
@@ -1406,6 +1511,106 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
   }
   ctx.restore();
   drawHud(ctx, s, d, w, X, Y, R, font, th);
+}
+
+/** 실패 카드 + 진 톡 짚기 (🎨 §2.7, 📐 S003): 빨강 없이 따뜻한 갈색, 자동 재시작 없이 45틱 뒤 아무 데나 톡 */
+function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, font: (sz: number, w?: number) => void) {
+  const L = s.L, b = s.blame, age = s.pt, t = s.t;
+  // 진 톡: 그때 뺀 나사 자리에 유령 나사 + 분필 고리 + 알약
+  if (b) b.t.forEach((ti, n) => {
+    const h = s.hist[ti];
+    if (!h) return;
+    const x = X(L.px[h.s]), y = Y(L.py[h.s]), rho = R(SR) * 1.9, u = Math.min(1, age / 10);
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = COLS[L.col[h.s]];
+    ctx.beginPath();
+    ctx.arc(x, y, R(SR) * 0.9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.lineCap = 'round';
+    for (const [col, lw] of [['rgba(60,30,10,.55)', 6], ['#fff4d6', 3]] as const) {
+      ctx.strokeStyle = col;
+      ctx.lineWidth = lw;
+      ctx.beginPath();
+      for (let k = 0; k <= 40 * u; k++) {
+        const th = -2.2 + (k / 40) * 1.15 * Math.PI * 2, r = rho * (1 + 0.07 * Math.sin(3 * th + n));
+        ctx.lineTo(x + Math.cos(th) * r, y + Math.sin(th) * r);
+      }
+      ctx.stroke();
+    }
+    const lab = b.t.length > 1 ? `${'①②'[n]} 이 톡` : '👆 이 톡!', sc = age < 16 ? 1 + 0.4 * Math.max(0, 1 - (age - 10) / 6) : 1;
+    font(0.032 * sc, 900);
+    const lw = ctx.measureText(lab).width + 14, ly = y - rho - R(0.035);
+    ctx.fillStyle = 'rgba(30,18,8,.9)';
+    ctx.beginPath();
+    ctx.roundRect(x - lw / 2, ly - R(0.022), lw, R(0.044), R(0.022));
+    ctx.fill();
+    ctx.fillStyle = '#ffe08a';
+    ctx.textAlign = 'center';
+    ctx.fillText(lab, x, ly + 1);
+    ctx.restore();
+  });
+  // 카드 (아래에서 올라온다)
+  const up = Math.min(1, age / 12), oy = (1 - (1 - (1 - up) ** 3)) * R(0.1), cy0 = Y(1.13) + oy;
+  ctx.save();
+  ctx.fillStyle = 'rgba(20,10,0,.45)';
+  ctx.beginPath();
+  ctx.roundRect(X(0.03), cy0 + R(0.01), X(0.94), Y(1.44) - Y(1.13), R(0.035));
+  ctx.fill();
+  const g = ctx.createLinearGradient(0, cy0, 0, cy0 + Y(0.31));
+  g.addColorStop(0, '#6e4a2a');
+  g.addColorStop(1, '#4b2f19');
+  ctx.fillStyle = g;
+  ctx.strokeStyle = '#c8955c';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(X(0.03), cy0, X(0.94), Y(1.44) - Y(1.13), R(0.035));
+  ctx.fill();
+  ctx.stroke();
+  drawHamster(ctx, X(0.16), Y(1.435) + oy, R(0.24), s, t);
+  const cx = X(0.62), [line, tip] = b ? blameText(L, s.hist, b, s.S.fail) : ['', ''];
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.save();
+  ctx.translate(cx, Y(1.185) + oy);
+  ctx.rotate(age < 30 ? 0.04 * Math.sin(age * 0.6) * (1 - age / 30) : 0);
+  font(0.05, 900);
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = 'rgba(40,20,5,.8)';
+  ctx.strokeText(s.why, 0, 0);
+  ctx.fillStyle = '#fff1d6';
+  ctx.fillText(s.why, 0, 0);
+  ctx.restore();
+  for (const [txt, yy, sz, col] of [[line, 1.235, 0.033, '#ffd9a8'], [tip ? `💡 ${tip}` : '', 1.272, 0.028, '#fff1d6']] as const) {
+    let f = sz;
+    font(f, 800);
+    while (ctx.measureText(txt).width > R(0.64) && f > 0.022) font((f -= 0.001), 800);
+    ctx.fillStyle = col;
+    ctx.fillText(txt, cx, Y(yy) + oy);
+  }
+  // ↺ 한 번 더! — 45틱 동안 왼쪽부터 차오르고, 그 뒤 맥박
+  const bx0 = X(0.29), bw = X(0.66), by = Y(1.335) + oy, bh = R(0.1), fill = Math.min(1, age / 45), pul = fill < 1 ? 1 : 1 + 0.03 * Math.sin(t * 0.15);
+  ctx.save();
+  ctx.translate(bx0 + bw / 2, by);
+  ctx.scale(pul, pul);
+  ctx.fillStyle = 'rgba(255,209,102,.3)';
+  ctx.beginPath();
+  ctx.roundRect(-bw / 2, -bh / 2, bw, bh, bh / 2);
+  ctx.fill();
+  ctx.save();
+  ctx.clip();
+  ctx.fillStyle = '#ffd166';
+  ctx.fillRect(-bw / 2, -bh / 2, bw * fill, bh);
+  ctx.restore();
+  font(0.05, 900);
+  ctx.fillStyle = '#3a2a00';
+  ctx.fillText('↺ 한 번 더!', 0, 1);
+  ctx.restore();
+  font(0.027, 700);
+  ctx.fillStyle = 'rgba(255,236,210,.6)';
+  ctx.fillText('아무 데나 톡해도 다시', cx, Y(1.415) + oy);
+  ctx.restore();
 }
 
 function drawShelf(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, font: (sz: number, w?: number) => void) {
@@ -2648,7 +2853,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
   ctx.fillStyle = th.hot;
   // ↺ 지금 다시 (하트 대신, S003): 판 중 언제든 같은 판을 처음부터 — 한 방 칩이 ✗면 반짝
   {
-    const bx = w - R(0.06) - ctx.measureText(stt).width - R(0.02), bw = R(0.17), dead = s.phase === 'play' && (shotDead(d, s.L, S) || (d.T !== undefined && S.taps > d.T) || S.peak > d.P);
+    const bx = w - R(0.06) - ctx.measureText(stt).width - R(0.02), bw = R(0.17), dead = s.phase === 'play' && (shotDead(d, s.L, S) || bonkDead(d, s.L, S) || (d.T !== undefined && S.taps > d.T) || S.peak > d.P);
     ctx.fillStyle = dead ? `rgba(255,209,102,${0.55 + 0.3 * Math.sin(t * 0.15)})` : 'rgba(255,240,214,.16)';
     ctx.beginPath();
     ctx.roundRect(bx - bw, hb * 0.14, bw, hb * 0.72, hb * 0.36);
@@ -2701,8 +2906,10 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       ctx.globalAlpha = 1;
     }
   }
+  // 실패: 판은 그대로 보이고 진 톡을 짚은 뒤 아래 카드 (🎨 §2.7 · 📐 되짚기)
+  if (s.phase === 'result' && !s.ok) drawFail(ctx, s, X, Y, R, font);
   // 결과
-  if (s.phase === 'result') {
+  if (s.phase === 'result' && s.ok) {
     const age = s.pt, a = Math.min(1, age / 10);
     ctx.globalAlpha = a;
     ctx.fillStyle = s.ok ? 'rgba(40,50,20,.62)' : 'rgba(70,20,20,.62)';
@@ -2722,18 +2929,19 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
         if (got && (juice(s).memo['star' + k] ?? -1) < s.clearT) (juice(s).memo['star' + k] = s.clearT), juice(s).burst(w / 2 + (k - 1) * R(0.1), Y(0.75), '#ffe066', k === 2 ? 28 : 14, 3, 2.4), cue('star', k);
       }
       // 별 이유: 얻은 값 / 목표 (S002, 허들 ①)
-      const ok2 = S.peak <= d.P, ok3 = star3(d, S);
-      const t3 = d.H !== undefined ? `한 방 ${S.shot} / ${d.H}` : d.T !== undefined ? `톡 ${S.taps} / ${d.T}` : `연속 쏙 ${S.best} / ${d.C}`;
+      const ok2 = d.B !== undefined ? S.bonks >= d.B : S.peak <= d.P, ok3 = d.B !== undefined ? s.got === 3 : star3(d, S);
+      const t2 = d.B !== undefined ? `🔨 쾅 ${S.bonks} / ${d.B}` : `빈칸 ${S.peak} / ${d.P}`;
+      const t3 = d.B !== undefined ? (ok2 ? `빈칸 ${S.peak} / ${d.P}` : `빈칸은 쾅 ${d.B} 다음`) : d.H !== undefined ? `한 방 ${S.shot} / ${d.H}` : d.T !== undefined ? `톡 ${S.taps} / ${d.T}` : `연속 쏙 ${S.best} / ${d.C}`;
       font(0.04, 900);
       ctx.fillStyle = ok2 ? '#c8ffc8' : '#ffb36b';
-      ctx.fillText(`${ok2 ? '✓' : '✗'} 빈칸 ${S.peak} / ${d.P}`, w / 2 - R(0.2), Y(0.815));
+      ctx.fillText(`${ok2 ? '✓' : '✗'} ${t2}`, w / 2 - R(0.2), Y(0.815));
       ctx.fillStyle = ok3 ? '#c8ffc8' : '#ffb36b';
-      ctx.fillText(`${ok3 ? '✓' : '✗'} ${t3}`, w / 2 + R(0.2), Y(0.815));
+      ctx.fillText(`${ok3 ? '✓' : d.B !== undefined && !ok2 ? '☆' : '✗'} ${t3}`, w / 2 + R(0.2), Y(0.815));
       if (s.got < 3) {
         // 방법 한 줄 (🧪 S002 ③: ✗만 있고 '어떻게'가 없다)
         font(0.032, 800);
         ctx.fillStyle = '#fff1d6';
-        ctx.fillText(`💡 ${d.tip.replace(/^\S+\s/, '')}`, w / 2, Y(0.865));
+        ctx.fillText(`💡 ${(s.got === 2 && d.tip2 ? d.tip2 : d.tip).replace(/^\S+\s/, '')}`, w / 2, Y(0.865));
       }
       if (s.got < 3 && age > 30) {
         // ↺ 다시 · 다음 ▶ — 버튼 안만 받는다(🧪 S002: 막 누르는 손이 카드를 읽기 전에 누른다)
@@ -2748,19 +2956,22 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
           ctx.fillText(txt, X(x0) + R(0.205), by + 1);
         });
       }
-    } else {
-      font(0.042, 800);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText('괜찮아요 — 같은 장난감을 다시!', w / 2, Y(0.75));
     }
     ctx.globalAlpha = 1;
   }
-  // ═════════ 아래 띠: 별 목표 · 안내 ═════════
-  {
+  // ═════════ 아래 띠: 별 목표 · 안내 ═════════ (실패 카드가 뜨면 안 그린다)
+  if (!(s.phase === 'result' && !s.ok)) {
     const y2 = Y(1.3), chips = [
       { txt: '완성', st: s.phase === 'result' && s.ok ? true : null },
+      ...(d.B !== undefined
+        ? [
+            { txt: `🔨 쾅 ${d.B}번`, st: S.bonks >= d.B ? true : bonkDead(d, s.L, S) ? false : null },
+            { txt: `+빈칸 ${d.P}`, st: bonkDead(d, s.L, S) || S.peak > d.P ? false : s.phase === 'result' && s.ok && s.got === 3 ? true : null },
+          ]
+        : [
       { txt: d.P === 0 ? '빈칸 안 쓰기' : `빈칸 ${d.P}칸까지`, st: S.peak > d.P ? false : s.phase === 'result' && s.ok ? true : null },
       d.H !== undefined ? { txt: `한 방 ${d.H}`, st: S.shot >= d.H ? true : shotDead(d, s.L, S) ? false : null } : d.T !== undefined ? { txt: `톡 ${d.T}번 이하`, st: S.taps > d.T ? false : s.phase === 'result' && s.ok ? true : null } : { txt: `연속 쏙 ${d.C}`, st: S.best >= d.C ? true : null },
+          ]),
     ];
     const gx0 = R(0.225), gw = (w - gx0 - R(0.015)) / 3;
     chips.forEach(({ txt, st }, k) => {
