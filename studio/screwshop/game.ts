@@ -45,19 +45,22 @@ const bar = (x1: number, y1: number, x2: number, y2: number, t: number, tone: st
 const plate = (cx: number, cy: number, w: number, h: number, a: number, rr: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, w / 2, h / 2, a, rr, tone, sc, o);
 const disc = (cx: number, cy: number, r: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, r, r, 0, r, tone, sc, o);
 
-interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; toy(): Src[] }
+interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; /** 첫 판 손가락이 가리킬 나사 번호(판자 목록 순서로 0부터) */ first?: number; toy(): Src[] }
 
 const GIR = '#f4bf4a', GIR2 = '#e7a93a', DINO = '#52b66c', DINO2 = '#3f9a58', BLADE = '#fff6e6', STONE = '#b9aea0', STONE2 = '#a69a8b', GLASS = '#cfe9ff';
 export const STAGES: StageDef[] = [
   {
-    key: 'giraffe', name: '기린', emoji: '🦒', news: '🔩 나사를 톡 → 같은 색 상자로 쏙!', tip: '🎐 나사 하나 남은 판자는 매달려 빙글 — 남길 나사를 골라요', boxes: 2, colors: 3, P: 1, C: 6,
+    // 📐 CONTENT.md M1′ 1판 (S001): 기린은 망치 장난감 — 머리·꼬리·몸통이 각각 망치. "칠 나사 바로 위 나사를 남기면 끄덕 쾅"
+    key: 'giraffe', name: '기린', emoji: '🦒', news: '🔩 나사를 톡 → 같은 색 상자로 쏙!', tip: '🔨 칠 나사 바로 위 나사를 남기면 끄덕 쾅!', boxes: 2, colors: 3, P: 0, C: 6, T: 6, first: 8,
+    // 나사 번호: #0 뒷다리 · #1 앞다리 · #2 #3 몸통(왼·오른) · #4 #5 꼬리(뿌리·끝) · #6 목 · #7 #8 머리(뒤통수·주둥이)
+    // 판자 순서 = 겹침 순서(뒤가 위). 다리·목은 나사가 무게중심 바로 위라 처음부터 돌지 않는다.
     toy: () => [
-      bar(0.3, 0.89, 0.19, 0.99, 0.026, GIR2, [[0.3, 0.89]], { deco: 'tail' }),
-      bar(0.4, 0.93, 0.4, 1.11, 0.036, GIR2, [[0.4, 0.93]], { deco: 'hoof' }),
-      bar(0.6, 0.93, 0.61, 1.11, 0.036, GIR2, [[0.6, 0.93]], { deco: 'hoof' }),
-      plate(0.5, 0.875, 0.4, 0.15, 0, 0.07, GIR, [[0.4, 0.85], [0.55, 0.86]], { deco: 'spots' }),
-      bar(0.6, 0.83, 0.72, 0.56, 0.045, GIR, [[0.63, 0.795], [0.7, 0.62]], { deco: 'spots' }),
-      plate(0.79, 0.49, 0.2, 0.1, -0.3, 0.045, GIR, [[0.745, 0.505], [0.84, 0.47]], { deco: 'gHead' }),
+      bar(0.35, 0.93, 0.35, 1.12, 0.036, GIR2, [[0.35, 1.0]], { deco: 'hoof' }),
+      bar(0.69, 0.93, 0.69, 1.12, 0.036, GIR2, [[0.69, 0.99]], { deco: 'hoof' }),
+      plate(0.52, 0.875, 0.4, 0.15, 0, 0.07, GIR, [[0.45, 0.86], [0.62, 0.86]], { deco: 'spots', ham: [0.5, 0.95] }),
+      bar(0.37, 0.845, 0.25, 0.775, 0.022, GIR2, [[0.355, 0.84], [0.265, 0.784]], { deco: 'tail', ham: [0.24, 0.77] }),
+      bar(0.7, 0.84, 0.7, 0.6, 0.042, GIR, [[0.7, 0.655]], { deco: 'spots' }),
+      plate(0.78, 0.5, 0.22, 0.1, -0.2, 0.045, GIR, [[0.71, 0.515], [0.85, 0.485]], { deco: 'gHead', ham: [0.875, 0.48] }),
     ],
   },
   {
@@ -399,6 +402,17 @@ function paint(G: Level, d: StageDef, r: Rng): Level {
   shuffle(col, r);
   const queue = shuffle(gcol.slice(), r);
   const L: Level = { ...G, col, queue, boxes: d.boxes, pal };
+  if (d.first !== undefined) {
+    // 📐 1판: 손가락 첫 톡에 빠지는 나사(🔨 쾅 맞은 것 포함)의 색을 처음 상자들로 → 첫 톡이 '쏙 + 쾅 쏙'
+    const S = newSim({ ...L, queue: [...new Set(col)] }), rec: RE[] = [];
+    apply(L, S, d.first, rec);
+    const want = [...new Set(rec.filter((e) => e.k === 'out').map((e) => col[(e as { s: number }).s]))];
+    for (const [pos, c] of want.slice(0, d.boxes).entries()) {
+      const j = queue.indexOf(c, pos);
+      if (j > pos) [queue[pos], queue[j]] = [queue[j], queue[pos]];
+    }
+    return L;
+  }
   // 첫 상자 색은 처음부터 뺄 수 있는 나사가 있게 (첫 톡에 '쏙')
   const f0 = freeM(L, newSim(L));
   const okc = (c: number) => L.col.some((cc, i) => cc === c && (f0 >> i) & 1);
@@ -433,6 +447,13 @@ export function habitPick(L: Level, S: Sim, known = L.all) {
     }
   return best;
 }
+/** 시뮬 한 판(그림 없이): 받은 고르기로 끝까지 — 별 수(실패 0) */
+function playOut(L: Level, d: StageDef, pick: (S: Sim) => number, first?: number) {
+  const S = newSim(L);
+  if (first !== undefined) apply(L, S, first);
+  while (!S.fail && S.n < L.N) apply(L, S, pick(S));
+  return S.fail ? 0 : starsOf(d, S);
+}
 const levelCache = new Map<string, Level>();
 function buildLevel(seed: number, stage: number): Level {
   const ck = `${seed}:${stage}`, hit = levelCache.get(ck);
@@ -443,7 +464,18 @@ function buildLevel(seed: number, stage: number): Level {
   for (let c = 0; c < K; c++) {
     const L = paint(G, d, r);
     let v: number;
-    if (stage === 0) v = randomPass(L, r, 30);
+    if (stage === 0 && d.first !== undefined) {
+      // 📐 1판 고르기: 장인(손가락 첫 톡) ★3 ×2 + 장인 스스로 ★3 + 무작위 클리어 − 막 누르기(손가락 첫 톡 뒤) ★2 이상 ×2
+      const smart = (S: Sim) => bestMove(L, S, d), mash = (S: Sim) => {
+        const f = freeM(L, S), o: number[] = [];
+        for (let i = 0; i < L.N; i++) if ((f >> i) & 1) o.push(i);
+        return o[Math.floor(r() * o.length)];
+      };
+      let mg = 0;
+      for (let k = 0; k < 20; k++) mg += playOut(L, d, mash, d.first) >= 2 ? 1 : 0;
+      const rp = randomPass(L, r, 30);
+      v = (playOut(L, d, smart, d.first) === 3 ? 2 : 0) + (playOut(L, d, smart) === 3 ? 1 : 0) + Math.min(1, rp / 0.95) - (mg / 20) * 2;
+    } else if (stage === 0) v = randomPass(L, r, 30);
     else if (stage === 1) v = -Math.abs(randomPass(L, r, 30) - 0.75);
     else {
       // 버릇대로 두면 별 셋이 안 나오고, 내다보고 두면 별 셋이 나오는 판을 고른다 (무엇을 먼저 뺄지가 수가 되게)
@@ -622,6 +654,10 @@ function playRec(s: ShopState, rec: RE[]) {
       pv.wait = s.t + delay + SPIN - 2;
       if (Math.abs(P.d) > 0.2) ev(s, 'swing', P.px, P.py, '빙글~', '#fff3c4', s.t + delay + SPIN);
       see(s, 'swing', '🎐 나사 하나 남은 판자는 그 나사에 매달려 빙글!');
+      if (L.pl[e.p].ham && e.pose >= 1 && !rec.some((b) => b.k === 'bonk' && b.p === e.p)) {
+        ev(s, 'air', L.hamP[e.p][e.pose][0], L.hamP[e.p][e.pose][1], '💨 허공', '#d8c3a5', s.t + delay + SPIN + 10);
+        see(s, 'air', '💨 허공! 칠 나사 바로 위 나사를 남겨야 쾅');
+      }
       continue;
     }
     if (e.k === 'fall') {
@@ -1180,7 +1216,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
   if (pressK >= 0 && fx.memo.pk !== pressK && t > seenT) cue('press');
   fx.memo.pk = pressK;
   for (const e of s.events) {
-    const due = e.v !== undefined && ['in', 'slot', 'pull', 'done', 'swing', 'fall', 'boing', 'key', 'jam', 'streak', 'tick', 'reveal', 'twist', 'pluck', 'bonk', 'shot'].includes(e.kind) ? e.v : e.t;
+    const due = e.v !== undefined && ['in', 'slot', 'pull', 'done', 'swing', 'fall', 'boing', 'key', 'jam', 'streak', 'tick', 'reveal', 'twist', 'pluck', 'bonk', 'shot', 'air'].includes(e.kind) ? e.v : e.t;
     if (due <= seenT || due > t) continue;
     const x = X(e.x), y = Y(e.y);
     if (e.kind === 'reveal') fx.ring(x, y, '#fff6a8', R(0.06), 3), fx.burst(x, y, '#fff6a8', 6, 1.6, 1.5), e.text && fx.pop(x + R(0.03), y - R(0.04), e.text, e.col!, 16), cue('reveal', reveals++);
@@ -1193,7 +1229,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       if (n >= 5) fx.burst(x, y, '#ffd166', 4, 3, 2.2);
       if (n >= 8) fx.kick(1.5);
       if (n >= 2) {
-        const C = d.C, txt = n === C ? `★ 연속 ${n}!` : n >= 11 ? `${n} 🔥` : n >= 8 ? `${n} 착착착!` : n === 5 ? '5 착착!' : String(n);
+        const C = d.T === undefined ? d.C : -1, txt = n === C ? `★ 연속 ${n}!` : n >= 11 ? `${n} 🔥` : n >= 8 ? `${n} 착착착!` : n === 5 ? '5 착착!' : String(n);
         const col = n === C || (n > 5 && n < 8) ? '#ffd166' : n >= 8 ? '#ffb347' : n === 5 ? '#ffd166' : n >= 3 ? '#bff7c4' : '#fff6e0';
         fx.pop(Math.max(R(0.1), Math.min(w - R(0.1), x)), Y(BOX_Y + 0.03), txt, col, Math.min(36, 14 + 2.6 * n), true);
         if (n === C) fx.burst(x, y, '#ffd166', 12, 3.4, 2.4), fx.ring(x, y, '#ffd166', R(0.1), 3);
@@ -1214,6 +1250,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       fx.ring(x, y, '#fff3c4', R(0.09), 4), fx.burst(x, y, '#ffe08a', bad ? 6 : 14, 3.6, 2.4), fx.burst(x, y, '#c9ced6', 6, 3, 1.6), fx.burst(x, y, '#ffffff', 4, 5, 1.2);
       fx.kick(bad ? 3 : 5), fx.hold(bad ? 2 : 4), say(x, y - R(0.06), bad ? '쾅' : '쾅!', bad ? '#e8d9c0' : '#ffe08a', bad ? 20 : 26), cue('bonk');
     }
+    if (e.kind === 'air') fx.burst(x, y, '#e8dcc8', 6, 1.4, 1.6), say(x, y - R(0.04), e.text!, e.col!, 15), cue('blocked');
     if (e.kind === 'shot') {
       // 🎨 §2.4 한 방 단계: 판 안에 쇠빛 하늘색 — 연속 숫자(상자 줄, 따뜻한 색)와 겹치지 않게
       const h = e.n ?? 2, bad = e.text === 'bad';
@@ -2486,7 +2523,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
   {
     const y2 = Y(1.3), chips = [
       { txt: '완성', st: s.phase === 'result' && s.ok ? true : null },
-      { txt: `빈칸 ${d.P}칸까지`, st: S.peak > d.P ? false : s.phase === 'result' && s.ok ? true : null },
+      { txt: d.P === 0 ? '빈칸 안 쓰기' : `빈칸 ${d.P}칸까지`, st: S.peak > d.P ? false : s.phase === 'result' && s.ok ? true : null },
       d.T !== undefined ? { txt: `톡 ${d.T}번 이하`, st: S.taps > d.T ? false : s.phase === 'result' && s.ok ? true : null } : { txt: `연속 쏙 ${d.C}`, st: S.best >= d.C ? true : null },
     ];
     const gx0 = R(0.225), gw = (w - gx0 - R(0.015)) / 3;
@@ -2515,7 +2552,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     else if (s.phase === 'result') tip = s.ok ? '다음 장난감이 와요!' : '같은 장난감을 다시 — 이번엔 미리 보고 톡';
     else if (S.slots.length >= 4) tip = '⚠ 빈칸이 하나 남았어요 — 상자 색을 골라 빼요!';
     else if (!S.key) tip = '🔒 자물쇠 나사는 🔑 열쇠 나사를 빼야 풀려요';
-    else if (s.stage > 0) tip = d.tip;
+    else tip = d.tip; // 📐: 1판도 첫 톡 뒤엔 판 팁
     ctx.textAlign = 'center';
     font(0.036, 800);
     ctx.fillStyle = 'rgba(255,240,214,.92)';
@@ -2525,7 +2562,8 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
   if (s.stage === 0 && s.taps === 0 && s.phase === 'play' && t - s.startT > 40) {
     const L = s.L, f = freeM(L, S);
     let k = -1;
-    for (let i = 0; i < L.N; i++) if ((f >> i) & 1 && S.box.includes(L.col[i]) && (k < 0 || L.py[i] < L.py[k])) k = i;
+    if (d.first !== undefined && (f >> d.first) & 1) k = d.first;
+    else for (let i = 0; i < L.N; i++) if ((f >> i) & 1 && S.box.includes(L.col[i]) && (k < 0 || L.py[i] < L.py[k])) k = i;
     if (k >= 0) {
       const bob = Math.sin(t * 0.15) * R(0.012);
       ctx.font = `${Math.max(16, R(0.07))}px system-ui`;

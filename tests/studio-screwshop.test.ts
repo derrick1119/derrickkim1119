@@ -3,9 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { STAGES, setCue, screwshop as g, screwshopSmart, startStage } from '../studio/screwshop/game.ts';
+import { STAGES, apply, newSim, setCue, screwshop as g, screwshopSmart, startStage } from '../studio/screwshop/game.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
-import { measure, tryStage } from '../studio/screwshop/funqa.ts';
+import { measure, screwshopMash, tryStage } from '../studio/screwshop/funqa.ts';
 
 describe('나사 풀기 공방 시뮬', () => {
   it('같은 시드·같은 봇이면 같은 판', () => {
@@ -46,6 +46,34 @@ describe('나사 풀기 공방 시뮬', () => {
     const r = measure(6).summary;
     expect(r.mashClear38).toBeLessThanOrEqual(0.15);
     expect(r.mashStars).toBeLessThan(r.smartStars / 3);
+  });
+});
+
+describe('🔨 망치 판자 (M1′ S001 · 📐 CONTENT 1판)', () => {
+  const kinds = (seed: number, tap: number) => {
+    const L = g.create(seed).L, S = newSim(L), rec: { k: string; s?: number }[] = [];
+    apply(L, S, tap, rec as never);
+    return { rec, S };
+  };
+  it('1판 손가락 첫 톡(#8 주둥이)은 머리가 끄덕 → 목 나사(#6)를 쾅 — 한 방 2, 둘 다 상자로 (오너 기준 2)', () => {
+    for (const seed of [1, 7, 42, 99, 123, 2026]) {
+      const { rec, S } = kinds(seed, STAGES[0].first!);
+      expect(rec.some((e) => e.k === 'bonk' && e.s === 6), `seed ${seed}`).toBe(true);
+      expect(S.shot).toBe(2);
+      expect(rec.filter((e) => e.k === 'slot').length, `seed ${seed} 첫 톡은 쏙 + 쾅 쏙`).toBe(0);
+    }
+  });
+  it('반대 나사(#7)를 먼저 빼면 망치는 허공 — 쾅 없음', () => {
+    const { rec } = kinds(5, 7);
+    expect(rec.some((e) => e.k === 'hang')).toBe(true);
+    expect(rec.some((e) => e.k === 'bonk')).toBe(false);
+  });
+  it('1판 ★3은 톡 6 이하: 장인은 늘 ★3, 막 누르기는 깨도 ★2 이상 ≤ 0.2 (허들 ① "막 누르면 ★1")', () => {
+    const seeds = Array.from({ length: 24 }, (_, i) => 1000 + i * 7);
+    expect(seeds.every((sd) => tryStage(screwshopSmart, sd, 0).stars === 3)).toBe(true);
+    const m = seeds.map((sd) => tryStage(screwshopMash, sd, 0));
+    expect(m.filter((x) => x.ok).length / 24).toBeGreaterThanOrEqual(0.9);
+    expect(m.filter((x) => x.stars >= 2).length / 24).toBeLessThanOrEqual(0.2);
   });
 });
 

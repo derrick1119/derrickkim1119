@@ -7,7 +7,8 @@ import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { screwshop as g, screwshopSmart } from './game.ts';
+import { STAGES, screwshop as g, screwshopSmart } from './game.ts';
+const STAGES_FIRST = STAGES[0].first ?? 0;
 import { mulberry32 } from './rng.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -31,7 +32,7 @@ for (const scheme of ['light', 'dark'] as const) {
   // 첫 판의 나사 자리 = 시뮬 좌표 → 캔버스 좌표 (게임이 window에 노출하지 않으므로 화면 비율로 근사: 기린 몸통 나사 0.4, 0.85/1.45)
   const box = (await page.locator('canvas').boundingBox())!;
   const at = (x: number, y: number) => ({ x: box.x + x * box.width, y: box.y + (y / 1.45) * box.height });
-  const p = at(0.3, 0.89);
+  const L1 = g.create(1).L, p = at(L1.px[STAGES_FIRST], L1.py[STAGES_FIRST]); // 1판 손가락 첫 나사(🔨 머리)를 누르고 있기 → 🎯
   await page.mouse.move(p.x, p.y);
   await page.mouse.down();
   await page.waitForTimeout(500);
