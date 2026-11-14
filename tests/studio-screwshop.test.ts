@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { RES_BY, RETRY_Y, STAGES, apply, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
+import { RES_BY, RETRY_Y, STAGES, apply, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
 import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { screwshopMash, tryStage } from '../studio/screwshop/funqa.ts';
@@ -448,5 +448,25 @@ describe('🌬️ 4판 🔨 연쇄 1단 (M1′ S008 · 📐 CONTENT 4판)', () =
       expect(r.stars, `seed ${seed}`).toBe(3);
       expect(r.shot).toBeGreaterThanOrEqual(3);
     }
+  });
+});
+
+describe('실루엣 몸통 parts (✏️ S009 · 📋 M2 — 조각 합집합 SDF, geometry에서 미리 계산)', () => {
+  it('M1′ 8판 판자를 같은 둥근 네모 조각 하나로 바꿔도 모든 자세의 덮임 · 숨김 · 🔨 과녁이 그대로', () => {
+    for (let k = 0; k < STAGES.length; k++) {
+      const pl = STAGES[k].toy(), a = geometry(pl), b = geometry(pl.map((p) => ({ ...p, parts: [['b', 0, 0, p.hx, p.hy, p.rr, 0]] })));
+      expect([b.cov, b.hid, b.hamT], `${k + 1}판`).toEqual([a.cov, a.hid, a.hamT]);
+    }
+  });
+  it('조각 합집합: 원 조각이 덮는 나사는 막히고, 무게중심이 원 쪽으로 가서 매달린 자세가 그쪽으로 돈다', () => {
+    const base = STAGES[0].toy()[0], bot = { ...base, cx: 0.7, cy: 0.5, a: 0, hx: 0.05, hy: 0.05, rr: 0.02, sc: [[0.7, 0.5]], kind: 'wood' as const, ham: undefined, heavy: undefined };
+    const top = { ...bot, cx: 0.5, cy: 0.5, hx: 0.28, hy: 0.06, sc: [[0.3, 0.5], [0.4, 0.5]], parts: [['b', -0.1, 0, 0.12, 0.05, 0.02, 0], ['c', 0.2, 0, 0.07]] as never };
+    const L = geometry([bot, top]);
+    expect(L.cov[1][0] & 1, '원 조각 밑 나사').toBe(1);
+    const L0 = geometry([bot, { ...top, parts: [['b', -0.1, 0, 0.12, 0.05, 0.02, 0]] as never }]);
+    expect(L0.cov[1][0] & 1, '원 조각이 없으면').toBe(0);
+    // 나사 #2(0.4,0.5)에 매달리면 무게중심(원 쪽 = 오른쪽)이 아래로 → 시계 방향(+)으로 돈다 · 조각이 없을 때와 자세가 다르다
+    expect(L.poses[1][2].d).toBeGreaterThan(0);
+    expect(L.poses[1][2].d).not.toBeCloseTo(L0.poses[1][2].d, 2);
   });
 });

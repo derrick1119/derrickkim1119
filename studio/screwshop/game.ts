@@ -38,7 +38,9 @@ const STAR_PTS = 100, WIN_PTS = 100;
 // ───────────────────────────── 장난감(판) ─────────────────────────────
 type Kind = 'wood' | 'glass' | 'spring' | 'nail';
 /** 판자 하나: 둥근 네모(가운데 cx,cy · 반폭 hx,hy · 각 a · 모서리 rr). sc = 나사 자리(작업판 좌표) */
-interface Src { cx: number; cy: number; hx: number; hy: number; a: number; rr: number; kind: Kind; tone: string; deco: string; sc: number[][]; lock?: number[]; key?: number; nail?: number[]; tgt?: number; tick?: number[][]; /** 🔨 망치 머리(정지 자세의 작업판 좌표) — 나사 하나에 매달리는 순간 그 근처 나사를 쾅 (M1′ S001, GIMMICKS §2) */ ham?: number[]; /** 🪵 통나무: 떨어지면 밑에 매달린 판자들을 위부터 쳐서 떨군다 (M1′ S002) */ heavy?: boolean }
+export interface Src { cx: number; cy: number; hx: number; hy: number; a: number; rr: number; kind: Kind; tone: string; deco: string; sc: number[][]; lock?: number[]; key?: number; nail?: number[]; tgt?: number; tick?: number[][]; /** 🔨 망치 머리(정지 자세의 작업판 좌표) — 나사 하나에 매달리는 순간 그 근처 나사를 쾅 (M1′ S001, GIMMICKS §2) */ ham?: number[]; /** 🪵 통나무: 떨어지면 밑에 매달린 판자들을 위부터 쳐서 떨군다 (M1′ S002) */ heavy?: boolean; /** 실루엣 몸통(✏️ S009 · 📋 M2): 있으면 몸통 = 조각 합집합(판자 로컬 좌표 — 가운데 0,0 · 각 a 기준) · hx/hy는 감싸는 상자(그림 · 🔨 가장자리용) */ parts?: Part[] }
+/** 몸통 조각: 'b' 둥근 네모 [x,y,반폭,반높이,모서리,각] · 'c' 원 [x,y,r] · 's' 캡슐 [x1,y1,x2,y2,반두께] */
+export type Part = ['b', number, number, number, number, number, number] | ['c', number, number, number] | ['s', number, number, number, number, number];
 type O = Partial<Src>;
 const mk = (cx: number, cy: number, hx: number, hy: number, a: number, rr: number, tone: string, sc: number[][], o: O = {}): Src => ({ cx, cy, hx, hy, a, rr: Math.min(rr, hx, hy), kind: 'wood', tone, deco: '', sc, ...o });
 const bar = (x1: number, y1: number, x2: number, y2: number, t: number, tone: string, sc: number[][], o: O = {}) =>
@@ -213,15 +215,47 @@ export const HAM = 0.06;
 /** 둥근 네모까지의 거리(안쪽이면 음수) */
 function sdf(cx: number, cy: number, a: number, hx: number, hy: number, rr: number, px: number, py: number) {
   const dx = px - cx, dy = py - cy, c = Math.cos(a), s = Math.sin(a);
-  const lx = Math.abs(dx * c + dy * s), ly = Math.abs(-dx * s + dy * c);
-  const qx = lx - (hx - rr), qy = ly - (hy - rr);
+  return boxSd(dx * c + dy * s, -dx * s + dy * c, hx, hy, rr);
+}
+/** 로컬 좌표 (x,y)에서 가운데 둥근 네모까지 */
+function boxSd(x: number, y: number, hx: number, hy: number, rr: number) {
+  const qx = Math.abs(x) - (hx - rr), qy = Math.abs(y) - (hy - rr);
   return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - rr;
 }
-/** 피벗(px,py)에 매달린 판자: 무게중심이 바로 아래로 오게 d만큼 돈다 */
-function hangPose(cx: number, cy: number, a: number, px: number, py: number): Pose {
-  const vx = cx - px, vy = cy - py;
-  if (Math.hypot(vx, vy) < 0.012) return { cx, cy, a, px, py, d: 0 };
-  let d = Math.PI / 2 - Math.atan2(vy, vx);
+/** 조각 하나까지(판자 로컬 x,y) */
+function partSd(q: Part, x: number, y: number) {
+  if (q[0] === 'c') return Math.hypot(x - q[1], y - q[2]) - q[3];
+  if (q[0] === 's') {
+    const ux = q[3] - q[1], uy = q[4] - q[2], h = Math.max(0, Math.min(1, ((x - q[1]) * ux + (y - q[2]) * uy) / (ux * ux + uy * uy || 1)));
+    return Math.hypot(x - q[1] - ux * h, y - q[2] - uy * h) - q[5];
+  }
+  const dx = x - q[1], dy = y - q[2], c = Math.cos(q[6]), s = Math.sin(q[6]);
+  return boxSd(dx * c + dy * s, -dx * s + dy * c, q[3], q[4], Math.min(q[5], q[3], q[4]));
+}
+/** 자세 q의 판자 P 몸통까지(안쪽이면 음수) — 조각이 있으면 합집합(가장 가까운 조각) */
+function bodySd(P: Src, q: { cx: number; cy: number; a: number }, px: number, py: number) {
+  if (!P.parts) return sdf(q.cx, q.cy, q.a, P.hx, P.hy, P.rr, px, py);
+  const dx = px - q.cx, dy = py - q.cy, c = Math.cos(q.a), s = Math.sin(q.a), x = dx * c + dy * s, y = -dx * s + dy * c;
+  return Math.min(...P.parts.map((r) => partSd(r, x, y)));
+}
+/** 무게중심(작업판 좌표): 조각이 없으면 가운데 · 있으면 합집합 넓이 가중(0.004 격자 표본, 결정적) */
+function comOf(P: Src): [number, number] {
+  if (!P.parts) return [P.cx, P.cy];
+  const e = Math.hypot(P.hx, P.hy), n = Math.ceil(e / 0.004);
+  let sx = 0, sy = 0, m = 0;
+  for (let i = -n; i <= n; i++)
+    for (let j = -n; j <= n; j++) {
+      const x = i * 0.004, y = j * 0.004;
+      if (Math.min(...P.parts.map((r) => partSd(r, x, y))) < 0) (sx += x), (sy += y), m++;
+    }
+  const lx = m ? sx / m : 0, ly = m ? sy / m : 0, c = Math.cos(P.a), s = Math.sin(P.a);
+  return [P.cx + lx * c - ly * s, P.cy + lx * s + ly * c];
+}
+/** 피벗(px,py)에 매달린 판자: 무게중심(gx,gy — 기본은 가운데)이 바로 아래로 오게 d만큼 돈다 */
+function hangPose(cx: number, cy: number, a: number, px: number, py: number, gx = cx, gy = cy): Pose {
+  const vx = cx - px, vy = cy - py, wx = gx - px, wy = gy - py;
+  if (Math.hypot(wx, wy) < 0.012) return { cx, cy, a, px, py, d: 0 };
+  let d = Math.PI / 2 - Math.atan2(wy, wx);
   while (d > Math.PI) d -= 2 * Math.PI;
   while (d <= -Math.PI) d += 2 * Math.PI;
   const c = Math.cos(d), s = Math.sin(d);
@@ -236,7 +270,8 @@ function shuffle<T>(a: T[], r: Rng): T[] {
   return a;
 }
 
-function geometry(pl: Src[]): Level {
+/** 판 미리 계산(테스트용으로 내보냄 — ✏️ S009 실루엣 몸통 확인) */
+export function geometry(pl: Src[]): Level {
   const px: number[] = [], py: number[] = [], owner: number[] = [], si: number[] = [], tmr: number[] = [];
   const ps: number[][] = pl.map(() => []);
   let lockM = 0, keyM = 0;
@@ -251,14 +286,14 @@ function geometry(pl: Src[]): Level {
   const N = px.length;
   const pm = ps.map((l) => l.reduce((m, i) => m | (1 << i), 0));
   const poses = pl.map((p, k) => {
-    const o: Pose = { cx: p.cx, cy: p.cy, a: p.a, px: p.cx, py: p.cy, d: 0 };
-    if (p.kind === 'nail') return [o, hangPose(p.cx, p.cy, p.a, p.nail![0], p.nail![1])];
-    return [o, ...ps[k].map((i) => hangPose(p.cx, p.cy, p.a, px[i], py[i]))];
+    const o: Pose = { cx: p.cx, cy: p.cy, a: p.a, px: p.cx, py: p.cy, d: 0 }, [gx, gy] = comOf(p);
+    if (p.kind === 'nail') return [o, hangPose(p.cx, p.cy, p.a, p.nail![0], p.nail![1], gx, gy)];
+    return [o, ...ps[k].map((i) => hangPose(p.cx, p.cy, p.a, px[i], py[i], gx, gy))];
   });
   const mask = (k: number, q: Pose, lim: number, glassOk: boolean) => {
     if (!glassOk && pl[k].kind === 'glass') return 0;
     let m = 0;
-    for (let i = 0; i < N; i++) if (owner[i] < k && sdf(q.cx, q.cy, q.a, pl[k].hx, pl[k].hy, pl[k].rr, px[i], py[i]) < lim) m |= 1 << i;
+    for (let i = 0; i < N; i++) if (owner[i] < k && bodySd(pl[k], q, px[i], py[i]) < lim) m |= 1 << i;
     return m;
   };
   const cov = poses.map((arr, k) => arr.map((q) => mask(k, q, COVER, true)));
@@ -1500,8 +1535,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       ctx.strokeStyle = `rgba(255,80,70,${0.6 + 0.3 * Math.sin(t * 0.3)})`;
       ctx.lineWidth = 3;
       ctx.setLineDash([6, 4]);
-      ctx.beginPath();
-      ctx.roundRect(-R(P.hx), -R(P.hy), R(P.hx * 2), R(P.hy * 2), R(P.rr));
+      plankPath(ctx, P, R);
       ctx.stroke();
       ctx.restore();
     }
@@ -2074,7 +2108,16 @@ function pill(ctx: CanvasRenderingContext2D, x: number, y: number, lab: string, 
 }
 function plankPath(ctx: CanvasRenderingContext2D, P: Src, R: (r: number) => number) {
   ctx.beginPath();
-  ctx.roundRect(-R(P.hx), -R(P.hy), R(P.hx * 2), R(P.hy * 2), R(P.rr));
+  if (!P.parts) return ctx.roundRect(-R(P.hx), -R(P.hy), R(P.hx * 2), R(P.hy * 2), R(P.rr));
+  for (const q of P.parts) { // 조각마다 하위 경로 — 채우기(nonzero)가 합집합이 된다
+    ctx.save();
+    if (q[0] === 'c') ctx.moveTo(R(q[1] + q[3]), R(q[2])), ctx.arc(R(q[1]), R(q[2]), R(q[3]), 0, 7);
+    else {
+      const [x, y, hx, hy, rr, a] = q[0] === 's' ? [(q[1] + q[3]) / 2, (q[2] + q[4]) / 2, Math.hypot(q[3] - q[1], q[4] - q[2]) / 2 + q[5], q[5], q[5], Math.atan2(q[4] - q[2], q[3] - q[1])] : q.slice(1) as number[];
+      ctx.translate(R(x), R(y)), ctx.rotate(a), ctx.roundRect(-R(hx), -R(hy), R(hx * 2), R(hy * 2), R(Math.min(rr, hx, hy)));
+    }
+    ctx.restore();
+  }
 }
 
 /** 🔨 망치 머리가 붙는 판자 가장자리 점(판자 로컬) + 바깥 법선 각 (🎨 §2.5′) */
@@ -2217,7 +2260,7 @@ function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: {
     ctx.strokeStyle = 'rgba(255,255,255,.35)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.roundRect(-hx + 1.5, -hy + 1.5, hx * 2 - 3, hy * 2 - 3, Math.max(0, R(P.rr) - 1.5));
+    if (!P.parts) ctx.roundRect(-hx + 1.5, -hy + 1.5, hx * 2 - 3, hy * 2 - 3, Math.max(0, R(P.rr) - 1.5)); // 조각 몸통의 모서리 빛은 🎨 M2 문법대로(S010)
     ctx.stroke();
     ctx.strokeStyle = mix(P.tone, '#000000', 0.45);
     ctx.lineWidth = 1.2;
