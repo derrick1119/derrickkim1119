@@ -149,19 +149,29 @@ export function stageDirect(bot: Bot<DuckState>, i: number, n: number, retry = R
   }
   return { first: r2(first / n), taps: med(taps), tapsMean: r2(taps.reduce((a, b) => a + b, 0) / Math.max(1, taps.length)), tapStar: rate(star), wake1: zzRuns ? r2(wake1 / zzRuns) : null };
 }
-/** FUN v1.13 a: 새것 끔 반사실 — 판 데이터에서 💤(잠꾸러기)·🦈(상어)만 끈 같은 판과 비교. 숙련 톡 차 ≥ +.5 또는 캐주얼 ★톡 차 ≤ −.1이면 새것이 판단을 만든다 */
+/** FUN v1.13 a + v1.14 a·b: 새것 끔 반사실 — 판 데이터에서 새것 하나(💤·🦈·🚰·🎈)만 끈 같은 판과 비교. 판마다 새것별로 한 줄.
+ *  v1.13 a: 숙련 톡 차 ≥ +.5 또는 캐주얼 ★톡 차 ≤ −.1(💤는 숙련 첫 톡 깸 ≤ .5도) · v1.14 a: 격차 차 Δ = (캐주얼 톡 − 숙련 톡)있음 − (같은 값)끔 ≥ +.3 · v1.14 b(T2 본 판): 숙련 톡 차 < 0이면 ❌ */
+const STRIP: Record<string, { what: string; has: (d: (typeof STAGES)[number]) => boolean; off: (d: (typeof STAGES)[number]) => void }> = {
+  zz: { what: '💤', has: (d) => d.ducks.some((x) => x[3]), off: (d) => void (d.ducks = d.ducks.map((x) => x.slice(0, 3))) },
+  shark: { what: '🦈', has: (d) => !!d.shark, off: (d) => void delete d.shark },
+  stream: { what: '🚰', has: (d) => !!d.streams?.length, off: (d) => void delete d.streams },
+  balloon: { what: '🎈', has: (d) => !!d.balloons?.length, off: (d) => void delete d.balloons },
+};
 export function counterfactual(i: number, n: number) {
-  const d = STAGES[i], has = { zz: d.ducks.some((x) => x[3]), shark: !!d.shark };
-  if (!has.zz && !has.shark) return null;
-  const on = { sk: stageDirect(duckbathSmart, i, n), ca: stageDirect(duckbathCasual, i, n) };
-  const keep = { ducks: d.ducks, shark: d.shark };
-  d.ducks = d.ducks.map((x) => x.slice(0, 3));
-  delete d.shark;
-  const off = { sk: stageDirect(duckbathSmart, i, n), ca: stageDirect(duckbathCasual, i, n) };
-  d.ducks = keep.ducks;
-  if (keep.shark) d.shark = keep.shark;
-  const dTaps = r2(on.sk.tapsMean - off.sk.tapsMean), dStar = on.ca.tapStar !== null && off.ca.tapStar !== null ? r2(on.ca.tapStar - off.ca.tapStar) : null;
-  return { id: d.id, what: has.zz ? '💤' : '🦈', on, off, dTaps, dStar, wake1: on.sk.wake1, pass: (dTaps >= 0.5 || (dStar !== null && dStar <= -0.1)) && (!has.zz || (on.sk.wake1 ?? 1) <= 0.5) };
+  const d = STAGES[i], out = [];
+  for (const k of Object.keys(STRIP)) {
+    const st = STRIP[k];
+    if (!st.has(d)) continue;
+    const on = { sk: stageDirect(duckbathSmart, i, n), ca: stageDirect(duckbathCasual, i, n) };
+    const keep = { ...d, ducks: d.ducks };
+    st.off(d);
+    const off = { sk: stageDirect(duckbathSmart, i, n), ca: stageDirect(duckbathCasual, i, n) };
+    Object.assign(d, keep);
+    const dTaps = r2(on.sk.tapsMean - off.sk.tapsMean), dStar = on.ca.tapStar !== null && off.ca.tapStar !== null ? r2(on.ca.tapStar - off.ca.tapStar) : null;
+    const gap = r2(on.ca.tapsMean - on.sk.tapsMean - (off.ca.tapsMean - off.sk.tapsMean));
+    out.push({ id: d.id, what: st.what, on, off, dTaps, dStar, gap, wake1: on.sk.wake1, pass: (dTaps >= 0.5 || (dStar !== null && dStar <= -0.1)) && (k !== 'zz' || (on.sk.wake1 ?? 1) <= 0.5) });
+  }
+  return out;
 }
 
 const med = (xs: number[]) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] : NaN);
@@ -246,7 +256,7 @@ export function measure(n = 20) {
   const sk = out['숙련'] as { medScore: number }, cs = out['캐주얼'] as { medScore: number }, nv = out['처음'] as { medScore: number };
   // D013 (FUN v1.11 a): T1·T2 — 판마다 바로 시작해 캐주얼·무작위 n번
   // FUN v1.13 a: 새것 끔 반사실(💤·🦈가 있는 판)
-  out['새것끔'] = STAGES.map((_, i) => counterfactual(i, n)).filter(Boolean);
+  out['새것끔'] = STAGES.flatMap((_, i) => counterfactual(i, n));
   out['T1T2'] = STAGES.map((d, i) => ({ id: d.id, casual: firstInDirect(duckbathCasual, i, n), random: firstInDirect(duckbathRandom, i, n) }));
   out['숙련격차'] = r2(sk.medScore / Math.max(1, cs.medScore));
   out['숙련격차_처음'] = r2(sk.medScore / Math.max(1, nv.medScore));
@@ -439,8 +449,8 @@ if (import.meta.url === `file://${process.argv[1]}` && d1Arg) {
     // D011 (FUN T1·T2): 판마다 '첫 톡에 둥지 입성' 비율 캐주얼 − 무작위 (소개 판 = T1, 소개 판 다음 판 = T2 — 갈래는 FUN.md)
     const cs = (res['캐주얼'] as ReturnType<typeof group>).stages, rs = (res['처음'] as ReturnType<typeof group>).stages;
     console.log(`T1/T2 옛 자(런 안 무작위 — 생존 편향): ${cs.map((c, i) => `${ID(c.stage)} ${c.firstIn !== null && rs[i].firstIn !== null ? r2(c.firstIn - rs[i].firstIn) : '-'}(${rs[i].firstIn ?? '-'})`).join(' · ')}`);
-    const cf = res['새것끔'] as NonNullable<ReturnType<typeof counterfactual>>[];
-    console.log(`새것 끔 반사실(v1.13 a, 판 바로 시작 n${n}): ${cf.map((c) => `${c.id} ${c.what} 숙련 톡 ${c.on.sk.tapsMean}→끔 ${c.off.sk.tapsMean}(차 ${c.dTaps}) · 캐주얼 ★톡 ${c.on.ca.tapStar}→끔 ${c.off.ca.tapStar}(차 ${c.dStar})${c.wake1 !== null ? ` · 숙련 첫 톡 깸 ${c.wake1}` : ''} → ${c.pass ? '✓' : '✗'}`).join(' | ')}`);
+    const cf = res['새것끔'] as ReturnType<typeof counterfactual>;
+    console.log(`새것 끔 반사실(v1.13 a · v1.14 a·b, 판 바로 시작 n${n}): ${cf.map((c) => `${c.id} ${c.what} 숙련 톡 ${c.on.sk.tapsMean}→끔 ${c.off.sk.tapsMean}(차 ${c.dTaps}) · 캐주얼 ★톡 ${c.on.ca.tapStar}→끔 ${c.off.ca.tapStar}(차 ${c.dStar}) · 격차 차 Δ ${c.gap}${c.wake1 !== null ? ` · 숙련 첫 톡 깸 ${c.wake1}` : ''} → v1.13 a ${c.pass ? '✓' : '✗'} · v1.14 a ${c.gap >= 0.3 ? '✓' : '✗'}`).join(' | ')} (소개 판은 a로 판정 · T2 본 판은 숙련 톡 차 < 0이면 ❌(v1.14 b) · 그 밖은 보고)`);
     const dir = res['T1T2'] as { id: string; casual: number; random: number }[];
     console.log(`T1/T2 (v1.11 a: 판마다 바로 시작 n${n}) 캐주얼 − 무작위(캐주얼 · 무작위): ${dir.map((d) => `${d.id} ${r2(d.casual - d.random)}(${d.casual} · ${d.random})`).join(' · ')}`);
   }
