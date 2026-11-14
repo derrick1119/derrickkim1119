@@ -31,6 +31,8 @@ export interface Layout3 {
   /** 꽃밭 칸 [x, z] */
   flowers: [number, number][];
   charges: number;
+  /** 반장 목표 수(📐 GDD §4 A안) — 있으면 기폭 손잡이 판: ★3 = 이 수 이하로 쓰고 ★2까지(C008) */
+  save?: number;
 }
 
 /** 그리기용 움직임 한 토막. k 0 = 흘러내림 · 1 = 넘어짐(axis 0 = x 방향으로, 1 = z 방향으로, dir ±1) · 2 = 떨어짐 */
@@ -348,7 +350,10 @@ export function simulate3(Lay: Layout3, ch: ArrayLike<number>, rec = false): Out
   }
   const hit = hits.some((h) => h > 0);
   const ok = moved && !hit && height <= Lay.goal;
-  const star = [ok, ok && fl.size === 0, ok && height <= Lay.flat];
+  // 손잡이 판(save): ★3 = 아끼기(쓴 폭약 ≤ 반장 목표 · ★2까지), 그 밖의 판: ★3 = 납작 (📐 GDD §4·§10.5)
+  let used = 0;
+  for (let i = 0; i < ch.length; i++) used += ch[i];
+  const star = [ok, ok && fl.size === 0, ok && (Lay.save !== undefined ? fl.size === 0 && used <= Lay.save : height <= Lay.flat)];
   return {
     die, fx: X, fy: Y, fz: Z, rubT, dust, segs, tips, falls, crushes, hits, hitT, flowers: fl.size, height, moved, ok, star,
     stars: star.filter(Boolean).length, slumps, end: T + 10,
@@ -378,6 +383,8 @@ export interface StageDef3 {
   flat: number;
   flowers: [number, number][];
   charges: number;
+  /** 반장 목표 수 — 있으면 기폭 손잡이 판(1-4부터) */
+  save?: number;
 }
 
 export function layoutOf3(d: StageDef3): Layout3 {
@@ -393,7 +400,7 @@ export function layoutOf3(d: StageDef3): Layout3 {
     });
   });
   blocks.sort((a, b) => a.y - b.y || a.z - b.z || a.x - b.x);
-  return { W: d.W, D: d.D, blocks, lot: { ...d.lot }, goal: d.goal, flat: d.flat, flowers: d.flowers.map(([x, z]) => [x, z] as [number, number]), charges: d.charges };
+  return { W: d.W, D: d.D, blocks, lot: { ...d.lot }, goal: d.goal, flat: d.flat, flowers: d.flowers.map(([x, z]) => [x, z] as [number, number]), charges: d.charges, ...(d.save !== undefined ? { save: d.save } : {}) };
 }
 
 /** 2D 판(위 줄부터의 지도) → 깊이 1짜리 3D 판. 2D와 3D 규칙이 같은지 재는 회귀 테스트용 */
@@ -542,4 +549,36 @@ export function verdict3(L: Layout3, o: Outcome3): { ok: boolean; text: string }
 export function holdTags(cap: number, chA: number, left: number, quiet: boolean): { result: boolean; block: '떼기' | '변화 없음' | null } {
   const result = !chA && cap > 0 && cap >= left;
   return { result, block: chA ? '떼기' : quiet && !result ? '변화 없음' : null };
+}
+
+/**
+ * 남은 폭약으로 갈 수 있는 끝(📐 C008 '막다른 길'): 지금 붙인 것에 더 붙여 쾅 했을 때의 최고 별(0 = 성공 없음).
+ * 손잡이 판(save)은 0개~남은 수까지 아무 때나 쾅(단 하나도 안 붙이고는 못 함), 아니면 남은 폭약을 다 써야 쾅.
+ * need 별에 닿으면 바로 멈춘다(막다른 길 판단은 need 1).
+ */
+export function bestReach(L: Layout3, ch: Int8Array, need = 3): number {
+  const n = L.blocks.length, c = ch.slice();
+  let left = L.charges - c.reduce((a, v) => a + v, 0), best = 0;
+  const handle = L.save !== undefined;
+  const leaf = () => {
+    if (c.some((v) => v > 0)) {
+      const o = simulate3(L, c);
+      if (o.ok) best = Math.max(best, o.stars);
+    }
+  };
+  const rec = (start: number) => {
+    if (best >= need) return;
+    if (handle || left === 0) leaf();
+    for (let i = start; i < n && left > 0; i++) {
+      const k = capOf3(L.blocks[i]);
+      if (c[i] || !k || k > left) continue;
+      c[i] = k;
+      left -= k;
+      rec(i + 1);
+      left += k;
+      c[i] = 0;
+    }
+  };
+  rec(0);
+  return best;
 }

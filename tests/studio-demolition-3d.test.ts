@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { STAGES, layoutOf, simulate } from '../studio/demolition/game.ts';
 import { STAGES3 } from '../studio/demolition/stages3d.ts';
 import { cellPx, fitCams, visibleArea, YAW0 } from '../studio/demolition/view3d.ts';
-import { fingerHit, measureStage3 } from '../studio/demolition/funqa.ts';
-import { GAS, capOf3, holdTags, isQuiet, lostFeet, support3, verdict3, forEachPlan, from2D, layoutOf3, simulate3, type StageDef3 } from '../studio/demolition/sim3d.ts';
+import { fingerHit, measureStage3, plansOf } from '../studio/demolition/funqa.ts';
+import { GAS, bestReach, capOf3, holdTags, isQuiet, lostFeet, support3, verdict3, forEachPlan, from2D, layoutOf3, simulate3, type StageDef3 } from '../studio/demolition/sim3d.ts';
 
 const stage = (layers: string[][], extra: Partial<StageDef3> = {}): StageDef3 => ({
   key: '', title: 't', news: '', hint: '', W: layers[0][0].length, D: layers[0].length, layers,
@@ -139,7 +139,7 @@ describe('3D 칸 물리', () => {
       expect(cams[0].s * Math.sin(YAW0)).toBeGreaterThanOrEqual(16);
       expect(d.goal).toBeLessThan(L.blocks.reduce((a, b) => Math.max(a, b.y + 1), 0)); // 탑이 서 있는데 '성공'이 되면 안 된다 (C004에 찾은 허점)
       let best = 0;
-      forEachPlan(L, d.charges, (ch) => void (best = Math.max(best, simulate3(L, ch).ok ? simulate3(L, ch).stars : 0)));
+      plansOf(L, d, (ch) => void (best = Math.max(best, simulate3(L, ch).ok ? simulate3(L, ch).stars : 0))); // 손잡이 판은 1개~주는 수
       expect(best).toBe(3);
     }
   });
@@ -216,6 +216,43 @@ describe('꼬리표 규칙 holdTags (🧪 C007 ④ · 시험 빚 ③)', () => {
         expect(t.result, d.title).toBe(d.charges === 1);
         if (d.charges > 1) expect(t.block === '변화 없음', `${d.title} #${i}`).toBe(isQuiet(L, ch, i));
       }
+    }
+  });
+});
+
+describe('기폭 손잡이·아끼기 엔진 (📐 GDD §4 A안 · C008)', () => {
+  const d12 = STAGES3.find((d) => d.key === 'tip4')!;
+  it('아끼기 별: save 판은 ★3 = 쓴 폭약 ≤ 반장 목표 · ★2까지, save 없는 판은 ★3 = 납작 그대로', () => {
+    const L0 = layoutOf3(d12), Ls = layoutOf3({ ...d12, charges: 3, save: 2 }), Lt = layoutOf3({ ...d12, charges: 3, save: 1 });
+    let seen = 0;
+    forEachPlan(L0, 2, (ch) => {
+      const a = simulate3(L0, ch), b = simulate3(Ls, ch), c = simulate3(Lt, ch);
+      expect(b.ok).toBe(a.ok); // 물리는 그대로
+      expect(b.star[2]).toBe(a.ok && a.flowers === 0); // 2개 ≤ 목표 2
+      expect(c.star[2]).toBe(false); // 2개 > 목표 1
+      expect(a.star[2]).toBe(a.ok && a.height <= L0.flat);
+      if (b.star[2]) seen++;
+    });
+    expect(seen).toBeGreaterThan(0);
+  });
+  it('bestReach = 남은 폭약으로 갈 수 있는 최고 별(자동 쾅 판: 남은 걸 다 씀 · 손잡이 판: 아무 때나)', () => {
+    const L = layoutOf3(d12), n = L.blocks.length;
+    expect(bestReach(L, new Int8Array(n))).toBe(3);
+    for (let i = 0; i < n; i++) {
+      if (!capOf3(L.blocks[i])) continue;
+      const ch = new Int8Array(n);
+      ch[i] = capOf3(L.blocks[i]);
+      let best = 0;
+      forEachPlan(L, 2, (c2) => {
+        if (!c2[i]) return;
+        const o = simulate3(L, c2);
+        if (o.ok) best = Math.max(best, o.stars);
+      });
+      expect(bestReach(L, ch), `#${i}`).toBe(best);
+      expect(bestReach(L, ch, 1) > 0, `#${i} 막다른 길`).toBe(best > 0);
+      // 손잡이 판이면 지금 바로 쾅(한 개)도 길에 들어간다
+      const Lh = layoutOf3({ ...d12, charges: 2, save: 2 }), one = simulate3(Lh, ch);
+      expect(bestReach(Lh, ch)).toBeGreaterThanOrEqual(one.ok ? one.stars : 0);
     }
   });
 });

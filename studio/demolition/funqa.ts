@@ -137,11 +137,15 @@ export function measure3D() {
 }
 
 /** 3D 판 하나의 FUN v1.1 측정 (후보 판 비교에도 쓴다) */
+/** 계획 모두: 손잡이 판(save)은 폭약 1개~주는 수까지 아무 때나 쾅, 아니면 주는 수를 다 써야 쾅 (C008) */
+export function plansOf(L: Layout3, d: StageDef3, f: (ch: Int8Array, plan: number[]) => void) {
+  for (let k = d.save !== undefined ? 1 : d.charges; k <= d.charges; k++) forEachPlan(L, k, f);
+}
 export function measureStage3(d: StageDef3) {
   {
     const L = layoutOf3(d);
     let plans = 0, ok = 0, s3 = 0, best = 0;
-    forEachPlan(L, d.charges, (ch) => {
+    plansOf(L, d, (ch) => {
       const o = simulate3(L, ch);
       plans++;
       if (o.ok) ok++;
@@ -163,6 +167,8 @@ export function measureStage3(d: StageDef3) {
           else if (v === bv) ties.push(i);
         });
         ch[ties[Math.floor(rng() * ties.length)]]++;
+        // greedy1(GDD §4.3): 손잡이 판이면 미리 보기가 ★1 이상이 되는 순간 바로 손잡이
+        if (d.save !== undefined && simulate3(L, ch).ok) break;
       }
       const g = simulate3(L, ch);
       if (g.ok) gClear++;
@@ -184,7 +190,7 @@ export function measureStage3(d: StageDef3) {
     const alive = L.blocks.map((b, i) => {
       if (!can(i) || capOf3(b) > d.charges) return false;
       let ok = false;
-      forEachPlan(L, d.charges, (ch) => {
+      plansOf(L, d, (ch) => {
         if (!ok && ch[i] >= capOf3(b) && simulate3(L, ch).ok) ok = true;
       });
       return ok;
@@ -207,6 +213,8 @@ export function measureStage3(d: StageDef3) {
     let pPrev = 0, pBlind = 0;
     const rec = (ch: Int8Array, left: number, prob: number) => {
       if (prob <= 0) return;
+      // 손잡이 판: 꾹 꼬리표가 성공을 보여 주면 붙이고 바로 손잡이(C008)
+      if (d.save !== undefined && ch.some((v) => v > 0) && simulate3(L, ch).ok) return void ((pPrev += prob), (pBlind += prob));
       const choices = L.blocks.map((_, i) => i).filter((i) => can(i) && !ch[i] && capOf3(L.blocks[i]) <= left);
       if (!choices.length || left <= 0) {
         if (simulate3(L, ch).ok) (pPrev += prob), (pBlind += prob);
@@ -238,7 +246,7 @@ export function measureStage3(d: StageDef3) {
     const face = cellPx(cams[0]) ** 2;
     // ★3 계획 중 '가장 잘 보이는 것'의 가장 덜 보이는 블록(면 장 수) — 1-1·1-2는 ≥ 0.5
     let star3Vis = -1;
-    forEachPlan(L, d.charges, (ch, plan) => {
+    plansOf(L, d, (ch, plan) => {
       if (simulate3(L, ch).stars === 3) star3Vis = Math.max(star3Vis, Math.min(...plan.map((i) => area[0][i] / face)));
     });
     const inner = taps.filter((i) => area.every((a) => a[i] === 0)).length;
@@ -278,7 +286,7 @@ export function measureStage3(d: StageDef3) {
     const f4bDead = dAll ? dSig / dAll : 1;
     // F7 별 기울기: 성공 계획 안의 ★1만·★2·★3 수, 공짜 별(모든 성공 계획이 받는 꽃밭·납작 별)
     let only1 = 0, two = 0, three = 0, okN = 0, flowerAll = true, flatAll = true;
-    forEachPlan(L, d.charges, (ch) => {
+    plansOf(L, d, (ch) => {
       const o = simulate3(L, ch);
       if (!o.ok) return;
       okN++;
@@ -309,7 +317,7 @@ export function measureStage3(d: StageDef3) {
     const innerHit = taps.filter((_, k) => hits[k].every((x) => x.hit < 0.5)).length;
     const f11miss = taps.length ? hits.reduce((a, h) => a + h.reduce((b, x) => b + x.miss, 0) / 4, 0) / taps.length : 0;
     let f13 = 0;
-    forEachPlan(L, d.charges, (ch, plan) => {
+    plansOf(L, d, (ch, plan) => {
       if (simulate3(L, ch).stars === 3) f13 = Math.max(f13, Math.min(...plan.map((i) => hits[taps.indexOf(i)][0].hit)));
     });
     return { title: d.title, blocks: L.blocks.length, charges: d.charges, plans, clear: ok / plans, star3: s3 / plans, best, greedyStar3: gStar3 / 20, greedyClear: gClear / 20, firstTapStill: still / open,

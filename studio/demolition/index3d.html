@@ -22,6 +22,9 @@ h1 span{color:#d99a12}
 .rot{position:absolute;bottom:8px;width:56px;height:56px;border-radius:28px;border:2px solid #3a2a3f;background:#fff6e8;color:#3a2a3f;font:900 28px system-ui,sans-serif;box-shadow:0 3px 0 #3a2a3f40;cursor:pointer}
 .rot.l{left:8px}.rot.r{right:8px}
 .rot:focus-visible{outline:3px solid #ffc93c}
+.handle{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);height:56px;padding:0 18px;border-radius:28px;border:2px solid #3a2a3f;background:#ff6150;color:#fff6e8;font:900 20px system-ui,sans-serif;box-shadow:0 3px 0 #3a2a3f40;cursor:pointer}
+.handle:focus-visible{outline:3px solid #ffc93c}
+.handle[hidden]{display:none}
 #bar{margin:8px 12px 0;display:flex;gap:8px;align-items:center;min-height:52px}
 #msg{flex:1;font-size:16px;font-weight:700;word-break:keep-all}
 #retry{min-width:72px;min-height:52px;border:2px solid #3a2a3f;border-radius:26px;background:#fff6e8;color:#3a2a3f;font:900 17px system-ui,sans-serif;cursor:pointer}
@@ -40,7 +43,7 @@ h1 span{color:#d99a12}
 <li>🧨 꾹 = 무너질 모양 미리 보기, 떼면 폭약. 다 붙이면 쾅!</li>
 <li>🎯 남는 것이 다 <b style="color:#1f6fb2">목표선</b> 아래면 성공 — 💥 이웃집은 실패, 🥀 꽃밭은 별 하나.</li>
 </ul>
-<p class="ver">스튜디오 빌드 C007 · 3D (1. 물탱크 탑 · 2. 네 다리 망루) · <a href="2d.html">옛 2D 프로토타입</a></p>
+<p class="ver">스튜디오 빌드 C008 · 3D (1. 물탱크 탑 · 2. 네 다리 망루) · <a href="2d.html">옛 2D 프로토타입</a></p>
 </main>
 <script>/*BUNDLE*/</script>
 </body>

@@ -4,7 +4,7 @@
  *   · 다 붙이면 결과(쾅 애니메이션·유령은 C004).
  * 키보드: ← → 로 붙일 블록 고르기, 스페이스 누르는 동안 겨눔 → 떼면 붙이기, Q/E 돌리기, R 다시.
  */
-import { GAS, METAL, STONE, capOf3, feetKey3, holdTags, lostFeet, verdict3, layoutOf3, simulate3, support3, type Footing, type Layout3, type Outcome3 } from './sim3d.ts';
+import { GAS, METAL, STONE, bestReach, capOf3, feetKey3, holdTags, lostFeet, verdict3, layoutOf3, simulate3, support3, type Footing, type Layout3, type Outcome3 } from './sim3d.ts';
 import { STAGES3 } from './stages3d.ts';
 import { aimAt, drawOrder, faces, fitCams, proj, yawOf, type Cam, type Cube } from './view3d.ts';
 
@@ -25,7 +25,14 @@ rotL.textContent = '⟲';
 rotR.textContent = '⟳';
 rotL.setAttribute('aria-label', '왼쪽으로 돌리기 (Q)');
 rotR.setAttribute('aria-label', '오른쪽으로 돌리기 (E)');
-root.append(canvas, rotL, rotR);
+// 기폭 손잡이(📐 GDD §4 A안 · C008): 손잡이 판(save)에서 폭약을 하나라도 붙이면 나타나고, 톡 하면 남은 폭약 없이 바로 3·2·1 쾅
+const handle = document.createElement('button');
+handle.className = 'handle';
+handle.type = 'button';
+handle.textContent = '🕹️ 지금 쾅!';
+handle.setAttribute('aria-label', '기폭 손잡이 — 지금 쾅 (Enter)');
+handle.hidden = true;
+root.append(canvas, rotL, rotR, handle);
 const hud = document.getElementById('hud')!, msg = document.getElementById('msg')!, again = document.getElementById('again') as HTMLButtonElement, retry = document.getElementById('retry') as HTMLButtonElement;
 let ctx = canvas.getContext('2d')!;
 /** 손가락 자리(캔버스 css px) — 확대 말풍선용 */
@@ -512,9 +519,12 @@ function draw() {
   if (!out && aim >= 0 && !holding) for (const fc of faces(c, L.blocks[aim])) poly(fc.pts, undefined, '#ffffff', 2, [4, 3]);
 }
 
+/** 막다른 길(📐 C008): 붙인 폭약이 있고 남은 폭약으로 어떻게 해도 성공이 없으면 알린다 — 붙일 때·뗄 때만 계산 */
+let stuck = false;
 function hudText() {
-  const d = STAGES3[stageIx];
-  hud.textContent = `🏗️ ${stageIx + 1}. ${d.title} · 🧨 ${left}개 남음`;
+  const d = STAGES3[stageIx], used = L.charges - left;
+  hud.textContent = `🏗️ ${stageIx + 1}. ${d.title} · 🧨 ${left}개 남음${L.save !== undefined ? ` · 반장 목표 ${L.save}개` : ''}`;
+  handle.hidden = !(L.save !== undefined && used > 0 && !out);
   if (out && played()) {
     const why = verdict(out).text;
     msg.textContent = why;
@@ -524,9 +534,9 @@ function hudText() {
     retry.hidden = !(out.ok && out.stars < 3);
     if (out.ok && out.stars < 3) msg.textContent += !out.star[1] ? ' — 꽃밭을 덮었어요' : ' — 더 낮게 무너뜨리면 ★';
   } else {
-    msg.textContent = out ? '3·2·1…' : [d.news, d.hint].filter(Boolean).join(' · ');
+    msg.textContent = out ? '3·2·1…' : stuck ? '🚧 막다른 길 — 붙인 폭약을 다시 톡 해서 떼요' : [d.news, d.hint].filter(Boolean).join(' · ');
     again.hidden = true;
-    retry.hidden = true;
+    retry.hidden = !stuck || !!out;
   }
 }
 
@@ -535,21 +545,33 @@ function attach(i: number) {
     // 다시 톡 = 떼기
     left += ch[i];
     ch[i] = 0;
+    stuck = ch.some((v) => v > 0) && bestReach(L, ch, 1) === 0;
     return hudText();
   }
   if (i < 0 || !canAttach(i)) return;
   const k = capOf3(L.blocks[i]);
   ch[i] = k;
   left -= k;
-  if (left <= 0) (out = simulate3(L, ch, true)), (bt = -COUNT);
+  if (left <= 0) return fire();
+  stuck = bestReach(L, ch, 1) === 0;
   hudText();
 }
+/** 쾅: 폭약을 다 붙였거나 손잡이를 톡 했을 때 — 붙인 그대로 시뮬(미리 보기 = 실제) */
+function fire() {
+  if (out || !ch.some((v) => v > 0)) return;
+  out = simulate3(L, ch, true);
+  bt = -COUNT;
+  stuck = false;
+  hudText();
+}
+handle.addEventListener('click', fire);
 function reset() {
   L = layoutOf3(STAGES3[stageIx]);
   cams = fitCams(L.lot, L.blocks, W, H, 12);
   ch = new Int8Array(L.blocks.length);
   left = L.charges;
   out = null;
+  stuck = false;
   aim = -1;
   bt = 0;
   hudText();
@@ -641,6 +663,7 @@ canvas.addEventListener('keydown', (e) => {
   if (e.key === 'e' || e.key === 'E') return rotate(1);
   if (e.key === 'r' || e.key === 'R') return reset();
   if (out) return;
+  if (e.key === 'Enter' && !handle.hidden) return fire();
   if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
     const c = cam();
     kbList = L.blocks.map((_, i) => i).filter((i) => canAim(i) && aimAt(c, L.blocks, (j) => j === i, ...centerOf(c, i)) === i).sort((a, b) => centerOf(c, a)[0] - centerOf(c, b)[0]);
