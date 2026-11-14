@@ -4,22 +4,22 @@
  "seeds": 24,
  "summary": {
   "smartStars": 3,
-  "habitStars": 1.8,
-  "randomStars": 0.39,
+  "habitStars": 1.82,
+  "randomStars": 0.36,
   "smartStar3": 1,
-  "habitStar3": 0.08,
+  "habitStar3": 0.07,
   "randomClear1": 1,
   "mashClear12": 0.98,
   "mashClear38": 0.18,
-  "mashStars": 0.39,
+  "mashStars": 0.37,
   "habit3Star3_2": 0,
   "habit3Star3_38max": 0,
   "fingerGe2_1": 0.04,
   "fingerGe2_2": 0.17,
-  "previewStar3_38": 0.05,
-  "smartShot": 3.63,
-  "mashShot": 1.38,
-  "smartSec": 5.93,
+  "previewStar3_38": 0.04,
+  "smartShot": 3.67,
+  "mashShot": 1.35,
+  "smartSec": 5.95,
   "newbie3_13": 1,
   "newbie3_avg": 0.99,
   "f13_38min": 0.95,
@@ -27,6 +27,7 @@
    36,
    56,
    61,
+   66,
    61,
    61,
    63,
@@ -34,7 +35,7 @@
    91,
    66
   ],
-  "skillGap": 7.69
+  "skillGap": 8.33
  },
  "stages": [
   {
@@ -291,6 +292,90 @@
   },
   {
    "stage": 4,
+   "slot": "1-4",
+   "id": 8,
+   "name": "🐿️ 다람쥐",
+   "smart": {
+    "clear": 1,
+    "star3": 1,
+    "stars": 3,
+    "ge2": 1,
+    "sec": 6.1,
+    "human": 66,
+    "shot": 4
+   },
+   "habit": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 2,
+    "ge2": 1,
+    "sec": 6.9,
+    "human": 76,
+    "shot": 1.58
+   },
+   "top": {
+    "clear": 0.25,
+    "star3": 0,
+    "stars": 0.29,
+    "ge2": 0.04,
+    "sec": 5.2,
+    "human": 54,
+    "shot": 1
+   },
+   "reveal": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 2,
+    "ge2": 1,
+    "sec": 7.1,
+    "human": 78,
+    "shot": 1.21
+   },
+   "random": {
+    "clear": 0.04,
+    "star3": 0,
+    "stars": 0.04,
+    "ge2": 0,
+    "sec": 12.8,
+    "human": 45,
+    "shot": 1
+   },
+   "mash": {
+    "clear": 0.13,
+    "star3": 0,
+    "stars": 0.21,
+    "ge2": 0.08,
+    "sec": 2.9,
+    "human": 47,
+    "shot": 1.08
+   },
+   "finger": {
+    "clear": 0.13,
+    "star3": 0,
+    "stars": 0.21,
+    "ge2": 0.08,
+    "sec": 2.9,
+    "human": 47,
+    "shot": 1.08
+   },
+   "preview": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 2,
+    "ge2": 1,
+    "sec": 6.8,
+    "human": 74,
+    "shot": 2.29
+   },
+   "newbie": {
+    "clear1": 1,
+    "clear3": 1,
+    "fails": 1,
+    "f13": 1
+   }
+  },
+  {
+   "stage": 5,
    "slot": "1-5",
    "id": 9,
    "name": "🐄 태엽 젖소",
@@ -374,7 +459,7 @@
    }
   },
   {
-   "stage": 5,
+   "stage": 6,
    "slot": "2-1",
    "id": 3,
    "name": "🌬️ 풍차",
@@ -458,7 +543,7 @@
    }
   },
   {
-   "stage": 6,
+   "stage": 7,
    "slot": "2-2",
    "id": 4,
    "name": "🌻 해바라기",
@@ -542,7 +627,7 @@
    }
   },
   {
-   "stage": 7,
+   "stage": 8,
    "slot": "2-6",
    "id": 5,
    "name": "🦕 공룡",
@@ -626,7 +711,7 @@
    }
   },
   {
-   "stage": 8,
+   "stage": 9,
    "slot": "3-1",
    "id": 6,
    "name": "🏰 성",
@@ -710,7 +795,7 @@
    }
   },
   {
-   "stage": 9,
+   "stage": 10,
    "slot": "3-10",
    "id": 7,
    "name": "🚀 로켓",
