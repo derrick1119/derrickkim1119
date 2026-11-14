@@ -66,6 +66,20 @@ for (const scheme of ['light', 'dark'] as const) {
   }
   await page.waitForTimeout(1500);
   await page.screenshot({ path: join(out, '06-clear.png') });
+  // ★3을 못 딴 결과(별 이유 + ↺ 다시 · 다음): 망치를 반대로 매다는 순서로 1판을 푼다
+  await page.goto(url + '?seed=42');
+  await page.click('.g-overlay');
+  await page.waitForTimeout(900);
+  const b3 = (await page.locator('canvas').boundingBox())!, L3 = g.create(42).L;
+  for (const i of [7, 4, 3, 8, 5, 2, 6, 0, 1]) {
+    await page.mouse.move(b3.x + L3.px[i] * b3.width, b3.y + (L3.py[i] / 1.45) * b3.height);
+    await page.mouse.down();
+    await page.waitForTimeout(60);
+    await page.mouse.up();
+    await page.waitForTimeout(750);
+  }
+  await page.waitForTimeout(3200);
+  await page.screenshot({ path: join(out, '07-result-retry.png') });
   const scrollX = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   console.log('가로 스크롤 px:', scrollX);
   await page.close();

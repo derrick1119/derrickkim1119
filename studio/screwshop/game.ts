@@ -525,6 +525,8 @@ export interface ShopState {
   L: Level; S: Sim; known: number;
   down: boolean; ax: number; ay: number; press: number; cool: number; lastTap: number; taps: number;
   hearts: number; stars: number; got: number; pts: number; ok: boolean; why: string; won: boolean; dead: boolean; tries: number;
+  /** 판별 최고 별·점수 (↺ 다시 해도 합계는 최고만) · ★3 못 땄을 때 결과 화면에서 기다리는 중 */
+  bestSt: number[]; bestPts: number[]; retries: number;
   seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[]; startT: number; clearT: number;
   pv: PV[]; fl: Fl[]; vb: VBox[]; lv: { col: number; bi: number; t0: number }[]; vs: { col: number; at: number; x: number }[]; ready: number[];
   mood: string; moodT: number; bird: number;
@@ -588,12 +590,13 @@ function finish(s: ShopState) {
   s.pt = 0;
   const d = STAGES[s.stage], S = s.S;
   if (s.ok) {
-    const st = starsOf(d, S);
+    const st = starsOf(d, S), pp = st * STAR_PTS + Math.max(0, 4 - S.peak) * 10 + Math.min(S.best, 12) * 2;
     s.got = st;
-    s.stars += st;
-    s.pts += st * STAR_PTS + Math.max(0, 4 - S.peak) * 10 + Math.min(S.best, 12) * 2;
+    // ↺ 다시 해도 판별 최고만 합계에 (S002)
+    if (st > (s.bestSt[s.stage] ?? 0)) (s.stars += st - (s.bestSt[s.stage] ?? 0)), (s.bestSt[s.stage] = st);
+    if (pp > (s.bestPts[s.stage] ?? 0)) (s.pts += pp - (s.bestPts[s.stage] ?? 0)), (s.bestPts[s.stage] = pp);
     s.clearT = s.t;
-    if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS);
+    if (s.stage === STAGES.length - 1 && !s.won) (s.won = true), (s.pts += WIN_PTS);
     ev(s, 'clear', 0.5, 0.75, `${d.emoji} 완성! ${'★'.repeat(st)}${'☆'.repeat(3 - st)}`, '#fff1a8', st);
     setMood(s, 'cheer');
   } else {
@@ -846,7 +849,7 @@ export const screwshop: GameDef<ShopState> = {
     const s = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'play', pt: 0, known: 0,
       down: false, ax: 0, ay: 0, press: -1, cool: 0, lastTap: -99, taps: 0,
-      hearts: 3, stars: 0, got: 0, pts: 0, ok: false, why: '', won: false, dead: false, tries: 0,
+      hearts: 3, stars: 0, got: 0, bestSt: [], bestPts: [], retries: 0, pts: 0, ok: false, why: '', won: false, dead: false, tries: 0,
       seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsQ: [], startT: 0, clearT: 0,
       pv: [], fl: [], vb: [], lv: [], vs: [], ready: [], mood: 'idle', moodT: 0, bird: 0,
     } as unknown as ShopState;
@@ -864,6 +867,15 @@ export const screwshop: GameDef<ShopState> = {
     animate(s);
     if (s.mood !== 'idle' && s.t - s.moodT > (s.mood === 'dizzy' || s.mood === 'cheer' ? 400 : 70)) s.mood = s.S.slots.length >= 3 ? 'worry' : 'idle';
     if (s.phase === 'result') {
+      // ★3을 못 땄으면 자동으로 안 넘어간다(🧪 S001: ★1도 만세 + 자동 다음 판이라 놓친 걸 못 느낌) — 왼쪽 ↺ 다시 · 오른쪽 다음
+      if (s.ok && s.got < 3) {
+        if (release && s.pt > 30 && s.ay * A > 0.5) {
+          if (s.ax < 0.5) s.retries++, newStage(s);
+          else if (s.won) s.dead = true;
+          else s.stage++, newStage(s);
+        }
+        return;
+      }
       if (s.pt >= (s.ok ? RESULT_OK : RESULT_FAIL)) {
         if (s.ok) {
           if (s.won) s.dead = true;
@@ -2550,7 +2562,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     const age = s.pt, a = Math.min(1, age / 10);
     ctx.globalAlpha = a;
     ctx.fillStyle = s.ok ? 'rgba(40,50,20,.62)' : 'rgba(70,20,20,.62)';
-    ctx.fillRect(0, Y(0.6), w, R(0.26));
+    ctx.fillRect(0, Y(0.6), w, R(s.ok && s.got < 3 ? 0.36 : 0.26)); // ↺·다음 버튼까지
     ctx.textAlign = 'center';
     font(s.ok ? 0.06 : 0.052, 900);
     ctx.fillStyle = s.ok ? '#fff1a8' : '#ffd0c8';
@@ -2565,9 +2577,27 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
         ctx.fillText(got ? '★' : '☆', w / 2 + (k - 1) * R(0.1), Y(0.75));
         if (got && (juice(s).memo['star' + k] ?? -1) < s.clearT) (juice(s).memo['star' + k] = s.clearT), juice(s).burst(w / 2 + (k - 1) * R(0.1), Y(0.75), '#ffe066', k === 2 ? 28 : 14, 3, 2.4), cue('star', k);
       }
-      font(0.036, 800);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(d.H !== undefined ? `빈칸 최대 ${S.peak}칸 · 한 방 ${S.shot} / ${d.H}` : d.T !== undefined ? `빈칸 최대 ${S.peak}칸 · 톡 ${S.taps}번 / ${d.T}` : `빈칸 최대 ${S.peak}칸 · 연속 쏙 ${S.best}번`, w / 2, Y(0.82));
+      // 별 이유: 얻은 값 / 목표 (S002, 허들 ①)
+      const ok2 = S.peak <= d.P, ok3 = star3(d, S);
+      const t3 = d.H !== undefined ? `한 방 ${S.shot} / ${d.H}` : d.T !== undefined ? `톡 ${S.taps} / ${d.T}` : `연속 쏙 ${S.best} / ${d.C}`;
+      font(0.04, 900);
+      ctx.fillStyle = ok2 ? '#c8ffc8' : '#ffb36b';
+      ctx.fillText(`${ok2 ? '✓' : '✗'} 빈칸 ${S.peak} / ${d.P}`, w / 2 - R(0.2), Y(0.825));
+      ctx.fillStyle = ok3 ? '#c8ffc8' : '#ffb36b';
+      ctx.fillText(`${ok3 ? '✓' : '✗'} ${t3}`, w / 2 + R(0.2), Y(0.825));
+      if (s.got < 3 && age > 30) {
+        // ↺ 다시 · 다음 ▶ (화면 왼쪽 절반 · 오른쪽 절반 아무 데나)
+        const by = Y(0.905), bh = R(0.075);
+        ([[0.06, '↺ 다시 (★3 도전)', '#ffd166', '#3a2a00'], [0.53, s.won ? '끝내기 ▶' : '다음 판 ▶', 'rgba(255,248,236,.18)', '#fff8ec']] as const).forEach(([x0, txt, bg, fg]) => {
+          ctx.fillStyle = bg;
+          ctx.beginPath();
+          ctx.roundRect(X(x0), by - bh / 2, R(0.41), bh, bh / 2);
+          ctx.fill();
+          font(0.042, 900);
+          ctx.fillStyle = fg;
+          ctx.fillText(txt, X(x0) + R(0.205), by + 1);
+        });
+      }
     } else {
       font(0.042, 800);
       ctx.fillStyle = '#ffffff';
@@ -2605,7 +2635,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     let tip = '👆 나사를 톡! 누르고 있으면 갈 곳이 보여요';
     if (s.stage === 0 && s.taps === 0) tip = '👆 나사를 톡 — 같은 색 상자로 쏙!';
     else if (s.down && s.press >= 0) tip = '떼면 쏙! · 나사 밖에서 떼면 취소';
-    else if (s.phase === 'result') tip = s.ok ? '다음 장난감이 와요!' : '같은 장난감을 다시 — 이번엔 미리 보고 톡';
+    else if (s.phase === 'result') tip = s.ok ? (s.got < 3 ? '↺ 왼쪽: 같은 장난감 다시 · 오른쪽: 다음 판' : '다음 장난감이 와요!') : '같은 장난감을 다시 — 이번엔 미리 보고 톡';
     else if (S.slots.length >= 4) tip = '⚠ 빈칸이 하나 남았어요 — 상자 색을 골라 빼요!';
     else if (!S.key) tip = '🔒 자물쇠 나사는 🔑 열쇠 나사를 빼야 풀려요';
     else tip = d.tip; // 📐: 1판도 첫 톡 뒤엔 판 팁

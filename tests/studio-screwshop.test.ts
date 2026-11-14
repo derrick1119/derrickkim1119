@@ -77,6 +77,33 @@ describe('🔨 망치 판자 (M1′ S001 · 📐 CONTENT 1판)', () => {
   });
 });
 
+describe('결과 화면 ↺ (S002 · 🧪 S001 "★1도 자동 다음 판")', () => {
+  const toResult = (seed: number) => {
+    const s = g.create(seed), rng = () => 0.37;
+    while (s.phase !== 'result') g.step(s, screwshopMash.act(s, rng));
+    return s;
+  };
+  const tapAt = (s: ReturnType<typeof g.create>, x: number, y: number) => {
+    g.step(s, { tap: false, dir: 0, pointer: { x, y } });
+    g.step(s, { tap: false, dir: 0, pointer: null });
+  };
+  it('★3을 못 따면 기다린다 · 왼쪽 ↺는 같은 판 다시(별 합계는 최고만) · 오른쪽은 다음 판', () => {
+    let s = toResult(11);
+    for (let sd = 12; !(s.ok && s.got < 3); sd++) s = toResult(sd);
+    const stars = s.stars;
+    for (let k = 0; k < 400; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+    expect(s.phase).toBe('result');
+    tapAt(s, 0.25, 0.65);
+    expect([s.stage, s.phase, s.retries]).toEqual([0, 'play', 1]);
+    expect(s.stars).toBe(stars);
+    s = toResult(11);
+    for (let sd = 12; !(s.ok && s.got < 3); sd++) s = toResult(sd);
+    for (let k = 0; k < 40; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+    tapAt(s, 0.75, 0.65);
+    expect(s.stage).toBe(1);
+  });
+});
+
 describe('손맛 (🎨 ART §2 — 오너 "쾌감이 좀 부족해")', () => {
   it('시작 전에는 AudioContext를 만들지 않고, 시뮬레이션은 소리를 부르지 않는다(봇·결정성 무관)', () => {
     let calls = 0;
