@@ -249,7 +249,7 @@ export const OFF: Record<string, (L: Level) => Level> = {
   '⏰': (L) => ({ ...L, tmr: L.tmr.map(() => 0) }),
   '🔑': (L) => ({ ...L, wind: false }),
   '🪟': (L) => ({ ...L, pl: L.pl.map((P) => (P.kind === 'glass' ? { ...P, kind: undefined as never } : P)) }),
-  '🔨': (L) => ({ ...L, pl: L.pl.map((P) => ({ ...P, ham: undefined })) }),
+  '🔨': (L) => ({ ...L, pl: L.pl.map((P) => ({ ...P, ham: undefined })), hamT: L.hamT.map((a) => a.map(() => [])) }), // 📐A S016: geometry가 미리 셈한 hamT도 비워야 쾅이 멎는다
   '🐹': (L) => ({ ...L, thump: false }),
 };
 /** F19 식: 장치를 끈 판에서 장인 ★3 낙차(켬 − 끔) */
