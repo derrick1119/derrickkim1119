@@ -4,14 +4,14 @@
  "seeds": 24,
  "summary": {
   "smartStars": 3,
-  "habitStars": 1.74,
-  "randomStars": 0.28,
+  "habitStars": 1.76,
+  "randomStars": 0.27,
   "smartStar3": 1,
-  "habitStar3": 0.04,
+  "habitStar3": 0.03,
   "randomClear1": 1,
   "mashClear12": 0.98,
-  "mashClear38": 0.2,
-  "mashStars": 0.31,
+  "mashClear38": 0.19,
+  "mashStars": 0.3,
   "habit3Star3_2": 0,
   "habit3Star3_38max": 0.08,
   "fingerGe2_1": 0.04,
@@ -19,14 +19,14 @@
   "previewStar3_38": 0.07,
   "smartShot": 4.1,
   "mashShot": 1.32,
-  "smartSec": 5.9,
+  "smartSec": 5.91,
   "newbie3_13": 1,
   "newbie3_avg": 1,
   "hintMin": 1,
   "hint3": 0,
   "f13_38min": 0.95,
   "f16min": 0.83,
-  "pairMin": 0.79,
+  "pairMin": 0.85,
   "dev": [
    [
     "3-2",
@@ -72,9 +72,10 @@
    71,
    91,
    66,
+   65,
    66
   ],
-  "skillGap": 10.71
+  "skillGap": 11.11
  },
  "stages": [
   {
@@ -1370,24 +1371,24 @@
     "ge2": 0,
     "sec": 7.4,
     "human": 81,
-    "shot": 1.83
+    "shot": 1.79
    },
    "top": {
     "clear": 0.13,
     "star3": 0,
     "stars": 0.13,
     "ge2": 0,
-    "sec": 3.5,
+    "sec": 3.4,
     "human": 34,
-    "shot": 1.21
+    "shot": 1.25
    },
    "reveal": {
     "clear": 0.71,
     "star3": 0,
-    "stars": 0.83,
-    "ge2": 0.13,
+    "stars": 0.75,
+    "ge2": 0.04,
     "sec": 6,
-    "human": 64,
+    "human": 65,
     "shot": 1.29
    },
    "random": {
@@ -1395,64 +1396,64 @@
     "star3": 0,
     "stars": 0.08,
     "ge2": 0.04,
-    "sec": 16.6,
-    "human": 40,
-    "shot": 1.33
+    "sec": 15.8,
+    "human": 39,
+    "shot": 1.17
    },
    "mash": {
-    "clear": 0.17,
+    "clear": 0.08,
     "star3": 0,
-    "stars": 0.21,
+    "stars": 0.13,
     "ge2": 0.04,
-    "sec": 2.8,
-    "human": 45,
-    "shot": 1.33
+    "sec": 2.6,
+    "human": 38,
+    "shot": 1.42
    },
    "finger": {
-    "clear": 0.17,
+    "clear": 0.08,
     "star3": 0,
-    "stars": 0.21,
+    "stars": 0.13,
     "ge2": 0.04,
-    "sec": 2.8,
-    "human": 45,
-    "shot": 1.33
+    "sec": 2.6,
+    "human": 38,
+    "shot": 1.42
    },
    "preview": {
     "clear": 1,
     "star3": 0.04,
-    "stars": 1.96,
-    "ge2": 0.92,
+    "stars": 1.92,
+    "ge2": 0.88,
     "sec": 7.3,
     "human": 80,
-    "shot": 3.42
+    "shot": 3.29
    },
    "newbie": {
-    "clear1": 0.88,
+    "clear1": 0.63,
     "clear3": 1,
-    "fails": 13,
+    "fails": 17,
     "f13": 1,
     "hint": 1,
     "hint3": 0
    },
    "f16": {
-    "fails": 91,
-    "n": 63,
-    "v21": 1,
-    "airFails": 1,
-    "pair": 1,
-    "onlyLast": 0.73,
+    "fails": 92,
+    "n": 65,
+    "v21": 0.98,
+    "airFails": 0,
+    "pair": null,
+    "onlyLast": 0.68,
     "by": {
      "④태엽": [
-      62,
-      62
-     ],
-     "③허공": [
-      1,
-      1
+      61,
+      61
      ],
      "①색": [
-      0,
-      0
+      2,
+      2
+     ],
+     "②진자": [
+      2,
+      1
      ]
     }
    }
@@ -1582,15 +1583,15 @@
     "ge2": 0.54,
     "sec": 7.7,
     "human": 84,
-    "shot": 1.92
+    "shot": 2
    },
    "top": {
     "clear": 0.17,
     "star3": 0,
     "stars": 0.17,
     "ge2": 0,
-    "sec": 5.4,
-    "human": 57,
+    "sec": 5.5,
+    "human": 58,
     "shot": 0.96
    },
    "reveal": {
@@ -1607,60 +1608,60 @@
     "star3": 0,
     "stars": 0.04,
     "ge2": 0,
-    "sec": 15.3,
-    "human": 44,
+    "sec": 15.1,
+    "human": 45,
     "shot": 1.13
    },
    "mash": {
-    "clear": 0.04,
+    "clear": 0.13,
     "star3": 0,
-    "stars": 0.04,
-    "ge2": 0,
-    "sec": 2.8,
-    "human": 44,
-    "shot": 1.17
+    "stars": 0.17,
+    "ge2": 0.04,
+    "sec": 3.1,
+    "human": 50,
+    "shot": 1.42
    },
    "finger": {
-    "clear": 0.04,
+    "clear": 0.13,
     "star3": 0,
-    "stars": 0.04,
-    "ge2": 0,
-    "sec": 2.8,
-    "human": 44,
-    "shot": 1.17
+    "stars": 0.17,
+    "ge2": 0.04,
+    "sec": 3.1,
+    "human": 50,
+    "shot": 1.42
    },
    "preview": {
     "clear": 1,
     "star3": 0.04,
-    "stars": 1.67,
-    "ge2": 0.63,
-    "sec": 7.6,
-    "human": 84,
-    "shot": 2.71
+    "stars": 1.71,
+    "ge2": 0.67,
+    "sec": 7.5,
+    "human": 83,
+    "shot": 2.79
    },
    "newbie": {
-    "clear1": 0.96,
+    "clear1": 0.92,
     "clear3": 1,
-    "fails": 7,
-    "f13": 0.71,
+    "fails": 5,
+    "f13": 0.8,
     "hint": 1,
     "hint3": 0
    },
    "f16": {
-    "fails": 91,
-    "n": 36,
+    "fails": 90,
+    "n": 39,
     "v21": 1,
-    "airFails": 19,
-    "pair": 0.79,
-    "onlyLast": 0.73,
+    "airFails": 21,
+    "pair": 0.86,
+    "onlyLast": 0.69,
     "by": {
-     "①색": [
-      6,
-      6
-     ],
      "③허공": [
-      30,
-      30
+      32,
+      32
+     ],
+     "①색": [
+      7,
+      7
      ]
     }
    }
@@ -2084,6 +2085,110 @@
   },
   {
    "stage": 20,
+   "slot": "3-4",
+   "id": 24,
+   "name": "🎢 롤러코스터",
+   "smart": {
+    "clear": 1,
+    "star3": 1,
+    "stars": 3,
+    "ge2": 1,
+    "sec": 6,
+    "human": 65,
+    "shot": 4.17
+   },
+   "habit": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 2,
+    "ge2": 1,
+    "sec": 7,
+    "human": 77,
+    "shot": 1.38
+   },
+   "top": {
+    "clear": 0.17,
+    "star3": 0,
+    "stars": 0.17,
+    "ge2": 0,
+    "sec": 4.9,
+    "human": 51,
+    "shot": 0.96
+   },
+   "reveal": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 2,
+    "ge2": 1,
+    "sec": 7.4,
+    "human": 81,
+    "shot": 1
+   },
+   "random": {
+    "clear": 0.13,
+    "star3": 0,
+    "stars": 0.13,
+    "ge2": 0,
+    "sec": 16.3,
+    "human": 46,
+    "shot": 1.04
+   },
+   "mash": {
+    "clear": 0.08,
+    "star3": 0,
+    "stars": 0.08,
+    "ge2": 0,
+    "sec": 2.9,
+    "human": 46,
+    "shot": 0.96
+   },
+   "finger": {
+    "clear": 0.08,
+    "star3": 0,
+    "stars": 0.08,
+    "ge2": 0,
+    "sec": 2.9,
+    "human": 46,
+    "shot": 0.96
+   },
+   "preview": {
+    "clear": 1,
+    "star3": 0.04,
+    "stars": 2.04,
+    "ge2": 1,
+    "sec": 6.9,
+    "human": 76,
+    "shot": 1.88
+   },
+   "newbie": {
+    "clear1": 1,
+    "clear3": 1,
+    "fails": 0,
+    "f13": null,
+    "hint": 1,
+    "hint3": 0
+   },
+   "f16": {
+    "fails": 84,
+    "n": 14,
+    "v21": 0.86,
+    "airFails": 0,
+    "pair": null,
+    "onlyLast": 0.89,
+    "by": {
+     "③통나무": [
+      12,
+      12
+     ],
+     "①색": [
+      2,
+      0
+     ]
+    }
+   }
+  },
+  {
+   "stage": 21,
    "slot": "3-10",
    "id": 7,
    "name": "🚀 로켓",
