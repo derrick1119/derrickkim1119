@@ -5,7 +5,7 @@
 import { TICK, type Input } from './core.ts';
 import { juice, peek } from './juice.ts';
 import { sfx } from './sfx.ts';
-import { STAGES, setCue, screwshop as g, type ShopState } from './game.ts';
+import { STAGES, setCue, startStage, screwshop as g, type ShopState } from './game.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('screwshop:' + k) ?? 0); } catch { return 0; } },
@@ -102,8 +102,9 @@ function title() {
 function start() {
   sfx.wake(); // 첫 AudioContext는 여기서(자동재생 정책)
   sfx.play('press');
-  const fixed = Number(new URLSearchParams(location.search).get('seed')); // ?seed=N: 같은 판 다시 보기(스크린샷·버그 제보)
+  const q = new URLSearchParams(location.search), fixed = Number(q.get('seed')), st = Number(q.get('stage')); // ?seed=N: 같은 판 다시 보기 · ?stage=N: N판부터(스크린샷·버그 제보)
   s = g.create(fixed > 0 ? fixed : (Date.now() % 1_000_000) + 1);
+  if (st > 1 && st <= STAGES.length) startStage(s, st - 1);
   juice(s).calm = calm;
   running = true;
   overlay.hidden = true;

@@ -45,7 +45,7 @@ const bar = (x1: number, y1: number, x2: number, y2: number, t: number, tone: st
 const plate = (cx: number, cy: number, w: number, h: number, a: number, rr: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, w / 2, h / 2, a, rr, tone, sc, o);
 const disc = (cx: number, cy: number, r: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, r, r, 0, r, tone, sc, o);
 
-interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; /** 첫 판 손가락이 가리킬 나사 번호(판자 목록 순서로 0부터) */ first?: number; /** ★3을 '한 방 H 이상'으로 (톡 한 번에 빠진 나사 수) */ H?: number; toy(): Src[] }
+interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; /** 첫 판 손가락이 가리킬 나사 번호(판자 목록 순서로 0부터) */ first?: number; /** ★3을 '한 방 H 이상'으로 (톡 한 번에 빠진 나사 수) */ H?: number; /** 🪵 통나무가 떨어져야 풀리는 나사 3개(늦은 무리)를 한 색으로 칠하고 그 색 상자를 queue[late]에 — 통나무 나사 색은 첫 상자 (📐 2판) */ late?: number; toy(): Src[] }
 
 const GIR = '#f4bf4a', GIR2 = '#e7a93a', DINO = '#52b66c', DINO2 = '#3f9a58', BLADE = '#fff6e6', STONE = '#b9aea0', STONE2 = '#a69a8b', GLASS = '#cfe9ff';
 export const STAGES: StageDef[] = [
@@ -64,14 +64,17 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'boat', name: '돛단배', emoji: '⛵', news: '🪵 겹친 판자 — 위 판자에 걸린 나사는 못 빼요', tip: '🪵 가린 나사는 위 판자부터 — 빈칸은 아껴 써요', boxes: 2, colors: 4, P: 1, C: 6,
+    // 📐 CONTENT.md M1′ 2판 (S002): 돛단배는 통나무 장난감 — 🪵 활대가 떨어지면 밑에 매달린 돛을 와르르. "돛은 나사 하나만 남겨 매달고, 활대는 마지막에"
+    key: 'boat', name: '돛단배', emoji: '⛵', news: '🪵 활대는 통나무 — 떨어지면 밑에 매달린 판자를 와르르!', tip: '🪵 돛은 나사 하나만 남겨 매달고, 활대는 마지막에!', boxes: 2, colors: 4, P: 1, C: 6, H: 3, late: 2,
+    // 나사 번호: #0 #1 선체(위·아래) · #2 #3 돛대(꼭대기·활대 밑) · #4~#6 작은 돛(위·가운데·아래) · #7~#10 큰 돛(위→아래) · #11 활대 한가운데(방아쇠)
+    // 판자 순서 = 겹침 순서(뒤가 위). 활대가 #3을, 돛대가 선체 #0 #1을 누른다 → 셋은 활대가 떨어진 뒤에만 풀린다(늦은 무리 = 한 색, 셋째 상자).
+    // 와르르 과녁은 돛 둘뿐: 돛대 나사는 둘 다 활대 중심(0.56)보다 위, 선체는 와르르 때 늘 나사 2개. 돛 나사는 좌우로 엇갈려 매달리면 기우뚱(14°)·빙글(37~170°).
     toy: () => [
-      plate(0.56, 1.08, 0.72, 0.09, 0, 0.045, '#5aa9e6', [[0.56, 1.08]], { deco: 'waves' }),
-      bar(0.5, 0.45, 0.5, 0.93, 0.034, '#8a5a3b', [[0.5, 0.48], [0.5, 0.91]]),
-      plate(0.56, 0.97, 0.62, 0.15, 0, 0.06, '#e2574c', [[0.33, 0.94], [0.58, 1.0], [0.8, 0.94]], { deco: 'port' }),
-      plate(0.67, 0.72, 0.24, 0.38, 0, 0.035, '#fbf3e4', [[0.65, 0.61], [0.7, 0.83]], { deco: 'sail' }),
-      plate(0.36, 0.76, 0.2, 0.3, 0, 0.035, '#ffd166', [[0.36, 0.67], [0.36, 0.85]], { deco: 'sail' }),
-      plate(0.61, 0.45, 0.22, 0.08, 0, 0.025, '#3ec28f', [[0.62, 0.45], [0.7, 0.45]], { deco: 'flag' }),
+      plate(0.5, 1.04, 0.62, 0.12, 0, 0.05, '#e2574c', [[0.5, 1.005], [0.5, 1.075]], { deco: 'port' }),
+      bar(0.46, 0.4, 0.46, 1.08, 0.03, '#8a5a3b', [[0.46, 0.425], [0.46, 0.52]]),
+      plate(0.3, 0.765, 0.2, 0.3, 0, 0.035, '#ffd166', [[0.27, 0.65], [0.33, 0.76], [0.27, 0.87]], { deco: 'sail' }),
+      plate(0.67, 0.76, 0.26, 0.34, 0, 0.035, '#fbf3e4', [[0.64, 0.64], [0.7, 0.72], [0.64, 0.8], [0.69, 0.87]], { deco: 'sail' }),
+      bar(0.23, 0.56, 0.85, 0.56, 0.028, '#a8743f', [[0.54, 0.56]], { heavy: true }),
     ],
   },
   {
@@ -423,6 +426,29 @@ function paint(G: Level, d: StageDef, r: Rng): Level {
   for (const c of gcol) col.push(c, c, c);
   shuffle(col, r);
   const queue = shuffle(gcol.slice(), r);
+  const hv = G.pl.findIndex((p) => p.heavy);
+  if (d.late !== undefined && hv >= 0 && d.colors * 3 === G.N) {
+    // 📐 2판: 🪵 통나무 없이 뺄 수 있는 것을 다 빼 보고 남는 나사(늦은 무리) = 한 색 X, X 상자는 queue[d.late].
+    //   통나무 나사 색 = 첫 상자 색(맞는 색 먼저 하는 버릇은 통나무를 먼저 쏜다)
+    const hm = G.pm[hv];
+    let gone = 0;
+    for (let f = 1; f; gone |= f) f = G.all & ~gone & ~blockedM(G, gone) & ~hm;
+    const late = G.all & ~gone & ~hm;
+    let n3 = 0;
+    for (let i = 0; i < G.N; i++) n3 += (late >> i) & 1;
+    if (n3 === 3) { // 늦은 무리가 정확히 3개(한 상자)일 때만
+      const X = pal[0], rest = pal.slice(1), pool = shuffle(rest.flatMap((c) => [c, c, c]), r), q = shuffle(rest.slice(), r);
+      let j = 0;
+      for (let i = 0; i < G.N; i++) col[i] = (late >> i) & 1 ? X : pool[j++];
+      q.splice(d.late, 0, X);
+      const b = G.ps[hv][0];
+      if (col[b] !== q[0]) {
+        const k = col.findIndex((c, i) => c === q[0] && !((late >> i) & 1) && i !== b);
+        [col[b], col[k]] = [col[k], col[b]];
+      }
+      return { ...G, col, queue: q, boxes: d.boxes, pal };
+    }
+  }
   const L: Level = { ...G, col, queue, boxes: d.boxes, pal };
   if (d.first !== undefined) {
     // 📐 1판: 손가락 첫 톡에 빠지는 나사(🔨 쾅 맞은 것 포함)의 색을 처음 상자들로 → 첫 톡이 '쏙 + 쾅 쏙'
@@ -482,7 +508,7 @@ function buildLevel(seed: number, stage: number): Level {
   if (hit) return hit;
   const d = STAGES[stage], G = geometry(d.toy()), r = mulberry32((seed * 31 + stage * 7919 + 17) >>> 0);
   let pick: Level | null = null, bv = -1e9;
-  const K = stage < 2 ? 8 : 10;
+  const K = stage === 1 ? 12 : stage < 2 ? 8 : 10;
   for (let c = 0; c < K; c++) {
     const L = paint(G, d, r);
     let v: number;
@@ -498,7 +524,21 @@ function buildLevel(seed: number, stage: number): Level {
       const rp = randomPass(L, r, 30);
       v = (playOut(L, d, smart, d.first) === 3 ? 2 : 0) + (playOut(L, d, smart) === 3 ? 1 : 0) + Math.min(1, rp / 0.95) - (mg / 100) * 2;
     } else if (stage === 0) v = randomPass(L, r, 30);
-    else if (stage === 1) v = -Math.abs(randomPass(L, r, 30) - 0.75);
+    else if (stage === 1) {
+      // 📐 2판 고르기: 장인 ★3이 안 되면 탈락 · 버릇①(맞는 색 먼저)이 ★3이면 탈락 · 그다음 무작위 클리어(0.92까지) − 막 누르기 ★2 이상(0.1 넘는 만큼)
+      const mash = (S: Sim) => {
+        const f = freeM(L, S), o: number[] = [];
+        for (let i = 0; i < L.N; i++) if ((f >> i) & 1) o.push(i);
+        return o[Math.floor(r() * o.length)];
+      };
+      if (playOut(L, d, (S) => bestMove(L, S, d)) !== 3) v = -9 + randomPass(L, r, 10);
+      else if (playOut(L, d, (S) => habitPick(L, S)) === 3) v = -3;
+      else {
+        let mg = 0;
+        for (let k = 0; k < 12; k++) mg += playOut(L, d, mash) >= 2 ? 1 : 0;
+        v = 2 + 2 * Math.min(1, randomPass(L, r, 20) / 0.92) - Math.max(0, mg / 12 - 0.1) * 4;
+      }
+    }
     else {
       // 버릇대로 두면 별 셋이 안 나오고, 내다보고 두면 별 셋이 나오는 판을 고른다 (무엇을 먼저 뺄지가 수가 되게)
       const H = newSim(L);
@@ -509,6 +549,7 @@ function buildLevel(seed: number, stage: number): Level {
     }
     if (v > bv) (bv = v), (pick = L);
     if (stage >= 2 && bv >= 3.5 + 0.3 * 0.5) break;
+    if (stage === 1 && bv >= 3.9) break; // 📐 2판: 장인 ★3 · 버릇① 실패 · 무작위 ≥ 0.87 · 막 누르기 ★2 이상 ≤ 1/12
   }
   if (levelCache.size > 400) levelCache.clear();
   levelCache.set(ck, pick!);
@@ -687,6 +728,7 @@ function playRec(s: ShopState, rec: RE[]) {
       continue;
     }
     if (e.k === 'fall') {
+      if (L.pl[e.p].heavy && !rec.some((c) => c.k === 'crash')) see(s, 'log0', '🪵 와르르 0 — 돛을 나사 하나로 매단 뒤 활대를!'); // 📐 S002
       const pv = s.pv[e.p], tr = plankXf(s, e.p), sp = L.pl[e.p].kind === 'spring';
       const lever = pv.pose > 0 ? pv.vp : 0;
       pv.pose = -1;
@@ -1243,7 +1285,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
   ctx.fillRect(0, 0, w, h);
   // ═════════ 사건 연출 ═════════
   /** 떠오르는 글자: HUD·상자 줄을 가리지 않게 판 안으로, 겹치면 위로 비켜 */
-  const say = (x: number, y: number, text: string, col: string, size: number) => {
+  const say = (x: number, y: number, text: string, col: string, size: number, punch = false) => {
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
     y = Math.max(Y(BY0 + 0.1), Math.min(Y(BY1 - 0.02), y));
@@ -1252,7 +1294,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     if (rec.length > 12) rec.shift();
     ctx.font = `800 ${size}px system-ui, sans-serif`;
     const hw = ctx.measureText(text).width / 2 + 6;
-    fx.pop(Math.max(hw, Math.min(w - hw, x)), y, text, col, size);
+    fx.pop(Math.max(hw, Math.min(w - hw, x)), y, text, col, size, punch);
   };
   const seenT = fx.memo.t ?? -1;
   let reveals = 0;
@@ -1307,7 +1349,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       if (bad) say(x, y, `한 방 ${h}`, '#d8c3a5', 16);
       else {
         const sz = h >= 5 ? Math.min(40, 28 + 2 * h) : [0, 0, 20, 26, 32][h], col = h >= 5 ? '#ffffff' : ['', '', '#cfefff', '#8fe3ff', '#6fd6ff'][h];
-        fx.pop(Math.max(R(0.15), Math.min(w - R(0.15), x)), y, h >= 5 ? `💥 한 방 ${h}!` : h === 4 ? '한 방 4!!' : h === 3 ? '한 방 3!' : '한 방 2', col, sz, true);
+        say(x, y, h >= 5 ? `💥 한 방 ${h}!` : h === 4 ? '한 방 4!!' : h === 3 ? '한 방 3!' : '한 방 2', col, sz, true); // 겹치면 비켜 선다(🧪 S001)
         fx.burst(x, y, '#8fe3ff', [0, 0, 6, 10, 16][Math.min(4, h)] || 24, 3.4, 2.2);
         if (h >= 3) fx.ring(x, y, '#8fe3ff', R(0.06 + 0.06 * Math.min(3, h - 2)), 3 + Math.min(2, h - 3)), fx.hold(Math.min(5, h)), fx.kick(h >= 5 ? 7 : h === 4 ? 5 : 3), setMood(s, h >= 4 ? 'cheer' : 'wow');
         if (h >= 4) fx.burst(x, y, '#ffffff', h >= 5 ? 12 : 8, 4, 2), fx.blink('#dff6ff', h >= 5 ? 0.18 : 0.1);

@@ -77,6 +77,36 @@ describe('🔨 망치 판자 (M1′ S001 · 📐 CONTENT 1판)', () => {
   });
 });
 
+describe('🪵 통나무 · 2판 돛단배 (M1′ S002 · 📐 CONTENT 2판)', () => {
+  const lvl = (seed: number) => {
+    const s = g.create(seed);
+    startStage(s, 1);
+    return s.L;
+  };
+  it('돛 둘을 나사 하나씩 매단 뒤 활대(#11)를 치면 와르르 — 한 방 3, 결정적', () => {
+    for (const seed of [1, 42, 777]) {
+      const L = lvl(seed), S = newSim(L);
+      for (const i of [4, 5, 7, 8, 9]) apply(L, S, i); // 작은 돛 #6 · 큰 돛 #10에 매달림
+      const rec: { k: string }[] = [];
+      apply(L, S, 11, rec as never);
+      expect(rec.filter((e) => e.k === 'crash').length, `seed ${seed}`).toBe(2);
+      expect(S.shot).toBe(3);
+    }
+  });
+  it('활대를 먼저 치면 와르르 0 — 한 방 1', () => {
+    const L = lvl(5), S = newSim(L), rec: { k: string }[] = [];
+    apply(L, S, 11, rec as never);
+    expect(rec.some((e) => e.k === 'crash')).toBe(false);
+    expect(S.shot).toBe(1);
+  });
+  it('2판 목표: 장인 ★3 · 버릇 3종 ★3 ≤ 0.4 · 무작위 클리어 ≥ 0.9 (24시드)', () => {
+    const r = measure(24).stages[1] as Record<string, Record<string, number>>;
+    expect(r.smart.star3).toBeGreaterThanOrEqual(0.9);
+    for (const b of ['habit', 'top', 'reveal']) expect(r[b].star3, b).toBeLessThanOrEqual(0.4);
+    expect(r.random.clear).toBeGreaterThanOrEqual(0.9);
+  });
+});
+
 describe('결과 화면 ↺ (S002 · 🧪 S001 "★1도 자동 다음 판")', () => {
   const toResult = (seed: number) => {
     const s = g.create(seed), rng = () => 0.37;

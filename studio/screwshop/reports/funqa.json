@@ -1,25 +1,25 @@
 {
  "at": "2026-11-14",
- "build": "M1′-S001",
+ "build": "M1′-S002",
  "seeds": 24,
  "summary": {
   "smartStars": 2.98,
-  "habitStars": 1.54,
+  "habitStars": 1.42,
   "randomStars": 0.35,
   "smartStar3": 0.98,
-  "habitStar3": 0.22,
+  "habitStar3": 0.11,
   "randomClear1": 1,
-  "mashClear12": 0.92,
+  "mashClear12": 0.98,
   "mashClear38": 0.06,
-  "mashStars": 0.33,
-  "habit3Star3_2": 0.92,
+  "mashStars": 0.34,
+  "habit3Star3_2": 0,
   "habit3Star3_38max": 0.79,
   "fingerGe2_1": 0.21,
-  "fingerGe2_2": 0.17,
+  "fingerGe2_2": 0.13,
   "previewStar3_38": 0.88,
-  "smartShot": 1.5,
-  "mashShot": 1.4,
-  "smartSec": 7.33,
+  "smartShot": 1.75,
+  "mashShot": 1.45,
+  "smartSec": 7.21,
   "skillGap": 8.51
  },
  "stages": [
@@ -99,61 +99,61 @@
     "star3": 1,
     "stars": 3,
     "ge2": 1,
-    "sec": 6.1,
-    "shot": 1
+    "sec": 5.2,
+    "shot": 3
    },
    "habit": {
     "clear": 1,
-    "star3": 0.92,
-    "stars": 2.92,
+    "star3": 0,
+    "stars": 2,
     "ge2": 1,
     "sec": 6.1,
     "shot": 1
    },
    "top": {
-    "clear": 0.88,
+    "clear": 1,
     "star3": 0,
     "stars": 1.13,
-    "ge2": 0.25,
-    "sec": 5.8,
+    "ge2": 0.13,
+    "sec": 6.1,
     "shot": 1
    },
    "reveal": {
     "clear": 1,
-    "star3": 0.38,
-    "stars": 2.33,
-    "ge2": 0.96,
+    "star3": 0,
+    "stars": 2,
+    "ge2": 1,
     "sec": 6.1,
     "shot": 1
    },
    "random": {
-    "clear": 0.83,
-    "star3": 0.04,
-    "stars": 1.13,
-    "ge2": 0.25,
-    "sec": 24.7,
-    "shot": 1
+    "clear": 0.96,
+    "star3": 0,
+    "stars": 1.17,
+    "ge2": 0.21,
+    "sec": 30.3,
+    "shot": 1.5
    },
    "mash": {
-    "clear": 0.83,
+    "clear": 0.96,
     "star3": 0,
-    "stars": 1,
-    "ge2": 0.17,
-    "sec": 3.5,
-    "shot": 1
+    "stars": 1.08,
+    "ge2": 0.13,
+    "sec": 3.6,
+    "shot": 1.42
    },
    "finger": {
-    "clear": 0.83,
+    "clear": 0.96,
     "star3": 0,
-    "stars": 1,
-    "ge2": 0.17,
-    "sec": 3.5,
-    "shot": 1
+    "stars": 1.08,
+    "ge2": 0.13,
+    "sec": 3.6,
+    "shot": 1.42
    },
    "preview": {
     "clear": 1,
-    "star3": 1,
-    "stars": 3,
+    "star3": 0,
+    "stars": 2,
     "ge2": 1,
     "sec": 6.1,
     "shot": 1

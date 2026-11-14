@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { STAGES, screwshop as g, screwshopSmart } from './game.ts';
+import { STAGES, screwshop as g, screwshopSmart, startStage } from './game.ts';
 const STAGES_FIRST = STAGES[0].first ?? 0;
 import { mulberry32 } from './rng.ts';
 
@@ -66,6 +66,34 @@ for (const scheme of ['light', 'dark'] as const) {
   }
   await page.waitForTimeout(1500);
   await page.screenshot({ path: join(out, '06-clear.png') });
+  // 2판 🪵 와르르: 장인 봇의 2판 수순(시드 42)을 그대로 누르고, 활대(#11)를 친 직후를 찍는다
+  {
+    const sim = g.create(42), rng = mulberry32(1), plan2: [number, number, number][] = [];
+    startStage(sim, 1);
+    let was = false;
+    while (sim.stage === 1 && sim.phase !== 'result' && sim.t < 60 * 200) {
+      const i = screwshopSmart.act(sim, rng);
+      if (i.pointer && !was) plan2.push([i.pointer.x, i.pointer.y, sim.L.px.findIndex((x, j) => x === i.pointer!.x && sim.L.py[j] / 1.45 === i.pointer!.y)]);
+      was = !!i.pointer;
+      g.step(sim, i);
+    }
+    await page.goto(url + '?seed=42&stage=2');
+    await page.click('.g-overlay');
+    await page.waitForTimeout(900);
+    const b4 = (await page.locator('canvas').boundingBox())!;
+    for (const [x, y, idx] of plan2) {
+      await page.mouse.move(b4.x + x * b4.width, b4.y + y * b4.height);
+      await page.mouse.down();
+      await page.waitForTimeout(60);
+      await page.mouse.up();
+      if (idx === 11) {
+        await page.waitForTimeout(620);
+        await page.screenshot({ path: join(out, '08-stage2-crash.png') });
+        break;
+      }
+      await page.waitForTimeout(800);
+    }
+  }
   // ★3을 못 딴 결과(별 이유 + ↺ 다시 · 다음): 망치를 반대로 매다는 순서로 1판을 푼다
   await page.goto(url + '?seed=42');
   await page.click('.g-overlay');
