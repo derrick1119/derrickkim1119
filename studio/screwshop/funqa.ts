@@ -125,6 +125,14 @@ export const screwshopNewbie: Bot<ShopState> = {
 
 export const BOTS = { smart: screwshopSmart, habit: screwshopHabit, top: screwshopTop, reveal: screwshopReveal, random: screwshopRandom, mash: screwshopMash, finger: screwshopFingerMash, preview: screwshopPreview };
 
+/** 한 판만 빠르게 (테스트용): 봇별 클리어·★3 */
+export function measureStage(k: number, seeds: number, bots: (keyof typeof BOTS)[]) {
+  return Object.fromEntries(bots.map((b) => {
+    const r = Array.from({ length: seeds }, (_, i) => tryStage(BOTS[b], 1000 + i * 7, k));
+    return [b, { clear: r.filter((x) => x.ok).length / seeds, star3: r.filter((x) => x.stars === 3).length / seeds }];
+  })) as Record<string, { clear: number; star3: number }>;
+}
+
 export function measure(seeds = 12) {
   const stages = STAGES.map((d, k) => {
     const row: Record<string, unknown> = { stage: k + 1, name: `${d.emoji} ${d.name}` };

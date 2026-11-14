@@ -5,7 +5,7 @@ import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
 import { RES_BY, RETRY_Y, STAGES, apply, newSim, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
-import { measure, screwshopMash, tryStage } from '../studio/screwshop/funqa.ts';
+import { measure, measureStage, screwshopMash, tryStage } from '../studio/screwshop/funqa.ts';
 
 describe('나사 풀기 공방 시뮬', () => {
   it('같은 시드·같은 봇이면 같은 판', () => {
@@ -102,7 +102,7 @@ describe('🪵 통나무 · 2판 돛단배 (M1′ S002 · 📐 CONTENT 2판)', (
     expect(shotDead(STAGES[1], L, S)).toBe(true);
   });
   it('2판 목표: 장인 ★3 · 버릇 3종 ★3 ≤ 0.4 · 무작위 클리어 ≥ 0.9 (24시드)', () => {
-    const r = measure(24).stages[1] as Record<string, Record<string, number>>;
+    const r = measureStage(1, 24, ['smart', 'habit', 'top', 'reveal', 'random']);
     expect(r.smart.star3).toBeGreaterThanOrEqual(0.9);
     for (const b of ['habit', 'top', 'reveal']) expect(r[b].star3, b).toBeLessThanOrEqual(0.4);
     expect(r.random.clear).toBeGreaterThanOrEqual(0.9);
