@@ -4,7 +4,7 @@
  *   · 다 붙이면 결과(쾅 애니메이션·유령은 C004).
  * 키보드: ← → 로 붙일 블록 고르기, 스페이스 누르는 동안 겨눔 → 떼면 붙이기, Q/E 돌리기, R 다시.
  */
-import { GAS, METAL, STONE, capOf3, layoutOf3, simulate3, support3, type Footing, type Layout3, type Outcome3 } from './sim3d.ts';
+import { GAS, METAL, STONE, capOf3, feetKey3, lostFeet, layoutOf3, simulate3, support3, type Footing, type Layout3, type Outcome3 } from './sim3d.ts';
 import { STAGES3 } from './stages3d.ts';
 import { aimAt, drawOrder, faces, fitCams, proj, yawOf, type Cam, type Cube } from './view3d.ts';
 
@@ -27,7 +27,9 @@ rotL.setAttribute('aria-label', '왼쪽으로 돌리기 (Q)');
 rotR.setAttribute('aria-label', '오른쪽으로 돌리기 (E)');
 root.append(canvas, rotL, rotR);
 const hud = document.getElementById('hud')!, msg = document.getElementById('msg')!, again = document.getElementById('again') as HTMLButtonElement, retry = document.getElementById('retry') as HTMLButtonElement;
-const ctx = canvas.getContext('2d')!;
+let ctx = canvas.getContext('2d')!;
+/** 손가락 자리(캔버스 css px) — 확대 말풍선용 */
+let touch: [number, number] | null = null;
 
 let stageIx = 0;
 let L: Layout3 = layoutOf3(STAGES3[stageIx]), ch = new Int8Array(L.blocks.length), left = L.charges;
@@ -72,7 +74,7 @@ const cam = (): Cam => ({ ...cams[view], yaw });
 const canAttach = (i: number) => !out && capOf3(L.blocks[i]) > 0 && ch[i] === 0 && capOf3(L.blocks[i]) <= left;
 /** 겨눌 수 있는 블록: 붙일 수 있거나, 이미 붙여서 다시 톡 하면 뗄 수 있는 것(🧪 C002·C003: 죽은 첫 톡을 되돌릴 길) */
 const canAim = (i: number) => !out && (ch[i] > 0 || canAttach(i));
-const feetKey = (fs: Footing[]) => fs.map((f) => `${f.act}${f.axis}${f.dir}:${f.feet.map((q) => q.join(',')).join(' ')}`).sort().join('|');
+const feetKey = feetKey3;
 let pvKey = '', pvOut: Outcome3 | null = null;
 /** 미리 보기 결과(같은 폭약이면 다시 계산하지 않는다) */
 function preview(c2: Int8Array) {
@@ -84,7 +86,8 @@ function preview(c2: Int8Array) {
 function size() {
   W = Math.min(root.clientWidth, 440);
   H = Math.round(W * ASPECT);
-  const dpr = window.devicePixelRatio || 1;
+  // 성능(🧪 C004: DPR 3에서 쾅 p95 50ms): 캔버스 배율은 2까지만
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
   canvas.style.width = `${W}px`;
   canvas.style.height = `${H}px`;
   canvas.width = Math.round(W * dpr);
@@ -161,22 +164,41 @@ function crossAt(c: Cam, x: number, z: number, a = 1) {
   }
   ctx.globalAlpha = 1;
 }
-/** 결과 유령(📐 §10.4-3): 이대로 쾅 하면 조각이 놓일 땅 칸 — 울타리 안은 흰 칸, 밖이나 꽃밭이면 빨간 ✕ */
+/**
+ * 결과 유령(📐 §10.4-3 · 🧪 C004 ③): 이대로 쾅 하면 남을 블록을 그 자리에 선 상자로(높이가 보이게, 목표선보다 높으면 빨강),
+ * 울타리 밖에 떨어지면 💥(실패), 꽃밭에 떨어지면 🥀(별만 잃음) — 기호를 나눈다
+ */
 function drawLanding(c: Cam, o: Outcome3) {
-  const seen = new Set<string>();
+  const marks = new Map<string, string>();
   for (let i = 0; i < L.blocks.length; i++) {
     if (o.die[i] >= 0) continue;
-    const b = L.blocks[i], x = o.fx[i], z = o.fz[i];
-    if (x === b.x && z === b.z && o.fy[i] === b.y) continue;
-    const k = `${x},${z}`;
-    if (seen.has(k)) continue;
-    seen.add(k);
+    const b = L.blocks[i], x = o.fx[i], y = o.fy[i], z = o.fz[i];
+    if (x === b.x && z === b.z && y === b.y) continue;
+    const high = y + 1 > L.goal;
+    for (const fc of faces(c, { x, y, z })) poly(fc.pts, high ? 'rgba(255,97,80,.25)' : 'rgba(255,255,255,.35)', high ? '#c7362e' : '#ffffff', 2, [5, 3]);
     const outside = x < L.lot.x0 || x > L.lot.x1 || z < L.lot.z0 || z > L.lot.z1, flower = L.flowers.some(([fx, fz]) => fx === x && fz === z);
-    ctx.globalAlpha = 0.8;
-    poly(ground(c, x + 0.06, z + 0.06, x + 0.94, z + 0.94, 0.02), outside || flower ? '#ffd0c8' : '#ffffff', INK, 1.5, [4, 3]);
-    ctx.globalAlpha = 1;
-    if (outside || flower) crossAt(c, x, z);
+    if (outside) marks.set(`${x},${z}`, '💥');
+    else if (flower && !marks.has(`${x},${z}`)) marks.set(`${x},${z}`, '🥀');
   }
+  ctx.font = `${Math.round(Math.max(20, c.s * 0.55))}px system-ui,sans-serif`;
+  ctx.textAlign = 'center';
+  for (const [k, m] of marks) {
+    const [x, z] = k.split(',').map(Number), p = proj(c, x + 0.5, 0.3, z + 0.5);
+    ctx.fillText(m, p[0], p[1]);
+  }
+}
+/** 목표 높이 리본(📐 §10.4-4): 울타리 네 모서리를 잇는 파란 점선을 목표 높이에 — 남는 것이 다 이 아래면 성공 */
+function goalLine(c: Cam, strong: boolean) {
+  const { x0, x1, z0, z1 } = L.lot, y = L.goal;
+  const q = [[x0, z0], [x1 + 1, z0], [x1 + 1, z1 + 1], [x0, z1 + 1]].map(([x, z]) => proj(c, x, y, z).slice(0, 2) as [number, number]);
+  ctx.globalAlpha = strong ? 0.9 : 0.5;
+  poly(q, undefined, '#1f6fb2', 2.5, [8, 5]);
+  const left = q.reduce((a, p) => (p[0] < a[0] ? p : a), q[0]);
+  ctx.font = '800 15px system-ui,sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#1f6fb2';
+  ctx.fillText(`목표 ${y}칸`, left[0] + 4, left[1] - 6);
+  ctx.globalAlpha = 1;
 }
 /** 말풍선 글자표 */
 function tag(x: number, y: number, text: string, bg: string, fg: string) {
@@ -191,35 +213,86 @@ function tag(x: number, y: number, text: string, bg: string, fg: string) {
   ctx.fillText(text, x, y - 9);
 }
 
+/** 하늘·땅·꽃밭·이웃집은 시점이 같으면 그대로라 한 번 그려 두고 붙인다 (🧪 C004 ④ 성능) */
+let bgKey = '', bgc: HTMLCanvasElement | null = null;
+function background(c: Cam) {
+  const key = `${c.yaw.toFixed(5)}|${canvas.width}|${canvas.height}|${stageIx}`;
+  if (key !== bgKey || !bgc) {
+    bgKey = key;
+    bgc ??= document.createElement('canvas');
+    bgc.width = canvas.width;
+    bgc.height = canvas.height;
+    const keep = ctx;
+    ctx = bgc.getContext('2d')!;
+    ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#b9a6d9');
+    g.addColorStop(0.55, '#f4a38c');
+    g.addColorStop(1, '#ffd9a0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    // 땅: 현장 둘레 한 칸까지 흙, 울타리 안은 코르크, 빨간 선
+    const { x0, x1, z0, z1 } = L.lot;
+    poly(ground(c, Math.max(0, x0 - 1), Math.max(0, z0 - 1), Math.min(L.W, x1 + 2), Math.min(L.D, z1 + 2)), '#c98a55');
+    poly(ground(c, x0, z0, x1 + 1, z1 + 1), '#e3b67f', '#c7362e', 3);
+    for (const [fx, fz] of L.flowers) {
+      poly(ground(c, fx + 0.05, fz + 0.05, fx + 0.95, fz + 0.95, 0.005), '#9ad68f');
+      const p = proj(c, fx + 0.5, 0.02, fz + 0.5);
+      ctx.fillStyle = (fx + fz) & 1 ? '#ff8fb0' : '#ffe070';
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], c.s * 0.16, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // 울타리 밖은 어느 면이든 이웃집이다(빨간 선 밖에 닿으면 실패) — 글자 대신 작은 집 아이콘을 울타리에서 한 칸 반 떨어진 땅에(땅이므로 블록보다 먼저 그린다, 🧪 C004)
+    const mx = (x0 + x1 + 1) / 2, mz = (z0 + z1 + 1) / 2;
+    const signs: [number, number][] = [[x0 - 1.4, mz], [x1 + 2.4, mz], [mx, z0 - 1.4], [mx, z1 + 2.4]];
+    ctx.font = `${Math.round(Math.max(18, c.s * 0.55))}px system-ui,sans-serif`;
+    ctx.textAlign = 'center';
+    for (const [sx, sz] of signs) {
+      const p = proj(c, sx, 0, sz);
+      ctx.fillText('🏠', p[0], p[1]);
+    }
+    ctx = keep;
+  }
+  ctx.drawImage(bgc, 0, 0, W, H);
+}
+
+/**
+ * 겨눔 확대 말풍선(GDD §8-3 · 📋 C004 조기 경보): 꾹 누르는 동안 손가락 위쪽에 손가락 밑을 2배로 — 손가락에 가린 블록이 보여서
+ * 틀렸으면 한 번 고쳐 밀 수 있다. funqa F11은 '말풍선을 보고 한 번만 고쳐 누름'으로 잰다.
+ */
+function magnifier() {
+  if (!touch || !holding || out || rotT < 1) return;
+  const [x, y] = touch, R = 54, k = 2, dpr = canvas.width / W;
+  const cx = Math.min(W - R - 4, Math.max(R + 4, x)), cy = y - R - 46 < R + 4 ? y + R + 46 : y - R - 46;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.fillStyle = '#fff6e8';
+  ctx.fill();
+  ctx.clip();
+  const sw = (2 * R) / k;
+  ctx.drawImage(canvas, (x - sw / 2) * dpr, (y - sw / 2) * dpr, sw * dpr, sw * dpr, cx - R, cy - R, 2 * R, 2 * R);
+  ctx.restore();
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = '#c7362e';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx - 8, cy);
+  ctx.lineTo(cx + 8, cy);
+  ctx.moveTo(cx, cy - 8);
+  ctx.lineTo(cx, cy + 8);
+  ctx.stroke();
+}
+
 function draw() {
   const c = cam();
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, '#b9a6d9');
-  g.addColorStop(0.55, '#f4a38c');
-  g.addColorStop(1, '#ffd9a0');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
-  // 땅: 현장 둘레 한 칸까지 흙, 울타리 안은 코르크, 빨간 선
-  const { x0, x1, z0, z1 } = L.lot;
-  poly(ground(c, Math.max(0, x0 - 1), Math.max(0, z0 - 1), Math.min(L.W, x1 + 2), Math.min(L.D, z1 + 2)), '#c98a55');
-  poly(ground(c, x0, z0, x1 + 1, z1 + 1), '#e3b67f', '#c7362e', 3);
-  for (const [fx, fz] of L.flowers) {
-    poly(ground(c, fx + 0.05, fz + 0.05, fx + 0.95, fz + 0.95, 0.005), '#9ad68f');
-    const p = proj(c, fx + 0.5, 0.02, fz + 0.5);
-    ctx.fillStyle = (fx + fz) & 1 ? '#ff8fb0' : '#ffe070';
-    ctx.beginPath();
-    ctx.arc(p[0], p[1], c.s * 0.16, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  // 울타리 밖은 어느 면이든 이웃집이다(빨간 선 밖에 닿으면 실패) — 글자 대신 작은 집 아이콘을 울타리에서 한 칸 반 떨어진 땅에(땅이므로 블록보다 먼저 그린다, 🧪 C004)
-  const mx = (x0 + x1 + 1) / 2, mz = (z0 + z1 + 1) / 2;
-  const signs: [number, number][] = [[x0 - 1.4, mz], [x1 + 2.4, mz], [mx, z0 - 1.4], [mx, z1 + 2.4]];
-  ctx.font = `${Math.round(Math.max(18, c.s * 0.55))}px system-ui,sans-serif`;
-  ctx.textAlign = 'center';
-  for (const [sx, sz] of signs) {
-    const p = proj(c, sx, 0, sz);
-    ctx.fillText('🏠', p[0], p[1]);
-  }
+  background(c);
   // 블록 (먼 것부터)
   const cb = cubes();
   for (const k of drawOrder(c, cb)) {
@@ -270,16 +343,20 @@ function draw() {
       const c2 = ch.slice();
       c2[aim] = ch[aim] ? 0 : capOf3(L.blocks[aim]);
       const nxt = support3(L, c2), pv = preview(c2);
+      goalLine(c, true);
       if (pv.moved) drawLanding(c, pv);
       for (const f of nxt) drawFooting(c, f, true);
-      // 빠진 발: 지금은 딛고 있는데 이 블록까지 터지면 사라지는 발 칸 → 빨간 ✕ 깜빡 (🧪 C003 ②: 살아 있는 첫 톡이 눈에 띄게)
-      const has = new Set(nxt.flatMap((f) => f.feet.map((q) => `${q[0]},${q[2]}`)));
-      const blink = 0.6 + 0.4 * Math.sin(performance.now() / 110);
-      for (const f of now) for (const [x, , z] of f.feet) if (!has.has(`${x},${z}`)) crossAt(c, x, z, blink);
+      // 빠진 받침: 덩어리마다 '지금 딛고 있는 발' 중 이 블록까지 터지면 그 덩어리가 잃는 발 → 빨간 ✕ 깜빡(알파 .8~1).
+      // 윗다리·마루 귀를 끊어 다리 한 토막이 떨어져 나가도 덩어리 기준으로 발을 잃으니 ✕가 뜬다 (🧪 C004 ③ · F4b)
+      const blink = 0.9 + 0.1 * Math.sin(performance.now() / 110), lostF = lostFeet(now, nxt), lost = lostF.length;
+      for (const [x, z] of lostF) crossAt(c, x, z, blink);
       const b = L.blocks[aim], p = proj(c, b.x + 0.5, b.y + 1.15, b.z + 0.5);
       if (ch[aim]) tag(p[0], p[1], '떼기', '#3a2a3f', '#fff6e8');
-      else if (!pv.moved && feetKey(now) === feetKey(nxt)) tag(p[0], p[1], '변화 없음', '#7a5a6e', '#fff6e8');
-    } else for (const f of now) drawFooting(c, f, false);
+      else if (!pv.moved && !lost && feetKey(now) === feetKey(nxt)) tag(p[0], p[1], '변화 없음', '#7a5a6e', '#fff6e8');
+    } else {
+      for (const f of now) drawFooting(c, f, false);
+      goalLine(c, false);
+    }
   }
   // 이웃집 팻말: 울타리가 판 끝보다 안쪽인 면 — 블록에 가리지 않게 블록 뒤에 그린다(🧪 C003 ①)
   // 붙인 폭약: 가려져도 보이게(엑스레이)
@@ -373,6 +450,7 @@ function loop(now: number) {
   ctx.translate(sx, 0);
   draw();
   ctx.restore();
+  magnifier();
   requestAnimationFrame(loop);
 }
 
@@ -385,21 +463,25 @@ canvas.addEventListener('pointerdown', (e) => {
   if (out || rotT < 1) return;
   holding = true;
   const [x, y] = toXY(e);
+  touch = [x, y];
   aim = aimAt(cam(), L.blocks, canAim, x, y);
 });
 canvas.addEventListener('pointermove', (e) => {
   if (!holding || !e.buttons || rotT < 1) return;
   const [x, y] = toXY(e);
+  touch = [x, y];
   aim = aimAt(cam(), L.blocks, canAim, x, y);
 });
 // 시스템이 손가락을 가져가면(스크롤·알림 등) 붙이지 않고 겨눔만 지운다 (🧪 C003 ⑦)
 window.addEventListener('pointercancel', () => {
   holding = false;
+  touch = null;
   aim = -1;
 });
 window.addEventListener('pointerup', () => {
   if (!holding) return;
   holding = false;
+  touch = null;
   attach(aim);
   aim = -1;
 });
@@ -444,6 +526,20 @@ function centerOf(c: Cam, i: number): [number, number] {
   screenOf: (x: number, y: number, z: number) => {
     const i = L.blocks.findIndex((b) => b.x === x && b.y === y && b.z === z), r = canvas.getBoundingClientRect(), p = centerOf(cam(), i);
     return [r.left + (p[0] / W) * r.width, r.top + (p[1] / H) * r.height];
+  },
+  /** 판독 시험용(🧪 C005): 판 k에서 폭약 pre를 붙여 둔 채 블록 aim을 꾹 누른 장면(말풍선 없이) */
+  preview: (k: number, pre: number[][], a: number[]) => {
+    stageIx = k;
+    reset();
+    for (const [x, y, z] of pre) {
+      const i = L.blocks.findIndex((b) => b.x === x && b.y === y && b.z === z);
+      ch[i] = capOf3(L.blocks[i]);
+      left -= ch[i];
+    }
+    aim = L.blocks.findIndex((b) => b.x === a[0] && b.y === a[1] && b.z === a[2]);
+    holding = true;
+    touch = null;
+    hudText();
   },
   state: () => ({ left, view, done: played(), playing: !!out && !played(), ok: out?.ok ?? null, stars: out?.stars ?? 0, cellPx: cams[0].s }),
 };

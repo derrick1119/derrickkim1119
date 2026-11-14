@@ -480,7 +480,8 @@ export function simulate(Lay: Layout, ch: ArrayLike<number>, rec = false): Outco
 // ───────────────────────────── 게임 ─────────────────────────────
 const A = 1.42;
 /** 화면(가로 0~1 = w): 칸 크기 · 땅 선(0줄 블록의 아랫변) · 블록 윗면 깊이 · 아래 띠 */
-const CW = 1 / GW, GY = 0.95, DX = CW * 0.24, DY = CW * 0.2, BAND = 1.15, HB = 0.085;
+export const CW = 1 / GW;
+const GY = 0.95, DX = CW * 0.24, DY = CW * 0.2, BAND = 1.15, HB = 0.085;
 const COUNT_T = 40, RESULT_OK = 190, RESULT_FAIL = 160, CARD_T = 170, NEWS_T = 160;
 const STAR_PTS = 100, WIN_PTS = 300;
 
@@ -537,8 +538,8 @@ function see(s: DemoState, key: string, text: string) {
 /** 블록에 붙일 수 있는 폭약 수 (쇠 0 · 돌 2 · 나머지 1) */
 export const capOf = (b: Blk) => (b.m === METAL ? 0 : b.m === STONE ? 2 : 1);
 /** 칸 x,y의 화면 좌표(앞면 왼쪽 위) — w 단위 */
-const SX = (x: number) => x * CW;
-const SY = (y: number) => GY - (y + 1) * CW;
+export const SX = (x: number) => x * CW;
+export const SY = (y: number) => GY - (y + 1) * CW;
 
 /** 누른 자리(w 단위) → 블록 번호 (없으면 -1). 앞면이 우선, 윗면(위가 빈 블록)도 받아 준다 */
 function pickBlock(L: Layout, gx: number, gy: number): number {
@@ -551,7 +552,7 @@ function pickBlock(L: Layout, gx: number, gy: number): number {
   return id;
 }
 
-function newStage(s: DemoState) {
+export function newStage(s: DemoState) {
   const d = STAGES[s.stage];
   s.L = layoutOf(d, s.flips[s.stage]);
   s.ch = new Int8Array(s.L.blocks.length);

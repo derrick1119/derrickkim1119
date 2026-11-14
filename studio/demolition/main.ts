@@ -3,7 +3,7 @@
  * 조작: 블록을 꾹 누르면 무너질 모양 미리 보기, 떼면 폭약 · 키보드 화살표로 커서, 스페이스를 누르는 동안 미리 보기 → 떼면 붙이기.
  */
 import { TICK, type Input } from './core.ts';
-import { demolition as g, type DemoState } from './game.ts';
+import { CW, demolition as g, newStage, SX, SY, type DemoState } from './game.ts';
 import { peek } from './juice.ts';
 
 const KEY = 'studio:demolition:best';
@@ -113,3 +113,22 @@ overlay.addEventListener('click', start);
 size();
 show(`<b>💥 시작</b><span>${g.hint}</span>`);
 new ResizeObserver(size).observe(root);
+
+/** 판독 시험용(🧪 C005, 2D 기준선): 판 k를 뒤집지 않고 열어 블록 (x, y)를 꾹 누른 장면을 멈춰 그린다 */
+(window as unknown as { __d2: object }).__d2 = {
+  preview(k: number, x: number, y: number) {
+    running = false;
+    overlay.hidden = true;
+    s = g.create(1);
+    s.stage = k;
+    s.flips[k] = false;
+    newStage(s);
+    s.wait = false;
+    s.t = 400;
+    s.newsQ = [];
+    s.news = null;
+    s.down = true;
+    s.aim = { x: SX(x) + CW / 2, y: SY(y) + CW / 2 };
+    draw();
+  },
+};

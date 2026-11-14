@@ -498,3 +498,22 @@ export function support3(Lay: Layout3, ch: ArrayLike<number>): Footing[] {
   }
   return out;
 }
+
+/**
+ * 빠진 받침(C005, 화면 ✕와 funqa F4b가 같이 쓴다): 덩어리마다 지금 딛고 있는 발 중, 폭약을 더한 뒤 그 덩어리(블록이 가장 많이 겹치는 덩어리)가
+ * 더는 딛지 않는 발 칸 [x, z] 목록. 윗다리·마루 귀를 끊어 다리 토막이 떨어져 나가도 덩어리 기준으로 발을 잃는다.
+ */
+export function lostFeet(now: Footing[], nxt: Footing[]): [number, number][] {
+  const out: [number, number][] = [];
+  for (const f of now) {
+    let best: Footing | null = null, ov = 0;
+    for (const g of nxt) {
+      const o = g.ids.filter((j) => f.ids.includes(j)).length;
+      if (o > ov) (ov = o), (best = g);
+    }
+    const keep = new Set((best?.feet ?? []).map((q) => `${q[0]},${q[2]}`));
+    for (const [x, , z] of f.feet) if (!keep.has(`${x},${z}`)) out.push([x, z]);
+  }
+  return out;
+}
+export const feetKey3 = (fs: Footing[]) => fs.map((f) => `${f.act}${f.axis}${f.dir}:${f.feet.map((q) => q.join(',')).join(' ')}`).sort().join('|');

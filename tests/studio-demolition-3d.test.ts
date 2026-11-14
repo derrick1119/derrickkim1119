@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { STAGES, layoutOf, simulate } from '../studio/demolition/game.ts';
 import { STAGES3 } from '../studio/demolition/stages3d.ts';
 import { cellPx, fitCams, visibleArea, YAW0 } from '../studio/demolition/view3d.ts';
+import { fingerHit } from '../studio/demolition/funqa.ts';
 import { GAS, capOf3, forEachPlan, from2D, layoutOf3, simulate3, type StageDef3 } from '../studio/demolition/sim3d.ts';
 
 const stage = (layers: string[][], extra: Partial<StageDef3> = {}): StageDef3 => ({
@@ -132,6 +133,8 @@ describe('3D 칸 물리', () => {
       expect(taps.length).toBeLessThanOrEqual(24);
       const cams = fitCams(L.lot, L.blocks, 390, 468, 12), area = cams.map((c) => visibleArea(c, L.blocks, 390, 468, 2));
       expect(taps.filter((i) => area.every((a) => a[i] === 0))).toEqual([]);
+      // F14 v1.2 ⓓ: 4시점 모두 σ16px 적중 < .5인 '못 누르는 블록'도 없다
+      expect(taps.filter((i) => cams.every((c) => fingerHit(c, L, i, 100).hit < 0.5))).toEqual([]);
       expect(cellPx(cams[0])).toBeGreaterThanOrEqual(36);
       expect(cams[0].s * Math.sin(YAW0)).toBeGreaterThanOrEqual(16);
       expect(d.goal).toBeLessThan(L.blocks.reduce((a, b) => Math.max(a, b.y + 1), 0)); // 탑이 서 있는데 '성공'이 되면 안 된다 (C004에 찾은 허점)

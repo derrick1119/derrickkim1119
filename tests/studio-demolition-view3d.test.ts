@@ -63,6 +63,17 @@ describe('3D 화면 계산', () => {
     }
   });
 
+  it('붙일 수 있는 블록은 모두, 4시점 중 한 곳 이상에서 그 블록의 면 가운데를 누르면 바로 그 블록이 골라진다 (📋 C004 QC ③ — 처마 밑 띠 같은 \'못 누르는 블록\' 금지)', () => {
+    for (const d of STAGES3) {
+      const L2 = layoutOf3(d), cs = fitCams(L2.lot, L2.blocks, 390, 468, 12);
+      L2.blocks.forEach((b, i) => {
+        if (!capOf3(b)) return;
+        const ok = cs.some((c) => faces(c, b).some((fc) => pickAt(c, L2.blocks, fc.pts.reduce((a, p) => a + p[0], 0) / 4, fc.pts.reduce((a, p) => a + p[1], 0) / 4) === i));
+        expect(ok, `${d.title} (${b.x},${b.y},${b.z})`).toBe(true);
+      });
+    }
+  });
+
   it('자석 겨누기: 빈 땅을 눌러도 0.9칸 안의 붙일 블록에 붙는다, 멀면 -1', () => {
     const c = cams[0], i = L.blocks.findIndex((b) => b.x === 6 && b.y === 0 && b.z === 6);
     const fc = faces(c, L.blocks[i]).find((f) => f.f === 'zm')!;

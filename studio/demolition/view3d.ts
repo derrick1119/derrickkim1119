@@ -5,6 +5,8 @@
  * 고르기(손가락 아래 블록)는 그린 순서를 거꾸로 — 가까운 블록의 보이는 면부터 점-다각형 검사. 그래서 보이는 것 = 누르는 것.
  */
 export const PITCH = (30 * Math.PI) / 180;
+/** 자석 겨누기 반경(칸) — C005: 0.9 → 1.0 (📋 C004 조기 경보) */
+export const MAGNET = 1.0;
 export const YAW0 = (25 * Math.PI) / 180;
 export const yawOf = (view: number) => YAW0 + (((view % 4) + 4) % 4) * (Math.PI / 2);
 
@@ -78,7 +80,7 @@ export function pickAt(c: Cam, cubes: Cube[], X: number, Y: number, order = draw
 }
 
 /** 자석 겨누기(📐 §10.2 · GDD §8-1): 손가락 아래가 붙일 수 있는 블록이면 그것, 아니면 반경 r칸 안에서 '보이는' 붙일 블록의 면 가운데가 가장 가까운 것 */
-export function aimAt(c: Cam, cubes: Cube[], ok: (i: number) => boolean, X: number, Y: number, r = 0.9, order = drawOrder(c, cubes)): number {
+export function aimAt(c: Cam, cubes: Cube[], ok: (i: number) => boolean, X: number, Y: number, r = MAGNET, order = drawOrder(c, cubes)): number {
   const hit = pickAt(c, cubes, X, Y, order);
   if (hit >= 0 && ok(hit)) return hit;
   let best = -1, bd = (r * c.s) ** 2;

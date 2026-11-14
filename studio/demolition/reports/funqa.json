@@ -1,5 +1,5 @@
 {
- "at": "C004",
+ "at": "C005",
  "stages": [
   {
    "n": 1,
@@ -157,14 +157,14 @@
    "title": "낡은 물탱크 탑",
    "blocks": 12,
    "charges": 1,
-   "plans": 3,
+   "plans": 2,
    "clear": 1,
-   "star3": 0.6666666666666666,
+   "star3": 0.5,
    "best": 3,
    "greedyStar3": 1,
    "greedyClear": 1,
    "firstTapStill": 0,
-   "attachable": 3,
+   "attachable": 2,
    "inner": 0,
    "deadFirstTap": 0,
    "deadFirstTapW": 0,
@@ -177,12 +177,16 @@
    "stars": {
     "only1": 0,
     "two": 1,
-    "three": 2,
+    "three": 1,
     "freeStars": 1
    },
-   "f11": 0.5683333333333334,
-   "f11miss": 0.3466666666666667,
-   "f13": 0.895
+   "f11": 0.9924999999999999,
+   "f11first": 0.9075,
+   "f11miss": 0,
+   "f13": 0.99,
+   "innerHit": 0,
+   "f4bLive": 1,
+   "f4bDead": 1
   },
   {
    "title": "네 다리 망루",
@@ -211,9 +215,13 @@
     "three": 4,
     "freeStars": 0
    },
-   "f11": 0.6962499999999999,
-   "f11miss": 0.11897058823529412,
-   "f13": 0.93
+   "f11": 0.8297058823529413,
+   "f11first": 0.6910294117647058,
+   "f11miss": 0.1177205882352941,
+   "f13": 0.995,
+   "innerHit": 0,
+   "f4bLive": 1,
+   "f4bDead": 0.3386952636282395
   }
  ]
 }
