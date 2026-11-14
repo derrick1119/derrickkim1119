@@ -1,0 +1,172 @@
+{
+ "at": "2026-11-14",
+ "seeds": 12,
+ "stages": [
+  {
+   "stage": 1,
+   "key": "first",
+   "name": "첫 버스",
+   "smart": {
+    "win": 1,
+    "star3": 1,
+    "sec": 6.9
+   },
+   "habit": {
+    "win": 1,
+    "star3": 1,
+    "sec": 7
+   },
+   "random": {
+    "win": 1,
+    "star3": 0.083,
+    "sec": 46
+   }
+  },
+  {
+   "stage": 2,
+   "key": "bench",
+   "name": "대기 의자",
+   "smart": {
+    "win": 1,
+    "star3": 1,
+    "sec": 9.2
+   },
+   "habit": {
+    "win": 1,
+    "star3": 0.833,
+    "sec": 9.4
+   },
+   "random": {
+    "win": 0.917,
+    "star3": 0,
+    "sec": 70.5
+   }
+  },
+  {
+   "stage": 3,
+   "key": "elephant",
+   "name": "큰 코끼리",
+   "smart": {
+    "win": 1,
+    "star3": 1,
+    "sec": 12.7
+   },
+   "habit": {
+    "win": 1,
+    "star3": 0,
+    "sec": 12.8
+   },
+   "random": {
+    "win": 0.417,
+    "star3": 0,
+    "sec": 62.7
+   }
+  },
+  {
+   "stage": 4,
+   "key": "sleep",
+   "name": "잠꾸러기",
+   "smart": {
+    "win": 1,
+    "star3": 1,
+    "sec": 15.3
+   },
+   "habit": {
+    "win": 0.917,
+    "star3": 0,
+    "sec": 14.9
+   },
+   "random": {
+    "win": 0.083,
+    "star3": 0,
+    "sec": 46.5
+   }
+  },
+  {
+   "stage": 5,
+   "key": "hidden",
+   "name": "우비 친구",
+   "smart": {
+    "win": 1,
+    "star3": 1,
+    "sec": 15.5
+   },
+   "habit": {
+    "win": 0.75,
+    "star3": 0,
+    "sec": 13
+   },
+   "random": {
+    "win": 0,
+    "star3": 0,
+    "sec": 33.2
+   }
+  },
+  {
+   "stage": 6,
+   "key": "double",
+   "name": "2층 버스",
+   "smart": {
+    "win": 1,
+    "star3": 1,
+    "sec": 14.1
+   },
+   "habit": {
+    "win": 0.583,
+    "star3": 0,
+    "sec": 10.8
+   },
+   "random": {
+    "win": 0.083,
+    "star3": 0,
+    "sec": 39.1
+   }
+  },
+  {
+   "stage": 7,
+   "key": "fountain",
+   "name": "분수 광장",
+   "smart": {
+    "win": 1,
+    "star3": 1,
+    "sec": 17.7
+   },
+   "habit": {
+    "win": 0.75,
+    "star3": 0,
+    "sec": 15
+   },
+   "random": {
+    "win": 0,
+    "star3": 0,
+    "sec": 54.5
+   }
+  },
+  {
+   "stage": 8,
+   "key": "rush",
+   "name": "퇴근길",
+   "smart": {
+    "win": 1,
+    "star3": 1,
+    "sec": 16.3
+   },
+   "habit": {
+    "win": 0.667,
+    "star3": 0,
+    "sec": 12.8
+   },
+   "random": {
+    "win": 0.083,
+    "star3": 0,
+    "sec": 64.6
+   }
+  }
+ ],
+ "full": {
+  "smart": 2943.3,
+  "habit": 1240,
+  "random": 528.3
+ },
+ "skillGap": 5.57
+}
