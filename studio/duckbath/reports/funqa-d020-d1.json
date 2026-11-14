@@ -1,0 +1,93 @@
+{
+  "at": "2026-11-14T06:09:48.686Z",
+  "D1": [
+    {
+      "id": "2-7",
+      "par": 3,
+      "sym": false,
+      "T": 3,
+      "tSrc": "n300",
+      "seedT": [
+        3,
+        3,
+        3
+      ],
+      "flip": "FF-",
+      "exact": true,
+      "coarse": 51,
+      "refined": 500,
+      "runs": 1500,
+      "water": 500,
+      "solCells": 232,
+      "D1": 3,
+      "sizes": [
+        219,
+        12
+      ],
+      "top": 0.44,
+      "D1plus": 3,
+      "plusSizes": [
+        219,
+        12
+      ],
+      "D1link10": 3,
+      "link10Sizes": [
+        218,
+        11
+      ],
+      "D1seedT": 3,
+      "oldD1": 3,
+      "oldSizes": [
+        219,
+        12
+      ],
+      "pass": true,
+      "sec": 31.86,
+      "cached": false
+    },
+    {
+      "id": "2-8",
+      "par": 5,
+      "sym": false,
+      "T": 4,
+      "tSrc": "n300",
+      "seedT": [
+        4,
+        4,
+        4
+      ],
+      "flip": "-F-",
+      "exact": true,
+      "coarse": 89,
+      "refined": 500,
+      "runs": 1500,
+      "water": 500,
+      "solCells": 145,
+      "D1": 4,
+      "sizes": [
+        133,
+        7,
+        4
+      ],
+      "top": 0.27,
+      "D1plus": 2,
+      "plusSizes": [
+        397
+      ],
+      "D1link10": 4,
+      "link10Sizes": [
+        132,
+        7,
+        4
+      ],
+      "D1seedT": 4,
+      "oldD1": 2,
+      "oldSizes": [
+        397
+      ],
+      "pass": true,
+      "sec": 65.84,
+      "cached": false
+    }
+  ]
+}
