@@ -93,7 +93,7 @@ const mask = (sel: string, h: number) => page.evaluate(([s, hh]: [string, number
   document.getElementById('mask')?.remove();
   g.appendChild(m);
 }, [sel, h]);
-await page.goto('file://' + join(here, '../../web/public/studio/demolition/index.html'));
+await page.goto('file://' + join(here, '../../web/public/studio/demolition/2d.html'));
 for (const [n, c] of pick2.entries()) {
   await page.evaluate(([k, x, y]: number[]) => (window as any).__d2.preview(k, x, y), [c.k, c.x, c.y]);
   await mask('#game', 112); // 판정 말풍선 가림

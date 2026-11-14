@@ -1,5 +1,5 @@
 /**
- * 3D 실험 빌드 (C003) → web/public/studio/demolition/3d.html. 오너 주소(index.html)는 3D 게이트(C005)까지 2D 그대로.
+ * 3D 플레이 빌드 (C003 실험 → C007 사다리 ② 통과로 오너 주소) → web/public/studio/demolition/index.html (+ 옛 링크용 3d.html 같은 내용). 2D 프로토타입은 2d.html.
  * 이번 범위: 정사영 4시점 · ⟲⟳(56px)·Q/E · 보이는 면만 누르기(자석) · 꾹 = 겨눔 + 땅의 발자국 칸·네모·추(📐 §10.4-2) · 떼면 폭약(돌은 한 번에 2개)
  *   · 다 붙이면 결과(쾅 애니메이션·유령은 C004).
  * 키보드: ← → 로 붙일 블록 고르기, 스페이스 누르는 동안 겨눔 → 떼면 붙이기, Q/E 돌리기, R 다시.
@@ -250,6 +250,7 @@ const verdict = (o: Outcome3) => verdict3(L, o);
 /** 말풍선 글자표 */
 function tag(x: number, y: number, text: string, bg: string, fg: string) {
   if (noText) return; // 판독 시험: 글자 없이 그림만
+  ctx.save(); // 글자 정렬이 뒤에 그리는 🧨 글자로 새지 않게(🧪 C007 발견 2)
   ctx.font = '800 16px system-ui,sans-serif';
   const w = Math.min(W - 8, ctx.measureText(text).width + 18);
   ctx.fillStyle = bg;
@@ -259,6 +260,7 @@ function tag(x: number, y: number, text: string, bg: string, fg: string) {
   ctx.fillStyle = fg;
   ctx.textAlign = 'center';
   ctx.fillText(text, x, y - 9);
+  ctx.restore();
 }
 
 /** 하늘·땅·꽃밭·이웃집은 시점이 같으면 그대로라 한 번 그려 두고 붙인다 (🧪 C004 ④ 성능) */
@@ -580,7 +582,8 @@ function loop(now: number) {
   shake = Math.max(0, shake - dt * 2.5);
   // 그림이 바뀔 것이 하나도 없으면 다시 그리지 않는다(🧪 C007 ②: 가만히 꾹에서도 캔버스 전체를 매 프레임 다시 칠해 30fps 경계였다)
   const sig = `${yaw}|${stageIx}|${ch.join('')}|${left}|${aim}|${holding}|${touch}|${out ? 1 : 0}|${bt}|${shake}|${bits.length}|${flash}|${canvas.width}x${canvas.height}|${noText}|${ovKey}|${bgKey}`;
-  if (sig === lastSig) return void requestAnimationFrame(loop);
+  // 파편·섬광이 살아 있으면 서명이 같아도 그린다(🧪 C007 발견 1: '꿈쩍 안 함' 쾅 뒤 파편이 공중에 멈췄다)
+  if (sig === lastSig && !bits.length && !flash) return void requestAnimationFrame(loop);
   lastSig = sig;
   const sx = shake ? (Math.sin(now / 23) * 10 * shake) : 0;
   ctx.save();
@@ -688,7 +691,7 @@ function centerOf(c: Cam, i: number): [number, number] {
     yaw = yawOf(view);
     rotT = 1;
   },
-  state: () => ({ bitsMax, left, view, done: played(), playing: !!out && !played(), ok: out?.ok ?? null, stars: out?.stars ?? 0, cellPx: cams[0].s }),
+  state: () => ({ bitsMax, bits: bits.length, left, view, done: played(), playing: !!out && !played(), ok: out?.ok ?? null, stars: out?.stars ?? 0, cellPx: cams[0].s }),
 };
 size();
 hudText();

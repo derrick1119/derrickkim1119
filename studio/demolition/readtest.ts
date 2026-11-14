@@ -58,7 +58,7 @@ STAGES3.forEach((d, k) => {
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
 const key: Record<string, Ans> = {};
-await page.goto('file://' + join(here, '../../web/public/studio/demolition/index.html'));
+await page.goto('file://' + join(here, '../../web/public/studio/demolition/2d.html'));
 for (const [n, c] of cases2.entries()) {
   await page.evaluate(([k, x, y]: number[]) => (window as any).__d2.preview(k, x, y), [c.k, c.x, c.y]);
   await page.waitForTimeout(80);

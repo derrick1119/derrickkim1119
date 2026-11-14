@@ -122,4 +122,14 @@ describe('3D 화면 계산', () => {
     expect(html).not.toContain('/*BUNDLE*/');
     expect(gzipSync(html).length).toBeLessThan(30 * 1024);
   });
+
+  it('C007 사다리 ② 통과: 오너 주소 index.html = 3D 빌드(3d.html과 같은 내용) · 2D 프로토타입은 2d.html', () => {
+    const d = 'web/public/studio/demolition/';
+    expect(readFileSync(d + 'index.html', 'utf8')).toBe(readFileSync(d + '3d.html', 'utf8'));
+    expect(existsSync(d + '2d.html')).toBe(true);
+    const two = readFileSync(d + '2d.html', 'utf8');
+    expect(two).toContain('비버 철거반');
+    expect(two).not.toContain('/*BUNDLE*/');
+    expect(gzipSync(two).length).toBeLessThan(60 * 1024);
+  });
 });

@@ -14,7 +14,7 @@ const page = await browser.newPage({ viewport: { width: 390, height: 844 }, devi
 const errors: string[] = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
-await page.goto('file://' + join(here, '../../web/public/studio/demolition/index.html'));
+await page.goto('file://' + join(here, '../../web/public/studio/demolition/2d.html'));
 await page.screenshot({ path: join(out, '0-start.png') });
 await page.click('.g-overlay');
 await page.waitForTimeout(600);
