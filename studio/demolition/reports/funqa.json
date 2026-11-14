@@ -1,6 +1,6 @@
 {
- "at": "C009",
- "f11n": 1000,
+ "at": "C010",
+ "f11n": 200,
  "stages": [
   {
    "n": 1,
@@ -179,6 +179,7 @@
    "firstTimer1Old": 1,
    "look2Star3": 1,
    "look2Fixed": 1,
+   "rotateValue": 0,
    "habitStar3": 0,
    "habitFlowerStar3": 0,
    "f4bLiveOld": 1,
@@ -192,16 +193,16 @@
     "three": 1,
     "freeStars": 1
    },
-   "f11": 0.991,
-   "f11first": 0.898,
-   "f11miss": 0.0005,
-   "f13": 0.993,
+   "f11": 0.9924999999999999,
+   "f11first": 0.9075,
+   "f11miss": 0,
+   "f13": 0.99,
    "innerHit": 0,
    "f4bLive": 1,
    "f4bDead": 1,
    "f4bQuietDead": 1,
-   "f11min": 0.989,
-   "f11minAt": "6,1,6",
+   "f11min": 0.99,
+   "f11minAt": "6,0,6",
    "rotations": 0
   },
   {
@@ -229,6 +230,7 @@
    "firstTimer1Old": 0.1903058809150968,
    "look2Star3": 1,
    "look2Fixed": 1,
+   "rotateValue": 0,
    "habitStar3": 0.5,
    "habitFlowerStar3": 1,
    "f4bLiveOld": 1,
@@ -242,16 +244,16 @@
     "three": 4,
     "freeStars": 0
    },
-   "f11": 0.9390781250000001,
-   "f11first": 0.7858906249999998,
-   "f11miss": 0.000109375,
-   "f13": 0.991,
+   "f11": 0.93734375,
+   "f11first": 0.78296875,
+   "f11miss": 0.000078125,
+   "f13": 0.995,
    "innerHit": 0,
    "f4bLive": 1,
    "f4bDead": 1,
    "f4bQuietDead": 0.7968435191403627,
-   "f11min": 0.90825,
-   "f11minAt": "6,0,8",
+   "f11min": 0.90875,
+   "f11minAt": "8,0,8",
    "rotations": 4
   },
   {
@@ -279,6 +281,7 @@
    "firstTimer1Old": 1,
    "look2Star3": 1,
    "look2Fixed": 1,
+   "rotateValue": 0,
    "habitStar3": 0,
    "habitFlowerStar3": 0,
    "f4bLiveOld": 1,
@@ -292,16 +295,16 @@
     "three": 2,
     "freeStars": 0
    },
-   "f11": 0.9946666666666667,
-   "f11first": 0.9298333333333333,
-   "f11miss": 0.0006666666666666666,
-   "f13": 0.996,
+   "f11": 0.9975,
+   "f11first": 0.92875,
+   "f11miss": 0.00125,
+   "f13": 1,
    "innerHit": 0,
    "f4bLive": 1,
    "f4bDead": 1,
    "f4bQuietDead": 1,
-   "f11min": 0.992,
-   "f11minAt": "8,1,6",
+   "f11min": 0.9962500000000001,
+   "f11minAt": "8,0,6",
    "rotations": 2
   }
  ]

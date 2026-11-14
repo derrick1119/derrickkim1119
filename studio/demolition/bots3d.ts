@@ -106,17 +106,16 @@ export function look2(L: Layout3, d: StageDef3, c: Cache, only?: (i: number) => 
         consider([i], save || k === left);
         for (const j of cs) if (j > i && k + capOf3(L.blocks[j]) <= left) consider([i, j], save || k + capOf3(L.blocks[j]) === left);
       }
+      let end = true;
       if (!ties.length) {
-        // 두 수 안에 끝이 안 나는 판(폭약 ≥ 3, 자동 쾅): 하나 붙이고 계속
-        const i = cs[Math.floor(rng() * cs.length)];
-        if (i === undefined) break;
-        ch[i] = capOf3(L.blocks[i]);
-        left -= ch[i];
-        continue;
+        // 두 수 안에 끝이 안 나는 판(폭약 ≥ 3, 자동 쾅) — v1.5 ⓑ: 무작위 첫 수 금지, 두 수의 미리 보기(지금 쾅이라면) 점수로 고른다
+        end = false;
+        for (const i of cs) for (const j of cs) if (j > i && capOf3(L.blocks[i]) + capOf3(L.blocks[j]) <= left) consider([i, j], true);
+        if (!ties.length) break;
       }
       const pl = ties[Math.floor(rng() * ties.length)];
       for (const i of pl) (ch[i] = capOf3(L.blocks[i])), (left -= ch[i]);
-      done = true; // 고른 끝까지 붙였으면 쾅(손잡이 또는 자동)
+      done = end; // 고른 끝까지 붙였으면 쾅(손잡이 또는 자동), 아니면 이어서
     }
     if (c.sim(ch).ok && c.sim(ch).stars === 3) s3++;
   }
@@ -124,7 +123,7 @@ export function look2(L: Layout3, d: StageDef3, c: Cache, only?: (i: number) => 
 }
 
 /**
- * 버릇 봇(F10, 🧪 C008 정의): '같은 쪽 다리 둘' 버릇 — 울타리까지 빈 땅이 가장 넓은 쪽(동점은 고르게)의 맨 아래 블록들을 끊고,
+ * 버릇 봇(F10, 🧪 C008 정의 · v1.5 ⓒ): '같은 쪽 다리 둘' 버릇 — 울타리까지 빈 땅이 가장 넓은 쪽(동점은 고르게)의 다리(기둥마다 붙일 수 있는 가장 낮은 블록)를 끊고,
  * 손잡이 판이면 그 쪽 다리를 다 붙인 뒤 바로 쾅. flowerAvoid = 꽃밭 있는 쪽은 빼는 변형. ★3률(동점 쪽 평균)
  */
 export function habit(L: Layout3, d: StageDef3, c: Cache, flowerAvoid: boolean): number {
@@ -141,9 +140,16 @@ export function habit(L: Layout3, d: StageDef3, c: Cache, flowerAvoid: boolean):
   for (const s of pick) {
     const ch = new Int8Array(bl.length);
     let left = d.charges;
-    for (const [i, b] of bl.entries()) {
-      const k = capOf3(b);
-      if (b.y === 0 && k > 0 && s.face(b as never) && k <= left) (ch[i] = k), (left -= k);
+    // v1.5 ⓒ: 다리 = 기둥(x,z)마다 붙일 수 있는 가장 낮은 블록(쇠 받침 위 나무 다리도)
+    const low = new Map<string, number>();
+    bl.forEach((b, i) => {
+      if (!capOf3(b) || !s.face(b as never)) return;
+      const k = `${b.x},${b.z}`, j = low.get(k);
+      if (j === undefined || bl[j].y > b.y) low.set(k, i);
+    });
+    for (const i of low.values()) {
+      const k = capOf3(bl[i]);
+      if (k <= left) (ch[i] = k), (left -= k);
     }
     const o = c.sim(ch);
     if (o.ok && o.stars === 3) s3++;
