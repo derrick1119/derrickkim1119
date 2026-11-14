@@ -1,0 +1,213 @@
+{
+ "at": "2026-11-14",
+ "build": "M0",
+ "seeds": 12,
+ "stages": [
+  {
+   "stage": 1,
+   "key": "basic",
+   "name": "첫 물약",
+   "smart": {
+    "win": 1,
+    "star3": 1,
+    "pours": 4,
+    "sec": 4.4
+   },
+   "habit": {
+    "win": 1,
+    "star3": 0,
+    "pours": 6,
+    "sec": 5.9
+   },
+   "random": {
+    "win": 0.917,
+    "star3": 0.083,
+    "pours": 8.9,
+    "sec": 94.4
+   },
+   "par": 4,
+   "limit": 18
+  },
+  {
+   "stage": 2,
+   "key": "fizz",
+   "name": "부글 물약",
+   "smart": {
+    "win": 1,
+    "star3": 1,
+    "pours": 7.8,
+    "sec": 7.3
+   },
+   "habit": {
+    "win": 1,
+    "star3": 0,
+    "pours": 12.7,
+    "sec": 11.3
+   },
+   "random": {
+    "win": 0.833,
+    "star3": 0,
+    "pours": 15.5,
+    "sec": 116.8
+   },
+   "par": 10,
+   "limit": 27
+  },
+  {
+   "stage": 3,
+   "key": "hidden",
+   "name": "숨은 색",
+   "smart": {
+    "win": 1,
+    "star3": 0.75,
+    "pours": 12.3,
+    "sec": 11.2
+   },
+   "habit": {
+    "win": 1,
+    "star3": 0,
+    "pours": 18.1,
+    "sec": 15.8
+   },
+   "random": {
+    "win": 0.083,
+    "star3": 0,
+    "pours": 11,
+    "sec": 175.8
+   },
+   "par": 13,
+   "limit": 27
+  },
+  {
+   "stage": 4,
+   "key": "ice",
+   "name": "얼음 병",
+   "smart": {
+    "win": 1,
+    "star3": 1,
+    "pours": 11.3,
+    "sec": 10.4
+   },
+   "habit": {
+    "win": 0.833,
+    "star3": 0,
+    "pours": 16.1,
+    "sec": 14.1
+   },
+   "random": {
+    "win": 0.083,
+    "star3": 0,
+    "pours": 10,
+    "sec": 180
+   },
+   "par": 9,
+   "limit": 20
+  },
+  {
+   "stage": 5,
+   "key": "small",
+   "name": "작은 병",
+   "smart": {
+    "win": 1,
+    "star3": 1,
+    "pours": 14.8,
+    "sec": 13.5
+   },
+   "habit": {
+    "win": 1,
+    "star3": 0,
+    "pours": 21.8,
+    "sec": 18.9
+   },
+   "random": {
+    "win": 0.083,
+    "star3": 0,
+    "pours": 14.5,
+    "sec": 175.1
+   },
+   "par": 15,
+   "limit": 29
+  },
+  {
+   "stage": 6,
+   "key": "caul",
+   "name": "가마솥",
+   "smart": {
+    "win": 1,
+    "star3": 1,
+    "pours": 12.9,
+    "sec": 12
+   },
+   "habit": {
+    "win": 0.833,
+    "star3": 0,
+    "pours": 16.3,
+    "sec": 42.3
+   },
+   "random": {
+    "win": 0,
+    "star3": 0,
+    "pours": 7.5,
+    "sec": 165.1
+   },
+   "par": 13,
+   "limit": 26
+  },
+  {
+   "stage": 7,
+   "key": "gift",
+   "name": "리본 물약",
+   "smart": {
+    "win": 1,
+    "star3": 1,
+    "pours": 13.6,
+    "sec": 12.5
+   },
+   "habit": {
+    "win": 0.417,
+    "star3": 0,
+    "pours": 10.7,
+    "sec": 82.5
+   },
+   "random": {
+    "win": 0,
+    "star3": 0,
+    "pours": 3.3,
+    "sec": 117.3
+   },
+   "par": 15,
+   "limit": 29
+  },
+  {
+   "stage": 8,
+   "key": "moon",
+   "name": "보름달",
+   "smart": {
+    "win": 1,
+    "star3": 1,
+    "pours": 12.6,
+    "sec": 11.4
+   },
+   "habit": {
+    "win": 1,
+    "star3": 0,
+    "pours": 16.7,
+    "sec": 14.6
+   },
+   "random": {
+    "win": 0,
+    "star3": 0,
+    "pours": 14.1,
+    "sec": 180
+   },
+   "par": 12,
+   "limit": 26
+  }
+ ],
+ "full": {
+  "smart": 3498.3,
+  "habit": 1570,
+  "random": 818.3
+ },
+ "skillGap": 4.28
+}
