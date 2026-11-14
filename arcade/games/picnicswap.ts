@@ -14,6 +14,9 @@
  *   → 5 수박 쾅(ㄱ자·다섯) → 6 소나기(구름 밑 세 줄은 젖어 못 바꿈, 구름이 흘러감 — 기다릴지) → 7 회오리 바람(떨어지는 방향이 바뀜) → 8 대잔치.
  * 웃음: 개미들은 음식을 머리에 이고 낑낑, 놀라면 "깜짝!" 음식을 떨구고 허둥지둥, 굴러떨어지면 어질어질. 개미굴의 대장 개미는 훔치면 우쭐,
  *   쫓기면 발을 동동. 바구니 옆 강아지는 연쇄에 꼬리를 흔들고 개미에게 '멍!'.
+ * 쾌감(오너 2026-11-14 "쾌감·기믹 부족"): 연쇄 3단·특별 음식이 터지면 잠깐 멈칫(히트스톱, 길수록 길게) → 와르르. '연쇄 ×N · 냠 M개'가 한 자리에서
+ *   커지고(5단 이상 무지개 '대박!'), 흔들림·파티클·번쩍이 연쇄만큼 세진다. 성공하면 남은 바꾸기가 하나씩 폭죽(+10).
+ * 기믹: 판마다 'NEW 장치' 카드(장치를 크게 그리고 하는 일 한 줄), 판 첫머리에 장치 자리를 반짝(얼음 접시·젖은 세 줄 테두리), 바람이 바뀌면 큰 화살 돌풍.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -325,7 +328,7 @@ export interface PicState {
   B: Board; foods: number[]; gdir: number; fdir: number;
   off: Float32Array; vel: Float32Array; land: Int32Array;
   sel: number; selT: number; down: boolean; ax: number; ay: number; idleT: number; taps: number; swaps: number; tried: number;
-  sw: { a: number; b: number; back: boolean } | null; prefer: number[]; forced: Act[]; wave: number; turnStage: number;
+  sw: { a: number; b: number; back: boolean } | null; prefer: number[]; forced: Act[]; wave: number; turnStage: number; hold: number; chainN: number;
   moves: number; got: number[]; scared: number; stolen: number; madeK: number; madeM: number; usedM: number; usedK: number; maxWave: number; iceLeft: number; ice0: number;
   antNext: number; antLeft: number; antCol: number; turnN: number; needFall: boolean;
   cloud: number; cloudDir: number; windIn: number; windNext: number; windI: number;
@@ -518,6 +521,7 @@ function trySwap(s: PicState, a: number, b: number) {
   s.forced = forcedOf(va, vb, a, b);
   if (isSp(va) && isSp(vb)) see(s, 'combo', '💥 특별 음식끼리 바꾸면 더 크게 터져요!');
   s.wave = 0;
+  s.chainN = 0;
   s.turnStage = 0;
   s.phase = 'swap';
   s.pt = 0;
@@ -537,6 +541,10 @@ function startWave(s: PicState) {
   for (const m of out.made) m.sp === MELON ? s.madeM++ : s.madeK++;
   for (const x of out.blasts) (x.sp === MELON ? s.usedM++ : s.usedK++), x.sp2 !== undefined && (x.sp2 === MELON ? s.usedM++ : s.usedK++);
   s.iceLeft = countIce(B);
+  // 쾌감: 먹은 수를 쌓고, 큰 순간엔 잠깐 멈칫(히트스톱) — 연쇄가 길수록·폭탄일수록 길게
+  s.chainN += out.foods.reduce((a, v) => a + v, 0);
+  const combo = out.blasts.some((x) => x.sp2 !== undefined), melon = out.blasts.some((x) => x.sp === MELON);
+  s.hold = combo ? 20 : melon ? 13 : out.blasts.length ? 9 : s.wave >= 3 ? 2 + 2 * Math.min(s.wave, 6) : 0;
   // ── 화면 연출 ──
   s.pops = out.cleared.map((i, k) => ({ i, v: out.kinds[k], c: prevC[i] }));
   const goalF = d.goals.map((G) => (G.k === 'food' ? G.f! : -1));
@@ -550,7 +558,7 @@ function startWave(s: PicState) {
     x /= gr.cells.length;
     y /= gr.cells.length;
     const n = gr.cells.length;
-    ev(s, 'pop', x, y, n >= 5 ? '와앙!' : n === 4 ? '냠냠!' : '냠!', '#ffffff', gr.f);
+    ev(s, 'pop', x, y, `${n >= 5 ? '와앙!' : n === 4 ? '냠냠!' : '냠!'} +${n}`, '#ffffff', gr.f + 10 * s.wave);
   }
   if (s.wave >= 2) {
     ev(s, 'wave', 0.5, GY + CS * 3.6, `연쇄 ×${s.wave}!`, s.wave >= 3 ? '#ffd166' : '#c8f7c5', s.wave);
@@ -564,7 +572,7 @@ function startWave(s: PicState) {
   }
   for (const x of out.blasts) {
     s.lines.push({ i: x.i, sp: x.sp, sp2: x.sp2, t0: s.t });
-    ev(s, 'blast', cellX(x.i), cellY(x.i), x.sp2 !== undefined ? '대폭발!' : x.sp === MELON ? '쾅!' : '싹~!', '#fff1a8', x.sp2 !== undefined ? 3 : x.sp === MELON ? 2 : 1);
+    ev(s, 'blast', cellX(x.i), cellY(x.i), x.sp2 !== undefined ? '대폭발!!' : x.sp === MELON ? '쾅!' : '싹~!', '#fff1a8', x.sp2 !== undefined ? 3 : x.sp === MELON ? 2 : x.sp === KH ? 1 : 4);
   }
   for (let k = 0; k < out.scared.length; k++) {
     const i = out.scared[k], f = out.rescued[k];
@@ -604,6 +612,10 @@ function afterPop(s: PicState) {
 }
 
 function endCascade(s: PicState) {
+  if (s.turnStage === 0 && s.wave >= 3) {
+    ev(s, 'feast', 0.5, GY + CS * 4.2, `냠냠 ${s.chainN}개!`, '#ffd166', s.wave);
+    setDog(s, 'wag');
+  }
   if (goalMet(s)) {
     s.phase = 'settle';
     s.pt = 0;
@@ -812,7 +824,7 @@ export const picnicswap: GameDef<PicState> = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'idle', pt: 0,
       foods: [], gdir: 0, fdir: 0, off: new Float32Array(N), vel: new Float32Array(N), land: new Int32Array(N).fill(-99),
       sel: -1, selT: 0, down: false, ax: 0, ay: 0, idleT: 0, taps: 0, swaps: 0, tried: 0,
-      sw: null, prefer: [], forced: [], wave: 0, turnStage: 0,
+      sw: null, prefer: [], forced: [], wave: 0, turnStage: 0, hold: 0, chainN: 0,
       moves: 0, got: [], scared: 0, stolen: 0, madeK: 0, madeM: 0, usedM: 0, usedK: 0, maxWave: 0, iceLeft: 0, ice0: 0,
       antNext: 0, antLeft: 0, antCol: 3, turnN: 0, needFall: false,
       cloud: 0, cloudDir: 1, windIn: 0, windNext: 1, windI: 0, hint: null,
@@ -855,7 +867,7 @@ export const picnicswap: GameDef<PicState> = {
         if (s.pt >= BACK_T) (s.sw = null), (s.phase = 'idle'), (s.idleT = s.t);
         return;
       case 'pop':
-        if (s.pt >= POP_T) afterPop(s);
+        if (s.pt >= POP_T + s.hold) afterPop(s);
         return;
       case 'ant':
         if (s.pt >= ANT_T) afterAnt(s);
@@ -1690,6 +1702,17 @@ function drawScene(ctx: CanvasRenderingContext2D, s: PicState, X: XF, Y: XF, R: 
   }
   drawBasket(ctx, s, X, Y, R, t);
   drawDog(ctx, X(0.915), Y(0.298), R(0.07), s, t);
+  if ((s.dog === 'bark' || s.dog === 'wag') && t - s.dogT < 50) {
+    ctx.font = `900 ${Math.max(13, R(0.04))}px system-ui, sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(40,60,20,.7)';
+    const tx = s.dog === 'bark' ? '멍!' : '왈왈!';
+    ctx.strokeText(tx, w - R(0.012), Y(0.215) - Math.sin(Math.min(1, (t - s.dogT) / 8) * Math.PI) * 3);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(tx, w - R(0.012), Y(0.215) - Math.sin(Math.min(1, (t - s.dogT) / 8) * Math.PI) * 3);
+  }
 }
 
 /** 장면 앞쪽: 목표 칩 · 바꾸기 표지판 · 바람 깃발 (구름보다 위에) */
@@ -1932,6 +1955,13 @@ function drawMat(ctx: CanvasRenderingContext2D, s: PicState, X: XF, Y: XF, R: XF
   ctx.fillRect(x0, y0, bw, bh);
   // 얼음 접시
   for (let i = 0; i < N; i++) if (s.B.ice[i] > 0) drawIce(ctx, x0 + colOf(i) * cs, y0 + rowOf(i) * cs, cs, s.B.ice[i], t);
+  // 판 시작: 새 장치가 놓인 자리를 반짝 (얼음 접시)
+  const age = t - s.startT;
+  if (age < 220 && STAGES[s.stage].ice) {
+    ctx.strokeStyle = `rgba(255,255,255,${0.5 + 0.5 * Math.sin(age * 0.25)})`;
+    ctx.lineWidth = 3;
+    for (let i = 0; i < N; i++) if (s.B.ice[i] > 0) (ctx.beginPath(), ctx.roundRect(x0 + colOf(i) * cs + 2, y0 + rowOf(i) * cs + 2, cs - 4, cs - 4, cs * 0.22), ctx.stroke());
+  }
 }
 
 function drawPieces(ctx: CanvasRenderingContext2D, s: PicState, X: XF, Y: XF, R: XF, t: number) {
@@ -2044,12 +2074,18 @@ function drawPieces(ctx: CanvasRenderingContext2D, s: PicState, X: XF, Y: XF, R:
     }
   // 냠! 사라지는 음식
   if (s.phase === 'pop') {
-    const q = s.pt / POP_T;
+    const q = Math.max(0, s.pt - s.hold) / POP_T, frz = s.pt < s.hold;
     for (const pp of s.pops) {
-      const sc = q < 0.35 ? 1 + q * 0.7 : 1.25 * (1 - (q - 0.35) / 0.65);
+      const sc = frz ? 1.22 + Math.sin(t * 1.7 + pp.i) * 0.05 : q < 0.35 ? 1.22 + q * 0.2 : 1.29 * (1 - (q - 0.35) / 0.65);
       if (sc <= 0.02) continue;
       ctx.save();
-      ctx.translate(X(cellX(pp.i)), Y(cellY(pp.i)));
+      ctx.translate(X(cellX(pp.i)) + (frz ? Math.sin(t * 2.3 + pp.i) * 1.5 : 0), Y(cellY(pp.i)));
+      if (frz) {
+        ctx.fillStyle = 'rgba(255,250,210,.55)';
+        ctx.beginPath();
+        ctx.arc(0, 0, r0 * 1.3, 0, TAU);
+        ctx.fill();
+      }
       ctx.rotate(q * 0.6 * (pp.i % 2 ? 1 : -1));
       ctx.scale(sc, sc);
       if (isSp(pp.v)) drawSpecial(ctx, pp.v, 0, 0, r0, t);
@@ -2133,6 +2169,12 @@ function drawWeather(ctx: CanvasRenderingContext2D, s: PicState, X: XF, Y: XF, R
     }
     ctx.globalAlpha = 1;
     ctx.restore();
+    // 젖은 세 줄 테두리 (못 바꾸는 곳)
+    ctx.strokeStyle = `rgba(70,130,220,${0.6 + 0.3 * Math.sin(t * 0.15)})`;
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([6, 4]);
+    ctx.strokeRect(X(GX + s.cloud * CS) + 1, Y(GY) + 1, R(3 * CS) - 2, R(H * CS) - 2);
+    ctx.setLineDash([]);
     // 구름
     ctx.fillStyle = 'rgba(60,70,90,.25)';
     ctx.beginPath();
@@ -2162,8 +2204,51 @@ function drawWeather(ctx: CanvasRenderingContext2D, s: PicState, X: XF, Y: XF, R
     ctx.closePath();
     ctx.fill();
   }
+  if (d.wind) {
+    // 바람이 바뀐 순간: 판을 가로지르는 큰 화살 + 나뭇잎 회오리
+    const ga = t - (fx.memo.windT ?? -999);
+    if (ga >= 0 && ga < 60) {
+      const dir = s.gdir === 1 ? -1 : s.gdir === 2 ? 1 : 0, a = Math.min(1, (60 - ga) / 20) * 0.55, cx = X(0.5) + dir * (ga - 30) * 2, cy = Y(GY + H * CS * 0.5);
+      ctx.fillStyle = `rgba(255,255,255,${a})`;
+      ctx.strokeStyle = `rgba(255,138,43,${a + 0.2})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      if (dir) {
+        ctx.moveTo(cx + dir * R(0.22), cy);
+        ctx.lineTo(cx + dir * R(0.06), cy - R(0.12));
+        ctx.lineTo(cx + dir * R(0.06), cy - R(0.05));
+        ctx.lineTo(cx - dir * R(0.22), cy - R(0.05));
+        ctx.lineTo(cx - dir * R(0.22), cy + R(0.05));
+        ctx.lineTo(cx + dir * R(0.06), cy + R(0.05));
+        ctx.lineTo(cx + dir * R(0.06), cy + R(0.12));
+      } else {
+        ctx.moveTo(cx, cy + R(0.22));
+        ctx.lineTo(cx - R(0.12), cy + R(0.06));
+        ctx.lineTo(cx - R(0.05), cy + R(0.06));
+        ctx.lineTo(cx - R(0.05), cy - R(0.2));
+        ctx.lineTo(cx + R(0.05), cy - R(0.2));
+        ctx.lineTo(cx + R(0.05), cy + R(0.06));
+        ctx.lineTo(cx + R(0.12), cy + R(0.06));
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
   if (d.wind && s.gdir) {
     const dir = s.gdir === 1 ? -1 : 1;
+    // 떨어지는 쪽 가장자리 화살촉
+    ctx.fillStyle = `rgba(255,138,43,${0.55 + 0.35 * Math.sin(t * 0.2)})`;
+    const ex = dir < 0 ? X(GX) - R(0.03) : X(GX + W * CS) + R(0.03);
+    for (let r = 0; r < H; r++) {
+      const ey = Y(GY + (r + 0.5) * CS);
+      ctx.beginPath();
+      ctx.moveTo(ex + dir * R(0.016), ey);
+      ctx.lineTo(ex - dir * R(0.006), ey - R(0.016));
+      ctx.lineTo(ex - dir * R(0.006), ey + R(0.016));
+      ctx.closePath();
+      ctx.fill();
+    }
     ctx.strokeStyle = 'rgba(255,255,255,.5)';
     ctx.lineWidth = 2;
     for (let k = 0; k < 7; k++) {
@@ -2225,6 +2310,25 @@ function drawAnthill(ctx: CanvasRenderingContext2D, s: PicState, X: XF, Y: XF, R
   const face = s.mood === 'sleep' ? 'sleep' : s.mood === 'smug' ? 'smug' : s.mood === 'panic' || s.mood === 'stomp' ? 'stomp' : s.mood === 'huh' ? 'huh' : 'go';
   const jump = s.mood === 'stomp' || s.mood === 'panic' ? Math.abs(Math.sin((t - s.moodT) * 0.4)) * R(0.012) : s.mood === 'smug' ? Math.abs(Math.sin((t - s.moodT) * 0.15)) * R(0.008) : 0;
   drawAnt(ctx, hx + R(0.005), hy - R(0.065) - jump, R(0.055), t, { face, walk: s.mood === 'stomp' ? t * 0.8 : t * 0.05, flag: true, cheeks: true });
+  // 대장 개미 한마디
+  const age = t - s.moodT, line = ({ go: '영차! 돌격~', panic: '후퇴! 후퇴!', smug: s.phase === 'result' ? '우리가 이겼다~' : '히히 잘 먹을게~', stomp: '분하다~!', huh: '어딜 만져!' } as Record<string, string>)[s.mood];
+  if (line && age < 80 && s.mood !== 'idle') {
+    ctx.font = `800 ${Math.max(12, R(0.033))}px system-ui, sans-serif`;
+    const tw = ctx.measureText(line).width + 14, bx = hx + R(0.07), by = hy - R(0.005);
+    ctx.globalAlpha = Math.min(1, (80 - age) / 12);
+    ctx.fillStyle = s.mood === 'smug' ? '#fff0c8' : s.mood === 'panic' || s.mood === 'stomp' ? '#ffe0d8' : '#ffffff';
+    ctx.beginPath();
+    ctx.roundRect(bx, by - R(0.019), tw, R(0.038), R(0.019));
+    ctx.moveTo(bx + R(0.008), by);
+    ctx.lineTo(bx - R(0.014), by + R(0.004));
+    ctx.lineTo(bx + R(0.01), by + R(0.012));
+    ctx.fill();
+    ctx.fillStyle = '#4a2a1c';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(line, bx + 7, by + 1);
+    ctx.globalAlpha = 1;
+  }
   if (s.mood === 'sleep') {
     ctx.font = `800 ${Math.max(12, R(0.034))}px system-ui, sans-serif`;
     ctx.fillStyle = 'rgba(255,255,255,.9)';
@@ -2298,8 +2402,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PicState, w: number, h: numbe
   const say = (x: number, y: number, text: string, col: string, size: number) => {
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
-    y = Math.max(Y(GY + 0.04), Math.min(Y(GY + H * CS - 0.02), y));
-    for (let k = 0; k < 6 && rec.some((q) => t - q.t < 40 && Math.abs(q.x - x) < w * 0.25 && Math.abs(q.y - y) < size + 4); k++) y -= size + 5;
+    const top = t - (fx.memo.waveT ?? -999) < 70 ? Y(GY + CS * 2.1) : Y(GY + 0.04);
+    y = Math.max(top, Math.min(Y(GY + H * CS - 0.02), y));
+    for (let k = 0; k < 6 && rec.some((q) => t - q.t < 40 && Math.abs(q.x - x) < w * 0.25 && Math.abs(q.y - y) < size + 4); k++) y += y - top > R(0.3) ? -(size + 5) : size + 5;
     rec.push({ x, y, t });
     if (rec.length > 14) rec.shift();
     ctx.font = `800 ${size}px system-ui, sans-serif`;
@@ -2311,10 +2416,29 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PicState, w: number, h: numbe
     const due = e.v !== undefined && ['nope', 'steal', 'antin', 'tumble'].includes(e.kind) ? e.v : e.t;
     if (due <= seenT || due > t) continue;
     const x = X(e.x), y = Y(e.y);
-    if (e.kind === 'pop') fx.burst(x, y, FOOD_COL[e.v ?? 0], 14, 3, 2.4), say(x, y - R(0.02), e.text!, e.col!, 16), fx.kick(1.2);
-    if (e.kind === 'wave') fx.ring(x, y, e.col!, R(0.3), 5), fx.kick(2 + (e.v ?? 2)), (fx.memo.waveT = t), (fx.memo.waveN = e.v ?? 2);
+    if (e.kind === 'pop') {
+      const f = (e.v ?? 0) % 10, wv = Math.floor((e.v ?? 0) / 10);
+      fx.burst(x, y, FOOD_COL[f], 12 + wv * 6, 3 + wv * 0.6, 2.4 + wv * 0.2), fx.burst(x, y, '#ffffff', 4 + wv * 2, 2, 1.6), say(x, y - R(0.02), e.text!, wv >= 3 ? '#ffe9a0' : e.col!, 15 + Math.min(10, wv * 2)), fx.kick(1 + wv * 0.9);
+    }
+    if (e.kind === 'wave') {
+      const n = e.v ?? 2;
+      fx.ring(x, y, e.col!, R(0.25 + 0.06 * n), 4 + n), fx.kick(2 + n * 1.5), (fx.memo.waveT = t), (fx.memo.waveN = n);
+      if (n >= 3) fx.blink('#fff3c0', Math.min(0.4, 0.08 + 0.05 * n));
+      if (n >= 4) for (let k = 0; k < 4; k++) fx.burst(X(GX + 0.1 + k * 0.22), Y(GY + 0.1), ['#ff6f86', '#ffd166', '#7fd6ff', '#9be884'][k], 10 + n * 2, 4.5, 2.6);
+    }
+    if (e.kind === 'feast') {
+      const n = e.v ?? 3;
+      say(x, y, e.text!, e.col!, 22 + Math.min(10, (n - 3) * 3)), fx.ring(x, y, '#ffd166', R(0.45), 7), fx.burst(x, y, '#ffd166', 30 + n * 4, 6, 3), fx.burst(x, y, '#ff8fb1', 20, 5, 2.6), fx.kick(4 + n);
+    }
     if (e.kind === 'made') fx.ring(x, y, '#fff6b0', R(0.1), 4), fx.burst(x, y, '#fff6b0', 18, 3.5, 2.4), say(x, y - R(0.05), e.text!, e.col!, 16);
-    if (e.kind === 'blast') fx.kick(e.v === 3 ? 10 : e.v === 2 ? 7 : 4), fx.blink('#fff8d8', e.v === 3 ? 0.4 : 0.22), fx.ring(x, y, '#ffe9a8', R(e.v === 1 ? 0.25 : 0.4), 6), say(x, y - R(0.04), e.text!, e.col!, 18 + (e.v ?? 1) * 2), fx.burst(x, y, e.v === 2 ? '#ff6f86' : '#fff1a8', 26, 5, 2.8);
+    if (e.kind === 'blast') {
+      const k = e.v ?? 1;
+      fx.kick(k === 3 ? 14 : k === 2 ? 10 : 7), fx.blink(k === 2 ? '#ffd0d8' : '#fff8d8', k === 3 ? 0.5 : 0.3), fx.ring(x, y, '#ffe9a8', R(k === 3 ? 0.6 : k === 2 ? 0.4 : 0.3), 8), fx.ring(x, y, '#ffffff', R(k === 3 ? 0.35 : 0.2), 4);
+      say(x, y - R(0.04), e.text!, e.col!, 20 + k * 3);
+      if (k === 1 || k === 3) for (let c = 0; c < W; c++) fx.burst(X(GX + (c + 0.5) * CS), y, '#fff6c0', 6, 3, 2);
+      if (k === 4 || k === 3) for (let r = 0; r < H; r++) fx.burst(x, Y(GY + (r + 0.5) * CS), '#fff6c0', 6, 3, 2);
+      if (k >= 2) fx.burst(x, y, '#ff4f6a', 36, 6.5, 3.2), fx.burst(x, y, '#1b1b1b', 10, 4, 1.6), fx.burst(x, y, '#7fd66a', 16, 5, 2.6);
+    }
     if (e.kind === 'scare') fx.burst(x, y, '#ffe08a', 12, 3, 2), say(x, y - R(0.05), e.text!, e.col!, 17);
     if (e.kind === 'tumble') say(x + R(0.04), y, e.text!, e.col!, 14);
     if (e.kind === 'steal') fx.kick(6), fx.blink('#ff8a7a', 0.18), say(X(0.45), Y(GY + 0.16), e.text!, e.col!, 17);
@@ -2323,35 +2447,100 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PicState, w: number, h: numbe
     if (e.kind === 'nope') say(x, y - R(0.03), e.text!, e.col!, 14);
     if (e.kind === 'wet' || e.kind === 'poke') say(x, y - R(0.05), e.text!, e.col!, 14), fx.kick(1.5);
     if (e.kind === 'shuffle') fx.kick(8), say(x, y, e.text!, e.col!, 20);
-    if (e.kind === 'wind') say(x, y, e.text!, e.col!, 18);
+    if (e.kind === 'wind') say(x, y, e.text!, e.col!, 20), fx.kick(5), (fx.memo.windT = t);
     if (e.kind === 'stage') fx.blink('#fffbe8', 0.2);
     if (e.kind === 'clear') fx.burst(X(0.5), Y(0.75), '#ffe066', 46, 6, 3.2), fx.burst(X(0.5), Y(0.75), '#ff8fb1', 30, 5, 3), fx.ring(X(0.5), Y(0.75), '#ffe066', R(0.35), 6), fx.blink('#fff6c8', 0.25);
     if (e.kind === 'fail') fx.kick(9), fx.blink(th.hot, 0.22);
   }
   fx.memo.t = t;
-  // 연쇄 ×N: 한 자리에서 통통 커진다 (겹쳐 쌓이지 않게)
+  // 연쇄 ×N: 한 자리에서 통통 커지고, 먹은 수가 쌓인다 (길수록 크고 뜨겁게)
   {
     const age = t - (fx.memo.waveT ?? -999), n = fx.memo.waveN ?? 0;
-    if (age >= 0 && age < 60 && n >= 2) {
-      const sc = 1 + Math.max(0, 1 - age / 8) * 0.5, a = Math.min(1, (60 - age) / 15);
+    if (age >= 0 && age < 70 && n >= 2) {
+      const sc = 1 + Math.max(0, 1 - age / 9) * (0.4 + 0.1 * n), a = Math.min(1, (70 - age) / 15);
       ctx.save();
       ctx.globalAlpha = a;
-      ctx.translate(X(0.5), Y(GY + CS * 1.2));
+      ctx.translate(X(0.5), Y(GY + CS * 1.3));
+      ctx.rotate(Math.sin(age * 0.3) * 0.03 * Math.min(n, 5));
       ctx.scale(sc, sc);
-      ctx.font = `900 ${Math.max(20, R(0.07 + Math.min(4, n - 2) * 0.008))}px system-ui, sans-serif`;
+      ctx.font = `900 ${Math.max(20, R(0.068 + Math.min(5, n - 2) * 0.011))}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.lineWidth = 6;
-      ctx.strokeStyle = 'rgba(110,30,20,.75)';
-      const txt = `연쇄 ×${n}!`;
+      ctx.lineWidth = 7;
+      ctx.strokeStyle = 'rgba(110,30,20,.8)';
+      const txt = `${n >= 5 ? '대박! ' : ''}연쇄 ×${n}!`;
       ctx.strokeText(txt, 0, 0);
-      ctx.fillStyle = n >= 4 ? '#ffd166' : n === 3 ? '#fff1a8' : '#e6ffd0';
+      ctx.fillStyle = n >= 5 ? `hsl(${(t * 8) % 360},95%,72%)` : n >= 4 ? '#ffb347' : n === 3 ? '#ffe066' : '#e6ffd0';
       ctx.fillText(txt, 0, 0);
+      ctx.font = `900 ${Math.max(14, R(0.045))}px system-ui, sans-serif`;
+      ctx.lineWidth = 5;
+      const sub = `냠 ${s.chainN}개`;
+      ctx.strokeText(sub, 0, R(0.06));
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(sub, 0, R(0.06));
       ctx.restore();
     }
   }
+  // 성공하면 남은 바꾸기가 하나씩 폭죽으로 (+10점씩)
+  if (s.phase === 'result' && s.ok)
+    for (let k = 0; k < Math.min(12, s.moves); k++) {
+      const key = 'fw' + k;
+      if (s.pt < 28 + k * 6 || (fx.memo[key] ?? -1) === s.clearT) continue;
+      fx.memo[key] = s.clearT;
+      const x = X(GX + (0.08 + hsh(k * 7 + s.stage) * 0.84) * W * CS), y = Y(GY + 0.06 + hsh(k * 11 + s.stage) * 0.36), c = ['#ff6f86', '#ffd166', '#7fd6ff', '#9be884', '#c9a0ff'][k % 5];
+      fx.burst(x, y, c, 24, 4.5, 2.6), fx.burst(x, y, '#ffffff', 8, 2.5, 1.6), fx.ring(x, y, c, R(0.1), 3), fx.pop(x, y - R(0.03), '+10', '#fff6c0', 16), fx.kick(2);
+    }
   ctx.restore();
   drawHud(ctx, s, w, h, Y, R);
+}
+
+/** 판마다 새 장치 카드: 제목 · 하는 일 · 새것인가 */
+const CARD: Record<string, [string, string, boolean]> = {
+  berry: ['딸기 소풍', '이웃 둘을 톡톡 → 셋 이으면 냠!', false],
+  roll: ['김밥', '넷을 한 줄로 → 김밥! 바꾸면 한 줄이 싹', true],
+  ants: ['개미 줄', '옆을 냠 → 깜짝 도망 · 밑을 지우면 데굴', true],
+  ice: ['얼음 접시', '접시 위 음식을 냠! 해야 깨져요', true],
+  melon: ['수박 폭탄', 'ㄱ·T자·다섯 → 수박! 바꾸면 3×3 쾅', true],
+  rain: ['비 구름', '구름 밑 세 줄은 젖어서 못 바꿔요', true],
+  wind: ['회오리 바람', '바람 쪽으로 떨어져요 · 3수마다 바뀜', true],
+  feast: ['대잔치', '개미·얼음·구름이 한꺼번에!', false],
+};
+function drawDevice(ctx: CanvasRenderingContext2D, key: string, x: number, y: number, u: number, t: number) {
+  if (key === 'berry') drawFood(ctx, 0, x, y, u);
+  else if (key === 'roll') drawSpecial(ctx, KH, x, y, u, t);
+  else if (key === 'ants') drawAnt(ctx, x, y + u * 0.15, u * 1.15, t, { carry: 4, face: 'go', walk: t * 0.3 });
+  else if (key === 'ice') drawIce(ctx, x - u * 1.15, y - u * 1.15, u * 2.3, 2, t), drawFood(ctx, 5, x, y, u * 0.75);
+  else if (key === 'melon') drawSpecial(ctx, MELON, x, y, u, t);
+  else if (key === 'rain') {
+    ctx.strokeStyle = '#5a96e0';
+    ctx.lineWidth = 2;
+    for (let k = 0; k < 5; k++) {
+      const dx = (k - 2) * u * 0.38, dy = ((t * 1.5 + k * 9) % 20) / 20;
+      ctx.beginPath();
+      ctx.moveTo(x + dx, y + u * 0.2 + dy * u * 0.7);
+      ctx.lineTo(x + dx - 2, y + u * 0.45 + dy * u * 0.7);
+      ctx.stroke();
+    }
+    for (const [dx, dy, rr, c] of [[-0.55, 0, 0.42, '#9aa6b8'], [-0.1, -0.25, 0.55, '#c4cdd9'], [0.45, -0.05, 0.45, '#aab5c6']] as const) (ctx.fillStyle = c), ctx.beginPath(), ctx.arc(x + dx * u, y - u * 0.25 + dy * u, rr * u, 0, TAU), ctx.fill();
+  } else if (key === 'wind') {
+    ctx.strokeStyle = '#ff8a2b';
+    ctx.lineWidth = Math.max(3, u * 0.22);
+    ctx.lineCap = 'round';
+    const sw = Math.sin(t * 0.15) * u * 0.15;
+    ctx.beginPath();
+    ctx.moveTo(x + u * 0.8 + sw, y);
+    ctx.lineTo(x - u * 0.8 + sw, y);
+    ctx.moveTo(x - u * 0.8 + sw, y);
+    ctx.lineTo(x - u * 0.35 + sw, y - u * 0.45);
+    ctx.moveTo(x - u * 0.8 + sw, y);
+    ctx.lineTo(x - u * 0.35 + sw, y + u * 0.45);
+    ctx.stroke();
+    ctx.fillStyle = '#5cb84a';
+    for (let k = 0; k < 3; k++) (ctx.beginPath(), ctx.ellipse(x + u * (0.6 - k * 0.5) + sw, y + u * (k % 2 ? 0.65 : -0.65), u * 0.18, u * 0.09, t * 0.2 + k, 0, TAU), ctx.fill());
+  } else {
+    drawIce(ctx, x - u * 1.1, y - u * 0.6, u * 1.3, 1, t);
+    drawAnt(ctx, x + u * 0.35, y + u * 0.1, u * 0.95, t, { carry: 0, face: 'go', walk: t * 0.3 });
+  }
 }
 
 function drawHud(ctx: CanvasRenderingContext2D, s: PicState, w: number, h: number, Y: XF, R: XF) {
@@ -2389,29 +2578,63 @@ function drawHud(ctx: CanvasRenderingContext2D, s: PicState, w: number, h: numbe
     ctx.fillText(tx, w / 2, by2 + 1);
     ctx.globalAlpha = 1;
   }
-  // 판 시작 큰 글씨
+  // 판 시작: 새 장치 카드 (장치를 크게 그리고, 하는 일을 한 줄로) — 첫 바꾸기를 하면 접힌다
   {
-    const age = t - s.startT;
-    if (age < 75 && s.phase !== 'result') {
-      const a = Math.min(1, age / 8, (75 - age) / 16), sc = 1 + Math.max(0, 8 - age) * 0.04;
-      ctx.globalAlpha = a;
+    const age = t - s.startT, life = s.stage === 0 ? 70 : 150;
+    if (age < life && s.moves === d.K && s.phase !== 'result') {
+      const [title, how, isNew] = CARD[d.key];
+      const a = Math.min(1, age / 8, (life - age) / 16), pop = 1 + Math.max(0, 8 - age) * 0.03;
+      const cw = Math.min(w - 12, R(0.92)), ch = R(0.21), cy = Y(GY + CS * 2.2);
       ctx.save();
-      ctx.translate(w / 2, Y(GY + CS * 2.2));
-      ctx.scale(sc, sc);
-      font(0.066, 900);
-      ctx.textAlign = 'center';
-      ctx.lineWidth = 5;
-      ctx.strokeStyle = 'rgba(90,25,20,.8)';
-      const big = `${d.emoji} ${s.stage + 1}판 · ${d.name}`;
-      ctx.strokeText(big, 0, 0);
-      ctx.fillStyle = '#fff6e0';
-      ctx.fillText(big, 0, 0);
-      font(0.042, 800);
-      const sub = `바꾸기 ${d.K}번 안에!`;
-      ctx.strokeText(sub, 0, R(0.065));
-      ctx.fillText(sub, 0, R(0.065));
+      ctx.globalAlpha = a;
+      ctx.translate(w / 2, cy);
+      ctx.scale(pop, pop);
+      ctx.fillStyle = 'rgba(60,20,10,.35)';
+      ctx.beginPath();
+      ctx.roundRect(-cw / 2 + 3, -ch / 2 + 5, cw, ch, R(0.025));
+      ctx.fill();
+      ctx.fillStyle = '#fffaf0';
+      ctx.beginPath();
+      ctx.roundRect(-cw / 2, -ch / 2, cw, ch, R(0.025));
+      ctx.fill();
+      ctx.strokeStyle = isNew ? '#e8414f' : '#d9b07a';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      // 장치 그림
+      const ix = -cw / 2 + R(0.1), iy = 0, u = R(0.055);
+      ctx.fillStyle = '#fde9d6';
+      ctx.beginPath();
+      ctx.arc(ix, iy, R(0.08), 0, TAU);
+      ctx.fill();
+      drawDevice(ctx, d.key, ix, iy, u, t);
+      // 글
+      const tx = -cw / 2 + R(0.2), maxW = cw - R(0.23);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      let x0 = tx;
+      if (isNew) {
+        font(0.032, 900);
+        const nw = ctx.measureText('NEW').width + 12;
+        ctx.fillStyle = '#e8414f';
+        ctx.beginPath();
+        ctx.roundRect(tx, -ch * 0.3 - R(0.02), nw, R(0.04), R(0.02));
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('NEW', tx + 6, -ch * 0.3 + 1);
+        x0 = tx + nw + 6;
+      }
+      font(0.055, 900);
+      ctx.fillStyle = '#5a2a1a';
+      ctx.fillText(title, x0, -ch * 0.3);
+      let fs = 0.04;
+      font(fs, 800);
+      while (ctx.measureText(how).width > maxW && fs > 0.031) font((fs -= 0.001), 800);
+      ctx.fillStyle = '#3a2a20';
+      ctx.fillText(how, tx, ch * 0.04);
+      font(0.034, 800);
+      ctx.fillStyle = '#9a6a4a';
+      ctx.fillText(`${d.emoji} ${s.stage + 1}판 · 바꾸기 ${d.K}번 안에`, tx, ch * 0.32);
       ctx.restore();
-      ctx.globalAlpha = 1;
     }
   }
   // 결과
@@ -2436,7 +2659,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: PicState, w: number, h: numbe
       }
       font(0.036, 800);
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(`남은 바꾸기 ${s.moves} · 최대 연쇄 ×${s.maxWave}${d.ants ? ` · 쫓은 개미 ${s.scared}` : ''}`, w / 2, Y(0.825));
+      ctx.fillText(`남은 바꾸기 ${s.moves}개 → 폭죽! · 최대 연쇄 ×${s.maxWave}${d.ants ? ` · 쫓은 개미 ${s.scared}` : ''}`, w / 2, Y(0.825));
     } else {
       font(0.042, 800);
       ctx.fillStyle = '#ffffff';

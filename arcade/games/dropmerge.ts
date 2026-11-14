@@ -59,7 +59,7 @@ export interface Body {
   dead?: boolean;
 }
 export interface WEv { k: 'merge' | 'crack' | 'break' | 'wake' | 'bigpop' | 'splash' | 'land'; x: number; y: number; lv: number; id: number }
-export interface World { b: Body[]; t: number; slope: number; nid: number; out: WEv[]; nomerge: boolean; /** 이 단계 넘게는 안 합쳐짐(판 준비용) */ cap: number }
+export interface World { b: Body[]; t: number; slope: number; /** 시소 탕: 바닥이 이 기울기로 천천히 옮겨 간다 */ tilt: number; nid: number; out: WEv[]; nomerge: boolean; /** 이 단계 넘게는 안 합쳐짐(판 준비용) */ cap: number }
 
 export const floorY = (W: World, x: number) => FLOOR + W.slope * (x - 0.5);
 
@@ -116,6 +116,7 @@ export function splash(W: World, x: number) {
 /** 한 틱: 움직이고 → 겹침·벽·바닥 풀기(4번) → 마찰 → 닿은 같은 동물 합치기 */
 export function tick(W: World) {
   W.t++;
+  if (W.slope !== W.tilt) W.slope += Math.max(-0.004, Math.min(0.004, W.tilt - W.slope));
   const B = W.b;
   for (const b of B) {
     if (b.rock) continue;
@@ -227,7 +228,7 @@ export function motion(W: World) {
   return m;
 }
 
-const cloneW = (W: World): World => ({ b: W.b.map((b) => ({ ...b })), t: W.t, slope: W.slope, nid: W.nid, out: [], nomerge: W.nomerge, cap: W.cap });
+const cloneW = (W: World): World => ({ b: W.b.map((b) => ({ ...b })), t: W.t, slope: W.slope, tilt: W.tilt, nid: W.nid, out: [], nomerge: W.nomerge, cap: W.cap });
 
 /** 떨굴 수 있는 x 범위 (동물 크기만큼 벽에서 띄움) */
 export const clampX = (x: number, lv: number) => {
@@ -253,6 +254,8 @@ export interface StageDef {
   sleepy?: number;
   bucket?: number[];
   slope?: number;
+  /** 시소 탕: 이만큼 떨굴 때마다 반대로 기운다 */
+  flip?: number;
   /** 미리 앉아 있는 손님 [단계, x, 졸림] (차례로 떨궈 가라앉힘) */
   pre: [number, number, number?][];
   /** 붐비는 손님 수 · 그 단계 비율(병아리~양) · 졸린 비율 · 준비 중 합체 상한 */
@@ -275,7 +278,7 @@ export const STAGES: StageDef[] = [
     first: [0, 1, 0],
   },
   {
-    key: 'next', title: '만원 온천', news: '👀 오른쪽 위 나무통 = 다음 동물 — 자리를 남겨요', hint: '큰 동물은 한쪽에, 작은 동물은 위로',
+    key: 'next', title: '만원 온천', news: '🈵 만원 온천 — 금줄을 넘치면 실패! 오른쪽 위 = 다음 동물', hint: '큰 동물은 한쪽에, 작은 동물은 위로',
     goal: ['lv', 5], K: 20, R: 4, C: 4, w: [4, 3, 3, 1],
     pre: [], crowd: 40, cw: [4, 3, 3, 1], room: 0.13,
   },
@@ -296,8 +299,8 @@ export const STAGES: StageDef[] = [
     pre: [], crowd: 40, cw: [4, 3, 3, 1], cs: 0.4, room: 0.14,
   },
   {
-    key: 'slope', title: '기운 탕', news: '↘️ 탕이 기울었어요 — 낮은 쪽으로 데굴데굴', hint: '높은 쪽에 떨구면 굴러 내려가 붙어요',
-    goal: ['lv', 6], K: 40, R: 4, C: 5, w: [4, 3, 3, 1], slope: 0.3,
+    key: 'slope', title: '시소 탕', news: '⚖️ 시소 탕 — 4번 떨굴 때마다 반대로 기울어 와르르!', hint: '곧 낮아질 쪽에 같은 동물을 모아 둬요',
+    goal: ['lv', 6], K: 40, R: 4, C: 5, w: [4, 3, 3, 1], slope: 0.22, flip: 4,
     pre: [], crowd: 40, cw: [4, 3, 3, 1], room: 0.16,
   },
   {
@@ -315,7 +318,7 @@ export const STAGES: StageDef[] = [
 export const STAGE_COUNT = STAGES.length;
 
 // ───────────────────────────── 상태 ─────────────────────────────
-interface Ev { t: number; kind: string; x: number; y: number; text?: string; lv?: number }
+interface Ev { t: number; kind: string; x: number; y: number; text?: string; lv?: number; n?: number }
 type Phase = 'play' | 'clear' | 'result';
 
 export interface DMState {
@@ -363,9 +366,11 @@ export interface DMState {
   /** 금줄 위에 가장 오래 머문 동물의 틱 · 이 판에서 한 번도 금줄을 안 넘겼나(★) */
   warn: number;
   clean: boolean;
+  /** 느린 화면 남은 틱 (이 동안 물리는 두 틱에 한 번만 — 같은 결과가 천천히 보인다) */
+  slow: number;
 }
 
-const ev = (s: DMState, kind: string, x: number, y: number, text?: string, lv?: number) => s.events.push({ t: s.t, kind, x, y, text, lv });
+const ev = (s: DMState, kind: string, x: number, y: number, text?: string, lv?: number, n?: number) => s.events.push({ t: s.t, kind, x, y, text, lv, n });
 function see(s: DMState, key: string, text: string) {
   if (!key || s.seen.has(key)) return;
   s.seen.add(key);
@@ -379,7 +384,7 @@ const goalMet = (s: DMState) => {
 
 function newStage(s: DMState) {
   const d = STAGES[s.stage], r = s.rng;
-  const W: World = { b: [], t: 0, slope: d.slope ?? 0, nid: 1, out: [], nomerge: true, cap: d.cap ?? 4 };
+  const W: World = { b: [], t: 0, slope: d.slope ?? 0, tilt: d.slope ?? 0, nid: 1, out: [], nomerge: true, cap: d.cap ?? 4 };
   for (const [x, y, rad, hp] of d.rocks ?? []) {
     const b = newBody(W, 0, x, y);
     (b.rock = hp), (b.r = rad), (b.lv = -1), (b.air = false);
@@ -459,6 +464,7 @@ function newStage(s: DMState) {
   s.monkey = 0;
   s.warn = 0;
   s.clean = true;
+  s.slow = 0;
   s.lastDrop = s.t;
   if (d.key) s.seen.add(d.key);
 }
@@ -494,6 +500,12 @@ function drop(s: DMState, x: number) {
   // 떨굴 때마다 졸린 동물이 하나씩 깬다
   for (const b of s.W.b)
     if (b.sleep > 0 && --b.sleep === 0) s.W.out.push({ k: 'wake', x: b.x, y: b.y, lv: b.lv, id: b.id });
+  const d = STAGES[s.stage];
+  if (d.flip && s.qi % d.flip === 0) {
+    s.W.tilt = -s.W.tilt;
+    ev(s, 'tilt', 0.5, FLOOR, s.W.tilt > 0 ? '시소! ↘' : '↙ 시소!');
+    see(s, 'flip', '⚖️ 시소 탕이 반대로 기울어요 — 와르르!');
+  }
   if (it.bucket) {
     splash(s.W, x);
     see(s, 'bucket', '🪣 물바가지 콸콸! 둘레가 밀려나고 졸린 동물이 깨요');
@@ -536,14 +548,16 @@ function absorb(s: DMState) {
       s.bestCombo = Math.max(s.bestCombo, s.combo);
       s.steam += s.combo;
       s.maxLv = Math.max(s.maxLv, e.lv);
-      ev(s, e.k, e.x, e.y, s.combo > 1 ? `뿅×${s.combo}!` : '뿅!', e.lv);
+      ev(s, e.k, e.x, e.y, s.combo > 1 ? `뿅×${s.combo}!` : '뿅!', e.lv, s.combo);
+      // 큰 순간은 느린 화면으로 (연쇄가 길수록 더 오래)
+      if (s.combo >= 3 || e.lv >= 5 || e.k === 'bigpop') s.slow = Math.max(s.slow, e.k === 'bigpop' ? 60 : 18 + 8 * Math.min(5, Math.max(0, s.combo - 3)) + (e.lv >= 5 ? 14 : 0));
       see(s, 'merge', '💨 같은 동물 둘이 닿으면 뿅! 한 단계 큰 동물');
       if (s.combo === 2) see(s, 'combo', '🔗 연쇄! 합쳐진 동물이 또 합쳐졌어요');
       if (e.lv >= 3 && e.k === 'merge') see(s, 'a' + e.lv, `${EMO[e.lv]} 새 손님: ${NAMES[e.lv]}!`);
       if (e.k === 'bigpop') see(s, 'bigpop', '🐘🐘 코끼리 둘 = 온천 대폭발!');
       if (e.lv >= 4 || s.combo >= 3) (s.monkey = 2), (s.monkeyT = s.t);
     } else if (e.k === 'crack' || e.k === 'break') {
-      if (e.k === 'break') s.broke++;
+      if (e.k === 'break') (s.broke++, (s.slow = Math.max(s.slow, 34)));
       ev(s, e.k, e.x, e.y, e.k === 'break' ? '쩍! 바위가 깨졌어요' : '금이 갔어요!');
       (s.monkey = 2), (s.monkeyT = s.t);
     } else if (e.k === 'wake') {
@@ -573,10 +587,10 @@ export const dropmerge: GameDef<DMState> = {
   create(seed) {
     const rng = mulberry32(seed);
     const s = {
-      rng, seed, t: 0, stage: 0, phase: 'play', pt: 0, W: { b: [], t: 0, slope: 0, nid: 1, out: [], nomerge: false, cap: 99 }, Q: [], qi: 0, cd: 0,
+      rng, seed, t: 0, stage: 0, phase: 'play', pt: 0, W: { b: [], t: 0, slope: 0, tilt: 0, nid: 1, out: [], nomerge: false, cap: 99 }, Q: [], qi: 0, cd: 0,
       down: false, aim: 0.5, pending: null, wait: false, combo: 0, bestCombo: 0, maxLv: 0, broke: 0, steam: 0, leftAt: 0,
       hearts: 3, stars: 0, got: 0, starOk: [false, false, false], pts: 0, ok: false, why: '', seen: new Set<string>(), newsQ: [], news: null,
-      events: [], dead: false, won: false, tries: 0, again: false, firstTap: false, lastDrop: 0, monkey: 0, monkeyT: 0, warn: 0, clean: true,
+      events: [], dead: false, won: false, tries: 0, again: false, firstTap: false, lastDrop: 0, monkey: 0, monkeyT: 0, warn: 0, clean: true, slow: 0,
     } as DMState;
     newStage(s);
     return s;
@@ -597,7 +611,8 @@ export const dropmerge: GameDef<DMState> = {
       drop(s, s.pending);
       s.pending = null;
     }
-    tick(s.W);
+    if (s.slow > 0) s.slow--;
+    if (s.slow % 2 === 0) tick(s.W);
     absorb(s);
     s.events = s.events.filter((e) => s.t - e.t < 120);
     if (!s.news || s.t - s.news.t > NEWS_T) s.news = s.newsQ.length ? { text: s.newsQ.shift()!, t: s.t } : s.news;
@@ -640,8 +655,9 @@ const at = (x: number): Input => ({ tap: false, dir: 0, pointer: { x, y: DROPY /
 
 interface Sim { W: World; combo: number; steam: number; maxLv: number; broke: number }
 /** 이 자리에 떨구면? — 실제와 같은 물리로 멈출 때까지 굴려 본다 */
-function simDrop(W0: World, it: Item, x: number, maxT = 110): Sim {
+function simDrop(W0: World, it: Item, x: number, maxT = 110, flip = false): Sim {
   const W = cloneW(W0);
+  if (flip) W.tilt = -W.tilt;
   for (const b of W.b) if (b.sleep > 0) b.sleep--;
   if (it.bucket) splash(W, x);
   else newBody(W, it.lv, clampX(x, it.lv), DROPY, it.sleep);
@@ -710,7 +726,7 @@ function dropValue(s: DMState, r: Sim) {
 }
 
 /** 떨굴 후보 x: 고르게 13곳 + 위가 트인 같은 동물 바로 위 */
-function candidates(s: DMState, it: Item, W: World) {
+function candidates(it: Item, W: World) {
   const lv = it.bucket ? -1 : it.lv, xs: number[] = [];
   const lo = clampX(0, lv), hi = clampX(1, lv);
   for (let k = 0; k <= 12; k++) xs.push(lo + ((hi - lo) * k) / 12);
@@ -726,9 +742,10 @@ function exposed(W: World, b: Body) {
 
 export function plan(s: DMState): number {
   const it = s.Q[s.qi], nx = s.Q[s.qi + 1];
-  const xs = candidates(s, it, s.W);
+  const xs = candidates(it, s.W), fl = STAGES[s.stage].flip ?? 0;
+  const f1 = fl > 0 && (s.qi + 1) % fl === 0, f2 = fl > 0 && (s.qi + 2) % fl === 0;
   const res = xs.map((x) => {
-    const r = simDrop(s.W, it, x);
+    const r = simDrop(s.W, it, x, 110, f1);
     return { x, r, v: dropValue(s, r) };
   });
   res.sort((a, b) => b.v - a.v);
@@ -738,7 +755,7 @@ export function plan(s: DMState): number {
     for (const c of res.slice(0, 3)) {
       const st = { ...s, maxLv: Math.max(s.maxLv, c.r.maxLv), broke: s.broke + c.r.broke, steam: s.steam + c.r.steam, bestCombo: Math.max(s.bestCombo, c.r.combo) } as DMState;
       let v2 = -1e18;
-      for (const x2 of candidates(st, nx, c.r.W).filter((_, k) => k % 2 === 0)) v2 = Math.max(v2, dropValue(st, simDrop(c.r.W, nx, x2, 90)));
+      for (const x2 of candidates(nx, c.r.W).filter((_, k) => k % 2 === 0)) v2 = Math.max(v2, dropValue(st, simDrop(c.r.W, nx, x2, 90, f2)));
       const v = c.v * 0.35 + v2;
       if (v > bv) (bv = v), (best = c.x);
     }
@@ -850,6 +867,8 @@ const FUR = [
   ['#9d8fbf', '#bfb3dc', '#74679a'],
   ['#8fa8c6', '#b7cbe2', '#647e9e'],
 ];
+/** 연쇄 색: 길수록 노랑 → 주황 → 분홍 → 보라 → 하늘 */
+const COMBO_C = ['#ffffff', '#ffffff', '#ffe066', '#ffb347', '#ff7ab6', '#c49cff', '#6fe3ff', '#7dffb0', '#ffffff'];
 const PUFFS = new WeakMap<object, { x: number; y: number; r: number; life: number; max: number; vx: number; c: string }[]>();
 const HAPPY = new WeakMap<object, Map<number, number>>();
 const recentSay = new WeakMap<object, { x: number; y: number; t: number }[]>();
@@ -1292,8 +1311,36 @@ function itemAt(ctx: CanvasRenderingContext2D, it: Item, x: number, y: number, r
   ctx.save();
   ctx.translate(x, y);
   animal(ctx, it.lv, r, it.sleep ? 3 : 0, t, 7);
+  if (it.sleep) nightcap(ctx, r, t);
   ctx.restore();
   if (it.sleep) zz(ctx, x + r * 0.8, y - r * 0.9, r, it.sleep, t);
+}
+
+/** 졸린 동물 수면 모자 (몸 기준 좌표, 반지름 r) */
+function nightcap(ctx: CanvasRenderingContext2D, r: number, t: number) {
+  const sw = Math.sin(t * 0.05) * r * 0.08;
+  ctx.fillStyle = '#5b7bd6';
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.62, -r * 0.62);
+  ctx.quadraticCurveTo(-r * 0.1, -r * 1.25, r * 0.55 + sw, -r * 1.35);
+  ctx.quadraticCurveTo(r * 0.35, -r * 0.95, r * 0.62, -r * 0.62);
+  ctx.quadraticCurveTo(0, -r * 0.9, -r * 0.62, -r * 0.62);
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = Math.max(1, r * 0.06);
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.3, -r * 0.92);
+  ctx.lineTo(-r * 0.05, -r * 0.8);
+  ctx.moveTo(r * 0.05, -r * 1.12);
+  ctx.lineTo(r * 0.3, -r * 0.98);
+  ctx.stroke();
+  ctx.fillStyle = '#f2f4ff';
+  ctx.beginPath();
+  ctx.ellipse(0, -r * 0.66, r * 0.66, r * 0.13, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(r * 0.58 + sw, -r * 1.33, r * 0.14, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function zz(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, n: number, t: number) {
@@ -1579,6 +1626,14 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DMState, w: number, h: number
     const b = B[i];
     const px = X(b.x), py = Y(b.y), pr = R(b.r);
     if (b.rock) {
+      // 바위: 곧 깰 수 있으면(옆에 너구리 이상) 금빛으로 두근두근
+      const near = B.some((o) => !o.rock && o.lv >= ROCK_LV - 1 && Math.hypot(o.x - b.x, o.y - b.y) < o.r + b.r + 0.03);
+      const pulse = 0.5 + 0.5 * Math.sin(t * (near ? 0.3 : 0.1));
+      ctx.strokeStyle = near ? `rgba(255,224,102,${0.5 + pulse * 0.5})` : `rgba(255,150,90,${0.25 + pulse * 0.3})`;
+      ctx.lineWidth = near ? 4 : 2.5;
+      ctx.beginPath();
+      ctx.arc(px, py, pr + 4 + pulse * 3, 0, Math.PI * 2);
+      ctx.stroke();
       rockAt(ctx, px, py, pr, b.rock, b.id);
       continue;
     }
@@ -1592,6 +1647,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DMState, w: number, h: number
     ctx.rotate(Math.max(-0.5, Math.min(0.5, b.a)));
     ctx.scale((1 + sq * 0.1) * grow, (1 - sq * 0.1) * grow);
     animal(ctx, b.lv, pr, mood, t, b.id);
+    if (b.sleep > 0) nightcap(ctx, pr, t + b.id * 13);
     ctx.restore();
     if (b.sleep > 0) zz(ctx, px + pr * 0.55, py - pr * 0.75, pr, b.sleep, t + b.id * 9);
   }
@@ -1619,6 +1675,23 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DMState, w: number, h: number
       ctx.stroke();
       ctx.setLineDash([]);
     }
+  }
+
+  // 물바가지 물줄기 (콸콸 순간)
+  for (const e of s.events) {
+    const age = t - e.t;
+    if (e.kind !== 'splash' || age > 30) continue;
+    const k = 1 - age / 30, sx = X(e.x), wd = R(0.07) * k + 2;
+    const sg = ctx.createLinearGradient(sx - wd, 0, sx + wd, 0);
+    sg.addColorStop(0, 'rgba(120,220,255,0)');
+    sg.addColorStop(0.5, `rgba(200,245,255,${0.85 * k})`);
+    sg.addColorStop(1, 'rgba(120,220,255,0)');
+    ctx.fillStyle = sg;
+    ctx.fillRect(sx - wd, Y(DROPY), wd * 2, Y(water) - Y(DROPY));
+    ctx.fillStyle = `rgba(220,250,255,${0.6 * k})`;
+    ctx.beginPath();
+    ctx.ellipse(sx, Y(water), R(SPL) * (1 - k * 0.5), R(0.03) * k + 2, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   // ── 물 (앞쪽 반투명 층) + 물결 ──
@@ -1832,15 +1905,22 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DMState, w: number, h: number
     if (e.t <= seenT) continue;
     const x = X(e.x), y = Y(e.y);
     if (e.kind === 'merge' || e.kind === 'bigpop') {
-      const lv = e.lv ?? 0, big = lv >= 4 || e.kind === 'bigpop', u = R(RAD[Math.min(MAXLV, lv)]);
-      steam(x, y - u * 0.3, 2 + Math.min(3, lv >> 1), u * 1.1);
-      fx.burst(x, y, '#ffffff', 10 + lv * 3, 2.5 + lv * 0.4, 2.4);
-      fx.ring(x, y, big ? '#ffe066' : '#ffffff', u * 1.8, 3 + lv * 0.5);
-      fx.kick(1.5 + lv * 0.9 + (e.kind === 'bigpop' ? 10 : 0));
-      if (e.text === '뿅!') say(x, y - u - 6, lv >= 4 ? `${EMO[lv]} ${NAMES[lv]}!` : '뿅!', lv >= 4 ? '#ffe9a8' : '#ffffff', lv >= 4 ? 18 : 16);
+      // 연쇄가 길수록 점점 더 크게: 파티클·고리·흔들림·번쩍·떠오르는 큰 숫자
+      const lv = e.lv ?? 0, k = Math.min(8, e.n ?? 1), u = R(RAD[Math.min(MAXLV, lv)]), col = COMBO_C[Math.min(COMBO_C.length - 1, k)];
+      steam(x, y - u * 0.3, 2 + Math.min(4, (lv >> 1) + k), u * (1 + k * 0.15));
+      fx.burst(x, y, col, 12 + k * 7 + lv * 2, 2.6 + k * 0.55 + lv * 0.3, 2.4 + k * 0.25);
+      fx.burst(x, y, '#ffffff', 8 + lv, 2, 2);
+      fx.ring(x, y, col, u * (1.6 + k * 0.5), 3 + k);
+      if (k >= 2) fx.ring(x, y, '#ffffff', u * (2.4 + k * 0.7), 2);
+      fx.kick(1.5 + lv * 0.7 + k * 1.8 + (e.kind === 'bigpop' ? 12 : 0));
+      if (k >= 3) fx.blink(col, Math.min(0.35, 0.07 * k));
+      if (k >= 2) say(x, y - u - 8, `×${k}`, col, Math.min(46, 18 + k * 5));
+      else say(x, y - u - 6, lv >= 4 ? `${EMO[lv]} ${NAMES[lv]}!` : '뿅!', lv >= 4 ? '#ffe9a8' : '#ffffff', lv >= 4 ? 19 : 16);
+      if (k >= 4) steam(x, y - u * 2, 6, R(0.12), '255,240,250');
       for (const b of B) if (Math.hypot(b.x - e.x, b.y - e.y) < 0.02) happy.set(b.id, t + 60);
-      if (e.kind === 'bigpop') fx.blink('#fff6c8', 0.4);
+      if (e.kind === 'bigpop') fx.blink('#fff6c8', 0.45);
     }
+    if (e.kind === 'tilt') (fx.kick(6), say(x, Y(FLOOR - 0.12), e.text!, '#ffe066', 22), fx.burst(x, Y(FLOOR + 0.03), '#e9d2a8', 24, 4, 2.6));
     if (e.kind === 'land') {
       const inWater = e.y > water;
       fx.burst(x, y, inWater ? '#bff4ff' : '#e9e4f5', inWater ? 8 : 5, 2.2, 2.2);
@@ -1879,26 +1959,96 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DMState, w: number, h: number
   }
   PUFFS.set(s, puffs.filter((p) => p.life > 0).slice(-90));
   // 뿅 콤보 큰 글자
-  if (s.combo >= 2 && s.t - s.lastDrop < 200) {
+  if (s.combo >= 2 && s.t - s.lastDrop < 260) {
     const last = s.events.filter((e) => e.kind === 'merge' || e.kind === 'bigpop').at(-1);
-    const age = last ? s.t - last.t : 99;
-    if (age < 50) {
-      const sc = 1 + Math.max(0, 8 - age) * 0.06;
+    const age = last ? s.t - last.t : 99, k = Math.min(8, s.combo);
+    if (age < 60) {
+      const sc = (1 + k * 0.07) * (1 + Math.max(0, 8 - age) * 0.07);
       ctx.save();
-      ctx.translate(w / 2, Y(0.6));
+      ctx.translate(w / 2, Y(LINE - 0.075));
+      ctx.rotate(Math.sin(t * 0.35) * 0.012 * k);
       ctx.scale(sc, sc);
-      ctx.globalAlpha = Math.min(1, (50 - age) / 12);
-      font(0.075, 900);
+      ctx.globalAlpha = Math.min(1, (60 - age) / 12);
+      font(0.07, 900);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.lineWidth = 5;
       ctx.strokeStyle = 'rgba(40,20,60,.7)';
       const big = s.events.filter((e) => (e.kind === 'merge' || e.kind === 'bigpop') && e.t >= s.lastDrop).reduce((m, e) => Math.max(m, e.lv ?? 0), 0);
-      const tx = `연쇄 뿅×${s.combo}!${big >= 3 ? ' ' + EMO[big] : ''}`;
+      const tx = `${k >= 6 ? '온천 폭발!! ' : k >= 4 ? '대연쇄! ' : '연쇄 '}뿅×${s.combo}${big >= 3 ? ' ' + EMO[big] : '!'}`;
       ctx.strokeText(tx, 0, 0);
-      ctx.fillStyle = s.combo >= d.C ? '#ffe066' : '#ffffff';
+      ctx.fillStyle = COMBO_C[Math.min(COMBO_C.length - 1, k)];
       ctx.fillText(tx, 0, 0);
+      if (s.combo >= d.C) {
+        font(0.04, 900);
+        ctx.fillStyle = '#ffe066';
+        ctx.fillText('★ 연쇄 별!', 0, R(0.055));
+      }
       ctx.restore();
+    }
+  }
+  // 시소 탕: 받침목 + 몇 번 뒤에 반대로 기우는지
+  if (d.flip) {
+    const left = d.flip - (s.qi % d.flip), cx = X(0.5), cy = Y(FLOOR + 0.038);
+    ctx.fillStyle = '#7a4f2a';
+    ctx.beginPath();
+    ctx.moveTo(cx - R(0.06), Y(BAND - 0.005));
+    ctx.lineTo(cx, Y(FLOOR + 0.01));
+    ctx.lineTo(cx + R(0.06), Y(BAND - 0.005));
+    ctx.closePath();
+    ctx.fill();
+    const dir = W.tilt > 0 ? '↙' : '↘', soon = left <= 1;
+    font(0.04, 900);
+    const tx = soon ? `⚖️ 다음에 ${dir} 와르르!` : `⚖️ ${left}번 뒤 ${dir}`, tw = ctx.measureText(tx).width + R(0.05);
+    ctx.fillStyle = soon && t % 16 < 8 ? 'rgba(190,60,40,.92)' : 'rgba(40,26,20,.85)';
+    ctx.beginPath();
+    ctx.roundRect(cx - tw / 2, cy - R(0.028), tw, R(0.056), R(0.028));
+    ctx.fill();
+    ctx.fillStyle = '#ffe9a8';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(tx, cx, cy);
+  }
+  // 김 모으기: 탕 위에 모이는 김 구름 (목표까지 차오른다)
+  if (d.goal[0] === 'steam') {
+    const p = Math.min(1, s.steam / d.goal[1]), cx = X(0.5), cy = Y(0.17), rr = R(0.035 + 0.06 * p);
+    ctx.fillStyle = `rgba(255,255,255,${0.55 + 0.3 * p})`;
+    for (let k = 0; k < 7; k++) {
+      const a = (k / 7) * Math.PI * 2 + t * 0.01;
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(a) * rr * 0.9, cy + Math.sin(a) * rr * 0.45, rr * 0.62, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.arc(cx, cy, rr * 0.8, 0, Math.PI * 2);
+    ctx.fill();
+    font(0.046, 900);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#3a4a7a';
+    ctx.fillText(`♨️ ${Math.min(s.steam, d.goal[1])}/${d.goal[1]}`, cx, cy);
+  }
+  // 2판: 다음 동물 나무통을 반짝
+  if (d.key === 'next' && s.pt < 300 && s.phase === 'play') {
+    const pulse = (t % 40) / 40;
+    ctx.strokeStyle = `rgba(255,236,120,${1 - pulse})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(X(0.9), Y(0.19), R(0.07) * (1 + pulse * 0.6), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // 느린 화면: 위아래 검은 띠 + 글자
+  if (s.slow > 0) {
+    const k = Math.min(1, s.slow / 10);
+    ctx.fillStyle = 'rgba(8,6,20,.6)';
+    ctx.fillRect(0, Y(HB), w, R(0.04) * k);
+    ctx.fillRect(0, Y(BAND) - R(0.04) * k, w, R(0.04) * k);
+    if (k > 0.5) {
+      ctx.fillStyle = 'rgba(255,255,255,.9)';
+      font(0.034, 800);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('▶ 느린 화면 ◀', w / 2, Y(HB) + R(0.02));
     }
   }
   ctx.restore();

@@ -413,9 +413,10 @@ export function buildLevel(seed: number, stage: number): Level {
 }
 
 // ───────────────────────────── 상태 ─────────────────────────────
-interface Ev { t: number; kind: string; x: number; y: number; text?: string; col?: string; v?: number }
+/** t = 생긴 틱(나이 재기), d = 화면 시계(vt)로 터질 때, n = 연속 몇 번째 */
+interface Ev { t: number; d: number; kind: string; x: number; y: number; text?: string; col?: string; n?: number }
 /** 장난감 하나의 화면 위치: (fx,fy)→(tx,ty)로 t0부터 dur 동안. where 0 더미 · 1 기차 · 2 사라짐. style 0 보통 · 1 풍선 · 2 뿅 · 3 깜짝 · 4 물려 감 */
-interface Vis { x: number; y: number; a: number; s: number; fx: number; fy: number; fa: number; fs: number; tx: number; ty: number; ta: number; ts: number; t0: number; dur: number; hop: number; where: number; style: number; wob: number; wv: number; gx: number; gy: number; gw: number; la: number }
+interface Vis { x: number; y: number; a: number; s: number; fx: number; fy: number; fa: number; fs: number; tx: number; ty: number; ta: number; ts: number; t0: number; dur: number; hop: number; where: number; style: number; wob: number; wv: number; gx: number; gy: number; gw: number; la: number; ld: number }
 interface Sch { at: number; id: number; x: number; y: number; a: number; s: number; dur: number; hop: number; where: number; style: number }
 export interface ToyState {
   rng: Rng; seed: number; t: number; stage: number; phase: 'play' | 'settle' | 'result'; pt: number;
@@ -425,9 +426,13 @@ export interface ToyState {
   seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[]; startT: number; clearT: number;
   vis: Vis[]; sch: Sch[]; busy: number; dogRun: { t0: number; id: number; x0: number; x1: number; y1: number } | null;
   mood: string; moodT: number; catT: number; puffT: number; lastX: number;
+  /** 화면 시계: 보통은 틱마다 1, '와!' 하는 순간엔 0.3씩(잠깐 느려짐). 연출 예약은 모두 이 시계로 */
+  vt: number; slow: number; slowQ: { at: number; n: number }[]; quakes: { at: number; x: number; p: number }[];
+  banner: { text: string; sub: string; at: number; n: number; col: string } | null;
 }
 
-const ev = (s: ToyState, kind: string, x: number, y: number, text?: string, col?: string, v?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v });
+const ev = (s: ToyState, kind: string, x: number, y: number, text?: string, col?: string, due?: number, n?: number) => s.events.push({ t: s.t, d: due ?? s.vt, kind, x, y, text, col, n });
+const slowAt = (s: ToyState, at: number, n: number) => s.slowQ.push({ at, n });
 function tip(s: ToyState, key: string, text: string) {
   if (s.tips.has(key) || s.newsQ.length) return;
   s.tips.add(key);
@@ -475,7 +480,8 @@ function fire(s: ToyState, q: Sch) {
   v.ty = q.y;
   v.ta = q.a;
   v.ts = q.s;
-  v.t0 = s.t;
+  v.t0 = s.vt;
+  v.ld = 0;
   v.dur = q.dur;
   v.hop = q.hop;
   v.where = q.where;
@@ -487,9 +493,12 @@ function newStage(s: ToyState) {
   s.L = buildLevel(s.seed, s.stage);
   s.S = newSim(s.L);
   const L = s.L;
-  s.vis = L.kind.map(() => ({ x: 0, y: 0, a: 0, s: 1, fx: 0, fy: 0, fa: 0, fs: 1, tx: 0, ty: 0, ta: 0, ts: 1, t0: -99, dur: 1, hop: 0, where: 0, style: 0, wob: 0, wv: 0, gx: 0, gy: 0, gw: 0, la: 0 }));
+  s.vis = L.kind.map(() => ({ x: 0, y: 0, a: 0, s: 1, fx: 0, fy: 0, fa: 0, fs: 1, tx: 0, ty: 0, ta: 0, ts: 1, t0: -99, dur: 1, hop: 0, where: 0, style: 0, wob: 0, wv: 0, gx: 0, gy: 0, gw: 0, la: 0, ld: 1 }));
   s.sch = [];
-  s.busy = s.t;
+  s.slowQ = [];
+  s.quakes = [];
+  s.banner = null;
+  s.busy = s.vt;
   // 바구니에 와르르 쏟아지며 시작
   L.cols0.forEach((col, c) =>
     col.forEach((id, l) => {
@@ -497,7 +506,7 @@ function newStage(s: ToyState) {
       v.x = v.tx = x + (c - (L.W - 1) / 2) * 0.03;
       v.y = v.ty = -0.15 - l * 0.09 - c * 0.02;
       v.a = v.ta = restA(L, id) + (c % 2 ? 1.5 : -1.5);
-      sched(s, { at: s.t + 2 + l * 3 + ((c * 5) % 7), id, x, y, a: restA(L, id), s: 1, dur: 20, hop: 0, where: 0, style: 0 });
+      sched(s, { at: s.vt + 2 + l * 3 + ((c * 5) % 7), id, x, y, a: restA(L, id), s: 1, dur: 20, hop: 0, where: 0, style: 0 });
     }),
   );
   s.dogRun = null;
@@ -508,7 +517,9 @@ function newStage(s: ToyState) {
   s.startT = s.t;
   s.got = 0;
   setMood(s, 'idle');
-  see(s, d.key, d.news);
+  // 새 장치가 있는 판은 소개 카드가 알림을 대신한다
+  if (CARDS[d.key]) s.seen.add(d.key);
+  else see(s, d.key, d.news);
   ev(s, 'stage', 0.5, 0.6, `${s.stage + 1}판 · ${d.name}`, '#fff6d6');
 }
 
@@ -523,7 +534,7 @@ function finish(s: ToyState) {
     s.pts += st * STAR_PTS + Math.max(0, 6 - S.peak) * 8 + Math.min(S.best, 6) * 6;
     s.clearT = s.t;
     if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS);
-    ev(s, 'clear', 0.5, 0.6, `${d.emoji} ${d.name} 정리 끝! ${'★'.repeat(st)}${'☆'.repeat(3 - st)}`, '#fff1a8', st);
+    ev(s, 'clear', 0.5, 0.6, `${d.emoji} ${d.name} 정리 끝! ${'★'.repeat(st)}${'☆'.repeat(3 - st)}`, '#fff1a8');
     setMood(s, 'cheer');
   } else {
     s.hearts--;
@@ -548,9 +559,9 @@ function pickToy(s: ToyState, x: number, y: number) {
 }
 
 /** 규칙 결과를 화면 연출(날아가는 장난감·와르르·뿅)로 옮긴다 */
-function playRec(s: ToyState, rec: RE[]) {
+function playRec(s: ToyState, rec: RE[], combo0: number) {
   const L = s.L;
-  let tc = s.t, land = s.t, slides = 0;
+  let tc = s.vt, land = s.vt, slides = 0, pops = 0, lastSlide = 0;
   // 직전 기차 모습(뿅 할 장난감 자리 찾기용) = 기차로 가기로 한 장난감들을 왼쪽부터
   let tray = s.vis.map((_, i) => i).filter((i) => s.vis[i].gw === 1);
   tray.sort((a, b) => s.vis[a].gx - s.vis[b].gx);
@@ -572,13 +583,20 @@ function playRec(s: ToyState, rec: RE[]) {
     if (e.k === 'pop') {
       const tp = land + 2;
       let cx = 0;
-      for (const q of e.ids) {
-        const x = slotXY(Math.max(0, tray.indexOf(q)))[0];
-        cx += x / 3;
-        sched(s, { at: tp, id: q, x, y: TRAY_Y - 0.075, a: 0, s: 1.15, dur: 12, hop: 0.02, where: 2, style: 2 });
+      for (const q of e.ids) cx += slotXY(Math.max(0, tray.indexOf(q)))[0] / 3;
+      // 셋이 한가운데로 모여 부풀었다가 뿅
+      for (const q of e.ids) sched(s, { at: tp, id: q, x: cx, y: TRAY_Y - 0.09, a: 0, s: 1.4, dur: 12, hop: 0.03, where: 2, style: 2 });
+      pops++;
+      const n = combo0 + pops, g = STAGES[s.stage].goal;
+      ev(s, 'pop', cx, TRAY_Y - 0.08, e.kind === KEY ? '🔑 뿅!' : n >= 3 ? '뿅뿅뿅!!' : n === 2 ? '뿅뿅!' : '뿅!', '#fff3a8', tp + 12, n);
+      if (g && g.kind === e.kind) {
+        const done = s.S.mk[e.kind] - rec.filter((z) => z.k === 'pop' && z.kind === e.kind).length + rec.filter((z) => z.k === 'pop' && z.kind === e.kind).indexOf(e) + 1;
+        ev(s, 'goal', cx, TRAY_Y - 0.2, `🎯 ${KIND[e.kind].emo} ${done >= g.n ? '다 모았다!' : `${done}/${g.n}`}`, '#bff7c4', tp + 16);
       }
-      for (const q of e.ids) s.vis[q].gx = cx;
-      ev(s, 'pop', cx, TRAY_Y - 0.07, e.kind === KEY ? '🔑 뿅!' : '뿅!', '#fff3a8', tp + 12);
+      if (n >= 2) {
+        s.banner = { text: n >= 3 ? `${n}연속 뿅!!` : '2연속 뿅!', sub: n >= 3 ? '대박! 기차가 신났어요' : '연달아 뿅 — 콤보!', at: tp + 12, n, col: n >= 3 ? '#ff9fd0' : '#ffe066' };
+        slowAt(s, tp + 10, Math.min(32, 16 + (n - 2) * 7));
+      }
       e.tray.forEach((q, j) => sched(s, { at: tp + 14, id: q, x: slotXY(j)[0], y: TRAY_Y, a: 0, s: TRAY_S, dur: 10, hop: 0.02, where: 1, style: 0 }));
       land = tp + 24;
       tray = e.tray;
@@ -586,9 +604,11 @@ function playRec(s: ToyState, rec: RE[]) {
     }
     if (e.k === 'slide') {
       const [x1, y1] = pilePos(L, e.to, e.lvl, e.id), at = tc + 7 + slides * 5;
-      sched(s, { at, id: e.id, x: x1, y: y1, a: restA(L, e.id) + (e.to < e.from ? -TAU : TAU), s: 1, dur: 16, hop: 0.035, where: 0, style: 0 });
-      ev(s, 'slide', x1, y1, undefined, '#ffe6b8', at + 16);
+      sched(s, { at, id: e.id, x: x1, y: y1, a: restA(L, e.id) + (e.to < e.from ? -TAU : TAU), s: 1, dur: 16, hop: 0.05, where: 0, style: 0 });
       slides++;
+      ev(s, 'slide', x1, y1, undefined, '#ffe6b8', at + 16, slides);
+      s.quakes.push({ at: at + 16, x: x1, p: Math.min(1, 0.4 + slides * 0.15) });
+      lastSlide = at + 16;
       continue;
     }
     if (e.k === 'drop') {
@@ -601,6 +621,7 @@ function playRec(s: ToyState, rec: RE[]) {
       const v = s.vis[e.id];
       sched(s, { at: tc, id: e.id, x: v.gx, y: v.gy - 0.05, a: 0, s: 1.25, dur: 26, hop: 0.05, where: 2, style: 3 });
       ev(s, 'jack', v.gx, v.gy, '띠요옹~ 퉁!', '#f3d2ff', tc + 4);
+      slowAt(s, tc + 3, 14);
       tc += 9;
       continue;
     }
@@ -608,6 +629,8 @@ function playRec(s: ToyState, rec: RE[]) {
       const v = s.vis[e.id];
       sched(s, { at: tc, id: e.id, x: v.gx, y: v.gy - 0.03, a: 0, s: 1.3, dur: 30, hop: 0.03, where: 2, style: 3 });
       ev(s, 'chest', v.gx, v.gy, '👑 보물이다!', '#fff1a8', tc + 10);
+      s.banner = { text: '👑 보물 상자 열림!', sub: '반짝반짝 왕관 셋!', at: tc + 10, n: 3, col: '#ffe066' };
+      slowAt(s, tc + 8, 28);
       tc += 12;
       continue;
     }
@@ -633,16 +656,18 @@ function playRec(s: ToyState, rec: RE[]) {
       if (v.gw !== 0 || Math.abs(v.gx - x) > 1e-6 || Math.abs(v.gy - y) > 1e-6) sched(s, { at: tc + 8, id, x, y, a: restA(L, id), s: 1, dur: 12, hop: 0.01, where: 0, style: 0 });
     }),
   );
-  if (slides >= 2 && !s.events.some((e) => e.kind === 'slide' && e.text && s.t - e.t < 70)) {
+  if (slides >= 2) {
     const last = [...rec].reverse().find((e) => e.k === 'slide');
     if (last && last.k === 'slide') {
       const [x1, y1] = pilePos(L, last.to, last.lvl, last.id);
-      ev(s, 'slide', x1, y1, slides >= 4 ? `와르르르 ×${slides}!` : '와르르!', '#ffe6b8', tc + 7 + slides * 5 + 12);
+      ev(s, 'crash', x1, y1, slides >= 4 ? `와르르르 ×${slides}!` : slides === 3 ? '와르르르!' : '와르르!', '#ffe6b8', lastSlide, slides);
     }
+    // 크게 무너지면 잠깐 느리게
+    if (slides >= 3) slowAt(s, lastSlide - 10, 10 + slides * 3);
   }
   if (slides >= 1) {
     see(s, 'slide', '⛰️ 와르르 — 낮아진 자리로 옆 더미가 굴러 내려와요');
-    s.catT = s.t + 7;
+    s.catT = s.vt + 7;
   }
   if (rec.some((e) => e.k === 'pop')) see(s, 'pop', '🎉 같은 장난감 셋이 모이면 뿅!');
 }
@@ -652,13 +677,13 @@ function tapToy(s: ToyState, id: number) {
   const [px, py] = posOf(L, S, id);
   s.lastX = px;
   if (why === 1) {
-    ev(s, 'blocked', px, py, '위에 장난감이 있어요!', '#ffd0c8', id);
+    ev(s, 'blocked', px, py, '위에 장난감이 있어요!', '#ffd0c8');
     setMood(s, 'huh');
     tip(s, 'blocked', '맨 위에 드러난 장난감만 꺼낼 수 있어요');
     return;
   }
   if (why === 2) {
-    ev(s, 'locked', px, py, '🔒 열쇠 셋을 먼저!', '#ffd0c8', id);
+    ev(s, 'locked', px, py, '🔒 열쇠 셋을 먼저!', '#ffd0c8');
     setMood(s, 'huh');
     return;
   }
@@ -669,13 +694,14 @@ function tapToy(s: ToyState, id: number) {
     const v = s.vis[q], dd = Math.hypot(v.x - px, v.y - py);
     if (q !== id && dd < 0.22) v.wv += (v.x < px ? -1 : 1) * 0.035 * (1 - dd / 0.22);
   }));
+  const combo0 = S.combo;
   apply(L, S, id, rec);
   s.cool = s.t + COOL;
   s.lastTap = s.t;
   s.taps++;
-  playRec(s, rec);
+  playRec(s, rec, combo0);
   // 새로 드러난 장난감은 반짝
-  const late = Math.min(s.busy, s.t + 40);
+  const late = Math.min(s.busy, s.vt + 40);
   for (const q of movesOf(L, S)) if (!free0.has(q) && !rec.some((e) => e.k === 'slide' && e.id === q) && !rec.some((e) => e.k === 'dog' && e.id === q)) {
     const [x, y] = posOf(L, S, q);
     ev(s, 'reveal', x, y, undefined, '#fff6a8', late);
@@ -686,35 +712,46 @@ function tapToy(s: ToyState, id: number) {
     s.pt = 0;
     s.ok = false;
     s.why = S.fail === 1 ? '기차가 꽉 찼어요!' : '꺼낼 장난감이 없어요!';
-    ev(s, 'jam', 0.5, TRAY_Y, '꽉!', '#ffb4a8', Math.min(s.busy, s.t + 30));
+    ev(s, 'jam', 0.5, TRAY_Y, '꽉!', '#ffb4a8', Math.min(s.busy, s.vt + 30));
   } else if (S.done) {
     s.phase = 'settle';
     s.pt = 0;
     s.ok = true;
+    slowAt(s, s.busy - 12, 24);
   }
   if (S.tray.length >= 5 && !S.fail) (setMood(s, 'worry'), tip(s, 'full', '⚠️ 기차가 거의 찼어요 — 셋이 되는 걸 골라요!'));
   else if (rec.some((e) => e.k === 'pop')) setMood(s, 'smug');
   else if (slides >= 2 || rec.some((e) => e.k === 'jack' || e.k === 'dog')) setMood(s, 'wow');
   if (rec.some((e) => e.k === 'pop')) s.puffT = s.busy - 10;
   const C = STAGES[s.stage].C;
-  if (S.combo >= 2 && rec.some((e) => e.k === 'pop')) ev(s, 'streak', 0.5, 1.0, S.combo >= C ? `★ 연속 뿅 ${S.combo}!` : `연속 뿅 ${S.combo}!`, '#ffd166', Math.min(s.busy, s.t + 40));
+  if (S.combo >= C && combo0 < C && s.banner) s.banner.sub = `★ 연속 뿅 ${C} 별 달성!`;
 }
 
 function animate(s: ToyState) {
   if (s.sch.length) {
     s.sch.sort((a, b) => a.at - b.at);
-    while (s.sch.length && s.sch[0].at <= s.t) fire(s, s.sch.shift()!);
+    while (s.sch.length && s.sch[0].at <= s.vt) fire(s, s.sch.shift()!);
+  }
+  // 와르르 착지: 근처 장난감이 함께 들썩
+  for (let i = s.quakes.length - 1; i >= 0; i--) {
+    const q = s.quakes[i];
+    if (q.at > s.vt) continue;
+    s.quakes.splice(i, 1);
+    for (const v of s.vis) if (v.where === 0 && Math.abs(v.x - q.x) < 0.3) v.wv += (v.x < q.x ? -1 : 1) * 0.05 * q.p * (1 - Math.abs(v.x - q.x) / 0.3);
   }
   for (const v of s.vis) {
-    const u = s.t - v.t0;
+    const u = s.vt - v.t0;
     if (u < v.dur) {
       const q = v.style === 1 ? (1 - Math.cos((Math.PI * u) / v.dur)) / 2 : ease(u / v.dur);
       v.x = v.fx + (v.tx - v.fx) * q;
       v.y = v.fy + (v.ty - v.fy) * q - v.hop * Math.sin(Math.PI * q);
       v.a = v.fa + (v.ta - v.fa) * q;
       v.s = v.fs + (v.ts - v.fs) * q;
-      if (u === v.dur - 1 && v.where === 0) v.wv += 0.06 * (v.fx < v.tx ? 1 : -1);
-    } else (v.x = v.tx), (v.y = v.ty), (v.a = v.ta), (v.s = v.ts);
+    } else {
+      (v.x = v.tx), (v.y = v.ty), (v.a = v.ta), (v.s = v.ts);
+      if (!v.ld && v.where === 0) v.wv += 0.08 * (v.fx < v.tx ? 1 : -1);
+      v.ld = 1;
+    }
     v.wv += -0.16 * v.wob - 0.1 * v.wv;
     v.wob += v.wv;
   }
@@ -742,6 +779,7 @@ export const toypile: GameDef<ToyState> = {
       hearts: 3, stars: 0, got: 0, pts: 0, ok: false, why: '', won: false, dead: false, tries: 0,
       seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsQ: [], startT: 0, clearT: 0,
       vis: [], sch: [], busy: 0, dogRun: null, mood: 'idle', moodT: 0, catT: -99, puffT: -99, lastX: 0.5,
+      vt: 0, slow: 0, slowQ: [], quakes: [], banner: null,
     } as unknown as ToyState;
     newStage(s);
     return s;
@@ -754,8 +792,11 @@ export const toypile: GameDef<ToyState> = {
     s.pt++;
     if (s.newsQ.length && (!s.news || s.t - s.news.t > NEWS_T)) s.news = { text: s.newsQ.shift()!, t: s.t };
     if (s.events.length > 60 || (s.events.length && s.t - s.events[0].t > 240)) s.events = s.events.filter((e) => s.t - e.t < 240);
+    for (let i = s.slowQ.length - 1; i >= 0; i--) if (s.slowQ[i].at <= s.vt) (s.slow = Math.max(s.slow, s.slowQ[i].n)), s.slowQ.splice(i, 1);
+    s.vt += s.slow > 0 ? 0.3 : 1;
+    if (s.slow > 0) s.slow--;
     animate(s);
-    if (s.dogRun && s.t > s.dogRun.t0 + 110) s.dogRun = null;
+    if (s.dogRun && s.vt > s.dogRun.t0 + 110) s.dogRun = null;
     if (s.mood !== 'idle' && s.t - s.moodT > (s.mood === 'dizzy' || s.mood === 'cheer' ? 400 : 80)) s.mood = s.S.tray.length >= 5 && s.phase === 'play' ? 'worry' : 'idle';
     if (s.phase === 'result') {
       if (s.pt >= (s.ok ? RESULT_OK : RESULT_FAIL)) {
@@ -768,7 +809,7 @@ export const toypile: GameDef<ToyState> = {
       return;
     }
     if (s.phase === 'settle') {
-      if (s.t >= s.busy + 14 && s.pt >= 30) finish(s);
+      if (s.vt >= s.busy + 14 && s.pt >= 30) finish(s);
       return;
     }
     if (p) s.press = pickToy(s, p.x, p.y * A);
@@ -1716,7 +1757,7 @@ function drawEngine(ctx: CanvasRenderingContext2D, s: ToyState, X: Fn, Y: Fn, R:
   ctx.fillStyle = '#3a3a48';
   ctx.fillRect(X(0.04), Y(TRAY_Y - 0.048) + bob, R(0.022), R(0.042));
   ctx.fillRect(X(0.034), Y(TRAY_Y - 0.054) + bob, R(0.034), R(0.012));
-  const pu = t - s.puffT;
+  const pu = s.vt - s.puffT;
   for (let k = 0; k < 4; k++) {
     const age = pu >= 0 && pu < 60 ? pu - k * 6 : (t + k * 30) % 120;
     if (age < 0) continue;
@@ -1735,7 +1776,7 @@ function drawEngine(ctx: CanvasRenderingContext2D, s: ToyState, X: Fn, Y: Fn, R:
   ctx.fillStyle = 'rgba(255,255,255,.3)';
   ctx.fillRect(X(0.1), Y(TRAY_Y - 0.024) + bob, R(0.054), R(0.006));
   // 기관사 뭉치
-  const away = s.dogRun && t >= s.dogRun.t0 && t < s.dogRun.t0 + 100;
+  const away = s.dogRun && s.vt >= s.dogRun.t0 && s.vt < s.dogRun.t0 + 100;
   if (!away) drawPup(ctx, X(0.127), Y(TRAY_Y - 0.05) + bob, R(0.058), s, t);
   ctx.fillStyle = '#244f9e';
   ctx.beginPath();
@@ -1918,7 +1959,7 @@ function drawPupRun(ctx: CanvasRenderingContext2D, x: number, y: number, r: numb
 
 // ───────── 구경꾼 고양이 ─────────
 function drawCat(ctx: CanvasRenderingContext2D, s: ToyState, X: Fn, Y: Fn, R: Fn, t: number) {
-  const age = t - s.catT, jump = age >= 0 && age < 30 ? Math.sin((age / 30) * Math.PI) * R(0.05) : 0, startle = age >= 0 && age < 60;
+  const age = s.vt - s.catT, jump = age >= 0 && age < 30 ? Math.sin((age / 30) * Math.PI) * R(0.05) : 0, startle = age >= 0 && age < 60;
   const x = X(0.885), y = Y(0.293) - jump, r = R(0.04);
   ctx.fillStyle = 'rgba(0,0,0,.18)';
   ctx.beginPath();
@@ -2083,11 +2124,18 @@ const outline = (ctx: CanvasRenderingContext2D, text: string, x: number, y: numb
 const recentSay = new WeakMap<object, { x: number; y: number; t: number }[]>();
 const BAL = ['#ff5a8a', '#5ad1ff', '#ffd23a', '#7be07b', '#c4a8ff'];
 function drawAll(ctx: CanvasRenderingContext2D, s: ToyState, w: number, h: number, th: Theme) {
-  const fx = juice(s), t = s.t, L = s.L, S = s.S, d = STAGES[s.stage];
+  const fx = juice(s), t = s.t, vt = s.vt, L = s.L, S = s.S, d = STAGES[s.stage];
   const X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w;
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, R(sz))}px system-ui, sans-serif`);
   ctx.save();
   fx.begin(ctx);
+  // 잠깐 느려지는 순간: 살짝 당겨 보기
+  if (s.slow > 0) {
+    const z = 1 + 0.045 * Math.min(1, s.slow / 6);
+    ctx.translate(w / 2, h * 0.62);
+    ctx.scale(z, z);
+    ctx.translate(-w / 2, -h * 0.62);
+  }
   drawRoom(ctx, s, X, Y, R, w, h);
   drawCat(ctx, s, X, Y, R, t);
   drawBasket(ctx, L, X, Y, R, false);
@@ -2095,7 +2143,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ToyState, w: number, h: numbe
   const free = new Set(movesOf(L, S)), inPile = new Set<number>();
   S.cols.forEach((col) => col.forEach((q) => inPile.add(q)));
   const pressK = s.down && s.phase === 'play' ? s.press : -1, pre = pressK >= 0 ? preview(s, pressK) : null;
-  const moving = (v: Vis) => t < v.t0 + v.dur;
+  const moving = (v: Vis) => vt < v.t0 + v.dur;
   const pile: number[] = [], tray: number[] = [], fly: number[] = [];
   s.vis.forEach((v, id) => {
     if (v.where === 2 && !moving(v)) return;
@@ -2108,29 +2156,79 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ToyState, w: number, h: numbe
   for (const id of pile) {
     const v = s.vis[id], k = L.kind[id], f = free.has(id) && s.phase === 'play';
     const bob = f ? Math.sin(t * 0.09 + id) * 0.8 : 0;
-    drawToy(ctx, k, X(v.x), Y(v.y) + bob, toyU * v.s, v.a + v.wob, f || s.phase !== 'play' ? 0 : 0.36, t, { twin: L.twin[id] >= 0 && inPile.has(L.twin[id]), open: S.open, hot: id === pressK });
+    // 장치 장난감은 묻혀 있어도 빛이 새어 나와 눈에 띈다
+    const gc = gimCol(L, S, id, inPile);
+    if (gc) {
+      const pr = toyU * (0.72 + 0.06 * Math.sin(t * 0.12 + id)), hg = ctx.createRadialGradient(X(v.x), Y(v.y), pr * 0.2, X(v.x), Y(v.y), pr);
+      hg.addColorStop(0, gc + 'cc');
+      hg.addColorStop(1, gc + '00');
+      ctx.fillStyle = hg;
+      ctx.beginPath();
+      ctx.arc(X(v.x), Y(v.y), pr, 0, TAU);
+      ctx.fill();
+    }
+    const jig = k === JACK && t % 110 < 24 ? Math.sin(t * 0.9) * 0.14 : 0;
+    drawToy(ctx, k, X(v.x), Y(v.y) + bob, toyU * v.s, v.a + v.wob + jig, f || s.phase !== 'play' ? 0 : 0.36, t, { twin: L.twin[id] >= 0 && inPile.has(L.twin[id]), open: S.open, hot: id === pressK });
   }
-  // 리본 쌍둥이 끈
-  ctx.setLineDash([R(0.012), R(0.008)]);
+  // 리본 쌍둥이 끈 (굵은 분홍 리본, 살랑)
+  ctx.lineCap = 'round';
   for (let id = 0; id < L.N; id++) {
     const p = L.twin[id];
     if (p < id || !inPile.has(id) || !inPile.has(p)) continue;
-    const a = s.vis[id], b = s.vis[p];
-    ctx.strokeStyle = 'rgba(255,95,162,.75)';
-    ctx.lineWidth = R(0.007);
-    ctx.beginPath();
-    ctx.moveTo(X(a.x - 0.035), Y(a.y - 0.035));
-    ctx.bezierCurveTo(X(a.x), Y(Math.min(a.y, b.y) - 0.12), X(b.x), Y(Math.min(a.y, b.y) - 0.12), X(b.x - 0.035), Y(b.y - 0.035));
-    ctx.stroke();
+    const a = s.vis[id], b = s.vis[p], top = Math.min(a.y, b.y) - 0.13 + Math.sin(t * 0.07 + id) * 0.012;
+    for (const [col, lw] of [['rgba(120,20,60,.45)', 0.017], ['#ff5fa2', 0.012], ['rgba(255,255,255,.55)', 0.003]] as [string, number][]) {
+      ctx.strokeStyle = col;
+      ctx.lineWidth = R(lw);
+      ctx.beginPath();
+      ctx.moveTo(X(a.x - 0.035), Y(a.y - 0.035));
+      ctx.bezierCurveTo(X(a.x), Y(top), X(b.x), Y(top), X(b.x - 0.035), Y(b.y - 0.035));
+      ctx.stroke();
+    }
   }
-  ctx.setLineDash([]);
   // 풍선 매단 장난감 (묻혀 있어도 풍선이 삐죽)
   for (let id = 0; id < L.N; id++)
     if (L.bal[id] && inPile.has(id) && !S.flown.includes(id)) {
       const v = s.vis[id], sw = Math.sin(t * 0.06 + id) * 0.006;
-      drawBalloon(ctx, X(v.x + 0.042 + sw), Y(v.y - 0.075), R(0.024), BAL[id % BAL.length], t + id * 9, X(v.x + 0.02), Y(v.y - 0.02));
+      drawBalloon(ctx, X(v.x + 0.045 + sw), Y(v.y - 0.088 + Math.sin(t * 0.08 + id) * 0.006), R(0.033), BAL[id % BAL.length], t + id * 9, X(v.x + 0.02), Y(v.y - 0.02));
     }
   drawBasket(ctx, L, X, Y, R, true);
+  // ═════════ 장치 꼬리표 · 새 장치 스포트라이트 ═════════
+  {
+    const intro = s.phase === 'play' && t - s.startT < 320 && S.taps < 3 && CARDS[d.key] ? d.key : '';
+    let tags = 0;
+    for (const id of pile) {
+      const v = s.vis[id], k = L.kind[id];
+      if (k === CHEST && inPile.has(id)) {
+        const kt = S.open ? '✨ 톡! 열기' : `🔒 🔑 ${S.tray.filter((q) => L.kind[q] === KEY).length}/3`;
+        font(0.032, 900);
+        ctx.textAlign = 'center';
+        const tw = ctx.measureText(kt).width + R(0.03);
+        ctx.fillStyle = S.open ? `rgba(200,140,10,${0.85 + 0.15 * Math.sin(t * 0.3)})` : 'rgba(70,45,10,.85)';
+        ctx.beginPath();
+        ctx.roundRect(X(v.x) - tw / 2, Y(v.y - 0.115) - R(0.022), tw, R(0.044), R(0.022));
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(kt, X(v.x), Y(v.y - 0.115) + 1);
+      }
+      if (!intro || tags >= 4 || !isNewGim(d.key, L, S, id, inPile)) continue;
+      tags++;
+      const b = Math.abs(Math.sin(t * 0.12 + id)) * R(0.015), age = t - s.startT;
+      ctx.strokeStyle = `rgba(255,255,255,${0.9 - ((age % 40) / 40) * 0.9})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(X(v.x), Y(v.y), toyU * (0.5 + ((age % 40) / 40) * 0.35), 0, TAU);
+      ctx.stroke();
+      font(0.03, 900);
+      ctx.textAlign = 'center';
+      const tw = ctx.measureText('NEW!').width + R(0.025);
+      ctx.fillStyle = '#ff3d7f';
+      ctx.beginPath();
+      ctx.roundRect(X(v.x) - tw / 2, Y(v.y - 0.1) - b - R(0.02), tw, R(0.04), R(0.02));
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('NEW!', X(v.x), Y(v.y - 0.1) - b + 1);
+    }
+  }
   // ═════════ 미리 보기 (더미 쪽) ═════════
   if (pre && pressK >= 0) {
     if (pre.st === 1 || pre.st === 2) {
@@ -2178,9 +2276,33 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ToyState, w: number, h: numbe
   }
   drawWagonsFront(ctx, s, X, Y, R, font);
   drawEngine(ctx, s, X, Y, R);
+  // 뭉치가 노리는 장난감: 기차 맨 끝에 빨간 고리 + 생각 풍선
+  if (d.dog && s.phase === 'play' && S.dogC <= 2 && S.tray.length && !(s.dogRun && vt < s.dogRun.t0 + 100)) {
+    const q = S.tray[S.tray.length - 1], v = s.vis[q], hot = S.dogC <= 1;
+    if (v.where === 1 && !moving(v)) {
+      ctx.strokeStyle = hot ? `rgba(255,80,60,${0.7 + 0.3 * Math.sin(t * 0.4)})` : 'rgba(255,200,120,.8)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.arc(X(v.x), Y(v.y), toyU * 0.48, 0, TAU);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      const bx = 0.22, by = TRAY_Y - 0.15 + Math.sin(t * 0.1) * 0.004;
+      ctx.fillStyle = 'rgba(255,255,255,.95)';
+      for (const [cx2, cy2, rr] of [[0.15, TRAY_Y - 0.085, 0.008], [0.17, TRAY_Y - 0.105, 0.012]] as [number, number, number][]) (ctx.beginPath(), ctx.arc(X(cx2), Y(cy2), R(rr), 0, TAU), ctx.fill());
+      ctx.beginPath();
+      ctx.roundRect(X(bx - 0.06), Y(by - 0.04), R(0.24), R(0.07), R(0.03));
+      ctx.fill();
+      drawToy(ctx, L.kind[q], X(bx - 0.02), Y(by - 0.005), toyU * 0.5, 0, 0, t, {});
+      font(0.03, 900);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = hot ? '#d03a20' : '#7a4a20';
+      ctx.fillText(hot ? '이거 물래!' : '이거 탐나…', X(bx + 0.015), Y(by + 0.005));
+    }
+  }
   // ═════════ 날아가는 장난감 ═════════
   for (const id of fly) {
-    const v = s.vis[id], k = L.kind[id], q = Math.min(1, (t - v.t0) / v.dur);
+    const v = s.vis[id], k = L.kind[id], q = Math.min(1, (vt - v.t0) / v.dur);
     if (v.style === 1) drawBalloon(ctx, X(v.x + 0.01), Y(v.y - 0.1), R(0.034), BAL[id % BAL.length], t, X(v.x), Y(v.y - 0.04));
     if (v.style === 2) {
       ctx.globalAlpha = q < 0.6 ? 1 : Math.max(0, 1 - (q - 0.6) / 0.4);
@@ -2198,8 +2320,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ToyState, w: number, h: numbe
     drawToy(ctx, k, X(v.x), Y(v.y), toyU * v.s, v.a + v.wob, 0, t, {});
   }
   // 뭉치의 장난: 기차 끝에서 물고 더미로
-  if (s.dogRun && t >= s.dogRun.t0) {
-    const dr = s.dogRun, u = t - dr.t0;
+  if (s.dogRun && vt >= s.dogRun.t0) {
+    const dr = s.dogRun, u = vt - dr.t0;
     let px: number, py: number, dir: number;
     if (u < 16) (px = 0.127 + (dr.x0 - 0.127) * ease(u / 16)), (py = TRAY_Y - 0.05 - Math.sin((u / 16) * Math.PI) * 0.05), (dir = 1);
     else if (u < 60) {
@@ -2255,33 +2377,50 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ToyState, w: number, h: numbe
   };
   const seenT = fx.memo.t ?? -1;
   for (const e of s.events) {
-    const due = e.v !== undefined && !['blocked', 'locked', 'clear'].includes(e.kind) ? e.v : e.t;
-    if (due <= seenT || due > t) continue;
+    const due = e.d;
+    if (due <= seenT || due > vt) continue;
     const x = X(e.x), y = Y(e.y);
     if (e.kind === 'reveal') fx.ring(x, y, '#fff6a8', R(0.07), 3), fx.burst(x, y, '#fff6a8', 6, 1.6, 1.5);
-    if (e.kind === 'slide') fx.burst(x, y + R(0.03), '#f3dcb0', 8, 2.2, 2), fx.kick(2.2), e.text && say(x, y - R(0.07), e.text, e.col!, 20);
+    if (e.kind === 'slide') {
+      const n = e.n ?? 1;
+      fx.burst(x, y + R(0.04), '#f3dcb0', 8 + n * 3, 2 + n * 0.4, 2.2), fx.burst(x, y + R(0.05), '#ffffff', 4, 1.5, 3), fx.kick(1.6 + n * 0.9);
+    }
+    if (e.kind === 'crash') {
+      const n = e.n ?? 2;
+      if (vt - (fx.memo.crashT ?? -99) > 50) fx.memo.crashN = 0;
+      fx.ring(x, y, '#ffe6b8', R(0.12 + n * 0.03), 3 + n), fx.burst(x, y, '#f3dcb0', 18 + n * 6, 3 + n * 0.6, 2.6), fx.kick(4 + n * 1.5);
+      if (n >= 3) fx.blink('#fff3dc', 0.12 + n * 0.03);
+      // 글씨는 잦으면 겹치니 조금 쉬었다가 (흔들림·고리는 매번)
+      if (vt - (fx.memo.crashT ?? -99) > 50 || n > (fx.memo.crashN ?? 0)) (fx.memo.crashT = vt), (fx.memo.crashN = n), say(x, y - R(0.08), e.text!, e.col!, Math.min(34, 20 + n * 3));
+    }
     if (e.kind === 'thud') fx.burst(x, y + R(0.03), '#f3dcb0', 6, 1.8, 1.8), fx.kick(1.5);
     if (e.kind === 'pop') {
-      fx.burst(x, y, '#ffe066', 26, 4.2, 2.6), fx.burst(x, y, '#ff9fd0', 14, 3.4, 2.2), fx.ring(x, y, '#ffffff', R(0.13), 4), fx.kick(3);
-      say(x, y - R(0.05), e.text!, e.col!, 22);
+      const n = Math.min(4, e.n ?? 1);
+      fx.burst(x, y, '#ffe066', 26 + n * 16, 4 + n * 1.2, 2.6 + n * 0.3), fx.burst(x, y, '#ff9fd0', 14 + n * 8, 3.4 + n, 2.2), fx.ring(x, y, '#ffffff', R(0.13 + n * 0.05), 4 + n), fx.kick(3 + n * 2.5);
+      if (n >= 2) {
+        for (const c of ['#7ec4ff', '#8fe0a0', '#c4a8ff']) fx.burst(x, y, c, 10 * n, 5 + n, 2.4);
+        fx.ring(x, y, '#ffe066', R(0.3 + n * 0.06), 6), fx.blink('#fff6c8', 0.12 + n * 0.07);
+      }
+      if (n < 2) say(x, y - R(0.06), e.text!, e.col!, 24);
     }
-    if (e.kind === 'twin') fx.ring(x, y, '#ff8fc0', R(0.08), 4), say(x, y - R(0.05), e.text!, e.col!, 17), fx.kick(3);
-    if (e.kind === 'float') fx.burst(x, y, '#bfe9ff', 10, 2, 2), say(x, y - R(0.06), e.text!, e.col!, 17);
+    if (e.kind === 'goal') say(x, y, e.text!, e.col!, 18), fx.ring(x, y, '#bff7c4', R(0.08), 3);
+    if (e.kind === 'twin') fx.ring(x, y, '#ff8fc0', R(0.14), 5), fx.burst(x, y, '#ff8fc0', 22, 3.6, 2.4), say(x, y - R(0.06), e.text!, e.col!, 22), fx.kick(5);
+    if (e.kind === 'float') fx.burst(x, y, '#bfe9ff', 20, 2.6, 2.4), fx.ring(x, y, '#bfe9ff', R(0.12), 4), say(x, y - R(0.07), e.text!, e.col!, 21), fx.kick(2);
     if (e.kind === 'bonk') fx.burst(x, y, '#e8c8ff', 8, 2.4, 2);
-    if (e.kind === 'jack') fx.ring(x, y, '#e0b0ff', R(0.15), 5), fx.burst(x, y, '#d090ff', 22, 4, 2.6), fx.kick(6), say(x, y - R(0.1), e.text!, e.col!, 19);
-    if (e.kind === 'chest') fx.ring(x, y, '#ffe066', R(0.2), 6), fx.burst(x, y, '#ffe066', 36, 5, 3), fx.blink('#fff6c8', 0.3), fx.kick(5), say(x, y - R(0.1), e.text!, e.col!, 20);
+    if (e.kind === 'jack') fx.ring(x, y, '#e0b0ff', R(0.22), 7), fx.burst(x, y, '#d090ff', 34, 5, 2.8), fx.burst(x, y, '#ffd23a', 16, 4, 2.4), fx.kick(8), fx.blink('#f3d2ff', 0.18), say(x, y - R(0.12), e.text!, e.col!, 24);
+    if (e.kind === 'chest') fx.ring(x, y, '#ffe066', R(0.3), 8), fx.burst(x, y, '#ffe066', 60, 6, 3.2), fx.burst(x, y, '#ffffff', 24, 4, 2.4), fx.blink('#fff6c8', 0.4), fx.kick(9), say(x, y - R(0.12), e.text!, e.col!, 26);
     if (e.kind === 'unlock') fx.blink('#fff1a8', 0.25), say(w / 2, Y(0.5), e.text!, e.col!, 17);
-    if (e.kind === 'dog') fx.burst(x, y, '#ffe9c4', 10, 2.5, 2), say(x, y - R(0.04), e.text!, e.col!, 18), fx.kick(2);
+    if (e.kind === 'dog') fx.burst(x, y, '#ffe9c4', 18, 3, 2.4), fx.ring(x, y, '#ffe9c4', R(0.1), 4), say(x, y - R(0.05), e.text!, e.col!, 22), fx.kick(4);
     if (e.kind === 'dogdrop') fx.burst(x, y, '#f3dcb0', 10, 2.5, 2), fx.kick(3), say(x, y - R(0.06), e.text!, e.col!, 16);
     if (e.kind === 'jam') fx.kick(9), fx.blink(th.hot, 0.25), fx.ring(X(0.56), Y(TRAY_Y), '#ff6a5a', R(0.35), 6);
-    if (e.kind === 'streak') say(X(0.56), Y(TRAY_Y - 0.13), e.text!, e.col!, 18);
+    if (e.kind === 'streak') say(X(0.56), Y(TRAY_Y - 0.13), e.text!, e.col!, 18), fx.blink('#ffe066', 0.15);
     if (e.kind === 'blocked' || e.kind === 'locked') say(x, y - R(0.07), e.text!, e.col!, 15), fx.kick(2);
     if (e.kind === 'miss') say(x, y, e.text!, e.col!, 14);
     if (e.kind === 'stage') fx.blink('#fff6d6', 0.18);
     if (e.kind === 'clear') fx.burst(X(0.5), Y(0.55), '#ffe066', 46, 6, 3.2), fx.burst(X(0.5), Y(0.55), '#ff8fb1', 30, 5, 3), fx.ring(X(0.5), Y(0.55), '#ffe066', R(0.35), 6), fx.blink('#fff6c8', 0.25);
     if (e.kind === 'fail') fx.kick(9), fx.blink(th.hot, 0.22);
   }
-  fx.memo.t = t;
+  fx.memo.t = vt;
   ctx.restore();
   drawHud(ctx, s, d, w, X, Y, R, font, th);
 }
@@ -2340,8 +2479,9 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ToyState, d: StageDef, w: num
     ctx.fillText(tx, w / 2, by2 + 1);
     ctx.globalAlpha = 1;
   }
-  // 판 시작 큰 글씨
-  {
+  drawBanner(ctx, s, w, Y, R, font);
+  // 판 시작 큰 글씨 (새 장치가 있는 판은 소개 카드로)
+  if (!drawCard(ctx, s, d, w, X, Y, R, font)) {
     const age = t - s.startT;
     if (age < 100 && s.phase === 'play') {
       const a = Math.min(1, age / 8, (100 - age) / 20), sc = 1 + Math.max(0, 8 - age) * 0.04;
@@ -2459,4 +2599,148 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ToyState, d: StageDef, w: num
     }
   }
   ctx.textBaseline = 'alphabetic';
+}
+
+// ───────── 장치 눈에 띄게 ─────────
+/** 장치 장난감의 빛깔 (없으면 '') */
+function gimCol(L: Level, S: Sim, id: number, inPile: Set<number>) {
+  const k = L.kind[id];
+  if (k === JACK) return '#c58cff';
+  if (k === CHEST) return '#ffd84d';
+  if (k === KEY) return '#fff0a0';
+  if (L.twin[id] >= 0 && inPile.has(L.twin[id])) return '#ff6fb0';
+  if (L.bal[id] && !S.flown.includes(id)) return '#7fd4ff';
+  return '';
+}
+function isNewGim(key: string, L: Level, S: Sim, id: number, inPile: Set<number>) {
+  const k = L.kind[id];
+  if (key === 'play') return k === L.d.goal?.kind;
+  if (key === 'jack') return k === JACK;
+  if (key === 'twin') return L.twin[id] >= 0 && inPile.has(L.twin[id]);
+  if (key === 'chest') return k === CHEST || k === KEY;
+  if (key === 'balloon') return L.bal[id] && !S.flown.includes(id);
+  if (key === 'dream') return !!gimCol(L, S, id, inPile);
+  return false;
+}
+/** 새 장치 소개 카드: 무엇이 바뀌고, 그래서 무엇을 해야 하나 */
+const CARDS: Record<string, { title: string; l1: string; l2: string }> = {
+  play: { title: '🎯 목표 장난감', l1: '곰 인형 6개를 뿅 하면 끝 — 나머진 남아도 돼요', l2: '→ 곰 위부터 파내요' },
+  jack: { title: '🎁 깜짝 상자', l1: '톡 하면 광대가 양옆 꼭대기를 기차로 퉁! 퉁!', l2: '→ 기차 2칸 비우고, 반가운 게 옆일 때 열기' },
+  twin: { title: '🎀 리본 쌍둥이', l1: '하나를 꺼내면 묻힌 짝이 쑥! 같이 기차로', l2: '→ 깊이 묻힌 공룡을 리본으로 뽑아요' },
+  chest: { title: '🔒 보물 상자', l1: '🔑 셋을 뿅 해야 열려요 · 무거워서 안 굴러요', l2: '→ 열쇠부터 파내고 상자를 톡!' },
+  balloon: { title: '🎈 풍선 장난감', l1: '위가 비면 저절로 둥실 — 기차에 타 버려요', l2: '→ 풍선 위는 기차가 반길 때 치워요' },
+  dog: { title: '🐶 뭉치의 장난', l1: '5톡마다 기차 맨 끝 장난감을 물고 더미로!', l2: '→ 맨 끝엔 필요 없는 걸 두세요' },
+  dream: { title: '🌙 전부 다 나와요', l1: '상자·리본·열쇠·풍선·뭉치가 한 방에!', l2: '→ 눌러 보고 순서를 정해요' },
+};
+function drawCard(ctx: CanvasRenderingContext2D, s: ToyState, d: StageDef, w: number, X: Fn, Y: Fn, R: Fn, font: (sz: number, w?: number) => void) {
+  const c = CARDS[d.key], age = s.t - s.startT, t = s.t;
+  // 첫 톡을 하면 곧 사라진다
+  const gone = s.S.taps > 0 ? s.t - s.lastTap : -99;
+  if (!c || age > 230 || s.phase !== 'play' || gone > 14) return false;
+  const a = Math.min(1, age / 10, (230 - age) / 25, gone >= 0 ? 1 - gone / 14 : 1), sc = 1 + Math.max(0, 10 - age) * 0.03;
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.translate(w / 2, Y(0.33));
+  ctx.scale(sc, sc);
+  ctx.translate(-w / 2, -Y(0.33));
+  const x0 = R(0.04), y0 = Y(0.205), cw = w - R(0.08), ch = R(0.25);
+  ctx.fillStyle = 'rgba(0,0,0,.25)';
+  ctx.beginPath();
+  ctx.roundRect(x0 + 3, y0 + 5, cw, ch, R(0.03));
+  ctx.fill();
+  const g = ctx.createLinearGradient(0, y0, 0, y0 + ch);
+  g.addColorStop(0, '#5a2a6a');
+  g.addColorStop(1, '#3a1a48');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.roundRect(x0, y0, cw, ch, R(0.03));
+  ctx.fill();
+  ctx.strokeStyle = '#ffd166';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  // NEW 리본
+  ctx.fillStyle = '#ff3d7f';
+  ctx.beginPath();
+  ctx.roundRect(x0 + cw - R(0.2), y0 - R(0.02), R(0.18), R(0.045), R(0.02));
+  ctx.fill();
+  font(0.032, 900);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('새 장치!', x0 + cw - R(0.11), y0 + R(0.003));
+  // 아이콘
+  const ix = X(0.15), iy = Y(0.3), u = R(0.15), bob = Math.sin(t * 0.15) * 3;
+  const glow = ctx.createRadialGradient(ix, iy, 2, ix, iy, u * 0.8);
+  glow.addColorStop(0, 'rgba(255,230,140,.55)');
+  glow.addColorStop(1, 'rgba(255,230,140,0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(ix, iy, u * 0.8, 0, TAU);
+  ctx.fill();
+  if (d.key === 'dog') drawPup(ctx, ix, iy + bob, u * 0.4, s, t, 'smug');
+  else if (d.key === 'twin') (drawToy(ctx, DINO, ix - u * 0.25, iy + bob, u * 0.62, -0.2, 0, t, { twin: true }), drawToy(ctx, DINO, ix + u * 0.25, iy - bob, u * 0.62, 0.2, 0, t, { twin: true }));
+  else if (d.key === 'balloon') (drawBalloon(ctx, ix + u * 0.2, iy - u * 0.3 + bob, u * 0.22, '#ff5a8a', t, ix, iy - u * 0.1), drawToy(ctx, BALL, ix, iy + u * 0.1, u * 0.7, 0, 0, t, {}));
+  else drawToy(ctx, d.key === 'play' ? BEAR : d.key === 'jack' ? JACK : CHEST, ix, iy + bob, u * 0.8, Math.sin(t * 0.1) * 0.1, 0, t, d.key === 'jack' ? { pop: 0.6 + 0.4 * Math.abs(Math.sin(t * 0.08)) } : { open: d.key === 'dream' });
+  // 글
+  ctx.textAlign = 'left';
+  font(0.034, 800);
+  ctx.fillStyle = '#e8d6f0';
+  ctx.fillText(`${s.stage + 1}판 · ${d.emoji} ${d.name}`, X(0.27), Y(0.24));
+  font(0.056, 900);
+  ctx.fillStyle = '#ffe066';
+  ctx.fillText(c.title, X(0.27), Y(0.292));
+  const fit = (txt: string, x: number, y: number, col: string, wgt: number) => {
+    let fs = 0.036;
+    font(fs, wgt);
+    while (ctx.measureText(txt).width > w - x - R(0.06) && fs > 0.031) font((fs -= 0.001), wgt);
+    ctx.fillStyle = col;
+    ctx.fillText(txt, x, y);
+  };
+  fit(c.l1, X(0.08), Y(0.37), '#ffffff', 800);
+  fit(c.l2, X(0.08), Y(0.42), '#9ff0b0', 900);
+  ctx.restore();
+  ctx.textBaseline = 'middle';
+  return true;
+}
+/** 연속 뿅·보물 같은 큰 순간의 커다란 글씨 */
+function drawBanner(ctx: CanvasRenderingContext2D, s: ToyState, w: number, Y: Fn, R: Fn, font: (sz: number, w?: number) => void) {
+  const b = s.banner;
+  if (!b) return;
+  const age = s.vt - b.at;
+  if (age < 0 || age > 80) return;
+  const a = Math.min(1, (80 - age) / 16), sc = 1 + Math.max(0, 1 - age / 7) * 0.9, cy = Y(0.6);
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.translate(w / 2, cy);
+  if (b.n >= 3) {
+    ctx.save();
+    ctx.rotate(age * 0.02);
+    for (let k = 0; k < 12; k++) {
+      ctx.rotate(TAU / 12);
+      ctx.fillStyle = k % 2 ? 'rgba(255,230,120,.22)' : 'rgba(255,160,210,.18)';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(R(0.6), -R(0.06));
+      ctx.lineTo(R(0.6), R(0.06));
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  ctx.rotate(Math.sin(age * 0.3) * 0.04 * Math.max(0, 1 - age / 30));
+  ctx.scale(sc, sc);
+  font(Math.min(0.11, 0.075 + b.n * 0.01), 900);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 7;
+  ctx.strokeStyle = 'rgba(60,20,50,.85)';
+  ctx.strokeText(b.text, 0, 0);
+  ctx.fillStyle = b.col;
+  ctx.fillText(b.text, 0, 0);
+  font(0.04, 900);
+  ctx.lineWidth = 4;
+  ctx.strokeText(b.sub, 0, R(0.075));
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(b.sub, 0, R(0.075));
+  ctx.restore();
 }

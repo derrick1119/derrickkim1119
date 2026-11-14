@@ -52,12 +52,12 @@ export const STAGES: StageDef[] = [
   {
     key: 'walk', name: '첫 산책', emoji: '🐕', news: '🐕 강아지를 톡 → 빈 말뚝을 톡! 폴짝 옮겨 앉아요', tip: '👆 엇갈린 줄의 강아지를 다른 말뚝으로',
     posts: [C0], dogs: dogs([-90, 30, 150]), pegs: ring(0.5, 0.7, [-90, -18, 54, 126, 198]), trees: [],
-    treats: 1, puddles: 0, cat: false, slack: 9, par: [1, 2], minX: 1,
+    treats: 1, puddles: 0, cat: false, slack: 12, par: [1, 2], minX: 1,
   },
   {
     key: 'treat', name: '간식 산책', emoji: '🦴', news: '🦴 간식 말뚝에 앉으면 냠! 다 풀기 전에 먹어요', tip: '🦴 마지막 한 번 전에 간식을 먹어요',
     posts: [C0], dogs: dogs([-45, 45, 135, 225]), pegs: ring(0.5, 0.7, [-90, -30, 30, 90, 150, 210]), trees: [],
-    treats: 2, puddles: 0, cat: false, slack: 5, par: [2, 4], minX: 2,
+    treats: 2, puddles: 0, cat: false, slack: 6, par: [2, 4], minX: 2,
   },
   {
     key: 'big', name: '큰 개', emoji: '🐕‍🦺', news: '🐕‍🦺 큰 개는 무거워서 한 번 옮기면 2번으로 쳐요', tip: '🐕‍🦺 큰 개를 옮길까, 작은 개 둘을 옮길까',
@@ -409,7 +409,7 @@ export function buildLevel(seed: number, stage: number): Level {
     const L = candidate(stage, r);
     if (!L) continue;
     let v: number;
-    if (stage === 0) v = randomPass(L, r, 40) + (L.opt === 1 ? 0.5 : 0) + (L.par === 1 ? 0.6 : 0);
+    if (stage === 0) v = Math.min(0.97, randomPass(L, r, 60)) * 3 + (L.opt === 1 ? 0.2 : 0) + (L.par === 1 ? 0.3 : 0);
     else if (stage === 1) v = -Math.abs(randomPass(L, r, 40) - 0.72) + (L.par > L.opt ? 0.2 : 0);
     else {
       // 어떤 버릇으로 두어도 별 셋이 안 나오고, 내다보면 별 셋이 나오는 판을 고른다
@@ -419,7 +419,7 @@ export function buildLevel(seed: number, stage: number): Level {
     }
     if (v > bv) (bv = v), (pick = L);
     if (stage >= 2 && bv >= 4.3) break;
-    if (stage === 0 && bv >= 2.05) break;
+    if (stage === 0 && bv >= 3.4) break;
   }
   // 드물게 조건에 맞는 판이 없으면 조건을 풀어서라도 풀리는 판 하나
   for (let c = 0; !pick && c < 2000; c++) pick = candidate(stage, r, true);
@@ -440,6 +440,8 @@ export interface LeashState {
   hearts: number; stars: number; got: number; pts: number; ok: boolean; won: boolean; dead: boolean; tries: number; why: string;
   seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[]; startT: number; clearT: number;
   dv: DV[]; cv: { x: number; y: number; hop: Hop | null }; mood: string; moodT: number; bx: number;
+  /** 한 수에 풀린 꼬임 연출(풀린 수가 많을수록 크게, 잠깐 멈칫) · 새 장치 소개(그 판 처음 볼 때) */
+  boom: { t: number; n: number; x: number; y: number; solved: boolean; dur: number } | null; intro: { key: string; t: number } | null;
 }
 const ev = (s: LeashState, kind: string, x: number, y: number, text?: string, col?: string, v?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v });
 function tip(s: LeashState, key: string, text: string) {
@@ -471,8 +473,12 @@ function newStage(s: LeashState) {
   s.startT = s.t;
   s.got = 0;
   setMood(s, 'idle');
+  s.boom = null;
+  // 새 장치는 그 판을 처음 볼 때 스포트라이트로 소개한다 (다시 하는 판에선 안 함)
+  s.intro = s.stage > 0 && !s.seen.has(d.key) ? { key: d.key, t: s.t } : null;
   see(s, d.key, d.news);
   ev(s, 'stage', 0.5, 0.7, `${s.stage + 1}판 · ${d.name}`, '#fff6d6');
+  if (s.intro) for (const [x, y] of introTargets(s)) ev(s, 'intro', x, y, d.key, undefined, s.t + 10);
 }
 
 function finish(s: LeashState) {
@@ -607,11 +613,17 @@ function doMove(s: LeashState, a: number, q: number) {
   }
   if (L.big[a]) ev(s, 'heavy', L.px[q], sy(L.py[q]) - 0.1, '쿵! (2번)', '#ffe6c0', s.t + HOP);
   const due = end;
-  for (const k of k0) if (!ids1.has(k.id)) ev(s, 'untie', k.x, sy(k.y), undefined, '#bff7c4', due);
+  // 풀린 꼬임은 하나씩 '툭·툭·툭' 차례로 터지고, 많이 풀릴수록 마지막 한 방이 커진다
+  const untied = k0.filter((k) => !ids1.has(k.id)), n = untied.length;
+  untied.forEach((k, i) => ev(s, 'untie', k.x, sy(k.y), String(i + 1), '#bff7c4', due + i * 5));
   for (const k of k1) if (!ids0.has(k.id)) ev(s, 'tie', k.x, sy(k.y), undefined, '#ff8a7a', due);
-  const dx = S.x - x0;
-  if (S.x === 0) ev(s, 'solved', 0.5, 0.62, '다 풀렸다! 산책 출발!', '#fff1a8', due);
-  else if (dx < 0) ev(s, 'better', L.px[q], sy(L.py[q]) - 0.13, `풀렸다! −${-dx}`, '#c8f7c5', due);
+  // 큰 숫자·멈칫은 실제로 줄어든 꼬임 수(순감)로: 많이 줄수록 크게
+  const dx = S.x - x0, last = due + Math.max(0, n - 1) * 5, net = Math.max(0, -dx);
+  const slow = S.x === 0 ? 20 : net >= 2 ? Math.min(26, 4 + 5 * net) : 0;
+  s.boom = net > 0 || S.x === 0 ? { t: last, n: net, x: L.px[q], y: sy(L.py[q]), solved: S.x === 0, dur: 34 + slow } : null;
+  if (net > 0 || S.x === 0) ev(s, 'boom', L.px[q], sy(L.py[q]), undefined, undefined, last);
+  if (S.x === 0) ev(s, 'solved', 0.5, 0.62, undefined, '#fff1a8', last);
+  else if (dx < 0 && net < 2) ev(s, 'better', L.px[q], sy(L.py[q]) - 0.13, `풀렸다! −${-dx}`, '#c8f7c5', due);
   else if (dx > 0) ev(s, 'worse', L.px[q], sy(L.py[q]) - 0.13, `꼬였다! +${dx}`, '#ffb4a8', due);
   else if (!rec.some((e) => e.k === 'eat' || e.k === 'mud')) ev(s, 'same', L.px[q], sy(L.py[q]) - 0.13, '그대로…', '#fff3df', due);
   // 꼬리·눈 반응: 풀린 줄의 강아지는 꼬리 붕붕, 새로 꼬인 줄의 강아지는 눈이 뱅글
@@ -623,7 +635,7 @@ function doMove(s: LeashState, a: number, q: number) {
   for (const b of touched(ids1, k0)) s.dv[b].wag = due + 70;
   for (const b of touched(ids0, k1)) s.dv[b].dizzy = due + 60;
   s.phase = 'hop';
-  s.hopEnd = end + 4;
+  s.hopEnd = last + 4 + slow;
   if (S.x === 0) setMood(s, 'wow');
   else if (dx < 0) setMood(s, 'smug');
   else if (dx > 0) setMood(s, 'wow');
@@ -667,7 +679,7 @@ export const leashtangle: GameDef<LeashState> = {
       down: false, ax: 0, ay: 0, cool: 0, lastAct: -99, hopEnd: 0, taps: 0,
       hearts: 3, stars: 0, got: 0, pts: 0, ok: false, won: false, dead: false, tries: 0, why: '',
       seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsQ: [], startT: 0, clearT: 0,
-      dv: [], cv: { x: -1, y: -1, hop: null }, mood: 'idle', moodT: 0, bx: 0.1,
+      dv: [], cv: { x: -1, y: -1, hop: null }, mood: 'idle', moodT: 0, bx: 0.1, boom: null, intro: null,
     } as unknown as LeashState;
     newStage(s);
     return s;
@@ -708,6 +720,8 @@ export const leashtangle: GameDef<LeashState> = {
         s.phase = 'walk';
         s.ok = true;
         ev(s, 'walk', 0.5, 0.7);
+        for (let a = 0; a < L.n; a++) ev(s, 'clip', L.hx[a], sy(L.hy[a]), a === 0 ? '찰칵!' : undefined, COLS[L.col[a]], s.t + 2 + a * 3);
+        for (let k = 1; k <= 3; k++) ev(s, 'confetti', 0.5, 0.5, undefined, undefined, s.t + 14 * k);
         setMood(s, 'cheer');
       } else if (S.cost >= L.limit || !movesOf(L, S).length) {
         s.phase = 'fail';
@@ -855,6 +869,9 @@ function dogPose(s: LeashState, a: number, X: P2, Y: P2, R: P2): DogPose {
   }
   if (s.phase === 'fail') tilt = Math.sin(t * 0.3 + a) * 0.18;
   if (dv.shake > t) tilt = Math.sin(t * 1.6) * 0.22;
+  // 새 장치 소개: 주인공 강아지가 폴짝폴짝
+  const ia = s.intro ? t - s.intro.t : 999;
+  if (ia < 60 && ((s.intro!.key === 'big' && s.L.big[a]) || (s.intro!.key === 'pair' && s.L.pair[a] >= 0))) lift += Math.abs(Math.sin(ia * 0.28)) * R(0.05) * (1 - ia / 60);
   return { x, y, lift, run, tilt };
 }
 /** 곰 도우미 자리(px)와 손 */
@@ -878,6 +895,16 @@ function drawAll(ctx: CanvasRenderingContext2D, s: LeashState, w: number, h: num
   const GX = (gx: number) => X(gx), GY = (gy: number) => Y(sy(gy));
   ctx.save();
   fx.begin(ctx);
+  // 한 번에 여러 꼬임이 풀리면 화면이 그곳으로 '훅' 다가갔다 돌아온다 (많이 풀릴수록 크게)
+  const bm = s.boom, bage = bm ? t - bm.t : -1, bOn = !!bm && bage >= 0 && bage < bm.dur;
+  const bPow = bm ? (bm.solved ? 1 : Math.min(1, (bm.n - 1) / 3)) : 0;
+  if (bm && bOn && bPow > 0) {
+    const z = 1 + (bm.solved ? 0.07 : 0.02 + 0.035 * bPow) * Math.sin(Math.PI * Math.min(1, bage / (bm.dur * 0.85)));
+    const cx = bm.solved ? w / 2 : X(bm.x), cy = bm.solved ? Y(0.72) : Y(bm.y);
+    ctx.translate(cx, cy);
+    ctx.scale(z, z);
+    ctx.translate(-cx, -cy);
+  }
   drawPark(ctx, s, X, Y, R, w, h);
   // ═════════ 땅에 붙은 것: 웅덩이 · 말뚝 · 간식 · 기둥 받침 · 나무 그림자 ═════════
   const playing = s.phase === 'play' || s.phase === 'hop';
@@ -966,7 +993,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: LeashState, w: number, h: num
   }
   if (S.cat >= 0 || s.cv.hop) {
     const c = s.cv, hop = c.hop;
-    const lift = hop && t >= hop.t0 ? Math.sin(Math.PI * Math.min(1, (t - hop.t0) / hop.dur)) * R(hop.h) : 0;
+    const ia = s.intro?.key === 'cat' ? t - s.intro.t : 999;
+    const lift = (hop && t >= hop.t0 ? Math.sin(Math.PI * Math.min(1, (t - hop.t0) / hop.dur)) * R(hop.h) : 0) + (ia < 60 ? Math.abs(Math.sin(ia * 0.28)) * R(0.05) * (1 - ia / 60) : 0);
     const x = GX(c.x), y = GY(c.y);
     sprites.push({ y, f: () => drawCat(ctx, x, y, R(0.11), t, lift, hop ? (hop.x1 > hop.x0 ? 1 : -1) : x < w / 2 ? 1 : -1) });
   }
@@ -991,6 +1019,50 @@ function drawAll(ctx: CanvasRenderingContext2D, s: LeashState, w: number, h: num
     ctx.ellipse(bx - R(0.009), by, R(0.012) * fl + 1, R(0.009), -0.4, 0, TAU);
     ctx.ellipse(bx + R(0.009), by, R(0.012) * fl + 1, R(0.009), 0.4, 0, TAU);
     ctx.fill();
+  }
+  // ═════════ 새 장치 스포트라이트 ═════════
+  const ia = introAlpha(s);
+  if (ia > 0) {
+    const tg = introTargets(s), pul = Math.sin(t * 0.2);
+    ctx.save();
+    ctx.globalAlpha = ia;
+    ctx.fillStyle = 'rgba(8,22,8,.55)';
+    ctx.beginPath();
+    ctx.rect(-20, -20, w + 40, h + 40);
+    for (const [x, y, r] of tg) (ctx.moveTo(X(x) + R(r), Y(y)), ctx.ellipse(X(x), Y(y), R(r), R(r) * 0.9, 0, 0, TAU));
+    ctx.fill('evenodd');
+    for (const [x, y, r] of tg) {
+      ctx.strokeStyle = '#ffe066';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([7, 5]);
+      ctx.lineDashOffset = -t * 0.6;
+      ctx.beginPath();
+      ctx.ellipse(X(x), Y(y), R(r) + 3 + pul * 2, R(r) * 0.9 + 3 + pul * 2, 0, 0, TAU);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = `${Math.max(18, R(0.07))}px system-ui`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('👇', X(x), Y(y) - R(r) - R(0.04) + Math.abs(Math.sin(t * 0.15)) * -R(0.02));
+    }
+    ctx.restore();
+  }
+  // 여러 꼬임이 한꺼번에 풀리는 순간: 속도선 + 가장자리 어둡게 (잠깐 멈칫)
+  if (bm && bOn && bPow > 0) {
+    const q = Math.sin(Math.PI * Math.min(1, bage / bm.dur)), cx = bm.solved ? w / 2 : X(bm.x), cy = bm.solved ? Y(0.72) : Y(bm.y);
+    ctx.save();
+    ctx.globalAlpha = 0.5 * q * bPow;
+    ctx.strokeStyle = bm.solved ? '#fff3b0' : '#e6ffe6';
+    ctx.lineWidth = 2;
+    for (let k = 0; k < 18; k++) {
+      const an = (k / 18) * TAU + hsh(k + (bm.t % 7)) * 0.3, r0 = R(0.22 + 0.05 * hsh(k + 3)), r1 = R(0.75);
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(an) * r0, cy + Math.sin(an) * r0);
+      ctx.lineTo(cx + Math.cos(an) * r1, cy + Math.sin(an) * r1);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
   // ═════════ 미리 보기: 들어 올린 강아지를 이 말뚝에 놓으면? ═════════
   if (selFree) {
@@ -1058,16 +1130,37 @@ function drawAll(ctx: CanvasRenderingContext2D, s: LeashState, w: number, h: num
       fx.burst(x, y, '#cfe8b0', 10, 2.2, 2), fx.kick(1.5);
       for (let k = 0; k < 2; k++) if (Math.hypot(e.x - (0.32 + 0.36 * k), e.y - 1.25) < 0.22 && t - (fx.memo['bird' + k] ?? -999) > 200) fx.memo['bird' + k] = t;
     }
-    if (e.kind === 'eat') fx.burst(x, y + R(0.04), '#f5deb3', 14, 2.6, 2), say(e.text!, 17);
-    if (e.kind === 'mud') fx.burst(x, y + R(0.06), '#7a5233', 22, 3.4, 2.6), fx.kick(3), say(e.text!, 15);
-    if (e.kind === 'cat' || e.kind === 'meow') say(e.text!, 14);
-    if (e.kind === 'heavy') fx.kick(5), fx.burst(x, y + R(0.1), '#d9c39a', 16, 3, 2.4), say(e.text!, 15);
-    if (e.kind === 'untie') fx.burst(x, y, '#bff7c4', 14, 3, 2.2), fx.ring(x, y, '#d8ffd8', R(0.06), 3);
+    if (e.kind === 'eat') fx.burst(x, y + R(0.04), '#f5deb3', 18, 3, 2.2), fx.ring(x, y + R(0.04), '#ffe066', R(0.07), 3), fx.blink('#fff6c8', 0.08), say(e.text!, 18);
+    if (e.kind === 'mud') fx.burst(x, y + R(0.06), '#7a5233', 30, 4, 2.8), fx.burst(x, y + R(0.06), '#a7c4d6', 10, 3, 2), fx.kick(5), fx.blink('#6b4a2a', 0.14), say(e.text!, 16);
+    if (e.kind === 'cat') fx.ring(x, y + R(0.06), '#ffb36b', R(0.09), 4), fx.burst(x, y + R(0.06), '#ffcf8a', 14, 3, 2.2), fx.kick(2.5), say(e.text!, 16);
+    if (e.kind === 'meow') say(e.text!, 14);
+    if (e.kind === 'follow') fx.burst(x, y - R(0.04), '#ff9fd0', 14, 2.6, 2.2);
+    if (e.kind === 'heavy') fx.kick(8), fx.burst(x, y + R(0.1), '#d9c39a', 28, 3.8, 2.8), fx.ring(x, y + R(0.1), '#e8d6b0', R(0.16), 5), say(e.text!, 17);
+    if (e.kind === 'untie') {
+      const i = +(e.text ?? 1);
+      fx.burst(x, y, '#bff7c4', 12 + 4 * i, 2.6 + 0.35 * i, 2.2), fx.burst(x, y, '#ffffff', 6, 2, 1.6), fx.ring(x, y, '#d8ffd8', R(0.05 + 0.014 * i), 3 + i * 0.5), fx.kick(1 + 0.7 * i);
+      fx.pop(x, y - R(0.035), i > 1 ? `${i}!` : '툭!', '#9dffb5', 14 + 2 * Math.min(i, 5));
+    }
+    if (e.kind === 'boom') {
+      const n = s.boom && s.boom.t === due ? s.boom.n : 1, k = Math.min(n, 5);
+      fx.burst(x, y - R(0.04), '#bff7c4', 16 + 8 * k, 3 + 0.7 * k, 2.6), fx.burst(x, y - R(0.04), '#ffe066', 6 + 5 * k, 2.5 + 0.5 * k, 2.2);
+      fx.ring(x, y - R(0.04), '#d8ffd8', R(0.08 + 0.045 * k), 4 + k), fx.kick(2 + 2.2 * k);
+      if (n >= 2) fx.ring(x, y - R(0.04), '#ffffff', R(0.05 + 0.03 * k), 3), fx.blink('#eaffea', 0.06 + 0.04 * k);
+    }
+    if (e.kind === 'clip') fx.burst(x, y, e.col ?? '#ffffff', 10, 2.4, 2), fx.ring(x, y, '#ffffff', R(0.04), 2), e.text && say(e.text, 16);
+    if (e.kind === 'confetti') for (let k = 0; k < 5; k++) fx.burst(X(0.1 + 0.2 * k), Y(0.3 + 0.12 * ((k + Math.round(e.v ?? 0)) % 3)), ['#ffd166', '#ff8fb1', '#8fd3ff', '#b5f28f', '#ffffff'][(k + Math.round(e.v ?? 0)) % 5], 16, 4.5, 2.6);
+    if (e.kind === 'intro') {
+      fx.ring(x, y, '#ffe066', R(0.16), 5), fx.ring(x, y, '#ffffff', R(0.1), 3), fx.burst(x, y, e.text === 'tree' ? '#7fd36b' : e.text === 'mud' ? '#8a5a34' : '#ffe066', 20, 3.4, 2.4);
+      fx.kick(e.text === 'big' ? 7 : 3);
+    }
     if (e.kind === 'tie') fx.burst(x, y, '#ff8a7a', 10, 2.4, 2), fx.ring(x, y, '#ff6a5a', R(0.05), 3);
     if (e.kind === 'better') say(e.text!, 18), fx.kick(2);
     if (e.kind === 'worse') say(e.text!, 17), fx.kick(3);
     if (e.kind === 'same') say(e.text!, 14);
-    if (e.kind === 'solved') fx.blink('#fff6c8', 0.3), fx.ring(X(0.5), Y(0.72), '#ffe066', R(0.5), 7), say(e.text!, 22, Y(0.5));
+    if (e.kind === 'solved') {
+      fx.blink('#fff6c8', 0.5), fx.kick(10), fx.ring(X(0.5), Y(0.72), '#ffe066', R(0.6), 8), fx.ring(X(0.5), Y(0.72), '#ffffff', R(0.35), 5);
+      for (let k = 0; k < 6; k++) fx.burst(X(0.5) + Math.cos(k) * R(0.25), Y(0.72) + Math.sin(k) * R(0.2), ['#ffd166', '#ff8fb1', '#8fd3ff', '#b5f28f', '#ffffff', '#ffb36b'][k], 18, 5, 2.8);
+    }
     if (e.kind === 'walk') for (let k = 0; k < 5; k++) fx.burst(X(0.15 + 0.17 * k), Y(0.35 + 0.1 * (k % 2)), ['#ffd166', '#ff8fb1', '#8fd3ff', '#b5f28f', '#ffffff'][k], 18, 4.5, 2.6);
     if (e.kind === 'fail') fx.kick(8), fx.blink(th.hot, 0.22), say(e.text!, 20, Y(0.5));
     if (e.kind === 'nope' || e.kind === 'miss') say(e.text!, 14), e.kind === 'nope' && fx.kick(2);
@@ -1433,6 +1526,26 @@ function drawTree(ctx: CanvasRenderingContext2D, x: number, y: number, R: P2, t:
   for (let j = 0; j < 3; j++) (ctx.beginPath(), ctx.arc(x + R(-0.025 + j * 0.025) + sway, y - R(0.1 + 0.02 * (j % 2)), R(0.006), 0, TAU), ctx.fill());
 }
 
+/** 새 장치 소개: 비출 곳들 [x, y(화면), 반지름] */
+const INTRO_NAME: Record<string, string> = { treat: '간식 등장!', big: '큰 개 등장!', cat: '고양이 등장!', pair: '짝꿍 등장!', post2: '기둥이 둘!', mud: '웅덩이 등장!', tree: '나무 등장!' };
+function introTargets(s: LeashState): number[][] {
+  const L = s.L, S = s.S, key = s.intro?.key ?? '', out: number[][] = [];
+  const dog = (a: number) => [L.px[S.pos[a]], sy(L.py[S.pos[a]]) - (L.big[a] ? 0.075 : 0.055), L.big[a] ? 0.12 : 0.09];
+  if (key === 'treat') L.treat.forEach((b, q) => b >= 0 && out.push([L.px[q], sy(L.py[q]) - 0.01, 0.075]));
+  if (key === 'big') L.big.forEach((b, a) => b && out.push(dog(a)));
+  if (key === 'pair') L.pair.forEach((b, a) => b >= 0 && out.push(dog(a)));
+  if (key === 'cat' && S.cat >= 0) out.push([L.px[S.cat], sy(L.py[S.cat]) - 0.04, 0.085]);
+  if (key === 'post2') L.posts.forEach((p) => out.push([p[0], sy(p[1]) - 0.06, 0.13]));
+  if (key === 'mud') L.mud.forEach((m, q) => m && out.push([L.px[q], sy(L.py[q]), 0.085]));
+  if (key === 'tree') L.trees.forEach((p) => out.push([p[0], sy(p[1]) - 0.07, 0.1]));
+  return out;
+}
+/** 소개 카드·스포트라이트의 진하기 (강아지를 들거나 한 번 옮기면 바로 사라진다) */
+function introAlpha(s: LeashState) {
+  if (!s.intro || s.phase !== 'play' || s.sel >= 0 || s.S.moves > 0) return 0;
+  const age = s.t - s.intro.t, LIFE = 170;
+  return age < LIFE ? Math.max(0, Math.min(1, age / 10, (LIFE - age) / 20)) : 0;
+}
 /** 소품: 말뚝·곰이 없는 구석에만 (소화전 · 벤치 · 꽃덤불) */
 const propCache = new WeakMap<object, { kind: string; x: number; y: number }[]>();
 function propsOf(s: LeashState) {
@@ -2084,7 +2197,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: LeashState, d: StageDef, w: n
     ctx.fillText(sg.txt, sx + sw / 2, sy0 + sh / 2 + 1);
   }
   // 새것 알림
-  if (s.news && t - s.news.t < NEWS_T + 20) {
+  if (s.news && t - s.news.t < NEWS_T + 20 && introAlpha(s) === 0) {
     const age = t - s.news.t, a = Math.min(1, age / 10, (NEWS_T + 20 - age) / 20), drop = Math.max(0, 10 - age) * 2;
     ctx.globalAlpha = a;
     const tx = `✨ ${s.news.text}`;
@@ -2104,7 +2217,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: LeashState, d: StageDef, w: n
   // 판 시작 큰 글씨
   {
     const age = t - s.startT;
-    if (age < 90 && s.phase === 'play' && S.moves === 0 && s.sel < 0) {
+    if (age < 90 && s.phase === 'play' && S.moves === 0 && s.sel < 0 && !s.intro) {
       const a = Math.min(1, age / 8, (90 - age) / 20), sc = 1 + Math.max(0, 8 - age) * 0.04;
       ctx.globalAlpha = a;
       ctx.save();
@@ -2125,6 +2238,129 @@ function drawHud(ctx: CanvasRenderingContext2D, s: LeashState, d: StageDef, w: n
       ctx.restore();
       ctx.globalAlpha = 1;
     }
+  }
+  // ═════════ 한 수에 여러 꼬임이 풀린 순간: 떠오르는 큰 숫자 ═════════
+  const bm = s.boom;
+  if (bm && !bm.solved && bm.n >= 2) {
+    const age = t - bm.t, life = bm.dur + 24;
+    if (age >= 0 && age < life) {
+      const k = Math.min(bm.n, 6), sc = age < 6 ? 0.3 + (age / 6) * 1.05 : 1.35 - Math.min(0.35, (age - 6) * 0.035);
+      const above = bm.y - 0.17 >= 0.4, a = Math.min(1, (life - age) / 14), x = Math.max(R(0.2), Math.min(w - R(0.2), X(bm.x))), y = Y(above ? bm.y - 0.17 : bm.y + 0.15) - age * 0.45;
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.translate(x, y);
+      ctx.scale(sc, sc);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      font(0.042 + 0.004 * k, 900);
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = 'rgba(10,50,20,.85)';
+      const lab = bm.n >= 4 ? '왕창 풀림!' : bm.n === 3 ? '트리플 풀림!' : '더블 풀림!';
+      ctx.strokeText(lab, 0, -R(0.075));
+      ctx.fillStyle = bm.n >= 4 ? '#ffe066' : '#ffffff';
+      ctx.fillText(lab, 0, -R(0.075));
+      font(0.1 + 0.014 * k, 900);
+      ctx.lineWidth = 6;
+      ctx.strokeText(`−${bm.n}`, 0, R(0.005));
+      const g = ctx.createLinearGradient(0, -R(0.06), 0, R(0.06));
+      g.addColorStop(0, '#eafff0');
+      g.addColorStop(1, bm.n >= 4 ? '#ffd23a' : '#5ff08a');
+      ctx.fillStyle = g;
+      ctx.fillText(`−${bm.n}`, 0, R(0.005));
+      ctx.restore();
+    }
+  }
+  // ═════════ 다 풀린 순간: 햇살 띠 + 큰 글씨 ═════════
+  if (bm && bm.solved) {
+    const age = t - bm.t, life = bm.dur + 46;
+    if (age >= 0 && age < life) {
+      const a = Math.min(1, age / 4, (life - age) / 16), sc = age < 8 ? 0.4 + (age / 8) * 0.9 : 1.3 - Math.min(0.3, (age - 8) * 0.025), cy = Y(0.46);
+      ctx.save();
+      ctx.globalAlpha = a * 0.35;
+      ctx.translate(w / 2, cy);
+      ctx.rotate(t * 0.01);
+      ctx.fillStyle = '#fff3b0';
+      for (let k = 0; k < 12; k++) {
+        ctx.rotate(TAU / 12);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(R(0.8), -R(0.07));
+        ctx.lineTo(R(0.8), R(0.07));
+        ctx.fill();
+      }
+      ctx.restore();
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.translate(w / 2, cy);
+      ctx.scale(sc, sc);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      font(0.095, 900);
+      ctx.lineWidth = 7;
+      ctx.strokeStyle = 'rgba(90,50,0,.85)';
+      ctx.strokeText('🐾 산책 출발!', 0, 0);
+      const g = ctx.createLinearGradient(0, -R(0.05), 0, R(0.05));
+      g.addColorStop(0, '#fffbe0');
+      g.addColorStop(1, '#ffc93c');
+      ctx.fillStyle = g;
+      ctx.fillText('🐾 산책 출발!', 0, 0);
+      font(0.042, 900);
+      ctx.lineWidth = 4;
+      const sub = bm.n >= 2 ? `마지막 한 번에 꼬임 ${bm.n}개!` : '꼬임 0 — 다 풀렸다!';
+      ctx.strokeText(sub, 0, R(0.075));
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(sub, 0, R(0.075));
+      ctx.restore();
+    }
+  }
+  // ═════════ 새 장치 소개 카드 ═════════
+  const ia = introAlpha(s);
+  if (ia > 0) {
+    const age = t - s.intro!.t, tg = introTargets(s);
+    const far = (cy: number) => Math.min(...tg.map(([, y]) => Math.abs(y - cy)));
+    const cyU = [0.66, 0.98, 0.42].reduce((b, c) => (far(c) > far(b) + 0.02 ? c : b)), cy = Y(cyU), cw = w * 0.88, ch = R(0.2), sc = age < 8 ? 0.6 + (age / 8) * 0.45 : 1.05 - Math.min(0.05, (age - 8) * 0.01);
+    ctx.save();
+    ctx.globalAlpha = ia;
+    ctx.translate(w / 2, cy);
+    ctx.scale(sc, sc);
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
+    ctx.beginPath();
+    ctx.roundRect(-cw / 2 + 3, -ch / 2 + 5, cw, ch, 14);
+    ctx.fill();
+    ctx.fillStyle = '#fffbea';
+    ctx.strokeStyle = '#3f8f3c';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(-cw / 2, -ch / 2, cw, ch, 14);
+    ctx.fill();
+    ctx.stroke();
+    ctx.save();
+    ctx.translate(-cw / 2 + R(0.05), -ch / 2 + R(0.012));
+    ctx.rotate(-0.25);
+    ctx.fillStyle = '#ff5a4f';
+    ctx.beginPath();
+    ctx.roundRect(-R(0.06), -R(0.022), R(0.12), R(0.044), 6);
+    ctx.fill();
+    font(0.032, 900);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('NEW!', 0, 1);
+    ctx.restore();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    font(0.062, 900);
+    ctx.fillStyle = '#2f6b2c';
+    ctx.fillText(`${d.emoji} ${INTRO_NAME[s.intro!.key] ?? d.name}`, 0, -R(0.052));
+    let fs = 0.036;
+    font(fs, 800);
+    while (ctx.measureText(d.news).width > cw - R(0.05) && fs > 0.03) font((fs -= 0.001), 800);
+    ctx.fillStyle = '#4a3a20';
+    ctx.fillText(d.news, 0, R(0.012));
+    font(0.034, 800);
+    ctx.fillStyle = '#8a7a5a';
+    ctx.fillText(`${s.stage + 1}판 · 꼬임 ${S.x}개 · ${L.limit}번 안에 풀어요`, 0, R(0.064));
+    ctx.restore();
   }
   // 결과
   if (s.phase === 'result') {

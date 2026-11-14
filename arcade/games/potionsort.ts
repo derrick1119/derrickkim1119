@@ -38,7 +38,7 @@ export interface StageDef {
 }
 export const STAGES: StageDef[] = [
   { key: 'basic', name: '첫 물약', emoji: '🌱', news: '🧪 병을 톡 → 다른 병을 톡하면 콸콸!', tip: '같은 색 위나 빈 병에만 부어져요', colors: 3, empties: 1, small: 0, fizz: 0, hidden: 0, ice: 0, burn: 0, gift: false, orders: 1, slack: 1, failK: 3, failA: 6 },
-  { key: 'fizz', name: '부글 물약', emoji: '💥', news: '💥 부글 물약은 아무 색 위에나 — 퐁! 둘 다 날아가요', tip: '💥은 막힌 색 위에 터뜨려요', colors: 3, empties: 2, small: 0, fizz: 1, hidden: 0, ice: 0, burn: 0, gift: false, orders: 1, slack: 1, failK: 2.2, failA: 5 },
+  { key: 'fizz', name: '부글 물약', emoji: '💥', news: '💥 부글 물약은 아무 색 위에나 — 퐁! 둘 다 날아가요', tip: '💥은 막힌 색 위에 터뜨려요', colors: 3, empties: 2, small: 0, fizz: 2, hidden: 0, ice: 0, burn: 0, gift: false, orders: 1, slack: 1, failK: 2.2, failA: 5 },
   { key: 'hidden', name: '숨은 색', emoji: '❓', news: '❓ 숨은 색 — 위가 비면 보여요', tip: '❓ 위를 비워야 무슨 색인지 보여요', colors: 4, empties: 2, small: 0, fizz: 0, hidden: 1, ice: 0, burn: 0, gift: false, orders: 1, slack: 2, failK: 1.6, failA: 6 },
   { key: 'ice', name: '얼음 병', emoji: '🧊', news: '🧊 얼음 병 — 바로 옆 병이 펑 완성되면 녹아요', tip: '🧊 옆 병부터 완성해서 녹여요', colors: 4, empties: 2, small: 0, fizz: 0, hidden: 0, ice: 1, burn: 0, gift: false, orders: 1, slack: 1, failK: 1.6, failA: 5 },
   { key: 'small', name: '작은 병', emoji: '🫙', news: '🫙 작은 병은 3칸뿐 · 손님이 둘 — 순서대로!', tip: '🫙 작은 병은 3칸 — 잠깐 맡기는 곳', colors: 5, empties: 1, small: 2, fizz: 0, hidden: 0, ice: 0, burn: 0, gift: false, orders: 2, slack: 1, failK: 1.6, failA: 5 },
@@ -523,9 +523,9 @@ export function buildLevel(seed: number, stage: number): Level {
 }
 
 // ───────────────────────────── 상태 ─────────────────────────────
-interface Ev { t: number; kind: string; x: number; y: number; text?: string; col?: string; v?: number }
+interface Ev { t: number; kind: string; x: number; y: number; text?: string; col?: string; v?: number; n?: number }
 /** 붓기 연출 하나: 붓기 전 내용물(sb·db)과 숨은 층 수(sh)로 그린다 */
-interface Anim { kind: 'pour' | 'poof' | 'burn'; s: number; d: number; c: number; n: number; t0: number; sb: number[]; db: number[]; sh: number; dh: number }
+interface Anim { kind: 'pour' | 'poof' | 'burn'; s: number; d: number; c: number; n: number; t0: number; sb: number[]; db: number[]; sh: number; dh: number; hit: number; hitDone: boolean }
 export interface PotionState {
   rng: Rng; seed: number; t: number; stage: number; phase: 'play' | 'settle' | 'result'; pt: number;
   L: Level; S: Sim; sel: number; selT: number; lastMv: Mv | null;
@@ -538,9 +538,15 @@ export interface PotionState {
   undo: number; prev: Sim | null; undoT: number;
   /** 퐁 연기·가마솥 김 (그리기용) */
   smoke: { x: number; y: number; t0: number; col: string; big: number }[];
+  /** 연속 완성(콤보): 붓기 3번 안에 또 완성하면 +1 · 마지막 완성 때 붓기 수 · 펑 순간 잠깐 멈춤 · 빛줄기·확대 연출 */
+  chain: number; lastDoneP: number; stopUntil: number; rays: { x: number; y: number; t0: number; col: string; n: number }[];
+  /** 이 판을 처음 하는가 (새 장치 스포트라이트는 처음에만) */
+  retry: boolean;
 }
 
-const ev = (s: PotionState, kind: string, x: number, y: number, text?: string, col?: string, v?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v });
+const ev = (s: PotionState, kind: string, x: number, y: number, text?: string, col?: string, v?: number, n?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v, n });
+/** 완성 한 병의 점수 (연속일수록 크게) */
+const DONE_PTS = 10;
 function tip(s: PotionState, key: string, text: string) {
   if (s.tips.has(key) || s.newsQ.length) return;
   s.tips.add(key);
@@ -583,6 +589,12 @@ function newStage(s: PotionState) {
   s.prev = null;
   s.undoT = -99;
   s.smoke = [];
+  s.chain = 0;
+  s.lastDoneP = -99;
+  s.stopUntil = -1;
+  s.rays = [];
+  s.retry = s.tips.has('try:' + s.stage);
+  s.tips.add('try:' + s.stage);
   s.phase = 'play';
   s.pt = 0;
   s.startT = s.t;
@@ -666,7 +678,8 @@ function tapAt(s: PotionState, x: number, y: number) {
   // 못 붓는 곳: 이유를 말하고, 그 병이 부을 수 있는 병이면 그걸로 바꿔 든다
   if (k === CAUL) return void ev(s, 'nope', CX, CY - 0.14, '🔥 가마솥 불이 꺼졌어요', '#ffd8cc');
   const top = S.b[s.sel][S.b[s.sel].length - 1], dst = S.b[k];
-  const why = (S.done >> k) & 1 ? '완성된 물약!' : (S.ice >> k) & 1 ? '🧊 꽁꽁!' : dst.length >= L.cap[k] ? '꽉 찼어요' : `${COLN[top] ?? '이 색'}이 아니에요`;
+  const nm = top === FZ ? '' : COLN[top] ?? '';
+  const why = (S.done >> k) & 1 ? '완성된 물약!' : (S.ice >> k) & 1 ? '🧊 꽁꽁!' : dst.length >= L.cap[k] ? '꽉 찼어요' : nm ? `${nm}${nm === '보라' ? '가' : '이'} 아니에요` : '같은 색이 아니에요';
   s.wv[k] += 0.08;
   ev(s, 'nope', L.px[k], bottleTop(L, k) - 0.02, why, '#ffd8cc');
   setMood(s, 'huh');
@@ -713,12 +726,12 @@ function doPour(s: PotionState, a: number, b: number) {
   const t0 = s.t;
   const first = rec[0];
   const kind = first.k === 'poof' ? 'poof' : first.k === 'burn' ? 'burn' : 'pour';
-  s.anim = { kind, s: a, d: b, c: first.k === 'pour' ? first.c : first.k === 'poof' ? FZ : first.k === 'burn' ? first.c : 0, n: first.k === 'pour' ? first.n : 1, t0, sb, db, sh, dh };
+  s.anim = { kind, s: a, d: b, c: first.k === 'pour' ? first.c : first.k === 'poof' ? FZ : first.k === 'burn' ? first.c : 0, n: first.k === 'pour' ? first.n : 1, t0, sb, db, sh, dh, hit: 0, hitDone: false };
   const tx = b >= 0 ? L.px[b] : CX, ty = b >= 0 ? bottleTop(L, b) + NECK : CY - 0.05;
   for (const e of rec) {
     if (e.k === 'pour') {
-      ev(s, 'glug', tx, ty, e.n >= 2 ? '콸콸!' : '쪼르르', '#e8f4ff', t0 + 14);
-      ev(s, 'splash', tx, L.py[b] - (db.length + e.n) * UH, undefined, POT[e.c], t0 + 21);
+      if (e.n >= 2) ev(s, 'glug', tx, ty, e.n >= 3 ? '콸콸콸!' : '콸콸!', '#e8f4ff', t0 + 14, e.n);
+      ev(s, 'splash', tx, L.py[b] - (db.length + e.n) * UH, undefined, POT[e.c], t0 + 21, e.n);
     } else if (e.k === 'poof') {
       ev(s, 'poof', tx, L.py[b] - db.length * UH, '퐁!', '#f3e6ff', t0 + 19);
       s.smoke.push({ x: tx, y: L.py[b] - db.length * UH - 0.02, t0: t0 + 19, col: '#d9c8ff', big: 1 });
@@ -731,12 +744,21 @@ function doPour(s: PotionState, a: number, b: number) {
       s.smoke.push({ x: CX, y: CY - 0.08, t0: t0 + 19, col: '#bff5c0', big: 1.1 });
       see(s, 'burnUse', '🔥 가마솥에 부은 한 칸은 부글부글 끓어 사라져요');
     } else if (e.k === 'done') {
+      // 연속 완성: 붓기 3번 안에 또 완성하면 콤보가 커지고 점수·연출도 커진다
+      s.chain = S.pours - s.lastDoneP <= 3 ? s.chain + 1 : 1;
+      s.lastDoneP = S.pours;
+      s.pts += DONE_PTS * s.chain;
+      s.anim.hit = Math.max(s.anim.hit, s.chain);
       s.corkT[e.i] = t0 + 24;
-      ev(s, 'done', L.px[e.i], L.py[e.i] - L.cap[e.i] * UH * 0.5, '펑!', POT[e.c], t0 + 24);
+      const bx2 = L.px[e.i], by2 = L.py[e.i] - L.cap[e.i] * UH * 0.5;
+      ev(s, 'done', bx2, by2, s.chain >= 2 ? `펑! 연속 ${s.chain}` : '펑!', POT[e.c], t0 + 24, s.chain);
+      ev(s, 'num', bx2, by2 - 0.06, `+${DONE_PTS * s.chain}`, '#ffe066', t0 + 30, s.chain);
+      s.rays.push({ x: bx2, y: by2, t0: t0 + 24, col: POT[e.c], n: s.chain });
+      if (s.chain >= 2) see(s, 'chain', '🔥 붓기 3번 안에 또 펑! 하면 연속 완성 — 점수가 커져요');
       see(s, 'done', '✨ 한 색을 한 병에 다 모으면 펑! 완성');
       if (L.order.length && S.got.length <= L.order.length) {
-        if (e.ok) ev(s, 'order', 0.8, 0.22, '부엉! 주문 그거예요!', '#fff1a8', t0 + 34);
-        else if (S.got.indexOf(e.c) === S.oi + (S.ook ? 0 : 0) && !S.ook && e.c !== L.order[S.oi]) ev(s, 'wrong', 0.8, 0.22, '부엉… 그게 아닌데', '#ffd8cc', t0 + 34);
+        if (e.ok) ev(s, 'order', 0.45, 0.25, '부엉! 그거예요!', '#fff1a8', t0 + 34);
+        else if (!S.ook && e.c !== L.order[S.oi]) ev(s, 'wrong', 0.45, 0.25, '부엉… 그게 아닌데', '#ffd8cc', t0 + 34);
       }
     } else if (e.k === 'melt') {
       s.meltT[e.i] = t0 + 34;
@@ -747,7 +769,7 @@ function doPour(s: PotionState, a: number, b: number) {
       ev(s, 'gift', L.px[e.i], L.py[e.i] - 0.12, '🎁 새 병이 쿵!', '#ffe0f0', t0 + 52);
       see(s, 'giftGot', '🎀 리본 색 완성 — 새 빈 병이 내려왔어요!');
     } else if (e.k === 'reveal') {
-      ev(s, 'reveal', L.px[e.i], L.py[e.i] - (S.b[e.i].length - 0.5) * UH, '!', '#fff6a8', t0 + 22);
+      ev(s, 'reveal', L.px[e.i], L.py[e.i] - (S.b[e.i].length - 0.5) * UH, '짠!', POT[e.c] ?? '#fff6a8', t0 + 22);
       see(s, 'revealSeen', '❓ 위가 비니까 숨은 색이 보여요!');
     } else if (e.k === 'vanish') {
       ev(s, 'say', 0.5, 0.6, `${COLN[e.c]} 물약이 다 날아갔어요!`, '#ffd8cc', t0 + 24);
@@ -786,9 +808,11 @@ function animate(s: PotionState) {
     s.slosh[i] += s.sv[i];
   }
   const a = s.anim;
-  if (a) {
+  if (a && s.t < s.stopUntil) a.t0++; // 펑 순간 잠깐 멈춤 (붓던 병이 그 자리에 멈춰 선다)
+  else if (a) {
     const u = s.t - a.t0;
-    if (u === 14 && a.d >= 0) s.sv[a.d] += 0.18;
+    if (u === 24 && a.hit && !a.hitDone) (a.hitDone = true), (s.stopUntil = s.t + 6 + 3 * Math.min(4, a.hit));
+    if (u === 14 && a.d >= 0) (s.sv[a.d] += 0.18 + 0.06 * a.n), (s.wv[a.d] += 0.012 * a.n);
     if (u === 26) {
       s.sv[a.s] += 0.2;
       if (a.d >= 0) s.sv[a.d] += 0.1;
@@ -796,6 +820,7 @@ function animate(s: PotionState) {
     if (u >= POUR_T) s.anim = null;
   }
   if (s.smoke.length && s.t - s.smoke[0].t0 > 80) s.smoke = s.smoke.filter((m) => s.t - m.t0 <= 80);
+  if (s.rays.length && s.t - s.rays[0].t0 > 50) s.rays = s.rays.filter((m) => s.t - m.t0 <= 50);
 }
 
 export const potionsort: GameDef<PotionState> = {
@@ -821,6 +846,7 @@ export const potionsort: GameDef<PotionState> = {
       seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsQ: [], startT: 0, clearT: 0,
       mood: 'idle', moodT: 0, owl: 'wait', owlT: 0, batT: -99,
       wob: [], wv: [], slosh: [], sv: [], corkT: [], meltT: [], giftT: -1, caulT: -99,
+      chain: 0, lastDoneP: -99, stopUntil: -1, rays: [], retry: false,
     } as unknown as PotionState;
     newStage(s);
     return s;
@@ -1002,7 +1028,7 @@ const easeIO = (q: number) => {
 type F = (v: number) => number;
 interface Seg { c: number; h: number; hid: boolean }
 const segsOf = (b: number[], hid: number): Seg[] => b.map((c, j) => ({ c, h: 1, hid: j < hid }));
-interface BO { rot: number; t: number; cork: number; ice: number; slosh: number; glow: string | null; shimmer: boolean; dim: boolean; key: number; gift: number }
+interface BO { rot: number; t: number; cork: number; ice: number; slosh: number; glow: string | null; shimmer: boolean; dim: boolean; key: number; gift: number; ribbon?: number }
 
 function bottlePath(ctx: CanvasRenderingContext2D, bw: number, bh: number, nw: number, nh: number) {
   const rr = bw * 0.34, sh = bw * 0.42;
@@ -1079,6 +1105,16 @@ function drawBottle(ctx: CanvasRenderingContext2D, x: number, y: number, R: F, c
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(g.hid ? '?' : g.c === FZ ? '💥' : SYM[g.c] ?? '', 0, -yy - hh * 0.5 + 1);
+    }
+    // 리본 색: 층마다 작은 리본 띠
+    if (o.ribbon !== undefined && g.c === o.ribbon && !g.hid && g.h > 0.55) {
+      ctx.fillStyle = 'rgba(255,255,255,.75)';
+      ctx.fillRect(-bw / 2, -yy - hh * 0.5 - 1.2, bw, 2.4);
+      ctx.beginPath();
+      ctx.moveTo(bw * 0.3, -yy - hh * 0.5);
+      ctx.lineTo(bw * 0.48, -yy - hh * 0.85);
+      ctx.lineTo(bw * 0.48, -yy - hh * 0.15);
+      ctx.fill();
     }
     // 층 사이 경계
     if (k > 0 && segs[k - 1].c !== g.c) {
@@ -1271,7 +1307,36 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PotionState, w: number, h: nu
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, R(sz))}px system-ui, sans-serif`);
   ctx.save();
   fx.begin(ctx);
+  // 펑 순간 화면이 그 병 쪽으로 살짝 당겨진다 (연속일수록 크게)
+  const pr = s.rays.length ? s.rays[s.rays.length - 1] : null;
+  if (pr && t >= pr.t0 && t - pr.t0 < 16) {
+    const k = 1 + 0.025 * Math.min(4, pr.n + 0.5) * (1 - (t - pr.t0) / 16);
+    ctx.translate(X(pr.x), Y(pr.y));
+    ctx.scale(k, k);
+    ctx.translate(-X(pr.x), -Y(pr.y));
+  }
   drawRoom(ctx, s, w, h, X, Y, R, t);
+  // ═════════ 펑 빛줄기 (병 뒤) ═════════
+  for (const r of s.rays) {
+    const u = t - r.t0;
+    if (u < 0 || u > 50) continue;
+    const q = u / 50, len = R(0.16 + 0.05 * Math.min(4, r.n)) * ease(u / 10), nray = 10 + 2 * Math.min(4, r.n);
+    ctx.save();
+    ctx.translate(X(r.x), Y(r.y));
+    ctx.rotate(u * 0.03);
+    ctx.globalAlpha = 0.55 * (1 - q);
+    for (let k = 0; k < nray; k++) {
+      const a0 = (k / nray) * TAU;
+      ctx.fillStyle = k % 2 ? r.col : '#fff6c8';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(a0 - 0.09) * len, Math.sin(a0 - 0.09) * len);
+      ctx.lineTo(Math.cos(a0 + 0.09) * len, Math.sin(a0 + 0.09) * len);
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
   // ═════════ 선반 ═════════
   const rows = [...new Set(L.py)];
   for (const yb of rows) drawShelf(ctx, X, R, Y(yb));
@@ -1310,7 +1375,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PotionState, w: number, h: nu
     const iced = (S.ice >> i) & 1 ? 1 : s.meltT[i] >= 0 && t < s.meltT[i] + 24 ? (t < s.meltT[i] ? 1 : 1 - (t - s.meltT[i]) / 24) : 0;
     const isLegal = legal(i);
     drawBottle(ctx, X(L.px[i]), Y(yb - lift), R, L.cap[i], segs, {
-      rot: s.wob[i] * 0.6, t, cork, ice: iced, slosh: s.slosh[i], key: i, gift: 0,
+      rot: s.wob[i] * 0.6, t, cork, ice: iced, slosh: s.slosh[i], key: i, gift: 0, ribbon: L.ribbon >= 0 ? L.ribbon : undefined,
       glow: i === sel ? '#fff3b0' : cork >= 0 ? POT[S.b[i][0]] ?? null : isLegal ? '#fff8d0' : null,
       shimmer: isLegal, dim: sel >= 0 && i !== sel && !isLegal && !done, 
     });
@@ -1322,6 +1387,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PotionState, w: number, h: nu
       ctx.fillText('3칸', X(L.px[i]), Y(L.py[i] + 0.033));
     }
   }
+  // ═════════ 장치 표시: 얼음 ← 옆 병 / 💥 부글 물약 ═════════
+  drawGimmicks(ctx, s, X, Y, R, t);
   // ═════════ 바닥·가마솥·고양이 ═════════
   drawFloor(ctx, X, Y, R, w, h);
   drawCauldron(ctx, s, X, Y, R, t, sel >= 0 && canPour(L, S, sel, CAUL));
@@ -1366,7 +1433,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PotionState, w: number, h: nu
         ctx.fill();
       }
     }
-    drawBottle(ctx, X(pose.x), Y(pose.y), R, L.cap[a.s], segs, { rot: pose.rot, t, cork: -1, ice: 0, slosh: s.slosh[a.s] + (pose.u < 23 ? Math.sin(t * 0.5) * 0.3 : 0), key: a.s, gift: 0, glow: null, shimmer: false, dim: false });
+    drawBottle(ctx, X(pose.x), Y(pose.y), R, L.cap[a.s], segs, { ribbon: L.ribbon >= 0 ? L.ribbon : undefined, rot: pose.rot, t, cork: -1, ice: 0, slosh: s.slosh[a.s] + (pose.u < 23 ? Math.sin(t * 0.5) * 0.3 : 0), key: a.s, gift: 0, glow: null, shimmer: false, dim: false });
   }
   // ═════════ 연기 ═════════
   for (const m of s.smoke) {
@@ -1406,25 +1473,35 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PotionState, w: number, h: nu
     const due = e.v !== undefined && !['clear'].includes(e.kind) ? e.v : e.t;
     if (due <= seenT || due > t) continue;
     const x = X(e.x), y = Y(e.y);
-    if (e.kind === 'glug') say(x + R(0.06), y - R(0.03), e.text!, e.col!, 15), fx.kick(1.2);
-    if (e.kind === 'splash') fx.burst(x, y, e.col!, 10, 2.2, 2), fx.ring(x, y, e.col!, R(0.05), 2);
+    const n = e.n ?? 1;
+    if (e.kind === 'glug') say(x + R(0.06), y - R(0.03), e.text!, e.col!, 14 + 3 * Math.min(3, n)), fx.kick(1 + n * 0.8);
+    if (e.kind === 'splash') fx.burst(x, y, e.col!, 8 + 7 * n, 2 + n * 0.6, 2 + n * 0.3), fx.burst(x, y, '#ffffff', 4 + 2 * n, 2.5, 1.4), fx.ring(x, y, e.col!, R(0.04 + 0.015 * n), 2 + n), fx.kick(1.5 + n);
     if (e.kind === 'poof') fx.burst(x, y, '#e6d8ff', 26, 3.4, 3.2), fx.burst(x, y, '#ff7ad9', 14, 4, 2), fx.ring(x, y, '#f0e0ff', R(0.12), 5), fx.kick(6), say(x, y - R(0.06), e.text!, e.col!, 24);
     if (e.kind === 'burn') fx.burst(x, y, '#8dff9a', 22, 3, 2.6), fx.ring(x, y, '#bfffc4', R(0.13), 4), fx.kick(3), say(x, y - R(0.1), e.text!, e.col!, 18);
     if (e.kind === 'done') {
-      fx.burst(x, y, e.col!, 30, 4.2, 3), fx.burst(x, y, '#fff6c0', 16, 3, 2), fx.ring(x, y, e.col!, R(0.14), 5), fx.ring(x, y, '#fff6c0', R(0.2), 3), fx.kick(4);
-      say(x, y - R(0.12), e.text!, '#fff6d0', 26);
+      // 연속 완성일수록 크게: 흔들림·파티클·고리·번쩍
+      const c = Math.min(5, n);
+      fx.burst(x, y, e.col!, 26 + 14 * c, 4 + c * 0.8, 3 + c * 0.3), fx.burst(x, y, '#fff6c0', 14 + 6 * c, 3 + c * 0.5, 2), fx.ring(x, y, e.col!, R(0.13 + 0.04 * c), 5 + c), fx.ring(x, y, '#fff6c0', R(0.2 + 0.05 * c), 3);
+      fx.kick(4 + 2 * c);
+      fx.blink(c >= 3 ? '#fff1a8' : e.col!, 0.12 + 0.05 * c);
+      if (c >= 3) for (const col of POT.slice(0, 6)) fx.burst(x, y, col, 8, 6, 2.6);
+      say(x, y - R(0.12), e.text!, '#fff6d0', 24 + 3 * c);
     }
+    if (e.kind === 'num') fx.pop(x, y, e.text!, n >= 3 ? '#ffb3e6' : e.col!, 22 + 5 * Math.min(4, n)), n >= 3 && say(X(0.5), Y(0.47), n >= 4 ? '🔥 대박 연속!!' : '✨ 연속 완성!', '#ffe9a8', 22);
     if (e.kind === 'order') say(x, y + R(0.02), e.text!, e.col!, 15), fx.burst(x, y, '#ffe066', 14, 3, 2);
     if (e.kind === 'wrong') say(x, y + R(0.02), e.text!, e.col!, 14);
     if (e.kind === 'melt') fx.burst(x, y, '#d8f4ff', 22, 3.4, 2.4), fx.ring(x, y, '#e8fbff', R(0.1), 4), say(x, y - R(0.05), e.text!, e.col!, 16);
     if (e.kind === 'gift') fx.burst(x, y, '#ffc2e2', 22, 3.6, 2.6), fx.kick(5), say(x, y - R(0.05), e.text!, e.col!, 17);
-    if (e.kind === 'reveal') fx.ring(x, y, '#fff6a8', R(0.06), 3), fx.burst(x, y, '#fff6a8', 8, 1.8, 1.6), fx.pop(x + R(0.05), y, e.text!, e.col!, 18);
+    if (e.kind === 'reveal') fx.ring(x, y, e.col!, R(0.08), 4), fx.burst(x, y, e.col!, 16, 2.6, 2.2), fx.burst(x, y, '#fff6a8', 8, 1.8, 1.6), fx.pop(x + R(0.06), y, e.text!, '#fff6d0', 18), fx.kick(2);
     if (e.kind === 'nope') say(x, y - R(0.03), e.text!, e.col!, 14), fx.kick(1.5);
     if (e.kind === 'miss' || e.kind === 'say') say(x, y, e.text!, e.col!, 14);
     if (e.kind === 'undo') fx.ring(x, y, '#e6dcff', R(0.09), 4), fx.burst(x, y, '#e6dcff', 14, 3, 2), say(x - R(0.08), y - R(0.09), e.text!, e.col!, 15);
     if (e.kind === 'jam') fx.kick(8), fx.blink(th.hot, 0.25);
     if (e.kind === 'stage') fx.blink('#fff6d6', 0.18);
-    if (e.kind === 'clear') fx.burst(X(0.5), Y(0.6), '#ffe066', 46, 6, 3.2), fx.burst(X(0.5), Y(0.6), '#ff9ad5', 30, 5, 3), fx.ring(X(0.5), Y(0.6), '#ffe066', R(0.35), 6), fx.blink('#fff6c8', 0.25);
+    if (e.kind === 'clear') {
+      fx.burst(X(0.5), Y(0.6), '#ffe066', 46, 6, 3.2), fx.burst(X(0.5), Y(0.6), '#ff9ad5', 30, 5, 3), fx.ring(X(0.5), Y(0.6), '#ffe066', R(0.35), 6), fx.blink('#fff6c8', 0.3), fx.kick(6);
+      for (let i = 0; i < L.n; i++) if ((S.done >> i) & 1) fx.burst(X(L.px[i]), Y(L.py[i] - 0.1), POT[S.b[i][0]] ?? '#ffffff', 14, 4, 2.6);
+    }
     if (e.kind === 'fail') fx.kick(9), fx.blink(th.hot, 0.22);
   }
   fx.memo.t = t;
@@ -1951,15 +2028,20 @@ function drawCauldron(ctx: CanvasRenderingContext2D, s: PotionState, X: F, Y: F,
   // 가마솥 쓸 수 있는 판: 남은 횟수
   if (L.burn > 0) {
     const n = s.S.burn;
-    ctx.fillStyle = 'rgba(30,14,10,.75)';
+    ctx.font = `900 ${Math.max(12, R(0.031))}px system-ui, sans-serif`;
+    const label = `🔥 버리기 ×${n}`, pw = ctx.measureText(label).width + R(0.04), px0 = cx - pw / 2, py0 = Y(1.052);
+    ctx.fillStyle = n > 0 ? 'rgba(120,40,10,.9)' : 'rgba(40,30,30,.8)';
     ctx.beginPath();
-    ctx.roundRect(cx + rx * 0.55, cy - ry * 1.6, R(0.11), R(0.045), R(0.02));
+    ctx.roundRect(px0, py0, pw, R(0.045), R(0.02));
     ctx.fill();
-    ctx.font = `900 ${Math.max(12, R(0.032))}px system-ui, sans-serif`;
+    ctx.strokeStyle = n > 0 ? '#ffb46a' : 'rgba(255,255,255,.25)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.font = `900 ${Math.max(12, R(0.031))}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = n > 0 ? '#ffcf8a' : 'rgba(255,255,255,.45)';
-    ctx.fillText(`🔥×${n}`, cx + rx * 0.55 + R(0.055), cy - ry * 1.6 + R(0.0235));
+    ctx.fillStyle = n > 0 ? '#ffe2b8' : 'rgba(255,255,255,.45)';
+    ctx.fillText(label, cx, py0 + R(0.0235));
     if (canTarget) drawSparkles(ctx, cx, rimY - R(0.01), R, t, 9);
   }
 }
@@ -2388,6 +2470,8 @@ function drawHud(ctx: CanvasRenderingContext2D, s: PotionState, d: StageDef, w: 
       ctx.globalAlpha = 1;
     }
   }
+  // 새 장치 스포트라이트 (그 판을 처음 할 때만)
+  drawSpot(ctx, s, w, X, Y, R, font);
   // 결과
   if (s.phase === 'result') {
     const age = s.pt, a = Math.min(1, age / 10);
@@ -2491,4 +2575,141 @@ function drawHud(ctx: CanvasRenderingContext2D, s: PotionState, d: StageDef, w: 
     }
   }
   ctx.textBaseline = 'alphabetic';
+}
+
+/** 판마다 새 장치를 눈에 띄게: 얼음 병 ← 옆 병(☀️ 펑하면 녹음) · 💥 부글 물약 꼬리표와 거품 */
+function drawGimmicks(ctx: CanvasRenderingContext2D, s: PotionState, X: F, Y: F, R: F, t: number) {
+  const L = s.L, S = s.S, a = s.anim;
+  for (let i = 0; i < L.n; i++) {
+    if (!((S.ice >> i) & 1)) continue;
+    for (let j = 0; j < L.n; j++) {
+      if (!((L.nb[i] >> j) & 1) || !((S.live >> j) & 1)) continue;
+      const x0 = X(L.px[j]), x1 = X(L.px[i]), y0 = Y(bottleTop(L, j) - 0.03), y1 = Y(bottleTop(L, i) - 0.03), my = Math.min(y0, y1) - R(0.05);
+      const done = (S.done >> j) & 1;
+      ctx.strokeStyle = done ? 'rgba(255,230,140,.9)' : `rgba(170,225,255,${0.55 + 0.25 * Math.sin(t * 0.12)})`;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 4]);
+      ctx.lineDashOffset = -t * 0.4;
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.quadraticCurveTo((x0 + x1) / 2, my, x1, y1);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      const ang = Math.atan2(y1 - my, x1 - (x0 + x1) / 2);
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x1 - Math.cos(ang - 0.5) * 8, y1 - Math.sin(ang - 0.5) * 8);
+      ctx.lineTo(x1 - Math.cos(ang + 0.5) * 8, y1 - Math.sin(ang + 0.5) * 8);
+      ctx.fill();
+      ctx.font = `${Math.max(14, R(0.04))}px system-ui`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('☀️', (x0 + x1) / 2 + (x0 < x1 ? -R(0.02) : R(0.02)), (y0 + y1) / 4 + my / 2);
+    }
+  }
+  // 💥 부글 물약: 병 입구로 거품이 퐁퐁, 꼬리표가 대롱대롱
+  for (let i = 0; i < L.n; i++) {
+    if (!((S.live >> i) & 1) || (a && i === a.s)) continue;
+    const b = S.b[i];
+    let k = -1;
+    for (let j = b.length - 1; j >= S.hid[i]; j--) if (b[j] === FZ) (k = j), (j = -1);
+    if (k < 0) continue;
+    const top = k === b.length - 1, x = X(L.px[i]), y = Y(bottleTop(L, i) - (i === s.sel && s.phase === 'play' ? LIFT : 0));
+    for (let q = 0; q < (top ? 5 : 2); q++) {
+      const ph = (t * 0.02 + q / 5) % 1;
+      ctx.fillStyle = `rgba(255,170,230,${0.8 * (1 - ph)})`;
+      ctx.beginPath();
+      ctx.arc(x + Math.sin(t * 0.1 + q * 2) * R(0.012), y - ph * R(0.06), R(0.004 + 0.004 * (q % 2)), 0, TAU);
+      ctx.fill();
+    }
+    if (!top) continue;
+    const sw = Math.sin(t * 0.08 + i) * 0.25;
+    ctx.save();
+    ctx.translate(x + R(0.03), y + R(0.012));
+    ctx.rotate(sw);
+    ctx.strokeStyle = 'rgba(255,230,250,.8)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-R(0.03), -R(0.012));
+    ctx.lineTo(0, R(0.012));
+    ctx.stroke();
+    ctx.fillStyle = '#ff7ad9';
+    ctx.beginPath();
+    ctx.roundRect(-R(0.012), R(0.01), R(0.05), R(0.034), R(0.008));
+    ctx.fill();
+    ctx.font = `${Math.max(12, R(0.03))}px system-ui`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('💥', R(0.013), R(0.028));
+    ctx.restore();
+  }
+}
+
+/** 새 장치 스포트라이트: 그 판을 처음 할 때, 판 소개 뒤 2초쯤 주변을 어둡게 하고 장치에 빛을 비춘다 */
+function drawSpot(ctx: CanvasRenderingContext2D, s: PotionState, w: number, X: F, Y: F, R: F, font: (sz: number, w?: number) => void) {
+  if (s.retry || s.phase !== 'play') return;
+  const age = s.t - s.startT;
+  if (age < 88 || age > 225) return;
+  const L = s.L, S = s.S, key = STAGES[s.stage].key;
+  let x = -1, y = -1, rr = 0.12, label = '';
+  const at = (i: number) => ((x = L.px[i]), (y = L.py[i] - L.cap[i] * UH * 0.5));
+  if (key === 'fizz') {
+    const i = S.b.findIndex((b) => b.includes(FZ));
+    if (i >= 0) at(i), (label = '💥 부글 물약 — 아무 색 위에나 부으면 퐁!');
+  } else if (key === 'hidden') {
+    const i = S.hid.findIndex((hh) => hh > 0);
+    if (i >= 0) at(i), (label = '❓ 숨은 색 — 위를 비우면 보여요');
+  } else if (key === 'ice') {
+    const i = [...Array(L.n).keys()].find((j) => (S.ice >> j) & 1);
+    if (i !== undefined) at(i), (label = '🧊 꽁꽁 — ☀️ 바로 옆 병을 펑 완성하면 녹아요'), (rr = 0.16);
+  } else if (key === 'small') {
+    const i = L.cap.indexOf(3);
+    if (i >= 0) at(i), (label = '🫙 작은 병 — 3칸뿐 · 손님은 순서대로');
+  } else if (key === 'caul') (x = CX), (y = CY - 0.03), (rr = 0.15), (label = '🔥 가마솥 — 병을 들고 톡: 한 칸 끓여 버리기');
+  else if (key === 'gift' && L.gslot >= 0) at(L.gslot), (label = '🎀 리본 색을 다 모으면 여기 새 병이 쿵!');
+  if (x < 0 || !label) return;
+  const a = Math.min(1, (age - 88) / 10, (225 - age) / 18), cx = X(x), cy = Y(y), r = R(rr) * (1 + 0.05 * Math.sin(age * 0.2));
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.fillStyle = 'rgba(10,4,22,.62)';
+  ctx.beginPath();
+  ctx.rect(0, R(0.066), w, Y(1.285) - R(0.066));
+  ctx.arc(cx, cy, r, 0, TAU, true);
+  ctx.fill('evenodd');
+  ctx.strokeStyle = '#fff1a8';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([8, 6]);
+  ctx.lineDashOffset = -age;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, TAU);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // 설명 딱지 (위나 아래 빈 쪽에)
+  font(0.034, 900);
+  let fs = 0.034;
+  while (ctx.measureText(label).width > w - R(0.08) && fs > 0.03) font((fs -= 0.001), 900);
+  const tw = ctx.measureText(label).width + R(0.05), ly = y > 0.75 ? cy - r - R(0.06) : cy + r + R(0.06), lx = Math.max(tw / 2 + 4, Math.min(w - tw / 2 - 4, cx));
+  ctx.fillStyle = 'rgba(60,24,90,.96)';
+  ctx.beginPath();
+  ctx.roundRect(lx - tw / 2, ly - R(0.03), tw, R(0.06), R(0.03));
+  ctx.fill();
+  ctx.strokeStyle = '#ffd166';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff6e0';
+  ctx.fillText(label, lx, ly + 1);
+  font(0.03, 900);
+  const nb = 'NEW!', nw2 = ctx.measureText(nb).width + R(0.03);
+  ctx.fillStyle = '#ff5a6e';
+  ctx.beginPath();
+  ctx.roundRect(lx - tw / 2 - R(0.01), ly - R(0.055), nw2, R(0.04), R(0.02));
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(nb, lx - tw / 2 - R(0.01) + nw2 / 2, ly - R(0.034));
+  ctx.restore();
 }
