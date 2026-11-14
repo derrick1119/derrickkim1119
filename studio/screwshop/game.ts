@@ -1561,6 +1561,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
   // ═════════ 사건 연출 ═════════
   /** 떠오르는 글자: HUD·상자 줄을 가리지 않게 판 안으로, 겹치면 위로 비켜 */
   const say = (x: number, y: number, text: string, col: string, size: number, punch = false) => {
+    if (t < (fx.memo.big ?? -1) && size < 40) return; // 🧪 S007: 💥 한 방 7 동안은 다른 말풍선을 숨김
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
     y = Math.max(Y(BY0 + 0.1), Math.min(Y(BY1 - 0.02), y));
@@ -1625,7 +1626,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       if (bad) say(x, y, `한 방 ${h}`, '#d8c3a5', 16);
       else {
         const sz = h >= 5 ? Math.min(40, 28 + 2 * h) : [0, 0, 20, 26, 32][h], col = h >= 5 ? '#ffffff' : ['', '', '#cfefff', '#8fe3ff', '#6fd6ff'][h];
-        if (h >= 7) say(w / 2, Y(0.62), `💥 한 방 ${h}!`, '#ffd166', 46, true), fx.hold(8), fx.blink('#fff1a8', 0.28); // 🧪 S007: 8판 💥7은 화면 가운데 금색 + 멈춤
+        if (h >= 7) say(w / 2, Y(0.62), `💥 한 방 ${h}!`, '#ffd166', 46, true), fx.hold(8), fx.blink('#fff1a8', 0.28), (fx.memo.big = t + 50); // 🧪 S007: 8판 💥7은 화면 가운데 금색 + 멈춤 · 50틱 동안 다른 말 숨김
         else say(x, y, h >= 5 ? `💥 한 방 ${h}!` : h === 4 ? '한 방 4!!' : h === 3 ? '한 방 3!' : '한 방 2', col, sz, true); // 겹치면 비켜 선다(🧪 S001)
         fx.burst(x, y, '#8fe3ff', [0, 0, 6, 10, 16][Math.min(4, h)] || 24, 3.4, 2.2);
         if (h >= 3) fx.ring(x, y, '#8fe3ff', R(0.06 + 0.06 * Math.min(3, h - 2)), 3 + Math.min(2, h - 3)), fx.hold(Math.min(5, h)), fx.kick(h >= 5 ? 7 : h === 4 ? 5 : 3), setMood(s, h >= 4 ? 'cheer' : 'wow');
@@ -1844,8 +1845,12 @@ function drawShelf(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =
     if (u < 0) continue;
     const slide = u < 12 ? 1 - ease(u / 12) : 0;
     const n = vb.land.filter((x) => x <= t).length;
-    const bump = vb.land.some((x) => t - x >= 0 && t - x < 8) ? 0.012 : 0;
-    drawBox(ctx, X(boxX(L, bi) + slide * 0.7), Y(BOX_Y - bump), R, vb.col, n, 0, 1, t);
+    const lt = Math.max(...vb.land.filter((x) => x <= t)), q = t - lt < 8 ? 1 - (t - lt) / 8 : 0, bump = q ? 0.012 : 0; // 🎨 상자 찌그러짐(ART · 📋 S008): 나사가 들어오면 8틱 동안 납작 → 제자리
+    ctx.save();
+    ctx.translate(X(boxX(L, bi) + slide * 0.7), Y(BOX_Y - bump + BOX_H / 2));
+    ctx.scale(1 + 0.08 * q, 1 - 0.1 * q);
+    drawBox(ctx, 0, -Y(BOX_H / 2), R, vb.col, n, 0, 1, t);
+    ctx.restore();
   }
   // 다음 상자 미리 보기 (아직 화면에 안 나온 상자 = 논리 큐에서 화면 상자보다 뒤)
   const shown = new Set<number>();
@@ -2523,9 +2528,16 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
     const after = pre.rec.slice(wi), nb = after.filter((e) => e.k === 'box').length, ns = after.filter((e) => e.k === 'slot').length;
     font(0.032, 900);
     const H = STAGES[s.stage].H, all = pre.rec.filter((e) => e.k === 'box').length; // 📐 S007 8판: ★3이 한 방인 태엽 판은 🔑 자신까지 센 쏙 한 방 / H
-    const lab = H !== undefined ? `🔑 드르륵 → 쏙 한 방 ${all} / ${H}${all >= H ? '!' : ''}` : `🔑 드르륵 → 🔒 쏙 ${nb}${ns ? ` · 빈칸 ${ns}` : '!'}`, hw = ctx.measureText(lab).width / 2 + 10;
-    pill(ctx, Math.max(hw, Math.min(X(1) - hw, X(L.px[k]))), Y(L.py[k]) - R(0.13), lab, (H !== undefined ? all < H : ns) ? '#ffb36b' : '#c8ffc8', R(0.044)); // '쏙!' 알약보다 위, 화면 안 · 한 방 판은 H에 닿으면 초록
+    const lab = H !== undefined ? `🔑 드르륵 → 쏙 한 방 ${all} / ${H}${ns ? ` · 빈칸 ${ns}` : all >= H ? '!' : ''}` : `🔑 드르륵 → 🔒 쏙 ${nb}${ns ? ` · 빈칸 ${ns}` : '!'}`, hw = ctx.measureText(lab).width / 2 + 10; // ✏️ S008: 한 방 판에도 '빈칸 M'(S007에 빠졌던 것)
+    pill(ctx, Math.max(hw, Math.min(X(1) - hw, X(L.px[k]))), Y(L.py[k]) - R(0.13), lab, ns || (H !== undefined && all < H) ? '#ffb36b' : '#c8ffc8', R(0.044)); // '쏙!' 알약보다 위, 화면 안 · 한 방 판은 H에 닿고 빈칸 0이면 초록
   }
+  // 🎯 과녁을 손으로(✏️ S008 · 🧪 S007 F16 ③허공): 아직 안 매달린 🔨이나 안 떨어진 🌀가 칠 나사를 꾹 → 주황 '🎯 과녁 — 손으로 빼면 허공'
+  const g0 = s.S.gone, tg = L.pl.some((P, p) => (P.ham && poseOf(L, p, g0) === 0 && L.hamT[p].some((c) => c[0] === k)) || (P.kind === 'spring' && P.tgt !== undefined && L.pm[p] & ~g0 && (() => {
+    let b = -1, bd = 9;
+    for (const i of L.ps[P.tgt!]) if (!((g0 >> i) & 1) && Math.hypot(L.px[i] - P.cx, L.py[i] - P.cy) < bd) (bd = Math.hypot(L.px[i] - P.cx, L.py[i] - P.cy)), (b = i);
+    return b === k;
+  })()));
+  if (tg) font(0.03, 900), pill(ctx, X(Math.max(0.2, Math.min(0.8, L.px[k]))), Y(L.py[k]) + R(0.065), '🎯 과녁 — 손으로 빼면 허공', '#ffb36b', R(0.044));
   // 매달릴/떨어질 판자의 유령
   for (const e of pre.rec) {
     if (wi >= 0 && pre.rec.indexOf(e) > wi && e.k === 'fall') continue; // 튄 🔒 바퀴의 '덜컹'은 생략(바퀴를 덮던 알약)
@@ -2816,7 +2828,7 @@ function drawTray(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   ctx.fillStyle = danger === 2 ? '#ffb4a8' : 'rgba(255,240,215,.75)';
   ctx.fillText('빈칸', x0 - R(0.012), Y(TRAY_Y) + R(0.011));
   ctx.textAlign = 'left';
-  ctx.fillText(`${n}/5`, x1 + R(0.012), Y(TRAY_Y) + R(0.011));
+  ctx.fillText(`${Math.min(n, 5)}/5`, x1 + R(0.012), Y(TRAY_Y) + R(0.011)); // 🧪 S007: 태엽이 한꺼번에 넘쳐도 '11/5' 대신 5/5
 }
 
 function drawBench(ctx: CanvasRenderingContext2D, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, w: number, h: number) {
@@ -3229,12 +3241,21 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
           ]),
     ];
     const gx0 = R(0.225), gw = (w - gx0 - R(0.015)) / 3;
+    // 🎨 칩 게이지(ART §2.3 · 📋 S008): ★3 칩 안을 지금 연속 / 최고 한 방만큼 왼쪽부터 채운다
+    const gauge = s.phase === 'play' ? (d.H !== undefined ? Math.min(S.shot, d.H) / d.H : d.T === undefined && d.B === undefined ? Math.min(S.streak, d.C) / d.C : 0) : 0;
     chips.forEach(({ txt, st }, k) => {
       const gx = gx0 + k * gw;
       ctx.fillStyle = st === true ? 'rgba(255,209,102,.3)' : st === false ? 'rgba(0,0,0,.3)' : 'rgba(255,240,210,.12)';
       ctx.beginPath();
       ctx.roundRect(gx + 2, y2 - R(0.026), gw - 4, R(0.052), R(0.026));
       ctx.fill();
+      if (k === 2 && st === null && gauge > 0) {
+        ctx.save();
+        ctx.clip();
+        ctx.fillStyle = gauge >= 1 ? 'rgba(255,209,102,.5)' : 'rgba(160,240,140,.35)';
+        ctx.fillRect(gx + 2, y2 - R(0.026), (gw - 4) * gauge, R(0.052));
+        ctx.restore();
+      }
       ctx.textAlign = 'center';
       font(0.034, 800);
       ctx.fillStyle = st === false ? 'rgba(255,255,255,.45)' : '#fff6e0';
