@@ -4,7 +4,7 @@ import { STAGES, layoutOf, simulate } from '../studio/demolition/game.ts';
 import { STAGES3 } from '../studio/demolition/stages3d.ts';
 import { cellPx, fitCams, visibleArea, YAW0 } from '../studio/demolition/view3d.ts';
 import { fingerHit } from '../studio/demolition/funqa.ts';
-import { GAS, capOf3, forEachPlan, from2D, layoutOf3, simulate3, type StageDef3 } from '../studio/demolition/sim3d.ts';
+import { GAS, capOf3, isQuiet, lostFeet, support3, verdict3, forEachPlan, from2D, layoutOf3, simulate3, type StageDef3 } from '../studio/demolition/sim3d.ts';
 
 const stage = (layers: string[][], extra: Partial<StageDef3> = {}): StageDef3 => ({
   key: '', title: 't', news: '', hint: '', W: layers[0][0].length, D: layers[0].length, layers,
@@ -152,6 +152,35 @@ describe('3D 칸 물리', () => {
       const ch = new Int8Array(L.blocks.length);
       ch[i] = capOf3(L.blocks[i]);
       expect(simulate3(L, ch).ok).toBe(true);
+    }
+  });
+
+  it('F4b-0(FUN v1.3): 무변화 첫 톡에는 \'변화 없음\', 움직이거나 받침을 잃는 첫 톡에는 안 뜬다 — 시점과 무관(시뮬 좌표만)', () => {
+    for (const d of STAGES3) {
+      const L = layoutOf3(d), none = new Int8Array(L.blocks.length), now = support3(L, none);
+      L.blocks.forEach((b, i) => {
+        if (!capOf3(b)) return;
+        const c1 = none.slice();
+        c1[i] = capOf3(b);
+        const moved = simulate3(L, c1).moved, lost = lostFeet(now, support3(L, c1)).length;
+        expect(isQuiet(L, none, i)).toBe(!moved && lost === 0 && isQuiet(L, none, i));
+        if (moved || lost) expect(isQuiet(L, none, i)).toBe(false);
+      });
+    }
+    // 1-2 마루 안쪽(받침 그대로) = 무변화
+    const L = layoutOf3(STAGES3.find((d) => d.key === 'tip4')!), none = new Int8Array(L.blocks.length);
+    expect(isQuiet(L, none, L.blocks.findIndex((b) => b.x === 7 && b.y === 2 && b.z === 7))).toBe(true);
+  });
+
+  it('마지막 폭약 꾹 = 결과 꼬리표: 실패 계획엔 늘 실패 글(꿈쩍 안 함 · 이웃집 · 아직 높아요), 성공엔 별 (F4b ⓑ · 2D 판정 말풍선과 같은 정보)', () => {
+    for (const d of STAGES3) {
+      const L = layoutOf3(d);
+      forEachPlan(L, d.charges, (ch) => {
+        const o = simulate3(L, ch), v = verdict3(L, o);
+        expect(v.ok).toBe(o.ok);
+        if (!o.ok) expect(v.text).toMatch(/꿈쩍 안 함|이웃집|아직 높아요/);
+        else expect(v.text).toContain('★'.repeat(o.stars));
+      });
     }
   });
 });

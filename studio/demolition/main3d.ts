@@ -4,7 +4,7 @@
  *   · 다 붙이면 결과(쾅 애니메이션·유령은 C004).
  * 키보드: ← → 로 붙일 블록 고르기, 스페이스 누르는 동안 겨눔 → 떼면 붙이기, Q/E 돌리기, R 다시.
  */
-import { GAS, METAL, STONE, capOf3, feetKey3, lostFeet, layoutOf3, simulate3, support3, type Footing, type Layout3, type Outcome3 } from './sim3d.ts';
+import { GAS, METAL, STONE, capOf3, isQuiet, lostFeet, verdict3, layoutOf3, simulate3, support3, type Footing, type Layout3, type Outcome3 } from './sim3d.ts';
 import { STAGES3 } from './stages3d.ts';
 import { aimAt, drawOrder, faces, fitCams, proj, yawOf, type Cam, type Cube } from './view3d.ts';
 
@@ -74,7 +74,6 @@ const cam = (): Cam => ({ ...cams[view], yaw });
 const canAttach = (i: number) => !out && capOf3(L.blocks[i]) > 0 && ch[i] === 0 && capOf3(L.blocks[i]) <= left;
 /** 겨눌 수 있는 블록: 붙일 수 있거나, 이미 붙여서 다시 톡 하면 뗄 수 있는 것(🧪 C002·C003: 죽은 첫 톡을 되돌릴 길) */
 const canAim = (i: number) => !out && (ch[i] > 0 || canAttach(i));
-const feetKey = feetKey3;
 let pvKey = '', pvOut: Outcome3 | null = null;
 /** 미리 보기 결과(같은 폭약이면 다시 계산하지 않는다) */
 function preview(c2: Int8Array) {
@@ -239,13 +238,7 @@ function drawDebris(dt: number) {
     flash = Math.max(0, flash - dt * 6);
   }
 }
-/** 결과 한 줄 (꼬리표·결과 글 공용) */
-function verdict(o: Outcome3): { ok: boolean; text: string } {
-  if (!o.moved) return { ok: false, text: '꿈쩍 안 함' };
-  if (o.hits.some((h) => h > 0)) return { ok: false, text: '💥 이웃집을 쳐요' };
-  if (!o.ok) return { ok: false, text: `아직 높아요 (${o.height}칸 > 목표 ${L.goal}칸)` };
-  return { ok: true, text: `철거 성공 ${'★'.repeat(o.stars)}${'☆'.repeat(3 - o.stars)}${o.star[1] ? '' : ' 🥀'}` };
-}
+const verdict = (o: Outcome3) => verdict3(L, o);
 /** 말풍선 글자표 */
 function tag(x: number, y: number, text: string, bg: string, fg: string) {
   ctx.font = '800 16px system-ui,sans-serif';
@@ -394,7 +387,7 @@ function draw() {
       for (const f of nxt) drawFooting(c, f, true);
       // 빠진 받침: 덩어리마다 '지금 딛고 있는 발' 중 이 블록까지 터지면 그 덩어리가 잃는 발 → 빨간 ✕ 깜빡(알파 .8~1).
       // 윗다리·마루 귀를 끊어 다리 한 토막이 떨어져 나가도 덩어리 기준으로 발을 잃으니 ✕가 뜬다 (🧪 C004 ③ · F4b)
-      const blink = 0.9 + 0.1 * Math.sin(performance.now() / 110), lostF = lostFeet(now, nxt), lost = lostF.length;
+      const blink = 0.9 + 0.1 * Math.sin(performance.now() / 110), lostF = lostFeet(now, nxt);
       for (const [x, z] of lostF) crossAt(c, x, z, blink);
       const b = L.blocks[aim], p = proj(c, b.x + 0.5, b.y + 1.15, b.z + 0.5);
       // 마지막 폭약을 겨누면 결과 꼬리표 — 2D 판정 말풍선과 같은 정보 (🧪 C005: '꿈쩍처럼 보이는 실패'를 없앤다, F4b ⓑ)
@@ -403,7 +396,7 @@ function draw() {
         tag(W / 2, 40, `이대로 쾅 → ${v.text}`, v.ok ? '#23785a' : '#c7362e', '#ffffff');
       }
       if (ch[aim]) tag(p[0], p[1], '떼기', '#3a2a3f', '#fff6e8');
-      else if (!pv.moved && !lost && feetKey(now) === feetKey(nxt)) tag(p[0], p[1], '변화 없음', '#7a5a6e', '#fff6e8');
+      else if (isQuiet(L, ch, aim)) tag(p[0], p[1], '변화 없음', '#7a5a6e', '#fff6e8');
     } else {
       for (const f of now) drawFooting(c, f, false);
       goalLine(c, false);
@@ -592,6 +585,12 @@ function centerOf(c: Cam, i: number): [number, number] {
     holding = true;
     touch = null;
     hudText();
+  },
+  /** 판독 시험용: 시점을 바로 바꾼다(회전 애니메이션 없이) */
+  setView: (v: number) => {
+    view = ((v % 4) + 4) % 4;
+    yaw = yawOf(view);
+    rotT = 1;
   },
   state: () => ({ bitsMax, left, view, done: played(), playing: !!out && !played(), ok: out?.ok ?? null, stars: out?.stars ?? 0, cellPx: cams[0].s }),
 };

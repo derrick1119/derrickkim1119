@@ -518,3 +518,19 @@ export function lostFeet(now: Footing[], nxt: Footing[]): [number, number][] {
 }
 /** 받침 비교 열쇠 — 발 좌표는 정렬한다(🧪 C005: 덩어리를 훑는 순서가 달라 같은 발인데 '변화 없음'이 안 뜨던 버그) */
 export const feetKey3 = (fs: Footing[]) => fs.map((f) => `${f.act}${f.axis}${f.dir}:${f.feet.map((q) => q.join(',')).sort().join(' ')}`).sort().join('|');
+
+/** 첫 톡(또는 겨눔)이 '무변화'인가 — 움직이지도, 받침을 잃지도, 받침 모양이 바뀌지도 않음 → 화면에 '변화 없음' (F4b-0, 시점과 무관) */
+export function isQuiet(L: Layout3, ch: Int8Array, i: number): boolean {
+  const c2 = ch.slice();
+  c2[i] = ch[i] ? 0 : capOf3(L.blocks[i]);
+  const now = support3(L, ch), nxt = support3(L, c2);
+  return !simulate3(L, c2).moved && lostFeet(now, nxt).length === 0 && feetKey3(now) === feetKey3(nxt);
+}
+
+/** 결과 한 줄(마지막 폭약 꾹 꼬리표 · 결과 글 공용) — 2D 판정 말풍선과 같은 정보 */
+export function verdict3(L: Layout3, o: Outcome3): { ok: boolean; text: string } {
+  if (!o.moved) return { ok: false, text: '꿈쩍 안 함' };
+  if (o.hits.some((h) => h > 0)) return { ok: false, text: '💥 이웃집을 쳐요' };
+  if (!o.ok) return { ok: false, text: `아직 높아요 (${o.height}칸 > 목표 ${L.goal}칸)` };
+  return { ok: true, text: `철거 성공 ${'★'.repeat(o.stars)}${'☆'.repeat(3 - o.stars)}${o.star[1] ? '' : ' 🥀'}` };
+}
