@@ -24,6 +24,7 @@ h1 span{color:#d99a12}
 .rot:focus-visible{outline:3px solid #ffc93c}
 #bar{margin:8px 12px 0;display:flex;gap:8px;align-items:center;min-height:52px}
 #msg{flex:1;font-size:16px;font-weight:700;word-break:keep-all}
+#retry{min-width:72px;min-height:52px;border:2px solid #3a2a3f;border-radius:26px;background:#fff6e8;color:#3a2a3f;font:900 17px system-ui,sans-serif;cursor:pointer}
 #again{min-width:112px;min-height:52px;border:0;border-radius:26px;background:#ffc93c;color:#3a2a3f;font:900 18px system-ui,sans-serif;box-shadow:0 3px 0 #d99a12;cursor:pointer}
 .rules{margin:10px 14px 0;padding:0;list-style:none;font-size:15px;word-break:keep-all}
 .ver{color:#7a5a6e;font-size:13px;text-align:center;margin:10px 12px 0}
@@ -34,7 +35,7 @@ h1 span{color:#d99a12}
 <header><h1>💥 비버 <span>철거반</span></h1><span class="tag">3D 실험</span></header>
 <div id="hud"></div>
 <div id="game"></div>
-<div id="bar"><p id="msg"></p><button id="again" type="button" hidden>다시</button></div>
+<div id="bar"><p id="msg"></p><button id="retry" type="button" hidden>다시</button><button id="again" type="button" hidden>다시</button></div>
 <ul class="rules">
 <li>🧨 블록을 꾹 누르면 무너질 모양이 땅에 보여요(노란 칸 = 받침, 빨간 ✕ = 빠지는 받침). 떼면 폭약, 다 붙이면 쾅!</li>
 <li>🚧 빨간 선 밖 이웃집·꽃밭은 피하고 낮게 무너뜨려요. ⟲ ⟳ 로 돌려 볼 수 있어요.</li>

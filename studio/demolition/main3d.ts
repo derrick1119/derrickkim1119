@@ -26,7 +26,7 @@ rotR.textContent = '⟳';
 rotL.setAttribute('aria-label', '왼쪽으로 돌리기 (Q)');
 rotR.setAttribute('aria-label', '오른쪽으로 돌리기 (E)');
 root.append(canvas, rotL, rotR);
-const hud = document.getElementById('hud')!, msg = document.getElementById('msg')!, again = document.getElementById('again') as HTMLButtonElement;
+const hud = document.getElementById('hud')!, msg = document.getElementById('msg')!, again = document.getElementById('again') as HTMLButtonElement, retry = document.getElementById('retry') as HTMLButtonElement;
 const ctx = canvas.getContext('2d')!;
 
 let stageIx = 0;
@@ -57,8 +57,9 @@ function poseAt(o: Outcome3, i: number, t: number): [number, number, number] {
   return p;
 }
 const cubes = (): (Cube & { i: number })[] => {
-  if (!out) return L.blocks.map((b, i) => ({ x: b.x, y: b.y, z: b.z, i }));
-  const t = Math.max(0, bt), r: (Cube & { i: number })[] = [];
+  // 셈(3·2·1) 동안은 아무것도 안 사라진다 — 쾅(0틱)부터 재생 (🧪 C004 ②)
+  if (!out || bt < 0) return L.blocks.map((b, i) => ({ x: b.x, y: b.y, z: b.z, i }));
+  const t = bt, r: (Cube & { i: number })[] = [];
   L.blocks.forEach((_, i) => {
     if (out!.die[i] >= 0 && t >= out!.die[i]) return;
     const [x, y, z] = poseAt(out!, i, t);
@@ -210,6 +211,15 @@ function draw() {
     ctx.arc(p[0], p[1], c.s * 0.16, 0, Math.PI * 2);
     ctx.fill();
   }
+  // 울타리 밖은 어느 면이든 이웃집이다(빨간 선 밖에 닿으면 실패) — 글자 대신 작은 집 아이콘을 울타리에서 한 칸 반 떨어진 땅에(땅이므로 블록보다 먼저 그린다, 🧪 C004)
+  const mx = (x0 + x1 + 1) / 2, mz = (z0 + z1 + 1) / 2;
+  const signs: [number, number][] = [[x0 - 1.4, mz], [x1 + 2.4, mz], [mx, z0 - 1.4], [mx, z1 + 2.4]];
+  ctx.font = `${Math.round(Math.max(18, c.s * 0.55))}px system-ui,sans-serif`;
+  ctx.textAlign = 'center';
+  for (const [sx, sz] of signs) {
+    const p = proj(c, sx, 0, sz);
+    ctx.fillText('🏠', p[0], p[1]);
+  }
   // 블록 (먼 것부터)
   const cb = cubes();
   for (const k of drawOrder(c, cb)) {
@@ -272,17 +282,8 @@ function draw() {
     } else for (const f of now) drawFooting(c, f, false);
   }
   // 이웃집 팻말: 울타리가 판 끝보다 안쪽인 면 — 블록에 가리지 않게 블록 뒤에 그린다(🧪 C003 ①)
-  // 울타리 밖은 어느 면이든 이웃집이다(빨간 선 밖에 닿으면 실패) — 글자 대신 작은 집 아이콘을 울타리에서 한 칸 반 떨어진 땅에
-  const mx = (x0 + x1 + 1) / 2, mz = (z0 + z1 + 1) / 2;
-  const signs: [number, number][] = [[x0 - 1.4, mz], [x1 + 2.4, mz], [mx, z0 - 1.4], [mx, z1 + 2.4]];
-  ctx.font = `${Math.round(Math.max(18, c.s * 0.55))}px system-ui,sans-serif`;
-  ctx.textAlign = 'center';
-  for (const [sx, sz] of signs) {
-    const p = proj(c, sx, 0, sz);
-    ctx.fillText('🏠', p[0], p[1]);
-  }
   // 붙인 폭약: 가려져도 보이게(엑스레이)
-  if (!out)
+  if (!out || bt < 0)
     for (let i = 0; i < ch.length; i++) {
       if (!ch[i]) continue;
       const b = L.blocks[i], p = proj(c, b.x + 0.5, b.y + 0.5, b.z + 0.5), r = c.s * 0.22;
@@ -307,9 +308,13 @@ function hudText() {
     msg.textContent = why;
     again.hidden = false;
     again.textContent = out.ok ? (stageIx + 1 < STAGES3.length ? '다음 판 ▶' : '처음부터') : '다시';
+    // 별이 모자라면 같은 판 '다시'도 (🧪 C004 ⑤)
+    retry.hidden = !(out.ok && out.stars < 3);
+    if (out.ok && out.stars < 3) msg.textContent += !out.star[1] ? ' — 꽃밭을 덮었어요' : ' — 더 낮게 무너뜨리면 ★';
   } else {
-    msg.textContent = out ? '3·2·1…' : d.news || d.hint;
+    msg.textContent = out ? '3·2·1…' : [d.news, d.hint].filter(Boolean).join(' · ');
     again.hidden = true;
+    retry.hidden = true;
   }
 }
 
@@ -400,6 +405,7 @@ window.addEventListener('pointerup', () => {
 });
 rotL.addEventListener('click', () => rotate(-1));
 rotR.addEventListener('click', () => rotate(1));
+retry.addEventListener('click', reset);
 again.addEventListener('click', () => {
   // 성공하면 다음 판, 실패하면 그 판만 다시 (하트 없음)
   if (out?.ok) stageIx = (stageIx + 1) % STAGES3.length;
