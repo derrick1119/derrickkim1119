@@ -16,6 +16,7 @@
 import { mulberry32, shuffle, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from './core.ts';
 import { juice } from './juice.ts';
+import { firstMoveWidth, follow, greedy, habit, runSim } from './bots.ts';
 
 const A = 1.56;
 export const BENCH = 5;
@@ -37,14 +38,21 @@ export interface Layout {
   an: Animal[]; buses: Bus[];
   /** ★ 기준: 의자 최대 par칸 이하 · 빵빵 연속 combo대 */
   par: number; combo: number;
+  /** ★3 미션(C003, CONTENT §1): 'combo' 빵빵 연속 combo대 · 'ele' 코끼리를 의자에 앉히지 않기 */
+  mis: Mission;
+  /** 판 고르기에서 끝내 못 지킨 조건(C003, funqa에 기록) */
+  relax: string[];
   /** 내다보는 봇이 찾은 풀이 (톡 순서) */
   sol: number[];
   habit: { peak: number; best: number; ok: boolean };
 }
 /** 판의 움직이는 것들 (복사해서 내다본다) */
+export type Mission = 'combo' | 'ele';
 export interface Sim {
   gone: number[]; awake: number[]; bench: number[]; used: number; bus: number; fill: number;
   peak: number; streak: number; best: number; fail: number; left: number;
+  /** 코끼리가 의자에 앉은 적 있나 (★3 미션 'ele') */
+  eleBench: number;
 }
 
 interface StageDef {
@@ -53,17 +61,20 @@ interface StageDef {
   nb: number; nd: number; ele: number; zz: number; hid: number; rock: number;
   /** ★2 의자 기준에 더하는 여유 · ★3 빵빵 연속 기준에서 빼는 여유 */
   slack: number; cslack: number;
+  /** ★3 미션 (없으면 combo) */
+  mis?: Mission;
 }
 
 export const STAGES: StageDef[] = [
+  // C003 (📐 CONTENT §2.2): 2판 별 조임 · 3판 🐘 미션 · 4판 버스 7→6 · 5판 3색·우비 3·여유 2 · 6판 3색 · 8판 의자 여유 2 (🚍 미션은 C005)
   { key: 'first', name: '첫 버스', news: '🐧 톡 — 같은 색 버스에 폴짝! 붙어 선 친구는 줄줄이', C: 4, R: 3, cols: [0, 1], nb: 3, nd: 0, ele: 0, zz: 0, hid: 0, rock: 0, slack: 1, cslack: 1 },
-  { key: 'bench', name: '대기 의자', news: '🪑 색이 다르면 의자에서 기다려요 — 다음 버스 색을 보고!', C: 4, R: 4, cols: [0, 1, 2], nb: 4, nd: 0, ele: 0, zz: 0, hid: 0, rock: 0, slack: 1, cslack: 1 },
-  { key: 'elephant', name: '큰 코끼리', news: '🐘 코끼리는 두 칸 — 의자도 두 칸 차지해요!', C: 5, R: 4, cols: [0, 1, 2], nb: 6, nd: 0, ele: 2, zz: 0, hid: 0, rock: 0, slack: 1, cslack: 1 },
-  { key: 'sleep', name: '잠꾸러기', news: '💤 잠꾸러기 — 옆 친구가 떠나야 깨요', C: 6, R: 4, cols: [0, 1, 2], nb: 7, nd: 0, ele: 0, zz: 3, hid: 0, rock: 0, slack: 1, cslack: 1 },
-  { key: 'hidden', name: '우비 친구', news: '🧥 우비 친구 — 길이 트여야 무슨 색인지 보여요', C: 6, R: 4, cols: [0, 1, 2, 3], nb: 7, nd: 0, ele: 0, zz: 0, hid: 4, rock: 0, slack: 1, cslack: 2 },
-  { key: 'double', name: '2층 버스', news: '🚍 2층 버스 — 여섯 자리! 의자에 모아 뒀다 한 번에', C: 6, R: 4, cols: [0, 1, 2, 3], nb: 5, nd: 1, ele: 0, zz: 0, hid: 0, rock: 0, slack: 1, cslack: 1 },
+  { key: 'bench', name: '대기 의자', news: '🪑 색이 다르면 의자에서 기다려요 — 다음 버스 색을 보고!', C: 4, R: 4, cols: [0, 1, 2], nb: 4, nd: 0, ele: 0, zz: 0, hid: 0, rock: 0, slack: 0, cslack: 0 },
+  { key: 'elephant', name: '큰 코끼리', news: '🐘 코끼리는 두 칸 — 의자도 두 칸 차지해요!', C: 5, R: 4, cols: [0, 1, 2], nb: 6, nd: 0, ele: 2, zz: 0, hid: 0, rock: 0, slack: 1, cslack: 0, mis: 'ele' },
+  { key: 'sleep', name: '잠꾸러기', news: '💤 잠꾸러기 — 옆 친구가 떠나야 깨요', C: 6, R: 4, cols: [0, 1, 2], nb: 6, nd: 0, ele: 0, zz: 3, hid: 0, rock: 0, slack: 1, cslack: 1 },
+  { key: 'hidden', name: '우비 친구', news: '🧥 우비 친구 — 길이 트여야 무슨 색인지 보여요', C: 6, R: 4, cols: [0, 1, 2], nb: 6, nd: 0, ele: 0, zz: 0, hid: 3, rock: 0, slack: 2, cslack: 2 },
+  { key: 'double', name: '2층 버스', news: '🚍 2층 버스 — 여섯 자리! 의자에 모아 뒀다 한 번에', C: 6, R: 4, cols: [0, 1, 2], nb: 5, nd: 1, ele: 0, zz: 0, hid: 0, rock: 0, slack: 1, cslack: 1 },
   { key: 'fountain', name: '분수 광장', news: '⛲ 분수 — 못 지나가요, 빙 돌아서!', C: 6, R: 5, cols: [0, 1, 2, 3], nb: 8, nd: 0, ele: 1, zz: 0, hid: 0, rock: 2, slack: 1, cslack: 1 },
-  { key: 'rush', name: '퇴근길', news: '🌆 퇴근길 — 코끼리·잠꾸러기·우비·2층 버스 모두!', C: 6, R: 5, cols: [0, 1, 2, 3], nb: 6, nd: 1, ele: 1, zz: 2, hid: 3, rock: 0, slack: 1, cslack: 2 },
+  { key: 'rush', name: '퇴근길', news: '🌆 퇴근길 — 코끼리·잠꾸러기·우비·2층 버스 모두!', C: 6, R: 5, cols: [0, 1, 2, 3], nb: 6, nd: 1, ele: 1, zz: 2, hid: 3, rock: 0, slack: 2, cslack: 1 },
 ];
 export const STAGE_COUNT = STAGES.length;
 
@@ -203,7 +214,7 @@ export function followersOf(L: Layout, S: Sim, i: number): number[] {
 }
 function newSim(L: Layout): Sim {
   const n = L.an.length;
-  return { gone: new Array(n).fill(0), awake: new Array(n).fill(0), bench: [], used: 0, bus: 0, fill: 0, peak: 0, streak: 0, best: 0, fail: 0, left: n };
+  return { gone: new Array(n).fill(0), awake: new Array(n).fill(0), bench: [], used: 0, bus: 0, fill: 0, peak: 0, streak: 0, best: 0, fail: 0, left: n, eleBench: 0 };
 }
 const cloneSim = (a: Sim): Sim => ({ ...a, gone: a.gone.slice(), awake: a.awake.slice(), bench: a.bench.slice() });
 
@@ -255,6 +266,7 @@ function tapSim(L: Layout, S: Sim, i: number, H?: Hooks): 'bus' | 'bench' | 'fai
   } else {
     if (S.used + sz > BENCH) return (S.fail = 1), 'fail';
     S.bench.push(i);
+    if (a.big) S.eleBench = 1;
     S.used += sz;
     S.peak = Math.max(S.peak, S.used);
     S.streak = 0;
@@ -264,10 +276,15 @@ function tapSim(L: Layout, S: Sim, i: number, H?: Hooks): 'bus' | 'bench' | 'fai
   return res;
 }
 
+/** ★3 미션을 지금까지 지켰나 (combo는 끝까지 가 봐야 확정) */
+export const missionOk = (L: Layout, S: Sim) => (L.mis === 'ele' ? !S.eleBench : S.best >= L.combo);
+/** 끝난 판의 별 (실패 0) */
+export const starsOf = (L: Layout, S: Sim) => (S.fail || S.left > 0 ? 0 : 1 + (S.peak <= L.par ? 1 : 0) + (missionOk(L, S) ? 1 : 0));
+
 // ───────── 내다보기 (빔 탐색): 의자를 가장 적게, 그다음 빵빵 연속을 길게 ─────────
 interface Plan { seq: number[]; peak: number; best: number }
 /** mode 'peak': 의자 최대를 가장 적게(같으면 빵빵 연속 길게) · 'streak': peakCap 안에서 빵빵 연속을 가장 길게 */
-function plan(L: Layout, S0: Sim, width: number, peakCap = BENCH, mode: 'peak' | 'streak' = 'peak'): Plan | null {
+function plan(L: Layout, S0: Sim, width: number, peakCap = BENCH, mode: 'peak' | 'streak' = 'peak', noEle = false): Plan | null {
   const better = (a: Plan, b: Plan | null) =>
     !b || (mode === 'peak' ? a.peak < b.peak || (a.peak === b.peak && a.best > b.best) : a.best > b.best || (a.best === b.best && a.peak < b.peak));
   interface Node { S: Sim; seq: number[]; h: number }
@@ -280,7 +297,7 @@ function plan(L: Layout, S0: Sim, width: number, peakCap = BENCH, mode: 'peak' |
       moves(L, S1);
       for (const i of ms) {
         const S = cloneSim(S1);
-        if (tapSim(L, S, i) === 'fail' || S.peak > peakCap) continue;
+        if (tapSim(L, S, i) === 'fail' || S.peak > peakCap || (noEle && S.eleBench)) continue;
         const seq = [...nd.seq, i];
         if (S.left === 0) {
           const p = { seq, peak: S.peak, best: S.best };
@@ -314,13 +331,17 @@ function habitPick(L: Layout, S: Sim, ms: number[]): number {
   return pool.reduce((a, b) => (order(b) < order(a) ? b : a));
 }
 function habitRun(L: Layout) {
+  const S = habitSim(L);
+  return { peak: S.peak, best: S.best, ok: !S.fail && S.left === 0 };
+}
+function habitSim(L: Layout) {
   const S = newSim(L);
   while (S.left > 0 && !S.fail) {
     const ms = moves(L, S);
     if (!ms.length) break;
     tapSim(L, S, habitPick(L, S, ms));
   }
-  return { peak: S.peak, best: S.best, ok: !S.fail && S.left === 0 };
+  return S;
 }
 
 /** 아무렇게나(열린 동물 중 아무거나) 두면 몇 번에 한 번 통과하나 — 1·2판은 거의 안 지게 */
@@ -452,6 +473,9 @@ function tryBuild(d: StageDef, r: Rng, si: number): Omit<Layout, 'par' | 'combo'
 const CACHE = new Map<string, Layout>();
 /** 3판부터 후보 몇 개 중 고른다 (측정용으로 바꿀 수 있게) */
 export let PICKS = 4;
+/** C003: 3판부터 후보를 몇 개까지 만들어 보나 (탈락 조건이 늘어 40 → 120) */
+export let TRIES = 120;
+export const setTries = (n: number) => ((TRIES = n), CACHE.clear());
 export const setPicks = (n: number) => ((PICKS = n), CACHE.clear());
 /** 시드·판마다 하나 (같은 시드면 같은 판). 여러 후보 중 '버릇대로 두면 별을 놓치는' 판을 고른다 */
 export function layoutFor(seed: number, si: number): Layout {
@@ -461,23 +485,43 @@ export function layoutFor(seed: number, si: number): Layout {
   const d = STAGES[si], r = mulberry32((seed * 31 + si * 7919 + 17) >>> 0);
   let pick: Layout | null = null, pickScore = -1e9;
   const tries0 = PICKS;
-  for (let tries = 0, good = 0; tries < 40 && good < (si >= 2 ? tries0 : 1); tries++) {
+  for (let tries = 0, good = 0; tries < (si >= 2 ? TRIES : 40) && good < (si >= 2 ? tries0 : 1); tries++) {
     const B = tryBuild(d, r, si);
     if (!B) continue;
     const L = B as Layout;
-    // 의자를 가장 적게 쓰는 풀이 → ★2 기준(여유 한 칸) → 그 안에서 빵빵 연속이 가장 긴 풀이 → ★3 기준(한 대 덜)
+    L.mis = d.mis ?? 'combo';
+    // 의자를 가장 적게 쓰는 풀이 → ★2 기준(여유 slack칸) → 그 안에서 ★3 미션을 지키는 풀이(빵빵 연속이 가장 긴) → ★3 기준
     if (si <= 1 && tries < 36 && luckRate(L, 30) < (si === 0 ? 0.97 : 0.8)) continue;
     const p1 = plan(L, newSim(L), 12, BENCH - 1);
     if (!p1) continue;
     L.par = Math.min(BENCH - 1, p1.peak + d.slack);
-    const p2 = plan(L, newSim(L), 12, L.par, 'streak') ?? p1;
-    good++;
+    const p2 = plan(L, newSim(L), 12, L.par, 'streak', L.mis === 'ele');
+    if (!p2) continue; // ★3이 안 나오는 판은 버린다
     L.sol = p2.seq;
     L.combo = Math.max(2, p2.best - d.cslack);
     L.habit = habitRun(L);
-    const habit3 = L.habit.ok && L.habit.peak <= L.par && L.habit.best >= L.combo;
-    const sc = (habit3 ? -100 : 0) + (L.habit.ok ? 0 : -20) + Math.min(3, L.habit.peak - p1.peak) * 3 + Math.min(3, p2.best - L.habit.best) * 3;
+    // C003 탈락 조건(📐 CONTENT §4, 📋 C002): 못 지킨 조건마다 감점 — 버릇·따라 하기·탐욕 ★3(−1000, 끝까지 지킴) › 따라 하기·탐욕 ★1 실패(−100 씩) › 2판 첫 버스 색이 처음부터 트임(−50) › 첫 수 ★3 정답 폭 10~50% 밖(−10~)
+    const fails: string[] = [];
+    let sc = Math.min(3, L.habit.peak - p1.peak) * 3 + Math.min(3, p2.best - L.habit.best) * 3;
+    if (si === 1) {
+      if (moves(L, newSim(L)).some((i) => L.an[i].col === L.buses[0].col)) fails.push('block1'), (sc -= 50);
+      if (L.habit.ok && L.habit.peak <= L.par && missionOk(L, habitSim(L))) sc -= 100;
+    }
+    if (si >= 2) {
+      const runs = [habit, follow, greedy].map((bot) => runSim(L, bot, 1));
+      if (runs.some((x) => x.stars === 3)) fails.push('bot3'), (sc -= 1000);
+      if (!runs[1].ok) fails.push('follow1'), (sc -= 100);
+      if (!runs[2].ok) fails.push('greedy1'), (sc -= 100);
+      if (!fails.includes('bot3')) {
+        const w = firstMoveWidth(L, 8).rate;
+        if (w < 0.1 || w > 0.5) fails.push('width'), (sc -= 10 + 40 * Math.max(0.1 - w, w - 0.5));
+      }
+    }
+    L.relax = fails;
+    if (!fails.length) good++;
     if (sc > pickScore) (pick = L), (pickScore = sc);
+    // 판 고르기 시간(📋 C002: 판당 2초 넘으면 안 됨): 30번 넘게 만들었고 정답 폭만 못 지킨 후보가 있으면 거기서 멈춘다
+    if (si >= 2 && tries >= 30 && pick && pick.relax.every((f) => f === 'width')) break;
   }
   if (!pick) {
     // 안전판: 아주 쉬운 판 (거의 안 나온다)
@@ -489,6 +533,8 @@ export function layoutFor(seed: number, si: number): Layout {
       L.sol = p.seq;
       L.par = Math.min(BENCH - 1, p.peak + 1);
       L.combo = Math.max(2, p.best - 1);
+      L.mis = 'combo';
+      L.relax = ['fallback'];
       L.habit = habitRun(L);
       pick = L;
     }
@@ -544,6 +590,9 @@ function newStage(s: BusState) {
   s.startT = s.t;
   s.got = 0;
   s.lastTap = -99;
+  // 🧪 C002 ⑤: 앞 판 말풍선이 남아 새 판 안내가 늦게 뜨지 않게 비운다
+  s.news = null;
+  s.newsQ = [];
   see(s, d.key, d.news);
   ev(s, 'stage', 0.5, 0.5, `${s.stage + 1}판 · ${d.name}`, '#fff6d6');
 }
@@ -561,7 +610,7 @@ function finish(s: BusState, ok: boolean, why = '') {
   s.why = why;
   if (ok) {
     const L = s.L, S = s.S;
-    const st = 1 + (S.peak <= L.par ? 1 : 0) + (S.best >= L.combo ? 1 : 0);
+    const st = starsOf(L, S);
     s.got = st;
     s.stars += st;
     s.pts += st * STAR_PTS + (BENCH - S.peak) * LEFT_PTS;
@@ -2379,7 +2428,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BusState, w: number, h: numbe
     const goals: [string, boolean | null][] = [
       ['모두 태우기', done ? true : null],
       [`의자 ${L.par}칸까지`, S.peak > L.par ? false : done ? true : null],
-      [`빵빵 연속 ${L.combo}대`, S.best >= L.combo ? true : done ? false : null],
+      L.mis === 'ele' ? ['🐘 의자에 안 앉히기', S.eleBench ? false : done ? true : null] : [`빵빵 연속 ${L.combo}대`, S.best >= L.combo ? true : done ? false : null],
     ];
     goals.forEach(([txt, st], k) => {
       const gx = R(0.02) + k * gw;

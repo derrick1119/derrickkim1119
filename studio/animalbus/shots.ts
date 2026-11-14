@@ -41,7 +41,10 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   if ((await st(page)).gone < 1) errors.push(`${name}: 터치로 동물이 안 나감`);
   // 다른 판들 모습 (3 코끼리 · 5 우비 · 6 2층 버스 · 8 퇴근길)
   for (const i of [2, 4, 5, 7]) {
-    await page.evaluate((j: number) => (globalThis as any).__bus.jump(j), i);
+    // C003: 판 고르기(탈락 조건) 시간 — 브라우저에서 판 하나 만드는 데 걸린 ms (📋: 2초 넘으면 고정 배치)
+    const ms = await page.evaluate((j: number) => { const t0 = performance.now(); (globalThis as any).__bus.jump(j); return performance.now() - t0; }, i);
+    console.log(`${name}: ${i + 1}판 만들기 ${ms.toFixed(0)}ms`);
+    if (ms > 2000) errors.push(`${name}: ${i + 1}판 만들기 ${ms.toFixed(0)}ms > 2초`);
     await page.waitForTimeout(1500);
     await shot(page, `${name}-stage${i + 1}.png`);
   }

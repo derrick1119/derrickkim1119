@@ -7,9 +7,12 @@
  *   - habit   버릇쟁이(프로토타입 그대로)
  */
 import { mulberry32, shuffle, type Rng } from '../../engine/rng.ts';
-import { BENCH, internals, type Layout, type Sim } from './game.ts';
+import { BENCH, internals as I, starsOf, type Layout, type Sim } from './game.ts';
 
-const { plan, newSim, moves, tapSim, habitPick, cloneSim, reach, isOpen } = internals;
+// game.ts의 판 고르기(layoutFor)가 이 봇들을 쓰고, 이 파일은 game.ts의 시뮬을 쓴다(서로 부름) → 꺼내 쓰기는 늘 부를 때(I.plan 등)
+const plan: typeof I.plan = (...a) => I.plan(...a), newSim: typeof I.newSim = (L) => I.newSim(L), moves: typeof I.moves = (...a) => I.moves(...a);
+const tapSim: typeof I.tapSim = (...a) => I.tapSim(...a), habitPick: typeof I.habitPick = (...a) => I.habitPick(...a), cloneSim: typeof I.cloneSim = (S) => I.cloneSim(S);
+const reach: typeof I.reach = (...a) => I.reach(...a), isOpen: typeof I.isOpen = (...a) => I.isOpen(...a);
 export type SimBot = (L: Layout, S: Sim, ms: number[], r: Rng) => number;
 
 /** 화면에서 보이는 색인가 (우비가 아니거나, 이미 길이 트여 색이 드러났거나) */
@@ -46,6 +49,54 @@ export const greedy: SimBot = (L, S, ms) => {
   return best;
 };
 
+/** 두 수 탐욕(C003, 판 고르기에 쓰지 않는 '시험용' 봇): 한 수 둬 보고 그다음 한 수까지 탐욕 점수로 본다 — 판 고르기 봇에 맞춘 판(과적합)인지 확인 */
+const gscore = (L: Layout, S: Sim, re0: Uint8Array) => {
+  const now = L.buses[S.bus]?.col ?? -1;
+  const open = moves(L, cloneSim(S)).filter((j) => seen(L, S, re0, j) && L.an[j].col === now).length;
+  return -S.used * 10 - S.left * 3 + Math.min(2, open) * 2 + S.streak - (L.mis === 'ele' && S.eleBench ? 15 : 0);
+};
+export const greedy2: SimBot = (L, S, ms) => {
+  let best = ms[0], bs = -1e9;
+  const re0 = reach(L, S);
+  for (const i of ms) {
+    const T = cloneSim(S);
+    if (tapSim(L, T, i) === 'fail') continue;
+    let b2 = gscore(L, T, re0);
+    if (T.left > 0)
+      for (const j of moves(L, cloneSim(T))) {
+        if (!seen(L, S, re0, j) && L.an[j].hidden) continue;
+        const U = cloneSim(T);
+        b2 = Math.max(b2, tapSim(L, U, j) === 'fail' ? -1e6 : gscore(L, U, re0) + (U.left === 0 ? 50 : 0));
+      }
+    if (b2 - front(L, i) * 1e-3 > bs) (bs = b2 - front(L, i) * 1e-3), (best = i);
+  }
+  return best;
+};
+
+/** 결정 밀도(F11e, C003 측정만): ★3 풀이를 따라가며, 두 마리 이상 트인 차례 중 '★3을 남기는 수가 트인 수의 절반 이하'인 차례의 비율 */
+export function decisionDensity(L: Layout, width = 6) {
+  const S = newSim(L);
+  let steps = 0, tight = 0;
+  for (const i of L.sol) {
+    if (S.left === 0 || S.fail) break;
+    const ms = moves(L, S);
+    if (!ms.includes(i)) break;
+    if (ms.length >= 2) {
+      let good = 0;
+      for (const m of ms) {
+        const T = cloneSim(S);
+        if (tapSim(L, T, m) === 'fail' || T.peak > L.par || (L.mis === 'ele' && T.eleBench)) continue;
+        const p = T.left === 0 ? T : plan(L, T, width, L.par, 'streak', L.mis === 'ele');
+        if (p && (L.mis === 'ele' || p.best >= L.combo)) good++;
+      }
+      steps++;
+      if (good / ms.length <= 0.5) tight++;
+    }
+    tapSim(L, S, i);
+  }
+  return steps ? tight / steps : 0;
+}
+
 /** 숨은(아직 안 보이는) 우비 친구들의 색을 남은 색 수에 맞춰 섞은 판 */
 function sampleLayout(L: Layout, S: Sim, r: Rng): Layout {
   const re = reach(L, S), idx: number[] = [];
@@ -67,9 +118,10 @@ export function honestBot(K = 6, width = 6): SimBot {
       for (const Ls of samples) {
         const T = cloneSim(S);
         if (tapSim(Ls, T, i) === 'fail') { sum -= 1000; continue; }
-        if (T.left === 0) { sum += 300 + (T.peak <= L.par ? 100 : 0) + (T.best >= L.combo ? 100 : 0); continue; }
-        const p = plan(Ls, T, width, L.par, 'streak') ?? plan(Ls, T, width);
-        sum += !p ? -1000 : 300 + (p.peak <= L.par ? 100 : 0) + (p.best >= L.combo ? 100 : 0) - p.peak;
+        if (T.left === 0) { sum += 200 + starsOf(L, T) * 100; continue; }
+        const p3 = plan(Ls, T, width, L.par, 'streak', L.mis === 'ele'), p = p3 ?? plan(Ls, T, width);
+        const mis = !!p3 && (L.mis === 'ele' || p3.best >= L.combo);
+        sum += !p ? -1000 : 300 + (p.peak <= L.par ? 100 : 0) + (mis ? 100 : 0) - p.peak;
       }
       if (sum > bs) (bs = sum), (best = i);
     }
@@ -87,8 +139,7 @@ export function runSim(L: Layout, bot: SimBot, seed = 1) {
     tapSim(L, S, bot(L, S, ms, r));
     taps++;
   }
-  const ok = !S.fail && S.left === 0;
-  return { ok, stars: ok ? 1 + (S.peak <= L.par ? 1 : 0) + (S.best >= L.combo ? 1 : 0) : 0, peak: S.peak, taps };
+  return { ok: !S.fail && S.left === 0, stars: starsOf(L, S), peak: S.peak, taps };
 }
 
 /** 첫 수 ★3 정답 폭: 처음 트인 동물 중, 그걸 먼저 톡 해도 ★3 풀이가 남는 비율 (전지 내다보기, 상한) */
@@ -98,9 +149,9 @@ export function firstMoveWidth(L: Layout, width = 10) {
   for (const i of ms) {
     const T = cloneSim(S0);
     moves(L, T);
-    if (tapSim(L, T, i) === 'fail' || T.peak > L.par) continue;
-    const p = T.left === 0 ? { best: T.best, peak: T.peak } : plan(L, T, width, L.par, 'streak');
-    if (p && p.best >= L.combo) good++;
+    if (tapSim(L, T, i) === 'fail' || T.peak > L.par || (L.mis === 'ele' && T.eleBench)) continue;
+    const p = T.left === 0 ? { best: T.best, peak: T.peak } : plan(L, T, width, L.par, 'streak', L.mis === 'ele');
+    if (p && (L.mis === 'ele' || p.best >= L.combo)) good++;
   }
   return { open: ms.length, good, rate: ms.length ? good / ms.length : 0 };
 }

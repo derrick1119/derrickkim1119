@@ -5,7 +5,7 @@ import { gzipSync } from 'node:zlib';
 import { mulberry32 } from '../engine/rng.ts';
 import { runBot } from '../studio/animalbus/core.ts';
 import { FOLLOW, STAGES, animalbus as g, animalbusSmart, followersOf, internals, layoutFor, setFollow, startStage } from '../studio/animalbus/game.ts';
-import { firstMoveWidth, follow, greedy, honestBot, runSim } from '../studio/animalbus/bots.ts';
+import { firstMoveWidth, follow, greedy, habit, honestBot, runSim } from '../studio/animalbus/bots.ts';
 import { playStage, BOTS } from '../studio/animalbus/funqa.ts';
 
 describe('동물 버스 정류장 시뮬', () => {
@@ -118,6 +118,29 @@ describe('줄줄이 따라 타기 (C003 오너: "하나씩 눌러서 넣는 게 
     expect(followersOf(layoutFor(1000, 2), newSim(layoutFor(1000, 2)), 0)).toEqual([]);
     setFollow(true);
     expect(on).toBeLessThan(off);
+  });
+});
+
+describe('판 재배치 1차 (C003, M1-4a)', () => {
+  const { newSim, moves, tapSim, cloneSim } = internals;
+  it('3~8판: 버릇·따라 하기·탐욕 봇은 ★3을 못 따고(≤ 1/6), 따라 하기·탐욕은 ★1 통과(≥ 5/6) — 오너 기준 11·7 (M1 완료 기준 5)', () => {
+    for (let i = 2; i < STAGES.length; i++) {
+      const Ls = [0, 1, 2, 3, 4, 5].map((n) => layoutFor(1000 + n * 7919, i));
+      for (const b of [habit, follow, greedy]) expect(Ls.filter((L) => runSim(L, b, 1).stars === 3).length, `${i + 1}판`).toBeLessThanOrEqual(1);
+      for (const b of [follow, greedy]) expect(Ls.filter((L) => runSim(L, b, 1).ok).length, `${i + 1}판`).toBeGreaterThanOrEqual(5);
+    }
+  }, 60_000);
+  it('3판 ★3 미션은 🐘 코끼리를 의자에 앉히지 않기: 코끼리가 의자에 앉으면 ★3이 꺼진다', () => {
+    const si = STAGES.findIndex((d) => d.mis === 'ele'), L = layoutFor(1000, si);
+    expect(L.mis).toBe('ele');
+    const S = newSim(L), ms = moves(L, cloneSim(S)), e = ms.find((i) => L.an[i].big && L.an[i].col !== L.buses[0].col);
+    if (e === undefined) return; // 앞줄에 다른 색 코끼리가 없는 판
+    const T = cloneSim(S);
+    expect(tapSim(L, T, e)).toBe('bench');
+    expect(T.eleBench).toBe(1);
+  });
+  it('판 고르기가 남긴 기록: 못 지킨 조건은 정해진 이름만', () => {
+    for (let i = 0; i < STAGES.length; i++) for (const f of layoutFor(1000, i).relax) expect(['block1', 'bot3', 'follow1', 'greedy1', 'width', 'fallback']).toContain(f);
   });
 });
 
