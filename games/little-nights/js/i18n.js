@@ -1,0 +1,93 @@
+// THE LAMP: 작은 밤들 — 한국어 / English 문구
+const STR = {
+  ko: {
+    'sub': '작은 밤들',
+    'tagline': '한 칸씩, 한 턴씩. 빛이 닿는 곳만 낮이 된다.',
+    'story': '밤마다 작은 뜰이 하나씩 떠오른다.\n전구는 빛꽃을 피우고, 소켓까지 굴러가 그 밤에 불을 밝힌다.',
+    'btn.start': '시작하기', 'btn.continue': '이어서 하기', 'btn.stages': '뜰 고르기', 'btn.how': '플레이 방법',
+    'btn.back': '돌아가기', 'btn.next': '다음 뜰', 'btn.retry': '다시 하기', 'btn.menu': '처음으로',
+    'btn.sound.on': '소리 켜짐', 'btn.sound.off': '소리 꺼짐', 'btn.lang': 'English', 'btn.full': '전체 화면',
+    'btn.light': '빛', 'btn.undo': '무르기', 'btn.restart': '처음부터', 'btn.hint': '힌트',
+    'ch.1': '낮과 밤의 뜰', 'ch.2': '그림자의 뜰', 'ch.3': '등불과 상자의 뜰', 'ch.4': '나방의 뜰',
+    'sel.title': '뜰 고르기', 'sel.locked': '앞의 뜰을 밝히면 열립니다',
+    'hud.turn': '턴', 'hud.par': '최소',
+    'hud.cracked': '금이 감',
+    'msg.shatter': '깨졌다 — 무르기로 되돌릴 수 있습니다',
+    'msg.floor': '지금 스위치를 누르면 발밑이 꺼집니다',
+    'msg.nohint': '여기서는 길이 없습니다. 무르기로 되돌려 보세요',
+    'msg.thinking': '생각하는 중…',
+    'clear.title': '불이 들어왔다', 'clear.final': '모든 뜰에 불이 들어왔다',
+    'clear.turns': '턴', 'clear.par': '최소 턴', 'clear.flowers': '빛꽃',
+    'clear.perfect': '최소 턴으로', 'clear.all': '빛꽃을 모두 피웠다', 'clear.nocrack': '금 하나 없이',
+    'how.title': '플레이 방법',
+    'how.1.t': '한 턴에 한 가지',
+    'how.1.d': '한 칸 굴러가거나, 불을 켜고 끄거나. 전구가 움직이면 세상도 한 턴 움직입니다. 언제든 무를 수 있습니다.',
+    'how.2.t': '빛은 두 칸',
+    'how.2.d': '빛은 전구에서 두 칸까지 번지고, 벽과 상자에 막힙니다. 낮의 돌은 빛이 닿을 때만, 밤의 돌은 빛이 닿지 않을 때만 딛을 수 있습니다.',
+    'how.3.t': '빛꽃과 등불',
+    'how.3.d': '빛꽃은 빛이 닿으면 핍니다. 불을 켠 채 등불 곁에 서면 등불이 켜지고, 등불은 제 옆 칸을 영영 밝힙니다. 금도 낫습니다.',
+    'how.4.t': '어둠의 것들',
+    'how.4.d': '그림자는 빛이 닿지 않으면 한 칸씩 다가옵니다. 나방은 불이 켜져 있으면 날아듭니다. 한 번 물리면 금이 가고, 두 번이면 깨집니다.',
+    'how.keys.pc': '굴리기 ← ↑ → ↓ (WASD) · 빛 Space · 무르기 Z · 처음부터 R · 힌트 H',
+    'how.keys.touch': '화면을 밀어 굴리고, 아래 버튼으로 빛을 켜고 끕니다',
+    'tip.move.pc': '방향키로 한 칸씩 굴러갑니다. 빛이 닿으면 빛꽃이 핍니다',
+    'tip.move.touch': '화면을 밀어 한 칸씩 굴러갑니다. 빛이 닿으면 빛꽃이 핍니다',
+    'tip.toggle.pc': '밤의 돌은 빛이 닿으면 사라집니다. Space 로 불을 끄고 건너세요',
+    'tip.toggle.touch': '밤의 돌은 빛이 닿으면 사라집니다. 빛 버튼으로 불을 끄고 건너세요',
+    'tip.shadow': '그림자는 어둠 속에서 다가옵니다. 밤의 돌 위에 올라섰을 때 불을 켜면?',
+    'tip.lantern': '불을 켠 채 등불 곁에 서 보세요. 등불 옆의 낮의 돌은 영영 단단해집니다',
+    'tip.crate': '상자는 밀 수 있고, 빛을 막습니다. 상자 그늘의 밤의 돌은 사라지지 않습니다',
+    'tip.moth': '나방은 불이 켜져 있을 때만 날아듭니다',
+  },
+  en: {
+    'sub': 'Little Nights',
+    'tagline': 'One tile, one turn. Only where your light falls does day exist.',
+    'story': 'Each night a small court rises out of the dark.\nThe bulb wakes its lightflowers, rolls to the socket, and lights that night.',
+    'btn.start': 'Start', 'btn.continue': 'Continue', 'btn.stages': 'Courts', 'btn.how': 'How to play',
+    'btn.back': 'Back', 'btn.next': 'Next court', 'btn.retry': 'Play again', 'btn.menu': 'Main menu',
+    'btn.sound.on': 'Sound on', 'btn.sound.off': 'Sound off', 'btn.lang': '한국어', 'btn.full': 'Fullscreen',
+    'btn.light': 'Light', 'btn.undo': 'Undo', 'btn.restart': 'Restart', 'btn.hint': 'Hint',
+    'ch.1': 'Courts of Day and Night', 'ch.2': 'Courts of Shadow', 'ch.3': 'Courts of Lantern and Crate', 'ch.4': 'Courts of Moths',
+    'sel.title': 'Courts', 'sel.locked': 'Light the previous court to unlock',
+    'hud.turn': 'Turn', 'hud.par': 'Best',
+    'hud.cracked': 'Cracked',
+    'msg.shatter': 'Shattered — undo to take it back',
+    'msg.floor': 'Switching now would drop the floor from under you',
+    'msg.nohint': 'No way through from here. Try undoing',
+    'msg.thinking': 'Thinking…',
+    'clear.title': 'The light is on', 'clear.final': 'Every court is lit',
+    'clear.turns': 'Turns', 'clear.par': 'Fewest', 'clear.flowers': 'Lightflowers',
+    'clear.perfect': 'In the fewest turns', 'clear.all': 'Every lightflower in bloom', 'clear.nocrack': 'Not a single crack',
+    'how.title': 'How to play',
+    'how.1.t': 'One thing per turn',
+    'how.1.d': 'Roll one tile, or switch your light. When the bulb acts, the world takes a turn too. You can always undo.',
+    'how.2.t': 'Light reaches two tiles',
+    'how.2.d': 'Light spreads two tiles from the bulb and is blocked by walls and crates. Stones of Day hold only while lit; Stones of Night hold only while unlit.',
+    'how.3.t': 'Lightflowers and lanterns',
+    'how.3.d': 'Lightflowers bloom when lit. Stand next to a lantern with your light on to kindle it; a lantern lights the tiles beside it forever, and mends your cracks.',
+    'how.4.t': 'Things of the dark',
+    'how.4.d': 'Shadows step closer whenever they are unlit. Moths fly at you while your light is on. One bite cracks you; a second shatters you.',
+    'how.keys.pc': 'Roll ← ↑ → ↓ (WASD) · Light Space · Undo Z · Restart R · Hint H',
+    'how.keys.touch': 'Swipe to roll; use the buttons below to switch your light',
+    'tip.move.pc': 'Roll one tile at a time with the arrow keys. Lightflowers bloom in your light',
+    'tip.move.touch': 'Swipe to roll one tile at a time. Lightflowers bloom in your light',
+    'tip.toggle.pc': 'Stones of Night vanish in light. Press Space to switch off and cross',
+    'tip.toggle.touch': 'Stones of Night vanish in light. Tap Light to switch off and cross',
+    'tip.shadow': 'Shadows close in through the dark. What if you switch on while one stands on a Stone of Night?',
+    'tip.lantern': 'Stand beside the lantern with your light on. A Stone of Day next to a lantern holds forever',
+    'tip.crate': 'Crates can be pushed, and they block light. A Stone of Night in a crate’s shade stays',
+    'tip.moth': 'Moths only fly at you while your light is on',
+  },
+};
+
+let lang = 'ko';
+export function setLang(l) { lang = STR[l] ? l : 'ko'; }
+export function getLang() { return lang; }
+export function has(key) { return STR[lang][key] !== undefined; }
+export function t(key, vars) {
+  let s = STR[lang][key];
+  if (s === undefined) s = STR.ko[key];
+  if (s === undefined) return key;
+  if (vars) for (const k in vars) s = s.replace('{' + k + '}', vars[k]);
+  return s;
+}

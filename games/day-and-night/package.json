@@ -1,0 +1,12 @@
+{
+  "name": "the-lamp-2",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "THE LAMP 2: 낮과 밤 — 깨지기 쉬운 전구로 빛과 어둠을 오가는 퍼즐 플랫포머",
+  "scripts": {
+    "start": "node tools/serve.mjs",
+    "ghosts": "node tools/ghosts.mjs",
+    "test": "node tools/ghosts.mjs && node tools/smoke.mjs"
+  }
+}

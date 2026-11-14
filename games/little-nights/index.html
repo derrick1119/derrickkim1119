@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#07080f">
+<meta name="description" content="THE LAMP: 작은 밤들 — 전구가 한 칸씩 굴러가는 3D 디오라마 턴제 퍼즐. 빛이 닿는 곳만 낮이 된다.">
+<title>THE LAMP: 작은 밤들</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2307080f'/%3E%3Ccircle cx='32' cy='28' r='24' fill='%23ffb45a' opacity='.22'/%3E%3Ccircle cx='32' cy='27' r='15' fill='%23fff0c0'/%3E%3Crect x='25' y='40' width='14' height='11' rx='3' fill='%237d8799'/%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="game" aria-label="게임 화면"></canvas>
+  <div id="nogl" class="hidden">이 기기에서는 3D 화면을 띄울 수 없습니다 (WebGL 필요).<br>This device cannot show 3D graphics (WebGL required).</div>
+
+  <!-- 게임 중 HUD -->
+  <div id="hud" class="hidden">
+    <div class="hud-top">
+      <div class="hud-left">
+        <button id="btnBack" class="icon-btn" aria-label="back"><svg viewBox="0 0 24 24"><path d="M15.5 4 7 12l8.5 8z"/></svg></button>
+        <div class="pill" id="stageName"></div>
+        <div class="pill flowers" id="flowers"><i></i><i></i><i></i></div>
+        <div class="pill crack hidden" id="crack"></div>
+      </div>
+      <div class="hud-right">
+        <div class="pill turns"><span id="turnLabel"></span> <b id="turns">0</b> <span class="par">· <span id="parLabel"></span> <b id="par">0</b></span></div>
+      </div>
+    </div>
+    <div id="tip" class="hidden"></div>
+    <div id="toast" class="hidden"></div>
+    <div class="bar">
+      <button id="btnUndo" class="bbtn"><svg viewBox="0 0 24 24"><path d="M9 6 3 12l6 6v-4h5a4 4 0 0 1 0 8h-2v2h2a6 6 0 0 0 0-12H9z"/></svg><span data-t="btn.undo"></span><kbd>Z</kbd></button>
+      <button id="btnLight" class="bbtn light on"><svg viewBox="0 0 24 24"><path d="M12 3a7 7 0 0 0-4 12.7V17h8v-1.3A7 7 0 0 0 12 3zM9 18.5h6V20a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 20z"/></svg><span data-t="btn.light"></span><kbd>Space</kbd></button>
+      <button id="btnHint" class="bbtn"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 16h-2v-2h2zm1.6-6.9c-.9.7-1.6 1.2-1.6 2.4h-2c0-2 1.1-2.9 2-3.6.7-.5 1.2-.9 1.2-1.7 0-1-.9-1.7-2.2-1.7s-2.2.8-2.4 1.9l-2-.4C7.9 6 9.700 4.500 12 4.500c2.500 0 4.200 1.500 4.200 3.700 0 1.600-.9 2.300-1.600 2.900z"/></svg><span data-t="btn.hint"></span><kbd>H</kbd></button>
+      <button id="btnRestart" class="bbtn"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/></svg><span data-t="btn.restart"></span><kbd>R</kbd></button>
+    </div>
+  </div>
+
+  <!-- 타이틀 -->
+  <section id="screen-title" class="screen">
+    <div class="title-wrap">
+      <div class="logo">
+        <h1>THE LAMP</h1>
+        <p class="logo-sub" data-t="sub"></p>
+      </div>
+      <p class="tagline" data-t="tagline"></p>
+      <p class="story" data-t="story"></p>
+      <div class="menu">
+        <button id="btnStart" class="btn primary"></button>
+        <div class="menu-row">
+          <button id="btnStages" class="btn" data-t="btn.stages"></button>
+          <button id="btnHow" class="btn" data-t="btn.how"></button>
+        </div>
+      </div>
+    </div>
+    <div class="corner">
+      <span class="flower-chip"><i class="fl"></i><b id="titleFlowers">0</b></span>
+      <button id="btnSound" class="chip"></button>
+      <button id="btnLang" class="chip" data-t="btn.lang"></button>
+      <button id="btnFull" class="chip" data-t="btn.full"></button>
+    </div>
+  </section>
+
+  <!-- 스테이지 선택 -->
+  <section id="screen-select" class="screen panel-screen hidden">
+    <div class="panel wide">
+      <div class="panel-head">
+        <h2 data-t="sel.title"></h2>
+        <span class="flower-chip big"><i class="fl"></i><b id="selFlowers">0</b></span>
+      </div>
+      <div id="stageList" class="stage-list"></div>
+      <button class="btn" data-back data-t="btn.back"></button>
+    </div>
+  </section>
+
+  <!-- 플레이 방법 -->
+  <section id="screen-how" class="screen panel-screen hidden">
+    <div class="panel">
+      <h2 data-t="how.title"></h2>
+      <div class="how-grid">
+        <div class="how-item light"><h3 data-t="how.1.t"></h3><p data-t="how.1.d"></p></div>
+        <div class="how-item dark"><h3 data-t="how.2.t"></h3><p data-t="how.2.d"></p></div>
+        <div class="how-item light"><h3 data-t="how.3.t"></h3><p data-t="how.3.d"></p></div>
+        <div class="how-item dawn"><h3 data-t="how.4.t"></h3><p data-t="how.4.d"></p></div>
+      </div>
+      <p class="keys" id="howKeys"></p>
+      <button class="btn" data-back data-t="btn.back"></button>
+    </div>
+  </section>
+
+  <!-- 스테이지 클리어 -->
+  <div id="overlay-clear" class="overlay hidden">
+    <div class="panel narrow result win">
+      <h2 id="clearTitle"></h2>
+      <p class="muted" id="clearSub"></p>
+      <div class="big-flowers" id="clearFlowers"><i></i><i></i><i></i></div>
+      <div class="res-grid" id="clearGrid"></div>
+      <div class="badges" id="clearBadges"></div>
+      <button id="btnNext" class="btn primary" data-t="btn.next"></button>
+      <div class="menu-row">
+        <button id="btnRetry" class="btn" data-t="btn.retry"></button>
+        <button id="btnClearStages" class="btn" data-t="btn.stages"></button>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

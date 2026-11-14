@@ -1,0 +1,12 @@
+{
+  "name": "the-lamp-little-nights",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "THE LAMP: 작은 밤들 — 전구가 한 칸씩 굴러가는 3D 디오라마 턴제 퍼즐",
+  "scripts": {
+    "start": "node tools/serve.mjs",
+    "verify": "node tools/verify.mjs",
+    "test": "node tools/verify.mjs && node tools/smoke.mjs"
+  }
+}

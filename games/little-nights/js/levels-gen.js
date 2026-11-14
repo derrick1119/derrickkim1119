@@ -1,0 +1,23 @@
+// tools/gen.mjs 가 만든 파일입니다. 손으로 고치지 말고 생성기를 다시 돌리세요.
+export const GENERATED = [
+  { chapter: 1, rows: ["S.N.*",".#D .","NNN  ",".*N*E"], par: 17, parAny: 8, sol: 'RTRRTTLLLDDRRDRTR' },
+  { chapter: 1, rows: ["*.#.S.","NNNNDN"," DDNND","E**.. "], par: 17, parAny: 8, sol: 'LTDLLUTTDRRDDLLTL' },
+  { chapter: 1, rows: [".S.N**","... ..","...N#.","DN NND","D*.NE "], par: 18, parAny: 8, sol: 'RTRRTTLLDDRDDLTTRR' },
+  { chapter: 1, rows: ["*.N*.","N DDD","#.N.E","S.N..","*# .."], par: 19, parAny: 6, sol: 'RUTRRTUUTLLTTRRRTDD' },
+  { chapter: 1, rows: ["* N. S","..N.N.",".. .N#","*DN.D.","E.N D*"], par: 19, parAny: 10, sol: 'DTLDLDTRLUUTLLDLTDD' },
+  { chapter: 2, rows: ["*.* E","....s"," D N ","*#SsD"], par: 15, parAny: 8, sol: 'TRTTUULLLTRRRRU' },
+  { chapter: 2, rows: ["*DS..","# .#*","DNNDN","ED#.s","*Ns.."], par: 17, parAny: 12, sol: 'RRLLRRDTDDDLLLLTU' },
+  { chapter: 2, rows: ["..NsE","N.N#s","S* *#","#.N.*"], par: 17, parAny: 7, sol: 'RUDDTRRTTLLUUURRR' },
+  { chapter: 2, rows: ["N*. .S"," NN D ","EN.N.*","s*s .."], par: 18, parAny: 10, sol: 'LDUDDTLLUUTTDDTTLL' },
+  { chapter: 2, rows: ["s .NE","*  #.",".N..s","DND D","S ..*",". .*."], par: 18, parAny: 13, sol: 'UUTUDTTRRRRTDDUUUU' },
+  { chapter: 3, rows: [".* SN*","...cDL","  DDDN","....D*",".E#.D."], par: 16, parAny: 14, sol: 'TRRTTLDLUTDDDLLD' },
+  { chapter: 3, rows: ["E **.","ND NN",".Nc..",".DL*S"," D...",".D.#."], par: 16, parAny: 10, sol: 'ULDDLLUTURTTLLUU' },
+  { chapter: 3, rows: ["E. ..."," DNDNN","*.  ..","..N.L*","*cD .#","..NS.."], par: 16, parAny: 12, sol: 'RUDLTLLULUUTRUUL' },
+  { chapter: 3, rows: ["#*N..",".LN*.","*SN  ",".cD#.","..N.E"], par: 18, parAny: 8, sol: 'TRURTTLDLTLDDRTRRR' },
+  { chapter: 3, rows: ["ED.N*","c . S",". *N.",".NLN.","*N.N."], par: 19, parAny: 7, sol: 'DDDTLLTTRRUUUULLTLL' },
+  { chapter: 4, rows: [".*S.c..","DDDDNNN","ND NDNN",".ww....","*.*.sDE"], par: 18, parAny: 9, sol: 'RRRLRTDDDLDLLTRRRR' },
+  { chapter: 4, rows: ["Sc.*  ","NDDNNN","#.w*.w","....*.",".#.DE."], par: 18, parAny: 11, sol: 'RLRDDTRRUUTTDRDDTD' },
+  { chapter: 4, rows: [".....N.","  NDDD ","S#..*Dw","*....D.","*..w. E"], par: 24, parAny: 24, sol: 'DRTRRRTUTTDLLLDURTRRTRRD' },
+  { chapter: 4, rows: ["* w#w.","DDD  D"," N*c. ","S .#*.",".Ns..E"], par: 28, parAny: 7, sol: 'DTTTRRRTRLLUTTTUTRLUUDDDDRRR' },
+  { chapter: 4, rows: ["*.N.DwE","#.D. N#","D. S . ",".*Ns .*","..N. .w","#. cN.."], par: 30, parAny: 23, sol: 'UUTLLTDDDDDUDUUUURRURRTDDTTUUR' },
+];
