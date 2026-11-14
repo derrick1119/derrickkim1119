@@ -55,14 +55,15 @@
 
 ## 졸업한 게임
 - 🎓 행성 수호대 2 (2026-11-07, 8라운드) → 스튜디오 `studio/planet-guardian/` (세션 session_01Nm4gExEyeU9e8MSuJic6vN) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/planet-guardian/
-- 🎓 🐑 양치기 멍멍 (2026-11-12, 23라운드) → 스튜디오 `studio/sheepdog/` (세션 session_01Nm4gEtqTxd1g3bXRhfUUkf, 예약 trig_01PQudNicp6yyeG82ZWkARGg 매시 :25) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/sheepdog/
+- ~~🎓 🐑 양치기 멍멍~~ (2026-11-12 졸업 → **2026-11-14 스튜디오 폐기**, 오너: "폐기." — 2차 피드백 "좁은 공간에 모아서 지나가야하는 스테이지는 재미가 아니라 좀 힘들게 하는 느낌", 오너가 코드·페이지까지 지우라고 함)
 - ~~🎓 🎈 풍선 팡 연쇄~~ (2026-11-12 졸업 → **2026-11-13 스튜디오 폐기**, 오너: "넌 폐기 종료", 팀이 예약 사이클을 끔) · 기록: `studio/balloonpop/`
 - 🎓 🦆 욕조 물결 오리 (2026-11-12, 23라운드) → 스튜디오 `studio/duckbath/` (세션 session_01Nm4gEwhChP57z3P7TwMKSQ, 예약 trig_01CJ22VFfqfTBkM4quLJ1mdw 매시 :50) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/duckbath/
 - 🎓 🔩 나사 풀기 공방 (2026-11-14, 25라운드) → 스튜디오 `studio/screwshop/` (세션 session_01Nm4gEw2cEQo3wbu11pmQWw, 예약 trig_01Kii7D6kRrervseM11PKLDo 매시 :05) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/screwshop/
-- 🎓 🚌 동물 버스 정류장 (2026-11-14, 25라운드) → 스튜디오 `studio/animalbus/` (세션 session_01Nm4gEuj9Udgh4PxgDYj41y, 예약 trig_01LJZMkhVwKkRx2ymNok3Qro 매시 :35) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/animalbus/
+- ~~🎓 🚌 동물 버스 정류장~~ (2026-11-14 졸업 → **2026-11-14 스튜디오 폐기**, 오너: "폐기", M1 진행 중) · 기록: `studio/animalbus/`
 - ~~🎓 💥 비버 철거반~~ (2026-11-14 졸업 → **2026-11-14 스튜디오 폐기**, 오너: "폐기"(M1 테스트 요청 뒤), 팀이 예약 사이클을 끔) · 기록: `studio/demolition/`
-- 🎓 🧪 마녀 고양이 물약 정렬 (2026-11-14, 26라운드) → 스튜디오 `studio/potionsort/` (세션 session_01Nm4gEtTNAmov8psrYZvLdN, 예약 trig_01UnQE5C66Dvguh8ZcdEHkdq 매시 :15) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/potionsort/
+- ~~🎓 🧪 마녀 고양이 물약 정렬~~ (2026-11-14 졸업 → **같은 날 M0 직후 스튜디오 폐기**, 오너: **"재밋긴한데 이미 너무 뻔하게 있는 아이디어 게임같아 폐기"**) · 기록: `studio/potionsort/`
   - 욕조 물결 오리: M1 오너 통과("코어 재미가 느껴진다") → M2. 양치기 멍멍: M1 "재밌는데 전략이 조금 단순해지는 느낌이야" → 재수립 중.
+  - 지금 살아 있는 스튜디오: 🔩 나사 풀기 공방(M1′ 통과 → M2) · 🦆 욕조 물결 오리(M2). 나머지는 오너가 폐기.
   - 남은 두 게임 모두 팀 세션(PM·기획자·개발자·디자이너·FUN QA)이 맡는다. 마일스톤마다 오너 빌드 테스트, 최종 목표 상용화.
 
 ## 오너에게
@@ -75,4 +76,5 @@
   5. 🔧 두더지 물길 관 돌리기 — 수문을 아껴 두면 한 번에 물이 내달려 새싹 연쇄 (6.93×)
   6. 🐸 연잎 개구리 뛰어넘기 — 넘긴 개구리는 풍덩, 마지막 한 마리를 👑 연잎에 (7.83×)
 - 주의: 사람 한 판은 4~7분일 수 있음 · 뒤집기·주사위 족보는 장르 규칙 그대로(상표명은 안 씀).
-- 스튜디오 다섯 팀(양치기 멍멍·욕조 물결 오리·나사 풀기 공방·동물 버스 정류장·물약 정렬)이 각자 진행합니다. 비버 철거반은 M1 테스트 뒤 오너가 폐기했습니다.
+- 살아 있는 스튜디오는 둘(🔩 나사 풀기 공방 M2 · 🦆 욕조 물결 오리 M2). 양치기 멍멍·동물 버스 정류장·비버 철거반·물약 정렬은 오너가 폐기했습니다.
+- ⚠️ 물약 정렬 폐기 이유 "이미 너무 뻔하게 있는 아이디어"를 27라운드를 만든 뒤에야 봤습니다. 27라운드 6개는 모두 오래된 장르(숫자 짝·솔리테어·뒤집기·주사위 족보·관 퍼즐·개구리 뛰어넘기)를 거의 그대로 썼습니다 — 뻔하다고 보시면 '다 폐기'라고만 해 주세요. 28라운드는 **처음 보는 규칙(비틀기가 핵심) + 깊은 전략**으로 만듭니다.
