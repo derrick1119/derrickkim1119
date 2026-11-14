@@ -545,9 +545,11 @@ export function verdict3(L: Layout3, o: Outcome3): { ok: boolean; text: string }
 /**
  * 꾹 꼬리표 규칙(🧪 C007 ④ · 시험 빚 ③): 결과 꼬리표는 '마지막 폭약을 새로 붙일 때', 블록 꼬리표는 붙인 블록이면 '떼기', 무변화면 '변화 없음'.
  * 마지막 폭약이 무변화면 결과 꼬리표가 이미 '꿈쩍 안 함'이라 블록 꼬리표는 겹쳐 띄우지 않는다.
+ * 손잡이 판(save)은 움직이는 겨눔에도 결과 꼬리표(안 움직이면 '변화 없음' 그대로 — F4b-0).
  */
-export function holdTags(cap: number, chA: number, left: number, quiet: boolean): { result: boolean; block: '떼기' | '변화 없음' | null } {
-  const result = !chA && cap > 0 && cap >= left;
+export function holdTags(cap: number, chA: number, left: number, quiet: boolean, save = false, moved = false): { result: boolean; block: '떼기' | '변화 없음' | null } {
+  // 손잡이 판(📐 C008): 마지막 폭약이 아니어도 무엇이든 움직이면 결과 꼬리표 — 지금 붙이고 손잡이를 당기면 그대로 되니까
+  const result = !chA && cap > 0 && (cap >= left || (save && moved));
   return { result, block: chA ? '떼기' : quiet && !result ? '변화 없음' : null };
 }
 

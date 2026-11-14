@@ -212,9 +212,12 @@ describe('꼬리표 규칙 holdTags (🧪 C007 ④ · 시험 빚 ③)', () => {
       for (let i = 0; i < L.blocks.length; i++) {
         const cap = capOf3(L.blocks[i]);
         if (!cap) continue;
-        const t = holdTags(cap, 0, cap * d.charges, isQuiet(L, ch, i));
-        expect(t.result, d.title).toBe(d.charges === 1);
-        if (d.charges > 1) expect(t.block === '변화 없음', `${d.title} #${i}`).toBe(isQuiet(L, ch, i));
+        const c1 = new Int8Array(L.blocks.length);
+        c1[i] = cap;
+        const moved = simulate3(L, c1).moved, save = d.save !== undefined;
+        const t = holdTags(cap, 0, cap * d.charges, isQuiet(L, ch, i), save, moved);
+        expect(t.result, d.title).toBe(d.charges === 1 || (save && moved)); // 손잡이 판은 움직이면 결과 꼬리표(📐 C008)
+        if (d.charges > 1 && !t.result) expect(t.block === '변화 없음', `${d.title} #${i}`).toBe(isQuiet(L, ch, i));
       }
     }
   });
@@ -234,6 +237,26 @@ describe('기폭 손잡이·아끼기 엔진 (📐 GDD §4 A안 · C008)', () =>
       if (b.star[2]) seen++;
     });
     expect(seen).toBeGreaterThan(0);
+  });
+  it('손잡이 판 규칙(📐 C008): 폭약 1개 계획은 ★3 금지 · ★3은 반장 목표 이하로만 · 3개를 다 쓰면 ★3 없음', () => {
+    for (const d of STAGES3.filter((x) => x.save !== undefined)) {
+      const L = layoutOf3(d);
+      let s3 = 0;
+      for (let k = 1; k <= d.charges; k++)
+        forEachPlan(L, k, (ch) => {
+          const o = simulate3(L, ch);
+          if (k === 1) expect(o.stars === 3, `${d.title} 단발`).toBe(false);
+          if (k > d.save!) expect(o.star[2], `${d.title} ${k}개`).toBe(false);
+          if (o.stars === 3) s3++;
+        });
+      expect(s3, d.title).toBeGreaterThan(0);
+    }
+    expect(STAGES3.some((d) => d.save !== undefined)).toBe(true);
+  });
+  it('holdTags 손잡이 판: 움직이는 겨눔이면 마지막 폭약이 아니어도 결과 꼬리표, 안 움직이면 변화 없음 그대로', () => {
+    expect(holdTags(1, 0, 3, false, true, true)).toEqual({ result: true, block: null });
+    expect(holdTags(1, 0, 3, true, true, false)).toEqual({ result: false, block: '변화 없음' });
+    expect(holdTags(1, 0, 3, false, false, true)).toEqual({ result: false, block: null });
   });
   it('bestReach = 남은 폭약으로 갈 수 있는 최고 별(자동 쾅 판: 남은 걸 다 씀 · 손잡이 판: 아무 때나)', () => {
     const L = layoutOf3(d12), n = L.blocks.length;

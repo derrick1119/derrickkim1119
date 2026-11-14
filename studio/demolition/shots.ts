@@ -81,8 +81,28 @@ await p3.mouse.up();
 await p3.waitForFunction(() => (window as any).__d3.state().done, null, { timeout: 8000 });
 await p3.waitForTimeout(200);
 await p3.screenshot({ path: join(out, '3d-10-result.png') });
-console.log('1-1:', JSON.stringify(st1));
-const st3 = await p3.evaluate(() => (window as any).__d3.state());
+const st2 = await p3.evaluate(() => (window as any).__d3.state());
+// 1-4 예비 폭약 창고(C008): 뒤 다리 꾹 → 붙이면 손잡이(판 아래) → 둘째 뒤 다리 → 손잡이 톡 → 결과
+await p3.click('#again');
+await p3.waitForTimeout(200);
+await p3.click('.rot.r'); // 뒤 다리를 앞으로: ⟳ 두 번(뒤오른 시점)
+await p3.waitForTimeout(450);
+await p3.click('.rot.r');
+await p3.waitForTimeout(450);
+await hold(6, 0, 6, '3d-11-save-hold.png');
+await p3.waitForTimeout(700); // 손잡이 통통(0.6초)이 끝난 뒤
+await p3.screenshot({ path: join(out, '3d-12-handle.png') });
+await hold(8, 0, 6, '3d-13-save-second.png');
+const hv = await p3.evaluate(() => !(document.querySelector('.handle') as HTMLButtonElement).hidden);
+if (!hv) errors.push('1-4 손잡이가 안 보임');
+await p3.click('.handle');
+await p3.waitForFunction(() => (window as any).__d3.state().done, null, { timeout: 8000 });
+await p3.waitForTimeout(200);
+await p3.screenshot({ path: join(out, '3d-14-save-result.png') });
+const st4 = await p3.evaluate(() => (window as any).__d3.state());
+console.log('1-4 손잡이 쾅:', JSON.stringify(st4));
+console.log('1-1:', JSON.stringify(st1), '· 1-2:', JSON.stringify(st2));
+const st3 = st2;
 console.log('3D:', JSON.stringify(st3), scroll ? '가로 스크롤 있음 ❌' : '가로 스크롤 없음');
 if (scroll || !st3.done) errors.push('3D 검사 실패');
 // ── 성능(FUN v1.3: 판마다 쾅 장면과 말풍선 꾹 중 최악): DPR 3 휴대폰 · CPU 4배 느림 · 1-2 ──

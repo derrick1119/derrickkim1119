@@ -13,7 +13,7 @@ import { STAGES, bestPlan, capOf, demolition as g, demolitionRandom, demolitionS
 import type { Bot } from './core.ts';
 import type { DemoState } from './game.ts';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { capOf3, feetKey3, forEachPlan, isQuiet, layoutOf3, lostFeet, simulate3, support3, type Layout3, type StageDef3 } from './sim3d.ts';
+import { bestReach, capOf3, feetKey3, forEachPlan, isQuiet, layoutOf3, lostFeet, simulate3, support3, type Layout3, type StageDef3 } from './sim3d.ts';
 import { aimAt, cellPx, drawOrder, faces, fitCams, MAGNET, pickAt, visibleArea, YAW0, type Cam } from './view3d.ts';
 import { STAGES3 } from './stages3d.ts';
 import { join } from 'node:path';
@@ -271,6 +271,8 @@ export function measureStage3(d: StageDef3) {
       c1[i] = capOf3(L.blocks[i]);
       if (isQuiet(L, new Int8Array(N), i)) return;
       const leftAfter = d.charges - c1[i];
+      // C008: 붙이자마자 '🚧 막다른 길'(bestReach 0)이 뜨면 그것이 실패 기호(📐 C008) · 손잡이 판은 움직이는 둘째 꾹에도 결과 꼬리표
+      const alert = bestReach(L, c1, 1) === 0;
       taps.forEach((j) => {
         if (j === i || capOf3(L.blocks[j]) > leftAfter) return;
         const c2 = c1.slice();
@@ -279,7 +281,7 @@ export function measureStage3(d: StageDef3) {
         if (o.ok) return;
         dAll++;
         const last = capOf3(L.blocks[j]) >= leftAfter;
-        const drawn = last || o.hits.some((h) => h > 0) || L.blocks.some((_, k) => o.die[k] < 0 && o.fy[k] + 1 > L.goal && (o.fx[k] !== L.blocks[k].x || o.fz[k] !== L.blocks[k].z || o.fy[k] !== L.blocks[k].y));
+        const drawn = alert || last || (d.save !== undefined && o.moved) || o.hits.some((h) => h > 0) || L.blocks.some((_, k) => o.die[k] < 0 && o.fy[k] + 1 > L.goal && (o.fx[k] !== L.blocks[k].x || o.fz[k] !== L.blocks[k].z || o.fy[k] !== L.blocks[k].y));
         if (drawn) dSig++;
       });
     });

@@ -231,6 +231,45 @@
    "f11min": 0.90825,
    "f11minAt": "6,0,8",
    "rotations": 4
+  },
+  {
+   "title": "예비 폭약 창고",
+   "blocks": 17,
+   "charges": 3,
+   "plans": 696,
+   "clear": 0.10632183908045977,
+   "star3": 0.005747126436781609,
+   "best": 3,
+   "greedyStar3": 0.25,
+   "greedyClear": 0.6,
+   "firstTapStill": 1,
+   "attachable": 16,
+   "inner": 0,
+   "deadFirstTap": 0.125,
+   "deadFirstTapW": 0.1708284939992257,
+   "liveFirstTapReact": 0.8571428571428571,
+   "firstTimer5": 0.3302580370064525,
+   "firstTimer1": 0.0770429274073123,
+   "cellPx": 47.70247344865003,
+   "sidePx": 23.278689425856992,
+   "startViewStar3MinFaces": 0.39375511885360476,
+   "stars": {
+    "only1": 34,
+    "two": 36,
+    "three": 4,
+    "freeStars": 0
+   },
+   "f11": 0.9390781250000001,
+   "f11first": 0.7858906249999998,
+   "f11miss": 0.000109375,
+   "f13": 0.933,
+   "innerHit": 0,
+   "f4bLive": 0.7230068868915607,
+   "f4bDead": 1,
+   "f4bQuietDead": 0,
+   "f11min": 0.90825,
+   "f11minAt": "6,0,6",
+   "rotations": 4
   }
  ]
 }
