@@ -6,7 +6,7 @@ import { runBot } from '../studio/screwshop/core.ts';
 import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
 import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
-import { screwshopMash, screwshopNewbie, tryStage } from '../studio/screwshop/funqa.ts';
+import { f16, screwshopMash, screwshopNewbie, tryStage } from '../studio/screwshop/funqa.ts';
 
 /** M1′ 8판의 지금 자리(✏️ S010: 판 순서가 30판 자리로 바뀌어도 M1′ 테스트는 같은 판을 본다) */
 const M = ['giraffe', 'boat', 'train', 'mill', 'flower', 'dino', 'castle', 'rocket'].map((key) => STAGES.findIndex((d) => d.key === key));
@@ -562,5 +562,46 @@ describe('💡 밤톨의 귀띔 (✏️ S012 · GDD §11 · 📋 M2 ③)', () =>
       }
       expect(ok / 6, STAGES[k].slot).toBeGreaterThanOrEqual(0.95);
     }
+  });
+});
+
+describe('🐹 쿵을 별에 · 빈 쿵 · F16 v2.1 (✏️ S012 · 📐B 1-6 · 🧪 S011 기준)', () => {
+  const at = (key: string) => STAGES.findIndex((d) => d.key === key);
+  it('1-6 🐷 ★3 = 한 방 5: 쿵 판은 남은 나사가 H개 이상이면 ★3 칩이 살아 있다(🪵 · 🔑 없이도) · 쿵을 끄면 장인 ★3 0(F19)', () => {
+    const k = at('piggy'), d = STAGES[k], s = g.create(5);
+    startStage(s, k);
+    expect([d.H, d.thump]).toEqual([5, true]);
+    expect(shotDead(d, s.L, s.S)).toBe(false);
+    const off = { ...s.L, thump: false };
+    expect(shotDead(d, off, s.S)).toBe(true); // 쿵이 없으면 처음부터 못 딴다(패치가 막는 것)
+    let s3 = 0;
+    for (let i = 0; i < 4; i++) {
+      const t = g.create(1000 + i * 7);
+      startStage(t, k);
+      t.L = { ...t.L, thump: false };
+      const rng = mulberry32(i), t0 = t.t;
+      while (t.phase !== 'result' && t.t - t0 < 600 * 60) g.step(t, screwshopSmart.act(t, rng));
+      s3 += +(t.ok && t.S.shot >= 5);
+    }
+    expect(s3).toBe(0);
+  });
+  it('빈 쿵(덜컹 0)은 작은 글자 + 한 번 귀띔 말풍선 · 덜컹이 있으면 말풍선 없음', () => {
+    let empty = 0, full = 0;
+    for (let i = 0; i < 8; i++) {
+      const r = tryStage(screwshopNewbie, 1000 + i * 7, at('piggy')).s;
+      const th = r.hist.filter((h) => h.rec.some((e) => e.k === 'thump')).map((h) => h.rec.slice(h.rec.findIndex((e) => e.k === 'thump')).filter((e) => e.k === 'fall').length);
+      if (!th.length) continue;
+      expect(r.tips.has('thump0'), `시드 ${i}`).toBe(th.includes(0));
+      empty += +th.includes(0), (full += +th.some((n) => n > 0));
+    }
+    expect(empty).toBeGreaterThan(0);
+    expect(full).toBeGreaterThan(0);
+  });
+  it('F16 v2.1: 1-10 🚜 🔑 카드 톡에 꾹 미리 보기 "빈칸"이 뜬다(와르르가 🔒를 드르륵보다 먼저 떨궈도) · 1-4 🐿️ 망치가 매달린 뒤 과녁 톡은 ①색 · 카드 짝 ≥ .8', () => {
+    const t = f16(at('tractor')), q = f16(at('squirrel')); // 막 누르기 100시드(🧪 정의 그대로)
+    expect(t.by['④태엽'][0]).toBeGreaterThan(10);
+    expect(t.v21!).toBeGreaterThanOrEqual(0.95);
+    expect(q.v21!).toBeGreaterThanOrEqual(0.9);
+    expect(q.pair!).toBeGreaterThanOrEqual(0.8);
   });
 });

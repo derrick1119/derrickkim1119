@@ -396,7 +396,7 @@ export function apply(L: Level, S: Sim, s: number, rec?: RE[]) {
 /** ★3 조건: 톡 T번 이하(T가 있으면) 또는 연속 쏙 C번 */
 export const star3 = (d: StageDef, S: Sim) => (d.H !== undefined ? S.shot >= d.H : d.T !== undefined ? S.taps <= d.T : S.best >= d.C);
 /** ★3 '한 방 H'를 이제 못 딴다: 아직 못 땄고 남은 통나무가 없다 (🧪 S002: 와르르 0 뒤에도 칩이 ☆라 헛민다) */
-export const shotDead = (d: StageDef, L: Level, S: Sim) => d.H !== undefined && S.shot < d.H && !L.pl.some((p, k) => p.heavy && L.pm[k] & ~S.gone) && !(L.wind && !S.key); // 📐 S007: 🔑 태엽 판은 🔑 전엔 살아 있음(8판)
+export const shotDead = (d: StageDef, L: Level, S: Sim) => d.H !== undefined && S.shot < d.H && !L.pl.some((p, k) => p.heavy && L.pm[k] & ~S.gone) && !(L.wind && !S.key) && !(L.thump && L.N - S.n >= d.H); // 📐 S007: 🔑 태엽 판은 🔑 전엔 살아 있음(8판) · 📐B S012: 🐹 쿵 판은 남은 나사가 H개 이상이면 살아 있음(1-6)
 export const starsOf = (d: StageDef, S: Sim) => (d.B !== undefined ? (S.bonks >= d.B ? (S.peak <= d.P ? 3 : 2) : 1) : 1 + (S.peak <= d.P ? 1 : 0) + (star3(d, S) ? 1 : 0));
 /** 🔨 ★2(쾅 B번)를 이제 못 딴다: 아직 칠 수 있는 망치(아직 안 매달렸고 칠 나사가 살아 있음)를 다 더해도 B에 못 미친다 */
 /** 🔨 아직 칠 수 있는 망치 수: 아직 안 매달렸고 칠 나사가 살아 있음 */
@@ -966,9 +966,11 @@ function playRec(s: ShopState, rec: RE[]) {
     }
     if (e.k === 'thump') {
       // 🐹 쿵(📐 S011): 밤톨이 작업대를 내려친다 — 매달린 판자가 덜컹(뒤 사건들이 이어서)
-      ev(s, 'thump', 0.5, 0.62, '🐹 쿵!', '#ffd166', s.t + delay + SPIN + FLY);
+      const dk = rec.slice(rec.indexOf(e) + 1).filter((f) => f.k === 'fall').length; // 이 쿵의 덜컹 수(쿵은 톡의 끝 — 뒤 사건은 다 쿵 몫)
+      ev(s, 'thump', 0.5, 0.62, dk ? '🐹 쿵!' : '🐹 쿵… 덜컹 0', dk ? '#ffd166' : '#c9b89a', s.t + delay + SPIN + FLY);
       delay += SPIN + FLY + 6;
       see(s, 'thump', '🐹 연속 쏙 6마다 쿵! 맞는 색 상자가 열린 매달린 판자가 덜컹');
+      if (!dk && !s.tips.has('thump0')) s.tips.add('thump0'), s.newsQ.push('🐹 빈 쿵 — 열린 상자 색 나사로 매단 판자가 없었어요'); // ✏️ S012 빈 쿵 말풍선(📐B: 1-6 처음 봇 빈 쿵 .50) · 다른 소식이 있어도 줄 선다(tip은 버려짐)
       continue;
     }
     if (e.k === 'tick') {
@@ -1569,7 +1571,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       fx.kick(bad ? 3 : 5), fx.hold(bad ? 2 : 4), say(x, y - R(0.06), bad ? '쾅' : '쾅!', bad ? '#e8d9c0' : '#ffe08a', bad ? 20 : 26), cue('bonk');
     }
     if (e.kind === 'wind') (fx.memo.wind = t), fx.ring(x, y, '#ffd34d', R(0.08), 3), fx.burst(x, y, '#ffd34d', 10, 2.6, 1.8), say(x, y - R(0.06), e.text!, e.col!, 20, true), cue('wind');
-    if (e.kind === 'thump') fx.kick(7), fx.hold(4), fx.ring(x, y, '#ffd166', R(0.14), 4), say(w / 2, y, e.text!, e.col!, 34, true), cue('crash', 3); // 🐹 쿵: 화면 흔들림 + 글자
+    if (e.kind === 'thump') e.col === '#ffd166' ? (fx.kick(7), fx.hold(4), fx.ring(x, y, '#ffd166', R(0.14), 4), say(w / 2, y, e.text!, e.col!, 34, true), cue('crash', 3)) : (fx.kick(2), say(w / 2, y, e.text!, e.col!, 26)); // 🐹 쿵: 화면 흔들림 + 글자 · ✏️ S012 빈 쿵은 작게
     if (e.kind === 'crash') {
       const i = e.n ?? 1;
       fx.burst(x, y, e.col!, 6 + 2 * i, 2.8 + 0.3 * i, 2.2), fx.burst(x, y, '#e9d3a6', 8, 2.4, 1.6), fx.ring(x, y, '#e9d3a6', R(0.05 + 0.01 * i), 3);
@@ -2509,9 +2511,9 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
   // 🔑 태엽 꾹(🧪 S004 ①): 🔒가 몇 개 쏙 · 몇 개 빈칸 — 빈칸이 있으면 주황
   const wi = pre.rec.findIndex((e) => e.k === 'wind');
   if (wi >= 0) {
-    const after = pre.rec.slice(wi), nb = after.filter((e) => e.k === 'box').length, ns = after.filter((e) => e.k === 'slot').length;
-    font(0.032, 900);
     const H = STAGES[s.stage].H, all = pre.rec.filter((e) => e.k === 'box').length; // 📐 S007 8판: ★3이 한 방인 태엽 판은 🔑 자신까지 센 쏙 한 방 / H
+    const after = pre.rec.slice(wi), nb = after.filter((e) => e.k === 'box').length, ns = (H !== undefined ? pre.rec : after).filter((e) => e.k === 'slot').length; // ✏️ S012: 한 방 판은 톡 전체 빈칸(1-10 와르르가 🔑 → 🔒를 드르륵보다 먼저 떨군다)
+    font(0.032, 900);
     const lab = H !== undefined ? `🔑 드르륵 → 쏙 한 방 ${all} / ${H}${ns ? ` · 빈칸 ${ns}` : all >= H ? '!' : ''}` : `🔑 드르륵 → 🔒 쏙 ${nb}${ns ? ` · 빈칸 ${ns}` : '!'}`, hw = ctx.measureText(lab).width / 2 + 10; // ✏️ S008: 한 방 판에도 '빈칸 M'(S007에 빠졌던 것)
     pill(ctx, Math.max(hw, Math.min(X(1) - hw, X(L.px[k]))), Y(L.py[k]) - R(0.13), lab, ns || (H !== undefined && all < H) ? '#ffb36b' : '#c8ffc8', R(0.044)); // '쏙!' 알약보다 위, 화면 안 · 한 방 판은 H에 닿고 빈칸 0이면 초록
   }

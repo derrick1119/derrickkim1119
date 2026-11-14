@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Bot, Input } from './core.ts';
 import { mulberry32 } from './rng.ts';
-import { STAGES, apply, cloneSim, freeM, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, startStage, starsOf, type Level, type ShopState, type Sim } from './game.ts';
+import { STAGES, apply, cloneSim, freeM, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, startStage, starsOf, type Level, type ShopState, type Sim, type StageDef } from './game.ts';
 
 export interface Try { ok: boolean; stars: number; sec: number; peak: number; best: number; shot: number; taps: number; /** 끝난 판(되짚기·F13용) */ s: ShopState }
 
@@ -148,6 +148,69 @@ export function pnrHit(s: ShopState) {
 
 export const BOTS = { smart: screwshopSmart, habit: screwshopHabit, top: screwshopTop, reveal: screwshopReveal, random: screwshopRandom, mash: screwshopMash, finger: screwshopFingerMash, preview: screwshopPreview };
 
+type Ev = { k: string; p?: number; s?: number; pose?: number };
+/** 꾹 미리 보기가 이 톡에 원인 c의 경고를 띄우나(🧪 S008 m1b warnFor와 같은 식) */
+function warnOf(L: Level, d: StageDef, h: ShopState['hist'][number], c: string) {
+  const p = peek(L, h.S0, h.s), r = p.rec as unknown as Ev[], S2 = p.S, pl = L.pl;
+  const first = r.find((e) => e.k === 'box' || e.k === 'slot'), toSlot = first?.k === 'slot' || !!S2.fail;
+  const chainSlot = r.some((e) => e.k === 'slot' && e.s !== h.s), cover = p.cover !== 0, stuck = stuckM(L, S2.gone) !== 0;
+  const hit = (k: string, q?: number) => r.some((b) => b.k === k && b.p === q);
+  const air = r.some((e) => e.k === 'hang' && pl[e.p!].ham && e.pose! >= 1 && !hit('bonk', e.p)) || r.some((e) => e.k === 'fall' && pl[e.p!].kind === 'spring' && pl[e.p!].tgt !== undefined && !hit('boing', e.p));
+  const log = r.some((e) => e.k === 'fall' && pl[e.p!].heavy) && !(d.H !== undefined ? r.filter((e) => e.k === 'box').length >= d.H : r.some((e) => e.k === 'crash'));
+  const wi = r.findIndex((e) => e.k === 'wind'), wind = wi >= 0 && (d.H !== undefined ? r : r.slice(wi)).some((e) => e.k === 'slot'); // 🔑 알약 '빈칸 M'(한 방 판은 톡 전체 · ✏️ S012)
+  const by: Record<string, boolean> = { '①색': toSlot, '②진자': cover, '②못': cover || stuck, '①연쇄': chainSlot, '③통나무': log, '③허공': air, '④태엽': wind };
+  return by[c] ?? (toSlot || cover || stuck || chainSlot || air || log || wind);
+}
+/** 🎯 과녁 알약(drawPreview와 같은 식): 아직 쉬는 망치 · 스프링이 칠 나사 k */
+function targetOf(L: Level, g0: number, k: number) {
+  return L.pl.some((P, p) => (P.ham && poseOf(L, p, g0) === 0 && L.hamT[p].some((c) => c[0] === k)) || (P.kind === 'spring' && P.tgt !== undefined && !!(L.pm[p] & ~g0) && (() => {
+    let b = -1, bd = 9;
+    for (const i of L.ps[P.tgt]) if (!((g0 >> i) & 1) && Math.hypot(L.px[i] - P.cx, L.py[i] - P.cy) < bd) (bd = Math.hypot(L.px[i] - P.cx, L.py[i] - P.cy)), (b = i);
+    return b === k;
+  })()));
+}
+/**
+ * F16 v2.1(🧪 S011 · 📋 S012): 막 누르기 실패 카드가 짚은 원인 톡(마지막 톡 제외 · ④는 🔑 톡 · ③은 과녁을 손으로 뺀 톡 더함)에 꾹 미리 보기 경고가 떴던 비율.
+ *   v2.1: 망치가 이미 매달린 뒤의 과녁 톡은 🎯 대신 ①색('→ 빈칸')으로 센다 · 짝 pair = ③허공 실패 중 경고 뜬 💨 톡이 카드에 있는 비율(실패 10건 이상인 판 ≥ .8)
+ */
+export function f16(k: number, seeds = 100, hands = 1) {
+  const d = STAGES[k];
+  let fails = 0, n = 0, w = 0, af = 0, aw = 0;
+  const by: Record<string, [number, number]> = {}; // 원인별 [톡, 경고]
+  for (let i = 0; i < seeds; i++) for (let j = 0; j < hands; j++) {
+    const seed = 1000 + i * 7, s = tryStage(screwshopMash, seed, k, 600, seed + j * 100003).s, b = s.blame, L = s.L, H = s.hist;
+    if (s.ok || !b) continue;
+    fails++;
+    const c = b.c, P = L.pl[b.k], tg = c !== '③허공' ? [] : P.ham ? L.hamT[b.k].map((q) => q[0]) : P.tgt !== undefined ? L.ps[P.tgt] : [];
+    const ok = (t: number) => warnOf(L, d, H[t], c) || (c === '③허공' && (targetOf(L, H[t].S0.gone, H[t].s) || (tg.includes(H[t].s) && poseOf(L, b.k, H[t].S0.gone) >= 1 && warnOf(L, d, H[t], '①색'))));
+    const taps = new Set(c === '④태엽' ? [] : b.t.filter((t) => t !== H.length - 1));
+    if (c === '④태엽') { const wt = H.findIndex((h) => h.rec.some((e) => e.k === 'wind')); if (wt >= 0) taps.add(wt); }
+    if (c === '③허공') {
+      const ht = H.findIndex((h, t) => t <= Math.min(...b.t) && tg.includes(h.s));
+      if (ht >= 0) taps.add(ht);
+      af++, (aw += +b.t.some((t) => t !== H.length - 1 && warnOf(L, d, H[t], '③허공'))); // 원인 톡(마지막 톡 제외)에 '💨' 경고
+    }
+    const o = (by[c] ??= [0, 0]);
+    for (const t of taps) { const x = +ok(t); n++, (w += x), o[0]++, (o[1] += x); }
+  }
+  return { fails, n, v21: n ? +(w / n).toFixed(2) : null, airFails: af, pair: af ? +(aw / af).toFixed(2) : null, by };
+}
+/** F15ᵗ(🧪 S011 · 📋 S012, 🐹 쿵 판): ① 쿵 빼기 장인 ★3 낙차(F19 식, ≥ .4) ② 판당 쿵 덜컹 나사 장인 ÷ 처음 봇(≥ 2×) · 빈 쿵 비율(처음 봇) */
+export function f15t(k: number, seeds = 24) {
+  const run = (bot: Bot<ShopState>, seed: number, off: boolean) => {
+    const s = g.create(seed);
+    if (k) startStage(s, k);
+    if (off) s.L = { ...s.L, thump: false };
+    const rng = mulberry32(seed ^ 0x9e3779b9), t0 = s.t;
+    while (s.phase !== 'result' && s.t - t0 < 600 * 60) g.step(s, bot.act(s, rng));
+    let th = 0, dk = 0, empty = 0;
+    for (const h of s.hist) { const i = h.rec.findIndex((e) => e.k === 'thump'); if (i < 0) continue; const f = h.rec.slice(i).filter((e) => e.k === 'fall').length; th++, (dk += f), (empty += +!f); }
+    return { s3: +(s.ok && starsOf(STAGES[k], s.S) === 3), dk, th, empty };
+  };
+  const sum = (bot: Bot<ShopState>, off: boolean) => Array.from({ length: seeds }, (_, i) => run(bot, 1000 + i * 7, off)).reduce((a, x) => ({ s3: a.s3 + x.s3, dk: a.dk + x.dk, th: a.th + x.th, empty: a.empty + x.empty }));
+  const on = sum(screwshopSmart, false), off = sum(screwshopSmart, true), nb = sum(screwshopNewbie, false);
+  return { drop: +((on.s3 - off.s3) / seeds).toFixed(2), ratio: nb.dk ? +(on.dk / nb.dk).toFixed(1) : null, smartDk: +(on.dk / seeds).toFixed(2), newbieDk: +(nb.dk / seeds).toFixed(2), newbieEmpty: nb.th ? +(nb.empty / nb.th).toFixed(2) : null };
+}
 /** 한 판만 빠르게 (테스트용): 봇별 클리어·★3 */
 export function measureStage(k: number, seeds: number, bots: (keyof typeof BOTS)[]) {
   return Object.fromEntries(bots.map((b) => {
@@ -191,6 +254,10 @@ export function measure(seeds = 12) {
     }
     row.newbie = { clear1: +(first / seeds).toFixed(2), clear3: +(three / seeds).toFixed(2), fails, f13: fails ? +(hit / fails).toFixed(2) : null, hint: +(hinted / seeds).toFixed(2), hint3 };
   });
+  stages.forEach((row, k) => {
+    row.f16 = f16(k); // F16 v2.1 + 카드 짝(막 누르기 100시드 — 🧪 m1b와 같은 손)
+    if (STAGES[k].thump) row.f15t = f15t(k, seeds);
+  });
   const avg = (bot: string, key: string) => +(stages.reduce((a, r) => a + (r[bot] as Record<string, number>)[key], 0) / stages.length).toFixed(2);
   const summary = {
     smartStars: avg('smart', 'stars'), habitStars: avg('habit', 'stars'), randomStars: avg('random', 'stars'),
@@ -218,6 +285,11 @@ export function measure(seeds = 12) {
     hint3: stages.reduce((a, r) => a + (r.newbie as Record<string, number>).hint3, 0),
     /** 🧪 F13 되짚기 정확도: 3~8판 중 처음 봇 실패 10건 이상인 판의 최저 (M1′ ① ≥ 0.8) */
     f13_38min: Math.min(...stages.slice(2).map((r) => r.newbie as Record<string, number>).filter((n) => n.fails >= 10).map((n) => n.f13)),
+    /** F16 v2.1 · 카드 짝: 막 누르기 실패 10건 이상인 판의 최저(📋 S012 ③ 각 ≥ .8) */
+    f16min: Math.min(...stages.map((r) => r.f16 as ReturnType<typeof f16>).filter((f) => f.fails >= 10 && f.v21 !== null).map((f) => f.v21!)),
+    pairMin: Math.min(...stages.map((r) => r.f16 as ReturnType<typeof f16>).filter((f) => f.airFails >= 10).map((f) => f.pair!)),
+    /** F15ᵗ(쿵 판): [자리, 쿵 빼기 낙차, 덜컹 배율] */
+    f15t: stages.filter((r) => r.f15t).map((r) => [r.slot, (r.f15t as ReturnType<typeof f15t>).drop, (r.f15t as ReturnType<typeof f15t>).ratio]),
     /** 사람 시간 추정(초): 판별 장인 톡 × 5 + 6 */
     humanSec: stages.map((r) => (r.smart as Record<string, number>).human),
     /** 숙련 격차: 장인 평균 별 / 무작위 평균 별 */

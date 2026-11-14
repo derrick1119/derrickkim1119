@@ -12,7 +12,7 @@ import { STAGES, apply, bestMove, cloneSim, freeM, habitPick, newSim, paintStage
 import { mulberry32, type Rng } from './rng.ts';
 
 /** 판별 칠 수 · 칠해 볼 sub 수(2판은 장인 ★3 칠이 96개 중 22개뿐이고 상한 3.9에 닿는 칠은 그 절반이라 384 — ✏️ S005) */
-export const N = 24, SCAN = [96, 1536, 96, 768, 768, 96, 1536, 1536, 768, 768, 768, 768, 768]; // ✏️ S007: 2판 384 → 1536(진자 칠이 384칠 중 21칠뿐) · 📐 S007 7·8판 1536
+export const N = 24, SCAN = [96, 1536, 96, 768, 768, 96, 1536, 1536, 768, 768, 768, 768, 768, 768, 768, 768, 768, 768]; // ✏️ S007: 2판 384 → 1536(진자 칠이 384칠 중 21칠뿐) · 📐 S007 7·8판 1536
 
 /** 아무 나사나 빼는 사람이 이 판을 깰 확률 */
 function randomPass(L: Level, r: Rng, n: number) {
@@ -91,17 +91,54 @@ const pv1Of = (L: Level, r: Rng) => (S: Sim) => {
   return pick[Math.floor(r() * pick.length)];
 };
 
+/** 🧪 F17 버릇 3종(📐A S012): funqa 맞는 색 · 위에서부터 · ✨ 최다 봇과 같은 눈(본 나사 + 다음 상자 2)으로 끝까지 → 별 수
+ *  (봇은 난수를 안 쓰므로 칠 하나에 별 하나 — 실린 칠 120(id 8~12)에서 funqa tryStage와 같음 확인) */
+export type Habit = 'habit' | 'top' | 'reveal';
+const HABITS: Habit[] = ['habit', 'top', 'reveal'];
+export function habit3(L: Level, d: StageDef): Record<Habit, number> {
+  const kf = (S: Sim, known: number) => { const f = freeM(L, S) & known, o: number[] = []; for (let i = 0; i < L.N; i++) if ((f >> i) & 1) o.push(i); return o; };
+  const run = (pick: (S: Sim, known: number) => number) => {
+    const S = newSim(L);
+    let known = visibleM(L, 0);
+    while (!S.fail && S.n < L.N) { const m = pick(S, known); if (m < 0) return 0; apply(L, S, m); known |= visibleM(L, S.gone); }
+    return S.fail ? 0 : starsOf(d, S);
+  };
+  return {
+    habit: run((S, known) => habitPick(L, S, known)),
+    top: run((S, known) => { const o = kf(S, known); return o.length ? o.reduce((a, b) => (L.py[b] < L.py[a] ? b : a)) : -1; }),
+    reveal: run((S, known) => { // ✨ 새로 풀리는 나사 × 10 + 맞는 색 1 — 같으면 앞 번호
+      const V = { ...L, col: L.col.map((c, i) => ((known >> i) & 1 ? c : -1)), queue: L.queue.map((c, i) => (i < S.qi + 2 ? c : -2)) }, f0 = freeM(V, S);
+      let best = -1, bi = -1;
+      for (const i of kf(S, known)) {
+        const S2 = cloneSim(S);
+        apply(V, S2, i);
+        let v = S.box.includes(V.col[i]) ? 1 : 0;
+        const nf = freeM(V, S2) & ~f0 & ~S2.gone;
+        for (let j = 0; j < L.N; j++) if ((nf >> j) & 1) v += 10;
+        if (v > best) (best = v), (bi = i);
+      }
+      return bi;
+    }),
+  };
+}
+
 /** 새 판 공통 고르기(📋 M2 · ✏️ S010): 판별 함수를 새로 쓰지 않고 목표 표 한 줄 t로 값을 낸다(M1′ 6·8판 식을 일반화).
  *  장인(같은 눈) ★3이 아니면 −9 · 버릇(맞는 색 → 위) ★3이면 −5 · t.pv면 1수 미리 보기가 3번 중 한 번이라도 ★3이면 −4
  *  + 진자 낙차(장인−진자가 ★3을 놓치면 t.pend, 기본 1) + 버릇 클리어 t.hc(기본 1, 처음 하는 사람 숨통)
  *  + (1 − 막 누르기 클리어 100판) × t.mc(기본 1) + 무작위 클리어 min(1, 무작위/t.rnd[0]) × t.rnd[1](40판) · t.full이면 대표 순간 '완전'이 아닌 칠 −3(F20′) */
-export interface Gate { pend?: number; hc?: number; mc?: number; pv?: boolean; rnd?: [number, number]; /** F20′: 대표 순간 '완전'이 아니면 −3 (📋 S010: 새 22판) */ full?: boolean }
+/** 새 판 공통 고르기(📋 M2 · ✏️ S010): 판별 함수를 새로 쓰지 않고 목표 표 한 줄 t로 값을 낸다(M1′ 6·8판 식을 일반화).
+ *  장인(같은 눈) ★3이 아니면 −9 · 버릇(맞는 색 → 위) ★3이면 −5 · t.pv면 1수 미리 보기가 3번 중 한 번이라도 ★3이면 −4
+ *  + 진자 낙차(장인−진자가 ★3을 놓치면 t.pend, 기본 1) + 버릇 클리어 t.hc(기본 1, 처음 하는 사람 숨통)
+ *  + (1 − 막 누르기 클리어 100판) × t.mc(기본 1) + 무작위 클리어 min(1, 무작위/t.rnd[0]) × t.rnd[1](40판) · t.full이면 대표 순간 '완전'이 아닌 칠 −3(F20′) */
+export interface Gate { pend?: number; hc?: number; mc?: number; pv?: boolean; rnd?: [number, number]; /** F20′: 대표 순간 '완전'이 아니면 −3 (📋 S010: 새 22판) */ full?: boolean; /** F17 1위 버릇(📐A S012): 이 버릇은 ★2를 못 따는데 다른 버릇이 ★2 이상이면 −2 — 실린 칠 24에서 이 버릇의 ★2 이상 비율이 1위가 된다 */ lead?: Habit; /** F15ᵗ(📐B S012 · 🐹 쿵 판): 쿵을 끈 판에서도 장인(같은 눈) ★3이면 −2 — 쿵이 덤인 칠을 거른다(F19) */ thump?: boolean }
 export function gate(L: Level, d: StageDef, r: Rng, t: Gate = {}) {
   if (smartSeen(L, d) !== 3) return -9;
   const h = playOut(L, d, habitOf(L));
   if (h === 3) return -5;
   if (t.pv) for (let k = 0; k < 3; k++) if (playOut(L, d, pv1Of(L, r)) === 3) return -4;
   if (t.full && !smartFull(L, d)) return -3;
+  if (t.thump && smartSeen({ ...L, thump: false }, d) === 3) return -2;
+  if (t.lead) { const b = habit3(L, d); if (b[t.lead] < 2 && HABITS.some((x) => x !== t.lead && b[x] >= 2)) return -2; }
   let m = 0;
   for (let k = 0; k < 100; k++) m += playOut(L, d, mashOf(L, r)) ? 1 : 0;
   return (smartSeen(L, d, true) === 3 ? 0 : t.pend ?? 1) + (h ? t.hc ?? 1 : 0) + (1 - m / 100) * (t.mc ?? 1) + (t.rnd ? Math.min(1, randomPass(L, r, 40) / t.rnd[0]) * t.rnd[1] : 0);
@@ -220,15 +257,25 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   // 📐 S010 1-4 🐿️ (id 8 · 📐A): 공통 gate · 목표 표 기본
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1 }),
   // 📐 S010 🐄 (id 9): 공통 gate · 따라 하기 거름(pv) 켬 — 끄면 같은 좌표에서 따라 하기 ★3 .13 · 📐A S011: 1-7로 옮김 · F20′ full
-  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, pv: true, full: true }),
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, pv: true, full: true, lead: 'habit' }), // 📐A S012: F17 1위 버릇 = 맞는 색(이웃 1-6 🐷 · 1-8 🐴 = ✨)
   // 📐A S011 1-5 🤖 (id 10): 공통 gate · F20′ full
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true }),
-  // 📐B S011 1-6 🐷 (id 11): 공통 gate · F20′ full · 따라 하기 거름(pv — 끄면 따라 하기 ★3 .33)
-  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true, pv: true }),
+  // 📐B S011 1-6 🐷 (id 11): 공통 gate · F20′ full · 따라 하기 거름(pv) · 📐B S012: ★3 = 한 방 5(쿵 한 번에 덜컹 4) · F15ᵗ thump
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true, pv: true, thump: true }),
   // 📐C S011 1-8 🐴 (id 12): 공통 gate · F20′ full
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true }),
+  // 📐C S012 1-9 🦆 (id 13): 공통 gate · F20′ full · 따라 하기 거름(pv — 끄면 같은 좌표에서 따라 하기 ★3 .54 이상)
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true, pv: true }),
+  // 📐B S012 1-10 🚜 (id 14): 공통 gate · F20′ full · 따라 하기 거름(pv — 끄면 따라 하기 ★3 .33) · ✏️ S012: F17 1위 버릇 맞는 색(lead — 이웃 1-8 🐴 · 1-9 🦆 = ✨)
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true, pv: true, lead: 'habit' }),
+  // 📐A S012 2-3 🐳 (id 15): 공통 gate · F20′ full · 따라 하기 거름(pv — 끄면 ★3 .29) · F17 1위 버릇 ✨ 최다(이웃 2-2 🌻 = 맞는 색)
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, pv: true, full: true, lead: 'reveal' }),
+  // 📐A S012 2-4 🦀 (id 16): 공통 gate · F20′ full · F17 1위 버릇 맞는 색(이웃 2-3 🐳 = ✨)
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true, lead: 'habit' }),
+  // 📐C S012 2-5 🐧 (id 17): 공통 gate · F20′ full · 따라 하기 거름(pv — 끄면 따라 하기 ★3 .46)
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true, pv: true }),
 ];
-export const CAP = [Infinity, 4.5, 3.65, 5.15, 3.5, 2.95, 3.95, 2.95, Infinity, 2.95, Infinity, Infinity, Infinity];
+export const CAP = [Infinity, 4.5, 3.65, 5.15, 3.5, 2.95, 3.95, 2.95, Infinity, 2.95, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity];
 
 /** k번째 판(순서)의 칠 sub 고르기 값 = min(가치, 상한) — 난수 씨앗은 판 id */
 export function valueOf(k: number, sub: number, L = paintStage(k, sub)) {
