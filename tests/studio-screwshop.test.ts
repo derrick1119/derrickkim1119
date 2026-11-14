@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { RES_BY, RETRY_Y, STAGES, apply, bonkDead, cloneSim, freeM, newSim, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
+import { RES_BY, RETRY_Y, STAGES, apply, blockedM, bonkDead, cloneSim, freeM, newSim, peek, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
+import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { measure, measureStage, pnrHit, screwshopMash, screwshopNewbie, tryStage } from '../studio/screwshop/funqa.ts';
 import { pickStage } from '../studio/screwshop/pick.ts';
@@ -361,5 +362,33 @@ describe('플레이 빌드', () => {
     expect(html).toContain('나사 풀기 공방');
     expect(html).toContain('id="sound"');
     expect(gzipSync(html).length).toBeLessThan(40 * 1024); // M1′ 상한 (📋 S002: 120 → 36KB, 📋 S003 결정: 36 → 40KB — 남은 🔑·미리 보기·손맛을 자르지 않으려고. 이유는 MILESTONES 위험 ①, 오너 테스트 때 밝힘)
+  });
+});
+
+describe('미리 보기 = 실제 결과 (✏️ S006 · 📋 S004 이월)', () => {
+  it('꾹 누를 때 보이는 것(쾅·와르르·튀는 🔒·띠용·갈 곳·⚠ 덮음)이 떼었을 때 그대로 일어난다 — 8판 × 막 누르기', () => {
+    let n = 0, cov = 0, chain = 0;
+    for (let k = 0; k < STAGES.length; k++)
+      for (const seed of [3, 8]) {
+        const s = g.create(seed), rng = mulberry32(seed);
+        startStage(s, k);
+        let h = 0;
+        for (let t = 0; t < 60 * 120 && s.phase === 'play'; t++) {
+          g.step(s, screwshopMash.act(s, rng));
+          if (s.hist.length === h) continue;
+          const H = s.hist[(h = s.hist.length) - 1], p = peek(s.L, H.S0, H.s), L = s.L;
+          expect(p.rec, `${k + 1}판 톡 ${h}`).toEqual(H.rec); // 쾅·와르르·드르륵·띠용·째깍과 나사마다 갈 곳(상자 구멍/빈칸 칸)
+          expect(p.S.gone).toBe(s.S.gone);
+          expect(p.S.slots).toEqual(s.S.slots);
+          // ⚠ = 이 톡 전엔 안 막혔고 뒤엔 막힌 나사 (매달린 판자가 덮음)
+          expect(p.cover).toBe(blockedM(L, s.S.gone) & ~blockedM(L, H.S0.gone) & L.all & ~s.S.gone);
+          n++;
+          cov += p.cover ? 1 : 0;
+          chain += p.rec.filter((e) => e.k === 'out' && e.pop).length;
+        }
+      }
+    expect(n).toBeGreaterThan(60);
+    expect(cov).toBeGreaterThan(0);
+    expect(chain).toBeGreaterThan(0);
   });
 });

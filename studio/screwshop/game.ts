@@ -1266,7 +1266,13 @@ const ease = (q: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, q)), 2.2);
 export const COLS = ['#ef4b4b', '#3b82f6', '#f7c531', '#2fb86a', '#a45ee0', '#ff8a2b'];
 
 /** 미리 보기: 지금 이 나사를 빼면? */
-interface Preview { rec: RE[]; S: Sim; freed: number; blockers: number[]; state: 'ok' | 'blocked' | 'locked' }
+interface Preview { rec: RE[]; S: Sim; freed: number; blockers: number[]; state: 'ok' | 'blocked' | 'locked'; /** 이 톡으로 새로 덮일 나사(진자·📌가 매달려 덮음 — ⚠, 🧪 S005 F16) */ cover: number }
+/** 미리 보기의 알맹이(✏️ S006): 나사 k를 빼면 일어날 일 — 그림과 '미리 보기 = 실제 결과' 테스트가 같이 쓴다 */
+export function peek(L: Level, S0: Sim, k: number) {
+  const S = cloneSim(S0), rec: RE[] = [], blk = blockedM(L, S0.gone), f0 = freeM(L, S0);
+  apply(L, S, k, rec);
+  return { S, rec, freed: freeM(L, S) & ~f0 & ~S.gone, cover: blockedM(L, S.gone) & ~blk & L.all & ~S.gone };
+}
 const pvCache = new WeakMap<object, { key: string; p: Preview }>();
 function preview(s: ShopState, k: number): Preview {
   const key = `${k}:${s.S.gone}:${s.stage}`, c = pvCache.get(s);
@@ -1279,13 +1285,9 @@ function preview(s: ShopState, k: number): Preview {
       const q = poseOf(L, j, S.gone);
       if (q >= 0 && (L.cov[j][q] >> k) & 1) blockers.push(j);
     }
-    p = { rec, S, freed: 0, blockers, state: 'blocked' };
-  } else if (!S.key && (L.lockM >> k) & 1) p = { rec, S, freed: 0, blockers: [], state: 'locked' };
-  else {
-    const f0 = freeM(L, S);
-    apply(L, S, k, rec);
-    p = { rec, S, freed: freeM(L, S) & ~f0 & ~S.gone, blockers: [], state: 'ok' };
-  }
+    p = { rec, S, freed: 0, blockers, state: 'blocked', cover: 0 };
+  } else if (!S.key && (L.lockM >> k) & 1) p = { rec, S, freed: 0, blockers: [], state: 'locked', cover: 0 };
+  else p = { ...peek(L, s.S, k), blockers: [], state: 'ok' };
   pvCache.set(s, { key, p });
   return p;
 }
@@ -2571,6 +2573,10 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       ctx.quadraticCurveTo(X((L.pl[e.p].cx + L.px[e.s]) / 2), Y(Math.min(L.pl[e.p].cy, L.py[e.s]) - 0.1), X(L.px[e.s]), Y(L.py[e.s]));
       ctx.stroke();
       ctx.setLineDash([]);
+      // 🧪 S005 ①: 🌀가 칠 나사가 빈칸으로 가면 주황 — 막 누르는 손이 연쇄 빈칸을 누르는 동안 본다
+      const to = pre.rec.find((b, j) => j > pre.rec.indexOf(e) && (b.k === 'box' || b.k === 'slot') && b.s === e.s), lab = to?.k === 'slot' ? '🌀 띠용 → 빈칸' : '🌀 띠용 → 쏙';
+      font(0.03, 900);
+      pill(ctx, X(L.px[e.s]), Y(L.py[e.s]) + R(0.055), lab, to?.k === 'slot' ? '#ffb36b' : '#c8ffc8', R(0.044));
     }
   }
   ctx.setLineDash([]);
@@ -2588,6 +2594,34 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       ctx.lineTo(x - r, y + r);
       ctx.stroke();
     }
+  // ②진자 덮음(🧪 S005 ① · F16): 이 톡으로 매달린 판자가 새로 덮을 나사 — 📌 경고와 같은 ⚠ (영영 깔리는 ✗는 위에서)
+  for (let i = 0; i < L.N; i++)
+    if ((pre.cover >> i) & 1 && !((dead >> i) & 1)) {
+      ctx.strokeStyle = 'rgba(255,150,80,.9)';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(X(L.px[i]), Y(L.py[i]), R(SR * 1.45), 0, TAU);
+      ctx.stroke();
+      font(0.04, 900);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('⚠️', X(L.px[i]) - R(0.035), Y(L.py[i]) - R(0.03) + Math.sin(t * 0.2) * 1.5);
+    }
+  // 연쇄로 튈 나사(🔨·🪵·🔑·🌀·⏰)가 갈 곳: 가는 점선 — 상자면 초록, 빈칸이면 주황 (📋 S004 이월 '🔒 갈 곳 점선')
+  ctx.lineWidth = 1.8;
+  ctx.setLineDash([2, 5]);
+  ctx.lineDashOffset = -t * 0.6;
+  for (const e of pre.rec)
+    if ((e.k === 'box' || e.k === 'slot') && e.s !== k) {
+      const [x1, y1] = e.k === 'box' ? holeXY(L, e.bi, e.hole) : slotXY(e.idx);
+      ctx.strokeStyle = e.k === 'box' ? 'rgba(200,255,200,.8)' : 'rgba(255,170,90,.9)';
+      ctx.beginPath();
+      ctx.moveTo(X(L.px[e.s]), Y(L.py[e.s]));
+      ctx.quadraticCurveTo(X((L.px[e.s] + x1) / 2), Y(Math.min(L.py[e.s], y1) - 0.08), X(x1), Y(y1));
+      ctx.stroke();
+    }
+  ctx.setLineDash([]);
+  ctx.lineDashOffset = 0;
   // 새로 풀리는 나사 반짝
   for (let i = 0; i < L.N; i++)
     if ((pre.freed >> i) & 1) {
