@@ -51,8 +51,8 @@ const dogs = (angs: number[], o: Partial<DogDef>[] = []): DogDef[] => angs.map((
 export const STAGES: StageDef[] = [
   {
     key: 'walk', name: '첫 산책', emoji: '🐕', news: '🐕 강아지를 톡 → 빈 말뚝을 톡! 폴짝 옮겨 앉아요', tip: '👆 엇갈린 줄의 강아지를 다른 말뚝으로',
-    posts: [C0], dogs: dogs([-90, 30, 150]), pegs: ring(0.5, 0.7, [-90, -18, 54, 126, 198]), trees: [],
-    treats: 1, puddles: 0, cat: false, slack: 18, par: [1, 2], minX: 1,
+    posts: [C0], dogs: dogs([-90, 30, 150]), pegs: ring(0.5, 0.7, [-90, -30, 30, 150, 210]), trees: [],
+    treats: 1, puddles: 0, cat: false, slack: 12, par: [1, 2], minX: 1,
   },
   {
     key: 'treat', name: '간식 산책', emoji: '🦴', news: '🦴 간식 말뚝에 앉으면 냠! 다 풀기 전에 먹어요', tip: '🦴 마지막 한 번 전에 간식을 먹어요',

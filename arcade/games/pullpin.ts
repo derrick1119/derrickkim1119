@@ -1051,7 +1051,7 @@ function absorb(s: PinState) {
         if (!W.fail && n >= s.lv.F && s.goal < 2) {
           s.goal = 2;
           s.slow = 56;
-          ev(s, 'full', bw.x, 1.0, '가득!! 하나도 안 흘렸다!', '#fff1a8');
+          ev(s, 'brim', bw.x, 1.0, '가득!! 하나도 안 흘렸다!', '#fff1a8');
           setMood(s, 'cheer');
         } else if (!W.fail && n >= s.lv.N && s.goal < 1) {
           s.goal = 1;
@@ -2403,6 +2403,24 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PinState, w: number, h: numbe
     ctx.fillStyle = '#ffffff';
     ctx.fillText('👆', x + R(0.02), y + R(0.075) + bob);
   }
+  // 한 번에 쏟아지는 수: 그릇 위 큰 숫자가 하나씩 올라가며 점점 커진다
+  if (s.combo > 0 && t - s.comboT < 30 && L.bowls.length) {
+    const v = s.combo, u = t - s.comboT, bw = L.bowls[0], sc = 1 + Math.max(0, 1 - u / 7) * 0.35, fs = R(0.05 + Math.min(v, 14) * 0.0045);
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, (30 - u) / 8);
+    ctx.translate(X(L.bowls.length > 1 ? 0.5 : bw.x), Y(0.99 - Math.min(v, 12) * 0.004));
+    ctx.scale(sc, sc);
+    ctx.font = `900 ${fs}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = 'rgba(80,35,5,.8)';
+    const txt = `+${v}`;
+    ctx.strokeText(txt, 0, 0);
+    ctx.fillStyle = v >= 10 ? '#ff8db4' : v >= 5 ? '#ffd166' : '#fff6c8';
+    ctx.fillText(txt, 0, 0);
+    ctx.restore();
+  }
   drawSpots(k, s);
   // 느린 화면: 가장자리가 금빛으로
   if (s.slow > 0) {
@@ -2447,7 +2465,6 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PinState, w: number, h: numbe
         fx.burst(x, Y(1.1), '#fff6c8', 3, 1.4, 1.2);
         fx.kick(Math.min(5.5, 0.6 + v * 0.35));
         if (v % 5 === 0) fx.ring(bx, Y(1.1), col, R(0.12 + Math.min(v, 15) * 0.008), 3);
-        fx.pop(bx + (hsh(e.t) - 0.5) * R(0.06), Y(1.0) - Math.min(v, 12) * 2, e.text!, v >= 8 ? '#ffd166' : '#fff6c8', 15 + Math.min(v, 14) * 1.5);
         break;
       }
       case 'pour': {
@@ -2465,7 +2482,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PinState, w: number, h: numbe
         for (const c of ['#ffe066', ...COLS]) fx.burst(x, Y(1.05), c, 16, 5.5, 3);
         say(w / 2, Y(0.88), e.text!, col, 27);
         break;
-      case 'full':
+      case 'brim':
         fx.blink('#fff6c8', 0.4);
         fx.kick(7);
         fx.ring(x, Y(1.08), '#ffe066', R(0.42), 8);
