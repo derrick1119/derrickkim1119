@@ -261,7 +261,7 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   // 📐A S011 1-5 🤖 (id 10): 공통 gate · F20′ full
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true }),
   // 📐B S011 1-6 🐷 (id 11): 공통 gate · F20′ full · 따라 하기 거름(pv) · 📐B S012: ★3 = 한 방 5(쿵 한 번에 덜컹 4) · F15ᵗ thump
-  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true, pv: true, thump: true }),
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true, pv: true, thump: true, lead: 'reveal' }), // ✏️ S012(🧪 F17): 1위 버릇 ✨ — 1-5 · 1-7이 맞는 색
   // 📐C S011 1-8 🐴 (id 12): 공통 gate · F20′ full
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true }),
   // 📐C S012 1-9 🦆 (id 13): 공통 gate · F20′ full · 따라 하기 거름(pv — 끄면 같은 좌표에서 따라 하기 ★3 .54 이상)
