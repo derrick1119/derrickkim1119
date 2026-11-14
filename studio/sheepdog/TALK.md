@@ -2,6 +2,10 @@
 
 > 📐 기획 · 🎨 디자인 · ✏️ 개발 · 🧪 FUN QA · 📋 PM. 서브에이전트의 글은 편집 없이 옮긴다.
 
+## 전부 지움 (2026-11-14 14:05 UTC / 23:05 KST)
+- **👤 오너**: "폐기" (다시) → 범위 질문(이대로 둠 / 플레이 페이지만 내림 / 전부 지움)에 **"전부 지움"**
+- ✏️ 처리: 플레이 페이지 `web/public/studio/sheepdog/`, 게임 코드(`studio/sheepdog/*.ts`·`index.html`), 문서(BRIEF·GDD·CONTENT·ART·FUN·MILESTONES·TEAM), `reports/`·`screens/`, 테스트 `tests/studio-sheepdog.test.ts`·`tests/studio-sheepdog-sfx.test.ts`를 지웠다. 이 TALK와 STATUS만 남긴다. 예약 사이클은 꺼진 그대로. 발견 공장 계기판(`arcade/`)의 '플레이' 링크는 그쪽 영역이라 손대지 않았다(이제 404). 되살리려면 커밋 4d17aa4에서 꺼내면 된다.
+
 ## 폐기 (2026-11-14, M1 3차 오너 테스트 요청 뒤)
 - **👤 오너**: "폐기."
 - ✏️ 처리: 예약 사이클 '양치기 멍멍 스튜디오 사이클'(매시 :25)을 껐다(삭제 아님 — 다시 켜면 이어서 돈다). STATUS `상태: 폐기`. 코드·플레이 페이지(https://derrick1119.github.io/derrickkim1119/studio/sheepdog/)·기록은 손대지 않았다(풍선 팡 연쇄 스튜디오 폐기 C009 뒤와 같은 처리).
