@@ -44,7 +44,7 @@ export const mashOf = (L: Level, r: Rng) => (S: Sim) => {
 const smartOf = (L: Level, d: StageDef) => (S: Sim) => bestMove(L, S, d);
 /** 장인이 게임·funqa와 같은 눈일 때(본 나사 색 + 다음 상자 2개만 앎 — 📐 S005 · ✏️ S005) 별 수
  *  pend: 🧪 F15 '장인−진자' — 나사 둘 남은 판자(못 판자 제외)에서 짝도 뺄 수 있으면 둘 중 버릇 순서(맞는 색 → 위)로 (📐 S006) */
-export function smartSeen(L: Level, d: StageDef, pend = false) {
+export function smartSeen(L: Level, d: StageDef, pend = false, onTap?: (rec: { k: string; pop?: boolean }[]) => void) {
   const S = newSim(L);
   let known = visibleM(L, 0);
   while (!S.fail && S.n < L.N) {
@@ -57,10 +57,21 @@ export function smartSeen(L: Level, d: StageDef, pend = false) {
         if (v(p) < v(m)) m = p;
       }
     }
-    apply(L, S, m >= 0 ? m : habitPick(L, S));
+    const rec: { k: string; pop?: boolean }[] = [];
+    apply(L, S, m >= 0 ? m : habitPick(L, S), onTap && (rec as never));
+    onTap?.(rec);
     known |= visibleM(L, S.gone);
   }
   return S.fail ? 0 : starsOf(d, S);
+}
+/** F20′ 대표 순간 '완전'(🧪 S010 · 📋 받음): 장인(같은 눈) 판에서 연쇄로 튄 나사가 가장 많은 톡(쾅 · 와르르 · 드르륵 · 띠용 · 쿵)이 있고, 그 톡에 빈칸으로 간 나사가 0 */
+export function smartFull(L: Level, d: StageDef) {
+  let bp = 0, bs = 0;
+  smartSeen(L, d, false, (rec) => {
+    const p = rec.filter((e) => e.k === 'out' && e.pop).length;
+    if (p > bp) (bp = p), (bs = rec.filter((e) => e.k === 'slot').length);
+  });
+  return bp > 0 && bs === 0;
 }
 const habitOf = (L: Level) => (S: Sim) => habitPick(L, S);
 /** 1수 미리 보기(funqa 따라 하기와 같은 점수, 동점은 난수) — 📐 S006·S007 7판 */
@@ -83,13 +94,14 @@ const pv1Of = (L: Level, r: Rng) => (S: Sim) => {
 /** 새 판 공통 고르기(📋 M2 · ✏️ S010): 판별 함수를 새로 쓰지 않고 목표 표 한 줄 t로 값을 낸다(M1′ 6·8판 식을 일반화).
  *  장인(같은 눈) ★3이 아니면 −9 · 버릇(맞는 색 → 위) ★3이면 −5 · t.pv면 1수 미리 보기가 3번 중 한 번이라도 ★3이면 −4
  *  + 진자 낙차(장인−진자가 ★3을 놓치면 t.pend, 기본 1) + 버릇 클리어 t.hc(기본 1, 처음 하는 사람 숨통)
- *  + (1 − 막 누르기 클리어 100판) × t.mc(기본 1) + 무작위 클리어 min(1, 무작위/t.rnd[0]) × t.rnd[1](40판) */
-export interface Gate { pend?: number; hc?: number; mc?: number; pv?: boolean; rnd?: [number, number] }
+ *  + (1 − 막 누르기 클리어 100판) × t.mc(기본 1) + 무작위 클리어 min(1, 무작위/t.rnd[0]) × t.rnd[1](40판) · t.full이면 대표 순간 '완전'이 아닌 칠 −3(F20′) */
+export interface Gate { pend?: number; hc?: number; mc?: number; pv?: boolean; rnd?: [number, number]; /** F20′: 대표 순간 '완전'이 아니면 −3 (📋 S010: 새 22판) */ full?: boolean }
 export function gate(L: Level, d: StageDef, r: Rng, t: Gate = {}) {
   if (smartSeen(L, d) !== 3) return -9;
   const h = playOut(L, d, habitOf(L));
   if (h === 3) return -5;
   if (t.pv) for (let k = 0; k < 3; k++) if (playOut(L, d, pv1Of(L, r)) === 3) return -4;
+  if (t.full && !smartFull(L, d)) return -3;
   let m = 0;
   for (let k = 0; k < 100; k++) m += playOut(L, d, mashOf(L, r)) ? 1 : 0;
   return (smartSeen(L, d, true) === 3 ? 0 : t.pend ?? 1) + (h ? t.hc ?? 1 : 0) + (1 - m / 100) * (t.mc ?? 1) + (t.rnd ? Math.min(1, randomPass(L, r, 40) / t.rnd[0]) * t.rnd[1] : 0);

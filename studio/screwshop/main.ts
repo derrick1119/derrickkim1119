@@ -20,7 +20,18 @@ canvas.setAttribute('aria-label', `${g.name} 게임 화면. 나사를 톡(누르
 const overlay = document.createElement('button');
 overlay.type = 'button';
 overlay.className = 'g-overlay';
-root.append(canvas, overlay);
+// 판 고르기(📋 M2 · ✏️ S011): 제목 화면의 '🗺️ 판 고르기' → 월드 3 × 10칸. 실린 판만 고를 수 있고 별은 판 id로 저장(🎨 ART M2 §6 와이어)
+const pickBtn = document.createElement('button'), pick = document.createElement('div');
+pickBtn.type = 'button';
+pickBtn.className = 'g-pickbtn';
+pickBtn.textContent = '🗺️ 판 고르기';
+pick.className = 'g-pick';
+pick.hidden = true;
+pick.setAttribute('role', 'dialog');
+pick.setAttribute('aria-label', '판 고르기');
+root.append(canvas, overlay, pickBtn, pick);
+const WORLDS = ['아기방 장난감 상자', '바닷가 언덕 마을', '동화 성 놀이공원'];
+let world = 1;
 const ctx = canvas.getContext('2d')!;
 const aspect = g.aspect ?? 1.45;
 
@@ -92,6 +103,38 @@ function show(html: string) {
   overlay.focus({ preventScroll: true });
 }
 
+/** 판별 최고 별을 판 id로 저장(판 순서가 바뀌어도 그대로) */
+function keepStars() {
+  s.bestSt.forEach((v, i) => v > store.get('st' + STAGES[i].id) && store.set('st' + STAGES[i].id, v));
+}
+function showPick(w = world) {
+  world = Math.max(1, Math.min(3, w));
+  const cells = Array.from({ length: 10 }, (_, n) => {
+    const slot = `${world}-${n + 1}`, k = STAGES.findIndex((d) => d.slot === slot);
+    if (k < 0) return `<button type="button" disabled aria-label="${slot} 준비 중"><i>${slot}</i><em>🔒</em><small>준비 중</small></button>`;
+    const d = STAGES[k], st = store.get('st' + d.id);
+    return `<button type="button" data-k="${k}" aria-label="${slot} ${d.name}, 별 ${st}개"><i>${slot}</i><em>${d.emoji}</em><small>${d.name}</small><b>${'★'.repeat(st)}${'☆'.repeat(3 - st)}</b></button>`;
+  }).join('');
+  pick.innerHTML = `<nav><button type="button" data-w="${world - 1}" aria-label="앞 월드"${world > 1 ? '' : ' disabled'}>◀</button><span>월드 ${world} · ${WORLDS[world - 1]}</span><button type="button" data-w="${world + 1}" aria-label="다음 월드"${world < 3 ? '' : ' disabled'}>▶</button></nav><div>${cells}</div><button type="button" data-x="1">닫기</button>`;
+  pick.hidden = false;
+  pickBtn.hidden = true;
+  (pick.querySelector('[data-k]') as HTMLElement | null)?.focus({ preventScroll: true });
+}
+pick.addEventListener('click', (e) => {
+  const b = (e.target as HTMLElement).closest('button');
+  if (!b || b.disabled) return;
+  if (b.dataset.w) return showPick(Number(b.dataset.w));
+  pick.hidden = true;
+  if (b.dataset.k) return start(Number(b.dataset.k));
+  pickBtn.hidden = false;
+  overlay.focus({ preventScroll: true });
+});
+pick.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') (pick.hidden = true), (pickBtn.hidden = false), overlay.focus({ preventScroll: true });
+  if (e.key === 'q' || e.key === 'Q' || e.key === 'e' || e.key === 'E') showPick(world + (e.key.toLowerCase() === 'e' ? 1 : -1));
+});
+pickBtn.addEventListener('click', () => showPick());
+
 function title() {
   const b = store.get('best'), st = store.get('stars');
   show(`<em>🐹🔩</em><b>나사 풀기 공방</b>
@@ -99,12 +142,14 @@ function title() {
 <strong>시작</strong><span>누르고 있으면 갈 곳이 보여요 · 키보드: 화살표 + 스페이스</span>${b ? `<span class="best">최고 ${b}점 · ★${st}</span>` : ''}`);
 }
 
-function start() {
+function start(pickK?: number) {
+  pickBtn.hidden = true;
   sfx.wake(); // 첫 AudioContext는 여기서(자동재생 정책)
   sfx.play('press');
   const q = new URLSearchParams(location.search), fixed = Number(q.get('seed')), st = Number(q.get('stage')); // ?seed=N: 같은 판 다시 보기 · ?stage=N: N판부터(스크린샷·버그 제보)
   s = g.create(fixed > 0 ? fixed : (Date.now() % 1_000_000) + 1);
   if (st > 1 && st <= STAGES.length) startStage(s, st - 1);
+  if (typeof pickK === 'number') startStage(s, pickK);
   juice(s).calm = calm;
   running = true;
   overlay.hidden = true;
@@ -119,6 +164,8 @@ function end() {
   const sc = g.score(s), b = Math.max(sc, store.get('best'));
   store.set('best', b);
   store.set('stars', Math.max(s.stars, store.get('stars')));
+  keepStars();
+  pickBtn.hidden = false;
   draw();
   const head = s.won ? `🎉 실린 ${STAGES.length}판 모두 완성!` : `🐹 ${STAGES[s.stage].slot} ${STAGES[s.stage].emoji} ${STAGES[s.stage].name}에서 멈췄어요`;
   show(`<b>${sc}점</b><span class="msg">${head}</span><span>★ ${s.stars} / ${STAGES.length * 3} · 최고 ${b}점</span><strong>다시 하기</strong>`);
@@ -145,7 +192,9 @@ function loop(now: number) {
     // 아주 짧은 탭(한 프레임 안에 눌렀다 뗌)도 최소 한 틱은 '누름'으로 보이게
     const input: Input = { tap: false, dir: 0, pointer: pointer ?? latch };
     latch = null;
+    const st0 = s.stage;
     g.step(s, input);
+    if (s.stage !== st0) keepStars();
     if (g.over(s)) return end();
   }
   draw();
@@ -181,7 +230,7 @@ canvas.addEventListener('keyup', (e) => {
   if (e.key === ' ' || e.key === 'Enter') (spaceDown = false), (pointer = null);
 });
 canvas.addEventListener('blur', () => (keys.clear(), (spaceDown = false), (pointer = null)));
-overlay.addEventListener('click', start);
+overlay.addEventListener('click', () => start());
 window.addEventListener('resize', size);
 size();
 title();

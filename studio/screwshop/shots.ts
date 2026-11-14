@@ -28,6 +28,11 @@ for (const scheme of ['light', 'dark'] as const) {
   await page.waitForTimeout(300);
   if (scheme === 'dark') continue;
   await page.screenshot({ path: join(out, '01-title.png') });
+  await page.click('.g-pickbtn'); // 판 고르기(✏️ S011)
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: join(out, '25-pick.png') });
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
   await page.click('.g-overlay');
   await page.waitForTimeout(1800);
   await page.screenshot({ path: join(out, '02-stage1.png') });
