@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { mulberry32 } from '../engine/rng.ts';
 import { runBot } from '../studio/animalbus/core.ts';
-import { STAGES, animalbus as g, animalbusSmart, internals, layoutFor, startStage } from '../studio/animalbus/game.ts';
+import { FOLLOW, STAGES, animalbus as g, animalbusSmart, followersOf, internals, layoutFor, setFollow, startStage } from '../studio/animalbus/game.ts';
 import { firstMoveWidth, follow, greedy, honestBot, runSim } from '../studio/animalbus/bots.ts';
 import { playStage, BOTS } from '../studio/animalbus/funqa.ts';
 
@@ -72,6 +72,52 @@ describe('전략 깊이 측정 봇 (M1-1, C002)', () => {
     const w = firstMoveWidth(layoutFor(1000, 0));
     expect(w.open).toBeGreaterThan(0);
     expect(w.rate).toBe(1);
+  });
+});
+
+describe('줄줄이 따라 타기 (C003 오너: "하나씩 눌러서 넣는 게 번거로울 때가 있어")', () => {
+  const { newSim, moves, tapSim, cloneSim } = internals;
+  /** 따라 탈 친구가 있는 첫 톡을 찾는다 */
+  const find = () => {
+    for (let n = 0; n < 12; n++) {
+      const L = layoutFor(1000 + n * 7919, 2), S = newSim(L);
+      for (const i of moves(L, cloneSim(S))) {
+        const f = followersOf(L, S, i);
+        if (f.length) return { L, S, i, f };
+      }
+    }
+    throw new Error('따라 탈 친구가 있는 판이 없음');
+  };
+  it('기본으로 켜져 있다', () => expect(FOLLOW).toBe(true));
+  it('톡 한 번에 맞닿은 같은 색 친구가 함께 버스에 탄다 (모두 같은 색 · 버스 자리를 넘지 않음)', () => {
+    const { L, S, i, f } = find(), col = L.buses[S.bus].col, cap = L.buses[S.bus].cap;
+    expect(L.an[i].col).toBe(col);
+    for (const j of f) expect(L.an[j].col).toBe(col);
+    expect(1 + f.length).toBeLessThanOrEqual(cap);
+    const T = cloneSim(S);
+    expect(tapSim(L, T, i)).toBe('bus');
+    for (const j of [i, ...f]) expect(T.gone[j]).toBe(1);
+    expect(T.left).toBe(S.left - 1 - f.length);
+  });
+  it('의자로 가는 톡은 혼자만 간다', () => {
+    for (let n = 0; n < 6; n++) {
+      const L = layoutFor(1000 + n * 7919, 2), S = newSim(L), col = L.buses[0].col;
+      const i = moves(L, cloneSim(S)).find((j) => L.an[j].col !== col);
+      if (i === undefined) continue;
+      expect(followersOf(L, S, i)).toEqual([]);
+      const T = cloneSim(S);
+      tapSim(L, T, i);
+      expect(T.gone.reduce((a, x) => a + x, 0)).toBe(1);
+    }
+  });
+  it('끄면 프로토타입과 같다(한 마리씩) · 켜면 탐욕 봇 톡 수가 줄어든다', () => {
+    const taps = () => [0, 1, 2].reduce((a, n) => a + runSim(layoutFor(1000 + n * 7919, 3), greedy, n + 1).taps, 0);
+    const on = taps();
+    setFollow(false);
+    const off = taps();
+    expect(followersOf(layoutFor(1000, 2), newSim(layoutFor(1000, 2)), 0)).toEqual([]);
+    setFollow(true);
+    expect(on).toBeLessThan(off);
   });
 });
 

@@ -56,7 +56,7 @@ interface StageDef {
 }
 
 export const STAGES: StageDef[] = [
-  { key: 'first', name: '첫 버스', news: '🐧 길이 트인 동물을 톡 — 같은 색 버스에 폴짝!', C: 4, R: 3, cols: [0, 1], nb: 3, nd: 0, ele: 0, zz: 0, hid: 0, rock: 0, slack: 1, cslack: 1 },
+  { key: 'first', name: '첫 버스', news: '🐧 톡 — 같은 색 버스에 폴짝! 붙어 선 친구는 줄줄이', C: 4, R: 3, cols: [0, 1], nb: 3, nd: 0, ele: 0, zz: 0, hid: 0, rock: 0, slack: 1, cslack: 1 },
   { key: 'bench', name: '대기 의자', news: '🪑 색이 다르면 의자에서 기다려요 — 다음 버스 색을 보고!', C: 4, R: 4, cols: [0, 1, 2], nb: 4, nd: 0, ele: 0, zz: 0, hid: 0, rock: 0, slack: 1, cslack: 1 },
   { key: 'elephant', name: '큰 코끼리', news: '🐘 코끼리는 두 칸 — 의자도 두 칸 차지해요!', C: 5, R: 4, cols: [0, 1, 2], nb: 6, nd: 0, ele: 2, zz: 0, hid: 0, rock: 0, slack: 1, cslack: 1 },
   { key: 'sleep', name: '잠꾸러기', news: '💤 잠꾸러기 — 옆 친구가 떠나야 깨요', C: 6, R: 4, cols: [0, 1, 2], nb: 7, nd: 0, ele: 0, zz: 3, hid: 0, rock: 0, slack: 1, cslack: 1 },
@@ -158,7 +158,49 @@ function hasLeft(L: Layout, S: Sim, col: number) {
 }
 
 // ───────── 톡 한 번 (결정적, 봇이 내다볼 때도 같은 함수) ─────────
-interface Hooks { depart?(b: number): void; board?(j: number, b: number, k: number): void; wake?(j: number): void }
+interface Hooks { depart?(b: number): void; board?(j: number, b: number, k: number): void; wake?(j: number): void; follow?(j: number, k: number): void }
+/**
+ * C003 오너 피드백 "하나씩 눌러서 넣는 게 좀 번거로울 때가 있어" → 줄줄이 따라 타기:
+ * 같은 색 버스에 탄 친구와 맞닿은(상하좌우) 같은 색 친구가, 길이 트였고 깨어 있으면 버스 남은 자리만큼 손잡고 줄줄이 따라 탄다.
+ * 의자로 가는 톡은 혼자만 간다(의자는 늘 내가 고른다).
+ */
+export let FOLLOW = true;
+export const setFollow = (b: boolean) => ((FOLLOW = b), CACHE.clear());
+function adj4(L: Layout, a: number[], b: number[]) {
+  for (const x of a)
+    for (const y of b) if (Math.abs(((x / L.C) | 0) - ((y / L.C) | 0)) + Math.abs((x % L.C) - (y % L.C)) === 1) return true;
+  return false;
+}
+/** 광장에서 빠진다: 옆(8방향) 잠꾸러기가 깬다 */
+function leave(L: Layout, S: Sim, i: number, H?: Hooks) {
+  const a = L.an[i];
+  S.gone[i] = 1;
+  for (let j = 0; j < L.an.length; j++) {
+    const b = L.an[j];
+    if (b.sleep && !S.gone[j] && !S.awake[j] && adj8(L, a.cells, b.cells)) (S.awake[j] = 1), H?.wake?.(j);
+  }
+}
+/** 지금 버스로 따라 탈 다음 친구: 줄의 마지막 친구부터 거슬러 맞닿은 같은 색, 그중 앞줄 */
+function nextFollower(L: Layout, S: Sim, chain: number[], col: number): number {
+  const re = reach(L, S);
+  for (let q = chain.length - 1; q >= 0; q--) {
+    let f = -1, fr = -1;
+    for (let j = 0; j < L.an.length; j++) {
+      const c = L.an[j];
+      if (S.gone[j] || c.col !== col || !awakeOk(L, S, j) || !isOpen(L, j, re) || !adj4(L, L.an[chain[q]].cells, c.cells)) continue;
+      const row = Math.max(...c.cells.map((k) => (k / L.C) | 0));
+      if (row > fr) (fr = row), (f = j);
+    }
+    if (f >= 0) return f;
+  }
+  return -1;
+}
+/** 톡 하면 함께 나갈 친구들(미리 보기용, 판은 그대로) */
+export function followersOf(L: Layout, S: Sim, i: number): number[] {
+  const out: number[] = [], T = cloneSim(S);
+  tapSim(L, T, i, { follow: (j) => out.push(j) });
+  return out;
+}
 function newSim(L: Layout): Sim {
   const n = L.an.length;
   return { gone: new Array(n).fill(0), awake: new Array(n).fill(0), bench: [], used: 0, bus: 0, fill: 0, peak: 0, streak: 0, best: 0, fail: 0, left: n };
@@ -194,17 +236,22 @@ function settle(L: Layout, S: Sim, H?: Hooks) {
 /** 동물 i를 톡: 'bus' 탔다 · 'bench' 의자에 앉았다 · 'fail' 앉을 데가 없다 */
 function tapSim(L: Layout, S: Sim, i: number, H?: Hooks): 'bus' | 'bench' | 'fail' {
   const a = L.an[i];
-  S.gone[i] = 1;
-  for (let j = 0; j < L.an.length; j++) {
-    const b = L.an[j];
-    if (b.sleep && !S.gone[j] && !S.awake[j] && adj8(L, a.cells, b.cells)) (S.awake[j] = 1), H?.wake?.(j);
-  }
+  leave(L, S, i, H);
   const sz = sizeOf(L, i), b = L.buses[S.bus];
   let res: 'bus' | 'bench';
   if (b && b.col === a.col) {
     S.fill = Math.min(b.cap, S.fill + sz);
     S.left--;
     res = 'bus';
+    for (const chain = [i]; FOLLOW && S.fill < b.cap; ) {
+      const f = nextFollower(L, S, chain, b.col);
+      if (f < 0) break;
+      H?.follow?.(f, chain.length - 1);
+      leave(L, S, f, H);
+      S.fill = Math.min(b.cap, S.fill + sizeOf(L, f));
+      S.left--;
+      chain.push(f);
+    }
   } else {
     if (S.used + sz > BENCH) return (S.fail = 1), 'fail';
     S.bench.push(i);
@@ -607,6 +654,18 @@ function doTap(s: BusState, i: number) {
       const [wx, wy] = animalXY(L, j);
       ev(s, 'wake', wx, wy, '번쩍!', '#fff3a0');
     },
+    // C003 줄줄이 따라 타기: 손잡은 같은 색 친구가 한 박자씩 늦게 뒤따라 나와 같은 버스에 탄다
+    follow: (j, k) => {
+      const mj = s.mv[j], pj = pathOut(L, S, j), dj = 14 + 5 * pj.length, lag = 7 * (k + 1);
+      mj.st = 'out';
+      mj.t0 = s.t + lag;
+      mj.path = pj;
+      mj.dur = dj;
+      mj.bus = bus0;
+      s.bt[bus0].riders.push({ id: j, at: Math.max(s.t + lag + dj, s.bt[bus0].arrive + 6) });
+      const [fx, fy] = animalXY(L, j);
+      ev(s, 'go', fx, fy, k === 0 ? '줄줄이!' : '', CN[a.col], j);
+    },
   });
   s.taps++;
   s.lastTap = s.t;
@@ -643,7 +702,7 @@ export const animalbus: GameDef<BusState> = {
   name: '동물 버스 정류장',
   genes: ['boarding', 'sort', 'pointer'],
   twist: '톡 한 번에 펭귄이 빽빽한 군중을 비집고 나와(이웃들이 우르르 비킨다) 뒤뚱뒤뚱 같은 색 버스에 폴짝 — 꽉 차면 빵빵! 창문마다 손 흔들며 떠나고, 의자에서 기다리던 친구가 다음 버스에 저절로 쪼르르 타서 버스가 줄줄이 연달아 떠나기도 한다',
-  rules: ['길이 트인 동물을 톡 → 정류장으로 뒤뚱뒤뚱, 같은 색 버스면 타요 (아니면 대기 의자)', '의자 5칸이 모자라면 실패, 모두 태우면 완성! 다음 버스 색을 보고 순서를 정해요'],
+  rules: ['길이 트인 동물을 톡 → 같은 색 버스면 타요, 붙어 선 같은 색 친구도 줄줄이! (아니면 대기 의자)', '의자 5칸이 모자라면 실패, 모두 태우면 완성! 다음 버스 색을 보고 순서를 정해요'],
   controls: 'touch',
   hint: '동물을 톡(누르면 갈 길이 보여요) / 화살표로 고르고 스페이스',
   aspect: A,
@@ -1448,6 +1507,11 @@ function where(s: BusState, i: number, t: number, waitIdx: Map<number, number>):
     const [x, y] = animalXY(s.L, i);
     return { x, y, kind: 'crowd', q: 0 };
   }
+  // C003 줄줄이: 뒤따라 나올 친구는 제 차례(한 박자 뒤)까지 제자리
+  if (t < m.t0) {
+    const [x, y] = animalXY(s.L, i);
+    return { x, y, kind: 'crowd', q: 0 };
+  }
   const arr = m.t0 + m.dur;
   if (t < arr) {
     const q = (t - m.t0) / m.dur;
@@ -2067,6 +2131,16 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BusState, w: number, h: numbe
       const [lx] = cellXY(L, path[path.length - 1]);
       pts.push(a.big ? ax : lx, CURB_Y + 0.035);
       const toBus = !!bus0 && bus0.col === a.col, sz = a.big ? 2 : 1, full = !toBus && S.used + sz > BENCH;
+      // C003 줄줄이: 함께 따라 탈 친구들에 흰 고리
+      const fol = toBus ? followersOf(L, S, pressed) : [];
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.5;
+      for (const j of fol) {
+        const [fx2, fy2] = animalXY(L, j);
+        ctx.beginPath();
+        ctx.ellipse(X(fx2), Y(fy2) - R(0.005), R(cw * 0.42), R(cw * 0.2), 0, 0, TAU);
+        ctx.stroke();
+      }
       const dest: [number, number] = toBus ? [DOOR_X, DOOR_Y] : full ? [0.27, BENCH_Y + 0.05] : [seatX(S.used) + (sz > 1 ? BENCH_DX / 2 : 0), BENCH_Y];
       pts.push(...dest);
       ctx.strokeStyle = full ? '#ff6b6b' : toBus ? '#ffffff' : '#ffe08a';
@@ -2085,7 +2159,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BusState, w: number, h: numbe
       ctx.beginPath();
       ctx.ellipse(X(dest[0]), Y(dest[1]), R(0.04 * (sz > 1 ? 1.8 : 1)), R(0.018), 0, 0, TAU);
       ctx.stroke();
-      const lab = toBus ? `🚌 ${CN[a.col]} 버스 탑승!` : full ? '😱 의자 자리가 없어요!' : `🪑 의자로 (${S.used + sz}/${BENCH})`;
+      const lab = toBus ? `🚌 ${CN[a.col]} 버스 탑승!${fol.length ? ` 줄줄이 +${fol.length}` : ''}` : full ? '😱 의자 자리가 없어요!' : `🪑 의자로 (${S.used + sz}/${BENCH})`;
       ctx.font = `900 ${Math.max(12, R(0.04))}px system-ui, sans-serif`;
       const tw = ctx.measureText(lab).width + R(0.04), lx2 = Math.max(tw / 2 + 4, Math.min(w - tw / 2 - 4, X(ax))), ly2 = Y(ay) - R(cw * 0.95) - R(0.02);
       ctx.fillStyle = full ? 'rgba(120,20,30,.92)' : 'rgba(30,24,44,.9)';
@@ -2129,6 +2203,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BusState, w: number, h: numbe
       const a = L.an[e.v!];
       fx.burst(x, y - R(0.04), COLHEX[a.col], 12, 3, 2.4), fx.ring(x, y - R(0.03), '#ffffff', R(0.07), 3), fx.kick(1.5);
       if (a.big) say(x, y - R(0.1), '쿵쿵!', '#ffffff', 16);
+      else if (e.text) say(x, y - R(0.1), e.text, '#ffffff', 16);
     }
     if (e.kind === 'nope') say(x, y - R(0.1), e.text!, e.col!, 18), fx.kick(1.2);
     if (e.kind === 'wake') fx.burst(x, y - R(0.06), '#fff3a0', 10, 2.4, 2), say(x, y - R(0.1), e.text!, e.col!, 15);

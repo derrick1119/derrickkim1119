@@ -47,8 +47,9 @@ export function measure(seeds = 12) {
     const row: Record<string, unknown> = { stage: i + 1, name: d.name };
     for (const [k, b] of Object.entries(SIM)) {
       const rs = Ls.map((L, n) => runSim(L, b, n + 1));
-      row[k] = { win: +(rs.filter((r) => r.ok).length / seeds).toFixed(3), star3: +(rs.filter((r) => r.stars === 3).length / seeds).toFixed(3) };
+      row[k] = { win: +(rs.filter((r) => r.ok).length / seeds).toFixed(3), star3: +(rs.filter((r) => r.stars === 3).length / seeds).toFixed(3), taps: +(rs.reduce((a, r) => a + r.taps, 0) / seeds).toFixed(1) };
     }
+    row.animals = +(Ls.reduce((a, L) => a + L.an.length, 0) / seeds).toFixed(1);
     row.width = +(Ls.map((L) => firstMoveWidth(L).rate).reduce((a, x) => a + x, 0) / seeds).toFixed(3);
     return row;
   });
@@ -61,6 +62,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, 'funqa.json'), JSON.stringify({ at: new Date().toISOString().slice(0, 10), ...r }, null, 1) + '\n');
   console.table(r.stages.map((x: any) => ({ 판: `${x.stage} ${x.name}`, 박사: `${x.smart.win} ★3 ${x.smart.star3}`, 버릇: `${x.habit.win} ★3 ${x.habit.star3}`, 무작위: `${x.random.win}`, 초: x.smart.sec })));
-  console.table(r.depth.map((x: any) => ({ 판: `${x.stage} ${x.name}`, 버릇: `${x.habit.win}/${x.habit.star3}`, 따라하기: `${x.follow.win}/${x.follow.star3}`, 탐욕: `${x.greedy.win}/${x.greedy.star3}`, 정직박사: `${x.honest.win}/${x.honest.star3}`, 첫수폭: x.width })));
+  console.table(r.depth.map((x: any) => ({ 판: `${x.stage} ${x.name}`, 버릇: `${x.habit.win}/${x.habit.star3}`, 따라하기: `${x.follow.win}/${x.follow.star3}`, 탐욕: `${x.greedy.win}/${x.greedy.star3}`, 정직박사: `${x.honest.win}/${x.honest.star3}`, 첫수폭: x.width, '톡/동물': `${x.honest.taps}/${x.animals}` })));
   console.log('한 판 점수', r.full, '숙련 격차', r.skillGap);
 }
