@@ -11,6 +11,8 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { spawn } from 'node:child_process';
 import { mulberry32 } from '../../engine/rng.ts';
 import type { Bot, Input } from './core.ts';
 import { STAGES, crisisShown, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, failText, hintPoint, makeCasual, makePreviewer, startStage, type DuckState } from './game.ts';
@@ -183,18 +185,21 @@ const r2 = (x: number) => Math.round(x * 100) / 100;
 const rate = (xs: boolean[]) => (xs.length ? r2(xs.filter(Boolean).length / xs.length) : null);
 
 /** seed0: 시드 계열 (D013 📋: 칼날 판을 다른 시드 계열로 다시 잴 때) */
-export function group(bot: Bot<DuckState>, n: number, retry: number, seed0 = 1000) {
-  const runs0 = Array.from({ length: n }, (_, k) => play(bot, seed0 + k * 7, 900, retry));
-  // FUN v1.17 b: 900초 상한에 걸린 런은 '잘림' — 완주 분모에서 빼고, 판별 값에서는 끝나지 않은 마지막 판 기록만 뺀다
-  const cut = runs0.filter((r) => r.cut).length;
-  const runs = runs0.map((r) => { const last = r.stages[r.stages.length - 1]; return r.cut && last && !last.ok ? { ...r, stages: r.stages.filter((l) => l.stage !== last.stage) } : r; });
+export function group(bot: Bot<DuckState>, n: number, retry: number, seed0 = 1000, pre?: Run[]) {
+  const runs = pre ?? Array.from({ length: n }, (_, k) => play(bot, seed0 + k * 7, 900, retry));
+  // FUN v1.17 b (🧪 D018 문구): 900초 상한에 걸린 런은 '잘림' — 완주 분모에서 뺀다. 잘릴 때 진행 중이던 시도는 기록에 없다(끝난 시도만 남음).
+  // '깰 때까지' 값(클리어율·C5)은 잘린 판에서만 그 런을 빼고, 판마다 잘림 수를 찍는다
+  const cut = runs.filter((r) => r.cut).length;
+  const cutAt = (r: Run) => { const l = r.stages[r.stages.length - 1]; return !r.cut ? 0 : !l ? 1 : l.ok ? l.stage + 1 : l.stage; };
   const per = STAGES.map((d, i) => {
     const byRun = runs.map((r) => r.stages.filter((l) => l.stage === i + 1)).filter((L) => L.length);
-    const L = byRun.flat(), oks = L.filter((l) => l.ok), cleared = byRun.filter((B) => B.some((l) => l.ok));
+    const cutN = runs.filter((r) => cutAt(r) === i + 1).length, arrived = byRun.length + runs.filter((r) => cutAt(r) === i + 1 && !r.stages.some((l) => l.stage === i + 1)).length;
+    const done = runs.filter((r) => cutAt(r) !== i + 1).map((r) => r.stages.filter((l) => l.stage === i + 1)).filter((L) => L.length);
+    const L = byRun.flat(), oks = L.filter((l) => l.ok), cleared = done.filter((B) => B.some((l) => l.ok));
     const retries = cleared.map((B) => B.findIndex((l) => l.ok));
     return {
-      stage: i + 1, tried: byRun.length, cleared: cleared.length,
-      clearRate: byRun.length ? r2(cleared.length / byRun.length) : null, // 다시 하기 retry번 안에
+      stage: i + 1, tried: byRun.length, cleared: cleared.length, cutN, cutShare: arrived ? r2(cutN / arrived) : 0,
+      clearRate: done.length ? r2(cleared.length / done.length) : null, // 다시 하기 retry번 안에 (v1.17 b: 잘린 판의 그 런은 뺌)
       firstTry: byRun.length ? r2(byRun.filter((B) => B[0].ok).length / byRun.length) : null,
       retryMed: med(retries), retryP90: pct(retries, 0.9), // C5
       medSec: r2(med(oks.map((l) => l.sec))), humanSec: r2(med(oks.map((l) => l.sec + 3 * l.taps))), medTaps: med(oks.map((l) => l.taps)),
@@ -241,21 +246,37 @@ export function group(bot: Bot<DuckState>, n: number, retry: number, seed0 = 100
   };
 }
 
-export function measure(n = 20) {
+/** D018 (📋 D017 측정 단축): 갈래 하나씩 — `--par=4`면 자식 프로세스가 하나씩 따로 잰다(갈래마다 시드가 독립이라 값은 직렬과 같다) */
+const CF_BIN = (() => { const w = [0, 0]; return STAGES.map((d) => { const k = Object.values(STRIP).filter((st) => st.has(d)).length, b = w[0] <= w[1] ? 0 : 1; if (k) w[b] += 1 + k; return b; }); })();
+const half = (n: number, h: number) => Array.from({ length: h ? n - (n >> 1) : n >> 1 }, (_, k) => (h ? (n >> 1) + k : k));
+const JOBS = (n: number): Record<string, () => unknown> => ({
+  // 가장 무거운 둘(숙련 봇 내다보기)은 반씩 — 숙련 런은 시드 k로 나누고, 반사실은 판을 무게(1 + 요소 수)로 고르게 나눈다
+  반사실1: () => STAGES.flatMap((_, i) => (CF_BIN[i] ? [] : counterfactual(i, n))), // FUN v1.13 a: 새것 끔 반사실
+  반사실2: () => STAGES.flatMap((_, i) => (CF_BIN[i] ? counterfactual(i, n) : [])),
+  숙련1: () => half(n, 0).map((k) => play(duckbathSmart, 1000 + k * 7, 900, RETRY)),
+  숙련2: () => half(n, 1).map((k) => play(duckbathSmart, 1000 + k * 7, 900, RETRY)),
+  힌트없음: () => group(makeLearner(0), n, RETRY_LEARN), // 옛 자(👆 안 따름) — 자 교체 규칙(FUN v1.4), H1의 비교군
+  배우는처음: () => group(makeLearner(FOLLOW), n, RETRY_LEARN),
+  미리보기10: () => group(makePreviewer(10), n, RETRY),
+  미리보기3: () => group(makePreviewer(3), n, RETRY), // P1 (D007, M2): 미리 보기 봇 k=3·10
+  // E6 황금 정책 범위: 캐주얼이 황금 오리를 맨 나중에 미는 확률 0 · 0.75 · 1 → 판별 ★황금 (FUN v1.3: 판정은 50% = 기본 캐주얼 봇)
+  E6: () => Object.fromEntries([0, 0.75, 1].map((gl) => [String(gl), group(makeCasual(gl), n, RETRY).stages.map((p) => p.goldStar)])),
+  캐주얼: () => group(duckbathCasual, n, RETRY),
+  처음: () => group(duckbathRandom, n, RETRY),
+  T1T2: () => STAGES.map((d, i) => ({ id: d.id, casual: firstInDirect(duckbathCasual, i, n), random: firstInDirect(duckbathRandom, i, n) })), // D013 (FUN v1.11 a)
+});
+export function measure(n = 20, pre: Record<string, unknown> = {}, preSecs: Record<string, number> = {}) {
   // D018 (📋 D017): 갈래별 걸린 초 — 측정 33분의 원인 찾기
-  const secs: Record<string, number> = {}, T = <R>(k: string, f: () => R): R => { const t0 = performance.now(), r = f(); secs[k] = r2((secs[k] ?? 0) + (performance.now() - t0) / 1000); return r; };
-  const out: Record<string, unknown> = {
-    숙련: T('숙련', () => group(duckbathSmart, n, RETRY)), 캐주얼: T('캐주얼', () => group(duckbathCasual, n, RETRY)), 처음: T('처음', () => group(duckbathRandom, n, RETRY)), 배우는처음: T('배우는처음', () => group(makeLearner(FOLLOW), n, RETRY_LEARN)),
-    // 옛 자(👆 안 따름) — 자 교체 규칙(FUN v1.4)으로 같이 낸다, H1의 비교군
-    배우는처음_힌트없음: T('힌트없음', () => group(makeLearner(0), n, RETRY_LEARN)),
-  };
+  const J = JOBS(n), secs: Record<string, number> = { ...preSecs };
+  const T = <R>(k: string): R => { if (k in pre) return pre[k] as R; const t0 = performance.now(), r = J[k](); secs[k] = r2((performance.now() - t0) / 1000); return r as R; };
+  const out: Record<string, unknown> = { 숙련: group(duckbathSmart, n, RETRY, 1000, [...T<Run[]>('숙련1'), ...T<Run[]>('숙련2')]), 캐주얼: T('캐주얼'), 처음: T('처음'), 배우는처음: T('배우는처음'), 배우는처음_힌트없음: T('힌트없음') };
   // E6 황금 정책 범위: 캐주얼이 황금 오리를 맨 나중에 미는 확률 0 · 0.5 · 0.75 → 판별 ★황금
   // FUN v1.3: 판정은 황금 정책 50%(= 기본 캐주얼 봇). 0%·75%는 보고만
-  out['E6황금'] = T('E6', () => Object.fromEntries([0, 0.75, 1].map((gl) => [String(gl), group(makeCasual(gl), n, RETRY).stages.map((p) => p.goldStar)])));
+  out['E6황금'] = T('E6');
   (out['E6황금'] as Record<string, unknown>)['0.5(판정)'] = (out['캐주얼'] as ReturnType<typeof group>).stages.map((p) => p.goldStar);
   // P1 (D007, M2): 미리 보기 봇 k=3·10 — 판별 첫 시도·★톡 (숙련 봇과 가까울수록 '미리 보기로 다 풀린다')
-  out['미리보기3'] = T('미리보기3', () => group(makePreviewer(3), n, RETRY));
-  out['미리보기10'] = T('미리보기10', () => group(makePreviewer(10), n, RETRY));
+  out['미리보기3'] = T('미리보기3');
+  out['미리보기10'] = T('미리보기10');
   // H1 (FUN v1.4): 판별 세 번째 시도 클리어율 — 👆 따름 − 안 따름 ≤ 0.35, 따름 < 0.85
   {
     const a = (out['배우는처음'] as ReturnType<typeof group>).stages, b = (out['배우는처음_힌트없음'] as ReturnType<typeof group>).stages;
@@ -266,8 +287,9 @@ export function measure(n = 20) {
   const sk = out['숙련'] as { medScore: number }, cs = out['캐주얼'] as { medScore: number }, nv = out['처음'] as { medScore: number };
   // D013 (FUN v1.11 a): T1·T2 — 판마다 바로 시작해 캐주얼·무작위 n번
   // FUN v1.13 a: 새것 끔 반사실(💤·🦈가 있는 판)
-  out['새것끔'] = T('반사실', () => STAGES.flatMap((_, i) => counterfactual(i, n)));
-  out['T1T2'] = T('T1T2', () => STAGES.map((d, i) => ({ id: d.id, casual: firstInDirect(duckbathCasual, i, n), random: firstInDirect(duckbathRandom, i, n) })));
+  const at = (c: { id: string }) => STAGES.findIndex((d) => d.id === c.id);
+  out['새것끔'] = [...T<{ id: string }[]>('반사실1'), ...T<{ id: string }[]>('반사실2')].sort((a, b) => at(a) - at(b)); // 판 차례로 (한 판의 요소들은 같은 반에 있어 차례 그대로)
+  out['T1T2'] = T('T1T2');
   out['걸린초'] = secs;
   out['숙련격차'] = r2(sk.medScore / Math.max(1, cs.medScore));
   out['숙련격차_처음'] = r2(sk.medScore / Math.max(1, nv.medScore));
@@ -430,8 +452,26 @@ if (import.meta.url === `file://${process.argv[1]}` && d1Arg) {
   console.log('D1 정답 다양성 (FUN v1.10 g · v1.11 d 가장 큰 몫 ≤ .6) — 판 | par | T*(출처) · 시드별 T* · 뒤집힘 | 정밀 칸/물(전수면 =) | 해 칸 | D1 · T*+1 · 연결 .10 → 판정 | 무리 칸 수 | 가장 큰 몫 | 옛 자: 시드별 T* D1 · 3★만 D1 | 초(캐시면 0)');
   for (const r of res) if (r) console.log(`${r.id}${r.sym ? '(대칭)' : ''} | ${r.par} | ${r.T}(${r.tSrc}) · ${r.seedT.join('·')} · ${r.flip} | ${r.refined}/${r.water}${r.exact ? '=' : ''} | ${r.solCells} | ${r.D1} · ${r.D1plus} · ${r.D1link10} → ${r.pass && r.top <= 0.6 ? '✓' : r.pass ? '✗(몫 > .6, v1.11 d)' : '✗'}${r.D1 >= 2 && r.sizes.length === 1 ? '(단일, v1.13 f)' : ''}${r.solCells < 0.02 * r.water || (r.sizes.length > 0 && r.sizes.every((z: number) => z <= 3)) ? '(좁은 해, v1.15 c — 전수로 다시)' : ''} | ${r.sizes.join('·') || '-'} | ${r.top} | ${r.D1seedT} · ${r.oldD1} | ${r.cached ? '캐시' : r.sec}`);
   console.log(`판 ${res.length}개 · ${r2((performance.now() - t0) / 1000)}초 (30판 목표 ≤ 15분)`);
+} else if (import.meta.url === `file://${process.argv[1]}` && process.argv.some((a) => a.startsWith('--job='))) {
+  // D018: 자식 — 갈래 하나만 재서 JSON으로 (NaN은 글자로 옮긴다)
+  const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))!.split('=')[1], n = Number(process.argv.find((a) => /^\d+$/.test(a)) ?? 20), t0 = performance.now(), r = JOBS(n)[arg('job')]();
+  writeFileSync(arg('out'), JSON.stringify({ r, sec: r2((performance.now() - t0) / 1000) }, (_, v) => (typeof v === 'number' && Number.isNaN(v) ? 'NaN' : v)));
 } else if (import.meta.url === `file://${process.argv[1]}`) {
-  const n = Number(process.argv.find((a) => /^\d+$/.test(a)) ?? 20), res = measure(n) as Record<string, unknown>;
+  const n = Number(process.argv.find((a) => /^\d+$/.test(a)) ?? 20), par = Number(process.argv.find((a) => a.startsWith('--par='))?.split('=')[1] ?? 1);
+  const pre: Record<string, unknown> = {}, preSecs: Record<string, number> = {};
+  if (par > 1) {
+    const keys = Object.keys(JOBS(n));
+    let next = 0;
+    await Promise.all(Array.from({ length: par }, async () => {
+      while (next < keys.length) {
+        const k = keys[next++], f = join(tmpdir(), `funqa-${process.pid}-${next}.json`);
+        await new Promise((ok, no) => spawn(process.execPath, [...process.execArgv, process.argv[1], `--job=${k}`, `--out=${f}`, String(n)], { stdio: 'inherit' }).on('exit', (c) => (c === 0 ? ok(0) : no(new Error(`funqa 갈래 ${k}: 종료 ${c}`)))));
+        const j = JSON.parse(readFileSync(f, 'utf8'), (_, v) => (v === 'NaN' ? NaN : v));
+        (pre[k] = j.r), (preSecs[k] = j.sec);
+      }
+    }));
+  }
+  const res = measure(n, pre, preSecs) as Record<string, unknown>;
   if (process.argv.includes('--area')) res['C4'] = area();
   mkdirSync(join(import.meta.dirname, 'reports'), { recursive: true });
   writeFileSync(join(import.meta.dirname, 'reports/funqa.json'), JSON.stringify({ at: new Date().toISOString(), ...res }, null, 2) + '\n');
@@ -439,6 +479,7 @@ if (import.meta.url === `file://${process.argv[1]}` && d1Arg) {
     const g2 = res[k] as ReturnType<typeof group>;
     console.log(`\n[${k}] 다시 한도 ${g2.retry} · 점수 중앙 ${g2.medScore} · 런 전체 ${g2.medSec}초 · 완주 ${g2.winRate}(잘림 ${g2.cut} 뺌, v1.17 b) · 도달 판 중앙 ${g2.medReached} · 첫 톡 3초 뒤 둥지 ${g2.firstTapNest}마리 · W1 ${g2.W1.share}(${ID(g2.W1.stage)})${k === '배우는처음' ? ' ← C5·W1 판정(👆 0.75 따름, FUN v1.4)' : k === '배우는처음_힌트없음' ? ' (옛 자 — 보고만)' : ' (보고만)'} · N4(v1.4 문턱 일치 — 판정 아님, v1.5 환급 반사실은 미측정) ${g2.N4}`);
     console.log(`  실패 이유: ${g2.failWhy.map(([w, c]) => `${w} ${c}`).join(' · ') || '없음'}`);
+    if (g2.cut) console.log(`  잘린 판(v1.17 b — 잘림 수/그 판에 온 런, ≥ .05면 그 판 배우는 봇 값 ❓): ${g2.stages.filter((p) => p.cutN).map((p) => `${ID(p.stage)} ${p.cutN}(${p.cutShare})${p.cutShare >= 0.05 ? ' ❓' : ''}`).join(' · ')}`);
     console.log('판(id) | 도전 | 클리어 | 첫 시도 | 다시 중앙/p90 | 사람초 중앙(평균) | 톡 중앙(평균) | 별 | ★톡 | ★황금 | 시도당 쏙꿀꺽 | 위기 보임 · 그중 30틱 미만 · 첫 톡 전부터(v1.12 d)');
     for (const st of g2.stages) console.log(`${ID(st.stage)} | ${st.tried} | ${st.clearRate} | ${st.firstTry} | ${st.retryMed}/${st.retryP90} | ${st.humanSec}(${st.humanMean}) | ${st.medTaps}(${st.tapsMean}) | ${st.stars} | ${st.tapStar} | ${st.goldStar} | ${st.pen} | ${st.crisisRate} · ${st.crisisShort} · ${st.crisisPre}`);
   }
