@@ -51,7 +51,7 @@ const GIR = '#f4bf4a', GIR2 = '#e7a93a', DINO = '#52b66c', DINO2 = '#3f9a58', BL
 export const STAGES: StageDef[] = [
   {
     // 📐 CONTENT.md M1′ 1판 (S001): 기린은 망치 장난감 — 머리·꼬리·몸통이 각각 망치. "칠 나사 바로 위 나사를 남기면 끄덕 쾅"
-    key: 'giraffe', name: '기린', emoji: '🦒', news: '🔩 나사를 톡 → 같은 색 상자로 쏙!', tip: '🔨 칠 나사 바로 위 나사를 남기면 끄덕 쾅!', boxes: 2, colors: 3, P: 0, C: 6, T: 6, first: 8,
+    key: 'giraffe', name: '기린', emoji: '🦒', news: '🔩 나사를 톡 → 같은 색 상자로 쏙!', tip: '🔨 망치 옆 나사를 먼저 톡 → 끄덕 쾅!', boxes: 2, colors: 3, P: 0, C: 6, T: 6, first: 8,
     // 나사 번호: #0 뒷다리 · #1 앞다리 · #2 #3 몸통(왼·오른) · #4 #5 꼬리(뿌리·끝) · #6 목 · #7 #8 머리(뒤통수·주둥이)
     // 판자 순서 = 겹침 순서(뒤가 위). 다리·목은 나사가 무게중심 바로 위라 처음부터 돌지 않는다.
     toy: () => [
@@ -653,10 +653,11 @@ function playRec(s: ShopState, rec: RE[]) {
       pv.vp = Math.abs(P.d) > 3.05 ? 0.02 : 0;
       pv.wait = s.t + delay + SPIN - 2;
       if (Math.abs(P.d) > 0.2) ev(s, 'swing', P.px, P.py, '빙글~', '#fff3c4', s.t + delay + SPIN);
+      if (rec.some((b) => b.k === 'bonk' && b.p === e.p)) see(s, 'hammer', '🔨 망치 판자 — 매달리면 끄덕! 닿는 나사를 쾅 쳐서 빼요'); // 🧪 S001: 첫 쾅에 바로
       see(s, 'swing', '🎐 나사 하나 남은 판자는 그 나사에 매달려 빙글!');
       if (L.pl[e.p].ham && e.pose >= 1 && !rec.some((b) => b.k === 'bonk' && b.p === e.p)) {
         ev(s, 'air', L.hamP[e.p][e.pose][0], L.hamP[e.p][e.pose][1], '💨 허공', '#d8c3a5', s.t + delay + SPIN + 10);
-        see(s, 'air', '💨 허공! 칠 나사 바로 위 나사를 남겨야 쾅');
+        see(s, 'air', '💨 허공! 망치 옆 나사를 먼저 빼야 쾅');
       }
       continue;
     }
@@ -1974,13 +1975,15 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       font(0.03, 900);
       const lw = ctx.measureText(lab).width + 14;
       ctx.setLineDash([]);
-      ctx.fillStyle = 'rgba(30,18,8,.82)';
+      // 🧪 S001: 알약을 과녁 위로(아래엔 '덜컹' 글자가 온다), '→ 빈칸'은 주황
+      const py = ty - R(0.1);
+      ctx.fillStyle = 'rgba(30,18,8,.9)';
       ctx.beginPath();
-      ctx.roundRect(tx - lw / 2, ty + R(0.045), lw, R(0.044), R(0.022));
+      ctx.roundRect(tx - lw / 2, py - R(0.022), lw, R(0.044), R(0.022));
       ctx.fill();
-      ctx.fillStyle = toSlot ? '#ffffff' : '#c8ffc8';
+      ctx.fillStyle = toSlot ? '#ffb36b' : '#c8ffc8';
       ctx.textAlign = 'center';
-      ctx.fillText(lab, tx, ty + R(0.067));
+      ctx.fillText(lab, tx, py + 1);
       ctx.restore();
     }
     if (e.k === 'hang' && L.pl[e.p].ham && e.pose >= 1 && !pre.rec.some((b) => b.k === 'bonk' && b.p === e.p)) {
@@ -1993,8 +1996,13 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       ctx.fill();
       font(0.032, 900);
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#d8c3a5';
-      ctx.fillText('💨 허공', X(hx), Y(hy) - R(0.04));
+      const aw = ctx.measureText('💨 허공').width + 14; // 🧪 S001: 판 색과 섞이지 않게 어두운 알약
+      ctx.fillStyle = 'rgba(30,18,8,.9)';
+      ctx.beginPath();
+      ctx.roundRect(X(hx) - aw / 2, Y(hy) - R(0.062), aw, R(0.044), R(0.022));
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('💨 허공', X(hx), Y(hy) - R(0.04) + 1);
       ctx.restore();
     }
     if (e.k === 'hang') {
