@@ -251,6 +251,7 @@ export const OFF: Record<string, (L: Level) => Level> = {
   '🪟': (L) => ({ ...L, pl: L.pl.map((P) => (P.kind === 'glass' ? { ...P, kind: undefined as never } : P)) }),
   '🔨': (L) => ({ ...L, pl: L.pl.map((P) => ({ ...P, ham: undefined })), hamT: L.hamT.map((a) => a.map(() => [])) }), // 📐A S016: geometry가 미리 셈한 hamT도 비워야 쾅이 멎는다
   '🐹': (L) => ({ ...L, thump: false }),
+  // 📌는 아직 없다(✏️ S017): 못 판자를 보통 판자로 바꾸면 자세 수가 바뀌어 미리 셈한 hamT와 어긋난다 — 판 모양을 다시 셈해야 함(S018). 3-5 📌 F19는 📐C가 판 데이터를 바꿔 잰 1.00
 };
 /** F19 식: 장치를 끈 판에서 장인 ★3 낙차(켬 − 끔) */
 export function f19(k: number, dev: string, seeds = 24) {
@@ -305,6 +306,7 @@ export const NEWS: Record<string, (r: ShopState['hist'][number]['rec'], L: Level
   showcase: (r) => after(r, 'jack') >= 3,
   jackbox: (r) => after(r, 'jack') >= 2,
   range: (r, L) => r.some((e) => e.k === 'boing' && L.tmr[e.s] > 0), // 🧪 S016: '총이 떨어지면 ⏰를 탕' = 띠용이 ⏰ 나사를 친 톡
+  cablecar: (r) => { const i = r.findIndex((e) => e.k === 'bonk'); return i >= 0 && r.slice(i).some((e) => e.k === 'wind'); }, // 📐C S017: '칸 쾅 → 🔑 드르륵' = 한 톡 안에서 쾅 뒤에 드르륵
 };
 export function newsOf(k: number, seeds = 24) {
   const f = NEWS[STAGES[k].key];

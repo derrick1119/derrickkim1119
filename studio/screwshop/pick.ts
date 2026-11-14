@@ -297,7 +297,8 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 12, full: true, pv: true, jack: true, avoid: ['habit', 'reveal'] }),
   // 📐C S014 3-4 🎢 (id 24): 공통 gate · F20′ full(pv 꺼도 따라 하기 .00) · 📐C S015: 🎠 기둥 · ⏰ 7 · F23 바닥 big(맞는 색 버릇이 한 톡에 튄 나사 ≥ 3이면 +3)
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 3, full: true, big: [3, 3] }),
-  () => -9, // id 25 자리(📐C 3-5 🚡)
+  // 📐C S017 3-5 🚡 (id 25 · ★ B 2): 공통 gate · F20′ full · 1위 '없음'(맞는 색 · ✨ ★2 이상 칠 −2) · mc 14(mc 3 · 8이면 막 누르기 클리어 .17)
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 14, full: true, avoid: ['habit', 'reveal'] }),
   // 📐B S015 3-6 🤡🪟 (id 26 · 틀 3-2): 공통 gate · F20′ full · 따라 하기 거름(pv) · F19 jack · mc 6(mc 1이면 막 누르기 24시드 .29)
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 6, full: true, pv: true, jack: true }),
   () => -9, // id 27 자리(📐B 3-7 🎪)
