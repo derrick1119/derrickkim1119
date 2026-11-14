@@ -10,7 +10,7 @@ import { STAGES, apply, bestMove, freeM, habitPick, newSim, paintStage, starsOf,
 import { mulberry32, type Rng } from './rng.ts';
 
 /** 판별 칠 수 · 칠해 볼 sub 수(2판은 장인 ★3 칠이 96개 중 22개뿐이고 상한 3.9에 닿는 칠은 그 절반이라 384 — ✏️ S005) */
-export const N = 24, SCAN = [96, 384, 96, 96, 96, 96, 96, 96];
+export const N = 24, SCAN = [96, 1536, 96, 96, 96, 96, 96, 96]; // ✏️ S007: 2판 384 → 1536(진자 칠이 384칠 중 21칠뿐)
 
 /** 아무 나사나 빼는 사람이 이 판을 깰 확률 */
 function randomPass(L: Level, r: Rng, n: number) {
@@ -42,7 +42,7 @@ export const mashOf = (L: Level, r: Rng) => (S: Sim) => {
 const smartOf = (L: Level, d: StageDef) => (S: Sim) => bestMove(L, S, d);
 /** 장인이 게임·funqa와 같은 눈일 때(본 나사 색 + 다음 상자 2개만 앎 — 📐 S005 · ✏️ S005) 별 수
  *  pend: 🧪 F15 '장인−진자' — 나사 둘 남은 판자(못 판자 제외)에서 짝도 뺄 수 있으면 둘 중 버릇 순서(맞는 색 → 위)로 (📐 S006) */
-function smartSeen(L: Level, d: StageDef, pend = false) {
+export function smartSeen(L: Level, d: StageDef, pend = false) {
   const S = newSim(L);
   let known = visibleM(L, 0);
   while (!S.fail && S.n < L.N) {
@@ -82,7 +82,9 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
     if (playOut(L, d, habitOf(L)) === 3) return -3;
     let mg = 0;
     for (let k = 0; k < 12; k++) mg += playOut(L, d, mashOf(L, r)) >= 2 ? 1 : 0;
-    return 2 + 2 * Math.min(1, randomPass(L, r, 100) / 0.95) - Math.max(0, mg / 12 - 0.1) * 4; // ✏️ S005: 표본 20 → 100 · 0.92 → 0.95 · 상한 3.9 → 4 (상위 24로 바꾸자 20판 잡음 + 고른 쪽 쏠림으로 실린 칠의 무작위가 0.92에 걸쳐서)
+    const v = Math.min(4, 2 + 2 * Math.min(1, randomPass(L, r, 100) / 0.95) - Math.max(0, mg / 12 - 0.1) * 4); // ✏️ S005: 표본 20 → 100 · 0.92 → 0.95 · 상한 4 (상위 24로 바꾸자 20판 잡음 + 고른 쪽 쏠림으로 실린 칠의 무작위가 0.92에 걸쳐서)
+    // ✏️ S007 (📋 S006 · 🧪 F15): 위 기준을 넘는 칠(≥ 3.9) 중 장인−진자가 ★3을 놓치는 칠을 먼저 — 진자 매달기가 ★3을 가르는 2판
+    return v + (v >= 3.9 && smartSeen(L, d, true) !== 3 ? 0.5 : 0);
   },
   // 📐 3판 🔑: 막 누르기 클리어가 낮을수록 (장인 ★3 필수)
   (L, d, r) => {
@@ -116,7 +118,7 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   },
   m0, m0,
 ];
-export const CAP = [Infinity, 4, 3.65, 3.5, 1.96, 2.95, 3.65, 3.65];
+export const CAP = [Infinity, 4.5, 3.65, 3.5, 1.96, 2.95, 3.65, 3.65];
 
 /** k판의 칠 번호 N개 */
 export function pickStage(k: number, n = N, scan = SCAN[k]) {

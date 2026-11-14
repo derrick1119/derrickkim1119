@@ -688,7 +688,7 @@ export function startStage(s: ShopState, k: number) {
 
 // ───────────────────────────── 실패 되짚기 (📐 S003) ─────────────────────────────
 interface Hist { s: number; S0: Sim; known: number; rec: RE[] }
-export interface Why { c: '①색' | '①연쇄' | '①깔림' | '①잠김' | '②진자' | '②못' | '③통나무' | '③허공' | '④태엽'; t: number[]; k: number; via?: string; s?: number }
+export interface Why { c: '①색' | '①연쇄' | '①깔림' | '①잠김' | '②진자' | '②못' | '③통나무' | '③허공' | '④태엽'; t: number[]; k: number; via?: string; s?: number; /** ②진자 짝 힌트(✏️ S007, 📋 S006 '그때 짝을 먼저'): 매단 톡 때 짝 나사 — 이걸 먼저 뺐으면 덜 덮었다 */ p?: number }
 /** 되짚기 전용 전지 탐색: 이 상태에서 끝까지 깰 수 있나 (예산 b.n을 다 쓰면 '못 깬다'로 — 실패 판은 막다른 길이라 보통 수십 칸) */
 function canWin(L: Level, S: Sim, memo: Map<string, boolean>, b: { n: number }): boolean {
   if (S.fail || b.n <= 0) return false;
@@ -722,6 +722,7 @@ export function retrace(L: Level, H: Hist[], S: Sim): Why {
       if (r.k === 'slot') tray.push({ t, s: r.s, ch: r.s !== e.s });
       else if (r.k === 'pull') tray.splice(r.idx, 1);
       else if (r.k === 'hang' && L.pl[r.p].ham && r.pose > 0 && !e.rec.some((b) => b.k === 'bonk' && b.p === r.p)) air.push({ t, k: r.p, tg: L.hamT[r.p].map((c) => c[0]) });
+      else if (r.k === 'fall' && L.pl[r.p].kind === 'spring' && L.pl[r.p].tgt !== undefined && !e.rec.some((b) => b.k === 'boing' && b.p === r.p)) air.push({ t, k: r.p, tg: L.ps[L.pl[r.p].tgt!] }); // 📐 S006 · ✏️ S007: 🌀 허공 — 칠 판자 나사를 손으로 먼저 뺐다
       else if (r.k === 'fall' && L.pl[r.p].heavy && !e.rec.some((c) => c.k === 'crash' && c.by === r.p)) {
         let g = 0; // 늦은 무리 = 이 통나무 없이는 못 빼는 나사
         for (let f = 1; f; g |= f) f = L.all & ~g & ~blockedM(L, g) & ~L.pm[r.p];
@@ -730,6 +731,17 @@ export function retrace(L: Level, H: Hist[], S: Sim): Why {
     }),
   );
   const N = H.length, two = (a: number, b: number) => [...new Set([a, b])].sort((x, y) => x - y);
+  // ②진자 둘째 고리: 매단 톡 h 때 판자 k에 남은 짝 p를 먼저 뺐으면(그 반대로 매달려) 남은 나사를 덜 덮었는가 → 그러면 p를 짚는다
+  const pend = (k: number, h: number): Why => {
+    if (h < 0) return { c: '②진자', t: [la], k };
+    const { S0, s } = H[h], g = S0.gone | (1 << s), rem = L.pm[k] & ~g, p = 31 - Math.clz32(rem);
+    const cnt = (m: number) => { let c = 0; for (; m; m &= m - 1) c++; return c; };
+    if (rem && !(rem & (rem - 1)) && (freeM(L, S0) >> p) & 1) {
+      const g2 = S0.gone | (1 << p), q1 = poseOf(L, k, g), q2 = poseOf(L, k, g2), live = L.all & ~g & ~(1 << p) & ~(1 << s);
+      if (q1 > 0 && q2 > 0 && cnt(L.cov[k][q2] & live) < cnt(L.cov[k][q1] & live)) return { c: '②진자', t: two(h, la), k, p }; // 고리는 그대로(매단 톡 · 마지막 안전한 수 — F13), 짝은 💡 점선으로 더함
+    }
+    return { c: '②진자', t: two(h, la), k };
+  };
   // la: 아는 정보로(본 적 있는 뺄 수 있는 나사 중) 다른 안전한 수 — 그 수를 뒀으면 아직 깰 수 있었던 — 가 있던 마지막 톡 (📐 S004 F13) · wt: 🔑 태엽을 뺀 톡
   const memo = new Map<string, boolean>(), bud = { n: 4000 };
   let la = N - 1, wt = -1;
@@ -755,7 +767,7 @@ export function retrace(L: Level, H: Hist[], S: Sim): Why {
       if (c > bn) (bn = c), (k = j);
     });
     const h = k >= 0 ? hangs(k, N) : N - 1;
-    return k >= 0 && L.pl[k].kind === 'nail' ? { c: '②못', t: [h], k } : { c: '②진자', t: two(h, la), k };
+    return k >= 0 && L.pl[k].kind === 'nail' ? { c: '②못', t: [h], k } : k >= 0 ? pend(k, h) : { c: '②진자', t: two(h, la), k };
   }
   const E = tray.map((x) => {
     const { S0, known } = H[x.t], fr = freeM(L, S0) & known, blk = blockedM(L, S0.gone);
@@ -782,7 +794,7 @@ export function retrace(L: Level, H: Hist[], S: Sim): Why {
   const c2 = E.filter((x) => x.cov >= 0), c1 = E.filter((x) => x.alt);
   if (c2.length && c2.length >= c1.length) {
     const x = last(c2);
-    return { c: '②진자', t: two(hangs(x.cov, x.t), la), k: x.cov };
+    return pend(x.cov, hangs(x.cov, x.t));
   }
   if (c1.length) return { c: '①색', t: two(last(c1).t, la), k: -1 };
   const ch = last(E.filter((x) => x.ch));
@@ -810,7 +822,7 @@ export function blameText(L: Level, H: Hist[], b: Why, fail: number): [string, s
     case '②진자': return [fail === 2 ? '빙글 판자가 나사를 이불처럼 덮음' : '빙글 판자가 나사를 덮었어요', '다른 나사를 남기면 덮지 않아요'];
     case '②못': return ['못 날개가 나사를 깔고 앉았어요', '꾹 눌러 ⚠ 뜨는 나사는 맨 나중에!']; // 🧪 S003: '밑'이 모호
     case '③통나무': return bloomOf(L) ? ['꽃 머리가 먼저 쿵! 우수수 0', '꽃잎 셋을 매단 뒤 꽃 머리를 톡!'] : ['통나무가 먼저 쿵! 와르르 0', '판자를 다 매단 뒤 통나무를 톡!']; // 🧪 S005: 5판 말 맞추기
-    case '③허공': return ['망치는 허공에 쾅, 나사는 빈칸', '망치 옆 나사를 먼저 톡 → 끄덕 쾅!'];
+    case '③허공': return L.pl[b.k]?.kind === 'spring' ? ['띠용이 허공에, 나사는 빈칸', '🌀가 칠 나사는 손으로 빼지 말고 남겨요'] : ['망치는 허공에 쾅, 나사는 빈칸', '망치 옆 나사를 먼저 톡 → 끄덕 쾅!'];
   }
 }
 
@@ -1666,6 +1678,20 @@ function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
     if (age > 22 && hg && hg.k === 'hang') ctx.fillText(air ? '💨' : '⚠️', cx - R(0.035), cy - R(0.03)); // 판 위 못 경고 ⚠와 같은 자리
     ctx.restore();
   });
+  // ②진자 짝 힌트(✏️ S007): 매단 톡 때 짝을 먼저 뺐으면 덜 덮었다 — 점선 고리 + '💡 짝을 먼저?'
+  if (b && b.p !== undefined && age > 14) {
+    const x = X(L.px[b.p]), y = Y(L.py[b.p]), rho = R(SR) * 1.9;
+    ctx.save();
+    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = '#fff4d6';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x, y, rho, 0, TAU);
+    ctx.stroke();
+    ctx.restore();
+    font(0.03, 900);
+    pill(ctx, x, y + rho + R(0.035), '💡 짝을 먼저?', '#c8ffc8', R(0.044));
+  }
   // 카드 (아래에서 올라온다)
   const up = Math.min(1, age / 12), oy = (1 - (1 - (1 - up) ** 3)) * R(0.1), cy0 = Y(1.13) + oy;
   ctx.save();

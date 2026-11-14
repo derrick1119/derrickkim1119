@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { RES_BY, RETRY_Y, STAGES, apply, blockedM, bonkDead, cloneSim, freeM, newSim, peek, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
+import { RES_BY, RETRY_Y, STAGES, apply, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
 import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { measure, measureStage, pnrHit, screwshopMash, screwshopNewbie, tryStage } from '../studio/screwshop/funqa.ts';
@@ -418,5 +418,39 @@ describe('🌀 → 🌀 · 6판 공룡 (M1′ S006 · 📐 CONTENT 6판)', () =>
     expect((peek(L, S, 17).cover >> 15) & 1).toBe(1);
     apply(L, S, 17);
     expect((freeM(L, S) >> 15) & 1).toBe(0);
+  });
+});
+
+describe('되짚기 원인별 (✏️ S007 · 📋 S004 이월 ①②)', () => {
+  it('막 누르기가 진 판: ①색은 빈칸에 간 톡에 다른 맞는 색이 있었고, ②진자는 짚은 판자가 매달려 남은 나사를 덮고, 짝 💡는 정말 덜 덮고, ③허공은 망치·🌀 판자', () => {
+    const seen: Record<string, number> = {};
+    let pair = 0;
+    for (let k = 0; k < STAGES.length; k++)
+      for (let sd = 1; sd <= 10; sd++) {
+        const r = tryStage(screwshopMash, 300 + sd * 11, k, 300), s = r.s, b = s.blame, L = s.L, H = s.hist;
+        if (r.ok || !b) continue;
+        seen[b.c] = (seen[b.c] ?? 0) + 1;
+        if (b.c === '①색') {
+          const ok = b.t.some((t) => {
+            const { S0, known, s: i } = H[t], f = freeM(L, S0) & known;
+            return H[t].rec.some((e) => e.k === 'slot' && e.s === i) && L.col.some((c, j) => j !== i && (f >> j) & 1 && S0.box.includes(c));
+          });
+          expect(ok, `${k + 1}판 ①색`).toBe(true);
+        }
+        if (b.c === '②진자') {
+          expect(H[b.t[0]].rec.some((e) => e.k === 'hang' && e.p === b.k), `${k + 1}판 ②진자 매단 톡`).toBe(true);
+          if (b.p !== undefined) {
+            pair++;
+            const { S0, s: i } = H[b.t[0]], cnt = (m: number) => { let c = 0; for (; m; m &= m - 1) c++; return c; }, live = L.all & ~S0.gone & ~(1 << i) & ~(1 << b.p);
+            expect((freeM(L, S0) >> b.p) & 1).toBe(1);
+            const q1 = poseOf(L, b.k, S0.gone | (1 << i)), q2 = poseOf(L, b.k, S0.gone | (1 << b.p));
+            expect(cnt(L.cov[b.k][q2] & live)).toBeLessThan(cnt(L.cov[b.k][q1] & live));
+          }
+        }
+        if (b.c === '③허공') expect(!!L.pl[b.k].ham || L.pl[b.k].kind === 'spring', `${k + 1}판 ③허공`).toBe(true);
+      }
+    expect(seen['①색'] ?? 0).toBeGreaterThan(0);
+    expect(seen['②진자'] ?? 0).toBeGreaterThan(0);
+    expect(pair).toBeGreaterThan(0);
   });
 });
