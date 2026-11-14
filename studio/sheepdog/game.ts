@@ -244,7 +244,7 @@ export const STAGES: StageDef[] = [
     },
   },
   {
-    key: 'fest', name: '아침 축제', news: '🎉 아침 축제 — 오늘 배운 걸 다 써요!', max: 14, par: 6, bonus: 'clover', needBlack: true, search: { beam: 8 }, // 🧪 C015 ①: max 12 → 14(끝판 실패가 지루한 '멍멍 다 씀' — 별은 그대로) · 📐 C015: 까만 양 필수(1-4부터 하나의 규칙) · 🍀 문 오른쪽 아래(0.69, 0.30) · par 7 → 6(박사 6)
+    key: 'fest', name: '아침 축제', news: '🖤 까만 양은 멀리서 부르면 멀리 와요', max: 14, par: 6, bonus: 'clover', needBlack: true, search: { beam: 8 }, // 🧪 C018 ①·PM C018 ⓐ: 알림은 축제 인사 대신 까만 양 안내(가까이서 부르면 0.08씩만 끌려와 '조금씩 누르기'가 남음, 시뮬 0) · 🧪 C015 ①: max 12 → 14(끝판 실패가 지루한 '멍멍 다 씀' — 별은 그대로) · 📐 C015: 까만 양 필수(1-4부터 하나의 규칙) · 🍀 문 오른쪽 아래(0.69, 0.30) · par 7 → 6(박사 6)
     build: (r) => {
       const side = r() < 0.5 ? -1 : 1;
       return {
@@ -2649,7 +2649,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DogState, w: number, _h: numb
   s.flags.forEach(([qx, qy], k) => items.push({ d: qy, f: () => {
     const sx = PX(qx, qy), sy = PY(qy), hgt = R(0.09) * scl(qy), first = k === 0, wave = Math.sin(t * 0.12 + k) * R(0.004), bl = first ? blink : 0;
     const ddx = sx - PX(s.dogX, s.dogY), ddy = PY(s.dogY) - sy, behind = Math.abs(ddx) < R(0.11) && ddy >= 0 && ddy < R(0.15);
-    const pole = behind ? R(0.17) * scl(qy) : hgt, dir = behind ? Math.sign(qx - s.dogX) || 1 : 1, top = sy - pole;
+    const pole = behind ? R(0.17) * scl(qy) : hgt, top = sy - pole;
+    // 🎨 C019 ⓒ: 천은 양 얼굴·날개 기둥·강아지와 덜 겹치는 쪽으로(1-7 ① 천이 앞줄 양 얼굴을 덮고, 1-8 ② 천 끝이 날개 기둥에 닿던 것). 같으면 C016 규칙(강아지 반대쪽, 아니면 오른쪽)
+    const obst: [number, number, number][] = [[PX(s.dogX, s.dogY), PY(s.dogY) - R(0.05) * scl(s.dogY), R(0.05) * scl(s.dogY)]];
+    for (let i = 0; i < F.n; i++) if (S.pen[i] < 0) obst.push([PX(S.x[i], S.y[i]), PY(S.y[i]) - R(0.03) * scl(S.y[i]), R(0.045) * scl(S.y[i])]);
+    for (const f of F.fences) for (const u of [0, 0.5, 1]) { const fx = f.x0 + (f.x1 - f.x0) * u, fy = f.y0 + (f.y1 - f.y0) * u; obst.push([PX(fx, fy), PY(fy) - postH(fy) * 0.5, R(0.015)]); }
+    const overlap = (dd: number) => obst.reduce((a, [ox, oy, orr]) => a + Math.max(0, hgt * 0.3 + orr - Math.hypot(sx + dd * hgt * 0.28 - ox, top + hgt * 0.2 - oy)), 0);
+    const d0 = behind ? Math.sign(qx - s.dogX) || 1 : 1, dir = overlap(-d0) < overlap(d0) - 0.5 ? -d0 : d0;
     ctx.save();
     if (bl && !REDUCED) ctx.translate(sx, sy), ctx.scale(1 + 0.35 * bl, 1 + 0.35 * bl), ctx.translate(-sx, -sy);
     ctx.globalAlpha = first ? 1 : 0.5;
