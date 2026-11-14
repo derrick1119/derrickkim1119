@@ -317,7 +317,7 @@ export const STAGES: StageDef[] = [
     taps: 10, par: 5, ask: '앞 오리만 밀면 아기들이 졸졸 — 어느 길로?',
   },
   {
-    id: '3-8', key: '', news: '', hint: '물줄기를 건너는 동안 아기들이 떠내려가요 — 줄을 짧게 건너요', failHint: '물줄기 안에서 아기 줄이 오른쪽으로 쓸려요 — 앞 오리를 빨리 건네요',
+    id: '3-8', key: '', news: '', hint: '물줄기를 건너는 동안 아기들이 떠내려가요 — 줄을 짧게 건너요', failHint: '물줄기 안에서 아기 줄이 꺾쇠 쪽으로 쓸려요 — 앞 오리를 빨리 건네요',
     // D016 📐 3-7 꼴 + 가로 물줄기(오른 벽으로 흐름, 하류 = 벽, 둥지 아님) · 아기 2마리씩(꼬리 .12 ≤ 줄기 폭 .14) (Δ +.95)
     ducks: [[0.22, 0.3, 0], [0.78, 0.3, 0]], chicks: [[0, 2, 1, 0], [1, 2, -1, 0]], gold: [0.5, 0.8], streams: [[0, 0.6, 1, 0.74, 1, 0]],
     nests: [[0.14, 1.07, 0.15, -1], [0.86, 1.07, 0.15, -1]],
@@ -331,9 +331,9 @@ export const STAGES: StageDef[] = [
     taps: 12, par: 4, ask: '상어 둘, 풍선 둘 — 무엇부터 터뜨릴까?',
   },
   {
-    id: '3-10', key: '', news: '', hint: '한 가족씩 — 상어는 물결로 멈추고, 풍선은 오리 뒤에서 터뜨려요', failHint: '상어와 가까운 오리부터 — 풍선이 터지면 상어도 밀려와요',
+    id: '3-10', key: '', news: '', hint: '상어는 물결로 멈추고, 풍선은 오리 뒤에서 터뜨려요 — 아기는 앞 오리가 끌고 가요', failHint: '상어와 가까운 오리부터 — 풍선이 터지면 상어도 밀려와요',
     // D017 📐 3욕실 큰 판(r, 가장 가까운 안): 3-9 꼴(상어 둘은 아래 안쪽, 둥지는 위 구석) + 벽 옆 오리 둘 + 가운데 오리 뒤 🐥 둘(옆줄) + 🚰 가로 줄기(왼벽으로, 하류는 벽) + 🎈 아래 가운데 + 황금은 상어 사이 미끼
-    // 요소 끔 Δ 🦈 +.62 · 🚰 +.33 · 🎈 +.30 (v1.16 d ✓) · E2 중앙 2(평균 1.58) — 3욕실 천장 빚 3판째 ❌(공개, 🏅로 갚을 몫)
+    // 요소 끔 Δ 🦈 +.62 · 🚰 +.33 · 🎈 +.30 (v1.16 d ✓) · E2 중앙 2(평균 1.58) — 3욕실 천장 빚 2/2(🧪 D017 정정: 3-6은 3톡 .29 < .35라 빚 아님 → 3-2·3-10, 예산 0)
     ducks: [[0.22, 0.62, 0], [0.78, 0.62, 0], [0.5, 0.32, 0], [0.06, 0.4, 0], [0.94, 0.4, 0]], chicks: [[2, 2, 1, 0]], gold: [0.5, 0.58],
     sharks: [[0.14, 0.94], [0.86, 0.94]], balloons: [[0.5, 1.15]], streams: [[0, 0.44, 1, 0.52, -1, 0]],
     nests: [[0.13, 0.13, 0.14, -1], [0.87, 0.13, 0.14, -1]],
@@ -2157,13 +2157,17 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,.6)';
     ctx.lineWidth = 2;
-    const len = st.y1 - st.y0, cx = (st.x0 + st.x1) / 2;
+    // 🧪 D017 차단: 꺾쇠는 흐름(dx, dy) 쪽을 가리키고 그쪽으로 흐른다 — 가로 줄기(3-8·3-10)도 띠 폭 전체로
+    const hz = Math.abs(st.dx) > Math.abs(st.dy), sg = (hz ? Math.sign(st.dx) : Math.sign(st.dy)) || 1;
+    const a0 = hz ? st.x0 : st.y0, len = (hz ? st.x1 : st.y1) - a0, b0 = hz ? st.y0 : st.x0, b1 = hz ? st.y1 : st.x1;
+    const c = (b0 + b1) / 2, hw = (b1 - b0) * (hz ? 0.42 : 0.32), dp = hz ? Math.min(0.03, (b1 - b0) * 0.4) : 0.03;
+    const P = (u: number, v: number): [number, number] => (hz ? [SX(u, v), SY(v)] : [SX(v, u), SY(u)]);
     for (let k = 0; k < 8; k++) {
-      const py = st.y0 + ((k / 8) * len + t * STREAM_V) % len, hw = (st.x1 - st.x0) * 0.32;
+      const off = ((k / 8) * len + t * STREAM_V) % len, p = sg > 0 ? a0 + off : a0 + len - off, q = p - dp * sg;
       ctx.beginPath();
-      ctx.moveTo(SX(cx - hw, py - 0.03 * st.dy), SY(py - 0.03 * st.dy));
-      ctx.lineTo(SX(cx, py), SY(py));
-      ctx.lineTo(SX(cx + hw, py - 0.03 * st.dy), SY(py - 0.03 * st.dy));
+      ctx.moveTo(...P(q, c - hw));
+      ctx.lineTo(...P(p, c));
+      ctx.lineTo(...P(q, c + hw));
       ctx.stroke();
     }
   }
@@ -2597,7 +2601,25 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     ctx.fill();
   }
   // 물줄기 기둥 (수도꼭지에서)
-  if (L.streams.length) {
+  if (L.streams.length && Math.abs(L.streams[0].dx) > Math.abs(L.streams[0].dy)) {
+    // 🧪 D017 차단: 가로 줄기(3-8·3-10)는 뒤 수도꼭지 물기둥과 안 이어진다 → 위쪽 끝 옆벽 꼭지에서 흐름 쪽으로 뿜는다
+    const st = L.streams[0], sg = Math.sign(st.dx), cy = (st.y0 + st.y1) / 2, ex = SX(sg > 0 ? st.x0 : st.x1, cy), ey = SY(cy);
+    ctx.fillStyle = '#9aa7b0';
+    ctx.beginPath();
+    ctx.roundRect(ex - R(0.028), ey - R(0.014), R(0.056), R(0.028), R(0.01));
+    ctx.fill();
+    ctx.fillStyle = '#5d6a74';
+    ctx.beginPath();
+    ctx.ellipse(ex + sg * R(0.026), ey, R(0.005), R(0.01), 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.85)';
+    for (let k = 0; k < 6; k++) {
+      const f = ((t + k * 9) % 54) / 54;
+      ctx.beginPath();
+      ctx.arc(ex + sg * R(0.03 + f * 0.09), ey + Math.sin(t * 0.3 + k * 2) * R(0.012) * f, R(0.006 * (1 - f * 0.5)), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (L.streams.length) {
     const st = L.streams[0], ex = SX((st.x0 + st.x1) / 2, 0.02), ey = SY(0.02);
     const g = ctx.createLinearGradient(0, spout.y, 0, ey);
     g.addColorStop(0, 'rgba(220,250,255,.95)');

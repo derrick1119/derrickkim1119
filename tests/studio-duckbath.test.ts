@@ -267,7 +267,7 @@ describe('욕조 물결 오리 시뮬', () => {
         for (let f = 0; f < 60 * 120 && s.phase === 'play'; f++) g.step(s, duckbathSmart.act(s, rng));
         if (s.ok && s.starOk[2]) gold++;
       }
-      expect(gold).toBeGreaterThan(0);
+      expect(gold).toBe(3); // 🧪 D017: '3시드 중 ≥ 1'은 약함 → 3시드 다 ★3 (n300 탐침 3-7 숙련 ★3 299/300)
     });
     it('상어 여럿(sharks[])이 다 나온다', () =>
       withStage({ sharks: [[0.2, 0.9], [0.8, 0.9]] }, (s) => {

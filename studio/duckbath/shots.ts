@@ -120,6 +120,13 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
     }
     if (await scene('3-5', 'mobile-balloon.png') && !(await page.evaluate(() => (globalThis as any).__duck.state().L.balloons.length))) errors.push('mobile: 3-5에 물풍선이 없음');
     if (await scene('3-7', 'mobile-chicks.png') && !(await page.evaluate(() => (globalThis as any).__duck.state().objs.some((o: any) => o.lead >= 0)))) errors.push('mobile: 3-7에 아기 오리가 없음'); // D016 🐥
+    // 🧪 D017 차단 풀 조건: 가로 물줄기(3-8 →, 3-10 ←)의 흐름 쪽이 0.5초 간격 두 장으로 읽힌다
+    for (const [id, file] of [['3-8', 'mobile-stream-h'], ['3-10', 'mobile-3-10']]) {
+      if (!(await scene(id, `${file}-a.png`))) continue;
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: join(here, 'screens', `${file}-b.png`) });
+      if (!(await page.evaluate(() => (globalThis as any).__duck.state().L.streams.some((st: any) => st.dx !== 0)))) errors.push(`mobile: ${id}에 가로 물줄기가 없음`);
+    }
   }
   // D011 🎨 13장 ③: 황금을 물 위에 둔 채 깨면 결과 카드 셋째 줄이 '황금이 꼴찌였어요'
   await page.evaluate(() => (globalThis as any).__duck.jump(0));
