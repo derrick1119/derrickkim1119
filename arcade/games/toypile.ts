@@ -2209,7 +2209,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ToyState, w: number, h: numbe
       const q = Math.min(1, (u - 60) / 30);
       (px = dr.x1 + (0.127 - dr.x1) * ease(q)), (py = dr.y1 + 0.03 + (TRAY_Y - 0.05 - dr.y1 - 0.03) * ease(q) - Math.sin(q * Math.PI) * 0.08), (dir = dr.x1 > 0.127 ? -1 : 1);
     }
-    if (u < 100) drawPupRun(ctx, X(px), Y(py), R(0.045), dir, t, s);
+    if (u < 100) drawPupRun(ctx, X(px), Y(py), R(0.056), dir, t, s);
   }
   // ═════════ 미리 보기 (기차 쪽) ═════════
   if (pre && pressK >= 0 && pre.st === 0) {

@@ -1664,6 +1664,30 @@ function drawScene(ctx: CanvasRenderingContext2D, s: PicState, X: XF, Y: XF, R: 
       ctx.fill();
     }
   }
+  // 들꽃 (잔디 띠)
+  for (let k = 0; k < 7; k++) {
+    const fx0 = X(0.3 + k * 0.1 + hsh(k + 500) * 0.04), fy0 = Y(1.405 + hsh(k + 510) * 0.03);
+    ctx.strokeStyle = '#3d8a2e';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(fx0, fy0 + R(0.012));
+    ctx.lineTo(fx0, fy0);
+    ctx.stroke();
+    ctx.fillStyle = ['#ffffff', '#ffd23a', '#ff9ec0', '#b8a6ff'][k % 4];
+    for (let j = 0; j < 5; j++) (ctx.beginPath(), ctx.arc(fx0 + Math.cos((j * TAU) / 5) * R(0.006), fy0 + Math.sin((j * TAU) / 5) * R(0.006), R(0.005), 0, TAU), ctx.fill());
+    ctx.fillStyle = '#ffb02e';
+    ctx.beginPath();
+    ctx.arc(fx0, fy0, R(0.004), 0, TAU);
+    ctx.fill();
+  }
+  // 나비 (장면 위를 팔랑)
+  for (let k = 0; k < 2; k++) {
+    const bx = X(0.5 + 0.42 * Math.sin(t * 0.004 + k * 2.5)), by = Y(0.15 + 0.03 * Math.sin(t * 0.011 + k) + k * 0.02), flap = Math.abs(Math.sin(t * 0.35 + k));
+    ctx.fillStyle = k ? '#ffd23a' : '#ff9ec0';
+    for (const sd of [-1, 1]) (ctx.beginPath(), ctx.ellipse(bx + sd * R(0.009) * flap, by, R(0.009) * flap + 1, R(0.012), sd * 0.4, 0, TAU), ctx.fill());
+    ctx.fillStyle = '#4a3020';
+    ctx.fillRect(bx - 1, by - R(0.008), 2, R(0.016));
+  }
   drawBasket(ctx, s, X, Y, R, t);
   drawDog(ctx, X(0.915), Y(0.298), R(0.07), s, t);
 }
@@ -1743,7 +1767,7 @@ function drawSceneFront(ctx: CanvasRenderingContext2D, s: PicState, X: XF, Y: XF
   }
   // 바람 깃발
   if (d.wind) {
-    const fx0 = X(0.66), fy0 = Y(0.15);
+    const fx0 = X(0.635), fy0 = Y(0.15);
     ctx.strokeStyle = '#6b4a2a';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -1773,11 +1797,10 @@ function drawSceneFront(ctx: CanvasRenderingContext2D, s: PicState, X: XF, Y: XF
     ctx.lineWidth = 3;
     ctx.strokeStyle = 'rgba(30,50,20,.7)';
     const nx = s.windNext === 1 ? '←' : s.windNext === 2 ? '→' : '↓';
-    const lab = `${nx} ${s.windIn}수 뒤`;
-    ctx.textAlign = 'right';
-    ctx.strokeText(lab, fx0 - R(0.012), fy0 + R(0.1));
+    const lab = `${s.windIn}수 뒤 ${nx}`;
+    ctx.strokeText(lab, fx0, fy0 + R(0.138));
     ctx.fillStyle = '#fffbe0';
-    ctx.fillText(lab, fx0 - R(0.012), fy0 + R(0.1));
+    ctx.fillText(lab, fx0, fy0 + R(0.138));
   }
 }
 
@@ -2083,7 +2106,7 @@ function drawWeather(ctx: CanvasRenderingContext2D, s: PicState, X: XF, Y: XF, R
     const tx = GX + (s.cloud + 1.5) * CS;
     fx.memo.cx = fx.memo.cx === undefined || fx.memo.cs !== s.startT ? tx : fx.memo.cx + (tx - fx.memo.cx) * 0.08;
     fx.memo.cs = s.startT;
-    const cx = X(fx.memo.cx), cy = Y(GY - 0.012);
+    const cx = X(fx.memo.cx), cy = Y(GY - 0.028);
     // 빗줄기
     ctx.save();
     ctx.beginPath();
@@ -2113,9 +2136,9 @@ function drawWeather(ctx: CanvasRenderingContext2D, s: PicState, X: XF, Y: XF, R
     // 구름
     ctx.fillStyle = 'rgba(60,70,90,.25)';
     ctx.beginPath();
-    ctx.ellipse(cx + R(0.01), cy + R(0.035), R(0.17), R(0.03), 0, 0, TAU);
+    ctx.ellipse(cx + R(0.01), cy + R(0.05), R(0.15), R(0.022), 0, 0, TAU);
     ctx.fill();
-    for (const [dx, dy, rr, c] of [[-0.1, 0.008, 0.036, '#9aa6b8'], [-0.045, -0.012, 0.046, '#b3bdcc'], [0.03, -0.016, 0.05, '#c4cdd9'], [0.095, 0.004, 0.036, '#aab5c6'], [0, 0.016, 0.04, '#a3aec0']] as const) {
+    for (const [dx, dy, rr, c] of [[-0.09, 0.008, 0.03, '#9aa6b8'], [-0.04, -0.008, 0.04, '#b3bdcc'], [0.03, -0.012, 0.042, '#c4cdd9'], [0.088, 0.006, 0.03, '#aab5c6'], [0, 0.014, 0.034, '#a3aec0']] as const) {
       ctx.fillStyle = c;
       ctx.beginPath();
       ctx.arc(cx + R(dx), cy + R(dy), R(rr), 0, TAU);
@@ -2221,8 +2244,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PicState, w: number, h: numbe
   drawMat(ctx, s, X, Y, R, t);
   drawPieces(ctx, s, X, Y, R, t);
   drawLeafShade(ctx, X, Y, R, t);
-  drawWeather(ctx, s, X, Y, R, t);
   drawSceneFront(ctx, s, X, Y, R, t);
+  drawWeather(ctx, s, X, Y, R, t);
   drawAnthill(ctx, s, X, Y, R, t);
   const r0 = R(CS * 0.4);
   // 깜짝 놀라 도망가는 개미 (음식은 떨궜다)
@@ -2289,7 +2312,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PicState, w: number, h: numbe
     if (due <= seenT || due > t) continue;
     const x = X(e.x), y = Y(e.y);
     if (e.kind === 'pop') fx.burst(x, y, FOOD_COL[e.v ?? 0], 14, 3, 2.4), say(x, y - R(0.02), e.text!, e.col!, 16), fx.kick(1.2);
-    if (e.kind === 'wave') fx.ring(x, y, e.col!, R(0.3), 5), say(x, y, e.text!, e.col!, 20 + Math.min(8, (e.v ?? 2) * 2)), fx.kick(2 + (e.v ?? 2));
+    if (e.kind === 'wave') fx.ring(x, y, e.col!, R(0.3), 5), fx.kick(2 + (e.v ?? 2)), (fx.memo.waveT = t), (fx.memo.waveN = e.v ?? 2);
     if (e.kind === 'made') fx.ring(x, y, '#fff6b0', R(0.1), 4), fx.burst(x, y, '#fff6b0', 18, 3.5, 2.4), say(x, y - R(0.05), e.text!, e.col!, 16);
     if (e.kind === 'blast') fx.kick(e.v === 3 ? 10 : e.v === 2 ? 7 : 4), fx.blink('#fff8d8', e.v === 3 ? 0.4 : 0.22), fx.ring(x, y, '#ffe9a8', R(e.v === 1 ? 0.25 : 0.4), 6), say(x, y - R(0.04), e.text!, e.col!, 18 + (e.v ?? 1) * 2), fx.burst(x, y, e.v === 2 ? '#ff6f86' : '#fff1a8', 26, 5, 2.8);
     if (e.kind === 'scare') fx.burst(x, y, '#ffe08a', 12, 3, 2), say(x, y - R(0.05), e.text!, e.col!, 17);
@@ -2306,6 +2329,27 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PicState, w: number, h: numbe
     if (e.kind === 'fail') fx.kick(9), fx.blink(th.hot, 0.22);
   }
   fx.memo.t = t;
+  // 연쇄 ×N: 한 자리에서 통통 커진다 (겹쳐 쌓이지 않게)
+  {
+    const age = t - (fx.memo.waveT ?? -999), n = fx.memo.waveN ?? 0;
+    if (age >= 0 && age < 60 && n >= 2) {
+      const sc = 1 + Math.max(0, 1 - age / 8) * 0.5, a = Math.min(1, (60 - age) / 15);
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.translate(X(0.5), Y(GY + CS * 1.2));
+      ctx.scale(sc, sc);
+      ctx.font = `900 ${Math.max(20, R(0.07 + Math.min(4, n - 2) * 0.008))}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = 'rgba(110,30,20,.75)';
+      const txt = `연쇄 ×${n}!`;
+      ctx.strokeText(txt, 0, 0);
+      ctx.fillStyle = n >= 4 ? '#ffd166' : n === 3 ? '#fff1a8' : '#e6ffd0';
+      ctx.fillText(txt, 0, 0);
+      ctx.restore();
+    }
+  }
   ctx.restore();
   drawHud(ctx, s, w, h, Y, R);
 }
@@ -2352,9 +2396,9 @@ function drawHud(ctx: CanvasRenderingContext2D, s: PicState, w: number, h: numbe
       const a = Math.min(1, age / 8, (75 - age) / 16), sc = 1 + Math.max(0, 8 - age) * 0.04;
       ctx.globalAlpha = a;
       ctx.save();
-      ctx.translate(w / 2, Y(0.7));
+      ctx.translate(w / 2, Y(GY + CS * 2.2));
       ctx.scale(sc, sc);
-      font(0.072, 900);
+      font(0.066, 900);
       ctx.textAlign = 'center';
       ctx.lineWidth = 5;
       ctx.strokeStyle = 'rgba(90,25,20,.8)';

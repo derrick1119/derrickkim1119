@@ -30,9 +30,9 @@ export const RAD = [0.048, 0.062, 0.079, 0.1, 0.124, 0.151, 0.18, 0.212];
 export const MAXLV = RAD.length - 1;
 export const NAMES = ['병아리', '닭', '펭귄', '너구리', '양', '판다', '하마', '코끼리'];
 export const EMO = ['🐤', '🐔', '🐧', '🦝', '🐑', '🐼', '🦛', '🐘'];
-const G = 0.0011, VMAX = 0.034, ITER = 4, DAMP = 0.99, FF = 0.3, PF = 0.3, WF = 0.1, POP = 0.0045, SPL = 0.3;
+const G = 0.0011, VMAX = 0.034, ITER = 4, DAMP = 0.99, FF = 0.3, PF = 0.3, WF = 0.1, POP = 0.0045, SPL = 0.2;
 /** 넘침: 금줄 위에서 이만큼 버티면 실패 · 경고 시작 · 떨군 뒤 다음 동물까지 · 바위를 깨는 동물 단계 · 졸린 동물이 깨기까지 떨굴 수 */
-const OVER_T = 100, WARN_T = 18, CD = 24, ROCK_LV = 4, SLEEP_N = 3, AGE_OK = 50;
+const OVER_T = 100, WARN_T = 18, CD = 24, ROCK_LV = 4, SLEEP_N = 4, AGE_OK = 50;
 const RESULT_OK = 180, RESULT_FAIL = 160, CLEAR_T = 45, CARD_T = 170, NEWS_T = 170;
 const STAR_PTS = 100, WIN_PTS = 500;
 
@@ -281,7 +281,7 @@ export const STAGES: StageDef[] = [
   },
   {
     key: 'rock', title: '바위 온천', news: '🪨 바위는 안 합쳐져요 — 바로 옆에서 🐑양 이상이 생기면 쩍!', hint: '바위 옆에 너구리 둘을 붙여요',
-    goal: ['rock', 3], K: 24, R: 4, C: 4, w: [4, 3, 3, 1],
+    goal: ['rock', 3], K: 28, R: 4, C: 4, w: [4, 3, 3, 1],
     pre: [], crowd: 40, cw: [4, 3, 3, 1], room: 0.12,
     rocks: [[0.5, 1.14, 0.09, 1], [0.86, 0.86, 0.075, 1], [0.13, 0.95, 0.07, 1]],
   },
@@ -292,8 +292,8 @@ export const STAGES: StageDef[] = [
   },
   {
     key: 'bucket', title: '뜨거운 물바가지', news: '🪣 물바가지 — 떨군 곳 둘레를 콸콸 밀고 졸린 동물을 깨워요', hint: '물바가지는 엉킨 곳·졸린 동물 위에',
-    goal: ['lv', 6], K: 38, R: 4, C: 5, w: [4, 3, 3, 1], sleepy: 0.25, bucket: [4, 11, 18, 26],
-    pre: [], crowd: 40, cw: [4, 3, 3, 1], cs: 0.3, room: 0.14,
+    goal: ['lv', 6], K: 38, R: 4, C: 5, w: [4, 3, 3, 1], sleepy: 0.35, bucket: [4, 12, 21, 30],
+    pre: [], crowd: 40, cw: [4, 3, 3, 1], cs: 0.4, room: 0.14,
   },
   {
     key: 'slope', title: '기운 탕', news: '↘️ 탕이 기울었어요 — 낮은 쪽으로 데굴데굴', hint: '높은 쪽에 떨구면 굴러 내려가 붙어요',

@@ -589,7 +589,12 @@ function newStage(s: PotionState) {
   s.got = 0;
   setMood(s, 'idle');
   setOwl(s, 'wait');
-  see(s, d.key, d.news);
+  if (!s.seen.has(d.key)) {
+    // 이 판의 새것은 바로 (밀린 알림보다 먼저)
+    s.seen.add(d.key);
+    s.newsQ.unshift(d.news);
+    s.news = null;
+  }
   if (s.stage === 0) see(s, 'order', '📜 부엉이 손님 주문 — 그 색을 먼저 완성하면 ★');
   ev(s, 'stage', 0.5, 0.6, `${s.stage + 1}판 · ${d.name}`, '#fff6d6');
 }
@@ -1164,11 +1169,27 @@ function drawBottle(ctx: CanvasRenderingContext2D, x: number, y: number, R: F, c
       ctx.lineTo(sx + bw * 0.16, sy - bw * 0.2);
       ctx.stroke();
     }
+    // 위를 덮은 얼음 뚜껑
+    ctx.fillStyle = 'rgba(245,252,255,.95)';
+    ctx.beginPath();
+    ctx.ellipse(0, -bh - nh - R(0.012), bw * 0.72, R(0.02), 0, 0, TAU);
+    ctx.fill();
+    for (let q = 0; q < 3; q++) {
+      ctx.beginPath();
+      ctx.moveTo((q - 1) * bw * 0.35 - R(0.008), -bh - nh - R(0.005));
+      ctx.lineTo((q - 1) * bw * 0.35, -bh - nh + R(0.02 + 0.01 * (q % 2)));
+      ctx.lineTo((q - 1) * bw * 0.35 + R(0.008), -bh - nh - R(0.005));
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(40,110,170,.85)';
+    ctx.beginPath();
+    ctx.arc(0, -bh * 0.5, R(0.026), 0, TAU);
+    ctx.fill();
     ctx.fillStyle = '#ffffff';
-    ctx.font = `${Math.max(13, R(0.042))}px system-ui`;
+    ctx.font = `${Math.max(15, R(0.04))}px system-ui`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('❄️', 0, -bh * 0.5);
+    ctx.fillText('❄️', 0, -bh * 0.5 + 1);
   }
   ctx.restore();
 }
@@ -1320,7 +1341,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PotionState, w: number, h: nu
       const H = L.cap[a.s] * UH + NECK, mx = pose.x + Math.sin(pose.rot) * H, my = pose.y - Math.cos(pose.rot) * H;
       const endY = a.d >= 0 ? L.py[a.d] - (a.db.length + (a.kind === 'pour' ? a.n * pose.f : 0)) * UH : CY - 0.06;
       const col = POT[a.c] ?? '#ffffff', wob = Math.sin(t * 0.9) * R(0.004);
-      const wd = R(a.kind === 'pour' ? 0.012 + 0.004 * Math.min(3, a.n) : 0.01) * Math.min(1, (23 - pose.u) / 3, (pose.u - 11) / 2);
+      const wd = R(a.kind === 'pour' ? 0.015 + 0.006 * Math.min(3, a.n) : 0.013) * Math.min(1, (23 - pose.u) / 3, (pose.u - 11) / 2);
       ctx.strokeStyle = col;
       ctx.lineCap = 'round';
       ctx.lineWidth = wd;
@@ -1332,11 +1353,16 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PotionState, w: number, h: nu
       ctx.lineWidth = wd * 0.3;
       ctx.stroke();
       ctx.lineCap = 'butt';
-      for (let q = 0; q < 3; q++) {
-        const ph = (t * 0.2 + q / 3) % 1;
+      // 받는 병 물약 면에 튀는 물보라
+      ctx.fillStyle = shade(col, 0.35);
+      ctx.beginPath();
+      ctx.ellipse(X(pose.tx) + wob, Y(endY), R(0.03) * (0.8 + 0.3 * Math.sin(t * 0.8)), R(0.008), 0, 0, TAU);
+      ctx.fill();
+      for (let q = 0; q < 5; q++) {
+        const ph = (t * 0.2 + q / 5) % 1;
         ctx.fillStyle = col;
         ctx.beginPath();
-        ctx.arc(X(pose.tx + (hsh(q + t) - 0.5) * 0.03), Y(endY - 0.01 - ph * 0.02), R(0.004), 0, TAU);
+        ctx.arc(X(pose.tx + (hsh(q + t) - 0.5) * 0.05), Y(endY - 0.01 - ph * 0.03), R(0.005), 0, TAU);
         ctx.fill();
       }
     }
@@ -1994,20 +2020,28 @@ function drawCat(ctx: CanvasRenderingContext2D, x: number, y: number, u: number,
   // 꼬리
   {
     const base = { x: -u * 0.22, y: -u * 0.12 };
-    ctx.strokeStyle = fur;
     ctx.lineCap = 'round';
-    ctx.lineWidth = u * (puff ? 0.17 : 0.09);
-    ctx.beginPath();
-    ctx.moveTo(base.x, base.y);
-    if (proud) {
-      const sw = Math.sin(t * 0.25) * u * 0.04;
-      ctx.quadraticCurveTo(-u * 0.5, -u * 0.3, -u * 0.46 + sw, -u * 0.95);
-      ctx.quadraticCurveTo(-u * 0.44 + sw, -u * 1.12, -u * 0.32 + sw, -u * 1.08);
-    } else if (dizzy) ctx.quadraticCurveTo(-u * 0.55, -u * 0.02, -u * 0.72, -u * 0.04);
-    else {
+    const tail = () => {
+      ctx.beginPath();
+      ctx.moveTo(base.x, base.y);
+      if (proud) {
+        const sw = Math.sin(t * 0.25) * u * 0.04;
+        ctx.quadraticCurveTo(-u * 0.5, -u * 0.3, -u * 0.46 + sw, -u * 0.95);
+        ctx.quadraticCurveTo(-u * 0.44 + sw, -u * 1.12, -u * 0.32 + sw, -u * 1.08);
+      } else if (dizzy) ctx.quadraticCurveTo(-u * 0.55, -u * 0.02, -u * 0.72, -u * 0.04);
+      else {
       const sw = Math.sin(t * 0.05) * u * 0.12;
       ctx.quadraticCurveTo(-u * 0.6, -u * 0.15, -u * 0.55 + sw, -u * (puff ? 0.85 : 0.55));
     }
+    };
+    // 촛불 테두리 빛 → 털
+    ctx.strokeStyle = 'rgba(255,190,130,.6)';
+    ctx.lineWidth = u * (puff ? 0.17 : 0.09) + 3;
+    tail();
+    ctx.stroke();
+    ctx.strokeStyle = fur;
+    ctx.lineWidth = u * (puff ? 0.17 : 0.09);
+    tail();
     ctx.stroke();
     if (puff) {
       ctx.strokeStyle = fur2;
@@ -2333,8 +2367,10 @@ function drawHud(ctx: CanvasRenderingContext2D, s: PotionState, d: StageDef, w: 
     if (age < 90 && s.phase === 'play') {
       const a = Math.min(1, age / 8, (90 - age) / 18), sc = 1 + Math.max(0, 8 - age) * 0.04;
       ctx.globalAlpha = a;
+      ctx.fillStyle = 'rgba(25,10,40,.62)';
+      ctx.fillRect(0, Y(0.205), w, R(0.13));
       ctx.save();
-      ctx.translate(w / 2, Y(0.47));
+      ctx.translate(w / 2, Y(0.262));
       ctx.scale(sc, sc);
       font(0.07, 900);
       ctx.textAlign = 'center';
@@ -2346,8 +2382,8 @@ function drawHud(ctx: CanvasRenderingContext2D, s: PotionState, d: StageDef, w: 
       ctx.fillText(big, 0, 0);
       font(0.038, 800);
       const sub = `색 ${L.cols.length}가지를 한 병씩 모아요`;
-      ctx.strokeText(sub, 0, R(0.06));
-      ctx.fillText(sub, 0, R(0.06));
+      ctx.strokeText(sub, 0, R(0.052));
+      ctx.fillText(sub, 0, R(0.052));
       ctx.restore();
       ctx.globalAlpha = 1;
     }
