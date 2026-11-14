@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Bot, Input } from './core.ts';
 import { mulberry32 } from './rng.ts';
-import { STAGES, apply, cloneSim, freeM, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, startStage, starsOf, type Level, type ShopState, type Sim, type StageDef } from './game.ts';
+import { STAGES, apply, cloneSim, freeM, logLate, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, startStage, starsOf, type Level, type ShopState, type Sim, type StageDef } from './game.ts';
 
 export interface Try { ok: boolean; stars: number; sec: number; peak: number; best: number; shot: number; taps: number; /** 끝난 판(되짚기·F13용) */ s: ShopState }
 
@@ -150,13 +150,13 @@ export const BOTS = { smart: screwshopSmart, habit: screwshopHabit, top: screwsh
 
 type Ev = { k: string; p?: number; s?: number; pose?: number };
 /** 꾹 미리 보기가 이 톡에 원인 c의 경고를 띄우나(🧪 S008 m1b warnFor와 같은 식) */
-function warnOf(L: Level, d: StageDef, h: ShopState['hist'][number], c: string) {
+function warnOf(L: Level, d: StageDef, h: ShopState['hist'][number], c: string, past: ShopState['hist'] = []) {
   const p = peek(L, h.S0, h.s), r = p.rec as unknown as Ev[], S2 = p.S, pl = L.pl;
   const first = r.find((e) => e.k === 'box' || e.k === 'slot'), toSlot = first?.k === 'slot' || !!S2.fail;
   const chainSlot = r.some((e) => e.k === 'slot' && e.s !== h.s), cover = p.cover !== 0, stuck = stuckM(L, S2.gone) !== 0;
   const hit = (k: string, q?: number) => r.some((b) => b.k === k && b.p === q);
   const air = r.some((e) => e.k === 'hang' && pl[e.p!].ham && e.pose! >= 1 && !hit('bonk', e.p)) || r.some((e) => e.k === 'fall' && pl[e.p!].kind === 'spring' && pl[e.p!].tgt !== undefined && !hit('boing', e.p));
-  const log = r.some((e) => e.k === 'fall' && pl[e.p!].heavy) && !(d.H !== undefined ? r.filter((e) => e.k === 'box').length >= d.H : r.some((e) => e.k === 'crash'));
+  const log = (r.some((e) => e.k === 'fall' && pl[e.p!].heavy) && !(d.H !== undefined ? r.filter((e) => e.k === 'box').length >= d.H : r.some((e) => e.k === 'crash'))) || logLate(L, past, p.rec); // ✏️ S013: '🪵 통나무가 먼저 떨어져 → 빈칸' 알약
   const wi = r.findIndex((e) => e.k === 'wind'), wind = wi >= 0 && (d.H !== undefined ? r : r.slice(wi)).some((e) => e.k === 'slot'); // 🔑 알약 '빈칸 M'(한 방 판은 톡 전체 · ✏️ S012)
   const by: Record<string, boolean> = { '①색': toSlot, '②진자': cover, '②못': cover || stuck, '①연쇄': chainSlot, '③통나무': log, '③허공': air, '④태엽': wind };
   return by[c] ?? (toSlot || cover || stuck || chainSlot || air || log || wind);
@@ -182,7 +182,7 @@ export function f16(k: number, seeds = 100, hands = 1) {
     if (s.ok || !b) continue;
     fails++;
     const c = b.c, P = L.pl[b.k], tg = c !== '③허공' ? [] : P.ham ? L.hamT[b.k].map((q) => q[0]) : P.tgt !== undefined ? L.ps[P.tgt] : [];
-    const ok = (t: number) => warnOf(L, d, H[t], c) || (c === '③허공' && (targetOf(L, H[t].S0.gone, H[t].s) || (tg.includes(H[t].s) && poseOf(L, b.k, H[t].S0.gone) >= 1 && warnOf(L, d, H[t], '①색'))));
+    const ok = (t: number) => warnOf(L, d, H[t], c, H.slice(0, t)) || (c === '③허공' && (targetOf(L, H[t].S0.gone, H[t].s) || (tg.includes(H[t].s) && poseOf(L, b.k, H[t].S0.gone) >= 1 && warnOf(L, d, H[t], '①색'))));
     const taps = new Set(c === '④태엽' ? [] : b.t.filter((t) => t !== H.length - 1));
     if (c === '④태엽') { const wt = H.findIndex((h) => h.rec.some((e) => e.k === 'wind')); if (wt >= 0) taps.add(wt); }
     if (c === '③허공') {

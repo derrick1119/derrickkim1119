@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { STAGES, screwshop as g, screwshopSmart, startStage } from './game.ts';
+import { STAGES, logLate, screwshop as g, screwshopSmart, startStage } from './game.ts';
 /** M1′ 8판(0~7) + 새 판(8 1-4 🐿️ · 9 1-7 🐄 · 10 1-5 🤖 · 11 1-8 🐴)의 지금 자리(✏️ S010: 판 순서가 30판 자리로 바뀌어도 같은 판을 찍는다) */
 const M = ['giraffe', 'boat', 'train', 'mill', 'flower', 'dino', 'castle', 'rocket', 'squirrel', 'cow', 'robot', 'horse', 'piggy', 'duck', 'tractor', 'whale', 'crab', 'penguin'].map((key) => STAGES.findIndex((d) => d.key === key));
 const STAGES_FIRST = STAGES[0].first ?? 0;
@@ -36,9 +36,11 @@ for (const scheme of ['light', 'dark'] as const) {
   await page.click('.g-overlay');
   await page.waitForTimeout(1800);
   await page.screenshot({ path: join(out, '02-stage1.png') });
+  const cb = (await page.locator('canvas').boundingBox())!;
+  console.log(`아래 빈 곳(390×844): ${(((844 - cb.y - cb.height) / 844) * 100).toFixed(1)}%`); // 🎨 ART §6 · 📋 M2 ≤ 10%
   // 첫 판의 나사 자리 = 시뮬 좌표 → 캔버스 좌표 (게임이 window에 노출하지 않으므로 화면 비율로 근사: 기린 몸통 나사 0.4, 0.85/1.45)
   const box = (await page.locator('canvas').boundingBox())!;
-  const at = (x: number, y: number) => ({ x: box.x + x * box.width, y: box.y + (y / 1.45) * box.height });
+  const at = (x: number, y: number) => ({ x: box.x + x * box.width, y: box.y + y * box.width });
   const L1 = g.create(1).L, p = at(L1.px[STAGES_FIRST], L1.py[STAGES_FIRST]); // 1판 손가락 첫 나사(🔨 머리)를 누르고 있기 → 🎯
   await page.mouse.move(p.x, p.y);
   await page.mouse.down();
@@ -64,7 +66,7 @@ for (const scheme of ['light', 'dark'] as const) {
   await page.waitForTimeout(900);
   const b2 = (await page.locator('canvas').boundingBox())!;
   for (let i = 0; i < plan.length; i++) {
-    await page.mouse.move(b2.x + plan[i][0] * b2.width, b2.y + plan[i][1] * b2.height);
+    await page.mouse.move(b2.x + plan[i][0] * b2.width, b2.y + plan[i][1] * 1.45 * b2.width);
     await page.mouse.down();
     await page.waitForTimeout(60);
     await page.mouse.up();
@@ -90,7 +92,7 @@ for (const scheme of ['light', 'dark'] as const) {
     await page.waitForTimeout(900);
     const b4 = (await page.locator('canvas').boundingBox())!;
     for (const [x, y, idx] of plan2) {
-      await page.mouse.move(b4.x + x * b4.width, b4.y + y * b4.height);
+      await page.mouse.move(b4.x + x * b4.width, b4.y + y * 1.45 * b4.width);
       await page.mouse.down();
       await page.waitForTimeout(60);
       if (idx === tg) await page.waitForTimeout(450), await page.screenshot({ path: join(out, holdPng) }); // 장전 끝난 방아쇠 꾹 = 미리 보기
@@ -121,7 +123,7 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.waitForTimeout(900);
       const b5 = (await page.locator('canvas').boundingBox())!;
       for (const i of seq) {
-        await page.mouse.move(b5.x + sim.L.px[i] * b5.width, b5.y + (sim.L.py[i] / 1.45) * b5.height);
+        await page.mouse.move(b5.x + sim.L.px[i] * b5.width, b5.y + sim.L.py[i] * b5.width);
         await page.mouse.down();
         await page.waitForTimeout(60);
         await page.mouse.up();
@@ -129,9 +131,39 @@ for (const scheme of ['light', 'dark'] as const) {
       }
       await page.waitForTimeout(2600);
       await page.screenshot({ path: join(out, '10-fail.png') });
-      await page.mouse.click(b5.x + 0.5 * b5.width, b5.y + (1.415 / 1.45) * b5.height); // 💡 귀띔 단추(셋째 실패 · ✏️ S012)
+      await page.mouse.click(b5.x + 0.5 * b5.width, b5.y + 1.408 * b5.width); // 💡 귀띔 단추(셋째 실패 · ✏️ S012 · S013 자리)
       await page.waitForTimeout(1500);
       await page.screenshot({ path: join(out, '32-hint.png') });
+    }
+  }
+  // 🪵 통나무가 먼저 떨어져 → 빈칸(✏️ S013 · 🧪 S012 F16 ③): 2-4 🦀를 막 누르기로 — 와르르 없이 등딱지가 떨어진 뒤 그 밑 나사를 꾹
+  {
+    const { screwshopMash } = await import('./funqa.ts');
+    const k = STAGES.findIndex((d) => d.key === 'crab');
+    let taps: number[] = [], at = -1;
+    for (let h = 1; h < 300 && at < 0; h++) {
+      const sim = g.create(42), rng = mulberry32(h);
+      startStage(sim, k);
+      while (sim.phase !== 'result' && sim.t < 60 * 300) g.step(sim, screwshopMash.act(sim, rng));
+      taps = sim.hist.map((e) => e.s);
+      at = sim.hist.findIndex((e, t) => logLate(sim.L, sim.hist.slice(0, t), e.rec));
+    }
+    if (at >= 0) {
+      const L6 = g.create(42);
+      startStage(L6, k);
+      await page.goto(url + `?seed=42&stage=${k + 1}`);
+      await page.click('.g-overlay');
+      await page.waitForTimeout(900);
+      const b6 = (await page.locator('canvas').boundingBox())!;
+      for (let t = 0; t <= at; t++) {
+        const i = taps[t];
+        await page.mouse.move(b6.x + L6.L.px[i] * b6.width, b6.y + L6.L.py[i] * b6.width);
+        await page.mouse.down();
+        await page.waitForTimeout(t === at ? 500 : 60);
+        if (t === at) await page.screenshot({ path: join(out, '43-log-late.png') });
+        await page.mouse.up();
+        await page.waitForTimeout(700);
+      }
     }
   }
   // ★3을 못 딴 결과(별 이유 + ↺ 다시 · 다음): 망치를 반대로 매다는 순서로 1판을 푼다
@@ -140,7 +172,7 @@ for (const scheme of ['light', 'dark'] as const) {
   await page.waitForTimeout(900);
   const b3 = (await page.locator('canvas').boundingBox())!, L3 = g.create(42).L;
   for (const i of [7, 4, 3, 8, 5, 2, 6, 0, 1]) {
-    await page.mouse.move(b3.x + L3.px[i] * b3.width, b3.y + (L3.py[i] / 1.45) * b3.height);
+    await page.mouse.move(b3.x + L3.px[i] * b3.width, b3.y + L3.py[i] * b3.width);
     await page.mouse.down();
     await page.waitForTimeout(60);
     await page.mouse.up();

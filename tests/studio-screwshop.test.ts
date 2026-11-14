@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
+import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, logLate, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
 import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { f16, screwshopMash, screwshopNewbie, tryStage } from '../studio/screwshop/funqa.ts';
@@ -603,5 +603,48 @@ describe('🐹 쿵을 별에 · 빈 쿵 · F16 v2.1 (✏️ S012 · 📐B 1-6 ·
     expect(t.v21!).toBeGreaterThanOrEqual(0.95);
     expect(q.v21!).toBeGreaterThanOrEqual(0.9);
     expect(q.pair!).toBeGreaterThanOrEqual(0.8);
+  });
+});
+
+describe('🪵 통나무가 먼저 떨어져 → 빈칸 (✏️ S013 · 🧪 S012 F16 v2.1 ③ · 📋 경고로 푼다)', () => {
+  const at = (key: string) => STAGES.findIndex((d) => d.key === key);
+  it('💡 귀띔은 실패 카드 단추로 켜고 끈다(✏️ S013 · 🧪 S012 \'같은 판에서 못 끔\') — 끄면 그 판 ★3이 다시 열린다', () => {
+    const s = g.create(7), A = 1.45, rng = mulberry32(5);
+    startStage(s, at('rocket'));
+    (s.sf = 3), (s.hint = true);
+    const fail = () => {
+      for (let guard = 0; guard < 60 * 3000; guard++) {
+        if (s.phase === 'result' && !s.ok) break;
+        if (s.phase === 'result' && s.ok) { // 막 누르기가 어쩌다 깨면 ↺ 다시
+          for (let i = 0; i < 35; i++) g.step(s, { tap: false, dir: 0, pointer: null });
+          g.step(s, { tap: false, dir: 0, pointer: { x: 0.25, y: RES_BY / A } }), g.step(s, { tap: false, dir: 0, pointer: null });
+          continue;
+        }
+        g.step(s, screwshopMash.act(s, rng));
+      }
+      for (let i = 0; i < 50; i++) g.step(s, { tap: false, dir: 0, pointer: null });
+    };
+    fail();
+    g.step(s, { tap: false, dir: 0, pointer: { x: 0.5, y: HINT_Y / A } }), g.step(s, { tap: false, dir: 0, pointer: null });
+    expect([s.hint, s.phase]).toEqual([false, 'play']);
+    fail();
+    g.step(s, { tap: false, dir: 0, pointer: { x: 0.5, y: HINT_Y / A } }), g.step(s, { tap: false, dir: 0, pointer: null });
+    expect([s.hint, s.phase]).toEqual([true, 'play']);
+  });
+  it('실패 카드 ③통나무의 둘째 톡(와르르 없이 떨어진 통나무 밑 나사 → 빈칸)에 알약 조건 logLate가 선다 · 2-4 🦀 · 1-2 ⛵ F16 v2.1 ≥ .8', () => {
+    let cards = 0;
+    for (const key of ['crab', 'boat']) {
+      const k = at(key);
+      for (let i = 0; i < 40; i++) {
+        const s = tryStage(screwshopMash, 1000 + i * 7, k).s, b = s.blame;
+        if (s.ok || !b || b.c !== '③통나무') continue;
+        cards++;
+        const t = b.t[1];
+        expect(logLate(s.L, s.hist.slice(0, t), s.hist[t].rec), `${key} 시드 ${i}`).toBe(true);
+        expect(logLate(s.L, s.hist.slice(0, b.t[0]), s.hist[b.t[0]].rec), `${key} 통나무 톡은 아직 아님`).toBe(false);
+      }
+      expect(f16(k).v21!, key).toBeGreaterThanOrEqual(0.8);
+    }
+    expect(cards).toBeGreaterThan(3);
   });
 });

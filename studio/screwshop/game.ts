@@ -28,7 +28,11 @@ import type { Cue } from './sfx.ts';
 let cue: (c: Cue, v?: number) => void = () => {};
 export const setCue = (f: (c: Cue, v?: number) => void) => void (cue = f);
 
-const A = 1.45;
+let A = 1.45;
+/** 390 레이아웃(🎨 ART §6 · ✏️ S013): 브라우저만 세로를 늘린다 — 위 띠~작업대(0~1.245) · 시뮬 좌표 · 실패 카드는 그대로, 남는 E = A − 1.45는 아래 띠로. 봇 · 테스트는 1.45 그대로 */
+export const setAspect = (a: number) => (A = Math.max(1.45, Math.min(1.9, a)));
+/** 도구 줄(🗺️ 판 · 💡 귀띔 · ↺ 다시)이 들어갈 만큼 긴 화면인가 */
+const tools = () => A >= 1.62;
 /** 나사 머리 반지름 · 손가락 닿는 반지름 · 빈칸 수 · 미리 보이는 다음 상자 수 */
 const SR = 0.032, HIT = 0.075, SLOTS = 5, PEEK = 2;
 /** 판자 가장자리가 나사 머리를 덮는 정도: sd < COVER면 막힘, sd < HIDE면 아예 안 보임 */
@@ -606,7 +610,7 @@ export interface ShopState {
   /** 판별 최고 별·점수 (↺ 다시 해도 합계는 최고만) · ★3 못 땄을 때 결과 화면에서 기다리는 중 */
   bestSt: number[]; bestPts: number[]; retries: number;
   /** 💡 밤톨의 귀띔(GDD §11 · ✏️ S012): 이 판에서 진 횟수 · 귀띔을 켰나(켜면 그 판 ★ 최대 2) · 손가락 캐시 */
-  sf: number; hint: boolean; hintK?: string; hintM?: number;
+  sf: number; hint: boolean; /** 도구 줄 🗺️ 판 → main.ts가 판 고르기를 연다(✏️ S013) */ menu?: boolean; hintK?: string; hintM?: number;
   /** 실패 되짚기(📐 S003): 톡마다 그 전 상태·결과 · 진 이유 */
   hist: Hist[]; blame: Why | null;
   seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[]; startT: number; clearT: number;
@@ -633,7 +637,7 @@ const BOX_Y = 0.165, BOX_W = 0.25, BOX_H = 0.12, TRAY_Y = 0.312;
 /** 결과 화면 ↺·다음 버튼 줄 높이(작업판 좌표) */
 export const RES_BY = 0.935;
 /** 💡 귀띔 단추 높이(실패 카드 아래 · 같은 판 3번 진 뒤) */
-export const HINT_Y = 1.415;
+export const HINT_Y = 1.408; // ✏️ S013: 카드 아래 테두리(1.44) 안으로(🧪 S012 △ 걸침)
 /** 위 줄 ↺ 다시 버튼 높이(작업판 좌표, 이보다 위) */
 export const RETRY_Y = 0.07;
 const boxX = (L: Level, bi: number) => (L.boxes === 1 ? 0.34 : bi === 0 ? 0.19 : 0.47);
@@ -697,6 +701,18 @@ function canWin(L: Level, S: Sim, memo: Map<string, boolean>, b: { n: number }):
     }
   memo.set(key, ok);
   return ok;
+}
+/** 🪵 통나무가 와르르 없이 먼저 떨어진 뒤, 그 통나무 없이는 못 빼던 나사(늦은 무리)가 이 톡에 빈칸으로 가는가 — 실패 카드 ③통나무 둘째 톡과 같은 식(✏️ S013 · 📋 S012 '경고로 푼다') */
+export function logLate(L: Level, H: { rec: RE[] }[], rec: RE[]) {
+  let late = 0;
+  for (const e of H)
+    for (const r of e.rec)
+      if (r.k === 'fall' && L.pl[r.p].heavy && !e.rec.some((c) => c.k === 'crash' && c.by === r.p)) {
+        let g = 0;
+        for (let f = 1; f; g |= f) f = L.all & ~g & ~blockedM(L, g) & ~L.pm[r.p];
+        late |= L.all & ~g & ~L.pm[r.p];
+      }
+  return !!late && rec.some((r) => r.k === 'slot' && (late >> r.s) & 1);
 }
 /** 진 이유: ④태엽·③통나무·허공 > ②진자·못 > ①색·연쇄·깔림 순으로 처음 걸리는 것. t = 짚을 톡 번호(hist 순서) */
 export function retrace(L: Level, H: Hist[], S: Sim): Why {
@@ -1135,7 +1151,7 @@ export const screwshop: GameDef<ShopState> = {
       // 실패: 하트 없음, 자동 재시작도 없음 — 되짚기를 볼 시간 뒤(45틱) 아무 데나 톡하면 그 판만 다시 (🎨 §2.7)
       if (!s.ok) {
         if (release && s.pt > 45) {
-          if (s.sf >= 3 && !s.hint && Math.abs(s.ay * A - HINT_Y) < 0.045 && s.ax > 0.15 && s.ax < 0.85) s.hint = true; // 💡 귀띔 단추
+          if (s.sf >= 3 && Math.abs(s.ay * A - HINT_Y) < 0.03 && s.ax > 0.15 && s.ax < 0.85) s.hint = !s.hint; // 💡 귀띔 단추 — 켜고 끄기(✏️ S013 · 🧪 S012 '같은 판에서 못 끔')
           s.retries++, newStage(s);
         }
         return;
@@ -1152,8 +1168,11 @@ export const screwshop: GameDef<ShopState> = {
     }
     if (p) s.press = pickScrew(s, p.x, p.y * A);
     if (!release) return;
-    if (s.ay * A < RETRY_Y && s.ax > 0.55 && s.ax < 0.84) {
-      // ↺ 지금 다시 (위 줄의 버튼) — 같은 판·같은 칠로 처음부터
+    const ty = s.ay * A - (A - 0.15), tool = tools() && Math.abs(ty) < 0.06 ? Math.min(2, Math.floor(s.ax * 3)) : -1; // 도구 줄(✏️ S013): 0 🗺️ 판 · 1 💡 귀띔 · 2 ↺ 다시
+    if (tool === 0) return void ((s.press = -1), (s.menu = true));
+    if (tool === 1) return void ((s.press = -1), s.sf >= 3 && (s.hint = true)); // 판 중엔 켜기만(끄기는 실패 카드에서 — 따라 한 뒤 ★3 막음)
+    if ((s.ay * A < RETRY_Y && s.ax > 0.55 && s.ax < 0.84) || tool === 2) {
+      // ↺ 지금 다시 (위 줄의 버튼 · 도구 줄) — 같은 판·같은 칠로 처음부터
       s.press = -1;
       s.retries++;
       newStage(s);
@@ -1756,15 +1775,15 @@ function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   ctx.fillStyle = '#3a2a00';
   ctx.fillText('↺ 한 번 더!', 0, 1);
   ctx.restore();
-  if (s.sf >= 3 && !s.hint && fill >= 1) { // 💡 밤톨의 귀띔(같은 판 3번 진 뒤 · 쓰면 그 판 ★3 없음)
-    const hy = Y(HINT_Y) + oy, hh = R(0.075);
-    ctx.fillStyle = 'rgba(200,247,197,.9)';
+  if (s.sf >= 3 && fill >= 1) { // 💡 밤톨의 귀띔(같은 판 3번 진 뒤 · 쓰면 그 판 ★3 없음) — 켜져 있으면 끄기(✏️ S013)
+    const hy = Y(HINT_Y) + oy, hh = R(0.052);
+    ctx.fillStyle = s.hint ? 'rgba(255,236,210,.82)' : 'rgba(200,247,197,.9)';
     ctx.beginPath();
     ctx.roundRect(X(0.15), hy - hh / 2, X(0.85) - X(0.15), hh, hh / 2);
     ctx.fill();
-    font(0.036, 900);
-    ctx.fillStyle = '#1f3a1c';
-    ctx.fillText('💡 밤톨의 귀띔 (★3 없이)', cx, hy + 1);
+    font(0.031, 900);
+    ctx.fillStyle = s.hint ? '#4a3420' : '#1f3a1c';
+    ctx.fillText(s.hint ? '💡 귀띔 끄기 (★3 다시 열림)' : '💡 밤톨의 귀띔 (★3 없이)', cx, hy + 1);
   } else {
     font(0.027, 700);
     ctx.fillStyle = 'rgba(255,236,210,.6)';
@@ -2484,6 +2503,12 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
     ctx.fillStyle = '#ffd0c8';
     ctx.fillText(msg, x, y + 1);
     return;
+  }
+  // 🪵 통나무가 먼저 떨어져 → 빈칸(✏️ S013 · 🧪 S012 F16 ③): 와르르 없이 떨어진 통나무 밑 나사가 이 톡에 빈칸으로 — 실패 카드 ③통나무가 짚을 톡
+  if (logLate(L, s.hist, pre.rec)) {
+    font(0.03, 900);
+    const lab = `${bloomOf(L) ? '🌻 꽃 머리' : '🪵 통나무'}가 먼저 떨어져 → 빈칸`, hw = ctx.measureText(lab).width / 2 + 10;
+    pill(ctx, Math.max(hw, Math.min(X(1) - hw, X(L.px[k]))), Y(L.py[k]) - R(0.13), lab, '#ffb36b', R(0.044));
   }
   // 🪵 통나무 꾹(🧪 S002 ①): 와르르 몇 장 → 한 방 몇 — 장전 전엔 주황, 다 장전하면 초록 + 맞을 나사 🎯
   const logFall = pre.rec.find((e) => e.k === 'fall' && L.pl[e.p].heavy) as { p: number } | undefined;
@@ -3215,7 +3240,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
   }
   // ═════════ 아래 띠: 별 목표 · 안내 ═════════ (실패 카드가 뜨면 안 그린다)
   if (!(s.phase === 'result' && !s.ok)) {
-    const y2 = Y(1.3), chips = [
+    const E = A - 1.45, y2 = Y(1.3 + 0.35 * E), chips = [
       { txt: '완성', st: s.phase === 'result' && s.ok ? true : null },
       ...(d.B !== undefined
         ? [
@@ -3254,9 +3279,9 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       font(0.032, 800);
       ctx.textAlign = 'right';
       ctx.fillStyle = S.streak >= d.C ? '#ffd166' : '#c8f7c5';
-      ctx.fillText(`지금 연속 ${S.streak}`, w - R(0.03), Y(1.36));
+      ctx.fillText(`지금 연속 ${S.streak}`, w - R(0.03), Y(1.36 + 0.35 * E));
     }
-    const y3 = Y(1.415);
+    const y3 = Y(1.415 + 0.45 * E);
     let tip = '👆 나사를 톡! 누르고 있으면 갈 곳이 보여요';
     if (s.stage === 0 && s.taps === 0) tip = '👆 나사를 톡 — 같은 색 상자로 쏙!';
     else if (s.down && s.press >= 0) tip = '떼면 쏙! · 나사 밖에서 떼면 취소';
@@ -3269,6 +3294,20 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     font(0.036, 800);
     ctx.fillStyle = 'rgba(255,240,214,.92)';
     ctx.fillText(tip, w / 2 + R(0.06), y3);
+    if (tools()) { // 도구 줄(🎨 ART §6 · ✏️ S013): 🗺️ 판 · 💡 귀띔(진 횟수 ●●○) · ↺ 다시
+      const ty = Y(A - 0.15), bw = (w - R(0.08)) / 3, bh = R(0.12), sf = Math.min(3, s.sf);
+      ['🗺️ 판', s.hint ? '💡 귀띔 켬' : `💡 ${sf >= 3 ? '귀띔' : '●'.repeat(sf) + '○'.repeat(3 - sf)}`, '↺ 다시'].forEach((lab, k) => {
+        const bx = R(0.02) + k * (bw + R(0.02)), on = k !== 1 || sf >= 3;
+        ctx.fillStyle = k === 1 && s.hint ? 'rgba(200,247,197,.3)' : on ? 'rgba(255,240,210,.16)' : 'rgba(255,240,210,.06)';
+        ctx.beginPath();
+        ctx.roundRect(bx, ty - bh / 2, bw, bh, R(0.03));
+        ctx.fill();
+        font(0.04, 800);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = on ? '#fff1d6' : 'rgba(255,241,214,.4)';
+        ctx.fillText(lab, bx + bw / 2, ty + 1);
+      });
+    }
   }
   // 💡 귀띔: 장인이 둘 나사를 밤톨 손가락이 가리킨다(같은 눈 · 수마다 한 번 계산)
   if (s.hint && s.phase === 'play' && !s.down) {

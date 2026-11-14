@@ -5,7 +5,7 @@
 import { TICK, type Input } from './core.ts';
 import { juice, peek } from './juice.ts';
 import { sfx } from './sfx.ts';
-import { STAGES, setCue, startStage, screwshop as g, type ShopState } from './game.ts';
+import { STAGES, setAspect, setCue, startStage, screwshop as g, type ShopState } from './game.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('screwshop:' + k) ?? 0); } catch { return 0; } },
@@ -33,7 +33,7 @@ root.append(canvas, overlay, pickBtn, pick);
 const WORLDS = ['아기방 장난감 상자', '바닷가 언덕 마을', '동화 성 놀이공원'];
 let world = 1;
 const ctx = canvas.getContext('2d')!;
-const aspect = g.aspect ?? 1.45;
+let aspect = g.aspect ?? 1.45; // ✏️ S013: 화면 높이로 늘림(🎨 ART §6 390 레이아웃 · 1.45~1.90)
 
 let s: ShopState = g.create(1), running = false, acc = 0, last = 0, keyboard = false, spaceDown = false;
 let pointer: { x: number; y: number } | null = null, latch: { x: number; y: number } | null = null, cursor = { x: 0.5, y: 0.6 };
@@ -73,7 +73,9 @@ document.addEventListener('visibilitychange', () => (document.hidden ? sfx.sleep
 function size() {
   const dpr = window.devicePixelRatio || 1;
   const head = document.querySelector('header')?.getBoundingClientRect().height ?? 44;
-  W = Math.max(240, Math.min(root.clientWidth, 460, (window.innerHeight - head - 8) / aspect));
+  const avail = window.innerHeight - head - 8, w0 = Math.max(240, Math.min(root.clientWidth, 460));
+  aspect = setAspect(avail / w0);
+  W = Math.max(240, Math.min(w0, avail / aspect));
   H = W * aspect;
   canvas.style.width = `${W}px`;
   canvas.style.height = `${H}px`;
@@ -196,6 +198,7 @@ function loop(now: number) {
     latch = null;
     const st0 = s.stage;
     g.step(s, input);
+    if (s.menu) (s.menu = false), showPick(); // 도구 줄 🗺️ 판(✏️ S013)
     if (s.stage !== st0) keepStars();
     if (g.over(s)) return end();
   }
