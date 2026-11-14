@@ -13,10 +13,10 @@ import { STAGES, apply, cloneSim, freeM, stuckM, viewOf, screwshop as g, screwsh
 export interface Try { ok: boolean; stars: number; sec: number; peak: number; best: number; shot: number; taps: number }
 
 /** k판을 한 번 도전(첫 결과가 나올 때까지) */
-export function tryStage(bot: Bot<ShopState>, seed: number, k: number, maxSec = 600): Try {
+export function tryStage(bot: Bot<ShopState>, seed: number, k: number, maxSec = 600, hand = seed): Try {
   const s = g.create(seed);
   if (k) startStage(s, k);
-  const rng = mulberry32(seed ^ 0x9e3779b9), t0 = s.t;
+  const rng = mulberry32(hand ^ 0x9e3779b9), t0 = s.t; // hand: 같은 판을 다른 손으로 (🧪 S003)
   while (s.phase !== 'result' && s.t - t0 < maxSec * 60) g.step(s, bot.act(s, rng));
   const ok = s.phase === 'result' && s.ok;
   return { ok, stars: ok ? starsOf(STAGES[k], s.S) : 0, sec: (s.t - t0) / 60, peak: s.S.peak, best: s.S.best, shot: s.S.shot, taps: s.S.taps };
@@ -156,7 +156,7 @@ export function measure(seeds = 12) {
   stages.forEach((row, k) => {
     let first = 0, three = 0;
     for (let i = 0; i < seeds; i++) {
-      const tries = [0, 1, 2].map((j) => tryStage(screwshopNewbie, 1000 + i * 7 + j * 100003, k).ok);
+      const tries = [0, 1, 2].map((j) => tryStage(screwshopNewbie, 1000 + i * 7, k, 600, 1000 + i * 7 + j * 100003).ok); // 같은 판 다시 3번
       first += +tries[0];
       three += +tries.some(Boolean);
     }

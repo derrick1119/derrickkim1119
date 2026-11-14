@@ -734,7 +734,7 @@ export function blameText(L: Level, H: { s: number }[], b: Why, fail: number): [
     case '①깔림': return ['맞는 색 나사는 판자 밑에서 쿨쿨…', '위 판자부터 풀면 맞는 색이 나와요'];
     case '①잠김': return ['맞는 색 나사는 🔒 안에서 쿨쿨…', '🔑 열쇠 나사부터 빼요'];
     case '②진자': return [fail === 2 ? '빙글 판자가 나사를 이불처럼 덮음' : '빙글 판자가 나사를 덮었어요', '다른 나사를 남기면 덮지 않아요'];
-    case '②못': return ['못 날개가 나사를 깔고 앉았어요', '못 날개는 밑 나사부터 빼요'];
+    case '②못': return ['못 날개가 나사를 깔고 앉았어요', '꾹 눌러 ⚠ 뜨는 나사는 맨 나중에!']; // 🧪 S003: '밑'이 모호
     case '③통나무': return ['통나무가 먼저 쿵! 와르르 0', '판자를 다 매단 뒤 통나무를 톡!'];
     case '③허공': return ['망치는 허공에 쾅, 나사는 빈칸', '망치 옆 나사를 먼저 톡 → 끄덕 쾅!'];
   }
@@ -1573,7 +1573,7 @@ function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.save();
-  ctx.translate(cx, Y(1.185) + oy);
+  ctx.translate(cx, Y(1.17) + oy);
   ctx.rotate(age < 30 ? 0.04 * Math.sin(age * 0.6) * (1 - age / 30) : 0);
   font(0.05, 900);
   ctx.lineWidth = 4;
@@ -1582,7 +1582,8 @@ function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   ctx.fillStyle = '#fff1d6';
   ctx.fillText(s.why, 0, 0);
   ctx.restore();
-  for (const [txt, yy, sz, col] of [[line, 1.235, 0.033, '#ffd9a8'], [tip ? `💡 ${tip}` : '', 1.272, 0.028, '#fff1d6']] as const) {
+  // 🧪 S003: 💡가 버튼에 잘리던 것 → 두 줄을 위로
+  for (const [txt, yy, sz, col] of [[line, 1.215, 0.033, '#ffd9a8'], [tip ? `💡 ${tip}` : '', 1.25, 0.028, '#fff1d6']] as const) {
     let f = sz;
     font(f, 800);
     while (ctx.measureText(txt).width > R(0.64) && f > 0.022) font((f -= 0.001), 800);
@@ -2931,12 +2932,12 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       // 별 이유: 얻은 값 / 목표 (S002, 허들 ①)
       const ok2 = d.B !== undefined ? S.bonks >= d.B : S.peak <= d.P, ok3 = d.B !== undefined ? s.got === 3 : star3(d, S);
       const t2 = d.B !== undefined ? `🔨 쾅 ${S.bonks} / ${d.B}` : `빈칸 ${S.peak} / ${d.P}`;
-      const t3 = d.B !== undefined ? (ok2 ? `빈칸 ${S.peak} / ${d.P}` : `빈칸은 쾅 ${d.B} 다음`) : d.H !== undefined ? `한 방 ${S.shot} / ${d.H}` : d.T !== undefined ? `톡 ${S.taps} / ${d.T}` : `연속 쏙 ${S.best} / ${d.C}`;
+      const t3 = d.B !== undefined ? (ok2 || S.peak > d.P ? `빈칸 ${S.peak} / ${d.P}` : `🔒 빈칸 ${S.peak} / ${d.P}`) : d.H !== undefined ? `한 방 ${S.shot} / ${d.H}` : d.T !== undefined ? `톡 ${S.taps} / ${d.T}` : `연속 쏙 ${S.best} / ${d.C}`;
       font(0.04, 900);
       ctx.fillStyle = ok2 ? '#c8ffc8' : '#ffb36b';
       ctx.fillText(`${ok2 ? '✓' : '✗'} ${t2}`, w / 2 - R(0.2), Y(0.815));
       ctx.fillStyle = ok3 ? '#c8ffc8' : '#ffb36b';
-      ctx.fillText(`${ok3 ? '✓' : d.B !== undefined && !ok2 ? '☆' : '✗'} ${t3}`, w / 2 + R(0.2), Y(0.815));
+      ctx.fillText(`${ok3 ? '✓' : d.B !== undefined && !ok2 && S.peak <= d.P ? '' : '✗'} ${t3}`, w / 2 + R(0.2), Y(0.815));
       if (s.got < 3) {
         // 방법 한 줄 (🧪 S002 ③: ✗만 있고 '어떻게'가 없다)
         font(0.032, 800);
@@ -2966,7 +2967,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       ...(d.B !== undefined
         ? [
             { txt: `🔨 쾅 ${d.B}번`, st: S.bonks >= d.B ? true : bonkDead(d, s.L, S) ? false : null },
-            { txt: `+빈칸 ${d.P}`, st: bonkDead(d, s.L, S) || S.peak > d.P ? false : s.phase === 'result' && s.ok && s.got === 3 ? true : null },
+            { txt: `+빈칸 ${d.P}${bonkDead(d, s.L, S) && S.peak <= d.P ? ' 🔒' : ''}`, st: S.peak > d.P ? false : s.phase === 'result' && s.ok && s.got === 3 ? true : null }, // 🧪 S003: 빈칸은 지켰는데 ✗는 사실과 다름 → 🔒
           ]
         : [
       { txt: d.P === 0 ? '빈칸 안 쓰기' : `빈칸 ${d.P}칸까지`, st: S.peak > d.P ? false : s.phase === 'result' && s.ok ? true : null },
@@ -2996,7 +2997,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     let tip = '👆 나사를 톡! 누르고 있으면 갈 곳이 보여요';
     if (s.stage === 0 && s.taps === 0) tip = '👆 나사를 톡 — 같은 색 상자로 쏙!';
     else if (s.down && s.press >= 0) tip = '떼면 쏙! · 나사 밖에서 떼면 취소';
-    else if (s.phase === 'result') tip = s.ok ? (s.got < 3 ? '↺ 왼쪽: 같은 장난감 다시 · 오른쪽: 다음 판' : '다음 장난감이 와요!') : '같은 장난감을 다시 — 이번엔 미리 보고 톡';
+    else if (s.phase === 'result') tip = s.ok ? (s.got < 3 ? '↺ 다시(★3 도전) 또는 다음 판 — 버튼을 톡' : '다음 장난감이 와요!') : '같은 장난감을 다시 — 이번엔 미리 보고 톡';
     else if (S.slots.length >= 4) tip = '⚠ 빈칸이 하나 남았어요 — 상자 색을 골라 빼요!';
     else if (!S.key) tip = '🔒 자물쇠 나사는 🔑 열쇠 나사를 빼야 풀려요';
     else tip = d.tip; // 📐: 1판도 첫 톡 뒤엔 판 팁

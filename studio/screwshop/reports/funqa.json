@@ -20,8 +20,8 @@
   "smartShot": 1.75,
   "mashShot": 1.45,
   "smartSec": 7.21,
-  "newbie3_13": 0.42,
-  "newbie3_avg": 0.86,
+  "newbie3_13": 0.33,
+  "newbie3_avg": 0.79,
   "humanSec": [
    36,
    56,
@@ -272,7 +272,7 @@
    },
    "newbie": {
     "clear1": 0.21,
-    "clear3": 0.42
+    "clear3": 0.33
    }
   },
   {
@@ -352,7 +352,7 @@
    },
    "newbie": {
     "clear1": 0.54,
-    "clear3": 0.96
+    "clear3": 0.71
    }
   },
   {
@@ -512,7 +512,7 @@
    },
    "newbie": {
     "clear1": 0.42,
-    "clear3": 0.92
+    "clear3": 0.75
    }
   },
   {
@@ -672,7 +672,7 @@
    },
    "newbie": {
     "clear1": 0.33,
-    "clear3": 0.63
+    "clear3": 0.58
    }
   }
  ]
