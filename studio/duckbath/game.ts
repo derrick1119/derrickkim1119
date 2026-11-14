@@ -64,6 +64,8 @@ interface StageDef {
   /** [x0, y0, x1, y1, dx, dy] — 이 네모 안에서는 (dx,dy) 쪽으로 계속 흐른다 */
   streams?: number[][];
   slicks?: number[][];
+  /** D015 🎈 물풍선 [x, y] (CONTENT §2): 진짜 물결 앞머리가 지나가면 그 자리에서 찰박 한 번 · 톡 안 씀 · 연쇄 · 오리와 안 부딪힘 */
+  balloons?: number[][];
   taps: number;
   par: number;
   /** 실패 카드 팁(없으면 hint). 1판 hint는 별 조건이라 실패 이유가 아니다 (🧪 D005) */
@@ -297,9 +299,10 @@ interface Nest { x: number; y: number; r: number; col: number; dock: boolean; mo
 interface Circle { x: number; y: number; r: number }
 interface Stream { x0: number; y0: number; x1: number; y1: number; dx: number; dy: number }
 interface Drain { x: number; y: number; r: number; pr: number; pw: number }
-interface Layout { nests: Nest[]; islands: Circle[]; drains: Drain[]; streams: Stream[]; slicks: Circle[] }
+interface Layout { nests: Nest[]; islands: Circle[]; drains: Drain[]; streams: Stream[]; slicks: Circle[]; balloons: { x: number; y: number }[] }
 /** pen = 이번 판에서 쏙·꿀꺽으로 재등장한 횟수 (= 잃은 톡 수, CONTENT §0) */
-interface Sim { pen: number; t: number; objs: Obj[]; rings: Ring[]; rid: number; awake: boolean; L: Layout }
+/** popped: 🎈 터진 풍선 비트 (미리 보기·봇 복제가 같이 가져간다) */
+interface Sim { pen: number; t: number; objs: Obj[]; rings: Ring[]; rid: number; awake: boolean; L: Layout; popped: number }
 interface Ev { t: number; kind: string; x: number; y: number; text?: string; col?: string }
 
 export interface DuckState extends Sim {
@@ -457,6 +460,24 @@ function phys(S: Sim, E: DuckState | null) {
       }
     }
   }
+  // 1½) 🎈 물풍선: 진짜 물결(im 0)의 앞머리가 지나가는 틱에 터져 그 자리에서 찰박 (섬 그늘이면 안 터짐 · 한 번만 · 연쇄는 다음 틱부터)
+  if (L.balloons.length) {
+    const pop: number[] = [];
+    for (const g of S.rings)
+      L.balloons.forEach((b, j) => {
+        if ((S.popped >> j) & 1 || pop.includes(j)) return;
+        const d = Math.hypot(b.x - g.x, b.y - g.y);
+        if (d > g.r || d < g.r - RS) return;
+        if (L.islands.length && shadow(L, g.x, g.y, g.x, g.y, b.x, b.y, 0)) return;
+        pop.push(j);
+      });
+    for (const j of pop) {
+      const b = L.balloons[j];
+      S.popped |= 1 << j;
+      splash(S, b.x, b.y);
+      if (E) ev(E, 'balloon', b.x, b.y, '팡! 🎈'), see(E, 'balloon', '🎈 물풍선 — 물결이 닿으면 팡! 한 번 더 찰박');
+    }
+  }
   // 2) 흐름 · 배수구 · 상어 · 마찰 · 벽 · 섬 · 둥지
   for (let i = 0; i < objs.length; i++) {
     const o = objs[i];
@@ -591,7 +612,7 @@ function verdict(S: Sim) {
 }
 
 function clone(S: Sim): Sim {
-  return { pen: S.pen, t: S.t, objs: S.objs.map((o) => ({ ...o })), rings: S.rings.map((g) => ({ ...g, hit: g.hit.slice() })), rid: S.rid, awake: S.awake, L: S.L };
+  return { pen: S.pen, t: S.t, objs: S.objs.map((o) => ({ ...o })), rings: S.rings.map((g) => ({ ...g, hit: g.hit.slice() })), rid: S.rid, awake: S.awake, L: S.L, popped: S.popped };
 }
 /** 잔잔해질 때까지(또는 끝날 때까지) 돌린다 */
 function run(S: Sim, maxT: number) {
@@ -621,7 +642,9 @@ function newStage(s: DuckState) {
     drains: (d.drains ?? []).map(([x, y]) => ({ x: fx(x), y, r: SUCK_R, pr: d.pullR ?? PULL_R, pw: d.pull ?? PULL })),
     streams: (d.streams ?? []).map(([x0, y0, x1, y1, dx, dy]) => (jt.flip ? { x0: W - x1, y0, x1: W - x0, y1, dx: -dx, dy } : { x0, y0, x1, y1, dx, dy })),
     slicks: (d.slicks ?? []).map(([x, y, r]) => ({ x: fx(x), y, r })),
+    balloons: (d.balloons ?? []).map(([x, y]) => ({ x: fx(x), y })),
   };
+  s.popped = 0;
   s.objs = [];
   for (const [x, y, col, zz] of d.ducks) s.objs.push({ ...mk(DUCK, col, fx(x) + J(0.02), y + J(0.02)), zz: zz ? 1 : 0 });
   s.objs.push(mk(GOLD, 0, fx(d.gold[0]) + J(0.02), d.gold[1] + J(0.02)));
@@ -785,7 +808,7 @@ export const duckbath: GameDef<DuckState> = {
     const jit = STAGES.map((d) => jitFor(seed, d.id));
     const s = {
       pen: 0, penA: 0, sucks: 0, chomps: 0, rng, seed, t: 0, objs: [], rings: [], rid: 0, awake: false,
-      L: { nests: [], islands: [], drains: [], streams: [], slicks: [] },
+      L: { nests: [], islands: [], drains: [], streams: [], slicks: [], balloons: [] }, popped: 0,
       stage: 0, phase: 'play', pt: 0, jit, taps: 0, used: 0, lastTap: 0, stageTries: 0, stars: 0, got: 0, starOk: [false, false, false], pts: 0, manual: false, best: STAGES.map(() => 0), bestPts: STAGES.map(() => 0),
       ok: false, why: '', down: false, aim: null, seen: new Set<string>(), newsQ: [], news: null, events: [], dead: false, won: false, catT: -999, tries: 0, crisisT: -1, firstTap: false, again: false,
     } as DuckState;
@@ -2002,6 +2025,36 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
       ctx.fill();
     }
   }
+  // 🎈 물풍선 (CONTENT §2 그림 단서 · 🎨: 빨강은 위험 색이라 파랑·보라) — 살랑살랑 + 꼭지 매듭 + 끈
+  L.balloons.forEach((b, j) => {
+    if ((s.popped >> j) & 1) return;
+    const bx = SX(b.x, b.y) + (CALM ? 0 : Math.sin(t * 0.06 + j * 2) * R(0.004)), by = SY(b.y), br = R(0.032 * dep(b.y));
+    ctx.fillStyle = 'rgba(0,55,80,.22)';
+    ctx.beginPath();
+    ctx.ellipse(bx, by + br * 0.9, br * 1.1, br * 0.35, 0, 0, Math.PI * 2);
+    ctx.fill();
+    const g = ctx.createRadialGradient(bx - br * 0.35, by - br * 0.5, br * 0.1, bx, by - br * 0.2, br * 1.2);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(0.25, j % 2 ? '#c9b6ff' : '#9fd8ff');
+    g.addColorStop(1, j % 2 ? '#7048e8' : '#1c7ed6');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(bx, by - br * 0.2, br * 0.9, br, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = j % 2 ? '#5f3dc4' : '#1864ab';
+    ctx.beginPath();
+    ctx.moveTo(bx, by + br * 0.75);
+    ctx.lineTo(bx - br * 0.22, by + br * 1.0);
+    ctx.lineTo(bx + br * 0.22, by + br * 1.0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.7)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(bx, by + br);
+    ctx.quadraticCurveTo(bx + br * 0.4, by + br * 1.4, bx - br * 0.1, by + br * 1.7);
+    ctx.stroke();
+  });
   // 물줄기 흐름
   for (const st of L.streams) {
     ctx.fillStyle = 'rgba(255,255,255,.12)';
@@ -2488,6 +2541,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     const x = SX(e.x, e.y), y = e.kind === 'cat' ? Y(WY0 - 0.15) : SY(e.y);
     if (e.kind === 'splash') fx.burst(x, y, '#ffffff', 22, 3.6, 2.6), fx.burst(x, y, '#8fe6ff', 14, 2.8, 2.2), fx.ring(x, y, '#ffffff', R(0.1), 4), fx.kick(3), say(x, y - R(0.05), e.text!, '#ffffff', 17);
     if (e.kind === 'quack') fx.burst(x, y - R(0.02), '#ffffff', 6, 1.8, 1.8), say(x, y - R(0.07), e.text!, e.col ?? '#fff3a0', 13);
+    if (e.kind === 'balloon') fx.burst(x, y, '#9fd8ff', 16, 3.2, 2.2), fx.burst(x, y, '#ffffff', 8, 2.4, 1.8), fx.kick(3), say(x, y - R(0.07), e.text!, '#dff4ff', 15);
     if (e.kind === 'pong') (CALM || fx.burst(x + R(0.04), y - R(0.02), '#ffffff', 5, 1.8, 1.6)), say(x, y - R(0.09), e.text!, '#dff4ff', 14);
     if (e.kind === 'wake') fx.burst(x, y - R(0.04), '#5b7cfa', 10, 2.6, 2.2), fx.burst(x, y - R(0.03), '#ffffff', 8, 2, 2), say(x, y - R(0.08), e.text!, '#dfe6ff', 15);
     if (e.kind === 'refl') fx.ring(x, y, '#bff3ff', R(0.06), 2), say(x, y - R(0.07), e.text!, '#bff3ff', 13);

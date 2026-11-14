@@ -156,6 +156,45 @@ describe('욕조 물결 오리 시뮬', () => {
     });
   });
 
+  describe('🎈 물풍선 (D015, CONTENT §2: 진짜 물결 앞머리가 지나가면 팡 · 그 자리에서 찰박 · 그늘이면 안 터짐 · 한 번만 · 연쇄)', () => {
+    const idle = { tap: false, dir: 0 as const, pointer: null };
+    const ready = (i: number) => {
+      const s = g.create(3);
+      startStage(s, i);
+      while (s.phase !== 'play' || s.pt < 2) g.step(s, idle);
+      return s;
+    };
+    it('물결이 닿으면 한 번 터져 그 자리에서 새 물결이 생기고, 다시는 안 터진다', () => {
+      const s = ready(0);
+      s.L.balloons = [{ x: 0.5, y: 0.25 }];
+      s.rings = [{ id: s.rid++, x: 0.5, y: 0.45, r: 0, hit: [0, 0, 0, 0, 0] }];
+      let k = 0;
+      while (!(s.popped & 1) && k++ < 80) g.step(s, idle);
+      expect(s.popped & 1).toBe(1);
+      expect(s.rings.some((r) => r.x === 0.5 && r.y === 0.25)).toBe(true);
+      const n = s.rings.length;
+      s.rings.push({ id: s.rid++, x: 0.5, y: 0.45, r: 0, hit: [0, 0, 0, 0, 0] });
+      for (k = 0; k < 40; k++) g.step(s, idle);
+      expect(s.rings.filter((r) => r.x === 0.5 && r.y === 0.25).length).toBeLessThanOrEqual(1);
+      expect(n).toBeGreaterThan(0);
+    });
+    it('풍선 물결이 다른 풍선을 터뜨린다(연쇄) — 첫 물결이 닿지 않는 풍선도', () => {
+      const s = ready(0);
+      s.L.balloons = [{ x: 0.3, y: 0.6 }, { x: 0.3, y: 0.2 }];
+      s.rings = [{ id: s.rid++, x: 0.9, y: 0.6, r: 0.25, hit: [0, 0, 0, 0, 0] }];
+      for (let k = 0; k < 150; k++) g.step(s, idle);
+      expect(s.popped).toBe(3);
+    });
+    it('섬 그늘에 있는 풍선은 안 터진다', () => {
+      const s = ready(0);
+      s.L.islands = [{ x: 0.5, y: 0.5, r: 0.09 }];
+      s.L.balloons = [{ x: 0.5, y: 0.66 }];
+      s.rings = [{ id: s.rid++, x: 0.5, y: 0.3, r: 0, hit: [0, 0, 0, 0, 0] }];
+      for (let k = 0; k < 60; k++) g.step(s, idle);
+      expect(s.popped).toBe(0);
+    });
+  });
+
   it('판 흔들기는 (시드, 판 id)로만 정해진다 — 판을 끼워 넣어도 다른 판의 흔들림·뒤집힘이 그대로 (D010)', () => {
     const s = g.create(1007);
     STAGES.forEach((d, i) => expect(s.jit[i]).toEqual(jitFor(1007, d.id)));
