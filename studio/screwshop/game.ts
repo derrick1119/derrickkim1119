@@ -169,7 +169,7 @@ export const STAGES: StageDef[] = [
   {
     // 📐 S007 8판 🚀 로켓 — 🔑 발사 태엽(🔒 5) + 🌀 지느러미가 해치를 친다. 해치(나사 둘)가 🔑를 덮는다:
     //   어느 해치 나사를 남겨 매다느냐(진자)가 🔑를 드러내며 🌀가 칠 나사를 남겨 두고, 상자 둘이 맞을 때 🔑를 톡 → 쏙 한 방 7
-    key: 'rocket', name: '로켓', emoji: '🚀', news: '🚀 발사! 🔑 하나로 🔒 다섯이 한꺼번에', tip: '🚀 해치는 🔑 쪽 나사만 빼고 하나는 남겨요', tip2: '🚀 🔒 색 상자 둘이 열릴 때까지 🔑를 아껴요', boxes: 2, colors: 6, P: 2, C: 6, H: 7, wind: true,
+    key: 'rocket', name: '로켓', emoji: '🚀', news: '🚀 발사! 🔑 하나로 🔒 다섯이 한꺼번에', tip: '🚀 해치를 매달아 🔑를 드러내요 — 꾹 눌러 봐요', tip2: '🚀 🔒 색 상자 둘이 열릴 때까지 🔑를 아껴요', boxes: 2, colors: 6, P: 2, C: 6, H: 7, wind: true,
     // 나사 번호: #0 #1 발사대 · #2~#5 몸통(위·창 밑·🔒왼·🔒오른) · #6 🔒 불꽃 · #7 🔒 🌀 왼 날개(→ 해치) · #8 🔒 오른 날개 · #9 #10 왼 부스터 · #11 #12 오른 부스터 · #13 🪟 창 · #14 코 · #15 🔑 · #16 #17 해치(왼·오른)
     toy: () => [
       plate(0.5, 1.125, 0.62, 0.055, 0, 0.0275, '#7d7f86', [[0.25, 1.125], [0.75, 1.125]], { deco: 'rail' }),
@@ -1459,9 +1459,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     drawPlank(ctx, s, k, plankXf(s, k), X, Y, R, t);
     for (const i of L.ps[k]) {
       if ((S.gone >> i) & 1) continue;
-      drawScrew(ctx, X(L.px[i]), Y(L.py[i]), R(SR) * (i === pressK ? 0.9 : 1), L.col[i], 0, { lock: !S.key && !!((L.lockM >> i) & 1), key: !!((L.keyM >> i) & 1), t, hot: i === pressK, tick: L.tmr[i] ? L.tmr[i] - S.taps : 0 });
+      drawScrew(ctx, X(L.px[i]), Y(L.py[i]), R(SR) * (i === pressK ? 0.9 : 1), L.col[i], 0, { lock: !S.key && !!((L.lockM >> i) & 1), key: !!((L.keyM >> i) & 1), t, hot: i === pressK });
     }
   }
+  for (let i = 0; i < L.N; i++) if (L.tmr[i] && !((S.gone >> i) & 1) && !s.pv[L.owner[i]].fall) tickBadge(ctx, X(L.px[i]), Y(L.py[i]), R(SR), L.tmr[i] - S.taps, t); // 🧪 S007: ⏰는 판자·유리 위에
   // 못 날개 경고: 나사 하나 남은 못 판자가 매달릴 자리와 거기 깔릴 나사(⚠)를 늘 흐리게
   for (let k = 0; k < L.pl.length; k++) {
     const P = L.pl[k], rem = L.pm[k] & ~S.gone;
@@ -1624,7 +1625,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       if (bad) say(x, y, `한 방 ${h}`, '#d8c3a5', 16);
       else {
         const sz = h >= 5 ? Math.min(40, 28 + 2 * h) : [0, 0, 20, 26, 32][h], col = h >= 5 ? '#ffffff' : ['', '', '#cfefff', '#8fe3ff', '#6fd6ff'][h];
-        say(x, y, h >= 5 ? `💥 한 방 ${h}!` : h === 4 ? '한 방 4!!' : h === 3 ? '한 방 3!' : '한 방 2', col, sz, true); // 겹치면 비켜 선다(🧪 S001)
+        if (h >= 7) say(w / 2, Y(0.62), `💥 한 방 ${h}!`, '#ffd166', 46, true), fx.hold(8), fx.blink('#fff1a8', 0.28); // 🧪 S007: 8판 💥7은 화면 가운데 금색 + 멈춤
+        else say(x, y, h >= 5 ? `💥 한 방 ${h}!` : h === 4 ? '한 방 4!!' : h === 3 ? '한 방 3!' : '한 방 2', col, sz, true); // 겹치면 비켜 선다(🧪 S001)
         fx.burst(x, y, '#8fe3ff', [0, 0, 6, 10, 16][Math.min(4, h)] || 24, 3.4, 2.2);
         if (h >= 3) fx.ring(x, y, '#8fe3ff', R(0.06 + 0.06 * Math.min(3, h - 2)), 3 + Math.min(2, h - 3)), fx.hold(Math.min(5, h)), fx.kick(h >= 5 ? 7 : h === 4 ? 5 : 3), setMood(s, h >= 4 ? 'cheer' : 'wow');
         if (h >= 4) fx.burst(x, y, '#ffffff', h >= 5 ? 12 : 8, 4, 2), fx.blink('#dff6ff', h >= 5 ? 0.18 : 0.1);
@@ -1678,7 +1680,7 @@ function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
       const m = L.cov[b.k][poseOf(L, b.k, S.gone)] & L.all & ~S.gone;
       for (let i = L.N; i--; ) if ((m >> i) & 1 && (!f || S.box.includes(L.col[i]))) (C = [L.px[i], L.py[i]]), (f = 1);
     }
-    const cx = X(C[0]), cy = Y(C[1]), a = Math.atan2(cy - y, cx - x), dd = (Math.hypot(cx - x, cy - y) - rho - R(0.05)) * Math.min(1, age / 12 - 0.8), ex = x + Math.cos(a) * (rho + dd), ey = y + Math.sin(a) * (rho + dd);
+    const cx = X(Math.max(0.05, Math.min(0.95, C[0]))), cy = Y(Math.max(0.05, C[1])), a = Math.atan2(cy - y, cx - x), dd = (Math.hypot(cx - x, cy - y) - rho - R(0.05)) * Math.min(1, age / 12 - 0.8), ex = x + Math.cos(a) * (rho + dd), ey = y + Math.sin(a) * (rho + dd); // 🧪 S007: 화살표 끝 C를 캔버스 안에 가둠
     ctx.save();
     if (hg && hg.k === 'fall') {
       ctx.save();
@@ -1962,6 +1964,24 @@ function drawMark(ctx: CanvasRenderingContext2D, x: number, y: number, r: number
   ctx.restore();
 }
 
+/** ⏰ 째깍 배지: 남은 톡 수 — 🧪 S007: 판자·유리 위에 따로 그린다(유리 밑 ⏰가 안 보이던 것), 주황 바탕 · 2 이하면 빨강 흔들 */
+function tickBadge(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, n: number, t: number) {
+  const cx = x + r * 0.95, cy = y - r * 0.95, cr = Math.max(8, r * 0.7), hot = n <= 2;
+  const sh = hot ? Math.sin(t * 0.6) * 1.5 : 0;
+  ctx.fillStyle = hot ? '#ff5a4f' : '#ffb347';
+  ctx.strokeStyle = '#3a2210';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx + sh, cy, cr, 0, TAU);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = hot ? '#ffffff' : '#3a2210';
+  ctx.font = `900 ${Math.max(11, cr * 1.25)}px system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(String(n), cx + sh, cy + 1);
+  ctx.textBaseline = 'alphabetic';
+}
 function drawScrew(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, col: number, rot: number, o: { lock?: boolean; key?: boolean; t: number; hot?: boolean; tick?: number }) {
   const c = col >= 0 ? COLS[col] : '#9aa0a8';
   // 박힌 구멍 그림자
@@ -2016,24 +2036,7 @@ function drawScrew(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
     ctx.fillStyle = '#5a4008';
     ctx.fillRect(lx - lw * 0.06, ly - lw * 0.15, lw * 0.12, lw * 0.28);
   }
-  if (o.tick) {
-    // 째깍 시계: 남은 톡 수
-    const cx = x + r * 0.95, cy = y - r * 0.95, cr = Math.max(7, r * 0.62), hot = o.tick <= 2;
-    const sh = hot ? Math.sin(o.t * 0.6) * 1.5 : 0;
-    ctx.fillStyle = hot ? '#ff5a4f' : '#fff6e0';
-    ctx.strokeStyle = '#3a2210';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(cx + sh, cy, cr, 0, TAU);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = hot ? '#ffffff' : '#3a2210';
-    ctx.font = `900 ${Math.max(11, cr * 1.25)}px system-ui, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(String(o.tick), cx + sh, cy + 1);
-    ctx.textBaseline = 'alphabetic';
-  }
+  if (o.tick) tickBadge(ctx, x, y, r, o.tick, o.t);
   if (o.key) {
     const kx = x + r * 0.95, ky = y - r * 0.95;
     ctx.fillStyle = '#ffd34d';
@@ -2655,6 +2658,12 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       font(0.03, 900);
       if (!pre.rec.some((c) => c.k === 'crash' && (c.p === e.p || L.pl[e.p].heavy))) pill(ctx, X(tr.cx), Y(tr.cy) + dy + R(0.02), '⬇ 덜컹', '#ffe9c4', R(0.044)); // 🧪 S005: 🪵에 맞을 판자와 🪵 자신의 '덜컹'은 생략(우수수 알약을 덮던 것)
       if (P.kind === 'spring' && P.tgt !== undefined && !pre.rec.some((b) => b.k === 'boing' && b.p === e.p)) pill(ctx, X(tr.cx), Y(tr.cy) + dy - R(0.035), '🌀 💨 허공', '#ffb36b', R(0.044)); // 📐 S006: 칠 판자에 나사가 없다
+    }
+    if (e.k === 'tick') {
+      // 🧪 S007: 이 톡으로 ⏰가 펑 — 상자로 가면 초록, 빈칸이면 주황
+      const to = pre.rec.find((b, j) => j > pre.rec.indexOf(e) && (b.k === 'box' || b.k === 'slot') && b.s === e.s);
+      font(0.03, 900);
+      pill(ctx, X(L.px[e.s]), Y(L.py[e.s]) - R(0.055), to?.k === 'slot' ? '⏰ 펑 → 빈칸' : '⏰ 펑 → 쏙', to?.k === 'slot' ? '#ffb36b' : '#c8ffc8', R(0.044));
     }
     if (e.k === 'boing') {
       ctx.strokeStyle = 'rgba(255,170,90,.95)';
