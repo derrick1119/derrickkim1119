@@ -200,10 +200,56 @@ function goalLine(c: Cam, strong: boolean) {
   ctx.fillText(`목표 ${y}칸`, left[0] + 4, left[1] - 6);
   ctx.globalAlpha = 1;
 }
+/** 쾅 파편(🧪 C004 ②: 섬광 + 파편 ≥ 8). 화면 연출만 — 시뮬과 상관없고, 씨앗이 정해져 있어 매번 같다 */
+interface Bit { x: number; y: number; vx: number; vy: number; life: number; col: string; r: number }
+let bits: Bit[] = [], flash = 0, bitsMax = 0;
+function spawnDebris() {
+  if (!out) return;
+  const c = cam();
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  flash = 1;
+  bits = [];
+  L.blocks.forEach((b, i) => {
+    if (out!.die[i] !== 0) return; // 폭약을 붙인 블록(0틱에 터짐)마다
+    const p = proj(c, b.x + 0.5, b.y + 0.5, b.z + 0.5);
+    for (let k = 0; k < 14; k++) {
+      const a = rnd() * Math.PI * 2, sp = 2 + rnd() * 5;
+      bits.push({ x: p[0], y: p[1], vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 3, life: 30 + rnd() * 20, col: ['#ffe14d', '#ff9f1c', '#ff6150', '#e7b36a'][k % 4], r: 2 + rnd() * 3 });
+    }
+  });
+  bitsMax = Math.max(bitsMax, bits.length);
+}
+function drawDebris(dt: number) {
+  for (const p of bits) {
+    p.x += p.vx * dt * 60;
+    p.y += p.vy * dt * 60;
+    p.vy += 0.35 * dt * 60;
+    p.life -= dt * 60;
+    if (p.life <= 0) continue;
+    ctx.globalAlpha = Math.min(1, p.life / 20);
+    ctx.fillStyle = p.col;
+    ctx.fillRect(p.x - p.r, p.y - p.r, p.r * 2, p.r * 2);
+  }
+  ctx.globalAlpha = 1;
+  bits = bits.filter((p) => p.life > 0);
+  if (flash > 0) {
+    ctx.fillStyle = `rgba(255,255,240,${(0.55 * flash).toFixed(3)})`;
+    ctx.fillRect(0, 0, W, H);
+    flash = Math.max(0, flash - dt * 6);
+  }
+}
+/** 결과 한 줄 (꼬리표·결과 글 공용) */
+function verdict(o: Outcome3): { ok: boolean; text: string } {
+  if (!o.moved) return { ok: false, text: '꿈쩍 안 함' };
+  if (o.hits.some((h) => h > 0)) return { ok: false, text: '💥 이웃집을 쳐요' };
+  if (!o.ok) return { ok: false, text: `아직 높아요 (${o.height}칸 > 목표 ${L.goal}칸)` };
+  return { ok: true, text: `철거 성공 ${'★'.repeat(o.stars)}${'☆'.repeat(3 - o.stars)}${o.star[1] ? '' : ' 🥀'}` };
+}
 /** 말풍선 글자표 */
 function tag(x: number, y: number, text: string, bg: string, fg: string) {
-  ctx.font = '800 15px system-ui,sans-serif';
-  const w = ctx.measureText(text).width + 16;
+  ctx.font = '800 16px system-ui,sans-serif';
+  const w = Math.min(W - 8, ctx.measureText(text).width + 18);
   ctx.fillStyle = bg;
   ctx.beginPath();
   ctx.roundRect(x - w / 2, y - 26, w, 24, 12);
@@ -351,6 +397,11 @@ function draw() {
       const blink = 0.9 + 0.1 * Math.sin(performance.now() / 110), lostF = lostFeet(now, nxt), lost = lostF.length;
       for (const [x, z] of lostF) crossAt(c, x, z, blink);
       const b = L.blocks[aim], p = proj(c, b.x + 0.5, b.y + 1.15, b.z + 0.5);
+      // 마지막 폭약을 겨누면 결과 꼬리표 — 2D 판정 말풍선과 같은 정보 (🧪 C005: '꿈쩍처럼 보이는 실패'를 없앤다, F4b ⓑ)
+      if (!ch[aim] && capOf3(L.blocks[aim]) >= left) {
+        const v = verdict(pv);
+        tag(W / 2, 40, `이대로 쾅 → ${v.text}`, v.ok ? '#23785a' : '#c7362e', '#ffffff');
+      }
       if (ch[aim]) tag(p[0], p[1], '떼기', '#3a2a3f', '#fff6e8');
       else if (!pv.moved && !lost && feetKey(now) === feetKey(nxt)) tag(p[0], p[1], '변화 없음', '#7a5a6e', '#fff6e8');
     } else {
@@ -381,7 +432,7 @@ function hudText() {
   const d = STAGES3[stageIx];
   hud.textContent = `🏗️ ${stageIx + 1}. ${d.title} · 🧨 ${left}개 남음`;
   if (out && played()) {
-    const why = out.ok ? `철거 성공! ${'★'.repeat(out.stars)}${'☆'.repeat(3 - out.stars)}` : out.hits.some((h) => h) ? '이웃집을 쳤어요!' : !out.moved ? '꿈쩍도 안 했어요' : `아직 높아요 (${out.height}칸 > ${L.goal}칸)`;
+    const why = verdict(out).text;
     msg.textContent = why;
     again.hidden = false;
     again.textContent = out.ok ? (stageIx + 1 < STAGES3.length ? '다음 판 ▶' : '처음부터') : '다시';
@@ -441,7 +492,7 @@ function loop(now: number) {
   if (out && !played()) {
     const was = bt;
     bt += dt * 60;
-    if (was < 0 && bt >= 0) shake = 1;
+    if (was < 0 && bt >= 0) (shake = 1), spawnDebris();
     if (played()) hudText();
   }
   shake = Math.max(0, shake - dt * 2.5);
@@ -449,6 +500,7 @@ function loop(now: number) {
   ctx.save();
   ctx.translate(sx, 0);
   draw();
+  drawDebris(dt);
   ctx.restore();
   magnifier();
   requestAnimationFrame(loop);
@@ -541,7 +593,7 @@ function centerOf(c: Cam, i: number): [number, number] {
     touch = null;
     hudText();
   },
-  state: () => ({ left, view, done: played(), playing: !!out && !played(), ok: out?.ok ?? null, stars: out?.stars ?? 0, cellPx: cams[0].s }),
+  state: () => ({ bitsMax, left, view, done: played(), playing: !!out && !played(), ok: out?.ok ?? null, stars: out?.stars ?? 0, cellPx: cams[0].s }),
 };
 size();
 hudText();

@@ -98,6 +98,10 @@ const v3 = (L: Layout3, ch: Int8Array) => {
  * 꾹 누르는 동안 확대 말풍선이 겨눈 블록을 보여 주므로, 틀렸으면 **한 번만** 다시 겨눈다(σ 16px 그대로, 말풍선에 그려진 것만 보고).
  * hit = 손을 떼는 순간 적중(판정) · first = 첫 닿음 적중(보고) · miss = 빈칸 취소
  */
+/** F11 표본(블록·시점마다). 게이트 판정은 n ≥ 1000 — 평소 측정은 200 */
+export let F11N = 200;
+export const setF11N = (n: number) => void (F11N = n);
+
 export function fingerHit(c: Cam, L: Layout3, i: number, n = 200, sigma = 16, seed = 1) {
   const ok = (j: number) => capOf3(L.blocks[j]) > 0, order = drawOrder(c, L.blocks), rng = mulberry32(seed + i * 7919);
   const fc = faces(c, L.blocks[i]).map((f) => ({ f, cx: f.pts.reduce((a, p) => a + p[0], 0) / 4, cy: f.pts.reduce((a, p) => a + p[1], 0) / 4 }))
@@ -256,7 +260,19 @@ export function measureStage3(d: StageDef3) {
     });
     const freeStars = okN ? (flowerAll ? 1 : 0) + (flatAll ? 1 : 0) : 0;
     // F11 (σ16px, 4시점 · 붙일 블록 평균) · F13 (시작 시점, ★3 계획 중 가장 누르기 쉬운 것의 가장 어려운 블록)
-    const hits = taps.map((i) => cams.map((c) => fingerHit(c, L, i)));
+    // v1.3: 통째로 가려진(보이는 넓이 0) 시점에선 ⟳ 해서 보이는 가장 가까운 시점에서 누른다(회전 수 보고)
+    let rotations = 0;
+    const raw = taps.map((i) => cams.map((c) => fingerHit(c, L, i, F11N)));
+    const hits = taps.map((i, k) => cams.map((_, v) => {
+      if (area[v][i] > 0) return raw[k][v];
+      for (const dv of [1, 3, 2]) {
+        const w = (v + dv) % 4;
+        if (area[w][i] > 0) return (rotations += dv === 2 ? 2 : 1), raw[k][w];
+      }
+      return raw[k][v];
+    }));
+    const perBlock = hits.map((h) => h.reduce((a, x) => a + x.hit, 0) / 4);
+    const f11min = perBlock.length ? Math.min(...perBlock) : 1, f11minAt = taps[perBlock.indexOf(f11min)];
     const f11 = taps.length ? hits.reduce((a, h) => a + h.reduce((b, x) => b + x.hit, 0) / 4, 0) / taps.length : 0;
     const f11first = taps.length ? hits.reduce((a, h) => a + h.reduce((b, x) => b + x.first, 0) / 4, 0) / taps.length : 0;
     // F14 v1.2 ⓓ: 속 블록 = 4시점 모두 σ16 적중 < .5
@@ -269,7 +285,7 @@ export function measureStage3(d: StageDef3) {
     return { title: d.title, blocks: L.blocks.length, charges: d.charges, plans, clear: ok / plans, star3: s3 / plans, best, greedyStar3: gStar3 / 20, greedyClear: gClear / 20, firstTapStill: still / open,
       attachable: taps.length, inner, deadFirstTap: deadU, deadFirstTapW: deadW, liveFirstTapReact: react,
       firstTimer5: first5, firstTimer1: p1, cellPx: cellPx(cams[0]), sidePx: cams[0].s * Math.sin(YAW0), startViewStar3MinFaces: Math.max(0, star3Vis),
-      stars: { only1, two, three, freeStars }, f11, f11first, f11miss, f13, innerHit, f4bLive, f4bDead };
+      stars: { only1, two, three, freeStars }, f11, f11first, f11miss, f13, innerHit, f4bLive, f4bDead, f11min, f11minAt: f11minAt === undefined ? '' : `${L.blocks[f11minAt].x},${L.blocks[f11minAt].y},${L.blocks[f11minAt].z}`, rotations };
   }
 }
 
@@ -292,14 +308,15 @@ export function measure() {
 }
 
 if (process.argv[1]?.endsWith('funqa.ts')) {
+  if (process.argv.includes('--n1000')) setF11N(1000);
   const r = measure();
   for (const x of r.stages) console.log(`${x.n} ${x.title.padEnd(10)} 폭약${x.charges} 최선★${x.best} 미리보기★${x.greedy} 버릇★${x.habit} 무작위 성공${(x.random.clear * 100).toFixed(0)}% ★3 ${(x.random.star3 * 100).toFixed(0)}%`);
   console.log(r.summary, r.runs);
   const r3 = measure3D();
   for (const x of r3) console.log(`3D ${x.title} 블록${x.blocks} 폭약${x.charges} 계획${x.plans} 성공${(x.clear * 100).toFixed(1)}% ★3 ${(x.star3 * 100).toFixed(1)}% 최선★${x.best} 미리보기탐욕(동점 무작위) ★3 ${x.greedyStar3} 성공 ${x.greedyClear} 첫 톡 꿈쩍 안 함 ${(x.firstTapStill * 100).toFixed(0)}%`);
-  for (const x of r3) console.log(`   v1.1: 별 기울기 ★1만 ${x.stars.only1} ★2 ${x.stars.two} ★3 ${x.stars.three} 공짜 별 ${x.stars.freeStars} · F11 σ16px 떼는 순간 ${x.f11.toFixed(2)}(첫 닿음 ${x.f11first.toFixed(2)}) 취소 ${x.f11miss.toFixed(2)} · 속(σ16 < .5) ${x.innerHit} · F4b 살아 있는 첫 톡 신호 ${x.f4bLive.toFixed(2)} 죽은 첫 톡 '변화 없음' ${x.f4bDead.toFixed(2)} · F13 ${x.f13.toFixed(2)} · 옆면 ${x.sidePx.toFixed(1)}px`);
+  for (const x of r3) console.log(`   v1.1: 별 기울기 ★1만 ${x.stars.only1} ★2 ${x.stars.two} ★3 ${x.stars.three} 공짜 별 ${x.stars.freeStars} · F11 σ16px 떼는 순간 ${x.f11.toFixed(3)}(첫 닿음 ${x.f11first.toFixed(2)}) 취소 ${x.f11miss.toFixed(3)} 블록별 최저 ${x.f11min.toFixed(3)}@${x.f11minAt} ⟳${x.rotations} · 속(σ16 < .5) ${x.innerHit} · F4b 살아 있는 첫 톡 신호 ${x.f4bLive.toFixed(2)} 죽은 첫 톡 '변화 없음' ${x.f4bDead.toFixed(2)} · F13 ${x.f13.toFixed(2)} · 옆면 ${x.sidePx.toFixed(1)}px`);
   for (const x of r3) console.log(`   FUN v1: 붙일 블록 ${x.attachable}(≤24) 속 ${x.inner}(0) · 죽은 첫 톡 ${x.deadFirstTap.toFixed(2)} 가중 ${x.deadFirstTapW.toFixed(2)} · 살아 있는 첫 톡 반응 ${x.liveFirstTapReact.toFixed(2)} · 처음 봇 1회 ${x.firstTimer1.toFixed(2)} 5회 ${x.firstTimer5.toFixed(2)} · 칸 ${x.cellPx.toFixed(1)}px(≥36) · 시작 시점 ★3 블록 최소 ${x.startViewStar3MinFaces.toFixed(2)}면`);
   const dir = join(import.meta.dirname, 'reports');
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: 'C005', ...r, stages3d: measure3D() }, null, 1) + '\n');
+  writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: 'C006', f11n: F11N, ...r, stages3d: measure3D() }, null, 1) + '\n');
 }
