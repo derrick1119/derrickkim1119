@@ -288,7 +288,7 @@ export const STAGES: StageDef[] = [
     taps: 6, par: 4, ask: '물줄기 옆 배수구 조심 — 황금이까지 다 태워 보내기!', // D003: par 3→4 (FUN E6)
   },
   {
-    id: '3-5', key: 'balloon', news: '🎈 물풍선 — 물결이 닿으면 팡! 한 번 더 찰박', hint: '물풍선은 물결이 닿으면 팡! — 터뜨릴 때를 골라요', failHint: '오리가 풍선보다 위에 있을 때 터지면 되밀려요',
+    id: '3-5', key: 'balloon', news: '🎈 물풍선 — 물결이 닿으면 팡! 한 번 더 찰박', hint: '오리가 풍선을 지나간 뒤에 팡 — 오리 뒤에서 터지면 한 번 더 밀어요', failHint: '오리가 풍선보다 위에 있을 때 터지면 되밀려요',
     // D015 📐 🎈 소개: 풍선은 왼쪽 오리 길목(첫 톡 자리에서 .7 밖) — 지나간 뒤 터지면 한 번 더 밀고, 위에 있을 때 터지면 되밂
     ducks: [[0.3, 0.12, 0], [0.75, 0.2, 0]], gold: [0.5, 0.45], balloons: [[0.42, 0.85]],
     nests: [[0.16, 1.07, 0.15, -1], [0.86, 1.07, 0.15, -1]],
@@ -2051,7 +2051,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
   // 🎈 물풍선 (CONTENT §2 그림 단서 · 🎨: 빨강은 위험 색이라 파랑·보라) — 살랑살랑 + 꼭지 매듭 + 끈
   L.balloons.forEach((b, j) => {
     if ((s.popped >> j) & 1) return;
-    const bx = SX(b.x, b.y) + (CALM ? 0 : Math.sin(t * 0.06 + j * 2) * R(0.004)), by = SY(b.y), br = R(0.032 * dep(b.y));
+    const bx = SX(b.x, b.y) + (CALM ? 0 : Math.sin(t * 0.06 + j * 2) * R(0.004)), by = SY(b.y), br = R(0.04 * dep(b.y)); // 🧪 D015 보완 5: 0.032 → 0.04 + 진한 테두리(거품·공으로 읽히던 것)
     ctx.fillStyle = 'rgba(0,55,80,.22)';
     ctx.beginPath();
     ctx.ellipse(bx, by + br * 0.9, br * 1.1, br * 0.35, 0, 0, Math.PI * 2);
@@ -2064,6 +2064,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     ctx.beginPath();
     ctx.ellipse(bx, by - br * 0.2, br * 0.9, br, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = j % 2 ? '#3b1f8f' : '#0b3d7a';
+    ctx.lineWidth = Math.max(1.5, br * 0.12);
+    ctx.stroke();
     ctx.fillStyle = j % 2 ? '#5f3dc4' : '#1864ab';
     ctx.beginPath();
     ctx.moveTo(bx, by + br * 0.75);
