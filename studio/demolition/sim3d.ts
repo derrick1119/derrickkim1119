@@ -584,3 +584,14 @@ export function bestReach(L: Layout3, ch: Int8Array, need = 3): number {
   rec(0);
   return best;
 }
+
+/**
+ * 결과 글(쾅 뒤 한 줄): verdict3 + 잃은 별 이유 + 딴 별 이유(FUN v1.4 ⓔ — 별 뜻이 바뀌는 손잡이 판은 ★3 = 아끼기라고 말한다).
+ * used = 쾅 순간 붙어 있던 폭약 수.
+ */
+export function resultLine(L: Layout3, o: Outcome3, used: number): string {
+  let s = verdict3(L, o).text;
+  if (o.ok && o.stars < 3) s += !o.star[1] ? ' — 꽃밭을 덮었어요' : L.save !== undefined ? ` — 폭약 ${L.save}개로 깨면 ★` : ' — 더 낮게 무너뜨리면 ★';
+  if (o.ok && o.stars === 3 && L.save !== undefined) s += L.charges - used > 0 ? ` — 🧨 ${L.charges - used}개 아꼈어요!` : ' — 🧨 아껴 썼어요!';
+  return s;
+}

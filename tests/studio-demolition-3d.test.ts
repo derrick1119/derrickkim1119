@@ -4,7 +4,7 @@ import { STAGES, layoutOf, simulate } from '../studio/demolition/game.ts';
 import { STAGES3 } from '../studio/demolition/stages3d.ts';
 import { cellPx, fitCams, visibleArea, YAW0 } from '../studio/demolition/view3d.ts';
 import { fingerHit, measureStage3, plansOf } from '../studio/demolition/funqa.ts';
-import { GAS, bestReach, capOf3, holdTags, isQuiet, lostFeet, support3, verdict3, forEachPlan, from2D, layoutOf3, simulate3, type StageDef3 } from '../studio/demolition/sim3d.ts';
+import { GAS, bestReach, capOf3, holdTags, isQuiet, resultLine, lostFeet, support3, verdict3, forEachPlan, from2D, layoutOf3, simulate3, type StageDef3 } from '../studio/demolition/sim3d.ts';
 
 const stage = (layers: string[][], extra: Partial<StageDef3> = {}): StageDef3 => ({
   key: '', title: 't', news: '', hint: '', W: layers[0][0].length, D: layers[0].length, layers,
@@ -277,5 +277,24 @@ describe('기폭 손잡이·아끼기 엔진 (📐 GDD §4 A안 · C008)', () =>
       const Lh = layoutOf3({ ...d12, charges: 2, save: 2 }), one = simulate3(Lh, ch);
       expect(bestReach(Lh, ch)).toBeGreaterThanOrEqual(one.ok ? one.stars : 0);
     }
+  });
+});
+
+describe('결과 글 — 딴 별·잃은 별 이유 (FUN v1.4 ⓔ)', () => {
+  it('손잡이 판 ★3이면 아낀 이유, ★★☆면 목표 수, 꽃밭이면 꽃밭 · 손잡이 없는 판은 납작 이유', () => {
+    let saw3 = 0, saw2 = 0;
+    for (const d of STAGES3) {
+      const L = layoutOf3(d);
+      plansOf(L, d, (ch) => {
+        const o = simulate3(L, ch), used = ch.reduce((a, v) => a + v, 0), t = resultLine(L, o, used);
+        expect(t.startsWith(verdict3(L, o).text)).toBe(true);
+        if (!o.ok) return;
+        if (o.stars === 3 && d.save !== undefined) (saw3++, expect(t, d.title).toMatch(/아(꼈어요|껴 썼어요)/));
+        if (o.stars < 3 && !o.star[1]) expect(t).toContain('꽃밭을 덮었어요');
+        if (o.stars < 3 && o.star[1]) (saw2++, expect(t).toContain(d.save !== undefined ? `폭약 ${d.save}개로 깨면 ★` : '더 낮게'));
+      });
+    }
+    expect(saw3).toBeGreaterThan(0);
+    expect(saw2).toBeGreaterThan(0);
   });
 });

@@ -4,7 +4,7 @@
  *   · 다 붙이면 결과(쾅 애니메이션·유령은 C004).
  * 키보드: ← → 로 붙일 블록 고르기, 스페이스 누르는 동안 겨눔 → 떼면 붙이기, Q/E 돌리기, R 다시.
  */
-import { GAS, METAL, STONE, bestReach, capOf3, feetKey3, holdTags, lostFeet, verdict3, layoutOf3, simulate3, support3, type Footing, type Layout3, type Outcome3 } from './sim3d.ts';
+import { GAS, METAL, STONE, bestReach, capOf3, feetKey3, holdTags, resultLine, lostFeet, verdict3, layoutOf3, simulate3, support3, type Footing, type Layout3, type Outcome3 } from './sim3d.ts';
 import { STAGES3 } from './stages3d.ts';
 import { aimAt, drawOrder, faces, fitCams, proj, yawOf, type Cam, type Cube } from './view3d.ts';
 
@@ -545,15 +545,11 @@ function hudText() {
     hres.textContent = `지금 쾅 → ${!o.moved ? '꿈쩍 안 함' : o.hits.some((x) => x > 0) ? '💥 이웃집' : !o.ok ? `높이 ${o.height}칸 > ${L.goal}칸` : v.text.replace('철거 성공 ', '성공 ')}`;
   }
   if (out && played()) {
-    const why = verdict(out).text;
-    msg.textContent = why;
+    msg.textContent = resultLine(L, out, used);
     again.hidden = false;
     again.textContent = out.ok ? (stageIx + 1 < STAGES3.length ? '다음 판 ▶' : '처음부터') : '다시';
     // 별이 모자라면 같은 판 '다시'도 (🧪 C004 ⑤)
     retry.hidden = !(out.ok && out.stars < 3);
-    if (out.ok && out.stars < 3) msg.textContent += !out.star[1] ? ' — 꽃밭을 덮었어요' : L.save !== undefined ? ` — 폭약 ${L.save}개로 깨면 ★` : ' — 더 낮게 무너뜨리면 ★';
-    // 딴 별 이유(🧪 C008 ⑤·FUN 제안 ⓔ): 손잡이 판의 ★3은 아끼기
-    if (out.ok && out.stars === 3 && L.save !== undefined && left > 0) msg.textContent += ` — 🧨 ${left}개 아꼈어요!`;
   } else {
     msg.textContent = out ? '3·2·1…' : stuck ? '🚧 막다른 길 · 🧨 톡 하면 떼요' : [d.news, d.hint].filter(Boolean).join(' · ');
     again.hidden = true;
