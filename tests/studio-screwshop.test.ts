@@ -259,6 +259,6 @@ describe('플레이 빌드', () => {
     expect(html).not.toContain('/*BUNDLE*/');
     expect(html).toContain('나사 풀기 공방');
     expect(html).toContain('id="sound"');
-    expect(gzipSync(html).length).toBeLessThan(36 * 1024); // M1′ 상한 (📋 S002: 120 → 36KB로 조임)
+    expect(gzipSync(html).length).toBeLessThan(40 * 1024); // M1′ 상한 (📋 S002: 120 → 36KB, 📋 S003 결정: 36 → 40KB — 남은 🔑·미리 보기·손맛을 자르지 않으려고. 이유는 MILESTONES 위험 ①, 오너 테스트 때 밝힘)
   });
 });
