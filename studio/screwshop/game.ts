@@ -454,6 +454,8 @@ export const starsOf = (d: StageDef, S: Sim) => (d.B !== undefined ? (S.bonks >=
 /** 🔨 아직 칠 수 있는 망치 수: 아직 안 매달렸고 칠 나사가 살아 있음 */
 const live = (L: Level, S: Sim) => L.pl.filter((p, k) => p.ham && poseOf(L, k, S.gone) === 0 && L.hamT[k].some((c) => c.some((i) => !((S.gone >> i) & 1)))).length;
 export const bonkDead = (d: StageDef, L: Level, S: Sim) => d.B !== undefined && S.bonks + live(L, S) < d.B;
+/** 🌻 꽃 머리 판(통나무가 씨 원판): 글자를 '우수수'로 (🧪 S005) */
+const bloomOf = (L: Level) => L.pl.some((p) => p.heavy && p.deco === 'seeds');
 /** 🪵 장전된 판자 수: 아직 남은 통나무가 떨어지면 칠, 통나무 폭 안·아래에 매달린 판자 (removeScrew의 와르르와 같은 판정) */
 const armed = (L: Level, S: Sim) => {
   let n = 0;
@@ -791,7 +793,7 @@ export function blameText(L: Level, H: Hist[], b: Why, fail: number): [string, s
     case '④태엽': return ['태엽을 일찍 뺐어요! 🔒가 빈칸으로', '🔒 바퀴 색 상자가 다 열리면 🔑를 톡!'];
     case '②진자': return [fail === 2 ? '빙글 판자가 나사를 이불처럼 덮음' : '빙글 판자가 나사를 덮었어요', '다른 나사를 남기면 덮지 않아요'];
     case '②못': return ['못 날개가 나사를 깔고 앉았어요', '꾹 눌러 ⚠ 뜨는 나사는 맨 나중에!']; // 🧪 S003: '밑'이 모호
-    case '③통나무': return ['통나무가 먼저 쿵! 와르르 0', '판자를 다 매단 뒤 통나무를 톡!'];
+    case '③통나무': return bloomOf(L) ? ['꽃 머리가 먼저 쿵! 우수수 0', '꽃잎 셋을 매단 뒤 꽃 머리를 톡!'] : ['통나무가 먼저 쿵! 와르르 0', '판자를 다 매단 뒤 통나무를 톡!']; // 🧪 S005: 5판 말 맞추기
     case '③허공': return ['망치는 허공에 쾅, 나사는 빈칸', '망치 옆 나사를 먼저 톡 → 끄덕 쾅!'];
   }
 }
@@ -928,9 +930,9 @@ function playRec(s: ShopState, rec: RE[]) {
     if (e.k === 'crash') {
       // 🪵 와르르: 통나무가 떨어지며 매달린 판자를 차례로 (🎨 §2.2+: 7틱 간격, 위 판자부터)
       const v = L.poses[e.p][Math.max(1, s.pv[e.p].pose)];
-      ev(s, 'crash', v.px, v.py, e.i === 1 ? (L.pl[e.by].deco === 'seeds' ? '우수수!' : '와르르!') : undefined, L.pl[e.p].tone, s.t + delay + SPIN + 6, e.i);
+      ev(s, 'crash', v.px, v.py, e.i === 1 ? (bloomOf(L) ? '우수수!' : '와르르!') : undefined, L.pl[e.p].tone, s.t + delay + SPIN + 6, e.i);
       delay += 7;
-      see(s, 'log', '🪵 통나무 — 떨어지면 밑에 매달린 판자를 와르르!');
+      see(s, 'log', bloomOf(L) ? '🌻 꽃 머리 — 떨어지면 밑에 매달린 꽃잎을 우수수!' : '🪵 통나무 — 떨어지면 밑에 매달린 판자를 와르르!');
       continue;
     }
     if (e.k === 'bonk') {
@@ -2558,7 +2560,7 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       ctx.restore();
       // 🎨 S004: 노란 판자 위 흰 글자가 흐리다 → 어두운 알약, 유령 판자와 같이 내려앉는다(🎯 고리 밑 R(0.05))
       font(0.03, 900);
-      pill(ctx, X(tr.cx), Y(tr.cy) + dy + R(0.02), '⬇ 덜컹', '#ffe9c4', R(0.044));
+      if (!pre.rec.some((c) => c.k === 'crash' && (c.p === e.p || L.pl[e.p].heavy))) pill(ctx, X(tr.cx), Y(tr.cy) + dy + R(0.02), '⬇ 덜컹', '#ffe9c4', R(0.044)); // 🧪 S005: 🪵에 맞을 판자와 🪵 자신의 '덜컹'은 생략(우수수 알약을 덮던 것)
     }
     if (e.k === 'boing') {
       ctx.strokeStyle = 'rgba(255,170,90,.95)';
