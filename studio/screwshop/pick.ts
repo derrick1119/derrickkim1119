@@ -6,11 +6,11 @@
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { STAGES, apply, bestMove, freeM, habitPick, newSim, paintStage, starsOf, visibleM, type Level, type Sim, type StageDef } from './game.ts';
+import { STAGES, apply, bestMove, cloneSim, freeM, habitPick, newSim, paintStage, starsOf, stuckM, visibleM, type Level, type Sim, type StageDef } from './game.ts';
 import { mulberry32, type Rng } from './rng.ts';
 
 /** 판별 칠 수 · 칠해 볼 sub 수(2판은 장인 ★3 칠이 96개 중 22개뿐이고 상한 3.9에 닿는 칠은 그 절반이라 384 — ✏️ S005) */
-export const N = 24, SCAN = [96, 1536, 96, 96, 96, 96, 96, 96]; // ✏️ S007: 2판 384 → 1536(진자 칠이 384칠 중 21칠뿐)
+export const N = 24, SCAN = [96, 1536, 96, 96, 96, 96, 1536, 96]; // ✏️ S007: 2판 384 → 1536(진자 칠이 384칠 중 21칠뿐)
 
 /** 아무 나사나 빼는 사람이 이 판을 깰 확률 */
 function randomPass(L: Level, r: Rng, n: number) {
@@ -61,6 +61,22 @@ export function smartSeen(L: Level, d: StageDef, pend = false) {
   return S.fail ? 0 : starsOf(d, S);
 }
 const habitOf = (L: Level) => (S: Sim) => habitPick(L, S);
+/** 1수 미리 보기(funqa 따라 하기와 같은 점수, 동점은 난수) — 📐 S006·S007 7판 */
+const pv1Of = (L: Level, r: Rng) => (S: Sim) => {
+  const f = freeM(L, S);
+  let best = -1e9, pick: number[] = [];
+  for (let i = 0; i < L.N; i++) {
+    if (!((f >> i) & 1)) continue;
+    const S2 = cloneSim(S), rec: { k: string }[] = [];
+    apply(L, S2, i, rec as never);
+    let v = S2.fail ? -1e6 : rec.filter((e) => e.k === 'box').length * 10 - rec.filter((e) => e.k === 'slot').length * 12 + rec.filter((e) => e.k === 'done').length * 4 - (stuckM(L, S2.gone) ? 60 : 0) + (S2.n === L.N ? 1000 : 0);
+    const nf = freeM(L, S2) & ~f & ~S2.gone;
+    for (let j = 0; j < L.N; j++) if ((nf >> j) & 1) v += 2;
+    if (v > best + 1e-9) (best = v), (pick = [i]);
+    else if (Math.abs(v - best) < 1e-9) pick.push(i);
+  }
+  return pick[Math.floor(r() * pick.length)];
+};
 
 /** 버릇대로 두면 ★3이 안 나오고 내다보고 두면 ★3이 나오는 판 (M0 식, 5~8판) */
 const m0 = (L: Level, d: StageDef, r: Rng) => {
@@ -116,9 +132,20 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
     for (let k = 0; k < 100; k++) m += playOut(L, d, mashOf(L, r)) ? 1 : 0;
     return (smartSeen(L, d, true) === 3 ? 0 : 1) + (h ? 1 : 0) + 1 - m / 100;
   },
-  m0, m0,
+  // 📐 7판 🏰 (S007): 장인 ★3이 아니면 −9 · 버릇 ★3이면 −5 · 1수 미리 보기 ★3(3번 중 한 번이라도)이면 −4
+  //   · 장인−진자가 ★3을 놓치면 +2(F15) + 버릇 클리어 +1 + (1 − 막 누르기 클리어, 100판)
+  (L, d, r) => {
+    if (smartSeen(L, d) !== 3) return -9;
+    const h = playOut(L, d, habitOf(L));
+    if (h === 3) return -5;
+    for (let k = 0; k < 3; k++) if (playOut(L, d, pv1Of(L, r)) === 3) return -4;
+    let m = 0;
+    for (let k = 0; k < 100; k++) m += playOut(L, d, mashOf(L, r)) ? 1 : 0;
+    return (smartSeen(L, d, true) === 3 ? 0 : 2) + (h ? 1 : 0) + 1 - m / 100;
+  },
+  m0,
 ];
-export const CAP = [Infinity, 4.5, 3.65, 3.5, 1.96, 2.95, 3.65, 3.65];
+export const CAP = [Infinity, 4.5, 3.65, 3.5, 1.96, 2.95, 3.95, 3.65];
 
 /** k판의 칠 번호 N개 */
 export function pickStage(k: number, n = N, scan = SCAN[k]) {

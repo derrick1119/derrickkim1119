@@ -147,19 +147,23 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'castle', name: '성', emoji: '🏰', news: '⏰ 째깍 나사 — 숫자만큼 톡 안에 안 빼면 혼자 튀어나와요', tip: '⏰ 숫자 = 남은 톡 — 0이 되면 혼자 튀어나와요', boxes: 2, colors: 6, P: 1, C: 8,
+    // 📐 S007 7판 🏰 성: 겹겹이 덮기 — 지붕 → 탑 위 · 창 → 탑 아래 · 문 → 벽 아래 둘 · 깃발 → 깃대 위 · 🪟 큰 창(나사 둘) → 벽 가운데 둘(#2 #3)
+    //   큰 창을 어느 나사에 매다느냐(진자)가 #2(⏰)를 드러내느냐 덮느냐를 정한다. "⏰ 색 상자가 마감 톡에 열려 있게 앞 상자를 먼저 닫는다"
+    key: 'castle', name: '성', emoji: '🏰', news: '⏰ 째깍 나사 — 숫자만큼 톡 안에 안 빼면 혼자 튀어나와요', tip: '⏰ 숫자 = 남은 톡 — 0이 되면 혼자 튀어나와요', tip2: '⏰ 색 상자가 마감에 열리게 앞 상자부터 닫아요', boxes: 2, colors: 6, P: 1, C: 18,
+    // 나사 번호: #0 #1 벽 아래(왼·오른, 🚪 밑) · #2 #3 벽 가운데(왼 ⏰·오른, 🪟 밑) · #4 #5 왼 탑(위·아래) · #6 #7 오른 탑 · #8 문 · #9 #10 지붕(왼·오른)
+    //   · #11 #12 🪟 큰 창(왼·오른) · #13 #14 깃대(밑·위) · #15 깃발 · #16 #17 🪟 탑 창(왼·오른)
     toy: () => [
-      plate(0.5, 0.97, 0.56, 0.26, 0, 0.02, STONE, [[0.3, 1.05], [0.7, 1.05], [0.5, 0.88], [0.35, 0.9]], { deco: 'brick' }),
+      plate(0.5, 0.97, 0.56, 0.26, 0, 0.02, STONE, [[0.425, 1.05], [0.575, 1.05], [0.44, 0.885], [0.56, 0.885]], { deco: 'brick', tick: [[2, 6]] }),
       plate(0.2, 0.8, 0.15, 0.46, 0, 0.02, STONE2, [[0.2, 0.665], [0.2, 0.95]], { deco: 'brick' }),
-      plate(0.8, 0.8, 0.15, 0.46, 0, 0.02, STONE2, [[0.8, 0.665], [0.8, 0.95]], { deco: 'brick', tick: [[0, 7]] }),
+      plate(0.8, 0.8, 0.15, 0.46, 0, 0.02, STONE2, [[0.8, 0.665], [0.8, 0.95]], { deco: 'brick' }),
       plate(0.5, 1.045, 0.16, 0.15, 0, 0.075, '#6b4430', [[0.5, 1.03]], { deco: 'door' }),
-      plate(0.2, 0.55, 0.13, 0.13, Math.PI / 4, 0.02, '#4b7bd6', [[0.2, 0.55]], { deco: 'roofT', tick: [[0, 3]] }),
-      plate(0.8, 0.55, 0.13, 0.13, Math.PI / 4, 0.02, '#4b7bd6', [[0.8, 0.55]], { deco: 'roofT' }),
-      plate(0.5, 0.8, 0.28, 0.14, 0, 0.03, GLASS, [[0.4, 0.8], [0.6, 0.8]], { kind: 'glass' }),
+      plate(0.2, 0.585, 0.13, 0.13, Math.PI / 4, 0.02, '#4b7bd6', [[0.2, 0.585]], { deco: 'roofT' }),
+      plate(0.8, 0.585, 0.13, 0.13, Math.PI / 4, 0.02, '#4b7bd6', [[0.8, 0.585]], { deco: 'roofT' }),
+      plate(0.5, 0.8, 0.28, 0.14, 0, 0.03, GLASS, [[0.4, 0.795], [0.6, 0.805]], { kind: 'glass' }),
       bar(0.5, 0.7, 0.5, 0.48, 0.022, '#7a5a3a', [[0.5, 0.685], [0.5, 0.51]]),
-      plate(0.6, 0.5, 0.15, 0.08, 0, 0.02, '#ef4b6a', [[0.6, 0.5]], { deco: 'flag', tick: [[0, 10]] }),
-      plate(0.2, 0.81, 0.09, 0.14, 0, 0.03, GLASS, [[0.2, 0.81]], { kind: 'glass' }),
-      plate(0.8, 0.81, 0.09, 0.14, 0, 0.03, GLASS, [[0.8, 0.81]], { kind: 'glass' }),
+      plate(0.58, 0.5, 0.15, 0.08, 0, 0.02, '#ef4b6a', [[0.58, 0.5]], { deco: 'flag' }),
+      plate(0.2, 0.86, 0.09, 0.14, 0, 0.03, GLASS, [[0.2, 0.86]], { kind: 'glass' }),
+      plate(0.8, 0.86, 0.09, 0.14, 0, 0.03, GLASS, [[0.8, 0.86]], { kind: 'glass' }),
     ],
   },
   {
@@ -548,6 +552,30 @@ function paint(G: Level, d: StageDef, r: Rng): Level {
         const t = col.findIndex((c, m) => c === E && !((fx >> m) & 1));
         [col[i], col[t]] = [col[t], col[i]];
       }
+    return { ...G, col, queue: q, boxes: d.boxes, pal };
+  }
+  if (d.key === 'castle' && d.colors * 3 === G.N) {
+    // 📐 S007 7판 🏰: 빈칸 0 수순을 먼저 뽑는다(⏰는 손대지 않고 마감 톡에 혼자 튀게). 그 순서대로 열린 상자 둘에 나눠 칠한다.
+    //   ⏰ 나사 색 = 마감 톡에 열려 있는 셋째 이후 상자 — 앞 상자를 제때 닫아 둬야 받는다(마감 역산). 버릇·미리 보기가 놓치는 칠은 고르기(pick.ts)가 남긴다
+    //   🪟 큰 창은 오른 나사부터 빼서 왼 나사에 매단다 — 오른쪽에 매달리면 덮을 나사(#1 #3)를 다 뺄 때까지 왼 나사는 남긴다(진자 결정)
+    const q = pal.slice(), tk = G.tmr.findIndex((t) => t > 0), W = G.pl.findIndex((p) => p.kind === 'glass' && p.sc.length === 2), [wl, wr] = G.ps[W];
+    const need = (1 << wr) | (G.cov[W][1 + G.si[wr]] & ~(1 << tk));
+    for (let n = 0; n < 30 && (!n || q.indexOf(col[tk]) < 2); n++) {
+      const S = newSim(G), ord: number[] = [], open = [0, 1], bn = [0, 0];
+      while (S.n < G.N) {
+        const f = freeM(G, S) & ~(1 << tk) & ((S.gone & need) === need ? -1 : ~(1 << wl)), o: number[] = [], rec: RE[] = [];
+        for (let i = 0; i < G.N; i++) if ((f >> i) & 1) o.push(i);
+        o.sort((i, j) => G.py[j] - G.py[i]);
+        apply(G, S, o.length ? o[r() < 0.5 ? 0 : Math.floor(r() * o.length)] : freeM(G, S) & (1 << tk) ? tk : 31 - Math.clz32(freeM(G, S)), rec);
+        for (const e of rec) if (e.k === 'out') ord.push(e.s);
+      }
+      let nx = 2;
+      for (const s of ord) {
+        const b = open[1] >= q.length ? 0 : open[0] >= q.length ? 1 : +(r() < 0.5);
+        col[s] = q[open[b]];
+        if (++bn[b] === 3) (open[b] = nx++), (bn[b] = 0);
+      }
+    }
     return { ...G, col, queue: q, boxes: d.boxes, pal };
   }
   let zm = 0;

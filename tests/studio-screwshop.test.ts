@@ -73,9 +73,11 @@ describe('나사 풀기 공방 시뮬', () => {
     }
   });
 
-  it('실린 판 = 빌드 때 고른 표 (✏️ S005: 판·칠하기를 바꾸면 npx tsx studio/screwshop/pick.ts)', () => {
-    expect(STAGES.map((_, k) => pickStage(k))).toEqual(PICKS);
-  });
+  // 실린 판 = 빌드 때 고른 표 (✏️ S005: 판·칠하기를 바꾸면 npx tsx studio/screwshop/pick.ts) — ✏️ S007: 판마다 따로(한 테스트가 오래 멈추지 않게)
+  for (let k = 0; k < 8; k++)
+    it(`실린 판 = 빌드 때 고른 표 · ${k + 1}판`, () => {
+      expect(pickStage(k)).toEqual(PICKS[k]);
+    });
 });
 
 describe('🔨 망치 판자 (M1′ S001 · 📐 CONTENT 1판)', () => {
@@ -283,8 +285,8 @@ describe('🔑 3판 태엽 기차 · 📌🔨 4판 풍차 (📐 S004)', () => {
     for (const i of L.ps[nail[0]]) apply(L, S, i);
     expect(S.fail).toBe(2);
   });
-  it('3~6판 반증(24시드): 장인 ★3 ≥ 0.7 · 버릇 3종 ★3 ≤ 0.15 · 따라 하기 ★3 ≤ 0.25 · 4판 무작위 ≥ 0.5 · 버릇 클리어 ≥ 0.4 (S005 5판 🌻 · S006 6판 🦕 더함)', () => {
-    for (const k of [2, 3, 4, 5]) {
+  it('3~7판 반증(24시드): 장인 ★3 ≥ 0.7 · 버릇 3종 ★3 ≤ 0.15 · 따라 하기 ★3 ≤ 0.25 · 4판 무작위 ≥ 0.5 · 버릇 클리어 ≥ 0.4 (S005 5판 🌻 · S006 6판 🦕 · S007 7판 🏰 더함)', () => {
+    for (const k of [2, 3, 4, 5, 6]) {
       const r = measureStage(k, 24, ['smart', 'habit', 'top', 'reveal', 'preview', 'random']);
       expect(r.smart.star3, `${k + 1}판 장인`).toBeGreaterThanOrEqual(0.7);
       for (const b of ['habit', 'top', 'reveal']) expect(r[b].star3, `${k + 1}판 ${b}`).toBeLessThanOrEqual(0.15);
