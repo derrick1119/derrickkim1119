@@ -82,17 +82,13 @@ await p3.waitForFunction(() => (window as any).__d3.state().done, null, { timeou
 await p3.waitForTimeout(200);
 await p3.screenshot({ path: join(out, '3d-10-result.png') });
 const st2 = await p3.evaluate(() => (window as any).__d3.state());
-// 1-4 예비 폭약 창고(C008): 뒤 다리 꾹 → 붙이면 손잡이(판 아래) → 둘째 뒤 다리 → 손잡이 톡 → 결과
+// 1-4 예비 폭약 창고(C009 📐 1안): 앞오른 다리 꾹 → 붙이면 손잡이 '★☆☆ 🥀' → 뒤왼 나무 기둥 꾹 → 손잡이 톡 → ★★★ 주저앉음
 await p3.click('#again');
 await p3.waitForTimeout(200);
-await p3.click('.rot.r'); // 뒤 다리를 앞으로: ⟳ 두 번(뒤오른 시점)
-await p3.waitForTimeout(450);
-await p3.click('.rot.r');
-await p3.waitForTimeout(450);
-await hold(6, 0, 6, '3d-11-save-hold.png');
+await hold(8, 0, 6, '3d-11-save-hold.png');
 await p3.waitForTimeout(700); // 손잡이 통통(0.6초)이 끝난 뒤
 await p3.screenshot({ path: join(out, '3d-12-handle.png') });
-await hold(8, 0, 6, '3d-13-save-second.png');
+await hold(6, 1, 8, '3d-13-save-second.png');
 const hv = await p3.evaluate(() => !(document.querySelector('.handle') as HTMLButtonElement).hidden);
 if (!hv) errors.push('1-4 손잡이가 안 보임');
 await p3.click('.handle');
