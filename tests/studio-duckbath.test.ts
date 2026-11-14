@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { CRISIS_DELAY, FAUCET, SLOTS, STAGES, WORLDS, advance, crisisShown, jitFor, starChips, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, failText, hintPoint, startStage } from '../studio/duckbath/game.ts';
 import { OLD_IDS, SAVE_KEY, makeStore } from '../studio/duckbath/save.ts';
+import { mulberry32 } from '../engine/rng.ts';
 import { play } from '../studio/duckbath/funqa.ts';
 
 describe('욕조 물결 오리 시뮬', () => {
@@ -247,6 +248,27 @@ describe('욕조 물결 오리 시뮬', () => {
         expect(kid.st).toBe(0);
         expect(starChips(s).ducksAll).toBe(s.objs.filter((o) => o.k === 0).length);
       }));
+    it('🧪 D016 차단: 앞 오리가 다 들고 톡이 0이어도 아기가 걷는 동안은 실패가 아니다 — 걸어 들어가 깬다', () => {
+      const i = STAGES.findIndex((d) => d.chicks?.length);
+      const s = g.create(3);
+      startStage(s, i);
+      while (s.phase !== 'play' || s.pt < 2) g.step(s, idle);
+      s.objs.filter((o) => o.k === 0 && o.lead < 0).forEach((o, j) => Object.assign(o, { st: j % s.L.nests.length, x: s.L.nests[j % s.L.nests.length].x, y: s.L.nests[j % s.L.nests.length].y }));
+      Object.assign(s, { taps: 0, used: 3, lastTap: s.t - 40 });
+      for (let k = 0; k < 2000 && s.phase === 'play'; k++) g.step(s, idle);
+      expect([s.phase, s.ok]).toEqual(['result', true]);
+    });
+    it('🧪 D016 차단: 숙련 봇의 내다보기가 아기 입성까지 본다 — 아기 판에서도 ★★★(황금 꼴찌 아님)', { timeout: 30_000 }, () => {
+      const i = STAGES.findIndex((d) => d.chicks?.length);
+      let gold = 0;
+      for (let k = 0; k < 3; k++) {
+        const s = g.create(1000 + 7 * k), rng = mulberry32(k + 1);
+        startStage(s, i);
+        for (let f = 0; f < 60 * 120 && s.phase === 'play'; f++) g.step(s, duckbathSmart.act(s, rng));
+        if (s.ok && s.starOk[2]) gold++;
+      }
+      expect(gold).toBeGreaterThan(0);
+    });
     it('상어 여럿(sharks[])이 다 나온다', () =>
       withStage({ sharks: [[0.2, 0.9], [0.8, 0.9]] }, (s) => {
         expect(s.objs.filter((o) => o.k === 3).length).toBe(2);

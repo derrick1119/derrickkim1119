@@ -663,7 +663,12 @@ function phys(S: Sim, E: DuckState | null) {
   }
 }
 
-const calm = (S: Sim) => S.objs.every((o) => o.st !== FREE || o.k === SHARK || Math.hypot(o.vx, o.vy) < STOP * 1.5);
+/** 🐥 아기가 아직 걷는 중인가 — 속도 없이 위치만 움직여서 속도로는 못 잰다 (🧪 D016 차단: calm이 걷는 아기를 '잔잔'으로 봄) */
+const walking = (S: Sim, o: Obj) => {
+  const ld = S.objs[o.lead], tg = ld.st >= 0 ? S.L.nests[ld.st] : ld, gap = ld.st >= 0 ? 0 : 0.06;
+  return Math.hypot(tg.x - o.x, tg.y - o.y) > gap + 0.002;
+};
+const calm = (S: Sim) => S.objs.every((o) => o.st !== FREE || o.k === SHARK || (Math.hypot(o.vx, o.vy) < STOP * 1.5 && !(o.lead >= 0 && walking(S, o))));
 /** 판의 결과: 1 = 다 넣음, -1 = 잃음(배수구·상어), 0 = 아직 */
 function verdict(S: Sim) {
   let all = true;
