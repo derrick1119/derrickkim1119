@@ -85,26 +85,47 @@ console.log('1-1:', JSON.stringify(st1));
 const st3 = await p3.evaluate(() => (window as any).__d3.state());
 console.log('3D:', JSON.stringify(st3), scroll ? '가로 스크롤 있음 ❌' : '가로 스크롤 없음');
 if (scroll || !st3.done) errors.push('3D 검사 실패');
-// ── 성능(FUN v1.2 ⓔ): DPR 3 휴대폰 · CPU 4배 느림 · 1-2 쾅 장면 프레임 간격 p95 ──
+// ── 성능(FUN v1.3: 판마다 쾅 장면과 말풍선 꾹 중 최악): DPR 3 휴대폰 · CPU 4배 느림 · 1-2 ──
 const pf = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3 });
 const cdp = await pf.context().newCDPSession(pf);
 await pf.goto('file://' + join(here, '../../web/public/studio/demolition/3d.html'));
-await pf.evaluate(() => (document.getElementById('again') as HTMLButtonElement).hidden = true);
 const atF = (x: number, y: number, z: number) => pf.evaluate(([a, b, c]: number[]) => (window as any).__d3.screenOf(a, b, c), [x, y, z]) as Promise<[number, number]>;
+const frames = async (n: number) => {
+  await pf.evaluate(`window.__f = []; { let last = performance.now(); function f(t) { window.__f.push(t - last); last = t; if (window.__f.length < ${n}) requestAnimationFrame(f); } requestAnimationFrame(f); }`);
+};
+const p95of = async () => {
+  const f: number[] = (await pf.evaluate(() => (window as any).__f)).slice(5).sort((a: number, b: number) => a - b);
+  return { n: f.length, med: f[Math.floor(f.length / 2)], p95: f[Math.floor(f.length * 0.95)], top: f.slice(-8).map((x) => Math.round(x)) };
+};
 // 1-1을 깨고 1-2로
-for (const [x, y, z] of [[6, 0, 6]]) { const [sx, sy] = await atF(x, y, z); await pf.mouse.click(sx, sy); }
+{ const [sx, sy] = await atF(6, 0, 6); await pf.mouse.click(sx, sy); }
 await pf.waitForFunction(() => (window as any).__d3.state().done, null, { timeout: 10000 });
 await pf.click('#again');
 await pf.waitForTimeout(200);
-for (const [x, y, z] of [[6, 0, 6]]) { const [sx, sy] = await atF(x, y, z); await pf.mouse.click(sx, sy); }
+{ const [sx, sy] = await atF(6, 0, 6); await pf.mouse.click(sx, sy); }
 await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
-await pf.evaluate('window.__ft = []; { let last = performance.now(); function f(t) { window.__ft.push(t - last); last = t; if (window.__ft.length < 400) requestAnimationFrame(f); } requestAnimationFrame(f); }');
-{ const [sx, sy] = await atF(8, 0, 6); await pf.mouse.click(sx, sy); }
+// ⓪ 가만히(비교용)
+await frames(130);
+await pf.waitForTimeout(2600);
+const idleF = await p95of();
+console.log('가만히 p95', idleF.p95.toFixed(1), '가장 긴', idleF.top.join(' '));
+// ① 말풍선 꾹: 둘째 다리를 2.5초 누르고 있는 동안
+const [hx, hy] = await atF(8, 0, 6);
+await pf.mouse.move(hx, hy);
+await pf.mouse.down();
+await frames(130);
+await pf.waitForTimeout(2600);
+const holdF = await p95of();
+// ② 쾅: 떼는 순간부터 결과까지
+await frames(400);
+await pf.mouse.up();
 await pf.waitForFunction(() => (window as any).__d3.state().done, null, { timeout: 30000 });
-const ft: number[] = (await pf.evaluate(() => (window as any).__ft)).slice(5).sort((a: number, b: number) => a - b);
-const p95 = ft[Math.floor(ft.length * 0.95)], med = ft[Math.floor(ft.length / 2)];
+const boom = await p95of();
 await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
-console.log(`성능 DPR 3 · CPU ×4 · 쾅 장면 프레임 ${ft.length}개: 중앙 ${med.toFixed(1)}ms · p95 ${p95.toFixed(1)}ms (기준 ≤ 33)`);
-writeFileSync(join(here, 'reports', 'perf.json'), JSON.stringify({ at: 'C005', dpr: 3, cpu: 4, frames: ft.length, median: med, p95 }, null, 1) + '\n');
+const worst = Math.max(holdF.p95, boom.p95);
+console.log('꾹 프레임 가장 긴 8개', holdF.top.join(' '), '· 쾅', boom.top.join(' '));
+console.log(`성능 DPR 3 · CPU ×4 · 1-2: 말풍선 꾹 p95 ${holdF.p95.toFixed(1)}ms(중앙 ${holdF.med.toFixed(1)}) · 쾅 p95 ${boom.p95.toFixed(1)}ms(중앙 ${boom.med.toFixed(1)}, ${boom.n}프레임) → 최악 ${worst.toFixed(1)} (기준 ≤ 33)`);
+if (worst > 33) errors.push('성능 p95 > 33ms');
+writeFileSync(join(here, 'reports', 'perf.json'), JSON.stringify({ at: 'C006', dpr: 3, cpu: 4, hold: holdF, boom, worst }, null, 1) + '\n');
 await browser.close();
 console.log(errors.length ? `콘솔 에러 ${errors.length}: ${errors.join(' | ')}` : '콘솔 에러 0');

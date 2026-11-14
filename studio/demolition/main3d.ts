@@ -4,7 +4,7 @@
  *   · 다 붙이면 결과(쾅 애니메이션·유령은 C004).
  * 키보드: ← → 로 붙일 블록 고르기, 스페이스 누르는 동안 겨눔 → 떼면 붙이기, Q/E 돌리기, R 다시.
  */
-import { GAS, METAL, STONE, capOf3, isQuiet, lostFeet, verdict3, layoutOf3, simulate3, support3, type Footing, type Layout3, type Outcome3 } from './sim3d.ts';
+import { GAS, METAL, STONE, capOf3, feetKey3, lostFeet, verdict3, layoutOf3, simulate3, support3, type Footing, type Layout3, type Outcome3 } from './sim3d.ts';
 import { STAGES3 } from './stages3d.ts';
 import { aimAt, drawOrder, faces, fitCams, proj, yawOf, type Cam, type Cube } from './view3d.ts';
 
@@ -29,7 +29,7 @@ root.append(canvas, rotL, rotR);
 const hud = document.getElementById('hud')!, msg = document.getElementById('msg')!, again = document.getElementById('again') as HTMLButtonElement, retry = document.getElementById('retry') as HTMLButtonElement;
 let ctx = canvas.getContext('2d')!;
 /** 손가락 자리(캔버스 css px) — 확대 말풍선용 */
-let touch: [number, number] | null = null;
+let touch: [number, number] | null = null, inMagnifier = false;
 
 let stageIx = 0;
 let L: Layout3 = layoutOf3(STAGES3[stageIx]), ch = new Int8Array(L.blocks.length), left = L.charges;
@@ -302,7 +302,7 @@ function background(c: Cam) {
  */
 function magnifier() {
   if (!touch || !holding || out || rotT < 1) return;
-  const [x, y] = touch, R = 54, k = 2, dpr = canvas.width / W;
+  const [x, y] = touch, R = 54, k = 2;
   const cx = Math.min(W - R - 4, Math.max(R + 4, x)), cy = y - R - 46 < R + 4 ? y + R + 46 : y - R - 46;
   ctx.save();
   ctx.beginPath();
@@ -311,8 +311,13 @@ function magnifier() {
   ctx.fillStyle = '#fff6e8';
   ctx.fill();
   ctx.clip();
-  const sw = (2 * R) / k;
-  ctx.drawImage(canvas, (x - sw / 2) * dpr, (y - sw / 2) * dpr, sw * dpr, sw * dpr, cx - R, cy - R, 2 * R, 2 * R);
+  // 캔버스를 자기 자신에서 복사하면 GPU 되읽기가 느리다(🧪 C006: DPR 3·CPU ×4에서 꾹 30fps) → 같은 장면을 2배로 다시 그린다
+  ctx.translate(cx, cy);
+  ctx.scale(k, k);
+  ctx.translate(-x, -y);
+  inMagnifier = true;
+  draw();
+  inMagnifier = false;
   ctx.restore();
   ctx.strokeStyle = INK;
   ctx.lineWidth = 3;
@@ -329,16 +334,83 @@ function magnifier() {
   ctx.stroke();
 }
 
+/**
+ * 꾹 미리 보기 계산 묶음 — 붙인 폭약·겨눈 블록이 바뀔 때만 다시 계산한다(🧪 C006: 매 프레임 시뮬을 돌려 말풍선 꾹 p95 33~50ms였다).
+ * '변화 없음' 판단은 sim3d isQuiet와 같은 식(테스트가 isQuiet를 지킨다).
+ */
+let hKey = '';
+let hCache: { now: Footing[]; nxt?: Footing[]; pv?: Outcome3; lost?: [number, number][]; quiet?: boolean } = { now: [] };
+function holdInfo(a: number) {
+  const key = `${stageIx}|${ch.join('')}|${a}`;
+  if (key === hKey) return hCache;
+  hKey = key;
+  const now = support3(L, ch);
+  if (a < 0) return (hCache = { now });
+  const c2 = ch.slice();
+  c2[a] = ch[a] ? 0 : capOf3(L.blocks[a]);
+  const nxt = support3(L, c2), pv = preview(c2), lost = lostFeet(now, nxt);
+  return (hCache = { now, nxt, pv, lost, quiet: !pv.moved && !lost.length && feetKey3(now) === feetKey3(nxt) });
+}
+
+/**
+ * 꾹 미리 보기 겹그림(목표선 · 결과 유령 · 발자국 · 빠진 받침 ✕ · 꼬리표) — 겨눔·폭약·시점이 바뀔 때만 한 장 그려 두고 붙인다
+ * (🧪 C006: 매 프레임 그리면 DPR 3·CPU ×4에서 꾹 p95 33ms). ✕는 깜빡이지 않고 알파 1.
+ */
+let ovKey = '', ovc: HTMLCanvasElement | null = null;
+function holdOverlay(c: Cam, h: ReturnType<typeof holdInfo>) {
+  const key = `${hKey}|${c.yaw.toFixed(5)}|${canvas.width}|${left}`;
+  if (key !== ovKey || !ovc) {
+    ovKey = key;
+    ovc ??= document.createElement('canvas');
+    ovc.width = canvas.width;
+    ovc.height = canvas.height;
+    const keep = ctx;
+    ctx = ovc.getContext('2d')!;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, ovc.width, ovc.height);
+    ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
+    const nxt = h.nxt!, pv = h.pv!;
+    goalLine(c, true);
+    if (pv.moved) drawLanding(c, pv);
+    for (const f of nxt) drawFooting(c, f, true);
+    // 빠진 받침: 덩어리마다 '지금 딛고 있는 발' 중 이 블록까지 터지면 그 덩어리가 잃는 발 → 빨간 ✕
+    // 윗다리·마루 귀를 끊어 다리 한 토막이 떨어져 나가도 덩어리 기준으로 발을 잃으니 ✕가 뜬다 (🧪 C004 ③ · F4b)
+    for (const [x, z] of h.lost!) crossAt(c, x, z, 1);
+    const b = L.blocks[aim], p = proj(c, b.x + 0.5, b.y + 1.15, b.z + 0.5);
+    // 마지막 폭약을 겨누면 결과 꼬리표 — 2D 판정 말풍선과 같은 정보 (🧪 C005: '꿈쩍처럼 보이는 실패'를 없앤다, F4b ⓑ)
+    if (!ch[aim] && capOf3(L.blocks[aim]) >= left) {
+      const v = verdict(pv);
+      tag(W / 2, 40, `이대로 쾅 → ${v.text}`, v.ok ? '#23785a' : '#c7362e', '#ffffff');
+    }
+    if (ch[aim]) tag(p[0], p[1], '떼기', '#3a2a3f', '#fff6e8');
+    else if (h.quiet) tag(p[0], p[1], '변화 없음', '#7a5a6e', '#fff6e8');
+    ctx = keep;
+  }
+  ctx.drawImage(ovc, 0, 0, W, H);
+}
+
 function draw() {
   const c = cam();
-  background(c);
+  if (inMagnifier) {
+    // 말풍선 안: 땅 한 장 + 블록 + 노란 테만(가볍게)
+    ctx.fillStyle = '#f4c7a0';
+    ctx.fillRect(-W, -H, 3 * W, 3 * H);
+    const { x0, x1, z0, z1 } = L.lot;
+    poly(ground(c, x0, z0, x1 + 1, z1 + 1), '#e3b67f', '#c7362e', 2);
+  } else background(c);
   // 블록 (먼 것부터)
   const cb = cubes();
   for (const k of drawOrder(c, cb)) {
+    if (inMagnifier && touch) {
+      // 말풍선 안에는 손가락 둘레 블록만 (반지름 54px ÷ 2배 = 27px 안이 보인다)
+      const q = proj(c, cb[k].x + 0.5, cb[k].y + 0.5, cb[k].z + 0.5);
+      if (Math.abs(q[0] - touch[0]) > 27 + c.s || Math.abs(q[1] - touch[1]) > 27 + c.s) continue;
+    }
     const b = L.blocks[cb[k].i], col = MAT[b.m] ?? PAINT[b.paint % PAINT.length];
     for (const fc of faces(c, cb[k])) poly(fc.pts, fc.f === 'top' ? col[1] : fc.f === 'zm' || fc.f === 'zp' ? col[0] : col[2], INK, 1.2);
     if (!out && cb[k].i === aim && holding) for (const fc of faces(c, cb[k])) poly(fc.pts, undefined, '#ffc93c', 3.5);
   }
+  if (inMagnifier) return;
   // 쾅: 터진 블록 자리에 먼지 뭉게 (터진 뒤 24틱)
   if (out && bt >= 0)
     for (let i = 0; i < L.blocks.length; i++) {
@@ -377,27 +449,9 @@ function draw() {
   // 발자국·추: 다리 밑이라 블록에 가리므로 블록 위에 엑스레이로 겹친다 — 지금 붙인 폭약 기준(흐리게) + 겨눈 블록까지 붙였을 때(진하게)
   const busy = rotT < 1;
   if (!out) {
-    const now = support3(L, ch);
-    if (aim >= 0 && holding && !busy) {
-      const c2 = ch.slice();
-      c2[aim] = ch[aim] ? 0 : capOf3(L.blocks[aim]);
-      const nxt = support3(L, c2), pv = preview(c2);
-      goalLine(c, true);
-      if (pv.moved) drawLanding(c, pv);
-      for (const f of nxt) drawFooting(c, f, true);
-      // 빠진 받침: 덩어리마다 '지금 딛고 있는 발' 중 이 블록까지 터지면 그 덩어리가 잃는 발 → 빨간 ✕ 깜빡(알파 .8~1).
-      // 윗다리·마루 귀를 끊어 다리 한 토막이 떨어져 나가도 덩어리 기준으로 발을 잃으니 ✕가 뜬다 (🧪 C004 ③ · F4b)
-      const blink = 0.9 + 0.1 * Math.sin(performance.now() / 110), lostF = lostFeet(now, nxt);
-      for (const [x, z] of lostF) crossAt(c, x, z, blink);
-      const b = L.blocks[aim], p = proj(c, b.x + 0.5, b.y + 1.15, b.z + 0.5);
-      // 마지막 폭약을 겨누면 결과 꼬리표 — 2D 판정 말풍선과 같은 정보 (🧪 C005: '꿈쩍처럼 보이는 실패'를 없앤다, F4b ⓑ)
-      if (!ch[aim] && capOf3(L.blocks[aim]) >= left) {
-        const v = verdict(pv);
-        tag(W / 2, 40, `이대로 쾅 → ${v.text}`, v.ok ? '#23785a' : '#c7362e', '#ffffff');
-      }
-      if (ch[aim]) tag(p[0], p[1], '떼기', '#3a2a3f', '#fff6e8');
-      else if (isQuiet(L, ch, aim)) tag(p[0], p[1], '변화 없음', '#7a5a6e', '#fff6e8');
-    } else {
+    const h = holdInfo(aim >= 0 && holding && !busy ? aim : -1), now = h.now;
+    if (aim >= 0 && holding && !busy) holdOverlay(c, h);
+    else {
       for (const f of now) drawFooting(c, f, false);
       goalLine(c, false);
     }

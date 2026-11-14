@@ -106,12 +106,20 @@ export function fingerHit(c: Cam, L: Layout3, i: number, n = 200, sigma = 16, se
   const ok = (j: number) => capOf3(L.blocks[j]) > 0, order = drawOrder(c, L.blocks), rng = mulberry32(seed + i * 7919);
   const fc = faces(c, L.blocks[i]).map((f) => ({ f, cx: f.pts.reduce((a, p) => a + p[0], 0) / 4, cy: f.pts.reduce((a, p) => a + p[1], 0) / 4 }))
     .filter((q) => pickAt(c, L.blocks, q.cx, q.cy, order) === i);
-  if (!fc.length) return { hit: 0, first: 0, miss: 1 };
   const area = (q: (typeof fc)[0]) => Math.abs(q.f.pts.reduce((a, p, k) => a + p[0] * q.f.pts[(k + 1) % 4][1] - q.f.pts[(k + 1) % 4][0] * p[1], 0) / 2);
-  const t = fc.sort((a, b) => area(b) - area(a))[0];
+  let t: { cx: number; cy: number } | undefined = fc.sort((a, b) => area(b) - area(a))[0];
+  if (!t) {
+    // 🧪 C006: 면 가운데가 다 가려져도 조각이 보이면 사람은 그 조각을 누른다 → 보이는 픽셀의 무게중심을 겨눈다(전엔 '취소 1'로 셌다)
+    const pts = faces(c, L.blocks[i]).flatMap((f) => f.pts);
+    const x0 = Math.min(...pts.map((p) => p[0])), x1 = Math.max(...pts.map((p) => p[0])), y0 = Math.min(...pts.map((p) => p[1])), y1 = Math.max(...pts.map((p) => p[1]));
+    let sx = 0, sy = 0, m = 0;
+    for (let y = y0 + 1; y < y1; y += 2) for (let x = x0 + 1; x < x1; x += 2) if (pickAt(c, L.blocks, x, y, order) === i) (sx += x), (sy += y), m++;
+    if (!m) return { hit: 0, first: 0, miss: 1 };
+    t = { cx: sx / m, cy: sy / m };
+  }
   const touch = () => {
     const r = Math.sqrt(-2 * Math.log(1 - rng() * 0.999999)) * sigma, a = rng() * Math.PI * 2;
-    return aimAt(c, L.blocks, ok, t.cx + r * Math.cos(a), t.cy + r * Math.sin(a), MAGNET, order);
+    return aimAt(c, L.blocks, ok, t!.cx + r * Math.cos(a), t!.cy + r * Math.sin(a), MAGNET, order);
   };
   let hit = 0, first = 0, miss = 0;
   for (let k = 0; k < n; k++) {
