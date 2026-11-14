@@ -1,11 +1,11 @@
 {
  "at": "2026-11-14",
- "build": "M1′-S007",
+ "build": "M1′-S008",
  "seeds": 24,
  "summary": {
   "smartStars": 3,
   "habitStars": 1.84,
-  "randomStars": 0.42,
+  "randomStars": 0.43,
   "smartStar3": 1,
   "habitStar3": 0.09,
   "randomClear1": 1,
@@ -17,9 +17,9 @@
   "fingerGe2_1": 0.04,
   "fingerGe2_2": 0.17,
   "previewStar3_38": 0.07,
-  "smartShot": 3.6,
-  "mashShot": 1.38,
-  "smartSec": 6.06,
+  "smartShot": 3.72,
+  "mashShot": 1.42,
+  "smartSec": 5.95,
   "newbie3_13": 1,
   "newbie3_avg": 0.99,
   "f13_38min": 0.95,
@@ -27,13 +27,13 @@
    36,
    56,
    61,
-   71,
+   61,
    60,
    86,
    91,
    66
   ],
-  "skillGap": 7.14
+  "skillGap": 6.98
  },
  "stages": [
   {
@@ -290,77 +290,77 @@
     "star3": 1,
     "stars": 3,
     "ge2": 1,
-    "sec": 6.5,
-    "human": 71,
-    "shot": 2
+    "sec": 5.6,
+    "human": 61,
+    "shot": 3
    },
    "habit": {
     "clear": 1,
     "star3": 0,
     "stars": 2,
     "ge2": 1,
-    "sec": 7.4,
-    "human": 81,
-    "shot": 1
+    "sec": 7.3,
+    "human": 80,
+    "shot": 1.04
    },
    "top": {
     "clear": 0,
     "star3": 0,
     "stars": 0,
     "ge2": 0,
-    "sec": 4.1,
-    "human": 42,
-    "shot": 1
+    "sec": 4,
+    "human": 40,
+    "shot": 1.08
    },
    "reveal": {
     "clear": 1,
     "star3": 0,
     "stars": 2,
     "ge2": 1,
-    "sec": 7.4,
-    "human": 81,
-    "shot": 1
+    "sec": 7.1,
+    "human": 78,
+    "shot": 1.42
    },
    "random": {
-    "clear": 0.54,
+    "clear": 0.63,
     "star3": 0,
-    "stars": 0.67,
-    "ge2": 0.13,
-    "sec": 23.7,
-    "human": 60,
-    "shot": 1.25
+    "stars": 0.79,
+    "ge2": 0.17,
+    "sec": 21.5,
+    "human": 58,
+    "shot": 1.42
    },
    "mash": {
-    "clear": 0.54,
+    "clear": 0.58,
     "star3": 0,
-    "stars": 0.67,
-    "ge2": 0.13,
-    "sec": 3.5,
-    "human": 60,
-    "shot": 1.17
+    "stars": 0.63,
+    "ge2": 0.04,
+    "sec": 3.4,
+    "human": 58,
+    "shot": 1.54
    },
    "finger": {
-    "clear": 0.54,
+    "clear": 0.58,
     "star3": 0,
-    "stars": 0.67,
-    "ge2": 0.13,
-    "sec": 3.5,
-    "human": 60,
-    "shot": 1.17
+    "stars": 0.63,
+    "ge2": 0.04,
+    "sec": 3.4,
+    "human": 58,
+    "shot": 1.54
    },
    "preview": {
     "clear": 1,
     "star3": 0,
     "stars": 2,
     "ge2": 1,
-    "sec": 7.3,
-    "human": 80,
-    "shot": 1.13
+    "sec": 6.9,
+    "human": 76,
+    "shot": 1.79
    },
    "newbie": {
-    "clear1": 0.71,
+    "clear1": 0.75,
     "clear3": 1,
-    "fails": 8,
+    "fails": 12,
     "f13": 1
    }
   },

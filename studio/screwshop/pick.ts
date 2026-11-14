@@ -10,7 +10,7 @@ import { STAGES, apply, bestMove, cloneSim, freeM, habitPick, newSim, paintStage
 import { mulberry32, type Rng } from './rng.ts';
 
 /** 판별 칠 수 · 칠해 볼 sub 수(2판은 장인 ★3 칠이 96개 중 22개뿐이고 상한 3.9에 닿는 칠은 그 절반이라 384 — ✏️ S005) */
-export const N = 24, SCAN = [96, 1536, 96, 96, 768, 96, 1536, 1536]; // ✏️ S007: 2판 384 → 1536(진자 칠이 384칠 중 21칠뿐) · 📐 S007 7·8판 1536
+export const N = 24, SCAN = [96, 1536, 96, 768, 768, 96, 1536, 1536]; // ✏️ S007: 2판 384 → 1536(진자 칠이 384칠 중 21칠뿐) · 📐 S007 7·8판 1536
 
 /** 아무 나사나 빼는 사람이 이 판을 깰 확률 */
 function randomPass(L: Level, r: Rng, n: number) {
@@ -105,11 +105,30 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   },
   // 📐 4판 📌🔨: 버릇 클리어 + 무작위 클리어 0.6까지(첫 못 판 숨통) (장인 ★3 필수)
   //   ✏️ S005: − 막 누르기 ★2 이상(0.1 넘는 만큼, 2판과 같은 꼴) — 후보 중 최고 → 상위 24로 바꾸자 0.17 → 0.21로 올라서
+  //   📐 S008: 장인(funqa와 같은 눈)이 ★3 + 쏙 한 방 ≥ 3(날개 🔨 → 📌 🔨 연쇄)이 아니면 탈락 · 연쇄로 튄 나사가 장인 판에서 빈칸에 가면 −3(F14)
+  //   · 장인−진자가 ★3을 놓치면 +0.5(F15: 왼쪽 위 날개를 끝 #7에 매달아야 🔨가 #11을 친다) · 막 누르기 연쇄 빈칸 비율 0.4까지 +1(F14) · 무작위 32판 0.65까지
   (L, d, r) => {
-    if (playOut(L, d, smartOf(L, d)) !== 3) return -9;
-    let mg = 0;
-    for (let k = 0; k < 16; k++) mg += playOut(L, d, mashOf(L, r)) >= 2 ? 1 : 0;
-    return (playOut(L, d, habitOf(L)) ? 2.65 : 0) + Math.min(1, randomPass(L, r, 16) / 0.6) - Math.max(0, mg / 16 - 0.1) * 4;
+    const S = newSim(L);
+    let known = visibleM(L, 0), cs = 0;
+    while (!S.fail && S.n < L.N) {
+      const m0 = bestMove({ ...L, col: L.col.map((c, i) => ((known >> i) & 1 ? c : -1)), queue: L.queue.map((c, i) => (i < S.qi + 2 ? c : -2)) }, S, d), m = m0 >= 0 ? m0 : habitPick(L, S), rec: { k: string; s?: number }[] = [];
+      apply(L, S, m, rec as never);
+      cs += rec.filter((e) => e.k === 'slot' && e.s !== m).length;
+      known |= visibleM(L, S.gone);
+    }
+    if (S.fail || starsOf(d, S) !== 3) return -9;
+    if (S.shot < 3) return -6 + S.shot;
+    let mg = 0, pn = 0, ps = 0; // 막 누르기 ★2 이상 · 연쇄로 튄 나사 수 · 그중 빈칸 (F14)
+    for (let k = 0; k < 16; k++) {
+      const M = newSim(L), mash = mashOf(L, r);
+      while (!M.fail && M.n < L.N) {
+        const rec: { k: string; pop?: boolean }[] = [];
+        apply(L, M, mash(M), rec as never);
+        rec.forEach((e, j) => e.k === 'out' && e.pop && (pn++, (ps += rec.slice(j + 1).find((x) => x.k === 'box' || x.k === 'slot')?.k === 'slot' ? 1 : 0)));
+      }
+      mg += !M.fail && starsOf(d, M) >= 2 ? 1 : 0;
+    }
+    return (playOut(L, d, habitOf(L)) ? 2.65 : 0) + Math.min(1, randomPass(L, r, 32) / 0.65) - Math.max(0, mg / 16 - 0.1) * 4 - (cs ? 3 : 0) + (smartSeen(L, d, true) === 3 ? 0 : 0.5) + Math.min(1, ps / Math.max(1, pn) / 0.4);
   },
   // 📐 5판 🌻 (S005 · S008): 장인 ★3이 아니면 −9 · 버릇 ★3이면 −5 · 장인−진자가 ★3을 놓치면 +1(F15 — 양옆 꽃잎 안쪽을 남기느냐)
   //   · 버릇 클리어(처음 하는 사람 숨통) + (1 − 막 누르기 클리어, 200판). 장인은 funqa처럼 다음 상자 2개까지만 안다
@@ -151,7 +170,7 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
     return (smartSeen(L, d, true) === 3 ? 0 : 1) + (h ? 1 : 0) + 1 - m / 100;
   },
 ];
-export const CAP = [Infinity, 4.5, 3.65, 3.5, 3, 2.95, 3.95, 2.95];
+export const CAP = [Infinity, 4.5, 3.65, 5.15, 3, 2.95, 3.95, 2.95];
 
 /** k판의 칠 번호 N개 */
 export function pickStage(k: number, n = N, scan = SCAN[k]) {

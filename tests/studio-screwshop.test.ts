@@ -493,3 +493,13 @@ describe('🌻 5판 진자 좌표 (M1′ S008 · 📐 CONTENT 5판)', () => {
     }
   });
 });
+
+describe('🌬️ 4판 🔨 연쇄 1단 (M1′ S008 · 📐 CONTENT 4판)', () => {
+  it('장인: 📌 날개 🔨가 🎯를 쾅 → 탑이 기우뚱 → 탑 🔨가 문을 쾅 — 한 톡에 3개 (쏙 한 방 ≥ 3), ★3', () => {
+    for (const seed of [1, 9, 17]) {
+      const r = tryStage(screwshopSmart, seed, 3);
+      expect(r.stars, `seed ${seed}`).toBe(3);
+      expect(r.shot).toBeGreaterThanOrEqual(3);
+    }
+  });
+});
