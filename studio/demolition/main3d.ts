@@ -4,7 +4,7 @@
  *   · 다 붙이면 결과(쾅 애니메이션·유령은 C004).
  * 키보드: ← → 로 붙일 블록 고르기, 스페이스 누르는 동안 겨눔 → 떼면 붙이기, Q/E 돌리기, R 다시.
  */
-import { GAS, METAL, STONE, bestReach, capOf3, feetKey3, holdTags, resultLine, lostFeet, verdict3, layoutOf3, simulate3, support3, type Footing, type Layout3, type Outcome3 } from './sim3d.ts';
+import { GAS, METAL, STONE, bestReach, capOf3, feetKey3, fireworksFor, holdTags, resultLine, lostFeet, verdict3, layoutOf3, simulate3, support3, type Footing, type Layout3, type Outcome3 } from './sim3d.ts';
 import { STAGES3 } from './stages3d.ts';
 import { aimAt, drawOrder, faces, fitCams, proj, yawOf, type Cam, type Cube } from './view3d.ts';
 
@@ -658,7 +658,8 @@ function loop(now: number) {
     if (was < 0 && bt >= 0) (shake = 1), spawnDebris();
     if (played()) {
       hudText();
-      if (out.ok && L.save !== undefined && left > 0) spawnFireworks(left); // 아낀 폭약 = 축포
+      const fw = fireworksFor(L, out, left); // 아낀 폭약 = 축포(꽃 별까지 지킨 성공만 — 🧪 C012)
+      if (fw) spawnFireworks(fw);
     }
   }
   shake = Math.max(0, shake - dt * 2.5);

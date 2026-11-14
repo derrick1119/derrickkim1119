@@ -591,7 +591,10 @@ export function bestReach(L: Layout3, ch: Int8Array, need = 3): number {
  */
 export function resultLine(L: Layout3, o: Outcome3, used: number): string {
   let s = verdict3(L, o).text;
-  if (o.ok && o.stars < 3) s += !o.star[1] ? ' — 꽃밭을 덮었어요' : L.save !== undefined ? ` — 폭약 ${L.save}개로 깨면 ★` : ' — 더 낮게 무너뜨리면 ★';
+  if (o.ok && o.stars < 3) s += !o.star[1] ? ` — 꽃밭을 덮었어요${L.save !== undefined ? ` · 🧨 ${L.save}개 이하로 ★★★ 가능` : ''}` : L.save !== undefined ? ` — 폭약 ${L.save}개로 깨면 ★` : ' — 더 낮게 무너뜨리면 ★';
   if (o.ok && o.stars === 3 && L.save !== undefined) s += L.charges - used > 0 ? ` — 🧨 ${L.charges - used}개 아꼈어요!` : ' — 🧨 아껴 썼어요!';
   return s;
 }
+
+/** 축포 송이 수(🧪 C012 ④-1: 꽃밭을 덮은 ★1이 축포를 더 받던 역전) — 손잡이 판에서 꽃 별까지 지킨 성공(★2·★3)만, 아낀 폭약 수만큼 */
+export const fireworksFor = (L: Layout3, o: Outcome3, left: number) => (L.save !== undefined && o.ok && o.star[1] && left > 0 ? left : 0);

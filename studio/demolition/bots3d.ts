@@ -52,7 +52,10 @@ export function firstTimer(L: Layout3, d: StageDef3, wMix: number[], mode: 'prev
     let left = d.charges, ok = false;
     for (let step = 0; step < 12; step++) {
       const cs = taps.filter((i) => !ch[i] && capOf3(L.blocks[i]) <= left && wMix[i] > 0);
-      if (!cs.length) break;
+      if (!cs.length) {
+        if (save && ch.some((v) => v > 0)) ok = c.sim(ch).ok; // 붙일 블록이 없으면 손잡이를 당긴다(🧪 C012 ①)
+        break;
+      }
       let pick = wpick(cs);
       if (mode === 'prev') {
         const seen = [pick, wpick(cs), wpick(cs)].map((i) => {

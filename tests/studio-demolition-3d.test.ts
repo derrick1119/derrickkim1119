@@ -4,7 +4,7 @@ import { STAGES, layoutOf, simulate } from '../studio/demolition/game.ts';
 import { STAGES3 } from '../studio/demolition/stages3d.ts';
 import { cellPx, fitCams, visibleArea, YAW0 } from '../studio/demolition/view3d.ts';
 import { fingerHit, measureStage3, plansOf } from '../studio/demolition/funqa.ts';
-import { GAS, STONE, bestReach, capOf3, holdTags, isQuiet, resultLine, lostFeet, support3, verdict3, forEachPlan, from2D, layoutOf3, simulate3, type StageDef3 } from '../studio/demolition/sim3d.ts';
+import { GAS, STONE, bestReach, fireworksFor, capOf3, holdTags, isQuiet, resultLine, lostFeet, support3, verdict3, forEachPlan, from2D, layoutOf3, simulate3, type StageDef3 } from '../studio/demolition/sim3d.ts';
 
 const stage = (layers: string[][], extra: Partial<StageDef3> = {}): StageDef3 => ({
   key: '', title: 't', news: '', hint: '', W: layers[0][0].length, D: layers[0].length, layers,
@@ -313,5 +313,20 @@ describe('새 규칙 표식이 시작 시점에 보인다 (FUN v1.6 ⓒ)', () =>
       L.blocks.forEach((b) => seen.add(b.m));
     }
     expect(checked).toBeGreaterThan(0);
+  });
+});
+
+describe('축포 (🧪 C012 ④-1)', () => {
+  it('손잡이 판에서 꽃 별까지 지킨 성공(★2·★3)만 아낀 폭약 수만큼 — 꽃밭을 덮은 ★1·실패·손잡이 없는 판은 0', () => {
+    let saw = 0;
+    for (const d of STAGES3) {
+      const L = layoutOf3(d);
+      plansOf(L, d, (ch) => {
+        const o = simulate3(L, ch), left = d.charges - ch.reduce((a, v) => a + v, 0), n = fireworksFor(L, o, left);
+        if (d.save === undefined || !o.ok || !o.star[1]) expect(n).toBe(0);
+        else (expect(n).toBe(left), (saw += n > 0 ? 1 : 0));
+      });
+    }
+    expect(saw).toBeGreaterThan(0);
   });
 });
