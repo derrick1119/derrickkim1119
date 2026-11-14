@@ -583,7 +583,7 @@ function buildLevel(seed: number, stage: number): Level {
 // ───────────────────────────── 상태 ─────────────────────────────
 interface Ev { t: number; kind: string; x: number; y: number; text?: string; col?: string; v?: number; n?: number }
 interface PV { pose: number; px: number; py: number; phi: number; vp: number; tgt: number; wait: number; wob: number; wv: number; fall: null | { x: number; y: number; vx: number; vy: number; a: number; va: number; hit: number; t: number }; boing: number; bx: number; by: number }
-interface Fl { col: number; key: boolean; x0: number; y0: number; x1: number; y1: number; t0: number; dur: number; spin: number; to: number; sc: number }
+interface Fl { col: number; key: boolean; /** 🎨 S004 태엽이 튕길 🔒 (튈 때까지 🔒 + 금고리) */ lk?: boolean; x0: number; y0: number; x1: number; y1: number; t0: number; dur: number; spin: number; to: number; sc: number }
 interface VBox { col: number; t0: number; land: number[] }
 export interface ShopState {
   rng: Rng; seed: number; t: number; stage: number; phase: 'play' | 'settle' | 'result'; pt: number;
@@ -787,7 +787,7 @@ function pickScrew(s: ShopState, x: number, y: number) {
 /** 나사 하나를 뺀 결과를 화면 연출(날아가는 나사·상자·빈칸·판자)로 옮긴다 */
 function playRec(s: ShopState, rec: RE[]) {
   const L = s.L;
-  let delay = 0, slotsHit = false, popped = false, lastLand = 0, shotX = 0, shotY = 0, shotN = 0, shotBad = 0, wound = false;
+  let delay = 0, slotsHit = false, popped = false, lastLand = 0, shotX = 0, shotY = 0, shotN = 0, shotBad = 0, wound = false, wi = 0;
   for (const e of rec) {
     if (e.k === 'out') {
       popped = e.pop;
@@ -800,8 +800,8 @@ function playRec(s: ShopState, rec: RE[]) {
       const [x1, y1] = e.k === 'box' ? holeXY(L, e.bi, e.hole) : slotXY(e.idx);
       if (wound && popped) delay += 4;
       const spin = popped ? 2 : SPIN, dur2 = dur - SPIN + spin; // 🎨: 튄 나사는 드르륵 없이 +2틱에 뽁
-      s.fl.push({ col: e.col, key: !!((L.keyM >> e.s) & 1), x0: L.px[e.s], y0: L.py[e.s], x1, y1, t0, dur: dur2, spin, to: e.k === 'box' ? 0 : 1, sc: e.k === 'box' ? 0.82 : 0.95 });
-      if (popped) ev(s, 'pluck', L.px[e.s], L.py[e.s], undefined, L.pl[L.owner[e.s]].tone, t0 + 2);
+      s.fl.push({ col: e.col, key: !!((L.keyM >> e.s) & 1), lk: wound && !!((L.lockM >> e.s) & 1), x0: L.px[e.s], y0: L.py[e.s], x1, y1, t0, dur: dur2, spin, to: e.k === 'box' ? 0 : 1, sc: e.k === 'box' ? 0.82 : 0.95 });
+      if (popped) ev(s, 'pluck', L.px[e.s], L.py[e.s], undefined, L.pl[L.owner[e.s]].tone, t0 + 2, wound ? ++wi : 0); // 🎨 S004: 🔒는 튈 때마다 한 칸씩 높게
       lastLand = Math.max(lastLand, t0 + spin + 2), shotX += L.px[e.s], shotY += L.py[e.s], shotN++, shotBad += e.k === 'slot' ? 1 : 0;
       // 🎨 손맛 4박: 드르륵(풀림 시작) → 뽁(구멍을 떠남) → 쏙/통(착지)
       if (!popped) ev(s, 'twist', L.px[e.s], L.py[e.s], undefined, undefined, t0), ev(s, 'pluck', L.px[e.s], L.py[e.s], undefined, L.pl[L.owner[e.s]].tone, t0 + SPIN);
@@ -875,7 +875,7 @@ function playRec(s: ShopState, rec: RE[]) {
     if (e.k === 'wind') {
       // 🔑 드르륵(🎨 §2.2+): 태엽이 감기고 16틱 뒤부터 🔒가 4틱 간격으로 튄다
       ev(s, 'wind', L.px[e.s], L.py[e.s], '🔑 드르륵!', '#fff1a8', s.t + delay + SPIN);
-      delay += 16;
+      delay += 23; // 🎨 S004: 드르륵(264ms ≈ 16틱)이 끝나고 첫 🔒가 튄다
       wound = true;
       see(s, 'wind', '🔑 태엽 열쇠 — 빼면 🔒가 한꺼번에 튀어나와요!');
       continue;
@@ -1323,6 +1323,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     ctx.fill();
   }
   // ═════════ 판자와 나사 ═════════
+  if (t - (fx.memo.wind ?? -99) < 16) fx.kick(1.5); // 🎨 S004 드르륵 16틱 동안 장난감이 덜덜
   const pressK = s.down && s.phase === 'play' ? s.press : -1, pre = pressK >= 0 ? preview(s, pressK) : null;
   const flying = new Set<number>();
   for (const f of s.fl) if (t < f.t0 + SPIN && f.spin) flying.add(Math.round(f.x0 * 1000) * 7 + Math.round(f.y0 * 1000));
@@ -1387,7 +1388,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
   for (const f of s.fl) {
     if (t < f.t0) {
       if (f.to === 0 && f.spin === 0) continue;
-      if (f.spin) drawScrew(ctx, X(f.x0), Y(f.y0), R(SR), f.col, 0, { t, key: f.key });
+      if (f.spin) drawScrew(ctx, X(f.x0), Y(f.y0), R(SR), f.col, 0, { t, key: f.key, lock: f.lk });
+      if (f.lk) (ctx.strokeStyle = `rgba(255,211,77,${0.65 + 0.3 * Math.sin(t * 0.5)})`), (ctx.lineWidth = 3), ctx.beginPath(), ctx.arc(X(f.x0), Y(f.y0), R(SR) * 1.4, 0, TAU), ctx.stroke(); // 🎨 S004 예고 금고리
       continue;
     }
     const u = t - f.t0;
@@ -1453,7 +1455,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     const x = X(e.x), y = Y(e.y);
     if (e.kind === 'reveal') fx.ring(x, y, '#fff6a8', R(0.06), 3), fx.burst(x, y, '#fff6a8', 6, 1.6, 1.5), e.text && fx.pop(x + R(0.03), y - R(0.04), e.text, e.col!, 16), cue('reveal', reveals++);
     if (e.kind === 'twist') fx.ring(x, y, '#ffffff', R(0.06), 2), fx.burst(x, y, '#eef2f6', 4, 2, 1.4), cue('twist');
-    if (e.kind === 'pluck') fx.ring(x, y, '#fff3c4', R(0.045), 2), fx.burst(x, y, e.col!, 6, 2.4, 1.8), fx.burst(x, y, '#ffffff', 3, 2, 1.2), cue('pluck');
+    if (e.kind === 'pluck') fx.ring(x, y, '#fff3c4', R(0.045), 2), fx.burst(x, y, e.col!, 6, 2.4, 1.8), fx.burst(x, y, '#ffffff', 3, 2, 1.2), cue('pluck', e.n);
     if (e.kind === 'in') {
       // 🎨 §3 연속 쏙: 음계가 오르고, 상자 앞에 숫자가 커지며 뜬다
       const n = e.n ?? 1;
@@ -1482,7 +1484,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       fx.ring(x, y, '#fff3c4', R(0.09), 4), fx.burst(x, y, '#ffe08a', bad ? 6 : 14, 3.6, 2.4), fx.burst(x, y, '#c9ced6', 6, 3, 1.6), fx.burst(x, y, '#ffffff', 4, 5, 1.2);
       fx.kick(bad ? 3 : 5), fx.hold(bad ? 2 : 4), say(x, y - R(0.06), bad ? '쾅' : '쾅!', bad ? '#e8d9c0' : '#ffe08a', bad ? 20 : 26), cue('bonk');
     }
-    if (e.kind === 'wind') fx.ring(x, y, '#ffd34d', R(0.08), 3), fx.burst(x, y, '#ffd34d', 10, 2.6, 1.8), fx.kick(2), say(x, y - R(0.06), e.text!, e.col!, 20, true), cue('wind');
+    if (e.kind === 'wind') (fx.memo.wind = t), fx.ring(x, y, '#ffd34d', R(0.08), 3), fx.burst(x, y, '#ffd34d', 10, 2.6, 1.8), say(x, y - R(0.06), e.text!, e.col!, 20, true), cue('wind');
     if (e.kind === 'crash') {
       const i = e.n ?? 1;
       fx.burst(x, y, e.col!, 6 + 2 * i, 2.8 + 0.3 * i, 2.2), fx.burst(x, y, '#e9d3a6', 8, 2.4, 1.6), fx.ring(x, y, '#e9d3a6', R(0.05 + 0.01 * i), 3);
@@ -1542,8 +1544,29 @@ function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   if (b) b.t.forEach((ti, n) => {
     const h = s.hist[ti];
     if (!h) return;
-    const x = X(L.px[h.s]), y = Y(L.py[h.s]), rho = R(SR) * 1.9, u = Math.min(1, age / 10);
+    const x = X(L.px[h.s]), y = Y(L.py[h.s]), rho = R(SR) * 1.9, u = Math.min(1, age / 10), S = s.S, P = L.pl[b.k];
+    // 🎨 S004 원인 자리 C (첫 고리만): 이 톡이 매단 판자 → 덮인 나사(열린 상자 색 먼저) ⚠ · 🔨면 허공 자리 💨 · 떨군 통나무 → 제자리 유령 통나무 · 그 밖 → 그 색 나사가 앉은 빈칸
+    const hg = !n && (h.rec.find((r) => (r.k === 'hang' || r.k === 'fall') && r.p === b.k) as { k: string; pose: number } | undefined), j = S.slots.lastIndexOf(L.col[b.s ?? h.s]), own = [L.px[h.s], L.py[h.s]];
+    let C = n ? own : hg ? (hg.k === 'fall' ? own : P.ham ? L.hamP[b.k][hg.pose] : [P.cx, P.cy]) : j < 0 ? own : slotXY(j), f = 0;
+    if (hg && hg.k === 'hang' && !P.ham) {
+      const m = L.cov[b.k][poseOf(L, b.k, S.gone)] & L.all & ~S.gone;
+      for (let i = L.N; i--; ) if ((m >> i) & 1 && (!f || S.box.includes(L.col[i]))) (C = [L.px[i], L.py[i]]), (f = 1);
+    }
+    const cx = X(C[0]), cy = Y(C[1]), a = Math.atan2(cy - y, cx - x), dd = (Math.hypot(cx - x, cy - y) - rho - R(0.05)) * Math.min(1, age / 12 - 0.8), ex = x + Math.cos(a) * (rho + dd), ey = y + Math.sin(a) * (rho + dd);
     ctx.save();
+    if (hg && hg.k === 'fall') {
+      ctx.save();
+      ctx.translate(X(P.cx), Y(P.cy));
+      ctx.rotate(P.a);
+      ctx.setLineDash([5, 4]);
+      ctx.fillStyle = 'rgba(255,244,214,.45)';
+      ctx.strokeStyle = P.tone;
+      ctx.lineWidth = 2.5;
+      plankPath(ctx, P, R);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
     ctx.globalAlpha = 0.4;
     ctx.fillStyle = COLS[L.col[h.s]];
     ctx.beginPath();
@@ -1559,18 +1582,19 @@ function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
         const th = -2.2 + (k / 40) * 1.15 * Math.PI * 2, r = rho * (1 + 0.07 * Math.sin(3 * th + n));
         ctx.lineTo(x + Math.cos(th) * r, y + Math.sin(th) * r);
       }
+      // 🎨 S004 고리 → C 분필 화살표: 고리를 다 그린 10틱부터 12틱 동안 뻗는다(같은 분필 두 겹, 촉은 이음 없이 두 획)
+      if (dd > 0) {
+        ctx.moveTo(x + Math.cos(a) * rho, y + Math.sin(a) * rho);
+        ctx.lineTo(ex, ey);
+        for (const k of [2.5, -2.5]) ctx.moveTo(ex, ey), ctx.lineTo(ex + Math.cos(a + k) * R(0.024), ey + Math.sin(a + k) * R(0.024));
+      }
       ctx.stroke();
     }
     const lab = b.t.length > 1 ? `${'①②'[n]} 이 톡` : '👆 이 톡!', sc = age < 16 ? 1 + 0.4 * Math.max(0, 1 - (age - 10) / 6) : 1;
     font(0.032 * sc, 900);
-    const lw = ctx.measureText(lab).width + 14, ly = y - rho - R(0.035);
-    ctx.fillStyle = 'rgba(30,18,8,.9)';
-    ctx.beginPath();
-    ctx.roundRect(x - lw / 2, ly - R(0.022), lw, R(0.044), R(0.022));
-    ctx.fill();
-    ctx.fillStyle = '#ffe08a';
-    ctx.textAlign = 'center';
-    ctx.fillText(lab, x, ly + 1);
+    pill(ctx, x, y + (cy < y - R(0.05) ? 1 : -1) * (rho + R(0.035)), lab, '#ffe08a', R(0.044)); // 🎨 S004: 화살표가 위로 가면 알약은 고리 밑
+    font(0.04, 900);
+    if (age > 22 && hg && hg.k === 'hang') ctx.fillText(P.ham ? '💨' : '⚠️', cx - R(0.035), cy - R(0.03)); // 판 위 못 경고 ⚠와 같은 자리
     ctx.restore();
   });
   // 카드 (아래에서 올라온다)
@@ -1884,6 +1908,17 @@ function drawScrew(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   }
 }
 
+/** 🎨 어두운 알약 글자: 글꼴은 부르는 쪽이 정한다 · 가운데 (x, y) · 높이 h(px) */
+function pill(ctx: CanvasRenderingContext2D, x: number, y: number, lab: string, col: string, h: number) {
+  const w = ctx.measureText(lab).width + 14;
+  ctx.fillStyle = 'rgba(30,18,8,.9)';
+  ctx.beginPath();
+  ctx.roundRect(x - w / 2, y - h / 2, w, h, h / 2);
+  ctx.fill();
+  ctx.fillStyle = col;
+  ctx.textAlign = 'center';
+  ctx.fillText(lab, x, y + 1);
+}
 function plankPath(ctx: CanvasRenderingContext2D, P: Src, R: (r: number) => number) {
   ctx.beginPath();
   ctx.roundRect(-R(P.hx), -R(P.hy), R(P.hx * 2), R(P.hy * 2), R(P.rr));
@@ -2329,20 +2364,21 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
     }
     const q = L.poses[logFall.p][Math.max(0, poseOf(L, logFall.p, s.S.gone))], lab = `🪵 와르르 ${crashes.length} → 한 방 ${h}${good ? '!' : ''}`;
     font(0.034, 900);
-    const lw = ctx.measureText(lab).width + 16, px = Math.max(lw / 2 + 4, Math.min(X(1) - lw / 2 - 4, X(q.cx))), py = Y(q.cy) + R(0.075); // 위엔 '쏙 → 상자' 알약이 온다
-    ctx.fillStyle = 'rgba(30,18,8,.9)';
-    ctx.beginPath();
-    ctx.roundRect(px - lw / 2, py - R(0.024), lw, R(0.048), R(0.024));
-    ctx.fill();
-    ctx.fillStyle = good ? '#c8ffc8' : '#ffb36b';
-    ctx.textAlign = 'center';
-    ctx.fillText(lab, px, py + 1);
+    const lw = ctx.measureText(lab).width + 14;
+    pill(ctx, Math.max(lw / 2 + 4, Math.min(X(1) - lw / 2 - 4, X(q.cx))), Y(q.cy) + R(0.075), lab, good ? '#c8ffc8' : '#ffb36b', R(0.048)); // 위엔 '쏙 → 상자' 알약이 온다
   }
+  // 🎨 S004 쾅 자세: 머리 가운데는 진짜 머리 원(반지름 r) 위, 과녁 가운데에서 0.094(면 0.058 + 가장자리 0.036) — 면이 과녁을 본다 [x, y, 회전]
+  let hh: number[] = [];
+  const hitAt = (q: Pose, i: number, r: number) => {
+    const sg = Math.sign(q.d) || 1, rT = Math.hypot(L.px[i] - q.px, L.py[i] - q.py), a = Math.atan2(L.py[i] - q.py, L.px[i] - q.px) - sg * Math.acos(Math.max(-1, Math.min(1, (r * r + rT * rT - 0.0088) / (2 * r * rT))));
+    const mx = q.px + Math.cos(a) * r, my = q.py + Math.sin(a) * r;
+    return [mx, my, Math.atan2(sg * (mx - L.px[i]), sg * (L.py[i] - my)), sg, a];
+  };
   // 매달릴/떨어질 판자의 유령
   for (const e of pre.rec) {
     if (e.k === 'bonk') {
-      // 🎯 망치가 칠 나사 (🎨 C S001 전 임시 표시: 노란 겨냥 고리 + 점선)
-      const tx = X(L.px[e.s]), ty = Y(L.py[e.s]);
+      // 🎯 고리 → (🎨 S004) 쾅 순간 머리를 고리 위에 → 알약은 머리 반대쪽 옆
+      const tx = X(L.px[e.s]), ty = Y(L.py[e.s]), [mx, my, am, sg] = hh;
       ctx.save();
       ctx.strokeStyle = '#ffe08a';
       ctx.lineWidth = 3;
@@ -2356,21 +2392,36 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
         ctx.lineTo(tx + Math.cos(a) * R(SR) * 2.2, ty + Math.sin(a) * R(SR) * 2.2);
         ctx.stroke();
       }
-      // 🎨 §2.5: 맞은 나사가 어디로 가는지 알약 글자
+      ctx.save();
+      ctx.translate(X(mx), Y(my));
+      ctx.rotate(am);
+      ctx.scale(1, sg);
+      ctx.translate(R(-0.018), R(0.01 - 0.008 * Math.abs(Math.sin(t * 0.12)))); // 톡톡 두드림: 면이 2~3px 물러났다 닿는다
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#23272c';
+      ctx.lineWidth = 2;
+      ctx.fillStyle = L.pl[e.p].tone;
+      ctx.beginPath();
+      ctx.rect(R(-0.045), R(-0.021), R(0.047), R(0.022)); // 손잡이 토막(판자 색) — 머리만 떠 있으면 칼·왕관으로도 읽힌다
+      ctx.fill();
+      ctx.stroke();
+      hamPath(ctx, R);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 5;
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(232,237,242,.88)';
+      ctx.fill();
+      ctx.strokeStyle = '#23272c';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#ffd34d';
+      ctx.fillRect(R(-0.004), R(0.04), R(0.044), R(0.008));
+      ctx.restore();
       const nx = pre.rec[pre.rec.indexOf(e) + 2], toSlot = nx && nx.k === 'slot';
       const lab = toSlot ? '🎯 쾅 → 빈칸' : '🎯 쾅 → 쏙';
       font(0.03, 900);
       const lw = ctx.measureText(lab).width + 14;
-      ctx.setLineDash([]);
-      // 🧪 S001: 알약을 과녁 위로(아래엔 '덜컹' 글자가 온다), '→ 빈칸'은 주황
-      const py = ty - R(0.1);
-      ctx.fillStyle = 'rgba(30,18,8,.9)';
-      ctx.beginPath();
-      ctx.roundRect(tx - lw / 2, py - R(0.022), lw, R(0.044), R(0.022));
-      ctx.fill();
-      ctx.fillStyle = toSlot ? '#ffb36b' : '#c8ffc8';
-      ctx.textAlign = 'center';
-      ctx.fillText(lab, tx, py + 1);
+      pill(ctx, Math.max(lw / 2 + 4, Math.min(X(1) - lw / 2 - 4, tx + (X(mx) < tx ? 1 : -1) * (lw / 2 + R(0.075)))), ty, lab, toSlot ? '#ffb36b' : '#c8ffc8', R(0.044));
       ctx.restore();
     }
     if (e.k === 'hang' && L.pl[e.p].ham && e.pose >= 1 && !pre.rec.some((b) => b.k === 'bonk' && b.p === e.p)) {
@@ -2378,18 +2429,29 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       const [hx, hy] = L.hamP[e.p][e.pose];
       ctx.save();
       font(0.032, 900);
-      ctx.textAlign = 'center';
-      const aw = ctx.measureText('💨 허공').width + 14; // 🧪 S001: 판 색과 섞이지 않게 어두운 알약
-      ctx.fillStyle = 'rgba(30,18,8,.9)';
-      ctx.beginPath();
-      ctx.roundRect(X(hx) - aw / 2, Y(hy) - R(0.062), aw, R(0.044), R(0.022));
-      ctx.fill();
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText('💨 허공', X(hx), Y(hy) - R(0.04) + 1);
+      pill(ctx, X(hx), Y(hy) - R(0.04), '💨 허공', '#ffffff', R(0.044)); // 🧪 S001: 판 색과 섞이지 않게 어두운 알약
       ctx.restore();
     }
     if (e.k === 'hang') {
-      const P = L.pl[e.p], q = L.poses[e.p][e.pose];
+      const P = L.pl[e.p], q = L.poses[e.p][e.pose], bk = pre.rec.find((b) => b.k === 'bonk' && b.p === e.p) as { s: number } | undefined;
+      if (P.ham) {
+        // 휘두르는 길(🎨 S004): 지금 머리 → 쾅이면 과녁에 닿는 머리 / 허공이면 유령 판자 끝 머리. 끝은 머리가 덮는다(화살촉 없음)
+        const [ex, ey, an] = hamEdge(P), c = Math.cos(P.a), sn = Math.sin(P.a), lx = ex + Math.cos(an) * 0.012, ly = ey + Math.sin(an) * 0.012;
+        const vx = P.cx + lx * c - ly * sn, vy = P.cy + lx * sn + ly * c, r = Math.hypot(vx - q.px, vy - q.py), a0 = Math.atan2(vy - q.py, vx - q.px);
+        const sg = Math.sign(q.d) || 1;
+        if (bk) hh = hitAt(q, bk.s, r); // |d| ≤ 0.15라 길을 안 그려도 쾅 머리는 bonk 갈래가 그린다
+        ctx.save();
+        ctx.setLineDash([7, 5]);
+        ctx.lineDashOffset = -0.8 * t;
+        for (const [col, lw] of [['rgba(60,30,10,.55)', 5.5], [bk ? '#ffe08a' : 'rgba(225,215,195,.9)', 3]] as const) {
+          ctx.strokeStyle = col;
+          ctx.lineWidth = lw;
+          ctx.beginPath();
+          if (Math.abs(q.d) > 0.15) ctx.arc(X(q.px), Y(q.py), R(r), a0 + (sg * 0.05) / Math.max(r, 0.01), bk ? hh[4] : a0 + q.d, sg < 0);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
       ctx.save();
       ctx.translate(X(q.cx), Y(q.cy));
       ctx.rotate(q.a);
@@ -2400,46 +2462,18 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       plankPath(ctx, P, R);
       ctx.fill();
       ctx.stroke();
-      const hit = P.ham && pre.rec.some((b) => b.k === 'bonk' && b.p === e.p);
-      if (P.ham) {
-        // 🎨 §2.6 유령 망치 (쾅: 흰 점선 · 허공: 회색)
+      if (P.ham && !bk) {
+        // 💨 허공 유령 머리(회색)는 판자 끝에 — 쾅이면 머리는 bonk 갈래가 과녁에 그린다
         hamFrame(ctx, P, L.hamF[e.p], R);
         hamPath(ctx, R);
-        ctx.fillStyle = hit ? 'rgba(255,255,255,.3)' : 'rgba(200,190,170,.35)';
-        ctx.strokeStyle = hit ? 'rgba(255,255,255,.95)' : 'rgba(200,190,170,.85)';
+        ctx.fillStyle = 'rgba(200,190,170,.35)';
+        ctx.strokeStyle = 'rgba(200,190,170,.85)';
         ctx.setLineDash([4, 3]);
         ctx.fill();
         ctx.stroke();
       }
       ctx.restore();
-      if (P.ham && Math.abs(q.d) > 0.15) {
-        // 휘두르는 호: 지금 머리 → 유령 머리, 피벗 둘레 금색 점선(흐르는 쪽 = 휘두르는 쪽)
-        const [ex, ey, an] = hamEdge(P), c = Math.cos(P.a), sn = Math.sin(P.a), lx = ex + Math.cos(an) * 0.012, ly = ey + Math.sin(an) * 0.012;
-        const vx = P.cx + lx * c - ly * sn, vy = P.cy + lx * sn + ly * c, r = Math.hypot(vx - q.px, vy - q.py), a0 = Math.atan2(vy - q.py, vx - q.px);
-        const sg = Math.sign(q.d) || 1, gp = 0.05 / Math.max(r, 0.01), b0 = a0 + sg * gp, b1 = a0 + q.d - sg * gp;
-        if (Math.abs(q.d) > 2 * gp + 0.15) {
-          ctx.save();
-          ctx.setLineDash([7, 5]);
-          ctx.lineDashOffset = -0.8 * t;
-          for (const [col, lw] of [['rgba(60,30,10,.55)', 5.5], [hit ? '#ffe08a' : 'rgba(225,215,195,.9)', 3]] as const) {
-            ctx.strokeStyle = col;
-            ctx.lineWidth = lw;
-            ctx.beginPath();
-            ctx.arc(X(q.px), Y(q.py), R(r), b0, b1, sg < 0);
-            ctx.stroke();
-          }
-          const hx = X(q.px) + Math.cos(b1) * R(r), hy = Y(q.py) + Math.sin(b1) * R(r), ta = b1 + (sg * Math.PI) / 2;
-          ctx.setLineDash([]);
-          ctx.fillStyle = hit ? '#ffe08a' : 'rgba(225,215,195,.9)';
-          ctx.beginPath();
-          ctx.moveTo(hx + Math.cos(ta) * R(0.012), hy + Math.sin(ta) * R(0.012));
-          ctx.lineTo(hx - Math.cos(ta) * R(0.012) + Math.cos(ta + Math.PI / 2) * R(0.014), hy - Math.sin(ta) * R(0.012) + Math.sin(ta + Math.PI / 2) * R(0.014));
-          ctx.lineTo(hx - Math.cos(ta) * R(0.012) - Math.cos(ta + Math.PI / 2) * R(0.014), hy - Math.sin(ta) * R(0.012) - Math.sin(ta + Math.PI / 2) * R(0.014));
-          ctx.fill();
-          ctx.restore();
-        }
-      }
-      // 휘는 화살표 (망치 판자는 위 호가 대신한다)
+      // 휘는 화살표 (망치 판자는 위 길이 대신한다)
       const r0 = R(Math.hypot(P.cx - q.px, P.cy - q.py)) * 0.75, a0 = Math.atan2(P.cy - q.py, P.cx - q.px), a1 = Math.atan2(q.cy - q.py, q.cx - q.px);
       if (!P.ham && r0 > R(0.03) && Math.abs(q.d) > 0.15) {
         ctx.strokeStyle = '#ffffff';
@@ -2457,9 +2491,9 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       }
     }
     if (e.k === 'fall') {
-      const P = L.pl[e.p], tr = plankXf(s, e.p);
+      const P = L.pl[e.p], tr = plankXf(s, e.p), dy = R(0.03 + 0.01 * Math.sin(t * 0.25));
       ctx.save();
-      ctx.translate(X(tr.cx), Y(tr.cy) + R(0.03 + 0.01 * Math.sin(t * 0.25)));
+      ctx.translate(X(tr.cx), Y(tr.cy) + dy);
       ctx.rotate(tr.a);
       ctx.strokeStyle = 'rgba(255,220,150,.95)';
       ctx.lineWidth = 2.5;
@@ -2467,10 +2501,9 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       plankPath(ctx, P, R);
       ctx.stroke();
       ctx.restore();
-      font(0.034, 900);
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#ffe9c4';
-      ctx.fillText('⬇ 덜컹', X(tr.cx), Y(tr.cy) + R(0.01));
+      // 🎨 S004: 노란 판자 위 흰 글자가 흐리다 → 어두운 알약, 유령 판자와 같이 내려앉는다(🎯 고리 밑 R(0.05))
+      font(0.03, 900);
+      pill(ctx, X(tr.cx), Y(tr.cy) + dy + R(0.02), '⬇ 덜컹', '#ffe9c4', R(0.044));
     }
     if (e.k === 'boing') {
       ctx.strokeStyle = 'rgba(255,170,90,.95)';
@@ -2530,13 +2563,7 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
     ctx.textAlign = 'center';
     const lab = pre.S.fail === 2 ? '⚠ 이러면 꽉 막혀요!' : first.k === 'box' ? (pre.rec.some((e) => e.k === 'done') ? '쏙 → 상자 완성!' : '쏙!') : pre.S.fail ? '⚠ 빈칸이 꽉 차요!' : `빈칸으로 (${pre.S.slots.length}/5)`;
     const lx = X(Math.max(0.2, Math.min(0.8, x0))), ly = Y(Math.max(BY0 + 0.1, y0 - 0.075));
-    const tw = ctx.measureText(lab).width + R(0.04);
-    ctx.fillStyle = 'rgba(30,18,8,.82)';
-    ctx.beginPath();
-    ctx.roundRect(lx - tw / 2, ly - R(0.026), tw, R(0.05), R(0.025));
-    ctx.fill();
-    ctx.fillStyle = pre.S.fail ? '#ffb4a8' : first.k === 'box' ? '#c8ffc8' : '#ffffff';
-    ctx.fillText(lab, lx, ly + 1);
+    pill(ctx, lx, ly, lab, pre.S.fail ? '#ffb4a8' : first.k === 'box' ? '#c8ffc8' : '#ffffff', R(0.05));
   }
 }
 

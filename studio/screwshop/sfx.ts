@@ -90,7 +90,11 @@ const SYNTH: Record<Cue, (t: number, v: number) => void> = {
   },
   press: (t) => void tone('triangle', 1100, 900, t, 0.025, 0.1),
   twist(t) { for (let k = 0; k < 5; k++) hiss(t + k * 0.03, 0.012, 0.14 + k * 0.04, filt('bandpass', 2400 + 450 * k, 8)); },
-  pluck: (t) => void (tone('sine', 380, 980, t, 0.07, 0.32), hiss(t, 0.02, 0.1, filt('highpass', 2000))),
+  // 🎨 S004: v = 태엽 🔒 순번 → 5음계로 한 칸씩(1·2·3·4·5·6+ = +0·2·4·7·9·12반음), 그 밖은 v = 0
+  pluck(t, v) {
+    const p = 2 ** ([0, 0, 2, 4, 7, 9, 12][Math.min(v, 6)] / 12);
+    tone('sine', 380 * p, 980 * p, t, 0.07, 0.32), hiss(t, 0.02, 0.1, filt('highpass', 2000));
+  },
   in(t, n) {
     mar(t, streakHz(n));
     if (n >= 5) tone('sine', streakHz(n) * 1.5, streakHz(n) * 1.5, t, 0.2, 0.15 * 0.38);
