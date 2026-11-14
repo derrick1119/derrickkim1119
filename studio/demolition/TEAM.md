@@ -1,0 +1,44 @@
+# 💥 비버 철거반 스튜디오 — 팀과 자동 사이클
+
+> 오너 지시(2026-11-12 운영 방식 · 2026-11-14 개설): "전문 기획자를 붙여서 컨텐츠랑 시스템을 디테일하게 기획해주고, 개발자가 그걸 보고 반영을 해. 디자이너가 상용화 수준으로 알맞은 컨셉과 퀄리티의 리소스를 제작해. fun QA가 계속해서 재미를 검증해줘. PM은 마일스톤을 수립한뒤에 각 마일스톤 달성 시마다 나한테 빌드 테스트를 요청해."
+> 이 파일이 사이클 규칙이다. BRIEF.md의 가드레일이 여기에도 그대로 적용된다. (운영 방식은 먼저 졸업한 🦆 욕조 물결 오리·🐑 양치기 멍멍 팀과 같다.)
+
+## 팀
+| 역할 | 누가 | 언제 | 책임 | 산출물 |
+|---|---|---|---|---|
+| 📐 **기획자**(전문) | 서브에이전트 | 마일스톤 시작 · 개발 중 기획 판단이 필요할 때 | 콘텐츠·시스템 상세 기획(루프·판 설계표·새것 곡선·경제·메타·온보딩·난이도·수익화 설계안·리텐션·KPI), 결정마다 "왜" | `GDD.md`, `CONTENT.md`(판·수치 표), 📐 블록 |
+| 🎨 **디자이너** | 서브에이전트 | 마일스톤 시작 · 화면이 바뀐 사이클 | 컨셉·팔레트·캐릭터 시트·UI 가이드 + 리소스(캔버스 코드 아트·SVG·아이콘·이펙트·효과음 설계). 직접 만든 것만 | `ART.md`, `assets/`, 🎨 블록 |
+| ✏️ **개발자** | 세션 본체 | 매 사이클 | 기획서·아트 가이드를 보고 구현·측정. 기획과 다르게 구현하면 이유를 TALK에 | 코드, 테스트, 빌드, ✏️ 블록 |
+| 🧪 **FUN QA** | 매 사이클 새 서브에이전트 | 매 사이클 | 빌드·지표·스크린샷만 보고(기획·개발의 결론은 주지 않는다) 유저군별(처음/캐주얼/숙련) 재미 검증, 보완점, FUN 기준 개정 제안 | `FUN.md`, `reports/funqa.json`, 🧪 블록 |
+| 📋 **PM** | 매 사이클 새 서브에이전트 | 매 사이클 끝 | 마일스톤 진척·일정·QC 판정, **오너 빌드 테스트 준비 완료** 선언, 허들 미달이면 마일스톤 재수립 | `MILESTONES.md`, 📋 블록 |
+
+- 서브에이전트는 파일을 직접 고치지 않고 글을 돌려준다. 개발자(본체)가 그대로 옮긴다(편집·요약 금지, 길면 그 에이전트에게 줄여 달라고 한다).
+- 오너는 `STATUS.md`와 `TALK.md`(최신이 위)만 읽으면 된다.
+
+## 한 사이클 (예약 작업, 1시간마다 — 정확히 한 번)
+1. **동기화**: `git fetch origin factory && git checkout factory && git pull --rebase origin factory`, `npm ci`.
+2. **읽기**: STATUS.md, MILESTONES.md(지금 마일스톤·남은 작업), TALK.md 맨 위 사이클.
+3. **멈춤 확인**: STATUS `상태:`가 `오너 테스트 대기`면 → 오너 피드백(채팅·STATUS)이 있으면 반영(통과 → 다음 마일스톤 / 미달 → 피드백을 STATUS·TALK에 원문 그대로, PM이 재수립), 없으면 아무것도 바꾸지 않고 한 줄 보고. `BLOCKED`도 한 줄 보고.
+4. **기획·디자인(필요할 때)**: 마일스톤 첫 사이클이거나 PM·FUN QA가 기획/아트 공백을 지적했으면 📐·🎨 에이전트를 먼저 부른다(둘은 동시에 불러도 된다).
+5. **개발**: 지난 사이클 🧪 보완점·📋 PM 지시·이번 📐/🎨 중 우선순위 최상 1~2개를 구현(diff 약 400줄 이내). 숫자·판 설계가 바뀌면 CONTENT.md/GDD.md도.
+6. **측정**: `npx tsx studio/demolition/build.ts` → `npx tsx studio/demolition/funqa.ts` → `npx tsx studio/demolition/shots.ts`(종료 코드 0 = 콘솔 에러 0·가로 스크롤 없음·터치·키보드·저장소 없음 동작) → 스크린샷을 직접 본다 → `npm run verify`.
+   - **verify는 종료 코드로만 판정한다.** 출력을 grep·tail·head로 거르거나 파이프로 넘겨 종료 코드를 잃지 않는다. 0이 아니면 push하지 않는다.
+7. **FUN QA** (Agent): FUN.md · reports/funqa.json · screens/*.png · 이번 diff 요약(무엇을 바꿨는지만, 왜 좋은지는 말하지 않음)을 주고 유저군별 평가.
+8. **개발자 응답**: 보완점마다 대응(이번에 함/다음 사이클/안 함 + 이유).
+9. **PM** (Agent): MILESTONES.md · STATUS.md · 이번 TALK 블록 · 지표를 주고 → 진척·일정·QC 판정. **완료 기준과 QC를 모두 넘으면 "오너 빌드 테스트 준비 완료"** 선언.
+10. **기록**: TALK.md 맨 위에 사이클 블록(실제 대화 순서: 📐/🎨 → ✏️ 한 일 → 🧪 평가 → ✏️ 응답 → 📋 PM). MILESTONES.md·STATUS.md 갱신.
+11. **커밋·푸시**: "스튜디오 비버 철거반: C### <요약>". 거절되면 `git pull --rebase origin factory` → verify → push. force push 금지. 배포는 GitHub Actions `deploy` 결과로 확인.
+12. **오너 알림**: PM이 "오너 빌드 테스트 준비 완료"를 선언한 사이클에만 PushNotification — 무엇을 테스트할지 3줄 + `https://derrick1119.github.io/derrickkim1119/studio/demolition/`. STATUS `상태: 오너 테스트 대기`로 바꾸고 다음 사이클부터 멈춤(새 기능 금지).
+13. **요약**: 사이클 끝 한국어 3줄. 첫 줄은 플레이 주소 `https://derrick1119.github.io/derrickkim1119/studio/demolition/`.
+
+## 수정 범위
+`studio/demolition/`, `web/public/studio/demolition/`, `tests/studio-demolition*.test.ts` 뿐. 다른 작업장은 읽기만.
+
+## 연속 실패
+3사이클 연속 verify 실패로 push 못 함 → STATUS `상태: BLOCKED`, "오너에게"에 이유, 알림.
+
+## 이 팀만의 약속
+- 사이클 번호는 `C###`(M0 = C001). 커밋 메시지: "스튜디오 비버 철거반: C### <요약>".
+- 측정 명령: `npx tsx studio/demolition/build.ts` → `npx tsx studio/demolition/funqa.ts` → `npx tsx studio/demolition/shots.ts`.
+- **전략 깊이 지표(오너 기준 11)를 매 사이클 본다**: `reports/funqa.json`의 미리 보기 탐욕 봇(greedy) ★3 판 수 · 버릇 봇 ★3 판 수 · 무작위 1판 성공률. M1 목표는 MILESTONES.md.
+- 결정적 칸 물리(미리 보기 = 실제)는 어떤 마일스톤에서도 깨지 않는다 — `tests/studio-demolition.test.ts`가 지킨다.

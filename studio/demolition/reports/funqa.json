@@ -1,0 +1,155 @@
+{
+ "at": "M0",
+ "stages": [
+  {
+   "n": 1,
+   "title": "낡은 물탱크 탑",
+   "charges": 1,
+   "best": 3,
+   "greedy": 3,
+   "habit": 3,
+   "random": {
+    "clear": 1,
+    "star3": 1
+   }
+  },
+  {
+   "n": 2,
+   "title": "두 다리 망루",
+   "charges": 1,
+   "best": 3,
+   "greedy": 3,
+   "habit": 3,
+   "random": {
+    "clear": 0.6725,
+    "star3": 0.2155
+   }
+  },
+  {
+   "n": 3,
+   "title": "돌다리 여관",
+   "charges": 3,
+   "best": 3,
+   "greedy": 2,
+   "habit": 2,
+   "random": {
+    "clear": 0.3165,
+    "star3": 0.0255
+   }
+  },
+  {
+   "n": 4,
+   "title": "가스통 창고",
+   "charges": 1,
+   "best": 3,
+   "greedy": 3,
+   "habit": 0,
+   "random": {
+    "clear": 0.0555,
+    "star3": 0.0555
+   }
+  },
+  {
+   "n": 5,
+   "title": "도미노 골목",
+   "charges": 2,
+   "best": 3,
+   "greedy": 3,
+   "habit": 2,
+   "random": {
+    "clear": 0.19,
+    "star3": 0.0425
+   }
+  },
+  {
+   "n": 6,
+   "title": "쇠 다리 망루",
+   "charges": 2,
+   "best": 3,
+   "greedy": 3,
+   "habit": 0,
+   "random": {
+    "clear": 0.137,
+    "star3": 0.0985
+   }
+  },
+  {
+   "n": 7,
+   "title": "좁은 골목 아파트",
+   "charges": 2,
+   "best": 3,
+   "greedy": 3,
+   "habit": 0,
+   "random": {
+    "clear": 0.0945,
+    "star3": 0.019
+   }
+  },
+  {
+   "n": 8,
+   "title": "마을 회관 철거",
+   "charges": 3,
+   "best": 3,
+   "greedy": 2,
+   "habit": 1,
+   "random": {
+    "clear": 0.24,
+    "star3": 0.0015
+   }
+  }
+ ],
+ "summary": {
+  "allStar3Possible": true,
+  "greedyStar3": "5/7 (2판~)",
+  "habitStar3": "0/6 (3판~)",
+  "randomClear1": 1
+ },
+ "runs": {
+  "smart": [
+   {
+    "stage": 8,
+    "stars": 24,
+    "won": true,
+    "hearts": 3,
+    "sec": 77
+   },
+   {
+    "stage": 8,
+    "stars": 24,
+    "won": true,
+    "hearts": 3,
+    "sec": 76
+   },
+   {
+    "stage": 8,
+    "stars": 24,
+    "won": true,
+    "hearts": 3,
+    "sec": 76
+   }
+  ],
+  "random": [
+   {
+    "stage": 3,
+    "stars": 4,
+    "won": false,
+    "hearts": 0,
+    "sec": 129
+   },
+   {
+    "stage": 5,
+    "stars": 11,
+    "won": false,
+    "hearts": 0,
+    "sec": 118
+   },
+   {
+    "stage": 5,
+    "stars": 11,
+    "won": false,
+    "hearts": 0,
+    "sec": 245
+   }
+  ]
+ }
+}
