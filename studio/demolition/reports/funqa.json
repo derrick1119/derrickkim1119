@@ -161,7 +161,8 @@
    "clear": 0.0481283422459893,
    "star3": 0.03208556149732621,
    "best": 3,
-   "greedy": 3,
+   "greedyStar3": 0.15,
+   "greedyClear": 0.25,
    "firstTapStill": 1
   }
  ]

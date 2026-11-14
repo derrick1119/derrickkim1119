@@ -102,19 +102,26 @@ export function measure3D() {
       if (o.ok && o.stars === 3) s3++;
       best = Math.max(best, o.ok ? o.stars : 0);
     });
-    const ch = new Int8Array(L.blocks.length);
-    for (let k = 0; k < d.charges; k++) {
-      let bi = -1, bv = -1e9;
-      L.blocks.forEach((b, i) => {
-        if (ch[i] >= capOf3(b)) return;
-        ch[i]++;
-        const v = v3(L, ch);
-        ch[i]--;
-        if (v > bv) (bv = v), (bi = i);
-      });
-      ch[bi]++;
+    // 미리 보기 탐욕: 폭약마다 '지금까지 + 이 블록'이 가장 좋은 곳. 동점은 무작위(🧪 C002: 첫 톡은 거의 다 '꿈쩍 안 함' 동점), 시드 20 평균
+    let gStar3 = 0, gClear = 0;
+    for (let seed = 1; seed <= 20; seed++) {
+      const rng = mulberry32(seed), ch = new Int8Array(L.blocks.length);
+      for (let k = 0; k < d.charges; k++) {
+        let bv = -1e9, ties: number[] = [];
+        L.blocks.forEach((b, i) => {
+          if (ch[i] >= capOf3(b)) return;
+          ch[i]++;
+          const v = v3(L, ch);
+          ch[i]--;
+          if (v > bv) (bv = v), (ties = [i]);
+          else if (v === bv) ties.push(i);
+        });
+        ch[ties[Math.floor(rng() * ties.length)]]++;
+      }
+      const g = simulate3(L, ch);
+      if (g.ok) gClear++;
+      if (g.ok && g.stars === 3) gStar3++;
     }
-    const g = simulate3(L, ch);
     let still = 0, open = 0;
     L.blocks.forEach((b, i) => {
       if (!capOf3(b)) return;
@@ -123,7 +130,7 @@ export function measure3D() {
       c1[i] = capOf3(b);
       if (!simulate3(L, c1).moved) still++;
     });
-    return { title: d.title, blocks: L.blocks.length, charges: d.charges, plans, clear: ok / plans, star3: s3 / plans, best, greedy: g.ok ? g.stars : 0, firstTapStill: still / open };
+    return { title: d.title, blocks: L.blocks.length, charges: d.charges, plans, clear: ok / plans, star3: s3 / plans, best, greedyStar3: gStar3 / 20, greedyClear: gClear / 20, firstTapStill: still / open };
   });
 }
 
@@ -150,7 +157,7 @@ if (process.argv[1]?.endsWith('funqa.ts')) {
   for (const x of r.stages) console.log(`${x.n} ${x.title.padEnd(10)} 폭약${x.charges} 최선★${x.best} 미리보기★${x.greedy} 버릇★${x.habit} 무작위 성공${(x.random.clear * 100).toFixed(0)}% ★3 ${(x.random.star3 * 100).toFixed(0)}%`);
   console.log(r.summary, r.runs);
   const r3 = measure3D();
-  for (const x of r3) console.log(`3D ${x.title} 블록${x.blocks} 폭약${x.charges} 계획${x.plans} 성공${(x.clear * 100).toFixed(1)}% ★3 ${(x.star3 * 100).toFixed(1)}% 최선★${x.best} 미리보기탐욕★${x.greedy} 첫 톡 꿈쩍 안 함 ${(x.firstTapStill * 100).toFixed(0)}%`);
+  for (const x of r3) console.log(`3D ${x.title} 블록${x.blocks} 폭약${x.charges} 계획${x.plans} 성공${(x.clear * 100).toFixed(1)}% ★3 ${(x.star3 * 100).toFixed(1)}% 최선★${x.best} 미리보기탐욕(동점 무작위) ★3 ${x.greedyStar3} 성공 ${x.greedyClear} 첫 톡 꿈쩍 안 함 ${(x.firstTapStill * 100).toFixed(0)}%`);
   const dir = join(import.meta.dirname, 'reports');
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: 'C002', ...r, stages3d: measure3D() }, null, 1) + '\n');
