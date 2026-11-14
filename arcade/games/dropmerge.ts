@@ -1965,19 +1965,20 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DMState, w: number, h: number
     const last = s.events.filter((e) => e.kind === 'merge' || e.kind === 'bigpop').at(-1);
     const age = last ? s.t - last.t : 99, k = Math.min(8, s.combo);
     if (age < 60) {
-      const sc = (1 + k * 0.07) * (1 + Math.max(0, 8 - age) * 0.07);
+      const big = s.events.filter((e) => (e.kind === 'merge' || e.kind === 'bigpop') && e.t >= s.lastDrop).reduce((m, e) => Math.max(m, e.lv ?? 0), 0);
+      const tx = `${k >= 6 ? '온천 폭발!! ' : k >= 4 ? '대연쇄! ' : '연쇄 '}뿅×${s.combo}${big >= 3 ? ' ' + EMO[big] : '!'}`;
+      font(0.07, 900);
+      const fit = (w * 0.9) / Math.max(1, ctx.measureText(tx).width);
+      const sc = Math.min(fit, (1 + k * 0.07) * (1 + Math.max(0, 8 - age) * 0.07));
       ctx.save();
       ctx.translate(w / 2, Y(LINE - 0.075));
       ctx.rotate(Math.sin(t * 0.35) * 0.012 * k);
       ctx.scale(sc, sc);
       ctx.globalAlpha = Math.min(1, (60 - age) / 12);
-      font(0.07, 900);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.lineWidth = 5;
       ctx.strokeStyle = 'rgba(40,20,60,.7)';
-      const big = s.events.filter((e) => (e.kind === 'merge' || e.kind === 'bigpop') && e.t >= s.lastDrop).reduce((m, e) => Math.max(m, e.lv ?? 0), 0);
-      const tx = `${k >= 6 ? '온천 폭발!! ' : k >= 4 ? '대연쇄! ' : '연쇄 '}뿅×${s.combo}${big >= 3 ? ' ' + EMO[big] : '!'}`;
       ctx.strokeText(tx, 0, 0);
       ctx.fillStyle = COMBO_C[Math.min(COMBO_C.length - 1, k)];
       ctx.fillText(tx, 0, 0);

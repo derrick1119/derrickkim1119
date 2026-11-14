@@ -2070,6 +2070,73 @@ function preview(s: PinState, p: number): Pre {
   return pre;
 }
 
+/** 판마다 새 장치를 눈에 띄게: 판이 시작되면 장치를 하나씩 비추고 '무엇을 해야 하나'를 한 줄로 */
+interface Spot { x: number; y: number; r: number; text: string }
+const spotCache = new WeakMap<object, Spot[]>();
+function spotsOf(s: PinState): Spot[] {
+  const lv = s.lv, hit = spotCache.get(lv);
+  if (hit) return hit;
+  const L = lv.L, v = lv.v, a: Spot[] = [], key = STAGES[s.stage].key;
+  v.fills.forEach((f, ci) => {
+    if (!f) return;
+    const c = L.chs[ci], y = (c.top + c.fy) / 2;
+    if (f.k === 1 && (key === 'gray' || key === 'party')) a.push({ x: c.cx, y, r: c.w * 0.62, text: '⚪ 회색 반죽 — 색 경단을 먼저 만나게!' });
+    if (f.k === 2 && (key === 'pepper' || key === 'mouse' || key === 'syrup')) a.push({ x: c.cx, y, r: c.w * 0.62, text: '🌶️ 고춧가루 — 경단에 닿으면 매워요' });
+  });
+  for (const p of L.tap)
+    if (L.pins[p].kind === 1) {
+      const sg = L.segs[L.pins[p].seg];
+      a.push({ x: (sg.ax + sg.bx) / 2, y: (sg.ay + sg.by) / 2, r: 0.2, text: v.bc ? '↘️ 줄무늬 꼬치 = 길 바꾸기 (있으면 왼쪽)' : '↘️ 줄무늬 꼬치 — 있으면 🏺로, 빼면 그릇으로' });
+    }
+  if (L.pot && key !== 'party') a.push({ x: L.pot.x, y: 1.12, r: 0.12, text: '🏺 김치 항아리 — 고춧가루는 여기로' });
+  L.chs.forEach((c) => c.W && a.push({ x: c.cx, y: c.top + c.h / 2, r: c.w * 0.62, text: `⚖️ 저울 — ${v.W ?? 6}개 모여야 덜컥! 모아서 보내요` }));
+  if (v.bc) L.bowls.forEach((bw, i) => a.push({ x: bw.x, y: 1.13, r: 0.13, text: `🥣 ${i ? '오른쪽' : '왼쪽'} 그릇은 ${CNAME[v.bc![i]]}만!` }));
+  if (L.mouse) a.push({ x: L.mouse.x + 0.02, y: L.mouse.y, r: 0.1, text: '🐭 경단 도둑 — 🌶️가 먼저 지나가면 에취!' });
+  if (L.syrup) a.push({ x: L.syrup.x, y: L.syrup.y + 0.02, r: 0.1, text: '🍯 조청 — 맨 처음 지나간 것만 찰싹!' });
+  spotCache.set(lv, a);
+  return a;
+}
+const SPOT0 = 70, SPOT_T = 85;
+function drawSpots(k: Kit, s: PinState) {
+  if (s.tries > 0 || s.phase !== 'play') return;
+  const { ctx, X, Y, R, w, h, t } = k, list = spotsOf(s), age = t - s.startT - SPOT0;
+  if (age < 0 || age >= list.length * SPOT_T) return;
+  const i = Math.floor(age / SPOT_T), u = age - i * SPOT_T, sp = list[i];
+  const a = Math.min(1, u / 10, (SPOT_T - u) / 12), pr = R(sp.r) * (1 + 0.05 * Math.sin(t * 0.2));
+  // 장치만 밝고 나머지는 살짝 어둡게
+  ctx.save();
+  ctx.globalAlpha = a * 0.42;
+  ctx.fillStyle = '#2a1508';
+  ctx.beginPath();
+  ctx.rect(0, 0, w, h);
+  ctx.arc(X(sp.x), Y(sp.y), pr, 0, TAU, true);
+  ctx.fill('evenodd');
+  ctx.restore();
+  ctx.globalAlpha = a;
+  ctx.strokeStyle = '#ffe066';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([R(0.02), R(0.012)]);
+  ctx.lineDashOffset = -t * 0.6;
+  ctx.beginPath();
+  ctx.arc(X(sp.x), Y(sp.y), pr, 0, TAU);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  k.font(0.04, 900);
+  const tw = ctx.measureText(sp.text).width + R(0.045), below = sp.y < 0.75;
+  let bx = X(sp.x), by = below ? Y(sp.y) + pr + R(0.05) : Y(sp.y) - pr - R(0.05);
+  bx = Math.max(tw / 2 + 4, Math.min(w - tw / 2 - 4, bx));
+  by = Math.max(Y(0.11), Math.min(Y(1.3), by));
+  ctx.fillStyle = 'rgba(255,224,102,.97)';
+  ctx.beginPath();
+  ctx.roundRect(bx - tw / 2, by - R(0.03), tw, R(0.06), R(0.03));
+  ctx.fill();
+  ctx.fillStyle = '#3a2414';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(sp.text, bx, by + 1);
+  ctx.globalAlpha = 1;
+}
+
 const recentSay = new WeakMap<object, { x: number; y: number; t: number }[]>();
 function drawAll(ctx: CanvasRenderingContext2D, s: PinState, w: number, h: number, th: Theme) {
   const fx = juice(s), t = s.t, L = s.lv.L, W = s.W, V = s.lv.V, d = STAGES[s.stage];
@@ -2216,20 +2283,26 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PinState, w: number, h: numbe
     }
   }
   // 할머니(카운터 뒤) · 카운터 · 그릇 · 항아리
-  const gx = X(0.875), gu = R(0.058);
-  drawGranny(k, s, gx, Y(1.155), gu);
+  const gx = X(0.875), gu = R(0.066);
+  drawGranny(k, s, gx, Y(1.15), gu);
   drawCounter(k);
   if (L.pot) drawPot(k, L.pot, 0, W.b.filter((b) => b.st === 2 && b.k === 2).length);
-  L.bowls.forEach((bw, i) => drawBowl(k, bw, 0, V.v.bc ? V.v.bc[i] : -1));
+  /** 그릇이 경단을 받을 때마다 통 — 살짝 눌렸다 튄다 */
+  const bob = (i: number) => {
+    const u = t - (s.bowlT[i] ?? -99);
+    return u >= 0 && u < 12 ? Math.sin((u / 12) * Math.PI) * R(0.009) : 0;
+  };
+  L.bowls.forEach((bw, i) => (ctx.save(), ctx.translate(0, bob(i)), drawBowl(k, bw, 0, V.v.bc ? V.v.bc[i] : -1), ctx.restore()));
   // 그릇 무더기 (잡힌 순서대로 자리)
   for (const b of W.b) {
     if (b.st !== 1) continue;
     const bw = L.bowls[b.bi], [sx, sy] = slotXY(bw, b.slot), q = ease((t - b.tc) / 12), hop = Math.sin(Math.PI * Math.min(1, (t - b.tc) / 12)) * 0.03;
     const x = b.sx + (sx - b.sx) * q, y = b.sy + (sy - b.sy) * q - hop;
-    if (b.k === 2) drawFlake(k, X(x), Y(y), R(0.02), b.rot);
-    else drawDango(k, X(x), Y(y), R(0.024), ballLook(b, t).col, b.hot ? 4 : b.k === 1 ? 3 : 2, 0);
+    const by = q >= 1 ? bob(b.bi) : 0;
+    if (b.k === 2) drawFlake(k, X(x), Y(y) + by, R(0.02), b.rot);
+    else drawDango(k, X(x), Y(y) + by, R(0.024), ballLook(b, t).col, b.hot ? 4 : b.k === 1 ? 3 : 2, 0);
   }
-  L.bowls.forEach((bw, i) => drawBowl(k, bw, 1, V.v.bc ? V.v.bc[i] : -1));
+  L.bowls.forEach((bw, i) => (ctx.save(), ctx.translate(0, bob(i)), drawBowl(k, bw, 1, V.v.bc ? V.v.bc[i] : -1), ctx.restore()));
   if (L.pot) {
     for (const b of W.b)
       if (b.st === 2 && t - b.tc < 14) {
@@ -2242,9 +2315,16 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PinState, w: number, h: numbe
   drawHands(k, s, gx, gu);
   // 그릇 개수 팻말
   L.bowls.forEach((bw, i) => {
-    const n = W.bowlN[i], two = L.bowls.length > 1, txt = two ? `${n}` : `🍡 ${n}/${V.N}`;
+    const n = W.bowlN[i], two = L.bowls.length > 1, txt = two ? `${n}` : `🍡 ${n}/${V.N}`, pu = t - (s.bowlT[i] ?? -99);
     font(0.04, 900);
     const tw = ctx.measureText(txt).width + R(two ? 0.05 : 0.03), tx = X(bw.x), ty = Y(1.262);
+    ctx.save();
+    if (pu >= 0 && pu < 10) {
+      const sc = 1 + (1 - pu / 10) * 0.28;
+      ctx.translate(tx, ty);
+      ctx.scale(sc, sc);
+      ctx.translate(-tx, -ty);
+    }
     ctx.fillStyle = 'rgba(40,20,5,.35)';
     ctx.beginPath();
     ctx.roundRect(tx - tw / 2 + 2, ty - R(0.024) + 3, tw, R(0.048), R(0.012));
@@ -2269,6 +2349,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PinState, w: number, h: numbe
       ctx.lineWidth = 1;
       ctx.stroke();
     }
+    ctx.restore();
   });
   // ═════════ 미리 보기 ═════════
   if (pressK >= 0) {
@@ -2322,6 +2403,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PinState, w: number, h: numbe
     ctx.fillStyle = '#ffffff';
     ctx.fillText('👆', x + R(0.02), y + R(0.075) + bob);
   }
+  drawSpots(k, s);
+  // 느린 화면: 가장자리가 금빛으로
+  if (s.slow > 0) {
+    const a = Math.min(1, s.slow / 20) * 0.35, sg = ctx.createRadialGradient(w / 2, h * 0.5, R(0.45), w / 2, h * 0.5, R(1.0));
+    sg.addColorStop(0, 'rgba(255,220,120,0)');
+    sg.addColorStop(1, `rgba(255,214,102,${a})`);
+    ctx.fillStyle = sg;
+    ctx.fillRect(0, 0, w, h);
+  }
   // 가장자리 어둡게
   const vg = ctx.createRadialGradient(w / 2, h * 0.45, R(0.5), w / 2, h * 0.5, R(1.05));
   vg.addColorStop(0, 'rgba(0,0,0,0)');
@@ -2350,9 +2440,43 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PinState, w: number, h: numbe
         fx.burst(x, y, '#efd59f', 8, 2.2, 1.6);
         say(x, y - R(0.05), e.text!, col, 16);
         break;
-      case 'in':
-        fx.burst(x, Y(1.1), col, 5, 1.8, 1.6);
-        if (e.text) say(x, Y(1.0), e.text, '#fff6c8', 15);
+      case 'in': {
+        // 많이 담길수록 점점 크게: 파티클·흔들림·숫자
+        const v = e.v ?? 1, bx = X(L.bowls[0] && L.bowls.length === 1 ? L.bowls[0].x : e.x);
+        fx.burst(x, Y(1.1), col, 4 + Math.min(v, 14), 1.8 + Math.min(v, 14) * 0.12, 1.6 + Math.min(v, 10) * 0.08);
+        fx.burst(x, Y(1.1), '#fff6c8', 3, 1.4, 1.2);
+        fx.kick(Math.min(5.5, 0.6 + v * 0.35));
+        if (v % 5 === 0) fx.ring(bx, Y(1.1), col, R(0.12 + Math.min(v, 15) * 0.008), 3);
+        fx.pop(bx + (hsh(e.t) - 0.5) * R(0.06), Y(1.0) - Math.min(v, 12) * 2, e.text!, v >= 8 ? '#ffd166' : '#fff6c8', 15 + Math.min(v, 14) * 1.5);
+        break;
+      }
+      case 'pour': {
+        const v = e.v ?? 4;
+        fx.blink('#fff3c4', 0.18);
+        fx.ring(x, Y(1.1), '#ffe066', R(0.22 + v * 0.01), 6);
+        for (const c of COLS) fx.burst(x, Y(1.08), c, 8 + v, 4 + v * 0.15, 2.6);
+        say(x, Y(0.93), e.text!, col, Math.min(30, 19 + v));
+        break;
+      }
+      case 'goal':
+        fx.blink('#ffe9a0', 0.32);
+        fx.kick(6);
+        fx.ring(x, Y(1.08), '#ffe066', R(0.34), 7);
+        for (const c of ['#ffe066', ...COLS]) fx.burst(x, Y(1.05), c, 16, 5.5, 3);
+        say(w / 2, Y(0.88), e.text!, col, 27);
+        break;
+      case 'full':
+        fx.blink('#fff6c8', 0.4);
+        fx.kick(7);
+        fx.ring(x, Y(1.08), '#ffe066', R(0.42), 8);
+        fx.ring(x, Y(1.08), '#ff8db4', R(0.3), 6);
+        for (const c of ['#ffe066', '#ffffff', ...COLS]) fx.burst(x, Y(1.05), c, 20, 6.5, 3.2);
+        say(w / 2, Y(0.84), e.text!, col, 25);
+        break;
+      case 'chain':
+        fx.ring(x, y, '#ffffff', R(0.16), 5);
+        fx.kick(3);
+        say(x, y - R(0.1), e.text!, col, 19);
         break;
       case 'bad':
         fx.kick(8);
@@ -2361,11 +2485,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PinState, w: number, h: numbe
         fx.ring(x, Y(1.1), '#ff6a50', R(0.2), 5);
         say(w / 2, Y(0.98), e.text!, '#ffd0c8', 18);
         break;
-      case 'dye':
-        fx.ring(x, y, col, R(0.045), 2);
-        fx.burst(x, y, col, 5, 1.5, 1.5);
-        if (e.text) say(x, y - R(0.06), e.text, '#ffffff', 15);
+      case 'dye': {
+        const v = e.v ?? 1;
+        fx.ring(x, y, col, R(0.045 + Math.min(v, 8) * 0.004), 2.5);
+        fx.burst(x, y, col, 5 + Math.min(v, 8), 1.6 + v * 0.1, 1.6);
+        fx.burst(x, y, '#ffffff', 3, 1.2, 1.2);
+        if (v === 1) say(x, y - R(0.06), e.text!, '#ffffff', 16);
+        else fx.pop(x, y - R(0.04), e.text!, col, 13 + Math.min(v, 10) * 1.2);
         break;
+      }
       case 'hot':
         fx.burst(x, y, '#ff6a40', 6, 1.8, 1.7);
         if (e.text) (say(x, y - R(0.06), e.text, col, 17), fx.kick(3));
@@ -2444,24 +2572,6 @@ function drawHud(k: Kit, s: PinState, d: StageDef, th: Theme) {
   ctx.fillText(stt, w - R(0.03), hb * 0.52);
   ctx.fillStyle = th.hot;
   ctx.fillText('♥'.repeat(Math.max(0, s.hearts)) + '♡'.repeat(Math.max(0, 3 - s.hearts)), w - R(0.06) - ctx.measureText(stt).width, hb * 0.52);
-  // 새것 알림
-  if (s.news && t - s.news.t < NEWS_T + 20) {
-    const age = t - s.news.t, a = Math.min(1, age / 10, (NEWS_T + 20 - age) / 20), drop = Math.max(0, 10 - age) * 2;
-    ctx.globalAlpha = a;
-    let fs = 0.037;
-    font(fs, 900);
-    const tx = s.news.text;
-    while (ctx.measureText(tx).width > w - R(0.07) && fs > 0.03) font((fs -= 0.001), 900);
-    ctx.textAlign = 'center';
-    const tw2 = Math.min(w - 6, ctx.measureText(tx).width + R(0.05)), by2 = hb + R(0.04) - drop;
-    ctx.fillStyle = 'rgba(58,32,14,.92)';
-    ctx.beginPath();
-    ctx.roundRect(w / 2 - tw2 / 2, by2 - R(0.028), tw2, R(0.056), R(0.028));
-    ctx.fill();
-    ctx.fillStyle = '#fff1d6';
-    ctx.fillText(tx, w / 2, by2 + 1);
-    ctx.globalAlpha = 1;
-  }
   // 판 시작 큰 글씨
   {
     const age = t - s.startT;
@@ -2547,11 +2657,27 @@ function drawHud(k: Kit, s: PinState, d: StageDef, th: Theme) {
     else if (s.phase === 'result') tp = s.ok ? (s.won ? '할머니 떡집 잔치 끝!' : '다음 판이 와요!') : '같은 판을 다시 — 누르고 있으면 길이 보여요';
     else if (s.tries > 0 && s.taps < 2) tp = '💡 꼬치를 누르고 있으면 무슨 일이 날지 보여요';
     ctx.textAlign = 'center';
+    const nw = s.news && t - s.news.t < NEWS_T + 20 && !(s.down && s.press >= 0);
+    if (nw) tp = '✨ ' + s.news!.text;
     let fs = 0.037;
-    font(fs, 800);
-    while (ctx.measureText(tp).width > w - R(0.05) && fs > 0.031) font((fs -= 0.001), 800);
-    ctx.fillStyle = 'rgba(255,240,214,.95)';
-    ctx.fillText(tp, w / 2, Y(1.455));
+    font(fs, nw ? 900 : 800);
+    while (ctx.measureText(tp).width > w - R(0.05) && fs > 0.031) font((fs -= 0.001), nw ? 900 : 800);
+    if (nw) {
+      const age = t - s.news!.t, pop = 1 + Math.max(0, 8 - age) * 0.03, tw2 = Math.min(w - 4, ctx.measureText(tp).width + R(0.04));
+      ctx.save();
+      ctx.translate(w / 2, Y(1.455));
+      ctx.scale(pop, pop);
+      ctx.fillStyle = `rgba(255,${200 + Math.round(30 * Math.sin(t * 0.15))},90,.95)`;
+      ctx.beginPath();
+      ctx.roundRect(-tw2 / 2, -R(0.03), tw2, R(0.06), R(0.03));
+      ctx.fill();
+      ctx.fillStyle = '#3a2414';
+      ctx.fillText(tp, 0, 1);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = 'rgba(255,240,214,.95)';
+      ctx.fillText(tp, w / 2, Y(1.455));
+    }
   }
   ctx.textBaseline = 'alphabetic';
 }
