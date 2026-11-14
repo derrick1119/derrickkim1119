@@ -811,6 +811,8 @@ export function retrace(L: Level, H: Hist[], S: Sim): Why {
   if (a3) return { c: '③허공', t: [a3.air!.t, a3.t].sort((a, b) => a - b), k: a3.air!.k };
   const j3 = L.jack ? last(E.filter((x) => !x.ch && jackEarly(L, H[x.t].S0.gone, x.s, H[x.t].rec))) : undefined; // 🤡 모자 나사를 뿅 전에 손으로 빼 빈칸으로(✏️ S013 · 🧪 S013 '카드가 뿅을 안 짚음')
   if (j3) return { c: '③뿅', t: two(j3.t, la), k: L.jack![1] };
+  const jc = L.jack ? last(E.filter((x) => x.ch && H[x.t].rec.some((r) => r.k === 'jack'))) : undefined; // 🤡 뿅이 튀긴 모자 나사가 빈칸으로 — ①색보다 먼저 짚어 뿅을 가르친다(✏️ S014 · 🧪 S013)
+  if (jc) return { c: '①연쇄', t: two(jc.t, la), k: -1, s: jc.s, via: 'jack' };
   const c2 = E.filter((x) => x.cov >= 0), c1 = E.filter((x) => x.alt);
   if (c2.length && c2.length >= c1.length) {
     const x = last(c2);

@@ -4,34 +4,34 @@
  "seeds": 24,
  "summary": {
   "smartStars": 3,
-  "habitStars": 1.72,
-  "randomStars": 0.27,
+  "habitStars": 1.68,
+  "randomStars": 0.26,
   "smartStar3": 1,
   "habitStar3": 0.03,
   "randomClear1": 1,
   "mashClear12": 0.98,
-  "mashClear38": 0.19,
-  "mashStars": 0.3,
+  "mashClear38": 0.18,
+  "mashStars": 0.29,
   "habit3Star3_2": 0,
   "habit3Star3_38max": 0.08,
   "fingerGe2_1": 0.04,
   "fingerGe2_2": 0.17,
   "previewStar3_38": 0.07,
-  "smartShot": 4.1,
+  "smartShot": 4.05,
   "mashShot": 1.33,
-  "smartSec": 5.92,
+  "smartSec": 5.94,
   "newbie3_13": 1,
   "newbie3_avg": 0.99,
   "hintMin": 1,
   "hint3": 0,
-  "f13_38min": 0.95,
+  "f13_38min": 0.93,
   "f16min": 0.83,
   "pairMin": 0.85,
   "dev": [
    [
     "3-2",
-    0.22,
-    0.83
+    2.06,
+    0
    ]
   ],
   "onlyLastSmallN": 0.94,
@@ -71,12 +71,13 @@
    86,
    71,
    66,
+   71,
    91,
    66,
    65,
    66
   ],
-  "skillGap": 11.11
+  "skillGap": 11.54
  },
  "stages": [
   {
@@ -1985,6 +1986,114 @@
   },
   {
    "stage": 19,
+   "slot": "2-10",
+   "id": 22,
+   "name": "🗼 등대",
+   "smart": {
+    "clear": 1,
+    "star3": 1,
+    "stars": 3,
+    "ge2": 1,
+    "sec": 6.5,
+    "human": 71,
+    "shot": 3
+   },
+   "habit": {
+    "clear": 0.75,
+    "star3": 0,
+    "stars": 1.38,
+    "ge2": 0.63,
+    "sec": 6.1,
+    "human": 66,
+    "shot": 1.25
+   },
+   "top": {
+    "clear": 0,
+    "star3": 0,
+    "stars": 0,
+    "ge2": 0,
+    "sec": 3.7,
+    "human": 37,
+    "shot": 0.92
+   },
+   "reveal": {
+    "clear": 0.83,
+    "star3": 0,
+    "stars": 1.38,
+    "ge2": 0.54,
+    "sec": 6.7,
+    "human": 73,
+    "shot": 1.38
+   },
+   "random": {
+    "clear": 0.04,
+    "star3": 0,
+    "stars": 0.04,
+    "ge2": 0,
+    "sec": 12.2,
+    "human": 36,
+    "shot": 0.96
+   },
+   "mash": {
+    "clear": 0.04,
+    "star3": 0,
+    "stars": 0.08,
+    "ge2": 0.04,
+    "sec": 2.6,
+    "human": 38,
+    "shot": 1.13
+   },
+   "finger": {
+    "clear": 0.04,
+    "star3": 0,
+    "stars": 0.08,
+    "ge2": 0.04,
+    "sec": 2.6,
+    "human": 38,
+    "shot": 1.13
+   },
+   "preview": {
+    "clear": 1,
+    "star3": 0.04,
+    "stars": 1.96,
+    "ge2": 0.92,
+    "sec": 6.8,
+    "human": 75,
+    "shot": 1.88
+   },
+   "newbie": {
+    "clear1": 0.54,
+    "clear3": 0.83,
+    "fails": 27,
+    "f13": 0.93,
+    "hint": 1,
+    "hint3": 0
+   },
+   "f16": {
+    "fails": 94,
+    "n": 45,
+    "v21": 1,
+    "airFails": 22,
+    "pair": 1,
+    "onlyLast": 0.71,
+    "by": {
+     "①색": [
+      5,
+      5
+     ],
+     "②못": [
+      0,
+      0
+     ],
+     "③허공": [
+      40,
+      40
+     ]
+    }
+   }
+  },
+  {
+   "stage": 20,
    "slot": "3-1",
    "id": 6,
    "name": "🏰 성",
@@ -2084,7 +2193,7 @@
    }
   },
   {
-   "stage": 20,
+   "stage": 21,
    "slot": "3-2",
    "id": 21,
    "name": "🤡 깜짝 상자",
@@ -2100,100 +2209,104 @@
    "habit": {
     "clear": 1,
     "star3": 0,
-    "stars": 2,
-    "ge2": 1,
-    "sec": 7.3,
-    "human": 80,
-    "shot": 1.08
+    "stars": 1.46,
+    "ge2": 0.46,
+    "sec": 6.5,
+    "human": 71,
+    "shot": 2.42
    },
    "top": {
-    "clear": 0.13,
+    "clear": 0.17,
     "star3": 0,
-    "stars": 0.13,
+    "stars": 0.17,
     "ge2": 0,
-    "sec": 4.4,
-    "human": 46,
-    "shot": 0.92
+    "sec": 4.6,
+    "human": 47,
+    "shot": 1.13
    },
    "reveal": {
     "clear": 1,
     "star3": 0,
-    "stars": 1.83,
-    "ge2": 0.83,
-    "sec": 6.8,
-    "human": 74,
-    "shot": 1.79
+    "stars": 1.54,
+    "ge2": 0.54,
+    "sec": 6.5,
+    "human": 71,
+    "shot": 2.42
    },
    "random": {
-    "clear": 0.13,
+    "clear": 0.17,
     "star3": 0,
-    "stars": 0.13,
+    "stars": 0.17,
     "ge2": 0,
-    "sec": 15,
-    "human": 50,
-    "shot": 1.08
+    "sec": 17.3,
+    "human": 47,
+    "shot": 1.29
    },
    "mash": {
-    "clear": 0.25,
+    "clear": 0.21,
     "star3": 0,
-    "stars": 0.25,
+    "stars": 0.21,
     "ge2": 0,
-    "sec": 3.1,
-    "human": 51,
-    "shot": 1.04
+    "sec": 3,
+    "human": 47,
+    "shot": 1.29
    },
    "finger": {
-    "clear": 0.25,
+    "clear": 0.21,
     "star3": 0,
-    "stars": 0.25,
+    "stars": 0.21,
     "ge2": 0,
-    "sec": 3.1,
-    "human": 51,
-    "shot": 1.04
+    "sec": 3,
+    "human": 47,
+    "shot": 1.29
    },
    "preview": {
     "clear": 1,
-    "star3": 0.08,
-    "stars": 2.08,
+    "star3": 0,
+    "stars": 2,
     "ge2": 1,
-    "sec": 6.6,
-    "human": 73,
-    "shot": 2.46
+    "sec": 6.3,
+    "human": 68,
+    "shot": 2.67
    },
    "newbie": {
-    "clear1": 1,
+    "clear1": 0.92,
     "clear3": 1,
-    "fails": 1,
+    "fails": 7,
     "f13": 1,
     "hint": 1,
     "hint3": 0
    },
    "f16": {
-    "fails": 83,
-    "n": 49,
+    "fails": 84,
+    "n": 18,
     "v21": 1,
     "airFails": 0,
     "pair": null,
-    "onlyLast": 0.41,
+    "onlyLast": 0.79,
     "by": {
-     "③뿅": [
-      49,
-      49
-     ],
      "①색": [
-      0,
-      0
+      1,
+      1
+     ],
+     "①연쇄": [
+      2,
+      2
+     ],
+     "③뿅": [
+      15,
+      15
      ]
     }
    },
    "dev": {
-    "fires": 72,
-    "avg": 0.22,
-    "empty": 0.83
+    "fires": 66,
+    "avg": 2.06,
+    "empty": 0
    }
   },
   {
-   "stage": 21,
+   "stage": 22,
    "slot": "3-4",
    "id": 24,
    "name": "🎢 롤러코스터",
@@ -2297,7 +2410,7 @@
    }
   },
   {
-   "stage": 22,
+   "stage": 23,
    "slot": "3-10",
    "id": 7,
    "name": "🚀 로켓",
