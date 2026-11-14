@@ -1089,7 +1089,7 @@ function absorb(s: PinState) {
         ev(s, 'full', e.x, e.y, '배불러… zZ', '#e8e0ff');
         break;
       case 'potP':
-        ev(s, 'potP', e.x, e.y, once(s, 'potP', 60) ? '김치 양념!' : undefined, '#ff7a5a');
+        ev(s, 'potP', e.x, e.y, once(s, 'potP', 600) ? '김치 양념!' : undefined, '#ff7a5a');
         see(s, 'pot', '🏺 김치 항아리 — 고춧가루는 여기로 보내면 딱!');
         break;
       case 'potD':
@@ -2108,7 +2108,7 @@ function drawSpots(k: Kit, s: PinState) {
   const a = Math.min(1, u / 10, (SPOT_T - u) / 12), pr = R(sp.r) * (1 + 0.05 * Math.sin(t * 0.2));
   // 장치만 밝고 나머지는 살짝 어둡게
   ctx.save();
-  ctx.globalAlpha = a * 0.42;
+  ctx.globalAlpha = a * 0.3;
   ctx.fillStyle = '#2a1508';
   ctx.beginPath();
   ctx.rect(0, 0, w, h);
@@ -2424,6 +2424,28 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PinState, w: number, h: numbe
     ctx.fillText(txt, 0, 0);
     ctx.restore();
   }
+  // 줄줄이 물드는 수: 물드는 자리 위에 하나의 숫자가 커지며 올라간다
+  if (s.chainN > 0 && t - s.chainT < 24) {
+    let de: Ev | undefined;
+    for (const e of s.events) if (e.kind === 'dye') de = e;
+    if (de) {
+      const v = s.chainN, u = t - s.chainT, sc = 1 + Math.max(0, 1 - u / 6) * 0.35;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, (24 - u) / 6);
+      ctx.translate(Math.max(R(0.15), Math.min(w - R(0.15), X(de.x))), Y(de.y) - R(0.07));
+      ctx.scale(sc, sc);
+      ctx.font = `900 ${R(0.042 + Math.min(v, 10) * 0.003)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = 'rgba(60,30,10,.8)';
+      const txt = v === 1 ? '물들었다!' : `물들었다 ×${v}`;
+      ctx.strokeText(txt, 0, 0);
+      ctx.fillStyle = de.col ?? '#ffffff';
+      ctx.fillText(txt, 0, 0);
+      ctx.restore();
+    }
+  }
   drawSpots(k, s);
   // 느린 화면: 가장자리가 금빛으로
   if (s.slow > 0) {
@@ -2510,8 +2532,6 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PinState, w: number, h: numbe
         fx.ring(x, y, col, R(0.045 + Math.min(v, 8) * 0.004), 2.5);
         fx.burst(x, y, col, 5 + Math.min(v, 8), 1.6 + v * 0.1, 1.6);
         fx.burst(x, y, '#ffffff', 3, 1.2, 1.2);
-        if (v === 1) say(x, y - R(0.06), e.text!, '#ffffff', 16);
-        else fx.pop(x, y - R(0.04), e.text!, col, 13 + Math.min(v, 10) * 1.2);
         break;
       }
       case 'hot':
