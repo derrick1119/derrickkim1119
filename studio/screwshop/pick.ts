@@ -293,11 +293,13 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true, pv: true, jack: true }),
   // 📐B S014 2-10 🗼 (id 22) · 📐B S015: 🌀 문(쾅 → 띠용 → 띠용) · F20′ full · 따라 하기 거름(pv) · F17 1위 맞는 색(lead habit) · hc 2 · mc 8(카드 짝 .70 → .84)
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 2, mc: 8, full: true, pv: true, lead: 'habit' }),
-  () => -9, // id 23 자리(📐A 3-3)
+  // 📐A S015 3-3 🍿 (id 23): 공통 gate · F20′ full · 따라 하기 거름(pv) · F19 jack · F17 맞는 색 · ✨ ★2 이상 칠 −2(1위 '없음') · mc 12(mc 3 · 6이면 막 누르기 클리어 .17)
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 12, full: true, pv: true, jack: true, avoid: ['habit', 'reveal'] }),
   // 📐C S014 3-4 🎢 (id 24): 공통 gate · F20′ full(pv 꺼도 따라 하기 .00) · 📐C S015: 🎠 기둥 · ⏰ 7 · F23 바닥 big(맞는 색 버릇이 한 톡에 튄 나사 ≥ 3이면 +3)
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 3, full: true, big: [3, 3] }),
   () => -9, // id 25 자리(📐C 3-5 🚡)
-  () => -9, // id 26 자리(📐B 3-6 🤡🪟)
+  // 📐B S015 3-6 🤡🪟 (id 26 · 틀 3-2): 공통 gate · F20′ full · 따라 하기 거름(pv) · F19 jack · mc 6(mc 1이면 막 누르기 24시드 .29)
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 6, full: true, pv: true, jack: true }),
 ];
 export const CAP = [Infinity, 4.5, 3.65, 5.15, 3.5, 2.95, 3.95, 2.95, Infinity, 2.95, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity];
 

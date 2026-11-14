@@ -624,7 +624,7 @@ describe('🪵 통나무가 먼저 떨어져 → 빈칸 (✏️ S013 · 🧪 S01
     expect(f.v21!).toBeGreaterThanOrEqual(0.8);
     expect(f.onlyLast!).toBeLessThanOrEqual(0.8);
   });
-  it('🤡 깜짝 상자(📐B S013 3-2): 상자 판자가 다 풀린 톡에 뿅 → 겨눈 모자 나사가 위에서부터 튄다 · 뿅을 끄면 장인 ★3 0(F19) · 다른 판엔 jack 없음', () => {
+  it('🤡 깜짝 상자(📐B S013 3-2): 상자 판자가 다 풀린 톡에 뿅 → 겨눈 모자 나사가 위에서부터 튄다 · 뿅을 끄면 장인 ★3 0(F19) · jack 플래그 없는 판엔 jack 없음', () => {
     const k = at('jackbox');
     for (const seed of [1000, 1007, 1014]) {
       const x = tryStage(screwshopSmart, seed, k), h = x.s.hist.find((e) => e.rec.some((r) => r.k === 'jack'));
@@ -640,7 +640,9 @@ describe('🪵 통나무가 먼저 떨어져 → 빈칸 (✏️ S013 · 🧪 S01
       expect(t.hist.some((e) => e.rec.some((r) => r.k === 'jack')), '뿅 끔').toBe(false);
       expect(t.ok && t.S.shot >= 4, `시드 ${seed} 뿅 없이 ★3(F19)`).toBe(false);
     }
-    STAGES.forEach((_, j) => j !== k && expect(paintStage(j, 1).jack, STAGES[j].slot).toBeUndefined());
+    // ✏️ S015: 🤡 판이 셋(3-2 · 3-3 · 3-6)이 됨 → '판 플래그 jack이 있는 판만 칠에 jack이 그대로, 없는 판은 없음'(3-2만 보던 것보다 넓게)
+    STAGES.forEach((d, j) => expect(paintStage(j, 1).jack, d.slot).toEqual(d.jack));
+    expect(STAGES.filter((d) => d.jack).map((d) => d.slot)).toEqual(['3-2', '3-3', '3-6']);
   });
   it('💡 귀띔은 실패 카드 단추로 켜고 끈다(✏️ S013 · 🧪 S012 \'같은 판에서 못 끔\') — 끄면 그 판 ★3이 다시 열린다', () => {
     const s = g.create(7), A = 1.45, rng = mulberry32(5);
