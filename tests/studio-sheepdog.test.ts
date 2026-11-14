@@ -202,7 +202,8 @@ describe('M1-2a 개울 판 도움 깃발 (📐 C004)', () => {
       jumpTo(s, k);
       let prev = s.splashes;
       for (let t = 0; t < 60 * 90; t++) {
-        g.step(s, sheepdogRandom.act(s, rng));
+        // 📐 C017 날개 울타리 뒤로 무작위 손은 개울까지 거의 못 간다(10판에 1-6·1-7·1-8 풍덩 4·5·11번) → 풍덩을 실제로 내는 습관 손(같은 10판에 105·104·62번)으로. 확인 내용은 그대로
+        g.step(s, sheepdogNaive.act(s, rng));
         if (s.splashes > prev) inc++;
         prev = s.splashes;
         for (const e of s.events)
@@ -550,6 +551,41 @@ describe('F01 전략 깊이 (오너 1차 \'전략이 조금 단순해지는 느�
     expect(phaseOf(s)).toBe('result');
     expect([s.ok, s.got]).toEqual([true, 7]);
     expect(s.S.used).toBeLessThanOrEqual(STAGES[4].par);
+  });
+
+  it('F12 손끝 낭떠러지: 박사 길 매 수 둘레 ±0.03(49곳)에서 그 짖기로 바로 풍덩·잡힘 ≤ 0.05 — 8판 모두 (오너 2차 \'조금씩 누르기\', 📐 C017 다리 입구 날개 울타리)', () => {
+    for (let k = 0; k < STAGES.length; k++) {
+      const s = g.create(1), d = STAGES[k];
+      jumpTo(s, k);
+      const S = pure.cloneSim(s.S);
+      for (let t = 0; t < 20 && !pure.ended(s.F, S, d); t++) {
+        const p = pure.plan(s.F, S, d, d.search?.depth ?? 3, d.search?.beam);
+        let bad = 0;
+        for (let dy = -3; dy <= 3; dy++)
+          for (let dx = -3; dx <= 3; dx++) {
+            const S1 = pure.cloneSim(S);
+            resolve(s.F, S1, p[0] + dx * 0.01, p[1] + dy * 0.01);
+            if (S1.fell.some((v) => v) || S1.caught >= 0) bad++;
+          }
+        expect(bad / 49, `${k + 1}판 ${t + 1}수`).toBeLessThanOrEqual(0.05);
+        resolve(s.F, S, p[0], p[1]);
+      }
+    }
+  }, 120_000);
+
+  it('개울 판 다리 입구에 날개 울타리 둘(난간 아래 끝에서 바깥 아래 45°, 그려지는 울타리) — 개울 없는 판엔 없다 (📐 C017)', () => {
+    for (let k = 0; k < STAGES.length; k++) {
+      const s = g.create(1);
+      jumpTo(s, k);
+      const rv = s.F.river;
+      const wings = rv ? s.F.fences.filter((f) => (f.x1 === rv.bx0 || f.x1 === rv.bx1) && Math.abs(f.y1 - (rv.y1 + 0.012)) < 1e-9) : [];
+      expect(wings.length, `${k + 1}판`).toBe(rv ? 2 : 0);
+      for (const f of wings) {
+        expect(f.y0 - f.y1).toBeCloseTo(0.1, 9); // 아래로 0.10
+        expect(Math.abs(f.x0 - f.x1)).toBeCloseTo(0.1, 9); // 바깥으로 0.10 (45°)
+        expect(Math.sign(f.x0 - f.x1)).toBe(f.x1 === rv!.bx0 ? -1 : 1);
+      }
+    }
   });
 
   it('1-8 아침 축제도 까만 양까지 넣어야 통과, 박사는 한 번에 ★3·par 안 (📐 C015: 1-4부터 하나의 규칙)', () => {

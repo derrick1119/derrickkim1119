@@ -113,10 +113,22 @@ for (const [name, vp] of [['mobile', { width: 390, height: 844 }], ['desktop', {
   // 실패 연출: 1-6에서 진짜로 양을 개울에 빠뜨린다(상태 강제 금지, C006) → 같은 판이 1초 안에 다시
   await page.evaluate(() => (globalThis as any).__sd.jump(5));
   await page.waitForTimeout(1800);
-  const sp = await page.evaluate(() => (globalThis as any).__sd.splash());
+  const bx = await page.locator('#game').boundingBox();
+  let sp = await page.evaluate(() => (globalThis as any).__sd.splash());
+  // 📐 C017 날개 울타리 뒤로 첫 짖기만으로는 풍덩 자리가 없다 → 습관 손(양 뒤에서 문 쪽)으로 진짜로 한두 번 짖은 뒤 다시 찾는다
+  for (let n = 0; n < 3 && !sp; n++) {
+    const q = await page.evaluate(() => (globalThis as any).__sd.bot('naive'));
+    if (!q) break;
+    await page.mouse.move(bx.x + q.x * bx.width, bx.y + q.y * bx.height);
+    await page.mouse.down();
+    await page.waitForTimeout(120);
+    await page.mouse.up();
+    await page.waitForFunction(() => { const s = (globalThis as any).__sd.state(); return (s.phase === 'aim' && !s.down) || s.phase === 'result'; }, null, { timeout: 8000 });
+    if ((await st(page, 's.phase')) === 'result') break;
+    sp = await page.evaluate(() => (globalThis as any).__sd.splash());
+  }
   if (!sp) errors.push(`${name}: 풍덩 자리를 못 찾음`);
   else {
-    const bx = await page.locator('#game').boundingBox();
     await page.mouse.move(bx.x + sp.x * bx.width, bx.y + sp.y * bx.height);
     await page.mouse.down();
     await page.waitForTimeout(120);

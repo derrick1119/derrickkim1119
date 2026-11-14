@@ -69,7 +69,7 @@ interface Rec {
 }
 
 /** needBlack (📐 C014, F01): 까만 양까지 울타리에 넣어야 통과 — 1-4부터 하나의 규칙 '양을 모두'. 🖤 보너스는 없어진다 */
-interface StageDef { key: string; name: string; news: string; max: number; par: number; bonus: Bonus; needBlack?: boolean; build(r: Rng): Layout }
+interface StageDef { key: string; name: string; news: string; max: number; par: number; bonus: Bonus; needBlack?: boolean; search?: { depth?: number; beam?: number }; build(r: Rng): Layout }
 interface Layout {
   pens: Pen[]; river?: River; hedges?: Seg[]; fences?: Seg[]; flowers: FlowerBed[]; clovers?: FlowerBed[]; sheep: { x: number; y: number; black?: boolean; tag?: number }[];
   goat?: { x: number; y: number }; den?: [number, number]; wind?: [number, number]; night?: boolean;
@@ -102,7 +102,7 @@ const PROTO: StageDef[] = [
     },
   },
   {
-    key: 'river', name: '개울과 다리', news: '🌉 개울 — 빠지면 풍덩! 다리로 건너요', max: 8, par: 4, bonus: 'flower',
+    key: 'river', name: '개울과 다리', news: '🌉 개울 — 빠지면 풍덩! 울타리 따라 다리로', max: 8, par: 4, bonus: 'flower',
     build: (r) => ({
       pens: [PEN0()],
       river: { y0: 0.4, y1: 0.5, bx0: 0.41, bx1: 0.59 },
@@ -230,7 +230,7 @@ export const STAGES: StageDef[] = [
   {
     // 📐 C004 ⑥ 대비책(C005): 🖤 판으로 바꿔 보니 박사가 까만 양을 먼저 넣은 뒤 흰 양에 멍멍을 다 써서(8판 시드 모두 9번) 🏅가 안 나왔다
     //   → 정한 대비책 '좁은 다리 + 🍀'. 클로버는 다리→문 지름길 밖(저절로 따지지 않게, 📐 C003)
-    key: 'narrow', name: '좁은 다리', news: '🌉 좁은 다리 — 한 줄로 세워 건너요', max: 9, par: 5, bonus: 'clover', // 📐 C015: 🍀를 다리 위 지름길 → 개울 아래 왼쪽(par 길 밖), par 4 → 5(박사 4, 폭 0.39)
+    key: 'narrow', name: '좁은 다리', news: '🌉 좁은 다리 — 날개 울타리 안으로 몰아요', max: 9, par: 5, bonus: 'clover', search: { depth: 4, beam: 6 }, // 📐 C015: 🍀를 다리 위 지름길 → 개울 아래 왼쪽(par 길 밖), par 4 → 5(박사 4, 폭 0.39)
     build: (r) => {
       r(); // 예전 까만 양 자리를 정하던 난수 — 배치 시드(LAYOUT_SEED)를 그대로 쓰려고 하나 버린다
       return {
@@ -244,7 +244,7 @@ export const STAGES: StageDef[] = [
     },
   },
   {
-    key: 'fest', name: '아침 축제', news: '🎉 아침 축제 — 오늘 배운 걸 다 써요!', max: 14, par: 6, bonus: 'clover', needBlack: true, // 🧪 C015 ①: max 12 → 14(끝판 실패가 지루한 '멍멍 다 씀' — 별은 그대로) · 📐 C015: 까만 양 필수(1-4부터 하나의 규칙) · 🍀 문 오른쪽 아래(0.69, 0.30) · par 7 → 6(박사 6)
+    key: 'fest', name: '아침 축제', news: '🎉 아침 축제 — 오늘 배운 걸 다 써요!', max: 14, par: 6, bonus: 'clover', needBlack: true, search: { beam: 8 }, // 🧪 C015 ①: max 12 → 14(끝판 실패가 지루한 '멍멍 다 씀' — 별은 그대로) · 📐 C015: 까만 양 필수(1-4부터 하나의 규칙) · 🍀 문 오른쪽 아래(0.69, 0.30) · par 7 → 6(박사 6)
     build: (r) => {
       const side = r() < 0.5 ? -1 : 1;
       return {
@@ -365,15 +365,23 @@ function matOf(F: Field, tag: number, x: number, y: number) {
   return -1;
 }
 
+/** 다리 입구 날개 울타리 길이 (📐 C017: 0.07도 손끝은 0이지만 조심 시도 3.35·3.25번이라 0.10) */
+const WING = 0.1;
 function makeField(L: Layout): Field {
   const walls: Seg[] = [];
   for (const p of L.pens) {
     walls.push({ x0: p.x0, y0: p.y0, x1: p.x1, y1: p.y0 }, { x0: p.x0, y0: p.y0, x1: p.x0, y1: p.y1 }, { x0: p.x1, y0: p.y0, x1: p.x1, y1: p.y1 });
     walls.push({ x0: p.x0, y0: p.y1, x1: p.gx0, y1: p.y1 }, { x0: p.gx1, y0: p.y1, x1: p.x1, y1: p.y1 });
   }
+  const fences = (L.fences ?? []).slice();
   if (L.river) {
-    const rv = L.river;
-    walls.push({ x0: rv.bx0, y0: rv.y0 - 0.012, x1: rv.bx0, y1: rv.y1 + 0.012 }, { x0: rv.bx1, y0: rv.y0 - 0.012, x1: rv.bx1, y1: rv.y1 + 0.012 });
+    const rv = L.river, yb = rv.y1 + 0.012;
+    walls.push({ x0: rv.bx0, y0: rv.y0 - 0.012, x1: rv.bx0, y1: yb }, { x0: rv.bx1, y0: rv.y0 - 0.012, x1: rv.bx1, y1: yb });
+    // 📐 C017 A (오너 2차 '좁은 곳에 모아 지나가기 = 조금씩 누르기'): 다리 입구 날개 울타리 — 난간 아래 끝에서 바깥 아래 45°, 길이 WING.
+    // 난간 끝이 '점'이라 몇 px 차이로 풍덩이 갈리던 것(손끝 낭떠러지 0.27~0.33)을 이미 있는 '울타리에 막히면 비켜 간다'로 한 줄로 세운다. 새 규칙 문장 0
+    const wings = [{ x0: rv.bx0 - WING, y0: yb + WING, x1: rv.bx0, y1: yb }, { x0: rv.bx1 + WING, y0: yb + WING, x1: rv.bx1, y1: yb }];
+    walls.push(...wings);
+    fences.push(...wings);
   }
   for (const h of L.hedges ?? []) walls.push(h);
   for (const h of L.fences ?? []) walls.push(h);
@@ -382,7 +390,7 @@ function makeField(L: Layout): Field {
   for (const p of L.pens) if (p.tag) for (let tg = 1; tg <= 2; tg++) if (tg !== p.tag) block[tg].push({ x0: p.gx0, y0: p.y1, x1: p.gx1, y1: p.y1 });
   const F: Field = {
     n: L.sheep.length, black: L.sheep.map((q) => !!q.black), tag: L.sheep.map((q) => q.tag ?? 0),
-    walls, hedges: L.hedges ?? [], fences: L.fences ?? [], block, pens: L.pens, river: L.river ?? null, flowers: L.flowers, clovers: L.clovers ?? [],
+    walls, hedges: L.hedges ?? [], fences, block, pens: L.pens, river: L.river ?? null, flowers: L.flowers, clovers: L.clovers ?? [],
     goat: L.goat ?? null, den: L.den ?? null, wind: L.wind ?? [0, 0], night: !!L.night, dist: [],
   };
   for (let tg = 0; tg <= 2; tg++) F.dist.push(distField(F, tg));
@@ -1124,7 +1132,8 @@ export const sheepdogSmart: Bot<DogState> = {
     if (s.phase !== 'aim' || s.down) return NO;
     const key = `${s.stage}:${s.tries}:${s.S.used}`;
     let m = brain.get(s);
-    if (!m || m.key !== key) brain.set(s, (m = { key, p: plan(s.F, s.S, STAGES[s.stage]) }));
+    const d = STAGES[s.stage]; // 📐 C017 위험 ①: 날개를 넣은 1-7·1-8은 ★3 길이 깊이 4·빔 8에서 보인다 — 박사(★3·🏅 확인)만 넓힌다, 깃발은 C016 그대로
+    if (!m || m.key !== key) brain.set(s, (m = { key, p: plan(s.F, s.S, d, d.search?.depth ?? DEPTH, d.search?.beam ?? BEAM) }));
     return at(m.p[0], m.p[1]);
   },
 };
