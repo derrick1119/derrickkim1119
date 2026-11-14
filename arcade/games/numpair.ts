@@ -43,12 +43,12 @@ export interface StageDef {
 export const STAGES: StageDef[] = [
   { key: 'basic', name: '첫 주판', emoji: '🌱', news: '🧮 알을 톡 → 반짝이는 짝을 톡하면 딸깍!', tip: '같은 수나 합이 10, 사이가 비어 있으면 짝', goal: 'clear', n: 18, re: 3, locks: 0, golds: 0, need: 0, decay: 0, nest: 0.7, noise: 0, slack: 1, parT: 4 },
   { key: 'readd', name: '다시 붙이기', emoji: '➕', news: '➕ 막히면 다시 붙이기 — 남은 수가 판 끝에 또 붙어요', tip: '➕ 남은 수가 적을 때 붙이면 좋아요', goal: 'clear', n: 18, re: 3, locks: 0, golds: 0, need: 0, decay: 0, nest: 0.55, noise: 2, slack: 1, parT: 7 },
-  { key: 'lock', name: '잠긴 알', emoji: '🔒', news: '🔒 잠긴 알 — 바로 옆 알을 지우면 툭 풀려요', tip: '🔒 옆 알부터 지워서 풀어요', goal: 'clear', n: 24, re: 2, locks: 3, golds: 0, need: 0, decay: 0, nest: 0.6, noise: 1, slack: 1, parT: 8 },
-  { key: 'order', name: '여우 손님', emoji: '🦊', news: '🦊 여우 손님 주문 — 그 숫자만 N개 지우면 성공!', tip: '🦊 주문한 숫자로 가는 길만 열어요', goal: 'count', n: 30, re: 2, locks: 0, golds: 0, need: 8, decay: 0, nest: 0.6, noise: 1, slack: 1, parT: 6 },
-  { key: 'gold', name: '황금 알', emoji: '🌟', news: '🌟 황금 알을 지우면 판 위의 같은 수가 모두 딸깍!', tip: '🌟 황금 알은 언제 터뜨릴지 골라요', goal: 'clear', n: 24, re: 2, locks: 0, golds: 2, need: 0, decay: 0, nest: 0.5, noise: 2, slack: 1, parT: 7 },
-  { key: 'rows', name: '줄 빼기', emoji: '🎯', news: '🎯 줄 N개만 쏙 빼면 성공 — 어느 줄을 노릴까?', tip: '🎯 거의 빈 줄부터 노려요', goal: 'rows', n: 36, re: 2, locks: 0, golds: 0, need: 3, decay: 0, nest: 0.6, noise: 2, slack: 1, parT: 7 },
-  { key: 'candle', name: '촛불', emoji: '🕯️', news: '🕯️ 짝 4번마다 다시 붙이기가 하나씩 녹아요!', tip: '🕯️ 다시 붙이기가 녹기 전에 길을 열어요', goal: 'clear', n: 24, re: 3, locks: 0, golds: 0, need: 0, decay: 4, nest: 0.5, noise: 2, slack: 1, parT: 8 },
-  { key: 'fair', name: '장날', emoji: '🏮', news: '🏮 장날 — 다 나와요!', tip: '🔒 🌟 — 연쇄로 톡톡을 아껴요', goal: 'clear', n: 30, re: 2, locks: 2, golds: 1, need: 0, decay: 0, nest: 0.6, noise: 2, slack: 1, parT: 8 },
+  { key: 'lock', name: '잠긴 알', emoji: '🔒', news: '🔒 잠긴 알 — 바로 옆 알을 지우면 툭 풀려요', tip: '🔒 옆 알부터 지워서 풀어요', goal: 'clear', n: 24, re: 2, locks: 3, golds: 0, need: 0, decay: 0, nest: 0.6, noise: 1, slack: 2, parT: 8 },
+  { key: 'order', name: '여우 손님', emoji: '🦊', news: '🦊 여우 손님 주문 — 그 숫자만 N개 지우면 성공!', tip: '🦊 주문한 숫자로 가는 길만 열어요', goal: 'count', n: 30, re: 2, locks: 0, golds: 0, need: 8, decay: 0, nest: 0.6, noise: 1, slack: 2, parT: 6 },
+  { key: 'gold', name: '황금 알', emoji: '🌟', news: '🌟 황금 알을 지우면 판 위의 같은 수가 모두 딸깍!', tip: '🌟 황금 알은 언제 터뜨릴지 골라요', goal: 'clear', n: 24, re: 2, locks: 0, golds: 2, need: 0, decay: 0, nest: 0.5, noise: 2, slack: 2, parT: 7 },
+  { key: 'rows', name: '줄 빼기', emoji: '🎯', news: '🎯 줄 N개만 쏙 빼면 성공 — 어느 줄을 노릴까?', tip: '🎯 거의 빈 줄부터 노려요', goal: 'rows', n: 36, re: 2, locks: 0, golds: 0, need: 3, decay: 0, nest: 0.6, noise: 2, slack: 2, parT: 7 },
+  { key: 'candle', name: '촛불', emoji: '🕯️', news: '🕯️ 짝 4번마다 다시 붙이기가 하나씩 녹아요!', tip: '🕯️ 다시 붙이기가 녹기 전에 길을 열어요', goal: 'clear', n: 24, re: 3, locks: 0, golds: 0, need: 0, decay: 4, nest: 0.5, noise: 2, slack: 2, parT: 8 },
+  { key: 'fair', name: '장날', emoji: '🏮', news: '🏮 장날 — 다 나와요!', tip: '🔒 🌟 — 연쇄로 톡톡을 아껴요', goal: 'clear', n: 30, re: 2, locks: 2, golds: 1, need: 0, decay: 0, nest: 0.6, noise: 2, slack: 2, parT: 8 },
 ];
 export const STAGE_COUNT = STAGES.length;
 

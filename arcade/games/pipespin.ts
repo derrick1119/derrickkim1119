@@ -1062,7 +1062,7 @@ function tapAt(s: PipeState, x: number, y: number) {
     return setMood(s, 'huh');
   }
   if (k !== PIPE) {
-    const why = k === FIELD ? '🥕 밭이에요 — 관으로 물을 대요' : k === SRC ? (L.col[i] ? '🍯 꿀물 우물이에요' : '💧 우물이에요 — 여기서 물이 나와요') : k === NEST ? '🐜 개미집 — 물이 들면 안 돼요' : '흙이에요';
+    const why = k === FIELD ? '🥕 밭 — 관을 돌려 물을 대요' : k === SRC ? (L.col[i] ? '🍯 꿀물 우물' : '💧 우물 — 여기서 물이 나와요') : k === NEST ? '🐜 개미집 — 물 금지!' : '흙이에요';
     ev(s, 'nope', c.x, c.y - 0.05, why, '#fff3df');
     return;
   }
@@ -1399,6 +1399,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PipeState, w: number, h: numb
   const say = (x: number, y: number, text: string, col: string, size: number) => {
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
+    // 같은 말을 0.7초 안에 또 하지 않는다 (마구 톡 해도 글자가 쌓이지 않게)
+    const lk = 'say:' + text;
+    if (t - (fx.memo[lk] ?? -99) < 42) return;
+    fx.memo[lk] = t;
     y = Math.max(Y(0.2), Math.min(Y(1.24), y));
     for (let k = 0; k < 6 && rec.some((q) => t - q.t < 45 && Math.abs(q.x - x) < w * 0.32 && Math.abs(q.y - y) < size + 5); k++) y -= size + 6;
     if (y < Y(0.19)) y += (size + 6) * 3;
@@ -1424,7 +1428,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PipeState, w: number, h: numb
       if (c >= 3) for (const col of ['#ff9a3d', '#ffd23f', '#ff6b8a', '#8be35a']) fx.burst(x, y, col, 8, 5, 2.4);
       say(x, y - R(0.08), e.text!, '#f4ffe0', 18 + 3 * c);
     }
-    if (e.kind === 'num') say(x + R(0.05), y, e.text!, n >= 3 ? '#ffb3e6' : e.col!, 16 + 3 * Math.min(4, n)), n >= 2 && n >= (fx.memo.chainSaid ?? 0) && ((fx.memo.chainSaid = n + 0.5), say(X(0.5), Y(0.86), n >= 4 ? `🔥 ${n}연쇄 대풍년!!` : n >= 3 ? `✨ ${n}연쇄 퐁퐁퐁!` : '✨ 2연쇄!', '#ffe9a8', 24 + 3 * n));
+    if (e.kind === 'num') say(x + R(0.05), y, e.text!, n >= 3 ? '#ffb3e6' : e.col!, 16 + 3 * Math.min(4, n)), n >= 2 && n >= (fx.memo.chainSaid ?? 0) && ((fx.memo.chainSaid = n + 0.5), fx.pop(X(0.5), Y(0.95), n >= 4 ? `🔥 ${n}연쇄 대풍년!!` : n >= 3 ? `✨ ${n}연쇄 퐁퐁퐁!` : '✨ 2연쇄!', '#ffe9a8', 24 + 3 * n));
     if (e.kind === 'leak') fx.burst(x, y, '#9fe0ff', 18, 3.2, 2.2), say(x, y - R(0.04), e.text!, e.col!, 14), fx.kick(1.5);
     if (e.kind === 'flood') fx.burst(x, y, '#3a2a1a', 16, 3, 1.6), fx.burst(x, y, '#9fe0ff', 12, 2.6, 2), say(x, y - R(0.04), e.text!, e.col!, 15), fx.kick(3);
     if (e.kind === 'mix') fx.burst(x, y, MUD, 22, 3, 2.4), say(x, y - R(0.04), e.text!, e.col!, 16), fx.kick(3);
@@ -2680,7 +2684,7 @@ function drawMole(ctx: CanvasRenderingContext2D, x: number, y: number, u: number
     if (dizzy) (hx = x - u * 0.75), (hy2 = y - u * 0.35), (hr = -0.6);
     if (fly) {
       const q = ht / 64, arc = Math.sin(q * Math.PI);
-      hy2 -= arc * u * 1.6;
+      hy2 -= arc * u * 0.85;
       hx += Math.sin(q * Math.PI * 2) * u * 0.25;
       hr = q * TAU * 2;
     }
