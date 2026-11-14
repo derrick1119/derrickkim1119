@@ -46,7 +46,7 @@ const bar = (x1: number, y1: number, x2: number, y2: number, t: number, tone: st
 const plate = (cx: number, cy: number, w: number, h: number, a: number, rr: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, w / 2, h / 2, a, rr, tone, sc, o);
 const disc = (cx: number, cy: number, r: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, r, r, 0, r, tone, sc, o);
 
-export interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; /** 첫 판 손가락이 가리킬 나사 번호(판자 목록 순서로 0부터) */ first?: number; /** ★3을 '한 방 H 이상'으로 (톡 한 번에 빠진 나사 수) */ H?: number; /** 🔑 태엽(M1′ S004): 열쇠 나사를 빼면 남은 🔒가 왼쪽부터 한꺼번에 튀어나온다 */ wind?: boolean; /** 🔨 겹별(📐 S003): ★2 = 쾅 B번 이상, ★3 = ★2 + 빈칸 P칸까지 */ B?: number; /** ★2는 땄고 ★3을 놓쳤을 때 💡 */ tip2?: string; /** 🪵 통나무가 떨어져야 풀리는 나사 3개(늦은 무리)를 한 색으로 칠하고 그 색 상자를 queue[late]에 — 통나무 나사 색은 첫 상자 (📐 2판) */ late?: number; toy(): Src[] }
+export interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; /** 첫 판 손가락이 가리킬 나사 번호(판자 목록 순서로 0부터) */ first?: number; /** ★3을 '한 방 H 이상'으로 (톡 한 번에 빠진 나사 수) */ H?: number; /** 🔑 태엽(M1′ S004): 열쇠 나사를 빼면 남은 🔒가 왼쪽부터 한꺼번에 튀어나온다 */ wind?: boolean; /** 🔨 겹별(📐 S003): ★2 = 쾅 B번 이상, ★3 = ★2 + 빈칸 P칸까지 */ B?: number; /** ★2는 땄고 ★3을 놓쳤을 때 💡 */ tip2?: string; /** 🪵 통나무가 떨어져야 풀리는 나사 3개(늦은 무리)를 한 색으로 칠하고 그 색 상자를 queue[late]에 — 통나무 나사 색은 첫 상자 (📐 2판) */ late?: number; /** 🌻 꽃 머리 장전 칠하기(📐 S005 5판): 상자 [B, X, A, C, D] · 꽃 머리 = A · 꽃 머리가 덮은 꽃잎 안쪽 셋 = X · 꽃잎 바깥 = A·B·C */ bloom?: boolean; toy(): Src[] }
 
 const GIR = '#f4bf4a', GIR2 = '#e7a93a', DINO = '#52b66c', DINO2 = '#3f9a58', BLADE = '#fff6e6', STONE = '#b9aea0', STONE2 = '#a69a8b', GLASS = '#cfe9ff';
 export const STAGES: StageDef[] = [
@@ -113,19 +113,21 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'flower', name: '해바라기', emoji: '🌻', news: '🪟 유리 화병 — 속이 비쳐 보이지만 막고 있어요', tip: '🪟 유리 밑 나사는 보여도 막혀 있어요', boxes: 2, colors: 5, P: 1, C: 8,
+    // 📐 CONTENT.md M1′ 5판 (S005): 🌻 해바라기 — 🪵 꽃 머리(통나무)가 떨어지면 밑에 매달린 꽃잎을 우수수 + 🪟 유리 화병(비쳐도 막음)
+    key: 'flower', name: '해바라기', emoji: '🌻', news: '🌻 꽃 머리는 통나무 — 매달린 꽃잎을 우수수!', tip: '🌻 꽃잎 셋을 매단 뒤 꽃 머리를 톡!', tip2: '🌻 빈칸 하나는 셋째 꽃잎 몫으로 아껴요', boxes: 2, colors: 5, P: 1, C: 8, H: 4, bloom: true,
+    // 나사 번호: #0 #1 줄기(위·🪟 밑) · #2 #3 왼 잎(끝·밑동) · #4 #5 오른 잎(밑동·끝) · #6 #7 🪟 화병(왼·오른) · #8 #9 왼 꽃잎(안·바깥) · #10 #11 가운데 꽃잎 · #12 #13 오른 꽃잎 · #14 🪵 꽃 머리(방아쇠)
+    // 판자 순서 = 겹침 순서(뒤가 위). 꽃 머리가 꽃잎 안쪽 나사 셋(#8 #10 #12)을 덮는다 → 꽃잎은 바깥 나사만 빼서 안쪽 나사로 매달 수 있다.
+    // 우수수 과녁 = 꽃 머리 폭(±0.085) 안·아래에 매달린 판자: 꽃잎 셋(안쪽 축)과 줄기. 잎은 축이 폭 밖이라 안 맞는다.
     toy: () => [
-      bar(0.5, 1.1, 0.5, 0.7, 0.03, '#3f9d4a', [[0.5, 0.79], [0.5, 0.885], [0.5, 0.985]]),
-      plate(0.405, 0.85, 0.22, 0.08, -0.42, 0.04, '#58b85e', [[0.345, 0.875], [0.43, 0.84]], { deco: 'leaf' }),
-      plate(0.6, 0.955, 0.22, 0.08, -0.42, 0.04, '#4fae55', [[0.565, 0.97], [0.66, 0.93]], { deco: 'leaf' }),
-      disc(0.5, 0.63, 0.07, '#7a4a2a', [[0.5, 0.63]], { deco: 'seeds' }),
-      ...[-150, -90, -30].map((deg, j) => {
-        const c = Math.cos((deg * Math.PI) / 180), sn = Math.sin((deg * Math.PI) / 180);
-        return bar(0.5 + 0.02 * c, 0.63 + 0.02 * sn, 0.5 + 0.2 * c, 0.63 + 0.2 * sn, 0.044, j === 1 ? '#ffcf3a' : '#ffbe2e', [[0.5 + 0.1 * c, 0.63 + 0.1 * sn], [0.5 + 0.185 * c, 0.63 + 0.185 * sn]], { deco: 'petal' });
+      bar(0.5, 0.7, 0.5, 1.12, 0.026, '#3f9d4a', [[0.5, 0.87], [0.5, 1.0]]),
+      plate(0.33, 0.88, 0.22, 0.08, -0.42, 0.04, '#58b85e', [[0.27, 0.905], [0.38, 0.86]], { deco: 'leaf' }),
+      plate(0.67, 0.95, 0.22, 0.08, 0.42, 0.04, '#4fae55', [[0.62, 0.93], [0.73, 0.975]], { deco: 'leaf' }),
+      plate(0.5, 1.07, 0.3, 0.15, 0, 0.05, GLASS, [[0.4, 1.07], [0.6, 1.07]], { kind: 'glass' }),
+      ...[140, 90, 40].map((deg, j) => {
+        const c = Math.cos((deg * Math.PI) / 180), sn = Math.sin((deg * Math.PI) / 180), at = (r: number) => [0.5 + r * c, 0.56 + r * sn];
+        return bar(0.5 + 0.04 * c, 0.56 + 0.04 * sn, 0.5 + 0.21 * c, 0.56 + 0.21 * sn, 0.042, j === 1 ? '#ffcf3a' : '#ffbe2e', [at(0.095), at(0.18)], { deco: 'petal' });
       }),
-      plate(0.5, 1.06, 0.32, 0.14, 0, 0.05, GLASS, [[0.38, 1.06], [0.62, 1.06]], { kind: 'glass' }),
-      disc(0.725, 0.49, 0.062, '#ffd23a', [[0.725, 0.49]], { deco: 'bee' }),
-      disc(0.29, 0.83, 0.05, '#e8414f', [[0.29, 0.83]], { deco: 'bug' }),
+      disc(0.5, 0.56, 0.085, '#7a4a2a', [[0.5, 0.56]], { deco: 'seeds', heavy: true }),
     ],
   },
   {
@@ -322,7 +324,7 @@ export function stuckM(L: Level, gone: number) {
   for (let k = 0; k < L.pl.length; k++) if (L.pl[k].kind === 'nail' && !(L.pm[k] & ~gone)) m |= L.cov[k][1];
   return m & L.all & ~gone;
 }
-const visibleM = (L: Level, gone: number) => L.all & ~gone & ~hiddenM(L, gone);
+export const visibleM = (L: Level, gone: number) => L.all & ~gone & ~hiddenM(L, gone);
 export const freeM = (L: Level, S: Sim) => L.all & ~S.gone & ~blockedM(L, S.gone) & (S.key ? -1 : ~L.lockM);
 
 let ins = 0; // 이번 톡에 상자로 바로 들어간 나사 수(쏙 한 방)
@@ -452,6 +454,19 @@ export const starsOf = (d: StageDef, S: Sim) => (d.B !== undefined ? (S.bonks >=
 /** 🔨 아직 칠 수 있는 망치 수: 아직 안 매달렸고 칠 나사가 살아 있음 */
 const live = (L: Level, S: Sim) => L.pl.filter((p, k) => p.ham && poseOf(L, k, S.gone) === 0 && L.hamT[k].some((c) => c.some((i) => !((S.gone >> i) & 1)))).length;
 export const bonkDead = (d: StageDef, L: Level, S: Sim) => d.B !== undefined && S.bonks + live(L, S) < d.B;
+/** 🪵 장전된 판자 수: 아직 남은 통나무가 떨어지면 칠, 통나무 폭 안·아래에 매달린 판자 (removeScrew의 와르르와 같은 판정) */
+const armed = (L: Level, S: Sim) => {
+  let n = 0;
+  L.pl.forEach((P, k) => {
+    if (!P.heavy || !(L.pm[k] & ~S.gone)) return;
+    const q = L.poses[k][Math.max(0, poseOf(L, k, S.gone))], ex = Math.abs(P.hx * Math.cos(q.a)) + Math.abs(P.hy * Math.sin(q.a));
+    L.pl.forEach((p, j) => {
+      const pj = j === k || p.kind === 'nail' ? 0 : poseOf(L, j, S.gone), v = L.poses[j][pj];
+      if (pj >= 1 && Math.abs(v.px - q.cx) <= ex && v.py > q.cy) n++;
+    });
+  });
+  return n;
+};
 
 // ───────────────────────────── 판 만들기(색칠 + 고르기) ─────────────────────────────
 function paint(G: Level, d: StageDef, r: Rng): Level {
@@ -484,6 +499,19 @@ function paint(G: Level, d: StageDef, r: Rng): Level {
         [col[b], col[k]] = [col[k], col[b]];
       }
       return { ...G, col, queue: q, boxes: d.boxes, pal };
+    }
+  }
+  if (d.bloom && hv >= 0 && d.colors * 3 === G.N) {
+    // 📐 5판 🌻: 상자 순서 [B, X, A, C, D]. 꽃 머리(🪵) = A — A 상자는 B가 닫혀야 열린다(일찍 쏘면 빈칸).
+    //   꽃 머리가 덮은 꽃잎 안쪽 나사 셋 = X — X 상자는 처음부터 열려 있지만 꽃 머리가 떨어지기 전엔 못 채운다(우수수로 한꺼번에).
+    //   꽃잎 바깥 나사 = A·B·C 하나씩 → 꽃잎 셋을 다 매달면 C 하나는 빈칸에 앉는다(장전의 대가 = ★2 한도 1칸). 나머지 8 = A 1 · B 2 · C 2 · D 3
+    const late = G.cov[hv][0], [A, B, X, C, D] = [pal[1], pal[2], pal[0], pal[3], pal[4]], out: number[] = [];
+    G.pl.forEach((_, k) => G.ps[k].some((i) => (late >> i) & 1) && G.ps[k].forEach((i) => !((late >> i) & 1) && out.push(i)));
+    if (pop(late) === 3 && out.length === 3) {
+      const oc = shuffle([A, B, C], r), pool = shuffle([A, B, B, C, C, D, D, D], r);
+      let j = 0;
+      for (let i = 0; i < G.N; i++) col[i] = (late >> i) & 1 ? X : G.ps[hv].includes(i) ? A : out.includes(i) ? oc[out.indexOf(i)] : pool[j++];
+      return { ...G, col, queue: [B, X, A, C, D], boxes: d.boxes, pal };
     }
   }
   const lk: number[] = [];
@@ -870,7 +898,7 @@ function playRec(s: ShopState, rec: RE[]) {
       continue;
     }
     if (e.k === 'fall') {
-      if (L.pl[e.p].heavy && !rec.some((c) => c.k === 'crash')) see(s, 'log0', '🪵 와르르 0 — 돛을 나사 하나로 매단 뒤 활대를!'); // 📐 S002
+      if (L.pl[e.p].heavy && !rec.some((c) => c.k === 'crash')) see(s, 'log0', L.pl[e.p].deco === 'seeds' ? '🌻 우수수 0 — 꽃잎을 나사 하나로 매단 뒤 꽃 머리를!' : '🪵 와르르 0 — 돛을 나사 하나로 매단 뒤 활대를!'); // 📐 S002 · S005
       const pv = s.pv[e.p], tr = plankXf(s, e.p), sp = L.pl[e.p].kind === 'spring';
       const lever = pv.pose > 0 ? pv.vp : 0;
       pv.pose = -1;
@@ -900,7 +928,7 @@ function playRec(s: ShopState, rec: RE[]) {
     if (e.k === 'crash') {
       // 🪵 와르르: 통나무가 떨어지며 매달린 판자를 차례로 (🎨 §2.2+: 7틱 간격, 위 판자부터)
       const v = L.poses[e.p][Math.max(1, s.pv[e.p].pose)];
-      ev(s, 'crash', v.px, v.py, e.i === 1 ? '와르르!' : undefined, L.pl[e.p].tone, s.t + delay + SPIN + 6, e.i);
+      ev(s, 'crash', v.px, v.py, e.i === 1 ? (L.pl[e.by].deco === 'seeds' ? '우수수!' : '와르르!') : undefined, L.pl[e.p].tone, s.t + delay + SPIN + 6, e.i);
       delay += 7;
       see(s, 'log', '🪵 통나무 — 떨어지면 밑에 매달린 판자를 와르르!');
       continue;
@@ -1123,7 +1151,7 @@ function value(V: Level, S: Sim, d: StageDef) {
   if (S.fail) return -1e7 + S.n * 1000;
   let v = (S.n + (V.wind && !S.key ? pop(V.lockM & ~S.gone) : 0)) * 100 - S.slots.length * 45 - S.peak * 20; // 🔑: 태엽이 튈 🔒는 이미 빠진 것으로 — 언제 쏘느냐는 빈칸·연속이 정한다 (📐 S004)
   if (S.peak > d.P) v -= 350 + 120 * (S.peak - d.P);
-  if (d.H !== undefined) v += Math.min(S.shot, d.H) * 90 + (S.shot >= d.H ? 400 : 0) + Math.min(S.streak, 6) * 10;
+  if (d.H !== undefined) v += Math.min(S.shot, d.H) * 90 + (S.shot >= d.H ? 400 : 0) + Math.min(S.streak, 6) * 10 + (S.shot < d.H ? Math.min(armed(V, S), d.H - 1) * 70 : 0); // 🪵 장전해 둔 판자 하나당 +70(H−1장까지): 깊이 2 탐색이 꽃 머리를 일찍 쏘지 않게 (📐 S005)
   else if (d.T !== undefined) v += (S.n - S.taps) * 60 + live(V, S) * 90 - Math.max(0, S.taps - d.T) * 120 + Math.min(S.streak, 6) * 10; // 🔨: 아직 칠 수 있는 망치는 아낀 톡보다 귀하다 — 과녁을 손으로 빼거나 허공에 매달면 손해 (📐 S004)
   else v += Math.min(S.best, d.C) * 35 + (S.best >= d.C ? 260 : 0) + Math.min(S.streak, d.C) * 12;
   const f = freeM(V, S);
@@ -2372,7 +2400,7 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
   // 🪵 통나무 꾹(🧪 S002 ①): 와르르 몇 장 → 한 방 몇 — 장전 전엔 주황, 다 장전하면 초록 + 맞을 나사 🎯
   const logFall = pre.rec.find((e) => e.k === 'fall' && L.pl[e.p].heavy) as { p: number } | undefined;
   if (logFall) {
-    const crashes = pre.rec.filter((e) => e.k === 'crash') as { s: number }[], h = pre.S.n - s.S.n, d = STAGES[s.stage], good = d.H !== undefined ? h >= d.H : crashes.length > 0;
+    const crashes = pre.rec.filter((e) => e.k === 'crash') as { s: number }[], h = pre.rec.filter((e) => e.k === 'box').length, d = STAGES[s.stage], good = d.H !== undefined ? h >= d.H : crashes.length > 0;
     for (const c of crashes) {
       ctx.strokeStyle = '#ffe08a';
       ctx.lineWidth = 3;
@@ -2380,7 +2408,7 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       ctx.arc(X(L.px[c.s]), Y(L.py[c.s]), R(SR) * 1.7, 0, Math.PI * 2);
       ctx.stroke();
     }
-    const q = L.poses[logFall.p][Math.max(0, poseOf(L, logFall.p, s.S.gone))], lab = `🪵 와르르 ${crashes.length} → 한 방 ${h}${good ? '!' : ''}`;
+    const q = L.poses[logFall.p][Math.max(0, poseOf(L, logFall.p, s.S.gone))], lab = `${L.pl[logFall.p].deco === 'seeds' ? '🌻 우수수' : '🪵 와르르'} ${crashes.length} → 쏙 한 방 ${h}${good ? '!' : ''}`; // ✏️ S005: 쏙 한 방(상자로 간 것만, 📋 S004)
     font(0.034, 900);
     const lw = ctx.measureText(lab).width + 14;
     pill(ctx, Math.max(lw / 2 + 4, Math.min(X(1) - lw / 2 - 4, X(q.cx))), Y(q.cy) + R(0.075), lab, good ? '#c8ffc8' : '#ffb36b', R(0.048)); // 위엔 '쏙 → 상자' 알약이 온다

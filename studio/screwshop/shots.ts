@@ -66,18 +66,18 @@ for (const scheme of ['light', 'dark'] as const) {
   }
   await page.waitForTimeout(1500);
   await page.screenshot({ path: join(out, '06-clear.png') });
-  // 2판 🪵 와르르: 장인 봇의 2판 수순(시드 42)을 그대로 누르고, 활대(#11)를 친 직후를 찍는다
-  {
+  // 🪵 방아쇠 판: 장인 봇의 수순(시드 42)을 그대로 누르고, 방아쇠를 꾹(미리 보기) → 친 직후를 찍는다 — 2판 활대 #11 와르르 · 5판 꽃 머리 #14 우수수(✏️ S005)
+  for (const [k, trig, holdPng, hitPng] of [[1, 11, '09-stage2-hold.png', '08-stage2-crash.png'], [4, 14, '11-stage5-hold.png', '12-stage5-bloom.png']] as const) {
     const sim = g.create(42), rng = mulberry32(1), plan2: [number, number, number][] = [];
-    startStage(sim, 1);
+    startStage(sim, k);
     let was = false;
-    while (sim.stage === 1 && sim.phase !== 'result' && sim.t < 60 * 200) {
+    while (sim.stage === k && sim.phase !== 'result' && sim.t < 60 * 200) {
       const i = screwshopSmart.act(sim, rng);
       if (i.pointer && !was) plan2.push([i.pointer.x, i.pointer.y, sim.L.px.findIndex((x, j) => x === i.pointer!.x && sim.L.py[j] / 1.45 === i.pointer!.y)]);
       was = !!i.pointer;
       g.step(sim, i);
     }
-    await page.goto(url + '?seed=42&stage=2');
+    await page.goto(url + `?seed=42&stage=${k + 1}`);
     await page.click('.g-overlay');
     await page.waitForTimeout(900);
     const b4 = (await page.locator('canvas').boundingBox())!;
@@ -85,21 +85,21 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.mouse.move(b4.x + x * b4.width, b4.y + y * b4.height);
       await page.mouse.down();
       await page.waitForTimeout(60);
-      if (idx === 11) await page.waitForTimeout(450), await page.screenshot({ path: join(out, '09-stage2-hold.png') }); // 장전 끝난 활대 꾹 = 와르르 미리 보기
+      if (idx === trig) await page.waitForTimeout(450), await page.screenshot({ path: join(out, holdPng) }); // 장전 끝난 방아쇠 꾹 = 미리 보기
       await page.mouse.up();
-      if (idx === 11) {
+      if (idx === trig) {
         await page.waitForTimeout(620);
-        await page.screenshot({ path: join(out, '08-stage2-crash.png') });
+        await page.screenshot({ path: join(out, hitPng) });
         break;
       }
       await page.waitForTimeout(800);
     }
   }
-  // 실패 카드(🎨 §2.7): 5판을 막 누르기 수순(노드에서 미리 계산, 시드 42)으로 져 본다 → 진 톡 짚기 + 카드
+  // 실패 카드(🎨 §2.7): 8판을 막 누르기 수순(노드에서 미리 계산, 시드 42)으로 져 본다 → 진 톡 짚기 + 카드
   {
     const { screwshopMash } = await import('./funqa.ts');
     const sim = g.create(42), rng = mulberry32(7), seq: number[] = [];
-    startStage(sim, 4); // 📐 S004: 3판(태엽 기차)은 막 누르기로도 깰 때가 있어 5판에서 진다
+    startStage(sim, 7); // ✏️ S005: 5판 🌻도 막 누르기로 깰 때가 있어(0.08) 8판에서 진다
     let was = false;
     while (sim.phase !== 'result' && sim.t < 60 * 300) {
       const i = screwshopMash.act(sim, rng);
@@ -108,7 +108,7 @@ for (const scheme of ['light', 'dark'] as const) {
       g.step(sim, i);
     }
     if (!sim.ok) {
-      await page.goto(url + '?seed=42&stage=5');
+      await page.goto(url + '?seed=42&stage=8');
       await page.click('.g-overlay');
       await page.waitForTimeout(900);
       const b5 = (await page.locator('canvas').boundingBox())!;

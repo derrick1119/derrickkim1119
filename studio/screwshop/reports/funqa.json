@@ -1,39 +1,39 @@
 {
  "at": "2026-11-14",
- "build": "M1′-S004",
+ "build": "M1′-S005",
  "seeds": 24,
  "summary": {
-  "smartStars": 2.95,
-  "habitStars": 1.58,
-  "randomStars": 0.41,
-  "smartStar3": 0.96,
+  "smartStars": 3,
+  "habitStars": 1.68,
+  "randomStars": 0.43,
+  "smartStar3": 0.99,
   "habitStar3": 0.09,
   "randomClear1": 1,
-  "mashClear12": 1,
-  "mashClear38": 0.17,
-  "mashStars": 0.41,
+  "mashClear12": 0.98,
+  "mashClear38": 0.16,
+  "mashStars": 0.4,
   "habit3Star3_2": 0,
   "habit3Star3_38max": 0.79,
   "fingerGe2_1": 0.04,
-  "fingerGe2_2": 0.13,
-  "previewStar3_38": 0.58,
-  "smartShot": 2.29,
-  "mashShot": 1.33,
-  "smartSec": 6.71,
+  "fingerGe2_2": 0.08,
+  "previewStar3_38": 0.52,
+  "smartShot": 2.79,
+  "mashShot": 1.38,
+  "smartSec": 6.31,
   "newbie3_13": 1,
-  "newbie3_avg": 0.89,
+  "newbie3_avg": 0.91,
   "f13_38min": 1,
   "humanSec": [
    36,
    56,
    61,
    71,
-   96,
+   60,
    84,
    83,
    100
   ],
-  "skillGap": 7.2
+  "skillGap": 6.98
  },
  "stages": [
   {
@@ -142,8 +142,8 @@
    "top": {
     "clear": 1,
     "star3": 0,
-    "stars": 1.04,
-    "ge2": 0.04,
+    "stars": 1,
+    "ge2": 0,
     "sec": 6.1,
     "human": 66,
     "shot": 1
@@ -160,28 +160,28 @@
    "random": {
     "clear": 0.96,
     "star3": 0,
-    "stars": 1.08,
-    "ge2": 0.13,
+    "stars": 1.17,
+    "ge2": 0.21,
     "sec": 31.1,
     "human": 63,
-    "shot": 1.38
+    "shot": 1.42
    },
    "mash": {
-    "clear": 1,
+    "clear": 0.96,
     "star3": 0,
-    "stars": 1.13,
-    "ge2": 0.13,
+    "stars": 1.04,
+    "ge2": 0.08,
     "sec": 3.6,
-    "human": 64,
+    "human": 63,
     "shot": 1.33
    },
    "finger": {
-    "clear": 1,
+    "clear": 0.96,
     "star3": 0,
-    "stars": 1.13,
-    "ge2": 0.13,
+    "stars": 1.04,
+    "ge2": 0.08,
     "sec": 3.6,
-    "human": 64,
+    "human": 63,
     "shot": 1.33
    },
    "preview": {
@@ -369,80 +369,80 @@
    "name": "🌻 해바라기",
    "smart": {
     "clear": 1,
-    "star3": 0.71,
-    "stars": 2.67,
-    "ge2": 0.96,
-    "sec": 8.7,
-    "human": 96,
-    "shot": 1
+    "star3": 1,
+    "stars": 3,
+    "ge2": 1,
+    "sec": 5.5,
+    "human": 60,
+    "shot": 4.96
    },
    "habit": {
-    "clear": 0.5,
+    "clear": 1,
     "star3": 0,
-    "stars": 0.96,
-    "ge2": 0.46,
-    "sec": 7.3,
-    "human": 79,
-    "shot": 1
+    "stars": 1.79,
+    "ge2": 0.79,
+    "sec": 6.6,
+    "human": 72,
+    "shot": 2.08
    },
    "top": {
-    "clear": 0.13,
+    "clear": 0.83,
     "star3": 0,
-    "stars": 0.17,
-    "ge2": 0.04,
-    "sec": 5.5,
-    "human": 57,
-    "shot": 0.96
+    "stars": 0.96,
+    "ge2": 0.13,
+    "sec": 7.1,
+    "human": 78,
+    "shot": 1
    },
    "reveal": {
     "clear": 1,
-    "star3": 0.17,
-    "stars": 2.17,
-    "ge2": 1,
-    "sec": 8.7,
-    "human": 96,
+    "star3": 0,
+    "stars": 1.46,
+    "ge2": 0.46,
+    "sec": 7.4,
+    "human": 81,
     "shot": 1
    },
    "random": {
-    "clear": 0.04,
+    "clear": 0.13,
     "star3": 0,
-    "stars": 0.04,
+    "stars": 0.13,
     "ge2": 0,
-    "sec": 16.7,
-    "human": 45,
-    "shot": 0.96
+    "sec": 15,
+    "human": 41,
+    "shot": 1.13
    },
    "mash": {
-    "clear": 0.13,
+    "clear": 0.08,
     "star3": 0,
-    "stars": 0.13,
-    "ge2": 0,
-    "sec": 3.2,
-    "human": 51,
-    "shot": 1
+    "stars": 0.17,
+    "ge2": 0.08,
+    "sec": 2.8,
+    "human": 42,
+    "shot": 1.38
    },
    "finger": {
-    "clear": 0.13,
+    "clear": 0.08,
     "star3": 0,
-    "stars": 0.13,
-    "ge2": 0,
-    "sec": 3.2,
-    "human": 51,
-    "shot": 1
+    "stars": 0.17,
+    "ge2": 0.08,
+    "sec": 2.8,
+    "human": 42,
+    "shot": 1.38
    },
    "preview": {
     "clear": 1,
-    "star3": 0.58,
-    "stars": 2.58,
+    "star3": 0.21,
+    "stars": 2.21,
     "ge2": 1,
-    "sec": 8.7,
-    "human": 96,
-    "shot": 1
+    "sec": 6.5,
+    "human": 71,
+    "shot": 2.54
    },
    "newbie": {
-    "clear1": 0.5,
-    "clear3": 0.83,
-    "fails": 37,
+    "clear1": 1,
+    "clear3": 1,
+    "fails": 2,
     "f13": 1
    }
   },

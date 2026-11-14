@@ -6,10 +6,11 @@
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { STAGES, apply, bestMove, freeM, habitPick, newSim, paintStage, starsOf, type Level, type Sim, type StageDef } from './game.ts';
+import { STAGES, apply, bestMove, freeM, habitPick, newSim, paintStage, starsOf, visibleM, type Level, type Sim, type StageDef } from './game.ts';
 import { mulberry32, type Rng } from './rng.ts';
 
-export const N = 24, SCAN = 96;
+/** 판별 칠 수 · 칠해 볼 sub 수(2판은 장인 ★3 칠이 96개 중 22개뿐이고 상한 3.9에 닿는 칠은 그 절반이라 384 — ✏️ S005) */
+export const N = 24, SCAN = [96, 384, 96, 96, 96, 96, 96, 96];
 
 /** 아무 나사나 빼는 사람이 이 판을 깰 확률 */
 function randomPass(L: Level, r: Rng, n: number) {
@@ -39,6 +40,17 @@ export const mashOf = (L: Level, r: Rng) => (S: Sim) => {
   return o[Math.floor(r() * o.length)];
 };
 const smartOf = (L: Level, d: StageDef) => (S: Sim) => bestMove(L, S, d);
+/** 장인이 게임·funqa와 같은 눈일 때(본 나사 색 + 다음 상자 2개만 앎 — 📐 S005 · ✏️ S005) 별 수 */
+function smartSeen(L: Level, d: StageDef) {
+  const S = newSim(L);
+  let known = visibleM(L, 0);
+  while (!S.fail && S.n < L.N) {
+    const m = bestMove({ ...L, col: L.col.map((c, i) => ((known >> i) & 1 ? c : -1)), queue: L.queue.map((c, i) => (i < S.qi + 2 ? c : -2)) }, S, d);
+    apply(L, S, m >= 0 ? m : habitPick(L, S));
+    known |= visibleM(L, S.gone);
+  }
+  return S.fail ? 0 : starsOf(d, S);
+}
 const habitOf = (L: Level) => (S: Sim) => habitPick(L, S);
 
 /** 버릇대로 두면 ★3이 안 나오고 내다보고 두면 ★3이 나오는 판 (M0 식, 5~8판) */
@@ -57,11 +69,11 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   },
   // 📐 2판: 장인 ★3이 안 되면 탈락 · 버릇①이 ★3이면 탈락 · 무작위 클리어(0.92까지) − 막 누르기 ★2 이상(0.1 넘는 만큼)
   (L, d, r) => {
-    if (playOut(L, d, smartOf(L, d)) !== 3) return -9 + randomPass(L, r, 10);
+    if (smartSeen(L, d) !== 3) return -9 + randomPass(L, r, 10); // ✏️ S005: 게임과 같은 눈의 장인으로 (장전 가치가 바뀌자 다 아는 장인은 ★3인데 funqa 장인은 아닌 판이 0.08 섞여서)
     if (playOut(L, d, habitOf(L)) === 3) return -3;
     let mg = 0;
     for (let k = 0; k < 12; k++) mg += playOut(L, d, mashOf(L, r)) >= 2 ? 1 : 0;
-    return 2 + 2 * Math.min(1, randomPass(L, r, 20) / 0.92) - Math.max(0, mg / 12 - 0.1) * 4;
+    return 2 + 2 * Math.min(1, randomPass(L, r, 100) / 0.95) - Math.max(0, mg / 12 - 0.1) * 4; // ✏️ S005: 표본 20 → 100 · 0.92 → 0.95 · 상한 3.9 → 4 (상위 24로 바꾸자 20판 잡음 + 고른 쪽 쏠림으로 실린 칠의 무작위가 0.92에 걸쳐서)
   },
   // 📐 3판 🔑: 막 누르기 클리어가 낮을수록 (장인 ★3 필수)
   (L, d, r) => {
@@ -77,12 +89,19 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
     for (let k = 0; k < 16; k++) mg += playOut(L, d, mashOf(L, r)) >= 2 ? 1 : 0;
     return (playOut(L, d, habitOf(L)) ? 2.65 : 0) + Math.min(1, randomPass(L, r, 16) / 0.6) - Math.max(0, mg / 16 - 0.1) * 4;
   },
-  m0, m0, m0, m0,
+  // 📐 5판 🌻 (S005): 장인 ★3이 아니거나 버릇 ★3이면 탈락 · 버릇 클리어(처음 하는 사람 숨통) + (1 − 막 누르기 클리어, 200판). 장인은 funqa처럼 다음 상자 2개까지만 안다
+  (L, d, r) => {
+    let m = 0;
+    for (let k = 0; k < 200; k++) m += playOut(L, d, mashOf(L, r)) ? 1 : 0;
+    const h = playOut(L, d, habitOf(L)), sm = smartSeen(L, d);
+    return (h ? 1 : 0) + 1 - m / 200 - (h === 3 ? 5 : 0) - (sm === 3 ? 0 : 9);
+  },
+  m0, m0, m0,
 ];
-export const CAP = [Infinity, 3.9, 3.65, 3.5, 3.65, 3.65, 3.65, 3.65];
+export const CAP = [Infinity, 4, 3.65, 3.5, 1.96, 3.65, 3.65, 3.65];
 
 /** k판의 칠 번호 N개 */
-export function pickStage(k: number, n = N, scan = SCAN) {
+export function pickStage(k: number, n = N, scan = SCAN[k]) {
   const d = STAGES[k], all: [number, number][] = [];
   for (let sub = 1; sub <= scan; sub++) all.push([Math.min(CAP[k], VALUE[k](paintStage(k, sub), d, mulberry32((sub * 0x9e3779b1 + k) >>> 0))), sub]);
   return all.sort((a, b) => b[0] - a[0] || a[1] - b[1]).slice(0, n).map((x) => x[1]);
