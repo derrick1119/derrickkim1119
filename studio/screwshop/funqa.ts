@@ -8,9 +8,9 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Bot, Input } from './core.ts';
 import { mulberry32 } from './rng.ts';
-import { STAGES, apply, cloneSim, freeM, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, startStage, starsOf, type ShopState } from './game.ts';
+import { STAGES, apply, cloneSim, freeM, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, startStage, starsOf, type Level, type ShopState, type Sim } from './game.ts';
 
-export interface Try { ok: boolean; stars: number; sec: number; peak: number; best: number; shot: number; taps: number }
+export interface Try { ok: boolean; stars: number; sec: number; peak: number; best: number; shot: number; taps: number; /** 끝난 판(되짚기·F13용) */ s: ShopState }
 
 /** k판을 한 번 도전(첫 결과가 나올 때까지) */
 export function tryStage(bot: Bot<ShopState>, seed: number, k: number, maxSec = 600, hand = seed): Try {
@@ -19,7 +19,7 @@ export function tryStage(bot: Bot<ShopState>, seed: number, k: number, maxSec = 
   const rng = mulberry32(hand ^ 0x9e3779b9), t0 = s.t; // hand: 같은 판을 다른 손으로 (🧪 S003)
   while (s.phase !== 'result' && s.t - t0 < maxSec * 60) g.step(s, bot.act(s, rng));
   const ok = s.phase === 'result' && s.ok;
-  return { ok, stars: ok ? starsOf(STAGES[k], s.S) : 0, sec: (s.t - t0) / 60, peak: s.S.peak, best: s.S.best, shot: s.S.shot, taps: s.S.taps };
+  return { ok, stars: ok ? starsOf(STAGES[k], s.S) : 0, sec: (s.t - t0) / 60, peak: s.S.peak, best: s.S.best, shot: s.S.shot, taps: s.S.taps, s };
 }
 
 const NO: Input = { tap: false, dir: 0, pointer: null };
@@ -123,6 +123,28 @@ export const screwshopNewbie: Bot<ShopState> = {
   },
 };
 
+/**
+ * 🧪 F13 되짚기 정확도 (S003 제안 · 📐 S004): 진 판에서 실패 카드가 짚은 톡에 PNR이 들었나.
+ * PNR = 그 톡 전에는 (전지 탐색으로) 아직 깰 수 있었고, 그 톡 뒤로는 무엇을 해도 못 깨게 된 톡. 게임의 되짚기와 따로 센다.
+ */
+export function pnrHit(s: ShopState) {
+  const L: Level = s.L, memo = new Map<string, boolean>();
+  const win = (S: Sim): boolean => {
+    if (S.fail) return false;
+    if (S.n === L.N) return true;
+    const key = `${S.gone}|${S.box}|${S.bn}|${S.qi}|${S.slots}|${S.key}|${L.tmr.some(Boolean) ? S.taps : 0}`, m = memo.get(key);
+    if (m !== undefined) return m;
+    const f = freeM(L, S);
+    let ok = false;
+    for (let i = 0; i < L.N && !ok; i++) if ((f >> i) & 1) { const S2 = cloneSim(S); apply(L, S2, i); ok = win(S2); }
+    memo.set(key, ok);
+    return ok;
+  };
+  let pnr = s.hist.length - 1;
+  while (pnr >= 0 && !win(s.hist[pnr].S0)) pnr--;
+  return !!s.blame && s.blame.t.includes(pnr);
+}
+
 export const BOTS = { smart: screwshopSmart, habit: screwshopHabit, top: screwshopTop, reveal: screwshopReveal, random: screwshopRandom, mash: screwshopMash, finger: screwshopFingerMash, preview: screwshopPreview };
 
 /** 한 판만 빠르게 (테스트용): 봇별 클리어·★3 */
@@ -152,15 +174,16 @@ export function measure(seeds = 12) {
     }
     return row;
   });
-  // 처음 하는 사람: 판마다 다시 3번 안에 깨는 비율 (시드마다 다른 손)
+  // 처음 하는 사람: 판마다 다시 3번 안에 깨는 비율 (시드마다 다른 손) + 진 판의 되짚기 정확도 F13
   stages.forEach((row, k) => {
-    let first = 0, three = 0;
+    let first = 0, three = 0, fails = 0, hit = 0;
     for (let i = 0; i < seeds; i++) {
-      const tries = [0, 1, 2].map((j) => tryStage(screwshopNewbie, 1000 + i * 7, k, 600, 1000 + i * 7 + j * 100003).ok); // 같은 판 다시 3번
-      first += +tries[0];
-      three += +tries.some(Boolean);
+      const tries = [0, 1, 2].map((j) => tryStage(screwshopNewbie, 1000 + i * 7, k, 600, 1000 + i * 7 + j * 100003)); // 같은 판 다시 3번
+      first += +tries[0].ok;
+      three += +tries.some((x) => x.ok);
+      for (const x of tries) if (!x.ok && x.s.blame) (fails++, (hit += +pnrHit(x.s)));
     }
-    row.newbie = { clear1: +(first / seeds).toFixed(2), clear3: +(three / seeds).toFixed(2) };
+    row.newbie = { clear1: +(first / seeds).toFixed(2), clear3: +(three / seeds).toFixed(2), fails, f13: fails ? +(hit / fails).toFixed(2) : null };
   });
   const avg = (bot: string, key: string) => +(stages.reduce((a, r) => a + (r[bot] as Record<string, number>)[key], 0) / stages.length).toFixed(2);
   const summary = {
@@ -184,6 +207,8 @@ export function measure(seeds = 12) {
     /** 처음 하는 사람: 다시 3번 안에 클리어 — 1~3판 최저 / 1~8판 평균 (M1′ ④: ≥ 0.9 / ≥ 0.75) */
     newbie3_13: Math.min(...stages.slice(0, 3).map((r) => (r.newbie as Record<string, number>).clear3)),
     newbie3_avg: +(stages.reduce((a, r) => a + (r.newbie as Record<string, number>).clear3, 0) / stages.length).toFixed(2),
+    /** 🧪 F13 되짚기 정확도: 3~8판 중 처음 봇 실패 10건 이상인 판의 최저 (M1′ ① ≥ 0.8) */
+    f13_38min: Math.min(...stages.slice(2).map((r) => r.newbie as Record<string, number>).filter((n) => n.fails >= 10).map((n) => n.f13)),
     /** 사람 시간 추정(초): 판별 장인 톡 × 5 + 6 */
     humanSec: stages.map((r) => (r.smart as Record<string, number>).human),
     /** 숙련 격차: 장인 평균 별 / 무작위 평균 별 */

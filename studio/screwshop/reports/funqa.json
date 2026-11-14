@@ -1,38 +1,39 @@
 {
  "at": "2026-11-14",
- "build": "M1′-S003",
+ "build": "M1′-S004",
  "seeds": 24,
  "summary": {
   "smartStars": 2.98,
-  "habitStars": 1.41,
-  "randomStars": 0.33,
+  "habitStars": 1.6,
+  "randomStars": 0.42,
   "smartStar3": 0.98,
   "habitStar3": 0.11,
   "randomClear1": 1,
   "mashClear12": 0.98,
-  "mashClear38": 0.06,
-  "mashStars": 0.33,
+  "mashClear38": 0.19,
+  "mashStars": 0.45,
   "habit3Star3_2": 0,
   "habit3Star3_38max": 0.79,
   "fingerGe2_1": 0.04,
   "fingerGe2_2": 0.13,
-  "previewStar3_38": 0.88,
-  "smartShot": 1.75,
-  "mashShot": 1.45,
-  "smartSec": 7.21,
-  "newbie3_13": 0.33,
-  "newbie3_avg": 0.79,
+  "previewStar3_38": 0.62,
+  "smartShot": 2.38,
+  "mashShot": 1.97,
+  "smartSec": 6.71,
+  "newbie3_13": 1,
+  "newbie3_avg": 0.91,
+  "f13_38min": 1,
   "humanSec": [
    36,
    56,
-   81,
-   96,
+   61,
+   71,
    96,
    83,
    83,
    101
   ],
-  "skillGap": 9.03
+  "skillGap": 7.1
  },
  "stages": [
   {
@@ -49,8 +50,8 @@
    },
    "habit": {
     "clear": 1,
-    "star3": 0.75,
-    "stars": 2.67,
+    "star3": 0.79,
+    "stars": 2.71,
     "ge2": 0.92,
     "sec": 3.5,
     "human": 36,
@@ -58,8 +59,8 @@
    },
    "top": {
     "clear": 1,
-    "star3": 0.42,
-    "stars": 2.42,
+    "star3": 0.54,
+    "stars": 2.54,
     "ge2": 1,
     "sec": 3.5,
     "human": 36,
@@ -72,7 +73,7 @@
     "ge2": 0,
     "sec": 4.5,
     "human": 48,
-    "shot": 1.54
+    "shot": 1.63
    },
    "random": {
     "clear": 1,
@@ -103,16 +104,18 @@
    },
    "preview": {
     "clear": 1,
-    "star3": 0.83,
-    "stars": 2.67,
-    "ge2": 0.83,
-    "sec": 3.5,
+    "star3": 0.75,
+    "stars": 2.5,
+    "ge2": 0.75,
+    "sec": 3.6,
     "human": 37,
     "shot": 2
    },
    "newbie": {
     "clear1": 1,
-    "clear3": 1
+    "clear3": 1,
+    "fails": 0,
+    "f13": null
    }
   },
   {
@@ -192,167 +195,173 @@
    },
    "newbie": {
     "clear1": 1,
-    "clear3": 1
+    "clear3": 1,
+    "fails": 1,
+    "f13": 1
    }
   },
   {
    "stage": 3,
+   "name": "🚂 태엽 기차",
+   "smart": {
+    "clear": 1,
+    "star3": 1,
+    "stars": 3,
+    "ge2": 1,
+    "sec": 5.6,
+    "human": 61,
+    "shot": 5
+   },
+   "habit": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 1,
+    "ge2": 0,
+    "sec": 5.6,
+    "human": 61,
+    "shot": 5
+   },
+   "top": {
+    "clear": 0,
+    "star3": 0,
+    "stars": 0,
+    "ge2": 0,
+    "sec": 2.8,
+    "human": 26,
+    "shot": 5
+   },
+   "reveal": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 1,
+    "ge2": 0,
+    "sec": 5.6,
+    "human": 61,
+    "shot": 5
+   },
+   "random": {
+    "clear": 0.21,
+    "star3": 0,
+    "stars": 0.21,
+    "ge2": 0,
+    "sec": 19.7,
+    "human": 41,
+    "shot": 4.67
+   },
+   "mash": {
+    "clear": 0.46,
+    "star3": 0.04,
+    "stars": 0.58,
+    "ge2": 0.08,
+    "sec": 2.9,
+    "human": 47,
+    "shot": 4.5
+   },
+   "finger": {
+    "clear": 0.46,
+    "star3": 0.04,
+    "stars": 0.58,
+    "ge2": 0.08,
+    "sec": 2.9,
+    "human": 47,
+    "shot": 4.5
+   },
+   "preview": {
+    "clear": 1,
+    "star3": 0.17,
+    "stars": 2.17,
+    "ge2": 1,
+    "sec": 5.6,
+    "human": 61,
+    "shot": 5
+   },
+   "newbie": {
+    "clear1": 0.83,
+    "clear3": 1,
+    "fails": 9,
+    "f13": 1
+   }
+  },
+  {
+   "stage": 4,
    "name": "🌬️ 풍차",
    "smart": {
     "clear": 1,
     "star3": 1,
     "stars": 3,
     "ge2": 1,
+    "sec": 6.5,
+    "human": 71,
+    "shot": 2
+   },
+   "habit": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 2,
+    "ge2": 1,
     "sec": 7.4,
     "human": 81,
     "shot": 1
    },
-   "habit": {
-    "clear": 0.04,
-    "star3": 0,
-    "stars": 0.08,
-    "ge2": 0.04,
-    "sec": 2.9,
-    "human": 28,
-    "shot": 1
-   },
    "top": {
     "clear": 0,
     "star3": 0,
     "stars": 0,
     "ge2": 0,
-    "sec": 2.3,
-    "human": 21,
-    "shot": 1
+    "sec": 4.3,
+    "human": 44,
+    "shot": 1.71
    },
    "reveal": {
-    "clear": 0.58,
-    "star3": 0.5,
-    "stars": 1.67,
-    "ge2": 0.58,
-    "sec": 5.6,
-    "human": 60,
+    "clear": 1,
+    "star3": 0,
+    "stars": 2,
+    "ge2": 1,
+    "sec": 7.4,
+    "human": 81,
     "shot": 1
    },
    "random": {
-    "clear": 0.13,
+    "clear": 0.54,
     "star3": 0,
-    "stars": 0.21,
-    "ge2": 0.08,
-    "sec": 14.9,
-    "human": 43,
-    "shot": 1
+    "stars": 0.67,
+    "ge2": 0.13,
+    "sec": 23.1,
+    "human": 59,
+    "shot": 1.67
    },
    "mash": {
-    "clear": 0.21,
+    "clear": 0.58,
     "star3": 0,
-    "stars": 0.33,
-    "ge2": 0.13,
-    "sec": 2.9,
-    "human": 46,
-    "shot": 1
+    "stars": 0.75,
+    "ge2": 0.17,
+    "sec": 3.6,
+    "human": 62,
+    "shot": 1.67
    },
    "finger": {
-    "clear": 0.21,
+    "clear": 0.58,
     "star3": 0,
-    "stars": 0.33,
-    "ge2": 0.13,
-    "sec": 2.9,
-    "human": 46,
-    "shot": 1
+    "stars": 0.75,
+    "ge2": 0.17,
+    "sec": 3.6,
+    "human": 62,
+    "shot": 1.67
    },
    "preview": {
-    "clear": 0.96,
-    "star3": 0.75,
-    "stars": 2.67,
-    "ge2": 0.96,
+    "clear": 1,
+    "star3": 0,
+    "stars": 2,
+    "ge2": 1,
     "sec": 7.3,
     "human": 80,
-    "shot": 1
+    "shot": 1.21
    },
    "newbie": {
-    "clear1": 0.21,
-    "clear3": 0.33
-   }
-  },
-  {
-   "stage": 4,
-   "name": "🚂 기차",
-   "smart": {
-    "clear": 1,
-    "star3": 1,
-    "stars": 3,
-    "ge2": 1,
-    "sec": 8.7,
-    "human": 96,
-    "shot": 1
-   },
-   "habit": {
-    "clear": 0.71,
-    "star3": 0.04,
-    "stars": 1.46,
-    "ge2": 0.71,
-    "sec": 7.8,
-    "human": 85,
-    "shot": 1
-   },
-   "top": {
-    "clear": 0.13,
-    "star3": 0,
-    "stars": 0.21,
-    "ge2": 0.08,
-    "sec": 5,
-    "human": 52,
-    "shot": 1
-   },
-   "reveal": {
-    "clear": 1,
-    "star3": 0.75,
-    "stars": 2.75,
-    "ge2": 1,
-    "sec": 8.7,
-    "human": 96,
-    "shot": 1
-   },
-   "random": {
-    "clear": 0,
-    "star3": 0,
-    "stars": 0,
-    "ge2": 0,
-    "sec": 21.6,
-    "human": 54,
-    "shot": 1
-   },
-   "mash": {
-    "clear": 0.04,
-    "star3": 0,
-    "stars": 0.08,
-    "ge2": 0.04,
-    "sec": 3.1,
-    "human": 50,
-    "shot": 1
-   },
-   "finger": {
-    "clear": 0.04,
-    "star3": 0,
-    "stars": 0.08,
-    "ge2": 0.04,
-    "sec": 3.1,
-    "human": 50,
-    "shot": 1
-   },
-   "preview": {
-    "clear": 1,
-    "star3": 1,
-    "stars": 3,
-    "ge2": 1,
-    "sec": 8.7,
-    "human": 96,
-    "shot": 1
-   },
-   "newbie": {
-    "clear1": 0.54,
-    "clear3": 0.71
+    "clear1": 0.79,
+    "clear3": 1,
+    "fails": 8,
+    "f13": 1
    }
   },
   {
@@ -432,7 +441,9 @@
    },
    "newbie": {
     "clear1": 0.75,
-    "clear3": 0.92
+    "clear3": 0.92,
+    "fails": 21,
+    "f13": 1
    }
   },
   {
@@ -512,7 +523,9 @@
    },
    "newbie": {
     "clear1": 0.42,
-    "clear3": 0.75
+    "clear3": 0.75,
+    "fails": 39,
+    "f13": 1
    }
   },
   {
@@ -592,7 +605,9 @@
    },
    "newbie": {
     "clear1": 0.92,
-    "clear3": 1
+    "clear3": 1,
+    "fails": 7,
+    "f13": 1
    }
   },
   {
@@ -672,7 +687,9 @@
    },
    "newbie": {
     "clear1": 0.33,
-    "clear3": 0.58
+    "clear3": 0.58,
+    "fails": 44,
+    "f13": 1
    }
   }
  ]

@@ -5,7 +5,7 @@ import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
 import { RES_BY, RETRY_Y, STAGES, apply, bonkDead, cloneSim, freeM, newSim, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
-import { measure, measureStage, screwshopMash, tryStage } from '../studio/screwshop/funqa.ts';
+import { measure, measureStage, pnrHit, screwshopMash, screwshopNewbie, tryStage } from '../studio/screwshop/funqa.ts';
 
 describe('나사 풀기 공방 시뮬', () => {
   it('같은 시드·같은 봇이면 같은 판', () => {
@@ -123,7 +123,7 @@ describe('🪵 통나무 · 2판 돛단배 (M1′ S002 · 📐 CONTENT 2판)', (
 describe('하트 없음 · ↺ 지금 다시 (M1′ S003, 오너 기준 7)', () => {
   it('몇 번을 실패해도 게임이 끝나지 않고 그 판만 다시 (같은 칠)', () => {
     const s = g.create(9);
-    startStage(s, 2);
+    startStage(s, 4); // 📐 S004: 3·4판 맞바꿈 뒤 막 누르기가 늘 지는 판(5판)으로
     const col0 = s.L.col.join(), rng = () => 0.5;
     let fails = 0;
     for (let k = 0; k < 60 * 400 && fails < 5; k++) {
@@ -136,7 +136,7 @@ describe('하트 없음 · ↺ 지금 다시 (M1′ S003, 오너 기준 7)', () 
     }
     expect(fails).toBeGreaterThanOrEqual(3);
     expect(g.over(s)).toBe(false);
-    expect(s.stage).toBe(2);
+    expect(s.stage).toBe(4);
     expect(s.L.col.join()).toBe(col0);
   });
   it('위 줄 ↺를 누르면 판 중에도 같은 판을 처음부터', () => {
@@ -184,8 +184,8 @@ describe('실패 되짚기 retrace (📐 S003)', () => {
     expect(b.c).toBe('③통나무');
     expect(b.t[0]).toBe(0);
   });
-  it('막 누르기가 3~8판에서 진 판은 전부 짚을 톡이 1~2개, 원인 8갈래 중 하나', () => {
-    const kinds = ['①색', '①연쇄', '①깔림', '①잠김', '②진자', '②못', '③통나무', '③허공'];
+  it('막 누르기가 3~8판에서 진 판은 전부 짚을 톡이 1~2개, 원인 9갈래 중 하나', () => {
+    const kinds = ['①색', '①연쇄', '①깔림', '①잠김', '②진자', '②못', '③통나무', '③허공', '④태엽'];
     let lost = 0;
     for (let k = 2; k < 8; k++)
       for (let i = 0; i < 6; i++) {
@@ -201,6 +201,73 @@ describe('실패 되짚기 retrace (📐 S003)', () => {
         for (const ti of s.blame!.t) expect(ti >= 0 && ti < s.hist.length).toBe(true);
       }
     expect(lost).toBeGreaterThan(20);
+  });
+});
+
+describe('🔑 3판 태엽 기차 · 📌🔨 4판 풍차 (📐 S004)', () => {
+  const lvl = (seed: number, k: number) => {
+    const s = g.create(seed);
+    startStage(s, k);
+    return s.L;
+  };
+  it('3판: 처음(첫 두 상자)에 🔑를 빼면 🔒 넷이 왼쪽부터 튀어 셋이 빈칸 → 되짚기 ④태엽이 열쇠 톡을 짚는다', () => {
+    for (const seed of [1000, 1007, 42]) {
+      const L = lvl(seed, 2), S = newSim(L), H: { s: number; S0: ReturnType<typeof newSim>; known: number; rec: { k: string; s?: number }[] }[] = [];
+      const key = L.px.findIndex((_, i) => (L.keyM >> i) & 1), tap = (i: number) => {
+        const S0 = cloneSim(S), rec: { k: string; s?: number }[] = [];
+        apply(L, S, i, rec as never);
+        H.push({ s: i, S0, known: L.all, rec });
+      };
+      tap(key);
+      const pops = H[0].rec.filter((e) => e.k === 'out').map((e) => e.s!).slice(1);
+      expect(pops.length, `seed ${seed}`).toBe(4);
+      expect(pops.map((i) => L.px[i])).toEqual(pops.map((i) => L.px[i]).sort((a, b) => a - b));
+      expect(S.slots.length).toBe(3);
+      for (let n = 0; !S.fail && n < 20; n++) {
+        const f = freeM(L, S);
+        let pick = -1;
+        for (let i = 0; i < L.N; i++) if ((f >> i) & 1 && (pick < 0 || !S.box.includes(L.col[i]))) pick = i;
+        tap(pick);
+      }
+      const b = retrace(L, H as never, S);
+      expect([b.c, b.t[0]], `seed ${seed}`).toEqual(['④태엽', 0]);
+    }
+  });
+  it('4판: 탑 가운데(⚠) 먼저 빼고 못 날개를 다 풀면 날개 끝 🔨가 🎯를 쾅 — 둘 다 그대로 두면 날개가 ⚠를 영영 덮는다', () => {
+    const L = lvl(1000, 3), nail = L.pl.map((p, k) => (p.kind === 'nail' ? k : -1)).filter((k) => k >= 0);
+    expect(nail.length).toBe(2);
+    let S = newSim(L);
+    apply(L, S, 0);
+    for (const k of nail) {
+      const rec: { k: string }[] = [];
+      for (const i of L.ps[k]) apply(L, S, i, rec as never);
+      expect(rec.filter((e) => e.k === 'bonk').length).toBe(1);
+    }
+    expect([S.bonks, S.fail]).toEqual([2, 0]);
+    S = newSim(L);
+    for (const i of L.ps[nail[0]]) apply(L, S, i);
+    expect(S.fail).toBe(2);
+  });
+  it('3·4판 반증(24시드): 장인 ★3 ≥ 0.7 · 버릇 3종 ★3 ≤ 0.15 · 따라 하기 ★3 ≤ 0.25 · 4판 무작위 ≥ 0.5 · 버릇 클리어 ≥ 0.4', () => {
+    for (const k of [2, 3]) {
+      const r = measureStage(k, 24, ['smart', 'habit', 'top', 'reveal', 'preview', 'random']);
+      expect(r.smart.star3, `${k + 1}판 장인`).toBeGreaterThanOrEqual(0.7);
+      for (const b of ['habit', 'top', 'reveal']) expect(r[b].star3, `${k + 1}판 ${b}`).toBeLessThanOrEqual(0.15);
+      expect(r.preview.star3, `${k + 1}판 따라 하기`).toBeLessThanOrEqual(0.25);
+      if (k === 3) expect([r.random.clear >= 0.5, r.habit.clear >= 0.4]).toEqual([true, true]);
+    }
+  });
+  it('되짚기 F13: 처음 봇이 3·4판에서 지면 카드가 PNR(그 뒤로는 못 깨게 된 톡)을 짚는다 ≥ 0.8', () => {
+    for (const k of [2, 3]) {
+      let n = 0, hit = 0;
+      for (let i = 0; i < 12; i++)
+        for (let j = 0; j < 3; j++) {
+          const x = tryStage(screwshopNewbie, 1000 + i * 7, k, 600, 1000 + i * 7 + j * 100003);
+          if (!x.ok && x.s.blame) (n++, (hit += +pnrHit(x.s)));
+        }
+      expect(n, `${k + 1}판 실패 수`).toBeGreaterThan(0);
+      expect(hit / n, `${k + 1}판`).toBeGreaterThanOrEqual(0.8);
+    }
   });
 });
 

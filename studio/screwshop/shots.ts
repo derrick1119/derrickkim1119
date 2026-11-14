@@ -95,11 +95,11 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.waitForTimeout(800);
     }
   }
-  // 실패 카드(🎨 §2.7): 3판을 막 누르기 수순(노드에서 미리 계산, 시드 42)으로 져 본다 → 진 톡 짚기 + 카드
+  // 실패 카드(🎨 §2.7): 5판을 막 누르기 수순(노드에서 미리 계산, 시드 42)으로 져 본다 → 진 톡 짚기 + 카드
   {
     const { screwshopMash } = await import('./funqa.ts');
     const sim = g.create(42), rng = mulberry32(7), seq: number[] = [];
-    startStage(sim, 2);
+    startStage(sim, 4); // 📐 S004: 3판(태엽 기차)은 막 누르기로도 깰 때가 있어 5판에서 진다
     let was = false;
     while (sim.phase !== 'result' && sim.t < 60 * 300) {
       const i = screwshopMash.act(sim, rng);
@@ -108,7 +108,7 @@ for (const scheme of ['light', 'dark'] as const) {
       g.step(sim, i);
     }
     if (!sim.ok) {
-      await page.goto(url + '?seed=42&stage=3');
+      await page.goto(url + '?seed=42&stage=5');
       await page.click('.g-overlay');
       await page.waitForTimeout(900);
       const b5 = (await page.locator('canvas').boundingBox())!;

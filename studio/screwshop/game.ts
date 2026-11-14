@@ -78,29 +78,37 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'mill', name: '풍차', emoji: '🌬️', news: '📌 못 날개 — 나사를 다 빼도 못에 매달려 빙글, 계속 가려요', tip: '📌 못 날개는 다 풀면 아래로 빙글 — 밑 나사부터 빼요', boxes: 2, colors: 5, P: 1, C: 5,
+    // 📐 CONTENT.md M1′ 3판 (S004): 🚂 태엽 기차 — 🔑 태엽 열쇠를 빼면 🔒 바퀴 4개가 왼쪽부터 한꺼번에 튀어나온다
+    key: 'train', name: '태엽 기차', emoji: '🚂', news: '🔑 태엽 열쇠 — 빼면 🔒 바퀴가 한꺼번에 튀어나와요!', tip: '🔑 🔒 바퀴 색 상자가 다 열렸을 때 열쇠를 톡!', tip2: '🔑 바퀴 색 상자 둘이 같이 열릴 때까지 아껴요', boxes: 2, colors: 5, P: 2, C: 13, wind: true,
+    // 나사 번호: #0 레일 · #1~#3 보일러(왼·가운데·오른) · #4 #5 운전실(위·아래) · #6 #7 굴뚝(위·아래) · #8 앞 등 · #9 증기 돔 · #10 🔑 태엽 열쇠 · #11~#14 🔒 바퀴(왼→오른)
+    // 판자 순서 = 겹침 순서(뒤가 위). 태엽 열쇠 판자가 운전실 위 나사 #4를 누른다(열쇠를 빼야 #4가 풀린다).
     toy: () => [
-      plate(0.5, 0.93, 0.3, 0.4, 0, 0.03, '#d98b5f', [[0.4, 1.07], [0.6, 1.07], [0.5, 0.82]], { deco: 'brick' }),
-      plate(0.5, 0.715, 0.42, 0.08, 0, 0.03, '#8e4b3a', [[0.35, 0.715], [0.65, 0.715]], { deco: 'roof' }),
-      plate(0.5, 1.07, 0.11, 0.13, 0, 0.05, '#6b4430', [[0.5, 1.035]], { deco: 'door' }),
-      ...[-1, 1].flatMap((sy) => [-1, 1].map((sx) => bar(0.5, 0.61, 0.5 + 0.2 * sx, 0.61 + 0.2 * sy, 0.04, BLADE, [[0.5 + 0.1 * sx, 0.61 + 0.1 * sy], [0.5 + 0.175 * sx, 0.61 + 0.175 * sy]], { kind: 'nail', nail: [0.5, 0.61], deco: 'blade' }))),
-      disc(0.5, 0.61, 0.058, '#c9503e', [[0.5, 0.61]], { deco: 'hub' }),
+      bar(0.12, 1.125, 0.88, 1.125, 0.022, '#7d7f86', [[0.5, 1.125]], { deco: 'rail' }),
+      plate(0.52, 0.9, 0.44, 0.15, 0, 0.07, '#2f6fd6', [[0.37, 0.9], [0.52, 0.93], [0.67, 0.9]], { deco: 'boiler' }),
+      plate(0.22, 0.82, 0.2, 0.3, 0, 0.03, '#e2574c', [[0.22, 0.74], [0.22, 0.9]], { deco: 'window' }),
+      bar(0.66, 0.83, 0.66, 0.6, 0.032, '#3a3a44', [[0.66, 0.64], [0.66, 0.76]], { deco: 'chimney' }),
+      plate(0.83, 0.93, 0.1, 0.12, 0, 0.03, '#ffcf3a', [[0.83, 0.93]], { deco: 'lamp' }),
+      disc(0.47, 0.79, 0.045, '#f7c531', [[0.47, 0.79]], { deco: 'hub' }),
+      plate(0.22, 0.655, 0.13, 0.15, 0, 0.04, '#ffd23a', [[0.22, 0.62]], { deco: 'windkey', key: 0 }),
+      disc(0.24, 1.035, 0.05, '#3a3a44', [[0.24, 1.035]], { deco: 'wheel', lock: [0] }),
+      disc(0.41, 1.035, 0.05, '#3a3a44', [[0.41, 1.035]], { deco: 'wheel', lock: [0] }),
+      disc(0.59, 1.035, 0.05, '#3a3a44', [[0.59, 1.035]], { deco: 'wheel', lock: [0] }),
+      disc(0.76, 1.035, 0.05, '#3a3a44', [[0.76, 1.035]], { deco: 'wheel', lock: [0] }),
     ],
   },
   {
-    key: 'train', name: '기차', emoji: '🚂', news: '🔒 자물쇠 나사 — 🔑 열쇠 나사를 먼저 빼요', tip: '🔑 열쇠 나사를 빼면 🔒 자물쇠가 다 풀려요', boxes: 2, colors: 5, P: 2, C: 5,
+    // 📐 CONTENT.md M1′ 4판 (S004): 🌬️ 풍차 — 아래 날개 둘은 📌 못 날개(다 풀면 못에 매달려 영영 가림) + 날개 끝 🔨(매달리는 순간 🎯를 쾅)
+    key: 'mill', name: '풍차', emoji: '🌬️', news: '📌 못 날개 — 다 풀어도 못에 매달려 계속 가려요', tip: '📌 꾹 눌러 ⚠ 뜨는 나사는 맨 나중에!', tip2: '🎯 망치가 칠 나사는 손으로 빼지 말고 남겨요', boxes: 2, colors: 4, P: 2, C: 6, T: 13,
+    // 나사 번호: #0 탑 가운데(⚠ 두 못 날개가 다 덮는 자리) · #1 #2 탑 🎯(왼·오른 날개 끝 🔨가 칠 곳) · #3 #4 지붕(왼·오른) · #5 문
+    //   · #6 #7 왼쪽 위 날개(안·끝) · #8 #9 오른쪽 위 날개 · #10 #11 📌 왼쪽 아래 날개 · #12 #13 📌 오른쪽 아래 날개 · #14 축
+    // 위 날개 둘은 보통 판자(다 풀면 덜컹). 아래 날개 둘은 축 테두리의 제 못(0.06 안쪽)에 매달려 바로 아래로 — 끝 🔨가 🎯(#1·#2)를 쾅.
     toy: () => [
-      bar(0.24, 1.125, 0.9, 1.125, 0.024, '#7d7f86', [[0.3, 1.125], [0.85, 1.125]], { deco: 'rail' }),
-      plate(0.36, 0.9, 0.32, 0.14, 0, 0.065, '#2f6fd6', [[0.27, 0.9], [0.45, 0.9]], { deco: 'boiler', lock: [1] }),
-      plate(0.26, 0.75, 0.15, 0.17, 0, 0.025, '#e2574c', [[0.26, 0.71], [0.26, 0.795]], { deco: 'window' }),
-      bar(0.45, 0.82, 0.45, 0.65, 0.032, '#3a3a44', [[0.45, 0.685], [0.45, 0.775]], { deco: 'chimney' }),
-      plate(0.74, 0.9, 0.32, 0.14, 0, 0.03, '#2fb86a', [[0.64, 0.905], [0.74, 0.91], [0.84, 0.905]], { key: 1 }),
-      plate(0.74, 0.805, 0.26, 0.14, 0, 0.04, '#f7c531', [[0.66, 0.795], [0.82, 0.795]], { deco: 'crate' }),
-      plate(0.18, 0.93, 0.08, 0.08, Math.PI / 4, 0.02, '#ffcf3a', [[0.18, 0.93]], { deco: 'lamp' }),
-      disc(0.28, 1.035, 0.048, '#3a3a44', [[0.28, 1.035]], { deco: 'wheel' }),
-      disc(0.44, 1.035, 0.048, '#3a3a44', [[0.44, 1.035]], { deco: 'wheel', lock: [0] }),
-      disc(0.65, 1.035, 0.048, '#3a3a44', [[0.65, 1.035]], { deco: 'wheel', lock: [0] }),
-      disc(0.81, 1.035, 0.048, '#3a3a44', [[0.81, 1.035]], { deco: 'wheel' }),
+      plate(0.5, 0.93, 0.3, 0.4, 0, 0.03, '#d98b5f', [[0.5, 0.86], [0.44, 0.88], [0.56, 0.88]], { deco: 'brick' }),
+      plate(0.5, 0.715, 0.42, 0.08, 0, 0.03, '#8e4b3a', [[0.35, 0.715], [0.65, 0.715]], { deco: 'roof' }),
+      plate(0.5, 1.07, 0.11, 0.13, 0, 0.05, '#6b4430', [[0.5, 1.035]], { deco: 'door' }),
+      ...[-1, 1].map((sx) => bar(0.5, 0.61, 0.5 + 0.2 * sx, 0.41, 0.04, BLADE, [[0.5 + 0.1 * sx, 0.51], [0.5 + 0.175 * sx, 0.435]], { deco: 'blade' })),
+      ...[-1, 1].map((sx) => bar(0.5, 0.61, 0.5 + 0.2 * sx, 0.81, 0.04, BLADE, [[0.5 + 0.1 * sx, 0.71], [0.5 + 0.175 * sx, 0.785]], { kind: 'nail', nail: [0.5 + 0.0424 * sx, 0.6524], ham: [0.5 + 0.2 * sx, 0.81], deco: 'blade' })),
+      disc(0.5, 0.61, 0.058, '#c9503e', [[0.5, 0.61]], { deco: 'hub' }),
     ],
   },
   {
@@ -437,7 +445,9 @@ export const star3 = (d: StageDef, S: Sim) => (d.H !== undefined ? S.shot >= d.H
 export const shotDead = (d: StageDef, L: Level, S: Sim) => d.H !== undefined && S.shot < d.H && !L.pl.some((p, k) => p.heavy && L.pm[k] & ~S.gone);
 export const starsOf = (d: StageDef, S: Sim) => (d.B !== undefined ? (S.bonks >= d.B ? (S.peak <= d.P ? 3 : 2) : 1) : 1 + (S.peak <= d.P ? 1 : 0) + (star3(d, S) ? 1 : 0));
 /** 🔨 ★2(쾅 B번)를 이제 못 딴다: 아직 칠 수 있는 망치(아직 안 매달렸고 칠 나사가 살아 있음)를 다 더해도 B에 못 미친다 */
-export const bonkDead = (d: StageDef, L: Level, S: Sim) => d.B !== undefined && S.bonks + L.pl.filter((p, k) => p.ham && poseOf(L, k, S.gone) === 0 && L.hamT[k].some((c) => c.some((i) => !((S.gone >> i) & 1)))).length < d.B;
+/** 🔨 아직 칠 수 있는 망치 수: 아직 안 매달렸고 칠 나사가 살아 있음 */
+const live = (L: Level, S: Sim) => L.pl.filter((p, k) => p.ham && poseOf(L, k, S.gone) === 0 && L.hamT[k].some((c) => c.some((i) => !((S.gone >> i) & 1)))).length;
+export const bonkDead = (d: StageDef, L: Level, S: Sim) => d.B !== undefined && S.bonks + live(L, S) < d.B;
 
 // ───────────────────────────── 판 만들기(색칠 + 고르기) ─────────────────────────────
 function paint(G: Level, d: StageDef, r: Rng): Level {
@@ -471,6 +481,34 @@ function paint(G: Level, d: StageDef, r: Rng): Level {
       }
       return { ...G, col, queue: q, boxes: d.boxes, pal };
     }
+  }
+  const lk: number[] = [];
+  for (let i = 0; i < G.N; i++) if ((G.lockM >> i) & 1) lk.push(i);
+  if (d.wind && lk.length === 4 && d.colors * 3 === G.N) {
+    // 📐 3판 🔑: 상자 순서 [A, B, X, Z, E] — 열쇠 = B · 🔒 넷(왼→오른) = Z B Z Z 또는 Z Z B Z · 남은 B 하나와 A·X·E 셋씩은 섞는다.
+    //   처음(A·B)에 빼면 Z 셋이 빈칸으로(★2도 잃음) · X·B 때 빼면 맨 왼쪽 Z가 빈칸으로(연속이 끊김) · X를 닫아 Z·B가 같이 열린 때 빼면 다섯이 다 상자로.
+    //   열쇠 판자 밑 나사는 E 색(열쇠보다 먼저 쓸 일이 없게)
+    const q = pal.slice(), kk = 31 - Math.clz32(G.keyM), B = q[1], Z = q[3], E = q[4], un = G.cov[G.owner[kk]][0], fx = un | G.lockM | G.keyM;
+    const lc = r() < 0.5 ? [Z, B, Z, Z] : [Z, Z, B, Z], pool = shuffle([q[0], q[0], q[0], B, q[2], q[2], q[2], E, E, E], r);
+    lk.sort((a, b) => G.px[a] - G.px[b]);
+    let j = 0;
+    for (let i = 0; i < G.N; i++) col[i] = i === kk ? B : (G.lockM >> i) & 1 ? lc[lk.indexOf(i)] : pool[j++];
+    for (let i = 0; i < G.N; i++)
+      if ((un >> i) & 1 && col[i] !== E) {
+        const t = col.findIndex((c, m) => c === E && !((fx >> m) & 1));
+        [col[i], col[t]] = [col[t], col[i]];
+      }
+    return { ...G, col, queue: q, boxes: d.boxes, pal };
+  }
+  let zm = 0;
+  G.pl.forEach((p, k) => p.kind === 'nail' && p.ham && (zm |= G.cov[k][1]));
+  if (zm && d.colors === 4 && G.N === 15) {
+    // 📐 4판 📌🔨: 못 날개 둘이 매달리면 덮는 자리(⚠ 가운데 + 🎯 둘) = 첫 상자 색 A. 나머지 12개는 남은 세 색 + 한 색 더.
+    //   맞는 색이라고 셋을 다 손으로 빼면 망치가 💨 — A 상자를 1/3에 멈춰 두고 날개를 먼저 풀어야 쾅 둘(톡 13)
+    const A = pal[0], rest = pal.slice(1, 4), ex = rest[Math.floor(r() * 3)], pool = shuffle([...rest, ex].flatMap((c) => [c, c, c]), r);
+    let j = 0;
+    for (let i = 0; i < G.N; i++) col[i] = (zm >> i) & 1 ? A : pool[j++];
+    return { ...G, col, queue: [A, ...shuffle([...rest, ex], r)], boxes: d.boxes, pal };
   }
   const L: Level = { ...G, col, queue, boxes: d.boxes, pal };
   if (d.first !== undefined) {
@@ -525,6 +563,12 @@ function playOut(L: Level, d: StageDef, pick: (S: Sim) => number, first?: number
   while (!S.fail && S.n < L.N) apply(L, S, pick(S));
   return S.fail ? 0 : starsOf(d, S);
 }
+/** 막 누르기(고르기용): 뺄 수 있는 나사 아무거나 */
+const mashOf = (L: Level, r: Rng) => (S: Sim) => {
+  const f = freeM(L, S), o: number[] = [];
+  for (let i = 0; i < L.N; i++) if ((f >> i) & 1) o.push(i);
+  return o[Math.floor(r() * o.length)];
+};
 const levelCache = new Map<string, Level>();
 function buildLevel(seed: number, stage: number): Level {
   const ck = `${seed}:${stage}`, hit = levelCache.get(ck);
@@ -563,6 +607,14 @@ function buildLevel(seed: number, stage: number): Level {
         v = 2 + 2 * Math.min(1, randomPass(L, r, 20) / 0.92) - Math.max(0, mg / 12 - 0.1) * 4;
       }
     }
+    else if (stage < 4) {
+      // 📐 3·4판 고르기(S004): 버릇 3종·따라 하기의 ★3 실패는 칠하기 구조가 맡고, 여기서는 싼 것부터 잰 뒤 나을 때만 장인 ★3을 본다.
+      //   3판 🔑: 막 누르기 클리어가 낮을수록(0.3 이하면 멈춤) · 4판 📌🔨: 버릇 클리어 + 무작위 클리어 0.6까지(첫 못 판 숨통)
+      let m = 0;
+      if (stage === 2) for (let k = 0; k < 16; k++) m += playOut(L, d, mashOf(L, r)) ? 1 : 0;
+      v = stage === 2 ? 3.95 - m / 16 : (playOut(L, d, (S) => habitPick(L, S)) ? 2.65 : 0) + Math.min(1, randomPass(L, r, 16) / 0.6);
+      if (v > bv && playOut(L, d, (S) => bestMove(L, S, d)) !== 3) v = -9;
+    }
     else {
       // 버릇대로 두면 별 셋이 안 나오고, 내다보고 두면 별 셋이 나오는 판을 고른다 (무엇을 먼저 뺄지가 수가 되게)
       const H = newSim(L);
@@ -572,6 +624,7 @@ function buildLevel(seed: number, stage: number): Level {
       v = (H.fail || starsOf(d, H) < 3 ? 2 : 0) + (M.fail ? 0 : starsOf(d, M) === 3 ? 1.5 : 0.4) + randomPass(L, r, 10) * 0.3;
     }
     if (v > bv) (bv = v), (pick = L);
+    if (stage === 3 && bv >= 3.5) break; // 📐 4판: 장인 ★3 · 버릇 클리어 · 무작위 ≥ 0.5(16판)
     if (stage >= 2 && bv >= 3.5 + 0.3 * 0.5) break;
     if (stage === 1 && bv >= 3.9) break; // 📐 2판: 장인 ★3 · 버릇① 실패 · 무작위 ≥ 0.87 · 막 누르기 ★2 이상 ≤ 1/12
   }
@@ -660,8 +713,26 @@ export function startStage(s: ShopState, k: number) {
 
 // ───────────────────────────── 실패 되짚기 (📐 S003) ─────────────────────────────
 interface Hist { s: number; S0: Sim; known: number; rec: RE[] }
-export interface Why { c: '①색' | '①연쇄' | '①깔림' | '①잠김' | '②진자' | '②못' | '③통나무' | '③허공'; t: number[]; k: number; via?: string; s?: number }
-/** 진 이유: ③통나무·허공 > ②진자·못 > ①색·연쇄·깔림 순으로 처음 걸리는 것. t = 짚을 톡 번호(hist 순서) */
+export interface Why { c: '①색' | '①연쇄' | '①깔림' | '①잠김' | '②진자' | '②못' | '③통나무' | '③허공' | '④태엽'; t: number[]; k: number; via?: string; s?: number }
+/** 되짚기 전용 전지 탐색: 이 상태에서 끝까지 깰 수 있나 (예산 b.n을 다 쓰면 '못 깬다'로 — 실패 판은 막다른 길이라 보통 수십 칸) */
+function canWin(L: Level, S: Sim, memo: Map<string, boolean>, b: { n: number }): boolean {
+  if (S.fail || b.n <= 0) return false;
+  if (S.n === L.N) return true;
+  const key = `${S.gone}|${S.box}|${S.bn}|${S.qi}|${S.slots}|${S.key}|${L.tmr.some(Boolean) ? S.taps : 0}`, m = memo.get(key);
+  if (m !== undefined) return m;
+  b.n--;
+  const f = freeM(L, S);
+  let ok = false;
+  for (let i = 0; i < L.N && !ok; i++)
+    if ((f >> i) & 1) {
+      const S2 = cloneSim(S);
+      apply(L, S2, i);
+      ok = canWin(L, S2, memo, b);
+    }
+  memo.set(key, ok);
+  return ok;
+}
+/** 진 이유: ④태엽·③통나무·허공 > ②진자·못 > ①색·연쇄·깔림 순으로 처음 걸리는 것. t = 짚을 톡 번호(hist 순서) */
 export function retrace(L: Level, H: Hist[], S: Sim): Why {
   const tray: { t: number; s: number; ch: boolean }[] = [], air: { t: number; k: number; tg: number[] }[] = [], logs: { t: number; k: number; late: number }[] = [];
   const hangs = (k: number, before: number) => {
@@ -683,7 +754,21 @@ export function retrace(L: Level, H: Hist[], S: Sim): Why {
       }
     }),
   );
-  const N = H.length;
+  const N = H.length, two = (a: number, b: number) => [...new Set([a, b])].sort((x, y) => x - y);
+  // la: 아는 정보로(본 적 있는 뺄 수 있는 나사 중) 다른 안전한 수 — 그 수를 뒀으면 아직 깰 수 있었던 — 가 있던 마지막 톡 (📐 S004 F13) · wt: 🔑 태엽을 뺀 톡
+  const memo = new Map<string, boolean>(), bud = { n: 4000 };
+  let la = N - 1, wt = -1;
+  for (let ok = false; la > 0; la--) {
+    const { S0, known, s } = H[la], f = freeM(L, S0) & known;
+    for (let j = 0; j < L.N && !ok; j++)
+      if (j !== s && (f >> j) & 1) {
+        const S2 = cloneSim(S0);
+        apply(L, S2, j);
+        ok = canWin(L, S2, memo, bud);
+      }
+    if (ok) break;
+  }
+  H.forEach((e, t) => e.rec.some((r) => r.k === 'wind') && (wt = t));
   if (S.fail === 2) {
     const rem = L.all & ~S.gone;
     let k = -1, bn = 0;
@@ -694,7 +779,8 @@ export function retrace(L: Level, H: Hist[], S: Sim): Why {
       for (let m = L.cov[j][q] & rem; m; m &= m - 1) c++;
       if (c > bn) (bn = c), (k = j);
     });
-    return { c: k >= 0 && L.pl[k].kind === 'nail' ? '②못' : '②진자', t: [k >= 0 ? hangs(k, N) : N - 1], k };
+    const h = k >= 0 ? hangs(k, N) : N - 1;
+    return k >= 0 && L.pl[k].kind === 'nail' ? { c: '②못', t: [h], k } : { c: '②진자', t: two(h, la), k };
   }
   const E = tray.map((x) => {
     const { S0, known } = H[x.t], fr = freeM(L, S0) & known, blk = blockedM(L, S0.gone);
@@ -715,26 +801,27 @@ export function retrace(L: Level, H: Hist[], S: Sim): Why {
   });
   const last = <T,>(a: T[]) => a[a.length - 1];
   const l3 = last(E.filter((x) => x.lg)), a3 = last(E.filter((x) => x.air));
+  if (wt >= 0 && E.some((x) => x.t === wt && x.ch && (L.lockM >> x.s) & 1)) return { c: '④태엽', t: two(wt, la), k: -1 }; // 🔑 일찍 뺀 태엽: 튄 🔒가 빈칸에 남았다
   if (l3) return { c: '③통나무', t: [l3.lg!.t, l3.t], k: l3.lg!.k };
   if (a3) return { c: '③허공', t: [a3.air!.t, a3.t].sort((a, b) => a - b), k: a3.air!.k };
   const c2 = E.filter((x) => x.cov >= 0), c1 = E.filter((x) => x.alt);
   if (c2.length && c2.length >= c1.length) {
     const x = last(c2);
-    return { c: '②진자', t: [hangs(x.cov, x.t), x.t], k: x.cov };
+    return { c: '②진자', t: two(hangs(x.cov, x.t), la), k: x.cov };
   }
-  if (c1.length) return { c: '①색', t: [...new Set(c1.map((x) => x.t))].slice(-2), k: -1 };
+  if (c1.length) return { c: '①색', t: two(last(c1).t, la), k: -1 };
   const ch = last(E.filter((x) => x.ch));
-  if (ch) return { c: '①연쇄', t: [ch.t], k: -1, s: ch.s, via: H[ch.t].rec.find((r) => ['bonk', 'crash', 'boing', 'tick'].includes(r.k))?.k };
+  if (ch) return { c: '①연쇄', t: two(ch.t, la), k: -1, s: ch.s, via: H[ch.t].rec.find((r) => ['bonk', 'crash', 'boing', 'tick'].includes(r.k))?.k };
   const f = last(E.filter((x) => x.why)) ?? last(E);
-  return { c: (f?.why || '①깔림') as Why['c'], t: [f ? f.t : N - 1], k: -1 };
+  return { c: (f?.why || '①깔림') as Why['c'], t: [la], k: -1 };
 }
 const CN = ['빨강', '파랑', '노랑', '초록', '보라', '주황'];
 /** 되짚기 한 줄 + 💡 (📐 S003 표, 22자 이내) */
-export function blameText(L: Level, H: { s: number }[], b: Why, fail: number): [string, string] {
+export function blameText(L: Level, H: Hist[], b: Why, fail: number): [string, string] {
   const c = (t: number) => CN[L.col[H[t]?.s ?? 0]] ?? '';
   switch (b.c) {
     case '①색': {
-      const cs = [...new Set(b.t.map(c))];
+      const cs = [...new Set(b.t.filter((t) => H[t]?.rec.some((r) => r.k === 'slot' && r.s === H[t].s)).map(c))]; // 빈칸에 간 톡의 색만 (② 고리는 '여기서 달리 뒀으면')
       return [`${cs.length > 1 ? cs.join('·') : cs[0] + ' 나사'}, 상자 없이 빈칸에 퐁당!`, "꾹 눌러 '빈칸으로'면 다른 나사를!"];
     }
     case '①연쇄': {
@@ -743,7 +830,8 @@ export function blameText(L: Level, H: { s: number }[], b: Why, fail: number): [
       return [m, b.via === 'tick' ? '숫자가 0 되기 전에 그 색 상자를!' : '칠 나사 색 상자가 열렸을 때 쏴요'];
     }
     case '①깔림': return ['맞는 색 나사는 판자 밑에서 쿨쿨…', '위 판자부터 풀면 맞는 색이 나와요'];
-    case '①잠김': return ['맞는 색 나사는 🔒 안에서 쿨쿨…', '🔑 열쇠 나사부터 빼요'];
+    case '①잠김': return ['맞는 색 나사는 🔒 안에서 쿨쿨…', L.wind ? '🔒 바퀴 색 상자가 다 열리면 🔑를 톡!' : '🔑 열쇠 나사부터 빼요'];
+    case '④태엽': return ['태엽을 일찍 뺐어요! 🔒가 빈칸으로', '🔒 바퀴 색 상자가 다 열리면 🔑를 톡!'];
     case '②진자': return [fail === 2 ? '빙글 판자가 나사를 이불처럼 덮음' : '빙글 판자가 나사를 덮었어요', '다른 나사를 남기면 덮지 않아요'];
     case '②못': return ['못 날개가 나사를 깔고 앉았어요', '꾹 눌러 ⚠ 뜨는 나사는 맨 나중에!']; // 🧪 S003: '밑'이 모호
     case '③통나무': return ['통나무가 먼저 쿵! 와르르 0', '판자를 다 매단 뒤 통나무를 톡!'];
@@ -928,7 +1016,7 @@ function tapScrew(s: ShopState, k: number) {
     return;
   }
   if (!S.key && (L.lockM >> k) & 1) {
-    ev(s, 'locked', L.px[k], L.py[k], '🔒 열쇠 나사부터!', '#ffd0c8', k);
+    ev(s, 'locked', L.px[k], L.py[k], L.wind ? '🔒 🔑를 빼면 한꺼번에!' : '🔒 열쇠 나사부터!', '#ffd0c8', k); // 📐 S004: 태엽 판에선 '열쇠부터'가 일찍 빼라는 말이 된다
     setMood(s, 'huh');
     return;
   }
@@ -1104,10 +1192,10 @@ export function viewOf(s: ShopState): Level {
 }
 function value(V: Level, S: Sim, d: StageDef) {
   if (S.fail) return -1e7 + S.n * 1000;
-  let v = S.n * 100 - S.slots.length * 45 - S.peak * 20;
+  let v = (S.n + (V.wind && !S.key ? pop(V.lockM & ~S.gone) : 0)) * 100 - S.slots.length * 45 - S.peak * 20; // 🔑: 태엽이 튈 🔒는 이미 빠진 것으로 — 언제 쏘느냐는 빈칸·연속이 정한다 (📐 S004)
   if (S.peak > d.P) v -= 350 + 120 * (S.peak - d.P);
   if (d.H !== undefined) v += Math.min(S.shot, d.H) * 90 + (S.shot >= d.H ? 400 : 0) + Math.min(S.streak, 6) * 10;
-  else if (d.T !== undefined) v += (S.n - S.taps) * 60 - Math.max(0, S.taps - d.T) * 120 + Math.min(S.streak, 6) * 10;
+  else if (d.T !== undefined) v += (S.n - S.taps) * 60 + live(V, S) * 90 - Math.max(0, S.taps - d.T) * 120 + Math.min(S.streak, 6) * 10; // 🔨: 아직 칠 수 있는 망치는 아낀 톡보다 귀하다 — 과녁을 손으로 빼거나 허공에 매달면 손해 (📐 S004)
   else v += Math.min(S.best, d.C) * 35 + (S.best >= d.C ? 260 : 0) + Math.min(S.streak, d.C) * 12;
   const f = freeM(V, S);
   for (let i = 0; i < V.N; i++)
@@ -1119,6 +1207,7 @@ function value(V: Level, S: Sim, d: StageDef) {
   if (S.n === V.N) v += 3000;
   return v;
 }
+const pop = (m: number) => { let c = 0; for (; m; m &= m - 1) c++; return c; };
 function movesOf(V: Level, S: Sim) {
   const f = freeM(V, S), out: number[] = [];
   for (let i = 0; i < V.N; i++) if ((f >> i) & 1 && V.col[i] >= 0) out.push(i);
@@ -3048,7 +3137,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     else if (s.down && s.press >= 0) tip = '떼면 쏙! · 나사 밖에서 떼면 취소';
     else if (s.phase === 'result') tip = s.ok ? (s.got < 3 ? '↺ 다시(★3 도전) 또는 다음 판 — 버튼을 톡' : '다음 장난감이 와요!') : '같은 장난감을 다시 — 이번엔 미리 보고 톡';
     else if (S.slots.length >= 4) tip = '⚠ 빈칸이 하나 남았어요 — 상자 색을 골라 빼요!';
-    else if (!S.key) tip = '🔒 자물쇠 나사는 🔑 열쇠 나사를 빼야 풀려요';
+    else if (!S.key && !s.L.wind) tip = '🔒 자물쇠 나사는 🔑 열쇠 나사를 빼야 풀려요'; // 태엽 판은 일찍 빼면 손해라 판 팁으로
     else tip = d.tip; // 📐: 1판도 첫 톡 뒤엔 판 팁
     ctx.textAlign = 'center';
     font(0.036, 800);
