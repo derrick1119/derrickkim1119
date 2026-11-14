@@ -1,5 +1,5 @@
 {
- "at": "C003",
+ "at": "C004",
  "stages": [
   {
    "n": 1,
@@ -154,25 +154,66 @@
  },
  "stages3d": [
   {
-   "title": "네 다리 망루",
-   "blocks": 34,
-   "charges": 2,
-   "plans": 561,
-   "clear": 0.0481283422459893,
-   "star3": 0.03208556149732621,
+   "title": "낡은 물탱크 탑",
+   "blocks": 12,
+   "charges": 1,
+   "plans": 3,
+   "clear": 1,
+   "star3": 0.6666666666666666,
    "best": 3,
-   "greedyStar3": 0.15,
-   "greedyClear": 0.25,
-   "firstTapStill": 1,
-   "attachable": 34,
-   "inner": 1,
-   "deadFirstTap": 0.6470588235294118,
-   "deadFirstTapW": 0.5959522949042284,
+   "greedyStar3": 1,
+   "greedyClear": 1,
+   "firstTapStill": 0,
+   "attachable": 3,
+   "inner": 0,
+   "deadFirstTap": 0,
+   "deadFirstTapW": 0,
    "liveFirstTapReact": 1,
-   "firstTimer5": 0.30521272689331935,
-   "firstTimer1": 0.0702410429770604,
-   "cellPx": 19.800203494490262,
-   "startViewStar3MinFaces": 1.0100802477958184
+   "firstTimer5": 1,
+   "firstTimer1": 1,
+   "cellPx": 39.75206120720837,
+   "sidePx": 19.398907854880832,
+   "startViewStar3MinFaces": 1.5643328364741063,
+   "stars": {
+    "only1": 0,
+    "two": 1,
+    "three": 2,
+    "freeStars": 1
+   },
+   "f11": 0.5683333333333334,
+   "f11miss": 0.3466666666666667,
+   "f13": 0.895
+  },
+  {
+   "title": "네 다리 망루",
+   "blocks": 17,
+   "charges": 2,
+   "plans": 136,
+   "clear": 0.11764705882352941,
+   "star3": 0.029411764705882353,
+   "best": 3,
+   "greedyStar3": 0.2,
+   "greedyClear": 0.55,
+   "firstTapStill": 1,
+   "attachable": 17,
+   "inner": 0,
+   "deadFirstTap": 0.47058823529411764,
+   "deadFirstTapW": 0.31341611427504434,
+   "liveFirstTapReact": 1,
+   "firstTimer5": 0.6213520308948405,
+   "firstTimer1": 0.17653124301859122,
+   "cellPx": 47.70247344865003,
+   "sidePx": 23.278689425856992,
+   "startViewStar3MinFaces": 1.5504107804860687,
+   "stars": {
+    "only1": 4,
+    "two": 8,
+    "three": 4,
+    "freeStars": 0
+   },
+   "f11": 0.6962499999999999,
+   "f11miss": 0.11897058823529412,
+   "f13": 0.93
   }
  ]
 }

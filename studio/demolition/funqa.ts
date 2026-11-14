@@ -13,8 +13,8 @@ import { STAGES, bestPlan, capOf, demolition as g, demolitionRandom, demolitionS
 import type { Bot } from './core.ts';
 import type { DemoState } from './game.ts';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { capOf3, forEachPlan, layoutOf3, simulate3, support3, type Layout3 } from './sim3d.ts';
-import { cellPx, fitCams, visibleArea } from './view3d.ts';
+import { capOf3, forEachPlan, layoutOf3, simulate3, support3, type Layout3, type StageDef3 } from './sim3d.ts';
+import { aimAt, cellPx, drawOrder, faces, fitCams, pickAt, visibleArea, YAW0, type Cam } from './view3d.ts';
 import { STAGES3 } from './stages3d.ts';
 import { join } from 'node:path';
 
@@ -88,12 +88,36 @@ function runBot(bot: Bot<DemoState>, seed: number, maxTicks = 60 * 60 * 15) {
 }
 
 /** 3D 판(C002~): 모든 폭약 계획 중 성공·★3 비율, 박사(최선) ★, 미리 보기 탐욕 ★, 꿈쩍 안 하는 첫 톡 비율 */
+const v3 = (L: Layout3, ch: Int8Array) => {
+  const o = simulate3(L, ch);
+  return o.stars * 1000 + (o.ok ? 0 : -5000) - o.height * 10 - o.flowers * 30 - o.hits.reduce((a, b) => a + b, 0);
+};
+
+/** 떨리는 손가락(F11 v1.1: σ 16px 고정): 블록 i의 가장 잘 보이는 면 가운데를 겨눠 n번 톡 → 의도한 블록 적중률 · 빈칸 취소율 */
+export function fingerHit(c: Cam, L: Layout3, i: number, n = 200, sigma = 16, seed = 1) {
+  const ok = (j: number) => capOf3(L.blocks[j]) > 0, order = drawOrder(c, L.blocks), rng = mulberry32(seed + i * 7919);
+  const fc = faces(c, L.blocks[i]).map((f) => ({ f, cx: f.pts.reduce((a, p) => a + p[0], 0) / 4, cy: f.pts.reduce((a, p) => a + p[1], 0) / 4 }))
+    .filter((q) => pickAt(c, L.blocks, q.cx, q.cy, order) === i);
+  if (!fc.length) return { hit: 0, miss: 1 };
+  const area = (q: (typeof fc)[0]) => Math.abs(q.f.pts.reduce((a, p, k) => a + p[0] * q.f.pts[(k + 1) % 4][1] - q.f.pts[(k + 1) % 4][0] * p[1], 0) / 2);
+  const t = fc.sort((a, b) => area(b) - area(a))[0];
+  let hit = 0, miss = 0;
+  for (let k = 0; k < n; k++) {
+    const r = Math.sqrt(-2 * Math.log(1 - rng() * 0.999999)) * sigma, a = rng() * Math.PI * 2;
+    const j = aimAt(c, L.blocks, ok, t.cx + r * Math.cos(a), t.cy + r * Math.sin(a), 0.9, order);
+    if (j === i) hit++;
+    else if (j < 0) miss++;
+  }
+  return { hit: hit / n, miss: miss / n };
+}
+
 export function measure3D() {
-  const v3 = (L: Layout3, ch: Int8Array) => {
-    const o = simulate3(L, ch);
-    return o.stars * 1000 + (o.ok ? 0 : -5000) - o.height * 10 - o.flowers * 30 - o.hits.reduce((a, b) => a + b, 0);
-  };
-  return STAGES3.map((d) => {
+  return STAGES3.map(measureStage3);
+}
+
+/** 3D 판 하나의 FUN v1.1 측정 (후보 판 비교에도 쓴다) */
+export function measureStage3(d: StageDef3) {
+  {
     const L = layoutOf3(d);
     let plans = 0, ok = 0, s3 = 0, best = 0;
     forEachPlan(L, d.charges, (ch) => {
@@ -197,10 +221,32 @@ export function measure3D() {
       if (simulate3(L, ch).stars === 3) star3Vis = Math.max(star3Vis, Math.min(...plan.map((i) => area[0][i] / face)));
     });
     const inner = taps.filter((i) => area.every((a) => a[i] === 0)).length;
+    // F7 별 기울기: 성공 계획 안의 ★1만·★2·★3 수, 공짜 별(모든 성공 계획이 받는 꽃밭·납작 별)
+    let only1 = 0, two = 0, three = 0, okN = 0, flowerAll = true, flatAll = true;
+    forEachPlan(L, d.charges, (ch) => {
+      const o = simulate3(L, ch);
+      if (!o.ok) return;
+      okN++;
+      if (o.stars === 1) only1++;
+      else if (o.stars === 2) two++;
+      else three++;
+      flowerAll &&= o.star[1];
+      flatAll &&= o.star[2];
+    });
+    const freeStars = okN ? (flowerAll ? 1 : 0) + (flatAll ? 1 : 0) : 0;
+    // F11 (σ16px, 4시점 · 붙일 블록 평균) · F13 (시작 시점, ★3 계획 중 가장 누르기 쉬운 것의 가장 어려운 블록)
+    const hits = taps.map((i) => cams.map((c) => fingerHit(c, L, i)));
+    const f11 = taps.length ? hits.reduce((a, h) => a + h.reduce((b, x) => b + x.hit, 0) / 4, 0) / taps.length : 0;
+    const f11miss = taps.length ? hits.reduce((a, h) => a + h.reduce((b, x) => b + x.miss, 0) / 4, 0) / taps.length : 0;
+    let f13 = 0;
+    forEachPlan(L, d.charges, (ch, plan) => {
+      if (simulate3(L, ch).stars === 3) f13 = Math.max(f13, Math.min(...plan.map((i) => hits[taps.indexOf(i)][0].hit)));
+    });
     return { title: d.title, blocks: L.blocks.length, charges: d.charges, plans, clear: ok / plans, star3: s3 / plans, best, greedyStar3: gStar3 / 20, greedyClear: gClear / 20, firstTapStill: still / open,
       attachable: taps.length, inner, deadFirstTap: deadU, deadFirstTapW: deadW, liveFirstTapReact: react,
-      firstTimer5: first5, firstTimer1: p1, cellPx: cellPx(cams[0]), startViewStar3MinFaces: Math.max(0, star3Vis) };
-  });
+      firstTimer5: first5, firstTimer1: p1, cellPx: cellPx(cams[0]), sidePx: cams[0].s * Math.sin(YAW0), startViewStar3MinFaces: Math.max(0, star3Vis),
+      stars: { only1, two, three, freeStars }, f11, f11miss, f13 };
+  }
 }
 
 export function measure() {
@@ -227,8 +273,9 @@ if (process.argv[1]?.endsWith('funqa.ts')) {
   console.log(r.summary, r.runs);
   const r3 = measure3D();
   for (const x of r3) console.log(`3D ${x.title} 블록${x.blocks} 폭약${x.charges} 계획${x.plans} 성공${(x.clear * 100).toFixed(1)}% ★3 ${(x.star3 * 100).toFixed(1)}% 최선★${x.best} 미리보기탐욕(동점 무작위) ★3 ${x.greedyStar3} 성공 ${x.greedyClear} 첫 톡 꿈쩍 안 함 ${(x.firstTapStill * 100).toFixed(0)}%`);
+  for (const x of r3) console.log(`   v1.1: 별 기울기 ★1만 ${x.stars.only1} ★2 ${x.stars.two} ★3 ${x.stars.three} 공짜 별 ${x.stars.freeStars} · F11 σ16px 적중 ${x.f11.toFixed(2)} 취소 ${x.f11miss.toFixed(2)} · F13 ${x.f13.toFixed(2)} · 옆면 ${x.sidePx.toFixed(1)}px`);
   for (const x of r3) console.log(`   FUN v1: 붙일 블록 ${x.attachable}(≤24) 속 ${x.inner}(0) · 죽은 첫 톡 ${x.deadFirstTap.toFixed(2)} 가중 ${x.deadFirstTapW.toFixed(2)} · 살아 있는 첫 톡 반응 ${x.liveFirstTapReact.toFixed(2)} · 처음 봇 1회 ${x.firstTimer1.toFixed(2)} 5회 ${x.firstTimer5.toFixed(2)} · 칸 ${x.cellPx.toFixed(1)}px(≥36) · 시작 시점 ★3 블록 최소 ${x.startViewStar3MinFaces.toFixed(2)}면`);
   const dir = join(import.meta.dirname, 'reports');
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: 'C003', ...r, stages3d: measure3D() }, null, 1) + '\n');
+  writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: 'C004', ...r, stages3d: measure3D() }, null, 1) + '\n');
 }

@@ -17,6 +17,8 @@ export interface Cam {
   /** 회전 중심(울타리 가운데) */
   cx: number;
   cz: number;
+  /** 좌우 거울(시드로 판을 뒤집을 때). 시뮬은 원판 좌표에서만 돌고 거울은 그리기·입력 변환뿐 — C004: 3D 시뮬은 거울 대칭이 아니라서(스캔 순서) 판 데이터를 뒤집지 않는다 */
+  mir?: boolean;
 }
 export type P2 = [number, number];
 export interface Cube { x: number; y: number; z: number }
@@ -26,7 +28,7 @@ export function proj(c: Cam, x: number, y: number, z: number): [number, number, 
   const px = x - c.cx, pz = z - c.cz, sn = Math.sin(c.yaw), cs = Math.cos(c.yaw);
   const d = px * sn + pz * cs, u = px * cs - pz * sn;
   const v = y * Math.cos(PITCH) + d * Math.sin(PITCH);
-  return [c.ox + c.s * u, c.oy - c.s * v, d * Math.cos(PITCH) - y * Math.sin(PITCH)];
+  return [c.ox + c.s * (c.mir ? -u : u), c.oy - c.s * v, d * Math.cos(PITCH) - y * Math.sin(PITCH)];
 }
 
 /** 블록의 보이는 면(윗면 + 카메라를 향한 옆면 둘): 면 이름과 화면 사각형 */

@@ -49,15 +49,36 @@ const hold = async (x: number, y: number, z: number, shot: string) => {
   await p3.mouse.up();
   await p3.waitForTimeout(100);
 };
-await hold(5, 0, 5, '3d-1-hold-first.png'); // 앞왼 다리: 혼자서는 버팀(추 초록) — 발 칸 하나가 빠진다
+// 1-1 물탱크 탑: 기둥 꾹 → 떼면 3·2·1 → 쾅 → 결과
+await hold(6, 1, 6, '3d-1-tank-hold.png');
+await p3.waitForTimeout(1000);
+await p3.screenshot({ path: join(out, '3d-2-count.png') });
+await p3.waitForTimeout(900);
+await p3.screenshot({ path: join(out, '3d-3-boom.png') });
+await p3.waitForFunction(() => (window as any).__d3.state().done, null, { timeout: 8000 });
+await p3.waitForTimeout(200);
+await p3.screenshot({ path: join(out, '3d-4-tank-result.png') });
+const st1 = await p3.evaluate(() => (window as any).__d3.state());
+await p3.click('#again'); // 다음 판: 1-2 네 다리 망루
+await p3.waitForTimeout(200);
+await hold(8, 2, 8, '3d-5-dead-tap.png'); // 마루 뒤 귀퉁이: '변화 없음'
+await hold(8, 2, 8, '3d-6-untap.png'); // 다시 톡 = 떼기
+await hold(6, 0, 6, '3d-7-first-leg.png'); // 앞왼 다리: 빠진 발 ✕
 await p3.click('.rot.r');
 await p3.waitForTimeout(450);
-await p3.screenshot({ path: join(out, '3d-2-rotated.png') });
+await p3.screenshot({ path: join(out, '3d-8-rotated.png') });
 await p3.click('.rot.l');
 await p3.waitForTimeout(450);
-await hold(5, 0, 7, '3d-3-hold-second.png'); // 뒤왼 다리까지: 추가 네모 밖(빨강) + 왼쪽 화살표
+const [fx, fy] = await at(8, 0, 6);
+await p3.mouse.move(fx, fy);
+await p3.mouse.down();
 await p3.waitForTimeout(200);
-await p3.screenshot({ path: join(out, '3d-4-result.png') });
+await p3.screenshot({ path: join(out, '3d-9-second-leg.png') }); // 앞오른 다리까지: 앞으로 넘어감 + 착지 칸
+await p3.mouse.up();
+await p3.waitForFunction(() => (window as any).__d3.state().done, null, { timeout: 8000 });
+await p3.waitForTimeout(200);
+await p3.screenshot({ path: join(out, '3d-10-result.png') });
+console.log('1-1:', JSON.stringify(st1));
 const st3 = await p3.evaluate(() => (window as any).__d3.state());
 console.log('3D:', JSON.stringify(st3), scroll ? '가로 스크롤 있음 ❌' : '가로 스크롤 없음');
 if (scroll || !st3.done) errors.push('3D 검사 실패');

@@ -29,17 +29,56 @@ root.append(canvas, rotL, rotR);
 const hud = document.getElementById('hud')!, msg = document.getElementById('msg')!, again = document.getElementById('again') as HTMLButtonElement;
 const ctx = canvas.getContext('2d')!;
 
-const stageIx = 0;
+let stageIx = 0;
 let L: Layout3 = layoutOf3(STAGES3[stageIx]), ch = new Int8Array(L.blocks.length), left = L.charges;
 let view = 0, yaw = yawOf(0), rotFrom = yaw, rotTo = yaw, rotT = 1;
 let aim = -1, holding = false, out: Outcome3 | null = null;
+/** 쾅 연출 시계(틱, 60/초): 음수 = 3·2·1 셈, 0부터 = 시뮬이 기록한 움직임을 재생. 결과 글은 다 끝난 뒤 */
+let bt = 0, shake = 0;
+const COUNT = 3 * 30;
+const played = () => !!out && bt >= out.end;
 let W = 390, H = 468, cams: Cam[] = [];
 let kbList: number[] = [], kbAt = 0;
 
-const cubes = (): Cube[] => (out ? L.blocks.map((b, i) => ({ x: out!.fx[i], y: out!.fy[i], z: out!.fz[i], m: b.m })).filter((_, i) => out!.die[i] < 0) : L.blocks);
+/** 블록 i의 시각 t(틱) 자리 — 가운데 좌표. 넘어짐은 받침 모서리를 축으로 돌고(축에 맞춘 상자로 그림), 떨어짐·흘러내림은 직선 */
+function poseAt(o: Outcome3, i: number, t: number): [number, number, number] {
+  const b = L.blocks[i], segs = o.segs![i];
+  let p: [number, number, number] = [b.x + 0.5, b.y + 0.5, b.z + 0.5];
+  for (const g of segs) {
+    if (t < g.t0) break;
+    const k = Math.min(1, (t - g.t0) / Math.max(1, g.t1 - g.t0)), e = k * k * (3 - 2 * k);
+    if (g.k === 1) {
+      const u0 = (g.axis === 0 ? g.a[0] : g.a[2]) + 0.5 - g.pv, y0 = g.a[1] + 0.5 - g.py, th = (Math.PI / 2) * (k * k);
+      const [ru, ry] = g.dir > 0 ? [u0 * Math.cos(th) + y0 * Math.sin(th), -u0 * Math.sin(th) + y0 * Math.cos(th)] : [u0 * Math.cos(th) - y0 * Math.sin(th), u0 * Math.sin(th) + y0 * Math.cos(th)];
+      const u = g.pv + ru, y = Math.max(0.5, g.py + ry + g.lift * k);
+      p = g.axis === 0 ? [u, y, g.a[2] + 0.5] : [g.a[0] + 0.5, y, u];
+    } else p = [g.a[0] + 0.5 + (g.b[0] - g.a[0]) * e, g.a[1] + 0.5 + (g.b[1] - g.a[1]) * e, g.a[2] + 0.5 + (g.b[2] - g.a[2]) * e];
+  }
+  return p;
+}
+const cubes = (): (Cube & { i: number })[] => {
+  if (!out) return L.blocks.map((b, i) => ({ x: b.x, y: b.y, z: b.z, i }));
+  const t = Math.max(0, bt), r: (Cube & { i: number })[] = [];
+  L.blocks.forEach((_, i) => {
+    if (out!.die[i] >= 0 && t >= out!.die[i]) return;
+    const [x, y, z] = poseAt(out!, i, t);
+    r.push({ x: x - 0.5, y: y - 0.5, z: z - 0.5, i });
+  });
+  return r;
+};
 /** 지금 카메라: 줌·중심은 도착할 시점의 것, 회전각만 트윈 */
 const cam = (): Cam => ({ ...cams[view], yaw });
 const canAttach = (i: number) => !out && capOf3(L.blocks[i]) > 0 && ch[i] === 0 && capOf3(L.blocks[i]) <= left;
+/** 겨눌 수 있는 블록: 붙일 수 있거나, 이미 붙여서 다시 톡 하면 뗄 수 있는 것(🧪 C002·C003: 죽은 첫 톡을 되돌릴 길) */
+const canAim = (i: number) => !out && (ch[i] > 0 || canAttach(i));
+const feetKey = (fs: Footing[]) => fs.map((f) => `${f.act}${f.axis}${f.dir}:${f.feet.map((q) => q.join(',')).join(' ')}`).sort().join('|');
+let pvKey = '', pvOut: Outcome3 | null = null;
+/** 미리 보기 결과(같은 폭약이면 다시 계산하지 않는다) */
+function preview(c2: Int8Array) {
+  const k = c2.join('');
+  if (k !== pvKey) (pvKey = k), (pvOut = simulate3(L, c2));
+  return pvOut!;
+}
 
 function size() {
   W = Math.min(root.clientWidth, 440);
@@ -72,7 +111,7 @@ const ground = (c: Cam, x0: number, z0: number, x1: number, z1: number, y = 0): 
 function drawFooting(c: Cam, f: Footing, strong: boolean) {
   const a = strong ? 0.85 : 0.4;
   ctx.globalAlpha = a;
-  for (const [x, , z] of f.feet) poly(ground(c, x + 0.08, z + 0.08, x + 0.92, z + 0.92, 0.01), '#ffe14d', '#d99a12', 1.5);
+  for (const [x, , z] of f.feet) poly(ground(c, x + 0.08, z + 0.08, x + 0.92, z + 0.92, 0.01), '#ffe14d', strong ? INK : '#d99a12', strong ? 2.5 : 1.5);
   if (f.rect) poly(ground(c, f.rect.x0, f.rect.z0, f.rect.x1, f.rect.z1, 0.02), undefined, INK, 2, [6, 4]);
   // 추: 무게중심에서 땅까지 실 + 점 (네모 안이면 초록 '버팀', 밖이면 빨강)
   const col = f.act === 'stand' ? '#23785a' : '#c7362e';
@@ -105,6 +144,52 @@ function drawFooting(c: Cam, f: Footing, strong: boolean) {
   ctx.globalAlpha = 1;
 }
 
+/** 땅 칸 (x, z)에 굵은 빨간 ✕ (흰 밑줄로 어느 땅색에서도 보이게) */
+function crossAt(c: Cam, x: number, z: number, a = 1) {
+  const q = ground(c, x + 0.18, z + 0.18, x + 0.82, z + 0.82, 0.03);
+  ctx.globalAlpha = a;
+  for (const [col, lw] of [['#ffffff', 8], ['#c7362e', 4.5]] as const) {
+    ctx.strokeStyle = col;
+    ctx.lineWidth = lw;
+    ctx.beginPath();
+    ctx.moveTo(q[0][0], q[0][1]);
+    ctx.lineTo(q[2][0], q[2][1]);
+    ctx.moveTo(q[1][0], q[1][1]);
+    ctx.lineTo(q[3][0], q[3][1]);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+/** 결과 유령(📐 §10.4-3): 이대로 쾅 하면 조각이 놓일 땅 칸 — 울타리 안은 흰 칸, 밖이나 꽃밭이면 빨간 ✕ */
+function drawLanding(c: Cam, o: Outcome3) {
+  const seen = new Set<string>();
+  for (let i = 0; i < L.blocks.length; i++) {
+    if (o.die[i] >= 0) continue;
+    const b = L.blocks[i], x = o.fx[i], z = o.fz[i];
+    if (x === b.x && z === b.z && o.fy[i] === b.y) continue;
+    const k = `${x},${z}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    const outside = x < L.lot.x0 || x > L.lot.x1 || z < L.lot.z0 || z > L.lot.z1, flower = L.flowers.some(([fx, fz]) => fx === x && fz === z);
+    ctx.globalAlpha = 0.8;
+    poly(ground(c, x + 0.06, z + 0.06, x + 0.94, z + 0.94, 0.02), outside || flower ? '#ffd0c8' : '#ffffff', INK, 1.5, [4, 3]);
+    ctx.globalAlpha = 1;
+    if (outside || flower) crossAt(c, x, z);
+  }
+}
+/** 말풍선 글자표 */
+function tag(x: number, y: number, text: string, bg: string, fg: string) {
+  ctx.font = '800 15px system-ui,sans-serif';
+  const w = ctx.measureText(text).width + 16;
+  ctx.fillStyle = bg;
+  ctx.beginPath();
+  ctx.roundRect(x - w / 2, y - 26, w, 24, 12);
+  ctx.fill();
+  ctx.fillStyle = fg;
+  ctx.textAlign = 'center';
+  ctx.fillText(text, x, y - 9);
+}
+
 function draw() {
   const c = cam();
   const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -126,11 +211,46 @@ function draw() {
     ctx.fill();
   }
   // 블록 (먼 것부터)
-  const cb = cubes() as (Cube & { m?: number })[], ids = out ? L.blocks.map((_, i) => i).filter((i) => out!.die[i] < 0) : L.blocks.map((_, i) => i);
+  const cb = cubes();
   for (const k of drawOrder(c, cb)) {
-    const b = L.blocks[ids[k]], col = MAT[b.m] ?? PAINT[b.paint % PAINT.length];
+    const b = L.blocks[cb[k].i], col = MAT[b.m] ?? PAINT[b.paint % PAINT.length];
     for (const fc of faces(c, cb[k])) poly(fc.pts, fc.f === 'top' ? col[1] : fc.f === 'zm' || fc.f === 'zp' ? col[0] : col[2], INK, 1.2);
-    if (!out && ids[k] === aim && holding) for (const fc of faces(c, cb[k])) poly(fc.pts, undefined, '#ffc93c', 3.5);
+    if (!out && cb[k].i === aim && holding) for (const fc of faces(c, cb[k])) poly(fc.pts, undefined, '#ffc93c', 3.5);
+  }
+  // 쾅: 터진 블록 자리에 먼지 뭉게 (터진 뒤 24틱)
+  if (out && bt >= 0)
+    for (let i = 0; i < L.blocks.length; i++) {
+      const d = out.die[i];
+      if (d < 0 || bt < d || bt > d + 24) continue;
+      const [x, y, z] = out.dust[i] ? poseAt(out, i, d) : [L.blocks[i].x + 0.5, L.blocks[i].y + 0.5, L.blocks[i].z + 0.5];
+      const p = proj(c, x, y, z), k = (bt - d) / 24;
+      ctx.globalAlpha = 0.75 * (1 - k);
+      ctx.fillStyle = out.dust[i] ? '#d9c6de' : '#f3e3cf';
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], c.s * (0.35 + 0.6 * k), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  if (out && bt < 0) {
+    // 3·2·1 (비버 반장은 귀를 막는다 — M3)
+    const n = Math.ceil(-bt / 30);
+    ctx.font = '900 64px system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = INK;
+    ctx.strokeText(String(n), W / 2, H * 0.3);
+    ctx.fillStyle = '#ffc93c';
+    ctx.fillText(String(n), W / 2, H * 0.3);
+  } else if (out && bt < 40) {
+    ctx.font = '900 72px system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 7;
+    ctx.strokeStyle = INK;
+    ctx.globalAlpha = Math.min(1, (40 - bt) / 15);
+    ctx.strokeText('쾅!', W / 2, H * 0.3);
+    ctx.fillStyle = '#ff6150';
+    ctx.fillText('쾅!', W / 2, H * 0.3);
+    ctx.globalAlpha = 1;
   }
   // 발자국·추: 다리 밑이라 블록에 가리므로 블록 위에 엑스레이로 겹친다 — 지금 붙인 폭약 기준(흐리게) + 겨눈 블록까지 붙였을 때(진하게)
   const busy = rotT < 1;
@@ -138,19 +258,28 @@ function draw() {
     const now = support3(L, ch);
     if (aim >= 0 && holding && !busy) {
       const c2 = ch.slice();
-      c2[aim] = capOf3(L.blocks[aim]);
-      for (const f of support3(L, c2)) drawFooting(c, f, true);
+      c2[aim] = ch[aim] ? 0 : capOf3(L.blocks[aim]);
+      const nxt = support3(L, c2), pv = preview(c2);
+      if (pv.moved) drawLanding(c, pv);
+      for (const f of nxt) drawFooting(c, f, true);
+      // 빠진 발: 지금은 딛고 있는데 이 블록까지 터지면 사라지는 발 칸 → 빨간 ✕ 깜빡 (🧪 C003 ②: 살아 있는 첫 톡이 눈에 띄게)
+      const has = new Set(nxt.flatMap((f) => f.feet.map((q) => `${q[0]},${q[2]}`)));
+      const blink = 0.6 + 0.4 * Math.sin(performance.now() / 110);
+      for (const f of now) for (const [x, , z] of f.feet) if (!has.has(`${x},${z}`)) crossAt(c, x, z, blink);
+      const b = L.blocks[aim], p = proj(c, b.x + 0.5, b.y + 1.15, b.z + 0.5);
+      if (ch[aim]) tag(p[0], p[1], '떼기', '#3a2a3f', '#fff6e8');
+      else if (!pv.moved && feetKey(now) === feetKey(nxt)) tag(p[0], p[1], '변화 없음', '#7a5a6e', '#fff6e8');
     } else for (const f of now) drawFooting(c, f, false);
   }
   // 이웃집 팻말: 울타리가 판 끝보다 안쪽인 면 — 블록에 가리지 않게 블록 뒤에 그린다(🧪 C003 ①)
-  const signs: [boolean, number, number][] = [[x0 > 0, x0 - 0.5, (z0 + z1 + 1) / 2], [x1 < L.W - 1, x1 + 1.5, (z0 + z1 + 1) / 2], [z0 > 0, (x0 + x1 + 1) / 2, z0 - 0.5], [z1 < L.D - 1, (x0 + x1 + 1) / 2, z1 + 1.5]];
-  ctx.font = `800 ${Math.round(Math.max(14, c.s * 0.45))}px system-ui,sans-serif`;
+  // 울타리 밖은 어느 면이든 이웃집이다(빨간 선 밖에 닿으면 실패) — 글자 대신 작은 집 아이콘을 울타리에서 한 칸 반 떨어진 땅에
+  const mx = (x0 + x1 + 1) / 2, mz = (z0 + z1 + 1) / 2;
+  const signs: [number, number][] = [[x0 - 1.4, mz], [x1 + 2.4, mz], [mx, z0 - 1.4], [mx, z1 + 2.4]];
+  ctx.font = `${Math.round(Math.max(18, c.s * 0.55))}px system-ui,sans-serif`;
   ctx.textAlign = 'center';
-  for (const [on, sx, sz] of signs) {
-    if (!on) continue;
+  for (const [sx, sz] of signs) {
     const p = proj(c, sx, 0, sz);
-    ctx.fillStyle = '#c7362e';
-    ctx.fillText('🏠 이웃집', p[0], p[1]);
+    ctx.fillText('🏠', p[0], p[1]);
   }
   // 붙인 폭약: 가려져도 보이게(엑스레이)
   if (!out)
@@ -172,31 +301,40 @@ function draw() {
 
 function hudText() {
   const d = STAGES3[stageIx];
-  hud.textContent = `🏗️ ${d.title} · 🧨 ${left}개 남음`;
-  if (out) {
+  hud.textContent = `🏗️ ${stageIx + 1}. ${d.title} · 🧨 ${left}개 남음`;
+  if (out && played()) {
     const why = out.ok ? `철거 성공! ${'★'.repeat(out.stars)}${'☆'.repeat(3 - out.stars)}` : out.hits.some((h) => h) ? '이웃집을 쳤어요!' : !out.moved ? '꿈쩍도 안 했어요' : `아직 높아요 (${out.height}칸 > ${L.goal}칸)`;
     msg.textContent = why;
     again.hidden = false;
+    again.textContent = out.ok ? (stageIx + 1 < STAGES3.length ? '다음 판 ▶' : '처음부터') : '다시';
   } else {
-    msg.textContent = d.news;
+    msg.textContent = out ? '3·2·1…' : d.news || d.hint;
     again.hidden = true;
   }
 }
 
 function attach(i: number) {
+  if (i >= 0 && ch[i] > 0 && !out) {
+    // 다시 톡 = 떼기
+    left += ch[i];
+    ch[i] = 0;
+    return hudText();
+  }
   if (i < 0 || !canAttach(i)) return;
   const k = capOf3(L.blocks[i]);
   ch[i] = k;
   left -= k;
-  if (left <= 0) out = simulate3(L, ch, true);
+  if (left <= 0) (out = simulate3(L, ch, true)), (bt = -COUNT);
   hudText();
 }
 function reset() {
   L = layoutOf3(STAGES3[stageIx]);
+  cams = fitCams(L.lot, L.blocks, W, H, 12);
   ch = new Int8Array(L.blocks.length);
   left = L.charges;
   out = null;
   aim = -1;
+  bt = 0;
   hudText();
 }
 function rotate(d: number) {
@@ -218,7 +356,18 @@ function loop(now: number) {
     yaw = rotFrom + (rotTo - rotFrom) * e;
     if (rotT >= 1) yaw = yawOf(view);
   }
+  if (out && !played()) {
+    const was = bt;
+    bt += dt * 60;
+    if (was < 0 && bt >= 0) shake = 1;
+    if (played()) hudText();
+  }
+  shake = Math.max(0, shake - dt * 2.5);
+  const sx = shake ? (Math.sin(now / 23) * 10 * shake) : 0;
+  ctx.save();
+  ctx.translate(sx, 0);
   draw();
+  ctx.restore();
   requestAnimationFrame(loop);
 }
 
@@ -231,12 +380,12 @@ canvas.addEventListener('pointerdown', (e) => {
   if (out || rotT < 1) return;
   holding = true;
   const [x, y] = toXY(e);
-  aim = aimAt(cam(), L.blocks, canAttach, x, y);
+  aim = aimAt(cam(), L.blocks, canAim, x, y);
 });
 canvas.addEventListener('pointermove', (e) => {
   if (!holding || !e.buttons || rotT < 1) return;
   const [x, y] = toXY(e);
-  aim = aimAt(cam(), L.blocks, canAttach, x, y);
+  aim = aimAt(cam(), L.blocks, canAim, x, y);
 });
 // 시스템이 손가락을 가져가면(스크롤·알림 등) 붙이지 않고 겨눔만 지운다 (🧪 C003 ⑦)
 window.addEventListener('pointercancel', () => {
@@ -251,7 +400,11 @@ window.addEventListener('pointerup', () => {
 });
 rotL.addEventListener('click', () => rotate(-1));
 rotR.addEventListener('click', () => rotate(1));
-again.addEventListener('click', reset);
+again.addEventListener('click', () => {
+  // 성공하면 다음 판, 실패하면 그 판만 다시 (하트 없음)
+  if (out?.ok) stageIx = (stageIx + 1) % STAGES3.length;
+  reset();
+});
 canvas.addEventListener('keydown', (e) => {
   if ([' ', 'ArrowLeft', 'ArrowRight'].includes(e.key)) e.preventDefault();
   if (e.key === 'q' || e.key === 'Q') return rotate(-1);
@@ -260,7 +413,7 @@ canvas.addEventListener('keydown', (e) => {
   if (out) return;
   if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
     const c = cam();
-    kbList = L.blocks.map((_, i) => i).filter((i) => canAttach(i) && aimAt(c, L.blocks, (j) => j === i, ...centerOf(c, i)) === i).sort((a, b) => centerOf(c, a)[0] - centerOf(c, b)[0]);
+    kbList = L.blocks.map((_, i) => i).filter((i) => canAim(i) && aimAt(c, L.blocks, (j) => j === i, ...centerOf(c, i)) === i).sort((a, b) => centerOf(c, a)[0] - centerOf(c, b)[0]);
     if (!kbList.length) return;
     kbAt = aim < 0 ? 0 : (Math.max(0, kbList.indexOf(aim)) + (e.key === 'ArrowRight' ? 1 : kbList.length - 1)) % kbList.length;
     aim = kbList[kbAt];
@@ -286,7 +439,7 @@ function centerOf(c: Cam, i: number): [number, number] {
     const i = L.blocks.findIndex((b) => b.x === x && b.y === y && b.z === z), r = canvas.getBoundingClientRect(), p = centerOf(cam(), i);
     return [r.left + (p[0] / W) * r.width, r.top + (p[1] / H) * r.height];
   },
-  state: () => ({ left, view, done: !!out, ok: out?.ok ?? null, stars: out?.stars ?? 0, cellPx: cams[0].s }),
+  state: () => ({ left, view, done: played(), playing: !!out && !played(), ok: out?.ok ?? null, stars: out?.stars ?? 0, cellPx: cams[0].s }),
 };
 size();
 hudText();

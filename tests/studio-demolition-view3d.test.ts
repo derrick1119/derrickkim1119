@@ -6,7 +6,7 @@ import { capOf3, forEachPlan, layoutOf3, simulate3, support3 } from '../studio/d
 import { STAGES3 } from '../studio/demolition/stages3d.ts';
 import { aimAt, cellPx, drawOrder, faces, fitCams, pickAt, proj, visibleArea, yawOf } from '../studio/demolition/view3d.ts';
 
-const L = layoutOf3(STAGES3[0]);
+const L = layoutOf3(STAGES3.find((d) => d.key === 'tip4')!);
 const cams = fitCams(L.lot, L.blocks, 390, 468, 12);
 
 describe('3D 화면 계산', () => {
@@ -41,8 +41,30 @@ describe('3D 화면 계산', () => {
     expect(pickAt(c, two, p[0], p[1])).toBe(0);
   });
 
+  it('8가지 보기(시점 4 × 거울 2)에서 보이는 블록의 면 가운데를 누르면 그 블록 — 거울은 그리기·입력 변환뿐이라 시뮬은 그대로 (④ · C004)', () => {
+    for (const d of STAGES3) {
+      const L2 = layoutOf3(d), base = fitCams(L2.lot, L2.blocks, 390, 468, 12);
+      for (const c0 of base)
+        for (const mir of [false, true]) {
+          const c = { ...c0, mir, ox: mir ? 390 - c0.ox : c0.ox }, order = drawOrder(c, L2.blocks);
+          let self = 0;
+          L2.blocks.forEach((b, i) => {
+            for (const fc of faces(c, b)) {
+              const mx = fc.pts.reduce((a, p) => a + p[0], 0) / 4, my = fc.pts.reduce((a, p) => a + p[1], 0) / 4;
+              const hit = pickAt(c, L2.blocks, mx, my, order);
+              expect(hit).toBeGreaterThanOrEqual(0);
+              if (hit === i) self++;
+            }
+          });
+          expect(self).toBeGreaterThan(L2.blocks.length / 2);
+          // 화면 안에 다 들어온다
+          for (const b of L2.blocks) for (const fc of faces(c, b)) for (const [x, y] of fc.pts) expect(x >= -1 && x <= 391 && y >= -1 && y <= 469).toBe(true);
+        }
+    }
+  });
+
   it('자석 겨누기: 빈 땅을 눌러도 0.9칸 안의 붙일 블록에 붙는다, 멀면 -1', () => {
-    const c = cams[0], i = L.blocks.findIndex((b) => b.x === 5 && b.y === 0 && b.z === 5);
+    const c = cams[0], i = L.blocks.findIndex((b) => b.x === 6 && b.y === 0 && b.z === 6);
     const fc = faces(c, L.blocks[i]).find((f) => f.f === 'zm')!;
     const mx = fc.pts.reduce((a, p) => a + p[0], 0) / 4, my = fc.pts.reduce((a, p) => a + p[1], 0) / 4;
     expect(aimAt(c, L.blocks, (j) => capOf3(L.blocks[j]) > 0, mx, my + c.s * 0.6)).toBeGreaterThanOrEqual(0);

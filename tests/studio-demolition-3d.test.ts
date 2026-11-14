@@ -2,7 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import { STAGES, layoutOf, simulate } from '../studio/demolition/game.ts';
 import { STAGES3 } from '../studio/demolition/stages3d.ts';
-import { GAS, forEachPlan, from2D, layoutOf3, simulate3, type StageDef3 } from '../studio/demolition/sim3d.ts';
+import { cellPx, fitCams, visibleArea, YAW0 } from '../studio/demolition/view3d.ts';
+import { GAS, capOf3, forEachPlan, from2D, layoutOf3, simulate3, type StageDef3 } from '../studio/demolition/sim3d.ts';
 
 const stage = (layers: string[][], extra: Partial<StageDef3> = {}): StageDef3 => ({
   key: '', title: 't', news: '', hint: '', W: layers[0][0].length, D: layers[0].length, layers,
@@ -107,26 +108,47 @@ describe('3D 칸 물리', () => {
     expect(o.crushes).toBeGreaterThan(0);
   });
 
-  it('1-2 네 다리 망루(📐 §10.5): 같은 쪽 다리 둘 = 그쪽으로 · 왼쪽·뒤 = ★3 · 앞 = 꽃밭(★2) · 오른쪽 = 할머니 집 · 대각 = 꿈쩍 안 함', () => {
-    const L = layoutOf3(STAGES3[0]), id = (x: number, z: number) => L.blocks.findIndex((b) => b.x === x && b.y === 0 && b.z === z);
+  it('1-2 네 다리 망루(C004 5×5판): 앞 두 다리 = ★3 · 왼쪽 = 꽃밭(★2) · 오른쪽·뒤 = 이웃집 · 대각 = 꿈쩍 안 함', () => {
+    const L = layoutOf3(STAGES3.find((d) => d.key === 'tip4')!), id = (x: number, z: number) => L.blocks.findIndex((b) => b.x === x && b.y === 0 && b.z === z);
     const run = (a: [number, number], b: [number, number]) => {
       const ch = new Int8Array(L.blocks.length);
       ch[id(...a)]++;
       ch[id(...b)]++;
       return simulate3(L, ch);
     };
-    const left = run([5, 5], [5, 7]), back = run([5, 7], [7, 7]), front = run([5, 5], [7, 5]), right = run([7, 5], [7, 7]), diag = run([5, 5], [7, 7]);
-    expect([left.stars, left.tips[0].axis, left.tips[0].dir]).toEqual([3, 0, -1]);
-    expect([back.stars, back.tips[0].axis, back.tips[0].dir]).toEqual([3, 1, 1]);
-    expect([front.ok, front.flowers > 0, front.stars]).toEqual([true, true, 2]);
-    expect([right.ok, right.hits[1] > 0]).toEqual([false, true]);
-    expect([diag.moved, run([7, 5], [5, 7]).moved]).toEqual([false, false]);
-    let star3 = 0, plans = 0;
-    forEachPlan(L, 2, (ch) => {
-      plans++;
-      if (simulate3(L, ch).stars === 3) star3++;
-    });
-    expect(star3).toBeGreaterThan(0);
-    expect(star3 / plans).toBeLessThan(0.1); // 아무 데나 둘 붙여서는 거의 안 나온다
+    const front = run([6, 6], [8, 6]), left = run([6, 6], [6, 8]), right = run([8, 6], [8, 8]), back = run([6, 8], [8, 8]);
+    expect([front.stars, front.tips[0].axis, front.tips[0].dir]).toEqual([3, 1, -1]);
+    expect([left.ok, left.flowers > 0, left.stars, left.tips[0].axis, left.tips[0].dir]).toEqual([true, true, 2, 0, -1]);
+    expect([right.ok, right.hits[1] > 0, back.ok, back.hits[3] > 0]).toEqual([false, true, false, true]);
+    expect([run([6, 6], [8, 8]).moved, run([8, 6], [6, 8]).moved]).toEqual([false, false]);
+  });
+
+  it('판 검증(FUN F14·F12 · 📋 C003): 울타리 ≤ 6×6 · 붙일 블록 ≤ 24 · 속 블록 0 · 칸 ≥ 36px · 옆면 ≥ 16px · 목표 높이 < 건물 높이 · 박사 ★3 가능', () => {
+    for (const d of STAGES3) {
+      const L = layoutOf3(d);
+      expect(L.lot.x1 - L.lot.x0 + 1).toBeLessThanOrEqual(6);
+      expect(L.lot.z1 - L.lot.z0 + 1).toBeLessThanOrEqual(6);
+      const taps = L.blocks.map((_, i) => i).filter((i) => capOf3(L.blocks[i]) > 0);
+      expect(taps.length).toBeLessThanOrEqual(24);
+      const cams = fitCams(L.lot, L.blocks, 390, 468, 12), area = cams.map((c) => visibleArea(c, L.blocks, 390, 468, 2));
+      expect(taps.filter((i) => area.every((a) => a[i] === 0))).toEqual([]);
+      expect(cellPx(cams[0])).toBeGreaterThanOrEqual(36);
+      expect(cams[0].s * Math.sin(YAW0)).toBeGreaterThanOrEqual(16);
+      expect(d.goal).toBeLessThan(L.blocks.reduce((a, b) => Math.max(a, b.y + 1), 0)); // 탑이 서 있는데 '성공'이 되면 안 된다 (C004에 찾은 허점)
+      let best = 0;
+      forEachPlan(L, d.charges, (ch) => void (best = Math.max(best, simulate3(L, ch).ok ? simulate3(L, ch).stars : 0)));
+      expect(best).toBe(3);
+    }
+  });
+
+  it('1-1 물탱크 탑: 기둥 어디를 톡 해도 성공한다 (못 지는 판, FUN F3)', () => {
+    const d = STAGES3[0], L = layoutOf3(d);
+    expect(d.charges).toBe(1);
+    for (let i = 0; i < L.blocks.length; i++) {
+      if (!capOf3(L.blocks[i])) continue;
+      const ch = new Int8Array(L.blocks.length);
+      ch[i] = capOf3(L.blocks[i]);
+      expect(simulate3(L, ch).ok).toBe(true);
+    }
   });
 });
