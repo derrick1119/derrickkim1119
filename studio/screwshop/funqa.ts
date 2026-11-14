@@ -13,9 +13,10 @@ import { STAGES, apply, cloneSim, freeM, stuckM, viewOf, screwshop as g, screwsh
 export interface Try { ok: boolean; stars: number; sec: number; peak: number; best: number; shot: number; taps: number; /** 끝난 판(되짚기·F13용) */ s: ShopState }
 
 /** k판을 한 번 도전(첫 결과가 나올 때까지) */
-export function tryStage(bot: Bot<ShopState>, seed: number, k: number, maxSec = 600, hand = seed): Try {
+export function tryStage(bot: Bot<ShopState>, seed: number, k: number, maxSec = 600, hand = seed, hint = false): Try {
   const s = g.create(seed);
   if (k) startStage(s, k);
+  if (hint) (s.sf = 3), (s.hint = true); // 💡 귀띔을 켠 판(✏️ S012): 손가락 = 장인 수 · 그 판 ★ 최대 2
   const rng = mulberry32(hand ^ 0x9e3779b9), t0 = s.t; // hand: 같은 판을 다른 손으로 (🧪 S003)
   while (s.phase !== 'result' && s.t - t0 < maxSec * 60) g.step(s, bot.act(s, rng));
   const ok = s.phase === 'result' && s.ok;
@@ -176,14 +177,19 @@ export function measure(seeds = 12) {
   });
   // 처음 하는 사람: 판마다 다시 3번 안에 깨는 비율 (시드마다 다른 손) + 진 판의 되짚기 정확도 F13
   stages.forEach((row, k) => {
-    let first = 0, three = 0, fails = 0, hit = 0;
+    let first = 0, three = 0, fails = 0, hit = 0, hinted = 0, hint3 = 0;
     for (let i = 0; i < seeds; i++) {
       const tries = [0, 1, 2].map((j) => tryStage(screwshopNewbie, 1000 + i * 7, k, 600, 1000 + i * 7 + j * 100003)); // 같은 판 다시 3번
       first += +tries[0].ok;
       three += +tries.some((x) => x.ok);
+      if (!tries.some((x) => x.ok)) { // 💡 귀띔 봇(📋 M2 ③): 3번 지면 귀띔을 켜고 손가락(장인 수)을 따른다
+        const h = tryStage(screwshopSmart, 1000 + i * 7, k, 600, 1000 + i * 7, true);
+        hinted += +h.ok;
+        hint3 += +(h.s.got === 3);
+      } else hinted++;
       for (const x of tries) if (!x.ok && x.s.blame) (fails++, (hit += +pnrHit(x.s)));
     }
-    row.newbie = { clear1: +(first / seeds).toFixed(2), clear3: +(three / seeds).toFixed(2), fails, f13: fails ? +(hit / fails).toFixed(2) : null };
+    row.newbie = { clear1: +(first / seeds).toFixed(2), clear3: +(three / seeds).toFixed(2), fails, f13: fails ? +(hit / fails).toFixed(2) : null, hint: +(hinted / seeds).toFixed(2), hint3 };
   });
   const avg = (bot: string, key: string) => +(stages.reduce((a, r) => a + (r[bot] as Record<string, number>)[key], 0) / stages.length).toFixed(2);
   const summary = {
@@ -207,6 +213,9 @@ export function measure(seeds = 12) {
     /** 처음 하는 사람: 다시 3번 안에 클리어 — 1~3판 최저 / 1~8판 평균 (M1′ ④: ≥ 0.9 / ≥ 0.75) */
     newbie3_13: Math.min(...stages.slice(0, 3).map((r) => (r.newbie as Record<string, number>).clear3)),
     newbie3_avg: +(stages.reduce((a, r) => a + (r.newbie as Record<string, number>).clear3, 0) / stages.length).toFixed(2),
+    /** 💡 귀띔 봇 판별 클리어 최저(📋 M2 ③ ≥ .95) · 귀띔 쓴 판 ★3 수(0이어야) */
+    hintMin: Math.min(...stages.map((r) => (r.newbie as Record<string, number>).hint)),
+    hint3: stages.reduce((a, r) => a + (r.newbie as Record<string, number>).hint3, 0),
     /** 🧪 F13 되짚기 정확도: 3~8판 중 처음 봇 실패 10건 이상인 판의 최저 (M1′ ① ≥ 0.8) */
     f13_38min: Math.min(...stages.slice(2).map((r) => r.newbie as Record<string, number>).filter((n) => n.fails >= 10).map((n) => n.f13)),
     /** 사람 시간 추정(초): 판별 장인 톡 × 5 + 6 */

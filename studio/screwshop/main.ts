@@ -150,6 +150,8 @@ function start(pickK?: number) {
   s = g.create(fixed > 0 ? fixed : (Date.now() % 1_000_000) + 1);
   if (st > 1 && st <= STAGES.length) startStage(s, st - 1);
   if (typeof pickK === 'number') startStage(s, pickK);
+  if (Number(q.get('fails')) > 0) s.sf = Number(q.get('fails')); // ?fails=N: 이 판에서 N번 진 것으로(귀띔 단추 보기 · 스크린샷)
+  if (q.get('hint')) (s.sf = 3), (s.hint = true); // ?hint=1: 귀띔 켠 판
   juice(s).calm = calm;
   running = true;
   overlay.hidden = true;

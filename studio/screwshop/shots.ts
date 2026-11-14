@@ -116,7 +116,7 @@ for (const scheme of ['light', 'dark'] as const) {
       g.step(sim, i);
     }
     if (!sim.ok) {
-      await page.goto(url + `?seed=42&stage=${M[7] + 1}`);
+      await page.goto(url + `?seed=42&stage=${M[7] + 1}&fails=2`); // ✏️ S012: 셋째 실패 → 💡 귀띔 단추
       await page.click('.g-overlay');
       await page.waitForTimeout(900);
       const b5 = (await page.locator('canvas').boundingBox())!;
@@ -129,6 +129,9 @@ for (const scheme of ['light', 'dark'] as const) {
       }
       await page.waitForTimeout(2600);
       await page.screenshot({ path: join(out, '10-fail.png') });
+      await page.mouse.click(b5.x + 0.5 * b5.width, b5.y + (1.415 / 1.45) * b5.height); // 💡 귀띔 단추(셋째 실패 · ✏️ S012)
+      await page.waitForTimeout(1500);
+      await page.screenshot({ path: join(out, '32-hint.png') });
     }
   }
   // ★3을 못 딴 결과(별 이유 + ↺ 다시 · 다음): 망치를 반대로 매다는 순서로 1판을 푼다

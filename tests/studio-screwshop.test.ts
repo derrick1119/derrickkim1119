@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { RES_BY, RETRY_Y, STAGES, apply, bodySd, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
+import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
 import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
-import { screwshopMash, tryStage } from '../studio/screwshop/funqa.ts';
+import { screwshopMash, screwshopNewbie, tryStage } from '../studio/screwshop/funqa.ts';
 
 /** M1′ 8판의 지금 자리(✏️ S010: 판 순서가 30판 자리로 바뀌어도 M1′ 테스트는 같은 판을 본다) */
 const M = ['giraffe', 'boat', 'train', 'mill', 'flower', 'dino', 'castle', 'rocket'].map((key) => STAGES.findIndex((d) => d.key === key));
@@ -518,6 +518,49 @@ describe('🐹 쿵 (S011 📐B · GIMMICKS §4 — 판 플래그 thump)', () => 
           expect(Math.max(...z1) % 6 === 0 || z1.some((n) => n % 6 === 0), `${d.slot} 쿵 톡의 연속`).toBe(true);
         }
       }
+    }
+  });
+});
+
+describe('💡 밤톨의 귀띔 (✏️ S012 · GDD §11 · 📋 M2 ③)', () => {
+  it('같은 판을 3번 지면 실패 카드의 귀띔 단추가 귀띔을 켠다 · 켜면 손가락(장인 수)을 따라 깨도 그 판 ★ 최대 2 · 다음 판에서 꺼진다', () => {
+    const s = g.create(7);
+    startStage(s, M[7]);
+    const k0 = s.stage, rng = mulberry32(3), A = 1.45;
+    let guard = 0;
+    while (s.sf < 3 && guard++ < 60 * 3000) {
+      if (s.phase === 'result' && !s.ok) {
+        for (let i = 0; i < 50; i++) g.step(s, { tap: false, dir: 0, pointer: null });
+        g.step(s, { tap: false, dir: 0, pointer: { x: 0.02, y: 0.02 } }), g.step(s, { tap: false, dir: 0, pointer: null }); // 단추 밖 = 그냥 다시
+        continue;
+      }
+      if (s.phase === 'result' && s.ok) { // 막 누르기가 어쩌다 깨면 ↺ 다시(진 횟수는 그대로)
+        for (let i = 0; i < 35; i++) g.step(s, { tap: false, dir: 0, pointer: null });
+        g.step(s, { tap: false, dir: 0, pointer: { x: 0.25, y: RES_BY / A } }), g.step(s, { tap: false, dir: 0, pointer: null });
+        continue;
+      }
+      g.step(s, screwshopMash.act(s, rng));
+    }
+    expect([s.sf, s.stage, s.hint]).toEqual([3, k0, false]);
+    for (let i = 0; i < 50; i++) g.step(s, { tap: false, dir: 0, pointer: null });
+    g.step(s, { tap: false, dir: 0, pointer: { x: 0.5, y: HINT_Y / A } }), g.step(s, { tap: false, dir: 0, pointer: null });
+    expect([s.hint, s.phase]).toEqual([true, 'play']);
+    while (s.phase !== 'result' && guard++ < 60 * 6000) g.step(s, screwshopSmart.act(s, rng));
+    expect(s.ok).toBe(true);
+    expect(s.got).toBeLessThanOrEqual(2);
+    for (let i = 0; i < 260 && s.stage === k0; i++) g.step(s, { tap: false, dir: 0, pointer: i % 40 === 39 ? { x: 0.75, y: RES_BY / A } : null });
+  });
+  it('귀띔 봇(처음 봇이 3번 지면 귀띔을 켜고 손가락을 따름): 실린 판마다 클리어 ≥ .95 · 귀띔 쓴 판 ★3 0 (6시드)', () => {
+    for (let k = 0; k < STAGES.length; k++) {
+      let ok = 0;
+      for (let i = 0; i < 6; i++) {
+        const seed = 1000 + i * 7, tries = [0, 1, 2].map((j) => tryStage(screwshopNewbie, seed, k, 600, seed + j * 100003));
+        if (tries.some((x) => x.ok)) { ok++; continue; }
+        const h = tryStage(screwshopSmart, seed, k, 600, seed, true);
+        ok += +h.ok;
+        expect(h.s.got, `${STAGES[k].slot} 귀띔 ★`).toBeLessThanOrEqual(2);
+      }
+      expect(ok / 6, STAGES[k].slot).toBeGreaterThanOrEqual(0.95);
     }
   });
 });

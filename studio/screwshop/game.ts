@@ -605,6 +605,8 @@ export interface ShopState {
   hearts: number; stars: number; got: number; pts: number; ok: boolean; why: string; won: boolean; dead: boolean; tries: number;
   /** 판별 최고 별·점수 (↺ 다시 해도 합계는 최고만) · ★3 못 땄을 때 결과 화면에서 기다리는 중 */
   bestSt: number[]; bestPts: number[]; retries: number;
+  /** 💡 밤톨의 귀띔(GDD §11 · ✏️ S012): 이 판에서 진 횟수 · 귀띔을 켰나(켜면 그 판 ★ 최대 2) · 손가락 캐시 */
+  sf: number; hint: boolean; hintK?: string; hintM?: number;
   /** 실패 되짚기(📐 S003): 톡마다 그 전 상태·결과 · 진 이유 */
   hist: Hist[]; blame: Why | null;
   seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[]; startT: number; clearT: number;
@@ -630,6 +632,8 @@ const BX0 = 0.035, BX1 = 0.965, BY0 = 0.37, BY1 = 1.19;
 const BOX_Y = 0.165, BOX_W = 0.25, BOX_H = 0.12, TRAY_Y = 0.312;
 /** 결과 화면 ↺·다음 버튼 줄 높이(작업판 좌표) */
 export const RES_BY = 0.935;
+/** 💡 귀띔 단추 높이(실패 카드 아래 · 같은 판 3번 진 뒤) */
+export const HINT_Y = 1.415;
 /** 위 줄 ↺ 다시 버튼 높이(작업판 좌표, 이보다 위) */
 export const RETRY_Y = 0.07;
 const boxX = (L: Level, bi: number) => (L.boxes === 1 ? 0.34 : bi === 0 ? 0.19 : 0.47);
@@ -668,6 +672,8 @@ function newStage(s: ShopState) {
 /** 스튜디오: 측정·테스트용 — 아무 판에서나 시작(새 판을 깐다) */
 export function startStage(s: ShopState, k: number) {
   s.stage = Math.max(0, Math.min(STAGES.length - 1, k));
+  s.sf = 0;
+  s.hint = false;
   newStage(s);
 }
 
@@ -816,7 +822,7 @@ function finish(s: ShopState) {
   s.pt = 0;
   const d = STAGES[s.stage], S = s.S;
   if (s.ok) {
-    const st = starsOf(d, S), pp = st * STAR_PTS + Math.max(0, 4 - S.peak) * 10 + Math.min(S.best, 12) * 2;
+    const st = Math.min(starsOf(d, S), s.hint ? 2 : 3), pp = st * STAR_PTS + Math.max(0, 4 - S.peak) * 10 + Math.min(S.best, 12) * 2;
     s.got = st;
     // ↺ 다시 해도 판별 최고만 합계에 (S002)
     if (st > (s.bestSt[s.stage] ?? 0)) (s.stars += st - (s.bestSt[s.stage] ?? 0)), (s.bestSt[s.stage] = st);
@@ -827,6 +833,7 @@ function finish(s: ShopState) {
     setMood(s, 'cheer');
   } else {
     s.tries++;
+    s.sf++;
     ev(s, 'fail', 0.5, 0.75, s.why, '#ffd0c8');
     setMood(s, 'dizzy');
   }
@@ -1095,7 +1102,7 @@ export const screwshop: GameDef<ShopState> = {
     const s = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'play', pt: 0, known: 0,
       down: false, ax: 0, ay: 0, press: -1, cool: 0, lastTap: -99, taps: 0,
-      hearts: 3, stars: 0, got: 0, bestSt: [], bestPts: [], retries: 0, hist: [], blame: null, pts: 0, ok: false, why: '', won: false, dead: false, tries: 0,
+      hearts: 3, stars: 0, got: 0, bestSt: [], bestPts: [], retries: 0, sf: 0, hint: false, hist: [], blame: null, pts: 0, ok: false, why: '', won: false, dead: false, tries: 0,
       seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsQ: [], startT: 0, clearT: 0,
       pv: [], fl: [], vb: [], lv: [], vs: [], ready: [], mood: 'idle', moodT: 0, bird: 0,
     } as unknown as ShopState;
@@ -1119,18 +1126,21 @@ export const screwshop: GameDef<ShopState> = {
         if (inBtn && s.ax > 0.06 && s.ax < 0.47) s.retries++, newStage(s);
         else if (inBtn && s.ax > 0.53 && s.ax < 0.94) {
           if (s.won) s.dead = true;
-          else s.stage++, newStage(s);
+          else s.stage++, (s.sf = 0), (s.hint = false), newStage(s);
         }
         return;
       }
       // 실패: 하트 없음, 자동 재시작도 없음 — 되짚기를 볼 시간 뒤(45틱) 아무 데나 톡하면 그 판만 다시 (🎨 §2.7)
       if (!s.ok) {
-        if (release && s.pt > 45) s.retries++, newStage(s);
+        if (release && s.pt > 45) {
+          if (s.sf >= 3 && !s.hint && Math.abs(s.ay * A - HINT_Y) < 0.045 && s.ax > 0.15 && s.ax < 0.85) s.hint = true; // 💡 귀띔 단추
+          s.retries++, newStage(s);
+        }
         return;
       }
       if (s.pt >= RESULT_OK) {
         if (s.won) s.dead = true;
-        else s.stage++, newStage(s);
+        else s.stage++, (s.sf = 0), (s.hint = false), newStage(s);
       }
       return;
     }
@@ -1744,9 +1754,20 @@ function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   ctx.fillStyle = '#3a2a00';
   ctx.fillText('↺ 한 번 더!', 0, 1);
   ctx.restore();
-  font(0.027, 700);
-  ctx.fillStyle = 'rgba(255,236,210,.6)';
-  ctx.fillText('아무 데나 톡해도 다시', cx, Y(1.415) + oy);
+  if (s.sf >= 3 && !s.hint && fill >= 1) { // 💡 밤톨의 귀띔(같은 판 3번 진 뒤 · 쓰면 그 판 ★3 없음)
+    const hy = Y(HINT_Y) + oy, hh = R(0.075);
+    ctx.fillStyle = 'rgba(200,247,197,.9)';
+    ctx.beginPath();
+    ctx.roundRect(X(0.15), hy - hh / 2, X(0.85) - X(0.15), hh, hh / 2);
+    ctx.fill();
+    font(0.036, 900);
+    ctx.fillStyle = '#1f3a1c';
+    ctx.fillText('💡 밤톨의 귀띔 (★3 없이)', cx, hy + 1);
+  } else {
+    font(0.027, 700);
+    ctx.fillStyle = 'rgba(255,236,210,.6)';
+    ctx.fillText('아무 데나 톡해도 다시', cx, Y(1.415) + oy);
+  }
   ctx.restore();
 }
 
@@ -3204,6 +3225,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       d.H !== undefined ? { txt: `한 방 ${d.H}`, st: S.shot >= d.H ? true : shotDead(d, s.L, S) ? false : null } : d.T !== undefined ? { txt: `톡 ${d.T}번 이하`, st: S.taps > d.T ? false : s.phase === 'result' && s.ok ? true : null } : { txt: `연속 쏙 ${d.C}`, st: S.best >= d.C ? true : null },
           ]),
     ];
+    if (s.hint) chips[2] = { txt: '💡 ★3 없음', st: false };
     const gx0 = R(0.225), gw = (w - gx0 - R(0.015)) / 3;
     // 🎨 칩 게이지(ART §2.3 · 📋 S008): ★3 칩 안을 지금 연속 / 최고 한 방만큼 왼쪽부터 채운다
     const gauge = s.phase === 'play' ? (d.H !== undefined ? Math.min(S.shot, d.H) / d.H : d.T === undefined && d.B === undefined ? Math.min(S.streak, d.C) / d.C : 0) : 0;
@@ -3238,12 +3260,30 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     else if (s.down && s.press >= 0) tip = '떼면 쏙! · 나사 밖에서 떼면 취소';
     else if (s.phase === 'result') tip = s.ok ? (s.got < 3 ? '↺ 다시(★3 도전) 또는 다음 판 — 버튼을 톡' : '다음 장난감이 와요!') : '같은 장난감을 다시 — 이번엔 미리 보고 톡';
     else if (S.slots.length >= 4) tip = '⚠ 빈칸이 하나 남았어요 — 상자 색을 골라 빼요!';
+    else if (s.hint) tip = '💡 귀띔 — 밤톨 손가락을 따라가요 (★3 없음)';
     else if (!S.key && !s.L.wind) tip = '🔒 자물쇠 나사는 🔑 열쇠 나사를 빼야 풀려요'; // 태엽 판은 일찍 빼면 손해라 판 팁으로
     else if (!(s.L.wind && S.key)) tip = d.tip; // 📐: 1판도 첫 톡 뒤엔 판 팁 · 🧪 S004: 태엽을 뺀 뒤엔 '열쇠를 톡' 팁을 내린다
     ctx.textAlign = 'center';
     font(0.036, 800);
     ctx.fillStyle = 'rgba(255,240,214,.92)';
     ctx.fillText(tip, w / 2 + R(0.06), y3);
+  }
+  // 💡 귀띔: 장인이 둘 나사를 밤톨 손가락이 가리킨다(같은 눈 · 수마다 한 번 계산)
+  if (s.hint && s.phase === 'play' && !s.down) {
+    const hk = `${S.gone}:${S.taps}:${S.qi}`;
+    if (s.hintK !== hk) (s.hintK = hk), (s.hintM = planMove(s));
+    const k = s.hintM!, L = s.L;
+    if (k >= 0 && !((S.gone >> k) & 1)) {
+      const bob = Math.sin(t * 0.15) * R(0.012);
+      ctx.font = `${Math.max(16, R(0.07))}px system-ui`;
+      ctx.textAlign = 'center';
+      ctx.fillText('👆', X(L.px[k]) + R(0.02), Y(L.py[k]) + R(0.07) + bob);
+      ctx.strokeStyle = 'rgba(200,247,197,.95)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(X(L.px[k]), Y(L.py[k]), R(SR * 1.6) + Math.sin(t * 0.15) * 2, 0, TAU);
+      ctx.stroke();
+    }
   }
   // 첫 판: 손가락으로 추천 나사 가리키기
   if (s.stage === 0 && s.taps === 0 && s.phase === 'play' && t - s.startT > 40) {
