@@ -12,7 +12,7 @@ import { STAGES, apply, bestMove, cloneSim, freeM, habitPick, newSim, paintStage
 import { mulberry32, type Rng } from './rng.ts';
 
 /** 판별 칠 수 · 칠해 볼 sub 수(2판은 장인 ★3 칠이 96개 중 22개뿐이고 상한 3.9에 닿는 칠은 그 절반이라 384 — ✏️ S005) */
-export const N = 24, SCAN = [96, 1536, 96, 768, 768, 96, 1536, 1536]; // ✏️ S007: 2판 384 → 1536(진자 칠이 384칠 중 21칠뿐) · 📐 S007 7·8판 1536
+export const N = 24, SCAN = [96, 1536, 96, 768, 768, 96, 1536, 1536, 0, 768]; // ✏️ S007: 2판 384 → 1536(진자 칠이 384칠 중 21칠뿐) · 📐 S007 7·8판 1536
 
 /** 아무 나사나 빼는 사람이 이 판을 깰 확률 */
 function randomPass(L: Level, r: Rng, n: number) {
@@ -205,8 +205,11 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
     for (let k = 0; k < 100; k++) m += playOut(L, d, mashOf(L, r)) ? 1 : 0;
     return (smartSeen(L, d, true) === 3 ? 0 : 1) + (h ? 1 : 0) + 1 - m / 100;
   },
+  () => -9, // id 8 = 1-4 (📐A S010 — 아래에서 바꿈)
+  // 📐 S010 1-5 🐄 (id 9): 공통 gate · 따라 하기 거름(pv) 켬 — 끄면 같은 좌표에서 따라 하기 ★3 .13
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, pv: true }),
 ];
-export const CAP = [Infinity, 4.5, 3.65, 5.15, 3.5, 2.95, 3.95, 2.95];
+export const CAP = [Infinity, 4.5, 3.65, 5.15, 3.5, 2.95, 3.95, 2.95, 0, 2.95];
 
 /** k번째 판(순서)의 칠 sub 고르기 값 = min(가치, 상한) — 난수 씨앗은 판 id */
 export function valueOf(k: number, sub: number, L = paintStage(k, sub)) {
@@ -251,8 +254,8 @@ if (process.argv[1]?.endsWith('pick.ts')) {
     sig[d.id] = { g: geomSig(paintStage(k, all[0][1])), p: all.slice(0, N).map(([v, s]) => row(k, v, s)), cut: row(k, all[N][0], all[N][1]) };
   });
   const out: [string, string][] = [
-    ['picks.ts', `/** 자동 생성 — npx tsx studio/screwshop/pick.ts (판 id별 칠 번호 ${N}개, 게임은 seed % ${N}로 고른다) */\nexport const PICKS: number[][] = [\n${rows.map((r) => `  [${r.join(',')}],`).join('\n')}\n];\n`],
-    ['picks.sig.ts', `/** 자동 생성 — npx tsx studio/screwshop/pick.ts (판 id별 실린 칠 지문 — 테스트가 이 25칠만 다시 칠해 본다 · 게임은 읽지 않는다) */\nimport type { Sig } from './pick.ts';\nexport const SIG: Sig[] = [\n${sig.map((s) => `  { g: ${s.g}, p: ${JSON.stringify(s.p)}, cut: ${JSON.stringify(s.cut)} },`).join('\n')}\n];\n`],
+    ['picks.ts', `/** 자동 생성 — npx tsx studio/screwshop/pick.ts (판 id별 칠 번호 ${N}개, 게임은 seed % ${N}로 고른다) */\nexport const PICKS: number[][] = [\n${Array.from(rows, (r) => `  [${(r ?? []).join(',')}],`).join('\n')}\n];\n`],
+    ['picks.sig.ts', `/** 자동 생성 — npx tsx studio/screwshop/pick.ts (판 id별 실린 칠 지문 — 테스트가 이 25칠만 다시 칠해 본다 · 게임은 읽지 않는다) */\nimport type { Sig } from './pick.ts';\nexport const SIG: Sig[] = [\n${Array.from(sig, (s) => (s ? `  { g: ${s.g}, p: ${JSON.stringify(s.p)}, cut: ${JSON.stringify(s.cut)} },` : '  { g: 0, p: [], cut: [0, 0, 0] }, // 빈 id')).join('\n')}\n];\n`],
   ];
   const sec = ((Date.now() - t0) / 1000).toFixed(1);
   if (check) {

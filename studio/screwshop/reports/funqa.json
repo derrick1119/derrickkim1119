@@ -4,22 +4,22 @@
  "seeds": 24,
  "summary": {
   "smartStars": 3,
-  "habitStars": 1.87,
-  "randomStars": 0.44,
+  "habitStars": 1.8,
+  "randomStars": 0.39,
   "smartStar3": 1,
-  "habitStar3": 0.09,
+  "habitStar3": 0.08,
   "randomClear1": 1,
   "mashClear12": 0.98,
-  "mashClear38": 0.21,
-  "mashStars": 0.43,
+  "mashClear38": 0.18,
+  "mashStars": 0.39,
   "habit3Star3_2": 0,
   "habit3Star3_38max": 0,
   "fingerGe2_1": 0.04,
   "fingerGe2_2": 0.17,
-  "previewStar3_38": 0.06,
-  "smartShot": 3.71,
-  "mashShot": 1.43,
-  "smartSec": 5.98,
+  "previewStar3_38": 0.05,
+  "smartShot": 3.63,
+  "mashShot": 1.38,
+  "smartSec": 5.93,
   "newbie3_13": 1,
   "newbie3_avg": 0.99,
   "f13_38min": 0.95,
@@ -28,12 +28,13 @@
    56,
    61,
    61,
+   61,
    63,
    86,
    91,
    66
   ],
-  "skillGap": 6.82
+  "skillGap": 7.69
  },
  "stages": [
   {
@@ -290,6 +291,90 @@
   },
   {
    "stage": 4,
+   "slot": "1-5",
+   "id": 9,
+   "name": "🐄 태엽 젖소",
+   "smart": {
+    "clear": 1,
+    "star3": 1,
+    "stars": 3,
+    "ge2": 1,
+    "sec": 5.6,
+    "human": 61,
+    "shot": 3.04
+   },
+   "habit": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 1.29,
+    "ge2": 0.29,
+    "sec": 6.3,
+    "human": 69,
+    "shot": 1.83
+   },
+   "top": {
+    "clear": 0.29,
+    "star3": 0,
+    "stars": 0.29,
+    "ge2": 0,
+    "sec": 4.9,
+    "human": 51,
+    "shot": 1.38
+   },
+   "reveal": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 1.5,
+    "ge2": 0.5,
+    "sec": 6.3,
+    "human": 69,
+    "shot": 2.58
+   },
+   "random": {
+    "clear": 0.04,
+    "star3": 0,
+    "stars": 0.04,
+    "ge2": 0,
+    "sec": 11.9,
+    "human": 34,
+    "shot": 1.04
+   },
+   "mash": {
+    "clear": 0.04,
+    "star3": 0,
+    "stars": 0.04,
+    "ge2": 0,
+    "sec": 2.4,
+    "human": 34,
+    "shot": 1
+   },
+   "finger": {
+    "clear": 0.04,
+    "star3": 0,
+    "stars": 0.04,
+    "ge2": 0,
+    "sec": 2.4,
+    "human": 34,
+    "shot": 1
+   },
+   "preview": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 2,
+    "ge2": 1,
+    "sec": 6.1,
+    "human": 67,
+    "shot": 2.88
+   },
+   "newbie": {
+    "clear1": 0.92,
+    "clear3": 1,
+    "fails": 8,
+    "f13": 1
+   }
+  },
+  {
+   "stage": 5,
    "slot": "2-1",
    "id": 3,
    "name": "🌬️ 풍차",
@@ -373,7 +458,7 @@
    }
   },
   {
-   "stage": 5,
+   "stage": 6,
    "slot": "2-2",
    "id": 4,
    "name": "🌻 해바라기",
@@ -457,7 +542,7 @@
    }
   },
   {
-   "stage": 6,
+   "stage": 7,
    "slot": "2-6",
    "id": 5,
    "name": "🦕 공룡",
@@ -541,7 +626,7 @@
    }
   },
   {
-   "stage": 7,
+   "stage": 8,
    "slot": "3-1",
    "id": 6,
    "name": "🏰 성",
@@ -625,7 +710,7 @@
    }
   },
   {
-   "stage": 8,
+   "stage": 9,
    "slot": "3-10",
    "id": 7,
    "name": "🚀 로켓",

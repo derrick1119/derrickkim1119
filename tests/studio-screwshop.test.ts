@@ -17,8 +17,11 @@ describe('나사 풀기 공방 시뮬', () => {
     expect([a.score, a.ticks, a.s.stage, a.s.stars]).toEqual([b.score, b.ticks, b.s.stage, b.s.stars]);
   });
 
-  it('판 8개, 아무 판에서나 시작할 수 있다', () => {
-    expect(STAGES.length).toBe(8);
+  it('실린 판 = 30판 자리 순서(월드-판 오름차순 · 겹침 없음) · M1′ 8판은 📋 뼈대 자리 · 아무 판에서나 시작할 수 있다 (✏️ S010)', () => {
+    const n = STAGES.map((d) => d.slot.split('-').reduce((a, x) => a * 100 + +x, 0));
+    for (let i = 1; i < n.length; i++) expect(n[i], STAGES[i].slot).toBeGreaterThan(n[i - 1]);
+    expect(M.map((i) => STAGES[i].slot)).toEqual(['1-1', '1-2', '1-3', '2-1', '2-2', '2-6', '3-1', '3-10']);
+    expect(STAGES.length).toBeGreaterThan(8);
     const s = g.create(3);
     startStage(s, 5);
     expect(s.stage).toBe(5);
@@ -144,7 +147,7 @@ describe('하트 없음 · ↺ 지금 다시 (M1′ S003, 오너 기준 7)', () 
     }
     expect(fails).toBeGreaterThanOrEqual(3);
     expect(g.over(s)).toBe(false);
-    expect(s.stage).toBe(7);
+    expect(s.stage).toBe(M[7]);
     expect(s.L.col.join()).toBe(col0);
   });
   it('위 줄 ↺를 누르면 판 중에도 같은 판을 처음부터', () => {
