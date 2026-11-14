@@ -280,6 +280,13 @@ describe('욕조 물결 오리 시뮬', () => {
       const paths = previewPaths(s, 0.5, 1.1);
       for (const j of kids) expect(paths[j].end).toBeGreaterThanOrEqual(0);
     });
+    it('📋 D018 기록 ①: 다 깨고 결과 카드에서 상한에 걸린 런은 잘림이 아니다 (funqa v1.17 b — 완주 1.02 버그)', { timeout: 60_000 }, () => {
+      const full = play(duckbathSmart, 1000);
+      expect(full.won).toBe(true);
+      const r = play(duckbathSmart, 1000, full.sec - 2 / 60); // 끝(dead) 2틱 전에 상한 — 이미 다 깼고 결과 카드 중
+      expect([r.won, r.cut]).toEqual([true, false]);
+      expect(play(duckbathSmart, 1000, 60).cut).toBe(true); // 1분 상한이면 판 중간에 잘림
+    });
     it('상어 여럿(sharks[])이 다 나온다', () =>
       withStage({ sharks: [[0.2, 0.9], [0.8, 0.9]] }, (s) => {
         expect(s.objs.filter((o) => o.k === 3).length).toBe(2);

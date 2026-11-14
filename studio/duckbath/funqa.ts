@@ -492,6 +492,10 @@ if (import.meta.url === `file://${process.argv[1]}` && d1Arg) {
     const e2 = s0.map((p, i) => { const par = STAGES[i].par, ds = p.debtShare ?? 0, both = ds >= 0.35 && 1 - ds >= 0.35, v = both ? r2(par - p.tapsMean) : par - p.medTaps; return { id: STAGES[i].id, w: STAGES[i].id.split('-')[0], dist: p.tapDist, ds, both, v, debt: v > 1 }; });
     console.log(`E2 (v1.17 a, 숙련 톡 분포 {톡:수} · 빚 쪽 몫 → 판정 E2(평균/중앙)): ${e2.map((e) => `${e.id} {${Object.entries(e.dist).map(([t, c]) => `${t}:${c}`).join(',')}} ${e.ds} → ${e.v}(${e.both ? '평균' : '중앙'})${e.debt ? ' 빚' : ''}`).join(' · ')}`);
     console.log(`천장 빚(v1.17 a): ${['1', '2', '3'].map((w) => `${w}욕실 ${e2.filter((e) => e.w === w && e.debt).length}(${e2.filter((e) => e.w === w && e.debt).map((e) => e.id).join('·') || '-'})`).join(' · ')} (욕실마다 ≤ 2)`);
+    // FUN v1.18 c·d (보고): 본 판(= 1-1도 아니고 새것 key도 없는 판) 캐주얼 위기 보임 > .5 · 미리보기10 ★황금이 숙련보다 ≥ .5 낮음
+    const main = (i: number) => i > 0 && !STAGES[i].key, cs = (res['캐주얼'] as ReturnType<typeof group>).stages, p10 = (res['미리보기10'] as ReturnType<typeof group>).stages;
+    console.log(`경보 닳음(v1.18 c, 본 판 캐주얼 위기 보임 > .5, 보고): ${cs.flatMap((p, i) => (main(i) && (p.crisisRate ?? 0) > 0.5 ? [`${ID(p.stage)} ${p.crisisRate}`] : [])).join(' · ') || '없음'}`);
+    console.log(`미리 보기 밖 판단(v1.18 d, 미리보기10 ★황금 ≤ 숙련 − .5, 보고): ${p10.flatMap((p, i) => (p.goldStar !== null && s0[i].goldStar !== null && s0[i].goldStar - p.goldStar >= 0.5 ? [`${ID(p.stage)} ${p.goldStar} vs ${s0[i].goldStar}`] : [])).join(' · ') || '없음'}`);
   }
   console.log(`W2 톡÷숙련 톡: ${(res['W2'] as number[]).join(' · ')}  |  (참고) 톡−par: ${s0.map((p) => p.slack).join(' · ')}`);
   const e6 = res['E6황금'] as Record<string, (number | null)[]>;
