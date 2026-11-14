@@ -4,7 +4,7 @@ import { STAGES, layoutOf, simulate } from '../studio/demolition/game.ts';
 import { STAGES3 } from '../studio/demolition/stages3d.ts';
 import { cellPx, fitCams, visibleArea, YAW0 } from '../studio/demolition/view3d.ts';
 import { fingerHit, measureStage3, plansOf } from '../studio/demolition/funqa.ts';
-import { GAS, bestReach, capOf3, holdTags, isQuiet, resultLine, lostFeet, support3, verdict3, forEachPlan, from2D, layoutOf3, simulate3, type StageDef3 } from '../studio/demolition/sim3d.ts';
+import { GAS, STONE, bestReach, capOf3, holdTags, isQuiet, resultLine, lostFeet, support3, verdict3, forEachPlan, from2D, layoutOf3, simulate3, type StageDef3 } from '../studio/demolition/sim3d.ts';
 
 const stage = (layers: string[][], extra: Partial<StageDef3> = {}): StageDef3 => ({
   key: '', title: 't', news: '', hint: '', W: layers[0][0].length, D: layers[0].length, layers,
@@ -296,5 +296,22 @@ describe('결과 글 — 딴 별·잃은 별 이유 (FUN v1.4 ⓔ)', () => {
     }
     expect(saw3).toBeGreaterThan(0);
     expect(saw2).toBeGreaterThan(0);
+  });
+});
+
+describe('새 규칙 표식이 시작 시점에 보인다 (FUN v1.6 ⓒ)', () => {
+  it('새 재료(돌·가스)를 처음 쓰는 판은 그 재료 블록이 시작 시점에 면 ≥ .5장으로 1개 이상 보인다', () => {
+    const seen = new Set<number>();
+    let checked = 0;
+    for (const d of STAGES3) {
+      const L = layoutOf3(d), cams = fitCams(L.lot, L.blocks, 390, 468, 12), area = visibleArea(cams[0], L.blocks, 390, 468, 2), face = cellPx(cams[0]) ** 2;
+      for (const m of [STONE, GAS]) {
+        if (seen.has(m) || !L.blocks.some((b) => b.m === m)) continue;
+        checked++;
+        expect(L.blocks.some((b, i) => b.m === m && area[i] >= 0.5 * face), `${d.title} 재료 ${m}`).toBe(true);
+      }
+      L.blocks.forEach((b) => seen.add(b.m));
+    }
+    expect(checked).toBeGreaterThan(0);
   });
 });

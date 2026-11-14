@@ -219,3 +219,78 @@ export function misread(L: Layout3, d: StageDef3, c: Cache): { clear: number; st
   }
   return { clear: ok / 20, star3: s3 / 20 };
 }
+
+/**
+ * 오해 봇 v1.6 ⓐ: look2 깊이 — 돌을 1개짜리로 믿고 '두 개 조합'을 고른다. 고른 블록이 실제로는 남은 수보다 비싸면 게임이 막으니 그다음 좋은 조합으로.
+ * 반환 = 성공률·★3률(시드 20, 동점 무작위)
+ */
+export function misreadLook2(L: Layout3, d: StageDef3, c: Cache): { clear: number; star3: number } {
+  const N = L.blocks.length, save = d.save !== undefined;
+  const score = (o: Outcome3) => o.stars * 1000 + (o.ok ? 0 : -5000) - o.height * 10 - o.flowers * 30 - o.hits.reduce((a, b) => a + b, 0);
+  const taps = L.blocks.map((_, i) => i).filter((i) => capOf3(L.blocks[i]) > 0);
+  let ok = 0, s3 = 0;
+  for (let seed = 1; seed <= 20; seed++) {
+    const rng = mulberry32(seed), ch = new Int8Array(N);
+    let left = d.charges, believed = d.charges, guard = 0;
+    while (left > 0 && believed > 0 && guard++ < 8) {
+      // 믿음: 블록마다 1개 — 하나·둘 더 붙인 끝을 비교(손잡이 판은 아무 때나 끝, 아니면 믿는 남은 수를 다 쓸 때 끝)
+      const cs = taps.filter((i) => !ch[i] && capOf3(L.blocks[i]) <= left);
+      let bv = -1e9, ties: number[][] = [];
+      const consider = (pl: number[]) => {
+        let real = 0;
+        for (const i of pl) real += capOf3(L.blocks[i]);
+        if (real > left) return; // 게임이 막는다(붙여 보려다 안 붙음 → 다른 조합)
+        const c2 = ch.slice();
+        for (const i of pl) c2[i] = capOf3(L.blocks[i]);
+        const v = score(c.sim(c2));
+        if (v > bv) (bv = v), (ties = [pl]);
+        else if (v === bv) ties.push(pl);
+      };
+      for (const i of cs) {
+        if (save || believed === 1) consider([i]);
+        if (believed >= 2) for (const j of cs) if (j > i && (save || believed === 2)) consider([i, j]);
+      }
+      if (!ties.length) for (const i of cs) for (const j of cs) if (j > i) consider([i, j]);
+      if (!ties.length) for (const i of cs) consider([i]);
+      if (!ties.length) break;
+      const pl = ties[Math.floor(rng() * ties.length)];
+      for (const i of pl) (ch[i] = capOf3(L.blocks[i])), (left -= ch[i]), (believed -= 1);
+      if (save) break; // 손잡이 판: 고른 끝에서 당긴다
+    }
+    const o = c.sim(ch);
+    if (o.ok) ok++;
+    if (o.ok && o.stars === 3) s3++;
+  }
+  return { clear: ok / 20, star3: s3 / 20 };
+}
+
+/**
+ * ⓕ 안전 v1.6 ⓑ: 손잡이 판에서 '폭약을 다 쓰는 처음 봇'(성공이 떠도 안 당기고 끝까지) 성공률 − '목표 수에서 멈추는 처음 봇'(목표 수만큼 붙이면 당김) 성공률.
+ * 두 봇 모두 넓이 비례로 고르고(안 보는 형), 막다른 길이면 q .5로 뗀다. > 0이면 더 쓰는 쪽이 더 안전.
+ */
+export function safetyGap(L: Layout3, d: StageDef3, wMix: number[], c: Cache, n = 2000, seed = 31): number {
+  if (d.save === undefined) return 0;
+  const N = L.blocks.length, taps = L.blocks.map((_, i) => i).filter((i) => capOf3(L.blocks[i]) > 0 && wMix[i] > 0);
+  const run = (stopAt: number) => {
+    const rng = mulberry32(seed);
+    let win = 0;
+    for (let r = 0; r < n; r++) {
+      const ch = new Int8Array(N);
+      let left = d.charges;
+      for (let step = 0; step < 12 && left > 0; step++) {
+        const cs = taps.filter((i) => !ch[i] && capOf3(L.blocks[i]) <= left);
+        if (!cs.length) break;
+        const t = cs.reduce((a, i) => a + wMix[i], 0);
+        let x = rng() * t, pick = cs[cs.length - 1];
+        for (const i of cs) if ((x -= wMix[i]) <= 0) { pick = i; break; }
+        ch[pick] = capOf3(L.blocks[pick]);
+        left -= ch[pick];
+        if (d.charges - left >= stopAt) break;
+        if (c.reach1(ch) === 0 && rng() < 0.5) (left += ch[pick]), (ch[pick] = 0);
+      }
+      if (ch.some((v) => v > 0) && c.sim(ch).ok) win++;
+    }
+    return win / n;
+  };
+  return run(d.charges) - run(d.save);
+}
