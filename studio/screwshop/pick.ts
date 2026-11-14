@@ -80,7 +80,22 @@ const pv1Of = (L: Level, r: Rng) => (S: Sim) => {
   return pick[Math.floor(r() * pick.length)];
 };
 
-/** 판별 가치(클수록 좋음)와 '이만하면 됐다' 상한 — 예전 buildLevel의 고르기 식·멈춤 값 그대로 */
+/** 새 판 공통 고르기(📋 M2 · ✏️ S010): 판별 함수를 새로 쓰지 않고 목표 표 한 줄 t로 값을 낸다(M1′ 6·8판 식을 일반화).
+ *  장인(같은 눈) ★3이 아니면 −9 · 버릇(맞는 색 → 위) ★3이면 −5 · t.pv면 1수 미리 보기가 3번 중 한 번이라도 ★3이면 −4
+ *  + 진자 낙차(장인−진자가 ★3을 놓치면 t.pend, 기본 1) + 버릇 클리어 t.hc(기본 1, 처음 하는 사람 숨통)
+ *  + (1 − 막 누르기 클리어 100판) × t.mc(기본 1) + 무작위 클리어 min(1, 무작위/t.rnd[0]) × t.rnd[1](40판) */
+export interface Gate { pend?: number; hc?: number; mc?: number; pv?: boolean; rnd?: [number, number] }
+export function gate(L: Level, d: StageDef, r: Rng, t: Gate = {}) {
+  if (smartSeen(L, d) !== 3) return -9;
+  const h = playOut(L, d, habitOf(L));
+  if (h === 3) return -5;
+  if (t.pv) for (let k = 0; k < 3; k++) if (playOut(L, d, pv1Of(L, r)) === 3) return -4;
+  let m = 0;
+  for (let k = 0; k < 100; k++) m += playOut(L, d, mashOf(L, r)) ? 1 : 0;
+  return (smartSeen(L, d, true) === 3 ? 0 : t.pend ?? 1) + (h ? t.hc ?? 1 : 0) + (1 - m / 100) * (t.mc ?? 1) + (t.rnd ? Math.min(1, randomPass(L, r, 40) / t.rnd[0]) * t.rnd[1] : 0);
+}
+
+/** 판 id별 가치(클수록 좋음)와 '이만하면 됐다' 상한 — M1′ 0~7은 예전 buildLevel의 고르기 식·멈춤 값 그대로 · 새 판(id 8~)은 gate(목표 표 한 줄) */
 export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   // 📐 1판: 장인(손가락 첫 톡) ★3 ×2 + 장인 스스로 ★3 + 무작위 클리어 − 막 누르기(손가락 첫 톡 뒤) ★2 이상 ×2 (📋 S002 표본 100)
   (L, d, r) => {

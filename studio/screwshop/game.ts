@@ -21,6 +21,7 @@ import { mulberry32, type Rng } from './rng.ts';
 import type { Bot, GameDef, Input, Theme } from './core.ts';
 import { juice } from './juice.ts';
 import { PICKS } from './picks.ts';
+import { STAGES, type Src, type StageDef } from './stages.ts';
 import type { Cue } from './sfx.ts';
 
 /** 소리 연결(🎨 ART §2): 그림(draw)의 사건 루프에서만 부른다 — 시뮬레이션·봇은 소리를 모른다. main.ts가 sfx.play를 꽂는다 */
@@ -35,163 +36,9 @@ const COVER = 0.021, HIDE = -0.026;
 const COOL = 8, SPIN = 9, FLY = 17, RESULT_OK = 200, NEWS_T = 200;
 const STAR_PTS = 100, WIN_PTS = 100;
 
-// ───────────────────────────── 장난감(판) ─────────────────────────────
-type Kind = 'wood' | 'glass' | 'spring' | 'nail';
-/** 판자 하나: 둥근 네모(가운데 cx,cy · 반폭 hx,hy · 각 a · 모서리 rr). sc = 나사 자리(작업판 좌표) */
-export interface Src { cx: number; cy: number; hx: number; hy: number; a: number; rr: number; kind: Kind; tone: string; deco: string; sc: number[][]; lock?: number[]; key?: number; nail?: number[]; tgt?: number; tick?: number[][]; /** 🔨 망치 머리(정지 자세의 작업판 좌표) — 나사 하나에 매달리는 순간 그 근처 나사를 쾅 (M1′ S001, GIMMICKS §2) */ ham?: number[]; /** 🪵 통나무: 떨어지면 밑에 매달린 판자들을 위부터 쳐서 떨군다 (M1′ S002) */ heavy?: boolean; /** 실루엣 몸통(✏️ S009 · 📋 M2): 있으면 몸통 = 조각 합집합(판자 로컬 좌표 — 가운데 0,0 · 각 a 기준) · hx/hy는 감싸는 상자(그림 · 🔨 가장자리용) */ parts?: Part[] }
-/** 몸통 조각: 'b' 둥근 네모 [x,y,반폭,반높이,모서리,각] · 'c' 원 [x,y,r] · 's' 캡슐 [x1,y1,x2,y2,반두께] */
-export type Part = ['b', number, number, number, number, number, number] | ['c', number, number, number] | ['s', number, number, number, number, number];
-type O = Partial<Src>;
-const mk = (cx: number, cy: number, hx: number, hy: number, a: number, rr: number, tone: string, sc: number[][], o: O = {}): Src => ({ cx, cy, hx, hy, a, rr: Math.min(rr, hx, hy), kind: 'wood', tone, deco: '', sc, ...o });
-const bar = (x1: number, y1: number, x2: number, y2: number, t: number, tone: string, sc: number[][], o: O = {}) =>
-  mk((x1 + x2) / 2, (y1 + y2) / 2, Math.hypot(x2 - x1, y2 - y1) / 2 + t, t, Math.atan2(y2 - y1, x2 - x1), t, tone, sc, o);
-const plate = (cx: number, cy: number, w: number, h: number, a: number, rr: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, w / 2, h / 2, a, rr, tone, sc, o);
-const disc = (cx: number, cy: number, r: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, r, r, 0, r, tone, sc, o);
-
-export interface StageDef { /** 판 고유 번호(✏️ S009, 📋 M2): 칠 씨앗 · PICKS · pick.ts VALUE/CAP/SCAN을 이 번호로 찾는다 — 판 순서를 바꿔도 칠이 같다. M1′ 8판 = 0~7 */ id: number; key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; /** 첫 판 손가락이 가리킬 나사 번호(판자 목록 순서로 0부터) */ first?: number; /** ★3을 '한 방 H 이상'으로 (톡 한 번에 빠진 나사 수) */ H?: number; /** 🔑 태엽(M1′ S004): 열쇠 나사를 빼면 남은 🔒가 왼쪽부터 한꺼번에 튀어나온다 */ wind?: boolean; /** 🔨 겹별(📐 S003): ★2 = 쾅 B번 이상, ★3 = ★2 + 빈칸 P칸까지 */ B?: number; /** ★2는 땄고 ★3을 놓쳤을 때 💡 */ tip2?: string; /** 🪵 통나무가 떨어져야 풀리는 나사 3개(늦은 무리)를 한 색으로 칠하고 그 색 상자를 queue[late]에 — 통나무 나사 색은 첫 상자 (📐 2판) */ late?: number; /** 🌻 꽃 머리 장전 칠하기(📐 S005 5판): 상자 [B, X, A, C, D] · 꽃 머리 = A · 꽃잎 안쪽 셋 = X(📐 S008) · 꽃잎 바깥 = A·B·C */ bloom?: boolean; /** 🦕 진자 드러내기 칠하기(📐 S006 6판): 둘째 🌀의 '남길' 나사 = 첫 상자 색(버릇이 먼저 뺀다) · '뺄' 나사 = 둘째 상자 색 */ swing?: boolean; toy(): Src[] }
-
-const GIR = '#f4bf4a', GIR2 = '#e7a93a', DINO = '#52b66c', DINO2 = '#3f9a58', BLADE = '#fff6e6', STONE = '#b9aea0', STONE2 = '#a69a8b', GLASS = '#cfe9ff';
-export const STAGES: StageDef[] = [
-  {
-    // 📐 CONTENT.md M1′ 1판 (S001): 기린은 망치 장난감 — 머리·꼬리·몸통이 각각 망치. "칠 나사 바로 위 나사를 남기면 끄덕 쾅"
-    id: 0, key: 'giraffe', name: '기린', emoji: '🦒', news: '🔩 나사를 톡 → 같은 색 상자로 쏙!', tip: '🔨 망치 옆 나사를 먼저 톡 → 끄덕 쾅!', boxes: 2, colors: 3, P: 0, C: 6, T: 6, B: 3, first: 8, tip2: '📦 칠 나사 색 상자가 열렸을 때 망치를 톡',
-    // 나사 번호: #0 뒷다리 · #1 앞다리 · #2 #3 몸통(왼·오른) · #4 #5 꼬리(뿌리·끝) · #6 목 · #7 #8 머리(뒤통수·주둥이)
-    // 판자 순서 = 겹침 순서(뒤가 위). 다리·목은 나사가 무게중심 바로 위라 처음부터 돌지 않는다.
-    toy: () => [
-      bar(0.35, 0.93, 0.35, 1.12, 0.036, GIR2, [[0.35, 1.0]], { deco: 'hoof' }),
-      bar(0.69, 0.93, 0.69, 1.12, 0.036, GIR2, [[0.69, 0.99]], { deco: 'hoof' }),
-      plate(0.52, 0.875, 0.4, 0.15, 0, 0.07, GIR, [[0.45, 0.86], [0.62, 0.86]], { deco: 'spots', ham: [0.5, 0.95] }),
-      bar(0.37, 0.845, 0.25, 0.775, 0.022, GIR2, [[0.355, 0.84], [0.265, 0.784]], { deco: 'tail', ham: [0.24, 0.77] }),
-      bar(0.7, 0.84, 0.7, 0.6, 0.042, GIR, [[0.7, 0.655]], { deco: 'spots' }),
-      plate(0.78, 0.5, 0.22, 0.1, -0.2, 0.045, GIR, [[0.71, 0.515], [0.85, 0.485]], { deco: 'gHead', ham: [0.875, 0.48] }),
-    ],
-  },
-  {
-    // 📐 CONTENT.md M1′ 2판 (S002): 돛단배는 통나무 장난감 — 🪵 활대가 떨어지면 밑에 매달린 돛을 와르르. "돛은 나사 하나만 남겨 매달고, 활대는 마지막에"
-    id: 1, key: 'boat', name: '돛단배', emoji: '⛵', news: '🪵 활대는 통나무 — 떨어지면 밑에 매달린 판자를 와르르!', tip: '🪵 돛은 나사 하나만 남겨 매달고, 활대는 마지막에!', boxes: 2, colors: 4, P: 1, C: 6, H: 3, late: 2,
-    // 나사 번호: #0 #1 선체(위·아래) · #2 #3 돛대(꼭대기·활대 밑) · #4~#6 작은 돛(위·가운데·아래) · #7~#10 큰 돛(위→아래) · #11 활대 한가운데(방아쇠)
-    // 판자 순서 = 겹침 순서(뒤가 위). 활대가 #3을, 돛대가 선체 #0 #1을 누른다 → 셋은 활대가 떨어진 뒤에만 풀린다(늦은 무리 = 한 색, 셋째 상자).
-    // 와르르 과녁은 돛 둘뿐: 돛대 나사는 둘 다 활대 중심(0.56)보다 위, 선체는 와르르 때 늘 나사 2개. 돛 나사는 좌우로 엇갈려 매달리면 기우뚱(14°)·빙글(37~170°).
-    toy: () => [
-      plate(0.5, 1.04, 0.62, 0.12, 0, 0.05, '#e2574c', [[0.5, 1.005], [0.5, 1.075]], { deco: 'port' }),
-      bar(0.46, 0.4, 0.46, 1.08, 0.03, '#8a5a3b', [[0.46, 0.425], [0.46, 0.52]]),
-      plate(0.3, 0.765, 0.2, 0.3, 0, 0.035, '#ffd166', [[0.27, 0.65], [0.33, 0.76], [0.27, 0.87]], { deco: 'sail' }),
-      plate(0.67, 0.76, 0.26, 0.34, 0, 0.035, '#fbf3e4', [[0.64, 0.64], [0.7, 0.72], [0.64, 0.8], [0.69, 0.87]], { deco: 'sail' }),
-      bar(0.23, 0.56, 0.85, 0.56, 0.028, '#a8743f', [[0.54, 0.56]], { heavy: true }),
-    ],
-  },
-  {
-    // 📐 CONTENT.md M1′ 3판 (S004): 🚂 태엽 기차 — 🔑 태엽 열쇠를 빼면 🔒 바퀴 4개가 왼쪽부터 한꺼번에 튀어나온다
-    id: 2, key: 'train', name: '태엽 기차', emoji: '🚂', news: '🔑 태엽 열쇠 — 빼면 🔒 바퀴가 한꺼번에 튀어나와요!', tip: '🔑 🔒 바퀴 색 상자가 다 열렸을 때 열쇠를 톡!', tip2: '🔑 바퀴 색 상자 둘이 같이 열릴 때까지 아껴요', boxes: 2, colors: 5, P: 2, C: 13, wind: true,
-    // 나사 번호: #0 레일 · #1~#3 보일러(왼·가운데·오른) · #4 #5 운전실(위·아래) · #6 #7 굴뚝(위·아래) · #8 앞 등 · #9 증기 돔 · #10 🔑 태엽 열쇠 · #11~#14 🔒 바퀴(왼→오른)
-    // 판자 순서 = 겹침 순서(뒤가 위). 태엽 열쇠 판자가 운전실 위 나사 #4를 누른다(열쇠를 빼야 #4가 풀린다).
-    toy: () => [
-      bar(0.12, 1.125, 0.88, 1.125, 0.022, '#7d7f86', [[0.5, 1.125]], { deco: 'rail' }),
-      plate(0.52, 0.9, 0.44, 0.15, 0, 0.07, '#2f6fd6', [[0.37, 0.9], [0.52, 0.93], [0.67, 0.9]], { deco: 'boiler' }),
-      plate(0.22, 0.82, 0.2, 0.3, 0, 0.03, '#e2574c', [[0.22, 0.74], [0.22, 0.9]], { deco: 'window' }),
-      bar(0.66, 0.83, 0.66, 0.6, 0.032, '#3a3a44', [[0.66, 0.64], [0.66, 0.76]], { deco: 'chimney' }),
-      plate(0.83, 0.93, 0.1, 0.12, 0, 0.03, '#ffcf3a', [[0.83, 0.93]], { deco: 'lamp' }),
-      disc(0.47, 0.79, 0.045, '#f7c531', [[0.47, 0.79]], { deco: 'hub' }),
-      plate(0.22, 0.655, 0.13, 0.15, 0, 0.04, '#ffd23a', [[0.22, 0.62]], { deco: 'windkey', key: 0 }),
-      disc(0.24, 1.035, 0.05, '#3a3a44', [[0.24, 1.035]], { deco: 'wheel', lock: [0] }),
-      disc(0.41, 1.035, 0.05, '#3a3a44', [[0.41, 1.035]], { deco: 'wheel', lock: [0] }),
-      disc(0.59, 1.035, 0.05, '#3a3a44', [[0.59, 1.035]], { deco: 'wheel', lock: [0] }),
-      disc(0.76, 1.035, 0.05, '#3a3a44', [[0.76, 1.035]], { deco: 'wheel', lock: [0] }),
-    ],
-  },
-  {
-    // 📐 CONTENT.md M1′ 4판 (S004 · S008 연쇄): 🌬️ 풍차 — 아래 날개 둘은 📌 못 날개(다 풀면 못에 매달려 영영 가림) + 날개 끝 🔨(매달리는 순간 🎯를 쾅)
-    id: 3, key: 'mill', name: '풍차', emoji: '🌬️', news: '📌 못 날개 — 다 풀어도 못에 매달려 계속 가려요', tip: '📌 꾹 눌러 ⚠ 뜨는 나사는 맨 나중에!', tip2: '🎯 망치가 칠 나사는 손으로 빼지 말고 남겨요', boxes: 2, colors: 4, P: 2, C: 6, T: 11,
-    // 나사 번호: #0 탑 가운데(⚠ 두 못 날개가 다 덮는 자리) · #1 #2 탑 🎯(왼·오른 날개 끝 🔨가 칠 곳) · #3 #4 지붕(왼·오른) · #5 문
-    //   · #6 #7 왼쪽 위 날개(안·끝) · #8 #9 오른쪽 위 날개 · #10 #11 📌 왼쪽 아래 날개 · #12 #13 📌 오른쪽 아래 날개 · #14 축
-    // 위 날개 둘은 보통 판자(다 풀면 덜컹). 아래 날개 둘은 축 테두리의 제 못(0.06 안쪽)에 매달려 바로 아래로 — 끝 🔨가 🎯(#1·#2)를 쾅.
-    // 📐 S008 연쇄: 왼쪽 위 날개 🔨(축 쪽 끝) — 안 #6(아래)을 빼서 끝 #7(위)에 매달면 45° 내려와 #11을 쾅 → #10이 먼저 빠져 있으면 📌 날개가 매달려 #1 쾅(쏙 한 방 3).
-    //   버릇(위부터)은 #7을 먼저 빼서 #6에 매단다 → 135° 위로 돌아 💨(진자 결정). 탑 🔨(오른 벽): 탑이 #1에 매달리면(오른쪽 🎯 먼저) 문 #5를 쾅. 쾅 넷 = 톡 11
-    toy: () => [
-      plate(0.5, 0.93, 0.3, 0.4, 0, 0.03, '#d98b5f', [[0.5, 0.86], [0.44, 0.88], [0.56, 0.88]], { deco: 'brick', ham: [0.65, 0.93] }),
-      plate(0.5, 0.715, 0.42, 0.08, 0, 0.03, '#8e4b3a', [[0.35, 0.715], [0.65, 0.715]], { deco: 'roof' }),
-      plate(0.5, 1.07, 0.11, 0.13, 0, 0.05, '#6b4430', [[0.5, 1.035]], { deco: 'door' }),
-      ...[-1, 1].map((sx) => bar(0.5, 0.61, 0.5 + 0.2 * sx, 0.41, 0.04, BLADE, [[0.5 + 0.08 * sx, 0.53], [0.5 + 0.19 * sx, 0.42]], { deco: 'blade', ham: sx < 0 ? [0.555, 0.665] : undefined })),
-      ...[-1, 1].map((sx) => bar(0.5, 0.61, 0.5 + 0.2 * sx, 0.81, 0.04, BLADE, [[0.5 + 0.1 * sx, 0.71], [0.5 + 0.175 * sx, 0.785]], { kind: 'nail', nail: [0.5 + 0.0424 * sx, 0.6524], ham: [0.5 + 0.2 * sx, 0.81], deco: 'blade' })),
-      disc(0.5, 0.61, 0.058, '#c9503e', [[0.5, 0.61]], { deco: 'hub' }),
-    ],
-  },
-  {
-    // 📐 CONTENT.md M1′ 5판 (S005): 🌻 해바라기 — 🪵 꽃 머리(통나무)가 떨어지면 밑에 매달린 꽃잎을 우수수 + 🪟 유리 화병(비쳐도 막음)
-    id: 4, key: 'flower', name: '해바라기', emoji: '🌻', news: '🌻 꽃 머리는 통나무 — 매달린 꽃잎을 우수수!', tip: '🌻 꽃잎 셋을 매단 뒤 꽃 머리를 톡!', tip2: '🌻 꽃잎은 바깥 나사부터 — 안쪽에 매달아야 우수수', boxes: 2, colors: 5, P: 1, C: 8, H: 4, bloom: true,
-    // 나사 번호: #0 #1 줄기(위·🪟 밑) · #2 #3 왼 잎(끝·밑동) · #4 #5 오른 잎(밑동·끝) · #6 #7 🪟 화병(왼·오른) · #8 #9 왼 꽃잎(안·바깥) · #10 #11 가운데 꽃잎 · #12 #13 오른 꽃잎 · #14 🪵 꽃 머리(방아쇠)
-    // 판자 순서 = 겹침 순서(뒤가 위). 꽃 머리는 가운데 꽃잎 안쪽 #10만 덮는다(가운데는 바깥 #11부터 — 강제).
-    // 📐 S008 진자: 양옆 꽃잎은 두 나사가 다 풀려 있다 — 안쪽(#8 #12, 더 위 · X 상자가 열려 있어 '맞는 색')을 남겨야 축이 폭 안.
-    //   버릇(맞는 색 → 위)은 안쪽을 먼저 빼서 바깥(#9 #13) 축으로 매단다 → 폭 밖이라 우수수에 안 맞고, 왼쪽은 잎 #3을 덮는다.
-    // 우수수 과녁 = 꽃 머리 폭(±0.085) 안·아래에 매달린 판자: 꽃잎 셋(안쪽 축)과 줄기. 잎은 축이 폭 밖이라 안 맞는다.
-    toy: () => [
-      bar(0.5, 0.7, 0.5, 1.12, 0.026, '#3f9d4a', [[0.5, 0.87], [0.5, 1.0]]),
-      plate(0.33, 0.88, 0.22, 0.08, -0.42, 0.04, '#58b85e', [[0.27, 0.905], [0.38, 0.86]], { deco: 'leaf' }),
-      plate(0.67, 0.95, 0.22, 0.08, 0.42, 0.04, '#4fae55', [[0.62, 0.93], [0.73, 0.975]], { deco: 'leaf' }),
-      plate(0.5, 1.07, 0.3, 0.15, 0, 0.05, GLASS, [[0.4, 1.07], [0.6, 1.07]], { kind: 'glass' }),
-      ...[135, 90, 45].map((deg, j) => {
-        const c = Math.cos((deg * Math.PI) / 180), sn = Math.sin((deg * Math.PI) / 180), at = (r: number) => [0.5 + r * c, 0.56 + r * sn];
-        return bar(0.5 + 0.04 * c, 0.56 + 0.04 * sn, 0.5 + 0.21 * c, 0.56 + 0.21 * sn, 0.042, j === 1 ? '#ffcf3a' : '#ffbe2e', [at(j === 1 ? 0.095 : 0.112), at(0.18)], { deco: 'petal' }); // 📐 S008: 양옆 안쪽 r 0.112 = 꽃 머리 밖(뺄 수 있음)·폭 안(우수수)
-      }),
-      disc(0.5, 0.56, 0.085, '#7a4a2a', [[0.5, 0.56]], { deco: 'seeds', heavy: true }),
-    ],
-  },
-  {
-    // 📐 CONTENT.md M1′ 6판 (S006): 🦕 공룡 — 🌀 → 🌀 연쇄 1단. 등 가시 🌀(둘째)가 꼬리뿌리 🌀(첫째)의 나사를 덮는다.
-    //   등 가시의 어느 나사를 남겨 매다느냐(진자)가 첫째 🌀를 드러내느냐 가리느냐를 정한다. "가시가 비켜 가게 매달고, 꼬리뿌리 🌀를 톡"
-    id: 5, key: 'dino', name: '공룡', emoji: '🦕', news: '🌀 스프링이 스프링을 튕겨요 — 띠용 띠용!', tip: '🦕 꼬리 쪽 가시 나사부터 빼고 🌀를 톡!', tip2: '🦕 가시가 🌀를 덮으면 띠용이 하나 줄어요', boxes: 2, colors: 6, P: 2, C: 5, T: 16, swing: true,
-    // 나사 번호: #0~#2 꼬리(뿌리→끝) · #3 #4 뒷다리 · #5 #6 앞다리 · #7~#9 몸통 · #10~#12 목(밑→위) · #13 #14 머리(뒤·주둥이) · #15 🌀 꼬리뿌리(→ 등 가시) · #16 #17 🌀 등 가시(왼·오른, → 머리)
-    toy: () => [
-      bar(0.32, 0.85, 0.15, 0.7, 0.042, DINO, [[0.31, 0.845], [0.235, 0.775], [0.17, 0.715]], { deco: 'spots' }),
-      bar(0.4, 0.93, 0.4, 1.1, 0.04, DINO2, [[0.4, 0.945], [0.4, 1.07]], { deco: 'hoof' }),
-      bar(0.62, 0.93, 0.62, 1.1, 0.04, DINO2, [[0.62, 0.945], [0.62, 1.07]], { deco: 'hoof' }),
-      plate(0.51, 0.83, 0.42, 0.2, 0, 0.08, DINO, [[0.42, 0.88], [0.535, 0.76], [0.6, 0.76]], { deco: 'spots' }),
-      bar(0.68, 0.81, 0.8, 0.58, 0.045, DINO, [[0.7, 0.765], [0.74, 0.695], [0.775, 0.625]]),
-      plate(0.84, 0.53, 0.17, 0.09, -0.15, 0.04, DINO, [[0.805, 0.54], [0.885, 0.525]], { deco: 'dHead' }),
-      plate(0.37, 0.77, 0.08, 0.08, Math.PI / 4, 0.02, '#ff8a5b', [[0.37, 0.77]], { kind: 'spring', tgt: 7, deco: 'spike' }),
-      bar(0.31, 0.72, 0.65, 0.71, 0.032, '#ff8a5b', [[0.37, 0.72], [0.57, 0.712]], { kind: 'spring', tgt: 5, deco: 'spike' }),
-    ],
-  },
-  {
-    // 📐 S007 7판 🏰 성: 겹겹이 덮기 — 지붕 → 탑 위 · 창 → 탑 아래 · 문 → 벽 아래 둘 · 깃발 → 깃대 위 · 🪟 큰 창(나사 둘) → 벽 가운데 둘(#2 #3)
-    //   큰 창을 어느 나사에 매다느냐(진자)가 #2(⏰)를 드러내느냐 덮느냐를 정한다. "⏰ 색 상자가 마감 톡에 열려 있게 앞 상자를 먼저 닫는다"
-    id: 6, key: 'castle', name: '성', emoji: '🏰', news: '⏰ 째깍 나사 — 숫자만큼 톡 안에 안 빼면 혼자 튀어나와요', tip: '⏰ 숫자 = 남은 톡 — 0이 되면 혼자 튀어나와요', tip2: '⏰ 색 상자가 마감에 열리게 앞 상자부터 닫아요', boxes: 2, colors: 6, P: 1, C: 18,
-    // 나사 번호: #0 #1 벽 아래(왼·오른, 🚪 밑) · #2 #3 벽 가운데(왼 ⏰·오른, 🪟 밑) · #4 #5 왼 탑(위·아래) · #6 #7 오른 탑 · #8 문 · #9 #10 지붕(왼·오른)
-    //   · #11 #12 🪟 큰 창(왼·오른) · #13 #14 깃대(밑·위) · #15 깃발 · #16 #17 🪟 탑 창(왼·오른)
-    toy: () => [
-      plate(0.5, 0.97, 0.56, 0.26, 0, 0.02, STONE, [[0.425, 1.05], [0.575, 1.05], [0.44, 0.885], [0.56, 0.885]], { deco: 'brick', tick: [[2, 6]] }),
-      plate(0.2, 0.8, 0.15, 0.46, 0, 0.02, STONE2, [[0.2, 0.665], [0.2, 0.95]], { deco: 'brick' }),
-      plate(0.8, 0.8, 0.15, 0.46, 0, 0.02, STONE2, [[0.8, 0.665], [0.8, 0.95]], { deco: 'brick' }),
-      plate(0.5, 1.045, 0.16, 0.15, 0, 0.075, '#6b4430', [[0.5, 1.03]], { deco: 'door' }),
-      plate(0.2, 0.585, 0.13, 0.13, Math.PI / 4, 0.02, '#4b7bd6', [[0.2, 0.585]], { deco: 'roofT' }),
-      plate(0.8, 0.585, 0.13, 0.13, Math.PI / 4, 0.02, '#4b7bd6', [[0.8, 0.585]], { deco: 'roofT' }),
-      plate(0.5, 0.8, 0.28, 0.14, 0, 0.03, GLASS, [[0.4, 0.795], [0.6, 0.805]], { kind: 'glass' }),
-      bar(0.5, 0.7, 0.5, 0.48, 0.022, '#7a5a3a', [[0.5, 0.685], [0.5, 0.51]]),
-      plate(0.58, 0.5, 0.15, 0.08, 0, 0.02, '#ef4b6a', [[0.58, 0.5]], { deco: 'flag' }),
-      plate(0.2, 0.86, 0.09, 0.14, 0, 0.03, GLASS, [[0.2, 0.86]], { kind: 'glass' }),
-      plate(0.8, 0.86, 0.09, 0.14, 0, 0.03, GLASS, [[0.8, 0.86]], { kind: 'glass' }),
-    ],
-  },
-  {
-    // 📐 S007 8판 🚀 로켓 — 🔑 발사 태엽(🔒 5) + 🌀 지느러미가 해치를 친다. 해치(나사 둘)가 🔑를 덮는다:
-    //   어느 해치 나사를 남겨 매다느냐(진자)가 🔑를 드러내며 🌀가 칠 나사를 남겨 두고, 상자 둘이 맞을 때 🔑를 톡 → 쏙 한 방 7
-    id: 7, key: 'rocket', name: '로켓', emoji: '🚀', news: '🚀 발사! 🔑 하나로 🔒 다섯이 한꺼번에', tip: '🚀 해치를 매달아 🔑를 드러내요 — 꾹 눌러 봐요', tip2: '🚀 🔒 색 상자 둘이 열릴 때까지 🔑를 아껴요', boxes: 2, colors: 6, P: 2, C: 6, H: 7, wind: true,
-    // 나사 번호: #0 #1 발사대 · #2~#5 몸통(위·창 밑·🔒왼·🔒오른) · #6 🔒 불꽃 · #7 🔒 🌀 왼 날개(→ 해치) · #8 🔒 오른 날개 · #9 #10 왼 부스터 · #11 #12 오른 부스터 · #13 🪟 창 · #14 코 · #15 🔑 · #16 #17 해치(왼·오른)
-    toy: () => [
-      plate(0.5, 1.125, 0.62, 0.055, 0, 0.0275, '#7d7f86', [[0.25, 1.125], [0.75, 1.125]], { deco: 'rail' }),
-      plate(0.5, 0.8, 0.26, 0.52, 0, 0.12, '#eef1f6', [[0.5, 0.585], [0.5, 0.83], [0.445, 0.98], [0.555, 0.98]], { lock: [2, 3] }),
-      bar(0.5, 1.035, 0.5, 1.12, 0.04, '#ff9f2b', [[0.5, 1.075]], { deco: 'flame', lock: [0] }),
-      plate(0.28, 0.97, 0.12, 0.2, -0.35, 0.04, '#ef4b4b', [[0.285, 0.95]], { kind: 'spring', tgt: 10, lock: [0] }),
-      plate(0.72, 0.97, 0.12, 0.2, 0.35, 0.04, '#ef4b4b', [[0.715, 0.95]], { lock: [0] }),
-      bar(0.2, 0.66, 0.2, 0.92, 0.035, '#3b82f6', [[0.2, 0.7], [0.2, 0.88]], { deco: 'stripe' }),
-      bar(0.8, 0.66, 0.8, 0.92, 0.035, '#3b82f6', [[0.8, 0.7], [0.8, 0.88]], { deco: 'stripe' }),
-      disc(0.5, 0.815, 0.065, GLASS, [[0.5, 0.79]], { kind: 'glass' }),
-      plate(0.5, 0.49, 0.15, 0.15, Math.PI / 4, 0.035, '#ef4b4b', [[0.5, 0.49]], { deco: 'nose' }),
-      plate(0.56, 0.745, 0.1, 0.08, 0, 0.03, '#ffd23a', [[0.56, 0.745]], { deco: 'windkey', key: 0 }),
-      plate(0.51, 0.7, 0.24, 0.12, 0, 0.03, '#f7c531', [[0.42, 0.68], [0.6, 0.685]], { deco: 'door' }),
-    ],
-  },
-];
+// ───────────────────────────── 장난감(판): stages.ts ─────────────────────────────
+export { STAGES };
+export type { StageDef, Src };
 export const STAGE_COUNT = STAGES.length;
 
 // ───────────────────────────── 판 미리 계산 ─────────────────────────────
@@ -222,31 +69,72 @@ function boxSd(x: number, y: number, hx: number, hy: number, rr: number) {
   const qx = Math.abs(x) - (hx - rr), qy = Math.abs(y) - (hy - rr);
   return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - rr;
 }
-/** 조각 하나까지(판자 로컬 x,y) */
-function partSd(q: Part, x: number, y: number) {
-  if (q[0] === 'c') return Math.hypot(x - q[1], y - q[2]) - q[3];
-  if (q[0] === 's') {
-    const ux = q[3] - q[1], uy = q[4] - q[2], h = Math.max(0, Math.min(1, ((x - q[1]) * ux + (y - q[2]) * uy) / (ux * ux + uy * uy || 1)));
-    return Math.hypot(x - q[1] - ux * h, y - q[2] - uy * h) - q[5];
+/** 실루엣 조각(🎨 ART M2 §1): 종류 + 수(판 좌표 · 각은 라디안). P는 화면에서 시계 방향으로 맞춘다(nonzero 채움 = 합집합) */
+interface Pc { t: string; n: number[] }
+const pcCache = new Map<string, Pc[]>();
+function piecesOf(P: Src): Pc[] {
+  if (!P.parts) return [];
+  let v = pcCache.get(P.parts);
+  if (!v) {
+    v = P.parts.split(';').map((s) => {
+      const [t, ...a] = s.trim().split(/\s+/), deg = t === 'B' ? 5 : t === 'E' ? 4 : -1, n = a.map((x, i) => (i === deg ? (+x * Math.PI) / 180 : +x * 0.005));
+      if (t === 'P') {
+        let ar = 0;
+        for (let i = 1; i < n.length; i += 2) { const j = i + 2 < n.length ? i + 2 : 1; ar += n[i] * n[j + 1] - n[j] * n[i + 1]; }
+        if (ar < 0) for (let i = 1, j = n.length - 2; i < j; i += 2, j -= 2) [n[i], n[i + 1], n[j], n[j + 1]] = [n[j], n[j + 1], n[i], n[i + 1]];
+      }
+      return { t, n };
+    });
+    pcCache.set(P.parts, v);
   }
-  const dx = x - q[1], dy = y - q[2], c = Math.cos(q[6]), s = Math.sin(q[6]);
-  return boxSd(dx * c + dy * s, -dx * s + dy * c, q[3], q[4], Math.min(q[5], q[3], q[4]));
+  return v;
 }
-/** 자세 q의 판자 P 몸통까지(안쪽이면 음수) — 조각이 있으면 합집합(가장 가까운 조각) */
+/** 선분 (ax,ay)-(bx,by)까지 거리 */
+function segD(x: number, y: number, ax: number, ay: number, bx: number, by: number) {
+  const ux = bx - ax, uy = by - ay, h = Math.max(0, Math.min(1, ((x - ax) * ux + (y - ay) * uy) / (ux * ux + uy * uy || 1)));
+  return Math.hypot(x - ax - ux * h, y - ay - uy * h);
+}
+/** 조각 하나까지(판자 로컬 x,y — 안쪽이면 음수) */
+function pcSd({ t, n }: Pc, x: number, y: number) {
+  if (t === 'O') return Math.hypot(x - n[0], y - n[1]) - n[2];
+  if (t === 'C') return segD(x, y, n[0], n[1], n[2], n[3]) - n[4];
+  if (t === 'W') { // 굵기가 변하는 캡슐(🎨 식)
+    const L = Math.hypot(n[3] - n[0], n[4] - n[1]) || 1e-9, ux = (n[3] - n[0]) / L, uy = (n[4] - n[1]) / L, dx = x - n[0], dy = y - n[1];
+    const px = Math.abs(ux * dy - uy * dx), py = ux * dx + uy * dy, s = (n[2] - n[5]) / L, c = Math.sqrt(Math.max(0, 1 - s * s)), k = c * py - s * px;
+    return k < 0 ? Math.hypot(px, py) - n[2] : k > c * L ? Math.hypot(px, py - L) - n[5] : c * px + s * py - n[2];
+  }
+  if (t === 'P') { // 볼록 뼈대를 r만큼 부풀린 다각형
+    let d = 1e9, inside = true;
+    for (let i = 1; i < n.length; i += 2) {
+      const j = i + 2 < n.length ? i + 2 : 1;
+      d = Math.min(d, segD(x, y, n[i], n[i + 1], n[j], n[j + 1]));
+      if ((n[j] - n[i]) * (y - n[i + 1]) - (n[j + 1] - n[i + 1]) * (x - n[i]) < 0) inside = false;
+    }
+    return (inside ? -d : d) - n[0];
+  }
+  const a = n[t === 'E' ? 4 : 5] ?? 0, dx = x - n[0], dy = y - n[1], c = Math.cos(a), s = Math.sin(a), lx = dx * c + dy * s, ly = -dx * s + dy * c;
+  if (t === 'E') { const k0 = Math.hypot(lx / n[2], ly / n[3]), k1 = Math.hypot(lx / (n[2] * n[2]), ly / (n[3] * n[3])); return (k0 * (k0 - 1)) / Math.max(k1, 1e-9); }
+  return boxSd(lx, ly, n[2], n[3], Math.min(n[4], n[2], n[3]));
+}
+/** 테스트용(✏️ S010 실루엣 회색 띠 · 기울기) */
+export { bodySd, comOf };
+/** 자세 q의 판자 P 몸통까지(안쪽이면 음수) — 조각이 있으면 합집합(본체 둥근 네모 + 덧조각, m2면 조각만) */
 function bodySd(P: Src, q: { cx: number; cy: number; a: number }, px: number, py: number) {
   if (!P.parts) return sdf(q.cx, q.cy, q.a, P.hx, P.hy, P.rr, px, py);
   const dx = px - q.cx, dy = py - q.cy, c = Math.cos(q.a), s = Math.sin(q.a), x = dx * c + dy * s, y = -dx * s + dy * c;
-  return Math.min(...P.parts.map((r) => partSd(r, x, y)));
+  let d = P.m2 ? 1e9 : boxSd(x, y, P.hx, P.hy, P.rr);
+  for (const pc of piecesOf(P)) d = Math.min(d, pcSd(pc, x, y));
+  return d;
 }
-/** 무게중심(작업판 좌표): 조각이 없으면 가운데 · 있으면 합집합 넓이 가중(0.004 격자 표본, 결정적) */
+/** 무게중심(작업판 좌표): 덧조각 판자(M1′)는 본체 가운데 그대로 · m2는 조각 합집합 넓이 가중(0.005 격자 칸 가운데, 결정적 — 🎨 §2) */
 function comOf(P: Src): [number, number] {
-  if (!P.parts) return [P.cx, P.cy];
-  const e = Math.hypot(P.hx, P.hy), n = Math.ceil(e / 0.004);
+  if (!P.parts || !P.m2) return [P.cx, P.cy];
+  const n = Math.ceil(Math.hypot(P.hx, P.hy) / 0.005), pcs = piecesOf(P);
   let sx = 0, sy = 0, m = 0;
-  for (let i = -n; i <= n; i++)
-    for (let j = -n; j <= n; j++) {
-      const x = i * 0.004, y = j * 0.004;
-      if (Math.min(...P.parts.map((r) => partSd(r, x, y))) < 0) (sx += x), (sy += y), m++;
+  for (let i = -n; i < n; i++)
+    for (let j = -n; j < n; j++) {
+      const x = (i + 0.5) * 0.005, y = (j + 0.5) * 0.005;
+      if (Math.min(...pcs.map((pc) => pcSd(pc, x, y))) < 0) (sx += x), (sy += y), m++;
     }
   const lx = m ? sx / m : 0, ly = m ? sy / m : 0, c = Math.cos(P.a), s = Math.sin(P.a);
   return [P.cx + lx * c - ly * s, P.cy + lx * s + ly * c];
@@ -762,7 +650,7 @@ function newStage(s: ShopState) {
   s.got = 0;
   setMood(s, 'idle');
   see(s, d.key, d.news);
-  ev(s, 'stage', 0.5, 0.7, `${s.stage + 1}판 · ${d.name}`, '#fff6d6');
+  ev(s, 'stage', 0.5, 0.7, `${d.slot} · ${d.name}`, '#fff6d6');
 }
 
 /** 스튜디오: 측정·테스트용 — 아무 판에서나 시작(새 판을 깐다) */
@@ -2108,15 +1996,24 @@ function pill(ctx: CanvasRenderingContext2D, x: number, y: number, lab: string, 
 }
 function plankPath(ctx: CanvasRenderingContext2D, P: Src, R: (r: number) => number) {
   ctx.beginPath();
-  if (!P.parts) return ctx.roundRect(-R(P.hx), -R(P.hy), R(P.hx * 2), R(P.hy * 2), R(P.rr));
-  for (const q of P.parts) { // 조각마다 하위 경로 — 채우기(nonzero)가 합집합이 된다
-    ctx.save();
-    if (q[0] === 'c') ctx.moveTo(R(q[1] + q[3]), R(q[2])), ctx.arc(R(q[1]), R(q[2]), R(q[3]), 0, 7);
-    else {
-      const [x, y, hx, hy, rr, a] = q[0] === 's' ? [(q[1] + q[3]) / 2, (q[2] + q[4]) / 2, Math.hypot(q[3] - q[1], q[4] - q[2]) / 2 + q[5], q[5], q[5], Math.atan2(q[4] - q[2], q[3] - q[1])] : q.slice(1) as number[];
-      ctx.translate(R(x), R(y)), ctx.rotate(a), ctx.roundRect(-R(hx), -R(hy), R(hx * 2), R(hy * 2), R(Math.min(rr, hx, hy)));
+  if (!P.m2) ctx.roundRect(-R(P.hx), -R(P.hy), R(P.hx * 2), R(P.hy * 2), R(P.rr));
+  for (const { t, n } of piecesOf(P)) { // 조각마다 시계 방향 하위 경로 — nonzero 채움이 합집합 (🎨 §1)
+    if (t === 'O') ctx.moveTo(R(n[0] + n[2]), R(n[1])), ctx.arc(R(n[0]), R(n[1]), R(n[2]), 0, TAU);
+    else if (t === 'E') ctx.moveTo(R(n[0]) + R(n[2]) * Math.cos(n[4] ?? 0), R(n[1]) + R(n[2]) * Math.sin(n[4] ?? 0)), ctx.ellipse(R(n[0]), R(n[1]), R(n[2]), R(n[3]), n[4] ?? 0, 0, TAU);
+    else if (t === 'B') ctx.save(), ctx.translate(R(n[0]), R(n[1])), ctx.rotate(n[5] ?? 0), ctx.roundRect(-R(n[2]), -R(n[3]), R(n[2] * 2), R(n[3] * 2), R(Math.min(n[4], n[2], n[3]))), ctx.restore();
+    else if (t === 'P') {
+      const v: number[][] = [];
+      for (let i = 1; i < n.length; i += 2) v.push([n[i], n[i + 1]]);
+      const ang = (a: number[], b: number[]) => Math.atan2(-(b[0] - a[0]), b[1] - a[1]); // 변 a→b의 바깥 법선 각
+      const a0 = ang(v[v.length - 1], v[0]);
+      ctx.moveTo(R(v[0][0]) + R(n[0]) * Math.cos(a0), R(v[0][1]) + R(n[0]) * Math.sin(a0));
+      v.forEach((p, i) => ctx.arc(R(p[0]), R(p[1]), R(n[0]), ang(v[(i + v.length - 1) % v.length], p), ang(p, v[(i + 1) % v.length])));
+      ctx.closePath();
+    } else { // C · W
+      const [x1, y1, r1, x2, y2, r2] = t === 'C' ? [n[0], n[1], n[4], n[2], n[3], n[4]] : n, th = Math.atan2(y2 - y1, x2 - x1), f = Math.asin(Math.max(-1, Math.min(1, (r1 - r2) / (Math.hypot(x2 - x1, y2 - y1) || 1e-9))));
+      ctx.moveTo(R(x1) + R(r1) * Math.cos(th + Math.PI / 2 + f), R(y1) + R(r1) * Math.sin(th + Math.PI / 2 + f));
+      ctx.arc(R(x1), R(y1), R(r1), th + Math.PI / 2 + f, th + (3 * Math.PI) / 2 - f), ctx.arc(R(x2), R(y2), R(r2), th - Math.PI / 2 - f, th + Math.PI / 2 + f), ctx.closePath();
     }
-    ctx.restore();
   }
 }
 
@@ -2237,8 +2134,9 @@ function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: {
     g.addColorStop(0, mix(P.tone, '#ffffff', 0.28));
     g.addColorStop(0.5, P.tone);
     g.addColorStop(1, mix(P.tone, '#000000', 0.16));
-    ctx.fillStyle = g;
     plankPath(ctx, P, R);
+    if (P.parts) (ctx.strokeStyle = mix(P.tone, '#000000', 0.45)), (ctx.lineWidth = 2.4), ctx.stroke(); // 🎨 §2: 조각 몸통은 테두리를 먼저 2배로 — 앞면이 안쪽 반과 이음매를 덮는다
+    ctx.fillStyle = g;
     ctx.fill();
     ctx.save();
     ctx.clip();
@@ -2262,10 +2160,7 @@ function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: {
     ctx.beginPath();
     if (!P.parts) ctx.roundRect(-hx + 1.5, -hy + 1.5, hx * 2 - 3, hy * 2 - 3, Math.max(0, R(P.rr) - 1.5)); // 조각 몸통의 모서리 빛은 🎨 M2 문법대로(S010)
     ctx.stroke();
-    ctx.strokeStyle = mix(P.tone, '#000000', 0.45);
-    ctx.lineWidth = 1.2;
-    plankPath(ctx, P, R);
-    ctx.stroke();
+    if (!P.parts) (ctx.strokeStyle = mix(P.tone, '#000000', 0.45)), (ctx.lineWidth = 1.2), plankPath(ctx, P, R), ctx.stroke();
   }
   if (P.ham) drawHammerHead(ctx, P, R, t, k, s);
   if (P.heavy) {
@@ -3160,7 +3055,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#fff1d6';
-  ctx.fillText(`${s.stage + 1}/${STAGES.length}판 · ${d.emoji} ${d.name}`, R(0.03), hb * 0.52);
+  ctx.fillText(`${d.slot} · ${d.emoji} ${d.name}`, R(0.03), hb * 0.52);
   ctx.textAlign = 'right';
   ctx.fillStyle = '#ffd166';
   const stt = `★ ${s.stars}`;
@@ -3209,7 +3104,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       ctx.textAlign = 'center';
       ctx.lineWidth = 5;
       ctx.strokeStyle = 'rgba(40,20,5,.75)';
-      const big = `${d.emoji} ${s.stage + 1}판 · ${d.name}`;
+      const big = `${d.emoji} ${d.slot} · ${d.name}`;
       ctx.strokeText(big, 0, 0);
       ctx.fillStyle = '#fff6d6';
       ctx.fillText(big, 0, 0);

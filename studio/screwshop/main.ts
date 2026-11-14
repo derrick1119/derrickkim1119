@@ -120,7 +120,7 @@ function end() {
   store.set('best', b);
   store.set('stars', Math.max(s.stars, store.get('stars')));
   draw();
-  const head = s.won ? `🎉 ${STAGES.length}판 모두 완성!` : `🐹 ${s.stage + 1}판 ${STAGES[s.stage].emoji} ${STAGES[s.stage].name}에서 멈췄어요`;
+  const head = s.won ? `🎉 실린 ${STAGES.length}판 모두 완성!` : `🐹 ${STAGES[s.stage].slot} ${STAGES[s.stage].emoji} ${STAGES[s.stage].name}에서 멈췄어요`;
   show(`<b>${sc}점</b><span class="msg">${head}</span><span>★ ${s.stars} / ${STAGES.length * 3} · 최고 ${b}점</span><strong>다시 하기</strong>`);
 }
 

@@ -157,7 +157,7 @@ export function measureStage(k: number, seeds: number, bots: (keyof typeof BOTS)
 
 export function measure(seeds = 12) {
   const stages = STAGES.map((d, k) => {
-    const row: Record<string, unknown> = { stage: k + 1, name: `${d.emoji} ${d.name}` };
+    const row: Record<string, unknown> = { stage: k + 1, slot: d.slot, id: d.id, name: `${d.emoji} ${d.name}` };
     for (const [name, bot] of Object.entries(BOTS)) {
       const r = Array.from({ length: seeds }, (_, i) => tryStage(bot, 1000 + i * 7, k));
       row[name] = {

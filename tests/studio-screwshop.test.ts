@@ -3,10 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { RES_BY, RETRY_Y, STAGES, apply, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
+import { RES_BY, RETRY_Y, STAGES, apply, bodySd, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setCue, screwshop as g, screwshopSmart, shotDead, startStage } from '../studio/screwshop/game.ts';
 import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { screwshopMash, tryStage } from '../studio/screwshop/funqa.ts';
+
+/** M1′ 8판의 지금 자리(✏️ S010: 판 순서가 30판 자리로 바뀌어도 M1′ 테스트는 같은 판을 본다) */
+const M = ['giraffe', 'boat', 'train', 'mill', 'flower', 'dino', 'castle', 'rocket'].map((key) => STAGES.findIndex((d) => d.key === key));
 
 describe('나사 풀기 공방 시뮬', () => {
   it('같은 시드·같은 봇이면 같은 판', () => {
@@ -128,7 +131,7 @@ describe('🪵 통나무 · 2판 돛단배 (M1′ S002 · 📐 CONTENT 2판)', (
 describe('하트 없음 · ↺ 지금 다시 (M1′ S003, 오너 기준 7)', () => {
   it('몇 번을 실패해도 게임이 끝나지 않고 그 판만 다시 (같은 칠)', () => {
     const s = g.create(9);
-    startStage(s, 7); // 막 누르기가 늘 지는 판 (✏️ S005: 빌드 때 고르기 뒤 5판은 막 누르기 클리어 0.13이라 8판 0.00으로)
+    startStage(s, M[7]); // 막 누르기가 늘 지는 판 (✏️ S005: 빌드 때 고르기 뒤 5판은 막 누르기 클리어 0.13이라 8판 0.00으로)
     const col0 = s.L.col.join(), rng = () => 0.5;
     let fails = 0;
     for (let k = 0; k < 60 * 400 && fails < 5; k++) {
@@ -192,7 +195,7 @@ describe('실패 되짚기 retrace (📐 S003)', () => {
   it('막 누르기가 3~8판에서 진 판은 전부 짚을 톡이 1~2개, 원인 9갈래 중 하나', () => {
     const kinds = ['①색', '①연쇄', '①깔림', '①잠김', '②진자', '②못', '③통나무', '③허공', '④태엽'];
     let lost = 0;
-    for (let k = 2; k < 8; k++)
+    for (let k = 2; k < STAGES.length; k++) // ✏️ S010: 3판 뒤 모든 판(새 판 포함)
       for (let i = 0; i < 6; i++) {
         const s = g.create(1000 + i * 7);
         startStage(s, k);
@@ -239,7 +242,7 @@ describe('🔑 3판 태엽 기차 · 📌🔨 4판 풍차 (📐 S004)', () => {
     }
   });
   it('4판: 탑 가운데(⚠) 먼저 빼고 못 날개를 다 풀면 날개 끝 🔨가 🎯를 쾅 — 둘 다 그대로 두면 날개가 ⚠를 영영 덮는다', () => {
-    const L = lvl(1000, 3), nail = L.pl.map((p, k) => (p.kind === 'nail' ? k : -1)).filter((k) => k >= 0);
+    const L = lvl(1000, M[3]), nail = L.pl.map((p, k) => (p.kind === 'nail' ? k : -1)).filter((k) => k >= 0);
     expect(nail.length).toBe(2);
     let S = newSim(L);
     apply(L, S, 0);
@@ -310,7 +313,7 @@ describe('플레이 빌드', () => {
     expect(html).not.toContain('/*BUNDLE*/');
     expect(html).toContain('나사 풀기 공방');
     expect(html).toContain('id="sound"');
-    expect(gzipSync(html).length).toBeLessThan(40 * 1024); // M1′ 상한 (📋 S002: 120 → 36KB, 📋 S003 결정: 36 → 40KB — 남은 🔑·미리 보기·손맛을 자르지 않으려고. 이유는 MILESTONES 위험 ①, 오너 테스트 때 밝힘)
+    expect(gzipSync(html).length).toBeLessThan(52 * 1024); // M2 상한 52KB(📋 S009 기준 개정 '낮추는 쪽' — 30판 데이터 · 실루엣 · 판 선택, 목표 50 · 오너 테스트 때 밝힘). 이전: M1′ 상한 (📋 S002: 120 → 36KB, 📋 S003 결정: 36 → 40KB — 남은 🔑·미리 보기·손맛을 자르지 않으려고. 이유는 MILESTONES 위험 ①, 오너 테스트 때 밝힘)
   });
 });
 
@@ -347,7 +350,7 @@ describe('미리 보기 = 실제 결과 (✏️ S006 · 📋 S004 이월)', () =
 describe('🌀 → 🌀 · 6판 공룡 (M1′ S006 · 📐 CONTENT 6판)', () => {
   const lvl = (seed: number) => {
     const s = g.create(seed);
-    startStage(s, 5);
+    startStage(s, M[5]);
     return s.L;
   };
   it('🌀 쪽 가시 나사(#16)를 빼면 가시가 비켜 꼬리뿌리 🌀(#15)가 드러나고, #15 톡 → 띠용 → 띠용 (한 톡에 3개), 결정적', () => {
@@ -407,7 +410,7 @@ describe('되짚기 원인별 (✏️ S007 · 📋 S004 이월 ①②)', () => {
 describe('🚀 8판 로켓 발사 (M1′ S007 · 📐 CONTENT 8판)', () => {
   it('장인 수순: 해치를 🔑 쪽 나사만 빼 비켜 세우고 🔒 색 상자 둘이 열린 때 🔑 → 드르륵 · 🔒 다섯 · 🌀 띠용 → 💥 쏙 한 방 7 (★3)', () => {
     for (const seed of [1, 9, 17]) {
-      const r = tryStage(screwshopSmart, seed, 7);
+      const r = tryStage(screwshopSmart, seed, M[7]);
       expect(r.ok, `seed ${seed}`).toBe(true);
       expect(r.shot).toBe(7);
       expect(r.stars).toBe(3);
@@ -415,8 +418,8 @@ describe('🚀 8판 로켓 발사 (M1′ S007 · 📐 CONTENT 8판)', () => {
   });
   it('🔑 전에는 ★3 한 방 칩이 살아 있다 (🪵 없는 한 방 판 — shotDead)', () => {
     const s = g.create(4);
-    startStage(s, 7);
-    expect(shotDead(STAGES[7], s.L, s.S)).toBe(false);
+    startStage(s, M[7]);
+    expect(shotDead(STAGES[M[7]], s.L, s.S)).toBe(false);
   });
 });
 
@@ -424,7 +427,7 @@ describe('🌻 5판 진자 좌표 (M1′ S008 · 📐 CONTENT 5판)', () => {
   it('왼 꽃잎: 바깥 #9를 빼면 안쪽 #8에 매달려 꽃 머리 톡에 우수수 · 안쪽 #8을 먼저 빼면 바깥 축에 매달려 안 맞고 잎 #3을 덮는다', () => {
     for (const seed of [1, 5, 42]) {
       const s = g.create(seed);
-      startStage(s, 4);
+      startStage(s, M[4]);
       const L = s.L;
       let S = newSim(L);
       apply(L, S, 9);
@@ -444,29 +447,54 @@ describe('🌻 5판 진자 좌표 (M1′ S008 · 📐 CONTENT 5판)', () => {
 describe('🌬️ 4판 🔨 연쇄 1단 (M1′ S008 · 📐 CONTENT 4판)', () => {
   it('장인: 📌 날개 🔨가 🎯를 쾅 → 탑이 기우뚱 → 탑 🔨가 문을 쾅 — 한 톡에 3개 (쏙 한 방 ≥ 3), ★3', () => {
     for (const seed of [1, 9, 17]) {
-      const r = tryStage(screwshopSmart, seed, 3);
+      const r = tryStage(screwshopSmart, seed, M[3]);
       expect(r.stars, `seed ${seed}`).toBe(3);
       expect(r.shot).toBeGreaterThanOrEqual(3);
     }
   });
 });
 
-describe('실루엣 몸통 parts (✏️ S009 · 📋 M2 — 조각 합집합 SDF, geometry에서 미리 계산)', () => {
-  it('M1′ 8판 판자를 같은 둥근 네모 조각 하나로 바꿔도 모든 자세의 덮임 · 숨김 · 🔨 과녁이 그대로', () => {
+describe('실루엣 몸통 parts (✏️ S009 · S010 🎨 ART M2 문법 — 조각 합집합 SDF, geometry에서 미리 계산)', () => {
+  it('덧조각(M1′ 모드): 본체와 같은 둥근 네모를 덧대면 8판 모든 자세의 덮임 · 숨김 · 🔨 과녁이 그대로 · 아래 나사를 덮는 덧조각은 덮임을 바꾼다', () => {
+    const u = (v: number) => v / 0.005;
     for (let k = 0; k < STAGES.length; k++) {
-      const pl = STAGES[k].toy(), a = geometry(pl), b = geometry(pl.map((p) => ({ ...p, parts: [['b', 0, 0, p.hx, p.hy, p.rr, 0]] })));
+      const pl = STAGES[k].toy(), a = geometry(pl), b = geometry(pl.map((p) => ({ ...p, parts: `B 0 0 ${u(p.hx)} ${u(p.hy)} ${u(p.rr)}` })));
       expect([b.cov, b.hid, b.hamT], `${k + 1}판`).toEqual([a.cov, a.hid, a.hamT]);
     }
+    const bot = { ...STAGES[0].toy()[0], cx: 0.7, cy: 0.5, a: 0, hx: 0.05, hy: 0.05, rr: 0.02, sc: [[0.7, 0.5]], kind: 'wood' as const, ham: undefined, heavy: undefined };
+    const top = { ...bot, cx: 0.4, cy: 0.5, hx: 0.12, hy: 0.05, sc: [[0.3, 0.5], [0.4, 0.5]] };
+    expect(geometry([bot, top]).cov[1][0] & 1, '덧조각 없음').toBe(0);
+    expect(geometry([bot, { ...top, parts: 'O 60 0 14' }]).cov[1][0] & 1, '원 덧조각이 아래 나사를 덮음').toBe(1);
   });
-  it('조각 합집합: 원 조각이 덮는 나사는 막히고, 무게중심이 원 쪽으로 가서 매달린 자세가 그쪽으로 돈다', () => {
-    const base = STAGES[0].toy()[0], bot = { ...base, cx: 0.7, cy: 0.5, a: 0, hx: 0.05, hy: 0.05, rr: 0.02, sc: [[0.7, 0.5]], kind: 'wood' as const, ham: undefined, heavy: undefined };
-    const top = { ...bot, cx: 0.5, cy: 0.5, hx: 0.28, hy: 0.06, sc: [[0.3, 0.5], [0.4, 0.5]], parts: [['b', -0.1, 0, 0.12, 0.05, 0.02, 0], ['c', 0.2, 0, 0.07]] as never };
-    const L = geometry([bot, top]);
-    expect(L.cov[1][0] & 1, '원 조각 밑 나사').toBe(1);
-    const L0 = geometry([bot, { ...top, parts: [['b', -0.1, 0, 0.12, 0.05, 0.02, 0]] as never }]);
-    expect(L0.cov[1][0] & 1, '원 조각이 없으면').toBe(0);
-    // 나사 #2(0.4,0.5)에 매달리면 무게중심(원 쪽 = 오른쪽)이 아래로 → 시계 방향(+)으로 돈다 · 조각이 없을 때와 자세가 다르다
-    expect(L.poses[1][2].d).toBeGreaterThan(0);
-    expect(L.poses[1][2].d).not.toBeCloseTo(L0.poses[1][2].d, 2);
+  it('m2 판자: 몸통 = 조각만(본체 없음) · 도형 6종 · 무게중심이 조각 쪽으로 가서 매달린 자세가 그쪽으로 돈다', () => {
+    const bot = { ...STAGES[0].toy()[0], cx: 0.7, cy: 0.5, a: 0, hx: 0.05, hy: 0.05, rr: 0.02, sc: [[0.7, 0.5]], kind: 'wood' as const, ham: undefined, heavy: undefined };
+    const top = { ...bot, cx: 0.5, cy: 0.5, hx: 0.28, hy: 0.08, sc: [[0.3, 0.5], [0.4, 0.5]], m2: true };
+    const L = geometry([bot, { ...top, parts: 'B -20 0 24 10 4;O 40 0 14' }]), L0 = geometry([bot, { ...top, parts: 'B -20 0 24 10 4' }]);
+    expect([L.cov[1][0] & 1, L0.cov[1][0] & 1], '원 조각 밑 나사').toEqual([1, 0]);
+    expect(L.poses[1][2].d, '#2(0.4,0.5)에 매달리면 오른쪽(원)이 아래로').toBeGreaterThan(1);
+    expect(Math.abs(L0.poses[1][2].d), '조각 없이는 무게중심 = 피벗').toBe(0);
+    // 도형 6종이 아래 나사 자리(0.7,0.5 = 로컬 40u)를 덮는다 · 반대쪽 조각은 덮지 않는다
+    for (const [s, hit] of [['B 40 0 6 6 2', 1], ['O 40 0 6', 1], ['C 30 0 50 0 5', 1], ['E 40 0 8 5', 1], ['W 30 0 6 50 0 3', 1], ['P 1 32 -6 48 -6 40 8', 1], ['P 1 -40 -6 -24 -6 -32 8', 0], ['W -40 0 6 -20 0 3', 0]] as const)
+      expect(geometry([bot, { ...top, parts: s }]).cov[1][0] & 1, s).toBe(hit);
+  });
+  it('M1′ 덧조각(🎨 ART M2 §5): 본체가 안 덮는 아래 나사는 덧조각에서 ≥ 0.040(회색 띠 0) · 보이는 무게중심 기울기 ≤ 12°', () => {
+    let n = 0;
+    for (let k = 0; k < STAGES.length; k++) {
+      const pl = STAGES[k].toy(), L = geometry(pl);
+      pl.forEach((P, j) => {
+        if (!P.parts || P.m2) return;
+        n++;
+        for (const q of L.poses[j])
+          for (let i = 0; i < L.N; i++)
+            if (L.owner[i] < j && bodySd({ ...P, parts: undefined }, q, L.px[i], L.py[i]) >= 0.021)
+              expect(bodySd({ ...P, m2: true }, q, L.px[i], L.py[i]), `${STAGES[k].slot} 판자 ${j} 나사 ${i}`).toBeGreaterThanOrEqual(0.04);
+        const u = (v: number) => v / 0.005, [gx, gy] = comOf({ ...P, m2: true, parts: `B 0 0 ${u(P.hx)} ${u(P.hy)} ${u(P.rr)};${P.parts}` });
+        for (const i of L.ps[j]) {
+          const a = Math.atan2(gy - L.py[i], gx - L.px[i]), b = Math.atan2(P.cy - L.py[i], P.cx - L.px[i]), dd = Math.abs(((a - b + 3 * Math.PI) % (2 * Math.PI)) - Math.PI);
+          if (Math.hypot(P.cx - L.px[i], P.cy - L.py[i]) > 0.012) expect((dd * 180) / Math.PI, `${STAGES[k].slot} 판자 ${j} 나사 ${i} 기울기`).toBeLessThanOrEqual(12);
+        }
+      });
+    }
+    expect(n, '덧조각 판자 수').toBeGreaterThanOrEqual(20);
   });
 });

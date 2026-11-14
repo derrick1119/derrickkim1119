@@ -6,6 +6,9 @@ import { N, geomSig, paintSig, valueOf } from '../studio/screwshop/pick.ts';
 import { PICKS } from '../studio/screwshop/picks.ts';
 import { SIG } from '../studio/screwshop/picks.sig.ts';
 
+/** M1′ 8판의 지금 자리(✏️ S010) */
+const M = ['giraffe', 'boat', 'train', 'mill', 'flower', 'dino', 'castle', 'rocket'].map((key) => STAGES.findIndex((d) => d.key === key));
+
 describe('실린 칠 지문 (판·칠하기·고르기 식을 바꾸면 npx tsx studio/screwshop/pick.ts · 전체 다시 고르기 확인은 pick.ts --check)', () => {
   it('판 id는 서로 다르고 PICKS · SIG에 그 id 줄이 있다', () => {
     const ids = STAGES.map((d) => d.id);
@@ -49,7 +52,7 @@ describe('판별 반증 (옮김 — 단언 그대로)', () => {
     for (let k = 2; k < STAGES.length; k++) {
       const m = Array.from({ length: 24 }, (_, i) => tryStage(screwshopMash, 1000 + i * 7, k));
       expect(m.filter((x) => x.stars >= 2).length / 24, `${k + 1}판 ★2 이상`).toBeLessThanOrEqual(0.2);
-      if (k >= 4) expect(m.filter((x) => x.ok).length / 24, `${k + 1}판 클리어`).toBeLessThanOrEqual(0.15);
+      if (M.slice(4).includes(k)) expect(m.filter((x) => x.ok).length / 24, `${STAGES[k].slot} 클리어`).toBeLessThanOrEqual(0.15);
     }
     const r = measure(6).summary;
     expect(r.mashStars).toBeLessThan(r.smartStars / 3);
@@ -60,16 +63,16 @@ describe('판별 반증 (옮김 — 단언 그대로)', () => {
     for (const b of ['habit', 'top', 'reveal']) expect(r[b].star3, b).toBeLessThanOrEqual(0.4);
     expect(r.random.clear).toBeGreaterThanOrEqual(0.9);
   });
-  for (const k of [2, 3, 4, 5, 6, 7])
+  for (const k of STAGES.map((_, i) => i).filter((i) => i >= 2)) // ✏️ S010: M1′ 3~8판 + 새 판
     it(`${k + 1}판 반증(24시드): 장인 ★3 ≥ 0.7 · 버릇 3종 ★3 ≤ 0.15 · 따라 하기 ★3 ≤ 0.25 · 4판 무작위 ≥ 0.5 · 버릇 클리어 ≥ 0.4 (S005 5판 🌻 · S006 6판 🦕 · S007 7판 🏰 · 8판 🚀 더함 · ✏️ S009 판마다 한 테스트)`, () => {
       const r = measureStage(k, 24, ['smart', 'habit', 'top', 'reveal', 'preview', 'random']);
       expect(r.smart.star3, `${k + 1}판 장인`).toBeGreaterThanOrEqual(0.7);
       for (const b of ['habit', 'top', 'reveal']) expect(r[b].star3, `${k + 1}판 ${b}`).toBeLessThanOrEqual(0.15);
       expect(r.preview.star3, `${k + 1}판 따라 하기`).toBeLessThanOrEqual(0.25);
-      if (k === 3) expect([r.random.clear >= 0.5, r.habit.clear >= 0.4]).toEqual([true, true]);
+      if (k === M[3]) expect([r.random.clear >= 0.5, r.habit.clear >= 0.4]).toEqual([true, true]);
     });
   it('되짚기 F13: 처음 봇이 3·4판에서 지면 카드가 PNR(그 뒤로는 못 깨게 된 톡)을 짚는다 ≥ 0.8', () => {
-    for (const k of [2, 3]) {
+    for (const k of [M[2], M[3]]) {
       let n = 0, hit = 0;
       for (let i = 0; i < 12; i++)
         for (let j = 0; j < 3; j++) {
