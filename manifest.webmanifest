@@ -1,0 +1,17 @@
+{
+  "name": "THE LAMP: 마지막 불씨",
+  "short_name": "THE LAMP",
+  "description": "빛은 무기이고 어둠은 숨을 곳이다. 램프를 켜고 끄며 새벽까지 살아남는 로그라이트 생존 액션.",
+  "lang": "ko",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#07080f",
+  "theme_color": "#07080f",
+  "categories": ["games"],
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

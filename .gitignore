@@ -25,3 +25,6 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# Screenshots from tools/shot.mjs
+shots/
