@@ -2521,7 +2521,8 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: PipeState, B: BG, R: F, t
     ctx.setLineDash([]);
     ctx.restore();
   }
-  const c = cpx(B, L, i), lbl = gain ? `한 번 더 톡 → 💧 +${gain}칸` : '한 번 더 톡해도 물은 그대로';
+  const gb = F2.wet.find((x, j) => x && !F.wet[j]) ?? 1;
+  const c = cpx(B, L, i), lbl = gain ? `한 번 더 톡 → ${gb === 2 ? '🍯' : '💧'} +${gain}칸` : '한 번 더 톡해도 물은 그대로';
   ctx.font = `800 ${Math.max(12, R(0.032))}px system-ui`;
   const tw = ctx.measureText(lbl).width + R(0.04), ly = c.y - B.ch * 0.9, lx = Math.max(tw / 2 + 4, Math.min(R(1) - tw / 2 - 4, c.x));
   ctx.fillStyle = 'rgba(20,40,60,.88)';
