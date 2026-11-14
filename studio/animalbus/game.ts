@@ -42,7 +42,7 @@ export interface Layout {
   habit: { peak: number; best: number; ok: boolean };
 }
 /** 판의 움직이는 것들 (복사해서 내다본다) */
-interface Sim {
+export interface Sim {
   gone: number[]; awake: number[]; bench: number[]; used: number; bus: number; fill: number;
   peak: number; streak: number; best: number; fail: number; left: number;
 }

@@ -163,6 +163,176 @@
    }
   }
  ],
+ "depth": [
+  {
+   "stage": 1,
+   "name": "첫 버스",
+   "habit": {
+    "win": 1,
+    "star3": 1
+   },
+   "follow": {
+    "win": 1,
+    "star3": 1
+   },
+   "greedy": {
+    "win": 1,
+    "star3": 1
+   },
+   "honest": {
+    "win": 1,
+    "star3": 1
+   },
+   "width": 1
+  },
+  {
+   "stage": 2,
+   "name": "대기 의자",
+   "habit": {
+    "win": 1,
+    "star3": 0.833
+   },
+   "follow": {
+    "win": 0.917,
+    "star3": 0.917
+   },
+   "greedy": {
+    "win": 1,
+    "star3": 0.917
+   },
+   "honest": {
+    "win": 1,
+    "star3": 1
+   },
+   "width": 1
+  },
+  {
+   "stage": 3,
+   "name": "큰 코끼리",
+   "habit": {
+    "win": 1,
+    "star3": 0
+   },
+   "follow": {
+    "win": 1,
+    "star3": 0
+   },
+   "greedy": {
+    "win": 1,
+    "star3": 0.5
+   },
+   "honest": {
+    "win": 1,
+    "star3": 1
+   },
+   "width": 0.944
+  },
+  {
+   "stage": 4,
+   "name": "잠꾸러기",
+   "habit": {
+    "win": 0.917,
+    "star3": 0
+   },
+   "follow": {
+    "win": 0.917,
+    "star3": 0.167
+   },
+   "greedy": {
+    "win": 1,
+    "star3": 0.5
+   },
+   "honest": {
+    "win": 1,
+    "star3": 1
+   },
+   "width": 0.967
+  },
+  {
+   "stage": 5,
+   "name": "우비 친구",
+   "habit": {
+    "win": 0.75,
+    "star3": 0
+   },
+   "follow": {
+    "win": 0.75,
+    "star3": 0.083
+   },
+   "greedy": {
+    "win": 1,
+    "star3": 0.833
+   },
+   "honest": {
+    "win": 1,
+    "star3": 1
+   },
+   "width": 1
+  },
+  {
+   "stage": 6,
+   "name": "2층 버스",
+   "habit": {
+    "win": 0.583,
+    "star3": 0
+   },
+   "follow": {
+    "win": 0.75,
+    "star3": 0.333
+   },
+   "greedy": {
+    "win": 1,
+    "star3": 0.75
+   },
+   "honest": {
+    "win": 1,
+    "star3": 1
+   },
+   "width": 0.944
+  },
+  {
+   "stage": 7,
+   "name": "분수 광장",
+   "habit": {
+    "win": 0.75,
+    "star3": 0
+   },
+   "follow": {
+    "win": 0.667,
+    "star3": 0.167
+   },
+   "greedy": {
+    "win": 0.917,
+    "star3": 0.583
+   },
+   "honest": {
+    "win": 1,
+    "star3": 1
+   },
+   "width": 0.892
+  },
+  {
+   "stage": 8,
+   "name": "퇴근길",
+   "habit": {
+    "win": 0.667,
+    "star3": 0
+   },
+   "follow": {
+    "win": 0.583,
+    "star3": 0.167
+   },
+   "greedy": {
+    "win": 0.917,
+    "star3": 0.417
+   },
+   "honest": {
+    "win": 1,
+    "star3": 0.917
+   },
+   "width": 0.876
+  }
+ ],
  "full": {
   "smart": 2943.3,
   "habit": 1240,

@@ -2,8 +2,10 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
+import { mulberry32 } from '../engine/rng.ts';
 import { runBot } from '../studio/animalbus/core.ts';
-import { STAGES, animalbus as g, animalbusSmart, startStage } from '../studio/animalbus/game.ts';
+import { STAGES, animalbus as g, animalbusSmart, internals, layoutFor, startStage } from '../studio/animalbus/game.ts';
+import { firstMoveWidth, follow, greedy, honestBot, runSim } from '../studio/animalbus/bots.ts';
 import { playStage, BOTS } from '../studio/animalbus/funqa.ts';
 
 describe('동물 버스 정류장 시뮬', () => {
@@ -39,6 +41,37 @@ describe('동물 버스 정류장 시뮬', () => {
       const s3 = [0, 1, 2, 3, 4, 5].filter((n) => playStage(BOTS.habit, 1000 + n * 7919, i).stars === 3).length;
       expect(s3, `${i + 1}판`).toBeLessThanOrEqual(1);
     }
+  });
+});
+
+describe('전략 깊이 측정 봇 (M1-1, C002)', () => {
+  const hidden = STAGES.findIndex((d) => d.key === 'hidden');
+  it('정직 박사는 우비 숨은 색을 몰라도 우비 판을 통과한다 (추측 없이 풀린다)', () => {
+    const hon = honestBot(4, 5);
+    for (const n of [0, 1]) expect(runSim(layoutFor(1000 + n * 7919, hidden), hon, n + 1).ok).toBe(true);
+  });
+  it('정직 박사는 숨은 색을 쓰지 않는다: 아직 안 보이는 우비끼리 색을 맞바꿔도 첫 수가 같다', () => {
+    const L = layoutFor(1000, hidden), S = internals.newSim(L), re = internals.reach(L, S);
+    const hid = L.an.map((a, i) => (a.hidden && !internals.isOpen(L, i, re) ? i : -1)).filter((i) => i >= 0);
+    const j = hid.find((i) => L.an[i].col !== L.an[hid[0]].col);
+    expect(hid.length).toBeGreaterThan(1);
+    expect(j).toBeDefined();
+    const swapped = { ...L, an: L.an.map((a, i) => (i === hid[0] ? { ...a, col: L.an[j!].col } : i === j ? { ...a, col: L.an[hid[0]].col } : a)) };
+    const ms = internals.moves(L, internals.newSim(L));
+    expect(honestBot(4, 5)(swapped, internals.newSim(swapped), ms, mulberry32(9))).toBe(honestBot(4, 5)(L, internals.newSim(L), ms, mulberry32(9)));
+  });
+  it('따라 하기·탐욕 봇은 결정적이고 1판을 깬다', () => {
+    const L = layoutFor(1000, 0);
+    for (const b of [follow, greedy]) {
+      const a = runSim(L, b, 1), c = runSim(L, b, 1);
+      expect(a).toEqual(c);
+      expect(a.ok).toBe(true);
+    }
+  });
+  it('첫 수 정답 폭은 0~1, 1판은 어디를 먼저 눌러도 ★3 가능', () => {
+    const w = firstMoveWidth(layoutFor(1000, 0));
+    expect(w.open).toBeGreaterThan(0);
+    expect(w.rate).toBe(1);
   });
 });
 
