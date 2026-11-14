@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
-import { capOf3, forEachPlan, layoutOf3, simulate3, support3 } from '../studio/demolition/sim3d.ts';
+import { capOf3, feetKey3, forEachPlan, layoutOf3, simulate3, support3 } from '../studio/demolition/sim3d.ts';
 import { STAGES3 } from '../studio/demolition/stages3d.ts';
 import { aimAt, cellPx, drawOrder, faces, fitCams, pickAt, proj, visibleArea, yawOf } from '../studio/demolition/view3d.ts';
 
@@ -104,6 +104,15 @@ describe('3D 화면 계산', () => {
       tips += fTips.length;
     });
     expect(tips).toBeGreaterThan(20);
+  });
+
+  it('받침 비교 열쇠는 덩어리를 훑는 순서와 상관없다 — 마루 안쪽을 끊어도 받침이 같으면 \'변화 없음\' (🧪 C005 버그)', () => {
+    const now = support3(L, new Int8Array(L.blocks.length));
+    for (const [x, y, z] of [[7, 2, 6], [6, 2, 7], [7, 2, 7]]) {
+      const c1 = new Int8Array(L.blocks.length);
+      c1[L.blocks.findIndex((b) => b.x === x && b.y === y && b.z === z)] = 1;
+      expect(feetKey3(support3(L, c1))).toBe(feetKey3(now));
+    }
   });
 
   it('3D 실험 빌드 3d.html이 있고 gzip 30KB 이하', () => {

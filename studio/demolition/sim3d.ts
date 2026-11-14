@@ -516,4 +516,5 @@ export function lostFeet(now: Footing[], nxt: Footing[]): [number, number][] {
   }
   return out;
 }
-export const feetKey3 = (fs: Footing[]) => fs.map((f) => `${f.act}${f.axis}${f.dir}:${f.feet.map((q) => q.join(',')).join(' ')}`).sort().join('|');
+/** 받침 비교 열쇠 — 발 좌표는 정렬한다(🧪 C005: 덩어리를 훑는 순서가 달라 같은 발인데 '변화 없음'이 안 뜨던 버그) */
+export const feetKey3 = (fs: Footing[]) => fs.map((f) => `${f.act}${f.axis}${f.dir}:${f.feet.map((q) => q.join(',')).sort().join(' ')}`).sort().join('|');
