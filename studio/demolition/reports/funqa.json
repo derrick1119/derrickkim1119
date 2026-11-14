@@ -1,5 +1,5 @@
 {
- "at": "C011",
+ "at": "C012",
  "f11n": 1000,
  "stages": [
   {
@@ -356,10 +356,10 @@
    "look2Fixed": 0,
    "rotateValue": 1,
    "misreadClear": 1,
-   "misreadStar3": 1,
+   "misreadStar3": 0.6,
    "misreadNA": false,
-   "misreadNoDiscrim": true,
-   "safetyGap": 0.21050000000000002,
+   "misreadNoDiscrim": false,
+   "safetyGap": 0.008499999999999952,
    "f6": 0,
    "habitStar3": 0,
    "habitFlowerStar3": 0,

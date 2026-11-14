@@ -37,7 +37,7 @@ export function plansOf(L: Layout3, d: StageDef3, f: (ch: Int8Array, plan: numbe
  * prev(미리 보기형): 수마다 넓이 비례로 꾹 3번, 화면에 그려진 것만 본다 — 성공 결과 꼬리표가 뜬 블록 > 무엇이든 움직이는 블록(실패 꼬리표 빼고) > 나머지.
  * blind(안 보는 형): 넓이 비례로 아무 데나. 둘 다 글은 읽는다 — 손잡이 둘째 줄이 성공이면 당기고, '막다른 길'이면 q .5로 방금 붙인 것을 뗀다.
  */
-export function firstTimer(L: Layout3, d: StageDef3, wMix: number[], mode: 'prev' | 'blind', n: number, c: Cache, seed = 20, out?: { star3: number }): number {
+export function firstTimer(L: Layout3, d: StageDef3, wMix: number[], mode: 'prev' | 'blind', n: number, c: Cache, seed = 20, out?: { star3: number }, opt: { stopAt?: number; noEarly?: boolean } = {}): number {
   const rng = mulberry32(seed), N = L.blocks.length, save = d.save !== undefined;
   const taps = L.blocks.map((_, i) => i).filter((i) => capOf3(L.blocks[i]) > 0);
   const wpick = (cs: number[]) => {
@@ -65,11 +65,11 @@ export function firstTimer(L: Layout3, d: StageDef3, wMix: number[], mode: 'prev
       }
       ch[pick] = capOf3(L.blocks[pick]);
       left -= ch[pick];
-      if (left <= 0) {
-        ok = c.sim(ch).ok;
+      if (left <= 0 || (opt.stopAt !== undefined && d.charges - left >= opt.stopAt)) {
+        ok = c.sim(ch).ok; // 다 붙였거나(자동 쾅) 정한 수에서 손잡이(v1.7 ⓕ 비교용)
         break;
       }
-      if (save && c.sim(ch).ok) {
+      if (save && !opt.noEarly && c.sim(ch).ok) {
         ok = true; // 손잡이 둘째 줄 '지금 쾅 → 성공' → 당긴다
         break;
       }
@@ -221,40 +221,45 @@ export function misread(L: Layout3, d: StageDef3, c: Cache): { clear: number; st
 }
 
 /**
- * 오해 봇 v1.6 ⓐ: look2 깊이 — 돌을 1개짜리로 믿고 '두 개 조합'을 고른다. 고른 블록이 실제로는 남은 수보다 비싸면 게임이 막으니 그다음 좋은 조합으로.
- * 반환 = 성공률·★3률(시드 20, 동점 무작위)
+ * 오해 봇 v1.7(🧪 C011 1·9): look2 깊이 — 돌을 1개짜리로 **믿고** 남은 수와 ★3(아끼기)을 센다. 고르는 점수는 진짜 미리 보기(성공·높이·꽃·이웃집)지만
+ * 손잡이 판의 ★3은 '믿은 쓴 수 ≤ 목표'로 셈. 게임은 진짜 남은 수보다 비싼 블록을 막는다(그러면 그다음 좋은 조합).
+ * 반환 = 성공률·★3률(진짜 결과, 시드 20, 동점 무작위)
  */
 export function misreadLook2(L: Layout3, d: StageDef3, c: Cache): { clear: number; star3: number } {
   const N = L.blocks.length, save = d.save !== undefined;
-  const score = (o: Outcome3) => o.stars * 1000 + (o.ok ? 0 : -5000) - o.height * 10 - o.flowers * 30 - o.hits.reduce((a, b) => a + b, 0);
   const taps = L.blocks.map((_, i) => i).filter((i) => capOf3(L.blocks[i]) > 0);
+  const believedScore = (o: Outcome3, believedUsed: number) => {
+    const s3 = save ? o.ok && o.flowers === 0 && believedUsed <= d.save! : o.star[2];
+    const stars = (o.ok ? 1 : 0) + (o.ok && o.flowers === 0 ? 1 : 0) + (s3 ? 1 : 0);
+    return stars * 1000 + (o.ok ? 0 : -5000) - o.height * 10 - o.flowers * 30 - o.hits.reduce((a, b) => a + b, 0);
+  };
   let ok = 0, s3 = 0;
   for (let seed = 1; seed <= 20; seed++) {
     const rng = mulberry32(seed), ch = new Int8Array(N);
     let left = d.charges, believed = d.charges, guard = 0;
     while (left > 0 && believed > 0 && guard++ < 8) {
-      // 믿음: 블록마다 1개 — 하나·둘 더 붙인 끝을 비교(손잡이 판은 아무 때나 끝, 아니면 믿는 남은 수를 다 쓸 때 끝)
-      const cs = taps.filter((i) => !ch[i] && capOf3(L.blocks[i]) <= left);
+      const cs = taps.filter((i) => !ch[i]);
       let bv = -1e9, ties: number[][] = [];
       const consider = (pl: number[]) => {
         let real = 0;
         for (const i of pl) real += capOf3(L.blocks[i]);
-        if (real > left) return; // 게임이 막는다(붙여 보려다 안 붙음 → 다른 조합)
+        if (real > left) return; // 게임이 막는다
         const c2 = ch.slice();
         for (const i of pl) c2[i] = capOf3(L.blocks[i]);
-        const v = score(c.sim(c2));
+        const v = believedScore(c.sim(c2), d.charges - believed + pl.length);
         if (v > bv) (bv = v), (ties = [pl]);
         else if (v === bv) ties.push(pl);
       };
+      // 끝 = 손잡이 판은 아무 때나, 아니면 믿는 남은 수를 다 쓸 때(진짜로는 돌 때문에 일찍 자동 쾅이 날 수 있다)
       for (const i of cs) {
         if (save || believed === 1) consider([i]);
-        if (believed >= 2) for (const j of cs) if (j > i && (save || believed === 2)) consider([i, j]);
+        for (const j of cs) if (j > i && believed >= 2 && (save || believed === 2)) consider([i, j]);
       }
       if (!ties.length) for (const i of cs) for (const j of cs) if (j > i) consider([i, j]);
       if (!ties.length) for (const i of cs) consider([i]);
       if (!ties.length) break;
       const pl = ties[Math.floor(rng() * ties.length)];
-      for (const i of pl) (ch[i] = capOf3(L.blocks[i])), (left -= ch[i]), (believed -= 1);
+      for (const i of pl) if (capOf3(L.blocks[i]) <= left) (ch[i] = capOf3(L.blocks[i])), (left -= ch[i]), (believed -= 1);
       if (save) break; // 손잡이 판: 고른 끝에서 당긴다
     }
     const o = c.sim(ch);
@@ -265,32 +270,11 @@ export function misreadLook2(L: Layout3, d: StageDef3, c: Cache): { clear: numbe
 }
 
 /**
- * ⓕ 안전 v1.6 ⓑ: 손잡이 판에서 '폭약을 다 쓰는 처음 봇'(성공이 떠도 안 당기고 끝까지) 성공률 − '목표 수에서 멈추는 처음 봇'(목표 수만큼 붙이면 당김) 성공률.
- * 두 봇 모두 넓이 비례로 고르고(안 보는 형), 막다른 길이면 q .5로 뗀다. > 0이면 더 쓰는 쪽이 더 안전.
+ * ⓕ 안전 v1.7(🧪 C011 10): 손잡이 판에서 '폭약을 다 쓰는 처음 봇'(성공이 떠도 안 당기고 끝까지) 성공률 − '목표 수에서 멈추는 처음 봇'(목표 수만큼 붙이면 당김) 성공률.
+ * 처음 봇은 F2와 같이 두 형(미리 보기형·안 보는 형) 모두 재고 차이의 작은 쪽. > 0이면 더 쓰는 쪽이 더 안전.
  */
 export function safetyGap(L: Layout3, d: StageDef3, wMix: number[], c: Cache, n = 2000, seed = 31): number {
   if (d.save === undefined) return 0;
-  const N = L.blocks.length, taps = L.blocks.map((_, i) => i).filter((i) => capOf3(L.blocks[i]) > 0 && wMix[i] > 0);
-  const run = (stopAt: number) => {
-    const rng = mulberry32(seed);
-    let win = 0;
-    for (let r = 0; r < n; r++) {
-      const ch = new Int8Array(N);
-      let left = d.charges;
-      for (let step = 0; step < 12 && left > 0; step++) {
-        const cs = taps.filter((i) => !ch[i] && capOf3(L.blocks[i]) <= left);
-        if (!cs.length) break;
-        const t = cs.reduce((a, i) => a + wMix[i], 0);
-        let x = rng() * t, pick = cs[cs.length - 1];
-        for (const i of cs) if ((x -= wMix[i]) <= 0) { pick = i; break; }
-        ch[pick] = capOf3(L.blocks[pick]);
-        left -= ch[pick];
-        if (d.charges - left >= stopAt) break;
-        if (c.reach1(ch) === 0 && rng() < 0.5) (left += ch[pick]), (ch[pick] = 0);
-      }
-      if (ch.some((v) => v > 0) && c.sim(ch).ok) win++;
-    }
-    return win / n;
-  };
-  return run(d.charges) - run(d.save);
+  const gap = (mode: 'prev' | 'blind') => firstTimer(L, d, wMix, mode, n, c, seed, undefined, { noEarly: true }) - firstTimer(L, d, wMix, mode, n, c, seed, undefined, { stopAt: d.save, noEarly: true });
+  return Math.min(gap('prev'), gap('blind'));
 }

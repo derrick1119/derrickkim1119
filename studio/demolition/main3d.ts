@@ -239,6 +239,19 @@ function spawnDebris() {
   });
   bitsMax = Math.max(bitsMax, bits.length);
 }
+/** 축포(📐 GDD §4 A안 · 🧪 C008 ⑤ · C012 🎨): 아낀 폭약마다 하늘에서 한 송이 — 아끼기가 눈에 보이는 보상 */
+function spawnFireworks(n: number) {
+  let seed = 11;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let f = 0; f < n; f++) {
+    const cx = W * (0.3 + 0.4 * ((f + 0.5) / Math.max(1, n))), cy = H * (0.16 + 0.08 * (f % 2));
+    for (let k = 0; k < 22; k++) {
+      const a = (k / 22) * Math.PI * 2 + rnd() * 0.2, sp = 2.6 + rnd() * 1.6;
+      bits.push({ x: cx, y: cy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, life: 40 + rnd() * 20, col: ['#ffe14d', '#ff8fb0', '#7fd6ff', '#9ad68f'][(k + f) % 4], r: 2.2 + rnd() * 2 });
+    }
+  }
+  bitsMax = Math.max(bitsMax, bits.length);
+}
 function drawDebris(dt: number) {
   for (const p of bits) {
     p.x += p.vx * dt * 60;
@@ -459,7 +472,9 @@ function draw() {
       const q = proj(c, cb[k].x + 0.5, cb[k].y + 0.5, cb[k].z + 0.5);
       if (Math.abs(q[0] - touch[0]) > 27 + c.s || Math.abs(q[1] - touch[1]) > 27 + c.s) continue;
     }
-    const b = L.blocks[cb[k].i], col = MAT[b.m] ?? PAINT[b.paint % PAINT.length];
+    const b = L.blocks[cb[k].i], col0 = MAT[b.m] ?? PAINT[b.paint % PAINT.length];
+    // 남은 폭약으로 못 붙이는 블록(돌 −2인데 1개 남음)은 흐린 회색(📐 C010 · C012 🎨) — 붙인 것·결과 중엔 원래 색
+    const col = !out && !ch[cb[k].i] && capOf3(b) > left && capOf3(b) > 0 ? ['#c9c4cf', '#ddd8e2', '#a8a3ae'] : col0;
     for (const fc of faces(c, cb[k])) poly(fc.pts, fc.f === 'top' ? col[1] : fc.f === 'zm' || fc.f === 'zp' ? col[0] : col[2], INK, 1.2);
     if (b.m === STONE && !inMagnifier)
       // 돌 = 톡 한 번에 −2(📐 GDD §10 값표): 보이는 면마다 폭약 구멍 2개 — 윗면이 덮여도 옆면에서 쇠와 구분되게(🧪 C010 ①)
@@ -641,7 +656,10 @@ function loop(now: number) {
     const was = bt;
     bt += dt * 60;
     if (was < 0 && bt >= 0) (shake = 1), spawnDebris();
-    if (played()) hudText();
+    if (played()) {
+      hudText();
+      if (out.ok && L.save !== undefined && left > 0) spawnFireworks(left); // 아낀 폭약 = 축포
+    }
   }
   shake = Math.max(0, shake - dt * 2.5);
   // 그림이 바뀔 것이 하나도 없으면 다시 그리지 않는다(🧪 C007 ②: 가만히 꾹에서도 캔버스 전체를 매 프레임 다시 칠해 30fps 경계였다)

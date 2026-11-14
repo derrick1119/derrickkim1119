@@ -348,10 +348,15 @@ export function measureStage3(d: StageDef3, opt: { bots?: boolean } = {}) {
       for (const order of perms(pl)) {
         const cur = new Int8Array(N);
         let blind = 0;
+        // v1.7(🧪 C011 10): 이미 움직이고 있어도 미리 보기(조각이 놓일 자리 · 넘어질 방향 · 발 칸)가 그대로면 눈먼 수
+        const pv = (x: Int8Array) => {
+          const o = C.sim(x);
+          return `${o.moved}|${[...o.fx].join(',')}|${[...o.fy].join(',')}|${[...o.fz].join(',')}|${[...o.die].map((v) => (v >= 0 ? 1 : 0)).join('')}|${feetKey3(support3(L, x))}`;
+        };
         for (const i of order) {
-          const before = support3(L, cur), mv0 = C.sim(cur).moved;
+          const before = pv(cur);
           cur[i] = capOf3(L.blocks[i]);
-          if (!C.sim(cur).moved && !mv0 && feetKey3(support3(L, cur)) === feetKey3(before)) blind++;
+          if (pv(cur) === before) blind++;
         }
         best = Math.min(best, blind);
       }
@@ -396,9 +401,9 @@ if (process.argv[1]?.endsWith('funqa.ts')) {
   const r3 = measure3D();
   for (const x of r3) console.log(`3D ${x.title} 블록${x.blocks} 폭약${x.charges} 계획${x.plans} 성공${(x.clear * 100).toFixed(1)}% ★3 ${(x.star3 * 100).toFixed(1)}% 최선★${x.best} 미리보기탐욕(동점 무작위) ★3 ${x.greedyStar3} 성공 ${x.greedyClear} 첫 톡 꿈쩍 안 함 ${(x.firstTapStill * 100).toFixed(0)}%`);
   for (const x of r3) console.log(`   v1.1: 별 기울기 ★1만 ${x.stars.only1} ★2 ${x.stars.two} ★3 ${x.stars.three} 공짜 별 ${x.stars.freeStars} · F11 σ16px 떼는 순간 ${x.f11.toFixed(3)}(첫 닿음 ${x.f11first.toFixed(2)}) 취소 ${x.f11miss.toFixed(3)} 블록별 최저 ${x.f11min.toFixed(3)}@${x.f11minAt} ⟳${x.rotations} · 속(σ16 < .5) ${x.innerHit} · F4b 살아 있는 첫 톡 신호 ${x.f4bLive.toFixed(2)} F4b-죽음(둘째 꾹 실패 기호) ${x.f4bDead.toFixed(2)} · (옛 v1.2 '변화 없음' ${x.f4bQuietDead.toFixed(2)}) · F13 ${x.f13.toFixed(2)} · 옆면 ${x.sidePx.toFixed(1)}px`);
-  for (const x of r3) console.log(`   FUN v1.6: 처음 봇(꾹 3번) 미리 보기형 ${x.firstTimerPrev.toFixed(2)} · 안 보는 형 ${x.firstTimerBlind.toFixed(2)} → 5회 ${x.firstTimer5.toFixed(2)} · 첫 시도 ★3 ${x.firstTimerStar3.toFixed(2)} (옛 ${x.firstTimer5Old.toFixed(2)}) · look2 ★3 ${x.look2Star3.toFixed(2)} · 고정 시점 look2 ${x.look2Fixed.toFixed(2)} · 돌려 보기 가치 ${x.rotateValue.toFixed(2)} · 오해 봇(look2 깊이) 성공 ${x.misreadClear.toFixed(2)} ★3 ${x.misreadStar3.toFixed(2)}${x.misreadNA ? ' (해당 없음 — 돌 없음)' : x.misreadNoDiscrim ? ' (판별력 0 — greedy1 또는 look2와 같음)' : ''} · ⓕ 안전 차이 ${x.safetyGap.toFixed(2)} · F6 눈먼 수 ${x.f6} · 버릇 ${x.habitStar3.toFixed(2)} · 꽃 피함 버릇 ${x.habitFlowerStar3.toFixed(2)} · F4b ⓒ 꼭 필요한 톡 ${x.f4bLive.toFixed(2)} (옛 ${x.f4bLiveOld.toFixed(2)} · ★3 톡 ${x.f4bLiveStar3.toFixed(2)}) · F5 ${x.liveFirstTapReact.toFixed(2)} (옛 ${x.liveFirstTapReactOld.toFixed(2)})`);
+  for (const x of r3) console.log(`   FUN v1.7: 처음 봇(꾹 3번) 미리 보기형 ${x.firstTimerPrev.toFixed(2)} · 안 보는 형 ${x.firstTimerBlind.toFixed(2)} → 5회 ${x.firstTimer5.toFixed(2)} · 첫 시도 ★3 ${x.firstTimerStar3.toFixed(2)} (옛 ${x.firstTimer5Old.toFixed(2)}) · look2 ★3 ${x.look2Star3.toFixed(2)} · 고정 시점 look2 ${x.look2Fixed.toFixed(2)} · 돌려 보기 가치 ${x.rotateValue.toFixed(2)} · 오해 봇(look2 깊이) 성공 ${x.misreadClear.toFixed(2)} ★3 ${x.misreadStar3.toFixed(2)}${x.misreadNA ? ' (해당 없음 — 돌 없음)' : x.misreadNoDiscrim ? ' (판별력 0 — greedy1 또는 look2와 같음)' : ''} · ⓕ 안전 차이 ${x.safetyGap.toFixed(2)} · F6 눈먼 수 ${x.f6} · 버릇 ${x.habitStar3.toFixed(2)} · 꽃 피함 버릇 ${x.habitFlowerStar3.toFixed(2)} · F4b ⓒ 꼭 필요한 톡 ${x.f4bLive.toFixed(2)} (옛 ${x.f4bLiveOld.toFixed(2)} · ★3 톡 ${x.f4bLiveStar3.toFixed(2)}) · F5 ${x.liveFirstTapReact.toFixed(2)} (옛 ${x.liveFirstTapReactOld.toFixed(2)})`);
   for (const x of r3) console.log(`   FUN v1: 붙일 블록 ${x.attachable}(≤24) 속 ${x.inner}(0) · 죽은 첫 톡 ${x.deadFirstTap.toFixed(2)} 가중 ${x.deadFirstTapW.toFixed(2)} · 살아 있는 첫 톡 반응 ${x.liveFirstTapReact.toFixed(2)} · 처음 봇 1회 ${x.firstTimer1.toFixed(2)} 5회 ${x.firstTimer5.toFixed(2)} · 칸 ${x.cellPx.toFixed(1)}px(≥36) · 시작 시점 ★3 블록 최소 ${x.startViewStar3MinFaces.toFixed(2)}면`);
   const dir = join(import.meta.dirname, 'reports');
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: 'C011', f11n: F11N, ...r, stages3d: measure3D() }, null, 1) + '\n');
+  writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: 'C012', f11n: F11N, ...r, stages3d: measure3D() }, null, 1) + '\n');
 }
