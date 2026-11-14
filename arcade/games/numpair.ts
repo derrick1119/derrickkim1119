@@ -7,11 +7,12 @@
  *   같은 알을 다시 톡 = 내려놓기. 아래 ➕ 나무패를 톡 = 다시 붙이기. 키보드는 화살표 커서 + 스페이스.
  * 와우(비틀기): 주판알이 빠진 자리 양옆(줄 따라)의 두 알이 '딸깍' 맞닿는데, 둘이 짝이면 저절로 또 딸깍 — 연쇄!
  *   한 번 톡톡으로 한 줄이 통째로 날아가기도 한다(같은 판도 어느 짝부터 지우느냐로 연쇄가 갈린다).
- * 판 8개: 목표(판 비우기 / 숫자 N개 지우기 / 줄 N개 빼기) · 별 = ★ 목표 · ★ 톡톡(직접 지운 짝) P번 안에 · ★ 다시 붙이기 R번 이하.
+ * 판 8개: 목표(판 비우기 / 주문한 숫자 전부 지우기 / 줄 3개 빼기) · 별 = ★ 목표 · ★ 톡톡(직접 지운 짝) P번 안에 · ★ 다시 붙이기 R번 이하.
+ *   P·R은 판을 만들 때 A* 풀이로 찾은 가장 좋은 풀이 기준. 판은 '처음 찾은 짝부터'·'눈앞에서 제일 많이 지우기' 버릇이 ★3을 못 따는 것으로 고른다.
  *   더 지울 짝도, 다시 붙이기도 없으면 실패(하트 -1, 그 판 다시).
- * 펼쳐짐(하는 일이 바뀐다): 1판 톡톡·딸깍 연쇄·줄 쏙 → 2판 ➕ 다시 붙이기(언제 쓸까) → 3판 🔒 잠긴 알(옆을 먼저 지워 풀기)
+ * 펼쳐짐(하는 일이 바뀐다): 1판 톡톡·딸깍 연쇄·줄 쏙 → 2판 ➕ 다시 붙이기(막혔을 때만 — 막히기 전에 남은 수를 줄여 두기) → 3판 🔒 잠긴 알(옆을 먼저 지워 풀기)
  *   → 4판 🦊 여우 손님 주문(판을 다 비우지 말고 그 숫자만 파내기) → 5판 🌟 황금 알(지우면 판 위 같은 수가 모두 딸깍 — 언제 터뜨릴까)
- *   → 6판 🎯 줄 빼기(줄 N개만 쏙 — 어느 줄을 노릴까) → 7판 🕯️ 촛불(짝 4번마다 다시 붙이기가 하나씩 녹는다) → 8판 🏮 장날(전부).
+ *   → 6판 🎯 줄 빼기(줄 3개만 쏙 — 어느 줄을 노릴까) → 7판 🕯️ 촛불(짝 4번마다 다시 붙이기가 하나씩 녹는다) → 8판 🏮 장날(전부).
  * 웃음: 너구리 주인이 딸깍마다 주판을 튕기고, 연쇄엔 안경이 번쩍·꼬리가 부풀고, 막히면 식은땀, 실패하면 주판알을 쏟고 데굴데굴.
  *   창가의 다람쥐·토끼 손님이 연쇄에 박수, 선반 위 고양이는 쏙 소리에 깜짝 놀라 꼬리가 펑.
  */
@@ -42,11 +43,11 @@ export interface StageDef {
 }
 export const STAGES: StageDef[] = [
   { key: 'basic', name: '첫 주판', emoji: '🌱', news: '🧮 알을 톡 → 반짝이는 짝을 톡하면 딸깍!', tip: '같은 수나 합이 10, 사이가 비어 있으면 짝', goal: 'clear', n: 18, re: 3, locks: 0, golds: 0, need: 0, decay: 0, nest: 0.7, noise: 0, slack: 1, parT: 4 },
-  { key: 'readd', name: '다시 붙이기', emoji: '➕', news: '➕ 막히면 다시 붙이기 — 남은 수가 판 끝에 또 붙어요', tip: '➕ 남은 수가 적을 때 붙이면 좋아요', goal: 'clear', n: 18, re: 3, locks: 0, golds: 0, need: 0, decay: 0, nest: 0.55, noise: 2, slack: 1, parT: 7 },
+  { key: 'readd', name: '다시 붙이기', emoji: '➕', news: '➕ 막히면 다시 붙이기 — 남은 수가 판 끝에 또 붙어요', tip: '➕ 막히기 전에 남은 수를 줄여 두면 붙이기가 쉬워요', goal: 'clear', n: 18, re: 3, locks: 0, golds: 0, need: 0, decay: 0, nest: 0.55, noise: 2, slack: 1, parT: 7 },
   { key: 'lock', name: '잠긴 알', emoji: '🔒', news: '🔒 잠긴 알 — 바로 옆 알을 지우면 툭 풀려요', tip: '🔒 옆 알부터 지워서 풀어요', goal: 'clear', n: 24, re: 2, locks: 3, golds: 0, need: 0, decay: 0, nest: 0.6, noise: 1, slack: 2, parT: 8 },
-  { key: 'order', name: '여우 손님', emoji: '🦊', news: '🦊 여우 손님 주문 — 그 숫자만 N개 지우면 성공!', tip: '🦊 주문한 숫자로 가는 길만 열어요', goal: 'count', n: 30, re: 2, locks: 0, golds: 0, need: 8, decay: 0, nest: 0.6, noise: 1, slack: 2, parT: 6 },
+  { key: 'order', name: '여우 손님', emoji: '🦊', news: '🦊 여우 손님 주문 — 그 숫자를 전부 지우면 성공 (판은 안 비워도 돼요)', tip: '🦊 주문한 숫자로 가는 길만 열어요', goal: 'count', n: 30, re: 2, locks: 0, golds: 0, need: 8, decay: 0, nest: 0.6, noise: 1, slack: 2, parT: 6 },
   { key: 'gold', name: '황금 알', emoji: '🌟', news: '🌟 황금 알을 지우면 판 위의 같은 수가 모두 딸깍!', tip: '🌟 황금 알은 언제 터뜨릴지 골라요', goal: 'clear', n: 24, re: 2, locks: 0, golds: 2, need: 0, decay: 0, nest: 0.5, noise: 2, slack: 2, parT: 7 },
-  { key: 'rows', name: '줄 빼기', emoji: '🎯', news: '🎯 줄 N개만 쏙 빼면 성공 — 어느 줄을 노릴까?', tip: '🎯 거의 빈 줄부터 노려요', goal: 'rows', n: 36, re: 2, locks: 0, golds: 0, need: 3, decay: 0, nest: 0.6, noise: 2, slack: 2, parT: 7 },
+  { key: 'rows', name: '줄 빼기', emoji: '🎯', news: '🎯 줄 3개만 쏙 빼면 성공 — 어느 줄을 노릴까?', tip: '🎯 거의 빈 줄부터 노려요', goal: 'rows', n: 36, re: 2, locks: 0, golds: 0, need: 3, decay: 0, nest: 0.6, noise: 2, slack: 2, parT: 7 },
   { key: 'candle', name: '촛불', emoji: '🕯️', news: '🕯️ 짝 4번마다 다시 붙이기가 하나씩 녹아요!', tip: '🕯️ 다시 붙이기가 녹기 전에 길을 열어요', goal: 'clear', n: 24, re: 3, locks: 0, golds: 0, need: 0, decay: 4, nest: 0.5, noise: 2, slack: 2, parT: 8 },
   { key: 'fair', name: '장날', emoji: '🏮', news: '🏮 장날 — 다 나와요!', tip: '🔒 🌟 — 연쇄로 톡톡을 아껴요', goal: 'clear', n: 30, re: 2, locks: 2, golds: 1, need: 0, decay: 0, nest: 0.6, noise: 2, slack: 2, parT: 8 },
 ];

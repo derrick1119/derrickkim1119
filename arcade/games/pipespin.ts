@@ -1085,7 +1085,7 @@ function undoTurn(s: PipeState) {
   if (L.gear[i] >= 0) s.tgt[L.gear[i]]--;
   s.lastTurn = -1;
   s.F = flow(L, s.S.rot);
-  for (let j = 0; j < L.n; j++) if (!s.F.wet[j]) s.wetT[j] = -1;
+  for (let j = 0; j < L.n; j++) s.wetT[j] = s.F.wet[j] ? (s.wetT[j] >= 0 ? s.wetT[j] : s.t) : -1;
   ev(s, 'undo', UX, UY, '슝~ 되돌렸어요', '#e6dcff');
   setMood(s, 'wow');
 }
