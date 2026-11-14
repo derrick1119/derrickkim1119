@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
-import { CRISIS_DELAY, FAUCET, SLOTS, STAGES, WORLDS, advance, crisisShown, jitFor, starChips, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, failText, hintPoint, startStage } from '../studio/duckbath/game.ts';
+import { CRISIS_DELAY, FAUCET, SLOTS, STAGES, WORLDS, advance, crisisShown, jitFor, starChips, duckbath as g, duckbathCasual, duckbathRandom, duckbathSmart, failText, hintPoint, previewPaths, startStage } from '../studio/duckbath/game.ts';
 import { OLD_IDS, SAVE_KEY, makeStore } from '../studio/duckbath/save.ts';
 import { mulberry32 } from '../engine/rng.ts';
 import { play } from '../studio/duckbath/funqa.ts';
@@ -268,6 +268,17 @@ describe('욕조 물결 오리 시뮬', () => {
         if (s.ok && s.starOk[2]) gold++;
       }
       expect(gold).toBe(3); // 🧪 D017: '3시드 중 ≥ 1'은 약함 → 3시드 다 ★3 (n300 탐침 3-7 숙련 ★3 299/300)
+    });
+    it('🧪 D017 조건부 해제(테스트 3): 화면 미리 보기 경로가 아기 입성까지 간다 — 앞 오리가 든 뒤 걷는 아기의 끝이 둥지', () => {
+      const i = STAGES.findIndex((d) => d.chicks?.length);
+      const s = g.create(3);
+      startStage(s, i);
+      while (s.phase !== 'play' || s.pt < 2) g.step(s, idle);
+      s.objs.filter((o) => o.k === 0 && o.lead < 0).forEach((o, j) => Object.assign(o, { st: j % s.L.nests.length, x: s.L.nests[j % s.L.nests.length].x, y: s.L.nests[j % s.L.nests.length].y }));
+      const kids = s.objs.flatMap((o, j) => (o.lead >= 0 ? [j] : []));
+      expect(kids.length).toBeGreaterThan(0);
+      const paths = previewPaths(s, 0.5, 1.1);
+      for (const j of kids) expect(paths[j].end).toBeGreaterThanOrEqual(0);
     });
     it('상어 여럿(sharks[])이 다 나온다', () =>
       withStage({ sharks: [[0.2, 0.9], [0.8, 0.9]] }, (s) => {

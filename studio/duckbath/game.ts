@@ -693,6 +693,22 @@ function verdict(S: Sim) {
 function clone(S: Sim): Sim {
   return { pen: S.pen, t: S.t, objs: S.objs.map((o) => ({ ...o })), rings: S.rings.map((g) => ({ ...g, hit: g.hit.slice() })), rid: S.rid, awake: S.awake, L: S.L, popped: S.popped };
 }
+/** 미리 보기: 이 자리에 찰박하면 어디로 가나 — 화면과 테스트가 함께 쓴다(🧪 D017 조건부 해제 조건: 미리 보기 경로가 둥지까지) */
+export function previewPaths(s: Sim, x: number, y: number) {
+  const S = clone(s);
+  splash(S, x, y);
+  const paths = S.objs.map((o) => ({ k: o.k, col: o.col, pts: [o.x, o.y], end: o.st }));
+  for (let k = 0; k < 200; k++) {
+    phys(S, null);
+    if (k % 3 === 0) S.objs.forEach((o, i) => o.st === FREE && paths[i].pts.push(o.x, o.y));
+    if (k > 8 && S.rings.length === 0 && calm(S)) break;
+  }
+  S.objs.forEach((o, i) => {
+    paths[i].end = o.st;
+    paths[i].pts.push(o.x, o.y);
+  });
+  return paths;
+}
 /** 잔잔해질 때까지(또는 끝날 때까지) 돌린다 */
 function run(S: Sim, maxT: number) {
   for (let k = 0; k < maxT; k++) {
@@ -2370,18 +2386,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DuckState, w: number, h: numb
     const c = PREV.get(s);
     if (c && c.key === key) paths = c.paths;
     else {
-      const S = clone(s);
-      splash(S, pv.x, pv.y);
-      paths = S.objs.map((o) => ({ k: o.k, col: o.col, pts: [o.x, o.y], end: o.st }));
-      for (let k = 0; k < 200; k++) {
-        phys(S, null);
-        if (k % 3 === 0) S.objs.forEach((o, i) => o.st === FREE && paths[i].pts.push(o.x, o.y));
-        if (k > 8 && S.rings.length === 0 && calm(S)) break;
-      }
-      S.objs.forEach((o, i) => {
-        paths[i].end = o.st;
-        paths[i].pts.push(o.x, o.y);
-      });
+      paths = previewPaths(s, pv.x, pv.y);
       PREV.set(s, { key, paths });
     }
   }
