@@ -422,3 +422,79 @@ export function forEachPlan(L: Layout3, k: number, f: (ch: Int8Array, plan: numb
   };
   rec(0, k);
 }
+
+// ───────────────────────────── 발자국 (C003, 📐 §10.4-2) ─────────────────────────────
+/** 덩어리 하나의 받침: 딛은 칸, 발자국 네모, 무게중심(추), 그리고 이대로 쾅 하면 처음에 무엇을 할지 */
+export interface Footing {
+  ids: number[];
+  feet: [number, number, number][];
+  rect: { x0: number; x1: number; z0: number; z1: number } | null;
+  /** 무게중심 x·z와 높이 y (칸 단위, 블록 가운데 = +0.5) */
+  cx: number;
+  cy: number;
+  cz: number;
+  /** stand 버팀 · tip 넘어짐(axis·dir) · slump 제자리 주저앉음 · fall 떨어짐 */
+  act: 'stand' | 'tip' | 'slump' | 'fall';
+  axis: number;
+  dir: number;
+}
+
+/**
+ * 폭약 배치 → ① 폭발(가스 연쇄 포함) 직후 남은 덩어리마다의 받침. simulate3의 첫 물결 판정과 같은 규칙(테스트가 지킨다).
+ * 미리 보기에서 '꿈쩍 안 함'이어도 발 칸·네모·추가 바뀌는 것을 보여 주려고 쓴다(눈먼 수 줄이기).
+ */
+export function support3(Lay: Layout3, ch: ArrayLike<number>): Footing[] {
+  const B = Lay.blocks, n = B.length, W = Lay.W, D = Lay.D, WD = W * D;
+  const occ = new Int16Array(WD * SH3).fill(-1), hp = new Int8Array(n), dead = new Uint8Array(n);
+  const at = (x: number, y: number, z: number) => y * WD + z * W + x;
+  for (let i = 0; i < n; i++) (hp[i] = HP[B[i].m]), (occ[at(B[i].x, B[i].y, B[i].z)] = i);
+  const q: number[] = [];
+  for (let i = 0; i < n; i++)
+    if (ch[i] > 0 && B[i].m !== METAL && (hp[i] -= ch[i]) <= 0) (dead[i] = 1), q.push(i);
+  for (let k = 0; k < q.length; k++) {
+    const g = B[q[k]];
+    if (g.m !== GAS) continue;
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dz = -1; dz <= 1; dz++)
+        for (let dx = -1; dx <= 1; dx++) {
+          const x = g.x + dx, y = g.y + dy, z = g.z + dz;
+          if ((!dx && !dy && !dz) || x < 0 || x >= W || z < 0 || z >= D || y < 0 || y >= SH3) continue;
+          const j = occ[at(x, y, z)];
+          if (j < 0 || dead[j] || B[j].m === METAL) continue;
+          if (--hp[j] <= 0) (dead[j] = 1), q.push(j);
+        }
+  }
+  const comp = new Int16Array(n).fill(-1), out: Footing[] = [];
+  for (let i = 0; i < n; i++) {
+    if (dead[i] || comp[i] >= 0) continue;
+    const list = [i];
+    comp[i] = out.length;
+    for (let k = 0; k < list.length; k++) {
+      const b = B[list[k]];
+      for (let e = 0; e < 18; e += 3) {
+        const x = b.x + N6[e], y = b.y + N6[e + 1], z = b.z + N6[e + 2];
+        if (x < 0 || x >= W || z < 0 || z >= D || y < 0 || y >= SH3) continue;
+        const o = occ[at(x, y, z)];
+        if (o >= 0 && !dead[o] && comp[o] < 0) (comp[o] = out.length), list.push(o);
+      }
+    }
+    let m = 0, mx = 0, my = 0, mz = 0, sx0 = 99, sx1 = -1, sz0 = 99, sz1 = -1;
+    const feet: [number, number, number][] = [];
+    for (const j of list) {
+      const b = B[j], w = MASS[b.m];
+      (m += w), (mx += w * (b.x + 0.5)), (my += w * (b.y + 0.5)), (mz += w * (b.z + 0.5));
+      if (b.y === 0) feet.push([b.x, b.y, b.z]), (sx0 = Math.min(sx0, b.x)), (sx1 = Math.max(sx1, b.x)), (sz0 = Math.min(sz0, b.z)), (sz1 = Math.max(sz1, b.z));
+    }
+    const cx = mx / m, cz = mz / m;
+    let act: Footing['act'] = 'stand', axis = 0, dir = 0;
+    if (sx1 < 0) act = 'fall';
+    else {
+      const ox = cx < sx0 - EPS ? 1 : cx > sx1 + 1 + EPS ? 1 : 0, oz = cz < sz0 - EPS ? 1 : cz > sz1 + 1 + EPS ? 1 : 0;
+      if (ox && oz) act = 'slump';
+      else if (ox) (act = 'tip'), (axis = 0), (dir = cx > sx1 + 1 ? 1 : -1);
+      else if (oz) (act = 'tip'), (axis = 1), (dir = cz > sz1 + 1 ? 1 : -1);
+    }
+    out.push({ ids: list, feet, rect: sx1 < 0 ? null : { x0: sx0, x1: sx1 + 1, z0: sz0, z1: sz1 + 1 }, cx, cy: my / m, cz, act, axis, dir });
+  }
+  return out;
+}

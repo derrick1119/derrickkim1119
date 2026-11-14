@@ -13,7 +13,8 @@ import { STAGES, bestPlan, capOf, demolition as g, demolitionRandom, demolitionS
 import type { Bot } from './core.ts';
 import type { DemoState } from './game.ts';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { capOf3, forEachPlan, layoutOf3, simulate3, type Layout3 } from './sim3d.ts';
+import { capOf3, forEachPlan, layoutOf3, simulate3, support3, type Layout3 } from './sim3d.ts';
+import { cellPx, fitCams, visibleArea } from './view3d.ts';
 import { STAGES3 } from './stages3d.ts';
 import { join } from 'node:path';
 
@@ -130,7 +131,75 @@ export function measure3D() {
       c1[i] = capOf3(b);
       if (!simulate3(L, c1).moved) still++;
     });
-    return { title: d.title, blocks: L.blocks.length, charges: d.charges, plans, clear: ok / plans, star3: s3 / plans, best, greedyStar3: gStar3 / 20, greedyClear: gClear / 20, firstTapStill: still / open };
+    // ── FUN v1 (C003) ── 화면: 390×468(3d.html과 같은 맞춤), 시작 시점 = 앞왼(시점 0)
+    const cams = fitCams(L.lot, L.blocks, 390, 468, 12);
+    const area = cams.map((c) => visibleArea(c, L.blocks, 390, 468, 2));
+    const N = L.blocks.length, can = (i: number) => capOf3(L.blocks[i]) > 0;
+    /** 첫 폭약 i 뒤에 나머지를 어떻게 붙여도 실패면 '죽은 첫 톡' (돌은 톡 한 번에 −2: 첫 톡 = 그 블록을 부술 만큼) */
+    const alive = L.blocks.map((b, i) => {
+      if (!can(i) || capOf3(b) > d.charges) return false;
+      let ok = false;
+      forEachPlan(L, d.charges, (ch) => {
+        if (!ok && ch[i] >= capOf3(b) && simulate3(L, ch).ok) ok = true;
+      });
+      return ok;
+    });
+    const taps = L.blocks.map((_, i) => i).filter(can);
+    const w0 = taps.map((i) => area[0][i]), wSum = w0.reduce((a, b) => a + b, 0);
+    const deadU = taps.filter((i) => !alive[i]).length / taps.length;
+    const deadW = taps.reduce((a, i, k) => a + (alive[i] ? 0 : w0[k]), 0) / Math.max(1, wSum);
+    // 살아 있는 첫 톡 반응(F5): 미리 보기에서 움직이거나 발 칸이 바뀌는가
+    const feetKey = (ch: Int8Array) => support3(L, ch).map((f) => `${f.act}:${f.feet.map((q) => q.join(',')).join(' ')}`).sort().join('|');
+    const base = feetKey(new Int8Array(N));
+    const liveIds = taps.filter((i) => alive[i]);
+    const react = liveIds.filter((i) => {
+      const c1 = new Int8Array(N);
+      c1[i] = capOf3(L.blocks[i]);
+      return simulate3(L, c1).moved || feetKey(c1) !== base;
+    }).length / Math.max(1, liveIds.length);
+    // 처음 봇(F2): 첫 톡은 보이는 넓이에 비례(4번에 3번 시작 시점, 1번 ⟲ 한 시점), 마지막 폭약만 미리 보기로 최선. 미리 보기 안 보는 변형도
+    const wMix = L.blocks.map((_, i) => (can(i) ? 0.75 * area[0][i] + 0.25 * area[3][i] : 0));
+    let pPrev = 0, pBlind = 0;
+    const rec = (ch: Int8Array, left: number, prob: number) => {
+      if (prob <= 0) return;
+      const choices = L.blocks.map((_, i) => i).filter((i) => can(i) && !ch[i] && capOf3(L.blocks[i]) <= left);
+      if (!choices.length || left <= 0) {
+        if (simulate3(L, ch).ok) (pPrev += prob), (pBlind += prob);
+        return;
+      }
+      const lastTap = choices.every((i) => capOf3(L.blocks[i]) >= left);
+      const tw = choices.reduce((a, i) => a + wMix[i], 0);
+      if (lastTap) {
+        // 마지막 폭약: 미리 보기 최선(성공하는 자리가 하나라도 있으면 성공) / 안 보면 넓이 비례
+        let any = false;
+        for (const i of choices) {
+          ch[i] = capOf3(L.blocks[i]);
+          const ok = simulate3(L, ch).ok;
+          ch[i] = 0;
+          if (ok) (any = true), (pBlind += (prob * wMix[i]) / tw);
+        }
+        if (any) pPrev += prob;
+        return;
+      }
+      for (const i of choices) {
+        ch[i] = capOf3(L.blocks[i]);
+        rec(ch, left - ch[i], (prob * wMix[i]) / tw);
+        ch[i] = 0;
+      }
+    };
+    rec(new Int8Array(N), d.charges, 1);
+    const p1 = Math.min(pPrev, pBlind), first5 = 1 - (1 - p1) ** 5;
+    // 시작 시점에서 ★3 계획 블록이 보이는 넓이(F13, 블록 앞면 한 장 = cellPx²) · 속 블록(F14)
+    const face = cellPx(cams[0]) ** 2;
+    // ★3 계획 중 '가장 잘 보이는 것'의 가장 덜 보이는 블록(면 장 수) — 1-1·1-2는 ≥ 0.5
+    let star3Vis = -1;
+    forEachPlan(L, d.charges, (ch, plan) => {
+      if (simulate3(L, ch).stars === 3) star3Vis = Math.max(star3Vis, Math.min(...plan.map((i) => area[0][i] / face)));
+    });
+    const inner = taps.filter((i) => area.every((a) => a[i] === 0)).length;
+    return { title: d.title, blocks: L.blocks.length, charges: d.charges, plans, clear: ok / plans, star3: s3 / plans, best, greedyStar3: gStar3 / 20, greedyClear: gClear / 20, firstTapStill: still / open,
+      attachable: taps.length, inner, deadFirstTap: deadU, deadFirstTapW: deadW, liveFirstTapReact: react,
+      firstTimer5: first5, firstTimer1: p1, cellPx: cellPx(cams[0]), startViewStar3MinFaces: Math.max(0, star3Vis) };
   });
 }
 
@@ -158,7 +227,8 @@ if (process.argv[1]?.endsWith('funqa.ts')) {
   console.log(r.summary, r.runs);
   const r3 = measure3D();
   for (const x of r3) console.log(`3D ${x.title} 블록${x.blocks} 폭약${x.charges} 계획${x.plans} 성공${(x.clear * 100).toFixed(1)}% ★3 ${(x.star3 * 100).toFixed(1)}% 최선★${x.best} 미리보기탐욕(동점 무작위) ★3 ${x.greedyStar3} 성공 ${x.greedyClear} 첫 톡 꿈쩍 안 함 ${(x.firstTapStill * 100).toFixed(0)}%`);
+  for (const x of r3) console.log(`   FUN v1: 붙일 블록 ${x.attachable}(≤24) 속 ${x.inner}(0) · 죽은 첫 톡 ${x.deadFirstTap.toFixed(2)} 가중 ${x.deadFirstTapW.toFixed(2)} · 살아 있는 첫 톡 반응 ${x.liveFirstTapReact.toFixed(2)} · 처음 봇 1회 ${x.firstTimer1.toFixed(2)} 5회 ${x.firstTimer5.toFixed(2)} · 칸 ${x.cellPx.toFixed(1)}px(≥36) · 시작 시점 ★3 블록 최소 ${x.startViewStar3MinFaces.toFixed(2)}면`);
   const dir = join(import.meta.dirname, 'reports');
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: 'C002', ...r, stages3d: measure3D() }, null, 1) + '\n');
+  writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: 'C003', ...r, stages3d: measure3D() }, null, 1) + '\n');
 }

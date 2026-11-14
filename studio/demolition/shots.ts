@@ -31,5 +31,35 @@ await page.waitForTimeout(2600);
 await page.screenshot({ path: join(out, '3-boom.png') });
 await page.waitForTimeout(2200);
 await page.screenshot({ path: join(out, '4-result.png') });
+// ── 3D 실험 빌드 (C003) ──
+const p3 = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+p3.on('pageerror', (e: unknown) => errors.push(String(e)));
+p3.on('console', (m: { type(): string; text(): string }) => m.type() === 'error' && errors.push(m.text()));
+await p3.goto('file://' + join(here, '../../web/public/studio/demolition/3d.html'));
+await p3.waitForTimeout(300);
+await p3.screenshot({ path: join(out, '3d-0-start.png') });
+const scroll = await p3.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+const at = (x: number, y: number, z: number) => p3.evaluate(([a, b, c]: number[]) => (window as any).__d3.screenOf(a, b, c), [x, y, z]) as Promise<[number, number]>;
+const hold = async (x: number, y: number, z: number, shot: string) => {
+  const [sx, sy] = await at(x, y, z);
+  await p3.mouse.move(sx, sy);
+  await p3.mouse.down();
+  await p3.waitForTimeout(200);
+  await p3.screenshot({ path: join(out, shot) });
+  await p3.mouse.up();
+  await p3.waitForTimeout(100);
+};
+await hold(5, 0, 5, '3d-1-hold-first.png'); // 앞왼 다리: 혼자서는 버팀(추 초록) — 발 칸 하나가 빠진다
+await p3.click('.rot.r');
+await p3.waitForTimeout(450);
+await p3.screenshot({ path: join(out, '3d-2-rotated.png') });
+await p3.click('.rot.l');
+await p3.waitForTimeout(450);
+await hold(5, 0, 7, '3d-3-hold-second.png'); // 뒤왼 다리까지: 추가 네모 밖(빨강) + 왼쪽 화살표
+await p3.waitForTimeout(200);
+await p3.screenshot({ path: join(out, '3d-4-result.png') });
+const st3 = await p3.evaluate(() => (window as any).__d3.state());
+console.log('3D:', JSON.stringify(st3), scroll ? '가로 스크롤 있음 ❌' : '가로 스크롤 없음');
+if (scroll || !st3.done) errors.push('3D 검사 실패');
 await browser.close();
 console.log(errors.length ? `콘솔 에러 ${errors.length}: ${errors.join(' | ')}` : '콘솔 에러 0');

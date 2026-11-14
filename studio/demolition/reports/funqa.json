@@ -1,5 +1,5 @@
 {
- "at": "C002",
+ "at": "C003",
  "stages": [
   {
    "n": 1,
@@ -163,7 +163,16 @@
    "best": 3,
    "greedyStar3": 0.15,
    "greedyClear": 0.25,
-   "firstTapStill": 1
+   "firstTapStill": 1,
+   "attachable": 34,
+   "inner": 1,
+   "deadFirstTap": 0.6470588235294118,
+   "deadFirstTapW": 0.5959522949042284,
+   "liveFirstTapReact": 1,
+   "firstTimer5": 0.30521272689331935,
+   "firstTimer1": 0.0702410429770604,
+   "cellPx": 19.800203494490262,
+   "startViewStar3MinFaces": 1.0100802477958184
   }
  ]
 }
