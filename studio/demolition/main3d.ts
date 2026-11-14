@@ -431,7 +431,9 @@ function holdOverlay(c: Cam, h: ReturnType<typeof holdInfo>) {
     // 마지막 폭약을 겨누면 결과 꼬리표 — 2D 판정 말풍선과 같은 정보 (🧪 C005: '꿈쩍처럼 보이는 실패'를 없앤다, F4b ⓑ)
     if (holdTags(capOf3(L.blocks[aim]), ch[aim], left, !!h.quiet, L.save !== undefined, !!h.pv?.moved).result) {
       const v = verdict(pv);
-      tag(W / 2, 40, `이대로 쾅 → ${v.text}`, v.ok ? '#23785a' : '#c7362e', '#ffffff');
+      // 손잡이 판의 마지막 아닌 겨눔은 '붙이고 쾅 →'(손잡이 줄 '지금 쾅 →'과 다른 말로 — 🧪 C008 ②)
+      const lastOne = capOf3(L.blocks[aim]) >= left;
+      tag(W / 2, 40, `${lastOne ? '이대로 쾅' : '붙이고 쾅'} → ${v.text}`, v.ok ? '#23785a' : '#c7362e', '#ffffff');
     }
     ctx = keep;
   }
@@ -497,6 +499,8 @@ function draw() {
   }
   // 발자국·추: 다리 밑이라 블록에 가리므로 블록 위에 엑스레이로 겹친다 — 지금 붙인 폭약 기준(흐리게) + 겨눈 블록까지 붙였을 때(진하게)
   const busy = rotT < 1;
+  // 막다른 길은 판 위에도(🧪 C008 ③: 아래 글줄에만 떠서 손잡이에 가렸다) — 꾹 하는 동안은 결과 꼬리표 자리라 숨김
+  if (!out && stuck && !holding) tag(W / 2, 40, '🚧 막다른 길 · 🧨 톡 하면 떼요', '#c7362e', '#ffffff');
   if (!out) {
     const h = holdInfo(aim >= 0 && holding && !busy ? aim : -1), now = h.now;
     if (aim >= 0 && holding && !busy) holdOverlay(c, h);
@@ -530,12 +534,16 @@ function draw() {
 let stuck = false, stuckT = -1e9;
 function hudText() {
   const d = STAGES3[stageIx], used = L.charges - left;
-  hud.textContent = `🏗️ ${stageIx + 1}. ${d.title} · 🧨 ${left}개 남음${L.save !== undefined ? ` · 목표 ${L.save}개` : ''}`;
+  hud.textContent = `🏗️ ${stageIx + 1}. ${d.title} · 🧨 ${left}개 남음${L.save !== undefined ? ` · 🧨 ${L.save}개로 ★` : ''}`;
   const showH = L.save !== undefined && used > 0 && !out;
   hrow.style.display = L.save !== undefined ? '' : 'none';
   if (showH && handle.hidden) handle.classList.remove('pop'), void handle.offsetWidth, handle.classList.add('pop'); // 나타날 때 한 번 통통
   handle.hidden = !showH;
-  if (showH) hres.textContent = `지금 쾅 → ${verdict(simulate3(L, ch)).text}`;
+  if (showH) {
+    // 손잡이 둘째 줄은 짧게(🧪 C008 ①: '아직 높아요 (2칸 >…'이 잘렸다)
+    const o = simulate3(L, ch), v = verdict(o);
+    hres.textContent = `지금 쾅 → ${!o.moved ? '꿈쩍 안 함' : o.hits.some((x) => x > 0) ? '💥 이웃집' : !o.ok ? `높이 ${o.height}칸 > ${L.goal}칸` : v.text.replace('철거 성공 ', '성공 ')}`;
+  }
   if (out && played()) {
     const why = verdict(out).text;
     msg.textContent = why;
@@ -544,6 +552,8 @@ function hudText() {
     // 별이 모자라면 같은 판 '다시'도 (🧪 C004 ⑤)
     retry.hidden = !(out.ok && out.stars < 3);
     if (out.ok && out.stars < 3) msg.textContent += !out.star[1] ? ' — 꽃밭을 덮었어요' : L.save !== undefined ? ` — 폭약 ${L.save}개로 깨면 ★` : ' — 더 낮게 무너뜨리면 ★';
+    // 딴 별 이유(🧪 C008 ⑤·FUN 제안 ⓔ): 손잡이 판의 ★3은 아끼기
+    if (out.ok && out.stars === 3 && L.save !== undefined && left > 0) msg.textContent += ` — 🧨 ${left}개 아꼈어요!`;
   } else {
     msg.textContent = out ? '3·2·1…' : stuck ? '🚧 막다른 길 · 🧨 톡 하면 떼요' : [d.news, d.hint].filter(Boolean).join(' · ');
     again.hidden = true;
@@ -616,7 +626,7 @@ function loop(now: number) {
   }
   shake = Math.max(0, shake - dt * 2.5);
   // 그림이 바뀔 것이 하나도 없으면 다시 그리지 않는다(🧪 C007 ②: 가만히 꾹에서도 캔버스 전체를 매 프레임 다시 칠해 30fps 경계였다)
-  const sig = `${yaw}|${stageIx}|${ch.join('')}|${left}|${aim}|${holding}|${touch}|${out ? 1 : 0}|${bt}|${shake}|${bits.length}|${flash}|${canvas.width}x${canvas.height}|${noText}|${ovKey}|${bgKey}`;
+  const sig = `${yaw}|${stageIx}|${ch.join('')}|${stuck}|${left}|${aim}|${holding}|${touch}|${out ? 1 : 0}|${bt}|${shake}|${bits.length}|${flash}|${canvas.width}x${canvas.height}|${noText}|${ovKey}|${bgKey}`;
   // 파편·섬광이 살아 있으면 서명이 같아도 그린다(🧪 C007 발견 1: '꿈쩍 안 함' 쾅 뒤 파편이 공중에 멈췄다)
   if (sig === lastSig && !bits.length && !flash && now - stuckT > 420) return void requestAnimationFrame(loop);
   lastSig = sig;
