@@ -4,22 +4,22 @@
  "seeds": 24,
  "summary": {
   "smartStars": 3,
-  "habitStars": 1.84,
-  "randomStars": 0.43,
+  "habitStars": 1.87,
+  "randomStars": 0.44,
   "smartStar3": 1,
   "habitStar3": 0.09,
   "randomClear1": 1,
   "mashClear12": 0.98,
-  "mashClear38": 0.18,
-  "mashStars": 0.42,
+  "mashClear38": 0.21,
+  "mashStars": 0.43,
   "habit3Star3_2": 0,
   "habit3Star3_38max": 0,
   "fingerGe2_1": 0.04,
   "fingerGe2_2": 0.17,
-  "previewStar3_38": 0.07,
-  "smartShot": 3.72,
-  "mashShot": 1.42,
-  "smartSec": 5.95,
+  "previewStar3_38": 0.06,
+  "smartShot": 3.71,
+  "mashShot": 1.43,
+  "smartSec": 5.98,
   "newbie3_13": 1,
   "newbie3_avg": 0.99,
   "f13_38min": 0.95,
@@ -28,12 +28,12 @@
    56,
    61,
    61,
-   60,
+   63,
    86,
    91,
    66
   ],
-  "skillGap": 6.98
+  "skillGap": 6.82
  },
  "stages": [
   {
@@ -372,78 +372,78 @@
     "star3": 1,
     "stars": 3,
     "ge2": 1,
-    "sec": 5.6,
-    "human": 60,
-    "shot": 4.79
+    "sec": 5.8,
+    "human": 63,
+    "shot": 4.67
    },
    "habit": {
     "clear": 1,
     "star3": 0,
-    "stars": 1.79,
-    "ge2": 0.79,
-    "sec": 7,
-    "human": 76,
-    "shot": 1.33
-   },
-   "top": {
-    "clear": 0.79,
-    "star3": 0,
-    "stars": 1.04,
-    "ge2": 0.25,
+    "stars": 1.96,
+    "ge2": 0.96,
     "sec": 7.1,
     "human": 78,
+    "shot": 1.13
+   },
+   "top": {
+    "clear": 0.88,
+    "star3": 0,
+    "stars": 1,
+    "ge2": 0.13,
+    "sec": 7.2,
+    "human": 79,
     "shot": 1
    },
    "reveal": {
     "clear": 1,
     "star3": 0,
-    "stars": 1.25,
-    "ge2": 0.25,
+    "stars": 1.21,
+    "ge2": 0.21,
     "sec": 7.4,
     "human": 81,
     "shot": 1
    },
    "random": {
-    "clear": 0.08,
+    "clear": 0.13,
     "star3": 0,
-    "stars": 0.08,
+    "stars": 0.13,
     "ge2": 0,
-    "sec": 14.9,
-    "human": 46,
-    "shot": 1.13
+    "sec": 17.3,
+    "human": 50,
+    "shot": 1.08
    },
    "mash": {
-    "clear": 0,
+    "clear": 0.13,
     "star3": 0,
-    "stars": 0,
+    "stars": 0.13,
     "ge2": 0,
-    "sec": 2.9,
-    "human": 45,
-    "shot": 1.04
+    "sec": 3,
+    "human": 48,
+    "shot": 1.08
    },
    "finger": {
-    "clear": 0,
+    "clear": 0.13,
     "star3": 0,
-    "stars": 0,
+    "stars": 0.13,
     "ge2": 0,
-    "sec": 2.9,
-    "human": 45,
-    "shot": 1.04
+    "sec": 3,
+    "human": 48,
+    "shot": 1.08
    },
    "preview": {
     "clear": 1,
-    "star3": 0.08,
-    "stars": 1.96,
-    "ge2": 0.88,
-    "sec": 6.6,
-    "human": 73,
-    "shot": 2.25
+    "star3": 0,
+    "stars": 1.92,
+    "ge2": 0.92,
+    "sec": 6.9,
+    "human": 75,
+    "shot": 1.96
    },
    "newbie": {
     "clear1": 1,
     "clear3": 1,
-    "fails": 0,
-    "f13": null
+    "fails": 3,
+    "f13": 1
    }
   },
   {

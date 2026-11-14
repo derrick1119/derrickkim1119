@@ -136,9 +136,28 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
     if (smartSeen(L, d) !== 3) return -9;
     const h = playOut(L, d, habitOf(L));
     if (h === 3) return -5;
-    let m = 0;
-    for (let k = 0; k < 200; k++) m += playOut(L, d, mashOf(L, r)) ? 1 : 0;
-    return (smartSeen(L, d, true) === 3 ? 0 : 1) + (h ? 1 : 0) + 1 - m / 200;
+    let m = 0, cn = 0, cs = 0; // ✏️ S008 (🧪 F14 🪵): 막 누르기 판에서 우수수로 튄 나사 · 그중 빈칸
+    for (let k = 0; k < 200; k++) {
+      const M = newSim(L), mash = mashOf(L, r);
+      while (!M.fail && M.n < L.N) {
+        const rec: { k: string; pop?: boolean }[] = [];
+        apply(L, M, mash(M), rec as never);
+        let c = false;
+        rec.forEach((e, j) => (e.k === 'crash' && (c = true), c && e.k === 'out' && e.pop && (cn++, (cs += rec.slice(j + 1).find((x) => x.k === 'box' || x.k === 'slot')?.k === 'slot' ? 1 : 0))));
+      }
+      m += M.fail ? 0 : 1;
+    }
+    // 장인(같은 눈) 판에서 우수수로 튄 나사가 빈칸에 가면 −0.5 (F14: 장인 쪽 비율을 0으로)
+    const A = newSim(L);
+    let known = visibleM(L, 0), as = 0;
+    while (!A.fail && A.n < L.N) {
+      const m0 = bestMove({ ...L, col: L.col.map((c, i) => ((known >> i) & 1 ? c : -1)), queue: L.queue.map((c, i) => (i < A.qi + 2 ? c : -2)) }, A, d), rec: { k: string; pop?: boolean }[] = [];
+      apply(L, A, m0 >= 0 ? m0 : habitPick(L, A), rec as never);
+      let c = false;
+      rec.forEach((e, j) => (e.k === 'crash' && (c = true), c && e.k === 'out' && e.pop && (as += rec.slice(j + 1).find((x) => x.k === 'box' || x.k === 'slot')?.k === 'slot' ? 1 : 0)));
+      known |= visibleM(L, A.gone);
+    }
+    return (smartSeen(L, d, true) === 3 ? 0 : 1) + (h ? 1 : 0) + 1 - m / 200 + Math.min(0.5, cs / Math.max(1, cn)) - (as ? 0.5 : 0); // + 막 누르기 우수수 빈칸 비율(0.5까지, F14)
   },
   // 📐 6판 🦕 (S006): 장인 ★3이 아니거나 버릇 ★3이면 탈락 · 장인−진자가 ★3을 놓치면 +1(F15) · 버릇 클리어(처음 하는 사람 숨통) + (1 − 막 누르기 클리어, 100판)
   (L, d, r) => {
@@ -170,7 +189,7 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
     return (smartSeen(L, d, true) === 3 ? 0 : 1) + (h ? 1 : 0) + 1 - m / 100;
   },
 ];
-export const CAP = [Infinity, 4.5, 3.65, 5.15, 3, 2.95, 3.95, 2.95];
+export const CAP = [Infinity, 4.5, 3.65, 5.15, 3.5, 2.95, 3.95, 2.95];
 
 /** k판의 칠 번호 N개 */
 export function pickStage(k: number, n = N, scan = SCAN[k]) {
