@@ -4,7 +4,7 @@
  *   · 다 붙이면 결과(쾅 애니메이션·유령은 C004).
  * 키보드: ← → 로 붙일 블록 고르기, 스페이스 누르는 동안 겨눔 → 떼면 붙이기, Q/E 돌리기, R 다시.
  */
-import { GAS, METAL, STONE, capOf3, feetKey3, lostFeet, verdict3, layoutOf3, simulate3, support3, type Footing, type Layout3, type Outcome3 } from './sim3d.ts';
+import { GAS, METAL, STONE, capOf3, feetKey3, holdTags, lostFeet, verdict3, layoutOf3, simulate3, support3, type Footing, type Layout3, type Outcome3 } from './sim3d.ts';
 import { STAGES3 } from './stages3d.ts';
 import { aimAt, drawOrder, faces, fitCams, proj, yawOf, type Cam, type Cube } from './view3d.ts';
 
@@ -29,7 +29,7 @@ root.append(canvas, rotL, rotR);
 const hud = document.getElementById('hud')!, msg = document.getElementById('msg')!, again = document.getElementById('again') as HTMLButtonElement, retry = document.getElementById('retry') as HTMLButtonElement;
 let ctx = canvas.getContext('2d')!;
 /** 손가락 자리(캔버스 css px) — 확대 말풍선용 */
-let touch: [number, number] | null = null, inMagnifier = false;
+let touch: [number, number] | null = null, inMagnifier = false, noText = false;
 
 let stageIx = 0;
 let L: Layout3 = layoutOf3(STAGES3[stageIx]), ch = new Int8Array(L.blocks.length), left = L.charges;
@@ -77,7 +77,7 @@ const canAim = (i: number) => !out && (ch[i] > 0 || canAttach(i));
 let pvKey = '', pvOut: Outcome3 | null = null;
 /** 미리 보기 결과(같은 폭약이면 다시 계산하지 않는다) */
 function preview(c2: Int8Array) {
-  const k = c2.join('');
+  const k = `${stageIx}|${c2.join('')}`; // 판 번호도 열쇠에(🧪 C007 ⑤: 블록 수가 같은 판끼리 섞이지 않게)
   if (k !== pvKey) (pvKey = k), (pvOut = simulate3(L, c2));
   return pvOut!;
 }
@@ -179,6 +179,14 @@ function drawLanding(c: Cam, o: Outcome3) {
     if (outside) marks.set(`${x},${z}`, '💥');
     else if (flower && !marks.has(`${x},${z}`)) marks.set(`${x},${z}`, '🥀');
   }
+  // 높이 실패(🧪 C006: 빨간 상자가 한 번도 안 떴다 — 높이 실패는 '서 있는 채 남는 건물' 때문): 무언가 움직이는데
+  // 목표선보다 높게 그대로 남는 블록에도 빨간 테를 두른다 → '꿈쩍 안 함'과 그림으로 갈린다
+  if (!o.ok && !o.hits.some((x) => x > 0))
+    for (let i = 0; i < L.blocks.length; i++) {
+      const b = L.blocks[i];
+      if (o.die[i] >= 0 || o.fy[i] + 1 <= L.goal || o.fx[i] !== b.x || o.fz[i] !== b.z || o.fy[i] !== b.y) continue;
+      for (const fc of faces(c, b)) poly(fc.pts, 'rgba(255,97,80,.18)', '#c7362e', 3, [6, 3]);
+    }
   ctx.font = `${Math.round(Math.max(20, c.s * 0.55))}px system-ui,sans-serif`;
   ctx.textAlign = 'center';
   for (const [k, m] of marks) {
@@ -241,6 +249,7 @@ function drawDebris(dt: number) {
 const verdict = (o: Outcome3) => verdict3(L, o);
 /** 말풍선 글자표 */
 function tag(x: number, y: number, text: string, bg: string, fg: string) {
+  if (noText) return; // 판독 시험: 글자 없이 그림만
   ctx.font = '800 16px system-ui,sans-serif';
   const w = Math.min(W - 8, ctx.measureText(text).width + 18);
   ctx.fillStyle = bg;
@@ -259,8 +268,7 @@ function background(c: Cam) {
   if (key !== bgKey || !bgc) {
     bgKey = key;
     bgc ??= document.createElement('canvas');
-    bgc.width = canvas.width;
-    bgc.height = canvas.height;
+    if (bgc.width !== canvas.width || bgc.height !== canvas.height) (bgc.width = canvas.width), (bgc.height = canvas.height);
     const keep = ctx;
     ctx = bgc.getContext('2d')!;
     ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
@@ -300,10 +308,17 @@ function background(c: Cam) {
  * 겨눔 확대 말풍선(GDD §8-3 · 📋 C004 조기 경보): 꾹 누르는 동안 손가락 위쪽에 손가락 밑을 2배로 — 손가락에 가린 블록이 보여서
  * 틀렸으면 한 번 고쳐 밀 수 있다. funqa F11은 '말풍선을 보고 한 번만 고쳐 누름'으로 잰다.
  */
+const MAG_R = 54;
+/** 말풍선 자리: 손가락 위가 기본 — 위쪽 결과 꼬리표(y 14~38)를 가릴 만큼 높으면 손가락 아래로 (🧪 C007 ④) */
+function magPos(): { cx: number; cy: number; above: boolean } | null {
+  if (!touch || !holding || out || rotT < 1) return null;
+  const [x, y] = touch, R = MAG_R, above = y - R - 46 - R >= 44;
+  return { cx: Math.min(W - R - 4, Math.max(R + 4, x)), cy: above ? y - R - 46 : y + R + 46, above };
+}
 function magnifier() {
-  if (!touch || !holding || out || rotT < 1) return;
-  const [x, y] = touch, R = 54, k = 2;
-  const cx = Math.min(W - R - 4, Math.max(R + 4, x)), cy = y - R - 46 < R + 4 ? y + R + 46 : y - R - 46;
+  const m = magPos();
+  if (!m || !touch) return;
+  const [x, y] = touch, R = MAG_R, k = 2, { cx, cy } = m;
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx, cy, R, 0, Math.PI * 2);
@@ -335,21 +350,44 @@ function magnifier() {
 }
 
 /**
+ * 블록 꼬리표('떼기' · '변화 없음') — 말풍선이 손가락 위에 뜨면 블록 바로 위 꼬리표를 덮으므로(🧪 C007 ④) 말풍선 위에 붙인다.
+ * 말풍선이 손가락 아래로 가면 블록 위 그대로. 규칙은 sim3d holdTags(테스트가 지킨다).
+ */
+function blockTag() {
+  if (out || aim < 0 || !holding || rotT < 1) return;
+  const h = holdInfo(aim), t = holdTags(capOf3(L.blocks[aim]), ch[aim], left, !!h.quiet).block;
+  if (!t) return;
+  const m = magPos(), b = L.blocks[aim], p = proj(cam(), b.x + 0.5, b.y + 1.15, b.z + 0.5);
+  const [x, y] = m?.above ? [m.cx, m.cy - MAG_R - 4] : [p[0], p[1]];
+  tag(x, y, t, t === '떼기' ? '#3a2a3f' : '#7a5a6e', '#fff6e8');
+}
+
+/**
  * 꾹 미리 보기 계산 묶음 — 붙인 폭약·겨눈 블록이 바뀔 때만 다시 계산한다(🧪 C006: 매 프레임 시뮬을 돌려 말풍선 꾹 p95 33~50ms였다).
  * '변화 없음' 판단은 sim3d isQuiet와 같은 식(테스트가 isQuiet를 지킨다).
  */
+type Hold = { now: Footing[]; nxt?: Footing[]; pv?: Outcome3; lost?: [number, number][]; quiet?: boolean };
 let hKey = '';
-let hCache: { now: Footing[]; nxt?: Footing[]; pv?: Outcome3; lost?: [number, number][]; quiet?: boolean } = { now: [] };
-function holdInfo(a: number) {
-  const key = `${stageIx}|${ch.join('')}|${a}`;
-  if (key === hKey) return hCache;
+/** 겨눔마다 결과를 모아 둔다(🧪 C007 ②: 손가락을 오가면 매번 다시 계산하던 것) — 판·폭약이 바뀌면 비운다 */
+const hMemo = new Map<string, Hold>();
+let hBase = '';
+function holdInfo(a: number): Hold {
+  const base = `${stageIx}|${ch.join('')}`, key = `${base}|${a}`;
   hKey = key;
-  const now = support3(L, ch);
-  if (a < 0) return (hCache = { now });
-  const c2 = ch.slice();
-  c2[a] = ch[a] ? 0 : capOf3(L.blocks[a]);
-  const nxt = support3(L, c2), pv = preview(c2), lost = lostFeet(now, nxt);
-  return (hCache = { now, nxt, pv, lost, quiet: !pv.moved && !lost.length && feetKey3(now) === feetKey3(nxt) });
+  if (base !== hBase) (hBase = base), hMemo.clear();
+  const got = hMemo.get(key);
+  if (got) return got;
+  const now = a < 0 ? support3(L, ch) : holdInfo(-1).now;
+  let h: Hold = { now };
+  if (a >= 0) {
+    const c2 = ch.slice();
+    c2[a] = ch[a] ? 0 : capOf3(L.blocks[a]);
+    const nxt = support3(L, c2), pv = preview(c2), lost = lostFeet(now, nxt);
+    h = { now, nxt, pv, lost, quiet: !pv.moved && !lost.length && feetKey3(now) === feetKey3(nxt) };
+  }
+  hMemo.set(key, h);
+  hKey = key;
+  return h;
 }
 
 /**
@@ -362,8 +400,8 @@ function holdOverlay(c: Cam, h: ReturnType<typeof holdInfo>) {
   if (key !== ovKey || !ovc) {
     ovKey = key;
     ovc ??= document.createElement('canvas');
-    ovc.width = canvas.width;
-    ovc.height = canvas.height;
+    // 크기가 같으면 다시 잡지 않는다(🧪 C007 ②: 겨눔이 바뀔 때마다 780×936 캔버스를 새로 할당해 30fps로 떨어졌다)
+    if (ovc.width !== canvas.width || ovc.height !== canvas.height) (ovc.width = canvas.width), (ovc.height = canvas.height);
     const keep = ctx;
     ctx = ovc.getContext('2d')!;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -376,14 +414,11 @@ function holdOverlay(c: Cam, h: ReturnType<typeof holdInfo>) {
     // 빠진 받침: 덩어리마다 '지금 딛고 있는 발' 중 이 블록까지 터지면 그 덩어리가 잃는 발 → 빨간 ✕
     // 윗다리·마루 귀를 끊어 다리 한 토막이 떨어져 나가도 덩어리 기준으로 발을 잃으니 ✕가 뜬다 (🧪 C004 ③ · F4b)
     for (const [x, z] of h.lost!) crossAt(c, x, z, 1);
-    const b = L.blocks[aim], p = proj(c, b.x + 0.5, b.y + 1.15, b.z + 0.5);
     // 마지막 폭약을 겨누면 결과 꼬리표 — 2D 판정 말풍선과 같은 정보 (🧪 C005: '꿈쩍처럼 보이는 실패'를 없앤다, F4b ⓑ)
-    if (!ch[aim] && capOf3(L.blocks[aim]) >= left) {
+    if (holdTags(capOf3(L.blocks[aim]), ch[aim], left, !!h.quiet).result) {
       const v = verdict(pv);
       tag(W / 2, 40, `이대로 쾅 → ${v.text}`, v.ok ? '#23785a' : '#c7362e', '#ffffff');
     }
-    if (ch[aim]) tag(p[0], p[1], '떼기', '#3a2a3f', '#fff6e8');
-    else if (h.quiet) tag(p[0], p[1], '변화 없음', '#7a5a6e', '#fff6e8');
     ctx = keep;
   }
   ctx.drawImage(ovc, 0, 0, W, H);
@@ -526,7 +561,7 @@ function rotate(d: number) {
   aim = holding ? -1 : aim;
 }
 
-let last = performance.now();
+let last = performance.now(), lastSig = '';
 function loop(now: number) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
@@ -543,6 +578,10 @@ function loop(now: number) {
     if (played()) hudText();
   }
   shake = Math.max(0, shake - dt * 2.5);
+  // 그림이 바뀔 것이 하나도 없으면 다시 그리지 않는다(🧪 C007 ②: 가만히 꾹에서도 캔버스 전체를 매 프레임 다시 칠해 30fps 경계였다)
+  const sig = `${yaw}|${stageIx}|${ch.join('')}|${left}|${aim}|${holding}|${touch}|${out ? 1 : 0}|${bt}|${shake}|${bits.length}|${flash}|${canvas.width}x${canvas.height}|${noText}|${ovKey}|${bgKey}`;
+  if (sig === lastSig) return void requestAnimationFrame(loop);
+  lastSig = sig;
   const sx = shake ? (Math.sin(now / 23) * 10 * shake) : 0;
   ctx.save();
   ctx.translate(sx, 0);
@@ -550,6 +589,7 @@ function loop(now: number) {
   drawDebris(dt);
   ctx.restore();
   magnifier();
+  blockTag();
   requestAnimationFrame(loop);
 }
 
@@ -640,6 +680,8 @@ function centerOf(c: Cam, i: number): [number, number] {
     touch = null;
     hudText();
   },
+  /** 판독 시험용: 글자표(꼬리표·'변화 없음'·'떼기')를 끈다 */
+  setNoText: (v: boolean) => void ((noText = v), (ovKey = '')),
   /** 판독 시험용: 시점을 바로 바꾼다(회전 애니메이션 없이) */
   setView: (v: number) => {
     view = ((v % 4) + 4) % 4;

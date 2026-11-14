@@ -534,3 +534,12 @@ export function verdict3(L: Layout3, o: Outcome3): { ok: boolean; text: string }
   if (!o.ok) return { ok: false, text: `아직 높아요 (${o.height}칸 > 목표 ${L.goal}칸)` };
   return { ok: true, text: `철거 성공 ${'★'.repeat(o.stars)}${'☆'.repeat(3 - o.stars)}${o.star[1] ? '' : ' 🥀'}` };
 }
+
+/**
+ * 꾹 꼬리표 규칙(🧪 C007 ④ · 시험 빚 ③): 결과 꼬리표는 '마지막 폭약을 새로 붙일 때', 블록 꼬리표는 붙인 블록이면 '떼기', 무변화면 '변화 없음'.
+ * 마지막 폭약이 무변화면 결과 꼬리표가 이미 '꿈쩍 안 함'이라 블록 꼬리표는 겹쳐 띄우지 않는다.
+ */
+export function holdTags(cap: number, chA: number, left: number, quiet: boolean): { result: boolean; block: '떼기' | '변화 없음' | null } {
+  const result = !chA && cap > 0 && cap >= left;
+  return { result, block: chA ? '떼기' : quiet && !result ? '변화 없음' : null };
+}

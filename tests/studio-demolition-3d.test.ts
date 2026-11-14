@@ -4,7 +4,7 @@ import { STAGES, layoutOf, simulate } from '../studio/demolition/game.ts';
 import { STAGES3 } from '../studio/demolition/stages3d.ts';
 import { cellPx, fitCams, visibleArea, YAW0 } from '../studio/demolition/view3d.ts';
 import { fingerHit, measureStage3 } from '../studio/demolition/funqa.ts';
-import { GAS, capOf3, isQuiet, lostFeet, support3, verdict3, forEachPlan, from2D, layoutOf3, simulate3, type StageDef3 } from '../studio/demolition/sim3d.ts';
+import { GAS, capOf3, holdTags, isQuiet, lostFeet, support3, verdict3, forEachPlan, from2D, layoutOf3, simulate3, type StageDef3 } from '../studio/demolition/sim3d.ts';
 
 const stage = (layers: string[][], extra: Partial<StageDef3> = {}): StageDef3 => ({
   key: '', title: 't', news: '', hint: '', W: layers[0][0].length, D: layers[0].length, layers,
@@ -191,4 +191,31 @@ describe('3D 칸 물리', () => {
       expect(m.f11min, `${d.title} ${m.f11minAt}`).toBeGreaterThanOrEqual(0.9);
     }
   }, 60000);
+});
+
+describe('꼬리표 규칙 holdTags (🧪 C007 ④ · 시험 빚 ③)', () => {
+  it('붙인 블록 = 떼기, 결과 꼬리표 없음', () => {
+    expect(holdTags(2, 2, 1, true)).toEqual({ result: false, block: '떼기' });
+    expect(holdTags(2, 2, 0, false)).toEqual({ result: false, block: '떼기' });
+  });
+  it('마지막 폭약 = 결과 꼬리표 · 무변화여도 블록 꼬리표는 겹쳐 띄우지 않음', () => {
+    expect(holdTags(2, 0, 2, true)).toEqual({ result: true, block: null });
+    expect(holdTags(2, 0, 1, false)).toEqual({ result: true, block: null });
+  });
+  it('마지막이 아닌 무변화 = 변화 없음 · 변화 있으면 꼬리표 없음', () => {
+    expect(holdTags(2, 0, 4, true)).toEqual({ result: false, block: '변화 없음' });
+    expect(holdTags(2, 0, 4, false)).toEqual({ result: false, block: null });
+  });
+  it('판마다: 마지막 폭약 겨눔은 늘 결과 꼬리표, 첫 폭약 무변화 블록은 변화 없음(isQuiet와 같은 판단)', () => {
+    for (const d of STAGES3) {
+      const L = layoutOf3(d), ch = new Int8Array(L.blocks.length);
+      for (let i = 0; i < L.blocks.length; i++) {
+        const cap = capOf3(L.blocks[i]);
+        if (!cap) continue;
+        const t = holdTags(cap, 0, cap * d.charges, isQuiet(L, ch, i));
+        expect(t.result, d.title).toBe(d.charges === 1);
+        if (d.charges > 1) expect(t.block === '변화 없음', `${d.title} #${i}`).toBe(isQuiet(L, ch, i));
+      }
+    }
+  });
 });
