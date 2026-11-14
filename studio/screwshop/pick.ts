@@ -283,8 +283,8 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   () => -9, // id 20 자리(📐A 2-9 🐬 — S014 ❌ F16 n 8 · 마지막 톡만 .93 · 다시 짬)
   // 📐B S013 3-2 🤡 (id 21): 공통 gate · F20′ full · 따라 하기 거름(pv — 끄면 .21) · F19 jack(뿅을 끈 판에서도 ★3이면 거름)
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true, pv: true, jack: true }),
-  // 📐B S014 2-10 🗼 (id 22): 공통 gate · F20′ full · 따라 하기 거름(pv) · mc 3(mc 1이면 막 누르기 24시드 .17)
-  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 3, full: true, pv: true }),
+  // 📐B S014 2-10 🗼 (id 22) · 📐B S015: 🌀 문(쾅 → 띠용 → 띠용) · F20′ full · 따라 하기 거름(pv) · F17 1위 맞는 색(lead habit) · hc 2 · mc 8(카드 짝 .70 → .84)
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 2, mc: 8, full: true, pv: true, lead: 'habit' }),
   () => -9, // id 23 자리(📐A 3-3)
   // 📐C S014 3-4 🎢 (id 24): 공통 gate · F20′ full(pv 꺼도 따라 하기 .04)
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 3, full: true }),
