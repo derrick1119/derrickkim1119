@@ -133,7 +133,7 @@ export const STAGES: StageDef[] = [
   {
     // 📐 CONTENT.md M1′ 6판 (S006): 🦕 공룡 — 🌀 → 🌀 연쇄 1단. 등 가시 🌀(둘째)가 꼬리뿌리 🌀(첫째)의 나사를 덮는다.
     //   등 가시의 어느 나사를 남겨 매다느냐(진자)가 첫째 🌀를 드러내느냐 가리느냐를 정한다. "가시가 비켜 가게 매달고, 꼬리뿌리 🌀를 톡"
-    key: 'dino', name: '공룡', emoji: '🦕', news: '🌀 스프링이 스프링을 튕겨요 — 띠용 띠용!', tip: '🦕 🌀 쪽 가시 나사부터 빼고 🌀를 톡!', tip2: '🦕 가시가 🌀를 덮으면 띠용이 하나 줄어요', boxes: 2, colors: 6, P: 2, C: 5, T: 16, swing: true,
+    key: 'dino', name: '공룡', emoji: '🦕', news: '🌀 스프링이 스프링을 튕겨요 — 띠용 띠용!', tip: '🦕 꼬리 쪽 가시 나사부터 빼고 🌀를 톡!', tip2: '🦕 가시가 🌀를 덮으면 띠용이 하나 줄어요', boxes: 2, colors: 6, P: 2, C: 5, T: 16, swing: true,
     // 나사 번호: #0~#2 꼬리(뿌리→끝) · #3 #4 뒷다리 · #5 #6 앞다리 · #7~#9 몸통 · #10~#12 목(밑→위) · #13 #14 머리(뒤·주둥이) · #15 🌀 꼬리뿌리(→ 등 가시) · #16 #17 🌀 등 가시(왼·오른, → 머리)
     toy: () => [
       bar(0.32, 0.85, 0.15, 0.7, 0.042, DINO, [[0.31, 0.845], [0.235, 0.775], [0.17, 0.715]], { deco: 'spots' }),
@@ -2614,19 +2614,32 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       ctx.lineTo(x - r, y + r);
       ctx.stroke();
     }
-  // ②진자 덮음(🧪 S005 ① · F16): 이 톡으로 매달린 판자가 새로 덮을 나사 — 📌 경고와 같은 ⚠ (영영 깔리는 ✗는 위에서)
+  // ②진자 덮음(🧪 S005 ① · F16): 이 톡으로 매달린 판자가 덮을 나사 — 📌 경고와 같은 ⚠ (영영 깔리는 ✗는 위에서)
+  //   🧪 S006 ②: ⚠는 곧 쓸 나사(열린·다음 상자 색)나 방아쇠(🌀·🔑·🪵)를 덮을 때만 — 나머지는 흐린 고리만 (맞는 수에도 ⚠ 3개가 떠서 결정을 못 가르던 것)
+  const soon = [...pre.S.box, ...L.queue.slice(pre.S.qi, pre.S.qi + PEEK)], trig = (i: number) => L.pl[L.owner[i]].kind === 'spring' || !!L.pl[L.owner[i]].heavy || !!((L.keyM >> i) & 1);
   for (let i = 0; i < L.N; i++)
     if ((pre.cover >> i) & 1 && !((dead >> i) & 1)) {
-      ctx.strokeStyle = 'rgba(255,150,80,.9)';
-      ctx.lineWidth = 2.5;
+      const hot = trig(i) || soon.includes(L.col[i]);
+      ctx.strokeStyle = hot ? 'rgba(255,150,80,.9)' : 'rgba(255,200,150,.45)';
+      ctx.lineWidth = hot ? 2.5 : 1.5;
       ctx.beginPath();
       ctx.arc(X(L.px[i]), Y(L.py[i]), R(SR * 1.45), 0, TAU);
       ctx.stroke();
+      if (!hot) continue;
       font(0.04, 900);
       ctx.textAlign = 'center';
       ctx.fillStyle = '#ffffff';
       ctx.fillText('⚠️', X(L.px[i]) - R(0.035), Y(L.py[i]) - R(0.03) + Math.sin(t * 0.2) * 1.5);
     }
+  // 🌀 열림/막힘(🧪 S006 ①): 이 톡이 스프링 판자의 나사를 드러내면 초록 '🌀 열림', 계속·새로 덮으면 주황 '🌀 막힘' — 처음 하는 사람이 띠용 띠용 길을 본다
+  for (let i = 0; i < L.N; i++) {
+    const sp = L.pl[L.owner[i]];
+    if (sp.kind !== 'spring' || sp.tgt === undefined || (pre.S.gone >> i) & 1) continue;
+    const op = (pre.freed >> i) & 1, sh = (pre.cover >> i) & 1;
+    if (!op && !sh) continue;
+    font(0.03, 900);
+    pill(ctx, X(L.px[i]), Y(L.py[i]) + R(0.06), op ? '🌀 열림 → 띠용!' : '🌀 막힘 · 띠용 줄어요', op ? '#c8ffc8' : '#ffb36b', R(0.044));
+  }
   // 연쇄로 튈 나사(🔨·🪵·🔑·🌀·⏰)가 갈 곳: 가는 점선 — 상자면 초록, 빈칸이면 주황 (📋 S004 이월 '🔒 갈 곳 점선')
   ctx.lineWidth = 1.8;
   ctx.setLineDash([2, 5]);
