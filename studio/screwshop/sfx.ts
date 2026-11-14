@@ -4,7 +4,7 @@
  * **첫 입력(시작 누름) 전에는 AudioContext를 만들지 않는다**, 꺼 두었으면 아예 만들지 않는다.
  * 시뮬레이션은 모른다 — 그림(draw)의 사건 루프가 cue를 부른다(결정성·봇 측정에 영향 없음).
  */
-export type Cue = 'bonk' | 'shot' | 'crash' | 'press' | 'twist' | 'pluck' | 'in' | 'slot' | 'brk' | 'pull' | 'done' | 'swing' | 'fall' | 'thud' | 'reveal' | 'boing' | 'tick' | 'key' | 'blocked' | 'clear' | 'star' | 'jam' | 'fail';
+export type Cue = 'bonk' | 'shot' | 'crash' | 'wind' | 'press' | 'twist' | 'pluck' | 'in' | 'slot' | 'brk' | 'pull' | 'done' | 'swing' | 'fall' | 'thud' | 'reveal' | 'boing' | 'tick' | 'key' | 'blocked' | 'clear' | 'star' | 'jam' | 'fail';
 
 let ac: AudioContext | null = null, master: GainNode | null = null, noise: AudioBuffer | null = null;
 const last: Partial<Record<Cue, number>> = {};
@@ -68,6 +68,11 @@ const SYNTH: Record<Cue, (t: number, v: number) => void> = {
     tone('sine', 1175, 1175, t, 0.28, 0.14, master!, 0.002), tone('sine', 3243, 3243, t, 0.12, 0.06), tone('sine', 6345, 6345, t, 0.04, 0.03);
     hiss(t, 0.025, 0.22, filt('bandpass', 3200, 1.5));
     for (const d of [0.06, 0.09]) hiss(t + d, 0.012, 0.06, filt('bandpass', 5000, 3));
+  },
+  // 🔑 드르륵 (🎨 §2.2+): 긴 래칫 12번(22ms, 1600→3800Hz) + 태엽 윙
+  wind(t) {
+    for (let k = 0; k < 12; k++) hiss(t + k * 0.022, 0.012, 0.1 + 0.012 * k, filt('bandpass', 1600 + 200 * k, 8));
+    tone('triangle', 180, 260, t, 0.26, 0.05, filt('lowpass', 900));
   },
   // 🪵 와르르 (🎨 §2.2+): 맞을 때마다 W(f_i) 나무 딱 — G4 A4 C5 D5 E5 G5로 올라가는 도미노 + 나무 쿵
   crash(t, i) {
@@ -143,6 +148,7 @@ const SYNTH: Record<Cue, (t: number, v: number) => void> = {
 const BUZZ: Partial<Record<Cue, number | number[]>> = {
   bonk: [35, 25, 15],
   crash: 25,
+  wind: [8, 20, 8, 20, 8, 20, 8],
   press: 8, twist: [6, 28, 6, 28, 6], pluck: 10, slot: 20, pull: 10, done: [25, 30, 15], swing: [10, 70, 10], thud: 40,
   boing: [15, 30, 15], tick: 25, key: [10, 40, 20], blocked: [10, 40, 10], clear: [20, 40, 20, 40, 80], star: 15, jam: [40, 60, 30], fail: [30, 60, 30],
 };

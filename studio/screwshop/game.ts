@@ -45,7 +45,7 @@ const bar = (x1: number, y1: number, x2: number, y2: number, t: number, tone: st
 const plate = (cx: number, cy: number, w: number, h: number, a: number, rr: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, w / 2, h / 2, a, rr, tone, sc, o);
 const disc = (cx: number, cy: number, r: number, tone: string, sc: number[][], o: O = {}) => mk(cx, cy, r, r, 0, r, tone, sc, o);
 
-interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; /** 첫 판 손가락이 가리킬 나사 번호(판자 목록 순서로 0부터) */ first?: number; /** ★3을 '한 방 H 이상'으로 (톡 한 번에 빠진 나사 수) */ H?: number; /** 🔨 겹별(📐 S003): ★2 = 쾅 B번 이상, ★3 = ★2 + 빈칸 P칸까지 */ B?: number; /** ★2는 땄고 ★3을 놓쳤을 때 💡 */ tip2?: string; /** 🪵 통나무가 떨어져야 풀리는 나사 3개(늦은 무리)를 한 색으로 칠하고 그 색 상자를 queue[late]에 — 통나무 나사 색은 첫 상자 (📐 2판) */ late?: number; toy(): Src[] }
+interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; boxes: number; colors: number; P: number; C: number; /** ★3을 '톡 T번 이하'로 (없으면 연속 쏙 C) */ T?: number; /** 첫 판 손가락이 가리킬 나사 번호(판자 목록 순서로 0부터) */ first?: number; /** ★3을 '한 방 H 이상'으로 (톡 한 번에 빠진 나사 수) */ H?: number; /** 🔑 태엽(M1′ S004): 열쇠 나사를 빼면 남은 🔒가 왼쪽부터 한꺼번에 튀어나온다 */ wind?: boolean; /** 🔨 겹별(📐 S003): ★2 = 쾅 B번 이상, ★3 = ★2 + 빈칸 P칸까지 */ B?: number; /** ★2는 땄고 ★3을 놓쳤을 때 💡 */ tip2?: string; /** 🪵 통나무가 떨어져야 풀리는 나사 3개(늦은 무리)를 한 색으로 칠하고 그 색 상자를 queue[late]에 — 통나무 나사 색은 첫 상자 (📐 2판) */ late?: number; toy(): Src[] }
 
 const GIR = '#f4bf4a', GIR2 = '#e7a93a', DINO = '#52b66c', DINO2 = '#3f9a58', BLADE = '#fff6e6', STONE = '#b9aea0', STONE2 = '#a69a8b', GLASS = '#cfe9ff';
 export const STAGES: StageDef[] = [
@@ -179,6 +179,8 @@ export interface Level {
   hamT: number[][][];
   /** 🔨 그림용: 때리는 면이 휘두르는 쪽(+1/−1) — 🎨 §2.5′ */
   hamF: number[];
+  /** 🔑 태엽 판 */
+  wind?: boolean;
 }
 /** 🔨 망치 머리가 닿는 거리 */
 export const HAM = 0.06;
@@ -271,7 +273,8 @@ type RE =
   | { k: 'key' }
   | { k: 'tick'; s: number }
   | { k: 'bonk'; p: number; s: number; x: number; y: number }
-  | { k: 'crash'; p: number; by: number; s: number; i: number };
+  | { k: 'crash'; p: number; by: number; s: number; i: number }
+  | { k: 'wind'; s: number };
 
 export function newSim(L: Level): Sim {
   const box: number[] = [], bn: number[] = [];
@@ -409,8 +412,15 @@ function removeScrew(L: Level, S: Sim, s: number, pop: boolean, rec: RE[] | unde
 /** 나사 s를 뺀다 (막힘·자물쇠는 부르는 쪽이 확인) */
 export function apply(L: Level, S: Sim, s: number, rec?: RE[]) {
   S.taps++;
-  const n0 = S.n;
+  const n0 = S.n, k0 = S.key;
   removeScrew(L, S, s, false, rec, 0);
+  // 🔑 태엽: 이번 톡으로 열쇠가 빠졌으면 남은 🔒가 왼쪽부터 한꺼번에 튀어나온다(덮여 있어도)
+  if (L.wind && !k0 && S.key) {
+    const ls: number[] = [];
+    for (let i = 0; i < L.N; i++) if ((L.lockM >> i) & 1 && !((S.gone >> i) & 1)) ls.push(i);
+    rec?.push({ k: 'wind', s: 31 - Math.clz32(L.keyM) }); // 효과는 열쇠 자리에서
+    for (const i of ls.sort((a, b) => L.px[a] - L.px[b])) if (!((S.gone >> i) & 1)) removeScrew(L, S, i, true, rec, 1);
+  }
   // 째깍 나사: 정해진 톡 수가 지나도 남아 있으면 혼자 튀어나온다
   for (let i = 0; i < L.N; i++)
     if (L.tmr[i] && S.taps >= L.tmr[i] && !((S.gone >> i) & 1) && (S.key || !((L.lockM >> i) & 1))) {
@@ -520,6 +530,7 @@ function buildLevel(seed: number, stage: number): Level {
   const ck = `${seed}:${stage}`, hit = levelCache.get(ck);
   if (hit) return hit;
   const d = STAGES[stage], G = geometry(d.toy()), r = mulberry32((seed * 31 + stage * 7919 + 17) >>> 0);
+  G.wind = !!d.wind;
   let pick: Level | null = null, bv = -1e9;
   const K = stage === 1 ? 12 : stage < 2 ? 8 : 10;
   for (let c = 0; c < K; c++) {
@@ -776,7 +787,7 @@ function pickScrew(s: ShopState, x: number, y: number) {
 /** 나사 하나를 뺀 결과를 화면 연출(날아가는 나사·상자·빈칸·판자)로 옮긴다 */
 function playRec(s: ShopState, rec: RE[]) {
   const L = s.L;
-  let delay = 0, slotsHit = false, popped = false, lastLand = 0, shotX = 0, shotY = 0, shotN = 0, shotBad = 0;
+  let delay = 0, slotsHit = false, popped = false, lastLand = 0, shotX = 0, shotY = 0, shotN = 0, shotBad = 0, wound = false;
   for (const e of rec) {
     if (e.k === 'out') {
       popped = e.pop;
@@ -787,6 +798,7 @@ function playRec(s: ShopState, rec: RE[]) {
     if (e.k === 'box' || e.k === 'slot') {
       const t0 = s.t + delay, dur = SPIN + FLY + (e.k === 'slot' ? 2 : 0);
       const [x1, y1] = e.k === 'box' ? holeXY(L, e.bi, e.hole) : slotXY(e.idx);
+      if (wound && popped) delay += 4;
       const spin = popped ? 2 : SPIN, dur2 = dur - SPIN + spin; // 🎨: 튄 나사는 드르륵 없이 +2틱에 뽁
       s.fl.push({ col: e.col, key: !!((L.keyM >> e.s) & 1), x0: L.px[e.s], y0: L.py[e.s], x1, y1, t0, dur: dur2, spin, to: e.k === 'box' ? 0 : 1, sc: e.k === 'box' ? 0.82 : 0.95 });
       if (popped) ev(s, 'pluck', L.px[e.s], L.py[e.s], undefined, L.pl[L.owner[e.s]].tone, t0 + 2);
@@ -860,6 +872,14 @@ function playRec(s: ShopState, rec: RE[]) {
       see(s, 'spring', '🌀 스프링 판자 — 떨어지면 튕겨서 옆 판자 나사를 톡!');
       continue;
     }
+    if (e.k === 'wind') {
+      // 🔑 드르륵(🎨 §2.2+): 태엽이 감기고 16틱 뒤부터 🔒가 4틱 간격으로 튄다
+      ev(s, 'wind', L.px[e.s], L.py[e.s], '🔑 드르륵!', '#fff1a8', s.t + delay + SPIN);
+      delay += 16;
+      wound = true;
+      see(s, 'wind', '🔑 태엽 열쇠 — 빼면 🔒가 한꺼번에 튀어나와요!');
+      continue;
+    }
     if (e.k === 'crash') {
       // 🪵 와르르: 통나무가 떨어지며 매달린 판자를 차례로 (🎨 §2.2+: 7틱 간격, 위 판자부터)
       const v = L.poses[e.p][Math.max(1, s.pv[e.p].pose)];
@@ -882,6 +902,7 @@ function playRec(s: ShopState, rec: RE[]) {
       continue;
     }
     if (e.k === 'key') {
+      if (L.wind) continue; // 태엽 판은 '드르륵'이 대신한다
       ev(s, 'key', 0.5, 0.8, '🔑 철컥! 자물쇠가 다 풀렸어요', '#fff1a8', s.t + delay + SPIN + FLY);
     }
   }
@@ -1427,7 +1448,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
   if (pressK >= 0 && fx.memo.pk !== pressK && t > seenT) cue('press');
   fx.memo.pk = pressK;
   for (const e of s.events) {
-    const due = e.v !== undefined && ['in', 'slot', 'pull', 'done', 'swing', 'fall', 'boing', 'key', 'jam', 'streak', 'tick', 'reveal', 'twist', 'pluck', 'bonk', 'shot', 'air', 'crash'].includes(e.kind) ? e.v : e.t;
+    const due = e.v !== undefined && ['in', 'slot', 'pull', 'done', 'swing', 'fall', 'boing', 'key', 'jam', 'streak', 'tick', 'reveal', 'twist', 'pluck', 'bonk', 'shot', 'air', 'crash', 'wind'].includes(e.kind) ? e.v : e.t;
     if (due <= seenT || due > t) continue;
     const x = X(e.x), y = Y(e.y);
     if (e.kind === 'reveal') fx.ring(x, y, '#fff6a8', R(0.06), 3), fx.burst(x, y, '#fff6a8', 6, 1.6, 1.5), e.text && fx.pop(x + R(0.03), y - R(0.04), e.text, e.col!, 16), cue('reveal', reveals++);
@@ -1461,6 +1482,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       fx.ring(x, y, '#fff3c4', R(0.09), 4), fx.burst(x, y, '#ffe08a', bad ? 6 : 14, 3.6, 2.4), fx.burst(x, y, '#c9ced6', 6, 3, 1.6), fx.burst(x, y, '#ffffff', 4, 5, 1.2);
       fx.kick(bad ? 3 : 5), fx.hold(bad ? 2 : 4), say(x, y - R(0.06), bad ? '쾅' : '쾅!', bad ? '#e8d9c0' : '#ffe08a', bad ? 20 : 26), cue('bonk');
     }
+    if (e.kind === 'wind') fx.ring(x, y, '#ffd34d', R(0.08), 3), fx.burst(x, y, '#ffd34d', 10, 2.6, 1.8), fx.kick(2), say(x, y - R(0.06), e.text!, e.col!, 20, true), cue('wind');
     if (e.kind === 'crash') {
       const i = e.n ?? 1;
       fx.burst(x, y, e.col!, 6 + 2 * i, 2.8 + 0.3 * i, 2.2), fx.burst(x, y, '#e9d3a6', 8, 2.4, 1.6), fx.ring(x, y, '#e9d3a6', R(0.05 + 0.01 * i), 3);
