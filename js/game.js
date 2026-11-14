@@ -94,7 +94,7 @@ export class Game {
     s.maxOil = BASE.maxOil + 10 * M('glass') + 20 * L('tank');
     s.lightR = BASE.lightR * (1 + 0.04 * M('wick') + 0.1 * L('wick'));
     s.speed = BASE.speed * (1 + 0.03 * M('feet') + 0.07 * L('boots'));
-    s.dmg = 1 + 0.05 * M('hand') + 0.12 * L('heat');
+    s.dmg = (1 + 0.05 * M('hand') + 0.12 * L('heat')) * (1 + BASE.levelDmg * ((this.p ? this.p.level : 1) - 1));
     s.cd = Math.pow(0.93, L('hands'));
     s.drain = BASE.drain * Math.pow(0.86, L('trim'));
     s.magnet = BASE.magnet * (1 + 0.35 * L('magnet'));
@@ -277,8 +277,7 @@ export class Game {
     const p = this.p, s = this.stat;
     const lvl = this.up.flare || 0, sup = !!this.evo.supernova;
     const R = (BASE.flareR + BASE.flareRCharge * c) * (1 + 0.12 * lvl) * (sup ? 1.35 : 1) * bonus;
-    const D = BASE.flareDmg * (1 + BASE.flareLevelScale * (p.level - 1)) * (0.3 + 0.7 * c)
-      * (1 + 0.35 * lvl) * (sup ? 1.5 : 1) * s.dmg * bonus;
+    const D = BASE.flareDmg * (0.3 + 0.7 * c) * (1 + 0.3 * lvl) * (sup ? 1.4 : 1) * s.dmg * bonus;
     const stun = (BASE.flareStun + 0.15 * lvl) * (0.5 + 0.5 * c);
     this.flares++;
     const res = this.near(p.x, p.y, R, 2);
@@ -314,7 +313,7 @@ export class Game {
         const a = (i / n) * TAU + this.rng.next() * 0.6;
         this.bullets.push({
           kind: 'moon', x: p.x, y: p.y, vx: Math.cos(a) * 260, vy: Math.sin(a) * 260,
-          dmg: mb.d * (1 + BASE.flareLevelScale * 0.5 * (p.level - 1)) * s.dmg, pierce: 0, life: 2.4, r: 6, hits: null, target: null, src: 'moonbolt',
+          dmg: mb.d * s.dmg, pierce: 0, life: 2.4, r: 6, hits: null, target: null, src: 'moonbolt',
         });
       }
     }
@@ -334,8 +333,7 @@ export class Game {
     if (!w || this.tm.echo > 0) return;
     const p = this.p;
     this.tm.echo = w.cd * this.stat.cd;
-    const lv = 1 + BASE.flareLevelScale * 0.5 * (p.level - 1);
-    this.decoys.push({ x: p.x, y: p.y, life: w.lure, max: w.lure, dmg: w.d * lv * this.stat.dmg, r: w.r });
+    this.decoys.push({ x: p.x, y: p.y, life: w.lure, max: w.lure, dmg: w.d * this.stat.dmg, r: w.r });
     this.emit('decoy', { x: p.x, y: p.y });
   }
 
@@ -674,6 +672,7 @@ export class Game {
       p.level++;
       p.xpNeed = xpForLevel(p.level);
       this.pending++;
+      this.stat.dmg = 0; this.recalc();
     }
   }
 
@@ -754,8 +753,11 @@ export class Game {
     if (n.snuffers) {
       this.snuffT -= dt;
       if (this.snuffT <= 0) {
-        this.snuffT = 24 + rng.next() * 10;
-        if (this.litCount > 0) {
+        this.snuffT = 26 + rng.next() * 12;
+        // 동시에 둘까지만: 손쓸 수 없이 가로등이 줄줄이 꺼지지 않도록
+        let alive = 0;
+        for (const e of this.enemies) if (e.kind === 'snuffer' && !e.dead) alive++;
+        if (this.litCount > 0 && alive < 2) {
           const [x, y] = this.ringPos(700, 800);
           this.spawnEnemy('snuffer', x, y);
         }

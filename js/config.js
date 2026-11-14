@@ -20,8 +20,8 @@ export const BASE = {
   chargeTime: 3.2,      // 어둠 속에서 섬광이 가득 차는 시간
   toggleCd: 0.35,
   iframes: 0.75,
-  flareDmg: 30,
-  flareLevelScale: 0.06, // 섬광은 레벨이 오를수록 강해진다 (투자하지 않아도 쓸모 있게)
+  flareDmg: 36,
+  levelDmg: 0.02,       // 레벨이 오를 때마다 모든 피해 +2% (어느 빌드든 후반까지 따라가도록)
   flareR: 115,
   flareRCharge: 115,
   flareStun: 0.55,
@@ -55,9 +55,9 @@ export const ENEMIES = {
 export const NIGHTS = [
   { id: 1, duration: 420, lamps: 8,  hpMul: 1.0,  spdMul: 1.0,  dmgMul: 1.0,  spawnMul: 1.0,  bossAt: 330, bossHp: 1.0, snuffers: false, requireBoss: false, tides: [150, 262] },
   { id: 2, duration: 450, lamps: 9,  hpMul: 1.35, spdMul: 1.05, dmgMul: 1.15, spawnMul: 1.12, bossAt: 350, bossHp: 1.6, snuffers: true,  requireBoss: false, tides: [120, 215, 300] },
-  { id: 3, duration: 480, lamps: 10, hpMul: 1.65, spdMul: 1.08, dmgMul: 1.25, spawnMul: 1.2,  bossAt: 370, bossHp: 2.5, snuffers: true,  requireBoss: true,  tides: [100, 190, 270, 330] },
-  { id: 4, duration: 510, lamps: 11, hpMul: 2.0,  spdMul: 1.11, dmgMul: 1.38, spawnMul: 1.3,  bossAt: 390, bossHp: 3.8, snuffers: true,  requireBoss: true,  tides: [90, 170, 240, 300, 350] },
-  { id: 5, duration: 540, lamps: 12, hpMul: 2.5,  spdMul: 1.14, dmgMul: 1.5,  spawnMul: 1.4,  bossAt: 400, bossHp: 5.5, snuffers: true,  requireBoss: true,  tides: [80, 150, 210, 270, 320, 365] },
+  { id: 3, duration: 480, lamps: 10, hpMul: 1.8,  spdMul: 1.08, dmgMul: 1.28, spawnMul: 1.2,  bossAt: 370, bossHp: 3.2, snuffers: true,  requireBoss: true,  tides: [100, 190, 270, 330] },
+  { id: 4, duration: 510, lamps: 11, hpMul: 2.35, spdMul: 1.11, dmgMul: 1.45, spawnMul: 1.3,  bossAt: 390, bossHp: 5.0, snuffers: true,  requireBoss: true,  tides: [90, 170, 240, 300, 350] },
+  { id: 5, duration: 540, lamps: 12, hpMul: 3.0,  spdMul: 1.14, dmgMul: 1.65, spawnMul: 1.4,  bossAt: 400, bossHp: 7.5, snuffers: true,  requireBoss: true,  tides: [80, 150, 210, 270, 320, 365] },
 ];
 
 export function xpForLevel(l) {
@@ -73,7 +73,7 @@ export function speedScale(t, night) {
   return (1 + 0.3 * Math.min(1, t / night.duration)) * night.spdMul;
 }
 export function hpScale(t, night) {
-  return (1 + t / 165) * night.hpMul;
+  return (1 + t / 140) * night.hpMul;
 }
 
 // ---------- 런 업그레이드 ----------
@@ -86,28 +86,28 @@ export const UPG = {
       { d: 13, cd: 0.55, n: 1, p: 0 },
       { d: 13, cd: 0.52, n: 2, p: 0 },
       { d: 16, cd: 0.52, n: 2, p: 1 },
-      { d: 18, cd: 0.46, n: 2, p: 1 },
-      { d: 21, cd: 0.44, n: 3, p: 1 },
+      { d: 20, cd: 0.46, n: 2, p: 1 },
+      { d: 24, cd: 0.44, n: 3, p: 1 },
     ],
   },
   halo: {
     type: 'weapon', max: 5,
     lv: [
-      { n: 2, d: 7, r: 60 },
-      { n: 3, d: 8, r: 62 },
-      { n: 3, d: 11, r: 66 },
-      { n: 4, d: 12, r: 72 },
-      { n: 5, d: 15, r: 78 },
+      { n: 2, d: 8, r: 60 },
+      { n: 3, d: 9, r: 62 },
+      { n: 3, d: 12, r: 66 },
+      { n: 4, d: 14, r: 72 },
+      { n: 5, d: 17, r: 78 },
     ],
   },
   lance: {
     type: 'weapon', max: 5,
     lv: [
-      { d: 26, cd: 2.8, n: 1, w: 20 },
-      { d: 38, cd: 2.8, n: 1, w: 20 },
-      { d: 40, cd: 2.2, n: 1, w: 22 },
-      { d: 44, cd: 2.2, n: 2, w: 22 },
-      { d: 62, cd: 2.0, n: 2, w: 28 },
+      { d: 30, cd: 2.8, n: 1, w: 20 },
+      { d: 44, cd: 2.8, n: 1, w: 20 },
+      { d: 46, cd: 2.2, n: 1, w: 22 },
+      { d: 52, cd: 2.2, n: 2, w: 22 },
+      { d: 72, cd: 2.0, n: 2, w: 28 },
     ],
   },
   trail: {

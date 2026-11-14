@@ -178,6 +178,7 @@ function finishRun() {
   sound.stopMusic();
   input.setActive(false);
   ui.hud(false);
+  ui.hideLevel();
   ui.showResult({
     won, time: game.clock, kills: game.kills, level: game.p.level, lamps: game.lampsLit, lampTotal: game.lamps.length,
     score, lumen, newBest, unlocked, night: runNight, hasNext: won && runNight + 1 < NIGHTS.length,
@@ -309,6 +310,7 @@ function frame(ts) {
       renderer.consume(game);
       game.events.length = 0;
 
+      if (ui.levelOpen && game.state !== 'levelup') { ui.hideLevel(); input.setActive(true); }
       if (game.state === 'levelup' && !ui.levelOpen) {
         input.setActive(false);
         game.input.mx = 0; game.input.my = 0;
