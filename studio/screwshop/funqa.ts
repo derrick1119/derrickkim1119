@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Bot, Input } from './core.ts';
 import { mulberry32 } from './rng.ts';
-import { STAGES, apply, cloneSim, freeM, jackEarly, logLate, paintStage, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, startStage, starsOf, type Level, type ShopState, type Sim, type StageDef } from './game.ts';
+import { STAGES, apply, geometry, setLevel, cloneSim, freeM, jackEarly, logLate, paintStage, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, startStage, starsOf, type Level, type ShopState, type Sim, type StageDef, type Src } from './game.ts';
 
 export interface Try { ok: boolean; stars: number; sec: number; peak: number; best: number; shot: number; taps: number; /** 끝난 판(되짚기·F13용) */ s: ShopState }
 
@@ -241,18 +241,38 @@ export function bigOf(k: number, seeds = 24, got: { sm?: ShopState[]; nb?: ShopS
   // 📋 S015: m ≥ 5 쿵 · 한 방 판은 문턱 m − 1이 곧 장인 수순 → 문턱 3 값(n3)을 같이 본다
   return { m, big, newbie: rate(screwshopNewbie, got.nb), mash: rate(screwshopMash, got.mash0, 1), core, first: mode(sm.filter((s) => s.hist.length).map((s) => dev(s.L, s.hist[0].s))), ...(m >= 5 ? { n3: rate(screwshopNewbie, got.nb, 3, 3) } : {}) };
 }
-/** 장치 끄기(🧪 S015 m3.mts 'f19'와 같은 식): 판 Level에서 그 장치만 없앤다 */
-export const OFF: Record<string, (L: Level) => Level> = {
-  '🤡': (L) => ({ ...L, jack: undefined }),
-  '🪵': (L) => ({ ...L, pl: L.pl.map((P) => ({ ...P, heavy: false })) }),
-  '🌀': (L) => ({ ...L, pl: L.pl.map((P) => (P.kind === 'spring' ? { ...P, kind: undefined as never, tgt: undefined } : P)) }),
-  '⏰': (L) => ({ ...L, tmr: L.tmr.map(() => 0) }),
-  '🔑': (L) => ({ ...L, wind: false }),
-  '🪟': (L) => ({ ...L, pl: L.pl.map((P) => (P.kind === 'glass' ? { ...P, kind: undefined as never } : P)) }),
-  '🔨': (L) => ({ ...L, pl: L.pl.map((P) => ({ ...P, ham: undefined })), hamT: L.hamT.map((a) => a.map(() => [])) }), // 📐A S016: geometry가 미리 셈한 hamT도 비워야 쾅이 멎는다
-  '🐹': (L) => ({ ...L, thump: false }),
-  // 📌는 아직 없다(✏️ S017): 못 판자를 보통 판자로 바꾸면 자세 수가 바뀌어 미리 셈한 hamT와 어긋난다 — 판 모양을 다시 셈해야 함(S018). 3-5 📌 F19는 📐C가 판 데이터를 바꿔 잰 1.00
+/** 장치 끄기(✏️ S017 · 🧪 S017 보완 1): Level을 고치지 않고 판 정의(toy · 깃발)에서 그 장치를 지운 뒤 판 모양을 다시 셈한다 —
+ *  hid · known · hamT · 자세가 같이 다시 셈해진다(S017 전 🪟 끄기는 hid를 안 바꿔 빈 동작이었다). 칠(col · queue · pal)은 켠 판 그대로 —
+ *  다시 칠하면 낙차에 '칠이 달라진 몫'이 섞인다(3-1은 끈 판을 칠할 수도 없다) */
+const src = (d: StageDef, f: (P: Src) => Src): StageDef => ({ ...d, toy: () => d.toy().map(f) });
+export const OFF: Record<string, (d: StageDef) => StageDef> = {
+  '🤡': (d) => ({ ...d, jack: undefined }),
+  '🪵': (d) => src(d, (P) => ({ ...P, heavy: false })),
+  '🌀': (d) => src(d, (P) => (P.kind === 'spring' ? { ...P, kind: 'wood', tgt: undefined } : P)),
+  '⏰': (d) => src(d, (P) => ({ ...P, tick: undefined })),
+  '🔑': (d) => ({ ...d, wind: false }),
+  '🪟': (d) => src(d, (P) => (P.kind === 'glass' ? { ...P, kind: 'wood' } : P)),
+  '🔨': (d) => src(d, (P) => ({ ...P, ham: undefined })),
+  '🐹': (d) => ({ ...d, thump: false }),
+  '📌': (d) => src(d, (P) => (P.kind === 'nail' ? { ...P, kind: 'wood', nail: undefined } : P)),
 };
+/** 장치를 끈 판으로 시작한 상태 — 칠은 켠 판(같은 씨앗) 그대로 */
+export function offState(k: number, dev: string, seed: number): ShopState {
+  const s0 = g.create(seed);
+  if (k) startStage(s0, k);
+  const L0 = s0.L, d1 = OFF[dev](STAGES[k]), G = geometry(d1.toy());
+  G.wind = !!d1.wind;
+  if (d1.thump) G.thump = true;
+  if (d1.jack) G.jack = d1.jack;
+  setLevel(seed, k, { ...G, col: L0.col, queue: L0.queue, boxes: L0.boxes, pal: L0.pal });
+  try {
+    const s = g.create(seed);
+    if (k) startStage(s, k);
+    return s;
+  } finally {
+    setLevel(seed, k);
+  }
+}
 /** F19 식: 장치를 끈 판에서 장인 ★3 낙차(켬 − 끔) */
 export function f19(k: number, dev: string, seeds = 24) {
   const d = STAGES[k];
@@ -260,9 +280,7 @@ export function f19(k: number, dev: string, seeds = 24) {
   for (let i = 0; i < seeds; i++) {
     const seed = 1000 + i * 7, a = tryStage(screwshopSmart, seed, k).s;
     on += +(a.ok && starsOf(d, a.S) === 3);
-    const s = g.create(seed);
-    if (k) startStage(s, k);
-    s.L = OFF[dev](s.L);
+    const s = offState(k, dev, seed);
     const rng = mulberry32(seed ^ 0x9e3779b9), t0 = s.t;
     while (s.phase !== 'result' && s.t - t0 < 600 * 60) g.step(s, screwshopSmart.act(s, rng));
     off += +(s.ok && starsOf(d, s.S) === 3);
@@ -270,7 +288,7 @@ export function f19(k: number, dev: string, seeds = 24) {
   return +((on - off) / seeds).toFixed(2);
 }
 /** 판에 들어 있는 장치 수(판자 단위) — 판박이 v2 · 장치 F19 일괄이 쓴다 */
-export const cnt = (k: number) => { const L = paintStage(k, 1); return Object.fromEntries(Object.keys(OFF).map((e) => [e, e === '🤡' ? +!!L.jack : e === '🪵' ? L.pl.filter((P) => P.heavy).length : e === '🌀' ? L.pl.filter((P) => P.kind === 'spring').length : e === '⏰' ? L.tmr.filter((t) => t > 0).length : e === '🔑' ? +!!L.wind : e === '🪟' ? L.pl.filter((P) => P.kind === 'glass').length : e === '🔨' ? L.pl.filter((P) => P.ham).length : +!!L.thump])) as Record<string, number>; };
+export const cnt = (k: number) => { const L = paintStage(k, 1); return Object.fromEntries(Object.keys(OFF).map((e) => [e, e === '🤡' ? +!!L.jack : e === '🪵' ? L.pl.filter((P) => P.heavy).length : e === '🌀' ? L.pl.filter((P) => P.kind === 'spring').length : e === '⏰' ? L.tmr.filter((t) => t > 0).length : e === '🔑' ? +!!L.wind : e === '🪟' ? L.pl.filter((P) => P.kind === 'glass').length : e === '🔨' ? L.pl.filter((P) => P.ham).length : e === '📌' ? L.pl.filter((P) => P.kind === 'nail').length : +!!L.thump])) as Record<string, number>; };
 /** 판박이 v2(🧪 S015 · 📋 S016 gate): 같은 월드 · core 같은 짝이 first로 갈렸으면 그 first 장치의 F19 ≥ .4, m 차 1로만 갈렸으면 한쪽에만 있는 장치 중 하나의 F19 ≥ .4 — 걸린 짝 [자리, 자리, 까닭] */
 export function twins2(rows: { slot: string; k: number; big: ReturnType<typeof bigOf> }[]) {
   // 장치 수(판자 단위): 같은 종류라도 한쪽이 더 많으면 '덧붙인 장치'(2-10의 둘째 🌀 문 같은 것)

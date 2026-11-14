@@ -591,6 +591,8 @@ export function habitPick(L: Level, S: Sim, known = L.all) {
   return best;
 }
 const levelCache = new Map<string, Level>();
+/** funqa 장치 끄기(✏️ S017): 그 씨앗 · 판 칸에 다른 Level을 넣는다(L 없으면 비운다) */
+export const setLevel = (seed: number, stage: number, L?: Level) => (L ? void levelCache.set(`${seed}:${stage}`, L) : void levelCache.delete(`${seed}:${stage}`));
 /** k번째 판(순서)을 칠 번호 sub로 칠한 판 (✏️ S005: 판 고르기는 빌드 때 — pick.ts가 sub를 고르고 picks.ts에 적는다 · 씨앗은 판 id — ✏️ S009) */
 export function paintStage(stage: number, sub: number): Level {
   const d = STAGES[stage], G = geometry(d.toy());
