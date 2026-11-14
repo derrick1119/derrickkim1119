@@ -40,6 +40,12 @@ describe('나사 풀기 공방 시뮬', () => {
     expect(r.skillGap).toBeGreaterThanOrEqual(3);
     expect(r.smartStars).toBeGreaterThan(r.habitStars);
   });
+
+  it('막 누르기로는 3판부터 거의 못 깬다 (오너 2026-11-14 "막 누르면 되는 게임?" — 퇴행 방지)', () => {
+    const r = measure(6).summary;
+    expect(r.mashClear38).toBeLessThanOrEqual(0.15);
+    expect(r.mashStars).toBeLessThan(r.smartStars / 3);
+  });
 });
 
 describe('플레이 빌드', () => {
