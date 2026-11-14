@@ -177,6 +177,8 @@ export interface Level {
   /** 🔨 판자 k가 자세 q로 매달렸을 때 망치 머리 자리 [x,y]와 칠 수 있는 나사 후보(가까운 순, HAM 안) */
   hamP: number[][][];
   hamT: number[][][];
+  /** 🔨 그림용: 때리는 면이 휘두르는 쪽(+1/−1) — 🎨 §2.5′ */
+  hamF: number[];
 }
 /** 🔨 망치 머리가 닿는 거리 */
 export const HAM = 0.06;
@@ -246,7 +248,13 @@ function geometry(pl: Src[]): Level {
     return near.sort((a, b) => a[0] - b[0]).map((e) => e[1]);
   }));
   const hid = poses.map((arr, k) => arr.map((q) => mask(k, q, HIDE, false)));
-  return { pl, N, all: (1 << N) - 1, px, py, owner, col: [], lockM, keyM, ps, pm, si, poses, cov, hid, queue: [], boxes: 1, pal: [], tmr, hamP, hamT };
+  const hamF = pl.map((p, k) => {
+    if (!p.ham) return 1;
+    const qi = Math.max(1, hamT[k].findIndex((a) => a.length)), q = poses[k][Math.min(qi, poses[k].length - 1)], an = hamEdge(p)[2], sg = Math.sign(q.d) || 1;
+    const mx = -(p.ham[1] - q.py) * sg, my = (p.ham[0] - q.px) * sg, th = p.a + an;
+    return -Math.sin(th) * mx + Math.cos(th) * my >= 0 ? 1 : -1;
+  });
+  return { pl, N, all: (1 << N) - 1, px, py, owner, col: [], lockM, keyM, ps, pm, si, poses, cov, hid, queue: [], boxes: 1, pal: [], tmr, hamP, hamT, hamF };
 }
 
 // ───────────────────────────── 규칙(시뮬레이션) ─────────────────────────────
@@ -1653,54 +1661,75 @@ function plankPath(ctx: CanvasRenderingContext2D, P: Src, R: (r: number) => numb
   ctx.roundRect(-R(P.hx), -R(P.hy), R(P.hx * 2), R(P.hy * 2), R(P.rr));
 }
 
-/** 🔨 망치 머리 (🎨 ART §2.5): 판자 앞면 좌표계 안에 빨간 손잡이 띠 2줄 + 쇠 목 + 쇠머리. 장전되면 테두리가 금빛, 가끔 반짝 */
+/** 🔨 망치 머리가 붙는 판자 가장자리 점(판자 로컬) + 바깥 법선 각 (🎨 §2.5′) */
+function hamEdge(P: Src): [number, number, number] {
+  const dx = P.ham![0] - P.cx, dy = P.ham![1] - P.cy, c = Math.cos(P.a), s = Math.sin(P.a);
+  const lx = dx * c + dy * s, ly = -dx * s + dy * c, end = Math.abs(lx) / P.hx >= Math.abs(ly) / P.hy;
+  return end ? [Math.sign(lx) * P.hx, ly, lx >= 0 ? 0 : Math.PI] : [lx, Math.sign(ly) * P.hy, ly >= 0 ? Math.PI / 2 : -Math.PI / 2];
+}
+/** 망치 머리 틀: 가장자리에 붙이고 x = 바깥, +y = 때리는 쪽 (진짜·유령 공용) */
+function hamFrame(ctx: CanvasRenderingContext2D, P: Src, F: number, R: (r: number) => number) {
+  const [ex, ey, an] = hamEdge(P);
+  ctx.translate(R(ex), R(ey));
+  ctx.rotate(an);
+  ctx.translate(-R(0.006), 0);
+  ctx.scale(1, F);
+}
+/** 망치 실루엣: 평평한 때리는 면 + 휜 노루발 (길이 0.116, 판자 밖 0.034) */
+function hamPath(ctx: CanvasRenderingContext2D, R: (r: number) => number) {
+  ctx.beginPath();
+  ctx.moveTo(0, R(-0.018));
+  ctx.quadraticCurveTo(0, R(-0.04), R(-0.016), R(-0.054));
+  ctx.lineTo(R(0.004), R(-0.052));
+  ctx.lineTo(R(-0.006), R(-0.068));
+  ctx.quadraticCurveTo(R(0.036), R(-0.06), R(0.036), R(-0.018));
+  for (const [x, y] of [[0.036, 0.02], [0.03, 0.026], [0.04, 0.03], [0.04, 0.048], [-0.004, 0.048], [-0.004, 0.03], [0.006, 0.026], [0, 0.02]]) ctx.lineTo(R(x), R(y));
+  ctx.closePath();
+}
+/** 🔨 망치 머리 (🎨 §2.5′): 판자 앞면 좌표계 안. 장전되면 금테, 가끔 반짝, 쾅에 찌그러짐 */
 function drawHammerHead(ctx: CanvasRenderingContext2D, P: Src, R: (r: number) => number, t: number, k: number, s: ShopState) {
-  const dx = P.ham![0] - P.cx, dy = P.ham![1] - P.cy, c = Math.cos(-P.a), sn = Math.sin(-P.a);
-  const lx = R(dx * c - dy * sn), ly = R(dx * sn + dy * c), ang = Math.atan2(ly, lx), L = s.L;
-  // 쾅 찌그러짐(맞힌 뒤 8틱)
-  const bt = juice(s).memo['bonk' + k] ?? -99, u = t - bt, sq = u < 3 ? [0.82, 1.12] : u < 8 ? [1.06, 0.97] : [1, 1];
-  // 장전: 남은 나사 2개이고 어느 매달림에서든 칠 나사가 살아 있다
+  const L = s.L, F = L.hamF[k];
+  const bt = juice(s).memo['bonk' + k] ?? -99, u = t - bt;
   const rem = L.pm[k] & ~s.S.gone, armed = rem && (rem & (rem - 1)) && !(rem & (rem - 1) & (rem - 2)) && L.hamT[k].some((a) => a.some((i) => !((s.S.gone >> i) & 1)));
   ctx.save();
-  ctx.translate(lx, ly);
-  ctx.rotate(ang);
-  for (const bx of [-0.05, -0.032]) {
-    ctx.fillStyle = '#e8414f';
-    ctx.fillRect(R(bx), -R(0.02), R(0.01), R(0.04));
-    ctx.fillStyle = 'rgba(255,255,255,.35)';
-    ctx.fillRect(R(bx), -R(0.02), R(0.01), 1);
-  }
-  ctx.fillStyle = '#8b939c';
-  ctx.fillRect(-R(0.014), -R(0.011), R(0.014), R(0.022));
-  ctx.scale(sq[0], sq[1]);
-  const w = R(0.032), h = R(0.072), x0 = R(0.006) - w / 2;
-  ctx.fillStyle = 'rgba(30,15,5,.35)';
-  ctx.beginPath();
-  ctx.roundRect(x0 + R(0.006), -h / 2 + R(0.009), w, h, R(0.006));
+  hamFrame(ctx, P, F, R);
+  // 그림자: 화면 기준 (0.005, 0.008)을 로컬로
+  const m = ctx.getTransform(), th = Math.atan2(m.b, m.a), ox = R(0.005), oy = R(0.008);
+  ctx.save();
+  ctx.translate(ox * Math.cos(-th) - oy * Math.sin(-th), (ox * Math.sin(-th) + oy * Math.cos(-th)) * F);
+  hamPath(ctx, R);
+  ctx.fillStyle = 'rgba(40,20,5,.38)';
   ctx.fill();
-  const g = ctx.createLinearGradient(x0 + w, 0, x0, 0);
-  g.addColorStop(0, '#f4f7fa');
-  g.addColorStop(0.5, '#aab2bb');
-  g.addColorStop(1, '#6f7780');
+  ctx.restore();
+  if (u < 8) ctx.translate(R(0.018), R(-0.01)), ctx.scale(u < 3 ? 1.14 : 0.96, u < 3 ? 0.84 : 1.06), ctx.translate(R(-0.018), R(0.01));
+  hamPath(ctx, R);
+  const g = ctx.createLinearGradient(0, 0, R(0.04), 0);
+  g.addColorStop(0, '#5f6873');
+  g.addColorStop(0.55, '#aeb7c1');
+  g.addColorStop(1, '#eef2f5');
   ctx.fillStyle = g;
-  ctx.strokeStyle = armed ? `rgba(255,224,138,${0.55 + 0.3 * Math.sin(t * 0.1)})` : '#3f454c';
-  ctx.lineWidth = armed ? 2.5 : 1.5;
-  ctx.beginPath();
-  ctx.roundRect(x0, -h / 2, w, h, R(0.006));
   ctx.fill();
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = armed ? `rgba(255,224,138,${0.55 + 0.3 * Math.sin(t * 0.1)})` : '#23272c';
+  ctx.lineWidth = armed ? 2.5 : 2;
   ctx.stroke();
-  ctx.fillStyle = '#5d646d';
-  ctx.fillRect(x0, -h / 2, w, R(0.008));
-  ctx.fillRect(x0, h / 2 - R(0.008), w, R(0.008));
-  ctx.fillStyle = '#4b525a';
+  ctx.fillStyle = '#f6f8fa';
+  ctx.fillRect(R(-0.004), R(0.042), R(0.044), R(0.006));
+  ctx.strokeStyle = 'rgba(255,255,255,.75)';
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.arc(R(0.006), 0, R(0.006), 0, Math.PI * 2);
+  ctx.moveTo(R(0.031), R(-0.014));
+  ctx.lineTo(R(0.031), R(0.018));
+  ctx.stroke();
+  ctx.fillStyle = '#3b4148';
+  ctx.beginPath();
+  ctx.arc(R(0.018), 0, R(0.005), 0, Math.PI * 2);
   ctx.fill();
   if ((t + 37 * k) % 150 < 10) {
+    hamPath(ctx, R);
     ctx.clip();
     ctx.fillStyle = 'rgba(255,255,255,.6)';
-    const q = ((t + 37 * k) % 150) / 10;
-    ctx.fillRect(x0 - w + q * 2 * w, -h / 2, R(0.01), h);
+    ctx.fillRect(R(-0.01), R(-0.068 + 0.0116 * ((t + 37 * k) % 150)), R(0.06), R(0.012));
   }
   ctx.restore();
 }
@@ -2099,12 +2128,6 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
         ctx.lineTo(tx + Math.cos(a) * R(SR) * 2.2, ty + Math.sin(a) * R(SR) * 2.2);
         ctx.stroke();
       }
-      ctx.setLineDash([4, 4]);
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(X(e.x), Y(e.y));
-      ctx.lineTo(tx, ty);
-      ctx.stroke();
       // 🎨 §2.5: 맞은 나사가 어디로 가는지 알약 글자
       const nx = pre.rec[pre.rec.indexOf(e) + 2], toSlot = nx && nx.k === 'slot';
       const lab = toSlot ? '🎯 쾅 → 빈칸' : '🎯 쾅 → 쏙';
@@ -2126,10 +2149,6 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       // 💨 허공: 망치가 아무것도 못 친다 — 막 누르면 톡을 버리는 이유가 누르는 동안 보인다
       const [hx, hy] = L.hamP[e.p][e.pose];
       ctx.save();
-      ctx.fillStyle = 'rgba(200,190,170,.7)';
-      ctx.beginPath();
-      ctx.arc(X(hx), Y(hy), R(0.02), 0, Math.PI * 2);
-      ctx.fill();
       font(0.032, 900);
       ctx.textAlign = 'center';
       const aw = ctx.measureText('💨 허공').width + 14; // 🧪 S001: 판 색과 섞이지 않게 어두운 알약
@@ -2153,10 +2172,48 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       plankPath(ctx, P, R);
       ctx.fill();
       ctx.stroke();
+      const hit = P.ham && pre.rec.some((b) => b.k === 'bonk' && b.p === e.p);
+      if (P.ham) {
+        // 🎨 §2.6 유령 망치 (쾅: 흰 점선 · 허공: 회색)
+        hamFrame(ctx, P, L.hamF[e.p], R);
+        hamPath(ctx, R);
+        ctx.fillStyle = hit ? 'rgba(255,255,255,.3)' : 'rgba(200,190,170,.35)';
+        ctx.strokeStyle = hit ? 'rgba(255,255,255,.95)' : 'rgba(200,190,170,.85)';
+        ctx.setLineDash([4, 3]);
+        ctx.fill();
+        ctx.stroke();
+      }
       ctx.restore();
-      // 휘는 화살표
+      if (P.ham && Math.abs(q.d) > 0.15) {
+        // 휘두르는 호: 지금 머리 → 유령 머리, 피벗 둘레 금색 점선(흐르는 쪽 = 휘두르는 쪽)
+        const [ex, ey, an] = hamEdge(P), c = Math.cos(P.a), sn = Math.sin(P.a), lx = ex + Math.cos(an) * 0.012, ly = ey + Math.sin(an) * 0.012;
+        const vx = P.cx + lx * c - ly * sn, vy = P.cy + lx * sn + ly * c, r = Math.hypot(vx - q.px, vy - q.py), a0 = Math.atan2(vy - q.py, vx - q.px);
+        const sg = Math.sign(q.d) || 1, gp = 0.05 / Math.max(r, 0.01), b0 = a0 + sg * gp, b1 = a0 + q.d - sg * gp;
+        if (Math.abs(q.d) > 2 * gp + 0.15) {
+          ctx.save();
+          ctx.setLineDash([7, 5]);
+          ctx.lineDashOffset = -0.8 * t;
+          for (const [col, lw] of [['rgba(60,30,10,.55)', 5.5], [hit ? '#ffe08a' : 'rgba(225,215,195,.9)', 3]] as const) {
+            ctx.strokeStyle = col;
+            ctx.lineWidth = lw;
+            ctx.beginPath();
+            ctx.arc(X(q.px), Y(q.py), R(r), b0, b1, sg < 0);
+            ctx.stroke();
+          }
+          const hx = X(q.px) + Math.cos(b1) * R(r), hy = Y(q.py) + Math.sin(b1) * R(r), ta = b1 + (sg * Math.PI) / 2;
+          ctx.setLineDash([]);
+          ctx.fillStyle = hit ? '#ffe08a' : 'rgba(225,215,195,.9)';
+          ctx.beginPath();
+          ctx.moveTo(hx + Math.cos(ta) * R(0.012), hy + Math.sin(ta) * R(0.012));
+          ctx.lineTo(hx - Math.cos(ta) * R(0.012) + Math.cos(ta + Math.PI / 2) * R(0.014), hy - Math.sin(ta) * R(0.012) + Math.sin(ta + Math.PI / 2) * R(0.014));
+          ctx.lineTo(hx - Math.cos(ta) * R(0.012) - Math.cos(ta + Math.PI / 2) * R(0.014), hy - Math.sin(ta) * R(0.012) - Math.sin(ta + Math.PI / 2) * R(0.014));
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+      // 휘는 화살표 (망치 판자는 위 호가 대신한다)
       const r0 = R(Math.hypot(P.cx - q.px, P.cy - q.py)) * 0.75, a0 = Math.atan2(P.cy - q.py, P.cx - q.px), a1 = Math.atan2(q.cy - q.py, q.cx - q.px);
-      if (r0 > R(0.03) && Math.abs(q.d) > 0.15) {
+      if (!P.ham && r0 > R(0.03) && Math.abs(q.d) > 0.15) {
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
