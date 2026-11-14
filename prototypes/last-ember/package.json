@@ -1,0 +1,12 @@
+{
+  "name": "the-lamp-last-ember",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "THE LAMP: 마지막 불씨 — 빛과 어둠을 오가는 로그라이트 생존 액션",
+  "scripts": {
+    "start": "node tools/serve.mjs",
+    "sim": "node tools/sim.mjs",
+    "test": "node tools/sim.mjs --check && node tools/smoke.mjs"
+  }
+}

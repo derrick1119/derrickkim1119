@@ -1,4 +1,4 @@
-// 소리: 효과음과 배경음을 모두 Web Audio 로 합성한다 (음원 파일 없음)
+// THE LAMP 2 — 소리: 효과음과 배경음을 모두 Web Audio 로 합성한다 (음원 파일 없음)
 const NOTE = (n) => 440 * Math.pow(2, (n - 69) / 12);
 // 라 단조 5음계 — 어디를 짚어도 어울린다
 const SCALE = [57, 60, 62, 64, 67, 69, 72, 74, 76, 79];
@@ -98,66 +98,58 @@ export class Sound {
     this.filter.frequency.setTargetAtTime(lit ? 9000 : 620, this.ctx.currentTime, lit ? 0.03 : 0.12);
   }
 
-  consume(g) {
+  consume(w) {
     if (!this.ctx || !this.enabled) return;
-    const evs = g.events;
-    for (let i = 0; i < evs.length; i++) {
-      const ev = evs[i];
+    for (const ev of w.events) {
       switch (ev.type) {
-        case 'shoot': if (this.ok('shoot', 0.07)) this.tone(900, 420, 0.05, 0.035, 'triangle'); break;
-        case 'hit': if (this.ok('hit', 0.06)) this.noise(0.04, 0.05, 3200, 1400, 'bandpass'); break;
-        case 'kill':
-          if (ev.dawn) { if (this.ok('dk', 0.05)) this.tone(700 + Math.random() * 600, 1400, 0.12, 0.03, 'sine'); }
-          else if (this.ok('kill', 0.045)) this.tone(260 + Math.random() * 60, 90, 0.09, 0.06, 'sine');
-          if (ev.elite) { this.noise(0.4, 0.2, 900, 120); this.bell([64, 69, 76], 0.07, 0.6, 0.06); }
+        case 'light':
+          // 스위치 딸깍 + 필라멘트가 달아오르는 소리
+          this.noise(0.03, 0.12, 3000, 1200, 'bandpass');
+          if (ev.on) { this.tone(180, 520, 0.14, 0.07, 'triangle'); this.tone(1040, 1560, 0.2, 0.025, 'sine', 0.02); }
+          else this.tone(420, 120, 0.2, 0.07, 'sine');
+          this.setLit(ev.on);
           break;
-        case 'xp': {
-          const now = this.ctx.currentTime;
-          if (now - this.comboT > 0.5) this.combo = 0;
-          this.comboT = now;
-          if (this.ok('xp', 0.035)) {
-            const n = SCALE[Math.min(SCALE.length - 1, this.combo % SCALE.length)] + 12;
-            this.tone(NOTE(n), NOTE(n), 0.07, 0.04, 'sine');
-            this.combo++;
+        case 'jump': if (this.ok('jump', 0.05)) this.tone(380, 620, 0.09, 0.05, 'sine'); break;
+        case 'land': {
+          if (!this.ok('land', 0.04)) break;
+          const k = Math.min(1, ev.v / 900);
+          if (ev.soft) this.noise(0.12, 0.05 + 0.1 * k, 500, 150);
+          else {
+            // 유리가 돌에 닿는 소리: 세게 부딪힐수록 크고 날카롭다
+            this.tone(1500 + k * 1400, 900 + k * 600, 0.06 + 0.08 * k, 0.03 + 0.1 * k, 'sine');
+            this.tone(2600 + k * 1800, 2000, 0.05, 0.015 + 0.04 * k, 'sine', 0.01);
+            if (k > 0.35) this.noise(0.08, 0.08 * k, 2400, 600, 'bandpass');
           }
           break;
         }
-        case 'oil': this.tone(520, 780, 0.12, 0.09, 'sine'); this.tone(780, 1040, 0.12, 0.06, 'sine', 0.07); break;
-        case 'hurt': this.tone(170, 60, 0.22, 0.22, 'sawtooth'); this.noise(0.14, 0.18, 2400, 500, 'bandpass'); break;
-        case 'dark': this.tone(480, 110, 0.28, 0.1, 'sine'); this.noise(0.3, 0.07, 1800, 200); break;
-        case 'ignite': this.noise(0.18, 0.08, 400, 4000, 'bandpass'); this.tone(220, 520, 0.12, 0.06, 'triangle'); break;
-        case 'flare': {
-          const c = ev.charge;
-          this.noise(0.35 + 0.3 * c, 0.16 + 0.2 * c, 5000, 200);
-          this.tone(110, 50, 0.4, 0.2 + 0.15 * c, 'sine');
-          this.bell([69, 76, 81], 0.05 + 0.05 * c, 0.5, 0.02);
+        case 'crack':
+          this.noise(0.09, 0.3, 6000, 2500, 'highpass');
+          this.tone(2400, 900, 0.16, 0.14, 'square');
+          this.tone(3300, 1500, 0.1, 0.08, 'sine', 0.04);
+          break;
+        case 'shatter':
+          this.noise(0.5, 0.4, 8000, 1200, 'highpass');
+          for (let i = 0; i < 7; i++) this.tone(1800 + Math.random() * 3200, 900 + Math.random() * 900, 0.12 + Math.random() * 0.25, 0.07, 'sine', i * 0.035);
+          this.tone(160, 50, 0.4, 0.2, 'sawtooth');
+          this.setLit(true);
+          break;
+        case 'respawn': this.bell([64, 69, 76], 0.07, 0.6, 0.06); this.setLit(true); break;
+        case 'pad': this.tone(160, 640, 0.22, 0.14, 'sine'); this.tone(320, 1280, 0.18, 0.05, 'triangle', 0.02); break;
+        case 'lantern': this.bell([69, 72, 76, 81], 0.11, 1.3, 0.07); this.noise(0.3, 0.07, 600, 5000, 'bandpass'); break;
+        case 'bloom': {
+          const base = [72, 76, 79][Math.min(2, ev.n - 1)];
+          this.bell([base, base + 4, base + 7, base + 12], 0.09, 0.8, 0.07);
+          if (ev.all) this.bell([84, 88, 91, 96], 0.07, 1.2, 0.09);
           break;
         }
-        case 'decoy': this.tone(660, 990, 0.1, 0.05, 'triangle'); break;
-        case 'boom': this.noise(0.4, 0.3, 2600, 100); this.tone(120, 40, 0.35, 0.25, 'sine'); break;
-        case 'pop': if (this.ok('pop', 0.06)) this.noise(0.1, 0.07, 1800, 300); break;
-        case 'beam': if (this.ok('beam', 0.1)) { this.tone(1400, 500, 0.18, 0.06, 'sawtooth'); this.noise(0.14, 0.05, 6000, 2000, 'highpass'); } break;
-        case 'lampLit': this.bell([69, 72, 76, 81], 0.11, 1.3, 0.07); this.noise(0.3, 0.07, 600, 5000, 'bandpass'); break;
-        case 'lampOut': this.tone(440, 200, 0.5, 0.12, 'triangle'); this.tone(330, 150, 0.6, 0.1, 'triangle', 0.1); break;
-        case 'allLit': this.bell([57, 64, 69, 72, 76, 81, 84], 0.12, 2.0, 0.09); break;
-        case 'levelup': this.bell([72, 76, 79, 84], 0.09, 0.5, 0.06); break;
-        case 'upgrade': this.tone(520, 1040, 0.12, 0.08, 'triangle'); break;
-        case 'chest': this.bell([64, 67, 72, 76, 79], 0.08, 0.5, 0.05); break;
-        case 'elite': this.tone(90, 70, 0.7, 0.16, 'sawtooth'); break;
-        case 'tide': this.noise(1.6, 0.2, 90, 500); this.tone(60, 45, 1.4, 0.2, 'sawtooth'); break;
-        case 'boss': this.tone(55, 41, 2.4, 0.3, 'sawtooth'); this.tone(58.3, 43, 2.4, 0.22, 'sawtooth'); this.noise(2.0, 0.14, 200, 60); break;
-        case 'bossRing': this.tone(300, 140, 0.25, 0.08, 'square'); break;
-        case 'summon': this.tone(140, 220, 0.3, 0.08, 'sawtooth'); break;
-        case 'shield': this.tone(880, 440, 0.4, 0.08, 'square'); this.tone(1320, 660, 0.4, 0.05, 'square', 0.05); break;
-        case 'shieldBreak': this.noise(0.5, 0.3, 7000, 1500, 'highpass'); this.bell([76, 81, 88], 0.12, 0.8, 0.03); break;
-        case 'block': if (this.ok('block', 0.1)) this.tone(1500, 1200, 0.04, 0.04, 'square'); break;
-        case 'windup': if (this.ok('windup', 0.2)) this.tone(80, 150, 0.6, 0.12, 'sawtooth'); break;
-        case 'wake': if (this.ok('wake', 0.3)) this.tone(200, 320, 0.15, 0.06, 'square'); break;
-        case 'spit': if (this.ok('spit', 0.08)) this.tone(420, 180, 0.12, 0.05, 'square'); break;
-        case 'bossDead': this.noise(1.6, 0.3, 4000, 80); this.bell([57, 64, 69, 76, 81], 0.14, 2.2, 0.1); break;
-        case 'revive': this.bell([64, 69, 76, 81], 0.14, 1.2, 0.06); break;
-        case 'dawn': this.bell([60, 64, 67, 72, 76, 79, 84], 0.12, 3.0, 0.16); break;
-        case 'dead': this.tone(330, 55, 1.4, 0.2, 'triangle'); this.noise(1.2, 0.12, 900, 60); break;
+        case 'gate':
+          if (this.ok('gate', 0.1)) { this.noise(0.18, 0.1, ev.open ? 300 : 900, ev.open ? 900 : 300); this.tone(ev.open ? 220 : 330, ev.open ? 330 : 220, 0.16, 0.07, 'square'); }
+          break;
+        case 'melt': if (this.ok('melt', 0.1)) this.tone(300, 90, 0.25, 0.06, 'sawtooth'); break;
+        case 'bite': this.tone(140, 60, 0.2, 0.2, 'sawtooth'); this.noise(0.12, 0.15, 1200, 300, 'bandpass'); break;
+        case 'moth': if (this.ok('moth', 0.4)) { for (let i = 0; i < 4; i++) this.noise(0.03, 0.05, 2500, 1500, 'bandpass', i * 0.05); } break;
+        case 'shadowFall': this.tone(500, 60, 0.5, 0.1, 'sawtooth'); this.bell([81, 88], 0.05, 0.4, 0.05); break;
+        case 'clear': this.bell([60, 64, 67, 72, 76, 79, 84], 0.12, 2.4, 0.11); this.setLit(true); break;
       }
     }
   }

@@ -1,149 +1,146 @@
-// 화면 UI (DOM): 타이틀 · 공방 · HUD · 레벨업 · 결과
-import { NIGHTS, UPG, EVO, META } from './config.js';
-import { t, upgName, upgDesc, getLang } from './i18n.js';
-import { iconCanvas } from './icons.js';
+// THE LAMP 2 — 화면 UI (DOM): 타이틀 · 스테이지 선택 · HUD · 일시정지 · 클리어
+import { LEVELS, CHAPTERS } from './levels.js';
+import { SKINS } from './render.js';
+import { t, has, getLang } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
-const PHASE = ['-62%', '-38%', '100%', '38%', '0%']; // 달 모양 (그림자 위치)
+
+// 전구 겉모습: 모은 빛꽃 수로 열린다
+export const SKIN_NEED = { warm: 0, day: 8, moon: 16, dawn: 26 };
 
 export function fmtTime(sec) {
-  sec = Math.max(0, Math.floor(sec));
-  return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+  sec = Math.max(0, sec);
+  const m = Math.floor(sec / 60), s = sec - m * 60;
+  return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
 }
 
-function family(id) {
-  if (EVO[id]) return 'evo';
-  const d = UPG[id];
-  return d ? d.type : 'bonus';
+export function totalFlowers(save) {
+  let n = 0;
+  for (const id in save.levels) n += save.levels[id].flowers || 0;
+  return n;
+}
+
+export function unlocked(save, i) {
+  return i === 0 || !!(save.levels[LEVELS[i - 1].id] && save.levels[LEVELS[i - 1].id].done);
+}
+
+// 아직 깨지 않은 첫 스테이지 (모두 깼으면 -1)
+export function nextIndex(save) {
+  for (let i = 0; i < LEVELS.length; i++) if (!(save.levels[LEVELS[i].id] && save.levels[LEVELS[i].id].done)) return i;
+  return -1;
 }
 
 export class UI {
   constructor(save, h) {
     this.save = save;
     this.h = h;
-    this.touch = window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-    this.night = Math.min(save.unlocked, NIGHTS.length) - 1;
+    this.touch = !!(window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches);
+    if (this.touch) document.body.classList.add('touch');
     this.cache = {};
-    this.levelOpen = false;
-    this.levelLock = 0;
     this.tipKey = null;
 
-    $('btnStart').onclick = () => h.start(this.night);
-    $('btnWorkshop').onclick = () => { h.click(); this.show('workshop'); };
+    $('btnStart').onclick = () => h.start();
+    $('btnStages').onclick = () => { h.click(); this.show('select'); };
     $('btnHow').onclick = () => { h.click(); this.show('how'); };
-    for (const b of document.querySelectorAll('[data-back]')) b.onclick = () => { h.click(); this.show(this.backTo || 'title'); };
+    for (const b of document.querySelectorAll('[data-back]')) b.onclick = () => { h.click(); this.show('title'); };
     $('btnSound').onclick = $('btnSound2').onclick = () => h.sound();
     $('btnLang').onclick = () => h.lang();
     $('btnFull').onclick = () => h.fullscreen();
     if (!document.documentElement.requestFullscreen) $('btnFull').classList.add('hidden');
     $('btnPause').onclick = () => h.pause();
     $('btnResume').onclick = () => h.pause();
-    $('btnQuit').onclick = () => h.quit();
-    $('btnRetry').onclick = () => h.retry();
+    $('btnCheckpoint').onclick = () => h.checkpoint();
+    $('btnRestart').onclick = () => h.restart();
+    $('btnQuit').onclick = () => h.stages();
     $('btnNext').onclick = () => h.next();
-    $('btnMenu').onclick = () => h.menu();
-    $('btnResWorkshop').onclick = () => { h.click(); this.backTo = 'result'; $('overlay-result').classList.add('hidden'); this.show('workshop'); };
-    $('btnReroll').onclick = () => h.reroll();
-    const lamp = $('btnLamp');
-    lamp.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); h.toggle(); }, { passive: false });
-    lamp.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); if (!this.touchUsed) h.toggle(); });
-    lamp.addEventListener('touchend', () => { this.touchUsed = true; });
-
+    $('btnRetry').onclick = () => h.restart();
+    $('btnClearStages').onclick = () => h.stages();
     this.applyLang();
   }
 
-  // ---------- 문구 ----------
+  setTouch() {
+    if (this.touch) return;
+    this.touch = true;
+    document.body.classList.add('touch');
+    $('howKeys').textContent = t('how.keys.touch');
+    this.tipKey = null;
+  }
+
   applyLang() {
     document.documentElement.lang = getLang();
     for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
     $('howKeys').textContent = t(this.touch ? 'how.keys.touch' : 'how.keys.pc');
+    $('lightLabel').textContent = t('btn.light');
+    $('jumpLabel').textContent = t('btn.jump');
     this.setSound(this.save.sound);
-    this.renderNights();
-    this.renderWorkshop();
+    this.refreshTitle();
+    this.renderStages();
     this.cache = {};
   }
 
-  setSound(on) {
-    $('btnSound').textContent = $('btnSound2').textContent = t(on ? 'btn.sound.on' : 'btn.sound.off');
+  setSound(on) { $('btnSound').textContent = $('btnSound2').textContent = t(on ? 'btn.sound.on' : 'btn.sound.off'); }
+
+  refreshTitle() {
+    const n = nextIndex(this.save);
+    const fresh = Object.keys(this.save.levels).length === 0;
+    $('btnStart').textContent = fresh ? t('btn.start') : n < 0 ? t('btn.stages') : `${t('btn.continue')} · ${LEVELS[n].id}`;
+    $('titleFlowers').textContent = `${totalFlowers(this.save)}/${LEVELS.length * 3}`;
   }
 
-  nightName(i) { return t('night.' + NIGHTS[i].id); }
-
-  // ---------- 화면 전환 ----------
   show(name) {
-    for (const n of ['title', 'how', 'workshop']) $('screen-' + n).classList.toggle('hidden', n !== name);
-    if (name === 'result') { $('overlay-result').classList.remove('hidden'); this.backTo = null; }
-    if (name === 'title') { this.backTo = null; this.renderNights(); $('titleLumen').textContent = this.save.lumen; }
-    if (name === 'workshop') this.renderWorkshop();
+    for (const n of ['title', 'select', 'how']) $('screen-' + n).classList.toggle('hidden', n !== name);
+    if (name === 'title') this.refreshTitle();
+    if (name === 'select') this.renderStages();
   }
 
-  renderNights() {
-    const box = $('nights');
+  levelTitle(lv) { return `${lv.id} · ${t('lv.' + lv.id)}`; }
+
+  renderStages() {
+    const box = $('stageList'), save = this.save;
     box.textContent = '';
-    NIGHTS.forEach((n, i) => {
-      const b = document.createElement('button');
-      const locked = i >= this.save.unlocked, best = this.save.best[i];
-      b.className = 'night' + (i === this.night ? ' sel' : '') + (locked ? ' locked' : '') + (best && best.win ? ' cleared' : '');
-      b.setAttribute('aria-label', this.nightName(i));
-      const m = document.createElement('span');
-      m.className = 'moon';
-      m.style.setProperty('--ph', PHASE[i]);
-      b.appendChild(m);
-      b.onclick = () => { this.h.click(); if (!locked) this.night = i; this.infoNight = i; this.renderNights(); };
-      box.appendChild(b);
-    });
-    const i = this.infoNight ?? this.night;
-    this.infoNight = null;
-    const n = NIGHTS[i], info = $('nightInfo');
-    info.textContent = '';
-    const name = document.createElement('b');
-    name.textContent = `${t('night.n', { n: n.id })} · ${this.nightName(i)}`;
-    info.appendChild(name);
-    const parts = [];
-    if (i >= this.save.unlocked) parts.push(t('night.locked'));
-    else {
-      parts.push(`${t('hud.dawn')} ${fmtTime(n.duration)}`);
-      if (n.requireBoss) parts.push(t('night.rule.boss'));
-      else if (n.snuffers) parts.push(t('night.rule.snuff'));
-      const best = this.save.best[i];
-      if (best) parts.push(best.win ? t('night.cleared') : t('night.best', { t: fmtTime(best.time) }));
+    const total = totalFlowers(save), next = nextIndex(save);
+    $('selFlowers').textContent = `${total}/${LEVELS.length * 3}`;
+    for (const ch of CHAPTERS) {
+      const sec = document.createElement('div'); sec.className = 'chapter';
+      const h3 = document.createElement('h3'); h3.textContent = `${ch.id}. ${t(ch.key)}`;
+      const row = document.createElement('div'); row.className = 'row';
+      LEVELS.forEach((lv, i) => {
+        if (lv.chapter !== ch.id) return;
+        const rec = save.levels[lv.id], open = unlocked(save, i);
+        const b = document.createElement('button');
+        b.className = 'stage' + (open ? '' : ' locked') + (i === next ? ' next' : '');
+        const no = document.createElement('span'); no.className = 'no'; no.textContent = lv.id;
+        const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = t('lv.' + lv.id);
+        const meta = document.createElement('span'); meta.className = 'smeta';
+        const fl = document.createElement('span'); fl.className = 'fl3';
+        for (let k = 0; k < 3; k++) { const d = document.createElement('i'); if (rec && rec.flowers > k) d.className = 'on'; fl.appendChild(d); }
+        meta.appendChild(fl);
+        if (rec && rec.done) meta.appendChild(document.createTextNode(fmtTime(rec.best)));
+        b.appendChild(no); b.appendChild(nm); b.appendChild(meta);
+        if (rec && rec.flawless) { const f = document.createElement('span'); f.className = 'flaw'; f.title = t('clear.flawless'); b.appendChild(f); }
+        if (open) b.onclick = () => this.h.play(i);
+        else b.title = t('sel.locked');
+        row.appendChild(b);
+      });
+      sec.appendChild(h3); sec.appendChild(row);
+      box.appendChild(sec);
     }
-    info.appendChild(document.createTextNode(parts.join(' · ')));
-    $('titleLumen').textContent = this.save.lumen;
-  }
-
-  renderWorkshop() {
-    const grid = $('metaGrid'), save = this.save;
-    grid.textContent = '';
-    $('wsLumen').textContent = save.lumen;
-    for (const id in META) {
-      const def = META[id], lvl = save.meta[id] || 0;
-      const el = document.createElement('div');
-      el.className = 'meta';
-      el.appendChild(iconCanvas(id, lvl > 0 ? 'weapon' : 'passive', 46));
-      const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = t('meta.' + id);
-      const ds = document.createElement('div'); ds.className = 'ds'; ds.textContent = t('meta.' + id + '.d');
-      const foot = document.createElement('div'); foot.className = 'foot';
-      const pips = document.createElement('div'); pips.className = 'pips';
-      for (let i = 0; i < def.max; i++) { const p = document.createElement('i'); if (i < lvl) p.className = 'on'; pips.appendChild(p); }
-      const buy = document.createElement('button'); buy.className = 'buy';
-      if (lvl >= def.max) { buy.textContent = t('btn.max'); buy.disabled = true; }
-      else {
-        const cost = def.cost[lvl];
-        const gem = document.createElement('i'); gem.className = 'gem';
-        buy.appendChild(gem);
-        buy.appendChild(document.createTextNode(String(cost)));
-        buy.disabled = save.lumen < cost;
-        buy.onclick = () => this.h.buy(id);
-      }
-      foot.appendChild(pips); foot.appendChild(buy);
-      el.appendChild(nm); el.appendChild(ds); el.appendChild(foot);
-      grid.appendChild(el);
+    const sk = $('skinList');
+    sk.textContent = '';
+    for (const id in SKINS) {
+      const need = SKIN_NEED[id] || 0, open = total >= need;
+      const b = document.createElement('button');
+      b.className = 'skin' + (save.skin === id ? ' sel' : '') + (open ? '' : ' locked');
+      const dot = document.createElement('i'); dot.style.background = SKINS[id].core; dot.style.color = SKINS[id].core;
+      b.appendChild(dot);
+      b.appendChild(document.createTextNode(open ? t('skin.' + id) : t('sel.need', { n: need })));
+      if (open) b.onclick = () => this.h.skin(id);
+      sk.appendChild(b);
     }
   }
 
   // ---------- HUD ----------
-  hud(on) { $('hud').classList.toggle('hidden', !on); if (!on) this.hideTip(); }
+  hud(on) { $('hud').classList.toggle('hidden', !on); if (!on) this.hideTip(); this.cache = {}; }
 
   set(key, val, fn) {
     if (this.cache[key] === val) return;
@@ -151,56 +148,22 @@ export class UI {
     fn(val);
   }
 
-  updateHud(g) {
-    const p = g.p, s = g.stat;
-    this.set('xp', Math.round((p.xp / p.xpNeed) * 200), (v) => { $('xpFill').style.width = v / 2 + '%'; });
-    this.set('lvl', p.level, (v) => { $('lvl').textContent = 'Lv ' + v; });
-    const f = p.oil / s.maxOil;
-    this.set('oilw', Math.round(f * 100), (v) => { $('oilFill').style.width = v + '%'; });
-    this.set('oilt', Math.ceil(p.oil), (v) => { $('oilTxt').textContent = v; });
-    this.set('oilc', (f < 0.28 ? 'low ' : '') + (p.lit ? '' : 'dark'), (v) => { $('oil').className = 'oil ' + v; });
-    const held = g.held;
-    this.set('held', held, (v) => {
-      $('clockLabel').textContent = t(v ? 'hud.held' : 'hud.dawn');
-      $('clock').parentElement.parentElement.classList.toggle('held', v);
-      this.cache.clock = null;
-    });
-    this.set('clock', Math.ceil(g.night.duration - g.clock), (v) => { $('clock').textContent = held ? '' : fmtTime(v); });
-    this.set('nf', Math.round((g.clock / g.night.duration) * 200), (v) => { $('nightFill').style.width = v / 2 + '%'; });
-    this.set('lamps', g.litCount + '/' + g.lamps.length, (v) => { $('lamps').textContent = v; });
-    this.set('kills', g.kills, (v) => { $('kills').textContent = v; });
-    const b = g.boss && !g.boss.dead ? g.boss : null;
-    this.set('boss', !!b, (v) => { $('bossbar').classList.toggle('hidden', !v); $('bossName').textContent = getLang() === 'ko' ? '월 식' : 'ECLIPSE'; });
-    if (b) {
-      this.set('bossw', Math.round((b.hp / b.maxHp) * 200), (v) => { $('bossFill').style.width = v / 2 + '%'; });
-      this.set('bossc', b.shield > 0 ? 'shield' : b.vuln > 0 ? 'vuln' : '', (v) => { $('bossbar').className = v; });
-    }
-    const full = !p.lit && p.charge >= 1;
-    this.set('lampc', (p.lit ? 'lit' : 'dark') + (full ? ' full' : ''), (v) => {
-      $('btnLamp').className = 'lamp-btn ' + v;
-      $('lampLabel').textContent = t(p.lit ? 'hud.lamp.on' : 'hud.lamp.off');
-    });
-    if (!p.lit) this.set('charge', Math.round(p.charge * 50), (v) => { $('btnLamp').style.setProperty('--charge', v / 50); });
+  updateHud(w) {
+    const b = w.bulb;
+    this.set('name', w.level.id + getLang(), () => { $('stageName').textContent = this.levelTitle(w.level); });
+    this.set('got', w.got, (v) => { [...$('flowers').children].forEach((el, i) => el.classList.toggle('on', i < v)); });
+    this.set('time', Math.floor(w.time * 10), (v) => { $('time').textContent = fmtTime(v / 10); });
+    this.set('crack', b.cracked && w.state === 'play', (v) => { const el = $('crack'); el.classList.toggle('hidden', !v); el.textContent = t('hud.cracked'); });
+    this.set('on', b.on, (v) => $('btnLight').classList.toggle('on', v));
   }
-
-  toast(key, vars, cls) {
-    const box = $('toasts');
-    while (box.children.length >= 2) box.firstChild.remove();
-    const el = document.createElement('div');
-    el.className = 'toast' + (cls ? ' ' + cls : '');
-    el.textContent = t(key, vars);
-    box.appendChild(el);
-    setTimeout(() => el.remove(), 2900);
-  }
-
-  clearToasts() { $('toasts').textContent = ''; }
 
   tip(key) {
-    if (this.tipKey === key) return;
-    this.tipKey = key;
+    const k = has(key) ? key : key + (this.touch ? '.touch' : '.pc');
+    if (this.tipKey === k) return;
+    this.tipKey = k;
     const el = $('tip');
     el.classList.remove('hidden');
-    el.textContent = t(key);
+    el.textContent = t(k);
     el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
   }
 
@@ -210,102 +173,37 @@ export class UI {
     $('tip').classList.add('hidden');
   }
 
-  // ---------- 레벨업 ----------
-  showLevel(g) {
-    this.levelOpen = true;
-    this.levelLock = performance.now() + 380; // 실수로 바로 고르지 않도록
-    $('overlay-level').classList.remove('hidden');
-    $('lvTitle').textContent = t('lv.title');
-    $('lvSub').textContent = `Lv ${g.p.level} · ${t('lv.sub')}`;
-    const box = $('cards');
-    box.textContent = '';
-    g.choices.forEach((c, i) => {
-      const fam = c.kind === 'evo' ? 'evo' : c.kind === 'bonus' ? 'bonus' : family(c.id);
-      const b = document.createElement('button');
-      b.className = 'card ' + fam;
-      const key = document.createElement('span'); key.className = 'key'; key.textContent = i + 1;
-      const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = t('tag.' + fam);
-      const ic = document.createElement('span'); ic.className = 'ic'; ic.appendChild(iconCanvas(c.id, fam === 'bonus' ? 'weapon' : fam, 60));
-      const body = document.createElement('span'); body.className = 'body';
-      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = upgName(c.id);
-      const lv = document.createElement('span'); lv.className = 'lv';
-      const cur = g.up[c.id] || 0;
-      lv.textContent = c.kind === 'upg' ? (cur === 0 ? t('lv.new') : t('lv.level', { a: cur, b: cur + 1 })) : t('tag.' + fam);
-      const ds = document.createElement('span'); ds.className = 'ds'; ds.textContent = upgDesc(c.id, c.level);
-      body.appendChild(nm); body.appendChild(lv); body.appendChild(ds);
-      b.appendChild(key); b.appendChild(tag); b.appendChild(ic); b.appendChild(body);
-      b.onclick = () => this.h.pick(i);
-      box.appendChild(b);
-    });
-    const rr = $('btnReroll');
-    rr.textContent = t('btn.reroll', { n: g.p.rerolls });
-    rr.disabled = g.p.rerolls <= 0;
-    rr.classList.toggle('hidden', g.p.rerolls <= 0 && (this.save.meta.reroll || 0) === 0 && g.p.level > 2);
-  }
-
-  hideLevel() {
-    this.levelOpen = false;
-    $('overlay-level').classList.add('hidden');
-  }
-
-  canPick() { return this.levelOpen && performance.now() >= this.levelLock; }
-
-  // ---------- 일시정지 ----------
-  showPause(g) {
-    const box = $('pauseBuild');
-    box.textContent = '';
-    const add = (id, lvl, fam) => {
-      const s = document.createElement('span');
-      if (fam === 'dark') s.className = 'dark';
-      s.appendChild(document.createTextNode(upgName(id) + ' '));
-      const b = document.createElement('b'); b.textContent = lvl;
-      s.appendChild(b);
-      box.appendChild(s);
-    };
-    for (const id in g.up) if (g.up[id] > 0) add(id, g.evo && UPG[id] && g.up[id] >= UPG[id].max ? 'MAX' : 'Lv' + g.up[id], family(id));
-    for (const id in g.evo) add(id, '★', 'evo');
-    $('overlay-pause').classList.remove('hidden');
-  }
-
+  showPause(w) { $('pauseStage').textContent = this.levelTitle(w.level); $('overlay-pause').classList.remove('hidden'); }
   hidePause() { $('overlay-pause').classList.add('hidden'); }
 
-  // ---------- 결과 ----------
-  showResult(r) {
-    const box = $('overlay-result').firstElementChild;
-    box.classList.toggle('win', r.won);
-    $('resTitle').textContent = t(r.won ? 'res.win' : 'res.lose');
-    $('resSub').textContent = t(r.won ? 'res.win.sub' : 'res.lose.sub');
-    const grid = $('resGrid');
+  showClear(r) {
+    $('overlay-clear').firstElementChild.classList.toggle('win', true);
+    $('clearTitle').textContent = t(r.final ? 'clear.final' : 'clear.title');
+    $('clearSub').textContent = r.final ? t('clear.final.sub') : this.levelTitle(r.level);
+    const fl = [...$('clearFlowers').children];
+    fl.forEach((el, i) => { el.className = ''; void el.offsetWidth; if (i < r.got) el.className = 'on'; });
+    const grid = $('clearGrid');
     grid.textContent = '';
-    const cell = (label, val, best) => {
+    grid.className = 'res-grid three';
+    const cell = (label, val) => {
       const d = document.createElement('div');
-      if (best) d.className = 'best';
-      const b = document.createElement('b'); b.textContent = val;
-      d.appendChild(b); d.appendChild(document.createTextNode(label));
+      const bb = document.createElement('b'); bb.textContent = val;
+      d.appendChild(bb); d.appendChild(document.createTextNode(label));
       grid.appendChild(d);
     };
-    cell(t('res.time'), fmtTime(r.time));
-    cell(t('res.kills'), r.kills);
-    cell(t('res.level'), r.level);
-    cell(t('res.lamps'), r.lamps + '/' + r.lampTotal);
-    cell(t('res.score') + (r.newBest ? ' · ' + t('res.newbest') : ''), r.score.toLocaleString(), r.newBest);
-    cell(this.nightName(r.night), t('night.n', { n: r.night + 1 }));
-    // 루멘이 차오르는 연출
-    const el = $('resLumen'), t0 = performance.now();
-    const tick = (now) => {
-      const k = Math.min(1, (now - t0) / 900);
-      el.textContent = '+' + Math.round(r.lumen * (1 - Math.pow(1 - k, 3)));
-      if (k < 1 && !$('overlay-result').classList.contains('hidden')) requestAnimationFrame(tick);
-      else el.textContent = '+' + r.lumen;
-    };
-    requestAnimationFrame(tick);
-    const un = $('resUnlock');
-    un.classList.toggle('hidden', r.unlocked == null);
-    if (r.unlocked != null) un.textContent = t('res.unlock', { n: this.nightName(r.unlocked) });
+    cell(t('clear.time'), fmtTime(r.time));
+    cell(t('clear.flowers'), `${r.got}/3`);
+    cell(t('clear.breaks'), r.breaks);
+    const bd = $('clearBadges');
+    bd.textContent = '';
+    const badge = (key, cls) => { const s = document.createElement('span'); if (cls) s.className = cls; s.textContent = t(key); bd.appendChild(s); };
+    if (r.got === 3) badge('clear.all', 'gold');
+    if (r.flawless) badge('clear.flawless');
+    if (r.newBest) badge('clear.best', 'gold');
     $('btnNext').classList.toggle('hidden', !r.hasNext);
     $('btnRetry').classList.toggle('primary', !r.hasNext);
-    $('overlay-result').classList.remove('hidden');
+    $('overlay-clear').classList.remove('hidden');
   }
 
-  hideResult() { $('overlay-result').classList.add('hidden'); }
+  hideClear() { $('overlay-clear').classList.add('hidden'); }
 }

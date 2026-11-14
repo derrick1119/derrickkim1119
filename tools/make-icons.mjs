@@ -8,24 +8,28 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <radialGradient id="g" cx="50%" cy="56%" r="50%">
-      <stop offset="0" stop-color="#ffc878" stop-opacity=".95"/>
-      <stop offset=".35" stop-color="#ff9a3c" stop-opacity=".45"/>
+    <radialGradient id="halo" cx="50%" cy="44%" r="52%">
+      <stop offset="0" stop-color="#ffc878" stop-opacity=".9"/>
+      <stop offset=".4" stop-color="#ff9a3c" stop-opacity=".35"/>
       <stop offset="1" stop-color="#ff7a20" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fff6d6"/><stop offset="1" stop-color="#ffc35e"/>
+    <radialGradient id="glass" cx="40%" cy="34%" r="70%">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#fff3c9"/><stop offset="1" stop-color="#ffcf70"/>
+    </radialGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1024"/><stop offset="1" stop-color="#1c2748"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" fill="#07080f"/>
-  <circle cx="256" cy="286" r="250" fill="url(#g)"/>
-  <path d="M256 78 a26 26 0 0 1 26 26 h-52 a26 26 0 0 1 26 -26z" fill="none" stroke="#20283a" stroke-width="14"/>
-  <path d="M168 190 256 112l88 78z" fill="#20283a"/>
-  <rect x="184" y="190" width="144" height="190" rx="12" fill="url(#glass)"/>
-  <path d="M256 190v190M184 285h144" stroke="#20283a" stroke-width="10" opacity=".55"/>
-  <path d="M256 232c26 30 34 52 34 74a34 34 0 0 1-68 0c0-22 8-44 34-74z" fill="#ff8a2a"/>
-  <path d="M256 268c12 16 16 28 16 40a16 16 0 0 1-32 0c0-12 4-24 16-40z" fill="#fff3c9"/>
-  <rect x="164" y="380" width="184" height="34" rx="8" fill="#20283a"/>
+  <rect width="512" height="512" fill="url(#sky)"/>
+  <path d="M0 512V300l512 0v212z" fill="#0b1226" opacity=".0"/>
+  <path d="M256 0v512h256V0z" fill="#05060d" opacity=".55"/>
+  <circle cx="256" cy="226" r="250" fill="url(#halo)"/>
+  <circle cx="256" cy="216" r="118" fill="url(#glass)"/>
+  <path d="M214 250v-34l22-40 20 40 20-40 22 40v34" fill="none" stroke="#ff8a2a" stroke-width="12" stroke-linejoin="round" stroke-linecap="round"/>
+  <ellipse cx="212" cy="164" rx="26" ry="14" transform="rotate(-38 212 164)" fill="#fff" opacity=".75"/>
+  <rect x="204" y="322" width="104" height="78" rx="18" fill="#7d8799"/>
+  <path d="M204 348h104M204 372h104" stroke="#4b5567" stroke-width="10"/>
+  <rect x="230" y="396" width="52" height="24" rx="10" fill="#2f3644"/>
 </svg>`;
 
 const browser = await chromium.launch();
