@@ -501,3 +501,23 @@ describe('실루엣 몸통 parts (✏️ S009 · S010 🎨 ART M2 문법 — 조
     expect(n, '덧조각 판자 수').toBeGreaterThanOrEqual(20);
   });
 });
+
+describe('🐹 쿵 (S011 📐B · GIMMICKS §4 — 판 플래그 thump)', () => {
+  it('쿵 판(1-6 🐷)만 쿵: 장인 판마다 쿵 ≥ 1 · 쿵 뒤 덜컹 ≥ 1 · 톡 하나에 쿵 ≤ 1 · 쿵 톡의 연속이 6의 배수를 넘음 / 플래그 없는 판은 쿵 0', () => {
+    for (let k = 0; k < STAGES.length; k++) {
+      const d = STAGES[k];
+      for (const seed of [1000, 1007, 1014]) {
+        const { s } = tryStage(screwshopSmart, seed, k), taps = s.hist.map((h) => h.rec.filter((e) => e.k === 'thump').length);
+        expect(Math.max(0, ...taps), `${d.slot} 톡 하나에 쿵`).toBeLessThanOrEqual(1);
+        if (!d.thump) { expect(taps.reduce((a, b) => a + b, 0), `${d.slot} 쿵 없음`).toBe(0); continue; }
+        const th = s.hist.filter((h) => h.rec.some((e) => e.k === 'thump'));
+        expect(th.length, `${d.slot} 쿵`).toBeGreaterThan(0);
+        expect(th.some((h) => h.rec.slice(h.rec.findIndex((e) => e.k === 'thump')).some((e) => e.k === 'fall')), `${d.slot} 쿵 뒤 덜컹`).toBe(true);
+        for (const h of th) {
+          const z1 = h.rec.slice(0, h.rec.findIndex((e) => e.k === 'thump')).filter((e) => e.k === 'box').map((e) => (e as { n: number }).n);
+          expect(Math.max(...z1) % 6 === 0 || z1.some((n) => n % 6 === 0), `${d.slot} 쿵 톡의 연속`).toBe(true);
+        }
+      }
+    }
+  });
+});

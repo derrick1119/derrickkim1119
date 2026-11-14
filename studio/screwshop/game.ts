@@ -55,6 +55,8 @@ export interface Level {
   hamF: number[];
   /** 🔑 태엽 판 */
   wind?: boolean;
+  /** 🐹 쿵 판(📐 S011 1-6, GIMMICKS §4): 연속 쏙이 6의 배수를 새로 넘은 톡 끝에 매달린 판자를 떨군다 */
+  thump?: boolean;
 }
 /** 🔨 망치 머리가 닿는 거리 */
 export const HAM = 0.06;
@@ -222,7 +224,8 @@ type RE =
   | { k: 'tick'; s: number }
   | { k: 'bonk'; p: number; s: number; x: number; y: number }
   | { k: 'crash'; p: number; by: number; s: number; i: number }
-  | { k: 'wind'; s: number };
+  | { k: 'wind'; s: number }
+  | { k: 'thump' };
 
 export function newSim(L: Level): Sim {
   const box: number[] = [], bn: number[] = [];
@@ -362,7 +365,7 @@ function removeScrew(L: Level, S: Sim, s: number, pop: boolean, rec: RE[] | unde
 /** 나사 s를 뺀다 (막힘·자물쇠는 부르는 쪽이 확인) */
 export function apply(L: Level, S: Sim, s: number, rec?: RE[]) {
   S.taps++;
-  const k0 = S.key;
+  const k0 = S.key, z0 = S.streak;
   ins = 0;
   removeScrew(L, S, s, false, rec, 0);
   // 🔑 태엽: 이번 톡으로 열쇠가 빠졌으면 남은 🔒가 왼쪽부터 한꺼번에 튀어나온다(덮여 있어도)
@@ -378,6 +381,14 @@ export function apply(L: Level, S: Sim, s: number, rec?: RE[]) {
       rec?.push({ k: 'tick', s: i });
       removeScrew(L, S, i, true, rec, 0);
     }
+  // 🐹 쿵(📐 S011, GIMMICKS §4 6·12·18): 끊김 없으면 ⌊끝/6⌋ > ⌊시작/6⌋, 이번 톡에 빈칸으로 끊겼으면(끝 < 시작 + 이번 쏙) 끝 ≥ 6 — 톡 하나에 한 번
+  //   매달린 판자(나사 1개 남음 · 못 판자 · 아직 잠긴 🔒 나사 제외) 중 그 나사 색 상자가 열려 있고 자리가 있는 것만 왼쪽부터(나사 x · 판자마다 그 순간 상태로) 떨군다
+  if (L.thump && ((S.streak / 6) | 0) > (S.streak < z0 + ins ? 0 : (z0 / 6) | 0)) {
+    rec?.push({ k: 'thump' });
+    const hs = L.pl.flatMap((P, k) => (P.kind !== 'nail' && poseOf(L, k, S.gone) >= 1 ? [31 - Math.clz32(L.pm[k] & ~S.gone)] : [])).sort((a, b) => L.px[a] - L.px[b]);
+    for (const i of hs)
+      if (!((S.gone >> i) & 1) && (S.key || !((L.lockM >> i) & 1)) && S.box.some((c, b) => c === L.col[i] && S.bn[b] < 3)) removeScrew(L, S, i, true, rec, 1);
+  }
   S.shot = Math.max(S.shot, ins);
   if (S.slots.length >= SLOTS) S.fail = 1;
   else if (S.n < L.N && (!freeM(L, S) || stuckM(L, S.gone))) S.fail = 2;
@@ -570,6 +581,7 @@ const levelCache = new Map<string, Level>();
 export function paintStage(stage: number, sub: number): Level {
   const d = STAGES[stage], G = geometry(d.toy());
   G.wind = !!d.wind;
+  if (d.thump) G.thump = true;
   return paint(G, d, mulberry32((sub * 31 + d.id * 7919 + 17) >>> 0));
 }
 function buildLevel(seed: number, stage: number): Level {
@@ -943,6 +955,13 @@ function playRec(s: ShopState, rec: RE[]) {
       ev(s, 'bonk', e.x, e.y, '쾅!', nx && nx.k === 'slot' ? 'slot' : 'box', s.t + delay + SPIN + 10, e.p);
       delay += SPIN + 10; // 맞은 나사는 망치가 닿는 순간 튀어나간다
       see(s, 'hammer', '🔨 망치 판자 — 매달리면 끄덕! 닿는 나사를 쾅 쳐서 빼요');
+      continue;
+    }
+    if (e.k === 'thump') {
+      // 🐹 쿵(📐 S011): 밤톨이 작업대를 내려친다 — 매달린 판자가 덜컹(뒤 사건들이 이어서)
+      ev(s, 'thump', 0.5, 0.62, '🐹 쿵!', '#ffd166', s.t + delay + SPIN + FLY);
+      delay += SPIN + FLY + 6;
+      see(s, 'thump', '🐹 연속 쏙 6마다 쿵! 맞는 색 상자가 열린 매달린 판자가 덜컹');
       continue;
     }
     if (e.k === 'tick') {
@@ -1505,7 +1524,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
   if (pressK >= 0 && fx.memo.pk !== pressK && t > seenT) cue('press');
   fx.memo.pk = pressK;
   for (const e of s.events) {
-    const due = e.v !== undefined && ['in', 'slot', 'pull', 'done', 'swing', 'fall', 'boing', 'key', 'jam', 'streak', 'tick', 'reveal', 'twist', 'pluck', 'bonk', 'shot', 'air', 'crash', 'wind'].includes(e.kind) ? e.v : e.t;
+    const due = e.v !== undefined && ['in', 'slot', 'pull', 'done', 'swing', 'fall', 'boing', 'key', 'jam', 'streak', 'tick', 'reveal', 'twist', 'pluck', 'bonk', 'shot', 'air', 'crash', 'wind', 'thump'].includes(e.kind) ? e.v : e.t;
     if (due <= seenT || due > t) continue;
     const x = X(e.x), y = Y(e.y);
     if (e.kind === 'reveal') fx.ring(x, y, '#fff6a8', R(0.06), 3), fx.burst(x, y, '#fff6a8', 6, 1.6, 1.5), e.text && fx.pop(x + R(0.03), y - R(0.04), e.text, e.col!, 16), cue('reveal', reveals++);
@@ -1540,6 +1559,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       fx.kick(bad ? 3 : 5), fx.hold(bad ? 2 : 4), say(x, y - R(0.06), bad ? '쾅' : '쾅!', bad ? '#e8d9c0' : '#ffe08a', bad ? 20 : 26), cue('bonk');
     }
     if (e.kind === 'wind') (fx.memo.wind = t), fx.ring(x, y, '#ffd34d', R(0.08), 3), fx.burst(x, y, '#ffd34d', 10, 2.6, 1.8), say(x, y - R(0.06), e.text!, e.col!, 20, true), cue('wind');
+    if (e.kind === 'thump') fx.kick(7), fx.hold(4), fx.ring(x, y, '#ffd166', R(0.14), 4), say(w / 2, y, e.text!, e.col!, 34, true), cue('crash', 3); // 🐹 쿵: 화면 흔들림 + 글자
     if (e.kind === 'crash') {
       const i = e.n ?? 1;
       fx.burst(x, y, e.col!, 6 + 2 * i, 2.8 + 0.3 * i, 2.2), fx.burst(x, y, '#e9d3a6', 8, 2.4, 1.6), fx.ring(x, y, '#e9d3a6', R(0.05 + 0.01 * i), 3);
@@ -2614,6 +2634,7 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       if (!pre.rec.some((c) => c.k === 'crash' && (c.p === e.p || L.pl[e.p].heavy))) pill(ctx, X(tr.cx), Y(tr.cy) + dy + R(0.02), '⬇ 덜컹', '#ffe9c4', R(0.044)); // 🧪 S005: 🪵에 맞을 판자와 🪵 자신의 '덜컹'은 생략(우수수 알약을 덮던 것)
       if (P.kind === 'spring' && P.tgt !== undefined && !pre.rec.some((b) => b.k === 'boing' && b.p === e.p)) pill(ctx, X(tr.cx), Y(tr.cy) + dy - R(0.035), '🌀 💨 허공', '#ffb36b', R(0.044)); // 📐 S006: 칠 판자에 나사가 없다
     }
+    if (e.k === 'thump') font(0.03, 900), pill(ctx, X(L.px[k]), Y(L.py[k]) - R(0.13), `🐹 쿵 → 덜컹 ${pre.rec.filter((f, j) => j > pre.rec.indexOf(e) && f.k === 'fall').length}`, '#ffd166', R(0.044)); // 📐 S011: 이 톡으로 연속 6 → 쿵
     if (e.k === 'tick') {
       // 🧪 S007: 이 톡으로 ⏰가 펑 — 상자로 가면 초록, 빈칸이면 주황
       const to = pre.rec.find((b, j) => j > pre.rec.indexOf(e) && (b.k === 'box' || b.k === 'slot') && b.s === e.s);
