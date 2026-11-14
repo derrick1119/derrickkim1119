@@ -392,6 +392,12 @@ describe('M1-3 숨은 규칙을 보이게 (C006)', () => {
     for (let t = 0; t < 250; t++) g.step(s, up);
     expect(hudState(s).hint).toContain('까만 양도 넣어야 통과');
     expect(hudState(s).blackIn).toBe(0);
+    // 🧪 C019: 까만 양이 거꾸로 오는 걸 겪기 전엔 결과('와요')를 말하지 않는다(📐 C007) — 겪은 뒤에만 '멀리서 부르면 멀리 와요'
+    s.tips.add('blackcome');
+    expect(hudState(s).hint).toContain('멀리서 부르면 멀리 와요');
+    s.tips.delete('blackcome');
+    expect(hudState(s).hint).toContain('까만 양도 넣어야 통과');
+    expect(hudState(s).hint).not.toMatch(/와요|멀리/);
   });
 
   it("1-4: 까만 양이 온 짖기는 결과를 0.5초 늦게 낸다 — '?!'가 통과 축하에 묻히지 않게 (허들 ②)", () => {

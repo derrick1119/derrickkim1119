@@ -303,7 +303,8 @@ export function hudState(s: DogState): HudState {
   // 안내문 줄은 없앴다(🎨 §12-5, C009): 1-1·1-2는 캔버스 손 아이콘, 깃발 말은 할아버지 말풍선으로
   // 📐 C014: 흰 양만 다 들고 까만 양이 남으면 할아버지 말풍선이 그동안 내내 말한다(🧪 C014: 알림 줄로는 3초 늦고, 판에 바로 들어가면 빠졌다)
   const wantBlack = !!d.needBlack && s.phase === 'aim' && F.black.every((b, i) => b || S.pen[i] >= 0) && F.black.some((b, i) => b && S.pen[i] < 0);
-  const hint = wantBlack ? '🖤 까만 양도 넣어야 통과 — 멀리서 부르면 멀리 와요' : s.flags.length && s.phase === 'aim' && s.t - s.startT >= INTRO_T ? `할아버지 깃발 ${s.flags.length === 2 ? '①' : '②'} 자리에서 짖어 보렴` : null;
+  // 🧪 C019: 까만 양이 거꾸로 오는 것을 겪기 전(1-4에서 흰 양만 먼저 다 넣음)에는 결과를 말하지 않는다(📐 C007 놀람은 미리 말하지 않음) — 겪은 뒤에만 '멀리서 부르면 멀리 와요'
+  const hint = wantBlack ? (s.tips.has('blackcome') ? '🖤 까만 양도 넣어야 통과 — 멀리서 부르면 멀리 와요' : '🖤 까만 양도 넣어야 통과 — 까만 양 쪽에서 짖어 봐요') : s.flags.length && s.phase === 'aim' && s.t - s.startT >= INTRO_T ? `할아버지 깃발 ${s.flags.length === 2 ? '①' : '②'} 자리에서 짖어 보렴` : null;
   const nW = F.black.filter((b) => !b).length;
   return {
     stage: s.stage, name: d.name, stars: s.stars, max: d.max, par: d.par, used: S.used,
