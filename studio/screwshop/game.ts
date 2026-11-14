@@ -565,7 +565,7 @@ function pickScrew(s: ShopState, x: number, y: number) {
 /** 나사 하나를 뺀 결과를 화면 연출(날아가는 나사·상자·빈칸·판자)로 옮긴다 */
 function playRec(s: ShopState, rec: RE[]) {
   const L = s.L;
-  let delay = 0, slotsHit = false, popped = false;
+  let delay = 0, slotsHit = false, popped = false, lastLand = 0, shotX = 0, shotY = 0, shotN = 0, shotBad = 0;
   for (const e of rec) {
     if (e.k === 'out') {
       popped = e.pop;
@@ -576,17 +576,20 @@ function playRec(s: ShopState, rec: RE[]) {
     if (e.k === 'box' || e.k === 'slot') {
       const t0 = s.t + delay, dur = SPIN + FLY + (e.k === 'slot' ? 2 : 0);
       const [x1, y1] = e.k === 'box' ? holeXY(L, e.bi, e.hole) : slotXY(e.idx);
-      s.fl.push({ col: e.col, key: !!((L.keyM >> e.s) & 1), x0: L.px[e.s], y0: L.py[e.s], x1, y1, t0, dur, spin: SPIN, to: e.k === 'box' ? 0 : 1, sc: e.k === 'box' ? 0.82 : 0.95 });
+      const spin = popped ? 2 : SPIN, dur2 = dur - SPIN + spin; // 🎨: 튄 나사는 드르륵 없이 +2틱에 뽁
+      s.fl.push({ col: e.col, key: !!((L.keyM >> e.s) & 1), x0: L.px[e.s], y0: L.py[e.s], x1, y1, t0, dur: dur2, spin, to: e.k === 'box' ? 0 : 1, sc: e.k === 'box' ? 0.82 : 0.95 });
+      if (popped) ev(s, 'pluck', L.px[e.s], L.py[e.s], undefined, L.pl[L.owner[e.s]].tone, t0 + 2);
+      lastLand = Math.max(lastLand, t0 + spin + 2), shotX += L.px[e.s], shotY += L.py[e.s], shotN++, shotBad += e.k === 'slot' ? 1 : 0;
       // 🎨 손맛 4박: 드르륵(풀림 시작) → 뽁(구멍을 떠남) → 쏙/통(착지)
       if (!popped) ev(s, 'twist', L.px[e.s], L.py[e.s], undefined, undefined, t0), ev(s, 'pluck', L.px[e.s], L.py[e.s], undefined, L.pl[L.owner[e.s]].tone, t0 + SPIN);
       if (e.k === 'box') {
-        s.vb[e.bi].land[e.hole] = t0 + dur;
-        s.ready[e.bi] = Math.max(s.ready[e.bi], t0 + dur);
-        ev(s, 'in', x1, y1, undefined, COLS[e.col], t0 + dur, e.n);
+        s.vb[e.bi].land[e.hole] = t0 + dur2;
+        s.ready[e.bi] = Math.max(s.ready[e.bi], t0 + dur2);
+        ev(s, 'in', x1, y1, undefined, COLS[e.col], t0 + dur2, e.n);
       } else {
-        s.vs.push({ col: e.col, at: t0 + dur, x: x1 });
+        s.vs.push({ col: e.col, at: t0 + dur2, x: x1 });
         slotsHit = true;
-        ev(s, 'slot', x1, y1, undefined, undefined, t0 + dur, e.lost);
+        ev(s, 'slot', x1, y1, undefined, undefined, t0 + dur2, e.lost);
       }
       continue;
     }
@@ -642,7 +645,8 @@ function playRec(s: ShopState, rec: RE[]) {
     }
     if (e.k === 'bonk') {
       // 🔨 쾅: 판자가 빙글 매달려 망치가 닿는 순간
-      ev(s, 'bonk', e.x, e.y, '쾅!', '#ffe08a', s.t + delay + SPIN + 10);
+      const nx = rec[rec.indexOf(e) + 2]; // out → box|slot
+      ev(s, 'bonk', e.x, e.y, '쾅!', nx && nx.k === 'slot' ? 'slot' : 'box', s.t + delay + SPIN + 10, e.p);
       delay += SPIN + 10; // 맞은 나사는 망치가 닿는 순간 튀어나간다
       see(s, 'hammer', '🔨 망치 판자 — 매달리면 끄덕! 닿는 나사를 쾅 쳐서 빼요');
       continue;
@@ -663,6 +667,8 @@ function playRec(s: ShopState, rec: RE[]) {
   if (S.slots.length >= 3 && !S.fail) setMood(s, 'worry');
   else if (rec.some((e) => e.k === 'fall' || (e.k === 'hang' && Math.abs(L.poses[e.p][e.pose].d) > 0.3))) setMood(s, 'wow');
   else if (rec.some((e) => e.k === 'done') || S.streak >= 4) setMood(s, 'smug');
+  // 🎨 §2.4 한 방: 톡 한 번에 2개 이상 빠지면(빈칸으로 간 게 절반 이상이면 작게)
+  if (shotN >= 2) ev(s, 'shot', shotX / shotN, shotY / shotN - 0.09, shotBad * 2 >= shotN ? 'bad' : undefined, undefined, lastLand, shotN);
   const C = STAGES[s.stage].C;
   if ((S.streak === 3 || S.streak === C || (S.streak > C && S.streak % 4 === 0)) && rec.some((e) => e.k === 'box')) ev(s, 'streak', 0.5, BOX_Y, S.streak >= C ? `★ 연속 쏙 ${S.streak}!` : `연속 쏙 ${S.streak}!`, S.streak >= C ? '#ffd166' : '#bff7c4', s.t + SPIN + FLY);
 }
@@ -1174,7 +1180,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
   if (pressK >= 0 && fx.memo.pk !== pressK && t > seenT) cue('press');
   fx.memo.pk = pressK;
   for (const e of s.events) {
-    const due = e.v !== undefined && ['in', 'slot', 'pull', 'done', 'swing', 'fall', 'boing', 'key', 'jam', 'streak', 'tick', 'reveal', 'twist', 'pluck', 'bonk'].includes(e.kind) ? e.v : e.t;
+    const due = e.v !== undefined && ['in', 'slot', 'pull', 'done', 'swing', 'fall', 'boing', 'key', 'jam', 'streak', 'tick', 'reveal', 'twist', 'pluck', 'bonk', 'shot'].includes(e.kind) ? e.v : e.t;
     if (due <= seenT || due > t) continue;
     const x = X(e.x), y = Y(e.y);
     if (e.kind === 'reveal') fx.ring(x, y, '#fff6a8', R(0.06), 3), fx.burst(x, y, '#fff6a8', 6, 1.6, 1.5), e.text && fx.pop(x + R(0.03), y - R(0.04), e.text, e.col!, 16), cue('reveal', reveals++);
@@ -1201,7 +1207,26 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     if (e.kind === 'done') fx.burst(x, y, e.col!, 16, 4, 2.6), fx.burst(x, y, '#ffe066', 10, 4, 2.6), fx.ring(x, y, '#ffe066', R(0.16), 4), fx.kick(4), fx.hold(4), cue('done'); // '딸깍!' 글자는 연속 숫자와 겹쳐 뺐다(✏️ → 🎨)
     if (e.kind === 'swing') fx.ring(x, y, '#ffffff', R(0.09), 3), fx.burst(x, y, '#e8cfa0', 6, 1.8, 1.8), say(x + R(0.05), y - R(0.05), e.text!, e.col!, 20), cue('swing');
     if (e.kind === 'fall') fx.kick(1.5), say(x, Math.min(y, Y(1.05)), e.text!, e.col!, 20), cue('fall');
-    if (e.kind === 'bonk') fx.ring(x, y, '#fff3c4', R(0.09), 4), fx.burst(x, y, '#ffe08a', 14, 3.6, 2.4), fx.burst(x, y, '#c9ced6', 6, 3, 1.6), fx.kick(5), fx.hold(4), say(x, y - R(0.06), e.text!, e.col!, 24), cue('bonk');
+    if (e.kind === 'bonk') {
+      // 🎨 §2.2+ 쾅: 맞은 나사가 빈칸으로 가면 작게
+      fx.memo['bonk' + (e.n ?? 0)] = t;
+      const bad = e.col === 'slot';
+      fx.ring(x, y, '#fff3c4', R(0.09), 4), fx.burst(x, y, '#ffe08a', bad ? 6 : 14, 3.6, 2.4), fx.burst(x, y, '#c9ced6', 6, 3, 1.6), fx.burst(x, y, '#ffffff', 4, 5, 1.2);
+      fx.kick(bad ? 3 : 5), fx.hold(bad ? 2 : 4), say(x, y - R(0.06), bad ? '쾅' : '쾅!', bad ? '#e8d9c0' : '#ffe08a', bad ? 20 : 26), cue('bonk');
+    }
+    if (e.kind === 'shot') {
+      // 🎨 §2.4 한 방 단계: 판 안에 쇠빛 하늘색 — 연속 숫자(상자 줄, 따뜻한 색)와 겹치지 않게
+      const h = e.n ?? 2, bad = e.text === 'bad';
+      if (bad) say(x, y, `한 방 ${h}`, '#d8c3a5', 16);
+      else {
+        const sz = h >= 5 ? Math.min(40, 28 + 2 * h) : [0, 0, 20, 26, 32][h], col = h >= 5 ? '#ffffff' : ['', '', '#cfefff', '#8fe3ff', '#6fd6ff'][h];
+        fx.pop(Math.max(R(0.15), Math.min(w - R(0.15), x)), y, h >= 5 ? `💥 한 방 ${h}!` : h === 4 ? '한 방 4!!' : h === 3 ? '한 방 3!' : '한 방 2', col, sz, true);
+        fx.burst(x, y, '#8fe3ff', [0, 0, 6, 10, 16][Math.min(4, h)] || 24, 3.4, 2.2);
+        if (h >= 3) fx.ring(x, y, '#8fe3ff', R(0.06 + 0.06 * Math.min(3, h - 2)), 3 + Math.min(2, h - 3)), fx.hold(Math.min(5, h)), fx.kick(h >= 5 ? 7 : h === 4 ? 5 : 3), setMood(s, h >= 4 ? 'cheer' : 'wow');
+        if (h >= 4) fx.burst(x, y, '#ffffff', h >= 5 ? 12 : 8, 4, 2), fx.blink('#dff6ff', h >= 5 ? 0.18 : 0.1);
+        cue('shot', h);
+      }
+    }
     if (e.kind === 'boing') fx.ring(x, y, '#ffd6a8', R(0.1), 5), fx.kick(4), fx.hold(4), say(x, y - R(0.05), e.text!, e.col!, 18), fx.burst(x, y, '#ffb36b', 16, 3.4, 2.4), cue('boing');
     if (e.kind === 'tick') fx.burst(x, y, '#ffb36b', 14, 3, 2.2), fx.kick(3), fx.hold(2), say(x, y + R(0.07), e.text!, e.col!, 15), cue('tick');
     if (e.kind === 'key') fx.blink('#fff1a8', 0.25), say(w / 2, Y(0.62), e.text!, e.col!, 17), cue('key');
@@ -1487,25 +1512,55 @@ function plankPath(ctx: CanvasRenderingContext2D, P: Src, R: (r: number) => numb
   ctx.roundRect(-R(P.hx), -R(P.hy), R(P.hx * 2), R(P.hy * 2), R(P.rr));
 }
 
-/** 🔨 망치 머리: 판자 앞면 좌표계(가운데 원점, 판자 각도) 안에 쇠머리 + 손잡이 띠 */
-function drawHammerHead(ctx: CanvasRenderingContext2D, P: Src, R: (r: number) => number) {
-  const dx = P.ham![0] - P.cx, dy = P.ham![1] - P.cy, c = Math.cos(-P.a), s = Math.sin(-P.a);
-  const lx = R(dx * c - dy * s), ly = R(dx * s + dy * c), ang = Math.atan2(ly, lx);
+/** 🔨 망치 머리 (🎨 ART §2.5): 판자 앞면 좌표계 안에 빨간 손잡이 띠 2줄 + 쇠 목 + 쇠머리. 장전되면 테두리가 금빛, 가끔 반짝 */
+function drawHammerHead(ctx: CanvasRenderingContext2D, P: Src, R: (r: number) => number, t: number, k: number, s: ShopState) {
+  const dx = P.ham![0] - P.cx, dy = P.ham![1] - P.cy, c = Math.cos(-P.a), sn = Math.sin(-P.a);
+  const lx = R(dx * c - dy * sn), ly = R(dx * sn + dy * c), ang = Math.atan2(ly, lx), L = s.L;
+  // 쾅 찌그러짐(맞힌 뒤 8틱)
+  const bt = juice(s).memo['bonk' + k] ?? -99, u = t - bt, sq = u < 3 ? [0.82, 1.12] : u < 8 ? [1.06, 0.97] : [1, 1];
+  // 장전: 남은 나사 2개이고 어느 매달림에서든 칠 나사가 살아 있다
+  const rem = L.pm[k] & ~s.S.gone, armed = rem && (rem & (rem - 1)) && !(rem & (rem - 1) & (rem - 2)) && L.hamT[k].some((a) => a.some((i) => !((s.S.gone >> i) & 1)));
   ctx.save();
   ctx.translate(lx, ly);
   ctx.rotate(ang);
-  ctx.fillStyle = '#7a4a2a';
-  ctx.fillRect(-R(0.05), -R(0.008), R(0.05), R(0.016)); // 손잡이(판자 쪽으로)
-  const g = ctx.createLinearGradient(0, -R(0.03), 0, R(0.03));
-  g.addColorStop(0, '#eef2f6');
-  g.addColorStop(1, '#8b939c');
-  ctx.fillStyle = g;
-  ctx.strokeStyle = '#4b525a';
-  ctx.lineWidth = 1.5;
+  for (const bx of [-0.05, -0.032]) {
+    ctx.fillStyle = '#e8414f';
+    ctx.fillRect(R(bx), -R(0.02), R(0.01), R(0.04));
+    ctx.fillStyle = 'rgba(255,255,255,.35)';
+    ctx.fillRect(R(bx), -R(0.02), R(0.01), 1);
+  }
+  ctx.fillStyle = '#8b939c';
+  ctx.fillRect(-R(0.014), -R(0.011), R(0.014), R(0.022));
+  ctx.scale(sq[0], sq[1]);
+  const w = R(0.032), h = R(0.072), x0 = R(0.006) - w / 2;
+  ctx.fillStyle = 'rgba(30,15,5,.35)';
   ctx.beginPath();
-  ctx.roundRect(-R(0.014), -R(0.03), R(0.03), R(0.06), R(0.006));
+  ctx.roundRect(x0 + R(0.006), -h / 2 + R(0.009), w, h, R(0.006));
+  ctx.fill();
+  const g = ctx.createLinearGradient(x0 + w, 0, x0, 0);
+  g.addColorStop(0, '#f4f7fa');
+  g.addColorStop(0.5, '#aab2bb');
+  g.addColorStop(1, '#6f7780');
+  ctx.fillStyle = g;
+  ctx.strokeStyle = armed ? `rgba(255,224,138,${0.55 + 0.3 * Math.sin(t * 0.1)})` : '#3f454c';
+  ctx.lineWidth = armed ? 2.5 : 1.5;
+  ctx.beginPath();
+  ctx.roundRect(x0, -h / 2, w, h, R(0.006));
   ctx.fill();
   ctx.stroke();
+  ctx.fillStyle = '#5d646d';
+  ctx.fillRect(x0, -h / 2, w, R(0.008));
+  ctx.fillRect(x0, h / 2 - R(0.008), w, R(0.008));
+  ctx.fillStyle = '#4b525a';
+  ctx.beginPath();
+  ctx.arc(R(0.006), 0, R(0.006), 0, Math.PI * 2);
+  ctx.fill();
+  if ((t + 37 * k) % 150 < 10) {
+    ctx.clip();
+    ctx.fillStyle = 'rgba(255,255,255,.6)';
+    const q = ((t + 37 * k) % 150) / 10;
+    ctx.fillRect(x0 - w + q * 2 * w, -h / 2, R(0.01), h);
+  }
   ctx.restore();
 }
 
@@ -1534,7 +1589,6 @@ function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: {
   ctx.translate(X(tr.cx), Y(tr.cy));
   ctx.rotate(tr.a);
   const hx = R(P.hx), hy = R(P.hy);
-  if (P.ham) drawHammerHead(ctx, P, R);
   if (glass) {
     ctx.fillStyle = 'rgba(205,235,255,.28)';
     plankPath(ctx, P, R);
@@ -1584,6 +1638,7 @@ function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: {
     plankPath(ctx, P, R);
     ctx.stroke();
   }
+  if (P.ham) drawHammerHead(ctx, P, R, t, k, s);
   // 스프링 표시
   if (P.kind === 'spring') {
     ctx.strokeStyle = '#d8dde4';
@@ -1876,6 +1931,33 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       ctx.moveTo(X(e.x), Y(e.y));
       ctx.lineTo(tx, ty);
       ctx.stroke();
+      // 🎨 §2.5: 맞은 나사가 어디로 가는지 알약 글자
+      const nx = pre.rec[pre.rec.indexOf(e) + 2], toSlot = nx && nx.k === 'slot';
+      const lab = toSlot ? '🎯 쾅 → 빈칸' : '🎯 쾅 → 쏙';
+      font(0.03, 900);
+      const lw = ctx.measureText(lab).width + 14;
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(30,18,8,.82)';
+      ctx.beginPath();
+      ctx.roundRect(tx - lw / 2, ty + R(0.045), lw, R(0.044), R(0.022));
+      ctx.fill();
+      ctx.fillStyle = toSlot ? '#ffffff' : '#c8ffc8';
+      ctx.textAlign = 'center';
+      ctx.fillText(lab, tx, ty + R(0.067));
+      ctx.restore();
+    }
+    if (e.k === 'hang' && L.pl[e.p].ham && e.pose >= 1 && !pre.rec.some((b) => b.k === 'bonk' && b.p === e.p)) {
+      // 💨 허공: 망치가 아무것도 못 친다 — 막 누르면 톡을 버리는 이유가 누르는 동안 보인다
+      const [hx, hy] = L.hamP[e.p][e.pose];
+      ctx.save();
+      ctx.fillStyle = 'rgba(200,190,170,.7)';
+      ctx.beginPath();
+      ctx.arc(X(hx), Y(hy), R(0.02), 0, Math.PI * 2);
+      ctx.fill();
+      font(0.032, 900);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#d8c3a5';
+      ctx.fillText('💨 허공', X(hx), Y(hy) - R(0.04));
       ctx.restore();
     }
     if (e.k === 'hang') {
