@@ -1129,20 +1129,21 @@ function animate(s: ShopState) {
   if (s.lv.length) s.lv = s.lv.filter((l) => s.t < l.t0 + 44);
 }
 
-export const screwshop: GameDef<ShopState> = {
-  id: 'screwshop',
-  name: '나사 풀기 공방',
+/** 설계 메모(공장 GameDef에서 온 글 — main.ts가 안 쓰므로 번들에서 빠진다 · ✏️ S018 gzip) */
+export const screwshopInfo = {
   genes: ['unscrew', 'sort', 'pointer'],
   twist: '마지막 나사 하나에 매달린 판자는 그 나사를 축으로 시계추처럼 빙글 흔들려 내려앉는다 — 어느 나사를 마지막에 남기느냐에 따라 판자가 다른 나사를 덮거나 드러내서, 빼는 순서가 수가 된다',
   rules: ['나사를 톡 → 같은 색 상자로 쏙! 맞는 상자가 없으면 빈칸으로.', '빈칸 5개가 다 차면 실패, 나사를 다 빼서 판자를 모두 떨구면 완성.'],
-  controls: 'touch',
   hint: '나사를 톡! 누르고 있으면 갈 곳이 보여요 / 화살표로 고르고 스페이스',
+  concept: '햄스터 목수의 장난감 공방',
+  mood: '따뜻한 작업등 아래 나무 장난감 판 — 색칠한 판자에 반짝이는 색 나사, 판자 그림자와 두께, 톱밥 날리는 작업대 위에서 안전모 쓴 햄스터 목수가 드라이버를 들고 구경한다.',
+};
+export const screwshop: GameDef<ShopState> = {
+  id: 'screwshop',
+  name: '나사 풀기 공방',
+  controls: 'touch',
   aspect: A,
-  art: {
-    concept: '햄스터 목수의 장난감 공방',
-    mood: '따뜻한 작업등 아래 나무 장난감 판 — 색칠한 판자에 반짝이는 색 나사, 판자 그림자와 두께, 톱밥 날리는 작업대 위에서 안전모 쓴 햄스터 목수가 드라이버를 들고 구경한다.',
-    palette: { bg: '#3a2a20', ink: '#fff8ec', muted: '#d8c3a5', accent: '#ffc65c', hot: '#ff5a4f', soft: '#f3e2c4' },
-  },
+  art: { palette: { bg: '#3a2a20', ink: '#fff8ec', muted: '#d8c3a5', accent: '#ffc65c', hot: '#ff5a4f', soft: '#f3e2c4' } },
   reveals: (s) => s.seen.size,
   create(seed) {
     const s = {

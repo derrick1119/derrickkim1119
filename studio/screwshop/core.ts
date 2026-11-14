@@ -16,14 +16,15 @@ export const NO_INPUT: Input = { tap: false, dir: 0 };
 export const TICK = 1 / 60;
 
 export interface Theme { bg: string; ink: string; muted: string; accent: string; hot: string; soft: string }
-export interface Art { concept: string; mood: string; palette: Theme }
+export interface Art { concept?: string; mood?: string; palette: Theme }
 
 export interface GameDef<S> {
   id: string;
   name: string;
-  genes: string[];
-  twist: string;
-  rules: string[];
+  /** 설계 메모는 game.ts screwshopInfo로(✏️ S018 — 번들에서 빠짐) */
+  genes?: string[];
+  twist?: string;
+  rules?: string[];
   controls: 'touch';
   hint?: string;
   aspect?: number;
