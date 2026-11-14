@@ -56,7 +56,7 @@
 - 🎓 🔩 나사 풀기 공방 (2026-11-14, 25라운드) → 스튜디오 `studio/screwshop/` (세션 session_01Nm4gEw2cEQo3wbu11pmQWw, 예약 trig_01Kii7D6kRrervseM11PKLDo 매시 :05) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/screwshop/
 - 🎓 🚌 동물 버스 정류장 (2026-11-14, 25라운드) → 스튜디오 `studio/animalbus/` (세션 session_01Nm4gEuj9Udgh4PxgDYj41y, 예약 trig_01LJZMkhVwKkRx2ymNok3Qro 매시 :35) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/animalbus/
 - 🎓 💥 비버 철거반 (2026-11-14, 25라운드) → 스튜디오 `studio/demolition/` (세션 session_01Nm4gExNgWFq5hVQtNWzQtn, 예약 trig_018RL6S7cddLqPYyJ5odNkPe 매시 :40) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/demolition/
-- 🎓 🧪 마녀 고양이 물약 정렬 (2026-11-14, 26라운드) → 스튜디오 `studio/potionsort/` · 플레이: https://derrick1119.github.io/derrickkim1119/studio/potionsort/
+- 🎓 🧪 마녀 고양이 물약 정렬 (2026-11-14, 26라운드) → 스튜디오 `studio/potionsort/` (세션 session_01Nm4gEtTNAmov8psrYZvLdN, 예약 trig_01UnQE5C66Dvguh8ZcdEHkdq 매시 :15) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/potionsort/
   - 욕조 물결 오리: M1 오너 통과("코어 재미가 느껴진다") → M2. 양치기 멍멍: M1 "재밌는데 전략이 조금 단순해지는 느낌이야" → 재수립 중.
   - 남은 두 게임 모두 팀 세션(PM·기획자·개발자·디자이너·FUN QA)이 맡는다. 마일스톤마다 오너 빌드 테스트, 최종 목표 상용화.
 
