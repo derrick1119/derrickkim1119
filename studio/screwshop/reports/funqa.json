@@ -1,0 +1,193 @@
+{
+ "at": "2026-11-14",
+ "build": "M0",
+ "seeds": 12,
+ "summary": {
+  "smartStars": 2.96,
+  "habitStars": 1.43,
+  "randomStars": 0.46,
+  "smartStar3": 0.96,
+  "habitStar3": 0.19,
+  "randomClear1": 1,
+  "smartSec": 7.47,
+  "skillGap": 6.43
+ },
+ "stages": [
+  {
+   "stage": 1,
+   "name": "🦒 기린",
+   "smart": {
+    "clear": 1,
+    "star3": 1,
+    "stars": 3,
+    "sec": 4.8
+   },
+   "habit": {
+    "clear": 1,
+    "star3": 0.42,
+    "stars": 2.25,
+    "sec": 4.8
+   },
+   "random": {
+    "clear": 1,
+    "star3": 0.25,
+    "stars": 1.83,
+    "sec": 25.3
+   }
+  },
+  {
+   "stage": 2,
+   "name": "⛵ 돛단배",
+   "smart": {
+    "clear": 1,
+    "star3": 1,
+    "stars": 3,
+    "sec": 6.1
+   },
+   "habit": {
+    "clear": 1,
+    "star3": 1,
+    "stars": 3,
+    "sec": 6.1
+   },
+   "random": {
+    "clear": 0.92,
+    "star3": 0.08,
+    "stars": 1.42,
+    "sec": 26
+   }
+  },
+  {
+   "stage": 3,
+   "name": "🌬️ 풍차",
+   "smart": {
+    "clear": 1,
+    "star3": 1,
+    "stars": 3,
+    "sec": 7.4
+   },
+   "habit": {
+    "clear": 0,
+    "star3": 0,
+    "stars": 0,
+    "sec": 2.5
+   },
+   "random": {
+    "clear": 0.17,
+    "star3": 0,
+    "stars": 0.25,
+    "sec": 15.8
+   }
+  },
+  {
+   "stage": 4,
+   "name": "🚂 기차",
+   "smart": {
+    "clear": 1,
+    "star3": 1,
+    "stars": 3,
+    "sec": 8.7
+   },
+   "habit": {
+    "clear": 0.67,
+    "star3": 0.08,
+    "stars": 1.42,
+    "sec": 7.4
+   },
+   "random": {
+    "clear": 0,
+    "star3": 0,
+    "stars": 0,
+    "sec": 21.1
+   }
+  },
+  {
+   "stage": 5,
+   "name": "🌻 해바라기",
+   "smart": {
+    "clear": 1,
+    "star3": 1,
+    "stars": 3,
+    "sec": 8.7
+   },
+   "habit": {
+    "clear": 0.5,
+    "star3": 0,
+    "stars": 0.83,
+    "sec": 7.3
+   },
+   "random": {
+    "clear": 0,
+    "star3": 0,
+    "stars": 0,
+    "sec": 14.7
+   }
+  },
+  {
+   "stage": 6,
+   "name": "🦕 공룡",
+   "smart": {
+    "clear": 1,
+    "star3": 1,
+    "stars": 3,
+    "sec": 7.5
+   },
+   "habit": {
+    "clear": 0.42,
+    "star3": 0,
+    "stars": 0.75,
+    "sec": 6.2
+   },
+   "random": {
+    "clear": 0,
+    "star3": 0,
+    "stars": 0,
+    "sec": 11.2
+   }
+  },
+  {
+   "stage": 7,
+   "name": "🏰 성",
+   "smart": {
+    "clear": 1,
+    "star3": 0.83,
+    "stars": 2.83,
+    "sec": 7.5
+   },
+   "habit": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 1.67,
+    "sec": 7.8
+   },
+   "random": {
+    "clear": 0,
+    "star3": 0,
+    "stars": 0,
+    "sec": 11.4
+   }
+  },
+  {
+   "stage": 8,
+   "name": "🚀 로켓",
+   "smart": {
+    "clear": 1,
+    "star3": 0.83,
+    "stars": 2.83,
+    "sec": 9.1
+   },
+   "habit": {
+    "clear": 0.75,
+    "star3": 0,
+    "stars": 1.5,
+    "sec": 8.2
+   },
+   "random": {
+    "clear": 0.08,
+    "star3": 0,
+    "stars": 0.17,
+    "sec": 14.7
+   }
+  }
+ ]
+}
