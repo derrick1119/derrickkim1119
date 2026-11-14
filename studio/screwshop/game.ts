@@ -1036,8 +1036,8 @@ function tapScrew(s: ShopState, k: number) {
     s.phase = 'settle';
     s.pt = 0;
     s.ok = false;
-    s.why = S.fail === 1 ? '꽉! 빈칸이 넘쳤다' : stuckM(L, S.gone) ? '납작! 못 날개에 깔렸다' : '어라? 뺄 나사가 없네'; // 🎨 §2.7
     s.blame = retrace(L, s.hist, S);
+    s.why = S.fail === 1 ? '꽉! 빈칸이 넘쳤다' : s.blame.c === '②못' ? '납작! 못 날개에 깔렸다' : '어라? 뺄 나사가 없네'; // 🎨 §2.7 · 🧪 S004: 제목도 원인에서
     ev(s, 'jam', 0.5, TRAY_Y, S.fail === 1 ? '꽉!' : '꽉 막혔다…', '#ffb4a8', s.t + SPIN + FLY);
   } else if (S.n === L.N) {
     s.phase = 'settle';
@@ -1628,16 +1628,16 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
 
 /** 실패 카드 + 진 톡 짚기 (🎨 §2.7, 📐 S003): 빨강 없이 따뜻한 갈색, 자동 재시작 없이 45틱 뒤 아무 데나 톡 */
 function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, font: (sz: number, w?: number) => void) {
-  const L = s.L, b = s.blame, age = s.pt, t = s.t;
+  const L = s.L, b = s.blame, age = s.pt, t = s.t, air = b?.c === '③허공'; // 🧪 S004: 망치가 쳤는데 💨를 가리키던 것 — 💨는 허공일 때만
   // 진 톡: 그때 뺀 나사 자리에 유령 나사 + 분필 고리 + 알약
   if (b) b.t.forEach((ti, n) => {
     const h = s.hist[ti];
     if (!h) return;
     const x = X(L.px[h.s]), y = Y(L.py[h.s]), rho = R(SR) * 1.9, u = Math.min(1, age / 10), S = s.S, P = L.pl[b.k];
     // 🎨 S004 원인 자리 C (첫 고리만): 이 톡이 매단 판자 → 덮인 나사(열린 상자 색 먼저) ⚠ · 🔨면 허공 자리 💨 · 떨군 통나무 → 제자리 유령 통나무 · 그 밖 → 그 색 나사가 앉은 빈칸
-    const hg = !n && (h.rec.find((r) => (r.k === 'hang' || r.k === 'fall') && r.p === b.k) as { k: string; pose: number } | undefined), j = S.slots.lastIndexOf(L.col[b.s ?? h.s]), own = [L.px[h.s], L.py[h.s]];
-    let C = n ? own : hg ? (hg.k === 'fall' ? own : P.ham ? L.hamP[b.k][hg.pose] : [P.cx, P.cy]) : j < 0 ? own : slotXY(j), f = 0;
-    if (hg && hg.k === 'hang' && !P.ham) {
+    const hg = !n && (h.rec.find((r) => (r.k === 'hang' || r.k === 'fall') && r.p === b.k) as { k: string; pose: number } | undefined), j = b.c === '④태엽' ? S.slots.reduce((a, c, i) => (L.col.some((cc, q) => (L.lockM >> q) & 1 && cc === c) ? i : a), -1) : S.slots.lastIndexOf(L.col[b.s ?? h.s]), own = [L.px[h.s], L.py[h.s]];
+    let C = n ? own : hg ? (hg.k === 'fall' ? own : air ? L.hamP[b.k][hg.pose] : [P.cx, P.cy]) : j < 0 ? own : slotXY(j), f = 0;
+    if (hg && hg.k === 'hang' && !air) {
       const m = L.cov[b.k][poseOf(L, b.k, S.gone)] & L.all & ~S.gone;
       for (let i = L.N; i--; ) if ((m >> i) & 1 && (!f || S.box.includes(L.col[i]))) (C = [L.px[i], L.py[i]]), (f = 1);
     }
@@ -1683,7 +1683,7 @@ function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
     font(0.032 * sc, 900);
     pill(ctx, x, y + (cy < y - R(0.05) ? 1 : -1) * (rho + R(0.035)), lab, '#ffe08a', R(0.044)); // 🎨 S004: 화살표가 위로 가면 알약은 고리 밑
     font(0.04, 900);
-    if (age > 22 && hg && hg.k === 'hang') ctx.fillText(P.ham ? '💨' : '⚠️', cx - R(0.035), cy - R(0.03)); // 판 위 못 경고 ⚠와 같은 자리
+    if (age > 22 && hg && hg.k === 'hang') ctx.fillText(air ? '💨' : '⚠️', cx - R(0.035), cy - R(0.03)); // 판 위 못 경고 ⚠와 같은 자리
     ctx.restore();
   });
   // 카드 (아래에서 올라온다)
@@ -2429,7 +2429,7 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
   if (pre.state !== 'ok') {
     font(0.036, 900);
     ctx.textAlign = 'center';
-    const msg = pre.state === 'blocked' ? '🚫 위 판자가 막고 있어요' : '🔒 열쇠 나사를 먼저!';
+    const msg = pre.state === 'blocked' ? '🚫 위 판자가 막고 있어요' : L.wind ? '🔑를 빼면 같이 튀어요 — 상자 색 먼저' : '🔒 열쇠 나사를 먼저!'; // 🧪 S004
     const y = Y(L.py[k]) - R(0.07), x = Math.max(R(0.2), Math.min(R(0.8), X(L.px[k])));
     ctx.fillStyle = 'rgba(60,10,5,.82)';
     const tw = ctx.measureText(msg).width + R(0.04);
@@ -2463,8 +2463,17 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
     const mx = q.px + Math.cos(a) * r, my = q.py + Math.sin(a) * r;
     return [mx, my, Math.atan2(sg * (mx - L.px[i]), sg * (L.py[i] - my)), sg, a];
   };
+  // 🔑 태엽 꾹(🧪 S004 ①): 🔒가 몇 개 쏙 · 몇 개 빈칸 — 빈칸이 있으면 주황
+  const wi = pre.rec.findIndex((e) => e.k === 'wind');
+  if (wi >= 0) {
+    const after = pre.rec.slice(wi), nb = after.filter((e) => e.k === 'box').length, ns = after.filter((e) => e.k === 'slot').length;
+    font(0.032, 900);
+    const lab = `🔑 드르륵 → 🔒 쏙 ${nb}${ns ? ` · 빈칸 ${ns}` : '!'}`, hw = ctx.measureText(lab).width / 2 + 10;
+    pill(ctx, Math.max(hw, Math.min(X(1) - hw, X(L.px[k]))), Y(L.py[k]) - R(0.13), lab, ns ? '#ffb36b' : '#c8ffc8', R(0.044)); // '쏙!' 알약보다 위, 화면 안
+  }
   // 매달릴/떨어질 판자의 유령
   for (const e of pre.rec) {
+    if (wi >= 0 && pre.rec.indexOf(e) > wi && e.k === 'fall') continue; // 튄 🔒 바퀴의 '덜컹'은 생략(바퀴를 덮던 알약)
     if (e.k === 'bonk') {
       // 🎯 고리 → (🎨 S004) 쾅 순간 머리를 고리 위에 → 알약은 머리 반대쪽 옆
       const tx = X(L.px[e.s]), ty = Y(L.py[e.s]), [mx, my, am, sg] = hh;
@@ -3138,7 +3147,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     else if (s.phase === 'result') tip = s.ok ? (s.got < 3 ? '↺ 다시(★3 도전) 또는 다음 판 — 버튼을 톡' : '다음 장난감이 와요!') : '같은 장난감을 다시 — 이번엔 미리 보고 톡';
     else if (S.slots.length >= 4) tip = '⚠ 빈칸이 하나 남았어요 — 상자 색을 골라 빼요!';
     else if (!S.key && !s.L.wind) tip = '🔒 자물쇠 나사는 🔑 열쇠 나사를 빼야 풀려요'; // 태엽 판은 일찍 빼면 손해라 판 팁으로
-    else tip = d.tip; // 📐: 1판도 첫 톡 뒤엔 판 팁
+    else if (!(s.L.wind && S.key)) tip = d.tip; // 📐: 1판도 첫 톡 뒤엔 판 팁 · 🧪 S004: 태엽을 뺀 뒤엔 '열쇠를 톡' 팁을 내린다
     ctx.textAlign = 'center';
     font(0.036, 800);
     ctx.fillStyle = 'rgba(255,240,214,.92)';
