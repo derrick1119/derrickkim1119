@@ -2133,7 +2133,7 @@ function hamPath(ctx: CanvasRenderingContext2D, R: (r: number) => number) {
   ctx.lineTo(R(0.004), R(-0.052));
   ctx.lineTo(R(-0.006), R(-0.068));
   ctx.quadraticCurveTo(R(0.036), R(-0.06), R(0.036), R(-0.018));
-  for (const [x, y] of [[0.036, 0.02], [0.03, 0.026], [0.04, 0.03], [0.04, 0.048], [-0.004, 0.048], [-0.004, 0.03], [0.006, 0.026], [0, 0.02]]) ctx.lineTo(R(x), R(y));
+  for (const [x, y] of [[0.036, 0.008], [0.048, 0.012], [0.048, 0.048], [-0.012, 0.048], [-0.012, 0.012], [0, 0.008]]) ctx.lineTo(R(x), R(y)); // 🎨 S020: 때리는 머리 덩어리 .044×.018 → .06×.036 — 절반이 가려도 '1'이 아닌 망치 머리로
   ctx.closePath();
 }
 /** 🔨 망치 머리 (🎨 §2.5′): 판자 앞면 좌표계 안. 장전되면 금테, 가끔 반짝, 쾅에 찌그러짐 */
@@ -2164,7 +2164,7 @@ function drawHammerHead(ctx: CanvasRenderingContext2D, P: Src, R: (r: number) =>
   ctx.lineWidth = armed ? 2.5 : 2;
   ctx.stroke();
   ctx.fillStyle = '#f6f8fa';
-  ctx.fillRect(R(-0.004), R(0.042), R(0.044), R(0.006));
+  ctx.fillRect(R(-0.012), R(0.042), R(0.06), R(0.006));
   ctx.strokeStyle = 'rgba(255,255,255,.75)';
   ctx.lineWidth = 1.5;
   bp(ctx);
@@ -2200,7 +2200,7 @@ function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: {
   ctx.save();
   ctx.translate(X(tr.cx) + R(0.004), Y(tr.cy) + R(0.008));
   ctx.rotate(tr.a);
-  ctx.fillStyle = glass ? 'rgba(150,200,230,.45)' : mix(P.tone, '#000000', 0.4);
+  ctx.fillStyle = glass ? 'rgba(150,200,230,.2)' : mix(P.tone, '#000000', 0.4); // 🎨 S020: 유리 옆면 .45 → .2 — 앞면과 겹쳐 밑 모자 색을 60% 씻어냈다
   plankPath(ctx, P, R);
   ctx.fill();
   ctx.restore();
@@ -2210,7 +2210,7 @@ function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: {
   ctx.rotate(tr.a);
   const hx = R(P.hx), hy = R(P.hy);
   if (glass) {
-    ctx.fillStyle = 'rgba(205,235,255,.28)';
+    ctx.fillStyle = 'rgba(205,235,255,.16)'; // 🎨 S020: .28 → .16 (모자 색 또렷)
     plankPath(ctx, P, R);
     ctx.fill();
     ctx.save();
@@ -2344,18 +2344,35 @@ function drawDeco(ctx: CanvasRenderingContext2D, P: Src, R: (r: number) => numbe
         ctx.stroke();
       }
       break;
-    case 'pulley': // 도르래(덧조각 'O -61 0 13') 바퀴 테 · 바퀴살 넷 · 축
-      ctx.strokeStyle = '#2b2f36';
+    case 'pulley': { // 🎨 S020: 도르래(덧조각 'O -61 0 13' = 반지름 .065)를 꽉 채운 바퀴 — 회색 판 · 짙은 테두리 · 밝은 테 · 짙은 굵은 바퀴살 넷 · 밝은 축. 줄(#5)이 가운데를 지나도 위아래 반달이 '바퀴'로 읽힌다
+      const cx = R(-0.305), r = R(0.06), a0 = t * 0.02;
+      ctx.fillStyle = '#a3aebb';
+      ctx.strokeStyle = '#1d2128';
       ctx.lineWidth = 2;
       bp(ctx);
-      ctx.arc(R(-0.305), 0, R(0.046), 0, TAU);
-      for (let j = 0; j < 4; j++) ctx.moveTo(R(-0.305), 0), ctx.lineTo(R(-0.305) + R(0.046) * cos(t * 0.02 + (j * PI) / 2), R(0.046) * sin(t * 0.02 + (j * PI) / 2));
-      ctx.stroke();
-      ctx.fillStyle = '#2b2f36';
-      bp(ctx);
-      ctx.arc(R(-0.305), 0, R(0.012), 0, TAU);
+      ctx.arc(cx, 0, r, 0, TAU);
       ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = '#f3f6f9';
+      ctx.lineWidth = R(0.013);
+      bp(ctx);
+      ctx.arc(cx, 0, r - R(0.011), 0, TAU);
+      ctx.stroke();
+      ctx.strokeStyle = '#1d2128';
+      ctx.lineWidth = R(0.012);
+      const lc = ctx.lineCap;
+      ctx.lineCap = 'round';
+      bp(ctx);
+      for (let j = 0; j < 4; j++) ctx.moveTo(cx, 0), ctx.lineTo(cx + (r - R(0.015)) * cos(a0 + (j * PI) / 2 + PI / 4), (r - R(0.015)) * sin(a0 + (j * PI) / 2 + PI / 4));
+      ctx.stroke();
+      ctx.lineCap = lc;
+      ctx.fillStyle = '#f3f6f9';
+      bp(ctx);
+      ctx.arc(cx, 0, R(0.014), 0, TAU);
+      ctx.fill();
+      ctx.stroke();
       break;
+    }
     case 'spots':
       ctx.fillStyle = mix(P.tone, '#8a4a10', 0.55);
       for (let j = 0; j < 6; j++) {
