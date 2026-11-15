@@ -31,6 +31,8 @@ for (const scheme of ['light', 'dark'] as const) {
   await page.click('.g-pickbtn'); // 판 고르기(✏️ S011)
   await page.waitForTimeout(300);
   await page.screenshot({ path: join(out, '25-pick.png') });
+  for (let w = 0; w < 2; w++) await page.click('.g-pick nav button[data-w]:last-of-type'), await page.waitForTimeout(150); // ✏️ S020(🧪 S019): 월드 3(8칸)
+  await page.screenshot({ path: join(out, '66-pick-w3.png') });
   await page.keyboard.press('Escape');
   await page.waitForTimeout(200);
   await page.click('.g-overlay');

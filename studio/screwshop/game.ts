@@ -1600,7 +1600,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       if (n >= 2) {
         const C = d.T === undefined && d.H === undefined ? d.C : -1, txt = n === C ? `★ 연속 ${n}!` : n >= 11 ? `${n} 🔥` : n >= 8 ? `${n} 착착착!` : n === 5 ? '5 착착!' : String(n);
         const col = n === C || (n > 5 && n < 8) ? '#ffd166' : n >= 8 ? '#ffb347' : n === 5 ? '#ffd166' : n >= 3 ? '#bff7c4' : '#fff6e0';
-        fx.pop(max(R(0.1), min(w - R(0.1), x)), Y(BOX_Y + 0.03), txt, col, min(36, 14 + 2.6 * n), true);
+        // ✏️ S020(🧪 S019 60): 같은 순간 '한 방 4+'가 뜨면 연속 숫자는 글 없이 터짐만(★ 연속 C 목표는 그대로)
+        if (n === C || !s.events.some((q) => q.kind === 'shot' && q.t === e.t && (q.n ?? 2) >= 4 && q.text !== 'bad')) fx.pop(max(R(0.1), min(w - R(0.1), x)), Y(BOX_Y + 0.03), txt, col, min(36, 14 + 2.6 * n), true);
         if (n === C) fx.burst(x, y, '#ffd166', 12, 3.4, 2.4), fx.ring(x, y, '#ffd166', R(0.1), 3);
       }
     }
@@ -2218,10 +2219,15 @@ function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: {
     ctx.lineWidth = R(0.012);
     for (let k2 = -1; k2 <= 1; k2++) (bp(ctx), ctx.moveTo(-hx + k2 * hx * 0.7, hy), ctx.lineTo(-hx * 0.2 + k2 * hx * 0.7, -hy), ctx.stroke());
     ctx.restore();
-    ctx.strokeStyle = 'rgba(255,255,255,.8)';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(70,120,160,.75)'; // ✏️ S020(🧪 S019 59): 진열장 유리로 읽히게 — 짙은 테 위에 흰 테 · 위쪽 반사 줄
+    ctx.lineWidth = 3.5;
     plankPath(ctx, P, R);
     ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.9)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.5)';
+    ctx.fillRect(-hx * 0.8, -hy + R(0.012), hx * 1.6, R(0.007));
   } else {
     const g = ctx.createLinearGradient(-hx * 0.3, -hy, hx * 0.3, hy);
     g.addColorStop(0, mix(P.tone, '#ffffff', 0.28));

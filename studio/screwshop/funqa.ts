@@ -241,6 +241,8 @@ export function bigOf(k: number, seeds = 24, got: { sm?: ShopState[]; nb?: ShopS
   // 📋 S015: m ≥ 5 쿵 · 한 방 판은 문턱 m − 1이 곧 장인 수순 → 문턱 3 값(n3)을 같이 본다
   return { m, big, newbie: rate(screwshopNewbie, got.nb), mash: rate(screwshopMash, got.mash0, 1), core, first: mode(sm.filter((s) => s.hist.length).map((s) => dev(s.L, s.hist[0].s))), ...(m >= 5 ? { n3: rate(screwshopNewbie, got.nb, 3, 3) } : {}) };
 }
+/** 월드 2·3 소개 판(📋 S019 — 3-6은 ❓ 자리였고 ❓가 M5로 가서 비소개) */
+export const INTRO = ['2-1', '2-2', '2-6', '3-1', '3-2'];
 /** 장치 끄기(✏️ S017 · 🧪 S017 보완 1): Level을 고치지 않고 판 정의(toy · 깃발)에서 그 장치를 지운 뒤 판 모양을 다시 셈한다 —
  *  hid · known · hamT · 자세가 같이 다시 셈해진다(S017 전 🪟 끄기는 hid를 안 바꿔 빈 동작이었다). 칠(col · queue · pal)은 켠 판 그대로 —
  *  다시 칠하면 낙차에 '칠이 달라진 몫'이 섞인다(3-1은 끈 판을 칠할 수도 없다) */
@@ -424,6 +426,8 @@ export function measure(seeds = 12) {
       const nw = newsOf(k, seeds);
       if (nw) row.news = nw;
       // 📋 S017: 장치 F19 일괄(들어 있는 장치마다 끄기 낙차) · 카드 짝 3손(막 누르기 100시드 × 3손)
+      // 📋 S019 FUN 개정: 월드 2·3 비소개 판은 24시드 막 누르기 클리어 ≥ .1이면 100시드로 ≤ .15를 판정
+      if (/^[23]-/.test(STAGES[k].slot) && !INTRO.includes(STAGES[k].slot) && (row.mash as { clear: number }).clear >= 0.1) row.mash100 = +(Array.from({ length: 100 }, (_, i) => tryStage(screwshopMash, 1000 + i * 7, k).ok).filter(Boolean).length / 100).toFixed(2);
       row.f19 = Object.fromEntries(Object.entries(cnt(k)).filter(([, n]) => n > 0).map(([e]) => [e, f19(k, e, seeds)]));
       if (cnt(k)['🪟']) (row.seen = seen(k)), (row.f19n = f19n(k, '🪟', 4 * seeds)), (row.f19p = f19p(k, '🪟', 2 * seeds)); // 📋 S017 · S018: 🪟 = max(장인, 미리 보기 ★2+ 48시드) · 처음 봇은 같이 보는 지표 · 유리 밑 보이는 나사
       row.f16x3 = (({ airFails, pair, n, v21 }) => ({ airFails, pair, n, v21 }))(f16(k, 100, 3));
@@ -470,6 +474,9 @@ export function measure(seeds = 12) {
       /** 📋 S017: 장치 F19 < .4 [자리, 장치, 낙차] — 판정은 M1′ 8판(id < 8) 밖만, M1′ 판은 f19m1(같이 보는 지표). 🪟는 max(장인, 처음 봇 96시드 f19n) · 카드 짝 3손(허공 ≥ 10) 최저 · .8 밑 판 */
       ...((low) => ({ f19low: low.filter((x) => (x[3] as number) >= 8).map((x) => x.slice(0, 3)), f19m1: low.filter((x) => (x[3] as number) < 8).map((x) => x.slice(0, 3)) }))(stages.flatMap((r) => Object.entries((r.f19 ?? {}) as Record<string, number>).map(([e, v]) => [e, e === '🪟' ? Math.max(v, (r.f19p as number) ?? 0) : v] as const).filter(([, v]) => v < 0.4).map(([e, v]) => [r.slot, e, v, r.id]))),
       /** 📋 S017 · S018: 🪟 판 [자리, 유리 밑 보이는 나사, 장인 F19, 미리 보기 ★2+ 낙차(48시드), 처음 봇(96시드 · 같이 보는 지표)] · glassDecide = '🪟 결정 판'(보이는 나사 ≥ 3 · 장인 ≥ .4 · 미리 보기 ≥ .1 셋 다 · M1′ 밖) */
+      /** 📋 S019: 막 누르기 클리어 100시드 [자리, 24시드, 100시드] · .15 넘는 판 */
+      mash100: stages.filter((r) => r.mash100 !== undefined).map((r) => [r.slot, (r.mash as { clear: number }).clear, r.mash100]),
+      mash100low: stages.filter((r) => (r.mash100 as number) > 0.15).map((r) => [r.slot, r.mash100]),
       glass: stages.filter((r) => r.seen !== undefined).map((r) => [r.slot, r.seen, (r.f19 as Record<string, number>)['🪟'], r.f19p, r.f19n]),
       glassDecide: stages.filter((r) => r.seen !== undefined && (r.id as number) >= 8 && (r.seen as number) >= 3 && (r.f19 as Record<string, number>)['🪟'] >= 0.4 && (r.f19p as number) >= 0.1).map((r) => r.slot),
       pairMin3: Math.min(...stages.map((r) => r.f16x3 as { airFails: number; pair: number | null }).filter((f) => f && f.airFails >= 10).map((f) => f.pair!)),
