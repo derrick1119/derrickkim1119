@@ -241,6 +241,8 @@ export function bigOf(k: number, seeds = 24, got: { sm?: ShopState[]; nb?: ShopS
   // 📋 S015: m ≥ 5 쿵 · 한 방 판은 문턱 m − 1이 곧 장인 수순 → 문턱 3 값(n3)을 같이 본다
   return { m, big, newbie: rate(screwshopNewbie, got.nb), mash: rate(screwshopMash, got.mash0, 1), core, first: mode(sm.filter((s) => s.hist.length).map((s) => dev(s.L, s.hist[0].s))), ...(m >= 5 ? { n3: rate(screwshopNewbie, got.nb, 3, 3) } : {}) };
 }
+/** 장식 표기(📋 S017 규칙 · 📐C S020 목록): 판 id → '장식'으로 적은 장치(판당 하나 · core · 판박이 가른 장치 · 소개 장치 아님) — f19low에서 빼고 decor로 따로 적는다 */
+export const DECOR: Record<number, string> = { 15: '🪟', 17: '🪟', 22: '🪟', 23: '🪟', 16: '📌', 19: '📌', 14: '🔨' };
 /** 월드 2·3 소개 판(📋 S019 — 3-6은 ❓ 자리였고 ❓가 M5로 가서 비소개) */
 export const INTRO = ['2-1', '2-2', '2-6', '3-1', '3-2'];
 /** 장치 끄기(✏️ S017 · 🧪 S017 보완 1): Level을 고치지 않고 판 정의(toy · 깃발)에서 그 장치를 지운 뒤 판 모양을 다시 셈한다 —
@@ -351,7 +353,7 @@ export function skeletons() {
 /** news 순간(🧪 S015 news.mts · 📋 S016 같이 봄): news 문장이 말하는 톡을 처음 봇(3손) · 막 누르기(3손)가 보는 비율 — 판 key별 정의(📐가 새 판에 더한다) */
 const after = (r: ShopState['hist'][number]['rec'], k: string) => { const i = r.findIndex((e) => e.k === k); return i < 0 ? -1 : r.slice(i).filter((e) => e.k === 'out' && e.pop).length; };
 export const NEWS: Record<string, (r: ShopState['hist'][number]['rec'], L: Level) => boolean> = {
-  dolphin: (r) => after(r, 'crash') >= 2,
+  dolphin: (r) => r.filter((e) => e.k === 'bonk').length >= 2, // 📐A S020: 🔨 돌고래 도미노 '쾅 → 쾅'
   lighthouse: (r) => r.some((e) => e.k === 'bonk') && r.filter((e) => e.k === 'boing').length >= 2,
   popcorn: (r) => after(r, 'jack') >= 0 && r.some((e) => e.k === 'crash') && after(r, 'crash') >= 1,
   coaster: (r) => r.some((e) => e.k === 'tick') && after(r, 'crash') >= 2,
@@ -472,7 +474,7 @@ export function measure(seeds = 12) {
     /** 📋 S016: 판박이 v2 · 같은 뼈대 · 바닥 96손 · m ≥ 5 문턱 3 · news 순간(24시드 이상에서만) */
     ...(seeds >= 24 ? { twins2: twins2(stages.map((r, k) => ({ slot: r.slot as string, k, big: r.big as ReturnType<typeof bigOf> }))), skeletons: skeletons(), big96: stages.filter((r) => r.big96 !== undefined).map((r) => [r.slot, r.big96]), n3: stages.filter((r) => (r.big as ReturnType<typeof bigOf>).n3 !== undefined).map((r) => [r.slot, (r.big as ReturnType<typeof bigOf>).n3]), news: stages.filter((r) => r.news).map((r) => [r.slot, (r.news as { newbie: number }).newbie, (r.news as { mash: number }).mash, (r.news as { smart: number }).smart]),
       /** 📋 S017: 장치 F19 < .4 [자리, 장치, 낙차] — 판정은 M1′ 8판(id < 8) 밖만, M1′ 판은 f19m1(같이 보는 지표). 🪟는 max(장인, 처음 봇 96시드 f19n) · 카드 짝 3손(허공 ≥ 10) 최저 · .8 밑 판 */
-      ...((low) => ({ f19low: low.filter((x) => (x[3] as number) >= 8).map((x) => x.slice(0, 3)), f19m1: low.filter((x) => (x[3] as number) < 8).map((x) => x.slice(0, 3)) }))(stages.flatMap((r) => Object.entries((r.f19 ?? {}) as Record<string, number>).map(([e, v]) => [e, e === '🪟' ? Math.max(v, (r.f19p as number) ?? 0) : v] as const).filter(([, v]) => v < 0.4).map(([e, v]) => [r.slot, e, v, r.id]))),
+      ...((low) => ({ f19low: low.filter((x) => (x[3] as number) >= 8 && DECOR[x[3] as number] !== x[1]).map((x) => x.slice(0, 3)), decor: low.filter((x) => DECOR[x[3] as number] === x[1]).map((x) => x.slice(0, 3)), f19m1: low.filter((x) => (x[3] as number) < 8).map((x) => x.slice(0, 3)) }))(stages.flatMap((r) => Object.entries((r.f19 ?? {}) as Record<string, number>).map(([e, v]) => [e, e === '🪟' ? Math.max(v, (r.f19p as number) ?? 0) : v] as const).filter(([, v]) => v < 0.4).map(([e, v]) => [r.slot, e, v, r.id]))),
       /** 📋 S017 · S018: 🪟 판 [자리, 유리 밑 보이는 나사, 장인 F19, 미리 보기 ★2+ 낙차(48시드), 처음 봇(96시드 · 같이 보는 지표)] · glassDecide = '🪟 결정 판'(보이는 나사 ≥ 3 · 장인 ≥ .4 · 미리 보기 ≥ .1 셋 다 · M1′ 밖) */
       /** 📋 S019: 막 누르기 클리어 100시드 [자리, 24시드, 100시드] · .15 넘는 판 */
       mash100: stages.filter((r) => r.mash100 !== undefined).map((r) => [r.slot, (r.mash as { clear: number }).clear, r.mash100]),
