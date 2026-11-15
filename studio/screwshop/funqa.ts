@@ -367,6 +367,7 @@ export function skeletons() {
 /** news 순간(🧪 S015 news.mts · 📋 S016 같이 봄): news 문장이 말하는 톡을 처음 봇(3손) · 막 누르기(3손)가 보는 비율 — 판 key별 정의(📐가 새 판에 더한다) */
 const after = (r: ShopState['hist'][number]['rec'], k: string) => { const i = r.findIndex((e) => e.k === k); return i < 0 ? -1 : r.slice(i).filter((e) => e.k === 'out' && e.pop).length; };
 export const NEWS: Record<string, (r: ShopState['hist'][number]['rec'], L: Level) => boolean> = {
+  crab: (r) => after(r, 'crash') >= 2, // 📐C S021: '등딱지가 다리를 와르르' = 와르르로 다리 둘 이상 튐
   dolphin: (r) => r.filter((e) => e.k === 'bonk').length >= 2, // 📐A S020: 🔨 돌고래 도미노 '쾅 → 쾅'
   lighthouse: (r) => r.some((e) => e.k === 'bonk') && r.filter((e) => e.k === 'boing').length >= 2,
   popcorn: (r) => after(r, 'jack') >= 0 && r.some((e) => e.k === 'crash') && after(r, 'crash') >= 1,

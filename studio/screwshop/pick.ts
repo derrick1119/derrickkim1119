@@ -265,8 +265,8 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
     for (let k = 0; k < 100; k++) m += playOut(L, d, mashOf(L, r)) ? 1 : 0;
     return (smartSeen(L, d, true) === 3 ? 0 : 1) + (h ? 1 : 0) + 1 - m / 100;
   },
-  // 📐 S010 1-4 🐿️ (id 8 · 📐A): 공통 gate · 목표 표 기본
-  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1 }),
+  // 📐 S010 1-4 🐿️ (id 8 · 📐A): 공통 gate · 목표 표 기본 · 📐C S021: F23 바닥 big [2, 3](처음 봇 큰 순간 .18 → .36)
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, big: [2, 3] }),
   // 📐 S010 🐄 (id 9): 공통 gate · 따라 하기 거름(pv) 켬 — 끄면 같은 좌표에서 따라 하기 ★3 .13 · 📐A S011: 1-7로 옮김 · F20′ full
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, pv: true, full: true, lead: 'habit' }), // 📐A S012: F17 1위 버릇 = 맞는 색(이웃 1-6 🐷 · 1-8 🐴 = ✨)
   // 📐A S011 1-5 🤖 (id 10): 공통 gate · F20′ full
@@ -285,8 +285,8 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true, lead: 'habit' }),
   // 📐C S012 2-5 🐧 (id 17) · 📐C S013: 🔨 도미노 셋 · N 18 · P 0 · 막 누르기 클리어 mc 3 · 따라 하기 거름(pv)
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 3, full: true, pv: true }),
-  // 📐A S013 2-7 🦭 (id 18): 공통 gate · F20′ full(pv · lead를 켜면 막 누르기 클리어 .25 ✗ — 끈 채로 따라 하기 .17 · 1위 버릇 맞는 색 혼자)
-  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true }),
+  // 📐A S013 2-7 🦭 (id 18): 공통 gate · F20′ full · 📐C S021: F23 big [2, 2](.08 → .64) · pv 2번 · mc 8 · ✨ ★2 이상 −2(1위 맞 혼자 — 2-6 · 2-8 ✨)
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 8, full: true, pv: true, pvn: 2, big: [2, 2], avoid: ['reveal'] }),
   // 📐A S014 2-8 🐙 (id 19): 공통 gate · F20′ full · F17 맞는 색 ★2 이상 칠 −2(2-7 맞) · 막 누르기 mc 6(mc 4면 24시드 .17)
   (L, d, r) => gate(L, d, r, { pend: 2, hc: 1, mc: 6, full: true, avoid: ['habit'] }),
   // 📐A S020 2-9 🐬 (id 20): 🔨 돌고래 도미노(🪟 뺌) · F20′ full · 따라 하기 거름 2번(pvn — 3번이면 성한 칠 21개라 맞는 색 −2 칠 3개가 끼어 1위 맞·✨) · F17 맞는 색 ★2 이상 칠 −2
