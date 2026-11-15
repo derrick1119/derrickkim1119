@@ -299,6 +299,19 @@ export function f19n(k: number, dev: string, seeds = 96) {
   }
   return +((on - off) / seeds).toFixed(2);
 }
+/** 🪟 미리 보기 봇 몫(🧪 S018 q18/p.mts · 📋 S018): 미리 보기 봇(보임 · 한 수 앞) ★2 이상 낙차(켬 − 끔). 48시드 · .05~.15면 96시드로 판정 */
+export function f19p(k: number, dev: string, seeds = 48) {
+  const d = STAGES[k];
+  let on = 0, off = 0;
+  for (let i = 0; i < seeds; i++) {
+    const seed = 1000 + i * 7, a = tryStage(BOTS.preview, seed, k);
+    on += +(a.ok && a.stars >= 2);
+    const s = offState(k, dev, seed), rng = mulberry32(seed ^ 0x9e3779b9), t0 = s.t;
+    while (s.phase !== 'result' && s.t - t0 < 600 * 60) g.step(s, BOTS.preview.act(s, rng));
+    off += +(s.phase === 'result' && s.ok && starsOf(d, s.S) >= 2);
+  }
+  return +((on - off) / seeds).toFixed(2);
+}
 /** 유리 밑 보이는 나사(📋 S017 새 판 gate ≥ 3 · 🧪 S017 h.mts): 쉬는 자세에서 유리를 나무로 바꾸면 안 보이게 되는 나사 수 */
 export function seen(k: number) {
   const pc = (x: number) => x.toString(2).split('1').length - 1, s = g.create(1000);
@@ -412,7 +425,7 @@ export function measure(seeds = 12) {
       if (nw) row.news = nw;
       // 📋 S017: 장치 F19 일괄(들어 있는 장치마다 끄기 낙차) · 카드 짝 3손(막 누르기 100시드 × 3손)
       row.f19 = Object.fromEntries(Object.entries(cnt(k)).filter(([, n]) => n > 0).map(([e]) => [e, f19(k, e, seeds)]));
-      if (cnt(k)['🪟']) (row.seen = seen(k)), (row.f19n = f19n(k, '🪟', 4 * seeds)); // 📋 S017: 🪟 = max(장인, 처음 봇 96시드) · 유리 밑 보이는 나사
+      if (cnt(k)['🪟']) (row.seen = seen(k)), (row.f19n = f19n(k, '🪟', 4 * seeds)), (row.f19p = f19p(k, '🪟', 2 * seeds)); // 📋 S017 · S018: 🪟 = max(장인, 미리 보기 ★2+ 48시드) · 처음 봇은 같이 보는 지표 · 유리 밑 보이는 나사
       row.f16x3 = (({ airFails, pair, n, v21 }) => ({ airFails, pair, n, v21 }))(f16(k, 100, 3));
     }
   });
@@ -455,9 +468,10 @@ export function measure(seeds = 12) {
     /** 📋 S016: 판박이 v2 · 같은 뼈대 · 바닥 96손 · m ≥ 5 문턱 3 · news 순간(24시드 이상에서만) */
     ...(seeds >= 24 ? { twins2: twins2(stages.map((r, k) => ({ slot: r.slot as string, k, big: r.big as ReturnType<typeof bigOf> }))), skeletons: skeletons(), big96: stages.filter((r) => r.big96 !== undefined).map((r) => [r.slot, r.big96]), n3: stages.filter((r) => (r.big as ReturnType<typeof bigOf>).n3 !== undefined).map((r) => [r.slot, (r.big as ReturnType<typeof bigOf>).n3]), news: stages.filter((r) => r.news).map((r) => [r.slot, (r.news as { newbie: number }).newbie, (r.news as { mash: number }).mash, (r.news as { smart: number }).smart]),
       /** 📋 S017: 장치 F19 < .4 [자리, 장치, 낙차] — 판정은 M1′ 8판(id < 8) 밖만, M1′ 판은 f19m1(같이 보는 지표). 🪟는 max(장인, 처음 봇 96시드 f19n) · 카드 짝 3손(허공 ≥ 10) 최저 · .8 밑 판 */
-      ...((low) => ({ f19low: low.filter((x) => (x[3] as number) >= 8).map((x) => x.slice(0, 3)), f19m1: low.filter((x) => (x[3] as number) < 8).map((x) => x.slice(0, 3)) }))(stages.flatMap((r) => Object.entries((r.f19 ?? {}) as Record<string, number>).map(([e, v]) => [e, e === '🪟' ? Math.max(v, (r.f19n as number) ?? 0) : v] as const).filter(([, v]) => v < 0.4).map(([e, v]) => [r.slot, e, v, r.id]))),
-      /** 📋 S017: 🪟 판 [자리, 유리 밑 보이는 나사, 장인 F19, 처음 봇 F19(96시드)] — 새 판 · 🪟 다시 짜는 판은 보이는 나사 ≥ 3 */
-      glass: stages.filter((r) => r.seen !== undefined).map((r) => [r.slot, r.seen, (r.f19 as Record<string, number>)['🪟'], r.f19n]),
+      ...((low) => ({ f19low: low.filter((x) => (x[3] as number) >= 8).map((x) => x.slice(0, 3)), f19m1: low.filter((x) => (x[3] as number) < 8).map((x) => x.slice(0, 3)) }))(stages.flatMap((r) => Object.entries((r.f19 ?? {}) as Record<string, number>).map(([e, v]) => [e, e === '🪟' ? Math.max(v, (r.f19p as number) ?? 0) : v] as const).filter(([, v]) => v < 0.4).map(([e, v]) => [r.slot, e, v, r.id]))),
+      /** 📋 S017 · S018: 🪟 판 [자리, 유리 밑 보이는 나사, 장인 F19, 미리 보기 ★2+ 낙차(48시드), 처음 봇(96시드 · 같이 보는 지표)] · glassDecide = '🪟 결정 판'(보이는 나사 ≥ 3 · 장인 ≥ .4 · 미리 보기 ≥ .1 셋 다 · M1′ 밖) */
+      glass: stages.filter((r) => r.seen !== undefined).map((r) => [r.slot, r.seen, (r.f19 as Record<string, number>)['🪟'], r.f19p, r.f19n]),
+      glassDecide: stages.filter((r) => r.seen !== undefined && (r.id as number) >= 8 && (r.seen as number) >= 3 && (r.f19 as Record<string, number>)['🪟'] >= 0.4 && (r.f19p as number) >= 0.1).map((r) => r.slot),
       pairMin3: Math.min(...stages.map((r) => r.f16x3 as { airFails: number; pair: number | null }).filter((f) => f && f.airFails >= 10).map((f) => f.pair!)),
       pair3low: stages.filter((r) => { const f = r.f16x3 as { airFails: number; pair: number | null }; return f && f.airFails >= 10 && f.pair! < 0.8; }).map((r) => [r.slot, (r.f16x3 as { pair: number }).pair]) } : {}),
     /** F15ᵗ(쿵 판): [자리, 쿵 빼기 낙차, 덜컹 배율] */

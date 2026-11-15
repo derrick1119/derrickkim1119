@@ -111,7 +111,8 @@ function keepStars() {
 }
 function showPick(w = world) {
   world = Math.max(1, Math.min(3, w));
-  const cells = Array.from({ length: 10 }, (_, n) => {
+  // 📋 S018 R5: 월드 3은 8판 — 칸 수 = 그 월드에 실린 마지막 판 번호(빈 자리는 '준비 중')
+  const cells = Array.from({ length: Math.max(...STAGES.filter((d) => d.slot.startsWith(`${world}-`)).map((d) => +d.slot.split('-')[1])) }, (_, n) => {
     const slot = `${world}-${n + 1}`, k = STAGES.findIndex((d) => d.slot === slot);
     if (k < 0) return `<button type="button" disabled aria-label="${slot} 준비 중"><i>${slot}</i><em>🔒</em><small>준비 중</small></button>`;
     const d = STAGES[k], st = store.get('st' + d.id);

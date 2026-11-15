@@ -1619,7 +1619,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       fx.ring(x, y, '#fff3c4', R(0.09), 4), fx.burst(x, y, '#ffe08a', bad ? 6 : 14, 3.6, 2.4), fx.burst(x, y, '#c9ced6', 6, 3, 1.6), fx.burst(x, y, '#ffffff', 4, 5, 1.2);
       fx.kick(bad ? 3 : 5), fx.hold(bad ? 2 : 4), say(x, y - R(0.06), bad ? '쾅' : '쾅!', bad ? '#e8d9c0' : '#ffe08a', bad ? 20 : 26), cue('bonk');
     }
-    if (e.kind === 'wind') (fx.memo.wind = t), fx.ring(x, y, '#ffd34d', R(0.08), 3), fx.burst(x, y, '#ffd34d', 10, 2.6, 1.8), say(x, y - R(0.06), e.text!, e.col!, 20, true), cue('wind');
+    if (e.kind === 'wind') (fx.memo.wind = t), fx.ring(x, y, '#ffd34d', R(0.08), 3), fx.burst(x, y, '#ffd34d', 10, 2.6, 1.8), say(x, y - R(0.13), e.text!, e.col!, 20, true), cue('wind'); // ✏️ S019(🧪 S018 65): 칸 · 🔒 나사 위 빈 곳에서
     if (e.kind === 'thump') e.col === '#ffd166' ? (fx.kick(7), fx.hold(4), fx.ring(x, y, '#ffd166', R(0.14), 4), say(w / 2, y, e.text!, e.col!, 34, true), cue('crash', 3)) : (fx.kick(2), say(w / 2, y, e.text!, e.col!, 26)); // 🐹 쿵: 화면 흔들림 + 글자 · ✏️ S012 빈 쿵은 작게
     if (e.kind === 'crash') {
       const i = e.n ?? 1;
@@ -2327,6 +2327,29 @@ function drawDeco(ctx: CanvasRenderingContext2D, P: Src, R: (r: number) => numbe
     ctx.fill();
   };
   switch (P.deco) {
+    case 'gondola': // ✏️ S019(🧪 S017 · S018 3-5): 곤돌라 객실(덧조각 'B 6 0 8 18 4') 안 창 둘 — 덧조각은 몸통 안을 못 그린다
+      for (const sy of [-1, 1]) {
+        ctx.fillStyle = '#e6f4ff';
+        ctx.strokeStyle = dk;
+        ctx.lineWidth = 1.5;
+        bp(ctx);
+        ctx.roundRect(R(0.008), R(sy * 0.044 - 0.026), R(0.044), R(0.052), R(0.01));
+        ctx.fill();
+        ctx.stroke();
+      }
+      break;
+    case 'pulley': // 도르래(덧조각 'O -61 0 13') 바퀴 테 · 바퀴살 넷 · 축
+      ctx.strokeStyle = '#2b2f36';
+      ctx.lineWidth = 2;
+      bp(ctx);
+      ctx.arc(R(-0.305), 0, R(0.046), 0, TAU);
+      for (let j = 0; j < 4; j++) ctx.moveTo(R(-0.305), 0), ctx.lineTo(R(-0.305) + R(0.046) * cos(t * 0.02 + (j * PI) / 2), R(0.046) * sin(t * 0.02 + (j * PI) / 2));
+      ctx.stroke();
+      ctx.fillStyle = '#2b2f36';
+      bp(ctx);
+      ctx.arc(R(-0.305), 0, R(0.012), 0, TAU);
+      ctx.fill();
+      break;
     case 'spots':
       ctx.fillStyle = mix(P.tone, '#8a4a10', 0.55);
       for (let j = 0; j < 6; j++) {
@@ -2838,11 +2861,13 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
   }
   // ✏️ S016(🧪 S015 53 · 59): 먼저 놓인 알약과 겹치면 아래로 비킨다(최대 3번) · S018(🧪 S017 64 · 65): 쉬는 자세의 🔒 · 🔑 나사도 먼저 놓인 것
   const put: number[][] = [];
-  for (let i = 0; i < L.N; i++) if (((L.lockM | L.keyM) >> i) & 1 && !((s.S.gone >> i) & 1) && s.pv[L.owner[i]].pose === 0) put.push([X(L.px[i]), Y(L.py[i]), R(0.06), R(0.06)]);
+  // ✏️ S019(🧪 S018 64): 쉬는 자세의 나사 전부를 먼저 놓인 것으로 — 안 겹치는 자리를 아래 · 위 번갈아 찾고, 없으면 처음 자리
+  const scr: number[][] = [];
+  for (let i = 0; i < L.N; i++) if (!((s.S.gone >> i) & 1) && s.pv[L.owner[i]].pose === 0) scr.push([X(L.px[i]), Y(L.py[i]), R(0.05), R(0.05)]);
   for (const [f, a] of Q) {
     ctx.font = f;
-    const w = ctx.measureText(a[3]).width + 14, h = a[5];
-    for (let n = 0; n < 3 && put.some(([x, y, pw, ph]) => abs(x - a[1]) < (pw + w) / 2 && abs(y - a[2]) < (ph + h) / 2); n++) a[2] += h + 2;
+    const w = ctx.measureText(a[3]).width + 14, h = a[5], y0 = a[2], hit = (y: number) => [...put, ...scr].some(([x, py, pw, ph]) => abs(x - a[1]) < (pw + w) / 2 && abs(py - y) < (ph + h) / 2);
+    a[2] = [0, 1, -1, 2, -2, 3].map((n) => y0 + n * (h + 2)).find((y) => !hit(y)) ?? y0;
     put.push([a[1], a[2], w, h]), pill(...a);
   }
 }

@@ -20,7 +20,7 @@ describe('나사 풀기 공방 시뮬', () => {
   it('실린 판 = 30판 자리 순서(월드-판 오름차순 · 겹침 없음) · M1′ 8판은 📋 뼈대 자리 · 아무 판에서나 시작할 수 있다 (✏️ S010)', () => {
     const n = STAGES.map((d) => d.slot.split('-').reduce((a, x) => a * 100 + +x, 0));
     for (let i = 1; i < n.length; i++) expect(n[i], STAGES[i].slot).toBeGreaterThan(n[i - 1]);
-    expect(M.map((i) => STAGES[i].slot)).toEqual(['1-1', '1-2', '1-3', '2-1', '2-2', '2-6', '3-1', '3-10']);
+    expect(M.map((i) => STAGES[i].slot)).toEqual(['1-1', '1-2', '1-3', '2-1', '2-2', '2-6', '3-1', '3-8']); // 📋 S018 R5: 28판 번호(🚀 3-10 → 3-8 · id · 칠 그대로)
     expect(STAGES.length).toBeGreaterThan(8);
     const s = g.create(3);
     startStage(s, 5);
