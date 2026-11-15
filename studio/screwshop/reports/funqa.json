@@ -1,27 +1,27 @@
 {
  "at": "2026-11-15",
- "build": "M2-S018",
+ "build": "M2-S019",
  "seeds": 24,
  "summary": {
   "smartStars": 3,
-  "habitStars": 1.57,
-  "randomStars": 0.25,
+  "habitStars": 1.58,
+  "randomStars": 0.26,
   "smartStar3": 1,
   "habitStar3": 0.03,
   "randomClear1": 1,
   "mashClear12": 0.98,
-  "mashClear38": 0.16,
-  "mashStars": 0.25,
+  "mashClear38": 0.17,
+  "mashStars": 0.26,
   "habit3Star3_2": 0,
   "habit3Star3_38max": 0.08,
   "fingerGe2_1": 0.04,
   "fingerGe2_2": 0.17,
   "previewStar3_38": 0.06,
   "smartShot": 4.12,
-  "mashShot": 1.32,
+  "mashShot": 1.34,
   "smartSec": 6.02,
   "newbie3_13": 1,
-  "newbie3_avg": 0.98,
+  "newbie3_avg": 0.99,
   "hintMin": 1,
   "hint3": 0,
   "f13_38min": 0.83,
@@ -40,8 +40,8 @@
    ],
    [
     "3-6",
-    2.45,
-    0
+    2.75,
+    0.18
    ]
   ],
   "onlyLastSmallN": 0.94,
@@ -77,11 +77,6 @@
     "2-4",
     "2-9",
     "first ·/🪟 장치 F19 < .4"
-   ],
-   [
-    "3-2",
-    "3-6",
-    "m 3/4 · 한쪽 장치 F19 < .4"
    ]
   ],
   "skeletons": [
@@ -100,10 +95,6 @@
    [
     "3-4",
     0.25
-   ],
-   [
-    "3-6",
-    0.27
    ]
   ],
   "n3": [
@@ -167,8 +158,8 @@
    ],
    [
     "3-6",
-    0.28,
-    0.15,
+    0.6,
+    0.54,
     1
    ],
    [
@@ -233,11 +224,6 @@
     "3-3",
     "🪟",
     0
-   ],
-   [
-    "3-6",
-    "🪟",
-    0.08
    ],
    [
     "3-7",
@@ -324,9 +310,9 @@
    ],
    [
     "3-6",
-    1,
-    0.08,
-    0,
+    4,
+    0.54,
+    0.33,
     0
    ],
    [
@@ -344,7 +330,9 @@
     0
    ]
   ],
-  "glassDecide": [],
+  "glassDecide": [
+   "3-6"
+  ],
   "pairMin3": 0.26,
   "pair3low": [
    [
@@ -399,7 +387,7 @@
    61,
    66
   ],
-  "skillGap": 12
+  "skillGap": 11.54
  },
  "stages": [
   {
@@ -3585,133 +3573,132 @@
     "shot": 5
    },
    "habit": {
-    "clear": 0.88,
+    "clear": 0.92,
     "star3": 0,
-    "stars": 1.21,
-    "ge2": 0.33,
+    "stars": 1.63,
+    "ge2": 0.71,
     "sec": 6.2,
     "human": 67,
-    "shot": 2.38
+    "shot": 2.46
    },
    "top": {
-    "clear": 0.38,
+    "clear": 0.25,
     "star3": 0,
-    "stars": 0.42,
-    "ge2": 0.04,
-    "sec": 5,
-    "human": 52,
-    "shot": 1.17
+    "stars": 0.33,
+    "ge2": 0.08,
+    "sec": 5.2,
+    "human": 55,
+    "shot": 0.88
    },
    "reveal": {
-    "clear": 1,
+    "clear": 0.83,
     "star3": 0,
-    "stars": 1.71,
-    "ge2": 0.71,
+    "stars": 1.63,
+    "ge2": 0.79,
     "sec": 6.4,
     "human": 70,
-    "shot": 2.54
+    "shot": 1.29
    },
    "random": {
-    "clear": 0.17,
-    "star3": 0,
-    "stars": 0.17,
-    "ge2": 0,
-    "sec": 22.2,
-    "human": 46,
-    "shot": 1.54
+    "clear": 0.25,
+    "star3": 0.08,
+    "stars": 0.54,
+    "ge2": 0.21,
+    "sec": 22.4,
+    "human": 41,
+    "shot": 1.83
    },
    "mash": {
-    "clear": 0.04,
+    "clear": 0.13,
     "star3": 0,
-    "stars": 0.04,
-    "ge2": 0,
+    "stars": 0.17,
+    "ge2": 0.04,
     "sec": 2.8,
     "human": 43,
-    "shot": 1.08
+    "shot": 1.71
    },
    "finger": {
-    "clear": 0.04,
+    "clear": 0.13,
     "star3": 0,
-    "stars": 0.04,
-    "ge2": 0,
+    "stars": 0.17,
+    "ge2": 0.04,
     "sec": 2.8,
     "human": 43,
-    "shot": 1.08
+    "shot": 1.71
    },
    "preview": {
-    "clear": 1,
+    "clear": 0.92,
     "star3": 0,
-    "stars": 2,
-    "ge2": 1,
-    "sec": 5.8,
-    "human": 62,
-    "shot": 3.79
+    "stars": 1.83,
+    "ge2": 0.92,
+    "sec": 5.6,
+    "human": 60,
+    "shot": 3.38
    },
    "newbie": {
-    "clear1": 0.71,
-    "clear3": 0.83,
-    "fails": 21,
+    "clear1": 0.92,
+    "clear3": 0.96,
+    "fails": 9,
     "f13": 1,
     "hint": 1,
     "hint3": 0
    },
    "f16": {
-    "fails": 85,
-    "n": 42,
-    "v21": 0.95,
+    "fails": 74,
+    "n": 16,
+    "v21": 0.88,
     "airFails": 0,
     "pair": null,
-    "onlyLast": 0.55,
+    "onlyLast": 0.78,
     "by": {
-     "①연쇄": [
+     "③뿅": [
+      2,
+      2
+     ],
+     "①색": [
       1,
       1
      ],
-     "①색": [
-      27,
-      27
-     ],
-     "③뿅": [
-      9,
-      9
+     "①연쇄": [
+      10,
+      8
      ],
      "②진자": [
-      5,
+      3,
       3
      ]
     }
    },
    "dev": {
-    "fires": 51,
-    "avg": 2.45,
-    "empty": 0
+    "fires": 68,
+    "avg": 2.75,
+    "empty": 0.18
    },
    "big": {
     "m": 4,
     "big": 3,
-    "newbie": 0.28,
-    "mash": 0.15,
+    "newbie": 0.6,
+    "mash": 0.54,
     "core": "🤡",
-    "first": "·"
+    "first": "🤡"
    },
-   "big96": 0.27,
    "news": {
-    "newbie": 0.28,
-    "mash": 0.15,
+    "newbie": 0.6,
+    "mash": 0.54,
     "smart": 1
    },
    "f19": {
     "🤡": 1,
-    "🪟": 0.08
+    "🪟": 0.54
    },
-   "seen": 1,
+   "seen": 4,
    "f19n": 0,
-   "f19p": 0,
+   "f19p": 0.33,
    "f16x3": {
     "airFails": 0,
     "pair": null,
-    "n": 115,
-    "v21": 0.96
+    "n": 53,
+    "v21": 0.66
    }
   },
   {

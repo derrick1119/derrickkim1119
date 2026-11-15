@@ -301,8 +301,8 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 3, full: true, big: [3, 3] }),
   // 📐C S017 3-5 🚡 (id 25 · ★ B 2): 공통 gate · F20′ full · 1위 '없음'(맞는 색 · ✨ ★2 이상 칠 −2) · mc 14(mc 3 · 8이면 막 누르기 클리어 .17)
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 14, full: true, avoid: ['habit', 'reveal'] }),
-  // 📐B S015 3-6 🤡🪟 (id 26 · 틀 3-2): 공통 gate · F20′ full · 따라 하기 거름(pv) · F19 jack · mc 6(mc 1이면 막 누르기 24시드 .29)
-  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 6, full: true, pv: true, jack: true }),
+  // 📐C S019 3-6 🤡🪟 (id 26 · 틀 3-2): 공통 gate · F20′ full · pv · F19 jack · P 3 · mc 50(P 2 · mc 40이면 F16 .78 · mc 50이면 막클 .17)
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 50, full: true, pv: true, jack: true }),
   () => -9, // id 27 자리(📐B 3-7 🎪)
   // 📐C S016 3-8 🎯 (id 28): F23 big · 1위 ✨(3-6 ✨ · 3-7 맞/없음) · pend 7 · mc 22(막 누르기 클리어 .08 · F16 .84)
   (L, d, r) => gate(L, d, r, { pend: 7, hc: 1, mc: 22, full: true, pv: true, big: [3, 3], lead: 'reveal' }),
