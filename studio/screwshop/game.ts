@@ -1375,7 +1375,7 @@ function preview(s: ShopState, k: number): Preview {
   return p;
 }
 
-const recentSay = new WeakMap<object, { x: number; y: number; t: number }[]>();
+const recentSay = new WeakMap<object, { x: number; y: number; t: number; s?: number }[]>();
 function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: number, th: Theme) {
   const fx = juice(s), t = s.t, L = s.L, S = s.S, d = STAGES[s.stage];
   const X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w;
@@ -1572,8 +1572,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     if (!rec) recentSay.set(s, (rec = []));
     y = max(Y(BY0 + 0.1), min(Y(BY1 - 0.02), y));
     if (s.news && t - s.news.t < NEWS_T + 20 && s.phase !== 'result') y = max(y, Y(BY0 + 0.062) + size * 0.6 + 36); // ✏️ S018(🧪 S017 65): 떠오르는 글(50틱 × 0.7)이 소식 띠에 닿지 않게
-    for (let k = 0; k < 6 && rec.some((q) => t - q.t < 45 && abs(q.x - x) < w * 0.32 && abs(q.y - y) < size + 5); k++) y += size + 6;
-    rec.push({ x, y, t });
+    for (let k = 0; k < 6 && rec.some((q) => t - q.t < 45 && abs(q.x - x) < w * 0.32 && abs(q.y - y) < (size + (q.s ?? size)) / 2 + 6); k++) y += size + 6; // ✏️ S021(🧪 S020 65): 앞 글 크기도 셈('쾅!' 26 · '드르륵!' 20)
+    rec.push({ x, y, t, s: size });
     if (rec.length > 12) rec.shift();
     ctx.font = `800 ${size}px system-ui, sans-serif`;
     const hw = ctx.measureText(text).width / 2 + 6;
@@ -2678,7 +2678,7 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       ctx.fillRect(R(-0.004), R(0.04), R(0.044), R(0.008));
       ctx.restore();
       const nx = pre.rec[pre.rec.indexOf(e) + 2], toSlot = nx && nx.k === 'slot';
-      const lab = toSlot ? '🎯 쾅 → 빈칸' : '🎯 쾅 → 쏙';
+      const lab = toSlot ? '🔨 쾅 → 빈칸' : '🔨 쾅 → 쏙'; // ✏️ S021(🧪 S020): 🎯는 3-7 사격장 그림이라 🔨로
       font(0.03, 900);
       const lw = ctx.measureText(lab).width + 14;
       pl(ctx, max(lw / 2 + 4, min(X(1) - lw / 2 - 4, tx + (X(mx) < tx ? 1 : -1) * (lw / 2 + R(0.075)))), ty, lab, toSlot ? '#ffb36b' : '#c8ffc8', R(0.044));
