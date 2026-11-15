@@ -294,7 +294,8 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   // 📐B S013 3-2 🤡 (id 21): 공통 gate · F20′ full · 따라 하기 거름(pv — 끄면 .21) · F19 jack(뿅을 끈 판에서도 ★3이면 거름)
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true, pv: true, jack: true }),
   // 📐B S014 2-10 🗼 (id 22) · 📐B S015: 🌀 문(쾅 → 띠용 → 띠용) · F20′ full · 따라 하기 거름(pv) · F17 1위 맞는 색(lead habit) · hc 2 · mc 8(카드 짝 .70 → .84)
-  (L, d, r) => gate(L, d, r, { pend: 1, hc: 2, mc: 8, full: true, pv: true, lead: 'habit' }),
+  // 📐B S021: 📌 깃발 망치(못에 매달려 ⚠ 탑 나사 쾅 · T 11) · 따라 하기 거름 4번(pvn — 카드 짝 .64 → .88)
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 2, mc: 8, full: true, pv: true, pvn: 4, lead: 'habit' }),
   // 📐A S015 3-3 🍿 (id 23): 공통 gate · F20′ full · 따라 하기 거름(pv) · F19 jack · F17 맞는 색 · ✨ ★2 이상 칠 −2(1위 '없음') · mc 12(mc 3 · 6이면 막 누르기 클리어 .17)
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 12, full: true, pv: true, jack: true, avoid: ['habit', 'reveal'] }),
   // 📐C S014 3-4 🎢 (id 24): 공통 gate · F20′ full(pv 꺼도 따라 하기 .00) · 📐C S015: 🎠 기둥 · ⏰ 7 · F23 바닥 big(맞는 색 버릇이 한 톡에 튄 나사 ≥ 3이면 +3)
@@ -304,8 +305,8 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   // 📐C S019 3-6 🤡🪟 (id 26 · 틀 3-2): 공통 gate · F20′ full · pv · F19 jack · P 3 · mc 50 · 📐C S020: 6색 18나사(통과 칠 45 → 30 · 막클100 .26 → .06)
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 50, full: true, pv: true, jack: true }),
   () => -9, // id 27 자리(📐B 3-7 🎪)
-  // 📐C S016 3-8 🎯 (id 28): F23 big · 1위 ✨(3-6 ✨ · 3-7 맞/없음) · pend 7 · mc 22(막 누르기 클리어 .08 · F16 .84)
-  (L, d, r) => gate(L, d, r, { pend: 7, hc: 1, mc: 22, full: true, pv: true, big: [3, 3], lead: 'reveal' }),
+  // 📐A S021 3-7 🎯 (id 28): F23 big · 1위 ✨ · pend 12(pend 7이면 3손 허공 11 · 짝 .36 · 4면 진자 .13)
+  (L, d, r) => gate(L, d, r, { pend: 12, hc: 1, mc: 22, full: true, pv: true, big: [3, 6], lead: 'reveal' }),
   () => -9, // id 29 자리(📐A 3-9 🎡)
 ];
 export const CAP = [Infinity, 4.5, 3.65, 5.15, 3.5, 2.95, 3.95, 2.95, Infinity, 2.95, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity];
