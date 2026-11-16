@@ -424,14 +424,33 @@ export const tapDead = (d: StageDef, L: Level, S: Sim) => d.B === undefined && d
 export const tipLine = (t: string) => t.replace(/^[\p{Extended_Pictographic}\u200d\ufe0f]+\s/u, '');
 /** ★3 칩 게이지(🎨 ART §2.3): 한 방 = 최고 한 방 / H · 톡 = 남은 톡 / T(✏️ S023) · 연속 = 지금 연속 / C · 쾅 판 0 */
 export const gaugeOf = (d: StageDef, S: Sim) => (d.B !== undefined ? 0 : d.H !== undefined ? min(S.shot, d.H) / d.H : d.T !== undefined ? max(0, d.T - S.taps) / d.T : min(S.streak, d.C) / d.C);
-const gapTxt = (P: number) => (P === 0 ? '빈칸 안 쓰기' : `빈칸 ${P}칸까지`);
-/** ✏️ S023(M2′ G2 · G3 · 📐 S022 B②): 별 글 한 곳 — c = 판 중 칩(목표 + 지금 셈), r = 결과 카드(값 (≥/≤ 목표) · 방향을 한 꼴로) */
-export const starText = (d: StageDef, S: Sim) => ({
-  c2: d.B !== undefined ? `🔨 쾅 ${S.bonks} (≥${d.B})` : gapTxt(d.P), // 🧪 S023 ③: 칩도 결과와 같은 꼴('11/11'이 ✓로 읽히지 않게)
-  c3: d.B !== undefined ? `쾅 + 빈칸 ${d.P}` : d.H !== undefined ? `한 번에 쏙 ${d.H}` : d.T !== undefined ? `톡 ${S.taps} (≤${d.T})` : `연속 쏙 ${d.C}`,
-  r2: d.B !== undefined ? `🔨 쾅 ${S.bonks} (≥${d.B})` : `빈칸 ${S.peak} (≤${d.P})`,
-  r3: d.B !== undefined ? `빈칸 ${S.peak} (≤${d.P})` : d.H !== undefined ? `한 번에 쏙 ${S.shot} (≥${d.H})` : d.T !== undefined ? `톡 ${S.taps} (≤${d.T})` : `연속 쏙 ${S.best} (≥${d.C})`,
-});
+/** ✏️ S024(오너 11-16 "조건을 못알아먹겠어 · 알기 쉽게 · 단계별로" · 📐 S024): 별 말 — 기호(≥ ≤ +) 없이 동사로, ★ 이름표, 아껴야 하는 별(빈칸 · 톡)은 목표만 / 남은 수 */
+export type SK = 'bonk' | 'gap' | 'shot' | 'tap' | 'streak';
+export const KB: Record<SK, number> = { bonk: 1, gap: 2, shot: 4, tap: 8, streak: 16 };
+/** 판의 [★2, ★3] 별 종류 */
+export const starKinds = (d: StageDef): [SK, SK] => [d.B !== undefined ? 'bonk' : 'gap', d.B !== undefined ? 'gap' : d.H !== undefined ? 'shot' : d.T !== undefined ? 'tap' : 'streak'];
+const gapGoal = (P: number, also = '') => (P === 0 ? `빈칸${also} 안 쓰기` : `빈칸${also} ${P}칸만`);
+/** c = 판 중 칩 · r2/r3 = 결과(받았으면 한 일, 놓쳤으면 무엇이 모자랐나) · l2/l3 = 처음 배울 때 한 줄 */
+export const starText = (d: StageDef, S: Sim) => {
+  const bk = d.B !== undefined, gapR = (also: string, ok: boolean) => (ok ? (S.peak ? `빈칸${also} ${S.peak}칸만 씀` : `빈칸${also} 안 씀`) : `빈칸 ${S.peak}칸 씀 · ${d.P ? `${d.P}칸까지만` : '안 써야'} 해요`);
+  return {
+    c1: '★1 다 풀기',
+    c2: bk ? `★2 망치로 쾅 ${min(S.bonks, d.B!)}/${d.B}` : `★2 ${gapGoal(d.P)}`,
+    c3: bk ? `★3 ${gapGoal(d.P, '도')}` : d.H !== undefined ? `★3 한 번에 ${d.H}개 쏙` : d.T !== undefined ? `★3 톡 ${max(0, d.T - S.taps)}번 남음` : `★3 ${d.C}개 연달아 쏙`,
+    r2: bk ? (S.bonks >= d.B! ? `망치로 ${S.bonks}번 쾅` : `쾅 ${S.bonks}번 · ${d.B! - S.bonks}번 더 쳐야 해요`) : gapR('', S.peak <= d.P),
+    r3: bk ? gapR('도', S.peak <= d.P) : d.H !== undefined ? (S.shot >= d.H ? `한 번에 ${S.shot}개 쏙` : `한 번에 최고 ${S.shot}개 · ${d.H}개를 넣어야 해요`) : d.T !== undefined ? (S.taps <= d.T ? `톡 ${S.taps}번에 끝` : `톡 ${S.taps}번 · ${d.T}번 안에 끝내야 해요`) : S.best >= d.C ? `${S.best}개 연달아 쏙` : `연달아 최고 ${S.best}개 · ${d.C}개를 이어야 해요`,
+    l2: bk ? `망치 옆 나사를 빼면 망치가 쾅! ${d.B}번 쾅 → ★2` : d.P ? `아래 빈칸은 ${d.P}칸까지만 쓰면 → ★2` : '아래 빈칸에 나사를 안 보내면 → ★2',
+    l3: bk ? `★2를 따고 빈칸도 안 넘기면 → ★3` : d.H !== undefined ? `톡 한 번에 나사 ${d.H}개를 상자로 쏙 → ★3` : d.T !== undefined ? `톡 ${d.T}번 안에 다 풀면 → ★3` : `빈칸 없이 ${d.C}개를 연달아 쏙 → ★3`,
+  };
+};
+/** 배움(📐 S024 사다리): 판마다 아직 안 배운 가장 낮은 별 하나만 가르치고(teach 2|3), 그 위 안 배운 ★3은 🔒(별 값은 그대로 · 따면 깜짝 ★) */
+export function teachOf(s: ShopState) {
+  const [a, b] = starKinds(STAGES[s.stage]);
+  s.teach = !(s.learn & KB[a]) ? 2 : !(s.learn & KB[b]) ? 3 : 0;
+  s.lock3 = s.teach === 2 && a !== b && !(s.learn & KB[b]);
+  s.tv = -1;
+}
+export const setLearn = (s: ShopState, m: number) => ((s.learn = m), teachOf(s));
 /** 🌻 꽃 머리 판(통나무가 씨 원판): 글자를 '우수수'로 (🧪 S005) */
 const bloomOf = (L: Level) => L.pl.some((p) => p.heavy && p.deco === 'seeds');
 /** 🪵 장전된 판자 수: 아직 남은 통나무가 떨어지면 칠, 통나무 폭 안·아래에 매달린 판자 (removeScrew의 와르르와 같은 판정) */
@@ -645,6 +664,8 @@ export interface ShopState {
   seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[]; startT: number; clearT: number;
   pv: PV[]; fl: Fl[]; vb: VBox[]; lv: { col: number; bi: number; t0: number }[]; vs: { col: number; at: number; x: number }[]; ready: number[];
   mood: string; moodT: number; bird: number;
+  /** ✏️ S024 배움: 배운 별 종류(KB 비트 · main.ts가 저장) · 이 판에서 가르치는 칸 · ★3 🔒 · 짚기 기준값 */
+  learn: number; teach: number; lock3: boolean; tv: number;
 }
 
 const ev = (s: ShopState, kind: string, x: number, y: number, text?: string, col?: string, v?: number, n?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v, n });
@@ -698,6 +719,7 @@ function newStage(s: ShopState) {
   s.startT = s.t;
   s.got = 0;
   setMood(s, 'idle');
+  teachOf(s);
   see(s, d.key, d.news);
   ev(s, 'stage', 0.5, 0.7, `${d.slot} · ${d.name}`, '#fff6d6');
 }
@@ -876,6 +898,7 @@ function finish(s: ShopState) {
   if (s.ok) {
     const st = min(starsOf(d, S), s.hint ? 2 : 3), pp = st * STAR_PTS + max(0, 4 - S.peak) * 10 + min(S.best, 12) * 2;
     s.got = st;
+    if (s.teach) s.learn |= KB[starKinds(d)[s.teach - 2]]; // ✏️ S024: 깬 판에서 가르친 별을 배움
     // ↺ 다시 해도 판별 최고만 합계에 (S002)
     if (st > (s.bestSt[s.stage] ?? 0)) (s.stars += st - (s.bestSt[s.stage] ?? 0)), (s.bestSt[s.stage] = st);
     if (pp > (s.bestPts[s.stage] ?? 0)) (s.pts += pp - (s.bestPts[s.stage] ?? 0)), (s.bestPts[s.stage] = pp);
@@ -1053,7 +1076,17 @@ function playRec(s: ShopState, rec: RE[]) {
   // 🎨 §2.4 한 방: 톡 한 번에 상자로 2개 이상 쏙(📋 S004 쏙 한 방 — 빈칸으로 간 것은 안 셈, 빈칸이 절반 이상이면 작게)
   if (shotN - shotBad >= 2) ev(s, 'shot', shotX / shotN, shotY / shotN - 0.09, shotBad * 2 >= shotN ? 'bad' : undefined, undefined, lastLand, shotN - shotBad);
   const C = STAGES[s.stage].C;
-  if ((S.streak === 3 || S.streak === C || (S.streak > C && S.streak % 4 === 0)) && rec.some((e) => e.k === 'box')) ev(s, 'streak', 0.5, BOX_Y, S.streak >= C ? `★ 연속 쏙 ${S.streak}!` : `연속 쏙 ${S.streak}!`, S.streak >= C ? '#ffd166' : '#bff7c4', s.t + SPIN + FLY);
+  if ((S.streak === 3 || S.streak === C || (S.streak > C && S.streak % 4 === 0)) && rec.some((e) => e.k === 'box')) ev(s, 'streak', 0.5, BOX_Y, S.streak >= C ? `★ ${S.streak}개 연달아 쏙!` : `${S.streak}개 연달아 쏙!`, S.streak >= C ? '#ffd166' : '#bff7c4', s.t + SPIN + FLY);
+  // ✏️ S024(📐 단계별 배우기 · 짚기): 가르치는 별이 처음 움직인 톡에 칩 위로 한 줄
+  if (s.teach && !S.fail) {
+    const d = STAGES[s.stage], kd = starKinds(d)[s.teach - 2], v = kd === 'bonk' ? S.bonks : kd === 'gap' ? S.peak : kd === 'shot' ? S.shot : kd === 'tap' ? S.taps : S.best;
+    if (v !== s.tv && s.tv >= 0) {
+      const g = s.teach === 2 ? '★2' : '★3', P = d.P;
+      const msg = kd === 'bonk' ? (v >= d.B! ? `${g} 받았어요! 망치로 ${v}번 쾅` : `쾅! ${d.B! - v}번 더 치면 ${g}`) : kd === 'gap' ? (v > P ? `빈칸 ${v}칸 — ${g}는 놓쳤어요` : `빈칸 ${v}칸 — ${P}칸까지는 괜찮아요`) : kd === 'shot' ? (v >= 2 ? (v >= d.H! ? `${g}! 한 번에 ${v}개 쏙` : `한 번에 ${v}개! ${d.H}개면 ${g}`) : '') : kd === 'tap' ? (d.T! - v <= 3 ? (v > d.T! ? `톡을 넘겼어요 — ${g}는 놓쳤어요` : `톡 ${d.T! - v}번 남았어요`) : '') : '';
+      if (msg) ev(s, 'teach', 0.5, 0, msg, msg.includes('놓쳤') ? '#ffb36b' : '#ffe9a8');
+    }
+    s.tv = v;
+  }
 }
 
 function tapScrew(s: ShopState, k: number) {
@@ -1166,7 +1199,7 @@ export const screwshop: GameDef<ShopState> = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'play', pt: 0, known: 0,
       down: false, ax: 0, ay: 0, press: -1, cool: 0, lastTap: -99, taps: 0,
       hearts: 3, stars: 0, got: 0, bestSt: [], bestPts: [], retries: 0, sf: 0, hint: false, hist: [], blame: null, pts: 0, ok: false, why: '', won: false, dead: false, tries: 0,
-      seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsQ: [], startT: 0, clearT: 0,
+      seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsQ: [], startT: 0, clearT: 0, learn: 0, teach: 0, lock3: false, tv: -1,
       pv: [], fl: [], vb: [], lv: [], vs: [], ready: [], mood: 'idle', moodT: 0, bird: 0,
     } as unknown as ShopState;
     newStage(s);
@@ -1659,11 +1692,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     if (e.kind === 'shot') {
       // 🎨 §2.4 한 방 단계: 판 안에 쇠빛 하늘색 — 연속 숫자(상자 줄, 따뜻한 색)와 겹치지 않게
       const h = e.n ?? 2, bad = e.text === 'bad';
-      if (bad) say(x, y, `한 방 ${h}`, '#d8c3a5', 16);
+      if (bad) say(x, y, `한 번에 ${h}개`, '#d8c3a5', 16);
       else {
         const sz = h >= 5 ? min(40, 28 + 2 * h) : [0, 0, 20, 26, 32][h], col = h >= 5 ? '#ffffff' : ['', '', '#cfefff', '#8fe3ff', '#6fd6ff'][h];
-        if (h >= 7) say(w / 2, Y(0.62), `💥 한 방 ${h}!`, '#ffd166', 46, true), fx.hold(8), fx.blink('#fff1a8', 0.28), (fx.memo.big = t + 50); // 🧪 S007: 8판 💥7은 화면 가운데 금색 + 멈춤 · 50틱 동안 다른 말 숨김
-        else say(x, y, h >= 5 ? `💥 한 방 ${h}!` : h === 4 ? '한 방 4!!' : h === 3 ? '한 방 3!' : '한 방 2', col, sz, true); // 겹치면 비켜 선다(🧪 S001)
+        if (h >= 7) say(w / 2, Y(0.62), `💥 한 번에 ${h}개!`, '#ffd166', 46, true), fx.hold(8), fx.blink('#fff1a8', 0.28), (fx.memo.big = t + 50); // 🧪 S007: 8판 💥7은 화면 가운데 금색 + 멈춤 · 50틱 동안 다른 말 숨김
+        else say(x, y, h >= 5 ? `💥 한 번에 ${h}개!` : h === 4 ? '한 번에 4개!!' : h === 3 ? '한 번에 3개!' : '한 번에 2개', col, sz, true); // 겹치면 비켜 선다(🧪 S001)
         fx.burst(x, y, '#8fe3ff', [0, 0, 6, 10, 16][min(4, h)] || 24, 3.4, 2.2);
         if (h >= 3) fx.ring(x, y, '#8fe3ff', R(0.06 + 0.06 * min(3, h - 2)), 3 + min(2, h - 3)), fx.hold(min(5, h)), fx.kick(h >= 5 ? 7 : h === 4 ? 5 : 3), setMood(s, h >= 4 ? 'cheer' : 'wow');
         if (h >= 4) fx.burst(x, y, '#ffffff', h >= 5 ? 12 : 8, 4, 2), fx.blink('#dff6ff', h >= 5 ? 0.18 : 0.1);
@@ -1681,6 +1714,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     }
     if (e.kind === 'blocked' || e.kind === 'locked') say(x, y - R(0.06), e.text!, e.col!, 15), cue('blocked');
     if (e.kind === 'miss') say(x, y, e.text!, e.col!, 14);
+    if (e.kind === 'teach') say(w / 2, Y(1.235 + 0.35 * (A - 1.45)), e.text!, e.col!, 18, true); // ✏️ S024 짚기: 칩 줄 바로 위
     if (e.kind === 'stage') fx.blink('#fff6d6', 0.18);
     if (e.kind === 'clear') {
       fx.burst(X(0.5), Y(0.75), '#ffe066', 46, 6, 3.2), fx.burst(X(0.5), Y(0.75), '#ff8fb1', 30, 5, 3), fx.ring(X(0.5), Y(0.75), '#ffe066', R(0.35), 6), fx.blink('#fff6c8', 0.25), fx.hold(6), cue('clear');
@@ -2632,7 +2666,7 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
       ctx.arc(X(L.px[c.s]), Y(L.py[c.s]), R(SR) * 1.7, 0, PI * 2);
       ctx.stroke();
     }
-    const q = L.poses[logFall.p][max(0, poseOf(L, logFall.p, s.S.gone))], lab = `${L.pl[logFall.p].deco === 'seeds' ? '🌻 우수수' : '🪵 와르르'} ${crashes.length} → 쏙 한 방 ${h}${good ? '!' : ''}`; // ✏️ S005: 쏙 한 방(상자로 간 것만, 📋 S004)
+    const q = L.poses[logFall.p][max(0, poseOf(L, logFall.p, s.S.gone))], lab = `${L.pl[logFall.p].deco === 'seeds' ? '🌻 우수수' : '🪵 와르르'} ${crashes.length} → 한 번에 ${h}개 쏙${good ? '!' : ''}`; // ✏️ S005: 쏙 한 방(상자로 간 것만, 📋 S004)
     font(0.034, 900);
     const lw = ctx.measureText(lab).width + 14;
     pl(ctx, max(lw / 2 + 4, min(X(1) - lw / 2 - 4, X(q.cx))), Y(q.cy) + R(0.075), lab, good ? '#c8ffc8' : '#ffb36b', R(0.048)); // 위엔 '쏙 → 상자' 알약이 온다
@@ -2650,7 +2684,7 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
     const H = STAGES[s.stage].H, all = pre.rec.filter((e) => e.k === 'box').length; // 📐 S007 8판: ★3이 한 방인 태엽 판은 🔑 자신까지 센 쏙 한 방 / H
     const after = pre.rec.slice(wi), nb = after.filter((e) => e.k === 'box').length, ns = (H !== undefined ? pre.rec : after).filter((e) => e.k === 'slot').length; // ✏️ S012: 한 방 판은 톡 전체 빈칸(1-10 와르르가 🔑 → 🔒를 드르륵보다 먼저 떨군다)
     font(0.032, 900);
-    const lab = H !== undefined ? `🔑 드르륵 → 쏙 한 방 ${all} / ${H}${ns ? ` · 빈칸 ${ns}` : all >= H ? '!' : ''}` : `🔑 드르륵 → 🔒 쏙 ${nb}${ns ? ` · 빈칸 ${ns}` : '!'}`, hw = ctx.measureText(lab).width / 2 + 10; // ✏️ S008: 한 방 판에도 '빈칸 M'(S007에 빠졌던 것)
+    const lab = H !== undefined ? `🔑 드르륵 → 한 번에 ${all}개 쏙${ns ? ` · 빈칸 ${ns}` : all >= H ? '!' : ` · ${H}개면 ★3`}` : `🔑 드르륵 → 🔒 쏙 ${nb}${ns ? ` · 빈칸 ${ns}` : '!'}`, hw = ctx.measureText(lab).width / 2 + 10; // ✏️ S008: 한 방 판에도 '빈칸 M'(S007에 빠졌던 것)
     pl(ctx, max(hw, min(X(1) - hw, X(L.px[k]))), Y(L.py[k]) - R(0.13), lab, ns || (H !== undefined && all < H) ? '#ffb36b' : '#c8ffc8', R(0.044)); // '쏙!' 알약보다 위, 화면 안 · 한 방 판은 H에 닿고 빈칸 0이면 초록
   }
   // 🎯 과녁을 손으로(✏️ S008 · 🧪 S007 F16 ③허공): 아직 안 매달린 🔨이나 안 떨어진 🌀가 칠 나사를 꾹 → 주황 '🎯 과녁 — 손으로 빼면 허공'
@@ -3243,6 +3277,8 @@ function drawBird(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
 
 function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: number, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, font: (sz: number, w?: number) => void, th: Theme) {
   const t = s.t, S = s.S;
+  /** ✏️ S024: 가장 긴 글이 mw를 넘으면 그만큼 글자를 줄인다(칩 · 배우기 줄 · 결과) */
+  const fit = (sz: number, wgt: number, mw: number, ...tx: string[]) => { font(sz, wgt); const m = max(...tx.map((x) => ctx.measureText(x).width)); if (m > mw) ctx.font = `${wgt} ${max(10, (max(12, R(sz)) * mw) / m)}px system-ui, sans-serif`; };
   const hb = R(0.068);
   ctx.fillStyle = 'rgba(25,15,8,.82)';
   ctx.fillRect(0, 0, w, hb);
@@ -3335,17 +3371,19 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       }
       // 별 이유: 얻은 값 / 목표 (S002, 허들 ①)
       const ok2 = d.B !== undefined ? S.bonks >= d.B : S.peak <= d.P, ok3 = d.B !== undefined ? s.got === 3 : star3(d, S);
-      const tx = starText(d, S), t2 = tx.r2, t3 = d.B !== undefined && !ok2 && S.peak <= d.P ? `🔒 ${tx.r3}` : tx.r3; // ✏️ S023(M2′ G3): 'a / b' → 값 (≥/≤ 목표)
-      font(0.04, 900);
+      // ✏️ S024(오너 "알기 쉽게"): ★2 · ★3을 두 줄로 — 받았으면 한 일, 놓쳤으면 무엇이 모자랐나(기호 없이) · 🔒 ★3은 다음에 배움 / 깜짝 ★3
+      const tx = starText(d, S), l2 = `${ok2 ? '✓' : '✗'} ★2 ${tx.r2}`;
+      const l3 = s.lock3 ? (ok3 ? `🎉 깜짝 ★3! ${tx.r3}` : '🔒 ★3은 다음 판에서 배워요') : d.B !== undefined && !ok2 && S.peak <= d.P ? '🔒 ★3은 ★2를 먼저 따야 해요' : `${ok3 ? '✓' : '✗'} ★3 ${tx.r3}`;
+      fit(0.038, 900, w - R(0.08), l2, l3);
       ctx.fillStyle = ok2 ? '#c8ffc8' : '#ffb36b';
-      ctx.fillText(`${ok2 ? '✓' : '✗'} ${t2}`, w / 2 - R(0.2), Y(0.815));
-      ctx.fillStyle = ok3 ? '#c8ffc8' : '#ffb36b';
-      ctx.fillText(`${ok3 ? '✓' : d.B !== undefined && !ok2 && S.peak <= d.P ? '' : '✗'} ${t3}`, w / 2 + R(0.2), Y(0.815));
+      ctx.fillText(l2, w / 2, Y(0.8));
+      ctx.fillStyle = ok3 ? '#c8ffc8' : l3.startsWith('🔒') ? '#fff1d6' : '#ffb36b';
+      ctx.fillText(l3, w / 2, Y(0.842));
       if (s.got < 3) {
         // 방법 한 줄 (🧪 S002 ③: ✗만 있고 '어떻게'가 없다)
-        font(0.032, 800);
+        fit(0.032, 800, w - R(0.06), `💡 ${tipLine(s.got === 2 && d.tip2 ? d.tip2 : d.tip)}`);
         ctx.fillStyle = '#fff1d6';
-        ctx.fillText(`💡 ${tipLine(s.got === 2 && d.tip2 ? d.tip2 : d.tip)}`, w / 2, Y(0.865));
+        ctx.fillText(`💡 ${tipLine(s.got === 2 && d.tip2 ? d.tip2 : d.tip)}`, w / 2, Y(0.882));
       }
       if (s.got < 3 && age > 30) {
         // ↺ 다시 · 다음 ▶ — 버튼 안만 받는다(🧪 S002: 막 누르는 손이 카드를 읽기 전에 누른다)
@@ -3366,7 +3404,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
   // ═════════ 아래 띠: 별 목표 · 안내 ═════════ (실패 카드가 뜨면 안 그린다)
   if (!(s.phase === 'result' && !s.ok)) {
     const E = A - 1.45, y2 = Y(1.3 + 0.35 * E), chips = [
-      { txt: '완성', st: s.phase === 'result' && s.ok ? true : null },
+      { txt: starText(d, S).c1, st: s.phase === 'result' && s.ok ? true : null },
       ...(d.B !== undefined
         ? [
             { txt: starText(d, S).c2, st: S.bonks >= d.B ? true : bonkDead(d, s.L, S) ? false : null },
@@ -3377,6 +3415,8 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       { txt: starText(d, S).c3, st: d.H !== undefined ? (S.shot >= d.H ? true : shotDead(d, s.L, S) ? false : null) : d.T !== undefined ? (tapDead(d, s.L, S) ? false : s.phase === 'result' && s.ok ? true : null) : S.best >= d.C ? true : streakDead(d, s.L, S) ? false : null }, // ✏️ S023: 연속도 ✗
           ]),
     ];
+    if (s.lock3 && chips[2].st !== true) chips[2] = { txt: '★3 🔒 다음 판', st: null }; // ✏️ S024 사다리: 아직 안 배운 ★3은 잠금(따면 깜짝 ★)
+    else if (s.lock3) chips[2].txt = '★3 깜짝!';
     if (s.hint) chips[2] = { txt: '💡 ★3 없음', st: false };
     const gx0 = R(0.225), gw = (w - gx0 - R(0.015)) / 3;
     // 🎨 칩 게이지(ART §2.3 · 📋 S008): ★3 칩 안을 지금 연속 / 최고 한 방만큼 왼쪽부터 채운다
@@ -3387,24 +3427,45 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       bp(ctx);
       ctx.roundRect(gx + 2, y2 - R(0.026), gw - 4, R(0.052), R(0.026));
       ctx.fill();
-      if (k === 2 && st === null && gauge > 0) {
+      if (k === 2 && st === null && gauge > 0 && !s.lock3) {
         ctx.save();
         ctx.clip();
         ctx.fillStyle = gauge >= 1 ? 'rgba(255,209,102,.5)' : 'rgba(160,240,140,.35)';
         ctx.fillRect(gx + 2, y2 - R(0.026), (gw - 4) * gauge, R(0.052));
         ctx.restore();
       }
+      if (s.teach === k + 1 && s.phase === 'play') { // ✏️ S024: 이 판에서 배우는 별 칩은 금빛 테가 숨 쉰다
+        ctx.strokeStyle = `rgba(255,209,102,${0.55 + 0.45 * Math.sin(t / 8)})`;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
       ctx.textAlign = 'center';
-      font(0.034, 800);
+      const lab = `${st === true ? '✓ ' : st === false ? '✗ ' : ''}${txt}`;
+      fit(0.034, 800, gw - R(0.02), lab);
       ctx.fillStyle = st === false ? 'rgba(255,255,255,.45)' : '#fff6e0';
-      ctx.fillText(`${st === true ? '★' : st === false ? '✗' : '☆'} ${txt}`, gx + gw / 2, y2 + 1);
+      ctx.fillText(lab, gx + gw / 2, y2 + 1);
     });
+    // ✏️ S024(📐 단계별 배우기): 배우는 판은 시작할 때 칩 줄 위에 '★n 배우기 — 받는 법' 한 줄(첫 톡까지 · 적어도 1.5초)
+    if (s.teach && s.phase === 'play' && (s.taps === 0 || t - s.startT < 90)) {
+      const tl = `${s.teach === 2 ? '★2' : '★3'} 배우기 — ${s.teach === 2 ? starText(d, S).l2 : starText(d, S).l3}`;
+      fit(0.036, 900, w - R(0.06), tl);
+      const tw = ctx.measureText(tl).width + R(0.05), ty = y2 - R(0.068);
+      ctx.fillStyle = 'rgba(40,24,8,.88)';
+      bp(ctx);
+      ctx.roundRect(w / 2 - tw / 2, ty - R(0.03), tw, R(0.06), R(0.03));
+      ctx.fill();
+      ctx.strokeStyle = '#ffd166';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#ffe9a8';
+      ctx.fillText(tl, w / 2, ty + 1);
+    }
     // 지금 연속 쏙
     if (S.streak > 0 && s.phase === 'play' && ((d.B === undefined && d.H === undefined && d.T === undefined) || s.L.thump)) { // 🧪 S023 ⑦: 연속 · 쿵 판에만
       font(0.032, 800);
       ctx.textAlign = 'right';
       ctx.fillStyle = S.streak >= d.C ? '#ffd166' : '#c8f7c5';
-      ctx.fillText(`지금 연속 ${S.streak}`, w - R(0.03), Y(1.36 + 0.35 * E));
+      ctx.fillText(`지금 ${S.streak}개 연달아`, w - R(0.03), Y(1.36 + 0.35 * E));
     }
     const y3 = Y(1.415 + 0.45 * E);
     let tip = '👆 나사를 톡! 누르고 있으면 갈 곳이 보여요';

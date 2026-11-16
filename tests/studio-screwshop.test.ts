@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, jackEarly, logLate, paintStage, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setAspect, setCue, screwshop as g, screwshopSmart, shotDead, starText, startStage, streakDead, tapDead, tipLine } from '../studio/screwshop/game.ts';
+import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, jackEarly, logLate, paintStage, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setAspect, setCue, screwshop as g, screwshopSmart, shotDead, starText, startStage, streakDead, tapDead, tipLine, setLearn, starKinds, KB } from '../studio/screwshop/game.ts';
 import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { f16, screwshopMash, screwshopNewbie, tryStage } from '../studio/screwshop/funqa.ts';
@@ -316,7 +316,7 @@ describe('플레이 빌드', () => {
     expect(html).not.toContain('/*BUNDLE*/');
     expect(html).toContain('나사 풀기 공방');
     expect(html).toContain('id="sound"');
-    expect(gzipSync(html).length).toBeLessThan(52 * 1024); // M2 상한 52KB(📋 S009 기준 개정 '낮추는 쪽' — 30판 데이터 · 실루엣 · 판 선택, 목표 50 · 오너 테스트 때 밝힘). 이전: M1′ 상한 (📋 S002: 120 → 36KB, 📋 S003 결정: 36 → 40KB — 남은 🔑·미리 보기·손맛을 자르지 않으려고. 이유는 MILESTONES 위험 ①, 오너 테스트 때 밝힘)
+    expect(gzipSync(html).length).toBeLessThan(60 * 1024); // M2′ 상한 60KB(오너 승인 2026-11-16 03:00 UTC 채팅 "60KB로 올림" · 쉬운 별 말 · 단계별 배우기 · 이전 줄: M2 상한 52KB(📋 S009 기준 개정 '낮추는 쪽' — 30판 데이터 · 실루엣 · 판 선택, 목표 50 · 오너 테스트 때 밝힘). 이전: M1′ 상한 (📋 S002: 120 → 36KB, 📋 S003 결정: 36 → 40KB — 남은 🔑·미리 보기·손맛을 자르지 않으려고. 이유는 MILESTONES 위험 ①, 오너 테스트 때 밝힘)
   });
 });
 
@@ -716,17 +716,34 @@ describe('🪵 통나무가 먼저 떨어져 → 빈칸 (✏️ S013 · 🧪 S01
     for (const slot of ['1-5', '1-8', '2-3']) expect(tipLine(STAGES.find((d) => d.slot === slot)!.tip2!), slot).toMatch(/^🔑는 /);
   });
 
-  it('별 글(✏️ S023 · M2′ G2 · G3 · 🧪 F26): 결과는 28판 모두 \'값 (≥/≤ 목표)\' 한 꼴(\'a / b\' 0) · 톡 칩은 판 중에 셈 · T번을 다 썼는데 나사가 남으면 ✗ · 연속 칩도 못 따면 ✗', () => {
+  it('별 글(✏️ S024 · 오너 "알기 쉽게"): 28판 칩 · 결과 · 배우기 줄에 기호(≥ ≤ + · a / b) 0 · 칩은 ★ 이름표 · 톡은 남은 수 · T번 다 썼는데 나사가 남으면 ✗ · 연속도 못 따면 ✗', () => {
     for (const [k, d] of STAGES.entries()) {
       const s = g.create(1); if (k) startStage(s, k);
       const tx = starText(d, s.S);
-      for (const r of [tx.r2, tx.r3]) { expect(r, d.slot).toMatch(/ \((≥|≤)\d+\)$/); expect(r, d.slot).not.toMatch(/\d \/ \d/); }
-      if (d.B === undefined && d.H === undefined && d.T !== undefined) { const a = tx.c3; s.S.taps = 3; expect(starText(d, s.S).c3, d.slot).not.toBe(a); expect(starText(d, s.S).c3).toBe(`톡 3 (≤${d.T})`); s.S.taps = d.T; expect(tapDead(d, s.L, s.S), d.slot).toBe(true); s.S.n = s.L.N; expect(tapDead(d, s.L, s.S), d.slot).toBe(false); }
+      for (const x of Object.values(tx)) { expect(x, d.slot).not.toMatch(/[≥≤+]/); expect(x, d.slot).not.toMatch(/\d ?\/ ?\d+ ?\(/); }
+      expect([tx.c1.slice(0, 2), tx.c2.slice(0, 2), tx.c3.slice(0, 2)], d.slot).toEqual(['★1', '★2', '★3']);
+      if (d.B === undefined && d.H === undefined && d.T !== undefined) { s.S.taps = 3; expect(starText(d, s.S).c3).toBe(`★3 톡 ${d.T - 3}번 남음`); s.S.taps = d.T; expect(tapDead(d, s.L, s.S), d.slot).toBe(true); s.S.n = s.L.N; expect(tapDead(d, s.L, s.S), d.slot).toBe(false); }
       if (d.B === undefined && d.H === undefined && d.T === undefined) {
         expect(streakDead(d, s.L, s.S), d.slot).toBe(false);
         s.S.n = s.L.N - 1; s.S.streak = 0; s.S.best = 0;
         expect(streakDead(d, s.L, s.S), d.slot).toBe(d.C > 1);
       }
     }
+  });
+
+  it('단계별 배우기(✏️ S024 · 📐 사다리): 판마다 안 배운 가장 낮은 별 하나만 가르치고 그 위 ★3은 🔒 · 깬 판에서 배움 · 다 배우면 0 · 별 값(starsOf)은 그대로', () => {
+    const at = (k: number, m: number) => { const s = g.create(1); if (k) startStage(s, k); setLearn(s, m); return s; };
+    const i = (slot: string) => STAGES.findIndex((d) => d.slot === slot);
+    const a = at(i('1-1'), 0);
+    expect([a.teach, a.lock3]).toEqual([2, true]); // 쾅(★2) · ★3 잠금
+    const b = at(i('1-2'), KB.bonk);
+    expect([b.teach, b.lock3]).toEqual([2, true]); // 빈칸(★2)
+    const c = at(i('1-3'), KB.bonk | KB.gap);
+    expect([c.teach, c.lock3]).toEqual([3, false]); // ★3
+    expect(at(i('1-2'), 31).teach).toBe(0);
+    for (const [k, d] of STAGES.entries()) { const s = at(k, 0), [x, y] = starKinds(d); expect(s.teach, d.slot).toBe(2); expect(s.lock3, d.slot).toBe(x !== y); }
+    const r = tryStage(screwshopSmart, 1000, i('1-1'));
+    expect(r.ok && r.stars).toBe(3);
+    expect(r.s.learn & KB.bonk).toBe(KB.bonk);
   });
 });

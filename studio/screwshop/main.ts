@@ -5,7 +5,7 @@
 import { TICK, type Input } from './core.ts';
 import { juice, peek } from './juice.ts';
 import { sfx } from './sfx.ts';
-import { STAGES, setAspect, setCue, startStage, screwshop as g, type ShopState } from './game.ts';
+import { STAGES, setAspect, setCue, setLearn, startStage, screwshop as g, type ShopState } from './game.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('screwshop:' + k) ?? 0); } catch { return 0; } },
@@ -38,6 +38,7 @@ let aspect = g.aspect ?? 1.45; // ✏️ S013: 화면 높이로 늘림(🎨 ART 
 let s: ShopState = g.create(1), running = false, acc = 0, last = 0, keyboard = false, spaceDown = false;
 let pointer: { x: number; y: number } | null = null, latch: { x: number; y: number } | null = null, cursor = { x: 0.5, y: 0.6 };
 const keys = new Set<string>();
+let learnSaved = -1;
 let W = 0, H = 0, steps = 0, slow = false; // slow: 슬로모 틱 번갈이(프레임을 넘어 유지해야 한다 — 프레임마다 되돌리면 60Hz에서 멈춘다)
 const calm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -153,6 +154,7 @@ function start(pickK?: number) {
   s = g.create(fixed > 0 ? fixed : (Date.now() % 1_000_000) + 1);
   if (st > 1 && st <= STAGES.length) startStage(s, st - 1);
   if (typeof pickK === 'number') startStage(s, pickK);
+  setLearn(s, store.get('learn')); // ✏️ S024: 배운 별(단계별 배우기) — 저장이 없으면 처음부터
   if (Number(q.get('fails')) > 0) s.sf = Number(q.get('fails')); // ?fails=N: 이 판에서 N번 진 것으로(귀띔 단추 보기 · 스크린샷)
   if (q.get('hint')) (s.sf = 3), (s.hint = true); // ?hint=1: 귀띔 켠 판
   juice(s).calm = calm;
@@ -199,6 +201,7 @@ function loop(now: number) {
     latch = null;
     const st0 = s.stage;
     g.step(s, input);
+    if (s.learn !== learnSaved) store.set('learn', (learnSaved = s.learn));
     if (s.menu) (s.menu = false), showPick(); // 도구 줄 🗺️ 판(✏️ S013)
     if (s.stage !== st0) keepStars();
     if (g.over(s)) return end();
