@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, jackEarly, logLate, paintStage, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setAspect, setCue, screwshop as g, screwshopSmart, shotDead, starText, startStage, streakDead, tipLine } from '../studio/screwshop/game.ts';
+import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, jackEarly, logLate, paintStage, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setAspect, setCue, screwshop as g, screwshopSmart, shotDead, starText, startStage, streakDead, tapDead, tipLine } from '../studio/screwshop/game.ts';
 import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { f16, screwshopMash, screwshopNewbie, tryStage } from '../studio/screwshop/funqa.ts';
@@ -716,12 +716,12 @@ describe('🪵 통나무가 먼저 떨어져 → 빈칸 (✏️ S013 · 🧪 S01
     for (const slot of ['1-5', '1-8', '2-3']) expect(tipLine(STAGES.find((d) => d.slot === slot)!.tip2!), slot).toMatch(/^🔑는 /);
   });
 
-  it('별 글(✏️ S023 · M2′ G2 · G3 · 🧪 F26): 결과는 28판 모두 \'값 (≥/≤ 목표)\' 한 꼴(\'a / b\' 0) · 톡 칩은 판 중에 셈 · 연속 칩도 못 따면 ✗', () => {
+  it('별 글(✏️ S023 · M2′ G2 · G3 · 🧪 F26): 결과는 28판 모두 \'값 (≥/≤ 목표)\' 한 꼴(\'a / b\' 0) · 톡 칩은 판 중에 셈 · T번을 다 썼는데 나사가 남으면 ✗ · 연속 칩도 못 따면 ✗', () => {
     for (const [k, d] of STAGES.entries()) {
       const s = g.create(1); if (k) startStage(s, k);
       const tx = starText(d, s.S);
       for (const r of [tx.r2, tx.r3]) { expect(r, d.slot).toMatch(/ \((≥|≤)\d+\)$/); expect(r, d.slot).not.toMatch(/\d \/ \d/); }
-      if (d.B === undefined && d.H === undefined && d.T !== undefined) { const a = tx.c3; s.S.taps = 3; expect(starText(d, s.S).c3, d.slot).not.toBe(a); expect(starText(d, s.S).c3).toBe(`톡 3/${d.T}`); }
+      if (d.B === undefined && d.H === undefined && d.T !== undefined) { const a = tx.c3; s.S.taps = 3; expect(starText(d, s.S).c3, d.slot).not.toBe(a); expect(starText(d, s.S).c3).toBe(`톡 3 (≤${d.T})`); s.S.taps = d.T; expect(tapDead(d, s.L, s.S), d.slot).toBe(true); s.S.n = s.L.N; expect(tapDead(d, s.L, s.S), d.slot).toBe(false); }
       if (d.B === undefined && d.H === undefined && d.T === undefined) {
         expect(streakDead(d, s.L, s.S), d.slot).toBe(false);
         s.S.n = s.L.N - 1; s.S.streak = 0; s.S.best = 0;

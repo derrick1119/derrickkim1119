@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Bot, Input } from './core.ts';
 import { mulberry32 } from './rng.ts';
-import { STAGES, apply, geometry, setLevel, visibleM, cloneSim, freeM, jackEarly, logLate, paintStage, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, screwshopBlind, startStage, starsOf, star3, shotDead, bonkDead, streakDead, starText, gaugeOf, type Level, type ShopState, type Sim, type StageDef, type Src } from './game.ts';
+import { STAGES, apply, geometry, setLevel, visibleM, cloneSim, freeM, jackEarly, logLate, paintStage, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, screwshopBlind, startStage, starsOf, star3, shotDead, bonkDead, streakDead, tapDead, starText, gaugeOf, type Level, type ShopState, type Sim, type StageDef, type Src } from './game.ts';
 
 export interface Try { ok: boolean; stars: number; sec: number; peak: number; best: number; shot: number; taps: number; /** 끝난 판(되짚기·F13용) */ s: ShopState }
 
@@ -389,7 +389,7 @@ export const twinsOf = (rows: { slot: string; big: ReturnType<typeof bigOf> }[])
 /** ✏️ S023(M2′ G6 · 📐 S022 starRead · 🧪 S022 F25 · F27): 별이 와닿나 — ★3 종류 · 조건 지식 몫 K · 판 중 ✗ · 첫 나옴 노출 */
 export const kindOf = (d: StageDef) => (d.B !== undefined ? '쾅' : d.H !== undefined ? '한 방' : d.T !== undefined ? '톡' : '연속');
 const sat = (d: StageDef, S: Sim) => [d.B !== undefined ? S.bonks >= d.B : S.peak <= d.P, d.B !== undefined ? S.bonks >= d.B && S.peak <= d.P : star3(d, S)];
-const deadOf = (d: StageDef, L: Level, S: Sim) => (d.B !== undefined ? bonkDead(d, L, S) || S.peak > d.P : d.H !== undefined ? shotDead(d, L, S) : d.T !== undefined ? S.taps > d.T : streakDead(d, L, S));
+const deadOf = (d: StageDef, L: Level, S: Sim) => (d.B !== undefined ? bonkDead(d, L, S) || S.peak > d.P : d.H !== undefined ? shotDead(d, L, S) : d.T !== undefined ? tapDead(d, L, S) : streakDead(d, L, S));
 export function starOf(k: number, seeds = 24, sm?: ShopState[]) {
   const d = STAGES[k], ids = Array.from({ length: seeds }, (_, i) => 1000 + i * 7);
   const rate = (st: ShopState[]) => [0, 1].map((j) => +(st.filter((s) => s.phase === 'result' && s.ok && sat(d, s.S)[j]).length / st.length).toFixed(2));
