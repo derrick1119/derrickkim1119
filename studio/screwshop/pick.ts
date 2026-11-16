@@ -192,29 +192,8 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   //   ✏️ S005: − 막 누르기 ★2 이상(0.1 넘는 만큼, 2판과 같은 꼴) — 후보 중 최고 → 상위 24로 바꾸자 0.17 → 0.21로 올라서
   //   📐 S008: 장인(funqa와 같은 눈)이 ★3 + 쏙 한 방 ≥ 3(날개 🔨 → 📌 🔨 연쇄)이 아니면 탈락 · 연쇄로 튄 나사가 장인 판에서 빈칸에 가면 −3(F14)
   //   · 장인−진자가 ★3을 놓치면 +0.5(F15: 왼쪽 위 날개를 끝 #7에 매달아야 🔨가 #11을 친다) · 막 누르기 연쇄 빈칸 비율 0.4까지 +1(F14) · 무작위 32판 0.65까지
-  (L, d, r) => {
-    const S = newSim(L);
-    let known = visibleM(L, 0), cs = 0;
-    while (!S.fail && S.n < L.N) {
-      const m0 = bestMove({ ...L, col: L.col.map((c, i) => ((known >> i) & 1 ? c : -1)), queue: L.queue.map((c, i) => (i < S.qi + 2 ? c : -2)) }, S, d), m = m0 >= 0 ? m0 : habitPick(L, S), rec: { k: string; s?: number }[] = [];
-      apply(L, S, m, rec as never);
-      cs += rec.filter((e) => e.k === 'slot' && e.s !== m).length;
-      known |= visibleM(L, S.gone);
-    }
-    if (S.fail || starsOf(d, S) !== 3) return -9;
-    if (S.shot < 3) return -6 + S.shot;
-    let mg = 0, pn = 0, ps = 0; // 막 누르기 ★2 이상 · 연쇄로 튄 나사 수 · 그중 빈칸 (F14)
-    for (let k = 0; k < 16; k++) {
-      const M = newSim(L), mash = mashOf(L, r);
-      while (!M.fail && M.n < L.N) {
-        const rec: { k: string; pop?: boolean }[] = [];
-        apply(L, M, mash(M), rec as never);
-        rec.forEach((e, j) => e.k === 'out' && e.pop && (pn++, (ps += rec.slice(j + 1).find((x) => x.k === 'box' || x.k === 'slot')?.k === 'slot' ? 1 : 0)));
-      }
-      mg += !M.fail && starsOf(d, M) >= 2 ? 1 : 0;
-    }
-    return (playOut(L, d, habitOf(L)) ? 2.65 : 0) + Math.min(1, randomPass(L, r, 32) / 0.65) - Math.max(0, mg / 16 - 0.1) * 4 - (cs ? 3 : 0) + (smartSeen(L, d, true) === 3 ? 0 : 0.5) + Math.min(1, ps / Math.max(1, pn) / 0.4);
-  },
+  //   📐A S026: ★3 '한 번에 3개 쏙'(H3 · 오너 04:3x UTC 칠 다시 고르기 승인) → gate save · mc 2(📌 F19 .08 → 1.00 · 막 누르기 클리어 .58 → .50) · CAP ∞
+  (L, d, r) => gate(L, d, r, { save: true, pend: 1, hc: 1, mc: 2 }),
   // 📐 5판 🌻 (S005 · S008): 장인 ★3이 아니면 −9 · 버릇 ★3이면 −5 · 장인−진자가 ★3을 놓치면 +1(F15 — 양옆 꽃잎 안쪽을 남기느냐)
   //   · 버릇 클리어(처음 하는 사람 숨통) + (1 − 막 누르기 클리어, 200판). 장인은 funqa처럼 다음 상자 2개까지만 안다
   (L, d, r) => {
@@ -317,7 +296,7 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   (L, d, r) => gate(L, d, r, { pend: 12, hc: 1, mc: 22, full: true, pv: true, big: [3, 6], lead: 'reveal' }),
   () => -9, // id 29 자리(📐A 3-9 🎡)
 ];
-export const CAP = [Infinity, 4.5, 3.65, 5.15, 3.5, 2.95, 3.95, 2.95, Infinity, 2.95, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity];
+export const CAP = [Infinity, 4.5, 3.65, Infinity, 3.5, 2.95, 3.95, 2.95, Infinity, 2.95, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity];
 
 /** ✏️ S025(📋 A 갈래 · 오너 01:57 UTC 승인): ★3을 '한 번에 쏙 N'으로 통일한 판은 고르기만 통일 전 ★3으로 한다 — 실린 칠 · 지문(값 열 포함) 그대로.
  *  새 ★3은 장인 ★3 1.00 · 버릇 4종 ≤ .15를 실린 24칠로 따로 잰다(funqa · 테스트) */
