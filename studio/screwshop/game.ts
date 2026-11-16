@@ -669,6 +669,8 @@ export interface ShopState {
   learn: number; teach: number; lock3: boolean; tv: number; taught: boolean;
   /** ✏️ S026 B③ 따는 순간: 판 중에 딴 별(비트 2 · 4) · 날아가는 별 */
   sg: number; starFx: { t0: number; k: number } | null;
+  /** ✏️ S027 🧪 🔴② · 🟡③(화면 몫 · 시뮬은 안 씀): 별 카드를 손으로 닫음 · 카드 자리(누름 좌표 0~1) — main.ts가 읽고 씀 */
+  cardOff: boolean; cardBox: [number, number, number, number] | null;
 }
 
 const ev = (s: ShopState, kind: string, x: number, y: number, text?: string, col?: string, v?: number, n?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v, n });
@@ -723,6 +725,7 @@ function newStage(s: ShopState) {
   s.got = 0;
   s.sg = 0;
   s.starFx = null;
+  s.cardOff = false;
   setMood(s, 'idle');
   teachOf(s);
   see(s, d.key, d.news);
@@ -1211,7 +1214,7 @@ export const screwshop: GameDef<ShopState> = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'play', pt: 0, known: 0,
       down: false, ax: 0, ay: 0, press: -1, cool: 0, lastTap: -99, taps: 0,
       hearts: 3, stars: 0, got: 0, bestSt: [], bestPts: [], retries: 0, sf: 0, hint: false, hist: [], blame: null, pts: 0, ok: false, why: '', won: false, dead: false, tries: 0,
-      seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsQ: [], startT: 0, clearT: 0, learn: 0, teach: 0, lock3: false, tv: 0, taught: false, sg: 0, starFx: null,
+      seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsQ: [], startT: 0, clearT: 0, learn: 0, teach: 0, lock3: false, tv: 0, taught: false, sg: 0, starFx: null, cardOff: false, cardBox: null,
       pv: [], fl: [], vb: [], lv: [], vs: [], ready: [], mood: 'idle', moodT: 0, bird: 0,
     } as unknown as ShopState;
     newStage(s);
@@ -3288,7 +3291,10 @@ function drawBird(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   }
 }
 
+/** ✏️ S027 🧪 🔴②: 별 카드 — 첫 톡(또는 손으로 닫기)까지. 배우는 별이 없는 판만 2.5초에 닫힌다 */
+const cardOn = (s: ShopState, t: number) => s.phase === 'play' && !s.hint && s.taps === 0 && !s.cardOff && (s.teach > 0 || t - s.startT < 150);
 function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: number, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, font: (sz: number, w?: number) => void, th: Theme) {
+  s.cardBox = null; // ✏️ S027 🟡③: 카드가 그려진 프레임에만 자리가 있다
   const t = s.t, S = s.S;
   /** ✏️ S024: 가장 긴 글이 mw를 넘으면 그만큼 글자를 줄인다(칩 · 배우기 줄 · 결과) */
   const fit = (sz: number, wgt: number, mw: number, ...tx: string[]) => { font(sz, wgt); const m = max(...tx.map((x) => ctx.measureText(x).width)); if (m > mw) ctx.font = `${wgt} ${max(10, (max(12, R(sz)) * mw) / m)}px system-ui, sans-serif`; };
@@ -3302,8 +3308,21 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
   ctx.fillText(`${d.slot} · ${d.emoji} ${d.name}`, R(0.03), hb * 0.52);
   ctx.textAlign = 'right';
   ctx.fillStyle = '#ffd166';
-  const stt = `★ ${s.stars}`;
-  ctx.fillText(stt, w - R(0.03), hb * 0.52);
+  // ✏️ S027 🧪 🔴①(오너 '따도 안 기쁘다'): 판 중에 딴 별은 위 ★ 칸에도 붙는다 — '★ 0 +★3'(날아온 별이 앉는 순간 통통)
+  const gotNow = s.phase === 'play' ? `${s.sg & 4 ? '★2' : ''}${s.sg & 8 ? '★3' : ''}` : '', stt = `★ ${s.stars}${gotNow ? ` +${gotNow}` : ''}`;
+  if (gotNow) {
+    const land = s.starFx ? t - s.starFx.t0 - 40 : 99, pop = land >= 0 && land < 16 ? 1 + 0.35 * sin((land / 16) * Math.PI) : 1, gw0 = ctx.measureText(` +${gotNow}`).width;
+    ctx.save();
+    ctx.translate(w - R(0.03) - gw0 / 2, hb * 0.52);
+    ctx.scale(pop, pop);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffe066';
+    ctx.fillText(` +${gotNow}`, 0, 0);
+    ctx.restore();
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#ffd166';
+    ctx.fillText(`★ ${s.stars}`, w - R(0.03) - gw0, hb * 0.52);
+  } else ctx.fillText(stt, w - R(0.03), hb * 0.52);
   ctx.fillStyle = th.hot;
   // ↺ 지금 다시 (하트 대신, S003): 판 중 언제든 같은 판을 처음부터 — 한 방 칩이 ✗면 반짝 · 도구 줄이 있으면 그쪽으로(🎨 ART §6 · ✏️ S014)
   if (!tools()) {
@@ -3469,7 +3488,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     }
     // ✏️ S027(📋 G4 별 카드 · 오너 "알기 쉽게 · 단계별로"): 판을 열면 칩 줄 위에 '이 판 별 받는 법' 카드 — 첫 톡 또는 2.5초까지.
     //   배우는 별 줄은 금빛 + 받는 법 한 줄(S024 배우기 줄을 품음 · 시작 글 ≤ 3겹) · 안 배운 ★3은 '곧 배워요'
-    if (s.phase === 'play' && !s.hint && s.taps === 0 && t - s.startT < 150) {
+    if (cardOn(s, t)) {
       const tx = starText(d, S), rows = [tx.c1, tx.c2, s.lock3 ? '★3 곧 배워요' : tx.c3], lh = R(0.05), sub = s.teach ? (s.teach === 2 ? tx.l2 : tx.l3) : '';
       const ch = lh * (rows.length + 1) + (sub ? lh * 0.9 : 0) + R(0.03), cy = y2 - R(0.055) - ch, cw = w - R(0.1), a = min(1, (t - s.startT) / 8);
       ctx.globalAlpha = a;
@@ -3477,6 +3496,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       bp(ctx);
       ctx.roundRect(R(0.05), cy, cw, ch, R(0.035));
       ctx.fill();
+      s.cardBox = [0.05, cy / w / A, 0.95, (cy + ch) / w / A];
       ctx.strokeStyle = '#ffd166';
       ctx.lineWidth = 2;
       ctx.stroke();
@@ -3509,7 +3529,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     else if (s.hint) tip = '💡 귀띔 — 밤톨 손가락을 따라가요 (★3 없음)';
     else if (!S.key && !s.L.wind) tip = '🔒 자물쇠 나사는 🔑 열쇠 나사를 빼야 풀려요'; // 태엽 판은 일찍 빼면 손해라 판 팁으로
     else if (!(s.L.wind && S.key)) tip = d.tip; // 📐: 1판도 첫 톡 뒤엔 판 팁 · 🧪 S004: 태엽을 뺀 뒤엔 '열쇠를 톡' 팁을 내린다
-    if (s.phase === 'play' && !s.hint && s.taps === 0 && t - s.startT < 150) tip = ''; // 🧪 S024 ⑧ · ✏️ S027: 별 카드가 보이는 동안 아래 줄은 쉰다
+    if (cardOn(s, t)) tip = ''; // 🧪 S024 ⑧ · ✏️ S027: 별 카드가 보이는 동안 아래 줄은 쉰다
     ctx.textAlign = 'center';
     font(0.036, 800);
     ctx.fillStyle = 'rgba(255,240,214,.92)';

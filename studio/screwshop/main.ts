@@ -210,6 +210,13 @@ function loop(now: number) {
   requestAnimationFrame(loop);
 }
 
+/** ✏️ S027 🧪 🟡③: 별 카드가 떠 있으면 첫 누름은 카드를 닫는다 — 카드 위를 누른 것은 판에 안 넘긴다(가린 나사가 몰래 톡 되지 않게 · 시뮬 밖 화면 몫) */
+const closeCard = (p: { x: number; y: number }) => {
+  const b = s.cardBox;
+  if (!b || s.phase !== 'play' || s.taps > 0 || s.cardOff) return false;
+  s.cardOff = true;
+  return p.x >= b[0] && p.x <= b[2] && p.y >= b[1] && p.y <= b[3];
+};
 const toPoint = (e: PointerEvent) => {
   const r = canvas.getBoundingClientRect();
   return { x: Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), y: Math.max(0, Math.min(1, (e.clientY - r.top) / r.height)) };
@@ -218,7 +225,9 @@ canvas.addEventListener('pointerdown', (e) => {
   e.preventDefault();
   if (!running) return;
   keyboard = false;
-  pointer = latch = toPoint(e);
+  const p = toPoint(e);
+  if (closeCard(p)) return;
+  pointer = latch = p;
 });
 canvas.addEventListener('pointermove', (e) => void (pointer && e.buttons && (pointer = toPoint(e))));
 canvas.addEventListener('pointerleave', () => void (pointer = null));
@@ -232,7 +241,7 @@ canvas.addEventListener('keydown', (e) => {
   if (e.key === ' ' || e.key.startsWith('Arrow') || e.key === 'Enter') e.preventDefault();
   if (!running) return;
   if (e.key.startsWith('Arrow')) (keys.add(e.key), (keyboard = true));
-  if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) (spaceDown = true), (keyboard = true), (pointer = { ...cursor });
+  if ((e.key === ' ' || e.key === 'Enter') && !e.repeat && !closeCard(cursor)) (spaceDown = true), (keyboard = true), (pointer = { ...cursor });
 });
 canvas.addEventListener('keyup', (e) => {
   keys.delete(e.key);
