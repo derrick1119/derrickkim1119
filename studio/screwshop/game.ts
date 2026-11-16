@@ -410,7 +410,7 @@ export function apply(L: Level, S: Sim, s: number, rec?: RE[]) {
 /** ★3 조건: 톡 T번 이하(T가 있으면) 또는 연속 쏙 C번 */
 export const star3 = (d: StageDef, S: Sim) => (d.H !== undefined ? S.shot >= d.H : d.T !== undefined ? S.taps <= d.T : S.best >= d.C);
 /** ★3 '한 방 H'를 이제 못 딴다: 아직 못 땄고 남은 통나무가 없다 (🧪 S002: 와르르 0 뒤에도 칩이 ☆라 헛민다) */
-export const shotDead = (d: StageDef, L: Level, S: Sim) => d.H !== undefined && S.shot < d.H && !L.pl.some((p, k) => p.heavy && L.pm[k] & ~S.gone) && !(L.wind && !S.key) && !(L.thump && L.N - S.n >= d.H) && !(L.jack && L.pm[L.jack[0]] & ~S.gone); // 📐 S007: 🔑 태엽 판은 🔑 전엔 살아 있음(8판) · 📐B S012: 🐹 쿵 판은 남은 나사가 H개 이상이면 살아 있음(1-6) · 📐B S013: 🤡 상자가 남았으면 살아 있음(3-2)
+export const shotDead = (d: StageDef, L: Level, S: Sim) => d.H !== undefined && S.shot < d.H && (L.N - S.n < d.H || (!L.pl.some((p, k) => (p.heavy || p.ham || p.kind === 'spring') && L.pm[k] & ~S.gone) && !(L.wind && !S.key) && !(L.thump && L.N - S.n >= d.H) && !(L.jack && L.pm[L.jack[0]] & ~S.gone))); // ✏️ S025(📋 A · shotDead 일반화): 🔨 · 🌀 판자가 남았으면 살아 있음(통일 판 톡 0 ✗ 0) · 남은 나사 < H면 끝 // 📐 S007: 🔑 태엽 판은 🔑 전엔 살아 있음(8판) · 📐B S012: 🐹 쿵 판은 남은 나사가 H개 이상이면 살아 있음(1-6) · 📐B S013: 🤡 상자가 남았으면 살아 있음(3-2)
 export const starsOf = (d: StageDef, S: Sim) => (d.B !== undefined ? (S.bonks >= d.B ? (S.peak <= d.P ? 3 : 2) : 1) : 1 + (S.peak <= d.P ? 1 : 0) + (star3(d, S) ? 1 : 0));
 /** 🔨 ★2(쾅 B번)를 이제 못 딴다: 아직 칠 수 있는 망치(아직 안 매달렸고 칠 나사가 살아 있음)를 다 더해도 B에 못 미친다 */
 /** 🔨 아직 칠 수 있는 망치 수: 아직 안 매달렸고 칠 나사가 살아 있음 */
@@ -1076,7 +1076,7 @@ function playRec(s: ShopState, rec: RE[]) {
   else if (rec.some((e) => e.k === 'done') || S.streak >= 4) setMood(s, 'smug');
   // 🎨 §2.4 한 방: 톡 한 번에 상자로 2개 이상 쏙(📋 S004 쏙 한 방 — 빈칸으로 간 것은 안 셈, 빈칸이 절반 이상이면 작게)
   if (shotN - shotBad >= 2) ev(s, 'shot', shotX / shotN, shotY / shotN - 0.09, shotBad * 2 >= shotN ? 'bad' : undefined, undefined, lastLand, shotN - shotBad);
-  const C = STAGES[s.stage].C;
+  const d0 = STAGES[s.stage], C = d0.H === undefined && d0.T === undefined && d0.B === undefined ? d0.C : 99; // ✏️ S025: ★ 붙은 '연달아' 글은 연속이 ★3인 판만
   if ((S.streak === 3 || S.streak === C || (S.streak > C && S.streak % 4 === 0)) && rec.some((e) => e.k === 'box')) ev(s, 'streak', 0.5, BOX_Y, S.streak >= C ? `★ ${S.streak}개 연달아 쏙!` : `${S.streak}개 연달아 쏙!`, S.streak >= C ? '#ffd166' : '#bff7c4', s.t + SPIN + FLY);
   // ✏️ S024(📐 단계별 배우기 · 짚기): 가르치는 별이 처음 움직인 톡에 칩 위로 한 줄
   if (s.teach && !S.fail) {

@@ -311,9 +311,12 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
 ];
 export const CAP = [Infinity, 4.5, 3.65, 5.15, 3.5, 2.95, 3.95, 2.95, Infinity, 2.95, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity];
 
+/** ✏️ S025(📋 A 갈래 · 오너 01:57 UTC 승인): ★3을 '한 번에 쏙 N'으로 통일한 판은 고르기만 통일 전 ★3으로 한다 — 실린 칠 · 지문(값 열 포함) 그대로.
+ *  새 ★3은 장인 ★3 1.00 · 버릇 4종 ≤ .15를 실린 24칠로 따로 잰다(funqa · 테스트) */
+const PICK_STAR: Record<number, Partial<StageDef>> = { 5: { H: undefined, T: 16 }, 19: { H: undefined, T: 12 }, 6: { H: undefined } };
 /** k번째 판(순서)의 칠 sub 고르기 값 = min(가치, 상한) — 난수 씨앗은 판 id */
 export function valueOf(k: number, sub: number, L = paintStage(k, sub)) {
-  const d = STAGES[k];
+  const d = { ...STAGES[k], ...PICK_STAR[STAGES[k].id] };
   return Math.min(CAP[d.id], VALUE[d.id](L, d, mulberry32((sub * 0x9e3779b1 + d.id) >>> 0)));
 }
 /** k번째 판의 칠 sub 1..scan을 고르기 값이 큰 순(같으면 작은 sub 먼저)으로 — [값, sub] */

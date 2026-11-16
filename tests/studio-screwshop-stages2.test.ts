@@ -31,10 +31,10 @@ describe('판별 반증 (옮김 — 단언 그대로)', () => {
     expect(r.random.clear).toBeGreaterThanOrEqual(0.9);
   });
   for (const k of STAGES.map((_, i) => i).filter((i) => i >= 2)) // ✏️ S010: M1′ 3~8판 + 새 판
-    it(`${k + 1}판 반증(24시드): 장인 ★3 ≥ 0.7 · 버릇 3종 ★3 ≤ 0.15 · 따라 하기 ★3 ≤ 0.25 · 4판 무작위 ≥ 0.5 · 버릇 클리어 ≥ 0.4 (S005 5판 🌻 · S006 6판 🦕 · S007 7판 🏰 · 8판 🚀 더함 · ✏️ S009 판마다 한 테스트)`, () => {
-      const r = measureStage(k, 24, ['smart', 'habit', 'top', 'reveal', 'preview', 'random']);
+    it(`${k + 1}판 반증(24시드): 장인 ★3 ≥ 0.7 · 버릇 4종(✏️ S025 장치는 맨 나중 더함) ★3 ≤ 0.15 · 따라 하기 ★3 ≤ 0.25 · 4판 무작위 ≥ 0.5 · 버릇 클리어 ≥ 0.4 (S005 5판 🌻 · S006 6판 🦕 · S007 7판 🏰 · 8판 🚀 더함 · ✏️ S009 판마다 한 테스트)`, () => {
+      const r = measureStage(k, 24, ['smart', 'habit', 'top', 'reveal', 'save', 'preview', 'random']); // ✏️ S025: 버릇 ④ 장치는 맨 나중(📋 A 통일 반증)
       expect(r.smart.star3, `${k + 1}판 장인`).toBeGreaterThanOrEqual(0.7);
-      for (const b of ['habit', 'top', 'reveal']) expect(r[b].star3, `${k + 1}판 ${b}`).toBeLessThanOrEqual(0.15);
+      for (const b of ['habit', 'top', 'reveal', 'save']) expect(r[b].star3, `${k + 1}판 ${b}`).toBeLessThanOrEqual(0.15);
       expect(r.preview.star3, `${k + 1}판 따라 하기`).toBeLessThanOrEqual(0.25);
       if (k === M[3]) expect([r.random.clear >= 0.5, r.habit.clear >= 0.4]).toEqual([true, true]);
     });

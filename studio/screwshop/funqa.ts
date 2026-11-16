@@ -101,6 +101,18 @@ export const screwshopReveal: Bot<ShopState> = {
     return bi >= 0 ? tapI(s, bi) : NO;
   },
 };
+/** 버릇 ④ 장치는 맨 나중(📋 S023 · ✏️ S025 · A 통일 반증): 장치 나사(🔑 · 🌀 · 🪵 · 🔨 · 🤡 판자)는 남은 게 그것뿐일 때 — 그 밖에는 맞는 색 · 위부터.
+ *  ★3이 '한 번에 쏙 N'으로 하나가 되면 '아껴 뒀다 한 방'이 새 버릇이 될 수 있다 */
+export const screwshopSave: Bot<ShopState> = {
+  name: '버릇: 장치는 맨 나중',
+  act(s) {
+    if (!ready(s)) return NO;
+    const L = s.L, dev = (i: number) => !!((L.keyM >> i) & 1) || ((p) => p.kind === 'spring' || !!p.heavy || !!p.ham)(L.pl[L.owner[i]]) || (!!L.jack && L.owner[i] === L.jack[0]);
+    let best = -1, bv = 1e9;
+    for (const i of knownFree(s)) { const v = (dev(i) ? 100 : 0) + (s.S.box.includes(L.col[i]) ? 0 : 10) + L.py[i]; if (v < bv) (bv = v), (best = i); }
+    return best >= 0 ? tapI(s, best) : NO;
+  },
+};
 /** 손가락 → 막 누르기 (🧪 F2 개정): 1판 손가락 첫 톡만 따르고 나머지는 막 누름 — 사람의 '막 누르기'에 가장 가깝다 */
 export const screwshopFingerMash: Bot<ShopState> = {
   name: '손가락 → 막 누르기',
@@ -146,7 +158,7 @@ export function pnrHit(s: ShopState) {
   return !!s.blame && s.blame.t.includes(pnr);
 }
 
-export const BOTS = { smart: screwshopSmart, habit: screwshopHabit, top: screwshopTop, reveal: screwshopReveal, random: screwshopRandom, mash: screwshopMash, finger: screwshopFingerMash, preview: screwshopPreview };
+export const BOTS = { smart: screwshopSmart, habit: screwshopHabit, top: screwshopTop, reveal: screwshopReveal, save: screwshopSave, random: screwshopRandom, mash: screwshopMash, finger: screwshopFingerMash, preview: screwshopPreview };
 
 type Ev = { k: string; p?: number; s?: number; pose?: number };
 /** 꾹 미리 보기가 이 톡에 원인 c의 경고를 띄우나(🧪 S008 m1b warnFor와 같은 식) */

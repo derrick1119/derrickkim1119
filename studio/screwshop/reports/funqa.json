@@ -1,6 +1,6 @@
 {
  "at": "2026-11-16",
- "build": "M2′-S024",
+ "build": "M2′-S025",
  "seeds": 24,
  "summary": {
   "smartStars": 3,
@@ -96,7 +96,7 @@
   },
   "starRead": {
    "kinds": 4,
-   "changes": 27,
+   "changes": 23,
    "live3": 25,
    "f25": [
     [
@@ -128,18 +128,18 @@
     ],
     [
      "한 방",
-     0.96,
-     273
+     1,
+     328
     ],
     [
      "연속",
      1,
-     37
+     16
     ],
     [
      "톡",
      1,
-     187
+     154
     ]
    ],
    "kHigh": [
@@ -385,11 +385,6 @@
    ],
    [
     "3-1",
-    "⏰",
-    0.17
-   ],
-   [
-    "3-1",
     "🪟",
     0
    ]
@@ -578,6 +573,15 @@
     "human": 49,
     "shot": 1.04
    },
+   "save": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 1,
+    "ge2": 0,
+    "sec": 4.8,
+    "human": 51,
+    "shot": 1
+   },
    "random": {
     "clear": 1,
     "star3": 0,
@@ -702,6 +706,15 @@
     "star3": 0,
     "stars": 2,
     "ge2": 1,
+    "sec": 6.1,
+    "human": 66,
+    "shot": 1
+   },
+   "save": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 1,
+    "ge2": 0,
     "sec": 6.1,
     "human": 66,
     "shot": 1
@@ -838,6 +851,15 @@
     "sec": 5.6,
     "human": 61,
     "shot": 2
+   },
+   "save": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 2,
+    "ge2": 1,
+    "sec": 5.6,
+    "human": 61,
+    "shot": 5
    },
    "random": {
     "clear": 0.21,
@@ -976,6 +998,15 @@
     "human": 78,
     "shot": 1.21
    },
+   "save": {
+    "clear": 0.63,
+    "star3": 0,
+    "stars": 0.96,
+    "ge2": 0.33,
+    "sec": 6.8,
+    "human": 73,
+    "shot": 1.04
+   },
    "random": {
     "clear": 0.08,
     "star3": 0,
@@ -1070,7 +1101,7 @@
     "k3": 0.58,
     "seen": 1,
     "miss": 23,
-    "known": 22
+    "known": 23
    }
   },
   {
@@ -1113,6 +1144,15 @@
     "sec": 6.1,
     "human": 66,
     "shot": 2.67
+   },
+   "save": {
+    "clear": 0.58,
+    "star3": 0,
+    "stars": 0.58,
+    "ge2": 0,
+    "sec": 5.5,
+    "human": 59,
+    "shot": 2.75
    },
    "random": {
     "clear": 0.29,
@@ -1256,6 +1296,15 @@
     "human": 77,
     "shot": 1.75
    },
+   "save": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 1.42,
+    "ge2": 0.42,
+    "sec": 7.1,
+    "human": 78,
+    "shot": 1.63
+   },
    "random": {
     "clear": 0.25,
     "star3": 0,
@@ -1396,6 +1445,15 @@
     "sec": 6.4,
     "human": 70,
     "shot": 2.46
+   },
+   "save": {
+    "clear": 0.58,
+    "star3": 0,
+    "stars": 0.71,
+    "ge2": 0.13,
+    "sec": 5.4,
+    "human": 58,
+    "shot": 2.5
    },
    "random": {
     "clear": 0.29,
@@ -1539,6 +1597,15 @@
     "human": 67,
     "shot": 3.71
    },
+   "save": {
+    "clear": 0.58,
+    "star3": 0,
+    "stars": 0.88,
+    "ge2": 0.29,
+    "sec": 6.1,
+    "human": 65,
+    "shot": 2.17
+   },
    "random": {
     "clear": 0.33,
     "star3": 0,
@@ -1676,6 +1743,15 @@
     "sec": 6.6,
     "human": 72,
     "shot": 2.63
+   },
+   "save": {
+    "clear": 0.79,
+    "star3": 0,
+    "stars": 1.17,
+    "ge2": 0.38,
+    "sec": 6.6,
+    "human": 72,
+    "shot": 1.71
    },
    "random": {
     "clear": 0.17,
@@ -1823,6 +1899,15 @@
     "human": 55,
     "shot": 2.38
    },
+   "save": {
+    "clear": 0.5,
+    "star3": 0,
+    "stars": 0.5,
+    "ge2": 0,
+    "sec": 5.2,
+    "human": 55,
+    "shot": 2.17
+   },
    "random": {
     "clear": 0.13,
     "star3": 0,
@@ -1931,7 +2016,7 @@
     "k3": 0.37,
     "seen": 1,
     "miss": 15,
-    "known": 13
+    "known": 15
    }
   },
   {
@@ -1974,6 +2059,15 @@
     "sec": 7.1,
     "human": 78,
     "shot": 1.42
+   },
+   "save": {
+    "clear": 0.67,
+    "star3": 0,
+    "stars": 1.08,
+    "ge2": 0.42,
+    "sec": 6.5,
+    "human": 70,
+    "shot": 1.33
    },
    "random": {
     "clear": 0.63,
@@ -2121,6 +2215,15 @@
     "human": 81,
     "shot": 1
    },
+   "save": {
+    "clear": 0,
+    "star3": 0,
+    "stars": 0,
+    "ge2": 0,
+    "sec": 6.2,
+    "human": 65,
+    "shot": 1
+   },
    "random": {
     "clear": 0.13,
     "star3": 0,
@@ -2262,6 +2365,15 @@
     "sec": 6,
     "human": 65,
     "shot": 1.29
+   },
+   "save": {
+    "clear": 0.63,
+    "star3": 0,
+    "stars": 0.63,
+    "ge2": 0,
+    "sec": 6.5,
+    "human": 70,
+    "shot": 2.5
    },
    "random": {
     "clear": 0.04,
@@ -2409,6 +2521,15 @@
     "human": 81,
     "shot": 1
    },
+   "save": {
+    "clear": 0.29,
+    "star3": 0,
+    "stars": 0.58,
+    "ge2": 0.29,
+    "sec": 5.8,
+    "human": 62,
+    "shot": 1
+   },
    "random": {
     "clear": 0.04,
     "star3": 0,
@@ -2552,6 +2673,15 @@
     "human": 94,
     "shot": 1.13
    },
+   "save": {
+    "clear": 0.38,
+    "star3": 0,
+    "stars": 0.38,
+    "ge2": 0,
+    "sec": 6.4,
+    "human": 69,
+    "shot": 1.54
+   },
    "random": {
     "clear": 0.04,
     "star3": 0,
@@ -2694,6 +2824,15 @@
     "human": 91,
     "shot": 2
    },
+   "save": {
+    "clear": 0,
+    "star3": 0,
+    "stars": 0,
+    "ge2": 0,
+    "sec": 4.1,
+    "human": 41,
+    "shot": 1
+   },
    "random": {
     "clear": 0,
     "star3": 0,
@@ -2774,7 +2913,7 @@
     "v21": 0.87
    },
    "star": {
-    "kind": "톡",
+    "kind": "한 방",
     "smart": [
      1,
      1
@@ -2830,6 +2969,15 @@
     "sec": 7.3,
     "human": 80,
     "shot": 1.04
+   },
+   "save": {
+    "clear": 0.58,
+    "star3": 0.04,
+    "stars": 1.08,
+    "ge2": 0.46,
+    "sec": 6,
+    "human": 65,
+    "shot": 1.92
    },
    "random": {
     "clear": 0.21,
@@ -2963,17 +3111,26 @@
    "reveal": {
     "clear": 1,
     "star3": 0,
-    "stars": 2,
-    "ge2": 1,
+    "stars": 1.42,
+    "ge2": 0.42,
     "sec": 6.2,
     "human": 68,
     "shot": 2.25
    },
+   "save": {
+    "clear": 0,
+    "star3": 0,
+    "stars": 0,
+    "ge2": 0,
+    "sec": 5.5,
+    "human": 57,
+    "shot": 1
+   },
    "random": {
     "clear": 0.21,
     "star3": 0,
-    "stars": 0.29,
-    "ge2": 0.08,
+    "stars": 0.25,
+    "ge2": 0.04,
     "sec": 19.8,
     "human": 48,
     "shot": 1.46
@@ -2981,8 +3138,8 @@
    "mash": {
     "clear": 0.13,
     "star3": 0,
-    "stars": 0.21,
-    "ge2": 0.08,
+    "stars": 0.17,
+    "ge2": 0.04,
     "sec": 2.9,
     "human": 46,
     "shot": 1.42
@@ -2990,8 +3147,8 @@
    "finger": {
     "clear": 0.13,
     "star3": 0,
-    "stars": 0.21,
-    "ge2": 0.08,
+    "stars": 0.17,
+    "ge2": 0.04,
     "sec": 2.9,
     "human": 46,
     "shot": 1.42
@@ -3056,7 +3213,7 @@
     "v21": 0.99
    },
    "star": {
-    "kind": "톡",
+    "kind": "한 방",
     "smart": [
      1,
      1
@@ -3068,8 +3225,8 @@
     "k2": 0.25,
     "k3": 0.92,
     "seen": 1,
-    "miss": 16,
-    "known": 16
+    "miss": 17,
+    "known": 17
    }
   },
   {
@@ -3111,6 +3268,15 @@
     "ge2": 0.13,
     "sec": 8.3,
     "human": 91,
+    "shot": 1.04
+   },
+   "save": {
+    "clear": 0.42,
+    "star3": 0,
+    "stars": 0.54,
+    "ge2": 0.13,
+    "sec": 7.2,
+    "human": 77,
     "shot": 1.04
    },
    "random": {
@@ -3258,6 +3424,15 @@
     "sec": 6.4,
     "human": 69,
     "shot": 2
+   },
+   "save": {
+    "clear": 0.25,
+    "star3": 0,
+    "stars": 0.25,
+    "ge2": 0,
+    "sec": 5.3,
+    "human": 56,
+    "shot": 1.21
    },
    "random": {
     "clear": 0.17,
@@ -3407,6 +3582,15 @@
     "human": 48,
     "shot": 1
    },
+   "save": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 1.88,
+    "ge2": 0.88,
+    "sec": 8.2,
+    "human": 91,
+    "shot": 1
+   },
    "random": {
     "clear": 0.04,
     "star3": 0,
@@ -3436,8 +3620,8 @@
    },
    "preview": {
     "clear": 1,
-    "star3": 0.08,
-    "stars": 1.96,
+    "star3": 0.13,
+    "stars": 2,
     "ge2": 0.88,
     "sec": 8.2,
     "human": 91,
@@ -3474,7 +3658,7 @@
     "first": "·"
    },
    "f19": {
-    "⏰": 0.17,
+    "⏰": 1,
     "🪟": 0
    },
    "seen": 0,
@@ -3487,7 +3671,7 @@
     "v21": 1
    },
    "star": {
-    "kind": "연속",
+    "kind": "한 방",
     "smart": [
      1,
      1
@@ -3543,6 +3727,15 @@
     "sec": 6.5,
     "human": 71,
     "shot": 2.42
+   },
+   "save": {
+    "clear": 0.33,
+    "star3": 0,
+    "stars": 0.38,
+    "ge2": 0.04,
+    "sec": 5.6,
+    "human": 59,
+    "shot": 1.54
    },
    "random": {
     "clear": 0.17,
@@ -3651,7 +3844,7 @@
     "k3": 0.42,
     "seen": 1,
     "miss": 22,
-    "known": 17
+    "known": 22
    }
   },
   {
@@ -3694,6 +3887,15 @@
     "sec": 6.9,
     "human": 76,
     "shot": 2.75
+   },
+   "save": {
+    "clear": 0.54,
+    "star3": 0,
+    "stars": 0.63,
+    "ge2": 0.08,
+    "sec": 6.1,
+    "human": 66,
+    "shot": 2.54
    },
    "random": {
     "clear": 0.29,
@@ -3856,6 +4058,15 @@
     "human": 86,
     "shot": 1.04
    },
+   "save": {
+    "clear": 1,
+    "star3": 0,
+    "stars": 2,
+    "ge2": 1,
+    "sec": 7.3,
+    "human": 80,
+    "shot": 2.33
+   },
    "random": {
     "clear": 0.17,
     "star3": 0,
@@ -4000,6 +4211,15 @@
     "sec": 6.2,
     "human": 66,
     "shot": 2.08
+   },
+   "save": {
+    "clear": 0.25,
+    "star3": 0,
+    "stars": 0.25,
+    "ge2": 0,
+    "sec": 5.2,
+    "human": 54,
+    "shot": 1.58
    },
    "random": {
     "clear": 0,
@@ -4149,6 +4369,15 @@
     "human": 83,
     "shot": 1.29
    },
+   "save": {
+    "clear": 0.13,
+    "star3": 0,
+    "stars": 0.17,
+    "ge2": 0.04,
+    "sec": 5.2,
+    "human": 55,
+    "shot": 1
+   },
    "random": {
     "clear": 0.04,
     "star3": 0,
@@ -4264,7 +4493,7 @@
     "k3": 0.58,
     "seen": 1,
     "miss": 14,
-    "known": 12
+    "known": 14
    }
   },
   {
@@ -4307,6 +4536,15 @@
     "sec": 7.1,
     "human": 78,
     "shot": 1.88
+   },
+   "save": {
+    "clear": 0.33,
+    "star3": 0,
+    "stars": 0.42,
+    "ge2": 0.08,
+    "sec": 5.8,
+    "human": 61,
+    "shot": 1.08
    },
    "random": {
     "clear": 0.17,
@@ -4454,6 +4692,15 @@
     "ge2": 0,
     "sec": 2.7,
     "human": 26,
+    "shot": 1
+   },
+   "save": {
+    "clear": 0,
+    "star3": 0,
+    "stars": 0,
+    "ge2": 0,
+    "sec": 6.2,
+    "human": 66,
     "shot": 1
    },
    "random": {
