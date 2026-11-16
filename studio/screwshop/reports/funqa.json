@@ -1,11 +1,11 @@
 {
  "at": "2026-11-16",
- "build": "M2′-S026",
+ "build": "M2′-S027",
  "seeds": 24,
  "summary": {
   "smartStars": 3,
   "habitStars": 1.55,
-  "randomStars": 0.26,
+  "randomStars": 0.25,
   "smartStar3": 1,
   "habitStar3": 0.03,
   "randomClear1": 1,
@@ -17,9 +17,9 @@
   "fingerGe2_1": 0.04,
   "fingerGe2_2": 0.17,
   "previewStar3_38": 0.05,
-  "smartShot": 4.08,
-  "mashShot": 1.34,
-  "smartSec": 6.13,
+  "smartShot": 4.11,
+  "mashShot": 1.33,
+  "smartSec": 6.1,
   "newbie3_13": 1,
   "newbie3_avg": 0.98,
   "hintMin": 1,
@@ -35,7 +35,7 @@
    ],
    [
     "3-3",
-    1.07,
+    2.03,
     0
    ],
    [
@@ -96,7 +96,7 @@
   },
   "starRead": {
    "kinds": 4,
-   "changes": 13,
+   "changes": 11,
    "live3": 28,
    "f25": [
     [
@@ -129,7 +129,7 @@
     [
      "한 방",
      1,
-     429
+     450
     ],
     [
      "연속",
@@ -139,7 +139,7 @@
     [
      "톡",
      1,
-     58
+     39
     ]
    ],
    "falseDead": [],
@@ -193,6 +193,11 @@
      "2-10",
      "★3",
      0.67
+    ],
+    [
+     "3-3",
+     "★3",
+     0.71
     ],
     [
      "3-4",
@@ -285,8 +290,8 @@
    ],
    [
     "3-3",
-    0.07,
-    0.26,
+    0.69,
+    0.31,
     1
    ],
    [
@@ -508,14 +513,14 @@
    61,
    91,
    66,
-   71,
+   61,
    75,
    71,
    76,
    71,
    66
   ],
-  "skillGap": 11.54
+  "skillGap": 12
  },
  "stages": [
   {
@@ -3869,109 +3874,109 @@
     "star3": 1,
     "stars": 3,
     "ge2": 1,
-    "sec": 6.5,
-    "human": 71,
-    "shot": 4
+    "sec": 5.6,
+    "human": 61,
+    "shot": 5
    },
    "habit": {
-    "clear": 0.96,
-    "star3": 0,
-    "stars": 0.96,
-    "ge2": 0,
-    "sec": 6.8,
-    "human": 74,
-    "shot": 2.25
-   },
-   "top": {
-    "clear": 0.13,
-    "star3": 0,
-    "stars": 0.13,
-    "ge2": 0,
-    "sec": 4,
-    "human": 40,
-    "shot": 1.63
-   },
-   "reveal": {
     "clear": 1,
     "star3": 0,
     "stars": 1,
     "ge2": 0,
-    "sec": 6.9,
-    "human": 76,
-    "shot": 2.75
+    "sec": 6.4,
+    "human": 70,
+    "shot": 2.46
+   },
+   "top": {
+    "clear": 0.04,
+    "star3": 0,
+    "stars": 0.04,
+    "ge2": 0,
+    "sec": 3.4,
+    "human": 33,
+    "shot": 1.08
+   },
+   "reveal": {
+    "clear": 0.92,
+    "star3": 0,
+    "stars": 0.92,
+    "ge2": 0,
+    "sec": 6.7,
+    "human": 73,
+    "shot": 2.5
    },
    "save": {
-    "clear": 0.54,
-    "star3": 0,
-    "stars": 0.63,
-    "ge2": 0.08,
-    "sec": 6.1,
-    "human": 66,
-    "shot": 2.54
-   },
-   "random": {
-    "clear": 0.29,
+    "clear": 0.38,
     "star3": 0,
     "stars": 0.46,
-    "ge2": 0.17,
-    "sec": 20.3,
-    "human": 46,
-    "shot": 1.79
+    "ge2": 0.08,
+    "sec": 5.6,
+    "human": 60,
+    "shot": 2
+   },
+   "random": {
+    "clear": 0.17,
+    "star3": 0,
+    "stars": 0.17,
+    "ge2": 0,
+    "sec": 17.3,
+    "human": 40,
+    "shot": 1.67
    },
    "mash": {
     "clear": 0.08,
     "star3": 0,
-    "stars": 0.17,
-    "ge2": 0.08,
-    "sec": 2.7,
-    "human": 41,
-    "shot": 1.63
+    "stars": 0.08,
+    "ge2": 0,
+    "sec": 2.6,
+    "human": 39,
+    "shot": 1.38
    },
    "finger": {
     "clear": 0.08,
     "star3": 0,
-    "stars": 0.17,
-    "ge2": 0.08,
-    "sec": 2.7,
-    "human": 41,
-    "shot": 1.63
+    "stars": 0.08,
+    "ge2": 0,
+    "sec": 2.6,
+    "human": 39,
+    "shot": 1.38
    },
    "preview": {
     "clear": 1,
     "star3": 0,
-    "stars": 1.75,
-    "ge2": 0.75,
-    "sec": 6.7,
-    "human": 73,
-    "shot": 3.42
+    "stars": 1.5,
+    "ge2": 0.5,
+    "sec": 6.3,
+    "human": 69,
+    "shot": 3.83
    },
    "newbie": {
-    "clear1": 0.83,
-    "clear3": 0.92,
-    "fails": 14,
+    "clear1": 0.88,
+    "clear3": 1,
+    "fails": 7,
     "f13": 1,
     "hint": 1,
     "hint3": 0
    },
    "f16": {
-    "fails": 81,
-    "n": 63,
+    "fails": 92,
+    "n": 56,
     "v21": 1,
     "airFails": 0,
     "pair": null,
-    "onlyLast": 0.6,
+    "onlyLast": 0.57,
     "by": {
      "④태엽": [
-      49,
-      49
+      34,
+      34
      ],
      "①색": [
-      0,
-      0
+      1,
+      1
      ],
      "①연쇄": [
-      8,
-      8
+      15,
+      15
      ],
      "③통나무": [
       6,
@@ -3980,21 +3985,21 @@
     }
    },
    "dev": {
-    "fires": 72,
-    "avg": 1.07,
+    "fires": 71,
+    "avg": 2.03,
     "empty": 0
    },
    "big": {
-    "m": 3,
-    "big": 2,
-    "newbie": 1,
-    "mash": 0.75,
-    "core": "🔑",
+    "m": 4,
+    "big": 3,
+    "newbie": 0.99,
+    "mash": 0.56,
+    "core": "🤡🪵",
     "first": "·"
    },
    "news": {
-    "newbie": 0.07,
-    "mash": 0.26,
+    "newbie": 0.69,
+    "mash": 0.31,
     "smart": 1
    },
    "f19": {
@@ -4009,24 +4014,24 @@
    "f16x3": {
     "airFails": 0,
     "pair": null,
-    "n": 198,
-    "v21": 0.98
+    "n": 176,
+    "v21": 1
    },
    "star": {
-    "kind": "톡",
+    "kind": "한 방",
     "smart": [
      1,
      1
     ],
     "blind": [
-     1,
-     1
+     0.96,
+     0.29
     ],
-    "k2": 0,
-    "k3": 0,
+    "k2": 0.04,
+    "k3": 0.71,
     "seen": 1,
-    "miss": 19,
-    "known": 19,
+    "miss": 21,
+    "known": 21,
     "falseDead": 0
    }
   },

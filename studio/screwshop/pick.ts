@@ -8,11 +8,11 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { STAGES, apply, bestMove, cloneSim, freeM, habitPick, newSim, paintStage, starsOf, stuckM, visibleM, type Level, type Sim, type StageDef } from './game.ts';
+import { STAGES, apply, bestMove, cloneSim, freeM, geometry, habitPick, newSim, paintStage, starsOf, stuckM, visibleM, type Level, type Sim, type Src, type StageDef } from './game.ts';
 import { mulberry32, type Rng } from './rng.ts';
 
 /** 판별 칠 수 · 칠해 볼 sub 수(2판은 장인 ★3 칠이 96개 중 22개뿐이고 상한 3.9에 닿는 칠은 그 절반이라 384 — ✏️ S005) */
-export const N = 24, SCAN = [96, 1536, 96, 768, 768, 96, 1536, 1536, 768, 768, 4608, 768, 768, 768, 768, 3072, 768, 700, 768, 768, 768, 768, 768, 768, 768, 768, 768, 768, 768, 768]; // 📐C S014: 2-5(id 17) 700 — 카드 짝 .79 → .86 // ✏️ S007: 2판 384 → 1536(진자 칠이 384칠 중 21칠뿐) · 📐 S007 7·8판 1536
+export const N = 24, SCAN = [96, 1536, 96, 768, 768, 96, 1536, 1536, 768, 768, 4608, 768, 768, 768, 768, 3072, 768, 700, 768, 768, 768, 768, 768, 18432, 768, 768, 768, 768, 768, 768]; // 📐C S014: 2-5(id 17) 700 — 카드 짝 .79 → .86 // ✏️ S007: 2판 384 → 1536(진자 칠이 384칠 중 21칠뿐) · 📐 S007 7·8판 1536
 
 /** 아무 나사나 빼는 사람이 이 판을 깰 확률 */
 function randomPass(L: Level, r: Rng, n: number) {
@@ -164,6 +164,8 @@ export function gate(L: Level, d: StageDef, r: Rng, t: Gate = {}) {
 }
 
 /** 판 id별 가치(클수록 좋음)와 '이만하면 됐다' 상한 — M1′ 0~7은 예전 buildLevel의 고르기 식·멈춤 값 그대로 · 새 판(id 8~)은 gate(목표 표 한 줄) */
+/** 📐 S027: 장치를 끈 판(funqa OFF · offState와 같은 꼴 — 칠은 그대로) */
+const offL = (L: Level, d: StageDef, f: (P: Src) => Src): Level => { const G = geometry(d.toy().map(f)); G.wind = !!d.wind; if (d.thump) G.thump = true; if (d.jack) G.jack = d.jack; return { ...G, col: L.col, queue: L.queue, boxes: L.boxes, pal: L.pal }; };
 export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   // 📐 1판: 장인(손가락 첫 톡) ★3 ×2 + 장인 스스로 ★3 + 무작위 클리어 − 막 누르기(손가락 첫 톡 뒤) ★2 이상 ×2 (📋 S002 표본 100)
   (L, d, r) => {
@@ -284,7 +286,7 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   // 📐B S021: 📌 깃발 망치(못에 매달려 ⚠ 탑 나사 쾅 · T 11) · 따라 하기 거름 4번(pvn — 카드 짝 .64 → .88)
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 2, mc: 8, full: true, pv: true, pvn: 4, lead: 'habit' }),
   // 📐A S015 3-3 🍿 (id 23): 공통 gate · F20′ full · 따라 하기 거름(pv) · F19 jack · F17 맞는 색 · ✨ ★2 이상 칠 −2(1위 '없음') · mc 12(mc 3 · 6이면 막 누르기 클리어 .17)
-  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 12, full: true, pv: true, jack: true, avoid: ['habit', 'reveal'] }),
+  (L, d, r) => (smartSeen(offL(L, d, (P) => ({ ...P, heavy: false })), d) === 3 ? -2 : gate(L, d, r, { pend: 1, hc: 1, mc: 24, full: true, pv: true, jack: true, key: true, avoid: ['habit', 'reveal'], save: true })), // 📐 S027: ★3 H5 · save · 🔑(key) · 🪵 끔 ★3 거름(F19 지킴) · mc 12 → 24 · SCAN 18432
   // 📐C S014 3-4 🎢 (id 24): 공통 gate · F20′ full(pv 꺼도 따라 하기 .00) · 📐C S015: 🎠 기둥 · ⏰ 7 · F23 바닥 big(맞는 색 버릇이 한 톡에 튄 나사 ≥ 3이면 +3)
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 3, full: true, big: [3, 3] }),
   // 📐C S017 3-5 🚡 (id 25 · ★ B 2): 공통 gate · F20′ full · 1위 '없음'(맞는 색 · ✨ ★2 이상 칠 −2) · mc 14(mc 3 · 8이면 막 누르기 클리어 .17)
