@@ -178,6 +178,9 @@ function coneOf(L: Level, k: number, d: number) {
   return out;
 }
 
+/** 판마다 어울리는 가구 (0 책장 · 1 안락의자 · 2 괘종시계 · 3 화분 · 4 서랍장) */
+const FURN: Record<string, number[]> = { library: [0], candle: [1, 4, 3], fast: [4, 2, 0], mirror: [2, 3, 0], moth: [4, 1, 3], dark: [3, 2, 4], final: [0, 1, 2, 3, 4] };
+
 export function buildLevel(d: StageDef, li: number, flip: boolean): Level {
   const lay = d.maps[li];
   const L: Level = {
@@ -188,7 +191,7 @@ export function buildLevel(d: StageDef, li: number, flip: boolean): Level {
   for (let y = 0; y < ROWS; y++)
     for (let x0 = 0; x0 < COLS; x0++) {
       const x = flip ? COLS - 1 - x0 : x0, ch = lay.m[y][x0], p = at(x, y);
-      if (ch === '#') (L.wall[p] = 1), (L.furn[p] = (x0 * 7 + y * 13 + d.key.length * 3) % 5);
+      if (ch === '#') (L.wall[p] = 1), (L.furn[p] = FURN[d.key]?.[(x0 * 7 + y * 13) % (FURN[d.key]?.length ?? 1)] ?? (x0 * 7 + y * 13) % 5);
       else if (ch === '/' || ch === '\\') (L.wall[p] = 1), (L.mirror[p] = (ch === '/') !== flip ? 0 : 1);
       else if (ch === 'c') (L.wall[p] = 1), (L.candleAt[p] = L.candles.length), L.candles.push(p);
       else if (ch === 'K') start = p;
@@ -568,7 +571,7 @@ export const ghostlight: GameDef<GhostState> = {
   name: '손전등 유령 복도',
   genes: ['freezegaze', 'pointer', 'turnbased'],
   twist: '아이는 스스로 한 칸씩 걷고 나는 "어디를 비출지"만 정한다 — 빛 원뿔 안의 유령은 웃긴 자세로 얼고 빛 밖의 유령만 다가오며, 얼어 있는 유령에게 걸어가면 펑 사라진다. 손전등을 돌릴 때마다 배터리가 줄어, 어느 유령을 언제 얼려 둘지가 순서 싸움이 된다',
-  rules: ['톡한 쪽으로 손전등을 비춰요 — 빛이 닿은 유령은 얼음! 얼어 있는 유령에게 걸어가면 펑!', '빛 밖의 유령은 한 칸씩 다가와요(닿으면 왁!). 아이를 문까지 데려가면 성공.'],
+  rules: ['톡한 쪽으로 손전등을 비추면 아이가 한 걸음 — 빛이 닿은 유령은 얼음! (돌릴 때마다 🔋 한 칸)', '빛 밖의 유령만 한 칸씩 다가와요(닿으면 왁!). 얼어 있는 유령에게 걸어가면 펑! 문까지 가면 성공.'],
   controls: 'touch',
   hint: '비출 쪽을 톡! (꾹 누르면 미리 보기) / 화살표로 고르고 스페이스',
   aspect: A,
@@ -1942,7 +1945,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: GhostState, w: number, h: num
       fx.ring(x, y, '#bff0ff', R(0.2 + n * 0.08), 5 + n);
       fx.burst(x, y, '#ffffff', 14 + n * 8, 4 + n, 2.6);
       fx.kick(2 + n * 2);
-      fx.blink('#dff8ff', 0.1 + n * 0.06);
+      fx.blink('#dff8ff', 0.04 + n * 0.035);
     }
     if (e.kind === 'pop') (fx.burst(x, y - chh * 0.4, '#ffffff', 26, 4.5, 3), fx.burst(x, y - chh * 0.4, '#ffe066', 12, 3, 2.4), fx.ring(x, y - chh * 0.4, '#ffffff', R(0.12), 4), fx.kick(4), say(x + (x < w / 2 ? cw : -cw) * 1.1, y + chh * 0.1, e.text!, '#ffe066', 20));
     if (e.kind === 'ignite') (fx.burst(x, y - chh * 0.8, '#ffb02e', 18, 3, 2.6), fx.ring(x, y, '#ffc070', cw * 1.6, 4), say(x, y - chh * 1.4, e.text!, '#ffd08a', 15));

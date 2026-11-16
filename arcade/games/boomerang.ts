@@ -28,6 +28,8 @@ const RMIN = 0.2, RMAX = 0.95, TOPY = 0.24, BANDY = 1.27;
 /** 부풂 비율 · 등불 맞는 반지름 · 한 틱 이동 거리 · 돌아설 때 빙글(틱) · 바위에 쿵(틱) */
 const WR = 0.4, RH = 0.055, DS = 0.021, HOVER = 12, BOUNCE = 9;
 const ROCK_R = 0.05, OWL_R = 0.045, BR = 0.012;
+/** 봇·par가 쓰는 던지기는 결과가 바뀌는 가장자리에서 ROB 넘게 떨어진 것만 (사람 손가락으로도 재현되게) */
+const ROB = 0.01;
 const RESULT = 170, RESULT_OK = 210, NEWS_T = 180, CARD_T = 150, START_WAIT = 36;
 const STAR_PTS = 100, LEFT_PTS = 10, WIN_PTS = 300;
 
@@ -359,7 +361,7 @@ function buildPuzzle(L: Layout, minLim: number): Puzzle {
     if (e === undefined) byKey.set(key, (e = cands.length)), cands.push({ x: g.x, y: g.y, inc, margin: f.margin, spec: f.kind > 0 });
     else {
       if (f.margin > cands[e].margin) (cands[e].x = g.x), (cands[e].y = g.y), (cands[e].margin = f.margin);
-      if (f.kind === 0 && f.margin >= 0.006) cands[e].spec = false;
+      if (f.kind === 0 && f.margin >= ROB) cands[e].spec = false;
     }
     gridE[gi] = e;
   });
@@ -381,7 +383,7 @@ function buildPuzzle(L: Layout, minLim: number): Puzzle {
     trans.push(tr);
     net.push(nt);
   }
-  const rob = cands.map((c, e) => (c.margin >= 0.006 ? e : -1)).filter((e) => e >= 0);
+  const rob = cands.map((c, e) => (c.margin >= ROB ? e : -1)).filter((e) => e >= 0);
   const start = encode({ mul }, L.lamps.map((l) => l.v)), goal = encode({ mul }, mods.map((m) => m - 1));
   const P: Puzzle = { cands, mods, mul, nst, start, goal, trans, net, rob, gridE, gridT, par: 99, parNo: 99, C: 1 };
   P.par = minThrows(P, rob);
@@ -556,6 +558,7 @@ function newStage(s: BoomState, fresh: boolean) {
 }
 
 function release(s: BoomState, px: number, py: number) {
+  if (s.phase === 'play' && !s.fl && s.t < s.cool && s.mood === 5) return void ev(s, 'cancel', KX, KY - 0.14, '어질어질… 잠깐만!');
   if (s.phase !== 'play' || s.fl || s.pt < START_WAIT || s.t < s.cool) return;
   const tip = aimTip(px, py);
   if (!tip) return void ev(s, 'cancel', KX, KY - 0.12, '취소');
@@ -817,7 +820,7 @@ const pvCache = new WeakMap<object, { key: string; f: Flight; inc: number[] }>()
 const recentSay = new WeakMap<object, { x: number; y: number; t: number }[]>();
 
 /** 종이 등불 (기둥 + 매달린 등). v: 0 꺼짐 · 1 반쯤(큰 등불) · on 켜짐 */
-function drawLamp(ctx: CanvasRenderingContext2D, x: number, y: number, gy: number, u: number, l: Lamp, t: number, newGlow: number) {
+function drawLamp(ctx: CanvasRenderingContext2D, x: number, y: number, gy: number, u: number, l: Lamp, t: number, newGlow: number, twinCol: string) {
   const on = isOn(l), half = l.big && l.v === 1, sc = 1 + l.fl * 0.35, big = l.big ? 1.32 : 1;
   // 바닥 그림자
   ctx.fillStyle = 'rgba(5,6,20,.45)';
@@ -914,13 +917,16 @@ function drawLamp(ctx: CanvasRenderingContext2D, x: number, y: number, gy: numbe
     ctx.ellipse(0, ry * 0.12, u * 0.12, u * 0.2 + Math.sin(t * 0.3 + l.sw) * u * 0.03, 0, 0, TAU);
     ctx.fill();
   }
-  // 쌍둥이 리본
+  // 쌍둥이 띠 (짝마다 같은 색) + 매듭 리본
   if (l.twin >= 0) {
-    ctx.fillStyle = TWIN_COL[Math.min(l.twin, Math.max(0, l.twin)) % 2 === 0 ? 0 : 1];
+    ctx.fillStyle = twinCol;
     ctx.beginPath();
-    ctx.moveTo(-rx * 0.9, -ry * 0.55);
-    ctx.lineTo(-rx * 1.35, -ry * 0.85);
-    ctx.lineTo(-rx * 1.3, -ry * 0.25);
+    ctx.ellipse(0, -ry * 0.05, rx * 1.02, ry * 0.2, 0, 0, TAU);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-rx * 0.95, -ry * 0.05);
+    ctx.lineTo(-rx * 1.5, -ry * 0.4);
+    ctx.lineTo(-rx * 1.45, ry * 0.3);
     ctx.closePath();
     ctx.fill();
   }
@@ -1495,12 +1501,16 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BoomState, w: number, h: numb
   const say = (x: number, y: number, text: string, col: string, size: number) => {
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
-    for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.22 && Math.abs(q.y - y) < size + 4); k++) y -= size + 4;
+    // 떠오르는 글자는 한 틱에 0.7px씩 올라가니, 지금 자리끼리 비교해 겹치면 위로
+    for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 45 && Math.abs(q.x - x) < w * 0.24 && Math.abs(q.y - 0.7 * (s.t - q.t) - y) < size + 6); k++) y -= size + 6;
     rec.push({ x, y, t: s.t });
     if (rec.length > 14) rec.shift();
     fx.pop(Math.max(w * 0.14, Math.min(w * 0.86, x)), Math.max(R(0.12), y), text, col, size);
   };
   const litFrac = L.lamps.length ? onCount(L) / L.lamps.length : 0;
+  // 쌍둥이 짝마다 같은 색 (짝의 앞 번호 순서대로)
+  const pairs = [...new Set(L.lamps.map((l, i) => (l.twin >= 0 ? Math.min(i, l.twin) : -1)).filter((v) => v >= 0))];
+  const twinCol = (i: number) => (L.lamps[i].twin >= 0 ? TWIN_COL[pairs.indexOf(Math.min(i, L.lamps[i].twin)) % 2] : '');
   const u = R(0.05);
 
   ctx.save();
@@ -1651,11 +1661,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BoomState, w: number, h: numb
   // 쌍둥이 줄 (깃발 줄)
   L.lamps.forEach((l, i) => {
     if (l.twin < i) return;
-    const q = L.lamps[l.twin], col = TWIN_COL[(i + l.twin) % 2];
+    const q = L.lamps[l.twin], col = twinCol(i);
     const ax = X(l.x), ay = Y(l.y - 0.07), bx = X(q.x), by = Y(q.y - 0.07), mx = (ax + bx) / 2, my = Math.max(ay, by) + R(0.06);
     ctx.strokeStyle = col;
-    ctx.globalAlpha = 0.7;
-    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 0.9;
+    ctx.lineWidth = 2;
     ctx.setLineDash([R(0.012), R(0.01)]);
     ctx.beginPath();
     ctx.moveTo(ax, ay);
@@ -1733,9 +1743,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BoomState, w: number, h: numb
   // ── 바닥에 선 것들 (뒤에서 앞으로) ──
   const items: { y: number; f: () => void }[] = [];
   const isNew = s.pt < 260 && !s.again;
-  L.lamps.forEach((l) => {
+  L.lamps.forEach((l, i) => {
     const nw = isNew && ((d.key === 'big' && l.big) || (d.key === 'twin' && l.twin >= 0) || (d.key === 'lit' && l.v0 > 0)) ? 1 : 0;
-    items.push({ y: l.y + LIFT, f: () => drawLamp(ctx, X(l.x), Y(l.y), Y(l.y + LIFT), u * 0.95, l, t, nw) });
+    items.push({ y: l.y + LIFT, f: () => drawLamp(ctx, X(l.x), Y(l.y), Y(l.y + LIFT), u * 0.95, l, t, nw, twinCol(i)) });
   });
   L.rocks.forEach((r, ri) => {
     const hitT = s.fl && s.fl.kind === 1 && s.fl.rockI === ri && s.fk >= s.fl.stopK ? Math.max(0, 20 - (s.fk - s.fl.stopK)) : 0;
@@ -1803,7 +1813,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BoomState, w: number, h: numb
       font(0.036, 900);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const lbl = hh ? `+${hh}` : '±';
+      const lbl = hh ? `+${hh}` : '짝';
       ctx.fillText(becomeOn ? `${lbl}✓` : becomeOff ? `${lbl}✗` : `${lbl}=`, bx, by + 1, R(0.078));
     });
     // 손가락 옆 요약
@@ -1851,7 +1861,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BoomState, w: number, h: numb
 
   // NEW 스포트라이트 (바위·부엉이·바람)
   if (isNew && s.pt > 20) {
-    const spots: Pt[] = d.key === 'rock' ? L.rocks : d.key === 'owl' && L.owl ? [L.owl] : [];
+    const spots: Pt[] = d.key === 'rock' ? [...L.rocks] : d.key === 'owl' && L.owl ? [L.owl] : [];
     for (const p of spots) {
       ctx.strokeStyle = `rgba(255,255,255,${0.5 + 0.5 * Math.sin(t * 0.25)})`;
       ctx.lineWidth = 2;
@@ -1859,6 +1869,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BoomState, w: number, h: numb
       ctx.arc(X(p.x), Y(p.y), R(0.075) + Math.sin(t * 0.2) * 2, 0, TAU);
       ctx.stroke();
     }
+    if (d.key === 'wind') spots.push({ x: L.wind < 0 ? 0.92 : 0.08, y: 0.3 });
     const tags: Pt[] = [...spots, ...L.lamps.filter((l) => (d.key === 'big' && l.big) || (d.key === 'twin' && l.twin >= 0) || (d.key === 'lit' && l.v0 > 0))];
     for (const p of tags.slice(0, 3)) {
       const tx1 = X(p.x), ty1 = Y(p.y) - R(0.1);
