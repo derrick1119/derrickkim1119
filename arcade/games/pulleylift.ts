@@ -75,7 +75,7 @@ export const STAGE_COUNT = STAGES.length;
 // ───────────────────────────── 저울 시뮬레이션 ─────────────────────────────
 /** 손님: at = 3(기다림), g층 gs쪽 문 앞. 내린 동물: at = 2. 바구니: 0 왼쪽, 1 오른쪽 */
 export interface Pas { sp: string; e: string; name: string; w: number; f: number; kind: Kind; g: number; gs: number; slot: number; nf: number }
-export interface Level { P: Pas[]; n: number; at0: number[]; par: number; sol: number[]; limit: number; s2: number; luck: number; habit: number; greedy: number; wow: number }
+export interface Level { P: Pas[]; n: number; at0: number[]; par: number; sol: number[]; limit: number; s2: number; luck: number; habit: number; greedy: number; careful: number; wow: number; dist: Map<number, number> }
 export interface Sim { at: number[]; awake: number; moves: number; offs: number; bestOff: number; bestChain: number }
 export interface Stop { hL: number; slam: number; off: number[]; board: number[]; wake: number[] }
 
@@ -146,28 +146,51 @@ function keyOf(L: Level, S: Sim) {
   for (let i = L.n - 1; i >= 0; i--) k = k * 4 + S.at[i];
   return k + S.awake * Math.pow(4, L.n);
 }
-/** 가장 적은 옮기기로 다 내리는 길 (상태 수가 작아 너비 우선 탐색으로 정확히) */
-export function solve(L: Level, S0: Sim, cap = 12): number[] | null {
-  if (doneSim(L, S0)) return [];
-  let fr: { S: Sim; path: number[] }[] = [{ S: S0, path: [] }];
-  const seen = new Set<number>([keyOf(L, S0)]);
-  for (let d = 1; d <= cap; d++) {
-    const nx: typeof fr = [];
-    for (const { S, path } of fr)
-      for (let i = 0; i < L.n; i++) {
-        if (!canMove(L, S, i)) continue;
-        const S2 = cloneSim(S);
-        moveSim(L, S2, i);
-        const k = keyOf(L, S2);
-        if (seen.has(k)) continue;
-        seen.add(k);
-        if (doneSim(L, S2)) return [...path, i];
-        nx.push({ S: S2, path: [...path, i] });
+/** 판의 모든 상태를 한 번 훑어 상태마다 '다 내리기까지 남은 최소 옮기기'를 적어 둔다 (상태가 수백 개뿐이라 정확히) */
+function buildDist(L: Level, cap = 20000): Map<number, number> | null {
+  const S0 = newSim(L), keys = [keyOf(L, S0)], sims = [S0], idx = new Map<number, number>([[keys[0], 0]]), nx: number[][] = [], goals: number[] = [];
+  for (let h = 0; h < sims.length; h++) {
+    const S = sims[h], out: number[] = [];
+    nx.push(out);
+    if (doneSim(L, S)) {
+      goals.push(h);
+      continue;
+    }
+    for (let i = 0; i < L.n; i++) {
+      if (!canMove(L, S, i)) continue;
+      const S2 = cloneSim(S);
+      moveSim(L, S2, i);
+      const k = keyOf(L, S2);
+      let j = idx.get(k);
+      if (j === undefined) {
+        if (sims.length >= cap) return null;
+        (j = sims.length), idx.set(k, j), keys.push(k), sims.push(S2);
       }
-    if (!nx.length) return null;
-    fr = nx;
+      out.push(j);
+    }
   }
-  return null;
+  const rev: number[][] = sims.map(() => []);
+  nx.forEach((out, a) => out.forEach((b) => rev[b].push(a)));
+  const dd = new Array<number>(sims.length).fill(-1), q = goals.slice();
+  for (const g of goals) dd[g] = 0;
+  for (let h = 0; h < q.length; h++) for (const a of rev[q[h]]) if (dd[a] < 0) (dd[a] = dd[q[h]] + 1), q.push(a);
+  const dist = new Map<number, number>();
+  dd.forEach((v, j) => v >= 0 && dist.set(keys[j], v));
+  return dist;
+}
+/** 지금부터 다 내리려면 최소 몇 번 (못 내리면 Infinity = 막다른 길) */
+export const distOf = (L: Level, S: Sim) => (doneSim(L, S) ? 0 : L.dist.get(keyOf(L, S)) ?? Infinity);
+/** 가장 적게 옮기는 길의 다음 동물 (없으면 -1) */
+export function bestMove(L: Level, S: Sim) {
+  const d0 = distOf(L, S);
+  if (!isFinite(d0) || d0 === 0) return -1;
+  for (let i = 0; i < L.n; i++) {
+    if (!canMove(L, S, i)) continue;
+    const S2 = cloneSim(S);
+    moveSim(L, S2, i);
+    if (distOf(L, S2) === d0 - 1) return i;
+  }
+  return -1;
 }
 /** 아무렇게나(옮길 수 있는 동물 중 아무나) 두면 limit번 안에 다 내릴 확률 — 정확히(DP) */
 function luckOf(L: Level, limit: number) {
@@ -214,6 +237,19 @@ export function greedyPick(L: Level, S: Sim) {
   }
   return b;
 }
+/** 미리 보기를 보는 사람(측정용): 막다른 길(⚠)은 피하고, 당장 많이 내리는 동물 */
+export function carefulPick(L: Level, S: Sim) {
+  const hL = hOf(L, S.at);
+  let b = -1, bv = -1e9;
+  for (let i = 0; i < L.n; i++) {
+    if (!canMove(L, S, i)) continue;
+    const S2 = cloneSim(S), r = moveSim(L, S2, i);
+    if (!isFinite(distOf(L, S2))) continue;
+    const v = r.offs * 10 - (L.P[i].kind === 'box' ? 0.5 : Math.abs((S.at[i] === 0 ? hL : TOP - hL) - L.P[i].f) * 0.1);
+    if (v > bv) (bv = v), (b = i);
+  }
+  return b >= 0 ? b : greedyPick(L, S);
+}
 function runPolicy(L: Level, pick: (L: Level, S: Sim) => number) {
   const S = newSim(L);
   while (!doneSim(L, S) && S.moves < L.limit) {
@@ -244,14 +280,22 @@ function tryBuild(d: StageDef, r: Rng, mirror = false): Level | null {
   for (const p of P) if (p.kind === 'sleepy' && p.f === 0) return null;
   // 바구니 하나에 7마리 넘게는 안 태운다
   if (at0.filter((a) => a === 0).length > 6 || at0.filter((a) => a === 1).length > 6) return null;
-  const L: Level = { P, n, at0, par: 0, sol: [], limit: 0, s2: 0, luck: 1, habit: 0, greedy: 0, wow: 0 };
+  const L: Level = { P, n, at0, par: 0, sol: [], limit: 0, s2: 0, luck: 1, habit: 0, greedy: 0, careful: 0, wow: 0, dist: new Map() };
   // 처음엔 아무도 내리거나 타지 않는 자리여야
   const S = newSim(L), r0 = settle(L, S, hOf(L, S.at));
   if (r0.offs || S.at.some((a, i) => a !== at0[i])) return null;
-  const sol = solve(L, newSim(L), d.par[1]);
-  if (!sol || sol.length < d.par[0]) return null;
-  L.sol = sol;
-  L.par = sol.length;
+  const dist = buildDist(L);
+  if (!dist) return null;
+  L.dist = dist;
+  const par = distOf(L, newSim(L));
+  if (!isFinite(par) || par < d.par[0] || par > d.par[1]) return null;
+  const S1 = newSim(L);
+  for (let k = 0; k < par; k++) {
+    const m = bestMove(L, S1);
+    L.sol.push(m);
+    moveSim(L, S1, m);
+  }
+  L.par = par;
   L.limit = L.par + d.slack;
   L.s2 = L.par + d.s2;
   // 방 자리: 같은 층에 내릴 동물끼리 나란히
@@ -294,21 +338,23 @@ export function buildLevel(seed: number, si: number): Level {
     good++;
     L.habit = runPolicy(L, habitPick);
     L.greedy = runPolicy(L, greedyPick);
+    L.careful = runPolicy(L, carefulPick);
     L.wow = st.best;
     let sc = st.best * 4 + st.chain * 3 + L.luck * 50;
-    if (si >= 2) sc += (L.habit > L.par ? 40 : 0) + (L.greedy > L.par ? 30 : 0) + (L.habit > L.s2 ? 10 : 0) + L.par * 2;
+    // 3판부터: 버릇으로는 최소 옮기기를 못 하고, 미리 보기를 보며 조심하면 끝까지는 가는 판
+    if (si >= 2) sc += (L.habit > L.par ? 40 : 0) + (L.greedy > L.par ? 30 : 0) + (L.habit > L.s2 ? 10 : 0) + (L.careful < 99 ? 35 : 0) + L.par * 2;
     if (sc > pickScore) (pick = L), (pickScore = sc);
   }
   if (!pick) {
     // 안전판: 조건을 풀고 아무 풀리는 판
     const loose = { ...d, par: [1, 8] as [number, number] };
     for (let tries = 0; !pick && tries < 5000; tries++) pick = tryBuild(loose, r);
-    if (pick) (pick.habit = runPolicy(pick, habitPick)), (pick.greedy = runPolicy(pick, greedyPick)), (pick.wow = solStats(pick).best);
+    if (pick) (pick.habit = runPolicy(pick, habitPick)), (pick.greedy = runPolicy(pick, greedyPick)), (pick.careful = runPolicy(pick, carefulPick)), (pick.wow = solStats(pick).best);
   }
   levelCache.set(ck, pick!);
   return pick!;
 }
-export const internals = { solve, luckOf, runPolicy, solStats, tryBuild, settle, hOf, weightOf };
+export const internals = { buildDist, luckOf, runPolicy, solStats, tryBuild, settle, hOf, weightOf };
 
 // ───────────────────────────── 상태 ─────────────────────────────
 interface Ev { t: number; kind: string; x: number; y: number; text?: string; col?: string; v?: number }
@@ -547,11 +593,12 @@ function afterMove(s: LiftState) {
   if (s.moveOffs >= 3) ev(s, 'big', 0.5, 0.62, `${s.moveOffs}마리 한 번에!`, '#ffe066', s.moveOffs), setMood(s, 'smug');
   if (doneSim(L, S)) return void ((s.phase = 'settle'), (s.pt = 0), (s.ok = true));
   const left = L.limit - S.moves;
-  if (left <= 0 || !solve(L, S, left)) {
+  const need = distOf(L, S);
+  if (left <= 0 || need > left) {
     s.phase = 'settle';
     s.pt = 0;
     s.ok = false;
-    s.why = left <= 0 ? '옮기기를 다 썼어요!' : solve(L, S, 12) ? `남은 ${left}번으로는 다 못 내려요` : '꼼짝 못 해요 — 막다른 길!';
+    s.why = left <= 0 ? '옮기기를 다 썼어요!' : isFinite(need) ? `남은 ${left}번으로는 다 못 내려요` : '꼼짝 못 해요 — 막다른 길!';
     ev(s, 'jam', 0.5, 0.6, left <= 0 ? '끝!' : '막혔다…', '#ffb4a8');
     return;
   }
@@ -677,8 +724,8 @@ export const pulleyliftSmart: Bot<LiftState> = {
     const key = `${s.stage}:${s.tries}:${s.S.at.join('')}:${s.S.awake}`;
     let m = brain.get(s);
     if (!m || m.key !== key) {
-      const path = solve(s.L, s.S, 12);
-      brain.set(s, (m = { key, m: path && path.length ? path[0] : habitPick(s.L, s.S) }));
+      const b = bestMove(s.L, s.S);
+      brain.set(s, (m = { key, m: b >= 0 ? b : habitPick(s.L, s.S) }));
     }
     return m.m >= 0 ? at(s, m.m) : NO;
   },
@@ -752,7 +799,7 @@ function preview(s: LiftState, i: number): Preview {
       for (const j of st.wake) wakes.add(j);
     }
     const done = doneSim(L, S);
-    p = { kind: 'ok', rec, S, offs: r.offs, chain: r.chain, dead: !done && !solve(L, S, 12), done, step, boards, wakes };
+    p = { kind: 'ok', rec, S, offs: r.offs, chain: r.chain, dead: !done && !isFinite(distOf(L, S)), done, step, boards, wakes };
   }
   pvCache.set(s, { key, p });
   return p;

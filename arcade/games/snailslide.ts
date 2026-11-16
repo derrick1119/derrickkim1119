@@ -39,18 +39,18 @@ const bit = (m: number, c: number) => (m >>> c) & 1;
 interface StageDef { key: string; name: string; emoji: string; news: string; tip: string; maps: string[][]; slack: number; s2: number; s3: number }
 export const STAGES: StageDef[] = [
   {
-    key: 'night', name: '어젯밤 길', emoji: '🌙', news: '🌙 반짝이는 건 어젯밤 점액 — 들어서면 쭉 미끄러지며 냠!', tip: '🌱 새싹 위를 지나가면 점액을 먹고 상추로 쑥!', slack: 16, s2: 3, s3: 1,
+    key: 'night', name: '어젯밤 길', emoji: '🌙', news: '🌙 반짝이는 어젯밤 점액에 들어서면 쭉~ 냠!', tip: '🌱 새싹 위를 지나가면 점액을 먹고 상추로 쑥!', slack: 16, s2: 3, s3: 1,
     maps: [['#####', '####H', 'SLLL.', '####s', '####s', '####.']],
   },
   {
-    key: 'sprout', name: '새싹 줄', emoji: '🌱', news: '🌱 새싹 줄을 따라 기어 두면 — 되돌아올 땐 한 번에 냠냠냠', tip: '↩️ 돌아올 미끄럼이 집 쪽을 향하게 물을 줘요', slack: 10, s2: 2, s3: 0,
+    key: 'sprout', name: '새싹 줄', emoji: '🌱', news: '🌱 새싹 줄을 기어 두고, 되돌아오며 냠냠냠', tip: '↩️ 돌아올 미끄럼이 집 쪽을 향하게 물을 줘요', slack: 10, s2: 2, s3: 0,
     maps: [
       ['#####', 'HS###', 's.###', 's..##', 's.###', '.####'],
       ['.####', '..###', 's.###', 's.###', 'sS..#', '.H###'],
     ],
   },
   {
-    key: 'puddle', name: '빗물 웅덩이', emoji: '💧', news: '💧 웅덩이에 들어가면 첨벙! 점액이 사방 네 칸으로 튀어요', tip: '💧 첨벙 한 번에 이웃 새싹이 다 자라요', slack: 8, s2: 2, s3: 0,
+    key: 'puddle', name: '빗물 웅덩이', emoji: '💧', news: '💧 웅덩이에 첨벙! 점액이 사방으로 튀어요', tip: '💧 첨벙 한 번에 이웃 새싹이 다 자라요', slack: 8, s2: 2, s3: 0,
     maps: [
       ['###.#', '.sss#', '##so.', '#.Ss#', '##.H#', '###..'],
       ['...##', '#..##', 'soS.#', 'ss###', 's####', 'sH...'],
@@ -58,7 +58,7 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'ant', name: '개미 행렬', emoji: '🐜', news: '🐜 개미가 상추를 노려요 — 점액을 밟으면 찰싹 붙어요!', tip: '🐜 빨간 화살표 = 개미가 갈 길. 그 앞에 점액을!', slack: 8, s2: 2, s3: 0,
+    key: 'ant', name: '개미 행렬', emoji: '🐜', news: '🐜 상추 도둑 개미 — 점액을 밟으면 찰싹!', tip: '🐜 빨간 화살표가 개미 길 — 앞에 점액을!', slack: 8, s2: 2, s3: 0,
     maps: [
       ['#.S#.', '#s...', '#sH.#', '#s#a#', '#s.##', '..###'],
       ['sH###', 's..##', 'sS..#', 's.###', '...##', 'a..##'],
@@ -66,7 +66,7 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'salt', name: '소금 길', emoji: '🧂', news: '🧂 소금 칸엔 점액이 안 남아요 — 미끄럼이 거기서 멈춰요', tip: '🧂 소금은 미끄럼 중간 정거장', slack: 8, s2: 2, s3: 0,
+    key: 'salt', name: '소금 길', emoji: '🧂', news: '🧂 소금 칸엔 점액이 안 남아 — 거기서 멈춰요', tip: '🧂 소금은 미끄럼 중간 정거장', slack: 8, s2: 2, s3: 0,
     maps: [
       ['#####', '###.x', 'Sssss', '.#..#', '#..H#', '...##'],
       ['.s##.', '.s#S.', '.s#.#', '.sx.#', '#H.##', '...##'],
@@ -82,7 +82,7 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'saltant', name: '소금 개미', emoji: '🧂', news: '🧂🐜 소금 칸에선 개미가 안 붙어요 — 피해서 막아요', tip: '🐜 개미 길에 소금이 있으면 그 다음 칸을 막아요', slack: 8, s2: 2, s3: 0,
+    key: 'saltant', name: '소금 개미', emoji: '🧂', news: '🧂🐜 소금 위 개미는 안 붙어요 — 다음 칸을!', tip: '🐜 소금 다음 칸에 점액을 깔아 막아요', slack: 8, s2: 2, s3: 0,
     maps: [
       ['.s...', '#s.SH', '#s#.a', '#s.##', '.x###', '.####'],
       ['#####', '####.', '.###a', '.##..', 'ssssS', '.#.xH'],
@@ -90,7 +90,7 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'final', name: '달팽이 대정원', emoji: '🐚', news: '🐚 마지막 정원 — 웅덩이·소금·개미가 다 나와요!', tip: '🐚 길을 깔고 → 쭉 미끄러져 → 집으로', slack: 8, s2: 2, s3: 0,
+    key: 'final', name: '달팽이 대정원', emoji: '🐚', news: '🐚 마지막 정원 — 다 나와요!', tip: '🐚 길을 깔고 → 쭉 미끄러져 → 집으로', slack: 8, s2: 2, s3: 0,
     maps: [
       ['...sx', 'a.Sso', '##.ss', '###s#', '###..', '##Hs#'],
       ['..H.#', '#s###', '.s..#', '.soSa', '.#s..', '##x..'],
@@ -470,9 +470,9 @@ function playRec(s: SnailState, rec: RE[]) {
   if (eats >= 2) ev(s, 'combo', cX(path[path.length - 1]), cY(path[path.length - 1]), eats >= 3 ? `냠냠냠 ×${eats}!!` : `냠냠 ×${eats}!`, eats >= 3 ? '#ffe066' : '#d8ffb0', end + 2);
   s.busy = antEnd + 4;
   // 처음 본 것
-  if (mvE.slide) see(s, 'slide', '💨 점액 칸에 들어서면 끝까지 쭉 — 중간엔 못 서요!');
-  if (rec.some((e) => e.k === 'grow')) see(s, 'grow', '🌱 지나간 새싹이 점액을 먹고 🥬 쑥! 되돌아와 미끄러지며 냠');
-  if (rec.some((e) => e.k === 'glue')) see(s, 'glue', '🐜 개미가 점액에 찰싹 — 이제 돌처럼 길을 막아요');
+  if (mvE.slide) see(s, 'slide', '💨 점액에선 끝까지 쭉 — 중간엔 못 서요!');
+  if (rec.some((e) => e.k === 'grow')) see(s, 'grow', '🌱 점액 먹은 새싹이 🥬 쑥! 미끄러지며 냠');
+  if (rec.some((e) => e.k === 'glue')) see(s, 'glue', '🐜 찰싹 붙은 개미는 돌처럼 길을 막아요');
   if (eats >= 3) see(s, 'combo3', '🤩 한 번에 셋! 길게 기어 둘수록 크게 냠냠냠');
   if (rec.some((e) => e.k === 'open')) tip(s, 'open', '🐚 다 먹으면 집 문이 열려요 — 집으로!');
   if (eats >= 2) setMood(s, 'wow');
@@ -505,7 +505,7 @@ function doMove(s: SnailState, d: number) {
     s.ok = false;
     s.why = S.fail === 2 ? '개미가 상추를 가져갔어요!' : S.fail === 3 ? '꼼짝도 못 해요!' : '톡을 다 썼어요!';
     if (S.fail !== 2) ev(s, 'out', cX(S.pos), cY(S.pos), S.fail === 3 ? '끼었다…' : '헥헥…', '#ffd0c8', s.busy);
-  } else if (L.limit - S.taps <= 3) tip(s, 'low', '⚠ 톡이 얼마 안 남았어요 — 미리 보고 톡!');
+  } else if (L.limit - S.taps <= 3) tip(s, 'low', '⚠ 톡이 얼마 안 남았어요 — 꾹 눌러 미리 보기!');
 }
 
 export const snailslide: GameDef<SnailState> = {
@@ -1840,7 +1840,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: SnailState, w: number, X: F, 
       }
       font(0.036, 800);
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(`톡 ${S.taps}번 (가장 짧은 길 ${L.par}) · 한 번에 최대 냠 ${S.best}`, w / 2, Y(0.82));
+      ctx.fillText(`톡 ${S.taps}번 · 가장 짧은 길 ${L.par} · 최대 냠×${S.best}`, w / 2, Y(0.82));
     } else {
       font(0.04, 800);
       ctx.fillStyle = '#ffffff';
@@ -1878,7 +1878,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: SnailState, w: number, X: F, 
       ctx.fillText(`${st === true ? '★' : st === false ? '✗' : '☆'} ${txt}`, gx + gw / 2, y2 + 1);
     });
     const y3 = Y(1.375);
-    let tp = '👆 달팽이 옆 칸을 톡! 누르고 있으면 갈 길이 보여요';
+    let tp = '👆 옆 칸을 톡! 꾹 누르면 갈 길이 보여요';
     if (s.stage === 0 && s.taps === 0) tp = '👆 반짝이는 점액 쪽을 톡 — 슈우욱!';
     else if (s.down && s.press >= 0) tp = '떼면 출발! · 달팽이 위에서 떼면 취소';
     else if (s.phase === 'result') tp = s.ok ? '다음 정원으로!' : '같은 정원을 다시 — 이번엔 미리 보고 톡';
