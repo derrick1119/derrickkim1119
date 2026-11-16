@@ -12,7 +12,7 @@ import { STAGES, apply, bestMove, cloneSim, freeM, habitPick, newSim, paintStage
 import { mulberry32, type Rng } from './rng.ts';
 
 /** 판별 칠 수 · 칠해 볼 sub 수(2판은 장인 ★3 칠이 96개 중 22개뿐이고 상한 3.9에 닿는 칠은 그 절반이라 384 — ✏️ S005) */
-export const N = 24, SCAN = [96, 1536, 96, 768, 768, 96, 1536, 1536, 768, 768, 768, 768, 768, 768, 768, 768, 768, 700, 768, 768, 768, 768, 768, 768, 768, 768, 768, 768, 768, 768]; // 📐C S014: 2-5(id 17) 700 — 카드 짝 .79 → .86 // ✏️ S007: 2판 384 → 1536(진자 칠이 384칠 중 21칠뿐) · 📐 S007 7·8판 1536
+export const N = 24, SCAN = [96, 1536, 96, 768, 768, 96, 1536, 1536, 768, 768, 4608, 768, 768, 768, 768, 3072, 768, 700, 768, 768, 768, 768, 768, 768, 768, 768, 768, 768, 768, 768]; // 📐C S014: 2-5(id 17) 700 — 카드 짝 .79 → .86 // ✏️ S007: 2판 384 → 1536(진자 칠이 384칠 중 21칠뿐) · 📐 S007 7·8판 1536
 
 /** 아무 나사나 빼는 사람이 이 판을 깰 확률 */
 function randomPass(L: Level, r: Rng, n: number) {
@@ -276,19 +276,19 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   // 📐 S010 1-4 🐿️ (id 8 · 📐A): 공통 gate · 목표 표 기본 · 📐C S021: F23 바닥 big [2, 3](처음 봇 큰 순간 .18 → .36)
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, big: [2, 3] }),
   // 📐 S010 🐄 (id 9): 공통 gate · 따라 하기 거름(pv) 켬 — 끄면 같은 좌표에서 따라 하기 ★3 .13 · 📐A S011: 1-7로 옮김 · F20′ full
-  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, pv: true, full: true, lead: 'habit' }), // 📐A S012: F17 1위 버릇 = 맞는 색(이웃 1-6 🐷 · 1-8 🐴 = ✨)
-  // 📐A S011 1-5 🤖 (id 10): 공통 gate · F20′ full
-  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true }),
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, pv: true, full: true, lead: 'habit', save: true }), // 📐A S012: F17 1위 버릇 = 맞는 색(이웃 1-6 🐷 · 1-8 🐴 = ✨) · 📐B S026: ★3 H4 · save
+  // 📐A S011 1-5 🤖 (id 10): 공통 gate · F20′ full · 📐B S026: ★3 H4 · ham · save · mc 4 · SCAN 4608
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 4, full: true, pv: true, ham: true, save: true }),
   // 📐B S011 1-6 🐷 (id 11): 공통 gate · F20′ full · 따라 하기 거름(pv) · 📐B S012: ★3 = 한 방 5(쿵 한 번에 덜컹 4) · F15ᵗ thump
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true, pv: true, thump: true, lead: 'reveal' }), // ✏️ S012(🧪 F17): 1위 버릇 ✨ — 1-5 · 1-7이 맞는 색
   // 📐C S011 1-8 🐴 (id 12): 공통 gate · F20′ full
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true }),
   // 📐C S012 1-9 🦆 (id 13): 공통 gate · F20′ full · 따라 하기 거름(pv — 끄면 같은 좌표에서 따라 하기 ★3 .54 이상)
-  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true, pv: true }),
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 16, full: true, pv: true, ham: true, save: true }), // 📐B S026: ★3 H5 · ham · save · mc 16
   // 📐B S012 1-10 🚜 (id 14): 공통 gate · F20′ full · 따라 하기 거름(pv — 끄면 따라 하기 ★3 .33) · ✏️ S012: F17 1위 버릇 맞는 색(lead — 이웃 1-8 🐴 · 1-9 🦆 = ✨)
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true, pv: true, lead: 'top' }), // 📐C S013(F17): 위에서부터는 이 판에서 ★2를 못 따므로 'top' = 맞는 색 · ✨가 ★2 이상인 칠은 −2 → 1위 없음
   // 📐A S012 2-3 🐳 (id 15): 공통 gate · F20′ full · 따라 하기 거름(pv — 끄면 ★3 .29) · F17 1위 버릇 ✨ 최다(이웃 2-2 🌻 = 맞는 색)
-  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 4, pv: true, full: true, avoid: ['habit'], chain: 0.5 }), // 📐C S014: 장인 판 🔨 쾅 나사가 빈칸에 가는 칠 −0.5 → 막 누르기 클리어 .17 → .08 // 📐C S013: 파도 · 꼬마 물고기로 N 18 · 막 누르기 클리어 mc 4 · F17 맞는 색 ★2 이상 칠 −2(2-2 맞 · 2-4 맞·✨)
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 16, pv: true, full: true, avoid: ['habit'], chain: 0.5, ham: true, save: true }), // 📐B S026: ★3 H4 · ham · save · mc 16 · SCAN 3072 // 📐C S014: 장인 판 🔨 쾅 나사가 빈칸에 가는 칠 −0.5 → 막 누르기 클리어 .17 → .08 // 📐C S013: 파도 · 꼬마 물고기로 N 18 · 막 누르기 클리어 mc 4 · F17 맞는 색 ★2 이상 칠 −2(2-2 맞 · 2-4 맞·✨)
   // 📐A S012 2-4 🦀 (id 16): 공통 gate · F20′ full · F17 1위 버릇 맞는 색(이웃 2-3 🐳 = ✨)
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true, lead: 'habit' }),
   // 📐C S012 2-5 🐧 (id 17) · 📐C S013: 🔨 도미노 셋 · N 18 · P 0 · 막 누르기 클리어 mc 3 · 따라 하기 거름(pv)
