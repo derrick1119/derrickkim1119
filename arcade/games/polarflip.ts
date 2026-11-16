@@ -480,10 +480,10 @@ export function buildLevel(seed: number, stage: number): Level {
 
 // ───────────────────────────── 게임 상태 ─────────────────────────────
 const A = 1.4;
-/** 조리대(격자) 자리: 왼쪽 위 (BX, BY), 칸 폭은 0.875/열, 칸 높이는 폭의 0.84 (3/4 시점) */
-const BX = 0.0625, BY = 0.34, BW = 0.875, SQ = 0.8;
+/** 조리대(격자) 자리: 맨 뒤 줄의 위 끝 BY, 맨 앞 줄 폭 BW(가운데 정렬), 칸 높이는 폭의 SQ배 (3/4 시점) */
+const BY = 0.35, BW = 0.9, SQ = 0.84;
 const FLIP_T = 9, STEP_T = 4, SLOW_T = 7, SETTLE = 16, RESULT_OK = 210, RESULT_FAIL = 165, NEWS_T = 190, CARD_T = 150;
-const STAR_PTS = 100, LEFT_PTS = 10, WIN_PTS = 300;
+const STAR_PTS = 100, LEFT_PTS = 10, WIN_PTS = 300, PERFECT_PTS = 100;
 const HOLD = 12, THINK = 36;
 
 interface Ev { t: number; kind: string; x: number; y: number; text?: string; col?: string; n?: number }
@@ -506,13 +506,18 @@ function see(s: PolarState, key: string, text: string) {
   if (text) s.newsQ.push(text);
 }
 const cellW = (L: Level) => BW / L.C;
-const cellX = (L: Level, x: number) => BX + (x + 0.5) * cellW(L);
-const cellY = (L: Level, y: number) => BY + (y + 0.5) * cellW(L) * SQ;
+/** 원근(3/4 시점): 뒤쪽 줄은 좁고 앞쪽 줄은 넓다. yy = 줄 경계(0~R), xx = 칸 경계(0~C) */
+const PSB = 0.84;
+const sbl = (L: Level, yy: number) => PSB + (1 - PSB) * (yy / L.R);
+const rowY = (L: Level, yy: number) => BY + cellW(L) * SQ * (PSB * yy + ((1 - PSB) * yy * yy) / (2 * L.R));
+const ptX = (L: Level, xx: number, yy: number) => 0.5 + (xx - L.C / 2) * cellW(L) * sbl(L, yy);
+const cellX = (L: Level, x: number, y: number) => ptX(L, x + 0.5, y + 0.5);
+const cellY = (L: Level, y: number) => rowY(L, y + 0.5);
 /** 화면 자리(가로 0~1, 세로 0~A)에서 가장 가까운 자석 (손가락 크기 안이면) */
 function magnetAt(L: Level, px: number, py: number) {
   let best = -1, bd = (cellW(L) * 0.62) ** 2;
   L.mags.forEach((m, j) => {
-    const d = (px - cellX(L, m.x)) ** 2 + ((py - cellY(L, m.y)) / SQ) ** 2;
+    const d = ((px - cellX(L, m.x, m.y)) ** 2 + ((py - cellY(L, m.y)) / SQ) ** 2) / sbl(L, m.y + 0.5) ** 2;
     if (d < bd) (bd = d), (best = j);
   });
   return best;
@@ -552,7 +557,8 @@ function endStage(s: PolarState, ok: boolean, why: string) {
     s.starOk = [true, s.used <= L.par, s.combo];
     s.got = s.starOk.filter(Boolean).length;
     s.stars += s.got;
-    s.pts += s.got * STAR_PTS + (L.limit - s.used) * LEFT_PTS;
+    // 뒤 부엌일수록 별 값이 커진다 (판마다 +15%)
+    s.pts += Math.round((s.got * STAR_PTS + (s.got === 3 ? PERFECT_PTS : 0)) * (1 + s.stage * 0.15)) + (L.limit - s.used) * LEFT_PTS;
     if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS);
     ev(s, 'clear', 3, 3, s.won ? '부엌 대청소 끝! 🍳' : '부엌 정리 끝!');
   } else {
@@ -708,7 +714,7 @@ export const polarflip: GameDef<PolarState> = {
 
 // ───────────────────────────── 봇 ─────────────────────────────
 const NO: Input = { tap: false, dir: 0, pointer: null };
-const atMag = (L: Level, j: number): Input => ({ tap: false, dir: 0, pointer: { x: cellX(L, L.mags[j].x), y: cellY(L, L.mags[j].y) / A } });
+const atMag = (L: Level, j: number): Input => ({ tap: false, dir: 0, pointer: { x: cellX(L, L.mags[j].x, L.mags[j].y), y: cellY(L, L.mags[j].y) / A } });
 const brain = new WeakMap<object, { key: string; j: number }>();
 /** 잘하는 봇의 다음 수: 판을 만들 때 찾아 둔 최단(★3) 풀이를 따르고, 길에서 벗어났으면 지금 자리에서 다시 탐색 */
 function smartMove(s: PolarState) {
@@ -746,7 +752,7 @@ export const polarflipRandom: Bot<PolarState> = {
     if (rng() < 0.25) m.p = { x: rng(), y: rng() };
     else {
       const j = Math.floor(rng() * L.mags.length);
-      m.p = { x: cellX(L, L.mags[j].x) + (rng() - 0.5) * 0.04, y: (cellY(L, L.mags[j].y) + (rng() - 0.5) * 0.04) / A };
+      m.p = { x: cellX(L, L.mags[j].x, L.mags[j].y) + (rng() - 0.5) * 0.04, y: (cellY(L, L.mags[j].y) + (rng() - 0.5) * 0.04) / A };
     }
     return { tap: false, dir: 0, pointer: m.p };
   },
@@ -759,7 +765,7 @@ const POLE = [
   ['#ffb1a6', '#ff5a4f', '#b8302a'],
   ['#b3d4ff', '#3f8cff', '#1d4fae'],
 ];
-const TINT = ['rgba(255,96,80,', 'rgba(64,138,255,'];
+const TINT = ['rgba(255,96,80,', 'rgba(52,126,255,'];
 const PREV = new WeakMap<object, { key: string; rec: Rec; to: Sim; c: number }>();
 const recentSay = new WeakMap<object, { x: number; y: number; t: number }[]>();
 
@@ -912,6 +918,9 @@ function drawCutlery(ctx: CanvasRenderingContext2D, x: number, y: number, u: num
     ctx.fill();
   }
   ctx.restore();
+  // 손잡이 끝 극 딱지 (자석 글자와 같은 N/S)
+  const ca = -0.55 + tilt;
+  poleTag(ctx, x + Math.cos(ca) * u * 1.3, y + Math.sin(ca) * u * 1.3, u * 0.26, pol);
   eyes(ctx, x - u * 0.28, y - u * 0.02 - (fork ? 0 : u * 0.08), u * 0.82, mood, lx, ly, t);
 }
 
@@ -1298,7 +1307,18 @@ function drawCup(ctx: CanvasRenderingContext2D, x: number, y: number, U: number,
 function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: number, th: Theme) {
   const fx = juice(s), L = s.L, t = s.t, C = L.C, Rr = L.R, cw = cellW(L), chh = cw * SQ;
   const X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w;
-  const GX = (x: number) => X(cellX(L, x)), GY = (y: number) => Y(cellY(L, y));
+  const GX = (x: number, y: number) => X(cellX(L, x, y)), GY = (y: number) => Y(cellY(L, y));
+  const Uy = (y: number) => R(cw * 0.5) * sbl(L, y + 0.5);
+  const corner = (xx: number, yy: number) => [X(ptX(L, xx, yy)), Y(rowY(L, yy))];
+  const quad = (x: number, y: number, x1 = x + 1, y1 = y + 1) => {
+    const [ax, ay] = corner(x, y), [bx, by] = corner(x1, y), [qx, qy] = corner(x1, y1), [dx, dy] = corner(x, y1);
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(bx, by);
+    ctx.lineTo(qx, qy);
+    ctx.lineTo(dx, dy);
+    ctx.closePath();
+  };
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, R(sz))}px system-ui, sans-serif`);
   const U = R(cw * 0.5);
   const say = (x: number, y: number, text: string, col: string, size: number) => {
@@ -1311,7 +1331,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
   };
   const a = s.anim, prog = a ? (t - a.t0 - FLIP_T) / a.stepT : 0;
   const Snow = a ? a.to : s.S, Sold = s.S;
-  const boardTop = Y(BY), boardBot = Y(BY + Rr * chh), boardL = X(BX), boardR = X(BX + BW);
+  const boardTop = Y(rowY(L, 0)), boardBot = Y(rowY(L, Rr)), boardL = X(ptX(L, 0, Rr)), boardR = X(ptX(L, C, Rr));
+  void chh;
 
   ctx.save();
   fx.begin(ctx);
@@ -1428,20 +1449,30 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
   }
   // ═════════════ 조리대 (격자) ═════════════
   // 뒷벽 턱 · 조리대 그림자 · 앞면(서랍장)
-  ctx.fillStyle = '#d9b48a';
-  ctx.fillRect(boardL - R(0.03), boardTop - R(0.03), boardR - boardL + R(0.06), R(0.035));
-  ctx.save();
-  ctx.shadowColor = 'rgba(60,30,10,.35)';
-  ctx.shadowBlur = R(0.03);
-  ctx.shadowOffsetY = R(0.012);
-  ctx.fillStyle = '#b97a48';
-  ctx.beginPath();
-  ctx.roundRect(boardL - R(0.03), boardTop - R(0.005), boardR - boardL + R(0.06), boardBot - boardTop + R(0.05), R(0.02));
-  ctx.fill();
-  ctx.restore();
+  {
+    // 뒷벽 턱 + 조리대 나무 테 (원근 사다리꼴)
+    const m0 = 0.32, m1 = 0.3;
+    ctx.fillStyle = '#d9b48a';
+    quad(-m0, -0.45, C + m0, 0);
+    ctx.fill();
+    ctx.save();
+    ctx.shadowColor = 'rgba(60,30,10,.35)';
+    ctx.shadowBlur = R(0.03);
+    ctx.shadowOffsetY = R(0.012);
+    ctx.fillStyle = '#b97a48';
+    quad(-m0, -0.12, C + m1, Rr + 0.22);
+    ctx.fill();
+    ctx.restore();
+    const eg = ctx.createLinearGradient(0, boardTop, 0, boardBot);
+    eg.addColorStop(0, '#c98c55');
+    eg.addColorStop(1, '#e0a66b');
+    ctx.fillStyle = eg;
+    quad(-0.22, -0.1, C + 0.22, Rr + 0.18);
+    ctx.fill();
+  }
   {
     // 조리대 앞면: 두꺼운 나무 테 + 서랍장 (손잡이)
-    const fy = boardBot + R(0.02), g = ctx.createLinearGradient(0, fy, 0, h);
+    const fy = Y(rowY(L, Rr + 0.18)), g = ctx.createLinearGradient(0, fy, 0, h);
     g.addColorStop(0, '#a8693a');
     g.addColorStop(1, '#6d3f20');
     ctx.fillStyle = g;
@@ -1476,20 +1507,22 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
   const hold = s.down && s.phase === 'play' ? s.hold : -1;
   for (let y = 0; y < Rr; y++)
     for (let x = 0; x < C; x++) {
-      const c = y * C + x, x0 = X(BX + x * cw), y0 = Y(BY + y * chh), z = zs[c];
+      const c = y * C + x, z = zs[c];
       ctx.fillStyle = (x + y) % 2 ? '#f4e8d6' : '#fbf4e8';
-      ctx.fillRect(x0, y0, R(cw) + 0.5, R(chh) + 0.5);
+      quad(x, y);
+      ctx.fill();
       if (z.g >= 0) {
         const pulse = hold === z.g ? 0.12 + 0.08 * Math.sin(t * 0.25) : 0;
         const fresh = a && a.j === z.g ? Math.max(0, 0.25 - (t - a.t0) * 0.006) : 0;
-        ctx.fillStyle = TINT[z.pol] + (0.2 + pulse + fresh).toFixed(3) + ')';
-        ctx.fillRect(x0, y0, R(cw) + 0.5, R(chh) + 0.5);
+        ctx.fillStyle = TINT[z.pol] + ((z.pol ? 0.25 : 0.2) + pulse + fresh).toFixed(3) + ')';
+        ctx.fill();
       }
-      ctx.fillStyle = 'rgba(255,255,255,.55)';
-      ctx.fillRect(x0 + 2, y0 + 2, R(cw) * 0.4, 1.3);
-      ctx.strokeStyle = 'rgba(150,110,70,.18)';
+      ctx.strokeStyle = 'rgba(150,110,70,.22)';
       ctx.lineWidth = 1;
-      ctx.strokeRect(x0 + 0.5, y0 + 0.5, R(cw) - 1, R(chh) - 1);
+      ctx.stroke();
+      const [hx0, hy0] = corner(x + 0.08, y + 0.1), [hx1] = corner(x + 0.45, y + 0.1);
+      ctx.fillStyle = 'rgba(255,255,255,.6)';
+      ctx.fillRect(hx0, hy0, hx1 - hx0, 1.3);
     }
   // 구역 경계선
   ctx.strokeStyle = 'rgba(90,50,40,.38)';
@@ -1499,8 +1532,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
   for (let y = 0; y < Rr; y++)
     for (let x = 0; x < C; x++) {
       const g = zs[y * C + x].g;
-      if (x + 1 < C && zs[y * C + x + 1].g !== g) (ctx.moveTo(X(BX + (x + 1) * cw), Y(BY + y * chh)), ctx.lineTo(X(BX + (x + 1) * cw), Y(BY + (y + 1) * chh)));
-      if (y + 1 < Rr && zs[(y + 1) * C + x].g !== g) (ctx.moveTo(X(BX + x * cw), Y(BY + (y + 1) * chh)), ctx.lineTo(X(BX + (x + 1) * cw), Y(BY + (y + 1) * chh)));
+      if (x + 1 < C && zs[y * C + x + 1].g !== g) (ctx.moveTo(...(corner(x + 1, y) as [number, number])), ctx.lineTo(...(corner(x + 1, y + 1) as [number, number])));
+      if (y + 1 < Rr && zs[(y + 1) * C + x].g !== g) (ctx.moveTo(...(corner(x, y + 1) as [number, number])), ctx.lineTo(...(corner(x + 1, y + 1) as [number, number])));
     }
   ctx.stroke();
   ctx.setLineDash([]);
@@ -1510,12 +1543,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
     lg.addColorStop(0, 'rgba(255,250,225,.42)');
     lg.addColorStop(1, 'rgba(255,250,225,0)');
     ctx.fillStyle = lg;
-    ctx.fillRect(boardL, boardTop, boardR - boardL, boardBot - boardTop);
+    quad(0, 0, C, Rr);
+    ctx.fill();
     const vg = ctx.createLinearGradient(0, boardTop, 0, boardBot);
-    vg.addColorStop(0, 'rgba(90,50,20,.10)');
+    vg.addColorStop(0, 'rgba(90,50,20,.12)');
     vg.addColorStop(0.15, 'rgba(90,50,20,0)');
     ctx.fillStyle = vg;
-    ctx.fillRect(boardL, boardTop, boardR - boardL, boardBot - boardTop);
+    ctx.fill();
   }
   // 바닥에 붙은 것: 화구 · 국자 받침 · 방석 · 개수대 (수저통은 서 있어서 앞뒤 순서대로 그린다)
   /** 이 제자리 칸에 (지금 화면 기준으로) 들어가 있는 쇠붙이 */
@@ -1529,7 +1563,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
     return out;
   };
   for (let c = 0; c < C * Rr; c++) {
-    const hk = L.home[c], x = GX(c % C), y = GY((c / C) | 0);
+    const hk = L.home[c], x = GX(c % C, (c / C) | 0), y = GY((c / C) | 0), U = Uy((c / C) | 0);
     if (L.cell[c] === SINK) {
       ctx.fillStyle = '#8b98a6';
       ctx.beginPath();
@@ -1584,6 +1618,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
       ctx.beginPath();
       ctx.ellipse(x, y + U * 0.05, U * 0.55, U * 0.28, 0, 0, TAU);
       ctx.fill();
+      if (!inHome(c).length) {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `${Math.max(11, U * 0.5)}px system-ui`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🥣', x, y);
+      }
     } else if (hk === BED) {
       ctx.fillStyle = '#d9588a';
       ctx.beginPath();
@@ -1597,6 +1638,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
       ctx.beginPath();
       ctx.ellipse(x, y, U * 0.58, U * 0.32, 0, 0, TAU);
       ctx.fill();
+      if (!inHome(c).length) {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `${Math.max(11, U * 0.5)}px system-ui`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🐾', x, y);
+      }
     }
   }
 
@@ -1633,7 +1681,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
   const items: { y: number; f: () => void }[] = [];
   for (let c = 0; c < C * Rr; c++)
     if (L.cell[c] === WALL) {
-      const x = GX(c % C), y = GY((c / C) | 0);
+      const x = GX(c % C, (c / C) | 0), y = GY((c / C) | 0), U = Uy((c / C) | 0);
       items.push({
         y: (c / C) | 0,
         f: () => {
@@ -1661,7 +1709,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
     }
   for (let c = 0; c < C * Rr; c++)
     if (L.home[c] === CUP) {
-      const x = GX(c % C), y = GY((c / C) | 0), got = inHome(c);
+      const x = GX(c % C, (c / C) | 0), y = GY((c / C) | 0), got = inHome(c), U = Uy((c / C) | 0);
       items.push({ y: ((c / C) | 0) - 0.02, f: () => drawCup(ctx, x, y, U, got.map((i) => [L.kinds[i], L.pols[i]]), t) });
     }
   L.mags.forEach((m, j) => {
@@ -1669,7 +1717,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
     const pol = a && a.j === j && hop < 0.5 ? Sold.mp[j] : Snow.mp[j];
     let dir = Snow.md[j];
     if (a && a.j === j && m.turn && hop < 0.5) dir = Sold.md[j];
-    items.push({ y: m.y, f: () => drawMagnet(ctx, GX(m.x), GY(m.y), U, pol, m.turn, dir, hop >= 0 && hop < 1 ? hop : 0, hold === j, t) });
+    items.push({ y: m.y, f: () => drawMagnet(ctx, GX(m.x, m.y), GY(m.y), Uy(m.y), pol, m.turn, dir, hop >= 0 && hop < 1 ? hop : 0, hold === j, t) });
   });
   const lookAt = (x: number, y: number) => {
     const g = governor(L, Snow, Math.round(x), Math.round(y));
@@ -1684,7 +1732,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
       items.push({
         y: q.y,
         f: () => {
-          const x = GX(q.x), y = GY(q.y);
+          const x = GX(q.x, q.y), y = GY(q.y), U = Uy(q.y);
           ctx.fillStyle = '#ffffff';
           for (let n = 0; n < 4; n++) {
             const age = (t + n * 9) % 36;
@@ -1708,7 +1756,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
       return;
     }
     if (q.st === 1 && k !== POT && k !== CAT && k !== LADLE) return; // 수저통 안은 위에서 그렸다
-    const x = GX(q.x), y = GY(q.y), lift = q.mv ? U * 0.12 : 0, mood = s.mood[i];
+    const x = GX(q.x, q.y), y = GY(q.y), U = Uy(q.y), lift = q.mv ? U * 0.12 : 0, mood = s.mood[i];
     const [lx, ly] = q.mv ? [Math.sign(q.dx) * 0.9, Math.sign(q.dy) * 0.9] : lookAt(q.x, q.y);
     const tilt = q.mv ? Math.sin(t * 0.6 + i) * 0.15 : 0;
     items.push({
@@ -1755,7 +1803,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
       ctx.lineWidth = 6;
       ctx.lineCap = 'round';
       ctx.beginPath();
-      pts.forEach(([px, py], q) => (q ? ctx.lineTo(GX(px), GY(py)) : ctx.moveTo(GX(px), GY(py))));
+      pts.forEach(([px, py], q) => (q ? ctx.lineTo(GX(px, py), GY(py)) : ctx.moveTo(GX(px, py), GY(py))));
       ctx.stroke();
       ctx.strokeStyle = col;
       ctx.lineWidth = 3;
@@ -1763,8 +1811,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
       ctx.lineDashOffset = -t * 0.8;
       ctx.stroke();
       ctx.setLineDash([]);
-      const [ex, ey] = pts[pts.length - 1], [bx, by] = pts[pts.length - 2], an = Math.atan2(GY(ey) - GY(by), GX(ex) - GX(bx));
-      const hx = GX(ex), hy = GY(ey);
+      const [ex, ey] = pts[pts.length - 1], [bx, by] = pts[pts.length - 2], an = Math.atan2(GY(ey) - GY(by), GX(ex, ey) - GX(bx, by));
+      const hx = GX(ex, ey), hy = GY(ey);
       ctx.fillStyle = col;
       ctx.strokeStyle = 'rgba(40,20,10,.6)';
       ctx.lineWidth = 1.5;
@@ -1799,8 +1847,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
       ctx.lineWidth = 3;
       font(0.045, 900);
       ctx.textAlign = 'center';
-      ctx.strokeText(`${caught}개 한 번에! ★`, GX(m.x), GY(m.y) - R(0.08));
-      ctx.fillText(`${caught}개 한 번에! ★`, GX(m.x), GY(m.y) - R(0.08));
+      ctx.strokeText(`${caught}개 한 번에! ★`, GX(m.x, m.y), GY(m.y) - R(0.08));
+      ctx.fillText(`${caught}개 한 번에! ★`, GX(m.x, m.y), GY(m.y) - R(0.08));
     }
   }
   // 1판 첫 톡 전: 자석에 손가락 고리
@@ -1809,12 +1857,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
     ctx.strokeStyle = `rgba(255,255,255,${1 - pulse})`;
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.ellipse(GX(m.x), GY(m.y), U * (0.8 + pulse * 1.4), U * (0.5 + pulse * 0.9), 0, 0, TAU);
+    ctx.ellipse(GX(m.x, m.y), GY(m.y), U * (0.8 + pulse * 1.4), U * (0.5 + pulse * 0.9), 0, 0, TAU);
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
     ctx.font = `${Math.max(14, U * 0.9)}px system-ui`;
     ctx.textAlign = 'center';
-    ctx.fillText('👆', GX(m.x) + U * 0.5, GY(m.y) + U * 1.1 + Math.sin(t * 0.15) * 3);
+    ctx.fillText('👆', GX(m.x, m.y) + U * 0.5, GY(m.y) + U * 1.1 + Math.sin(t * 0.15) * 3);
   }
   // 새것 스포트라이트: 처음 보는 판, 소개 카드 뒤 2초쯤
   drawSpot(ctx, s, w, GX, GY, R, font);
@@ -1823,9 +1871,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
   const seenT = fx.memo.t ?? -1;
   for (const e of s.events) {
     if (e.t <= seenT) continue;
-    const x = GX(e.x), y = GY(e.y);
+    const x = GX(e.x, e.y), y = GY(e.y);
     if (e.kind === 'flip') {
       const big = (e.n ?? 0) >= 3;
+      fx.memo.small = 0;
       fx.ring(x, y, '#ffffff', R(big ? 0.32 : 0.18), big ? 6 : 4);
       fx.burst(x, y, '#ffffff', big ? 22 : 12, big ? 4.5 : 3, 2.4);
       fx.kick(big ? 6 : 3);
@@ -1833,7 +1882,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
       say(x, y - R(0.07), e.text!, '#ffffff', big ? 22 : 16);
       if (big) s.catT = t;
     }
-    if (e.kind === 'stick') fx.burst(x, y, '#cfd8e6', 8, 2, 1.8), say(x, y - R(0.06), e.text!, '#e8f0ff', 13);
+    if (e.kind === 'stick') {
+      fx.burst(x, y, '#cfd8e6', 8, 2, 1.8);
+      // 작은 소리 글자는 한 번 뒤집을 때 둘까지만 (큰 순간의 글자가 묻히지 않게)
+      if ((fx.memo.small ?? 0) < 2 || e.text !== '철컥!') (fx.memo.small = (fx.memo.small ?? 0) + 1), say(x, y - R(0.06), e.text!, '#e8f0ff', 13);
+    }
     if (e.kind === 'bonk') fx.burst(x, y, '#fff0d0', 7, 2.2, 1.8), fx.kick(2), e.text !== '쿵!' && say(x, y - R(0.06), e.text!, '#ffe2b0', 14);
     if (e.kind === 'clang') fx.burst(x, y, '#ffffff', 14, 3.4, 2.2), fx.ring(x, y, '#fff6c0', R(0.07), 3), fx.kick(4), say(x, y - R(0.07), e.text!, '#fff6c0', 15), (s.catT = t);
     if (e.kind === 'knock') fx.burst(x, y, '#ffd84a', 10 + (e.n ?? 1) * 4, 3.2, 2.2), fx.ring(x, y, '#ffd84a', R(0.06 + (e.n ?? 1) * 0.02), 3), fx.kick(2 + (e.n ?? 1) * 1.5), say(x, y - R(0.07), e.text!, '#ffe066', 14 + Math.min(6, (e.n ?? 1) * 2));
@@ -1862,9 +1915,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
 
 type F = (v: number) => number;
 /** 새것 스포트라이트: 처음 보는 판에서 소개 카드가 지난 뒤 2초쯤, 주변을 어둡게 하고 새것에 빛을 비춘다 */
-function drawSpot(ctx: CanvasRenderingContext2D, s: PolarState, w: number, GX: F, GY: F, R: F, font: (sz: number, wgt?: number) => void) {
-  if (!isNew(s) || s.phase !== 'play' || s.used > 0) return;
-  const age = s.t - s.startT, t0 = 60, t1 = 200;
+function drawSpot(ctx: CanvasRenderingContext2D, s: PolarState, w: number, GX: (x: number, y: number) => number, GY: F, R: F, font: (sz: number, wgt?: number) => void) {
+  if (!isNew(s) || s.phase !== 'play' || s.used > 0 || s.down) return;
+  const age = s.t - s.startT, t0 = CARD_T - 25, t1 = CARD_T + 120;
   if (age < t0 || age > t1) return;
   const L = s.L, key = STAGES[s.stage].key;
   let x = -1, y = -1;
@@ -1885,7 +1938,7 @@ function drawSpot(ctx: CanvasRenderingContext2D, s: PolarState, w: number, GX: F
     if (c >= 0) (x = c % L.C), (y = (c / L.C) | 0);
   }
   if (x < 0) return;
-  const a = Math.min(1, (age - t0) / 10, (t1 - age) / 18), cx = GX(x), cy = GY(y), r = R(0.1) * (1 + 0.05 * Math.sin(age * 0.2));
+  const a = Math.min(1, (age - t0) / 10, (t1 - age) / 18), cx = GX(x, y), cy = GY(y), r = R(0.1) * (1 + 0.05 * Math.sin(age * 0.2));
   ctx.save();
   ctx.globalAlpha = a;
   ctx.fillStyle = 'rgba(20,10,20,.6)';
@@ -1973,7 +2026,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
     let head = '', sub = '', nw = '', col = '#ffffff', age = 0, a = 1;
     if (s.phase === 'result') {
       age = s.pt;
-      if (s.ok) (head = s.won ? '부엌 대청소 끝! 🍳' : '부엌 정리 끝!'), (sub = `다 넣음 ✓ · 뒤집기 ${s.used}번${s.starOk[1] ? ' ✓' : ` (≤${L.par} ✗)`} · 한 번에 ${L.combo}개 ${s.starOk[2] ? '✓' : '✗'}`), (col = '#ffcf5a');
+      if (s.ok) (head = s.won ? '부엌 대청소 끝! 🍳' : s.got === 3 ? '완벽! +100' : '부엌 정리 끝!'), (sub = `다 넣음 ✓ · 뒤집기 ${s.used}번${s.starOk[1] ? ' ✓' : ` (≤${L.par} ✗)`} · 한 번에 ${L.combo}개 ${s.starOk[2] ? '✓' : '✗'}`), (col = '#ffcf5a');
       else (head = `앗… ${s.why}`), (sub = s.hearts > 0 ? '하트 -1 · 같은 부엌 다시' : '끝 — 숟가락들이 고마워해요!'), (col = '#ffb3a8');
     } else if (s.pt < CARD_T && s.used === 0) {
       age = s.pt;

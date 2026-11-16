@@ -85,7 +85,7 @@ export const STAGES: Tpl[] = [
   },
   {
     key: 'owl', news: '🦉 부엉이가 부메랑을 낚아채요 — 오는 길이 없어요!', hint: '부엉이에 닿으면 가는 길만 쳐요 (한 번씩)',
-    lamps: [[0.5, 0.32, 0, -1, 0], [0.3, 0.42, 0, -1, 0], [0.7, 0.44, 0, -1, 1], [0.28, 0.68, 0, -1, 1], [0.72, 0.7, 0, -1, 0], [0.5, 0.82, 0, -1, 0], [0.16, 0.54, 0, -1, 0]],
+    lamps: [[0.5, 0.3, 0, -1, 0], [0.3, 0.42, 0, -1, 0], [0.7, 0.44, 0, -1, 1], [0.28, 0.68, 0, -1, 1], [0.72, 0.7, 0, -1, 0], [0.5, 0.82, 0, -1, 0], [0.16, 0.54, 0, -1, 0], [0.84, 0.56, 0, -1, 0]],
     owl: [0.5, 0.42],
     pmin: 2, pmax: 4, slack: 3, cmax: 3, trap: true,
   },
@@ -514,7 +514,7 @@ export let genTries = 0;
 function genStage(s: BoomState) {
   const d = STAGES[s.stage], rng = mulberry32(s.jit[s.stage]);
   let pick: { L: Layout; P: Puzzle } | null = null, pv = -1;
-  for (let tries = 0; tries < 30; tries++) {
+  for (let tries = 0; tries < 48; tries++) {
     genTries++;
     const L = makeLayout(d, rng, rng() < 0.5);
     const P = buildPuzzle(L, d.pmin);
@@ -527,7 +527,7 @@ function genStage(s: BoomState) {
     } else v += 5;
     if (C >= 2) v += 1;
     // 새것(바위·부엉이)이 장식이 아니게: 그것 없이는 par 안에 못 푸는 판
-    if (L.rocks.length || L.owl) v += P.parNo > P.par ? 3 : 0;
+    if (d.key === 'rock' || d.key === 'owl') v += P.parNo > P.par ? 3 : 0;
     else v += 3;
     if (v > pv) (pv = v), (pick = { L, P });
     if (v >= 13) break;

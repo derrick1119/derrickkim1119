@@ -441,7 +441,7 @@ export interface GhostState {
   down: boolean; aim: { x: number; y: number } | null; busy: number; lastTurn: number; firstTap: boolean;
   seen: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; events: Ev[];
   /** 연출: 지난 턴의 아이·유령 자리와 기록 */
-  kidFrom: number; gFrom: number[]; dirFrom: number; rec: Rec | null; recT: number; bigT: number; catT: number;
+  kidFrom: number; gFrom: number[]; dirFrom: number; rec: Rec | null; recT: number; recDur: number; bigT: number; catT: number;
 }
 
 const ev = (s: GhostState, kind: string, x: number, y: number, text?: string, n?: number) => s.events.push({ t: s.t, kind, x, y, text, n });
@@ -502,17 +502,20 @@ function act(s: GhostState, x: number, y: number) {
   s.gFrom = S.g.map((g) => g.p);
   s.dirFrom = S.dir;
   const R: Rec = { froze: [], woke: [], moved: [], pops: [], lit: [], n: 0, caught: -1, bump: -1, ignite: [] };
-  const rot = d !== S.dir;
+  const rot = d !== S.dir, best0 = S.best;
   turn(L, S, d, R);
   s.rec = R;
   s.recT = s.t;
-  s.busy = BUSY;
+  // 큰 얼음(셋 이상)은 잠깐 느리게 — 유령들이 굳는 모습을 본다
+  s.recDur = R.n >= 3 ? Math.round(BUSY * 1.8) : BUSY;
+  s.busy = s.recDur;
   s.lastTurn = s.t;
   s.firstTap = true;
   const k = L.path[S.i], kx = cellX(cx(k)), ky = cellY(cy(k));
   if (rot) ev(s, 'rot', kx, ky, '🔋-1');
   if (R.froze.length || R.lit.length) see(s, 'light', '🔦 빛이 닿은 유령은 얼음! 빛 밖의 유령만 다가와요');
-  if (R.n >= 2) {
+  const fresh = R.froze.filter((j) => R.lit.includes(j)).length;
+  if (R.n >= 2 && (fresh >= 2 || R.n > best0)) {
     ev(s, 'multi', kx, ky - 0.1, `얼음 ×${R.n}!`, R.n);
     see(s, 'multi', '❄️ 한 번에 여럿 얼리면 ★ — 유령을 한쪽으로 모아요');
     if (R.n >= 3) s.bigT = s.t;
@@ -550,6 +553,7 @@ function endStage(s: GhostState, ok: boolean, why: string) {
     s.pts += s.got * STAR_PTS * (s.stage + 1) + S.bat * BAT_PTS + S.pops * POP_PTS;
     if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS);
     ev(s, 'clear', cellX(cx(k)), cellY(cy(k)), s.won ? '저택 탈출! 🏠' : '문 도착!');
+    S.g.filter((g) => g.alive).slice(0, 3).forEach((g, j) => ev(s, 'sulk', cellX(cx(g.p)), cellY(cy(g.p)), ['에잉~', '칫!', '다음엔 꼭…'][j]));
   } else {
     s.hearts--;
     s.tries++;
@@ -580,12 +584,15 @@ export const ghostlight: GameDef<GhostState> = {
       rng, seed, t: 0, stage: 0, phase: 'play', pt: 0, flips, lays,
       hearts: 3, stars: 0, got: 0, starOk: [false, false, false], pts: 0, ok: false, why: '', won: false, dead: false, tries: 0, again: false,
       down: false, aim: null, busy: 0, lastTurn: 0, firstTap: false,
-      seen: new Set<string>(), newsQ: [], news: null, events: [], kidFrom: 0, gFrom: [], dirFrom: 0, rec: null, recT: -99, bigT: -999, catT: -999,
+      seen: new Set<string>(), newsQ: [], news: null, events: [], kidFrom: 0, gFrom: [], dirFrom: 0, rec: null, recT: -99, recDur: BUSY, bigT: -999, catT: -999,
     } as unknown as GhostState;
     newStage(s);
     return s;
   },
   step(s, inp: Input) {
+    s.t++;
+    s.pt++;
+    if (s.busy > 0) s.busy--;
     const p = inp.pointer ?? null;
     if (p) (s.down = true), (s.aim = { x: p.x, y: p.y * A });
     else if (s.down) {
@@ -593,9 +600,6 @@ export const ghostlight: GameDef<GhostState> = {
       if (s.aim) act(s, s.aim.x, s.aim.y);
       s.aim = null;
     }
-    s.t++;
-    s.pt++;
-    if (s.busy > 0) s.busy--;
     if (s.events.length > 40 || (s.events.length && s.t - s.events[0].t > 200)) s.events = s.events.filter((e) => s.t - e.t < 200);
     if (!s.news || s.t - s.news.t > NEWS_T) s.news = s.newsQ.length ? { text: s.newsQ.shift()!, t: s.t } : s.news;
     if (s.phase === 'result' && s.pt >= (s.ok ? RESULT_OK : RESULT_FAIL)) {
@@ -1299,7 +1303,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: GhostState, w: number, h: num
     fx.pop(Math.max(w * 0.12, Math.min(w * 0.88, x)), y, text, col, size);
   };
   // 연출 진행도
-  const q = s.rec ? Math.min(1, (s.t - s.recT) / BUSY) : 1;
+  const q = s.rec ? Math.min(1, (s.t - s.recT) / s.recDur) : 1;
   const kq = ease(q / 0.55), gq = ease((q - 0.3) / 0.7);
   const kidC = L.path[S.i];
   const kidX = lerp(cx(s.kidFrom), cx(kidC), kq), kidY = lerp(cy(s.kidFrom), cy(kidC), kq);
@@ -1521,6 +1525,25 @@ function drawAll(ctx: CanvasRenderingContext2D, s: GhostState, w: number, h: num
       ctx.fillStyle = 'rgba(255,220,180,.06)';
       ctx.fillRect(px, py, cw, 1.5);
     }
+  // 뒷벽 밑 그늘 · 앞으로 갈수록 밝아지는 바닥
+  {
+    const sg = ctx.createLinearGradient(0, fy0, 0, fy0 + chh * 1.2);
+    sg.addColorStop(0, 'rgba(0,0,0,.45)');
+    sg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = sg;
+    ctx.fillRect(fx0, fy0, fw0, chh * 1.2);
+    // 양옆 벽 (두께와 징두리)
+    for (const sd of [-1, 1]) {
+      const x0 = sd < 0 ? 0 : fx0 + fw0, ww = sd < 0 ? fx0 : w - x0;
+      const g = ctx.createLinearGradient(x0, 0, x0 + ww, 0);
+      g.addColorStop(0, sd < 0 ? '#1c1236' : '#3a2a5e');
+      g.addColorStop(1, sd < 0 ? '#3a2a5e' : '#1c1236');
+      ctx.fillStyle = g;
+      ctx.fillRect(x0, wy0, ww, fy0 + fh0 - wy0 + R(0.035));
+      ctx.fillStyle = 'rgba(255,200,150,.1)';
+      for (let k = 0; k < ROWS; k++) ctx.fillRect(x0 + ww * 0.25, fy0 + k * chh + chh * 0.2, ww * 0.5, chh * 0.6);
+    }
+  }
   // 카펫 길
   {
     ctx.strokeStyle = '#7a1630';
@@ -1727,6 +1750,22 @@ function drawAll(ctx: CanvasRenderingContext2D, s: GhostState, w: number, h: num
       },
     });
   });
+  // 펑! 사라지는 유령: 빈 이불이 빙글 날아오른다
+  if (s.rec && q < 1)
+    for (const j of s.rec.pops) {
+      const p = s.gFrom[j];
+      if (p === undefined) continue;
+      const k2 = S.g[j].k, up = ease(q) * chh * 1.6;
+      items.push({
+        y: cy(p) + 0.02,
+        f: () => {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, 1 - q * 1.1);
+          drawGhost(ctx, gx(cx(p)), gy(cy(p)) + chh * 0.28 - up, u * (1 + q * 0.4), k2, true, 3, t, 0, 0, j, 0, q * 4);
+          ctx.restore();
+        },
+      });
+    }
   // 아이
   {
     let mood = 0, roll = 0;
@@ -1865,6 +1904,14 @@ function drawAll(ctx: CanvasRenderingContext2D, s: GhostState, w: number, h: num
       ctx.stroke();
     }
   }
+  // 가장자리 어둠 (비네트)
+  {
+    const vg = ctx.createRadialGradient(w / 2, Y(0.7), R(0.35), w / 2, Y(0.7), R(0.95));
+    vg.addColorStop(0, 'rgba(6,3,20,0)');
+    vg.addColorStop(1, 'rgba(6,3,20,.45)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, wy0, w, Y(BAND) - wy0);
+  }
   // 반딧불 같은 먼지
   for (let k = 0; k < 14; k++) {
     const px = hsh(k + 300), py = BY0 + ((hsh(k + 310) * (BY1 - BY0) - t * 0.0003 * (1 + (k % 3))) % (BY1 - BY0) + (BY1 - BY0)) % (BY1 - BY0);
@@ -1891,6 +1938,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: GhostState, w: number, h: num
     if (e.kind === 'pop') (fx.burst(x, y - chh * 0.4, '#ffffff', 26, 4.5, 3), fx.burst(x, y - chh * 0.4, '#ffe066', 12, 3, 2.4), fx.ring(x, y - chh * 0.4, '#ffffff', R(0.12), 4), fx.kick(4), say(x, y - chh * 1.3, e.text!, '#ffe066', 20));
     if (e.kind === 'ignite') (fx.burst(x, y - chh * 0.8, '#ffb02e', 18, 3, 2.6), fx.ring(x, y, '#ffc070', cw * 1.6, 4), say(x, y - chh * 1.4, e.text!, '#ffd08a', 15));
     if (e.kind === 'moth') say(x, y - chh * 1.2, e.text!, '#ffb3e6', 14);
+    if (e.kind === 'sulk') say(x, y - chh * 1.3, e.text!, '#d8d0f0', 13);
     if (e.kind === 'rot') say(x + cw * 0.6, y - chh * 0.2, e.text!, '#ffe9a8', 13);
     if (e.kind === 'nope') (say(x, y, e.text!, '#ffd6cc', 14), fx.kick(1.5));
     if (e.kind === 'clear') (fx.burst(x, y, '#ffe066', 40, 6, 3.2), fx.burst(w * 0.3, Y(0.5), '#ff9ec4', 30, 6, 3), fx.burst(w * 0.7, Y(0.5), '#9fe8ff', 30, 6, 3), fx.ring(x, y, '#ffe066', R(0.4), 7), fx.blink('#fff6c8', 0.22), say(x, y - chh * 1.4, e.text!, '#ffe066', 22));
@@ -1953,7 +2001,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: GhostState, w: number, h: num
       nw = s.again ? '' : d.news;
     }
     if (head) {
-      const sc = Math.min(1, 0.6 + age / 12), cyy = Y(s.phase === 'result' ? BY0 + 0.5 : BY0 + (nw ? 0.12 : 0.1)), chd = nw ? 0.158 : 0.11;
+      const resY = cy(L.path[S.i]) < 5 ? BY0 + 0.78 : BY0 + 0.16;
+      const sc = Math.min(1, 0.6 + age / 12), cyy = Y(s.phase === 'result' ? resY : BY0 + (nw ? 0.12 : 0.1)), chd = nw ? 0.158 : 0.11;
       ctx.save();
       ctx.globalAlpha = a;
       ctx.translate(w / 2, cyy);
