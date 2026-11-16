@@ -410,7 +410,7 @@ export function apply(L: Level, S: Sim, s: number, rec?: RE[]) {
 /** ★3 조건: 톡 T번 이하(T가 있으면) 또는 연속 쏙 C번 */
 export const star3 = (d: StageDef, S: Sim) => (d.H !== undefined ? S.shot >= d.H : d.T !== undefined ? S.taps <= d.T : S.best >= d.C);
 /** ★3 '한 방 H'를 이제 못 딴다: 아직 못 땄고 남은 통나무가 없다 (🧪 S002: 와르르 0 뒤에도 칩이 ☆라 헛민다) */
-export const shotDead = (d: StageDef, L: Level, S: Sim) => d.H !== undefined && S.shot < d.H && (L.N - S.n < d.H || (!L.pl.some((p, k) => (p.heavy || p.ham || p.kind === 'spring') && L.pm[k] & ~S.gone) && !(L.wind && !S.key) && !(L.thump && L.N - S.n >= d.H) && !(L.jack && L.pm[L.jack[0]] & ~S.gone))); // ✏️ S025(📋 A · shotDead 일반화): 🔨 · 🌀 판자가 남았으면 살아 있음(통일 판 톡 0 ✗ 0) · 남은 나사 < H면 끝 // 📐 S007: 🔑 태엽 판은 🔑 전엔 살아 있음(8판) · 📐B S012: 🐹 쿵 판은 남은 나사가 H개 이상이면 살아 있음(1-6) · 📐B S013: 🤡 상자가 남았으면 살아 있음(3-2)
+export const shotDead = (d: StageDef, L: Level, S: Sim) => d.H !== undefined && S.shot < d.H && (L.N - S.n < d.H || (!L.pl.some((p, k) => (p.heavy || p.ham || p.kind === 'spring') && L.pm[k] & ~S.gone) && !(L.wind && !S.key) && !(L.thump && L.N - S.n >= d.H) && !(L.jack && L.pm[L.jack[0]] & ~S.gone) && !L.tmr.some((v, i) => v > 0 && !((S.gone >> i) & 1)))); // ✏️ S025 · 🧪 S025 🔴: ⏰ 나사가 남았으면 살아 있음(3-1 톡 0 '✗' 오판) · S025(📋 A · shotDead 일반화): 🔨 · 🌀 판자가 남았으면 살아 있음(통일 판 톡 0 ✗ 0) · 남은 나사 < H면 끝 // 📐 S007: 🔑 태엽 판은 🔑 전엔 살아 있음(8판) · 📐B S012: 🐹 쿵 판은 남은 나사가 H개 이상이면 살아 있음(1-6) · 📐B S013: 🤡 상자가 남았으면 살아 있음(3-2)
 export const starsOf = (d: StageDef, S: Sim) => (d.B !== undefined ? (S.bonks >= d.B ? (S.peak <= d.P ? 3 : 2) : 1) : 1 + (S.peak <= d.P ? 1 : 0) + (star3(d, S) ? 1 : 0));
 /** 🔨 ★2(쾅 B번)를 이제 못 딴다: 아직 칠 수 있는 망치(아직 안 매달렸고 칠 나사가 살아 있음)를 다 더해도 B에 못 미친다 */
 /** 🔨 아직 칠 수 있는 망치 수: 아직 안 매달렸고 칠 나사가 살아 있음 */

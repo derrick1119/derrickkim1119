@@ -406,7 +406,13 @@ export function starOf(k: number, seeds = 24, sm?: ShopState[]) {
   const d = STAGES[k], ids = Array.from({ length: seeds }, (_, i) => 1000 + i * 7);
   const rate = (st: ShopState[]) => [0, 1].map((j) => +(st.filter((s) => s.phase === 'result' && s.ok && sat(d, s.S)[j]).length / st.length).toFixed(2));
   const smart = rate(sm ?? ids.map((x) => tryStage(screwshopSmart, x, k).s)), blind = rate(ids.map((x) => tryStage(screwshopBlind, x, k).s));
-  let miss = 0, known = 0, seen = 0;
+  let miss = 0, known = 0, seen = 0, falseDead = 0;
+  for (const seed of ids) { // 🧪 S025 🔴: 판 중 ✗(못 땀)가 뜬 뒤에도 장인이 ★3을 따면 오판
+    const s = g.create(seed); if (k) startStage(s, k);
+    const rng = mulberry32(seed ^ 0x9e3779b9), t0 = s.t; let dead = false;
+    while (s.phase !== 'result' && s.t - t0 < 600 * 60) { g.step(s, screwshopSmart.act(s, rng)); if (s.phase === 'play') dead ||= deadOf(d, s.L, s.S); }
+    falseDead += +(dead && s.phase === 'result' && s.ok && sat(d, s.S)[1]);
+  }
   for (const seed of ids) { // 처음 봇: 결과 전에 ★ 칩 글 · 게이지가 움직였나(F25 노출) · 놓친 ★3을 판 중 ✗로 알았나
     const s = g.create(seed); if (k) startStage(s, k);
     const rng = mulberry32(seed ^ 0x9e3779b9), t0 = s.t, c0 = JSON.stringify([starText(d, s.S).c2, starText(d, s.S).c3, gaugeOf(d, s.S)]);
@@ -418,7 +424,7 @@ export function starOf(k: number, seeds = 24, sm?: ShopState[]) {
     seen += +moved;
     if (s.phase === 'result' && s.ok && !sat(d, s.S)[1]) (miss++, (known += +dead));
   }
-  return { kind: kindOf(d), smart, blind, k2: +(smart[0] - blind[0]).toFixed(2), k3: +(smart[1] - blind[1]).toFixed(2), seen: +(seen / seeds).toFixed(2), miss, known };
+  return { kind: kindOf(d), smart, blind, k2: +(smart[0] - blind[0]).toFixed(2), k3: +(smart[1] - blind[1]).toFixed(2), seen: +(seen / seeds).toFixed(2), miss, known, falseDead };
 }
 export function starRead(rows: { slot: string; star: ReturnType<typeof starOf> }[]) {
   const first = new Map<string, [string, number]>(), mid: Record<string, [number, number]> = {};
@@ -426,6 +432,7 @@ export function starRead(rows: { slot: string; star: ReturnType<typeof starOf> }
   return {
     kinds: first.size, changes: rows.filter((r, i) => i && r.star.kind !== rows[i - 1].star.kind).length, live3: STAGES.filter((d) => d.B === undefined).length,
     f25: [...first].map(([kd, [slot, v]]) => [kd, slot, v]), knownMid: Object.entries(mid).map(([kd, [a, n]]) => [kd, n ? +(a / n).toFixed(2) : null, n]),
+    falseDead: rows.filter((r) => r.star.falseDead).map((r) => [r.slot, r.star.falseDead]), // 0이어야(✗ 오판)
     kHigh: rows.flatMap((r) => [[r.slot, '★2', r.star.k2], [r.slot, '★3', r.star.k3]]).filter((x) => (x[2] as number) >= 0.5),
   };
 }

@@ -142,6 +142,7 @@
      154
     ]
    ],
+   "falseDead": [],
    "kHigh": [
     [
      "1-1",
@@ -666,7 +667,8 @@
     "k3": 0.75,
     "seen": 1,
     "miss": 21,
-    "known": 21
+    "known": 21,
+    "falseDead": 0
    }
   },
   {
@@ -808,7 +810,8 @@
     "k3": 1,
     "seen": 1,
     "miss": 24,
-    "known": 24
+    "known": 24,
+    "falseDead": 0
    }
   },
   {
@@ -954,7 +957,8 @@
     "k3": 0,
     "seen": 0.92,
     "miss": 16,
-    "known": 16
+    "known": 16,
+    "falseDead": 0
    }
   },
   {
@@ -1101,7 +1105,8 @@
     "k3": 0.58,
     "seen": 1,
     "miss": 23,
-    "known": 23
+    "known": 23,
+    "falseDead": 0
    }
   },
   {
@@ -1252,7 +1257,8 @@
     "k3": 0.29,
     "seen": 1,
     "miss": 21,
-    "known": 21
+    "known": 21,
+    "falseDead": 0
    }
   },
   {
@@ -1402,7 +1408,8 @@
     "k3": 0.12,
     "seen": 1,
     "miss": 23,
-    "known": 23
+    "known": 23,
+    "falseDead": 0
    }
   },
   {
@@ -1553,7 +1560,8 @@
     "k3": 0.75,
     "seen": 1,
     "miss": 21,
-    "known": 21
+    "known": 21,
+    "falseDead": 0
    }
   },
   {
@@ -1700,7 +1708,8 @@
     "k3": 0.79,
     "seen": 1,
     "miss": 24,
-    "known": 24
+    "known": 24,
+    "falseDead": 0
    }
   },
   {
@@ -1855,7 +1864,8 @@
     "k3": 0.71,
     "seen": 1,
     "miss": 21,
-    "known": 21
+    "known": 21,
+    "falseDead": 0
    }
   },
   {
@@ -2016,7 +2026,8 @@
     "k3": 0.37,
     "seen": 1,
     "miss": 15,
-    "known": 15
+    "known": 15,
+    "falseDead": 0
    }
   },
   {
@@ -2171,7 +2182,8 @@
     "k3": 1,
     "seen": 1,
     "miss": 18,
-    "known": 18
+    "known": 18,
+    "falseDead": 0
    }
   },
   {
@@ -2322,7 +2334,8 @@
     "k3": 0.42,
     "seen": 1,
     "miss": 24,
-    "known": 24
+    "known": 24,
+    "falseDead": 0
    }
   },
   {
@@ -2477,7 +2490,8 @@
     "k3": 0.25,
     "seen": 1,
     "miss": 15,
-    "known": 15
+    "known": 15,
+    "falseDead": 0
    }
   },
   {
@@ -2629,7 +2643,8 @@
     "k3": 0.92,
     "seen": 1,
     "miss": 24,
-    "known": 24
+    "known": 24,
+    "falseDead": 0
    }
   },
   {
@@ -2780,7 +2795,8 @@
     "k3": 0,
     "seen": 0.92,
     "miss": 22,
-    "known": 22
+    "known": 22,
+    "falseDead": 0
    }
   },
   {
@@ -2926,7 +2942,8 @@
     "k3": 0,
     "seen": 1,
     "miss": 17,
-    "known": 17
+    "known": 17,
+    "falseDead": 0
    }
   },
   {
@@ -3073,7 +3090,8 @@
     "k3": 0.46,
     "seen": 1,
     "miss": 22,
-    "known": 22
+    "known": 22,
+    "falseDead": 0
    }
   },
   {
@@ -3226,7 +3244,8 @@
     "k3": 0.92,
     "seen": 1,
     "miss": 17,
-    "known": 17
+    "known": 17,
+    "falseDead": 0
    }
   },
   {
@@ -3381,7 +3400,8 @@
     "k3": 0,
     "seen": 1,
     "miss": 20,
-    "known": 20
+    "known": 20,
+    "falseDead": 0
    }
   },
   {
@@ -3538,7 +3558,8 @@
     "k3": 0.67,
     "seen": 1,
     "miss": 19,
-    "known": 19
+    "known": 19,
+    "falseDead": 0
    }
   },
   {
@@ -3684,7 +3705,8 @@
     "k3": 0,
     "seen": 1,
     "miss": 21,
-    "known": 21
+    "known": 21,
+    "falseDead": 0
    }
   },
   {
@@ -3844,7 +3866,8 @@
     "k3": 0.42,
     "seen": 1,
     "miss": 22,
-    "known": 22
+    "known": 22,
+    "falseDead": 0
    }
   },
   {
@@ -4014,7 +4037,8 @@
     "k3": 0,
     "seen": 1,
     "miss": 19,
-    "known": 19
+    "known": 19,
+    "falseDead": 0
    }
   },
   {
@@ -4168,7 +4192,8 @@
     "k3": 0.75,
     "seen": 1,
     "miss": 21,
-    "known": 21
+    "known": 21,
+    "falseDead": 0
    }
   },
   {
@@ -4325,7 +4350,8 @@
     "k3": 0.83,
     "seen": 0.88,
     "miss": 19,
-    "known": 19
+    "known": 19,
+    "falseDead": 0
    }
   },
   {
@@ -4493,7 +4519,8 @@
     "k3": 0.58,
     "seen": 1,
     "miss": 14,
-    "known": 14
+    "known": 14,
+    "falseDead": 0
    }
   },
   {
@@ -4650,7 +4677,8 @@
     "k3": 0.54,
     "seen": 1,
     "miss": 20,
-    "known": 20
+    "known": 20,
+    "falseDead": 0
    }
   },
   {
@@ -4806,7 +4834,8 @@
     "k3": 0.08,
     "seen": 1,
     "miss": 17,
-    "known": 17
+    "known": 17,
+    "falseDead": 0
    }
   }
  ]
