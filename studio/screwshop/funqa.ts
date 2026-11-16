@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Bot, Input } from './core.ts';
 import { mulberry32 } from './rng.ts';
-import { STAGES, apply, geometry, setLevel, visibleM, cloneSim, freeM, jackEarly, logLate, paintStage, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, screwshopBlind, startStage, starsOf, star3, shotDead, bonkDead, streakDead, tapDead, starText, gaugeOf, type Level, type ShopState, type Sim, type StageDef, type Src } from './game.ts';
+import { STAGES, apply, geometry, setLevel, visibleM, cloneSim, freeM, jackEarly, logLate, paintStage, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, screwshopBlind, startStage, starsOf, star3, shotDead, bonkDead, streakDead, tapDead, starText, gaugeOf, setLearn, starKinds, type Level, type ShopState, type Sim, type StageDef, type Src } from './game.ts';
 
 export interface Try { ok: boolean; stars: number; sec: number; peak: number; best: number; shot: number; taps: number; /** 끝난 판(되짚기·F13용) */ s: ShopState }
 
@@ -418,6 +418,24 @@ export function starRead(rows: { slot: string; star: ReturnType<typeof starOf> }
   };
 }
 
+/** ✏️ S024(🧪 S024 ⑩): 단계별 배우기 짚기 도달률 — 처음 봇이 빈 저장으로 1-1부터 배움을 이어 가며, 배우는 판에서 짚기(그 별이 움직인 순간 한 줄)를 실제로 본 비율 */
+export function ladder(seeds = 24, n = 5) {
+  const hit = Array(n).fill(0), cnt = Array(n).fill(0), kind: string[] = Array(n).fill('');
+  for (let i = 0; i < seeds; i++) {
+    let learn = 0;
+    for (let k = 0; k < n; k++) {
+      const seed = 1000 + i * 7, s = g.create(seed); if (k) startStage(s, k);
+      setLearn(s, learn);
+      if (s.teach) cnt[k]++, (kind[k] = `★${s.teach} ${starKinds(STAGES[k])[s.teach - 2]}`);
+      const rng = mulberry32(seed ^ 0x9e3779b9), t0 = s.t;
+      while (s.phase !== 'result' && s.t - t0 < 600 * 60) g.step(s, screwshopNewbie.act(s, rng));
+      if (s.teach) hit[k] += +s.taught;
+      learn = s.learn;
+    }
+  }
+  return { stages: STAGES.slice(0, n).map((d, k) => [d.slot, kind[k], cnt[k] ? +(hit[k] / cnt[k]).toFixed(2) : null]), hit: +(hit.reduce((a, b) => a + b, 0) / Math.max(1, cnt.reduce((a, b) => a + b, 0))).toFixed(2) };
+}
+
 export function measureStage(k: number, seeds: number, bots: (keyof typeof BOTS)[]) {
   return Object.fromEntries(bots.map((b) => {
     const r = Array.from({ length: seeds }, (_, i) => tryStage(BOTS[b], 1000 + i * 7, k));
@@ -520,7 +538,7 @@ export function measure(seeds = 12) {
     f23low: stages.filter((r) => (r.id as number) >= 8 && (r.big as ReturnType<typeof bigOf>).newbie < 0.25).map((r) => [r.slot, (r.big as ReturnType<typeof bigOf>).newbie]),
     twins: twinsOf(stages as { slot: string; big: ReturnType<typeof bigOf> }[]),
     /** 📋 S016: 판박이 v2 · 같은 뼈대 · 바닥 96손 · m ≥ 5 문턱 3 · news 순간(24시드 이상에서만) */
-    ...(seeds >= 24 ? { starRead: starRead(stages as { slot: string; star: ReturnType<typeof starOf> }[]), twins2: twins2(stages.map((r, k) => ({ slot: r.slot as string, k, big: r.big as ReturnType<typeof bigOf> }))), twinsSame: twinsSame(stages.map((r, k) => ({ slot: r.slot as string, k, big: r.big as ReturnType<typeof bigOf> }))), skeletons: skeletons(), big96: stages.filter((r) => r.big96 !== undefined).map((r) => [r.slot, r.big96]), n3: stages.filter((r) => (r.big as ReturnType<typeof bigOf>).n3 !== undefined).map((r) => [r.slot, (r.big as ReturnType<typeof bigOf>).n3]), news: stages.filter((r) => r.news).map((r) => [r.slot, (r.news as { newbie: number }).newbie, (r.news as { mash: number }).mash, (r.news as { smart: number }).smart]),
+    ...(seeds >= 24 ? { ladder: ladder(seeds), starRead: starRead(stages as { slot: string; star: ReturnType<typeof starOf> }[]), twins2: twins2(stages.map((r, k) => ({ slot: r.slot as string, k, big: r.big as ReturnType<typeof bigOf> }))), twinsSame: twinsSame(stages.map((r, k) => ({ slot: r.slot as string, k, big: r.big as ReturnType<typeof bigOf> }))), skeletons: skeletons(), big96: stages.filter((r) => r.big96 !== undefined).map((r) => [r.slot, r.big96]), n3: stages.filter((r) => (r.big as ReturnType<typeof bigOf>).n3 !== undefined).map((r) => [r.slot, (r.big as ReturnType<typeof bigOf>).n3]), news: stages.filter((r) => r.news).map((r) => [r.slot, (r.news as { newbie: number }).newbie, (r.news as { mash: number }).mash, (r.news as { smart: number }).smart]),
       /** 📋 S017: 장치 F19 < .4 [자리, 장치, 낙차] — 판정은 M1′ 8판(id < 8) 밖만, M1′ 판은 f19m1(같이 보는 지표). 🪟는 max(장인, 처음 봇 96시드 f19n) · 카드 짝 3손(허공 ≥ 10) 최저 · .8 밑 판 */
       ...((low) => ({ f19low: low.filter((x) => (x[3] as number) >= 8 && DECOR[x[3] as number] !== x[1]).map((x) => x.slice(0, 3)), decor: low.filter((x) => DECOR[x[3] as number] === x[1]).map((x) => x.slice(0, 3)), f19m1: low.filter((x) => (x[3] as number) < 8).map((x) => x.slice(0, 3)) }))(stages.flatMap((r) => Object.entries((r.f19 ?? {}) as Record<string, number>).map(([e, v]) => [e, e === '🪟' ? Math.max(v, (r.f19p as number) ?? 0) : v] as const).filter(([, v]) => v < 0.4).map(([e, v]) => [r.slot, e, v, r.id]))),
       /** 📋 S017 · S018: 🪟 판 [자리, 유리 밑 보이는 나사, 장인 F19, 미리 보기 ★2+ 낙차(48시드), 처음 봇(96시드 · 같이 보는 지표)] · glassDecide = '🪟 결정 판'(보이는 나사 ≥ 3 · 장인 ≥ .4 · 미리 보기 ≥ .1 셋 다 · M1′ 밖) */
