@@ -95,7 +95,7 @@ export const STAGES: StageDef[] = [
     key: 'dark', name: '지하실', emoji: '🌑', news: '🌑 어두운 지하실 — 빛이 짧아요', tip: '가까이 올 때까지 기다렸다 비춰요',
     maps: [
       { m: ['...D...', '.......', '...gfg.', '...#...', '....g..', '.#...#.', '.......', '.......', '...K...'], par: 2 },
-      { m: ['g..D...', '.....g.', '....g..', '...#...', '.......', '.#...#.', '....f..', '.......', '...K...'], par: 2 },
+      { m: ['...D...', '.......', '.....g.', '...#...', '.......', '.#..g#.', '.g....f', '.......', '...K...'], par: 4 },
     ],
     path: 'UUULUUUURU', K: 2, dark: true,
   },
@@ -103,7 +103,7 @@ export const STAGES: StageDef[] = [
     key: 'final', name: '대연회장', emoji: '🎭', news: '🎭 마지막 대연회장 — 모두 나와요!', tip: '촛불·거울·빠른 유령·나방 — 순서를 정해요',
     maps: [
       { m: ['..D....', 'g...g..', '...c...', '.......', 'f\\.#...', '.......', '.g.m...', '.......', '....K..'], par: 4 },
-      { m: ['..D....', '.......', '..gc.g.', '..f....', '.\\.#...', '.......', '...m..g', '.......', '....K..'], par: 4 },
+      { m: ['..D....', '..f....', '...c...', '...g..m', 'g\\.#...', '.......', '...g...', '.......', '....K..'], par: 4 },
     ],
     path: 'UUULLUUUUU', K: 3,
   },
@@ -438,7 +438,7 @@ export interface GhostState {
   rng: Rng; seed: number; t: number; stage: number; phase: 'play' | 'result'; pt: number;
   flips: boolean[]; lays: number[]; L: Level; S: Sim; S0: Sim;
   hearts: number; stars: number; got: number; starOk: boolean[]; pts: number; ok: boolean; why: string; won: boolean; dead: boolean; tries: number; again: boolean;
-  down: boolean; aim: { x: number; y: number } | null; busy: number; lastTurn: number; firstTap: boolean;
+  down: boolean; aim: { x: number; y: number } | null; pending: { x: number; y: number } | null; busy: number; lastTurn: number; firstTap: boolean;
   seen: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; events: Ev[];
   /** 연출: 지난 턴의 아이·유령 자리와 기록 */
   kidFrom: number; gFrom: number[]; dirFrom: number; rec: Rec | null; recT: number; recDur: number; bigT: number; catT: number;
@@ -465,6 +465,7 @@ function newStage(s: GhostState) {
   s.phase = 'play';
   s.pt = 0;
   s.busy = 0;
+  s.pending = null;
   s.lastTurn = s.t;
   s.kidFrom = s.L.path[0];
   s.gFrom = s.S.g.map((g) => g.p);
@@ -530,7 +531,7 @@ function act(s: GhostState, x: number, y: number) {
   }
   for (const j of R.froze) {
     const g = S.g[j];
-    ev(s, 'freeze', cellX(cx(g.p)), cellY(cy(g.p)), g.k === MOTH ? '꾸벅…' : ['얼음!', '꽁꽁!', '얼음!!', '딱!'][(j + s.t) % 4]);
+    ev(s, 'freeze', cellX(cx(g.p)), cellY(cy(g.p)), g.k === MOTH ? '꾸벅…' : R.n >= 2 ? '' : ['얼음!', '꽁꽁!', '얼음!!', '딱!'][(j + s.t) % 4]);
   }
   for (const j of R.woke) {
     const g = S.g[j];
@@ -583,7 +584,7 @@ export const ghostlight: GameDef<GhostState> = {
     const s = {
       rng, seed, t: 0, stage: 0, phase: 'play', pt: 0, flips, lays,
       hearts: 3, stars: 0, got: 0, starOk: [false, false, false], pts: 0, ok: false, why: '', won: false, dead: false, tries: 0, again: false,
-      down: false, aim: null, busy: 0, lastTurn: 0, firstTap: false,
+      down: false, aim: null, pending: null, busy: 0, lastTurn: 0, firstTap: false,
       seen: new Set<string>(), newsQ: [], news: null, events: [], kidFrom: 0, gFrom: [], dirFrom: 0, rec: null, recT: -99, recDur: BUSY, bigT: -999, catT: -999,
     } as unknown as GhostState;
     newStage(s);
@@ -597,8 +598,14 @@ export const ghostlight: GameDef<GhostState> = {
     if (p) (s.down = true), (s.aim = { x: p.x, y: p.y * A });
     else if (s.down) {
       s.down = false;
-      if (s.aim) act(s, s.aim.x, s.aim.y);
+      // 연출 중에 뗀 톡은 끝나면 바로 실행 (손이 씹히지 않게)
+      if (s.aim) s.pending = s.aim;
       s.aim = null;
+    }
+    if (s.pending && s.phase === 'play' && s.busy <= 0 && s.pt >= 30) {
+      const q = s.pending;
+      s.pending = null;
+      act(s, q.x, q.y);
     }
     if (s.events.length > 40 || (s.events.length && s.t - s.events[0].t > 200)) s.events = s.events.filter((e) => s.t - e.t < 200);
     if (!s.news || s.t - s.news.t > NEWS_T) s.news = s.newsQ.length ? { text: s.newsQ.shift()!, t: s.t } : s.news;
@@ -1297,7 +1304,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: GhostState, w: number, h: num
   const say = (x: number, y: number, text: string, col: string, size: number) => {
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
-    for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.22 && Math.abs(q.y - y) < size + 4); k++) y -= size + 4;
+    const top = Y(BY0) + size;
+    for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < w * 0.22 && Math.abs(q.y - y) < size + 4); k++) y = y - (size + 4) < top ? y + (size + 4) * 2 : y - (size + 4);
+    y = Math.max(top, y);
     rec.push({ x, y, t: s.t });
     if (rec.length > 14) rec.shift();
     fx.pop(Math.max(w * 0.12, Math.min(w * 0.88, x)), y, text, col, size);
@@ -1926,16 +1935,16 @@ function drawAll(ctx: CanvasRenderingContext2D, s: GhostState, w: number, h: num
   for (const e of s.events) {
     if (e.t <= last) continue;
     const x = X(e.x), y = Y(e.y);
-    if (e.kind === 'freeze') (fx.burst(x, y - chh * 0.5, '#bff0ff', 10, 2.5, 2.4), say(x, y - chh * 1.2, e.text!, '#dff8ff', 14));
+    if (e.kind === 'freeze') (fx.burst(x, y - chh * 0.5, '#bff0ff', 10, 2.5, 2.4), e.text && say(x, y - chh * 1.2, e.text, '#dff8ff', 14));
     if (e.kind === 'multi') {
       const n = e.n ?? 2;
-      say(x, y - chh * 0.6, e.text!, '#9fe8ff', 18 + n * 4);
+      say(x, y - chh * 0.9, e.text!, '#9fe8ff', 18 + n * 4);
       fx.ring(x, y, '#bff0ff', R(0.2 + n * 0.08), 5 + n);
       fx.burst(x, y, '#ffffff', 14 + n * 8, 4 + n, 2.6);
       fx.kick(2 + n * 2);
       fx.blink('#dff8ff', 0.1 + n * 0.06);
     }
-    if (e.kind === 'pop') (fx.burst(x, y - chh * 0.4, '#ffffff', 26, 4.5, 3), fx.burst(x, y - chh * 0.4, '#ffe066', 12, 3, 2.4), fx.ring(x, y - chh * 0.4, '#ffffff', R(0.12), 4), fx.kick(4), say(x, y - chh * 1.3, e.text!, '#ffe066', 20));
+    if (e.kind === 'pop') (fx.burst(x, y - chh * 0.4, '#ffffff', 26, 4.5, 3), fx.burst(x, y - chh * 0.4, '#ffe066', 12, 3, 2.4), fx.ring(x, y - chh * 0.4, '#ffffff', R(0.12), 4), fx.kick(4), say(x + (x < w / 2 ? cw : -cw) * 1.1, y + chh * 0.1, e.text!, '#ffe066', 20));
     if (e.kind === 'ignite') (fx.burst(x, y - chh * 0.8, '#ffb02e', 18, 3, 2.6), fx.ring(x, y, '#ffc070', cw * 1.6, 4), say(x, y - chh * 1.4, e.text!, '#ffd08a', 15));
     if (e.kind === 'moth') say(x, y - chh * 1.2, e.text!, '#ffb3e6', 14);
     if (e.kind === 'sulk') say(x, y - chh * 1.3, e.text!, '#d8d0f0', 13);
