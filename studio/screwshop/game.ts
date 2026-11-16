@@ -3467,20 +3467,31 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       ctx.fillText('★', x0 + (x1 - x0) * e, y2 + (y1 - y2) * e - R(0.12) * Math.sin(q * Math.PI));
       if (t - s.starFx.t0 === 39) juice(s).burst(x1, y1, '#ffe066', 14, 3, 2);
     }
-    // ✏️ S024(📐 단계별 배우기): 배우는 판은 시작할 때 칩 줄 위에 '★n 배우기 — 받는 법' 한 줄(첫 톡까지 · 적어도 1.5초)
-    if (s.teach && s.phase === 'play' && (s.taps === 0 || t - s.startT < 90)) {
-      const tl = `${s.teach === 2 ? '★2' : '★3'} 배우기 — ${s.teach === 2 ? starText(d, S).l2 : starText(d, S).l3}`;
-      fit(0.036, 900, w - R(0.06), tl);
-      const tw = ctx.measureText(tl).width + R(0.05), ty = y2 - R(0.068);
-      ctx.fillStyle = 'rgba(40,24,8,.88)';
+    // ✏️ S027(📋 G4 별 카드 · 오너 "알기 쉽게 · 단계별로"): 판을 열면 칩 줄 위에 '이 판 별 받는 법' 카드 — 첫 톡 또는 2.5초까지.
+    //   배우는 별 줄은 금빛 + 받는 법 한 줄(S024 배우기 줄을 품음 · 시작 글 ≤ 3겹) · 안 배운 ★3은 '곧 배워요'
+    if (s.phase === 'play' && !s.hint && s.taps === 0 && t - s.startT < 150) {
+      const tx = starText(d, S), rows = [tx.c1, tx.c2, s.lock3 ? '★3 곧 배워요' : tx.c3], lh = R(0.05), sub = s.teach ? (s.teach === 2 ? tx.l2 : tx.l3) : '';
+      const ch = lh * (rows.length + 1) + (sub ? lh * 0.9 : 0) + R(0.03), cy = y2 - R(0.055) - ch, cw = w - R(0.1), a = min(1, (t - s.startT) / 8);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = 'rgba(36,22,8,.93)';
       bp(ctx);
-      ctx.roundRect(w / 2 - tw / 2, ty - R(0.03), tw, R(0.06), R(0.03));
+      ctx.roundRect(R(0.05), cy, cw, ch, R(0.035));
       ctx.fill();
       ctx.strokeStyle = '#ffd166';
       ctx.lineWidth = 2;
       ctx.stroke();
-      ctx.fillStyle = '#ffe9a8';
-      ctx.fillText(tl, w / 2, ty + 1);
+      ctx.textAlign = 'center';
+      fit(0.036, 900, cw - R(0.06), `${d.emoji} ${d.name} — 별 받는 법`);
+      ctx.fillStyle = '#fff1d6';
+      ctx.fillText(`${d.emoji} ${d.name} — 별 받는 법`, w / 2, cy + lh * 0.75);
+      rows.forEach((r, k) => {
+        const on = s.teach === k + 1, ry = cy + lh * (k + 1.75) + (on || k < (s.teach || 9) - 1 ? 0 : sub ? lh * 0.9 : 0);
+        fit(0.04, 900, cw - R(0.08), r);
+        ctx.fillStyle = on ? '#ffd166' : r.includes('곧 배워요') ? 'rgba(255,241,214,.5)' : '#fff6e0';
+        ctx.fillText(on ? `${r}  ← 배우기` : r, w / 2, ry);
+        if (on) (fit(0.032, 800, cw - R(0.08), sub), (ctx.fillStyle = '#ffe9a8'), ctx.fillText(sub, w / 2, ry + lh * 0.85));
+      });
+      ctx.globalAlpha = 1;
     }
     // 지금 연속 쏙
     if (S.streak > 0 && s.phase === 'play' && ((d.B === undefined && d.H === undefined && d.T === undefined) || s.L.thump)) { // 🧪 S023 ⑦: 연속 · 쿵 판에만
@@ -3498,7 +3509,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     else if (s.hint) tip = '💡 귀띔 — 밤톨 손가락을 따라가요 (★3 없음)';
     else if (!S.key && !s.L.wind) tip = '🔒 자물쇠 나사는 🔑 열쇠 나사를 빼야 풀려요'; // 태엽 판은 일찍 빼면 손해라 판 팁으로
     else if (!(s.L.wind && S.key)) tip = d.tip; // 📐: 1판도 첫 톡 뒤엔 판 팁 · 🧪 S004: 태엽을 뺀 뒤엔 '열쇠를 톡' 팁을 내린다
-    if (s.teach && s.phase === 'play' && (s.taps === 0 || t - s.startT < 90)) tip = ''; // 🧪 S024 ⑧: 배우기 줄이 보이는 동안 아래 줄은 쉰다(시작 글 5겹)
+    if (s.phase === 'play' && !s.hint && s.taps === 0 && t - s.startT < 150) tip = ''; // 🧪 S024 ⑧ · ✏️ S027: 별 카드가 보이는 동안 아래 줄은 쉰다
     ctx.textAlign = 'center';
     font(0.036, 800);
     ctx.fillStyle = 'rgba(255,240,214,.92)';
