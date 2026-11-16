@@ -2,8 +2,10 @@
  * 손전등 유령 복도 (28라운드: 처음 보는 규칙) — 비추면 멈춤 × 가리키기(톡) × 턴제화.
  * 기준 9(손이 하는 일은 하나): 화면을 톡 = 아이가 그쪽으로 손전등을 비춘다(아이를 중심으로 8방향). 누르고 있는 동안 빛 원뿔과
  *   '이번에 얼 유령 ❄️ / 다가올 유령의 다음 칸 →'이 미리 보이고, 떼면 실행. 키보드는 화살표 커서 + 스페이스.
- * 규칙(결정적, 턴제): 톡 한 번 = 한 턴. ① 아이가 정해진 길(카펫)로 한 칸 걷는다 ② 그 자리에서 고른 쪽으로 빛을 비춘다
+ * 규칙(결정적, 턴제): 걸음 하나 = 한 턴. ① 아이가 정해진 길(카펫)로 한 칸 걷는다 ② 그 자리에서 고른 쪽으로 빛을 비춘다
  *   ③ 빛 원뿔 안의 유령은 '얼음!' 웃긴 자세로 굳고, 빛 밖의 유령만 아이 쪽으로 한 칸(가장 가까운 길로) 다가온다.
+ *   톡 한 번이면 아이는 같은 빛으로 '무언가 바뀔 때까지' 저절로 걷는다(quiet: 언 유령이 빛 밖으로 나가 움직이게 될 때 ·
+ *   두 걸음 안에 잡힐 때 · 새 촛불·거울이 닿기 시작할 때 멈춤). 걷는 도중 톡하면 다음 걸음부터 새 방향.
  *   움직인 유령이 아이 칸에 닿으면 '왁!' 실패. 얼어 있는 유령에게 아이가 걸어 들어가면 유령이 화들짝 '펑!' 사라진다.
  *   손전등을 다른 쪽으로 돌릴 때마다 배터리 🔋 1칸(같은 쪽 그대로는 공짜). 가구·벽은 빛도 유령도 막는다.
  * 와우: 내가 아이를 움직이지 않는다 — 정하는 건 '어디를 볼지' 하나. 빛을 돌리는 순간 원뿔 속 유령들이 한 발 든 채 혀를 내밀고
@@ -29,6 +31,8 @@ const DX = [0, 1, 1, 1, 0, -1, -1, -1], DY = [-1, -1, 0, 1, 1, 1, 0, -1];
 /** 빛 원뿔: 중심에서 ±HALF, 바로 옆 칸은 ±NEAR까지(손전등 번짐). 사거리 RANGE(어두운 방 DARK) · 거울에서 꺾인 빛줄기 BEAM칸 */
 const HALF = (34 * Math.PI) / 180, NEAR = (46 * Math.PI) / 180, RANGE = 3.2, DARK = 2.3, BEAM = 5;
 /** 한 턴 연출 길이(틱) · 판 카드 · 결과 */
+/** 저절로 걷는 한 걸음의 연출 길이 — 빨리, 하지만 걸음마다 유령 반응은 보이게 */
+const AUTO_STEP = 14;
 const BUSY = 24, CARD_T = 120, RESULT_OK = 190, RESULT_FAIL = 170, NEWS_T = 190;
 /** 별 하나 = 50 × 복도 번호 (깊은 복도일수록 값지다) · 남은 배터리 · 펑 · 탈출 */
 const STAR_PTS = 50, BAT_PTS = 10, POP_PTS = 15, WIN_PTS = 300;
@@ -134,6 +138,8 @@ export interface Level {
   dist: Int16Array[];
   /** 그리기용 가구 종류 */
   furn: Int8Array;
+  /** 길 위치 i에서 어느 쪽으로든 빛이 닿는 장치(촛불 비트 0~, 거울 비트 8~) — 새 장치 앞에서는 저절로 걷기를 멈춘다 */
+  reach: number[];
 }
 
 const cx = (p: number) => p % COLS, cy = (p: number) => (p / COLS) | 0;
@@ -185,7 +191,7 @@ export function buildLevel(d: StageDef, li: number, flip: boolean): Level {
   const lay = d.maps[li];
   const L: Level = {
     flip, wall: new Uint8Array(NC), mirror: new Int8Array(NC).fill(-1), candleAt: new Int8Array(NC).fill(-1), candles: [], zone: new Uint8Array(NC),
-    path: [], range: d.dark ? DARK : RANGE, bat: lay.bat ?? lay.par + 2, par: lay.par, K: d.K, g0: [], lit: [], beams: [], dist: [], furn: new Int8Array(NC).fill(-1),
+    path: [], range: d.dark ? DARK : RANGE, bat: lay.bat ?? lay.par + 2, par: lay.par, K: d.K, g0: [], lit: [], beams: [], dist: [], furn: new Int8Array(NC).fill(-1), reach: [],
   };
   let start = -1;
   for (let y = 0; y < ROWS; y++)
@@ -246,6 +252,14 @@ export function buildLevel(d: StageDef, li: number, flip: boolean): Level {
       L.lit[i * 8 + dd] = m;
       L.beams[i * 8 + dd] = bl;
     }
+    let rc = 0;
+    for (let dd = 0; dd < 8; dd++) {
+      const m = L.lit[i * 8 + dd];
+      L.candles.forEach((c, ci) => m[c] && (rc |= 1 << ci));
+      let mi = 0;
+      for (let q = 0; q < NC; q++) if (L.mirror[q] >= 0) (m[q] && (rc |= 1 << (8 + mi)), mi++);
+    }
+    L.reach.push(rc);
     const dist = new Int16Array(NC).fill(999), qu = [k];
     dist[k] = 0;
     for (let h = 0; h < qu.length; h++) {
@@ -368,6 +382,42 @@ export function turn(L: Level, S: Sim, d: number, R: Rec | null = null) {
   }
 }
 
+export const newRec = (): Rec => ({ froze: [], woke: [], moved: [], pops: [], lit: [], n: 0, caught: -1, bump: -1, ignite: [] });
+/**
+ * 저절로 한 걸음 더 갈까? — 톡 한 번에 아이는 '무언가 바뀔 때까지' 같은 빛으로 계속 걷는다(오너: 하나씩 누르기 번거로움).
+ * 멈추는 때: 다음 걸음에 언 유령이 빛 밖으로 나가 움직이게 됨(나방은 빛에 들어와 날아오게 됨) · 두 걸음 안에 잡힘 ·
+ * 새 촛불·거울에 빛이 닿기 시작하는 자리. 얼거나 펑 하거나 문에 드는 건 좋은 일이라 멈추지 않고 걸으며 터진다.
+ * 걷는 도중에 톡하면 그 걸음이 끝나는 대로 새 방향으로 바뀐다.
+ */
+/** 빛 밖으로 나가는 유령이 이만큼(걸음) 가까우면 뒤따라오기만 해도 멈춘다 */
+const QUIET_NEAR = 1;
+export function quiet(L: Level, S: Sim) {
+  if (S.done || S.fail) return false;
+  const N = cloneSim(S), R = newRec();
+  turn(L, N, S.dir, R);
+  if (N.fail) return false;
+  // 새 촛불·거울에 빛이 닿기 시작하는 자리
+  if (L.reach[N.i] & ~L.reach[S.i] & ~S.cand) return false;
+  if (N.done) return !R.woke.length;
+  // 같은 빛으로 두 걸음 안에 잡히면 미리 멈춘다
+  const N2 = cloneSim(N);
+  turn(L, N2, N2.dir);
+  if (N2.fail) return false;
+  // 빛 밖으로 나가 움직이게 될 유령이 아이에게 다가오는 쪽이면 멈춘다 (뒤따라오기만 하는 유령은 그냥 걷는다) · 나방이 깨면 멈춘다
+  for (const j of R.woke) {
+    if (N.g[j].k === MOTH || !N2.g[j].alive) return false;
+    if (L.dist[N2.i][N2.g[j].p] < L.dist[N.i][N.g[j].p] || L.dist[N.i][N.g[j].p] <= QUIET_NEAR) return false;
+  }
+  return true;
+}
+/** 톡 한 번 = 고른 쪽으로 비추며 한 걸음, 그다음 조용하면 같은 빛으로 계속 (걸은 걸음 수) */
+export function walk(L: Level, S: Sim, d: number) {
+  turn(L, S, d);
+  let n = 1;
+  while (quiet(L, S)) turn(L, S, S.dir), n++;
+  return n;
+}
+
 export const starsOf = (L: Level, S: Sim) => (S.done ? 1 + (S.used <= L.par ? 1 : 0) + (S.best >= L.K ? 1 : 0) : 0);
 
 // ───────────────────────────── 내다보기 (잘하는 봇) ─────────────────────────────
@@ -384,7 +434,7 @@ function heur(L: Level, S: Sim) {
 }
 const finalV = (L: Level, S: Sim) => starsOf(L, S) * 100000 + S.bat * 1000 + S.pops * 100;
 function keyOf(L: Level, S: Sim) {
-  let k = `${S.dir}${S.bat}${Math.min(S.best, L.K)}${S.cand}`;
+  let k = `${S.i}:${S.dir}${S.bat}${Math.min(S.best, L.K)}${S.cand}`;
   for (const g of S.g) k += g.alive ? String.fromCharCode(48 + g.p * 2 + (g.aw ? 1 : 0)) : '_';
   return k;
 }
@@ -399,7 +449,7 @@ export function solve(L: Level, S0: Sim, W = 260): { seq: number[]; v: number } 
       for (let d = 0; d < 8; d++) {
         if (d !== n.S.dir && n.S.bat <= 0) continue;
         const S = cloneSim(n.S);
-        turn(L, S, d);
+        walk(L, S, d);
         if (S.fail) continue;
         const node: Node = { S, up: n, d, h: 0 };
         if (S.done) {
@@ -441,7 +491,7 @@ export interface GhostState {
   rng: Rng; seed: number; t: number; stage: number; phase: 'play' | 'result'; pt: number;
   flips: boolean[]; lays: number[]; L: Level; S: Sim; S0: Sim;
   hearts: number; stars: number; got: number; starOk: boolean[]; pts: number; ok: boolean; why: string; won: boolean; dead: boolean; tries: number; again: boolean;
-  down: boolean; aim: { x: number; y: number } | null; pending: { x: number; y: number } | null; busy: number; lastTurn: number; firstTap: boolean;
+  down: boolean; aim: { x: number; y: number } | null; pending: { x: number; y: number } | null; busy: number; walking: boolean; taps: number; lastTurn: number; firstTap: boolean;
   seen: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; events: Ev[];
   /** 연출: 지난 턴의 아이·유령 자리와 기록 */
   kidFrom: number; gFrom: number[]; dirFrom: number; rec: Rec | null; recT: number; recDur: number; bigT: number; catT: number;
@@ -469,6 +519,7 @@ function newStage(s: GhostState) {
   s.pt = 0;
   s.busy = 0;
   s.pending = null;
+  s.walking = false;
   s.lastTurn = s.t;
   s.kidFrom = s.L.path[0];
   s.gFrom = s.S.g.map((g) => g.p);
@@ -502,23 +553,32 @@ function act(s: GhostState, x: number, y: number) {
     const k = L.path[S.i];
     return void ev(s, 'nope', cellX(cx(k)), cellY(cy(k)) - 0.09, '🔋 없음! 지금 방향을 톡');
   }
+  s.taps++;
+  s.walking = true;
+  s.firstTap = true;
+  doTurn(s, d, false);
+}
+
+/** 한 걸음 (톡한 첫 걸음이든 저절로 걷는 걸음이든) + 연출 사건 */
+function doTurn(s: GhostState, d: number, auto: boolean) {
+  const L = s.L, S = s.S;
   s.kidFrom = L.path[S.i];
   s.gFrom = S.g.map((g) => g.p);
   s.dirFrom = S.dir;
-  const R: Rec = { froze: [], woke: [], moved: [], pops: [], lit: [], n: 0, caught: -1, bump: -1, ignite: [] };
+  const R = newRec();
   const rot = d !== S.dir, best0 = S.best;
   turn(L, S, d, R);
   s.rec = R;
   s.recT = s.t;
+  const fresh = R.froze.filter((j) => R.lit.includes(j)).length, big = R.n >= 3 && (fresh >= 2 || R.n > best0);
   // 큰 얼음(셋 이상)은 잠깐 느리게 — 유령들이 굳는 모습을 본다
-  s.recDur = R.n >= 3 ? Math.round(BUSY * 1.8) : BUSY;
+  s.recDur = Math.round((auto ? AUTO_STEP : BUSY) * (big ? 1.8 : 1));
   s.busy = s.recDur;
   s.lastTurn = s.t;
-  s.firstTap = true;
   const k = L.path[S.i], kx = cellX(cx(k)), ky = cellY(cy(k));
   if (rot) ev(s, 'rot', kx, ky, '🔋-1');
+  if (auto) ev(s, 'step', kx, ky, S.i % 2 ? '뚜벅' : '');
   if (R.froze.length || R.lit.length) see(s, 'light', '🔦 빛이 닿은 유령은 얼음! 빛 밖의 유령만 다가와요');
-  const fresh = R.froze.filter((j) => R.lit.includes(j)).length;
   if (R.n >= 2 && (fresh >= 2 || R.n > best0)) {
     ev(s, 'multi', kx, ky - 0.1, `얼음 ×${R.n}!`, R.n);
     see(s, 'multi', '❄️ 한 번에 여럿 얼리면 ★ — 유령을 한쪽으로 모아요');
@@ -540,8 +600,8 @@ function act(s: GhostState, x: number, y: number) {
     const g = S.g[j];
     if (g.k === MOTH) ev(s, 'moth', cellX(cx(g.p)), cellY(cy(g.p)), '빛이다~!');
   }
-  if (S.fail) return endStage(s, false, S.fail === 1 ? '유령에게 콩 부딪혔어요' : '유령이 왁!');
-  if (S.done) return endStage(s, true, '');
+  if (S.fail) return (s.walking = false), endStage(s, false, S.fail === 1 ? '유령에게 콩 부딪혔어요' : '유령이 왁!');
+  if (S.done) return (s.walking = false), endStage(s, true, '');
 }
 
 function endStage(s: GhostState, ok: boolean, why: string) {
@@ -570,10 +630,10 @@ export const ghostlight: GameDef<GhostState> = {
   id: 'ghostlight',
   name: '손전등 유령 복도',
   genes: ['freezegaze', 'pointer', 'turnbased'],
-  twist: '아이는 스스로 한 칸씩 걷고 나는 "어디를 비출지"만 정한다 — 빛 원뿔 안의 유령은 웃긴 자세로 얼고 빛 밖의 유령만 다가오며, 얼어 있는 유령에게 걸어가면 펑 사라진다. 손전등을 돌릴 때마다 배터리가 줄어, 어느 유령을 언제 얼려 둘지가 순서 싸움이 된다',
-  rules: ['톡한 쪽으로 손전등을 비추면 아이가 한 걸음 — 빛이 닿은 유령은 얼음! (돌릴 때마다 🔋 한 칸)', '빛 밖의 유령만 한 칸씩 다가와요(닿으면 왁!). 얼어 있는 유령에게 걸어가면 펑! 문까지 가면 성공.'],
+  twist: '아이는 무언가 바뀔 때까지 스스로 걷고 나는 "어디를 비출지"만 정한다 — 빛 원뿔 안의 유령은 웃긴 자세로 얼고 빛 밖의 유령만 다가오며, 얼어 있는 유령에게 걸어가면 펑 사라진다. 손전등을 돌릴 때마다 배터리가 줄어, 어느 유령을 언제 얼려 둘지가 순서 싸움이 된다',
+  rules: ['톡한 쪽으로 손전등을 비추면 아이가 걷다가 무언가 달라지면 멈춰요 — 빛이 닿은 유령은 얼음! (돌릴 때마다 🔋 한 칸)', '빛 밖의 유령만 한 걸음마다 한 칸씩 다가와요(닿으면 왁!). 얼어 있는 유령에게 걸어가면 펑! 문까지 가면 성공.'],
   controls: 'touch',
-  hint: '비출 쪽을 톡! (꾹 누르면 미리 보기) / 화살표로 고르고 스페이스',
+  hint: '비출 쪽을 톡! 아이가 무언가 바뀔 때까지 걸어요 (꾹 누르면 미리 보기) / 화살표로 고르고 스페이스',
   aspect: A,
   art: {
     concept: '한밤의 저택 복도 디오라마 — 손전등을 든 잠옷 아이',
@@ -587,7 +647,7 @@ export const ghostlight: GameDef<GhostState> = {
     const s = {
       rng, seed, t: 0, stage: 0, phase: 'play', pt: 0, flips, lays,
       hearts: 3, stars: 0, got: 0, starOk: [false, false, false], pts: 0, ok: false, why: '', won: false, dead: false, tries: 0, again: false,
-      down: false, aim: null, pending: null, busy: 0, lastTurn: 0, firstTap: false,
+      down: false, aim: null, pending: null, busy: 0, walking: false, taps: 0, lastTurn: 0, firstTap: false,
       seen: new Set<string>(), newsQ: [], news: null, events: [], kidFrom: 0, gFrom: [], dirFrom: 0, rec: null, recT: -99, recDur: BUSY, bigT: -999, catT: -999,
     } as unknown as GhostState;
     newStage(s);
@@ -609,6 +669,11 @@ export const ghostlight: GameDef<GhostState> = {
       const q = s.pending;
       s.pending = null;
       act(s, q.x, q.y);
+    }
+    // 저절로 걷기: 조용하면 같은 빛으로 한 걸음 더 (누르고 있는 동안은 기다린다)
+    if (s.walking && s.phase === 'play' && s.busy <= 0 && !s.down && !s.pending) {
+      if (quiet(s.L, s.S)) doTurn(s, s.S.dir, true);
+      else s.walking = false;
     }
     if (s.events.length > 40 || (s.events.length && s.t - s.events[0].t > 200)) s.events = s.events.filter((e) => s.t - e.t < 200);
     if (!s.news || s.t - s.news.t > NEWS_T) s.news = s.newsQ.length ? { text: s.newsQ.shift()!, t: s.t } : s.news;
@@ -635,18 +700,17 @@ function pointFor(s: GhostState, d: number): Input {
   const x = cellX(cx(k)) + DX[d] * CW * 1.6, y = cellY(cy(k)) + DY[d] * CH * 1.6;
   return { tap: false, dir: 0, pointer: { x: Math.max(0.01, Math.min(0.99, x)), y: Math.max(0.1, Math.min(A - 0.01, y)) / A } };
 }
-const ready = (s: GhostState, think: number) => s.phase === 'play' && !s.down && s.busy <= 0 && s.pt >= 40 && s.t - s.lastTurn >= think;
+const ready = (s: GhostState, think: number) => s.phase === 'play' && !s.down && !s.walking && !s.pending && s.busy <= 0 && s.pt >= 40 && s.t - s.lastTurn >= think;
 const brain = new WeakMap<object, { key: string; seq: number[]; i0: number }>();
-/** 봇: 판이 시작되면 문까지 모든 턴을 빔 탐색으로 내다보고(별 셋 · 배터리), 그 순서대로 비춘다 */
+/** 봇: 아이가 멈출 때마다 문까지의 톡(멈춤마다 고르는 방향)을 빔 탐색으로 내다보고(별 셋 · 배터리) 첫 수를 톡 */
 export const ghostlightSmart: Bot<GhostState> = {
   name: '유령 박사',
   act(s) {
     if (!ready(s, 30)) return NO;
-    const key = `${s.stage}:${s.tries}`;
+    const key = `${s.stage}:${s.tries}:${s.S.i}`;
     let m = brain.get(s);
-    if (!m || m.key !== key || s.S.i - m.i0 >= m.seq.length) brain.set(s, (m = { key, seq: solve(s.L, s.S).seq, i0: s.S.i }));
-    const d = m.seq[s.S.i - m.i0] ?? s.S.dir;
-    return pointFor(s, d);
+    if (!m || m.key !== key) brain.set(s, (m = { key, seq: solve(s.L, s.S).seq, i0: s.S.i }));
+    return pointFor(s, m.seq[0] ?? s.S.dir);
   },
 };
 /** 버릇 봇(측정용): 늘 가장 가까운 유령 쪽으로 비춘다 */
@@ -698,7 +762,7 @@ function star(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
 }
 
 /** 미리 보기: 지금 이 방향으로 톡하면? */
-interface Preview { d: number; S: Sim; R: Rec; rot: boolean }
+interface Preview { d: number; S: Sim; R: Rec; rot: boolean; walk: number[] }
 const pvCache = new WeakMap<object, { key: string; p: Preview }>();
 function preview(s: GhostState, d: number): Preview {
   const key = `${s.stage}:${s.tries}:${s.S.i}:${d}`, c = pvCache.get(s);
@@ -706,7 +770,10 @@ function preview(s: GhostState, d: number): Preview {
   const S = cloneSim(s.S), R: Rec = { froze: [], woke: [], moved: [], pops: [], lit: [], n: 0, caught: -1, bump: -1, ignite: [] };
   const rot = d !== S.dir;
   turn(s.L, S, d, R);
-  const p = { d, S, R, rot };
+  // 그다음 저절로 걸어갈 칸들 (발자국으로)
+  const W = cloneSim(S), walkCells: number[] = [];
+  while (quiet(s.L, W)) turn(s.L, W, W.dir), walkCells.push(s.L.path[W.i]);
+  const p = { d, S, R, rot, walk: walkCells };
   pvCache.set(s, { key, p });
   return p;
 }
@@ -1804,6 +1871,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: GhostState, w: number, h: num
     ctx.ellipse(gx(cx(kn)), gy(cy(kn)) + chh * 0.25, cw * 0.32, chh * 0.2, 0, 0, TAU);
     ctx.stroke();
     ctx.setLineDash([]);
+    // 저절로 걸어갈 길: 발자국
+    P.walk.forEach((p, k) => {
+      ctx.fillStyle = `rgba(255,240,200,${0.85 - k * 0.08})`;
+      for (const sd of [-1, 1]) (ctx.beginPath(), ctx.ellipse(gx(cx(p)) + sd * cw * 0.1, gy(cy(p)) + chh * 0.2 + sd * chh * 0.08, cw * 0.06, chh * 0.1, 0, 0, TAU), ctx.fill());
+    });
     const froze = new Set<number>();
     S.g.forEach((g, j) => {
       if (!g.alive) return;
@@ -1854,6 +1926,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: GhostState, w: number, h: num
     else if (R2.n >= 2) (msg = `얼음 ×${R2.n}`), (col = '#bff0ff');
     else if (R2.ignite.length) (msg = '촛불 켜짐'), (col = '#ffc070');
     else msg = froze.size ? `얼음 ${froze.size}` : '아무도 안 얼어요';
+    if (P.walk.length && !P.S.fail) msg += `  👣${P.walk.length + 1}`;
     if (P.rot) msg += '  🔋-1';
     font(0.036, 900);
     const tw = ctx.measureText(msg).width + R(0.04), bx = Math.max(tw / 2 + 4, Math.min(w - tw / 2 - 4, gx(cx(kn)))), by = gy(cy(kn)) - chh * 1.45;
@@ -1951,6 +2024,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: GhostState, w: number, h: num
     if (e.kind === 'ignite') (fx.burst(x, y - chh * 0.8, '#ffb02e', 18, 3, 2.6), fx.ring(x, y, '#ffc070', cw * 1.6, 4), say(x, y - chh * 1.4, e.text!, '#ffd08a', 15));
     if (e.kind === 'moth') say(x, y - chh * 1.2, e.text!, '#ffb3e6', 14);
     if (e.kind === 'sulk') say(x, y - chh * 1.3, e.text!, '#d8d0f0', 13);
+    if (e.kind === 'step') (fx.burst(x, y + chh * 0.3, 'rgba(230,210,190,.8)', 4, 1.2, 1.6), e.text && say(x - cw * 0.7, y + chh * 0.2, e.text, '#e8dcff', 12));
     if (e.kind === 'rot') say(x + cw * 0.6, y - chh * 0.2, e.text!, '#ffe9a8', 13);
     if (e.kind === 'nope') (say(x, y, e.text!, '#ffd6cc', 14), fx.kick(1.5));
     if (e.kind === 'clear') (fx.burst(x, y, '#ffe066', 40, 6, 3.2), fx.burst(w * 0.3, Y(0.5), '#ff9ec4', 30, 6, 3), fx.burst(w * 0.7, Y(0.5), '#9fe8ff', 30, 6, 3), fx.ring(x, y, '#ffe066', R(0.4), 7), fx.blink('#fff6c8', 0.22), say(x, y - chh * 1.4, e.text!, '#ffe066', 22));
@@ -2140,10 +2214,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: GhostState, w: number, h: num
     let hint = d.tip;
     const first = s.stage === 0 && !s.firstTap && playing;
     if (first) hint = '👆 유령 쪽을 톡! 빛이 닿으면 얼음';
-    else if (pv) hint = pv.S.fail ? '그쪽은 위험해요 — 다른 쪽을 비춰요' : '떼면 한 걸음! 점선 칸이 빛, 화살표 = 다가올 유령';
+    else if (pv) hint = pv.S.fail ? '그쪽은 위험해요 — 다른 쪽을 비춰요' : '떼면 출발! 👣 무언가 바뀔 때까지 걸어요';
+    else if (s.walking && playing) hint = '뚜벅뚜벅… 톡하면 다음 걸음에 방향을 바꿔요';
     else if (s.down && playing && S.bat <= 0) hint = '🔋이 없어요 — 지금 방향 그대로만 돼요';
     else if (s.phase === 'result') hint = s.ok ? (s.won ? '모든 복도를 지났어요! 유령들이 손을 흔들어요' : `★ ${s.got}개! 다음 복도엔 새것이 나와요`) : '꾹 누르면 누가 얼고 누가 올지 보여요';
-    else if (s.stage === 0) hint = '꾹 누르고 있으면 누가 얼지 보여요 — 떼면 한 걸음';
+    else if (s.stage === 0) hint = '꾹 누르면 누가 얼지 보여요 — 떼면 무언가 바뀔 때까지 걸어요';
     ctx.textAlign = 'center';
     ctx.fillStyle = first ? '#ffffff' : '#ffe9a8';
     font(first ? 0.042 : 0.036, 900);

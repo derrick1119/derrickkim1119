@@ -1952,7 +1952,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BoomState, w: number, h: numb
       for (let k = 0; k < 5; k++) fx.burst(X(0.095 + k * 0.198), Y(0.25), ['#ffd27a', '#ff9ec4', '#9fe8ff', '#b8ffcf', '#ffffff'][k], 14, 3.4, 2.4);
       fx.blink('#ffe9b0', 0.18);
       fx.kick(6);
-      say(w / 2, Y(0.36), e.text!, '#ffe066', 22);
+      fx.pop(w / 2, Y(0.62), e.text!, '#ffe066', 26);
     }
     if (e.kind === 'clear') {
       for (let k = 0; k < 6; k++) fx.burst(X(0.15 + 0.14 * k), Y(0.12 + 0.06 * (k % 2)), ['#ffd27a', '#ff7eb6', '#7fd8ff', '#b8ffcf', '#ffb547', '#ffffff'][k], 30, 5, 2.8);
@@ -1990,8 +1990,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BoomState, w: number, h: numb
     ctx.globalAlpha = a;
     font(0.036, 900);
     ctx.textAlign = 'center';
-    const cardOn = s.phase === 'result' || (s.pt < CARD_T && !s.down && !s.fl && (s.used === 0 || s.pt < 40));
-    const tx = s.news.text, tw2 = Math.min(w - 10, ctx.measureText(tx).width + 24), by2 = Y(cardOn ? 0.335 : 0.115) - drop;
+    const cardOn = s.phase !== 'result' && s.pt < CARD_T && !s.down && !s.fl && (s.used === 0 || s.pt < 40);
+    const tx = s.news.text, tw2 = Math.min(w - 10, ctx.measureText(tx).width + 24), by2 = Y(cardOn ? 0.3 : 0.115) - drop;
     ctx.fillStyle = 'rgba(10,12,36,.92)';
     ctx.beginPath();
     ctx.roundRect(w / 2 - tw2 / 2, by2 - R(0.026), tw2, R(0.052), R(0.026));
@@ -2018,7 +2018,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BoomState, w: number, h: numb
       nw = d.news;
     }
     if (head) {
-      const sc = Math.min(1, 0.6 + age / 12), cyy = Y(nw ? 0.17 : 0.19), ch = nw ? 0.158 : 0.11;
+      // 결과 카드는 캥거루 머리 위(창문에서 환호하는 마을 사람들이 가려지지 않게), 시작 카드는 위
+      const sc = Math.min(1, 0.6 + age / 12), cyy = s.phase === 'result' ? Y(0.95) : Y(nw ? 0.17 : 0.19), ch = nw ? 0.158 : 0.11;
       ctx.save();
       ctx.globalAlpha = a;
       ctx.translate(w / 2, cyy);
