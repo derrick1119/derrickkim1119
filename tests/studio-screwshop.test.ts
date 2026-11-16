@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, jackEarly, logLate, paintStage, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setAspect, setCue, screwshop as g, screwshopSmart, shotDead, starText, startStage, streakDead, tapDead, tipLine, setLearn, starKinds, KB } from '../studio/screwshop/game.ts';
+import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, jackEarly, logLate, paintStage, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setAspect, setCue, screwshop as g, screwshopSmart, shotDead, starText, startStage, streakDead, tapDead, tipLine, setLearn, starKinds, KB, gaugeOf } from '../studio/screwshop/game.ts';
 import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { f16, screwshopMash, screwshopNewbie, tryStage } from '../studio/screwshop/funqa.ts';
@@ -728,6 +728,16 @@ describe('🪵 통나무가 먼저 떨어져 → 빈칸 (✏️ S013 · 🧪 S01
         s.S.n = s.L.N - 1; s.S.streak = 0; s.S.best = 0;
         expect(streakDead(d, s.L, s.S), d.slot).toBe(d.C > 1);
       }
+    }
+  });
+
+  it('F28 말 하나(📋 S023 · ✏️ S026): 별 종류마다 칩 · 결과(받음 · 놓침) · 배우기 줄이 같은 낱말 · 28판 칩 게이지가 판 중에 움직인다(진행 보임 28/28)', () => {
+    const word: Record<string, string> = { bonk: '쾅', gap: '빈칸', shot: '한 번에', tap: '톡', streak: '연달아' };
+    for (const [k, d] of STAGES.entries()) {
+      const s = g.create(1); if (k) startStage(s, k);
+      const [a, b] = starKinds(d), lo = starText(d, s.S), hi = starText(d, { ...s.S, shot: 9, taps: 99, best: 99, bonks: 9, peak: 9 });
+      for (const [kd, xs] of [[a, [lo.c2, lo.r2, hi.r2, lo.l2]], [b, [lo.c3, lo.r3, hi.r3, lo.l3]]] as const) for (const x of xs) expect(x, `${d.slot} ${kd}`).toContain(word[kd]);
+      expect(gaugeOf(d, { ...s.S, shot: 0, taps: 0, streak: 0, bonks: 0 }), d.slot).not.toBe(gaugeOf(d, { ...s.S, shot: 1, taps: 1, streak: 1, bonks: 1 }));
     }
   });
 

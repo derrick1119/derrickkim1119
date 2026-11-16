@@ -1,6 +1,6 @@
 {
  "at": "2026-11-16",
- "build": "M2′-S025",
+ "build": "M2′-S026",
  "seeds": 24,
  "summary": {
   "smartStars": 3,
@@ -97,7 +97,7 @@
   "starRead": {
    "kinds": 4,
    "changes": 23,
-   "live3": 25,
+   "live3": 28,
    "f25": [
     [
      "쾅",

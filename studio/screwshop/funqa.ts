@@ -430,7 +430,7 @@ export function starRead(rows: { slot: string; star: ReturnType<typeof starOf> }
   const first = new Map<string, [string, number]>(), mid: Record<string, [number, number]> = {};
   for (const r of rows) { if (!first.has(r.star.kind)) first.set(r.star.kind, [r.slot, r.star.seen]); const m = (mid[r.star.kind] ??= [0, 0]); (m[0] += r.star.known), (m[1] += r.star.miss); }
   return {
-    kinds: first.size, changes: rows.filter((r, i) => i && r.star.kind !== rows[i - 1].star.kind).length, live3: STAGES.filter((d) => d.B === undefined).length,
+    kinds: first.size, changes: rows.filter((r, i) => i && r.star.kind !== rows[i - 1].star.kind).length, live3: STAGES.filter((d) => gaugeOf(d, { shot: 0, taps: 0, streak: 0, bonks: 0 } as Sim) !== gaugeOf(d, { shot: 1, taps: 1, streak: 1, bonks: 1 } as Sim)).length, // ✏️ S026: 칩 게이지가 판 중에 움직이는 판(쾅 판 = 쾅 진행)
     f25: [...first].map(([kd, [slot, v]]) => [kd, slot, v]), knownMid: Object.entries(mid).map(([kd, [a, n]]) => [kd, n ? +(a / n).toFixed(2) : null, n]),
     falseDead: rows.filter((r) => r.star.falseDead).map((r) => [r.slot, r.star.falseDead]), // 0이어야(✗ 오판)
     kHigh: rows.flatMap((r) => [[r.slot, '★2', r.star.k2], [r.slot, '★3', r.star.k3]]).filter((x) => (x[2] as number) >= 0.5),

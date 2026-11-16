@@ -74,6 +74,13 @@ export function smartFull(L: Level, d: StageDef) {
   return bp > 0 && bs === 0;
 }
 const habitOf = (L: Level) => (S: Sim) => habitPick(L, S);
+/** 버릇 ④ 장치는 맨 나중(✏️ S025 funqa save와 같은 눈 · 📋 S025 A 다시 고르기 게이트): 🔑 · 🌀 · 🪵 · 🔨 · 🤡 나사는 남은 게 그것뿐일 때만 */
+export const saveOf = (L: Level) => (S: Sim) => {
+  const f = freeM(L, S), dev = (i: number) => !!((L.keyM >> i) & 1) || ((p) => p.kind === 'spring' || !!p.heavy || !!p.ham)(L.pl[L.owner[i]]) || (!!L.jack && L.owner[i] === L.jack[0]);
+  let best = -1, bv = 1e9;
+  for (let i = 0; i < L.N; i++) if ((f >> i) & 1) { const v = (dev(i) ? 100 : 0) + (S.box.includes(L.col[i]) ? 0 : 10) + L.py[i]; if (v < bv) (bv = v), (best = i); }
+  return best;
+};
 /** 1수 미리 보기(funqa 따라 하기와 같은 점수, 동점은 난수) — 📐 S006·S007 7판 */
 const pv1Of = (L: Level, r: Rng) => (S: Sim) => {
   const f = freeM(L, S);
@@ -130,7 +137,7 @@ export function habit3(L: Level, d: StageDef): Record<Habit, number> {
  *  장인(같은 눈) ★3이 아니면 −9 · 버릇(맞는 색 → 위) ★3이면 −5 · t.pv면 1수 미리 보기가 3번 중 한 번이라도 ★3이면 −4
  *  + 진자 낙차(장인−진자가 ★3을 놓치면 t.pend, 기본 1) + 버릇 클리어 t.hc(기본 1, 처음 하는 사람 숨통)
  *  + (1 − 막 누르기 클리어 100판) × t.mc(기본 1) + 무작위 클리어 min(1, 무작위/t.rnd[0]) × t.rnd[1](40판) · t.full이면 대표 순간 '완전'이 아닌 칠 −3(F20′) */
-export interface Gate { /** 📐A S020: 따라 하기 거름 횟수(기본 3) */ pvn?: number; pend?: number; hc?: number; mc?: number; pv?: boolean; rnd?: [number, number]; /** F20′: 대표 순간 '완전'이 아니면 −3 (📋 S010: 새 22판) */ full?: boolean; /** F17 1위 버릇(📐A S012): 이 버릇은 ★2를 못 따는데 다른 버릇이 ★2 이상이면 −2 — 실린 칠 24에서 이 버릇의 ★2 이상 비율이 1위가 된다 */ lead?: Habit; /** F15ᵗ(📐B S012 · 🐹 쿵 판): 쿵을 끈 판에서도 장인(같은 눈) ★3이면 −2 — 쿵이 덤인 칠을 거른다(F19) */ thump?: boolean; /** F19(📐B S013 · 🤡 깜짝 상자 판): 뿅을 끈 판에서도 장인(같은 눈) ★3이면 −2 */ jack?: boolean; /** F17 끊기(📐C S013): 이 버릇들 중 하나라도 ★2 이상이면 −2 — 그 버릇이 1위 집합에 못 든다 */ avoid?: Habit[]; /** F14 장인 쪽(📐C S014): 장인(같은 눈) 판에서 🔨 쾅으로 튄 나사가 빈칸에 가면 −chain */ chain?: number; /** F23 바닥(📐C S015): 맞는 색 버릇(같은 눈 — 처음 봇 손의 70%)이 한 톡에 튄 나사가 big[0] 이상인 칠에 + big[1] */ big?: [number, number]; /** 장치 F19 일괄(📐A S017 · 📋 S017 받음): 🔨 · 🔑를 끈 판에서도 장인(같은 눈) ★3이면 −2 */ ham?: boolean; key?: boolean }
+export interface Gate { /** ✏️ S026: 버릇 ④ 장치는 맨 나중이 ★3이면 거름(A 다시 고르기 판만 · 다른 판 값 그대로) */ save?: boolean; /** 📐A S020: 따라 하기 거름 횟수(기본 3) */ pvn?: number; pend?: number; hc?: number; mc?: number; pv?: boolean; rnd?: [number, number]; /** F20′: 대표 순간 '완전'이 아니면 −3 (📋 S010: 새 22판) */ full?: boolean; /** F17 1위 버릇(📐A S012): 이 버릇은 ★2를 못 따는데 다른 버릇이 ★2 이상이면 −2 — 실린 칠 24에서 이 버릇의 ★2 이상 비율이 1위가 된다 */ lead?: Habit; /** F15ᵗ(📐B S012 · 🐹 쿵 판): 쿵을 끈 판에서도 장인(같은 눈) ★3이면 −2 — 쿵이 덤인 칠을 거른다(F19) */ thump?: boolean; /** F19(📐B S013 · 🤡 깜짝 상자 판): 뿅을 끈 판에서도 장인(같은 눈) ★3이면 −2 */ jack?: boolean; /** F17 끊기(📐C S013): 이 버릇들 중 하나라도 ★2 이상이면 −2 — 그 버릇이 1위 집합에 못 든다 */ avoid?: Habit[]; /** F14 장인 쪽(📐C S014): 장인(같은 눈) 판에서 🔨 쾅으로 튄 나사가 빈칸에 가면 −chain */ chain?: number; /** F23 바닥(📐C S015): 맞는 색 버릇(같은 눈 — 처음 봇 손의 70%)이 한 톡에 튄 나사가 big[0] 이상인 칠에 + big[1] */ big?: [number, number]; /** 장치 F19 일괄(📐A S017 · 📋 S017 받음): 🔨 · 🔑를 끈 판에서도 장인(같은 눈) ★3이면 −2 */ ham?: boolean; key?: boolean }
 /** 맞는 색 버릇(같은 눈)이 한 톡에 튄 나사 최대 (📐C S015 · F23 바닥) */
 function habitPop(L: Level) {
   const S = newSim(L);
@@ -142,6 +149,7 @@ export function gate(L: Level, d: StageDef, r: Rng, t: Gate = {}) {
   if (smartSeen(L, d) !== 3) return -9;
   const h = playOut(L, d, habitOf(L));
   if (h === 3) return -5;
+  if (t.save && playOut(L, d, saveOf(L)) === 3) return -5;
   if (t.pv) for (let k = 0; k < (t.pvn ?? 3); k++) if (playOut(L, d, pv1Of(L, r)) === 3) return -4;
   if (t.full && !smartFull(L, d)) return -3;
   if (t.thump && smartSeen({ ...L, thump: false }, d) === 3) return -2;
