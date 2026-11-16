@@ -214,20 +214,58 @@ function gridPaths(wind: number) {
   return a;
 }
 
-function flight(L: Layout, tx: number, ty: number, F: Fwd = forward(L.wind, tx, ty)): Flight {
-  const n = F.xs.length, T = F.T;
-  let end = n - 1, kind = 0, rockI = -1;
-  outer: for (let j = 2; j < n - 2; j++) {
-    for (let r = 0; r < L.rocks.length; r++)
-      if (segD(L.rocks[r].x, L.rocks[r].y, F.xs[j - 1], F.ys[j - 1], F.xs[j], F.ys[j]) < ROCK_R + BR) {
-        (end = j), (kind = 1), (rockI = r);
-        break outer;
-      }
-    if (L.owl && segD(L.owl.x, L.owl.y, F.xs[j - 1], F.ys[j - 1], F.xs[j], F.ys[j]) < OWL_R + BR) {
-      (end = j), (kind = 2);
-      break;
+/** 바위·부엉이에 처음 닿는 점 (없으면 끝까지) */
+function contact(L: Layout, F: Fwd) {
+  const n = F.xs.length;
+  if (L.rocks.length || L.owl)
+    for (let j = 2; j < n - 2; j++) {
+      for (let r = 0; r < L.rocks.length; r++)
+        if (segD(L.rocks[r].x, L.rocks[r].y, F.xs[j - 1], F.ys[j - 1], F.xs[j], F.ys[j]) < ROCK_R + BR) return { end: j, kind: 1, rockI: r };
+      if (L.owl && segD(L.owl.x, L.owl.y, F.xs[j - 1], F.ys[j - 1], F.xs[j], F.ys[j]) < OWL_R + BR) return { end: j, kind: 2, rockI: -1 };
     }
+  return { end: n - 1, kind: 0, rockI: -1 };
+}
+/** 한 구간(점 p~q)이 등불 l을 RH 안으로 지나가나: 가장 가까운 거리와 그 점 */
+const NEAR = RH + 0.06, STEP = DS * 1.2;
+function legNear(l: Lamp, xs: number[], ys: number[], p: number, q: number) {
+  let best = 9, bk = p;
+  for (let k = p; k < q; k++) {
+    // 점 사이 간격은 STEP 이하라서, 먼 점에서는 그 거리만큼 건너뛰어도 RH 안을 놓치지 않는다
+    const dx = xs[k] - l.x, dy = ys[k] - l.y, d2 = dx * dx + dy * dy;
+    if (d2 > NEAR * NEAR) {
+      const skip = Math.floor((Math.sqrt(d2) - NEAR) / STEP);
+      if (skip > 1) k += skip - 1;
+      continue;
+    }
+    const d = segD(l.x, l.y, xs[k], ys[k], xs[k + 1], ys[k + 1]);
+    if (d < best) (best = d), (bk = Math.hypot(xs[k] - l.x, ys[k] - l.y) <= Math.hypot(xs[k + 1] - l.x, ys[k + 1] - l.y) ? k : k + 1);
   }
+  return { best, bk };
+}
+/** 판 고르기·봇용 빠른 계산: flight()와 같은 결과(맞는 횟수·여유)를 배열을 만들지 않고 */
+function quickHits(L: Layout, F: Fwd) {
+  const { end, kind } = contact(L, F), T = F.T;
+  const legs = end > T ? [[0, T], [T, end]] : [[0, end]], mult = kind === 1 ? 2 : 1;
+  const hits = L.lamps.map(() => 0);
+  let margin = 1;
+  for (const [p, q] of legs) {
+    if (q <= p) continue;
+    let x0 = 9, x1 = -9, y0 = 9, y1 = -9;
+    for (let k = p; k <= q; k++) (x0 = Math.min(x0, F.xs[k])), (x1 = Math.max(x1, F.xs[k])), (y0 = Math.min(y0, F.ys[k])), (y1 = Math.max(y1, F.ys[k]));
+    const pad = RH + 0.02;
+    L.lamps.forEach((l, i) => {
+      if (l.x < x0 - pad || l.x > x1 + pad || l.y < y0 - pad || l.y > y1 + pad) return;
+      const { best } = legNear(l, F.xs, F.ys, p, q);
+      margin = Math.min(margin, Math.abs(best - RH));
+      if (best < RH) hits[i] += mult;
+    });
+  }
+  return { hits, margin, kind };
+}
+
+function flight(L: Layout, tx: number, ty: number, F: Fwd = forward(L.wind, tx, ty)): Flight {
+  const T = F.T;
+  const { end, kind, rockI } = contact(L, F);
   const xs: number[] = [], ys: number[] = [], legs: number[][] = [];
   const push = (x: number, y: number) => (xs.push(x), ys.push(y));
   let a = 0, tipK = -1;
@@ -266,11 +304,7 @@ function flight(L: Layout, tx: number, ty: number, F: Fwd = forward(L.wind, tx, 
     const pad = RH + 0.02;
     L.lamps.forEach((l, i) => {
       if (l.x < x0 - pad || l.x > x1 + pad || l.y < y0 - pad || l.y > y1 + pad) return;
-      let best = 9, bk = p;
-      for (let k = p; k < q; k++) {
-        const d = segD(l.x, l.y, xs[k], ys[k], xs[k + 1], ys[k + 1]);
-        if (d < best) (best = d), (bk = Math.hypot(xs[k] - l.x, ys[k] - l.y) <= Math.hypot(xs[k + 1] - l.x, ys[k + 1] - l.y) ? k : k + 1);
-      }
+      const { best, bk } = legNear(l, xs, ys, p, q);
       margin = Math.min(margin, Math.abs(best - RH));
       if (best < RH) hits[i]++, evs.push({ k: bk, i });
     });
@@ -314,7 +348,7 @@ function buildPuzzle(L: Layout, minLim: number): Puzzle {
   const byKey = new Map<string, number>(), cands: { x: number; y: number; inc: number[]; margin: number; spec: boolean }[] = [];
   const gridE = new Int16Array(GRID.length), gridT = new Int32Array(GRID.length);
   GRID.forEach((g, gi) => {
-    const f = flight(L, g.x, g.y, F[gi]);
+    const f = quickHits(L, F[gi]);
     let tm = 0;
     f.hits.forEach((hh, i) => hh > 0 && (tm |= 1 << i));
     gridT[gi] = tm;

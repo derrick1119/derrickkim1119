@@ -5,10 +5,11 @@
  * 규칙(결정적): 7층 아파트 양옆의 두 바구니는 지붕 도르래로 이어져 있다. 왼쪽이 오른쪽보다 d만큼 무거우면
  *   왼쪽 바구니는 가운데(4층)에서 d층 아래, 오른쪽은 d층 위에 선다(1층·7층에서 멈춤). 높이는 무게 차이만으로 정해진다.
  *   바구니가 선 층이 어떤 동물이 원하는 층이면 그 동물이 폴짝 내린다 → 무게가 빠져 저울이 또 움직인다(연쇄).
- * 와우: 코끼리 하나를 건너뛰게 하면 생쥐들이 꼭대기로 휘익 — 우르르 내리고, 가벼워진 바구니가 또 움직여 다음 동물이 내린다.
+ * 와우: 첫 톡 — 코끼리가 반대 바구니로 건너뛰면 그쪽이 1층에 쿵! 코끼리·고양이 셋이 우르르 내리고, 반대쪽 생쥐는 7층으로 휘익.
+ *   내릴 때마다 무게가 빠져 저울이 또 움직이고 다음 동물이 내린다(연쇄가 길수록 글자·흔들림이 커지고 잠깐 느려짐).
  * 판(이사 날) 8개: 목표 = 동물을 모두 원하는 층에. 별 = ★ 다 내림 · ★ 옮기기 N번 안에 · ★ 최소 옮기기(P번).
  *   실패 = 옮기기를 다 씀 · 남은 옮기기로는 다 못 내림 → 하트 -1, 그 판을 처음부터. 하트 셋을 다 잃거나 8판을 마치면 끝.
- * 펼쳐짐(하는 일이 바뀐다): 1판 코끼리와 생쥐(톡·저울) → 2판 연쇄(내리면 또 움직임 — 순서 계획) → 3판 손님(층에서 기다리다
+ * 펼쳐짐(하는 일이 바뀐다): 1판 코끼리와 생쥐(정해 둔 배우는 판, 톡·저울) → 2판 연쇄(내리면 또 움직임 — 순서 계획) → 3판 손님(층에서 기다리다
  *   바구니가 서면 올라탐 — 데리러 가기) → 4판 짐 상자(무게만, 안 내림 — 평형추로 쓰기) → 5판 겁쟁이 토끼(빈 바구니엔 혼자 안 탐 —
  *   친구 먼저 보내기) → 6판 풍선 병아리(무게가 마이너스 — 바구니를 들어 올림) → 7판 잠꾸러기 코알라(1층에 쿵 떨어져야 깸 —
  *   일부러 쿵) → 8판 전부.
@@ -62,7 +63,7 @@ interface StageDef {
 }
 export const STAGES: StageDef[] = [
   { key: 'basic', name: '코끼리와 생쥐', emoji: '🐘', news: '⚖️ 무거운 쪽이 내려가요 — 동물을 톡!', tip: '⚖️ 무게 차이만큼 가운데(4층)에서 내려가요', rosters: ['Emmcc'], guests: 0, par: [1, 3], slack: 4, s2: 2, luck: 0.92, wow: 3, chain: false, fixed: { ros: 'Emmcc', f: [0, 2, 1, 0, 0], at: [0, 0, 1, 1, 1] } },
-  { key: 'chain', name: '연쇄 이사', emoji: '⛓️', news: '⛓️ 내리면 가벼워져서 또 움직여요 — 연쇄!', tip: '⛓️ 누가 먼저 내리면 저울이 또 움직여요', rosters: ['Emmcd', 'Emmmc', 'bmmcd', 'Emccd'], guests: 0, par: [2, 4], slack: 4, s2: 2, luck: 0.55, wow: 2, chain: true },
+  { key: 'chain', name: '연쇄 이사', emoji: '⛓️', news: '⛓️ 연쇄 이사 — 누구를 먼저 내릴지 순서를 짜요', tip: '⛓️ 누가 먼저 내리면 저울이 또 움직여요', rosters: ['pmmc', 'Emcd', 'bmcd', 'Emmd', 'pmmc', 'bmcd'], guests: 0, par: [2, 4], slack: 4, s2: 2, luck: 0.55, wow: 2, chain: true },
   { key: 'guest', name: '기다리는 손님', emoji: '🙋', news: '🙋 손님 — 바구니가 그 층에 서면 올라타요', tip: '🙋 손님 층에 바구니를 세워 태워요', rosters: ['Emcdmc', 'Emmdmd', 'bmcdmc'], guests: 2, par: [3, 6], slack: 4, s2: 1, luck: 0, wow: 2, chain: true, spot: 'guest' },
   { key: 'box', name: '짐 상자', emoji: '📦', news: '📦 짐 상자 — 무게만 있고 안 내려요', tip: '📦 짐 상자로 저울을 맞춰요', rosters: ['EmcdXm', 'EmmdXc', 'bmcdXm'], guests: 1, par: [3, 6], slack: 4, s2: 1, luck: 0, wow: 2, chain: true, spot: 'box' },
   { key: 'coward', name: '겁쟁이 토끼', emoji: '🐰', news: '🐰 겁쟁이 — 빈 바구니엔 혼자 안 타요', tip: '🐰 토끼는 친구가 탄 바구니로만', rosters: ['Emcdrm', 'Emdrrc', 'bmcdrm'], guests: 1, par: [3, 6], slack: 4, s2: 1, luck: 0, wow: 2, chain: true, spot: 'coward' },
@@ -819,7 +820,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: LiftState, w: number, h: numb
   drawRoof(ctx, s, X, Y, R);
   const pressK = s.down && s.phase === 'play' ? s.press : -1, pre = pressK >= 0 ? preview(s, pressK) : null;
   // 바구니 둘 (동물 포함)
-  for (const side of [0, 1]) drawBasket(ctx, s, side, X, Y, R, font, pre, pressK);
+  for (const side of [0, 1]) drawBasket(ctx, s, side, X, Y, R, font, pressK);
   drawCrowd(ctx, s, X, Y, R);
   // 날아가는 동물 (건너뛰기·내리기·타기)
   s.vp.forEach((v, i) => {
@@ -1019,7 +1020,7 @@ function drawShafts(ctx: CanvasRenderingContext2D, X: XF, Y: XF, R: XF) {
 }
 
 function drawBuilding(ctx: CanvasRenderingContext2D, s: LiftState, X: XF, Y: XF, R: XF, font: (sz: number, w?: number) => void) {
-  const L = s.L, t = s.t, top = floorY(TOP) - FH, dx = 0.026, dy = -0.018;
+  const L = s.L, top = floorY(TOP) - FH, dx = 0.026, dy = -0.018;
   // 옆면 (3/4 시점)
   ctx.fillStyle = '#8c4b3c';
   ctx.beginPath();
@@ -1106,9 +1107,11 @@ function drawBuilding(ctx: CanvasRenderingContext2D, s: LiftState, X: XF, Y: XF,
     ctx.lineTo(X(wx0 - 0.0), Y(y1));
     ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = 'rgba(80,30,20,.55)';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = FC[f];
+    ctx.globalAlpha = 0.75;
+    ctx.lineWidth = 2;
     ctx.strokeRect(X(wx0), Y(y0), X(wx1) - X(wx0), Y(y1) - Y(y0));
+    ctx.globalAlpha = 1;
     // 바닥판 (두께)
     ctx.fillStyle = '#e8ddd0';
     ctx.fillRect(X(B0 - 0.006), Y(fy - 0.004), X(B1 + 0.006) - X(B0 - 0.006), R(0.012));
@@ -1135,18 +1138,6 @@ function drawBuilding(ctx: CanvasRenderingContext2D, s: LiftState, X: XF, Y: XF,
     ctx.fillText(`${f + 1}층`, tx, ty + R(0.016));
     ctx.textBaseline = 'alphabetic';
   }
-  // 1층 현관 차양
-  ctx.fillStyle = '#3c8f6e';
-  ctx.beginPath();
-  ctx.moveTo(X(0.44), Y(GY - 0.012));
-  ctx.lineTo(X(0.56), Y(GY - 0.012));
-  ctx.lineTo(X(0.575), Y(GY + 0.004));
-  ctx.lineTo(X(0.425), Y(GY + 0.004));
-  ctx.closePath();
-  ctx.globalAlpha = 0;
-  ctx.fill();
-  ctx.globalAlpha = 1;
-  void t;
 }
 
 function drawRoof(ctx: CanvasRenderingContext2D, s: LiftState, X: XF, Y: XF, R: XF) {
@@ -1231,7 +1222,7 @@ function drawRoof(ctx: CanvasRenderingContext2D, s: LiftState, X: XF, Y: XF, R: 
   ctx.fillText('🪴', X(B1 - 0.04), Y(top - 0.004));
 }
 
-function drawBasket(ctx: CanvasRenderingContext2D, s: LiftState, side: number, X: XF, Y: XF, R: XF, font: (sz: number, w?: number) => void, pre: Preview | null, pressK: number) {
+function drawBasket(ctx: CanvasRenderingContext2D, s: LiftState, side: number, X: XF, Y: XF, R: XF, font: (sz: number, w?: number) => void, pressK: number) {
   const L = s.L, by = basketY(s, side), cx = BX[side], hw = BW / 2, rimY = by - 0.045, ringY = by - 0.16;
   // 줄
   ctx.strokeStyle = '#d9c7a0';
@@ -1295,7 +1286,7 @@ function drawBasket(ctx: CanvasRenderingContext2D, s: LiftState, side: number, X
   ctx.ellipse(X(cx), Y(rimY), R(hw), R(0.02), 0, 0, Math.PI);
   ctx.stroke();
   // 층 표시 + 무게 합
-  const hNow = side === 0 ? L && hOf(L, s.S.at) : TOP - hOf(L, s.S.at);
+  const hNow = side === 0 ? hOf(L, s.S.at) : TOP - hOf(L, s.S.at);
   const shown = s.phase === 'anim' ? Math.round(side === 0 ? hvOf(s) : TOP - hvOf(s)) : hNow;
   const fl = Math.max(0, Math.min(TOP, shown));
   ctx.fillStyle = FC[fl];
@@ -1315,7 +1306,6 @@ function drawBasket(ctx: CanvasRenderingContext2D, s: LiftState, side: number, X
   ctx.fillStyle = '#fff1d6';
   ctx.fillText(`⚖${wsum}`, X(cx + hw - 0.06), Y(by - 0.009));
   ctx.textBaseline = 'alphabetic';
-  void pre;
 }
 
 /** 동물 하나 (발 자리 x,y). 머리표(원하는 층) · 무게 · 반응(털 쭈뼛·귀 펄럭·잠·겁) */

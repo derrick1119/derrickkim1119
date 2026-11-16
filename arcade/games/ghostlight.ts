@@ -30,7 +30,8 @@ const DX = [0, 1, 1, 1, 0, -1, -1, -1], DY = [-1, -1, 0, 1, 1, 1, 0, -1];
 const HALF = (34 * Math.PI) / 180, NEAR = (46 * Math.PI) / 180, RANGE = 3.2, DARK = 2.3, BEAM = 5;
 /** 한 턴 연출 길이(틱) · 판 카드 · 결과 */
 const BUSY = 24, CARD_T = 120, RESULT_OK = 190, RESULT_FAIL = 170, NEWS_T = 190;
-const STAR_PTS = 100, BAT_PTS = 10, POP_PTS = 15, WIN_PTS = 300;
+/** 별 하나 = 50 × 복도 번호 (깊은 복도일수록 값지다) · 남은 배터리 · 펑 · 탈출 */
+const STAR_PTS = 50, BAT_PTS = 10, POP_PTS = 15, WIN_PTS = 300;
 
 const NORMAL = 0, FAST = 1, MOTH = 2;
 
@@ -546,7 +547,7 @@ function endStage(s: GhostState, ok: boolean, why: string) {
     s.starOk = [true, S.used <= L.par, S.best >= L.K];
     s.got = s.starOk.filter(Boolean).length;
     s.stars += s.got;
-    s.pts += s.got * STAR_PTS + S.bat * BAT_PTS + S.pops * POP_PTS;
+    s.pts += s.got * STAR_PTS * (s.stage + 1) + S.bat * BAT_PTS + S.pops * POP_PTS;
     if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS);
     ev(s, 'clear', cellX(cx(k)), cellY(cy(k)), s.won ? '저택 탈출! 🏠' : '문 도착!');
   } else {
@@ -697,7 +698,7 @@ function preview(s: GhostState, d: number): Preview {
 }
 
 /** 이불 유령. pose: 얼었을 때 웃긴 자세 0 한 발 들기 · 1 혀 내밀고 사팔눈 · 2 만세 · 3 볼 감싸고 으악 */
-function drawGhost(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, kind: number, frozen: boolean, pose: number, t: number, lx: number, ly: number, ph: number, scared: number) {
+function drawGhost(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, kind: number, frozen: boolean, pose: number, t: number, lx: number, ly: number, ph: number, scared: number, spin = 0) {
   const moth = kind === MOTH, fast = kind === FAST;
   const bob = frozen ? 0 : Math.sin(t * 0.09 + ph) * u * 0.14;
   const lift = frozen && pose === 0 ? u * 0.12 : 0;
@@ -708,6 +709,7 @@ function drawGhost(ctx: CanvasRenderingContext2D, x: number, y: number, u: numbe
   ctx.fill();
   ctx.save();
   ctx.translate(x, y - u * 0.25 - bob - lift + scared * u * 0.2);
+  if (spin) (ctx.translate(0, -u), ctx.rotate(spin), ctx.translate(0, u));
   if (frozen && pose === 0) ctx.rotate(-0.16);
   if (frozen && pose === 2) ctx.rotate(0.1);
   // 나방 날개 (몸 뒤)
@@ -1700,7 +1702,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: GhostState, w: number, h: num
   }
   // 유령
   const kidSX = X(BX0 + (kidX + 0.5) * CW), kidSY = Y(BY0 + (kidY + 0.5) * CH);
-  const u = R(0.034);
+  const u = R(0.043);
   S.g.forEach((g, j) => {
     if (!g.alive) return;
     const from = s.gFrom[j] ?? g.p;
@@ -1712,7 +1714,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: GhostState, w: number, h: num
     items.push({
       y: ggy + 0.01,
       f: () => {
-        drawGhost(ctx, sx + (failHit ? Math.sin(t * 0.6) * u * 0.3 : 0), sy, u, g.k, frozen, (j + s.stage) % 4, t, ddx / dl, ddy / dl, j * 1.7, failHit ? 1 : 0);
+        const roll = failHit ? Math.min(1, Math.max(0, (s.pt - 20) / 50)) : 0;
+        drawGhost(ctx, sx - roll * cw * 0.5, sy, u, g.k, frozen, (j + s.stage) % 4, t, ddx / dl, ddy / dl, j * 1.7, failHit ? 1 : 0, -roll * 2.2);
         if (failHit) {
           ctx.save();
           ctx.fillStyle = '#ffffff';
@@ -1734,7 +1737,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: GhostState, w: number, h: num
     } else if (s.rec && s.rec.pops.length && t - s.recT < 60) mood = 2;
     else if (near) mood = 1;
     const ky = kidSY + chh * 0.28 - (kq < 1 ? Math.sin(kq * Math.PI) * chh * 0.12 : 0);
-    items.push({ y: kidY + 0.02, f: () => drawKid(ctx, kidSX + roll * cw * 0.5, ky, R(0.042), lightA, mood, t, roll) });
+    items.push({ y: kidY + 0.02, f: () => drawKid(ctx, kidSX + roll * cw * 0.5, ky, R(0.052), lightA, mood, t, roll) });
   }
   items.sort((a, b) => a.y - b.y);
   for (const it of items) it.f();
@@ -1923,7 +1926,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: GhostState, w: number, h: num
     ctx.globalAlpha = a;
     font(0.034, 900);
     ctx.textAlign = 'center';
-    const tx = s.news.text, tw2 = Math.min(w - 10, ctx.measureText(tx).width + 24), by2 = Y(BY0 + 0.035) + drop;
+    const tx = s.news.text, tw2 = Math.min(w - 10, ctx.measureText(tx).width + 24), by2 = Y(0.145) + drop;
     ctx.fillStyle = 'rgba(20,12,40,.94)';
     ctx.beginPath();
     ctx.roundRect(w / 2 - tw2 / 2, by2 - R(0.026), tw2, R(0.052), R(0.026));
@@ -1942,15 +1945,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: GhostState, w: number, h: num
       age = s.pt;
       if (s.ok) (head = s.won ? '저택 탈출! 🏠' : '문 도착!'), (sub = `문 ✓ · 돌리기 ${S.used}번${S.used <= L.par ? ' ✓' : ` (≤${L.par} ✗)`} · 한 번에 ${S.best}마리${S.best >= L.K ? ' ✓' : ` (${L.K} ✗)`}`), (col = '#ffd45a');
       else (head = `왁!! ${s.why}`), (sub = s.hearts > 0 ? '하트 -1 · 같은 복도 처음부터' : '끝 — 오늘 밤은 여기까지!'), (col = '#ffb3bd');
-    } else if (s.pt < CARD_T) {
+    } else if (s.pt < CARD_T && s.t - s.lastTurn >= s.pt) {
       age = s.pt;
-      a = Math.min(1, (CARD_T - s.pt) / 20);
+      a = Math.min(1, (CARD_T - s.pt) / 20, s.down ? 0.25 : 1);
       head = s.again ? `다시! ${s.stage + 1}번째 복도 — ${d.name}` : `${s.stage + 1}번째 복도 — ${d.name}`;
       sub = `${L.path.length - 1}걸음 · 🔋${L.bat} · ★ 돌리기 ${L.par}번 이하 · 한 번에 ${L.K}마리`;
       nw = s.again ? '' : d.news;
     }
     if (head) {
-      const sc = Math.min(1, 0.6 + age / 12), cyy = Y(BY0 + (nw ? 0.12 : 0.1)), chd = nw ? 0.158 : 0.11;
+      const sc = Math.min(1, 0.6 + age / 12), cyy = Y(s.phase === 'result' ? BY0 + 0.5 : BY0 + (nw ? 0.12 : 0.1)), chd = nw ? 0.158 : 0.11;
       ctx.save();
       ctx.globalAlpha = a;
       ctx.translate(w / 2, cyy);

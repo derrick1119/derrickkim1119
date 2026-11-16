@@ -481,7 +481,7 @@ export function buildLevel(seed: number, stage: number): Level {
 // ───────────────────────────── 게임 상태 ─────────────────────────────
 const A = 1.4;
 /** 조리대(격자) 자리: 왼쪽 위 (BX, BY), 칸 폭은 0.875/열, 칸 높이는 폭의 0.84 (3/4 시점) */
-const BX = 0.0625, BY = 0.34, BW = 0.875, SQ = 0.84;
+const BX = 0.0625, BY = 0.34, BW = 0.875, SQ = 0.8;
 const FLIP_T = 9, STEP_T = 4, SLOW_T = 7, SETTLE = 16, RESULT_OK = 210, RESULT_FAIL = 165, NEWS_T = 190, CARD_T = 150;
 const STAR_PTS = 100, LEFT_PTS = 10, WIN_PTS = 300;
 const HOLD = 12, THINK = 36;
@@ -1225,6 +1225,76 @@ function drawMagnet(ctx: CanvasRenderingContext2D, x: number, y: number, u: numb
   ctx.fillText(pol ? 'S' : 'N', x, yy + 1);
 }
 
+/** 수저통: 짧은 도자기 통(파란 줄무늬). 들어간 숟가락·포크는 위로 삐죽 */
+function drawCup(ctx: CanvasRenderingContext2D, x: number, y: number, U: number, got: number[][], t: number) {
+  const rx = U * 0.62, ry = U * 0.3, hgt = U * 0.55, top = y - hgt * 0.55, bot = top + hgt;
+  shadow(ctx, x + U * 0.08, bot + U * 0.05, rx * 1.15, ry * 0.9, 0.28);
+  // 꽂힌 것 (통 뒤쪽 절반)
+  got.forEach(([k, pol], n) => {
+    const ox = (n - (got.length - 1) / 2) * U * 0.3;
+    ctx.save();
+    ctx.translate(x + ox, top + U * 0.05);
+    ctx.rotate((n - (got.length - 1) / 2) * 0.28 + Math.sin(t * 0.05 + n) * 0.03);
+    ctx.fillStyle = POLE[pol][1];
+    ctx.fillRect(-U * 0.075, -U * 0.35, U * 0.15, U * 0.3);
+    ctx.fillStyle = '#c9d0da';
+    ctx.fillRect(-U * 0.06, -U * 0.75, U * 0.12, U * 0.42);
+    if (k === FORK) {
+      ctx.fillStyle = '#c9d0da';
+      for (let q = 0; q < 3; q++) ctx.fillRect(-U * 0.11 + q * U * 0.08, -U * 1.08, U * 0.05, U * 0.36);
+    } else {
+      ctx.fillStyle = '#e3e8ee';
+      ctx.beginPath();
+      ctx.ellipse(0, -U * 0.92, U * 0.15, U * 0.22, 0, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+  });
+  const g = ctx.createLinearGradient(x - rx, 0, x + rx, 0);
+  g.addColorStop(0, '#cfe0f2');
+  g.addColorStop(0.4, '#ffffff');
+  g.addColorStop(1, '#a9c1dc');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(x - rx, top);
+  ctx.lineTo(x - rx * 0.92, bot);
+  ctx.ellipse(x, bot, rx * 0.92, ry * 0.9, 0, Math.PI, 0, true);
+  ctx.lineTo(x + rx, top);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#3f74c0';
+  ctx.lineWidth = Math.max(1.5, U * 0.08);
+  for (const f of [0.35, 0.7]) {
+    ctx.beginPath();
+    ctx.ellipse(x, top + hgt * f, rx * (1 - f * 0.08), ry * 0.95, 0, 0.1, Math.PI - 0.1);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.ellipse(x, top, rx, ry, 0, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#4a3a30';
+  ctx.beginPath();
+  ctx.ellipse(x, top + ry * 0.08, rx * 0.8, ry * 0.7, 0, 0, TAU);
+  ctx.fill();
+  if (got.length)
+    got.forEach(([, pol], n) => {
+      ctx.fillStyle = POLE[pol][1];
+      ctx.beginPath();
+      ctx.ellipse(x + (n - (got.length - 1) / 2) * U * 0.3, top + ry * 0.1, U * 0.07, U * 0.04, 0, 0, TAU);
+      ctx.fill();
+    });
+  else {
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `${Math.max(11, U * 0.42)}px system-ui`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.globalAlpha = 0.9;
+    ctx.fillText('🥄', x, top + ry * 0.05);
+    ctx.globalAlpha = 1;
+  }
+}
+
 function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: number, th: Theme) {
   const fx = juice(s), L = s.L, t = s.t, C = L.C, Rr = L.R, cw = cellW(L), chh = cw * SQ;
   const X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w;
@@ -1322,7 +1392,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
     }
     fx.memo.swing = (fx.memo.swing ?? 0) * 0.96;
     // 냉장고 (오른쪽) + 위에서 구경하는 고양이 (7판 전까지)
-    const fxl = X(0.75), fyt = Y(0.16), fw = R(0.2);
+    const fxl = X(0.76), fyt = Y(0.17), fw = R(0.2);
     const fg = ctx.createLinearGradient(fxl, 0, fxl + fw, 0);
     fg.addColorStop(0, '#e9f3f6');
     fg.addColorStop(1, '#bcd2da');
@@ -1344,12 +1414,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
     const catOn = !L.kinds.includes(CAT);
     if (catOn) {
       const scare = t - s.catT, jump = scare < 30 ? Math.sin((scare / 30) * Math.PI) * R(0.04) : 0;
-      drawCat(ctx, fxl + fw * 0.55, fyt - R(0.03) - jump, R(0.035), 0, scare < 50 ? 0 : 2, scare < 50 ? 1 : 0, 0, t);
+      drawCat(ctx, fxl + fw * 0.5, fyt - R(0.035) - jump, R(0.05), 0, scare < 50 ? 0 : 2, scare < 50 ? 1 : 0, 0, t);
       if (scare < 50) {
         ctx.fillStyle = '#ffffff';
-        font(0.032, 900);
+        ctx.strokeStyle = 'rgba(60,30,10,.6)';
+        ctx.lineWidth = 3;
+        font(0.034, 900);
         ctx.textAlign = 'center';
-        ctx.fillText('냥?!', fxl + fw * 0.2, fyt - R(0.07) - jump);
+        ctx.strokeText('냥?!', fxl - R(0.04), fyt + R(0.02) - jump);
+        ctx.fillText('냥?!', fxl - R(0.04), fyt + R(0.02) - jump);
       }
     }
   }
@@ -1367,13 +1440,27 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
   ctx.fill();
   ctx.restore();
   {
+    // 조리대 앞면: 두꺼운 나무 테 + 서랍장 (손잡이)
     const fy = boardBot + R(0.02), g = ctx.createLinearGradient(0, fy, 0, h);
-    g.addColorStop(0, '#9c6034');
+    g.addColorStop(0, '#a8693a');
     g.addColorStop(1, '#6d3f20');
     ctx.fillStyle = g;
     ctx.fillRect(boardL - R(0.03), fy, boardR - boardL + R(0.06), h - fy);
-    ctx.fillStyle = 'rgba(255,220,170,.35)';
-    ctx.fillRect(boardL - R(0.03), fy, boardR - boardL + R(0.06), 2);
+    ctx.fillStyle = '#c98c55';
+    ctx.fillRect(boardL - R(0.03), fy, boardR - boardL + R(0.06), R(0.018));
+    ctx.fillStyle = 'rgba(255,230,190,.5)';
+    ctx.fillRect(boardL - R(0.03), fy, boardR - boardL + R(0.06), 1.5);
+    for (let k = 0; k < 3; k++) {
+      const dx = boardL + k * (boardR - boardL) / 3 + R(0.012), dw = (boardR - boardL) / 3 - R(0.024), dy = fy + R(0.028);
+      ctx.fillStyle = 'rgba(60,30,10,.25)';
+      ctx.beginPath();
+      ctx.roundRect(dx, dy, dw, R(0.08), R(0.01));
+      ctx.fill();
+      ctx.fillStyle = '#e6c08a';
+      ctx.beginPath();
+      ctx.roundRect(dx + dw / 2 - R(0.04), dy + R(0.014), R(0.08), R(0.014), R(0.007));
+      ctx.fill();
+    }
   }
   // 타일 + 자석 구역 색 (뒤집힌 자석은 물결처럼 바깥으로 색이 번진다)
   const zone = (x: number, y: number) => {
@@ -1417,8 +1504,30 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
     }
   ctx.stroke();
   ctx.setLineDash([]);
-  // 바닥에 붙은 것: 수저통 구멍 · 화구 · 국자 받침 · 방석 · 개수대
-  const inHome = (c: number) => s.L.kinds.map((_, k) => k).filter((i) => (a ? a.to : s.S).p[i] === IN && (a ? a.to : s.S).hc[i] === c && !(a && (a.rec.frames[Math.min(a.rec.frames.length - 1, Math.max(0, Math.floor(prog) + 1))][i] ?? 0) >= 0));
+  // 창문 햇살이 조리대 왼쪽 위에 번진다
+  {
+    const lg = ctx.createRadialGradient(X(0.2), Y(BY), R(0.05), X(0.25), Y(BY + 0.15), R(0.75));
+    lg.addColorStop(0, 'rgba(255,250,225,.42)');
+    lg.addColorStop(1, 'rgba(255,250,225,0)');
+    ctx.fillStyle = lg;
+    ctx.fillRect(boardL, boardTop, boardR - boardL, boardBot - boardTop);
+    const vg = ctx.createLinearGradient(0, boardTop, 0, boardBot);
+    vg.addColorStop(0, 'rgba(90,50,20,.10)');
+    vg.addColorStop(0.15, 'rgba(90,50,20,0)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(boardL, boardTop, boardR - boardL, boardBot - boardTop);
+  }
+  // 바닥에 붙은 것: 화구 · 국자 받침 · 방석 · 개수대 (수저통은 서 있어서 앞뒤 순서대로 그린다)
+  /** 이 제자리 칸에 (지금 화면 기준으로) 들어가 있는 쇠붙이 */
+  const inHome = (c: number) => {
+    const out: number[] = [];
+    const F = a ? a.rec.frames : null, k = F ? Math.min(F.length - 1, Math.max(0, Math.floor(prog))) : 0;
+    for (let i = 0; i < L.kinds.length; i++) {
+      const p = F ? F[k][i] : s.S.p[i], hc = a ? a.to.hc[i] : s.S.hc[i];
+      if (p === IN && hc === c) out.push(i);
+    }
+    return out;
+  };
   for (let c = 0; c < C * Rr; c++) {
     const hk = L.home[c], x = GX(c % C), y = GY((c / C) | 0);
     if (L.cell[c] === SINK) {
@@ -1445,47 +1554,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
       continue;
     }
     if (hk === CUP) {
-      // 조리대에 박힌 수저통: 도자기 테두리 + 안이 어둡다
-      ctx.fillStyle = '#2f5d8a';
-      ctx.beginPath();
-      ctx.ellipse(x, y + U * 0.12, U * 0.78, U * 0.5, 0, 0, TAU);
-      ctx.fill();
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.ellipse(x, y, U * 0.78, U * 0.5, 0, 0, TAU);
-      ctx.fill();
-      ctx.fillStyle = '#4a3a30';
-      ctx.beginPath();
-      ctx.ellipse(x, y + U * 0.02, U * 0.58, U * 0.34, 0, 0, TAU);
-      ctx.fill();
-      const got = inHome(c);
-      got.forEach((i, k) => {
-        const ox = (k - (got.length - 1) / 2) * U * 0.28, k2 = L.kinds[i];
-        ctx.save();
-        ctx.translate(x + ox, y - U * 0.05);
-        ctx.rotate((k - (got.length - 1) / 2) * 0.25);
-        ctx.fillStyle = steel(ctx, -U * 0.1, 0, U * 0.1, 0);
-        ctx.fillRect(-U * 0.07, -U * 0.95, U * 0.14, U * 0.95);
-        if (k2 === FORK) for (let q = 0; q < 3; q++) ctx.fillRect(-U * 0.11 + q * U * 0.09, -U * 1.3, U * 0.05, U * 0.38);
-        else {
-          ctx.beginPath();
-          ctx.ellipse(0, -U * 1.1, U * 0.16, U * 0.24, 0, 0, TAU);
-          ctx.fill();
-        }
-        ctx.fillStyle = POLE[L.pols[i]][1];
-        ctx.fillRect(-U * 0.08, -U * 0.25, U * 0.16, U * 0.18);
-        ctx.restore();
-      });
-      ctx.fillStyle = 'rgba(255,255,255,.95)';
-      ctx.font = `${Math.max(12, U * 0.55)}px system-ui`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      if (!got.length) {
-        ctx.fillStyle = '#ffffff';
-        ctx.globalAlpha = 0.85;
-        ctx.fillText('🥄', x, y + U * 0.02);
-        ctx.globalAlpha = 1;
-      }
+      // 수저통은 아래 '판 위의 것들'에서 그린다
     } else if (hk === STOVE) {
       ctx.fillStyle = '#2b2b30';
       ctx.beginPath();
@@ -1590,6 +1659,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
         },
       });
     }
+  for (let c = 0; c < C * Rr; c++)
+    if (L.home[c] === CUP) {
+      const x = GX(c % C), y = GY((c / C) | 0), got = inHome(c);
+      items.push({ y: ((c / C) | 0) - 0.02, f: () => drawCup(ctx, x, y, U, got.map((i) => [L.kinds[i], L.pols[i]]), t) });
+    }
   L.mags.forEach((m, j) => {
     const hop = (t - s.mt[j]) / 14;
     const pol = a && a.j === j && hop < 0.5 ? Sold.mp[j] : Snow.mp[j];
@@ -1653,11 +1727,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
           }
         }
         const yy = y - lift;
-        if (k === SPOON || k === FORK) drawCutlery(ctx, x, yy, U * 0.78, k === FORK, L.pols[i], mood, lx, ly, t, tilt);
-        else if (k === POT) drawPot(ctx, x, yy - (q.st === 1 ? U * 0.1 : 0), U * 0.8, L.pols[i], q.st === 1 ? 3 : mood, lx, ly, t, q.st === 1);
-        else if (k === LADLE) drawLadle(ctx, x, yy, U * 0.78, q.st === 1 ? 3 : mood, lx, ly, t, tilt);
-        else if (k === BOARD) drawBoard(ctx, x, yy, U * 0.8, mood, t);
-        else if (k === CAT) drawCat(ctx, x, yy, U * 0.85, L.pols[i], q.st === 1 ? 2 : q.mv ? 1 : 0, mood, lx, t);
+        if (k === SPOON || k === FORK) drawCutlery(ctx, x, yy, U * 0.98, k === FORK, L.pols[i], mood, lx, ly, t, tilt);
+        else if (k === POT) drawPot(ctx, x, yy - (q.st === 1 ? U * 0.1 : 0), U * 0.95, L.pols[i], q.st === 1 ? 3 : mood, lx, ly, t, q.st === 1);
+        else if (k === LADLE) drawLadle(ctx, x, yy, U * 0.95, q.st === 1 ? 3 : mood, lx, ly, t, tilt);
+        else if (k === BOARD) drawBoard(ctx, x, yy, U * 0.92, mood, t);
+        else if (k === CAT) drawCat(ctx, x, yy, U * 1.0, L.pols[i], q.st === 1 ? 2 : q.mv ? 1 : 0, mood, lx, t);
       },
     });
   });
@@ -1760,7 +1834,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: PolarState, w: number, h: num
       if (big) s.catT = t;
     }
     if (e.kind === 'stick') fx.burst(x, y, '#cfd8e6', 8, 2, 1.8), say(x, y - R(0.06), e.text!, '#e8f0ff', 13);
-    if (e.kind === 'bonk') fx.burst(x, y, '#fff0d0', 7, 2.2, 1.8), fx.kick(2), say(x, y - R(0.06), e.text!, '#ffe2b0', 13);
+    if (e.kind === 'bonk') fx.burst(x, y, '#fff0d0', 7, 2.2, 1.8), fx.kick(2), e.text !== '쿵!' && say(x, y - R(0.06), e.text!, '#ffe2b0', 14);
     if (e.kind === 'clang') fx.burst(x, y, '#ffffff', 14, 3.4, 2.2), fx.ring(x, y, '#fff6c0', R(0.07), 3), fx.kick(4), say(x, y - R(0.07), e.text!, '#fff6c0', 15), (s.catT = t);
     if (e.kind === 'knock') fx.burst(x, y, '#ffd84a', 10 + (e.n ?? 1) * 4, 3.2, 2.2), fx.ring(x, y, '#ffd84a', R(0.06 + (e.n ?? 1) * 0.02), 3), fx.kick(2 + (e.n ?? 1) * 1.5), say(x, y - R(0.07), e.text!, '#ffe066', 14 + Math.min(6, (e.n ?? 1) * 2));
     if (e.kind === 'dong') fx.ring(x, y, '#dfe4ea', R(0.09), 4), fx.kick(5), say(x, y - R(0.08), e.text!, '#e8eef6', 17), (s.catT = t);

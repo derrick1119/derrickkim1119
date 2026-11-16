@@ -7,12 +7,14 @@
  *   상추를 다 먹으면 🐚집 문이 열리고, 집에 들어가면 그 판 끝. 톡 수에 한도가 있다.
  * 와우: 지금 기어가는 길이 나중의 미끄럼틀이자 상추밭이다 — 새싹 줄을 따라 기어 두면(물 주기) 되돌아올 때 '슈우욱' 한 번에 냠냠냠.
  *   그래서 어느 쪽으로 기어 두느냐(돌아올 미끄럼이 집 쪽을 향하게)가 수다. 미끄러지면 중간에 못 서니 내 길이 나를 가두기도 한다.
- * 판(정원) 8개: 별 = ★ 집에 도착 · ★ 톡 P2번 이내 · ★ 톡 P3번 이내(가장 짧은 길, 해답기로 잰 값). 실패(톡을 다 씀 · 개미가 상추를 가져감
- *   · 꼼짝 못 함) = 하트 -1, 그 판을 처음부터. 하트 셋을 다 잃거나 8판을 마치면 끝.
- * 펼쳐짐(하는 일이 바뀐다): 1판 어젯밤 길(이미 깔린 점액 — 첫 톡에 냠냠, 새싹 물 주기) → 2판 돌 정원(돌 = 브레이크, 물 주는 방향)
- *   → 3판 웅덩이(첨벙! 점액이 사방으로 튀어 한 번에 네 칸 물 주기) → 4판 개미(상추 도둑 — 점액을 밟으면 찰싹 붙는다: 길로 가두기)
- *   → 5판 소금(점액이 안 남는 칸 — 미끄럼이 거기서 멈춘다, 중간 정거장) → 6판 웅덩이+개미(첨벙으로 개미 붙이기)
- *   → 7판 소금+개미 → 8판 전부.
+ * 판(정원) 8개: 별 = ★ 집에 도착 · ★ P2톡 안에 · ★ P3톡 안에(P3 = 가장 짧은 길, 해답기로 잰 값). 실패(톡을 다 씀 · 개미가 상추를 가져감
+ *   · 꼼짝 못 함) = 하트 -1, 그 판을 처음부터. 하트 셋을 다 잃거나 8판을 마치면 끝. 벽에 '콩'은 톡을 안 쓴다.
+ * 펼쳐짐(하는 일이 바뀐다): 1판 어젯밤 길(이미 깔린 점액 — 첫 톡에 슈우욱 냠냠냠) → 2판 새싹 줄(물 주기: 기어 두고 되돌아와 쓸어 먹기,
+ *   돌아올 미끄럼이 집을 향하게) → 3판 웅덩이(첨벙! 점액이 사방으로 튀어 한 번에 네 칸 물 주기) → 4판 개미(상추 도둑 — 점액을 밟으면
+ *   찰싹 붙는다: 개미 앞길에 길 깔기) → 5판 소금(점액이 안 남는 칸 — 미끄럼의 중간 정거장) → 6판 웅덩이+개미(첨벙으로 개미 붙이기)
+ *   → 7판 소금+개미(소금 위 개미는 안 붙는다) → 8판 전부.
+ * 지도: 손으로 짠 1판 + 지도 찾기(무작위 정원 수만 개를 해답기로 풀어, 가장 짧은 길에 큰 냠냠·장치 쓰임이 있고 버릇 봇은 못 따라오는 것)로
+ *   고른 판들. 씨앗마다 좌우·위아래 뒤집기로 바뀐다.
  * 웃음: 벽에 부딪히면 눈자루가 쏙 들어갔다 뿅, 소금에 서면 '짜!' 하고 쪼그라들고, 큰 미끄럼에선 눈이 뒤로 휘날린다.
  *   화분 위 개구리 구경꾼은 미끄럼에 눈이 휘둥그레, 냠냠냠에 박수, 꽈당에 '개굴ㅋ'.
  */
@@ -1125,23 +1127,33 @@ function drawRock(ctx: CanvasRenderingContext2D, L: Level, x: number, y: number,
 function drawSlime(ctx: CanvasRenderingContext2D, s: SnailState, X: F, Y: F, R: F, t: number) {
   const S = s.S, vis = (c: number) => c >= 0 && bit(S.slime, c) && t >= s.slimeT[c];
   ctx.save();
+  // 한 겹 = 한 경로(겹친 곳이 진해지지 않게), 이웃 점액과는 둥근 다리로 잇는다
   for (let pass = 0; pass < 2; pass++) {
-    ctx.fillStyle = pass === 0 ? 'rgba(120,150,220,.35)' : 'rgba(205,222,255,.5)';
+    ctx.beginPath();
     for (let c = 0; c < NC; c++) {
       if (!vis(c)) continue;
-      const x = X(cX(c)), y = Y(cY(c)), hw = R(CW * (pass ? 0.3 : 0.34)), hh = R(CH * (pass ? 0.28 : 0.33));
-      const age = t - s.slimeT[c], pop = s.slimeT[c] < 0 ? 1 : Math.min(1, age / 8);
-      ctx.beginPath();
-      ctx.ellipse(x, y + (pass ? 0 : R(0.004)), hw * pop, hh * pop, 0, 0, TAU);
-      ctx.fill();
-      // 이웃 점액과 잇기
+      const x = X(cX(c)), y = Y(cY(c)) + (pass ? 0 : R(0.004)), hw = R(CW * (pass ? 0.29 : 0.35)), hh = R(CH * (pass ? 0.27 : 0.34));
+      const age = t - s.slimeT[c], pop = s.slimeT[c] < 0 ? 1 : Math.min(1, 0.3 + age / 10);
+      const wob = 1 + 0.03 * Math.sin(t / 25 + c);
+      ctx.moveTo(x + hw * pop * wob, y);
+      ctx.ellipse(x, y, hw * pop * wob, hh * pop, 0, 0, TAU);
       for (const d of [1, 2]) {
         const n = NB[c * 4 + d];
         if (!vis(n)) continue;
-        if (d === 1) ctx.fillRect(x, y - hh * 0.7, R(CW), hh * 1.4);
-        else ctx.fillRect(x - hw * 0.75, y, hw * 1.5, R(CH));
+        const bw = (d === 1 ? hh : hw) * 0.62;
+        if (d === 1) ctx.roundRect(x, y - bw, R(CW), bw * 2, bw);
+        else ctx.roundRect(x - bw, y, bw * 2, R(CH), bw);
       }
     }
+    if (pass === 0) ctx.fillStyle = 'rgba(110,140,215,.38)';
+    else {
+      const g = ctx.createLinearGradient(X(BX0), Y(BY0), X(BX0 + GW * CW), Y(BY0 + GH * CH));
+      g.addColorStop(0, 'rgba(215,232,255,.58)');
+      g.addColorStop(0.5, 'rgba(232,215,255,.55)');
+      g.addColorStop(1, 'rgba(205,245,240,.58)');
+      ctx.fillStyle = g;
+    }
+    ctx.fill();
   }
   // 반짝이
   for (let c = 0; c < NC; c++) {
