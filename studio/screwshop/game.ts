@@ -40,6 +40,8 @@ const SR = 0.032, HIT = 0.075, SLOTS = 5, PEEK = 2;
 /** 판자 가장자리가 나사 머리를 덮는 정도: sd < COVER면 막힘, sd < HIDE면 아예 안 보임 */
 const COVER = 0.021, HIDE = -0.026;
 const COOL = 8, SPIN = 9, FLY = 17, RESULT_OK = 150, NEWS_T = 200; // ✏️ S054(🎨 R6): ★3 결과 200 → 150틱 · 톡하면 바로
+/** ✏️ S056: 결과 카드 별이 나타나는 나이(틱) — 11틱 간격 · 셋째 앞 4틱 숨 · 6틱 낙하 */
+const STAR_AT = [6, 17, 32];
 const STAR_PTS = 100, WIN_PTS = 100;
 
 // ───────────────────────────── 장난감(판): stages.ts ─────────────────────────────
@@ -1133,7 +1135,9 @@ function playRec(s: ShopState, rec: RE[]) {
   // ✏️ S026(📋 B③ · 오너 '따도 안 기쁘다'): 판 중에 딴 별(쾅 B · 한 번에 H · 연달아 C)은 그 톡에 칩이 터지고 위 ★ 칸으로 날아간다
   {
     const d = STAGES[s.stage], m2 = d.B !== undefined && S.bonks >= d.B, m3 = !s.hint && (d.B === undefined && (d.H !== undefined ? S.shot >= d.H : d.T === undefined && S.best >= d.C));
-    for (const [k, on] of [[2, m2], [3, m3]] as const) if (on && !(s.sg & (1 << k)) && !S.fail) (s.sg |= 1 << k), (s.starFx = { t0: s.t + 6, k }), ev(s, 'star', 0.5, 0, `★${k}!${k === 3 && s.lock3 ? ' 깜짝!' : ''}`, '#ffd166', k);
+    // ✏️ S056(🧪 S055 🔴②): 별은 그 별을 준 일(마지막 쾅 · 한 방)이 화면에 그려진 틱에 뜬다 — 쾅보다 먼저 '★2 받았어요'가 뜨던 것
+    const late = s.events.reduce((m, q) => (q.t === s.t && q.v !== undefined && (q.kind === 'bonk' || q.kind === 'shot') ? max(m, q.v + 2) : m), s.t);
+    for (const [k, on] of [[2, m2], [3, m3]] as const) if (on && !(s.sg & (1 << k)) && !S.fail) (s.sg |= 1 << k), (s.starFx = { t0: late + 6, k }), ev(s, 'star', 0.5, 0, `★${k}!${k === 3 && s.lock3 ? ' 깜짝!' : ''}`, '#ffd166', k, late);
   }
   // ✏️ S024(📐 단계별 배우기 · 짚기): 가르치는 별이 처음 움직인 톡에 칩 위로 한 줄
   if (s.teach && !S.fail) {
@@ -1144,7 +1148,7 @@ function playRec(s: ShopState, rec: RE[]) {
       : kd === 'shot' ? (v === s.tv ? '' : v >= d.H! ? `${g}! 한 번에 ${v}개 쏙` : v >= 2 ? `한 번에 ${v}개! ${d.H}개면 ${g}` : '한 번에 1개 — 판자째 떨어뜨리면 여러 개가 한꺼번에 쏙!') // ③ 방법
       : kd === 'tap' ? (v === s.tv || d.T! - v > 3 ? '' : v > d.T! || (v === d.T && S.n < s.L.N) ? `톡을 다 썼어요 — ${lost}` : `톡 ${d.T! - v}번 남았어요`)
       : (s.tv < 2 && v >= 2) || (s.tv < d.C && v >= d.C) ? (v >= d.C ? `${g}! ${v}개 연달아 쏙` : `${v}개 연달아! ${d.C}개 이으면 ${g} — 빈칸에 가면 끊겨요`) : ''; // ② 연속
-    if (msg) (s.taught = true), ev(s, 'teach', 0.5, 0, msg, msg.includes('놓쳤') ? '#ffb36b' : '#ffe9a8');
+    if (msg) (s.taught = true), ev(s, 'teach', 0.5, 0, msg, msg.includes('놓쳤') ? '#ffb36b' : '#ffe9a8', undefined, s.events.reduce((m, q) => (q.t === s.t && q.v !== undefined && (q.kind === 'bonk' || q.kind === 'shot') ? max(m, q.v + 2) : m), s.t)); // ✏️ S056: 쾅 · 한 방이 그려진 뒤에
     s.tv = v;
   }
 }
@@ -1785,7 +1789,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
   if (pressK >= 0 && fx.memo.pk !== pressK && t > seenT) cue('press');
   fx.memo.pk = pressK;
   for (const e of s.events) {
-    const due = e.v !== undefined && ['in', 'slot', 'pull', 'done', 'swing', 'fall', 'boing', 'key', 'jam', 'streak', 'tick', 'reveal', 'twist', 'pluck', 'bonk', 'shot', 'air', 'crash', 'wind', 'thump', 'jack'].includes(e.kind) ? e.v : e.t;
+    const due = e.kind === 'star' || e.kind === 'teach' ? e.n ?? e.t : e.v !== undefined && ['in', 'slot', 'pull', 'done', 'swing', 'fall', 'boing', 'key', 'jam', 'streak', 'tick', 'reveal', 'twist', 'pluck', 'bonk', 'shot', 'air', 'crash', 'wind', 'thump', 'jack'].includes(e.kind) ? e.v : e.t;
     if (due <= seenT || due > t) continue;
     const x = X(e.x), y = Y(e.y);
     if (e.kind === 'reveal') fx.ring(x, y, '#fff6a8', R(0.06), 3), fx.burst(x, y, '#fff6a8', 6, 1.6, 1.5), e.text && fx.pop(x + R(0.03), y - R(0.04), e.text, e.col!, 16), cue('reveal', reveals++);
@@ -1886,6 +1890,50 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
 }
 
 /** 실패 카드 + 진 톡 짚기 (🎨 §2.7, 📐 S003): 빨강 없이 따뜻한 갈색, 자동 재시작 없이 45틱 뒤 아무 데나 톡 */
+/** ✏️ S056(🧪 S055 🟡⑥ · 🎨 §3-14): 호두 명판 — 갈색 그림자 두 겹 · 대각 칠 · 테 · 나뭇결 세 줄 · 윗날 빛 · 네 모서리 황동 나사(이 게임의 서명) */
+function plaque(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number, edge: string, R: (r: number) => number) {
+  for (const [o, al] of [[1.6, 0.12], [1, 0.4]]) (ctx.fillStyle = `rgba(50,25,5,${al})`), bp(ctx), ctx.roundRect(x + 4 * o, y + 8 * o, w, h, r), ctx.fill();
+  const g = ctx.createLinearGradient(x, y, x + w, y + h);
+  g.addColorStop(0, '#7a4e2c');
+  g.addColorStop(1, '#4a2e18');
+  ctx.fillStyle = g;
+  bp(ctx);
+  ctx.roundRect(x, y, w, h, r);
+  ctx.fill();
+  ctx.save();
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(30,15,5,.22)';
+  ctx.lineWidth = 1.2;
+  for (let k = 0; k < 3; k++) {
+    bp(ctx);
+    for (let xx = x; xx <= x + w + 8; xx += 8) ctx.lineTo(xx, y + h * (0.28 + 0.24 * k) + 3 * sin(xx / 29 + k * 1.7));
+    ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(255,230,190,.14)';
+  ctx.fillRect(x, y + 2, w, 1.5);
+  ctx.restore();
+  ctx.strokeStyle = edge;
+  ctx.lineWidth = 1.5;
+  bp(ctx);
+  ctx.roundRect(x, y, w, h, r);
+  ctx.stroke();
+  for (const [px, py] of [[x + R(0.03), y + R(0.03)], [x + w - R(0.03), y + R(0.03)], [x + R(0.03), y + h - R(0.03)], [x + w - R(0.03), y + h - R(0.03)]]) {
+    const sg = ctx.createRadialGradient(px - 1.5, py - 1.5, 0.5, px, py, R(0.012));
+    sg.addColorStop(0, '#fff3b8');
+    sg.addColorStop(0.5, '#e0b54a');
+    sg.addColorStop(1, '#8a6214');
+    ctx.fillStyle = sg;
+    bp(ctx);
+    ctx.arc(px, py, R(0.012), 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(70,45,10,.8)';
+    ctx.lineWidth = 1.2;
+    bp(ctx);
+    ctx.moveTo(px - R(0.007), py + R(0.004));
+    ctx.lineTo(px + R(0.007), py - R(0.004));
+    ctx.stroke();
+  }
+}
 function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, font: (sz: number, w?: number) => void) {
   const L = s.L, b = s.blame, age = s.pt, t = s.t, air = b?.c === '③허공'; // 🧪 S004: 망치가 쳤는데 💨를 가리키던 것 — 💨는 허공일 때만
   // 진 톡: 그때 뺀 나사 자리에 유령 나사 + 분필 고리 + 알약
@@ -1963,17 +2011,7 @@ function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   const up = min(1, age / 12), oy = (1 - (1 - (1 - up) ** 3)) * R(0.1), cy0 = Y(1.13) + oy;
   ctx.save();
   // ✏️ S055(🎨 §3-15): 결과 카드와 같은 호두 명판 · 테만 붉게 · 갈색 그림자 두 겹
-  for (const [o, al] of [[1.6, 0.12], [1, 0.4]]) (ctx.fillStyle = `rgba(50,25,5,${al})`), bp(ctx), ctx.roundRect(X(0.03) + 4 * o, cy0 + 8 * o, X(0.94), Y(1.44) - Y(1.13), R(0.035)), ctx.fill();
-  const g = ctx.createLinearGradient(X(0.03), cy0, X(0.97), cy0 + Y(0.31));
-  g.addColorStop(0, '#7a4e2c');
-  g.addColorStop(1, '#4a2e18');
-  ctx.fillStyle = g;
-  ctx.strokeStyle = 'rgba(255,106,77,.6)';
-  ctx.lineWidth = 1.5;
-  bp(ctx);
-  ctx.roundRect(X(0.03), cy0, X(0.94), Y(1.44) - Y(1.13), R(0.035));
-  ctx.fill();
-  ctx.stroke();
+  plaque(ctx, X(0.03), cy0, X(0.94), Y(1.44) - Y(1.13), R(0.035), 'rgba(255,106,77,.6)', R);
   drawHamster(ctx, X(0.16), Y(1.435) + oy, R(0.24), s, t);
   const cx = X(0.62), [line, tip] = b ? blameText(L, s.hist, b, s.S.fail) : ['', ''];
   ctx.textAlign = 'center';
@@ -2205,13 +2243,10 @@ function tickBadge(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fillText(String(n), cx + sh, cy + 1);
   ctx.textBaseline = 'alphabetic';
 }
+/** ✏️ S056: 나사 머리 그림 캐시(색 | 화면 반지름 px) */
+const SCR = new Map<string, HTMLCanvasElement>();
 function drawScrew(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, col: number, rot: number, o: { lock?: boolean; key?: boolean; t: number; hot?: boolean; tick?: number }) {
   const c = col >= 0 ? COLS[col] : '#9aa0a8';
-  // 박힌 구멍 그림자
-  ctx.fillStyle = 'rgba(40,20,5,.4)';
-  bp(ctx);
-  ctx.arc(x + r * 0.12, y + r * 0.2, r * 1.12, 0, TAU);
-  ctx.fill();
   if (o.key) {
     ctx.strokeStyle = '#ffd34d';
     ctx.lineWidth = max(2, r * 0.22);
@@ -2219,22 +2254,49 @@ function drawScrew(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
     ctx.arc(x, y, r * 1.3, 0, TAU);
     ctx.stroke();
   }
-  const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r);
-  g.addColorStop(0, mix(c, '#ffffff', 0.65));
-  g.addColorStop(0.45, c);
-  g.addColorStop(1, mix(c, '#000000', 0.38));
-  ctx.fillStyle = g;
-  bp(ctx);
-  ctx.arc(x, y, r, 0, TAU);
-  ctx.fill();
-  ctx.strokeStyle = mix(c, '#000000', 0.5);
-  ctx.lineWidth = max(1, r * 0.1);
-  ctx.stroke();
-  drawMark(ctx, x, y, r * 0.5, col, rot + 0.4, 'rgba(30,20,10,.65)', max(1.6, r * 0.2));
-  ctx.fillStyle = 'rgba(255,255,255,.55)';
-  bp(ctx);
-  ctx.ellipse(x - r * 0.35, y - r * 0.45, r * 0.28, r * 0.15, -0.6, 0, TAU);
-  ctx.fill();
+  // ✏️ S056(🎨 §3-4 · 오너 "렉 · 프로토타입 느낌"): 구멍 그림자 + 쇠 와셔 + 칠한 돔 + 반짝을 색 · 크기마다 한 번 그려 두고 복사(매 나사 매 프레임 radial 그라디언트를 만들던 것) · 무늬만 돌며 그린다
+  const m = ctx.getTransform(), k = Math.hypot(m.a, m.b) || 1, rk = Math.max(2, Math.round(r * k)), key = `${c}|${rk}`;
+  let sp = SCR.get(key);
+  if (!sp) {
+    const rr = rk, side = Math.ceil(rr * 2.9) + 4, h = side / 2;
+    sp = document.createElement('canvas');
+    sp.width = sp.height = side;
+    const g = sp.getContext('2d')!;
+    g.fillStyle = 'rgba(50,25,5,.35)';
+    bp(g);
+    g.arc(h + rr * 0.12, h + rr * 0.22, rr * 1.16, 0, TAU);
+    g.fill();
+    const wg = g.createLinearGradient(h - rr, h - rr, h + rr, h + rr);
+    wg.addColorStop(0, '#f4efe4');
+    wg.addColorStop(1, '#8c8272');
+    g.fillStyle = wg;
+    bp(g);
+    g.arc(h, h, rr * 1.1, 0, TAU);
+    g.fill();
+    g.strokeStyle = 'rgba(60,50,40,.45)';
+    g.lineWidth = 1;
+    g.stroke();
+    const dg = g.createRadialGradient(h - rr * 0.35, h - rr * 0.4, rr * 0.1, h, h, rr * 0.9);
+    dg.addColorStop(0, mix(c, '#ffffff', 0.6));
+    dg.addColorStop(0.5, c);
+    dg.addColorStop(1, mix(c, '#000000', 0.35));
+    g.fillStyle = dg;
+    bp(g);
+    g.arc(h, h, rr * 0.9, 0, TAU);
+    g.fill();
+    g.strokeStyle = mix(c, '#000000', 0.45);
+    g.lineWidth = Math.max(1, rr * 0.07);
+    g.stroke();
+    g.fillStyle = 'rgba(255,255,255,.6)';
+    bp(g);
+    g.ellipse(h - rr * 0.32, h - rr * 0.4, rr * 0.24, rr * 0.12, -0.6, 0, TAU);
+    g.fill();
+    if (SCR.size > 160) SCR.clear();
+    SCR.set(key, sp);
+  }
+  const sz = sp.width / k;
+  ctx.drawImage(sp, x - sz / 2, y - sz / 2, sz, sz);
+  drawMark(ctx, x, y, r * 0.45, col, rot + 0.4, 'rgba(30,20,10,.6)', max(1.6, r * 0.2));
   if (o.hot) {
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2.5;
@@ -3198,7 +3260,7 @@ function drawHamster(ctx: CanvasRenderingContext2D, x: number, y: number, u: num
   if (s.phase === 'result' && s.ok) { // ✏️ S055(🎨 손맛 P3): 별이 꽂힐 때마다 폴짝(.14 → .19 → .24) · 그 뒤엔 작게 끄덕
     const q = s.pt;
     jump = q > 34 ? abs(sin(q * 0.12)) * u * 0.03 : 0;
-    for (let k = 0; k < s.got; k++) { const v = q - (10 + 7 * k); if (v >= 0 && v < 10) jump = max(jump, sin((v / 10) * PI) * u * (0.14 + 0.05 * k)); }
+    for (let k = 0; k < s.got; k++) { const v = q - (STAR_AT[k] + 6); if (v >= 0 && v < 10) jump = max(jump, sin((v / 10) * PI) * u * (0.14 + 0.05 * k)); }
   }
   if (mood === 'dizzy') tilt = sin(age * 0.12) * 0.25;
   if (mood === 'smug') tilt = -0.08;
@@ -3522,52 +3584,40 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     ctx.translate(w / 2, cy0 + ch / 2);
     ctx.scale(1, 0.3 + 0.7 * pop);
     ctx.translate(-w / 2, -(cy0 + ch / 2));
-    for (const [o, al] of [[1.6, 0.12], [1, 0.4]]) (ctx.fillStyle = `rgba(50,25,5,${al})`), bp(ctx), ctx.roundRect(X(0.06) + 4 * o, cy0 + 8 * o, X(0.88), ch, R(0.04)), ctx.fill();
-    const wg = ctx.createLinearGradient(X(0.06), cy0, X(0.94), cy0 + ch);
-    wg.addColorStop(0, '#7a4e2c');
-    wg.addColorStop(1, '#4a2e18');
-    ctx.fillStyle = wg;
-    bp(ctx);
-    ctx.roundRect(X(0.06), cy0, X(0.88), ch, R(0.04));
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,209,102,.7)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(255,230,190,.12)';
-    ctx.fillRect(X(0.09), cy0 + 3, X(0.82), 1.5);
+    plaque(ctx, X(0.06), cy0, X(0.88), ch, R(0.04), 'rgba(255,209,102,.7)', R);
     ctx.textAlign = 'center';
     font(0.058, 900);
     ctx.fillStyle = '#fff6e0';
     ftx(ctx, s.won ? '공방 완성! 🎉' : `${d.emoji} ${d.name} 완성!`, w / 2, Y(0.66));
-    for (let k = 0; k < 3; k++) {
-      const ag = age - 6 - k * 7, got = k < s.got, sx = w / 2 + (k - 1) * R(0.11), sy = Y(0.75);
+    for (let k = 0; k < 3; k++) { // ✏️ S056(🧪 S055 🟡③): 별 간격 7 → 11틱 · 낙하 4 → 6틱 · 셋째 앞에 4틱 숨 — '하나, 둘, 셋!'
+      const ag = age - STAR_AT[k], got = k < s.got, sx = w / 2 + (k - 1) * R(0.11), sy = Y(0.75);
       if (ag < 0) continue;
-      const fall = ag < 4 ? (1 - (ag / 4) ** 2) * R(0.12) : 0, sc = ag < 4 ? 1.5 : ag < 6 ? 0.9 : 1, big = k === 2 && got ? 1.15 : 1;
+      const fall = ag < 6 ? (1 - (ag / 6) ** 2) * R(0.14) : 0, sc = ag < 6 ? 1.5 : ag < 8 ? 0.9 : 1, big = k === 2 && got ? 1.15 : 1;
       font(0.08 * sc * big, 900);
       ctx.fillStyle = got ? '#ffd166' : 'rgba(255,246,224,.3)';
       ftx(ctx, got ? '★' : '☆', sx, sy - fall);
-      if (ag >= 4 && (fx.memo['star' + k] ?? -1) < s.clearT) {
+      if (ag >= 6 && (fx.memo['star' + k] ?? -1) < s.clearT) {
         fx.memo['star' + k] = s.clearT;
         if (got) fx.burst(sx, sy - R(0.02), '#ffd166', k === 2 ? 16 : 8, 3.2, 2.2), fx.burst(sx, sy - R(0.02), '#ffffff', 4, 3, 1.6), fx.ring(sx, sy - R(0.02), '#ffd166', R(k === 2 ? 0.12 : 0.07), 3), fx.jolt(0, 1, k === 2 ? 3 : 2);
         cue('star', got ? k : -1);
       }
     }
-    // 글: ★3이면 없음(깜짝이면 한 단어) · 놓쳤으면 놓친 별 하나의 까닭 + 💡 방법
-    const ok2 = d.B !== undefined ? S.bonks >= d.B : S.peak <= d.P, ok3 = d.B !== undefined ? s.got === 3 : star3(d, S), tx = starText(d, S);
-    if (s.got === 3 && s.lock3) (font(0.04, 900), (ctx.fillStyle = '#ffd166'), ftx(ctx, '깜짝!', w / 2, Y(0.825)));
+    // 글: ★3이면 없음(깜짝이면 '깜짝 ★3!') · 놓쳤으면 놓친 별 하나의 까닭 + 💡 방법 — ✏️ S056(🧪 S055 🟡④): 마지막 별이 꽂힌 뒤 페이드인
+    const ok2 = d.B !== undefined ? S.bonks >= d.B : S.peak <= d.P, ok3 = d.B !== undefined ? s.got === 3 : star3(d, S), tx = starText(d, S), soon = ok2 && s.lock3, ta = min(1, max(0, (age - STAR_AT[2] - 6) / 12));
+    ctx.globalAlpha = ta;
+    if (s.got === 3 && s.lock3) (font(0.042, 900), (ctx.fillStyle = '#ffd166'), ftx(ctx, '깜짝 ★3!', w / 2, Y(0.825)));
     else if (s.got < 3) {
-      const miss = !ok2 ? `✗ ★2 ${tx.r2}` : s.lock3 ? '★3은 곧 배워요' : `✗ ★3 ${ok3 ? '' : tx.r3}`, tip = `💡 ${tipLine(s.got === 2 && d.tip2 ? d.tip2 : d.tip)}`;
+      const miss = !ok2 ? `✗ ★2 ${tx.r2}` : soon ? '★3은 곧 배워요' : `✗ ★3 ${ok3 ? '' : tx.r3}`, tip = `💡 ${tipLine(s.got === 2 && d.tip2 ? d.tip2 : d.tip)}`;
       fit(0.038, 900, w - R(0.16), miss);
       ctx.fillStyle = miss[0] === '★' ? '#fff1d6' : '#ffb36b';
-      ftx(ctx, miss, w / 2, Y(0.82));
-      fit(0.032, 800, w - R(0.16), tip);
-      ctx.fillStyle = '#e8d3b0';
-      ftx(ctx, tip, w / 2, Y(0.862));
+      ftx(ctx, miss, w / 2, Y(soon ? 0.835 : 0.82));
+      if (!soon) (fit(0.034, 800, w - R(0.16), tip), (ctx.fillStyle = '#e8d3b0'), ftx(ctx, tip, w / 2, Y(0.862))); // 🧪 S055 🔴①: ★3을 아직 안 배웠으면 💡는 빼고 다음 판이 주인공
     }
-    if (s.got < 3 && age > 30) {
-      // ↺ 다시 · 다음 ▶ — 버튼 안만 받는다(🧪 S002) · ✏️ S055 🎨: 주 버튼은 금 · 다른 하나는 나무 명판
+    ctx.globalAlpha = 1;
+    if (s.got < 3 && age > STAR_AT[2] + 8) {
+      // ↺ 다시 · 다음 ▶ — 버튼 안만 받는다(🧪 S002) · ✏️ S055 🎨: 주 버튼은 금 · 다른 하나는 나무 명판 · ✏️ S056(🧪 S055 🔴①): 라벨은 놓친 별에 맞춘다 · ★3을 아직 안 배웠으면 '다음 판'이 금
       const by = Y(RES_BY), bh = R(0.075);
-      ([[0.06, '↺ 다시 (★3 도전)', true], [0.53, s.won ? '끝내기 ▶' : '다음 판 ▶', false]] as const).forEach(([x0, txt, main]) => {
+      ([[0.06, `↺ 다시 (${ok2 ? '★3' : '★2'} 도전)`, !soon], [0.53, s.won ? '끝내기 ▶' : '다음 판 ▶', soon]] as const).forEach(([x0, txt, main]) => {
         ctx.fillStyle = main ? '#b9741c' : '#3e2616';
         bp(ctx);
         ctx.roundRect(X(x0), by - bh / 2 + 4, R(0.41), bh, bh / 2);

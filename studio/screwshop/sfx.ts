@@ -67,7 +67,7 @@ const SYNTH: Record<Cue, (t: number, v: number) => void> = {
   bonk(t, v) {
     const lv = v % 4, ci = Math.min(4, Math.floor(v / 4)), k = lv === 0 ? 0.5 : lv >= 2 ? 1.2 : 1, g = lv === 0 ? 0.3 : 1;
     tone('sine', 150, 55, t, 0.12, 0.55 * k), tone('triangle', 420, 180, t, 0.06, 0.3 * k);
-    const p = Math.pow(2, ((lv >= 2 ? (lv - 1) * 2 : 0) + [0, 2, 4, 7, 9][ci]) / 12); // 🧪 S054 🟡⑥: 단계마다 쇠 깡 +2반음 · ✏️ S055: 같은 톡 연쇄 쾅은 5음계로 오른다(와르르처럼)
+    const p = Math.pow(2, (ci ? [0, 2, 4, 7, 9][ci] : lv >= 2 ? (lv - 1) * 2 : 0) / 12); // ✏️ S056(🧪 S055 🟡⑤): 연쇄면 5음계만(D-E-F♯-A-B · 증3화음 없앰) · 홑 쾅은 단계 올림 // 🧪 S054 🟡⑥: 단계마다 쇠 깡 +2반음 · ✏️ S055: 같은 톡 연쇄 쾅은 5음계로 오른다(와르르처럼)
     tone('sine', 1175 * p, 1175 * p, t, 0.28, 0.14 * g, master!, 0.002), tone('sine', 2950 * p, 2950 * p, t, 0.15, 0.07 * g), tone('sine', 4890 * p, 4890 * p, t, 0.06, 0.035 * g);
     hiss(t, 0.025, 0.22 * g, filt('bandpass', 3200, 1.5));
     for (const [d, f, a] of [[0, 1800, 0.25], [0.018, 2600, 0.18], [0.034, 1400, 0.12]]) hiss(t + d, 0.015, a * g, filt('bandpass', f, 4));
