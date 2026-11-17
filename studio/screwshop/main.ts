@@ -75,7 +75,7 @@ document.addEventListener('visibilitychange', () => (document.hidden ? sfx.sleep
  *  렉의 정체는 JS가 아니라 칠할 픽셀 수였다(CPU 4배: 프레임 JS p50 ≈ 5ms인데 간격 p50 33ms · 배율 1이면 16.7ms).
  *  프레임 60개 중 40ms 넘는 것이 8% 이상이면 1.5, 25% 이상이면 바로 1로 내린다(🧪 S057 🟡④: 내릴 때마다 그림 캐시를 다시 굽는 끊김이 있어 한 번에 · 1.25는 1.5와 프레임이 같고 더 흐려 뺌).
  *  켠 뒤 3초는 재지 않는다. 정한 배율은 저장해 다음에 켤 때 처음부터 쓴다(두 번째 실행부터 멈칫 0). 고르게 33ms인 저전력 30fps 폰은 내리지 않는다. 다시 올리지는 않는다(왔다 갔다 방지). 그림 해상도만 바뀌고 판 · 시뮬은 그대로다 */
-const STEPS = [2, 1.5, 1];
+const STEPS = [2, 1.5, 1], DEBUG = new URLSearchParams(location.search).has('debug');
 let cap = store.get('rs') >= 100 ? Math.min(2, store.get('rs') / 100) : 2, gaps: number[] = [], born = 0;
 function watch(dt: number, at: number) {
   if (dt > 250 || at - born < 3000) return; // 탭을 숨겼다 돌아온 첫 프레임 · 켠 뒤 3초
@@ -110,6 +110,7 @@ function draw() {
   g.draw(ctx, s, W, H, g.art!.palette);
   peek(s)?.render(ctx, W, H, steps); // 공용 연출은 여기서 한 번에 — 이번 프레임에 흐른 1/60초 조각 수만큼만 움직인다(120Hz 폰 보정)
   steps = 0;
+  if (DEBUG) (ctx.font = '600 11px system-ui, sans-serif'), (ctx.textAlign = 'left'), (ctx.fillStyle = '#fff'), ctx.fillText(`배율 ${(canvas.width / W).toFixed(2)}`, 4, H - 4); // ✏️ S058(🧪 S057 ⚪⑥): ?debug=1 — 오너 테스트 때 끝 배율 확인
   if (keyboard && running) {
     ctx.strokeStyle = spaceDown ? '#ffffff' : 'rgba(255,255,255,.7)';
     ctx.lineWidth = 2;

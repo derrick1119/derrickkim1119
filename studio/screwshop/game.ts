@@ -1137,7 +1137,7 @@ function playRec(s: ShopState, rec: RE[]) {
     const d = STAGES[s.stage], m2 = d.B !== undefined && S.bonks >= d.B, m3 = !s.hint && (d.B === undefined && (d.H !== undefined ? S.shot >= d.H : d.T === undefined && S.best >= d.C));
     // ✏️ S056(🧪 S055 🔴②): 별은 그 별을 준 일(마지막 쾅 · 한 방)이 화면에 그려진 틱에 뜬다 — 쾅보다 먼저 '★2 받았어요'가 뜨던 것
     const late = s.events.reduce((m, q) => (q.t === s.t && q.v !== undefined && (q.kind === 'bonk' || q.kind === 'shot') ? max(m, q.v + 2) : m), s.t);
-    for (const [k, on] of [[2, m2], [3, m3]] as const) if (on && !(s.sg & (1 << k)) && !S.fail) (s.sg |= 1 << k), (s.starFx = { t0: late + 6, k }), ev(s, 'star', 0.5, 0, `★${k}!${k === 3 && s.lock3 ? ' 깜짝!' : ''}`, '#ffd166', k, late);
+    for (const [k, on] of [[2, m2], [3, m3]] as const) if (on && !(s.sg & (1 << k)) && !S.fail) (s.sg |= 1 << k), (s.starFx = { t0: late + 6, k }), ev(s, 'star', 0.5, 0, `★${k}!${k === 3 && s.lock3 ? ' 깜짝!' : ''}`, '#ffd166', k, late), s.news && !s.newsQ.length && (s.news.t = min(s.news.t, s.t - NEWS_T)); // ✏️ S058(🧪 S057 🟡③): 별을 따면 떠 있던 소개 띠를 접는다(20틱 페이드 · 다음 띠가 줄에 있으면 그대로) — 절정 동시 글 하나 줄임
   }
   // ✏️ S024(📐 단계별 배우기 · 짚기): 가르치는 별이 처음 움직인 톡에 칩 위로 한 줄
   if (s.teach && !S.fail) {
@@ -3506,6 +3506,23 @@ function ftx(ctx: CanvasRenderingContext2D, s: string, x: number, y: number) {
   }
   ctx.drawImage(e.c, x - e.ax, y - e.ay, e.c.width / e.k, e.c.height / e.k);
 }
+/** ✏️ S058(🎨 §3-13): 나무 명판 버튼 — 바닥 두께 3px · 위에서 아래로 밝은 나무(금이면 금) · 밝은 테. 테 경로는 남겨 둔다(반짝 테를 덧그릴 수 있게) */
+function btnPlank(ctx: CanvasRenderingContext2D, x: number, y: number, bw: number, bh: number, gold: boolean) {
+  ctx.fillStyle = gold ? '#b9741c' : '#3e2616';
+  bp(ctx);
+  ctx.roundRect(x, y + 3, bw, bh, bh / 2);
+  ctx.fill();
+  const g = ctx.createLinearGradient(0, y, 0, y + bh);
+  g.addColorStop(0, gold ? '#ffd166' : '#b07a44');
+  g.addColorStop(1, gold ? '#f0a83a' : '#7a4c26');
+  ctx.fillStyle = g;
+  bp(ctx);
+  ctx.roundRect(x, y, bw, bh, bh / 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,230,190,.45)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+}
 function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: number, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, font: (sz: number, w?: number) => void, th: Theme) {
   s.cardBox = null; // ✏️ S027 🟡③: 카드가 그려진 프레임에만 자리가 있다
   const t = s.t, S = s.S;
@@ -3716,16 +3733,17 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     if (tools()) { // 도구 줄(🎨 ART §6 · ✏️ S013): 🗺️ 판 · 💡 귀띔(진 횟수 ●●○) · ↺ 다시
       const ty = Y(A - 0.15), bw = (w - R(0.08)) / 3, bh = R(0.12), sf = min(3, s.sf);
       const dead = s.phase === 'play' && (shotDead(d, s.L, S) || bonkDead(d, s.L, S) || streakDead(d, s.L, S) || tapDead(d, s.L, S) || S.peak > d.P); // ★3을 이제 못 딴다 → ↺ 반짝(위 띠에서 옮김)
-      ['🗺️ 판', s.hint ? '💡 켬 · ★2까지' : `💡 ${sf >= 3 ? '귀띔' : '●'.repeat(sf) + '○'.repeat(3 - sf)}`, '↺ 다시'].forEach((lab, k) => {
-        const bx = R(0.02) + k * (bw + R(0.02)), on = k !== 1 || sf >= 3;
-        ctx.fillStyle = k === 2 && dead ? `rgba(255,209,102,${0.55 + 0.3 * sin(t * 0.15)})` : k === 1 && s.hint ? 'rgba(200,247,197,.3)' : on ? 'rgba(255,240,210,.16)' : 'rgba(255,240,210,.06)';
-        bp(ctx);
-        ctx.roundRect(bx, ty - bh / 2, bw, bh, R(0.03));
-        ctx.fill();
-        font(0.04, 800);
+      ['🗺️ 판', s.hint ? '💡 켬' : '💡', '↺ 다시'].forEach((lab, k) => { // ✏️ S058(🎨 §3-13 · 오너 "UI 시인성"): 반투명 사각 → 나무 명판 알약 · 귀띔 ●○○는 이모지 옆 핍 · 못 쓰면 α.45 · ★3이 죽으면 ↺가 금
+        const bx = R(0.02) + k * (bw + R(0.02)), on = k !== 1 || sf >= 3 || s.hint, gold = k === 2 && dead, pip = k === 1 && !s.hint;
+        ctx.globalAlpha = on ? 1 : 0.45;
+        btnPlank(ctx, bx, ty - bh / 2, bw, bh, gold);
+        if (gold) (ctx.strokeStyle = `rgba(255,246,200,${0.5 + 0.4 * sin(t * 0.15)})`), (ctx.lineWidth = 2), ctx.stroke();
+        font(0.05, 900);
         ctx.textAlign = 'center';
-        ctx.fillStyle = k === 2 && dead ? '#3a2a00' : on ? '#fff1d6' : 'rgba(255,241,214,.4)';
-        ftx(ctx, lab, bx + bw / 2, ty + 1);
+        ctx.fillStyle = gold ? '#3a2200' : '#fff6e0';
+        ftx(ctx, lab, bx + bw / 2 - (pip ? R(0.035) : 0), ty + 1);
+        if (pip) for (let q = 0; q < 3; q++) (ctx.fillStyle = '#ffd166'), (ctx.strokeStyle = 'rgba(255,246,224,.6)'), (ctx.lineWidth = 1.2), bp(ctx), ctx.arc(bx + bw / 2 + R(0.012) + q * R(0.026), ty, R(0.008), 0, TAU), q < sf ? ctx.fill() : ctx.stroke();
+        ctx.globalAlpha = 1;
       });
     }
   }
