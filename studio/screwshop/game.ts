@@ -688,7 +688,7 @@ function jag(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, rot
   ctx.closePath();
 }
 /** ✏️ S054(🎨 손맛 P2): 쾅 그림 — 0~1틱 흰 임팩트 별(진갈 테) · 2~3틱 금빛 1.3배 · 0~20틱 '쾅' 배지(1.6 → 1배 · 14틱 뒤 사라짐). 글 '쾅!'을 대신한다 */
-function drawBonk(ctx: CanvasRenderingContext2D, x: number, y: number, R: (r: number) => number, u: number, lv: number) {
+function drawBonk(ctx: CanvasRenderingContext2D, x: number, y: number, R: (r: number) => number, u: number, lv: number, ox: number, oy: number) {
   ctx.save();
   ctx.lineJoin = 'round';
   if (u < 4 && lv) {
@@ -700,7 +700,7 @@ function drawBonk(ctx: CanvasRenderingContext2D, x: number, y: number, R: (r: nu
     ctx.lineWidth = 2;
     ctx.stroke();
   }
-  const r = R([0.08, 0.12, 0.15, 0.18][lv]) * (u < 4 ? 1.6 - 0.15 * u : 1), bx = x + R(0.05), by = y - R(0.07);
+  const r = R([0.08, 0.12, 0.15, 0.18][lv]) * (u < 2 ? 1.3 : u < 5 ? 1.3 - 0.23 * (u - 2) : 0.62), bx = x + ox, by = y + oy; // 🧪 S054 🟡③: 큰 배지는 2프레임만 · 곧 60%
   ctx.globalAlpha = u < 14 ? 1 : max(0, 1 - (u - 14) / 6);
   ctx.translate(bx, by);
   ctx.rotate(-0.15);
@@ -1120,7 +1120,7 @@ function playRec(s: ShopState, rec: RE[]) {
     }
   }
   const S = s.S;
-  if (slotsHit) see(s, 'slot', '⬜ 맞는 상자가 없으면 빈칸으로 — 5칸 다 차면 실패!');
+  if (slotsHit) see(s, 'slot', '🧺 맞는 상자가 없으면 빈칸으로 — 5칸 다 차면 실패!'); // 🧪 S054 ⚪: ⬜가 깨진 글자처럼 보였다
   if (rec.some((e) => e.k === 'pull')) tip(s, 'pull', '빈칸 나사는 맞는 상자가 오면 저절로 쏙!');
   if (rec.some((e) => e.k === 'fall')) tip(s, 'fall', '덜컹! 판자가 떨어지면 아래 나사가 드러나요');
   if (S.slots.length >= 3 && !S.fail) setMood(s, 'worry');
@@ -1759,7 +1759,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
   drawBird(ctx, s, X, Y, R, t);
   layer(ctx, 2, w, h); // ✏️ S054: 작업대 앞의 가장자리 어둡게(캐시)
   // ✏️ S054(🎨 손맛): 쾅 그림 배지(20틱 · 판자 위 · 파티클 밑)
-  for (const e of s.events) if (e.kind === 'bonk' && e.v !== undefined && t >= e.v && t - e.v < 20) drawBonk(ctx, X(e.x), Y(e.y), R, t - e.v, bonkLv(s, e));
+  for (const e of s.events)
+    if (e.kind === 'bonk' && e.v !== undefined && t >= e.v && t - e.v < 20) {
+      const tr = plankXf(s, e.n ?? 0), dx = X(e.x) - X(tr.cx), dy = Y(e.y) - Y(tr.cy), l = Math.hypot(dx, dy) || 1; // 🧪 S054 🟡③: 배지는 망치 반대쪽으로 비켜 — 튀어 나가는 나사가 보이게
+      drawBonk(ctx, X(e.x), Y(e.y), R, t - e.v, bonkLv(s, e), (dx / l) * R(0.09), (dy / l) * R(0.09) - R(0.03));
+    }
   // ═════════ 사건 연출 ═════════
   /** 떠오르는 글자: HUD·상자 줄을 가리지 않게 판 안으로, 겹치면 위로 비켜 */
   const say = (x: number, y: number, text: string, col: string, size: number, punch = false) => {
@@ -1791,10 +1795,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       // 🎨 §3 연속 쏙: 음계가 오르고, 상자 앞에 숫자가 커지며 뜬다
       const n = e.n ?? 1;
       fx.burst(x, y, e.col!, 8, 2.6, 2.2), fx.burst(x, y, '#ffffff', 4, 2.6, 2.2), cue('in', n); // ✏️ S054(🎨 R2): 쏙마다 멈추던 2~3틱을 지웠다(판 시간의 약 14%가 멈춰 '렉'처럼 보였다)
-      if (s.phase === 'settle' && s.ok && !s.events.some((o) => o.kind === 'in' && (o.v ?? 0) > (e.v ?? 0))) fx.hold(5), fx.kick(4), fx.ring(x, y, '#ffffff', R(0.12), 4), fx.ring(x, y, '#ffd166', R(0.2), 5), fx.burst(x, y, '#ffd166', 10, 3.6, 2.4), fx.blink('#ffffff', 0.18), cue('star', 2); // 🎨 손맛: 마지막 쏙 = 클리어의 유일한 정지
+      const lastIn = s.phase === 'settle' && s.ok && !s.events.some((o) => o.kind === 'in' && (o.v ?? 0) > (e.v ?? 0));
+      if (lastIn) fx.hold(5), fx.kick(4), fx.ring(x, y, '#ffffff', R(0.12), 4), fx.ring(x, y, '#ffd166', R(0.2), 5), fx.burst(x, y, '#ffd166', 10, 3.6, 2.4), fx.blink('#ffffff', 0.18), cue('star', 2); // 🎨 손맛: 마지막 쏙 = 클리어의 유일한 정지
       if (n >= 5) fx.burst(x, y, '#ffd166', 4, 3, 2.2);
       if (n >= 8) fx.kick(1.5);
-      if (n >= 2) {
+      if (n >= 2 && !lastIn) { // 🧪 S054 🟡④: 마지막 쏙은 연달아 글 없이 — 완성이 주인공
         const C = d.T === undefined && d.H === undefined ? d.C : -1, txt = n === C ? `★ 연속 ${n}!` : n >= 11 ? `${n} 🔥` : n >= 8 ? `${n} 착착착!` : n === 5 ? '5 착착!' : String(n);
         const col = n === C || (n > 5 && n < 8) ? '#ffd166' : n >= 8 ? '#ffb347' : n === 5 ? '#ffd166' : n >= 3 ? '#bff7c4' : '#fff6e0';
         // ✏️ S020(🧪 S019 60): 같은 순간 '한 방 4+'가 뜨면 연속 숫자는 글 없이 터짐만(★ 연속 C 목표는 그대로)
@@ -3404,11 +3409,38 @@ function drawBird(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
 }
 
 /** ✏️ S027 🧪 🔴②: 별 카드 — 첫 톡(또는 손으로 닫기)까지. 배우는 별이 없는 판만 2.5초에 닫힌다 */
+/** ✏️ S054(🧪 🔴 · 오너 "렉"): 글자 캐시 — 같은 글 · 글꼴 · 색 · 정렬 · 배율은 한 번 그려 둔 그림을 복사한다.
+ *  4배 느린 CPU에서 그리기 비용 1위가 글자(fillText · measureText · font ≈ 27%)였다. HUD(칩 · 띠 · 버튼 · 팁 · 결과)에 쓴다 */
+const TXC = new Map<string, { c: HTMLCanvasElement; ax: number; ay: number; k: number }>(), MW = new Map<string, number>();
+const mw = (ctx: CanvasRenderingContext2D, s: string) => {
+  const key = ctx.font + '|' + s;
+  let v = MW.get(key);
+  if (v === undefined) MW.size > 800 && MW.clear(), MW.set(key, (v = ctx.measureText(s).width));
+  return v;
+};
+function ftx(ctx: CanvasRenderingContext2D, s: string, x: number, y: number) {
+  const fs = ctx.fillStyle;
+  if (!s || typeof fs !== 'string') return void ctx.fillText(s, x, y);
+  const m = ctx.getTransform(), k = Math.round(Math.hypot(m.a, m.b) * 4) / 4 || 1, f = ctx.font, al = ctx.textAlign, key = `${f}|${fs}|${al}|${ctx.textBaseline}|${k}|${s}`;
+  let e = TXC.get(key);
+  if (!e) {
+    const px = +(/([\d.]+)px/.exec(f)?.[1] ?? 16), w = mw(ctx, s), ax = al === 'center' ? w / 2 + 4 : al === 'right' || al === 'end' ? w + 4 : 4, ay = px * 1.5, c = document.createElement('canvas');
+    c.width = Math.max(1, Math.ceil((w + 8) * k));
+    c.height = Math.max(1, Math.ceil(px * 3 * k));
+    const g = c.getContext('2d')!;
+    g.scale(k, k);
+    (g.font = f), (g.fillStyle = fs), (g.textAlign = al), (g.textBaseline = ctx.textBaseline);
+    g.fillText(s, ax, ay);
+    if (TXC.size > 400) TXC.clear();
+    TXC.set(key, (e = { c, ax, ay, k }));
+  }
+  ctx.drawImage(e.c, x - e.ax, y - e.ay, e.c.width / e.k, e.c.height / e.k);
+}
 function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: number, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, font: (sz: number, w?: number) => void, th: Theme) {
   s.cardBox = null; // ✏️ S027 🟡③: 카드가 그려진 프레임에만 자리가 있다
   const t = s.t, S = s.S;
   /** ✏️ S024: 가장 긴 글이 mw를 넘으면 그만큼 글자를 줄인다(칩 · 배우기 줄 · 결과) */
-  const fit = (sz: number, wgt: number, mw: number, ...tx: string[]) => { font(sz, wgt); const m = max(...tx.map((x) => ctx.measureText(x).width)); if (m > mw) ctx.font = `${wgt} ${max(10, (max(12, R(sz)) * mw) / m)}px system-ui, sans-serif`; };
+  const fit = (sz: number, wgt: number, mx: number, ...tx: string[]) => { font(sz, wgt); const m = max(...tx.map((x) => mw(ctx, x))); if (m > mx) ctx.font = `${wgt} ${max(10, (max(12, R(sz)) * mx) / m)}px system-ui, sans-serif`; };
   const hb = R(0.068);
   ctx.fillStyle = 'rgba(25,15,8,.82)';
   ctx.fillRect(0, 0, w, hb);
@@ -3421,7 +3453,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     ctx.save();
     ctx.translate(R(0.03), hb * 0.52);
     ctx.scale(sc, sc);
-    ctx.fillText(`${d.slot} · ${d.emoji} ${d.name}`, 0, 0);
+    ftx(ctx, `${d.slot} · ${d.emoji} ${d.name}`, 0, 0);
     ctx.restore();
   }
   ctx.textAlign = 'right';
@@ -3429,22 +3461,22 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
   // ✏️ S027 🧪 🔴①(오너 '따도 안 기쁘다'): 판 중에 딴 별은 위 ★ 칸에도 붙는다 — '★ 0 +★3'(날아온 별이 앉는 순간 통통)
   const gotNow = s.phase === 'play' ? `${s.sg & 4 ? '★2' : ''}${s.sg & 8 ? '★3' : ''}` : '', stt = `★ ${s.stars}${gotNow ? ` +${gotNow}` : ''}`;
   if (gotNow) {
-    const land = s.starFx ? t - s.starFx.t0 - 40 : 99, pop = land >= 0 && land < 16 ? 1 + 0.35 * sin((land / 16) * Math.PI) : 1, gw0 = ctx.measureText(` +${gotNow}`).width;
+    const land = s.starFx ? t - s.starFx.t0 - 40 : 99, pop = land >= 0 && land < 16 ? 1 + 0.35 * sin((land / 16) * Math.PI) : 1, gw0 = mw(ctx, ` +${gotNow}`);
     ctx.save();
     ctx.translate(w - R(0.03) - gw0 / 2, hb * 0.52);
     ctx.scale(pop, pop);
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffe066';
-    ctx.fillText(` +${gotNow}`, 0, 0);
+    ftx(ctx, ` +${gotNow}`, 0, 0);
     ctx.restore();
     ctx.textAlign = 'right';
     ctx.fillStyle = '#ffd166';
-    ctx.fillText(`★ ${s.stars}`, w - R(0.03) - gw0, hb * 0.52);
-  } else ctx.fillText(stt, w - R(0.03), hb * 0.52);
+    ftx(ctx, `★ ${s.stars}`, w - R(0.03) - gw0, hb * 0.52);
+  } else ftx(ctx, stt, w - R(0.03), hb * 0.52);
   ctx.fillStyle = th.hot;
   // ↺ 지금 다시 (하트 대신, S003): 판 중 언제든 같은 판을 처음부터 — 한 방 칩이 ✗면 반짝 · 도구 줄이 있으면 그쪽으로(🎨 ART §6 · ✏️ S014)
   if (!tools()) {
-    const bx = w - R(0.06) - ctx.measureText(stt).width - R(0.02), bw = R(0.17), dead = s.phase === 'play' && (shotDead(d, s.L, S) || bonkDead(d, s.L, S) || (d.T !== undefined && S.taps > d.T) || S.peak > d.P);
+    const bx = w - R(0.06) - mw(ctx, stt) - R(0.02), bw = R(0.17), dead = s.phase === 'play' && (shotDead(d, s.L, S) || bonkDead(d, s.L, S) || (d.T !== undefined && S.taps > d.T) || S.peak > d.P);
     ctx.fillStyle = dead ? `rgba(255,209,102,${0.55 + 0.3 * sin(t * 0.15)})` : 'rgba(255,240,214,.16)';
     bp(ctx);
     ctx.roundRect(bx - bw, hb * 0.14, bw, hb * 0.72, hb * 0.36);
@@ -3452,7 +3484,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     font(0.034, 900);
     ctx.textAlign = 'center';
     ctx.fillStyle = dead ? '#3a2a00' : '#fff1d6';
-    ctx.fillText('↺ 다시', bx - bw / 2, hb * 0.53);
+    ftx(ctx, '↺ 다시', bx - bw / 2, hb * 0.53);
   }
   // 새것 알림
   if (s.news && t - s.news.t < NEWS_T + 20 && s.phase !== 'result') { // 🧪 M0.1: 완성 띠 위에 안내가 겹치지 않게
@@ -3462,14 +3494,14 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     ctx.textAlign = 'center';
     const tx = `✨ ${s.news.text}`;
     let fs = 0.036;
-    while (ctx.measureText(tx).width > w - R(0.05) && fs > 0.03) font((fs -= 0.001), 900);
-    const tw2 = min(w - 8, ctx.measureText(tx).width + 22), by2 = Y(BY0 + 0.035) - drop;
+    while (mw(ctx, tx) > w - R(0.05) && fs > 0.03) font((fs -= 0.001), 900);
+    const tw2 = min(w - 8, mw(ctx, tx) + 22), by2 = Y(BY0 + 0.035) - drop;
     ctx.fillStyle = 'rgba(40,24,12,.9)';
     bp(ctx);
     ctx.roundRect(w / 2 - tw2 / 2, by2 - R(0.027), tw2, R(0.054), R(0.027));
     ctx.fill();
     ctx.fillStyle = '#fff1d6';
-    ctx.fillText(tx, w / 2, by2 + 1);
+    ftx(ctx, tx, w / 2, by2 + 1);
     ctx.globalAlpha = 1;
   }
   // ✏️ S054(🎨 UI 정리 · 오너 "문장이 너무 많아서 정신 없어"): 판 시작 큰 글씨(판 이름 + '나사 N개를 다 풀어요')는 지웠다 — 위 띠 이름이 통 튄다
@@ -3484,7 +3516,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     ctx.textAlign = 'center';
     font(s.ok ? 0.06 : 0.052, 900);
     ctx.fillStyle = s.ok ? '#fff1a8' : '#ffd0c8';
-    ctx.fillText(s.ok ? (s.won ? '공방 완성! 🎉' : `${d.emoji} ${d.name} 완성!`) : s.why, w / 2, Y(0.66));
+    ftx(ctx, s.ok ? (s.won ? '공방 완성! 🎉' : `${d.emoji} ${d.name} 완성!`) : s.why, w / 2, Y(0.66));
     if (s.ok) {
       for (let k = 0; k < 3; k++) {
         const ag = age - 14 - k * 10, got = k < s.got;
@@ -3492,7 +3524,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
         const sc = got ? 1 + max(0, 1 - ag / 8) * 0.8 : 1;
         font(0.08 * sc, 900);
         ctx.fillStyle = got ? '#ffd166' : 'rgba(255,255,255,.35)';
-        ctx.fillText(got ? '★' : '☆', w / 2 + (k - 1) * R(0.1), Y(0.75));
+        ftx(ctx, got ? '★' : '☆', w / 2 + (k - 1) * R(0.1), Y(0.75));
         if (got && (juice(s).memo['star' + k] ?? -1) < s.clearT) (juice(s).memo['star' + k] = s.clearT), juice(s).burst(w / 2 + (k - 1) * R(0.1), Y(0.75), '#ffe066', k === 2 ? 28 : 14, 3, 2.4), cue('star', k);
       }
       // 별 이유: 얻은 값 / 목표 (S002, 허들 ①)
@@ -3502,14 +3534,14 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       const l3 = s.lock3 ? (ok3 ? `🎉 깜짝 ★3! ${tx.r3}` : '★3은 곧 배워요') : d.B !== undefined && !ok2 && S.peak <= d.P ? '✗ ★3은 ★2를 먼저 따야 해요' : `${ok3 ? '✓' : '✗'} ★3 ${tx.r3}`;
       fit(0.038, 900, w - R(0.08), l2, l3);
       ctx.fillStyle = ok2 ? '#c8ffc8' : '#ffb36b';
-      ctx.fillText(l2, w / 2, Y(0.8));
+      ftx(ctx, l2, w / 2, Y(0.8));
       ctx.fillStyle = ok3 ? '#c8ffc8' : l3[0] === '★' ? '#fff1d6' : '#ffb36b';
-      ctx.fillText(l3, w / 2, Y(0.842));
+      ftx(ctx, l3, w / 2, Y(0.842));
       if (s.got < 3) {
         // 방법 한 줄 (🧪 S002 ③: ✗만 있고 '어떻게'가 없다)
         fit(0.032, 800, w - R(0.06), `💡 ${tipLine(s.got === 2 && d.tip2 ? d.tip2 : d.tip)}`);
         ctx.fillStyle = '#fff1d6';
-        ctx.fillText(`💡 ${tipLine(s.got === 2 && d.tip2 ? d.tip2 : d.tip)}`, w / 2, Y(0.882));
+        ftx(ctx, `💡 ${tipLine(s.got === 2 && d.tip2 ? d.tip2 : d.tip)}`, w / 2, Y(0.882));
       }
       if (s.got < 3 && age > 30) {
         // ↺ 다시 · 다음 ▶ — 버튼 안만 받는다(🧪 S002: 막 누르는 손이 카드를 읽기 전에 누른다)
@@ -3521,7 +3553,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
           ctx.fill();
           font(0.042, 900);
           ctx.fillStyle = fg;
-          ctx.fillText(txt, X(x0) + R(0.205), by + 1);
+          ftx(ctx, txt, X(x0) + R(0.205), by + 1);
         });
       }
     }
@@ -3569,7 +3601,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       const lab = `${st === true ? '✓ ' : st === false ? '✗ ' : ''}${txt}`;
       fit(0.034, 800, gw - R(0.02), lab);
       ctx.fillStyle = st === false ? 'rgba(255,255,255,.45)' : '#fff6e0';
-      ctx.fillText(lab, gx + gw / 2, y2 + 1);
+      ftx(ctx, lab, gx + gw / 2, y2 + 1);
     });
     // ✏️ S026 B③: 딴 별이 칩에서 위 ★ 칸으로 날아간다(40틱)
     if (s.starFx && t >= s.starFx.t0 && t - s.starFx.t0 < 40) {
@@ -3577,7 +3609,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       font(0.06 * (1 + 0.6 * Math.sin(q * Math.PI)), 900);
       ctx.textAlign = 'center';
       ctx.fillStyle = '#ffd166';
-      ctx.fillText('★', x0 + (x1 - x0) * e, y2 + (y1 - y2) * e - R(0.12) * Math.sin(q * Math.PI));
+      ftx(ctx, '★', x0 + (x1 - x0) * e, y2 + (y1 - y2) * e - R(0.12) * Math.sin(q * Math.PI));
       if (t - s.starFx.t0 === 39) juice(s).burst(x1, y1, '#ffe066', 14, 3, 2);
     }
     // ✏️ S054(🎨 UI 정리): S027 별 카드(5줄)는 지웠다 — 배우는 별 한 줄은 판 시작 소개 띠에 한 번(startStage) · 칩 금테가 짚는다
@@ -3586,14 +3618,14 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       font(0.032, 800);
       ctx.textAlign = 'right';
       ctx.fillStyle = S.streak >= d.C ? '#ffd166' : '#c8f7c5';
-      ctx.fillText(`지금 ${S.streak}개 연달아`, w - R(0.03), Y(1.36 + 0.35 * E));
+      ftx(ctx, `지금 ${S.streak}개 연달아`, w - R(0.03), Y(1.36 + 0.35 * E));
     }
     const y3 = Y(1.415 + 0.45 * E);
     // ✏️ S054(🎨 UI 정리): 아래 팁 줄은 평소엔 쉰다 — 첫 판 첫 톡 · 빈칸 위험 · 귀띔 · 손이 6초 멈춤 · 진 뒤 다시 할 때만(결과 · 실패 화면 글은 지움)
     const idle = s.phase === 'play' && !s.down && s.t - max(s.startT, s.lastTap) > 360;
     let tip = '';
     if (s.phase !== 'play') tip = '';
-    else if (s.stage === 0 && s.taps === 0) tip = '👆 나사를 톡 — 같은 색 상자로 쏙!';
+    else if (s.stage === 0 && s.taps === 0) tip = ''; // 🧪 S054 🔴: 소개 띠와 같은 말 — 손가락 안내만
     else if (s.down && s.press >= 0) tip = s.stage === 0 ? '떼면 쏙! · 나사 밖에서 떼면 취소' : '';
     else if (S.slots.length >= 4) tip = '⚠ 빈칸이 하나 남았어요!';
     else if (s.hint) tip = '💡 귀띔 — 밤톨 손가락을 따라가요 (★3 없음)';
@@ -3602,7 +3634,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     ctx.textAlign = 'center';
     font(0.036, 800);
     ctx.fillStyle = 'rgba(255,240,214,.92)';
-    ctx.fillText(tip, w / 2 + R(0.06), y3);
+    ftx(ctx, tip, w / 2 + R(0.06), y3);
     if (tools()) { // 도구 줄(🎨 ART §6 · ✏️ S013): 🗺️ 판 · 💡 귀띔(진 횟수 ●●○) · ↺ 다시
       const ty = Y(A - 0.15), bw = (w - R(0.08)) / 3, bh = R(0.12), sf = min(3, s.sf);
       const dead = s.phase === 'play' && (shotDead(d, s.L, S) || bonkDead(d, s.L, S) || streakDead(d, s.L, S) || tapDead(d, s.L, S) || S.peak > d.P); // ★3을 이제 못 딴다 → ↺ 반짝(위 띠에서 옮김)
@@ -3615,7 +3647,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
         font(0.04, 800);
         ctx.textAlign = 'center';
         ctx.fillStyle = k === 2 && dead ? '#3a2a00' : on ? '#fff1d6' : 'rgba(255,241,214,.4)';
-        ctx.fillText(lab, bx + bw / 2, ty + 1);
+        ftx(ctx, lab, bx + bw / 2, ty + 1);
       });
     }
   }
@@ -3628,7 +3660,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       const bob = sin(t * 0.15) * R(0.012);
       ctx.font = `${max(16, R(0.07))}px system-ui`;
       ctx.textAlign = 'center';
-      ctx.fillText('👆', X(L.px[k]) + R(0.02), Y(L.py[k]) + R(0.07) + bob);
+      ftx(ctx, '👆', X(L.px[k]) + R(0.02), Y(L.py[k]) + R(0.07) + bob);
       ctx.strokeStyle = 'rgba(200,247,197,.95)';
       ctx.lineWidth = 3;
       bp(ctx);
@@ -3647,7 +3679,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       ctx.font = `${max(16, R(0.07))}px system-ui`;
       ctx.textAlign = 'center';
       ctx.fillStyle = '#ffffff';
-      ctx.fillText('👆', X(L.px[k]) + R(0.02), Y(L.py[k]) + R(0.07) + bob);
+      ftx(ctx, '👆', X(L.px[k]) + R(0.02), Y(L.py[k]) + R(0.07) + bob);
       ctx.strokeStyle = 'rgba(255,255,255,.8)';
       ctx.lineWidth = 2;
       bp(ctx);

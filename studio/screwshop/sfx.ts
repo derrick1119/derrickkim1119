@@ -67,7 +67,8 @@ const SYNTH: Record<Cue, (t: number, v: number) => void> = {
   bonk(t, lv) {
     const k = lv === 0 ? 0.5 : lv >= 2 ? 1.2 : 1, g = lv === 0 ? 0.3 : 1;
     tone('sine', 150, 55, t, 0.12, 0.55 * k), tone('triangle', 420, 180, t, 0.06, 0.3 * k);
-    tone('sine', 1175, 1175, t, 0.28, 0.14 * g, master!, 0.002), tone('sine', 2950, 2950, t, 0.15, 0.07 * g), tone('sine', 4890, 4890, t, 0.06, 0.035 * g);
+    const p = Math.pow(2, (lv >= 2 ? (lv - 1) * 2 : 0) / 12); // 🧪 S054 🟡⑥: 단계마다 쇠 깡 +2반음(폰 스피커에서 갈리게)
+    tone('sine', 1175 * p, 1175 * p, t, 0.28, 0.14 * g, master!, 0.002), tone('sine', 2950 * p, 2950 * p, t, 0.15, 0.07 * g), tone('sine', 4890 * p, 4890 * p, t, 0.06, 0.035 * g);
     hiss(t, 0.025, 0.22 * g, filt('bandpass', 3200, 1.5));
     for (const [d, f, a] of [[0, 1800, 0.25], [0.018, 2600, 0.18], [0.034, 1400, 0.12]]) hiss(t + d, 0.015, a * g, filt('bandpass', f, 4));
     tone('triangle', 900, 500, t, 0.03, 0.2 * g);
