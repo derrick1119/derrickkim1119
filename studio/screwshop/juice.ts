@@ -6,7 +6,7 @@
  * (0026에서 발견: 0023~0024 게임 셋이 render 호출을 빠뜨려 파티클·글자·번쩍이 한 번도 안 보였다. 그래서 한 곳에서 그린다.)
  * 상태 객체마다 하나씩 WeakMap에 붙어서, 새 판이 시작되면 자동으로 새로 생긴다.
  */
-interface Particle { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number }
+interface Particle { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number; f?: number }
 interface Popup { x: number; y: number; text: string; color: string; life: number; size: number; punch?: boolean }
 
 export class Juice {
@@ -46,6 +46,11 @@ export class Juice {
       this.particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life, max: life, color, size: size * (0.6 + this.rand() * 0.8) });
     }
     if (this.particles.length > 180) this.particles.splice(0, this.particles.length - 180); // ✏️ S055(🎨 손맛 P3): 상한 400 → 180(렉)
+  }
+
+  /** ✏️ S059(🎨 §5-5): 색종이 — 비스듬히 쏘아 올려 천천히 내려오며 펄럭(사각 · 회전 없음) */
+  conf(x: number, y: number, vx: number, vy: number, cols: string[], n: number) {
+    for (let k = 0; k < n; k++) { const life = 80 + this.rand() * 30; this.particles.push({ x, y, vx: vx * (0.4 + this.rand()), vy: vy * (0.7 + this.rand() * 0.6), life, max: life, color: cols[k % cols.length], size: 4 + this.rand() * 3, f: 1 }); }
   }
 
   /** 떠오르는 글자 (+1, 연쇄!, 건설!) */
@@ -126,8 +131,14 @@ export class Juice {
     }
     this.rings = this.rings.filter((r) => r.life > 0);
     for (const p of this.particles) {
-      ctx.globalAlpha = Math.max(0, p.life / p.max);
       ctx.fillStyle = p.color;
+      if (p.f) {
+        const q = p.size * 1.6 * Math.abs(Math.cos(p.life * 0.25 + p.size));
+        ctx.globalAlpha = Math.min(1, p.life / 20);
+        ctx.fillRect(p.x - q / 2, p.y - p.size / 2, q, p.size);
+        continue;
+      }
+      ctx.globalAlpha = Math.max(0, p.life / p.max);
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size * (0.5 + 0.5 * (p.life / p.max)), 0, Math.PI * 2);
       ctx.fill();

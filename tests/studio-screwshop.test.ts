@@ -284,7 +284,7 @@ describe('결과 화면 ↺ (S002 · 🧪 S001 "★1도 자동 다음 판")', ()
     expect(s.stars).toBe(stars);
     s = toResult(11);
     for (let sd = 12; !(s.ok && s.got < 3); sd++) s = toResult(sd);
-    for (let k = 0; k < 40; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+    for (let k = 0; k < 100; k++) g.step(s, { tap: false, dir: 0, pointer: null });
     tapAt(s, 0.75, RES_BY / 1.45);
     expect(s.stage).toBe(1);
   });

@@ -32,7 +32,12 @@ export const setCue = (f: (c: Cue, v?: number) => void) => void (cue = f);
 
 let A = 1.45;
 /** 390 레이아웃(🎨 ART §6 · ✏️ S013): 브라우저만 세로를 늘린다 — 위 띠~작업대(0~1.245) · 시뮬 좌표 · 실패 카드는 그대로, 남는 E = A − 1.45는 아래 띠로. 봇 · 테스트는 1.45 그대로 */
-export const setAspect = (a: number) => (A = max(1.45, min(1.9, a)));
+export const setAspect = (a: number) => ((A = max(1.45, min(1.9, a))), (RES_BY = cardTop(0.43) + 0.335), (HINT_Y = failTop() + 0.278), A);
+/** ✏️ S059(🎨 §5-6): 결과 카드 위 끝 — 작업대 밑 빈 바닥 가운데, 모자라면 화면 바닥에 붙인다 · 실패 카드 위 끝(A 1.45면 1.13 그대로) */
+const cardTop = (c: number) => min((1.245 + A - c) / 2, A - c - 0.02), failTop = () => max(1.13, min((1.245 + A - 0.31) / 2, A - 0.33));
+/** ✏️ S059(🎨 §5-2): 리빌 순번 — 아래(처음 자리 cy 큰 것)부터 */
+const rk = (L: Level, k: number) => L.pl.filter((_, j) => L.poses[j][0].cy > L.poses[k][0].cy || (L.poses[j][0].cy === L.poses[k][0].cy && j < k)).length;
+const rvAt = (L: Level, k: number) => floor((26 * rk(L, k)) / L.pl.length);
 /** 도구 줄(🗺️ 판 · 💡 귀띔 · ↺ 다시)이 들어갈 만큼 긴 화면인가 */
 const tools = () => A >= 1.62;
 /** ✏️ S058(🎨 §3-12 · 오너 "UI 시인성"): ★2 · ★3 칩의 [가운데 x, 가운데 y, 폭](★1 칩은 지움 · 작업대 앞 바로 밑) */
@@ -41,7 +46,7 @@ const chipXY = (n: number, w: number) => { const gw = w * 0.455; return [w * 0.0
 const SR = 0.032, HIT = 0.075, SLOTS = 5, PEEK = 2;
 /** 판자 가장자리가 나사 머리를 덮는 정도: sd < COVER면 막힘, sd < HIDE면 아예 안 보임 */
 const COVER = 0.021, HIDE = -0.026;
-const COOL = 8, SPIN = 9, FLY = 17, RESULT_OK = 150, NEWS_T = 200; // ✏️ S054(🎨 R6): ★3 결과 200 → 150틱 · 톡하면 바로
+const COOL = 8, SPIN = 9, FLY = 17, RESULT_OK = 210, NEWS_T = 200, CARD = 58; // ✏️ S054(🎨 R6): ★3 결과 200 → 150틱 · 톡하면 바로
 /** ✏️ S056: 결과 카드 별이 나타나는 나이(틱) — 11틱 간격 · 셋째 앞 4틱 숨 · 6틱 낙하 */
 const STAR_AT = [6, 17, 32];
 const STAR_PTS = 100, WIN_PTS = 100;
@@ -738,9 +743,9 @@ const setMood = (s: ShopState, m: string) => ((s.mood = m), (s.moodT = s.t));
 const BX0 = 0.035, BX1 = 0.965, BY0 = 0.37, BY1 = 1.19;
 const BOX_Y = 0.165, BOX_W = 0.25, BOX_H = 0.12, TRAY_Y = 0.312;
 /** 결과 화면 ↺·다음 버튼 줄 높이(작업판 좌표) */
-export const RES_BY = 0.935;
+export let RES_BY = 1.335;
 /** 💡 귀띔 단추 높이(실패 카드 아래 · 같은 판 3번 진 뒤) */
-export const HINT_Y = 1.408; // ✏️ S013: 카드 아래 테두리(1.44) 안으로(🧪 S012 △ 걸침)
+export let HINT_Y = 1.408; // ✏️ S013: 카드 아래 테두리(1.44) 안으로(🧪 S012 △ 걸침)
 /** 위 줄 ↺ 다시 버튼 높이(작업판 좌표, 이보다 위) */
 export const RETRY_Y = 0.07;
 const boxX = (L: Level, bi: number) => (L.boxes === 1 ? 0.34 : bi === 0 ? 0.19 : 0.47);
@@ -1285,11 +1290,15 @@ export const screwshop: GameDef<ShopState> = {
     animate(s);
     if (s.mood !== 'idle' && s.t - s.moodT > (s.mood === 'dizzy' || s.mood === 'cheer' ? 400 : 70)) s.mood = s.S.slots.length >= 3 ? 'worry' : 'idle';
     if (s.phase === 'result') {
+      if (s.ok) {
+        s.pv.forEach((pv, k) => { const f = pv.fall; if (f && f.t < 1e9 && s.pt >= rvAt(s.L, k)) (f.t = 1e9), (f.x = min(0.95, max(0.05, f.x))), (f.y = min(f.y, 1.32)); }); // ✏️ S059(🎨 §5-2): 날아오를 차례가 되면 떨어지던 자리에서 멈춰 출발점이 된다
+        if (release && s.pt < CARD) return void (s.pt = CARD); // 🎨 §5-7: 리빌 중 톡 = 끝 자세 + 카드
+      }
       // ★3을 못 땄으면 자동으로 안 넘어간다(🧪 S001: ★1도 만세 + 자동 다음 판이라 놓친 걸 못 느낌) — 왼쪽 ↺ 다시 · 오른쪽 다음
       if (s.ok && s.got < 3) {
-        const yy = s.ay * A, inBtn = release && s.pt > 30 && abs(yy - RES_BY) < 0.045;
-        if (inBtn && s.ax > 0.06 && s.ax < 0.47) s.retries++, newStage(s);
-        else if (inBtn && s.ax > 0.53 && s.ax < 0.94) {
+        const yy = s.ay * A, inBtn = release && s.pt > CARD + 40 && abs(yy - RES_BY) < 0.045;
+        if (inBtn && s.ax > 0.1 && s.ax < 0.48) s.retries++, newStage(s);
+        else if (inBtn && s.ax > 0.52 && s.ax < 0.9) {
           if (s.won) s.dead = true;
           else s.stage++, (s.sf = 0), (s.hint = false), newStage(s);
         }
@@ -1303,7 +1312,7 @@ export const screwshop: GameDef<ShopState> = {
         }
         return;
       }
-      if (s.pt >= RESULT_OK || (release && s.pt > 24)) { // ✏️ S054(🎨 R6): ★3 카드도 톡하면 다음 판
+      if (s.pt >= RESULT_OK || (release && s.pt > CARD + 24)) { // ✏️ S054(🎨 R6): ★3 카드도 톡하면 다음 판
         if (s.won) s.dead = true;
         else s.stage++, (s.sf = 0), (s.hint = false), newStage(s);
       }
@@ -1714,11 +1723,35 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       ctx.stroke();
       ctx.restore();
     }
-  // 떨어지는 판자 (판 위로 지나간다)
+  // 떨어지는 판자 (판 위로 지나간다) · ✏️ S059(🎨 §5 리빌): 깨면 아래 것부터 날아와 장난감으로 다시 서고 40틱에 한 번 움직인다
+  const rv = s.phase === 'result' && s.ok, sg = min(1, (cardTop(s.got < 3 ? 0.43 : 0.26) - 0.38) / 0.82), fl = 0.37 + 0.8 * sg, u = s.pt - 40, cm = fx.calm ? 0.3 : 1;
+  const mv = /train|tract|coast|popc|peng/.test(d.key) ? 1 : /mill|flow|light|cast|range|horse|boat|cable/.test(d.key) ? 2 : 0;
+  ctx.save();
+  if (rv && u >= 0 && u < 24) {
+    const air = u >= 4 && u < 16 ? sin((PI * (u - 4)) / 12) : 0, sq = mv ? 0 : u < 4 ? u / 4 : u < 16 ? -air / 2 : u < 22 ? (22 - u) / 6 : 0;
+    ctx.translate(X(0.5 + (mv === 1 ? 0.04 * sin((PI * u) / 24) : 0) * cm), Y(fl - (mv ? 0 : 0.08 * air) * cm));
+    ctx.rotate(cm * (mv === 1 ? (u < 12 ? -0.06 * sin((PI * u) / 12) : 0) : mv ? 0.07 * sin((PI * u) / 8) * (1 - u / 24) : 0));
+    ctx.scale(1 + 0.06 * sq * cm, 1 - 0.1 * sq * cm);
+    ctx.translate(-X(0.5), -Y(fl));
+  }
   for (let k = 0; k < L.pl.length; k++) {
-    const pv = s.pv[k];
-    if (!pv.fall || pv.fall.y > A + 0.5) continue;
-    drawPlank(ctx, s, k, plankXf(s, k), X, Y, R, t);
+    const f = s.pv[k].fall, r = rk(L, k), q = rv ? (s.pt - floor((26 * r) / L.pl.length)) / 14 : -1;
+    if (!f) continue;
+    if (q < 0) { if (f.y < A + 0.5) drawPlank(ctx, s, k, plankXf(s, k), X, Y, R, t); continue; }
+    const P = L.poses[k][0], e = q < 1 ? 1 - (1 - q) ** 3 : 1, tx = 0.5 + (P.cx - 0.5) * sg, ty = 0.37 + (P.cy - 0.37) * sg, da = f.a - P.a, m = (1 + (sg - 1) * e) * (1 + 0.25 * sin(PI * min(1, q)));
+    ctx.save();
+    ctx.translate(X(f.x + (tx - f.x) * e), Y(f.y + (ty - f.y) * e));
+    ctx.scale(m, m);
+    ctx.translate(-X(P.cx), -Y(P.cy));
+    drawPlank(ctx, s, k, { cx: P.cx, cy: P.cy, a: P.a + (da - TAU * round(da / TAU)) * (1 - e) }, X, Y, R, t);
+    ctx.restore();
+    if (q >= 1 && (fx.memo['r' + k] ?? -1) < s.clearT) (fx.memo['r' + k] = s.clearT), fx.burst(X(tx), Y(ty), '#fff3c4', 4, 1.6, 1.6), cue('snap', r);
+  }
+  ctx.restore();
+  if (rv && u >= 0 && (fx.memo.rc ?? -1) < s.clearT) {
+    fx.memo.rc = s.clearT;
+    cue('clear'), cue((['pluck', 'wind', 'swing'] as const)[mv]);
+    for (const k of [-1, 1]) fx.conf(X(0.5 - 0.42 * k), Y(fl - 0.02), 8 * k, -15, COLS, fx.calm ? 4 : 14);
   }
   // ═════════ 미리 보기 ═════════
   if (pre && pressK >= 0) (ctx.textBaseline = 'middle'), drawPreview(ctx, s, pressK, pre, X, Y, R, font), (ctx.textBaseline = 'alphabetic');
@@ -1874,9 +1907,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     if (e.kind === 'star') { const [gx, gy] = chipXY(e.v!, w); fx.burst(gx, gy, '#ffd166', 22, 4, 2.6), fx.ring(gx, gy, '#ffd166', R(0.12), 4), s.events.some((q) => (q.kind === 'teach' && q.t === e.t) || (e.v === 3 && starKinds(d)[1] === 'shot' && q.kind === 'shot' && q.t === e.t && q.text !== 'bad' && (q.n ?? 2) < 7)) || say(max(gx, R(0.34)), gy - R(0.07), e.text!, '#ffd166', 30, true), cue('star', e.v! - 1); } // ✏️ S026 B③ · S057(🧪 S056 🟡③ 절정에 글 5~6개): 별을 준 톡에서는 '한 번에 N개'를 빼고(별이 대신 말함), 배우기 토스트가 뜨면 '★2!' 글은 빼서 하나만
     if (e.kind === 'teach') say(w / 2, Y(BY1 - 0.02) + R(0.123), e.text!, e.col!, 18, true, true); // ✏️ S024 짚기 · S057(🧪 S057 🟡②): 판 밖 진갈색 띠에 고정(합판 위 1.32:1 → 8.3:1 · 햄스터와 안 겹침)
     if (e.kind === 'stage') fx.blink('#fff6d6', 0.18);
-    if (e.kind === 'clear') {
-      fx.burst(X(0.5), Y(0.75), '#ffe066', 46, 6, 3.2), fx.burst(X(0.5), Y(0.75), '#ff8fb1', 30, 5, 3), fx.ring(X(0.5), Y(0.75), '#ffe066', R(0.35), 6), fx.blink('#fff6c8', 0.25), cue('clear');
-    }
+    if (e.kind === 'clear') cue('rise'); // ✏️ S059(🎨 §5-4): 판 가운데 큰 터짐 · 번쩍 대신 리빌 출발 '슈욱'
     if (e.kind === 'fail') fx.kick(3), fx.blink('#ffe0b0', 0.1), cue('fail');
   }
   fx.memo.t = t;
@@ -2014,7 +2045,7 @@ function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
     pill(ctx, x, y + rho + R(0.035), '💡 짝을 먼저?', '#c8ffc8', R(0.044));
   }
   // 카드 (아래에서 올라온다)
-  const up = min(1, age / 12), oy = (1 - (1 - (1 - up) ** 3)) * R(0.1), cy0 = Y(1.13) + oy;
+  const up = min(1, age / 12), oy = (1 - (1 - (1 - up) ** 3)) * R(0.1) + Y(failTop() - 1.13), cy0 = Y(1.13) + oy; // ✏️ S059(🎨 §5-6): 긴 화면이면 빈 바닥 가운데로
   ctx.save();
   // ✏️ S055(🎨 §3-15): 결과 카드와 같은 호두 명판 · 테만 붉게 · 갈색 그림자 두 겹
   plaque(ctx, X(0.03), cy0, X(0.94), Y(1.44) - Y(1.13), R(0.035), 'rgba(255,106,77,.6)', R);
@@ -2517,6 +2548,8 @@ function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: {
     }
     ctx.globalAlpha = 1;
     drawDeco(ctx, P, R, t, k);
+    const sw = s.phase === 'result' && s.ok && !juice(s).calm ? (s.pt - 44) / 18 : -1; // ✏️ S059(🎨 §5-5): 빛 쓸기 — 판자 안(클립)에서만
+    if (sw > 0 && sw < 1) ctx.rotate(-tr.a), ctx.translate(-X(tr.cx), -Y(tr.cy)), ctx.transform(1, 0, -0.5, 1, 0, 0), (ctx.fillStyle = 'rgba(255,255,255,.4)'), ctx.fillRect(X(1.75 * sw - 0.05), 0, R(0.1), Y(2));
     ctx.restore();
     // 모서리 빛
     ctx.strokeStyle = 'rgba(255,255,255,.35)';
@@ -2552,10 +2585,12 @@ function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: {
     const dx = L.px[i] - L.poses[k][0].cx, dy = L.py[i] - L.poses[k][0].cy, a0 = -L.poses[k][0].a;
     const lx = dx * cos(a0) - dy * sin(a0), ly = dx * sin(a0) + dy * cos(a0);
     if ((S.gone >> i) & 1) {
-      ctx.fillStyle = 'rgba(40,20,5,.65)';
+      const b = s.phase === 'result' && s.ok; // ✏️ S059(🎨 §5-2): 완성 장난감은 구멍 대신 황동 핀
+      ctx.fillStyle = b ? '#e0b54a' : 'rgba(40,20,5,.65)';
       bp(ctx);
-      ctx.arc(R(lx), R(ly), R(SR * 0.62), 0, TAU);
+      ctx.arc(R(lx), R(ly), R(SR * (b ? 0.4 : 0.62)), 0, TAU);
       ctx.fill();
+      if (b) (ctx.strokeStyle = 'rgba(70,45,10,.8)'), (ctx.lineWidth = 1.2), ctx.stroke();
       ctx.strokeStyle = 'rgba(255,255,255,.3)';
       ctx.lineWidth = 1;
       bp(ctx);
@@ -3293,8 +3328,8 @@ function drawHamster(ctx: CanvasRenderingContext2D, x: number, y: number, u: num
   if (mood === 'wow') jump = max(0, sin(min(1, age / 14) * PI)) * u * 0.12;
   if (mood === 'cheer') jump = abs(sin(age * 0.18)) * u * 0.12;
   if (s.phase === 'result' && s.ok) { // ✏️ S055(🎨 손맛 P3): 별이 꽂힐 때마다 폴짝(.14 → .19 → .24) · 그 뒤엔 작게 끄덕
-    const q = s.pt;
-    jump = q > 34 ? abs(sin(q * 0.12)) * u * 0.03 : 0;
+    const q = s.pt - CARD, v = s.pt - 40;
+    jump = q > 34 ? abs(sin(q * 0.12)) * u * 0.03 : v >= 0 && v < 12 ? sin((v / 12) * PI) * u * 0.2 : 0; // ✏️ S059: 완성 순간 폴짝
     for (let k = 0; k < s.got; k++) { const v = q - (STAR_AT[k] + 6); if (v >= 0 && v < 10) jump = max(jump, sin((v / 10) * PI) * u * (0.14 + 0.05 * k)); }
   }
   if (mood === 'dizzy') tilt = sin(age * 0.12) * 0.25;
@@ -3629,8 +3664,8 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
   // 실패: 판은 그대로 보이고 진 톡을 짚은 뒤 아래 카드 (🎨 §2.7 · 📐 되짚기)
   if (s.phase === 'result' && !s.ok) drawFail(ctx, s, X, Y, R, font);
   // 결과 — ✏️ S055(🎨 §3-14 · 손맛 P3 · 오너 "퍼즐을 해결했을 때의 쾌감"): 호두 명판 카드가 팝으로 뜨고, 별이 7틱 간격으로 위에서 꽂힌다(도 · 미 · 솔 · 셋째는 '짠') · 글은 놓친 별 한 줄 + 💡 한 줄
-  if (s.phase === 'result' && s.ok) {
-    const age = s.pt, fx = juice(s), ch = R(s.got < 3 ? 0.39 : 0.26), cy0 = Y(0.6), q = min(1, age / 7), pop = age < 7 ? 1 + 2.70158 * (q - 1) ** 3 + 1.70158 * (q - 1) ** 2 : 1; // ease-out-back 0.3 → 1.08 → 1
+  if (s.phase === 'result' && s.ok && s.pt >= CARD) {
+    const age = s.pt - CARD, fx = juice(s), c = s.got < 3 ? 0.43 : 0.26, ch = R(c), T = cardTop(c), cy0 = Y(T), q = min(1, age / 7), pop = age < 7 ? 1 + 2.70158 * (q - 1) ** 3 + 1.70158 * (q - 1) ** 2 : 1; // ease-out-back 0.3 → 1.08 → 1
     ctx.save();
     ctx.globalAlpha = min(1, age / 4);
     ctx.translate(w / 2, cy0 + ch / 2);
@@ -3640,9 +3675,9 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     ctx.textAlign = 'center';
     font(0.058, 900);
     ctx.fillStyle = '#fff6e0';
-    ftx(ctx, s.won ? '공방 완성! 🎉' : `${d.emoji} ${d.name} 완성!`, w / 2, Y(0.66));
+    ftx(ctx, s.won ? '공방 완성! 🎉' : `${d.emoji} ${d.name} 완성!`, w / 2, Y(T + 0.06));
     for (let k = 0; k < 3; k++) { // ✏️ S056(🧪 S055 🟡③): 별 간격 7 → 11틱 · 낙하 4 → 6틱 · 셋째 앞에 4틱 숨 — '하나, 둘, 셋!'
-      const ag = age - STAR_AT[k], got = k < s.got, sx = w / 2 + (k - 1) * R(0.11), sy = Y(0.75);
+      const ag = age - STAR_AT[k], got = k < s.got, sx = w / 2 + (k - 1) * R(0.11), sy = Y(T + 0.15);
       if (ag < 0) continue;
       const fall = ag < 6 ? (1 - (ag / 6) ** 2) * R(0.14) : 0, sc = ag < 6 ? 1.5 : ag < 8 ? 0.9 : 1, big = k === 2 && got ? 1.15 : 1;
       font(0.08 * sc * big, 900);
@@ -3657,33 +3692,33 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     // 글: ★3이면 없음(깜짝이면 '깜짝 ★3!') · 놓쳤으면 놓친 별 하나의 까닭 + 💡 방법 — ✏️ S056(🧪 S055 🟡④): 마지막 별이 꽂힌 뒤 페이드인
     const ok2 = d.B !== undefined ? S.bonks >= d.B : S.peak <= d.P, ok3 = d.B !== undefined ? s.got === 3 : star3(d, S), tx = starText(d, S), soon = ok2 && s.lock3, ta = min(1, max(0, (age - STAR_AT[2] - 6) / 12));
     ctx.globalAlpha = ta;
-    if (s.got === 3 && s.lock3) (font(0.042, 900), (ctx.fillStyle = '#ffd166'), ftx(ctx, '깜짝 ★3!', w / 2, Y(0.825)));
+    if (s.got === 3 && s.lock3) (font(0.042, 900), (ctx.fillStyle = '#ffd166'), ftx(ctx, '깜짝 ★3!', w / 2, Y(T + 0.225)));
     else if (s.got < 3) {
       const miss = !ok2 ? `✗ ★2 ${tx.r2}` : soon ? '★3은 곧 배워요' : `✗ ★3 ${ok3 ? '' : tx.r3}`, tip = `💡 ${tipLine(s.got === 2 && d.tip2 ? d.tip2 : d.tip)}`;
       fit(0.038, 900, w - R(0.16), miss);
       ctx.fillStyle = miss[0] === '★' ? '#fff1d6' : '#ffb36b';
-      ftx(ctx, miss, w / 2, Y(soon ? 0.835 : 0.82));
-      if (!soon) (fit(0.034, 800, w - R(0.16), tip), (ctx.fillStyle = '#e8d3b0'), ftx(ctx, tip, w / 2, Y(0.862))); // 🧪 S055 🔴①: ★3을 아직 안 배웠으면 💡는 빼고 다음 판이 주인공
+      ftx(ctx, miss, w / 2, Y(T + (soon ? 0.235 : 0.22)));
+      if (!soon) (fit(0.034, 800, w - R(0.16), tip), (ctx.fillStyle = '#e8d3b0'), ftx(ctx, tip, w / 2, Y(T + 0.262))); // 🧪 S055 🔴①: ★3을 아직 안 배웠으면 💡는 빼고 다음 판이 주인공
     }
     ctx.globalAlpha = 1;
     if (s.got < 3 && age > STAR_AT[2] + 8) {
       // ↺ 다시 · 다음 ▶ — 버튼 안만 받는다(🧪 S002) · ✏️ S055 🎨: 주 버튼은 금 · 다른 하나는 나무 명판 · ✏️ S056(🧪 S055 🔴①): 라벨은 놓친 별에 맞춘다 · ★3을 아직 안 배웠으면 '다음 판'이 금
       const by = Y(RES_BY), bh = R(0.075);
-      ([[0.06, soon ? '↺ 다시' : `↺ 다시 (${ok2 ? '★3' : '★2'} 도전)`, !soon], /* 🧪 S056 🟡②: ★3을 아직 안 배웠으면 별 표시 없이 */ [0.53, s.won ? '끝내기 ▶' : '다음 판 ▶', soon]] as const).forEach(([x0, txt, main]) => {
+      ([[0.1, soon ? '↺ 다시' : `↺ 다시 (${ok2 ? '★3' : '★2'} 도전)`, !soon], /* 🧪 S056 🟡②: ★3을 아직 안 배웠으면 별 표시 없이 */ [0.52, s.won ? '끝내기 ▶' : '다음 판 ▶', soon]] as const).forEach(([x0, txt, main]) => {
         ctx.fillStyle = main ? '#b9741c' : '#3e2616';
         bp(ctx);
-        ctx.roundRect(X(x0), by - bh / 2 + 4, R(0.41), bh, bh / 2);
+        ctx.roundRect(X(x0), by - bh / 2 + 4, R(0.38), bh, bh / 2);
         ctx.fill();
         const bg = ctx.createLinearGradient(0, by - bh / 2, 0, by + bh / 2);
         bg.addColorStop(0, main ? '#ffd166' : '#b07a44');
         bg.addColorStop(1, main ? '#f0a83a' : '#7a4c26');
         ctx.fillStyle = bg;
         bp(ctx);
-        ctx.roundRect(X(x0), by - bh / 2, R(0.41), bh, bh / 2);
+        ctx.roundRect(X(x0), by - bh / 2, R(0.38), bh, bh / 2);
         ctx.fill();
         font(0.042, 900);
         ctx.fillStyle = main ? '#3a2200' : '#fff6e0';
-        ftx(ctx, txt, X(x0) + R(0.205), by + 1);
+        ftx(ctx, txt, X(x0) + R(0.19), by + 1);
       });
     }
     ctx.restore();
