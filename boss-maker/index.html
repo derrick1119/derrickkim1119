@@ -285,7 +285,7 @@ body.playing button:focus-visible{outline-color:#fff}
 
 /* ---------- 규칙 ---------- */
 const W = 360, H = 540, TPS = 60, DT = 1 / TPS, TAU = Math.PI * 2;
-const PHASE_TICKS = 600, EMIT_FROM = 0.7, EMIT_TO = 9.0;
+const T_DODGE = 1200, T_DUEL = 1800, EMIT_FROM = 0.7;
 const BOSS = { x: 180, y: 78 }, ZONE_Y = 150;
 const PR = 3, PLAYER_SPEED = 520, MAX_BULLETS = 260;
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
@@ -296,23 +296,26 @@ const ITEM = {
   s: { kind: 'w', name: '나선', desc: '돌면서 에너지 탄을 쓸어내요', mat: 'e', tile: '#ffd23f' },
   v: { kind: 'w', name: '물결탄', desc: '구불구불한 에너지 줄기를 쏴요', mat: 'e', tile: '#e6d6ff' },
   l: { kind: 'w', name: '레이저', desc: '예고한 뒤 세로로 길을 잘라요', mat: 'e', tile: '#ff9f1c' },
+  c: { kind: 'w', name: '냉동탄', desc: '맞으면 한동안 느려져요', mat: 'e', tile: '#bfeaff' },
   a: { kind: 'w', name: '볼트', desc: '상대를 겨눠 금속 볼트를 쏴요', mat: 'm', tile: '#ff6b6b' },
   k: { kind: 'w', name: '쇠구슬', desc: '벽에 튕기는 무거운 쇠구슬을 쏴요', mat: 'm', tile: '#c9d1e3' },
   w: { kind: 'w', name: '철벽', desc: '틈 하나 있는 철판 줄을 밀어요', mat: 'm', tile: '#efe6cf' },
+  x: { kind: 'w', name: '톱날 원반', desc: '날아갔다가 되돌아오며 두 번 베어요', mat: 'm', tile: '#d9deea' },
   h: { kind: 'w', name: '유도 미사일', desc: '상대를 끝까지 쫓아가요', mat: 'x', tile: '#ff8fd0' },
   b: { kind: 'w', name: '폭죽', desc: '상대 발밑에서 터져요', mat: 'x', tile: '#8fb0ff' },
-  x: { kind: 'g', sim: 's', name: '톱날', desc: '맞닿은 상대를 계속 갈아요', tile: '#c9d1e3' },
-  j: { kind: 'g', sim: 'r', name: '돌격 뿔', desc: '가까우면 들이받아요. 피하기에선 나에게 돌진해요', tile: '#fff1b8' },
-  m: { kind: 'g', sim: 'm', name: '자석', desc: '상대를 끌어당겨요. 대신 금속 탄도 끌려와요', tile: '#ff6b6b' },
-  q: { kind: 'g', sim: 'h', name: '보호막', desc: '7초마다 피해를 한 번 막아요', tile: '#9af7ff' },
-  p: { kind: 'g', sim: 'p', name: '수리 드론', desc: '싸우는 동안 체력을 조금씩 고쳐요', tile: '#7dffb0' },
+  j: { kind: 'g', sim: 'j', name: '보조 포탑', desc: '반대편에서 따로 볼트를 쏴요', tile: '#ffb347' },
+  g: { kind: 'g', sim: 'g', name: '블랙홀', desc: '내 앞에 생겨 상대 탄을 삼켜요. 피하기에선 나를 끌어당겨요', tile: '#8a7dd6' },
+  d: { kind: 'g', sim: 'd', name: '분신', desc: '가짜 몸을 세워 조준을 속여요 (대결 전용)', tile: '#cfe9ff' },
+  m: { kind: 'g', sim: 'm', name: '자석', desc: '금속 탄을 붙잡았다가 되쏴요. 넘치면 더 맞아요', tile: '#ff6b6b' },
   f: { kind: 'g', sim: 'f', name: '반사판', desc: '에너지 탄을 상대에게 돌려보내요', tile: '#e8eefc' },
+  e: { kind: 'g', sim: 'e', name: '전자기 펄스', desc: '3초마다 주변 에너지 탄을 지워요', tile: '#b388ff' },
+  q: { kind: 'g', sim: 'h', name: '보호막', desc: '4초마다 피해를 한 번 막아요', tile: '#9af7ff' },
+  p: { kind: 'g', sim: 'p', name: '수리 드론', desc: '싸우는 동안 체력을 조금씩 고쳐요', tile: '#7dffb0' },
   n: { kind: 'g', sim: 'n', name: '지뢰 투척기', desc: '상대 발밑에 지뢰를 던져요', tile: '#ffa94d' },
-  e: { kind: 'g', sim: 'e', name: '전자기 펄스', desc: '5초마다 주변 에너지 탄을 지워요', tile: '#b388ff' },
 };
-const IORDER = ['r', 's', 'v', 'l', 'a', 'k', 'w', 'h', 'b', 'x', 'j', 'm', 'q', 'p', 'f', 'n', 'e'];
+const IORDER = ['r', 's', 'v', 'l', 'c', 'a', 'k', 'w', 'x', 'h', 'b', 'j', 'g', 'd', 'm', 'f', 'e', 'q', 'p', 'n'];
 const MATNAME = { e: '에너지', m: '금속', x: '폭발' };
-const METAL = { a: 1, w: 1, k: 1 }, ENERGY = { r: 1, s: 1, v: 1 };
+const METAL = { a: 1, w: 1, k: 1, x: 1 }, ENERGY = { r: 1, s: 1, v: 1, c: 1 };
 const SLOTS = 5;
 const P = {
   r: { int: [1.5, 1.1, 0.8], n: [14, 20, 26], v: [70, 100, 135] },
@@ -324,6 +327,8 @@ const P = {
   b: { int: [2.6, 2.0, 1.5], n: [8, 12, 16], v: [70, 100, 135], fuse: 1.1 },
   v: { int: 0.16, streams: [1, 2, 3], v: [80, 115, 150], amp: 24, w: 5.2 },
   k: { int: [1.9, 1.5, 1.2], v: 150 },
+  x: { int: [2.4, 1.8, 1.5], v: 205 },
+  c: { int: [2.4, 1.9, 1.5], v: 170 },
 };
 const SKILL = {
   bomb: { name: '폭탄', desc: '화면의 탄을 모두 지워요' },
@@ -331,55 +336,60 @@ const SKILL = {
   dash: { name: '대시', desc: '1초간 무적이 돼요' },
 };
 const MOVE = {
-  z: { name: '바퀴', desc: '좌우로 빠르게 움직여요', speed: 150, hp: 165 },
-  d: { name: '호버', desc: '탄을 피하고, 플레이어를 따라다녀요', speed: 60, hp: 100, sight: 60, every: 12 },
-  c: { name: '무한궤도', desc: '상대에게 바짝 붙어요', speed: 90, hp: 190 },
+  z: { name: '바퀴', desc: '좌우로 빠르게 움직여요', speed: 150, hp: 186 },
+  d: { name: '호버', desc: '탄을 보고 피해요. 피하기에선 나를 따라다녀요', speed: 60, hp: 86, sight: 60, every: 12 },
+  c: { name: '점멸', desc: '2.5초마다 다른 자리로 순간이동해요', speed: 0, hp: 160 },
 };
-const GADGET = { s: 1, r: 1, m: 1, h: 1, p: 1, f: 1, n: 1, e: 1 };
-const DMG = { r: 8, s: 7, a: 4, h: 18, w: 6, l: 9, b: 4, B: 8, v: 4, k: 14, S: 6, R: 16, M: 10 };
+const GADGET = { j: 1, g: 1, d: 1, m: 1, f: 1, e: 1, h: 1, p: 1, n: 1 };
+const DMG = { r: 8, s: 7, a: 3.2, h: 18, w: 4.5, l: 6, b: 2.3, B: 5, v: 2.2, k: 26, x: 20, c: 6, M: 10 };
 const DUEL = {
-  zone: [[62, 190], [350, 478]], home: [90, 450], hitR: 14, cap: 220, turn: 2.4, heat: 1.5,
-  sawEvery: 18, sawReach: 50, ramEvery: 240, ramRange: 240, pull: 60, magPull: 260, magR: 130, shieldEvery: 420, healEvery: 120, heal: 2,
-  refW: 0.36, refSpin: 0.035, mineEvery: 210, empEvery: 300, empR: 120, keepMelee: 38, keepShoot: 150,
+  zone: [[62, 190], [350, 478]], home: [90, 450], hitR: 14, cap: 220, turn: 2.4, heat: 2.5, heatFrom: 720,
+  magPull: 300, magR: 130, magCap: 5, flingEvery: 180, shieldEvery: 240, healEvery: 80, heal: 2,
+  refW: 0.9, refSpin: 0.035, mineEvery: 210, empEvery: 160, empR: 160,
+  blinkEvery: 150, turEvery: 18, decoyEvery: 380, decoyLife: 300, holeEvery: 420, holeLife: 240, holeR: 85, freeze: 200,
+  pickAt: [420, 1080], pickLife: 360, ocLife: 300, ocRate: 1.6,
 };
 const MAPS = { clear: '빈 경기장', cloudy: '화물 경기장', windy: '강풍 경기장', bumper: '범퍼 경기장' };
-const GRAZE_NEED = 14, DODGE_G = ['m', 'n', 'r'];
-/* 장비 목록을 시뮬레이션이 쓰는 모양으로 푼다: n번째 무기는 n페이즈부터 쏜다 */
+const GRAZE_NEED = 14, DODGE_G = ['m', 'n', 'j', 'g'];
+/* 장비 목록을 시뮬레이션이 쓰는 모양으로 푼다: 무기는 전부 처음부터 쏜다 */
 function prep(b) {
   b.items = [...new Set((b.items || []).filter(k => ITEM[k]))].slice(0, SLOTS);
   b.legs = MOVE[b.legs] ? b.legs : 'z';
-  b.phases = [[], [], []];
-  b.items.filter(k => ITEM[k].kind === 'w').forEach((k, i) => { for (let ph = Math.min(i, 2); ph < 3; ph++) b.phases[ph].push({ t: k, s: 2, d: 2 }); });
+  b.weapons = b.items.filter(k => ITEM[k].kind === 'w').map(k => ({ t: k, s: 2, d: 2 }));
   b.gadgets = b.items.filter(k => ITEM[k].kind === 'g').map(k => ITEM[k].sim);
   b.move = b.legs;
   return b;
 }
 
-/* ---------- 시뮬레이션 (고정 틱, 난수 없음) ---------- */
+/* ---------- 직접 피하기 (고정 틱, 난수 없음) ---------- */
+const emitEnd = ticks => ticks / TPS - 0.4;
 function makeSim(boss, o = {}) {
   const hearts = o.hearts ?? 3, has = {};
   for (const k of boss.gadgets || []) if (GADGET[k]) has[k] = true;
   const sim = {
-    boss, phases: o.phases || [0, 1, 2], pi: 0, tick: 0, ptick: 0, pt: 0,
+    boss, cards: boss.weapons || [], tick: 0, pt: 0,
     bullets: [], lasers: [], mines: [], em: [],
-    p: { x: W / 2, y: 462, inv: 0 },
-    b: { x: BOSS.x, y: BOSS.y, hx: BOSS.x, hy: BOSS.y, dive: 0, dt: 0, tx: 0, ty: 0, next: 0 },
-    kind: MOVE[boss.move] ? boss.move : 'z', has, zdir: 1, nextMine: 0, mk: 0,
+    p: { x: W / 2, y: 462, inv: 0, slow: 0 },
+    b: { x: BOSS.x, y: BOSS.y, hx: BOSS.x, hy: BOSS.y, bk: 0, next: 2.2, fade: 0 },
+    tur: has.j ? { x: W - BOSS.x, y: BOSS.y + 34, next: 1.3 } : null,
+    hole: null, nextHole: 3, hk: 0,
+    kind: MOVE[boss.move] ? boss.move : 'z', has, nextMine: 1.6, mk: 0,
     hearts, skill: o.skill || null, skillUsed: false, slow: 0, dash: 0, graze: 0, gauge: 0,
     dummy: !!o.dummy, over: null, hits: 0, failAt: null, ev: [],
   };
-  resetPhase(sim);
+  restart(sim);
   return sim;
 }
-function cloneSim(s) {
-  return { ...s, bullets: s.bullets.map(b => ({ ...b })), lasers: s.lasers.map(l => ({ ...l })), mines: s.mines.map(m => ({ ...m })), em: s.em.map(e => ({ ...e })), p: { ...s.p }, b: { ...s.b }, ev: null };
+function restart(sim) {
+  const b = sim.b;
+  sim.em = sim.cards.map((c, i) => ({ next: EMIT_FROM + i * 0.31, k: 0, aim: Math.PI / 2 }));
+  sim.tick = 0; sim.pt = 0;
+  b.x = b.hx = BOSS.x; b.y = b.hy = BOSS.y; b.bk = 0; b.next = 2.2; b.fade = 0;
+  if (sim.tur) { sim.tur.x = W - BOSS.x; sim.tur.next = 1.3; }
+  sim.hole = null; sim.nextHole = 3; sim.hk = 0; sim.nextMine = 1.6; sim.mk = 0; sim.mines.length = 0;
 }
-function resetPhase(sim) {
-  const cards = sim.boss.phases[sim.phases[sim.pi]], b = sim.b;
-  sim.em = cards.map((c, i) => ({ next: EMIT_FROM + i * 0.27, k: 0, aim: Math.PI / 2 }));
-  sim.pt = 0; sim.ptick = 0;
-  b.x = b.hx = BOSS.x; b.y = b.hy = BOSS.y; b.dive = 0; b.dt = 0; b.next = 2.4;
-  sim.zdir = sim.phases[sim.pi] % 2 ? -1 : 1; sim.nextMine = 1.6; sim.mk = 0; sim.mines.length = 0;
+function cloneSim(s) {
+  return { ...s, bullets: s.bullets.map(b => ({ ...b })), lasers: s.lasers.map(l => ({ ...l })), mines: s.mines.map(m => ({ ...m })), em: s.em.map(e => ({ ...e })), p: { ...s.p }, b: { ...s.b }, tur: s.tur && { ...s.tur }, hole: s.hole && { ...s.hole }, ev: null };
 }
 function emit(sim, e) { if (sim.ev) sim.ev.push(e); }
 function intervalOf(c) {
@@ -417,10 +427,7 @@ function fire(sim, c, i, k, t) {
   } else if (c.t === 'l') {
     const tele = lv(p.tele, c.s);
     const offs = c.d === 1 ? [0] : c.d === 2 ? [0, (k % 2 ? -1 : 1) * 105] : [0, 105, -105];
-    for (const o of offs) {
-      const x = 24 + ((((pl.x + o - 24) % (W - 48)) + (W - 48)) % (W - 48));
-      sim.lasers.push({ x, w: p.w, t: 0, tele, act: p.act });
-    }
+    for (const o of offs) sim.lasers.push({ x: 24 + ((((pl.x + o - 24) % (W - 48)) + (W - 48)) % (W - 48)), w: p.w, t: 0, tele, act: p.act });
   } else if (c.t === 'b') {
     const tx = clamp(pl.x, 20, W - 20), ty = clamp(pl.y, ZONE_Y + 20, H - 20);
     add(sim, 'B', bx, by, (tx - bx) / p.fuse, (ty - by) / p.fuse, 9, { fuse: p.fuse, n: lv(p.n, c.d), fv: lv(p.v, c.s), tx, ty, rot: k * 0.4 });
@@ -430,7 +437,9 @@ function fire(sim, c, i, k, t) {
     for (let j = 0; j < n; j++) { const a = e.aim + (j - (n - 1) / 2) * 0.5, ux = Math.cos(a), uy = Math.sin(a); add(sim, 'v', bx, by, ux * v, uy * v, 5, { bx, by, px: -uy, py: ux, age: 0, ph: j * 2.1 }); }
   } else {
     const a0 = Math.atan2(pl.y - by, pl.x - bx);
-    for (const off of [-0.2, 0.2]) add(sim, 'k', bx, by, Math.cos(a0 + off) * p.v, Math.sin(a0 + off) * p.v, 9, { bn: 0 });
+    if (c.t === 'k') for (const off of [-0.2, 0.2]) add(sim, 'k', bx, by, Math.cos(a0 + off) * p.v, Math.sin(a0 + off) * p.v, 9, { bn: 0 });
+    else if (c.t === 'x') add(sim, 'x', bx, by, Math.cos(a0) * p.v, Math.sin(a0) * p.v, 10, { age: 0, hc: 0 });
+    else add(sim, 'c', bx, by, Math.cos(a0) * p.v, Math.sin(a0) * p.v, 8);
   }
 }
 function clearBullets(sim, area) {
@@ -448,30 +457,25 @@ function moveBoss(sim, bdt) {
   const b = sim.b, p = sim.p;
   if (sim.kind === 'z') {
     const ph = (sim.pt * 0.25 + 0.25) % 1, tri = ph < 0.5 ? ph * 4 - 1 : 3 - ph * 4;
-    b.hx = W / 2 + 118 * tri * sim.zdir; b.hy = BOSS.y + 8 * Math.sin(sim.pt * 1.7);
+    b.hx = W / 2 + 118 * tri; b.hy = BOSS.y + 8 * Math.sin(sim.pt * 1.7);
   } else if (sim.kind === 'd') {
     b.hx = clamp(b.hx + clamp(p.x - b.hx, -55 * bdt, 55 * bdt), 40, W - 40); b.hy = BOSS.y;
-  } else {
-    b.hx = clamp(b.hx + clamp(p.x - b.hx, -85 * bdt, 85 * bdt), 40, W - 40); b.hy = Math.min(BOSS.y + 40, b.hy + 40 * bdt);
+  } else if (sim.pt >= b.next) {
+    emit(sim, { k: 'blink', x: b.x, y: b.y });
+    b.bk++; b.hx = 46 + ((b.bk * 0.618034) % 1) * (W - 92); b.hy = BOSS.y; b.next = sim.pt + 2.5; b.fade = 12;
   }
-  const go = (tx, ty, sp) => { const dx = tx - b.x, dy = ty - b.y, dd = Math.hypot(dx, dy); if (dd <= sp) { b.x = tx; b.y = ty; return true; } b.x += dx / dd * sp; b.y += dy / dd * sp; return false; };
-  if (!sim.has.r || b.dive === 0) {
-    b.x = b.hx; b.y = b.hy;
-    if (sim.has.r && sim.pt >= b.next && sim.pt < EMIT_TO - 0.6) { b.dive = 1; b.dt = 0; b.tx = clamp(p.x, 30, W - 30); b.ty = clamp(p.y, ZONE_Y + 34, H - 40); emit(sim, { k: 'divewarn' }); }
-  } else if (b.dive === 1) { b.x = b.hx; b.y = b.hy; b.dt += bdt; if (b.dt >= 0.7) { b.dive = 2; emit(sim, { k: 'dive' }); } }
-  else if (b.dive === 2) { if (go(b.tx, b.ty, 520 * bdt)) { b.dive = 3; b.dt = 0; } }
-  else if (b.dive === 3) { b.dt += bdt; if (b.dt >= 0.18) b.dive = 4; }
-  else if (go(b.hx, b.hy, 260 * bdt)) { b.dive = 0; b.next = sim.pt + 4.2; }
+  b.x = b.hx; b.y = b.hy; if (b.fade > 0) b.fade--;
+  if (sim.tur) sim.tur.x = W - b.x;
 }
 function stepSim(sim, inp) {
   if (sim.over) return;
-  const p = sim.p, bo = sim.b, bdt = DT * (sim.slow > 0 ? 0.4 : 1);
-  if (sim.dummy) { p.x = W / 2 + 100 * Math.sin(sim.ptick * DT * 0.9); p.y = 452; }
+  const p = sim.p, bo = sim.b, bdt = DT * (sim.slow > 0 ? 0.4 : 1), end = emitEnd(T_DODGE);
+  if (sim.dummy) { p.x = W / 2 + 100 * Math.sin(sim.tick * DT * 0.9); p.y = 452; }
   else {
     const tx = clamp(inp.tx, 8, W - 8), ty = clamp(inp.ty, ZONE_Y + 10, H - 8);
-    const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy), m = PLAYER_SPEED * DT;
+    const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy), m = PLAYER_SPEED * DT * (p.slow > 0 ? 0.4 : 1);
     if (d > m) { p.x += dx / d * m; p.y += dy / d * m; } else { p.x = tx; p.y = ty; }
-    if (sim.has.m) { const mx = bo.x - p.x, my = bo.y - p.y, md = Math.hypot(mx, my) || 1; p.x = clamp(p.x + mx / md * 26 * bdt, 8, W - 8); p.y = clamp(p.y + my / md * 26 * bdt, ZONE_Y + 10, H - 8); }
+    if (sim.has.m) { const mx = bo.x - p.x, my = bo.y - p.y, md = Math.hypot(mx, my) || 1; p.x += mx / md * 26 * bdt; p.y += my / md * 26 * bdt; }
     if (inp.skill && sim.skill && !sim.skillUsed) {
       sim.skillUsed = true; sim.gauge = 0;
       if (sim.skill === 'bomb') { emit(sim, { k: 'bomb', x: p.x, y: p.y }); clearBullets(sim, null); }
@@ -481,19 +485,36 @@ function stepSim(sim, inp) {
     }
   }
   if (sim.slow > 0) sim.slow--;
+  if (p.slow > 0) p.slow--;
   sim.pt += bdt;
   moveBoss(sim, bdt);
-  const cards = sim.boss.phases[sim.phases[sim.pi]];
-  for (let i = 0; i < cards.length; i++) {
-    const e = sim.em[i], c = cards[i];
-    while (sim.pt >= e.next && e.next < EMIT_TO) { fire(sim, c, i, e.k++, e.next); e.next += intervalOf(c); }
+  for (let i = 0; i < sim.cards.length; i++) {
+    const e = sim.em[i], c = sim.cards[i];
+    while (sim.pt >= e.next && e.next < end) { fire(sim, c, i, e.k++, e.next); e.next += intervalOf(c); }
   }
-  if (sim.has.n && sim.pt >= sim.nextMine && sim.pt < EMIT_TO) {
+  if (sim.tur && sim.pt >= sim.tur.next && sim.tur.next < end) {
+    const t = sim.tur, a = Math.atan2(p.y - t.y, p.x - t.x);
+    add(sim, 'a', t.x, t.y, Math.cos(a) * 200, Math.sin(a) * 200, 5); t.next += 1.15; emit(sim, { k: 'fire' });
+  }
+  if (sim.has.n && sim.pt >= sim.nextMine && sim.nextMine < end) {
     const a = sim.mk++ * 2.4;
     sim.mines.push({ x: clamp(p.x + Math.cos(a) * 30, 16, W - 16), y: clamp(p.y + Math.sin(a) * 30, ZONE_Y + 16, H - 16), t: 0 });
     sim.nextMine += 3.5; if (sim.mines.length > 4) sim.mines.shift();
-    emit(sim, { k: 'toss' });
   }
+  if (sim.has.g) {
+    if (!sim.hole && sim.pt >= sim.nextHole && sim.nextHole < end - 3) {
+      const a = sim.hk++ * 2.4;
+      sim.hole = { x: clamp(p.x + Math.cos(a) * 70, 44, W - 44), y: clamp(p.y - 30 + Math.sin(a) * 40, ZONE_Y + 54, H - 54), t: 0 };
+      emit(sim, { k: 'holewarn' });
+    }
+    const h = sim.hole;
+    if (h) {
+      h.t += bdt;
+      if (h.t >= 0.7 && !sim.dummy) { const dx = h.x - p.x, dy = h.y - p.y, dd = Math.hypot(dx, dy) || 1; if (dd < 125) { const f = (30 + 95 * (1 - dd / 125)) * bdt; p.x += dx / dd * f; p.y += dy / dd * f; } }
+      if (h.t >= 3.7) { sim.hole = null; sim.nextHole = sim.pt + 3.2; }
+    }
+  }
+  p.x = clamp(p.x, 8, W - 8); p.y = clamp(p.y, ZONE_Y + 10, H - 8);
   const B = sim.bullets, wv = P.v; let n = 0;
   for (let i = 0; i < B.length; i++) {
     const b = B[i]; b.t++;
@@ -504,7 +525,16 @@ function stepSim(sim, inp) {
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       b.a += clamp(diff, -b.turn * bdt, b.turn * bdt);
       b.vx = Math.cos(b.a) * b.sp; b.vy = Math.sin(b.a) * b.sp;
+    } else if (b.k === 'x') {
+      b.age += bdt;
+      if (b.age > 0.7) {
+        const dx = bo.x - b.x, dy = bo.y - b.y, dd = Math.hypot(dx, dy) || 1;
+        if (dd < 22 || b.age > 3.6) { emit(sim, { k: 'puff', x: b.x, y: b.y }); continue; }
+        b.vx += dx / dd * 520 * bdt; b.vy += dy / dd * 520 * bdt;
+        const sp = Math.hypot(b.vx, b.vy); if (sp > 250) { b.vx *= 250 / sp; b.vy *= 250 / sp; }
+      }
     }
+    if (b.gone) continue;
     if (b.k === 'v') {
       b.age += bdt; b.bx += b.vx * bdt; b.by += b.vy * bdt;
       const o = wv.amp * Math.sin(wv.w * b.age + b.ph); b.x = b.bx + b.px * o; b.y = b.by + b.py * o;
@@ -517,7 +547,7 @@ function stepSim(sim, inp) {
       b.fuse -= bdt;
       if (b.fuse <= 0) { emit(sim, { k: 'burst', x: b.x, y: b.y }); for (let j = 0; j < b.n; j++) { const a = b.rot + j * TAU / b.n; add(sim, 'b', b.x, b.y, Math.cos(a) * b.fv, Math.sin(a) * b.fv, 5); } continue; }
     }
-    if (b.x < -24 || b.x > W + 24 || b.y < -40 || b.y > H + 24) continue;
+    if (b.k !== 'x' && (b.x < -24 || b.x > W + 24 || b.y < -40 || b.y > H + 24)) continue;
     B[n++] = b;
   }
   B.length = n;
@@ -532,31 +562,32 @@ function stepSim(sim, inp) {
     let hit = false;
     for (let i = 0; i < B.length; i++) {
       const b = B[i], rr = b.r * 0.72 + PR, dx = b.x - p.x, dy = b.y - p.y, dd = dx * dx + dy * dy;
-      if (dd < rr * rr) { hit = true; break; }
+      if (dd < rr * rr) {
+        if (b.k === 'c') { b.gone = 1; p.slow = 110; emit(sim, { k: 'freeze', x: p.x, y: p.y }); continue; }
+        hit = true; break;
+      }
       if (!b.g && dd < (b.r + 16) * (b.r + 16)) {
         b.g = 1; sim.graze++; emit(sim, { k: 'graze', x: b.x, y: b.y });
         if (sim.skill && sim.skillUsed && ++sim.gauge >= GRAZE_NEED) { sim.skillUsed = false; sim.gauge = 0; emit(sim, { k: 'charge' }); }
       }
     }
     if (!hit) for (let i = 0; i < L.length; i++) { const l = L[i]; if (l.t >= l.tele && Math.abs(l.x - p.x) < l.w / 2 - 2) { hit = true; break; } }
-    if (!hit && bo.dive >= 2) { const dx = bo.x - p.x, dy = bo.y - p.y; if (dx * dx + dy * dy < 25 * 25) hit = true; }
+    if (!hit && sim.hole && sim.hole.t >= 0.7) { const dx = sim.hole.x - p.x, dy = sim.hole.y - p.y; if (dx * dx + dy * dy < 13 * 13) hit = true; }
     if (!hit) for (let i = 0; i < M.length; i++) { const mn = M[i], dx = mn.x - p.x, dy = mn.y - p.y; if (mn.t >= 0.9 && dx * dx + dy * dy < 400) { hit = true; emit(sim, { k: 'boom', x: mn.x, y: mn.y }); break; } }
     if (hit) {
       sim.hits++; sim.hearts--;
       emit(sim, { k: 'hit', x: p.x, y: p.y });
-      if (sim.hearts <= 0) { sim.over = 'lose'; sim.failAt = { phase: sim.phases[sim.pi], sec: sim.ptick * DT }; return; }
+      if (sim.hearts <= 0) { sim.over = 'lose'; sim.failAt = { sec: sim.tick * DT }; return; }
       p.inv = 90;
       clearBullets(sim, { x: p.x, y: p.y, r: 95 });
     }
   }
   if (p.inv > 0) p.inv--;
   if (sim.dash > 0) sim.dash--;
-  sim.tick++; sim.ptick++;
-  if (sim.ptick >= PHASE_TICKS) {
+  sim.tick++;
+  if (sim.tick >= T_DODGE) {
     clearBullets(sim, null); sim.lasers.length = 0;
-    if (sim.dummy) { sim.pi = (sim.pi + 1) % sim.phases.length; resetPhase(sim); emit(sim, { k: 'phase' }); }
-    else if (sim.pi + 1 >= sim.phases.length) sim.over = 'win';
-    else { sim.pi++; resetPhase(sim); emit(sim, { k: 'phase' }); }
+    if (sim.dummy) restart(sim); else sim.over = 'win';
   }
 }
 
@@ -578,20 +609,17 @@ function makeDuel(top, bot, seed) {
     const kind = MOVE[boss.move] ? boss.move : 'z', mv = MOVE[kind], has = {};
     for (const k of boss.gadgets || []) if (GADGET[k]) has[k] = true;
     return {
-      boss, side, kind, mv, has, g: Object.keys(has).join(''), melee: !!(has.s || has.r),
+      boss, side, kind, mv, has, g: Object.keys(has).join(''),
       x: W / 2, y: DUEL.home[side], vx: 0, vy: 0, hp: mv.hp, maxHp: mv.hp, fl: 0, dir: side ? -1 : 1,
-      sdir: R() < 0.5 ? -1 : 1, flip: 60 + (R() * 160 | 0), dx: 0, dy: 0, em: [], n: 0,
-      sawCd: 0, ramCd: 120, dash: 0, dux: 0, duy: 0, shieldCd: 0, healCd: DUEL.healEvery, mineCd: 90, empCd: 240, refA: side ? -Math.PI / 2 : Math.PI / 2,
+      sdir: R() < 0.5 ? -1 : 1, flip: 60 + (R() * 160 | 0), dx: 0, dy: 0, n: 0,
+      em: (boss.weapons || []).map((c, i) => ({ next: EMIT_FROM + i * 0.31, k: 0, aim: 0 })), et: 0, oc: 0, slowT: 0,
+      shieldCd: 0, healCd: DUEL.healEvery, mineCd: 90, empCd: 240, refA: side ? -Math.PI / 2 : Math.PI / 2,
+      cap: 0, flingCd: DUEL.flingEvery, blinkCd: 120, fade: 0, turCd: 60, decoy: null, decoyCd: 110, hole: null, holeCd: 170,
     };
   };
-  const d = { map, R, f: [mk(top, 0), mk(bot, 1)], clouds: map.clouds.map(cl => ({ ...cl })), bullets: [], lasers: [], mines: [], tick: 0, pi: 0, ptick: 0, pt: 0, over: null, ev: [] };
-  resetDuelPhase(d);
-  return d;
+  return { map, R, f: [mk(top, 0), mk(bot, 1)], clouds: map.clouds.map(cl => ({ ...cl })), bullets: [], lasers: [], mines: [], pick: null, tick: 0, over: null, ev: [] };
 }
-function resetDuelPhase(d) {
-  for (const m of d.f) m.em = m.boss.phases[d.pi].map((c, i) => ({ next: EMIT_FROM + i * 0.27, k: 0, aim: 0 }));
-  d.pt = 0; d.ptick = 0;
-}
+const aimAt = (d, m) => { const e = d.f[1 - m.side]; return e.decoy || e; };
 function addD(d, m, k, x, y, vx, vy, r, extra) {
   if (m.n >= DUEL.cap) return;
   const b = { k, x, y, vx, vy, r, s: m.side, t: 0 };
@@ -599,7 +627,7 @@ function addD(d, m, k, x, y, vx, vy, r, extra) {
   d.bullets.push(b); m.n++;
 }
 function fireDuel(d, m, c, i, k, t) {
-  const p = P[c.t], e = d.f[1 - m.side], dir = m.dir;
+  const p = P[c.t], e = aimAt(d, m), dir = m.dir;
   emit(d, { k: 'fire', side: m.side });
   if (c.t === 'r') {
     const n = lv(p.n, c.d), v = lv(p.v, c.s), off = (k * 0.5 + i * 0.31) * (TAU / n);
@@ -625,17 +653,18 @@ function fireDuel(d, m, c, i, k, t) {
     const offs = c.d === 1 ? [0] : c.d === 2 ? [0, (k % 2 ? -1 : 1) * 105] : [0, 105, -105];
     for (const o of offs) d.lasers.push({ x: 24 + ((((e.x + o - 24) % (W - 48)) + (W - 48)) % (W - 48)), w: p.w, t: 0, tele, act: p.act, s: m.side, hit: false });
   } else if (c.t === 'b') {
-    {
-      const tx = clamp(e.x, 20, W - 20), ty = clamp(e.y, 40, H - 40);
-      addD(d, m, 'B', m.x, m.y, (tx - m.x) / p.fuse, (ty - m.y) / p.fuse, 9, { fuse: p.fuse, n: lv(p.n, c.d), fv: lv(p.v, c.s), tx, ty, rot: k * 0.4 });
-    }
+    const tx = clamp(e.x, 20, W - 20), ty = clamp(e.y, 40, H - 40);
+    addD(d, m, 'B', m.x, m.y, (tx - m.x) / p.fuse, (ty - m.y) / p.fuse, 9, { fuse: p.fuse, n: lv(p.n, c.d), fv: lv(p.v, c.s), tx, ty, rot: k * 0.4 });
   } else if (c.t === 'v') {
     const n = lv(p.streams, c.d), v = lv(p.v, c.s), em = m.em[i];
     if (k % 8 === 0) em.aim = Math.atan2(e.y - m.y, e.x - m.x);
     for (let j = 0; j < n; j++) { const a = em.aim + (j - (n - 1) / 2) * 0.5, ux = Math.cos(a), uy = Math.sin(a); addD(d, m, 'v', m.x, m.y, ux * v, uy * v, 5, { bx: m.x, by: m.y, px: -uy, py: ux, age: 0, ph: j * 2.1 }); }
   } else {
-    const a0 = Math.atan2(e.y - m.y, e.x - m.x);
-    for (const off of [-0.2, 0.2]) addD(d, m, 'k', m.x, m.y, Math.cos(a0 + off) * p.v, Math.sin(a0 + off) * p.v, 9, { bn: 0 });
+    const tt = Math.hypot(e.x - m.x, e.y - m.y) / p.v * (c.t === 'c' ? 0.8 : 0);
+    const a0 = Math.atan2(e.y + e.vy * tt - m.y, clamp(e.x + e.vx * tt, 26, W - 26) - m.x);
+    if (c.t === 'k') for (const off of [-0.2, 0.2]) addD(d, m, 'k', m.x, m.y, Math.cos(a0 + off) * p.v, Math.sin(a0 + off) * p.v, 9, { bn: 0 });
+    else if (c.t === 'x') addD(d, m, 'x', m.x, m.y, Math.cos(a0) * p.v, Math.sin(a0) * p.v, 10, { age: 0, hc: 0 });
+    else addD(d, m, 'c', m.x, m.y, Math.cos(a0) * p.v, Math.sin(a0) * p.v, 8);
   }
 }
 const CAND = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [0.71, 0.71], [-0.71, 0.71], [0.71, -0.71], [-0.71, -0.71]];
@@ -659,73 +688,110 @@ function think(d, m, z) {
   m.dx = bx; m.dy = by;
 }
 function moveFighter(d, m) {
-  const e = d.f[1 - m.side], z = DUEL.zone[m.side], sp = m.mv.speed * DT, ox = m.x, oy = m.y;
-  if (m.dash > 0) {
-    m.x += m.dux * 380 * DT; m.y += m.duy * 380 * DT; m.dash--;
-    const dx = e.x - m.x, dy = e.y - m.y;
-    if (dx * dx + dy * dy < 38 * 38) { hurt(d, e, 'R', (m.x + e.x) / 2, (m.y + e.y) / 2); e.x += m.dux * 46; e.y += m.duy * 46; m.dash = 0; }
-  } else if (m.kind === 'z') {
+  const z = DUEL.zone[m.side], sp = m.mv.speed * DT * (m.slowT > 0 ? 0.4 : 1), ox = m.x, oy = m.y;
+  if (m.kind === 'z') {
     if (--m.flip <= 0) { m.sdir = -m.sdir; m.flip = 70 + (d.R() * 170 | 0); }
     m.x += m.sdir * sp;
     if (m.x < 30) { m.x = 30; m.sdir = 1; } else if (m.x > W - 30) { m.x = W - 30; m.sdir = -1; }
     const ty = DUEL.home[m.side] + 16 * Math.sin(d.tick * DT * 1.7 + m.side * 2);
     m.y += clamp(ty - m.y, -sp * 0.5, sp * 0.5);
-  } else if (m.kind === 'c') {
-    const keep = m.melee ? DUEL.keepMelee : DUEL.keepShoot, dx = e.x - m.x, dy = e.y - m.y, dd = Math.hypot(dx, dy);
-    if (dd > keep + sp) { m.x += dx / dd * sp; m.y += dy / dd * sp; }
-  } else {
+  } else if (m.kind === 'd') {
     if ((d.tick + m.side * 3) % m.mv.every === 0) think(d, m, z);
     m.x += m.dx * sp; m.y += m.dy * sp;
+  } else {
+    m.blinkCd -= m.slowT > 0 ? 0.4 : 1;
+    if (m.blinkCd <= 0) { emit(d, { k: 'blink', x: m.x, y: m.y }); m.x = 40 + d.R() * (W - 80); m.y = z[0] + 14 + d.R() * (z[1] - z[0] - 28); m.blinkCd = DUEL.blinkEvery; m.fade = 12; emit(d, { k: 'blink', x: m.x, y: m.y }); }
   }
-  if (m.kind !== 'c' && m.dash <= 0) { if (m.y < z[0]) m.y = Math.min(z[0], m.y + sp); else if (m.y > z[1]) m.y = Math.max(z[1], m.y - sp); }
-  m.x = clamp(m.x, 26, W - 26); m.y = clamp(m.y, 48, H - 48);
-  m.vx = (m.x - ox) / DT; m.vy = (m.y - oy) / DT;
+  m.x = clamp(m.x, 26, W - 26); m.y = clamp(m.y, z[0], z[1]);
+  m.vx = m.kind === 'c' ? 0 : (m.x - ox) / DT; m.vy = m.kind === 'c' ? 0 : (m.y - oy) / DT;
 }
 function hurt(d, e, by, x, y) {
   if (e.has.h && e.shieldCd <= 0) { e.shieldCd = DUEL.shieldEvery; emit(d, { k: 'block', side: e.side }); return; }
-  const dmg = Math.round(DMG[by] * (d.pi === 2 ? DUEL.heat : 1));
+  const heat = d.tick < DUEL.heatFrom ? 1 : 1 + (d.tick - DUEL.heatFrom) / (T_DUEL - DUEL.heatFrom) * (DUEL.heat - 1);
+  const dmg = Math.max(1, Math.round(DMG[by] * heat));
   e.hp = Math.max(0, e.hp - dmg); e.fl = 10;
+  if (by === 'c') { e.slowT = DUEL.freeze; emit(d, { k: 'freeze', x: e.x, y: e.y }); }
   emit(d, { k: 'hit', side: e.side, x, y, dmg, by });
 }
 function stepDuel(d) {
   if (d.over) return;
+  const end = emitEnd(T_DUEL), B = d.bullets, wind = d.map.wind;
+  if (d.tick === DUEL.heatFrom) emit(d, { k: 'heat' });
   for (const cl of d.clouds) {
     cl.x += cl.vx * DT;
     if (cl.x < cl.r * 1.35) { cl.x = cl.r * 1.35; cl.vx = Math.abs(cl.vx); } else if (cl.x > W - cl.r * 1.35) { cl.x = W - cl.r * 1.35; cl.vx = -Math.abs(cl.vx); }
   }
+  if (!d.pick && DUEL.pickAt.includes(d.tick)) { d.pick = { x: 70 + d.R() * (W - 140), y: 270, t: DUEL.pickLife }; emit(d, { k: 'pickup', x: d.pick.x, y: 270 }); }
+  if (d.pick && --d.pick.t <= 0) d.pick = null;
   for (const m of d.f) {
-    const e = d.f[1 - m.side];
-    if (m.has.m) { const dx = m.x - e.x, dy = m.y - e.y, dd = Math.hypot(dx, dy); if (dd > 34) { e.x += dx / dd * DUEL.pull * DT; e.y += dy / dd * DUEL.pull * DT; } }
-    if (m.has.r && m.dash <= 0) {
-      if (m.ramCd > 0) m.ramCd--;
-      else { const dx = e.x - m.x, dy = e.y - m.y, dd = Math.hypot(dx, dy); if (dd < DUEL.ramRange && dd > 1) { m.dux = dx / dd; m.duy = dy / dd; m.dash = 24; m.ramCd = DUEL.ramEvery; emit(d, { k: 'dash', side: m.side }); } }
+    const z = DUEL.zone[m.side];
+    moveFighter(d, m);
+    if (m.fade > 0) m.fade--;
+    if (m.slowT > 0) m.slowT--;
+    if (m.oc > 0) m.oc--;
+    if (m.has.f) m.refA += DUEL.refSpin;
+    if (m.decoy && --m.decoy.t <= 0) m.decoy = null;
+    if (m.has.d && --m.decoyCd <= 0) { m.decoyCd = DUEL.decoyEvery; m.decoy = { x: 40 + d.R() * (W - 80), y: z[0] + 14 + d.R() * (z[1] - z[0] - 28), vx: 0, vy: 0, t: DUEL.decoyLife }; emit(d, { k: 'decoy', x: m.decoy.x, y: m.decoy.y }); }
+    if (m.hole && --m.hole.t <= 0) m.hole = null;
+    if (m.has.g && --m.holeCd <= 0) { m.holeCd = DUEL.holeEvery; m.hole = { x: clamp(m.x, 50, W - 50), y: m.side ? 320 : 220, t: DUEL.holeLife }; emit(d, { k: 'hole', x: m.hole.x, y: m.hole.y }); }
+  }
+  for (const m of d.f) {
+    const cards = m.boss.weapons || [];
+    m.et += DT * (m.oc > 0 ? DUEL.ocRate : 1);
+    for (let i = 0; i < cards.length; i++) { const e = m.em[i]; while (m.et >= e.next && e.next < end) { fireDuel(d, m, cards[i], i, e.k++, e.next); e.next += intervalOf(cards[i]); } }
+    if (m.has.j && --m.turCd <= 0 && d.tick < T_DUEL - 30) {
+      const e = aimAt(d, m), tx = W - m.x, ty = m.y + m.dir * 30, tt = Math.hypot(e.x - tx, e.y - ty) / 200 * 0.8, a = Math.atan2(e.y + e.vy * tt - ty, clamp(e.x + e.vx * tt, 26, W - 26) - tx);
+      addD(d, m, 'a', tx, ty, Math.cos(a) * 200, Math.sin(a) * 200, 5); m.turCd = DUEL.turEvery;
+    }
+    if (m.has.m && --m.flingCd <= 0) {
+      m.flingCd = DUEL.flingEvery;
+      if (m.cap > 0) {
+        const e = aimAt(d, m), a0 = Math.atan2(e.y - m.y, e.x - m.x);
+        for (let q = 0; q < m.cap; q++) { const a = a0 + (q - (m.cap - 1) / 2) * 0.2; addD(d, m, 'k', m.x, m.y, Math.cos(a) * 200, Math.sin(a) * 200, 9, { bn: 0 }); }
+        m.cap = 0; emit(d, { k: 'fling', side: m.side });
+      }
+    }
+    if (m.has.e) {
+      if (m.empCd > 0) m.empCd--;
+      else {
+        m.empCd = DUEL.empEvery; emit(d, { k: 'emp', x: m.x, y: m.y });
+        let puffs = 0, k = 0;
+        for (const b of B) { const dx = b.x - m.x, dy = b.y - m.y; if (b.s !== m.side && ENERGY[b.k] && dx * dx + dy * dy < DUEL.empR * DUEL.empR) { if (puffs++ < 50) emit(d, { k: 'puff', x: b.x, y: b.y }); } else B[k++] = b; }
+        B.length = k;
+      }
     }
   }
-  for (const m of d.f) moveFighter(d, m);
-  for (const m of d.f) { m.x = clamp(m.x, 26, W - 26); m.y = clamp(m.y, 48, H - 48); if (m.has.f) m.refA += DUEL.refSpin; }
-  d.pt += DT;
-  for (const m of d.f) {
-    const cards = m.boss.phases[d.pi];
-    for (let i = 0; i < cards.length; i++) { const e = m.em[i]; while (d.pt >= e.next && e.next < EMIT_TO) { fireDuel(d, m, cards[i], i, e.k++, e.next); e.next += intervalOf(cards[i]); } }
-  }
-  const B = d.bullets, wind = d.map.wind; let n = 0, c0 = 0, c1 = 0;
-  for (const m of d.f) if (m.has.e) {
-    if (m.empCd > 0) { m.empCd--; continue; }
-    m.empCd = DUEL.empEvery; emit(d, { k: 'emp', x: m.x, y: m.y });
-    let puffs = 0, k = 0;
-    for (const b of B) { const dx = b.x - m.x, dy = b.y - m.y; if (b.s !== m.side && ENERGY[b.k] && dx * dx + dy * dy < DUEL.empR * DUEL.empR) { if (puffs++ < 50) emit(d, { k: 'puff', x: b.x, y: b.y }); } else B[k++] = b; }
-    B.length = k;
-  }
+  let n = 0, c0 = 0, c1 = 0;
   for (let i = 0; i < B.length; i++) {
     const b = B[i]; b.t++;
+    const own = d.f[b.s];
     if (b.k === 'h') {
-      const t = d.f[1 - b.s];
+      const t = aimAt(d, own);
       b.life -= DT;
       if (b.life <= 0) { emit(d, { k: 'puff', x: b.x, y: b.y }); continue; }
       let diff = Math.atan2(t.y - b.y, t.x - b.x) - b.a;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       b.a += clamp(diff, -b.turn * DT, b.turn * DT);
       b.vx = Math.cos(b.a) * b.sp; b.vy = Math.sin(b.a) * b.sp;
+    } else if (b.k === 'x') {
+      b.age += DT; if (b.hc > 0) b.hc--;
+      if (b.age > 0.9) {
+        const dx = own.x - b.x, dy = own.y - b.y, dd = Math.hypot(dx, dy) || 1;
+        if (dd < 22 || b.age > 4) { emit(d, { k: 'puff', x: b.x, y: b.y }); continue; }
+        b.vx += dx / dd * 520 * DT; b.vy += dy / dd * 520 * DT;
+        const sp = Math.hypot(b.vx, b.vy); if (sp > 260) { b.vx *= 260 / sp; b.vy *= 260 / sp; }
+      }
+    }
+    const o = d.f[1 - b.s];
+    if (o.hole) {
+      const dx = o.hole.x - b.x, dy = o.hole.y - b.y, dd = dx * dx + dy * dy;
+      if (dd < 196) { emit(d, { k: 'puff', x: b.x, y: b.y }); continue; }
+      if (dd < DUEL.holeR * DUEL.holeR) { const k2 = 620 * DT / Math.sqrt(dd); b.vx += dx * k2; b.vy += dy * k2; if (b.k === 'h') b.a = Math.atan2(b.vy, b.vx); }
+    }
+    if (o.has.m && METAL[b.k]) {
+      const dx = o.x - b.x, dy = o.y - b.y, dd = dx * dx + dy * dy;
+      if (dd < 26 * 26 && o.cap < DUEL.magCap) { o.cap++; emit(d, { k: 'grab', x: b.x, y: b.y }); continue; }
+      if (dd < DUEL.magR * DUEL.magR && dd > 64) { const k2 = DUEL.magPull * DT / Math.sqrt(dd); b.vx += dx * k2; b.vy += dy * k2; }
     }
     if (b.k === 'v') {
       b.age += DT; b.bx += (b.vx + wind) * DT; b.by += b.vy * DT;
@@ -733,9 +799,10 @@ function stepDuel(d) {
     } else { b.x += (b.vx + wind) * DT; b.y += b.vy * DT; }
     if (b.k === 'B') {
       b.fuse -= DT;
-      if (b.fuse <= 0) { emit(d, { k: 'burst', x: b.x, y: b.y }); for (let j = 0; j < b.n; j++) { const a = b.rot + j * TAU / b.n; addD(d, d.f[b.s], 'b', b.x, b.y, Math.cos(a) * b.fv, Math.sin(a) * b.fv, 5); } continue; }
+      if (b.fuse <= 0) { emit(d, { k: 'burst', x: b.x, y: b.y }); for (let j = 0; j < b.n; j++) { const a = b.rot + j * TAU / b.n; addD(d, own, 'b', b.x, b.y, Math.cos(a) * b.fv, Math.sin(a) * b.fv, 5); } continue; }
     }
-    if (b.x < -24 || b.x > W + 24 || b.y < -24 || b.y > H + 24) continue;
+    if (b.k === 'k' && (b.bn | 0) < 2 && ((b.x < 9 && b.vx < 0) || (b.x > W - 9 && b.vx > 0))) { b.vx = -b.vx; b.bn = (b.bn | 0) + 1; }
+    if (b.k !== 'x' && (b.x < -24 || b.x > W + 24 || b.y < -24 || b.y > H + 24)) continue;
     for (let q = 0; q < d.map.bumps.length; q++) {
       const bp = d.map.bumps[q], dx = b.x - bp.x, dy = b.y - bp.y, rr = bp.r + b.r;
       if (dx * dx + dy * dy < rr * rr && (b.bn | 0) < 3) {
@@ -748,24 +815,22 @@ function stepDuel(d) {
         }
       }
     }
-    const o = d.f[1 - b.s];
-    if (b.k === 'k' && (b.bn | 0) < 2 && ((b.x < 9 && b.vx < 0) || (b.x > W - 9 && b.vx > 0))) { b.vx = -b.vx; b.bn = (b.bn | 0) + 1; }
-    if (o.has.m && METAL[b.k]) {
-      const dx = o.x - b.x, dy = o.y - b.y, dd = dx * dx + dy * dy;
-      if (dd < DUEL.magR * DUEL.magR && dd > 64) { const k2 = DUEL.magPull * DT / Math.sqrt(dd); b.vx += dx * k2; b.vy += dy * k2; b.mg = 1; }
-    }
+    if (d.pick) { const dx = b.x - d.pick.x, dy = b.y - d.pick.y, rr = 15 + b.r; if (dx * dx + dy * dy < rr * rr) { own.oc = DUEL.ocLife; emit(d, { k: 'oc', side: b.s, x: d.pick.x, y: d.pick.y }); d.pick = null; } }
     if (o.has.f && ENERGY[b.k]) {
       const dx = b.x - o.x, dy = b.y - o.y, dd = dx * dx + dy * dy;
       if (dd > 324 && dd < 1764) {
         let df = Math.atan2(dy, dx) - o.refA; df = Math.atan2(Math.sin(df), Math.cos(df));
-        if (Math.abs(df) < DUEL.refW) { b.s = o.side; b.vx = -b.vx; b.vy = -b.vy; if (b.k === 'h') { b.a += Math.PI; b.life = Math.max(b.life, 2.5); } emit(d, { k: 'spark', x: b.x, y: b.y }); }
+        if (Math.abs(df) < DUEL.refW) { b.s = o.side; b.vx = -b.vx; b.vy = -b.vy; emit(d, { k: 'spark', x: b.x, y: b.y }); }
       }
     }
     let gone = false;
     for (const cl of d.clouds) { const dx = (b.x - cl.x) / (cl.r * 1.35), dy = (b.y - cl.y) / (cl.r * 0.85); if (dx * dx + dy * dy < 1) { gone = true; break; } }
     if (gone) { emit(d, { k: 'puff', x: b.x, y: b.y }); continue; }
     const e = d.f[1 - b.s], rr = DUEL.hitR + b.r * 0.72, dx = b.x - e.x, dy = b.y - e.y;
-    if (dx * dx + dy * dy < rr * rr) { hurt(d, e, b.k, b.x, b.y); continue; }
+    if (dx * dx + dy * dy < rr * rr) {
+      if (b.k === 'x') { if (b.hc <= 0) { hurt(d, e, 'x', b.x, b.y); b.hc = 40; } }
+      else { hurt(d, e, b.k, b.x, b.y); continue; }
+    }
     B[n++] = b; if (b.s) c1++; else c0++;
   }
   B.length = n; d.f[0].n = c0; d.f[1].n = c1;
@@ -778,16 +843,10 @@ function stepDuel(d) {
   }
   L.length = n;
   for (const m of d.f) {
-    const e = d.f[1 - m.side];
     if (m.fl > 0) m.fl--;
     if (m.shieldCd > 0) m.shieldCd--;
     if (m.has.p && --m.healCd <= 0) { m.healCd = DUEL.healEvery; if (m.hp > 0 && m.hp < m.maxHp) { m.hp = Math.min(m.maxHp, m.hp + DUEL.heal); emit(d, { k: 'heal', side: m.side }); } }
-    if (m.has.s) {
-      if (m.sawCd > 0) m.sawCd--;
-      const dx = e.x - m.x, dy = e.y - m.y;
-      if (m.sawCd <= 0 && dx * dx + dy * dy < DUEL.sawReach * DUEL.sawReach) { m.sawCd = DUEL.sawEvery; hurt(d, e, 'S', (m.x + e.x) / 2, (m.y + e.y) / 2); }
-    }
-    if (m.has.n && --m.mineCd <= 0) { m.mineCd = DUEL.mineEvery; d.mines.push({ x: clamp(e.x + (d.R() - 0.5) * 90, 20, W - 20), y: clamp(e.y + (d.R() - 0.5) * 60, 50, H - 50), s: m.side, t: 0 }); }
+    if (m.has.n && --m.mineCd <= 0) { const e = aimAt(d, m); m.mineCd = DUEL.mineEvery; d.mines.push({ x: clamp(e.x + (d.R() - 0.5) * 90, 20, W - 20), y: clamp(e.y + (d.R() - 0.5) * 60, 50, H - 50), s: m.side, t: 0 }); }
   }
   n = 0;
   for (const mn of d.mines) {
@@ -798,16 +857,10 @@ function stepDuel(d) {
     d.mines[n++] = mn;
   }
   d.mines.length = n;
-  d.tick++; d.ptick++;
+  d.tick++;
   const a = d.f[0], b = d.f[1];
   if (a.hp <= 0 || b.hp <= 0) { d.over = a.hp <= 0 && b.hp <= 0 ? 'draw' : a.hp <= 0 ? 'bot' : 'top'; return; }
-  if (d.ptick >= PHASE_TICKS) {
-    let puffs = 0;
-    for (const q of B) if (puffs++ < 70) emit(d, { k: 'puff', x: q.x, y: q.y });
-    B.length = 0; L.length = 0; a.n = b.n = 0;
-    if (d.pi >= 2) { const pa = a.hp / a.maxHp, pb = b.hp / b.maxHp; d.over = Math.abs(pa - pb) < 0.005 ? 'draw' : pa > pb ? 'top' : 'bot'; }
-    else { d.pi++; resetDuelPhase(d); emit(d, { k: 'phase' }); }
-  }
+  if (d.tick >= T_DUEL) { const pa = a.hp / a.maxHp, pb = b.hp / b.maxHp; d.over = Math.abs(pa - pb) < 0.005 ? 'draw' : pa > pb ? 'top' : 'bot'; }
 }
 
 /* ---------- 공유 코드 ---------- */
@@ -848,7 +901,7 @@ function decode(str) {
   }
   name = cleanName(name) || '이름 없는 보스';
   if (ver === 4) {
-    if (!MOVE[parts[1]] || (parts[2] !== '0' && !/^[rsvlakwhbxjmqpfne]{1,5}$/.test(parts[2]))) return bad;
+    if (!MOVE[parts[1]] || (parts[2] !== '0' && !/^[rsvlcakwxhbjgdmfeqpn]{1,5}$/.test(parts[2]))) return bad;
     return { boss: prep({ name, legs: parts[1], items: parts[2] === '0' ? [] : [...parts[2]] }) };
   }
   const phases = [];
@@ -867,11 +920,11 @@ function decode(str) {
 
 /* ---------- 기본 데이터 ---------- */
 const SAMPLES = [
-  { tag: '에너지 탄막', boss: { name: '안개꽃', skin: 2, legs: 'c', items: ['r', 's', 'v', 'q', 'p'] } },
-  { tag: '금속 저격', boss: { name: '저격수', skin: 3, legs: 'z', items: ['a', 'l', 'k', 'n', 'e'] } },
-  { tag: '길막이', boss: { name: '문지기', skin: 5, legs: 'd', items: ['w', 'l', 'h', 'f', 'q'] } },
-  { tag: '근접', boss: { name: '쇠뿔', skin: 1, legs: 'c', items: ['r', 'x', 'j', 'm', 'q'] } },
-  { tag: '되받아치기', boss: { name: '거울이', skin: 4, legs: 'z', items: ['a', 'b', 'f', 'q', 'p'] } },
+  { tag: '에너지 탄막', boss: { name: '안개꽃', skin: 2, legs: 'd', items: ['r', 's', 'v', 'q', 'g'] } },
+  { tag: '금속 저격', boss: { name: '저격수', skin: 3, legs: 'z', items: ['a', 'k', 'x', 'j', 'd'] } },
+  { tag: '길막이', boss: { name: '문지기', skin: 5, legs: 'c', items: ['w', 'l', 'c', 'n', 'f'] } },
+  { tag: '금속 잡이', boss: { name: '자석왕', skin: 1, legs: 'z', items: ['h', 'b', 'm', 'p', 'e'] } },
+  { tag: '되받아치기', boss: { name: '거울이', skin: 4, legs: 'd', items: ['l', 'c', 'f', 'q', 'm'] } },
 ].map(t => ({ tag: t.tag, boss: prep(t.boss), code: encode(t.boss) }));
 const starterBoss = () => prep({ name: '내 보스', legs: 'z', items: ['r', 'a'] });
 const MASCOT = prep({ name: '볼트', skin: 0, legs: 'd', items: [] });
@@ -907,7 +960,7 @@ function addImported(code, quiet) {
 const targets = () => SAMPLES.concat(state.imported);
 /* 등록 검증은 피하기 난이도를 바꾸는 것(구동부, 무기 순서, 피하기용 장치)에만 묶인다 */
 const dodgeKey = b => b.legs + '|' + b.items.filter(k => ITEM[k].kind === 'w').join('') + '|' + b.gadgets.filter(k => DODGE_G.includes(k)).sort().join('');
-const dodgeLive = b => b.phases[2].length > 0 || b.gadgets.some(k => DODGE_G.includes(k));
+const dodgeLive = b => b.weapons.length > 0 || b.gadgets.some(k => DODGE_G.includes(k));
 const isVerified = () => !dodgeLive(state.boss) || state.verified === dodgeKey(state.boss);
 const shareReady = () => state.boss.items.length > 0 && isVerified();
 
@@ -951,17 +1004,13 @@ function drawBot(g, cx, cy, s, o) {
   g.lineJoin = 'round'; g.lineCap = 'round'; g.strokeStyle = INK;
   if (o.shadow) { g.fillStyle = 'rgba(12,10,30,.38)'; g.beginPath(); g.ellipse(0, 40 - bob, 24, 5, 0, 0, TAU); g.fill(); }
   if (gd.includes('n')) { g.fillStyle = '#4a3f73'; rrect(g, 13, -38, 17, 15, 4); g.fill(); g.lineWidth = 2.5; g.stroke(); g.fillStyle = '#ff5d5d'; g.beginPath(); g.arc(21.5, -31, 2.6, 0, TAU); g.fill(); }
-  if (gd.includes('r')) {
-    g.fillStyle = '#fff1b8'; g.lineWidth = 3;
-    for (const sx of [-1, 1]) { g.beginPath(); g.moveTo(sx * 13, -24); g.quadraticCurveTo(sx * 31, -29, sx * 31, -45); g.quadraticCurveTo(sx * 20, -37, sx * 25, -21); g.closePath(); g.fill(); g.stroke(); }
-  }
   const legs = o.legs || 'd';
   g.lineWidth = 2.5;
   if (legs === 'z') {
     for (const sx of [-15, 15]) { g.fillStyle = '#3b3557'; g.beginPath(); g.arc(sx, 28, 8.5, 0, TAU); g.fill(); g.stroke(); g.fillStyle = STEEL; g.beginPath(); g.arc(sx, 28, 3, 0, TAU); g.fill(); }
   } else if (legs === 'c') {
-    g.fillStyle = '#3b3557'; rrect(g, -27, 21, 54, 14, 7); g.fill(); g.stroke();
-    g.fillStyle = STEEL; for (const sx of [-17, 0, 17]) { g.beginPath(); g.arc(sx, 28, 3, 0, TAU); g.fill(); }
+    g.fillStyle = 'rgba(201,168,255,.35)'; g.beginPath(); g.ellipse(0, 31, 25, 6, 0, 0, TAU); g.fill();
+    g.strokeStyle = INK; g.lineWidth = 5; g.stroke(); g.strokeStyle = '#c9a8ff'; g.lineWidth = 2.4; g.stroke(); g.strokeStyle = INK; g.lineWidth = 2.5;
   } else {
     const fl = o.still ? 1 : 0.75 + 0.25 * Math.sin(t * 31);
     g.fillStyle = LED;
@@ -1012,13 +1061,17 @@ function drawBot(g, cx, cy, s, o) {
     g.strokeStyle = '#fff'; g.beginPath(); g.moveTo(-10, -7.5); g.lineTo(-5.5, -7.5); g.moveTo(-10, 7.5); g.lineTo(-5.5, 7.5); g.stroke();
     g.restore(); g.strokeStyle = INK;
   }
-  if (gd.includes('s')) {
-    g.lineWidth = 4.5; g.beginPath(); g.moveTo(32, 12 - pulse * 5); g.lineTo(42, 9); g.stroke();
-    g.save(); g.translate(44, 8); g.rotate(o.still ? 0.2 : t * 13);
-    g.beginPath(); for (let i = 0; i < 10; i++) { const a = i * TAU / 10; g.lineTo(Math.cos(a) * 13.5, Math.sin(a) * 13.5); g.lineTo(Math.cos(a + 0.36) * 9.5, Math.sin(a + 0.36) * 9.5); } g.closePath();
-    g.fillStyle = STEEL; g.fill(); g.lineWidth = 2.5; g.stroke();
-    g.fillStyle = STEEL_D; g.beginPath(); g.arc(0, 0, 3.6, 0, TAU); g.fill(); g.lineWidth = 2; g.stroke();
-    g.restore();
+  if (gd.includes('j')) {
+    g.fillStyle = STEEL; rrect(g, 30, -24, 16, 12, 4); g.fill(); g.lineWidth = 2.5; g.stroke();
+    g.lineWidth = 3.5; g.beginPath(); g.moveTo(38, -24); g.lineTo(38, -31); g.stroke();
+    g.fillStyle = '#ffb347'; g.beginPath(); g.arc(38, -18, 2.6, 0, TAU); g.fill();
+  }
+  if (gd.includes('g')) {
+    g.fillStyle = INK; g.beginPath(); g.arc(-37, -22, 7.5, 0, TAU); g.fill();
+    g.strokeStyle = '#c9a8ff'; g.lineWidth = 2.2; g.beginPath(); g.arc(-37, -22, 10.5, (o.still ? 0.6 : t * 4), (o.still ? 0.6 : t * 4) + 3.6); g.stroke(); g.strokeStyle = INK;
+  }
+  if (gd.includes('d')) {
+    g.strokeStyle = 'rgba(207,233,255,.9)'; g.lineWidth = 2.2; g.setLineDash([4, 4]); rrect(g, -38, -22, 58, 54, 16); g.stroke(); g.setLineDash([]); g.strokeStyle = INK;
   }
   if (gd.includes('p')) {
     const a = o.still ? -0.9 : t * 1.7, dx = Math.cos(a) * 41, dy = -31 + Math.sin(a) * 9;
@@ -1051,6 +1104,7 @@ function avatar(b, mood = 'idle') {
 }
 
 function icon(t) {
+  if (t === 'x') return gicon('s');
   const s = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
   let inner = '';
   if (t === 'r') {
@@ -1064,6 +1118,7 @@ function icon(t) {
   else if (t === 'h') inner = `<path d="M4 3c0 8 4 12 11 12M12 12l3 3-3 3" ${s}/>`;
   else if (t === 'b') { for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; inner += `<path d="M${(10 + 4.6 * Math.cos(a)).toFixed(1)} ${(10 + 4.6 * Math.sin(a)).toFixed(1)}L${(10 + 8.4 * Math.cos(a)).toFixed(1)} ${(10 + 8.4 * Math.sin(a)).toFixed(1)}" ${s}/>`; } inner += '<circle cx="10" cy="10" r="2.6" fill="currentColor"/>'; }
   else if (t === 'v') inner = `<path d="M2 7c2.700-4 5.300-4 8 0s5.300 4 8 0M2 14c2.700-4 5.300-4 8 0s5.300 4 8 0" ${s}/>`
+  else if (t === 'c') inner = `<path d="M10 2v16M3.100 6l13.800 8M16.900 6L3.100 14M10 5l-2-2M10 5l2-2M10 15l-2 2M10 15l2 2" ${s}/>`;
   else if (t === 'k') inner = '<circle cx="10" cy="10" r="6.8" fill="currentColor"/><circle cx="7.5" cy="7.5" r="1.7" fill="#fff"/>';
   else if (t === 'w') inner = [1, 5, 12, 16].map(x => `<rect x="${x}" y="8" width="3" height="4" fill="currentColor"/>`).join('') + `<path d="M10 3v4M10 13v4" ${s} stroke-dasharray="1.5 2"/>`;
   else inner = `<rect x="7.5" y="2" width="5" height="16" fill="currentColor"/><path d="M4 2v16M16 2v16" ${s} stroke-dasharray="2 2.5"/>`;
@@ -1076,7 +1131,9 @@ function gicon(k) {
     let d = '';
     for (let i = 0; i < 9; i++) { const a = i * Math.PI * 2 / 9; d += (i ? 'L' : 'M') + (10 + 8 * Math.cos(a)).toFixed(1) + ' ' + (10 + 8 * Math.sin(a)).toFixed(1) + 'L' + (10 + 5.4 * Math.cos(a + 0.4)).toFixed(1) + ' ' + (10 + 5.4 * Math.sin(a + 0.4)).toFixed(1); }
     inner = `<path d="${d}Z" ${s}/><circle cx="10" cy="10" r="1.6" fill="currentColor"/>`;
-  } else if (k === 'r') inner = `<path d="M4 16c1-7 4-11 10-13-1 5-1 9 2 13z" ${s}/>`;
+  } else if (k === 'j') inner = `<rect x="4" y="9" width="12" height="8" rx="2.500" ${s}/><path d="M10 9V3M7 3h6" ${s} stroke-width="2.600"/>`;
+  else if (k === 'g') inner = `<circle cx="10" cy="10" r="3.200" fill="currentColor"/><path d="M10 2.500a7.500 7.500 0 0 1 7.500 7.500M10 17.500A7.500 7.500 0 0 1 2.500 10" ${s}/>`;
+  else if (k === 'd') inner = `<rect x="3" y="5" width="9" height="10" rx="2.500" ${s} stroke-dasharray="2 2.200"/><rect x="8" y="5" width="9" height="10" rx="2.500" ${s}/>`;
   else if (k === 'm') inner = `<path d="M5 3v8a5 5 0 0 0 10 0V3" ${s} stroke-width="3.4"/><path d="M3.3 5.5h3.4M13.3 5.5h3.4" stroke="currentColor" stroke-width="1.4"/>`;
   else if (k === 'h') inner = `<path d="M10 2l7 2.6v5.2c0 4-3 6.800-7 8.200-4-1.400-7-4.200-7-8.200V4.600z" ${s}/>`;
   else if (k === 'p') inner = `<circle cx="10" cy="10" r="7.500" ${s}/><path d="M10 6v8M6 10h8" ${s} stroke-width="2.4"/>`;
@@ -1111,13 +1168,12 @@ function workshopHTML() {
   const b = state.boss, sel = state.slot;
   let h = '<h2 class="sec">구동부 <small>움직임과 체력이 정해져요</small></h2><div class="skills">';
   for (const k of Object.keys(MOVE)) h += `<button type="button" class="skillpick" data-act="legs" data-v="${k}" data-k="lg${k}" aria-pressed="${b.legs === k}"><b>${MOVE[k].name}</b><span>${MOVE[k].desc} · 체력 ${MOVE[k].hp}</span></button>`;
-  h += `</div><h2 class="sec gap">장비 <small>다섯 칸 · 무기는 끼운 순서대로 1·2·3페이즈부터 쏴요</small></h2><div class="loadout">`;
-  let wi = 0;
+  h += `</div><h2 class="sec gap">장비 <small>다섯 칸 · 끼우면 처음부터 전부 작동해요</small></h2><div class="loadout">`;
   for (let i = 0; i < SLOTS; i++) {
     const k = b.items[i];
     if (k) {
       const it = ITEM[k];
-      h += `<button type="button" class="gear" data-act="slot" data-i="${i}" data-k="slot${i}" aria-pressed="${sel === i}">${itile(k)}<b>${it.name}</b><span class="when">${it.kind === 'w' ? Math.min(++wi, 3) + '페이즈부터' : '장치'}</span></button>`;
+      h += `<button type="button" class="gear" data-act="slot" data-i="${i}" data-k="slot${i}" aria-pressed="${sel === i}">${itile(k)}<b>${it.name}</b><span class="when">${it.kind === 'w' ? MATNAME[it.mat] + ' 무기' : '장치'}</span></button>`;
     } else h += `<button type="button" class="gear empty" data-act="slot" data-i="${i}" data-k="slot${i}" aria-pressed="${sel === b.items.length && i === b.items.length}"><span class="plus">＋</span><span class="when">빈 칸</span></button>`;
   }
   h += '</div>';
@@ -1139,7 +1195,7 @@ function workshopHTML() {
   }
   const live = dodgeLive(b), ok = isVerified();
   h += `<div class="actions"><button type="button" class="b primary" data-act="verify" data-k="verify"${live && !ok ? '' : ' disabled'}>${!b.items.length ? '장비를 먼저 끼워요' : ok ? '등록 완료' : '직접 깨서 등록하기'}</button><button type="button" class="b" data-act="test" data-k="test"${live ? '' : ' disabled'}>연습 플레이</button></div>`;
-  h += `<div class="tip"><img src="${avatar(MASCOT)}" alt="" width="58" height="58"><p>장비만 끼우면 끝이야. 등록하려면 스킬 없이 내 보스를 한 번 깨면 돼. 하트 3개 안에만 버텨! 구동부나 무기를 바꾸면 다시 깨야 해.</p></div>`;
+  h += `<div class="tip"><img src="${avatar(MASCOT)}" alt="" width="58" height="58"><p>장비만 끼우면 끝이야. 등록하려면 스킬 없이 내 보스를 20초 버티면 돼. 하트 3개 안에만 버텨! 구동부나 무기를 바꾸면 다시 깨야 해.</p></div>`;
   return h;
 }
 
@@ -1147,7 +1203,7 @@ function workshopHTML() {
 function challengeHTML() {
   let h = '<h2 class="sec">스킬 고르기 <small>직접 피할 때 써요. 탄을 스치면 다시 충전돼요</small></h2><div class="skills">';
   for (const k of Object.keys(SKILL)) h += `<button type="button" class="skillpick" data-act="skill" data-v="${k}" data-k="sk${k}" aria-pressed="${state.skill === k}"><b>${SKILL[k].name}</b><span>${SKILL[k].desc}</span></button>`;
-  h += '</div><div class="starts"><button type="button" class="b primary big" data-act="start" data-k="start">직접 피하기<small>내가 30초 버텨요</small></button><button type="button" class="b fight big" data-act="duel" data-k="duel">보스 대결<small>내 보스가 싸워요</small></button></div><h2 class="sec">상대 고르기</h2><div class="targets">';
+  h += '</div><div class="starts"><button type="button" class="b primary big" data-act="start" data-k="start">직접 피하기<small>내가 20초 버텨요</small></button><button type="button" class="b fight big" data-act="duel" data-k="duel">보스 대결<small>내 보스가 싸워요</small></button></div><h2 class="sec">상대 고르기</h2><div class="targets">';
   targets().forEach((t, i) => {
     h += `<button type="button" class="target" data-act="target" data-i="${i}" data-k="tg${i}" aria-pressed="${i === state.target}"><img src="${avatar(t.boss)}" alt="" width="48" height="48"><b>${esc(t.boss.name)}</b><span class="tag">${t.tag}</span><span class="rec">${recText(state.records[t.code])}</span></button>`;
   });
@@ -1253,8 +1309,8 @@ function newRun() {
   const skl = COARSE ? ' 스킬은 오른쪽 아래 버튼.' : ' 스킬은 클릭이나 Space.';
   const go = `<p class="go">${COARSE ? '화면을 누르면 시작' : '클릭하거나 Space를 누르면 시작'}</p>`;
   overlay.innerHTML = verify
-    ? `${face('idle')}<h2>등록 검증</h2><p>스킬 없이 30초 버티기 · 하트 3개</p><p class="dim">${ctl} 한 번만 깨면 등록돼요.</p>${go}`
-    : `${face('idle')}<h2>${esc(play.boss.name)}</h2><p>30초 버티기 · 하트 3개</p><p class="dim">${ctl}${skl} 탄을 아슬아슬하게 스치면 쓴 스킬이 다시 충전돼요.</p>${go}`;
+    ? `${face('idle')}<h2>등록 검증</h2><p>스킬 없이 20초 버티기 · 하트 3개</p><p class="dim">${ctl} 한 번만 깨면 등록돼요.</p>${go}`
+    : `${face('idle')}<h2>${esc(play.boss.name)}</h2><p>20초 버티기 · 하트 3개</p><p class="dim">${ctl}${skl} 탄을 아슬아슬하게 스치면 쓴 스킬이 다시 충전돼요.</p>${go}`;
   overlay.hidden = false;
   $('#playHint').textContent = verify ? '스킬 없이 끝까지 버티면 등록돼요.' : COARSE ? '주황빨강은 전부 위험해요.' : 'Esc로 나가요.';
   updateSkillBtn();
@@ -1272,7 +1328,7 @@ function begin() {
   sndOn();
   scene.state = 'running'; scene.running = true; overlay.hidden = true; lastLeft = 0;
   setTimeout(() => sfx('go'), 60);
-  banner = { text: scene.kind === 'duel' ? '대결 시작' : '1페이즈', t: performance.now() / 1000 };
+  banner = { text: scene.kind === 'duel' ? '대결 시작' : '시작!', t: performance.now() / 1000 };
 }
 function finish() {
   const sim = scene.sim, win = sim.over === 'win';
@@ -1283,7 +1339,7 @@ function finish() {
     if (win) {
       state.verified = dodgeKey(state.boss); save();
       h = `${face('dizzy')}<h2>등록 완료</h2><p>${sim.hits ? `${sim.hits}번 맞고 버텼어요.` : '한 번도 안 맞았어요!'} 이제 공유 코드가 나와요.</p><div class="btns"><button type="button" class="b primary" data-ov="exit">작업실로</button></div>`;
-    } else h = `${face('laugh')}<h2>등록 실패</h2><p>${sim.failAt.phase + 1}페이즈 ${sim.failAt.sec.toFixed(1)}초에서 쓰러졌어요. 내가 못 깨는 보스는 등록할 수 없어요.</p><div class="btns"><button type="button" class="b primary" data-ov="again">다시</button><button type="button" class="b" data-ov="exit">그만두기</button></div>`;
+    } else h = `${face('laugh')}<h2>등록 실패</h2><p>${sim.failAt.sec.toFixed(1)}초에서 쓰러졌어요. 내가 못 깨는 보스는 등록할 수 없어요.</p><div class="btns"><button type="button" class="b primary" data-ov="again">다시</button><button type="button" class="b" data-ov="exit">그만두기</button></div>`;
   } else {
     if (play.mode === 'challenge') {
       const rec = state.records[play.code] || (state.records[play.code] = { tries: 0, clears: 0, best: 0 });
@@ -1293,7 +1349,7 @@ function finish() {
     const back = play.mode === 'test' ? '작업실로' : '나가기';
     h = win
       ? `${face('dizzy')}<h2>클리어</h2><p class="stars" aria-label="별 ${sim.hearts}개">${stars(sim.hearts)}</p><p>${sim.hits ? `${sim.hits}번 맞고 버텼어요.` : '한 번도 안 맞았어요.'} 스침 ${sim.graze}회.</p><div class="btns"><button type="button" class="b primary" data-ov="again">한 판 더</button><button type="button" class="b" data-ov="exit">${back}</button></div>`
-      : `${face('laugh')}<h2>격파 실패</h2><p>${sim.failAt.phase + 1}페이즈 ${sim.failAt.sec.toFixed(1)}초에서 쓰러졌어요.</p><div class="btns"><button type="button" class="b primary" data-ov="again">다시 도전</button><button type="button" class="b" data-ov="exit">${back}</button></div>`;
+      : `${face('laugh')}<h2>격파 실패</h2><p>${sim.failAt.sec.toFixed(1)}초에서 쓰러졌어요.</p><div class="btns"><button type="button" class="b primary" data-ov="again">다시 도전</button><button type="button" class="b" data-ov="exit">${back}</button></div>`;
   }
   overlay.innerHTML = h; overlay.hidden = false;
   const first = overlay.querySelector('button'); if (first) first.focus();
@@ -1305,7 +1361,7 @@ function newDuel() {
   acc = 0; fx.length = 0; banner = null; shake = 0; freeze = 0; dpulse[0] = dpulse[1] = 0; caps.length = 0;
   scene.lag = [d.f[0].maxHp, d.f[1].maxHp]; scene.bf = []; scene.first = false; scene.lead = 0; scene.leadT = 0; scene.fin = 0; scene.ko = false;
   const fig = (b, cap, cls) => `<figure class="${cls}"><img src="${avatar(b)}" alt="" width="84" height="84"><figcaption>${esc(cap)}</figcaption></figure>`;
-  overlay.innerHTML = `<div class="vs">${fig(play.boss, '나 · ' + (play.boss.name || '내 보스'), 'me')}<b>VS</b>${fig(play.foe, '상대 · ' + play.foe.name, 'foe')}</div><h2>보스 대결</h2><p>${MAPS[d.map.kind]}</p><p class="dim">내 탄은 파랑, 상대 탄은 주황빨강이에요. 먼저 쓰러뜨리거나, 30초 뒤 체력이 더 많이 남은 쪽이 이겨요.</p><p class="go">${COARSE ? '화면을 누르면 시작' : '클릭하거나 Space를 누르면 시작'}</p>`;
+  overlay.innerHTML = `<div class="vs">${fig(play.boss, '나 · ' + (play.boss.name || '내 보스'), 'me')}<b>VS</b>${fig(play.foe, '상대 · ' + play.foe.name, 'foe')}</div><h2>보스 대결</h2><p>${MAPS[d.map.kind]}</p><p class="dim">내 탄은 파랑, 상대 탄은 주황빨강이에요. 먼저 쓰러뜨리면 이겨요. 12초부터는 과열돼서 피해가 점점 커져요.</p><p class="go">${COARSE ? '화면을 누르면 시작' : '클릭하거나 Space를 누르면 시작'}</p>`;
   overlay.hidden = false;
   $('#playHint').textContent = '파랑이 나, 주황빨강이 상대예요.';
   updateSkillBtn();
@@ -1318,7 +1374,7 @@ function finishDuel() {
   rec[res] = (rec[res] || 0) + 1; save();
   const title = res === 'dw' ? '승리' : res === 'dl' ? '패배' : '무승부', mood = res === 'dw' ? 'laugh' : res === 'dl' ? 'dizzy' : 'idle';
   sfx(res === 'dw' ? 'win' : res === 'dl' ? 'lose' : 'phase');
-  const how = d.tick < PHASE_TICKS * 3 ? `${(d.tick / TPS).toFixed(1)}초 만에 끝났어요.` : '30초를 꽉 채웠어요.';
+  const how = d.tick < T_DUEL ? `${(d.tick / TPS).toFixed(1)}초 만에 끝났어요.` : '30초를 꽉 채웠어요.';
   overlay.innerHTML = `<img class="face" src="${avatar(play.boss, mood)}" alt="" width="96" height="96"><h2>${title}</h2><p>남은 체력 · 나 ${Math.round(me.hp / me.maxHp * 100)}% · 상대 ${Math.round(foe.hp / foe.maxHp * 100)}%</p><p class="dim">${how}</p><div class="btns"><button type="button" class="b primary" data-ov="again">새 맵으로 한 판 더</button><button type="button" class="b" data-ov="exit">나가기</button></div>`;
   overlay.hidden = false;
   const first = overlay.querySelector('button'); if (first) first.focus();
@@ -1461,10 +1517,10 @@ function drain(sim, now) {
     else if (e.k === 'bomb') { fx.push({ k: 'bomb', x: e.x, y: e.y, t: now }); sfx('boom'); }
     else if (e.k === 'burst') { ringFx(e.x, e.y, TEAM.foe.main, 6, 28, now); sfx('pop'); }
     else if (e.k === 'boom') { ringFx(e.x, e.y, '#ffa94d', 6, 38, now); sfx('boom'); }
+    else if (e.k === 'freeze') { ringFx(e.x, e.y, '#bfeaff', 8, 30, now); fx.push({ k: 'dmg', x: e.x, y: e.y, t: now, txt: '얼었다!', c: '#bfeaff' }); sfx('block'); }
+    else if (e.k === 'blink') { ringFx(e.x, e.y, '#c9a8ff', 8, 40, now); sfx('dash'); }
+    else if (e.k === 'holewarn') sfx('warn');
     else if (e.k === 'zap') sfx('zap');
-    else if (e.k === 'divewarn') sfx('warn');
-    else if (e.k === 'dive') sfx('dash');
-    else if (e.k === 'phase') { banner = { text: `${sim.phases[sim.pi] + 1}페이즈`, t: now }; sfx('phase'); }
     else if (e.k === 'skill') { updateSkillBtn(); sfx('skill'); }
     else if (e.k === 'charge') { updateSkillBtn(); ringFx(sim.p.x, sim.p.y, C.sun, 10, 36, now); sfx('charge'); }
   }
@@ -1564,6 +1620,20 @@ function drawBullets(g, B, pal) {
     g.fillStyle = pal.main; g.beginPath(); g.arc(b.x, b.y, r, 0, TAU); g.fill();
     g.fillStyle = STEEL; g.beginPath(); g.arc(b.x, b.y, r - 2.6, 0, TAU); g.fill();
     g.fillStyle = '#fff'; g.beginPath(); g.arc(b.x - r * 0.3, b.y - r * 0.3, r * 0.22, 0, TAU); g.fill();
+  }
+  for (const b of B) if (b.k === 'x') {
+    g.save(); g.translate(b.x, b.y); g.rotate(b.t * 0.45);
+    g.beginPath(); for (let i = 0; i < 9; i++) { const a = i * TAU / 9; g.lineTo(Math.cos(a) * 12.5, Math.sin(a) * 12.5); g.lineTo(Math.cos(a + 0.38) * 8.5, Math.sin(a + 0.38) * 8.5); } g.closePath();
+    g.fillStyle = pal.main; g.fill(); g.strokeStyle = INK; g.lineWidth = 2.2; g.stroke();
+    g.fillStyle = STEEL; g.beginPath(); g.arc(0, 0, 6, 0, TAU); g.fill(); g.fillStyle = INK; g.beginPath(); g.arc(0, 0, 1.8, 0, TAU); g.fill();
+    g.restore();
+  }
+  for (const b of B) if (b.k === 'c') {
+    g.save(); g.translate(b.x, b.y); g.rotate(b.t * 0.12);
+    g.beginPath(); g.moveTo(0, -10.5); g.lineTo(8, 0); g.lineTo(0, 10.5); g.lineTo(-8, 0); g.closePath();
+    g.fillStyle = pal.light; g.fill(); g.strokeStyle = INK; g.lineWidth = 2.2; g.stroke();
+    g.strokeStyle = pal.main; g.lineWidth = 2.4; g.beginPath(); g.moveTo(0, -5.5); g.lineTo(0, 5.5); g.moveTo(-4, 0); g.lineTo(4, 0); g.stroke();
+    g.restore();
   }
   /* 폭발: 눈 달린 미사일과 도화선 달린 포탄 */
   g.lineJoin = 'round';
@@ -1665,14 +1735,10 @@ function drawHud(g, sim) {
     heart(g, 19 + i * 20, 9, 15);
     g.fillStyle = i < sim.hearts ? C.coral : '#4a3f73'; g.fill(); g.strokeStyle = INK; g.lineWidth = 2.5; g.stroke();
   }
-  const segs = sim.phases.length, x0 = 92, x1 = 300, gap = 5, sw = (x1 - x0 - gap * (segs - 1)) / segs;
-  for (let s = 0; s < segs; s++) {
-    const x = x0 + s * (sw + gap), f = s < sim.pi ? 1 : s === sim.pi ? sim.ptick / PHASE_TICKS : 0;
-    pill(g, x, 11, sw, 11); g.fillStyle = '#4a3f73'; g.fill();
-    if (f > 0) { g.save(); g.clip(); g.fillStyle = C.sun; g.fillRect(x, 11, sw * f, 11); g.restore(); }
-    pill(g, x, 11, sw, 11); g.strokeStyle = INK; g.lineWidth = 2.5; g.stroke();
-  }
-  const remain = Math.max(0, ((segs - sim.pi) * PHASE_TICKS - sim.ptick) / TPS);
+  pill(g, 92, 11, 208, 11); g.fillStyle = '#4a3f73'; g.fill();
+  g.save(); g.clip(); g.fillStyle = C.sun; g.fillRect(92, 11, 208 * sim.tick / T_DODGE, 11); g.restore();
+  pill(g, 92, 11, 208, 11); g.strokeStyle = INK; g.lineWidth = 2.5; g.stroke();
+  const remain = Math.max(0, (T_DODGE - sim.tick) / TPS);
   const hot = remain <= 5 && remain > 0 && scene.state === 'running';
   g.font = `400 ${hot && !RM ? (17 + 4 * Math.abs(Math.sin(remain * Math.PI))).toFixed(1) : 17}px ` + FD; g.textAlign = 'right'; otext(g, remain.toFixed(1), 352, 18, hot ? C.coral : '#fff', 4);
   if (sim.slow > 0) { g.font = '400 14px ' + FB; g.textAlign = 'center'; otext(g, '슬로우', W / 2, 46, C.sun, 4); }
@@ -1684,6 +1750,19 @@ function drawHud(g, sim) {
   }
 }
 const vb = { x: BOSS.x, y: BOSS.y };
+function drawHole(g, x, y, q, color, now, reach) {
+  if (reach) { g.strokeStyle = color; g.globalAlpha = 0.35; g.lineWidth = 1.5; g.setLineDash([4, 6]); g.beginPath(); g.arc(x, y, reach, 0, TAU); g.stroke(); g.setLineDash([]); g.globalAlpha = 1; }
+  g.fillStyle = INK; g.beginPath(); g.arc(x, y, 13 * q, 0, TAU); g.fill();
+  g.strokeStyle = color; g.lineWidth = 3; g.lineCap = 'round';
+  for (let i = 0; i < 3; i++) { const a = (RM ? 0 : now * 5) + i * TAU / 3; g.beginPath(); g.arc(x, y, 19 * q, a, a + 1.3); g.stroke(); }
+  g.lineCap = 'butt';
+}
+function drawTurret(g, x, y, color) {
+  g.lineJoin = 'round'; g.strokeStyle = color; g.lineWidth = 7; rrect(g, x - 10, y - 8, 20, 16, 5); g.stroke();
+  g.fillStyle = STEEL; rrect(g, x - 10, y - 8, 20, 16, 5); g.fill(); g.strokeStyle = INK; g.lineWidth = 2.5; g.stroke();
+  g.lineWidth = 3.5; g.beginPath(); g.moveTo(x, y - 8); g.lineTo(x, y - 15); g.stroke();
+  g.fillStyle = color; g.beginPath(); g.arc(x, y, 3.4, 0, TAU); g.fill();
+}
 function render(now) {
   if (scene.kind === 'duel') { renderDuel(now); return; }
   const g = ctx, sim = scene.sim;
@@ -1693,24 +1772,25 @@ function render(now) {
   if (shake > 0) { ox = Math.sin(shake * 2.7) * shake * 0.5; oy = Math.cos(shake * 3.1) * shake * 0.4; shake--; }
   g.setTransform(view.scale, 0, 0, view.scale, ox * view.scale, oy * view.scale);
   if (sim) drawLasers(g, sim.lasers, now, TEAM.foe, ZONE_Y + 30);
-  const boss = sim ? sim.boss : scene.boss, bp = sim ? sim.b : BOSS;
-  vb.x += (bp.x - vb.x) * 0.45; vb.y += (bp.y - vb.y) * 0.45;
-  let mood = 'idle', jx = 0;
+  const boss = sim ? sim.boss : scene.boss, bp = sim ? sim.b : BOSS, snap = sim && sim.b.fade > 0;
+  vb.x = snap ? bp.x : vb.x + (bp.x - vb.x) * 0.45; vb.y = snap ? bp.y : vb.y + (bp.y - vb.y) * 0.45;
+  let mood = 'idle';
   if (scene.kind === 'play') { if (sim.over === 'win') mood = 'dizzy'; else if (sim.over === 'lose' || now < laughUntil) mood = 'laugh'; }
   if (sim) {
     for (const mn of sim.mines) {
       if (mn.t < 0.9) { g.strokeStyle = 'rgba(255,169,77,.85)'; g.lineWidth = 1.5; g.setLineDash([4, 4]); g.beginPath(); g.arc(mn.x, mn.y, 20, 0, TAU); g.stroke(); g.setLineDash([]); }
       mineSprite(g, mn.x, mn.y, mn.t >= 0.9, Math.floor(mn.t * 8) % 2);
     }
-    if (sim.b.dive === 1) {
-      jx = RM ? 0 : Math.sin(now * 70) * 2.5;
-      g.strokeStyle = 'rgba(255,107,107,.95)'; g.lineWidth = 2.5; g.setLineDash([8, 6]);
-      g.beginPath(); g.moveTo(vb.x, vb.y); g.lineTo(sim.b.tx, sim.b.ty); g.stroke(); g.setLineDash([]);
-      g.beginPath(); g.arc(sim.b.tx, sim.b.ty, 25, 0, TAU); g.stroke();
-    }
+    if (sim.hole) { const h = sim.hole, q = h.t < 0.7 ? h.t / 0.7 * 0.6 : 1; g.globalAlpha = h.t < 0.7 ? 0.6 : 1; drawHole(g, h.x, h.y, q, TEAM.foe.main, now, h.t >= 0.7 ? 125 : 0); g.globalAlpha = 1; }
+    if (sim.tur) drawTurret(g, sim.tur.x, sim.tur.y, TEAM.foe.main);
   }
-  drawBot(g, vb.x + jx, vb.y + 5, 1, { skin: SKINS[skinIndex(boss)], mood, pulse, t: now, still: RM, shadow: true, gadgets: gstr(boss), legs: boss.legs, team: TEAM.foe.main });
-  if (sim) { drawBullets(g, sim.bullets, TEAM.foe); drawPlayer(g, sim, now); }
+  g.globalAlpha = sim && sim.b.fade > 0 ? 1 - sim.b.fade / 14 : 1;
+  drawBot(g, vb.x, vb.y + 5, 1, { skin: SKINS[skinIndex(boss)], mood, pulse, t: now, still: RM, shadow: true, gadgets: gstr(boss), legs: boss.legs, team: TEAM.foe.main });
+  g.globalAlpha = 1;
+  if (sim) {
+    drawBullets(g, sim.bullets, TEAM.foe); drawPlayer(g, sim, now);
+    if (sim.p.slow > 0) { g.strokeStyle = '#bfeaff'; g.lineWidth = 2.5; g.setLineDash([3, 4]); g.beginPath(); g.arc(sim.p.x, sim.p.y, 14, 0, TAU); g.stroke(); g.setLineDash([]); }
+  }
   drawFx(g, now);
   if (scene.kind === 'play') drawHud(g, sim);
   if (scene.kind === 'idle') {
@@ -1788,9 +1868,9 @@ function fitText(g, str, max) {
   while (t.length > 1 && g.measureText(t + '…').width > max) t = t.slice(0, -1);
   return t + '…';
 }
-function drawDuelHud(g, d, sk) {
+function drawDuelHud(g, d) {
   g.textBaseline = 'middle'; g.lineJoin = 'round';
-  const lag = scene.lag;
+  const lag = scene.lag, hot = d.tick >= DUEL.heatFrom;
   for (const m of d.f) {
     const y = m.side ? H - 33 : 0;
     lag[m.side] = Math.max(m.hp, lag[m.side] - Math.max(0.5, (lag[m.side] - m.hp) * 0.06));
@@ -1805,30 +1885,38 @@ function drawDuelHud(g, d, sk) {
     pill(g, 100, y + 10.5, 168, 12); g.strokeStyle = INK; g.lineWidth = 2.5; g.stroke();
     g.font = '400 15px ' + FD; otext(g, String(Math.ceil(m.hp)), 275, y + 17.5, m.fl > 0 ? C.coral : '#fff', 4);
   }
-  const remain = Math.max(0, ((3 - d.pi) * PHASE_TICKS - d.ptick) / TPS);
-  g.font = '400 17px ' + FD; g.textAlign = 'right'; otext(g, remain.toFixed(1), 352, 18, d.pi === 2 ? C.coral : C.sun, 4);
+  const remain = Math.max(0, (T_DUEL - d.tick) / TPS);
+  g.font = '400 17px ' + FD; g.textAlign = 'right'; otext(g, remain.toFixed(1), 352, 18, hot ? C.coral : C.sun, 4);
   if (play && play.speed > 1) { g.font = '400 13px ' + FB; otext(g, `${play.speed}배속`, 352, H - 16, C.sun, 4); }
 }
 function drainDuel(d, now) {
+  const say = (m, txt, c) => fx.push({ k: 'dmg', x: m.x, y: m.y - 6, t: now, txt, c });
   for (const e of d.ev) {
     if (e.k === 'fire') { dpulse[e.side] = 1; sfx('fire'); }
     else if (e.k === 'puff' || e.k === 'spark') { if (fx.length < 170) fx.push({ k: 'puff', x: e.x, y: e.y, t: now }); }
     else if (e.k === 'hit') {
       const m = d.f[e.side], big = e.dmg >= 16;
-      fx.push({ k: 'pop', x: e.x, y: e.y, t: now }, { k: 'dmg', x: m.x, y: m.y - 6, t: now, txt: '-' + e.dmg });
+      fx.push({ k: 'pop', x: e.x, y: e.y, t: now }); say(m, '-' + e.dmg);
       if (!scene.first) { scene.first = true; cap('선제타!', now); }
       if (big) { cap('큰 한 방!', now); if (!RM) { shake = Math.max(shake, 9); freeze = Math.max(freeze, 3); } sfx('big'); }
       else { if (!RM) shake = Math.max(shake, 3); sfx('dmg'); }
     }
-    else if (e.k === 'block') { const m = d.f[e.side]; ringFx(m.x, m.y, LED, 26, 44, now); fx.push({ k: 'dmg', x: m.x, y: m.y - 6, t: now, txt: '막음', c: LED }); sfx('block'); }
+    else if (e.k === 'block') { const m = d.f[e.side]; ringFx(m.x, m.y, LED, 26, 44, now); say(m, '막음', LED); sfx('block'); }
     else if (e.k === 'heal') { const m = d.f[e.side]; fx.push({ k: 'dmg', x: m.x + 14, y: m.y - 2, t: now, txt: '+' + DUEL.heal, c: '#7dffb0' }); }
     else if (e.k === 'emp') { ringFx(e.x, e.y, '#c9a8ff', 16, DUEL.empR, now); sfx('emp'); }
     else if (e.k === 'boom') { ringFx(e.x, e.y, '#ffa94d', 6, 38, now); sfx('boom'); }
     else if (e.k === 'burst') { ringFx(e.x, e.y, '#fff', 6, 26, now); sfx('pop'); }
     else if (e.k === 'bump') { scene.bf[e.i] = 1; sfx('bump'); }
     else if (e.k === 'zap') sfx('zap');
-    else if (e.k === 'dash') { const m = d.f[e.side]; ringFx(m.x, m.y, '#fff1b8', 12, 30, now); sfx('dash'); }
-    else if (e.k === 'phase') { if (d.pi === 2) { banner = { text: '과열!', t: now }; cap(`피해 ${DUEL.heat}배`, now); } else banner = { text: `${d.pi + 1}페이즈`, t: now }; sfx('phase'); }
+    else if (e.k === 'blink') { ringFx(e.x, e.y, '#c9a8ff', 6, 30, now); sfx('dash'); }
+    else if (e.k === 'freeze') { ringFx(e.x, e.y, '#bfeaff', 10, 34, now); cap('꽁꽁!', now); }
+    else if (e.k === 'grab') { if (fx.length < 170) fx.push({ k: 'star', x: e.x, y: e.y, t: now }); sfx('bump'); }
+    else if (e.k === 'fling') { const m = d.f[e.side]; ringFx(m.x, m.y, STEEL, 14, 40, now); cap('되쏘기!', now); sfx('pop'); }
+    else if (e.k === 'decoy') { ringFx(e.x, e.y, '#cfe9ff', 8, 34, now); sfx('emp'); }
+    else if (e.k === 'hole') { ringFx(e.x, e.y, '#c9a8ff', 40, 12, now); sfx('warn'); }
+    else if (e.k === 'pickup') { ringFx(e.x, e.y, C.sun, 30, 12, now); cap('배터리 등장!', now); sfx('charge'); }
+    else if (e.k === 'oc') { ringFx(e.x, e.y, C.sun, 10, 60, now); cap(e.side ? '내 보스 과충전!' : '상대 과충전!', now); sfx('skill'); }
+    else if (e.k === 'heat') { banner = { text: '과열!', t: now }; cap('피해가 점점 커져요', now); sfx('phase'); }
   }
   d.ev.length = 0;
   const diff = d.f[1].hp / d.f[1].maxHp - d.f[0].hp / d.f[0].maxHp, lead = diff > 0.04 ? 1 : diff < -0.04 ? -1 : 0;
@@ -1858,24 +1946,37 @@ function renderDuel(now) {
   if (d.map.wind && !RM) {
     g.strokeStyle = 'rgba(255,255,255,.3)'; g.lineWidth = 2; g.lineCap = 'round'; g.beginPath();
     for (let i = 0; i < 8; i++) { const span = W + 60, x = ((now * d.map.wind * 4 + i * 83) % span + span) % span - 30, y = 212 + i * 15; g.moveTo(x, y); g.lineTo(x - Math.sign(d.map.wind) * 20, y); }
-    g.stroke();
+    g.stroke(); g.lineCap = 'butt';
   }
-  const sk = d.f.map(m => skinIndex(m.boss)), pals = [TEAM.foe, TEAM.me];
+  const pals = [TEAM.foe, TEAM.me];
   drawBumps(g, d);
   drawMines(g, d);
+  for (const m of d.f) if (m.hole) drawHole(g, m.hole.x, m.hole.y, Math.min(1, m.hole.t / 20, (DUEL.holeLife - m.hole.t) / 12 + 0.3), pals[m.side].main, now, DUEL.holeR);
+  if (d.pick) {
+    const pk = d.pick, bob = RM ? 0 : Math.sin(now * 5) * 2;
+    g.strokeStyle = C.sun; g.globalAlpha = 0.5; g.lineWidth = 2; g.beginPath(); g.arc(pk.x, pk.y, 19 + (RM ? 0 : Math.sin(now * 6) * 2), 0, TAU); g.stroke(); g.globalAlpha = 1;
+    g.fillStyle = C.sun; rrect(g, pk.x - 8, pk.y - 11 + bob, 16, 22, 4); g.fill(); g.strokeStyle = INK; g.lineWidth = 2.5; g.stroke();
+    g.fillStyle = INK; g.fillRect(pk.x - 3, pk.y - 14 + bob, 6, 3);
+    g.beginPath(); g.moveTo(pk.x + 1.5, pk.y - 6 + bob); g.lineTo(pk.x - 4, pk.y + 1 + bob); g.lineTo(pk.x, pk.y + 1 + bob); g.lineTo(pk.x - 1.5, pk.y + 7 + bob); g.lineTo(pk.x + 4, pk.y - 1 + bob); g.lineTo(pk.x, pk.y - 1 + bob); g.closePath(); g.fill();
+  }
   for (const s of [0, 1]) drawLasers(g, d.lasers.filter(l => l.s === s), now, pals[s], s ? 214 : 326);
   for (const s of [0, 1]) drawBullets(g, d.bullets.filter(b => b.s === s), pals[s]);
   for (const m of d.f) {
+    const tc = pals[m.side].main, skin = SKINS[skinIndex(m.boss)];
+    if (m.has.j) drawTurret(g, W - m.x, m.y + m.dir * 30, tc);
+    if (m.decoy) { g.globalAlpha = 0.42 + (RM ? 0 : 0.12 * Math.sin(now * 30)); drawBot(g, m.decoy.x, m.decoy.y, 0.62, { skin, mood: 'idle', t: now, still: true, gadgets: '', legs: m.boss.legs, team: tc }); g.globalAlpha = 1; }
     if (fin && scene.ko && m.hp <= 0 && fa > 0.1) { g.fillStyle = 'rgba(12,10,30,.5)'; g.beginPath(); g.ellipse(m.x, m.y + 8, 22, 10, 0, 0, TAU); g.fill(); continue; }
-    const tc = pals[m.side].main;
     g.globalAlpha = 0.22; g.fillStyle = tc; g.beginPath(); g.ellipse(m.x, m.y + 17, 27, 10, 0, 0, TAU); g.fill();
     g.globalAlpha = 1; g.strokeStyle = tc; g.lineWidth = 2.5; g.stroke();
+    if (m.oc > 0) { g.strokeStyle = C.sun; g.lineWidth = 3; g.setLineDash([6, 5]); g.beginPath(); g.arc(m.x, m.y, 27 + (RM ? 0 : Math.sin(now * 14) * 2), 0, TAU); g.stroke(); g.setLineDash([]); }
     let mood = 'idle', hop = 0;
     if (d.over) { mood = d.over === 'draw' ? 'idle' : (d.over === 'top') === (m.side === 0) ? 'laugh' : 'dizzy'; if (mood === 'laugh' && !RM) hop = -Math.abs(Math.sin(fa * 9)) * 7; }
     else if (m.fl > 0) mood = 'ouch';
-    g.globalAlpha = !d.over && m.fl > 0 && (m.fl >> 2) % 2 ? 0.6 : 1;
-    drawBot(g, m.x, m.y + hop, 0.62, { skin: SKINS[sk[m.side]], mood, pulse: dpulse[m.side], t: now + m.side * 1.3, still: RM, gadgets: m.g, st: m, legs: m.boss.legs, team: tc });
+    g.globalAlpha = (m.fade > 0 ? 1 - m.fade / 14 : 1) * (!d.over && m.fl > 0 && (m.fl >> 2) % 2 ? 0.6 : 1);
+    drawBot(g, m.x, m.y + hop, 0.62, { skin, mood, pulse: dpulse[m.side], t: now + m.side * 1.3, still: RM, gadgets: m.g, st: m, legs: m.boss.legs, team: tc });
     g.globalAlpha = 1;
+    for (let q = 0; q < m.cap; q++) { const a = now * 4 + q * TAU / DUEL.magCap, cx = m.x + Math.cos(a) * 25, cy = m.y + Math.sin(a) * 21; g.fillStyle = INK; g.beginPath(); g.arc(cx, cy, 5, 0, TAU); g.fill(); g.fillStyle = STEEL; g.beginPath(); g.arc(cx, cy, 3.4, 0, TAU); g.fill(); }
+    if (m.slowT > 0) { g.strokeStyle = '#bfeaff'; g.lineWidth = 3; g.setLineDash([4, 5]); g.beginPath(); g.arc(m.x, m.y, 24, 0, TAU); g.stroke(); g.setLineDash([]); g.fillStyle = 'rgba(191,234,255,.28)'; g.fill(); }
     if (m.side) {
       pill(g, m.x - 11, m.y + 27, 22, 13); g.fillStyle = tc; g.fill(); g.strokeStyle = INK; g.lineWidth = 2; g.stroke();
       g.font = '400 10px ' + FB; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = INK; g.fillText('나', m.x, m.y + 34);
@@ -1888,7 +1989,7 @@ function renderDuel(now) {
   }
   drawCrates(g, d);
   drawFx(g, now);
-  drawDuelHud(g, d, sk);
+  drawDuelHud(g, d);
   drawCaps(g, now);
   drawBanner(g, now);
 }
@@ -1921,7 +2022,7 @@ function frame(ms) {
     }
     if (n === 6) acc = 0;
     if (sc.kind === 'play' && sc.running) {
-      const sm = sc.sim, left = Math.ceil(((sm.phases.length - sm.pi) * PHASE_TICKS - sm.ptick) / TPS);
+      const left = Math.ceil((T_DODGE - sc.sim.tick) / TPS);
       if (left !== lastLeft) { lastLeft = left; if (left <= 5 && left > 0) sfx('tick'); }
     }
   }
