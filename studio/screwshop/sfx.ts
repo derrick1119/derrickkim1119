@@ -64,10 +64,10 @@ export const streakHz = (n: number) => {
 const SYNTH: Record<Cue, (t: number, v: number) => void> = {
   // 🔨 쾅 (🎨 §2.2+): A 쇠망치 깡 + T(190) 나무 쿵, +60ms 쇠머리 떨림 2번
   // ✏️ S054(🎨 손맛 · 오너 "망치를 잘 풀었을 때 타격감"): 3층 — 저음 쿵(+ 폰 스피커용 몸통) · 금속 깡 · 나무 와지끈 · 단계 v(0 헛쾅 · 1 · 2 · 3 연쇄/목표)
-  bonk(t, lv) {
-    const k = lv === 0 ? 0.5 : lv >= 2 ? 1.2 : 1, g = lv === 0 ? 0.3 : 1;
+  bonk(t, v) {
+    const lv = v % 4, ci = Math.min(4, Math.floor(v / 4)), k = lv === 0 ? 0.5 : lv >= 2 ? 1.2 : 1, g = lv === 0 ? 0.3 : 1;
     tone('sine', 150, 55, t, 0.12, 0.55 * k), tone('triangle', 420, 180, t, 0.06, 0.3 * k);
-    const p = Math.pow(2, (lv >= 2 ? (lv - 1) * 2 : 0) / 12); // 🧪 S054 🟡⑥: 단계마다 쇠 깡 +2반음(폰 스피커에서 갈리게)
+    const p = Math.pow(2, ((lv >= 2 ? (lv - 1) * 2 : 0) + [0, 2, 4, 7, 9][ci]) / 12); // 🧪 S054 🟡⑥: 단계마다 쇠 깡 +2반음 · ✏️ S055: 같은 톡 연쇄 쾅은 5음계로 오른다(와르르처럼)
     tone('sine', 1175 * p, 1175 * p, t, 0.28, 0.14 * g, master!, 0.002), tone('sine', 2950 * p, 2950 * p, t, 0.15, 0.07 * g), tone('sine', 4890 * p, 4890 * p, t, 0.06, 0.035 * g);
     hiss(t, 0.025, 0.22 * g, filt('bandpass', 3200, 1.5));
     for (const [d, f, a] of [[0, 1800, 0.25], [0.018, 2600, 0.18], [0.034, 1400, 0.12]]) hiss(t + d, 0.015, a * g, filt('bandpass', f, 4));
@@ -130,14 +130,16 @@ const SYNTH: Record<Cue, (t: number, v: number) => void> = {
     tone('sine', 1760, 1760, t + 0.1, 0.3, 0.14), tone('sine', 2640, 2640, t + 0.1, 0.3, 0.07);
   },
   blocked: (t) => void (tone('triangle', 300, 300, t, 0.035, 0.18), tone('triangle', 300, 300, t + 0.07, 0.035, 0.18)),
+  // ✏️ S055(🎨 손맛 P3): 짧은 마림바 5음(0.12초) — 화음은 셋째 별로 옮겼다(별 소리와 뭉개지지 않게)
   clear(t) {
-    for (let k = 0; k < 11; k++) mar(t + k * 0.035, streakHz(k + 1), 0.42 + k * 0.02);
-    for (const f of [1568, 2349, 3136]) tone('sine', f, f, t + 0.42, 0.7, 0.22 / 2);
-    hiss(t + 0.42, 0.5, 0.04, filt('highpass', 6000));
+    [523, 659, 784, 1047, 1319].forEach((f, k) => mar(t + k * 0.03, f, 0.45));
   },
+  // ✏️ S055: 별 꽂힘 도 · 미 · 솔(C6 E6 G6) · 셋째에 C7 + E7 '짠' · 못 딴 별(k < 0)은 빈 나무 톡
   star(t, k) {
-    const f = [1319, 1568, 2093][Math.max(0, Math.min(2, k))];
+    if (k < 0) return void tone('triangle', 520, 430, t, 0.05, 0.15);
+    const f = [1047, 1319, 1568][Math.min(2, k)];
     mar(t, f), tone('sine', f * 2.76, f * 2.76, t, 0.3, 0.1);
+    if (k >= 2) tone('sine', 2093, 2093, t + 0.02, 0.5, 0.1), tone('sine', 2637, 2637, t + 0.02, 0.5, 0.08);
   },
   jam(t) {
     const o = tone('sine', 880, 330, t, 0.42, 0.24), lfo = ac!.createOscillator(), lg = ac!.createGain();

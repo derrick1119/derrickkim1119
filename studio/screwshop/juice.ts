@@ -45,7 +45,7 @@ export class Juice {
       const life = 22 + this.rand() * 18;
       this.particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life, max: life, color, size: size * (0.6 + this.rand() * 0.8) });
     }
-    if (this.particles.length > 400) this.particles.splice(0, this.particles.length - 400);
+    if (this.particles.length > 180) this.particles.splice(0, this.particles.length - 180); // ✏️ S055(🎨 손맛 P3): 상한 400 → 180(렉)
   }
 
   /** 떠오르는 글자 (+1, 연쇄!, 건설!) */

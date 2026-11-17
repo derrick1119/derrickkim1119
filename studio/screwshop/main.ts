@@ -242,7 +242,7 @@ canvas.addEventListener('keydown', (e) => {
   if (e.key === ' ' || e.key.startsWith('Arrow') || e.key === 'Enter') e.preventDefault();
   if (!running) return;
   if (e.key.startsWith('Arrow')) (keys.add(e.key), (keyboard = true));
-  if ((e.key === ' ' || e.key === 'Enter') && !e.repeat && !closeCard(cursor)) (spaceDown = true), (keyboard = true), (pointer = { ...cursor });
+  if ((e.key === ' ' || e.key === 'Enter') && !e.repeat && !closeCard(cursor)) (spaceDown = true), (keyboard = true), (pointer = latch = { ...cursor }); // ✏️ S055(🧪 S054 ⚪⑫): 순간 누름도 한 틱은 누름(latch)
 });
 canvas.addEventListener('keyup', (e) => {
   keys.delete(e.key);

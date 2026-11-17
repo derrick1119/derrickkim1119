@@ -1803,7 +1803,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
         const C = d.T === undefined && d.H === undefined ? d.C : -1, txt = n === C ? `★ 연속 ${n}!` : n >= 11 ? `${n} 🔥` : n >= 8 ? `${n} 착착착!` : n === 5 ? '5 착착!' : String(n);
         const col = n === C || (n > 5 && n < 8) ? '#ffd166' : n >= 8 ? '#ffb347' : n === 5 ? '#ffd166' : n >= 3 ? '#bff7c4' : '#fff6e0';
         // ✏️ S020(🧪 S019 60): 같은 순간 '한 방 4+'가 뜨면 연속 숫자는 글 없이 터짐만(★ 연속 C 목표는 그대로)
-        if (n === C || !s.events.some((q) => q.kind === 'shot' && q.t === e.t && (q.n ?? 2) >= 4 && q.text !== 'bad')) fx.pop(max(R(0.1), min(w - R(0.1), x)), Y(BOX_Y + 0.03), txt, col, min(36, 14 + 2.6 * n), true);
+        if (n === C || !s.events.some((q) => q.kind === 'shot' && q.t === e.t && (q.n ?? 2) >= 4 && q.text !== 'bad')) fx.pop(max(R(0.1), min(w - R(0.1), x)), Y(BOX_Y + 0.03), txt, col, min(26, 12 + 1.6 * n), true); // ✏️ S055(🧪 S053 ⚪7 · S054 🟡④): 연달아 글을 작게 — 별과 무관
         if (n === C) fx.burst(x, y, '#ffd166', 12, 3.4, 2.4), fx.ring(x, y, '#ffd166', R(0.1), 3);
       }
     }
@@ -1823,7 +1823,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       fx.ring(x, y, 'rgba(60,35,15,.55)', R(0.11), 2), fx.ring(x, y, '#fff3c4', R(0.09), 5);
       if (lv >= 2) fx.ring(x, y, '#ffd166', R(0.16), 4), fx.burst(x, y, '#ffd166', lv === 3 ? 10 : 6, 4, 2);
       fx.burst(x, y, '#c98b4e', [6, 8, 10, 12][lv], 3.4, 2.6), fx.burst(x, y, '#ffffff', [2, 5, 5, 5][lv], 5, 1.2), fx.burst(x, y, '#ffe08a', lv ? 6 : 2, 4, 1.6);
-      fx.jolt(x - X(tr.cx), y - Y(tr.cy), [2, 5, 7, 9][lv]), fx.hold([0, 3, 4, 4][lv]), cue('bonk', lv);
+      const ci = s.events.filter((q) => q.kind === 'bonk' && q.t === e.t && (q.v ?? 0) <= (e.v ?? 0)).length - 1;
+      fx.jolt(x - X(tr.cx), y - Y(tr.cy), [2, 5, 7, 9][lv]), fx.hold([0, 3, 4, 4][lv]), cue('bonk', lv + 4 * ci); // ✏️ S055: 연쇄 순번 ci로 음이 오른다
       if (lv === 3) fx.blink('#fff1a8', 0.15);
     }
     if (e.kind === 'wind') (fx.memo.wind = t), fx.ring(x, y, '#ffd34d', R(0.08), 3), fx.burst(x, y, '#ffd34d', 10, 2.6, 1.8), say(x, y - R(0.13), e.text!, e.col!, 20, true), cue('wind'); // ✏️ S019(🧪 S018 65): 칸 · 🔒 나사 위 빈 곳에서
@@ -1961,16 +1962,14 @@ function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   // 카드 (아래에서 올라온다)
   const up = min(1, age / 12), oy = (1 - (1 - (1 - up) ** 3)) * R(0.1), cy0 = Y(1.13) + oy;
   ctx.save();
-  ctx.fillStyle = 'rgba(20,10,0,.45)';
-  bp(ctx);
-  ctx.roundRect(X(0.03), cy0 + R(0.01), X(0.94), Y(1.44) - Y(1.13), R(0.035));
-  ctx.fill();
-  const g = ctx.createLinearGradient(0, cy0, 0, cy0 + Y(0.31));
-  g.addColorStop(0, '#6e4a2a');
-  g.addColorStop(1, '#4b2f19');
+  // ✏️ S055(🎨 §3-15): 결과 카드와 같은 호두 명판 · 테만 붉게 · 갈색 그림자 두 겹
+  for (const [o, al] of [[1.6, 0.12], [1, 0.4]]) (ctx.fillStyle = `rgba(50,25,5,${al})`), bp(ctx), ctx.roundRect(X(0.03) + 4 * o, cy0 + 8 * o, X(0.94), Y(1.44) - Y(1.13), R(0.035)), ctx.fill();
+  const g = ctx.createLinearGradient(X(0.03), cy0, X(0.97), cy0 + Y(0.31));
+  g.addColorStop(0, '#7a4e2c');
+  g.addColorStop(1, '#4a2e18');
   ctx.fillStyle = g;
-  ctx.strokeStyle = '#c8955c';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(255,106,77,.6)';
+  ctx.lineWidth = 1.5;
   bp(ctx);
   ctx.roundRect(X(0.03), cy0, X(0.94), Y(1.44) - Y(1.13), R(0.035));
   ctx.fill();
@@ -1989,8 +1988,8 @@ function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   ctx.fillStyle = '#fff1d6';
   ctx.fillText(s.why, 0, 0);
   ctx.restore();
-  // 🧪 S003: 💡가 버튼에 잘리던 것 → 두 줄을 위로
-  for (const [txt, yy, sz, col] of [[line, 1.215, 0.033, '#ffd9a8'], [tip ? `💡 ${tip}` : '', 1.25, 0.028, '#fff1d6']] as const) {
+  // 🧪 S003: 💡가 버튼에 잘리던 것 → 위로 · ✏️ S055(🎨 §4-2 · 오너 "문장이 너무 많아"): 까닭 + 방법을 한 줄로(방법이 있으면 💡 방법만)
+  for (const [txt, yy, sz, col] of [[tip ? `💡 ${tip}` : line, 1.232, 0.032, tip ? '#fff1d6' : '#ffd9a8']] as const) {
     let f = sz;
     font(f, 800);
     while (ctx.measureText(txt).width > R(0.64) && f > 0.022) font((f -= 0.001), 800);
@@ -2002,13 +2001,20 @@ function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   ctx.save();
   ctx.translate(bx0 + bw / 2, by);
   ctx.scale(pul, pul);
+  ctx.fillStyle = '#b9741c';
+  bp(ctx);
+  ctx.roundRect(-bw / 2, -bh / 2 + 4, bw, bh, bh / 2);
+  ctx.fill();
   ctx.fillStyle = 'rgba(255,209,102,.3)';
   bp(ctx);
   ctx.roundRect(-bw / 2, -bh / 2, bw, bh, bh / 2);
   ctx.fill();
   ctx.save();
   ctx.clip();
-  ctx.fillStyle = '#ffd166';
+  const gb = ctx.createLinearGradient(0, -bh / 2, 0, bh / 2);
+  gb.addColorStop(0, '#ffd166');
+  gb.addColorStop(1, '#f0a83a');
+  ctx.fillStyle = gb;
   ctx.fillRect(-bw / 2, -bh / 2, bw * fill, bh);
   ctx.restore();
   font(0.05, 900);
@@ -2024,11 +2030,7 @@ function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
     font(0.031, 900);
     ctx.fillStyle = s.hint ? '#4a3420' : '#1f3a1c';
     ctx.fillText(s.hint ? '💡 귀띔 끄기 (★3 다시 열림)' : '💡 밤톨의 귀띔 (★3 없이)', cx, hy + 1);
-  } else {
-    font(0.027, 700);
-    ctx.fillStyle = 'rgba(255,236,210,.6)';
-    ctx.fillText('아무 데나 톡해도 다시', cx, Y(1.415) + oy);
-  }
+  } // ✏️ S055(🎨 §4-2): '아무 데나 톡해도 다시'는 지웠다 — 금 버튼이 차오르며 말한다
   ctx.restore();
 }
 
@@ -3193,6 +3195,11 @@ function drawHamster(ctx: CanvasRenderingContext2D, x: number, y: number, u: num
   let bob = sin(t * 0.08) * u * 0.015, tilt = 0, jump = 0;
   if (mood === 'wow') jump = max(0, sin(min(1, age / 14) * PI)) * u * 0.12;
   if (mood === 'cheer') jump = abs(sin(age * 0.18)) * u * 0.12;
+  if (s.phase === 'result' && s.ok) { // ✏️ S055(🎨 손맛 P3): 별이 꽂힐 때마다 폴짝(.14 → .19 → .24) · 그 뒤엔 작게 끄덕
+    const q = s.pt;
+    jump = q > 34 ? abs(sin(q * 0.12)) * u * 0.03 : 0;
+    for (let k = 0; k < s.got; k++) { const v = q - (10 + 7 * k); if (v >= 0 && v < 10) jump = max(jump, sin((v / 10) * PI) * u * (0.14 + 0.05 * k)); }
+  }
   if (mood === 'dizzy') tilt = sin(age * 0.12) * 0.25;
   if (mood === 'smug') tilt = -0.08;
   ctx.save();
@@ -3507,70 +3514,90 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
   // ✏️ S054(🎨 UI 정리 · 오너 "문장이 너무 많아서 정신 없어"): 판 시작 큰 글씨(판 이름 + '나사 N개를 다 풀어요')는 지웠다 — 위 띠 이름이 통 튄다
   // 실패: 판은 그대로 보이고 진 톡을 짚은 뒤 아래 카드 (🎨 §2.7 · 📐 되짚기)
   if (s.phase === 'result' && !s.ok) drawFail(ctx, s, X, Y, R, font);
-  // 결과
+  // 결과 — ✏️ S055(🎨 §3-14 · 손맛 P3 · 오너 "퍼즐을 해결했을 때의 쾌감"): 호두 명판 카드가 팝으로 뜨고, 별이 7틱 간격으로 위에서 꽂힌다(도 · 미 · 솔 · 셋째는 '짠') · 글은 놓친 별 한 줄 + 💡 한 줄
   if (s.phase === 'result' && s.ok) {
-    const age = s.pt, a = min(1, age / 10);
-    ctx.globalAlpha = a;
-    ctx.fillStyle = s.ok ? 'rgba(40,50,20,.62)' : 'rgba(70,20,20,.62)';
-    ctx.fillRect(0, Y(0.6), w, R(s.ok && s.got < 3 ? 0.39 : 0.26)); // 방법 줄 · ↺·다음 버튼까지
+    const age = s.pt, fx = juice(s), ch = R(s.got < 3 ? 0.39 : 0.26), cy0 = Y(0.6), q = min(1, age / 7), pop = age < 7 ? 1 + 2.70158 * (q - 1) ** 3 + 1.70158 * (q - 1) ** 2 : 1; // ease-out-back 0.3 → 1.08 → 1
+    ctx.save();
+    ctx.globalAlpha = min(1, age / 4);
+    ctx.translate(w / 2, cy0 + ch / 2);
+    ctx.scale(1, 0.3 + 0.7 * pop);
+    ctx.translate(-w / 2, -(cy0 + ch / 2));
+    for (const [o, al] of [[1.6, 0.12], [1, 0.4]]) (ctx.fillStyle = `rgba(50,25,5,${al})`), bp(ctx), ctx.roundRect(X(0.06) + 4 * o, cy0 + 8 * o, X(0.88), ch, R(0.04)), ctx.fill();
+    const wg = ctx.createLinearGradient(X(0.06), cy0, X(0.94), cy0 + ch);
+    wg.addColorStop(0, '#7a4e2c');
+    wg.addColorStop(1, '#4a2e18');
+    ctx.fillStyle = wg;
+    bp(ctx);
+    ctx.roundRect(X(0.06), cy0, X(0.88), ch, R(0.04));
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,209,102,.7)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,230,190,.12)';
+    ctx.fillRect(X(0.09), cy0 + 3, X(0.82), 1.5);
     ctx.textAlign = 'center';
-    font(s.ok ? 0.06 : 0.052, 900);
-    ctx.fillStyle = s.ok ? '#fff1a8' : '#ffd0c8';
-    ftx(ctx, s.ok ? (s.won ? '공방 완성! 🎉' : `${d.emoji} ${d.name} 완성!`) : s.why, w / 2, Y(0.66));
-    if (s.ok) {
-      for (let k = 0; k < 3; k++) {
-        const ag = age - 14 - k * 10, got = k < s.got;
-        if (ag < 0) continue;
-        const sc = got ? 1 + max(0, 1 - ag / 8) * 0.8 : 1;
-        font(0.08 * sc, 900);
-        ctx.fillStyle = got ? '#ffd166' : 'rgba(255,255,255,.35)';
-        ftx(ctx, got ? '★' : '☆', w / 2 + (k - 1) * R(0.1), Y(0.75));
-        if (got && (juice(s).memo['star' + k] ?? -1) < s.clearT) (juice(s).memo['star' + k] = s.clearT), juice(s).burst(w / 2 + (k - 1) * R(0.1), Y(0.75), '#ffe066', k === 2 ? 28 : 14, 3, 2.4), cue('star', k);
-      }
-      // 별 이유: 얻은 값 / 목표 (S002, 허들 ①)
-      const ok2 = d.B !== undefined ? S.bonks >= d.B : S.peak <= d.P, ok3 = d.B !== undefined ? s.got === 3 : star3(d, S);
-      // ✏️ S024(오너 "알기 쉽게"): ★2 · ★3을 두 줄로 — 받았으면 한 일, 놓쳤으면 무엇이 모자랐나(기호 없이) · 🔒 ★3은 다음에 배움 / 깜짝 ★3
-      const tx = starText(d, S), l2 = `${ok2 ? '✓' : '✗'} ★2 ${tx.r2}`;
-      const l3 = s.lock3 ? (ok3 ? `🎉 깜짝 ★3! ${tx.r3}` : '★3은 곧 배워요') : d.B !== undefined && !ok2 && S.peak <= d.P ? '✗ ★3은 ★2를 먼저 따야 해요' : `${ok3 ? '✓' : '✗'} ★3 ${tx.r3}`;
-      fit(0.038, 900, w - R(0.08), l2, l3);
-      ctx.fillStyle = ok2 ? '#c8ffc8' : '#ffb36b';
-      ftx(ctx, l2, w / 2, Y(0.8));
-      ctx.fillStyle = ok3 ? '#c8ffc8' : l3[0] === '★' ? '#fff1d6' : '#ffb36b';
-      ftx(ctx, l3, w / 2, Y(0.842));
-      if (s.got < 3) {
-        // 방법 한 줄 (🧪 S002 ③: ✗만 있고 '어떻게'가 없다)
-        fit(0.032, 800, w - R(0.06), `💡 ${tipLine(s.got === 2 && d.tip2 ? d.tip2 : d.tip)}`);
-        ctx.fillStyle = '#fff1d6';
-        ftx(ctx, `💡 ${tipLine(s.got === 2 && d.tip2 ? d.tip2 : d.tip)}`, w / 2, Y(0.882));
-      }
-      if (s.got < 3 && age > 30) {
-        // ↺ 다시 · 다음 ▶ — 버튼 안만 받는다(🧪 S002: 막 누르는 손이 카드를 읽기 전에 누른다)
-        const by = Y(RES_BY), bh = R(0.075);
-        ([[0.06, '↺ 다시 (★3 도전)', '#ffd166', '#3a2a00'], [0.53, s.won ? '끝내기 ▶' : '다음 판 ▶', 'rgba(255,248,236,.18)', '#fff8ec']] as const).forEach(([x0, txt, bg, fg]) => {
-          ctx.fillStyle = bg;
-          bp(ctx);
-          ctx.roundRect(X(x0), by - bh / 2, R(0.41), bh, bh / 2);
-          ctx.fill();
-          font(0.042, 900);
-          ctx.fillStyle = fg;
-          ftx(ctx, txt, X(x0) + R(0.205), by + 1);
-        });
+    font(0.058, 900);
+    ctx.fillStyle = '#fff6e0';
+    ftx(ctx, s.won ? '공방 완성! 🎉' : `${d.emoji} ${d.name} 완성!`, w / 2, Y(0.66));
+    for (let k = 0; k < 3; k++) {
+      const ag = age - 6 - k * 7, got = k < s.got, sx = w / 2 + (k - 1) * R(0.11), sy = Y(0.75);
+      if (ag < 0) continue;
+      const fall = ag < 4 ? (1 - (ag / 4) ** 2) * R(0.12) : 0, sc = ag < 4 ? 1.5 : ag < 6 ? 0.9 : 1, big = k === 2 && got ? 1.15 : 1;
+      font(0.08 * sc * big, 900);
+      ctx.fillStyle = got ? '#ffd166' : 'rgba(255,246,224,.3)';
+      ftx(ctx, got ? '★' : '☆', sx, sy - fall);
+      if (ag >= 4 && (fx.memo['star' + k] ?? -1) < s.clearT) {
+        fx.memo['star' + k] = s.clearT;
+        if (got) fx.burst(sx, sy - R(0.02), '#ffd166', k === 2 ? 16 : 8, 3.2, 2.2), fx.burst(sx, sy - R(0.02), '#ffffff', 4, 3, 1.6), fx.ring(sx, sy - R(0.02), '#ffd166', R(k === 2 ? 0.12 : 0.07), 3), fx.jolt(0, 1, k === 2 ? 3 : 2);
+        cue('star', got ? k : -1);
       }
     }
-    ctx.globalAlpha = 1;
+    // 글: ★3이면 없음(깜짝이면 한 단어) · 놓쳤으면 놓친 별 하나의 까닭 + 💡 방법
+    const ok2 = d.B !== undefined ? S.bonks >= d.B : S.peak <= d.P, ok3 = d.B !== undefined ? s.got === 3 : star3(d, S), tx = starText(d, S);
+    if (s.got === 3 && s.lock3) (font(0.04, 900), (ctx.fillStyle = '#ffd166'), ftx(ctx, '깜짝!', w / 2, Y(0.825)));
+    else if (s.got < 3) {
+      const miss = !ok2 ? `✗ ★2 ${tx.r2}` : s.lock3 ? '★3은 곧 배워요' : `✗ ★3 ${ok3 ? '' : tx.r3}`, tip = `💡 ${tipLine(s.got === 2 && d.tip2 ? d.tip2 : d.tip)}`;
+      fit(0.038, 900, w - R(0.16), miss);
+      ctx.fillStyle = miss[0] === '★' ? '#fff1d6' : '#ffb36b';
+      ftx(ctx, miss, w / 2, Y(0.82));
+      fit(0.032, 800, w - R(0.16), tip);
+      ctx.fillStyle = '#e8d3b0';
+      ftx(ctx, tip, w / 2, Y(0.862));
+    }
+    if (s.got < 3 && age > 30) {
+      // ↺ 다시 · 다음 ▶ — 버튼 안만 받는다(🧪 S002) · ✏️ S055 🎨: 주 버튼은 금 · 다른 하나는 나무 명판
+      const by = Y(RES_BY), bh = R(0.075);
+      ([[0.06, '↺ 다시 (★3 도전)', true], [0.53, s.won ? '끝내기 ▶' : '다음 판 ▶', false]] as const).forEach(([x0, txt, main]) => {
+        ctx.fillStyle = main ? '#b9741c' : '#3e2616';
+        bp(ctx);
+        ctx.roundRect(X(x0), by - bh / 2 + 4, R(0.41), bh, bh / 2);
+        ctx.fill();
+        const bg = ctx.createLinearGradient(0, by - bh / 2, 0, by + bh / 2);
+        bg.addColorStop(0, main ? '#ffd166' : '#b07a44');
+        bg.addColorStop(1, main ? '#f0a83a' : '#7a4c26');
+        ctx.fillStyle = bg;
+        bp(ctx);
+        ctx.roundRect(X(x0), by - bh / 2, R(0.41), bh, bh / 2);
+        ctx.fill();
+        font(0.042, 900);
+        ctx.fillStyle = main ? '#3a2200' : '#fff6e0';
+        ftx(ctx, txt, X(x0) + R(0.205), by + 1);
+      });
+    }
+    ctx.restore();
   }
   // ═════════ 아래 띠: 별 목표 · 안내 ═════════ (실패 카드가 뜨면 안 그린다)
-  if (!(s.phase === 'result' && !s.ok)) {
+  if (s.phase !== 'result') { // ✏️ S055(🎨 §4-2): 결과 · 실패 화면에서는 칩 줄 · 팁 줄을 그리지 않는다(카드와 같은 말)
     const E = A - 1.45, y2 = Y(1.3 + 0.35 * E), chips = [
-      { txt: starText(d, S).c1, st: s.phase === 'result' && s.ok ? true : null },
+      { txt: starText(d, S).c1, st: null },
       ...(d.B !== undefined
         ? [
             { txt: starText(d, S).c2, st: S.bonks >= d.B ? true : bonkDead(d, s.L, S) ? false : null },
-            { txt: starText(d, S).c3, st: S.peak > d.P || bonkDead(d, s.L, S) ? false : s.phase === 'result' && s.ok && s.got === 3 ? true : null }, // 🧪 S003: 빈칸은 지켰는데 ✗는 사실과 다름 → 🔒
+            { txt: starText(d, S).c3, st: S.peak > d.P || bonkDead(d, s.L, S) ? false : null }, // 🧪 S003: 빈칸은 지켰는데 ✗는 사실과 다름 → 🔒
           ]
         : [
-      { txt: starText(d, S).c2, st: S.peak > d.P ? false : s.phase === 'result' && s.ok ? true : null },
-      { txt: starText(d, S).c3, st: d.H !== undefined ? (S.shot >= d.H ? true : shotDead(d, s.L, S) ? false : null) : d.T !== undefined ? (tapDead(d, s.L, S) ? false : s.phase === 'result' && s.ok ? true : null) : S.best >= d.C ? true : streakDead(d, s.L, S) ? false : null }, // ✏️ S023: 연속도 ✗
+      { txt: starText(d, S).c2, st: S.peak > d.P ? false : null },
+      { txt: starText(d, S).c3, st: d.H !== undefined ? (S.shot >= d.H ? true : shotDead(d, s.L, S) ? false : null) : d.T !== undefined ? (tapDead(d, s.L, S) ? false : null) : S.best >= d.C ? true : streakDead(d, s.L, S) ? false : null }, // ✏️ S023: 연속도 ✗
           ]),
     ];
     if (s.lock3 && chips[2].st !== true) chips[2] = { txt: '★3 곧 배워요', st: null }; // ✏️ S024 사다리: 아직 안 배운 ★3은 잠금(따면 깜짝 ★)
