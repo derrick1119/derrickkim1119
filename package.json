@@ -6,6 +6,6 @@
   "description": "THE LAMP — 하나의 불빛, 여러 장르",
   "scripts": {
     "start": "node tools/serve.mjs",
-    "test": "npm --prefix games/little-nights test && npm --prefix games/day-and-night test && npm --prefix games/last-ember test"
+    "test": "npm --prefix games/little-nights test && npm --prefix games/day-and-night test && npm --prefix games/last-ember test && npm --prefix games/unlit-wood test"
   }
 }

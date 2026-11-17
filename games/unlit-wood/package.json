@@ -1,0 +1,12 @@
+{
+  "name": "the-lamp-unlit-wood",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "THE LAMP: 불 꺼진 숲 — 점토로 빚은 어두운 숲을 건너는 횡스크롤 어드벤처",
+  "scripts": {
+    "start": "node tools/serve.mjs",
+    "ghost": "node tools/ghosts.mjs -v",
+    "test": "node tools/ghosts.mjs && node tools/smoke.mjs"
+  }
+}
