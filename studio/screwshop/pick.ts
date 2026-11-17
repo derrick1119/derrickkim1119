@@ -12,7 +12,7 @@ import { STAGES, apply, bestMove, cloneSim, freeM, geometry, habitPick, newSim, 
 import { mulberry32, type Rng } from './rng.ts';
 
 /** 판별 칠 수 · 칠해 볼 sub 수(2판은 장인 ★3 칠이 96개 중 22개뿐이고 상한 3.9에 닿는 칠은 그 절반이라 384 — ✏️ S005) */
-export const N = 24, SCAN = [96, 1536, 96, 768, 768, 96, 1536, 1536, 768, 768, 4608, 768, 768, 768, 768, 3072, 768, 700, 768, 768, 768, 768, 768, 18432, 768, 768, 768, 768, 768, 768]; // 📐C S014: 2-5(id 17) 700 — 카드 짝 .79 → .86 // ✏️ S007: 2판 384 → 1536(진자 칠이 384칠 중 21칠뿐) · 📐 S007 7·8판 1536
+export const N = 24, SCAN = [96, 1536, 768, 768, 768, 96, 1536, 1536, 768, 768, 4608, 768, 768, 768, 768, 3072, 768, 700, 768, 768, 768, 768, 768, 18432, 768, 768, 768, 768, 768, 768]; // 📐C S014: 2-5(id 17) 700 — 카드 짝 .79 → .86 // ✏️ S007: 2판 384 → 1536(진자 칠이 384칠 중 21칠뿐) · 📐 S007 7·8판 1536
 
 /** 아무 나사나 빼는 사람이 이 판을 깰 확률 */
 function randomPass(L: Level, r: Rng, n: number) {
@@ -185,11 +185,8 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
     return v + (v >= 3.9 && smartSeen(L, d, true) !== 3 ? 0.5 : 0);
   },
   // 📐 3판 🔑: 막 누르기 클리어가 낮을수록 (장인 ★3 필수)
-  (L, d, r) => {
-    let m = 0;
-    for (let k = 0; k < 16; k++) m += playOut(L, d, mashOf(L, r)) ? 1 : 0;
-    return playOut(L, d, smartOf(L, d)) === 3 ? 3.95 - m / 16 : -9;
-  },
+  //   ✏️ S053(📐A S026 안 · 오너 승인 11-16 07:10 UTC "한 번에로 바꾸기 (추천)"): ★2 빈칸 1칸까지(P 2 → 1) + ★3 한 번에 4개(H4) → gate save · pv 5 · CAP ∞ · SCAN 768
+  (L, d, r) => gate(L, d, r, { save: true, pend: 1, hc: 1, mc: 1, pv: true, pvn: 5 }),
   // 📐 4판 📌🔨: 버릇 클리어 + 무작위 클리어 0.6까지(첫 못 판 숨통) (장인 ★3 필수)
   //   ✏️ S005: − 막 누르기 ★2 이상(0.1 넘는 만큼, 2판과 같은 꼴) — 후보 중 최고 → 상위 24로 바꾸자 0.17 → 0.21로 올라서
   //   📐 S008: 장인(funqa와 같은 눈)이 ★3 + 쏙 한 방 ≥ 3(날개 🔨 → 📌 🔨 연쇄)이 아니면 탈락 · 연쇄로 튄 나사가 장인 판에서 빈칸에 가면 −3(F14)
@@ -298,7 +295,7 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   (L, d, r) => gate(L, d, r, { pend: 12, hc: 1, mc: 22, full: true, pv: true, big: [3, 6], lead: 'reveal' }),
   () => -9, // id 29 자리(📐A 3-9 🎡)
 ];
-export const CAP = [Infinity, 4.5, 3.65, Infinity, 3.5, 2.95, 3.95, 2.95, Infinity, 2.95, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity];
+export const CAP = [Infinity, 4.5, Infinity, Infinity, 3.5, 2.95, 3.95, 2.95, Infinity, 2.95, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity];
 
 /** ✏️ S025(📋 A 갈래 · 오너 01:57 UTC 승인): ★3을 '한 번에 쏙 N'으로 통일한 판은 고르기만 통일 전 ★3으로 한다 — 실린 칠 · 지문(값 열 포함) 그대로.
  *  새 ★3은 장인 ★3 1.00 · 버릇 4종 ≤ .15를 실린 24칠로 따로 잰다(funqa · 테스트) */
