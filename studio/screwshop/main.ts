@@ -39,7 +39,7 @@ let s: ShopState = g.create(1), running = false, acc = 0, last = 0, keyboard = f
 let pointer: { x: number; y: number } | null = null, latch: { x: number; y: number } | null = null, cursor = { x: 0.5, y: 0.6 };
 const keys = new Set<string>();
 let learnSaved = -1;
-let W = 0, H = 0, steps = 0, slow = false; // slow: 슬로모 틱 번갈이(프레임을 넘어 유지해야 한다 — 프레임마다 되돌리면 60Hz에서 멈춘다)
+let W = 0, H = 0, steps = 0;
 const calm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // 소리·진동 (🎨 ART §5): 헤더 오른쪽 🔊 · 📳(진동 API가 있을 때만). 저장, M키. 첫 소리는 '시작' 누름에서
@@ -187,12 +187,11 @@ function loop(now: number) {
     steps++;
     // 히트스톱(🎨): 시뮬만 멈추고 연출은 흐른다. 누른 입력은 latch에 남아 다음 틱에 들어간다
     const j = peek(s);
-    if (j?.stop) {
+    if (j?.stop && s.phase !== 'result') { // ✏️ S054(🎨 R4): 결과 화면에서는 멈추지 않는다
       j.stop--;
       continue;
     }
-    // 마지막 나사 슬로모(🎨): 판이 다 풀리는 순간 40틱을 0.5배로
-    if (s.phase === 'settle' && s.ok && s.pt < 40 && !calm && (slow = !slow)) continue;
+    // ✏️ S054(🎨 손맛 R1 · 오너 "연출이 중간에 느려지거나"): 마지막 나사 슬로모(40틱 0.5배)는 지웠다 — 클리어의 정지는 마지막 쏙 5틱 하나
     const kx = (keys.has('ArrowRight') ? 1 : 0) - (keys.has('ArrowLeft') ? 1 : 0), ky = (keys.has('ArrowDown') ? 1 : 0) - (keys.has('ArrowUp') ? 1 : 0);
     cursor = { x: Math.max(0, Math.min(1, cursor.x + kx * 0.012)), y: Math.max(0, Math.min(1, cursor.y + ky * 0.012)) };
     if (spaceDown) pointer = { ...cursor };
@@ -225,6 +224,8 @@ canvas.addEventListener('pointerdown', (e) => {
   e.preventDefault();
   if (!running) return;
   keyboard = false;
+  const j = peek(s);
+  if (j) j.stop = 0; // ✏️ S054(🎨 R5): 손은 기다리지 않는다 — 누르면 멈춤 해제
   const p = toPoint(e);
   if (closeCard(p)) return;
   pointer = latch = p;

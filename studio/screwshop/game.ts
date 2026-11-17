@@ -39,7 +39,7 @@ const tools = () => A >= 1.62;
 const SR = 0.032, HIT = 0.075, SLOTS = 5, PEEK = 2;
 /** 판자 가장자리가 나사 머리를 덮는 정도: sd < COVER면 막힘, sd < HIDE면 아예 안 보임 */
 const COVER = 0.021, HIDE = -0.026;
-const COOL = 8, SPIN = 9, FLY = 17, RESULT_OK = 200, NEWS_T = 200;
+const COOL = 8, SPIN = 9, FLY = 17, RESULT_OK = 150, NEWS_T = 200; // ✏️ S054(🎨 R6): ★3 결과 200 → 150틱 · 톡하면 바로
 const STAR_PTS = 100, WIN_PTS = 100;
 
 // ───────────────────────────── 장난감(판): stages.ts ─────────────────────────────
@@ -674,6 +674,50 @@ export interface ShopState {
 }
 
 const ev = (s: ShopState, kind: string, x: number, y: number, text?: string, col?: string, v?: number, n?: number) => s.events.push({ t: s.t, kind, x, y, text, col, v, n });
+/** ✏️ S054(🎨 손맛): 쾅 단계 — 0 빈칸으로 간 헛쾅 · 1 · 2 같은 톡의 2번째 쾅이거나 그 톡에 상자 완성 · 3 같은 톡의 3번째 이상 */
+const bonkLv = (s: ShopState, e: Ev) => {
+  if (e.col === 'slot') return 0;
+  let i = 0, done = false;
+  for (const q of s.events) if (q.t === e.t) (q.kind === 'bonk' && (q.v ?? 0) <= (e.v ?? 0) && i++), q.kind === 'done' && (done = true);
+  return i >= 3 ? 3 : i === 2 || done ? 2 : 1;
+};
+/** 톱니 별(쾅 임팩트 · 배지) */
+function jag(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, rot: number) {
+  bp(ctx);
+  for (let j = 0; j < 20; j++) ctx.lineTo(x + cos(rot + (j * PI) / 10) * r * (j % 2 ? 0.66 : 1), y + sin(rot + (j * PI) / 10) * r * (j % 2 ? 0.66 : 1));
+  ctx.closePath();
+}
+/** ✏️ S054(🎨 손맛 P2): 쾅 그림 — 0~1틱 흰 임팩트 별(진갈 테) · 2~3틱 금빛 1.3배 · 0~20틱 '쾅' 배지(1.6 → 1배 · 14틱 뒤 사라짐). 글 '쾅!'을 대신한다 */
+function drawBonk(ctx: CanvasRenderingContext2D, x: number, y: number, R: (r: number) => number, u: number, lv: number) {
+  ctx.save();
+  ctx.lineJoin = 'round';
+  if (u < 4 && lv) {
+    jag(ctx, x, y, R(0.07) * (u < 2 ? 1 : 1.3), 0.3);
+    ctx.fillStyle = u < 2 ? '#ffffff' : '#ffe08a';
+    ctx.globalAlpha = u < 2 ? 1 : 0.6;
+    ctx.fill();
+    ctx.strokeStyle = '#3a2410';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  const r = R([0.08, 0.12, 0.15, 0.18][lv]) * (u < 4 ? 1.6 - 0.15 * u : 1), bx = x + R(0.05), by = y - R(0.07);
+  ctx.globalAlpha = u < 14 ? 1 : max(0, 1 - (u - 14) / 6);
+  ctx.translate(bx, by);
+  ctx.rotate(-0.15);
+  jag(ctx, 0, 0, r, 0);
+  ctx.fillStyle = lv ? '#ffe08a' : '#e8d9c0';
+  ctx.fill();
+  ctx.strokeStyle = lv === 3 ? '#ffffff' : '#3a2410';
+  ctx.lineWidth = lv === 3 ? 4 : 3;
+  ctx.stroke();
+  if (lv === 3) (ctx.strokeStyle = '#3a2410'), (ctx.lineWidth = 2), ctx.stroke();
+  ctx.fillStyle = '#3a2410';
+  ctx.font = `900 ${round(r * 0.78)}px system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('쾅', 0, r * 0.06);
+  ctx.restore();
+}
 function tip(s: ShopState, key: string, text: string) {
   if (s.tips.has(key) || s.newsQ.length) return;
   s.tips.add(key);
@@ -1249,7 +1293,7 @@ export const screwshop: GameDef<ShopState> = {
         }
         return;
       }
-      if (s.pt >= RESULT_OK) {
+      if (s.pt >= RESULT_OK || (release && s.pt > 24)) { // ✏️ S054(🎨 R6): ★3 카드도 톡하면 다음 판
         if (s.won) s.dead = true;
         else s.stage++, (s.sf = 0), (s.hint = false), newStage(s);
       }
@@ -1678,6 +1722,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
   if (!(s.phase === 'result' && !s.ok)) drawHamster(ctx, X(0.11), Y(1.235), R(0.19), s, t); // 실패 땐 카드 위에서 (🎨 §2.7)
   drawBird(ctx, s, X, Y, R, t);
   layer(ctx, 2, w, h); // ✏️ S054: 작업대 앞의 가장자리 어둡게(캐시)
+  // ✏️ S054(🎨 손맛): 쾅 그림 배지(20틱 · 판자 위 · 파티클 밑)
+  for (const e of s.events) if (e.kind === 'bonk' && e.v !== undefined && t >= e.v && t - e.v < 20) drawBonk(ctx, X(e.x), Y(e.y), R, t - e.v, bonkLv(s, e));
   // ═════════ 사건 연출 ═════════
   /** 떠오르는 글자: HUD·상자 줄을 가리지 않게 판 안으로, 겹치면 위로 비켜 */
   const say = (x: number, y: number, text: string, col: string, size: number, punch = false) => {
@@ -1708,7 +1754,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     if (e.kind === 'in') {
       // 🎨 §3 연속 쏙: 음계가 오르고, 상자 앞에 숫자가 커지며 뜬다
       const n = e.n ?? 1;
-      fx.burst(x, y, e.col!, 8, 2.6, 2.2), fx.burst(x, y, '#ffffff', 4, 2.6, 2.2), fx.hold(n >= 5 ? 3 : 2), cue('in', n);
+      fx.burst(x, y, e.col!, 8, 2.6, 2.2), fx.burst(x, y, '#ffffff', 4, 2.6, 2.2), cue('in', n); // ✏️ S054(🎨 R2): 쏙마다 멈추던 2~3틱을 지웠다(판 시간의 약 14%가 멈춰 '렉'처럼 보였다)
+      if (s.phase === 'settle' && s.ok && !s.events.some((o) => o.kind === 'in' && (o.v ?? 0) > (e.v ?? 0))) fx.hold(5), fx.kick(4), fx.ring(x, y, '#ffffff', R(0.12), 4), fx.ring(x, y, '#ffd166', R(0.2), 5), fx.burst(x, y, '#ffd166', 10, 3.6, 2.4), fx.blink('#ffffff', 0.18), cue('star', 2); // 🎨 손맛: 마지막 쏙 = 클리어의 유일한 정지
       if (n >= 5) fx.burst(x, y, '#ffd166', 4, 3, 2.2);
       if (n >= 8) fx.kick(1.5);
       if (n >= 2) {
@@ -1724,22 +1771,26 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       fx.burst(x, y, '#d6dde6', 6, 1.6, 1.6), fx.kick(1), cue('slot');
       if ((e.n ?? 0) >= 3) say(x, y + R(0.06), `연속 ${e.n} 끝`, '#d8c3a5', 13), cue('brk');
     }
-    if (e.kind === 'done') fx.burst(x, y, e.col!, 16, 4, 2.6), fx.burst(x, y, '#ffe066', 10, 4, 2.6), fx.ring(x, y, '#ffe066', R(0.16), 4), fx.kick(4), fx.hold(4), cue('done'); // '딸깍!' 글자는 연속 숫자와 겹쳐 뺐다(✏️ → 🎨)
-    if (e.kind === 'swing') fx.ring(x, y, '#ffffff', R(0.09), 3), fx.burst(x, y, '#e8cfa0', 6, 1.8, 1.8), say(x + R(0.05), y - R(0.05), e.text!, e.col!, 20), cue('swing');
+    if (e.kind === 'done') fx.burst(x, y, e.col!, 16, 4, 2.6), fx.burst(x, y, '#ffe066', 10, 4, 2.6), fx.ring(x, y, '#ffe066', R(0.16), 4), fx.kick(4), cue('done'); // '딸깍!' 글자는 연속 숫자와 겹쳐 뺐다(✏️ → 🎨)
+    if (e.kind === 'swing') fx.ring(x, y, '#ffffff', R(0.09), 3), fx.burst(x, y, '#e8cfa0', 6, 1.8, 1.8), s.events.some((q) => q.kind === 'bonk' && q.t === e.t) || say(x + R(0.05), y - R(0.05), e.text!, e.col!, 20), cue('swing'); // ✏️ S054: 망치 판자의 '빙글~'은 뺐다(쾅 배지가 대신)
     if (e.kind === 'fall') fx.kick(1.5), say(x, min(y, Y(1.05)), e.text!, e.col!, 20), cue('fall');
     if (e.kind === 'bonk') {
       // 🎨 §2.2+ 쾅: 맞은 나사가 빈칸으로 가면 작게
       fx.memo['bonk' + (e.n ?? 0)] = t;
-      const bad = e.col === 'slot';
-      fx.ring(x, y, '#fff3c4', R(0.09), 4), fx.burst(x, y, '#ffe08a', bad ? 6 : 14, 3.6, 2.4), fx.burst(x, y, '#c9ced6', 6, 3, 1.6), fx.burst(x, y, '#ffffff', 4, 5, 1.2);
-      fx.kick(bad ? 3 : 5), fx.hold(bad ? 2 : 4), say(x, y - R(0.06), bad ? '쾅' : '쾅!', bad ? '#e8d9c0' : '#ffe08a', bad ? 20 : 26), cue('bonk');
+      // ✏️ S054(🎨 손맛 P2 · 오너 "망치 타격감"): 단계 L0 헛쾅 · L1 · L2(같은 톡 2번째 · 상자 완성) · L3(3번째 이상) — 진갈 충격파 + 크림 고리 · 나무 조각 · 쇠 불꽃 · 망치 → 나사 방향 흔들림 · '쾅' 그림 배지(drawBonk) · 3층 소리
+      const lv = bonkLv(s, e), tr = plankXf(s, e.n ?? 0);
+      fx.ring(x, y, 'rgba(60,35,15,.55)', R(0.11), 2), fx.ring(x, y, '#fff3c4', R(0.09), 5);
+      if (lv >= 2) fx.ring(x, y, '#ffd166', R(0.16), 4), fx.burst(x, y, '#ffd166', lv === 3 ? 10 : 6, 4, 2);
+      fx.burst(x, y, '#c98b4e', [6, 8, 10, 12][lv], 3.4, 2.6), fx.burst(x, y, '#ffffff', [2, 5, 5, 5][lv], 5, 1.2), fx.burst(x, y, '#ffe08a', lv ? 6 : 2, 4, 1.6);
+      fx.jolt(x - X(tr.cx), y - Y(tr.cy), [2, 5, 7, 9][lv]), fx.hold([0, 3, 4, 4][lv]), cue('bonk', lv);
+      if (lv === 3) fx.blink('#fff1a8', 0.15);
     }
     if (e.kind === 'wind') (fx.memo.wind = t), fx.ring(x, y, '#ffd34d', R(0.08), 3), fx.burst(x, y, '#ffd34d', 10, 2.6, 1.8), say(x, y - R(0.13), e.text!, e.col!, 20, true), cue('wind'); // ✏️ S019(🧪 S018 65): 칸 · 🔒 나사 위 빈 곳에서
-    if (e.kind === 'thump') e.col === '#ffd166' ? (fx.kick(7), fx.hold(4), fx.ring(x, y, '#ffd166', R(0.14), 4), say(w / 2, y, e.text!, e.col!, 34, true), cue('crash', 3)) : (fx.kick(2), say(w / 2, y, e.text!, e.col!, 26)); // 🐹 쿵: 화면 흔들림 + 글자 · ✏️ S012 빈 쿵은 작게
+    if (e.kind === 'thump') e.col === '#ffd166' ? (fx.kick(7), fx.ring(x, y, '#ffd166', R(0.14), 4), say(w / 2, y, e.text!, e.col!, 34, true), cue('crash', 3)) : (fx.kick(2), say(w / 2, y, e.text!, e.col!, 26)); // 🐹 쿵: 화면 흔들림 + 글자 · ✏️ S012 빈 쿵은 작게
     if (e.kind === 'crash') {
       const i = e.n ?? 1;
       fx.burst(x, y, e.col!, 6 + 2 * i, 2.8 + 0.3 * i, 2.2), fx.burst(x, y, '#e9d3a6', 8, 2.4, 1.6), fx.ring(x, y, '#e9d3a6', R(0.05 + 0.01 * i), 3);
-      fx.kick(min(7, 2 + 1.5 * i)), fx.hold(2), cue('crash', i); // 🧪 S002: 멈춤 1 → 2
+      fx.kick(min(7, 2 + 1.5 * i)), cue('crash', i); // 🧪 S002: 멈춤 1 → 2
       if (e.text) say(x, y - R(0.06), e.text, '#ffb347', 26, true);
     }
     if (e.kind === 'air') fx.burst(x, y, '#e8dcc8', 6, 1.4, 1.6), say(x, y - R(0.04), e.text!, e.col!, 15), cue('blocked');
@@ -1749,17 +1800,17 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       if (bad) say(x, y, `한 번에 ${h}개`, '#d8c3a5', 16);
       else {
         const sz = h >= 5 ? min(40, 28 + 2 * h) : [0, 0, 20, 26, 32][h], col = h >= 5 ? '#ffffff' : ['', '', '#cfefff', '#8fe3ff', '#6fd6ff'][h];
-        if (h >= 7) say(w / 2, Y(0.62), `💥 한 번에 ${h}개!`, '#ffd166', 46, true), fx.hold(8), fx.blink('#fff1a8', 0.28), (fx.memo.big = t + 50); // 🧪 S007: 8판 💥7은 화면 가운데 금색 + 멈춤 · 50틱 동안 다른 말 숨김
-        else say(x, y, h >= 5 ? `💥 한 번에 ${h}개!` : h === 4 ? '한 번에 4개!!' : h === 3 ? '한 번에 3개!' : '한 번에 2개', col, sz, true); // 겹치면 비켜 선다(🧪 S001)
+        if (h >= 7) say(w / 2, Y(0.62), `💥 한 번에 ${h}개!`, '#ffd166', 46, true), fx.hold(6), fx.blink('#fff1a8', 0.28), (fx.memo.big = t + 50); // 🧪 S007: 8판 💥7은 화면 가운데 금색 + 멈춤 · 50틱 동안 다른 말 숨김
+        else if (h > 2 || !s.events.some((q) => q.kind === 'bonk' && q.t === e.t)) say(x, y, h >= 5 ? `💥 한 번에 ${h}개!` : h === 4 ? '한 번에 4개!!' : h === 3 ? '한 번에 3개!' : '한 번에 2개', col, sz, true); // 겹치면 비켜 선다(🧪 S001)
         fx.burst(x, y, '#8fe3ff', [0, 0, 6, 10, 16][min(4, h)] || 24, 3.4, 2.2);
-        if (h >= 3) fx.ring(x, y, '#8fe3ff', R(0.06 + 0.06 * min(3, h - 2)), 3 + min(2, h - 3)), fx.hold(min(5, h)), fx.kick(h >= 5 ? 7 : h === 4 ? 5 : 3), setMood(s, h >= 4 ? 'cheer' : 'wow');
+        if (h >= 3) fx.ring(x, y, '#8fe3ff', R(0.06 + 0.06 * min(3, h - 2)), 3 + min(2, h - 3)), fx.hold(h >= 5 ? 4 : 0), fx.kick(h >= 5 ? 7 : h === 4 ? 5 : 3), setMood(s, h >= 4 ? 'cheer' : 'wow');
         if (h >= 4) fx.burst(x, y, '#ffffff', h >= 5 ? 12 : 8, 4, 2), fx.blink('#dff6ff', h >= 5 ? 0.18 : 0.1);
         cue('shot', h);
       }
     }
-    if (e.kind === 'jack') fx.kick(6), fx.hold(4), fx.ring(x, y, '#ff6fa8', R(0.12), 5), fx.burst(x, y, '#ffd34d', 18, 3.6, 2.6), say(x, y - R(0.06), e.text!, e.col!, 30, true), cue('boing', 2); // 🤡 뿅: 흔들림 + 고리 + 글자(📐B S013)
-    if (e.kind === 'boing') fx.ring(x, y, '#ffd6a8', R(0.1), 5), fx.kick(4), fx.hold(4), say(x, y - R(0.05), e.text!, e.col!, 18), fx.burst(x, y, '#ffb36b', 16, 3.4, 2.4), cue('boing');
-    if (e.kind === 'tick') fx.burst(x, y, '#ffb36b', 14, 3, 2.2), fx.kick(3), fx.hold(2), say(x, y + R(0.07), e.text!, e.col!, 15), cue('tick');
+    if (e.kind === 'jack') fx.kick(6), fx.ring(x, y, '#ff6fa8', R(0.12), 5), fx.burst(x, y, '#ffd34d', 18, 3.6, 2.6), say(x, y - R(0.06), e.text!, e.col!, 30, true), cue('boing', 2); // 🤡 뿅: 흔들림 + 고리 + 글자(📐B S013)
+    if (e.kind === 'boing') fx.ring(x, y, '#ffd6a8', R(0.1), 5), fx.kick(4), say(x, y - R(0.05), e.text!, e.col!, 18), fx.burst(x, y, '#ffb36b', 16, 3.4, 2.4), cue('boing');
+    if (e.kind === 'tick') fx.burst(x, y, '#ffb36b', 14, 3, 2.2), fx.kick(3), say(x, y + R(0.07), e.text!, e.col!, 15), cue('tick');
     if (e.kind === 'key') fx.blink('#fff1a8', 0.25), say(w / 2, Y(0.62), e.text!, e.col!, 17), cue('key');
     // 🎨: 실패는 벌이 아니라 웃음 — 빨간 번쩍을 빼고 쟁반 나사가 '뻥' 튀어 오른다
     if (e.kind === 'jam') {
@@ -1772,7 +1823,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     if (e.kind === 'teach') say(w / 2, Y(1.235 + 0.35 * (A - 1.45)), e.text!, e.col!, 18, true); // ✏️ S024 짚기: 칩 줄 바로 위
     if (e.kind === 'stage') fx.blink('#fff6d6', 0.18);
     if (e.kind === 'clear') {
-      fx.burst(X(0.5), Y(0.75), '#ffe066', 46, 6, 3.2), fx.burst(X(0.5), Y(0.75), '#ff8fb1', 30, 5, 3), fx.ring(X(0.5), Y(0.75), '#ffe066', R(0.35), 6), fx.blink('#fff6c8', 0.25), fx.hold(6), cue('clear');
+      fx.burst(X(0.5), Y(0.75), '#ffe066', 46, 6, 3.2), fx.burst(X(0.5), Y(0.75), '#ff8fb1', 30, 5, 3), fx.ring(X(0.5), Y(0.75), '#ffe066', R(0.35), 6), fx.blink('#fff6c8', 0.25), cue('clear');
     }
     if (e.kind === 'fail') fx.kick(3), fx.blink('#ffe0b0', 0.1), cue('fail');
   }
@@ -1784,7 +1835,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       fx.memo['hit' + k] = s.startT;
       // 🎨: 덜컹은 작업대에 닿을 때 크게 — 큰 판자일수록 낮은 쿵
       const P = L.pl[k];
-      fx.kick(7), fx.hold(3), cue('thud', max(85, min(160, 170 - 600 * sqrt(P.hx * P.hy))));
+      fx.kick(7), cue('thud', max(85, min(160, 170 - 600 * sqrt(P.hx * P.hy))));
       fx.burst(X(f.x), Y(1.2), '#e9d3a6', 26, 3.6, 2.6);
     }
   }

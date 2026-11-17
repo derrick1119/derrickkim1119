@@ -17,6 +17,8 @@ export class Juice {
   flash = 0;
   /** 히트스톱: 남은 멈춤 틱 수 — 플레이어(main.ts)가 시뮬 틱을 이만큼 건너뛴다 (🎨 ART §2) */
   stop = 0;
+  /** ✏️ S054(🎨 손맛 R3 · 오너 "느려지거나 렉"): 멈춤이 끝나고 12틱 안에 온 멈춤은 무시 — 연달아 서는 '툭툭' 끊김을 없앤다 */
+  cd = 0;
   /** 줄어든 움직임(prefers-reduced-motion): 흔들림·번쩍·멈춤을 줄인다 */
   calm = false;
   flashColor = '#ffffff';
@@ -58,6 +60,15 @@ export class Juice {
     if (this.rings.length > 20) this.rings.shift();
   }
 
+  /** ✏️ S054(🎨 손맛): 방향 흔들림 — 맞은 쪽으로 밀렸다 돌아온다(망치 → 나사) */
+  jx = 0;
+  jy = 0;
+  ja = 0;
+  ju = 99;
+  jolt(dx: number, dy: number, a: number) {
+    const l = Math.hypot(dx, dy) || 1;
+    (this.jx = dx / l), (this.jy = dy / l), (this.ja = a * (this.calm ? 0.3 : 1)), (this.ju = 0);
+  }
   /** 화면 흔들림 */
   kick(amount: number) {
     this.shake = Math.max(this.shake, amount * (this.calm ? 0.3 : 1));
@@ -65,7 +76,9 @@ export class Juice {
 
   /** 히트스톱 n틱 */
   hold(n: number) {
-    if (!this.calm) this.stop = Math.max(this.stop, n);
+    if (this.calm || this.cd > 0 || n <= 0) return;
+    this.stop = Math.max(this.stop, n);
+    this.cd = n + 12;
   }
 
   /** 화면 번쩍 */
@@ -77,10 +90,16 @@ export class Juice {
   /** 그리기 전에 부른다: 흔들림 오프셋을 적용한다 (ctx.save가 되어 있어야 함) */
   begin(ctx: CanvasRenderingContext2D) {
     if (this.shake > 0.3) ctx.translate((this.rand() - 0.5) * this.shake * 2, (this.rand() - 0.5) * this.shake * 2);
+    if (this.ju < 14) {
+      const o = this.ja * 0.78 ** this.ju * Math.cos(1.6 * this.ju);
+      ctx.translate(this.jx * o, this.jy * o);
+    }
   }
 
   /** 1/60초 한 조각만큼 움직인다 (🎨: 120Hz 폰에서 파티클이 2배 빨리 사라지던 것 — 화면 프레임이 아니라 시간으로) */
   private advance() {
+    if (this.cd > 0) this.cd--;
+    this.ju++;
     this.shake *= 0.86;
     for (const r of this.rings) (r.life--, (r.r += (r.max - r.r) * 0.18));
     for (const p of this.particles) {

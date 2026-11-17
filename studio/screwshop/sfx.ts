@@ -63,11 +63,15 @@ export const streakHz = (n: number) => {
 
 const SYNTH: Record<Cue, (t: number, v: number) => void> = {
   // 🔨 쾅 (🎨 §2.2+): A 쇠망치 깡 + T(190) 나무 쿵, +60ms 쇠머리 떨림 2번
-  bonk(t) {
-    thud(t, 190);
-    tone('sine', 1175, 1175, t, 0.28, 0.14, master!, 0.002), tone('sine', 3243, 3243, t, 0.12, 0.06), tone('sine', 6345, 6345, t, 0.04, 0.03);
-    hiss(t, 0.025, 0.22, filt('bandpass', 3200, 1.5));
-    for (const d of [0.06, 0.09]) hiss(t + d, 0.012, 0.06, filt('bandpass', 5000, 3));
+  // ✏️ S054(🎨 손맛 · 오너 "망치를 잘 풀었을 때 타격감"): 3층 — 저음 쿵(+ 폰 스피커용 몸통) · 금속 깡 · 나무 와지끈 · 단계 v(0 헛쾅 · 1 · 2 · 3 연쇄/목표)
+  bonk(t, lv) {
+    const k = lv === 0 ? 0.5 : lv >= 2 ? 1.2 : 1, g = lv === 0 ? 0.3 : 1;
+    tone('sine', 150, 55, t, 0.12, 0.55 * k), tone('triangle', 420, 180, t, 0.06, 0.3 * k);
+    tone('sine', 1175, 1175, t, 0.28, 0.14 * g, master!, 0.002), tone('sine', 2950, 2950, t, 0.15, 0.07 * g), tone('sine', 4890, 4890, t, 0.06, 0.035 * g);
+    hiss(t, 0.025, 0.22 * g, filt('bandpass', 3200, 1.5));
+    for (const [d, f, a] of [[0, 1800, 0.25], [0.018, 2600, 0.18], [0.034, 1400, 0.12]]) hiss(t + d, 0.015, a * g, filt('bandpass', f, 4));
+    tone('triangle', 900, 500, t, 0.03, 0.2 * g);
+    if (lv >= 3) tone('sine', 2093, 2093, t + 0.02, 0.4, 0.06), hiss(t + 0.05, 0.015, 0.18, filt('bandpass', 2200, 4));
   },
   // 🔑 드르륵 (🎨 §2.2+): 긴 래칫 12번(22ms, 1600→3800Hz) + 태엽 윙
   wind(t) {
@@ -150,7 +154,7 @@ const SYNTH: Record<Cue, (t: number, v: number) => void> = {
 
 /** 진동 패턴 (🎨 §2 — 안드로이드만, 지원 안 되면 무시) */
 const BUZZ: Partial<Record<Cue, number | number[]>> = {
-  bonk: [35, 25, 15],
+  bonk: [50, 30, 25],
   crash: 25,
   wind: [8, 20, 8, 20, 8, 20, 8],
   press: 8, twist: [6, 28, 6, 28, 6], pluck: 10, slot: 20, pull: 10, done: [25, 30, 15], swing: [10, 70, 10], thud: 40,
