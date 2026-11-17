@@ -673,7 +673,7 @@ export interface ShopState {
   sf: number; hint: boolean; /** 도구 줄 🗺️ 판 → main.ts가 판 고르기를 연다(✏️ S013) */ menu?: boolean; hintK?: string; hintM?: number; /** 💡 켠 때의 톡 수(✏️ S015) — 그 뒤 톡 0이면 도구 줄로 끌 수 있다 */ hintN?: number;
   /** 실패 되짚기(📐 S003): 톡마다 그 전 상태·결과 · 진 이유 */
   hist: Hist[]; blame: Why | null;
-  seen: Set<string>; tips: Set<string>; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[]; startT: number; clearT: number;
+  seen: Set<string>; tips: Set<string>; /** ✏️ S061: 이 판에 띄운 소개 띠 수(≤ 2) */ bandN: number; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[]; startT: number; clearT: number;
   pv: PV[]; fl: Fl[]; vb: VBox[]; lv: { col: number; bi: number; t0: number }[]; vs: { col: number; at: number; x: number }[]; ready: number[];
   mood: string; moodT: number; bird: number;
   /** ✏️ S024 배움: 배운 별 종류(KB 비트 · main.ts가 저장) · 이 판에서 가르치는 칸 · ★3 🔒 · 짚기 기준값 */
@@ -730,12 +730,12 @@ function drawBonk(ctx: CanvasRenderingContext2D, x: number, y: number, R: (r: nu
   ctx.restore();
 }
 function tip(s: ShopState, key: string, text: string) {
-  if (s.tips.has(key) || s.newsQ.length) return;
+  if (s.tips.has(key) || s.newsQ.length || s.bandN >= 2) return; // ✏️ S061(⑩ · 🧪 S059 🟡⑤): 판마다 띠는 2번까지
   s.tips.add(key);
   s.newsQ.push(text);
 }
 function see(s: ShopState, key: string, text: string) {
-  if (s.seen.has(key)) return;
+  if (s.seen.has(key) || s.bandN + s.newsQ.length >= 2) return; // ✏️ S061(⑩): 판마다 띠는 2번까지 — 넘치는 소개는 안 본 것으로 두어 뒤 판에서 다시
   s.seen.add(key);
   s.newsQ.push(text);
 }
@@ -783,6 +783,7 @@ function newStage(s: ShopState) {
   s.cardOff = false;
   s.newsQ = []; // ✏️ S058(🧪 S058 🔴①): 앞 판 · 1-1 띠가 다음 판으로 넘어오지 않게
   s.news = null;
+  s.bandN = 0;
   setMood(s, 'idle');
   teachOf(s);
   see(s, d.key, d.news);
@@ -1275,7 +1276,7 @@ export const screwshop: GameDef<ShopState> = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'play', pt: 0, known: 0,
       down: false, ax: 0, ay: 0, press: -1, cool: 0, lastTap: -99, taps: 0,
       hearts: 3, stars: 0, got: 0, bestSt: [], bestPts: [], retries: 0, sf: 0, hint: false, hist: [], blame: null, pts: 0, ok: false, why: '', won: false, dead: false, tries: 0,
-      seen: new Set<string>(), tips: new Set<string>(), events: [], news: null, newsQ: [], startT: 0, clearT: 0, learn: 0, teach: 0, lock3: false, tv: 0, taught: false, sg: 0, starFx: null, cardOff: false, cardBox: null,
+      seen: new Set<string>(), tips: new Set<string>(), bandN: 0, events: [], news: null, newsQ: [], startT: 0, clearT: 0, learn: 0, teach: 0, lock3: false, tv: 0, taught: false, sg: 0, starFx: null, cardOff: false, cardBox: null,
       pv: [], fl: [], vb: [], lv: [], vs: [], ready: [], mood: 'idle', moodT: 0, bird: 0,
     } as unknown as ShopState;
     newStage(s);
@@ -1287,7 +1288,7 @@ export const screwshop: GameDef<ShopState> = {
     s.down = !!p;
     s.t++;
     s.pt++;
-    if (s.newsQ.length && (!s.news || s.t - s.news.t > NEWS_T)) s.news = { text: s.newsQ.shift()!, t: s.t };
+    if (s.newsQ.length && (!s.news || s.t - s.news.t > NEWS_T)) (s.news = { text: s.newsQ.shift()!, t: s.t }), s.bandN++;
     if (s.events.length > 50 || (s.events.length && s.t - s.events[0].t > 200)) s.events = s.events.filter((e) => s.t - e.t < 200);
     animate(s);
     if (s.mood !== 'idle' && s.t - s.moodT > (s.mood === 'dizzy' || s.mood === 'cheer' ? 400 : 70)) s.mood = s.S.slots.length >= 3 ? 'worry' : 'idle';
@@ -2284,6 +2285,23 @@ function tickBadge(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
 }
 /** ✏️ S056: 나사 머리 그림 캐시(색 | 화면 반지름 px) */
 const SCR = new Map<string, HTMLCanvasElement>();
+/** ✏️ S061(🧪 S060 🟡④): 황동 자물쇠 그림 — 잠긴 나사와 안 배운 ★3 칩이 함께 쓴다(🔒 이모지 대신) */
+function drawLock(ctx: CanvasRenderingContext2D, lx: number, ly: number, lw: number, sw: number) {
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = sw;
+  bp(ctx);
+  ctx.arc(lx, ly - lw * 0.35, lw * 0.32, PI, 0);
+  ctx.stroke();
+  ctx.fillStyle = '#ffcf3a';
+  ctx.strokeStyle = '#7a5a10';
+  ctx.lineWidth = 1;
+  bp(ctx);
+  ctx.roundRect(lx - lw * 0.45, ly - lw * 0.35, lw * 0.9, lw * 0.7, lw * 0.12);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#5a4008';
+  ctx.fillRect(lx - lw * 0.06, ly - lw * 0.15, lw * 0.12, lw * 0.28);
+}
 function drawScrew(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, col: number, rot: number, o: { lock?: boolean; key?: boolean; t: number; hot?: boolean; tick?: number }) {
   const c = col >= 0 ? COLS[col] : '#9aa0a8';
   if (o.key) {
@@ -2343,24 +2361,9 @@ function drawScrew(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
     ctx.arc(x, y, r * 1.45 + sin(o.t * 0.4) * 1.5, 0, TAU);
     ctx.stroke();
   }
-  if (o.lock) {
-    const lx = x + r * 0.7, ly = y + r * 0.55, lw = r * 0.85;
-    ctx.strokeStyle = '#555';
-    ctx.lineWidth = max(1.5, r * 0.16);
-    bp(ctx);
-    ctx.arc(lx, ly - lw * 0.35, lw * 0.32, PI, 0);
-    ctx.stroke();
-    ctx.fillStyle = '#ffcf3a';
-    ctx.strokeStyle = '#7a5a10';
-    ctx.lineWidth = 1;
-    bp(ctx);
-    ctx.roundRect(lx - lw * 0.45, ly - lw * 0.35, lw * 0.9, lw * 0.7, lw * 0.12);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = '#5a4008';
-    ctx.fillRect(lx - lw * 0.06, ly - lw * 0.15, lw * 0.12, lw * 0.28);
-  }
+  if (o.lock) drawLock(ctx, x + r * 0.7, y + r * 0.55, r * 0.85, max(1.5, r * 0.16));
   if (o.tick) tickBadge(ctx, x, y, r, o.tick, o.t);
+
   if (o.key) {
     const kx = x + r * 0.95, ky = y - r * 0.95;
     ctx.fillStyle = '#ffd34d';
@@ -3594,7 +3597,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
   s.cardBox = null; // ✏️ S027 🟡③: 카드가 그려진 프레임에만 자리가 있다
   const t = s.t, S = s.S;
   /** ✏️ S024: 가장 긴 글이 mw를 넘으면 그만큼 글자를 줄인다(칩 · 배우기 줄 · 결과) */
-  const fit = (sz: number, wgt: number, mx: number, ...tx: string[]) => { font(sz, wgt); const m = max(...tx.map((x) => mw(ctx, x))); if (m > mx) ctx.font = `${wgt} ${max(10, (max(12, R(sz)) * mx) / m)}px system-ui, sans-serif`; };
+  const fit = (sz: number, wgt: number, mx: number, ...tx: string[]) => { font(sz, wgt); const m = max(...tx.map((x) => mw(ctx, x))); if (m > mx) ctx.font = `${wgt} ${max(12, (max(12, R(sz)) * mx) / m)}px system-ui, sans-serif`; /* ✏️ S061(옛 ⑯ · 🧪 S060): 하한 10 → 12px */ };
   const hb = R(0.068);
   ctx.fillStyle = 'rgba(25,15,8,.82)';
   ctx.fillRect(0, 0, w, hb);
@@ -3769,10 +3772,10 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       ctx.fillStyle = '#fff6e0';
       const say = (txt: string) => (ftx(ctx, txt, x, cy + 1), (x += mw(ctx, txt) + R(0.015)));
       if (hint) say('💡 ✕');
-      else if (lock) say('🔒');
+      else if (lock) drawLock(ctx, x + R(0.02), cy + R(0.008), R(0.04), 2);
       else if (kd === 'bonk') say('🔨'), dots(x, cy, d.B!, min(S.bonks, d.B!), false);
       else if (kd === 'gap') d.P > S.peak ? dots(x, cy, d.P - S.peak, 0, true) : /* ✏️ S059(🧪 S058 🟡④): 빈칸은 '남은 여유'만 — 쓰면 구멍이 사라지고 다 쓰면 ⊘(쾅 핍 '차면 좋다'와 반대로 안 읽히게) */ (dots(x, cy, 1, 0, true), (ctx.strokeStyle = '#ff6a4d'), (ctx.lineWidth = 2), bp(ctx), ctx.moveTo(x + R(0.004), cy + R(0.009)), ctx.lineTo(x + R(0.022), cy - R(0.009)), ctx.stroke());
-      else if (kd === 'shot') drawScrew(ctx, x + R(0.017), cy, R(0.017), 1, 0, { t }), (x += R(0.04)), say(`×${d.H}`); // ✏️ S060(🧪 S058 ⚪⑨): 🔩 이모지 대신 게임 속 나사
+      else if (kd === 'shot') drawScrew(ctx, x + R(0.017), cy, R(0.017), -1, 0, { t }), (x += R(0.04)), say(`×${d.H}`); // ✏️ S060(🧪 S058 ⚪⑨): 🔩 이모지 대신 게임 속 나사
       else if (kd === 'tap') say(`👆 ${max(0, d.T! - S.taps)}`);
       else say(`🔩🔩 ${min(S.streak, d.C)}/${d.C}`);
       if (st !== null && !hint) (ctx.textAlign = 'right'), (ctx.fillStyle = st ? '#8ee07a' : '#ff6a4d'), ftx(ctx, st ? '✓' : '✕', gx + gw - R(0.03), cy + 1);

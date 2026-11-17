@@ -93,7 +93,8 @@ function watch(dt: number, at: number) {
     if (++ok >= 2) (probe = 0), store.set('rs', cap * 100); // 창 둘 연달아 매끈 → 저장
     return;
   }
-  if (saved < 2 && !fell && !probed && slow === 0 && store.get('rsTry') < 1 && ++clean >= 4) return (probed = true), (probe = cap), (ok = 0), (cap = cap < 1.5 ? 1.5 : 2), size();
+  if (saved < 2 && !fell && !probed && slow === 0 && store.get('rsTry') < 1 && ++clean >= 4 && s.phase === 'play' && s.taps === 0) // ✏️ S061(🧪 S059 🟡③): 올려 보기는 판 시작(첫 톡 전)에만 — 결과 · 리빌 한가운데서 멈칫하지 않게
+    return (probed = true), (probe = cap), (ok = 0), (cap = cap < 1.5 ? 1.5 : 2), size();
   if (slow < 0.08 || now <= 1) return;
   if (probed) store.set('rsTry', store.get('rsTry') + 1); // 올려 본 뒤 다시 내려간다 → 실패
   fell = true;

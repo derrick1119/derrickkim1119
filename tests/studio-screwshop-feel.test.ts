@@ -56,3 +56,26 @@ describe('결과 카드 한 줄(✏️ S060 · 🧪 S060 🔴 · M2′ 오너 "�
     }
   });
 });
+
+describe('글자 크기 · 소리(✏️ S061 · M3 ③ 옛 ⑯ · ⑤)', () => {
+  it('390 폭에서 글자 하한 12px · 칩 숫자 ≥ 17px · 도구 버튼 ≥ 19px', () => {
+    const g = src('game.ts');
+    expect([...g.matchAll(/const font = \(sz: number[^\n]*max\((\d+), R\(sz\)\)/g)].map((m) => +m[1]).every((v) => v >= 12)).toBe(true);
+    expect(g).toMatch(/const fit = [^\n]*max\(12, \(max\(12, R\(sz\)\)/);
+    const chip = g.slice(g.indexOf("font(0.038, 900);\n      ctx.fillStyle = '#ffd166';"), g.indexOf("if (hint) say('💡 ✕')"));
+    expect(+(/font\((0\.\d+), 900\);\n      ctx\.fillStyle = '#fff6e0'/.exec(chip)?.[1] ?? 0) * 390).toBeGreaterThanOrEqual(17);
+    const tool = g.slice(g.indexOf("btnPlank(ctx, bx, ty - bh / 2, bw, bh, gold);"));
+    expect(+(/font\((0\.\d+), 900\)/.exec(tool)?.[1] ?? 0) * 390).toBeGreaterThanOrEqual(19);
+  });
+
+  it('소리 신호마다 합성이 다르다(같은 소리 둘 0) · 리빌 소리(슈욱 · 똑)도 있다', () => {
+    const f = src('sfx.ts'), body = f.slice(f.indexOf('const SYNTH'), f.indexOf('\n};', f.indexOf('const SYNTH')));
+    const keys = [...body.matchAll(/^  (\w+)\(t/gm)].map((m) => m[1]);
+    const parts = body.split(/^  \w+\(t[^)]*\) \{$/m).slice(1).map((x) => x.replace(/\/\/.*$/gm, '').replace(/\s+/g, ''));
+    expect(keys).toEqual(expect.arrayContaining(['bonk', 'star', 'clear', 'snap', 'rise', 'fail', 'jam', 'in']));
+    expect(parts.length).toBeGreaterThanOrEqual(keys.length - 1);
+    expect(keys.length).toBeGreaterThan(15);
+    expect(new Set(parts).size).toBe(parts.length);
+  });
+});
+
