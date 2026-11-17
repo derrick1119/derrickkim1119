@@ -788,6 +788,8 @@ function newStage(s: ShopState) {
   teachOf(s);
   see(s, d.key, d.news);
   if (d.wind) s.seen.add('wind'); // ✏️ S061(🧪 S059 🟡⑤): 1-3 태엽 소개가 판 이름 띠와 두 번 뜨던 것
+  if (d.thump) s.seen.add('thump'); // ✏️ S061(🧪 S061 ⚪⑥): 1-6 쿵도 같은 말 두 번이었다
+  if (d.news.startsWith('🧺')) s.seen.add('slot'); // ✏️ S061(🧪 S061 🟡③): 1-1 첫 띠가 '5칸 다 차면 실패'(톡 → 같은 색 상자는 타이틀 타일 · 첫 손가락이 말함)
   if (s.teach) { const tx = starText(d, s.S); s.newsQ.push(tipLine(s.teach === 2 ? tx.l2 : tx.l3)); } // ✏️ S054(🎨 UI 정리): 별 카드 대신 배우는 별 한 줄을 소개 띠에 한 번(새 장치 소개 다음)
   ev(s, 'stage', 0.5, 0.7, `${d.slot} · ${d.name}`, '#fff6d6');
 }
@@ -1064,7 +1066,7 @@ function playRec(s: ShopState, rec: RE[]) {
       continue;
     }
     if (e.k === 'fall') {
-      if (L.pl[e.p].heavy && !rec.some((c) => c.k === 'crash')) see(s, 'log0', L.pl[e.p].deco === 'seeds' ? '🌻 우수수 0 — 꽃잎을 나사 하나로 매단 뒤 꽃 머리를!' : '🪵 와르르 0 — 돛을 나사 하나로 매단 뒤 활대를!'); // 📐 S002 · S005
+      if (L.pl[e.p].heavy && !rec.some((c) => c.k === 'crash')) see(s, 'log0', L.pl[e.p].deco === 'seeds' ? '🌻 우수수 0 — 꽃잎을 나사 하나로 매단 뒤 꽃 머리를!' : '🪵 와르르 0 — 판자를 나사 하나로 매단 뒤 통나무를!'); // 📐 S002 · S005
       const pv = s.pv[e.p], tr = plankXf(s, e.p), sp = L.pl[e.p].kind === 'spring';
       const lever = pv.pose > 0 ? pv.vp : 0;
       pv.pose = -1;

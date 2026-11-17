@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { Juice } from '../studio/screwshop/juice.ts';
 import { STAGES, missGoal, starKinds } from '../studio/screwshop/game.ts';
+import { bonkSemi } from '../studio/screwshop/sfx.ts';
 
 /** 그리기 호출을 모두 삼키는 가짜 캔버스(멈춤 · 쿨다운 틱만 본다) */
 const ctx = new Proxy({}, { get: () => () => undefined, set: () => true }) as unknown as CanvasRenderingContext2D;
@@ -86,6 +87,27 @@ describe('누르는 자리(✏️ S061 · M3 ③ 터치 ≥ 44px)', () => {
     const up = +m![1], down = +m![2];
     expect((up + down) * 390).toBeGreaterThanOrEqual(44);
     expect(up).toBeLessThanOrEqual(0.02);
+  });
+});
+
+describe('쾅 음높이(✏️ S061 · M3 ⑤ · 오너 "망치를 잘 풀었을 때 타격감")', () => {
+  it('홑 쾅은 단계마다 ≥ +2반음, 같은 톡 연쇄 쾅은 쾅마다 오른다', () => {
+    expect(bonkSemi(2) - bonkSemi(1)).toBeGreaterThanOrEqual(2);
+    expect(bonkSemi(3) - bonkSemi(2)).toBeGreaterThanOrEqual(2);
+    for (let ci = 1; ci < 4; ci++) expect(bonkSemi(4 * (ci + 1) + 1)).toBeGreaterThan(bonkSemi(4 * ci + 1));
+  });
+});
+
+describe('판 고르기 그림(✏️ S061 · 🧪 S061 🔴②)', () => {
+  it('첫 그림만 남겨도 VS16을 지켜 흑백 글리프가 되지 않는다', () => {
+    const m = src('main.ts');
+    expect(m).toContain('/^\\p{Extended_Pictographic}\\uFE0F?/u.exec(d.emoji)');
+    const first = (e: string) => /^\p{Extended_Pictographic}\uFE0F?/u.exec(e)?.[0] ?? e;
+    for (const d of STAGES) if (d.emoji.includes('\uFE0F') && d.emoji.indexOf('\uFE0F') === [...d.emoji][0].length) expect(first(d.emoji).endsWith('\uFE0F'), d.slot).toBe(true);
+  });
+
+  it('배율 올려 보기는 이번 판 첫 톡 전에만(세션 톡 수가 아니라)', () => {
+    expect(src('main.ts')).toContain("s.phase === 'play' && s.S.taps === 0");
   });
 });
 

@@ -93,7 +93,7 @@ function watch(dt: number, at: number) {
     if (++ok >= 2) (probe = 0), store.set('rs', cap * 100); // 창 둘 연달아 매끈 → 저장
     return;
   }
-  if (saved < 2 && !fell && !probed && slow === 0 && store.get('rsTry') < 1 && ++clean >= 4 && s.phase === 'play' && s.taps === 0) // ✏️ S061(🧪 S059 🟡③): 올려 보기는 판 시작(첫 톡 전)에만 — 결과 · 리빌 한가운데서 멈칫하지 않게
+  if (saved < 2 && !fell && !probed && slow === 0 && store.get('rsTry') < 1 && ++clean >= 4 && s.phase === 'play' && s.S.taps === 0) // ✏️ S061(🧪 S059 🟡③): 올려 보기는 판 시작(첫 톡 전)에만 — 결과 · 리빌 한가운데서 멈칫하지 않게
     return (probed = true), (probe = cap), (ok = 0), (cap = cap < 1.5 ? 1.5 : 2), size();
   if (slow < 0.08 || now <= 1) return;
   if (probed) store.set('rsTry', store.get('rsTry') + 1); // 올려 본 뒤 다시 내려간다 → 실패
@@ -151,7 +151,7 @@ function showPick(w = world) {
     const slot = `${world}-${n + 1}`, k = STAGES.findIndex((d) => d.slot === slot);
     if (k < 0) return `<button type="button" disabled aria-label="${slot} 준비 중"><i>${slot}</i><em>🔒</em><small>준비 중</small></button>`;
     const d = STAGES[k], st = store.get('st' + d.id);
-    return `<button type="button" data-k="${k}"${st >= 3 ? ' class="all"' : ''} aria-label="${slot} ${d.name}, 별 ${st}개"><i>${slot}</i><em>${Array.from(d.emoji)[0]}</em><small>${d.name}</small><b>${'★'.repeat(st)}<u>${'★'.repeat(3 - st)}</u></b></button>`;
+    return `<button type="button" data-k="${k}"${st >= 3 ? ' class="all"' : ''} aria-label="${slot} ${d.name}, 별 ${st}개"><i>${slot}</i><em>${/^\p{Extended_Pictographic}\uFE0F?/u.exec(d.emoji)?.[0] ?? d.emoji}</em><small>${d.name}</small><b>${'★'.repeat(st)}<u>${'★'.repeat(3 - st)}</u></b></button>`;
   }).join('');
   pick.innerHTML = `<nav><button type="button" data-w="${world - 1}" aria-label="앞 월드"${world > 1 ? '' : ' disabled'}>◀</button><span>월드 ${world} · ${WORLDS[world - 1]}</span><button type="button" data-w="${world + 1}" aria-label="다음 월드"${world < 3 ? '' : ' disabled'}>▶</button></nav><div>${cells}</div><button type="button" data-x="1">닫기</button>`;
   pick.hidden = false;
