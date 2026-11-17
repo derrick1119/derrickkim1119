@@ -609,14 +609,14 @@ export const STAGES: StageDef[] = [
   {
     key: 'dome', name: '뚜껑 미끄럼', emoji: '🫙', news: '꽉 찬 단지 뚜껑에 떨어진 꿀은 미끄러져요', tip: '뚜껑 오른쪽에 떨어진 꿀은 옆 단지로 굴러가요', stars: ['fill', 'nospill', 'plugs'], plugs: 2,
     walls: [[0.06, 0.40, 0.44, 0.62], [0.94, 0.40, 0.565, 0.62], [0.585, 0.9, 0.77, 1.0]],
-    rooms: [[0.22, 0.33, 0.16, 7], [0.76, 0.33, 0.18, 10], [0.88, 0.62, 0.13, 12]],
+    rooms: [[0.33, 0.36, 0.13, 7], [0.76, 0.33, 0.18, 10], [0.57, 0.4, 0.11, 5], [0.13, 0.32, 0.16, 12]],
     jars: [[0.5, 0.13, 0.13, 7, -1, 0.24, 0], [0.82, 0.15, 0.16, 10]],
     spot: [0.5, 0.86, 0.1],
   },
   {
     key: 'leaf', name: '나뭇잎 시소', emoji: '🍃', news: '나뭇잎은 꿀이 많이 실린 쪽으로 기울어요', tip: '꿀이 적으면 나뭇잎을 못 넘겨요 — 기운 쪽으로 미끄러져요', stars: ['fill', 'nospill', 'plugs'], plugs: 2,
     walls: [],
-    rooms: [[0.2, 0.36, 0.14, 8], [0.42, 0.3, 0.12, 6], [0.68, 0.32, 0.17, 11]],
+    rooms: [[0.2, 0.36, 0.14, 8], [0.4, 0.3, 0.11, 6], [0.71, 0.32, 0.16, 11], [0.54, 0.44, 0.1, 4]],
     jars: [[0.24, 0.15, 0.16, 6], [0.76, 0.15, 0.16, 11]],
     leaf: [0.5, 0.64, 0.25, -1],
     spot: [0.5, 0.64, 0.17],
@@ -955,6 +955,12 @@ export function habitLeft(L: Level, S: Sim) {
   L.rooms.forEach((R, r) => !S.open[r] && R.px < bx && ((bx = R.px), (best = r)));
   return best;
 }
+/** 독립 버릇 봇(판을 고칠 때 한 번도 안 쓴 것 — 측정만): 화면 가운데에 가까운 밀랍부터 */
+export function habitCenter(L: Level, S: Sim) {
+  let best = -1, bx = 9;
+  L.rooms.forEach((R, r) => !S.open[r] && Math.abs(R.px - 0.5) < bx && ((bx = Math.abs(R.px - 0.5)), (best = r)));
+  return best;
+}
 const habitBot = (name: string, f: (L: Level, S: Sim) => number): Bot<HoneyState> => ({
   name,
   act(s) {
@@ -965,6 +971,7 @@ const habitBot = (name: string, f: (L: Level, S: Sim) => number): Bot<HoneyState
 });
 export const honeybearHabitSmall = habitBot('버릇: 작은 꿀방부터', habitSmall);
 export const honeybearHabitLeft = habitBot('버릇: 왼쪽 밀랍부터', habitLeft);
+export const honeybearHabitCenter = habitBot('버릇: 가운데 밀랍부터', habitCenter);
 export const honeybearHabit: Bot<HoneyState> = {
   name: '버릇: 단지 가까운 밀랍부터',
   act(s) {

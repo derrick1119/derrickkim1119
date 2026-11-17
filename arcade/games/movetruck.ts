@@ -2454,6 +2454,58 @@ function drawHud(ctx: CanvasRenderingContext2D, s: TruckState, d: StageDef, w: n
     ctx.fillText(s.news.text, w / 2, by + 1, w - 24);
     ctx.globalAlpha = 1;
   }
+  // ═════════ 가는 길: 떠난 집 → 턱 → 새 집 (달리는 동안) ═════════
+  if (s.phase === 'check' || s.phase === 'ride') {
+    const D = distAt(rideEnd(d), d), x0 = R(0.14), x1 = w - R(0.14), yy = Y(HB + 0.05);
+    ctx.fillStyle = 'rgba(43,34,51,.55)';
+    ctx.beginPath();
+    ctx.roundRect(x0 - R(0.06), yy - R(0.03), x1 - x0 + R(0.12), R(0.06), R(0.03));
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.6)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(x0, yy);
+    ctx.lineTo(x1, yy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    for (let k = 0; k < d.bumps; k++) {
+      const bx = x0 + ((x1 - x0) * (distAt(bumpAt(k), d) + WHEEL_F - WHEEL_R)) / D, past = s.dist + WHEEL_F - WHEEL_R > distAt(bumpAt(k), d) + WHEEL_F - WHEEL_R - 1e-9 && s.rt > bumpAt(k) + RWB;
+      ctx.fillStyle = past ? 'rgba(255,255,255,.3)' : '#ffd23a';
+      ctx.beginPath();
+      ctx.ellipse(bx, yy + R(0.004), R(0.016), R(0.011), 0, Math.PI, TAU);
+      ctx.fill();
+      ctx.strokeStyle = past ? 'rgba(0,0,0,.2)' : '#2b2b33';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+    font(0.034, 900);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('🏠', x0 - R(0.035), yy);
+    ctx.fillText('🏡', x1 + R(0.035), yy);
+    const tx = x0 + ((x1 - x0) * Math.min(1, s.dist / D)), bob = s.phase === 'ride' ? Math.sin(s.t * 0.4) * 1.2 : 0;
+    ctx.fillStyle = TRUCK[0];
+    ctx.beginPath();
+    ctx.roundRect(tx - R(0.03), yy - R(0.022) + bob, R(0.04), R(0.026), 2);
+    ctx.fill();
+    ctx.fillStyle = TRUCK[2];
+    ctx.beginPath();
+    ctx.roundRect(tx + R(0.012), yy - R(0.028) + bob, R(0.022), R(0.032), 3);
+    ctx.fill();
+    ctx.fillStyle = '#2b2b33';
+    for (const wx of [-0.018, 0.022]) (ctx.beginPath(), ctx.arc(tx + R(wx), yy + R(0.008) + bob, R(0.008), 0, TAU), ctx.fill());
+    const left = d.bumps - [...Array(d.bumps).keys()].filter((k) => s.rt > bumpAt(k) + RWB).length;
+    if (s.phase === 'ride' && left > 0) {
+      font(0.034, 900);
+      ctx.lineWidth = 3.5;
+      ctx.strokeStyle = 'rgba(43,34,51,.85)';
+      ctx.strokeText(`턱 ${left}개 남았어요`, w / 2, yy + R(0.058));
+      ctx.fillStyle = '#ffe27a';
+      ctx.fillText(`턱 ${left}개 남았어요`, w / 2, yy + R(0.058));
+    }
+  }
   // ═════════ 판 카드 · 스포트라이트 · 결과 ═════════
   drawSpot(ctx, s, d, w, X, Y, R, font);
   drawCard(ctx, s, d, w, Y, R, font);
