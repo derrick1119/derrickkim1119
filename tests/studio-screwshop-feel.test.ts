@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { Juice } from '../studio/screwshop/juice.ts';
+import { STAGES, missGoal, starKinds } from '../studio/screwshop/game.ts';
 
 /** 그리기 호출을 모두 삼키는 가짜 캔버스(멈춤 · 쿨다운 틱만 본다) */
 const ctx = new Proxy({}, { get: () => () => undefined, set: () => true }) as unknown as CanvasRenderingContext2D;
@@ -41,5 +42,17 @@ describe('나사 풀기 공방 멈춤(히트스톱) 정책', () => {
     expect(m).toContain("if (j?.stop && s.phase !== 'result')");
     expect(m).toMatch(/const j = peek\(s\);\s*if \(j\) j\.stop = 0;/);
     expect(m).not.toMatch(/slow(mo|Mo)\b/);
+  });
+});
+
+describe('결과 카드 한 줄(✏️ S060 · 🧪 S060 🔴 · M2′ 오너 "조건을 못알아먹겠어")', () => {
+  it('28판 모두 놓친 별의 조건 낱말로 시작한다(★2 빈칸 · 쾅 / ★3 빈칸 · 한 번에 · 톡 · 연달아)', () => {
+    const word = { bonk: '쾅', gap: '빈칸', shot: '한 번에', tap: '톡', streak: '연달아' } as const;
+    for (const d of STAGES) {
+      const [k2, k3] = starKinds(d), a = missGoal(d, false), b = missGoal(d, true);
+      expect(a.startsWith('★2 ') && a.includes(word[k2]), `${d.slot} ${a}`).toBe(true);
+      expect(b.startsWith('★3 ') && b.includes(word[k3]), `${d.slot} ${b}`).toBe(true);
+      expect(/\d+\/\d+/.test(a + b), `${d.slot} 진행 숫자 없음`).toBe(false);
+    }
   });
 });

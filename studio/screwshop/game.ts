@@ -439,6 +439,8 @@ export const KB: Record<SK, number> = { bonk: 1, gap: 2, shot: 4, tap: 8, streak
 /** 판의 [★2, ★3] 별 종류 */
 export const starKinds = (d: StageDef): [SK, SK] => [d.B !== undefined ? 'bonk' : 'gap', d.B !== undefined ? 'gap' : d.H !== undefined ? 'shot' : d.T !== undefined ? 'tap' : 'streak'];
 const gapGoal = (P: number, also = '') => (P === 0 ? `빈칸${also} 안 쓰기` : `빈칸${also} ${P}칸까지`); // 🧪 S024: '1칸만'은 '꼭 1칸'으로 읽힘
+/** ✏️ S060(🧪 S060 🔴 · M2′ 오너 "조건을 못알아먹겠어"): 결과 카드 한 줄 — 놓친 별의 조건 낱말(진행 숫자 없이). ok2 = ★2를 땄나 */
+export const missGoal = (d: StageDef, ok2: boolean) => (!ok2 ? (d.B !== undefined ? `★2 망치로 쾅 ${d.B}번` : `★2 ${gapGoal(d.P)}`) : d.B !== undefined ? `★3 ${gapGoal(d.P, '도')}` : d.H !== undefined ? `★3 한 번에 ${d.H}개 쏙` : d.T !== undefined ? `★3 톡 ${d.T}번 안에` : `★3 ${d.C}개 연달아 쏙`);
 /** c = 판 중 칩 · r2/r3 = 결과(받았으면 한 일, 놓쳤으면 무엇이 모자랐나) · l2/l3 = 처음 배울 때 한 줄 */
 export const starText = (d: StageDef, S: Sim) => {
   const bk = d.B !== undefined, gapR = (also: string, ok: boolean) => (ok ? (S.peak ? `빈칸${also} ${S.peak}칸만 씀` : `빈칸${also} 안 씀`) : `빈칸 ${S.peak}칸 씀 · ${d.P ? `${d.P}칸까지만 써야` : '안 써야'} 해요`);
@@ -3691,7 +3693,9 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     if (s.got === 3 && s.lock3) (font(0.042, 900), (ctx.fillStyle = '#ffd166'), ftx(ctx, '깜짝 ★3!', w / 2, Y(T + 0.225)));
     else if (s.got < 3) {
       // ✏️ S060(⑩ · 오너 "문장이 너무 많아"): 놓친 별 글 + 💡 두 줄 → 한 줄 '★2 💡 방법'(어느 별인지 · 어떻게 따는지는 지킨다 · 몇 번 모자랐는지는 버튼 '★2 도전'과 빈 별이 말함) · 🧪 S055 🔴①: ★3을 아직 안 배웠으면 '곧 배워요'만
-      const line = soon ? '★3은 곧 배워요' : `${ok2 ? '★3' : '★2'} 💡 ${tipLine(s.got === 2 && d.tip2 ? d.tip2 : d.tip)}`;
+      const g0 = soon ? '★3은 곧 배워요' : missGoal(d, ok2), tp = !soon && s.got === 2 && d.tip2 ? ` 💡 ${tipLine(d.tip2)}` : ''; // 🧪 S060 🔴: 놓친 별의 조건 낱말이 먼저 · 💡는 ★3 팁(tip2)이 13px로 들어갈 때만
+      font(0.034, 900);
+      const line = tp && mw(ctx, g0 + tp) <= w - R(0.16) ? g0 + tp : g0;
       fit(0.038, 900, w - R(0.16), line);
       ctx.fillStyle = soon ? '#fff1d6' : '#ffe0a8';
       ftx(ctx, line, w / 2, Y(T + 0.235));

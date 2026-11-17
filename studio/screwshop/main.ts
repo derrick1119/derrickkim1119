@@ -175,8 +175,8 @@ pickBtn.addEventListener('click', () => showPick());
 function title() {
   const b = store.get('best'), st = store.get('stars');
   show(`<em>🐹🔩</em><b>나사 풀기 공방</b>
-<ul><li><i>👆</i>톡 → 같은 색 상자</li><li><i>🎐</i>하나 남으면 빙글</li><li><i>🧺</i>빈칸 5개 꽉 = 실패</li></ul>
-<strong>시작</strong><span class="kbd">누르고 있으면 갈 곳이 보여요 · 키보드: 화살표 + 스페이스</span>${b ? `<span class="best">최고 ${b}점 · ★${st}</span>` : ''}`);
+<ul><li><i>👆</i>톡 → 같은 색 상자</li><li><i>🎐</i>하나 남으면 빙글</li><li><i>🧸</i>판자 다 떨구면 완성</li></ul>
+<strong>시작</strong><span>꾹 누르면 갈 곳이 보여요</span><span class="kbd">키보드: 화살표 + 스페이스</span>${b ? `<span class="best">최고 ${b}점 · ★${st}</span>` : ''}`);
 }
 
 function start(pickK?: number) {
@@ -270,6 +270,7 @@ window.addEventListener('pointerup', () => void (pointer = null));
 window.addEventListener('pointercancel', () => void (pointer = null));
 window.addEventListener('pointerup', () => running && sfx.wake());
 window.addEventListener('keydown', (e) => {
+  document.body.classList.add('kb'); // ✏️ S060(🧪 S060 ⚪⑥): 금 · 흰 포커스 고리는 키보드를 쓸 때만
   if ((e.key === 'm' || e.key === 'M') && !e.repeat) toggleSound();
 });
 canvas.addEventListener('keydown', (e) => {
