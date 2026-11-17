@@ -5,9 +5,21 @@
  * 졸업한 게임은 스튜디오(`studio/<게임>/`)가 이어받는다(원본 `games/guardian2.ts`·`sheepdog.ts`·`balloonpop.ts`·`duckbath.ts`·`screwshop.ts`·`animalbus.ts`·`demolition.ts`·`potionsort.ts`는 스튜디오 참고용으로 파일만 남김).
  */
 import type { Bot, GameDef } from './core.ts';
+import { ferrypark, ferryparkRandom, ferryparkSmart } from './games/ferrypark.ts';
+import { yarncat, yarncatRandom, yarncatSmart } from './games/yarncat.ts';
+import { pancake, pancakeRandom, pancakeSmart } from './games/pancake.ts';
+import { movetruck, movetruckRandom, movetruckSmart } from './games/movetruck.ts';
+import { honeybear, honeybearRandom, honeybearSmart } from './games/honeybear.ts';
+import { toyescape, toyescapeRandom, toyescapeSmart } from './games/toyescape.ts';
 
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S> }
 
 export const GAMES: Entry[] = [
-  // 28라운드 전체 폐기(2026-11-17) — 29라운드 만드는 중
+  // 29라운드(2026-11-17): 한눈에 아는 놀이 × 진짜 물리 6개
+  { game: ferrypark, dumb: ferryparkRandom, smart: ferryparkSmart },
+  { game: yarncat, dumb: yarncatRandom, smart: yarncatSmart },
+  { game: pancake, dumb: pancakeRandom, smart: pancakeSmart },
+  { game: movetruck, dumb: movetruckRandom, smart: movetruckSmart },
+  { game: honeybear, dumb: honeybearRandom, smart: honeybearSmart },
+  { game: toyescape, dumb: toyescapeRandom, smart: toyescapeSmart },
 ];

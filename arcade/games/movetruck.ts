@@ -3,7 +3,7 @@
  * 뼈대(짐 싣기): 옆에서 본 트럭 짐칸과 집 앞에 줄 선 짐(지금 + 다음 3개가 보임). 짐칸 위 가로 자리를 꾹 누르고 있으면
  *   맨 앞 짐이 떨어져 쌓일 자리(고스트)와 헐거워질 짐(노란 '흔들')이 보이고, 떼면 툭 떨어져 쌓인다. 판마다 짐 5~9개(연타 없음).
  *   키보드는 화살표 커서 + 스페이스(누르는 동안 미리 보기, 떼면 툭).
- * 물리(결정적, 고정 간격, 난수 없음): 짐은 직사각형·원(공·고양이)·ㄴ자(소파)·말랑한 이불(이어진 기둥 6개)이다.
+ * 물리(결정적, 고정 간격, 난수 없음): 짐은 직사각형·원(공·고양이)·ㄴ자(소파)·말랑한 이불(이어진 기둥 8개)이다.
  *   떨어지면 쌓이고, 무게중심이 받침 밖으로 나가면 미끄러져 내려가고, 공은 굴러간다(위치·속도가 연속으로 움직인다).
  * 와우(덜컹 출발): 다 실으면 트럭이 부릉 출발하고 과속방지턱마다 앞바퀴·뒷바퀴가 짐칸을 차올린다. 짐마다 튀는 세기 =
  *   높이(높을수록 크게) × 끼임(양옆이 꽉 막히면 작게) × 누름(위에 얹힌 무게가 클수록 작게) × 이불(받치거나 덮으면 작게)
@@ -14,8 +14,9 @@
  * 펼쳐짐(하는 일이 바뀐다): 1 상자(쌓기·덜컹) → 2 냉장고(무거움: 바닥 자리를 남겨 두기) → 3 화분(깨짐: 위를 비우고 꽉 끼우기)
  *   → 4 공(굴러감: 틈에 가두기) → 5 이불(말랑: 헐거운 짐을 덮어 누르기) → 6 소파(ㄴ자: 앉는 자리 빈 곳 채우기)
  *   → 7 고양이(가장 높은 곳에서 잠: 꼭대기를 단단하게) → 8 울퉁불퉁 길(턱 다섯 개 + 다 섞임).
- * 웃음: 기사 아저씨가 짐이 뜨면 눈이 동그래지고 떨어지면 '어이쿠!', 떨어진 소파엔 쫓아오던 이웃 강아지가 올라앉아 버리고,
- *   킥보드 탄 아이가 떨어진 짐을 쫓아온다. 고양이는 흔들리면 '냐악!' 하고 뛰어내린다.
+ * 웃음: 기사 아저씨가 짐이 뜨면 눈이 동그래지고 떨어지면 '어이쿠!', 길에 떨어진 짐(소파·이불·상자)엔 쫓아오던 이웃 강아지가
+ *   '멍! 내 소파!' 하고 올라앉아 버리고, 킥보드 탄 아이가 떨어진 짐을 쫓아온다. 고양이는 흔들리면 '냐아악!' 하고 뛰어내린다.
+ * 미리 보기 = 실제: 고요해진 짐은 잠들고(멈춤), 놓기 미리 보기·출발 전 점검·봇은 게임과 똑같은 물리를 복사본에서 돌린다.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -1596,7 +1597,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TruckState, w: number, h: num
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
     y = Math.max(Y(HB + 0.06), Math.min(Y(BAND - 0.04), y));
-    for (let k = 0; k < 6 && rec.some((q) => t - q.t < 45 && Math.abs(q.x - x) < w * 0.3 && Math.abs(q.y - y) < size + 4); k++) y -= size + 6;
+    for (let k = 0; k < 4 && rec.some((q) => t - q.t < 30 && Math.abs(q.x - x) < w * 0.18 && Math.abs(q.y - y) < size + 4); k++) y -= size + 6;
     rec.push({ x, y, t });
     if (rec.length > 12) rec.shift();
     ctx.font = `800 ${size}px system-ui, sans-serif`;
@@ -1615,7 +1616,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TruckState, w: number, h: num
     }
     if (e.kind === 'crush') fx.burst(x, y, '#c08548', 22, 3.6, 2.6), fx.kick(7), fx.ring(x, y, '#ffb36b', R(0.12), 4), say(x, y - R(0.07), e.text!, e.col!, 16);
     if (e.kind === 'break') fx.burst(x, y, '#f0935f', 26, 4.2, 2.6), fx.burst(x, y, '#5cc96f', 10, 3, 2.2), fx.kick(8), fx.ring(x, y, '#ff6a5a', R(0.13), 5), fx.blink('#ffd0c8', 0.15), say(x, y - R(0.07), e.text!, e.col!, 17);
-    if (e.kind === 'out') fx.ring(x, y, '#ff6a5a', R(0.1), 4), fx.kick(5), say(x + R(0.1), y - R(0.1), e.text!, e.col!, 16);
+    if (e.kind === 'out') {
+      fx.ring(x, y, '#ff6a5a', R(0.1), 4), fx.kick(5), say(x + R(0.1), y - R(0.1), e.text!, e.col!, 16);
+      const [cx2, cy2] = scr(0.81, 0.69);
+      say(cx2, cy2, '어이쿠!', '#ffffff', 15);
+    }
     if (e.kind === 'wake') fx.burst(x, y, '#ffb35c', 12, 3, 2), say(x, y - R(0.08), e.text!, e.col!, 16);
     if (e.kind === 'bump') {
       const big = e.x < 0.5;
