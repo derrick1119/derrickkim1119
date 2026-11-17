@@ -38,7 +38,7 @@ const BREAK_V = 0.15, HEAVY_M = 4, CAT_WAKE = 0.62;
 const CALM_V = 0.0012, CALM_N = 8, SETTLE_MAX = 200;
 const DRAPE = 0.45, BLK = 8, WAKE_V = 0.03;
 /** 덜컹 길: 첫 턱 · 턱 사이 · 앞바퀴→뒷바퀴 · 마지막 턱 뒤 */
-const RT0 = 60, RGAP = 62, RWB = 22, RTAIL = 85;
+const RT0 = 60, RGAP = 64, RWB = 30, RTAIL = 85;
 
 // ───────────────────────────── 짐 ─────────────────────────────
 export type Kind = 'box' | 'heavy' | 'pot' | 'dish' | 'ball' | 'blanket' | 'sofa' | 'cat';
@@ -521,7 +521,7 @@ function loads(bs: Body[]): Map<number, number> {
 /** 덜컹 세기: 높이 × 끼임 × 누름 × 이불 × 자리. wheel 0 = 뒷바퀴, 1 = 앞바퀴 */
 export function looseOf(b: Body, wheel: number, load: number) {
   if (!b.sups.length) return 0;
-  const hF = 1 + 0.6 * Math.max(0, b.y - b.hh);
+  const hF = Math.min(2.3, 1 + 0.6 * Math.max(0, b.y - b.hh));
   const sides = (b.sl ? 1 : 0) + (b.sr ? 1 : 0);
   const wF = sides === 2 ? 0.28 : sides === 1 ? 0.62 : 1;
   const lF = 1 / (1 + (0.9 * load) / b.m);
@@ -688,6 +688,7 @@ function drain(s: TruckState) {
     if (e.k === 'land' && b) {
       if (b.grp >= 0 && b.off !== W.b.filter((q) => q.grp === b.grp)[0]?.off) continue;
       const big = e.v > 0.1 || b.m >= HEAVY_M;
+      if (s.phase === 'load') (s.vb -= Math.min(0.012, 0.0016 * b.m * (1 + e.v * 8))), b.m >= HEAVY_M && setMood(s, 'worry');
       if (s.phase === 'ride' && !big) ev(s, 'dust', e.x, e.y, undefined, undefined, e.v, true);
       else ev(s, 'land', e.x, e.y, big ? '쿵!' : '툭', big ? '#ffe2b0' : '#fff6e0', e.v, true);
     } else if (e.k === 'crush' && b) {
@@ -718,7 +719,7 @@ function drain(s: TruckState) {
 function addDebris(s: TruckState, b: Body, vx: number) {
   const it = b.it >= 0 ? s.items[b.it] : CAT;
   s.debris.push({ it: b.it, look: it.look, tag: it.tag, kind: it.kind, w: it.w, h: it.h, flip: it.flip, wx: s.dist + bedToScreen(Math.max(-0.4, b.x)), y: FY - b.y * U, vx: s.speed + vx * U, vy: 0.004, rot: 0, vr: -0.05 - Math.abs(vx) * 2, broken: b.broken, hits: 0 });
-  if (it.kind === 'sofa') s.dogSofa = s.debris.length - 1;
+  if (s.dogSofa < 0 && it.kind !== 'cat') s.dogSofa = s.debris.length - 1;
 }
 
 /** 짐이 자리를 잡으면: 양옆이 꽉 막혔으면 '꽉!', 헐거우면 '흔들~' */
@@ -827,9 +828,11 @@ function cosmetic(s: TruckState) {
   const zt = s.phase === 'ride' || (s.phase === 'result' && s.zoom < 1) ? 0.8 : 1;
   s.zoom += (zt - s.zoom) * 0.06;
   for (const g of s.debris) {
-    if (g.hits > 6) {
-      g.vx *= 0.9;
+    if (g.hits > 4) {
+      // 길 위에서 미끄러지며 천천히 뒤처진다 (강아지가 올라탈 틈)
+      g.vx *= 0.985;
       g.wx += g.vx;
+      g.rot *= 0.9;
       continue;
     }
     g.vy += 0.0016;
@@ -840,7 +843,7 @@ function cosmetic(s: TruckState) {
     if (g.y > ground) {
       g.y = ground;
       g.vy *= -0.35;
-      g.vx *= 0.8;
+      g.vx *= 0.94;
       g.vr *= 0.6;
       g.hits++;
       if (g.hits === 1) ev(s, 'thud', g.wx - s.dist, ROAD_Y, g.kind === 'pot' || g.kind === 'dish' ? '와장창' : '쿵', '#ffe2c8');
@@ -850,8 +853,8 @@ function cosmetic(s: TruckState) {
     // 강아지는 트럭을 쫓아 달리다 떨어진 소파가 있으면 올라앉는다
     if (s.dogSofa >= 0 && s.debris[s.dogSofa]) {
       const g = s.debris[s.dogSofa], tx = g.wx - s.dist;
-      s.dogX += (tx - s.dogX) * 0.12;
-      if (Math.abs(tx - s.dogX) < 0.02 && (juiceMemo.get(s) ?? -1) !== g.it) juiceMemo.set(s, g.it), ev(s, 'dog', tx, ROAD_Y - 0.12, '멍! 내 소파!', '#fff3c4');
+      s.dogX += (tx - s.dogX) * (g.hits > 2 ? 0.3 : 0.12);
+      if (Math.abs(tx - s.dogX) < 0.02 && (juiceMemo.get(s) ?? -1) !== g.it) juiceMemo.set(s, g.it), ev(s, 'dog', tx, ROAD_Y - 0.14, g.kind === 'sofa' ? '멍! 내 소파!' : g.kind === 'blanket' ? '멍! 포근해~' : g.kind === 'ball' ? '멍! 공이다!' : '멍! 내 거!', '#fff3c4');
     } else s.dogX += (0.02 + 0.03 * Math.sin(s.t * 0.05) - s.dogX) * 0.08;
     const want = s.debris.length ? 0.06 : -0.15;
     s.kidX += (want - s.kidX) * 0.05;
@@ -966,8 +969,19 @@ const tryAt = (W: World, it: Item, idx: number, x: number) => {
   settle(W2);
   return W2;
 };
+/** 같은 짐칸 모양이면 같은 답 (계기판이 같은 판을 두 번 돌릴 때 다시 계산하지 않는다) */
+const planMemo = new Map<string, number>();
+const printOf = (s: TruckState) => `${s.seed}:${s.stage}:${s.next}:` + s.W.b.map((b) => (b.dead ? 'x' : `${b.x.toFixed(6)},${b.y.toFixed(6)}`)).join(';');
 /** 잘하는 봇의 수: 자리마다 실제로 떨어뜨려 보고(물리) 어림값으로 고르고, 다음 짐 한 수 더 · 마지막 짐은 덜컹 길을 끝까지 돌려 본다 */
 export function planX(s: TruckState): number {
+  const key = printOf(s), hit = planMemo.get(key);
+  if (hit !== undefined) return hit;
+  if (planMemo.size > 4000) planMemo.clear();
+  const x = planFresh(s);
+  planMemo.set(key, x);
+  return x;
+}
+function planFresh(s: TruckState): number {
   const d = STAGES[s.stage], it = s.items[s.next], last = s.next === s.items.length - 1;
   const res = cands(s.W, it, true).map((x) => {
     const W2 = tryAt(s.W, it, s.next, x);
@@ -1087,16 +1101,20 @@ const distAt = (rt: number, d: StageDef) => {
 /** 미리 보기: 지금 이 자리에 떨어뜨리면? (쌓인 모양 + 그대로 출발하면 덜컹 길에서 어떻게 되나) */
 interface Pre { W: World; risk: Map<number, number>; it: Item; x: number; y0: number; idx: number }
 const preCache = new WeakMap<object, { key: string; p: Pre }>();
-function riskOf(Wnow: World, Wride: World, S: number) {
+/** 짐마다 위험 표시: 1 흔들 · 2 덜컹 길에서 떨어질 듯 · 4 덜컹 길에서 깨지거나 찌그러질 듯 · 3 지금 놓으면 바로 잃음 (이미 잃은 짐은 빼고) */
+function riskOf(Wbase: World, Wnow: World, Wride: World, S: number) {
   const risk = new Map<number, number>(), bs = live(Wnow), L = loads(bs);
   for (const b of Wnow.b) {
     if (b.kind === 'cat') continue;
+    const o = Wbase.b[b.id];
+    if (o && (o.dead || o.broken)) continue;
     if (b.dead || b.broken) {
       risk.set(b.id, 3);
       continue;
     }
     const q = Wride.b[b.id];
-    if (q && (q.out || q.broken)) risk.set(b.id, 2);
+    if (q && q.out) risk.set(b.id, 2);
+    else if (q && q.broken) risk.set(b.id, 4);
     else if (looseOf(b, 0, L.get(b.id) ?? 0) * S >= 0.8) risk.set(b.id, 1);
   }
   return risk;
@@ -1108,7 +1126,7 @@ function previewOf(s: TruckState, bx: number): Pre {
   dropItem(W, it, s.next, x);
   settle(W);
   const pr = predictRide(W, d, !!d.cat);
-  const p: Pre = { W, risk: riskOf(W, pr.W, d.S), it, x, y0, idx: s.next };
+  const p: Pre = { W, risk: riskOf(s.W, W, pr.W, d.S), it, x, y0, idx: s.next };
   preCache.set(s, { key, p });
   return p;
 }
@@ -1215,18 +1233,16 @@ function drawLook(ctx: CanvasRenderingContext2D, it: { look: string; tag: string
       if (heavy) {
         ctx.fillStyle = '#5b3a22';
         ctx.fillRect(x, y + h * 0.62, w, h * 0.12);
-        emoji(ctx, '📚', cx, y + h * 0.42, Math.min(w, h) * 0.42);
-        ctx.font = `900 ${Math.max(8, u * 0.17)}px system-ui, sans-serif`;
-        ctx.fillStyle = '#fff1d6';
-        ctx.fillText('무거움', cx, y + h * 0.69);
+        emoji(ctx, '📚', cx - w * 0.18, y + h * 0.4, Math.min(w, h) * 0.42);
+        emoji(ctx, '🏋️', cx + w * 0.22, y + h * 0.4, Math.min(w, h) * 0.36);
       } else if (dish) {
         ctx.fillStyle = '#ff5f57';
-        ctx.fillRect(x + w * 0.08, y + h * 0.5, w * 0.84, h * 0.26);
-        ctx.font = `900 ${Math.max(8, u * 0.16)}px system-ui, sans-serif`;
+        ctx.fillRect(x + w * 0.08, y + h * 0.46, w * 0.84, h * 0.34);
+        ctx.font = `900 ${Math.max(12, u * 0.3)}px system-ui, sans-serif`;
         ctx.fillStyle = '#ffffff';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('깨짐 주의', cx, y + h * 0.63);
+        ctx.fillText('깨짐', cx, y + h * 0.64);
         emoji(ctx, '🍽️', cx, y + h * 0.3, Math.min(w, h) * 0.32);
       } else if (it.tag) emoji(ctx, it.tag, cx, y + h * 0.6, Math.min(w, h) * 0.4);
       break;
@@ -1513,7 +1529,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TruckState, w: number, h: num
   ctx.translate(-X(0.55), -Y(ROAD_Y));
   drawTruckBack(ctx, s, X, Y, R, t);
   const pre = s.down && canDrop(s) ? previewOf(s, toBed(s.ax)) : null;
-  const risk = pre ? pre.risk : s.phase === 'check' && s.predW ? riskOf(s.W, s.predW, d.S) : null;
+  const risk = pre ? pre.risk : s.phase === 'check' && s.predW ? riskOf(s.W, s.W, s.predW, d.S) : null;
   // 짐
   const cols: Body[] = [];
   for (const b of s.W.b) {
@@ -1699,37 +1715,40 @@ function drawStreet(ctx: CanvasRenderingContext2D, s: TruckState, d: StageDef, w
     for (let k = 0; k < d.bumps; k++) {
       const x = distAt(bumpAt(k), d) + WHEEL_F - s.dist;
       if (x < -0.6 || x > 1.5) continue;
-      // 길을 가로지르는 볼록 띠 (먼 쪽은 좁게, 가까운 쪽은 넓게) + 노랑·검정 빗금
-      const band = (y0: number, y1: number, w0: number, w1: number, sk: number) => {
-        ctx.beginPath();
-        ctx.moveTo(X(x - w0 + sk * (y0 - 1.05)), Y(y0));
-        ctx.lineTo(X(x + w0 + sk * (y0 - 1.05)), Y(y0));
-        ctx.lineTo(X(x + w1 + sk * (y1 - 1.05)), Y(y1));
-        ctx.lineTo(X(x - w1 + sk * (y1 - 1.05)), Y(y1));
-        ctx.closePath();
-      };
-      ctx.fillStyle = 'rgba(30,30,40,.25)';
-      band(1.05, 1.29, 0.03, 0.05, 0.12);
-      ctx.fill();
+      // 길을 가로지르는 볼록 띠: 바퀴 닿는 줄에선 노랑·검정 둔덕, 먼 쪽은 흐린 노란 띠
       ctx.save();
-      band(1.048, 1.285, 0.022, 0.04, 0.12);
+      ctx.beginPath();
+      ctx.moveTo(X(x - 0.02), Y(1.05));
+      ctx.lineTo(X(x + 0.02), Y(1.05));
+      ctx.lineTo(X(x + 0.045), Y(1.17));
+      ctx.lineTo(X(x - 0.025), Y(1.17));
+      ctx.closePath();
       ctx.clip();
       for (let j = -6; j < 10; j++) {
+        ctx.fillStyle = j % 2 ? 'rgba(60,60,70,.35)' : 'rgba(255,210,58,.55)';
+        ctx.fillRect(X(x - 0.1), Y(1.05 + j * 0.02), R(0.2), Y(0.02));
+      }
+      ctx.restore();
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(X(x + 0.01), Y(ROAD_Y), R(0.05), R(0.024), 0, Math.PI, TAU);
+      ctx.closePath();
+      ctx.clip();
+      for (let j = -4; j < 5; j++) {
         ctx.fillStyle = j % 2 ? '#2b2b33' : '#ffd23a';
         ctx.beginPath();
-        ctx.moveTo(X(x - 0.1 + j * 0.03), Y(1.29));
-        ctx.lineTo(X(x - 0.1 + j * 0.03 + 0.03), Y(1.29));
-        ctx.lineTo(X(x - 0.1 + j * 0.03 + 0.09), Y(1.04));
-        ctx.lineTo(X(x - 0.1 + j * 0.03 + 0.06), Y(1.04));
+        ctx.moveTo(X(x + j * 0.016), Y(ROAD_Y));
+        ctx.lineTo(X(x + j * 0.016 + 0.016), Y(ROAD_Y));
+        ctx.lineTo(X(x + j * 0.016 + 0.036), Y(ROAD_Y - 0.03));
+        ctx.lineTo(X(x + j * 0.016 + 0.02), Y(ROAD_Y - 0.03));
         ctx.fill();
       }
       ctx.restore();
-      ctx.fillStyle = 'rgba(255,255,255,.35)';
-      band(1.048, 1.285, 0.022, 0.04, 0.12);
-      ctx.save();
-      ctx.clip();
-      ctx.fillRect(X(x - 0.2), Y(1.04), R(0.4), R(0.012));
-      ctx.restore();
+      ctx.strokeStyle = 'rgba(40,30,30,.5)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(X(x + 0.01), Y(ROAD_Y), R(0.05), R(0.024), 0, Math.PI, TAU);
+      ctx.stroke();
       // 표지판
       ctx.fillStyle = '#5d6475';
       ctx.fillRect(X(x + 0.06) - 1.5, Y(0.88), 3, Y(0.1));
@@ -1848,9 +1867,9 @@ function drawTerrace(ctx: CanvasRenderingContext2D, X: F, Y: F, R: F, ox: number
   ctx.arc(X(ox + 0.14), Y(0.33), R(0.007), 0, TAU);
   ctx.fill();
   ctx.fillStyle = '#fff6e0';
-  ctx.fillRect(X(ox + 0.06), Y(0.19), R(0.11), R(0.035));
+  ctx.fillRect(X(ox + 0.045), Y(0.188), R(0.14), R(0.04));
   ctx.fillStyle = '#c0582f';
-  ctx.font = `900 ${Math.max(9, R(0.022))}px system-ui`;
+  ctx.font = `900 ${Math.max(12, R(0.03))}px system-ui`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('이사 가요', X(ox + 0.115), Y(0.208));
@@ -1914,8 +1933,8 @@ function drawQueue(ctx: CanvasRenderingContext2D, s: TruckState, X: F, Y: F, R: 
 function drawCritters(ctx: CanvasRenderingContext2D, s: TruckState, X: F, Y: F, R: F, t: number) {
   const riding = s.phase === 'ride' || s.phase === 'result';
   // 강아지
-  const onSofa = s.dogSofa >= 0 && s.debris[s.dogSofa] && Math.abs(s.debris[s.dogSofa].wx - s.dist - s.dogX) < 0.03;
-  const dx = riding ? s.dogX : 0.2 - s.dist * 0.6, dy = riding ? (onSofa ? ROAD_Y - 0.075 : ROAD_Y - 0.005) : PORCH_Y;
+  const sat = s.dogSofa >= 0 ? s.debris[s.dogSofa] : null, onSofa = !!sat && sat.hits > 2 && Math.abs(sat.wx - s.dist - s.dogX) < 0.03;
+  const dx = riding ? s.dogX : 0.2 - s.dist * 0.6, dy = riding ? (onSofa && sat ? Math.min(ROAD_Y, sat.y) - sat.h * U * 0.5 : ROAD_Y - 0.005) : PORCH_Y;
   drawDog(ctx, X(dx), Y(dy), R(0.03), riding && !onSofa ? t : 0, onSofa, t);
   // 아이
   const kx = riding ? s.kidX : 0.035 - s.dist * 0.6, ky = riding ? ROAD_Y : PORCH_Y;
@@ -2277,39 +2296,59 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: TruckState, pre: Pre, P: 
 
 /** 흔들 위험 표시: 노랑 = 흔들흔들(튈 것 같아요) · 빨강 = 이대로 출발하면 떨어지거나 깨져요 */
 function drawRisk(ctx: CanvasRenderingContext2D, s: TruckState, W: World, risk: Map<number, number>, P: (bx: number, by: number) => [number, number], R: F, font: (sz: number, w?: number) => void, t: number) {
-  const u = R(U), done = new Set<number>();
+  const u = R(U), done = new Set<number>(), tags: { x: number; y: number; w: number; text: string; red: boolean }[] = [];
   for (const b of W.b) {
     const r = risk.get(b.id);
     if (!r || done.has(b.it)) continue;
-    if (b.dead && r !== 3) continue;
     done.add(b.it);
-    const grp = b.grp >= 0 ? W.b.filter((q) => q.grp === b.grp && !q.dead) : [b];
+    const grp = b.grp >= 0 ? W.b.filter((q) => q.grp === b.grp) : [b];
     const cx = grp.reduce((a, q) => a + q.x, 0) / grp.length, top = Math.max(...grp.map((q) => q.y + q.hh));
     const [x, y] = P(cx, top);
-    const red = r >= 2, wob = Math.sin(t * 0.5 + b.id) * 2;
-    if (!red) {
+    const kind = s.items[b.it]?.kind, fragile = kind === 'pot' || kind === 'dish';
+    if (r === 1) {
       // 흔들흔들 물결
       ctx.strokeStyle = '#ffd23a';
       ctx.lineWidth = 2.5;
       for (const sd of [-1, 1]) {
-        const ex = x + sd * (b.hw + 0.12) * u;
+        const ex = x + sd * (b.grp >= 0 ? 1.3 : b.hw + 0.12) * u;
         ctx.beginPath();
         for (let k = 0; k <= 6; k++) ctx.lineTo(ex + Math.sin(t * 0.4 + k) * 2.5 * sd, y + k * u * 0.09);
         ctx.stroke();
       }
+    } else if (!b.dead) {
+      ctx.strokeStyle = `rgba(255,70,60,${0.6 + 0.3 * Math.sin(t * 0.3)})`;
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([5, 4]);
+      for (const q of grp) {
+        const [qx, qy] = P(q.x, q.y);
+        ctx.beginPath();
+        ctx.roundRect(qx - q.hw * u - 2, qy - q.hh * u - 2, q.hw * 2 * u + 4, q.hh * 2 * u + 4, 4);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
     }
-    const label = r === 3 ? (b.out ? '떨어져요!' : '찌그러져요!') : red ? (s.items[b.it]?.kind === 'pot' || s.items[b.it]?.kind === 'dish' || (W.b[b.id] && b.kind === 'box' && false) ? '깨질 것 같아요' : '떨어질 것 같아요') : '흔들';
+    const text = r === 1 ? '흔들' : r === 3 ? (b.out ? '떨어져요!' : fragile ? '깨져요!' : '찌그러져요!') : r === 2 ? '떨어질 것 같아요' : fragile ? '깨질 것 같아요' : '찌그러질 것 같아요';
     font(0.032, 900);
-    const tw = ctx.measureText(label).width + R(0.03);
-    const ly = y - R(0.035) + wob;
-    ctx.fillStyle = red ? 'rgba(220,50,40,.92)' : 'rgba(255,200,40,.95)';
+    tags.push({ x, y: y - R(0.035), w: ctx.measureText(text).width + R(0.03), text, red: r >= 2 });
+  }
+  // 겹치지 않게: 위로 비켜 쌓는다
+  tags.sort((p, q) => q.y - p.y);
+  const placed: typeof tags = [];
+  for (const g of tags) {
+    for (let k = 0; k < 8 && placed.some((q) => Math.abs(q.x - g.x) < (q.w + g.w) / 2 + 2 && Math.abs(q.y - g.y) < R(0.046)); k++) g.y -= R(0.048);
+    placed.push(g);
+  }
+  for (const g of placed) {
+    const wob = Math.sin(t * 0.5 + g.x) * 1.5;
+    ctx.fillStyle = g.red ? 'rgba(220,50,40,.94)' : 'rgba(255,200,40,.96)';
     ctx.beginPath();
-    ctx.roundRect(x - tw / 2, ly - R(0.022), tw, R(0.044), R(0.022));
+    ctx.roundRect(g.x - g.w / 2, g.y - R(0.022) + wob, g.w, R(0.044), R(0.022));
     ctx.fill();
-    ctx.fillStyle = red ? '#ffffff' : '#3a2a00';
+    font(0.032, 900);
+    ctx.fillStyle = g.red ? '#ffffff' : '#3a2a00';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(label, x, ly + 1);
+    ctx.fillText(g.text, g.x, g.y + 1 + wob);
   }
 }
 

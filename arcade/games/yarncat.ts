@@ -8,9 +8,11 @@
  *   끌려온 같은 색은 줄줄이 같은 바구니로(한 번에 꽉!), 다른 색은 엉뚱하게 대기 칸으로 간다. 짧은 실은 끝까지 딸려 오고, 긴 실은 바닥 끝 앞에서 멈춘다.
  * 미리 보기: 누르고 있는 동안 굴러갈 길(점선) · 끌려올 뭉치의 최종 자리(고스트) · 들어갈 바구니/대기 칸 · 끊길 실이 보이고, 떼면 실행.
  * 판(방 청소) 8개: 목표 = 바구니 모두 채우기. 별 = 1판은 '모두 채우기'만, 2판부터 '대기 칸에 N개까지만', 3판부터 '톡 N번 안에 끝내기'.
+ *   N은 판을 만들 때 같은 물리로 내다본 풀이(빔 탐색)에서 정한다 — 버릇대로 두면 ★3이 안 나오는 판을 고른다.
+ *   실패(대기 칸이 꽉 참 · 소파 밑에 갇힘) = 하트 -1, 그 판을 처음부터. 하트 셋을 다 잃거나 8판을 마치면 끝.
  * 펼쳐짐(판마다 새것 하나, 하는 일이 바뀐다): 1판 실 끌기(같은 색 줄줄이) → 2판 섞인 실·대기 칸(무엇을 먼저)
  *   → 3판 의자 다리(실이 걸려 팽팽하면 툭 — 일부러 걸어 떼어 놓기) → 4판 소파 밑(발이 안 닿는 뭉치를 실로 끌어내기)
- *   → 5판 점보 뭉치(안 끌려서 당기던 쪽이 멈춤 — 점보부터) → 6판 가위(톡 하면 닿은 실 싹둑 — 미리 끊기)
+ *   → 5판 점보 뭉치(안 끌려서 당기던 쪽이 멈춤 — 점보부터) → 6판 가위(한 번만, 톡 수에 안 셈 — 어느 실을 언제 끊을지)
  *   → 7판 반질반질 마루(끌려온 뭉치가 멀리 미끄러져 들어감) → 8판 대청소(전부).
  * 웃음: 고양이가 뭉치를 탁 치고, 굴러가는 실을 고개로 쫓고, 바구니가 차면 우쭐, 대기 칸이 차면 식은땀, 실패하면 실에 칭칭 감겨 버둥.
  *   선반 위 금붕어는 줄줄이 들어갈 때 놀라 뻐끔, 걸레받이 구멍의 생쥐는 뭉치가 굴러오면 쏙 숨는다.
@@ -56,7 +58,7 @@ export const STAGES: StageDef[] = [
   { key: 'legs', name: '의자 다리', emoji: '🪑', news: '🪑 의자 다리에 걸린 실은 팽팽해지면 툭!', tip: '다리에 걸린 실은 끊겨요 — 다른 색을 떼어 놓을 때 써요', spot: '의자 다리에 걸린 실은 툭 끊겨요', n: 12, cols: 4, ropes: 6, slots: 4, stars: 3, legs: true },
   { key: 'sofa', name: '소파 밑', emoji: '🛋️', news: '🛋️ 소파 밑 뭉치는 발이 안 닿아요 — 실로 끌어내요', tip: '소파 밑 뭉치는 이어진 뭉치를 굴려서 꺼내요', spot: '소파 밑 — 실로만 꺼낼 수 있어요', n: 12, cols: 4, ropes: 6, slots: 4, stars: 3, sofa: true },
   { key: 'heavy', name: '점보 뭉치', emoji: '🪨', news: '🪨 점보 뭉치는 안 끌려요 — 당기던 뭉치가 멈춰요', tip: '점보 뭉치를 먼저 굴리면 이어진 것을 다 끌고 가요', spot: '점보 뭉치 — 무거워서 안 끌려요', n: 12, cols: 4, ropes: 6, slots: 4, stars: 3, heavy: 2 },
-  { key: 'sci', name: '가위', emoji: '✂️', news: '✂️ 가위를 톡 하면 닿은 실이 싹둑!', tip: '다른 색이 딸려 올 실은 가위로 미리 싹둑', spot: '가위를 톡 → 닿은 실 싹둑', n: 15, cols: 5, ropes: 8, slots: 4, stars: 3, sci: true },
+  { key: 'sci', name: '가위', emoji: '✂️', news: '✂️ 가위를 톡 하면 닿은 실이 싹둑! (한 번만)', tip: '다른 색이 딸려 올 실은 가위로 미리 싹둑 — 한 번뿐', spot: '가위를 톡 → 닿은 실 싹둑 (한 번만)', n: 15, cols: 5, ropes: 8, slots: 4, stars: 3, sci: true },
   { key: 'wax', name: '반질반질 마루', emoji: '✨', news: '✨ 반질반질 마루 — 끌려온 뭉치가 멀리 미끄러져요', tip: '마루 위에선 끌려온 뭉치도 주르륵 미끄러져 들어가요', spot: '반질반질 마루 — 멀리 미끄러져요', n: 15, cols: 5, ropes: 7, slots: 4, stars: 3, wax: true },
   { key: 'all', name: '대청소 날', emoji: '🏠', news: '🏠 마지막 방 — 다리·점보·가위·마루 다 나와요!', tip: '어느 뭉치부터 굴릴지 — 누르고 있으면 다 보여요', spot: '', n: 15, cols: 5, ropes: 8, slots: 4, stars: 3, legs: true, heavy: 1, sci: true, wax: true },
 ];
@@ -92,6 +94,8 @@ export interface Sim {
   B: Ball[]; R: Rope[]; L: Level;
   qi: number; open: number[]; cnt: number[]; add: number[]; tray: number[];
   taps: number; trayIn: number; full1: number; done: number; chain: number; best: number;
+  /** 둔 수(가위 포함) · 가위를 이미 썼나 */
+  mv: number; cut: boolean;
   moving: boolean; mt: number; lead: number; fail: number; clear: boolean; pulled: boolean;
 }
 
@@ -108,7 +112,7 @@ function newSim(L: Level): Sim {
   return {
     B: L.B0.map((b) => ({ ...b })), R: L.R0.map((r) => ({ ...r })), L,
     qi: Math.min(BO, L.queue.length), open, cnt, add, tray: [],
-    taps: 0, trayIn: 0, full1: 0, done: 0, chain: 0, best: 0, moving: false, mt: 0, lead: -1, fail: 0, clear: false, pulled: false,
+    taps: 0, trayIn: 0, full1: 0, done: 0, chain: 0, best: 0, mv: 0, cut: false, moving: false, mt: 0, lead: -1, fail: 0, clear: false, pulled: false,
   };
 }
 function cloneSim(S: Sim): Sim {
@@ -325,7 +329,7 @@ function endMove(S: Sim) {
 /** 가위에 닿은 실 */
 function sciRopes(S: Sim) {
   const L = S.L, out: number[] = [];
-  if (!L.sc) return out;
+  if (!L.sc || S.cut) return out;
   S.R.forEach((r, j) => {
     if (!r.on) return;
     const a = S.B[r.a], b = S.B[r.b];
@@ -336,7 +340,8 @@ function sciRopes(S: Sim) {
 
 /** 한 수 시작: 뭉치 톡(굴러가기) 또는 가위 톡(싹둑) */
 function begin(S: Sim, m: number, rec?: RE[]) {
-  S.taps++;
+  S.mv++;
+  if (m !== SCI) S.taps++;
   S.add.fill(0);
   S.chain = 0;
   S.pulled = false;
@@ -344,6 +349,7 @@ function begin(S: Sim, m: number, rec?: RE[]) {
   if (m === SCI) {
     const cut = sciRopes(S);
     for (const j of cut) S.R[j].on = false;
+    S.cut = true;
     rec?.push({ k: 'cut', n: cut.length });
     S.lead = -1;
     endMove(S);
@@ -470,7 +476,19 @@ function paint(d: StageDef, si: number, r: Rng, sh: NonNullable<ReturnType<typeo
     B.forEach((b, i) => (b.col = cols[i]));
   }
   const queue = shuffle(pal.slice(), r);
-  const L: Level = { si, B0: B, R0: sh.R.map((q) => ({ ...q })), posts: sh.posts, sofa: sh.sofa, sc: sh.sc, wax: sh.wax, queue, slots: d.slots, par: 99, trayMax: 99, nStars: d.stars, sol: [], pal };
+  let sc = sh.sc;
+  if (sc) {
+    // 가위는 서로 다른 색을 잇는 실 위에 (끊을지 말지가 수가 되게)
+    for (const q of shuffle(sh.R.slice(), r)) {
+      if (B[q.a].col === B[q.b].col) continue;
+      const a = B[q.a], b = B[q.b], tt = 0.4 + r() * 0.2, x = a.x + (b.x - a.x) * tt, y = a.y + (b.y - a.y) * tt;
+      if (B.every((c) => Math.hypot(c.x - x, c.y - y) > c.r + 0.05) && sh.R.filter((o) => segDist(x, y, B[o.a].x, B[o.a].y, B[o.b].x, B[o.b].y) < SCI_R).length === 1) {
+        sc = [x, y];
+        break;
+      }
+    }
+  }
+  const L: Level = { si, B0: B, R0: sh.R.map((q) => ({ ...q })), posts: sh.posts, sofa: sh.sofa, sc, wax: sh.wax, queue, slots: d.slots, par: 99, trayMax: 99, nStars: d.stars, sol: [], pal };
   // 첫 바구니 둘 중 하나는 손 닿는 뭉치 색이 있게
   const reach = new Set(B.filter((b) => tappable(L, b)).map((b) => b.col));
   if (!reach.has(queue[0]) && !reach.has(queue[1])) {
@@ -567,13 +585,23 @@ function randomPass(L: Level, r: Rng, n: number) {
   return ok / n;
 }
 
+/** 풀이를 따라 두며 일어난 일 세기 (새것이 실제로 쓰이는 판을 고르려고) */
+function replayCount(L: Level, seq: number[]) {
+  const S = newSim(L), rec: RE[] = [];
+  for (const m of seq) {
+    begin(S, m, rec);
+    while (S.moving) tick(S, rec);
+  }
+  const n = (k: string) => rec.filter((e) => e.k === k).length;
+  return { snap: n('snap'), stall: n('stall'), cut: seq.includes(SCI) ? 1 : 0 };
+}
 const levelCache = new Map<string, Level>();
 export function buildLevel(seed: number, si: number): Level {
   const ck = `${seed}:${si}`, hit = levelCache.get(ck);
   if (hit) return hit;
   const d = STAGES[si], r = mulberry32((seed * 7349 + si * 104729 + 3) >>> 0);
   let pick: Level | null = null, bv = -1e9;
-  const K = si === 0 ? 1 : si === 1 ? 4 : 4;
+  const K = si === 0 ? 1 : d.key === 'sci' || d.key === 'legs' ? 6 : 4;
   for (let c = 0, tries = 0; c < K && tries < 40; tries++) {
     const sh = shape(d, si, r);
     if (!sh) continue;
@@ -593,6 +621,11 @@ export function buildLevel(seed: number, si: number): Level {
       const H = playOut(L, habitPick), hs = H.clear ? starsOf(L, H).filter(Boolean).length : 0;
       const rp = randomPass(L, r, 6);
       v = (hs === 3 ? 0 : 3) + (H.clear ? 0.4 : 0) - Math.abs(rp - 0.25) * 1.5 + (sol.taps < L.B0.length - 2 ? 0.5 : 0) - sol.tray * 0.3;
+      // 새것이 나오는 판은 그 새것이 풀이에 실제로 쓰이는 판으로 (가위는 끊어야 이득, 다리는 실이 걸려 툭)
+      if (d.key === 'sci' || d.key === 'legs') {
+        const rc = replayCount(L, sol.seq);
+        v += d.key === 'sci' ? rc.cut * 1.2 : Math.min(1, rc.snap) * 1.2;
+      }
     }
     if (v > bv) (bv = v), (pick = L);
   }
@@ -623,7 +656,7 @@ export interface YarnState {
   down: boolean; ax: number; ay: number; press: number; queued: number; cool: number; lastTap: number; calmT: number; startT: number; firstTap: boolean;
   hearts: number; stars: number; got: number; starOk: boolean[]; pts: number; ok: boolean; why: string; won: boolean; dead: boolean; tries: number; again: boolean;
   seen: Set<string>; tips: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; events: Ev[];
-  vq: VB[][]; vid: number; bb: Map<number, number>; lv: { col: number; slot: number; t0: number; one: boolean }[]; fly: Fly[]; trayV: number[];
+  vq: VB[][]; vid: number; bb: Map<number, number>; lv: { col: number; slot: number; t0: number }[]; fly: Fly[]; trayV: number[];
   mood: string; moodT: number; paw: number; pawX: number; spot: boolean; lastBig: number; slow: number; mvIn: number; mvTray: number;
 }
 
@@ -700,7 +733,7 @@ function pickAt(s: YarnState, x: number, sy: number) {
     const dd = Math.hypot(PX(b.x, b.y) - x, SY(b.y) - sy) - (b.hv ? 0.012 : 0);
     if (dd < bd) (bd = dd), (best = i);
   });
-  if (L.sc && Math.hypot(PX(L.sc[0], L.sc[1]) - x, SY(L.sc[1]) - sy) < Math.min(bd, HIT)) return SCI;
+  if (L.sc && !S.cut && Math.hypot(PX(L.sc[0], L.sc[1]) - x, SY(L.sc[1]) - sy) < Math.min(bd, HIT)) return SCI;
   if (best >= 0 && underSofa(L, S.B[best])) return -2 - best;
   return best;
 }
@@ -767,6 +800,7 @@ function playRec(s: YarnState, rec: RE[]) {
     }
     if (e.k === 'snap') {
       ev(s, 'snap', PX(e.x, e.y), SY(e.y), e.leg ? '툭! 다리에 걸렸다' : '툭!');
+      setMood(s, 'huh');
       see(s, 'snap', '🪑 팽팽한 실이 다리에 걸리면 툭 끊겨요');
       continue;
     }
@@ -793,7 +827,7 @@ function animate(s: YarnState) {
   for (let k = 0; k < s.vq.length; k++) {
     const q = s.vq[k], f = q[0];
     if (f.full && f.got >= CAP && q.length > 1 && s.t - (f.t0 || 0) > 6) {
-      s.lv.push({ col: f.col, slot: k, t0: s.t, one: false });
+      s.lv.push({ col: f.col, slot: k, t0: s.t });
       q.shift();
       q[0].t0 = s.t + 20;
       ev(s, 'done', mouthX(k), BASK_Y, undefined, f.col);
@@ -813,7 +847,8 @@ function animate(s: YarnState) {
 function afterMove(s: YarnState) {
   const S = s.S;
   s.calmT = s.t;
-  if (S.chain >= 2 && s.t - s.lastBig > 30) setMood(s, 'wow');
+  if (S.chain >= 2 && s.t - s.lastBig > 30) (setMood(s, 'wow'), (s.lastBig = s.t));
+  if (s.mvTray > 0) setMood(s, 'worry');
   const lead = S.B[S.lead];
   if (s.mvIn > 0) ev(s, 'chainbig', 0.5, SY(FH) - 0.1, lead && lead.dst >= 0 ? `줄줄이 ${s.mvIn + 1}개 쏙!` : `${s.mvIn}개 같이 쏙!`, Math.min(4, s.mvIn));
   if (s.mvTray > 0) ev(s, 'oops', 0.5, SY(FH) - 0.035, `앗, ${s.mvTray}개 딸려서 대기 칸으로…`);
@@ -944,7 +979,7 @@ export const yarncatSmart: Bot<YarnState> = {
   name: '털실 박사',
   act(s) {
     if (!ready(s)) return NO;
-    let m = s.L.sol[s.S.taps];
+    let m = s.L.sol[s.S.mv];
     if (m === undefined || (m !== SCI && !(s.S.B[m] && tappable(s.L, s.S.B[m]))) || (m === SCI && !s.L.sc)) m = greedyPick(s.S);
     return m >= 0 || m === SCI ? aimAt(s, m) : NO;
   },
@@ -980,7 +1015,7 @@ export const yarncatRandom: Bot<YarnState> = {
     m.until = s.t + 2 + Math.floor(rng() * 4);
     const list: number[] = [];
     s.S.B.forEach((b, i) => b.st === 0 && list.push(i));
-    if (s.L.sc) list.push(SCI);
+    if (s.L.sc && !s.S.cut) list.push(SCI);
     if (rng() < 0.15 || !list.length) m.p = { x: rng(), y: rng() };
     else {
       const k = list[Math.floor(rng() * list.length)], q = aimAt(s, k).pointer!;
@@ -1735,7 +1770,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: YarnState, w: number, h: numb
   if (L.sc) {
     const [sx, syy] = L.sc, px = PXs(sx, syy), py = PYs(syy), u = rS(0.056, syy), can = sciRopes(S).length > 0;
     const snip = s.events.find((e) => e.kind === 'cut' && t - e.t < 20);
-    const open = snip ? 0.05 : 0.45 + Math.sin(t / 18) * 0.05;
+    const open = snip || S.cut ? 0.05 : 0.45 + Math.sin(t / 18) * 0.05;
+    if (S.cut && !snip) ctx.globalAlpha = 0.45;
     if (can && s.phase === 'play') {
       ctx.fillStyle = `rgba(255,255,255,${0.22 + 0.1 * Math.sin(t / 10)})`;
       ctx.beginPath();
@@ -1777,6 +1813,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: YarnState, w: number, h: numb
     ctx.beginPath();
     ctx.arc(px, py, u * 0.1, 0, TAU);
     ctx.fill();
+    ctx.globalAlpha = 1;
   }
 
   // ═════════ 실 ═════════
@@ -2203,7 +2240,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: YarnState, w: number, h: numb
   ctx.fillStyle = th.hot;
   ctx.fillText('♥'.repeat(Math.max(0, s.hearts)) + '♡'.repeat(Math.max(0, 3 - s.hearts)), w - R(0.06) - ctx.measureText(stt).width, hb * 0.52);
   // 새것 알림 띠
-  const cardUp = s.phase === 'play' && s.pt < CARD_T && S.taps === 0;
+  const cardUp = s.phase === 'play' && s.pt < CARD_T && S.mv === 0 && !s.down;
   if (s.news && t - s.news.t < NEWS_T && !cardUp) {
     const age = t - s.news.t, a = Math.min(1, age / 10, (NEWS_T - age) / 20), drop = Math.max(0, 10 - age) * 2;
     ctx.globalAlpha = a;
@@ -2392,7 +2429,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: YarnState, w: number, h: numb
     let hint = d.tip;
     const first = s.stage === 0 && !s.firstTap && s.phase === 'play';
     if (first) hint = '👆 털실 뭉치를 톡! 고양이가 바구니로 탁 쳐 줘요';
-    else if (s.down && s.phase === 'play' && s.press !== -1) hint = s.press === SCI ? '떼면 싹둑! (톡 한 번 써요)' : s.press <= -2 ? '소파 밑은 발이 안 닿아요' : '떼면 데굴! 흐린 뭉치 = 끌려가 멈출 자리';
+    else if (s.down && s.phase === 'play' && s.press !== -1) hint = s.press === SCI ? '떼면 싹둑! 가위는 한 번만 (톡 수에 안 세요)' : s.press <= -2 ? '소파 밑은 발이 안 닿아요' : '떼면 데굴! 흐린 뭉치 = 끌려가 멈출 자리';
     else if (s.phase === 'result') hint = s.ok ? (s.won ? '방이 다 깨끗해졌어요! 고양이가 꾸벅' : '다음 방엔 새것이 나와요') : '꾹 누르면 끌려올 뭉치가 미리 보여요';
     else if (s.stage === 0 && s.firstTap) hint = '꾹 누르고 있으면 끌려올 뭉치가 보여요';
     ctx.textAlign = 'center';

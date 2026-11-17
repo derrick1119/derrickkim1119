@@ -107,7 +107,7 @@ function buildLevel(def: StageDef, flip: boolean): Level {
     if (base > 0) sw(x0 - 0.012, bot + 0.012, x0 - 0.012, FLOOR + 0.05, BARK, 0.012), sw(x1 + 0.012, bot + 0.012, x1 + 0.012, FLOOR + 0.05, BARK, 0.012);
     // 뚜껑: 눈금까지 차면 탁 덮인다. 기울어진 뚜껑은 넘친 꿀을 한쪽으로 미끄러뜨린다
     const lid: number[] = [], ly = top - 0.006, lh = 0.035;
-    if (tl === 0) lid.push(sw(x0 - 0.014, ly, X, ly - lh * 0.7, LID, 0.009), sw(X, ly - lh * 0.7, x1 + 0.014, ly, LID, 0.009));
+    if (tl === 0) lid.push(sw(x0 - 0.016, ly + 0.004, X, ly - lh * 1.2, LID, 0.009), sw(X, ly - lh * 1.2, x1 + 0.016, ly + 0.004, LID, 0.009));
     else if (tl > 0) lid.push(sw(x0 - 0.014, ly - lh, x1 + 0.016, ly + 0.004, LID, 0.009));
     else lid.push(sw(x0 - 0.016, ly + 0.004, x1 + 0.014, ly - lh, LID, 0.009));
     return { x: X, w, h, cap, c, x0, x1, top, bot, lid, tilt: tl, base };
@@ -133,14 +133,14 @@ export interface Sim {
   t: number; n: number;
   x: Float64Array; y: Float64Array; ox: Float64Array; oy: Float64Array; vx: Float64Array; vy: Float64Array;
   still: Int32Array; heat: Int32Array; st: Uint8Array; c: Uint8Array; room: Int8Array;
-  /** 1 = 뚜껑에 닿음(넘친 꿀) · 2 = 나뭇잎에 붙은 꿀사탕 · 4 = 방을 나옴 */
+  /** 1 뚜껑에 닿음 · 4 방을 나옴 · 8 단지에 들어감 · 16 뚜껑 위에서 굳음 · 32 바닥에 떨어짐 */
   fl: Uint8Array; lx: Float64Array; ly: Float64Array;
   /** 굳은 꿀사탕끼리 이은 다리(매끈한 면): 방울마다 자기보다 번호 큰 이웃 최대 BMAX개 */
   bond: Int32Array; bn: Uint8Array;
   open: Uint8Array; segOn: Uint8Array;
   fill: Int32Array; full: Uint8Array; wrong: Uint8Array; lastIn: Int32Array; beeT: Int32Array;
   la: number; lav: number; flips: number;
-  dropped: number; spilled: number; burned: number; stolen: number; opened: number; live: number; moved: number;
+  dropped: number; burned: number; stolen: number; opened: number; live: number; moved: number;
 }
 
 function newSim(L: Level): Sim {
@@ -153,7 +153,7 @@ function newSim(L: Level): Sim {
     open: new Uint8Array(L.rooms.length), segOn: new Uint8Array(L.segs.length).fill(1),
     fill: new Int32Array(J), full: new Uint8Array(J), wrong: new Uint8Array(J), lastIn: new Int32Array(J), beeT: new Int32Array(J).fill(-999),
     la: L.leaf ? Math.sign(L.leaf.bias) * LEAF_MAX : 0, lav: 0, flips: 0,
-    dropped: 0, spilled: 0, burned: 0, stolen: 0, opened: 0, live: 0, moved: 0,
+    dropped: 0, burned: 0, stolen: 0, opened: 0, live: 0, moved: 0,
   };
   for (const j of L.jars) for (const k of j.lid) S.segOn[k] = 0;
   return S;
@@ -330,6 +330,7 @@ function phys(L: Level, S: Sim, hook: Hook) {
         const J = L.jars[j];
         if (x[i] > J.x0 + 0.004 && x[i] < J.x1 - 0.004 && y[i] > J.top + PR * 0.6 && y[i] < J.bot) {
           st[i] = GONE;
+          S.fl[i] |= 8;
           gone = true;
           if (!S.full[j]) {
             S.fill[j]++;
@@ -348,8 +349,8 @@ function phys(L: Level, S: Sim, hook: Hook) {
       if (gone) continue;
       if (y[i] > FLOOR || x[i] < 0 || x[i] > 1 || y[i] < 0) {
         st[i] = GONE;
+        S.fl[i] |= 32;
         S.dropped++;
-        if (S.fl[i] & 1) S.spilled++;
         hook?.('drop', x[i], FLOOR, S.fl[i] & 1);
         continue;
       }
@@ -373,6 +374,7 @@ function phys(L: Level, S: Sim, hook: Hook) {
       if (sp2 < VS * VS) {
         if (++S.still[i] >= SET_T) {
           setP(S, i);
+          for (let k = 0; k < CN[i]; k++) if (CM[i * MAXC + k] === LID) S.fl[i] |= 16;
           hook?.('set', x[i], y[i]);
         }
       } else S.still[i] = Math.max(0, S.still[i] - 4);
@@ -504,6 +506,13 @@ function beeStep(L: Level, S: Sim, hook: Hook) {
   }
 }
 
+/** 넘친 꿀: 닫힌 뚜껑에 닿았다가 바닥에 떨어졌거나 뚜껑 위에서 굳은 꿀 (뚜껑을 타고 다른 단지로 가면 괜찮다) */
+export function spillOf(S: Sim) {
+  let k = 0;
+  for (let i = 0; i < S.n; i++) if (S.fl[i] & 1 && S.fl[i] & 48) k++;
+  return k;
+}
+
 /** 밀랍 하나를 연다 */
 function openRoom(L: Level, S: Sim, r: number) {
   if (S.open[r]) return false;
@@ -570,16 +579,55 @@ export const STAGES: StageDef[] = [
   {
     key: 'bridge', name: '꿀사탕 다리', emoji: '🍬', news: '고인 꿀은 굳어 꿀사탕 다리가 돼요', tip: '작은 꿀로 홈을 메우면 다음 꿀이 건너가요', stars: ['fill', 'nospill'],
     walls: [[0.06, 0.36, 0.36, 0.55, 0.38, 0.65, 0.47, 0.65, 0.49, 0.625, 0.80, 0.82]],
-    rooms: [[0.2, 0.28, 0.2, 12], [0.43, 0.38, 0.12, 6], [0.66, 0.49, 0.14, 9]],
+    rooms: [[0.2, 0.28, 0.2, 15], [0.43, 0.38, 0.12, 6], [0.66, 0.49, 0.14, 8]],
     jars: [[0.86, 0.15, 0.16, 12]],
     spot: [0.43, 0.62, 0.1],
   },
   {
-    key: 'leaftest', name: 'leaf', emoji: '🍃', news: '', tip: '', stars: ['fill'],
+    key: 'dome', name: '뚜껑 미끄럼', emoji: '🫙', news: '꽉 찬 단지 뚜껑에 떨어진 꿀은 미끄러져요', tip: '뚜껑 오른쪽에 떨어진 꿀은 옆 단지로 굴러가요', stars: ['fill', 'nospill', 'plugs'], plugs: 2,
+    walls: [[0.06, 0.40, 0.44, 0.62], [0.94, 0.40, 0.565, 0.62], [0.585, 0.9, 0.77, 1.0]],
+    rooms: [[0.22, 0.33, 0.16, 7], [0.76, 0.33, 0.18, 10], [0.88, 0.62, 0.13, 12]],
+    jars: [[0.5, 0.13, 0.13, 7, -1, 0.24, 0], [0.82, 0.15, 0.16, 10]],
+    spot: [0.5, 0.86, 0.1],
+  },
+  {
+    key: 'leaf', name: '나뭇잎 시소', emoji: '🍃', news: '나뭇잎은 꿀이 많이 실린 쪽으로 기울어요', tip: '꿀이 적으면 나뭇잎을 못 넘겨요 — 기운 쪽으로 미끄러져요', stars: ['fill', 'nospill', 'plugs'], plugs: 2,
     walls: [],
-    rooms: [[0.32, 0.3, 0.16, 8], [0.68, 0.3, 0.16, 8]],
-    jars: [[0.16, 0.15, 0.16, 6], [0.84, 0.15, 0.16, 6]],
-    leaf: [0.5, 0.62, 0.26, -0.03],
+    rooms: [[0.2, 0.36, 0.14, 8], [0.42, 0.3, 0.12, 6], [0.68, 0.32, 0.17, 11]],
+    jars: [[0.24, 0.15, 0.16, 6], [0.76, 0.15, 0.16, 11]],
+    leaf: [0.5, 0.64, 0.25, -1],
+    spot: [0.5, 0.64, 0.17],
+  },
+  {
+    key: 'bees', name: '꿀벌 손님', emoji: '🐝', news: '덜 찬 단지는 벌이 와서 퍼 가요', tip: '홈을 먼저 메우고, 단지는 한 번에 채워요', stars: ['fill', 'bee', 'plugs'], plugs: 2,
+    walls: [[0.06, 0.36, 0.36, 0.55, 0.38, 0.65, 0.47, 0.65, 0.49, 0.625, 0.80, 0.82]],
+    rooms: [[0.2, 0.28, 0.2, 15], [0.43, 0.38, 0.12, 6], [0.84, 0.4, 0.14, 6]],
+    jars: [[0.86, 0.15, 0.16, 12]],
+    bees: true,
+    spot: [0.5, 0.15, 0.12],
+  },
+  {
+    key: 'color', name: '꽃꿀 두 가지', emoji: '🌸', news: '꽃마다 꿀 맛이 달라요 — 같은 꽃 단지에만!', tip: '노란 단지를 먼저 채우면 분홍 꿀이 뚜껑을 타고 넘어가요', stars: ['fill', 'nospill', 'plugs'], plugs: 2,
+    walls: [[0.06, 0.38, 0.40, 0.60], [0.94, 0.40, 0.62, 0.58, 0.47, 0.66], [0.56, 0.92, 0.74, 1.01]],
+    rooms: [[0.2, 0.3, 0.17, 8, 0], [0.74, 0.3, 0.17, 11, 1], [0.53, 0.3, 0.12, 6, 0]],
+    jars: [[0.44, 0.14, 0.14, 8, 0, 0.22, 1], [0.84, 0.15, 0.16, 10, 1]],
+    spot: [0.44, 0.92, 0.11],
+  },
+  {
+    key: 'hot', name: '뜨거운 돌', emoji: '🔥', news: '뜨거운 돌에 닿은 꿀은 안 굳고 지글지글 타요', tip: '큰 꿀로 나뭇잎을 먼저 넘기면 작은 꿀도 따라가요', stars: ['fill', 'noburn', 'nospill'],
+    walls: [[0.04, 0.80, 0.16, 0.86, 0.17, 0.92, 0.27, 0.92, 0.28, 0.86, 0.32, 0.84], [0.68, 0.78, 0.85, 0.88]],
+    rooms: [[0.42, 0.32, 0.12, 6], [0.66, 0.3, 0.16, 10], [0.89, 0.44, 0.12, 13]],
+    jars: [[0.87, 0.15, 0.16, 16]],
+    leaf: [0.5, 0.62, 0.25, -1],
+    hot: [[0.22, 0.9, 0.04]],
+    spot: [0.22, 0.88, 0.09],
+  },
+  {
+    key: 'all', name: '곰돌이 잔치', emoji: '🎉', news: '마지막 판 — 다리·뚜껑·벌 모두 나와요!', tip: '다리를 먼저, 단지는 한 번에, 뚜껑을 이용해요', stars: ['fill', 'bee', 'nospill'],
+    walls: [[0.06, 0.36, 0.36, 0.55, 0.38, 0.65, 0.47, 0.65, 0.49, 0.625, 0.62, 0.70]],
+    rooms: [[0.2, 0.28, 0.2, 12], [0.43, 0.38, 0.12, 6], [0.8, 0.3, 0.16, 10], [0.62, 0.44, 0.12, 6]],
+    jars: [[0.66, 0.13, 0.13, 7, -1, 0.2, 1], [0.86, 0.15, 0.16, 10]],
+    bees: true,
   },
 ];
 
@@ -594,7 +642,7 @@ function starsOf(L: Level, S: Sim): boolean[] {
   return d.stars.map((k) =>
     !full ? false
     : k === 'fill' ? true
-    : k === 'nospill' ? S.spilled === 0
+    : k === 'nospill' ? spillOf(S) === 0
     : k === 'plugs' ? S.opened <= (d.plugs ?? 9)
     : k === 'nodrop' ? S.dropped === 0
     : k === 'bee' ? S.stolen === 0
@@ -636,8 +684,11 @@ function newStage(s: HoneyState) {
   s.bees = [];
   s.starOk = d.stars.map(() => false);
   s.got = 0;
-  // 곰은 단지가 없는 쪽 바닥에 앉는다
-  s.bearX = s.L.jars.some((J) => J.x0 < 0.3) ? 0.86 : 0.14;
+  // 곰은 단지 사이 가장 넓은 빈 바닥에 앉는다
+  const xs = [0.03, ...s.L.jars.flatMap((J) => [J.x0 - 0.03, J.x1 + 0.03]).sort((a, b) => a - b), 0.97];
+  let gap = -1;
+  for (let k = 0; k + 1 < xs.length; k += 2) if (xs[k + 1] - xs[k] > gap) (gap = xs[k + 1] - xs[k]), (s.bearX = (xs[k] + xs[k + 1]) / 2);
+  s.bearX = Math.max(0.13, Math.min(0.87, s.bearX));
   setMood(s, 'idle');
   // 판의 새것은 시작 카드에 바로 보인다
   s.seen.add(d.key);
@@ -691,7 +742,7 @@ function endStage(s: HoneyState, ok: boolean, why: string) {
     s.starOk = starsOf(s.L, s.S);
     s.got = s.starOk.filter(Boolean).length;
     s.stars += s.got;
-    s.pts += s.got * STAR_PTS + CLEAR_PTS;
+    s.pts += s.got * s.got * STAR_PTS + CLEAR_PTS;
     if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS);
     ev(s, 'clear', 0.5, 0.6, s.won ? '꿀단지 다 모았다!' : '다 채웠다!');
     setMood(s, 'gulp');
@@ -806,7 +857,7 @@ function search(L: Level, S: Sim, depth: number): Plan {
   const v0 = verdict(L, S);
   if (v0 === 1) {
     const st = starsOf(L, S);
-    return { v: 100000 + st.filter(Boolean).length * 10000 - S.opened * 100 - S.spilled * 10 - S.dropped, seq: [] };
+    return { v: 100000 + st.filter(Boolean).length * 10000 - S.opened * 100 - spillOf(S) * 10 - S.dropped, seq: [] };
   }
   if (v0 < 0 || depth === 0) {
     let f = 0;
@@ -839,7 +890,7 @@ function planFor(s: HoneyState): number {
 const NO: Input = { tap: false, dir: 0, pointer: null };
 const at = (L: Level, r: number): Input => ({ tap: false, dir: 0, pointer: { x: L.rooms[r].px, y: (L.rooms[r].py - 0.015) / A } });
 /** 사람처럼: 꿀이 다 멈추고 조금 지켜본 뒤에 다음 밀랍 */
-const ready = (s: HoneyState) => s.phase === 'play' && !s.down && s.S.live === 0 && s.t - s.lastTap > 40 && s.t - s.startT > 50;
+const ready = (s: HoneyState) => s.phase === 'play' && !s.down && s.S.live === 0 && s.t - s.lastTap > 40 && s.t - s.startT > 90;
 const brain = new WeakMap<object, { key: string; r: number }>();
 /** 잘하는 봇: 남은 밀랍 여는 순서를 모두 시뮬레이션해 보고 별이 가장 많은 순서대로 연다 */
 export const honeybearSmart: Bot<HoneyState> = {
@@ -913,7 +964,7 @@ const pvCache = new WeakMap<object, Preview>();
 function preview(s: HoneyState, r: number): Preview {
   const S0 = s.S, key = `${s.stage}:${s.tries}:${r}:${S0.opened}:${S0.live ? Math.floor(s.t / 15) : 0}`, c = pvCache.get(s);
   if (c && c.key === key) return c;
-  const L = s.L, S = cloneSim(S0), was = S0.st.slice(), f0 = S0.fill.slice(), sp0 = S0.spilled, dr0 = S0.dropped, bu0 = S0.burned;
+  const L = s.L, S = cloneSim(S0), was = S0.st.slice(), f0 = S0.fill.slice(), sp0 = spillOf(S0), dr0 = S0.dropped, bu0 = S0.burned;
   openRoom(L, S, r);
   const watch: number[] = [];
   for (let i = 0; i < S.n; i++) if (S.room[i] === r && was[i] === SLEEP) watch.push(i);
@@ -931,7 +982,7 @@ function preview(s: HoneyState, r: number): Preview {
   for (let i = 0; i < S.n; i++) if (S.st[i] === SET && was[i] !== SET) candy.push(S.x[i], S.y[i]);
   const p: Preview = {
     trails, candy, jars: L.jars.map((_, j) => S.fill[j] - f0[j]), full: L.jars.map((_, j) => S.full[j] - S0.full[j]),
-    spill: S.spilled - sp0, drop: S.dropped - dr0 - (S.spilled - sp0), dropX: dn ? dropX / dn : 0.5, burn: S.burned - bu0, la: S.la, v: verdict(L, S), key,
+    spill: spillOf(S) - sp0, drop: Math.max(0, S.dropped - dr0 - (spillOf(S) - sp0)), dropX: dn ? dropX / dn : 0.5, burn: S.burned - bu0, la: S.la, v: verdict(L, S), key,
   };
   pvCache.set(s, p);
   return p;
@@ -1900,7 +1951,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: HoneyState, d: StageDef, w: n
     let st = '';
     if (k === 'fill') st = `단지 ${L_full(s)}/${s.L.jars.length}`;
     if (k === 'plugs') st = `${S.opened}개 열었어요`;
-    if (k === 'nospill') st = S.spilled ? '넘쳤어요' : '아직 안 넘침';
+    if (k === 'nospill') st = spillOf(S) ? '넘쳤어요' : '아직 안 넘침';
     if (k === 'nodrop') st = S.dropped ? `${S.dropped}방울 흘림` : '깨끗해요';
     if (k === 'bee') st = S.stolen ? '벌이 퍼 갔어요' : '아직 무사';
     if (k === 'noburn') st = S.burned ? `${S.burned}방울 탔어요` : '아직 무사';
@@ -2046,7 +2097,7 @@ function starsLive(s: HoneyState): (boolean | null)[] {
 }
 function starBroken(s: HoneyState, k: StarKind) {
   const S = s.S, d = STAGES[s.stage];
-  return k === 'nospill' ? S.spilled > 0 : k === 'plugs' ? S.opened > (d.plugs ?? 9) : k === 'nodrop' ? S.dropped > 0 : k === 'bee' ? S.stolen > 0 : k === 'noburn' ? S.burned > 0 : false;
+  return k === 'nospill' ? spillOf(S) > 0 : k === 'plugs' ? S.opened > (d.plugs ?? 9) : k === 'nodrop' ? S.dropped > 0 : k === 'bee' ? S.stolen > 0 : k === 'noburn' ? S.burned > 0 : false;
 }
 const STAR_DONE: Record<StarKind, (s: HoneyState) => string> = {
   fill: () => '단지를 모두 채웠어요!',
@@ -2058,7 +2109,7 @@ const STAR_DONE: Record<StarKind, (s: HoneyState) => string> = {
 };
 const STAR_MISS: Record<StarKind, (s: HoneyState) => string> = {
   fill: () => '단지가 덜 찼어요',
-  nospill: (s) => `${s.S.spilled}방울 넘쳤어요`,
+  nospill: (s) => `${spillOf(s.S)}방울 넘쳤어요`,
   plugs: (s) => `밀랍을 ${NUM[Math.min(6, s.S.opened)]} 개 열었어요`,
   nodrop: (s) => `바닥에 ${s.S.dropped}방울 흘렸어요`,
   bee: (s) => `벌이 ${s.S.stolen}방울 퍼 갔어요`,
