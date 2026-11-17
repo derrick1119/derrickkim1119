@@ -73,18 +73,19 @@ document.addEventListener('visibilitychange', () => (document.hidden ? sfx.sleep
 
 /** ✏️ S057(오너 "렉" · 🧪 S056 ①): 느린 폰이면 화면 배율을 스스로 한 칸씩 낮춘다(2 → 1.5 → 1.25 → 1).
  *  렉의 정체는 JS가 아니라 칠할 픽셀 수였다(CPU 4배: 프레임 JS p50 ≈ 5ms인데 간격 p50 33ms · 배율 1이면 16.7ms).
- *  프레임 60개 중 40ms 넘는 것이 8% 이상이면 한 칸, 25% 이상이면 두 칸 내린다(내릴 때마다 그림 캐시를 다시 굽는 끊김이 한 번 있어 횟수를 줄인다). 고르게 33ms인 저전력 30fps 폰은 내리지 않는다. 다시 올리지는 않는다(왔다 갔다 방지). 그림 해상도만 바뀌고 판 · 시뮬은 그대로다 */
-const STEPS = [2, 1.5, 1.25, 1];
-let cap = 2, gaps: number[] = [];
-function watch(dt: number) {
-  if (dt > 250) return; // 탭을 숨겼다 돌아온 첫 프레임 등
+ *  프레임 60개 중 40ms 넘는 것이 8% 이상이면 1.5, 25% 이상이면 바로 1로 내린다(🧪 S057 🟡④: 내릴 때마다 그림 캐시를 다시 굽는 끊김이 있어 한 번에 · 1.25는 1.5와 프레임이 같고 더 흐려 뺌).
+ *  켠 뒤 3초는 재지 않는다. 정한 배율은 저장해 다음에 켤 때 처음부터 쓴다(두 번째 실행부터 멈칫 0). 고르게 33ms인 저전력 30fps 폰은 내리지 않는다. 다시 올리지는 않는다(왔다 갔다 방지). 그림 해상도만 바뀌고 판 · 시뮬은 그대로다 */
+const STEPS = [2, 1.5, 1];
+let cap = store.get('rs') >= 100 ? Math.min(2, store.get('rs') / 100) : 2, gaps: number[] = [], born = 0;
+function watch(dt: number, at: number) {
+  if (dt > 250 || at - born < 3000) return; // 탭을 숨겼다 돌아온 첫 프레임 · 켠 뒤 3초
   gaps.push(dt);
   if (gaps.length < 60) return;
   const slow = gaps.filter((x) => x > 40).length / gaps.length, now = Math.min(cap, window.devicePixelRatio || 1);
   gaps = [];
   if (slow < 0.08 || now <= 1) return;
-  const i = STEPS.findIndex((v) => v < now);
-  cap = i < 0 ? 1 : STEPS[Math.min(STEPS.length - 1, i + (slow >= 0.25 ? 1 : 0))];
+  cap = slow >= 0.25 ? 1 : STEPS.find((v) => v < now) ?? 1;
+  store.set('rs', cap * 100);
   size();
 }
 
@@ -179,7 +180,7 @@ function start(pickK?: number) {
   running = true;
   overlay.hidden = true;
   acc = 0;
-  last = performance.now();
+  last = born = performance.now();
   canvas.focus({ preventScroll: true });
   requestAnimationFrame(loop);
 }
@@ -198,7 +199,7 @@ function end() {
 
 function loop(now: number) {
   if (!running) return;
-  watch(now - last);
+  watch(now - last, now);
   acc += Math.min(0.25, (now - last) / 1000);
   last = now;
   while (acc >= TICK) {
