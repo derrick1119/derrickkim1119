@@ -660,6 +660,8 @@ export interface HoneyState {
   seen: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; events: Ev[];
   startT: number; spotT: number; mood: string; moodT: number; bearX: number; setN: number; inN: number[];
   bees: { j: number; t0: number }[];
+  /** 이 판에서 연 밀랍 순서 */
+  seq: number[];
 }
 
 const ev = (s: HoneyState, kind: string, x: number, y: number, text?: string, a?: number) => s.events.push({ t: s.t, kind, x, y, text, a });
@@ -682,6 +684,7 @@ function newStage(s: HoneyState) {
   s.setN = 0;
   s.inN = s.L.jars.map(() => 0);
   s.bees = [];
+  s.seq = [];
   s.starOk = d.stars.map(() => false);
   s.got = 0;
   // 곰은 단지 사이 가장 넓은 빈 바닥에 앉는다
@@ -769,6 +772,7 @@ function pickPlug(s: HoneyState, x: number, y: number) {
 function tapRoom(s: HoneyState, r: number) {
   const R = s.L.rooms[r];
   if (!openRoom(s.L, s.S, r)) return;
+  s.seq.push(r);
   s.lastTap = s.t;
   s.taps++;
   s.firstTap = true;
@@ -799,7 +803,7 @@ export const honeybear: GameDef<HoneyState> = {
       down: false, ax: 0, ay: 0, press: -1, lastTap: -99, firstTap: false, taps: 0,
       hearts: 3, stars: 0, maxStars: STAGES.reduce((a, d) => a + d.stars.length, 0), got: 0, starOk: [], pts: 0,
       ok: false, why: '', won: false, dead: false, tries: 0, again: false,
-      seen: new Set<string>(), newsQ: [], news: null, events: [], startT: 0, spotT: -999, mood: 'idle', moodT: 0, bearX: 0.14, setN: 0, inN: [], bees: [],
+      seen: new Set<string>(), newsQ: [], news: null, events: [], startT: 0, spotT: -999, mood: 'idle', moodT: 0, bearX: 0.14, setN: 0, inN: [], bees: [], seq: [],
     } as unknown as HoneyState;
     newStage(s);
     return s;
@@ -874,16 +878,14 @@ function search(L: Level, S: Sim, depth: number): Plan {
 }
 const planCache = new Map<string, Plan>();
 function planFor(s: HoneyState): number {
-  const L = s.L, S = s.S, done: number[] = [];
-  L.rooms.forEach((_, r) => S.open[r] && done.push(r));
-  const key = `${s.stage}:${L.flip}:${S.opened}:${[...S.fill].join(',')}:${[...S.open].join('')}`;
+  const L = s.L, S = s.S;
+  const key = `${s.stage}:${L.flip}:${s.seq.join('>')}:${[...S.fill].join(',')}`;
   let p = planCache.get(key);
   if (!p) {
     p = search(L, S, L.rooms.length - S.opened);
     if (planCache.size > 500) planCache.clear();
     planCache.set(key, p);
   }
-  void done;
   return p.seq.length ? p.seq[0] : -1;
 }
 

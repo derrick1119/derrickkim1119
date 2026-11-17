@@ -808,7 +808,7 @@ function finish(s: TruckState) {
     s.stars += s.got;
     s.pts += s.got * STAR_PTS + (s.items.length - lost) * KEEP_PTS;
     if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS);
-    ev(s, 'clear', 0.5, 0.7, s.won ? '이사 끝! 🏠' : '무사 도착!', '#fff1a8', s.got);
+    ev(s, s.got === 3 ? 'perfect' : 'clear', 0.5, 0.7, s.won ? '이사 끝! 🏠' : '무사 도착!', '#fff1a8', s.got);
     setMood(s, lost ? 'phew' : 'happy');
   } else {
     s.hearts--;
@@ -821,7 +821,10 @@ function finish(s: TruckState) {
 
 /** 연출용: 트럭 흔들림 · 떨어진 짐 굴러감 · 강아지 · 아이 · 카메라 */
 function cosmetic(s: TruckState) {
-  s.vb += -0.25 * s.yb - 0.18 * s.vb;
+  let mass = 0;
+  for (const b of s.W.b) if (!b.dead && b.kind !== 'cat') mass += b.m;
+  const sag = -Math.min(0.014, mass * 0.0006);
+  s.vb += -0.25 * (s.yb - sag) - 0.18 * s.vb;
   s.yb += s.vb;
   s.pv += -0.22 * s.pa - 0.16 * s.pv;
   s.pa += s.pv;
@@ -1475,14 +1478,20 @@ function drawBlanket(ctx: CanvasRenderingContext2D, cols: Body[], P: (bx: number
   ctx.fillStyle = '#ff9fc0';
   ctx.fill();
   ctx.lineJoin = 'round';
-  ctx.strokeStyle = '#e8739b';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#d95f8a';
+  ctx.lineWidth = 2;
   ctx.stroke();
-  ctx.strokeStyle = 'rgba(255,255,255,.75)';
+  // 윗면 반짝 · 누빔 선 · 꽃무늬
+  ctx.strokeStyle = 'rgba(255,255,255,.8)';
   ctx.lineWidth = Math.max(1.5, u * 0.05);
-  for (let k = 0; k < top.length; k += 2) (ctx.beginPath(), ctx.moveTo(top[k][0], top[k][1] + 2), ctx.lineTo(bot[k][0], bot[k][1] - 2), ctx.stroke());
-  ctx.fillStyle = '#ffd6e5';
-  for (let k = 1; k < top.length; k += 2) (ctx.beginPath(), ctx.arc((top[k][0] + bot[k][0]) / 2, (top[k][1] + bot[k][1]) / 2, u * 0.05, 0, TAU), ctx.fill());
+  ctx.beginPath();
+  for (let k = 0; k < top.length; k++) ctx.lineTo(top[k][0], top[k][1] + u * 0.06);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(217,95,138,.45)';
+  ctx.lineWidth = 1;
+  for (let k = 0; k < top.length; k++) (ctx.beginPath(), ctx.moveTo(top[k][0] - hw, top[k][1] + 3), ctx.lineTo(bot[k][0] - hw, bot[k][1] - 2), ctx.stroke());
+  ctx.fillStyle = '#fff1a8';
+  for (let k = 0; k < top.length; k += 2) (ctx.beginPath(), ctx.arc((top[k][0] + bot[k][0]) / 2, (top[k][1] + bot[k][1]) / 2, u * 0.055, 0, TAU), ctx.fill());
 }
 
 /** 짐칸 안의 짐 하나 */
@@ -1538,6 +1547,30 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TruckState, w: number, h: num
     else if (b.kind !== 'cat' || s.phase !== 'check' || t - s.catT > 30) drawBody(ctx, s, b, P, R(U));
   }
   if (cols.length) drawBlanket(ctx, cols, P, R(U));
+  // 깨진 화분·그릇 조각은 그 자리에 남는다
+  for (const b of s.W.b) {
+    if (!b.dead || !b.broken || b.out) continue;
+    const [sx, sy] = P(b.x, b.y - b.hh), u = R(U);
+    ctx.fillStyle = b.kind === 'pot' ? '#e07b4c' : '#f4f1ea';
+    for (let k = 0; k < 6; k++) {
+      const ox = (k - 2.5) * u * 0.13, hh = u * (0.06 + hsh(b.id * 7 + k) * 0.1);
+      ctx.beginPath();
+      ctx.moveTo(sx + ox - u * 0.06, sy);
+      ctx.lineTo(sx + ox + u * 0.02, sy - hh);
+      ctx.lineTo(sx + ox + u * 0.07, sy);
+      ctx.fill();
+    }
+    if (b.kind === 'pot') {
+      ctx.fillStyle = '#7a4a2a';
+      ctx.beginPath();
+      ctx.ellipse(sx, sy - 1, u * 0.3, u * 0.07, 0, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = '#4fae55';
+      ctx.beginPath();
+      ctx.ellipse(sx + u * 0.12, sy - u * 0.08, u * 0.16, u * 0.05, -0.4, 0, TAU);
+      ctx.fill();
+    }
+  }
   // 고양이가 현관에서 폴짝 올라온다
   if (s.phase === 'check' && t - s.catT <= 30) {
     const cb = s.W.b.find((b) => b.kind === 'cat' && !b.dead);
@@ -1598,6 +1631,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TruckState, w: number, h: num
     if (e.kind === 'clear') {
       fx.burst(w * 0.3, Y(0.5), '#ffe066', 40, 6, 3.2), fx.burst(w * 0.7, Y(0.5), '#ff9ec4', 40, 6, 3.2), fx.burst(w * 0.5, Y(0.6), '#8fe3ff', 30, 5, 3);
       fx.ring(w / 2, Y(0.55), '#ffe066', R(0.45), 7), fx.blink('#fff6c8', 0.22);
+    }
+    if (e.kind === 'perfect') {
+      for (let k = 0; k < 5; k++) fx.burst(w * (0.15 + k * 0.175), Y(0.45 + (k % 2) * 0.12), ['#ffe066', '#ff9ec4', '#8fe3ff', '#b8ffbf', '#ffb36b'][k], 34, 6.5, 3.2);
+      fx.ring(w / 2, Y(0.5), '#ffe066', R(0.55), 8), fx.ring(w / 2, Y(0.5), '#ffffff', R(0.35), 5), fx.blink('#fff6c8', 0.3), fx.kick(4);
     }
     if (e.kind === 'fail') fx.kick(8), fx.blink(th.hot, 0.18);
   }
@@ -2492,7 +2529,7 @@ function drawCard(ctx: CanvasRenderingContext2D, s: TruckState, d: StageDef, w: 
     a = Math.min(1, age / 10);
     cy = 0.42;
     if (s.ok) {
-      lines.push({ text: s.won ? '🏠 이사 끝!' : '🚚 무사 도착!', col: '#ffe066', size: 0.056 });
+      lines.push({ text: s.won ? '🏠 이사 끝!' : s.got === 3 ? '🚚 완벽한 이사!' : '🚚 무사 도착!', col: '#ffe066', size: 0.056 });
       const o = s.dropped, b = s.broken;
       const said = [
         '모두 싣고 출발했어요',
