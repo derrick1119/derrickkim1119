@@ -89,7 +89,7 @@ export const STAGES: StageDef[] = [
   { key: 'heavy', name: '냉장고', emoji: '🧊', news: '🧊 냉장고는 무거워요 — 상자 위에 놓으면 상자가 찌그러져요', spot: '🧊 무거워요 — 바닥에 놓을 자리를 남겨요', tip: '냉장고 자리는 바닥에 남겨 둬요', items: 'bbbFbb', bumps: 2, S: 0.95, failN: 3, nstar: 2 },
   { key: 'pot', name: '화분', emoji: '🪴', news: '🪴 화분은 깨져요 — 위에 짐을 얹거나 세게 튀면 와장창', spot: '🪴 깨져요 — 위에 아무것도 얹지 마요', tip: '화분은 꽉 끼우고 위는 비워요', items: 'bPbWbbb', bumps: 3, S: 1.0, failN: 2, nstar: 3 },
   { key: 'ball', name: '공', emoji: '⚽', news: '⚽ 공은 데굴데굴, 통통 잘 튀어요 — 틈에 쏙 가둬요', spot: '⚽ 굴러가요 — 짐 사이 틈에 가둬요', tip: '공은 짐 사이 틈에 가둬요', items: 'bbbObKbb', bumps: 3, S: 1.0, failN: 2, nstar: 3 },
-  { key: 'blanket', name: '이불', emoji: '🛏️', news: '🛏️ 이불은 말랑 — 덮거나 받친 짐은 덜 튀어요', spot: '🛏️ 말랑해요 — 헐거운 짐 위에 덮어요', tip: '헐거운 짐 위에 이불을 덮어요', items: 'bbPbLbbb', bumps: 3, S: 1.05, failN: 2, nstar: 3 },
+  { key: 'blanket', name: '이불', emoji: '🛏️', news: '🛏️ 이불은 말랑 — 덮거나 받친 짐은 덜 튀어요', spot: '🛏️ 말랑해요 — 헐거운 짐 위에 덮어요', tip: '헐거운 짐 위에 이불을 덮어요', items: 'bbPbLbbbb', bumps: 3, S: 1.05, failN: 2, nstar: 3 },
   { key: 'sofa', name: '소파', emoji: '🛋️', news: '🛋️ 소파는 ㄴ자 — 앉는 자리 빈 곳에 짐을 끼워요', spot: '🛋️ ㄴ자예요 — 앉는 자리를 채워요', tip: '소파 앉는 자리에 짐을 끼워요', items: 'SbbDbbO', bumps: 3, S: 1.05, failN: 2, nstar: 3 },
   { key: 'cat', name: '고양이', emoji: '🐈', news: '🐈 출발하면 고양이가 가장 높은 짐 위에서 자요 — 흔들리면 뛰어내려요', spot: '🐈 가장 높은 곳에서 자요 — 꼭대기를 단단히', tip: '가장 높은 곳이 고양이 자리예요', items: 'bFbbLbPb', bumps: 3, S: 1.05, failN: 2, nstar: 3, cat: true },
   { key: 'road', name: '울퉁불퉁 길', emoji: '🚧', news: '🚧 과속방지턱이 다섯 개! 더 꽉 끼워요', spot: '🚧 턱이 다섯 개예요', tip: '뒤쪽 높은 곳은 비워요 — 턱이 많아요', items: 'bWbPbLbOb', bumps: 5, S: 1.1, failN: 2, nstar: 3 },
@@ -97,8 +97,8 @@ export const STAGES: StageDef[] = [
 export const STAGE_COUNT = STAGES.length;
 export const STAR_TEXT = ['모두 싣고 출발', '하나도 안 떨어뜨리기', '깨진 것 없이'];
 
-function buildItems(seed: number, stage: number): Item[] {
-  const r = mulberry32((seed * 31 + stage * 7919 + 11) >>> 0);
+/** 판마다 짐 줄: 게임을 만들 때 s.rng 하나로 여덟 판을 모두 정한다 (다시 하는 판도 같은 짐) */
+function buildItems(r: Rng, stage: number): Item[] {
   const codes = STAGES[stage].items.split('');
   // 특별한 짐은 판마다 한 칸 앞뒤로 흔든다 (첫 짐은 그대로)
   for (let i = 1; i < codes.length; i++)
@@ -398,8 +398,8 @@ function crush(W: World, b: Body) {
 const byBottom = (p: Body, q: Body) => p.y - p.hh - (q.y - q.hh) || p.id - q.id;
 /** 한 틱 (SUB번 나눠 움직이고 ITERS번 맞부딪힘을 푼다) */
 export function phys(W: World) {
-  const bs = live(W), x0: number[] = [], y0: number[] = [];
-  for (const b of bs) (x0[b.id] = b.x), (y0[b.id] = b.y);
+  const bs = live(W), x0: number[] = [], y0: number[] = [], vy0: number[] = [];
+  for (const b of bs) (x0[b.id] = b.x), (y0[b.id] = b.y), (vy0[b.id] = b.vy);
   for (const b of bs) (b.hit = 0), (b.hitSoft = false);
   for (const b of bs) if (b.grp >= 0 && !b.zz) for (const q of bs) if (q.grp === b.grp) q.zz = false;
   for (let s = 0; s < SUB; s++) {
@@ -427,8 +427,6 @@ export function phys(W: World) {
     }
     blanketFix(bs);
   }
-  const airB: number[] = [];
-  for (const b of bs) airB[b.id] = b.air;
   sense(bs);
   // 공은 구르며 조금씩 느려진다
   for (const b of bs) if (b.r && b.sups.length) b.vx *= 0.985;
@@ -456,7 +454,7 @@ export function phys(W: World) {
     if (b.ck >= 5) crush(W, b);
     else if (b.pk >= 6) shatter(W, b);
     else if ((b.kind === 'pot' || b.kind === 'dish') && b.hit > BREAK_V * (b.hitSoft ? 1.8 : 1) * (b.kind === 'dish' ? 1.15 : 1)) shatter(W, b);
-    else if (W.ev && b.air === 0 && airB[b.id] >= 4 && b.hit > 0.05) W.ev.push({ k: 'land', id: b.id, x: b.x, y: b.y - b.hh, v: b.hit });
+    else if (W.ev && vy0[b.id] < -0.04 && b.hit > 0.05) W.ev.push({ k: 'land', id: b.id, x: b.x, y: b.y - b.hh, v: b.hit });
   }
   // 고요해지면 멈춘다 (미리 보기와 실제가 똑같이 시작하게)
   let mv = 0;
@@ -603,7 +601,7 @@ interface Ev { t: number; kind: string; x: number; y: number; text?: string; col
 interface Debris { it: number; look: string; tag: string; kind: Kind; w: number; h: number; flip: boolean; wx: number; y: number; vx: number; vy: number; rot: number; vr: number; broken: boolean; hits: number }
 export interface TruckState {
   rng: Rng; seed: number; t: number; stage: number; phase: 'load' | 'check' | 'ride' | 'result'; pt: number;
-  items: Item[]; next: number; W: World; rt: number; slow: number; tail: number;
+  items: Item[]; levels: Item[][]; next: number; W: World; rt: number; slow: number; tail: number;
   down: boolean; ax: number; ay: number; lastDrop: number; taps: number; firstTap: boolean;
   hearts: number; stars: number; got: number; starOk: boolean[]; pts: number; ok: boolean; why: string; won: boolean; dead: boolean; tries: number;
   dropped: number; broken: number; catOff: boolean; again: boolean; settling: boolean;
@@ -624,7 +622,7 @@ const setMood = (s: TruckState, m: string) => ((s.mood = m), (s.moodT = s.t));
 
 function newStage(s: TruckState) {
   const d = STAGES[s.stage];
-  s.items = buildItems(s.seed, s.stage);
+  s.items = s.levels[s.stage];
   s.next = 0;
   s.W = newWorld();
   s.W.ev = [];
@@ -688,10 +686,10 @@ function drain(s: TruckState) {
     const b = e.id >= 0 ? W.b[e.id] : null;
     if (e.k === 'land' && b) {
       if (b.grp >= 0 && b.off !== W.b.filter((q) => q.grp === b.grp)[0]?.off) continue;
-      const big = e.v > 0.1 || b.m >= HEAVY_M;
+      const big = e.v > 0.14 || b.m >= HEAVY_M;
       if (s.phase === 'load') (s.vb -= Math.min(0.012, 0.0016 * b.m * (1 + e.v * 8))), b.m >= HEAVY_M && setMood(s, 'worry');
       if (s.phase === 'ride' && !big) ev(s, 'dust', e.x, e.y, undefined, undefined, e.v, true);
-      else ev(s, 'land', e.x, e.y, big ? '쿵!' : '툭', big ? '#ffe2b0' : '#fff6e0', e.v, true);
+      else ev(s, 'land', e.x, b.y + b.hh, big ? '쿵!' : '툭!', big ? '#ffe2b0' : '#fff6e0', e.v, true);
     } else if (e.k === 'crush' && b) {
       ev(s, 'crush', b.x, b.y, '와지끈! 찌그러졌어요', '#ffcf9e', 0, true);
       setMood(s, 'oops');
@@ -885,13 +883,14 @@ export const movetruck: GameDef<TruckState> = {
   reveals: (s) => s.seen.size,
   create(seed) {
     const s = {
-      rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'load', pt: 0, items: [], next: 0, W: newWorld(), rt: 0, slow: 0, tail: 0,
+      rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'load', pt: 0, items: [], levels: [], next: 0, W: newWorld(), rt: 0, slow: 0, tail: 0,
       down: false, ax: 0.5, ay: 0.7, lastDrop: 0, taps: 0, firstTap: false,
       hearts: 3, stars: 0, got: 0, starOk: [false, false, false], pts: 0, ok: false, why: '', won: false, dead: false, tries: 0,
       dropped: 0, broken: 0, catOff: false, again: false, settling: false,
       seen: new Set<string>(), newsQ: [], news: null, events: [], startT: 0, pred: null, predW: null,
       dist: 0, speed: 0, zoom: 1, yb: 0, vb: 0, pa: 0, pv: 0, debris: [], mood: 'idle', moodT: 0, dogX: 0, dogSofa: -1, kidX: 0, catT: -999, spotT: -1,
     } as TruckState;
+    s.levels = STAGES.map((_, k) => buildItems(s.rng, k));
     newStage(s);
     return s;
   },
@@ -1425,7 +1424,7 @@ function drawCat(ctx: CanvasRenderingContext2D, x: number, y: number, u: number,
     ctx.lineWidth = Math.max(1, u * 0.07);
     for (const s2 of [-1, 1]) (ctx.beginPath(), ctx.arc(-u * 0.55 + s2 * u * 0.16, u * 0.12, u * 0.08, 0.2, Math.PI - 0.2), ctx.stroke());
     ctx.fillStyle = '#ffffff';
-    ctx.font = `800 ${Math.max(9, u * 0.55)}px system-ui, sans-serif`;
+    ctx.font = `800 ${Math.max(12, u * 0.55)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.fillText('z', u * 0.5 + Math.sin(t * 0.05) * 2, -u * 0.5 - ((t * 0.3) % 8));
   } else {
@@ -1609,9 +1608,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TruckState, w: number, h: num
     if (e.t <= seenT) continue;
     const [x, y] = e.bed ? bedScr(e.x, e.y) : scr(e.x, e.y);
     if (e.kind === 'land') {
-      fx.burst(x, y, '#e8d6b8', e.text === '쿵!' ? 14 : 6, e.text === '쿵!' ? 2.6 : 1.6, 1.8);
-      if (e.text === '쿵!') fx.kick(3);
-      say(x, y - R(0.04), e.text!, e.col!, e.text === '쿵!' ? 16 : 13);
+      const big = e.text === '쿵!';
+      fx.burst(x, y + R(0.02), '#e8d6b8', big ? 16 : 9, big ? 2.8 : 2, 2);
+      fx.kick(big ? 4 : 1.5);
+      say(x, y - R(0.035), e.text!, e.col!, big ? 18 : 15);
     }
     if (e.kind === 'crush') fx.burst(x, y, '#c08548', 22, 3.6, 2.6), fx.kick(7), fx.ring(x, y, '#ffb36b', R(0.12), 4), say(x, y - R(0.07), e.text!, e.col!, 16);
     if (e.kind === 'break') fx.burst(x, y, '#f0935f', 26, 4.2, 2.6), fx.burst(x, y, '#5cc96f', 10, 3, 2.2), fx.kick(8), fx.ring(x, y, '#ff6a5a', R(0.13), 5), fx.blink('#ffd0c8', 0.15), say(x, y - R(0.07), e.text!, e.col!, 17);
@@ -1820,10 +1820,10 @@ function drawStreet(ctx: CanvasRenderingContext2D, s: TruckState, d: StageDef, w
       ctx.closePath();
       ctx.fill();
       ctx.fillStyle = '#2b2b33';
-      ctx.font = `900 ${Math.max(9, R(0.03))}px system-ui`;
+      ctx.font = `900 ${Math.max(12, R(0.034))}px system-ui`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('!', X(x + 0.06), Y(0.868));
+      ctx.fillText('!', X(x + 0.06), Y(0.87));
     }
   }
   // 떨어진 짐
@@ -2218,7 +2218,7 @@ function drawTruckFront(ctx: CanvasRenderingContext2D, s: TruckState, X: F, Y: F
   ctx.lineWidth = 1.2;
   ctx.strokeRect(X(0.727), Y(0.725), R(0.172), Y(FY + 0.02 - 0.725));
   ctx.fillStyle = '#ffffff';
-  ctx.font = `900 ${Math.max(10, R(0.03))}px system-ui`;
+  ctx.font = `900 ${Math.max(12, R(0.032))}px system-ui`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('🏠 이사', X(0.812), Y(0.93));

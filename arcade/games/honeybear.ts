@@ -407,13 +407,13 @@ function phys(L: Level, S: Sim, hook: Hook) {
   if (L.def.bees) beeStep(L, S, hook);
 }
 
-/** 액체처럼: 이웃이 많으면 밀어내고(압력), 너무 가까우면 세게 밀고, 겉은 살짝 당긴다(끈적한 덩어리) */
+/** 액체처럼: 이웃이 빽빽한 웅덩이는 옆으로 밀어 평평하게, 겹친 방울은 떼어 놓는다 */
 function relax(S: Sim) {
   const { x, y, st, n } = S;
   for (let i = 0; i < n; i++) {
     if (st[i] !== LIVE) continue;
     const hx = Math.floor(x[i] / HC), hy = Math.floor(y[i] / HC);
-    let rho = 0, rhoN = 0;
+    let rho = 0;
     for (let ax = hx - 1; ax <= hx + 1; ax++) {
       if (ax < 0 || ax >= HW) continue;
       for (let ay = hy - 1; ay <= hy + 1; ay++) {
@@ -424,13 +424,11 @@ function relax(S: Sim) {
           if (d >= HR) continue;
           const q = 1 - d / HR;
           rho += q * q;
-          rhoN += q * q * q;
         }
       }
     }
     // 깊은 웅덩이(이웃이 빽빽)만 옆으로 밀어 평평해지고, 얇은 줄은 밀지 않는다 (나무에서 멈출 수 있게)
     const P = KP * Math.max(0, rho - RHO0);
-    void rhoN;
     let dx = 0, dy = 0;
     for (let ax = hx - 1; ax <= hx + 1; ax++) {
       if (ax < 0 || ax >= HW) continue;
@@ -616,7 +614,7 @@ export const STAGES: StageDef[] = [
   {
     key: 'leaf', name: '나뭇잎 시소', emoji: '🍃', news: '나뭇잎은 꿀이 많이 실린 쪽으로 기울어요', tip: '꿀이 적으면 나뭇잎을 못 넘겨요 — 기운 쪽으로 미끄러져요', stars: ['fill', 'nospill', 'plugs'], plugs: 2,
     walls: [],
-    rooms: [[0.2, 0.36, 0.14, 8], [0.4, 0.3, 0.11, 6], [0.71, 0.32, 0.16, 11], [0.54, 0.44, 0.1, 4]],
+    rooms: [[0.2, 0.27, 0.14, 8], [0.4, 0.34, 0.11, 6], [0.71, 0.32, 0.16, 11], [0.54, 0.44, 0.1, 4]],
     jars: [[0.24, 0.15, 0.16, 6], [0.76, 0.15, 0.16, 11]],
     leaf: [0.5, 0.64, 0.25, -1],
     spot: [0.5, 0.64, 0.17],
@@ -627,19 +625,19 @@ export const STAGES: StageDef[] = [
     rooms: [[0.2, 0.28, 0.2, 15], [0.43, 0.38, 0.12, 6], [0.84, 0.4, 0.14, 6]],
     jars: [[0.86, 0.15, 0.16, 12]],
     bees: true,
-    spot: [0.5, 0.15, 0.12],
+    spot: [0.5, 0.17, 0.11],
   },
   {
     key: 'color', name: '꽃꿀 두 가지', emoji: '🌸', news: '꽃마다 꿀 맛이 달라요 — 같은 꽃 단지에만!', tip: '노란 단지를 먼저 채우면 분홍 꿀이 뚜껑을 타고 넘어가요', stars: ['fill', 'nospill', 'plugs'], plugs: 2,
     walls: [[0.06, 0.38, 0.40, 0.60], [0.94, 0.40, 0.62, 0.58, 0.47, 0.66], [0.56, 0.92, 0.74, 1.01]],
-    rooms: [[0.2, 0.3, 0.17, 8, 0], [0.74, 0.3, 0.17, 11, 1], [0.53, 0.3, 0.12, 6, 0]],
+    rooms: [[0.2, 0.31, 0.17, 8, 0], [0.74, 0.34, 0.17, 11, 1], [0.53, 0.26, 0.12, 6, 0]],
     jars: [[0.44, 0.14, 0.14, 8, 0, 0.22, 1], [0.84, 0.15, 0.16, 10, 1]],
     spot: [0.44, 0.92, 0.11],
   },
   {
     key: 'hot', name: '뜨거운 돌', emoji: '🔥', news: '뜨거운 돌에 닿은 꿀은 안 굳고 지글지글 타요', tip: '큰 꿀로 나뭇잎을 먼저 넘기면 작은 꿀도 따라가요', stars: ['fill', 'noburn', 'nospill'],
     walls: [[0.04, 0.80, 0.16, 0.86, 0.17, 0.92, 0.27, 0.92, 0.28, 0.86, 0.32, 0.84], [0.68, 0.78, 0.85, 0.88]],
-    rooms: [[0.42, 0.32, 0.12, 6], [0.66, 0.3, 0.16, 10], [0.89, 0.44, 0.12, 13]],
+    rooms: [[0.42, 0.33, 0.12, 6], [0.66, 0.31, 0.16, 10], [0.89, 0.27, 0.12, 13]],
     jars: [[0.87, 0.15, 0.16, 16]],
     leaf: [0.5, 0.62, 0.25, -1],
     hot: [[0.22, 0.9, 0.04]],
@@ -763,7 +761,6 @@ function endStage(s: HoneyState, ok: boolean, why: string) {
   s.pt = 0;
   s.ok = ok;
   s.why = why;
-  const d = STAGES[s.stage];
   if (ok) {
     s.starOk = starsOf(s.L, s.S);
     s.got = s.starOk.filter(Boolean).length;
@@ -778,7 +775,6 @@ function endStage(s: HoneyState, ok: boolean, why: string) {
     ev(s, 'fail', 0.5, 0.6, why);
     setMood(s, 'dizzy');
   }
-  void d;
 }
 
 /** 누른 자리에서 가장 가까운 닫힌 밀랍 */
@@ -943,22 +939,28 @@ export function habitBig(L: Level, S: Sim) {
   L.rooms.forEach((R, r) => !S.open[r] && R.n > bn && ((bn = R.n), (best = r)));
   return best;
 }
-/** 독립 버릇 봇(판 고를 때 안 쓴 것): 꿀이 가장 적은 방부터 */
+/** 버릇 봇: 꿀이 가장 적은 방부터 (3판을 풀어서 미끼 방을 더했다) */
 export function habitSmall(L: Level, S: Sim) {
   let best = -1, bn = 1e9;
   L.rooms.forEach((R, r) => !S.open[r] && R.n < bn && ((bn = R.n), (best = r)));
   return best;
 }
-/** 독립 버릇 봇(판 고를 때 안 쓴 것): 화면 왼쪽 밀랍부터 */
+/** 버릇 봇: 화면 왼쪽 밀랍부터 (3판 절반을 풀어서 미끼 방을 더했다) */
 export function habitLeft(L: Level, S: Sim) {
   let best = -1, bx = 9;
   L.rooms.forEach((R, r) => !S.open[r] && R.px < bx && ((bx = R.px), (best = r)));
   return best;
 }
-/** 독립 버릇 봇(판을 고칠 때 한 번도 안 쓴 것 — 측정만): 화면 가운데에 가까운 밀랍부터 */
+/** 독립 버릇 봇: 화면 가운데에 가까운 밀랍부터 (측정해 보니 3·4판을 풀어서, 그 두 판에 가운데 미끼 방을 더했다) */
 export function habitCenter(L: Level, S: Sim) {
   let best = -1, bx = 9;
   L.rooms.forEach((R, r) => !S.open[r] && Math.abs(R.px - 0.5) < bx && ((bx = Math.abs(R.px - 0.5)), (best = r)));
+  return best;
+}
+/** 버릇 봇: 가장 위에 있는 밀랍부터 (4·6·7판을 풀어서 미끼 방을 맨 위로 올렸다) */
+export function habitTop(L: Level, S: Sim) {
+  let best = -1, by = 9;
+  L.rooms.forEach((R, r) => !S.open[r] && R.py < by && ((by = R.py), (best = r)));
   return best;
 }
 const habitBot = (name: string, f: (L: Level, S: Sim) => number): Bot<HoneyState> => ({
@@ -972,6 +974,21 @@ const habitBot = (name: string, f: (L: Level, S: Sim) => number): Bot<HoneyState
 export const honeybearHabitSmall = habitBot('버릇: 작은 꿀방부터', habitSmall);
 export const honeybearHabitLeft = habitBot('버릇: 왼쪽 밀랍부터', habitLeft);
 export const honeybearHabitCenter = habitBot('버릇: 가운데 밀랍부터', habitCenter);
+export const honeybearHabitTop = habitBot('버릇: 위쪽 밀랍부터', habitTop);
+/** 버릇 봇: 가장 아래에 있는 밀랍부터 (6판 높이가 같아 정답과 겹쳐서 분홍 방을 조금 낮췄다) */
+export function habitLow(L: Level, S: Sim) {
+  let best = -1, by = -9;
+  L.rooms.forEach((R, r) => !S.open[r] && R.py > by && ((by = R.py), (best = r)));
+  return best;
+}
+export const honeybearHabitLow = habitBot('버릇: 아래쪽 밀랍부터', habitLow);
+/** 독립 버릇 봇(어떤 판 고침에도 안 쓴 것 — 마지막 측정만): 화면 오른쪽 밀랍부터 */
+export function habitRight(L: Level, S: Sim) {
+  let best = -1, bx = -9;
+  L.rooms.forEach((R, r) => !S.open[r] && R.px > bx && ((bx = R.px), (best = r)));
+  return best;
+}
+export const honeybearHabitRight = habitBot('버릇: 오른쪽 밀랍부터', habitRight);
 export const honeybearHabit: Bot<HoneyState> = {
   name: '버릇: 단지 가까운 밀랍부터',
   act(s) {
@@ -1233,15 +1250,15 @@ function drawCave(ctx: CanvasRenderingContext2D, s: HoneyState, w: number, h: nu
     ctx.fillStyle = '#24120a';
     ctx.beginPath();
     ctx.moveTo(cx, Y(0.09));
-    ctx.lineTo(cx, Y(0.32));
-    ctx.quadraticCurveTo(cx + (side ? -1 : 1) * R(0.04), Y(0.15), cx + (side ? -1 : 1) * R(0.2), Y(0.09));
+    ctx.lineTo(cx, Y(0.22));
+    ctx.quadraticCurveTo(cx + (side ? -1 : 1) * R(0.03), Y(0.12), cx + (side ? -1 : 1) * R(0.12), Y(0.09));
     ctx.closePath();
     ctx.fill();
     ctx.strokeStyle = 'rgba(160,100,50,.5)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(cx, Y(0.32));
-    ctx.quadraticCurveTo(cx + (side ? -1 : 1) * R(0.04), Y(0.15), cx + (side ? -1 : 1) * R(0.2), Y(0.09));
+    ctx.moveTo(cx, Y(0.22));
+    ctx.quadraticCurveTo(cx + (side ? -1 : 1) * R(0.03), Y(0.12), cx + (side ? -1 : 1) * R(0.12), Y(0.09));
     ctx.stroke();
   }
   // 떠다니는 꽃가루
@@ -2165,7 +2182,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: HoneyState, d: StageDef, w: n
       ctx.stroke();
       font(0.04, 900);
       ctx.fillStyle = '#ff5a8a';
-      const nw = 'NEW!', nwW = ctx.measureText(nw).width + 12, ny = sy - R(d.spot[2]) - R(0.03);
+      const nw = 'NEW!', nwW = ctx.measureText(nw).width + 12, ny = d.spot[1] < 0.3 ? sy + R(d.spot[2]) + R(0.03) : sy - R(d.spot[2]) - R(0.03);
       ctx.beginPath();
       ctx.roundRect(sx - nwW / 2, ny - R(0.024), nwW, R(0.048), R(0.024));
       ctx.fill();
@@ -2175,7 +2192,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: HoneyState, d: StageDef, w: n
       ctx.globalAlpha = 1;
     }
     const sc = Math.min(1, 0.7 + age / 14), lines = d.stars.length, ch = 0.12 + lines * 0.05 + (d.news ? 0.05 : 0);
-    const cyy = Y(d.spot && d.spot[1] < 0.75 ? 0.98 : d.spot ? 0.62 : 0.8) - R(ch / 2);
+    const cyy = Y(d.spot && d.spot[1] < 0.75 ? 0.98 : d.spot ? 0.52 : 0.8) - R(ch / 2);
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate(w / 2, cyy);
