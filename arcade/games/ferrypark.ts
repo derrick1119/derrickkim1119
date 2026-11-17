@@ -1824,7 +1824,7 @@ function drawTiltArrow(ctx: CanvasRenderingContext2D, pre: Pre, X: XF, Y: XF, R:
   const v = pre.splash >= 0 ? Math.sign(pre.fin || 1) * 1.25 : pre.fin, a = Math.abs(v);
   if (a < 0.06) return;
   const sd = Math.sign(v), len = 0.08 + 0.24 * Math.min(1.25, a), y = Y(GY1 + 0.03), x0 = X(0.5 - (sd * len) / 2), x1 = X(0.5 + (sd * len) / 2);
-  const col = a > LIMIT ? '255,90,79' : a > YEL ? '255,210,63' : '120,230,140', hh = R(0.016), hw = R(0.034);
+  const col = a > LIMIT ? '255,90,79' : a > YEL ? '255,210,63' : '110,200,255', hh = R(0.016), hw = R(0.034);
   ctx.save();
   ctx.globalAlpha = 0.75 + 0.2 * Math.sin(t * 0.25);
   ctx.fillStyle = `rgba(${col},.85)`;

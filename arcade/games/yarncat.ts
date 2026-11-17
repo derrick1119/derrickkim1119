@@ -41,7 +41,8 @@ const SCI_R = 0.06, SCI = 100;
 /** 손가락 닿는 반지름 */
 const HIT = 0.07;
 const RESULT_OK = 210, RESULT_FAIL = 170, NEWS_T = 190, CARD_T = 150;
-const STAR_PTS = 100, FULL_PTS = 20, WIN_PTS = 200;
+/** 별 점수: 첫 별(다 채움) 50 · 둘째 100 · 셋째 150 — 고른 수가 점수를 가른다 */
+const STAR_PTS = [50, 100, 150], FULL_PTS = 20, WIN_PTS = 200;
 
 // ───────────────────────────── 판(방) ─────────────────────────────
 interface StageDef {
@@ -678,7 +679,7 @@ function finish(s: YarnState) {
     s.starOk = starsOf(s.L, S);
     s.got = s.starOk.filter(Boolean).length;
     s.stars += s.got;
-    s.pts += s.got * STAR_PTS + S.full1 * FULL_PTS;
+    s.pts += s.starOk.reduce((a, ok, k) => a + (ok ? STAR_PTS[k] : 0), 0) + S.full1 * FULL_PTS;
     if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS);
     ev(s, 'clear', 0.5, 0.62, `${d.emoji} 다 채웠다!`, s.got);
     setMood(s, 'cheer');

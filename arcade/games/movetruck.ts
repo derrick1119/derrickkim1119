@@ -427,6 +427,8 @@ export function phys(W: World) {
     }
     blanketFix(bs);
   }
+  const airB: number[] = [];
+  for (const b of bs) airB[b.id] = b.air;
   sense(bs);
   // 공은 구르며 조금씩 느려진다
   for (const b of bs) if (b.r && b.sups.length) b.vx *= 0.985;
@@ -454,7 +456,7 @@ export function phys(W: World) {
     if (b.ck >= 5) crush(W, b);
     else if (b.pk >= 6) shatter(W, b);
     else if ((b.kind === 'pot' || b.kind === 'dish') && b.hit > BREAK_V * (b.hitSoft ? 1.8 : 1) * (b.kind === 'dish' ? 1.15 : 1)) shatter(W, b);
-    else if (b.hit > 0.06 && W.ev && b.air === 0) W.ev.push({ k: 'land', id: b.id, x: b.x, y: b.y - b.hh, v: b.hit });
+    else if (W.ev && b.air === 0 && airB[b.id] >= 4 && b.hit > 0.05) W.ev.push({ k: 'land', id: b.id, x: b.x, y: b.y - b.hh, v: b.hit });
   }
   // 고요해지면 멈춘다 (미리 보기와 실제가 똑같이 시작하게)
   let mv = 0;
@@ -604,7 +606,7 @@ export interface TruckState {
   items: Item[]; next: number; W: World; rt: number; slow: number; tail: number;
   down: boolean; ax: number; ay: number; lastDrop: number; taps: number; firstTap: boolean;
   hearts: number; stars: number; got: number; starOk: boolean[]; pts: number; ok: boolean; why: string; won: boolean; dead: boolean; tries: number;
-  dropped: number; broken: number; catOff: boolean; again: boolean;
+  dropped: number; broken: number; catOff: boolean; again: boolean; settling: boolean;
   seen: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; events: Ev[]; startT: number;
   pred: Outcome | null; predW: World | null;
   // 연출(시뮬레이션 결과와 무관)
@@ -634,6 +636,7 @@ function newStage(s: TruckState) {
   s.pred = null;
   s.predW = null;
   s.dropped = s.broken = 0;
+  s.settling = false;
   s.catOff = false;
   s.starOk = [false, false, false];
   s.got = 0;
@@ -672,6 +675,7 @@ function tryDrop(s: TruckState) {
   s.lastDrop = s.t;
   s.taps++;
   s.firstTap = true;
+  s.settling = true;
   if (it.kind === 'heavy') setMood(s, 'strain');
 }
 
@@ -683,13 +687,12 @@ function drain(s: TruckState) {
     const b = e.id >= 0 ? W.b[e.id] : null;
     if (e.k === 'land' && b) {
       if (b.grp >= 0 && b.off !== W.b.filter((q) => q.grp === b.grp)[0]?.off) continue;
-      const big = e.v > 0.09 || b.m >= HEAVY_M;
-      ev(s, 'land', e.x, e.y, big ? '쿵!' : '툭', big ? '#ffe2b0' : '#fff6e0', e.v, true);
-      if (s.phase === 'load' && !b.wake) see(s, 'stack', '');
+      const big = e.v > 0.1 || b.m >= HEAVY_M;
+      if (s.phase === 'ride' && !big) ev(s, 'dust', e.x, e.y, undefined, undefined, e.v, true);
+      else ev(s, 'land', e.x, e.y, big ? '쿵!' : '툭', big ? '#ffe2b0' : '#fff6e0', e.v, true);
     } else if (e.k === 'crush' && b) {
       ev(s, 'crush', b.x, b.y, '와지끈! 찌그러졌어요', '#ffcf9e', 0, true);
       setMood(s, 'oops');
-      see(s, 'crush', '🧊 무거운 짐 밑에 깔린 상자는 찌그러져요');
     } else if (e.k === 'break' && b) {
       ev(s, 'break', b.x, b.y, b.kind === 'pot' ? '와장창! 화분이…' : '와장창! 그릇이…', '#ffb3a8', 0, true);
       setMood(s, 'oops');
@@ -698,7 +701,6 @@ function drain(s: TruckState) {
       ev(s, 'out', Math.max(-0.4, b.x), Math.max(-0.6, b.y), b.kind === 'cat' ? '고양이가 뛰어내렸다!' : `앗! ${b.it >= 0 ? s.items[b.it].name : ''} 떨어졌다`, '#ffd0c8', 0, true);
       setMood(s, 'oops');
       addDebris(s, b, e.v);
-      see(s, 'out', '');
     } else if (e.k === 'wake' && b) {
       ev(s, 'wake', b.x, b.y, '냐아악!', '#ffe0b0', 0, true);
       setMood(s, 'worry');
@@ -717,6 +719,18 @@ function addDebris(s: TruckState, b: Body, vx: number) {
   const it = b.it >= 0 ? s.items[b.it] : CAT;
   s.debris.push({ it: b.it, look: it.look, tag: it.tag, kind: it.kind, w: it.w, h: it.h, flip: it.flip, wx: s.dist + bedToScreen(Math.max(-0.4, b.x)), y: FY - b.y * U, vx: s.speed + vx * U, vy: 0.004, rot: 0, vr: -0.05 - Math.abs(vx) * 2, broken: b.broken, hits: 0 });
   if (it.kind === 'sofa') s.dogSofa = s.debris.length - 1;
+}
+
+/** 짐이 자리를 잡으면: 양옆이 꽉 막혔으면 '꽉!', 헐거우면 '흔들~' */
+function settled(s: TruckState) {
+  s.settling = false;
+  if (s.phase !== 'load') return;
+  const bs = live(s.W), L = loads(bs), last = bs.filter((b) => b.it === s.next - 1);
+  if (!last.length || last[0].broken) return;
+  const b = last.length > 1 ? last[Math.floor(last.length / 2)] : last[0];
+  const f = Math.max(...last.map((q) => looseOf(q, 0, L.get(q.id) ?? 0))) * STAGES[s.stage].S;
+  if (b.grp < 0 && b.sl && b.sr) ev(s, 'wedge', b.x, b.y + b.hh, '꽉!', '#b8ffbf', 0, true);
+  else if (f >= 0.8) ev(s, 'wobble', b.x, b.y + b.hh, '흔들~', '#ffe27a', 0, true);
 }
 
 function startCheck(s: TruckState) {
@@ -867,7 +881,7 @@ export const movetruck: GameDef<TruckState> = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'load', pt: 0, items: [], next: 0, W: newWorld(), rt: 0, slow: 0, tail: 0,
       down: false, ax: 0.5, ay: 0.7, lastDrop: 0, taps: 0, firstTap: false,
       hearts: 3, stars: 0, got: 0, starOk: [false, false, false], pts: 0, ok: false, why: '', won: false, dead: false, tries: 0,
-      dropped: 0, broken: 0, catOff: false, again: false,
+      dropped: 0, broken: 0, catOff: false, again: false, settling: false,
       seen: new Set<string>(), newsQ: [], news: null, events: [], startT: 0, pred: null, predW: null,
       dist: 0, speed: 0, zoom: 1, yb: 0, vb: 0, pa: 0, pv: 0, debris: [], mood: 'idle', moodT: 0, dogX: 0, dogSofa: -1, kidX: 0, catT: -999,
     } as TruckState;
@@ -884,6 +898,7 @@ export const movetruck: GameDef<TruckState> = {
     if (s.events.length > 60 || (s.events.length && s.t - s.events[0].t > 200)) s.events = s.events.filter((e) => s.t - e.t < 200);
     if (s.phase === 'load') {
       if (!s.W.calm) loadTick(s.W), drain(s);
+      if (s.W.calm && s.settling) settled(s);
       if (release) tryDrop(s);
       if (s.next >= s.items.length && s.W.calm) startCheck(s);
     } else if (s.phase === 'check') {
@@ -1561,7 +1576,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: TruckState, w: number, h: num
     if (e.kind === 'thud') fx.burst(x, y, e.text === '와장창' ? '#f0935f' : '#d8cbb4', 12, 2.6, 2.2), say(x, y - R(0.05), e.text!, e.col!, 14);
     if (e.kind === 'dog') fx.burst(x, y, '#ffffff', 8, 2, 2), say(x, y - R(0.05), e.text!, e.col!, 15);
     if (e.kind === 'miss') say(x, y, e.text!, e.col!, 14);
-    if (e.kind === 'wedge') fx.ring(x, y, '#9df0a8', R(0.07), 3), say(x, y - R(0.05), e.text!, e.col!, 14);
+    if (e.kind === 'wedge') fx.ring(x, y, '#9df0a8', R(0.07), 3), fx.burst(x, y, '#b8ffbf', 8, 2, 1.8), say(x, y - R(0.05), e.text!, e.col!, 16);
+    if (e.kind === 'wobble') say(x, y - R(0.05), e.text!, e.col!, 15);
+    if (e.kind === 'dust') fx.burst(x, y, '#e8d6b8', 5, 1.4, 1.6);
     if (e.kind === 'clear') {
       fx.burst(w * 0.3, Y(0.5), '#ffe066', 40, 6, 3.2), fx.burst(w * 0.7, Y(0.5), '#ff9ec4', 40, 6, 3.2), fx.burst(w * 0.5, Y(0.6), '#8fe3ff', 30, 5, 3);
       fx.ring(w / 2, Y(0.55), '#ffe066', R(0.45), 7), fx.blink('#fff6c8', 0.22);
@@ -1637,8 +1654,8 @@ function drawStreet(ctx: CanvasRenderingContext2D, s: TruckState, d: StageDef, w
     ctx.lineTo(X(x - 0.02), Y(1.045));
     ctx.stroke();
   }
-  // 가로수 · 가로등
-  for (let k = 0; k < 6; k++) {
+  // 가로수 · 가로등 (달릴 때만 — 짐 싣는 동안 짐칸 뒤는 깔끔하게)
+  for (let k = 0; k < 6 && s.dist > 0; k++) {
     const x = (((1.65 + k * 0.5 - s.dist * 0.85) % 3) + 3) % 3 - 0.5;
     if (k % 2) {
       ctx.fillStyle = '#8a6a4a';
