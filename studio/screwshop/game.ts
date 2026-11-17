@@ -1319,7 +1319,7 @@ export const screwshop: GameDef<ShopState> = {
       return;
     }
     if (s.phase === 'settle') {
-      if (s.pt >= (s.ok ? 46 : 56)) finish(s); // 🎨: 실패 settle 56 — 휘슬이 카드와 안 겹치게
+      if (s.pt >= (s.ok ? 46 : 56) && !(s.ok && s.pt < 200 && s.events.some((e) => (e.kind === 'star' || e.kind === 'teach' ? e.n ?? e.t : e.v ?? e.t) > s.t))) finish(s); // 🎨: 실패 settle 56 — 휘슬이 카드와 안 겹치게 · ✏️ S059(🧪 S059 🔴①): 마지막 톡 연쇄(와르르 · 한 방 · 마지막 쏙)가 다 그려진 뒤에 리빌(최대 154틱 더)
       return;
     }
     if (p) s.press = pickScrew(s, p.x, p.y * A);
@@ -2097,7 +2097,7 @@ function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   ctx.fillText('↺ 한 번 더!', 0, 1);
   ctx.restore();
   if (s.sf >= 3 && fill >= 1) { // 💡 밤톨의 귀띔(같은 판 3번 진 뒤 · 쓰면 그 판 ★3 없음) — 켜져 있으면 끄기(✏️ S013)
-    const hy = Y(HINT_Y) + oy, hh = R(0.052);
+    const hy = Y(HINT_Y) + oy - Y(failTop() - 1.13), hh = R(0.052); // ✏️ S059(🧪 S059 🔴②): HINT_Y가 이미 카드와 함께 내려갔다 — 오프셋을 두 번 더하지 않는다(그린 자리 = 누르는 자리)
     ctx.fillStyle = s.hint ? 'rgba(255,236,210,.82)' : 'rgba(200,247,197,.9)';
     bp(ctx);
     ctx.roundRect(X(0.15), hy - hh / 2, X(0.85) - X(0.15), hh, hh / 2);
