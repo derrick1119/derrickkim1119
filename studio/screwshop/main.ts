@@ -5,7 +5,7 @@
 import { TICK, type Input } from './core.ts';
 import { juice, peek } from './juice.ts';
 import { sfx } from './sfx.ts';
-import { STAGES, setAspect, setCue, setLearn, startStage, screwshop as g, type ShopState } from './game.ts';
+import { STAGES, STYLES, setAspect, setCue, setLearn, setStyle, startStage, screwshop as g, type ShopState } from './game.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('screwshop:' + k) ?? 0); } catch { return 0; } },
@@ -29,7 +29,35 @@ pick.className = 'g-pick';
 pick.hidden = true;
 pick.setAttribute('role', 'dialog');
 pick.setAttribute('aria-label', '판 고르기');
-root.append(canvas, overlay, pickBtn, pick);
+// ✏️ S053 🎨 그래픽 스타일 고르기(오너 11-17 "다양한 버전으로"): 타이틀의 '판 고르기' 위 버튼 4개(A 나무 · B 클레이 · C 산뜻 · D 블록)
+//   ?style=a~d가 저장보다 먼저 · 고르면 오버레이가 1.5초 걷혀 뒤의 판이 그 스타일로 보인다 · ←/→로 옮기고 스페이스로 고름
+const styleBox = document.createElement('div');
+styleBox.className = 'g-style';
+styleBox.setAttribute('role', 'radiogroup');
+styleBox.setAttribute('aria-label', '그림 스타일');
+root.append(canvas, overlay, pickBtn, pick, styleBox);
+let peekT = 0;
+function useStyle(i: number, look = false) {
+  const st = setStyle(STYLES[i]?.k ?? 'A'), k = STYLES.indexOf(st);
+  store.set('style', k);
+  document.documentElement.style.background = st.page;
+  styleBox.innerHTML = STYLES.map((x, j) => `<button type="button" role="radio" aria-checked="${j === k}" tabindex="${j === k ? 0 : -1}" data-s="${j}"><i>${x.k}</i>${x.nm}</button>`).join('');
+  if (look) {
+    (styleBox.children[k] as HTMLElement).focus({ preventScroll: true });
+    overlay.classList.add('peek');
+    clearTimeout(peekT);
+    peekT = window.setTimeout(() => overlay.classList.remove('peek'), 1500);
+  }
+  draw();
+}
+styleBox.addEventListener('click', (e) => {
+  const b = (e.target as HTMLElement).closest('button');
+  if (b) useStyle(Number(b.dataset.s), true);
+});
+styleBox.addEventListener('keydown', (e) => {
+  const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+  if (d) e.preventDefault(), useStyle((Number((document.activeElement as HTMLElement).dataset.s ?? 0) + d + 4) % 4, true);
+});
 const WORLDS = ['아기방 장난감 상자', '바닷가 언덕 마을', '동화 성 놀이공원'];
 let world = 1;
 const ctx = canvas.getContext('2d')!;
@@ -121,7 +149,7 @@ function showPick(w = world) {
   }).join('');
   pick.innerHTML = `<nav><button type="button" data-w="${world - 1}" aria-label="앞 월드"${world > 1 ? '' : ' disabled'}>◀</button><span>월드 ${world} · ${WORLDS[world - 1]}</span><button type="button" data-w="${world + 1}" aria-label="다음 월드"${world < 3 ? '' : ' disabled'}>▶</button></nav><div>${cells}</div><button type="button" data-x="1">닫기</button>`;
   pick.hidden = false;
-  pickBtn.hidden = true;
+  pickBtn.hidden = styleBox.hidden = true;
   (pick.querySelector('[data-k]') as HTMLElement | null)?.focus({ preventScroll: true });
 }
 pick.addEventListener('click', (e) => {
@@ -130,11 +158,11 @@ pick.addEventListener('click', (e) => {
   if (b.dataset.w) return showPick(Number(b.dataset.w));
   pick.hidden = true;
   if (b.dataset.k) return start(Number(b.dataset.k));
-  pickBtn.hidden = false;
+  pickBtn.hidden = styleBox.hidden = false;
   overlay.focus({ preventScroll: true });
 });
 pick.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') (pick.hidden = true), (pickBtn.hidden = false), overlay.focus({ preventScroll: true });
+  if (e.key === 'Escape') (pick.hidden = true), (pickBtn.hidden = styleBox.hidden = false), overlay.focus({ preventScroll: true });
   if (e.key === 'q' || e.key === 'Q' || e.key === 'e' || e.key === 'E') showPick(world + (e.key.toLowerCase() === 'e' ? 1 : -1));
 });
 pickBtn.addEventListener('click', () => showPick());
@@ -147,7 +175,7 @@ function title() {
 }
 
 function start(pickK?: number) {
-  pickBtn.hidden = true;
+  pickBtn.hidden = styleBox.hidden = true;
   sfx.wake(); // 첫 AudioContext는 여기서(자동재생 정책)
   sfx.play('press');
   const q = new URLSearchParams(location.search), fixed = Number(q.get('seed')), st = Number(q.get('stage')); // ?seed=N: 같은 판 다시 보기 · ?stage=N: N판부터(스크린샷·버그 제보)
@@ -172,7 +200,7 @@ function end() {
   store.set('best', b);
   store.set('stars', Math.max(s.stars, store.get('stars')));
   keepStars();
-  pickBtn.hidden = false;
+  pickBtn.hidden = styleBox.hidden = false;
   draw();
   const head = s.won ? `🎉 실린 ${STAGES.length}판 모두 완성!` : `🐹 ${STAGES[s.stage].slot} ${STAGES[s.stage].emoji} ${STAGES[s.stage].name}에서 멈췄어요`;
   show(`<b>${sc}점</b><span class="msg">${head}</span><span>★ ${s.stars} / ${STAGES.length * 3} · 최고 ${b}점</span><strong>다시 하기</strong>`);
@@ -252,3 +280,5 @@ overlay.addEventListener('click', () => start());
 window.addEventListener('resize', size);
 size();
 title();
+const qStyle = new URLSearchParams(location.search).get('style');
+useStyle(qStyle ? 'ABCD'.indexOf(qStyle.toUpperCase()) : store.get('style'));

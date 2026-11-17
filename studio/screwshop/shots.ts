@@ -204,6 +204,26 @@ for (const scheme of ['light', 'dark'] as const) {
   }
   await page.waitForTimeout(3200);
   await page.screenshot({ path: join(out, '07-result-retry.png') });
+  // ✏️ S053 🎨 그래픽 스타일 B · C · D(오너 11-17 "다양한 버전으로"): 3-2 🤡 첫 톡 뒤 · 맨 끝에 A로 되돌림(저장)
+  {
+    const k = STAGES.findIndex((d) => d.key === 'jackbox'), S8 = g.create(42);
+    startStage(S8, k);
+    const L8 = S8.L;
+    for (const st of ['b', 'c', 'd', 'a']) {
+      await page.goto(url + `?seed=42&style=${st}&stage=${k + 1}`);
+      if (st === 'a') break;
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: join(out, `7${'bcd'.indexOf(st)}-style-${st}-title.png`) });
+      await page.click('.g-overlay');
+      await page.waitForTimeout(900);
+      const b8 = (await page.locator('canvas').boundingBox())!, i0 = [...L8.ps[L8.jack![1]]].sort((a, b) => L8.py[a] - L8.py[b])[0];
+      await page.mouse.click(b8.x + 0.02 * b8.width, b8.y + 0.6 * b8.width); // 별 카드 닫기(빈 곳)
+      await page.waitForTimeout(300);
+      await page.mouse.click(b8.x + L8.px[i0] * b8.width, b8.y + L8.py[i0] * b8.width);
+      await page.waitForTimeout(1400);
+      await page.screenshot({ path: join(out, `7${'bcd'.indexOf(st) + 3}-style-${st}-3-2.png`) });
+    }
+  }
   const scrollX = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   console.log('가로 스크롤 px:', scrollX);
   await page.close();

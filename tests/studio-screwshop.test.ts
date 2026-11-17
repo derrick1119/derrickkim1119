@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, jackEarly, logLate, paintStage, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setAspect, setCue, screwshop as g, screwshopSmart, shotDead, starText, startStage, streakDead, tapDead, tipLine, setLearn, starKinds, KB, gaugeOf } from '../studio/screwshop/game.ts';
+import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, jackEarly, logLate, paintStage, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setAspect, setCue, screwshop as g, screwshopSmart, shotDead, starText, startStage, streakDead, tapDead, tipLine, setLearn, starKinds, KB, gaugeOf, STYLES, COLS, setStyle } from '../studio/screwshop/game.ts';
 import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { f16, screwshopMash, screwshopNewbie, tryStage } from '../studio/screwshop/funqa.ts';
@@ -755,5 +755,23 @@ describe('🪵 통나무가 먼저 떨어져 → 빈칸 (✏️ S013 · 🧪 S01
     const r = tryStage(screwshopSmart, 1000, i('1-1'));
     expect(r.ok && r.stars).toBe(3);
     expect(r.s.learn & KB.bonk).toBe(KB.bonk);
+  });
+  it('그래픽 스타일(✏️ S053 · 오너 "다양한 버전으로"): A~D 네 안이 같은 필드 · 6색 서로 다름 · setStyle은 COLS만 제자리로 바꾸고 되돌린다 · 시뮬은 스타일과 무관(같은 시드 · 같은 톡 순서)', () => {
+    expect(STYLES.map((x) => x.k).join('')).toBe('ABCD');
+    const keys = Object.keys(STYLES[0]).sort().join();
+    for (const st of STYLES) {
+      expect(Object.keys(st).sort().join()).toBe(keys);
+      expect(new Set(st.col).size).toBe(6);
+      expect(st.ink.length).toBe(6);
+    }
+    const a0 = COLS.slice(), run = () => tryStage(screwshopSmart, 7, 2).s.hist.map((h: { s: number }) => h.s).join();
+    const base = run();
+    for (const k of ['b', 'C', 'd']) {
+      setStyle(k);
+      expect(COLS).toEqual(STYLES['ABCD'.indexOf(k.toUpperCase())].col);
+      expect(run()).toBe(base);
+    }
+    expect(setStyle('zz').k).toBe('A');
+    expect(COLS).toEqual(a0);
   });
 });
