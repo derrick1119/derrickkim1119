@@ -774,6 +774,8 @@ function newStage(s: ShopState) {
   s.sg = 0;
   s.starFx = null;
   s.cardOff = false;
+  s.newsQ = []; // ✏️ S058(🧪 S058 🔴①): 앞 판 · 1-1 띠가 다음 판으로 넘어오지 않게
+  s.news = null;
   setMood(s, 'idle');
   teachOf(s);
   see(s, d.key, d.news);
@@ -786,6 +788,7 @@ export function startStage(s: ShopState, k: number) {
   s.stage = max(0, min(STAGES.length - 1, k));
   s.sf = 0;
   s.hint = false;
+  s.seen.delete(STAGES[s.stage].key); // ✏️ S058(🧪 S058 🔴①): 고른 판의 소개 띠는 늘 다시(만들 때 1-1로 한 번 깐 것 때문에 빠지지 않게)
   newStage(s);
 }
 

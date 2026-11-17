@@ -75,20 +75,28 @@ document.addEventListener('visibilitychange', () => (document.hidden ? sfx.sleep
  *  렉의 정체는 JS가 아니라 칠할 픽셀 수였다(CPU 4배: 프레임 JS p50 ≈ 5ms인데 간격 p50 33ms · 배율 1이면 16.7ms).
  *  프레임 60개 중 40ms 넘는 것이 8% 이상이면 1.5, 25% 이상이면 바로 1로 내린다(🧪 S057 🟡④: 내릴 때마다 그림 캐시를 다시 굽는 끊김이 있어 한 번에 · 1.25는 1.5와 프레임이 같고 더 흐려 뺌).
  *  켠 뒤 1.5초는 재지 않는다. 정한 배율은 저장해 다음에 켤 때 처음부터 쓴다(두 번째 실행부터 멈칫 0).
- *  ✏️ S058(📋 S057 빨간불 ②): 저장된 배율이 2보다 낮으면 켤 때마다 한 번, 깨끗한 창 4개(40ms↑ 0) 뒤 한 칸 올려 본다. 다음 창이 느리면 되돌리고 실패를 센다(2번 실패한 폰은 더 안 올림) — 한 번 바빴던 빠른 폰이 영영 흐리게 남지 않게 고르게 33ms인 저전력 30fps 폰은 내리지 않는다. 다시 올리지는 않는다(왔다 갔다 방지). 그림 해상도만 바뀌고 판 · 시뮬은 그대로다 */
+ *  ✏️ S058(📋 S057 빨간불 ② · 🧪 S058 🔴②): 켤 때 저장된 배율이 2보다 낮고 이번 세션에 스스로 내린 적이 없으면, 깨끗한 창 4개(40ms↑ 0) 뒤 한 번만 한 칸 올려 본다.
+ *  창 둘이 연달아 40ms↑ 0 · 가운데 ≤ 20ms(고른 30fps는 성공 아님)여야 저장한다. 아니면 되돌리고 실패를 센다. 성공한 뒤 그 세션에서 다시 내려가도 실패다. 실패 1번이면 그 폰은 다시 안 올린다 — 한 번 바빴던 빠른 폰은 돌아오고, 느린 폰은 오락가락하지 않게 고르게 33ms인 저전력 30fps 폰은 내리지 않는다. 다시 올리지는 않는다(왔다 갔다 방지). 그림 해상도만 바뀌고 판 · 시뮬은 그대로다 */
 const STEPS = [2, 1.5, 1], DEBUG = new URLSearchParams(location.search).has('debug');
-let cap = store.get('rs') >= 100 ? Math.min(2, store.get('rs') / 100) : 2, gaps: number[] = [], born = 0, clean = 0, probe = 0, probed = false, wins = 0;
+let cap = store.get('rs') >= 100 ? Math.min(2, store.get('rs') / 100) : 2, gaps: number[] = [], born = 0, clean = 0, probe = 0, probed = false, fell = false, ok = 0, wins = 0;
+const saved = cap;
 function watch(dt: number, at: number) {
   if (dt > 250 || at - born < 1500) return; // 탭을 숨겼다 돌아온 첫 프레임 · 켠 뒤 1.5초
   gaps.push(dt);
   if (gaps.length < (wins ? 60 : 30)) return; // 첫 판정은 30프레임으로 빨리(📋 S057: 첫 실행 1-1 7%)
   wins++;
   const slow = gaps.filter((x) => x > 40).length / gaps.length, now = Math.min(cap, window.devicePixelRatio || 1);
+  const mid = gaps.slice().sort((a, b) => a - b)[gaps.length >> 1];
   gaps = [];
-  if (probe && slow >= 0.08) return (cap = probe), (probe = 0), store.set('rsTry', store.get('rsTry') + 1), size(); // 올려 본 배율이 느리다 → 되돌림
-  if (probe) return (probe = 0), store.set('rs', cap * 100); // 올려 본 배율도 매끈하다 → 저장
-  if (slow === 0 && cap < 2 && !probed && store.get('rsTry') < 2 && ++clean >= 4) return (probed = true), (probe = cap), (cap = cap < 1.5 ? 1.5 : 2), size();
+  if (probe) {
+    if (slow > 0 || mid > 20) return (cap = probe), (probe = 0), store.set('rsTry', store.get('rsTry') + 1), size(); // 올려 본 배율이 느리다 → 되돌림 · 실패 1
+    if (++ok >= 2) (probe = 0), store.set('rs', cap * 100); // 창 둘 연달아 매끈 → 저장
+    return;
+  }
+  if (saved < 2 && !fell && !probed && slow === 0 && store.get('rsTry') < 1 && ++clean >= 4) return (probed = true), (probe = cap), (ok = 0), (cap = cap < 1.5 ? 1.5 : 2), size();
   if (slow < 0.08 || now <= 1) return;
+  if (probed) store.set('rsTry', store.get('rsTry') + 1); // 올려 본 뒤 다시 내려간다 → 실패
+  fell = true;
   cap = slow >= 0.25 ? 1 : STEPS.find((v) => v < now) ?? 1;
   store.set('rs', cap * 100);
   size();
@@ -177,9 +185,8 @@ function start(pickK?: number) {
   sfx.play('press');
   const q = new URLSearchParams(location.search), fixed = Number(q.get('seed')), st = Number(q.get('stage')); // ?seed=N: 같은 판 다시 보기 · ?stage=N: N판부터(스크린샷·버그 제보)
   s = g.create(fixed > 0 ? fixed : (Date.now() % 1_000_000) + 1);
-  if (st > 1 && st <= STAGES.length) startStage(s, st - 1);
-  if (typeof pickK === 'number') startStage(s, pickK);
   setLearn(s, store.get('learn')); // ✏️ S024: 배운 별(단계별 배우기) — 저장이 없으면 처음부터
+  startStage(s, typeof pickK === 'number' ? pickK : st > 1 && st <= STAGES.length ? st - 1 : 0); // ✏️ S058(🧪 S058 🔴①): 배움을 먼저 읽고 판을 깐다 — 판 고르기 · ?stage에서 별 배우기 띠가 늘 ★2 줄이던 것
   if (Number(q.get('fails')) > 0) s.sf = Number(q.get('fails')); // ?fails=N: 이 판에서 N번 진 것으로(귀띔 단추 보기 · 스크린샷)
   if (q.get('hint')) (s.sf = 3), (s.hint = true); // ?hint=1: 귀띔 켠 판
   juice(s).calm = calm;
