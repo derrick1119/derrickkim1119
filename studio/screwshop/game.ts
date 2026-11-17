@@ -2273,7 +2273,7 @@ function drawScrew(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
     bp(g);
     g.arc(h, h, rr * 1.1, 0, TAU);
     g.fill();
-    g.strokeStyle = 'rgba(60,50,40,.45)';
+    g.strokeStyle = 'rgba(40,30,20,.75)'; // 🧪 S056 ⚪⑥: 회색 쇠 판자 위에서도 와셔 고리가 보이게 진한 테
     g.lineWidth = 1;
     g.stroke();
     const dg = g.createRadialGradient(h - rr * 0.35, h - rr * 0.4, rr * 0.1, h, h, rr * 0.9);
@@ -3617,7 +3617,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     if (s.got < 3 && age > STAR_AT[2] + 8) {
       // ↺ 다시 · 다음 ▶ — 버튼 안만 받는다(🧪 S002) · ✏️ S055 🎨: 주 버튼은 금 · 다른 하나는 나무 명판 · ✏️ S056(🧪 S055 🔴①): 라벨은 놓친 별에 맞춘다 · ★3을 아직 안 배웠으면 '다음 판'이 금
       const by = Y(RES_BY), bh = R(0.075);
-      ([[0.06, `↺ 다시 (${ok2 ? '★3' : '★2'} 도전)`, !soon], [0.53, s.won ? '끝내기 ▶' : '다음 판 ▶', soon]] as const).forEach(([x0, txt, main]) => {
+      ([[0.06, soon ? '↺ 다시' : `↺ 다시 (${ok2 ? '★3' : '★2'} 도전)`, !soon], /* 🧪 S056 🟡②: ★3을 아직 안 배웠으면 별 표시 없이 */ [0.53, s.won ? '끝내기 ▶' : '다음 판 ▶', soon]] as const).forEach(([x0, txt, main]) => {
         ctx.fillStyle = main ? '#b9741c' : '#3e2616';
         bp(ctx);
         ctx.roundRect(X(x0), by - bh / 2 + 4, R(0.41), bh, bh / 2);
