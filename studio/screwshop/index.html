@@ -21,34 +21,38 @@ header small{color:#d8c3a5;font-size:12px;margin-right:4px}
 #game{position:relative;touch-action:none;user-select:none;-webkit-user-select:none}
 .g-canvas{display:block;margin:0 auto;touch-action:none;outline:none}
 .g-canvas.kb:focus{box-shadow:0 0 0 3px #ffc65c}
-.g-overlay{position:absolute;inset:0;margin:auto;width:100%;border:0;background:#2a1c13d9;color:#fff8ec;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:20px}
+.g-overlay{position:absolute;inset:0;margin:auto;width:100%;border:0;outline:none;background:#2a1c13d9;color:#fff8ec;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:20px}
 .g-overlay em{font-style:normal;font-size:52px;line-height:1}
-.g-overlay b{font-size:32px;font-weight:900}
-.g-overlay ul{list-style:none;margin:4px 0;padding:0;text-align:left;max-width:330px}
-.g-overlay li{font-size:15px;font-weight:700;margin:6px 0;word-break:keep-all}
-.g-overlay li i{font-style:normal;color:#ffc65c}
-.g-overlay strong{margin-top:6px;min-width:200px;padding:12px 24px;border-radius:28px;background:#ffc65c;color:#3a2a00;font-size:20px;font-weight:900;box-shadow:0 4px 0 #d58e1c}
+.g-overlay b{display:inline-block;padding:10px 22px;border-radius:14px;background:linear-gradient(135deg,#c08a4f,#7a4c26);box-shadow:inset 0 1px 0 #ffe2b0aa,0 6px 0 #3e2616,0 10px 18px #0006;color:#fff6e0;text-shadow:0 2px 0 #3e2616;font-size:30px;font-weight:900}
+.g-overlay ul{list-style:none;margin:10px 0 4px;padding:0;display:grid;grid-template-columns:repeat(3,96px);gap:8px}
+.g-overlay li{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px 8px;border-radius:14px;background:#f3e2c4;color:#3a2a20;box-shadow:0 3px 0 #b98c5a;font-size:13px;font-weight:800;line-height:1.25;word-break:keep-all}
+.g-overlay li i{font-style:normal;font-size:28px;line-height:1}
+.g-overlay strong{margin-top:6px;min-width:200px;padding:12px 24px;border-radius:28px;background:linear-gradient(#ffd166,#f0a83a);color:#3a2a00;font-size:20px;font-weight:900;box-shadow:0 5px 0 #b9741c}
+@media (hover:none){.g-overlay span.kbd{display:none}}
 .g-overlay span{font-size:14px;color:#d8c3a5;word-break:keep-all}
 .g-overlay span.msg{font-size:17px;font-weight:800;color:#fff8ec}
 .g-overlay span.best{color:#ffc65c;font-weight:800}
 .g-overlay:focus-visible strong{outline:3px solid #fff8ec;outline-offset:3px}
-.g-pickbtn{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);min-height:44px;padding:8px 18px;border:2px solid #ffc65c;border-radius:22px;background:#2a1c13;color:#ffc65c;font:inherit;font-weight:800;cursor:pointer}
+.g-pickbtn{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);min-height:44px;padding:8px 18px;border:0;border-radius:22px;background:linear-gradient(#b07a44,#7a4c26);box-shadow:0 4px 0 #3e2616;color:#fff6e0;font:inherit;font-weight:800;cursor:pointer}
 .g-pickbtn:focus-visible,.g-pick button:focus-visible{outline:3px solid #fff8ec;outline-offset:2px}
-.g-pick{position:absolute;inset:0;background:#2a1c13;display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 12px;overflow:auto}
+.g-pick{position:absolute;inset:0;background:#24160d repeating-linear-gradient(90deg,#0000 0 64px,#0000004d 64px 65px);display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 12px;overflow:auto}
 .g-pick nav{display:flex;align-items:center;gap:8px;font-weight:900}
-.g-pick nav button,.g-pick>button{min-width:44px;min-height:44px;border:0;border-radius:22px;background:#4a3424;color:#fff8ec;font:inherit;font-weight:800;cursor:pointer;padding:0 14px}
+.g-pick nav button,.g-pick>button{min-width:44px;min-height:44px;border:0;border-radius:22px;background:linear-gradient(#b07a44,#7a4c26);box-shadow:0 3px 0 #3e2616;color:#fff6e0;font:inherit;font-weight:800;cursor:pointer;padding:0 14px}
 .g-pick>div{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;max-width:400px}
-.g-pick>div button{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:110px;padding:6px 2px;border:0;border-radius:14px;background:#f3e2c4;color:#3a2a20;font:inherit;cursor:pointer}
-.g-pick>div button:disabled{opacity:.4;cursor:default;background:#5a4030;color:#d8c3a5}
+.g-pick>div button{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:110px;padding:6px 2px;border:0;border-radius:14px;background:linear-gradient(160deg,#f6e3bd,#dcbb86);box-shadow:inset 0 1px 0 #fff8,0 3px 0 #9a6a3c;color:#3a2a20;font:inherit;cursor:pointer}
+.g-pick>div button.all{outline:2px solid #ffd166;outline-offset:-2px}
+.g-pick>div button:disabled{cursor:default;background:#4a2e18;box-shadow:none;color:#d8c3a5}
+.g-pick>div button:disabled em{opacity:.35}
 .g-pick i{font-style:normal;font-size:12px;font-weight:800}
 .g-pick em{font-style:normal;font-size:30px;line-height:1.1}
 .g-pick small{font-size:11px;font-weight:700;word-break:keep-all;text-align:center;line-height:1.2}
-.g-pick b{font-size:15px;line-height:1;color:#c98a14;letter-spacing:-1px}
+.g-pick b{font-size:15px;line-height:1;color:#e0a020;letter-spacing:-1px}
+.g-pick b u{text-decoration:none;color:#3a2a2040}
 </style>
 </head>
 <body>
 <main>
-  <header><h1>🔩 나사 풀기 <span>공방</span></h1><div class="tg"><small hidden>빌드 M3-S059</small><button id="buzz" type="button" aria-label="진동 켜고 끄기">📳</button><button id="sound" type="button" aria-label="소리 끄기">🔊</button></div></header>
+  <header><h1>🔩 나사 풀기 <span>공방</span></h1><div class="tg"><small hidden>빌드 M3-S060</small><button id="buzz" type="button" aria-label="진동 켜고 끄기">📳</button><button id="sound" type="button" aria-label="소리 끄기">🔊</button></div></header>
   <div id="game"></div>
 </main>
 <script>/*BUNDLE*/</script>

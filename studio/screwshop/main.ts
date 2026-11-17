@@ -150,7 +150,7 @@ function showPick(w = world) {
     const slot = `${world}-${n + 1}`, k = STAGES.findIndex((d) => d.slot === slot);
     if (k < 0) return `<button type="button" disabled aria-label="${slot} 준비 중"><i>${slot}</i><em>🔒</em><small>준비 중</small></button>`;
     const d = STAGES[k], st = store.get('st' + d.id);
-    return `<button type="button" data-k="${k}" aria-label="${slot} ${d.name}, 별 ${st}개"><i>${slot}</i><em>${d.emoji}</em><small>${d.name}</small><b>${'★'.repeat(st)}${'☆'.repeat(3 - st)}</b></button>`;
+    return `<button type="button" data-k="${k}"${st >= 3 ? ' class="all"' : ''} aria-label="${slot} ${d.name}, 별 ${st}개"><i>${slot}</i><em>${d.emoji}</em><small>${d.name}</small><b>${'★'.repeat(st)}<u>${'★'.repeat(3 - st)}</u></b></button>`;
   }).join('');
   pick.innerHTML = `<nav><button type="button" data-w="${world - 1}" aria-label="앞 월드"${world > 1 ? '' : ' disabled'}>◀</button><span>월드 ${world} · ${WORLDS[world - 1]}</span><button type="button" data-w="${world + 1}" aria-label="다음 월드"${world < 3 ? '' : ' disabled'}>▶</button></nav><div>${cells}</div><button type="button" data-x="1">닫기</button>`;
   pick.hidden = false;
@@ -175,8 +175,8 @@ pickBtn.addEventListener('click', () => showPick());
 function title() {
   const b = store.get('best'), st = store.get('stars');
   show(`<em>🐹🔩</em><b>나사 풀기 공방</b>
-<ul><li>🔩 나사를 <i>톡</i> → 같은 색 상자로 쏙!</li><li>🎐 나사 하나 남은 판자는 매달려 빙글 — 다른 나사를 덮거나 드러내요</li><li>🧺 빈칸 5개가 다 차면 실패, 판자를 다 떨구면 완성</li></ul>
-<strong>시작</strong><span>누르고 있으면 갈 곳이 보여요 · 키보드: 화살표 + 스페이스</span>${b ? `<span class="best">최고 ${b}점 · ★${st}</span>` : ''}`);
+<ul><li><i>👆</i>톡 → 같은 색 상자</li><li><i>🎐</i>하나 남으면 빙글</li><li><i>🧺</i>빈칸 5개 꽉 = 실패</li></ul>
+<strong>시작</strong><span class="kbd">누르고 있으면 갈 곳이 보여요 · 키보드: 화살표 + 스페이스</span>${b ? `<span class="best">최고 ${b}점 · ★${st}</span>` : ''}`);
 }
 
 function start(pickK?: number) {
