@@ -1,5 +1,28 @@
 /**
  * 곰돌이 꿀 흐르기 (29라운드: 한눈에 아는 놀이 × 진짜 물리) — 흘려 채우기 × 굳는 꿀 × 가리키기(톡).
+ * 뼈대(흘려 채우기): 나무 속 벌집 동굴 단면. 위 벌집 방에 꿀이 고여 있고, 바닥에 빈 유리 꿀단지(눈금선)가 있다.
+ *   밀랍 마개를 톡 하면 꿀이 흘러나와 나무 선반을 타고 단지로 간다. 단지가 모두 눈금까지 차면 판 끝.
+ * 물리(굳는 꿀, 고정 틱·결정적): 꿀 = 방울 입자 수십~백 개. 위치 맞춤(PBD) + 깊은 웅덩이만 미는 액체 압력 + 이웃과 속도를 나누는
+ *   끈적임. 나무껍질은 쿨롱 마찰(완만하면 멈춤), 허공의 꿀은 실처럼 늘어져 곧게 떨어진다.
+ *   한 자리에 SET_T틱 고인 꿀은 굳어 '꿀사탕 땅'이 되고, 이웃 꿀사탕과 매끈한 다리(캡슐)로 이어져 다음 꿀이 그 위로 미끄러진다.
+ *   → 홈에 먼저 흘린 꿀이 굳어 다리가 되고, 다음 꿀은 잃지 않고 건너간다. 단지가 눈금에 차면 뚜껑이 탁 닫히고, 그 뒤 꿀은
+ *   뚜껑 기울기대로 미끄러진다(옆 단지로 가면 괜찮고, 바닥으로 떨어지거나 뚜껑 위에서 굳으면 '넘친 꿀').
+ * 미리 보기: 닫힌 밀랍을 누르고 있는 동안 실제와 똑같은 시뮬레이션을 잠잠해질 때까지 돌려 꿀이 갈 길(점선)·굳을 자리(반투명
+ *   꿀사탕)·단지마다 들어갈 양('+3 (2 남음)' / '가득! 탁!')·넘칠 양·바닥에 흘릴 양·탈 양을 보여 준다. 떼면 연다(밀랍 밖에서 떼면 취소).
+ * 판(8): 목표 = 단지 모두 채우기. 별 = 쉬운 말 조건(1판 1개 → 2판 2개 → 3판부터 3개). 실패(꿀이 모자람 · 맛이 섞임) = 하트 -1,
+ *   그 판 다시. 하트 셋을 다 잃거나 8판을 마치면 끝. 점수 = 판마다 별² × 100 + 30 (별을 고를수록 크게).
+ * 펼쳐짐(판마다 하는 일이 바뀐다): 1 첫 꿀(톡) → 2 꿀사탕 다리(작은 꿀로 홈을 먼저 메워 큰 꿀을 건너보내기)
+ *   → 3 뚜껑 미끄럼(둥근 뚜껑: 왼쪽에 떨어진 꿀은 바닥, 오른쪽은 옆 단지 — 왼쪽 방으로 먼저 채우기)
+ *   → 4 나뭇잎 시소(경첩이 뻑뻑: 작은 꿀은 못 넘기고 기운 쪽으로 미끄러짐, 큰 꿀이 넘기면 뒤의 작은 꿀도 따라감 — 작은 꿀 먼저)
+ *   → 5 꿀벌 손님(덜 찬 채 2.5초 놓인 단지는 벌이 퍼 감 — 한 번에·잇달아 채우기)
+ *   → 6 꽃꿀 두 가지(분홍 꿀이 노란 단지에 들면 실패 — 노란 단지를 먼저 채워 분홍 꿀이 뚜껑을 타고 넘어가게)
+ *   → 7 뜨거운 돌(닿은 꿀은 안 굳고 지글지글 탐 — 큰 꿀로 시소를 먼저 넘겨 작은 꿀이 돌을 피하게)
+ *   → 8 곰돌이 잔치(다리·뚜껑·벌을 한 판에).
+ * 전략: 판마다 '무엇을 먼저'가 다르다(작은 것 먼저 / 왼쪽 먼저 / 큰 것 먼저). 판은 손으로 그렸고, 꿀 양·단지 눈금은 순서를 모두
+ *   시뮬레이션해 '별 셋 순서가 딱 하나'가 되게 골랐다(좌우 뒤집힌 판도 마찬가지). 버릇 봇 둘(단지 가까운 밀랍부터 · 큰 방부터)은
+ *   2판부터 별 셋을 한 번도 못 딴다(측정).
+ * 웃음: 곰돌이는 꿀이 흐르면 침을 흘리며 눈이 동그래지고, 단지가 차면 혀로 쩝, 바닥에 꿀이 떨어지면 발이 붙어 버둥, 판을 깨면
+ *   단지째 들고 꿀꺽, 실패하면 어질어질 별. 벽 구멍의 생쥐는 박수 치고 킥킥, 벌들은 국자를 들고 놀란 눈으로 단지를 털어 간다.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -920,6 +943,28 @@ export function habitBig(L: Level, S: Sim) {
   L.rooms.forEach((R, r) => !S.open[r] && R.n > bn && ((bn = R.n), (best = r)));
   return best;
 }
+/** 독립 버릇 봇(판 고를 때 안 쓴 것): 꿀이 가장 적은 방부터 */
+export function habitSmall(L: Level, S: Sim) {
+  let best = -1, bn = 1e9;
+  L.rooms.forEach((R, r) => !S.open[r] && R.n < bn && ((bn = R.n), (best = r)));
+  return best;
+}
+/** 독립 버릇 봇(판 고를 때 안 쓴 것): 화면 왼쪽 밀랍부터 */
+export function habitLeft(L: Level, S: Sim) {
+  let best = -1, bx = 9;
+  L.rooms.forEach((R, r) => !S.open[r] && R.px < bx && ((bx = R.px), (best = r)));
+  return best;
+}
+const habitBot = (name: string, f: (L: Level, S: Sim) => number): Bot<HoneyState> => ({
+  name,
+  act(s) {
+    if (!ready(s)) return NO;
+    const r = f(s.L, s.S);
+    return r >= 0 ? at(s.L, r) : NO;
+  },
+});
+export const honeybearHabitSmall = habitBot('버릇: 작은 꿀방부터', habitSmall);
+export const honeybearHabitLeft = habitBot('버릇: 왼쪽 밀랍부터', habitLeft);
 export const honeybearHabit: Bot<HoneyState> = {
   name: '버릇: 단지 가까운 밀랍부터',
   act(s) {
@@ -957,7 +1002,7 @@ export const honeybearRandom: Bot<HoneyState> = {
   },
 };
 
-export const _game = { starsOf, search, afterOpen, habitNear, habitBig, STAR_TXT };
+export const _game = { starsOf, search, afterOpen, habitNear, habitBig, habitSmall, habitLeft, STAR_TXT };
 
 // ───────────────────────────── 미리 보기 (누르는 동안) ─────────────────────────────
 interface Preview { trails: number[][]; candy: number[]; jars: number[]; full: number[]; spill: number; drop: number; dropX: number; burn: number; la: number; v: number; key: string }
@@ -1025,7 +1070,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: HoneyState, w: number, h: num
   // ═════ 꿀 ═════
   drawHoney(ctx, S, X, Y, R, t);
   // ═════ 곰 ═════
-  drawBear(ctx, s, X(s.bearX), Y(FLOOR + 0.02), R(0.2), t);
+  drawBear(ctx, s, X(s.bearX), Y(FLOOR + 0.02), R(0.22), t);
+  drawMouse(ctx, s, X, Y, R, t);
   // ═════ 벌 ═════
   if (d.bees) drawBees(ctx, s, X, Y, R, t);
   // ═════ 미리 보기 ═════
@@ -1121,6 +1167,23 @@ function drawCave(ctx: CanvasRenderingContext2D, s: HoneyState, w: number, h: nu
   glow.addColorStop(1, 'rgba(255,150,50,0)');
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, w, h);
+  // 벌집에서 내려오는 빛줄기
+  ctx.save();
+  for (let k = 0; k < 4; k++) {
+    const x0 = 0.18 + k * 0.22 + 0.02 * Math.sin(t / 200 + k), a = 0.05 + 0.025 * Math.sin(t / 90 + k * 2);
+    const lg = ctx.createLinearGradient(0, Y(0.1), 0, Y(1.1));
+    lg.addColorStop(0, `rgba(255,214,130,${a})`);
+    lg.addColorStop(1, 'rgba(255,214,130,0)');
+    ctx.fillStyle = lg;
+    ctx.beginPath();
+    ctx.moveTo(X(x0 - 0.03), Y(0.1));
+    ctx.lineTo(X(x0 + 0.03), Y(0.1));
+    ctx.lineTo(X(x0 + 0.13), Y(1.1));
+    ctx.lineTo(X(x0 - 0.01), Y(1.1));
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
   // 나무껍질 벽 (양옆, 두께)
   for (const side of [0, 1]) {
     const x0 = side ? X(0.97) - 2 : -2, ww = X(0.03) + 4;
@@ -1157,7 +1220,23 @@ function drawCave(ctx: CanvasRenderingContext2D, s: HoneyState, w: number, h: nu
     ctx.quadraticCurveTo(X(x0 + 0.05), Y(FLOOR + 0.02 + hsh(k) * 0.02), X(x0 + 0.1), fy + 3);
     ctx.stroke();
   }
-  // 흘린 꿀 웅덩이 (바닥)
+  // 위쪽 모서리: 나무 속 둥근 천장 (앞쪽 테두리라 더 어둡고 두껍다)
+  for (const side of [0, 1]) {
+    const cx = side ? w : 0;
+    ctx.fillStyle = '#24120a';
+    ctx.beginPath();
+    ctx.moveTo(cx, Y(0.09));
+    ctx.lineTo(cx, Y(0.32));
+    ctx.quadraticCurveTo(cx + (side ? -1 : 1) * R(0.04), Y(0.15), cx + (side ? -1 : 1) * R(0.2), Y(0.09));
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(160,100,50,.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, Y(0.32));
+    ctx.quadraticCurveTo(cx + (side ? -1 : 1) * R(0.04), Y(0.15), cx + (side ? -1 : 1) * R(0.2), Y(0.09));
+    ctx.stroke();
+  }
   // 떠다니는 꽃가루
   for (let k = 0; k < 22; k++) {
     const px = 0.06 + hsh(k + 40) * 0.88, py = 0.12 + ((hsh(k + 50) * 1.1 + t * 0.0003 * (1 + (k % 3))) % 1.1);
@@ -1177,7 +1256,7 @@ function drawLedges(ctx: CanvasRenderingContext2D, L: Level, S: Sim, X: Fn, Y: F
       ctx.lineCap = 'round';
       const dy = pass === 0 ? R(0.012) : 0;
       ctx.strokeStyle = pass === 0 ? 'rgba(0,0,0,.35)' : pass === 1 ? '#5b3519' : pass === 2 ? '#7d4c26' : 'rgba(255,214,150,.45)';
-      ctx.lineWidth = pass === 0 ? R(g.r * 2.6) : pass === 1 ? R(g.r * 2.6) : pass === 2 ? R(g.r * 1.7) : 1.6;
+      ctx.lineWidth = pass === 0 ? R(g.r * 3.2) : pass === 1 ? R(g.r * 3.2) : pass === 2 ? R(g.r * 2.2) : 2;
       ctx.beginPath();
       if (pass === 3) {
         const nx = g.y2 - g.y1, ny = -(g.x2 - g.x1), nl = Math.hypot(nx, ny) || 1, o = g.r * 1.05;
@@ -1188,6 +1267,19 @@ function drawLedges(ctx: CanvasRenderingContext2D, L: Level, S: Sim, X: Fn, Y: F
         ctx.moveTo(X(g.x1), Y(g.y1) + dy);
         ctx.lineTo(X(g.x2), Y(g.y2) + dy);
       }
+      ctx.stroke();
+    }
+  }
+  // 나무껍질 홈
+  ctx.strokeStyle = 'rgba(40,20,6,.45)';
+  ctx.lineWidth = 1.2;
+  for (const g of segs) {
+    const len = Math.hypot(g.x2 - g.x1, g.y2 - g.y1), n = Math.floor(len / 0.035);
+    for (let k = 1; k < n; k++) {
+      const u = k / n, mx = g.x1 + (g.x2 - g.x1) * u, my = g.y1 + (g.y2 - g.y1) * u, nx = -(g.y2 - g.y1) / len, ny = (g.x2 - g.x1) / len;
+      ctx.beginPath();
+      ctx.moveTo(X(mx + nx * g.r * 0.9), Y(my + ny * g.r * 0.9));
+      ctx.lineTo(X(mx - nx * g.r * 0.6 + (g.x2 - g.x1) / len * 0.006), Y(my - ny * g.r * 0.6 + (g.y2 - g.y1) / len * 0.006));
       ctx.stroke();
     }
   }
@@ -1664,6 +1756,71 @@ function drawBee(ctx: CanvasRenderingContext2D, x: number, y: number, u: number,
   ctx.restore();
 }
 
+/** 구경꾼 생쥐: 오른쪽 나무 벽 구멍에서 빼꼼 — 꿀이 흐르면 눈이 동그래지고, 단지가 차면 박수, 넘치면 깔깔, 실패하면 얼굴을 가린다 */
+function drawMouse(ctx: CanvasRenderingContext2D, s: HoneyState, X: Fn, Y: Fn, R: Fn, t: number) {
+  const right = s.bearX < 0.5, hx = X(right ? 0.97 : 0.03), hy = Y(0.74), u = R(0.065), dir = right ? -1 : 1;
+  const m = s.mood, mt = t - s.moodT;
+  // 구멍
+  ctx.fillStyle = '#140802';
+  ctx.beginPath();
+  ctx.ellipse(hx, hy, u * 0.7, u * 0.85, 0, 0, TAU);
+  ctx.fill();
+  ctx.strokeStyle = '#6b4226';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  const peek = m === 'idle' ? 0.55 + 0.1 * Math.sin(t * 0.03) : m === 'dizzy' ? 0.3 : 0.9;
+  ctx.save();
+  ctx.translate(hx + dir * u * 0.5 * peek, hy + u * 0.1);
+  ctx.scale(dir, 1);
+  ctx.fillStyle = '#b8a89a';
+  for (const ey of [-0.55, 0.05]) (ctx.beginPath(), ctx.arc(-u * 0.05, u * ey - u * 0.1, u * 0.28, 0, TAU), ctx.fill());
+  ctx.fillStyle = '#f2b8c6';
+  ctx.beginPath();
+  ctx.arc(-u * 0.05, -u * 0.65, u * 0.15, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#c9bbae';
+  ctx.beginPath();
+  ctx.ellipse(u * 0.15, -u * 0.25, u * 0.38, u * 0.3, 0.2, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#ff8fa8';
+  ctx.beginPath();
+  ctx.arc(u * 0.52, -u * 0.16, u * 0.06, 0, TAU);
+  ctx.fill();
+  const big = m === 'wow' || m === 'shock' || m === 'sticky';
+  if (m === 'dizzy') {
+    // 얼굴 가리기
+    ctx.fillStyle = '#b8a89a';
+    ctx.beginPath();
+    ctx.ellipse(u * 0.25, -u * 0.32, u * 0.16, u * 0.1, 0, 0, TAU);
+    ctx.fill();
+  } else {
+    ctx.fillStyle = '#1a0d05';
+    ctx.beginPath();
+    ctx.arc(u * 0.25, -u * 0.32, u * (big ? 0.075 : 0.05), 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(u * 0.27, -u * 0.34, u * 0.02, 0, TAU);
+    ctx.fill();
+  }
+  // 앞발: 단지가 차면 짝짝
+  if (m === 'yum' || m === 'gulp') {
+    const clap = Math.abs(Math.sin(mt * 0.4)) * u * 0.08;
+    ctx.fillStyle = '#d8c8ba';
+    ctx.beginPath();
+    ctx.arc(u * 0.3, u * 0.05 - clap, u * 0.08, 0, TAU);
+    ctx.arc(u * 0.42, u * 0.05 + clap, u * 0.08, 0, TAU);
+    ctx.fill();
+  }
+  ctx.restore();
+  if (m === 'sticky' && mt < 60) {
+    ctx.fillStyle = '#fff3d6';
+    ctx.font = `800 ${Math.max(12, R(0.034))}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText('킥킥', hx + dir * u * 1.4, hy - u * 1.1);
+  }
+}
+
 /** 곰돌이: 무표정 · 우와(꿀이 흐름) · 냠(단지 가득) · 끈적(발에 꿀) · 화들짝(벌) · 꿀꺽(판 끝) · 어질어질(실패) */
 function drawBear(ctx: CanvasRenderingContext2D, s: HoneyState, x: number, y: number, u: number, t: number) {
   const m = s.mood, mt = t - s.moodT, face = s.bearX < 0.5 ? 1 : -1;
@@ -1877,8 +2034,13 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: HoneyState, pv: Preview, 
     const left = J.cap - s.S.fill[j];
     tag(X(J.x), Y(J.top) - R(0.07), pv.full[j] ? '가득! 탁!' : `+${k} (${left - k} 남음)`, pv.full[j] ? 'rgba(190,255,170,.95)' : 'rgba(255,246,200,.95)');
   });
-  if (pv.spill > 0) tag(X(0.5), Y(1.17), `넘쳐요 ${pv.spill}방울`, 'rgba(255,170,150,.95)');
-  if (pv.drop > 0) tag(X(pv.dropX), Y(1.12), `바닥에 ${pv.drop}방울`, 'rgba(255,170,150,.95)');
+  if (pv.spill > 0) {
+    // 넘칠 단지 (이번에 차거나 이미 찬 단지 중 흘린 자리에 가까운 것) 위에
+    let jx = 0.5, jy = 1.0, bd = 9;
+    L.jars.forEach((J, j) => (pv.full[j] || s.S.full[j]) && Math.abs(J.x - pv.dropX) < bd && ((bd = Math.abs(J.x - pv.dropX)), (jx = J.x), (jy = J.top)));
+    tag(X(jx), Y(jy) - R(0.125), `넘쳐요 ${pv.spill}방울`, 'rgba(255,170,150,.95)');
+  }
+  if (pv.drop > 0) tag(X(pv.dropX), Y(1.04), `바닥에 ${pv.drop}방울`, 'rgba(255,170,150,.95)');
   if (pv.burn > 0) tag(X(0.5), Y(0.9), `🔥 ${pv.burn}방울 타요`, 'rgba(255,170,150,.95)');
   if (pv.v === -1) tag(X(0.5), Y(0.75), '맛이 섞여요!', 'rgba(255,150,140,.98)');
   if (pv.v === 1) tag(X(0.5), Y(0.7), '다 찬다! ✨', 'rgba(190,255,170,.98)');
@@ -1974,7 +2136,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: HoneyState, d: StageDef, w: n
   font(first ? 0.04 : 0.036, 900);
   ctx.fillText(hint, w / 2, h - R(0.03), w - R(0.05));
   // ═════ 시작 카드 + 새것 스포트라이트 ═════
-  const cardOn = s.phase === 'play' && t - s.startT < CARD_T && !(s.firstTap && s.lastTap > s.startT);
+  const cardOn = s.phase === 'play' && t - s.startT < CARD_T && !(s.firstTap && s.lastTap > s.startT) && !s.down;
   if (cardOn) {
     const age = t - s.startT, a = Math.min(1, age / 8, (CARD_T - age) / 20);
     if (d.spot && t - s.spotT < SPOT_T) {
@@ -2006,7 +2168,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: HoneyState, d: StageDef, w: n
       ctx.globalAlpha = 1;
     }
     const sc = Math.min(1, 0.7 + age / 14), lines = d.stars.length, ch = 0.12 + lines * 0.05 + (d.news ? 0.05 : 0);
-    const cyy = Y(d.spot && d.spot[1] < 0.66 ? 0.95 : 0.5) - R(ch / 2);
+    const cyy = Y(d.spot && d.spot[1] < 0.75 ? 0.98 : d.spot ? 0.62 : 0.8) - R(ch / 2);
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate(w / 2, cyy);

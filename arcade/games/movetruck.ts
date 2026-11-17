@@ -73,7 +73,7 @@ function itemOf(code: string, r: Rng): Item {
     case 'P': return { ...base, kind: 'pot', w: 0.8, h: 1.05, m: 0.8, look: 'pot', name: '화분' };
     case 'D': return { ...base, kind: 'dish', w: 1.2, h: 0.7, m: 1, look: 'dish', name: '그릇 상자' };
     case 'O': return { ...base, kind: 'ball', w: 0.7, h: 0.7, m: 0.3, look: 'ball', name: '공' };
-    case 'L': return { ...base, kind: 'blanket', w: 2.4, h: 0.32, m: 0.6, look: 'blanket', name: '이불' };
+    case 'L': return { ...base, kind: 'blanket', w: 2.4, h: 0.4, m: 0.6, look: 'blanket', name: '이불' };
     case 'S': return { ...base, kind: 'sofa', w: 2.5, h: 1.15, m: 3, look: 'sofa', name: '소파', flip: r() < 0.5 };
     default: {
       const [w, h, m] = BOX_SIZES[Math.floor(r() * BOX_SIZES.length)];
@@ -611,7 +611,7 @@ export interface TruckState {
   pred: Outcome | null; predW: World | null;
   // 연출(시뮬레이션 결과와 무관)
   dist: number; speed: number; zoom: number; yb: number; vb: number; pa: number; pv: number;
-  debris: Debris[]; mood: string; moodT: number; dogX: number; dogSofa: number; kidX: number; catT: number;
+  debris: Debris[]; mood: string; moodT: number; dogX: number; dogSofa: number; kidX: number; catT: number; spotT: number;
 }
 
 const ev = (s: TruckState, kind: string, x: number, y: number, text?: string, col?: string, v?: number, bed = false) => s.events.push({ t: s.t, kind, x, y, text, col, v, bed });
@@ -649,6 +649,7 @@ function newStage(s: TruckState) {
   s.debris = [];
   s.dogX = 0;
   s.dogSofa = -1;
+  s.spotT = -1;
   s.kidX = 0;
   s.catT = -999;
   setMood(s, 'idle');
@@ -889,7 +890,7 @@ export const movetruck: GameDef<TruckState> = {
       hearts: 3, stars: 0, got: 0, starOk: [false, false, false], pts: 0, ok: false, why: '', won: false, dead: false, tries: 0,
       dropped: 0, broken: 0, catOff: false, again: false, settling: false,
       seen: new Set<string>(), newsQ: [], news: null, events: [], startT: 0, pred: null, predW: null,
-      dist: 0, speed: 0, zoom: 1, yb: 0, vb: 0, pa: 0, pv: 0, debris: [], mood: 'idle', moodT: 0, dogX: 0, dogSofa: -1, kidX: 0, catT: -999,
+      dist: 0, speed: 0, zoom: 1, yb: 0, vb: 0, pa: 0, pv: 0, debris: [], mood: 'idle', moodT: 0, dogX: 0, dogSofa: -1, kidX: 0, catT: -999, spotT: -1,
     } as TruckState;
     newStage(s);
     return s;
@@ -903,6 +904,7 @@ export const movetruck: GameDef<TruckState> = {
     if (s.newsQ.length && (!s.news || s.t - s.news.t > NEWS_T)) s.news = { text: s.newsQ.shift()!, t: s.t };
     if (s.events.length > 60 || (s.events.length && s.t - s.events[0].t > 200)) s.events = s.events.filter((e) => s.t - e.t < 200);
     if (s.phase === 'load') {
+      if (s.spotT < 0 && !s.again && s.pt >= CARD_T - 10 && spotTarget(s)) s.spotT = s.t;
       if (!s.W.calm) loadTick(s.W), drain(s);
       if (s.W.calm && s.settling) settled(s);
       if (release) tryDrop(s);
@@ -1455,7 +1457,7 @@ function drawCat(ctx: CanvasRenderingContext2D, x: number, y: number, u: number,
 function drawBlanket(ctx: CanvasRenderingContext2D, cols: Body[], P: (bx: number, by: number) => [number, number], u: number, ghost?: string) {
   cols = [...cols].sort((p, q) => p.off - q.off);
   if (!cols.length) return;
-  const top = cols.map((c) => P(c.x, c.y + c.hh)), bot = cols.map((c) => P(c.x, c.y - c.hh));
+  const top = cols.map((c) => P(c.x, c.y + c.hh + 0.05)), bot = cols.map((c) => P(c.x, c.y - c.hh));
   const hw = cols[0].hw * u;
   ctx.beginPath();
   ctx.moveTo(top[0][0] - hw, top[0][1] + 2);
@@ -1691,6 +1693,27 @@ function drawStreet(ctx: CanvasRenderingContext2D, s: TruckState, d: StageDef, w
     if (k >= 0 && Math.abs(hx + par - (endD + 0.02)) < 0.5) continue;
     if (k < 0) continue;
     drawHouse(ctx, X, Y, R, hx, 0.98, 0.34, 0.26, k, false, t);
+  }
+  // 울퉁불퉁 길 판: 앞길 표지판 (턱 수)
+  if (d.key === 'road' && s.dist < 2) {
+    const x = SIGN_X - s.dist;
+    ctx.fillStyle = '#5d6475';
+    ctx.fillRect(X(x) - 2, Y(0.58), 4, Y(0.4));
+    ctx.fillStyle = '#ffd23a';
+    ctx.strokeStyle = '#2b2b33';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.roundRect(X(x - 0.095), Y(0.48), R(0.19), R(0.1), R(0.012));
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#2b2b33';
+    ctx.font = `900 ${Math.max(12, R(0.036))}px system-ui`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`턱 ${d.bumps}개`, X(x + 0.025), Y(0.53));
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `${Math.max(12, R(0.034))}px system-ui`;
+    ctx.fillText('🚧', X(x - 0.052), Y(0.53));
   }
   // 떠나는 집(언덕 위) · 새 집
   drawTerrace(ctx, X, Y, R, -par, t);
@@ -2451,10 +2474,10 @@ function drawHud(ctx: CanvasRenderingContext2D, s: TruckState, d: StageDef, w: n
     return { txt: STAR_TEXT[k], ok, bad: ok === null && bad };
   });
   font(0.036, 800);
-  const pad = R(0.022), gap = R(0.014), starW = R(0.04);
+  const pad = R(0.013), gap = R(0.009), starW = R(0.036);
   let fs = 0.036;
   const total = () => st.reduce((a, c) => a + ctx.measureText(c.txt).width + pad * 2 + starW, 0) + gap * (st.length - 1);
-  while (total() > w - R(0.04) && fs > 0.0331) font((fs -= 0.001), 800);
+  while (total() > w - R(0.03) && fs > 0.0301) font((fs -= 0.001), 800);
   let x = (w - total()) / 2;
   const cy = Y(BAND + 0.05);
   for (const c of st) {
@@ -2466,17 +2489,17 @@ function drawHud(ctx: CanvasRenderingContext2D, s: TruckState, d: StageDef, w: n
     ctx.strokeStyle = c.ok ? '#ffd23a' : 'rgba(255,255,255,.28)';
     ctx.lineWidth = 1.5;
     ctx.stroke();
-    star(ctx, x + pad + starW * 0.35, cy, R(0.017));
+    star(ctx, x + pad + starW * 0.35, cy, R(0.016));
     ctx.fillStyle = c.ok ? '#ffd23a' : c.bad || c.ok === false ? 'rgba(255,255,255,.18)' : 'rgba(255,255,255,.55)';
     ctx.fill();
     ctx.fillStyle = c.bad || c.ok === false ? 'rgba(255,255,255,.45)' : '#ffffff';
     ctx.textAlign = 'left';
-    ctx.fillText(c.txt, x + pad + starW * 0.85, cy + 1);
+    ctx.fillText(c.txt, x + pad + starW * 0.8, cy + 1);
     if (c.bad || c.ok === false) {
       ctx.strokeStyle = 'rgba(255,120,110,.8)';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.moveTo(x + pad + starW * 0.85, cy + 1);
+      ctx.moveTo(x + pad + starW * 0.8, cy + 1);
       ctx.lineTo(x + cw - pad, cy + 1);
       ctx.stroke();
     }
@@ -2590,35 +2613,32 @@ function drawCard(ctx: CanvasRenderingContext2D, s: TruckState, d: StageDef, w: 
   ctx.restore();
 }
 
-/** NEW 스포트라이트: 새 짐이 처음 나오는 판에, 카드 뒤 2초쯤 주변을 어둡게 하고 새것을 비춘다 */
-function drawSpot(ctx: CanvasRenderingContext2D, s: TruckState, d: StageDef, w: number, X: F, Y: F, R: F, font: (sz: number, w?: number) => void) {
-  if (s.again || s.phase !== 'load' || !d.spot || s.down) return;
-  const age = s.pt, T0 = CARD_T - 10, T1 = CARD_T + 130;
-  if (age < T0 || age > T1) return;
-  let x = -1, y = -1, rr2 = 0.09;
-  if (d.key === 'cat') (x = 0.25), (y = PORCH_Y - 0.03);
-  else if (d.key === 'road') (x = 0.84), (y = 1.17), (rr2 = 0.1);
-  else {
-    const code = d.items.split('');
-    // 줄에서 그 새 짐이 몇 번째에 보이나
-    let px = 0.6;
-    for (let k = 0; k < 4; k++) {
-      const i = s.next + k;
-      if (i >= s.items.length) break;
-      const it = s.items[i], sc = k === 0 ? 1.15 : 0.9;
-      const isNew = (d.key === 'heavy' && it.look === 'fridge') || it.kind === d.key || (d.key === 'blanket' && it.kind === 'blanket');
-      if (isNew) {
-        x = px - (it.w * U * QS * sc) / 2;
-        y = PORCH_Y - (it.h * U * QS * sc) / 2;
-        rr2 = Math.max(0.07, it.w * U * QS * 0.62);
-        break;
-      }
-      px -= it.w * U * QS * sc + 0.02;
-    }
-    void code;
+/** 새것이 지금 어디 보이나 (스포트라이트 자리): 줄 선 짐 · 현관 고양이 · 길 표지판 */
+function spotTarget(s: TruckState): { x: number; y: number; r: number } | null {
+  const d = STAGES[s.stage];
+  if (!d.spot) return null;
+  if (d.key === 'cat') return { x: 0.25, y: PORCH_Y - 0.03, r: 0.07 };
+  if (d.key === 'road') return { x: SIGN_X, y: 0.53, r: 0.09 };
+  let px = 0.6;
+  for (let k = 0; k < 4; k++) {
+    const i = s.next + k;
+    if (i >= s.items.length) break;
+    const it = s.items[i], sc = k === 0 ? 1.15 : 0.9;
+    if ((d.key === 'heavy' && it.look === 'fridge') || it.kind === d.key) return { x: px - (it.w * U * QS * sc) / 2, y: PORCH_Y - (it.h * U * QS * sc) / 2, r: Math.max(0.07, it.w * U * QS * 0.62) };
+    px -= it.w * U * QS * sc + 0.02;
   }
-  if (x < 0) return;
-  const a = Math.min(1, (age - T0) / 10, (T1 - age) / 18), cx = X(x), cy = Y(y), r = R(rr2) * (1 + 0.05 * Math.sin(age * 0.2));
+  return null;
+}
+const SIGN_X = 0.86;
+
+/** NEW 스포트라이트: 새것이 처음 보이는 순간 2초쯤 주변을 어둡게 하고 새것을 비춘다 */
+function drawSpot(ctx: CanvasRenderingContext2D, s: TruckState, d: StageDef, w: number, X: F, Y: F, R: F, font: (sz: number, w?: number) => void) {
+  if (s.spotT < 0 || s.phase !== 'load' || s.down) return;
+  const age = s.t - s.spotT, T1 = 140;
+  if (age > T1) return;
+  const g = spotTarget(s);
+  if (!g) return;
+  const a = Math.min(1, age / 10, (T1 - age) / 18), cx = X(g.x), cy = Y(g.y), r = R(g.r) * (1 + 0.05 * Math.sin(age * 0.2));
   ctx.save();
   ctx.globalAlpha = a;
   ctx.fillStyle = 'rgba(20,10,30,.6)';
