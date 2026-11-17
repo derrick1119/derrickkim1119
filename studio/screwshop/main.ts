@@ -74,15 +74,20 @@ document.addEventListener('visibilitychange', () => (document.hidden ? sfx.sleep
 /** ✏️ S057(오너 "렉" · 🧪 S056 ①): 느린 폰이면 화면 배율을 스스로 한 칸씩 낮춘다(2 → 1.5 → 1.25 → 1).
  *  렉의 정체는 JS가 아니라 칠할 픽셀 수였다(CPU 4배: 프레임 JS p50 ≈ 5ms인데 간격 p50 33ms · 배율 1이면 16.7ms).
  *  프레임 60개 중 40ms 넘는 것이 8% 이상이면 1.5, 25% 이상이면 바로 1로 내린다(🧪 S057 🟡④: 내릴 때마다 그림 캐시를 다시 굽는 끊김이 있어 한 번에 · 1.25는 1.5와 프레임이 같고 더 흐려 뺌).
- *  켠 뒤 3초는 재지 않는다. 정한 배율은 저장해 다음에 켤 때 처음부터 쓴다(두 번째 실행부터 멈칫 0). 고르게 33ms인 저전력 30fps 폰은 내리지 않는다. 다시 올리지는 않는다(왔다 갔다 방지). 그림 해상도만 바뀌고 판 · 시뮬은 그대로다 */
+ *  켠 뒤 1.5초는 재지 않는다. 정한 배율은 저장해 다음에 켤 때 처음부터 쓴다(두 번째 실행부터 멈칫 0).
+ *  ✏️ S058(📋 S057 빨간불 ②): 저장된 배율이 2보다 낮으면 켤 때마다 한 번, 깨끗한 창 4개(40ms↑ 0) 뒤 한 칸 올려 본다. 다음 창이 느리면 되돌리고 실패를 센다(2번 실패한 폰은 더 안 올림) — 한 번 바빴던 빠른 폰이 영영 흐리게 남지 않게 고르게 33ms인 저전력 30fps 폰은 내리지 않는다. 다시 올리지는 않는다(왔다 갔다 방지). 그림 해상도만 바뀌고 판 · 시뮬은 그대로다 */
 const STEPS = [2, 1.5, 1], DEBUG = new URLSearchParams(location.search).has('debug');
-let cap = store.get('rs') >= 100 ? Math.min(2, store.get('rs') / 100) : 2, gaps: number[] = [], born = 0;
+let cap = store.get('rs') >= 100 ? Math.min(2, store.get('rs') / 100) : 2, gaps: number[] = [], born = 0, clean = 0, probe = 0, probed = false, wins = 0;
 function watch(dt: number, at: number) {
-  if (dt > 250 || at - born < 3000) return; // 탭을 숨겼다 돌아온 첫 프레임 · 켠 뒤 3초
+  if (dt > 250 || at - born < 1500) return; // 탭을 숨겼다 돌아온 첫 프레임 · 켠 뒤 1.5초
   gaps.push(dt);
-  if (gaps.length < 60) return;
+  if (gaps.length < (wins ? 60 : 30)) return; // 첫 판정은 30프레임으로 빨리(📋 S057: 첫 실행 1-1 7%)
+  wins++;
   const slow = gaps.filter((x) => x > 40).length / gaps.length, now = Math.min(cap, window.devicePixelRatio || 1);
   gaps = [];
+  if (probe && slow >= 0.08) return (cap = probe), (probe = 0), store.set('rsTry', store.get('rsTry') + 1), size(); // 올려 본 배율이 느리다 → 되돌림
+  if (probe) return (probe = 0), store.set('rs', cap * 100); // 올려 본 배율도 매끈하다 → 저장
+  if (slow === 0 && cap < 2 && !probed && store.get('rsTry') < 2 && ++clean >= 4) return (probed = true), (probe = cap), (cap = cap < 1.5 ? 1.5 : 2), size();
   if (slow < 0.08 || now <= 1) return;
   cap = slow >= 0.25 ? 1 : STEPS.find((v) => v < now) ?? 1;
   store.set('rs', cap * 100);

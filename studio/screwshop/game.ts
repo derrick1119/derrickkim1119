@@ -35,6 +35,8 @@ let A = 1.45;
 export const setAspect = (a: number) => (A = max(1.45, min(1.9, a)));
 /** 도구 줄(🗺️ 판 · 💡 귀띔 · ↺ 다시)이 들어갈 만큼 긴 화면인가 */
 const tools = () => A >= 1.62;
+/** ✏️ S058(🎨 §3-12 · 오너 "UI 시인성"): ★2 · ★3 칩의 [가운데 x, 가운데 y, 폭](★1 칩은 지움 · 작업대 앞 바로 밑) */
+const chipXY = (n: number, w: number) => { const gw = w * 0.455; return [w * 0.03 + (n - 2) * (gw + w * 0.03) + gw / 2, w * (1.3 + 0.2 * (A - 1.45)), gw] as const; };
 /** 나사 머리 반지름 · 손가락 닿는 반지름 · 빈칸 수 · 미리 보이는 다음 상자 수 */
 const SR = 0.032, HIT = 0.075, SLOTS = 5, PEEK = 2;
 /** 판자 가장자리가 나사 머리를 덮는 정도: sd < COVER면 막힘, sd < HIDE면 아예 안 보임 */
@@ -1866,7 +1868,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     }
     if (e.kind === 'blocked' || e.kind === 'locked') say(x, y - R(0.06), e.text!, e.col!, 15), cue('blocked');
     if (e.kind === 'miss') say(x, y, e.text!, e.col!, 14);
-    if (e.kind === 'star') { const gx = X(0.225) + ((e.v! - 1) + 0.5) * ((w - X(0.24)) / 3), gy = Y(1.3 + 0.35 * (A - 1.45)); fx.burst(gx, gy, '#ffd166', 22, 4, 2.6), fx.ring(gx, gy, '#ffd166', R(0.12), 4), s.events.some((q) => (q.kind === 'teach' && q.t === e.t) || (e.v === 3 && starKinds(d)[1] === 'shot' && q.kind === 'shot' && q.t === e.t && q.text !== 'bad' && (q.n ?? 2) < 7)) || say(gx, gy - R(0.07), e.text!, '#ffd166', 30, true), cue('star', e.v! - 1); } // ✏️ S026 B③ · S057(🧪 S056 🟡③ 절정에 글 5~6개): 별을 준 톡에서는 '한 번에 N개'를 빼고(별이 대신 말함), 배우기 토스트가 뜨면 '★2!' 글은 빼서 하나만
+    if (e.kind === 'star') { const [gx, gy] = chipXY(e.v!, w); fx.burst(gx, gy, '#ffd166', 22, 4, 2.6), fx.ring(gx, gy, '#ffd166', R(0.12), 4), s.events.some((q) => (q.kind === 'teach' && q.t === e.t) || (e.v === 3 && starKinds(d)[1] === 'shot' && q.kind === 'shot' && q.t === e.t && q.text !== 'bad' && (q.n ?? 2) < 7)) || say(gx, gy - R(0.07), e.text!, '#ffd166', 30, true), cue('star', e.v! - 1); } // ✏️ S026 B③ · S057(🧪 S056 🟡③ 절정에 글 5~6개): 별을 준 톡에서는 '한 번에 N개'를 빼고(별이 대신 말함), 배우기 토스트가 뜨면 '★2!' 글은 빼서 하나만
     if (e.kind === 'teach') say(w / 2, Y(BY1 - 0.02) + R(0.123), e.text!, e.col!, 18, true, true); // ✏️ S024 짚기 · S057(🧪 S057 🟡②): 판 밖 진갈색 띠에 고정(합판 위 1.32:1 → 8.3:1 · 햄스터와 안 겹침)
     if (e.kind === 'stage') fx.blink('#fff6d6', 0.18);
     if (e.kind === 'clear') {
@@ -3656,51 +3658,62 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
   }
   // ═════════ 아래 띠: 별 목표 · 안내 ═════════ (실패 카드가 뜨면 안 그린다)
   if (s.phase !== 'result') { // ✏️ S055(🎨 §4-2): 결과 · 실패 화면에서는 칩 줄 · 팁 줄을 그리지 않는다(카드와 같은 말)
-    const E = A - 1.45, y2 = Y(1.3 + 0.35 * E), chips = [
-      { txt: starText(d, S).c1, st: null },
-      ...(d.B !== undefined
-        ? [
-            { txt: starText(d, S).c2, st: S.bonks >= d.B ? true : bonkDead(d, s.L, S) ? false : null },
-            { txt: starText(d, S).c3, st: S.peak > d.P || bonkDead(d, s.L, S) ? false : null }, // 🧪 S003: 빈칸은 지켰는데 ✗는 사실과 다름 → 🔒
-          ]
-        : [
-      { txt: starText(d, S).c2, st: S.peak > d.P ? false : null },
-      { txt: starText(d, S).c3, st: d.H !== undefined ? (S.shot >= d.H ? true : shotDead(d, s.L, S) ? false : null) : d.T !== undefined ? (tapDead(d, s.L, S) ? false : null) : S.best >= d.C ? true : streakDead(d, s.L, S) ? false : null }, // ✏️ S023: 연속도 ✗
-          ]),
-    ];
-    if (s.lock3 && chips[2].st !== true) chips[2] = { txt: '★3 곧 배워요', st: null }; // ✏️ S024 사다리: 아직 안 배운 ★3은 잠금(따면 깜짝 ★)
-    else if (s.lock3) chips[2].txt = '★3 깜짝!';
-    if (s.hint) chips[2] = { txt: '💡 ★3 없음', st: false };
-    const gx0 = R(0.225), gw = (w - gx0 - R(0.015)) / 3;
-    // 🎨 칩 게이지(ART §2.3 · 📋 S008): ★3 칩 안을 지금 연속 / 최고 한 방만큼 왼쪽부터 채운다
-    const gauge = s.phase === 'play' ? gaugeOf(d, S) : 0; // ✏️ S023: 톡 칩은 남은 톡만큼
-    chips.forEach(({ txt, st }, k) => {
-      const gx = gx0 + k * gw;
-      ctx.fillStyle = st === true ? 'rgba(255,209,102,.3)' : st === false ? 'rgba(0,0,0,.3)' : 'rgba(255,240,210,.12)';
+    const y2 = chipXY(2, w)[1], ch = R(0.087), [k2, k3] = starKinds(d);
+    // ✏️ S058(🎨 §3-12 · 오너 "UI 시인성 · 문장이 너무 많아"): 글 알약 셋 → ★2 · ★3 아이콘 칩 둘(★1은 지움 · 깨면 누구나 안다). 진행은 핍 · 구멍 · 숫자 17px · 땀은 금 + ✓ · 놓침은 흐리게 + ✕
+    const sts = [d.B !== undefined ? (S.bonks >= d.B ? true : bonkDead(d, s.L, S) ? false : null) : S.peak > d.P ? false : null,
+      d.B !== undefined ? (S.peak > d.P || bonkDead(d, s.L, S) ? false : null) : d.H !== undefined ? (S.shot >= d.H ? true : shotDead(d, s.L, S) ? false : null) : d.T !== undefined ? (tapDead(d, s.L, S) ? false : null) : S.best >= d.C ? true : streakDead(d, s.L, S) ? false : null];
+    const gauge = s.phase === 'play' ? gaugeOf(d, S) : 0;
+    const dots = (x: number, y: number, n: number, f: number, hole: boolean) => { // 핍(쾅) · 쟁반 구멍(빈칸 · 쓰면 나사 점)
+      const r = R(hole ? 0.016 : 0.013);
+      for (let q = 0; q < n; q++) {
+        bp(ctx);
+        ctx.arc(x + r + q * r * 2.7, y, r, 0, TAU);
+        if (hole) (ctx.fillStyle = q < f ? '#c0c6cc' : '#1a0f08'), ctx.fill(), (ctx.strokeStyle = '#d9a441'), (ctx.lineWidth = 1.5), ctx.stroke();
+        else if (q < f) (ctx.fillStyle = '#fff6e0'), ctx.fill();
+        else (ctx.strokeStyle = 'rgba(255,246,224,.6)'), (ctx.lineWidth = 1.5), ctx.stroke();
+      }
+      return x + n * r * 2.7;
+    };
+    ([[2, k2, sts[0]], [3, k3, sts[1]]] as const).forEach(([n, kd, st0]) => {
+      const [cx, cy, gw] = chipXY(n, w), gx = cx - gw / 2, lock = n === 3 && s.lock3 && st0 !== true, hint = n === 3 && s.hint, st = hint ? false : lock ? null : st0;
+      ctx.globalAlpha = st === false ? 0.45 : 1;
+      ctx.fillStyle = st ? 'rgba(255,209,102,.22)' : 'rgba(20,12,6,.55)';
       bp(ctx);
-      ctx.roundRect(gx + 2, y2 - R(0.026), gw - 4, R(0.052), R(0.026));
+      ctx.roundRect(gx, cy - ch / 2, gw, ch, ch / 2);
       ctx.fill();
-      if (k === 2 && st === null && gauge > 0 && !s.lock3) {
+      if (n === 3 && st === null && gauge > 0 && !lock && kd !== 'gap') { // 🎨 칩 게이지(ART §2.3): 한 방 · 톡 · 연속 · 쾅 판
         ctx.save();
         ctx.clip();
-        ctx.fillStyle = gauge >= 1 ? 'rgba(255,209,102,.5)' : 'rgba(160,240,140,.35)';
-        ctx.fillRect(gx + 2, y2 - R(0.026), (gw - 4) * gauge, R(0.052));
+        ctx.fillStyle = gauge >= 1 ? 'rgba(255,209,102,.4)' : 'rgba(160,240,140,.28)';
+        ctx.fillRect(gx, cy - ch / 2, gw * gauge, ch);
         ctx.restore();
       }
-      if (s.teach === k + 1 && s.phase === 'play') { // ✏️ S024: 이 판에서 배우는 별 칩은 금빛 테가 숨 쉰다
-        ctx.strokeStyle = `rgba(255,209,102,${0.55 + 0.45 * Math.sin(t / 8)})`;
-        ctx.lineWidth = 2.5;
-        ctx.stroke();
-      }
-      ctx.textAlign = 'center';
-      const lab = `${st === true ? '✓ ' : st === false ? '✗ ' : ''}${txt}`;
-      fit(0.034, 800, gw - R(0.02), lab);
-      ctx.fillStyle = st === false ? 'rgba(255,255,255,.45)' : '#fff6e0';
-      ftx(ctx, lab, gx + gw / 2, y2 + 1);
+      ctx.strokeStyle = st ? '#ffd166' : 'rgba(255,225,180,.25)';
+      ctx.lineWidth = st ? 1.5 : 1;
+      ctx.stroke();
+      if (s.teach === n && s.phase === 'play') (ctx.strokeStyle = `rgba(255,209,102,${0.55 + 0.45 * Math.sin(t / 8)})`), (ctx.lineWidth = 2.5), ctx.stroke(); // ✏️ S024: 배우는 별 칩은 금빛 테가 숨 쉰다
+      ctx.textAlign = 'left';
+      font(0.038, 900);
+      ctx.fillStyle = '#ffd166';
+      const sx = gx + R(0.035);
+      ftx(ctx, '★'.repeat(n), sx, cy + 1);
+      let x = sx + mw(ctx, '★'.repeat(n)) + R(0.025);
+      font(0.044, 900);
+      ctx.fillStyle = '#fff6e0';
+      const say = (txt: string) => (ftx(ctx, txt, x, cy + 1), (x += mw(ctx, txt) + R(0.015)));
+      if (hint) say('💡 ✕');
+      else if (lock) say('🔒');
+      else if (kd === 'bonk') say('🔨'), dots(x, cy, d.B!, min(S.bonks, d.B!), false);
+      else if (kd === 'gap') d.P ? dots(x, cy, d.P, min(S.peak, d.P), true) : (dots(x, cy, 1, 0, true), (ctx.strokeStyle = '#ff6a4d'), (ctx.lineWidth = 2), bp(ctx), ctx.moveTo(x + R(0.004), cy + R(0.009)), ctx.lineTo(x + R(0.022), cy - R(0.009)), ctx.stroke());
+      else if (kd === 'shot') say(`🔩×${d.H}`);
+      else if (kd === 'tap') say(`👆 ${max(0, d.T! - S.taps)}`);
+      else say(`🔩🔩 ${min(S.streak, d.C)}/${d.C}`);
+      if (st !== null) (ctx.textAlign = 'right'), (ctx.fillStyle = st ? '#8ee07a' : '#ff6a4d'), ftx(ctx, st ? '✓' : '✕', gx + gw - R(0.03), cy + 1);
+      ctx.globalAlpha = 1;
     });
     // ✏️ S026 B③: 딴 별이 칩에서 위 ★ 칸으로 날아간다(40틱)
     if (s.starFx && t >= s.starFx.t0 && t - s.starFx.t0 < 40) {
-      const q = (t - s.starFx.t0) / 40, e = q * q * (3 - 2 * q), x0 = gx0 + (s.starFx.k - 0.5) * gw, x1 = w - R(0.05), y1 = R(0.034);
+      const q = (t - s.starFx.t0) / 40, e = q * q * (3 - 2 * q), x0 = chipXY(s.starFx.k, w)[0], x1 = w - R(0.05), y1 = R(0.034);
       font(0.06 * (1 + 0.6 * Math.sin(q * Math.PI)), 900);
       ctx.textAlign = 'center';
       ctx.fillStyle = '#ffd166';
@@ -3709,13 +3722,13 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     }
     // ✏️ S054(🎨 UI 정리): S027 별 카드(5줄)는 지웠다 — 배우는 별 한 줄은 판 시작 소개 띠에 한 번(startStage) · 칩 금테가 짚는다
     // 지금 연속 쏙
-    if (S.streak > 0 && s.phase === 'play' && ((d.B === undefined && d.H === undefined && d.T === undefined) || s.L.thump)) { // 🧪 S023 ⑦: 연속 · 쿵 판에만
+    if (S.streak > 0 && s.phase === 'play' && s.L.thump && !(d.B === undefined && d.H === undefined && d.T === undefined)) { // ✏️ S058: 연속 판은 칩이 '🔩🔩 3/6'으로 대신 말한다 · 쿵 판만 // 🧪 S023 ⑦: 연속 · 쿵 판에만
       font(0.032, 800);
       ctx.textAlign = 'right';
       ctx.fillStyle = S.streak >= d.C ? '#ffd166' : '#c8f7c5';
-      ftx(ctx, `지금 ${S.streak}개 연달아`, w - R(0.03), Y(1.36 + 0.35 * E));
+      ftx(ctx, `지금 ${S.streak}개 연달아`, w - R(0.03), y2 + ch / 2 + R(0.035));
     }
-    const y3 = Y(1.415 + 0.45 * E);
+    const y3 = tools() ? (y2 + ch / 2 + Y(A - 0.21)) / 2 : y2 + ch / 2 + R(0.04); // ✏️ S058: 팁 줄은 칩과 도구 줄 사이 가운데
     // ✏️ S054(🎨 UI 정리): 아래 팁 줄은 평소엔 쉰다 — 첫 판 첫 톡 · 빈칸 위험 · 귀띔 · 손이 6초 멈춤 · 진 뒤 다시 할 때만(결과 · 실패 화면 글은 지움)
     const idle = s.phase === 'play' && !s.down && s.t - max(s.startT, s.lastTap) > 360;
     let tip = '';
