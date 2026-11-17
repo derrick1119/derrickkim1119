@@ -2442,3 +2442,6 @@ function resultLines(s: YarnState) {
   if (L.nStars >= 3) out.push(S.taps <= L.par ? `톡 ${S.taps}번 만에 끝냈어요!` : `톡 ${S.taps}번 썼어요 (${L.par}번 안에 못 했어요)`);
   return out;
 }
+
+/** 측정·검사용 (계기판·보고서가 물리를 따로 돌려 볼 때) */
+export const internals = { newSim, cloneSim, runMove, movesOf, starsOf, habitPick, greedyPick, buildLevel };
