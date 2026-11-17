@@ -1729,8 +1729,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
   ctx.save();
   if (rv && u >= 0 && u < 24) {
     const air = u >= 4 && u < 16 ? sin((PI * (u - 4)) / 12) : 0, sq = mv ? 0 : u < 4 ? u / 4 : u < 16 ? -air / 2 : u < 22 ? (22 - u) / 6 : 0;
-    ctx.translate(X(0.5 + (mv === 1 ? 0.04 * sin((PI * u) / 24) : 0) * cm), Y(fl - (mv ? 0 : 0.08 * air) * cm));
-    ctx.rotate(cm * (mv === 1 ? (u < 12 ? -0.06 * sin((PI * u) / 12) : 0) : mv ? 0.07 * sin((PI * u) / 8) * (1 - u / 24) : 0));
+    ctx.translate(X(0.5 + (mv === 1 ? 0.07 * sin((PI * u) / 24) : 0) * cm), Y(fl - (mv ? 0 : 0.08 * air) * cm)); // ✏️ S060(🧪 S059 ⚪⑨): 부릉 · 흔들을 키움(3~4° → 6~7° · 흔들은 두 번 오감)
+    ctx.rotate(cm * (mv === 1 ? (u < 12 ? -0.1 * sin((PI * u) / 12) : 0) : mv ? 0.12 * sin((PI * u) / 6) * (1 - u / 24) : 0));
     ctx.scale(1 + 0.06 * sq * cm, 1 - 0.1 * sq * cm);
     ctx.translate(-X(0.5), -Y(fl));
   }
@@ -1751,7 +1751,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
   if (rv && u >= 0 && (fx.memo.rc ?? -1) < s.clearT) {
     fx.memo.rc = s.clearT;
     cue('clear'), cue((['pluck', 'wind', 'swing'] as const)[mv]);
-    for (const k of [-1, 1]) fx.conf(X(0.5 - 0.42 * k), Y(fl - 0.02), 8 * k, -15, COLS, fx.calm ? 4 : 14);
+    for (const k of [-1, 1]) fx.conf(X(0.5 - 0.36 * k), Y(fl - 0.02), 8 * k, -15, COLS, fx.calm ? 4 : 14); // ✏️ S060(🧪 S059 ⚪⑩): 왼쪽 출발점이 햄스터 머리 위라 안쪽으로
   }
   // ═════════ 미리 보기 ═════════
   if (pre && pressK >= 0) (ctx.textBaseline = 'middle'), drawPreview(ctx, s, pressK, pre, X, Y, R, font), (ctx.textBaseline = 'alphabetic');
@@ -1818,7 +1818,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     rec.push({ x, y, t, s: size });
     if (rec.length > 12) rec.shift();
     ctx.font = `800 ${size}px system-ui, sans-serif`;
-    const hw = ctx.measureText(text).width / 2 + 6;
+    const hw = (ctx.measureText(text).width / 2) * (punch ? 1.3 : 1) + 6; // ✏️ S060(🧪 S059 ⚪⑪): 펀치로 커지는 글도 화면 안에
     fx.pop(max(hw, min(w - hw, x)), y, text, col, size, punch);
   };
   const seenT = fx.memo.t ?? -1;
@@ -2525,10 +2525,10 @@ function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: {
     ctx.fillStyle = 'rgba(255,255,255,.5)';
     ctx.fillRect(-hx * 0.8, -hy + R(0.012), hx * 1.6, R(0.007));
   } else {
-    const g = ctx.createLinearGradient(-hx * 0.3, -hy, hx * 0.3, hy);
-    g.addColorStop(0, mix(P.tone, '#ffffff', 0.28));
+    const ca = cos(tr.a), sa = sin(tr.a), lx = -ca - sa, ly = sa - ca, g = ctx.createLinearGradient(lx * hx * 0.7, ly * hy * 0.7, -lx * hx * 0.7, -ly * hy * 0.7); // ✏️ S060(🎨 §3-3): 빛은 화면 10시에서 — 판자가 돌아도 같은 쪽이 밝다
+    g.addColorStop(0, mix(P.tone, '#ffffff', 0.24));
     g.addColorStop(0.5, P.tone);
-    g.addColorStop(1, mix(P.tone, '#000000', 0.16));
+    g.addColorStop(1, mix(P.tone, '#2a1405', 0.28));
     plankPath(ctx, P, R);
     if (P.parts) (ctx.strokeStyle = mix(P.tone, '#000000', 0.45)), (ctx.lineWidth = 2.4), ctx.stroke(); // 🎨 §2: 조각 몸통은 테두리를 먼저 2배로 — 앞면이 안쪽 반과 이음매를 덮는다
     ctx.fillStyle = g;
@@ -2537,9 +2537,9 @@ function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: {
     ctx.clip();
     // 나뭇결
     ctx.strokeStyle = mix(P.tone, '#5a3410', 0.35);
-    ctx.globalAlpha = 0.28;
+    ctx.globalAlpha = 0.22;
     ctx.lineWidth = 1;
-    const nl = max(2, round(hy / R(0.018)));
+    const nl = max(2, round(hy / R(0.024)));
     for (let j = 0; j < nl; j++) {
       const yy = -hy + ((j + 0.5) * 2 * hy) / nl;
       bp(ctx);
@@ -2548,16 +2548,12 @@ function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: {
     }
     ctx.globalAlpha = 1;
     drawDeco(ctx, P, R, t, k);
+    if (!P.parts) (ctx.strokeStyle = 'rgba(255,250,235,.45)'), (ctx.lineWidth = 2), ctx.translate(-lx * 1.5, -ly * 1.5), plankPath(ctx, P, R), ctx.stroke(), ctx.translate(lx * 1.5, ly * 1.5); // 🎨 §3-3: 왼쪽 위 빛 날(클립 안)
     const sw = s.phase === 'result' && s.ok && !juice(s).calm ? (s.pt - 44) / 18 : -1; // ✏️ S059(🎨 §5-5): 빛 쓸기 — 판자 안(클립)에서만
     if (sw > 0 && sw < 1) ctx.rotate(-tr.a), ctx.translate(-X(tr.cx), -Y(tr.cy)), ctx.transform(1, 0, -0.5, 1, 0, 0), (ctx.fillStyle = 'rgba(255,255,255,.4)'), ctx.fillRect(X(1.75 * sw - 0.05), 0, R(0.1), Y(2));
     ctx.restore();
-    // 모서리 빛
-    ctx.strokeStyle = 'rgba(255,255,255,.35)';
-    ctx.lineWidth = 1.5;
-    bp(ctx);
-    if (!P.parts) ctx.roundRect(-hx + 1.5, -hy + 1.5, hx * 2 - 3, hy * 2 - 3, max(0, R(P.rr) - 1.5)); // 조각 몸통의 모서리 빛은 🎨 M2 문법대로(S010)
-    ctx.stroke();
-    if (!P.parts) (ctx.strokeStyle = mix(P.tone, '#000000', 0.45)), (ctx.lineWidth = 1.2), plankPath(ctx, P, R), ctx.stroke();
+    if (P.parts) (ctx.strokeStyle = 'rgba(255,255,255,.35)'), (ctx.lineWidth = 1.5), bp(ctx), ctx.stroke(); // 조각 몸통의 모서리 빛은 🎨 M2 문법대로(S010)
+    else (ctx.strokeStyle = mix(P.tone, '#000000', 0.45)), (ctx.lineWidth = 1.6), plankPath(ctx, P, R), ctx.stroke();
   }
   if (P.ham) drawHammerHead(ctx, P, R, t, k, s);
   if (P.heavy) {
@@ -3690,15 +3686,15 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       }
     }
     // 글: ★3이면 없음(깜짝이면 '깜짝 ★3!') · 놓쳤으면 놓친 별 하나의 까닭 + 💡 방법 — ✏️ S056(🧪 S055 🟡④): 마지막 별이 꽂힌 뒤 페이드인
-    const ok2 = d.B !== undefined ? S.bonks >= d.B : S.peak <= d.P, ok3 = d.B !== undefined ? s.got === 3 : star3(d, S), tx = starText(d, S), soon = ok2 && s.lock3, ta = min(1, max(0, (age - STAR_AT[2] - 6) / 12));
+    const ok2 = d.B !== undefined ? S.bonks >= d.B : S.peak <= d.P, soon = ok2 && s.lock3, ta = min(1, max(0, (age - STAR_AT[2] - 6) / 12));
     ctx.globalAlpha = ta;
     if (s.got === 3 && s.lock3) (font(0.042, 900), (ctx.fillStyle = '#ffd166'), ftx(ctx, '깜짝 ★3!', w / 2, Y(T + 0.225)));
     else if (s.got < 3) {
-      const miss = !ok2 ? `✗ ★2 ${tx.r2}` : soon ? '★3은 곧 배워요' : `✗ ★3 ${ok3 ? '' : tx.r3}`, tip = `💡 ${tipLine(s.got === 2 && d.tip2 ? d.tip2 : d.tip)}`;
-      fit(0.038, 900, w - R(0.16), miss);
-      ctx.fillStyle = miss[0] === '★' ? '#fff1d6' : '#ffb36b';
-      ftx(ctx, miss, w / 2, Y(T + (soon ? 0.235 : 0.22)));
-      if (!soon) (fit(0.034, 800, w - R(0.16), tip), (ctx.fillStyle = '#e8d3b0'), ftx(ctx, tip, w / 2, Y(T + 0.262))); // 🧪 S055 🔴①: ★3을 아직 안 배웠으면 💡는 빼고 다음 판이 주인공
+      // ✏️ S060(⑩ · 오너 "문장이 너무 많아"): 놓친 별 글 + 💡 두 줄 → 한 줄 '★2 💡 방법'(어느 별인지 · 어떻게 따는지는 지킨다 · 몇 번 모자랐는지는 버튼 '★2 도전'과 빈 별이 말함) · 🧪 S055 🔴①: ★3을 아직 안 배웠으면 '곧 배워요'만
+      const line = soon ? '★3은 곧 배워요' : `${ok2 ? '★3' : '★2'} 💡 ${tipLine(s.got === 2 && d.tip2 ? d.tip2 : d.tip)}`;
+      fit(0.038, 900, w - R(0.16), line);
+      ctx.fillStyle = soon ? '#fff1d6' : '#ffe0a8';
+      ftx(ctx, line, w / 2, Y(T + 0.235));
     }
     ctx.globalAlpha = 1;
     if (s.got < 3 && age > STAR_AT[2] + 8) {
@@ -3772,7 +3768,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       else if (lock) say('🔒');
       else if (kd === 'bonk') say('🔨'), dots(x, cy, d.B!, min(S.bonks, d.B!), false);
       else if (kd === 'gap') d.P > S.peak ? dots(x, cy, d.P - S.peak, 0, true) : /* ✏️ S059(🧪 S058 🟡④): 빈칸은 '남은 여유'만 — 쓰면 구멍이 사라지고 다 쓰면 ⊘(쾅 핍 '차면 좋다'와 반대로 안 읽히게) */ (dots(x, cy, 1, 0, true), (ctx.strokeStyle = '#ff6a4d'), (ctx.lineWidth = 2), bp(ctx), ctx.moveTo(x + R(0.004), cy + R(0.009)), ctx.lineTo(x + R(0.022), cy - R(0.009)), ctx.stroke());
-      else if (kd === 'shot') say(`🔩×${d.H}`);
+      else if (kd === 'shot') drawScrew(ctx, x + R(0.017), cy, R(0.017), 1, 0, { t }), (x += R(0.04)), say(`×${d.H}`); // ✏️ S060(🧪 S058 ⚪⑨): 🔩 이모지 대신 게임 속 나사
       else if (kd === 'tap') say(`👆 ${max(0, d.T! - S.taps)}`);
       else say(`🔩🔩 ${min(S.streak, d.C)}/${d.C}`);
       if (st !== null && !hint) (ctx.textAlign = 'right'), (ctx.fillStyle = st ? '#8ee07a' : '#ff6a4d'), ftx(ctx, st ? '✓' : '✕', gx + gw - R(0.03), cy + 1);
