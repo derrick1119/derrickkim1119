@@ -32,7 +32,7 @@ pick.setAttribute('aria-label', '판 고르기');
 root.append(canvas, overlay, pickBtn, pick);
 const WORLDS = ['아기방 장난감 상자', '바닷가 언덕 마을', '동화 성 놀이공원'];
 let world = 1;
-const ctx = canvas.getContext('2d')!;
+const ctx = canvas.getContext('2d', { alpha: false })!; // ✏️ S057(오너 "렉"): 불투명 캔버스 — 매 프레임 판 전체를 칠하므로 페이지와 섞는 합성을 건너뛴다
 let aspect = g.aspect ?? 1.45; // ✏️ S013: 화면 높이로 늘림(🎨 ART §6 390 레이아웃 · 1.45~1.90)
 
 let s: ShopState = g.create(1), running = false, acc = 0, last = 0, keyboard = false, spaceDown = false;
@@ -71,8 +71,26 @@ buzzBtn.addEventListener('click', () => {
 showToggles();
 document.addEventListener('visibilitychange', () => (document.hidden ? sfx.sleep() : running && sfx.wake()));
 
+/** ✏️ S057(오너 "렉" · 🧪 S056 ①): 느린 폰이면 화면 배율을 스스로 한 칸씩 낮춘다(2 → 1.5 → 1.25 → 1).
+ *  렉의 정체는 JS가 아니라 칠할 픽셀 수였다(CPU 4배: 프레임 JS p50 ≈ 5ms인데 간격 p50 33ms · 배율 1이면 16.7ms).
+ *  프레임 60개 중 40ms 넘는 것이 8% 이상이면 한 칸, 25% 이상이면 두 칸 내린다(내릴 때마다 그림 캐시를 다시 굽는 끊김이 한 번 있어 횟수를 줄인다). 고르게 33ms인 저전력 30fps 폰은 내리지 않는다. 다시 올리지는 않는다(왔다 갔다 방지). 그림 해상도만 바뀌고 판 · 시뮬은 그대로다 */
+const STEPS = [2, 1.5, 1.25, 1];
+let cap = 2, gaps: number[] = [];
+function watch(dt: number) {
+  if (dt > 250) return; // 탭을 숨겼다 돌아온 첫 프레임 등
+  gaps.push(dt);
+  if (gaps.length < 60) return;
+  const slow = gaps.filter((x) => x > 40).length / gaps.length, now = Math.min(cap, window.devicePixelRatio || 1);
+  gaps = [];
+  if (slow < 0.08 || now <= 1) return;
+  const i = STEPS.findIndex((v) => v < now);
+  cap = i < 0 ? 1 : STEPS[Math.min(STEPS.length - 1, i + (slow >= 0.25 ? 1 : 0))];
+  size();
+}
+
 function size() {
-  const dpr = Math.min(2, window.devicePixelRatio || 1); // ✏️ S054(오너 "렉"): 화면 배율은 2까지 — DPR 3 폰에서 칠할 픽셀 2.25배 → 1배(390 폭에서 글 · 선은 2배로도 또렷)
+  gaps = [];
+  const dpr = Math.min(cap, window.devicePixelRatio || 1); // ✏️ S054(오너 "렉"): 화면 배율은 2까지 — DPR 3 폰에서 칠할 픽셀 2.25배 → 1배(390 폭에서 글 · 선은 2배로도 또렷)
   const head = document.querySelector('header')?.getBoundingClientRect().height ?? 44;
   const avail = window.innerHeight - head - 8, w0 = Math.max(240, Math.min(root.clientWidth, 460));
   aspect = setAspect(avail / w0);
@@ -180,6 +198,7 @@ function end() {
 
 function loop(now: number) {
   if (!running) return;
+  watch(now - last);
   acc += Math.min(0.25, (now - last) / 1000);
   last = now;
   while (acc >= TICK) {

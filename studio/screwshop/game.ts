@@ -1847,7 +1847,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       else {
         const sz = h >= 5 ? min(40, 28 + 2 * h) : [0, 0, 20, 26, 32][h], col = h >= 5 ? '#ffffff' : ['', '', '#cfefff', '#8fe3ff', '#6fd6ff'][h];
         if (h >= 7) say(w / 2, Y(0.62), `💥 한 번에 ${h}개!`, '#ffd166', 46, true), fx.hold(6), fx.blink('#fff1a8', 0.28), (fx.memo.big = t + 50); // 🧪 S007: 8판 💥7은 화면 가운데 금색 + 멈춤 · 50틱 동안 다른 말 숨김
-        else if (h > 2 || !s.events.some((q) => q.kind === 'bonk' && q.t === e.t)) say(x, y, h >= 5 ? `💥 한 번에 ${h}개!` : h === 4 ? '한 번에 4개!!' : h === 3 ? '한 번에 3개!' : '한 번에 2개', col, sz, true); // 겹치면 비켜 선다(🧪 S001)
+        else if ((h > 2 || !s.events.some((q) => q.kind === 'bonk' && q.t === e.t)) && !s.events.some((q) => q.kind === 'star' && q.t === e.t)) say(x, y, h >= 5 ? `💥 한 번에 ${h}개!` : h === 4 ? '한 번에 4개!!' : h === 3 ? '한 번에 3개!' : '한 번에 2개', col, sz, true); // 겹치면 비켜 선다(🧪 S001)
         fx.burst(x, y, '#8fe3ff', [0, 0, 6, 10, 16][min(4, h)] || 24, 3.4, 2.2);
         if (h >= 3) fx.ring(x, y, '#8fe3ff', R(0.06 + 0.06 * min(3, h - 2)), 3 + min(2, h - 3)), fx.hold(h >= 5 ? 4 : 0), fx.kick(h >= 5 ? 7 : h === 4 ? 5 : 3), setMood(s, h >= 4 ? 'cheer' : 'wow');
         if (h >= 4) fx.burst(x, y, '#ffffff', h >= 5 ? 12 : 8, 4, 2), fx.blink('#dff6ff', h >= 5 ? 0.18 : 0.1);
@@ -1865,7 +1865,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     }
     if (e.kind === 'blocked' || e.kind === 'locked') say(x, y - R(0.06), e.text!, e.col!, 15), cue('blocked');
     if (e.kind === 'miss') say(x, y, e.text!, e.col!, 14);
-    if (e.kind === 'star') { const gx = X(0.225) + ((e.v! - 1) + 0.5) * ((w - X(0.24)) / 3), gy = Y(1.3 + 0.35 * (A - 1.45)); fx.burst(gx, gy, '#ffd166', 22, 4, 2.6), fx.ring(gx, gy, '#ffd166', R(0.12), 4), say(gx, gy - R(0.07), e.text!, '#ffd166', 30, true), cue('star', e.v! - 1); } // ✏️ S026 B③
+    if (e.kind === 'star') { const gx = X(0.225) + ((e.v! - 1) + 0.5) * ((w - X(0.24)) / 3), gy = Y(1.3 + 0.35 * (A - 1.45)); fx.burst(gx, gy, '#ffd166', 22, 4, 2.6), fx.ring(gx, gy, '#ffd166', R(0.12), 4), s.events.some((q) => q.kind === 'teach' && q.t === e.t) || say(gx, gy - R(0.07), e.text!, '#ffd166', 30, true), cue('star', e.v! - 1); } // ✏️ S026 B③ · S057(🧪 S056 🟡③ 절정에 글 5~6개): 별을 준 톡에서는 '한 번에 N개'를 빼고(별이 대신 말함), 배우기 토스트가 뜨면 '★2!' 글은 빼서 하나만
     if (e.kind === 'teach') say(w / 2, Y(1.235 + 0.35 * (A - 1.45)), e.text!, e.col!, 18, true); // ✏️ S024 짚기: 칩 줄 바로 위
     if (e.kind === 'stage') fx.blink('#fff6d6', 0.18);
     if (e.kind === 'clear') {
