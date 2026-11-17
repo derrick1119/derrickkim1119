@@ -257,6 +257,7 @@ canvas.addEventListener('pointerdown', (e) => {
   e.preventDefault();
   if (!running) return;
   keyboard = false;
+  canvas.classList.remove('kb');
   const j = peek(s);
   if (j) j.stop = 0; // ✏️ S054(🎨 R5): 손은 기다리지 않는다 — 누르면 멈춤 해제
   const p = toPoint(e);
@@ -275,6 +276,7 @@ canvas.addEventListener('keydown', (e) => {
   if (e.key === ' ' || e.key.startsWith('Arrow') || e.key === 'Enter') e.preventDefault();
   if (!running) return;
   if (e.key.startsWith('Arrow')) (keys.add(e.key), (keyboard = true));
+  canvas.classList.toggle('kb', keyboard); // ✏️ S059(🧪 S058 ⚪⑪): 캔버스 금 고리는 키보드로 놀 때만
   if ((e.key === ' ' || e.key === 'Enter') && !e.repeat && !closeCard(cursor)) (spaceDown = true), (keyboard = true), (pointer = latch = { ...cursor }); // ✏️ S055(🧪 S054 ⚪⑫): 순간 누름도 한 틱은 누름(latch)
 });
 canvas.addEventListener('keyup', (e) => {

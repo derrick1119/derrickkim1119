@@ -36,7 +36,7 @@ export const setAspect = (a: number) => (A = max(1.45, min(1.9, a)));
 /** 도구 줄(🗺️ 판 · 💡 귀띔 · ↺ 다시)이 들어갈 만큼 긴 화면인가 */
 const tools = () => A >= 1.62;
 /** ✏️ S058(🎨 §3-12 · 오너 "UI 시인성"): ★2 · ★3 칩의 [가운데 x, 가운데 y, 폭](★1 칩은 지움 · 작업대 앞 바로 밑) */
-const chipXY = (n: number, w: number) => { const gw = w * 0.455; return [w * 0.03 + (n - 2) * (gw + w * 0.03) + gw / 2, w * (1.3 + 0.2 * (A - 1.45)), gw] as const; };
+const chipXY = (n: number, w: number) => { const gw = w * 0.455; return [w * 0.03 + (n - 2) * (gw + w * 0.03) + gw / 2, w * (tools() ? A - 0.2835 : 1.3 + 0.2 * (A - 1.45)), gw] as const; }; // ✏️ S059(🧪 S058 🟡③): 도구 줄이 있으면 칩은 도구 줄 바로 위 — 칩 · 팁 · 도구가 한 덩어리
 /** 나사 머리 반지름 · 손가락 닿는 반지름 · 빈칸 수 · 미리 보이는 다음 상자 수 */
 const SR = 0.032, HIT = 0.075, SLOTS = 5, PEEK = 2;
 /** 판자 가장자리가 나사 머리를 덮는 정도: sd < COVER면 막힘, sd < HIDE면 아예 안 보임 */
@@ -3250,7 +3250,36 @@ function drawBench(ctx: CanvasRenderingContext2D, X: (x: number) => number, Y: (
   fg.addColorStop(1, '#24160d');
   ctx.fillStyle = fg;
   ctx.fillRect(-5, front, w + 10, h - front + 5);
-  for (const f of [0.22, 0.55]) (ctx.fillStyle = 'rgba(0,0,0,.3)'), ctx.fillRect(-5, front + f * (h - front), w + 10, 1), (ctx.fillStyle = 'rgba(255,220,170,.08)'), ctx.fillRect(-5, front + f * (h - front) + 1, w + 10, 1);
+  const dy0 = front + R(0.03), dy1 = Y(h / w - 0.39); // ✏️ S059(🧪 S058 🟡③ '아래 빈 바닥'): 칩 위 빈 앞판에 작업대 서랍 둘(황동 손잡이) — 층 캐시라 프레임 값 0
+  if (h / w >= 1.62 && dy1 - dy0 > R(0.08))
+    for (const x0 of [0.04, 0.515]) {
+      const x = X(x0), dw = X(0.445), dh = dy1 - dy0, cx = x + dw / 2, cy = dy0 + dh / 2;
+      ctx.fillStyle = 'rgba(0,0,0,.3)';
+      bp(ctx);
+      ctx.roundRect(x, dy0 + 3, dw, dh, R(0.015));
+      ctx.fill();
+      ctx.fillStyle = '#583820';
+      bp(ctx);
+      ctx.roundRect(x, dy0, dw, dh, R(0.015));
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,220,170,.2)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(30,15,5,.3)';
+      for (let k = 1; k < 4; k++) (bp(ctx), ctx.moveTo(x + R(0.02), dy0 + (k * dh) / 4 + hsh(k + x0 * 9) * 4), ctx.quadraticCurveTo(cx, dy0 + (k * dh) / 4 - 3, x + dw - R(0.02), dy0 + (k * dh) / 4 + 2), ctx.stroke());
+      ctx.fillStyle = '#2e1c0e';
+      bp(ctx);
+      ctx.roundRect(cx - R(0.06), cy - R(0.01) + 3, R(0.12), R(0.024), R(0.012));
+      ctx.fill();
+      const bg = ctx.createLinearGradient(0, cy - R(0.012), 0, cy + R(0.012));
+      bg.addColorStop(0, '#ffe7a8');
+      bg.addColorStop(1, '#b8862f');
+      ctx.fillStyle = bg;
+      bp(ctx);
+      ctx.roundRect(cx - R(0.06), cy - R(0.012), R(0.12), R(0.024), R(0.012));
+      ctx.fill();
+    }
+  else for (const f of [0.22, 0.55]) (ctx.fillStyle = 'rgba(0,0,0,.3)'), ctx.fillRect(-5, front + f * (h - front), w + 10, 1), (ctx.fillStyle = 'rgba(255,220,170,.08)'), ctx.fillRect(-5, front + f * (h - front) + 1, w + 10, 1);
   ctx.fillStyle = 'rgba(0,0,0,.3)';
   ctx.fillRect(-5, front, w + 10, 4);
   ctx.fillStyle = 'rgba(255,240,205,.55)';
@@ -3731,7 +3760,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       ctx.fillStyle = S.streak >= d.C ? '#ffd166' : '#c8f7c5';
       ftx(ctx, `지금 ${S.streak}개 연달아`, w - R(0.03), y2 + ch / 2 + R(0.035));
     }
-    const y3 = tools() ? (y2 + ch / 2 + Y(A - 0.21)) / 2 : y2 + ch / 2 + R(0.04); // ✏️ S058: 팁 줄은 칩과 도구 줄 사이 가운데
+    const y3 = tools() ? y2 - ch / 2 - R(0.035) : y2 + ch / 2 + R(0.04); // ✏️ S058 · S059: 팁 줄은 칩 바로 위(칩 · 팁 · 도구 한 덩어리)
     // ✏️ S054(🎨 UI 정리): 아래 팁 줄은 평소엔 쉰다 — 첫 판 첫 톡 · 빈칸 위험 · 귀띔 · 손이 6초 멈춤 · 진 뒤 다시 할 때만(결과 · 실패 화면 글은 지움)
     const idle = s.phase === 'play' && !s.down && s.t - max(s.startT, s.lastTap) > 360;
     let tip = '';
