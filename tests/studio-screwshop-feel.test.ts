@@ -79,3 +79,13 @@ describe('글자 크기 · 소리(✏️ S061 · M3 ③ 옛 ⑯ · ⑤)', () => 
   });
 });
 
+describe('누르는 자리(✏️ S061 · M3 ③ 터치 ≥ 44px)', () => {
+  it('3번 진 뒤 💡 귀띔 단추를 받는 띠가 390 폭에서 44px 이상이고 금 버튼 쪽으로 넘지 않는다', () => {
+    const m = /s\.ay \* A - HINT_Y > -(0\.\d+) && s\.ay \* A - HINT_Y < (0\.\d+)/.exec(src('game.ts'));
+    expect(m).not.toBeNull();
+    const up = +m![1], down = +m![2];
+    expect((up + down) * 390).toBeGreaterThanOrEqual(44);
+    expect(up).toBeLessThanOrEqual(0.02);
+  });
+});
+

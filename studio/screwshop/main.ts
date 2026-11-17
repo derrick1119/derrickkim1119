@@ -151,7 +151,7 @@ function showPick(w = world) {
     const slot = `${world}-${n + 1}`, k = STAGES.findIndex((d) => d.slot === slot);
     if (k < 0) return `<button type="button" disabled aria-label="${slot} 준비 중"><i>${slot}</i><em>🔒</em><small>준비 중</small></button>`;
     const d = STAGES[k], st = store.get('st' + d.id);
-    return `<button type="button" data-k="${k}"${st >= 3 ? ' class="all"' : ''} aria-label="${slot} ${d.name}, 별 ${st}개"><i>${slot}</i><em>${d.emoji}</em><small>${d.name}</small><b>${'★'.repeat(st)}<u>${'★'.repeat(3 - st)}</u></b></button>`;
+    return `<button type="button" data-k="${k}"${st >= 3 ? ' class="all"' : ''} aria-label="${slot} ${d.name}, 별 ${st}개"><i>${slot}</i><em>${Array.from(d.emoji)[0]}</em><small>${d.name}</small><b>${'★'.repeat(st)}<u>${'★'.repeat(3 - st)}</u></b></button>`;
   }).join('');
   pick.innerHTML = `<nav><button type="button" data-w="${world - 1}" aria-label="앞 월드"${world > 1 ? '' : ' disabled'}>◀</button><span>월드 ${world} · ${WORLDS[world - 1]}</span><button type="button" data-w="${world + 1}" aria-label="다음 월드"${world < 3 ? '' : ' disabled'}>▶</button></nav><div>${cells}</div><button type="button" data-x="1">닫기</button>`;
   pick.hidden = false;

@@ -787,6 +787,7 @@ function newStage(s: ShopState) {
   setMood(s, 'idle');
   teachOf(s);
   see(s, d.key, d.news);
+  if (d.wind) s.seen.add('wind'); // ✏️ S061(🧪 S059 🟡⑤): 1-3 태엽 소개가 판 이름 띠와 두 번 뜨던 것
   if (s.teach) { const tx = starText(d, s.S); s.newsQ.push(tipLine(s.teach === 2 ? tx.l2 : tx.l3)); } // ✏️ S054(🎨 UI 정리): 별 카드 대신 배우는 별 한 줄을 소개 띠에 한 번(새 장치 소개 다음)
   ev(s, 'stage', 0.5, 0.7, `${d.slot} · ${d.name}`, '#fff6d6');
 }
@@ -1112,7 +1113,7 @@ function playRec(s: ShopState, rec: RE[]) {
       const dk = rec.slice(rec.indexOf(e) + 1).filter((f) => f.k === 'fall').length; // 이 쿵의 덜컹 수(쿵은 톡의 끝 — 뒤 사건은 다 쿵 몫)
       ev(s, 'thump', 0.5, 0.62, dk ? '🐹 쿵!' : '🐹 쿵… 덜컹 0', dk ? '#ffd166' : '#c9b89a', s.t + delay + SPIN + FLY);
       delay += SPIN + FLY + 6;
-      see(s, 'thump', '🐹 연속 쏙 6마다 쿵! 맞는 색 상자가 열린 매달린 판자가 덜컹');
+      see(s, 'thump', '🐹 연속 쏙 6마다 쿵! 매달린 판자가 덜컹'); // ✏️ S061(🧪 S060 ⚪): 판 너비를 꽉 채우던 긴 띠를 줄임
       if (!dk && !s.tips.has('thump0')) s.tips.add('thump0'), s.newsQ.push('🐹 빈 쿵 — 열린 상자 색 나사로 매단 판자가 없었어요'); // ✏️ S012 빈 쿵 말풍선(📐B: 1-6 처음 봇 빈 쿵 .50) · 다른 소식이 있어도 줄 선다(tip은 버려짐)
       continue;
     }
@@ -1310,7 +1311,7 @@ export const screwshop: GameDef<ShopState> = {
       // 실패: 하트 없음, 자동 재시작도 없음 — 되짚기를 볼 시간 뒤(45틱) 아무 데나 톡하면 그 판만 다시 (🎨 §2.7)
       if (!s.ok) {
         if (release && s.pt > 45) {
-          if (s.sf >= 3 && abs(s.ay * A - HINT_Y) < 0.03 && s.ax > 0.15 && s.ax < 0.85) (s.hint = !s.hint), (s.hintN = 0); // 💡 귀띔 단추 — 켜고 끄기(✏️ S013 · 🧪 S012 '같은 판에서 못 끔')
+          if (s.sf >= 3 && s.ay * A - HINT_Y > -0.018 && s.ay * A - HINT_Y < 0.095 && s.ax > 0.15 && s.ax < 0.85) /* ✏️ S061(🧪 S060 ⚪⑤ · ③ 터치 ≥ 44px): 누르는 띠 23 → 44px — 금 버튼 아랫날 + 6px부터 아래로 */ (s.hint = !s.hint), (s.hintN = 0); // 💡 귀띔 단추 — 켜고 끄기(✏️ S013 · 🧪 S012 '같은 판에서 못 끔')
           s.retries++, newStage(s);
         }
         return;
@@ -2285,6 +2286,22 @@ function tickBadge(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
 }
 /** ✏️ S056: 나사 머리 그림 캐시(색 | 화면 반지름 px) */
 const SCR = new Map<string, HTMLCanvasElement>();
+/** ✏️ S061(🧪 S060 🟡④): 칩 망치 그림 — 나무 자루 + 쇠 머리(판자 망치와 같은 색) */
+function drawMallet(ctx: CanvasRenderingContext2D, x: number, y: number, u: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(-0.6);
+  ctx.fillStyle = '#b07a44';
+  ctx.fillRect(-u * 0.14, -u * 0.2, u * 0.28, u * 1.15);
+  ctx.fillStyle = '#c9ced6';
+  ctx.strokeStyle = '#5b6068';
+  ctx.lineWidth = 1;
+  bp(ctx);
+  ctx.roundRect(-u * 0.55, -u * 0.6, u * 1.1, u * 0.45, u * 0.08);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
 /** ✏️ S061(🧪 S060 🟡④): 황동 자물쇠 그림 — 잠긴 나사와 안 배운 ★3 칩이 함께 쓴다(🔒 이모지 대신) */
 function drawLock(ctx: CanvasRenderingContext2D, lx: number, ly: number, lw: number, sw: number) {
   ctx.strokeStyle = '#555';
@@ -3773,7 +3790,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       const say = (txt: string) => (ftx(ctx, txt, x, cy + 1), (x += mw(ctx, txt) + R(0.015)));
       if (hint) say('💡 ✕');
       else if (lock) drawLock(ctx, x + R(0.02), cy + R(0.008), R(0.04), 2);
-      else if (kd === 'bonk') say('🔨'), dots(x, cy, d.B!, min(S.bonks, d.B!), false);
+      else if (kd === 'bonk') drawMallet(ctx, x + R(0.02), cy, R(0.022)), (x += R(0.05)), /* ✏️ S061(🧪 S060 🟡④): 🔨 이모지 대신 나무 자루 + 쇠 머리 */ dots(x, cy, d.B!, min(S.bonks, d.B!), false);
       else if (kd === 'gap') d.P > S.peak ? dots(x, cy, d.P - S.peak, 0, true) : /* ✏️ S059(🧪 S058 🟡④): 빈칸은 '남은 여유'만 — 쓰면 구멍이 사라지고 다 쓰면 ⊘(쾅 핍 '차면 좋다'와 반대로 안 읽히게) */ (dots(x, cy, 1, 0, true), (ctx.strokeStyle = '#ff6a4d'), (ctx.lineWidth = 2), bp(ctx), ctx.moveTo(x + R(0.004), cy + R(0.009)), ctx.lineTo(x + R(0.022), cy - R(0.009)), ctx.stroke());
       else if (kd === 'shot') drawScrew(ctx, x + R(0.017), cy, R(0.017), -1, 0, { t }), (x += R(0.04)), say(`×${d.H}`); // ✏️ S060(🧪 S058 ⚪⑨): 🔩 이모지 대신 게임 속 나사
       else if (kd === 'tap') say(`👆 ${max(0, d.T! - S.taps)}`);
