@@ -1871,7 +1871,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     }
     if (e.kind === 'blocked' || e.kind === 'locked') say(x, y - R(0.06), e.text!, e.col!, 15), cue('blocked');
     if (e.kind === 'miss') say(x, y, e.text!, e.col!, 14);
-    if (e.kind === 'star') { const [gx, gy] = chipXY(e.v!, w); fx.burst(gx, gy, '#ffd166', 22, 4, 2.6), fx.ring(gx, gy, '#ffd166', R(0.12), 4), s.events.some((q) => (q.kind === 'teach' && q.t === e.t) || (e.v === 3 && starKinds(d)[1] === 'shot' && q.kind === 'shot' && q.t === e.t && q.text !== 'bad' && (q.n ?? 2) < 7)) || say(gx, gy - R(0.07), e.text!, '#ffd166', 30, true), cue('star', e.v! - 1); } // ✏️ S026 B③ · S057(🧪 S056 🟡③ 절정에 글 5~6개): 별을 준 톡에서는 '한 번에 N개'를 빼고(별이 대신 말함), 배우기 토스트가 뜨면 '★2!' 글은 빼서 하나만
+    if (e.kind === 'star') { const [gx, gy] = chipXY(e.v!, w); fx.burst(gx, gy, '#ffd166', 22, 4, 2.6), fx.ring(gx, gy, '#ffd166', R(0.12), 4), s.events.some((q) => (q.kind === 'teach' && q.t === e.t) || (e.v === 3 && starKinds(d)[1] === 'shot' && q.kind === 'shot' && q.t === e.t && q.text !== 'bad' && (q.n ?? 2) < 7)) || say(max(gx, R(0.34)), gy - R(0.07), e.text!, '#ffd166', 30, true), cue('star', e.v! - 1); } // ✏️ S026 B③ · S057(🧪 S056 🟡③ 절정에 글 5~6개): 별을 준 톡에서는 '한 번에 N개'를 빼고(별이 대신 말함), 배우기 토스트가 뜨면 '★2!' 글은 빼서 하나만
     if (e.kind === 'teach') say(w / 2, Y(BY1 - 0.02) + R(0.123), e.text!, e.col!, 18, true, true); // ✏️ S024 짚기 · S057(🧪 S057 🟡②): 판 밖 진갈색 띠에 고정(합판 위 1.32:1 → 8.3:1 · 햄스터와 안 겹침)
     if (e.kind === 'stage') fx.blink('#fff6d6', 0.18);
     if (e.kind === 'clear') {
@@ -3707,11 +3707,11 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       if (hint) say('💡 ✕');
       else if (lock) say('🔒');
       else if (kd === 'bonk') say('🔨'), dots(x, cy, d.B!, min(S.bonks, d.B!), false);
-      else if (kd === 'gap') d.P ? dots(x, cy, d.P, min(S.peak, d.P), true) : (dots(x, cy, 1, 0, true), (ctx.strokeStyle = '#ff6a4d'), (ctx.lineWidth = 2), bp(ctx), ctx.moveTo(x + R(0.004), cy + R(0.009)), ctx.lineTo(x + R(0.022), cy - R(0.009)), ctx.stroke());
+      else if (kd === 'gap') d.P > S.peak ? dots(x, cy, d.P - S.peak, 0, true) : /* ✏️ S059(🧪 S058 🟡④): 빈칸은 '남은 여유'만 — 쓰면 구멍이 사라지고 다 쓰면 ⊘(쾅 핍 '차면 좋다'와 반대로 안 읽히게) */ (dots(x, cy, 1, 0, true), (ctx.strokeStyle = '#ff6a4d'), (ctx.lineWidth = 2), bp(ctx), ctx.moveTo(x + R(0.004), cy + R(0.009)), ctx.lineTo(x + R(0.022), cy - R(0.009)), ctx.stroke());
       else if (kd === 'shot') say(`🔩×${d.H}`);
       else if (kd === 'tap') say(`👆 ${max(0, d.T! - S.taps)}`);
       else say(`🔩🔩 ${min(S.streak, d.C)}/${d.C}`);
-      if (st !== null) (ctx.textAlign = 'right'), (ctx.fillStyle = st ? '#8ee07a' : '#ff6a4d'), ftx(ctx, st ? '✓' : '✕', gx + gw - R(0.03), cy + 1);
+      if (st !== null && !hint) (ctx.textAlign = 'right'), (ctx.fillStyle = st ? '#8ee07a' : '#ff6a4d'), ftx(ctx, st ? '✓' : '✕', gx + gw - R(0.03), cy + 1);
       ctx.globalAlpha = 1;
     });
     // ✏️ S026 B③: 딴 별이 칩에서 위 ★ 칸으로 날아간다(40틱)
