@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { Juice } from '../studio/screwshop/juice.ts';
-import { STAGES, missGoal, starKinds } from '../studio/screwshop/game.ts';
+import { STAGES, hamOver, missGoal, screwshop, startStage, starKinds } from '../studio/screwshop/game.ts';
 import { bonkSemi } from '../studio/screwshop/sfx.ts';
 
 /** 그리기 호출을 모두 삼키는 가짜 캔버스(멈춤 · 쿨다운 틱만 본다) */
@@ -108,6 +108,22 @@ describe('판 고르기 그림(✏️ S061 · 🧪 S061 🔴②)', () => {
 
   it('배율 올려 보기는 이번 판 첫 톡 전에만(세션 톡 수가 아니라)', () => {
     expect(src('main.ts')).toContain("s.phase === 'play' && s.S.taps === 0");
+  });
+});
+
+describe('햄스터가 나사를 가리지 않는다(✏️ S062 · 🧪 S062 🟡①)', () => {
+  it('햄스터 몸(왼쪽 아래)에 걸리는 나사가 남아 있으면 비쳐 그리고, 다 빠지면 다시 또렷하다', () => {
+    const shown: string[] = [];
+    for (const [k, d] of STAGES.entries()) {
+      const s = screwshop.create(7);
+      if (k) startStage(s, k);
+      const L = s.L;
+      for (let i = 0; i < L.N; i++) if (Math.abs(L.px[i] - 0.11) < 0.1 && L.py[i] > 1.05) expect(hamOver(L, 0), `${d.slot} #${i}`).toBe(true);
+      expect(hamOver(L, L.all), d.slot).toBe(false);
+      if (hamOver(L, 0)) shown.push(d.slot);
+    }
+    expect(shown).toEqual(expect.arrayContaining(['1-8', '1-9', '2-3', '2-5', '2-7', '2-10', '3-2', '3-6']));
+    expect(src('game.ts')).toMatch(/ctx\.globalAlpha = hamOver\(L, S\.gone\) \? 0\.\d+ : 1\), drawHamster\(/);
   });
 });
 

@@ -440,6 +440,8 @@ export const KB: Record<SK, number> = { bonk: 1, gap: 2, shot: 4, tap: 8, streak
 export const starKinds = (d: StageDef): [SK, SK] => [d.B !== undefined ? 'bonk' : 'gap', d.B !== undefined ? 'gap' : d.H !== undefined ? 'shot' : d.T !== undefined ? 'tap' : 'streak'];
 const gapGoal = (P: number, also = '') => (P === 0 ? `빈칸${also} 안 쓰기` : `빈칸${also} ${P}칸까지`); // 🧪 S024: '1칸만'은 '꼭 1칸'으로 읽힘
 /** ✏️ S060(🧪 S060 🔴 · M2′ 오너 "조건을 못알아먹겠어"): 결과 카드 한 줄 — 놓친 별의 조건 낱말(진행 숫자 없이). ok2 = ★2를 땄나 */
+/** ✏️ S062(🧪 S062 🟡①): 남은 나사가 햄스터 자리(왼쪽 아래)에 있나 — 2-3 등 8판에서 나사가 햄스터 뒤에 숨던 것 */
+export const hamOver = (L: Level, gone: number) => L.px.some((x, i) => x < 0.21 && L.py[i] > 1.05 && !((gone >> i) & 1));
 export const missGoal = (d: StageDef, ok2: boolean) => (!ok2 ? (d.B !== undefined ? `★2 망치로 쾅 ${d.B}번` : `★2 ${gapGoal(d.P)}`) : d.B !== undefined ? `★3 ${gapGoal(d.P, '도')}` : d.H !== undefined ? `★3 한 번에 ${d.H}개 쏙` : d.T !== undefined ? `★3 톡 ${d.T}번 안에` : `★3 ${d.C}개 연달아 쏙`);
 /** c = 판 중 칩 · r2/r3 = 결과(받았으면 한 일, 놓쳤으면 무엇이 모자랐나) · l2/l3 = 처음 배울 때 한 줄 */
 export const starText = (d: StageDef, S: Sim) => {
@@ -1803,7 +1805,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     drawScrew(ctx, X(x), Y(y), R(SR) * sc, f.col, rot, { t, key: f.key });
   }
   // ═════════ 햄스터 목수 + 참새 ═════════
-  if (!(s.phase === 'result' && !s.ok)) drawHamster(ctx, X(0.11), Y(1.235), R(0.19), s, t); // 실패 땐 카드 위에서 (🎨 §2.7)
+  if (!(s.phase === 'result' && !s.ok)) (ctx.globalAlpha = hamOver(L, S.gone) ? 0.45 : 1), drawHamster(ctx, X(0.11), Y(1.235), R(0.19), s, t), (ctx.globalAlpha = 1); // 실패 땐 카드 위에서 (🎨 §2.7) · ✏️ S062(🧪 S062 🟡①): 남은 나사가 햄스터 자리면 비친다
   drawBird(ctx, s, X, Y, R, t);
   layer(ctx, 2, w, h); // ✏️ S054: 작업대 앞의 가장자리 어둡게(캐시)
   // ✏️ S054(🎨 손맛): 쾅 그림 배지(20틱 · 판자 위 · 파티클 밑)
