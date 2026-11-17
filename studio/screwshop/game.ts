@@ -1420,41 +1420,6 @@ const mix = (a: string, b: string, t: number) => {
 };
 const ease = (q: number) => 1 - pow(1 - max(0, min(1, q)), 2.2);
 export const COLS = ['#ef4b4b', '#3b82f6', '#f7c531', '#2fb86a', '#a45ee0', '#ff8a2b'];
-/** ✏️ S053 🎨 그래픽 스타일(오너 11-17 "그래픽 스타일을 다양한 버전으로 뽑아보자"): A 나무(지금) · B 클레이 · C 산뜻(하이퍼 캐주얼) · D 블록 놀이.
- *  그리기만 바뀐다 — 시뮬 · 판 · 색 번호 · 판정 그대로. 6색은 타이틀에서만 `setStyle`로 제자리 교체(COLS.splice) · 판자 색은 그리기 쪽 `tn()`으로만. 필드 뜻은 ART.md S053 */
-export interface Style { k: string; nm: string; page: string; wall: string[]; wl: number; gl: string; ga: number; mote: number; vg: string; bd: string[]; bs: string; bsh: [string, number]; be: string; tx: number; tn: [string, number]; ps: string; po: number[]; sd: number[]; fg: number[]; rim: number; ed: number[]; col: string[]; ink: string[]; hole: string; tray: string[]; slot: string[]; shelf: string[]; bench: string[]; lab: string; hud: string; dust: string; ham: string[]; bird: string[] }
-const six = (c: string) => [c, c, c, c, c, c];
-export const STYLES: Style[] = [
-  { k: 'A', nm: '🪵 나무', page: '#3a2a20', wall: ['#2c1f18', '#3f2c20', '#2a1c14'], wl: 0.25, gl: '255,214,150', ga: 0.42, mote: 18, vg: 'rgba(10,5,0,.35)', bd: ['#f3dfba', '#ead1a4', '#d9b98a'], bs: '#b98c5a', bsh: ['rgba(0,0,0,.35)', 0.016], be: 'rgba(110,70,30,.55)', tx: 0, tn: ['#ffffff', 0], ps: 'rgba(50,25,5,.3)', po: [0.012, 0.017], sd: [0.004, 0.008, 0.4], fg: [0.28, 0.5, 0.16], rim: 0.35, ed: [1.2, 0.45], col: COLS.slice(), ink: six('rgba(30,20,10,.65)'), hole: 'rgba(40,20,5,.4)', tray: ['#c9ced6', '#7c838e'], slot: ['rgba(30,30,40,.55)', 'rgba(120,20,10,.55)'], shelf: ['#c9965e', '#8a5a32'], bench: ['#d9a96c', '#b98450', '#8a5a32', '#4a2c16'], lab: 'rgba(255,240,215,.75)', hud: 'rgba(25,15,8,.82)', dust: '#e9d3a6', ham: ['#eaa45a', '#fff1d8', '#ffc61a', '#e8a800'], bird: ['#8a5a3a', '#f3e2c4', '#6b4020'] },
-  { k: 'B', nm: '🧸 클레이', page: '#4e3a30', wall: ['#9b8778', '#7d6a5d', '#5f4f45'], wl: 0, gl: '255,236,210', ga: 0.3, mote: 0, vg: 'rgba(60,30,10,.22)', bd: ['#f7ebdc', '#efdcc6', '#e2c9ad'], bs: '#d9b796', bsh: ['rgba(70,40,20,.25)', 0.016], be: 'rgba(150,100,70,.45)', tx: 1, tn: ['#f6e7d3', 0.2], ps: 'rgba(70,40,20,.22)', po: [0.009, 0.014], sd: [0.003, 0.007, 0.32], fg: [0.16, 0.6, 0.1], rim: 0, ed: [2.6, 0.5], col: ['#e0524a', '#3f7fd9', '#f2c230', '#3aa865', '#9558cf', '#f4832e'], ink: six('rgba(50,25,10,.6)'), hole: 'rgba(70,40,20,.28)', tray: ['#e8cdb0', '#c49e7c'], slot: ['rgba(80,45,25,.35)', 'rgba(150,50,30,.45)'], shelf: ['#d79a74', '#b07050'], bench: ['#d39a72', '#b57a55', '#6e4434', '#3e261d'], lab: 'rgba(255,245,230,.85)', hud: 'rgba(60,35,22,.85)', dust: '#e7b393', ham: ['#e9a066', '#fbe9d2', '#ffc23a', '#e0a020'], bird: ['#9c6a4c', '#f6e6cf', '#7c4c30'] },
-  { k: 'C', nm: '✨ 산뜻', page: '#24285e', wall: ['#e4eaf7', '#d6def2', '#c3cfea'], wl: 0, gl: '', ga: 0, mote: 0, vg: '', bd: ['#ffffff', '#ffffff', '#ffffff'], bs: '', bsh: ['rgba(60,70,120,.14)', 0.022], be: '', tx: 2, tn: ['#ffffff', 0.38], ps: 'rgba(40,50,90,.14)', po: [0, 0.014], sd: [0, 0.007, 0.22], fg: [0, 0.5, 0], rim: 0, ed: [0, 0], col: ['#ff4d5e', '#2f7bff', '#ffcc1a', '#16c47f', '#9a5cff', '#ff8c1a'], ink: ['#fff', '#fff', '#6b4a00', '#fff', '#fff', '#fff'], hole: 'rgba(40,50,90,.16)', tray: ['#ffffff', '#e9edf6'], slot: ['#b8c0d8', '#ffb8c0'], shelf: ['#ffffff', '#eef1f7'], bench: ['#ffffff', '#eef1f7', '#3b3f8f', '#24285e'], lab: '#5b6488', hud: 'rgba(35,40,90,.88)', dust: '#aab6cc', ham: ['#ffad4d', '#fff6ea', '#ffcf1a', '#f2b100'], bird: ['#a0755a', '#fff3e3', '#7a5440'] },
-  { k: 'D', nm: '🧱 블록', page: '#132a54', wall: ['#24324f', '#1f2b45', '#1a2540'], wl: 0, gl: '200,225,255', ga: 0.22, mote: 0, vg: 'rgba(5,10,30,.3)', bd: ['#e9eef5', '#dfe6f0', '#cfd8e6'], bs: '#a9b6c8', bsh: ['rgba(0,0,0,.35)', 0.016], be: 'rgba(90,110,140,.6)', tx: 3, tn: ['#ffffff', 0.06], ps: 'rgba(10,20,50,.3)', po: [0.01, 0.016], sd: [0.006, 0.012, 0.32], fg: [0.3, 0.3, 0.1], rim: 0.45, ed: [1.4, 0.38], col: ['#e8312f', '#1f6fe0', '#ffd21f', '#1aa055', '#8a4fd8', '#ff7a1a'], ink: six('rgba(20,20,30,.6)'), hole: 'rgba(10,20,50,.35)', tray: ['#eef2f7', '#b9c3d1'], slot: ['rgba(20,30,60,.45)', 'rgba(140,30,40,.5)'], shelf: ['#c9d1dc', '#8e99a8'], bench: ['#ffd23f', '#f2b705', '#1f3f78', '#132a54'], lab: 'rgba(230,240,255,.8)', hud: 'rgba(12,25,55,.88)', dust: '#dfe6f0', ham: ['#f0a24e', '#fff4e0', '#ffd21f', '#e0a800'], bird: ['#9a6a48', '#f3e2c4', '#6b4020'] },
-];
-export let ST = STYLES[0];
-const tnc = new Map<string, string>();
-/** 판자 색 → 이 스타일의 판자 색(그리기 쪽만 · 스테이지 데이터 그대로) */
-const tn = (c: string) => (ST.tn[1] ? tnc.get(c) ?? (tnc.set(c, mix(c, ST.tn[0], ST.tn[1])), tnc.get(c)!) : c);
-/** 스타일 바꾸기(타이틀에서만 · 'A'~'D' 또는 'a'~'d') — 모르는 값은 A */
-export const setStyle = (k: string) => {
-  ST = STYLES.find((x) => x.k === k.toUpperCase()) ?? STYLES[0];
-  COLS.splice(0, 6, ...ST.col);
-  tnc.clear();
-  return ST;
-};
-/** ✏️ S053 🎨 D: 블록 돌기 하나(바닥판 · 판자 · 선반 · 작은 블록이 같이 씀) */
-function stud(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, c: string) {
-  ctx.fillStyle = mix(c, '#000000', 0.2);
-  bp(ctx);
-  ctx.arc(x + 0.6, y + 1, r, 0, TAU);
-  ctx.fill();
-  ctx.fillStyle = mix(c, '#ffffff', 0.25);
-  bp(ctx);
-  ctx.arc(x, y, r, 0, TAU);
-  ctx.fill();
-  ctx.strokeStyle = mix(c, '#000000', 0.15);
-  ctx.lineWidth = 1;
-  ctx.stroke();
-}
 
 /** 미리 보기: 지금 이 나사를 빼면? */
 interface Preview { rec: RE[]; S: Sim; freed: number; blockers: number[]; state: 'ok' | 'blocked' | 'locked'; /** 이 톡으로 덮일 나사: 새로 막힘 + 이 톡에 매달린 판자 밑(진자·📌 — ⚠, 🧪 S005 F16 · 📐 S006) */ cover: number }
@@ -1486,59 +1451,73 @@ function preview(s: ShopState, k: number): Preview {
 }
 
 const recentSay = new WeakMap<object, { x: number; y: number; t: number; s?: number }[]>();
-function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: number, th: Theme) {
-  const fx = juice(s), t = s.t, L = s.L, S = s.S, d = STAGES[s.stage];
+/** ✏️ S054(오너 "연출이 중간에 느려지거나 렉이 걸리는 부분"): 움직이지 않는 층은 한 번만 그려 두고 매 프레임 복사한다.
+ *  화면 전체 그라디언트 세 번(벽 · 작업등 · 가장자리 어둡게)과 합판 · 작업대를 매 프레임 칠하던 것이 고해상도 폰에서 프레임을 두 배로 늘렸다(390 · DPR 3: 16.7 → 33~67ms).
+ *  0 = 벽 · 작업등 · 합판(+ 가장자리 어둡게) · 1 = 작업대 띠(+ 가장자리 어둡게) · 2 = 작업대 위쪽까지만 덮는 가장자리 어둡게는 0 · 1에 녹였으므로 빈 층 */
+const LAY: { key: string; c: HTMLCanvasElement[] } = { key: '', c: [] };
+function layer(ctx: CanvasRenderingContext2D, i: number, w: number, h: number) {
+  if (i === 2) return;
+  const k = ctx.canvas.width / w, key = `${w}|${h}|${k}`;
+  if (LAY.key !== key) {
+    LAY.key = key;
+    LAY.c = [0, 1].map((j) => {
+      const c = document.createElement('canvas');
+      c.width = Math.ceil(w * k);
+      c.height = Math.ceil(h * k);
+      const g = c.getContext('2d')!;
+      g.scale(k, k);
+      paintLayer(g, j, w, h);
+      return c;
+    });
+  }
+  const top = BENCH_TOP * w - 6;
+  if (i === 0) {
+    ctx.fillStyle = '#2a1c14'; // 흔들림(최대 몇 px)에 드러나는 가장자리만 단색으로
+    ctx.fillRect(-12, -12, w + 24, 12);
+    ctx.fillRect(-12, h, w + 24, 12);
+    ctx.fillRect(-12, 0, 12, h);
+    ctx.fillRect(w, 0, 12, h);
+    ctx.drawImage(LAY.c[0], 0, 0, w, h);
+  }
+  else ctx.drawImage(LAY.c[1], 0, top * k, LAY.c[1].width, LAY.c[1].height - top * k, 0, top, w, h - top);
+}
+const BENCH_TOP = 1.19;
+function paintLayer(ctx: CanvasRenderingContext2D, j: number, w: number, h: number) {
   const X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w;
-  const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${max(12, R(sz))}px system-ui, sans-serif`);
-  ctx.save();
-  fx.begin(ctx);
+  if (j === 1) drawBench(ctx, X, Y, R, w, h);
+  else {
   // ═════════ 공방 벽 ═════════
   const wall = ctx.createLinearGradient(0, 0, 0, h);
-  ST.wall.forEach((c, i) => wall.addColorStop(i / 2, c)); // ✏️ S053 🎨 스타일
+  wall.addColorStop(0, '#2c1f18');
+  wall.addColorStop(0.5, '#3f2c20');
+  wall.addColorStop(1, '#2a1c14');
   ctx.fillStyle = wall;
   ctx.fillRect(-10, -10, w + 20, h + 20);
-  ctx.strokeStyle = `rgba(0,0,0,${ST.wl})`;
+  ctx.strokeStyle = 'rgba(0,0,0,.25)';
   ctx.lineWidth = 1;
-  if (ST.wl) for (let k = 1; k < 7; k++) (bp(ctx), ctx.moveTo(X(k / 7), 0), ctx.lineTo(X(k / 7), h), ctx.stroke());
-  // 🎨 S053 D: 커다란 블록 벽(6줄 × 5 · 줄마다 반 칸 엇갈림 · 흐리게)
-  if (ST.k === 'D')
-    for (let r = 0; r < 6; r++)
-      for (let i = -1; i < 5; i++) {
-        const bx = X(i * 0.25 + (r % 2) * 0.125), by = Y(r * 0.1);
-        ctx.globalAlpha = 0.12;
-        ctx.fillStyle = COLS[(r * 3 + i + 6) % 6];
-        ctx.fillRect(bx + 1, by + 1, R(0.24), R(0.09));
-        for (const q of [0.06, 0.18]) stud(ctx, bx + R(q), by - R(0.002), R(0.02), COLS[(r * 3 + i + 6) % 6]);
-        ctx.globalAlpha = 1;
-      }
+  for (let k = 1; k < 7; k++) (bp(ctx), ctx.moveTo(X(k / 7), 0), ctx.lineTo(X(k / 7), h), ctx.stroke());
   // 작업등 빛 번짐
-  if (ST.ga) {
-    const glow = ctx.createRadialGradient(X(0.5), Y(0.42), R(0.05), X(0.5), Y(0.62), R(0.85));
-    glow.addColorStop(0, `rgba(${ST.gl},${ST.ga})`);
-    glow.addColorStop(0.5, `rgba(${ST.gl},${ST.ga * 0.29})`);
-    glow.addColorStop(1, `rgba(${ST.gl},0)`);
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, w, h);
-  }
-  // ═════════ 선반 + 상자 ═════════
-  drawShelf(ctx, s, X, Y, R, font);
-  // ═════════ 빈칸 쟁반 ═════════
-  drawTray(ctx, s, X, Y, R, font);
+  const glow = ctx.createRadialGradient(X(0.5), Y(0.42), R(0.05), X(0.5), Y(0.62), R(0.85));
+  glow.addColorStop(0, 'rgba(255,214,150,.42)');
+  glow.addColorStop(0.5, 'rgba(255,190,120,.12)');
+  glow.addColorStop(1, 'rgba(255,180,100,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, w, h);
   // ═════════ 장난감 판(합판) ═════════
   {
     const x0 = X(BX0), y0 = Y(BY0), x1 = X(BX1), y1 = Y(BY1);
-    ctx.fillStyle = ST.bsh[0];
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
     bp(ctx);
-    ctx.roundRect(x0 + R(ST.k === 'C' ? 0 : 0.012), y0 + R(ST.bsh[1]), x1 - x0, y1 - y0, R(0.02));
+    ctx.roundRect(x0 + R(0.012), y0 + R(0.016), x1 - x0, y1 - y0, R(0.02));
     ctx.fill();
-    if (ST.bs) {
-      ctx.fillStyle = ST.bs;
-      bp(ctx);
-      ctx.roundRect(x0 + R(0.006), y0 + R(0.008), x1 - x0, y1 - y0, R(0.02));
-      ctx.fill();
-    }
+    ctx.fillStyle = '#b98c5a';
+    bp(ctx);
+    ctx.roundRect(x0 + R(0.006), y0 + R(0.008), x1 - x0, y1 - y0, R(0.02));
+    ctx.fill();
     const ply = ctx.createLinearGradient(x0, y0, x1, y1);
-    ST.bd.forEach((c, i) => ply.addColorStop([0, 0.55, 1][i], c));
+    ply.addColorStop(0, '#f3dfba');
+    ply.addColorStop(0.55, '#ead1a4');
+    ply.addColorStop(1, '#d9b98a');
     ctx.fillStyle = ply;
     bp(ctx);
     ctx.roundRect(x0, y0, x1 - x0, y1 - y0, R(0.02));
@@ -1547,31 +1526,48 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     ctx.clip();
     ctx.strokeStyle = 'rgba(160,110,60,.13)';
     ctx.lineWidth = 1.2;
-    if (!ST.tx) for (let k = 0; k < 14; k++) {
+    for (let k = 0; k < 14; k++) {
       const yy = BY0 + (k + 0.5) * ((BY1 - BY0) / 14);
       bp(ctx);
       for (let x = BX0; x <= BX1 + 0.01; x += 0.03) ctx.lineTo(X(x), Y(yy + 0.006 * sin(x * 9 + k * 1.7)));
       ctx.stroke();
     }
     // 페그보드 구멍
-    ctx.fillStyle = ST.tx === 2 ? 'rgba(60,70,120,.08)' : 'rgba(120,80,40,.22)'; // 🎨 S053: 페그 구멍(A) · 점(C) · 돌기(D) · 없음(B)
-    if (ST.tx !== 1) for (let gx = BX0 + 0.045; gx < BX1; gx += 0.075) for (let gy = BY0 + 0.045; gy < BY1; gy += 0.075) ST.tx === 3 ? stud(ctx, X(gx), Y(gy), R(0.012), ST.bd[1]) : (bp(ctx), ctx.arc(X(gx), Y(gy), R(ST.tx === 2 ? 0.004 : 0.0065), 0, TAU), ctx.fill());
-    if (ST.tx !== 2) {
-      const sh = ctx.createRadialGradient(X(0.5), Y(0.6), R(0.1), X(0.5), Y(0.75), R(0.7));
-      sh.addColorStop(0, 'rgba(255,240,200,.18)');
-      sh.addColorStop(1, 'rgba(80,40,10,.22)');
-      ctx.fillStyle = sh;
-      ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
-    }
+    ctx.fillStyle = 'rgba(120,80,40,.22)';
+    for (let gx = BX0 + 0.045; gx < BX1; gx += 0.075) for (let gy = BY0 + 0.045; gy < BY1; gy += 0.075) (bp(ctx), ctx.arc(X(gx), Y(gy), R(0.0065), 0, TAU), ctx.fill());
+    const sh = ctx.createRadialGradient(X(0.5), Y(0.6), R(0.1), X(0.5), Y(0.75), R(0.7));
+    sh.addColorStop(0, 'rgba(255,240,200,.18)');
+    sh.addColorStop(1, 'rgba(80,40,10,.22)');
+    ctx.fillStyle = sh;
+    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
     ctx.restore();
-    ctx.strokeStyle = ST.be;
+    ctx.strokeStyle = 'rgba(110,70,30,.55)';
     ctx.lineWidth = 2;
     bp(ctx);
     ctx.roundRect(x0, y0, x1 - x0, y1 - y0, R(0.02));
-    if (ST.be) ctx.stroke();
+    ctx.stroke();
   }
+  }
+  // 가장자리 어둡게(두 층 모두)
+  const vg = ctx.createRadialGradient(w / 2, h * 0.5, R(0.45), w / 2, h * 0.5, R(1.05));
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(10,5,0,.35)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, w, h);
+}
+function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: number, th: Theme) {
+  const fx = juice(s), t = s.t, L = s.L, S = s.S, d = STAGES[s.stage];
+  const X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w;
+  const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${max(12, R(sz))}px system-ui, sans-serif`);
+  ctx.save();
+  fx.begin(ctx);
+  layer(ctx, 0, w, h); // ✏️ S054(오너 "렉"): 벽 · 작업등 · 합판 · 가장자리 어둡게 — 한 번 그려 두고 복사
+  // ═════════ 선반 + 상자 ═════════
+  drawShelf(ctx, s, X, Y, R, font);
+  // ═════════ 빈칸 쟁반 ═════════
+  drawTray(ctx, s, X, Y, R, font);
   // 작업등 빛 속 먼지
-  for (let k = 0; k < ST.mote; k++) {
+  for (let k = 0; k < 18; k++) {
     const px = 0.15 + hsh(k + 300) * 0.7, py = BY0 + ((hsh(k + 310) * (BY1 - BY0) + t * 0.0004 * (1 + (k % 3))) % (BY1 - BY0));
     ctx.fillStyle = `rgba(255,240,200,${0.18 + 0.22 * abs(sin(t / 60 + k))})`;
     bp(ctx);
@@ -1638,7 +1634,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
   // ═════════ 미리 보기 ═════════
   if (pre && pressK >= 0) (ctx.textBaseline = 'middle'), drawPreview(ctx, s, pressK, pre, X, Y, R, font), (ctx.textBaseline = 'alphabetic');
   // ═════════ 작업대 ═════════
-  drawBench(ctx, X, Y, R, w, h);
+  layer(ctx, 1, w, h); // ✏️ S054: 작업대(캐시)
   // 다시 떨어지는 판자는 작업대 앞으로 (덜컹 튕긴 뒤)
   // ═════════ 날아가는 나사 ═════════
   for (const f of s.fl) {
@@ -1681,12 +1677,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
   // ═════════ 햄스터 목수 + 참새 ═════════
   if (!(s.phase === 'result' && !s.ok)) drawHamster(ctx, X(0.11), Y(1.235), R(0.19), s, t); // 실패 땐 카드 위에서 (🎨 §2.7)
   drawBird(ctx, s, X, Y, R, t);
-  // 가장자리 어둡게
-  const vg = ctx.createRadialGradient(w / 2, h * 0.5, R(0.45), w / 2, h * 0.5, R(1.05));
-  vg.addColorStop(0, 'rgba(0,0,0,0)');
-  vg.addColorStop(1, ST.vg || 'rgba(0,0,0,0)');
-  ctx.fillStyle = vg;
-  ctx.fillRect(0, 0, w, h);
+  layer(ctx, 2, w, h); // ✏️ S054: 작업대 앞의 가장자리 어둡게(캐시)
   // ═════════ 사건 연출 ═════════
   /** 떠오르는 글자: HUD·상자 줄을 가리지 않게 판 안으로, 겹치면 위로 비켜 */
   const say = (x: number, y: number, text: string, col: string, size: number, punch = false) => {
@@ -1734,7 +1725,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       if ((e.n ?? 0) >= 3) say(x, y + R(0.06), `연속 ${e.n} 끝`, '#d8c3a5', 13), cue('brk');
     }
     if (e.kind === 'done') fx.burst(x, y, e.col!, 16, 4, 2.6), fx.burst(x, y, '#ffe066', 10, 4, 2.6), fx.ring(x, y, '#ffe066', R(0.16), 4), fx.kick(4), fx.hold(4), cue('done'); // '딸깍!' 글자는 연속 숫자와 겹쳐 뺐다(✏️ → 🎨)
-    if (e.kind === 'swing') fx.ring(x, y, '#ffffff', R(0.09), 3), fx.burst(x, y, ST.dust, 6, 1.8, 1.8), say(x + R(0.05), y - R(0.05), e.text!, e.col!, 20), cue('swing');
+    if (e.kind === 'swing') fx.ring(x, y, '#ffffff', R(0.09), 3), fx.burst(x, y, '#e8cfa0', 6, 1.8, 1.8), say(x + R(0.05), y - R(0.05), e.text!, e.col!, 20), cue('swing');
     if (e.kind === 'fall') fx.kick(1.5), say(x, min(y, Y(1.05)), e.text!, e.col!, 20), cue('fall');
     if (e.kind === 'bonk') {
       // 🎨 §2.2+ 쾅: 맞은 나사가 빈칸으로 가면 작게
@@ -1747,7 +1738,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     if (e.kind === 'thump') e.col === '#ffd166' ? (fx.kick(7), fx.hold(4), fx.ring(x, y, '#ffd166', R(0.14), 4), say(w / 2, y, e.text!, e.col!, 34, true), cue('crash', 3)) : (fx.kick(2), say(w / 2, y, e.text!, e.col!, 26)); // 🐹 쿵: 화면 흔들림 + 글자 · ✏️ S012 빈 쿵은 작게
     if (e.kind === 'crash') {
       const i = e.n ?? 1;
-      fx.burst(x, y, e.col!, 6 + 2 * i, 2.8 + 0.3 * i, 2.2), fx.burst(x, y, ST.dust, 8, 2.4, 1.6), fx.ring(x, y, ST.dust, R(0.05 + 0.01 * i), 3);
+      fx.burst(x, y, e.col!, 6 + 2 * i, 2.8 + 0.3 * i, 2.2), fx.burst(x, y, '#e9d3a6', 8, 2.4, 1.6), fx.ring(x, y, '#e9d3a6', R(0.05 + 0.01 * i), 3);
       fx.kick(min(7, 2 + 1.5 * i)), fx.hold(2), cue('crash', i); // 🧪 S002: 멈춤 1 → 2
       if (e.text) say(x, y - R(0.06), e.text, '#ffb347', 26, true);
     }
@@ -1794,7 +1785,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
       // 🎨: 덜컹은 작업대에 닿을 때 크게 — 큰 판자일수록 낮은 쿵
       const P = L.pl[k];
       fx.kick(7), fx.hold(3), cue('thud', max(85, min(160, 170 - 600 * sqrt(P.hx * P.hy))));
-      fx.burst(X(f.x), Y(1.2), ST.dust, 26, 3.6, 2.6);
+      fx.burst(X(f.x), Y(1.2), '#e9d3a6', 26, 3.6, 2.6);
     }
   }
   ctx.restore();
@@ -1956,11 +1947,10 @@ function drawShelf(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =
   ctx.fillStyle = 'rgba(0,0,0,.3)';
   ctx.fillRect(X(0.02), Y(sy + 0.012), X(0.96), R(0.03));
   const g = ctx.createLinearGradient(0, Y(sy), 0, Y(sy + 0.03));
-  g.addColorStop(0, ST.shelf[0]);
-  g.addColorStop(1, ST.shelf[1]);
+  g.addColorStop(0, '#c9965e');
+  g.addColorStop(1, '#8a5a32');
   ctx.fillStyle = g;
   ctx.fillRect(X(0.02), Y(sy), X(0.96), R(0.026));
-  if (ST.k === 'D') for (let q = 0.04; q < 0.97; q += 0.04) stud(ctx, X(q), Y(sy), R(0.008), ST.shelf[0]); // 🎨 S053 D: 선반 윗변 돌기
   ctx.fillStyle = 'rgba(255,240,210,.35)';
   ctx.fillRect(X(0.02), Y(sy), X(0.96), R(0.005));
   // 떠나는 상자
@@ -2007,7 +1997,7 @@ function drawShelf(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =
   qv -= pending;
   font(0.032, 800);
   ctx.textAlign = 'center';
-  ctx.fillStyle = ST.lab;
+  ctx.fillStyle = 'rgba(255,240,215,.75)';
   ctx.fillText('다음', X(peekX(L, 0) + 0.07), Y(BOX_Y - BOX_H * 0.62));
   for (let j = 0; j < PEEK; j++) {
     const qi = qv + j;
@@ -2027,25 +2017,24 @@ function drawShelf(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =
 
 function drawBox(ctx: CanvasRenderingContext2D, x: number, y: number, R: (r: number) => number, col: number, n: number, lid: number, alpha: number, t: number) {
   if (col < 0 || alpha <= 0) return;
-  const bw = R(BOX_W), bh = R(BOX_H), c = COLS[col], K = ST.k, flat = K === 'C';
+  const bw = R(BOX_W), bh = R(BOX_H), c = COLS[col];
   ctx.save();
   ctx.globalAlpha *= max(0, alpha);
   // 그림자
-  ctx.fillStyle = flat ? 'rgba(40,50,90,.14)' : K === 'B' ? 'rgba(60,30,10,.2)' : 'rgba(0,0,0,.28)';
+  ctx.fillStyle = 'rgba(0,0,0,.28)';
   bp(ctx);
   ctx.ellipse(x + bw * 0.04, y + bh * 0.52, bw * 0.52, bh * 0.12, 0, 0, TAU);
   ctx.fill();
   // 앞면
   const g = ctx.createLinearGradient(0, y - bh * 0.2, 0, y + bh * 0.5);
-  g.addColorStop(0, flat ? c : mix(c, '#ffffff', K === 'B' ? 0.18 : 0.12));
-  g.addColorStop(1, flat ? c : mix(c, K === 'B' ? '#3a2010' : '#000000', K === 'B' ? 0.22 : 0.28));
+  g.addColorStop(0, mix(c, '#ffffff', 0.12));
+  g.addColorStop(1, mix(c, '#000000', 0.28));
   ctx.fillStyle = g;
   bp(ctx);
-  ctx.roundRect(x - bw / 2, y - bh * 0.18, bw, bh * 0.68, bh * (K === 'B' ? 0.18 : K === 'D' ? 0.14 : 0.1));
+  ctx.roundRect(x - bw / 2, y - bh * 0.18, bw, bh * 0.68, bh * 0.1);
   ctx.fill();
-  if (flat) (ctx.strokeStyle = '#ffffff'), (ctx.lineWidth = 2), ctx.stroke(); // 🎨 S053 C: 흰 스티커 테
   // 윗면 테두리 (3/4 시점) + 열린 속
-  ctx.fillStyle = mix(c, '#ffffff', flat ? 0.28 : 0.35);
+  ctx.fillStyle = mix(c, '#ffffff', 0.35);
   bp(ctx);
   ctx.moveTo(x - bw / 2, y - bh * 0.18);
   ctx.lineTo(x - bw / 2 + bw * 0.06, y - bh * 0.52);
@@ -2054,8 +2043,8 @@ function drawBox(ctx: CanvasRenderingContext2D, x: number, y: number, R: (r: num
   ctx.closePath();
   ctx.fill();
   const ig = ctx.createLinearGradient(0, y - bh * 0.46, 0, y - bh * 0.22);
-  ig.addColorStop(0, mix(c, '#000000', flat ? 0.4 : 0.62));
-  ig.addColorStop(1, mix(c, '#000000', flat ? 0.4 : 0.35));
+  ig.addColorStop(0, mix(c, '#000000', 0.62));
+  ig.addColorStop(1, mix(c, '#000000', 0.35));
   ctx.fillStyle = ig;
   bp(ctx);
   ctx.moveTo(x - bw / 2 + bw * 0.05, y - bh * 0.23);
@@ -2067,12 +2056,10 @@ function drawBox(ctx: CanvasRenderingContext2D, x: number, y: number, R: (r: num
   // 세로 널빤지 결 · 모서리 기둥
   ctx.strokeStyle = 'rgba(0,0,0,.18)';
   ctx.lineWidth = 1;
-  if (K === 'A') {
-    for (let k = 1; k < 5; k++) (bp(ctx), ctx.moveTo(x - bw / 2 + (bw * k) / 5, y - bh * 0.16), ctx.lineTo(x - bw / 2 + (bw * k) / 5, y + bh * 0.48), ctx.stroke());
-    ctx.fillStyle = mix(c, '#000000', 0.3);
-    ctx.fillRect(x - bw / 2, y - bh * 0.18, bw * 0.06, bh * 0.68);
-    ctx.fillRect(x + bw / 2 - bw * 0.06, y - bh * 0.18, bw * 0.06, bh * 0.68);
-  } else if (K === 'D') (ctx.fillStyle = 'rgba(255,255,255,.45)'), ctx.fillRect(x - bw * 0.44, y - bh * 0.14, bw * 0.88, bh * 0.05); // 🎨 S053 D: 반사 줄
+  for (let k = 1; k < 5; k++) (bp(ctx), ctx.moveTo(x - bw / 2 + (bw * k) / 5, y - bh * 0.16), ctx.lineTo(x - bw / 2 + (bw * k) / 5, y + bh * 0.48), ctx.stroke());
+  ctx.fillStyle = mix(c, '#000000', 0.3);
+  ctx.fillRect(x - bw / 2, y - bh * 0.18, bw * 0.06, bh * 0.68);
+  ctx.fillRect(x + bw / 2 - bw * 0.06, y - bh * 0.18, bw * 0.06, bh * 0.68);
   // 칸 셋 (들어간 나사가 꽂힌다)
   for (let hh = 0; hh < 3; hh++) {
     const hx = x + (hh - 1) * bw * 0.28, hy = y - bh * 0.34;
@@ -2084,7 +2071,7 @@ function drawBox(ctx: CanvasRenderingContext2D, x: number, y: number, R: (r: num
   }
   // 앞면 표시 (나사 머리 무늬)
   ctx.globalAlpha *= 0.9;
-  drawMark(ctx, x, y + bh * 0.15, bh * 0.16, col, 0, flat && col === 2 ? '#6b4a00' : 'rgba(255,255,255,.85)', 2.4);
+  drawMark(ctx, x, y + bh * 0.15, bh * 0.16, col, 0, 'rgba(255,255,255,.85)', 2.4);
   // 뚜껑
   if (lid > 0) {
     const ly = y - bh * 0.5 - (1 - lid) * bh * 0.6;
@@ -2138,11 +2125,11 @@ function tickBadge(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.textBaseline = 'alphabetic';
 }
 function drawScrew(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, col: number, rot: number, o: { lock?: boolean; key?: boolean; t: number; hot?: boolean; tick?: number }) {
-  const c = col >= 0 ? COLS[col] : '#9aa0a8', K = ST.k, ink = ST.ink[col] ?? ST.ink[0];
+  const c = col >= 0 ? COLS[col] : '#9aa0a8';
   // 박힌 구멍 그림자
-  ctx.fillStyle = ST.hole;
+  ctx.fillStyle = 'rgba(40,20,5,.4)';
   bp(ctx);
-  K === 'C' ? ctx.ellipse(x, y + r * 0.22, r * 1.1, r * 0.9, 0, 0, TAU) : ctx.arc(x + r * 0.12, y + r * 0.2, r * 1.12, 0, TAU);
+  ctx.arc(x + r * 0.12, y + r * 0.2, r * 1.12, 0, TAU);
   ctx.fill();
   if (o.key) {
     ctx.strokeStyle = '#ffd34d';
@@ -2151,43 +2138,22 @@ function drawScrew(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
     ctx.arc(x, y, r * 1.3, 0, TAU);
     ctx.stroke();
   }
-  if (K === 'C') {
-    // 🎨 S053 C 산뜻: 흰 스티커 테 + 평면 머리
-    ctx.fillStyle = '#ffffff';
-    bp(ctx);
-    ctx.arc(x, y, r * 1.18, 0, TAU);
-    ctx.fill();
-    ctx.fillStyle = c;
-    bp(ctx);
-    ctx.arc(x, y, r, 0, TAU);
-    ctx.fill();
-    drawMark(ctx, x, y, r * 0.5, col, rot + 0.4, ink, max(1.6, r * 0.24));
-  } else {
-    if (K === 'D') {
-      // 🎨 S053 D 블록: 육각 플라스틱 볼트
-      ctx.fillStyle = mix(c, '#000000', 0.28);
-      bp(ctx);
-      for (let j = 0; j < 6; j++) ctx.lineTo(x + cos(rot + (j * PI) / 3) * r * 1.16, y + sin(rot + (j * PI) / 3) * r * 1.16);
-      ctx.fill();
-    }
-    const rh = K === 'D' ? r * 0.92 : r, cl = K === 'B' ? '#3a2010' : '#000000', g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, rh);
-    g.addColorStop(0, mix(c, '#ffffff', K === 'B' ? 0.3 : K === 'D' ? 0.75 : 0.65));
-    g.addColorStop(K === 'B' ? 0.6 : K === 'D' ? 0.35 : 0.45, c);
-    g.addColorStop(1, mix(c, cl, K === 'B' ? 0.22 : K === 'D' ? 0.22 : 0.38));
-    ctx.fillStyle = g;
-    bp(ctx);
-    ctx.arc(x, y, rh, 0, TAU);
-    ctx.fill();
-    ctx.strokeStyle = mix(c, cl, K === 'A' ? 0.5 : 0.4);
-    ctx.lineWidth = max(1, r * (K === 'B' ? 0.14 : K === 'D' ? 0.08 : 0.1));
-    ctx.stroke();
-    if (K === 'B') drawMark(ctx, x + r * 0.06, y + r * 0.08, r * 0.5, col, rot + 0.4, 'rgba(255,255,255,.35)', max(1.6, r * 0.2)); // 🎨 S053 B: 파낸 홈의 아랫입술 빛
-    drawMark(ctx, x, y, r * 0.5, col, rot + 0.4, ink, max(1.6, r * 0.2));
-    ctx.fillStyle = K === 'B' ? 'rgba(255,255,255,.28)' : K === 'D' ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.55)';
-    bp(ctx);
-    K === 'B' ? ctx.ellipse(x - r * 0.3, y - r * 0.38, r * 0.36, r * 0.24, -0.6, 0, TAU) : K === 'D' ? ctx.arc(x - r * 0.38, y - r * 0.42, r * 0.16, 0, TAU) : ctx.ellipse(x - r * 0.35, y - r * 0.45, r * 0.28, r * 0.15, -0.6, 0, TAU);
-    ctx.fill();
-  }
+  const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r);
+  g.addColorStop(0, mix(c, '#ffffff', 0.65));
+  g.addColorStop(0.45, c);
+  g.addColorStop(1, mix(c, '#000000', 0.38));
+  ctx.fillStyle = g;
+  bp(ctx);
+  ctx.arc(x, y, r, 0, TAU);
+  ctx.fill();
+  ctx.strokeStyle = mix(c, '#000000', 0.5);
+  ctx.lineWidth = max(1, r * 0.1);
+  ctx.stroke();
+  drawMark(ctx, x, y, r * 0.5, col, rot + 0.4, 'rgba(30,20,10,.65)', max(1.6, r * 0.2));
+  ctx.fillStyle = 'rgba(255,255,255,.55)';
+  bp(ctx);
+  ctx.ellipse(x - r * 0.35, y - r * 0.45, r * 0.28, r * 0.15, -0.6, 0, TAU);
+  ctx.fill();
   if (o.hot) {
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2.5;
@@ -2337,20 +2303,20 @@ function drawHammerHead(ctx: CanvasRenderingContext2D, P: Src, R: (r: number) =>
 function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: { cx: number; cy: number; a: number }, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, t: number) {
   const L = s.L, P = L.pl[k], S = s.S, pv = s.pv[k];
   const glass = P.kind === 'glass';
-  const lift = pv.fall ? 1.6 : 1, tone = tn(P.tone), dk = ST.k === 'B' ? '#3a2010' : '#000000'; // ✏️ S053 🎨 스타일: 판자 색 · 그늘 색
+  const lift = pv.fall ? 1.6 : 1;
   // 판 위 그림자
   ctx.save();
-  ctx.translate(X(tr.cx) + R(ST.po[0]) * lift, Y(tr.cy) + R(ST.po[1]) * lift);
+  ctx.translate(X(tr.cx) + R(0.012) * lift, Y(tr.cy) + R(0.017) * lift);
   ctx.rotate(tr.a);
-  ctx.fillStyle = glass ? 'rgba(40,60,80,.12)' : ST.ps;
+  ctx.fillStyle = glass ? 'rgba(40,60,80,.12)' : 'rgba(50,25,5,.3)';
   plankPath(ctx, P, R);
   ctx.fill();
   ctx.restore();
   // 두께 (옆면)
   ctx.save();
-  ctx.translate(X(tr.cx) + R(ST.sd[0]), Y(tr.cy) + R(ST.sd[1]));
+  ctx.translate(X(tr.cx) + R(0.004), Y(tr.cy) + R(0.008));
   ctx.rotate(tr.a);
-  ctx.fillStyle = glass ? 'rgba(150,200,230,.2)' : mix(tone, dk, ST.sd[2]); // 🎨 S020: 유리 옆면 .45 → .2 — 앞면과 겹쳐 밑 모자 색을 60% 씻어냈다
+  ctx.fillStyle = glass ? 'rgba(150,200,230,.2)' : mix(P.tone, '#000000', 0.4); // 🎨 S020: 유리 옆면 .45 → .2 — 앞면과 겹쳐 밑 모자 색을 60% 씻어냈다
   plankPath(ctx, P, R);
   ctx.fill();
   ctx.restore();
@@ -2379,66 +2345,37 @@ function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: {
     ctx.fillStyle = 'rgba(255,255,255,.5)';
     ctx.fillRect(-hx * 0.8, -hy + R(0.012), hx * 1.6, R(0.007));
   } else {
-    const [fw, fm, fb] = ST.fg, g = ST.k === 'D' ? ctx.createLinearGradient(0, -hy, 0, hy) : ctx.createLinearGradient(-hx * 0.3, -hy, hx * 0.3, hy);
-    g.addColorStop(0, mix(tone, '#ffffff', fw));
-    g.addColorStop(fm, tone);
-    g.addColorStop(1, mix(tone, dk, fb));
+    const g = ctx.createLinearGradient(-hx * 0.3, -hy, hx * 0.3, hy);
+    g.addColorStop(0, mix(P.tone, '#ffffff', 0.28));
+    g.addColorStop(0.5, P.tone);
+    g.addColorStop(1, mix(P.tone, '#000000', 0.16));
     plankPath(ctx, P, R);
-    if (P.parts && ST.ed[0]) (ctx.strokeStyle = mix(tone, dk, ST.ed[1])), (ctx.lineWidth = 2.4), ctx.stroke(); // 🎨 §2: 조각 몸통은 테두리를 먼저 2배로 — 앞면이 안쪽 반과 이음매를 덮는다
+    if (P.parts) (ctx.strokeStyle = mix(P.tone, '#000000', 0.45)), (ctx.lineWidth = 2.4), ctx.stroke(); // 🎨 §2: 조각 몸통은 테두리를 먼저 2배로 — 앞면이 안쪽 반과 이음매를 덮는다
     ctx.fillStyle = g;
     ctx.fill();
     ctx.save();
     ctx.clip();
-    if (!ST.tx) {
-      // 나뭇결
-      ctx.strokeStyle = mix(tone, '#5a3410', 0.35);
-      ctx.globalAlpha = 0.28;
-      ctx.lineWidth = 1;
-      const nl = max(2, round(hy / R(0.018)));
-      for (let j = 0; j < nl; j++) {
-        const yy = -hy + ((j + 0.5) * 2 * hy) / nl;
-        bp(ctx);
-        for (let xx = -hx; xx <= hx + 1; xx += max(4, hx / 8)) ctx.lineTo(xx, yy + sin(xx / R(0.03) + j * 2 + k) * R(0.004));
-        ctx.stroke();
-      }
-    } else if (ST.tx === 1) {
-      // 🎨 S053 B 클레이: 베개 엠보스(안쪽 그늘 · 빛) + 엄지 지문 하나
-      for (const [ox, oy, lw, c, a] of [[0.005, 0.006, 0.02, mix(tone, dk, 0.4), 0.55], [-0.004, -0.005, 0.012, '#ffffff', 0.42]] as const) {
-        ctx.save();
-        ctx.translate(R(ox), R(oy));
-        ctx.globalAlpha = a;
-        ctx.strokeStyle = c;
-        ctx.lineWidth = R(lw);
-        plankPath(ctx, P, R);
-        ctx.stroke();
-        ctx.restore();
-      }
-      if (hx > R(0.04) && hy > R(0.02)) {
-        const lx = (hsh(k * 7) - 0.5) * hx * 0.9, ly = (hsh(k * 7 + 1) - 0.5) * hy * 0.9;
-        ctx.strokeStyle = mix(tone, '#000000', 0.3);
-        ctx.globalAlpha = 0.35;
-        ctx.lineWidth = 1;
-        for (const rr of [0.008, 0.013, 0.018]) (bp(ctx), ctx.arc(lx, ly, R(rr), hsh(k) * TAU, hsh(k) * TAU + 2.2), ctx.stroke());
-      }
-    } else if (ST.tx === 3) {
-      // 🎨 S053 D 블록: 얼굴 돌기 격자 + 반사 줄
-      ctx.globalAlpha = 0.5;
-      for (let xx = -hx + R(0.0225); xx < hx; xx += R(0.045)) for (let yy = -hy + R(0.0225); yy < hy; yy += R(0.045)) stud(ctx, xx, yy, R(0.0085), tone);
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = 'rgba(255,255,255,.5)';
-      ctx.fillRect(-hx + R(0.012), -hy + R(0.006), 2 * hx - R(0.024), R(0.007));
+    // 나뭇결
+    ctx.strokeStyle = mix(P.tone, '#5a3410', 0.35);
+    ctx.globalAlpha = 0.28;
+    ctx.lineWidth = 1;
+    const nl = max(2, round(hy / R(0.018)));
+    for (let j = 0; j < nl; j++) {
+      const yy = -hy + ((j + 0.5) * 2 * hy) / nl;
+      bp(ctx);
+      for (let xx = -hx; xx <= hx + 1; xx += max(4, hx / 8)) ctx.lineTo(xx, yy + sin(xx / R(0.03) + j * 2 + k) * R(0.004));
+      ctx.stroke();
     }
     ctx.globalAlpha = 1;
     drawDeco(ctx, P, R, t, k);
     ctx.restore();
     // 모서리 빛
-    ctx.strokeStyle = `rgba(255,255,255,${ST.rim})`;
+    ctx.strokeStyle = 'rgba(255,255,255,.35)';
     ctx.lineWidth = 1.5;
     bp(ctx);
     if (!P.parts) ctx.roundRect(-hx + 1.5, -hy + 1.5, hx * 2 - 3, hy * 2 - 3, max(0, R(P.rr) - 1.5)); // 조각 몸통의 모서리 빛은 🎨 M2 문법대로(S010)
-    if (ST.rim) ctx.stroke();
-    if (ST.k === 'B') ctx.translate((hsh(k + ((t / 6) | 0)) - 0.5) * 1.6, (hsh(k + 50 + ((t / 6) | 0)) - 0.5) * 1.6); // 🎨 S053 B: 스톱모션 끓는 테두리
-    if (!P.parts && ST.ed[0]) (ctx.strokeStyle = mix(tone, dk, ST.ed[1])), (ctx.lineWidth = ST.ed[0]), (ctx.lineJoin = 'round'), plankPath(ctx, P, R), ctx.stroke();
+    ctx.stroke();
+    if (!P.parts) (ctx.strokeStyle = mix(P.tone, '#000000', 0.45)), (ctx.lineWidth = 1.2), plankPath(ctx, P, R), ctx.stroke();
   }
   if (P.ham) drawHammerHead(ctx, P, R, t, k, s);
   if (P.heavy) {
@@ -3091,18 +3028,18 @@ function drawTray(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   ctx.roundRect(x0 + 3, y0 + 5, x1 - x0, y1 - y0, R(0.03));
   ctx.fill();
   const g = ctx.createLinearGradient(0, y0, 0, y1);
-  g.addColorStop(0, ST.tray[0]);
-  g.addColorStop(1, ST.tray[1]);
+  g.addColorStop(0, '#c9ced6');
+  g.addColorStop(1, '#7c838e');
   ctx.fillStyle = g;
   bp(ctx);
   ctx.roundRect(x0, y0, x1 - x0, y1 - y0, R(0.03));
   ctx.fill();
-  ctx.strokeStyle = danger === 2 ? '#ff6a5a' : danger ? '#ffb85a' : ST.k === 'C' ? 'rgba(91,100,136,.55)' : 'rgba(255,255,255,.5)'; // 🧪 S053 🔴: C 빈칸 줄 대비
-  ctx.lineWidth = danger ? 2.5 : ST.k === 'C' ? 1.5 : 1.2;
+  ctx.strokeStyle = danger === 2 ? '#ff6a5a' : danger ? '#ffb85a' : 'rgba(255,255,255,.5)';
+  ctx.lineWidth = danger ? 2.5 : 1.2;
   ctx.stroke();
   for (let i = 0; i < SLOTS; i++) {
     const [sx, sy] = slotXY(i);
-    ctx.fillStyle = ST.slot[i === SLOTS - 1 ? 1 : 0];
+    ctx.fillStyle = i === SLOTS - 1 ? 'rgba(120,20,10,.55)' : 'rgba(30,30,40,.55)';
     bp(ctx);
     ctx.arc(X(sx), Y(sy), R(0.034), 0, TAU);
     ctx.fill();
@@ -3115,17 +3052,17 @@ function drawTray(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   for (const v of s.vs) if (t >= v.at) drawScrew(ctx, X(v.x), Y(TRAY_Y), R(SR) * 0.95, v.col, 0, { t });
   font(0.03, 800);
   ctx.textAlign = 'right';
-  ctx.fillStyle = danger === 2 ? '#ffb4a8' : ST.lab;
+  ctx.fillStyle = danger === 2 ? '#ffb4a8' : 'rgba(255,240,215,.75)';
   ctx.fillText('빈칸', x0 - R(0.012), Y(TRAY_Y) + R(0.011));
   ctx.textAlign = 'left';
   ctx.fillText(`${min(n, 5)}/5`, x1 + R(0.012), Y(TRAY_Y) + R(0.011)); // 🧪 S007: 태엽이 한꺼번에 넘쳐도 '11/5' 대신 5/5
 }
 
 function drawBench(ctx: CanvasRenderingContext2D, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, w: number, h: number) {
-  const top = Y(1.19), front = Y(1.245), K = ST.k, B = ST.bench;
+  const top = Y(1.19), front = Y(1.245);
   const g = ctx.createLinearGradient(0, top, 0, front);
-  g.addColorStop(0, B[0]);
-  g.addColorStop(1, B[1]);
+  g.addColorStop(0, '#d9a96c');
+  g.addColorStop(1, '#b98450');
   ctx.fillStyle = g;
   bp(ctx);
   ctx.moveTo(-5, front);
@@ -3136,30 +3073,16 @@ function drawBench(ctx: CanvasRenderingContext2D, X: (x: number) => number, Y: (
   ctx.fill();
   ctx.strokeStyle = 'rgba(120,70,30,.3)';
   ctx.lineWidth = 1;
-  if (K === 'A') for (let k = 1; k < 4; k++) (bp(ctx), ctx.moveTo(X(0.02 + k * 0.24) - 4, top), ctx.lineTo(X(k * 0.25) - 8 + k * 2, front), ctx.stroke());
-  // 톱밥·대팻밥(A) · 점토 부스러기(B) · 작은 블록 5개(D) · 없음(C) — ✏️ S053 🎨
-  for (let k = 0; k < (K === 'C' ? 0 : K === 'D' ? 5 : 10); k++) {
-    const bx = X(0.25 + hsh(k + 3) * 0.7), by = Y(1.205 + hsh(k + 9) * 0.03);
-    if (K === 'D') {
-      ctx.save();
-      ctx.translate(X(0.3 + k * 0.11), by);
-      ctx.rotate(hsh(k) * 0.6 - 0.3);
-      ctx.fillStyle = COLS[k % 6];
-      ctx.fillRect(-R(0.03), -R(0.0075), R(0.06), R(0.015));
-      for (const q of [-0.015, 0.015]) stud(ctx, R(q), -R(0.0075), R(0.006), COLS[k % 6]);
-      ctx.restore();
-      continue;
-    }
-    ctx.fillStyle = K === 'B' ? mix(COLS[k % 6], '#ffffff', 0.2) : `rgba(255,235,190,${0.35 + 0.3 * hsh(k)})`;
-    ctx.globalAlpha = K === 'B' ? 0.6 : 1;
+  for (let k = 1; k < 4; k++) (bp(ctx), ctx.moveTo(X(0.02 + k * 0.24) - 4, top), ctx.lineTo(X(k * 0.25) - 8 + k * 2, front), ctx.stroke());
+  // 톱밥·대팻밥
+  for (let k = 0; k < 10; k++) {
+    ctx.fillStyle = `rgba(255,235,190,${0.35 + 0.3 * hsh(k)})`;
     bp(ctx);
-    K === 'B' ? ctx.arc(bx, by, R(0.005 + 0.004 * hsh(k)), 0, TAU) : ctx.ellipse(bx, by, R(0.008 + 0.006 * hsh(k)), R(0.003), hsh(k) * 3, 0, TAU);
+    ctx.ellipse(X(0.25 + hsh(k + 3) * 0.7), Y(1.205 + hsh(k + 9) * 0.03), R(0.008 + 0.006 * hsh(k)), R(0.003), hsh(k) * 3, 0, TAU);
     ctx.fill();
-    ctx.globalAlpha = 1;
   }
   // 연필
   ctx.save();
-  if (K === 'C' || K === 'D') ctx.globalAlpha = 0;
   ctx.translate(X(0.83), Y(1.222));
   ctx.rotate(-0.12);
   ctx.fillStyle = '#ffcf3a';
@@ -3172,12 +3095,12 @@ function drawBench(ctx: CanvasRenderingContext2D, X: (x: number) => number, Y: (
   ctx.fill();
   ctx.restore();
   const fg = ctx.createLinearGradient(0, front, 0, h);
-  fg.addColorStop(0, B[2]);
-  fg.addColorStop(1, B[3]);
+  fg.addColorStop(0, '#8a5a32');
+  fg.addColorStop(1, '#4a2c16');
   ctx.fillStyle = fg;
   ctx.fillRect(-5, front, w + 10, h - front + 5);
   ctx.strokeStyle = 'rgba(0,0,0,.2)';
-  if (K === 'A') for (let k = 0; k < 5; k++) {
+  for (let k = 0; k < 5; k++) {
     bp(ctx);
     for (let x = 0; x <= 1.01; x += 0.05) ctx.lineTo(X(x), front + (k + 0.6) * ((h - front) / 5) + sin(x * 8 + k) * 2);
     ctx.stroke();
@@ -3188,7 +3111,7 @@ function drawBench(ctx: CanvasRenderingContext2D, X: (x: number) => number, Y: (
 
 function drawHamster(ctx: CanvasRenderingContext2D, x: number, y: number, u: number, s: ShopState, t: number) {
   const mood = s.mood, age = t - s.moodT;
-  const [fur, belly, hat, brim] = ST.ham, dk = '#7a4a22'; // ✏️ S053 🎨 스타일
+  const fur = '#eaa45a', belly = '#fff1d8', dk = '#7a4a22';
   let bob = sin(t * 0.08) * u * 0.015, tilt = 0, jump = 0;
   if (mood === 'wow') jump = max(0, sin(min(1, age / 14) * PI)) * u * 0.12;
   if (mood === 'cheer') jump = abs(sin(age * 0.18)) * u * 0.12;
@@ -3315,11 +3238,11 @@ function drawHamster(ctx: CanvasRenderingContext2D, x: number, y: number, u: num
     ctx.stroke();
   }
   // 안전모
-  ctx.fillStyle = hat;
+  ctx.fillStyle = '#ffc61a';
   bp(ctx);
   ctx.ellipse(0, hy0 - u * 0.13, u * 0.22, u * 0.15, 0, PI, 0);
   ctx.fill();
-  ctx.fillStyle = brim;
+  ctx.fillStyle = '#e8a800';
   bp(ctx);
   ctx.roundRect(-u * 0.27, hy0 - u * 0.14, u * 0.54, u * 0.05, u * 0.02);
   ctx.fill();
@@ -3367,15 +3290,15 @@ function drawBird(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   bp(ctx);
   ctx.ellipse(0, u * 0.36 + fly * R(0.1) + hop, u * 0.5, u * 0.12, 0, 0, TAU);
   ctx.fill();
-  ctx.fillStyle = ST.bird[0];
+  ctx.fillStyle = '#8a5a3a';
   bp(ctx);
   ctx.ellipse(0, 0, u * 0.5, u * 0.38, 0, 0, TAU);
   ctx.fill();
-  ctx.fillStyle = ST.bird[1];
+  ctx.fillStyle = '#f3e2c4';
   bp(ctx);
   ctx.ellipse(u * 0.1, u * 0.1, u * 0.3, u * 0.22, 0, 0, TAU);
   ctx.fill();
-  ctx.fillStyle = ST.bird[2];
+  ctx.fillStyle = '#6b4020';
   const wing = fly > 0 ? sin(t * 0.8) * 0.8 : 0;
   ctx.save();
   ctx.translate(-u * 0.1, -u * 0.05);
@@ -3384,7 +3307,7 @@ function drawBird(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   ctx.ellipse(-u * 0.15, 0, u * 0.3, u * 0.15, 0, 0, TAU);
   ctx.fill();
   ctx.restore();
-  ctx.fillStyle = ST.bird[0];
+  ctx.fillStyle = '#8a5a3a';
   bp(ctx);
   ctx.arc(u * 0.35, -u * 0.3, u * 0.22, 0, TAU);
   ctx.fill();
@@ -3415,7 +3338,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
   /** ✏️ S024: 가장 긴 글이 mw를 넘으면 그만큼 글자를 줄인다(칩 · 배우기 줄 · 결과) */
   const fit = (sz: number, wgt: number, mw: number, ...tx: string[]) => { font(sz, wgt); const m = max(...tx.map((x) => ctx.measureText(x).width)); if (m > mw) ctx.font = `${wgt} ${max(10, (max(12, R(sz)) * mw) / m)}px system-ui, sans-serif`; };
   const hb = R(0.068);
-  ctx.fillStyle = ST.hud;
+  ctx.fillStyle = 'rgba(25,15,8,.82)';
   ctx.fillRect(0, 0, w, hb);
   font(0.04, 900);
   ctx.textAlign = 'left';
