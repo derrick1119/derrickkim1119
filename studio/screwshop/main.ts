@@ -30,7 +30,7 @@ pick.hidden = true;
 pick.setAttribute('role', 'dialog');
 pick.setAttribute('aria-label', '판 고르기');
 // ✏️ S053 🎨 그래픽 스타일 고르기(오너 11-17 "다양한 버전으로"): 타이틀의 '판 고르기' 위 버튼 4개(A 나무 · B 클레이 · C 산뜻 · D 블록)
-//   ?style=a~d가 저장보다 먼저 · 고르면 오버레이가 1.5초 걷혀 뒤의 판이 그 스타일로 보인다 · ←/→로 옮기고 스페이스로 고름
+//   ?style=a~d가 저장보다 먼저 · 고르면 오버레이가 3초 걷혀 뒤의 판이 그 스타일로 보인다 · ←/→로 옮기고 스페이스로 고름
 const styleBox = document.createElement('div');
 styleBox.className = 'g-style';
 styleBox.setAttribute('role', 'radiogroup');
@@ -41,12 +41,12 @@ function useStyle(i: number, look = false) {
   const st = setStyle(STYLES[i]?.k ?? 'A'), k = STYLES.indexOf(st);
   store.set('style', k);
   document.documentElement.style.background = st.page;
-  styleBox.innerHTML = STYLES.map((x, j) => `<button type="button" role="radio" aria-checked="${j === k}" tabindex="${j === k ? 0 : -1}" data-s="${j}"><i>${x.k}</i>${x.nm}</button>`).join('');
+  styleBox.innerHTML = '<b>🎨 그림 스타일 — 눌러서 미리 보기</b>' + STYLES.map((x, j) => `<button type="button" role="radio" aria-checked="${j === k}" tabindex="${j === k ? 0 : -1}" data-s="${j}"><i>${x.k}</i>${x.nm}</button>`).join('');
   if (look) {
-    (styleBox.children[k] as HTMLElement).focus({ preventScroll: true });
+    (styleBox.children[k + 1] as HTMLElement).focus({ preventScroll: true });
     overlay.classList.add('peek');
     clearTimeout(peekT);
-    peekT = window.setTimeout(() => overlay.classList.remove('peek'), 1500);
+    peekT = window.setTimeout(() => overlay.classList.remove('peek'), 3000); // 🧪 S053 🟡③: 1.5 → 3초
   }
   draw();
 }

@@ -1426,8 +1426,8 @@ export interface Style { k: string; nm: string; page: string; wall: string[]; wl
 const six = (c: string) => [c, c, c, c, c, c];
 export const STYLES: Style[] = [
   { k: 'A', nm: '🪵 나무', page: '#3a2a20', wall: ['#2c1f18', '#3f2c20', '#2a1c14'], wl: 0.25, gl: '255,214,150', ga: 0.42, mote: 18, vg: 'rgba(10,5,0,.35)', bd: ['#f3dfba', '#ead1a4', '#d9b98a'], bs: '#b98c5a', bsh: ['rgba(0,0,0,.35)', 0.016], be: 'rgba(110,70,30,.55)', tx: 0, tn: ['#ffffff', 0], ps: 'rgba(50,25,5,.3)', po: [0.012, 0.017], sd: [0.004, 0.008, 0.4], fg: [0.28, 0.5, 0.16], rim: 0.35, ed: [1.2, 0.45], col: COLS.slice(), ink: six('rgba(30,20,10,.65)'), hole: 'rgba(40,20,5,.4)', tray: ['#c9ced6', '#7c838e'], slot: ['rgba(30,30,40,.55)', 'rgba(120,20,10,.55)'], shelf: ['#c9965e', '#8a5a32'], bench: ['#d9a96c', '#b98450', '#8a5a32', '#4a2c16'], lab: 'rgba(255,240,215,.75)', hud: 'rgba(25,15,8,.82)', dust: '#e9d3a6', ham: ['#eaa45a', '#fff1d8', '#ffc61a', '#e8a800'], bird: ['#8a5a3a', '#f3e2c4', '#6b4020'] },
-  { k: 'B', nm: '🧸 클레이', page: '#4e3a30', wall: ['#9b8778', '#7d6a5d', '#5f4f45'], wl: 0, gl: '255,236,210', ga: 0.3, mote: 0, vg: 'rgba(60,30,10,.22)', bd: ['#f7ebdc', '#efdcc6', '#e2c9ad'], bs: '#d9b796', bsh: ['rgba(70,40,20,.25)', 0.016], be: 'rgba(150,100,70,.45)', tx: 1, tn: ['#f6e7d3', 0.2], ps: 'rgba(70,40,20,.22)', po: [0.009, 0.014], sd: [0.003, 0.007, 0.32], fg: [0.16, 0.6, 0.1], rim: 0, ed: [1.6, 0.45], col: ['#e0524a', '#3f7fd9', '#f2c230', '#3aa865', '#9558cf', '#f4832e'], ink: six('rgba(50,25,10,.6)'), hole: 'rgba(70,40,20,.28)', tray: ['#e8cdb0', '#c49e7c'], slot: ['rgba(80,45,25,.35)', 'rgba(150,50,30,.45)'], shelf: ['#d79a74', '#b07050'], bench: ['#d39a72', '#b57a55', '#6e4434', '#3e261d'], lab: 'rgba(255,245,230,.85)', hud: 'rgba(60,35,22,.85)', dust: '#e7b393', ham: ['#e9a066', '#fbe9d2', '#ffc23a', '#e0a020'], bird: ['#9c6a4c', '#f6e6cf', '#7c4c30'] },
-  { k: 'C', nm: '✨ 산뜻', page: '#24285e', wall: ['#e4eaf7', '#d6def2', '#c3cfea'], wl: 0, gl: '', ga: 0, mote: 0, vg: '', bd: ['#ffffff', '#ffffff', '#ffffff'], bs: '', bsh: ['rgba(60,70,120,.14)', 0.022], be: '', tx: 2, tn: ['#ffffff', 0.38], ps: 'rgba(40,50,90,.14)', po: [0, 0.014], sd: [0, 0.007, 0.22], fg: [0, 0.5, 0], rim: 0, ed: [0, 0], col: ['#ff4d5e', '#2f7bff', '#ffcc1a', '#16c47f', '#9a5cff', '#ff8c1a'], ink: ['#fff', '#fff', '#6b4a00', '#fff', '#fff', '#fff'], hole: 'rgba(40,50,90,.16)', tray: ['#ffffff', '#ffffff'], slot: ['#e6ebf4', '#ffd9dc'], shelf: ['#ffffff', '#eef1f7'], bench: ['#ffffff', '#eef1f7', '#3b3f8f', '#24285e'], lab: '#5b6488', hud: 'rgba(35,40,90,.88)', dust: '#aab6cc', ham: ['#ffad4d', '#fff6ea', '#ffcf1a', '#f2b100'], bird: ['#a0755a', '#fff3e3', '#7a5440'] },
+  { k: 'B', nm: '🧸 클레이', page: '#4e3a30', wall: ['#9b8778', '#7d6a5d', '#5f4f45'], wl: 0, gl: '255,236,210', ga: 0.3, mote: 0, vg: 'rgba(60,30,10,.22)', bd: ['#f7ebdc', '#efdcc6', '#e2c9ad'], bs: '#d9b796', bsh: ['rgba(70,40,20,.25)', 0.016], be: 'rgba(150,100,70,.45)', tx: 1, tn: ['#f6e7d3', 0.2], ps: 'rgba(70,40,20,.22)', po: [0.009, 0.014], sd: [0.003, 0.007, 0.32], fg: [0.16, 0.6, 0.1], rim: 0, ed: [2.6, 0.5], col: ['#e0524a', '#3f7fd9', '#f2c230', '#3aa865', '#9558cf', '#f4832e'], ink: six('rgba(50,25,10,.6)'), hole: 'rgba(70,40,20,.28)', tray: ['#e8cdb0', '#c49e7c'], slot: ['rgba(80,45,25,.35)', 'rgba(150,50,30,.45)'], shelf: ['#d79a74', '#b07050'], bench: ['#d39a72', '#b57a55', '#6e4434', '#3e261d'], lab: 'rgba(255,245,230,.85)', hud: 'rgba(60,35,22,.85)', dust: '#e7b393', ham: ['#e9a066', '#fbe9d2', '#ffc23a', '#e0a020'], bird: ['#9c6a4c', '#f6e6cf', '#7c4c30'] },
+  { k: 'C', nm: '✨ 산뜻', page: '#24285e', wall: ['#e4eaf7', '#d6def2', '#c3cfea'], wl: 0, gl: '', ga: 0, mote: 0, vg: '', bd: ['#ffffff', '#ffffff', '#ffffff'], bs: '', bsh: ['rgba(60,70,120,.14)', 0.022], be: '', tx: 2, tn: ['#ffffff', 0.38], ps: 'rgba(40,50,90,.14)', po: [0, 0.014], sd: [0, 0.007, 0.22], fg: [0, 0.5, 0], rim: 0, ed: [0, 0], col: ['#ff4d5e', '#2f7bff', '#ffcc1a', '#16c47f', '#9a5cff', '#ff8c1a'], ink: ['#fff', '#fff', '#6b4a00', '#fff', '#fff', '#fff'], hole: 'rgba(40,50,90,.16)', tray: ['#ffffff', '#e9edf6'], slot: ['#b8c0d8', '#ffb8c0'], shelf: ['#ffffff', '#eef1f7'], bench: ['#ffffff', '#eef1f7', '#3b3f8f', '#24285e'], lab: '#5b6488', hud: 'rgba(35,40,90,.88)', dust: '#aab6cc', ham: ['#ffad4d', '#fff6ea', '#ffcf1a', '#f2b100'], bird: ['#a0755a', '#fff3e3', '#7a5440'] },
   { k: 'D', nm: '🧱 블록', page: '#132a54', wall: ['#24324f', '#1f2b45', '#1a2540'], wl: 0, gl: '200,225,255', ga: 0.22, mote: 0, vg: 'rgba(5,10,30,.3)', bd: ['#e9eef5', '#dfe6f0', '#cfd8e6'], bs: '#a9b6c8', bsh: ['rgba(0,0,0,.35)', 0.016], be: 'rgba(90,110,140,.6)', tx: 3, tn: ['#ffffff', 0.06], ps: 'rgba(10,20,50,.3)', po: [0.01, 0.016], sd: [0.006, 0.012, 0.32], fg: [0.3, 0.3, 0.1], rim: 0.45, ed: [1.4, 0.38], col: ['#e8312f', '#1f6fe0', '#ffd21f', '#1aa055', '#8a4fd8', '#ff7a1a'], ink: six('rgba(20,20,30,.6)'), hole: 'rgba(10,20,50,.35)', tray: ['#eef2f7', '#b9c3d1'], slot: ['rgba(20,30,60,.45)', 'rgba(140,30,40,.5)'], shelf: ['#c9d1dc', '#8e99a8'], bench: ['#ffd23f', '#f2b705', '#1f3f78', '#132a54'], lab: 'rgba(230,240,255,.8)', hud: 'rgba(12,25,55,.88)', dust: '#dfe6f0', ham: ['#f0a24e', '#fff4e0', '#ffd21f', '#e0a800'], bird: ['#9a6a48', '#f3e2c4', '#6b4020'] },
 ];
 export let ST = STYLES[0];
@@ -2403,7 +2403,7 @@ function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: {
       }
     } else if (ST.tx === 1) {
       // 🎨 S053 B 클레이: 베개 엠보스(안쪽 그늘 · 빛) + 엄지 지문 하나
-      for (const [ox, oy, lw, c, a] of [[0.004, 0.005, 0.016, mix(tone, dk, 0.35), 0.45], [-0.003, -0.004, 0.01, '#ffffff', 0.3]] as const) {
+      for (const [ox, oy, lw, c, a] of [[0.005, 0.006, 0.02, mix(tone, dk, 0.4), 0.55], [-0.004, -0.005, 0.012, '#ffffff', 0.42]] as const) {
         ctx.save();
         ctx.translate(R(ox), R(oy));
         ctx.globalAlpha = a;
@@ -2437,6 +2437,7 @@ function drawPlank(ctx: CanvasRenderingContext2D, s: ShopState, k: number, tr: {
     bp(ctx);
     if (!P.parts) ctx.roundRect(-hx + 1.5, -hy + 1.5, hx * 2 - 3, hy * 2 - 3, max(0, R(P.rr) - 1.5)); // 조각 몸통의 모서리 빛은 🎨 M2 문법대로(S010)
     if (ST.rim) ctx.stroke();
+    if (ST.k === 'B') ctx.translate((hsh(k + ((t / 6) | 0)) - 0.5) * 1.6, (hsh(k + 50 + ((t / 6) | 0)) - 0.5) * 1.6); // 🎨 S053 B: 스톱모션 끓는 테두리
     if (!P.parts && ST.ed[0]) (ctx.strokeStyle = mix(tone, dk, ST.ed[1])), (ctx.lineWidth = ST.ed[0]), (ctx.lineJoin = 'round'), plankPath(ctx, P, R), ctx.stroke();
   }
   if (P.ham) drawHammerHead(ctx, P, R, t, k, s);
@@ -3096,8 +3097,8 @@ function drawTray(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   bp(ctx);
   ctx.roundRect(x0, y0, x1 - x0, y1 - y0, R(0.03));
   ctx.fill();
-  ctx.strokeStyle = danger === 2 ? '#ff6a5a' : danger ? '#ffb85a' : ST.k === 'C' ? 'rgba(0,0,0,0)' : 'rgba(255,255,255,.5)';
-  ctx.lineWidth = danger ? 2.5 : 1.2;
+  ctx.strokeStyle = danger === 2 ? '#ff6a5a' : danger ? '#ffb85a' : ST.k === 'C' ? 'rgba(91,100,136,.55)' : 'rgba(255,255,255,.5)'; // 🧪 S053 🔴: C 빈칸 줄 대비
+  ctx.lineWidth = danger ? 2.5 : ST.k === 'C' ? 1.5 : 1.2;
   ctx.stroke();
   for (let i = 0; i < SLOTS; i++) {
     const [sx, sy] = slotXY(i);
