@@ -51,7 +51,7 @@ export class Juice {
   /** 떠오르는 글자 (+1, 연쇄!, 건설!) */
   pop(x: number, y: number, text: string, color = '#ffffff', size = 16, punch = false) {
     this.popups.push({ x, y, text, color, life: 50, size, punch });
-    if (this.popups.length > 30) this.popups.shift();
+    if (this.popups.length > 3) this.popups.shift(); // ✏️ S054(🎨 UI 정리): 떠오르는 글은 동시에 3개까지
   }
 
   /** 퍼져 나가는 충격파 고리 (0026) */
