@@ -322,8 +322,8 @@ const ITEM = {
   d: { kind: 'g', sim: 'd', name: '분신', desc: '가짜 몸을 세워 조준을 속여요 (대결 전용)', tile: '#cfe9ff' },
   m: { kind: 'g', sim: 'm', name: '자석', desc: '금속 탄을 네 발까지 붙잡았다가 되쏴요', tile: '#ff6b6b' },
   f: { kind: 'g', sim: 'f', name: '반사판', desc: '에너지 탄을 상대에게 돌려보내요', tile: '#e8eefc' },
-  e: { kind: 'g', sim: 'e', name: '전자기 펄스', desc: '2.5초마다 가까운 에너지 탄을 지워요', tile: '#b388ff' },
-  q: { kind: 'g', sim: 'h', name: '보호막', desc: '한 번 막아 주고 15초 뒤에 다시 켜져요', tile: '#9af7ff' },
+  e: { kind: 'g', sim: 'e', name: '전자기 펄스', desc: '2초마다 주변 에너지 탄을 지워요', tile: '#b388ff' },
+  q: { kind: 'g', sim: 'h', name: '보호막', desc: '한 번 막아 주고 18초 뒤에 다시 켜져요', tile: '#9af7ff' },
   p: { kind: 'g', sim: 'p', name: '수리 드론', desc: '7초 동안 안 맞으면 깨진 코어를 하나 고쳐요', tile: '#7dffb0' },
   n: { kind: 'g', sim: 'n', name: '지뢰 투척기', desc: '상대 발밑에 지뢰를 던져요', tile: '#ffa94d' },
 };
@@ -352,15 +352,15 @@ const SKILL = {
 const MOVE = {
   z: { name: '바퀴', desc: '가장 빠르게 튕겨 다녀요. 크게 돌아요', speed: 180, dodge: 125, turn: 6.5, lazy: 0.35 },
   d: { name: '호버', desc: '느리지만 좁은 틈을 잘 빠져나가요', speed: 100, dodge: 80, turn: 6, lazy: 0.3 },
-  c: { name: '점멸', desc: '튕기다가 2.5초마다 순간이동해요', speed: 130, dodge: 95, turn: 7, lazy: 0.4 },
+  c: { name: '점멸', desc: '튕기다가 3초마다 순간이동해요', speed: 130, dodge: 95, turn: 7, lazy: 0.4 },
 };
 const GADGET = { j: 1, g: 1, d: 1, m: 1, f: 1, e: 1, h: 1, p: 1, n: 1 };
 const DUEL = {
-  home: [96, 444], cores: 3, hitR: 7, body: 19, inv: 90, cap: 220, turn: 3, hsp: 1.3, gapMul: 1.4, lasTrim: 7, boltLead: 0.65,
+  home: [96, 444], cores: 3, hitR: 7, body: 19, inv: 90, cap: 220, turn: 3, hsp: 1.3, gapMul: 1.65, lasTrim: 8, lasAct: 0.7, boltLead: 0.65,
   heatFrom: 720, heatRate: 1.5, crushFrom: 1080, crushFull: 1620, crushX: 95, crushY: 150,
-  magPull: 300, magR: 130, magCap: 4, flingEvery: 120, shieldEvery: 900, healEvery: 420,
-  refW: 1.7, refSpin: 0.035, mineEvery: 160, mineR: 24, empEvery: 150, empR: 110,
-  blinkEvery: 150, turEvery: 40, decoyEvery: 380, decoyLife: 170, holeEvery: 300, holeLife: 230, holeR: 85, holeEat: 28, freeze: 100,
+  magPull: 300, magR: 130, magCap: 4, flingEvery: 120, shieldEvery: 1080, healEvery: 420,
+  refW: 1.7, refSpin: 0.035, mineEvery: 130, mineR: 24, empEvery: 120, empR: 140,
+  blinkEvery: 190, turEvery: 28, turV: 235, decoyEvery: 380, decoyLife: 170, holeEvery: 300, holeLife: 230, holeR: 80, holeEat: 32, holeAt: 40, holePull: 500, freeze: 120, frozen: 0.3,
   pickAt: [420, 1080], pickLife: 360, ocLife: 300, ocRate: 1.6,
 };
 const MAPS = { clear: '빈 경기장', cloudy: '화물 경기장', windy: '강풍 경기장', bumper: '범퍼 경기장' };
@@ -673,7 +673,7 @@ function fireDuel(d, m, c, i, k, t) {
     const tele = lv(p.tele, c.s);
     const offs = c.d === 1 ? [0] : c.d === 2 ? [0, (k % 2 ? -1 : 1) * 105] : [0, 105, -105];
     const lx = clamp(e.x + e.vx * tele * 0.9, 26, W - 26);
-    for (const o of offs) d.lasers.push({ x: 24 + ((((lx + o - 24) % (W - 48)) + (W - 48)) % (W - 48)), w: p.w, t: 0, tele, act: p.act, s: m.side, wy: clamp(e.y, 60, H - 60) });
+    for (const o of offs) d.lasers.push({ x: 24 + ((((lx + o - 24) % (W - 48)) + (W - 48)) % (W - 48)), w: p.w, t: 0, tele, act: p.act * DUEL.lasAct, s: m.side, wy: clamp(e.y, 60, H - 60) });
   } else if (c.t === 'b') {
     const tx = clamp(e.x + e.vx * p.fuse * 0.85, 26, W - 26), ty = clamp(e.y + e.vy * p.fuse * 0.85, 54, H - 54);
     addD(d, m, 'B', m.x, m.y, (tx - m.x) / p.fuse, (ty - m.y) / p.fuse, 9, { fuse: p.fuse, n: lv(p.n, c.d), fv: lv(p.v, c.s), tx, ty, rot: k * 0.4 });
@@ -705,7 +705,7 @@ function pilot(d, m, sp) {
   const x0 = d.wl + 26, x1 = W - d.wl - 26, y0 = d.wt + 21, y1 = H - d.wt - 21;
   let best = 1e9, bestA = cur, gx = 0, gt = 9;   // 다가오는 철벽이 있으면 가장 먼저 닿을 줄의 틈을 찾아 둔다
   for (const b of d.bullets) if (b.s !== m.side && b.gx !== undefined && b.vy) { const t = (m.y - b.y) / b.vy; if (t > 0.05 && t < gt) { gt = t; gx = b.gx; } }
-  const urge = gt < 2.4 ? 0.05 * (2.6 - gt) : 0;
+  const urge = gt < 2.4 ? 0.08 * (2.6 - gt) : 0;
   for (let hi = 0; hi < HEAD.length; hi++) {
     const a = cur + HEAD[hi], ux = Math.cos(a), uy = Math.sin(a);
     let sc = Math.abs(HEAD[hi]) * m.mv.lazy;
@@ -718,14 +718,14 @@ function pilot(d, m, sp) {
         if (dd < r1 * r1) sc += 4 * wg; else if (dd < (r1 + 13) * (r1 + 13)) sc += 0.8 * wg;
       }
       for (const l of d.lasers) if (l.s !== m.side && Math.abs(l.x - px) < l.w / 2 + 12) { const at = l.t + T; sc += (at >= l.tele - 0.06 && at < l.tele + l.act ? 5 : at < l.tele ? 0.4 : 0) * wg; }
-      for (const mn of d.mines) if (mn.s !== m.side) { const dx = mn.x - px, dy = mn.y - py; if (dx * dx + dy * dy < 900) sc += 4 * wg; }
+      for (const mn of d.mines) if (mn.s !== m.side) { const dx = mn.x - px, dy = mn.y - py; if (dx * dx + dy * dy < 729) sc += 2.5 * wg; }
     }
     if (sc < best) { best = sc; bestA = a; }
   }
   m.want = bestA;
 }
 function moveFighter(d, m) {
-  const sp = m.mv.speed * (1 + heatQ(d.tick) * 0.25) * (m.slowT > 0 ? 0.4 : 1);
+  const sp = m.mv.speed * (1 + heatQ(d.tick) * 0.25) * (m.slowT > 0 ? DUEL.frozen : 1);
   const x0 = d.wl + 26, x1 = W - d.wl - 26, y0 = d.wt + 21, y1 = H - d.wt - 21;
   if (m.kind === 'c') {
     m.blinkCd -= m.slowT > 0 ? 0.4 : 1;
@@ -808,7 +808,7 @@ function stepDuel(d) {
     if (m.decoy && --m.decoy.t <= 0) m.decoy = null;
     if (m.has.d && --m.decoyCd <= 0) { m.decoyCd = DUEL.decoyEvery; m.decoy = { x: wl + 40 + rnd(d) * (W - 2 * wl - 80), y: wt + 31 + rnd(d) * (H - 2 * wt - 62), vx: 0, vy: 0, t: DUEL.decoyLife }; emit(d, { k: 'decoy', x: m.decoy.x, y: m.decoy.y }); }
     if (m.has.g) {
-      const dx = e.x - m.x, dy = e.y - m.y, dd = Math.hypot(dx, dy) || 1, hx = clamp(m.x + dx / dd * 58, 30, W - 30), hy = clamp(m.y + dy / dd * 58, 50, H - 50);
+      const dx = e.x - m.x, dy = e.y - m.y, dd = Math.hypot(dx, dy) || 1, hx = clamp(m.x + dx / dd * DUEL.holeAt, 30, W - 30), hy = clamp(m.y + dy / dd * DUEL.holeAt, 50, H - 50);
       if (m.hole) { m.hole.x += (hx - m.hole.x) * 0.2; m.hole.y += (hy - m.hole.y) * 0.2; if (--m.hole.t <= 0) m.hole = null; }
       else if (--m.holeCd <= 0) { m.holeCd = DUEL.holeEvery; m.hole = { x: hx, y: hy, t: DUEL.holeLife }; emit(d, { k: 'hole', x: hx, y: hy }); }
     }
@@ -819,8 +819,8 @@ function stepDuel(d) {
     m.et += DT * (m.oc > 0 ? DUEL.ocRate : 1) * (1 + hq * (DUEL.heatRate - 1));
     for (let i = 0; i < cards.length; i++) { const e = m.em[i]; while (m.et >= e.next && d.tick < T_DUEL - 20) { fireDuel(d, m, cards[i], i, e.k++, e.next); e.next += intervalOf(cards[i]); } }
     if (m.has.j && --m.turCd <= 0 && d.tick < T_DUEL - 30) {
-      const e = aimAt(d, m), tp = turPos(m, d.tick), tx = tp[0], ty = tp[1], tt = Math.hypot(e.x - tx, e.y - ty) / 200 * 0.8, a = Math.atan2(e.y + e.vy * tt - ty, clamp(e.x + e.vx * tt, 26, W - 26) - tx);
-      addD(d, m, 'a', tx, ty, Math.cos(a) * 200, Math.sin(a) * 200, 5, { src: 'j' }); m.turCd = DUEL.turEvery;
+      const e = aimAt(d, m), tp = turPos(m, d.tick), tx = tp[0], ty = tp[1], tt = Math.hypot(e.x - tx, e.y - ty) / DUEL.turV * 0.8, a = Math.atan2(e.y + e.vy * tt - ty, clamp(e.x + e.vx * tt, 26, W - 26) - tx);
+      addD(d, m, 'a', tx, ty, Math.cos(a) * DUEL.turV, Math.sin(a) * DUEL.turV, 5, { src: 'j' }); m.turCd = DUEL.turEvery;
     }
     if (m.has.m && --m.flingCd <= 0) {
       m.flingCd = DUEL.flingEvery;
@@ -866,7 +866,7 @@ function stepDuel(d) {
     if (o.hole) {
       const dx = o.hole.x - b.x, dy = o.hole.y - b.y, dd = dx * dx + dy * dy;
       if (dd < DUEL.holeEat * DUEL.holeEat) { emit(d, { k: 'puff', x: b.x, y: b.y }); continue; }
-      if (dd < DUEL.holeR * DUEL.holeR) { const k2 = 900 * DT / Math.sqrt(dd); b.vx += dx * k2; b.vy += dy * k2; if (b.k === 'h') b.a = Math.atan2(b.vy, b.vx); }
+      if (dd < DUEL.holeR * DUEL.holeR) { const k2 = DUEL.holePull * DT / Math.sqrt(dd); b.vx += dx * k2; b.vy += dy * k2; if (b.k === 'h') b.a = Math.atan2(b.vy, b.vx); }
     }
     if (o.has.m && METAL[b.k] && o.cap < DUEL.magCap) {
       const dx = o.x - b.x, dy = o.y - b.y, dd = dx * dx + dy * dy;
@@ -2148,7 +2148,7 @@ function renderDuel(now) {
   const pals = [TEAM.foe, TEAM.me];
   drawBumps(g, d);
   drawMines(g, d);
-  for (const m of d.f) if (m.hole) drawHole(g, m.hole.x, m.hole.y, 1.45 * Math.min(1, m.hole.t / 20, (DUEL.holeLife - m.hole.t) / 12 + 0.3), pals[m.side].main, now, DUEL.holeR);
+  for (const m of d.f) if (m.hole) drawHole(g, m.hole.x, m.hole.y, 1.65 * Math.min(1, m.hole.t / 20, (DUEL.holeLife - m.hole.t) / 12 + 0.3), pals[m.side].main, now, DUEL.holeR);
   if (d.pick) {
     const pk = d.pick, bob = RM ? 0 : Math.sin(now * 5) * 2;
     g.strokeStyle = C.sun; g.globalAlpha = 0.5; g.lineWidth = 2; g.beginPath(); g.arc(pk.x, pk.y, 19 + (RM ? 0 : Math.sin(now * 6) * 2), 0, TAU); g.stroke(); g.globalAlpha = 1;
