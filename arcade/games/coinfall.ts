@@ -774,6 +774,8 @@ const DOLLS: DollLook[] = [
   { body: '#ffffff', dark: '#cfcfd8', belly: '#ffffff', ear: '#2a2a33', kind: 'panda', name: '판다' },
   { body: '#b9c2cf', dark: '#8a93a3', belly: '#e9edf3', ear: '#9aa3b3', kind: 'cat', name: '아기 고양이' },
 ];
+/** 릴 그림 수 줄에서 무지개가 그려진 자리 (스포트라이트용) */
+const wildAt = new WeakMap<object, number>();
 const mem = new WeakMap<object, { y: Map<number, number>; mv: Map<number, number>; say: { x: number; y: number; t: number }[] }>();
 
 function starPath(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
@@ -1329,7 +1331,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
     quad([[SX(0, py), SY(py) - R(ZP)], [SX(1, py), SY(py) - R(ZP)], [SX(1, py), SY(py)], [SX(0, py), SY(py)]]);
     ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,.9)';
-    font(0.034, 900);
+    font(0.037, 900);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(S.fever > 0 ? '⚡ 힘내! ⚡' : '▶ 밀대 ◀', X(0.5), SY(py) - R(ZP * 0.5));
@@ -1369,10 +1371,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
       ctx.ellipse(px, ry - R(0.022), pw * 1.1, R(0.009), 0, 0, TAU);
       ctx.fill();
       ctx.fillStyle = '#fff3c8';
-      font(0.03, 900);
+      font(0.036, 900);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('슬롯', px, ry + R(0.006));
+      ctx.fillText('슬롯', px, ry + R(0.008));
       for (let k = 0; k < 3; k++) {
         ctx.fillStyle = (t >> 3) % 3 === k ? '#fff6a0' : 'rgba(255,255,255,.35)';
         ctx.beginPath();
@@ -1473,7 +1475,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
       drawCoin(ctx, X(px), py, R(0.026), false, t, k + 99);
     }
     ctx.fillStyle = '#ffe9a8';
-    font(0.032, 900);
+    font(0.037, 900);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(`받은 동전 ${S.medals}${d.star3 === 'medal' ? ` / ${d.medal}` : ''}`, X(0.5), trayY + R(0.052));
@@ -1670,7 +1672,7 @@ function drawSlot(ctx: CanvasRenderingContext2D, s: CoinState, t: number, X: (x:
       ctx.roundRect(rx + rw / 2 - R(0.06), ry + rh - R(0.042), R(0.12), R(0.036), R(0.012));
       ctx.fill();
       ctx.fillStyle = '#ffffff';
-      font(0.032, 900);
+      font(0.035, 900);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('🔒 붙잡음', rx + rw / 2, ry + rh - R(0.023));
@@ -1717,7 +1719,7 @@ function drawSlot(ctx: CanvasRenderingContext2D, s: CoinState, t: number, X: (x:
   for (const x of d.reels) cnt.set(x, (cnt.get(x) ?? 0) + 1);
   const items = [...cnt.entries()];
   const hs = heldSym(s);
-  font(0.034, 900);
+  font(0.036, 900);
   ctx.textBaseline = 'middle';
   const label = hs >= 0 ? `남은 릴 ${d.reels.length}칸:` : `한 릴 ${d.reels.length}칸:`;
   const lw = ctx.measureText(label).width, iw = R(0.093), tw = lw + R(0.012) + items.length * iw, ly = Y(0.318);
@@ -1735,6 +1737,7 @@ function drawSlot(ctx: CanvasRenderingContext2D, s: CoinState, t: number, X: (x:
       ctx.fill();
     }
     drawSym(ctx, sym, cx + R(0.021), ly, R(0.042));
+    if (sym === R_) wildAt.set(s, cx + R(0.03));
     ctx.fillStyle = good ? '#ffffff' : '#5a1a08';
     font(0.036, 900);
     ctx.textAlign = 'left';
@@ -1755,7 +1758,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
   font(0.046, 900);
   const ttl = `${d.emoji} ${s.stage + 1}번째 판`, tw = ctx.measureText(ttl).width;
   ctx.fillText(ttl, R(0.03), hb * 0.52);
-  font(0.036, 800);
+  font(0.038, 800);
   ctx.fillStyle = th.muted;
   ctx.fillText(` / ${STAGE_COUNT}`, R(0.03) + tw, hb * 0.56);
   ctx.textAlign = 'right';
@@ -1772,7 +1775,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
     let cx = -1, cy = -1;
     const big = S.b.find((o) => (d.key === 'tower' ? o.k === TOWER : o.tg === 1));
     if (d.key === 'slot') (cx = SX(pocketX(s), RAIL_Y)), (cy = Y(RAIL_SY));
-    else if (d.key === 'wild') (cx = X(0.5)), (cy = Y(0.315));
+    else if (d.key === 'wild') (cx = wildAt.get(s) ?? X(0.5)), (cy = Y(0.318));
     else if (d.key === 'side') (cx = SX(s.flip ? 1 : 0, (s.L.h0 + D) / 2)), (cy = SY((s.L.h0 + D) / 2));
     else if (big) (cx = SX(big.x, big.y)), (cy = SY(big.y) - R(0.05));
     if (cx >= 0) {
@@ -1855,6 +1858,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
     } else if (cardUp) {
       a = Math.min(1, (CARD_T - s.pt) / 20);
       head = `${s.again ? '다시! ' : ''}${s.stage + 1}번째 판 · ${d.name}`;
+      if (d.news) lines.push({ text: d.news, col: '#9ff0ff' });
       for (const q of starLines(s)) lines.push({ text: q, col: '#fff6dc', mark: '★' });
       if (d.nstars === 1) lines.push({ text: '별은 다음 판부터 하나씩 늘어요', col: 'rgba(255,255,255,.65)' });
     }
@@ -1961,7 +1965,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
     // 별 조건 (짧은 말)
     const sl = starLines(s), done = starsNow(s);
     const bad = [false, d.keep > 0 && s.purse < d.keep, d.star3 === 'twin' && false];
-    font(0.033, 800);
+    font(0.036, 800);
     ctx.textAlign = 'left';
     let cx = X(0.03), r2 = Y(ty + 0.095);
     sl.forEach((q, k) => {
@@ -1995,7 +1999,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
     else hint = d.pocket ? '구멍이 손가락 밑에 올 때 떼면 슬롯, 비켜 있을 때 떼면 선반' : '인형 바로 뒤에 떨구면 인형이 밀려요';
     ctx.textAlign = 'center';
     ctx.fillStyle = first ? '#ffffff' : '#ffe9a8';
-    font(first ? 0.04 : 0.034, 900);
+    font(first ? 0.04 : 0.036, 900);
     ctx.fillText(hint, w / 2, Math.max(Y(ty + 0.165), r2 + R(0.058)), w - R(0.05));
   }
 }
