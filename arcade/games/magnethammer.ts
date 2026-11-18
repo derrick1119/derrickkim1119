@@ -170,7 +170,7 @@ export interface MagState {
   hearts: number; stars: number; got: number; starOk: boolean[]; pts: number; ok: boolean; why: string; won: boolean; dead: boolean; tries: number; again: boolean;
   freeze: number; slow: number; shield: number;
   seen: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; events: Ev[]; eid: number;
-  firstPressT: number; firstBigT: number; log: LogRow[];
+  firstPressT: number; firstBigT: number; log: LogRow[]; stagePress: number;
 }
 
 const ev = (s: MagState, kind: string, x: number, y: number, n?: number, text?: string) => s.events.push({ id: ++s.eid, t: s.t, kind, x, y, n, text });
@@ -237,6 +237,7 @@ function newStage(s: MagState) {
   s.knocked = 0;
   s.starOk = [false, false, false];
   s.shield = s.stage === 0 ? SHIELD_T : 0;
+  s.stagePress = s.presses;
   s.drums = (d.drums ?? []).map(([x, y]) => ({ x: fx(x), y, fuse: 0, gone: false, tid: 0 }));
   // 로봇 둘레(첫 꾹에 바로 빨려 오는 거리)와 마당 여기저기에 고철
   for (let k = 0; k < d.near; k++) {
@@ -409,7 +410,7 @@ function knock(s: MagState, f: Foe, vx: number, vy: number, tid: number, dmg: nu
   s.freeze = Math.max(s.freeze, n >= 3 ? 3 : 2);
   if (n >= 4) s.slow = Math.max(s.slow, 26);
   if (n >= 3 && s.firstBigT < 0) s.firstBigT = s.t;
-  ev(s, 'knock', f.x, f.y, n, src);
+  ev(s, 'knock', f.x, f.y, tid > 0 ? n : 0, src);
   if (src === 'roll') see(s, 'chain', '쓰러진 로봇이 옆 로봇도 넘어뜨려요!');
   return true;
 }
@@ -569,9 +570,11 @@ function scrapStep(s: MagState) {
       c.y += c.vy;
       c.rot += 0.25;
       if (d < br * 0.95 + SR[c.k] * 0.5) {
+        // 공 표면에 고르게(R2 수열) 붙는다 — 한쪽에서 온 고철도 공 전체를 덮는다
+        const idx = s.scraps.reduce((a, q) => a + (q.st === STUCK ? 1 : 0), 0);
         c.st = STUCK;
-        c.a = Math.atan2(c.y - s.ry, c.x - s.rx) - s.bRot;
-        c.e = (s.rng() - 0.5) * 1.5;
+        c.a = ((idx * 0.7548776662 + 0.5) % 1) * Math.PI * 2 - s.bRot;
+        c.e = Math.asin(((idx * 0.569840291 + 0.5) % 1) * 1.8 - 0.9);
         c.rr = br - SR[c.k] * 0.2;
         load += WT[c.k];
         br = BR(load);
@@ -884,7 +887,7 @@ export const magnethammer: GameDef<MagState> = {
       hearts: 3, stars: 0, got: 0, starOk: [false, false, false], pts: 0, ok: false, why: '', won: false, dead: false, tries: 0, again: false,
       freeze: 0, slow: 0, shield: 0,
       seen: new Set<string>(), newsQ: [], news: null, events: [], eid: 0,
-      firstPressT: -1, firstBigT: -1, log: [],
+      firstPressT: -1, firstBigT: -1, log: [], stagePress: 0,
     } as MagState;
     newStage(s);
     return s;
@@ -1317,7 +1320,52 @@ function text(ctx: C2, t: string, x: number, y: number, px: number, col: string,
 }
 
 /** 고철 한 조각: 나사·캔·톱니·스프링·큰 덩어리 (r = 화면 반지름 px) */
+const FLAT = [['#dfe5ec', '#3e454e'], ['', 'rgba(30,10,10,.75)'], ['#e0b04a', '#5a3a0c'], ['#d7dee6', '#4a525c']];
 function drawPiece(ctx: C2, k: number, v: number, x: number, y: number, r: number, rot: number) {
+  if (r < 6 && k !== CHUNK) {
+    // 작은 조각은 그라데이션 없이 (폰에서 매 프레임 수십 개)
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    ctx.lineWidth = Math.max(0.8, r * 0.2);
+    ctx.strokeStyle = FLAT[k][1];
+    ctx.fillStyle = k === CAN ? CAN_COL[v % 3][1] : FLAT[k][0];
+    if (k === BOLT) {
+      ctx.fillRect(-r * 0.1, -r * 0.28, r * 1.2, r * 0.56);
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) ctx.lineTo(-r * 0.35 + Math.cos((i * Math.PI) / 3) * r * 0.62, Math.sin((i * Math.PI) / 3) * r * 0.62);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    } else if (k === CAN) {
+      rrect(ctx, -r * 0.62, -r * 0.8, r * 1.24, r * 1.6, r * 0.2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      ctx.fillRect(-r * 0.62, -r * 0.12, r * 1.24, r * 0.26);
+    } else if (k === GEAR) {
+      ctx.beginPath();
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2, rr = i % 2 ? r * 0.72 : r;
+        ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#4a2e10';
+      ctx.fillRect(-r * 0.2, -r * 0.2, r * 0.4, r * 0.4);
+    } else {
+      ctx.strokeStyle = FLAT[k][0];
+      ctx.lineWidth = r * 0.34;
+      ctx.beginPath();
+      for (let i = 0; i <= 8; i++) ctx.lineTo(-r * 0.85 + (i / 8) * r * 1.7, Math.sin(i * 2.2) * r * 0.55);
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,.75)';
+    ctx.fillRect(-r * 0.35, -r * 0.35, r * 0.3, r * 0.3);
+    ctx.restore();
+    return;
+  }
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(rot);
@@ -1608,6 +1656,13 @@ function paintBackground(ctx: C2, s: MagState, w: number, h: number) {
   ctx.fillStyle = '#3a2238';
   for (let x = 0.02; x < 1; x += 0.12) ctx.fillRect(x * w, fy0 - 3, 3, fy1 - fy0 + 3);
   ctx.fillRect(0, fy0 - 3, w, 2);
+  // 지평 아지랑이
+  const hz = ctx.createLinearGradient(0, gy0 - w * 0.09, 0, gy0 + w * 0.05);
+  hz.addColorStop(0, 'rgba(255,170,120,0)');
+  hz.addColorStop(0.6, 'rgba(255,170,120,.22)');
+  hz.addColorStop(1, 'rgba(255,170,120,0)');
+  ctx.fillStyle = hz;
+  ctx.fillRect(0, gy0 - w * 0.09, w, w * 0.14);
   // 땅: 해 쪽(위 오른쪽)이 밝은 흙바닥
   const gnd = ctx.createLinearGradient(0, gy0, 0, gy1);
   gnd.addColorStop(0, '#b06a4a');
@@ -1866,6 +1921,17 @@ function drawHero(ctx: C2, s: MagState, X: number, Y: number, K: number, L: Hero
   rrect(ctx, -5.2 * u, -18.6 * u, 10.4 * u, 8.4 * u, 2.6 * u);
   ctx.fill();
   ctx.stroke();
+  // 노을 테두리 빛 (오른쪽 위)
+  ctx.strokeStyle = 'rgba(255,190,120,.75)';
+  ctx.lineWidth = u * 0.5;
+  ctx.beginPath();
+  ctx.moveTo(2.4 * u, -18.3 * u);
+  ctx.quadraticCurveTo(4.9 * u, -18.3 * u, 4.9 * u, -15.6 * u);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(4.3 * u, -10.2 * u);
+  ctx.lineTo(4.3 * u, -6.5 * u);
+  ctx.stroke();
   // 귀 볼트
   ctx.fillStyle = '#ffd84a';
   for (const sd of [-1, 1]) {
@@ -2094,6 +2160,12 @@ function drawFoe(ctx: C2, s: MagState, f: Foe, X: number, Y: number, K: number) 
       ctx.lineTo(3.8 * u, yy * u);
       ctx.stroke();
     }
+    ctx.strokeStyle = 'rgba(255,200,140,.7)';
+    ctx.lineWidth = u * 0.45;
+    ctx.beginPath();
+    ctx.moveTo(1.5 * u, -10.1 * u);
+    ctx.quadraticCurveTo(3.7 * u, -10.1 * u, 3.7 * u, -7.5 * u);
+    ctx.stroke();
     ctx.fillStyle = '#8f9aa6';
     ctx.fillRect(-3 * u, -7.4 * u, 2.6 * u, 2 * u);
     ctx.fillStyle = '#ffe2c0';
@@ -2601,10 +2673,11 @@ function drawAll(ctx: C2, s: MagState, w: number, h: number, _th: Theme) {
         fx.burst(x, body, '#cfd6de', 8, 2.8, 2.2);
         fx.ring(x, body, '#ffe08a', w * (0.06 + n * 0.01), 4);
         fx.kick(3 + Math.min(9, n * 1.5));
-        const words = ['', '쾅!', '둘!', '셋!', '넷!', '다섯!', '여섯!', '일곱!', '여덟!', '아홉!', '열!'];
-        fx.pop(x, body - K * 0.08 - Math.min(5, n) * 5, n === 1 ? (e.text === 'roll' ? '데굴!' : '쾅!') : words[Math.min(10, n)] ?? `${n}!`, n >= 4 ? '#ffe066' : n >= 2 ? '#ffd0a0' : '#ffffff', Math.min(24, 14 + n * 2));
-        if (n === 1 && t % 3 === 0) fx.pop(x + K * 0.05, body - K * 0.14, '삐빅?!', '#ffcfa0', 12);
-        if (n >= 3) (m.catT = t), (m.bigT = t), (m.bigN = n), fx.blink('#ffe6a0', n >= 4 ? 0.28 : 0.16);
+        fx.pop(x, body - K * 0.08, e.text === 'roll' ? '데굴!' : e.text === 'boom' ? '휙!' : '쾅!', n >= 3 ? '#ffe066' : '#ffffff', n >= 3 ? 16 : 14);
+        if (n <= 1 && t % 3 === 0) fx.pop(x + K * 0.05, body - K * 0.15, '삐빅?!', '#ffcfa0', 12);
+        if (n >= 2) (m.bigX = (m.bigT ?? -99) > t - 40 ? (m.bigX ?? x) * 0.6 + x * 0.4 : x), (m.bigYY = clamp(body - K * 0.2, w * 0.3, w * 1.12));
+        if (n >= 2) (m.bigT = t), (m.bigN = n);
+        if (n >= 3) (m.catT = t), fx.blink('#ffe6a0', n >= 4 ? 0.28 : 0.16);
         m.happyT = t;
         break;
       }
@@ -2645,10 +2718,12 @@ function drawAll(ctx: C2, s: MagState, w: number, h: number, _th: Theme) {
         fx.burst(x, y - K * 0.09, '#ffe066', 6, 1.6, 1.6);
         break;
       case 'boom':
-        fx.burst(x, y - K * 0.05, '#ffe066', 30, 5.5, 3.4);
-        fx.burst(x, y - K * 0.05, '#ff6a3a', 26, 4.2, 4);
-        fx.burst(x, y - K * 0.05, '#5a4a5a', 16, 2.4, 5);
-        fx.ring(x, y - K * 0.03, '#ffd28a', BOOM_R * w * 1.2, 6);
+        fx.burst(x, y - K * 0.05, '#fff6c0', 18, 6.5, 4.5);
+        fx.burst(x, y - K * 0.05, '#ffb030', 30, 5.2, 5.5);
+        fx.burst(x, y - K * 0.05, '#ff5a2a', 24, 3.8, 6.5);
+        fx.burst(x, y - K * 0.05, '#4a3a4a', 18, 2.2, 7);
+        fx.ring(x, y - K * 0.03, '#ffd28a', BOOM_R * w * 1.25, 8);
+        fx.ring(x, y - K * 0.03, '#ffffff', BOOM_R * w * 0.7, 4);
         fx.kick(13);
         fx.blink('#ffd28a', 0.4);
         fx.pop(x, y - K * 0.14, '펑!', '#ffe066', 30);
@@ -2859,9 +2934,9 @@ function drawAll(ctx: C2, s: MagState, w: number, h: number, _th: Theme) {
           if (dd < 0.07) {
             const u = K * 0.0086;
             ctx.fillStyle = '#ff3a2e';
-            ell(ctx, X, Y - 21 * u, 2.2 * u, 2.2 * u);
+            ell(ctx, X, Y - 21 * u, Math.max(8, 2.4 * u), Math.max(8, 2.4 * u));
             ctx.fill();
-            text(ctx, '!', X, Y - 21 * u, 3.4 * u, '#ffffff', 'center', 900, '');
+            text(ctx, '!', X, Y - 21 * u + 0.5, Math.max(12, 3.6 * u), '#ffffff', 'center', 900, '');
           }
         }
       },
@@ -2872,7 +2947,7 @@ function drawAll(ctx: C2, s: MagState, w: number, h: number, _th: Theme) {
     const K = w * depth(s.ry), X = PX(s.rx), Y = PY(s.ry), u = K * 0.0098, cy = Y - 10 * u;
     const ball = s.scraps.filter((c) => c.st === STUCK);
     const pos = ball.map((c) => {
-      const a = c.a + s.bRot, ce = Math.cos(c.e), rr = c.rr * K;
+      const a = c.a + s.bRot, ce = Math.cos(c.e), rr = c.rr * K * 1.3;
       return { c, x: X + Math.cos(a) * rr * ce, y: cy + Math.sin(a) * rr * ce * 0.62 - Math.sin(c.e) * rr * 0.85, z: Math.sin(a) * ce };
     });
     sprites.push({
@@ -2882,15 +2957,15 @@ function drawAll(ctx: C2, s: MagState, w: number, h: number, _th: Theme) {
         ell(ctx, X - u * 1.5, Y + u * 0.2, 6 * u + br * K * 0.6, 2.2 * u + br * K * 0.15);
         ctx.fill();
         if (ball.length) {
-          const gl = ctx.createRadialGradient(X, cy, 0, X, cy, br * K * 1.4);
+          const gl = ctx.createRadialGradient(X, cy, 0, X, cy, br * K * 1.8);
           gl.addColorStop(0, 'rgba(127,252,255,.18)');
           gl.addColorStop(1, 'rgba(127,252,255,0)');
           ctx.fillStyle = gl;
-          ell(ctx, X, cy, br * K * 1.4, br * K * 1.4);
+          ell(ctx, X, cy, br * K * 1.8, br * K * 1.8);
           ctx.fill();
         }
         if (ball.length) {
-          const R = br * K * 1.05;
+          const R = br * K * 1.38;
           const sg = ctx.createRadialGradient(X - R * 0.35, cy - R * 0.4, R * 0.1, X, cy, R);
           sg.addColorStop(0, 'rgba(230,255,255,.16)');
           sg.addColorStop(0.75, 'rgba(127,252,255,.1)');
@@ -2899,9 +2974,9 @@ function drawAll(ctx: C2, s: MagState, w: number, h: number, _th: Theme) {
           ell(ctx, X, cy, R, R);
           ctx.fill();
         }
-        for (const p of pos) if (p.z < 0) drawPiece(ctx, p.c.k, p.c.v, p.x, p.y, SR[p.c.k] * K * 1.5, p.c.rot + s.bRot);
+        for (const p of pos) if (p.z < 0) drawPiece(ctx, p.c.k, p.c.v, p.x, p.y, SR[p.c.k] * K * 1.6, p.c.rot + s.bRot);
         drawHero(ctx, s, X, Y, K, hl);
-        for (const p of pos) if (p.z >= 0) drawPiece(ctx, p.c.k, p.c.v, p.x, p.y, SR[p.c.k] * K * 1.5, p.c.rot + s.bRot);
+        for (const p of pos) if (p.z >= 0) drawPiece(ctx, p.c.k, p.c.v, p.x, p.y, SR[p.c.k] * K * 1.6, p.c.rot + s.bRot);
         if (ball.length >= 6 && (t >> 2) % 6 === 0) {
           const p = pos[(t >> 3) % pos.length];
           ctx.fillStyle = '#ffffff';
@@ -3013,18 +3088,19 @@ function drawAll(ctx: C2, s: MagState, w: number, h: number, _th: Theme) {
 
   // 큰 순간: 화면 가운데 "와르르 ×N!"
   const bigAge = t - (m.bigT ?? -999);
-  if (bigAge < 60 && (m.bigN ?? 0) >= 3) {
-    const k = bigAge < 8 ? 1.6 - (bigAge / 8) * 0.6 : 1, a = bigAge > 40 ? 1 - (bigAge - 40) / 20 : 1, n = m.bigN;
+  if (bigAge < 55 && (m.bigN ?? 0) >= 2) {
+    // 한 번 던져 쓰러뜨린 수: 쓰러진 무리 위에, 늘수록 크게 (둘 → 셋 → 와르르 넷!)
+    const n = m.bigN, k = bigAge < 7 ? 1.7 - (bigAge / 7) * 0.7 : 1, a = bigAge > 38 ? 1 - (bigAge - 38) / 17 : 1;
+    const px = clamp(m.bigX ?? w / 2, w * 0.24, w * 0.76), yy = (m.bigYY ?? w * 0.6) - bigAge * 0.25, sz = (16 + Math.min(16, n * 3)) * k;
     ctx.globalAlpha = a;
-    const yy = w * 0.305 - bigAge * 0.15;
-    const bgr = ctx.createRadialGradient(w / 2, yy, 0, w / 2, yy, w * 0.4);
-    bgr.addColorStop(0, 'rgba(40,10,40,.55)');
-    bgr.addColorStop(1, 'rgba(40,10,40,0)');
+    const lbl = n >= 3 ? `와르르 ${KNUM[Math.min(10, n)] ?? n}!` : `${KNUM[n]}!`;
+    const bgr = ctx.createRadialGradient(px, yy, 0, px, yy, sz * 3);
+    bgr.addColorStop(0, 'rgba(60,14,40,.5)');
+    bgr.addColorStop(1, 'rgba(60,14,40,0)');
     ctx.fillStyle = bgr;
-    ell(ctx, w / 2, yy, w * 0.42, w * 0.11);
+    ell(ctx, px, yy, sz * 3.2, sz * 1.1);
     ctx.fill();
-    text(ctx, '와르르!', w / 2, yy - 18 * k, (22 + Math.min(8, n * 1.5)) * k, '#ffffff', 'center', 900, 'rgba(90,20,40,.9)');
-    text(ctx, `한 번에 ${KNUM[Math.min(10, n)] ?? n}!`, w / 2, yy + 14 * k, (20 + Math.min(10, n * 2)) * k, n >= 4 ? '#ffe066' : '#ffd0a0', 'center', 900, 'rgba(90,20,40,.9)');
+    text(ctx, lbl, px, yy, sz, n >= 4 ? '#ffe066' : n >= 3 ? '#ffd27a' : '#ffffff', 'center', 900, 'rgba(90,20,40,.92)');
     ctx.globalAlpha = 1;
   }
   if (s.slow > 0) {
@@ -3164,7 +3240,7 @@ function drawHud(ctx: C2, s: MagState, w: number, h: number, preview: Shot | nul
   text(ctx, d.tip, w / 2, by0 + rowH * 3.55, F - 1, '#ffc89a', 'center', 600, '');
 
   // ── 판 시작 카드: 이번 판의 새것 한 줄 (첫 꾹이나 시간이 지나면 사라짐) ──
-  if (s.phase === 'play' && s.pt < CARD_T && s.stage > 0) {
+  if (s.phase === 'play' && s.pt < CARD_T && s.stage > 0 && !(s.presses > s.stagePress && s.pt > 70)) {
     const a = Math.min(1, (CARD_T - s.pt) / 25, s.pt / 8);
     ctx.globalAlpha = a;
     const cy = y2 + F * 4.6;
@@ -3177,8 +3253,8 @@ function drawHud(ctx: C2, s: MagState, w: number, h: number, preview: Shot | nul
     ctx.lineWidth = 2;
     ctx.stroke();
     if (s.stage > 0) {
-      pill(ctx, (w - nw) / 2 + 10, cy - F * 1.75, 40, F + 4, '#ff5a4a', '#ffd0c8');
-      text(ctx, 'NEW', (w - nw) / 2 + 30, cy - F * 1.75 + (F + 4) / 2 + 0.5, F - 2, '#ffffff', 'center', 900, '');
+      pill(ctx, (w - nw) / 2 + 8, cy - F * 1.8, 42, F + 4, '#ff5a4a', '#ffd0c8');
+      text(ctx, 'NEW', (w - nw) / 2 + 29, cy - F * 1.8 + (F + 4) / 2 + 0.5, F - 1, '#ffffff', 'center', 900, '');
     }
     text(ctx, `${s.stage + 1}판 · ${d.name}`, w / 2, cy - F * 1.2, F + 6, '#ffe066', 'center', 900);
     text(ctx, d.news, w / 2, cy + F * 0.55, F, '#fff3dd', 'center', 700, '');
@@ -3251,13 +3327,13 @@ function drawResult(ctx: C2, s: MagState, w: number, F: number) {
   const pk = age < 10 ? 1.3 - age * 0.03 : 1;
   if (s.ok) {
     text(ctx, s.won ? '마당을 다 지켰다!' : '마당 지켰다!', w / 2, cy - ch / 2 + F * 1.4, (F + 9) * pk, '#ffe066', 'center', 900);
-    for (let k = 0; k < 3; k++) {
-      const x = w / 2 + (k - 1) * F * 3, y = cy - ch / 2 + F * 3.6, on = k < d.nstar && s.starOk[k], show = age > 14 + k * 10;
+    for (let k = 0; k < d.nstar; k++) {
+      const x = w / 2 + (k - (d.nstar - 1) / 2) * F * 3, y = cy - ch / 2 + F * 3.6, on = s.starOk[k], show = age > 14 + k * 10;
       const r = F * (show && on ? (age < 24 + k * 10 ? 1.7 - (age - 14 - k * 10) * 0.05 : 1.2) : 1.2);
       star5(ctx, x, y, r);
-      ctx.fillStyle = k >= d.nstar ? 'rgba(255,255,255,.08)' : show && on ? '#ffd84a' : 'rgba(255,216,74,.18)';
+      ctx.fillStyle = show && on ? '#ffd84a' : 'rgba(255,216,74,.18)';
       ctx.fill();
-      ctx.strokeStyle = k >= d.nstar ? 'rgba(255,255,255,.15)' : '#ffd84a';
+      ctx.strokeStyle = '#ffd84a';
       ctx.lineWidth = 1.5;
       ctx.stroke();
     }

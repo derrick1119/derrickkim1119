@@ -332,7 +332,7 @@ function explode(s: DashState, b: Barrel) {
 function doDash(s: DashState, tx: number, ty: number) {
   if (s.phase !== 'play') return;
   const L = reachOf(s.g), full = L >= HOP;
-  const P = trace(s, s.nx, s.ny, tx, ty, full ? L : HOP, full);
+  const P = trace(s, s.nx, s.ny, tx, ty, full ? L : HOP, true);
   // 닌자 바로 위에서 떼면 취소 (게이지도 안 든다)
   if (pathLen(P) < 0.03 && !P.hits.length) return void ev(s, 'cancel', s.nx, s.ny);
   if (full) s.g = Math.max(0, s.g - dashCost(pathLen(P)));
@@ -471,7 +471,7 @@ function foeStep(s: DashState, f: Foe, dt: number, hidden: boolean) {
       f.y = clamp(f.y - (dy / d) * SPD[f.k] * dt, Y0, Y1);
     }
     f.cool -= dt;
-    if (f.cool <= 0 && !hidden) (f.st = AIM), (f.tm = f.k === 'archer' ? 72 : 60), (f.ax = s.nx), (f.ay = s.ny);
+    if (f.cool <= 0 && !hidden && d > 0.12) (f.st = AIM), (f.tm = f.k === 'archer' ? 72 : 60), (f.ax = s.nx), (f.ay = s.ny);
   } else if (f.st === AIM) {
     f.tm -= dt;
     if (f.tm > LOCK && !hidden) (f.ax = s.nx), (f.ay = s.ny);
@@ -480,7 +480,7 @@ function foeStep(s: DashState, f: Foe, dt: number, hidden: boolean) {
       if (f.k === 'archer') s.shots.push({ k: 0, x: f.x, y: f.y, vx: Math.cos(a) * ARROW_V, vy: Math.sin(a) * ARROW_V, a });
       else for (const o of [-0.3, 0, 0.3]) s.shots.push({ k: 1, x: f.x, y: f.y, vx: Math.cos(a + o) * STAR_V, vy: Math.sin(a + o) * STAR_V, a: 0 });
       ev(s, 'shoot', f.x, f.y, f.k === 'archer' ? 0 : 1);
-      (f.st = IDLE), (f.cool = (f.k === 'archer' ? 120 : 160) + s.rng() * 70);
+      (f.st = IDLE), (f.cool = (f.k === 'archer' ? 90 : 150) + s.rng() * 60);
     }
   } else {
     f.tm -= dt;
@@ -567,7 +567,7 @@ function spawnWave(s: DashState) {
     const instant = s.stage === 0 && s.wave === 0;
     s.foes.push({
       id: ++s.nid, k, x: instant ? x : ex, y: instant ? y : ey, tx: x, ty: y, ex, ey, hp: k === 'boss' ? 4 : 1,
-      st: instant ? IDLE : ENTER, tm: 0, fa: Math.atan2(s.ny - y, s.nx - x), cool: k === 'archer' ? 40 + s.rng() * 60 : k === 'shuri' ? 60 + s.rng() * 60 : 20,
+      st: instant ? IDLE : ENTER, tm: 0, fa: Math.atan2(s.ny - y, s.nx - x), cool: k === 'archer' ? 20 + s.rng() * 40 : k === 'shuri' ? 60 + s.rng() * 60 : 20,
       ax: s.nx, ay: s.ny, hurtT: 0, whiff: 0, seed: Math.floor(s.rng() * 1e6),
     });
   }
@@ -869,6 +869,7 @@ function cands(s: DashState, L: number) {
 }
 
 interface Choice { x: number; y: number; v: number; n: number; safe: number; line: number; boom: number; obj: number; cost: number }
+let farm = false;
 function judge(s: DashState, x: number, y: number, L: number): Choice {
   const d = STAGES[s.stage];
   const P = trace(s, s.nx, s.ny, x, y, L, true);
@@ -881,7 +882,7 @@ function judge(s: DashState, x: number, y: number, L: number): Choice {
     if (f.k !== 'boss' || f.hp <= 1) skipF.add(f.id);
     if (f.k === 'boss') bossIn = true;
     if (f.k === 'shield' && d.key === 'shield') obj += 90;
-    if (f.k === 'archer' && d.key === 'archer' && s.arrows < 3 && s.foes.filter((q) => q.k === 'archer').length <= 2) obj -= 160;
+    if (f.k === 'archer' && farm) obj -= 400;
     if (h.leg > 0 && d.key === 'mirror' && s.mirK < 3) obj += 130;
   }
   if (d.key === 'boss' && n >= 3 && bossIn) obj += 300;
@@ -897,7 +898,7 @@ function judge(s: DashState, x: number, y: number, L: number): Choice {
   v += P.shots.length * 8;
   if (d.key === 'archer' && s.arrows < 3) obj += P.shots.length * 130;
   if (P.bounce) v -= 80;
-  const cost = dashCost(pathLen(P)), after = s.g - cost + GAIN * ((n * (n + 1)) / 2) + P.shots.length * SHOT_G;
+  const cost = reachOf(s.g) >= HOP ? dashCost(pathLen(P)) : 0, after = s.g - cost + GAIN * ((n * (n + 1)) / 2) + P.shots.length * SHOT_G;
   v += 1.2 * (after - s.g);
   const safe = danger(s, P.ex, P.ey, skipF, skipS);
   if (safe < 25) v -= 700;
@@ -920,18 +921,11 @@ export const slowdashSmart: Bot<DashState> = {
   act(s) {
     if (s.phase !== 'play' || s.down || s.lock) return NO;
     const none = new Set<number>();
-    const here = danger(s, s.nx, s.ny, none, none), L = reachOf(s.g);
-    if (L < HOP) {
-      if (here > 30) return NO;
-      let best: { x: number; y: number } | null = null, bt = -1;
-      for (let k = 0; k < 12; k++) {
-        const a = (k / 12) * Math.PI * 2, x = clamp(s.nx + Math.cos(a) * HOP, X0, X1), y = clamp(s.ny + Math.sin(a) * HOP, Y0, Y1), T = danger(s, x, y, none, none);
-        if (T > bt) (bt = T), (best = { x, y });
-      }
-      return best ? at(best.x, best.y) : NO;
-    }
+    const here = danger(s, s.nx, s.ny, none, none), L = Math.max(HOP, reachOf(s.g));
     const live = s.foes.filter((f) => f.st !== ENTER), d = STAGES[s.stage];
     if (!live.length && here > 40) return NO;
+    const wm = waitMem.get(s);
+    farm = d.key === 'archer' && s.arrows < 3 && (!wm || s.t - wm.since < 900);
     let best: Choice | null = null, repo: Choice | null = null, kill: Choice | null = null;
     for (const c of cands(s, L)) {
       if (Math.hypot(c.x - s.nx, c.y - s.ny) < 0.04) continue;
@@ -946,10 +940,10 @@ export const slowdashSmart: Bot<DashState> = {
     let m = waitMem.get(s);
     if (!m || m.key !== key) waitMem.set(s, (m = { since: s.t, key }));
     const waited = s.t - m.since;
-    const ranged = live.every((f) => !MELEE[f.k]);
+    const ranged = live.every((f) => !MELEE[f.k]) && !(d.key === 'archer' && s.arrows < 3 && s.wave >= d.waves.length && waited < 900);
     if (s.g < 30) {
       // 게이지가 바닥: 위험할 때만 — 벨 수 있으면 베며 비키고, 아니면 가장 싸게 비킨다
-      if (here >= 30 && !(best.n >= 2 || (best.n >= 1 && waited > 240))) return NO;
+      if (here >= 30) return kill && kill.safe >= 50 && (kill.n >= 2 || waited > 240 || ranged) ? at(kill.x, kill.y) : NO;
       let pick: Choice | null = null, pv = -1e9;
       for (const c of cands(s, L)) {
         if (Math.hypot(c.x - s.nx, c.y - s.ny) < 0.04) continue;
@@ -1007,7 +1001,7 @@ export const slowdashRandom: Bot<DashState> = {
 export const slowdashHabit: Bot<DashState> = {
   name: '늘 가장 가까운 적으로',
   act(s) {
-    if (s.phase !== 'play' || s.down || s.lock || reachOf(s.g) < HOP) return NO;
+    if (s.phase !== 'play' || s.down || s.lock) return NO;
     let best: Foe | null = null, bd = 1e9;
     for (const f of s.foes) {
       if (f.st === ENTER) continue;
@@ -1022,13 +1016,13 @@ export const slowdashHabit: Bot<DashState> = {
 export const slowdashHabit2: Bot<DashState> = {
   name: '늘 가장 많이 꿰는 줄로 바로',
   act(s) {
-    if (s.phase !== 'play' || s.down || s.lock || reachOf(s.g) < HOP) return NO;
+    if (s.phase !== 'play' || s.down || s.lock) return NO;
     let best: { x: number; y: number; n: number; d: number } | null = null;
     for (const f of s.foes) {
       if (f.st === ENTER) continue;
       const dx = f.x - s.nx, dy = f.y - s.ny, d = Math.hypot(dx, dy) || 1e-6;
       const x = s.nx + (dx / d) * Math.min(DMAX, d + 0.12), y = s.ny + (dy / d) * Math.min(DMAX, d + 0.12);
-      const n = trace(s, s.nx, s.ny, x, y, reachOf(s.g), true).hits.length;
+      const n = trace(s, s.nx, s.ny, x, y, Math.max(HOP, reachOf(s.g)), true).hits.length;
       if (!best || n > best.n || (n === best.n && d < best.d)) best = { x, y, n, d };
     }
     return best ? at(best.x, best.y) : NO;
@@ -1370,9 +1364,32 @@ function getBg(w: number, h: number, place: number, sc: number): Bg {
         g.fill();
       }
     }
-    // 달빛 웅덩이 · 먼 쪽 안개
-    g.fillStyle = radg(g, w * 0.55, gh * 0.4, 0, w * 0.6, [0, 'rgba(255,240,210,.10)'], [1, 'rgba(255,240,210,0)']);
+    // 풀포기 (가까울수록 크게)
+    if (place === 0)
+      for (let k = 0; k < 140; k++) {
+        const y = hsh(k + 300) * gh, x = hsh(k + 301) * w, d = 0.45 + y / gh, hgt = w * 0.016 * d;
+        g.strokeStyle = k % 5 ? 'rgba(30,60,40,.55)' : 'rgba(20,40,30,.6)';
+        g.lineWidth = 1.2 * d;
+        for (let j = -1; j <= 1; j++) {
+          g.beginPath();
+          g.moveTo(x + j * hgt * 0.15, y);
+          g.quadraticCurveTo(x + j * hgt * 0.3, y - hgt * 0.6, x + j * hgt * 0.55, y - hgt * (1 - Math.abs(j) * 0.25));
+          g.stroke();
+        }
+        g.strokeStyle = 'rgba(170,220,150,.35)';
+        g.lineWidth = 0.8 * d;
+        g.beginPath();
+        g.moveTo(x, y - hgt * 0.5);
+        g.lineTo(x, y - hgt * 0.95);
+        g.stroke();
+      }
+    // 달빛 웅덩이 · 가장자리 그늘 · 먼 쪽 안개
+    g.fillStyle = radg(g, w * 0.6, gh * 0.25, 0, w * 0.75, [0, 'rgba(255,240,210,.16)'], [0.6, 'rgba(255,240,210,.05)'], [1, 'rgba(255,240,210,0)']);
     g.fillRect(0, 0, w, gh);
+    g.fillStyle = lin(g, 0, 0, w, 0, [0, 'rgba(4,8,20,.45)'], [0.18, 'rgba(4,8,20,0)'], [0.82, 'rgba(4,8,20,0)'], [1, 'rgba(4,8,20,.45)']);
+    g.fillRect(0, 0, w, gh);
+    g.fillStyle = lin(g, 0, gh * 0.7, 0, gh, [0, 'rgba(4,8,20,0)'], [1, 'rgba(4,8,20,.35)']);
+    g.fillRect(0, gh * 0.7, w, gh * 0.3);
     g.fillStyle = lin(g, 0, 0, 0, w * 0.1, [0, `rgba(${P.mist},.35)`], [1, `rgba(${P.mist},0)`]);
     g.fillRect(0, 0, w, w * 0.1);
   });
@@ -2656,7 +2673,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, R(sz))}px system-ui, sans-serif`);
   const sv = s.slowVis;
   const L = reachOf(s.g), canCut = L >= HOP;
-  const prev = s.down && s.aim && s.phase === 'play' ? trace(s, s.nx, s.ny, s.aim.x, s.aim.y, canCut ? L : HOP, canCut) : null;
+  const prev = s.down && s.aim && s.phase === 'play' ? trace(s, s.nx, s.ny, s.aim.x, s.aim.y, canCut ? L : HOP, true) : null;
   const targets = new Set(prev ? prev.hits.map((q) => q.id) : []);
 
   ctx.save();
@@ -3147,7 +3164,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       font(0.034, 900);
       ctx.textAlign = 'center';
       ctx.fillStyle = '#ffb3a6';
-      ctx.fillText(canCut ? '게이지만큼만!' : '짧게 뛰기 (못 베요)', X(s.aim.x), Y(s.aim.y) - R(0.08));
+      ctx.fillText(canCut ? '게이지만큼만!' : '게이지 부족 — 짧게만', X(s.aim.x), Y(s.aim.y) - R(0.08));
     }
     for (let j = 1; j < prev.legs.length; j++) {
       ctx.fillStyle = `rgba(255,255,255,${0.6 + 0.4 * pulse})`;
@@ -3309,7 +3326,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     }
     if (e.kind === 'multi') {
       const n = e.n ?? 2;
-      say(ex, ey - R(0.1), `${n}명 한 번에!`, n >= 4 ? '#ff9f43' : '#ffd84a', Math.min(32, 16 + n * 3));
+      (fx.memo.bigT = t), (fx.memo.bigN = n), (fx.memo.bigX = ex), (fx.memo.bigY = ey);
       fx.burst(ex, ey, '#ffd84a', 10 + n * 5, 4 + n * 0.5, 2.6);
       fx.ring(ex, ey, '#ffd84a', R(0.12 + n * 0.03), 5);
     }
@@ -3377,6 +3394,51 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   fx.memo.t = t;
   ctx.drawImage(bg.paper, 0, 0, w, h);
   ctx.restore();
+  // 큰 순간 띠: 먹물 붓자국 위에 'N명 베기!'
+  if (fx.memo.bigT !== undefined && t - fx.memo.bigT < 52) {
+    const age = t - fx.memo.bigT, n = fx.memo.bigN, sc2 = age < 6 ? 1.8 - 0.8 * (age / 6) : 1, a = Math.min(1, (52 - age) / 16);
+    const bx = clamp(fx.memo.bigX, w * 0.3, w * 0.7), by = clamp(fx.memo.bigY - R(0.2), Y(0.3), Y(1.1));
+    const txt = n >= 5 ? `${n}명 싹둑!` : `${n}명 베기!`, size = Math.min(36, 20 + n * 3.2);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(bx, by);
+    ctx.rotate(-0.07);
+    ctx.scale(sc2, sc2);
+    ctx.font = `900 ${size}px system-ui, sans-serif`;
+    const tw = ctx.measureText(txt).width, rx = tw / 2 + 18, ry = size * 0.75;
+    ctx.fillStyle = 'rgba(16,10,34,.88)';
+    ctx.beginPath();
+    for (let i = 0; i <= 18; i++) {
+      const an = (i / 18) * TAU, q = 0.82 + 0.3 * hsh(i * 7 + fx.memo.bigT);
+      const px = Math.cos(an) * rx * q, py = Math.sin(an) * ry * q;
+      if (i) ctx.lineTo(px, py);
+      else ctx.moveTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+    for (let i = 0; i < 6; i++) {
+      const an = hsh(i + fx.memo.bigT * 3) * TAU, dd = 1.05 + hsh(i + 11) * 0.35;
+      ctx.beginPath();
+      ctx.arc(Math.cos(an) * rx * dd, Math.sin(an) * ry * dd, 2 + hsh(i + 5) * 4, 0, TAU);
+      ctx.fill();
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = '#0b0818';
+    ctx.strokeText(txt, 0, 2);
+    ctx.fillStyle = lin(ctx, 0, -size / 2, 0, size / 2, [0, '#fff6c2'], [0.55, '#ffd23f'], [1, '#ff9a2e']);
+    ctx.fillText(txt, 0, 2);
+    if (n >= 3)
+      for (let i = 0; i < 3; i++) {
+        const an = t * 0.08 + (i * TAU) / 3;
+        ctx.fillStyle = '#fff3b0';
+        starPath(ctx, Math.cos(an) * (rx + 8), Math.sin(an) * (ry + 6), 5);
+        ctx.fill();
+      }
+    ctx.restore();
+  }
 
   // ═════════════ HUD ═════════════
   ctx.textBaseline = 'middle';
@@ -3605,7 +3667,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     {
       let hint = d.hint;
       if (s.stage === 0 && !s.firstDash && s.phase === 'play') hint = '👆 꾹 누르면 느려져요 — 떼면 번쩍!';
-      else if (s.down && s.phase === 'play') hint = canCut ? '떼면 번쩍! 선 위의 적을 모두 베요' : '게이지가 모자라 짧게 뛰기만 해요';
+      else if (s.down && s.phase === 'play') hint = canCut ? '떼면 번쩍! 선 위의 적을 모두 베요' : '게이지가 모자라 짧게만 돌진해요';
       else if (s.phase === 'result') hint = s.ok ? (s.won ? '모든 판을 지나왔어요!' : `★ ${s.got}개! 다음 판엔 새 적이 나와요`) : '날아오는 건 비켜 서요 — 빨간 표시를 보세요';
       const first = s.stage === 0 && !s.firstDash;
       font(first ? 0.04 : 0.035, 900);

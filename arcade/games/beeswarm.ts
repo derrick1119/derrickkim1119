@@ -595,7 +595,7 @@ function foesTick(s: BeeState) {
       let dmg = n * DPS * (1 + cov) * fev;
       if (e.k === BOSS && e.lat < BOSS_MIN) {
         dmg = 0;
-        if (s.st - e.tickT > 45) (e.tickT = s.st), ev(s, 'tickle', e.x, e.y - e.r, `간지러워~ (${e.lat}/${BOSS_MIN})`);
+        if (s.st - e.tickT > 45) (e.tickT = s.st), ev(s, 'tickle', e.x, e.y - e.r, e.lat > BOSS_MIN * 0.6 ? '간질간질~ 조금만 더!' : '간지러워~');
       }
       if (dmg > 0) {
         if (s.st - e.hurt > 30) ev(s, 'sting', e.x, e.y, '');
@@ -1127,6 +1127,22 @@ function makeBg(w: number, h: number, dpr: number) {
     };
     hill(0.205, 0.022, '#a7cfae', 0.4);
     hill(0.235, 0.02, '#86bd84', 2.1);
+    // 숲 뒤 큰 나무들 (줄기 + 둥근 잎)
+    for (let k = 0; k < 7; k++) {
+      const x = ((k + 0.5) / 7) * W2 + (hsh(k * 5.1) - 0.5) * 30, base = Y(0.27), th2 = Y(0.07 + hsh(k * 2.7) * 0.05), cr = Y(0.045 + hsh(k * 1.9) * 0.02);
+      g.fillStyle = '#5a3d22';
+      g.fillRect(x - Y(0.006), base - th2, Y(0.012), th2);
+      for (const [ox, oy, rr] of [[0, -1, 1], [-0.6, -0.6, 0.75], [0.6, -0.65, 0.75]]) {
+        const cx = x + ox * cr, cy = base - th2 + oy * cr * 0.6, r2 = cr * rr;
+        const tg = g.createRadialGradient(cx - r2 * 0.4, cy - r2 * 0.5, r2 * 0.1, cx, cy, r2);
+        tg.addColorStop(0, '#7fb35c');
+        tg.addColorStop(1, '#3a6e34');
+        g.fillStyle = tg;
+        g.beginPath();
+        g.arc(cx, cy, r2, 0, TAU);
+        g.fill();
+      }
+    }
     // 숲 가장자리: 둥근 나무 꼭대기 줄 (적이 여기서 나온다)
     for (let row = 0; row < 2; row++)
       for (let k = 0; k < 15; k++) {
@@ -1912,6 +1928,70 @@ function drawRabbit(ctx: CanvasRenderingContext2D, x: number, y: number, u: numb
   ctx.restore();
 }
 
+/** 예고 배지 안의 작은 얼굴 (이모지 대신 직접 그림) */
+function foeIcon(ctx: CanvasRenderingContext2D, k: number, x: number, y: number, r: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  if (k === BEAR || k === BOSS) {
+    ctx.fillStyle = '#8a5a2e';
+    for (const d of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(d * r * 0.7, -r * 0.65, r * 0.38, 0, TAU);
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#f0cf9e';
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.35, r * 0.45, r * 0.32, 0, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#1e120a';
+    ctx.beginPath();
+    ctx.arc(-r * 0.38, -r * 0.12, r * 0.13, 0, TAU);
+    ctx.arc(r * 0.38, -r * 0.12, r * 0.13, 0, TAU);
+    ctx.arc(0, r * 0.22, r * 0.14, 0, TAU);
+    ctx.fill();
+    if (k === BOSS) {
+      ctx.fillStyle = '#ffd43b';
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.6, -r * 0.75);
+      ctx.lineTo(-r * 0.65, -r * 1.25);
+      ctx.lineTo(-r * 0.25, -r * 0.95);
+      ctx.lineTo(0, -r * 1.35);
+      ctx.lineTo(r * 0.25, -r * 0.95);
+      ctx.lineTo(r * 0.65, -r * 1.25);
+      ctx.lineTo(r * 0.6, -r * 0.75);
+      ctx.fill();
+    }
+  } else if (k === ANT) {
+    ctx.fillStyle = '#4a1a10';
+    for (const [ox, rr] of [[-0.62, 0.42], [0, 0.3], [0.6, 0.36]]) {
+      ctx.beginPath();
+      ctx.arc(ox * r, 0, rr * r, 0, TAU);
+      ctx.fill();
+    }
+    ctx.strokeStyle = '#4a1a10';
+    ctx.lineWidth = Math.max(1, r * 0.14);
+    ctx.beginPath();
+    for (const d of [-1, 1]) (ctx.moveTo(-r * 0.2, 0), ctx.lineTo(-r * 0.35, d * r * 0.75), ctx.moveTo(r * 0.2, 0), ctx.lineTo(r * 0.35, d * r * 0.75));
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = '#ff8a1a';
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.15, 0, r * 0.85, r * 0.55, 0, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#1c0f06';
+    ctx.fillRect(-r * 0.55, -r * 0.55, r * 0.2, r * 1.1);
+    ctx.fillRect(-r * 0.05, -r * 0.55, r * 0.2, r * 1.1);
+    ctx.fillStyle = '#e8edf2';
+    ctx.beginPath();
+    ctx.ellipse(r * 0.75, 0, r * 0.22, r * 0.62, 0, 0, TAU);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 /** 짚 벌집 (종 모양 짚 똬리) — 위험하면 붉게 떨고, 남은 꿀만큼 꿀이 흘러내린다 */
 function drawHive(ctx: CanvasRenderingContext2D, s: BeeState, x: number, y: number, u: number, t: number) {
   const alarm = s.foes.some((e) => e.st === EAT) || s.t - s.stolenT < 40;
@@ -2021,6 +2101,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BeeState, w: number, h: numbe
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
     for (let k = 0; k < 6 && rec.some((q) => s.t - q.t < 35 && Math.abs(q.x - x) < w * 0.22 && Math.abs(q.y - y) < size + 4); k++) y -= size + 4;
+    y = Math.max(Y(0.22), y);
     rec.push({ x, y, t: s.t });
     if (rec.length > 16) rec.shift();
     fx.pop(clamp(x, w * 0.14, w * 0.86), y, text, col, size);
@@ -2040,7 +2121,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BeeState, w: number, h: numbe
   if (typeof document !== 'undefined') {
     const dpr = ctx.getTransform().a || 1, key = `${Math.round(w)}x${Math.round(h)}@${dpr}`;
     bg = bgCache.get(key);
-    if (!bg) bgCache.set(key, (bg = makeBg(w, h, dpr)));
+    if (!bg) {
+      if (bgCache.size > 3) bgCache.clear();
+      bgCache.set(key, (bg = makeBg(w, h, dpr)));
+    }
   }
   if (bg) {
     const par = (0.5 - s.cx) * 10;
@@ -2076,6 +2160,17 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BeeState, w: number, h: numbe
     ctx.fill();
   }
   ctx.restore();
+  // 들판을 천천히 지나가는 구름 그림자
+  {
+    const cx = ((t * 0.12) % (w * 2.2)) - w * 0.6, cy = Y(0.75), cr = R(0.45);
+    const g = ctx.createRadialGradient(cx, cy, 2, cx, cy, cr);
+    g.addColorStop(0, 'rgba(20,60,30,.1)');
+    g.addColorStop(1, 'rgba(20,60,30,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, cr, cr * 0.6, 0, 0, TAU);
+    ctx.fill();
+  }
   // 일렁이는 나뭇잎 그늘·햇빛 얼룩
   for (let k = 0; k < 4; k++) {
     const lx = X(hsh(k * 11) * 0.9 + 0.05 + Math.sin(t * 0.006 + k) * 0.03), ly = Y(0.4 + hsh(k * 13) * 0.75), lr = R(0.13);
@@ -2235,16 +2330,17 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BeeState, w: number, h: numbe
       const a = Math.PI * (0.98 + (k / Math.max(1, n - 1)) * 1.04), rx = X(HV.x) + Math.cos(a) * R(0.14), ry = Y(HV.y + 0.035) + Math.sin(a) * R(0.08) * -1;
       hex(ctx, rx, ry, cr);
       const full = k < s.honey;
-      if (full) {
-        const g = ctx.createRadialGradient(rx - cr * 0.3, ry - cr * 0.3, 1, rx, ry, cr);
-        g.addColorStop(0, '#fff2a8');
-        g.addColorStop(1, '#f0a000');
-        ctx.fillStyle = g;
-      } else ctx.fillStyle = 'rgba(60,40,10,.45)';
+      ctx.fillStyle = full ? '#f7b318' : 'rgba(60,40,10,.45)';
       ctx.fill();
       ctx.strokeStyle = full ? '#a86a00' : 'rgba(255,230,160,.5)';
       ctx.lineWidth = 1.2;
       ctx.stroke();
+      if (full) {
+        ctx.fillStyle = 'rgba(255,248,200,.85)';
+        ctx.beginPath();
+        ctx.arc(rx - cr * 0.3, ry - cr * 0.3, cr * 0.28, 0, TAU);
+        ctx.fill();
+      }
     }
   }
 
@@ -2274,10 +2370,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BeeState, w: number, h: numbe
     ctx.lineTo(px + (ax / al) * r0 * 1.2 - (ay / al) * r0 * 0.45, py + (ay / al) * r0 * 1.2 + (ax / al) * r0 * 0.45);
     ctx.lineTo(px + (ax / al) * r0 * 1.2 + (ay / al) * r0 * 0.45, py + (ay / al) * r0 * 1.2 - (ax / al) * r0 * 0.45);
     ctx.fill();
+    foeIcon(ctx, q.k, px, py, r0 * 0.62);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    font(0.036, 900);
-    ctx.fillText(q.k === ANT ? '🐜' : q.k === WASP ? '!' : q.k === BOSS ? '👑' : '🐻', px, py + 1);
     if (q.n > 1) {
       font(0.032, 900);
       ctx.fillStyle = '#ffffff';
@@ -2324,7 +2419,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BeeState, w: number, h: numbe
       ctx.stroke();
     }
     // 꿀 들고 도망
-    if (e.st === FLEE && e.carry > 0) {
+    if (e.st === FLEE && e.carry > 0 && s.st - e.eatT < 150) {
       font(0.032, 900);
       ctx.textAlign = 'center';
       const lbl = e.carry > 1 ? `꿀 ${e.carry} 돌려줘!` : '꿀 돌려줘!';
@@ -2450,12 +2545,12 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BeeState, w: number, h: numbe
     const mood = dazed ? 3 : s.mood;
     const face = s.lx < s.cx - 0.01 ? -1 : s.lx > s.cx + 0.01 ? 1 : (fx.memo.face ?? 1);
     fx.memo.face = face;
-    const cx = X(s.cx), cy = Y(s.cy) - R(0.05) + Math.sin(t * 0.15) * R(0.006);
+    const cx = X(s.cx), cy = Y(s.cy) - R(0.055) + Math.sin(t * 0.15) * R(0.006);
     ctx.fillStyle = 'rgba(25,60,15,.25)';
     ctx.beginPath();
-    ctx.ellipse(X(s.cx), Y(s.cy) + R(0.01), R(0.03), R(0.011), 0, 0, TAU);
+    ctx.ellipse(X(s.cx), Y(s.cy) + R(0.01), R(0.036), R(0.013), 0, 0, TAU);
     ctx.fill();
-    drawCaptain(ctx, cx, cy, R(0.03), face, mood, t, fever);
+    drawCaptain(ctx, cx, cy, R(0.036), face, mood, t, fever);
     // 누르는 동안 손가락 자리 고리
     if (s.held) {
       ctx.strokeStyle = 'rgba(255,255,255,.75)';
@@ -2634,19 +2729,23 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BeeState, w: number, h: numbe
           fx.ring(x, y, '#ffe066', R(0.16 * big), 6);
           for (let q = 0; q < 6; q++) fx.burst(x, y, q % 2 ? '#fff6b0' : '#ffd84a', 2, 6 * big, 3.4);
         }
-        say(x, y - R(0.05), e.text!, k === BOSS ? '#ffe066' : '#ffffff', Math.round((k === BOSS ? 30 : k === ANT ? 15 : 21) * cb));
+        if (k !== ANT || s.combo <= 1) say(x, y - R(0.05), e.text!, k === BOSS ? '#ffe066' : '#ffffff', Math.round((k === BOSS ? 30 : k === ANT ? 15 : 22) * cb));
         break;
       }
-      case 'combo':
-        say(x, y - R(0.03), e.text!, (e.n ?? 0) >= 8 ? '#ff9f40' : '#ffe066', Math.min(30, 14 + (e.n ?? 3) * 1.6));
-        if ((e.n ?? 0) >= 8) fx.ring(x, y, '#ff9f40', R(0.16), 5);
+      case 'combo': {
+        const n = e.n ?? 0;
+        if (n === 3 || n === 5 || n === 8 || n % 5 === 0) {
+          say(x, y - R(0.03), e.text!, n >= 8 ? '#ff9f40' : '#ffe066', Math.min(32, 15 + n * 1.5));
+          if (n >= 8) fx.ring(x, y, '#ff9f40', R(0.16), 5), fx.kick(4);
+        }
         break;
+      }
       case 'fever':
         fx.ring(x, y, '#ffcf3a', R(0.3), 7);
         fx.burst(x, y, '#ffcf3a', 30, 5, 3);
         fx.blink('#ffe9a0', 0.25);
         fx.kick(6);
-        say(w / 2, Y(0.6), e.text!, '#ffcf3a', 24);
+        fx.pop(clamp(x, w * 0.2, w * 0.8), y + R(0.09), '피버!', '#ffcf3a', 26);
         break;
       case 'steal':
         fx.burst(x, y, '#ffb21e', 12, 2.6, 2.6);

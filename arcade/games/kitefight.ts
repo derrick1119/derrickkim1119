@@ -186,7 +186,7 @@ function pickHome(s: KiteState, kind: Kind, kid: number): [number, number] {
   let best: [number, number] = [0.5, 0.4], bd = -1;
   for (let k = 0; k < 14; k++) {
     let hx: number, hy: number;
-    if (kind === 'twin') (hx = 0.36 + s.rng() * 0.28), (hy = 0.2 + s.rng() * 0.14);
+    if (kind === 'twin') (hx = 0.38 + s.rng() * 0.24), (hy = 0.17 + s.rng() * 0.08);
     else if (kind === 'dragon') (hx = 0.3 + s.rng() * 0.4), (hy = 0.28 + s.rng() * 0.12);
     else {
       const ax = KIDS[kid].x, cross = s.rng() < 0.6;
@@ -265,7 +265,7 @@ function newStage(s: KiteState) {
     s.kites[1].pal = 0;
     s.kites[1].lines = [mkLine(KIDS[0].x, KIDS[0].y, 0.71, 0.36, EN)];
     s.queue.splice(0, 2);
-    s.spawnIn = 90;
+    s.spawnIn = 25;
   } else {
     for (let k = 0; k < 2 && s.queue.length; k++) if (spawn(s, s.queue[0])) s.queue.shift();
   }
@@ -783,6 +783,9 @@ function predict(s: KiteState, tx: number, ty: number, H: number): Pred {
         for (let b = 0; b < 5; b++) if (Math.hypot(fx - f.dir * [0, 1, 1, 2, 2][b] * 0.045 - x, f.y + [0, -1, 1, -2, 2][b] * 0.03 - y) < BIRD_R + 0.025) bird = 1;
       }
   }
+  // 두 줄 연 판: 한 줄만 끊고 마는 길은 ★을 놓친다 — 아직 못 땄으면 깎는다
+  if (W.twin > 1 && !s.twinOnce)
+    for (const q of lines) if (q.e.kind === 'twin' && q.done && q.e.firstCutT < 0 && !lines.some((o) => o.e === q.e && o !== q && o.done)) v -= 1.3;
   let chain = 1, best = cuts ? 1 : 0;
   for (let k = 1; k < cutT.length; k++) (chain = cutT[k] - cutT[k - 1] <= CHAIN_T ? chain + 1 : 1), (best = Math.max(best, chain));
   const val = v + (best >= 2 ? W.chain * (best - 1) : 0) - hurt * W.hurt - glass * (W.glass ?? 3) - bird * W.bird - (first > 0 ? first * 0.004 : 0);
@@ -839,17 +842,18 @@ export const kitefightSmart: Bot<KiteState> = {
         if (v > bv) (bv = v), (best = [x, y]), (bp = p);
       }
       // 두 줄 연 판: 아직 ★을 못 땄고 위험이 없으면, 꼭짓점 아래 한쪽에 섰다가 가로로 쭉 그어 두 줄을 한 번에
-      if (STAGES[s.stage].star3 === 'twinonce' && !s.twinOnce && (!bp || (bp.hurt < 0.01 && bp.chain < 2))) {
-        const tw = s.kites.find((e) => e.kind === 'twin' && e.st === 'fly' && e.firstCutT < 0 && (!e.tense || e.tenseT < 40));
+      if (STAGES[s.stage].star3 === 'twinonce' && !s.twinOnce && (!bp || (bp.hurt < 0.05 && bp.chain < 2))) {
+        const tw = s.kites.find((e) => e.kind === 'twin' && (e.st === 'fly' || e.st === 'rise') && e.firstCutT < 0);
         if (tw) {
-          const sd = s.kx < tw.x ? -1 : 1, ax = clamp(tw.x + sd * 0.3, SX0, SX1), ay = clamp(tw.y + 0.07, SY0, SY1);
-          const there = Math.hypot(s.kx - ax, s.ky - ay) < 0.06 && !tw.tense;
-          const goal: [number, number] = there ? [clamp(tw.x - sd * 0.32, SX0, SX1), ay] : [ax, ay];
+          const tx0 = tw.st === 'rise' ? tw.hx : tw.x, ty0 = tw.st === 'rise' ? tw.hy : tw.y;
+          const sd = s.kx < tx0 ? -1 : 1, ax = clamp(tx0 + sd * 0.26, SX0, SX1), ay = clamp(ty0 + 0.06, SY0, SY1);
+          const there = Math.hypot(s.kx - ax, s.ky - ay) < 0.05 && Math.hypot(s.kvx, s.kvy) < 0.006 && tw.st === 'fly' && (!tw.tense || tw.tenseT < 6);
+          const goal: [number, number] = there ? [clamp(tx0 - sd * 0.34, SX0, SX1), ay] : [ax, ay];
           const p = predict(s, goal[0], goal[1], 42);
-          if (p.hurt < 0.01 && p.bird === 0) (best = goal), (bp = p);
+          if (p.hurt < 0.05 && p.bird === 0) (best = goal), (bp = p);
         }
       }
-      const stay = best[0] === s.tx && best[1] === s.ty;
+      const stay = Math.hypot(best[0] - s.tx, best[1] - s.ty) < 0.03;
       brain.set(s, (m = { tx: best[0], ty: best[1], until: s.t + (bp && bp.cuts ? Math.min(36, bp.first + 8) : 15), key, fresh: !stay }));
     }
     if (m.fresh) {
@@ -1719,13 +1723,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: KiteState, w: number, h: numb
   }
   // 멀리 다른 마을 아이들의 작은 연
   for (let k = 0; k < 4; k++) {
-    const bx = X(0.08 + k * 0.27 + Math.sin(t * 0.006 + k * 2) * 0.02) - par * R(0.02), by = Y(0.66 + hsh(k + 40) * 0.2 + Math.sin(t * 0.01 + k) * 0.01), rr = R(0.011 + hsh(k) * 0.006);
-    ctx.globalAlpha = 0.5;
+    const bx = X(0.08 + k * 0.27 + Math.sin(t * 0.006 + k * 2) * 0.02) - par * R(0.02), by = Y(0.86 + hsh(k + 40) * 0.08 + Math.sin(t * 0.01 + k) * 0.006), rr = R(0.007 + hsh(k) * 0.004);
+    ctx.globalAlpha = 0.35;
     ctx.strokeStyle = 'rgba(80,40,90,.6)';
     ctx.lineWidth = 0.8;
     ctx.beginPath();
     ctx.moveTo(bx, by);
-    ctx.quadraticCurveTo(bx + rr * 2, by + R(0.12), bx + rr * 3, Y(1.0));
+    ctx.quadraticCurveTo(bx + rr * 2, by + R(0.06), bx + rr * 3, Y(1.02));
     ctx.stroke();
     ctx.fillStyle = ['#6b3f7a', '#8a4a6a', '#5a3a82', '#7a4060'][k];
     ctx.beginPath();
@@ -1796,14 +1800,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: KiteState, w: number, h: numb
   }
   // 바람 줄무늬
   if (Math.abs(s.wind) > 0.3) {
-    ctx.strokeStyle = 'rgba(255,240,220,.22)';
-    ctx.lineWidth = 1.4;
-    const n = Math.round(Math.abs(s.wind) * 7);
+    ctx.strokeStyle = 'rgba(255,244,228,.38)';
+    ctx.lineWidth = 1.8;
+    ctx.lineCap = 'round';
+    const n = Math.round(Math.abs(s.wind) * 9);
     for (let k = 0; k < n; k++) {
       const ph = ((t * 0.012 * Math.abs(s.wind) + hsh(k + 60)) % 1) * 1.4 - 0.2, xx = s.wind > 0 ? ph : 1 - ph, yy = 0.2 + hsh(k + 70) * 0.75;
       ctx.beginPath();
       ctx.moveTo(X(xx), Y(yy));
-      ctx.quadraticCurveTo(X(xx - Math.sign(s.wind) * 0.06), Y(yy - 0.008), X(xx - Math.sign(s.wind) * 0.13), Y(yy));
+      ctx.quadraticCurveTo(X(xx - Math.sign(s.wind) * 0.08), Y(yy - 0.012), X(xx - Math.sign(s.wind) * 0.18), Y(yy));
       ctx.stroke();
     }
   }
@@ -2022,7 +2027,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: KiteState, w: number, h: numb
         ctx.globalAlpha = 1;
       }
       ctx.strokeStyle = e.tense ? '#ff5a4f' : preTense && t % 10 < 5 ? '#ff9a8a' : P.line;
-      ctx.lineWidth = e.tense ? 2 : 1.6;
+      ctx.lineWidth = e.tense ? 2.4 : 1.9;
       smooth(ctx, xs, ys);
       ctx.stroke();
     }
@@ -2058,7 +2063,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: KiteState, w: number, h: numb
       smooth(ctx, xs, ys);
       ctx.stroke();
       ctx.strokeStyle = hurtNow ? '#ffb0a0' : '#fff8e6';
-      ctx.lineWidth = 1.9;
+      ctx.lineWidth = 2.3;
       if (s.hp < 0.35 && t % 20 < 10) ctx.setLineDash([6, 3]);
       smooth(ctx, xs, ys);
       ctx.stroke();
@@ -2111,7 +2116,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: KiteState, w: number, h: numb
     }
   // ═════════════ 상대 연 ═════════════
   for (const e of s.kites) {
-    const P = PALS[e.pal], r = R(e.kind === 'twin' ? 0.046 : e.kind === 'dragon' ? 0.064 : 0.05);
+    const P = PALS[e.pal], r = R(e.kind === 'twin' ? 0.05 : e.kind === 'dragon' ? 0.066 : 0.055);
     const falling = e.st === 'fall';
     const mood = falling ? 4 : e.tumble > 0 ? 2 : e.st === 'tired' ? 6 : e.st === 'warn' || e.st === 'dart' || e.tense || e.kind === 'dart' ? 3 : 0;
     const shake = e.st === 'warn' ? Math.sin(t * 1.7) * R(0.006) : 0;
@@ -2232,11 +2237,11 @@ function drawAll(ctx: CanvasRenderingContext2D, s: KiteState, w: number, h: numb
       ctx.globalAlpha = 1;
       continue;
     }
-    for (let b = 0; b < 5; b++) drawBird(ctx, X(birdX(f, b)), Y(birdY(f, b)), R(0.022), f.dir, t, b + f.id);
+    for (let b = 0; b < 5; b++) drawBird(ctx, X(birdX(f, b)), Y(birdY(f, b)), R(0.027), f.dir, t, b + f.id);
   }
   // ═════════════ 내 연 ═════════════
   {
-    const kx = X(s.kx), ky = Y(s.ky) + (s.down ? 0 : Math.sin(t * 0.07) * 1.5), r = R(0.058);
+    const kx = X(s.kx), ky = Y(s.ky) + (s.down ? 0 : Math.sin(t * 0.07) * 1.5), r = R(0.062);
     const mood = snapped ? 4 : s.tumble > 0 ? 4 : s.t - s.hurtT < 16 ? 2 : s.t - s.lastCutT < 45 ? 1 : Math.hypot(s.kvx, s.kvy) > VMAX * 0.75 ? 5 : 0;
     const tdx = -s.kvx * 40 - s.wind * 0.3, tdy = 1, tl = Math.hypot(tdx, tdy);
     // 손가락 겨눔 (누르는 동안)
@@ -2274,7 +2279,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: KiteState, w: number, h: numb
     if (ev0.kind === 'snip') fx.burst(x, y, '#ffffff', 12, 3, 2), fx.ring(x, y, '#ffffff', R(0.06), 3), fx.kick(3), fx.pop(x, y - R(0.05), '툭! 하나 더!', '#ffe9a8', 15);
     if (ev0.kind === 'notch') fx.burst(x, y, '#ffd34d', 30, 5, 3), fx.burst(x, y, '#ff5a3a', 20, 4, 2.6), fx.ring(x, y, '#ffd34d', R(0.12), 5), fx.kick(9), fx.pop(x, y - R(0.07), `크앙! ${c}/3`, '#ffd34d', 22), fx.blink('#ffb08a', 0.15);
     if (ev0.kind === 'saw') fx.burst(x, y, t % 2 ? '#ffd23f' : '#ff9a3c', 3, 2.2, 1.6);
-    if (ev0.kind === 'hurt') fx.burst(x, y, '#ff4a3a', 6, 2.4, 2), fx.kick(2.5), fx.pop(x, y - R(0.04), '긁!', '#ffb0a0', 14);
+    if (ev0.kind === 'hurt') {
+      fx.burst(x, y, '#ff4a3a', 6, 2.4, 2), fx.kick(2.5);
+      if (ev0.t - (fx.memo.hp ?? -99) > 40) (fx.memo.hp = ev0.t), fx.pop(x, y - R(0.05), '긁혀요!', '#ffb0a0', 16);
+    }
     if (ev0.kind === 'glass') fx.burst(x, y, '#bff4ff', 6, 2.2, 1.8), c === 1 && fx.pop(x, y - R(0.04), '사각사각!', '#bff4ff', 14);
     if (ev0.kind === 'snap') fx.burst(x, y, '#fff3d6', 30, 5, 2.8), fx.ring(x, y, '#ffb0a0', R(0.15), 6), fx.kick(12), fx.blink('#ffd0b0', 0.22), fx.pop(x, y - R(0.06), '툭…', '#ffd0c0', 26);
     if (ev0.kind === 'warn') fx.ring(x, y, '#ff4a3a', R(0.07), 3);
@@ -2502,7 +2510,14 @@ function drawHud(ctx: CanvasRenderingContext2D, s: KiteState, w: number, h: numb
     font(0.037, 900);
     const txt = d.s3, tw = Math.min(w - R(0.1), ctx.measureText(txt).width + R(0.11));
     const px0 = w / 2 - tw / 2;
-    ctx.fillStyle = st3 > 0 ? 'rgba(255,210,94,.22)' : st3 < 0 ? 'rgba(0,0,0,.35)' : 'rgba(255,255,255,.08)';
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
+    ctx.beginPath();
+    ctx.roundRect(px0, r2 - R(0.027) + 2, tw, R(0.054), R(0.027));
+    ctx.fill();
+    const pg = ctx.createLinearGradient(0, r2 - R(0.027), 0, r2 + R(0.027));
+    pg.addColorStop(0, st3 > 0 ? 'rgba(255,220,120,.4)' : 'rgba(255,255,255,.14)');
+    pg.addColorStop(1, st3 > 0 ? 'rgba(200,140,30,.3)' : st3 < 0 ? 'rgba(0,0,0,.4)' : 'rgba(255,255,255,.04)');
+    ctx.fillStyle = pg;
     ctx.beginPath();
     ctx.roundRect(px0, r2 - R(0.027), tw, R(0.054), R(0.027));
     ctx.fill();
@@ -2551,9 +2566,9 @@ function drawHud(ctx: CanvasRenderingContext2D, s: KiteState, w: number, h: numb
         lines = [['툭… 내 줄이 끊겼어요', '#ffb3a8', 0.05], [s.hearts > 0 ? '하트 하나 쓰고 같은 판 다시' : '끝 — 그래도 멋진 연싸움!', '#ffe9d6', 0.038]];
         col = '#ffb3a8';
       }
-    } else if (s.pt < (s.stage ? CARD_T - 35 : CARD_T)) {
+    } else if (s.pt < (s.stage ? CARD_T - 35 : CARD_T) && !(s.stage === 0 && s.firstPress >= 0 && s.t - s.firstPress > 25)) {
       age = s.pt;
-      a = Math.min(1, ((s.stage ? CARD_T - 35 : CARD_T) - s.pt) / 20);
+      a = Math.min(1, ((s.stage ? CARD_T - 35 : CARD_T) - s.pt) / 20, s.stage === 0 && s.firstPress >= 0 ? (25 - (s.t - s.firstPress)) / 25 : 1);
       lines = [[`${s.again ? '다시! ' : ''}${s.stage + 1}판 · ${d.name}`, '#ffffff', 0.048]];
       if (d.news) lines.push([`NEW  ${d.news}`, '#ffe25a', 0.037]);
       lines.push([d.boss ? '★ 용 연 떨어뜨리기 · ★ 내 줄 반 넘게' : `★ 연 ${d.goal}개 끊기 · ★ 내 줄 반 넘게`, '#f2e6ff', 0.036], [`★ ${d.s3}`, '#ffd25e', 0.036]);
