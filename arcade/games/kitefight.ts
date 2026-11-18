@@ -1,16 +1,18 @@
 /**
  * 연싸움 하늘 (31라운드: 실시간 액션 — 첫인상·손맛·그림) — 연싸움 × 가리키기(누르는 동안 따라가기) × 콤보.
- * 조작(손가락 하나, 하는 일 하나): 누르고 있는 동안 연이 손가락 쪽으로 바람을 타고 날아간다(관성·처짐). 떼면 마지막 자리에 머문다
- *   (그래서 톡 = '저기로 휙', 꾹 끌기 = '따라 휘두르기'). 키보드는 화살표 커서 + 스페이스.
- * 규칙(결정적): 연줄은 아이 손에서 연까지 휘어진 여러 마디 줄이다. 두 줄이 엇갈린 자리에서 그 자리가 더 빨리 움직이는 줄이
- *   상대 줄을 벤다(내 줄은 연 가까이일수록 빠르다). 상대 줄이 더 빠르면(달려드는 연) 내 줄이 닳는다. 다 닳으면 하트 -1, 그 판 다시.
+ * 조작(손가락 하나, 하는 일 하나): 누르고 있는 동안 내 방패연이 손가락 쪽으로 바람을 타고 날아간다(관성·처짐). 떼면 마지막 자리에
+ *   머문다(그래서 톡 = '저기로 휙', 꾹 끌기 = '따라 휘두르기'). 키보드는 화살표 커서 + 스페이스.
+ * 규칙(결정적): 연줄은 아이 손에서 연까지 휘어진 여러 마디 줄이다. 두 줄이 엇갈린 자리에서 그 자리가 더 빨리 움직이는 줄이 상대
+ *   줄을 벤다(내 줄은 연 가까이일수록 빠르다 → 연 끝으로 휙 스쳐야 팅). 사나운 연·두 줄 연·용 연은 줄을 팽팽히(빨강) 당겼다
+ *   늦췄다 한다 — 팽팽한 줄은 늘 내 줄보다 빨라서 닿으면 내 줄이 닳는다(바람 따라 휘두를 때만 이긴다). 늘어진 줄도 엇갈린 채
+ *   머뭇거리면 '홱!' 팽팽해진다. 내 줄이 다 닳으면 하트 -1, 그 판 다시.
  * 와우: 첫 손짓에 연이 솟구치며 X자로 엇갈린 두 줄을 '팅! 팅!' — 두 연이 빙글빙글 떨어지고 화면이 잠깐 느려진다.
  * 판 7개(목표 = 연 N개 끊기 · ★ 끊기 · ★ 내 줄 반 넘게 남기기 · ★ 판마다 다른 한 줄):
- *   1 떠도는 연(휘둘러 베기) → 2 사나운 연(빨간 화살표로 달려듦 — 비키거나 먼저 베기) → 3 바람(방향이 바뀌고 연들이 한쪽에 몰림 —
- *   바람 따라 휘두르면 더 빠름, 한 번에 여럿) → 4 유리 가루 줄(닿기만 해도 내 줄이 닳음 — 한 번에 확) → 5 두 줄 연(V자 두 줄을
- *   한 번에) → 6 새 떼(부딪히면 연이 빙글 — 길 고르기) → 7 용 연 대장(세 번 베어야 함, 화나면 달려듦).
+ *   1 떠도는 연(휘둘러 베기) → 2 사나운 연(빨간 화살표로 달려듦·팽팽한 줄 — 비키거나 쉴 때 베기) → 3 바람(방향이 바뀌고 연들이
+ *   한쪽에 몰림 — 바람 따라 휘두르면 빠름, 두 개씩 한 번에) → 4 유리 가루 줄(아래쪽 가루에 닿기만 해도 닳음 — 연 끝만 베기)
+ *   → 5 두 줄 연(V자 꼭짓점 아래를 가로로 그어 두 줄을 한 번에) → 6 새 떼(느낌표 높이를 비우기) → 7 용 연 대장(세 번 베기, 번쩍일 땐 안 베임).
  * 웃음: 줄이 끊긴 상대 아이는 엉덩방아 + 어질어질 별, 떨어지는 연은 X 눈으로 빙글빙글, 내 줄이 끊기면 곰돌이가 뒤로 벌러덩.
- *   언덕의 구경꾼(오리·고슴도치)이 팅! 할 때마다 폴짝, 내 줄이 위험하면 두 손으로 얼굴을 가린다.
+ *   언덕의 구경꾼(오리·고슴도치)이 팅! 할 때마다 폴짝, 내 줄이 위험하면 얼굴을 가린다.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -2185,9 +2187,18 @@ function drawAll(ctx: CanvasRenderingContext2D, s: KiteState, w: number, h: numb
     }
     if (e.kind === 'dragon' && live(e)) {
       for (let k = 0; k < 3; k++) {
-        ctx.fillStyle = k < e.hp ? '#ff4a3a' : 'rgba(255,255,255,.25)';
-        heartPath(ctx, kx - R(0.03) + k * R(0.03), ky - r * 2.2, R(0.011));
+        const gx = kx - R(0.03) + k * R(0.03), gy = ky - r * 2.2, gr = R(0.012);
+        ctx.beginPath();
+        ctx.moveTo(gx, gy - gr);
+        ctx.lineTo(gx + gr * 0.75, gy);
+        ctx.lineTo(gx, gy + gr);
+        ctx.lineTo(gx - gr * 0.75, gy);
+        ctx.closePath();
+        ctx.fillStyle = k < e.hp ? '#ffd34d' : 'rgba(255,255,255,.25)';
         ctx.fill();
+        ctx.strokeStyle = '#7a1410';
+        ctx.lineWidth = 1;
+        ctx.stroke();
       }
     }
     // NEW 스포트라이트
@@ -2260,8 +2271,6 @@ function drawAll(ctx: CanvasRenderingContext2D, s: KiteState, w: number, h: numb
   for (const ev0 of s.events) {
     if (ev0.t <= seenT) continue;
     const x = X(ev0.x), y = Y(ev0.y), c = ev0.n;
-    const P = ev0.col && ev0.col in { drift: 1, dart: 1, glass: 1, twin: 1, dragon: 1 } ? null : null;
-    void P;
     if (ev0.kind === 'cut') {
       const big = Math.min(4, c), col = ev0.col === 'glass' ? '#9ff0ff' : ev0.col === 'dragon' ? '#ffd34d' : '#ffe9a8';
       fx.burst(x, y, '#ffffff', 14 + big * 6, 3.4 + big, 2.4);
@@ -2377,9 +2386,18 @@ function drawHud(ctx: CanvasRenderingContext2D, s: KiteState, w: number, h: numb
       ctx.textAlign = 'right';
       ctx.fillText('용 연', cx - R(0.01), hb * 0.52);
       for (let k = 0; k < 3; k++) {
-        ctx.fillStyle = k < hp ? '#ff5a4f' : 'rgba(255,255,255,.2)';
-        heartPath(ctx, cx + R(0.035) + k * R(0.05), hb * 0.52, R(0.017));
+        const gx = cx + R(0.035) + k * R(0.05), gy = hb * 0.52, gr = R(0.019);
+        ctx.beginPath();
+        ctx.moveTo(gx, gy - gr);
+        ctx.lineTo(gx + gr * 0.75, gy);
+        ctx.lineTo(gx, gy + gr);
+        ctx.lineTo(gx - gr * 0.75, gy);
+        ctx.closePath();
+        ctx.fillStyle = k < hp ? '#ffd34d' : 'rgba(255,255,255,.18)';
         ctx.fill();
+        ctx.strokeStyle = k < hp ? '#a8160f' : 'rgba(255,255,255,.3)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
       }
     } else {
       // 작은 연 그림

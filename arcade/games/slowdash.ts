@@ -940,7 +940,7 @@ export const slowdashSmart: Bot<DashState> = {
     let m = waitMem.get(s);
     if (!m || m.key !== key) waitMem.set(s, (m = { since: s.t, key }));
     const waited = s.t - m.since;
-    const ranged = live.every((f) => !MELEE[f.k]) && !(d.key === 'archer' && s.arrows < 3 && s.wave >= d.waves.length && waited < 900);
+    const ranged = live.some((f) => f.k === 'archer' || f.k === 'shuri') && live.every((f) => !MELEE[f.k]) && !(d.key === 'archer' && s.arrows < 3 && s.wave >= d.waves.length && waited < 900);
     if (s.g < 30) {
       // 게이지가 바닥: 위험할 때만 — 벨 수 있으면 베며 비키고, 아니면 가장 싸게 비킨다
       if (here >= 30) return kill && kill.safe >= 50 && (kill.n >= 2 || waited > 240 || ranged) ? at(kill.x, kill.y) : NO;
@@ -952,6 +952,7 @@ export const slowdashSmart: Bot<DashState> = {
       }
       return pick ? at(pick.x, pick.y) : NO;
     }
+    if (ranged && kill && kill.safe >= 40 && (best.n === 0 || here >= 40)) return at(kill.x, kill.y);
     if (here < 40 || best.n + best.boom >= want || best.obj >= 120) return at(best.x, best.y);
     // 폭탄 통 판: 칼잡이가 셋 이상이면 통 곁으로 가서 꾀어 모은다
     if (d.key === 'barrel' && s.boomBest < 3 && live.filter((f) => MELEE[f.k]).length >= 3) {
@@ -1364,6 +1365,19 @@ function getBg(w: number, h: number, place: number, sc: number): Bg {
         g.fill();
       }
     }
+    // 달빛에 드리운 대나무 그림자 (비스듬한 띠)
+    if (place === 0)
+      for (let k = 0; k < 7; k++) {
+        const x0 = w * (-0.2 + k * 0.2 + hsh(k + 900) * 0.08), bw = w * (0.012 + hsh(k + 901) * 0.02);
+        g.fillStyle = 'rgba(6,12,30,.16)';
+        g.beginPath();
+        g.moveTo(x0, 0);
+        g.lineTo(x0 + bw, 0);
+        g.lineTo(x0 + bw - w * 0.35, gh);
+        g.lineTo(x0 - w * 0.35 - bw * 0.5, gh);
+        g.closePath();
+        g.fill();
+      }
     // 풀포기 (가까울수록 크게)
     if (place === 0)
       for (let k = 0; k < 140; k++) {
@@ -1570,7 +1584,11 @@ function drawFox(ctx: C2, x: number, y: number, k: number, face: number, pose: n
   ctx.lineWidth = k * 0.016;
   ctx.strokeStyle = OUT;
   ctx.stroke();
-  // 머리
+  // 머리 (조금 크게: 귀여운 비율)
+  ctx.save();
+  ctx.translate(k * 0.03, top);
+  ctx.scale(1.2, 1.2);
+  ctx.translate(-k * 0.03, -top);
   const hx = k * 0.03, hy = top - k * 0.17, hr = k * 0.2;
   for (const [ex, ey, rot] of [[hx - k * 0.1, hy - hr * 0.7, -0.35], [hx + k * 0.08, hy - hr * 0.78, 0.18]]) {
     ctx.save();
@@ -1667,6 +1685,7 @@ function drawFox(ctx: C2, x: number, y: number, k: number, face: number, pose: n
   ctx.beginPath();
   ctx.arc(hx, hy, hr * 0.84, -2.7, -1.5);
   ctx.stroke();
+  ctx.restore();
   if (pose === 5) {
     for (let j = 0; j < 3; j++) {
       const a = t * 0.12 + (j * TAU) / 3;
@@ -1896,6 +1915,10 @@ function drawFoeBody(ctx: C2, k: number, p: Pose, t: number) {
     ctx.fill();
     // 머리
     const hy = -k * 0.56;
+    ctx.save();
+    ctx.translate(0, -k * 0.42);
+    ctx.scale(1.18, 1.18);
+    ctx.translate(0, k * 0.42);
     ctx.fillStyle = '#4a2c1a';
     ell(ctx, -k * 0.1, hy - k * 0.11, k * 0.045, k * 0.045);
     ctx.fill();
@@ -1936,6 +1959,7 @@ function drawFoeBody(ctx: C2, k: number, p: Pose, t: number) {
     ctx.moveTo(-k * 0.2, hy - k * 0.105);
     ctx.quadraticCurveTo(k * 0.02, hy - k * 0.145, k * 0.24, hy - k * 0.105);
     ctx.stroke();
+    ctx.restore();
     // 칼
     if (wind) {
       blade(ctx, k * 0.02, -k * 0.6, -k * 0.28, -k * 1.0, k * 0.035, '#ff6a5a');
