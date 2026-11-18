@@ -82,6 +82,35 @@ canvas{display:block;width:100%;height:100%;border-radius:16px}
 .tl b{font-weight:400;background:var(--sun);color:var(--ink);border-radius:999px;padding:1px 8px;font-size:12px}
 .overlay .face.small{width:84px;height:84px;margin:-8px 0 -8px}
 .starts.one{grid-template-columns:1fr}
+.eureka{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;background:var(--sun);border:var(--edge);border-radius:16px;padding:8px 12px;margin:0 0 18px;box-shadow:0 4px 0 var(--ink)}
+.eureka img{width:72px;height:72px;margin:-4px}
+.eureka b{display:block;font:400 19px/1.2 var(--font-display)}
+.eureka span{display:block;font-size:13px;line-height:1.35}
+.eureka .got{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:14px}
+.tree{display:grid;gap:10px}
+.sci{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start;background:var(--paper);border:var(--edge);border-radius:16px;padding:8px 12px 10px 8px}
+.sci img{width:64px;height:64px}
+.sci.locked{background:#e9e1cf;color:var(--ink-soft)}
+.sci.locked img{filter:grayscale(1);opacity:.55}
+.sci .info{display:grid;gap:5px}
+.sci b{font:400 18px/1.2 var(--font-display)}
+.sci b small{font:400 12.5px/1 var(--font-body);color:var(--ink-soft);margin-left:4px}
+.pts{display:flex;flex-wrap:wrap;gap:5px 10px}
+.pt{display:inline-flex;align-items:center;gap:5px;font-size:13.5px}
+.pt.no{color:var(--ink-soft)}
+.ico.q{background:#d8d0bd;font:400 15px/1 var(--font-display);color:var(--ink-soft)}
+.pick .ico.q{font-size:18px}
+.sci .ult{font-size:12.5px;line-height:1.35}
+.sci .ult i,.ultline b{font-style:normal;background:var(--ink);color:#fff;border-radius:999px;padding:1px 8px;margin-right:6px;font:400 12px/1.5 var(--font-body);display:inline-block}
+.sci .need{font-size:12.5px;color:#a2463b}
+.ultline{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:center;margin-top:12px;background:var(--paper);border:var(--edge);border-radius:14px;padding:6px 12px 6px 6px;font-size:13.5px}
+.ultline img{width:50px;height:50px}
+.ultline.none{grid-template-columns:1fr;padding:8px 12px;background:#e9e1cf;color:var(--ink-soft)}
+.grp small{font:400 12px/1.2 var(--font-body);color:var(--ink-soft);margin-left:4px}
+.sheet .num{font:400 24px/1.2 var(--font-display)}
+.pick .mat{background:#e9e1cf}
+.reward{background:var(--sun);color:var(--ink);border-radius:999px;padding:3px 12px;font-size:13.5px}
+@media (max-width:480px){.views{gap:4px}.views button{padding:4px 8px;font-size:14.5px}.brand h1{font-size:18px}.brand img{width:40px;height:40px;margin:-4px -2px -4px -4px}}
 .dmgs{width:min(100%,292px);display:grid;gap:3px;text-align:left}
 .dmgs h3{font:400 12.5px/1.2 var(--font-body);color:#cfc6e6;margin-top:3px;display:flex;justify-content:space-between}
 .dmgs h3 small{font-size:12.5px;color:#fff}
@@ -275,6 +304,7 @@ body.playing button:focus-visible{outline-color:#fff}
     <div class="brand"><img id="logo" alt="" width="46" height="46"><h1>파츠 보스 메이커</h1><span class="proto">프로토타입</span></div>
     <nav class="views" aria-label="화면 전환">
       <button type="button" id="tabWorkshop" aria-pressed="true">작업실</button>
+      <button type="button" id="tabLab" aria-pressed="false">연구실</button>
       <button type="button" id="tabChallenge" aria-pressed="false">도전</button>
     </nav>
   </header>
@@ -364,6 +394,34 @@ const DUEL = {
   pickAt: [420, 1020], pickLife: 420, ocLife: 300, ocMul: 1.5,
 };
 const NOBLOCK = { f: 1, m: 1, wall: 1, slam: 1, p: 1 };   // 방패로 못 막는 것
+/* 과학자 테크 트리: 이론을 하나 깨달을 때마다 파츠가 열린다. 같은 과학자의 파츠를 둘 이상 끼우면 그 과학자의 필살기가 생긴다 */
+const SCI = {
+  ar: { name: '아르키메데스', field: '지렛대와 나선', parts: ['h', 'd'], need: [], ult: '유레카 지렛대', line: '설 자리만 다오. 저 로봇을 들어 올리겠다!', desc: '상대가 어디 있든 멀리 날려 버려요' },
+  nt: { name: '뉴턴', field: '운동 법칙', parts: ['c', 'g', 'b'], need: ['ar'], ult: '만유인력 사과', line: '사과는 떨어진다. 너도 떨어진다.', desc: '커다란 사과가 상대 머리 위로 떨어져요' },
+  ed: { name: '에디슨', field: '발명과 노력', parts: ['s', 'x', 'f'], need: ['nt'], ult: '천 번의 시도', line: '실패라니? 안 되는 방법을 천 가지 찾았을 뿐!', desc: '5초 동안 내 파츠가 두 배로 바쁘게 움직여요' },
+  ga: { name: '가우스', field: '자기장과 수학', parts: ['n', 'q'], need: ['nt'], ult: '가우스 캐논', line: '1부터 100까지 더하면 5050. 계산 끝, 발사.', desc: '방패로도 못 막는 자기 포탄을 쏴요' },
+  ts: { name: '테슬라', field: '교류와 코일', parts: ['t', 'p'], need: ['ed', 'ga'], ult: '교류 폭풍', line: '직류는 잊어라. 이게 교류다!', desc: '번개로 상대를 지지고 한동안 마비시켜요' },
+  ei: { name: '아인슈타인', field: '상대성과 빛', parts: ['l', 'y'], need: ['ts'], ult: '상대성 이론', line: '시간은 상대적이지. 너한테만 느리게 흐를 거야.', desc: '4.5초 동안 상대의 시간이 느리게 흘러요' },
+  op: { name: '오펜하이머', field: '원자핵', parts: ['r', 'm'], need: ['ei'], ult: '연쇄 반응', line: '임계 질량 돌파. …다들 귀 막아!', desc: '상대 발밑에 큰 폭발을 일으켜요' },
+};
+const SORDER = ['ar', 'nt', 'ed', 'ga', 'ts', 'ei', 'op'];
+const LORE = {   // 파츠마다: 깨달은 이론, 꼬마 과학자의 한마디
+  h: ['지렛대의 원리', '긴 막대만 있으면 뭐든 날릴 수 있어!'], d: ['아르키메데스 나선', '돌리면 파고든다!'],
+  c: ['뉴턴의 대포', '세게 쏘면 지구도 한 바퀴 돈대!'], g: ['작용·반작용의 법칙', '네가 민 만큼 나도 민다!'], b: ['가속도의 법칙', '힘을 주면 빨라진다. 많이 주면 많이!'],
+  s: ['전동기', '돌아가는 건 다 쓸모가 있어!'], x: ['99%의 노력', '고장 나면 또 고치면 되지!'], f: ['필라멘트', '뜨거우면 빛나고, 더 뜨거우면 탄다!'],
+  n: ['자기장', '붙는 데는 다 이유가 있었어!'], q: ['가우스 법칙', '껍질 안쪽은 안전하대!'],
+  t: ['테슬라 코일', '찌릿하면 다 멈춘다!'], p: ['공명', '박자만 맞추면 건물도 흔들려!'],
+  l: ['유도 방출', '빛을 한 줄로 세우면 아프구나!'], y: ['쌍둥이 역설', '둘 중에 누가 진짜게?'],
+  r: ['임계 질량', '작게 뭉쳐서 크게 터진다!'], m: ['연쇄 반응', '하나가 터지면 옆에 것도 터진다!'],
+};
+for (const k of SORDER) for (const q of SCI[k].parts) ITEM[q].sci = k;
+const ULT = { need: 90, ar: { dmg: 12, kb: 620 }, nt: { dmg: 18, stun: 30, t: 26 }, ed: { len: 300 }, ga: { dmg: 20, t: 16 }, ts: { dmg: 8, stun: 60 }, ei: { len: 270 }, op: { dmg: 22, kb: 480, r: 100, t: 32 } };
+function ultOf(items) {   // 가장 많이 끼운 과학자 (둘 이상일 때만), 같으면 앞 칸이 먼저
+  const cnt = {}; let best = null;
+  for (const k of items || []) if (ITEM[k]) cnt[ITEM[k].sci] = (cnt[ITEM[k].sci] || 0) + 1;
+  for (const k of items || []) if (ITEM[k]) { const sc = ITEM[k].sci; if (cnt[sc] >= 2 && (!best || cnt[sc] > cnt[best])) best = sc; }
+  return best;
+}
 const MAPS = { clear: '빈 경기장', cloudy: '화물 경기장', windy: '강풍 경기장', bumper: '범퍼 경기장' };
 function prep(b) {
   b.items = [...new Set((b.items || []).filter(k => ITEM[k]))].slice(0, SLOTS);
@@ -389,7 +447,7 @@ const SANDBAG = { name: '연습 상대', legs: 'd', items: [] };
 /* spar: 작업실에서 내 파츠를 시험해 보는 연습 상대 (죽지 않고, 과열도 벽도 없다) */
 function makeDuel(top, bot, seed, spar) {
   const map = spar ? { seed, kind: 'clear', clouds: [], bumps: [], wind: 0 } : makeMap(seed);
-  const d = { map, spar: !!spar, rs: (seed ^ 0x9e3779b9) | 0, f: [], clouds: map.clouds.map(cl => ({ ...cl })), shots: [], lasers: [], mines: [], pick: null, tick: 0, wl: 0, wt: 33, over: null, dealt: [{}, {}], healed: [0, 0], last: null, ramCd: 0, ev: [] };
+  const d = { map, spar: !!spar, rs: (seed ^ 0x9e3779b9) | 0, f: [], clouds: map.clouds.map(cl => ({ ...cl })), shots: [], lasers: [], mines: [], pend: [], pick: null, tick: 0, wl: 0, wt: 33, over: null, dealt: [{}, {}], healed: [0, 0], last: null, ramCd: 0, ev: [] };
   const mk = (boss, side) => {
     const kind = MOVE[boss.legs] ? boss.legs : 'z', mv = MOVE[kind], has = {};
     for (const k of boss.items || []) if (ITEM[k]) has[k] = true;
@@ -397,6 +455,7 @@ function makeDuel(top, bot, seed, spar) {
     return {
       boss, side, kind, mv, has, x: 80 + rnd(d) * (W - 160), y: DUEL.home[side], a: (side ? -1 : 1) * Math.PI / 2 + (rnd(d) - 0.5) * 1.4, vx: 0, vy: 0,
       hp, maxHp: hp, fl: 0, sq: 0, rush: !!(has.s || has.d || has.h || has.g || has.t || has.f || has.b),
+      ult: ultOf(boss.items), gauge: 0, ultN: 0, haste: 0, slow: 0,
       recoil: 0, launch: 0, lvx: 0, lvy: 0, slam: 0, stun: 0, oc: 0, boost: 0, wind: 0, swung: 0, cap: 0, calm: 0, kite: side ? 1 : -1, rk: side,
       cd: { drill: 0, hammer: 30, spike: 0, taser: 0, cannon: 50 + side * 9, rocket: 80 + side * 9, laser: 70 + side * 9, mine: 60, boost: 90 + side * 20, repulse: 60, decoy: 100, fling: DUEL.magnet.fling, wall: 0, heal: 0 },
       blinkCd: 150, fade: 0, decoy: null, acc: {}, sawOn: 0, flameOn: 0,
@@ -413,9 +472,11 @@ function hurt(d, e, dmg, by, x, y, sx, sy, cont) {
   if (!d.spar) dmg *= 1 + heatQ(d.tick) * DUEL.heatMax;
   if (by !== 'wall' && d.f[1 - e.side].oc > 0) dmg *= DUEL.ocMul;
   let blocked = false;
-  if (e.has.q && e.stun <= 0 && !NOBLOCK[by] && sx !== undefined && Math.abs(adiff(Math.atan2(sy - e.y, sx - e.x), e.a)) < DUEL.shield.arc) { dmg *= 1 - DUEL.shield.cut; blocked = true; }
+  if (e.has.q && e.stun <= 0 && !NOBLOCK[by] && by[0] !== 'U' && sx !== undefined && Math.abs(adiff(Math.atan2(sy - e.y, sx - e.x), e.a)) < DUEL.shield.arc) { dmg *= 1 - DUEL.shield.cut; blocked = true; }
   e.hp = Math.max(0, e.hp - dmg); e.calm = 0; e.fl = 10;
   const tab = d.dealt[1 - e.side]; tab[by] = (tab[by] || 0) + dmg;
+  if (by !== 'wall' && by[0] !== 'U') { const o = d.f[1 - e.side]; if (o.ult) o.gauge = Math.min(ULT.need, o.gauge + dmg); }
+  if (e.ult) e.gauge = Math.min(ULT.need, e.gauge + dmg * 0.5);
   d.last = { by, side: e.side, x, y };
   if (cont) {   // 톱날이나 불처럼 계속 닿는 것은 모아서 알린다
     const acc = (e.acc[by] || 0) + dmg;
@@ -454,7 +515,7 @@ function moveFighter(d, m) {
     }
     m.blinkCd = DUEL.blinkEvery; m.fade = 12; m.recoil = 0; emit(d, { k: 'blink', x: m.x, y: m.y });
   }
-  const sp = m.mv.speed * (m.stun > 0 ? 0.45 : 1) * (m.boost > 0 ? DUEL.boost.mul : 1);
+  const sp = m.mv.speed * (m.stun > 0 ? 0.45 : 1) * (m.slow > 0 ? 0.45 : 1) * (m.boost > 0 ? DUEL.boost.mul : 1);
   if (m.launch > 0) {
     m.launch--; m.vx = m.lvx; m.vy = m.lvy; m.lvx *= 0.95; m.lvy *= 0.95;
   } else {
@@ -491,6 +552,15 @@ function moveFighter(d, m) {
   }
   for (let q = 0; q < d.map.bumps.length; q++) { const bp = d.map.bumps[q]; if (bounceOff(m, bp.x, bp.y, bp.r + DUEL.body)) { m.sq = 1; emit(d, { k: 'bump', i: q }); slamCheck(d, m); } }
   for (const cl of d.clouds) if (bounceOff(m, cl.x, cl.y, cl.r * 1.05 + DUEL.body)) { m.sq = 1; emit(d, { k: 'wall', x: (m.x + cl.x) / 2, y: (m.y + cl.y) / 2 }); slamCheck(d, m); }
+}
+function castUlt(d, m, e) {
+  const k = m.ult;
+  m.ultN++; emit(d, { k: 'ult', side: m.side, sci: k });
+  if (k === 'ar') { hurt(d, e, ULT.ar.dmg, 'Uar', e.x, e.y); shove(d, e, Math.atan2(e.y - m.y, e.x - m.x), ULT.ar.kb); }
+  else if (k === 'ed') m.haste = ULT.ed.len;
+  else if (k === 'ts') { emit(d, { k: 'bolt', x0: m.x, y0: m.y, x1: e.x, y1: e.y }); hurt(d, e, ULT.ts.dmg, 'Uts', e.x, e.y); e.stun = Math.max(e.stun, ULT.ts.stun); e.boost = 0; e.wind = 0; emit(d, { k: 'stun', side: e.side }); }
+  else if (k === 'ei') e.slow = ULT.ei.len;
+  else d.pend.push({ k, s: m.side, t: ULT[k].t, x: e.x, y: e.y });   // 사과, 자기 포탄, 큰 폭발은 잠깐 뒤에 닿는다
 }
 function boom(d, s) {
   const e = d.f[1 - s.s], dx = e.x - s.x, dy = e.y - s.y;
@@ -558,12 +628,16 @@ function stepDuel(d) {
     if (m.swung > 0) m.swung--;
     if (m.sq > 0) m.sq = Math.max(0, m.sq - 0.12);
     m.calm++;
-    for (const k in m.cd) if (m.cd[k] > 0) m.cd[k]--;
+    if (m.haste > 0) m.haste--;
+    if (m.slow > 0) m.slow--;
+    const cdStep = (m.haste > 0 ? 2 : 1) * (m.slow > 0 && d.tick % 2 ? 0 : 1), pw = (m.haste > 0 ? 1.5 : 1) * (m.slow > 0 ? 0.6 : 1);
+    if (cdStep) for (const k in m.cd) if (m.cd[k] > 0) m.cd[k] = Math.max(0, m.cd[k] - cdStep);
     m.sawOn = m.flameOn = 0;
     if (m.decoy && --m.decoy.t <= 0) m.decoy = null;
     if (m.stun > 0) { m.stun--; continue; }   // 마비된 동안은 파츠가 전부 멈춘다
-    if (m.has.s && dist < DUEL.saw.reach && front < DUEL.saw.arc) { m.sawOn = 1; hurt(d, e, DUEL.saw.dps * DT, 's', (m.x + e.x) / 2, (m.y + e.y) / 2, m.x, m.y, true); }
-    if (m.has.f && dist < DUEL.flame.reach + 26 && front < DUEL.flame.arc + 0.3) { m.flameOn = 1; if (dist < DUEL.flame.reach && front < DUEL.flame.arc) hurt(d, e, DUEL.flame.dps * DT, 'f', e.x, e.y, m.x, m.y, true); }
+    if (m.ult && m.gauge >= ULT.need && m.launch <= 0) { m.gauge = 0; castUlt(d, m, e); }
+    if (m.has.s && dist < DUEL.saw.reach && front < DUEL.saw.arc) { m.sawOn = 1; hurt(d, e, DUEL.saw.dps * DT * pw, 's', (m.x + e.x) / 2, (m.y + e.y) / 2, m.x, m.y, true); }
+    if (m.has.f && dist < DUEL.flame.reach + 26 && front < DUEL.flame.arc + 0.3) { m.flameOn = 1; if (dist < DUEL.flame.reach && front < DUEL.flame.arc) hurt(d, e, DUEL.flame.dps * DT * pw, 'f', e.x, e.y, m.x, m.y, true); }
     if (m.has.h) {
       if (m.wind > 0) {
         if (--m.wind === 0) {
@@ -692,6 +766,20 @@ function stepDuel(d) {
     d.mines[n++] = mn;
   }
   d.mines.length = n;
+  n = 0;
+  for (const p of d.pend) {
+    const m = d.f[p.s], e = d.f[1 - p.s];
+    if (p.k !== 'op') { p.x = e.x; p.y = e.y; }
+    if (--p.t > 0) { d.pend[n++] = p; continue; }
+    if (p.k === 'nt') { emit(d, { k: 'apple', x: e.x, y: e.y }); hurt(d, e, ULT.nt.dmg, 'Unt', e.x, e.y); e.stun = Math.max(e.stun, ULT.nt.stun); e.boost = 0; e.wind = 0; emit(d, { k: 'stun', side: e.side }); }
+    else if (p.k === 'ga') { emit(d, { k: 'rail', x0: m.x, y0: m.y, x1: e.x, y1: e.y }); hurt(d, e, ULT.ga.dmg, 'Uga', e.x, e.y); }
+    else {
+      const bx = e.x - p.x, by = e.y - p.y;
+      emit(d, { k: 'bigboom', x: p.x, y: p.y });
+      if (bx * bx + by * by < ULT.op.r * ULT.op.r) { hurt(d, e, ULT.op.dmg, 'Uop', e.x, e.y); shove(d, e, bx || by ? Math.atan2(by, bx) : e.a + Math.PI, ULT.op.kb); }
+    }
+  }
+  d.pend.length = n;
   if (d.pick) {
     for (const m of d.f) if (d.pick && Math.hypot(m.x - d.pick.x, m.y - d.pick.y) < 30) { m.oc = DUEL.ocLife; emit(d, { k: 'oc', side: m.side, x: d.pick.x, y: d.pick.y }); d.pick = null; }
     if (d.pick && --d.pick.t <= 0) d.pick = null;
@@ -737,25 +825,28 @@ function decode(str) {
 
 /* ---------- 기본 데이터 ---------- */
 const SAMPLES = [
-  { tag: '돌격형', boss: { name: '쇠톱이', legs: 'z', items: ['s', 'd', 'b', 'q', 'g'] } },
-  { tag: '포격형', boss: { name: '포대장', legs: 'd', items: ['c', 'r', 'l', 'p', 'x'] } },
-  { tag: '끌어치기', boss: { name: '망치왕', legs: 'd', items: ['h', 't', 'n', 'g', 'f'] } },
-  { tag: '함정형', boss: { name: '지뢰꾼', legs: 'c', items: ['m', 'r', 'y', 'p', 'c'] } },
-  { tag: '기습형', boss: { name: '그림자', legs: 'c', items: ['d', 't', 's', 'b', 'x'] } },
+  { tag: '뉴턴파 돌격형', boss: { name: '쇠톱이', legs: 'z', items: ['b', 'g', 's', 'd', 'q'] } },
+  { tag: '아인슈타인파 포격형', boss: { name: '포대장', legs: 'd', items: ['l', 'y', 'c', 'r', 'x'] } },
+  { tag: '테슬라파 끌어치기', boss: { name: '망치왕', legs: 'd', items: ['t', 'p', 'h', 'n', 'g'] } },
+  { tag: '오펜하이머파 함정형', boss: { name: '지뢰꾼', legs: 'c', items: ['r', 'm', 'y', 'q', 'f'] } },
+  { tag: '에디슨파 기습형', boss: { name: '그림자', legs: 'c', items: ['s', 'x', 'd', 't', 'b'] } },
 ].map(t => ({ tag: t.tag, boss: prep(t.boss), code: encode(t.boss) }));
-const starterBoss = () => prep({ name: '내 보스', legs: 'z', items: ['s', 'c'] });
+const starterBoss = () => prep({ name: '내 보스', legs: 'z', items: ['h', 'c'] });
 const MASCOT = prep({ name: '볼트', legs: 'd', items: [] });
 
-const state = { view: 'workshop', boss: starterBoss(), slot: null, target: 0, imported: [], records: {}, previewOn: true };
+const state = { view: 'workshop', boss: starterBoss(), slot: null, target: 0, imported: [], records: {}, previewOn: true, owned: ['h', 'd', 'c'], notes: 6, lastPull: null };
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const COARSE = matchMedia('(pointer: coarse)').matches;
 const LS = 'bossmaker.v2';
-const snap = () => ({ boss: { name: state.boss.name, legs: state.boss.legs, items: state.boss.items }, view: state.view, records: state.records, imported: state.imported.map(t => t.code), sound: SND.on });
+const snap = () => ({ boss: { name: state.boss.name, legs: state.boss.legs, items: state.boss.items }, owned: state.owned, notes: state.notes, view: state.view, records: state.records, imported: state.imported.map(t => t.code), sound: SND.on });
 function save() { try { localStorage.setItem(LS, JSON.stringify(snap())); } catch (e) { /* 저장소가 없어도 그대로 동작 */ } }
 function applySaved(d) {
   if (!d || typeof d !== 'object') return;
-  if (d.boss && Array.isArray(d.boss.items)) state.boss = prep({ name: cleanName(d.boss.name), legs: d.boss.legs, items: d.boss.items.map(String) });
-  if (d.view === 'challenge' || d.view === 'workshop') state.view = d.view;
+  if (Array.isArray(d.owned)) state.owned = [...new Set(state.owned.concat(d.owned.filter(k => ITEM[k])))];
+  if (Number.isFinite(d.notes)) state.notes = Math.max(0, Math.floor(d.notes));
+  if (d.boss && Array.isArray(d.boss.items)) state.boss = prep({ name: cleanName(d.boss.name), legs: d.boss.legs, items: d.boss.items.map(String).filter(k => state.owned.includes(k)) });
+  if (!state.boss.items.length) state.boss.items = ['h', 'c'];
+  if (d.view === 'challenge' || d.view === 'workshop' || d.view === 'lab') state.view = d.view;
   if (d.sound === false) SND.on = false;
   if (d.records && typeof d.records === 'object') state.records = d.records;
   if (Array.isArray(d.imported)) for (const code of d.imported) addImported(code, true);
@@ -910,6 +1001,144 @@ function avatar(b, mood = 'idle') {
   return url;
 }
 
+/* ---------- 꼬마 과학자와 과학자들 (전부 이 게임용으로 새로 그린 그림) ---------- */
+const KID = '마루';
+function drawKid(g, cx, cy, s, mood, t) {   // 고글을 이마에 올린 단발머리 꼬마, 멜빵바지
+  const tt = t || 0, joy = mood === 'eureka' || mood === 'cheer', jump = joy ? -Math.abs(Math.sin(tt * 7)) * 9 : 0;
+  g.save(); g.translate(cx, cy + jump + Math.sin(tt * 3) * 1.2); g.scale(s, s); g.lineJoin = 'round'; g.lineCap = 'round';
+  const arm = (x0, y0, x1, y1) => { g.strokeStyle = INK; g.lineWidth = 9; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); g.strokeStyle = '#ffd9b8'; g.lineWidth = 4.5; g.stroke(); g.strokeStyle = INK; };
+  g.strokeStyle = INK; g.lineWidth = 3;
+  g.fillStyle = '#ff6b6b'; rrect(g, -16, 55, 13, 8, 4); g.fill(); g.stroke(); rrect(g, 3, 55, 13, 8, 4); g.fill(); g.stroke();
+  g.fillStyle = '#fff'; rrect(g, -17, 21, 34, 30, 9); g.fill(); g.stroke();
+  g.fillStyle = '#58d6a8'; rrect(g, -14, 33, 28, 24, 6); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(-10, 33); g.lineTo(-12, 22); g.moveTo(10, 33); g.lineTo(12, 22); g.stroke();
+  g.fillStyle = '#ffd23f'; g.beginPath(); g.arc(0, 43, 3.2, 0, TAU); g.fill(); g.stroke();
+  if (joy) { arm(-15, 28, -29, 6); arm(15, 28, 29, 6); }
+  else if (mood === 'study') {
+    arm(-15, 28, -10, 42); arm(15, 28, 10, 42);
+    g.lineWidth = 3; g.fillStyle = '#ffd23f'; rrect(g, -15, 36, 30, 18, 3); g.fill(); g.stroke(); g.beginPath(); g.moveTo(0, 36); g.lineTo(0, 54); g.stroke();
+  } else { arm(-15, 28, -25, 44); arm(15, 28, 25, 44); }
+  g.lineWidth = 3;
+  g.fillStyle = '#ffd9b8'; g.beginPath(); g.ellipse(0, 0, 25, 23, 0, 0, TAU); g.fill(); g.stroke();
+  g.fillStyle = '#2b4a6f'; g.beginPath(); g.moveTo(-27, 6); g.quadraticCurveTo(-31, -27, 0, -28); g.quadraticCurveTo(31, -27, 27, 6); g.quadraticCurveTo(23, -8, 12, -11); g.quadraticCurveTo(0, -4, -14, -11); g.quadraticCurveTo(-23, -8, -27, 6); g.closePath(); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(2, -28); g.quadraticCurveTo(10, -42, 17, -33); g.stroke();
+  g.fillStyle = '#ff9f1c'; rrect(g, -23, -25, 46, 8, 4); g.fill(); g.stroke();
+  for (const sx of [-10, 10]) { g.fillStyle = '#9af7ff'; g.beginPath(); g.arc(sx, -21, 8, 0, TAU); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(sx - 2.5, -23.5, 2.2, 0, TAU); g.fill(); }
+  g.fillStyle = 'rgba(255,90,120,.38)'; for (const sx of [-16, 16]) { g.beginPath(); g.arc(sx, 9, 4.6, 0, TAU); g.fill(); }
+  g.fillStyle = INK; g.lineWidth = 2.6;
+  if (joy) { for (const sx of [-9, 9]) { g.beginPath(); g.arc(sx, 4, 4.4, Math.PI, 0); g.stroke(); } g.beginPath(); g.arc(0, 9, 6.5, 0, Math.PI); g.closePath(); g.fill(); g.fillStyle = '#ff8fa8'; g.beginPath(); g.arc(0, 13, 3.2, 0, Math.PI); g.fill(); }
+  else if (mood === 'cry') { for (const sx of [-9, 9]) { g.beginPath(); g.moveTo(sx - 4, -1); g.lineTo(sx + 1, 2.5); g.lineTo(sx - 4, 6); g.stroke(); } g.beginPath(); g.moveTo(-5, 13); g.quadraticCurveTo(-2, 9, 0, 13); g.quadraticCurveTo(2, 16, 5, 12); g.stroke(); g.fillStyle = '#7fd4ff'; for (const sx of [-17, 17]) { g.beginPath(); g.ellipse(sx, 13 + (tt * 30 % 10), 2.4, 3.6, 0, 0, TAU); g.fill(); } }
+  else if (mood === 'study') { for (const sx of [-9, 9]) { g.beginPath(); g.arc(sx, 2, 4, 0.1 * Math.PI, 0.9 * Math.PI); g.stroke(); } g.beginPath(); g.arc(0, 12, 2.2, 0, TAU); g.stroke(); }
+  else { for (const sx of [-9, 9]) { g.beginPath(); g.arc(sx, 2, 3.5, 0, TAU); g.fill(); } g.fillStyle = '#fff'; for (const sx of [-9, 9]) { g.beginPath(); g.arc(sx - 1.2, 0.8, 1.2, 0, TAU); g.fill(); } g.beginPath(); g.arc(0, 8, 5, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke(); }
+  g.restore();
+}
+const SCIPIC = { ar: ['#f1e7d0', '#f2c9a0'], nt: ['#7a4b2a', '#ffd9b8'], ed: ['#3d3a52', '#ffd9b8'], ga: ['#44506e', '#f6cfae'], ts: ['#20203a', '#ffe0c4'], ei: ['#8a6f5a', '#f6cfae'], op: ['#39424e', '#f2c9a0'] };
+function drawSci(g, key, cx, cy, s) {   // 과학자 캐리커처: 같은 얼굴 틀에 머리 모양과 소품만 다르다
+  const coat = SCIPIC[key][0], skin = SCIPIC[key][1], WH = '#f4f1fa';
+  g.save(); g.translate(cx, cy); g.scale(s, s); g.lineJoin = 'round'; g.lineCap = 'round'; g.strokeStyle = INK; g.lineWidth = 3;
+  const blob = (x, y, r, c) => { g.fillStyle = c; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); g.stroke(); };
+  g.fillStyle = coat; g.beginPath(); g.moveTo(-36, 60); g.quadraticCurveTo(-34, 30, 0, 27); g.quadraticCurveTo(34, 30, 36, 60); g.closePath(); g.fill(); g.stroke();
+  if (key === 'nt') for (const sx of [-1, 1]) for (let i = 0; i < 4; i++) blob(sx * (25 + (i % 2) * 4), -14 + i * 13, 10, WH);
+  if (key === 'ei') { g.fillStyle = WH; g.beginPath(); for (let i = 0; i <= 18; i++) { const a = Math.PI * (0.92 + i * 1.16 / 18), r = i % 2 ? 43 : 31; g.lineTo(Math.cos(a) * r, -4 + Math.sin(a) * r); } g.closePath(); g.fill(); g.stroke(); }
+  if (key === 'ga' || key === 'ar') for (const sx of [-1, 1]) { blob(sx * 24, 2, 8, WH); blob(sx * 23, 13, 7, WH); }
+  g.fillStyle = skin; g.beginPath(); g.ellipse(0, 0, key === 'op' ? 21 : 24, 27, 0, 0, TAU); g.fill(); g.stroke();
+  if (key === 'ar') { g.fillStyle = WH; g.beginPath(); g.moveTo(-21, 8); g.quadraticCurveTo(-22, 40, 0, 47); g.quadraticCurveTo(22, 40, 21, 8); g.quadraticCurveTo(0, 20, -21, 8); g.closePath(); g.fill(); g.stroke(); g.beginPath(); g.moveTo(-30, 44); g.lineTo(26, 30); g.stroke(); }
+  else if (key === 'nt') { g.fillStyle = WH; g.beginPath(); g.moveTo(-24, -6); g.quadraticCurveTo(-22, -30, 0, -29); g.quadraticCurveTo(22, -30, 24, -6); g.quadraticCurveTo(10, -18, 0, -12); g.quadraticCurveTo(-10, -18, -24, -6); g.closePath(); g.fill(); g.stroke(); blob(0, -38, 9, '#ff5d5d'); g.beginPath(); g.moveTo(1, -47); g.quadraticCurveTo(8, -54, 11, -48); g.stroke(); g.fillStyle = '#fff'; rrect(g, -7, 27, 14, 12, 4); g.fill(); g.stroke(); }
+  else if (key === 'ed') { g.fillStyle = WH; g.beginPath(); g.moveTo(-25, -4); g.quadraticCurveTo(-26, -30, 2, -30); g.quadraticCurveTo(26, -28, 25, -4); g.quadraticCurveTo(14, -16, -8, -14); g.quadraticCurveTo(-18, -12, -25, -4); g.closePath(); g.fill(); g.stroke(); g.fillStyle = INK; g.beginPath(); g.moveTo(0, 34); g.lineTo(-12, 28); g.lineTo(-12, 40); g.closePath(); g.moveTo(0, 34); g.lineTo(12, 28); g.lineTo(12, 40); g.closePath(); g.fill(); blob(31, -30, 9, '#ffd23f'); g.fillStyle = STEEL; rrect(g, 27, -22, 8, 6, 2); g.fill(); g.stroke(); }
+  else if (key === 'ga') { g.fillStyle = '#2a2440'; g.save(); g.rotate(-0.12); rrect(g, -25, -37, 50, 19, 8); g.fill(); g.stroke(); g.restore(); g.beginPath(); g.moveTo(-15, -8); g.lineTo(-5, -5); g.moveTo(15, -8); g.lineTo(5, -5); g.stroke(); }
+  else if (key === 'ts') { g.fillStyle = '#1d1b30'; for (const sx of [-1, 1]) { g.beginPath(); g.moveTo(0, -27); g.quadraticCurveTo(sx * 27, -32, sx * 25, -2); g.quadraticCurveTo(sx * 16, -16, 0, -17); g.closePath(); g.fill(); g.stroke(); } g.beginPath(); g.moveTo(-9, 11); g.quadraticCurveTo(0, 8, 9, 11); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(-10, 28); g.lineTo(0, 37); g.lineTo(10, 28); g.closePath(); g.fill(); g.stroke(); g.strokeStyle = '#ffd23f'; g.lineWidth = 3.5; for (const sx of [-1, 1]) { g.beginPath(); g.moveTo(sx * 33, -30); g.lineTo(sx * 29, -18); g.lineTo(sx * 36, -18); g.lineTo(sx * 31, -6); g.stroke(); } g.strokeStyle = INK; g.lineWidth = 3; }
+  else if (key === 'ei') { g.fillStyle = WH; g.beginPath(); g.ellipse(0, 12, 12, 5, 0, 0, TAU); g.fill(); g.stroke(); g.fillStyle = '#ff8fa8'; rrect(g, -4, 15, 8, 11, 4); g.fill(); g.stroke(); }
+  else { g.fillStyle = '#4b4237'; g.beginPath(); g.ellipse(0, -19, 33, 7, 0, 0, TAU); g.fill(); g.stroke(); rrect(g, -19, -39, 38, 20, 6); g.fill(); g.stroke(); g.lineWidth = 4; g.beginPath(); g.moveTo(5, 13); g.lineTo(22, 16); g.stroke(); g.lineWidth = 3; g.fillStyle = '#7a4b2a'; rrect(g, 20, 9, 9, 10, 3); g.fill(); g.stroke(); g.fillStyle = '#c0392b'; g.beginPath(); g.moveTo(0, 30); g.lineTo(-5, 44); g.lineTo(0, 50); g.lineTo(5, 44); g.closePath(); g.fill(); g.stroke(); }
+  g.fillStyle = INK; for (const sx of [-9, 9]) { g.beginPath(); g.arc(sx, -1, 3, 0, TAU); g.fill(); }
+  g.lineWidth = 2.6;
+  if (key !== 'ar' && key !== 'ei') { g.beginPath(); if (key === 'ga') { g.moveTo(-5, 14); g.lineTo(5, 14); } else g.arc(0, key === 'ts' ? 13 : 10, 5, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke(); }
+  g.restore();
+}
+const picCache = new Map();
+function pic(kind, key) {
+  const id = kind + key; if (picCache.has(id)) return picCache.get(id);
+  const cv = document.createElement('canvas'); cv.width = cv.height = 240; const g = cv.getContext('2d'); g.scale(2, 2);
+  if (kind === 'k') drawKid(g, 60, 52, 1.05, key, 0.5); else drawSci(g, key, 60, 58, 0.98);
+  const url = cv.toDataURL(); picCache.set(id, url); return url;
+}
+const kidPic = mood => pic('k', mood), sciPic = key => pic('s', key);
+
+/* ---------- 연구실: 공부해서 이론을 깨달으면 파츠가 열린다 ---------- */
+const PULL_COST = 2;
+let pulling = false;
+const sciOpen = k => !SCI[k].need.length || SCI[k].need.some(n => SCI[n].parts.some(q => state.owned.includes(q)));
+function pullPool() { const out = []; for (const k of SORDER) if (sciOpen(k)) for (const q of SCI[k].parts) if (!state.owned.includes(q)) out.push(q); return out; }
+function labHTML() {
+  const pool = pullPool(), can = pool.length && state.notes >= PULL_COST && !pulling;
+  let h = `<div class="starts one"><button type="button" class="b primary big" data-act="pull" data-k="pull"${can ? '' : ' disabled'}>${pulling ? '공부하는 중…' : pool.length ? '공부하기' : '전부 깨달았어요'}<small>${pool.length ? `연구 노트 ${PULL_COST}장을 써요 · 지금 ${state.notes}장` : '더 배울 이론이 없어요'}</small></button></div>`;
+  if (pool.length && state.notes < PULL_COST && !pulling) h += '<p class="dim">노트가 모자라요. 대결하면 이기든 지든 노트가 생겨요.</p>';
+  const lp = state.lastPull;
+  if (lp && ITEM[lp]) h += `<div class="eureka"><img src="${sciPic(ITEM[lp].sci)}" alt="" width="64" height="64"><div><b>유레카! ${LORE[lp][0]}</b><span>${SCI[ITEM[lp].sci].name}의 책을 읽다가 깨달았어요. “${LORE[lp][1]}”</span><span class="got">${itile(lp, ' sm')}${ITEM[lp].name} 파츠를 쓸 수 있어요</span></div></div>`;
+  h += '<h2 class="sec">과학자 테크 트리 <small>앞 과학자의 이론을 하나 깨달으면 다음이 열려요</small></h2><div class="tree">';
+  for (const k of SORDER) {
+    const sc = SCI[k], open = sciOpen(k), got = sc.parts.filter(q => state.owned.includes(q)).length;
+    h += `<div class="sci${open ? '' : ' locked'}"><img src="${sciPic(k)}" alt="" width="60" height="60"><div class="info"><b>${sc.name} <small>${sc.field} · ${got}/${sc.parts.length}</small></b>`
+      + `<div class="pts">${sc.parts.map(q => state.owned.includes(q) ? `<span class="pt">${itile(q, ' sm')}${ITEM[q].name}</span>` : `<span class="pt no"><span class="ico sm q">?</span>${open ? LORE[q][0] : '???'}</span>`).join('')}</div>`
+      + `<span class="ult"><i>필살기</i>${sc.ult} · ${sc.desc}</span>`
+      + (open ? '' : `<span class="need">${sc.need.map(n => SCI[n].name).join(' 또는 ')}의 이론을 하나 깨달으면 열려요</span>`) + '</div></div>';
+  }
+  h += `</div><div class="tip"><img src="${kidPic('idle')}" alt="" width="58" height="58"><p>같은 과학자의 파츠를 두 개 이상 끼우면 그 과학자가 필살기를 도와줘. 노트는 대결할 때마다 생겨!</p></div>`;
+  return h;
+}
+function renderLabSheet() {
+  $('#sheetChallenge').innerHTML = `<div class="sheet"><div class="cell"><div class="who"><img src="${kidPic('idle')}" alt="" width="66" height="66"><div><span class="lab">꼬마 과학자</span><div class="opp"><b>${KID}</b></div></div></div></div>`
+    + `<div class="cell"><span class="lab">연구 노트</span><p class="num">${state.notes}장</p></div>`
+    + `<div class="cell"><span class="lab">깨달은 이론</span><p class="num">${state.owned.length} / ${IORDER.length}</p></div></div>`;
+}
+function doPull() {
+  const pool = pullPool();
+  if (!pool.length || state.notes < PULL_COST || pulling) return;
+  const k = pool[Math.random() * pool.length | 0];
+  state.notes -= PULL_COST; state.lastPull = null; pulling = true; save(); renderAll();
+  scene = { kind: 'lab', pull: { k, t: performance.now() / 1000 } };
+  setTimeout(() => {
+    pulling = false; state.owned.push(k); state.lastPull = k; save();
+    if (!play && state.view === 'lab') renderAll();
+    toast(`유레카! ${ITEM[k].name} 파츠가 열렸어요`);
+  }, RM ? 60 : 1400);
+}
+const FORM = { ar: ['π', '지렛대', '부력'], nt: ['F=ma', '중력', '관성'], ed: ['1%', '99%', '발명'], ga: ['Σ', '자기장', '5050'], ts: ['AC', '코일', '공명'], ei: ['E=mc²', '빛', '시공간'], op: ['U-235', '원자핵', '임계'] };
+function renderLab(now) {
+  const g = ctx, pl = scene.pull, a = pl ? now - pl.t : 0, done = pl && (RM || a > 1.4);
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  if (bgDuel) g.drawImage(bgDuel, 0, 0);
+  g.setTransform(view.scale, 0, 0, view.scale, 0, 0);
+  g.fillStyle = 'rgba(34,26,53,.45)'; g.fillRect(0, 0, W, H);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = '#c98b4a'; g.strokeStyle = INK; g.lineWidth = 4; g.lineJoin = 'round'; rrect(g, 40, 392, 280, 26, 8); g.fill(); g.stroke();
+  g.fillStyle = '#a56a30'; for (const x of [62, 280]) { rrect(g, x, 418, 18, 62, 5); g.fill(); g.stroke(); }
+  drawKid(g, W / 2, 300, 2.1, done ? 'eureka' : pl ? 'study' : 'idle', now);
+  if (!pl) {
+    g.font = '400 26px ' + FD; otext(g, `${KID}의 연구실`, W / 2, 110, '#fff', 7);
+    g.font = '400 15px ' + FB; otext(g, '오늘은 뭘 공부해 볼까?', W / 2, 146, C.sun, 5);
+    return;
+  }
+  const sk = ITEM[pl.k].sci;
+  if (!done) {   // 공부 중: 과학자가 말풍선 속에서 지켜보고, 공식이 떠다닌다
+    g.globalAlpha = 0.92; g.fillStyle = '#fff'; g.beginPath(); g.ellipse(266, 122, 62, 60, 0, 0, TAU); g.fill(); g.stroke();
+    for (const [bx, by, br] of [[214, 190, 10], [198, 214, 6]]) { g.beginPath(); g.arc(bx, by, br, 0, TAU); g.fill(); g.stroke(); }
+    g.globalAlpha = 1; drawSci(g, sk, 266, 118, 0.95);
+    g.font = '400 18px ' + FD;
+    FORM[sk].forEach((txt, i) => { const q = (a * 0.9 + i * 0.33) % 1; g.globalAlpha = 1 - q; otext(g, txt, 60 + i * 44 + Math.sin(a * 4 + i) * 6, 250 - q * 120, C.sun, 5); });
+    g.globalAlpha = 1; g.font = '400 20px ' + FD; otext(g, `${SCI[sk].name}의 책을 읽는 중` + '.'.repeat(1 + Math.floor(a * 3) % 3), W / 2, 62, '#fff', 6);
+  } else {
+    const q = RM ? 1 : Math.min(1, (a - 1.4) / 0.25), sc = 0.4 + 0.6 * q + (RM ? 0 : 0.08 * Math.sin((a - 1.4) * 9) * (1 - Math.min(1, (a - 1.4) / 1.2)));
+    g.fillStyle = C.sun; g.beginPath(); g.arc(W / 2, 196, 17, 0, TAU); g.fill(); g.stroke(); g.fillStyle = STEEL; rrect(g, W / 2 - 7, 210, 14, 9, 3); g.fill(); g.stroke();
+    g.strokeStyle = C.sun; g.lineWidth = 4; g.lineCap = 'round'; for (let i = 0; i < 7; i++) { const an = Math.PI + i * Math.PI / 6; g.beginPath(); g.moveTo(W / 2 + Math.cos(an) * 26, 196 + Math.sin(an) * 26); g.lineTo(W / 2 + Math.cos(an) * 36, 196 + Math.sin(an) * 36); g.stroke(); }
+    g.strokeStyle = INK;
+    g.font = '400 40px ' + FD; otext(g, '유레카!', W / 2, 62, C.sun, 9);
+    g.font = '400 17px ' + FB; otext(g, `${LORE[pl.k][0]}을(를) 깨달았다`, W / 2, 100, '#fff', 5);
+    g.save(); g.translate(W / 2, 143); g.scale(sc, sc); hitTileAt(g, pl.k, -24, -24, 48); g.restore();
+    g.font = '400 13px ' + FB; otext(g, `“${LORE[pl.k][1]}”`, W / 2, 450, '#fff', 4);
+    g.font = '400 16px ' + FD; otext(g, `${ITEM[pl.k].name} 파츠 사용 가능`, W / 2, 500, C.sun, 5);
+  }
+}
+
 function picon(k) {
   const s = 'fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"';
   const ray = (r0, r1, n) => { let o = ''; for (let i = 0; i < n; i++) { const a = i * TAU / n; o += `<path d="M${(10 + r0 * Math.cos(a)).toFixed(1)} ${(10 + r0 * Math.sin(a)).toFixed(1)}L${(10 + r1 * Math.cos(a)).toFixed(1)} ${(10 + r1 * Math.sin(a)).toFixed(1)}" ${s}/>`; } return o; };
@@ -934,8 +1163,9 @@ function picon(k) {
   else if (k === 'y') inner = `<rect x="3" y="5" width="9" height="10" rx="2.500" ${s} stroke-dasharray="2 2.200"/><rect x="8" y="5" width="9" height="10" rx="2.500" ${s}/>`;
   else if (k === 'slam') inner = `<path d="M16.500 2.500v15" ${s} stroke-width="3"/><path d="M2.500 10h9M8 6l4 4-4 4" ${s}/>`;
   else if (k === 'ram') inner = ray(3.5, 8, 8);
+  else if (k[0] === 'U') inner = `<path d="M10 1.800l2.400 5.300 5.800.600-4.300 3.900 1.200 5.700L10 14.400l-5.100 2.900 1.200-5.700L1.800 7.700l5.800-.600z" fill="currentColor"/>`;
   else inner = `<path d="M11.500 2L5 11h4l-1.200 7L15 9h-4.200z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>`;
-  return `<svg viewBox="0 0 20 20" width="22" height="22" aria-hidden="true">${inner}</svg>`;
+  return `<svg viewBox="0 0 20 20" width="22" height="22" aria-hidden="true">${inner.replace(/stroke-width="1\.9"([^>]*?stroke-width=)/g, '$1')}</svg>`;
 }
 function recText(rec) {
   return rec && (rec.dw || rec.dl || rec.dd) ? `${rec.dw || 0}승 ${rec.dl || 0}패` + (rec.dd ? ` ${rec.dd}무` : '') : '아직 안 붙어 봤어요';
@@ -961,7 +1191,7 @@ function workshopHTML() {
   h += `</div><h2 class="sec gap">파츠 <small>다섯 칸 · 끼우기만 하면 알아서 작동해요</small></h2><div class="loadout">`;
   for (let i = 0; i < SLOTS; i++) {
     const k = b.items[i];
-    if (k) h += `<button type="button" class="gear" data-act="slot" data-i="${i}" data-k="slot${i}" aria-pressed="${sel === i}">${itile(k)}<b>${ITEM[k].name}</b><span class="when">${KIND[ITEM[k].kind]}</span></button>`;
+    if (k) h += `<button type="button" class="gear" data-act="slot" data-i="${i}" data-k="slot${i}" aria-pressed="${sel === i}">${itile(k)}<b>${ITEM[k].name}</b><span class="when">${SCI[ITEM[k].sci].name}</span></button>`;
     else h += `<button type="button" class="gear empty" data-act="slot" data-i="${i}" data-k="slot${i}" aria-pressed="${sel === b.items.length && i === b.items.length}"><span class="plus">＋</span><span class="when">빈 칸</span></button>`;
   }
   h += '</div>';
@@ -970,18 +1200,21 @@ function workshopHTML() {
     h += `<div class="palette" id="picker"><div class="head"><span>${cur ? ITEM[cur].name + ' 바꾸기' : '끼울 파츠를 고르세요'}</span><span class="tools">`
       + (cur ? '<button type="button" class="mini warn" data-act="unequip" data-k="uneq">빼기</button>' : '')
       + '<button type="button" class="mini" data-act="closepick" data-k="closepick">닫기</button></span></div>';
-    for (const kind of ['m', 'r', 'g']) {
-      h += `<h3 class="grp">${KIND[kind]}</h3><div class="cards">`;
-      for (const k of IORDER) if (ITEM[k].kind === kind) {
-        const it = ITEM[k];
-        h += `<button type="button" class="pick" data-act="equip" data-v="${k}" data-k="eq${k}" aria-pressed="${k === cur}"${b.items.includes(k) && k !== cur ? ' disabled' : ''}><span class="ico" style="background:${it.tile}">${picon(k)}</span><span><b>${it.name}</b><span class="r">${it.desc}</span></span></button>`;
+    for (const sk of SORDER) {
+      h += `<h3 class="grp">${SCI[sk].name} <small>${SCI[sk].field} · 둘 이상 끼우면 필살기 ‘${SCI[sk].ult}’</small></h3><div class="cards">`;
+      for (const k of SCI[sk].parts) {
+        const it = ITEM[k], has = state.owned.includes(k);
+        if (has) h += `<button type="button" class="pick" data-act="equip" data-v="${k}" data-k="eq${k}" aria-pressed="${k === cur}"${b.items.includes(k) && k !== cur ? ' disabled' : ''}><span class="ico" style="background:${it.tile}">${picon(k)}</span><span><b>${it.name} <i class="mat">${KIND[it.kind]}</i></b><span class="r">${it.desc}</span></span></button>`;
+        else h += `<button type="button" class="pick" data-k="eq${k}" disabled><span class="ico q">?</span><span><b>${it.name} <i class="mat">${KIND[it.kind]}</i></b><span class="r">연구실에서 ‘${LORE[k][0]}’을(를) 깨달으면 열려요</span></span></button>`;
       }
       h += '</div>';
     }
     h += '</div>';
   }
+  const u = ultOf(b.items);
+  h += u ? `<div class="ultline"><img src="${sciPic(u)}" alt="" width="46" height="46"><p><b>필살기 · ${SCI[u].ult}</b>${SCI[u].name}이(가) 도와줘요. ${SCI[u].desc}.</p></div>` : '<div class="ultline none"><p>같은 과학자의 파츠를 두 개 이상 끼우면 필살기가 생겨요.</p></div>';
   h += `<div class="actions"><button type="button" class="b primary" data-act="go" data-k="go"${b.items.length ? '' : ' disabled'}>${b.items.length ? '상대 고르러 가기' : '파츠를 먼저 끼워요'}</button></div>`;
-  h += `<div class="tip"><img src="${avatar(MASCOT)}" alt="" width="58" height="58"><p>파츠만 끼우면 끝이야. 위 화면에서 연습 상대를 때려 보면서 조합을 맞춰 봐. 근접 파츠가 하나라도 있으면 달려들고, 없으면 거리를 벌리면서 싸워.</p></div>`;
+  h += `<div class="tip"><img src="${kidPic('idle')}" alt="" width="58" height="58"><p>내가 만든 로봇이야! 파츠만 끼우면 알아서 싸워. 새 파츠는 연구실에서 공부해서 깨달아야 쓸 수 있어. 같은 과학자의 파츠를 둘 이상 끼우면 필살기도 생겨.</p></div>`;
   return h;
 }
 
@@ -998,19 +1231,20 @@ function renderChallengeSheet() {
   const t = targets()[state.target];
   $('#sheetChallenge').innerHTML = `<div class="sheet"><div class="cell"><div class="who"><img src="${avatar(t.boss)}" alt="" width="66" height="66"><div><span class="lab">상대 · ${t.tag}</span><div class="opp"><b>${esc(t.boss.name)}</b></div></div></div></div>`
     + `<div class="cell"><span class="lab">정찰 · ${MOVE[t.boss.legs].name} · 체력 ${MOVE[t.boss.legs].hp}</span><div class="scoutrow">${t.boss.items.length ? t.boss.items.map(k => itile(k, ' sm')).join('') : '<span class="dim">파츠 없음</span>'}</div></div>`
-    + `<div class="cell"><span class="lab">내 기록</span><p class="dim">${recText(state.records[t.code])}</p></div></div>`;
+    + `<div class="cell"><span class="lab">필살기 · 내 기록</span><p class="dim">${ultOf(t.boss.items) ? SCI[ultOf(t.boss.items)].ult : '필살기 없음'}<br>${recText(state.records[t.code])}</p></div></div>`;
 }
 
 function renderAll() {
-  const ws = state.view === 'workshop';
+  const v = state.view, ws = v === 'workshop';
   $('#tabWorkshop').setAttribute('aria-pressed', ws);
-  $('#tabChallenge').setAttribute('aria-pressed', !ws);
+  $('#tabLab').setAttribute('aria-pressed', v === 'lab');
+  $('#tabChallenge').setAttribute('aria-pressed', v === 'challenge');
   $('#sheetWorkshop').hidden = !ws;
   $('#sheetChallenge').hidden = ws;
   if (state.target >= targets().length) state.target = 0;
-  if (ws) refreshSheet(); else renderChallengeSheet();
+  if (ws) refreshSheet(); else if (v === 'lab') renderLabSheet(); else renderChallengeSheet();
   const keep = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.k : null;
-  editor.innerHTML = ws ? workshopHTML() : challengeHTML();
+  editor.innerHTML = ws ? workshopHTML() : v === 'lab' ? labHTML() : challengeHTML();
   if (keep) { const el = editor.querySelector(`[data-k="${keep}"]`); if (el) el.focus(); }
   $('#pv').hidden = !ws;
   $('#pvToggle').textContent = state.previewOn ? '멈춤' : '재생';
@@ -1031,6 +1265,7 @@ editor.addEventListener('click', e => {
   else if (act === 'unequip') { b.items.splice(state.slot, 1); state.slot = null; bossChanged(); }
   else if (act === 'closepick') { state.slot = null; renderAll(); }
   else if (act === 'go') setView('challenge');
+  else if (act === 'pull') doPull();
   else if (act === 'target') { state.target = i; save(); renderAll(); rebuildScene(); }
   else if (act === 'duel') {
     if (!b.items.length) { toast('작업실에서 내 보스에 파츠를 먼저 끼워 주세요'); return; }
@@ -1054,6 +1289,7 @@ $('#sheetWorkshop').addEventListener('click', e => {
 function setView(v) { if (state.view === v) return; state.view = v; state.slot = null; save(); renderAll(); editor.scrollTop = 0; rebuildScene(); }
 $('#tabWorkshop').addEventListener('click', () => setView('workshop'));
 $('#tabChallenge').addEventListener('click', () => setView('challenge'));
+$('#tabLab').addEventListener('click', () => setView('lab'));
 $('#pvToggle').addEventListener('click', () => { state.previewOn = !state.previewOn; renderAll(); rebuildScene(); });
 
 /* ---------- 장면과 플레이 ---------- */
@@ -1063,8 +1299,8 @@ const fx = [];
 
 /* 무엇에 맞았는지 이름과 아이콘으로 보여 주기 */
 const HIT = { ram: '몸통 박치기', slam: '벽꽝', wall: '전류 벽', b: '부스터 돌진', n: '자석 되쏘기' };
-const hitName = by => HIT[by] || (ITEM[by] ? ITEM[by].name : '충돌');
-const hitTile = by => by === 'wall' ? '#9af7ff' : by === 'slam' ? '#efe6cf' : by === 'ram' ? '#e8eefc' : ITEM[by] ? ITEM[by].tile : '#fff';
+const hitName = by => by[0] === 'U' ? SCI[by.slice(1)].ult : HIT[by] || (ITEM[by] ? ITEM[by].name : '충돌');
+const hitTile = by => by[0] === 'U' ? '#ffd23f' : by === 'wall' ? '#9af7ff' : by === 'slam' ? '#efe6cf' : by === 'ram' ? '#e8eefc' : ITEM[by] ? ITEM[by].tile : '#fff';
 const hitChip = by => `<span class="ico sm" aria-hidden="true" style="background:${hitTile(by)}">${picon(by)}</span>`;
 const hitImgs = {};
 function hitImg(by) {   // 캔버스에 그릴 아이콘
@@ -1088,7 +1324,8 @@ function rebuildScene() {
   if (state.view === 'workshop') {   // 작업실: 연습 상대를 두들겨 보는 화면
     scene = sceneFor(makeDuel(SANDBAG, state.boss, sparSeed++, true), 'spar');
     scene.state = 'spar'; scene.running = state.previewOn;
-  } else scene = { kind: 'idle', boss: targets()[state.target].boss, running: false };
+  } else if (state.view === 'lab') scene = { kind: 'lab', pull: null };
+  else scene = { kind: 'idle', boss: targets()[state.target].boss, running: false };
 }
 function startPlay(cfg) {
   play = cfg;
@@ -1110,7 +1347,7 @@ function newDuel() {
   scene = sceneFor(d, 'duel');
   acc = 0; fx.length = 0; banner = null; shake = 0; freeze = 0; dpulse[0] = dpulse[1] = 0; caps.length = 0;
   const fig = (b, cap, cls) => `<figure class="${cls}"><img src="${avatar(b)}" alt="" width="84" height="84"><figcaption>${esc(cap)}</figcaption></figure>`;
-  overlay.innerHTML = `<div class="vs">${fig(play.boss, '나 · ' + (play.boss.name || '내 보스'), 'me')}<b>VS</b>${fig(play.foe, '상대 · ' + play.foe.name, 'foe')}</div><h2>보스 대결</h2><p>${MAPS[d.map.kind]}</p><p class="dim">상대 체력을 먼저 0으로 만들면 이겨요. 12초부터 피해가 점점 커지고, 18초부터는 전류 벽이 좁혀와요.</p><p class="go">${COARSE ? '화면을 누르면 시작' : '클릭하거나 Space를 누르면 시작'}</p>`;
+  overlay.innerHTML = `<div class="vs">${fig(play.boss, KID + '의 ' + (play.boss.name || '로봇'), 'me')}<b>VS</b>${fig(play.foe, '상대 · ' + play.foe.name, 'foe')}</div><h2>보스 대결</h2><p>${MAPS[d.map.kind]}</p><p class="dim">상대 체력을 먼저 0으로 만들면 이겨요. 때리고 맞다 보면 과학자의 필살기가 터져요. 12초부터 피해가 커지고, 18초부터는 전류 벽이 좁혀와요.</p><p class="go">${COARSE ? '화면을 누르면 시작' : '클릭하거나 Space를 누르면 시작'}</p>`;
   overlay.hidden = false;
   $('#playHint').textContent = '파랑이 나, 주황빨강이 상대예요.';
   updateSkillBtn();
@@ -1122,10 +1359,10 @@ function finishDuel() {
   if (!scene.saved) {
     scene.saved = true;
     const rec = state.records[play.code] || (state.records[play.code] = {});
-    rec[res] = (rec[res] || 0) + 1; save();
+    rec[res] = (rec[res] || 0) + 1; scene.gain = res === 'dw' ? 2 : 1; state.notes += scene.gain; save();
     sfx(res === 'dw' ? 'win' : res === 'dl' ? 'lose' : 'phase');
   }
-  const title = res === 'dw' ? '승리' : res === 'dl' ? '패배' : '무승부', mood = res === 'dw' ? 'laugh' : res === 'dl' ? 'dizzy' : 'idle';
+  const title = res === 'dw' ? '승리' : res === 'dl' ? '패배' : '무승부', mood = res === 'dw' ? 'cheer' : res === 'dl' ? 'cry' : 'idle';
   const mine = dmgList(d, 1), theirs = dmgList(d, 0), top = Math.max(1, ...mine.map(e => e[1]), ...theirs.map(e => e[1]));
   const sum = arr => Math.round(arr.reduce((a, e) => a + e[1], 0));
   const names = arr => arr.slice(0, 2).map(e => hitName(e[0])).join(', ');
@@ -1137,10 +1374,11 @@ function finishDuel() {
   else why = '남은 체력이 같아서 비겼어요.';
   const rows = (arr, cls) => arr.length ? arr.slice(0, 4).map(([by, v]) => `<li class="${cls}">${hitChip(by)}<span class="nm">${hitName(by)}</span><span class="dbar"><i style="width:${Math.max(4, v / top * 100).toFixed(0)}%"></i></span><span class="tm">${Math.round(v)}</span></li>`).join('') : '<li class="none">피해를 못 줬어요</li>';
   const again = scene.ko && !RM ? '<button type="button" class="b" data-ov="replay">결정타 다시 보기</button>' : '';
-  overlay.innerHTML = `<img class="face small" src="${avatar(play.boss, mood)}" alt="" width="84" height="84"><h2>${title}</h2>`
+  overlay.innerHTML = `<img class="face small" src="${kidPic(mood)}" alt="" width="84" height="84"><h2>${title}</h2>`
     + `<p class="score"><small>남은 체력</small><span class="me">나 ${Math.ceil(me.hp)}</span><span>:</span><span class="foe">${Math.ceil(foe.hp)} 상대</span></p>`
     + `<p class="why">${esc(why)}</p>`
     + `<div class="dmgs"><h3>내가 준 피해 <small>${sum(mine)}</small></h3><ul class="tl">${rows(mine, 'me')}</ul><h3>내가 받은 피해 <small>${sum(theirs)}</small></h3><ul class="tl">${rows(theirs, 'foe')}</ul></div>`
+    + `<p class="reward">연구 노트 +${scene.gain} · 지금 ${state.notes}장</p>`
     + `<div class="btns"><button type="button" class="b primary" data-ov="again">새 맵으로 한 판 더</button>${again}<button type="button" class="b" data-ov="exit">나가기</button></div>`;
   overlay.hidden = false;
   const first = overlay.querySelector('button'); if (first) first.focus();
@@ -1302,6 +1540,13 @@ function drawFx(g, now) {
     }
     else if (f.k === 'dmg') { g.globalAlpha = Math.min(1, (1 - q) * 2); g.font = (f.big ? '400 19px ' : '400 14px ') + FD; g.textAlign = 'center'; g.textBaseline = 'middle'; otext(g, f.txt, f.x, f.y - 16 - q * 18, f.c || '#fff', 4); g.globalAlpha = 1; }
     else if (f.k === 'ring') { g.globalAlpha = 1 - q; g.strokeStyle = INK; g.lineWidth = 7; g.beginPath(); g.arc(f.x, f.y, f.r0 + q * (f.r1 - f.r0), 0, TAU); g.stroke(); g.strokeStyle = f.c; g.lineWidth = 3.5; g.stroke(); g.globalAlpha = 1; }
+    else if (f.k === 'bolt') {
+      const n = f.straight ? 1 : 7;
+      g.globalAlpha = 1 - q; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(f.x, f.y);
+      for (let i = 1; i <= n; i++) { const u = i / n, j = i < n ? 15 : 0; g.lineTo(f.x + (f.x1 - f.x) * u + Math.sin(i * 12.9 + f.t * 40) * j, f.y + (f.y1 - f.y) * u + Math.cos(i * 7.3 + f.t * 31) * j); }
+      g.strokeStyle = INK; g.lineWidth = f.straight ? 17 : 9; g.stroke(); g.strokeStyle = f.c; g.lineWidth = f.straight ? 11 : 5; g.stroke(); g.strokeStyle = '#fff'; g.lineWidth = f.straight ? 4 : 2; g.stroke();
+      g.globalAlpha = 1; g.lineCap = 'butt';
+    }
     else if (f.k === 'pop') { g.globalAlpha = 1 - q; g.strokeStyle = INK; g.lineWidth = 6; g.beginPath(); g.arc(f.x, f.y, 8 + q * 20, 0, TAU); g.stroke(); g.strokeStyle = '#fff'; g.lineWidth = 3; g.stroke(); g.globalAlpha = 1; }
     else {
       const r = f.k === 'hit' ? 12 + q * 90 : 20 + q * 520;
@@ -1429,6 +1674,7 @@ function drawDuelHud(g, d, now) {
     g.fillStyle = 'rgba(34,26,53,.62)'; g.fillRect(0, 0, W, 33);
     g.font = '400 14px ' + FB; g.textAlign = 'left'; otext(g, '연습 상대에게 준 피해', 10, 17, '#fff', 4);
     g.font = '400 19px ' + FD; g.textAlign = 'right'; otext(g, String(Math.round(d.f[0].maxHp - d.f[0].hp)), 352, 18, C.sun, 4);
+    if (d.f[1].ult) { pill(g, 10, 27, 150, 4.5); g.fillStyle = '#4a3f73'; g.fill(); g.save(); g.clip(); g.fillStyle = C.sun; g.fillRect(10, 27, 150 * d.f[1].gauge / ULT.need, 4.5); g.restore(); }
     drawMeter(g, d, 1, 39);
     return;
   }
@@ -1446,6 +1692,10 @@ function drawDuelHud(g, d, now) {
     g.restore();
     pill(g, 100, y + 10.5, 168, 12); g.strokeStyle = INK; g.lineWidth = 2.5; g.stroke();
     g.font = '400 15px ' + FD; otext(g, String(Math.ceil(m.hp)), 275, y + 17.5, m.fl > 0 ? C.coral : '#fff', 4);
+    if (m.ult) {   // 필살기 게이지: 때리고 맞을수록 찬다
+      pill(g, 100, y + 25.5, 168, 5); g.fillStyle = '#4a3f73'; g.fill();
+      g.save(); g.clip(); g.fillStyle = C.sun; g.fillRect(100, y + 25.5, 168 * m.gauge / ULT.need, 5); g.restore();
+    }
   }
   const remain = Math.max(0, (T_DUEL - d.tick) / TPS);
   g.font = '400 17px ' + FD; g.textAlign = 'right'; otext(g, remain.toFixed(1), 352, 18, hot ? C.coral : C.sun, 4);
@@ -1476,6 +1726,15 @@ function drainDuel(d, now, rp) {
       if (!quiet && !scene.first) { scene.first = true; cap('선제타!', now); }
       if (rp && m.hp <= 0) scene.rp.hit = { x: m.x, y: m.y, by: e.by, side: e.side, t: now };
     }
+    else if (e.k === 'ult') {   // 필살기: 과학자가 끼어든다
+      const m = d.f[e.side];
+      ringFx(m.x, m.y, C.sun, 12, 70, now);
+      if (!rp) { scene.cut = { side: e.side, sci: e.sci, t: now, life: d.spar ? 1.1 : 1.3 }; if (!d.spar) { if (!RM) freeze = Math.max(freeze, Math.round(54 / play.speed)); sfx('skill'); } }
+    }
+    else if (e.k === 'apple') { ringFx(e.x, e.y, '#ff5d5d', 10, 62, now); if (!RM) for (let q = 0; q < 7; q++) { const a = Math.random() * TAU, sp = 60 + Math.random() * 110; fx.push({ k: 'deb', x: e.x, y: e.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: now, rot: Math.random() * TAU, vr: (Math.random() - 0.5) * 12, c: q % 3 ? '#ff5d5d' : '#fff1b8', gear: true }); } if (!RM && !quiet) shake = Math.max(shake, 12); sfx('boom'); }
+    else if (e.k === 'rail') { fx.push({ k: 'bolt', x: e.x0, y: e.y0, x1: e.x1, y1: e.y1, t: now, c: C.sun, straight: true }); ringFx(e.x1, e.y1, C.sun, 8, 52, now); if (!RM && !quiet) shake = Math.max(shake, 11); sfx('zap'); sfx('boom'); }
+    else if (e.k === 'bolt') { fx.push({ k: 'bolt', x: e.x0, y: e.y0, x1: e.x1, y1: e.y1, t: now, c: '#bff6ff' }); if (!RM && !quiet) shake = Math.max(shake, 8); sfx('zap'); }
+    else if (e.k === 'bigboom') { for (let q = 0; q < 3; q++) fx.push({ k: 'ring', x: e.x, y: e.y, t: now + q * 0.08, c: q % 2 ? C.sun : C.coral, r0: 10, r1: ULT.op.r * (1 - q * 0.2) }); if (!RM && !quiet) shake = Math.max(shake, 15); sfx('ko'); }
     else if (e.k === 'puff') { if (fx.length < 170) fx.push({ k: 'puff', x: e.x, y: e.y, t: now }); }
     else if (e.k === 'launch') { const m = d.f[e.side]; ringFx(m.x, m.y, '#fff', 10, 34, now); }
     else if (e.k === 'slam') { ringFx(e.x, e.y, C.sun, 8, 46, now); for (let q = 0; q < 3; q++) fx.push({ k: 'star', x: e.x + (Math.random() - 0.5) * 30, y: e.y + (Math.random() - 0.5) * 30, t: now + q * 0.04 }); tell('벽꽝!'); if (!RM && !quiet) shake = Math.max(shake, 9); sfx('boom'); }
@@ -1659,6 +1918,11 @@ function renderDuel(now) {
     g.globalAlpha = alpha;
     drawBot(g, m.x, m.y + hop, 0.62, { skin, mood, pulse: dpulse[m.side], t: now + m.side * 1.3, still: RM, gadgets: '', legs: m.boss.legs, team: tc, tilt: d.over || RM ? 0 : clamp(m.vx / 900, -0.2, 0.2), squash: m.sq });
     g.globalAlpha = alpha; partsOver(g, m, tc, now, aim); g.globalAlpha = 1;
+    if (m.haste > 0) { g.strokeStyle = C.sun; g.lineWidth = 3; g.setLineDash([10, 8]); g.lineDashOffset = RM ? 0 : -now * 90; g.beginPath(); g.arc(m.x, m.y, 36, 0, TAU); g.stroke(); g.setLineDash([]); g.lineDashOffset = 0; }
+    if (m.slow > 0) {
+      g.strokeStyle = '#c9a8ff'; g.lineWidth = 3; g.beginPath(); g.arc(m.x, m.y, 33, 0, TAU); g.stroke(); g.fillStyle = 'rgba(201,168,255,.2)'; g.fill();
+      const ca = RM ? 0 : now * 1.2; g.lineWidth = 2.5; g.beginPath(); g.moveTo(m.x, m.y - 30); g.lineTo(m.x, m.y - 30 - 9); g.moveTo(m.x, m.y); g.lineTo(m.x + Math.cos(ca) * 12, m.y + Math.sin(ca) * 12); g.stroke();
+    }
     if (m.side || d.spar) {
       const txt = m.side ? '나' : '연습 상대'; g.font = '400 10px ' + FB; g.textAlign = 'center'; g.textBaseline = 'middle';
       const tw = g.measureText(txt).width + 12;
@@ -1669,6 +1933,23 @@ function renderDuel(now) {
       const r = m.hp / m.maxHp;
       if (r < 0.5 && (fc + m.side * 9) % 18 === 0) fx.push({ k: 'star', x: m.x + (Math.random() - 0.5) * 30, y: m.y + (Math.random() - 0.5) * 26, t: now });
       if (r < 0.25 && (fc + m.side * 4) % 8 === 0) fx.push({ k: 'smoke', x: m.x + (Math.random() - 0.5) * 16, y: m.y - 10, t: now, vx: (Math.random() - 0.5) * 14, vy: -26 - Math.random() * 14 });
+    }
+  }
+  for (const p of d.pend) {   // 곧 닿을 필살기
+    const o = d.f[p.s];
+    if (p.k === 'nt') {
+      const q = 1 - p.t / ULT.nt.t, ay = p.y - 14 - (1 - q) * 250;
+      g.fillStyle = 'rgba(12,10,30,.4)'; g.beginPath(); g.ellipse(p.x, p.y + 16, 9 + q * 19, 4 + q * 6, 0, 0, TAU); g.fill();
+      g.fillStyle = '#ff5d5d'; g.strokeStyle = INK; g.lineWidth = 3; g.beginPath(); g.arc(p.x, ay, 19, 0, TAU); g.fill(); g.stroke();
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(p.x - 7, ay - 7, 4, 0, TAU); g.fill();
+      g.beginPath(); g.moveTo(p.x + 1, ay - 19); g.quadraticCurveTo(p.x + 10, ay - 32, p.x + 15, ay - 22); g.stroke();
+    } else if (p.k === 'ga') {
+      g.strokeStyle = C.sun; g.lineWidth = 3; g.setLineDash([9, 6]); g.globalAlpha = 0.5 + 0.5 * (1 - p.t / ULT.ga.t); g.beginPath(); g.moveTo(o.x, o.y); g.lineTo(p.x, p.y); g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+    } else {
+      const q = 1 - p.t / ULT.op.t;
+      g.fillStyle = `rgba(255,107,107,${(0.12 + 0.2 * q).toFixed(3)})`; g.beginPath(); g.arc(p.x, p.y, ULT.op.r, 0, TAU); g.fill();
+      g.strokeStyle = C.coral; g.lineWidth = 3; g.setLineDash([8, 7]); g.stroke(); g.setLineDash([]);
+      g.fillStyle = INK; g.beginPath(); g.arc(p.x, p.y, 11, 0, TAU); g.fill(); g.fillStyle = (p.t >> 2) % 2 ? C.sun : C.coral; g.beginPath(); g.arc(p.x, p.y, 5, 0, TAU); g.fill();
     }
   }
   drawShots(g, d, now);
@@ -1694,6 +1975,35 @@ function renderDuel(now) {
   drawDuelHud(g, d, now);
   drawCaps(g, now);
   drawBanner(g, now);
+  drawCut(g, now);
+}
+function wrapText(g, txt, max) {
+  const out = []; let line = '';
+  for (const w of txt.split(' ')) { const t = line ? line + ' ' + w : w; if (line && g.measureText(t).width > max) { out.push(line); line = w; } else line = t; }
+  if (line) out.push(line);
+  return out;
+}
+function drawCut(g, now) {   // 필살기 컷인: 과학자가 띠를 타고 끼어들어 한마디 한다
+  const c = scene.cut; if (!c) return;
+  const a = now - c.t; if (a >= c.life) { scene.cut = null; return; }
+  const sc = SCI[c.sci], mine = c.side === 1, pal = mine ? TEAM.me : TEAM.foe, inq = RM ? 1 : Math.min(1, a / 0.16), y0 = 196;
+  g.save(); g.globalAlpha = Math.min(1, (c.life - a) / 0.18);
+  g.fillStyle = 'rgba(12,10,30,.5)'; g.fillRect(0, 33, W, H - 66);
+  g.translate((1 - inq) * (mine ? -300 : 300), 0);
+  g.beginPath(); g.moveTo(-20, y0 + 18); g.lineTo(W + 20, y0 - 18); g.lineTo(W + 20, y0 + 116); g.lineTo(-20, y0 + 152); g.closePath();
+  g.fillStyle = pal.dark; g.fill(); g.strokeStyle = INK; g.lineWidth = 5; g.lineJoin = 'round'; g.stroke();
+  g.save(); g.clip(); g.fillStyle = pal.main; g.globalAlpha *= 0.45;
+  for (let i = -2; i < 12; i++) { const x = i * 46 + (RM ? 0 : (a * 170) % 46) * (mine ? 1 : -1); g.beginPath(); g.moveTo(x, y0 - 24); g.lineTo(x + 16, y0 - 24); g.lineTo(x - 44, y0 + 156); g.lineTo(x - 60, y0 + 156); g.closePath(); g.fill(); }
+  g.restore();
+  drawSci(g, c.sci, mine ? 68 : W - 68, y0 + 64, 1.3);
+  const tx = mine ? 136 : 14, tw = 210;
+  g.textAlign = 'left'; g.textBaseline = 'middle';
+  g.font = '400 12.5px ' + FB; otext(g, `${mine ? KID : '상대'}의 필살기 · ${sc.name}`, tx, y0 + 28, C.sun, 4);
+  let size = 30; g.font = `400 ${size}px ` + FD;
+  const wd = g.measureText(sc.ult).width; if (wd > tw) { size = Math.floor(size * tw / wd); g.font = `400 ${size}px ` + FD; }
+  otext(g, sc.ult, tx, y0 + 57, '#fff', 7);
+  g.font = '400 13px ' + FB; wrapText(g, `“${sc.line}”`, tw).slice(0, 3).forEach((ln, i) => otext(g, ln, tx, y0 + 87 + i * 17, pal.light, 4));
+  g.restore();
 }
 function renderIdle(now) {
   const g = ctx, b = scene.boss;
@@ -1707,7 +2017,7 @@ function renderIdle(now) {
   let x = W / 2 - b.items.length * 17;
   for (const k of b.items) { hitTileAt(g, k, x + 2, 396, 30); x += 34; }
 }
-function render(now) { if (scene.kind === 'idle') renderIdle(now); else renderDuel(now); }
+function render(now) { if (scene.kind === 'idle') renderIdle(now); else if (scene.kind === 'lab') renderLab(now); else renderDuel(now); }
 let last = 0;
 function frame(ms) {
   const now = ms / 1000, dtm = Math.min(0.1, now - last); last = now; fc++;
@@ -1765,7 +2075,7 @@ function start(data) {
   applySaved(data && data.boss ? data : saved);
   if (RM) state.previewOn = false;
   readHash();
-  $('#logo').src = avatar(MASCOT); updateSndBtn();
+  $('#logo').src = kidPic('idle'); updateSndBtn();
   $('#bossName').value = state.boss.name;
   renderAll();
   new ResizeObserver(fit).observe(fitEl);
@@ -1773,7 +2083,7 @@ function start(data) {
   requestAnimationFrame(ms => { last = ms / 1000; requestAnimationFrame(frame); });
 }
 window.addEventListener('hashchange', () => { if (!play && readHash()) { save(); renderAll(); rebuildScene(); } });
-window.__bm = { makeDuel, stepDuel, makeMap, encode, decode, prep, SAMPLES, MOVE, DUEL, ITEM, IORDER, W, H, peek: () => scene };
+window.__bm = { makeDuel, stepDuel, makeMap, encode, decode, prep, SAMPLES, MOVE, DUEL, ULT, SCI, SORDER, ultOf, ITEM, IORDER, W, H, state, peek: () => scene };
 if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(snap);
 if (window.claude && window.claude.hot && window.claude.hot.ready) window.claude.hot.ready(start);
 else start((window.claude && window.claude.hot && window.claude.hot.data) || {});
