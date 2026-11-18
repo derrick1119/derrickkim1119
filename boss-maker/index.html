@@ -348,52 +348,52 @@ const adiff = (a, b) => { const x = a - b; return Math.atan2(Math.sin(x), Math.c
 
 /* 파츠: m 근접, r 원거리, g 장치. 끼우기만 하면 알아서 작동한다 */
 const ITEM = {
-  s: { kind: 'm', name: '톱날', desc: '앞에서 돌아요. 스치는 동안 계속 갈아요', tile: '#ffd23f' },
-  d: { kind: 'm', name: '드릴', desc: '정면으로 세게 박을수록 크게 아파요', tile: '#ffb347' },
-  h: { kind: 'm', name: '망치', desc: '가까이 오면 후려쳐서 멀리 날려요', tile: '#ff8f6b' },
-  g: { kind: 'm', name: '가시 갑옷', desc: '나한테 부딪힌 상대가 다쳐요', tile: '#ffa9c4' },
-  t: { kind: 'm', name: '충격기', desc: '부딪히면 상대 파츠를 잠깐 멈춰요', tile: '#fff07a' },
-  c: { kind: 'r', name: '대포', desc: '상대를 겨눠 포탄을 쏴요', tile: '#8fd3ff' },
-  r: { kind: 'r', name: '로켓', desc: '느리지만 끝까지 쫓아가 터져요', tile: '#a8b8ff' },
-  l: { kind: 'r', name: '레이저', desc: '조준선을 그은 뒤 한 번에 꿰뚫어요', tile: '#7df0e0' },
-  m: { kind: 'r', name: '지뢰', desc: '지나간 자리에 지뢰를 떨어뜨려요', tile: '#c9b6ff' },
-  f: { kind: 'r', name: '화염 방사기', desc: '앞쪽 가까운 곳을 태워요. 방패로 못 막아요', tile: '#ff9f7a' },
-  q: { kind: 'g', name: '방패', desc: '앞에서 오는 피해를 절반으로 줄여요', tile: '#9af7ff' },
-  b: { kind: 'g', name: '부스터', desc: '몇 초마다 상대에게 돌진해요', tile: '#ffcf70' },
-  n: { kind: 'g', name: '자석', desc: '상대를 끌어당기고 포탄을 붙잡아 되쏴요', tile: '#ff8a8a' },
-  p: { kind: 'g', name: '반발 장치', desc: '가까이 온 상대를 튕겨 내고 탄을 지워요', tile: '#b9a6ff' },
+  s: { kind: 'm', name: '톱날', desc: '큰 톱날 세 개가 몸 둘레를 돌며 닿는 상대를 베어요', tile: '#ffd23f' },
+  d: { kind: 'm', name: '드릴', desc: '가는 방향으로 긴 드릴을 내밀어 찔러요', tile: '#ffb347' },
+  h: { kind: 'm', name: '망치', desc: '2.5초마다 땅을 내리쳐 주변 상대를 날려요', tile: '#ff8f6b' },
+  g: { kind: 'm', name: '가시 갑옷', desc: '가시 범위 안에 들어온 상대를 계속 찔러요', tile: '#ffa9c4' },
+  t: { kind: 'm', name: '충격기', desc: '가까운 상대에게 벼락을 쏴 잠깐 멈춰 세워요', tile: '#fff07a' },
+  c: { kind: 'r', name: '대포', desc: '상대를 겨눠 벽에 한 번 튕기는 포탄을 쏴요', tile: '#8fd3ff' },
+  r: { kind: 'r', name: '로켓', desc: '상대를 쫓아가는 로켓을 두 발씩 쏴요', tile: '#a8b8ff' },
+  l: { kind: 'r', name: '레이저', desc: '빛줄기가 한 바퀴 돌며 닿는 상대를 지져요', tile: '#7df0e0' },
+  m: { kind: 'r', name: '지뢰', desc: '지나간 자리에 지뢰를 줄줄이 깔아요', tile: '#c9b6ff' },
+  f: { kind: 'r', name: '화염 방사기', desc: '가는 방향으로 불을 뿜어요. 방패로 못 막아요', tile: '#ff9f7a' },
+  q: { kind: 'g', name: '방패', desc: '방패 두 장이 몸 둘레를 돌며 탄을 막고 피해를 줄여요', tile: '#9af7ff' },
+  b: { kind: 'g', name: '부스터', desc: '몇 초마다 급가속하며 불길을 남겨요', tile: '#ffcf70' },
+  n: { kind: 'g', name: '자석', desc: '가까운 상대의 진로를 끌어당기고 포탄을 붙잡아 되쏴요', tile: '#ff8a8a' },
+  p: { kind: 'g', name: '반발 장치', desc: '충격파를 터뜨려 상대를 밀어내고 탄을 지워요', tile: '#b9a6ff' },
   x: { kind: 'g', name: '수리 드론', desc: '안 맞는 동안 체력을 고쳐요', tile: '#7dffb0' },
   y: { kind: 'g', name: '분신', desc: '가짜 몸으로 상대 조준을 속여요', tile: '#cfe9ff' },
 };
 const IORDER = ['s', 'd', 'h', 'g', 't', 'c', 'r', 'l', 'm', 'f', 'q', 'b', 'n', 'p', 'x', 'y'];
 const KIND = { m: '근접', r: '원거리', g: '장치' };
 const MOVE = {
-  z: { name: '바퀴', desc: '빠르고 몸통 박치기가 더 아파요', hp: 140, speed: 175, turn: 4.5, mass: 1, ram: 1.5 },
-  d: { name: '호버', desc: '느리지만 튼튼하고 덜 밀려요', hp: 150, speed: 112, turn: 6, mass: 1.35, ram: 1 },
-  c: { name: '점멸', desc: '약하지만 2.5초마다 순간이동해요', hp: 130, speed: 140, turn: 5.5, mass: 1, ram: 1 },
+  z: { name: '바퀴', desc: '가장 빨리 튕겨 다녀요. 박치기가 아파요', hp: 135, speed: 185, mass: 1, ram: 1.5 },
+  d: { name: '호버', desc: '느리지만 튼튼하고 덜 밀려요', hp: 145, speed: 125, mass: 1.35, ram: 1 },
+  c: { name: '점멸', desc: '2.5초마다 엉뚱한 곳으로 순간이동해요', hp: 150, speed: 150, mass: 1, ram: 1 },
 };
 const DUEL = {
-  home: [110, 430], body: 19, ram: 2, launch: 26, slam: 8, blinkEvery: 150,
-  heatFrom: 720, heatMax: 1, crushFrom: 1080, crushFull: 1620, crushX: 95, crushY: 150, wallHit: 0.12, wallCd: 40,
-  saw: { reach: 56, arc: 1.25, dps: 36 },
-  drill: { arc: 0.8, base: 3, k: 0.036, cd: 50 },
-  hammer: { see: 85, reach: 62, wind: 10, dmg: 10, kb: 380, cd: 170, miss: 70 },
-  spike: { dmg: 6, cd: 30 },
-  taser: { dmg: 4, stun: 66, cd: 190 },
-  cannon: { every: 75, v: 290, dmg: 10 },
-  rocket: { every: 210, v: 150, turn: 2.6, life: 240, dmg: 12, kb: 200, blast: 40 },
-  laser: { every: 170, tele: 30, w: 15, dmg: 18 },
-  mine: { every: 140, max: 4, arm: 36, r: 17, dmg: 10, kb: 280, life: 540 },
-  flame: { reach: 88, arc: 0.5, dps: 17 },
-  shield: { arc: 1, cut: 0.5 },
-  boost: { every: 170, len: 30, mul: 2.3, ram: 10 },
-  magnet: { pull: 45, r: 190, grab: 30, cap: 3, fling: 110 },
-  repulse: { every: 170, r: 92, kb: 400, dmg: 3 },
-  repair: { rate: 7, wait: 60 },
-  decoy: { every: 300, life: 150 },
+  home: [110, 430], body: 19, ram: 4, launch: 26, slam: 8, blinkEvery: 150,
+  heatFrom: 600, heatMax: 1.3, crushFrom: 1080, crushFull: 1620, crushX: 95, crushY: 150, wallHit: 0.12, wallCd: 40,
+  saw: { n: 3, orbit: 56, r: 15, spin: 4.2, dmg: 8, cd: 18 },
+  drill: { len: 78, w: 11, dmg: 16, cd: 30 },
+  hammer: { every: 130, wind: 24, r: 100, dmg: 18, kb: 420 },
+  spike: { r: 54, dps: 22, hit: 6 },
+  taser: { every: 200, r: 150, dmg: 6, stun: 45 },
+  cannon: { every: 78, v: 250, dmg: 10, r: 9 },
+  rocket: { every: 220, n: 2, v: 150, turn: 2.6, life: 240, dmg: 6, kb: 150, blast: 36 },
+  laser: { every: 150, on: 96, len: 210, w: 9, dmg: 14 },
+  mine: { every: 110, max: 4, arm: 36, r: 22, dmg: 9, kb: 280, life: 600 },
+  flame: { on: 96, off: 48, reach: 130, arc: 0.6, dps: 34 },
+  shield: { n: 2, arc: 0.6, spin: 2, cut: 0.5 },
+  boost: { every: 170, len: 66, mul: 2.2, ram: 12, fire: 30, fireLife: 72 },
+  magnet: { r: 150, bend: 2, grab: 32, cap: 3, fling: 110 },
+  repulse: { every: 170, r: 105, kb: 400, dmg: 7 },
+  repair: { rate: 4, wait: 80 },
+  decoy: { every: 200, life: 200 },
   pickAt: [420, 1020], pickLife: 420, ocLife: 300, ocMul: 1.5,
 };
-const NOBLOCK = { f: 1, m: 1, wall: 1, slam: 1, p: 1 };   // 방패로 못 막는 것
+const NOBLOCK = { f: 1, m: 1, b: 1, wall: 1, slam: 1, p: 1 };   // 방패로 못 막는 것
 /* 과학자 테크 트리: 이론을 하나 깨달을 때마다 파츠가 열린다. 같은 과학자의 파츠를 둘 이상 끼우면 그 과학자의 필살기가 생긴다 */
 const SCI = {
   ar: { name: '아르키메데스', field: '지렛대와 나선', parts: ['h', 'd'], need: [], ult: '유레카 지렛대', line: '설 자리만 다오. 저 로봇을 들어 올리겠다!', desc: '상대가 어디 있든 멀리 날려 버려요' },
@@ -447,18 +447,17 @@ const SANDBAG = { name: '연습 상대', legs: 'd', items: [] };
 /* spar: 작업실에서 내 파츠를 시험해 보는 연습 상대 (죽지 않고, 과열도 벽도 없다) */
 function makeDuel(top, bot, seed, spar) {
   const map = spar ? { seed, kind: 'clear', clouds: [], bumps: [], wind: 0 } : makeMap(seed);
-  const d = { map, spar: !!spar, rs: (seed ^ 0x9e3779b9) | 0, f: [], clouds: map.clouds.map(cl => ({ ...cl })), shots: [], lasers: [], mines: [], pend: [], pick: null, tick: 0, wl: 0, wt: 33, over: null, dealt: [{}, {}], healed: [0, 0], last: null, ramCd: 0, ev: [] };
+  const d = { map, spar: !!spar, rs: (seed ^ 0x9e3779b9) | 0, f: [], clouds: map.clouds.map(cl => ({ ...cl })), shots: [], mines: [], fires: [], pend: [], pick: null, tick: 0, wl: 0, wt: 33, over: null, dealt: [{}, {}], healed: [0, 0], last: null, ramCd: 0, ev: [] };
   const mk = (boss, side) => {
     const kind = MOVE[boss.legs] ? boss.legs : 'z', mv = MOVE[kind], has = {};
     for (const k of boss.items || []) if (ITEM[k]) has[k] = true;
     const hp = spar && !side ? 9999 : mv.hp;
     return {
-      boss, side, kind, mv, has, x: 80 + rnd(d) * (W - 160), y: DUEL.home[side], a: (side ? -1 : 1) * Math.PI / 2 + (rnd(d) - 0.5) * 1.4, vx: 0, vy: 0,
-      hp, maxHp: hp, fl: 0, sq: 0, rush: !!(has.s || has.d || has.h || has.g || has.t || has.f || has.b),
-      ult: ultOf(boss.items), gauge: 0, ultN: 0, haste: 0, slow: 0,
-      recoil: 0, launch: 0, lvx: 0, lvy: 0, slam: 0, stun: 0, oc: 0, boost: 0, wind: 0, swung: 0, cap: 0, calm: 0, kite: side ? 1 : -1, rk: side,
-      cd: { drill: 0, hammer: 30, spike: 0, taser: 0, cannon: 50 + side * 9, rocket: 80 + side * 9, laser: 70 + side * 9, mine: 60, boost: 90 + side * 20, repulse: 60, decoy: 100, fling: DUEL.magnet.fling, wall: 0, heal: 0 },
-      blinkCd: 150, fade: 0, decoy: null, acc: {}, sawOn: 0, flameOn: 0,
+      boss, side, kind, mv, has, x: 80 + rnd(d) * (W - 160), y: DUEL.home[side], a: (side ? -1 : 1) * Math.PI / 2 + (rnd(d) < 0.5 ? -1 : 1) * (0.45 + rnd(d) * 0.5), vx: 0, vy: 0,
+      hp, maxHp: hp, fl: 0, sq: 0, ult: ultOf(boss.items), gauge: 0, ultN: 0, haste: 0, slow: 0,
+      launch: 0, lvx: 0, lvy: 0, slam: 0, stun: 0, oc: 0, boost: 0, wind: 0, swung: 0, cap: 0, calm: 0, orb: side * 1.6, orbS: side * 0.8, beam: 0, beamA: 0, beamHit: 0,
+      cd: { saw: 0, drill: 0, hammer: 60 + side * 20, taser: 40, cannon: 50 + side * 9, rocket: 80 + side * 9, laser: 70 + side * 15, mine: 40, boost: 90 + side * 20, repulse: 80 + side * 15, decoy: 100, fling: DUEL.magnet.fling, wall: 0, heal: 0 },
+      blinkCd: 150, fade: 0, decoy: null, acc: {}, flameOn: 0,
     };
   };
   d.f = [mk(top, 0), mk(bot, 1)];
@@ -472,7 +471,11 @@ function hurt(d, e, dmg, by, x, y, sx, sy, cont) {
   if (!d.spar) dmg *= 1 + heatQ(d.tick) * DUEL.heatMax;
   if (by !== 'wall' && d.f[1 - e.side].oc > 0) dmg *= DUEL.ocMul;
   let blocked = false;
-  if (e.has.q && e.stun <= 0 && !NOBLOCK[by] && by[0] !== 'U' && sx !== undefined && Math.abs(adiff(Math.atan2(sy - e.y, sx - e.x), e.a)) < DUEL.shield.arc) { dmg *= 1 - DUEL.shield.cut; blocked = true; }
+  if (e.has.q && e.stun <= 0 && !NOBLOCK[by] && by[0] !== 'U' && sx !== undefined) {   // 도는 방패가 그쪽을 가리고 있으면 덜 아프다
+    const sa = Math.atan2(sy - e.y, sx - e.x);
+    for (let i = 0; i < DUEL.shield.n; i++) if (Math.abs(adiff(sa, e.orbS + i * TAU / DUEL.shield.n)) < DUEL.shield.arc) blocked = true;
+    if (blocked) dmg *= 1 - DUEL.shield.cut;
+  }
   e.hp = Math.max(0, e.hp - dmg); e.calm = 0; e.fl = 10;
   const tab = d.dealt[1 - e.side]; tab[by] = (tab[by] || 0) + dmg;
   if (by !== 'wall' && by[0] !== 'U') { const o = d.f[1 - e.side]; if (o.ult) o.gauge = Math.min(ULT.need, o.gauge + dmg); }
@@ -485,53 +488,46 @@ function hurt(d, e, dmg, by, x, y, sx, sy, cont) {
 }
 function shove(d, e, ang, speed) {   // 날려 보내기: 날아가는 동안은 조종이 안 되고, 어딘가에 부딪히면 더 아프다
   e.lvx = Math.cos(ang) * speed / e.mv.mass; e.lvy = Math.sin(ang) * speed / e.mv.mass;
-  e.launch = DUEL.launch; e.slam = 1; e.boost = 0; e.wind = 0;
+  e.launch = DUEL.launch; e.slam = 1; e.boost = 0;
   emit(d, { k: 'launch', side: e.side });
 }
 function slamCheck(d, m) {
   if (m.launch > 0 && m.slam) { m.slam = 0; hurt(d, m, DUEL.slam, 'slam', m.x, m.y); emit(d, { k: 'slam', x: m.x, y: m.y, side: m.side }); }
 }
-function bounceOff(m, cx, cy, rr) {   // 원에 부딪히면 튕겨 나온다
+function steady(m) {   // 벽돌깨기 공처럼: 너무 눕거나 서서 같은 길만 오가지 않게 각도를 다듬는다
+  let c = Math.cos(m.a), s = Math.sin(m.a);
+  if (Math.abs(c) < 0.3) c = c < 0 ? -0.3 : 0.3;
+  if (Math.abs(s) < 0.3) s = s < 0 ? -0.3 : 0.3;
+  m.a = Math.atan2(s, c);
+}
+function bounceOff(m, cx, cy, rr) {   // 원에 부딪히면 공처럼 튕겨 나온다
   const dx = m.x - cx, dy = m.y - cy, dd = dx * dx + dy * dy;
   if (dd >= rr * rr) return false;
   const dist = Math.sqrt(dd) || 1, nx = dx / dist, ny = dy / dist;
   m.x = cx + nx * rr; m.y = cy + ny * rr;
   let hx = Math.cos(m.a), hy = Math.sin(m.a); const dot = hx * nx + hy * ny;
-  if (dot < 0) { hx -= 2 * dot * nx; hy -= 2 * dot * ny; m.a = Math.atan2(hy, hx); m.recoil = Math.max(m.recoil, 12); m.boost = 0; }
+  if (dot < 0) { hx -= 2 * dot * nx; hy -= 2 * dot * ny; m.a = Math.atan2(hy, hx); }
   const ld = m.lvx * nx + m.lvy * ny; if (ld < 0) { m.lvx -= 2 * ld * nx; m.lvy -= 2 * ld * ny; }
   return dot < 0 || ld < 0;
 }
+/* 로봇은 상대를 쫓지 않는다. 곧게 굴러가다가 무언가에 부딪힐 때만 방향이 바뀐다 */
 function moveFighter(d, m) {
-  const e = d.f[1 - m.side], tgt = e.decoy || e, live = !d.spar && d.tick >= DUEL.crushFrom - 40;
+  const e = d.f[1 - m.side];
   const x0 = d.wl + 26, x1 = W - d.wl - 26, y0 = d.wt + 21, y1 = H - d.wt - 21;
   if (m.kind === 'c' && m.stun <= 0 && m.launch <= 0 && --m.blinkCd <= 0) {
     emit(d, { k: 'blink', x: m.x, y: m.y });
-    if (m.rush) {   // 근접형은 상대 등 뒤로, 원거리형은 멀리 달아난다
-      m.x = clamp(e.x - Math.cos(e.a) * 62, x0 + 6, x1 - 6); m.y = clamp(e.y - Math.sin(e.a) * 62, y0 + 6, y1 - 6); m.a = Math.atan2(e.y - m.y, e.x - m.x);
-    } else {
-      let best = -1, bx = m.x, by = m.y;
-      for (let q = 0; q < 3; q++) { const px = x0 + 12 + rnd(d) * (x1 - x0 - 24), py = y0 + 10 + rnd(d) * (y1 - y0 - 20), dd = Math.hypot(px - e.x, py - e.y); if (dd > best) { best = dd; bx = px; by = py; } }
-      m.x = bx; m.y = by;
-    }
-    m.blinkCd = DUEL.blinkEvery; m.fade = 12; m.recoil = 0; emit(d, { k: 'blink', x: m.x, y: m.y });
+    for (let q = 0; q < 4; q++) { m.x = x0 + 12 + rnd(d) * (x1 - x0 - 24); m.y = y0 + 10 + rnd(d) * (y1 - y0 - 20); if (Math.hypot(m.x - e.x, m.y - e.y) > 70) break; }
+    m.a = rnd(d) * TAU; steady(m);
+    m.blinkCd = DUEL.blinkEvery; m.fade = 12; emit(d, { k: 'blink', x: m.x, y: m.y });
   }
-  const sp = m.mv.speed * (m.stun > 0 ? 0.45 : 1) * (m.slow > 0 ? 0.45 : 1) * (m.boost > 0 ? DUEL.boost.mul : 1);
+  const sp = m.stun > 0 ? 0 : m.mv.speed * (m.slow > 0 ? 0.45 : 1) * (m.boost > 0 ? DUEL.boost.mul : 1);
   if (m.launch > 0) {
     m.launch--; m.vx = m.lvx; m.vy = m.lvy; m.lvx *= 0.95; m.lvy *= 0.95;
+    if (m.launch === 0 && (m.lvx || m.lvy)) { m.a = Math.atan2(m.lvy, m.lvx); steady(m); }   // 날아간 쪽으로 계속 굴러간다
   } else {
-    if (m.stun <= 0 && m.recoil <= 0 && m.boost <= 0) {
-      const ang = Math.atan2(tgt.y - m.y, tgt.x - m.x), dist = Math.hypot(tgt.x - m.x, tgt.y - m.y);
-      let want = m.rush ? ang : ang + m.kite * (dist < 140 ? 2.5 : dist < 230 ? 1.65 : 0.9);
-      for (const mn of d.mines) if (mn.s !== m.side) {
-        const dx = mn.x - m.x, dy = mn.y - m.y;
-        if (dx * dx + dy * dy < 4200) { const ma = Math.atan2(dy, dx); if (Math.abs(adiff(ma, m.a)) < 1.5) want = ma + (adiff(want, ma) >= 0 ? 1 : -1) * 1.9; }   // 지뢰는 옆으로 돌아간다
-      }
-      for (const l of d.lasers) if (l.s !== m.side && l.t < DUEL.laser.tele) {
-        const o = d.f[l.s], px = m.x - o.x, py = m.y - o.y, along = px * Math.cos(l.a) + py * Math.sin(l.a), off = -px * Math.sin(l.a) + py * Math.cos(l.a);
-        if (along > 0 && Math.abs(off) < 34) want = l.a + (off >= 0 ? 1 : -1) * Math.PI / 2;
-      }
-      if (live) { const px = m.x + Math.cos(m.a) * sp * 0.4, py = m.y + Math.sin(m.a) * sp * 0.4; if (px < x0 + 8 || px > x1 - 8 || py < y0 + 8 || py > y1 - 8) want = Math.atan2(H / 2 - m.y, W / 2 - m.x); }
-      m.a += clamp(adiff(want, m.a), -m.mv.turn * DT, m.mv.turn * DT);
+    if (e.has.n && e.stun <= 0 && sp) {   // 상대 자석이 진로를 휘게 한다
+      const dx = e.x - m.x, dy = e.y - m.y;
+      if (dx * dx + dy * dy < DUEL.magnet.r * DUEL.magnet.r) m.a += clamp(adiff(Math.atan2(dy, dx), m.a), -DUEL.magnet.bend * DT, DUEL.magnet.bend * DT);
     }
     m.vx = Math.cos(m.a) * sp; m.vy = Math.sin(m.a) * sp;
   }
@@ -539,13 +535,13 @@ function moveFighter(d, m) {
   let hit = 0;
   if (m.x < x0) { m.x = x0; hit = 1; } else if (m.x > x1) { m.x = x1; hit = 2; }
   if (m.y < y0) { m.y = y0; hit |= 4; } else if (m.y > y1) { m.y = y1; hit |= 8; }
-  if (hit) {   // 벽에 닿으면 튕기고, 각도를 조금 틀어 같은 길만 돌지 않게 한다
+  if (hit) {
     if (hit & 3) m.lvx = -m.lvx * 0.6;
     if (hit & 12) m.lvy = -m.lvy * 0.6;
-    const a2 = m.a + (rnd(d) - 0.5) * 0.5; let hx = Math.cos(a2), hy = Math.sin(a2);
+    const a2 = m.a + (rnd(d) - 0.5) * 0.36; let hx = Math.cos(a2), hy = Math.sin(a2);
     if (hit & 1) hx = Math.abs(hx); else if (hit & 2) hx = -Math.abs(hx);
     if (hit & 4) hy = Math.abs(hy); else if (hit & 8) hy = -Math.abs(hy);
-    m.a = Math.atan2(hy, hx); m.kite = -m.kite; m.sq = 1; m.recoil = Math.max(m.recoil, 14); m.boost = 0;
+    m.a = Math.atan2(hy, hx); steady(m); m.sq = 1;
     emit(d, { k: 'wall', x: m.x, y: m.y });
     slamCheck(d, m);
     if (!d.spar && d.tick >= DUEL.crushFrom && m.cd.wall <= 0) { m.cd.wall = DUEL.wallCd; hurt(d, m, m.maxHp * DUEL.wallHit, 'wall', m.x, m.y); emit(d, { k: 'shock', x: m.x, y: m.y }); }
@@ -558,7 +554,7 @@ function castUlt(d, m, e) {
   m.ultN++; emit(d, { k: 'ult', side: m.side, sci: k });
   if (k === 'ar') { hurt(d, e, ULT.ar.dmg, 'Uar', e.x, e.y); shove(d, e, Math.atan2(e.y - m.y, e.x - m.x), ULT.ar.kb); }
   else if (k === 'ed') m.haste = ULT.ed.len;
-  else if (k === 'ts') { emit(d, { k: 'bolt', x0: m.x, y0: m.y, x1: e.x, y1: e.y }); hurt(d, e, ULT.ts.dmg, 'Uts', e.x, e.y); e.stun = Math.max(e.stun, ULT.ts.stun); e.boost = 0; e.wind = 0; emit(d, { k: 'stun', side: e.side }); }
+  else if (k === 'ts') { emit(d, { k: 'bolt', x0: m.x, y0: m.y, x1: e.x, y1: e.y }); hurt(d, e, ULT.ts.dmg, 'Uts', e.x, e.y); e.stun = Math.max(e.stun, ULT.ts.stun); e.boost = 0; emit(d, { k: 'stun', side: e.side }); }
   else if (k === 'ei') e.slow = ULT.ei.len;
   else d.pend.push({ k, s: m.side, t: ULT[k].t, x: e.x, y: e.y });   // 사과, 자기 포탄, 큰 폭발은 잠깐 뒤에 닿는다
 }
@@ -569,7 +565,7 @@ function boom(d, s) {
 }
 function stepDuel(d) {
   if (d.over) return;
-  const spar = d.spar, A = d.f[0], B = d.f[1], wind = d.map.wind;
+  const spar = d.spar, A = d.f[0], B = d.f[1], wind = d.map.wind, reach = DUEL.body - 3;
   if (!spar) {
     if (d.tick === DUEL.heatFrom) emit(d, { k: 'heat' });
     if (d.tick === DUEL.crushFrom - 120) emit(d, { k: 'crushwarn' });
@@ -590,79 +586,94 @@ function stepDuel(d) {
   }
   if (!spar && !d.pick && DUEL.pickAt.includes(d.tick)) { d.pick = { x: 70 + rnd(d) * (W - 140), y: 270, t: DUEL.pickLife }; emit(d, { k: 'pickup', x: d.pick.x, y: 270 }); }
   for (const m of d.f) moveFighter(d, m);
-  {   // 보스끼리 부딪히면 근접 파츠가 일하고, 서로 튕겨 나간다
+  {   // 로봇끼리 부딪히면 서로 박고, 공처럼 튕겨 나간다
     const dx = B.x - A.x, dy = B.y - A.y, dd = dx * dx + dy * dy, rr = DUEL.body * 2;
     if (dd < rr * rr) {
-      const dist = Math.sqrt(dd) || 1, nx = dx / dist, ny = dy / dist, rel = (A.vx - B.vx) * nx + (A.vy - B.vy) * ny, push = (rr - dist) / 2, cx = (A.x + B.x) / 2, cy = (A.y + B.y) / 2;
+      const dist = Math.sqrt(dd) || 1, nx = dx / dist, ny = dy / dist, push = (rr - dist) / 2, cx = (A.x + B.x) / 2, cy = (A.y + B.y) / 2;
       A.x -= nx * push; A.y -= ny * push; B.x += nx * push; B.y += ny * push;
-      if (rel > 20 && d.ramCd <= 0) {
-        d.ramCd = 18;
-        emit(d, { k: 'clash', x: cx, y: cy });
-        const off = [A.stun > 0, B.stun > 0], front = [Math.abs(adiff(Math.atan2(dy, dx), A.a)), Math.abs(adiff(Math.atan2(-dy, -dx), B.a))], dash = [A.boost > 0, B.boost > 0];
+      const ha = Math.cos(A.a) * nx + Math.sin(A.a) * ny, hb = -(Math.cos(B.a) * nx + Math.sin(B.a) * ny);
+      if (d.ramCd <= 0) {
+        d.ramCd = 16; emit(d, { k: 'clash', x: cx, y: cy });
         for (const m of d.f) {
-          if (off[m.side]) continue;
+          if (m.stun > 0) continue;
           const e = d.f[1 - m.side];
-          hurt(d, e, DUEL.ram * m.mv.ram + (dash[m.side] ? DUEL.boost.ram : 0), dash[m.side] ? 'b' : 'ram', cx, cy, m.x, m.y);
-          if (m.has.d && front[m.side] < DUEL.drill.arc && m.cd.drill <= 0) { m.cd.drill = DUEL.drill.cd; hurt(d, e, DUEL.drill.base + DUEL.drill.k * rel, 'd', cx, cy, m.x, m.y); }
-          if (m.has.g && m.cd.spike <= 0) { m.cd.spike = DUEL.spike.cd; hurt(d, e, DUEL.spike.dmg, 'g', cx, cy, m.x, m.y); }
-          if (m.has.t && m.cd.taser <= 0) { m.cd.taser = DUEL.taser.cd; hurt(d, e, DUEL.taser.dmg, 't', cx, cy, m.x, m.y); e.stun = DUEL.taser.stun; e.boost = 0; e.wind = 0; emit(d, { k: 'stun', side: e.side }); }
+          hurt(d, e, DUEL.ram * m.mv.ram + (m.boost > 0 ? DUEL.boost.ram : 0), m.boost > 0 ? 'b' : 'ram', cx, cy, m.x, m.y);
+          if (m.has.g) hurt(d, e, DUEL.spike.hit, 'g', cx, cy, m.x, m.y);
         }
-        const j0 = (rnd(d) - 0.5) * 0.9, j1 = (rnd(d) - 0.5) * 0.9;
-        A.a = Math.atan2(-ny, -nx) + j0; B.a = Math.atan2(ny, nx) + j1;
-        A.recoil = B.recoil = 36; A.boost = B.boost = 0; A.sq = B.sq = 1;
-        const la = A.lvx * nx + A.lvy * ny, lb = B.lvx * nx + B.lvy * ny;
-        if (la > 0) { A.lvx -= 2 * la * nx; A.lvy -= 2 * la * ny; }
-        if (lb < 0) { B.lvx -= 2 * lb * nx; B.lvy -= 2 * lb * ny; }
       }
+      if (ha > 0) { A.a = Math.atan2(Math.sin(A.a) - 2 * ha * ny, Math.cos(A.a) - 2 * ha * nx) + (rnd(d) - 0.5) * 0.3; steady(A); }
+      if (hb > 0) { B.a = Math.atan2(Math.sin(B.a) + 2 * hb * ny, Math.cos(B.a) + 2 * hb * nx) + (rnd(d) - 0.5) * 0.3; steady(B); }
+      const la = A.lvx * nx + A.lvy * ny, lb = B.lvx * nx + B.lvy * ny;
+      if (la > 0) { A.lvx -= 2 * la * nx; A.lvy -= 2 * la * ny; }
+      if (lb < 0) { B.lvx -= 2 * lb * nx; B.lvy -= 2 * lb * ny; }
+      A.sq = B.sq = 1;
     }
   }
   for (const m of d.f) {
     const e = d.f[1 - m.side], tgt = e.decoy || e;
     m.x = clamp(m.x, wl + 26, W - wl - 26); m.y = clamp(m.y, wt + 21, H - wt - 21);
-    const dx = e.x - m.x, dy = e.y - m.y, dist = Math.hypot(dx, dy), ang = Math.atan2(dy, dx), front = Math.abs(adiff(ang, m.a));
+    const dx = e.x - m.x, dy = e.y - m.y, dist = Math.hypot(dx, dy), ang = Math.atan2(dy, dx);
     if (m.fl > 0) m.fl--;
     if (m.fade > 0) m.fade--;
-    if (m.recoil > 0) m.recoil--;
     if (m.oc > 0) m.oc--;
     if (m.boost > 0) m.boost--;
     if (m.swung > 0) m.swung--;
     if (m.sq > 0) m.sq = Math.max(0, m.sq - 0.12);
-    m.calm++;
     if (m.haste > 0) m.haste--;
     if (m.slow > 0) m.slow--;
+    m.calm++;
     const cdStep = (m.haste > 0 ? 2 : 1) * (m.slow > 0 && d.tick % 2 ? 0 : 1), pw = (m.haste > 0 ? 1.5 : 1) * (m.slow > 0 ? 0.6 : 1);
     if (cdStep) for (const k in m.cd) if (m.cd[k] > 0) m.cd[k] = Math.max(0, m.cd[k] - cdStep);
-    m.sawOn = m.flameOn = 0;
+    m.orb += DUEL.saw.spin * DT * cdStep; m.orbS += DUEL.shield.spin * DT;
+    m.flameOn = 0;
     if (m.decoy && --m.decoy.t <= 0) m.decoy = null;
-    if (m.stun > 0) { m.stun--; continue; }   // 마비된 동안은 파츠가 전부 멈춘다
+    if (m.stun > 0) { m.stun--; m.beam = 0; m.wind = 0; continue; }   // 마비된 동안은 멈춰 서고 파츠도 전부 꺼진다
     if (m.ult && m.gauge >= ULT.need && m.launch <= 0) { m.gauge = 0; castUlt(d, m, e); }
-    if (m.has.s && dist < DUEL.saw.reach && front < DUEL.saw.arc) { m.sawOn = 1; hurt(d, e, DUEL.saw.dps * DT * pw, 's', (m.x + e.x) / 2, (m.y + e.y) / 2, m.x, m.y, true); }
-    if (m.has.f && dist < DUEL.flame.reach + 26 && front < DUEL.flame.arc + 0.3) { m.flameOn = 1; if (dist < DUEL.flame.reach && front < DUEL.flame.arc) hurt(d, e, DUEL.flame.dps * DT * pw, 'f', e.x, e.y, m.x, m.y, true); }
-    if (m.has.h) {
+    if (m.has.s && m.cd.saw <= 0) for (let i = 0; i < DUEL.saw.n; i++) {   // 몸 둘레를 도는 톱날
+      const q = m.orb + i * TAU / DUEL.saw.n, bx = m.x + Math.cos(q) * DUEL.saw.orbit, by = m.y + Math.sin(q) * DUEL.saw.orbit, r = DUEL.saw.r + reach;
+      if ((bx - e.x) * (bx - e.x) + (by - e.y) * (by - e.y) < r * r) { m.cd.saw = DUEL.saw.cd; hurt(d, e, DUEL.saw.dmg * pw, 's', bx, by, bx, by); break; }
+    }
+    if (m.has.d && m.cd.drill <= 0) {   // 가는 방향으로 내민 드릴
+      const c = Math.cos(m.a), s = Math.sin(m.a), t = clamp(dx * c + dy * s, 16, DUEL.drill.len), px = m.x + c * t, py = m.y + s * t, r = DUEL.drill.w + reach;
+      if ((px - e.x) * (px - e.x) + (py - e.y) * (py - e.y) < r * r) { m.cd.drill = DUEL.drill.cd; hurt(d, e, DUEL.drill.dmg * pw, 'd', px, py, m.x, m.y); }
+    }
+    if (m.has.h) {   // 망치: 들어 올렸다가 땅을 내리친다
       if (m.wind > 0) {
         if (--m.wind === 0) {
-          const ok = dist < DUEL.hammer.reach;
-          m.cd.hammer = ok ? DUEL.hammer.cd : DUEL.hammer.miss; m.swung = 10;
-          emit(d, { k: 'swing', side: m.side, x: m.x + Math.cos(ang) * 30, y: m.y + Math.sin(ang) * 30, ok });
-          if (ok) { hurt(d, e, DUEL.hammer.dmg, 'h', e.x, e.y, m.x, m.y); shove(d, e, ang, DUEL.hammer.kb); }
+          m.cd.hammer = DUEL.hammer.every; m.swung = 12; emit(d, { k: 'quake', x: m.x, y: m.y });
+          if (dist < DUEL.hammer.r + reach) { hurt(d, e, DUEL.hammer.dmg, 'h', e.x, e.y, m.x, m.y); shove(d, e, ang, DUEL.hammer.kb); }
         }
-      } else if (m.cd.hammer <= 0 && dist < DUEL.hammer.see) m.wind = DUEL.hammer.wind;
+      } else if (m.cd.hammer <= 0) m.wind = DUEL.hammer.wind;
     }
-    if (m.has.p && m.cd.repulse <= 0 && dist < DUEL.repulse.r) {
+    if (m.has.g && dist < DUEL.spike.r + reach) hurt(d, e, DUEL.spike.dps * DT * pw, 'g', (m.x + e.x) / 2, (m.y + e.y) / 2, m.x, m.y, true);
+    if (m.has.t && m.cd.taser <= 0 && Math.hypot(tgt.x - m.x, tgt.y - m.y) < DUEL.taser.r) {   // 코일: 가까운 상대에게 벼락
+      m.cd.taser = DUEL.taser.every; emit(d, { k: 'bolt', x0: m.x, y0: m.y - 34, x1: tgt.x, y1: tgt.y });
+      if (tgt !== e) { emit(d, { k: 'puff', x: tgt.x, y: tgt.y }); e.decoy = null; }
+      else { hurt(d, e, DUEL.taser.dmg, 't', e.x, e.y, m.x, m.y); e.stun = Math.max(e.stun, DUEL.taser.stun); e.boost = 0; emit(d, { k: 'stun', side: e.side }); }
+    }
+    if (m.has.f && (d.tick + m.side * 40) % (DUEL.flame.on + DUEL.flame.off) < DUEL.flame.on) {   // 가는 방향으로 불을 뿜는다
+      m.flameOn = 1;
+      if (dist < DUEL.flame.reach + reach && Math.abs(adiff(ang, m.a)) < DUEL.flame.arc) hurt(d, e, DUEL.flame.dps * DT * pw, 'f', e.x, e.y, m.x, m.y, true);
+    }
+    if (m.has.l) {   // 레이저: 빛줄기가 한 바퀴 돈다
+      if (m.beam > 0) {
+        const q = m.beamA + (1 - m.beam / DUEL.laser.on) * TAU, c = Math.cos(q), s = Math.sin(q), t = clamp(dx * c + dy * s, 0, DUEL.laser.len), px = m.x + c * t, py = m.y + s * t, r = DUEL.laser.w + reach;
+        if (!m.beamHit && (px - e.x) * (px - e.x) + (py - e.y) * (py - e.y) < r * r) { m.beamHit = 1; hurt(d, e, DUEL.laser.dmg, 'l', e.x, e.y, m.x, m.y); }
+        if (--m.beam === 0) m.cd.laser = DUEL.laser.every;
+      } else if (m.cd.laser <= 0) { m.beam = DUEL.laser.on; m.beamA = ang - TAU * 0.35; m.beamHit = 0; emit(d, { k: 'zap', side: m.side }); }
+    }
+    if (m.has.p && m.cd.repulse <= 0) {   // 충격파
       m.cd.repulse = DUEL.repulse.every; emit(d, { k: 'pulse', x: m.x, y: m.y });
-      hurt(d, e, DUEL.repulse.dmg, 'p', e.x, e.y, m.x, m.y); shove(d, e, ang, DUEL.repulse.kb);
-      const rr = (DUEL.repulse.r + 14) * (DUEL.repulse.r + 14);
+      if (dist < DUEL.repulse.r + reach) { hurt(d, e, DUEL.repulse.dmg, 'p', e.x, e.y, m.x, m.y); shove(d, e, ang, DUEL.repulse.kb); }
+      const rr = DUEL.repulse.r * DUEL.repulse.r;
       d.shots = d.shots.filter(s => { if (s.s === m.side || (s.x - m.x) * (s.x - m.x) + (s.y - m.y) * (s.y - m.y) > rr) return true; emit(d, { k: 'puff', x: s.x, y: s.y }); return false; });
     }
-    if (m.has.n) {
-      if (dist < DUEL.magnet.r && dist > 44 && e.launch <= 0) { const k = DUEL.magnet.pull * DT / dist; e.x -= dx * k; e.y -= dy * k; }
-      if (m.cd.fling <= 0) {
-        m.cd.fling = DUEL.magnet.fling;
-        if (m.cap > 0) {
-          const a0 = Math.atan2(tgt.y - m.y, tgt.x - m.x);
-          for (let q = 0; q < m.cap; q++) { const a = a0 + (q - (m.cap - 1) / 2) * 0.22; d.shots.push({ k: 'c', by: 'n', x: m.x + Math.cos(a) * 20, y: m.y + Math.sin(a) * 20, vx: Math.cos(a) * DUEL.cannon.v, vy: Math.sin(a) * DUEL.cannon.v, r: 6, s: m.side, t: 0 }); }
-          m.cap = 0; emit(d, { k: 'fling', side: m.side });
-        }
+    if (m.has.n && m.cd.fling <= 0) {
+      m.cd.fling = DUEL.magnet.fling;
+      if (m.cap > 0) {
+        const a0 = Math.atan2(tgt.y - m.y, tgt.x - m.x);
+        for (let q = 0; q < m.cap; q++) { const a = a0 + (q - (m.cap - 1) / 2) * 0.22; d.shots.push({ k: 'c', by: 'n', x: m.x + Math.cos(a) * 22, y: m.y + Math.sin(a) * 22, vx: Math.cos(a) * DUEL.cannon.v, vy: Math.sin(a) * DUEL.cannon.v, r: DUEL.cannon.r, s: m.side, t: 0 }); }
+        m.cap = 0; emit(d, { k: 'fling', side: m.side });
       }
     }
     if (m.has.x && m.calm > DUEL.repair.wait && m.hp < m.maxHp) {
@@ -674,32 +685,28 @@ function stepDuel(d) {
       m.decoy = { x: wl + 40 + rnd(d) * (W - 2 * wl - 80), y: wt + 31 + rnd(d) * (H - 2 * wt - 62), t: DUEL.decoy.life };
       emit(d, { k: 'decoy', x: m.decoy.x, y: m.decoy.y });
     }
-    if (m.has.b && m.cd.boost <= 0 && m.launch <= 0 && m.recoil <= 0 && Math.hypot(tgt.x - m.x, tgt.y - m.y) > 60) {
-      const tt = Math.hypot(tgt.x - m.x, tgt.y - m.y) / (m.mv.speed * DUEL.boost.mul) * 0.8;
-      m.cd.boost = DUEL.boost.every; m.boost = DUEL.boost.len;
-      m.a = Math.atan2(tgt.y + (tgt.vy || 0) * tt - m.y, tgt.x + (tgt.vx || 0) * tt - m.x);
-      emit(d, { k: 'boost', side: m.side });
+    if (m.has.b) {   // 부스터: 급가속하며 불길을 남긴다
+      if (m.boost > 0) { if (d.tick % 3 === 0) { d.fires.push({ x: m.x, y: m.y, s: m.side, t: DUEL.boost.fireLife }); if (d.fires.length > 70) d.fires.shift(); } }
+      else if (m.cd.boost <= 0 && m.launch <= 0) { m.cd.boost = DUEL.boost.every; m.boost = DUEL.boost.len; emit(d, { k: 'boost', side: m.side }); }
     }
     if (m.has.c && m.cd.cannon <= 0) {
       const v = DUEL.cannon.v, tt = Math.hypot(tgt.x - m.x, tgt.y - m.y) / v * 0.75, a = Math.atan2(tgt.y + (tgt.vy || 0) * tt - m.y, tgt.x + (tgt.vx || 0) * tt - m.x);
       m.cd.cannon = DUEL.cannon.every;
-      d.shots.push({ k: 'c', by: 'c', x: m.x + Math.cos(a) * 20, y: m.y + Math.sin(a) * 20, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 6, s: m.side, t: 0 });
+      d.shots.push({ k: 'c', by: 'c', x: m.x + Math.cos(a) * 24, y: m.y + Math.sin(a) * 24, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: DUEL.cannon.r, s: m.side, t: 0 });
       emit(d, { k: 'fire', side: m.side });
     }
     if (m.has.r && m.cd.rocket <= 0) {
-      m.rk = 1 - m.rk;
-      const a = Math.atan2(tgt.y - m.y, tgt.x - m.x) + (m.rk ? 1 : -1) * 0.9;
+      const a0 = Math.atan2(tgt.y - m.y, tgt.x - m.x);
       m.cd.rocket = DUEL.rocket.every;
-      d.shots.push({ k: 'r', by: 'r', x: m.x, y: m.y, a, vx: Math.cos(a) * DUEL.rocket.v, vy: Math.sin(a) * DUEL.rocket.v, r: 7, s: m.side, t: 0, life: DUEL.rocket.life });
+      for (let q = 0; q < DUEL.rocket.n; q++) { const a = a0 + (q - (DUEL.rocket.n - 1) / 2) * 2.2; d.shots.push({ k: 'r', by: 'r', x: m.x, y: m.y, a, vx: Math.cos(a) * DUEL.rocket.v, vy: Math.sin(a) * DUEL.rocket.v, r: 8, s: m.side, t: 0, life: DUEL.rocket.life }); }
       emit(d, { k: 'fire', side: m.side });
     }
-    if (m.has.l && m.cd.laser <= 0) { m.cd.laser = DUEL.laser.every; d.lasers.push({ s: m.side, a: Math.atan2(tgt.y - m.y, tgt.x - m.x), t: 0 }); emit(d, { k: 'aim', side: m.side }); }
     if (m.has.m && m.cd.mine <= 0) {
       m.cd.mine = DUEL.mine.every;
       let cnt = 0, old = -1;
       for (let q = 0; q < d.mines.length; q++) if (d.mines[q].s === m.side) { cnt++; if (old < 0) old = q; }
       if (cnt >= DUEL.mine.max) d.mines.splice(old, 1);
-      d.mines.push({ x: clamp(m.x - Math.cos(m.a) * 16, wl + 14, W - wl - 14), y: clamp(m.y - Math.sin(m.a) * 16, wt + 12, H - wt - 12), s: m.side, t: 0 });
+      d.mines.push({ x: clamp(m.x - Math.cos(m.a) * 14, wl + 16, W - wl - 16), y: clamp(m.y - Math.sin(m.a) * 14, wt + 14, H - wt - 14), s: m.side, t: 0 });
     }
   }
   const S = d.shots; let n = 0;
@@ -714,45 +721,39 @@ function stepDuel(d) {
     } else if (e.has.n && e.stun <= 0 && e.cap < DUEL.magnet.cap) {   // 자석은 포탄을 끌어와 붙잡는다
       const mx = e.x - s.x, my = e.y - s.y, md = mx * mx + my * my;
       if (md < DUEL.magnet.grab * DUEL.magnet.grab) { e.cap++; emit(d, { k: 'grab', side: e.side, x: s.x, y: s.y }); continue; }
-      if (md < 14400) { const k2 = 420 * DT / Math.sqrt(md); s.vx += mx * k2; s.vy += my * k2; }
+      if (md < DUEL.magnet.r * DUEL.magnet.r) { const k2 = 420 * DT / Math.sqrt(md); s.vx += mx * k2; s.vy += my * k2; }
     }
     s.x += (s.vx + wind) * DT; s.y += s.vy * DT;
-    let gone = s.x < wl + 4 || s.x > W - wl - 4 || s.y < wt + 2 || s.y > H - wt - 2;
+    let gone = false;
+    if (s.x < wl + 5 || s.x > W - wl - 5 || s.y < wt + 3 || s.y > H - wt - 3) {   // 포탄은 벽에 한 번 튕긴다
+      if (s.k === 'r' || s.bn) gone = true;
+      else { s.bn = 1; if (s.x < wl + 5 || s.x > W - wl - 5) s.vx = -s.vx; else s.vy = -s.vy; s.x = clamp(s.x, wl + 5, W - wl - 5); s.y = clamp(s.y, wt + 3, H - wt - 3); emit(d, { k: 'tick', x: s.x, y: s.y }); }
+    }
     if (!gone) for (const cl of d.clouds) { const cx = (s.x - cl.x) / (cl.r * 1.35), cy = (s.y - cl.y) / (cl.r * 0.85); if (cx * cx + cy * cy < 1) { gone = true; break; } }
     if (!gone) for (let q = 0; q < d.map.bumps.length; q++) {
       const bp = d.map.bumps[q], bx = s.x - bp.x, by = s.y - bp.y, br = bp.r + s.r;
       if (bx * bx + by * by < br * br) {
-        if (s.k === 'r' || s.bn) { gone = true; break; }
+        if (s.k === 'r') { gone = true; break; }
         const bd = Math.hypot(bx, by) || 1, ux = bx / bd, uy = by / bd, dot = s.vx * ux + s.vy * uy;
-        if (dot < 0) { s.vx -= 2 * dot * ux; s.vy -= 2 * dot * uy; s.bn = 1; emit(d, { k: 'bump', i: q }); }
+        if (dot < 0) { s.vx -= 2 * dot * ux; s.vy -= 2 * dot * uy; emit(d, { k: 'bump', i: q }); }
       }
     }
     if (gone) { if (s.k === 'r') boom(d, s); else emit(d, { k: 'puff', x: s.x, y: s.y }); continue; }
-    const hx = s.x - e.x, hy = s.y - e.y, hr = DUEL.body - 2 + s.r;
-    if (hx * hx + hy * hy < hr * hr) {
+    const hx = s.x - e.x, hy = s.y - e.y, hd = hx * hx + hy * hy;
+    if (e.has.q && e.stun <= 0 && hd < 44 * 44 && hd > 22 * 22) {   // 도는 방패에 맞으면 탄이 사라진다
+      const sa = Math.atan2(hy, hx); let stop = false;
+      for (let q = 0; q < DUEL.shield.n; q++) if (Math.abs(adiff(sa, e.orbS + q * TAU / DUEL.shield.n)) < DUEL.shield.arc) stop = true;
+      if (stop) { emit(d, { k: 'guard', x: s.x, y: s.y }); continue; }
+    }
+    const hr = DUEL.body - 2 + s.r;
+    if (hd < hr * hr) {
       if (s.k === 'r') boom(d, s);
-      else {
-        hurt(d, e, DUEL.cannon.dmg, s.by, s.x, s.y, s.x - s.vx, s.y - s.vy);
-        if (e.launch <= 0) { e.x += s.vx / DUEL.cannon.v * 5 / e.mv.mass; e.y += s.vy / DUEL.cannon.v * 5 / e.mv.mass; }
-      }
+      else hurt(d, e, DUEL.cannon.dmg, s.by, s.x, s.y, s.x - s.vx, s.y - s.vy);
       continue;
     }
     S[n++] = s;
   }
   S.length = n;
-  n = 0;
-  for (const l of d.lasers) {
-    const o = d.f[l.s], e = d.f[1 - l.s];
-    if (l.t < DUEL.laser.tele && o.stun > 0) continue;   // 마비되면 조준이 끊긴다
-    l.t++;
-    if (l.t === DUEL.laser.tele) {
-      const px = e.x - o.x, py = e.y - o.y, along = px * Math.cos(l.a) + py * Math.sin(l.a), off = Math.abs(-px * Math.sin(l.a) + py * Math.cos(l.a));
-      l.ox = o.x; l.oy = o.y; emit(d, { k: 'zap', side: l.s });
-      if (along > 0 && off < DUEL.laser.w + DUEL.body * 0.5) hurt(d, e, DUEL.laser.dmg, 'l', e.x, e.y, o.x, o.y);
-    }
-    if (l.t < DUEL.laser.tele + 9) d.lasers[n++] = l;
-  }
-  d.lasers.length = n;
   n = 0;
   for (const mn of d.mines) {
     mn.t++;
@@ -767,11 +768,20 @@ function stepDuel(d) {
   }
   d.mines.length = n;
   n = 0;
+  const burnt = [0, 0];
+  for (const f of d.fires) {   // 부스터가 남긴 불길
+    if (--f.t <= 0) continue;
+    const e = d.f[1 - f.s], fr = 14 + reach;
+    if (!burnt[e.side] && (f.x - e.x) * (f.x - e.x) + (f.y - e.y) * (f.y - e.y) < fr * fr) { burnt[e.side] = 1; hurt(d, e, DUEL.boost.fire * DT, 'b', e.x, e.y, undefined, undefined, true); }
+    d.fires[n++] = f;
+  }
+  d.fires.length = n;
+  n = 0;
   for (const p of d.pend) {
     const m = d.f[p.s], e = d.f[1 - p.s];
     if (p.k !== 'op') { p.x = e.x; p.y = e.y; }
     if (--p.t > 0) { d.pend[n++] = p; continue; }
-    if (p.k === 'nt') { emit(d, { k: 'apple', x: e.x, y: e.y }); hurt(d, e, ULT.nt.dmg, 'Unt', e.x, e.y); e.stun = Math.max(e.stun, ULT.nt.stun); e.boost = 0; e.wind = 0; emit(d, { k: 'stun', side: e.side }); }
+    if (p.k === 'nt') { emit(d, { k: 'apple', x: e.x, y: e.y }); hurt(d, e, ULT.nt.dmg, 'Unt', e.x, e.y); e.stun = Math.max(e.stun, ULT.nt.stun); e.boost = 0; emit(d, { k: 'stun', side: e.side }); }
     else if (p.k === 'ga') { emit(d, { k: 'rail', x0: m.x, y0: m.y, x1: e.x, y1: e.y }); hurt(d, e, ULT.ga.dmg, 'Uga', e.x, e.y); }
     else {
       const bx = e.x - p.x, by = e.y - p.y;
@@ -1298,7 +1308,7 @@ let play = null, acc = 0, shake = 0, banner = null, sparSeed = 7;
 const fx = [];
 
 /* 무엇에 맞았는지 이름과 아이콘으로 보여 주기 */
-const HIT = { ram: '몸통 박치기', slam: '벽꽝', wall: '전류 벽', b: '부스터 돌진', n: '자석 되쏘기' };
+const HIT = { ram: '몸통 박치기', slam: '벽꽝', wall: '전류 벽', n: '자석 되쏘기' };
 const hitName = by => by[0] === 'U' ? SCI[by.slice(1)].ult : HIT[by] || (ITEM[by] ? ITEM[by].name : '충돌');
 const hitTile = by => by[0] === 'U' ? '#ffd23f' : by === 'wall' ? '#9af7ff' : by === 'slam' ? '#efe6cf' : by === 'ram' ? '#e8eefc' : ITEM[by] ? ITEM[by].tile : '#fff';
 const hitChip = by => `<span class="ico sm" aria-hidden="true" style="background:${hitTile(by)}">${picon(by)}</span>`;
@@ -1347,7 +1357,7 @@ function newDuel() {
   scene = sceneFor(d, 'duel');
   acc = 0; fx.length = 0; banner = null; shake = 0; freeze = 0; dpulse[0] = dpulse[1] = 0; caps.length = 0;
   const fig = (b, cap, cls) => `<figure class="${cls}"><img src="${avatar(b)}" alt="" width="84" height="84"><figcaption>${esc(cap)}</figcaption></figure>`;
-  overlay.innerHTML = `<div class="vs">${fig(play.boss, KID + '의 ' + (play.boss.name || '로봇'), 'me')}<b>VS</b>${fig(play.foe, '상대 · ' + play.foe.name, 'foe')}</div><h2>보스 대결</h2><p>${MAPS[d.map.kind]}</p><p class="dim">상대 체력을 먼저 0으로 만들면 이겨요. 때리고 맞다 보면 과학자의 필살기가 터져요. 12초부터 피해가 커지고, 18초부터는 전류 벽이 좁혀와요.</p><p class="go">${COARSE ? '화면을 누르면 시작' : '클릭하거나 Space를 누르면 시작'}</p>`;
+  overlay.innerHTML = `<div class="vs">${fig(play.boss, KID + '의 ' + (play.boss.name || '로봇'), 'me')}<b>VS</b>${fig(play.foe, '상대 · ' + play.foe.name, 'foe')}</div><h2>보스 대결</h2><p>${MAPS[d.map.kind]}</p><p class="dim">로봇은 공처럼 튕겨 다니고 파츠가 알아서 싸워요. 때리고 맞다 보면 과학자의 필살기가 터져요. 10초부터 피해가 커지고, 18초부터는 전류 벽이 좁혀와요.</p><p class="go">${COARSE ? '화면을 누르면 시작' : '클릭하거나 Space를 누르면 시작'}</p>`;
   overlay.hidden = false;
   $('#playHint').textContent = '파랑이 나, 주황빨강이 상대예요.';
   updateSkillBtn();
@@ -1739,11 +1749,12 @@ function drainDuel(d, now, rp) {
     else if (e.k === 'launch') { const m = d.f[e.side]; ringFx(m.x, m.y, '#fff', 10, 34, now); }
     else if (e.k === 'slam') { ringFx(e.x, e.y, C.sun, 8, 46, now); for (let q = 0; q < 3; q++) fx.push({ k: 'star', x: e.x + (Math.random() - 0.5) * 30, y: e.y + (Math.random() - 0.5) * 30, t: now + q * 0.04 }); tell('벽꽝!'); if (!RM && !quiet) shake = Math.max(shake, 9); sfx('boom'); }
     else if (e.k === 'stun') { const m = d.f[e.side]; say(m, '마비!', '#fff07a', true); tell(e.side ? '내 보스 마비!' : '상대 마비!'); sfx('zap'); }
-    else if (e.k === 'swing') { ringFx(e.x, e.y, e.ok ? C.sun : '#fff', 6, e.ok ? 36 : 20, now); sfx(e.ok ? 'big' : 'dash'); }
+    else if (e.k === 'quake') { ringFx(e.x, e.y, '#ff8f6b', 12, DUEL.hammer.r, now); fx.push({ k: 'ring', x: e.x, y: e.y, t: now + 0.07, c: '#fff1b8', r0: 8, r1: DUEL.hammer.r * 0.7 }); if (!RM && !quiet) shake = Math.max(shake, 8); sfx('boom'); }
+    else if (e.k === 'guard') { ringFx(e.x, e.y, LED, 4, 18, now); sfx('block'); }
+    else if (e.k === 'tick') { if (fx.length < 170) fx.push({ k: 'star', x: e.x, y: e.y, t: now }); sfx('bump'); }
     else if (e.k === 'pulse') { ringFx(e.x, e.y, '#c9a8ff', 16, DUEL.repulse.r, now); sfx('emp'); }
     else if (e.k === 'boost') { const m = d.f[e.side]; ringFx(m.x, m.y, C.sun, 26, 8, now); sfx('dash'); }
     else if (e.k === 'fire') { dpulse[e.side] = 1; sfx('fire'); }
-    else if (e.k === 'aim') sfx('warn');
     else if (e.k === 'zap') sfx('zap');
     else if (e.k === 'boom') { ringFx(e.x, e.y, '#ffa94d', 6, 42, now); fx.push({ k: 'pop', x: e.x, y: e.y, t: now }); sfx('boom'); }
     else if (e.k === 'heal') say(d.f[e.side], '+수리', '#7dffb0');
@@ -1779,100 +1790,144 @@ function startFinale(now) {
   const last = d.last;
   banner = { text: 'K.O.', tag: last ? hitName(last.by) + ' 마무리!' : '', by: last ? last.by : null, c: last && last.side === 0 ? TEAM.me.light : TEAM.foe.light, t: now, life: 1.5 }; sfx('ko');
 }
-/* 파츠는 몸 둘레에, 진행 방향을 앞으로 삼아 붙는다 */
+/* 파츠는 로봇보다 크게, 멀리서도 뭐가 달렸는지 보이게 그린다 */
 function partsUnder(g, m, tc, now) {
-  const a = m.a, x = m.x, y = m.y, c = Math.cos(a), s = Math.sin(a), on = m.stun <= 0;
+  const a = m.a, x = m.x, y = m.y, c = Math.cos(a), s = Math.sin(a);
   g.lineJoin = 'round'; g.lineCap = 'round';
-  if (m.has.n) { g.strokeStyle = '#ff8a8a'; g.globalAlpha = 0.4; g.lineWidth = 2; g.setLineDash([3, 7]); g.beginPath(); g.arc(x, y, 31 + (RM ? 0 : 3 * Math.sin(now * 5)), 0, TAU); g.stroke(); g.setLineDash([]); g.globalAlpha = 1; }
-  if (m.has.p) { g.strokeStyle = '#b9a6ff'; g.globalAlpha = m.cd.repulse <= 0 ? 0.9 : 0.35; g.lineWidth = 2.5; g.beginPath(); g.arc(x, y, 25, 0, TAU); g.stroke(); g.globalAlpha = 1; }
-  if (m.has.g) {
-    const rot = RM ? 0 : now * 0.8;
-    g.fillStyle = STEEL; g.strokeStyle = INK; g.lineWidth = 2;
-    for (let i = 0; i < 10; i++) { const q = rot + i * TAU / 10, qc = Math.cos(q), qs = Math.sin(q); g.beginPath(); g.moveTo(x + qc * 31, y + qs * 29); g.lineTo(x + Math.cos(q - 0.2) * 20, y + Math.sin(q - 0.2) * 19); g.lineTo(x + Math.cos(q + 0.2) * 20, y + Math.sin(q + 0.2) * 19); g.closePath(); g.fill(); g.stroke(); }
+  if (m.has.n) {   // 자석: 끌어당기는 범위
+    g.strokeStyle = '#ff8a8a'; g.lineWidth = 2; g.globalAlpha = 0.4; g.setLineDash([4, 9]); g.lineDashOffset = RM ? 0 : now * 30;
+    for (const r of [DUEL.magnet.r, DUEL.magnet.r * 0.6]) { g.beginPath(); g.arc(x, y, r, 0, TAU); g.stroke(); }
+    g.setLineDash([]); g.lineDashOffset = 0; g.globalAlpha = 1;
   }
-  if (m.has.b) {
-    const len = m.boost > 0 ? 34 + (RM ? 0 : 6 * Math.sin(now * 40)) : 9, bx = x - c * 17, by = y - s * 17;
-    g.fillStyle = m.boost > 0 ? '#ffd23f' : '#ffb347'; g.strokeStyle = INK; g.lineWidth = 2;
-    g.beginPath(); g.moveTo(bx - s * 8, by + c * 8); g.lineTo(bx - c * len, by - s * len); g.lineTo(bx + s * 8, by - c * 8); g.closePath(); g.fill(); g.stroke();
+  if (m.has.h && m.wind > 0) {   // 망치: 내리칠 자리 예고
+    const q = 1 - m.wind / DUEL.hammer.wind;
+    g.fillStyle = `rgba(255,143,107,${(0.12 + 0.22 * q).toFixed(3)})`; g.beginPath(); g.arc(x, y, DUEL.hammer.r, 0, TAU); g.fill();
+    g.strokeStyle = '#ff8f6b'; g.lineWidth = 3; g.setLineDash([9, 7]); g.stroke(); g.setLineDash([]);
   }
-  if (m.flameOn) {
-    const R = DUEL.flame.reach, w = DUEL.flame.arc, fl = RM ? 0 : Math.sin(now * 37) * 5;
-    for (const [rr, col] of [[R + fl, 'rgba(255,120,60,.6)'], [R * 0.66 - fl, 'rgba(255,210,63,.75)']]) { g.fillStyle = col; g.beginPath(); g.moveTo(x + c * 16, y + s * 16); g.arc(x, y, rr, a - w, a + w); g.closePath(); g.fill(); }
+  if (m.has.p) { const q = 1 - m.cd.repulse / DUEL.repulse.every; g.strokeStyle = '#b9a6ff'; g.lineWidth = 3; g.globalAlpha = 0.25 + 0.65 * q; g.beginPath(); g.arc(x, y, 25 + q * 9, 0, TAU); g.stroke(); g.globalAlpha = 1; }
+  if (m.has.g) {   // 가시 갑옷: 범위 가득 돋은 가시
+    const rot = RM ? 0 : now * 0.9, R1 = DUEL.spike.r + 3;
+    g.fillStyle = 'rgba(255,169,196,.18)'; g.beginPath(); g.arc(x, y, DUEL.spike.r, 0, TAU); g.fill();
+    g.fillStyle = STEEL; g.strokeStyle = INK; g.lineWidth = 2.2;
+    for (let i = 0; i < 12; i++) { const q = rot + i * TAU / 12, r = i % 2 ? R1 : R1 - 10; g.beginPath(); g.moveTo(x + Math.cos(q) * r, y + Math.sin(q) * r); g.lineTo(x + Math.cos(q - 0.25) * 21, y + Math.sin(q - 0.25) * 21); g.lineTo(x + Math.cos(q + 0.25) * 21, y + Math.sin(q + 0.25) * 21); g.closePath(); g.fill(); g.stroke(); }
   }
-  if (m.has.q) {
-    g.globalAlpha = on ? 1 : 0.35; g.strokeStyle = INK; g.lineWidth = 8; g.beginPath(); g.arc(x, y, 30, a - DUEL.shield.arc, a + DUEL.shield.arc); g.stroke();
-    g.strokeStyle = LED; g.lineWidth = 4; g.stroke(); g.globalAlpha = 1;
+  if (m.has.b) {   // 부스터: 뒤로 뿜는 불
+    const len = m.boost > 0 ? 48 + (RM ? 0 : 8 * Math.sin(now * 40)) : 14, bx = x - c * 17, by = y - s * 17;
+    g.strokeStyle = INK; g.lineWidth = 2.2;
+    for (const [w, l, col] of [[12, len, '#ff9f1c'], [6.5, len * 0.6, '#ffe36e']]) { g.fillStyle = col; g.beginPath(); g.moveTo(bx - s * w, by + c * w); g.lineTo(bx - c * l, by - s * l); g.lineTo(bx + s * w, by - c * w); g.closePath(); g.fill(); if (w > 10) g.stroke(); }
+  }
+  if (m.flameOn) {   // 화염 방사기
+    const R = DUEL.flame.reach, w = DUEL.flame.arc, fl = RM ? 0 : Math.sin(now * 37) * 6;
+    for (const [rr, ww, col] of [[R + fl, w, 'rgba(255,107,60,.6)'], [R * 0.72 - fl, w * 0.75, 'rgba(255,170,60,.78)'], [R * 0.42 + fl, w * 0.5, 'rgba(255,241,160,.92)']]) { g.fillStyle = col; g.beginPath(); g.moveTo(x + c * 18, y + s * 18); g.arc(x, y, rr, a - ww, a + ww); g.closePath(); g.fill(); }
+  }
+  if (m.beam > 0) {   // 레이저: 한 바퀴 도는 빛줄기와 지나온 자국
+    const q = m.beamA + (1 - m.beam / DUEL.laser.on) * TAU, ex = x + Math.cos(q) * DUEL.laser.len, ey = y + Math.sin(q) * DUEL.laser.len;
+    g.globalAlpha = 0.22; g.fillStyle = tc; g.beginPath(); g.moveTo(x, y); g.arc(x, y, DUEL.laser.len, q - 0.6, q); g.closePath(); g.fill(); g.globalAlpha = 1;
+    for (const [lw, col] of [[DUEL.laser.w * 2 + 6, INK], [DUEL.laser.w * 2, tc], [DUEL.laser.w * 0.8, '#fff']]) { g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); g.moveTo(x, y); g.lineTo(ex, ey); g.stroke(); }
   }
 }
 function partsOver(g, m, tc, now, aim) {
-  const a = m.a, x = m.x, y = m.y, c = Math.cos(a), s = Math.sin(a);
-  const put = (ang, r) => [x + Math.cos(a + ang) * r, y + Math.sin(a + ang) * r * 0.95];
+  const a = m.a, x = m.x, y = m.y, c = Math.cos(a), s = Math.sin(a), on = m.stun <= 0;
   g.lineJoin = 'round'; g.lineCap = 'round'; g.strokeStyle = INK;
-  if (m.has.m) { const [px, py] = put(Math.PI, 21); g.fillStyle = '#ffa94d'; g.lineWidth = 2; g.beginPath(); g.arc(px, py, 5.5, 0, TAU); g.fill(); g.stroke(); g.fillStyle = INK; g.beginPath(); g.arc(px, py, 2.2, 0, TAU); g.fill(); }
-  if (m.has.r) { const [px, py] = put(2.5, 22); g.save(); g.translate(px, py); g.rotate(a); g.fillStyle = '#e8eefc'; g.lineWidth = 2; rrect(g, -7, -5, 14, 10, 3); g.fill(); g.stroke(); g.fillStyle = tc; g.beginPath(); g.arc(3, -2, 1.8, 0, TAU); g.arc(3, 2.4, 1.8, 0, TAU); g.fill(); g.restore(); }
-  if (m.has.f) { const [px, py] = put(0, 21); g.lineWidth = 9; g.beginPath(); g.moveTo(px, py); g.lineTo(px + c * 7, py + s * 7); g.stroke(); g.strokeStyle = '#ff9f7a'; g.lineWidth = 5; g.stroke(); g.strokeStyle = INK; }
-  if (m.has.t) {
-    const live = m.cd.taser <= 0 && m.stun <= 0;
-    for (const off of [-0.72, -0.42]) { const [p0x, p0y] = put(off, 19), [p1x, p1y] = put(off, 31); g.lineWidth = 5; g.beginPath(); g.moveTo(p0x, p0y); g.lineTo(p1x, p1y); g.stroke(); g.strokeStyle = live ? '#fff07a' : STEEL_D; g.lineWidth = 2.2; g.stroke(); g.strokeStyle = INK; }
-    if (live && !RM && (fc >> 2) % 2) { const [p0x, p0y] = put(-0.72, 32), [p1x, p1y] = put(-0.42, 32); g.strokeStyle = '#fff'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(p0x, p0y); g.lineTo((p0x + p1x) / 2 + c * 3, (p0y + p1y) / 2 + s * 3); g.lineTo(p1x, p1y); g.stroke(); g.strokeStyle = INK; }
+  if (m.has.m) {   // 지뢰 투하구
+    const px = x - c * 22, py = y - s * 20; g.fillStyle = '#ffa94d'; g.lineWidth = 2.2; g.beginPath();
+    for (let i = 0; i < 12; i++) { const q = i * TAU / 12, r = i % 2 ? 6 : 9.5; g.lineTo(px + Math.cos(q) * r, py + Math.sin(q) * r); }
+    g.closePath(); g.fill(); g.stroke(); g.fillStyle = INK; g.beginPath(); g.arc(px, py, 3, 0, TAU); g.fill();
   }
-  if (m.has.d) {
-    const spin = RM ? 0 : now * 22, tx = x + c * 41, ty = y + s * 41, bx = x + c * 20, by = y + s * 20;
-    g.fillStyle = '#ffb347'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(tx, ty); g.lineTo(bx - s * 9, by + c * 9); g.lineTo(bx + s * 9, by - c * 9); g.closePath(); g.fill(); g.stroke();
-    g.lineWidth = 1.6; for (let i = 0; i < 3; i++) { const q = ((i + spin / TAU) % 3) / 3, w = 9 * (1 - q), px = bx + c * 21 * q, py = by + s * 21 * q; g.beginPath(); g.moveTo(px - s * w, py + c * w); g.lineTo(px + s * w * 0.6 + c * 4, py - c * w * 0.6 + s * 4); g.stroke(); }
+  if (m.has.f) { g.lineWidth = 15; g.beginPath(); g.moveTo(x + c * 16, y + s * 16); g.lineTo(x + c * 29, y + s * 29); g.stroke(); g.strokeStyle = '#5b5470'; g.lineWidth = 10; g.stroke(); g.strokeStyle = '#ff9f7a'; g.lineWidth = 10; g.beginPath(); g.moveTo(x + c * 27, y + s * 27); g.lineTo(x + c * 30, y + s * 30); g.stroke(); g.strokeStyle = INK; }
+  if (m.has.d) {   // 드릴: 가는 쪽으로 길게
+    const L = DUEL.drill.len, tx = x + c * L, ty = y + s * L, bx = x + c * 15, by = y + s * 15, spin = RM ? 0 : (now * 3) % 1;
+    g.fillStyle = '#ffb347'; g.lineWidth = 2.6; g.beginPath(); g.moveTo(tx, ty); g.lineTo(bx - s * 14, by + c * 14); g.lineTo(bx + s * 14, by - c * 14); g.closePath(); g.fill(); g.stroke();
+    g.lineWidth = 2;
+    for (let i = 0; i < 4; i++) { const q = (i + spin) / 4, w = 14 * (1 - q), px = bx + c * (L - 15) * q, py = by + s * (L - 15) * q; g.beginPath(); g.moveTo(px - s * w, py + c * w); g.lineTo(px + s * w * 0.5 + c * 6, py - c * w * 0.5 + s * 6); g.stroke(); }
+    g.fillStyle = STEEL_D; g.lineWidth = 2.4; g.beginPath(); g.moveTo(bx - s * 15, by + c * 15); g.lineTo(bx + s * 15, by - c * 15); g.lineTo(bx + s * 15 - c * 5, by - c * 15 - s * 5); g.lineTo(bx - s * 15 - c * 5, by + c * 15 - s * 5); g.closePath(); g.fill(); g.stroke();
   }
-  if (m.has.s) {
-    const [px, py] = put(0.55, 30), spin = RM ? 0 : now * (m.sawOn ? 40 : 16);
-    g.fillStyle = STEEL; g.lineWidth = 2; g.beginPath();
-    for (let i = 0; i < 16; i++) { const q = spin + i * TAU / 16, r = i % 2 ? 8.5 : 12.5; g.lineTo(px + Math.cos(q) * r, py + Math.sin(q) * r); }
-    g.closePath(); g.fill(); g.stroke(); g.fillStyle = INK; g.beginPath(); g.arc(px, py, 2.6, 0, TAU); g.fill();
-    if (m.sawOn && !RM && fx.length < 170 && fc % 3 === 0) fx.push({ k: 'star', x: px + (Math.random() - 0.5) * 14, y: py + (Math.random() - 0.5) * 14, t: now });
+  if (m.has.r) {   // 로켓 발사대
+    g.save(); g.translate(x + 19, y - 21); g.rotate(aim); g.fillStyle = '#e8eefc'; g.lineWidth = 2.4;
+    for (const oy of [-6, 6]) { rrect(g, -9, oy - 5, 20, 10, 4); g.fill(); g.stroke(); }
+    g.fillStyle = m.cd.rocket < 50 ? '#ff5d5d' : STEEL_D; for (const oy of [-6, 6]) { g.beginPath(); g.arc(9, oy, 3.2, 0, TAU); g.fill(); }
+    g.restore();
   }
-  if (m.has.h) {
-    const sw = m.wind > 0 ? 2.3 : m.swung > 0 ? -0.1 : 1.45, [hx, hy] = put(sw, 35), [rx, ry] = put(sw, 15);
-    g.lineWidth = 6.5; g.beginPath(); g.moveTo(rx, ry); g.lineTo(hx, hy); g.stroke(); g.strokeStyle = STEEL; g.lineWidth = 3; g.stroke(); g.strokeStyle = INK;
-    g.save(); g.translate(hx, hy); g.rotate(a + sw); g.fillStyle = '#ff8f6b'; g.lineWidth = 2.2; rrect(g, -5, -9, 11, 18, 3); g.fill(); g.stroke(); g.restore();
+  if (m.has.c) {   // 대포
+    const kick = dpulse[m.side] * 6, bx = x, by = y + 11, ex = bx + Math.cos(aim) * (36 - kick), ey = by + Math.sin(aim) * (36 - kick);
+    g.lineWidth = 17; g.beginPath(); g.moveTo(bx, by); g.lineTo(ex, ey); g.stroke(); g.strokeStyle = STEEL; g.lineWidth = 12; g.stroke();
+    g.strokeStyle = INK; g.lineWidth = 19; g.beginPath(); g.moveTo(ex - Math.cos(aim) * 4, ey - Math.sin(aim) * 4); g.lineTo(ex, ey); g.stroke(); g.strokeStyle = tc; g.lineWidth = 14; g.stroke(); g.strokeStyle = INK;
+    g.fillStyle = STEEL_D; g.lineWidth = 2.4; g.beginPath(); g.arc(bx, by, 7, 0, TAU); g.fill(); g.stroke();
   }
-  if (m.has.c) { const kick = dpulse[m.side] * 4; g.lineWidth = 9; g.beginPath(); g.moveTo(x, y - 4); g.lineTo(x + Math.cos(aim) * (21 - kick), y - 4 + Math.sin(aim) * (21 - kick)); g.stroke(); g.strokeStyle = STEEL; g.lineWidth = 5; g.stroke(); g.strokeStyle = INK; }
-  if (m.has.l) { const px = x + Math.cos(aim) * 15, py = y + 3 + Math.sin(aim) * 14; g.fillStyle = '#7df0e0'; g.lineWidth = 2; g.beginPath(); g.arc(px, py, 4.6, 0, TAU); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(px - 1.2, py - 1.2, 1.5, 0, TAU); g.fill(); }
-  if (m.has.x) {
-    const q = RM ? 0.6 : now * 2.2 + m.side * 2, px = x + Math.cos(q) * 31, py = y - 6 + Math.sin(q) * 13, heal = m.calm > DUEL.repair.wait && m.hp < m.maxHp;
-    if (heal) { g.strokeStyle = '#7dffb0'; g.lineWidth = 2; g.setLineDash([3, 4]); g.beginPath(); g.moveTo(px, py); g.lineTo(x, y); g.stroke(); g.setLineDash([]); g.strokeStyle = INK; }
-    g.fillStyle = '#7dffb0'; g.lineWidth = 2; rrect(g, px - 6, py - 5, 12, 10, 3); g.fill(); g.stroke();
-    g.lineWidth = 1.8; g.beginPath(); g.moveTo(px - 3, py); g.lineTo(px + 3, py); g.moveTo(px, py - 3); g.lineTo(px, py + 3); g.stroke();
+  if (m.has.l) {   // 레이저 렌즈
+    const px = x - 18, py = y - 24, hot = m.beam > 0;
+    g.fillStyle = '#44506e'; g.lineWidth = 2.4; g.beginPath(); g.arc(px, py, 10, 0, TAU); g.fill(); g.stroke();
+    g.fillStyle = hot ? '#fff' : '#7df0e0'; g.beginPath(); g.arc(px, py, 6, 0, TAU); g.fill(); g.stroke();
   }
-  for (let q = 0; q < m.cap; q++) { const o = now * 4 + q * TAU / DUEL.magnet.cap, px = x + Math.cos(o) * 25, py = y + Math.sin(o) * 21; g.fillStyle = INK; g.beginPath(); g.arc(px, py, 5, 0, TAU); g.fill(); g.fillStyle = STEEL; g.beginPath(); g.arc(px, py, 3.4, 0, TAU); g.fill(); }
+  if (m.has.t) {   // 테슬라 코일
+    const live = m.cd.taser <= 0 && on, tx = x, ty = y - 44;
+    g.lineWidth = 7; g.beginPath(); g.moveTo(x, y - 20); g.lineTo(tx, ty + 6); g.stroke(); g.strokeStyle = '#c98b4a'; g.lineWidth = 3; g.setLineDash([3, 3]); g.stroke(); g.setLineDash([]); g.strokeStyle = INK;
+    g.fillStyle = live ? '#fff07a' : STEEL_D; g.lineWidth = 2.4; g.beginPath(); g.arc(tx, ty, 8, 0, TAU); g.fill(); g.stroke();
+    if (live && !RM) { g.strokeStyle = '#fff'; g.lineWidth = 2; for (let i = 0; i < 3; i++) { const q = now * 9 + i * 2.1, r = 13 + 4 * Math.sin(now * 23 + i); g.beginPath(); g.moveTo(tx + Math.cos(q) * 8, ty + Math.sin(q) * 8); g.lineTo(tx + Math.cos(q + 0.4) * r, ty + Math.sin(q + 0.4) * r); g.lineTo(tx + Math.cos(q + 0.2) * (r + 6), ty + Math.sin(q + 0.2) * (r + 6)); g.stroke(); } g.strokeStyle = INK; }
+  }
+  if (m.has.n) {   // 말굽자석
+    g.save(); g.translate(x - 31, y - 2); g.rotate(RM ? 0 : Math.sin(now * 4) * 0.2);
+    g.lineWidth = 12; g.beginPath(); g.arc(0, 0, 9, Math.PI * 0.5, Math.PI * 1.5); g.stroke(); g.strokeStyle = '#ff5d5d'; g.lineWidth = 7; g.stroke();
+    g.strokeStyle = INK; g.lineWidth = 2; g.fillStyle = '#fff'; for (const oy of [-9, 9]) { g.fillRect(0, oy - 4.5, 6, 9); g.strokeRect(0, oy - 4.5, 6, 9); }
+    g.restore();
+  }
+  if (m.has.h) {   // 망치: 평소엔 옆에 떠 있다가, 들어 올렸다 내리친다
+    const up = m.wind > 0 ? 1 - m.wind / DUEL.hammer.wind : 0, hx = x + 33 - up * 6, hy = m.swung > 0 ? y + 10 : y - 20 - up * 34, tilt = m.swung > 0 ? 1.5 : 0.5 - up * 0.9, sc = 1 + up * 0.25;
+    g.save(); g.translate(hx, hy); g.rotate(tilt); g.scale(sc, sc);
+    g.lineWidth = 8; g.beginPath(); g.moveTo(0, 4); g.lineTo(0, 30); g.stroke(); g.strokeStyle = '#c98b4a'; g.lineWidth = 4; g.stroke(); g.strokeStyle = INK;
+    g.fillStyle = '#ff8f6b'; g.lineWidth = 2.6; rrect(g, -15, -11, 30, 19, 5); g.fill(); g.stroke(); g.fillStyle = '#ffc0a8'; g.fillRect(-11, -8, 5, 13);
+    g.restore();
+  }
+  if (m.has.x) {   // 수리 드론
+    const q = RM ? 0.6 : now * 2.2 + m.side * 2, px = x + Math.cos(q) * 38, py = y - 8 + Math.sin(q) * 15, heal = m.calm > DUEL.repair.wait && m.hp < m.maxHp;
+    if (heal) { g.strokeStyle = '#7dffb0'; g.lineWidth = 3; g.setLineDash([4, 5]); g.beginPath(); g.moveTo(px, py); g.lineTo(x, y); g.stroke(); g.setLineDash([]); g.strokeStyle = INK; }
+    g.lineWidth = 2.4; g.beginPath(); g.moveTo(px - 12, py - 9); g.lineTo(px + 12, py - 9); g.stroke();
+    g.fillStyle = '#7dffb0'; rrect(g, px - 10, py - 7, 20, 15, 5); g.fill(); g.stroke();
+    g.lineWidth = 2.6; g.beginPath(); g.moveTo(px - 4.5, py + 0.5); g.lineTo(px + 4.5, py + 0.5); g.moveTo(px, py - 4); g.lineTo(px, py + 5); g.stroke();
+  }
+  if (m.has.s) for (let i = 0; i < DUEL.saw.n; i++) {   // 톱날: 몸 둘레를 크게 돈다
+    const q = m.orb + i * TAU / DUEL.saw.n, px = x + Math.cos(q) * DUEL.saw.orbit, py = y + Math.sin(q) * DUEL.saw.orbit, spin = RM ? 0 : now * 26, R = DUEL.saw.r;
+    g.strokeStyle = 'rgba(201,209,227,.5)'; g.lineWidth = 3; g.beginPath(); g.moveTo(x, y); g.lineTo(px, py); g.stroke(); g.strokeStyle = INK;
+    g.fillStyle = STEEL; g.lineWidth = 2.4; g.beginPath();
+    for (let j = 0; j < 20; j++) { const w = spin + j * TAU / 20, r = j % 2 ? R - 4.5 : R + 2; g.lineTo(px + Math.cos(w) * r, py + Math.sin(w) * r); }
+    g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = tc; g.beginPath(); g.arc(px, py, 5.5, 0, TAU); g.fill(); g.stroke();
+  }
+  if (m.has.q) for (let i = 0; i < DUEL.shield.n; i++) {   // 방패: 도는 판 두 장
+    const q = m.orbS + i * TAU / DUEL.shield.n;
+    g.globalAlpha = on ? 1 : 0.35; g.strokeStyle = INK; g.lineWidth = 13; g.beginPath(); g.arc(x, y, 37, q - DUEL.shield.arc, q + DUEL.shield.arc); g.stroke();
+    g.strokeStyle = LED; g.lineWidth = 8; g.stroke(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 39, q - DUEL.shield.arc * 0.7, q + DUEL.shield.arc * 0.2); g.stroke();
+    g.globalAlpha = 1; g.strokeStyle = INK;
+  }
+  for (let q = 0; q < m.cap; q++) { const o = now * 4 + q * TAU / DUEL.magnet.cap, px = x + Math.cos(o) * 27, py = y + Math.sin(o) * 23; g.fillStyle = INK; g.beginPath(); g.arc(px, py, 7, 0, TAU); g.fill(); g.fillStyle = STEEL; g.beginPath(); g.arc(px, py, 5, 0, TAU); g.fill(); }
   if (m.stun > 0) {
-    g.strokeStyle = '#fff07a'; g.lineWidth = 2.5; g.beginPath();
-    for (let i = 0; i <= 12; i++) { const q = (RM ? 0 : now * 6) + i * TAU / 12, r = i % 2 ? 22 : 28; g.lineTo(x + Math.cos(q) * r, y - 2 + Math.sin(q) * r * 0.8); }
+    g.strokeStyle = '#fff07a'; g.lineWidth = 3; g.beginPath();
+    for (let i = 0; i <= 12; i++) { const q = (RM ? 0 : now * 6) + i * TAU / 12, r = i % 2 ? 24 : 31; g.lineTo(x + Math.cos(q) * r, y - 2 + Math.sin(q) * r * 0.8); }
     g.stroke();
   }
 }
 function drawShots(g, d, now) {
-  const line = (x0, y0, x1, y1) => { g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); };
-  g.lineCap = 'round';
-  for (const l of d.lasers) {
-    const o = d.f[l.s], pal = l.s ? TEAM.me : TEAM.foe, fired = l.t >= DUEL.laser.tele, ox = fired ? l.ox : o.x, oy = fired ? l.oy : o.y, ex = ox + Math.cos(l.a) * 700, ey = oy + Math.sin(l.a) * 700;
-    if (!fired) { g.strokeStyle = pal.main; g.globalAlpha = 0.3 + 0.6 * l.t / DUEL.laser.tele; g.lineWidth = 2.5; g.setLineDash([8, 7]); line(ox, oy, ex, ey); g.setLineDash([]); }
-    else { g.globalAlpha = 1 - (l.t - DUEL.laser.tele) / 11; g.strokeStyle = INK; g.lineWidth = DUEL.laser.w * 2 + 5; line(ox, oy, ex, ey); g.strokeStyle = pal.main; g.lineWidth = DUEL.laser.w * 2; line(ox, oy, ex, ey); g.strokeStyle = '#fff'; g.lineWidth = DUEL.laser.w * 0.7; line(ox, oy, ex, ey); }
-    g.globalAlpha = 1;
+  for (const f of d.fires) {   // 부스터 불길
+    const q = f.t / DUEL.boost.fireLife, r = 6 + 9 * q + (RM ? 0 : Math.sin(now * 30 + f.x) * 1.5);
+    g.fillStyle = `rgba(255,120,50,${(0.3 + 0.5 * q).toFixed(3)})`; g.beginPath(); g.arc(f.x, f.y, r, 0, TAU); g.fill();
+    g.fillStyle = `rgba(255,225,110,${(0.4 + 0.5 * q).toFixed(3)})`; g.beginPath(); g.arc(f.x, f.y + 1, r * 0.55, 0, TAU); g.fill();
   }
   for (const s of d.shots) {
     const pal = s.s ? TEAM.me : TEAM.foe;
     if (s.k === 'r') {
-      g.save(); g.translate(s.x, s.y); g.rotate(s.a);
+      g.save(); g.translate(s.x, s.y); g.rotate(s.a); g.scale(1.35, 1.35);
       g.fillStyle = '#ffd23f'; g.beginPath(); g.moveTo(-8, -3.5); g.lineTo(-15 - (RM ? 0 : (s.t % 4) * 1.6), 0); g.lineTo(-8, 3.5); g.closePath(); g.fill();
-      g.fillStyle = '#e8eefc'; g.strokeStyle = INK; g.lineWidth = 2.2; rrect(g, -8, -4.5, 15, 9, 4); g.fill(); g.stroke();
+      g.fillStyle = '#e8eefc'; g.strokeStyle = INK; g.lineWidth = 2; rrect(g, -8, -4.5, 15, 9, 4); g.fill(); g.stroke();
       g.fillStyle = pal.main; g.beginPath(); g.moveTo(6, -4.5); g.lineTo(13, 0); g.lineTo(6, 4.5); g.closePath(); g.fill(); g.stroke();
       g.restore();
-      if (!RM && s.t % 5 === 0 && fx.length < 170) fx.push({ k: 'smoke', x: s.x - Math.cos(s.a) * 10, y: s.y - Math.sin(s.a) * 10, t: now, vx: 0, vy: -8 });
+      if (!RM && s.t % 5 === 0 && fx.length < 170) fx.push({ k: 'smoke', x: s.x - Math.cos(s.a) * 12, y: s.y - Math.sin(s.a) * 12, t: now, vx: 0, vy: -8 });
     } else {
-      g.fillStyle = INK; g.beginPath(); g.arc(s.x, s.y, s.r + 2.4, 0, TAU); g.fill();
+      g.fillStyle = INK; g.beginPath(); g.arc(s.x, s.y, s.r + 2.6, 0, TAU); g.fill();
       g.fillStyle = pal.main; g.beginPath(); g.arc(s.x, s.y, s.r, 0, TAU); g.fill();
-      g.fillStyle = STEEL; g.beginPath(); g.arc(s.x, s.y, s.r - 2.4, 0, TAU); g.fill();
+      g.fillStyle = STEEL; g.beginPath(); g.arc(s.x, s.y, s.r - 3, 0, TAU); g.fill();
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(s.x - 2.5, s.y - 2.5, 2, 0, TAU); g.fill();
     }
   }
-  g.lineCap = 'butt';
 }
 function renderDuel(now) {
   const rp = scene.state === 'replay' ? scene.rp : null, g = ctx, d = rp ? rp.d : scene.duel, fin = scene.state === 'finale' || scene.state === 'over', fa = fin ? now - scene.fin : 0;
@@ -1888,7 +1943,11 @@ function renderDuel(now) {
   }
   const pals = [TEAM.foe, TEAM.me];
   drawBumps(g, d);
-  for (const mn of d.mines) { g.strokeStyle = pals[mn.s].main; g.globalAlpha = 0.7; g.lineWidth = 2; g.beginPath(); g.arc(mn.x, mn.y, 13.5, 0, TAU); g.stroke(); g.globalAlpha = 1; mineSprite(g, mn.x, mn.y, mn.t >= DUEL.mine.arm, (mn.t >> 3) % 2); }
+  for (const mn of d.mines) {
+    const armed = mn.t >= DUEL.mine.arm;
+    g.strokeStyle = pals[mn.s].main; g.globalAlpha = armed ? 0.75 : 0.35; g.lineWidth = 2.5; g.setLineDash([5, 5]); g.beginPath(); g.arc(mn.x, mn.y, DUEL.mine.r, 0, TAU); g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+    g.save(); g.translate(mn.x, mn.y); g.scale(1.4, 1.4); mineSprite(g, 0, 0, armed, (mn.t >> 3) % 2); g.restore();
+  }
   if (d.pick) {
     const pk = d.pick, bob = RM ? 0 : Math.sin(now * 5) * 2;
     g.strokeStyle = C.sun; g.globalAlpha = 0.5; g.lineWidth = 2; g.beginPath(); g.arc(pk.x, pk.y, 19 + (RM ? 0 : Math.sin(now * 6) * 2), 0, TAU); g.stroke(); g.globalAlpha = 1;
