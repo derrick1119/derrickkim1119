@@ -558,7 +558,8 @@ const NO: Input = { tap: false, dir: 0, pointer: null };
 const ready = (s: CoinState) => s.phase === 'play' && s.chute <= 0 && s.purse > 0 && !s.S.drops.some((d) => !d.w) && s.pt > 20;
 /** 별 하나의 값 (인형이 턱까지 가는 길 전체 = 1000) */
 const STAR_V = 280;
-let SUPPORT = 6;
+let SUPPORT = 6, PER_COIN = 0.026, PER_HEAVY = 0.016, STUCK = true;
+export const setRisk = (a: number, b: number, st: boolean) => ((PER_COIN = a), (PER_HEAVY = b), (STUCK = st));
 export const setSupport = (v: number) => (SUPPORT = v);
 let DBG = false;
 export const setDbg = (v: boolean) => (DBG = v);
@@ -662,9 +663,10 @@ function plan(s: CoinState): Plan {
     ];
     const evs = slotEV(s, gJack, gPair, vc);
     // 꼭 쓸 동전(인형까지 밀기) · 아낄 동전(★ 남기기)을 빼고 남는 동전으로만 슬롯을 노린다 (붙잡힌 짝이면 조금 더 과감히)
-    const need = Math.ceil((1000 - Math.min(base, 1000)) / Math.max(vc, 14));
+    // 인형이 턱까지 남은 거리 ÷ 동전 하나로 미는 거리(무거우면 덜) = 꼭 쓸 동전
+    const need = Math.ceil((D + 0.005 - (tg ? tg.y : D)) / (d.heavy ? PER_HEAVY : PER_COIN)) + 1;
     const keep = s.purse >= d.keep ? d.keep : 0;
-    const spare = s.purse - need - keep + (s.slot.held.some(Boolean) ? 1 : 0), stuck = s.purse < need;
+    const spare = s.purse - need - keep + (s.slot.held.some(Boolean) ? 1 : 0), stuck = s.purse < need - 2 && STUCK;
     if (DBG) console.log(`st${s.stage} purse ${s.purse} need ${need} spare ${spare} base ${base.toFixed(0)} bv ${bv.toFixed(0)} vc ${vc.toFixed(0)} gJack ${gJack.toFixed(0)} gPair ${gPair.map((v) => v.toFixed(0)).join(",")} ev ${evs.toFixed(0)} held ${s.slot.held.some(Boolean)}`);
     if ((spare >= 1 || stuck) && base + evs > bv + 5) return { x: 0.5, slot: true, key };
   }

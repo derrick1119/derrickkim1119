@@ -22,9 +22,9 @@ import { juice } from '../juice.ts';
 
 const A = 1.5;
 const KHP = 30, HEAL = 3;
-const FLY = 14, MDRAW = 15, DEAL_GAP = 11;
-const INTRO_T = 96, INTRO_RETRY = 50, RESULT_OK = 150, RESULT_FAIL = 140, NEWS_T = 190;
-const RES_T = 58, RES_BJ = 100, RES_BUST = 84;
+const FLY = 13, MDRAW = 13, DEAL_GAP = 10;
+const INTRO_T = 86, INTRO_RETRY = 50, RESULT_OK = 132, RESULT_FAIL = 130, NEWS_T = 190;
+const RES_T = 54, RES_BJ = 96, RES_BUST = 80;
 const STAR_PTS = 100, CLEAR_PTS = 50, WIN_PTS = 100, BJ_PTS = 10;
 
 // ───────────────────────────── 카드 ─────────────────────────────
@@ -47,9 +47,9 @@ export const STAGES: StageDef[] = [
   { key: 'frog', name: '개구리', emoji: '🐸', hp: 9, mode: 'fixed', stop: 0, fixed: 11, shield: 0, nstar: 1, news: '👆 더미를 톡 → 카드만큼 칼이 쑥! 기사를 톡 → 베기', spot: '', tip: '개구리는 늘 11 — 11보다 길게 만들고 기사를 톡!' },
   { key: 'boar', name: '멧돼지', emoji: '🐗', hp: 12, mode: 'first', stop: 15, shield: 0, nstar: 2, news: '🐗 괴물도 같은 더미에서 뽑아요 — 15가 되면 멈춰요', spot: '아래 판 = 더미에 남은 카드 · 빨강은 넘쳐요', tip: '빨간 카드가 많이 남았으면 멈춰요' },
   { key: 'turtle', name: '거북', emoji: '🐢', hp: 14, mode: 'first', stop: 16, shield: 4, nstar: 3, add: [C(5, 2), C(7, 2), C(9, 2)], news: '🐢 등딱지가 4를 막아요 — ♠ 카드가 칼에 있으면 꿰뚫어요', spot: '♠ 카드 3장이 덱에 들어왔어요', tip: '♠가 칼에 있으면 등딱지를 꿰뚫어요' },
-  { key: 'wolf', name: '늑대', emoji: '🐺', hp: 15, mode: 'after', stop: 15, shield: 0, nstar: 3, news: '🐺 늑대는 네가 벤 다음에 뽑아요 — 15가 되면 멈춰요', spot: '큰 카드가 많이 남으면 늑대가 넘쳐요', tip: '큰 카드가 많이 남았으면 일찍 멈춰 늑대를 넘치게!' },
-  { key: 'scorp', name: '전갈', emoji: '🦂', hp: 16, mode: 'first', stop: 16, shield: 0, nstar: 3, pz: 3, news: '🦂 독 카드 3장이 섞였어요 — 뽑은 쪽 체력 -3 (괴물도!)', spot: '☠ 독 카드는 0 — 뽑으면 아야, 괴물이 뽑아도 아야', tip: '독 카드가 많이 남았으면 덜 뽑아요 — 괴물이 먼저 뽑아요' },
-  { key: 'dragon', name: '용', emoji: '🐉', hp: 20, mode: 'swap', stop: 17, shield: 3, nstar: 3, news: '🐉 용은 먼저·나중을 번갈아 뽑고, 등딱지 3', spot: '이번엔 누가 먼저인지 봐요', tip: '용이 먼저면 숫자를 보고, 나중이면 남은 카드를 보고' },
+  { key: 'wolf', name: '늑대', emoji: '🐺', hp: 14, mode: 'after', stop: 14, shield: 0, nstar: 3, news: '🐺 늑대는 네가 벤 다음에 뽑아요 — 14가 되면 멈춰요', spot: '큰 카드가 많이 남으면 늑대가 넘쳐요', tip: '큰 카드가 많이 남았으면 일찍 멈춰 늑대를 넘치게!' },
+  { key: 'scorp', name: '전갈', emoji: '🦂', hp: 16, mode: 'first', stop: 16, shield: 0, nstar: 3, pz: 4, news: '🦂 독 카드 4장이 섞였어요 — 뽑은 쪽 체력 -3 (괴물도!)', spot: '☠ 독 카드는 0 — 뽑으면 아야, 괴물이 뽑아도 아야', tip: '독 카드가 많이 남았으면 덜 뽑아요 — 괴물이 먼저 뽑아요' },
+  { key: 'dragon', name: '용', emoji: '🐉', hp: 18, mode: 'swap', stop: 17, shield: 3, nstar: 3, news: '🐉 용은 먼저·나중을 번갈아 뽑고, 등딱지 3', spot: '이번엔 누가 먼저인지 봐요', tip: '용이 먼저면 숫자를 보고, 나중이면 남은 카드를 보고' },
 ];
 export const STAGE_COUNT = STAGES.length;
 const START_DECK = (): Card[] => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10].flatMap((v) => [C(v), C(v)]);
