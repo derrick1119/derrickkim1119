@@ -5,9 +5,21 @@
  * 졸업한 게임은 스튜디오(`studio/<게임>/`)가 이어받는다(원본 `games/guardian2.ts`·`sheepdog.ts`·`balloonpop.ts`·`duckbath.ts`·`screwshop.ts`·`animalbus.ts`·`demolition.ts`·`potionsort.ts`는 스튜디오 참고용으로 파일만 남김).
  */
 import type { Bot, GameDef } from './core.ts';
+import { dicecastle, dicecastleRandom, dicecastleSmart } from './games/dicecastle.ts';
+import { slotgate, slotgateRandom, slotgateSmart } from './games/slotgate.ts';
+import { cardknight, cardknightRandom, cardknightSmart } from './games/cardknight.ts';
+import { cloudladder, cloudladderRandom, cloudladderSmart } from './games/cloudladder.ts';
+import { coinfall, coinfallRandom, coinfallSmart } from './games/coinfall.ts';
+import { rolldice, rolldiceRandom, rolldiceSmart } from './games/rolldice.ts';
 
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S> }
 
 export const GAMES: Entry[] = [
-  // 29라운드 전원 폐기(2026-11-18) — 30라운드(카지노·주사위 디펜스) 만드는 중
+  // 30라운드(2026-11-18): 카지노·주사위 디펜스 6개 (오너 재료 지시)
+  { game: dicecastle, dumb: dicecastleRandom, smart: dicecastleSmart },
+  { game: slotgate, dumb: slotgateRandom, smart: slotgateSmart },
+  { game: cardknight, dumb: cardknightRandom, smart: cardknightSmart },
+  { game: cloudladder, dumb: cloudladderRandom, smart: cloudladderSmart },
+  { game: coinfall, dumb: coinfallRandom, smart: coinfallSmart },
+  { game: rolldice, dumb: rolldiceRandom, smart: rolldiceSmart },
 ];
