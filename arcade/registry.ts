@@ -5,9 +5,21 @@
  * 졸업한 게임은 스튜디오(`studio/<게임>/`)가 이어받는다(원본 `games/guardian2.ts`·`sheepdog.ts`·`balloonpop.ts`·`duckbath.ts`·`screwshop.ts`·`animalbus.ts`·`demolition.ts`·`potionsort.ts`는 스튜디오 참고용으로 파일만 남김).
  */
 import type { Bot, GameDef } from './core.ts';
+import { beeswarm, beeswarmRandom, beeswarmSmart } from './games/beeswarm.ts';
+import { kitefight, kitefightRandom, kitefightSmart } from './games/kitefight.ts';
+import { whipcat, whipcatRandom, whipcatSmart } from './games/whipcat.ts';
+import { slowdash, slowdashRandom, slowdashSmart } from './games/slowdash.ts';
+import { magnethammer, magnethammerRandom, magnethammerSmart } from './games/magnethammer.ts';
+import { firecat, firecatRandom, firecatSmart } from './games/firecat.ts';
 
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S> }
 
 export const GAMES: Entry[] = [
-  // 30라운드 다 폐기(2026-11-18) — 31라운드 방향 정하는 중
+  // 31라운드(2026-11-18): 실시간 액션 6개 (오너 답: 첫인상·뻔함·그래픽 / 액션·실시간)
+  { game: beeswarm, dumb: beeswarmRandom, smart: beeswarmSmart },
+  { game: kitefight, dumb: kitefightRandom, smart: kitefightSmart },
+  { game: whipcat, dumb: whipcatRandom, smart: whipcatSmart },
+  { game: slowdash, dumb: slowdashRandom, smart: slowdashSmart },
+  { game: magnethammer, dumb: magnethammerRandom, smart: magnethammerSmart },
+  { game: firecat, dumb: firecatRandom, smart: firecatSmart },
 ];
