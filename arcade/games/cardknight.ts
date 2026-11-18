@@ -6,13 +6,16 @@
  *   처음 두 장은 저절로 오고, 그다음 톡 한 번이 곧 결정(한 장 더 / 베기)이다 — 연타가 없다.
  * 확률이 보인다: 더미에 남은 카드가 숫자별로 화면 아래에 늘 보이고, 지금 뽑으면 넘치는 숫자는 빨갛게, 딱 21이 되는 숫자는 금색으로 칠해진다.
  *   괴물이 뽑은 카드는 더미에서 빠지니(같은 더미), 큰 카드가 많이 남았을 때 일찍 멈추면 뒤에 뽑는 괴물이 넘친다.
- * 와우: 내가 꾸민 덱을 괴물도 같이 뽑는다 — 10을 넣으면 내 블랙잭도, 괴물이 넘칠 확률도 같이 커진다.
- * 판 6개(괴물 하나씩): 목표 = 괴물 체력을 0으로. 별(쉬운 말) = 괴물 이기기 · 한 번도 안 넘치기(2판부터) · 블랙잭 한 번 만들기(3판부터).
+ * 와우: 내가 꾸민 덱을 괴물도 같이 뽑는다 — 10을 넣으면 내 칼도, 괴물이 넘칠 확률도 같이 커지고, 독 카드는 괴물이 뽑아도 괴물이 아프다.
+ * 판 6개(괴물 하나씩): 목표 = 괴물 체력을 0으로. 별(쉬운 말, 한 판에 하나씩 늘어남) = 괴물 이기기 · 한 번도 안 넘치기(2판부터)
+ *   · 체력 반 넘게 남기기(3판부터, 체력 막대에 금색 눈금). 둘째(참기)와 셋째(지면 깎이니 이겨야 함)가 서로 당긴다.
+ *   블랙잭은 별이 아니라 쾌감(운) — 두 배 피해·화면 끝까지 뻗는 칼·날아가는 괴물. 별은 언제 멈출지(실력)로 가른다.
  *   지면(기사 체력 0) 하트 -1, 그 판 다시. 하트 셋을 다 잃거나 6판을 마치면 끝. 이기면 카드 가게에서 셋 중 하나를 골라 덱을 고친다.
- * 펼쳐짐(하는 일이 바뀐다): 1 개구리(늘 12 — 뽑기·베기) → 가게(덱에 넣기·빼기) → 2 멧돼지(괴물도 같은 더미에서 뽑는다 — 남은 카드 세기)
- *   → 3 거북(등딱지: ♠ 카드가 칼에 있어야 뚫는다 — ♠을 노려 더 뽑기) → 4 늑대(네가 벤 뒤에 뽑는다 — 일찍 멈춰 늑대를 넘치게)
- *   → 5 부엉이(네 숫자를 넘을 때까지 뽑는다 — 높이 멈출수록 넘친다) → 6 용(먼저·나중을 번갈아 + 등딱지).
- *   가게에서 산 ♥(벨 때 체력 +3)·♠(꿰뚫기)·황금 카드(뽑으면 딱 21)도 처음 손에 들어올 때 새것으로 알린다.
+ * 펼쳐짐(하는 일이 바뀐다): 1 개구리(늘 11 — 뽑기·베기, 첫 톡이 곧 블랙잭) → 가게(덱에 넣기·빼기) → 2 멧돼지(괴물도 같은 더미에서
+ *   먼저 뽑는다 — 괴물 숫자와 남은 카드를 보고 멈추기) → 3 거북(등딱지 4: ♠ 카드가 칼에 있어야 뚫는다 — ♠을 노려 더 뽑기)
+ *   → 4 늑대(네가 벤 다음에 뽑는다 — 큰 카드가 많이 남았으면 일찍 멈춰 늑대를 넘치게) → 5 전갈(독 카드 4장: 뽑은 쪽 체력 -3 —
+ *   독이 많이 남았으면 덜 뽑고, 먼저 뽑는 괴물이 독을 먹길 기다리기) → 6 용(먼저·나중을 번갈아 + 등딱지 3).
+ *   가게에서 산 ♥(벨 때 체력 +3)·♠(꿰뚫기), 더미 다시 섞기, 첫 블랙잭도 처음 볼 때 새것으로 알린다.
  * 웃음: 넘치면 칼이 너무 무거워 기사가 앞으로 철퍼덕 엎어지고 어질어질 별, 괴물은 기사 칼이 자기보다 길어지면 식은땀을 뻘뻘,
  *   블랙잭이면 칼이 화면 끝까지 뻗어 괴물이 빙글빙글 날아간다. 울타리 너머 동물 관중이 블랙잭엔 폴짝, 철퍼덕엔 'ㅋㅋ'.
  */
@@ -36,11 +39,13 @@ export const handSum = (h: Card[]) => h.reduce((a, c) => a + c.v, 0);
 const rawSum = handSum;
 /** 숫자 뒤 조사 (15가 · 16이) */
 const ga = (n: number) => ([2, 4, 5, 9].includes(n % 10) ? '가' : '이');
+/** 이름 뒤 을/를 */
+const eul = (w: string) => ((w.charCodeAt(w.length - 1) - 0xac00) % 28 ? '을' : '를');
 const POISON = 3;
 
 type Mode = 'fixed' | 'first' | 'after' | 'swap';
 type Order = 'fixed' | 'first' | 'after';
-export interface StageDef { key: string; name: string; emoji: string; hp: number; mode: Mode; stop: number; fixed?: number; shield: number; nstar: number; bite?: number; full?: boolean; chase?: boolean; vary?: number[]; add?: Card[]; pz?: number; news: string; spot: string; tip: string }
+export interface StageDef { key: string; name: string; emoji: string; hp: number; mode: Mode; stop: number; fixed?: number; shield: number; nstar: number; add?: Card[]; pz?: number; news: string; spot: string; tip: string }
 /** 별 (쉬운 말, 한 판에 하나씩 늘어난다) */
 export const STAR_TXT = ['괴물 이기기', '한 번도 안 넘치기', '체력 반 넘게 남기기'];
 export const STAGES: StageDef[] = [
@@ -111,10 +116,9 @@ function reshuffle(s: KnightState) {
   ev(s, 'shuffle', DECK_X, DECK_Y - 0.13, '🔀 섞어요!', '#d6f0ff');
   see(s, 'shuffle', '🔀 더미가 비면 버린 카드를 다시 섞어요');
 }
-/** 더미 맨 위에서 한 장 (괴물은 황금 카드를 건너뛴다) */
-function takeCard(s: KnightState, mon: boolean): Card | null {
+/** 더미 맨 위에서 한 장 (기사도 괴물도 같은 더미) */
+function takeCard(s: KnightState): Card | null {
   if (!s.pile.length) reshuffle(s);
-  void mon;
   return s.pile.pop() ?? null;
 }
 
@@ -161,7 +165,7 @@ function beginExchange(s: KnightState) {
   s.log.push('|');
   const d = STAGES[s.stage];
   s.order = d.mode === 'swap' ? (s.ex % 2 ? 'first' : 'after') : d.mode;
-  s.mstop = d.vary ? d.vary[0] + Math.floor(s.rng() * (d.vary[1] - d.vary[0] + 1)) : d.stop;
+  s.mstop = d.stop;
   s.res = null;
   s.auto = 0;
   s.phase = s.order === 'first' ? 'mon' : 'deal';
@@ -172,11 +176,10 @@ function beginExchange(s: KnightState) {
 function monNeeds(s: KnightState) {
   const m = rawSum(s.mh);
   if (m >= 21 || s.order === 'fixed') return false;
-  const d = STAGES[s.stage], k = handSum(s.hand);
-  return m < s.mstop && (!d.chase || m <= (k > 21 ? 0 : k));
+  return m < s.mstop;
 }
 function monDraw(s: KnightState) {
-  const c = takeCard(s, true);
+  const c = takeCard(s);
   if (!c) return;
   s.mh.push(c);
   s.fly.push({ c, to: 1, t0: s.t });
@@ -186,7 +189,7 @@ function monDraw(s: KnightState) {
   if (m > 21) ev(s, 'mbust', MX, 0.7, '괴물이 넘쳤다! 펑', '#c8f7c5', s.t + FLY + 4);
 }
 function knightDraw(s: KnightState, tap = false) {
-  const c = takeCard(s, false);
+  const c = takeCard(s);
   if (!c) return;
   s.hand.push(c);
   s.fly.push({ c, to: 0, t0: s.t });
@@ -218,7 +221,7 @@ export function outcome(d: StageDef, k: number, mm: number, combo: number, heart
     c2 = combo + 1;
     dm = (a - m) * (a === 21 ? 2 : 1) + (c2 - 1);
     if (d.shield && !pierce) (blocked = Math.min(dm, d.shield)), (dm -= blocked);
-  } else if (m > a) dk = (d.full ? m : m - a) * (m === 21 ? 2 : 1) * (d.bite ?? 1);
+  } else if (m > a) dk = (m - a) * (m === 21 ? 2 : 1);
   return { a, m, bust, mbust, dm, dk, blocked, combo: c2, heal: bust ? 0 : HEAL * hearts, win: a > m ? 1 : m > a ? -1 : 0 };
 }
 
@@ -240,7 +243,7 @@ function resolve(s: KnightState) {
   s.pt = 0;
   const r = s.res;
   if (r.bust) ev(s, 'bust', KX + 0.08, 0.72, '철퍼덕!', '#ffd0c8', s.t + 22);
-  if (r.bj) ev(s, 'bj', 0.5, 0.62, '블랙잭!', '#ffe066', s.t + 6), see(s, 'bj', '✨ 딱 21 = 블랙잭! 칼이 두 배로 세져요');
+  if (r.bj) ev(s, 'bj', 0.5, 0.62, '블랙잭!', '#ffe066', s.t + 6), see(s, 'bj', '🗡️ 딱 21 = 블랙잭! 칼이 두 배로 세져요');
   const hitT = s.t + (r.bj ? 30 : 20);
   if (r.win > 0) {
     ev(s, 'hit', MX, 0.7, r.dm > 0 ? `-${r.dm}` : '팅!', r.bj ? '#ffe066' : '#ffffff', hitT);
@@ -426,7 +429,7 @@ function groups(src: Card[]): Grp[] {
   }
   return [...m.values()];
 }
-interface Ctx { memo: Map<number, Map<string, number[]>>; d: StageDef; stop: number; hp: number; mhp: number; mmax: number; combo: number; busted: boolean; bjN: number; order: Order; mknown: number }
+interface Ctx { memo: Map<string, number[]>; d: StageDef; stop: number; hp: number; mhp: number; mmax: number; combo: number; busted: boolean; bjN: number; order: Order; mknown: number }
 /** 잘하는 봇의 별 무게 (측정 스크립트가 바꿔 볼 수 있게 내보낸다) */
 export const BOTW = { W2: 80, W3: 90 };
 /** 한 차례가 끝났을 때의 값: 괴물 체력을 깎은 몫 − 내 체력 잃은 몫 + 별(안 넘치기 · 체력 반 넘게). pz = 이번에 뽑은 독 카드 수 */
@@ -488,12 +491,9 @@ function monDistQ(q: number[], cont: (m: number) => boolean, memo: Map<string, n
 }
 function standValue(c: Ctx, k: number, hearts: number, pierce: boolean, pz: number, gs: Grp[]) {
   if (c.order === 'first' || c.order === 'fixed') return util(c, k, hearts, pierce, pz, c.mknown);
-  const a = k > 21 ? 0 : k, stop = c.stop, ch = !!c.d.chase;
-  const q = new Array(11).fill(0);
+  const stop = c.stop, q = new Array(11).fill(0);
   for (const g of gs) if (g.c.su !== 3) q[g.c.v] += g.n;
-  let memo = c.memo.get(ch ? a : -1);
-  if (!memo) c.memo.set(ch ? a : -1, (memo = new Map()));
-  const dist = monDistQ(q, (x) => x < stop && (!ch || x <= a), memo);
+  const dist = monDistQ(q, (x) => x < stop, c.memo);
   let v = 0;
   for (let mm = 0; mm <= 21; mm++) if (dist[mm] > 1e-6) v += dist[mm] * util(c, k, hearts, pierce, pz, mm === 0 ? 22 : mm);
   return v;
@@ -1077,10 +1077,9 @@ function drawHands(ctx: CanvasRenderingContext2D, s: KnightState, X: F, Y: F, R:
   const lastK = s.fly.filter((f) => f.to === 0).reduce((a, f) => Math.max(a, f.t0 + FLY), -99);
   const pk = Math.max(0, 1 - (t - lastK) / 10) * 0.25;
   if (kh.length) tag(KX, k > 21 ? `${k} 넘침` : k === 21 ? '21!' : `${k}`, '', k > 21 ? '#ff8a7a' : k === 21 ? '#ffe066' : '#ffffff', k > 21 ? 'rgba(90,20,20,.9)' : 'rgba(20,30,60,.88)', pk);
-  const rule = '';
   const lastM = s.fly.filter((f) => f.to === 1).reduce((a, f) => Math.max(a, f.t0 + FLY), -99);
   const pm = Math.max(0, 1 - (t - lastM) / 10) * 0.25;
-  if (s.order === 'fixed' || mh.length) tag(MX, mm > 21 ? `${mm} 넘침` : `${mm}`, rule, mm > 21 ? '#b8ffb0' : mm === 21 ? '#ff9a8a' : '#ffd9b0', 'rgba(70,25,20,.9)', pm);
+  if (s.order === 'fixed' || mh.length) tag(MX, mm > 21 ? `${mm} 넘침` : `${mm}`, '', mm > 21 ? '#b8ffb0' : mm === 21 ? '#ff9a8a' : '#ffd9b0', 'rgba(70,25,20,.9)', pm);
   else {
     font(0.03, 800);
     ctx.textAlign = 'center';
@@ -1248,7 +1247,7 @@ function drawFighters(ctx: CanvasRenderingContext2D, s: KnightState, X: F, Y: F,
   }
   // 베기 말풍선
   if (s.phase === 'me' && !s.auto && k > 0 && k < 21) {
-    const bx = X(KX + 0.02), by = Y(0.585);
+    const bx = X(KX + 0.02), by = Y(0.615);
     font(0.032, 900);
     const tx = '톡! 베기', tw = ctx.measureText(tx).width + R(0.04);
     ctx.fillStyle = 'rgba(255,250,235,.95)';
@@ -1758,26 +1757,26 @@ function drawHud(ctx: CanvasRenderingContext2D, s: KnightState, d: StageDef, w: 
     const age = s.pt, a = Math.min(1, age / 10);
     ctx.globalAlpha = a;
     ctx.fillStyle = s.ok ? 'rgba(30,40,20,.78)' : 'rgba(70,20,20,.72)';
-    ctx.fillRect(0, Y(0.56), w, R(0.3));
+    ctx.fillRect(0, Y(0.56), w, R(s.ok ? 0.36 : 0.22));
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     font(s.ok ? 0.06 : 0.05, 900);
     ctx.fillStyle = s.ok ? '#fff1a8' : '#ffd0c8';
-    ctx.fillText(s.ok ? (s.won ? '기사단 우승! 🎉' : `${d.emoji} ${d.name}을 이겼다!`) : s.why, w / 2, Y(0.61));
+    ctx.fillText(s.ok ? (s.won ? '기사단 우승! 🎉' : `${d.emoji} ${d.name}${eul(d.name)} 이겼다!`) : s.why, w / 2, Y(0.61));
     if (s.ok) {
-      for (let k = 0; k < 3; k++) {
-        const ag = age - 14 - k * 10, got = s.starOk[k];
+      for (let k = 0; k < d.nstar; k++) {
+        const ag = age - 14 - k * 10, got = s.starOk[k], sx = w / 2 + (k - (d.nstar - 1) / 2) * R(0.1);
         if (ag < 0) continue;
         const sc = got ? 1 + Math.max(0, 1 - ag / 8) * 0.8 : 1;
         font(0.07 * sc, 900);
         ctx.fillStyle = got ? '#ffd166' : 'rgba(255,255,255,.3)';
-        ctx.fillText(got ? '★' : '☆', w / 2 + (k - 1) * R(0.1), Y(0.69));
-        if (got && (juice(s).memo['star' + k] ?? -1) < s.clearT) (juice(s).memo['star' + k] = s.clearT), juice(s).burst(w / 2 + (k - 1) * R(0.1), Y(0.69), '#ffe066', 14, 3, 2.4);
+        ctx.fillText(got ? '★' : '☆', sx, Y(0.675));
+        if (got && (juice(s).memo['star' + k] ?? -1) < s.clearT) (juice(s).memo['star' + k] = s.clearT), juice(s).burst(sx, Y(0.675), '#ffe066', 14, 3, 2.4);
       }
-      font(0.032, 800);
+      font(0.034, 800);
       for (let k = 0; k < d.nstar; k++) {
         ctx.fillStyle = s.starOk[k] ? '#fff6dc' : 'rgba(255,255,255,.5)';
-        ctx.fillText(`${s.starOk[k] ? '★' : '☆'} ${STAR_TXT[k]}`, w / 2, Y(0.755 + k * 0.035));
+        ctx.fillText(`${s.starOk[k] ? '★' : '☆'} ${STAR_TXT[k]}`, w / 2, Y(0.745 + k * 0.048));
       }
     } else {
       font(0.04, 800);

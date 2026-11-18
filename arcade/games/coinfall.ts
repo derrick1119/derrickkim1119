@@ -190,14 +190,14 @@ interface StageDef {
 }
 const C = 0, B = 1, F = 2, W = 3, R = 4, N = 5;
 export const STAGES: StageDef[] = [
-  { key: 'push', name: '동전 툭!', emoji: '🐥', news: '', spot: '', sp: 0, light: true, doll: [0.5, 0.93], fill: 0.95, purse: 12, keep: 0, nstars: 1, reels: [], pocket: 0 },
+  { key: 'push', name: '동전 툭!', emoji: '🐥', news: '', spot: '', sp: 0, light: true, doll: [0.5, 0.935], fill: 0.95, purse: 14, keep: 0, nstars: 1, reels: [], pocket: 0 },
   { key: 'slot', name: '슬롯 구멍', emoji: '🐱', news: '🎰 움직이는 구멍에 쏙 → 슬롯이 돌아요', spot: '슬롯 구멍: 쏙 넣으면 릴이 돌아요', sp: 1, doll: [0.36, 0.9], fill: 0.93, purse: 10, keep: 3, nstars: 2, reels: [C, C, C, B, F, N, N, N], pocket: 230 },
-  { key: 'bear', name: '무거운 곰', emoji: '🧸', news: '🧸 곰은 무거워요 — 왕동전이면 잘 밀려요', spot: '무거운 곰: 동전이 미끄러져요', sp: 2, heavy: true, doll: [0.62, 0.88], fill: 0.92, purse: 11, keep: 3, nstars: 3, star3: 'jackpot', reels: [C, C, B, B, F, N, N, N], pocket: 220 },
-  { key: 'side', name: '옆 구멍', emoji: '🐰', news: '🕳️ 옆 구멍 — 인형이 빠지면 다시!', spot: '옆 구멍: 빠지면 손해', sp: 3, doll: [0.2, 0.86], side: [0.45, 1.1], fill: 0.9, purse: 9, keep: 3, nstars: 3, star3: 'medal', medal: 12, reels: [C, C, B, F, W, W, N, N], pocket: 210 },
+  { key: 'bear', name: '무거운 곰', emoji: '🧸', news: '🧸 곰은 무거워요 — 왕동전이면 잘 밀려요', spot: '무거운 곰: 동전이 미끄러져요', sp: 2, heavy: true, doll: [0.62, 0.88], fill: 0.92, purse: 12, keep: 3, nstars: 3, star3: 'jackpot', reels: [C, C, B, B, F, N, N, N], pocket: 220 },
+  { key: 'side', name: '옆 구멍', emoji: '🐰', news: '🕳️ 옆 구멍 — 인형이 빠지면 다시!', spot: '옆 구멍: 빠지면 손해', sp: 3, doll: [0.2, 0.86], side: [0.45, 1.1], fill: 0.9, purse: 9, keep: 3, nstars: 3, star3: 'medal', medal: 10, reels: [C, C, B, F, W, W, N, N], pocket: 210 },
   { key: 'tower', name: '동전 탑', emoji: '🐷', news: '🗼 동전 탑을 밀면 와르르 쏟아져요', spot: '동전 탑: 밀면 와르르!', sp: 4, doll: [0.72, 0.83], towers: [[0.38, 0.5], [0.7, 0.42]], fill: 0.88, purse: 9, keep: 4, nstars: 3, star3: 'tower', reels: [C, C, C, B, F, W, N, N], pocket: 200 },
   { key: 'twin', name: '두 인형', emoji: '🐶', news: '👑 왕관 인형을 떨어뜨려요 — 다른 인형은 덤', spot: '왕관 인형이 목표예요', sp: 5, doll: [0.3, 0.85], decoy: [0.7, 0.9, 8], fill: 0.9, purse: 9, keep: 3, nstars: 3, star3: 'twin', reels: [C, C, B, F, W, N, N, N], pocket: 200 },
-  { key: 'wild', name: '무지개 그림', emoji: '🦊', news: '🌈 무지개는 어느 그림과도 짝이 돼요', spot: '무지개 그림 추가!', sp: 6, heavy: true, doll: [0.66, 0.86], fill: 0.9, purse: 9, keep: 3, nstars: 3, star3: 'jackpot', reels: [C, C, B, F, W, R, N, N], pocket: 190 },
-  { key: 'all', name: '대잔치', emoji: '🐼', news: '🎉 마지막 판 — 곰·옆 구멍·탑·무지개 다 나와요!', spot: '', sp: 7, heavy: true, doll: [0.3, 0.85], side: [0.5, 1.1], towers: [[0.6, 0.48]], fill: 0.88, purse: 10, keep: 3, nstars: 3, star3: 'jackpot', reels: [C, C, B, B, F, W, R, N], pocket: 180 },
+  { key: 'wild', name: '무지개 그림', emoji: '🦊', news: '🌈 무지개는 어느 그림과도 짝이 돼요', spot: '무지개 그림 추가!', sp: 6, heavy: true, doll: [0.66, 0.86], fill: 0.9, purse: 11, keep: 3, nstars: 3, star3: 'jackpot', reels: [C, C, B, F, W, R, N, N], pocket: 190 },
+  { key: 'all', name: '대잔치', emoji: '🐼', news: '🎉 마지막 판 — 곰·옆 구멍·탑·무지개 다 나와요!', spot: '', sp: 7, heavy: true, doll: [0.3, 0.85], side: [0.5, 1.1], towers: [[0.6, 0.48]], fill: 0.88, purse: 12, keep: 3, nstars: 3, star3: 'jackpot', reels: [C, C, B, B, F, W, R, N], pocket: 180 },
 ];
 export const STAGE_COUNT = STAGES.length;
 
@@ -360,7 +360,7 @@ function resolveSpin(s: CoinState) {
   const d = STAGES[s.stage], sl = s.slot, S = s.S;
   const sy = sl.res.map((i) => d.reels[i]);
   sl.cur = sl.res.slice();
-  const wasHeld = sl.held.some(Boolean);
+  const wasHeld = sl.held.some(Boolean), prevHeld = sl.held.slice();
   const J = judge(sy);
   sl.held = [false, false, false];
   sl.lastT = s.t;
@@ -377,9 +377,16 @@ function resolveSpin(s: CoinState) {
     s.kid = { mode: 'cheer', until: s.t + 160 };
     return;
   }
-  if (wasHeld || J.kind === 'miss') {
-    sl.last = wasHeld ? 'miss2' : 'miss';
-    ev(s, 'miss', 0.5, 0, wasHeld ? '아깝다!' : '꽝!', '#ffd0c8');
+  if (wasHeld) {
+    // 붙잡힌 짝은 잭팟이 날 때까지 그대로 — 다음에도 남은 한 릴만 돈다
+    sl.held = prevHeld;
+    sl.last = 'miss2';
+    ev(s, 'miss', 0.5, 0, '아깝다!', '#ffd0c8');
+    return;
+  }
+  if (J.kind === 'miss') {
+    sl.last = 'miss';
+    ev(s, 'miss', 0.5, 0, '꽝!', '#ffd0c8');
     return;
   }
   // 짝: 그 그림의 효과 + 짝은 붙잡혀 다음엔 남은 한 릴만 돈다
@@ -393,7 +400,7 @@ function resolveSpin(s: CoinState) {
   else if (sym === 2) (S.fever = Math.max(S.fever, PER * 2)), see(s, 'p-fever', '⚡ 번개 짝 = 밀대가 길고 빠르게 밀어요');
   else if (sym === 3) (S.walls = true), see(s, 'p-wall', '🧱 벽 짝 = 옆 구멍이 막혀요');
   ev(s, 'pair', 0.5, 0, `${SYM_EMO[sym]} 짝! ${SYM_NAME[sym]}`, '#bff3ff', sym);
-  tip(s, 'reach', '🔒 짝은 붙잡혀요 — 다음 슬롯은 남은 한 릴만 돌아요');
+  tip(s, 'reach', '🔒 짝은 잭팟까지 붙잡혀요 — 남은 한 릴만 돌아요');
 }
 
 function slotStep(s: CoinState) {
@@ -558,7 +565,7 @@ const NO: Input = { tap: false, dir: 0, pointer: null };
 const ready = (s: CoinState) => s.phase === 'play' && s.chute <= 0 && s.purse > 0 && !s.S.drops.some((d) => !d.w) && s.pt > 20;
 /** 별 하나의 값 (인형이 턱까지 가는 길 전체 = 1000) */
 const STAR_V = 280;
-let SUPPORT = 6, PER_COIN = 0.026, PER_HEAVY = 0.016, STUCK = true;
+let SUPPORT = 6, PER_COIN = 0.05, PER_HEAVY = 0.03, STUCK = true;
 export const setRisk = (a: number, b: number, st: boolean) => ((PER_COIN = a), (PER_HEAVY = b), (STUCK = st));
 export const setSupport = (v: number) => (SUPPORT = v);
 let DBG = false;
@@ -621,7 +628,8 @@ function slotEV(s: CoinState, gJack: number, gPair: number[], vc: number) {
           // 짝은 붙잡힌다 — 다음 한 번은 남은 한 릴만: 그때 잭팟이 날 확률만큼 덤
           let p2 = 0;
           for (const f of R) if (f === J.sym || f === R_) p2++;
-          ev += P * (gPair[J.sym] + 0.8 * Math.max(0, (p2 / n) * gJack - vc));
+          // 붙잡힌 짝은 잭팟까지 남는다: 그 릴에 계속 넣으면 평균 n/p2개로 잭팟
+          ev += P * (gPair[J.sym] + 0.6 * Math.max(0, gJack - (vc * n) / Math.max(1, p2)));
         }
       }
   return ev;
@@ -1685,7 +1693,7 @@ function drawSlot(ctx: CanvasRenderingContext2D, s: CoinState, t: number, X: (x:
   // 결과 띠 (잠깐) — 아니면 릴에 든 그림 수
   const age = t - sl.lastT;
   if (sl.last && age < 75 && !sl.spin) {
-    const txt = sl.last === 'jackpot' ? '잭팟! 동전 폭포!' : sl.last === 'pair' ? `짝! ${SYM_NAME[sl.lastSym]}` : sl.last === 'miss2' ? '아깝다! 짝이 풀렸어요' : '꽝!';
+    const txt = sl.last === 'jackpot' ? '잭팟! 동전 폭포!' : sl.last === 'pair' ? `짝! ${SYM_NAME[sl.lastSym]}` : sl.last === 'miss2' ? '아깝다! 짝은 그대로' : '꽝!';
     const col = sl.last === 'jackpot' ? ((t >> 2) % 2 ? '#ff3a6a' : '#7a1030') : sl.last === 'pair' ? '#0f6a3a' : '#7a2a10';
     const sc = 1 + Math.max(0, 8 - age) * 0.04;
     ctx.save();
