@@ -336,14 +336,14 @@ const SKILL = {
   dash: { name: '대시', desc: '1초간 무적이 돼요' },
 };
 const MOVE = {
-  z: { name: '바퀴', desc: '벽에 튕기며 빠르게 돌아다녀요', speed: 165, dodge: 125, hp: 345 },
-  d: { name: '호버', desc: '튕겨 다니다 가까운 탄을 피해 휘어요', speed: 110, dodge: 80, hp: 200, sight: 75, steer: 560 },
-  c: { name: '점멸', desc: '튕겨 다니다 2.5초마다 순간이동해요', speed: 125, dodge: 95, hp: 290 },
+  z: { name: '바퀴', desc: '벽에 튕기며 빠르게 돌아다녀요', speed: 165, dodge: 125, hp: 320 },
+  d: { name: '호버', desc: '튕겨 다니다 가까운 탄을 피해 휘어요', speed: 110, dodge: 80, hp: 240, sight: 75, steer: 560 },
+  c: { name: '점멸', desc: '튕겨 다니다 2.5초마다 순간이동해요', speed: 125, dodge: 95, hp: 280 },
 };
 const GADGET = { j: 1, g: 1, d: 1, m: 1, f: 1, e: 1, h: 1, p: 1, n: 1 };
 const DMG = { r: 5.5, s: 5.5, a: 2.8, h: 22, w: 4, l: 8, b: 5, B: 10, v: 3.2, k: 21, x: 26, c: 11, M: 18 };
 const DUEL = {
-  home: [96, 444], hitR: 14, body: 19, cap: 220, turn: 2.4, heat: 2.5, heatFrom: 720,
+  home: [96, 444], hitR: 14, body: 19, crushFrom: 1080, crushFull: 1620, crushX: 95, crushY: 150, shock: 0.05, cap: 220, turn: 2.4, heat: 2, heatFrom: 720,
   magPull: 300, magR: 130, magCap: 3, flingEvery: 180, shieldEvery: 180, healEvery: 60, heal: 4,
   refW: 1.2, refSpin: 0.035, mineEvery: 170, empEvery: 160, empR: 190,
   blinkEvery: 150, turEvery: 20, decoyEvery: 380, decoyLife: 170, holeEvery: 390, holeLife: 300, holeR: 110, freeze: 260,
@@ -611,14 +611,15 @@ function makeDuel(top, bot, seed) {
     for (const k of boss.gadgets || []) if (GADGET[k]) has[k] = true;
     return {
       boss, side, kind, mv, has, g: Object.keys(has).join(''),
-      x: 70 + R() * (W - 140), y: DUEL.home[side], vx: Math.cos(a) * mv.speed, vy: Math.sin(a) * mv.speed, hp: mv.hp, maxHp: mv.hp, fl: 0, dir: side ? -1 : 1, n: 0, sq: 0,
+      x: 70 + R() * (W - 140), y: DUEL.home[side], vx: Math.cos(a) * mv.speed, vy: Math.sin(a) * mv.speed, hp: mv.hp, maxHp: mv.hp, fl: 0, dir: side ? -1 : 1, n: 0, sq: 0, shock: 0,
       em: (boss.weapons || []).map((c, i) => ({ next: EMIT_FROM + i * 0.31, k: 0, aim: 0 })), et: 0, oc: 0, slowT: 0,
       shieldCd: 0, healCd: DUEL.healEvery, mineCd: 90, empCd: 240, refA: side ? -Math.PI / 2 : Math.PI / 2,
       cap: 0, flingCd: DUEL.flingEvery, blinkCd: 120, fade: 0, turCd: 60, decoy: null, decoyCd: 110, hole: null, holeCd: 170,
     };
   };
-  return { map, R, f: [mk(top, 0), mk(bot, 1)], clouds: map.clouds.map(cl => ({ ...cl })), bullets: [], lasers: [], mines: [], pick: null, tick: 0, over: null, ev: [] };
+  return { map, R, f: [mk(top, 0), mk(bot, 1)], clouds: map.clouds.map(cl => ({ ...cl })), bullets: [], lasers: [], mines: [], pick: null, tick: 0, wl: 0, wt: 33, over: null, ev: [] };
 }
+const crushQ = tick => tick < DUEL.crushFrom ? 0 : Math.min(1, (tick - DUEL.crushFrom) / (DUEL.crushFull - DUEL.crushFrom));
 const turPos = (m, tick) => [m.x + Math.cos(tick * 0.045 + m.side * Math.PI) * 44, m.y + Math.sin(tick * 0.045 + m.side * Math.PI) * 38];
 const aimAt = (d, m) => { const e = d.f[1 - m.side]; return e.decoy || e; };
 function addD(d, m, k, x, y, vx, vy, r, extra) {
@@ -679,6 +680,7 @@ function bounceOff(m, cx, cy, rr) {   // 원에 부딪히면 튕겨 나온다
 }
 function moveFighter(d, m) {
   const heat = d.tick < DUEL.heatFrom ? 1 : 1 + (d.tick - DUEL.heatFrom) / (T_DUEL - DUEL.heatFrom) * 0.3, sp = m.mv.speed * heat;
+  const x0 = d.wl + 26, x1 = W - d.wl - 26, y0 = d.wt + 21, y1 = H - d.wt - 21;
   if (m.kind === 'd') {
     let ax = 0, ay = 0;
     for (const b of d.bullets) if (b.s !== m.side) { const dx = m.x - b.x, dy = m.y - b.y, dd = dx * dx + dy * dy; if (dd < m.mv.sight * m.mv.sight && dd > 1) { ax += dx / dd; ay += dy / dd; } }
@@ -689,21 +691,23 @@ function moveFighter(d, m) {
     if (m.blinkCd <= 0) {
       const e = d.f[1 - m.side];
       emit(d, { k: 'blink', x: m.x, y: m.y });
-      for (let q = 0; q < 5; q++) { m.x = 40 + d.R() * (W - 80); m.y = 64 + d.R() * (H - 128); if (Math.hypot(m.x - e.x, m.y - e.y) > 110) break; }
+      for (let q = 0; q < 5; q++) { m.x = x0 + 12 + d.R() * (x1 - x0 - 24); m.y = y0 + 10 + d.R() * (y1 - y0 - 20); if (Math.hypot(m.x - e.x, m.y - e.y) > 90) break; }
       m.blinkCd = DUEL.blinkEvery; m.fade = 12; emit(d, { k: 'blink', x: m.x, y: m.y });
     }
   }
   const v = Math.hypot(m.vx, m.vy) || 1; m.vx = m.vx / v * sp; m.vy = m.vy / v * sp;
   const k = DT * (m.slowT > 0 ? 0.4 : 1); m.x += m.vx * k; m.y += m.vy * k;
   let hitWall = false;
-  if (m.x < 26) { m.x = 26; m.vx = Math.abs(m.vx); hitWall = true; } else if (m.x > W - 26) { m.x = W - 26; m.vx = -Math.abs(m.vx); hitWall = true; }
-  if (m.y < 54) { m.y = 54; m.vy = Math.abs(m.vy); hitWall = true; } else if (m.y > H - 54) { m.y = H - 54; m.vy = -Math.abs(m.vy); hitWall = true; }
+  if (m.x < x0) { m.x = x0; hitWall = true; } else if (m.x > x1) { m.x = x1; hitWall = true; }
+  if (m.y < y0) { m.y = y0; hitWall = true; } else if (m.y > y1) { m.y = y1; hitWall = true; }
   if (hitWall) {   // 벽에 닿을 때마다 각도를 조금 틀어 같은 길만 돌지 않게 한다
     const a = Math.atan2(m.vy, m.vx) + (d.R() - 0.5) * 0.5; m.vx = Math.cos(a) * sp; m.vy = Math.sin(a) * sp;
-    if (m.x <= 26) m.vx = Math.abs(m.vx); else if (m.x >= W - 26) m.vx = -Math.abs(m.vx);
-    if (m.y <= 54) m.vy = Math.abs(m.vy); else if (m.y >= H - 54) m.vy = -Math.abs(m.vy);
+    if (m.x <= x0) m.vx = Math.abs(m.vx); else if (m.x >= x1) m.vx = -Math.abs(m.vx);
+    if (m.y <= y0) m.vy = Math.abs(m.vy); else if (m.y >= y1) m.vy = -Math.abs(m.vy);
     m.sq = 1; emit(d, { k: 'wall', x: m.x, y: m.y });
+    if (d.tick >= DUEL.crushFrom && m.shock <= 0) { m.shock = 20; hurt(d, m, 'W', m.x, m.y); emit(d, { k: 'shock', side: m.side, x: m.x, y: m.y }); }
   }
+  if (m.shock > 0) m.shock--;
   for (let q = 0; q < d.map.bumps.length; q++) { const bp = d.map.bumps[q]; if (bounceOff(m, bp.x, bp.y, bp.r + DUEL.body)) { m.sq = 1; emit(d, { k: 'bump', i: q }); } }
   for (const cl of d.clouds) if (bounceOff(m, cl.x, cl.y, cl.r * 1.05 + DUEL.body)) { m.sq = 1; emit(d, { k: 'wall', x: (m.x + cl.x) / 2, y: (m.y + cl.y) / 2 }); }
   if (m.sq > 0) m.sq = Math.max(0, m.sq - 0.12);
@@ -711,7 +715,7 @@ function moveFighter(d, m) {
 function hurt(d, e, by, x, y) {
   if (e.has.h && e.shieldCd <= 0) { e.shieldCd = DUEL.shieldEvery; emit(d, { k: 'block', side: e.side }); return; }
   const heat = d.tick < DUEL.heatFrom ? 1 : 1 + (d.tick - DUEL.heatFrom) / (T_DUEL - DUEL.heatFrom) * (DUEL.heat - 1);
-  const dmg = Math.max(1, Math.round(DMG[by] * heat));
+  const dmg = Math.max(1, Math.round((by === 'W' ? e.maxHp * DUEL.shock : DMG[by]) * heat));
   e.hp = Math.max(0, e.hp - dmg); e.fl = 10;
   if (by === 'c') { e.slowT = DUEL.freeze; emit(d, { k: 'freeze', x: e.x, y: e.y }); }
   emit(d, { k: 'hit', side: e.side, x, y, dmg, by });
@@ -720,9 +724,20 @@ function stepDuel(d) {
   if (d.over) return;
   const end = emitEnd(T_DUEL), B = d.bullets, wind = d.map.wind;
   if (d.tick === DUEL.heatFrom) emit(d, { k: 'heat' });
+  if (d.tick === DUEL.crushFrom - 120) emit(d, { k: 'crushwarn' });
+  if (d.tick === DUEL.crushFrom) emit(d, { k: 'crush' });
+  const cq = crushQ(d.tick), wl = d.wl = cq * DUEL.crushX, wt = d.wt = 33 + cq * DUEL.crushY;
   for (const cl of d.clouds) {
     cl.x += cl.vx * DT;
-    if (cl.x < cl.r * 1.35) { cl.x = cl.r * 1.35; cl.vx = Math.abs(cl.vx); } else if (cl.x > W - cl.r * 1.35) { cl.x = W - cl.r * 1.35; cl.vx = -Math.abs(cl.vx); }
+    if (cl.x < wl + cl.r * 1.35) { cl.x = wl + cl.r * 1.35; cl.vx = Math.abs(cl.vx); } else if (cl.x > W - wl - cl.r * 1.35) { cl.x = W - wl - cl.r * 1.35; cl.vx = -Math.abs(cl.vx); }
+  }
+  if (cq > 0) {
+    const inside = (x, y, r) => x - r > wl && x + r < W - wl && y - r > wt && y + r < H - wt;
+    const crush = o => { emit(d, { k: 'crushed', x: clamp(o.x, wl + 8, W - wl - 8), y: clamp(o.y, wt + 8, H - wt - 8) }); return false; };
+    d.clouds = d.clouds.filter(cl => inside(cl.x, cl.y, cl.r * 0.8) || crush(cl));
+    d.map.bumps = d.map.bumps.filter(bp => inside(bp.x, bp.y, bp.r * 0.7) || crush(bp));
+    d.mines = d.mines.filter(mn => inside(mn.x, mn.y, 0));
+    if (d.pick && !inside(d.pick.x, d.pick.y, 0)) d.pick = null;
   }
   if (!d.pick && DUEL.pickAt.includes(d.tick)) { d.pick = { x: 70 + d.R() * (W - 140), y: 270, t: DUEL.pickLife }; emit(d, { k: 'pickup', x: d.pick.x, y: 270 }); }
   if (d.pick && --d.pick.t <= 0) d.pick = null;
@@ -737,13 +752,13 @@ function stepDuel(d) {
   }
   for (const m of d.f) {
     const e = d.f[1 - m.side];
-    m.x = clamp(m.x, 26, W - 26); m.y = clamp(m.y, 54, H - 54);
+    m.x = clamp(m.x, wl + 26, W - wl - 26); m.y = clamp(m.y, wt + 21, H - wt - 21);
     if (m.fade > 0) m.fade--;
     if (m.slowT > 0) m.slowT--;
     if (m.oc > 0) m.oc--;
     if (m.has.f) m.refA += DUEL.refSpin;
     if (m.decoy && --m.decoy.t <= 0) m.decoy = null;
-    if (m.has.d && --m.decoyCd <= 0) { m.decoyCd = DUEL.decoyEvery; m.decoy = { x: 40 + d.R() * (W - 80), y: 64 + d.R() * (H - 128), vx: 0, vy: 0, t: DUEL.decoyLife }; emit(d, { k: 'decoy', x: m.decoy.x, y: m.decoy.y }); }
+    if (m.has.d && --m.decoyCd <= 0) { m.decoyCd = DUEL.decoyEvery; m.decoy = { x: wl + 40 + d.R() * (W - 2 * wl - 80), y: wt + 31 + d.R() * (H - 2 * wt - 62), vx: 0, vy: 0, t: DUEL.decoyLife }; emit(d, { k: 'decoy', x: m.decoy.x, y: m.decoy.y }); }
     if (m.has.g) {
       const dx = e.x - m.x, dy = e.y - m.y, dd = Math.hypot(dx, dy) || 1, hx = clamp(m.x + dx / dd * 58, 30, W - 30), hy = clamp(m.y + dy / dd * 58, 50, H - 50);
       if (m.hole) { m.hole.x += (hx - m.hole.x) * 0.2; m.hole.y += (hy - m.hole.y) * 0.2; if (--m.hole.t <= 0) m.hole = null; }
@@ -818,6 +833,7 @@ function stepDuel(d) {
     }
     if (b.k === 'k' && (b.bn | 0) < 2 && ((b.x < 9 && b.vx < 0) || (b.x > W - 9 && b.vx > 0))) { b.vx = -b.vx; b.bn = (b.bn | 0) + 1; }
     if (b.k !== 'x' && (b.x < -24 || b.x > W + 24 || b.y < -24 || b.y > H + 24)) continue;
+    if (cq > 0 && (b.x < wl || b.x > W - wl || b.y < wt || b.y > H - wt)) continue;
     for (let q = 0; q < d.map.bumps.length; q++) {
       const bp = d.map.bumps[q], dx = b.x - bp.x, dy = b.y - bp.y, rr = bp.r + b.r;
       if (dx * dx + dy * dy < rr * rr && (b.bn | 0) < 3) {
@@ -1379,9 +1395,9 @@ function newDuel() {
   const d = makeDuel(play.foe, play.boss, (Math.random() * 4294967296) >>> 0);
   scene = { kind: 'duel', duel: d, sim: null, running: false, state: 'ready' };
   acc = 0; fx.length = 0; banner = null; shake = 0; freeze = 0; dpulse[0] = dpulse[1] = 0; caps.length = 0;
-  scene.lag = [d.f[0].maxHp, d.f[1].maxHp]; scene.bf = []; scene.tr = [[], []]; scene.first = false; scene.lead = 0; scene.leadT = 0; scene.fin = 0; scene.ko = false;
+  scene.lag = [d.f[0].maxHp, d.f[1].maxHp]; scene.bf = []; scene.tr = [[], []]; scene.shockT = 0; scene.bigT = 0; scene.first = false; scene.lead = 0; scene.leadT = 0; scene.fin = 0; scene.ko = false;
   const fig = (b, cap, cls) => `<figure class="${cls}"><img src="${avatar(b)}" alt="" width="84" height="84"><figcaption>${esc(cap)}</figcaption></figure>`;
-  overlay.innerHTML = `<div class="vs">${fig(play.boss, '나 · ' + (play.boss.name || '내 보스'), 'me')}<b>VS</b>${fig(play.foe, '상대 · ' + play.foe.name, 'foe')}</div><h2>보스 대결</h2><p>${MAPS[d.map.kind]}</p><p class="dim">두 보스가 경기장을 튕겨 다니며 싸워요. 파랑이 나, 주황빨강이 상대예요. 12초부터는 과열돼서 점점 빨라지고 아파져요.</p><p class="go">${COARSE ? '화면을 누르면 시작' : '클릭하거나 Space를 누르면 시작'}</p>`;
+  overlay.innerHTML = `<div class="vs">${fig(play.boss, '나 · ' + (play.boss.name || '내 보스'), 'me')}<b>VS</b>${fig(play.foe, '상대 · ' + play.foe.name, 'foe')}</div><h2>보스 대결</h2><p>${MAPS[d.map.kind]}</p><p class="dim">두 보스가 경기장을 튕겨 다니며 싸워요. 파랑이 나, 주황빨강이 상대예요. 12초부터 과열되고, 18초부터는 전류 벽이 좁혀와요.</p><p class="go">${COARSE ? '화면을 누르면 시작' : '클릭하거나 Space를 누르면 시작'}</p>`;
   overlay.hidden = false;
   $('#playHint').textContent = '파랑이 나, 주황빨강이 상대예요.';
   updateSkillBtn();
@@ -1846,6 +1862,28 @@ function paintDuelBg() {
   hazard(g, 33); hazard(g, H - 41);
   bgDuel = cv;
 }
+function drawCrush(g, d, now) {
+  const warn = d.tick >= DUEL.crushFrom - 120 && d.tick < DUEL.crushFrom;
+  if (warn) { g.strokeStyle = `rgba(255,107,107,${(0.35 + 0.45 * Math.abs(Math.sin(now * 9))).toFixed(3)})`; g.lineWidth = 6; g.strokeRect(3, 36, W - 6, H - 72); return; }
+  if (d.tick < DUEL.crushFrom) return;
+  const wl = d.wl, wt = d.wt, iw = W - 2 * wl, ih = H - 2 * wt;
+  g.save();
+  g.beginPath(); g.rect(0, 33, W, H - 66); g.rect(wl, wt, iw, ih); g.clip('evenodd');
+  g.fillStyle = 'rgba(24,17,44,.94)'; g.fillRect(0, 33, W, H - 66);
+  g.fillStyle = 'rgba(255,210,63,.22)';
+  for (let x = -H; x < W; x += 28) { g.beginPath(); g.moveTo(x, H); g.lineTo(x + 14, H); g.lineTo(x + 14 + H, 0); g.lineTo(x + H, 0); g.closePath(); g.fill(); }
+  g.restore();
+  g.lineJoin = 'round'; g.strokeStyle = INK; g.lineWidth = 7; g.strokeRect(wl, wt, iw, ih);
+  g.strokeStyle = C.sun; g.lineWidth = 3; g.strokeRect(wl, wt, iw, ih);
+  const jit = (i, t) => { const v = Math.sin(i * 12.9898 + t * 78.233) * 43758.5453; return (v - Math.floor(v)) - 0.5; };
+  const t = RM ? 0 : Math.floor(now * 20);
+  g.strokeStyle = '#bff6ff'; g.lineWidth = 2; g.beginPath();
+  for (let i = 0, x = wl; x <= wl + iw; x += 11, i++) { const o = jit(i, t) * 9; if (i) g.lineTo(x, wt + 4 + o); else g.moveTo(x, wt + 4); }
+  for (let i = 0, x = wl; x <= wl + iw; x += 11, i++) { const o = jit(i + 50, t) * 9; if (i) g.lineTo(x, wt + ih - 4 + o); else g.moveTo(x, wt + ih - 4); }
+  for (let i = 0, y = wt; y <= wt + ih; y += 11, i++) { const o = jit(i + 100, t) * 9; if (i) g.lineTo(wl + 4 + o, y); else g.moveTo(wl + 4, y); }
+  for (let i = 0, y = wt; y <= wt + ih; y += 11, i++) { const o = jit(i + 150, t) * 9; if (i) g.lineTo(wl + iw - 4 + o, y); else g.moveTo(wl + iw - 4, y); }
+  g.stroke();
+}
 function drawCrates(g, d) {
   for (const cl of d.clouds) {
     const w = cl.r * 2.6, h = cl.r * 1.66, x = cl.x - w / 2, y = cl.y - h / 2;
@@ -1921,7 +1959,7 @@ function drainDuel(d, now) {
       const m = d.f[e.side], big = e.dmg >= 16;
       fx.push({ k: 'pop', x: e.x, y: e.y, t: now }); say(m, '-' + e.dmg);
       if (!scene.first) { scene.first = true; cap('선제타!', now); }
-      if (big) { cap('큰 한 방!', now); if (!RM) { shake = Math.max(shake, 9); freeze = Math.max(freeze, 3); } sfx('big'); }
+      if (big) { if (now - (scene.bigT || 0) > 1.6) { scene.bigT = now; cap('큰 한 방!', now); } if (!RM) { shake = Math.max(shake, 9); freeze = Math.max(freeze, 3); } sfx('big'); }
       else { if (!RM) shake = Math.max(shake, 3); sfx('dmg'); }
     }
     else if (e.k === 'block') { const m = d.f[e.side]; ringFx(m.x, m.y, LED, 26, 44, now); say(m, '막음', LED); sfx('block'); }
@@ -1942,6 +1980,10 @@ function drainDuel(d, now) {
     else if (e.k === 'pickup') { ringFx(e.x, e.y, C.sun, 30, 12, now); cap('배터리 등장!', now); sfx('charge'); }
     else if (e.k === 'oc') { ringFx(e.x, e.y, C.sun, 10, 60, now); cap(e.side ? '내 보스 과충전!' : '상대 과충전!', now); sfx('skill'); }
     else if (e.k === 'heat') { banner = { text: '과열!', t: now }; cap('피해가 점점 커져요', now); sfx('phase'); }
+    else if (e.k === 'crushwarn') { cap('곧 전류 벽이 좁혀와요', now); sfx('warn'); }
+    else if (e.k === 'crush') { banner = { text: '좁혀온다!', t: now }; if (!RM) shake = Math.max(shake, 10); sfx('warn'); sfx('big'); }
+    else if (e.k === 'shock') { ringFx(e.x, e.y, '#bff6ff', 8, 44, now); for (let q = 0; q < 3; q++) fx.push({ k: 'star', x: e.x + (Math.random() - 0.5) * 30, y: e.y + (Math.random() - 0.5) * 30, t: now + q * 0.04 }); if (now - (scene.shockT || 0) > 1.4) { scene.shockT = now; cap('감전!', now); } sfx('zap'); }
+    else if (e.k === 'crushed') { ringFx(e.x, e.y, '#ffa94d', 6, 30, now); if (!RM) for (let q = 0; q < 5; q++) { const a = Math.random() * TAU, sp = 50 + Math.random() * 90; fx.push({ k: 'deb', x: e.x, y: e.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: now, rot: Math.random() * TAU, vr: (Math.random() - 0.5) * 12, c: '#e3a857', gear: false }); } sfx('pop'); }
   }
   d.ev.length = 0;
   const diff = d.f[1].hp / d.f[1].maxHp - d.f[0].hp / d.f[0].maxHp, lead = diff > 0.04 ? 1 : diff < -0.04 ? -1 : 0;
@@ -2020,6 +2062,7 @@ function renderDuel(now) {
     }
   }
   drawCrates(g, d);
+  drawCrush(g, d, now);
   drawFx(g, now);
   drawDuelHud(g, d);
   drawCaps(g, now);
