@@ -426,35 +426,7 @@ function groups(src: Card[]): Grp[] {
   }
   return [...m.values()];
 }
-/** 괴물이 끝에 가질 숫자의 분포 (0 = 넘침). 남은 카드 비율로 본다 */
-function monDist(src: Card[], cont: (m: number) => boolean, start = 0): number[] {
-  const q = new Array(11).fill(0);
-  let n = 0;
-  for (const c of src) if (c.su !== 3) q[c.v]++, n++; // 독 카드(0)는 괴물 합을 안 바꾼다
-  const out = new Array(22).fill(0);
-  if (!n) return (out[Math.min(21, start)] = 1), out;
-  for (let v = 1; v <= 10; v++) q[v] /= n;
-  let cur = new Array(32).fill(0);
-  cur[start] = 1;
-  for (let it = 0; it < 14; it++) {
-    const nx = new Array(32).fill(0);
-    let any = false;
-    for (let sm = 0; sm < 32; sm++) {
-      if (!cur[sm]) continue;
-      if (sm > 21) out[0] += cur[sm];
-      else if (!cont(sm)) out[sm] += cur[sm];
-      else {
-        any = true;
-        for (let v = 1; v <= 10; v++) if (q[v]) nx[sm + v] += cur[sm] * q[v];
-      }
-    }
-    cur = nx;
-    if (!any) break;
-  }
-  return out;
-}
-
-interface Ctx { d: StageDef; stop: number; hp: number; mhp: number; mmax: number; combo: number; busted: boolean; bjN: number; order: Order; mknown: number; src: Card[] }
+interface Ctx { memo: Map<number, Map<string, number[]>>; d: StageDef; stop: number; hp: number; mhp: number; mmax: number; combo: number; busted: boolean; bjN: number; order: Order; mknown: number }
 /** 잘하는 봇의 별 무게 (측정 스크립트가 바꿔 볼 수 있게 내보낸다) */
 export const BOTW = { W2: 80, W3: 90 };
 /** 한 차례가 끝났을 때의 값: 괴물 체력을 깎은 몫 − 내 체력 잃은 몫 + 별(안 넘치기 · 체력 반 넘게). pz = 이번에 뽑은 독 카드 수 */
@@ -469,17 +441,59 @@ function util(c: Ctx, k: number, hearts: number, pierce: boolean, pz: number, mm
   if (c.d.nstar >= 3 && c.hp > KHP / 2 && hp <= KHP / 2) u -= BOTW.W3;
   return u;
 }
-const distCache = new WeakMap<object, Map<number, number[]>>();
-function standValue(c: Ctx, k: number, hearts: number, pierce: boolean, pz: number) {
-  if (c.order === 'first' || c.order === 'fixed') return util(c, k, hearts, pierce, pz, c.mknown);
-  const a = k > 21 ? 0 : k, key = c.d.chase ? a : -1;
-  let dm = distCache.get(c.src);
-  if (!dm) distCache.set(c.src, (dm = new Map()));
-  let dist = dm.get(key);
-  if (!dist) {
-    const stop = c.stop, ch = !!c.d.chase;
-    dm.set(key, (dist = monDist(c.src, (x) => x < stop && (!ch || x <= a))));
+/** 남은 카드 장수(q[1..10])로 괴물이 끝에 가질 숫자의 분포 — 적으면 정확히(뽑은 카드는 빠진다), 많으면 비율로 */
+function monDistQ(q: number[], cont: (m: number) => boolean, memo: Map<string, number[]>): number[] {
+  const key = q.join(',');
+  const hit = memo.get(key);
+  if (hit) return hit;
+  let n = 0;
+  for (let v = 1; v <= 10; v++) n += q[v];
+  let out: number[];
+  if (n > 16) {
+    out = new Array(22).fill(0);
+    let cur = new Array(32).fill(0);
+    cur[0] = 1;
+    for (let it = 0; it < 14; it++) {
+      const nx = new Array(32).fill(0);
+      let any = false;
+      for (let sm = 0; sm < 32; sm++) {
+        if (!cur[sm]) continue;
+        if (sm > 21) out[0] += cur[sm];
+        else if (!cont(sm)) out[sm] += cur[sm];
+        else {
+          any = true;
+          for (let v = 1; v <= 10; v++) if (q[v]) nx[sm + v] += (cur[sm] * q[v]) / n;
+        }
+      }
+      cur = nx;
+      if (!any) break;
+    }
+  } else {
+    out = new Array(22).fill(0);
+    const rec = (sm: number, p: number, left: number) => {
+      if (sm > 21) return void (out[0] += p);
+      if (!cont(sm) || !left) return void (out[sm] += p);
+      for (let v = 1; v <= 10; v++)
+        if (q[v]) {
+          const pv = (p * q[v]) / left;
+          q[v]--;
+          rec(sm + v, pv, left - 1);
+          q[v]++;
+        }
+    };
+    rec(0, 1, n);
   }
+  memo.set(key, out);
+  return out;
+}
+function standValue(c: Ctx, k: number, hearts: number, pierce: boolean, pz: number, gs: Grp[]) {
+  if (c.order === 'first' || c.order === 'fixed') return util(c, k, hearts, pierce, pz, c.mknown);
+  const a = k > 21 ? 0 : k, stop = c.stop, ch = !!c.d.chase;
+  const q = new Array(11).fill(0);
+  for (const g of gs) if (g.c.su !== 3) q[g.c.v] += g.n;
+  let memo = c.memo.get(ch ? a : -1);
+  if (!memo) c.memo.set(ch ? a : -1, (memo = new Map()));
+  const dist = monDistQ(q, (x) => x < stop && (!ch || x <= a), memo);
   let v = 0;
   for (let mm = 0; mm <= 21; mm++) if (dist[mm] > 1e-6) v += dist[mm] * util(c, k, hearts, pierce, pz, mm === 0 ? 22 : mm);
   return v;
@@ -489,13 +503,10 @@ function hitValue(c: Ctx, k: number, hearts: number, pierce: boolean, pz: number
   for (const g of gs) {
     if (!g.n) continue;
     const p = g.n / total, k2 = k + g.c.v, h2 = hearts + (g.c.su === 1 ? 1 : 0), p2 = pierce || g.c.su === 2, z2 = pz + (g.c.su === 3 ? 1 : 0);
-    let x: number;
-    if (k2 >= 21 || depth <= 1) x = standValue(c, k2, h2, p2, z2);
-    else {
-      g.n--;
-      x = Math.max(standValue(c, k2, h2, p2, z2), hitValue(c, k2, h2, p2, z2, gs, total - 1, depth - 1));
-      g.n++;
-    }
+    g.n--;
+    const st = standValue(c, k2, h2, p2, z2, gs);
+    const x = k2 >= 21 || depth <= 1 ? st : Math.max(st, hitValue(c, k2, h2, p2, z2, gs, total - 1, depth - 1));
+    g.n++;
     v += p * x;
   }
   return v;
@@ -504,11 +515,12 @@ function hitValue(c: Ctx, k: number, hearts: number, pierce: boolean, pz: number
 export function smartHit(s: KnightState): boolean {
   const d = STAGES[s.stage], k = handSum(s.hand);
   if (k >= 21) return false;
-  const src = s.pile.length ? s.pile : s.disc;
-  const c: Ctx = { d, stop: s.mstop, hp: s.hp, mhp: s.mhp, mmax: s.mmax, combo: s.combo, busted: s.busted, bjN: s.bjN, order: s.order, mknown: s.order === 'fixed' ? d.fixed! : rawSum(s.mh), src: s.pile.length >= 6 ? s.pile : [...s.pile, ...s.disc] };
+  // 더미가 거의 비면 버린 카드가 다시 섞여 들어오니 둘을 합쳐 본다 (사람도 아래 판에서 '섞어요'를 본다)
+  const src = s.pile.length >= 6 ? s.pile : [...s.pile, ...s.disc];
+  const c: Ctx = { memo: new Map(), d, stop: s.mstop, hp: s.hp, mhp: s.mhp, mmax: s.mmax, combo: s.combo, busted: s.busted, bjN: s.bjN, order: s.order, mknown: s.order === 'fixed' ? d.fixed! : rawSum(s.mh) };
   const hearts = s.hand.filter((x) => x.su === 1).length, pierce = s.hand.some((x) => x.su === 2);
   const gs = groups(src);
-  const st = standValue(c, k, hearts, pierce, 0), ht = hitValue(c, k, hearts, pierce, 0, gs, src.length, gs.length > 14 ? 2 : 3);
+  const st = standValue(c, k, hearts, pierce, 0, gs), ht = hitValue(c, k, hearts, pierce, 0, gs, src.length, gs.length > 14 ? 2 : 3);
   return ht > st + 0.01;
 }
 /** 가게: 앞으로 남은 판에 무엇이 쓸모 있나 */

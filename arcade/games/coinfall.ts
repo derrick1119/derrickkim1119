@@ -297,6 +297,12 @@ function newStage(s: CoinState) {
   if (d.key) see(s, d.key, '');
 }
 
+/** 측정용: 바로 그 판부터 시작 (하트·별 그대로) */
+export function jumpTo(s: CoinState, si: number) {
+  s.stage = si;
+  newStage(s);
+}
+
 function starsNow(s: CoinState): boolean[] {
   const d = STAGES[s.stage], S = s.S, ok = S.win === 1;
   const s3 = d.star3 === 'jackpot' ? s.jacks > 0 : d.star3 === 'medal' ? S.medals >= (d.medal ?? 99) : d.star3 === 'twin' ? S.decoy > 0 : d.star3 === 'tower' ? !S.b.some((o) => o.k === TOWER) : false;
