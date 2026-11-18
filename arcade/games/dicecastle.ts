@@ -80,19 +80,19 @@ export const STAGES: StageDef[] = [
     hp: 1.7, waves: [[['slime', 6, 8, 36]], [['slime', 8, 12, 30]], [['slime', 9, 15, 28]], [['slime', 3, 16, 28], ['boss', 1, 140, 40], ['slime', 3, 16, 28]]],
   },
   {
-    key: 'pot', name: '냄비 투구', emoji: '🪖', news: '🪖 냄비 투구 적 — 작은 총알은 팅! 큰 눈으로 합쳐요', tip: '🪖 투구엔 눈 1 총알이 팅! 크게 합쳐요',
+    key: 'pot', name: '냄비 투구', emoji: '🪖', news: '🪖 냄비 투구 적 — 작은 총알은 팅! 큰 눈으로 합쳐요', tip: '🪖 투구엔 눈 1 총알이 팅! 눈 2 이상으로',
     pool: ['fire', 'ice', 'zap', 'coin'], start: 2, coins: 40, goal: { k: 'coins', n: 150 },
-    hp: 1.6, waves: [[['slime', 6, 10, 34]], [['slime', 4, 12, 30], ['pot', 4, 14, 40, 2]], [['pot', 6, 16, 36, 2], ['slime', 4, 14, 26]], [['slime', 3, 16, 26], ['boss', 1, 160, 40, 2], ['pot', 3, 16, 36, 2]]],
+    hp: 1.6, waves: [[['slime', 6, 10, 34]], [['slime', 4, 12, 30], ['pot', 4, 14, 40, 3]], [['pot', 6, 16, 36, 3], ['slime', 4, 14, 26]], [['slime', 3, 16, 26], ['boss', 1, 160, 40, 3], ['pot', 3, 16, 36, 3]]],
   },
   {
     key: 'cheer', name: '응원 주사위', emoji: '📣', news: '📣 응원 주사위 — 붙어 있는 이웃이 빨리 쏴요', tip: '📣 큰 주사위를 응원 옆으로 합쳐요',
     pool: ['fire', 'ice', 'zap', 'coin', 'cheer'], start: 2, coins: 40, goal: { k: 'pair', n: 3 },
-    hp: 2.0, waves: [[['slime', 7, 12, 32]], [['pot', 5, 16, 36, 2], ['slime', 4, 14, 26]], [['slime', 6, 15, 24], ['pot', 5, 18, 34, 2]], [['pot', 3, 18, 34, 2], ['boss', 1, 200, 40, 2], ['slime', 4, 16, 24]]],
+    hp: 2.0, waves: [[['slime', 7, 12, 32]], [['pot', 5, 16, 36, 3], ['slime', 4, 14, 26]], [['slime', 6, 15, 24], ['pot', 5, 18, 34, 3]], [['pot', 3, 18, 34, 3], ['boss', 1, 200, 40, 3], ['slime', 4, 16, 24]]],
   },
   {
     key: 'bat', name: '박쥐 하늘', emoji: '🦇', news: '🦇 박쥐 — 성벽 위를 질러 날아와요 (🔥 불은 안 닿아요)', tip: '🦇 박쥐는 ⚡ 번개 · ❄️ 얼음으로!',
     pool: ['fire', 'ice', 'zap', 'coin', 'cheer'], start: 2, coins: 40, goal: { k: 'flag', at: 0.4 },
-    hp: 2.3, waves: [[['slime', 6, 12, 30], ['bat', 4, 10, 34]], [['bat', 6, 12, 30], ['pot', 4, 18, 34, 2]], [['slime', 6, 16, 24], ['bat', 6, 13, 28], ['pot', 3, 18, 34, 2]], [['bat', 4, 14, 28], ['boss', 1, 230, 40, 2], ['bat', 4, 14, 28], ['pot', 2, 18, 34, 2]]],
+    hp: 2.3, waves: [[['slime', 6, 12, 30], ['bat', 4, 10, 34]], [['bat', 6, 12, 30], ['pot', 4, 18, 34, 3]], [['slime', 6, 16, 24], ['bat', 6, 13, 28], ['pot', 3, 18, 34, 3]], [['bat', 4, 14, 28], ['boss', 1, 230, 40, 3], ['bat', 4, 14, 28], ['pot', 2, 18, 34, 3]]],
   },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -143,8 +143,8 @@ const setMood = (s: DiceState, m: string) => ((s.mood = m), (s.moodT = s.t));
 export const cost = (s: DiceState) => 10 + 3 * s.summons;
 /** 쓰러뜨린 적이 주는 동전: 판이 오를수록 많이 */
 export const reward = (s: DiceState, t: FoeType) => Math.round(FOE[t].coin * (1 + 0.4 * s.stage));
-/** 총알 하나의 힘: 눈이 오를수록 피보나치처럼 커진다 (2 · 3 · 5 · 8 · 13 · 21 · 34) */
-const DMG = [0, 2, 3, 5, 8, 13, 21, 34];
+/** 총알 하나의 힘: 눈 1개 올라갈 때마다 3씩 (2 · 5 · 8 · 11 · 14 · 17 · 20) */
+const DMG = [0, 2, 5, 8, 11, 14, 17, 20];
 export const dmgOf = (p: number) => DMG[Math.min(7, p)];
 const ROLL = 26, SPIN = 30, FIRE = 60, COIN_T = 60, VOLLEY = 5, RESULT_OK = 190, RESULT_FAIL = 170, NEWS_T = 190;
 const STAR_PTS = 100, WIN_PTS = 100;
@@ -438,7 +438,7 @@ function world(s: DiceState) {
     }
     if ((sp.type === 'pot' || sp.type === 'bat' || sp.type === 'boss') && !s.tips.has('spot-' + sp.type)) {
       s.tips.add('spot-' + sp.type);
-      s.spot = { x: f.x, y: f.y, t: s.t, uid: f.uid, text: sp.type === 'pot' ? 'NEW 🪖 냄비 투구 — 눈 1 총알은 팅! 크게 합쳐요' : sp.type === 'bat' ? 'NEW 🦇 박쥐 — 성벽을 질러 날아요, 🔥는 안 닿아요' : '👑 대장 — 문에 닿으면 하트 -2!' };
+      s.spot = { x: f.x, y: f.y, t: s.t, uid: f.uid, text: sp.type === 'pot' ? 'NEW 🪖 냄비 투구 — 눈 1 총알은 팅! 눈 2 이상으로' : sp.type === 'bat' ? 'NEW 🦇 박쥐 — 성벽을 질러 날아요, 🔥는 안 닿아요' : '👑 대장 — 문에 닿으면 하트 -2!' };
     }
   }
   if (d.goal.k === 'pair' && !s.pairOk && s.t % 6 === 0 && pairScore(s.slots, d.goal.n) >= PAIR_NEED) {
@@ -632,7 +632,7 @@ function boardValue(slots: (Die | null)[], th: Th, coinW: number, need: Record<F
     if (d.k === 'cheer') continue;
     const m = d.p * cheerMul(slots, i);
     for (const t of FT) if (th.w[t] > 0) D[t] += m * effBullet(d.k, d.p, t, th.ar[t]);
-    raw += m * effBullet(d.k, d.p, 'slime', 2);
+    raw += m * effBullet(d.k, d.p, 'slime', 3);
   }
   for (const t of FT) if (th.w[t] > 0) v += (th.w[t] / th.tot) * (linear ? D[t] : need[t] * 3 * (1 - Math.exp(-D[t] / need[t])));
   return v + raw * 0.3;
@@ -704,7 +704,7 @@ export function plan(s: DiceState, mem: { safeT: number; safe: boolean }): Plan 
         sum += val(sl);
       }
       let gain = sum / cand.length - base + (thenSummon ? 0.3 : 0);
-      if (g.k === 'pip' && s.maxPip < g.n && y.p + 1 > s.maxPip) gain += 3;
+      if (g.k === 'pip' && s.maxPip < g.n) gain += (y.p + 1 > s.maxPip ? 3 : 0) + (y.p + 1 === g.n - 1 ? 1.5 : 0);
       if (g.k === 'earn' && y.k === 'coin' && s.earned < g.n && !crisis) gain -= 3;
       if (g.k === 'pair' && !s.pairOk && !crisis) {
         const p0 = pairScore(s.slots, g.n), q0 = pairPot(s.slots, g.n);
@@ -1892,7 +1892,7 @@ function drawPanel(ctx: CanvasRenderingContext2D, s: DiceState, w: number, h: nu
     ctx.fillText('다음', ix + R(0.012), iy + ih * 0.16);
     const k0 = s.queue[0], k1 = s.queue[1];
     if (k0) {
-      drawDie(ctx, ix + iw * 0.24, iy + ih * 0.47, R(0.058), k0, 1, { t, face: 'happy' });
+      drawDie(ctx, ix + iw * 0.26, iy + ih * 0.5, R(0.054), k0, 1, { t, face: 'happy' });
       font(0.036, 900);
       ctx.fillStyle = '#fff6e0';
       ctx.fillText(KIND[k0].name, ix + iw * 0.4, iy + ih * 0.42);

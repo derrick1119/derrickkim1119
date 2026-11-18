@@ -591,7 +591,7 @@ function sim(s: CoinState, H: number, prep?: (S: Sim) => void) {
   return value(s, S);
 }
 
-const XS = [0.07, 0.17, 0.27, 0.37, 0.47, 0.57, 0.67, 0.77, 0.87, 0.95];
+const XS = [0.07, 0.19, 0.31, 0.43, 0.55, 0.67, 0.79, 0.93];
 /** 슬롯을 한 번 돌렸을 때 얻는 것의 기댓값 — 릴에 든 그림 수(화면에 보이는 정보)로 셈 */
 function slotEV(s: CoinState, gJack: number, gPair: number[], vc: number) {
   const R = STAGES[s.stage].reels, n = R.length, sl = s.slot;
@@ -1651,13 +1651,13 @@ function drawSlot(ctx: CanvasRenderingContext2D, s: CoinState, t: number, X: (x:
     if (held) {
       ctx.fillStyle = '#1f9a4e';
       ctx.beginPath();
-      ctx.roundRect(rx + rw / 2 - R(0.06), ry + rh - R(0.016), R(0.12), R(0.038), R(0.012));
+      ctx.roundRect(rx + rw / 2 - R(0.06), ry + rh - R(0.042), R(0.12), R(0.036), R(0.012));
       ctx.fill();
       ctx.fillStyle = '#ffffff';
       font(0.032, 900);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('🔒 붙잡음', rx + rw / 2, ry + rh + R(0.003));
+      ctx.fillText('🔒 붙잡음', rx + rw / 2, ry + rh - R(0.023));
     }
   }
   // 리치 / 대기 램프

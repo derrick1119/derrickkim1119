@@ -1961,6 +1961,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DiceState, w: number, h: numb
   // ── 미리 보기: 굴러갈 길 · 멈출 범위 · 결과 ──
   if (pv) {
     const P = pv.pts, o = pv.o;
+    if (s.roll) ctx.globalAlpha = 0.4; // 굴러가는 중엔 흐리게 (떼도 안 던져짐)
     ctx.strokeStyle = 'rgba(255,255,255,.9)';
     ctx.lineWidth = 2.5;
     ctx.setLineDash([R(0.012), R(0.01)]);
@@ -1998,7 +1999,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DiceState, w: number, h: numb
     else if (o.merges === 1) (txt = o.hill ? '언덕 타고 쿵! 합체' : '쿵! 합체'), (col = '#ffd84a');
     else if (o.res === 1) (txt = `여기 서요 (눈 ${pv.die.p})`), (col = '#ffffff');
     if (txt) {
-      const bx = SX(o.x, o.y), by = SY(o.y) - R(0.105);
+      const bx = SX(o.x, o.y), by = SY(o.y) - R(o.merges ? 0.15 : 0.105);
       font(0.036, 900);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -2010,6 +2011,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DiceState, w: number, h: numb
       ctx.fillStyle = col;
       ctx.fillText(txt, Math.max(4 + tw / 2, Math.min(w - tw / 2 - 4, bx)), by + 1);
     }
+    ctx.globalAlpha = 1;
   }
   // 1판 첫 톡 전: 여기를 노려요
   if (s.stage === 0 && !s.firstThrow && s.phase === 'play' && s.towers.length) {

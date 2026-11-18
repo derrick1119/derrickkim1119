@@ -40,7 +40,7 @@ const POISON = 3;
 
 type Mode = 'fixed' | 'first' | 'after' | 'swap';
 type Order = 'fixed' | 'first' | 'after';
-export interface StageDef { key: string; name: string; emoji: string; hp: number; mode: Mode; stop: number; fixed?: number; shield: number; nstar: number; bite?: number; add?: Card[]; pz?: number; news: string; spot: string; tip: string }
+export interface StageDef { key: string; name: string; emoji: string; hp: number; mode: Mode; stop: number; fixed?: number; shield: number; nstar: number; bite?: number; full?: boolean; chase?: boolean; vary?: number[]; add?: Card[]; pz?: number; news: string; spot: string; tip: string }
 /** 별 (쉬운 말, 한 판에 하나씩 늘어난다) */
 export const STAR_TXT = ['괴물 이기기', '한 번도 안 넘치기', '체력 반 넘게 남기기'];
 export const STAGES: StageDef[] = [
@@ -64,6 +64,8 @@ export interface KnightState {
   rng: Rng; seed: number; t: number; stage: number; phase: Phase; pt: number;
   deck: Card[]; pile: Card[]; disc: Card[]; hand: Card[]; mh: Card[];
   hp: number; mhp: number; mmax: number; ex: number; order: Order;
+  /** 이번 겨루기에 괴물이 멈추는 숫자 (변덕쟁이 괴물은 매번 바뀐다) */
+  mstop: number;
   combo: number; busted: boolean; bjN: number; bustN: number; wins: number;
   hearts: number; stars: number; got: number; starOk: boolean[]; pts: number; ok: boolean; why: string; won: boolean; dead: boolean; tries: number; retry: boolean;
   seen: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; events: Ev[]; startT: number; clearT: number;
@@ -159,6 +161,7 @@ function beginExchange(s: KnightState) {
   s.log.push('|');
   const d = STAGES[s.stage];
   s.order = d.mode === 'swap' ? (s.ex % 2 ? 'first' : 'after') : d.mode;
+  s.mstop = d.vary ? d.vary[0] + Math.floor(s.rng() * (d.vary[1] - d.vary[0] + 1)) : d.stop;
   s.res = null;
   s.auto = 0;
   s.phase = s.order === 'first' ? 'mon' : 'deal';
@@ -169,7 +172,8 @@ function beginExchange(s: KnightState) {
 function monNeeds(s: KnightState) {
   const m = rawSum(s.mh);
   if (m >= 21 || s.order === 'fixed') return false;
-  return m < STAGES[s.stage].stop;
+  const d = STAGES[s.stage], k = handSum(s.hand);
+  return m < s.mstop && (!d.chase || m <= (k > 21 ? 0 : k));
 }
 function monDraw(s: KnightState) {
   const c = takeCard(s, true);
@@ -214,7 +218,7 @@ export function outcome(d: StageDef, k: number, mm: number, combo: number, heart
     c2 = combo + 1;
     dm = (a - m) * (a === 21 ? 2 : 1) + (c2 - 1);
     if (d.shield && !pierce) (blocked = Math.min(dm, d.shield)), (dm -= blocked);
-  } else if (m > a) dk = (m - a) * (m === 21 ? 2 : 1) * (d.bite ?? 1);
+  } else if (m > a) dk = (d.full ? m : m - a) * (m === 21 ? 2 : 1) * (d.bite ?? 1);
   return { a, m, bust, mbust, dm, dk, blocked, combo: c2, heal: bust ? 0 : HEAL * hearts, win: a > m ? 1 : m > a ? -1 : 0 };
 }
 
@@ -324,7 +328,7 @@ export const cardknight: GameDef<KnightState> = {
     const s = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'intro', pt: 0,
       deck: START_DECK(), pile: [], disc: [], hand: [], mh: [],
-      hp: KHP, mhp: 1, mmax: 1, ex: 0, order: 'fixed', combo: 0, busted: false, bjN: 0, bustN: 0, wins: 0,
+      hp: KHP, mhp: 1, mmax: 1, ex: 0, order: 'fixed', mstop: 0, combo: 0, busted: false, bjN: 0, bustN: 0, wins: 0,
       hearts: 3, stars: 0, got: 0, starOk: [false, false, false], pts: 0, ok: false, why: '', won: false, dead: false, tries: 0, retry: false,
       seen: new Set<string>(), newsQ: [], news: null, events: [], startT: 0, clearT: 0,
       down: false, ax: 0.5, ay: 0.5, taps: 0, lastTap: -99, land: 0, auto: 0, next: 0,
@@ -450,7 +454,7 @@ function monDist(src: Card[], cont: (m: number) => boolean, start = 0): number[]
   return out;
 }
 
-interface Ctx { d: StageDef; hp: number; mhp: number; mmax: number; combo: number; busted: boolean; bjN: number; order: Order; mknown: number; src: Card[] }
+interface Ctx { d: StageDef; stop: number; hp: number; mhp: number; mmax: number; combo: number; busted: boolean; bjN: number; order: Order; mknown: number; src: Card[] }
 /** 잘하는 봇의 별 무게 (측정 스크립트가 바꿔 볼 수 있게 내보낸다) */
 export const BOTW = { W2: 80, W3: 90 };
 /** 한 차례가 끝났을 때의 값: 괴물 체력을 깎은 몫 − 내 체력 잃은 몫 + 별(안 넘치기 · 체력 반 넘게). pz = 이번에 뽑은 독 카드 수 */
@@ -465,13 +469,16 @@ function util(c: Ctx, k: number, hearts: number, pierce: boolean, pz: number, mm
   if (c.d.nstar >= 3 && c.hp > KHP / 2 && hp <= KHP / 2) u -= BOTW.W3;
   return u;
 }
-const distCache = new WeakMap<object, number[]>();
+const distCache = new WeakMap<object, Map<number, number[]>>();
 function standValue(c: Ctx, k: number, hearts: number, pierce: boolean, pz: number) {
   if (c.order === 'first' || c.order === 'fixed') return util(c, k, hearts, pierce, pz, c.mknown);
-  let dist = distCache.get(c.src);
+  const a = k > 21 ? 0 : k, key = c.d.chase ? a : -1;
+  let dm = distCache.get(c.src);
+  if (!dm) distCache.set(c.src, (dm = new Map()));
+  let dist = dm.get(key);
   if (!dist) {
-    const stop = c.d.stop;
-    distCache.set(c.src, (dist = monDist(c.src, (x) => x < stop)));
+    const stop = c.stop, ch = !!c.d.chase;
+    dm.set(key, (dist = monDist(c.src, (x) => x < stop && (!ch || x <= a))));
   }
   let v = 0;
   for (let mm = 0; mm <= 21; mm++) if (dist[mm] > 1e-6) v += dist[mm] * util(c, k, hearts, pierce, pz, mm === 0 ? 22 : mm);
@@ -498,7 +505,7 @@ export function smartHit(s: KnightState): boolean {
   const d = STAGES[s.stage], k = handSum(s.hand);
   if (k >= 21) return false;
   const src = s.pile.length ? s.pile : s.disc;
-  const c: Ctx = { d, hp: s.hp, mhp: s.mhp, mmax: s.mmax, combo: s.combo, busted: s.busted, bjN: s.bjN, order: s.order, mknown: s.order === 'fixed' ? d.fixed! : rawSum(s.mh), src: s.pile.length >= 6 ? s.pile : [...s.pile, ...s.disc] };
+  const c: Ctx = { d, stop: s.mstop, hp: s.hp, mhp: s.mhp, mmax: s.mmax, combo: s.combo, busted: s.busted, bjN: s.bjN, order: s.order, mknown: s.order === 'fixed' ? d.fixed! : rawSum(s.mh), src: s.pile.length >= 6 ? s.pile : [...s.pile, ...s.disc] };
   const hearts = s.hand.filter((x) => x.su === 1).length, pierce = s.hand.some((x) => x.su === 2);
   const gs = groups(src);
   const st = standValue(c, k, hearts, pierce, 0), ht = hitValue(c, k, hearts, pierce, 0, gs, src.length, gs.length > 14 ? 2 : 3);
@@ -1253,7 +1260,7 @@ function drawFighters(ctx: CanvasRenderingContext2D, s: KnightState, X: F, Y: F,
 function drawSign(ctx: CanvasRenderingContext2D, s: KnightState, X: F, Y: F, R: F, font: FontF) {
   const d = STAGES[s.stage];
   if (s.phase === 'shop' || (s.phase === 'result' && s.ok)) return;
-  const txt = d.mode === 'fixed' ? `늘 ${d.fixed}` : `${d.stop}${ga(d.stop)} 되면 멈춰요`, sub = d.mode === 'fixed' ? '' : s.order === 'after' ? '나중에 뽑아요' : '먼저 뽑아요';
+  const txt = d.mode === 'fixed' ? `늘 ${d.fixed}` : `${s.mstop}${ga(s.mstop)} 되면 멈춰요`, sub = d.mode === 'fixed' ? '' : s.order === 'after' ? '나중에 뽑아요' : '먼저 뽑아요';
   const x = X(MX + 0.02), y = Y(FOOT + 0.065);
   font(0.03, 900);
   const tw = Math.max(ctx.measureText(txt).width, sub ? ctx.measureText(sub).width : 0) + R(0.04), th = R(sub ? 0.075 : 0.045);
