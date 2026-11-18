@@ -40,7 +40,7 @@ const MD: MonDef[] = [
   { key: 'mouse', name: '쥐', hp: 1, spd: 1 / (10 * 60), bash: 150, dmg: 1, fly: false, r: 0.043 },
   { key: 'beetle', name: '갑옷 벌레', hp: 3, spd: 1 / (15 * 60), bash: 90, dmg: 1, fly: false, r: 0.064 },
   { key: 'bat', name: '박쥐', hp: 1, spd: 1 / (9 * 60), bash: 0, dmg: 1, fly: true, r: 0.052 },
-  { key: 'boss', name: '대장 오우거', hp: 10, spd: 1 / (24 * 60), bash: 100, dmg: 2, fly: false, r: 0.1 },
+  { key: 'boss', name: '대장 오우거', hp: 12, spd: 1 / (19 * 60), bash: 100, dmg: 2, fly: false, r: 0.1 },
 ];
 
 interface Group { k: number; n: number; at: number; gap: number; swarm?: boolean }
@@ -170,7 +170,14 @@ function hit(W: World, m: Mon, dmg: number, src: 'arrow' | 'bomb' | 'spear' | 'm
       dmg = m.hp;
       W.shatter++;
       rec?.push({ k: 'shatter', x: m.lx, y: m.d, v: m.id });
-    } else if (m.k === BOSS) dmg = frozen ? 2 : 1;
+    } else if (m.k === BOSS) {
+      // 대장은 화살을 간지러워할 뿐 — 얼었을 때만 아프다
+      if (!frozen) {
+        rec?.push({ k: 'tickle', x: m.lx, y: m.d, v: m.id });
+        return 0;
+      }
+      dmg = 2;
+    }
     else if (frozen) dmg += 1;
   }
   m.hp -= dmg;
@@ -464,7 +471,7 @@ function finish(s: GState, ok: boolean) {
 }
 
 // 화면 배치 (가로 0~1, 세로 0~A)
-export const FT = 0.215, FG = 0.79;
+export const FT = 0.215, FG = 0.752;
 const REEL_X = (i: number) => 0.215 + i * 0.255, REEL_W = 0.235, REEL_Y0 = 0.995, ROW = 0.078, PAY_Y = REEL_Y0 + ROW * 1.5;
 const CARD_X = (i: number) => 0.2 + i * 0.3, CARD_Y = 0.45, CARD_W = 0.27, CARD_H = 0.25, START_Y = 0.665;
 
@@ -629,7 +636,7 @@ export const slotgate: GameDef<GState> = {
       setMood(s, 'dizzy');
       return;
     }
-    if (s.phase === 'play' && waveDone(W) && W.t >= W.w0) {
+    if (s.phase === 'play' && waveDone(W) && W.t >= W.w0 && (s.nextAt < 0 || s.t >= s.nextAt - 10)) {
       if (s.wave + 1 >= d.waves.length) {
         s.phase = 'clear';
         s.pt = 0;
@@ -671,6 +678,7 @@ function playRec(s: GState, rec: Rec[]) {
   for (const e of rec) {
     if (e.k === 'bash') ev(s, 'bash', e.x, 0, undefined, e.v), setMood(s, 'scared');
     else if (e.k === 'ting') ev(s, 'ting', e.x, e.y, '팅!', e.v);
+    else if (e.k === 'tickle') ev(s, 'tickle', e.x, e.y, '간질간질~', e.v);
     else if (e.k === 'shatter') ev(s, 'shatter', e.x, e.y, '와장창!', e.v), see(s, 'shatter', '❄️🏹 얼린 갑옷은 화살에 와장창!');
     else if (e.k === 'arrows') ev(s, 'arrows', 0, 0, undefined, e.v, e.ids);
     else if (e.k === 'bomb') ev(s, 'bomb', e.x, e.y, undefined, e.v);
@@ -692,7 +700,7 @@ function value(s: GState, W: World): number {
   for (const m of W.mons) {
     if (m.out) continue;
     const near = 1 + 2.2 * (1 - m.d);
-    const base = m.k === JELLY ? 12 : m.k === MOUSE ? 14 : m.k === BEETLE ? (m.frz > W.t ? 14 : 26) : m.k === BAT ? 22 : 13;
+    const base = m.k === JELLY ? 12 : m.k === MOUSE ? 14 : m.k === BEETLE ? (m.frz > W.t ? 14 : 26) : m.k === BAT ? 22 : m.frz > W.t ? 14 : 22;
     v -= base * m.hp * near + (m.gate ? 50 * MD[m.k].dmg : 0) + 30;
   }
   const breaks = d.deco ? d.waves.length - 1 - s.wave : 0;
@@ -791,7 +799,8 @@ const NO: Input = { tap: false, dir: 0, pointer: null };
 const pressReel = (i: number): Input => ({ tap: false, dir: 0, pointer: { x: REEL_X(i), y: PAY_Y / A } });
 const at = (x: number, y: number): Input => ({ tap: false, dir: 0, pointer: { x, y: y / A } });
 const brain = new WeakMap<object, Plan>();
-export const BOT = { lam: 0.6 };
+/** 봇의 시간 값: 1틱을 얼마로 칠까 (작을수록 큰 잭팟을 기다린다) */
+const LAM = 0.6;
 
 /** 릴 꾸미기: 남은 파도의 적을 보고 모자란 그림을 더하고 쓸모없는 그림을 뺀다 */
 function decoPick(s: GState): number {
@@ -844,7 +853,7 @@ export const slotgateSmart: Bot<GState> = {
     if (i === 0 && !W.mons.some(alive) && W.bricks >= MAXB && (W.pi >= W.pend.length || W.w0 + W.pend[W.pi].at - W.t > 70)) return NO;
     const key = `${s.stage}:${s.tries}:${s.spinN}:${i}`;
     let pl = brain.get(s);
-    if (!pl || pl.key !== key) brain.set(s, (pl = { ...planSpin(s, BOT.lam), key }));
+    if (!pl || pl.key !== key) brain.set(s, (pl = { ...planSpin(s, LAM), key }));
     if (pl.out === 'wait') {
       if (!pl.until) pl.until = s.t + 30;
       if (s.t >= pl.until) brain.delete(s);
@@ -916,13 +925,13 @@ const backOut = (q: number) => {
 };
 /** 싸움터 원근: 거리 d(0 성문 ~ 1 저 멀리) → 화면 y · 크기 · 길 반폭 */
 const fyD = (d: number) => FG - (FG - FT) * d;
-const fsD = (d: number) => 1 - 0.38 * d;
+const fsD = (d: number) => 1 - 0.3 * d;
 const fhw = (d: number) => 0.37 - 0.2 * d;
 const fxL = (lx: number, d: number) => 0.5 + lx * fhw(d);
 const MON_EMOJI = ['🟢', '🐭', '🪲', '🦇', '👹'];
 const SYM_COL = ['#ffd36b', '#ff8a5b', '#e8a46a', '#8fe3ff', '#ffe066', '#7dff9a'];
 type P = (v: number) => number;
-interface Ctx2 { ctx: CanvasRenderingContext2D; X: P; Y: P; R: P; w: number; h: number; t: number }
+interface Ctx2 { ctx: CanvasRenderingContext2D; X: P; Y: P; R: P; w: number; h: number; t: number; party?: boolean }
 
 function emoji(c: CanvasRenderingContext2D, e: string, x: number, y: number, size: number) {
   c.fillStyle = '#ffffff';
@@ -1153,6 +1162,8 @@ function drawMon(G: Ctx2, W: World, m: Mon, mini = false, mx = 0, my = 0, msc = 
   const lastBash = m.gate ? m.bashAt - df.bash : -99;
   if (!mini && m.gate && !dead && t - lastBash < 14 && t >= lastBash) ctx.translate(0, -u * 0.35 * Math.sin(((t - lastBash) / 14) * Math.PI) * -1);
   const walk = mini || frozen || dead ? 0 : Math.sin(t * 0.22 + m.ph * 3);
+  // 성문이 부서지면 몬스터들이 신나서 폴짝
+  if (!mini && !dead && G.party) ctx.translate(0, -Math.abs(Math.sin(t * 0.3 + m.id)) * u * 0.8);
   const face = frozen ? 'frozen' : dead ? 'ouch' : t - m.hitT < 12 ? 'ouch' : m.gate ? 'angry' : 'walk';
   if (m.k === JELLY) drawJelly(ctx, u, walk, face, t);
   else if (m.k === MOUSE) drawMouse(ctx, u, walk, face, t, m.id);
@@ -1684,7 +1695,22 @@ function drawWall(G: Ctx2, s: GState) {
   ctx.lineTo(X(gx1 + 0.012), Y(face1));
   ctx.fill();
   const shake = s.events.some((e) => e.kind === 'bash' && s.t - e.t < 8) ? Math.sin(t * 2) * 1.5 : 0;
-  for (const side of [0, 1]) {
+  const broken = G.party;
+  if (broken) {
+    // 문짝이 와르르 넘어졌다
+    const ft = Math.min(1, (s.phase === 'fail' ? s.pt : 99) / 18);
+    for (const side of [-1, 1]) {
+      ctx.save();
+      ctx.translate(X(0.5 + side * 0.1), Y(face1));
+      ctx.rotate(side * ft * 1.2);
+      ctx.fillStyle = '#7a4c28';
+      ctx.fillRect(side > 0 ? -X(0.1) : 0, -Y(0.09), X(0.1), Y(0.09));
+      ctx.fillStyle = '#3d3540';
+      ctx.fillRect(side > 0 ? -X(0.1) : 0, -Y(0.06), X(0.1), Y(0.008));
+      ctx.restore();
+    }
+  }
+  for (const side of broken ? [] : [0, 1]) {
     const x0 = side ? 0.5 : gx0, x1 = side ? gx1 : 0.5;
     const dg = ctx.createLinearGradient(X(x0), 0, X(x1), 0);
     dg.addColorStop(0, '#9a6638');
@@ -2171,10 +2197,10 @@ function drawFx(G: Ctx2, s: GState, th: Theme) {
   const say = (x: number, y: number, txt: string, col: string, size: number) => {
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
-    y = Math.max(Y(0.17), Math.min(Y(1.3), y));
+    y = Math.max(Y(0.24), Math.min(Y(1.3), y));
     const dir = y < Y(0.3) ? 1 : -1;
     for (let k = 0; k < 6 && rec.some((q) => t - q.t < 40 && Math.abs(q.x - x) < w * 0.3 && Math.abs(q.y - y) < size + 4); k++) y += dir * (size + 5);
-    y = Math.max(Y(0.17), y);
+    y = Math.max(Y(0.24), y);
     rec.push({ x, y, t });
     if (rec.length > 14) rec.shift();
     ctx.font = `800 ${size}px system-ui, sans-serif`;
@@ -2183,7 +2209,7 @@ function drawFx(G: Ctx2, s: GState, th: Theme) {
   };
   const byId = new Map<number, Mon>();
   for (const m of W.mons) byId.set(m.id, m);
-  const DELAY: Record<string, number> = { bomb: 12, bombN: 15, arrows: 10, ting: 10, shatter: 10, brick: 16, coin: 22 };
+  const DELAY: Record<string, number> = { bomb: 12, bombN: 15, arrows: 10, ting: 10, tickle: 10, shatter: 10, brick: 16, coin: 22 };
   const seenT = fx.memo.t ?? -1;
   for (const e of s.events) {
     const due = e.t + (DELAY[e.kind] ?? 0);
@@ -2270,12 +2296,13 @@ function drawFx(G: Ctx2, s: GState, th: Theme) {
       case 'spear':
         say(X(fxL(e.x, 0) + 0.04), Y(FG - 0.07), '콕!', '#fff3c0', Math.round(R(0.04)));
         break;
-      case 'ting': {
+      case 'ting':
+      case 'tickle': {
         const m = byId.get(e.v ?? -1);
         if (m) {
           const p = monPos(W, m);
           fx.burst(X(p.x), Y(p.y - 0.04), '#ffffff', 6, 2, 1.5);
-          say(X(p.x), Y(p.y - 0.08), '팅!', '#c7d0ff', Math.round(R(0.04)));
+          say(X(p.x), Y(p.y - (e.kind === 'tickle' ? 0.16 : 0.08)), e.text!, e.kind === 'tickle' ? '#ffd6f0' : '#c7d0ff', Math.round(R(0.04)));
         }
         break;
       }
@@ -2643,15 +2670,51 @@ function drawSpot(G: Ctx2, s: GState) {
   }
 }
 
+/** 길가 덤불에서 고개 내민 토끼 구경꾼: 잭팟엔 폴짝, 성문이 맞으면 쏙 숨는다 */
+function drawBunnies(G: Ctx2, s: GState) {
+  const { ctx, X, Y, R, t } = G;
+  const jack = s.lastOut && s.lastOut.n === 3 && s.t - s.stopAt < 60;
+  const hide = s.events.some((e) => e.kind === 'bash' && s.t - e.t < 40) || G.party;
+  for (const [bx, d, col] of [[0.06, 0.42, '#f4efe8'], [0.95, 0.62, '#d9b48c']] as const) {
+    const sc = fsD(d), x = X(bx), y = Y(fyD(d));
+    const up = hide ? 0.25 : jack ? 1 + Math.abs(Math.sin(t * 0.3 + bx * 9)) * 0.9 : 0.85 + 0.15 * Math.sin(t / 40 + bx * 5);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x - R(0.05), y - R(0.2), R(0.1), R(0.2) - R(0.008 * sc));
+    ctx.clip();
+    const u = R(0.022 * sc), by = y - R(0.012 * sc) - u * 1.6 * up;
+    ctx.fillStyle = col;
+    for (const sx of [-1, 1]) (ctx.beginPath(), ctx.ellipse(x + sx * u * 0.35, by - u * 1.3, u * 0.22, u * 0.7, sx * 0.15, 0, TAU), ctx.fill());
+    ctx.fillStyle = '#ffb6c8';
+    for (const sx of [-1, 1]) (ctx.beginPath(), ctx.ellipse(x + sx * u * 0.35, by - u * 1.3, u * 0.1, u * 0.45, sx * 0.15, 0, TAU), ctx.fill());
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.arc(x, by, u * 0.75, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#2a1d22';
+    for (const sx of [-1, 1]) (ctx.beginPath(), ctx.arc(x + sx * u * 0.28, by - u * 0.05, u * (jack ? 0.08 : 0.12), 0, TAU), ctx.fill());
+    ctx.fillStyle = '#ff8fa8';
+    ctx.beginPath();
+    ctx.arc(x, by + u * 0.2, u * 0.1, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+    // 덤불 앞쪽
+    ctx.fillStyle = '#3f8a48';
+    for (let j = 0; j < 3; j++) (ctx.beginPath(), ctx.arc(x + R((j - 1) * 0.025 * sc), y - R(0.008 * sc), R(0.022 * sc), Math.PI, TAU), ctx.fill());
+    if (jack) text(ctx, '와아!', x + (bx < 0.5 ? R(0.04) : -R(0.04)), by - u * 2.4, R(0.03), '#ffffff', 'center', 900, 'rgba(0,0,0,.45)');
+  }
+}
+
 function drawAll(ctx: CanvasRenderingContext2D, s: GState, w: number, h: number, th: Theme) {
   const X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w;
-  const G: Ctx2 = { ctx, X, Y, R, w, h, t: s.t };
+  const G: Ctx2 = { ctx, X, Y, R, w, h, t: s.t, party: s.phase === 'fail' || (s.phase === 'result' && !s.ok) };
   const fx = juice(s), W = s.W;
   ctx.save();
   fx.begin(ctx);
   ctx.fillStyle = th.bg;
   ctx.fillRect(-10, -10, w + 20, h + 20);
   drawWorld(G);
+  drawBunnies(G, s);
   drawPreview(G, s);
   // 몬스터: 먼 것부터
   const ms = W.mons.filter((m) => !m.out || W.t - m.out < 52).sort((a, b) => b.d - a.d || a.id - b.id);

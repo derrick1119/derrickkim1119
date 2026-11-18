@@ -34,6 +34,8 @@ export interface Card { v: number; su: Su }
 const C = (v: number, su: Su = 0): Card => ({ v, su });
 export const handSum = (h: Card[]) => h.reduce((a, c) => a + c.v, 0);
 const rawSum = handSum;
+/** 숫자 뒤 조사 (15가 · 16이) */
+const ga = (n: number) => ([2, 4, 5, 9].includes(n % 10) ? '가' : '이');
 const POISON = 3;
 
 type Mode = 'fixed' | 'first' | 'after' | 'swap';
@@ -179,14 +181,14 @@ function monDraw(s: KnightState) {
   if (c.su === 3) (s.mhp = Math.max(1, s.mhp - POISON)), ev(s, 'mpoison', MX, 0.66, `☠ 괴물도 따끔! -${POISON}`, '#d9a8ff', s.t + FLY), see(s, 'poison', '☠ 독 카드 — 뽑은 쪽 체력 -3, 괴물이 뽑아도!');
   if (m > 21) ev(s, 'mbust', MX, 0.7, '괴물이 넘쳤다! 펑', '#c8f7c5', s.t + FLY + 4);
 }
-function knightDraw(s: KnightState) {
+function knightDraw(s: KnightState, tap = false) {
   const c = takeCard(s, false);
   if (!c) return;
   s.hand.push(c);
   s.fly.push({ c, to: 0, t0: s.t });
   s.land = s.t + FLY;
   const k = handSum(s.hand);
-  ev(s, 'card', KX + 0.17, HAND_Y + 0.02, c.su === 3 ? '☠ 0' : `+${c.v}`, c.su === 3 ? '#d9a8ff' : '#fff6e0', s.land);
+  ev(s, tap ? 'card' : 'deal', KX + 0.16, HAND_Y + 0.07, c.su === 3 ? '☠ 0' : `+${c.v}`, c.su === 3 ? '#d9a8ff' : '#fff6e0', s.land);
   if (c.su === 3) (s.hp = Math.max(1, s.hp - POISON)), ev(s, 'poison', KX, 0.66, `☠ 따끔! -${POISON}`, '#d9a8ff', s.land), see(s, 'poison', '☠ 독 카드 — 뽑은 쪽 체력 -3, 괴물이 뽑아도!');
   if (c.su === 1) see(s, 'heart', '♥ 하트 카드 — 넘치지 않고 베면 체력 +3');
   if (c.su === 2 && STAGES[s.stage].shield) see(s, 'spade', '♠ 카드가 칼에 있으면 등딱지를 꿰뚫어요');
@@ -362,7 +364,7 @@ export const cardknight: GameDef<KnightState> = {
           return;
         }
         if (!press || s.t < s.land) return;
-        if (inDeck(x, y)) (s.taps++, s.log.push('d'), knightDraw(s));
+        if (inDeck(x, y)) (s.taps++, s.log.push('d'), knightDraw(s, true));
         else if (inKnight(x, y) || inMon(x, y)) (s.taps++, s.log.push('k'), stand(s));
         else ev(s, 'miss', x, y, '더미 톡 = 한 장 더 · 기사 톡 = 베기', '#fff3df');
         return;
@@ -621,13 +623,14 @@ function drawAll(ctx: CanvasRenderingContext2D, s: KnightState, w: number, h: nu
     const x = X(e.x), y = Y(e.y);
     if (e.kind === 'card') fx.burst(x, y, '#fff3c4', 8, 1.8, 1.6), fx.pop(x, y - R(0.07), e.text!, e.col!, 16);
     if (e.kind === 'mcard') fx.burst(x, y, '#ffd6b0', 6, 1.5, 1.5);
-    if (e.kind === 'mbust') fx.kick(5), fx.burst(X(MX), Y(0.72), '#c8f7c5', 26, 4, 2.6), fx.ring(X(MX), Y(0.72), '#c8f7c5', R(0.16), 4), fx.pop(X(0.68), Y(0.4), e.text!, e.col!, 18);
-    if (e.kind === 'bust') fx.kick(9), fx.burst(X(KX + 0.12), Y(0.86), '#e9d3a6', 26, 3.6, 2.8), fx.pop(X(0.3), Y(0.62), e.text!, e.col!, 26);
+    if (e.kind === 'deal') fx.burst(X(KX), Y(HAND_Y), '#fff3c4', 6, 1.5, 1.5);
+    if (e.kind === 'mbust') fx.kick(5), fx.burst(X(MX), Y(0.8), '#c8f7c5', 26, 4, 2.6), fx.ring(X(MX), Y(0.8), '#c8f7c5', R(0.16), 4);
+    if (e.kind === 'bust') fx.kick(9), fx.burst(X(KX + 0.12), Y(0.9), '#e9d3a6', 26, 3.6, 2.8);
     if (e.kind === 'bj') {
       fx.blink('#fff3b0', 0.5), fx.kick(12), fx.ring(X(0.5), Y(0.62), '#ffe066', R(0.5), 8);
       fx.burst(X(0.5), Y(0.62), '#ffe066', 50, 7, 3.4), fx.burst(X(0.5), Y(0.62), '#ff8fd8', 30, 6, 3);
     }
-    if (e.kind === 'hit') fx.kick(e.col === '#ffe066' ? 10 : 5), fx.burst(X(MX), Y(0.72), e.col!, 18, 4, 2.4), fx.pop(X(MX), Y(0.6), e.text!, e.col!, 26), fx.ring(X(MX), Y(0.72), '#ffffff', R(0.12), 4);
+    if (e.kind === 'hit') fx.kick(e.col === '#ffe066' ? 10 : 5), fx.burst(X(MX), Y(0.8), e.col!, 18, 4, 2.4), !(s.res && (s.res.bj || s.res.mbust)) && fx.pop(X(MX), Y(0.66), e.text!, e.col!, 26), fx.ring(X(MX), Y(0.8), '#ffffff', R(0.12), 4);
     if (e.kind === 'shield' || e.kind === 'pierce') fx.pop(x, y, e.text!, e.col!, 16), fx.ring(X(MX), Y(0.72), '#cfe3ff', R(0.1), 3);
     if (e.kind === 'combo') fx.pop(x, y, e.text!, e.col!, 20), fx.burst(x, y, '#ffb3ec', 14, 3, 2);
     if (e.kind === 'hurt') fx.kick(6), fx.blink(th.hot, 0.18), fx.burst(X(KX), Y(0.72), '#ff9a8a', 16, 3.4, 2.4), fx.pop(X(KX), Y(0.6), e.text!, e.col!, 24);
@@ -847,7 +850,18 @@ function drawBars(ctx: CanvasRenderingContext2D, s: KnightState, X: F, Y: F, R: 
   ctx.textAlign = 'left';
   ctx.fillStyle = '#ffffff';
   ctx.fillText('🐰', X(0.025), y + bh / 2);
-  bar(ctx, X(0.09), y, bw, bh, khp / KHP, khp <= 8 ? '#ff6a5a' : '#5fd47a', kg / KHP);
+  bar(ctx, X(0.09), y, bw, bh, khp / KHP, khp <= KHP / 2 ? '#ff8a5a' : '#5fd47a', kg / KHP);
+  if (d.nstar >= 3) {
+    // 별 '체력 반 넘게' 눈금
+    const mx = X(0.09) + bw / 2;
+    ctx.fillStyle = '#ffe066';
+    ctx.beginPath();
+    ctx.moveTo(mx - R(0.012), y - R(0.014));
+    ctx.lineTo(mx + R(0.012), y - R(0.014));
+    ctx.lineTo(mx, y + R(0.002));
+    ctx.fill();
+    ctx.fillRect(mx - 1, y + 1, 2, bh - 2);
+  }
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
   font(0.028, 900);
@@ -1135,10 +1149,13 @@ function drawFighters(ctx: CanvasRenderingContext2D, s: KnightState, X: F, Y: F,
     ctx.fillStyle = '#ffffff';
     ctx.fillText(d.emoji, 0, 0);
     if (mflash) {
-      ctx.globalCompositeOperation = 'source-atop';
-      ctx.fillStyle = 'rgba(255,255,255,.7)';
-      ctx.fillRect(-sz / 2, -sz / 2, sz, sz);
-      ctx.globalCompositeOperation = 'source-over';
+      // 맞은 순간 하얗게 번쩍 (그림자 빛으로 — 다른 그림을 덮지 않게)
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = sz * 0.4;
+      ctx.globalAlpha = 0.8;
+      ctx.fillText(d.emoji, 0, 0);
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
     }
     ctx.restore();
     // 등딱지
@@ -1186,7 +1203,7 @@ function drawFighters(ctx: CanvasRenderingContext2D, s: KnightState, X: F, Y: F,
       ang = -0.2 + fall * 0.55;
     } else if (r.win >= 0 || !r.bust) {
       const sw = clamp01((age - 6) / 12), back = clamp01((age - 40) / 20);
-      ang = ang + (0.75 - ang + 0.0) * sw * (1 - back) + (r.a ? 0 : 0);
+      ang = ang + (-0.06 - ang) * sw * (1 - back);
       if (age > 6 && age < 46) kx = KX + 0.06 * Math.sin(clamp01((age - 6) / 30) * Math.PI);
       if (r.bj) {
         const ext = clamp01((age - 16) / 12) * (1 - clamp01((age - 70) / 20));
@@ -1236,7 +1253,7 @@ function drawFighters(ctx: CanvasRenderingContext2D, s: KnightState, X: F, Y: F,
 function drawSign(ctx: CanvasRenderingContext2D, s: KnightState, X: F, Y: F, R: F, font: FontF) {
   const d = STAGES[s.stage];
   if (s.phase === 'shop' || (s.phase === 'result' && s.ok)) return;
-  const txt = d.mode === 'fixed' ? `늘 ${d.fixed}` : `${d.stop}이 되면 멈춰요`, sub = d.mode === 'fixed' ? '' : s.order === 'after' ? '나중에 뽑아요' : '먼저 뽑아요';
+  const txt = d.mode === 'fixed' ? `늘 ${d.fixed}` : `${d.stop}${ga(d.stop)} 되면 멈춰요`, sub = d.mode === 'fixed' ? '' : s.order === 'after' ? '나중에 뽑아요' : '먼저 뽑아요';
   const x = X(MX + 0.02), y = Y(FOOT + 0.065);
   font(0.03, 900);
   const tw = Math.max(ctx.measureText(txt).width, sub ? ctx.measureText(sub).width : 0) + R(0.04), th = R(sub ? 0.075 : 0.045);
@@ -1436,7 +1453,7 @@ function drawBoard(ctx: CanvasRenderingContext2D, s: KnightState, X: F, Y: F, R:
     if (c.su === 3) pzn++;
     else cnt[c.v]++, c.su === 1 && hrt[c.v]++, c.su === 2 && spd[c.v]++;
   }
-  const k = handSum(s.hand), mine = s.phase === 'me' && !s.auto;
+  const k = handSum(s.hand), mine = s.phase === 'me' && !s.auto && s.t >= s.land;
   const y0 = Y(BOARD_Y);
   ctx.fillStyle = 'rgba(20,10,30,.75)';
   ctx.beginPath();
@@ -1453,14 +1470,28 @@ function drawBoard(ctx: CanvasRenderingContext2D, s: KnightState, X: F, Y: F, R:
     ctx.textAlign = 'right';
     ctx.fillStyle = red ? '#ffb0a8' : '#b8ffb0';
     ctx.fillText(red ? `넘치는 카드 ${red}장 / ${red + safe + pzn}장` : '어떤 카드도 안 넘쳐요!', w - X(0.035), y0 - R(0.008));
-  } else if (pzn) {
-    ctx.textAlign = 'right';
-    ctx.fillStyle = '#d9a8ff';
-    ctx.fillText(`☠ 독 카드 ${pzn}장`, w - X(0.035), y0 - R(0.008));
   }
-  const cw = R(0.072), gap = (w - X(0.06)) / 10;
+  // 독 카드가 있는 판은 맨 앞에 ☠ 칸 (0)
+  const pzStage = !!STAGES[s.stage].pz, v0 = pzStage ? 0 : 1, cols = 11 - v0;
+  const cw = R(pzStage ? 0.068 : 0.072), gap = (w - X(0.06)) / cols;
+  if (pzStage) {
+    const x = X(0.03) + gap * 0.5, y = y0 + R(0.05);
+    ctx.globalAlpha = pzn ? 1 : 0.35;
+    ctx.fillStyle = '#c9a2ff';
+    ctx.beginPath();
+    ctx.roundRect(x - cw / 2, y - R(0.03), cw, R(0.06), R(0.01));
+    ctx.fill();
+    ctx.font = `${Math.max(12, R(0.036))}px system-ui`;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('☠️', x, y - R(0.003));
+    ctx.globalAlpha = 1;
+    font(0.03, 900);
+    ctx.fillStyle = pzn ? '#e0c4ff' : 'rgba(255,255,255,.35)';
+    ctx.fillText(`×${pzn}`, x, y + R(0.048));
+  }
   for (let v = 1; v <= 10; v++) {
-    const x = X(0.03) + gap * (v - 0.5), y = y0 + R(0.05), n = cnt[v];
+    const x = X(0.03) + gap * (v - v0 + 0.5), y = y0 + R(0.05), n = cnt[v];
     const bust = mine && k + v > 21, bj = mine && k + v === 21;
     ctx.globalAlpha = n ? 1 : 0.35;
     ctx.fillStyle = bust ? '#ffb4a8' : bj ? '#ffe066' : '#fffaf0';
@@ -1527,7 +1558,8 @@ function drawSpot(ctx: CanvasRenderingContext2D, s: KnightState, w: number, X: F
   if (age < 0 || age > 150) return;
   let x = 0.5, y = BOARD_Y + 0.04, rr = 0.2;
   if (d.key === 'turtle') (x = 0.5), (y = BOARD_Y + 0.04), (rr = 0.22);
-  if (d.key === 'wolf' || d.key === 'owl' || d.key === 'dragon') (x = MX), (y = HAND_Y - 0.1), (rr = 0.16);
+  if (d.key === 'wolf' || d.key === 'dragon') (x = MX), (y = HAND_Y - 0.1), (rr = 0.16);
+  if (d.key === 'scorp') (x = 0.03 + 0.94 / 22), (y = BOARD_Y + 0.05), (rr = 0.07);
   const a = Math.min(1, age / 10, (150 - age) / 18), cx = X(x), cy = Y(y), r = R(rr) * (1 + 0.04 * Math.sin(age * 0.2));
   ctx.save();
   ctx.globalAlpha = a;
@@ -1564,8 +1596,8 @@ function drawShop(ctx: CanvasRenderingContext2D, s: KnightState, w: number, X: F
   const t = s.t, a = Math.min(1, s.pt / 12);
   ctx.save();
   ctx.globalAlpha = a;
-  ctx.fillStyle = 'rgba(16,8,28,.82)';
-  ctx.fillRect(0, Y(0.4), w, Y(1.19) - Y(0.4));
+  ctx.fillStyle = 'rgba(16,8,28,.95)';
+  ctx.fillRect(0, Y(0.4), w, Y(1.17) - Y(0.4));
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = `${Math.max(20, R(0.1))}px system-ui`;
@@ -1576,7 +1608,10 @@ function drawShop(ctx: CanvasRenderingContext2D, s: KnightState, w: number, X: F
   ctx.fillText('카드 가게', X(0.5), Y(0.47));
   font(0.032, 800);
   ctx.fillStyle = '#e8dcff';
-  ctx.fillText('하나 골라 톡 — 덱을 고쳐요 (괴물도 같은 더미!)', X(0.5), Y(0.53));
+  ctx.fillText('하나 골라 톡 — 덱을 고쳐요', X(0.55), Y(0.53));
+  font(0.028, 800);
+  ctx.fillStyle = '#ffb3a8';
+  ctx.fillText('괴물도 같은 더미에서 뽑아요!', X(0.55), Y(0.575));
   for (let i = 0; i < s.offers.length; i++) {
     const o = s.offers[i], picked = s.picked === i, other = s.picked >= 0 && !picked;
     const x = X(offerX(i)), y = Y(OFFER_Y) - (picked ? Math.min(1, (t - s.pickT) / 10) * R(0.04) : 0), bw = R(OFFER_W), bh = R(OFFER_H);
@@ -1638,7 +1673,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: KnightState, d: StageDef, w: 
     font(0.032, 900);
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffb3ec';
-    ctx.fillText(`🔥 연속 ${s.combo}번 이김`, w / 2, Y(0.405));
+    ctx.fillText(`🔥 연속 ${s.combo}번`, w / 2, Y(0.465));
   }
   // 새것 알림
   if (s.news && t - s.news.t < NEWS_T + 20 && s.phase !== 'intro') {
@@ -1737,7 +1772,9 @@ function drawHud(ctx: CanvasRenderingContext2D, s: KnightState, d: StageDef, w: 
     const y2 = Y(1.375), n = d.nstar;
     const st = STAR_TXT.slice(0, n).map((txt, k) => ({ txt, ok: k === 0 ? (s.phase === 'result' && s.ok ? true : null) : k === 1 ? (s.busted ? false : s.phase === 'result' && s.ok ? true : null) : s.hp <= KHP / 2 ? false : s.phase === 'result' && s.ok ? true : null }));
     font(0.03, 800);
-    const pad = R(0.02), gap = R(0.012);
+    let pad = R(0.02), gap = R(0.012);
+    const raw = STAR_TXT.slice(0, n).reduce((a2, c) => a2 + ctx.measureText(`☆ ${c}`).width, 0);
+    if (raw + n * pad * 2 + gap * (n - 1) > w - 6) (pad = Math.max(3, (w - 6 - raw - gap * (n - 1)) / (n * 2))), (gap = 3);
     const ws = st.map((c) => ctx.measureText(`☆ ${c.txt}`).width + pad * 2);
     let x = (w - ws.reduce((a2, b) => a2 + b, 0) - gap * (n - 1)) / 2;
     st.forEach((c, k) => {

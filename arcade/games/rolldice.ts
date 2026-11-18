@@ -750,21 +750,23 @@ function plan(s: DiceState): Plan | null {
   if (base.leaks === 0 && !wantStar) return null;
   // 1) 후보를 굴려만 본다 (수비 없이) → 덮기 점수로 추린다
   const c0 = cover(s);
-  const pre: { q: { x: number; y: number }; h: number; o: Outcome }[] = [];
+  const pre: { q: { x: number; y: number }; h: number; h0: number; o: Outcome }[] = [];
   for (const q of cands(s, die)) {
     const o = tryThrow(s, q.x, q.y, die, 0, 0, false);
     if (o.res === 3) continue;
-    let h = cover(o.S) - c0;
+    const h0 = cover(o.S) - c0;
+    let h = h0;
     if (wantStar) {
       if (d.third !== 'boss' && thirdBy(d, o, o.S)) h += 1e5;
       if (d.third === 'chain') h += chainReady(o.S, s, s.bi + 1) * 400;
       if (d.third === 'hill' && o.hill) h += 300;
       if (d.third === 'boss') h += (cover(o.S, true) - cover(s, true)) * 2;
     }
-    pre.push({ q, h, o });
+    pre.push({ q, h, h0, o });
   }
-  pre.sort((a, b) => b.h - a.h);
-  const top = pre.slice(0, 10);
+  // 막기에 좋은 자리 7곳 + 별에 좋은 자리 5곳
+  const top = [...pre].sort((a, b) => b.h0 - a.h0).slice(0, 7);
+  if (wantStar) for (const it of [...pre].sort((a, b) => b.h - a.h).slice(0, 5)) if (!top.includes(it)) top.push(it);
   const shape = (F: Sim, S: Sim) =>
     !wantStar ? 0 : d.third === 'boss' ? 2e5 * (1 - Math.min(1, F.bossAt)) : d.third === 'chain' ? chainReady(S, s, s.bi + 1) * 3e4 : d.third === 'big5' ? 1e4 * Math.max(0, ...S.towers.map((t) => t.p)) : 0;
   const baseV = -1e6 * base.leaks - 2e5 * base.lhp + 300 * base.marg + (base.leaks ? 0 : (wantStar && d.third === 'boss' && base.bossAt <= 0.5 ? 4e5 : 0) + shape(base, s));
@@ -1847,13 +1849,27 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DiceState, w: number, h: numb
     const u = age / 9, x0 = SX(q.x0, q.y0), y0 = SY(q.y0) - dieHS(q.p, q.y0) * 2.4, x1 = SX(q.x1, q.y1), y1 = SY(q.y1) - R(0.03);
     const x = x0 + (x1 - x0) * u, y = y0 + (y1 - y0) * u - Math.sin(u * Math.PI) * R(0.05);
     const col = q.c === FIREC ? '#ff8a3a' : q.c === ICE ? '#bff0ff' : q.c === 3 ? '#ffe066' : '#ffffff';
+    const u0 = Math.max(0, u - 0.18), xb = x0 + (x1 - x0) * u0, yb = y0 + (y1 - y0) * u0 - Math.sin(u0 * Math.PI) * R(0.05), br = R(0.009 + 0.0014 * Math.min(6, q.p));
+    ctx.strokeStyle = col;
+    ctx.globalAlpha = 0.45;
+    ctx.lineWidth = br * 1.2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(xb, yb);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
     ctx.fillStyle = col;
     ctx.shadowColor = col;
     ctx.shadowBlur = 6;
     ctx.beginPath();
-    ctx.arc(x, y, R(0.007 + 0.0012 * Math.min(6, q.p)), 0, TAU);
+    ctx.arc(x, y, br, 0, TAU);
     ctx.fill();
     ctx.shadowBlur = 0;
+    ctx.fillStyle = q.c === PLAIN ? '#2a2f45' : '#ffffff';
+    ctx.beginPath();
+    ctx.arc(x, y, br * 0.35, 0, TAU);
+    ctx.fill();
     if (q.c === FIREC) {
       ctx.fillStyle = 'rgba(255,200,80,.6)';
       ctx.beginPath();
@@ -2021,10 +2037,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: DiceState, w: number, h: numb
     if (e.kind === 'throw') fx.burst(X(0.5), castleY - R(0.13), '#ffffff', 10, 2.2, 2), fx.pop(X(0.5), castleY - R(0.2), '데굴데굴~', '#fff3c0', 15);
     if (e.kind === 'stand') fx.burst(x, y, '#e8d8b0', 12, 2.2, 2), fx.ring(x, y, '#ffffff', R(0.05), 2), fx.pop(x, y - R(0.09), '섰다!', '#ffffff', 14), fx.kick(1.5);
     if (e.kind === 'bonk') fx.burst(x, y - R(0.02), '#ffffff', 8, 2, 1.8), fx.kick(2.5), fx.pop(x, y - R(0.07), e.text ?? '통!', '#ffe3b0', 14);
-    if (e.kind === 'merge') fx.burst(x, y - R(0.03), LV[Math.min(7, e.c!)], 26, 4.4, 2.8), fx.ring(x, y, '#ffe066', R(0.11), 5), fx.kick(5 + e.c!), fx.pop(x, y - R(0.12), `쿵! 눈 ${e.c}`, '#ffe066', 20);
+    if (e.kind === 'merge') fx.burst(x, y - R(0.03), LV[Math.min(7, e.c!)], 26, 4.4, 2.8), fx.ring(x, y, '#ffe066', R(0.11), 5), fx.kick(5 + e.c!), fx.pop(x, y - R(0.09), `쿵! 눈 ${e.c}`, '#ffe066', 19);
     if (e.kind === 'chain') {
       fx.burst(x, y - R(0.03), '#ffd84a', 40, 5.5, 3), fx.burst(x, y, LV[Math.min(7, e.c!)], 26, 4.5, 2.6), fx.ring(x, y, '#ffffff', R(0.18), 6), fx.ring(x, y, '#ffd84a', R(0.26), 4);
-      fx.kick(9 + e.n!), fx.blink('#fff6c8', 0.25), fx.pop(x, y - R(0.2), `연쇄 ${e.n}번! 눈 ${e.c}`, '#ffd84a', 22 + e.n! * 2);
+      fx.kick(9 + e.n!), fx.blink('#fff6c8', 0.25), fx.pop(x, y - R(0.23), `연쇄 ${e.n}번! 눈 ${e.c}`, '#ffd84a', 22 + e.n! * 2);
     }
     if (e.kind === 'king') fx.burst(x, y, '#ffd23a', 70, 7, 3.4), fx.burst(x, y, '#ffffff', 40, 5, 3), fx.ring(x, y, '#ffd23a', R(0.35), 8), fx.kick(14), fx.blink('#fff2a0', 0.45), fx.pop(x, y - R(0.18), '👑 왕 주사위!', '#ffe066', 26);
     if (e.kind === 'sink') fx.burst(x, y, '#9fe3ff', 26, 4, 2.6), fx.ring(x, y, '#ffffff', R(0.08), 4), fx.kick(4), fx.pop(x, y - R(0.08), '퐁당!', '#bfeaff', 18);
@@ -2229,8 +2245,8 @@ function drawHud(ctx: CanvasRenderingContext2D, s: DiceState, d: StageDef, w: nu
   const live = [s.phase === 'result' && s.ok, leftDice(s) >= d.left, ok3];
   const lost = [s.phase === 'result' && !s.ok, leftDice(s) < d.left, d.third === 'boss' && s.bossAt > 0.5 && s.bossAt < 9];
   for (let k = 0; k < n; k++) {
-    const yy = Y(ty + 0.155 + k * 0.04), okk = s.phase === 'result' && s.ok ? s.starOk[k] : k === 0 ? false : live[k] && (k !== 1 || s.phase === 'result');
-    const bad = lost[k];
+    const yy = Y(ty + 0.155 + k * 0.04), failed = s.phase === 'result' && !s.ok, okk = failed ? false : s.phase === 'result' ? s.starOk[k] : k === 0 ? false : live[k] && k !== 1;
+    const bad = failed || lost[k];
     ctx.fillStyle = okk ? '#ffd84a' : bad ? 'rgba(255,255,255,.3)' : 'rgba(255,255,255,.65)';
     font(0.036, 900);
     ctx.textAlign = 'left';

@@ -155,6 +155,8 @@ const SYM_NAME = ['동전 2개 더', '다음은 왕동전', '밀대 힘내!', '�
 /** 무지개(무엇과도 짝) · 꽝(짝이 돼도 아무것도 없음) */
 const R_ = 4, N_ = 5;
 const JACK_COINS = 11;
+/** 잭팟 동전이 슬롯에서 선반까지 떨어지는 틱 */
+const WFALL = 30;
 
 /** 릴 셋의 판정 (게임과 봇이 같이 쓴다): 같은 그림 셋 = 잭팟, 둘 = 짝(그 그림 효과), 아니면 꽝. 무지개는 꽝이 아닌 무엇과도 같다 */
 export function judge(sy: number[]): { kind: 'jack' | 'pair' | 'miss'; sym: number; i: number; j: number } {
@@ -234,7 +236,7 @@ export function buildStage(seed: number, si: number): { S: Sim; L: Lay; flip: bo
 
 // ───────────────────────────── 게임 상태 ─────────────────────────────
 interface Ev { t: number; kind: string; x: number; y: number; text?: string; col?: string; v?: number }
-interface Slot { cur: number[]; res: number[]; held: boolean[]; spin: number; stop: number[]; q: number; reach: boolean; last: string; lastT: number }
+interface Slot { cur: number[]; res: number[]; held: boolean[]; spin: number; stop: number[]; q: number; reach: boolean; last: string; lastT: number; lastSym: number }
 interface Faller { k: number; x: number; y: number; sp: number; tg: number; t0: number; side: number }
 interface Stat { stage: number; ok: boolean; stars: number; starOk: boolean[]; used: number; slot: number; jacks: number; pairs: number; purse: number; medals: number; t: number }
 
@@ -288,7 +290,7 @@ function newStage(s: CoinState) {
   s.jacks = 0;
   s.pairs = 0;
   s.starOk = [false, false, false];
-  s.slot = { cur: [0, 1, 2].map((k) => d.reels.length ? k % d.reels.length : 0), res: [0, 0, 0], held: [false, false, false], spin: 0, stop: [0, 0, 0], q: 0, reach: false, last: '', lastT: -999 };
+  s.slot = { cur: [0, 1, 2].map((k) => d.reels.length ? k % d.reels.length : 0), res: [0, 0, 0], held: [false, false, false], spin: 0, stop: [0, 0, 0], q: 0, reach: false, last: '', lastT: -999, lastSym: -1 };
   s.fallers = [];
   s.slow = 0;
   s.edgeT = 0;
@@ -344,7 +346,7 @@ function startSpin(s: CoinState) {
 
 /** 잭팟: 동전 폭포 — 선반 전체에 동전이 쏟아지고 밀대가 힘을 낸다 (봇이 내다볼 때도 같은 것) */
 function pour(S: Sim, r: Rng) {
-  for (let k = 0; k < JACK_COINS; k++) S.drops.push({ x: 0.08 + 0.84 * ((k * 0.618 + r() * 0.2) % 1), land: S.t + FLIGHT + 4 + k * 5, k: COIN, w: 1 });
+  for (let k = 0; k < JACK_COINS; k++) S.drops.push({ x: 0.08 + 0.84 * ((k * 0.618 + r() * 0.2) % 1), land: S.t + WFALL + k * 4, k: COIN, w: 1 });
   S.fever = Math.max(S.fever, PER * 2);
 }
 
@@ -379,6 +381,7 @@ function resolveSpin(s: CoinState) {
   sl.held[J.i] = sl.held[J.j] = true;
   s.pairs++;
   sl.last = 'pair';
+  sl.lastSym = sym;
   if (sym === 0) (s.purse += 2), see(s, 'p-coin', '🪙 동전 짝 = 동전 2개 더!');
   else if (sym === 1) (s.bigQ += 1), see(s, 'p-big', '🥇 왕동전 짝 = 다음 동전이 크고 무거워요');
   else if (sym === 2) (S.fever = Math.max(S.fever, PER * 2)), see(s, 'p-fever', '⚡ 번개 짝 = 밀대가 길고 빠르게 밀어요');
@@ -736,7 +739,7 @@ const PX = (x: number, y: number) => 0.5 + (x - 0.5) * scl(y);
 const PY = (y: number) => SY0 + y * KY;
 const railX = (sx: number) => clamp(0.5 + (sx - 0.5) / scl(RAIL_Y), 0, 1);
 /** 떨어뜨리는 줄(화면 세로) · 밀대 높이 · 아래 띠 시작 */
-const RAIL_SY = 0.415, ZP = 0.05, BAND = 1.262;
+const RAIL_SY = 0.398, ZP = 0.05, BAND = 1.245;
 
 // ───────────────────────────── 그리기 ─────────────────────────────
 const hsh = (k: number) => {
@@ -771,6 +774,13 @@ function emoji(ctx: CanvasRenderingContext2D, e: string, x: number, y: number, s
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(e, x, y);
+}
+
+/** 릴 그림: 동전·왕동전은 직접 그리고 나머지는 이모지 */
+function drawSym(ctx: CanvasRenderingContext2D, sym: number, x: number, y: number, size: number) {
+  if (sym === 0) drawCoin(ctx, x, y + size * 0.16, size * 0.4, false, 0, 1);
+  else if (sym === 1) drawCoin(ctx, x, y + size * 0.2, size * 0.46, true, 0, 1);
+  else emoji(ctx, SYM_EMO[sym], x, y, size * (sym === 5 ? 0.8 : 0.9));
 }
 
 /** 동전 (위에서 비스듬히 본 원판 + 두께). big = 왕동전, ghost = 반투명 */
@@ -1239,50 +1249,6 @@ function drawAll(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
     ctx.fillStyle = g;
     quad([[X(0.06), top], [X(0.94), top], [back[1][0], back[1][1]], [back[0][0], back[0][1]]]);
     ctx.fill();
-    // 줄 (크롬 막대)
-    const ry = Y(RAIL_SY), x0 = SX(0, RAIL_Y), x1 = SX(1, RAIL_Y);
-    const rg = ctx.createLinearGradient(0, ry - R(0.012), 0, ry + R(0.012));
-    rg.addColorStop(0, '#ffffff');
-    rg.addColorStop(0.5, '#b9b3c9');
-    rg.addColorStop(1, '#6e6688');
-    ctx.fillStyle = rg;
-    ctx.beginPath();
-    ctx.roundRect(x0 - R(0.02), ry - R(0.01), x1 - x0 + R(0.04), R(0.02), R(0.01));
-    ctx.fill();
-    // 슬롯 구멍 (줄 위를 오가는 컵)
-    if (d.pocket) {
-      const px = SX(pocketX(s), RAIL_Y), pw = R(PW * scl(RAIL_Y)), hot = s.down && inPocket(s, clamp(s.ax, RC, 1 - RC));
-      ctx.save();
-      if (hot) (ctx.shadowColor = '#fff3a0'), (ctx.shadowBlur = R(0.05));
-      const cg = ctx.createLinearGradient(px - pw, 0, px + pw, 0);
-      cg.addColorStop(0, '#d63a6a');
-      cg.addColorStop(0.5, hot ? '#ffd84a' : '#ff6fa0');
-      cg.addColorStop(1, '#a8204e');
-      ctx.fillStyle = cg;
-      ctx.beginPath();
-      ctx.moveTo(px - pw * 1.15, ry - R(0.022));
-      ctx.lineTo(px + pw * 1.15, ry - R(0.022));
-      ctx.lineTo(px + pw * 0.75, ry + R(0.03));
-      ctx.lineTo(px - pw * 0.75, ry + R(0.03));
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-      ctx.fillStyle = '#2a0a1a';
-      ctx.beginPath();
-      ctx.ellipse(px, ry - R(0.022), pw * 1.1, R(0.009), 0, 0, TAU);
-      ctx.fill();
-      ctx.fillStyle = '#fff3c8';
-      font(0.026, 900);
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('SLOT', px, ry + R(0.006));
-      for (let k = 0; k < 3; k++) {
-        ctx.fillStyle = (t >> 3) % 3 === k ? '#fff6a0' : 'rgba(255,255,255,.35)';
-        ctx.beginPath();
-        ctx.arc(px + (k - 1) * pw * 0.55, ry + R(0.024), R(0.005), 0, TAU);
-        ctx.fill();
-      }
-    }
   }
   // ═════════ 선반 ═════════
   const corner = (x: number, y: number) => [SX(x, y), SY(y)];
@@ -1324,13 +1290,13 @@ function drawAll(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
     const py = S.py;
     const top = [[SX(0, YB), SY(YB) - R(ZP)], [SX(1, YB), SY(YB) - R(ZP)], [SX(1, py), SY(py) - R(ZP)], [SX(0, py), SY(py) - R(ZP)]];
     const g = ctx.createLinearGradient(0, SY(YB), 0, SY(py));
-    g.addColorStop(0, '#d9d2ea');
-    g.addColorStop(1, '#ffffff');
+    g.addColorStop(0, '#8a5ab0');
+    g.addColorStop(1, '#c79ae0');
     ctx.fillStyle = g;
     quad(top);
     ctx.fill();
     // 위의 줄무늬
-    ctx.strokeStyle = 'rgba(200,80,160,.35)';
+    ctx.strokeStyle = 'rgba(255,255,255,.18)';
     ctx.lineWidth = R(0.012);
     for (let k = 0; k < 9; k++) {
       const x = (k + 0.5) / 9;
@@ -1346,11 +1312,58 @@ function drawAll(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
     ctx.fillStyle = fg;
     quad([[SX(0, py), SY(py) - R(ZP)], [SX(1, py), SY(py) - R(ZP)], [SX(1, py), SY(py)], [SX(0, py), SY(py)]]);
     ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,.85)';
-    font(0.03, 900);
+    ctx.fillStyle = 'rgba(255,255,255,.9)';
+    font(0.034, 900);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(S.fever > 0 ? '⚡ 힘내! ⚡' : '밀대', X(0.5), SY(py) - R(ZP * 0.5));
+    ctx.fillText(S.fever > 0 ? '⚡ 힘내! ⚡' : '▶ 밀대 ◀', X(0.5), SY(py) - R(ZP * 0.5));
+  }
+  // 떨어뜨리는 줄 · 슬롯 구멍 (밀대 위 높이)
+  {
+    // 줄 (크롬 막대)
+    const ry = Y(RAIL_SY), x0 = SX(0, RAIL_Y), x1 = SX(1, RAIL_Y);
+    const rg = ctx.createLinearGradient(0, ry - R(0.012), 0, ry + R(0.012));
+    rg.addColorStop(0, '#ffffff');
+    rg.addColorStop(0.5, '#b9b3c9');
+    rg.addColorStop(1, '#6e6688');
+    ctx.fillStyle = rg;
+    ctx.beginPath();
+    ctx.roundRect(x0 - R(0.02), ry - R(0.01), x1 - x0 + R(0.04), R(0.02), R(0.01));
+    ctx.fill();
+    // 슬롯 구멍 (줄 위를 오가는 컵)
+    if (d.pocket) {
+      const px = SX(pocketX(s), RAIL_Y), pw = R(PW * scl(RAIL_Y)) * 1.15, hot = s.down && inPocket(s, clamp(s.ax, RC, 1 - RC));
+      ctx.save();
+      if (hot) (ctx.shadowColor = '#fff3a0'), (ctx.shadowBlur = R(0.05));
+      const cg = ctx.createLinearGradient(px - pw, 0, px + pw, 0);
+      cg.addColorStop(0, '#d63a6a');
+      cg.addColorStop(0.5, hot ? '#ffd84a' : '#ff6fa0');
+      cg.addColorStop(1, '#a8204e');
+      ctx.fillStyle = cg;
+      ctx.beginPath();
+      ctx.moveTo(px - pw * 1.15, ry - R(0.022));
+      ctx.lineTo(px + pw * 1.15, ry - R(0.022));
+      ctx.lineTo(px + pw * 0.75, ry + R(0.03));
+      ctx.lineTo(px - pw * 0.75, ry + R(0.03));
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = '#2a0a1a';
+      ctx.beginPath();
+      ctx.ellipse(px, ry - R(0.022), pw * 1.1, R(0.009), 0, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = '#fff3c8';
+      font(0.03, 900);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('슬롯', px, ry + R(0.006));
+      for (let k = 0; k < 3; k++) {
+        ctx.fillStyle = (t >> 3) % 3 === k ? '#fff6a0' : 'rgba(255,255,255,.35)';
+        ctx.beginPath();
+        ctx.arc(px + (k - 1) * pw * 0.55, ry + R(0.024), R(0.005), 0, TAU);
+        ctx.fill();
+      }
+    }
   }
   // 옆 레일 (유리 벽)
   const rail = (sx: number, y0: number, y1: number, open: boolean) => {
@@ -1466,11 +1479,18 @@ function drawAll(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
   }
   // 공중의 동전 (줄에서 선반으로) — 플레이어 동전과 잭팟 폭포
   for (const dr of S.drops) {
-    const p = 1 - (dr.land - S.t) / (FLIGHT + (dr.w ? 4 + 60 : 0)), big = dr.k === BIG;
-    const pp = clamp(dr.w ? (FLIGHT - (dr.land - S.t)) / FLIGHT : p, 0, 1);
-    if (dr.w && pp <= 0) continue;
-    const ly = S.py + (big ? RB : RC), x = SX(dr.x, ly), y0 = dr.w ? Y(0.12) : Y(RAIL_SY), y1 = SY(ly);
-    const y = y0 + (y1 - y0) * pp * pp;
+    const big = dr.k === BIG, fl = dr.w ? WFALL : FLIGHT, pp = clamp(1 - (dr.land - S.t) / fl, 0, 1);
+    if (dr.land - S.t > fl) continue;
+    const ly = S.py + (big ? RB : RC), x1 = SX(dr.x, ly), x0 = dr.w ? X(0.5 + (dr.x - 0.5) * 0.4) : SX(dr.x, RAIL_Y), y0 = dr.w ? Y(0.2) : Y(RAIL_SY), y1 = SY(ly);
+    const x = x0 + (x1 - x0) * pp, y = y0 + (y1 - y0) * pp * pp - (dr.w ? Math.sin(pp * Math.PI) * R(0.06) : 0);
+    if (dr.w) {
+      ctx.strokeStyle = 'rgba(255,230,120,.35)';
+      ctx.lineWidth = R(0.012);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - (x1 - x0) * 0.08, y - R(0.05));
+      ctx.stroke();
+    }
     drawCoin(ctx, x, y, R((big ? RB : RC) * scl(ly)) * (0.8 + 0.2 * pp), big, t, dr.land);
   }
   // ═════════ 누르는 동안: 떨어질 자리 고스트 · 밀릴 길 ═════════
@@ -1484,10 +1504,10 @@ function drawAll(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
       ctx.save();
       ctx.shadowColor = '#fff3a0';
       ctx.shadowBlur = R(0.04);
-      ctx.fillStyle = 'rgba(255,230,120,.95)';
-      font(0.04, 900);
+      ctx.fillStyle = '#ffe866';
+      font(0.044, 900);
       ctx.textAlign = 'center';
-      ctx.fillText('🎰 슬롯 쏙!', gx, gy - R(0.045));
+      ctx.fillText('슬롯 쏙!', clamp(gx, R(0.12), w - R(0.12)), Y(RAIL_SY) + R(0.07));
       ctx.restore();
     } else {
       // 떨어질 자리
@@ -1505,19 +1525,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
       ctx.fillStyle = hit ? 'rgba(120,255,160,.16)' : 'rgba(255,255,255,.09)';
       quad([[SX(x - r, ly), SY(ly)], [SX(x + r, ly), SY(ly)], [SX(x + r * 1.6, D), SY(D)], [SX(x - r * 1.6, D), SY(D)]]);
       ctx.fill();
-      if (hit) {
-        ctx.fillStyle = '#b8ffcc';
-        font(0.036, 900);
-        ctx.textAlign = 'center';
-        ctx.fillText(`${DOLLS[tg!.sp].name} 쪽으로 밀어요`, gx, gy - R(0.045));
-      }
+
     }
-    if (s.chute > 0) {
-      ctx.fillStyle = '#ffd6cc';
-      font(0.032, 900);
-      ctx.textAlign = 'center';
-      ctx.fillText('장전 중…', gx, gy + R(0.04));
-    }
+
   }
 
   // ═════════ 구경꾼 ═════════
@@ -1539,8 +1549,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
     if (e.kind === 'medal') {
       const n = e.v ?? 1;
       fx.burst(X(0.5), SY(D) + R(0.03), '#ffe066', 6 + n * 4, 2.4 + n * 0.3, 2);
-      if (n >= 3) fx.kick(2 + n), fx.ring(X(0.5), SY(D), '#ffe066', R(0.12 + n * 0.02), 4);
-      say(X(0.5), SY(D) + R(0.02), e.text!, e.col!, n >= 3 ? 18 : 13);
+      if (n >= 3) fx.kick(2 + n), fx.ring(X(0.5), SY(D), '#ffe066', R(0.12 + n * 0.02), 4), say(X(0.5), SY(D) + R(0.02), e.text!, e.col!, 20);
+      else if (t - (fx.memo.chime ?? -99) > 30) (fx.memo.chime = t), fx.pop(X(0.5), SY(D) + R(0.06), e.text!, e.col!, 13);
     }
     if (e.kind === 'doll') {
       fx.burst(ex, ey, '#ffe066', 40, 6, 3.2), fx.burst(ex, ey, '#ff9ec4', 30, 5, 3), fx.ring(ex, ey, '#ffffff', R(0.25), 6), fx.kick(10), fx.blink('#fff6c8', 0.35);
@@ -1552,10 +1562,9 @@ function drawAll(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
     if (e.kind === 'jackpot') {
       for (let k = 0; k < 5; k++) fx.burst(X(0.1 + k * 0.2), Y(0.22), k % 2 ? '#ffe066' : '#ff8fc8', 30, 6, 3.2);
       fx.ring(X(0.5), Y(0.2), '#ffe066', R(0.5), 8), fx.kick(14), fx.blink('#fff2a0', 0.5);
-      say(X(0.5), Y(0.38), '💰 잭팟! 동전 폭포 💰', '#ffe066', 30);
+      fx.pop(X(0.5), Y(0.66), '잭팟! 동전 폭포!', '#ffe066', 34);
     }
-    if (e.kind === 'pair') fx.burst(X(0.5), Y(0.2), '#bff3ff', 20, 4, 2.4), fx.ring(X(0.5), Y(0.2), '#bff3ff', R(0.25), 4), fx.kick(3), say(X(0.5), Y(0.385), e.text!, e.col!, 17);
-    if (e.kind === 'miss') say(X(0.5), Y(0.385), e.text!, e.col!, 15);
+    if (e.kind === 'pair') fx.burst(X(0.5), Y(0.2), '#bff3ff', 20, 4, 2.4), fx.ring(X(0.5), Y(0.2), '#bff3ff', R(0.25), 4), fx.kick(3);
     if (e.kind === 'reel') fx.burst(X(0.5 + ((e.x as number) - 1) * 0.2), Y(0.2), '#ffffff', 6, 1.6, 1.6), fx.kick(1);
     if (e.kind === 'nope') say(X(0.5), Y(RAIL_SY) - R(0.06), e.text!, e.col!, 14);
   }
@@ -1613,16 +1622,17 @@ function drawSlot(ctx: CanvasRenderingContext2D, s: CoinState, t: number, X: (x:
     ctx.roundRect(rx, ry, rw, rh, R(0.02));
     ctx.fill();
     ctx.clip();
-    const sym = (i: number) => SYM_EMO[d.reels[((i % d.reels.length) + d.reels.length) % d.reels.length]];
+    const sym = (i: number) => d.reels[((i % d.reels.length) + d.reels.length) % d.reels.length];
     if (spinning) {
-      const off = ((sl.spin * (sl.reach && k === 2 && sl.spin > 60 ? 0.35 : 0.9)) % 1) * rh, base = Math.floor(sl.spin * (sl.reach && k === 2 && sl.spin > 60 ? 0.35 : 0.9)) + k * 3;
-      ctx.globalAlpha = 0.85;
-      for (let j = -1; j <= 1; j++) emoji(ctx, sym(base + j), rx + rw / 2, ry + rh / 2 + j * rh + off - rh * 0.0, R(0.085));
+      const sp = sl.spin * (sl.reach && k === 2 && sl.spin > 60 ? 0.35 : 0.9), off = (sp % 1) * rh, base = Math.floor(sp) + k * 3;
+      ctx.globalAlpha = 0.8;
+      for (let j = -1; j <= 1; j++) drawSym(ctx, sym(base - j), rx + rw / 2, ry + rh / 2 + j * rh + off, R(0.09));
       ctx.globalAlpha = 1;
-      ctx.fillStyle = 'rgba(255,255,255,.35)';
+      ctx.fillStyle = 'rgba(255,255,255,.3)';
       ctx.fillRect(rx, ry, rw, rh);
     } else {
-      emoji(ctx, SYM_EMO[d.reels[sl.cur[k]]], rx + rw / 2, ry + rh / 2 + R(0.004), R(0.1));
+      const pop = sl.stop[k] && sl.spin === 0 && t - sl.lastT < 12 ? 1 + (12 - (t - sl.lastT)) * 0.02 : 1;
+      drawSym(ctx, d.reels[sl.cur[k]], rx + rw / 2, ry + rh / 2, R(0.105) * pop);
     }
     // 유리 반사
     const gg = ctx.createLinearGradient(0, ry, 0, ry + rh);
@@ -1641,13 +1651,13 @@ function drawSlot(ctx: CanvasRenderingContext2D, s: CoinState, t: number, X: (x:
     if (held) {
       ctx.fillStyle = '#1f9a4e';
       ctx.beginPath();
-      ctx.roundRect(rx + rw / 2 - R(0.04), ry + rh - R(0.012), R(0.08), R(0.03), R(0.01));
+      ctx.roundRect(rx + rw / 2 - R(0.06), ry + rh - R(0.016), R(0.12), R(0.038), R(0.012));
       ctx.fill();
       ctx.fillStyle = '#ffffff';
-      font(0.022, 900);
+      font(0.032, 900);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('붙잡음', rx + rw / 2, ry + rh + R(0.003));
+      ctx.fillText('🔒 붙잡음', rx + rw / 2, ry + rh + R(0.003));
     }
   }
   // 리치 / 대기 램프
@@ -1664,33 +1674,55 @@ function drawSlot(ctx: CanvasRenderingContext2D, s: CoinState, t: number, X: (x:
     ctx.arc(X(0.115), Y(0.15) + k * R(0.035), R(0.011), 0, TAU);
     ctx.fill();
   }
+  // 결과 띠 (잠깐) — 아니면 릴에 든 그림 수
+  const age = t - sl.lastT;
+  if (sl.last && age < 75 && !sl.spin) {
+    const txt = sl.last === 'jackpot' ? '잭팟! 동전 폭포!' : sl.last === 'pair' ? `짝! ${SYM_NAME[sl.lastSym]}` : sl.last === 'miss2' ? '아깝다! 짝이 풀렸어요' : '꽝!';
+    const col = sl.last === 'jackpot' ? ((t >> 2) % 2 ? '#ff3a6a' : '#7a1030') : sl.last === 'pair' ? '#0f6a3a' : '#7a2a10';
+    const sc = 1 + Math.max(0, 8 - age) * 0.04;
+    ctx.save();
+    ctx.translate(X(0.5), Y(0.318));
+    ctx.scale(sc, sc);
+    ctx.fillStyle = sl.last === 'pair' ? 'rgba(200,255,220,.95)' : 'rgba(255,248,220,.95)';
+    ctx.beginPath();
+    ctx.roundRect(-R(0.36), -R(0.026), R(0.72), R(0.052), R(0.026));
+    ctx.fill();
+    if (sl.last === 'pair') drawSym(ctx, sl.lastSym, -R(0.3), 0, R(0.045));
+    ctx.fillStyle = col;
+    font(0.04, 900);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(txt, sl.last === 'pair' ? R(0.03) : 0, 1, R(0.58));
+    ctx.restore();
+    return;
+  }
   // 릴에 든 그림 수 (확률이 보이게)
   const cnt = new Map<number, number>();
   for (const x of d.reels) cnt.set(x, (cnt.get(x) ?? 0) + 1);
   const items = [...cnt.entries()];
   const hs = heldSym(s);
-  font(0.031, 900);
+  font(0.034, 900);
   ctx.textBaseline = 'middle';
-  const label = hs >= 0 ? `남은 릴 ${d.reels.length}칸 중` : `릴 한 줄 ${d.reels.length}칸:`;
-  const lw = ctx.measureText(label).width, iw = R(0.085), tw = lw + R(0.012) + items.length * iw;
+  const label = hs >= 0 ? `남은 릴 ${d.reels.length}칸:` : `한 릴 ${d.reels.length}칸:`;
+  const lw = ctx.measureText(label).width, iw = R(0.093), tw = lw + R(0.012) + items.length * iw, ly = Y(0.318);
   let cx = X(0.5) - tw / 2;
   ctx.fillStyle = '#5a1a08';
   ctx.textAlign = 'left';
-  ctx.fillText(label, cx, Y(0.315));
+  ctx.fillText(label, cx, ly);
   cx += lw + R(0.012);
   for (const [sym, n] of items) {
     const good = hs >= 0 && (sym === hs || sym === R_);
     if (good) {
-      ctx.fillStyle = 'rgba(60,224,122,.45)';
+      ctx.fillStyle = 'rgba(40,200,100,.55)';
       ctx.beginPath();
-      ctx.roundRect(cx - R(0.004), Y(0.315) - R(0.02), iw - R(0.006), R(0.04), R(0.012));
+      ctx.roundRect(cx - R(0.006), ly - R(0.022), iw - R(0.004), R(0.044), R(0.014));
       ctx.fill();
     }
-    emoji(ctx, SYM_EMO[sym], cx + R(0.02), Y(0.315), R(0.03));
-    ctx.fillStyle = '#5a1a08';
-    font(0.031, 900);
+    drawSym(ctx, sym, cx + R(0.021), ly, R(0.042));
+    ctx.fillStyle = good ? '#ffffff' : '#5a1a08';
+    font(0.036, 900);
     ctx.textAlign = 'left';
-    ctx.fillText(`${n}`, cx + R(0.042), Y(0.316));
+    ctx.fillText(`${n}`, cx + R(0.048), ly + 1);
     cx += iw;
   }
 }
@@ -1911,16 +1943,16 @@ function drawHud(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
     ctx.fillStyle = n > 0 ? '#ffe9a8' : '#ffb3a8';
     ctx.fillText(`${n}개`, X(0.975), r1);
     // 별 조건 (짧은 말)
-    const sl = starLines(s), done = starsNow(s), r2 = Y(ty + 0.098);
+    const sl = starLines(s), done = starsNow(s);
     const bad = [false, d.keep > 0 && s.purse < d.keep, d.star3 === 'twin' && false];
     font(0.033, 800);
     ctx.textAlign = 'left';
-    let cx = X(0.03);
+    let cx = X(0.03), r2 = Y(ty + 0.095);
     sl.forEach((q, k) => {
       const live = k === 0 ? false : k === 1 ? s.purse >= d.keep : d.star3 === 'jackpot' ? s.jacks > 0 : d.star3 === 'medal' ? S.medals >= (d.medal ?? 99) : d.star3 === 'twin' ? S.decoy > 0 : !S.b.some((o) => o.k === TOWER);
       const ok = (s.phase === 'result' && s.ok ? s.starOk[k] : done[k]) || (k > 0 && live && k !== 1);
       const tw2 = ctx.measureText(q).width + R(0.06);
-      if (cx + tw2 > w - R(0.02)) cx = X(0.03);
+      if (cx + tw2 > w - R(0.02)) (cx = X(0.03)), (r2 += R(0.056));
       ctx.fillStyle = ok ? 'rgba(255,216,74,.22)' : bad[k] ? 'rgba(0,0,0,.35)' : 'rgba(255,255,255,.07)';
       ctx.beginPath();
       ctx.roundRect(cx, r2 - R(0.025), tw2, R(0.05), R(0.025));
@@ -1935,7 +1967,10 @@ function drawHud(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
     let hint = '';
     const first = s.stage === 0 && !s.firstDrop && s.phase === 'play';
     if (first) hint = '👆 위를 꾹 누르면 동전 자리가 보여요 — 떼면 툭!';
-    else if (s.down && s.phase === 'play') hint = s.purse <= 0 ? '동전을 다 썼어요' : inPocket(s, clamp(s.ax, RC, 1 - RC)) ? '지금 떼면 슬롯 구멍에 쏙!' : '떼면 툭! 밀대가 밀어 줘요';
+    else if (s.down && s.phase === 'play') {
+      const x = clamp(s.ax, RC, 1 - RC), tg = S.b.find((o) => o.tg === 1);
+      hint = s.purse <= 0 ? '동전을 다 썼어요' : s.chute > 0 ? '동전 장전 중… 잠깐만요' : inPocket(s, x) ? '지금 떼면 슬롯 구멍에 쏙!' : tg && Math.abs(tg.x - x) < tg.r + RC * 0.8 ? `떼면 툭! ${DOLLS[tg.sp].name} 바로 뒤를 밀어요` : '떼면 툭! 밀대가 밀어 줘요';
+    }
     else if (s.phase === 'result') hint = s.ok ? (s.won ? '모든 인형을 받았어요!' : `★ ${s.got}개! 다음 판엔 새것이 나와요`) : '같은 판을 다시 해요';
     else if (s.phase === 'win') hint = '야호~! 인형을 받았어요';
     else if (s.purse <= 0) hint = '밀대가 마지막으로 밀어요…';
@@ -1945,15 +1980,15 @@ function drawHud(ctx: CanvasRenderingContext2D, s: CoinState, w: number, h: numb
     ctx.textAlign = 'center';
     ctx.fillStyle = first ? '#ffffff' : '#ffe9a8';
     font(first ? 0.04 : 0.034, 900);
-    ctx.fillText(hint, w / 2, Y(ty + 0.162), w - R(0.05));
+    ctx.fillText(hint, w / 2, Math.max(Y(ty + 0.165), r2 + R(0.058)), w - R(0.05));
   }
 }
 
 /** 별 조건 (기호 없는 쉬운 말) */
 function starLines(s: CoinState): string[] {
   const d = STAGES[s.stage], out = ['인형 떨어뜨리기'];
-  if (d.nstars >= 2) out.push(`동전 ${d.keep}개 남기고 끝내기`);
+  if (d.nstars >= 2) out.push(`동전 ${d.keep}개 남기기`);
   if (d.nstars >= 3)
-    out.push(d.star3 === 'jackpot' ? '잭팟 한 번 터뜨리기' : d.star3 === 'medal' ? `동전 ${d.medal}개 받기` : d.star3 === 'twin' ? '두 인형 다 떨어뜨리기' : '동전 탑 다 무너뜨리기');
+    out.push(d.star3 === 'jackpot' ? '잭팟 터뜨리기' : d.star3 === 'medal' ? `동전 ${d.medal}개 받기` : d.star3 === 'twin' ? '두 인형 다 떨어뜨리기' : '동전 탑 다 무너뜨리기');
   return out;
 }

@@ -75,24 +75,24 @@ export const STAGES: StageDef[] = [
     hp: 1, waves: [[['slime', 5, 6, 40]], [['slime', 7, 9, 34]], [['slime', 8, 13, 30]], [['slime', 2, 14, 30], ['boss', 1, 110, 40], ['slime', 2, 14, 30]]],
   },
   {
-    key: 'coin', name: '금화 주사위', emoji: '🪙', news: '🪙 금화 주사위 — 쏘지 않고 동전을 벌어요', tip: '🪙 금화 주사위로 벌어서 나중에 크게!',
-    pool: ['fire', 'ice', 'zap', 'coin'], start: 2, coins: 40, goal: { k: 'earn', n: 40 },
-    hp: 1.5, waves: [[['slime', 6, 8, 36]], [['slime', 8, 12, 30]], [['slime', 9, 15, 28]], [['slime', 3, 16, 28], ['boss', 1, 140, 40], ['slime', 3, 16, 28]]],
+    key: 'coin', name: '금화 주사위', emoji: '🪙', news: '🪙 금화 주사위 — 쏘지 않고 동전을 벌어요', tip: '🪙 금화 주사위로 벌어서 크게 합쳐요!',
+    pool: ['fire', 'ice', 'zap', 'coin'], start: 2, coins: 40, goal: { k: 'pip', n: 4 },
+    hp: 1.7, waves: [[['slime', 6, 8, 36]], [['slime', 8, 12, 30]], [['slime', 9, 15, 28]], [['slime', 3, 16, 28], ['boss', 1, 140, 40], ['slime', 3, 16, 28]]],
   },
   {
-    key: 'pot', name: '냄비 투구', emoji: '🪖', news: '🪖 냄비 투구 적 — 작은 총알은 팅! 큰 눈으로 합쳐요', tip: '🪖 투구엔 눈 1 총알이 팅! 눈 2 이상으로',
+    key: 'pot', name: '냄비 투구', emoji: '🪖', news: '🪖 냄비 투구 적 — 작은 총알은 팅! 큰 눈으로 합쳐요', tip: '🪖 투구엔 눈 1 총알이 팅! 크게 합쳐요',
     pool: ['fire', 'ice', 'zap', 'coin'], start: 2, coins: 40, goal: { k: 'coins', n: 150 },
-    hp: 1.9, waves: [[['slime', 6, 10, 34]], [['slime', 4, 12, 30], ['pot', 4, 14, 40, 3]], [['pot', 6, 16, 36, 3], ['slime', 4, 14, 26]], [['slime', 3, 16, 26], ['boss', 1, 160, 40, 3], ['pot', 3, 16, 36, 3]]],
+    hp: 1.6, waves: [[['slime', 6, 10, 34]], [['slime', 4, 12, 30], ['pot', 4, 14, 40, 2]], [['pot', 6, 16, 36, 2], ['slime', 4, 14, 26]], [['slime', 3, 16, 26], ['boss', 1, 160, 40, 2], ['pot', 3, 16, 36, 2]]],
   },
   {
     key: 'cheer', name: '응원 주사위', emoji: '📣', news: '📣 응원 주사위 — 붙어 있는 이웃이 빨리 쏴요', tip: '📣 큰 주사위를 응원 옆으로 합쳐요',
     pool: ['fire', 'ice', 'zap', 'coin', 'cheer'], start: 2, coins: 40, goal: { k: 'pair', n: 3 },
-    hp: 2.5, waves: [[['slime', 7, 12, 32]], [['pot', 5, 16, 36, 3], ['slime', 4, 14, 26]], [['slime', 6, 15, 24], ['pot', 5, 18, 34, 3]], [['pot', 3, 18, 34, 3], ['boss', 1, 200, 40, 3], ['slime', 4, 16, 24]]],
+    hp: 2.0, waves: [[['slime', 7, 12, 32]], [['pot', 5, 16, 36, 2], ['slime', 4, 14, 26]], [['slime', 6, 15, 24], ['pot', 5, 18, 34, 2]], [['pot', 3, 18, 34, 2], ['boss', 1, 200, 40, 2], ['slime', 4, 16, 24]]],
   },
   {
     key: 'bat', name: '박쥐 하늘', emoji: '🦇', news: '🦇 박쥐 — 성벽 위를 질러 날아와요 (🔥 불은 안 닿아요)', tip: '🦇 박쥐는 ⚡ 번개 · ❄️ 얼음으로!',
     pool: ['fire', 'ice', 'zap', 'coin', 'cheer'], start: 2, coins: 40, goal: { k: 'flag', at: 0.4 },
-    hp: 2.9, waves: [[['slime', 6, 12, 30], ['bat', 4, 10, 34]], [['bat', 6, 12, 30], ['pot', 4, 18, 34, 3]], [['slime', 6, 16, 24], ['bat', 6, 13, 28], ['pot', 3, 18, 34, 3]], [['bat', 4, 14, 28], ['boss', 1, 230, 40, 3], ['bat', 4, 14, 28], ['pot', 2, 18, 34, 3]]],
+    hp: 2.3, waves: [[['slime', 6, 12, 30], ['bat', 4, 10, 34]], [['bat', 6, 12, 30], ['pot', 4, 18, 34, 2]], [['slime', 6, 16, 24], ['bat', 6, 13, 28], ['pot', 3, 18, 34, 2]], [['bat', 4, 14, 28], ['boss', 1, 230, 40, 2], ['bat', 4, 14, 28], ['pot', 2, 18, 34, 2]]],
   },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -143,7 +143,9 @@ const setMood = (s: DiceState, m: string) => ((s.mood = m), (s.moodT = s.t));
 export const cost = (s: DiceState) => 10 + 3 * s.summons;
 /** 쓰러뜨린 적이 주는 동전: 판이 오를수록 많이 */
 export const reward = (s: DiceState, t: FoeType) => Math.round(FOE[t].coin * (1 + 0.4 * s.stage));
-export const dmgOf = (p: number) => 3 * p - 1;
+/** 총알 하나의 힘: 눈이 오를수록 피보나치처럼 커진다 (2 · 3 · 5 · 8 · 13 · 21 · 34) */
+const DMG = [0, 2, 3, 5, 8, 13, 21, 34];
+export const dmgOf = (p: number) => DMG[Math.min(7, p)];
 const ROLL = 26, SPIN = 30, FIRE = 60, COIN_T = 60, VOLLEY = 5, RESULT_OK = 190, RESULT_FAIL = 170, NEWS_T = 190;
 const STAR_PTS = 100, WIN_PTS = 100;
 
@@ -413,7 +415,7 @@ function impact(s: DiceState, sh: Shot, f: Foe) {
     }
     if (pts.length > 2) ev(s, 'chain', f.x, f.y, undefined, undefined, undefined, pts);
   } else {
-    hurt(s, f, D * 0.6);
+    hurt(s, f, D * 0.8);
     const sl = (0.3 + 0.06 * sh.p) * (f.type === 'boss' ? 0.5 : 1);
     if (sl >= f.slow || f.slowT < s.t) f.slow = sl;
     f.slowT = s.t + 90;
@@ -436,7 +438,7 @@ function world(s: DiceState) {
     }
     if ((sp.type === 'pot' || sp.type === 'bat' || sp.type === 'boss') && !s.tips.has('spot-' + sp.type)) {
       s.tips.add('spot-' + sp.type);
-      s.spot = { x: f.x, y: f.y, t: s.t, uid: f.uid, text: sp.type === 'pot' ? 'NEW 🪖 냄비 투구 — 작은 총알은 팅! 눈 2 이상으로' : sp.type === 'bat' ? 'NEW 🦇 박쥐 — 성벽을 질러 날아요, 🔥는 안 닿아요' : '👑 대장 — 문에 닿으면 하트 -2!' };
+      s.spot = { x: f.x, y: f.y, t: s.t, uid: f.uid, text: sp.type === 'pot' ? 'NEW 🪖 냄비 투구 — 눈 1 총알은 팅! 크게 합쳐요' : sp.type === 'bat' ? 'NEW 🦇 박쥐 — 성벽을 질러 날아요, 🔥는 안 닿아요' : '👑 대장 — 문에 닿으면 하트 -2!' };
     }
   }
   if (d.goal.k === 'pair' && !s.pairOk && s.t % 6 === 0 && pairScore(s.slots, d.goal.n) >= PAIR_NEED) {
@@ -609,7 +611,7 @@ function effBullet(k: Kind, p: number, e: FoeType, a: number) {
   const D = dmgOf(p), crowd = e === 'boss' ? 0.4 : 1;
   if (k === 'fire') return FOE[e].fly ? 0 : Math.max(0, D - a) + crowd * 1.2 * Math.max(0, D * 0.5 - a);
   if (k === 'zap') return Math.max(0, D - a) + crowd * Math.min(2, 1 + Math.floor(p / 2)) * 0.6 * Math.max(0, D * 0.6 - a);
-  if (k === 'ice') return Math.max(0, D * 0.6 - a) + (e === 'boss' ? 0.6 : 1) * D * 0.45;
+  if (k === 'ice') return Math.max(0, D * 0.8 - a) + (e === 'boss' ? 0.5 : 1) * D * 0.35;
   return 0;
 }
 const FT: FoeType[] = ['slime', 'pot', 'bat', 'boss'];
@@ -617,7 +619,7 @@ const FT: FoeType[] = ['slime', 'pot', 'bat', 'boss'];
  * 판 가치: 적 종류마다 '초당 유효 피해'를 모아, 필요한 만큼은 크게 · 넘치는 몫은 작게 친다(1-e^-x).
  * 그래서 박쥐를 칠 주사위가 하나도 없으면 ⚡·❄️ 한 개가 🔥 여러 개보다 값지다. + 다음 판을 위한 힘 + 금화 주사위 벌이
  */
-function boardValue(slots: (Die | null)[], th: Th, coinW: number, need: Record<FoeType, number>) {
+function boardValue(slots: (Die | null)[], th: Th, coinW: number, need: Record<FoeType, number>, linear = false) {
   const D: Record<FoeType, number> = { slime: 0, pot: 0, bat: 0, boss: 0 };
   let v = 0, raw = 0;
   for (let i = 0; i < NSLOT; i++) {
@@ -630,9 +632,9 @@ function boardValue(slots: (Die | null)[], th: Th, coinW: number, need: Record<F
     if (d.k === 'cheer') continue;
     const m = d.p * cheerMul(slots, i);
     for (const t of FT) if (th.w[t] > 0) D[t] += m * effBullet(d.k, d.p, t, th.ar[t]);
-    raw += m * effBullet(d.k, d.p, 'slime', 3);
+    raw += m * effBullet(d.k, d.p, 'slime', 2);
   }
-  for (const t of FT) if (th.w[t] > 0) v += (th.w[t] / th.tot) * need[t] * 3 * (1 - Math.exp(-D[t] / need[t]));
+  for (const t of FT) if (th.w[t] > 0) v += (th.w[t] / th.tot) * (linear ? D[t] : need[t] * 3 * (1 - Math.exp(-D[t] / need[t])));
   return v + raw * 0.3;
 }
 interface Plan { kind: 'summon' | 'merge' | 'wait'; a: number; b: number; gain: number }
@@ -661,8 +663,8 @@ export function plan(s: DiceState, mem: { safeT: number; safe: boolean }): Plan 
   // 깃발 별: 대장이 깃발에 닿기 전에 — 대장 몫을 크게 본다
   if (g.k === 'flag' && !s.flagMiss) need.boss *= 3;
   // 금화 주사위 한 눈의 값: 남은 게임 시간이 길수록 크다, 급하면 0
-  const tl = timeLeft(s), coinW = crisis ? 0 : Math.min(1.2, tl / 80) * (s.coins > 2 * cost(s) ? 0.5 : 1);
-  const val = (sl: (Die | null)[]) => boardValue(sl, th, coinW, need);
+  const tl = timeLeft(s), coinW = crisis ? 0 : g.k === 'earn' && s.earned < g.n ? 3 : Math.min(1.2, tl / 80) * (s.coins > 2 * cost(s) ? 0.5 : 1);
+  const val = (sl: (Die | null)[]) => boardValue(sl, th, coinW, need, crisis);
   const base = val(s.slots);
   let best: Plan = { kind: 'wait', a: -1, b: -1, gain: 0.05 };
   const em = empties(s), c = cost(s);
