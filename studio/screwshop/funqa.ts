@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Bot, Input } from './core.ts';
 import { mulberry32 } from './rng.ts';
-import { STAGES, apply, geometry, setLevel, visibleM, cloneSim, freeM, jackEarly, logLate, paintStage, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, screwshopBlind, startStage, starsOf, star3, shotDead, bonkDead, streakDead, tapDead, starText, gaugeOf, setLearn, starKinds, type Level, type ShopState, type Sim, type StageDef, type Src } from './game.ts';
+import { STAGES, apply, geometry, setLevel, visibleM, cloneSim, freeM, jackEarly, logLate, paintStage, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, screwshopBlind, startStage, starsOf, star3, shotDead, bonkDead, streakDead, tapDead, starText, gaugeOf, setLearn, starKinds, TRAY_WARN, type Level, type ShopState, type Sim, type StageDef, type Src } from './game.ts';
 
 export interface Try { ok: boolean; stars: number; sec: number; peak: number; best: number; shot: number; taps: number; /** 끝난 판(되짚기·F13용) */ s: ShopState }
 
@@ -135,6 +135,39 @@ export const screwshopNewbie: Bot<ShopState> = {
     return screwshopHabit.act(s, rng);
   },
 };
+
+/**
+ * ✏️ S064(M3′ W1 · 🧪 S063 F28 → 📋 F30 · F31): 규칙을 모르는 처음 봇이 사람 속도(1.2초에 한 톡 · 판 시작 1.5초 쉼)로
+ * 1-1부터 이어 하다 첫 '넘침' 실패까지(막힘 실패는 그 판 다시 ≤ 5). 쟁반 경고 그림(TRAY_WARN칸부터)이 없는 빌드면 0.
+ * saw = 첫 넘침 전에 경고 칸 수에 닿은 손 · pre = 지는 톡 바로 앞이 경고 칸 수였던 손 · first = 처음 4칸이 된 판
+ */
+export function trayRead(hands = 48) {
+  const W = TRAY_WARN ?? 99, first: Record<string, number> = {};
+  let fails = 0, saw = 0, pre = 0, saw4 = 0, pre4 = 0, none = 0;
+  for (let i = 0; i < hands; i++) {
+    const seed = 1 + i * 13, rng = mulberry32(seed ^ 0x9e3779b9), s = g.create(seed);
+    setLearn(s, 0), startStage(s, 0);
+    let top = 0, tries = 0, seen4 = false;
+    for (let guard = 0; guard < 60 * 60 * 90; guard++) {
+      if (s.phase === 'result') {
+        if (s.ok) { if (s.stage >= STAGES.length - 1) break; startStage(s, s.stage + 1), (tries = 0); continue; }
+        const last = s.hist[s.hist.length - 1];
+        if (s.S.fail === 1) { fails++, (saw += +(top >= W)), (pre += +(last.S0.slots.length >= W)), (saw4 += +(top >= 4)), (pre4 += +(last.S0.slots.length >= 4)); break; }
+        if (++tries > 5) break;
+        startStage(s, s.stage);
+        continue;
+      }
+      const wait = s.phase === 'play' && (s.t - s.lastTap < 72 || s.t - s.startT < 90);
+      g.step(s, wait ? NO : screwshopNewbie.act(s, rng));
+      const n = s.S.slots.length;
+      if (!s.S.fail) top = Math.max(top, n);
+      if (n >= 4 && !seen4) (seen4 = true), (first[STAGES[s.stage].slot] = (first[STAGES[s.stage].slot] ?? 0) + 1);
+    }
+    if (!(s.phase === 'result' && !s.ok && s.S.fail === 1)) none++;
+  }
+  const r2 = (x: number) => +(x / Math.max(1, fails)).toFixed(2);
+  return { hands, fails, none, warn: TRAY_WARN ?? null, f31saw: r2(saw), f31pre: r2(pre), reach4: r2(saw4), pre4: r2(pre4), first4: first };
+}
 
 /**
  * 🧪 F13 되짚기 정확도 (S003 제안 · 📐 S004): 진 판에서 실패 카드가 짚은 톡에 PNR이 들었나.
@@ -583,7 +616,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const dir = join(import.meta.dirname, 'reports');
   mkdirSync(dir, { recursive: true });
   const build = /빌드 (M[\d.′]+(?:-S\d+)?)/.exec(readFileSync(join(import.meta.dirname, 'index.html'), 'utf8'))?.[1] ?? '?'; // 🧪: 'M0' 고정 → 실제 빌드
-  writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: new Date().toISOString().slice(0, 10), build, ...rep }, null, 1) + '\n');
+  const tray = n >= 24 ? trayRead() : undefined; // ✏️ S064(M3′ F30 · F31): 원래 칸과 따로 둔다(원래 칸 바이트 같음을 보려고)
+  writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: new Date().toISOString().slice(0, 10), build, ...rep, tray }, null, 1) + '\n');
   console.log(JSON.stringify(rep.summary), `${((Date.now() - t0) / 1000).toFixed(0)}s`);
   for (const r of rep.stages) console.log(r.stage, r.name, ...Object.keys(BOTS).map((b) => `${b} ${JSON.stringify(r[b])}`));
+  if (tray) console.log('tray', JSON.stringify(tray));
 }

@@ -2,7 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { Juice } from '../studio/screwshop/juice.ts';
-import { STAGES, hamOver, missGoal, screwshop, startStage, starKinds } from '../studio/screwshop/game.ts';
+import { STAGES, TRAY_WARN, hamOver, missGoal, screwshop, startStage, starKinds } from '../studio/screwshop/game.ts';
+import { screwshopNewbie, trayRead, tryStage } from '../studio/screwshop/funqa.ts';
 import { bonkSemi } from '../studio/screwshop/sfx.ts';
 
 /** 그리기 호출을 모두 삼키는 가짜 캔버스(멈춤 · 쿨다운 틱만 본다) */
@@ -127,3 +128,34 @@ describe('햄스터가 나사를 가리지 않는다(✏️ S062 · 🧪 S062 �
   });
 });
 
+describe('넘치는 쟁반(✏️ S064 · M3′ · 오너 "빈칸에 들어가는게 다 차면 진다는게 와닿지가 않아")', () => {
+  it('쟁반은 구멍 넷 + 끝 턱이고, 4칸이면 경고 그림 · 넘치면 무더기로 쏟아진다 · 판 글 −2(🧺 띠 · 4칸 팁)', () => {
+    const g = src('game.ts'), st = src('stages.ts'), tray = g.slice(g.indexOf('function drawTray('), g.indexOf('function drawBench('));
+    expect(TRAY_WARN).toBe(4);
+    expect(tray).toContain('for (let i = 0; i < SLOTS - 1; i++)');
+    expect(tray).toMatch(/if \(warn && sp < 0\) \(ctx\.globalAlpha = 0\.\d+\), drawScrew\(/);
+    expect(tray).toContain('PILE[max(0, SLOTS - 1 - i)]'); // 한 톡에 여럿이 몰려 6 · 7칸이 돼도 무더기 자리 안(✏️ S064 shots 콘솔 에러)
+    expect(g + st).not.toContain('5칸 다 차면');
+    expect(g).not.toContain('빈칸이 하나 남았어요');
+    expect(g).toContain('`빈칸으로 (${pre.S.slots.length}/${SLOTS - 1})`');
+    expect(g).toContain("(v > P ? (s.tv > P ? '' : `빈칸 ${v}칸 — ${lost}`)");
+  });
+
+  it('넘쳐서 지면 spill = 다섯째가 턱에 닿는 틱(꽉 사건과 같음) · 새 판에서 0 · 막혀서 진 판은 0', () => {
+    const t = tryStage(screwshopNewbie, 7, 2, 600, 0), s = t.s;
+    expect(s.S.fail).toBe(1);
+    const jam = s.events.find((e) => e.kind === 'jam');
+    expect(s.spill).toBeGreaterThan(0);
+    if (jam) expect(s.spill).toBe(jam.v);
+    startStage(s, 2);
+    expect(s.spill).toBe(0);
+  });
+
+  it('처음 봇 차례 길(사람 속도 · 48손): 4칸에 닿으면 늘 경고 그림이 뜨고(F31 = 4칸 도달) · 지는 톡 앞 경고 ≥ .8', () => {
+    const r = trayRead(48);
+    expect(r.warn).toBe(4);
+    expect(r.fails).toBeGreaterThanOrEqual(40);
+    expect(r.f31saw).toBe(r.reach4);
+    expect(r.f31pre).toBeGreaterThanOrEqual(0.8);
+  });
+});

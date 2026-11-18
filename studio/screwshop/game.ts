@@ -44,6 +44,8 @@ const tools = () => A >= 1.62;
 const chipXY = (n: number, w: number) => { const gw = w * 0.455; return [w * 0.03 + (n - 2) * (gw + w * 0.03) + gw / 2, w * (tools() ? A - 0.2835 : 1.3 + 0.2 * (A - 1.45)), gw] as const; }; // ✏️ S059(🧪 S058 🟡③): 도구 줄이 있으면 칩은 도구 줄 바로 위 — 칩 · 팁 · 도구가 한 덩어리
 /** 나사 머리 반지름 · 손가락 닿는 반지름 · 빈칸 수 · 미리 보이는 다음 상자 수 */
 const SR = 0.032, HIT = 0.075, SLOTS = 5, PEEK = 2;
+/** ✏️ S064(M3′): 쟁반이 경고 그림(떨림 · 턱 나사)을 그리는 칸 수 — 없으면 경고 그림 없음(funqa F31) */
+export const TRAY_WARN: number | undefined = 4;
 /** 판자 가장자리가 나사 머리를 덮는 정도: sd < COVER면 막힘, sd < HIDE면 아예 안 보임 */
 const COVER = 0.021, HIDE = -0.026;
 const COOL = 8, SPIN = 9, FLY = 17, RESULT_OK = 210, NEWS_T = 200, CARD = 58; // ✏️ S054(🎨 R6): ★3 결과 200 → 150틱 · 톡하면 바로
@@ -679,7 +681,7 @@ export interface ShopState {
   pv: PV[]; fl: Fl[]; vb: VBox[]; lv: { col: number; bi: number; t0: number }[]; vs: { col: number; at: number; x: number }[]; ready: number[];
   mood: string; moodT: number; bird: number;
   /** ✏️ S024 배움: 배운 별 종류(KB 비트 · main.ts가 저장) · 이 판에서 가르치는 칸 · ★3 🔒 · 짚기 기준값 */
-  learn: number; teach: number; lock3: boolean; tv: number; taught: boolean;
+  learn: number; teach: number; lock3: boolean; tv: number; taught: boolean; /** ✏️ S064(M3′ A3): 빈칸이 넘친 틱(0 = 안 넘침) */ spill: number;
   /** ✏️ S026 B③ 따는 순간: 판 중에 딴 별(비트 2 · 4) · 날아가는 별 */
   sg: number; starFx: { t0: number; k: number } | null;
   /** ✏️ S027 🧪 🔴② · 🟡③(화면 몫 · 시뮬은 안 씀): 별 카드를 손으로 닫음 · 카드 자리(누름 좌표 0~1) — main.ts가 읽고 씀 */
@@ -755,6 +757,8 @@ export const RETRY_Y = 0.07;
 const boxX = (L: Level, bi: number) => (L.boxes === 1 ? 0.34 : bi === 0 ? 0.19 : 0.47);
 const holeXY = (L: Level, bi: number, h: number): [number, number] => [boxX(L, bi) + (h - 1) * 0.07, BOX_Y - 0.022];
 const slotXY = (i: number): [number, number] => [0.5 + (i - 2) * 0.13, TRAY_Y];
+/** ✏️ S064(M3′ A1 · 📐 S063 안 A): 쟁반은 구멍 넷 + 끝 턱(다섯째 자리 = 넘침) · 넘친 나사 무더기는 쟁반 오른쪽 판 틀 위 */
+const LIP = slotXY(SLOTS - 1)[0], TRAY_X1 = 0.71, PILE = [0, 1, 2, 3, 4].map((k) => [0.83 + (k % 3) * 0.045 + (k > 2 ? 0.022 : 0), k > 2 ? 0.325 : 0.354]);
 const peekX = (L: Level, j: number) => (L.boxes === 1 ? 0.64 + j * 0.15 : 0.73 + j * 0.14);
 
 function newStage(s: ShopState) {
@@ -783,15 +787,15 @@ function newStage(s: ShopState) {
   s.sg = 0;
   s.starFx = null;
   s.cardOff = false;
+  s.spill = 0;
   s.newsQ = []; // ✏️ S058(🧪 S058 🔴①): 앞 판 · 1-1 띠가 다음 판으로 넘어오지 않게
   s.news = null;
   s.bandN = 0;
   setMood(s, 'idle');
   teachOf(s);
-  see(s, d.key, d.news);
+  if (d.news) see(s, d.key, d.news);
   if (d.wind) s.seen.add('wind'); // ✏️ S061(🧪 S059 🟡⑤): 1-3 태엽 소개가 판 이름 띠와 두 번 뜨던 것
   if (d.thump) s.seen.add('thump'); // ✏️ S061(🧪 S061 ⚪⑥): 1-6 쿵도 같은 말 두 번이었다
-  if (d.news.startsWith('🧺')) s.seen.add('slot'); // ✏️ S061(🧪 S061 🟡③): 1-1 첫 띠가 '5칸 다 차면 실패'(톡 → 같은 색 상자는 타이틀 타일 · 첫 손가락이 말함)
   if (s.teach) { const tx = starText(d, s.S); s.newsQ.push(tipLine(s.teach === 2 ? tx.l2 : tx.l3)); } // ✏️ S054(🎨 UI 정리): 별 카드 대신 배우는 별 한 줄을 소개 띠에 한 번(새 장치 소개 다음)
   ev(s, 'stage', 0.5, 0.7, `${d.slot} · ${d.name}`, '#fff6d6');
 }
@@ -1002,7 +1006,7 @@ function pickScrew(s: ShopState, x: number, y: number) {
 /** 나사 하나를 뺀 결과를 화면 연출(날아가는 나사·상자·빈칸·판자)로 옮긴다 */
 function playRec(s: ShopState, rec: RE[]) {
   const L = s.L;
-  let delay = 0, slotsHit = false, popped = false, lastLand = 0, shotX = 0, shotY = 0, shotN = 0, shotBad = 0, wound = false, wi = 0;
+  let delay = 0, popped = false, lastLand = 0, shotX = 0, shotY = 0, shotN = 0, shotBad = 0, wound = false, wi = 0;
   for (const e of rec) {
     if (e.k === 'out') {
       popped = e.pop;
@@ -1026,7 +1030,6 @@ function playRec(s: ShopState, rec: RE[]) {
         ev(s, 'in', x1, y1, undefined, COLS[e.col], t0 + dur2, e.n);
       } else {
         s.vs.push({ col: e.col, at: t0 + dur2, x: x1 });
-        slotsHit = true;
         ev(s, 'slot', x1, y1, undefined, undefined, t0 + dur2, e.lost);
       }
       continue;
@@ -1140,7 +1143,7 @@ function playRec(s: ShopState, rec: RE[]) {
     }
   }
   const S = s.S;
-  if (slotsHit) see(s, 'slot', '🧺 맞는 상자가 없으면 빈칸으로 — 5칸 다 차면 실패!'); // 🧪 S054 ⚪: ⬜가 깨진 글자처럼 보였다
+  // ✏️ S064(M3′ T1 · 📋 S063): 첫 빈칸 띠(🧺 지는 규칙 글)는 지웠다 — 지는 규칙은 쟁반 그림(턱 · 4칸 떨림 · 넘침)이 말한다. 되살림 선: 글 끈 시험 < 6/6이면 여기 한 줄('넘치면 실패!')
   if (rec.some((e) => e.k === 'pull')) tip(s, 'pull', '빈칸 나사는 맞는 상자가 오면 저절로 쏙!');
   if (rec.some((e) => e.k === 'fall')) tip(s, 'fall', '덜컹! 판자가 떨어지면 아래 나사가 드러나요');
   if (S.slots.length >= 3 && !S.fail) setMood(s, 'worry');
@@ -1162,7 +1165,7 @@ function playRec(s: ShopState, rec: RE[]) {
     const d = STAGES[s.stage], kd = starKinds(d)[s.teach - 2], v = kd === 'bonk' ? S.bonks : kd === 'gap' ? S.peak : kd === 'shot' ? S.shot : kd === 'tap' ? S.taps : S.best;
     const g = s.teach === 2 ? '★2' : '★3', P = d.P, lost = `${g}${s.teach === 3 ? '은' : '는'} 놓쳤어요`;
     const msg = kd === 'bonk' ? (v === s.tv ? '' : v >= d.B! ? `${g} 받았어요! 망치로 ${v}번 쾅` : `쾅! ${d.B! - v}번 더 치면 ${g}`)
-      : kd === 'gap' ? (v !== s.tv ? (v > P ? `빈칸 ${v}칸 — ${lost}` : `빈칸 ${v}칸 — ${P}칸까지는 괜찮아요`) : S.taps === 3 && !v ? `빈칸 0칸 — 이대로면 ${g}!` : '') // 🧪 S024 ①: 빈칸을 안 쓰면 숫자가 안 움직여 짚기가 안 왔다
+      : kd === 'gap' ? (v !== s.tv ? (v > P ? (s.tv > P ? '' : `빈칸 ${v}칸 — ${lost}`) : `빈칸 ${v}칸 — ${P}칸까지는 괜찮아요`) : S.taps === 3 && !v ? `빈칸 0칸 — 이대로면 ${g}!` : '') // 🧪 S024 ①: 빈칸을 안 쓰면 숫자가 안 움직여 짚기가 안 왔다
       : kd === 'shot' ? (v === s.tv ? '' : v >= d.H! ? `${g}! 한 번에 ${v}개 쏙` : v >= 2 ? `한 번에 ${v}개! ${d.H}개면 ${g}` : '한 번에 1개 — 판자째 떨어뜨리면 여러 개가 한꺼번에 쏙!') // ③ 방법
       : kd === 'tap' ? (v === s.tv || d.T! - v > 3 ? '' : v > d.T! || (v === d.T && S.n < s.L.N) ? `톡을 다 썼어요 — ${lost}` : `톡 ${d.T! - v}번 남았어요`)
       : (s.tv < 2 && v >= 2) || (s.tv < d.C && v >= d.C) ? (v >= d.C ? `${g}! ${v}개 연달아 쏙` : `${v}개 연달아! ${d.C}개 이으면 ${g} — 빈칸에 가면 끊겨요`) : ''; // ② 연속
@@ -1203,6 +1206,7 @@ function tapScrew(s: ShopState, k: number) {
     s.blame = retrace(L, s.hist, S);
     s.why = S.fail === 1 ? '꽉! 빈칸이 넘쳤다' : s.blame.c === '②못' ? '납작! 못 날개에 깔렸다' : '어라? 뺄 나사가 없네'; // 🎨 §2.7 · 🧪 S004: 제목도 원인에서
     ev(s, 'jam', 0.5, TRAY_Y, S.fail === 1 ? '꽉!' : '꽉 막혔다…', '#ffb4a8', s.t + SPIN + FLY);
+    if (S.fail === 1) s.spill = s.t + SPIN + FLY; // ✏️ S064(M3′ A3 · 📐 S063 안 A): 다섯째가 턱에 닿는 틱 — 그 뒤 쟁반이 기울어 쏟아진다
   } else if (S.n === L.N) {
     s.phase = 'settle';
     s.pt = 0;
@@ -1264,7 +1268,7 @@ function animate(s: ShopState) {
 export const screwshopInfo = {
   genes: ['unscrew', 'sort', 'pointer'],
   twist: '마지막 나사 하나에 매달린 판자는 그 나사를 축으로 시계추처럼 빙글 흔들려 내려앉는다 — 어느 나사를 마지막에 남기느냐에 따라 판자가 다른 나사를 덮거나 드러내서, 빼는 순서가 수가 된다',
-  rules: ['나사를 톡 → 같은 색 상자로 쏙! 맞는 상자가 없으면 빈칸으로.', '빈칸 5개가 다 차면 실패, 나사를 다 빼서 판자를 모두 떨구면 완성.'],
+  rules: ['나사를 톡 → 같은 색 상자로 쏙! 맞는 상자가 없으면 빈칸으로.', '빈칸이 넘치면 실패, 나사를 다 빼서 판자를 모두 떨구면 완성.'],
   hint: '나사를 톡! 누르고 있으면 갈 곳이 보여요 / 화살표로 고르고 스페이스',
   concept: '햄스터 목수의 장난감 공방',
   mood: '따뜻한 작업등 아래 나무 장난감 판 — 색칠한 판자에 반짝이는 색 나사, 판자 그림자와 두께, 톱밥 날리는 작업대 위에서 안전모 쓴 햄스터 목수가 드라이버를 들고 구경한다.',
@@ -1281,7 +1285,7 @@ export const screwshop: GameDef<ShopState> = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'play', pt: 0, known: 0,
       down: false, ax: 0, ay: 0, press: -1, cool: 0, lastTap: -99, taps: 0,
       hearts: 3, stars: 0, got: 0, bestSt: [], bestPts: [], retries: 0, sf: 0, hint: false, hist: [], blame: null, pts: 0, ok: false, why: '', won: false, dead: false, tries: 0,
-      seen: new Set<string>(), tips: new Set<string>(), bandN: 0, events: [], news: null, newsQ: [], startT: 0, clearT: 0, learn: 0, teach: 0, lock3: false, tv: 0, taught: false, sg: 0, starFx: null, cardOff: false, cardBox: null,
+      seen: new Set<string>(), tips: new Set<string>(), bandN: 0, events: [], news: null, newsQ: [], startT: 0, clearT: 0, learn: 0, teach: 0, spill: 0, lock3: false, tv: 0, taught: false, sg: 0, starFx: null, cardOff: false, cardBox: null,
       pv: [], fl: [], vb: [], lv: [], vs: [], ready: [], mood: 'idle', moodT: 0, bird: 0,
     } as unknown as ShopState;
     newStage(s);
@@ -1907,8 +1911,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     if (e.kind === 'key') fx.blink('#fff1a8', 0.25), say(w / 2, Y(0.62), e.text!, e.col!, 17), cue('key');
     // 🎨: 실패는 벌이 아니라 웃음 — 빨간 번쩍을 빼고 쟁반 나사가 '뻥' 튀어 오른다
     if (e.kind === 'jam') {
-      fx.kick(4), fx.ring(X(0.5), Y(TRAY_Y), '#ffb36b', R(0.3), 6), cue('jam');
-      S.slots.forEach((c, i) => fx.burst(X(slotXY(i)[0]), Y(TRAY_Y), COLS[c], 2, 3, 4));
+      fx.kick(4), fx.ring(X(LIP), Y(TRAY_Y), '#ff6a4d', R(0.08), 4), cue('jam'); // ✏️ S064(M3′): 넘침은 쟁반이 보여 준다(쏟아짐) — 고리는 턱에만
     }
     if (e.kind === 'blocked' || e.kind === 'locked') say(x, y - R(0.06), e.text!, e.col!, 15), cue('blocked');
     if (e.kind === 'miss') say(x, y, e.text!, e.col!, 14);
@@ -1988,7 +1991,7 @@ function drawFail(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
     const x = X(L.px[h.s]), y = Y(L.py[h.s]), rho = R(SR) * 1.9, u = min(1, age / 10), S = s.S, P = L.pl[b.k];
     // 🎨 S004 원인 자리 C (첫 고리만): 이 톡이 매단 판자 → 덮인 나사(열린 상자 색 먼저) ⚠ · 🔨면 허공 자리 💨 · 떨군 통나무 → 제자리 유령 통나무 · 그 밖 → 그 색 나사가 앉은 빈칸
     const hg = !n && (h.rec.find((r) => (r.k === 'hang' || r.k === 'fall') && r.p === b.k) as { k: string; pose: number } | undefined), j = b.c === '④태엽' ? S.slots.reduce((a, c, i) => (L.col.some((cc, q) => (L.lockM >> q) & 1 && cc === c) ? i : a), -1) : S.slots.lastIndexOf(L.col[b.s ?? h.s]), own = [L.px[h.s], L.py[h.s]];
-    let C = n ? own : hg ? (hg.k === 'fall' ? own : air ? L.hamP[b.k][hg.pose] : [P.cx, P.cy]) : j < 0 ? own : slotXY(j), f = 0;
+    let C = n ? own : hg ? (hg.k === 'fall' ? own : air ? L.hamP[b.k][hg.pose] : [P.cx, P.cy]) : j < 0 ? own : S.fail === 1 ? PILE[max(0, SLOTS - 1 - j)] : slotXY(j), f = 0; // ✏️ S064(M3′ A3): 넘치면 그 나사는 무더기에 있다
     if (hg && hg.k === 'hang' && !air) {
       const m = L.cov[b.k][poseOf(L, b.k, S.gone)] & L.all & ~S.gone;
       for (let i = L.N; i--; ) if ((m >> i) & 1 && (!f || S.box.includes(L.col[i]))) (C = [L.px[i], L.py[i]]), (f = 1);
@@ -3200,7 +3203,7 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
     ctx.restore();
     font(0.034, 900);
     ctx.textAlign = 'center';
-    const lab = pre.S.fail === 2 ? '⚠ 이러면 꽉 막혀요!' : first.k === 'box' ? (pre.rec.some((e) => e.k === 'done') ? '쏙 → 상자 완성!' : '쏙!') : pre.S.fail ? '⚠ 빈칸이 꽉 차요!' : `빈칸으로 (${pre.S.slots.length}/5)`;
+    const lab = pre.S.fail === 2 ? '⚠ 이러면 꽉 막혀요!' : first.k === 'box' ? (pre.rec.some((e) => e.k === 'done') ? '쏙 → 상자 완성!' : '쏙!') : pre.S.fail ? '⚠ 빈칸이 꽉 차요!' : `빈칸으로 (${pre.S.slots.length}/${SLOTS - 1})`;
     const lx = X(max(0.2, min(0.8, x0))), ly = Y(max(BY0 + 0.1, y0 - 0.075));
     pl(ctx, lx, ly, lab, pre.S.fail ? '#ffb4a8' : first.k === 'box' ? '#c8ffc8' : '#ffffff', R(0.05));
   }
@@ -3218,33 +3221,36 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
 }
 
 function drawTray(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, font: (sz: number, w?: number) => void) {
-  const t = s.t, n = s.S.slots.length;
-  const x0 = X(0.2), x1 = X(0.8), y0 = Y(TRAY_Y - 0.04), y1 = Y(TRAY_Y + 0.04);
-  const danger = n >= 4 ? 2 : n >= 3 ? 1 : 0;
-  // ✏️ S054 🎨 나무 아트 v2: 호두나무 쟁반 · 구멍 다섯(5번째 빨간 칠 고리) · 위험은 테 색과 맥동 고리로(shadowBlur 없음 — 렉)
+  const t = s.t, n = s.S.slots.length, sp = s.spill ? t - s.spill : -1;
+  const danger = n >= 4 ? 2 : n >= 3 ? 1 : 0, warn = s.phase === 'play' && n >= TRAY_WARN!;
+  // ✏️ S064(M3′ A1~A3 · 📐 S063 안 A '넘치는 쟁반'): 구멍 넷 + 끝 턱(다섯째 = 넘침) · 4칸이면 떨고 턱 위에 다음 나사가 기우뚱 · 넘치면 기울어 쏟아진다
+  const x0 = X(0.2), x1 = X(TRAY_X1), xl = X(LIP + 0.035), y0 = Y(TRAY_Y - 0.04), y1 = Y(TRAY_Y + 0.04), hh = y1 - y0;
+  const tilt = sp < 0 ? 0 : min(1, max(0, (sp - 4) / 8)) * 0.08, px = x1, py = y1;
+  if (warn) (ctx.fillStyle = `rgba(255,70,40,${0.36 + 0.06 * sin(t * 0.3)})`), ctx.fillRect(X(BX0), Y(TRAY_Y - 0.07), X(BX1) - X(BX0), Y(BY0 + 0.04) - Y(TRAY_Y - 0.07)); // 4칸: 쟁반 줄이 붉게 숨 쉰다(하나 더면 넘침)
+  ctx.save();
+  ctx.translate(warn ? sin(t * 1.9) * 1.5 : 0, 0);
+  if (tilt) ctx.translate(px, py), ctx.rotate(tilt), ctx.translate(-px, -py);
   ctx.fillStyle = 'rgba(0,0,0,.35)';
   bp(ctx);
-  ctx.roundRect(x0 + 2, y0 + 4, x1 - x0, y1 - y0, R(0.042));
+  ctx.roundRect(x0 + 2, y0 + 4, x1 - x0, hh, R(0.042));
   ctx.fill();
   const g = ctx.createLinearGradient(x0, y0, x1, y1);
-  g.addColorStop(0, '#7a4e2c');
-  g.addColorStop(1, '#4a2e18');
+  g.addColorStop(0, '#9a6538');
+  g.addColorStop(1, '#5c3a1e');
   ctx.fillStyle = g;
   bp(ctx);
-  ctx.roundRect(x0, y0, x1 - x0, y1 - y0, R(0.042));
+  ctx.roundRect(x0, y0, x1 - x0, hh, R(0.042));
   ctx.fill();
-  if (danger === 2) (ctx.fillStyle = 'rgba(255,80,50,.12)'), ctx.fill();
-  ctx.strokeStyle = danger === 2 ? '#ff6a4d' : danger ? '#ffb85a' : 'rgba(255,225,180,.35)';
+  ctx.strokeStyle = danger === 2 ? '#ff6a4d' : danger ? '#ffb85a' : 'rgba(255,225,180,.55)';
   ctx.lineWidth = danger === 2 ? 2.5 : danger ? 2 : 1.5;
   ctx.stroke();
-  if (danger === 2) {
-    ctx.strokeStyle = `rgba(255,106,77,${0.35 + 0.25 * sin(t * 0.3)})`;
-    ctx.lineWidth = 2;
-    bp(ctx);
-    ctx.roundRect(x0 - 3, y0 - 3, x1 - x0 + 6, y1 - y0 + 6, R(0.045));
-    ctx.stroke();
-  }
-  for (let i = 0; i < SLOTS; i++) {
+  // 끝 턱: 쟁반 오른끝에서 비스듬히 내려가는 나무 턱 — 다섯째는 여기서 넘친다
+  ctx.fillStyle = '#6e4524';
+  bp(ctx);
+  ctx.moveTo(x1 - 2, y0 + hh * 0.3), ctx.lineTo(xl, y0 + hh * 0.62), ctx.lineTo(xl, y1), ctx.lineTo(x1 - 2, y1), ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  for (let i = 0; i < SLOTS - 1; i++) {
     const [sx, sy] = slotXY(i);
     ctx.fillStyle = 'rgba(18,9,3,.72)';
     bp(ctx);
@@ -3255,14 +3261,32 @@ function drawTray(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
     bp(ctx);
     ctx.arc(X(sx), Y(sy) + 1, R(0.031), 0.25, PI - 0.25);
     ctx.stroke();
-    if (i === SLOTS - 1) (ctx.strokeStyle = '#e0553a'), (ctx.lineWidth = 2), bp(ctx), ctx.arc(X(sx), Y(sy), R(0.031), 0, TAU), ctx.stroke();
   }
-  for (const v of s.vs) if (t >= v.at) drawScrew(ctx, X(v.x), Y(TRAY_Y), R(SR) * 0.95, v.col, 0, { t });
+  // 턱 밑 V: 떨어지는 곳(3칸 주황 · 4칸 빨강 맥박) · 4칸이면 턱 위에서 다음 나사가 기우뚱(반투명 · 입력 안 막음 · 쟁반과 같이 떤다)
+  const vx = X(LIP), vy = y1 + R(0.022), vr = R(0.016) * (1 + danger * 0.08 * sin(t * 0.3));
+  ctx.strokeStyle = danger === 1 ? '#ffb85a' : '#ff6a4d';
+  ctx.lineWidth = 2.5;
+  bp(ctx);
+  ctx.moveTo(vx - vr, vy - vr * 0.5), ctx.lineTo(vx, vy + vr * 0.5), ctx.lineTo(vx + vr, vy - vr * 0.5);
+  ctx.stroke();
+  if (warn && sp < 0) (ctx.globalAlpha = 0.7), drawScrew(ctx, vx, y0 + hh * 0.3, R(SR), -1, sin(t * 0.22) * 0.5, { t });
+  ctx.restore();
+  // 쟁반 나사: 넘치면 다섯째부터 오른쪽 판 틀 위 무더기로 떨어진다(오른쪽 것 먼저)
+  s.vs.forEach((v, i) => {
+    if (t < v.at) return;
+    let x = X(v.x), y = Y(TRAY_Y), rot = 0;
+    if (sp >= 0) {
+      const dx = x - px, at = i >= SLOTS - 1 ? 3 : 8 + (SLOTS - 2 - i) * 3, q = min(1, max(0, (sp - at) / 12)), [ex, ey] = PILE[max(0, SLOTS - 1 - i)];
+      if (i >= SLOTS - 1) (x = X(LIP)), (y = y0 + hh * 0.35), (rot = sin(sp * 0.9) * 0.5);
+      else (x = px + dx * cos(tilt)), (y = py - hh / 2 + dx * sin(tilt));
+      if (q > 0) (x += (X(ex) - x) * q), (y += (Y(ey) - y) * q - sin(PI * q) * R(0.03)), (rot += q * 2.5);
+    }
+    drawScrew(ctx, x, y, R(SR) * 0.92, v.col, rot, { t });
+  });
   font(0.03, 800);
   ctx.textAlign = 'right';
-  ctx.fillStyle = danger === 2 ? '#ffb4a8' : 'rgba(255,240,215,.75)';
+  ctx.fillStyle = danger === 2 ? '#ffb4a8' : 'rgba(255,240,215,.8)';
   ctx.fillText('빈칸', x0 - R(0.012), Y(TRAY_Y) + R(0.011));
-  // ✏️ S054(🎨 UI 정리): 'n/5'는 지웠다 — 구멍 다섯이 곧 개수
 }
 
 function drawBench(ctx: CanvasRenderingContext2D, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, w: number, h: number) {
@@ -3826,7 +3850,6 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     if (s.phase !== 'play') tip = '';
     else if (s.stage === 0 && s.taps === 0) tip = ''; // 🧪 S054 🔴: 소개 띠와 같은 말 — 손가락 안내만
     else if (s.down && s.press >= 0) tip = s.stage === 0 ? '떼면 쏙! · 나사 밖에서 떼면 취소' : '';
-    else if (S.slots.length >= 4) tip = '⚠ 빈칸이 하나 남았어요!';
     else if (s.hint) tip = '💡 귀띔 — 밤톨 손가락을 따라가요 (★3 없음)';
     else if (!S.key && !s.L.wind && idle) tip = '🔒 자물쇠 나사는 🔑 열쇠 나사를 빼야 풀려요'; // 태엽 판은 일찍 빼면 손해라 판 팁으로
     else if (!(s.L.wind && S.key)) tip = idle || (s.sf > 0 && s.taps === 0) ? d.tip : ''; // 📐: 판 팁 · 🧪 S004: 태엽을 뺀 뒤엔 '열쇠를 톡' 팁을 내린다 · ✏️ S054: 멈췄을 때 · 진 뒤에만
