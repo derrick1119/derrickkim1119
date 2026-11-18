@@ -151,6 +151,19 @@ describe('넘치는 쟁반(✏️ S064 · M3′ · 오너 "빈칸에 들어가�
     expect(s.spill).toBe(0);
   });
 
+  it('한 톡에 여럿이 와도 쟁반은 다섯째까지 모두 닿은 뒤에 기운다(🧪 S064 🔴① · 꽉 사건과 같은 틱)', () => {
+    let many = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const s = tryStage(screwshopNewbie, seed, 2, 600, seed).s;
+      if (s.S.fail !== 1) continue;
+      const land = Math.max(...s.vs.slice(0, 5).map((v) => v.at)), jam = s.events.find((e) => e.kind === 'jam');
+      expect(s.spill, `seed ${seed}`).toBeGreaterThanOrEqual(land);
+      if (jam) expect(jam.v).toBe(s.spill);
+      if (s.hist[s.hist.length - 1].rec.filter((r) => r.k === 'slot').length >= 2) many++;
+    }
+    expect(many).toBeGreaterThan(0);
+  });
+
   it('처음 봇 차례 길(사람 속도 · 48손): 4칸에 닿으면 늘 경고 그림이 뜨고(F31 = 4칸 도달) · 지는 톡 앞 경고 ≥ .8', () => {
     const r = trayRead(48);
     expect(r.warn).toBe(4);

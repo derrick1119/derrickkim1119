@@ -1205,8 +1205,8 @@ function tapScrew(s: ShopState, k: number) {
     s.ok = false;
     s.blame = retrace(L, s.hist, S);
     s.why = S.fail === 1 ? '꽉! 빈칸이 넘쳤다' : s.blame.c === '②못' ? '납작! 못 날개에 깔렸다' : '어라? 뺄 나사가 없네'; // 🎨 §2.7 · 🧪 S004: 제목도 원인에서
-    ev(s, 'jam', 0.5, TRAY_Y, S.fail === 1 ? '꽉!' : '꽉 막혔다…', '#ffb4a8', s.t + SPIN + FLY);
-    if (S.fail === 1) s.spill = s.t + SPIN + FLY; // ✏️ S064(M3′ A3 · 📐 S063 안 A): 다섯째가 턱에 닿는 틱 — 그 뒤 쟁반이 기울어 쏟아진다
+    if (S.fail === 1) s.spill = s.vs.slice(0, SLOTS).reduce((m, v) => max(m, v.at), s.t); // ✏️ S064(M3′ A3 · 🧪 S064 🔴①): 다섯째(까지 모두)가 쟁반에 닿는 틱 — 한 톡에 여럿 · 늦게 튀는 판에서 넘치기 전에 기울던 것
+    ev(s, 'jam', 0.5, TRAY_Y, undefined, undefined, s.spill || s.t + SPIN + FLY); // ✏️ S064: 글 · 색은 그린 적 없는 값이라 뺐다(바이트)
   } else if (S.n === L.N) {
     s.phase = 'settle';
     s.pt = 0;
@@ -3203,7 +3203,7 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
     ctx.restore();
     font(0.034, 900);
     ctx.textAlign = 'center';
-    const lab = pre.S.fail === 2 ? '⚠ 이러면 꽉 막혀요!' : first.k === 'box' ? (pre.rec.some((e) => e.k === 'done') ? '쏙 → 상자 완성!' : '쏙!') : pre.S.fail ? '⚠ 빈칸이 꽉 차요!' : `빈칸으로 (${pre.S.slots.length}/${SLOTS - 1})`;
+    const lab = pre.S.fail === 2 ? '⚠ 이러면 꽉 막혀요!' : first.k === 'box' ? (pre.rec.some((e) => e.k === 'done') ? '쏙 → 상자 완성!' : '쏙!') : pre.S.fail ? '⚠ 넘쳐요!' : `빈칸으로 (${pre.S.slots.length}/${SLOTS - 1})`;
     const lx = X(max(0.2, min(0.8, x0))), ly = Y(max(BY0 + 0.1, y0 - 0.075));
     pl(ctx, lx, ly, lab, pre.S.fail ? '#ffb4a8' : first.k === 'box' ? '#c8ffc8' : '#ffffff', R(0.05));
   }
@@ -3225,7 +3225,7 @@ function drawTray(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   const danger = n >= 4 ? 2 : n >= 3 ? 1 : 0, warn = s.phase === 'play' && n >= TRAY_WARN!;
   // ✏️ S064(M3′ A1~A3 · 📐 S063 안 A '넘치는 쟁반'): 구멍 넷 + 끝 턱(다섯째 = 넘침) · 4칸이면 떨고 턱 위에 다음 나사가 기우뚱 · 넘치면 기울어 쏟아진다
   const x0 = X(0.2), x1 = X(TRAY_X1), xl = X(LIP + 0.035), y0 = Y(TRAY_Y - 0.04), y1 = Y(TRAY_Y + 0.04), hh = y1 - y0;
-  const tilt = sp < 0 ? 0 : min(1, max(0, (sp - 4) / 8)) * 0.08, px = x1, py = y1;
+  const tilt = min(0.08, max(0, sp - 4) / 100), px = x1, py = y1;
   if (warn) (ctx.fillStyle = `rgba(255,70,40,${0.36 + 0.06 * sin(t * 0.3)})`), ctx.fillRect(X(BX0), Y(TRAY_Y - 0.07), X(BX1) - X(BX0), Y(BY0 + 0.04) - Y(TRAY_Y - 0.07)); // 4칸: 쟁반 줄이 붉게 숨 쉰다(하나 더면 넘침)
   ctx.save();
   ctx.translate(warn ? sin(t * 1.9) * 1.5 : 0, 0);
@@ -3247,7 +3247,7 @@ function drawTray(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
   // 끝 턱: 쟁반 오른끝에서 비스듬히 내려가는 나무 턱 — 다섯째는 여기서 넘친다
   ctx.fillStyle = '#6e4524';
   bp(ctx);
-  ctx.moveTo(x1 - 2, y0 + hh * 0.3), ctx.lineTo(xl, y0 + hh * 0.62), ctx.lineTo(xl, y1), ctx.lineTo(x1 - 2, y1), ctx.closePath();
+  ctx.moveTo(x1 - 2, y0 + hh * 0.3), ctx.lineTo(xl, y0 + hh * 0.62), ctx.lineTo(xl, y1), ctx.lineTo(x1 - 2, y1);
   ctx.fill();
   ctx.stroke();
   for (let i = 0; i < SLOTS - 1; i++) {
@@ -3263,9 +3263,9 @@ function drawTray(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
     ctx.stroke();
   }
   // 턱 밑 V: 떨어지는 곳(3칸 주황 · 4칸 빨강 맥박) · 4칸이면 턱 위에서 다음 나사가 기우뚱(반투명 · 입력 안 막음 · 쟁반과 같이 떤다)
-  const vx = X(LIP), vy = y1 + R(0.022), vr = R(0.016) * (1 + danger * 0.08 * sin(t * 0.3));
+  const vx = X(LIP), vy = y1 + R(0.022), vr = R(0.016);
   ctx.strokeStyle = danger === 1 ? '#ffb85a' : '#ff6a4d';
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = 2;
   bp(ctx);
   ctx.moveTo(vx - vr, vy - vr * 0.5), ctx.lineTo(vx, vy + vr * 0.5), ctx.lineTo(vx + vr, vy - vr * 0.5);
   ctx.stroke();
@@ -3276,8 +3276,8 @@ function drawTray(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
     if (t < v.at) return;
     let x = X(v.x), y = Y(TRAY_Y), rot = 0;
     if (sp >= 0) {
-      const dx = x - px, at = i >= SLOTS - 1 ? 3 : 8 + (SLOTS - 2 - i) * 3, q = min(1, max(0, (sp - at) / 12)), [ex, ey] = PILE[max(0, SLOTS - 1 - i)];
-      if (i >= SLOTS - 1) (x = X(LIP)), (y = y0 + hh * 0.35), (rot = sin(sp * 0.9) * 0.5);
+      const dx = x - px, at = (SLOTS - i) * 3, q = min(1, max(0, (sp - at) / 12)), [ex, ey] = PILE[max(0, SLOTS - 1 - i)];
+      if (i >= SLOTS - 1) (x = X(LIP)), (y = y0 + hh * 0.35);
       else (x = px + dx * cos(tilt)), (y = py - hh / 2 + dx * sin(tilt));
       if (q > 0) (x += (X(ex) - x) * q), (y += (Y(ey) - y) * q - sin(PI * q) * R(0.03)), (rot += q * 2.5);
     }
