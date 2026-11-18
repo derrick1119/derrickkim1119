@@ -76,7 +76,7 @@ export const STAGES: StageDef[] = [
     stars: [S3('multi', 3, '한 번에 셋 베기'), S3('multi', 5, '한 번에 다섯 베기')],
   },
   {
-    key: 'sword', name: '대숲 오솔길', place: 0, news: '칼잡이 — 다가와서 칼을 휘둘러요', goal: '숲 지나가기',
+    key: 'sword', name: '대숲 오솔길', place: 0, news: '칼잡이 — 다가와 칼을 휘둘러요', goal: '숲 지나가기',
     hint: '칼을 들면(빨간 반달) 얼른 다른 데로 번쩍!', start: [0.5, 1.12],
     waves: [
       { need: 0, wait: 1e9, foes: [['sword', 0.2, 0.72, 1], ['sword', 0.32, 0.72, 1], ['sword', 0.44, 0.72, 1]] },
@@ -87,7 +87,7 @@ export const STAGES: StageDef[] = [
     stars: [S3('nohit', 0, '한 번도 안 맞기'), S3('multi', 4, '한 번에 넷 베기')],
   },
   {
-    key: 'archer', name: '달빛 언덕', place: 0, news: '화살병 — 화살이 날아와요 (돌진 선으로 베면 끊겨요)', goal: '언덕 넘어가기',
+    key: 'archer', name: '달빛 언덕', place: 0, news: '화살병 — 날아오는 화살도 벨 수 있어요', goal: '언덕 넘어가기',
     hint: '빨간 점선이 겨누는 곳에서 비켜 서요 — 화살도 벨 수 있어요', start: [0.5, 1.15],
     waves: [
       { need: 0, wait: 1e9, foes: [['archer', 0.3, 0.5, 3], ['archer', 0.7, 0.5, 3], ['sword', 0.14, 0.92, 1], ['sword', 0.26, 0.92, 1]] },
@@ -97,7 +97,7 @@ export const STAGES: StageDef[] = [
     stars: [S3('arrow', 3, '날아오는 화살 셋 베기'), S3('nohit', 0, '한 번도 안 맞기')],
   },
   {
-    key: 'shuri', name: '기와 지붕', place: 1, news: '수리검 — 셋이 부채처럼 퍼져 날아와요', goal: '지붕 건너가기',
+    key: 'shuri', name: '기와 지붕', place: 1, news: '수리검 — 셋이 부채꼴로 날아와요', goal: '지붕 건너가기',
     hint: '수리검은 부채꼴 — 틈으로 비켜 서요', start: [0.5, 1.15],
     waves: [
       { need: 0, wait: 1e9, foes: [['shuri', 0.2, 0.55, 1], ['shuri', 0.8, 0.55, 2], ['sword', 0.5, 0.5, 3], ['sword', 0.5, 0.63, 3]] },
@@ -107,7 +107,7 @@ export const STAGES: StageDef[] = [
     stars: [S3('multi', 4, '한 번에 넷 베기'), S3('nohit', 0, '한 번도 안 맞기')],
   },
   {
-    key: 'shield', name: '높은 지붕', place: 1, news: '방패 무사 — 앞에서 베면 튕겨요. 등 뒤에서!', goal: '지붕 건너가기',
+    key: 'shield', name: '높은 지붕', place: 1, news: '방패 무사 — 앞은 튕겨요, 등 뒤를 베요', goal: '지붕 건너가기',
     hint: '방패 옆으로 지나가 등 뒤로 — 돌아서기 전에 번쩍!', start: [0.5, 1.15],
     waves: [
       { need: 0, wait: 1e9, foes: [['shield', 0.5, 0.64, 3], ['sword', 0.3, 0.58, 3], ['sword', 0.7, 0.58, 3]] },
@@ -117,7 +117,7 @@ export const STAGES: StageDef[] = [
     stars: [S3('back', 3, '방패 무사 셋을 등 뒤에서'), S3('multi', 3, '한 번에 셋 베기')],
   },
   {
-    key: 'barrel', name: '창고 마당', place: 2, news: '폭탄 통 — 베면 펑! 둘레의 적도 같이 날아가요', goal: '마당 지나가기',
+    key: 'barrel', name: '창고 마당', place: 2, news: '폭탄 통 — 베면 둘레까지 펑!', goal: '마당 지나가기',
     hint: '적이 통 곁에 모였을 때 통을 베요 (나는 멀리!)', start: [0.5, 1.17],
     barrels: [[0.3, 0.74], [0.7, 0.74], [0.5, 0.95]],
     waves: [
@@ -128,7 +128,7 @@ export const STAGES: StageDef[] = [
     stars: [S3('boom', 3, '통 하나로 셋 날리기'), S3('nohit', 0, '한 번도 안 맞기')],
   },
   {
-    key: 'mirror', name: '거울 정원', place: 2, news: '거울 — 돌진 선이 거울에 꺾여요 (화살은 막아요)', goal: '정원 지나가기',
+    key: 'mirror', name: '거울 정원', place: 2, news: '거울 — 돌진 선이 꺾여요', goal: '정원 지나가기',
     hint: '거울을 겨누면 선이 꺾여요 — 방패 등 뒤로 돌아 베기', start: [0.5, 1.17],
     mirrors: [[0.16, 0.62, 0.3, 0.86], [0.84, 0.62, 0.7, 0.86]],
     waves: [
@@ -139,7 +139,7 @@ export const STAGES: StageDef[] = [
     stars: [S3('mirror', 3, '거울로 꺾어 셋 베기'), S3('multi', 3, '한 번에 셋 베기')],
   },
   {
-    key: 'boss', name: '성 마당', place: 2, news: '대장 곰 — 네 번 베야 해요. 연기 속엔 내가 안 보여요', goal: '대장 이기기',
+    key: 'boss', name: '성 마당', place: 2, news: '대장 곰 — 네 번 베야 쓰러져요', goal: '대장 이기기',
     hint: '연기 속에 내리면 적이 나를 못 찾아요', start: [0.5, 1.17],
     smokes: [[0.24, 0.98, 0.1], [0.76, 0.72, 0.1]],
     waves: [
@@ -297,7 +297,7 @@ function kill(s: DashState, f: Foe, n: number, a: number, boom: boolean) {
   s.cuts.push({ k: f.k, x: f.x, y: f.y, a, t: s.t, face: Math.cos(f.fa) >= 0 ? 1 : -1, n, seed: f.seed, boom });
   if (s.cuts.length > 24) s.cuts.shift();
   s.inks.push({ x: f.x + Math.cos(a) * 0.03, y: f.y + Math.sin(a) * 0.02, r: 0.03 + 0.01 * Math.min(4, n), t: s.t, seed: f.seed });
-  if (s.inks.length > 26) s.inks.shift();
+  if (s.inks.length > 14) s.inks.shift();
 }
 
 function explode(s: DashState, b: Barrel) {
@@ -333,6 +333,8 @@ function doDash(s: DashState, tx: number, ty: number) {
   if (s.phase !== 'play') return;
   const L = reachOf(s.g), full = L >= HOP;
   const P = trace(s, s.nx, s.ny, tx, ty, full ? L : HOP, full);
+  // 닌자 바로 위에서 떼면 취소 (게이지도 안 든다)
+  if (pathLen(P) < 0.03 && !P.hits.length) return void ev(s, 'cancel', s.nx, s.ny);
   if (full) s.g = Math.max(0, s.g - dashCost(pathLen(P)));
   s.dashes++;
   if (!s.firstDash) s.firstDash = true;
@@ -624,15 +626,8 @@ function starMet(s: DashState, st: Star) {
   }
 }
 function starNow(s: DashState, st: Star): string {
-  switch (st.k) {
-    case 'multi': return s.best ? `최고 ${s.best}` : '';
-    case 'nohit': return s.hits ? `${s.hits}번 맞음` : '';
-    case 'arrow': return `${s.arrows}/${st.n}`;
-    case 'back': return `${s.backK}/${st.n}`;
-    case 'boom': return s.boomBest ? `최고 ${s.boomBest}` : '';
-    case 'mirror': return `${s.mirK}/${st.n}`;
-    case 'boss': return '';
-  }
+  const n = st.n ?? 0, v = st.k === 'multi' ? s.best : st.k === 'arrow' ? s.arrows : st.k === 'back' ? s.backK : st.k === 'boom' ? s.boomBest : st.k === 'mirror' ? s.mirK : -1;
+  return v > 0 && v < n ? `${v}/${n}` : '';
 }
 
 function endStage(s: DashState, ok: boolean, why: string) {
@@ -668,7 +663,7 @@ function cosmetic(s: DashState) {
   s.slowVis += ((s.down && s.g > 0 && s.phase === 'play' ? 1 : 0) - s.slowVis) * 0.25;
   s.events = s.events.filter((e) => s.t - e.t < 90);
   s.cuts = s.cuts.filter((c) => s.t - c.t < 80);
-  s.inks = s.inks.filter((k) => s.t - k.t < 900);
+  s.inks = s.inks.filter((k) => s.t - k.t < 420);
   if (s.spot && s.t - s.spot.t > 110) s.spot = null;
   if (!s.news || s.t - s.news.t > NEWS_T) s.news = s.newsQ.length ? { text: s.newsQ.shift()!, t: s.t } : s.news;
 }
@@ -939,6 +934,7 @@ export const slowdashSmart: Bot<DashState> = {
     if (!live.length && here > 40) return NO;
     let best: Choice | null = null, repo: Choice | null = null, kill: Choice | null = null;
     for (const c of cands(s, L)) {
+      if (Math.hypot(c.x - s.nx, c.y - s.ny) < 0.04) continue;
       const j = judge(s, c.x, c.y, L);
       if (!best || j.v > best.v) best = j;
       if (j.n > 0 && j.safe >= 25 && (!kill || j.v > kill.v)) kill = j;
@@ -956,6 +952,7 @@ export const slowdashSmart: Bot<DashState> = {
       if (here >= 30 && !(best.n >= 2 || (best.n >= 1 && waited > 240))) return NO;
       let pick: Choice | null = null, pv = -1e9;
       for (const c of cands(s, L)) {
+        if (Math.hypot(c.x - s.nx, c.y - s.ny) < 0.04) continue;
         const j = judge(s, c.x, c.y, L), v = (j.safe >= 60 ? 1000 : j.safe * 10) + j.n * 150 + j.boom * 60 - j.cost * 4;
         if (v > pv) (pv = v), (pick = j);
       }
@@ -1445,7 +1442,7 @@ function drawFox(ctx: C2, x: number, y: number, k: number, face: number, pose: n
   // 다리 · 버선
   const sp = pose === 1 || pose === 2 ? 0.05 * k : 0;
   ctx.strokeStyle = OUT;
-  ctx.lineWidth = k * 0.024;
+  ctx.lineWidth = k * 0.032;
   ctx.fillStyle = '#1a2042';
   rr(ctx, -k * 0.13 - sp, -k * 0.25 + lo, k * 0.1, k * 0.25 - lo, k * 0.04);
   ctx.fill();
@@ -1569,7 +1566,7 @@ function drawFox(ctx: C2, x: number, y: number, k: number, face: number, pose: n
     ctx.lineTo(k * 0.065, k * 0.02);
     ctx.closePath();
     ctx.fill();
-    ctx.lineWidth = k * 0.022;
+    ctx.lineWidth = k * 0.03;
     ctx.strokeStyle = OUT;
     ctx.stroke();
     ctx.fillStyle = '#ffd3ae';
@@ -1590,7 +1587,7 @@ function drawFox(ctx: C2, x: number, y: number, k: number, face: number, pose: n
   ctx.fillStyle = lin(ctx, hx - hr, hy - hr, hx + hr, hy + hr, [0, '#4a5aa6'], [1, '#1b2250']);
   ell(ctx, hx, hy, hr, hr * 0.96);
   ctx.fill();
-  ctx.lineWidth = k * 0.026;
+  ctx.lineWidth = k * 0.034;
   ctx.strokeStyle = OUT;
   ctx.stroke();
   ctx.fillStyle = '#f39a4b';
@@ -1625,7 +1622,7 @@ function drawFox(ctx: C2, x: number, y: number, k: number, face: number, pose: n
       ctx.stroke();
     } else if (pose === 4 || (pose === 2 && ex < hx + k * 0.1)) {
       ctx.strokeStyle = '#1a1016';
-      ctx.lineWidth = k * 0.022;
+      ctx.lineWidth = k * 0.03;
       ctx.beginPath();
       ctx.arc(ex, ey + k * 0.012, k * 0.025, Math.PI * 1.1, Math.PI * 1.9);
       ctx.stroke();
@@ -1728,7 +1725,7 @@ function drawFoeBody(ctx: C2, k: number, p: Pose, t: number) {
     ctx.rotate(Math.sin(t * 0.035 + p.seed) * 0.05);
     ctx.fillStyle = lin(ctx, -k * 0.03, 0, k * 0.03, 0, [0, '#5e3f24'], [1, '#93673d']);
     ctx.strokeStyle = O;
-    ctx.lineWidth = k * 0.022;
+    ctx.lineWidth = k * 0.03;
     rr(ctx, -k * 0.028, -k * 0.62, k * 0.056, k * 0.62, k * 0.02);
     ctx.fill();
     ctx.stroke();
@@ -1751,7 +1748,7 @@ function drawFoeBody(ctx: C2, k: number, p: Pose, t: number) {
     ctx.closePath();
     ctx.fill();
     ctx.strokeStyle = O;
-    ctx.lineWidth = k * 0.022;
+    ctx.lineWidth = k * 0.03;
     ctx.stroke();
     ctx.fillStyle = '#b8733c';
     rr(ctx, k * 0.03, -k * 0.44, k * 0.08, k * 0.08, k * 0.01);
@@ -1788,7 +1785,7 @@ function drawFoeBody(ctx: C2, k: number, p: Pose, t: number) {
     ell(ctx, 0, -k * 0.665, k * 0.13, k * 0.12);
     ctx.fill();
     ctx.strokeStyle = O;
-    ctx.lineWidth = k * 0.022;
+    ctx.lineWidth = k * 0.03;
     ctx.stroke();
     ctx.fillStyle = 'rgba(120,80,40,.25)';
     for (let j = 0; j < 8; j++) ctx.fillRect(-k * 0.09 + hsh(p.seed + j) * k * 0.18, -k * 0.75 + hsh(p.seed + j + 9) * k * 0.15, k * 0.012, k * 0.012);
@@ -1844,7 +1841,7 @@ function drawFoeBody(ctx: C2, k: number, p: Pose, t: number) {
     ctx.rotate(-0.6 + Math.sin(t * 0.08 + p.seed) * 0.15);
     ctx.fillStyle = '#7a4c2c';
     ctx.strokeStyle = O;
-    ctx.lineWidth = k * 0.022;
+    ctx.lineWidth = k * 0.03;
     ell(ctx, -k * 0.12, 0, k * 0.15, k * 0.075);
     ctx.fill();
     ctx.stroke();
@@ -1872,7 +1869,7 @@ function drawFoeBody(ctx: C2, k: number, p: Pose, t: number) {
     ell(ctx, 0, -k * 0.27, k * 0.19, k * 0.21);
     ctx.fill();
     ctx.strokeStyle = O;
-    ctx.lineWidth = k * 0.024;
+    ctx.lineWidth = k * 0.032;
     ctx.stroke();
     ctx.fillStyle = '#e8cb9c';
     ell(ctx, k * 0.05, -k * 0.24, k * 0.11, k * 0.13);
@@ -1891,7 +1888,7 @@ function drawFoeBody(ctx: C2, k: number, p: Pose, t: number) {
     ell(ctx, k * 0.02, hy, k * 0.165, k * 0.145);
     ctx.fill();
     ctx.strokeStyle = O;
-    ctx.lineWidth = k * 0.024;
+    ctx.lineWidth = k * 0.032;
     ctx.stroke();
     ctx.fillStyle = '#3a2416';
     ell(ctx, k * 0.07, hy - k * 0.005, k * 0.12, k * 0.05);
@@ -1974,7 +1971,7 @@ function drawFoeBody(ctx: C2, k: number, p: Pose, t: number) {
     ell(ctx, 0, -k * 0.24, k * 0.17, k * 0.21);
     ctx.fill();
     ctx.strokeStyle = O;
-    ctx.lineWidth = k * 0.024;
+    ctx.lineWidth = k * 0.032;
     ctx.stroke();
     ctx.fillStyle = '#e4efb4';
     ell(ctx, k * 0.05, -k * 0.21, k * 0.1, k * 0.14);
@@ -2055,7 +2052,7 @@ function drawFoeBody(ctx: C2, k: number, p: Pose, t: number) {
     ell(ctx, 0, -k * 0.28, k * 0.16, k * 0.22);
     ctx.fill();
     ctx.strokeStyle = O;
-    ctx.lineWidth = k * 0.024;
+    ctx.lineWidth = k * 0.032;
     ctx.stroke();
     // 날개 팔
     ctx.fillStyle = '#20222f';
@@ -2116,7 +2113,7 @@ function drawFoeBody(ctx: C2, k: number, p: Pose, t: number) {
     ell(ctx, 0, -k * 0.29, k * 0.23, k * 0.25);
     ctx.fill();
     ctx.strokeStyle = O;
-    ctx.lineWidth = k * 0.026;
+    ctx.lineWidth = k * 0.034;
     ctx.stroke();
     ctx.strokeStyle = 'rgba(40,8,12,.55)';
     ctx.lineWidth = k * 0.014;
@@ -2187,7 +2184,7 @@ function drawFoeBody(ctx: C2, k: number, p: Pose, t: number) {
   ell(ctx, 0, -k * 0.3, k * 0.26, k * 0.28);
   ctx.fill();
   ctx.strokeStyle = OUT;
-  ctx.lineWidth = k * 0.024;
+  ctx.lineWidth = k * 0.032;
   ctx.stroke();
   ctx.fillStyle = lin(ctx, 0, -k * 0.5, 0, -k * 0.15, [0, '#a52a33'], [1, '#6a141c']);
   rr(ctx, -k * 0.17, -k * 0.5, k * 0.34, k * 0.32, k * 0.07);
@@ -2537,6 +2534,111 @@ function drawHand(ctx: C2, x: number, y: number, k: number, press: number) {
   ctx.restore();
 }
 
+
+function lantern(ctx: C2, x: number, y: number, k: number, t: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  const fl = 0.75 + 0.25 * Math.sin(t * 0.13) * Math.sin(t * 0.07);
+  ctx.fillStyle = radg(ctx, 0, -k * 0.62, 0, k * 0.9, [0, `rgba(255,200,120,${0.35 * fl})`], [1, 'rgba(255,200,120,0)']);
+  ctx.beginPath();
+  ctx.arc(0, -k * 0.62, k * 0.9, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(4,6,18,.4)';
+  ell(ctx, 0, 0, k * 0.3, k * 0.08);
+  ctx.fill();
+  const stone = lin(ctx, -k * 0.2, 0, k * 0.2, 0, [0, '#8d92a3'], [1, '#4a4e5e']);
+  ctx.fillStyle = stone;
+  ctx.strokeStyle = OUT;
+  ctx.lineWidth = k * 0.03;
+  rr(ctx, -k * 0.22, -k * 0.12, k * 0.44, k * 0.12, k * 0.03);
+  ctx.fill();
+  ctx.stroke();
+  rr(ctx, -k * 0.07, -k * 0.45, k * 0.14, k * 0.34, k * 0.03);
+  ctx.fill();
+  ctx.stroke();
+  rr(ctx, -k * 0.2, -k * 0.52, k * 0.4, k * 0.08, k * 0.03);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = `rgba(255,214,140,${fl})`;
+  rr(ctx, -k * 0.13, -k * 0.74, k * 0.26, k * 0.22, k * 0.02);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(80,50,30,.6)';
+  ctx.fillRect(-k * 0.015, -k * 0.74, k * 0.03, k * 0.22);
+  ctx.fillStyle = stone;
+  ctx.beginPath();
+  ctx.moveTo(-k * 0.3, -k * 0.74);
+  ctx.quadraticCurveTo(0, -k * 0.82, k * 0.3, -k * 0.74);
+  ctx.lineTo(0, -k * 0.98);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+/** 앞쪽 소품 (화면 아래 모서리 — 깊이감) */
+function frontProps(ctx: C2, place: number, w: number, t: number) {
+  const R = (r: number) => r * w, gb = GB * w;
+  if (place === 0) {
+    ctx.fillStyle = 'rgba(4,6,18,.35)';
+    ell(ctx, R(0.05), gb - R(0.01), R(0.12), R(0.03));
+    ctx.fill();
+    ctx.fillStyle = lin(ctx, 0, gb - R(0.08), 0, gb, [0, '#6e7488'], [1, '#2e3240']);
+    ctx.strokeStyle = OUT;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-R(0.02), gb);
+    ctx.quadraticCurveTo(-R(0.01), gb - R(0.07), R(0.05), gb - R(0.075));
+    ctx.quadraticCurveTo(R(0.11), gb - R(0.07), R(0.12), gb);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(110,170,90,.85)';
+    ell(ctx, R(0.04), gb - R(0.066), R(0.045), R(0.014));
+    ctx.fill();
+    for (const [x, hgt] of [[0.9, 0.07], [0.95, 0.1], [0.985, 0.06]]) {
+      ctx.fillStyle = lin(ctx, R(x) - R(0.02), 0, R(x) + R(0.02), 0, [0, '#7a8a3a'], [1, '#3e4a1e']);
+      ctx.beginPath();
+      ctx.moveTo(R(x) - R(0.022), gb);
+      ctx.quadraticCurveTo(R(x) - R(0.012), gb - R(hgt) * 0.6, R(x), gb - R(hgt));
+      ctx.quadraticCurveTo(R(x) + R(0.012), gb - R(hgt) * 0.6, R(x) + R(0.022), gb);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(30,40,10,.6)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(R(x) - R(0.016), gb - R(hgt) * 0.25);
+      ctx.lineTo(R(x) + R(0.012), gb - R(hgt) * 0.35);
+      ctx.stroke();
+      ctx.strokeStyle = OUT;
+      ctx.lineWidth = 2;
+    }
+  } else if (place === 1) {
+    ctx.fillStyle = '#121528';
+    ctx.fillRect(0, gb - R(0.014), w, R(0.02));
+    for (let x = R(0.02); x < w; x += R(0.06)) {
+      ctx.fillStyle = lin(ctx, x - R(0.02), 0, x + R(0.02), 0, [0, '#5a6688'], [1, '#2a3048']);
+      ctx.beginPath();
+      ctx.arc(x, gb - R(0.012), R(0.02), 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = OUT;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(200,210,255,.35)';
+      ctx.beginPath();
+      ctx.arc(x, gb - R(0.012), R(0.011), 0, TAU);
+      ctx.stroke();
+    }
+  } else {
+    lantern(ctx, R(0.06), gb - R(0.005), R(0.13), t);
+    ctx.fillStyle = '#141820';
+    for (let j = 0; j < 4; j++) {
+      ell(ctx, w - R(0.04) - j * R(0.035), gb - R(0.05) + j * R(0.018), R(0.07 - j * 0.01), R(0.02));
+      ctx.fill();
+    }
+  }
+}
+const recentSay = new WeakMap<object, { x: number; y: number; t: number; size: number }[]>();
 /** 화면 위 크기: 먼 쪽은 작게, 가까운 쪽은 크게 */
 const depth = (y: number) => 0.84 + 0.26 * ((y - Y0) / (Y1 - Y0));
 const FOE_H: Record<K, number> = { dummy: 0.175, sword: 0.165, archer: 0.165, shuri: 0.165, shield: 0.18, boss: 0.27 };
@@ -2582,11 +2684,12 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     }
   }
   ctx.drawImage(bg.ground, 0, Y(HZ), w, Y(GB) - Y(HZ));
+  if (d.place !== 1) for (const lx of [0.035, 0.965]) lantern(ctx, X(lx), Y(HZ + 0.06), R(0.085), t + lx * 50);
   // ── 땅 위: 먹물 자국 · 그림자 · 위험 표시 ──
   for (const k of s.inks) {
-    const a = Math.max(0, 1 - (t - k.t) / 900) * Math.min(1, (t - k.t) / 8);
+    const a = Math.max(0, 1 - (t - k.t) / 420) * Math.min(1, Math.max(0, t - k.t - 8) / 6);
     if (a <= 0) continue;
-    ctx.fillStyle = `rgba(14,8,26,${0.55 * a})`;
+    ctx.fillStyle = `rgba(20,12,40,${0.42 * a})`;
     const cx = X(k.x), cy = Y(k.y), r0 = R(k.r);
     for (let j = 0; j < 6; j++) {
       const ang = hsh(k.seed + j) * TAU, dd = r0 * (0.2 + hsh(k.seed + j + 3) * 0.7);
@@ -2678,7 +2781,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   }
   for (const b of s.barrels) {
     const pop = Math.min(1, 0.4 + (t - b.born) / 14);
-    items.push({ y: b.y, draw: () => drawBarrel(ctx, X(b.x), Y(b.y), R(0.12) * depth(b.y), b.fuse, t, pop) });
+    items.push({ y: b.y, draw: () => drawBarrel(ctx, X(b.x), Y(b.y), R(0.15) * depth(b.y), b.fuse, t, pop) });
   }
   const drawFoe = (f: Foe, alpha: number, outline: boolean) => {
     let x = f.x, y = f.y, z = 0, sc2 = 1;
@@ -2811,7 +2914,11 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.fillStyle = radg(ctx, X(s.nx), Y(s.ny), 0, k * 0.55, [0, 'rgba(200,235,255,.32)'], [1, 'rgba(200,235,255,0)']);
     ell(ctx, X(s.nx), Y(s.ny), k * 0.55, k * 0.2);
     ctx.fill();
+    ctx.save();
+    ctx.shadowColor = 'rgba(150,215,255,.75)';
+    ctx.shadowBlur = k * 0.12;
     drawFox(ctx, X(s.nx), Y(s.ny), k, s.face, ninPose(), wt + t * 0.3, blinkOff ? 0.45 * alpha : alpha);
+    ctx.restore();
     if (s.phase === 'play' && (s.hp < HP || t - (fx.memo.hurtT ?? -99) < 90)) {
       for (let j = 0; j < HP; j++) {
         ctx.fillStyle = j < s.hp ? '#ff5a6a' : 'rgba(255,255,255,.25)';
@@ -2936,6 +3043,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       if (since < 14) for (const u of [0.25, 0.5, 0.75]) drawFox(ctx, X(lg[0] + (lg[2] - lg[0]) * u), Y(lg[1] + (lg[3] - lg[1]) * u), R(NIN_H) * depth(lg[1] + (lg[3] - lg[1]) * u), s.face, 2, wt, 0.16 * (1 - since / 14) * (0.5 + u));
     }
   }
+  frontProps(ctx, d.place, w, t);
   // 연기 (가린다)
   for (const m of s.smokes) drawSmoke(ctx, X(m.x), Y(m.y), R(m.r) * 1.15, wt, 1);
   if (inSmoke(s, s.nx, s.ny) && s.phase === 'play') {
@@ -3161,7 +3269,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.stroke();
       ctx.globalAlpha = a;
       font(0.04, 900);
-      const label = `NEW  ${s.spot.label}`, tw = ctx.measureText(label).width + R(0.04), lx = clamp(cx, tw / 2 + 6, w - tw / 2 - 6), ly = cy - r0 - R(0.04);
+      const label = `NEW  ${s.spot.label}`, tw = ctx.measureText(label).width + R(0.04), lx = clamp(cx, tw / 2 + 6, w - tw / 2 - 6), ly = cy - r0 - R(0.04) < Y(0.3) ? cy + r0 + R(0.04) : cy - r0 - R(0.04);
       ctx.fillStyle = '#ffd84a';
       rr(ctx, lx - tw / 2, ly - R(0.026), tw, R(0.052), R(0.026));
       ctx.fill();
@@ -3174,7 +3282,16 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   }
   // ── 사건 연출 ──
   const seenT = fx.memo.t ?? -1;
-  const say = (x: number, y: number, text: string, col: string, size: number) => fx.pop(clamp(x, w * 0.14, w * 0.86), Math.max(Y(0.34), y), text, col, size);
+  const say = (x: number, y: number, text: string, col: string, size: number) => {
+    let rec = recentSay.get(s);
+    if (!rec) recentSay.set(s, (rec = []));
+    x = clamp(x, w * 0.14, w * 0.86);
+    y = Math.max(Y(0.3), y);
+    for (let k = 0; k < 6 && rec.some((q) => t - q.t < 36 && Math.abs(q.x - x) < w * 0.3 && Math.abs(q.y - y) < (size + q.size) * 0.6); k++) y += size + 4;
+    rec.push({ x, y, t, size });
+    if (rec.length > 12) rec.shift();
+    fx.pop(x, y, text, col, size);
+  };
   for (const e of s.events) {
     if (e.t <= seenT) continue;
     const ex = X(e.x), ey = Y(e.y);
@@ -3186,8 +3303,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
         fx.kick(2 + n * 2.5);
         fx.ring(ex, ey - R(0.04), '#e8fbff', R(0.08 + n * 0.02), 3);
         fx.burst(ex, ey - R(0.04), '#ffffff', 8 + n * 3, 3, 2);
-        if (n > 0) say(ex, ey - R(0.25), n >= 3 ? '번쩍!!' : '번쩍!', '#ffffff', 16 + Math.min(4, n) * 3);
-        if (n > 0) fx.memo.sheath = t;
+        if (n > 0 && t - (fx.memo.bz ?? -99) > 40) (fx.memo.bz = t), say(ex, ey - R(0.25), n >= 3 ? '번쩍!!' : '번쩍!', '#ffffff', 16 + Math.min(4, n) * 3);
+        if (n > 1) fx.memo.sheath = t;
       }
     }
     if (e.kind === 'multi') {
@@ -3196,7 +3313,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       fx.burst(ex, ey, '#ffd84a', 10 + n * 5, 4 + n * 0.5, 2.6);
       fx.ring(ex, ey, '#ffd84a', R(0.12 + n * 0.03), 5);
     }
-    if (e.kind === 'chain') say(w * 0.8, Y(0.5), `연쇄 ×${e.n}`, '#9ff0ff', Math.min(26, 14 + (e.n ?? 2) * 1.5));
+    if (e.kind === 'chain' && (e.n ?? 0) >= 3) say(w * 0.8, Y(0.56), `연쇄 ×${e.n}`, '#9ff0ff', Math.min(26, 14 + (e.n ?? 2) * 1.5));
     if (e.kind === 'bounce') {
       say(ex, ey - R(0.14), '챙!', '#ffd86b', 18);
       fx.burst(ex, ey - R(0.06), '#ffe9a0', 14, 3.4, 2);
@@ -3236,7 +3353,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       fx.kick(7);
     }
     if (e.kind === 'empty') say(ex, ey - R(0.18), '게이지 바닥!', '#ffb3a8', 14);
-    if (e.kind === 'wave' && (e.n ?? 0) > 1 && s.phase === 'play') say(w / 2, Y(0.36), '또 온다!', '#ffe9a8', 15);
     if (e.kind === 'clear') {
       fx.burst(w * 0.3, Y(0.7), '#ffd84a', 36, 6, 3);
       fx.burst(w * 0.7, Y(0.7), '#9ff0ff', 36, 6, 3);
@@ -3459,7 +3575,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     // 2줄: 별 셋 (쉬운 말)
     const r2 = ty + R(0.1);
     {
-      const labels = [d.goal, d.stars[0].label, d.stars[1].label];
+      const pr = s.phase === 'play' ? [starNow(s, d.stars[0]), starNow(s, d.stars[1])] : ['', ''];
+      const labels = [d.goal, d.stars[0].label + (pr[0] && !starMet(s, d.stars[0]) && d.stars[0].k !== 'nohit' ? ` ${pr[0]}` : ''), d.stars[1].label + (pr[1] && !starMet(s, d.stars[1]) && d.stars[1].k !== 'nohit' ? ` ${pr[1]}` : '')];
       const ok = s.phase === 'result' && s.ok ? s.starOk : [false, starMet(s, d.stars[0]) && d.stars[0].k !== 'nohit', starMet(s, d.stars[1]) && d.stars[1].k !== 'nohit'];
       const bad = [false, d.stars[0].k === 'nohit' && s.hits > 0, d.stars[1].k === 'nohit' && s.hits > 0];
       font(0.034, 800);
@@ -3487,11 +3604,9 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     // 3줄: 안내 한 줄
     {
       let hint = d.hint;
-      const prog = [starNow(s, d.stars[0]), starNow(s, d.stars[1])].filter(Boolean).join(' · ');
       if (s.stage === 0 && !s.firstDash && s.phase === 'play') hint = '👆 꾹 누르면 느려져요 — 떼면 번쩍!';
       else if (s.down && s.phase === 'play') hint = canCut ? '떼면 번쩍! 선 위의 적을 모두 베요' : '게이지가 모자라 짧게 뛰기만 해요';
       else if (s.phase === 'result') hint = s.ok ? (s.won ? '모든 판을 지나왔어요!' : `★ ${s.got}개! 다음 판엔 새 적이 나와요`) : '날아오는 건 비켜 서요 — 빨간 표시를 보세요';
-      else if (prog && s.pt > CARD_T) hint = `${d.hint.length > 22 ? '지금' : d.hint} · ${prog}`;
       const first = s.stage === 0 && !s.firstDash;
       font(first ? 0.04 : 0.035, 900);
       ctx.textAlign = 'center';

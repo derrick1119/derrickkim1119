@@ -35,7 +35,7 @@ const GROUND = 0, PULL = 1, STUCK = 2, FLY = 3, STOLEN = 4, GONE = 5;
 const BOT = 0, WOOD = 1, SHIELD = 2, BOSS = 3;
 const WALK = 0, TUMBLE = 1, DOWN = 2, DEAD = 3;
 const ER = [0.036, 0.038, 0.04, 0.1];
-const HPK = [1, 2, 2, 40];
+const HPK = [1, 2, 2, 50];
 const FSPD = [0.0016, 0.0013, 0.0012, 0];
 /** 로봇 걸음: VR ÷ (1 + KL·무게) */
 const VR = 0.0068, KL = 0.06;
@@ -88,7 +88,7 @@ export const STAGES: StageDef[] = [
     key: 'wood', name: '나무 로봇', news: '나무 로봇: 자석 안 통함, 두 번 맞혀요', tip: '나무 로봇은 가까이서 몰아 쏴요',
     nstar: 3, multi: 5, hp: 3, spd: 1.0, scrap: 26, near: 10, chunks: 1,
     waves: [
-      { at: 0.5, n: 5, k: BOT, side: 'T', form: 'clump', mix: 2 },
+      { at: 0.5, n: 5, k: BOT, side: 'T', form: 'spread', mix: 2 },
       { at: 1, n: 3, k: WOOD, side: 'L', form: 'spread' },
       { at: 1.5, n: 3, k: BOT, side: 'R', form: 'clump', mix: 3 },
       { at: 11, n: 4, k: BOT, side: 'B', form: 'clump', mix: 2 },
@@ -111,7 +111,7 @@ export const STAGES: StageDef[] = [
   },
   {
     key: 'shield', name: '자석 방패 로봇', news: '빨간 자석 로봇은 내 고철을 빼앗아요', tip: '일곱 개 넘게 한 번에! 방패가 넘쳐요',
-    nstar: 3, multi: 6, hp: 3, spd: 1.1, scrap: 28, near: 12, chunks: 1,
+    nstar: 3, multi: 5, hp: 3, spd: 1.1, scrap: 28, near: 12, chunks: 1,
     waves: [
       { at: 0.5, n: 4, k: BOT, side: 'T', form: 'clump', lead: SHIELD },
       { at: 1, n: 4, k: BOT, side: 'L', form: 'clump', mix: 3 },
@@ -123,7 +123,7 @@ export const STAGES: StageDef[] = [
   },
   {
     key: 'belt', name: '컨베이어', news: '컨베이어 고철은 분쇄기로 사라져요', tip: '컨베이어 위 고철은 금방 사라져요',
-    nstar: 3, multi: 5, hp: 3, spd: 1.12, scrap: 18, near: 8, chunks: 1, belt: true,
+    nstar: 3, multi: 6, hp: 3, spd: 1.12, scrap: 18, near: 8, chunks: 1, belt: true,
     waves: [
       { at: 0.5, n: 5, k: BOT, side: 'T', form: 'clump', mix: 2 },
       { at: 1, n: 3, k: BOT, side: 'L', form: 'clump', mix: 2 },
@@ -135,7 +135,7 @@ export const STAGES: StageDef[] = [
   },
   {
     key: 'crane', name: '대장 크레인', news: '갈고리 그림자를 피해 크레인을 쳐요', tip: '그림자 밖으로! 큰 덩어리로 크레인 몸통을 쳐요',
-    nstar: 3, multi: 5, hp: 3, spd: 1.12, scrap: 24, near: 10, chunks: 1, boss: true,
+    nstar: 3, multi: 4, hp: 3, spd: 1.12, scrap: 24, near: 10, chunks: 1, boss: true,
     drums: [[0.25, 0.42], [0.75, 0.42]],
     waves: [],
     puddles: [[0.15, 0.85, 0.08], [0.85, 0.7, 0.07]],
@@ -277,7 +277,7 @@ function spawnWave(s: MagState, w: Wave) {
   const dx = s.rx - cx, dy = s.ry - cy, dl = Math.hypot(dx, dy) || 1, ux = dx / dl, uy = dy / dl;
   for (let i = 0; i < w.n; i++) {
     let ox = 0, oy = 0;
-    if (w.form === 'line') (ox = -ux * i * 0.085), (oy = -uy * i * 0.085);
+    if (w.form === 'line') (ox = -ux * i * 0.11), (oy = -uy * i * 0.11);
     else if (w.form === 'spread') {
       const o = (i - (w.n - 1) / 2) * 0.17;
       (ox = -uy * o), (oy = ux * o);
@@ -685,7 +685,7 @@ function foeStep(s: MagState) {
       } else {
         const dx = s.rx - f.x, dy = s.ry - f.y, dd = Math.hypot(dx, dy) || 1e-6;
         let sp = FSPD[f.k] * d.spd;
-        if (f.k === BOT && s.stage > 0 && mr > 0 && dd < mr && s.holdT > 6) sp += 0.0009 * (1 - dd / mr);
+        if (f.k === BOT && s.stage > 0 && mr > 0 && dd < mr && s.holdT > 20) sp += 0.0007 * (1 - dd / mr);
         const wob = Math.sin(f.ph * 0.07 + f.id) * 0.3, ux = dx / dd, uy = dy / dd;
         f.vx += ((ux - uy * wob) * sp - f.vx) * 0.12;
         f.vy += ((uy + ux * wob) * sp - f.vy) * 0.12;
@@ -799,7 +799,7 @@ function spawnStep(s: MagState) {
     if (!boss || boss.st !== WALK) return;
     if (s.stT >= 90 + s.minion * 330 || (s.emptyT > 120 && s.stT - s.lastSpawn > 120)) {
       const pair = ([['L', 'R'], ['B', 'L'], ['R', 'B']] as Side[][])[s.minion % 3];
-      spawnWave(s, { at: 0, n: 3, k: BOT, side: pair[0], form: 'clump' });
+      spawnWave(s, { at: 0, n: 4, k: BOT, side: pair[0], form: 'clump', mix: s.minion % 2 ? undefined : 4 });
       spawnWave(s, { at: 0, n: 3, k: BOT, side: pair[1], form: 'clump', mix: s.minion % 2 ? 3 : undefined });
       s.minion++;
       s.lastSpawn = s.stT;
@@ -1100,32 +1100,40 @@ function moveTarget(s: MagState): { x: number; y: number } {
   let cx = 0, cy = 0;
   for (const f of fs) (cx += f.x), (cy += f.y);
   if (fs.length) (cx /= fs.length), (cy /= fs.length);
+  // 공이 비었으면 고철 줍기가 급하다
+  const need = load < 6 ? 3.2 : load < 14 ? 1.3 : load < 22 ? 0.45 : 0;
   let best = { x: s.rx, y: s.ry }, bv = -1e9;
-  for (let k = -1; k < 24; k++) {
-    const a = (k / 12) * Math.PI * 2, r = k < 0 ? 0 : k < 12 ? 0.08 : 0.17;
+  for (let k = -1; k < 36; k++) {
+    const a = (k / 12) * Math.PI * 2, r = k < 0 ? 0 : k < 12 ? 0.08 : k < 24 ? 0.17 : 0.27;
     const x = s.rx + Math.cos(a) * r, y = s.ry + Math.sin(a) * r;
     if (x < 0.09 || x > W - 0.09 || y < (d.boss ? 0.28 : 0.08) || y > H - 0.06) continue;
     let v = 0;
     for (const f of fs) {
       const qx = f.x + f.vx * 25, qy = f.y + f.vy * 25, dd = Math.hypot(qx - x, qy - y) - BR(load) - ER[f.k];
-      if (dd < 0.26) v -= (0.26 - dd) * 70;
+      if (dd < 0.28) v -= (0.28 - dd) * 75;
+      // 가는 길에 로봇이 있으면 안 된다
+      if (r > 0.1) {
+        const mx = (s.rx + x) / 2, my = (s.ry + y) / 2, dm = Math.hypot(qx - mx, qy - my) - BR(load) - ER[f.k];
+        if (dm < 0.1) v -= (0.1 - dm) * 60;
+      }
     }
-    if (load < 22) {
+    if (need > 0)
       for (const c of s.scraps) {
         if (c.st !== GROUND) continue;
         const dd = Math.hypot(c.x - x, c.y - y);
-        if (dd < 0.22) v += (c.k === CHUNK ? (d.key === 'chunk' || d.boss ? 3 : 0.5) : 0.7) * (1 - dd / 0.22);
+        if (dd < 0.24) v += need * (c.k === CHUNK ? (d.key === 'chunk' || d.boss ? 2.5 : 0.6) : 1) * (1 - dd / 0.24);
       }
-    }
-    if (fs.length) v -= Math.abs(Math.hypot(cx - x, cy - y) - 0.34) * 5;
+    if (fs.length && load >= 6) v -= Math.abs(Math.hypot(cx - x, cy - y) - 0.34) * 5;
     for (const q of s.drums) if (!q.gone && Math.hypot(q.x - x, q.y - y) < BOOM_R + 0.03) v -= 8;
     if (s.hook && s.hook.phase === 1 && Math.hypot(s.hook.tx - x, s.hook.ty - y) < 0.13) v -= 60;
     if (d.boss) {
       const b = s.foes.find((f) => f.k === BOSS);
-      if (b) v -= Math.abs(Math.hypot(b.x - x, b.y - y) - 0.36) * 6;
+      if (b && load >= 6) v -= Math.abs(Math.hypot(b.x - x, b.y - y) - 0.36) * 6;
     }
     if (onBelt(s, y)) v -= 0.5;
-    v -= Math.max(0, 0.14 - Math.min(x, W - x, y, H - y)) * 30;
+    const mx = Math.min(x, W - x), my = Math.min(y, H - y);
+    v -= Math.max(0, 0.2 - mx) * 25 + Math.max(0, 0.2 - my) * 25 + (mx < 0.2 && my < 0.2 ? 6 : 0);
+    v -= r * 2;
     if (v > bv) (bv = v), (best = { x, y });
   }
   return best;
@@ -1164,7 +1172,7 @@ export const magnethammerSmart: Bot<MagState> = {
         ((sh.kills >= want && (sh.kills >= 2 || standing <= 1 || dz < 90)) ||
           (dz < (wantMulti ? 75 : 110) && sh.kills >= 1) ||
           (load >= 26 && sh.kills >= 2) ||
-          (d.boss && sh.boss >= 6 + (load >= 20 ? 0 : 4)) ||
+          (d.boss && (!wantMulti || standing === 0) && sh.boss >= 6 + (load >= 20 ? 0 : 4)) ||
           (d.boss && dz < 45 && sh.boss >= 2));
       if (go) {
         m.fire = true;

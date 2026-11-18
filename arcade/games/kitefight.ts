@@ -218,14 +218,14 @@ function spawn(s: KiteState, kind: Kind, at?: [number, number], flying = false):
   const sx = flying ? hx : kind === 'twin' ? 0.5 : KIDS[kid].x, sy = flying ? hy : KIDS[kid].y - 0.04;
   const e: Kite = {
     id: s.nextId++, kind, kid, kid2, pal: kind === 'dragon' ? 4 : kid, x: sx, y: sy, vx: 0, vy: 0, hx, hy, ph: s.rng() * 6.28, amp: kind === 'dragon' ? 0.12 : kind === 'twin' ? 0.05 : 0.06 + s.rng() * 0.04,
-    st: flying ? 'fly' : 'rise', stT: 0, dartIn: kind === 'dragon' ? 150 : 110 + Math.floor(s.rng() * 90), d0x: 0, d0y: 0, d1x: 0, d1y: 0,
+    st: flying ? 'fly' : 'rise', stT: 0, dartIn: kind === 'dragon' ? 150 : 40 + Math.floor(s.rng() * 60), d0x: 0, d0y: 0, d1x: 0, d1y: 0,
     hp: kind === 'dragon' ? 3 : 1, lines: [], rot: 0, spin: 0, tumble: 0, swing: false, firstCutT: -1, trail: [], fallT: 0, tense: false, tenseT: 50 + Math.floor(s.rng() * 70), guard: 0,
   };
   if (kind === 'twin') e.lines.push(mkLine(KIDS[0].x, KIDS[0].y, sx - 0.035, sy, EN, -1), mkLine(KIDS[3].x, KIDS[3].y, sx + 0.035, sy, EN, 1));
   else e.lines.push(mkLine(KIDS[kid].x, KIDS[kid].y, sx, sy, EN));
   s.kites.push(e);
   const d = STAGES[s.stage];
-  if (kind === d.key || (kind === 'dart' && d.key === 'dart') || (kind === 'dragon' && d.boss)) {
+  if (d.news && (kind === d.key || (kind === 'dragon' && d.boss))) {
     if (!s.spotDone.has(kind)) {
       s.spotDone.add(kind);
       s.spot = { id: e.id, t: s.t, text: kind === 'dart' ? '사나운 연' : kind === 'glass' ? '반짝이 줄' : kind === 'twin' ? '두 줄 연' : kind === 'dragon' ? '용 연 대장' : '' };
@@ -556,7 +556,7 @@ function fight(s: KiteState) {
       if (glass && c.j + c.b < EN * GLASS_TOP) {
         s.hp -= GLASS_WEAR;
         s.glassTouch++;
-        if (L.touch % 4 === 1) ev(s, 'glass', px, py);
+        if (L.touch % 18 === 1) ev(s, 'glass', px, py, L.touch);
       }
       if (sm >= se) {
         const dm = glass && c.j + c.b < EN * GLASS_TOP ? 0 : (Math.max(0, sm - V0) * CUTK) / (glass ? GLASS_HP : 1);
@@ -1018,7 +1018,7 @@ function tail(ctx: CanvasRenderingContext2D, x0: number, y0: number, dx: number,
 }
 
 /** 눈 한 쌍 + 입. mood: 0 보통 · 1 우쭐(^^) · 2 놀람 · 3 화남 · 4 어질(X) · 5 힘줌 · 6 헥헥 */
-function face(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, mood: number, t: number, look = 0, mouth = true) {
+function face(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, mood: number, t: number, look = 0, mouth = true, ph = 0) {
   const ex = r * 0.34, er = r * 0.17;
   for (const sd of [-1, 1]) {
     const x = cx + sd * ex;
@@ -1043,7 +1043,7 @@ function face(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, 
       ctx.stroke();
       continue;
     }
-    const blink = mood === 0 && (t + Math.floor(cx)) % 190 < 6;
+    const blink = mood === 0 && (t + ph + 60) % 190 < 6;
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.ellipse(x, cy, er * (mood === 2 ? 1.25 : 1), blink ? er * 0.18 : er * (mood === 2 ? 1.35 : 1.15), 0, 0, Math.PI * 2);
@@ -1296,18 +1296,39 @@ function drawRay(ctx: CanvasRenderingContext2D, e: Kite, x: number, y: number, r
   if (twin) (ctx.moveTo(-r * 1.5, r * 0.45), ctx.lineTo(r * 1.5, r * 0.45), ctx.moveTo(0, -r * 0.7), ctx.lineTo(0, r * 0.38));
   else (ctx.moveTo(-r * 1.0, -r * 0.08), ctx.lineTo(r * 1.0, -r * 0.08));
   ctx.stroke();
-  face(ctx, 0, twin ? -r * 0.12 : -r * 0.18, r * (twin ? 0.85 : 0.9), mood, t);
+  face(ctx, 0, twin ? -r * 0.12 : -r * 0.18, r * (twin ? 0.85 : 0.9), mood, t, 0, true, e.id * 37);
   ctx.restore();
 }
 
 /** 용 연: 머리 + 꼬리를 따라오는 마디들 */
 function drawDragon(ctx: CanvasRenderingContext2D, e: Kite, X: (x: number) => number, Y: (y: number) => number, r: number, t: number, mood: number) {
-  const segs: number[][] = [];
-  for (let k = 1; k <= 7; k++) {
-    const i = e.trail.length - 2 - k * 7;
-    if (i < 0) break;
-    segs.push([X(e.trail[i]), Y(e.trail[i + 1]) + Math.sin(t * 0.15 - k) * r * 0.25]);
+  // 머리 뒤로 일정한 간격의 마디 (지나온 길을 따라, 모자라면 아래로 늘어뜨림)
+  const segs: number[][] = [], gap = 0.032;
+  let px = e.x, py = e.y, need = gap, i = e.trail.length - 2;
+  while (segs.length < 7) {
+    if (i < 0) {
+      py += need;
+      segs.push([px, py]);
+      need = gap;
+      continue;
+    }
+    const qx = e.trail[i], qy = e.trail[i + 1], dd = Math.hypot(qx - px, qy - py);
+    if (dd >= need) {
+      px += ((qx - px) * need) / dd;
+      py += ((qy - py) * need) / dd;
+      segs.push([px, py]);
+      need = gap;
+    } else (need -= dd), (px = qx), (py = qy), (i -= 2);
   }
+  for (let k = 0; k < segs.length; k++) (segs[k][0] = X(segs[k][0])), (segs[k][1] = Y(segs[k][1]) + Math.sin(t * 0.15 - k) * r * 0.2);
+  // 몸통 관 (마디 뒤에 이어진 띠)
+  ctx.strokeStyle = '#b8221b';
+  ctx.lineWidth = r * 0.9;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(X(e.x), Y(e.y));
+  for (const [sx, sy] of segs) ctx.lineTo(sx, sy);
+  ctx.stroke();
   for (let k = segs.length - 1; k >= 0; k--) {
     const [sx, sy] = segs[k], rr = r * (0.78 - k * 0.07);
     if (k === segs.length - 1) {
@@ -1695,6 +1716,25 @@ function drawAll(ctx: CanvasRenderingContext2D, s: KiteState, w: number, h: numb
     ctx.quadraticCurveTo(bx - 2, by - 2, bx, by);
     ctx.quadraticCurveTo(bx + 2, by - 2, bx + 4, by - f);
     ctx.stroke();
+  }
+  // 멀리 다른 마을 아이들의 작은 연
+  for (let k = 0; k < 4; k++) {
+    const bx = X(0.08 + k * 0.27 + Math.sin(t * 0.006 + k * 2) * 0.02) - par * R(0.02), by = Y(0.66 + hsh(k + 40) * 0.2 + Math.sin(t * 0.01 + k) * 0.01), rr = R(0.011 + hsh(k) * 0.006);
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = 'rgba(80,40,90,.6)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.quadraticCurveTo(bx + rr * 2, by + R(0.12), bx + rr * 3, Y(1.0));
+    ctx.stroke();
+    ctx.fillStyle = ['#6b3f7a', '#8a4a6a', '#5a3a82', '#7a4060'][k];
+    ctx.beginPath();
+    ctx.moveTo(bx, by - rr * 1.2);
+    ctx.lineTo(bx + rr, by);
+    ctx.lineTo(bx, by + rr * 1.2);
+    ctx.lineTo(bx - rr, by);
+    ctx.fill();
+    ctx.globalAlpha = 1;
   }
   // ═════════════ 먼 언덕 · 마을 ═════════════
   {
@@ -2154,7 +2194,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: KiteState, w: number, h: numb
       ctx.arc(kx, ky, r * 2 + Math.max(0, 20 - age) * 2, 0, Math.PI * 2);
       ctx.stroke();
       font(0.036, 900);
-      const tx = `NEW ${s.spot.text}`, tw = ctx.measureText(tx).width + 14, by = ky + r * 2.2 + 12;
+      const tx = `NEW ${s.spot.text}`, tw = ctx.measureText(tx).width + 14, by = ky - r * 2.3 - (e.st === 'warn' ? R(0.06) : 0);
       ctx.fillStyle = 'rgba(40,20,60,.85)';
       ctx.beginPath();
       ctx.roundRect(kx - tw / 2, by - 10, tw, 20, 10);
@@ -2207,7 +2247,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: KiteState, w: number, h: numb
       ctx.arc(X(s.tx), Y(s.ty), R(0.03) + pulse * 3, 0, Math.PI * 2);
       ctx.stroke();
     }
-    drawShield(ctx, kx, ky, r, s.rot, mood, t, tdx / tl, tdy / tl, Math.max(0, 1 - (s.t - s.lastCutT) / 40));
+    const punch = 1 + 0.28 * Math.max(0, 1 - (s.t - s.lastCutT) / 12);
+    drawShield(ctx, kx, ky, r * punch, s.rot, mood, t, tdx / tl, tdy / tl, Math.max(0, 1 - (s.t - s.lastCutT) / 40));
   }
   // ═════════════ 사건 연출 ═════════════
   const seenT = fx.memo.t ?? -1;
@@ -2223,7 +2264,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: KiteState, w: number, h: numb
       fx.ring(x, y, '#fff6c8', R(0.08 + 0.035 * big), 4 + big);
       fx.kick(4 + big * 2.5);
       fx.pop(x, y - R(0.06), ev0.text ?? '팅!', '#ffffff', 18 + big * 4);
-      if (c >= 2) fx.pop(w / 2, Y(0.62), `${c}개 한 번에!`, '#ffe25a', 24 + big * 4), fx.blink('#fff1c4', 0.16 + 0.05 * big);
+      if (c >= 2) fx.pop(clamp(x, R(0.25), w - R(0.25)), y - R(0.13), `${c}개 한 번에!`, '#ffe25a', 24 + big * 4), fx.blink('#fff1c4', 0.16 + 0.05 * big);
       if (ev0.col === 'dragon') fx.blink('#ffd34d', 0.3), fx.kick(14), fx.burst(x, y, '#ff5a3a', 40, 6, 3.2);
       for (let k = 0; k < 10 + big * 3; k++) {
         const a = hsh(t + k) * Math.PI * 2, v = 1.5 + hsh(t * 3 + k) * 3;
@@ -2234,7 +2275,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: KiteState, w: number, h: numb
     if (ev0.kind === 'notch') fx.burst(x, y, '#ffd34d', 30, 5, 3), fx.burst(x, y, '#ff5a3a', 20, 4, 2.6), fx.ring(x, y, '#ffd34d', R(0.12), 5), fx.kick(9), fx.pop(x, y - R(0.07), `크앙! ${c}/3`, '#ffd34d', 22), fx.blink('#ffb08a', 0.15);
     if (ev0.kind === 'saw') fx.burst(x, y, t % 2 ? '#ffd23f' : '#ff9a3c', 3, 2.2, 1.6);
     if (ev0.kind === 'hurt') fx.burst(x, y, '#ff4a3a', 6, 2.4, 2), fx.kick(2.5), fx.pop(x, y - R(0.04), '긁!', '#ffb0a0', 14);
-    if (ev0.kind === 'glass') fx.burst(x, y, '#bff4ff', 5, 2, 1.6), fx.pop(x, y - R(0.04), '사각!', '#bff4ff', 13);
+    if (ev0.kind === 'glass') fx.burst(x, y, '#bff4ff', 6, 2.2, 1.8), c === 1 && fx.pop(x, y - R(0.04), '사각사각!', '#bff4ff', 14);
     if (ev0.kind === 'snap') fx.burst(x, y, '#fff3d6', 30, 5, 2.8), fx.ring(x, y, '#ffb0a0', R(0.15), 6), fx.kick(12), fx.blink('#ffd0b0', 0.22), fx.pop(x, y - R(0.06), '툭…', '#ffd0c0', 26);
     if (ev0.kind === 'warn') fx.ring(x, y, '#ff4a3a', R(0.07), 3);
     if (ev0.kind === 'yank') fx.ring(x, y, '#ff7a5a', R(0.06), 3), fx.pop(x, y - R(0.06), '홱!', '#ffb08a', 16);
@@ -2510,15 +2551,15 @@ function drawHud(ctx: CanvasRenderingContext2D, s: KiteState, w: number, h: numb
         lines = [['툭… 내 줄이 끊겼어요', '#ffb3a8', 0.05], [s.hearts > 0 ? '하트 하나 쓰고 같은 판 다시' : '끝 — 그래도 멋진 연싸움!', '#ffe9d6', 0.038]];
         col = '#ffb3a8';
       }
-    } else if (s.pt < CARD_T) {
+    } else if (s.pt < (s.stage ? CARD_T - 35 : CARD_T)) {
       age = s.pt;
-      a = Math.min(1, (CARD_T - s.pt) / 20);
+      a = Math.min(1, ((s.stage ? CARD_T - 35 : CARD_T) - s.pt) / 20);
       lines = [[`${s.again ? '다시! ' : ''}${s.stage + 1}판 · ${d.name}`, '#ffffff', 0.048]];
       if (d.news) lines.push([`NEW  ${d.news}`, '#ffe25a', 0.037]);
       lines.push([d.boss ? '★ 용 연 떨어뜨리기 · ★ 내 줄 반 넘게' : `★ 연 ${d.goal}개 끊기 · ★ 내 줄 반 넘게`, '#f2e6ff', 0.036], [`★ ${d.s3}`, '#ffd25e', 0.036]);
     }
     if (lines.length) {
-      const sc = Math.min(1, 0.6 + age / 10), lh = R(0.056), ch = lines.length * lh + (stars ? R(0.105) : 0) + R(0.025), cy = s.phase === 'result' ? Y(0.36) : R(0.11) + ch / 2;
+      const sc = Math.min(1, 0.6 + age / 10), lh = R(0.056), ch = lines.length * lh + (stars ? R(0.105) : 0) + R(0.025), cy = s.phase === 'result' ? Y(0.36) : s.stage === 0 && !s.again ? R(0.11) + ch / 2 : Y(0.6);
       ctx.save();
       ctx.globalAlpha = a;
       ctx.translate(w / 2, cy);

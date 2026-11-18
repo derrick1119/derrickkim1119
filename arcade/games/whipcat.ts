@@ -89,19 +89,19 @@ export const STAGES: StageDef[] = [
     waves: [[2.6, 186, 'rr', 0], [5.5, 160, 'rr', 0], [9, 90, 'rr', 1], [12, 300, 'rr', 0]],
   },
   {
-    key: 'line', name: '쥐 줄', spot: '쥐 줄 — 줄을 따라 치면 우르르!', news: '한 줄로 오는 쥐 — 맨 앞을 끝으로 치면 우르르', hint: '줄 선 쥐는 맨 앞을 채찍 끝으로!',
+    key: 'line', name: '쥐 줄', spot: '쥐 줄 — 줄을 따라 치면 우르르!', news: '줄 선 쥐 — 맨 앞을 끝으로 치면 우르르', hint: '줄 선 쥐는 맨 앞을 채찍 끝으로!',
     bags: 5, spd: 0.056, special: 'multi', need: 3,
     barrels: [[0.02, 0.3], [-0.22, -0.2]], cacti: [], holes: [], init: [],
     waves: [[0.8, 0, 'rrrr', 1], [4, 180, 'rrrr', 1], [7.5, 268, 'rrrr', 1], [11, 90, 'rrrr', 1], [14, 40, 'rrr', 1]],
   },
   {
-    key: 'shield', name: '냄비 방패', spot: '냄비 방패 — 채찍을 막아요! 빙빙 도는 채찍으로 벗겨요', news: '냄비 방패 쥐 — 꾹 눌러 빙빙 돌려 방패를 벗겨요', hint: '방패 쥐가 가까이 오면 꾹 — 돌아가는 채찍이 방패를 벗겨요',
+    key: 'shield', name: '냄비 방패', spot: '냄비 방패 — 채찍을 막아요! 빙빙 돌려 벗겨요', news: '방패 쥐 — 빙빙 도는 채찍으로 벗겨요', hint: '방패 쥐가 오면 꾹 — 빙빙 채찍이 방패를 벗겨요',
     bags: 4, spd: 0.064, special: 'par', need: 12,
     barrels: [[-0.21, -0.15], [0.23, 0.17]], cacti: [], holes: [], init: [],
     waves: [[0.8, 180, 'srr', 0], [4, 0, 'rsr', 1], [7, 95, 'ss', 0], [9.5, 270, 'rrrr', 1], [12, 135, 'srs', 0], [14, 40, 'rr', 0]],
   },
   {
-    key: 'cactus', name: '선인장', spot: '선인장 — 채찍이 걸려요. 쥐를 날려 박으면 따끔!', news: '선인장 — 쥐를 선인장 쪽으로 날리면 따끔!', hint: '선인장 쪽으로 쥐를 날려요 (채찍은 선인장에 걸려요)',
+    key: 'cactus', name: '선인장', spot: '선인장 — 채찍이 걸려요. 쥐를 박으면 따끔!', news: '선인장 — 쥐를 선인장 쪽으로 날리면 따끔!', hint: '선인장 바로 앞의 쥐를 끝으로 쳐요',
     bags: 4, spd: 0.066, special: 'cactus', need: 3,
     barrels: [[-0.2, -0.22]], cacti: [[2, 0.42, 0.034], [92, 0.4, 0.034], [178, 0.42, 0.034], [272, 0.41, 0.034]], holes: [], init: [],
     waves: [[0.8, 0, 'rrr', 0], [1.1, 178, 'rrr', 0], [5.5, 92, 'rrr', 0], [5.8, 272, 'rrs', 0], [10.5, 2, 'rrr', 0], [10.8, 178, 'rrr', 0], [11.2, 92, 'rr', 0]],
@@ -2515,6 +2515,20 @@ function drawAll(ctx: C2, s: WhipState, w: number, h: number, th: Theme) {
     ctx.beginPath();
     ctx.ellipse(bx, by, rx, ry, 0, 0, TAU);
     ctx.stroke();
+    // 힘 모으기 고리 (받침 둘레가 차오른다 · 가득이면 금빛 · 너무 오래면 빨갛게 깜빡)
+    if (s.down && s.phase === 'play' && s.tangle <= 0 && !busy(s) && s.hold > 0) {
+      const pw = power(s), danger = s.hold > WARN_T;
+      ctx.strokeStyle = 'rgba(40,15,20,.45)';
+      ctx.lineWidth = R(0.012);
+      ctx.beginPath();
+      ctx.ellipse(bx, by, rx * 1.12, ry * 1.12, 0, 0, TAU);
+      ctx.stroke();
+      ctx.strokeStyle = danger ? (t % 10 < 5 ? '#ff4a3a' : '#ffd0c0') : pw >= 1 ? '#ffd23f' : '#fff3c4';
+      ctx.lineWidth = R(0.009);
+      ctx.beginPath();
+      ctx.ellipse(bx, by, rx * 1.12, ry * 1.12, 0, -Math.PI / 2, -Math.PI / 2 + TAU * (danger ? 1 : pw));
+      ctx.stroke();
+    }
     const near = s.rats.some((r) => (r.st === WALK || r.st === CARRY) && dist(r.x, r.y) < 0.17);
     if (near && s.phase === 'play') {
       ctx.strokeStyle = `rgba(255,80,60,${0.45 + 0.35 * Math.sin(t * 0.3)})`;

@@ -47,7 +47,7 @@ const KBITE = [1, 2, 2, 4];
 const KCAP = [8, 80, 40, 170];
 const WALK = 0, EAT = 1, FLEE = 2, POP = 3, GONE = 4;
 const FREE = 0, LATCH = 1, STUCK = 2, DAZE = 3;
-const PER_FLOWER = 4, REGROW = 540, WIND_OFF = 25;
+const PER_FLOWER = 4, REGROW = 900, WIND_OFF = 25;
 
 type Star3 = { kind: 'combo' | 'grow' | 'rip' | 'boss'; n: number; text: string };
 interface StageDef {
@@ -95,7 +95,7 @@ export const STAGES: StageDef[] = [
     bees: 30, honey: 8,
     patches: [[0.12, 0.98, 6], [0.88, 0.98, 6], [0.5, 0.45, 6]],
     spawns: [[40, WASP, 0.5, TOP], [140, BEAR, 0.03, 0.45], [240, WASP, 0.97, 0.45], [320, ANT, 0.03, 0.8, 5, 26], [420, WASP, 0.15, TOP], [470, BEAR, 0.85, TOP], [600, WASP, 0.97, 0.8], [640, WASP, 0.03, 0.45], [700, ANT, 0.5, TOP, 5, 26]],
-    star3: { kind: 'grow', n: 90, text: '벌 90마리 넘게 키우기' }, spot: [0.5, 0.36, 0.08],
+    star3: { kind: 'grow', n: 85, text: '벌 85마리 넘게 키우기' }, spot: [0.5, 0.36, 0.08],
   },
   {
     key: 'web', name: '거미줄', news: '🕸️ 거미줄 — 크게 뭉쳐 들이받으면 찢어져요', hint: '벌이 적으면 붙잡혀요 — 크게 키워 들이받기',
@@ -116,10 +116,10 @@ export const STAGES: StageDef[] = [
   {
     key: 'smoke', name: '연기 골짜기', news: '💨 연기 — 들어간 벌은 어질어질 흩어져요', hint: '연기를 피해서 꽃을 따요',
     bees: 32, honey: 8,
-    patches: [[0.14, 0.6, 6], [0.86, 0.6, 6], [0.5, 0.82, 6]],
+    patches: [[0.14, 0.6, 6], [0.86, 0.6, 6], [0.5, 0.82, 6], [0.08, 1.07, 6], [0.92, 1.07, 6]],
     smoke: 200,
     spawns: [[40, BEAR, 0.5, TOP], [140, WASP, 0.97, 0.45], [240, ANT, 0.03, 0.45, 7, 26], [360, BEAR, 0.85, TOP], [440, WASP, 0.03, 0.8], [540, BEAR, 0.15, TOP], [600, ANT, 0.97, 0.45, 6, 26], [700, WASP, 0.5, TOP]],
-    star3: { kind: 'grow', n: 120, text: '벌 120마리 넘게 키우기' }, spot: [0.1, 0.75, 0.1],
+    star3: { kind: 'grow', n: 125, text: '벌 125마리 넘게 키우기' }, spot: [0.1, 0.75, 0.1],
   },
   {
     key: 'boss', name: '대장 곰', news: '👑 대장 곰 — 벌 70마리가 감싸야 따끔해요', hint: '꽃으로 떼를 키워서 대장 곰을 감싸요',
@@ -147,6 +147,8 @@ export interface BeeState {
   rng: Rng; seed: number; t: number; st: number; stage: number; phase: 'play' | 'result'; pt: number;
   nb: number; bx: Float64Array; by: Float64Array; bvx: Float64Array; bvy: Float64Array; bs: Int8Array; bt: Int16Array; bp: Float64Array;
   nAct: number; nAll: number;
+  /** 뭉친 떼가 가장 많이 달라붙은 적 (손을 뗀 동안 대장벌이 그 적을 따라간다) */
+  focus: number;
   cx: number; cy: number; lx: number; ly: number; held: boolean; wasDown: boolean; lastIn: number;
   presses: number; stageIn: number; firstTouch: number; firstBig: number; firstDouble: number;
   foes: Foe[]; queue: Spawn[]; qi: number;
@@ -363,7 +365,7 @@ function hazardTick(s: BeeState) {
   }
   if (d.smoke) {
     if (s.st % d.smoke === 30) {
-      const left = s.rng() < 0.5, y = 0.5 + s.rng() * 0.5;
+      const left = s.rng() < 0.5, y = 0.5 + s.rng() * 0.6;
       s.smokes.push({ x: left ? -0.1 : 1.1, y, r: 0.085, vx: (left ? 1 : -1) * (0.0014 + s.rng() * 0.0006), age: 0 });
       see(s, 'smoke1', '💨 연기 구름은 천천히 흘러가요');
     }
@@ -376,6 +378,12 @@ function hazardTick(s: BeeState) {
 function captainTick(s: BeeState) {
   let fighting = false;
   for (let i = 0; i < s.nb; i++) if (s.bs[i] === LATCH) (fighting = true), (i = s.nb);
+  // 손을 뗀 동안 에워싼 적이 걸어가면 떼가 붙은 채 따라간다
+  const f = s.focus >= 0 ? s.foes[s.focus] : null;
+  if (!s.held && f && alive(f)) {
+    const dx = f.x - s.lx, dy = f.y - s.ly, d = Math.hypot(dx, dy);
+    if (d > 0.01) (s.lx += (dx / d) * Math.min(0.0045, d - 0.01)), (s.ly += (dy / d) * Math.min(0.0045, d - 0.01));
+  }
   if (!s.held && s.t - s.lastIn > IDLE_HOME && !fighting) {
     const dx = HOME.x - s.lx, dy = HOME.y - s.ly, d = Math.hypot(dx, dy);
     if (d > 0.004) (s.lx += (dx / d) * 0.005), (s.ly += (dy / d) * 0.005);
@@ -569,6 +577,9 @@ function beesTick(s: BeeState) {
 
 function foesTick(s: BeeState) {
   const fev = s.fever > 0 ? 1.5 : 1;
+  let fb = -1, fl = 0;
+  s.foes.forEach((e, k) => alive(e) && e.lat > fl && ((fl = e.lat), (fb = k)));
+  s.focus = fb;
   for (const e of s.foes) {
     if (e.st === GONE) continue;
     if (e.st === POP) {
@@ -661,7 +672,7 @@ export const beeswarm: GameDef<BeeState> = {
     const s: BeeState = {
       rng, seed, t: 0, st: 0, stage: 0, phase: 'play', pt: 0,
       nb: 0, bx: new Float64Array(MAXB), by: new Float64Array(MAXB), bvx: new Float64Array(MAXB), bvy: new Float64Array(MAXB), bs: new Int8Array(MAXB), bt: new Int16Array(MAXB), bp: new Float64Array(MAXB),
-      nAct: 0, nAll: 0, cx: HOME.x, cy: HOME.y, lx: HOME.x, ly: HOME.y, held: false, wasDown: false, lastIn: 0,
+      nAct: 0, nAll: 0, focus: -1, cx: HOME.x, cy: HOME.y, lx: HOME.x, ly: HOME.y, held: false, wasDown: false, lastIn: 0,
       presses: 0, stageIn: 0, firstTouch: -1, firstBig: -1, firstDouble: -1,
       foes: [], queue: [], qi: 0, patches: [], webs: [], smokes: [], wind: 0, windDir: 1, flip: false,
       honey: 0, honey0: 0, stolen: 0, hearts: 3, stars: 0, got: 0, starOk: [false, false, false], pts: 0,
