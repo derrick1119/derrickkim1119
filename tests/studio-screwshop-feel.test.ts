@@ -179,5 +179,7 @@ describe('넘치는 쟁반(✏️ S064 · M3′ · 오너 "빈칸에 들어가�
     expect(tray).toContain("warn = s.phase === 'play' && n >= TRAY_WARN! && t >= s.w4");
     expect(tray).toMatch(/drawScrew\(ctx, vx \+ R\(0\.016\) \+ \(q < 1 \? q \* R\(0\.04\) : sw \* R\(0\.01\)\)/);
     expect(g).toContain("s.phase !== 'result' && !(s.S.slots.length >= TRAY_WARN! && t >= s.w4)) {"); // 띠 그리기 조건
+    expect(g).toContain("if (e.kind === 'teach' && S.slots.length < TRAY_WARN!) say("); // ✏️ S065(🧪 S065 🟡③): 4칸이 되는 톡의 별 토스트도 안 그린다
+    expect(tray).toContain('at = (SLOTS - i) * 3 - 2,'); // 다섯째는 턱에 1틱만 머문다(🧪 S065 🟡① · 첫 쟁반 밖 ≤ .6초)
   });
 });

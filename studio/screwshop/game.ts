@@ -1917,7 +1917,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: ShopState, w: number, h: numb
     if (e.kind === 'blocked' || e.kind === 'locked') say(x, y - R(0.06), e.text!, e.col!, 15), cue('blocked');
     if (e.kind === 'miss') say(x, y, e.text!, e.col!, 14);
     if (e.kind === 'star') { const [gx, gy] = chipXY(e.v!, w); fx.burst(gx, gy, '#ffd166', 22, 4, 2.6), fx.ring(gx, gy, '#ffd166', R(0.12), 4), s.events.some((q) => (q.kind === 'teach' && q.t === e.t) || (e.v === 3 && starKinds(d)[1] === 'shot' && q.kind === 'shot' && q.t === e.t && q.text !== 'bad' && (q.n ?? 2) < 7)) || say(max(gx, R(0.34)), gy - R(0.07), e.text!, '#ffd166', 30, true), cue('star', e.v! - 1); } // ✏️ S026 B③ · S057(🧪 S056 🟡③ 절정에 글 5~6개): 별을 준 톡에서는 '한 번에 N개'를 빼고(별이 대신 말함), 배우기 토스트가 뜨면 '★2!' 글은 빼서 하나만
-    if (e.kind === 'teach') say(w / 2, Y(BY1 - 0.02) + R(0.123), e.text!, e.col!, 18, true, true); // ✏️ S024 짚기 · S057(🧪 S057 🟡②): 판 밖 진갈색 띠에 고정(합판 위 1.32:1 → 8.3:1 · 햄스터와 안 겹침)
+    if (e.kind === 'teach' && S.slots.length < TRAY_WARN!) say(w / 2, Y(BY1 - 0.02) + R(0.123), e.text!, e.col!, 18, true, true); // ✏️ S024 짚기 · S057(🧪 S057 🟡②): 판 밖 진갈색 띠에 고정(합판 위 1.32:1 → 8.3:1 · 햄스터와 안 겹침)
     if (e.kind === 'stage') fx.blink('#fff6d6', 0.18);
     if (e.kind === 'clear') cue('rise'); // ✏️ S059(🎨 §5-4): 판 가운데 큰 터짐 · 번쩍 대신 리빌 출발 '슈욱'
     if (e.kind === 'fail') fx.kick(3), fx.blink('#ffe0b0', 0.1), cue('fail');
@@ -3272,7 +3272,7 @@ function drawTray(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
     if (t < v.at) return;
     let x = X(v.x), y = Y(TRAY_Y), rot = 0;
     if (sp >= 0) {
-      const dx = x - px, at = (SLOTS - i) * 3, q = min(1, max(0, (sp - at) / 12)), [ex, ey] = PILE[max(0, SLOTS - 1 - i)];
+      const dx = x - px, at = (SLOTS - i) * 3 - 2, q = min(1, max(0, (sp - at) / 12)), [ex, ey] = PILE[max(0, SLOTS - 1 - i)];
       if (i >= SLOTS - 1) (x = X(LIP)), (y = y0 + hh * 0.35);
       else (x = px + dx * cos(tilt)), (y = py - hh / 2 + dx * sin(tilt));
       if (q > 0) (x += (X(ex) - x) * q), (y += (Y(ey) - y) * q - sin(PI * q) * R(0.03)), (rot += q * 2.5);
