@@ -681,7 +681,7 @@ export interface ShopState {
   pv: PV[]; fl: Fl[]; vb: VBox[]; lv: { col: number; bi: number; t0: number }[]; vs: { col: number; at: number; x: number }[]; ready: number[];
   mood: string; moodT: number; bird: number;
   /** ✏️ S024 배움: 배운 별 종류(KB 비트 · main.ts가 저장) · 이 판에서 가르치는 칸 · ★3 🔒 · 짚기 기준값 */
-  learn: number; teach: number; lock3: boolean; tv: number; taught: boolean; /** ✏️ S064(M3′ A3): 빈칸이 넘친 틱(0 = 안 넘침) */ spill: number;
+  learn: number; teach: number; lock3: boolean; tv: number; taught: boolean; /** ✏️ S064(M3′ A3): 빈칸이 넘친 틱(0 = 안 넘침) */ spill: number; /** ✏️ S065(M3′ A2): 이번 판에서 처음 4칸이 된 틱(넷째가 닿는 때 · 0 = 아직) */ w4: number;
   /** ✏️ S026 B③ 따는 순간: 판 중에 딴 별(비트 2 · 4) · 날아가는 별 */
   sg: number; starFx: { t0: number; k: number } | null;
   /** ✏️ S027 🧪 🔴② · 🟡③(화면 몫 · 시뮬은 안 씀): 별 카드를 손으로 닫음 · 카드 자리(누름 좌표 0~1) — main.ts가 읽고 씀 */
@@ -787,7 +787,7 @@ function newStage(s: ShopState) {
   s.sg = 0;
   s.starFx = null;
   s.cardOff = false;
-  s.spill = 0;
+  s.spill = s.w4 = 0;
   s.newsQ = []; // ✏️ S058(🧪 S058 🔴①): 앞 판 · 1-1 띠가 다음 판으로 넘어오지 않게
   s.news = null;
   s.bandN = 0;
@@ -1199,6 +1199,7 @@ function tapScrew(s: ShopState, k: number) {
   const late = rec.some((e) => e.k === 'fall') ? SPIN + 16 : SPIN + 6;
   for (let i = 0; i < L.N; i++) if ((shown >> i) & 1) ev(s, 'reveal', L.px[i], L.py[i], (vis1 & ~vis0) >> i & 1 ? '!' : undefined, '#fff6a8', s.t + late);
   s.known |= vis1;
+  if (S.slots.length >= TRAY_WARN! && !s.w4 && !S.fail) s.w4 = s.vs[3].at; // ✏️ S065(M3′ A2): 처음 4칸 — 턱 나사가 한 번 떨어져 보인다
   if (S.fail) {
     s.phase = 'settle';
     s.pt = 0;
@@ -1285,7 +1286,7 @@ export const screwshop: GameDef<ShopState> = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'play', pt: 0, known: 0,
       down: false, ax: 0, ay: 0, press: -1, cool: 0, lastTap: -99, taps: 0,
       hearts: 3, stars: 0, got: 0, bestSt: [], bestPts: [], retries: 0, sf: 0, hint: false, hist: [], blame: null, pts: 0, ok: false, why: '', won: false, dead: false, tries: 0,
-      seen: new Set<string>(), tips: new Set<string>(), bandN: 0, events: [], news: null, newsQ: [], startT: 0, clearT: 0, learn: 0, teach: 0, spill: 0, lock3: false, tv: 0, taught: false, sg: 0, starFx: null, cardOff: false, cardBox: null,
+      seen: new Set<string>(), tips: new Set<string>(), bandN: 0, events: [], news: null, newsQ: [], startT: 0, clearT: 0, learn: 0, teach: 0, spill: 0, w4: 0, lock3: false, tv: 0, taught: false, sg: 0, starFx: null, cardOff: false, cardBox: null,
       pv: [], fl: [], vb: [], lv: [], vs: [], ready: [], mood: 'idle', moodT: 0, bird: 0,
     } as unknown as ShopState;
     newStage(s);
@@ -2268,7 +2269,7 @@ function drawMark(ctx: CanvasRenderingContext2D, x: number, y: number, r: number
   else if (m === 2) for (let k = 0; k < 3; k++) ctx.moveTo(cos((k * PI) / 3) * r, sin((k * PI) / 3) * r), ctx.lineTo(-cos((k * PI) / 3) * r, -sin((k * PI) / 3) * r);
   else if (m === 3) ctx.rect(-r * 0.6, -r * 0.6, r * 1.2, r * 1.2);
   else if (m === 4) ctx.moveTo(0, -r * 0.8), ctx.lineTo(r * 0.75, r * 0.55), ctx.lineTo(-r * 0.75, r * 0.55), ctx.closePath();
-  else ctx.arc(0, 0, r * 0.55, 0, TAU);
+  else if (m > 4) ctx.arc(0, 0, r * 0.55, 0, TAU); // ✏️ S065(🧪 S064 🟡①): 쇠 나사(-1)는 무늬 없음 — 턱 나사가 주황 'o'로 읽히던 것
   ctx.stroke();
   ctx.restore();
 }
@@ -3222,13 +3223,12 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
 
 function drawTray(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, font: (sz: number, w?: number) => void) {
   const t = s.t, n = s.S.slots.length, sp = s.spill ? t - s.spill : -1;
-  const danger = n >= 4 ? 2 : n >= 3 ? 1 : 0, warn = s.phase === 'play' && n >= TRAY_WARN!;
+  const danger = n >= 4 ? 2 : n >= 3 ? 1 : 0, warn = s.phase === 'play' && n >= TRAY_WARN! && t >= s.w4; // ✏️ S065: 넷째가 닿은 뒤부터
   // ✏️ S064(M3′ A1~A3 · 📐 S063 안 A '넘치는 쟁반'): 구멍 넷 + 끝 턱(다섯째 = 넘침) · 4칸이면 떨고 턱 위에 다음 나사가 기우뚱 · 넘치면 기울어 쏟아진다
   const x0 = X(0.2), x1 = X(TRAY_X1), xl = X(LIP + 0.035), y0 = Y(TRAY_Y - 0.04), y1 = Y(TRAY_Y + 0.04), hh = y1 - y0;
   const tilt = min(0.08, max(0, sp - 4) / 100), px = x1, py = y1;
   if (warn) (ctx.fillStyle = `rgba(255,70,40,${0.36 + 0.06 * sin(t * 0.3)})`), ctx.fillRect(X(BX0), Y(TRAY_Y - 0.07), X(BX1) - X(BX0), Y(BY0 + 0.04) - Y(TRAY_Y - 0.07)); // 4칸: 쟁반 줄이 붉게 숨 쉰다(하나 더면 넘침)
   ctx.save();
-  ctx.translate(warn ? sin(t * 1.9) * 1.5 : 0, 0);
   if (tilt) ctx.translate(px, py), ctx.rotate(tilt), ctx.translate(-px, -py);
   ctx.fillStyle = 'rgba(0,0,0,.35)';
   bp(ctx);
@@ -3263,13 +3263,9 @@ function drawTray(ctx: CanvasRenderingContext2D, s: ShopState, X: (x: number) =>
     ctx.stroke();
   }
   // 턱 밑 V: 떨어지는 곳(3칸 주황 · 4칸 빨강 맥박) · 4칸이면 턱 위에서 다음 나사가 기우뚱(반투명 · 입력 안 막음 · 쟁반과 같이 떤다)
-  const vx = X(LIP), vy = y1 + R(0.022), vr = R(0.016);
-  ctx.strokeStyle = danger === 1 ? '#ffb85a' : '#ff6a4d';
-  ctx.lineWidth = 2;
-  bp(ctx);
-  ctx.moveTo(vx - vr, vy - vr * 0.5), ctx.lineTo(vx, vy + vr * 0.5), ctx.lineTo(vx + vr, vy - vr * 0.5);
-  ctx.stroke();
-  if (warn && sp < 0) (ctx.globalAlpha = 0.7), drawScrew(ctx, vx, y0 + hh * 0.3, R(SR), -1, sin(t * 0.22) * 0.5, { t });
+  const vx = X(LIP);
+  const q = min(1, max(0, (t - s.w4) / 30)), sw = sin(t * 0.15); // 처음 4칸이 된 뒤 .5초: 턱 나사가 V로 떨어졌다 다시 뜬다 · 그 뒤엔 턱 끝에 반쯤 걸쳐 기우뚱
+  if (warn && sp < 0) (ctx.globalAlpha = 0.7), drawScrew(ctx, vx + R(0.016) + (q < 1 ? q * R(0.04) : sw * R(0.01)), y0 + hh * 0.3 + (q < 1 ? q * q * R(0.16) : 0), R(SR), -1, q < 1 ? q * 4 : sw * 0.6, { t });
   ctx.restore();
   // 쟁반 나사: 넘치면 다섯째부터 오른쪽 판 틀 위 무더기로 떨어진다(오른쪽 것 먼저)
   s.vs.forEach((v, i) => {
@@ -3689,7 +3685,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     ftx(ctx, '↺ 다시', bx - bw / 2, hb * 0.53);
   }
   // 새것 알림
-  if (s.news && t - s.news.t < NEWS_T + 20 && s.phase !== 'result') { // 🧪 M0.1: 완성 띠 위에 안내가 겹치지 않게
+  if (s.news && t - s.news.t < NEWS_T + 20 && s.phase !== 'result' && !(s.S.slots.length >= TRAY_WARN! && t >= s.w4)) { // ✏️ S065(M3′ T2): 4칸 경고 동안 띠를 안 그린다(4칸 화면 글 0 · 띠 시간은 그대로) · 🧪 M0.1: 완성 띠 위에 안내가 겹치지 않게
     const age = t - s.news.t, a = min(1, age / 10, (NEWS_T + 20 - age) / 20) * (s.down && s.press >= 0 ? 0.2 : 1), drop = max(0, 10 - age) * 2; // ✏️ S015(🧪 S015 57): 꾹 누르는 동안은 소식 띠도 흐리게 — 꼭대기 나사 · 알약이 띠 밑에 가리지 않게
     ctx.globalAlpha = a;
     font(0.036, 900);

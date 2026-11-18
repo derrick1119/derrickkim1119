@@ -1,6 +1,6 @@
 {
  "at": "2026-11-18",
- "build": "M3′-S064",
+ "build": "M3′-S065",
  "seeds": 24,
  "summary": {
   "smartStars": 3,
@@ -4823,6 +4823,7 @@
   "fails": 47,
   "none": 1,
   "warn": 4,
+  "f30": 1,
   "f31saw": 0.94,
   "f31pre": 0.83,
   "reach4": 0.94,

@@ -170,5 +170,14 @@ describe('넘치는 쟁반(✏️ S064 · M3′ · 오너 "빈칸에 들어가�
     expect(r.fails).toBeGreaterThanOrEqual(40);
     expect(r.f31saw).toBe(r.reach4);
     expect(r.f31pre).toBeGreaterThanOrEqual(0.8);
+    expect(r.f30).toBe(1); // ✏️ S065(M3′ A2): 처음 4칸이 된 손마다 턱 나사가 한 번 떨어져 보인다
+  });
+
+  it('처음 4칸: 턱 나사는 무늬 없는 쇠 나사로 기우뚱하고, 넷째가 닿은 뒤 켜지며, 4칸 경고 동안 띠는 안 그린다(4칸 화면 글 0 · ✏️ S065)', () => {
+    const g = src('game.ts'), tray = g.slice(g.indexOf('function drawTray('), g.indexOf('function drawBench('));
+    expect(g).toContain('else if (m > 4) ctx.arc(0, 0, r * 0.55, 0, TAU);');
+    expect(tray).toContain("warn = s.phase === 'play' && n >= TRAY_WARN! && t >= s.w4");
+    expect(tray).toMatch(/drawScrew\(ctx, vx \+ R\(0\.016\) \+ \(q < 1 \? q \* R\(0\.04\) : sw \* R\(0\.01\)\)/);
+    expect(g).toContain("s.phase !== 'result' && !(s.S.slots.length >= TRAY_WARN! && t >= s.w4)) {"); // 띠 그리기 조건
   });
 });

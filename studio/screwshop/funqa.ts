@@ -143,7 +143,7 @@ export const screwshopNewbie: Bot<ShopState> = {
  */
 export function trayRead(hands = 48) {
   const W = TRAY_WARN ?? 99, first: Record<string, number> = {};
-  let fails = 0, saw = 0, pre = 0, saw4 = 0, pre4 = 0, none = 0;
+  let fails = 0, saw = 0, pre = 0, saw4 = 0, pre4 = 0, none = 0, n4 = 0, drop = 0;
   for (let i = 0; i < hands; i++) {
     const seed = 1 + i * 13, rng = mulberry32(seed ^ 0x9e3779b9), s = g.create(seed);
     setLearn(s, 0), startStage(s, 0);
@@ -161,12 +161,12 @@ export function trayRead(hands = 48) {
       g.step(s, wait ? NO : screwshopNewbie.act(s, rng));
       const n = s.S.slots.length;
       if (!s.S.fail) top = Math.max(top, n);
-      if (n >= 4 && !seen4) (seen4 = true), (first[STAGES[s.stage].slot] = (first[STAGES[s.stage].slot] ?? 0) + 1);
+      if (n >= 4 && !seen4) (seen4 = true), (first[STAGES[s.stage].slot] = (first[STAGES[s.stage].slot] ?? 0) + 1), !s.S.fail && (n4++, (drop += +(s.w4 > 0))); // F30: 처음 4칸(지지 않은 톡)에 턱 나사 떨어짐(w4)이 걸렸나
     }
     if (!(s.phase === 'result' && !s.ok && s.S.fail === 1)) none++;
   }
   const r2 = (x: number) => +(x / Math.max(1, fails)).toFixed(2);
-  return { hands, fails, none, warn: TRAY_WARN ?? null, f31saw: r2(saw), f31pre: r2(pre), reach4: r2(saw4), pre4: r2(pre4), first4: first };
+  return { hands, fails, none, warn: TRAY_WARN ?? null, f30: +(drop / Math.max(1, n4)).toFixed(2), f31saw: r2(saw), f31pre: r2(pre), reach4: r2(saw4), pre4: r2(pre4), first4: first };
 }
 
 /**
