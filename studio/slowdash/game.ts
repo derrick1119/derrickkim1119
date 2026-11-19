@@ -53,8 +53,12 @@ const MELEE: Partial<Record<K, { start: number; reach: number; wind: number; res
   boss: { start: 0.15, reach: 0.19, get wind() { return WIND_T.boss; }, rest: 70 },
 };
 /** S003: 방패 무사가 도는 속도(rad/틱, 예전 .03 — 사람 반응 한 번에 등이 다시 앞이 되던 것) · 헛방 벌(먹 · 경직 틱 · 근처 칼잡이 반격 거리).
- *  먹 깎기(📐 +10)는 '옮겨 서기' 빈 획까지 벌해 장인 5판 클리어 1 → .67이라 0 — 경직 20틱 + 근처 칼잡이 반격만 */
-export const TUNE = { shieldTurn: 0.015, whiffG: 0, stiff: 20, whiffR: 0.2 };
+ *  ✏️ S003 측정(24시드): 먹 -10은 '옮겨 서기' 빈 획까지 벌해 장인 5판 클리어 1 → .67, 경직 20틱은 장인 5판 ★3 .92 → .04 · 연타(24틱 간격)엔 한 번도 안 걸림 → 둘 다 0.
+ *  남긴 것: 헛방을 세고 근처 칼잡이가 바로 칼을 든다. */
+export const TUNE = { shieldTurn: 0.015, whiffG: 0, stiff: 0, whiffR: 0.2, counterR: 0, counterT: 14 };
+/** ✏️ S003 📐 안 A '착지 반격': 내린 자리 counterR 안의 칼잡이·방패·대장이 곧바로 짧은 칼(counterT틱 — 사람 반응 0.5초보다 짧다)을 든다.
+ *  꾹 하면 세상이 0.12배라 내릴 자리를 읽고 비켜 내릴 수 있다 = 느린 시간이 '읽는 시간'. 0이면 끔(측정용).
+ *  S003 실험(12시드, R .08·.11·.14 × T 20·14·10): 공짜 별 4 그대로 · F5 ★ 차 −.08~−.03 · 처음 하는 사람 5·7판 클리어 0~.33으로 무너짐 → 끔 */
 /** 배우는 판은 너그럽게: [게이지 차는 배수, 칼 드는 시간 배수, 걷는 속도 배수] (1판·2판·그 뒤) */
 const EASE = [[5, 1.5, 0.8], [3, 1.5, 0.8], [1, 1, 1]];
 /** 적 상태 */
@@ -421,6 +425,13 @@ function doDash(s: DashState, tx: number, ty: number) {
     ev(s, 'multi', ks.reduce((a, c) => a + c.x, 0) / ks.length, ks.reduce((a, c) => a + c.y, 0) / ks.length, n);
   }
   if (P.bounce) ev(s, 'bounce', P.ex, P.ey);
+  if (TUNE.counterR > 0)
+    for (const f of s.foes)
+      if (MELEE[f.k] && (f.st === IDLE || f.st === REST) && Math.hypot(f.x - s.nx, f.y - s.ny) < TUNE.counterR) {
+        f.st = WIND;
+        f.tm = TUNE.counterT * easeOf(s)[1];
+        ev(s, 'counter', f.x, f.y);
+      }
   // ✏️ S003 헛방 벌(📐 CONTENT 개발 메모 2): 아무것도 못 벤 획 — 먹 -10 · 20틱 다시 못 긋기 · 근처 칼잡이가 그 틈에 바로 칼을 든다
   if (n === 0 && !P.shots.length && !P.barrels.length) {
     s.g = Math.max(0, s.g - TUNE.whiffG);
@@ -820,6 +831,7 @@ function danger(s: DashState, qx: number, qy: number, skipF: Set<number>, skipS:
     if (skipF.has(f.id) || f.st === ENTER) continue;
     const d = Math.hypot(f.x - qx, f.y - qy), m = MELEE[f.k];
     if (m) {
+      if (TUNE.counterR > 0 && (f.st === IDLE || f.st === REST) && d < TUNE.counterR) T = Math.min(T, TUNE.counterT); // S003 착지 반격
       if (f.st === WIND && d < m.reach + 0.025) T = Math.min(T, f.tm);
       else if (!hidden && f.st === IDLE && d < m.start + 0.03) T = Math.min(T, m.wind + Math.max(0, f.cool));
       else if (!hidden && (f.st === IDLE || f.st === REST) && d < 0.3) T = Math.min(T, m.wind + (d - m.start) / SPD[f.k] + (f.st === REST ? f.tm : 0));

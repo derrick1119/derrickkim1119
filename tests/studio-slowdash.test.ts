@@ -74,17 +74,20 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(missOf(w)).toBe('');
   });
 
-  it('S003 헛방: 아무것도 못 벤 획은 20틱 동안 다시 못 긋는다 · 방패 바로 앞 0길이 떼기는 취소가 아니라 튕김(헛방)', () => {
+  it('S003 헛방: 아무것도 못 벤 획은 헛방으로 세고 근처 칼잡이가 바로 칼을 든다 · 방패 바로 앞 0길이 떼기는 취소가 아니라 튕김(헛방)', () => {
+    // (경직 20틱은 S003 측정으로 뺐다 — 장인 '옮겨 서기'를 막아 5판 ★3 .92 → .04, 연타엔 효과 0. TALK S003)
     const s = g.create(4);
     startStage(s, 1);
     for (let k = 0; k < 40; k++) g.step(s, { tap: false, dir: 0, pointer: null });
-    g.step(s, { tap: false, dir: 0, pointer: { x: s.nx, y: (s.ny - 0.3) / A } }); // 빈 곳으로 꾹
+    const near = s.foes.find((f) => f.k === 'sword')!;
+    near.cool = 99;
+    s.nx = near.x;
+    s.ny = Math.min(1.27, near.y + 0.32);
+    g.step(s, { tap: false, dir: 0, pointer: { x: s.nx + 0.15, y: (s.ny - 0.1) / A } }); // 칼잡이 곁 빈 곳으로 꾹
     g.step(s, { tap: false, dir: 0, pointer: null }); // 떼기 → 빈 획
     expect(s.dashes).toBe(1);
     expect(s.whiffs).toBe(1);
-    expect(s.stiff).toBeGreaterThan(0);
-    g.step(s, { tap: false, dir: 0, pointer: { x: 0.5, y: 0.5 } });
-    expect(s.down).toBe(false); // 경직 중에는 눌러도 느려지지 않는다
+    expect(s.events.some((e) => e.kind === 'whiffme')).toBe(true);
     // 방패 바로 앞: 길이 0이어도 '튕김' 사건이 나고 헛방으로 센다
     const t = g.create(9);
     startStage(t, 4);
