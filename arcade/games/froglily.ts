@@ -802,6 +802,10 @@ function newStage(s: FrogState) {
   s.held = false;
   if (d.key !== 'none') see(s, d.key, '');
   s.seen.add('st' + s.stage);
+  if (d.key === 'current') {
+    const p = s.pads.find((q) => q.amp > 0 && q.u > 0.5);
+    if (p) s.spot = { kind: 'current', t: s.t, label: '흘러가는 연잎', u: p.u, v: p.v };
+  }
   if (d.key === 'sink' || d.key === 'lotus') {
     const p = s.pads.find((q) => q.k === d.key);
     if (p) s.spot = { kind: d.key, t: s.t, label: d.key === 'sink' ? '가라앉는 연잎' : '연꽃 발판', u: p.u, v: p.v };
@@ -1301,7 +1305,7 @@ const LOOKS: Look[] = [
 interface Pose { sq: number; tilt: number; crouch: number; air: number; mood: number; puff: number; swim: number; blink: boolean; arms: number; t: number }
 /** mood: 0 보통 · 1 힘줌 · 2 신남 · 3 놀람·허우적 · 4 우쭐(심술) · 5 어질 */
 function drawFrog(ctx: C2, x: number, y: number, k: number, i: number, p: Pose) {
-  const L = LOOKS[i], lw = Math.max(1.3, k * 0.035), t = p.t;
+  const L = LOOKS[i], lw = Math.max(1.6, k * 0.045), t = p.t;
   ctx.save();
   ctx.translate(x, y);
   if (p.swim > 0) {
@@ -1360,6 +1364,10 @@ function drawFrog(ctx: C2, x: number, y: number, k: number, i: number, p: Pose) 
   // 몸통
   ell(ctx, -k * 0.02, -k * (0.3 - cr * 0.05), k * (0.42 + cr * 0.05 + legOut * 0.04), k * (0.3 - cr * 0.04 - legOut * 0.03), -0.32 + legOut * 0.2);
   fs(ctx, lin(ctx, 0, -k * 0.62, 0, 0, [0, L.light], [0.45, L.body], [1, L.spot]), lw, L.dark);
+  // 등 광택
+  ell(ctx, -k * 0.12, -k * (0.47 - cr * 0.05), k * 0.16, k * 0.06, -0.4);
+  ctx.fillStyle = 'rgba(255,255,255,.35)';
+  ctx.fill();
   // 등 무늬
   ctx.fillStyle = L.spot;
   for (const [sx, sy, sr] of [[-0.2, -0.42, 0.05], [-0.04, -0.5, 0.035], [-0.28, -0.28, 0.035], [0.02, -0.36, 0.028]] as number[][]) {
@@ -1779,10 +1787,24 @@ function drawPad(ctx: C2, s: FrogState, p: Pad, x: number, y: number, R: number,
     ctx.fillStyle = 'rgba(16,96,110,.28)';
     ctx.fill();
   }
-  ctx.save();
-  ctx.scale(1, sy);
   const notch = (p.seed % 628) / 100;
   const giant = p.k === 'giant';
+  // 잎 두께 (아래쪽 어두운 테)
+  if (!sunkNow) {
+    ctx.save();
+    ctx.scale(1, sy);
+    ctx.beginPath();
+    ctx.arc(0, R * 0.09 / sy + 1.5, R, 0, Math.PI);
+    ctx.arc(0, 0, R, Math.PI, 0, true);
+    ctx.closePath();
+    ctx.fillStyle = p.k === 'sink' ? '#5e5418' : giant ? '#8a3a30' : '#22642a';
+    ctx.globalAlpha = 1 - sinkK * 0.35;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+  ctx.save();
+  ctx.scale(1, sy);
   ctx.beginPath();
   if (giant) ctx.arc(0, 0, R, 0, TAU);
   else {
@@ -1866,6 +1888,19 @@ function drawPad(ctx: C2, s: FrogState, p: Pad, x: number, y: number, R: number,
     ctx.restore();
   }
   ctx.restore();
+  if (p.k === 'pad' && !sunkNow && hsh(p.seed) > 0.8 && !s.frogs.some((f) => f.pad === p.id && f.st === SIT)) {
+    // 작은 수련 꽃 장식
+    const fx0 = x + R * 0.45, fy0 = y + dip - R * 0.12;
+    for (let j = 0; j < 6; j++) {
+      const a = (j / 6) * TAU + p.seed;
+      ell(ctx, fx0 + Math.cos(a) * R * 0.1, fy0 + Math.sin(a) * R * 0.05, R * 0.09, R * 0.045, a);
+      ctx.fillStyle = hsh(p.seed + 1) > 0.5 ? '#fff6fa' : '#ffd2e4';
+      ctx.fill();
+    }
+    ell(ctx, fx0, fy0, R * 0.05, R * 0.035);
+    ctx.fillStyle = '#ffd23a';
+    ctx.fill();
+  }
   if (p.k === 'lotus' && !sunkNow) {
     const glow = 0.5 + 0.5 * Math.sin(t * 0.12 + p.seed);
     ell(ctx, x, y + dip, R * 0.9, R * SQ * 0.8);
@@ -2011,7 +2046,6 @@ function drawAll(ctx: C2, s: FrogState, w: number, h: number, th: Theme) {
       case 'lotus':
         break;
       case 'duck':
-        fx.pop(ex, ey - R(0.14), mine ? '오리 타기!' : '꽥?', '#fff3a0', mine ? 20 : 16);
         fx.burst(ex, ey, '#ffffff', 10, 3, 2.4);
         break;
       case 'lock':
@@ -2214,6 +2248,21 @@ function drawAll(ctx: C2, s: FrogState, w: number, h: number, th: Theme) {
     ctx.fill();
   }
 
+  // 햇살 줄기 (오른쪽 위 해에서 비스듬히)
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let j = 0; j < 4; j++) {
+    const bx = R(0.95 - j * 0.24) + Math.sin(t * 0.004 + j) * R(0.02), wd = R(0.06 + 0.03 * (j % 2));
+    ctx.beginPath();
+    ctx.moveTo(bx, py0);
+    ctx.lineTo(bx + wd, py0);
+    ctx.lineTo(bx + wd - R(0.32), py1);
+    ctx.lineTo(bx - R(0.32), py1);
+    ctx.closePath();
+    ctx.fillStyle = lin(ctx, 0, py0, 0, py1, [0, 'rgba(255,250,210,.12)'], [1, 'rgba(255,250,210,0)']);
+    ctx.fill();
+  }
+  ctx.restore();
   // ── 물결 (시뮬레이션과 같은 속도로 퍼진다) ──
   for (const rp of s.ripples) {
     const age = t - rp.t0, fr = Math.min(rp.R, age * RV);
@@ -2732,6 +2781,12 @@ function drawAll(ctx: C2, s: FrogState, w: number, h: number, th: Theme) {
     ctx.stroke();
   }
 
+  // 가장자리 은은한 비네트 (따뜻한 빛)
+  {
+    const vg = radg(ctx, w * 0.55, R(0.75), R(0.45), R(1.0), [0, 'rgba(255,240,200,0)'], [1, 'rgba(120,90,30,.16)']);
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, R(HB), w, R(GB - HB));
+  }
   // ── 첫 화면 안내: 이름표 · 손가락 ──
   if (s.wait) {
     for (const f of s.frogs) {
@@ -2832,7 +2887,7 @@ function drawAll(ctx: C2, s: FrogState, w: number, h: number, th: Theme) {
     if (s.phase === 'result') {
       age = s.pt;
       a = Math.min(1, age / 8);
-      if (s.ok) head = s.won ? '연못 대경주 우승!' : `${RANK_TXT[s.rank]}! 결승 연꽃 도착`;
+      if (s.ok) head = s.won ? (s.rank === 1 ? '연못 대경주 우승!' : `${RANK_TXT[s.rank]}로 대경주 완주!`) : `${RANK_TXT[s.rank]}! 결승 연꽃 도착`;
       else (head = `으앗… ${s.why}`), (sub = s.hearts > 0 ? '하트 -1 · 같은 판 다시' : '끝 — 개구리가 연잎에서 꾸벅꾸벅');
     } else if (s.wait && (s.stage > 0 || s.again)) {
       age = s.pt;
@@ -2888,7 +2943,9 @@ function drawAll(ctx: C2, s: FrogState, w: number, h: number, th: Theme) {
   }
   // NEW 스포트라이트
   if (s.spot && s.phase === 'play' && !s.wait) {
-    const age = t - s.spot.t, x = X(s.spot.u), y = Y(s.spot.v);
+    const hs = s.spot.kind === 'heron' && s.heron && s.heron.st !== 'rest';
+    const cp = s.spot.kind === 'current' ? s.pads.find((q) => q.amp > 0 && q.u > 0.5) : undefined;
+    const age = t - s.spot.t, x = X(hs ? s.heron!.u : s.spot.u), y = Y(hs ? s.heron!.v : cp ? padV(cp, t) : s.spot.v);
     if (age < 240 && x > 0 && x < w) {
       const pul = 1 + 0.12 * Math.sin(age * 0.25);
       ctx.save();
@@ -2966,7 +3023,7 @@ function drawAll(ctx: C2, s: FrogState, w: number, h: number, th: Theme) {
       const bx = R(0.075);
       const pop = t - (fx.memo.rankT ?? -99) < 10 ? 1.25 - (t - fx.memo.rankT) / 40 : 1;
       if (fx.memo.myRank !== myRank) {
-        if (fx.memo.myRank !== undefined && myRank < fx.memo.myRank && !s.wait) fx.pop(X(me.u), Y(me.v) - R(0.2), '추월!', '#ffe066', 20);
+        if (fx.memo.myRank !== undefined && myRank && myRank < fx.memo.myRank && !s.wait && t - (fx.memo.passT ?? -99) > 60) (fx.memo.passT = t), fx.pop(X(me.u), Y(me.v) - R(0.2), '추월!', '#ffe066', 20);
         fx.memo.myRank = myRank;
         fx.memo.rankT = t;
       }

@@ -388,7 +388,7 @@ function newStage(s: ChamState) {
   s.caughtT = -999;
   s.tongue = null;
   s.eaten = [];
-  s.camX = s.b.x - CAM_AT;
+  s.camX = s.b.x - (s.W.cat ? 0.42 : CAM_AT);
   // 새것 스포트라이트
   if (see(s, d.key, '')) {
     const W = s.W;
@@ -481,7 +481,7 @@ function fools(s: ChamState) {
 
 function cosmetic(s: ChamState) {
   if (s.moodT > 0 && --s.moodT === 0) s.mood = 0;
-  const want = clamp(s.b.x - CAM_AT, -0.05, s.W.L + 0.25 - 1);
+  const want = clamp(s.b.x - (s.W.cat ? 0.42 : CAM_AT), -0.05, s.W.L + 0.25 - 1);
   s.camX += (want - s.camX) * (s.t < 3 ? 1 : 0.12);
   s.events = s.events.filter((e) => s.t - e.t < 90);
   s.eaten = s.eaten.filter((e) => s.t - e.t < 40);
@@ -1213,27 +1213,32 @@ function paintSeg(g: C2, k: Pat, a: number, b: number, w: number, sc: number, pa
       g.moveTo(cx, cy);
       g.lineTo(cx, cy + w * 0.04);
       g.stroke();
-      for (let f = -3; f <= 3; f++) {
-        g.save();
-        g.translate(cx + f * w * 0.016, cy + w * 0.045);
-        g.rotate(f * 0.2);
+      for (const f of [-2, 2, -1, 1, 0]) {
+        const sx2 = cx + f * w * 0.006, sy2 = cy + w * 0.038, ex2 = cx + f * w * 0.034, ey2 = cy + w * 0.1 - Math.abs(f) * w * 0.012;
+        const qx = cx + f * w * 0.014, qy = cy + w * 0.135;
+        g.lineCap = 'round';
+        g.strokeStyle = '#7a4a10';
+        g.lineWidth = w * 0.03;
         g.beginPath();
-        g.moveTo(-w * 0.011, 0);
-        g.bezierCurveTo(-w * 0.03, w * 0.04, -w * 0.016, w * 0.09, w * 0.014, w * 0.105);
-        g.bezierCurveTo(-w * 0.002, w * 0.08, -w * 0.004, w * 0.04, w * 0.011, 0);
-        g.closePath();
-        g.fillStyle = lin(g, -w * 0.02, 0, w * 0.02, 0, [0, '#ffe680'], [0.5, '#ffd22a'], [1, '#e0a812']);
-        g.fill();
-        g.strokeStyle = '#8a5a12';
-        g.lineWidth = 1.3;
+        g.moveTo(sx2, sy2);
+        g.quadraticCurveTo(qx, qy, ex2, ey2);
         g.stroke();
-        g.fillStyle = 'rgba(138,84,22,.8)';
-        for (let q = 0; q < 2; q++) (ell(g, -w * 0.006 + q * w * 0.004, w * (0.035 + q * 0.03), w * 0.003, w * 0.0025), g.fill());
+        g.strokeStyle = f % 2 ? '#ffd22a' : '#ffdd4a';
+        g.lineWidth = w * 0.022;
+        g.stroke();
+        g.strokeStyle = 'rgba(255,250,200,.8)';
+        g.lineWidth = w * 0.006;
+        g.beginPath();
+        g.moveTo(sx2 - w * 0.004, sy2 + w * 0.01);
+        g.quadraticCurveTo(qx - w * 0.006, qy - w * 0.012, ex2 - w * 0.004, ey2 - w * 0.004);
+        g.stroke();
         g.fillStyle = '#4a3010';
-        ell(g, w * 0.013, w * 0.104, w * 0.005, w * 0.004);
+        ell(g, ex2, ey2, w * 0.006, w * 0.006);
         g.fill();
-        g.restore();
       }
+      g.fillStyle = '#6a8a2a';
+      ell(g, cx, cy + w * 0.038, w * 0.012, w * 0.009);
+      g.fill();
     }
     g.strokeStyle = 'rgba(168,118,26,.45)';
     g.lineWidth = 1.5;
@@ -1440,7 +1445,7 @@ function drawCham(ctx: C2, x: number, y: number, k: number, sc: number, T: numbe
   const br = Math.sin(t * 0.08) * 0.012;
   ctx.scale(1 + br, 1 - br);
   const wig = o.walk ? Math.sin(o.walk * 0.25) : 0;
-  const curl = o.mood === 5 ? 0.35 : 1;
+  const curl = o.mood === 5 ? 0.65 : 1;
   const path = chamPath(k, wig, curl);
   const ox = o.ox - x, oy = o.oy - (y - o.hop * k * 0.25);
   const skin = (p: Pat) => patOf(ctx, p, T, sc, ox, oy);
@@ -1466,9 +1471,10 @@ function drawCham(ctx: C2, x: number, y: number, k: number, sc: number, T: numbe
       ctx.strokeStyle = 'rgba(30,40,10,.28)';
       ctx.stroke();
     }
-    ctx.fillStyle = far ? '#4a8a30' : '#6cc04a';
+    ctx.fillStyle = skin(o.worn);
     ell(ctx, fx + 0.02 * k, -lift - 0.004 * k, 0.05 * k, 0.022 * k);
     ctx.fill();
+    if (far) (ctx.fillStyle = 'rgba(30,40,10,.28)'), ctx.fill();
     ctx.strokeStyle = `rgba(40,30,10,${0.7 * outA})`;
     ctx.lineWidth = 0.014 * k;
     ctx.stroke();
@@ -2793,7 +2799,8 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
     const a0 = bad ? 0.42 + 0.14 * pulse : z.soft ? 0.3 : 0.36;
     const far = g.k === 'scope' ? fb : ft;
     ctx.save();
-    ctx.fillStyle = lin(ctx, ex, ey, (xa + xb) / 2, far, [0, `rgba(${col},${a0 * 0.35})`], [1, `rgba(${col},${a0})`]);
+    const sp = g.k === 'scope';
+    ctx.fillStyle = lin(ctx, ex, ey, (xa + xb) / 2, far, [0, `rgba(${col},${a0 * (sp ? 0.8 : 0.35)})`], [1, `rgba(${col},${sp ? Math.min(0.6, a0 * 1.4) : a0})`]);
     ctx.beginPath();
     ctx.moveTo(ex, ey);
     ctx.lineTo(xa, far);
@@ -2802,6 +2809,10 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
     ctx.lineTo(xb, far);
     ctx.closePath();
     ctx.fill();
+    if (sp) {
+      ctx.fillStyle = radg(ctx, (xa + xb) / 2, (ft + fb) / 2, 0, (xb - xa) * 0.9, [0, 'rgba(255,255,230,.6)'], [1, 'rgba(255,255,230,0)']);
+      ctx.fillRect(xa - (xb - xa), ft - R(0.05), (xb - xa) * 3, fb - ft + R(0.1));
+    }
     // 벽에 닿은 빛 (눈부심)
     ctx.fillStyle = `rgba(${bad ? '255,120,90' : '255,250,215'},${bad ? 0.35 : 0.4})`;
     rr(ctx, xa, ft, xb - xa, fb - ft, R(0.014));
@@ -2842,7 +2853,8 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
     if (g.k === 'scope') return;
     const z = gz[i], face = z.c >= g.x ? 1 : -1;
     const look = clamp(z.h / 0.12, 0, 1), qm = (s.ep[i] === 1 && s.t - s.epT[i] > 22) || t - s.qm[i] < 45;
-    const tilt = qm ? 0.3 + Math.sin(t * 0.15) * 0.08 : 0, bark = t - s.bark[i] < 36 || (play && b.exp && (b.mask >> i) & 1) ? 1 : 0;
+    const caughtBy = s.phase === 'result' && !s.ok && (b.mask >> i) & 1;
+    const tilt = qm ? 0.3 + Math.sin(t * 0.15) * 0.08 : 0, bark = caughtBy || t - s.bark[i] < 36 || (play && b.exp && (b.mask >> i) & 1) ? 1 : 0;
     if (X(g.x) < -R(0.3) || X(g.x) > w + R(0.3)) return;
     if (g.k === 'dog') drawDog(ctx, X(g.x), Y(DOG_Y), R(DOG_H), face, look, z.h < 0.012 || z.soft ? 1 : 0, tilt, bark, t + i * 40, 0);
     else drawMan(ctx, X(g.x), Y(MAN_Y), R(MAN_H), face, look, 1 - look, tilt * 0.5, bark, t + i * 30);
@@ -2852,7 +2864,7 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
     const z = gz[i], face = z.c >= g.x ? 1 : -1, [ex, ey] = guardEye(g, face, X, Y, R);
     const bx = ex - face * R(0.02), by = ey - R(g.k === 'scope' ? 0.12 : g.k === 'man' ? 0.13 : 0.12);
     const qm = (s.ep[i] === 1 && s.t - s.epT[i] > 22) || t - s.qm[i] < 45;
-    const bk = t - s.bark[i] < 40 || (play && b.exp && (b.mask >> i) & 1);
+    const bk = t - s.bark[i] < 40 || (play && b.exp && (b.mask >> i) & 1) || (s.phase === 'result' && !s.ok && (b.mask >> i) & 1);
     if (bk) bubble(ctx, bx, by, R(0.034), '!', '#ff4a3a', '#ffffff', R);
     else if (qm) bubble(ctx, bx, by + Math.sin(t * 0.2) * 2, R(0.032), '?', '#ffffff', '#3a2414', R);
     else if (b.go && play && z.h < 0.012) {
@@ -2892,6 +2904,19 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
         }
       }
       drawCat(ctx, cxp, Y(LANE), R(CAT_K), t, leap, near);
+    }
+    if (cxp < R(0.02) && play) {
+      // 화면 밖 고양이: 왼쪽 끝 알림
+      const ix = R(0.055), iy = Y(LANE) - R(0.1), gap = b.x - b.cat;
+      bubble(ctx, ix, iy, R(0.036), '냥', '#ffd9a8', '#7a3a08', R);
+      font(0.03, 900);
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = 'rgba(90,40,10,.7)';
+      ctx.lineWidth = 3;
+      ctx.textAlign = 'center';
+      const txt = gap < 0.35 ? '가까워요!' : '따라와요';
+      ctx.strokeText(txt, ix + R(0.03), iy + R(0.065));
+      ctx.fillText(txt, ix + R(0.03), iy + R(0.065));
     }
   }
   // ── 카멜레온 ──
@@ -3049,6 +3074,11 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
       fx.burst(X(b.x) - R(0.05), cY, '#ffa63a', 14, 3, 2.4);
     }
     if (e.kind === 'caught') {
+      W.guards.forEach((g, i) => {
+        if (!((b.mask >> i) & 1)) return;
+        const [ex, ey] = guardEye(g, 1, X, Y, R);
+        say(ex, ey - R(0.2), g.k === 'dog' ? '왈왈!' : g.k === 'man' ? '거기 서!' : '찾았다!', '#ffffff', 20);
+      });
       say(cX, cY - R(0.16), '들켰다!', '#ff8a7a', 24);
       fx.kick(10);
       fx.blink('#ffd0b0', 0.3);
@@ -3394,7 +3424,7 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
       ctx.fillText(fr > 0.01 ? '들킴 게이지 — 다 차면 하트 -1' : '안 들킴', gx + R(0.02), r1 + 1, gw - R(0.03));
       // 입은 무늬 + 남은 양
       const px = w - R(0.2), pr = R(0.024);
-      const worn = b.mode === STOP && b.m < 1 ? b.tg : b.ch > 0 ? b.worn : 'leaf';
+      const worn = play && b.mode === STOP && b.m < 1 ? b.tg : b.ch > 0 ? b.worn : 'leaf';
       ctx.fillStyle = patOf(ctx, worn, T, sc, px, r1, 0.45);
       ctx.beginPath();
       ctx.arc(px, r1, pr, 0, TAU);

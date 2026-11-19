@@ -33,7 +33,7 @@ const VMIN = 0.002, KV = 0.05, VMAX = 0.009, VPANIC = 0.009, MARGIN = 0.035, PAN
 const PICK = 0.04;
 const FAIL_SZ = 0.35, REGEN = 0.004;
 const RESULT_OK = 200, RESULT_FAIL = 170, CARD_T = 170, NEWS_T = 160;
-const CANDY_PTS = 10, CLEAR_PTS = 20, STAR_PTS = 50, WIN_PTS = 100;
+const CANDY_PTS = 10, CLEAR_PTS = 20, STAR_PTS = 50, WIN_PTS = 300;
 /** 큰 순간: 한 번에 이만큼 넘게 미끄러지면 '그림자 다리!' */
 const BIG_GLIDE = 0.22;
 
@@ -670,7 +670,7 @@ function ghostStep(s: GhostState) {
     if (candyShaded(G, ui, s.wt, j)) {
       s.taken[j] = true;
       s.candies++;
-      s.pts += CANDY_PTS;
+      s.pts += Math.round(CANDY_PTS * (1 + 0.25 * s.stage));
       ev(s, 'candy', G.cand[j].x, G.cand[j].y, s.candies, s.candies >= G.cand.length ? 'all' : '');
     }
   }
@@ -2163,6 +2163,29 @@ function drawAll(ctx: C2, s: GhostState, w: number, h: number, th: Theme) {
   }
   ctx.fillStyle = dusk ? 'rgba(118,64,196,0.44)' : SHADE;
   ctx.fill('nonzero');
+  // 해가 움직이는 동안: 지나간 그림자 잔상 (휙휙 도는 느낌)
+  const prevU = fx.memo.pu ?? u, du = u - prevU;
+  fx.memo.su = (fx.memo.su ?? 0) * 0.8 + du * 0.2 * 5;
+  fx.memo.pu = u;
+  const sweep = fx.memo.su;
+  if (Math.abs(sweep) > 0.004)
+    for (const k of [1, 2, 3]) {
+      const uu = clamp(u - sweep * k * 1.6, 0, 1), pl: Poly[] = [];
+      for (const o of G.objs) if (o.k !== 'porch') shadowOf(o, uu, lf, wt, pl);
+      ctx.beginPath();
+      for (const p of pl) {
+        p.forEach((q, i) => (i ? ctx.lineTo(X(q[0]), Y(q[1])) : ctx.moveTo(X(q[0]), Y(q[1]))));
+        ctx.closePath();
+      }
+      ctx.fillStyle = `rgba(84,66,206,${Math.min(0.14, Math.abs(sweep) * 4) / k})`;
+      ctx.fill('nonzero');
+    }
+  ctx.restore();
+  // 햇빛 번짐: 해 쪽에서 비치는 따뜻한 빛 (해를 끌면 빛도 같이 움직인다)
+  ctx.save();
+  ctx.globalCompositeOperation = 'soft-light';
+  ctx.fillStyle = radg(ctx, X(sunX(s.u)), Y(sunY(s.u)), R(0.1), R(1.3), [0, dusk ? 'rgba(255,170,110,.75)' : 'rgba(255,248,200,.8)'], [0.5, dusk ? 'rgba(255,150,120,.25)' : 'rgba(255,240,190,.25)'], [1, 'rgba(255,240,190,0)']);
+  ctx.fillRect(0, Y(HZ), w, Y(GB) - Y(HZ));
   ctx.restore();
   // 길 위 그늘·햇빛 표시: 그늘 길은 시원한 점선, 앞쪽 햇빛 길은 반짝
   {
@@ -2268,7 +2291,7 @@ function drawAll(ctx: C2, s: GhostState, w: number, h: number, th: Theme) {
   G.cand.forEach((q, j) => {
     if (s.taken[j]) return;
     const sh = candyShaded(G, ui, wt, j);
-    items.push({ y: q.y, draw: () => drawCandy(ctx, X(q.x), Y(q.y), R(0.027), t, sh, CANDY_COL[(j + s.stage) % CANDY_COL.length], j * 2.1) });
+    items.push({ y: q.y, draw: () => drawCandy(ctx, X(q.x), Y(q.y), R(0.033), t, sh, CANDY_COL[(j + s.stage) % CANDY_COL.length], j * 2.1) });
   });
   // 유령
   const hotV = s.hot > 0 ? 1 : Math.max(0, 1 - s.sz) * 0.6;
@@ -2287,6 +2310,10 @@ function drawAll(ctx: C2, s: GhostState, w: number, h: number, th: Theme) {
       }
       let hop = 0;
       if (pose === 0 && s.phase === 'play') hop = Math.abs(Math.sin(t * 0.25)) * R(0.008);
+      ctx.fillStyle = radg(ctx, X(gx), Y(gy) - gk * 0.75, gk * 0.2, gk * 1.1, [0, 'rgba(255,255,255,.45)'], [1, 'rgba(255,255,255,0)']);
+      ctx.beginPath();
+      ctx.arc(X(gx), Y(gy) - gk * 0.75, gk * 1.1, 0, TAU);
+      ctx.fill();
       drawGhost(ctx, X(gx), Y(gy) - hop, gk, t, pose, s.face, pose === 1 ? 1 : 0, hotV);
       // 몸 크기 (줄면 보이는 막대)
       if (s.phase === 'play' && (s.sz < 0.985 || s.hot > 0)) {
@@ -2303,6 +2330,37 @@ function drawAll(ctx: C2, s: GhostState, w: number, h: number, th: Theme) {
   });
   items.sort((a, b) => a.y - b.y);
   for (const it of items) it.draw();
+  // 나비 두 마리 (구경꾼)
+  for (let j = 0; j < 2; j++) {
+    const bx2 = X(0.5 + 0.42 * Math.sin(t * 0.004 + j * 2.6)), by2 = Y(0.62 + 0.3 * j + 0.05 * Math.sin(t * 0.011 + j)), fl = Math.abs(Math.sin(t * 0.35 + j));
+    ctx.fillStyle = j ? '#ffb3d1' : '#fff08a';
+    ctx.strokeStyle = OUT;
+    ctx.lineWidth = 1;
+    for (const sd of [-1, 1]) {
+      ell(ctx, bx2 + sd * R(0.008) * (0.4 + fl), by2, R(0.009) * (0.4 + fl), R(0.011), sd * 0.4);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.fillStyle = OUT;
+    ctx.fillRect(bx2 - 0.8, by2 - R(0.008), 1.6, R(0.016));
+  }
+  // 누르는 동안: 손가락 자리 → 해 (해는 손가락 가로 자리를 따라간다)
+  if (held && s.aimU !== null) {
+    const fx0 = X(sunX(s.aimU));
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,.75)';
+    ctx.setLineDash([R(0.01), R(0.012)]);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(fx0, Y(sunY(s.aimU)) + R(0.08));
+    ctx.lineTo(fx0, Y(HZ) + R(0.02));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.arc(fx0, Y(sunY(s.aimU)), R(0.075), 0, TAU);
+    ctx.stroke();
+    ctx.restore();
+  }
   // 꼬리 자국 기록 (연출)
   const tr = trailOf(s);
   if (s.moving > VMIN * 1.5 && t % 3 === 0 && tr[tr.length - 1]?.t !== t) tr.push({ x: gx, y: gy, t });
@@ -2453,7 +2511,7 @@ function drawAll(ctx: C2, s: GhostState, w: number, h: number, th: Theme) {
     const age = t - fx.memo.bigT, sc2 = age < 6 ? 1.7 - 0.7 * (age / 6) : 1, a = Math.min(1, (56 - age) / 16);
     const txt = BAND[d.key] ?? '그림자 다리!', size = Math.round(R(0.075));
     ctx.font = `900 ${size}px system-ui, sans-serif`;
-    const half = ctx.measureText(txt).width / 2 + 24;
+    const half = (ctx.measureText(txt).width / 2 + 24) * sc2;
     const bx = clamp(fx.memo.bigX, half + 6, w - half - 6), by = clamp(fx.memo.bigY - R(0.34), Y(HZ + 0.02), Y(1.05));
     ctx.save();
     ctx.globalAlpha = a;
@@ -2633,7 +2691,7 @@ function drawAll(ctx: C2, s: GhostState, w: number, h: number, th: Theme) {
       xx += pw + gap * scl;
     }
     let hint = d.hint;
-    if (s.stage === 0 && !s.started && s.phase === 'play') hint = '👆 해를 끌어 그림자 길을 만들어요';
+    if (s.stage === 0 && !s.started && s.phase === 'play') hint = '해를 끌어 그림자 길을 만들어요';
     else if (s.hot > 0 && s.phase === 'play') hint = '앗 뜨거! 유령 발밑에 그늘을 돌려줘요';
     else if (s.phase === 'result') hint = s.ok ? (s.won ? '마을을 다 다녔어요!' : `★ ${s.got}개! 다음 판엔 새것이 나와요`) : '유령 발밑의 그늘이 빠지지 않게 천천히';
     const first = s.stage === 0 && !s.started;

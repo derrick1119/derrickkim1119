@@ -1,18 +1,19 @@
 /**
  * 부풀리기 햄스터 대탈출 (33라운드: 쫓기는 탈출 — 옆으로 달리는 추격) — 부풀었다 줄었다 × 꾹 눌렀다 떼기 × 콤보.
  * 기준 9(손이 하는 일은 하나): 꾹 누르는 동안 햄스터가 '뿌우욱' 화면 높이의 절반만큼 부풀고, 떼면 콩알만 해진다.
- *   햄스터는 아침 햇살 부엌을 오른쪽으로 저절로 굴러가고, 뒤에서 장난꾸러기 고양이가 쫓아온다.
- * 규칙(결정적, 3줄): 큰 몸은 느리지만 컵 탑·시리얼 상자·블록 성을 와장창 부수며 밀고 나가고, 부서진 파편은 뒤로 날아가
- *   고양이를 맞히면 고양이가 데굴(거리가 벌어진다). 작은 몸은 빠르고 의자 밑·소파 밑 낮은 틈으로 쏙 빠지지만 물건에 막힌다.
- *   고양이에게 잡히면 하트 -1·그 판 다시(하트 셋을 다 잃거나 7판을 마치면 끝). 햄스터 집(작은 문)에 들어가면 판 깨기.
+ *   햄스터는 아침 햇살 부엌을 오른쪽으로 저절로 굴러가고, 뒤에서 장난꾸러기 고양이가 쫓아온다(첫 손짓 전엔 웅크려 꼬리만 흔든다).
+ * 규칙(결정적): 큰 몸은 느리지만 컵 탑·시리얼 상자·블록 성을 와장창 부수며 밀고 나가고, 부서진 조각은 뒤로 날아가
+ *   고양이를 맞히면 고양이가 데굴(거리가 벌어진다). 작은 몸은 빠르고 의자 밑·소파 밑 낮은 틈으로 쏙 빠지지만 물건에 '쿵' 막힌다.
  *   몸은 뒤꿈치를 축으로 앞쪽으로 부푼다 — 그래서 부푸는 순간 몸이 앞으로 '쑥' 뻗어 바로 앞의 탑을 부순다.
- * 와우: 첫 꾹에 햄스터가 화면 절반만큼 빵빵해지며 컵 탑이 와장창, 머그컵들이 뒤로 날아가 웅크리고 있던 고양이를 맞혀 데굴데굴.
- * 판 7개(판마다 새것 하나, 하는 일이 바뀐다): 1판 컵 탑(커져서 부수기) → 2판 의자 밑 낮은 틈(작아져서 빠지기)
- *   → 3판 선풍기(작으면 날아감 → 커져서 버티기, 바람 속 파편은 멀리) → 4판 잼 바닥(크면 끈적 → 작게 건너 마지막에 부풀기)
- *   → 5판 청소기 로봇(작으면 빨려 감 → 커서 튕겨 고양이에게) → 6판 계단(크게 굴러 내려가면 가속)
+ *   고양이에게 잡히면 하트 -1·그 판 다시(하트 셋을 다 잃거나 7판을 마치면 끝). 햄스터 집(작은 문)에 들어가면 판 깨기.
+ * 와우: 첫 꾹 0.2초에 햄스터가 화면 절반만큼 빵빵해지며 컵 탑이 와장창, 0.6초에 머그컵들이 웅크린 고양이를 맞혀 데굴데굴.
+ * 판 7개(판마다 새것 하나, 하는 일이 바뀐다): 1판 컵 탑(커져서 부수기) → 2판 의자·소파 밑 낮은 틈(작아져서 빠지기)
+ *   → 3판 선풍기(작으면 날아감 → 커져서 버티기, 방을 가로지르는 바람에 고양이도 느려짐) → 4판 잼 바닥(크면 끈적 → 작게 건너 마지막에 부풀기)
+ *   → 5판 청소기 로봇(작으면 빨려 감 → 커서 튕기면 고양이에게 날아감) → 6판 계단(크게 굴러 내려가면 슝 가속)
  *   → 7판 강아지(작으면 무시, 크면 놀라 뒤로 도망쳐 고양이 길을 막음).
  * 해바라기씨: 바닥 씨앗(누구나) · 공중 씨앗(커야 닿음) · 의자 밑 씨앗(작아야 들어감).
- * 별: 1판 하나, 판마다 하나씩(3판부터 셋) — "집까지 탈출" · "씨앗 여덟 개 줍기" · "한 번도 안 막히기" …
+ * 별: 1판 하나, 판마다 하나씩(3판부터 셋) — "집까지 탈출" · "해바라기씨 여덟 개 줍기" · "한 번도 안 막히기" …
+ * 버릇 봇: '앞에 물건이 있으면 늘 부풀기'(틈·잼에서 손해) · '작게 달리다 막히면 부풀기'(독립, 쿵·빨려 감에서 손해).
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -2695,7 +2696,7 @@ function drawRugs(ctx: C2, s: PuffState, w: number, sy: (hw: number) => number, 
 function drawFront(ctx: C2, s: PuffState, w: number, h: number, sy: (hw: number) => number, t: number) {
   const cam = s.camX * 1.25, per = 1.7;
   for (let i = Math.floor(cam / per) - 1; i < cam / per + 2; i++) {
-    const x = (i * per + 0.9 - cam) * w, y = Math.min(h, sy(s.camY - FRONT * 0.75)), kind = hsh(i * 23) < 0.5 ? 0 : 1;
+    const x = (i * per + 0.9 - cam) * w, y = Math.min(h, sy(s.camY - FRONT * 0.98)), kind = hsh(i * 23) < 0.5 ? 0 : 1;
     if (x < -w * 0.3 || x > w * 1.3) continue;
     if (kind === 0) {
       for (let k = 0; k < 5; k++) {
@@ -2703,19 +2704,20 @@ function drawFront(ctx: C2, s: PuffState, w: number, h: number, sy: (hw: number)
         ctx.fillStyle = k % 2 ? '#5fbf68' : '#4aa957';
         ctx.strokeStyle = '#2f7a3d';
         ctx.lineWidth = 1.5;
-        ell(ctx, x + Math.cos(a) * w * 0.09, y + Math.sin(a) * w * 0.07, w * 0.09, w * 0.03, a);
+        ell(ctx, x + Math.cos(a) * w * 0.06, y + Math.sin(a) * w * 0.04, w * 0.06, w * 0.022, a);
         ctx.fill();
         ctx.stroke();
       }
     } else {
-      ctx.fillStyle = radg(ctx, x - w * 0.02, y - w * 0.04, 0, w * 0.07, [0, '#ffc2d4'], [1, '#ff8fab']);
-      ell(ctx, x, y - w * 0.02, w * 0.055, w * 0.05);
+      const yr = w * 0.038;
+      ctx.fillStyle = radg(ctx, x - w * 0.015, y - yr * 1.1, 0, yr * 1.4, [0, '#ffc2d4'], [1, '#ff8fab']);
+      ell(ctx, x, y - yr * 0.6, yr, yr * 0.92);
       ctx.fill();
       ctx.strokeStyle = 'rgba(200,80,110,.6)';
       ctx.lineWidth = 1.2;
       for (let k = 0; k < 4; k++) {
         ctx.beginPath();
-        ctx.arc(x, y - w * 0.02, w * 0.055, -0.8 + k * 0.5, 0.6 + k * 0.5);
+        ctx.arc(x, y - yr * 0.6, yr, -0.8 + k * 0.5, 0.6 + k * 0.5);
         ctx.stroke();
       }
       ctx.strokeStyle = '#ff8fab';
@@ -2915,7 +2917,7 @@ function drawAll(ctx: C2, s: PuffState, w: number, h: number, _th: Theme) {
   // ── 햄스터 ──
   if (s.mode !== 2) {
     const hop = onStairs(s, hcx) && s.sz < STAIR_S ? Math.abs(Math.sin(t * 0.25)) * w * 0.03 : 0;
-    const R = r1 * w, F = RS * w * (1 + 0.9 * s.sz), cx = X(hcx), cy = sy(floorH(s, hcx) + r1 + s.lift) - hop;
+    const R = r1 * w, F = RS * w * (1 + 0.9 * s.sz), cx = X(hcx), cy = sy(floorH(s, hcx) + r1 + s.lift) - hop - (s.phase === 'ready' ? Math.abs(Math.sin(t * 0.22)) * w * 0.01 : 0);
     const since = t - (fx.memo.smashT ?? -99), bonk = t - (fx.memo.bonkT ?? -99) < 50;
     const stuck = s.touch.startsWith('g') && s.hold;
     const mood = s.phase === 'result' ? (s.ok ? 7 : 8) : s.mode === 1 ? 6 : bonk || (s.stun > 0 && !stuck) ? 3 : stuck ? 4 : since < 24 ? 5 : s.hold && s.sz < 0.97 ? 1 : s.sz > 0.6 ? 2 : 0;
@@ -2972,7 +2974,7 @@ function drawAll(ctx: C2, s: PuffState, w: number, h: number, _th: Theme) {
       ctx.rotate(-(BLOW_T - s.mt) * 0.35);
       ctx.translate(-cx, -cy);
     }
-    drawHamster(ctx, cx, cy, R, F, { sz: s.sz, mood, t, run: s.v > 0.0008 || s.mode === 1 ? t * (0.55 - 0.3 * s.sz) : 0, squash: press, wob, blink: t % 150 < 6, sweat: s.sz > 0.65 || (gap < 0.14 && s.phase === 'play') });
+    drawHamster(ctx, cx, cy, R, F, { sz: s.sz, mood, t, run: s.v > 0.0008 || s.mode === 1 || s.phase === 'ready' ? t * (0.55 - 0.3 * s.sz) : 0, squash: press, wob, blink: t % 150 < 6, sweat: s.sz > 0.65 || (gap < 0.14 && s.phase === 'play') });
     ctx.restore();
     if (s.phase === 'result' && !s.ok) {
       // 고양이 앞발이 꾹 (웃긴 패배)
