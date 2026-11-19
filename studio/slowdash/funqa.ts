@@ -13,7 +13,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { runBot, type Bot, type Input } from './core.ts';
 import { mulberry32, type Rng } from './rng.ts';
-import { STAGES, measureKit as K, slowdash as g, slowdashHabit, slowdashHabit2, slowdashRandom, slowdashSmart, startStage, type DashState } from './game.ts';
+import { STAGES, TRIAL, measureKit as K, slowdash as g, slowdashHabit, slowdashHabit2, slowdashRandom, slowdashSmart, startStage, type DashState } from './game.ts';
 
 const NO: Input = { tap: false, dir: 0, pointer: null };
 const press = (x: number, y: number): Input => ({ tap: false, dir: 0, pointer: { x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y / K.A)) } });
@@ -41,6 +41,7 @@ export function strokePlan(s: DashState): { pts: Pt[]; n: number } | null {
       if (Math.hypot(pts[1].x - a.x, pts[1].y - a.y) < K.STROKE_STEP) continue;
       const P = K.path(s, pts), n = P.hits.length;
       if (K.thorn(s, P)) continue; // S009 가시덤불에 걸리는 길은 안 긋는다
+      if (LEAF_SOLO && P.hits.some((h) => isLeaf(s, h.id))) continue; // M2 S1 낙차 대조군: 잎은 따로만
       if (!best || n > best.n) {
         if (K.danger(s, P.ex, P.ey, new Set(P.hits.map((h) => h.id))) < 40) continue;
         best = { pts, n };
@@ -49,6 +50,32 @@ export function strokePlan(s: DashState): { pts: Pt[]; n: number } | null {
   return best;
 }
 const straightN = (s: DashState, p: Pt) => K.path(s, [p]).hits.length;
+const isLeaf = (s: DashState, id: number) => (s.foes as unknown as Foe[]).some((f) => f.id === id && f.k === 'leaf');
+/** M2 S1 낙차 대조군 스위치: 켜면 한붓 봇이 잎 너구리를 다른 적과 한 획에 엮지 않는다 */
+let LEAF_SOLO = false;
+/** ✏️ M2 S1 🍃 잎 너구리 길: 잎 옆(.13/.18)에 꺾는 점 → 잎 너머 .08 — 꺾인 토막으로 들어가야 베인다(strokePlan은 적 둘이 있어야 짠다) */
+export function leafPlan(s: DashState): { pts: Pt[]; n: number } | null {
+  let best: { pts: Pt[]; n: number } | null = null;
+  for (const L of live(s).filter((f) => f.k === 'leaf')) {
+    const dx = L.x - s.nx, dy = L.y - s.ny, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d;
+    for (const sg of [1, -1])
+      for (const off of [0.13, 0.18]) {
+        const p1 = { x: L.x + nx * sg * off, y: L.y + ny * sg * off };
+        if (p1.x < K.X0 || p1.x > K.X1 || p1.y < K.Y0 || p1.y > K.Y1) continue;
+        const ex = L.x - p1.x, ey = L.y - p1.y, e = Math.hypot(ex, ey) || 1, end = { x: L.x + (ex / e) * 0.08, y: L.y + (ey / e) * 0.08 };
+        const P = K.path(s, [p1, end]);
+        if (!P.hits.some((h) => h.id === L.id) || K.thorn(s, P) || (LEAF_SOLO && P.hits.length > 1)) continue;
+        if (K.danger(s, P.ex, P.ey, new Set(P.hits.map((h) => h.id))) < 40) continue;
+        if (!best || P.hits.length > best.n) best = { pts: [p1, end], n: P.hits.length };
+      }
+  }
+  return best;
+}
+/** 한붓 계획 = 적 둘 꺾기(strokePlan)와 잎 들어가기(leafPlan) 중 더 많이 베는 것 — 잎이 없으면 strokePlan 그대로 */
+function bestPlan(s: DashState) {
+  const a = strokePlan(s), b = leafPlan(s);
+  return !a ? b : !b ? a : b.n > a.n ? b : a;
+}
 /** ✏️ S009 가시덤불 돌아가기: 곧은 줄이 덤불에 걸리면, 덤불 양옆으로 꺾는 길 중 걸리지 않고 곧은 줄만큼 베는 것(없으면 null) */
 export function detour(s: DashState, p: Pt): Pt[] | null {
   const P0 = K.path(s, [p]);
@@ -126,6 +153,24 @@ export function human(name: string, react: number, err: number, slow: boolean, p
           if (stroke === 'naive') {
             // ✏️ S007(📋): 처음 하는 사람은 30%쯤 아무 적 둘을 이어 꺾어 본다(계획 없이)
             const f = live(s);
+            const gd = K.guide(s); // M2 S1: 화면의 길잡이(점선 + 손가락)가 보이면 반쯤은 따라 그린다
+            if (gd && rng() < 0.5) {
+              m.bend = gd[0];
+              (m.x = gd[1].x), (m.y = gd[1].y);
+              m.until = s.t + RT + 9;
+              m.half = s.t + Math.round((RT + 9) / 2);
+              return press(gd[0].x + m.ox, gd[0].y + m.oy);
+            }
+            const lf = f.filter((x) => x.k === 'leaf');
+            if (lf.length && rng() < 0.3) { // M2 S1 🍃(📐): 처음 하는 사람의 꺾기에 '적 하나 + 아무 꺾는 점'도 — 잎이 있을 때만
+              const b = lf[Math.floor(rng() * lf.length)], a = rng() * Math.PI * 2, bend = { x: b.x + Math.cos(a) * 0.15, y: b.y + Math.sin(a) * 0.15 };
+              const dx = b.x - bend.x, dy = b.y - bend.y, d = Math.hypot(dx, dy) || 1;
+              m.bend = bend;
+              (m.x = b.x + (dx / d) * 0.08), (m.y = b.y + (dy / d) * 0.08);
+              m.until = s.t + RT + 9;
+              m.half = s.t + Math.round((RT + 9) / 2);
+              return press(bend.x + m.ox, bend.y + m.oy);
+            }
             if (f.length >= 2 && rng() < 0.3) {
               const a = f[Math.floor(rng() * f.length)], b = f.filter((x) => x !== a)[Math.floor(rng() * (f.length - 1))];
               const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
@@ -137,7 +182,7 @@ export function human(name: string, react: number, err: number, slow: boolean, p
             }
           } else if (stroke) {
             // S006: 꾹 누른 느린 세상에서 한붓 길을 찾는다 — 한 줄보다 하나 넘게 더 베면 꺾는 점 하나를 그린다(+0.15초)
-            const plan = strokePlan(s), dt = plan && plan.n >= straightN(s, { x: m.x, y: m.y }) + 1 ? plan.pts : detour(s, { x: m.x, y: m.y });
+            const plan = bestPlan(s), dt = plan && plan.n >= straightN(s, { x: m.x, y: m.y }) + 1 ? plan.pts : detour(s, { x: m.x, y: m.y });
             if (dt) {
               m.bend = dt[0];
               (m.x = dt[1].x), (m.y = dt[1].y);
@@ -156,7 +201,11 @@ export function human(name: string, react: number, err: number, slow: boolean, p
         return press(p.x, p.y); // 1틱 톡 — 반응하는 동안 세상은 제 속도로 흘렀다
       }
       if (!ready(s) || s.t < m.until) return NO;
-      const c = choose(s, rng);
+      let c = choose(s, rng);
+      if (!c && stroke === true) { // 🍃 잎만 남으면 장인 겨눔이 없다 — 잎을 겨누고 꾹(그다음 bestPlan이 꺾는 길을 그린다)
+        const L = live(s).find((f) => f.k === 'leaf');
+        if (L) c = { x: L.x, y: L.y };
+      }
       if (!c) return (m.until = s.t + 6), NO;
       m.x = c.x;
       m.y = c.y;
@@ -189,9 +238,14 @@ export const slowdashSmartStroke: Bot<DashState> = {
       return press(p.x, p.y);
     }
     if (q && s.down) return seqMem.delete(s), NO;
+    const L = live(s);
+    if (!s.down && !s.lock && s.g >= 25 && L.length && L.every((f) => f.k === 'leaf')) { // 🍃 잎만 남으면 장인 탭은 못 벤다 — 바로 들어가기
+      const lp = leafPlan(s);
+      if (lp) return seqMem.set(s, [lp.pts[1]]), press(lp.pts[0].x, lp.pts[0].y);
+    }
     const a = slowdashSmart.act(s, rng);
     if (!a.pointer) return a;
-    const aim = { x: a.pointer.x, y: a.pointer.y * K.A }, plan = strokePlan(s);
+    const aim = { x: a.pointer.x, y: a.pointer.y * K.A }, plan = bestPlan(s);
     if (plan && plan.n >= straightN(s, aim) + 1) {
       seqMem.set(s, [plan.pts[1]]);
       return press(plan.pts[0].x, plan.pts[0].y);
@@ -302,7 +356,7 @@ export const BOTS: Record<string, Bot<DashState>> = {
 };
 
 export interface Try {
-  ok: boolean; stall: boolean; stars: number; s2: boolean; s3: boolean; sec: number; best: number; hits: number; dashes: number; whiff: number;
+  ok: boolean; stall: boolean; leafCombo: boolean; stars: number; s2: boolean; s3: boolean; sec: number; best: number; hits: number; dashes: number; whiff: number;
   holdAvg: number; downPct: number; empty: number; cancels: number; bent: number; bentCut: number; lineCut: number; s: DashState;
 }
 
@@ -324,7 +378,7 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
   const rng = mulberry32(hand ^ 0x9e3779b9), t0 = s.t, d0 = s.dashes, emptyG = K.GBASE + K.GPER * K.HOP;
   let whiff = 0, down = 0, holds = 0, holdT = 0, cur = 0, empty = 0, dn = s.dashes, cancels = 0, bent = 0, bentCut = 0, lineCut = 0;
   // ✏️ S010 300초 측정 고침: 60초 동안 아무것도 못 베고 웨이브도 그대로면 '막힘' — 사람이면 그만둔다(실패로 셈)
-  let prog = s.t, mark = '';
+  let prog = s.t, mark = '', leafCombo = false;
   while (s.phase !== 'result' && s.t - t0 < maxSec * 60) {
     const now = `${s.wave}/${s.foes.length}/${s.hp}`; // S012: 덤불 맞음(목숨 그대로)은 진전이 아니다 — 휘젓기 6판 300초
     if (now !== mark) (mark = now), (prog = s.t);
@@ -334,12 +388,14 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
     if (s.down) (down++, cur++);
     else if (was) (holds++, (holdT += cur), (cur = 0));
     if (s.g < emptyG) empty++;
+    if (s.dashes > dn && s.combo.n >= 2 && s.cuts.slice(-s.combo.n).some((c) => c.k === 'leaf')) leafCombo = true; // 🍃 잎을 다른 적과 한 획에
     if (s.dashes > dn) ((dn = s.dashes), s.combo.n === 0 && whiff++, turned([{ x: px, y: py }, ...s.stroke, { x: s.nx, y: s.ny }]) ? (bent++, (bentCut += s.combo.n)) : (lineCut += s.combo.n));
     for (let i = s.events.length - 1; i >= 0 && s.events[i].t === s.t; i--) if (s.events[i].kind === 'cancel') cancels++; // 🧪 S001: 조용한 취소(방패 바로 앞 길이 0 등)
   }
   const ok = s.phase === 'result' && s.ok, T = Math.max(1, s.t - t0), n = s.dashes - d0;
   return {
     stall: s.phase !== 'result' && s.t - prog > STALL * 60,
+    leafCombo,
     ok, stars: ok ? s.got : 0, s2: ok && s.starOk[1], s3: ok && s.starOk[2], sec: (s.t - t0) / 60, best: s.best, hits: s.hits, dashes: n,
     whiff: n ? whiff / n : 0, holdAvg: holds ? holdT / holds / 60 : 0, downPct: down / T, empty: empty / T, cancels, bent: n ? bent / n : 0, bentCut: bent ? bentCut / bent : 0, lineCut: n - bent ? lineCut / (n - bent) : 0, s,
   };
@@ -508,12 +564,40 @@ export function measure(seeds = 24, only?: string[]) {
   };
 }
 
+/** ✏️ M2 S1 시험 판(월드 2 초안) 재기: TRIAL 판을 STAGES 끝에 잠깐 붙여 재고 뗀다 — 1~10 지표는 그대로 */
+export function measureTrial(seeds = 24) {
+  const out: Record<string, unknown>[] = [];
+  for (const d of TRIAL) {
+    STAGES.push(d);
+    const k = STAGES.length - 1, seedsOf = Array.from({ length: seeds }, (_, i) => 101 + i * 7);
+    const row: Record<string, unknown> = { key: d.key, name: d.name };
+    try {
+      for (const name of ['smartStroke', 'humanStroke', 'humanStroke30', 'newbie', 'humanTap', 'smart', 'habit2', 'spam', 'scribble']) {
+        const t = seedsOf.map((sd) => (name === 'newbie' ? try3(BOTS[name], sd, k) : tryStage(BOTS[name], sd, k)));
+        row[name] = { ...sum(t), leafCombo: r2(mean(t.map((x) => +x.leafCombo))) };
+      }
+      LEAF_SOLO = true; // 낙차 대조군: 잎은 따로만 베는 장인 한붓
+      row.smartStrokeSolo = sum(seedsOf.map((sd) => tryStage(BOTS.smartStroke, sd, k)));
+    } finally {
+      LEAF_SOLO = false;
+      STAGES.pop();
+    }
+    const R = (n: string) => row[n] as Row & { leafCombo?: number };
+    row.summary = { use: R('smartStroke').leafCombo, drop: r2(R('smartStroke').star - R('smartStrokeSolo').star), newbieClear: R('newbie').clear, spamClear: R('spam').clear, scribbleClear: R('scribble').clear, humanStrokeSec: R('humanStroke').sec, straightHumanClear: R('humanTap').clear };
+    out.push(row);
+  }
+  return out;
+}
+
 if (process.argv[1]?.endsWith('funqa.ts')) {
   const n = Number(process.argv[2]) || 24, t0 = Date.now();
   const m = measure(n);
   const dir = join(import.meta.dirname, 'reports');
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'funqa.json'), JSON.stringify(m, null, 1) + '\n');
+  const w2 = measureTrial(n);
+  writeFileSync(join(dir, 'funqa-w2.json'), JSON.stringify(w2, null, 1) + '\n');
+  for (const r of w2) console.log(`시험 판 ${r.key}: ${JSON.stringify(r.summary)}`);
   console.log(`격차 ${m.gap}× · 장인÷버릇② ${m.gapHabit2}× · 첫인상 ${JSON.stringify(m.firstImpression)} · ${((Date.now() - t0) / 1000).toFixed(1)}초`);
   console.log(`한붓 1~5 ${JSON.stringify(m.stroke.s1to5)}`);
   console.log(`한붓 6~10 ${JSON.stringify(m.stroke.s6to10)}`);

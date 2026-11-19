@@ -4,7 +4,7 @@
  */
 import { TICK } from './core.ts';
 import { peek } from './juice.ts';
-import { STAGES, STAGE_COUNT, slowdash as g, startStage, type DashState } from './game.ts';
+import { STAGES, STAGE_COUNT, TRIAL, slowdash as g, startStage, type DashState } from './game.ts';
 import { sfx } from './sfx.ts';
 
 const store = {
@@ -64,6 +64,9 @@ function cues() {
 }
 
 const q = new URLSearchParams(location.search);
+// ✏️ M2 S1: ?trial=1 이면 월드 2 시험 판(🍃 2-1 '첫 기와')을 11판으로 붙여 바로 시작 — 오너·스크린샷용(판 목록엔 아직 없음)
+const trial = q.get('trial') === '1';
+if (trial) STAGES.push(...TRIAL);
 let s: DashState = g.create(1), running = false, acc = 0, last = 0, keyboard = false, spaceDown = false;
 let pointer: { x: number; y: number } | null = null, latch: { x: number; y: number } | null = null, cursor = { x: 0.5, y: 0.55 };
 const keys = new Set<string>();
@@ -112,7 +115,7 @@ function title() {
 function start() {
   const seed = Number(q.get('seed')) || (Date.now() % 1_000_000) + 1;
   s = g.create(seed);
-  { const st = Math.floor(Number(q.get('stage'))); if (st > 1 && st <= STAGE_COUNT) startStage(s, st - 1); } // ✏️ S009 시험·스크린샷용 ?stage=N
+  { const st = trial ? STAGE_COUNT + 1 : Math.floor(Number(q.get('stage'))); if (st > 1 && st <= STAGES.length) startStage(s, st - 1); } // ✏️ S009 시험·스크린샷용 ?stage=N · M2 ?trial=1
   sfx.wake();
   wasDown = false;
   running = true;

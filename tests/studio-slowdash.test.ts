@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/slowdash/core.ts';
-import { STAGES, STRIKE, missOf, slowdash as g, slowdashRandom, slowdashSmart, startStage } from '../studio/slowdash/game.ts';
+import { STAGES, STRIKE, TRIAL, missOf, slowdash as g, slowdashRandom, slowdashSmart, startStage } from '../studio/slowdash/game.ts';
 import { BOTS, measure, tapEvery, try3, tryStage } from '../studio/slowdash/funqa.ts';
 import { chainHz, sfx } from '../studio/slowdash/sfx.ts';
 
@@ -245,6 +245,36 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(s.stroke.length).toBeGreaterThanOrEqual(12);
     g.step(s, { tap: false, dir: 0, pointer: null });
     expect(s.trail!.legs.length).toBeGreaterThanOrEqual(12); // 원을 따라 돌진(전엔 곧은 줄 하나)
+  });
+
+  it('M2 S1 🍃 잎 너구리: 곧게 오는 칼은 휙 피해 옆으로 비켜 서고(먹 +7), 꺾어 들어온 칼에만 베인다 · 연타로는 시험 판 2-1을 못 깬다', () => {
+    const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y: y / A } });
+    const go = (pts: number[][]) => {
+      const s = g.create(3);
+      startStage(s, K('bend'));
+      for (let k = 0; k < 60; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+      const f = s.foes[0];
+      s.foes = [f];
+      (f.k as string) = 'leaf';
+      (f.x = 0.5), (f.y = 0.75), (s.nx = 0.5), (s.ny = 1.1), (s.g = 60), (s.inv = 0);
+      for (const [x, y] of pts) for (let k = 0; k < 3; k++) g.step(s, at(x, y));
+      g.step(s, { tap: false, dir: 0, pointer: null });
+      return { s, f };
+    };
+    const a = go([[0.5, 0.65]]); // 곧게
+    expect(a.s.foes).toHaveLength(1);
+    expect(Math.abs(a.f.x - 0.5)).toBeGreaterThan(0.05); // 휙 옆으로
+    expect(a.s.events.some((e) => e.kind === 'dodge')).toBe(true);
+    const b = go([[0.5, 1.1], [0.62, 0.95], [0.66, 0.82], [0.5, 0.75], [0.4, 0.72]]); // 옆으로 올라가 꺾어 들어가기
+    expect(b.s.foes).toHaveLength(0);
+    STAGES.push(TRIAL[0]);
+    try {
+      const k = STAGES.length - 1;
+      for (const sd of [101, 108, 115]) expect(tryStage(BOTS.spam, sd, k).ok).toBe(false);
+      expect(tryStage(BOTS.smartStroke, 101, k).ok).toBe(true);
+    } finally {
+      STAGES.pop();
+    }
   });
 
   it('S005 효과음: 시뮬·봇은 소리를 모른다(헤드리스로 한 판 돌려도 AudioContext 0) · 연쇄 음계는 5음계로 오르고 8번째부터 고정', () => {

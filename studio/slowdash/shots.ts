@@ -95,6 +95,20 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
   await page.click('.g-overlay');
   await page.waitForTimeout(2600);
   await page.screenshot({ path: join(out, '12-guide.png') });
+  // ✏️ M2 S1 🍃 시험 판: 잎 너구리를 곧게 겨누면 '휙! 꺾어요'
+  await page.goto(url + '&trial=1');
+  await page.click('.g-overlay');
+  await page.waitForTimeout(3000);
+  {
+    const box2 = (await page.locator('canvas').boundingBox())!;
+    const at2 = (x: number, y: number) => ({ x: box2.x + x * box2.width, y: box2.y + y * box2.width });
+    const a = at2(0.5, 1.15), b = at2(0.62, 0.58);
+    await page.mouse.move(a.x, a.y);
+    await page.mouse.down();
+    for (let i = 1; i <= 6; i++) (await page.mouse.move(a.x + ((b.x - a.x) * i) / 6, a.y + ((b.y - a.y) * i) / 6), await page.waitForTimeout(30));
+    await page.screenshot({ path: join(out, '13-leaf.png') });
+    await page.mouse.up();
+  }
 }
 await browser.close();
 console.log(`콘솔 에러 ${errors.length}${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''} · 가로 스크롤 ${scroll.length ? scroll.join(', ') : '0'}`);
