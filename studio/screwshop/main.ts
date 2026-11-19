@@ -9,7 +9,7 @@ import { LOCK, STAGES, lockedW, setAspect, setCue, setLearn, startStage, worldOf
 
 const mem = new Map<string, number>(); // ✏️ S068(🧪 S068 🔴①): 저장이 막혀도 이 세션 별 · 배움이 판을 바꿔도 남게(새 판은 s를 새로 만든다)
 const store = {
-  get(k: string) { try { return Number(localStorage.getItem('screwshop:' + k) ?? 0); } catch { return mem.get(k) ?? 0; } },
+  get(k: string) { if (mem.has(k)) return mem.get(k)!; try { return Number(localStorage.getItem('screwshop:' + k) ?? 0); } catch { return 0; } }, // ✏️ S069(🧪 S069 🟡①): setItem만 막힌 폰(저장 가득)도 이 세션 값 먼저
   set(k: string, v: number) { mem.set(k, v); try { localStorage.setItem('screwshop:' + k, String(v)); } catch { /* 저장 불가여도 동작 */ } },
 };
 

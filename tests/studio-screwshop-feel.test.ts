@@ -306,12 +306,28 @@ describe('잠금 · 별 숫자 맞추기(✏️ S068 · 🧪 S068 🔴 2 · 🟡
   });
   it("저장이 막혀도 세션 별 · 배움이 판을 바꿔도 남는다(메모리 받침) · 위 칸 ★ = 이 월드 별 · 별 2개 이상이면 🔒이 금 · ★☆★ 셋째는 보통 별 · 1-3 첫 판 ★2 칩 금테", () => {
     const m = src('main.ts'), g = src('game.ts');
-    expect(m).toContain('catch { return mem.get(k) ?? 0; }');
+    expect(m, '저장 막힘(읽기 · 쓰기 어느 쪽이든): 이 세션 값 먼저').toContain("get(k: string) { if (mem.has(k)) return mem.get(k)!; try {");
     expect(m).toContain('set(k: string, v: number) { mem.set(k, v);');
     expect(g).toContain('hud = worldStars(s, worldOf(s.stage)), stt = `★ ${hud}');
     expect(g).not.toContain('`★ ${s.stars}');
     expect(g).toContain("lg = nl && s.got > 1");
     expect(g).toContain("k3 = k === 2 && s.got > 2, big = k3 ? 1.15 : 1");
     expect(g).toContain("(n === 2 && gapOf(d) !== GAP && !s.bestSt[s.stage] && !s.saved?.[s.stage])");
+  });
+});
+
+describe('칩 금테 · 💡(✏️ S069 · 🧪 S069 🔴 2)', () => {
+  it('배우는 별 칩 · 예외 판 ★2 칩 금테는 실제로 그려진다(stroke가 주석 밖) · 칩 글은 조건 밖에서 왼쪽 맞춤', () => {
+    const g = src('game.ts'), line = g.split('\n').find((l) => l.includes('!s.bestSt[s.stage] && !s.saved?.[s.stage])) && s.phase'))!;
+    expect(line.split('//')[0]).toContain('(ctx.lineWidth = 2.5), ctx.stroke();');
+    const next = g.split('\n')[g.split('\n').indexOf(line) + 1];
+    expect(next.trim()).toBe("ctx.textAlign = 'left';");
+    const html = readFileSync(new URL('../web/public/studio/screwshop/index.html', import.meta.url), 'utf8');
+    expect(html, '빌드에 금테 굵기').toMatch(/lineWidth=2\.5,\w+\.stroke\(\)/);
+  });
+  it('2-10 💡(tip2)는 ★3(한 번에 4)과 상관없는 깃발 수를 권하지 않는다 — 지움(🧪 ★3 톡 392/392가 난간 쾅 → 램프 띠용)', () => {
+    const d = STAGES.find((x) => x.slot === '2-10')!;
+    expect(d.tip2).toBeUndefined();
+    expect(d.tip).toContain('램프');
   });
 });

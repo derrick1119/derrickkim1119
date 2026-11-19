@@ -3792,7 +3792,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       ctx.strokeStyle = st ? '#ffd166' : 'rgba(255,225,180,.25)';
       ctx.lineWidth = st ? 1.5 : 1;
       ctx.stroke();
-      if ((s.teach === n || (n === 2 && gapOf(d) !== GAP && !s.bestSt[s.stage] && !s.saved?.[s.stage])) && s.phase === 'play') // ✏️ S068(🧪 S068 🟡④): 예외 판(1-3 · ★2 빈칸 1칸) 첫 판엔 ★2 칩도 금테 (ctx.strokeStyle = `rgba(255,209,102,${0.55 + 0.45 * Math.sin(t / 8)})`), (ctx.lineWidth = 2.5), ctx.stroke(); // ✏️ S024: 배우는 별 칩은 금빛 테가 숨 쉰다
+      if ((s.teach === n || (n === 2 && gapOf(d) !== GAP && !s.bestSt[s.stage] && !s.saved?.[s.stage])) && s.phase === 'play') (ctx.strokeStyle = `rgba(255,209,102,${0.55 + 0.45 * Math.sin(t / 8)})`), (ctx.lineWidth = 2.5), ctx.stroke(); // ✏️ S024: 배우는 별 칩은 금빛 테가 숨 쉰다 · S068(🧪 S068 🟡④): 예외 판(1-3 · ★2 빈칸 1칸) 첫 판엔 ★2 칩도 금테 · ✏️ S069(🧪 S069 🔴①): S068에 stroke가 주석 안으로 들어가 금테 0 · 칩 글 줄맞춤이 깨졌던 것
       ctx.textAlign = 'left';
       font(0.038, 900);
       ctx.fillStyle = '#ffd166';
