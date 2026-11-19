@@ -5,7 +5,7 @@
 import { TICK, type Input } from './core.ts';
 import { juice, peek } from './juice.ts';
 import { sfx } from './sfx.ts';
-import { STAGES, setAspect, setCue, setLearn, startStage, screwshop as g, type ShopState } from './game.ts';
+import { LOCK, STAGES, lockedW, setAspect, setCue, setLearn, startStage, worldOf, worldStars, screwshop as g, type ShopState } from './game.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('screwshop:' + k) ?? 0); } catch { return 0; } },
@@ -140,23 +140,28 @@ function show(html: string) {
   overlay.focus({ preventScroll: true });
 }
 
+/** ✏️ S068(M3″ L1): 저장된 판별 최고 별 → 챕터 잠금(새 저장 키 0 · ?stage=N이면 잠금 안 봄) */
+const savedSt = () => (new URLSearchParams(location.search).get('stage') ? undefined : STAGES.map((d) => store.get('st' + d.id)));
 /** 판별 최고 별을 판 id로 저장(판 순서가 바뀌어도 그대로) */
 function keepStars() {
   s.bestSt.forEach((v, i) => v > store.get('st' + STAGES[i].id) && store.set('st' + STAGES[i].id, v));
 }
 function showPick(w = world) {
   world = Math.max(1, Math.min(3, w));
+  s.saved = savedSt();
+  const lk = lockedW(s, world);
   // 📋 S018 R5: 월드 3은 8판 — 칸 수 = 그 월드에 실린 마지막 판 번호(빈 자리는 '준비 중')
   const cells = Array.from({ length: Math.max(...STAGES.filter((d) => d.slot.startsWith(`${world}-`)).map((d) => +d.slot.split('-')[1])) }, (_, n) => {
     const slot = `${world}-${n + 1}`, k = STAGES.findIndex((d) => d.slot === slot);
     if (k < 0) return `<button type="button" disabled aria-label="${slot} 준비 중"><i>${slot}</i><em>🔒</em><small>준비 중</small></button>`;
-    const d = STAGES[k], st = store.get('st' + d.id);
-    return `<button type="button" data-k="${k}"${st >= 3 ? ' class="all"' : ''} aria-label="${slot} ${d.name}, 별 ${st}개"><i>${slot}</i><em>${/^\p{Extended_Pictographic}\uFE0F?/u.exec(d.emoji)?.[0] ?? d.emoji}</em><small>${d.name}</small><b>${'★'.repeat(st)}<u>${'★'.repeat(3 - st)}</u></b></button>`;
+    const d = STAGES[k], st = Math.max(store.get('st' + d.id), s.bestSt[k] ?? 0), em = /^\p{Extended_Pictographic}\uFE0F?/u.exec(d.emoji)?.[0] ?? d.emoji;
+    if (lk) return `<button type="button" disabled aria-label="${slot} ${d.name}, 잠김"><i>${slot}</i><em>${em}</em><small>${d.name}</small></button>`; // 잠긴 월드: 판 이름만 · 별 줄 없음 · 눌리지 않음
+    return `<button type="button" data-k="${k}"${st >= 3 ? ' class="all"' : ''} aria-label="${slot} ${d.name}, 별 ${st}개"><i>${slot}</i><em>${em}</em><small>${d.name}</small><b>${'★'.repeat(st)}<u>${'★'.repeat(3 - st)}</u></b></button>`;
   }).join('');
-  pick.innerHTML = `<nav><button type="button" data-w="${world - 1}" aria-label="앞 월드"${world > 1 ? '' : ' disabled'}>◀</button><span>월드 ${world} · ${WORLDS[world - 1]}</span><button type="button" data-w="${world + 1}" aria-label="다음 월드"${world < 3 ? '' : ' disabled'}>▶</button></nav><div>${cells}</div><button type="button" data-x="1">닫기</button>`;
+  pick.innerHTML = `<nav><button type="button" data-w="${world - 1}" aria-label="앞 월드"${world > 1 ? '' : ' disabled'}>◀</button><span>월드 ${world} · ${WORLDS[world - 1]} · ${lk ? `🔒&nbsp;${worldStars(s, world - 1)}/${LOCK[world - 2]}★` : `★&nbsp;${worldStars(s, world)}`}</span><button type="button" data-w="${world + 1}" aria-label="다음 월드"${world < 3 ? '' : ' disabled'}>▶</button></nav><div>${cells}</div><button type="button" data-x="1">닫기</button>`;
   pick.hidden = false;
   pickBtn.hidden = true;
-  (pick.querySelector('[data-k]') as HTMLElement | null)?.focus({ preventScroll: true });
+  (pick.querySelector('[data-k]') ?? pick.querySelector('nav button:not([disabled])') as HTMLElement | null)?.focus({ preventScroll: true }); // 잠긴 월드면 ◀ ▶에(키보드로 넘김)
 }
 pick.addEventListener('click', (e) => {
   const b = (e.target as HTMLElement).closest('button');
@@ -186,6 +191,7 @@ function start(pickK?: number) {
   sfx.play('press');
   const q = new URLSearchParams(location.search), fixed = Number(q.get('seed')), st = Number(q.get('stage')); // ?seed=N: 같은 판 다시 보기 · ?stage=N: N판부터(스크린샷·버그 제보)
   s = g.create(fixed > 0 ? fixed : (Date.now() % 1_000_000) + 1);
+  s.saved = savedSt();
   setLearn(s, store.get('learn')); // ✏️ S024: 배운 별(단계별 배우기) — 저장이 없으면 처음부터
   startStage(s, typeof pickK === 'number' ? pickK : st > 1 && st <= STAGES.length ? st - 1 : 0); // ✏️ S058(🧪 S058 🔴①): 배움을 먼저 읽고 판을 깐다 — 판 고르기 · ?stage에서 별 배우기 띠가 늘 ★2 줄이던 것
   if (Number(q.get('fails')) > 0) s.sf = Number(q.get('fails')); // ?fails=N: 이 판에서 N번 진 것으로(귀띔 단추 보기 · 스크린샷)
@@ -235,7 +241,7 @@ function loop(now: number) {
     const st0 = s.stage;
     g.step(s, input);
     if (s.learn !== learnSaved) store.set('learn', (learnSaved = s.learn));
-    if (s.menu) (s.menu = false), showPick(); // 도구 줄 🗺️ 판(✏️ S013)
+    if (s.menu) (s.menu = false), keepStars(), showPick(worldOf(s.stage)); // 도구 줄 🗺️ 판(✏️ S013) · ✏️ S068: 월드 끝 🔒 → 이 월드 판 고르기(별을 먼저 저장)
     if (s.stage !== st0) keepStars();
     if (g.over(s)) return end();
   }

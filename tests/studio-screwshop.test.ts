@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, jackEarly, logLate, paintStage, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setAspect, setCue, screwshop as g, screwshopSmart, shotDead, starText, startStage, tipLine, setLearn, starKinds, KB, gaugeOf, gapOf, dead3, starsOf, missGoal } from '../studio/screwshop/game.ts';
+import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, jackEarly, logLate, paintStage, comOf, geometry, blockedM, cloneSim, freeM, newSim, peek, poseOf, retrace, setAspect, setCue, screwshop as g, screwshopSmart, shotDead, starText, startStage, tipLine, setLearn, starKinds, KB, gaugeOf, gapOf, dead3, starsOf, missGoal } from '../studio/screwshop/game.ts';
 import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { f16, screwshopMash, screwshopNewbie, tryStage } from '../studio/screwshop/funqa.ts';
@@ -79,23 +79,30 @@ describe('🔨 망치 판자 (M1′ S001 · 📐 CONTENT 1판)', () => {
     expect(rec.some((e) => e.k === 'hang')).toBe(true);
     expect(rec.some((e) => e.k === 'bonk')).toBe(false);
   });
-  it('1판 겹별(📐 S003): #7 먼저 톡하면 머리 망치가 허공 → ★2(쾅 3번)를 이제 못 딴다', () => {
+  // ✏️ S068(M3″ E1 · 오너 11-19 02:48 UTC '바꾸기 (추천)' — 1판 '막 누르면 ★1' 단언 둘을 새 별 단언으로 바꿈 · 3판부터 '막 누르면 ★1'은 stages2 그대로)
+  it('1판 새 별(★2 빈칸 2칸까지 · ★3 한 번에 2): #7 먼저 톡하면 머리 망치가 허공 — 한 방 0이지만 망치가 남아 ★3은 아직 산다 · 손가락(#8)은 첫 톡에 한 번에 2', () => {
     const L = g.create(5).L, S = newSim(L);
-    expect(bonkDead(STAGES[0], L, S)).toBe(false);
+    expect([STAGES[0].H, gapOf(STAGES[0]), STAGES[0].B]).toEqual([2, 2, undefined]);
+    expect(shotDead(STAGES[0], L, S)).toBe(false);
     apply(L, S, 7);
-    expect(bonkDead(STAGES[0], L, S)).toBe(true);
+    expect([S.shot, shotDead(STAGES[0], L, S)]).toEqual([0, false]);
+    const S2 = newSim(L);
+    apply(L, S2, STAGES[0].first!);
+    expect(S2.shot, '손가락 첫 톡 = ★3 조건').toBe(2);
   });
-  it('1판 손가락 → 막 누르기 ★2 이상 ≤ 0.2 (100시드, 허들 ①)', async () => {
+  it('1판 손가락 → 막 누르기(100시드): 다 깨고 모두 한 번에 2를 맛본다 · 빈칸이 넘쳐 ★3을 놓치는 판이 남는다(오너 \'바꾸기\' · 첫 판은 누구나 ★3을 노린다)', async () => {
     const { screwshopFingerMash } = await import('../studio/screwshop/funqa.ts');
     const r = Array.from({ length: 100 }, (_, i) => tryStage(screwshopFingerMash, 1000 + i * 7, 0));
-    expect(r.filter((x) => x.stars >= 2).length / 100).toBeLessThanOrEqual(0.2);
+    expect(r.filter((x) => x.ok && x.shot >= 2).length / 100).toBeGreaterThanOrEqual(0.9);
+    expect(r.filter((x) => x.stars === 3).length / 100, '막 누르면 다 ★3은 아니다').toBeLessThan(0.9);
   });
-  it('1판 ★3: 장인은 늘 ★3, 막 누르기는 깨도 ★2 이상 ≤ 0.2 (허들 ① "막 누르면 ★1")', () => {
+  it('1판 ★3: 장인 · 처음 봇은 늘 ★3에 닿고(첫 번 ★2 이상 ≥ .9), 막 누르기는 깨도 ★3이 절반 안팎(허들 ① → 새 별 · 3판부터 \'막 누르면 ★1\'은 그대로)', () => {
     const seeds = Array.from({ length: 24 }, (_, i) => 1000 + i * 7);
     expect(seeds.every((sd) => tryStage(screwshopSmart, sd, 0).stars === 3)).toBe(true);
     const m = seeds.map((sd) => tryStage(screwshopMash, sd, 0));
     expect(m.filter((x) => x.ok).length / 24).toBeGreaterThanOrEqual(0.9);
-    expect(m.filter((x) => x.stars >= 2).length / 24).toBeLessThanOrEqual(0.2);
+    expect(m.filter((x) => x.stars === 3).length / 24, '막 누르기 ★3').toBeLessThanOrEqual(0.6);
+    expect(seeds.filter((sd) => tryStage(screwshopNewbie, sd, 0).stars >= 2).length / 24, '처음 봇 첫 번 ★2 이상').toBeGreaterThanOrEqual(0.9);
   });
 });
 
@@ -743,19 +750,19 @@ describe('🪵 통나무가 먼저 떨어져 → 빈칸 (✏️ S013 · 🧪 S01
     }
   });
 
-  it('단계별 배우기(✏️ S024 · 📐 사다리): 판마다 안 배운 가장 낮은 별 하나만 가르치고 그 위 ★3은 🔒 · 깬 판에서 배움 · 다 배우면 0 · 별 값(starsOf)은 그대로', () => {
+  it('단계별 배우기(✏️ S024 · 📐 사다리 · ✏️ S068 M3″ 2칸): 판마다 안 배운 가장 낮은 별 하나만 가르치고 그 위 ★3은 🔒 · 깬 판에서 배움 · 다 배우면 0 · 별 값(starsOf)은 그대로', () => {
     const at = (k: number, m: number) => { const s = g.create(1); if (k) startStage(s, k); setLearn(s, m); return s; };
     const i = (slot: string) => STAGES.findIndex((d) => d.slot === slot);
     const a = at(i('1-1'), 0);
-    expect([a.teach, a.lock3]).toEqual([2, true]); // 쾅(★2) · ★3 잠금
-    const b = at(i('1-2'), KB.bonk);
-    expect([b.teach, b.lock3]).toEqual([2, true]); // 빈칸(★2)
-    const c = at(i('1-3'), KB.bonk | KB.gap);
-    expect([c.teach, c.lock3]).toEqual([3, false]); // ★3
+    expect([a.teach, a.lock3]).toEqual([2, true]); // 빈칸(★2) · ★3 잠금
+    const b = at(i('1-2'), KB.gap);
+    expect([b.teach, b.lock3]).toEqual([3, false]); // 한 번에(★3) — 사다리 둘째 칸
+    const c = at(i('1-3'), KB.gap | KB.shot);
+    expect([c.teach, c.lock3]).toEqual([0, false]); // 다 배움
     expect(at(i('1-2'), 31).teach).toBe(0);
     for (const [k, d] of STAGES.entries()) { const s = at(k, 0), [x, y] = starKinds(d); expect(s.teach, d.slot).toBe(2); expect(s.lock3, d.slot).toBe(x !== y); }
     const r = tryStage(screwshopSmart, 1000, i('1-1'));
     expect(r.ok && r.stars).toBe(3);
-    expect(r.s.learn & KB.bonk).toBe(KB.bonk);
+    expect(r.s.learn & KB.gap).toBe(KB.gap);
   });
 });

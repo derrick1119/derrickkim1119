@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { Juice } from '../studio/screwshop/juice.ts';
-import { KB, STAGES, TRAY_WARN, hamOver, missGoal, screwshop, setLearn, startStage, starKinds, starsOf, gapOf } from '../studio/screwshop/game.ts';
+import { KB, LOCK, RES_BY, STAGES, resSlots, TRAY_WARN, hamOver, lockedW, missGoal, nextLocked, screwshop, screwshopSmart, setLearn, startStage, starKinds, starsOf, gapOf, worldStars } from '../studio/screwshop/game.ts';
 import { knowE, runA, screwshopNewbie, starFloor, trayRead, tryStage } from '../studio/screwshop/funqa.ts';
 import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { bonkSemi } from '../studio/screwshop/sfx.ts';
@@ -186,12 +186,12 @@ describe('넘치는 쟁반(✏️ S064 · M3′ · 오너 "빈칸에 들어가�
 });
 
 describe('별 하나로(✏️ S067 · M3″ S1 · S2 · 오너 11-19 \'바꾸기\' · 🧪 S066 🔴②)', () => {
-  it('쾅 판(1-1 예외) 밖 27판은 ★3이 모두 \'한 번에 H\' · ★2는 빈칸 2칸(예외 1-3만 1칸) · 이웃 판 ★2 말이 바뀌는 쌍은 예외 판 앞뒤뿐', () => {
+  it('28판 ★3이 모두 \'한 번에 H\' · ★2는 빈칸 2칸(예외 1-3만 1칸 · ✏️ S068 1-1도 새 별) · 이웃 판 ★2 말이 바뀌는 쌍은 예외 판 앞뒤뿐', () => {
     const ex = STAGES.filter((d) => d.B || gapOf(d) !== 2).map((d) => d.slot);
-    expect(ex).toEqual(['1-1', '1-3']); // P1 ③ 예외 ≤ 2판(밝힘)
-    for (const d of STAGES.filter((x) => !x.B)) expect([starKinds(d), d.H >= 2], d.slot).toEqual([['gap', 'shot'], true]);
+    expect(ex).toEqual(['1-3']); // P1 ③ 예외 ≤ 2판(밝힘) · ✏️ S068: 1-1은 오너 '바꾸기'로 새 별
+    for (const d of STAGES) expect([starKinds(d), d.H >= 2, d.B], d.slot).toEqual([['gap', 'shot'], true, undefined]);
     const f = starFloor(1).f38; // 손 2개라 F36 · F37 값은 안 본다 — 칩 이웃 바뀜(F38)만
-    expect([f.c2, f.kind3], '바뀜은 1-1 → 1-2 · 1-2 → 1-3 · 1-3 → 1-4(★2) · 1-1 → 1-2(★3 종류)뿐').toEqual([3, 1]);
+    expect([f.c2, f.kind3], '바뀜은 1-2 → 1-3 · 1-3 → 1-4(★2 · 예외 앞뒤)뿐 · ★3 종류 0').toEqual([2, 0]);
   });
   it("'★3!' 알림은 별이 3개가 될 때만 — 알고 서툰 봇이 빈칸을 넘긴 뒤 한 번에 H를 따도 알림 0(F39) · 💡는 놓친 별의 것", () => {
     let alerts = 0, bad = 0;
@@ -204,21 +204,86 @@ describe('별 하나로(✏️ S067 · M3″ S1 · S2 · 오너 11-19 \'바꾸�
     expect(alerts, '알림이 뜬 판이 있어야 잰 것').toBeGreaterThan(5);
     expect(bad, "별 3개가 아닌데 '★3!'").toBe(0);
     const g = src('game.ts');
-    expect(g).toMatch(/m3 = !s\.hint && !d\.B && starsOf\(d, S\) > 2/);
+    expect(g).toMatch(/m2 = false, m3 = !s\.hint && starsOf\(d, S\) > 2/);
     expect(g, '★2를 놓친 결과 카드에 ★3 💡(tip2)를 붙이지 않는다').toMatch(/tp = !soon && ok2 && s\.got === 2 && d\.tip2/);
-    for (const d of STAGES.filter((x) => !x.B)) expect([missGoal(d, false).startsWith('★2 빈칸'), missGoal(d, true).startsWith('★3 한 번에')], d.slot).toEqual([true, true]);
+    for (const d of STAGES) expect([missGoal(d, false).startsWith('★2 빈칸'), missGoal(d, true).startsWith('★3 한 번에')], d.slot).toEqual([true, true]);
   });
   it("★2(빈칸)가 죽은 뒤엔 어떤 글도 ★3을 약속하지 않는다(🧪 S067 🔴①: 1-3 첫 톡 '한 번에 2개! 4개면 ★3' 처음 140/144) · 🔑 꾹 알약도", () => {
     const k = STAGES.findIndex((d) => d.slot === '1-3');
     let lie = 0, t3 = 0;
-    for (let i = 0; i < 24; i++) { const r = runA(screwshopNewbie, 1000 + i * 7, k, 1000 + i * 7, KB.bonk | KB.gap); (lie += r.lie), (t3 += r.t3); }
+    for (let i = 0; i < 24; i++) { const r = runA(screwshopNewbie, 1000 + i * 7, k, 1000 + i * 7, KB.gap); (lie += r.lie), (t3 += r.t3); }
     expect(t3, '★3을 배우는 판에서 ★2가 죽은 뒤 배우기 글이 뜬 일이 있어야 잰 것').toBeGreaterThan(5);
     expect(lie).toBe(0);
     expect(src('game.ts'), '알약').toContain("all >= H ? '!' : x3 ? '' : ` · ${H}개면 ★3`");
   });
-  it('1-1(쾅 판)의 ★3 \'빈칸 안 쓰기\'는 가르치지 않는다 — 1-1을 다시 해도 1-2가 \'빈칸 2칸까지\'를 가르친다(🧪 S067 🔴③)', () => {
+  it('사다리 2칸(✏️ S068 · 🧪 S067 🔴③): 1-1은 \'빈칸 2칸까지\'를 가르치고, 그것만 배운 채 1-1을 다시 하면 ★3 \'한 번에\'를 가르친다 · 1-2도 같다', () => {
     const at = (slot: string, m: number) => { const s = screwshop.create(1), k = STAGES.findIndex((d) => d.slot === slot); if (k) startStage(s, k); setLearn(s, m); return s; };
-    expect([at('1-1', KB.bonk).teach, at('1-1', KB.bonk).lock3], '쾅을 배운 뒤 1-1').toEqual([0, false]);
-    expect(at('1-2', KB.bonk).teach, '1-2는 빈칸(★2)').toBe(2);
+    expect([at('1-1', 0).teach, at('1-1', 0).lock3], '처음 1-1 = 빈칸(★2) · ★3 🔒').toEqual([2, true]);
+    expect([at('1-1', KB.gap).teach, at('1-1', KB.gap).lock3], '빈칸을 배운 뒤 1-1 다시').toEqual([3, false]);
+    expect(at('1-2', KB.gap).teach, '1-2는 한 번에(★3)').toBe(3);
+  });
+});
+
+describe('챕터 잠금(✏️ S068 · M3″ L1 · 오너 11-19 \'매 챕터에서 토탈 별이 도달되지 않으면 다음 챕터가 안열리게\')', () => {
+  const W1 = STAGES.map((d, k) => (d.slot[0] === '1' ? k : -1)).filter((k) => k >= 0), W2 = STAGES.map((d, k) => (d.slot[0] === '2' ? k : -1)).filter((k) => k >= 0);
+  const with_ = (fill: (k: number) => number) => { const s = screwshop.create(1); s.saved = STAGES.map((_, k) => fill(k)); return s; };
+  it('문턱은 월드마다 따로 15 · 14 · 별이 있는 월드는 열림 · 저장 별이 없으면(시뮬 · ?stage) 잠그지 않음 · 저장이 막혀도 그 세션 별로 동작', () => {
+    expect(LOCK).toEqual([15, 14]);
+    expect(lockedW(screwshop.create(1), 2), '시뮬(저장 별 없음)').toBe(false);
+    const z = with_(() => 0);
+    expect([lockedW(z, 1), lockedW(z, 2), lockedW(z, 3)]).toEqual([false, true, true]);
+    const a = with_((k) => (W1.slice(0, 7).includes(k) ? 2 : W1.includes(k) ? 1 : 0)); // 14 + 3 = 17 · 월드 2는 0
+    expect([worldStars(a, 1), lockedW(a, 2), lockedW(a, 3)]).toEqual([17, false, true]);
+    const b = with_((k) => (W1.slice(0, 7).includes(k) ? 2 : 0)); // 14 → 하나 모자람
+    expect([worldStars(b, 1), lockedW(b, 2)]).toEqual([14, true]);
+    const c = with_((k) => (k === W2[0] ? 1 : 0)); // 옛 저장: 월드 2 별이 있으면 열림
+    expect(lockedW(c, 2)).toBe(false);
+    const d = with_((k) => (W2.includes(k) ? (W2.indexOf(k) < 7 ? 2 : 0) : W1.includes(k) ? 2 : 0)); // 월드 2 = 14 → 3 열림
+    expect([worldStars(d, 2), lockedW(d, 3)]).toEqual([14, false]);
+    const e = with_(() => 0); W1.forEach((k) => (e.bestSt[k] = 2)); // 저장이 막힘(saved 0) · 이 세션에 20개
+    expect(lockedW(e, 2)).toBe(false);
+  });
+  it('월드 끝(1-10) 결과 카드: 다음 월드가 잠겼으면 ★3이어도 자동으로 안 넘어가고 \'다음 판\' 자리를 누르면 판 고르기(s.menu) · 열렸으면 2-1로', () => {
+    const run = (open: boolean) => {
+      const s = screwshop.create(7), k = W1[W1.length - 1], rng = mulberry32(3), A = 1.45, up = { tap: false, dir: 0 as const, pointer: null };
+      startStage(s, k);
+      s.saved = STAGES.map((_, j) => (open && W1.includes(j) ? 2 : 0));
+      for (let i = 0; i < 600 * 60 && s.phase !== 'result'; i++) screwshop.step(s, screwshopSmart.act(s, rng));
+      const got = s.got;
+      for (let i = 0; i < 400; i++) screwshop.step(s, up);
+      const auto = s.stage, nl = nextLocked(s);
+      screwshop.step(s, { tap: false, dir: 0, pointer: { x: 0.7, y: RES_BY / A } }), screwshop.step(s, up);
+      return [got, auto, s.stage, !!s.menu, nl];
+    };
+    expect(run(false), '잠김: 400틱 기다려도 그대로 · 누르면 판 고르기').toEqual([3, 9, 9, true, true]);
+    const o = run(true);
+    expect([o[0], o[2], o[3]], '열림: 2-1로').toEqual([3, 10, false]);
+  });
+  it('새 글 0(🔒 · 숫자 · ★만) · 새 저장 키 0 · ?stage=N은 잠금을 안 봄 · 잠긴 월드는 판 이름만 · 눌리지 않음 · 키보드 포커스는 ◀ ▶ · 3-8은 끝내기', () => {
+    const g = src('game.ts'), m = src('main.ts');
+    expect(g).toContain("nl ? `🔒 ${worldStars(s, w0)}/${LOCK[w0 - 1]}★` : '다음 판 ▶'");
+    expect(m).toContain("lk ? `🔒&nbsp;${worldStars(s, world - 1)}/${LOCK[world - 2]}★` : `★&nbsp;${worldStars(s, world)}`");
+    expect([...new Set([...m.matchAll(/store\.set\('([a-zA-Z]+)'/g)].map((x) => x[1]))].sort(), '저장 키(S067과 같음)').toEqual(['best', 'learn', 'mute', 'nobuzz', 'rs', 'rsTry', 'st', 'stars']);
+    expect(m).toContain("get('stage') ? undefined : STAGES.map((d) => store.get('st' + d.id))");
+    expect(m).toMatch(/if \(lk\) return `<button type="button" disabled[^`]*<small>\$\{d\.name\}<\/small><\/button>`/);
+    expect(m).toContain("pick.querySelector('nav button:not([disabled])')");
+    const s = screwshop.create(1); startStage(s, STAGES.length - 1); s.saved = STAGES.map(() => 0); s.won = true;
+    expect(nextLocked(s), '3-8 끝내기').toBe(false);
+  });
+});
+
+describe('결과 별은 조건 자리에(✏️ S068 · M3″ S4 · 🧪 S067 🟡① \'칩은 ✕✕인데 결과는 ★★\')', () => {
+  it('빈칸을 놓치고 한 번에를 땄으면 ★☆★ · 빈칸만 지켰으면 ★★☆ · 둘 다면 ★★★ · 별 수는 더하기 그대로 · 판 중 ★3 칩은 흐린 ✓(0)', () => {
+    expect([resSlots(false, 2), resSlots(true, 2), resSlots(true, 3), resSlots(false, 1)]).toEqual([[true, false, true], [true, true, false], [true, true, true], [true, false, false]]);
+    let seen = 0;
+    for (let k = 0; k < STAGES.length; k++) for (let i = 0; i < 4; i++) {
+      const r = tryStage(knowE(0.3), 1000 + i * 7, k), S = r.s.S, d = STAGES[k];
+      if (!r.ok) continue;
+      const sl = resSlots(S.peak <= gapOf(d), r.stars);
+      expect([sl.filter(Boolean).length, sl[1], sl[2]], `${d.slot} 시드 ${i}`).toEqual([r.stars, S.peak <= gapOf(d), S.shot >= d.H]);
+      seen += +(S.peak > gapOf(d) && S.shot >= d.H);
+    }
+    expect(seen, '★☆★ 경우를 실제로 본 판').toBeGreaterThan(0);
+    expect(src('game.ts')).toContain('S.shot >= d.H ? (S.peak > G ? 0 : true) : dead3(d, s.L, S) ? false : null');
   });
 });

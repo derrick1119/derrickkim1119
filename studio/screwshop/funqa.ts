@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Bot, Input } from './core.ts';
 import { mulberry32 } from './rng.ts';
-import { STAGES, apply, geometry, setLevel, visibleM, cloneSim, freeM, jackEarly, logLate, paintStage, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, screwshopBlind, startStage, starsOf, dead3, gapOf, starText, gaugeOf, setLearn, starKinds, TRAY_WARN, planMove, habitPick, bestMove, type Plan, type Level, type ShopState, type Sim, type StageDef, type Src } from './game.ts';
+import { STAGES, apply, geometry, setLevel, visibleM, cloneSim, freeM, jackEarly, logLate, paintStage, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, screwshopBlind, startStage, starsOf, dead3, gapOf, starText, gaugeOf, setLearn, starKinds, TRAY_WARN, planMove, habitPick, bestMove, LOCK, type Plan, type Level, type ShopState, type Sim, type StageDef, type Src } from './game.ts';
 
 export interface Try { ok: boolean; stars: number; sec: number; peak: number; best: number; shot: number; taps: number; /** 끝난 판(되짚기·F13용) */ s: ShopState }
 
@@ -210,8 +210,7 @@ export function runA(bot: Bot<ShopState>, seed: number, k: number, hand: number,
   const st = s.phase === 'result' && s.ok ? starsOf(d, s.S) : 0;
   return { st, a, bad, lie, t3 };
 }
-/** M3″ L1 잠금 문턱: 월드 1 → 2 · 2 → 3(월드마다 · 오너 '매 챕터에서') */
-export const LOCK = [15, 15];
+
 /**
  * ✏️ S067(M3″ W1 · 📋 S066 F36~F39): 별이 닿나 · 잠금이 막나 · 칩이 이웃 판과 같나 · 거짓 '★3!'
  * 48손(24씨앗 × 손 묶음 0 · 7) · 판마다 3번(손 = 씨앗 + (묶음 + 번째) × 100003 · 🧪 lib once와 같음). 원래 칸과 따로 둔다.
