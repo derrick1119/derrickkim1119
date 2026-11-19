@@ -733,6 +733,7 @@ export const ricopeng: GameDef<PengState> = {
     mood: '초록·보라 오로라가 하늘에 흐르고 먼 빙산이 겹겹이 서 있다. 반질반질한 얼음 바닥엔 오로라와 친구들이 비친다. 빨간 목도리 아기 펭귄이 눈덩이를 던지면 벽을 \'통!\' 튕겨 장난꾸러기 눈사람·바다표범을 줄줄이 와르르 — 눈가루가 반짝이며 흩날린다.',
     palette: { bg: '#0b1633', ink: '#f2f8ff', muted: '#8fa6c8', accent: '#7ff0d0', hot: '#ff6b6b', soft: '#1f3563' },
   },
+  guard: (s) => s.ig,
   reveals: (s) => s.seen.size,
   create(seed) {
     const s = {

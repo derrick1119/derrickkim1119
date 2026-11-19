@@ -732,6 +732,7 @@ export const stompdino: GameDef<DinoState> = {
     mood: '주황·분홍 노을 아래 연기 나는 화산과 거대한 고사리가 겹겹이 서 있고, 땅 앞쪽은 지층 단면처럼 잘려 화석이 박혀 있다. 쿵 하면 땅이 물결처럼 출렁이고 흙먼지가 둥글게 퍼지며, 털옷 입은 동굴 사람들이 팔다리를 버둥대며 공중으로 붕 뜬다.',
     palette: { bg: '#2a1838', ink: '#fff2dc', muted: '#c9a6a0', accent: '#ffc24a', hot: '#ff5a3c', soft: '#4a2a48' },
   },
+  guard: (s) => s.eggs,
   reveals: (s) => [...s.seen].filter((k) => !k.startsWith('st')).length,
   create(seed) {
     const s = {

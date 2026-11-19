@@ -801,6 +801,7 @@ export const axeback: GameDef<AxeState> = {
     mood: '노을빛 하늘 아래 전나무 실루엣이 겹겹이 서 있고, 반딧불이 깜빡이며 오두막 굴뚝에서 연기가 오른다. 도끼가 빙글빙글 날며 나무 괴물들을 베면 나무 조각과 나뭇잎이 흩날리고, 돌아온 도끼를 받으면 "탁!"',
     palette: { bg: '#2a1c3a', ink: '#fff3dc', muted: '#c9a98a', accent: '#ffcf5a', hot: '#ff6a4a', soft: '#4a3050' },
   },
+  guard: (s) => s.boards,
   reveals: (s) => s.seen.size,
   create(seed) {
     const s = {

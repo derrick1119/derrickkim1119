@@ -38,24 +38,29 @@ const median = (a: number[]) => {
 };
 const clamp = (x: number) => Math.max(0, Math.min(1, x));
 
-/** 하트(공통 칸 `hearts`)를 읽는다. 없는 게임은 끝났는지(-1)만 본다 */
+/** 하트(공통 칸 `hearts`, 팽이는 `lives`)를 읽는다. 없는 게임은 끝났는지(-1)만 본다 */
 const life = <S>(g: GameDef<S>, s: S): number => {
-  const h = (s as { hearts?: unknown }).hearts;
+  const o = s as { hearts?: unknown; lives?: unknown };
+  const h = typeof o.hearts === 'number' ? o.hearts : o.lives;
   return g.over(s) ? -1 : typeof h === 'number' ? h : 0;
 };
+/** 손실: 하트가 줄었거나, 같은 판에서 '지킬 것'(guard, 0079)이 줄었다 */
+const lost = <S>(g: GameDef<S>, s: S, h0: number, g0: number, st0: unknown): boolean =>
+  life(g, s) < h0 || (!!g.guard && (s as { stage?: unknown }).stage === st0 && g.guard(s) < g0);
 
 /**
  * 처음 하는 사람의 첫 몇 초 (0078). 무작위 봇은 첫 틱부터 누르니 '처음 10초 패배 0'이 나와도
  * 화면을 읽는 사람은 손대기 전에 질 수 있다(0077 공룡: 2초에 알 셋, 5초에 하트 -1).
- *  idle — 아무것도 안 누르고 10초 동안 하트를 잃었나
+ *  idle — 아무것도 안 누르고 10초 동안 하트나 지킬 것(guard)을 잃었나
  *  late — 3초 동안 안 누르다가 1.5초(90틱)마다 한 번 판단하는 무작위 봇이 처음 13초에 하트를 잃었나
+ *         (지킬 것은 안 본다: 느린 사람이 불빛·체력 하나쯤 잃는 건 판을 지는 게 아니다)
  */
 export function firstSeconds<S>(g: GameDef<S>, dumb: Bot<S>, seeds: number[]): { idle: number; late: number } {
   let idle = 0, late = 0;
   for (const sd of seeds) {
-    const a = g.create(sd), h0 = life(g, a);
+    const a = g.create(sd), h0 = life(g, a), g0 = g.guard ? g.guard(a) : 0, st0 = (a as { stage?: unknown }).stage;
     for (let t = 0; t < 600 && !g.over(a); t++) g.step(a, NO_INPUT);
-    if (life(g, a) < h0) idle++;
+    if (lost(g, a, h0, g0, st0)) idle++;
     const b = g.create(sd), rng = mulberry32(sd ^ 0x9e3779b9);
     let held = NO_INPUT;
     for (let t = 0; t < 780 && !g.over(b); t++) {
@@ -138,7 +143,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const t0 = performance.now();
     const r = evaluateGame(e.game as GameDef<unknown>, e.dumb as Bot<unknown>, e.smart as Bot<unknown>);
     out[r.id] = r;
-    console.log(`${r.name.padEnd(8)} 재미 ${r.fun.toFixed(3)}${r.reveals ? ` · 펼쳐짐 ${r.reveals.join('/')} (못함 ${r.dumbReveals?.join('/')})` : ''} · 숙련격차 ${r.skillGap}× · 못함 ${r.dumb.sec}s/${r.dumb.score}점 · 잘함 ${r.smart.sec}s/${r.smart.score}점 (3분 버팀 ${Math.round(r.smart.capped * 100)}%) · 첫 몇 초 하트 손실 손 안 댐 ${Math.round((r.firstLoss?.idle ?? 0) * 100)}%/늦은 사람 ${Math.round((r.firstLoss?.late ?? 0) * 100)}% · ${((performance.now() - t0) / 1000).toFixed(1)}s`);
+    console.log(`${r.name.padEnd(8)} 재미 ${r.fun.toFixed(3)}${r.reveals ? ` · 펼쳐짐 ${r.reveals.join('/')} (못함 ${r.dumbReveals?.join('/')})` : ''} · 숙련격차 ${r.skillGap}× · 못함 ${r.dumb.sec}s/${r.dumb.score}점 · 잘함 ${r.smart.sec}s/${r.smart.score}점 (3분 버팀 ${Math.round(r.smart.capped * 100)}%) · 첫 몇 초 하트·지킬 것 손실 손 안 댐 ${Math.round((r.firstLoss?.idle ?? 0) * 100)}%/늦은 사람 ${Math.round((r.firstLoss?.late ?? 0) * 100)}% · ${((performance.now() - t0) / 1000).toFixed(1)}s`);
   }
   writeFileSync(join(import.meta.dirname, 'reports', 'eval.json'), JSON.stringify(out, null, 1) + '\n');
 }

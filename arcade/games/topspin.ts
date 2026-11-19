@@ -694,6 +694,7 @@ export const topspin: GameDef<SpinState> = {
     mood: '창밖엔 별, 스탠드 불빛이 나무 마루와 둥근 러그를 따뜻하게 비춘다. 침대 밑에서 태엽 병정들이 줄지어 걸어 나오고, 얼굴 달린 빨간 팽이 전사가 윙윙 돌며 블록 벽을 탕탕 튕겨 병정들을 핀볼처럼 날린다. 쿠키 상자 진지 옆에서 곰 인형이 응원한다.',
     palette: { bg: '#161a33', ink: '#fff3dc', muted: '#9aa0c8', accent: '#ffc95a', hot: '#ff5a4e', soft: '#2a2f55' },
   },
+  guard: (s) => s.cookies,
   reveals: (s) => s.seen.size,
   create(seed) {
     const s = {

@@ -820,6 +820,7 @@ export const iceslide: GameDef<IceState> = {
     mood: '먼 눈산과 눈 쌓인 지붕, 노랗게 새는 창문 불빛 아래 돌바닥 광장. 손가락이 지나간 자리에 반짝 얼음길이 깔리고, 통통한 도깨비들이 허우적대며 미끄러져 김 나는 연못에 퐁당 빠진다.',
     palette: { bg: '#121a3a', ink: '#f2f6ff', muted: '#8f9cc6', accent: '#9fe8ff', hot: '#ff8a4c', soft: '#26315e' },
   },
+  guard: (s) => s.lights,
   reveals: (s) => s.seen.size,
   create(seed) {
     const s = blank(seed);

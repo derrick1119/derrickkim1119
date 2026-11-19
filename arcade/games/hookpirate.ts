@@ -1004,6 +1004,7 @@ export const hookpirate: GameDef<HookState> = {
     mood: '주황·분홍 노을 아래 먼 섬과 유령선이 비치고, 반짝이는 파도 위 나무 갑판이 살랑 흔들린다. 갈고리가 사슬을 철렁 끌며 날아가 술통을 낚아채면, 끌려오는 술통에 해골 해적들이 볼링 핀처럼 쾅 날아가 첨벙첨벙 물보라.',
     palette: { bg: '#2a1838', ink: '#fff4e0', muted: '#c9a7b8', accent: '#ffc24a', hot: '#ff5a3c', soft: '#4a2a4c' },
   },
+  guard: (s) => s.hp,
   reveals: (s) => s.seen.size,
   create(seed) {
     const s = {
