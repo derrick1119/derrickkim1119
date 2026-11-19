@@ -2852,7 +2852,7 @@ function drawAll(ctx: C2, s: HookState, w: number, h: number, th: Theme) {
   if (hk.st === H_SPIN) (tgx = X(hk.mx)), (tgy = Y(hk.my) - R(0.07));
   const aim = Math.atan2(tgy - hand.y, (tgx - hand.x) * s.face);
   items.push({
-    y: s.cy + 0.001,
+    y: s.cy + 0.001 + (hk.st === H_SPIN ? 0.5 : 0),
     f: () => {
       ctx.fillStyle = 'rgba(20,8,20,.38)';
       ell(ctx, X(s.cx), Y(s.cy), capK * 0.3, capK * 0.08);
@@ -3265,7 +3265,7 @@ function drawHud(ctx: C2, s: HookState, w: number, h: number, fx: ReturnType<typ
   // 큰 순간 띠: 나무 팻말 위 '스트라이크!'
   if (fx.memo.bigT !== undefined && t - fx.memo.bigT < 56) {
     const age = t - fx.memo.bigT, n = fx.memo.bigN, sc2 = age < 6 ? 1.9 - 0.9 * (age / 6) : 1 + 0.03 * Math.sin(age * 0.4), a = Math.min(1, (56 - age) / 16);
-    const bx = clamp(fx.memo.bigX, w * 0.34, w * 0.66), by = R(0.3);
+    const bx = clamp(fx.memo.bigX, w * 0.34, w * 0.66), by = R(s.phase === 'play' && s.pt < CARD_T && (s.stage > 0 || s.again) ? 1.17 : 0.2);
     const txt = BIG_TXT(n), size = Math.min(34, 20 + n * 3);
     ctx.save();
     ctx.globalAlpha = a;

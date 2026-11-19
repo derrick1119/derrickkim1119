@@ -2680,9 +2680,14 @@ function drawAll(ctx: C2, s: PengState, w: number, h: number, th: Theme) {
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
     x = clamp(x, w * 0.14, w * 0.86);
-    const card = s.phase === 'result' || (s.pt < CARD_T && (s.stage > 0 || s.again));
-    y = clamp(y, card ? Y(0.36) : Y(0.14), Y(GB) - 10);
-    for (let k = 0; k < 6 && rec.some((q) => t - q.t < 30 && Math.abs(q.x - x) < w * 0.22 && Math.abs(q.y - y) < (size + q.size) * 0.6); k++) y -= size + 2;
+    const card = s.phase === 'result' || (s.pt < CARD_T && (s.stage > 0 || s.again)), minY = card ? Y(0.36) : Y(0.14);
+    y = clamp(y, minY, Y(GB) - 10);
+    const busy = (yy: number) => rec!.some((q) => t - q.t < 30 && Math.abs(q.x - x) < w * 0.22 && Math.abs(q.y - yy) < (size + q.size) * 0.6);
+    // 겹치면 위로 비키고, 위가 막히면(판 카드·HUD) 아래로 비킨다
+    let up = y;
+    for (let k = 0; k < 6 && busy(up); k++) up -= size + 2;
+    if (up >= minY) y = up;
+    else for (let k = 0; k < 6 && busy(y); k++) y += size + 2;
     rec.push({ x, y, t, size });
     if (rec.length > 12) rec.shift();
     fx.pop(x, y, text, col, size);
@@ -2809,7 +2814,8 @@ function drawAll(ctx: C2, s: PengState, w: number, h: number, th: Theme) {
   // 큰 순간 띠: 'N마리 와르르!'
   if (fx.memo.bigT !== undefined && t - fx.memo.bigT < 56) {
     const age = t - fx.memo.bigT, n = fx.memo.bigN, sc2 = age < 6 ? 1.8 - 0.8 * (age / 6) : 1, a = Math.min(1, (56 - age) / 16);
-    const bx = clamp(fx.memo.bigX, w * 0.3, w * 0.7), by = clamp(fx.memo.bigY - R(0.16), Y(0.3), Y(1.0));
+    // 맞힌 자리의 글자(숫자·와장창)와 겹치지 않게: 위쪽에서 터지면 그 아래, 아래쪽이면 그 위에
+    const gy = fx.memo.bigY / w, bx = clamp(fx.memo.bigX, w * 0.3, w * 0.7), by = clamp(gy < 0.72 ? Y(gy + 0.2) : Y(gy - 0.2), Y(0.42), Y(1.0));
     const txt = n >= 6 ? `${n}마리 눈사태!` : n >= 5 ? `${n}마리 와르르르!` : `${n}마리 와르르!`, size = Math.min(36, 20 + n * 3);
     ctx.save();
     ctx.globalAlpha = a;

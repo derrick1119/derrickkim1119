@@ -2963,7 +2963,10 @@ function drawAll(ctx: C2, s: IceState, w: number, h: number, th: Theme) {
     ctx.lineWidth = 3;
     ell(ctx, hx, hy + R(0.035), R(0.03 + (1 - press) * 0.02), R(0.03 + (1 - press) * 0.02) * SQ);
     ctx.stroke();
-    drawHand(ctx, hx + R(0.02), hy + R(0.08), R(0.11), press);
+    ctx.shadowColor = 'rgba(255,255,255,.8)';
+    ctx.shadowBlur = 8;
+    drawHand(ctx, hx + R(0.025), hy + R(0.1), R(0.15), press);
+    ctx.shadowBlur = 0;
     ctx.restore();
   }
   // 새것 스포트라이트
