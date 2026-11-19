@@ -78,6 +78,8 @@ interface StageDef {
   /** ✏️ S009 가시덤불 [x, y, r]: 돌진 길이 지나가면 꼬리 하나를 잃는다(계속 간다) — 곧은 줄은 걸리고, 꺾어 돌면 안 걸린다 */
   thorns?: number[][];
   waves: Wave[];
+  /** ✏️ M2 S3 새것 카드(GDD §7): 판 시작 카드의 6~10자 한 줄(없으면 news) */
+  card?: string;
   /** ✏️ M1 S002 별 틀(📐 GDD §5 · CONTENT §1): ★ 지나가기 · ★★ 한 번에 n 베기 · ★★★ 꼬리 하나도 안 잃기 — 모든 판 같음 */
   n: number;
   /** 판별 시작 먹(없으면 G0) · 너그러움 [먹 차는 배수, 칼 드는 시간 배수, 걷는 속도 배수](없으면 EASE) · ★★★ 선물 별(맞을 수 없는 판) */
@@ -102,7 +104,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 4, gift3: true,
   },
   {
-    key: 'bend', name: '갈림길', place: 0, news: '한붓 획 — 누른 채 그으면 그 길로 벤다', goal: '숲 지나가기',
+    key: 'bend', name: '갈림길', place: 0, news: '한붓 획 — 누른 채 그으면 그 길로 벤다', goal: '숲 지나가기', card: '누른 채 꺾어 그어요',
     hint: '누른 채 꺾어 그어요', start: [0.5, 1.17], g0: 50, ease: [3, 1.5, 0.8],
     waves: [
       { need: 0, wait: 1e9, foes: [['dummy', 0.5, 0.6, 0], ['dummy', 0.5, 0.98, 0], ['dummy', 0.5, 0.86, 0], ['dummy', 0.5, 0.73, 0], ['dummy', 0.63, 0.6, 0], ['dummy', 0.76, 0.6, 0], ['dummy', 0.89, 0.6, 0]] },
@@ -112,7 +114,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 6,
   },
   {
-    key: 'sword', name: '오솔길', place: 0, news: '칼잡이가 와요 · 가시덤불은 꺾어 돌아요', goal: '숲 지나가기',
+    key: 'sword', name: '오솔길', place: 0, news: '칼잡이가 와요 · 가시덤불은 꺾어 돌아요', goal: '숲 지나가기', card: '칼잡이 · 덤불은 돌아요',
     hint: '덤불을 돌아 꺾어 이어요', start: [0.5, 1.12], g0: 60, ease: [1.5, 1.2, 1],
     thorns: [[0.33, 0.96, 0.06], [0.67, 0.96, 0.06]], // ✏️ S009 📐 가시덤불
     waves: [
@@ -123,7 +125,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 5,
   },
   {
-    key: 'twin', name: '두 갈래', place: 0, news: '두 무리 — 덤불 사이로 돌아서 한 획에', goal: '숲 지나가기',
+    key: 'twin', name: '두 갈래', place: 0, news: '두 무리 — 덤불 사이로 돌아서 한 획에', goal: '숲 지나가기', card: '두 무리를 한 획에',
     hint: '덤불 위로 U자로 돌아 이어요', start: [0.5, 1.1], g0: 60, ease: [1, 1, 1],
     thorns: [[0.3, 1.04, 0.055], [0.7, 1.04, 0.055]], // ✏️ S009 📐 가시덤불
     waves: [
@@ -135,7 +137,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 5,
   },
   {
-    key: 'archer', name: '달빛 언덕', place: 0, news: '화살병 — 날아오는 화살도 벨 수 있어요', goal: '언덕 넘어가기',
+    key: 'archer', name: '달빛 언덕', place: 0, news: '화살병 — 날아오는 화살도 벨 수 있어요', goal: '언덕 넘어가기', card: '화살도 벨 수 있어요',
     hint: '덤불을 끼고 꺾어 화살병까지', start: [0.5, 1.15], g0: 55, ease: [1, 1, 1],
     thorns: [[0.5, 0.8, 0.06], [0.3, 1.0, 0.05], [0.7, 1.0, 0.05]], // ✏️ S009 📐 가시덤불
     waves: [
@@ -147,7 +149,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
   },
   // ✏️ M1 S008: 📐 1-6~1-10 꺾기 판(방패 · 통 · 섞기 · 수리검 · 대장) — 고리 일격 없음. 거울 판은 M2로(잘라내기 ③)
   {
-    key: 'shield', name: '높은 지붕', place: 1, news: '방패 무사 — 앞은 튕겨요, 꺾어 등 뒤를 베요', goal: '지붕 건너가기',
+    key: 'shield', name: '높은 지붕', place: 1, news: '방패 무사 — 앞은 튕겨요, 꺾어 등 뒤를 베요', goal: '지붕 건너가기', card: '앞은 튕겨요, 등 뒤를!',
     hint: '덤불 옆으로 올라가 꺾어 등을 베요', start: [0.5, 1.15], g0: 60, ease: [1.3, 2.5, 0.8],
     thorns: [[0.5, 0.93, 0.05], [0.2, 1.04, 0.05], [0.8, 1.04, 0.05]], // ✏️ S009 📐 가시덤불
     waves: [
@@ -158,7 +160,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 5,
   },
   {
-    key: 'barrel', name: '창고 마당', place: 2, news: '폭탄 통 — 베면 둘레까지 펑! 방패도 날려요', goal: '마당 지나가기',
+    key: 'barrel', name: '창고 마당', place: 2, news: '폭탄 통 — 베면 둘레까지 펑! 방패도 날려요', goal: '마당 지나가기', card: '통을 베면 펑!',
     hint: '칼잡이를 꿰고 꺾어 통을 지나 멀리 (펑!)', start: [0.5, 1.17], g0: 60, ease: [1.3, 2.5, 0.8],
     barrels: [[0.5, 0.64]],
     waves: [
@@ -169,7 +171,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 5,
   },
   {
-    key: 'mix', name: '창고 처마', place: 2, news: '섞여 와요 — 화살병 먼저, 방패는 등 뒤로', goal: '처마 지나가기',
+    key: 'mix', name: '창고 처마', place: 2, news: '섞여 와요 — 화살병 먼저, 방패는 등 뒤로', goal: '처마 지나가기', card: '화살병 먼저!',
     hint: '덤불 사이로 올라가 갈라 꺾어요', start: [0.5, 1.15], g0: 60, ease: [1.2, 3, 0.7],
     thorns: [[0.36, 1.0, 0.05], [0.64, 1.0, 0.05]], // ✏️ S009 📐 가시덤불
     waves: [
@@ -180,7 +182,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 4,
   },
   {
-    key: 'shuri', name: '성벽 위', place: 2, news: '수리검 — 셋이 부채꼴로 날아와요', goal: '성벽 건너가기',
+    key: 'shuri', name: '성벽 위', place: 2, news: '수리검 — 셋이 부채꼴로 날아와요', goal: '성벽 건너가기', card: '부채꼴 틈으로',
     hint: '덤불을 비껴 옆에서 꺾어 꿰요', start: [0.5, 1.15], g0: 60, ease: [1.2, 3, 0.7],
     thorns: [[0.3, 0.72, 0.05], [0.7, 0.72, 0.05]], // ✏️ S009 📐 가시덤불
     waves: [
@@ -191,7 +193,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 4,
   },
   {
-    key: 'boss', name: '성 마당', place: 2, news: '대장 곰 — 네 번 베야 쓰러져요', goal: '대장 이기기',
+    key: 'boss', name: '성 마당', place: 2, news: '대장 곰 — 네 번 베야 쓰러져요', goal: '대장 이기기', card: '대장은 네 번 베요',
     hint: '졸개를 꿰고 꺾어 대장까지 한 획에', start: [0.5, 1.17], g0: 60, ease: [1.2, 2.5, 0.8],
     waves: [
       { need: 1, wait: 1e9, foes: [['boss', 0.5, 0.74, 3], ['sword', 0.3, 0.92, 1], ['sword', 0.2, 0.8, 1], ['sword', 0.7, 0.92, 2], ['sword', 0.8, 0.8, 2]] },
@@ -208,7 +210,7 @@ export const STAGE_COUNT = STAGES.length;
 /** ✏️ M2 S1 시험 판(📐 월드 2 표): 아직 판 목록에 안 넣는다 — funqa가 잴 때만 STAGES 끝에 잠깐 붙인다(1~10 지표가 안 바뀌게) */
 export const TRIAL: StageDef[] = ([
   { // M2 S2: 잎 5 → 3(소개 판 — 처음 하는 사람 중앙값 74초) · 마지막 잎은 위 가운데(가운데면 휘젓기 .54)
-    key: 'leaf', name: '첫 기와', place: 1, news: '잎 너구리 — 곧게 오면 휙! 꺾어 들어가 베요', goal: '지붕 건너가기',
+    key: 'leaf', name: '첫 기와', place: 1, news: '잎 너구리 — 곧게 오면 휙! 꺾어 들어가 베요', goal: '지붕 건너가기', card: '곧게 오면 휙! 꺾어요',
     hint: '꺾어 들어가요', start: [0.5, 1.15], g0: 70, ease: [3, 1.5, 0.8],
     waves: [
       { need: 1, wait: 1e9, foes: [['dummy', 0.5, 0.95, 0], ['dummy', 0.5, 0.82, 0], ['dummy', 0.5, 0.69, 0], ['leaf', 0.7, 0.62, 0]] },
@@ -2785,11 +2787,16 @@ function leafGuideOf(s: DashState) {
   }
   return best;
 }
-/** M2 S2 손가락 시범: 잎 길잡이가 보이고 휙이 LEAF_DEMO번 넘게 났을 때 */
-const demoNow = (s: DashState) => s.leafGuide && s.dodgeN >= LEAF_DEMO;
+/** ✏️ M2 S3 온보딩 스위치(측정용 켬/끔): 1-1 둘째 웨이브 '줄 끝으로 옮겨 서기' 손가락 시범 */
+export const ONBOARD = { moveDemo: true };
+/** 1-1 둘째 웨이브(가로 넷)이고 아직 꺾은 획을 안 그었으면: 손가락이 줄 끝으로 가서 꺾어 긋는 길을 그어 보인다(GDD §7) */
+const moveDemo = (s: DashState) => ONBOARD.moveDemo && s.stage === 0 && s.wave === 2 && s.bents === 0;
+/** M2 S2 손가락 시범: 잎 길잡이가 보이고 휙이 LEAF_DEMO번 넘게 났을 때 · M2 S3: 1-1 옮겨 서기 시범도 손가락 */
+const demoNow = (s: DashState) => moveDemo(s) || (s.leafGuide && s.dodgeN >= LEAF_DEMO);
 /** 지금 화면에 그려 주는 길잡이(1-2 ㄱ자 · 첫 휙 뒤 잎) — 그리기와 측정 봇이 같은 것을 본다 */
 function guideNow(s: DashState) {
   if (s.phase !== 'play' || s.down) return null;
+  if (moveDemo(s)) return guideOf(s);
   if (s.stage === 1 && s.bents === 0) return guideOf(s);
   if (s.leafGuide) return leafGuideOf(s);
   return null;
@@ -3929,6 +3936,26 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.lineWidth = 1.2;
     ctx.stroke();
   }
+  // ✏️ M2 S3 켜자마자 1-1(GDD §7): 제목은 첫 판을 깬 뒤에 크게 한 번
+  if (s.phase === 'result' && s.ok && s.stage === 0) {
+    const a = Math.min(1, s.pt / 14);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    font(0.095, 900);
+    ctx.lineWidth = R(0.014);
+    ctx.strokeStyle = 'rgba(10,12,30,.85)';
+    ctx.strokeText('느린 시간 닌자', w / 2, Y(0.6));
+    ctx.fillStyle = '#fff3cf';
+    ctx.fillText('느린 시간 닌자', w / 2, Y(0.6));
+    font(0.04, 800);
+    ctx.lineWidth = R(0.008);
+    ctx.strokeText('꾹 · 긋기 · 떼기 — 다음 판으로!', w / 2, Y(0.6) + R(0.085));
+    ctx.fillStyle = '#ffe9a8';
+    ctx.fillText('꾹 · 긋기 · 떼기 — 다음 판으로!', w / 2, Y(0.6) + R(0.085));
+    ctx.restore();
+  }
   // 판 카드 (하늘 띠 안 — 놀이터를 가리지 않는다)
   {
     let head = '', sub = '', age = 0, a = 1;
@@ -3944,7 +3971,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       age = s.pt;
       a = Math.min(1, (CARD_T - s.pt) / 20, age / 6);
       head = `${s.again ? '다시! ' : ''}${s.stage + 1}판 · ${d.name}`;
-      sub = d.news ? `NEW  ${d.news}` : '꾹 누르면 세상이 느려져요';
+      sub = d.card ? `NEW  ${d.card}` : d.news ? `NEW  ${d.news}` : '꾹 누르면 세상이 느려져요';
     }
     if (head) {
       const cy = Y(0.165), unroll = Math.min(1, 0.3 + age / 10);

@@ -24,14 +24,15 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
   const sw = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   if (sw > 0) scroll.push(`${w}px: ${sw}`);
   if (w !== 390) {
-    await page.click('.g-overlay');
     await page.waitForTimeout(1200);
     await page.screenshot({ path: join(out, '09-stage1-340.png') });
     continue;
   }
-  await page.screenshot({ path: join(out, '01-title.png') });
-  await page.click('.g-overlay');
-  await page.waitForTimeout(1500);
+  // ✏️ M2 S3 켜자마자 1-1: 타이틀 없이 바로 판 — 켜고 누를 수 있을 때까지(ms, 페이지 열기부터)
+  const ready = await page.evaluate(() => (window as unknown as { __slowdashStarted?: number }).__slowdashStarted ?? -1);
+  console.log(`켜고 누를 수 있을 때까지: ${Math.round(ready)}ms`);
+  await page.screenshot({ path: join(out, '01-open.png') });
+  await page.waitForTimeout(1200);
   await page.screenshot({ path: join(out, '02-stage1.png') });
   const box = (await page.locator('canvas').boundingBox())!;
   const at = (x: number, y: number) => ({ x: box.x + x * box.width, y: box.y + y * box.width });
@@ -50,6 +51,7 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
   await page.screenshot({ path: join(out, '05-after-cut.png') });
   // 둘째 줄: 가로 넷 — 오너 피드백 '한붓 획': 꾹 누른 채 줄 왼쪽 끝으로 내려가 오른쪽으로 쭉 그은 뒤 떼기
   await page.waitForTimeout(1500);
+  await page.screenshot({ path: join(out, '15-move-demo.png') }); // M2 S3: 1-1 둘째 웨이브 손가락 시범(옮겨 서기)
   p = at(0.12, 1.0);
   await page.mouse.move(p.x, p.y);
   await page.mouse.down();
@@ -79,7 +81,6 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, colorScheme: 'dark', hasTouch: true });
   page.on('pageerror', (e: unknown) => errors.push(String(e)));
   await page.goto(url + '&stage=3');
-  await page.click('.g-overlay');
   await page.waitForTimeout(3000); // S012: 판 소개 카드가 지나간 뒤(알림 줄이 보이게)
   const box = (await page.locator('canvas').boundingBox())!;
   const at = (x: number, y: number) => ({ x: box.x + x * box.width, y: box.y + y * box.width });
@@ -92,12 +93,10 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
   await page.mouse.up();
   // ✏️ S012 1-2 길잡이: 꺾은 획을 아직 안 그었으면 ㄱ자 길을 손가락이 그려 보인다
   await page.goto(url + '&stage=2');
-  await page.click('.g-overlay');
   await page.waitForTimeout(2600);
   await page.screenshot({ path: join(out, '12-guide.png') });
   // ✏️ M2 S1 🍃 시험 판: 잎 너구리를 곧게 겨누면 '휙! 꺾어요'
   await page.goto(url + '&trial=1');
-  await page.click('.g-overlay');
   await page.waitForTimeout(3000);
   {
     const box2 = (await page.locator('canvas').boundingBox())!;

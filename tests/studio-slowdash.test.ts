@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/slowdash/core.ts';
-import { STAGES, STRIKE, TRIAL, missOf, slowdash as g, slowdashRandom, slowdashSmart, startStage } from '../studio/slowdash/game.ts';
+import { ONBOARD, STAGES, STRIKE, TRIAL, measureKit, missOf, slowdash as g, slowdashRandom, slowdashSmart, startStage } from '../studio/slowdash/game.ts';
 import { BOTS, measure, tapEvery, try3, tryStage } from '../studio/slowdash/funqa.ts';
 import { chainHz, sfx } from '../studio/slowdash/sfx.ts';
 
@@ -279,6 +279,26 @@ describe('느린 시간 닌자 시뮬', () => {
     } finally {
       STAGES.pop();
     }
+  });
+
+  it('M2 S3 온보딩: 1-1 둘째 웨이브(가로 넷)에서 꺾은 획을 긋기 전까지 손가락이 줄 끝으로 가서 꺾어 긋는 길(넷 다 베는)을 보여 준다 · 스위치로 끈다 · 새것 판은 짧은 카드 한 줄', () => {
+    const s = g.create(3);
+    for (let k = 0; k < 60; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+    for (const f of s.foes) f.x = -1; // 첫 웨이브를 치운 셈
+    s.foes = [];
+    for (let k = 0; k < 200 && s.wave < 2; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+    for (let k = 0; k < 60; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+    expect(s.wave).toBe(2);
+    const gd = measureKit.guide(s);
+    expect(gd).not.toBeNull();
+    expect(measureKit.demo(s)).toBe(true);
+    ONBOARD.moveDemo = false;
+    try {
+      expect(measureKit.guide(s)).toBeNull();
+    } finally {
+      ONBOARD.moveDemo = true;
+    }
+    for (const d of STAGES.slice(1)) expect((d.card ?? '').replace(/[^가-힣]/g, '').length, d.key).toBeLessThanOrEqual(12);
   });
 
   it('S005 효과음: 시뮬·봇은 소리를 모른다(헤드리스로 한 판 돌려도 AudioContext 0) · 연쇄 음계는 5음계로 오르고 8번째부터 고정', () => {

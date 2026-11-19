@@ -120,6 +120,7 @@ function start() {
   wasDown = false;
   running = true;
   overlay.hidden = true;
+  (window as unknown as { __slowdashStarted?: number }).__slowdashStarted = performance.now(); // S3 측정: 켜고 누를 수 있을 때까지
   pointer = latch = null;
   last = performance.now();
   acc = 0;
@@ -134,7 +135,7 @@ function end() {
   const stars = Math.max(s.stars, 0), cleared = s.won ? STAGES.length : s.stage;
   draw();
   show(
-    `<em>${s.won ? '🏯' : '🍃'}</em><b>${sc}점</b>` +
+    `<b>${sc}점</b>` + // S3 QC④ 이모지 0
       `<span class="msg">${s.won ? '성 마당까지 다 지나갔어요!' : `${cleared}판까지 지나갔어요`} · ★ ${stars}</span>` +
       `<span class="best">최고 ${best}점</span><strong>다시</strong>`,
   );
@@ -168,6 +169,7 @@ canvas.addEventListener('pointerdown', (e) => {
   if (!running) return;
   keyboard = false;
   try { canvas.setPointerCapture(e.pointerId); } catch { /* 없어도 동작 */ }
+  sfx.wake(); // 켜자마자 시작이라 첫 누름에 소리를 깨운다
   pointer = latch = toPoint(e);
 });
 canvas.addEventListener('pointermove', (e) => void (pointer && (pointer = toPoint(e))));
@@ -180,7 +182,7 @@ canvas.addEventListener('keydown', (e) => {
   if (e.key.startsWith('Arrow') || e.key === ' ') e.preventDefault();
   if (!running) return;
   if (e.key.startsWith('Arrow')) (keys.add(e.key), (keyboard = true));
-  if (e.key === ' ' && !e.repeat) (spaceDown = true), (keyboard = true), (pointer = { ...cursor });
+  if (e.key === ' ' && !e.repeat) (spaceDown = true), (keyboard = true), (pointer = { ...cursor }), sfx.wake();
 });
 canvas.addEventListener('keyup', (e) => {
   keys.delete(e.key);
@@ -191,7 +193,10 @@ overlay.addEventListener('click', start);
 window.addEventListener('resize', size);
 
 size();
-title();
+// ✏️ M2 S3 켜자마자 1-1(GDD §7 · M2 허들 1): 타이틀 없이 바로 판이 흐른다 — 제목은 1-1을 깬 뒤 화면에 한 번. 소리는 첫 누름에 깨운다(브라우저 규칙)
+//   ?title=1 이면 예전처럼 타이틀부터(스크린샷·비교용)
+if (q.get('title') === '1') title();
+else start();
 // 타이틀 뒤에서도 달밤이 흐르게(시뮬은 멈춘 채 그림만)
 (function idle() {
   if (!running) draw();
