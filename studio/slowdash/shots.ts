@@ -96,6 +96,7 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
   await page.waitForTimeout(2600);
   await page.screenshot({ path: join(out, '12-guide.png') });
   // ✏️ M2 S4 판 고르기
+  await page.evaluate(() => { for (const [k, v, m] of [['dummy', 3, 3], ['bend', 2, 1], ['sword', 1, 0]] as const) (localStorage.setItem('slowdash:st:' + k, String(v)), localStorage.setItem('slowdash:sm:' + k, String(m))); }); // M2 S5 ㊳ 빠진 별이 보이는지
   await page.click('#pick');
   await page.waitForTimeout(200);
   await page.screenshot({ path: join(out, '17-picker.png') });

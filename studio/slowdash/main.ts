@@ -167,7 +167,12 @@ function openPicker() {
   paused = true;
   pointer = latch = null;
   const best = bestOf(), w1 = worldStars(best, W1), st = (n: number) => '★'.repeat(n) + '☆'.repeat(3 - n);
-  const btn = (i: number) => `<button type="button" data-k="${i}"><i>${i < STAGE_COUNT ? i + 1 : `2-${i - STAGE_COUNT + 1}`}</i>${st(best[STAGES[i].key] ?? 0)}</button>`;
+  const btn = (i: number) => {
+    // M2 S5 ㊳: 칸마다 판 이름 · 받은 별 · 못 받은 별 이름(다시 할 판을 고를 수 있게)
+    const d = STAGES[i], b = best[d.key] ?? 0, m = store.get('sm:' + d.key), miss = d.stars.filter((_, j) => !(m & (1 << j))).map((q) => q.label);
+    const note = b === 0 ? '아직 안 깸' : miss.length && b < 3 ? `못 받음: ${miss.join(' · ')}` : '별 다 받았어요';
+    return `<button type="button" data-k="${i}"><span class="n"><i>${i < STAGE_COUNT ? i + 1 : `2-${i - STAGE_COUNT + 1}`}</i> ${d.name} <em>${st(b)}</em></span><small>${note}</small></button>`;
+  };
   picker.innerHTML =
     `<b>판 고르기</b><span class="msg">달밤 대숲 · ★ ${w1}/30</span><div class="grid">${W1.map((_, i) => btn(i)).join('')}</div>` +
     (STAGES.length > STAGE_COUNT
@@ -215,6 +220,8 @@ function loop(now: number) {
       saved = s.t;
       const k = 'st:' + STAGES[s.stage].key;
       if (s.got > store.get(k)) store.set(k, s.got);
+      const mk = 'sm:' + STAGES[s.stage].key; // M2 S5 ㊳: 어떤 별을 받았는지(1 = 한 번에 N · 2 = 안 맞기)
+      store.set(mk, store.get(mk) | (s.starOk[1] ? 1 : 0) | (s.starOk[2] ? 2 : 0));
       openW2();
     }
     if (s.owlAsk && !paused) askOwl();

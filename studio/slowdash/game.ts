@@ -222,6 +222,49 @@ export const TRIAL: StageDef[] = ([
     ],
     n: 4,
   },
+  // ✏️ M2 S5: 📐 CONTENT §4 월드 2 표 2-2~2-5(잎 섞기 · 연기) — 좌표는 표를 그대로 옮김
+  {
+    key: 'leafWait', name: '빨랫줄 골목', place: 1, news: '줄 서길 기다려 꺾어 잎까지', card: '줄 세워 꺾어 잎까지', goal: '골목 지나가기',
+    hint: '줄 서면 꺾어 잎까지', start: [0.5, 1.15], g0: 60, ease: [1.2, 1.5, 0.9], thorns: [[0.5, 0.95, 0.05]],
+    waves: [
+      { need: 1, wait: 1e9, foes: [['sword', 0.14, 0.62, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.26, 0.78, 1], ['sword', 0.32, 0.86, 1], ['leaf', 0.8, 0.56, 0]] },
+      { need: 0, wait: 900, foes: [['sword', 0.86, 0.62, 2], ['sword', 0.8, 0.7, 2], ['sword', 0.74, 0.78, 2], ['sword', 0.4, 0.52, 3], ['sword', 0.6, 0.52, 3], ['leaf', 0.2, 0.56, 0]] },
+      { need: 0, wait: 900, foes: [['sword', 0.14, 0.7, 1], ['sword', 0.2, 0.8, 1], ['sword', 0.26, 0.9, 1], ['sword', 0.86, 0.7, 2], ['sword', 0.8, 0.8, 2], ['sword', 0.74, 0.9, 2], ['leaf', 0.42, 0.52, 3], ['leaf', 0.58, 0.52, 3]] },
+    ],
+    n: 5,
+  },
+  {
+    key: 'leafShuri', name: '처마 끝', place: 1, news: '수리검 부채꼴 사이로 꺾어 잎까지', card: '부채꼴 비껴 꺾어요', goal: '처마 건너가기',
+    hint: '수리검 사이로 꺾어', start: [0.5, 1.15], g0: 60, ease: [1.2, 2, 0.8], thorns: [[0.3, 1.0, 0.05], [0.7, 1.0, 0.05]],
+    waves: [
+      { need: 1, wait: 1e9, foes: [['shuri', 0.2, 0.52, 3], ['sword', 0.86, 0.66, 2], ['sword', 0.8, 0.74, 2], ['sword', 0.74, 0.82, 2], ['leaf', 0.18, 0.8, 0]] },
+      { need: 0, wait: 900, foes: [['shuri', 0.8, 0.52, 3], ['sword', 0.14, 0.66, 1], ['sword', 0.2, 0.74, 1], ['sword', 0.26, 0.82, 1], ['leaf', 0.82, 0.8, 0]] },
+      { need: 0, wait: 900, foes: [['shuri', 0.3, 0.5, 3], ['shuri', 0.7, 0.5, 3], ['sword', 0.14, 0.8, 1], ['sword', 0.22, 0.88, 1], ['sword', 0.86, 0.8, 2], ['sword', 0.78, 0.88, 2], ['leaf', 0.5, 0.7, 0]] },
+      { need: 0, wait: 900, foes: [['sword', 0.4, 0.55, 3], ['sword', 0.5, 0.55, 3], ['sword', 0.6, 0.55, 3], ['leaf', 0.5, 0.8, 0]] },
+    ],
+    n: 5,
+  },
+  {
+    key: 'smoke', name: '굴뚝 연기', place: 1, news: '연기 속에선 적이 못 봐요 — 숨어 먹 채우고 꺾어 나와요', card: '연기에 숨어요', goal: '굴뚝 지나가기',
+    hint: '연기에 숨어 기다려요', start: [0.5, 1.15], g0: 60, ease: [1.2, 1.5, 0.9], smokes: [[0.3, 0.75, 0.11], [0.7, 0.92, 0.11]],
+    waves: [
+      { need: 1, wait: 1e9, foes: [['sword', 0.14, 0.62, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.26, 0.78, 1], ['sword', 0.32, 0.86, 1], ['archer', 0.5, 0.5, 3]] },
+      { need: 0, wait: 900, foes: [['sword', 0.86, 0.62, 2], ['sword', 0.8, 0.7, 2], ['sword', 0.74, 0.78, 2], ['sword', 0.68, 0.86, 2], ['archer', 0.3, 0.5, 3], ['leaf', 0.8, 0.6, 0]] },
+      { need: 0, wait: 900, foes: [['sword', 0.14, 0.7, 1], ['sword', 0.2, 0.8, 1], ['sword', 0.26, 0.9, 1], ['sword', 0.86, 0.7, 2], ['sword', 0.8, 0.8, 2], ['sword', 0.74, 0.9, 2], ['shuri', 0.5, 0.5, 3], ['leaf', 0.5, 0.8, 0]] },
+    ],
+    n: 5,
+  },
+  {
+    key: 'leafShield', name: '용마루', place: 1, news: '방패 등 뒤의 잎 — U자로 돌아요', card: 'U자로 돌아 등과 잎', goal: '용마루 건너가기',
+    hint: 'U자로 돌아 등과 잎', start: [0.5, 1.15], g0: 60, ease: [1.2, 2.5, 0.8], thorns: [[0.2, 1.04, 0.05], [0.8, 1.04, 0.05]],
+    waves: [
+      { need: 1, wait: 1e9, foes: [['shield', 0.5, 0.72, 3], ['leaf', 0.5, 0.58, 0], ['dummy', 0.36, 0.82, 0], ['dummy', 0.64, 0.82, 0]] },
+      { need: 0, wait: 900, foes: [['shield', 0.34, 0.7, 3], ['shield', 0.66, 0.7, 3], ['sword', 0.14, 0.8, 1], ['sword', 0.86, 0.8, 2], ['leaf', 0.5, 0.55, 0]] },
+      { need: 0, wait: 900, foes: [['shield', 0.3, 0.62, 3], ['shield', 0.7, 0.62, 3], ['sword', 0.14, 0.86, 1], ['sword', 0.2, 0.94, 1], ['sword', 0.86, 0.86, 2], ['archer', 0.5, 0.5, 3], ['leaf', 0.5, 0.75, 0]] },
+      { need: 0, wait: 900, foes: [['sword', 0.4, 0.55, 3], ['sword', 0.5, 0.55, 3], ['sword', 0.6, 0.55, 3], ['leaf', 0.5, 0.8, 0]] },
+    ],
+    n: 5,
+  },
 ] as Omit<StageDef, 'stars'>[]).map((d) => ({ ...d, stars: [S3('multi', d.n, `한 번에 ${NUM[d.n]} 베기`), S3('nohit', 0, '한 대도 안 맞기')] as [Star, Star] }));
 const easeOf = (s: DashState) => STAGES[s.stage].ease ?? EASE[Math.min(s.stage, 2)];
 
@@ -3941,7 +3984,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     const nw = ctx.measureText(d.name).width;
     font(0.036, 700);
     ctx.fillStyle = '#9aa3cc';
-    ctx.fillText(s.stage >= STAGE_COUNT ? ' · 시험 판' : ` / ${STAGE_COUNT}`, R(0.1) + nw, cy + 2);
+    ctx.fillText(s.stage >= STAGE_COUNT ? ` / 2-${TRIAL.length}` : ` / ${STAGE_COUNT}`, R(0.1) + nw, cy + 2); // M2 S5 월드 2
   }
   {
     const cy = hb / 2;

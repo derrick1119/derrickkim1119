@@ -363,7 +363,7 @@ export const BOTS: Record<string, Bot<DashState>> = {
 };
 
 export interface Try {
-  ok: boolean; stall: boolean; leafCombo: boolean; bentDodge: number; stars: number; s2: boolean; s3: boolean; sec: number; best: number; hits: number; dashes: number; whiff: number;
+  ok: boolean; stall: boolean; leafCombo: boolean; bentDodge: number; smokeT: number; stars: number; s2: boolean; s3: boolean; sec: number; best: number; hits: number; dashes: number; whiff: number;
   holdAvg: number; downPct: number; empty: number; cancels: number; bent: number; bentCut: number; lineCut: number; s: DashState;
 }
 
@@ -386,8 +386,9 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
   const rng = mulberry32(hand ^ 0x9e3779b9), t0 = s.t, d0 = s.dashes, emptyG = K.GBASE + K.GPER * K.HOP;
   let whiff = 0, down = 0, holds = 0, holdT = 0, cur = 0, empty = 0, dn = s.dashes, cancels = 0, bent = 0, bentCut = 0, lineCut = 0;
   // ✏️ S010 300초 측정 고침: 60초 동안 아무것도 못 베고 웨이브도 그대로면 '막힘' — 사람이면 그만둔다(실패로 셈)
-  let prog = s.t, mark = '', leafCombo = false, bentDodge = 0;
+  let prog = s.t, mark = '', leafCombo = false, bentDodge = 0, smokeT = 0;
   while (s.phase !== 'result' && s.t - t0 < maxSec * 60) {
+    if (s.smokes.length && s.smokes.some((m) => Math.hypot(s.nx - m.x, s.ny - m.y) < m.r)) smokeT++; // M2 S5 연기에 숨은 틱
     if (s.owlAsk) useOwl(s, opt.owlYes ?? true); // M2 S4 부엉이가 물으면(2-1 휙 세 번) 받는다 — 따를지는 봇이 정함
     const now = `${s.wave}/${s.foes.length}/${s.hp}`; // S012: 덤불 맞음(목숨 그대로)은 진전이 아니다 — 휘젓기 6판 300초
     if (now !== mark) (mark = now), (prog = s.t);
@@ -406,6 +407,7 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
   return {
     stall: s.phase !== 'result' && s.t - prog > STALL * 60,
     leafCombo,
+    smokeT,
     bentDodge: bent ? bentDodge / bent : 0,
     ok, stars: ok ? s.got : 0, s2: ok && s.starOk[1], s3: ok && s.starOk[2], sec: (s.t - t0) / 60, best: s.best, hits: s.hits, dashes: n,
     whiff: n ? whiff / n : 0, holdAvg: holds ? holdT / holds / 60 : 0, downPct: down / T, empty: empty / T, cancels, bent: n ? bent / n : 0, bentCut: bent ? bentCut / bent : 0, lineCut: n - bent ? lineCut / (n - bent) : 0, s,
@@ -611,6 +613,7 @@ export function campaign(bot: Bot<DashState>, seed: number, maxReplays = 10) {
   return { first, to18: to(18), to12: to(12), tries };
 }
 const STAGE_W1 = 10;
+const STAGE_COUNT_W1 = 10;
 /** M2 S4 다시 하는 판에도 부엉이(🧪) — 끄면 S4 첫 측정과 같다 */
 export let OWL_REPLAY = false; // 봇은 늘 받아서 ★★★를 스스로 잃는다(사람 반응 18 도달 .58→.33) — 측정은 끔, 게임에선 고를 수 있는 카드
 export const setOwlReplay = (v: boolean) => void (OWL_REPLAY = v);
@@ -628,7 +631,8 @@ export function measureCampaign(seeds = 24) {
 export function measureTrial(seeds = 24) {
   const out: Record<string, unknown>[] = [];
   for (const d of TRIAL) {
-    STAGES.push(d);
+    STAGES.length = STAGE_COUNT_W1;
+    STAGES.push(...TRIAL.slice(0, TRIAL.indexOf(d) + 1)); // 월드 2는 앞 판들 뒤에(판 번호가 실제와 같게)
     const k = STAGES.length - 1, seedsOf = Array.from({ length: seeds }, (_, i) => 101 + i * 7);
     const row: Record<string, unknown> = { key: d.key, name: d.name };
     try {
@@ -638,9 +642,18 @@ export function measureTrial(seeds = 24) {
       }
       LEAF_SOLO = true; // 낙차 대조군: 잎은 따로만 베는 장인 한붓
       row.smartStrokeSolo = sum(seedsOf.map((sd) => tryStage(BOTS.smartStroke, sd, k)));
+      LEAF_SOLO = false;
+      if (d.smokes?.length) { // M2 S5 연기: 사용 = 장인 한붓이 연기에 1초 넘게 숨은 판 · 낙차 = 연기 있는 판 ★ − 연기 없앤 같은 판 ★
+        const t = seedsOf.map((sd) => tryStage(BOTS.smartStroke, sd, k));
+        STAGES[k] = { ...d, smokes: [] };
+        const noSmoke = seedsOf.map((sd) => tryStage(BOTS.smartStroke, sd, k));
+        const tH = seedsOf.map((sd) => tryStage(BOTS.humanStroke, sd, k));
+        STAGES[k] = d;
+        row.smoke = { use: r2(mean(t.map((x) => +(x.smokeT >= 60)))), drop: r2(mean(t.map((x) => x.stars)) - mean(noSmoke.map((x) => x.stars))), humanUse: r2(mean(tH.map((x) => +(x.smokeT >= 60)))) };
+      }
     } finally {
       LEAF_SOLO = false;
-      STAGES.pop();
+      STAGES.length = STAGE_COUNT_W1;
     }
     const R = (n: string) => row[n] as Row & { leafCombo?: number };
     row.summary = { use: R('smartStroke').leafCombo, drop: r2(R('smartStroke').star - R('smartStrokeSolo').star), newbieClear: R('newbie').clear, newbieLowClear: R('newbieLow').clear, newbieNeverClear: R('newbieNever').clear, newbieLowFirst: R('newbieLow').first, newbieLowSecAll: R('newbieLow').secAll, newbieNeverFirst: R('newbieNever').first, newbieNeverSecAll: R('newbieNever').secAll, humanStrokeClear: R('humanStroke').clear, bentDodge: (R('humanStroke') as Row & { bentDodge?: number }).bentDodge, spamClear: R('spam').clear, scribbleClear: R('scribble').clear, humanStrokeSec: R('humanStroke').sec, straightHumanClear: R('humanTap').clear };
