@@ -103,7 +103,7 @@ export const STAGES: StageDef[] = [
       { need: 1, wait: 480, groups: [['skel', 0, 4], ['skel', 4, 3]], drops: [['barrel', 0.2, 0.62]] },
       { need: 0, wait: 1e9, groups: [['skel', 1, 4], ['skel', 5, 4]] },
     ],
-    stars: [CLEAR, S('spin', 4, '돛대로 빙글 넷'), S('nohit', 0, '한 번도 안 맞기')],
+    stars: [CLEAR, S('spin', 6, '돛대로 빙글 여섯'), S('nohit', 0, '한 번도 안 맞기')],
   },
   {
     key: 'keg', name: '화약 창고', spot: '화약통 — 해적에 닿으면 펑!', news: '화약통 — 끌려오다 해적에 닿으면 펑!', hint: '해적 무리 곁을 지나게 화약통을 톡 (빈 길이면 내 얼굴에서 펑)',
@@ -164,7 +164,8 @@ interface Hook {
   st: number; x: number; y: number; sx: number; sy: number; tx: number; ty: number; id: number; t: number; d0: number;
   v: number; act: number; a0: number; R: number; mx: number; my: number; spun: number; bossSpun: boolean;
 }
-interface Rec { n: number; spin: number; boom: number; shark: number; shield: number; boss: boolean; bh: boolean; t: number; x: number; y: number }
+/** 갈고리 한 번(행동)의 기록: 쓰러뜨린 수 · 돛대로 돈 행동인가 · 화약통이 터진 행동인가 … (연쇄로 쓰러진 것도 그 행동의 몫) */
+interface Rec { n: number; sp: boolean; bm: boolean; shark: number; shield: number; boss: boolean; bh: boolean; t: number; x: number; y: number }
 interface Ev { t: number; kind: string; x: number; y: number; n?: number; text?: string; k?: K; z?: number }
 /** 연출 전용: 물보라 · 부서진 조각 */
 interface Splash { x: number; y: number; t: number; big: number; hat: number }
@@ -218,7 +219,7 @@ const reachOf = (b: Body) => CAP_R + RAD[b.k] + 0.004;
 function rec(s: HookState, act: number) {
   let r = s.recs[act];
   if (!r) {
-    s.recs[act] = r = { n: 0, spin: 0, boom: 0, shark: 0, shield: 0, boss: false, bh: false, t: s.t, x: s.cx, y: s.cy };
+    s.recs[act] = r = { n: 0, sp: false, bm: false, shark: 0, shield: 0, boss: false, bh: false, t: s.t, x: s.cx, y: s.cy };
     for (const k of Object.keys(s.recs)) if (+k < act - 8) delete s.recs[+k];
   }
   return r;
@@ -231,8 +232,8 @@ function countKO(s: HookState, q: Body, act: number, how: string) {
   s.pts += (PTS[q.k] ?? 10) * n;
   s.kos++;
   s.best = Math.max(s.best, n);
-  if (how === 'spin') s.spinBest = Math.max(s.spinBest, ++r.spin);
-  if (how === 'boom') s.boomBest = Math.max(s.boomBest, ++r.boom);
+  if (r.sp) s.spinBest = Math.max(s.spinBest, n);
+  if (r.bm) s.boomBest = Math.max(s.boomBest, n);
   if (how === 'chomp') s.sharkBest = Math.max(s.sharkBest, ++r.shark);
   if (q.k === 'shield') s.shieldBest = Math.max(s.shieldBest, ++r.shield);
   if (q.k === 'boss') r.boss = true;
@@ -289,6 +290,7 @@ function bossHit(s: HookState, q: Body, ux: number, uy: number, act: number, how
 
 function explode(s: HookState, x: number, y: number, act: number, depth = 0) {
   ev(s, 'boom', x, y);
+  rec(s, act).bm = true;
   s.freeze = Math.max(s.freeze, 5);
   s.slowT = Math.max(s.slowT, 24);
   s.seen.add('boomed');
@@ -441,6 +443,7 @@ function latch(s: HookState) {
     h.a0 = Math.atan2(s.cy - b.y, s.cx - b.x);
     h.sx = s.cx;
     h.sy = s.cy;
+    rec(s, h.act).sp = true;
     s.seen.add('spun');
     return;
   }
@@ -685,7 +688,7 @@ function flyStep(s: HookState, b: Body) {
   b.rot += b.vrot;
   b.tm++;
   const boss = b.k === 'boss';
-  if (b.st === FLY && b.tm < (boss ? 28 : 18) && b.chain < (boss ? 4 : 2)) {
+  if (b.st === FLY && b.tm < (boss ? 28 : 18) && b.chain < (boss ? 4 : 1)) {
     for (const q of s.bodies) {
       if (q === b || !standing(q)) continue;
       if (Math.hypot(q.x - b.x, q.y - b.y) >= RAD[b.k] + RAD[q.k]) continue;
@@ -698,6 +701,7 @@ function flyStep(s: HookState, b: Body) {
       }
       const v = Math.hypot(b.vx, b.vy) || 1e-6, rx = q.x - b.x, ry = q.y - b.y, rd = Math.hypot(rx, ry) || 1e-6;
       knock(s, q, rx / rd + (b.vx / v) * 0.8, ry / rd + (b.vy / v) * 0.8, 0.85, b.act, 'chain');
+      q.chain = 9; // 연쇄는 한 단계까지만 (부딪혀 날아간 해적은 더 잇지 않는다)
       if (!boss) (b.vx *= 0.7), (b.vy *= 0.7);
       b.chain++;
       ev(s, 'bonk', q.x, q.y);
@@ -1260,7 +1264,7 @@ export const hookpirateSmart: Bot<HookState> = {
     const mast = s.bodies.find((b) => b.k === 'mast' && b.st === SIT);
     if (mast && goals.some((st) => st.k === 'spin') && Math.hypot(mast.x - s.cx, mast.y - s.cy) <= ROPE) {
       const sp = plan(s, mast);
-      if (here > sp.T * 0.5 + 14 && live.length + s.queue.length >= 4) return NO;
+      if (here > Math.hypot(mast.x - s.cx, mast.y - s.cy) / HOOK_V + 12 && live.length + s.queue.length >= 4) return NO;
       if (sp.spin >= 2) return tapAt(mast);
     }
     if (here < best.T + 40) return tapAt(best.b);

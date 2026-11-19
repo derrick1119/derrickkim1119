@@ -3006,17 +3006,17 @@ function drawAll(ctx: C2, s: SpinState, w: number, h: number, th: Theme) {
   ctx.restore();
   // 큰 순간 띠: 'N 와르르!'
   if (fx.memo.bigT !== undefined && t - fx.memo.bigT < 56) {
-    const age = t - fx.memo.bigT, n = fx.memo.bigN, sc2 = age < 6 ? 1.8 - 0.8 * (age / 6) : 1, a = Math.min(1, (56 - age) / 16);
-    const bx = clamp(fx.memo.bigX, w * 0.32, w * 0.68), by = clamp(fx.memo.bigY - R(0.22), R(0.42), R(1.05));
-    const txt = n >= 8 ? `${n}개 와르르르!!` : n >= 5 ? `${n}개 와르르!` : `${n}개 쓰러뜨림!`, size = Math.min(34, 19 + n * 2.2);
+    const age = t - fx.memo.bigT, n = fx.memo.bigN, a = Math.min(1, (56 - age) / 16);
+    const txt = n >= 8 ? `${n}개 와르르르!!` : n >= 5 ? `${n}개 와르르!` : `${n}개 쓰러뜨림!`, size = Math.min(32, 19 + n * 2);
     ctx.save();
-    ctx.globalAlpha = a;
-    ctx.translate(bx, by);
-    ctx.rotate(-0.06);
-    ctx.scale(sc2, sc2);
     ctx.font = `900 ${size}px system-ui, sans-serif`;
     const tw2 = ctx.measureText(txt).width, rx = tw2 / 2 + 18, ry = size * 0.78;
-    ctx.translate(clamp(bx, rx * 1.12 * sc2 + 4, w - rx * 1.12 * sc2 - 4) - bx, 0);
+    const sc2 = Math.min(age < 6 ? 1.6 - 0.6 * (age / 6) : 1, (w - 10) / (rx * 2.3));
+    const bx = clamp(fx.memo.bigX, rx * 1.15 * sc2 + 4, w - rx * 1.15 * sc2 - 4), by = clamp(fx.memo.bigY - R(0.22), R(0.42), R(1.05));
+    ctx.globalAlpha = a;
+    ctx.translate(bx, by);
+    ctx.rotate(-0.05);
+    ctx.scale(sc2, sc2);
     ctx.fillStyle = 'rgba(30,14,60,.9)';
     ctx.beginPath();
     for (let i = 0; i <= 20; i++) {
