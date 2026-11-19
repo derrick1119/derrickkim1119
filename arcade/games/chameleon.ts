@@ -57,7 +57,7 @@ interface StageDef {
 }
 const S = (k: StarK, n: number, label: string): Star => ({ k, n, label });
 const CLEAR = S('clear', 0, '골목 끝까지 가기');
-const RATE: Record<GK, number> = { dog: 1 / 84, man: 1 / 70, scope: 1 / 34 };
+const RATE: Record<GK, number> = { dog: 1 / 84, man: 1 / 70, scope: 1 / 26 };
 
 /** 판 7개. segs = [무늬, 끝나는 x] (앞 칸 끝에서 시작) */
 export const STAGES: StageDef[] = [
@@ -65,7 +65,7 @@ export const STAGES: StageDef[] = [
     key: 'dog', name: '바나나 골목', news: '', hint: '바나나 앞에선 바나나 무늬로 걸어도 안 들켜요', L: 2.2, x0: 0.3, mul: 0.5,
     segs: [['banana', 1.05], ['leaf', 1.3], ['tile', 1.65], ['banana', 2.2]],
     guards: [
-      { k: 'dog', x: 0.5, intro: [[-0.2, 0.1, 50, 26]], poses: [[-0.32, 0.14, 160, 30], [0.2, 0.16, 140, 30], [0, 0, 80, 22]] },
+      { k: 'dog', x: 0.5, intro: [[-0.2, 0.1, 50, 22]], poses: [[0.24, 0.15, 150, 30], [-0.3, 0.14, 150, 30], [0, 0, 80, 22]] },
       { k: 'dog', x: 1.92, poses: [[-0.1, 0.2, 170, 30], [0.12, 0.12, 90, 30], [0, 0, 80, 22]], ph: 40 },
     ],
     fruits: [0.66, 1.18, 1.5, 2.02],
@@ -346,7 +346,7 @@ export interface ChamState {
   W: World; b: Body;
   /** 경비마다 지금 나를 보는 중인가(0 아님 · 1 속는 중 · 2 들킨 적 있음) · 언제부터 */
   ep: number[]; epT: number[]; chain: number; chainBest: number; fools: number; wows: number; firstPress: number; firstBig: number;
-  seen: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; spot: { x: number; y: number; label: string; t: number; r: number } | null;
+  seen: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; spot: { x: number; y: number; label: string; t: number; r: number; k: string } | null;
   events: Ev[];
   // 연출용 (시뮬레이션 결과와 무관)
   mood: number; moodT: number; stopT: number; morphT: number; from: Pat; patX: number; walkT: number; caughtT: number; fruitT: number;
@@ -389,19 +389,18 @@ function newStage(s: ChamState) {
   s.tongue = null;
   s.eaten = [];
   s.camX = s.b.x - (s.W.cat ? 0.42 : CAM_AT);
-  // 새것 스포트라이트
+  // 새것 스포트라이트 (화면에 들어오면 켠다 — t = -1이면 기다리는 중)
   if (see(s, d.key, '')) {
     const W = s.W;
-    if (d.key === 'dog') s.spot = null;
-    else if (d.key === 'man' || d.key === 'scope') {
+    if (d.key === 'man' || d.key === 'scope') {
       const g = W.guards.find((q) => q.k === d.key)!;
-      s.spot = { x: g.x, y: d.key === 'man' ? 1.18 : 0.33, label: d.key === 'man' ? '가게 아저씨' : '망원경', t: s.t, r: 0.13 };
-    } else if (d.key === 'cart') s.spot = { x: W.carts[0].x, y: 0.78, label: '손수레', t: s.t, r: 0.2 };
+      s.spot = { x: g.x, y: d.key === 'man' ? 1.16 : 0.33, label: d.key === 'man' ? '가게 아저씨' : '망원경', t: -1, r: 0.14, k: d.key };
+    } else if (d.key === 'cart') s.spot = { x: W.carts[0].x, y: 0.75, label: '손수레', t: -1, r: 0.22, k: 'cart' };
     else if (d.key === 'sign') {
       const g = W.segs.find((q) => q.k === 'sign')!;
-      s.spot = { x: (g.a + g.b) / 2, y: 0.74, label: '돌아가는 간판', t: s.t, r: 0.16 };
-    } else if (d.key === 'cat') s.spot = { x: s.b.cat, y: 0.88, label: '고양이', t: s.t, r: 0.1 };
-    else if (d.key === 'rain') s.spot = { x: s.b.x, y: 0.86, label: '소나기', t: s.t, r: 0.14 };
+      s.spot = { x: (g.a + g.b) / 2, y: 0.74, label: '돌아가는 간판', t: -1, r: 0.16, k: 'sign' };
+    } else if (d.key === 'cat') s.spot = { x: s.b.cat, y: 0.88, label: '고양이', t: -1, r: 0.11, k: 'cat' };
+    else if (d.key === 'rain') s.spot = { x: s.b.x, y: 0.86, label: '소나기 — 무늬가 빨리 씻겨요', t: -1, r: 0.16, k: 'rain' };
   }
 }
 
@@ -485,11 +484,19 @@ function cosmetic(s: ChamState) {
   s.camX += (want - s.camX) * (s.t < 3 ? 1 : 0.12);
   s.events = s.events.filter((e) => s.t - e.t < 90);
   s.eaten = s.eaten.filter((e) => s.t - e.t < 40);
-  if (s.spot && s.t - s.spot.t > 120) s.spot = null;
+  if (s.spot) {
+    const sp = s.spot, W = s.W;
+    if (sp.k === 'cart') sp.x = cartX(W.carts[0], s.b.wt);
+    if (sp.k === 'cat') sp.x = s.b.cat;
+    if (sp.k === 'rain') sp.x = s.b.x;
+    const sx = sp.x - s.camX;
+    if (sp.t < 0 && s.phase === 'play' && sx > 0.12 && sx < 0.88 && s.pt > 30) sp.t = s.t;
+    if (sp.t >= 0 && s.t - sp.t > 120) s.spot = null;
+  }
   if (!s.news || s.t - s.news.t > NEWS_T) s.news = s.newsQ.length ? { text: s.newsQ.shift()!, t: s.t } : s.news;
 }
 
-export const chameleon: GameDef<ChamState> & { wows: (s: ChamState) => number } = {
+export const chameleon: GameDef<ChamState> = {
   id: 'chameleon',
   name: '카멜레온 무늬 숨바꼭질',
   genes: ['chameleon', 'hold', 'chain'],
@@ -700,7 +707,6 @@ for (const h0 of [0, 15, 40, 80, 140]) for (const k of [0, 80, 160]) C_STOP.push
 for (const k of [0, 40, 80, 130, 190]) C_WALK.push([0, k, 0]);
 for (const k of [0, 8, 20, 36, 56, 84]) for (const d of [MORPH, MORPH + 50]) C_STOP.push([0, k, d]), C_WALK.push([0, k, d]);
 const botMem = new WeakMap<object, { t0: number; h0: number; k: number; d: number; next: number; stage: number }>();
-export const _dbg = { rollout, weights, gazeOf, backAt, gazeMask, cloneBody, tickBody, defHold };
 /**
  * 잘하는 봇: 계획 여러 개(지금 멈추기 · 조금 걷다 멈추기 · 더 기다렸다 쭉 걷기)를 같은 몸 함수로 4~5초 굴려 보고,
  * 나아간 거리 · 과일 · 들킴 · 멈춘 수(판 별) · 고양이와 거리 · 들고 갈 무늬의 값어치로 고른다.
@@ -2514,6 +2520,24 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
   fx.begin(ctx);
   // ── 하늘 · 무지개 · 구름 ──
   ctx.drawImage(bg.sky, 0, 0, w, Y(WALL_T));
+  {
+    const sx = w * 0.84, sy = w * 0.2;
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(t * 0.002);
+    ctx.fillStyle = 'rgba(255,250,200,.16)';
+    for (let i = 0; i < 12; i++) {
+      ctx.rotate(TAU / 12);
+      ctx.beginPath();
+      ctx.moveTo(R(0.08), -R(0.012));
+      ctx.lineTo(R(0.32), -R(0.04));
+      ctx.lineTo(R(0.32), R(0.04));
+      ctx.lineTo(R(0.08), R(0.012));
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
   if (W.rain) {
     ctx.save();
     ctx.globalAlpha = 0.4;
@@ -2590,14 +2614,28 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
     const g = W.segs[i];
     if (X(g.b) < -20 || X(g.a) > w + 20) continue;
     if (g.k === 'sign') {
-      const sg = signAt(W, b.wt), u = sg.u, show = u < 0.5 ? sg.p : sg.q, sq = Math.abs(Math.cos(Math.PI * u));
-      const x0 = X(g.a), x1 = X(g.b), cxm = (x0 + x1) / 2, hw = ((x1 - x0) / 2) * sq;
-      ctx.fillStyle = '#5a3a2a';
-      ctx.fillRect(x0, Y(WALL_T), x1 - x0, Y(WALL_B) - Y(WALL_T));
-      ctx.fillStyle = patOf(ctx, show, T, sc, X(0), 0);
-      ctx.fillRect(cxm - hw, Y(WALL_T), hw * 2, Y(WALL_B) - Y(WALL_T));
-      ctx.fillStyle = `rgba(0,0,0,${0.25 * (1 - sq)})`;
-      ctx.fillRect(cxm - hw, Y(WALL_T), hw * 2, Y(WALL_B) - Y(WALL_T));
+      const sg = signAt(W, b.wt), u = sg.u;
+      const x0 = X(g.a), x1 = X(g.b), cxm = (x0 + x1) / 2, top = Y(WALL_T) + R(0.012), bot = Y(WALL_B);
+      ctx.fillStyle = '#3a2418';
+      ctx.fillRect(x0, Y(WALL_T), x1 - x0, bot - Y(WALL_T));
+      // 세로 세모 날개들이 물결처럼 차례로 돈다
+      const n = Math.max(4, Math.round((x1 - x0) / R(0.045))), sw = (x1 - x0) / n;
+      for (let j = 0; j < n; j++) {
+        const uj = clamp(u * 1.5 - (j / n) * 0.5, 0, 1), face = uj < 0.5 ? sg.p : sg.q, sq = Math.abs(Math.cos(Math.PI * uj));
+        const sx0 = x0 + j * sw, hw2 = (sw / 2) * Math.max(0.08, sq);
+        ctx.fillStyle = patOf(ctx, face, T, sc, X(0), 0);
+        ctx.fillRect(sx0 + sw / 2 - hw2, top, hw2 * 2, bot - top);
+        ctx.fillStyle = `rgba(0,0,0,${0.35 * (1 - sq)})`;
+        ctx.fillRect(sx0 + sw / 2 - hw2, top, hw2 * 2, bot - top);
+        ctx.fillStyle = 'rgba(255,255,255,.12)';
+        ctx.fillRect(sx0 + sw / 2 - hw2, top, Math.max(1, hw2 * 0.25), bot - top);
+        ctx.fillStyle = 'rgba(40,20,10,.35)';
+        ctx.fillRect(sx0 + sw - 0.75, top, 1.5, bot - top);
+      }
+      // 나무 틀
+      ctx.strokeStyle = '#8a5a2a';
+      ctx.lineWidth = R(0.012);
+      ctx.strokeRect(x0 + R(0.006), Y(WALL_T) + R(0.006), x1 - x0 - R(0.012), bot - Y(WALL_T) - R(0.006));
       ctx.fillStyle = '#ffcf3a';
       for (let j = 0; j < (x1 - x0) / R(0.04); j++) {
         const on = (j + Math.floor(t / 8)) % 3 === 0;
@@ -2886,6 +2924,46 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
       ctx.fillText(k2, ex + R(0.06), ey - R(0.1));
     }
   });
+  // ── 앞쪽 화분 (가까울수록 빨리 지나간다) ──
+  {
+    const pw = 1.1, base = cam * 1.3;
+    for (let i = Math.floor(base / pw) - 1; i <= Math.floor((base + 1.2) / pw) + 1; i++) {
+      const px = (i * pw + 0.55 + hsh(i + 200) * 0.3 - base) * w, py = Y(STREET_B) + R(0.01), k = R(0.13);
+      if (px < -k || px > w + k || W.guards.some((g) => g.k !== 'scope' && Math.abs(X(g.x) - px) < R(0.2))) continue;
+      ctx.fillStyle = 'rgba(90,50,10,.22)';
+      ell(ctx, px, py - R(0.005), k * 0.7, k * 0.12);
+      ctx.fill();
+      ctx.fillStyle = '#4caf3a';
+      ctx.strokeStyle = OUT;
+      ctx.lineWidth = 2;
+      for (let f = 0; f < 7; f++) {
+        const a2 = -Math.PI / 2 + (f - 3) * 0.32 + Math.sin(t * 0.03 + f) * 0.04;
+        ell(ctx, px + Math.cos(a2) * k * 0.45, py - k * 0.55 + Math.sin(a2) * k * 0.4, k * 0.12, k * 0.3, a2 + Math.PI / 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+      for (let f = 0; f < 4; f++) {
+        ctx.fillStyle = f % 2 ? '#ff5f9a' : '#ffd23a';
+        ctx.beginPath();
+        ctx.arc(px + (f - 1.5) * k * 0.22, py - k * 0.85 - (f % 2) * k * 0.1, k * 0.08, 0, TAU);
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.fillStyle = lin(ctx, px - k * 0.4, 0, px + k * 0.4, 0, [0, '#e88a4a'], [1, '#b8582a']);
+      ctx.beginPath();
+      ctx.moveTo(px - k * 0.42, py - k * 0.42);
+      ctx.lineTo(px + k * 0.42, py - k * 0.42);
+      ctx.lineTo(px + k * 0.32, py);
+      ctx.lineTo(px - k * 0.32, py);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#c96a3a';
+      rr(ctx, px - k * 0.47, py - k * 0.48, k * 0.94, k * 0.1, k * 0.03);
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
   // ── 고양이 ──
   if (W.cat) {
     const near = b.x - b.cat < 0.2 ? 1 : 0, leap = Math.max(0, 1 - (t - vm.pounce) / 24);
@@ -3149,7 +3227,7 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
     ctx.restore();
   }
   // 새것 스포트라이트
-  if (s.spot && play) {
+  if (s.spot && play && s.spot.t >= 0) {
     const age = t - s.spot.t;
     if (age < 120) {
       const a = Math.min(1, age / 10, (120 - age) / 20), cx = X(s.spot.x), cy = Y(s.spot.y), r0 = R(s.spot.r);
@@ -3493,4 +3571,3 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
   }
   void th;
 }
-export const _dbgDraw = { getBg: (w: number, h: number, sc: number) => getBg(w, h, sc), segCanvas, tileCanvas };

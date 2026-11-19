@@ -2,10 +2,12 @@
  * 파도 만들기 꼬마 서퍼 (33라운드: 서로 다른 뼈대 — 파도타기) — 파도 일으키기 × 꾹 눌렀다 떼기 × 콤보.
  * 기준 9(손이 하는 일은 하나): 꾹 누르는 동안 서퍼 뒤의 바다가 부풀어 파도가 점점 커지고(서퍼는 파도 등을 타고 높이 올라간다),
  *   떼는 순간 '쏴아' 파도가 부서지며 서퍼가 파도 끝에서 하늘로 솟구친다. 키보드는 스페이스 꾹.
- * 규칙(결정적): 파도 높이 H는 누른 시간으로 정해진다(빨리 솟았다가 꼭대기에서 멈춤). 떼면
- *   ① 서퍼가 H만큼 높이 뛴다(공중에 오래 있을수록 저절로 공중제비 — 바퀴 수만큼 점수),
- *   ② 부서진 파도의 거품이 앞으로 0.15+1.55H 만큼 밀려가며 그 안의 모래성·비치볼·파라솔·게를 휩쓴다(한 파도에 n번째는 ×(1+0.5(n−1))).
- *   꼭대기에서 더 누르면 파도가 말리고(경고), 그래도 누르면 파도에 말려 넘어진다(와이프아웃). 누르는 동안엔 파도를 오르느라 느려진다.
+ * 규칙(결정적): 파도 높이 H는 누른 시간으로 정해진다(빨리 솟았다가 꼭대기에서 멈춤). 누르는 동안엔 파도를 오르느라 거의 멈춘다. 떼면
+ *   ① 서퍼가 H만큼 높이·멀리 뛴다(공중에 오래 있을수록 저절로 공중제비 — 바퀴 수만큼 점수),
+ *   ② 파도 입술이 앞으로 던져져 [0.55·D, D+0.06+0.15H] (D = 0.1+0.75H) 자리에 쏟아지고, 그 안의 모래성·비치볼·파라솔·게(H≥0.3이면 배도)를 휩쓴다.
+ *      한 파도에 n번째는 ×n, 연달아 무언가를 휩쓴 파도 수만큼 콤보 ×(1+연속)(최대 ×8), 모래톱 하나를 한 번에 다 쓸면 싹쓸이 보너스.
+ *   그래서 '얼마나 키울까'가 곧 '어디에 쏟을까'(가까운 모래톱은 작게, 먼 것은 크게)이고, 같은 손짓이 뛰는 높이·내려앉는 자리도 정한다.
+ *   꼭대기에서 더 누르면 파도가 말리고(경고), 그래도 누르면 파도에 말려 넘어진다(와이프아웃).
  *   바위·부두·배에 부딪히거나 와이프아웃·해파리에 쏘이면 보드가 금 간다(보드 3칸 = 지킬 것). 보드가 부러지면 하트 -1·그 판 다시.
  * 와우: 첫 꾹에 바다가 화면 절반만큼 솟고, 떼자 '쏴아' — 서퍼가 공중제비를 돌고 모래성 셋이 와르르 휩쓸린다.
  * 판 7개: 목표 = 등대까지 가기. 별 = ★ 등대 · 판마다 다른 쉬운 한 줄(모래성 다섯 휩쓸기 · 한 번도 안 넘어지기 …).
@@ -314,6 +316,7 @@ function release(s: SurfState) {
     s.surge = H >= 0.1 ? { x0: s.x + bandLo(H), end: s.x + bandHi(H), H, t0: s.t } : null;
     s.breaks.push({ x: s.x, H, t: s.t, wipe: false });
     ev(s, 'break', s.x, s.h, n, undefined, String(H));
+    if (H >= 0.4) s.freeze = 3;
     s.mood = 1;
     s.moodT = 40;
   }
@@ -343,6 +346,7 @@ function wipeout(s: SurfState) {
   see(s, 'wipe', '');
   s.H = 0;
   s.ct = 0;
+  s.firstRelease = true;
   if (s.board <= 0) endStage(s, false, '파도에 말려 보드가 부러졌어요');
 }
 
@@ -644,7 +648,8 @@ function endStage(s: SurfState, ok: boolean, why: string) {
 function cosmetic(s: SurfState) {
   if (s.moodT > 0 && --s.moodT === 0) s.mood = 0;
   // 큰 순간: 거품이 셋째를 휩쓰는 그 틱에 멈칫 + 잠깐 느리게
-  for (const e of s.events) if (e.t === s.t && e.kind === 'sweep' && (e.n ?? 0) >= 3 && s.phase === 'play') (s.freeze = Math.max(s.freeze, e.n! >= 5 ? 4 : 3)), (s.slowT = Math.max(s.slowT, 22));
+  // (멈칫·느려짐은 3의 배수 틱 — 판단 간격과 어긋나지 않게)
+  for (const e of s.events) if (e.t === s.t && e.kind === 'sweep' && (e.n ?? 0) >= 3 && s.phase === 'play') (s.freeze = Math.max(s.freeze, e.n! >= 5 ? 6 : 3)), (s.slowT = Math.max(s.slowT, 24));
   s.events = s.events.filter((e) => s.t - e.t < 100);
   s.breaks = s.breaks.filter((b) => s.t - b.t < 90);
   if (s.surge && s.t - s.surge.t0 > 10 + (s.surge.end - s.surge.x0) / VS + 30) s.surge = null;
@@ -678,10 +683,10 @@ export const wavesurf: GameDef<SurfState> & { wows: (s: SurfState) => number } =
   id: 'wavesurf',
   name: '파도 만들기 꼬마 서퍼',
   genes: ['wavemake', 'hold', 'combo'],
-  twist: '파도를 기다려 타는 게 아니라 내가 만든다 — 꾹 누르는 만큼 바다가 솟고, 떼는 순간 그 파도가 부서지며 서퍼는 하늘로 솟고 해변의 모래성·파라솔·배까지 한꺼번에 휩쓸린다',
+  twist: '파도를 기다려 타는 게 아니라 내가 만든다 — 꾹 누르는 만큼 바다가 솟고, 떼는 순간 그 파도가 부서지며 서퍼는 하늘로 솟고 파도가 쏟아진 자리의 모래성·파라솔·배가 한꺼번에 휩쓸린다(키운 만큼 멀리 쏟아진다)',
   rules: [
-    '꾹 누르면 뒤에서 파도가 솟아요. 떼면 쏴아 — 서퍼가 하늘로 솟고 거품이 앞의 모래성을 휩쓸어요.',
-    '크게 키울수록 높이·멀리 뛰지만, 꼭대기에서 너무 버티면 파도에 말려 넘어져요.',
+    '꾹 누르면 뒤에서 파도가 솟아요. 떼면 쏴아 — 서퍼는 하늘로, 파도는 앞의 하얀 자리에 쏟아져 모래성을 휩쓸어요.',
+    '오래 누를수록 높이·멀리 뛰고 파도도 멀리 쏟아져요. 꼭대기에서 너무 버티면 파도에 말려 넘어져요.',
     '바위·부두·배에 부딪히거나 해파리에 쏘이면 보드에 금! 보드가 부러지면 하트 -1.',
   ],
   controls: 'hold',
@@ -2567,7 +2572,7 @@ function drawAll(ctx: C2, s: SurfState, w: number, h: number, th: Theme) {
         fx.ring(ex, yb - R(0.03), 'rgba(255,255,255,.95)', R(0.07 + 0.01 * (e.n ?? 1)), 4);
         fx.kick(2 + (e.n ?? 1) * 1.2);
         if (e.text) fx.pop(ex, yb - R(0.16 + 0.03 * ((e.n ?? 1) % 3)), `+${e.text}`, (e.n ?? 1) >= 3 ? '#ffe14a' : '#ffffff', Math.min(30, 15 + (e.n ?? 1) * 3));
-        if ((e.n ?? 1) >= 3) (fx.memo.bigT = t), (fx.memo.bigN = e.n ?? 3), (fx.memo.bigK = 1), (fx.memo.bigX = ex), (fx.memo.cheerT = t);
+        if ((e.n ?? 1) >= 3) (fx.memo.bigT = t), (fx.memo.bigN = e.n ?? 3), (fx.memo.bigK = 1), (fx.memo.bigX = ex), (fx.memo.cheerT = t), fx.blink('#ffffff', 0.12 + 0.03 * (e.n ?? 3));
         if (k === 'boat') (fx.memo.bigT = t), (fx.memo.bigK = 4), (fx.memo.bigX = ex), (fx.memo.cheerT = t);
         fx.memo['gone' + (e.id ?? 0)] = t;
         break;
@@ -2697,6 +2702,20 @@ function drawAll(ctx: C2, s: SurfState, w: number, h: number, th: Theme) {
     ctx.stroke();
   }
 
+  // 석호의 너울 (깊이감: 먼 줄은 느리고 가늘게)
+  for (let k = 0; k < 4; k++) {
+    const yy = R(0.88 + BGY * 0.5 + k * 0.045), par = 0.45 + k * 0.15, amp = R(0.004 + k * 0.002);
+    ctx.strokeStyle = `rgba(255,255,255,${0.16 + k * 0.05})`;
+    ctx.lineWidth = 1.2 + k * 0.5;
+    ctx.beginPath();
+    const off = (cam * par * w + t * 0.15 * (1 + k * 0.3)) % R(0.16);
+    for (let px = -off - R(0.16); px < w + R(0.16); px += R(0.16)) {
+      ctx.moveTo(px, yy);
+      ctx.quadraticCurveTo(px + R(0.04), yy - amp * 2, px + R(0.08), yy);
+      ctx.quadraticCurveTo(px + R(0.12), yy + amp, px + R(0.16), yy);
+    }
+    ctx.stroke();
+  }
   // ═════ 물길 위 ═════
   const vis = (a: number, b: number) => X(b) > -R(0.3) && X(a) < w + R(0.3);
   const goneAt = (it: Item) => s.goneT.get(it.id);
@@ -2769,7 +2788,6 @@ function drawAll(ctx: C2, s: SurfState, w: number, h: number, th: Theme) {
     if (t % 3 === 0) spray(f, s.x - 0.05 - s.H * 0.2, s.H * 0.98, 1, 0.006, -0.004, '#ffffff', 2.5);
   }
   // 해변 물건 · 장애물 (파도 앞 — 키우는 동안에도 보이게)
-  const near = (it: Item) => Math.abs(it.x - s.x);
   for (let i = 0; i < s.items.length; i++) {
     const it = s.items[i];
     if (it.k === 'sand' || it.k === 'pier' || it.k === 'shell' || !vis(x0(it), x1(it))) continue;
@@ -2809,7 +2827,6 @@ function drawAll(ctx: C2, s: SurfState, w: number, h: number, th: Theme) {
         break;
       }
     }
-    void near;
   }
   if (s.surge) {
     const sg = s.surge, age = t - sg.t0 - 10;
@@ -2879,8 +2896,9 @@ function drawAll(ctx: C2, s: SurfState, w: number, h: number, th: Theme) {
     if (s.inv > 0 && s.mode !== TUMBLE && s.inv % 8 < 3) ctx.globalAlpha = 0.55;
     drawSurfer(ctx, x, y, U, ang, pose, t);
     ctx.globalAlpha = 1;
-    // 물 가르기
+    // 물 가르기 · 공중 물방울 꼬리
     if (s.mode === RIDE && t % 4 === 0) spray(f, s.x - 0.06, 0.005, 1, 0.005, -0.006, '#ffffff', 2.4);
+    if (s.mode === AIR && t % 2 === 0) f.spr.push({ x: s.x - 0.02, y: s.h + 0.02, vx: -0.002, vy: 0, life: 22, max: 22, r: 2.6, c: t % 4 ? '#ffffff' : '#9ff4ff' });
   }
   // 부두 (서퍼 앞)
   for (const it of s.items) {
