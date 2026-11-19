@@ -58,7 +58,7 @@ function cues() {
     if (e.kind === 'dash') (sfx.play('dash'), (e.n ?? 0) > 0 && sfx.play('slash', e.n));
     else if (e.kind === 'bounce') sfx.play('clink');
     else if (e.kind === 'ding' || e.kind === 'tok') sfx.play('clink');
-    else if (e.kind === 'sweep') sfx.play('star', 3); // 오너 피드백: 한 획 싹쓸이 // M2 S6 🔔 댕 · S7 🎋 툭
+    else if (e.kind === 'sweep') sfx.play('wave'), sfx.play('slash', 8); // 오너 피드백: 한 획 싹쓸이(🧪: 별 소리와 헷갈려 북 + 가장 높은 챙) // M2 S6 🔔 댕 · S7 🎋 툭
     else if (e.kind === 'shotcut') sfx.play('shotcut');
     else if (e.kind === 'hurt') sfx.play('hurt');
     else if (e.kind === 'fail') sfx.play('fail');

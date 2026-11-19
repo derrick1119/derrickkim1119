@@ -384,7 +384,9 @@ export interface DashState {
   dashN: number; chain: number; best: number; hits: number; arrows: number; backK: number; boomBest: number; boomBy: Record<number, number>;
   mirK: number; bounceT: number; bents: number; leafGuide: boolean; leafCut: boolean; dodgeN: number; bellGuide: boolean; bambooGuide: boolean;
   /** ✏️ M2 S4 부엉이 귀띔: 이 판에서 진 수 · 물어봄(화면이 카드를 띄운다) · 거절함(이 시도) · 쓰는 중(★★★ 없음, 길을 보여 줌) */
-  failN: number; owlAsk: boolean; owlNo: boolean; owl: boolean; bossCombo: number; dashes: number; firstDash: boolean; firstBig: number; firstPress: number;
+  failN: number; owlAsk: boolean; owlNo: boolean; owl: boolean;
+  /** 오너 피드백 → 🧪: 싹쓸이 뒤 '공짜 한 획' — 남은 틱 동안 꾹 해도 먹이 안 줄고, 다음 돌진은 먹이 안 든다(돌진하면 끝) */
+  free: number; bossCombo: number; dashes: number; firstDash: boolean; firstBig: number; firstPress: number;
   combo: { id: number; n: number; t: number };
   seen: Set<string>; spotted: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; spot: { id: number; t: number; label: string } | null;
   events: Ev[]; cuts: Cut[]; inks: Ink[]; trail: { legs: number[][]; t: number; n: number; sw?: boolean } | null;
@@ -664,7 +666,8 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
   const P = tracePath(s, pts, full ? reachFor(s, pts) : HOP);
   // 닌자 바로 위에서 떼면 취소 (게이지도 안 든다)
   if (pathLen(P) < 0.03 && !P.hits.length && !P.bounce) return void ev(s, 'cancel', s.nx, s.ny); // S003: 방패 바로 앞 0길이는 취소가 아니라 '챙' 튕김(헛방)
-  if (full) s.g = Math.max(0, s.g - dashCost(pathLen(P)));
+  if (full && !(s.free > 0)) s.g = Math.max(0, s.g - dashCost(pathLen(P))); // 공짜 한 획이면 먹이 안 든다
+  s.free = 0;
   s.dashes++;
   if (!s.firstDash) s.firstDash = true;
   see(s, 'dash', '');
@@ -793,9 +796,10 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
   if (n >= 3 && !s.foes.some((f) => f.st !== ENTER)) {
     s.g = GMAX;
     s.slowT = 60;
+    s.free = 240; // 🧪: 셋을 베면 먹이 이미 가득인 때가 많아(76~89%) '가득'만으로는 안 느껴짐 → 다음 한 획 공짜(꾹 4초까지)
     s.trail.sw = true;
     ev(s, 'sweep', P.ex, P.ey, n);
-    see(s, 'sweep', '한 획 싹쓸이! 느린 시간이 가득 차요');
+    see(s, 'sweep', '싹쓸이! 다음 한 획은 먹이 안 들어요');
   }
   if (P.bounce) ev(s, 'bounce', P.ex, P.ey);
   // ✏️ S004 '찾아오는 위협': 너구리 포수가 내린 자리를 노린다 — 빨간 고리가 조이고, 그 자리에 남아 있으면 맞는다.
@@ -1045,6 +1049,7 @@ function newStage(s: DashState) {
   s.starOk = [false, false, false];
   if (!s.again) s.base = s.pts;
   s.owlNo = false;
+  s.free = 0;
   s.owlAsk = !s.owl && s.failN >= OWL_FAILS; // M2 S4: 같은 판 세 번 지면 부엉이가 묻는다
   s.seen.add(d.key);
   if (d.smokes) s.seen.add('smoke');
@@ -1144,7 +1149,7 @@ export const slowdash: GameDef<DashState> = {
       stars: 0, base: 0, got: 0, starOk: [false, false, false], pts: 0, won: false, dead: false, again: false, tries: 0,
       nx: 0.5, ny: 1.17, face: 1, hp: HP, inv: 0, g: GMAX, down: false, lock: false, stiff: 0, whiffs: 0, stroke: [], anchor: null, dwell: 0, aim: null, holdT: 0, freeze: 0, slowT: 0,
       strikes: [], foes: [], shots: [], barrels: [], mirrors: [], smokes: [], bamboos: [], thorns: [], nid: 0, wave: 0, waveT: 0,
-      dashN: 0, chain: 0, best: 0, hits: 0, arrows: 0, backK: 0, boomBest: 0, boomBy: {}, mirK: 0, bounceT: -999, bents: 0, leafGuide: false, leafCut: false, dodgeN: 0, bellGuide: false, bambooGuide: false, failN: 0, owlAsk: false, owlNo: false, owl: false, bossCombo: 0, dashes: 0,
+      dashN: 0, chain: 0, best: 0, hits: 0, arrows: 0, backK: 0, boomBest: 0, boomBy: {}, mirK: 0, bounceT: -999, bents: 0, leafGuide: false, leafCut: false, dodgeN: 0, bellGuide: false, bambooGuide: false, failN: 0, free: 0, owlAsk: false, owlNo: false, owl: false, bossCombo: 0, dashes: 0,
       firstDash: false, firstBig: -1, firstPress: -1, combo: { id: -1, n: 0, t: -99 },
       seen: new Set<string>(), spotted: new Set<string>(), newsQ: [], news: null, spot: null, events: [], cuts: [], inks: [], trail: null,
       camX: 0, mood: 0, moodT: 0, owlT: -999, sheathT: -999, slowVis: 0,
@@ -1191,7 +1196,8 @@ export const slowdash: GameDef<DashState> = {
         s.aim = null;
       }
       if (s.down) {
-        if (s.dwell === 0) s.g -= DRAIN; // M2 S2: 닌자 위에 머물며 지우는 동안엔 먹이 안 준다(⅓초 머물기가 1-6·1-9 사람 한붓 클리어 .96→.88을 깎던 것)
+        if (s.free > 0) s.free--; // 싹쓸이 뒤 공짜 한 획: 꾹 하는 동안 먹이 안 준다
+        else if (s.dwell === 0) s.g -= DRAIN; // M2 S2: 닌자 위에 머물며 지우는 동안엔 먹이 안 준다(⅓초 머물기가 1-6·1-9 사람 한붓 클리어 .96→.88을 깎던 것)
         if (s.g <= 0) {
           s.g = 0;
           if (s.aim) doDash(s, strokeOf(s));
@@ -4012,7 +4018,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
         fx.kick(2 + n * 2.5);
         fx.ring(ex, ey - R(0.04), '#e8fbff', R(0.08 + n * 0.02), 3);
         fx.burst(ex, ey - R(0.04), '#ffffff', 8 + n * 3, 3, 2);
-        if (n > 0 && t - (fx.memo.bz ?? -99) > 40) (fx.memo.bz = t), say(ex, ey - R(0.25), n >= 3 ? '번쩍!!' : '번쩍!', '#ffffff', 16 + Math.min(4, n) * 3);
+        if (n > 0 && t - (fx.memo.bz ?? -99) > 40 && !s.events.some((q) => q.t === e.t && q.kind === 'sweep')) (fx.memo.bz = t), say(ex, ey - R(0.25), n >= 3 ? '번쩍!!' : '번쩍!', '#ffffff', 16 + Math.min(4, n) * 3);
         if (n > 1) fx.memo.sheath = t;
       }
     }
@@ -4098,8 +4104,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   const swB = fx.memo.swT === fx.memo.bigT, bl = swB ? 80 : 52; // 싹쓸이 띠는 더 크게 · 더 오래 · 화면 가로로
   if (fx.memo.bigT !== undefined && t - fx.memo.bigT < bl) {
     const age = t - fx.memo.bigT, n = fx.memo.bigN, sc2 = age < 6 ? 1.8 - 0.8 * (age / 6) : 1, a = Math.min(1, (bl - age) / 16);
-    const bx = swB ? w / 2 : clamp(fx.memo.bigX, w * 0.3, w * 0.7), by = clamp(fx.memo.bigY - R(0.2), Y(0.3), Y(1.1));
-    const txt = swB ? '싹쓸이!' : n >= 5 ? `${n}명 싹둑!` : `${n}명 베기!`, size = swB ? 44 : Math.min(36, 20 + n * 3.2);
+    const bx = swB ? w / 2 : clamp(fx.memo.bigX, w * 0.3, w * 0.7), by = swB ? Y(s.ny < 0.72 ? 0.88 : 0.36) : clamp(fx.memo.bigY - R(0.2), Y(0.3), Y(1.1)); // 🧪: 싹쓸이 띠는 닌자 반대쪽에(덮지 않게)
+    const txt = swB ? '싹쓸이!' : `${n}명 베기!`, size = swB ? 44 : Math.min(36, 20 + n * 3.2); // 🧪: '싹둑'은 '싹쓸이'와 헷갈려 뺌
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate(bx, by);
@@ -4134,7 +4140,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     if (swB) {
       ctx.font = `800 ${R(0.036)}px system-ui, sans-serif`;
       ctx.fillStyle = '#cfefff';
-      ctx.fillText(`${n}명 한 획 · 느린 시간 가득!`, 0, size * 0.72);
+      ctx.fillText(`${n}명 한 획 · 다음 한 획은 공짜!`, 0, size * 0.72);
     }
     if (n >= 3)
       for (let i = 0; i < 3; i++) {
@@ -4315,12 +4321,12 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.fill();
       const fr = clamp(s.g / GMAX, 0, 1), cost = prev && canCut ? Math.min(s.g, dashCost(pathLen(prev))) / GMAX : 0;
       const low = s.g < dashCost(0.3);
-      ctx.fillStyle = low ? lin(ctx, gx, 0, gx + gw, 0, [0, '#ff7a6a'], [1, '#ffb36b']) : lin(ctx, gx, 0, gx + gw, 0, [0, '#3fc9ff'], [1, '#e9fbff']);
+      ctx.fillStyle = s.free > 0 ? lin(ctx, gx, 0, gx + gw, 0, [0, '#ffb92e'], [1, '#fff3b0']) : low ? lin(ctx, gx, 0, gx + gw, 0, [0, '#ff7a6a'], [1, '#ffb36b']) : lin(ctx, gx, 0, gx + gw, 0, [0, '#3fc9ff'], [1, '#e9fbff']); // 공짜 한 획 동안 금빛
       if (fr > 0.005) {
         rr(ctx, gx, r1 - gh / 2, gw * fr, gh, gh / 2);
         ctx.fill();
       }
-      if (t - (fx.memo.swT ?? -99) < 60) { // 싹쓸이: 게이지 금테
+      if (s.free > 0 || t - (fx.memo.swT ?? -99) < 60) { // 싹쓸이: 게이지 금테(공짜 한 획 동안 계속)
         ctx.save();
         ctx.shadowColor = '#ffd84a';
         ctx.shadowBlur = 16;
