@@ -75,7 +75,7 @@ export const STAGES: StageDef[] = [
     key: 'night', name: '밤바다', news: '밤 — 해가 없어 먹이가 안 자라요. 게는 밤에 바빠요', tip: '밤엔 상어가 둘을 먹어요 — 낮에 먹이를 모아 둬요', days: 6,
     start: [[ANEM, 1], [CLOWN, 4], [WEED, 1], [CORAL, 1]], clar: 7, food: 5, sun: 3, algae: 2, night: true, current: [], sick: [],
     first: [CRAB, WEED, SHARK], pool: [CRAB, WEED, SHARK, CLOWN, HORSE, SNAIL, CORAL, ANEM, URCHIN],
-    stars: [ST('live', 0, '엿새 동안 살리기'), ST('noeat', 0, '하나도 안 먹히기'), ST('kinds', 6, '여섯 종 함께')],
+    stars: [ST('live', 0, '엿새 동안 살리기'), ST('noeat', 0, '안 먹히기'), ST('kinds', 6, '여섯 종 함께')],
   },
   {
     key: 'current', name: '해류', news: '해류 — 먹이를 실어 오지만 못 붙잡은 해마는 떠내려가요', tip: '해초·산호 하나에 해마 둘이 붙잡아요', days: 6,
@@ -87,7 +87,7 @@ export const STAGES: StageDef[] = [
     key: 'sick', name: '아픈 물고기', news: '아픈 물고기 — 날마다 옮아요. 넷이 되면 실패!', tip: '청소 새우가 고쳐 줘요 — 상어는 아픈 물고기부터 먹어요', days: 6,
     start: [[ANEM, 2], [CLOWN, 5], [WEED, 1], [SNAIL, 2]], clar: 7, food: 6, sun: 3, algae: 1, night: false, current: [], sick: [0, 3],
     first: [SHRIMP, SHARK, CLOWN], pool: [SHRIMP, SHARK, CLOWN, HORSE, CORAL, WEED, SNAIL, CRAB, ANEM, URCHIN],
-    stars: [ST('count', 8, '흰동가리 여덟', CLOWN), ST('noeat', 0, '하나도 안 먹히기'), ST('kinds', 7, '일곱 종 함께')],
+    stars: [ST('count', 8, '흰동가리 여덟', CLOWN), ST('noeat', 0, '안 먹히기'), ST('kinds', 7, '일곱 종 함께')],
   },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -1299,36 +1299,65 @@ function drawUrchin(ctx: Ctx, x: number, y: number, S: number, t: number, ph: nu
   ctx.restore();
 }
 
-/** 청소 새우: 빨강·흰 줄무늬, 긴 더듬이 */
+/** 청소 새우: 등에 흰 줄이 있는 빨간 새우 — 굽은 몸, 부채 꼬리, 긴 흰 더듬이 */
 function drawShrimp(ctx: Ctx, x: number, y: number, S: number, face: number, t: number, ph: number) {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(face, 1);
+  // 더듬이
   ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = S * 0.025;
+  ctx.lineWidth = S * 0.03;
+  ctx.lineCap = 'round';
   for (const k of [0, 1]) {
     ctx.beginPath();
-    ctx.moveTo(S * 0.3, -S * 0.08);
-    ctx.quadraticCurveTo(S * 0.7, -S * (0.5 + k * 0.15) + Math.sin(t * 0.1 + ph + k) * S * 0.08, S * 0.95, -S * (0.2 + k * 0.3));
+    ctx.moveTo(S * 0.42, -S * 0.12);
+    ctx.quadraticCurveTo(S * 0.85, -S * (0.6 + k * 0.2) + Math.sin(t * 0.1 + ph + k) * S * 0.1, S * 1.15, -S * (0.15 + k * 0.35));
     ctx.stroke();
   }
-  for (let k = 0; k < 5; k++) {
-    const a = -0.6 + k * 0.32, rr = S * (0.28 - k * 0.025);
+  // 다리
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = S * 0.025;
+  for (let k = 0; k < 4; k++) {
+    const lx = S * (0.25 - k * 0.15), sw = Math.sin(t * 0.4 + k + ph) * S * 0.04;
     ctx.beginPath();
-    ctx.arc(S * 0.1 - k * S * 0.13, Math.sin(a) * S * 0.08 + k * S * 0.02, rr, 0, TAU);
-    ctx.fillStyle = k % 2 ? '#ffffff' : '#ff5a6e';
-    ctx.fill();
-    ink(ctx, S * 0.03);
+    ctx.moveTo(lx, S * 0.08);
+    ctx.lineTo(lx + sw, S * 0.25);
+    ctx.stroke();
   }
+  // 꼬리 부채
+  ctx.save();
+  ctx.translate(-S * 0.5, -S * 0.02);
+  ctx.rotate(-0.5 + Math.sin(t * 0.15 + ph) * 0.1);
   ctx.beginPath();
-  ctx.moveTo(-S * 0.5, S * 0.05);
-  ctx.lineTo(-S * 0.72, -S * 0.12);
-  ctx.lineTo(-S * 0.72, S * 0.22);
+  ctx.moveTo(0, 0);
+  ctx.lineTo(-S * 0.25, -S * 0.14);
+  ctx.quadraticCurveTo(-S * 0.3, 0, -S * 0.25, S * 0.14);
   ctx.closePath();
   ctx.fillStyle = '#ff5a6e';
   ctx.fill();
-  ink(ctx, S * 0.03);
-  eye(ctx, S * 0.2, -S * 0.12, S * 0.09, { t, look: 0.6 }, '#ff5a6e');
+  ink(ctx, S * 0.035);
+  ctx.restore();
+  // 굽은 몸
+  const body = () => {
+    ctx.beginPath();
+    ctx.moveTo(S * 0.5, -S * 0.05);
+    ctx.bezierCurveTo(S * 0.45, -S * 0.32, -S * 0.25, -S * 0.36, -S * 0.52, -S * 0.04);
+    ctx.bezierCurveTo(-S * 0.3, S * 0.04, S * 0.2, S * 0.14, S * 0.5, -S * 0.05);
+  };
+  body();
+  ctx.fillStyle = lin(ctx, 0, -S * 0.3, 0, S * 0.1, [[0, '#ff8a6e'], [1, '#e8324e']]);
+  ctx.fill();
+  ink(ctx, S * 0.04);
+  ctx.beginPath();
+  ctx.moveTo(S * 0.38, -S * 0.2);
+  ctx.bezierCurveTo(S * 0.2, -S * 0.32, -S * 0.2, -S * 0.32, -S * 0.45, -S * 0.08);
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = S * 0.07;
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(150,20,40,.4)';
+  ctx.lineWidth = S * 0.02;
+  for (let k = 0; k < 4; k++) (ctx.beginPath(), ctx.moveTo(S * (0.15 - k * 0.15), -S * 0.22), ctx.lineTo(S * (0.18 - k * 0.15), S * 0.04), ctx.stroke());
+  eye(ctx, S * 0.36, -S * 0.17, S * 0.09, { t, look: 0.6, happy: false }, '#ff5a6e');
   ctx.restore();
 }
 
@@ -1763,21 +1792,30 @@ function drawAll(ctx: Ctx, s: ReefState, w: number, h: number, th: Theme) {
   }
   // 탁함·이끼
   if (murk > 0.01) {
-    ctx.fillStyle = `rgba(110,150,60,${murk * 0.42})`;
+    ctx.fillStyle = `rgba(120,170,70,${murk * 0.36})`;
     ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
-    for (let k = 0; k < Math.round(murk * 16); k++) {
-      const px = 0.05 + hsh(k + 200) * 0.9, py = 0.08 + hsh(k + 230) * 0.75, rr = U * (0.025 + hsh(k + 260) * 0.04);
-      ctx.fillStyle = `rgba(80,140,50,${0.35 + 0.3 * murk})`;
-      for (let j = 0; j < 4; j++) {
+    for (let k = 0; k < Math.round(murk * 14); k++) {
+      const px = tX(0.05 + hsh(k + 200) * 0.9), py = tY(0.08 + hsh(k + 230) * 0.72), rr = U * (0.035 + hsh(k + 260) * 0.04);
+      ctx.fillStyle = rad(ctx, px, py, rr * 0.1, rr, [[0, `rgba(110,170,60,${0.5 * murk + 0.15})`], [0.7, `rgba(130,185,70,${0.3 * murk})`], [1, 'rgba(130,185,70,0)']]);
+      ctx.beginPath();
+      ctx.arc(px, py, rr, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(90,150,50,${0.45 * murk})`;
+      ctx.lineWidth = 1;
+      for (let j = 0; j < 6; j++) {
+        const a = j * 1.05 + k;
         ctx.beginPath();
-        ctx.arc(tX(px) + Math.cos(j * 1.7) * rr * 0.6, tY(py) + Math.sin(j * 2.3) * rr * 0.5, rr * (0.5 + 0.2 * j), 0, TAU);
-        ctx.fill();
+        ctx.moveTo(px + Math.cos(a) * rr * 0.3, py + Math.sin(a) * rr * 0.3);
+        ctx.quadraticCurveTo(px + Math.cos(a + 0.4) * rr * 0.7, py + Math.sin(a + 0.4) * rr * 0.7, px + Math.cos(a) * rr * 0.95, py + Math.sin(a) * rr * 0.95);
+        ctx.stroke();
       }
     }
   }
   // 밤
   if (nf > 0.01) {
-    ctx.fillStyle = `rgba(16,28,80,${0.5 * nf})`;
+    ctx.fillStyle = lin(ctx, 0, y0, 0, y1, [[0, `rgba(40,50,120,${0.3 * nf})`], [1, `rgba(16,24,70,${0.45 * nf})`]]);
+    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+    ctx.fillStyle = rad(ctx, tX(0.78), y0, U * 0.02, U * 0.5, [[0, `rgba(220,235,255,${0.35 * nf})`], [1, 'rgba(200,220,255,0)']]);
     ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
     ctx.fillStyle = `rgba(150,255,240,${0.7 * nf})`;
     for (let k = 0; k < 24; k++) {
@@ -2456,10 +2494,10 @@ function drawHud(ctx: Ctx, s: ReefState, X: F1, Y: F1, R: F1, font: FontF, w: nu
   const chips = d.stars.map((q, i) => {
     const now = starNow(e, q), met = s.phase === 'result' && s.ok ? s.starOk[i] : !e.fail && starMet(e, q) && (q.k !== 'live' || true), broken = starBroken(e, q) || (s.phase === 'result' && s.ok && !s.starOk[i]);
     const text = q.label + (now ? ` ${now}` : '');
-    return { text, met: met && !broken, broken, wd: ctx.measureText(text).width + R(0.06), goal: i === 0 };
+    return { text, met: met && !broken, broken, wd: ctx.measureText(text).width + R(0.054), goal: i === 0 };
   });
-  const total = chips.reduce((a, c) => a + c.wd, 0) + R(0.012) * (chips.length - 1);
-  let cx = Math.max(X(0.015), (w - total) / 2);
+  const gap = R(0.01), total = chips.reduce((a, c) => a + c.wd, 0) + gap * (chips.length - 1);
+  let cx = Math.max(X(0.01), (w - total) / 2);
   const cy = Y(0.128);
   for (const c of chips) {
     ctx.fillStyle = c.met ? '#fff1b8' : c.broken ? '#e8eef2' : '#ffffff';
@@ -2469,7 +2507,7 @@ function drawHud(ctx: Ctx, s: ReefState, X: F1, Y: F1, R: F1, font: FontF, w: nu
     ctx.strokeStyle = c.goal ? '#ff9f1c' : c.met ? '#e0a400' : 'rgba(30,60,80,.3)';
     ctx.lineWidth = c.goal ? 2.2 : 1.3;
     ctx.stroke();
-    starPath(ctx, cx + R(0.026), cy, R(0.014));
+    starPath(ctx, cx + R(0.022), cy, R(0.013));
     ctx.fillStyle = c.met ? '#ffc93a' : c.broken ? '#b8c4cc' : '#ffffff';
     ctx.fill();
     ctx.strokeStyle = c.broken ? '#8a9aa6' : '#c98a00';
@@ -2477,16 +2515,16 @@ function drawHud(ctx: Ctx, s: ReefState, X: F1, Y: F1, R: F1, font: FontF, w: nu
     ctx.stroke();
     ctx.fillStyle = c.broken ? '#8a9aa6' : '#1d3a4a';
     ctx.textAlign = 'left';
-    ctx.fillText(c.text, cx + R(0.045), cy + 1);
+    ctx.fillText(c.text, cx + R(0.04), cy + 1);
     if (c.broken) {
       ctx.strokeStyle = '#8a9aa6';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.moveTo(cx + R(0.045), cy);
+      ctx.moveTo(cx + R(0.04), cy);
       ctx.lineTo(cx + c.wd - R(0.012), cy);
       ctx.stroke();
     }
-    cx += c.wd + R(0.012);
+    cx += c.wd + gap;
   }
   void t;
 }
@@ -2637,7 +2675,7 @@ function drawOverlays(ctx: Ctx, s: ReefState, X: F1, Y: F1, R: F1, font: FontF, 
     ctx.translate(w / 2, tY(0.42));
     const sc = back(k / 16);
     ctx.scale(sc, sc);
-    const bw = R(0.8), bh = R(0.36);
+    const bw = R(0.84), bh = R(s.ok ? 0.44 : 0.34);
     ctx.fillStyle = s.ok ? 'rgba(255,252,240,.97)' : 'rgba(255,240,236,.97)';
     ctx.beginPath();
     ctx.roundRect(-bw / 2, -bh / 2, bw, bh, R(0.04));
@@ -2648,21 +2686,21 @@ function drawOverlays(ctx: Ctx, s: ReefState, X: F1, Y: F1, R: F1, font: FontF, 
     font(0.058);
     ctx.fillStyle = '#1d3a4a';
     if (s.ok) {
-      ctx.fillText(s.won ? '어항 박사! 모두 성공' : `${d.name} 성공!`, 0, -bh * 0.33);
+      ctx.fillText(s.won ? '어항 박사! 모두 성공' : `${d.name} 성공!`, 0, -bh * 0.38);
       const n = s.starOk.length;
       for (let i = 0; i < n; i++) {
-        const sx = (i - (n - 1) / 2) * R(0.2), on = s.starOk[i], kk = k - 20 - i * 16, ss = on ? back(kk / 12) : 1;
-        starPath(ctx, sx, -bh * 0.04, R(0.055) * (kk < 0 && on ? 0.01 : ss));
-        ctx.fillStyle = on && kk >= 0 ? lin(ctx, sx, -bh * 0.15, sx, bh * 0.05, [[0, '#ffe680'], [1, '#ffb000']]) : '#e3e6ea';
+        const sx = (i - (n - 1) / 2) * R(0.15), on = s.starOk[i], kk = k - 20 - i * 16, ss = on ? back(kk / 12) : 1;
+        starPath(ctx, sx, -bh * 0.17, R(0.05) * (kk < 0 && on ? 0.01 : ss));
+        ctx.fillStyle = on && kk >= 0 ? lin(ctx, sx, -bh * 0.25, sx, -bh * 0.08, [[0, '#ffe680'], [1, '#ffb000']]) : '#e3e6ea';
         ctx.fill();
         ink(ctx, 2);
-        font(0.032, 700);
+        font(0.034, 700);
         ctx.fillStyle = on ? '#6a4a00' : '#8a9aa6';
-        ctx.fillText(d.stars[i].label, sx, bh * 0.2);
+        ctx.fillText(`${on ? '★' : '☆'} ${d.stars[i].label}${on ? '' : ' — 다음엔!'}`, 0, bh * (0.02 + i * 0.12));
       }
       font(0.034);
       ctx.fillStyle = '#4a6a7a';
-      ctx.fillText(`+${(CLEAR_PTS + s.got * STAR_PTS) * (s.stage + 1)}점`, 0, bh * 0.37);
+      ctx.fillText(`+${(CLEAR_PTS + s.got * STAR_PTS) * (s.stage + 1)}점`, 0, bh * 0.41);
     } else {
       ctx.fillText('으앗…', 0, -bh * 0.3);
       font(0.044);

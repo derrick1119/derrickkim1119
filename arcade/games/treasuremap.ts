@@ -22,7 +22,7 @@ import { juice } from '../juice.ts';
 const A = 1.5;
 // 화면 배치 (가로 폭 = 1 기준, 세로 = A)
 const HUD_H = 0.085, CHIP_Y = 0.09, CHIP_H = 0.05;
-const MAP_TOP = 0.148, FEET = 0.952, MAP_SPAN = 0.69, MAP_BOT = 1.0;
+const MAP_TOP = 0.148, FEET = 0.952, MAP_SPAN = 0.645, MAP_BOT = 1.0;
 const BAR_Y = 1.0, BAR_H = 0.112;
 const CARD_Y = 1.122, CARD_H = 0.352;
 const SC = { x: 0.04, y: 0.19, w: 0.92, h: 0.66 };
@@ -3799,14 +3799,17 @@ function drawAll(ctx: C2, s: TState, w: number, h: number, _th: Theme) {
     }
   }
   fx.memo.t = t;
-  // 큰 순간 띠
-  if (fx.memo.bigT !== undefined && t - fx.memo.bigT < 54 && (s.phase === 'event' || s.phase === 'shop')) {
-    const age = t - fx.memo.bigT, sc2 = age < 6 ? 1.7 - 0.7 * (age / 6) : 1, a = Math.min(1, (54 - age) / 14);
+  ctx.restore();
+  // ── 흔들리지 않는 칸: 탁자 · HUD · 띠 · 카드 · 판 카드 ──
+  drawTable(ctx, s, w, h, t);
+  // 큰 순간 띠 (사건 동안 비어 있는 카드 탁자 위에 크게)
+  if (fx.memo.bigT !== undefined && t - fx.memo.bigT < 70 && !s.opts.length && s.phase !== 'result' && s.phase !== 'fail') {
+    const age = t - fx.memo.bigT, sc2 = age < 6 ? 1.7 - 0.7 * (age / 6) : 1, a = Math.min(1, (70 - age) / 14);
     const text = bigText.get(s) ?? '';
-    const size = Math.min(30, R(0.075));
+    const size = Math.min(34, R(0.085));
     ctx.save();
     ctx.globalAlpha = a;
-    ctx.translate(fx.memo.bigX, fx.memo.bigY + R(0.07));
+    ctx.translate(w / 2, R(CARD_Y + CARD_H * 0.45) + Math.sin(age * 0.2) * 2);
     ctx.rotate(-0.05);
     ctx.scale(sc2, sc2);
     ctx.font = `900 ${size}px system-ui, sans-serif`;
@@ -3827,8 +3830,6 @@ function drawAll(ctx: C2, s: TState, w: number, h: number, _th: Theme) {
     ctx.fillText(text, 0, 2);
     ctx.restore();
   }
-  ctx.restore();
-  // ── 흔들리지 않는 칸: HUD · 띠 · 카드 · 판 카드 ──
   drawPanels(ctx, s, w, t);
   drawHud(ctx, s, w);
   drawBar(ctx, s, w, t);
@@ -3861,5 +3862,46 @@ function drawAll(ctx: C2, s: TState, w: number, h: number, _th: Theme) {
     ctx.stroke();
     drawHand(ctx, hx, hy, R(0.09), press);
   }
-  void h;
+}
+/** 카드 아래 탁자 (매 틱 다시 칠한다) */
+function drawTable(ctx: C2, s: TState, w: number, h: number, t: number) {
+  const R = (r: number) => r * w, y0 = R(BAR_Y + BAR_H);
+  ctx.fillStyle = lin(ctx, 0, y0, 0, h, [0, '#d8a466'], [1, '#c48a4c']);
+  ctx.fillRect(0, y0, w, h - y0);
+  ctx.strokeStyle = 'rgba(110,60,20,.35)';
+  ctx.lineWidth = 1.5;
+  for (let i = 1; i < 4; i++) {
+    const yy = y0 + ((h - y0) * i) / 4;
+    ctx.beginPath();
+    ctx.moveTo(0, yy);
+    ctx.lineTo(w, yy);
+    ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(255,230,180,.18)';
+  for (let i = 0; i < 4; i++) ctx.fillRect(0, y0 + ((h - y0) * i) / 4 + 2, w, 3);
+  ctx.fillStyle = 'rgba(80,40,10,.25)';
+  ctx.fillRect(0, y0, w, 4);
+  if (!s.opts.length) {
+    // 빈 탁자: 나침반 무늬
+    const cx = w / 2, cy = R(CARD_Y + CARD_H * 0.45), r = R(0.11);
+    ctx.save();
+    ctx.globalAlpha = 0.22;
+    ctx.translate(cx, cy);
+    ctx.rotate(Math.sin(t * 0.01) * 0.1);
+    ctx.strokeStyle = '#5a2e0e';
+    ctx.lineWidth = 2;
+    ell(ctx, 0, 0, r, r);
+    ctx.stroke();
+    ctx.fillStyle = '#5a2e0e';
+    starPath(ctx, 0, 0, r * 0.9, 0.18);
+    ctx.fill();
+    ctx.restore();
+    if (s.phase === 'walk') {
+      ctx.font = `800 ${Math.max(13, R(0.038))}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(70,35,10,.75)';
+      ctx.fillText('탐험대가 걸어가요…', cx, cy + r + R(0.04));
+    }
+  }
 }

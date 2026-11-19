@@ -2063,8 +2063,8 @@ function drawPot(ctx: C2, w: number, s: LabState, t: number) {
     ctx.fill();
   }
   // 솥 몸통
-  const liq = potColor(s);
-  ctx.fillStyle = radg(ctx, cx, rimY, 0, R(0.3), [0, liq.replace('rgb', 'rgba').replace(')', ',.35)').replace('#6ad0a0', 'rgba(106,208,160,.35)')], [1, 'rgba(255,255,255,0)']);
+  const liq = brewing ? `hsl(${(t * 9) % 360},85%,65%)` : potColor(s);
+  ctx.fillStyle = radg(ctx, cx, rimY, 0, R(0.3), [0, brewing ? `hsla(${(t * 9) % 360},90%,70%,.45)` : liq.startsWith('#') ? 'rgba(106,208,160,.3)' : liq.replace('rgb', 'rgba').replace(')', ',.35)')], [1, 'rgba(255,255,255,0)']);
   circ(ctx, cx, rimY, R(0.3));
   ctx.fill();
   ctx.beginPath();
@@ -2336,7 +2336,7 @@ function drawShelf(ctx: C2, w: number, s: LabState, t: number) {
         ctx.stroke();
       }
       const isNew = sl.made >= 0 && s.t - sl.made < 600;
-      const big = BY_ID[sl.id].base ? R(0.07) : R(0.083);
+      const big = BY_ID[sl.id].base ? R(0.08) : R(0.095);
       drawThing(ctx, sl.id, x, by - R(0.003) - bob, big, t, inPot ? 2 : 0, i * 3 + row);
       if (d.once && BY_ID[sl.id].base) {
         // 금 간 병 표시
