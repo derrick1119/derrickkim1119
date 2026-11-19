@@ -2266,7 +2266,7 @@ function previewBubble(ctx: C2, s: LabState, x: number, y: number, r: number, t:
   } else if (pv.kind === 'bad') {
     ctx.fillStyle = '#5a5a60';
     for (const [dx, dy, q] of [[-0.3, 0.1, 0.35], [0.25, 0.05, 0.38], [0, -0.25, 0.4]]) (circ(ctx, x + dx * pr, y + dy * pr, q * pr), ctx.fill());
-    say(ctx, '펑', x, y + pr * 0.05, Math.max(11, pr * 0.8), '#ffffff', '#3a3a40', 3);
+    say(ctx, '펑', x, y + pr * 0.05, Math.max(12, pr * 0.8), '#ffffff', '#3a3a40', 3);
   } else say(ctx, '?', x, y + 1, Math.max(12, pr * 1.2), '#ff8a3a', OUT, 3);
 }
 
@@ -2369,21 +2369,21 @@ function drawShelf(ctx: C2, w: number, s: LabState, t: number) {
         line(ctx, 1.4, '#ffffff');
       }
       if (inPot) {
-        circ(ctx, x + R(0.11), by - R(0.145), R(0.022));
+        circ(ctx, x + R(0.11), by - R(0.145), R(0.027));
         ctx.fillStyle = '#ffd23a';
         ctx.fill();
         line(ctx, 1.5);
-        say(ctx, inPot > 1 ? '×2' : '쏙', x + R(0.11), by - R(0.144), Math.max(11, R(0.026)), OUT, '#ffd23a', 0.1);
+        say(ctx, inPot > 1 ? '×2' : '쏙', x + R(0.11), by - R(0.144), Math.max(12, R(0.03)), OUT, '#ffd23a', 0.1);
       } else if (play && s.pot.length > 0 && s.pot.length < cap(d)) previewBubble(ctx, s, x + R(0.095), by - R(0.13), R(0.04), t, previewOf(s, [sl.id]));
       else if (isNew && play && !s.pot.length) {
         ctx.save();
         ctx.translate(x - R(0.1), by - R(0.14));
         ctx.rotate(-0.25);
-        rr(ctx, -R(0.035), -R(0.014), R(0.07), R(0.028), R(0.012));
+        rr(ctx, -R(0.045), -R(0.02), R(0.09), R(0.04), R(0.016));
         ctx.fillStyle = '#ff5a6e';
         ctx.fill();
         line(ctx, 1.2);
-        say(ctx, 'NEW', 0, 1, Math.max(10, R(0.022)), '#ffffff', OUT, 0.1);
+        say(ctx, 'NEW', 0, 1, Math.max(12, R(0.03)), '#ffffff', OUT, 0.1);
         ctx.restore();
       }
     }
@@ -2690,7 +2690,7 @@ function drawAll(ctx: C2, s: LabState, w: number, h: number, th: Theme) {
     }
     if (s.pot.length === 0) {
       // 마녀 말풍선
-      const bx = R(0.37), by = R(0.41), txt = '물이랑 불을 섞어 볼까?';
+      const bx = R(0.46), by = R(0.415), txt = '물이랑 불을 섞어 볼까?';
       ctx.font = `900 ${Math.max(13, R(0.04))}px system-ui, sans-serif`;
       const tw = ctx.measureText(txt).width + R(0.05);
       ctx.fillStyle = '#ffffff';

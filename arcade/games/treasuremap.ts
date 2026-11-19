@@ -67,9 +67,9 @@ export const STAGES: Spec[] = [
     stars: [REACH], newKey: '', newLabel: '',
   },
   {
-    key: 'volcano', name: '화산 섬', news: '떠돌이 상인 — 금화로 사과·방패를 사요', tip: '물건을 사면 금화가 줄어요 — 별도 금화!', rows: 5,
+    key: 'volcano', name: '화산 섬', news: '떠돌이 상인 — 금화로 사과·방패를 사요', tip: '방패를 사면 싸움이 덜 아파요', rows: 5,
     wt: [['chest', 0.32], ['monster', 0.44], ['camp', 0.24]], pw: [1, 2], chest: [4, 7], cave: [0, 0], shop: 2, pool: ['apple', 'shield'], caves: 0, boss: 0, crew: false,
-    stars: [REACH, GOLD(20)], newKey: 'shop', newLabel: '떠돌이 상인',
+    stars: [REACH, HALF], newKey: 'shop', newLabel: '떠돌이 상인',
   },
   {
     key: 'ice', name: '얼음 섬', news: '어두운 동굴 — 횃불이 있으면 보석, 없으면 박쥐!', tip: '동굴에 가려면 먼저 횃불을 사요', rows: 6,
@@ -3837,8 +3837,8 @@ function drawAll(ctx: C2, s: TState, w: number, h: number, _th: Theme) {
         const n = e.n ?? 0;
         fx.kick(n > 0 ? 4 + n * 1.5 : 2);
         fx.burst((spx + scx) / 2, scy - R(0.06), '#ffffff', 10, 3, 2.4);
-        if (n > 0) fx.pop(spx + R(0.17), scy - R(0.27), `체력 -${n}`, '#ff4a3a', 22), fx.blink('#ff8070', 0.12);
-        else fx.pop(spx + R(0.17), scy - R(0.27), '안 아파!', '#4aa8ff', 18);
+        if (n > 0) fx.pop(spx + R(0.17), scy - R(0.15), `체력 -${n}`, '#ff4a3a', 22), fx.blink('#ff8070', 0.12);
+        else fx.pop(spx + R(0.17), scy - R(0.15), '안 아파!', '#4aa8ff', 18);
         break;
       }
       case 'shield':
@@ -3919,7 +3919,7 @@ function drawAll(ctx: C2, s: TState, w: number, h: number, _th: Theme) {
   // ── 흔들리지 않는 칸: 탁자 · HUD · 띠 · 카드 · 판 카드 ──
   drawTable(ctx, s, w, h, t);
   // 큰 순간 띠 (사건 동안 비어 있는 카드 탁자 위에 크게)
-  if (fx.memo.bigT !== undefined && t - fx.memo.bigT < 70 && !s.opts.length && s.phase !== 'result' && s.phase !== 'fail') {
+  if (fx.memo.bigT !== undefined && t - fx.memo.bigT < 70 && !s.opts.length && (s.phase === 'event' || s.phase === 'shop')) {
     const age = t - fx.memo.bigT, sc2 = age < 6 ? 1.7 - 0.7 * (age / 6) : 1, a = Math.min(1, (70 - age) / 14);
     const text = bigText.get(s) ?? '';
     const size = Math.min(34, R(0.085));

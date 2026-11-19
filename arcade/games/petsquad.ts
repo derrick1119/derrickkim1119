@@ -2850,8 +2850,8 @@ function drawShop(ctx: C2, s: PetState, vis: Vis, X: (x: number) => number, Y: (
     ctx.lineJoin = 'round';
     ctx.lineWidth = 4;
     ctx.strokeStyle = on ? line : 'rgba(110,70,30,.4)';
-    const tx = R(0.02);
-    const mw = bw - R(0.1);
+    const tx = label === '다시 뽑기' || label === '팔기' ? 0 : R(0.02);
+    const mw = tx ? bw - R(0.1) : bw - R(0.03);
     ctx.strokeText(label, tx, sub ? -R(0.012) : R(0.003), mw);
     ctx.fillStyle = '#ffffff';
     ctx.fillText(label, tx, sub ? -R(0.012) : R(0.003), mw);
@@ -2864,23 +2864,10 @@ function drawShop(ctx: C2, s: PetState, vis: Vis, X: (x: number) => number, Y: (
   };
   if (selP) {
     const v = sellValue(selP);
-    btn(REROLL_BTN, '#ffd86a', '#f0a020', '#8a5208', '팔기', `금화 +${v}`, true, 1 + 0.03 * Math.sin(t * 0.25), (x, y) => coinIcon(ctx, x - R(0.005), y, R(0.018)));
+    btn(REROLL_BTN, '#ffd86a', '#f0a020', '#8a5208', '팔기', `금화 +${v}`, true, 1 + 0.03 * Math.sin(t * 0.25), () => undefined);
   } else if (rerollOn(s)) {
     const on = shop && s.coins >= REROLL;
-    btn(REROLL_BTN, '#7ac8ff', '#2f86e0', '#1a4a90', '다시 뽑기', '금화 1', on, 1, (x, y) => {
-      ctx.strokeStyle = on ? '#ffffff' : '#8a7a60';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.arc(x, y, R(0.016), 0.4, Math.PI * 1.7);
-      ctx.stroke();
-      ctx.fillStyle = on ? '#ffffff' : '#8a7a60';
-      ctx.beginPath();
-      ctx.moveTo(x + R(0.02), y - R(0.02));
-      ctx.lineTo(x + R(0.022), y - R(0.002));
-      ctx.lineTo(x + R(0.004), y - R(0.006));
-      ctx.closePath();
-      ctx.fill();
-    });
+    btn(REROLL_BTN, '#7ac8ff', '#2f86e0', '#1a4a90', '다시 뽑기', '금화 1', on, 1, () => undefined);
   }
   const has = s.board.some(Boolean);
   const fightOn = (shop && has) || (s.phase === 'result' && s.pt > 50);
@@ -2968,7 +2955,7 @@ function firstTip(s: PetState): number {
   const lions = s.board.filter((p) => p && p.k === 'lion').length, big = s.board.some((p) => p && p.k === 'lion' && p.star >= 2);
   if (big || s.buys >= 3) return 9;
   if (lions >= 1) {
-    for (let i = 0; i < 3; i++) if (!s.shop[i].sold && s.shop[i].k === 'lion') return i;
+    for (let i = 0; i < 3; i++) if (!s.shop[i].sold && s.shop[i].k === 'lion' && s.coins >= K.lion.cost && landing(s, 'lion').slot >= 0) return i;
   }
   return 9;
 }

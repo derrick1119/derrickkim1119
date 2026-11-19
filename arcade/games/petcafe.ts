@@ -2131,6 +2131,29 @@ function drawAll(ctx: C2, s: CafeState, w: number, h: number, th: Theme) {
     }
     ctx.restore();
   }
+  // 창으로 드는 햇살 줄기 + 떠다니는 먼지
+  if (!plan.rain) {
+    ctx.save();
+    for (let k = 0; k < 3; k++) {
+      const a = 0.12 + 0.05 * Math.sin(t * 0.02 + k * 2);
+      ctx.fillStyle = lin(ctx, R(0.1), R(0.25), R(0.45), R(0.9), [0, `rgba(255,248,200,${a})`], [1, 'rgba(255,248,200,0)']);
+      ctx.beginPath();
+      ctx.moveTo(R(0.06 + k * 0.07), R(0.22 + k * 0.03));
+      ctx.lineTo(R(0.1 + k * 0.07), R(0.21 + k * 0.03));
+      ctx.lineTo(R(0.5 + k * 0.08), R(0.95));
+      ctx.lineTo(R(0.36 + k * 0.08), R(0.95));
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle = '#fff6d0';
+    for (let k = 0; k < 14; k++) {
+      const u = ((t * 0.0025 + hsh(k) ) % 1), x = R(0.08 + u * 0.4 + hsh(k + 5) * 0.08), y = R(0.24 + u * 0.66) + Math.sin(t * 0.03 + k) * R(0.01);
+      ctx.globalAlpha = 0.35 + 0.35 * Math.sin(t * 0.05 + k * 1.7);
+      ell(ctx, x, y, R(0.004), R(0.004));
+      ctx.fill();
+    }
+    ctx.restore();
+  }
   // 등불 (따뜻한 번짐)
   for (const lx of [0.4, 0.62]) {
     const x = R(lx), y = R(0.17), fl = 0.9 + 0.1 * Math.sin(t * 0.07 + lx * 9);
@@ -3150,7 +3173,7 @@ function drawResult(ctx: C2, s: CafeState, R: (v: number) => number, t: number, 
       const nx = WEEKS[s.stage + 1];
       font(ctx, R(0.036), 900);
       ctx.fillStyle = '#d0405a';
-      ctx.fillText(`다음 주: ${nx.name}`, 0, ch / 2 - R(0.03), R(0.8));
+      ctx.fillText(`다음 주: ${nx.name} · 밑천 ${START_MONEY}으로 시작`, 0, ch / 2 - R(0.03), R(0.8));
     }
   } else {
     outText(ctx, '이번 주는 문을 닫아요', 0, -ch / 2 + R(0.06), '#ffffff', '#c0505a', 5, R(0.8));

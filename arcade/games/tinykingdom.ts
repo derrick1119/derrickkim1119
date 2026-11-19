@@ -2219,8 +2219,8 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
     // 용 친구: 탑에 감겨 졸고 있다
     if (s.dragonPal && !(s.phase === 'event' && s.ev?.k === 'friend' && evA < 70)) {
       ctx.save();
-      ctx.translate(cx + k * 0.11, by - k * 0.14);
-      ctx.scale(0.42, 0.42);
+      ctx.translate(cx + k * 0.105, by - k * 0.15);
+      ctx.scale(0.27, 0.27);
       drawDragon(ctx, R(0.003) * 2.2, 'happy', t);
       ctx.restore();
     }
@@ -2945,12 +2945,12 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
       if (a < 70) words.push(() => bigWord(ctx, '적군이다!', X(0.5), Y(0.34), Math.max(26, R(0.1)), '#d0303a', 1, a < 8 ? 0.6 + 0.5 * eo(a / 8) : 1.05));
       else words.push(() => bigWord(ctx, E.win ? '이겼다!' : '으앗, 졌다…', X(0.5), Y(0.34), Math.max(28, R(0.11)), E.win ? '#2f7ae0' : '#8a7a6a', 1, a < 80 ? 0.6 + 0.5 * eo((a - 72) / 8) : 1.05));
     } else if (E.k === 'friend') {
-      const ang = a * 0.08, rad = R(0.22) * (1 - c01((a - 50) / 30));
-      const dx = X(CASTLE.x) + Math.cos(ang) * rad + (a > 50 ? R(0.11) * c01((a - 50) / 30) : 0), dy = Y(0.36) + Math.sin(ang) * rad * 0.4 + (a > 50 ? R(0.03) * c01((a - 50) / 30) : 0);
+      const ang = a * 0.09, rad = R(0.14) * (1 - c01((a - 50) / 30));
+      const dx = X(CASTLE.x) + Math.cos(ang) * rad + (a > 50 ? R(0.11) * c01((a - 50) / 30) : 0), dy = Y(0.45) + Math.sin(ang) * rad * 0.35 + (a > 50 ? -R(0.06) * c01((a - 50) / 30) : 0);
       if (a < 80) {
         ctx.save();
         ctx.translate(dx, dy);
-        ctx.scale(0.55, 0.55);
+        ctx.scale(0.32, 0.32);
         drawDragon(ctx, R(0.003) * 2.2, 'happy', t);
         ctx.restore();
       }
@@ -2969,18 +2969,29 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
     const a = s.pt, b = s.broke;
     if (fx.memo.failT !== s.t - a) (fx.memo.failT = s.t - a), fx.kick(10), fx.blink('#ffd0d0', 0.4);
     const crowd = (col: string, kind: number) => {
-      for (let q = 0; q < 7; q++) {
-        const u = ((a * 0.012 + q / 7) % 1), px = X(0.1 + u * 0.8), py = Y(0.66 + (q % 3) * 0.03) - Math.abs(Math.sin(a * 0.3 + q)) * R(0.012);
+      for (let q = 0; q < 9; q++) {
+        const u = ((a * 0.012 + q / 9) % 1), px = X(0.1 + u * 0.8), py = Y(0.66 + (q % 3) * 0.03) - Math.abs(Math.sin(a * 0.3 + q)) * R(0.012);
         if (kind === 0) {
           // 쥐
           ctx.fillStyle = '#9a9aa8';
-          ell(ctx, px, py, R(0.014), R(0.008));
+          ctx.strokeStyle = OUT;
+          ctx.lineWidth = 1;
+          ell(ctx, px, py, R(0.02), R(0.012));
           ctx.fill();
-          ell(ctx, px + R(0.012), py - R(0.005), R(0.006), R(0.006));
+          ctx.stroke();
+          ell(ctx, px + R(0.018), py - R(0.008), R(0.009), R(0.009));
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = '#ffb0c8';
+          ell(ctx, px + R(0.016), py - R(0.017), R(0.005), R(0.005));
+          ctx.fill();
+          ctx.fillStyle = INK;
+          ell(ctx, px + R(0.022), py - R(0.009), R(0.002), R(0.002));
           ctx.fill();
           ctx.fillStyle = '#f2c14e';
-          ell(ctx, px - R(0.002), py - R(0.012), R(0.006), R(0.004));
+          ell(ctx, px - R(0.004), py - R(0.016), R(0.009), R(0.006));
           ctx.fill();
+          ctx.stroke();
         } else if (kind === 1) villager(ctx, px, py, R(0.022), col, 1, Math.abs(Math.sin(a * 0.4 + q)) * R(0.02), 1, q);
         else if (kind === 2) {
           // 복면 도둑 + 자루
@@ -3000,7 +3011,7 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
     if (b.bar === 3 && b.hi) {
       // 장군이 왕관을 쓴다
       ctx.save();
-      ctx.translate(X(0.5), Y(0.5));
+      ctx.translate(X(0.5), Y(0.735));
       soldier(ctx, 0, 0, R(0.04), t, 0);
       ctx.fillStyle = '#ffd23a';
       ctx.strokeStyle = OUT;
@@ -3216,7 +3227,7 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
       sub = s.hearts > 0 ? '하트 -1 · 같은 계절 다시' : '왕국 끝 — 다시 해 봐요';
     }
     if (head) {
-      const cy = Y(0.44), pop = Math.min(1, 0.5 + age / 10);
+      const cy = Y(s.phase === 'fail' ? 0.3 : s.phase === 'result' ? 0.36 : 0.44), pop = Math.min(1, 0.5 + age / 10);
       ctx.save();
       ctx.globalAlpha = c01(a);
       font(0.062, 900);
@@ -3656,10 +3667,10 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
         ctx.fillText(q.t, (x0 + x1) / 2, y0 + R(0.034), bw - R(0.03));
         // 결과 칩 (두 줄까지)
         const items = [0, 1, 2, 3].filter((i) => q.e[i]);
-        let r0 = R(0.042);
-        const gap = R(0.03);
+        let r0 = bw < R(0.4) ? R(0.035) : R(0.042);
+        const gap = bw < R(0.4) ? R(0.02) : R(0.03);
         const rows = items.length * chipW(r0) + (items.length - 1) * gap > bw - R(0.04) ? 2 : 1;
-        if (rows === 2) r0 = R(0.034);
+        if (rows === 2) r0 = Math.min(r0, R(0.034));
         const perRow = Math.ceil(items.length / rows);
         for (let rIdx = 0; rIdx < rows; rIdx++) {
           const its = items.slice(rIdx * perRow, rIdx * perRow + perRow);
