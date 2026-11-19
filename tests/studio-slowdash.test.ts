@@ -45,6 +45,26 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(s.best).toBe(3);
   });
 
+  it('오너 피드백 한 획 싹쓸이: 한 돌진에 셋 넘게 베고 화면에 적이 안 남으면 느린 시간 게이지가 가득 · 슬로 두 배 · 하나라도 남으면 아님', () => {
+    const go = (keep: number) => {
+      const s = g.create(1);
+      for (let k = 0; k < 60; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+      if (keep) s.foes.push({ ...s.foes[0], id: 999, x: 0.15, y: 0.6 }); // 줄 밖에 하나 더
+      for (let k = 0; k < 10; k++) g.step(s, { tap: false, dir: 0, pointer: { x: 0.5, y: 0.56 / A } });
+      s.g = 40; // 먹을 일부러 줄여 둠(가득 차는지 보려고)
+      g.step(s, { tap: false, dir: 0, pointer: null });
+      return s;
+    };
+    const a = go(0);
+    expect(a.best).toBe(3);
+    expect(a.events.some((e) => e.kind === 'sweep' && e.n === 3)).toBe(true);
+    expect(a.g).toBe(100);
+    expect(a.slowT).toBe(60);
+    const b = go(1);
+    expect(b.events.some((e) => e.kind === 'sweep')).toBe(false);
+    expect(b.g).toBeLessThan(100);
+  });
+
 
   it('S002 별 틀: 모든 판 별이 같은 세 가지(★ 지나가기 · ★★ 한 번에 N 베기 · ★★★ 한 대도 안 맞기 — S010 이름 바꿈: 하트 꼬리와 헷갈림), N만 다르다', () => {
     for (const d of STAGES) {

@@ -387,7 +387,7 @@ export interface DashState {
   failN: number; owlAsk: boolean; owlNo: boolean; owl: boolean; bossCombo: number; dashes: number; firstDash: boolean; firstBig: number; firstPress: number;
   combo: { id: number; n: number; t: number };
   seen: Set<string>; spotted: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; spot: { id: number; t: number; label: string } | null;
-  events: Ev[]; cuts: Cut[]; inks: Ink[]; trail: { legs: number[][]; t: number; n: number } | null;
+  events: Ev[]; cuts: Cut[]; inks: Ink[]; trail: { legs: number[][]; t: number; n: number; sw?: boolean } | null;
   // 연출용 (시뮬레이션 결과와 무관)
   camX: number; mood: number; moodT: number; owlT: number; sheathT: number; slowVis: number;
 }
@@ -787,6 +787,15 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
   if (n >= 2) {
     const ks = s.cuts.slice(-n);
     ev(s, 'multi', ks.reduce((a, c) => a + c.x, 0) / ks.length, ks.reduce((a, c) => a + c.y, 0) / ks.length, n);
+  }
+  // ✏️ 오너 피드백(M2 S9 뒤 "한방에 그어서 처치하면 시간이 다 찬다던지 더 멋있는 연출"): 한 획 싹쓸이 —
+  //   한 돌진에 셋 넘게 베고 화면에 남은 적이 없으면 느린 시간 게이지가 가득 차고 슬로가 두 배(연출은 금빛 칼자국 · 화면 가로 먹 띠 '싹쓸이!' · 게이지 금테)
+  if (n >= 3 && !s.foes.some((f) => f.st !== ENTER)) {
+    s.g = GMAX;
+    s.slowT = 60;
+    s.trail.sw = true;
+    ev(s, 'sweep', P.ex, P.ey, n);
+    see(s, 'sweep', '한 획 싹쓸이! 느린 시간이 가득 차요');
   }
   if (P.bounce) ev(s, 'bounce', P.ex, P.ey);
   // ✏️ S004 '찾아오는 위협': 너구리 포수가 내린 자리를 노린다 — 빨간 고리가 조이고, 그 자리에 남아 있으면 맞는다.
@@ -3656,20 +3665,21 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   items.sort((a, b) => a.y - b.y);
   for (const it of items) it.draw();
   // ── 돌진 자국: 칼빛 선 + 잔상 ──
-  if (s.trail && since < 24) {
-    const a = 1 - since / 24;
+  const sw = !!s.trail?.sw, life = sw ? 40 : 24;
+  if (s.trail && since < life) {
+    const a = 1 - since / life;
     for (const lg of s.trail.legs) {
       const x0 = X(lg[0]), y0 = Y(lg[1]) - R(0.05), x1 = X(lg[2]), y1 = Y(lg[3]) - R(0.05);
       ctx.save();
       ctx.lineCap = 'round';
-      ctx.strokeStyle = `rgba(150,230,255,${0.35 * a})`;
-      ctx.lineWidth = R(0.07) * (0.6 + a * 0.6);
+      ctx.strokeStyle = sw ? `rgba(255,214,90,${0.5 * a})` : `rgba(150,230,255,${0.35 * a})`; // 싹쓸이는 금빛 칼자국
+      ctx.lineWidth = R(sw ? 0.11 : 0.07) * (0.6 + a * 0.6);
       ctx.beginPath();
       ctx.moveTo(x0, y0);
       ctx.lineTo(x1, y1);
       ctx.stroke();
-      ctx.shadowColor = '#bff4ff';
-      ctx.shadowBlur = 16;
+      ctx.shadowColor = sw ? '#ffd84a' : '#bff4ff';
+      ctx.shadowBlur = sw ? 28 : 16;
       ctx.strokeStyle = `rgba(255,255,255,${a})`;
       ctx.lineWidth = R(0.012) * (0.5 + a);
       ctx.stroke();
@@ -4012,6 +4022,14 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       fx.burst(ex, ey, '#ffd84a', 10 + n * 5, 4 + n * 0.5, 2.6);
       fx.ring(ex, ey, '#ffd84a', R(0.12 + n * 0.03), 5);
     }
+    if (e.kind === 'sweep') { // 한 획 싹쓸이
+      fx.memo.swT = t;
+      fx.blink('#fff3c4', 0.6);
+      fx.kick(14);
+      fx.ring(ex, ey - R(0.04), '#ffd84a', R(0.7), 9);
+      fx.burst(ex, ey - R(0.04), '#ffd84a', 40, 7, 3);
+      fx.burst(ex, ey - R(0.04), '#1a1028', 20, 5, 4);
+    }
     if (e.kind === 'chain' && (e.n ?? 0) >= 3) say(w * 0.8, Y(0.56), `연쇄 ×${e.n}`, '#9ff0ff', Math.min(26, 14 + (e.n ?? 2) * 1.5));
     if (e.kind === 'bounce') {
       say(ex, ey - R(0.14), '챙!', '#ffd86b', 18);
@@ -4077,17 +4095,18 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   ctx.drawImage(bg.paper, 0, 0, w, h);
   ctx.restore();
   // 큰 순간 띠: 먹물 붓자국 위에 'N명 베기!'
-  if (fx.memo.bigT !== undefined && t - fx.memo.bigT < 52) {
-    const age = t - fx.memo.bigT, n = fx.memo.bigN, sc2 = age < 6 ? 1.8 - 0.8 * (age / 6) : 1, a = Math.min(1, (52 - age) / 16);
-    const bx = clamp(fx.memo.bigX, w * 0.3, w * 0.7), by = clamp(fx.memo.bigY - R(0.2), Y(0.3), Y(1.1));
-    const txt = n >= 5 ? `${n}명 싹둑!` : `${n}명 베기!`, size = Math.min(36, 20 + n * 3.2);
+  const swB = fx.memo.swT === fx.memo.bigT, bl = swB ? 80 : 52; // 싹쓸이 띠는 더 크게 · 더 오래 · 화면 가로로
+  if (fx.memo.bigT !== undefined && t - fx.memo.bigT < bl) {
+    const age = t - fx.memo.bigT, n = fx.memo.bigN, sc2 = age < 6 ? 1.8 - 0.8 * (age / 6) : 1, a = Math.min(1, (bl - age) / 16);
+    const bx = swB ? w / 2 : clamp(fx.memo.bigX, w * 0.3, w * 0.7), by = clamp(fx.memo.bigY - R(0.2), Y(0.3), Y(1.1));
+    const txt = swB ? '싹쓸이!' : n >= 5 ? `${n}명 싹둑!` : `${n}명 베기!`, size = swB ? 44 : Math.min(36, 20 + n * 3.2);
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate(bx, by);
     ctx.rotate(-0.07);
     ctx.scale(sc2, sc2);
     ctx.font = `900 ${size}px system-ui, sans-serif`;
-    const tw = ctx.measureText(txt).width, rx = tw / 2 + 18, ry = size * 0.75;
+    const tw = ctx.measureText(txt).width, rx = swB ? w * 0.5 : tw / 2 + 18, ry = size * (swB ? 0.95 : 0.75);
     ctx.fillStyle = 'rgba(16,10,34,.88)';
     ctx.beginPath();
     for (let i = 0; i <= 18; i++) {
@@ -4112,6 +4131,11 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.strokeText(txt, 0, 2);
     ctx.fillStyle = lin(ctx, 0, -size / 2, 0, size / 2, [0, '#fff6c2'], [0.55, '#ffd23f'], [1, '#ff9a2e']);
     ctx.fillText(txt, 0, 2);
+    if (swB) {
+      ctx.font = `800 ${R(0.036)}px system-ui, sans-serif`;
+      ctx.fillStyle = '#cfefff';
+      ctx.fillText(`${n}명 한 획 · 느린 시간 가득!`, 0, size * 0.72);
+    }
     if (n >= 3)
       for (let i = 0; i < 3; i++) {
         const an = t * 0.08 + (i * TAU) / 3;
@@ -4295,6 +4319,16 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       if (fr > 0.005) {
         rr(ctx, gx, r1 - gh / 2, gw * fr, gh, gh / 2);
         ctx.fill();
+      }
+      if (t - (fx.memo.swT ?? -99) < 60) { // 싹쓸이: 게이지 금테
+        ctx.save();
+        ctx.shadowColor = '#ffd84a';
+        ctx.shadowBlur = 16;
+        ctx.strokeStyle = '#ffd84a';
+        ctx.lineWidth = 3;
+        rr(ctx, gx, r1 - gh / 2, gw, gh, gh / 2);
+        ctx.stroke();
+        ctx.restore();
       }
       if (cost > 0) {
         ctx.fillStyle = `rgba(255,90,80,${0.55 + 0.25 * Math.sin(t * 0.4)})`;
