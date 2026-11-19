@@ -136,7 +136,7 @@ export interface PetState {
   stars: number; got: number; starOk: boolean[]; pts: number; won: boolean; dead: boolean; again: boolean; tries: number;
   down: boolean; firstTap: number; firstBig: number; wowN: number; slow: number;
   seen: Set<string>; banner: { head: string; sub: string; t: number } | null; spot: { x: number; y: number; t: number; label: string; rx: number; ry: number } | null;
-  events: Ev[]; pred: Pred | null; predKey: string; say: { slot: number; text: string; t: number } | null; bigText: string; bigT: number;
+  events: Ev[]; pred: Pred | null; predKey: string; say: { slot: number; text: string; t: number } | null; bigText: string; bigT: number; bigY: number;
 }
 
 const ev = (s: PetState, kind: string, x: number, y: number, n?: number, text?: string) => s.events.push({ t: s.t, kind, x, y, n, text });
@@ -151,6 +151,7 @@ function wow(s: PetState, text: string, x = 0.5, y = MID_Y) {
   if (s.firstBig < 0 && s.firstTap >= 0) s.firstBig = s.t;
   s.bigText = text;
   s.bigT = s.t;
+  s.bigY = y;
   ev(s, 'big', x, y, 0, text);
 }
 const slotsOf = (stage: number) => (stage >= 2 ? 6 : 3);
@@ -486,7 +487,7 @@ function endFight(s: PetState) {
     s.coins += d.win;
     if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS + s.hearts * HEART_PTS);
     ev(s, 'clear', 0.5, MID_Y, d.win);
-    if (f.lost === 0 && s.stage > 0) wow(s, '하나도 안 잃었다!', 0.5, MY_Y[0]);
+    if (f.lost === 0 && s.stage > 0) wow(s, '하나도 안 잃었다!', 0.5, 0.62);
   } else {
     s.hearts--;
     s.tries++;
@@ -654,7 +655,7 @@ const game: GameDef<PetState> & { wows(s: PetState): number } = {
       fight: null, fightCoins: 0, merges: 0, mergeAll: 0, swaps: 0, sells: 0,
       stars: 0, got: 0, starOk: [false], pts: 0, won: false, dead: false, again: false, tries: 0,
       down: false, firstTap: -1, firstBig: -1, wowN: 0, slow: 0,
-      seen: new Set<string>(), banner: null, spot: null, events: [], pred: null, predKey: '', say: null, bigText: '', bigT: -999,
+      seen: new Set<string>(), banner: null, spot: null, events: [], pred: null, predKey: '', say: null, bigText: '', bigT: -999, bigY: MID_Y,
     } as unknown as PetState;
     s.rots = STAGES.map(() => Math.floor(s.rng() * 3));
     s.board[1] = { id: ++s.nid, k: 'lion', star: 1, born: -999, land: -999, mergeT: -999, from: -1 };
@@ -2351,7 +2352,7 @@ function drawAll(ctx: C2, s: PetState, w: number, h: number, th: Theme) {
     const size = Math.min(36, R(0.09));
     ctx.save();
     ctx.globalAlpha = a;
-    ctx.translate(X(0.5), Y(0.5));
+    ctx.translate(X(0.5), Y(clamp(s.bigY, 0.42, 0.62)));
     ctx.rotate(-0.06);
     ctx.scale(sc2, sc2);
     ctx.font = `900 ${size}px system-ui, sans-serif`;
