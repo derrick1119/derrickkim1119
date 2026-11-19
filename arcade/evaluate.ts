@@ -32,6 +32,8 @@ export interface ArcadeReport {
   firstLoss?: { idle: number; late: number };
   /** 연타 (0080): 잘하는 봇 판의 분당 누름 수 · 같은 자리 연속 누름 최대 (8판 중앙값) */
   presses?: { perMin: number; maxSame: number | null };
+  /** 버릇 격차 (0081): 잘하는 봇의 초당 점수 ÷ 가장 잘한 버릇 봇의 초당 점수 (24판 중앙값). 1에 가까우면 버릇만으로 충분 = 전략이 얕다 */
+  habitGap?: number;
 }
 
 const median = (a: number[]) => {
@@ -39,6 +41,8 @@ const median = (a: number[]) => {
   return b.length % 2 ? b[(b.length - 1) / 2] : (b[b.length / 2 - 1] + b[b.length / 2]) / 2;
 };
 const clamp = (x: number) => Math.max(0, Math.min(1, x));
+/** 같은 시간당 점수 (0081: 느린 버릇 봇이 3분을 버티며 점수를 쌓는 것을 빼려고) */
+const rate = (r: { score: number; ticks: number }) => r.score / Math.max(1, r.ticks / 60);
 
 /** 하트(공통 칸 `hearts`, 팽이는 `lives`)를 읽는다. 없는 게임은 끝났는지(-1)만 본다 */
 const life = <S>(g: GameDef<S>, s: S): number => {
@@ -108,7 +112,7 @@ export function pressStats<S>(g: GameDef<S>, smart: Bot<S>, seeds: number[]): { 
   return { perMin: Math.round(median(per)), maxSame: placed && !g.anywhere ? median(same) : null };
 }
 
-export function evaluateGame<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, n = 24): ArcadeReport {
+export function evaluateGame<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, n = 24, habits: Bot<S>[] = []): ArcadeReport {
   const seeds = [...Array(n).keys()].map((i) => 1000 + i * 7919);
   const d = seeds.map((sd) => runBot(g, dumb, sd));
   const m = seeds.map((sd) => runBot(g, smart, sd, 60 * 180, REACT));
@@ -171,6 +175,7 @@ export function evaluateGame<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, n = 
     fun: +fun.toFixed(3),
     firstLoss: firstSeconds(g, dumb, seeds),
     presses: pressStats(g, smart, seeds.slice(0, 8)),
+    habitGap: habits.length ? +(median(m.map(rate)) / Math.max(1e-9, ...habits.map((h) => median(seeds.map((sd) => rate(runBot(g, h, sd, 60 * 180, REACT))))))).toFixed(2) : undefined,
   };
 }
 
@@ -178,9 +183,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const out: Record<string, ArcadeReport> = {};
   for (const e of GAMES) {
     const t0 = performance.now();
-    const r = evaluateGame(e.game as GameDef<unknown>, e.dumb as Bot<unknown>, e.smart as Bot<unknown>);
+    const r = evaluateGame(e.game as GameDef<unknown>, e.dumb as Bot<unknown>, e.smart as Bot<unknown>, 24, (e.habits ?? []) as Bot<unknown>[]);
     out[r.id] = r;
-    console.log(`${r.name.padEnd(8)} 재미 ${r.fun.toFixed(3)}${r.reveals ? ` · 펼쳐짐 ${r.reveals.join('/')} (못함 ${r.dumbReveals?.join('/')})` : ''} · 숙련격차 ${r.skillGap}× · 못함 ${r.dumb.sec}s/${r.dumb.score}점 · 잘함 ${r.smart.sec}s/${r.smart.score}점 (3분 버팀 ${Math.round(r.smart.capped * 100)}%) · 연타 분당 ${r.presses?.perMin}번 · 같은 자리 최대 ${r.presses?.maxSame ?? '—'} · 첫 몇 초 하트·지킬 것 손실 손 안 댐 ${Math.round((r.firstLoss?.idle ?? 0) * 100)}%/늦은 사람 ${Math.round((r.firstLoss?.late ?? 0) * 100)}% · ${((performance.now() - t0) / 1000).toFixed(1)}s`);
+    console.log(`${r.name.padEnd(8)} 재미 ${r.fun.toFixed(3)}${r.reveals ? ` · 펼쳐짐 ${r.reveals.join('/')} (못함 ${r.dumbReveals?.join('/')})` : ''} · 숙련격차 ${r.skillGap}× · 못함 ${r.dumb.sec}s/${r.dumb.score}점 · 잘함 ${r.smart.sec}s/${r.smart.score}점 (3분 버팀 ${Math.round(r.smart.capped * 100)}%) ${r.habitGap ? `· 버릇 격차 ${r.habitGap}× ` : ''}· 연타 분당 ${r.presses?.perMin}번 · 같은 자리 최대 ${r.presses?.maxSame ?? '—'} · 첫 몇 초 하트·지킬 것 손실 손 안 댐 ${Math.round((r.firstLoss?.idle ?? 0) * 100)}%/늦은 사람 ${Math.round((r.firstLoss?.late ?? 0) * 100)}% · ${((performance.now() - t0) / 1000).toFixed(1)}s`);
   }
   writeFileSync(join(import.meta.dirname, 'reports', 'eval.json'), JSON.stringify(out, null, 1) + '\n');
 }

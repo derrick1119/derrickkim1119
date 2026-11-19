@@ -37,7 +37,8 @@
   "presses": {
    "perMin": 35,
    "maxSame": 2
-  }
+  },
+  "habitGap": 1.18
  },
  "hookpirate": {
   "id": "hookpirate",
@@ -77,7 +78,8 @@
   "presses": {
    "perMin": 32,
    "maxSame": 2
-  }
+  },
+  "habitGap": 1.54
  },
  "topspin": {
   "id": "topspin",
@@ -117,7 +119,8 @@
   "presses": {
    "perMin": 20,
    "maxSame": 2
-  }
+  },
+  "habitGap": 2.81
  },
  "stompdino": {
   "id": "stompdino",
@@ -157,7 +160,8 @@
   "presses": {
    "perMin": 25,
    "maxSame": null
-  }
+  },
+  "habitGap": 5.88
  },
  "iceslide": {
   "id": "iceslide",
@@ -197,7 +201,8 @@
   "presses": {
    "perMin": 30,
    "maxSame": 2
-  }
+  },
+  "habitGap": 2.6
  },
  "axeback": {
   "id": "axeback",
@@ -237,6 +242,7 @@
   "presses": {
    "perMin": 39,
    "maxSame": 2
-  }
+  },
+  "habitGap": 1.45
  }
 }
