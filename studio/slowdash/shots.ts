@@ -95,6 +95,10 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
   await page.goto(url + '&stage=2');
   await page.waitForTimeout(2600);
   await page.screenshot({ path: join(out, '12-guide.png') });
+  // ✏️ M2 S3 새것 카드: 1-6 시작 카드 한 줄
+  await page.goto(url + '&stage=6');
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: join(out, '16-card.png') });
   // ✏️ M2 S1 🍃 시험 판: 잎 너구리를 곧게 겨누면 '휙! 꺾어요'
   await page.goto(url + '&trial=1');
   await page.waitForTimeout(3000);

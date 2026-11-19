@@ -165,7 +165,7 @@ export function human(name: string, react: number, err: number, slow: boolean, p
             const gd = K.guide(s), dm = gd ? K.demo(s) : false;
             if (gd && dm && m.fd === undefined) m.fd = follow.demo > 0 && rng() < follow.demo;
             if (gd && !dm && m.fg === undefined) m.fg = follow.guide > 0 && rng() < follow.guide;
-            if (gd && (dm ? m.fd || m.fg : m.fg) && rng() < 0.5) {
+            if (gd && (dm ? m.fd || m.fg : m.fg)) { // 🧪 S3: 따라 하는 사람은 볼 때마다 따라 그린다(전엔 반쯤)
               m.bend = gd[0];
               (m.x = gd[1].x), (m.y = gd[1].y);
               m.until = s.t + RT + 9;

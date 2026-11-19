@@ -104,7 +104,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 4, gift3: true,
   },
   {
-    key: 'bend', name: '갈림길', place: 0, news: '한붓 획 — 누른 채 그으면 그 길로 벤다', goal: '숲 지나가기', card: '누른 채 꺾어 그어요',
+    key: 'bend', name: '갈림길', place: 0, news: '한붓 획 — 누른 채 그으면 그 길로 벤다', goal: '숲 지나가기', card: '길게 그을수록 먹이 들어요',
     hint: '누른 채 꺾어 그어요', start: [0.5, 1.17], g0: 50, ease: [3, 1.5, 0.8],
     waves: [
       { need: 0, wait: 1e9, foes: [['dummy', 0.5, 0.6, 0], ['dummy', 0.5, 0.98, 0], ['dummy', 0.5, 0.86, 0], ['dummy', 0.5, 0.73, 0], ['dummy', 0.63, 0.6, 0], ['dummy', 0.76, 0.6, 0], ['dummy', 0.89, 0.6, 0]] },
@@ -2761,9 +2761,9 @@ function drawMirror(ctx: C2, ax: number, ay: number, bx: number, by: number, H: 
 }
 /** ✏️ S009 가시덤불: 먹빛 덤불 + 가시. hot = 지금 그리는 길이 걸림 */
 /** S012 1-2 길잡이: 적 a를 지나 꺾어 적 b 너머까지 — 셋 넘게 베는 길 중 가장 많이 베는 것(그리기 전용, 시뮬과 무관) */
-function guideOf(s: DashState) {
+function guideOf(s: DashState, min = 4) {
   const F = s.foes.filter((f) => f.st !== ENTER);
-  let best: { x: number; y: number }[] | null = null, bn = 3;
+  let best: { x: number; y: number }[] | null = null, bn = min - 1;
   for (const a of F)
     for (const b of F) {
       if (a === b) continue;
@@ -2796,7 +2796,7 @@ const demoNow = (s: DashState) => moveDemo(s) || (s.leafGuide && s.dodgeN >= LEA
 /** 지금 화면에 그려 주는 길잡이(1-2 ㄱ자 · 첫 휙 뒤 잎) — 그리기와 측정 봇이 같은 것을 본다 */
 function guideNow(s: DashState) {
   if (s.phase !== 'play' || s.down) return null;
-  if (moveDemo(s)) return guideOf(s);
+  if (moveDemo(s)) return guideOf(s, 3); // 🧪 S3: 하나 베어도 남은 셋을 꿰는 길로 계속
   if (s.stage === 1 && s.bents === 0) return guideOf(s);
   if (s.leafGuide) return leafGuideOf(s);
   return null;
@@ -4143,6 +4143,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       const fresh = s.news && s.phase === 'play' && s.t - s.news.t < NEWS_T; // ✏️ S012: 처음 알림(see)이 여기 뜬다 — 전엔 어디에도 안 그려졌다
       if (fresh) hint = s.news!.text;
       else if (s.stage === 0 && !s.firstDash && s.phase === 'play') hint = '꾹 누르면 느려져요 — 떼면 번쩍!';
+      else if (moveDemo(s) && !s.down && s.phase === 'play') hint = '끝에서 꺾어 쭉!'; // 🧪 S3: 그림(꺾기)과 같은 말
       else if (s.down && s.phase === 'play') hint = canCut ? '떼면 번쩍! 선 위의 적을 모두 베요' : '게이지가 모자라 짧게만 돌진해요';
       else if (s.phase === 'result') hint = s.ok ? (s.won ? '모든 판을 지나왔어요!' : `★ ${s.got}개! 다음 판엔 새 적이 나와요`) : '날아오는 건 비켜 서요 — 빨간 표시를 보세요';
       const first = s.stage === 0 && !s.firstDash;
