@@ -57,6 +57,7 @@ function cues() {
     const e = s.events[i];
     if (e.kind === 'dash') (sfx.play('dash'), (e.n ?? 0) > 0 && sfx.play('slash', e.n));
     else if (e.kind === 'bounce') sfx.play('clink');
+    else if (e.kind === 'ding') sfx.play('clink'); // M2 S6 🔔 댕
     else if (e.kind === 'shotcut') sfx.play('shotcut');
     else if (e.kind === 'hurt') sfx.play('hurt');
     else if (e.kind === 'fail') sfx.play('fail');

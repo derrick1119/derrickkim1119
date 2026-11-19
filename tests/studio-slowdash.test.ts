@@ -347,6 +347,28 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(worldStars({ a: 3, b: 2 }, ['a', 'b', 'c'])).toBe(5);
   });
 
+  it('M2 S6 🔔 종(보류): 한 획에 종 둘레를 따로 두 번 지나가야 쩍 · 한 번이면 댕(안 깨짐) · 폐기 기준에 걸려 2-6은 판 목록에서 뺐다', () => {
+    const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y: y / A } });
+    const go = (pts: number[][]) => {
+      const s = g.create(3);
+      startStage(s, K('bend'));
+      for (let k = 0; k < 60; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+      const f = s.foes[0];
+      s.foes = [f, s.foes[1]];
+      (f.k as string) = 'bell';
+      (f.x = 0.5), (f.y = 0.75), (s.nx = 0.5), (s.ny = 1.1), (s.g = 90), (s.inv = 0);
+      for (const [x, y] of pts) for (let k = 0; k < 3; k++) g.step(s, at(x, y));
+      g.step(s, { tap: false, dir: 0, pointer: null });
+      return { s, f };
+    };
+    const one = go([[0.5, 0.6]]); // 곧게 한 번
+    expect(one.s.foes.includes(one.f)).toBe(true);
+    expect(one.s.events.some((e) => e.kind === 'ding')).toBe(true);
+    const two = go([[0.5, 1.1], [0.5, 0.95], [0.5, 0.8], [0.5, 0.62], [0.42, 0.72], [0.36, 0.85], [0.3, 0.95]]); // 너머까지 갔다가 되돌아 V
+    expect(two.s.foes.includes(two.f)).toBe(false);
+    expect(TRIAL.some((d) => d.key === 'bell')).toBe(false);
+  });
+
   it('S005 효과음: 시뮬·봇은 소리를 모른다(헤드리스로 한 판 돌려도 AudioContext 0) · 연쇄 음계는 5음계로 오르고 8번째부터 고정', () => {
     runBot(g, slowdashSmart, 5, 60 * 120);
     expect(sfx.live).toBe(false);

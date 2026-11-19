@@ -50,7 +50,7 @@ export function strokePlan(s: DashState): { pts: Pt[]; n: number } | null {
   return best;
 }
 const straightN = (s: DashState, p: Pt) => K.path(s, [p]).hits.length;
-const isLeaf = (s: DashState, id: number) => (s.foes as unknown as Foe[]).some((f) => f.id === id && f.k === 'leaf');
+const isLeaf = (s: DashState, id: number) => (s.foes as unknown as Foe[]).some((f) => f.id === id && (f.k === 'leaf' || f.k === 'bell')); // M2 S6: 🔔도 '새것'
 /** M2 S1 낙차 대조군 스위치: 켜면 한붓 봇이 잎 너구리를 다른 적과 한 획에 엮지 않는다 */
 let LEAF_SOLO = false;
 /** ✏️ M2 S1 🍃 잎 너구리 길: 잎 옆(.13/.18)에 꺾는 점 → 잎 너머 .08 — 꺾인 토막으로 들어가야 베인다(strokePlan은 적 둘이 있어야 짠다) */
@@ -71,10 +71,27 @@ export function leafPlan(s: DashState): { pts: Pt[]; n: number } | null {
   }
   return best;
 }
+/** ✏️ M2 S6 🔔 종 길: 종 너머 .13까지 갔다가 ±20°·±35° 돌아 .30 되돌아오는 V — 종을 두 번 지나 쩍(📐 bellPlan) */
+export function bellPlan(s: DashState): { pts: Pt[]; n: number } | null {
+  let best: { pts: Pt[]; n: number } | null = null;
+  for (const B of live(s).filter((f) => f.k === 'bell')) {
+    const dx = B.x - s.nx, dy = B.y - s.ny, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
+    const V = { x: Math.min(K.X1, Math.max(K.X0, B.x + ux * 0.13)), y: Math.min(K.Y1, Math.max(K.Y0, B.y + uy * 0.13)) };
+    for (const a of [0.35, -0.35, 0.6, -0.6]) {
+      const rx = -ux * Math.cos(a) + uy * Math.sin(a), ry = -uy * Math.cos(a) - ux * Math.sin(a), pts = [V, { x: Math.min(K.X1, Math.max(K.X0, V.x + rx * 0.3)), y: Math.min(K.Y1, Math.max(K.Y0, V.y + ry * 0.3)) }];
+      const P = K.path(s, pts);
+      if (!P.hits.some((h) => h.id === B.id) || K.thorn(s, P) || (LEAF_SOLO && P.hits.length > 1)) continue;
+      if (K.danger(s, P.ex, P.ey, new Set(P.hits.map((h) => h.id))) < 40) continue;
+      if (!best || P.hits.length > best.n) best = { pts, n: P.hits.length };
+    }
+  }
+  return best;
+}
 /** 한붓 계획 = 적 둘 꺾기(strokePlan)와 잎 들어가기(leafPlan) 중 더 많이 베는 것 — 잎이 없으면 strokePlan 그대로 */
 function bestPlan(s: DashState) {
-  const a = strokePlan(s), b = leafPlan(s);
-  return !a ? b : !b ? a : b.n > a.n ? b : a;
+  let best = strokePlan(s);
+  for (const p of [leafPlan(s), bellPlan(s)]) if (p && (!best || p.n > best.n)) best = p; // 🍃·🔔
+  return best;
 }
 /** ✏️ S009 가시덤불 돌아가기: 곧은 줄이 덤불에 걸리면, 덤불 양옆으로 꺾는 길 중 걸리지 않고 곧은 줄만큼 베는 것(없으면 null) */
 export function detour(s: DashState, p: Pt): Pt[] | null {
@@ -206,8 +223,8 @@ export function human(name: string, react: number, err: number, slow: boolean, p
       }
       if (!ready(s) || s.t < m.until) return NO;
       let c = choose(s, rng);
-      if (!c && stroke === true) { // 🍃 잎만 남으면 장인 겨눔이 없다 — 잎을 겨누고 꾹(그다음 bestPlan이 꺾는 길을 그린다)
-        const L = live(s).find((f) => f.k === 'leaf');
+      if (!c && stroke === true) { // 🍃·🔔만 남으면 장인 겨눔이 없다 — 겨누고 꾹(그다음 bestPlan이 꺾는 길을 그린다)
+        const L = live(s).find((f) => f.k === 'leaf' || f.k === 'bell');
         if (L) c = { x: L.x, y: L.y };
       }
       if (!c) return (m.until = s.t + 6), NO;
@@ -243,8 +260,17 @@ export const slowdashSmartStroke: Bot<DashState> = {
     }
     if (q && s.down) return seqMem.delete(s), NO;
     const L = live(s);
-    if (!s.down && !s.lock && s.g >= 25 && L.length && L.every((f) => f.k === 'leaf')) { // 🍃 잎만 남으면 장인 탭은 못 벤다 — 바로 들어가기
-      const lp = leafPlan(s);
+    // ✏️ M2 S6 숨는 봇(📋: 연기 0은 측정기부터 의심): 연기가 있고 지금 그을 길이 없으면 가장 가까운 연기 속으로 가서 기다린다
+    if (HIDE && !s.down && !s.lock && s.smokes.length && !s.smokes.some((m) => Math.hypot(s.nx - m.x, s.ny - m.y) < m.r * 0.7) && s.g >= 30) {
+      const a0 = slowdashSmart.act(s, rng);
+      if (!a0.pointer && !bestPlan(s)) {
+        const m = s.smokes.reduce((b, q) => (Math.hypot(q.x - s.nx, q.y - s.ny) < Math.hypot(b.x - s.nx, b.y - s.ny) ? q : b));
+        return press(m.x, m.y);
+      }
+      if (a0.pointer) return a0;
+    }
+    if (!s.down && !s.lock && s.g >= 25 && L.length && L.every((f) => f.k === 'leaf' || f.k === 'bell')) { // 🍃·🔔만 남으면 장인 탭은 못 벤다 — 바로 들어가기
+      const lp = leafPlan(s) ?? bellPlan(s);
       if (lp) return seqMem.set(s, [lp.pts[1]]), press(lp.pts[0].x, lp.pts[0].y);
     }
     const a = slowdashSmart.act(s, rng);
@@ -398,7 +424,7 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
     if (s.down) (down++, cur++);
     else if (was) (holds++, (holdT += cur), (cur = 0));
     if (s.g < emptyG) empty++;
-    if (s.dashes > dn && s.combo.n >= 2 && s.cuts.slice(-s.combo.n).some((c) => c.k === 'leaf')) leafCombo = true; // 🍃 잎을 다른 적과 한 획에
+    if (s.dashes > dn && s.combo.n >= 2 && s.cuts.slice(-s.combo.n).some((c) => c.k === 'leaf' || c.k === 'bell')) leafCombo = true; // 🍃·🔔 새것을 다른 적과 한 획에
     if (s.dashes > dn && turned([{ x: px, y: py }, ...s.stroke, { x: s.nx, y: s.ny }]) && s.events.some((e) => e.t === s.t && e.kind === 'dodge')) bentDodge++; // 🍃 꺾었는데 휙(모든 토막 — 🧪 S2: 꺾은 뒤만 세면 규칙상 거의 0)
     if (s.dashes > dn) ((dn = s.dashes), s.combo.n === 0 && whiff++, turned([{ x: px, y: py }, ...s.stroke, { x: s.nx, y: s.ny }]) ? (bent++, (bentCut += s.combo.n)) : (lineCut += s.combo.n));
     for (let i = s.events.length - 1; i >= 0 && s.events[i].t === s.t; i--) if (s.events[i].kind === 'cancel') cancels++; // 🧪 S001: 조용한 취소(방패 바로 앞 길이 0 등)
@@ -613,6 +639,9 @@ export function campaign(bot: Bot<DashState>, seed: number, maxReplays = 10) {
   return { first, to18: to(18), to12: to(12), tries };
 }
 const STAGE_W1 = 10;
+/** M2 S6 숨는 봇 스위치(연기 판 낙차를 숨기 있음/없음으로) */
+export let HIDE = true;
+export const setHide = (v: boolean) => void (HIDE = v);
 const STAGE_COUNT_W1 = 10;
 /** M2 S4 다시 하는 판에도 부엉이(🧪) — 끄면 S4 첫 측정과 같다 */
 export let OWL_REPLAY = false; // 봇은 늘 받아서 ★★★를 스스로 잃는다(사람 반응 18 도달 .58→.33) — 측정은 끔, 게임에선 고를 수 있는 카드
