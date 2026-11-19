@@ -404,6 +404,11 @@ describe('느린 시간 닌자 시뮬', () => {
       for (const sd of [101, 108, 115]) expect(tryStage(BOTS.spam, sd, k).ok).toBe(false);
       expect([101, 108, 115].filter((sd) => try3(BOTS.newbieLow, sd, k).ok).length).toBeGreaterThanOrEqual(2);
       expect([101, 108, 115, 122].map((sd) => tryStage(BOTS.humanTap, sd, k).tapFall).every((n) => n === 0)).toBe(true); // 곧은 획 쓰러짐 0
+      const s0 = g.create(101); // 🧪 S7: 처음 쓰러뜨리기 전엔 '툭' 전에도 대나무 길과 손가락 시범
+      startStage(s0, k);
+      for (let i = 0; i < 90; i++) g.step(s0, { tap: false, dir: 0, pointer: null });
+      expect(measureKit.guide(s0)).not.toBeNull();
+      expect(measureKit.demo(s0)).toBe(true);
       setBambooOff(true); // ㊾ 대조 봇은 대나무를 안 쓴다
       expect([101, 108, 115].some((sd) => tryStage(BOTS.smartStroke, sd, k).bambooUse)).toBe(false);
     } finally {

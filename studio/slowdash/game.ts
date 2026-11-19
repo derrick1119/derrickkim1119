@@ -2912,7 +2912,9 @@ export const ONBOARD = { moveDemo: true };
 /** 1-1 둘째 웨이브(가로 넷)이고 아직 꺾은 획을 안 그었으면: 손가락이 줄 끝으로 가서 꺾어 긋는 길을 그어 보인다(GDD §7) */
 const moveDemo = (s: DashState) => ONBOARD.moveDemo && s.stage === 0 && s.wave === 2 && s.bents === 0;
 /** M2 S2 손가락 시범: 잎 길잡이가 보이고 휙이 LEAF_DEMO번 넘게 났을 때 · M2 S3: 1-1 옮겨 서기 시범도 손가락 */
-const demoNow = (s: DashState) => s.owl || moveDemo(s) || ((s.leafGuide || s.bellGuide || s.bambooGuide) && s.dodgeN >= LEAF_DEMO);
+/** 🧪 M2 S7: 대나무를 처음 쓰러뜨리기 전까지는 '툭' 전에도 대나무 길과 손가락 시범(처음 하는 사람이 쓰러짐 보상을 .17만 봄) */
+const bambooIntro = (s: DashState) => !s.seen.has('bambooFall') && s.bamboos.some((b) => b.fall < 0);
+const demoNow = (s: DashState) => s.owl || moveDemo(s) || ((s.leafGuide || s.bellGuide || s.bambooGuide) && s.dodgeN >= LEAF_DEMO) || (bambooIntro(s) && !s.leafGuide);
 /** ✏️ M2 S6 🔔 종 길잡이: 종 너머 .13까지 갔다가 ±20~35° 돌아 .30 되돌아오는 V(종을 두 번 지나는 것 중 가장 많이 베는 길) */
 function bellGuideOf(s: DashState) {
   let best: { x: number; y: number }[] | null = null, bn = 0;
@@ -2954,7 +2956,7 @@ function guideNow(s: DashState) {
   if (s.stage === 1 && s.bents === 0) return guideOf(s);
   if (s.leafGuide) return leafGuideOf(s);
   if (s.bellGuide) return bellGuideOf(s);
-  if (s.bambooGuide) return bambooGuideOf(s);
+  if (s.bambooGuide || bambooIntro(s)) return bambooGuideOf(s);
   return null;
 }
 

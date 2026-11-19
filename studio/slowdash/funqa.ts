@@ -704,8 +704,8 @@ export function measureTrial(seeds = 24, only?: string[]) {
         const off = seedsOf.map((sd) => tryStage(BOTS.smartStroke, sd, k));
         BAMBOO_OFF = false;
         const tap = ['humanTap', 'spam', 'smart'].flatMap((nm) => seedsOf.map((sd) => tryStage(BOTS[nm], sd, k)));
-        const hs = seedsOf.map((sd) => tryStage(BOTS.humanStroke, sd, k)), sc = seedsOf.map((sd) => tryStage(BOTS.scribble, sd, k));
-        row.bamboo = { use: r2(mean(t.map((x) => +x.bambooUse))), drop: r2(mean(t.map((x) => x.stars)) - mean(off.map((x) => x.stars))), s2: [r2(mean(t.map((x) => +x.s2))), r2(mean(off.map((x) => +x.s2)))], s3: [r2(mean(t.map((x) => +x.s3))), r2(mean(off.map((x) => +x.s3)))], best: [r2(mean(t.map((x) => x.best))), r2(mean(off.map((x) => x.best)))], humanUse: r2(mean(hs.map((x) => +x.bambooUse))), tapFall: tap.reduce((a, x) => a + x.tapFall, 0), scribbleS2: r2(mean(sc.map((x) => +x.s2))) };
+        const hs = seedsOf.map((sd) => tryStage(BOTS.humanStroke, sd, k)), sc = seedsOf.map((sd) => tryStage(BOTS.scribble, sd, k)), nl = seedsOf.map((sd) => try3(BOTS.newbieLow, sd, k));
+        row.bamboo = { use: r2(mean(t.map((x) => +x.bambooUse))), drop: r2(mean(t.map((x) => x.stars)) - mean(off.map((x) => x.stars))), s2: [r2(mean(t.map((x) => +x.s2))), r2(mean(off.map((x) => +x.s2)))], s3: [r2(mean(t.map((x) => +x.s3))), r2(mean(off.map((x) => +x.s3)))], best: [r2(mean(t.map((x) => x.best))), r2(mean(off.map((x) => x.best)))], humanUse: r2(mean(hs.map((x) => +x.bambooUse))), newbieLowUse: r2(mean(nl.map((x) => +x.bambooUse))), tapFall: tap.reduce((a, x) => a + x.tapFall, 0), scribbleS2: r2(mean(sc.map((x) => +x.s2))) };
       }
       if (d.smokes?.length) { // M2 S5 연기: 사용 = 장인 한붓이 연기에 1초 넘게 숨은 판 · 낙차 = 연기 있는 판 ★ − 연기 없앤 같은 판 ★
         HIDE = true; // 숨는 봇으로 잼(📋 S6)
