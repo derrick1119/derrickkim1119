@@ -45,11 +45,16 @@ type K = 'dummy' | 'sword' | 'archer' | 'shuri' | 'shield' | 'boss';
 const RAD: Record<K, number> = { dummy: 0.042, sword: 0.035, archer: 0.035, shuri: 0.035, shield: 0.04, boss: 0.066 };
 const PTS: Record<K, number> = { dummy: 10, sword: 20, archer: 25, shuri: 25, shield: 40, boss: 60 };
 const SPD: Record<K, number> = { dummy: 0, sword: 0.0032, archer: 0.0012, shuri: 0.0016, shield: 0.0024, boss: 0.0026 };
+/** 칼 드는 틱(측정용으로 바꿀 수 있게). ✏️ S003 실험: 24·30·40, 16·22·30으로 줄여도 F5(꾹−탭 ★ 차)가 안 움직여 그대로 둠 — 버릇 봇은 쉬지 않고 돌진해 칼잡이가 닿지 않는다 */
+export const WIND_T = { sword: 42, shield: 50, boss: 64 };
 const MELEE: Partial<Record<K, { start: number; reach: number; wind: number; rest: number }>> = {
-  sword: { start: 0.1, reach: 0.125, wind: 42, rest: 50 },
-  shield: { start: 0.1, reach: 0.13, wind: 50, rest: 60 },
-  boss: { start: 0.15, reach: 0.19, wind: 64, rest: 70 },
+  sword: { start: 0.1, reach: 0.125, get wind() { return WIND_T.sword; }, rest: 50 },
+  shield: { start: 0.1, reach: 0.13, get wind() { return WIND_T.shield; }, rest: 60 },
+  boss: { start: 0.15, reach: 0.19, get wind() { return WIND_T.boss; }, rest: 70 },
 };
+/** S003: 방패 무사가 도는 속도(rad/틱, 예전 .03 — 사람 반응 한 번에 등이 다시 앞이 되던 것) · 헛방 벌(먹 · 경직 틱 · 근처 칼잡이 반격 거리).
+ *  먹 깎기(📐 +10)는 '옮겨 서기' 빈 획까지 벌해 장인 5판 클리어 1 → .67이라 0 — 경직 20틱 + 근처 칼잡이 반격만 */
+export const TUNE = { shieldTurn: 0.015, whiffG: 0, stiff: 20, whiffR: 0.2 };
 /** 배우는 판은 너그럽게: [게이지 차는 배수, 칼 드는 시간 배수, 걷는 속도 배수] (1판·2판·그 뒤) */
 const EASE = [[5, 1.5, 0.8], [3, 1.5, 0.8], [1, 1, 1]];
 /** 적 상태 */
@@ -184,7 +189,7 @@ export interface DashState {
   rng: Rng; seed: number; t: number; wt: number; stage: number; phase: 'play' | 'result'; pt: number; ok: boolean; why: string;
   stars: number; base: number; got: number; starOk: boolean[]; pts: number; won: boolean; dead: boolean; again: boolean; tries: number;
   nx: number; ny: number; face: number; hp: number; inv: number; g: number;
-  down: boolean; lock: boolean; aim: { x: number; y: number } | null; holdT: number;
+  down: boolean; lock: boolean; stiff: number; whiffs: number; aim: { x: number; y: number } | null; holdT: number;
   freeze: number; slowT: number;
   foes: Foe[]; shots: Shot[]; barrels: Barrel[]; mirrors: Mirror[]; smokes: Smoke[]; nid: number;
   wave: number; waveT: number;
@@ -346,7 +351,7 @@ function doDash(s: DashState, tx: number, ty: number) {
   const L = reachOf(s.g), full = L >= HOP;
   const P = trace(s, s.nx, s.ny, tx, ty, full ? L : HOP, true);
   // 닌자 바로 위에서 떼면 취소 (게이지도 안 든다)
-  if (pathLen(P) < 0.03 && !P.hits.length) return void ev(s, 'cancel', s.nx, s.ny);
+  if (pathLen(P) < 0.03 && !P.hits.length && !P.bounce) return void ev(s, 'cancel', s.nx, s.ny); // S003: 방패 바로 앞 0길이는 취소가 아니라 '챙' 튕김(헛방)
   if (full) s.g = Math.max(0, s.g - dashCost(pathLen(P)));
   s.dashes++;
   if (!s.firstDash) s.firstDash = true;
@@ -416,6 +421,14 @@ function doDash(s: DashState, tx: number, ty: number) {
     ev(s, 'multi', ks.reduce((a, c) => a + c.x, 0) / ks.length, ks.reduce((a, c) => a + c.y, 0) / ks.length, n);
   }
   if (P.bounce) ev(s, 'bounce', P.ex, P.ey);
+  // ✏️ S003 헛방 벌(📐 CONTENT 개발 메모 2): 아무것도 못 벤 획 — 먹 -10 · 20틱 다시 못 긋기 · 근처 칼잡이가 그 틈에 바로 칼을 든다
+  if (n === 0 && !P.shots.length && !P.barrels.length) {
+    s.g = Math.max(0, s.g - TUNE.whiffG);
+    s.stiff = TUNE.stiff;
+    s.whiffs++;
+    for (const f of s.foes) if (MELEE[f.k] && f.st === IDLE && Math.hypot(f.x - s.nx, f.y - s.ny) < TUNE.whiffR) f.cool = 0;
+    ev(s, 'whiffme', s.nx, s.ny);
+  }
   if (s.chain >= 2 && n > 0) ev(s, 'chain', P.ex, P.ey, s.chain);
 }
 
@@ -446,7 +459,7 @@ function foeStep(s: DashState, f: Foe, dt: number, hidden: boolean) {
   }
   if (f.k === 'dummy') return;
   const dx = s.nx - f.x, dy = s.ny - f.y, d = Math.hypot(dx, dy) || 1e-6;
-  if (!hidden) f.fa = turnTo(f.fa, Math.atan2(dy, dx), (f.k === 'shield' ? 0.03 : 0.3) * dt);
+  if (!hidden) f.fa = turnTo(f.fa, Math.atan2(dy, dx), (f.k === 'shield' ? TUNE.shieldTurn : 0.3) * dt);
   const m = MELEE[f.k];
   if (m) {
     if (f.st === IDLE) {
@@ -597,6 +610,7 @@ function newStage(s: DashState) {
   s.inv = 30;
   s.g = d.g0 ?? G0;
   s.down = false;
+  s.stiff = 0;
   s.aim = null;
   s.freeze = 0;
   s.slowT = 0;
@@ -716,7 +730,7 @@ export const slowdash: GameDef<DashState> = {
     const s = {
       rng: mulberry32(seed), seed, t: 0, wt: 0, stage: 0, phase: 'play', pt: 0, ok: false, why: '',
       stars: 0, base: 0, got: 0, starOk: [false, false, false], pts: 0, won: false, dead: false, again: false, tries: 0,
-      nx: 0.5, ny: 1.17, face: 1, hp: HP, inv: 0, g: GMAX, down: false, lock: false, aim: null, holdT: 0, freeze: 0, slowT: 0,
+      nx: 0.5, ny: 1.17, face: 1, hp: HP, inv: 0, g: GMAX, down: false, lock: false, stiff: 0, whiffs: 0, aim: null, holdT: 0, freeze: 0, slowT: 0,
       foes: [], shots: [], barrels: [], mirrors: [], smokes: [], nid: 0, wave: 0, waveT: 0,
       dashN: 0, chain: 0, best: 0, hits: 0, arrows: 0, backK: 0, boomBest: 0, boomBy: {}, mirK: 0, bossCombo: 0, dashes: 0,
       firstDash: false, firstBig: -1, firstPress: -1, combo: { id: -1, n: 0, t: -99 },
@@ -731,7 +745,7 @@ export const slowdash: GameDef<DashState> = {
     const p = inp.pointer ?? null;
     if (s.phase === 'play') {
       if (p) {
-        if (!s.down && !s.lock) {
+        if (!s.down && !s.lock && s.stiff <= 0) {
           s.down = true;
           s.holdT = 0;
           if (s.firstPress < 0) s.firstPress = s.t;
@@ -760,6 +774,7 @@ export const slowdash: GameDef<DashState> = {
       s.lock = !!p;
     }
     if (s.inv > 0) s.inv--;
+    if (s.stiff > 0) s.stiff--;
     let dt = 1;
     if (s.freeze > 0) (s.freeze--, (dt = 0));
     else if (s.down && s.g > 0) dt = SLOW;

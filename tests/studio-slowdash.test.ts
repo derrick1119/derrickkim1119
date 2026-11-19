@@ -74,6 +74,32 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(missOf(w)).toBe('');
   });
 
+  it('S003 헛방: 아무것도 못 벤 획은 20틱 동안 다시 못 긋는다 · 방패 바로 앞 0길이 떼기는 취소가 아니라 튕김(헛방)', () => {
+    const s = g.create(4);
+    startStage(s, 1);
+    for (let k = 0; k < 40; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+    g.step(s, { tap: false, dir: 0, pointer: { x: s.nx, y: (s.ny - 0.3) / A } }); // 빈 곳으로 꾹
+    g.step(s, { tap: false, dir: 0, pointer: null }); // 떼기 → 빈 획
+    expect(s.dashes).toBe(1);
+    expect(s.whiffs).toBe(1);
+    expect(s.stiff).toBeGreaterThan(0);
+    g.step(s, { tap: false, dir: 0, pointer: { x: 0.5, y: 0.5 } });
+    expect(s.down).toBe(false); // 경직 중에는 눌러도 느려지지 않는다
+    // 방패 바로 앞: 길이 0이어도 '튕김' 사건이 나고 헛방으로 센다
+    const t = g.create(9);
+    startStage(t, 4);
+    for (let k = 0; k < 80; k++) g.step(t, { tap: false, dir: 0, pointer: null });
+    const sh = t.foes.find((f) => f.k === 'shield')!;
+    sh.fa = Math.atan2(t.ny - sh.y, t.nx - sh.x);
+    t.nx = sh.x + Math.cos(sh.fa) * 0.062;
+    t.ny = sh.y + Math.sin(sh.fa) * 0.062;
+    const w0 = t.whiffs;
+    g.step(t, { tap: false, dir: 0, pointer: { x: sh.x, y: sh.y / A } });
+    g.step(t, { tap: false, dir: 0, pointer: null });
+    expect(t.events.some((e) => e.kind === 'bounce' && e.t === t.t)).toBe(true);
+    expect(t.whiffs).toBe(w0 + 1);
+  });
+
   it('장인 봇은 8판을 모두 지나간다 (콘텐츠가 풀린다)', () => {
     for (let k = 0; k < STAGES.length; k++) for (const seed of [11, 22]) expect(tryStage(slowdashSmart, seed, k).ok, `${k + 1}판 시드 ${seed}`).toBe(true);
   });
