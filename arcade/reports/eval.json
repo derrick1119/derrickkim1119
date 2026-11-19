@@ -29,7 +29,11 @@
    "simplicity": 0.85,
    "unfold": 1
   },
-  "fun": 0.902
+  "fun": 0.902,
+  "firstLoss": {
+   "idle": 0,
+   "late": 0
+  }
  },
  "hookpirate": {
   "id": "hookpirate",
@@ -61,7 +65,11 @@
    "simplicity": 0.85,
    "unfold": 1
   },
-  "fun": 0.908
+  "fun": 0.908,
+  "firstLoss": {
+   "idle": 0,
+   "late": 0
+  }
  },
  "topspin": {
   "id": "topspin",
@@ -93,7 +101,11 @@
    "simplicity": 0.85,
    "unfold": 1
   },
-  "fun": 0.918
+  "fun": 0.918,
+  "firstLoss": {
+   "idle": 0,
+   "late": 0
+  }
  },
  "stompdino": {
   "id": "stompdino",
@@ -125,7 +137,11 @@
    "simplicity": 0.85,
    "unfold": 1
   },
-  "fun": 0.913
+  "fun": 0.913,
+  "firstLoss": {
+   "idle": 0,
+   "late": 0
+  }
  },
  "iceslide": {
   "id": "iceslide",
@@ -157,7 +173,11 @@
    "simplicity": 0.85,
    "unfold": 1
   },
-  "fun": 0.978
+  "fun": 0.978,
+  "firstLoss": {
+   "idle": 0,
+   "late": 0
+  }
  },
  "axeback": {
   "id": "axeback",
@@ -189,6 +209,10 @@
    "simplicity": 0.85,
    "unfold": 1
   },
-  "fun": 0.944
+  "fun": 0.944,
+  "firstLoss": {
+   "idle": 0,
+   "late": 0
+  }
  }
 }

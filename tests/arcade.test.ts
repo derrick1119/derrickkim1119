@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { GENES, REACT, runBot } from '../arcade/core.ts';
 import { GAMES } from '../arcade/registry.ts';
+import { firstSeconds } from '../arcade/evaluate.ts';
 
 describe('genes (0018)', () => {
   it('every gene has a kind and the pool is diverse', () => {
@@ -39,6 +40,8 @@ describe('arcade factory (실험 0011)', () => {
         expect(game.reveals(st)).toBeGreaterThanOrEqual(first);
       }
       const seeds = [11, 22, 33, 44];
+      // 첫인상(0078): 화면을 읽는 사람은 손대기 전에 지면 안 된다 — 아무것도 안 누르고 10초에 하트를 잃지 않는다
+      expect(firstSeconds(game, dumb, seeds).idle).toBe(0);
       const d = seeds.reduce((a, sd) => a + runBot(game, dumb, sd, 60 * 90).score, 0);
       const m = seeds.reduce((a, sd) => a + runBot(game, smart, sd, 60 * 90, REACT).score, 0);
       expect(m).toBeGreaterThan(d * 1.5);

@@ -28,6 +28,8 @@ export interface ArcadeReport {
   /** 못하는 봇(처음 하는 사람) 판: 30초 시점·판이 끝날 때의 '새로 등장한 것' 수 (0025) */
   dumbReveals?: [number, number];
   fun: number;
+  /** 처음 하는 사람의 첫 몇 초 (0078): 손 안 대고 10초에 하트를 잃은 판 비율 · 3초 늦게 시작해 1.5초마다 판단하는 무작위 봇이 처음 13초에 하트를 잃은 판 비율 */
+  firstLoss?: { idle: number; late: number };
 }
 
 const median = (a: number[]) => {
@@ -35,6 +37,35 @@ const median = (a: number[]) => {
   return b.length % 2 ? b[(b.length - 1) / 2] : (b[b.length / 2 - 1] + b[b.length / 2]) / 2;
 };
 const clamp = (x: number) => Math.max(0, Math.min(1, x));
+
+/** 하트(공통 칸 `hearts`)를 읽는다. 없는 게임은 끝났는지(-1)만 본다 */
+const life = <S>(g: GameDef<S>, s: S): number => {
+  const h = (s as { hearts?: unknown }).hearts;
+  return g.over(s) ? -1 : typeof h === 'number' ? h : 0;
+};
+
+/**
+ * 처음 하는 사람의 첫 몇 초 (0078). 무작위 봇은 첫 틱부터 누르니 '처음 10초 패배 0'이 나와도
+ * 화면을 읽는 사람은 손대기 전에 질 수 있다(0077 공룡: 2초에 알 셋, 5초에 하트 -1).
+ *  idle — 아무것도 안 누르고 10초 동안 하트를 잃었나
+ *  late — 3초 동안 안 누르다가 1.5초(90틱)마다 한 번 판단하는 무작위 봇이 처음 13초에 하트를 잃었나
+ */
+export function firstSeconds<S>(g: GameDef<S>, dumb: Bot<S>, seeds: number[]): { idle: number; late: number } {
+  let idle = 0, late = 0;
+  for (const sd of seeds) {
+    const a = g.create(sd), h0 = life(g, a);
+    for (let t = 0; t < 600 && !g.over(a); t++) g.step(a, NO_INPUT);
+    if (life(g, a) < h0) idle++;
+    const b = g.create(sd), rng = mulberry32(sd ^ 0x9e3779b9);
+    let held = NO_INPUT;
+    for (let t = 0; t < 780 && !g.over(b); t++) {
+      const inp = t < 180 ? NO_INPUT : (t - 180) % 90 === 0 ? (held = dumb.act(b, rng)) : { ...held, tap: false, move: undefined, pick: undefined };
+      g.step(b, inp);
+    }
+    if (life(g, b) < h0) late++;
+  }
+  return { idle: +(idle / seeds.length).toFixed(3), late: +(late / seeds.length).toFixed(3) };
+}
 
 export function evaluateGame<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, n = 24): ArcadeReport {
   const seeds = [...Array(n).keys()].map((i) => 1000 + i * 7919);
@@ -97,6 +128,7 @@ export function evaluateGame<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, n = 
     dumbReveals,
     parts: Object.fromEntries(Object.entries(parts).map(([k, v]) => [k, +v.toFixed(3)])) as ArcadeReport['parts'],
     fun: +fun.toFixed(3),
+    firstLoss: firstSeconds(g, dumb, seeds),
   };
 }
 
@@ -106,7 +138,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const t0 = performance.now();
     const r = evaluateGame(e.game as GameDef<unknown>, e.dumb as Bot<unknown>, e.smart as Bot<unknown>);
     out[r.id] = r;
-    console.log(`${r.name.padEnd(8)} 재미 ${r.fun.toFixed(3)}${r.reveals ? ` · 펼쳐짐 ${r.reveals.join('/')} (못함 ${r.dumbReveals?.join('/')})` : ''} · 숙련격차 ${r.skillGap}× · 못함 ${r.dumb.sec}s/${r.dumb.score}점 · 잘함 ${r.smart.sec}s/${r.smart.score}점 (3분 버팀 ${Math.round(r.smart.capped * 100)}%) · ${((performance.now() - t0) / 1000).toFixed(1)}s`);
+    console.log(`${r.name.padEnd(8)} 재미 ${r.fun.toFixed(3)}${r.reveals ? ` · 펼쳐짐 ${r.reveals.join('/')} (못함 ${r.dumbReveals?.join('/')})` : ''} · 숙련격차 ${r.skillGap}× · 못함 ${r.dumb.sec}s/${r.dumb.score}점 · 잘함 ${r.smart.sec}s/${r.smart.score}점 (3분 버팀 ${Math.round(r.smart.capped * 100)}%) · 첫 몇 초 하트 손실 손 안 댐 ${Math.round((r.firstLoss?.idle ?? 0) * 100)}%/늦은 사람 ${Math.round((r.firstLoss?.late ?? 0) * 100)}% · ${((performance.now() - t0) / 1000).toFixed(1)}s`);
   }
   writeFileSync(join(import.meta.dirname, 'reports', 'eval.json'), JSON.stringify(out, null, 1) + '\n');
 }

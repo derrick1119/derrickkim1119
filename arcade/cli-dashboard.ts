@@ -43,7 +43,7 @@ function card(key: string, id: string, other: string | null) {
   <div class="game" data-game="${id}"></div>
   <details class="metrics"><summary>봇 측정: 재미 추정 <b>${r.fun.toFixed(2)}</b></summary>
     <div class="bars">${bars}</div>
-    <p class="muted">못하는 봇 ${r.dumb.sec}초·${r.dumb.score}점 / 잘하는 봇 ${r.smart.sec}초·${r.smart.score}점 (${r.n}판 중앙값)${r.reveals ? ` · 새로 나온 것 30초 ${r.reveals[0]} → 1분 ${r.reveals[1]} → 2분 ${r.reveals[2]}가지` : ''}${r.dumbReveals ? ` · 처음 하는 사람(못하는 봇)은 30초 ${r.dumbReveals[0]} · 끝날 때 ${r.dumbReveals[1]}가지${r.dumbReveals[0] < 2 ? ' ⚠ 처음엔 펼쳐짐이 잘 안 보임' : ''}` : ''}</p>
+    <p class="muted">못하는 봇 ${r.dumb.sec}초·${r.dumb.score}점 / 잘하는 봇 ${r.smart.sec}초·${r.smart.score}점 (${r.n}판 중앙값)${r.reveals ? ` · 새로 나온 것 30초 ${r.reveals[0]} → 1분 ${r.reveals[1]} → 2분 ${r.reveals[2]}가지` : ''}${r.dumbReveals ? ` · 처음 하는 사람(못하는 봇)은 30초 ${r.dumbReveals[0]} · 끝날 때 ${r.dumbReveals[1]}가지${r.dumbReveals[0] < 2 ? ' ⚠ 처음엔 펼쳐짐이 잘 안 보임' : ''}` : ''}${r.firstLoss ? ` · 처음 몇 초 하트 잃은 판: 손 안 대고 10초 ${Math.round(r.firstLoss.idle * 100)}% · 3초 늦게 시작한 사람 ${Math.round(r.firstLoss.late * 100)}%${r.firstLoss.idle + r.firstLoss.late > 0 ? ' ⚠ 화면을 읽는 사이에 짐' : ''}` : ''}</p>
   </details>
 </article>`;
 }
