@@ -201,7 +201,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
 ];
 const NUM = ['', '하나', '둘', '셋', '넷', '다섯', '여섯', '일곱'];
 /** S002 별 틀(S007~S008 📐 CONTENT v2로 판마다 N)(📋 — 장인 ★★ ≥ .8 · 버릇 ★★ 낮게, funqa 24시드로 고름). 10판 표(CONTENT)는 S005~S006에 */
-export const STAGES: StageDef[] = RAW.map((d) => ({ ...d, stars: [S3('multi', d.n, `한 번에 ${NUM[d.n]} 베기`), S3('nohit', 0, '꼬리 하나도 안 잃기')] }));
+export const STAGES: StageDef[] = RAW.map((d) => ({ ...d, stars: [S3('multi', d.n, `한 번에 ${NUM[d.n]} 베기`), S3('nohit', 0, '한 대도 안 맞기')] }));
 export const STAGE_COUNT = STAGES.length;
 const easeOf = (s: DashState) => STAGES[s.stage].ease ?? EASE[Math.min(s.stage, 2)];
 
@@ -334,7 +334,7 @@ function trace(s: DashState, px: number, py: number, tx: number, ty: number, max
 }
 
 /** 한붓 획: 닌자에서 점들을 차례로 이어 maxLen까지 돌진 선을 이어 붙인다(같은 적은 한 번만 · 방패 앞에서 튕기면 거기서 멈춤) */
-const STROKE_STEP = 0.035, STROKE_MAX = 24, STROKE_LEN = 1.6;
+const STROKE_STEP = 0.035, STROKE_MAX = 24, STROKE_LEN = 1.6, ERASE_R = 0.045;
 /** ✏️ S009 꺾는 점 너그럽게(📋): 꺾인 한붓 획은 칼날 폭이 BEND_W배 — 손가락으로 그린 길은 적 위를 정확히 지나기 어렵다 */
 export const BEND = { w: 1.8 };
 /** 한 줄은 DMAX(.85)까지, 꺾인 한붓 획은 먹이 되는 만큼 STROKE_LEN까지(먹 값은 길이대로) */
@@ -488,7 +488,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
       // 꼬리털만 걸린다: ★★★(꼬리 하나도 안 잃기)만 놓치고 목숨은 안 준다 — 처음 하는 사람이 덤불 때문에 지지는 않게
       see(s, 'thorn', '가시덤불 — 지나가면 꼬리가 걸려요. 꺾어 돌아가요');
       s.hits++;
-      ev(s, 'hurt', th.x, th.y, s.hp, '가시덤불에 꼬리털이 걸렸어요');
+      ev(s, 'hurt', th.x, th.y, s.hp, '가시덤불에 걸렸어요 — ★★★ 놓침');
     }
   }
   const last = P.legs[P.legs.length - 1];
@@ -779,7 +779,7 @@ function starMet(s: DashState, st: Star) {
 /** 결과 화면: 놓친 별마다 무엇이 모자랐는지(✏️ S002 · 📋 M1 완료 기준 ②) — 다 땄으면 '' */
 export function missOf(s: DashState) {
   const d = STAGES[s.stage];
-  return [!s.starOk[1] ? `한 번에 ${s.best} / ${d.n}` : '', !s.starOk[2] ? `꼬리 ${Math.max(0, HP - s.hits)} / ${HP}` : ''].filter(Boolean).join(' · ');
+  return [!s.starOk[1] ? `한 번에 ${s.best} / ${d.n}` : '', !s.starOk[2] ? `맞음 ${s.hits}` : ''].filter(Boolean).join(' · ');
 }
 function starNow(s: DashState, st: Star): string {
   const n = st.n ?? 0, v = st.k === 'multi' ? s.best : st.k === 'arrow' ? s.arrows : st.k === 'back' ? s.backK : st.k === 'boom' ? s.boomBest : st.k === 'mirror' ? s.mirK : -1;
@@ -871,6 +871,8 @@ export const slowdash: GameDef<DashState> = {
         if (s.down) {
           const q = { x: clamp(p.x, X0, X1), y: clamp(p.y * A, Y0, Y1) };
           // 한붓 획: 처음 누른 점, 그다음은 손가락이 STROKE_STEP 넘게 움직일 때마다 점을 남긴다(가만히 누르면 지금처럼 한 줄)
+          // ✏️ S010 다시 그리기: 그리던 손가락을 닌자 위로 되돌리면 획이 지워진다(빨간 덤불을 보고 길을 다시 그을 수 있게)
+          if (s.stroke.length && Math.hypot(q.x - s.nx, q.y - s.ny) < ERASE_R) (s.stroke = []), (s.aim = null), ev(s, 'erase', s.nx, s.ny);
           const last = s.stroke[s.stroke.length - 1];
           if (!last ? s.aim : Math.hypot(q.x - last.x, q.y - last.y) >= STROKE_STEP && s.stroke.length < STROKE_MAX) {
             if (!last && s.aim && Math.hypot(q.x - s.aim.x, q.y - s.aim.y) >= STROKE_STEP) s.stroke.push(s.aim);
@@ -2649,16 +2651,16 @@ function drawMirror(ctx: C2, ax: number, ay: number, bx: number, by: number, H: 
 function drawThorn(ctx: C2, x: number, y: number, r: number, t: number, hot: boolean) {
   ctx.save();
   const pulse = 0.5 + 0.5 * Math.sin(t * 0.5);
-  ctx.fillStyle = hot ? `rgba(220,50,40,${0.35 + 0.2 * pulse})` : 'rgba(70,110,60,.55)';
+  ctx.fillStyle = hot ? `rgba(220,50,40,${0.35 + 0.2 * pulse})` : `rgba(150,70,120,${0.45 + 0.1 * pulse})`; // S010: 풀빛과 다른 자줏빛 덤불
   ell(ctx, x, y, r, r * 0.55);
   ctx.fill();
   ctx.lineWidth = Math.max(1.5, r * 0.05);
-  ctx.strokeStyle = hot ? 'rgba(255,120,100,.95)' : 'rgba(190,220,150,.7)';
+  ctx.strokeStyle = hot ? 'rgba(255,120,100,.95)' : 'rgba(255,190,230,.85)';
   ctx.setLineDash([4, 3]);
   ell(ctx, x, y, r, r * 0.55);
   ctx.stroke();
   ctx.setLineDash([]);
-  ctx.strokeStyle = hot ? 'rgba(255,200,190,.95)' : 'rgba(215,235,180,.9)';
+  ctx.strokeStyle = hot ? 'rgba(255,200,190,.95)' : 'rgba(255,225,240,.95)';
   ctx.lineWidth = Math.max(1.5, r * 0.07);
   ctx.lineCap = 'round';
   for (let k = 0; k < 14; k++) {
@@ -3879,7 +3881,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       font(0.034, 800);
       ctx.textAlign = 'left';
       ctx.fillStyle = '#dfe6ff';
-      ctx.fillText('꼬리', hx0, r1 + 1); // ✏️ S002(🧪): 별 칩 '꼬리 하나도 안 잃기'와 말 맞춤 — 꼬리 아이콘은 S007
+      ctx.fillText('목숨', hx0, r1 + 1); // ✏️ S002(🧪): 별 칩 '꼬리 하나도 안 잃기'와 말 맞춤 — 꼬리 아이콘은 S007
       for (let j = 0; j < HP; j++) {
         const hx = hx0 + R(0.085) + j * R(0.04);
         heartPath(ctx, hx, r1, R(0.014));

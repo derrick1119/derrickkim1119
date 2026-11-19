@@ -83,6 +83,7 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
   await page.waitForTimeout(900);
   const box = (await page.locator('canvas').boundingBox())!;
   const at = (x: number, y: number) => ({ x: box.x + x * box.width, y: box.y + y * box.width });
+  await page.screenshot({ path: join(out, '11-thorn-idle.png') }); // S010 누르기 전에도 덤불이 보이나
   let p = at(0.5, 1.12);
   await page.mouse.move(p.x, p.y);
   await page.mouse.down();

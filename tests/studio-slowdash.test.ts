@@ -46,12 +46,12 @@ describe('느린 시간 닌자 시뮬', () => {
   });
 
 
-  it('S002 별 틀: 모든 판 별이 같은 세 가지(★ 지나가기 · ★★ 한 번에 N 베기 · ★★★ 꼬리 하나도 안 잃기), N만 다르다', () => {
+  it('S002 별 틀: 모든 판 별이 같은 세 가지(★ 지나가기 · ★★ 한 번에 N 베기 · ★★★ 한 대도 안 맞기 — S010 이름 바꿈: 하트 꼬리와 헷갈림), N만 다르다', () => {
     for (const d of STAGES) {
       expect(d.stars.map((q) => q.k)).toEqual(['multi', 'nohit']);
       expect(d.stars[0].n).toBe(d.n);
       expect(d.n).toBeGreaterThanOrEqual(3);
-      expect(d.stars[1].label).toBe('꼬리 하나도 안 잃기');
+      expect(d.stars[1].label).toBe('한 대도 안 맞기');
     }
     expect(STAGES[0].gift3).toBe(true); // 1-1 허수아비 판은 맞을 수 없다 → 선물 별
   });
@@ -72,7 +72,7 @@ describe('느린 시간 닌자 시뮬', () => {
     w.best = 2;
     w.hits = 1;
     w.starOk = [true, false, false];
-    expect(missOf(w)).toBe(`한 번에 2 / ${STAGES[1].n} · 꼬리 2 / 3`);
+    expect(missOf(w)).toBe(`한 번에 2 / ${STAGES[1].n} · 맞음 1`); // S010 셋째 별 이름 바꿈
     w.starOk = [true, true, true];
     expect(missOf(w)).toBe('');
   });
@@ -175,6 +175,25 @@ describe('느린 시간 닌자 시뮬', () => {
     const k = K('sword'), seeds = [101, 108, 115, 122];
     expect(seeds.filter((sd) => tryStage(BOTS.habit, sd, k).s3)).toHaveLength(0);
     expect(seeds.filter((sd) => tryStage(BOTS.smartStroke, sd, k).s3).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('S010 다시 그리기: 그리던 손가락을 닌자 위로 되돌리면 획이 지워진다 · 측정기는 60초 진전이 없으면 막힘으로 끝낸다(300초 고침)', () => {
+    const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y: y / A } });
+    const s = g.create(3);
+    startStage(s, K('sword'));
+    for (let k = 0; k < 60; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+    s.foes = [];
+    (s.nx = 0.5), (s.ny = 1.12), (s.g = 100);
+    for (const [x, y] of [[0.5, 0.9], [0.6, 0.85], [0.7, 0.8]]) for (let k = 0; k < 2; k++) g.step(s, at(x, y));
+    expect(s.stroke.length).toBeGreaterThan(0);
+    g.step(s, at(0.5, 1.12));
+    expect(s.stroke).toHaveLength(0);
+    for (const [x, y] of [[0.4, 1.0], [0.4, 0.8]]) for (let k = 0; k < 2; k++) g.step(s, at(x, y));
+    g.step(s, { tap: false, dir: 0, pointer: null });
+    expect(Math.hypot(s.nx - 0.4, s.ny - 0.8)).toBeLessThan(0.03); // 지운 뒤 새로 그은 길로만 간다
+    const r = tryStage(BOTS.habit, 101, K('shield')); // 측정기: 60초 진전 없음 = 막힘(실패)
+    expect(r.sec).toBeLessThan(120);
+    expect(r.stall && !r.ok).toBe(true);
   });
 
   it('S005 효과음: 시뮬·봇은 소리를 모른다(헤드리스로 한 판 돌려도 AudioContext 0) · 연쇄 음계는 5음계로 오르고 8번째부터 고정', () => {

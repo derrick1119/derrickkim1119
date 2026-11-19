@@ -68,20 +68,41 @@ export function detour(s: DashState, p: Pt): Pt[] | null {
 }
 /** 사람 반응 봇: pick이 고른 자리(게임 좌표 x, y)를 react초 늦게·err만큼 빗나가게. slow면 꾹 누른 채 반응한다 */
 export function human(name: string, react: number, err: number, slow: boolean, pick?: Pick, stroke: boolean | 'naive' = false): Bot<DashState> {
-  const mem = new WeakMap<object, { st: 'idle' | 'wait' | 'hold'; until: number; x: number; y: number; ox: number; oy: number; bend: Pt | null; half: number }>();
+  const mem = new WeakMap<object, { st: 'idle' | 'wait' | 'hold'; until: number; x: number; y: number; ox: number; oy: number; bend: Pt | null; half: number; seq: Pt[]; fix: boolean }>();
   const choose: Pick = pick ?? ((s, rng) => { const p = smartAim(s, rng); return p && { x: p.x, y: p.y * K.A }; });
   const RT = Math.round(react * 60), REFLEX = 9, COOL = 15;
   return {
     name,
     act(s, rng) {
       let m = mem.get(s);
-      if (!m) mem.set(s, (m = { st: 'idle', until: 0, x: 0, y: 0, ox: 0, oy: 0, bend: null, half: 0 }));
+      if (!m) mem.set(s, (m = { st: 'idle', until: 0, x: 0, y: 0, ox: 0, oy: 0, bend: null, half: 0, seq: [], fix: false }));
       if (s.phase !== 'play') return (m.st = 'idle'), NO;
       // ✏️ 한붓 획(오너 피드백) 뒤: 빗나감은 겨눌 때 한 번만 정한다 — 틱마다 흔들면 누르는 동안 손이 떨려 엉뚱한 획이 그려졌다
       const aimErr = () => ((m!.ox = (rng() * 2 - 1) * err), (m!.oy = (rng() * 2 - 1) * err));
       const noisy = () => ({ x: m!.x + m!.ox, y: m!.y + m!.oy });
       if (m.st === 'hold') {
         if (!s.down && s.t > m.until - RT + 2) return (m.st = 'idle'), (m.until = s.t + COOL), NO; // 게이지가 바닥나 저절로 벴다
+        if (m.seq.length) { const q = m.seq.shift()!; return press(q.x, q.y); } // S010 다시 그리는 중
+        if (s.t >= m.until && stroke && !m.fix && s.down && s.aim) {
+          // ✏️ S010 빨간 덤불(미리 보기)을 보면: 손가락을 닌자로 되돌려 지우고, 덤불 옆으로 꺾어 다시 그린다(처음 하는 사람은 아직 모름 — 해 보니 클리어 8판 .75→.50)
+          m.fix = true;
+          const end = { x: s.aim.x, y: s.aim.y };
+          if (K.thorn(s, K.path(s, [...s.stroke, end])) && stroke === true) {
+            let dt = detour(s, end);
+            if (!dt) { // 돌아갈 길이 없으면 끝점을 덤불 반대쪽으로 살짝 옮겨 곧게 다시
+              const dx = end.x - s.nx, dy = end.y - s.ny, d = Math.hypot(dx, dy) || 1, n0 = K.path(s, [end]).hits.length;
+              for (const e of [0.05, -0.05, 0.1, -0.1, 0.16, -0.16]) {
+                const q = { x: end.x - (dy / d) * e, y: end.y + (dx / d) * e }, P = K.path(s, [q]);
+                if (!K.thorn(s, P) && P.hits.length >= n0 - 1) { dt = [{ x: (s.nx + q.x) / 2, y: (s.ny + q.y) / 2 }, q]; break; }
+              }
+            }
+            if (dt) {
+              const n0 = { x: s.nx, y: s.ny / K.A * K.A }, lerp = (a: Pt, b: Pt, k: number) => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k });
+              m.seq = [n0, n0, ...[0.25, 0.5, 0.75, 1].map((k) => lerp(n0, dt[0], k)), ...[0.25, 0.5, 0.75, 1].map((k) => lerp(dt[0], dt[1], k)), dt[1]];
+              return press(n0.x, n0.y);
+            }
+          }
+        }
         if (s.t >= m.until) return (m.st = 'idle'), (m.until = s.t + COOL), NO; // 뗀다
         if (m.bend) { // 한붓: 앞 절반은 꺾는 점, 뒤 절반은 끝점으로 손가락을 옮긴다(그리는 동안 세상은 느리다)
           const q = s.t < m.half ? m.bend : { x: m.x, y: m.y };
@@ -99,6 +120,8 @@ export function human(name: string, react: number, err: number, slow: boolean, p
         if (slow) {
           m.st = 'hold';
           m.until = s.t + RT;
+          m.fix = false;
+          m.seq = [];
           m.bend = null;
           if (stroke === 'naive') {
             // ✏️ S007(📋): 처음 하는 사람은 30%쯤 아무 적 둘을 이어 꺾어 본다(계획 없이)
@@ -278,7 +301,7 @@ export const BOTS: Record<string, Bot<DashState>> = {
 };
 
 export interface Try {
-  ok: boolean; stars: number; s2: boolean; s3: boolean; sec: number; best: number; hits: number; dashes: number; whiff: number;
+  ok: boolean; stall: boolean; stars: number; s2: boolean; s3: boolean; sec: number; best: number; hits: number; dashes: number; whiff: number;
   holdAvg: number; downPct: number; empty: number; cancels: number; bent: number; bentCut: number; lineCut: number; s: DashState;
 }
 
@@ -293,12 +316,18 @@ function turned(p: Pt[]) {
 }
 
 /** k판을 한 번 도전(첫 결과가 나올 때까지, 하트 무관) */
+const STALL = 60;
 export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 300, hand = seed): Try {
   const s = g.create(seed);
   if (k) startStage(s, k);
   const rng = mulberry32(hand ^ 0x9e3779b9), t0 = s.t, d0 = s.dashes, emptyG = K.GBASE + K.GPER * K.HOP;
   let whiff = 0, down = 0, holds = 0, holdT = 0, cur = 0, empty = 0, dn = s.dashes, cancels = 0, bent = 0, bentCut = 0, lineCut = 0;
+  // ✏️ S010 300초 측정 고침: 60초 동안 아무것도 못 베고 웨이브도 그대로면 '막힘' — 사람이면 그만둔다(실패로 셈)
+  let prog = s.t, mark = '';
   while (s.phase !== 'result' && s.t - t0 < maxSec * 60) {
+    const now = `${s.wave}/${s.foes.length}/${s.hits}`;
+    if (now !== mark) (mark = now), (prog = s.t);
+    if (s.t - prog > STALL * 60) break;
     const was = s.down, px = s.nx, py = s.ny;
     g.step(s, bot.act(s, rng));
     if (s.down) (down++, cur++);
@@ -309,6 +338,7 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
   }
   const ok = s.phase === 'result' && s.ok, T = Math.max(1, s.t - t0), n = s.dashes - d0;
   return {
+    stall: s.phase !== 'result' && s.t - prog > STALL * 60,
     ok, stars: ok ? s.got : 0, s2: ok && s.starOk[1], s3: ok && s.starOk[2], sec: (s.t - t0) / 60, best: s.best, hits: s.hits, dashes: n,
     whiff: n ? whiff / n : 0, holdAvg: holds ? holdT / holds / 60 : 0, downPct: down / T, empty: empty / T, cancels, bent: n ? bent / n : 0, bentCut: bent ? bentCut / bent : 0, lineCut: n - bent ? lineCut / (n - bent) : 0, s,
   };
@@ -333,7 +363,7 @@ const median = (a: number[]) => {
   const b = [...a].sort((x, y) => x - y);
   return b.length ? (b.length % 2 ? b[(b.length - 1) / 2] : (b[b.length / 2 - 1] + b[b.length / 2]) / 2) : 0;
 };
-type Row = { clear: number; star: number; star2p: number; star3: number; cancels: number; bent: number; bentCut: number; lineCut: number; s2: number; s3: number; sec: number; best: number; hit: number; dashes: number; whiff: number; holdAvg: number; downPct: number; empty: number; tries?: number };
+type Row = { clear: number; star: number; star2p: number; star3: number; cancels: number; bent: number; bentCut: number; lineCut: number; s2: number; s3: number; stall: number; timeout: number; sec: number; best: number; hit: number; dashes: number; whiff: number; holdAvg: number; downPct: number; empty: number; tries?: number };
 const sum = (t: (Try & { tries?: number })[]): Row => ({
   clear: r2(mean(t.map((x) => +x.ok))),
   star: r2(mean(t.map((x) => x.stars))),
@@ -345,6 +375,8 @@ const sum = (t: (Try & { tries?: number })[]): Row => ({
   lineCut: r2(mean(t.map((x) => x.lineCut))),
   s2: r2(mean(t.map((x) => +x.s2))),
   s3: r2(mean(t.map((x) => +x.s3))),
+  stall: r2(mean(t.map((x) => +x.stall))),
+  timeout: r2(mean(t.map((x) => +(!x.stall && x.sec >= 299)))),
   sec: r2(median(t.map((x) => x.sec))),
   best: r2(mean(t.map((x) => x.best))),
   hit: r2(mean(t.map((x) => x.hits))),
