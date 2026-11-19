@@ -4859,7 +4859,8 @@
    "alerts": 1565,
    "bad": 0,
    "rate": 0,
-   "missAfter": 114
+   "missAfter": 114,
+   "lie": 0
   },
   "per": [
    [

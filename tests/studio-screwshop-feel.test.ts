@@ -2,8 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { Juice } from '../studio/screwshop/juice.ts';
-import { STAGES, TRAY_WARN, hamOver, missGoal, screwshop, startStage, starKinds, starsOf, gapOf } from '../studio/screwshop/game.ts';
-import { knowE, screwshopNewbie, starFloor, trayRead, tryStage } from '../studio/screwshop/funqa.ts';
+import { KB, STAGES, TRAY_WARN, hamOver, missGoal, screwshop, setLearn, startStage, starKinds, starsOf, gapOf } from '../studio/screwshop/game.ts';
+import { knowE, runA, screwshopNewbie, starFloor, trayRead, tryStage } from '../studio/screwshop/funqa.ts';
 import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { bonkSemi } from '../studio/screwshop/sfx.ts';
 
@@ -207,5 +207,18 @@ describe('별 하나로(✏️ S067 · M3″ S1 · S2 · 오너 11-19 \'바꾸�
     expect(g).toMatch(/m3 = !s\.hint && !d\.B && starsOf\(d, S\) > 2/);
     expect(g, '★2를 놓친 결과 카드에 ★3 💡(tip2)를 붙이지 않는다').toMatch(/tp = !soon && ok2 && s\.got === 2 && d\.tip2/);
     for (const d of STAGES.filter((x) => !x.B)) expect([missGoal(d, false).startsWith('★2 빈칸'), missGoal(d, true).startsWith('★3 한 번에')], d.slot).toEqual([true, true]);
+  });
+  it("★2(빈칸)가 죽은 뒤엔 어떤 글도 ★3을 약속하지 않는다(🧪 S067 🔴①: 1-3 첫 톡 '한 번에 2개! 4개면 ★3' 처음 140/144) · 🔑 꾹 알약도", () => {
+    const k = STAGES.findIndex((d) => d.slot === '1-3');
+    let lie = 0, t3 = 0;
+    for (let i = 0; i < 24; i++) { const r = runA(screwshopNewbie, 1000 + i * 7, k, 1000 + i * 7, KB.bonk | KB.gap); (lie += r.lie), (t3 += r.t3); }
+    expect(t3, '★3을 배우는 판에서 ★2가 죽은 뒤 배우기 글이 뜬 일이 있어야 잰 것').toBeGreaterThan(5);
+    expect(lie).toBe(0);
+    expect(src('game.ts'), '알약').toContain("all >= H ? '!' : x3 ? '' : ` · ${H}개면 ★3`");
+  });
+  it('1-1(쾅 판)의 ★3 \'빈칸 안 쓰기\'는 가르치지 않는다 — 1-1을 다시 해도 1-2가 \'빈칸 2칸까지\'를 가르친다(🧪 S067 🔴③)', () => {
+    const at = (slot: string, m: number) => { const s = screwshop.create(1), k = STAGES.findIndex((d) => d.slot === slot); if (k) startStage(s, k); setLearn(s, m); return s; };
+    expect([at('1-1', KB.bonk).teach, at('1-1', KB.bonk).lock3], '쾅을 배운 뒤 1-1').toEqual([0, false]);
+    expect(at('1-2', KB.bonk).teach, '1-2는 빈칸(★2)').toBe(2);
   });
 });

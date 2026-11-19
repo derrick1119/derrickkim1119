@@ -464,7 +464,7 @@ export const starText = (d: StageDef, S: Sim) => {
 /** 배움(📐 S024 사다리): 판마다 아직 안 배운 가장 낮은 별 하나만 가르치고(teach 2|3), 그 위 안 배운 ★3은 🔒(별 값은 그대로 · 따면 깜짝 ★) */
 export function teachOf(s: ShopState) {
   const [a, b] = starKinds(STAGES[s.stage]);
-  s.teach = !(s.learn & KB[a]) ? 2 : !(s.learn & KB[b]) ? 3 : 0;
+  s.teach = !(s.learn & KB[a]) ? 2 : !STAGES[s.stage].B && !(s.learn & KB[b]) ? 3 : 0; // ✏️ S067(🧪 S067 🔴③): 쾅 판(1-1)의 ★3 '빈칸 안 쓰기'는 가르치지 않는다 — 가르치면 빈칸 비트가 켜져 1-2의 '빈칸 2칸까지' 띠를 건너뛴다
   s.lock3 = s.teach === 2 && !(s.learn & KB[b]);
   s.tv = 0; // 🧪 S024 ①: 첫 움직임(1-1 첫 쾅)도 짚는다
   s.taught = false;
@@ -1168,7 +1168,7 @@ function playRec(s: ShopState, rec: RE[]) {
     const g = s.teach === 2 ? '★2' : '★3', P = gapOf(d), lost = `${g}${s.teach === 3 ? '은' : '는'} 놓쳤어요`;
     const msg = kd === 'bonk' ? (v === s.tv ? '' : v >= d.B! ? `${g} 받았어요! 망치로 ${v}번 쾅` : `쾅! ${d.B! - v}번 더 치면 ${g}`)
       : kd === 'gap' ? (v !== s.tv ? (v > P ? (s.tv > P ? '' : `빈칸 ${v}칸 — ${lost}`) : `빈칸 ${v}칸 — ${P}칸까지는 괜찮아요`) : S.taps === 3 && !v ? `빈칸 0칸 — 이대로면 ${g}!` : '') // 🧪 S024 ①: 빈칸을 안 쓰면 숫자가 안 움직여 짚기가 안 왔다
-      : v === s.tv ? '' : v >= d.H ? (S.peak > P ? `한 번에 ${v}개 쏙!` : `${g}! 한 번에 ${v}개 쏙`) : v >= 2 ? `한 번에 ${v}개! ${d.H}개면 ${g}` : '한 번에 1개 — 판자째 떨어뜨리면 여러 개가 한꺼번에 쏙!'; // ③ 방법 · ✏️ S067(S2): ★2가 죽었으면 '★3!' 없이
+      : v === s.tv ? '' : v >= d.H ? (S.peak > P ? `한 번에 ${v}개 쏙!` : `${g}! 한 번에 ${v}개 쏙`) : v >= 2 ? `한 번에 ${v}개!${S.peak > P ? '' : ` ${d.H}개면 ${g}`}` : '한 번에 1개 — 판자째 떨어뜨리면 여러 개가 한꺼번에 쏙!'; // ③ 방법 · ✏️ S067(S2): ★2가 죽었으면 '★3!' 없이
     if (msg) (s.taught = true), ev(s, 'teach', 0.5, 0, msg, msg.includes('놓쳤') ? '#ffb36b' : '#ffe9a8', undefined, s.events.reduce((m, q) => (q.t === s.t && q.v !== undefined && (q.kind === 'bonk' || q.kind === 'shot') ? max(m, q.v + 2) : m), s.t)); // ✏️ S056: 쾅 · 한 방이 그려진 뒤에
     s.tv = v;
   }
@@ -2947,10 +2947,10 @@ function drawPreview(ctx: CanvasRenderingContext2D, s: ShopState, k: number, pre
   // 🔑 태엽 꾹(🧪 S004 ①): 🔒가 몇 개 쏙 · 몇 개 빈칸 — 빈칸이 있으면 주황
   const wi = pre.rec.findIndex((e) => e.k === 'wind');
   if (wi >= 0) {
-    const H = STAGES[s.stage].H, all = pre.rec.filter((e) => e.k === 'box').length; // 📐 S007 8판: ★3이 한 방인 태엽 판은 🔑 자신까지 센 쏙 한 방 / H
+    const d = STAGES[s.stage], H = d.H, all = pre.rec.filter((e) => e.k === 'box').length, x3 = d.B || pre.S.peak > gapOf(d); // ✏️ S067(🧪 S067 🔴①): ★2가 죽으면 '면 ★3' 약속을 빼다 // 📐 S007 8판: ★3이 한 방인 태엽 판은 🔑 자신까지 센 쏙 한 방 / H
     const ns = pre.rec.filter((e) => e.k === 'slot').length; // ✏️ S012: 한 방 판은 톡 전체 빈칸(1-10 와르르가 🔑 → 🔒를 드르륵보다 먼저 떨군다)
     font(0.032, 900);
-    const lab = `🔑 드르륵 → 한 번에 ${all}개 쏙${ns ? ` · 빈칸 ${ns}` : all >= H ? '!' : ` · ${H}개면 ★3`}`, hw = ctx.measureText(lab).width / 2 + 10; // ✏️ S008: 한 방 판에도 '빈칸 M'(S007에 빠졌던 것)
+    const lab = `🔑 드르륵 → 한 번에 ${all}개 쏙${ns ? ` · 빈칸 ${ns}` : all >= H ? '!' : x3 ? '' : ` · ${H}개면 ★3`}`, hw = ctx.measureText(lab).width / 2 + 10; // ✏️ S008: 한 방 판에도 '빈칸 M'(S007에 빠졌던 것)
     pl(ctx, max(hw, min(X(1) - hw, X(L.px[k]))), Y(L.py[k]) - R(0.13), lab, ns || all < H ? '#ffb36b' : '#c8ffc8', R(0.044)); // '쏙!' 알약보다 위, 화면 안 · 한 방 판은 H에 닿고 빈칸 0이면 초록
   }
   // 🎯 과녁을 손으로(✏️ S008 · 🧪 S007 F16 ③허공): 아직 안 매달린 🔨이나 안 떨어진 🌀가 칠 나사를 꾹 → 주황 '🎯 과녁 — 손으로 빼면 허공'
@@ -3658,7 +3658,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
   ctx.textAlign = 'right';
   ctx.fillStyle = '#ffd166';
   // ✏️ S027 🧪 🔴①(오너 '따도 안 기쁘다'): 판 중에 딴 별은 위 ★ 칸에도 붙는다 — '★ 0 +★3'(날아온 별이 앉는 순간 통통)
-  const gotNow = s.phase === 'play' ? `${s.sg & 4 ? '★2' : ''}${s.sg & 8 ? '★3' : ''}` : '', stt = `★ ${s.stars}${gotNow ? ` +${gotNow}` : ''}`;
+  const gotNow = s.phase === 'play' ? `${s.sg & 4 ? '★2' : ''}${s.sg & 8 && !dead3(STAGES[s.stage], s.L, s.S) ? '★3' : ''}` : '', stt = `★ ${s.stars}${gotNow ? ` +${gotNow}` : ''}`;
   if (gotNow) {
     const land = s.starFx ? t - s.starFx.t0 - 40 : 99, pop = land >= 0 && land < 16 ? 1 + 0.35 * sin((land / 16) * Math.PI) : 1, gw0 = mw(ctx, ` +${gotNow}`);
     ctx.save();
@@ -3852,7 +3852,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     ftx(ctx, tip, w / 2 + R(0.06), y3);
     if (tools()) { // 도구 줄(🎨 ART §6 · ✏️ S013): 🗺️ 판 · 💡 귀띔(진 횟수 ●●○) · ↺ 다시
       const ty = Y(A - 0.15), bw = (w - R(0.08)) / 3, bh = R(0.12), sf = min(3, s.sf);
-      const dead = s.phase === 'play' && dead3(d, s.L, S); // ★3을 이제 못 딴다 → ↺ 반짝(위 띠에서 옮김)
+      const dead = s.phase === 'play' && !s.lock3 && dead3(d, s.L, S); // ★3을 이제 못 딴다 · ✏️ S067(🧪 ⚪): ★3이 🔒이면 금빛 없음 → ↺ 반짝(위 띠에서 옮김)
       ['🗺️ 판', s.hint ? '💡 켬' : '💡', '↺ 다시'].forEach((lab, k) => { // ✏️ S058(🎨 §3-13 · 오너 "UI 시인성"): 반투명 사각 → 나무 명판 알약 · 귀띔 ●○○는 이모지 옆 핍 · 못 쓰면 α.45 · ★3이 죽으면 ↺가 금
         const bx = R(0.02) + k * (bw + R(0.02)), on = k !== 1 || sf >= 3 || s.hint, gold = k === 2 && dead, pip = k === 1 && !s.hint;
         ctx.globalAlpha = on ? 1 : 0.45;

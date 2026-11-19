@@ -193,15 +193,22 @@ export const casual = (mix: number, deaf = false): Bot<ShopState> => ({ name: `�
   if (m < 0) m = habitPick(s.L, s.S);
   return m >= 0 ? tapI(s, m) : NO;
 } });
-/** 한 번 도전(tryStage와 같은 손) + '★3!' 알림(s.sg 3번 비트)이 뜬 순간 별이 3개가 아니었나(bad) */
-function runA(bot: Bot<ShopState>, seed: number, k: number, hand: number) {
-  const s = g.create(seed), d = STAGES[k];
+/** 한 번 도전(tryStage와 같은 손) + '★3!' 알림(s.sg 3번 비트)이 뜬 순간 별이 3개가 아니었나(bad)
+ *  + ✏️ S067(🧪 S067 🔴①): ★2(빈칸)가 죽은 뒤 뜬 글 중 ★3을 약속하는 것(★3이 든 배우기 · 별 글 · '놓쳤'은 뺌) 수(lie) */
+export function runA(bot: Bot<ShopState>, seed: number, k: number, hand: number, learn?: number) {
+  const s = g.create(seed), d = STAGES[k], seen = new WeakSet<object>();
   if (k) startStage(s, k);
+  if (learn !== undefined) setLearn(s, learn);
   const rng = mulberry32(hand ^ 0x9e3779b9), t0 = s.t;
-  let a = 0, bad = 0;
-  while (s.phase !== 'result' && s.t - t0 < 600 * 60) { const sg = s.sg; g.step(s, bot.act(s, rng)); if (s.sg & 8 & ~sg) (a = 1), (bad = +(starsOf(d, s.S) < 3)); }
+  let a = 0, bad = 0, lie = 0, t3 = 0;
+  while (s.phase !== 'result' && s.t - t0 < 600 * 60) {
+    const sg = s.sg;
+    g.step(s, bot.act(s, rng));
+    if (s.sg & 8 & ~sg) (a = 1), (bad = +(starsOf(d, s.S) < 3));
+    for (const e of s.events) if (!seen.has(e)) { seen.add(e); const x = e.text ?? ''; if ((e.kind === 'teach' || e.kind === 'star') && x.includes('★3') && !x.includes('놓쳤') && s.S.peak > gapOf(d)) lie++; if (e.kind === 'teach' && s.teach === 3 && s.S.peak > gapOf(d)) t3++; }
+  }
   const st = s.phase === 'result' && s.ok ? starsOf(d, s.S) : 0;
-  return { st, a, bad };
+  return { st, a, bad, lie, t3 };
 }
 /** M3″ L1 잠금 문턱: 월드 1 → 2 · 2 → 3(월드마다 · 오너 '매 챕터에서') */
 export const LOCK = [15, 15];
@@ -215,10 +222,10 @@ export function starFloor(seeds = 24) {
   const tries = (bot: Bot<ShopState>, k: number, m: number) => H.map(([sd, hb]) => Array.from({ length: m }, (_, j) => runA(bot, sd, k, sd + (hb + j) * 100003)));
   const firstClear = (r: { st: number }[]) => r.find((x) => x.st > 0)?.st ?? 0;
   const per: [string, number, number, number][] = [], wNew: number[][][] = [], wCas: number[][] = [], wHab: number[][] = [];
-  let clr = 0, bad = 0, alerts = 0, missAfter = 0;
+  let clr = 0, bad = 0, alerts = 0, missAfter = 0, lie = 0;
   for (let k = 0; k < K; k++) {
     const kn = tries(know, k, 3), w = k < 20, nb = tries(screwshopNewbie, k, w ? 3 : 1), ck = tries(casK, k, 1);
-    for (const r of kn) for (const x of r) (clr += +(x.st > 0)), (bad += x.bad), (alerts += x.a), (missAfter += +(x.a && !x.bad && x.st > 0 && x.st < 3));
+    for (const r of kn) for (const x of r) (clr += +(x.st > 0)), (bad += x.bad), (alerts += x.a), (lie += x.lie), (missAfter += +(x.a && !x.bad && x.st > 0 && x.st < 3));
     per.push([STAGES[k].slot, r2(kn.filter((r) => r.some((x) => x.st === 3)).length / n), r2(ck.filter((r) => r[0].st === 3).length / n), r2(nb.filter((r) => r[0].st >= 2).length / n)]);
     if (w) (wNew[k] = nb.map((r) => [Math.max(...r.map((x) => x.st)), firstClear(r)])), (wCas[k] = tries(casD, k, 3).map(firstClear)), (wHab[k] = tries(screwshopHabit, k, 3).map(firstClear));
   }
@@ -235,8 +242,8 @@ export function starFloor(seeds = 24) {
     f37: { lock: LOCK, best3: blk((k, h) => wNew[k][h][0]), asIs: blk((k, h) => wNew[k][h][1]), cas: blk((k, h) => wCas[k][h]), habit: blk((k, h) => wHab[k][h]) },
     /** F38 별 칩 이웃 바뀜(27쌍): ★2 말 · ★3 종류 · ★2나 ★3 칩 글 · ★3 숫자만 */
     f38: { pairs: K - 1, c2, kind3, any, num3 },
-    /** F39 거짓 ★3: 알고 서툰 도전 중 '★3!' 알림이 뜬 판(alerts) 가운데 그 순간 별이 3개가 아니던 판(bad · 0이어야) · 알림 뒤 ★2를 잃고 깬 판(같이 봄) */
-    f39: { tries: K * n * 3, clr, alerts, bad, rate: r2(bad / Math.max(1, alerts)), missAfter },
+    /** F39 거짓 ★3(lie = ★2가 죽은 뒤 ★3을 약속한 글 · 0이어야): 알고 서툰 도전 중 '★3!' 알림이 뜬 판(alerts) 가운데 그 순간 별이 3개가 아니던 판(bad · 0이어야) · 알림 뒤 ★2를 잃고 깬 판(같이 봄) */
+    f39: { tries: K * n * 3, clr, alerts, bad, rate: r2(bad / Math.max(1, alerts)), missAfter, lie },
     per,
   };
 }
