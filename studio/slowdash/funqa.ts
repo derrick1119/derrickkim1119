@@ -760,6 +760,14 @@ export function measureTrial(seeds = 24, only?: string[]) {
         const hs = seedsOf.map((sd) => tryStage(BOTS.humanStroke, sd, k)), sc = seedsOf.map((sd) => tryStage(BOTS.scribble, sd, k)), nl = seedsOf.map((sd) => try3(BOTS.newbieLow, sd, k));
         row.bamboo = { use: r2(mean(t.map((x) => +x.bambooUse))), drop: r2(mean(t.map((x) => x.stars)) - mean(off.map((x) => x.stars))), s2: [r2(mean(t.map((x) => +x.s2))), r2(mean(off.map((x) => +x.s2)))], s3: [r2(mean(t.map((x) => +x.s3))), r2(mean(off.map((x) => +x.s3)))], best: [r2(mean(t.map((x) => x.best))), r2(mean(off.map((x) => x.best)))], humanUse: r2(mean(hs.map((x) => +x.bambooUse))), newbieLowUse: r2(mean(nl.map((x) => +x.bambooUse))), tapFall: tap.reduce((a, x) => a + x.tapFall, 0), scribbleS2: r2(mean(sc.map((x) => +x.s2))) };
       }
+      if (d.leafBoss) { // M2 S10(🧪 S9 (61)): 큰 너구리 성질 낙차 = 장인 ★ − 성질을 끈 같은 판의 장인 ★ · 부엉이 카드(처음 첫 도전)
+        const on = seedsOf.map((sd) => tryStage(BOTS.smartStroke, sd, k));
+        STAGES[k] = { ...d, leafBoss: false };
+        const off = seedsOf.map((sd) => tryStage(BOTS.smartStroke, sd, k));
+        STAGES[k] = d;
+        const nf = seedsOf.map((sd) => tryStage(BOTS.newbieLow, sd, k));
+        row.leafBoss = { drop: r2(mean(on.map((x) => x.stars)) - mean(off.map((x) => x.stars))), owlFirst: r2(mean(nf.map((x) => +x.owled))) };
+      }
       if (d.smokes?.length) { // M2 S5 연기: 사용 = 장인 한붓이 연기에 1초 넘게 숨은 판 · 낙차 = 연기 있는 판 ★ − 연기 없앤 같은 판 ★
         HIDE = true; // 숨는 봇으로 잼(📋 S6)
         const t = seedsOf.map((sd) => tryStage(BOTS.smartStroke, sd, k));
