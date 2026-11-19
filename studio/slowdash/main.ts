@@ -157,7 +157,7 @@ function end() {
 function askOwl() {
   paused = true;
   pointer = latch = null;
-  picker.innerHTML = `<b>부엉!</b><span class="msg">길을 보여 줄까요? 이 판은 ★★★를 못 받아요</span><div class="row"><button type="button" data-owl="1">길 보여 줘</button><button type="button" data-owl="0">혼자 할래</button></div>`;
+  picker.innerHTML = `<b>부엉!</b><span class="msg">길을 보여 줄까요? ★★까지 받을 수 있어요</span><span>(★★★는 혼자 해야 받아요)</span><div class="row"><button type="button" data-owl="1">길 보여 줘</button><button type="button" data-owl="0">혼자 할래</button></div>`;
   picker.hidden = false;
   picker.querySelector('button')?.focus();
 }
@@ -185,6 +185,8 @@ picker.addEventListener('click', (e) => {
     const seed = (Date.now() % 1_000_000) + 1;
     s = g.create(seed);
     startStage(s, Number(b.dataset.k));
+    const had = store.get('st:' + STAGES[Number(b.dataset.k)].key);
+    if (had >= 1 && had < 3) s.owlAsk = true; // 🧪 S4: 이미 깬 판을 다시 하면 부엉이가 묻는다(★★까지 — 별 모으기)
     saved = -1;
   }
   picker.hidden = true;

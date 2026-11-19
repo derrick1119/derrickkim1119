@@ -327,6 +327,21 @@ describe('느린 시간 닌자 시뮬', () => {
     n.owlAsk = true;
     useOwl(n, false);
     expect(n.owl || n.owlAsk).toBe(false);
+    // 2-1에서 한 시도에 휙 세 번이면 묻는다(㉛)
+    const l = g.create(3);
+    startStage(l, K('bend'));
+    for (let k = 0; k < 60; k++) g.step(l, { tap: false, dir: 0, pointer: null });
+    const f = l.foes[0];
+    l.foes = [f, l.foes[1]];
+    (f.k as string) = 'leaf';
+    for (let j = 0; j < 3; j++) {
+      (f.x = 0.5), (f.y = 0.75), (l.nx = 0.5), (l.ny = 1.1), (l.g = 80), (l.inv = 0);
+      for (let k = 0; k < 3; k++) g.step(l, { tap: false, dir: 0, pointer: { x: 0.5, y: 0.6 / A } });
+      g.step(l, { tap: false, dir: 0, pointer: null });
+      for (let k = 0; k < 20; k++) g.step(l, { tap: false, dir: 0, pointer: null });
+    }
+    expect(l.dodgeN).toBeGreaterThanOrEqual(3);
+    expect(l.owlAsk).toBe(true);
     expect(WORLD_LOCK).toBe(18);
     expect(worldStars({ a: 3, b: 2 }, ['a', 'b', 'c'])).toBe(5);
   });

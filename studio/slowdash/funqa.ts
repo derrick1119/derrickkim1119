@@ -588,7 +588,8 @@ export function campaign(bot: Bot<DashState>, seed: number, maxReplays = 10) {
   let tries = 0;
   const clear = (k: number, round: number) => {
     for (let a = 0; a < 6; a++) {
-      const r = tryStage(bot, seed + k * 31 + round * 1013, k, 300, seed + a * 977 + round * 131 + k, { owlNow: a >= 3 });
+      // 세 번 지면 귀띔 · 🧪 S4: 이미 깬 판을 다시 할 때도 부엉이가 묻는다(★★까지) — 받고, 따를지는 봇이 정함
+      const r = tryStage(bot, seed + k * 31 + round * 1013, k, 300, seed + a * 977 + round * 131 + k, { owlNow: a >= 3 || (round > 0 && OWL_REPLAY) });
       tries++;
       if (r.ok) return r.stars;
     }
@@ -596,15 +597,23 @@ export function campaign(bot: Bot<DashState>, seed: number, maxReplays = 10) {
   };
   for (let k = 0; k < STAGE_W1; k++) best[k] = clear(k, 0);
   const first = best.reduce((x, y) => x + y, 0), sums = [first];
+  const stuck = Array(STAGE_W1).fill(0) as number[]; // 🧪 S4: 두 번 해도 별이 안 늘면 다른 판으로(★★ 확률 0인 판에 갇히던 측정기 덫)
   for (let r = 1; r <= maxReplays && sums[sums.length - 1] < 18; r++) {
-    const k = best.indexOf(Math.min(...best));
-    best[k] = Math.max(best[k], clear(k, r));
+    const open = best.map((b, i) => (b < 3 && stuck[i] < 2 ? b : 9));
+    const k = open.indexOf(Math.min(...open));
+    if (open[k] === 9) break;
+    const got = clear(k, r);
+    if (got > best[k]) (best[k] = got), (stuck[k] = 0);
+    else stuck[k]++;
     sums.push(best.reduce((x, y) => x + y, 0));
   }
   const to = (n: number) => { const i = sums.findIndex((v) => v >= n); return i < 0 ? Infinity : i; };
   return { first, to18: to(18), to12: to(12), tries };
 }
 const STAGE_W1 = 10;
+/** M2 S4 다시 하는 판에도 부엉이(🧪) — 끄면 S4 첫 측정과 같다 */
+export let OWL_REPLAY = false; // 봇은 늘 받아서 ★★★를 스스로 잃는다(사람 반응 18 도달 .58→.33) — 측정은 끔, 게임에선 고를 수 있는 카드
+export const setOwlReplay = (v: boolean) => void (OWL_REPLAY = v);
 export function measureCampaign(seeds = 24) {
   const out: Record<string, unknown> = {};
   for (const name of ['newbieNever', 'newbieLow', 'human', 'spam', 'scribble']) {
