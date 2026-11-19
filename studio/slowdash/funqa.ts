@@ -149,7 +149,7 @@ export const BOTS: Record<string, Bot<DashState>> = {
 
 export interface Try {
   ok: boolean; stars: number; s2: boolean; s3: boolean; sec: number; best: number; hits: number; dashes: number; whiff: number;
-  holdAvg: number; downPct: number; empty: number; s: DashState;
+  holdAvg: number; downPct: number; empty: number; cancels: number; s: DashState;
 }
 
 /** k판을 한 번 도전(첫 결과가 나올 때까지, 하트 무관) */
@@ -157,7 +157,7 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
   const s = g.create(seed);
   if (k) startStage(s, k);
   const rng = mulberry32(hand ^ 0x9e3779b9), t0 = s.t, d0 = s.dashes, emptyG = K.GBASE + K.GPER * K.HOP;
-  let whiff = 0, down = 0, holds = 0, holdT = 0, cur = 0, empty = 0, dn = s.dashes;
+  let whiff = 0, down = 0, holds = 0, holdT = 0, cur = 0, empty = 0, dn = s.dashes, cancels = 0;
   while (s.phase !== 'result' && s.t - t0 < maxSec * 60) {
     const was = s.down;
     g.step(s, bot.act(s, rng));
@@ -165,11 +165,12 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
     else if (was) (holds++, (holdT += cur), (cur = 0));
     if (s.g < emptyG) empty++;
     if (s.dashes > dn) ((dn = s.dashes), s.combo.n === 0 && whiff++);
+    for (let i = s.events.length - 1; i >= 0 && s.events[i].t === s.t; i--) if (s.events[i].kind === 'cancel') cancels++; // 🧪 S001: 조용한 취소(방패 바로 앞 길이 0 등)
   }
   const ok = s.phase === 'result' && s.ok, T = Math.max(1, s.t - t0), n = s.dashes - d0;
   return {
     ok, stars: ok ? s.got : 0, s2: ok && s.starOk[1], s3: ok && s.starOk[2], sec: (s.t - t0) / 60, best: s.best, hits: s.hits, dashes: n,
-    whiff: n ? whiff / n : 0, holdAvg: holds ? holdT / holds / 60 : 0, downPct: down / T, empty: empty / T, s,
+    whiff: n ? whiff / n : 0, holdAvg: holds ? holdT / holds / 60 : 0, downPct: down / T, empty: empty / T, cancels, s,
   };
 }
 /** 처음 하는 사람: 같은 판을 3번까지 */
@@ -192,11 +193,13 @@ const median = (a: number[]) => {
   const b = [...a].sort((x, y) => x - y);
   return b.length ? (b.length % 2 ? b[(b.length - 1) / 2] : (b[b.length / 2 - 1] + b[b.length / 2]) / 2) : 0;
 };
-type Row = { clear: number; star: number; star3: number; s2: number; s3: number; sec: number; best: number; hit: number; dashes: number; whiff: number; holdAvg: number; downPct: number; empty: number; tries?: number };
+type Row = { clear: number; star: number; star2p: number; star3: number; cancels: number; s2: number; s3: number; sec: number; best: number; hit: number; dashes: number; whiff: number; holdAvg: number; downPct: number; empty: number; tries?: number };
 const sum = (t: (Try & { tries?: number })[]): Row => ({
   clear: r2(mean(t.map((x) => +x.ok))),
   star: r2(mean(t.map((x) => x.stars))),
+  star2p: r2(mean(t.map((x) => +(x.stars >= 2)))),
   star3: r2(mean(t.map((x) => +(x.stars === 3)))),
+  cancels: r2(mean(t.map((x) => x.cancels))),
   s2: r2(mean(t.map((x) => +x.s2))),
   s3: r2(mean(t.map((x) => +x.s3))),
   sec: r2(median(t.map((x) => x.sec))),
@@ -252,7 +255,7 @@ export function measure(seeds = 24, only?: string[]) {
     : null;
   const F6 = has('spam')
     ? {
-        star2plus2: r2(Math.max(...stages.slice(1).map((_, j) => R('spam', j + 1)!.star))),
+        star2plus2: r2(Math.max(...stages.slice(1).map((_, j) => R('spam', j + 1)!.star2p))), // 🧪 S001: ★2 이상인 시도의 비율(평균 아님)
         clearMax3: r2(Math.max(...from3.map((_, j) => R('spam', j + 2)!.clear))),
         clear: stages.map((_, k) => R('spam', k)!.clear),
       }
