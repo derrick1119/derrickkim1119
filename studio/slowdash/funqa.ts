@@ -49,7 +49,7 @@ export function strokePlan(s: DashState): { pts: Pt[]; n: number } | null {
 }
 const straightN = (s: DashState, p: Pt) => K.path(s, [p]).hits.length;
 /** 사람 반응 봇: pick이 고른 자리(게임 좌표 x, y)를 react초 늦게·err만큼 빗나가게. slow면 꾹 누른 채 반응한다 */
-export function human(name: string, react: number, err: number, slow: boolean, pick?: Pick, stroke = false): Bot<DashState> {
+export function human(name: string, react: number, err: number, slow: boolean, pick?: Pick, stroke: boolean | 'naive' = false): Bot<DashState> {
   const mem = new WeakMap<object, { st: 'idle' | 'wait' | 'hold'; until: number; x: number; y: number; ox: number; oy: number; bend: Pt | null; half: number }>();
   const choose: Pick = pick ?? ((s, rng) => { const p = smartAim(s, rng); return p && { x: p.x, y: p.y * K.A }; });
   const RT = Math.round(react * 60), REFLEX = 9, COOL = 15;
@@ -82,7 +82,19 @@ export function human(name: string, react: number, err: number, slow: boolean, p
           m.st = 'hold';
           m.until = s.t + RT;
           m.bend = null;
-          if (stroke) {
+          if (stroke === 'naive') {
+            // ✏️ S007(📋): 처음 하는 사람은 30%쯤 아무 적 둘을 이어 꺾어 본다(계획 없이)
+            const f = live(s);
+            if (f.length >= 2 && rng() < 0.3) {
+              const a = f[Math.floor(rng() * f.length)], b = f.filter((x) => x !== a)[Math.floor(rng() * (f.length - 1))];
+              const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
+              m.bend = { x: a.x, y: a.y };
+              (m.x = b.x + (dx / d) * 0.08), (m.y = b.y + (dy / d) * 0.08);
+              m.until = s.t + RT + 9;
+              m.half = s.t + Math.round((RT + 9) / 2);
+              return press(a.x + m.ox, a.y + m.oy);
+            }
+          } else if (stroke) {
             // S006: 꾹 누른 느린 세상에서 한붓 길을 찾는다 — 한 줄보다 하나 넘게 더 베면 꺾는 점 하나를 그린다(+0.15초)
             const plan = strokePlan(s);
             if (plan && plan.n >= straightN(s, { x: m.x, y: m.y }) + 1) {
@@ -239,7 +251,7 @@ export const BOTS: Record<string, Bot<DashState>> = {
   smartStroke: slowdashSmartStroke,
   humanStroke: human('사람 캐주얼 + 한붓', 0.5, 0.03, true, undefined, true),
   scribble: slowdashScribble,
-  newbie: human('처음 하는 사람', 0.7, 0.05, true, newbiePick),
+  newbie: human('처음 하는 사람', 0.7, 0.05, true, newbiePick, 'naive'),
 };
 
 export interface Try {
