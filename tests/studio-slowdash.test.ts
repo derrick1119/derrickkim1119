@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/slowdash/core.ts';
-import { STAGES, slowdash as g, slowdashRandom, slowdashSmart, startStage } from '../studio/slowdash/game.ts';
+import { STAGES, missOf, slowdash as g, slowdashRandom, slowdashSmart, startStage } from '../studio/slowdash/game.ts';
 import { BOTS, measure, try3, tryStage } from '../studio/slowdash/funqa.ts';
 
 const A = g.aspect ?? 1.52;
@@ -40,6 +40,38 @@ describe('느린 시간 닌자 시뮬', () => {
     for (let k = 0; k < 10; k++) g.step(s, { tap: false, dir: 0, pointer: { x: 0.5, y: 0.56 / A } });
     g.step(s, { tap: false, dir: 0, pointer: null });
     expect(s.best).toBe(3);
+  });
+
+
+  it('S002 별 틀: 모든 판 별이 같은 세 가지(★ 지나가기 · ★★ 한 번에 N 베기 · ★★★ 꼬리 하나도 안 잃기), N만 다르다', () => {
+    for (const d of STAGES) {
+      expect(d.stars.map((q) => q.k)).toEqual(['multi', 'nohit']);
+      expect(d.stars[0].n).toBe(d.n);
+      expect(d.n).toBeGreaterThanOrEqual(3);
+      expect(d.stars[1].label).toBe('꼬리 하나도 안 잃기');
+    }
+    expect(STAGES[0].gift3).toBe(true); // 1-1 허수아비 판은 맞을 수 없다 → 선물 별
+  });
+
+  it('S002 하트 폐지: 져도 게임이 끝나지 않고 그 판만 바로 다시 · 결과 화면은 놓친 별 이유를 쉬운 말로', () => {
+    const s = g.create(5);
+    startStage(s, 1);
+    let fails = 0;
+    for (let t = 0; t < 60 * 120 && fails < 2; t++) {
+      g.step(s, { tap: false, dir: 0, pointer: null }); // 가만히 서 있으면 칼잡이에게 맞아 진다
+      if (s.phase === 'result' && !s.ok && s.pt === 1) fails++;
+    }
+    expect(fails).toBe(2);
+    expect(g.over(s)).toBe(false);
+    expect(s.stage).toBe(1);
+    const w = g.create(7);
+    w.stage = 1;
+    w.best = 2;
+    w.hits = 1;
+    w.starOk = [true, false, false];
+    expect(missOf(w)).toBe(`한 번에 2 / ${STAGES[1].n} · 꼬리 2 / 3`);
+    w.starOk = [true, true, true];
+    expect(missOf(w)).toBe('');
   });
 
   it('장인 봇은 8판을 모두 지나간다 (콘텐츠가 풀린다)', () => {

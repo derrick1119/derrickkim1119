@@ -227,7 +227,8 @@ export function measure(seeds = 24, only?: string[]) {
   const runs: Record<string, unknown> = {};
   const score: Record<string, number> = {};
   for (const name of names.filter((n) => ['smart', 'habit', 'habit2', 'random', 'spam', 'human'].includes(n))) {
-    const r = Array.from({ length: Math.min(seeds, 12) }, (_, i) => runBot(g, BOTS[name], 501 + i * 13, 60 * 1500));
+    // ✏️ S002: 하트가 없어 지면 그 판 다시 → 끝이 없다. 점수·격차는 '처음 5분'으로 잰다
+    const r = Array.from({ length: Math.min(seeds, 12) }, (_, i) => runBot(g, BOTS[name], 501 + i * 13, 60 * 300));
     score[name] = mean(r.map((x) => x.score));
     runs[name] = {
       score: Math.round(score[name]),
@@ -260,8 +261,23 @@ export function measure(seeds = 24, only?: string[]) {
         clear: stages.map((_, k) => R('spam', k)!.clear),
       }
     : null;
+  // 🧪 FUN v1.1 공짜 별: 1-3~ 별 조건(★★ s2 · ★★★ s3)마다, 버릇 하나라도 ≥ .5 달성이고 장인 − 그 버릇 < .4
+  const freeStars: string[] = [];
+  if (has('smart'))
+    stages.forEach((r, k) => {
+      if (k < 2) return;
+      for (const c of ['s2', 's3'] as const)
+        for (const b of habits) {
+          const hb = (r[b] as Row)[c], sm = (r.smart as Row)[c];
+          if (hb >= 0.5 && sm - hb < 0.4) {
+            freeStars.push(`${k + 1}판 ${c === 's2' ? '★★' : '★★★'} (${b} ${hb} · 장인 ${sm})`);
+            break;
+          }
+        }
+    });
   return {
     at: new Date().toISOString().slice(0, 10),
+    freeStars,
     seeds,
     gap: r2(score.smart / Math.max(1, score.random)),
     gapHabit2: score.habit2 ? r2(score.smart / score.habit2) : null,
@@ -289,6 +305,7 @@ if (process.argv[1]?.endsWith('funqa.ts')) {
   writeFileSync(join(dir, 'funqa.json'), JSON.stringify(m, null, 1) + '\n');
   console.log(`격차 ${m.gap}× · 장인÷버릇② ${m.gapHabit2}× · 첫인상 ${JSON.stringify(m.firstImpression)} · ${((Date.now() - t0) / 1000).toFixed(1)}초`);
   console.log(`F5 느린 시간 ${JSON.stringify(m.F5)} · F6 연타 ${JSON.stringify(m.F6)}`);
+  console.log(`공짜 별 ${m.freeStars.length}: ${m.freeStars.join(" · ")}`);
   console.log(`버릇 ★3(3판~) 최대 ${JSON.stringify(m.habitStar3Max3plus)} · ★ 평균(3판~) ${JSON.stringify(m.habitStarMean3plus)}`);
   for (const name of Object.keys(BOTS)) {
     console.log(`${name.padEnd(9)} ` + m.stages.map((r) => { const x = r[name] as Row; return `${x.clear}/★${x.star}/${x.sec}s/d${x.dashes}/w${x.whiff}/h${x.holdAvg}`; }).join(' │ '));

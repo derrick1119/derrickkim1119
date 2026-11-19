@@ -62,12 +62,17 @@ interface Wave { need: number; wait: number; foes: Spawn[] }
 interface StageDef {
   key: string; name: string; place: number; news: string; hint: string; goal: string;
   start: [number, number]; mirrors?: number[][]; barrels?: number[][]; smokes?: number[][];
-  waves: Wave[]; stars: [Star, Star];
+  waves: Wave[];
+  /** ✏️ M1 S002 별 틀(📐 GDD §5 · CONTENT §1): ★ 지나가기 · ★★ 한 번에 n 베기 · ★★★ 꼬리 하나도 안 잃기 — 모든 판 같음 */
+  n: number;
+  /** 판별 시작 먹(없으면 G0) · 너그러움 [먹 차는 배수, 칼 드는 시간 배수, 걷는 속도 배수](없으면 EASE) · ★★★ 선물 별(맞을 수 없는 판) */
+  g0?: number; ease?: [number, number, number]; gift3?: boolean;
+  stars: [Star, Star];
 }
 
 const S3 = (k: Star['k'], n: number, label: string): Star => ({ k, n, label });
 /** 판 8개. 좌표는 뒤집기 전 — 판마다(다시 할 때도) 시드로 좌우를 뒤집고 살짝 흔든다 */
-export const STAGES: StageDef[] = [
+const RAW: Omit<StageDef, 'stars'>[] = [
   {
     key: 'dummy', name: '대숲 입구', place: 0, news: '', goal: '숲 지나가기',
     hint: '여럿을 한 줄에 세워 베면 게이지가 오히려 차요', start: [0.5, 1.17],
@@ -76,7 +81,7 @@ export const STAGES: StageDef[] = [
       { need: 0, wait: 1e9, foes: [['dummy', 0.24, 1.0, 0], ['dummy', 0.41, 1.0, 0], ['dummy', 0.59, 1.0, 0], ['dummy', 0.76, 1.0, 0]] },
       { need: 0, wait: 1e9, foes: [['dummy', 0.27, 0.58, 0], ['dummy', 0.38, 0.69, 0], ['dummy', 0.49, 0.8, 0], ['dummy', 0.6, 0.91, 0], ['dummy', 0.71, 1.02, 0]] },
     ],
-    stars: [S3('multi', 3, '한 번에 셋 베기'), S3('multi', 5, '한 번에 다섯 베기')],
+    n: 4, gift3: true,
   },
   {
     key: 'sword', name: '대숲 오솔길', place: 0, news: '칼잡이 — 다가와 칼을 휘둘러요', goal: '숲 지나가기',
@@ -87,7 +92,7 @@ export const STAGES: StageDef[] = [
       { need: 1, wait: 660, foes: [['sword', 0.12, 0.64, 1], ['sword', 0.24, 0.64, 1], ['sword', 0.36, 0.64, 1], ['sword', 0.48, 0.64, 1]] },
       { need: 0, wait: 660, foes: [['sword', 0.5, 0.52, 3], ['sword', 0.5, 0.66, 3], ['sword', 0.5, 0.8, 3], ['sword', 0.34, 0.52, 3], ['sword', 0.66, 0.52, 3]] },
     ],
-    stars: [S3('nohit', 0, '한 번도 안 맞기'), S3('multi', 4, '한 번에 넷 베기')],
+    n: 4,
   },
   {
     key: 'archer', name: '달빛 언덕', place: 0, news: '화살병 — 날아오는 화살도 벨 수 있어요', goal: '언덕 넘어가기',
@@ -97,7 +102,7 @@ export const STAGES: StageDef[] = [
       { need: 1, wait: 720, foes: [['archer', 0.5, 0.49, 3], ['sword', 0.86, 0.72, 2], ['sword', 0.86, 0.86, 2], ['sword', 0.86, 1.0, 2]] },
       { need: 0, wait: 720, foes: [['archer', 0.2, 0.5, 3], ['archer', 0.5, 0.5, 3], ['archer', 0.8, 0.5, 3], ['sword', 0.38, 1.22, 1], ['sword', 0.62, 1.22, 2]] },
     ],
-    stars: [S3('arrow', 3, '날아오는 화살 셋 베기'), S3('nohit', 0, '한 번도 안 맞기')],
+    n: 4, // S002: 셋이면 화살이 버릇 봇을 못 맞혀 버릇② ★3 .54(공짜) → 넷(장인 ★★ 0 — 1-5 화살병 판은 S005에 다시 짬)
   },
   {
     key: 'shuri', name: '기와 지붕', place: 1, news: '수리검 — 셋이 부채꼴로 날아와요', goal: '지붕 건너가기',
@@ -107,7 +112,7 @@ export const STAGES: StageDef[] = [
       { need: 1, wait: 720, foes: [['sword', 0.14, 1.0, 1], ['sword', 0.26, 1.0, 1], ['sword', 0.38, 1.0, 1], ['shuri', 0.76, 0.6, 2]] },
       { need: 0, wait: 720, foes: [['shuri', 0.3, 0.5, 3], ['shuri', 0.7, 0.5, 3], ['archer', 0.5, 0.48, 3], ['sword', 0.14, 0.86, 1], ['sword', 0.86, 0.86, 2]] },
     ],
-    stars: [S3('multi', 4, '한 번에 넷 베기'), S3('nohit', 0, '한 번도 안 맞기')],
+    n: 4,
   },
   {
     key: 'shield', name: '높은 지붕', place: 1, news: '방패 무사 — 앞은 튕겨요, 등 뒤를 베요', goal: '지붕 건너가기',
@@ -117,7 +122,7 @@ export const STAGES: StageDef[] = [
       { need: 1, wait: 780, foes: [['shield', 0.24, 0.72, 1], ['shield', 0.76, 0.72, 2], ['archer', 0.5, 0.49, 3]] },
       { need: 0, wait: 780, foes: [['shield', 0.32, 0.55, 3], ['shield', 0.68, 0.55, 3], ['sword', 0.14, 1.0, 1], ['sword', 0.86, 1.0, 2], ['shuri', 0.5, 0.49, 3]] },
     ],
-    stars: [S3('back', 3, '방패 무사 셋을 등 뒤에서'), S3('multi', 3, '한 번에 셋 베기')],
+    n: 3,
   },
   {
     key: 'barrel', name: '창고 마당', place: 2, news: '폭탄 통 — 베면 둘레까지 펑!', goal: '마당 지나가기',
@@ -128,7 +133,7 @@ export const STAGES: StageDef[] = [
       { need: 1, wait: 780, foes: [['shield', 0.3, 0.55, 3], ['shield', 0.7, 0.55, 3], ['sword', 0.5, 0.52, 3], ['barrel', 0.22, 1.02, 0], ['barrel', 0.78, 1.02, 0]] },
       { need: 0, wait: 780, foes: [['sword', 0.14, 0.7, 1], ['sword', 0.14, 0.85, 1], ['sword', 0.86, 0.7, 2], ['sword', 0.86, 0.85, 2], ['sword', 0.5, 0.5, 3], ['archer', 0.3, 0.48, 3], ['barrel', 0.5, 0.75, 0]] },
     ],
-    stars: [S3('boom', 3, '통 하나로 셋 날리기'), S3('nohit', 0, '한 번도 안 맞기')],
+    n: 3,
   },
   {
     key: 'mirror', name: '거울 정원', place: 2, news: '거울 — 돌진 선이 꺾여요', goal: '정원 지나가기',
@@ -139,7 +144,7 @@ export const STAGES: StageDef[] = [
       { need: 1, wait: 780, foes: [['archer', 0.14, 0.5, 1], ['archer', 0.86, 0.5, 2], ['sword', 0.14, 1.2, 1], ['sword', 0.26, 1.2, 1], ['sword', 0.38, 1.2, 1], ['sword', 0.5, 1.2, 1]] },
       { need: 0, wait: 780, foes: [['shield', 0.36, 0.98, 1], ['shield', 0.64, 0.98, 2], ['shuri', 0.5, 0.5, 3], ['sword', 0.3, 0.5, 3], ['sword', 0.7, 0.5, 3]] },
     ],
-    stars: [S3('mirror', 3, '거울로 꺾어 셋 베기'), S3('multi', 3, '한 번에 셋 베기')],
+    n: 4, // S002: 셋이면 버릇②가 ★★ .88 · ★3 .88(공짜) → 넷(장인 ★★ .21, 거울 판은 S006에 월드 4로 빠짐)
   },
   {
     key: 'boss', name: '성 마당', place: 2, news: '대장 곰 — 네 번 베야 쓰러져요', goal: '대장 이기기',
@@ -150,10 +155,14 @@ export const STAGES: StageDef[] = [
       { need: 1, wait: 600, foes: [['sword', 0.14, 0.9, 1], ['sword', 0.14, 1.04, 1], ['sword', 0.86, 0.9, 2], ['archer', 0.5, 0.48, 3]] },
       { need: 1, wait: 700, foes: [['sword', 0.3, 0.5, 3], ['sword', 0.5, 0.5, 3], ['sword', 0.7, 0.5, 3], ['shuri', 0.86, 1.1, 2]] },
     ],
-    stars: [S3('boss', 2, '대장을 졸개 둘과 한 번에'), S3('nohit', 0, '한 번도 안 맞기')],
+    n: 3,
   },
 ];
+const NUM = ['', '하나', '둘', '셋', '넷', '다섯', '여섯', '일곱'];
+/** S002: 지금 8판의 임시 N(📋 — 장인 ★★ ≥ .8 · 버릇 ★★ 낮게, funqa 24시드로 고름). 10판 표(CONTENT)는 S005~S006에 */
+export const STAGES: StageDef[] = RAW.map((d) => ({ ...d, stars: [S3('multi', d.n, `한 번에 ${NUM[d.n]} 베기`), S3('nohit', 0, '꼬리 하나도 안 잃기')] }));
 export const STAGE_COUNT = STAGES.length;
+const easeOf = (s: DashState) => STAGES[s.stage].ease ?? EASE[Math.min(s.stage, 2)];
 
 interface Foe {
   id: number; k: K; x: number; y: number; tx: number; ty: number; ex: number; ey: number; hp: number;
@@ -173,7 +182,7 @@ interface Path { legs: number[][]; hits: { id: number; leg: number }[]; bounce: 
 
 export interface DashState {
   rng: Rng; seed: number; t: number; wt: number; stage: number; phase: 'play' | 'result'; pt: number; ok: boolean; why: string;
-  hearts: number; stars: number; got: number; starOk: boolean[]; pts: number; won: boolean; dead: boolean; again: boolean; tries: number;
+  stars: number; got: number; starOk: boolean[]; pts: number; won: boolean; dead: boolean; again: boolean; tries: number;
   nx: number; ny: number; face: number; hp: number; inv: number; g: number;
   down: boolean; lock: boolean; aim: { x: number; y: number } | null; holdT: number;
   freeze: number; slowT: number;
@@ -444,11 +453,11 @@ function foeStep(s: DashState, f: Foe, dt: number, hidden: boolean) {
       f.cool -= dt;
       if (d > m.start) {
         if (!hidden) {
-          const v = SPD[f.k] * dt * EASE[Math.min(s.stage, 2)][2];
+          const v = SPD[f.k] * dt * easeOf(s)[2];
           f.x += (dx / d) * v;
           f.y += (dy / d) * v;
         }
-      } else if (!hidden && f.cool <= 0) (f.st = WIND), (f.tm = m.wind * EASE[Math.min(s.stage, 2)][1]);
+      } else if (!hidden && f.cool <= 0) (f.st = WIND), (f.tm = m.wind * easeOf(s)[1]);
     } else if (f.st === WIND) {
       f.tm -= dt;
       if (f.tm <= 0) {
@@ -586,7 +595,7 @@ function newStage(s: DashState) {
   s.face = 1;
   s.hp = HP;
   s.inv = 30;
-  s.g = G0;
+  s.g = d.g0 ?? G0;
   s.down = false;
   s.aim = null;
   s.freeze = 0;
@@ -627,13 +636,18 @@ export function startStage(s: DashState, k: number) {
 function starMet(s: DashState, st: Star) {
   switch (st.k) {
     case 'multi': return s.best >= (st.n ?? 0);
-    case 'nohit': return s.hits === 0;
+    case 'nohit': return s.hits === 0 || !!STAGES[s.stage].gift3;
     case 'arrow': return s.arrows >= (st.n ?? 0);
     case 'back': return s.backK >= (st.n ?? 0);
     case 'boom': return s.boomBest >= (st.n ?? 0);
     case 'mirror': return s.mirK >= (st.n ?? 0);
     case 'boss': return s.bossCombo >= (st.n ?? 0);
   }
+}
+/** 결과 화면: 놓친 별마다 무엇이 모자랐는지(✏️ S002 · 📋 M1 완료 기준 ②) — 다 땄으면 '' */
+export function missOf(s: DashState) {
+  const d = STAGES[s.stage];
+  return [!s.starOk[1] ? `한 번에 ${s.best} / ${d.n}` : '', !s.starOk[2] ? `꼬리 ${Math.max(0, HP - s.hits)} / ${HP}` : ''].filter(Boolean).join(' · ');
 }
 function starNow(s: DashState, st: Star): string {
   const n = st.n ?? 0, v = st.k === 'multi' ? s.best : st.k === 'arrow' ? s.arrows : st.k === 'back' ? s.backK : st.k === 'boom' ? s.boomBest : st.k === 'mirror' ? s.mirK : -1;
@@ -659,8 +673,7 @@ function endStage(s: DashState, ok: boolean, why: string) {
     s.moodT = 999;
     ev(s, 'clear', 0.5, 0.8);
   } else {
-    s.hearts--;
-    s.tries++;
+    s.tries++; // ✏️ S002: 하트 폐지 — 지면 그 판만 바로 다시(📐 GDD §10)
     s.mood = 4;
     s.moodT = 999;
     ev(s, 'fail', s.nx, s.ny, 0, why);
@@ -700,7 +713,7 @@ export const slowdash: GameDef<DashState> = {
   create(seed) {
     const s = {
       rng: mulberry32(seed), seed, t: 0, wt: 0, stage: 0, phase: 'play', pt: 0, ok: false, why: '',
-      hearts: 3, stars: 0, got: 0, starOk: [false, false, false], pts: 0, won: false, dead: false, again: false, tries: 0,
+      stars: 0, got: 0, starOk: [false, false, false], pts: 0, won: false, dead: false, again: false, tries: 0,
       nx: 0.5, ny: 1.17, face: 1, hp: HP, inv: 0, g: GMAX, down: false, lock: false, aim: null, holdT: 0, freeze: 0, slowT: 0,
       foes: [], shots: [], barrels: [], mirrors: [], smokes: [], nid: 0, wave: 0, waveT: 0,
       dashN: 0, chain: 0, best: 0, hits: 0, arrows: 0, backK: 0, boomBest: 0, boomBy: {}, mirK: 0, bossCombo: 0, dashes: 0,
@@ -738,7 +751,7 @@ export const slowdash: GameDef<DashState> = {
           s.aim = null;
           ev(s, 'empty', s.nx, s.ny);
         }
-      } else s.g = Math.min(GMAX, s.g + REGEN * EASE[Math.min(s.stage, 2)][0]);
+      } else s.g = Math.min(GMAX, s.g + REGEN * easeOf(s)[0]);
     } else {
       s.down = false;
       s.aim = null;
@@ -756,8 +769,7 @@ export const slowdash: GameDef<DashState> = {
         if (s.ok) {
           if (s.won) s.dead = true;
           else (s.again = false), s.stage++, newStage(s);
-        } else if (s.hearts <= 0) s.dead = true;
-        else (s.again = true), newStage(s);
+        } else (s.again = true), newStage(s);
       }
       return;
     }
@@ -893,7 +905,7 @@ function judge(s: DashState, x: number, y: number, L: number): Choice {
     if (f.k === 'boss') bossIn = true;
     if (f.k === 'shield' && d.key === 'shield') obj += 90;
     if (f.k === 'archer' && farm) obj -= 400;
-    if (h.leg > 0 && d.key === 'mirror' && s.mirK < 3) obj += 130;
+    if (h.leg > 0 && goal(d, 'mirror') && s.mirK < 3) obj += 130;
   }
   if (d.key === 'boss' && n >= 3 && bossIn) obj += 300;
   let boom = 0;
@@ -906,7 +918,7 @@ function judge(s: DashState, x: number, y: number, L: number): Choice {
   v += boom * 45 - (P.barrels.some((bid) => s.barrels.find((q) => q.id === bid)!.fuse < 0) && boom === 0 ? 40 : 0);
   if (d.key === 'barrel' && boom >= 3 && s.boomBest < 3) obj += 75 * boom;
   v += P.shots.length * 8;
-  if (d.key === 'archer' && s.arrows < 3) obj += P.shots.length * 130;
+  if (goal(d, 'arrow') && s.arrows < 3) obj += P.shots.length * 130;
   if (P.bounce) v -= 80;
   const cost = reachOf(s.g) >= HOP ? dashCost(pathLen(P)) : 0, after = s.g - cost + GAIN * ((n * (n + 1)) / 2) + P.shots.length * SHOT_G;
   v += 1.2 * (after - s.g);
@@ -921,6 +933,8 @@ function judge(s: DashState, x: number, y: number, L: number): Choice {
   return { x, y, v: v + obj, n, safe, line, boom, obj, cost };
 }
 
+/** 프로토타입 별(화살·거울 …)을 노리는 장인 버릇 — S002 별 틀에는 없어서 꺼진다 */
+const goal = (d: StageDef, k: Star['k']) => d.stars.some((q) => q.k === k);
 const waitMem = new WeakMap<object, { since: number; key: string }>();
 /**
  * 봇: 후보 선을 모두 그어 보고(벨 수·게이지·내릴 곳의 위험·다음 줄 세우기·판 목표) 고른다.
@@ -935,7 +949,7 @@ export const slowdashSmart: Bot<DashState> = {
     const live = s.foes.filter((f) => f.st !== ENTER), d = STAGES[s.stage];
     if (!live.length && here > 40) return NO;
     const wm = waitMem.get(s);
-    farm = d.key === 'archer' && s.arrows < 3 && (!wm || s.t - wm.since < 900);
+    farm = goal(d, 'arrow') && s.arrows < 3 && (!wm || s.t - wm.since < 900);
     let best: Choice | null = null, repo: Choice | null = null, kill: Choice | null = null;
     for (const c of cands(s, L)) {
       if (Math.hypot(c.x - s.nx, c.y - s.ny) < 0.04) continue;
@@ -950,7 +964,7 @@ export const slowdashSmart: Bot<DashState> = {
     let m = waitMem.get(s);
     if (!m || m.key !== key) waitMem.set(s, (m = { since: s.t, key }));
     const waited = s.t - m.since;
-    const ranged = live.some((f) => f.k === 'archer' || f.k === 'shuri') && live.every((f) => !MELEE[f.k]) && !(d.key === 'archer' && s.arrows < 3 && s.wave >= d.waves.length && waited < 900);
+    const ranged = live.some((f) => f.k === 'archer' || f.k === 'shuri') && live.every((f) => !MELEE[f.k]) && !(goal(d, 'arrow') && s.arrows < 3 && s.wave >= d.waves.length && waited < 900);
     if (s.g < 30) {
       // 게이지가 바닥: 위험할 때만 — 벨 수 있으면 베며 비키고, 아니면 가장 싸게 비킨다
       if (here >= 30) return kill && kill.safe >= 50 && (kill.n >= 2 || waited > 240 || ranged) ? at(kill.x, kill.y) : NO;
@@ -2759,7 +2773,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     if (f.st === ENTER) continue;
     const m = MELEE[f.k], fx0 = X(f.x), fy0 = Y(f.y);
     if (m && f.st === WIND) {
-      const u = 1 - f.tm / (m.wind * (s.stage < 2 ? EASE[s.stage][1] : 1));
+      const u = 1 - f.tm / (m.wind * easeOf(s)[1]);
       ctx.fillStyle = `rgba(255,70,60,${0.12 + 0.28 * u})`;
       ctx.beginPath();
       if (f.k === 'boss') ell(ctx, fx0, fy0, R(m.reach), R(m.reach) * 0.5);
@@ -3515,15 +3529,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.strokeStyle = OUT;
     ctx.lineWidth = 1.2;
     ctx.stroke();
-    for (let j = 0; j < 3; j++) {
-      const hx = w - R(0.03) - sw - R(0.08) - j * R(0.05);
-      heartPath(ctx, hx, cy, R(0.017));
-      ctx.fillStyle = 2 - j < s.hearts ? lin(ctx, hx, cy - R(0.02), hx, cy + R(0.02), [0, '#ff8a95'], [1, '#d62b3d']) : 'rgba(255,255,255,.12)';
-      ctx.fill();
-      ctx.strokeStyle = 2 - j < s.hearts ? OUT : 'rgba(255,255,255,.35)';
-      ctx.lineWidth = 1.4;
-      ctx.stroke();
-    }
   }
   // 판 카드 (하늘 띠 안 — 놀이터를 가리지 않는다)
   {
@@ -3531,8 +3536,11 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     if (s.phase === 'result') {
       age = s.pt;
       a = Math.min(1, age / 8);
-      if (s.ok) head = s.won ? '성까지 다 지나왔다!' : `${d.goal} 성공!`;
-      else (head = `으앗… ${s.why}`), (sub = s.hearts > 0 ? '하트 -1 · 같은 판 다시' : '끝 — 여우 닌자가 쉬러 가요');
+      if (s.ok) {
+        head = s.won ? '성까지 다 지나왔다!' : `${d.goal} 성공!`;
+        // ✏️ S002(📋 M1 완료 기준 ②): 놓친 별은 무엇이 모자랐는지 쉬운 말로
+        sub = missOf(s);
+      } else (head = `으앗… ${s.why}`), (sub = '그 판만 바로 다시');
     } else if (s.pt < CARD_T && (s.stage > 0 || s.again)) {
       age = s.pt;
       a = Math.min(1, (CARD_T - s.pt) / 20, age / 6);
@@ -3569,10 +3577,16 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       font(0.045, 900);
       ctx.fillStyle = s.phase === 'result' ? (s.ok ? '#8a5a0a' : '#9a2a20') : '#2a1a0c';
       if (s.phase === 'result' && s.ok) {
-        ctx.fillText(head, w / 2, cy - R(0.022));
+        const up = sub ? R(0.022) : 0;
+        ctx.fillText(head, w / 2, cy - R(0.022) - up);
+        if (sub) {
+          font(0.034, 800);
+          ctx.fillStyle = '#7a3a1a';
+          ctx.fillText(sub, w / 2, cy + R(0.05), w - R(0.1));
+        }
         for (let j = 0; j < 3; j++) {
           const ag = s.pt - (12 + j * 12);
-          const sx = w / 2 + (j - 1) * R(0.07), sy = cy + R(0.03);
+          const sx = w / 2 + (j - 1) * R(0.07), sy = cy + R(0.03) - up;
           const pop = ag < 0 ? 0 : ag < 8 ? 1.9 - 0.9 * (ag / 8) : 1;
           starPath(ctx, sx, sy, R(0.026) * (ag < 0 ? 1 : pop));
           ctx.fillStyle = ag >= 0 && s.starOk[j] ? '#ffc93a' : 'rgba(90,60,20,.18)';
