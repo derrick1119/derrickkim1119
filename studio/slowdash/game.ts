@@ -138,62 +138,61 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     ],
     n: 5, // 📐 CONTENT v2: strike 없음(고리 일격은 꺾기 판에서 뺀다)
   },
+  // ✏️ M1 S008: 📐 1-6~1-10 꺾기 판(방패 · 통 · 섞기 · 수리검 · 대장) — 고리 일격 없음. 거울 판은 M2로(잘라내기 ③)
   {
-    key: 'shuri', name: '기와 지붕', place: 1, news: '수리검 — 셋이 부채꼴로 날아와요', goal: '지붕 건너가기',
-    hint: '수리검은 부채꼴 — 틈으로 비켜 서요', start: [0.5, 1.15],
+    key: 'shield', name: '높은 지붕', place: 1, news: '방패 무사 — 앞은 튕겨요, 꺾어 등 뒤를 베요', goal: '지붕 건너가기',
+    hint: '방패 옆으로 올라가 꺾어 등을 베요', start: [0.5, 1.15], g0: 60, ease: [1.3, 2.5, 0.8],
     waves: [
-      { need: 0, wait: 1e9, foes: [['shuri', 0.2, 0.55, 1], ['shuri', 0.8, 0.55, 2], ['sword', 0.5, 0.5, 3], ['sword', 0.5, 0.63, 3]] },
-      { need: 1, wait: 720, foes: [['sword', 0.14, 1.0, 1], ['sword', 0.26, 1.0, 1], ['sword', 0.38, 1.0, 1], ['shuri', 0.76, 0.6, 2]] },
-      { need: 0, wait: 720, foes: [['shuri', 0.3, 0.5, 3], ['shuri', 0.7, 0.5, 3], ['archer', 0.5, 0.48, 3], ['sword', 0.14, 0.86, 1], ['sword', 0.86, 0.86, 2]] },
+      { need: 0, wait: 1e9, foes: [['shield', 0.5, 0.74, 3], ['dummy', 0.36, 0.82, 0], ['dummy', 0.29, 0.66, 0], ['dummy', 0.26, 0.58, 0], ['dummy', 0.64, 0.83, 0]] },
+      { need: 1, wait: 780, foes: [['shield', 0.5, 0.72, 3], ['dummy', 0.5, 0.52, 0], ['sword', 0.16, 0.6, 1], ['sword', 0.84, 0.6, 2]] },
+      { need: 0, wait: 780, foes: [['shield', 0.34, 0.7, 3], ['shield', 0.66, 0.7, 3], ['dummy', 0.5, 0.52, 0], ['sword', 0.14, 0.92, 1], ['sword', 0.86, 0.92, 2]] },
     ],
-    n: 4, strike: 32,
+    n: 5,
   },
   {
-    key: 'shield', name: '높은 지붕', place: 1, news: '방패 무사 — 앞은 튕겨요, 등 뒤를 베요', goal: '지붕 건너가기',
-    hint: '방패 옆으로 지나가 등 뒤로 — 돌아서기 전에 번쩍!', start: [0.5, 1.15],
+    key: 'barrel', name: '창고 마당', place: 2, news: '폭탄 통 — 베면 둘레까지 펑! 방패도 날려요', goal: '마당 지나가기',
+    hint: '칼잡이를 꿰고 꺾어 통을 지나 멀리 (펑!)', start: [0.5, 1.17], g0: 60, ease: [1.3, 2.5, 0.8],
+    barrels: [[0.5, 0.64]],
     waves: [
-      { need: 0, wait: 1e9, foes: [['shield', 0.5, 0.64, 3], ['sword', 0.3, 0.58, 3], ['sword', 0.7, 0.58, 3]] },
-      { need: 1, wait: 780, foes: [['shield', 0.24, 0.72, 1], ['shield', 0.76, 0.72, 2], ['archer', 0.5, 0.49, 3]] },
-      { need: 0, wait: 780, foes: [['shield', 0.32, 0.55, 3], ['shield', 0.68, 0.55, 3], ['sword', 0.14, 1.0, 1], ['sword', 0.86, 1.0, 2], ['shuri', 0.5, 0.49, 3]] },
+      { need: 0, wait: 1e9, foes: [['sword', 0.24, 0.9, 1], ['sword', 0.18, 0.78, 1], ['sword', 0.12, 0.66, 1], ['dummy', 0.42, 0.58, 0], ['dummy', 0.58, 0.58, 0], ['dummy', 0.5, 0.52, 0]] },
+      { need: 1, wait: 780, foes: [['shield', 0.42, 0.56, 3], ['shield', 0.58, 0.56, 3], ['sword', 0.76, 0.9, 2], ['sword', 0.82, 0.78, 2], ['sword', 0.88, 0.66, 2], ['barrel', 0.5, 0.64, 0]] },
+      { need: 0, wait: 780, foes: [['shield', 0.3, 0.6, 3], ['sword', 0.14, 0.86, 1], ['sword', 0.86, 0.86, 2], ['sword', 0.74, 0.62, 2], ['sword', 0.62, 0.52, 3], ['barrel', 0.34, 0.72, 0]] },
     ],
-    n: 3,
+    n: 5,
   },
   {
-    key: 'barrel', name: '창고 마당', place: 2, news: '폭탄 통 — 베면 둘레까지 펑!', goal: '마당 지나가기',
-    hint: '적이 통 곁에 모였을 때 통을 베요 (나는 멀리!)', start: [0.5, 1.17],
-    barrels: [[0.3, 0.74], [0.7, 0.74], [0.5, 0.95]],
+    key: 'mix', name: '창고 처마', place: 2, news: '섞여 와요 — 화살병 먼저, 방패는 등 뒤로', goal: '처마 지나가기',
+    hint: '칼잡이를 지나 꺾어 화살병까지', start: [0.5, 1.15], g0: 60, ease: [1.2, 3, 0.7],
     waves: [
-      { need: 0, wait: 1e9, foes: [['sword', 0.12, 0.64, 1], ['sword', 0.12, 0.78, 1], ['sword', 0.24, 0.64, 1], ['sword', 0.24, 0.78, 1]] },
-      { need: 1, wait: 780, foes: [['shield', 0.3, 0.55, 3], ['shield', 0.7, 0.55, 3], ['sword', 0.5, 0.52, 3], ['barrel', 0.22, 1.02, 0], ['barrel', 0.78, 1.02, 0]] },
-      { need: 0, wait: 780, foes: [['sword', 0.14, 0.7, 1], ['sword', 0.14, 0.85, 1], ['sword', 0.86, 0.7, 2], ['sword', 0.86, 0.85, 2], ['sword', 0.5, 0.5, 3], ['archer', 0.3, 0.48, 3], ['barrel', 0.5, 0.75, 0]] },
+      { need: 1, wait: 1e9, foes: [['sword', 0.26, 0.84, 1], ['sword', 0.2, 0.75, 1], ['sword', 0.14, 0.66, 1], ['archer', 0.4, 0.52, 3], ['archer', 0.6, 0.52, 3]] },
+      { need: 1, wait: 720, foes: [['shield', 0.5, 0.72, 3], ['archer', 0.3, 0.5, 3], ['sword', 0.86, 0.9, 2], ['sword', 0.74, 0.9, 2]] },
+      { need: 0, wait: 780, foes: [['shield', 0.32, 0.68, 3], ['shield', 0.68, 0.68, 3], ['archer', 0.5, 0.5, 3], ['sword', 0.14, 0.9, 1], ['sword', 0.86, 0.9, 2]] },
     ],
-    n: 3,
+    n: 4,
   },
   {
-    key: 'mirror', name: '거울 정원', place: 2, news: '거울 — 돌진 선이 꺾여요', goal: '정원 지나가기',
-    hint: '거울을 겨누면 선이 꺾여요 — 방패 등 뒤로 돌아 베기', start: [0.5, 1.17],
-    mirrors: [[0.16, 0.62, 0.3, 0.86], [0.84, 0.62, 0.7, 0.86]],
+    key: 'shuri', name: '성벽 위', place: 2, news: '수리검 — 셋이 부채꼴로 날아와요', goal: '성벽 건너가기',
+    hint: '부채꼴 틈으로 꺾어 들어가요', start: [0.5, 1.15], g0: 60, ease: [1.2, 3, 0.7],
     waves: [
-      { need: 0, wait: 1e9, foes: [['shield', 0.5, 0.62, 3], ['sword', 0.36, 0.52, 3], ['sword', 0.64, 0.52, 3]] },
-      { need: 1, wait: 780, foes: [['archer', 0.14, 0.5, 1], ['archer', 0.86, 0.5, 2], ['sword', 0.14, 1.2, 1], ['sword', 0.26, 1.2, 1], ['sword', 0.38, 1.2, 1], ['sword', 0.5, 1.2, 1]] },
-      { need: 0, wait: 780, foes: [['shield', 0.36, 0.98, 1], ['shield', 0.64, 0.98, 2], ['shuri', 0.5, 0.5, 3], ['sword', 0.3, 0.5, 3], ['sword', 0.7, 0.5, 3]] },
+      { need: 1, wait: 1e9, foes: [['shuri', 0.2, 0.55, 1], ['sword', 0.5, 0.52, 3], ['sword', 0.5, 0.64, 3], ['sword', 0.5, 0.76, 3], ['dummy', 0.75, 0.6, 0]] },
+      { need: 1, wait: 720, foes: [['shield', 0.5, 0.7, 3], ['shuri', 0.5, 0.5, 3], ['sword', 0.14, 0.86, 1], ['sword', 0.26, 0.86, 1]] },
+      { need: 0, wait: 780, foes: [['shuri', 0.74, 0.5, 3], ['shield', 0.4, 0.66, 3], ['shield', 0.6, 0.66, 3], ['sword', 0.14, 0.86, 1], ['sword', 0.86, 0.86, 2]] },
     ],
-    n: 4, strike: 32, // S002: 셋이면 버릇②가 ★★ .88 · ★3 .88(공짜) → 넷(장인 ★★ .21, 거울 판은 S006에 월드 4로 빠짐)
+    n: 4,
   },
   {
     key: 'boss', name: '성 마당', place: 2, news: '대장 곰 — 네 번 베야 쓰러져요', goal: '대장 이기기',
-    hint: '연기 속에 내리면 적이 나를 못 찾아요', start: [0.5, 1.17],
-    smokes: [[0.24, 0.98, 0.1], [0.76, 0.72, 0.1]],
+    hint: '졸개를 꿰고 꺾어 대장까지 한 획에', start: [0.5, 1.17], g0: 60, ease: [1.2, 2.5, 0.8],
     waves: [
-      { need: 0, wait: 1e9, foes: [['boss', 0.5, 0.6, 3], ['sword', 0.3, 0.7, 1], ['sword', 0.7, 0.7, 2]] },
-      { need: 1, wait: 600, foes: [['sword', 0.14, 0.9, 1], ['sword', 0.14, 1.04, 1], ['sword', 0.86, 0.9, 2], ['archer', 0.5, 0.48, 3]] },
-      { need: 1, wait: 700, foes: [['sword', 0.3, 0.5, 3], ['sword', 0.5, 0.5, 3], ['sword', 0.7, 0.5, 3], ['shuri', 0.86, 1.1, 2]] },
+      { need: 1, wait: 1e9, foes: [['boss', 0.5, 0.74, 3], ['sword', 0.3, 0.92, 1], ['sword', 0.2, 0.8, 1], ['sword', 0.7, 0.92, 2], ['sword', 0.8, 0.8, 2]] },
+      { need: 1, wait: 600, foes: [['shield', 0.3, 0.6, 3], ['shield', 0.7, 0.6, 3], ['archer', 0.5, 0.48, 3]] },
+      { need: 1, wait: 700, foes: [['sword', 0.2, 0.5, 3], ['sword', 0.32, 0.56, 3], ['sword', 0.68, 0.56, 3], ['sword', 0.8, 0.5, 3], ['shield', 0.5, 0.9, 1]] },
     ],
-    n: 3, strike: 32,
+    n: 4,
   },
 ];
 const NUM = ['', '하나', '둘', '셋', '넷', '다섯', '여섯', '일곱'];
-/** S002: 6~10판(수리검~대장)의 임시 N(📋 — 장인 ★★ ≥ .8 · 버릇 ★★ 낮게, funqa 24시드로 고름). 10판 표(CONTENT)는 S005~S006에 */
+/** S002 별 틀(S007~S008 📐 CONTENT v2로 판마다 N)(📋 — 장인 ★★ ≥ .8 · 버릇 ★★ 낮게, funqa 24시드로 고름). 10판 표(CONTENT)는 S005~S006에 */
 export const STAGES: StageDef[] = RAW.map((d) => ({ ...d, stars: [S3('multi', d.n, `한 번에 ${NUM[d.n]} 베기`), S3('nohit', 0, '꼬리 하나도 안 잃기')] }));
 export const STAGE_COUNT = STAGES.length;
 const easeOf = (s: DashState) => STAGES[s.stage].ease ?? EASE[Math.min(s.stage, 2)];
@@ -1066,7 +1065,7 @@ export const slowdashSmart: Bot<DashState> = {
     const live = s.foes.filter((f) => f.st !== ENTER), d = STAGES[s.stage];
     if (!live.length && here > 40) return NO;
     // ✏️ S008(🧪 S007 1-1 탭 봇 300초 멈춤): 적이 하나만 남으면 줄 세울 일이 없다 — 옮겨 서기 굴레 대신 바로 벤다
-    if (live.length === 1 && here > 40) return at(live[0].x, live[0].y);
+    if (live.length === 1 && here > 40 && live[0].k !== 'shield') return at(live[0].x, live[0].y); // 방패는 앞이면 튕기니 예전처럼 돌아간다
     const wm = waitMem.get(s);
     farm = goal(d, 'arrow') && s.arrows < 3 && (!wm || s.t - wm.since < 900);
     let best: Choice | null = null, repo: Choice | null = null, kill: Choice | null = null;

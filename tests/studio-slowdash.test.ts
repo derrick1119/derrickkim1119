@@ -107,7 +107,9 @@ describe('느린 시간 닌자 시뮬', () => {
   });
 
   it('S004 찾아오는 위협: 일격 판에서 내린 자리에 32틱 뒤 일격 — 그 자리에 남으면 맞고, 꾹(느린 시간) 하면 비켜 갈 틈이 있다', () => {
-    expect(STAGES.filter((d) => d.strike).map((d) => d.key)).toEqual(['shuri', 'mirror', 'boss']); // S007: 꺾기 판(1-5 화살병)에서는 고리 일격을 뺐다(📐 CONTENT v2)
+    // S007~S008: 꺾기 판 10판 모두 고리 일격을 뺐다(📐 CONTENT v2) — 일격 장치 자체는 실험값 STRIKE.t로 켜서 확인한다
+    expect(STAGES.filter((d) => d.strike).map((d) => d.key)).toEqual([]);
+    STRIKE.t = 32;
     const run = (holdAfter: boolean) => {
       const s = g.create(3);
       startStage(s, K('shuri'));
@@ -123,8 +125,10 @@ describe('느린 시간 닌자 시뮬', () => {
       for (let k = 0; k < 6; k++) g.step(s, { tap: false, dir: 0, pointer: null });
       return s.hits;
     };
-    expect(run(false)).toBeGreaterThan(0); // 실시간 0.5초면 이미 맞았다
-    expect(run(true)).toBe(0); // 꾹 하면 세상이 느려져 비켜 간다
+    const stay = run(false), hold = run(true);
+    STRIKE.t = 0;
+    expect(stay).toBeGreaterThan(0); // 실시간 0.5초면 이미 맞았다
+    expect(hold).toBe(0); // 꾹 하면 세상이 느려져 비켜 간다
     expect(STRIKE.r).toBeGreaterThan(0);
   });
 
