@@ -233,7 +233,7 @@ export interface DashState {
   foes: Foe[]; shots: Shot[]; barrels: Barrel[]; mirrors: Mirror[]; smokes: Smoke[]; thorns: { x: number; y: number; r: number }[]; nid: number;
   wave: number; waveT: number;
   dashN: number; chain: number; best: number; hits: number; arrows: number; backK: number; boomBest: number; boomBy: Record<number, number>;
-  mirK: number; bossCombo: number; dashes: number; firstDash: boolean; firstBig: number; firstPress: number;
+  mirK: number; bounceT: number; bents: number; bossCombo: number; dashes: number; firstDash: boolean; firstBig: number; firstPress: number;
   combo: { id: number; n: number; t: number };
   seen: Set<string>; spotted: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; spot: { id: number; t: number; label: string } | null;
   events: Ev[]; cuts: Cut[]; inks: Ink[]; trail: { legs: number[][]; t: number; n: number } | null;
@@ -245,8 +245,12 @@ const ev = (s: DashState, kind: string, x: number, y: number, n?: number, text?:
 function see(s: DashState, key: string, text: string) {
   if (!key || s.seen.has(key)) return;
   s.seen.add(key);
-  if (text) s.newsQ.push(text);
+  if (!text) return;
+  // ✏️ S012: 덤불 알림은 지금 일어난 일이라 줄 맨 앞에 끼워 바로 띄운다(판 소개 뒤로 밀려 안 보이던 것 · 🧪 S011)
+  if (URGENT.has(key)) (s.newsQ.unshift(text), (s.news = null));
+  else s.newsQ.push(text);
 }
+const URGENT = new Set(['thorn', 'thornRed']);
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const KIND_NAME: Record<K, string> = { dummy: '허수아비', sword: '칼잡이', archer: '화살병', shuri: '수리검', shield: '방패 무사', boss: '대장 곰' };
 
@@ -486,7 +490,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     const th = thornOf(s, P.legs);
     if (th) {
       // 꼬리털만 걸린다: ★★★(꼬리 하나도 안 잃기)만 놓치고 목숨은 안 준다 — 처음 하는 사람이 덤불 때문에 지지는 않게
-      see(s, 'thorn', '가시덤불 — 지나가면 꼬리가 걸려요. 꺾어 돌아가요');
+      see(s, 'thorn', '덤불도 한 대! ★★★ 놓침 — 꺾어 돌아가요');
       s.hits++;
       ev(s, 'hurt', th.x, th.y, s.hp, '가시덤불에 걸렸어요 — ★★★ 놓침');
     }
@@ -495,13 +499,17 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
   if (Math.abs(last[2] - last[0]) > 0.005) s.face = last[2] > last[0] ? 1 : -1;
   s.nx = P.ex;
   s.ny = P.ey;
-  s.inv = Math.max(s.inv, INV_DASH);
+  // ✏️ S011 압박: 아무것도 못 벤 튕김이 60틱 안에 또 오면 무적을 안 준다 — 방패 앞 연타 튕김으로 서서 버티던 구멍(한 번 튕김은 그대로 봐줌)
+  const idle = n === 0 && P.bounce && s.t - s.bounceT < 12;
+  if (P.bounce && n === 0) s.bounceT = s.t;
+  if (P.legs.length > 1 && pts.length > 1) s.bents++; // S012 꺾은 획 수(1-2 길잡이를 끄는 데 씀)
+  if (!idle) s.inv = Math.max(s.inv, INV_DASH);
   s.combo = { id, n, t: s.t };
   s.best = Math.max(s.best, n);
   if (n > 0 || P.shots.length) s.chain++;
   else s.chain = 0;
   if (s.chain >= 3) see(s, 'chain', '연쇄 — 쉬지 않고 이어 베면 점수가 불어나요');
-  s.freeze = n > 0 ? Math.min(8, 2 + n) : P.bounce ? 3 : 0;
+  s.freeze = n > 0 ? Math.min(8, 2 + n) : P.bounce && !idle ? 3 : 0; // S011: 연달아 튕기면 멈칫도 없다(세상이 멈춰 서서 버티던 진짜 원인)
   if (n >= 3) s.slowT = 30;
   if (n >= 3 && s.firstBig < 0) s.firstBig = s.t;
   s.trail = { legs: P.legs, t: s.t, n };
@@ -849,7 +857,7 @@ export const slowdash: GameDef<DashState> = {
       stars: 0, base: 0, got: 0, starOk: [false, false, false], pts: 0, won: false, dead: false, again: false, tries: 0,
       nx: 0.5, ny: 1.17, face: 1, hp: HP, inv: 0, g: GMAX, down: false, lock: false, stiff: 0, whiffs: 0, stroke: [], aim: null, holdT: 0, freeze: 0, slowT: 0,
       strikes: [], foes: [], shots: [], barrels: [], mirrors: [], smokes: [], thorns: [], nid: 0, wave: 0, waveT: 0,
-      dashN: 0, chain: 0, best: 0, hits: 0, arrows: 0, backK: 0, boomBest: 0, boomBy: {}, mirK: 0, bossCombo: 0, dashes: 0,
+      dashN: 0, chain: 0, best: 0, hits: 0, arrows: 0, backK: 0, boomBest: 0, boomBy: {}, mirK: 0, bounceT: -999, bents: 0, bossCombo: 0, dashes: 0,
       firstDash: false, firstBig: -1, firstPress: -1, combo: { id: -1, n: 0, t: -99 },
       seen: new Set<string>(), spotted: new Set<string>(), newsQ: [], news: null, spot: null, events: [], cuts: [], inks: [], trail: null,
       camX: 0, mood: 0, moodT: 0, owlT: -999, sheathT: -999, slowVis: 0,
@@ -880,6 +888,8 @@ export const slowdash: GameDef<DashState> = {
           }
           s.aim = q;
           s.holdT++;
+          // ✏️ S011 첫 빨간 덤불: 그리는 길이 처음 덤불에 걸리면 한 번 알려 준다(다시 그리기를 배우게)
+          if (s.thorns.length && !s.seen.has('thornRed') && s.holdT % 4 === 0 && thornOf(s, tracePath(s, strokeOf(s), reachFor(s, strokeOf(s))).legs)) see(s, 'thornRed', '빨간 덤불은 한 대! 손가락을 닌자로 되돌리면 다시 그려요');
         }
       } else {
         if (s.down && s.aim) doDash(s, strokeOf(s));
@@ -2648,6 +2658,20 @@ function drawMirror(ctx: C2, ax: number, ay: number, bx: number, by: number, H: 
   ctx.restore();
 }
 /** ✏️ S009 가시덤불: 먹빛 덤불 + 가시. hot = 지금 그리는 길이 걸림 */
+/** S012 1-2 길잡이: 적 a를 지나 꺾어 적 b 너머까지 — 셋 넘게 베는 길 중 가장 많이 베는 것(그리기 전용, 시뮬과 무관) */
+function guideOf(s: DashState) {
+  const F = s.foes.filter((f) => f.st !== ENTER);
+  let best: { x: number; y: number }[] | null = null, bn = 3;
+  for (const a of F)
+    for (const b of F) {
+      if (a === b) continue;
+      const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1, pts = [{ x: a.x, y: a.y }, { x: b.x + (dx / d) * 0.08, y: b.y + (dy / d) * 0.08 }];
+      const n = tracePath(s, pts, reachFor(s, pts)).hits.length;
+      if (n > bn) (bn = n), (best = pts);
+    }
+  return best;
+}
+
 function drawThorn(ctx: C2, x: number, y: number, r: number, t: number, hot: boolean) {
   ctx.save();
   const pulse = 0.5 + 0.5 * Math.sin(t * 0.5);
@@ -3376,6 +3400,31 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     for (const f of s.foes) if (targets.has(f.id)) drawFoe(f, 1, true);
     drawNinja(1);
   }
+  // ✏️ S012 1-2 길잡이(🧪 S011 '글로는 한붓을 못 배운다'): 꺾은 획을 한 번도 안 그었으면, 가장 많이 베는 ㄱ자 길을 손가락이 그려 보인다
+  if (s.stage === 1 && s.bents === 0 && s.phase === 'play' && !s.down) {
+    const g = guideOf(s);
+    if (g) {
+      const pts = [{ x: s.nx, y: s.ny }, ...g], u = (t % 100) / 70;
+      ctx.save();
+      ctx.setLineDash([R(0.02), R(0.016)]);
+      ctx.lineCap = 'round';
+      ctx.lineWidth = R(0.012);
+      ctx.strokeStyle = 'rgba(255,240,180,.75)';
+      ctx.beginPath();
+      pts.forEach((q, i) => (i ? ctx.lineTo(X(q.x), Y(q.y) - R(0.04)) : ctx.moveTo(X(q.x), Y(q.y) - R(0.04))));
+      ctx.stroke();
+      ctx.setLineDash([]);
+      if (u <= 1) { // 손가락 점이 길을 따라 간다
+        const L = [Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y), Math.hypot(pts[2].x - pts[1].x, pts[2].y - pts[1].y)], d = u * (L[0] + L[1]);
+        const [a0, a1, k] = d < L[0] ? [pts[0], pts[1], d / L[0]] : [pts[1], pts[2], (d - L[0]) / L[1]];
+        ctx.fillStyle = 'rgba(255,250,220,.95)';
+        ctx.beginPath();
+        ctx.arc(X(a0.x + (a1.x - a0.x) * k), Y(a0.y + (a1.y - a0.y) * k) - R(0.04), R(0.022), 0, TAU);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
   // 겨눈 선
   if (prev && s.aim) {
     const pulse = 0.5 + 0.5 * Math.sin(t * 0.4);
@@ -3924,13 +3973,15 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     // 3줄: 안내 한 줄
     {
       let hint = d.hint;
-      if (s.stage === 0 && !s.firstDash && s.phase === 'play') hint = '👆 꾹 누르면 느려져요 — 떼면 번쩍!';
+      const fresh = s.news && s.phase === 'play' && s.t - s.news.t < NEWS_T; // ✏️ S012: 처음 알림(see)이 여기 뜬다 — 전엔 어디에도 안 그려졌다
+      if (fresh) hint = s.news!.text;
+      else if (s.stage === 0 && !s.firstDash && s.phase === 'play') hint = '꾹 누르면 느려져요 — 떼면 번쩍!';
       else if (s.down && s.phase === 'play') hint = canCut ? '떼면 번쩍! 선 위의 적을 모두 베요' : '게이지가 모자라 짧게만 돌진해요';
       else if (s.phase === 'result') hint = s.ok ? (s.won ? '모든 판을 지나왔어요!' : `★ ${s.got}개! 다음 판엔 새 적이 나와요`) : '날아오는 건 비켜 서요 — 빨간 표시를 보세요';
       const first = s.stage === 0 && !s.firstDash;
       font(first ? 0.04 : 0.035, 900);
       ctx.textAlign = 'center';
-      ctx.fillStyle = first ? '#ffffff' : '#ffe9a8';
+      ctx.fillStyle = fresh ? '#ffb4a8' : first ? '#ffffff' : '#ffe9a8';
       ctx.fillText(hint, w / 2, ty + R(0.163), w - R(0.04));
     }
   }

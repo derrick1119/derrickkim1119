@@ -25,12 +25,12 @@ const ctx = canvas.getContext('2d', { alpha: false })!;
 const aspect = g.aspect ?? 1.52;
 const pal = g.art!.palette;
 
-// 소리 (✏️ S005 · 🎨 ART §4.1): 헤더 🔊 · M키 · 저장. 첫 소리는 '시작' 누름에서
+// 소리 (✏️ S005 · 🎨 ART §4.1): 헤더 소리 단추 · M키 · 저장. 첫 소리는 '시작' 누름에서
 const soundBtn = document.getElementById('sound') as HTMLButtonElement | null;
 sfx.muted = store.get('mute') === 1;
 function showSound() {
   if (!soundBtn) return;
-  soundBtn.textContent = sfx.muted ? '🔇' : '🔊';
+  soundBtn.textContent = sfx.muted ? '소리 끔' : '소리'; // S012 QC④ 이모지 0
   soundBtn.setAttribute('aria-pressed', String(!sfx.muted));
   soundBtn.setAttribute('aria-label', sfx.muted ? '소리 켜기' : '소리 끄기');
 }
@@ -101,8 +101,8 @@ function show(html: string) {
 function title() {
   const best = store.get('best');
   show(
-    `<em>🥷</em><b>느린 시간 닌자</b>` +
-      `<ul><li><i>👆</i>꾹 = 느려짐</li><li><i>⚡</i>떼면 번쩍 베기</li><li><i>🎋</i>한 줄에 여럿!</li></ul>` +
+    `<b>느린 시간 닌자</b>` +
+      `<ul><li><i>꾹</i>세상이 느려짐</li><li><i>긋기</i>꺾어 그린 길로</li><li><i>떼기</i>번쩍! 여럿 베기</li></ul>` + // S012 QC④ 이모지 0 · 한붓을 첫 화면에
       `<strong>시작</strong>` +
       (best ? `<span class="best">최고 ${best}점</span>` : '') +
       `<span class="kbd">키보드: 화살표로 겨누고 스페이스 눌렀다 떼기</span>`,
