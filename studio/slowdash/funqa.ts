@@ -292,8 +292,10 @@ export const slowdashSmartStroke: Bot<DashState> = {
       if (a0.pointer) return a0;
     }
     if (!s.down && !s.lock && s.g >= 25 && L.length && L.every((f) => f.k === 'leaf' || f.k === 'bell')) { // 🍃·🔔만 남으면 장인 탭은 못 벤다 — 바로 들어가기
-      const lp = leafPlan(s) ?? bellPlan(s) ?? leafPlan(s, 1) ?? leafPlan(s, 2); // M2 S7: 잎 하나가 덤불 옆이면 더 멀리서, 그래도 없으면 덤불을 감수하고(★★★만 잃음) — 장인이 60초 멈추던 것
+      const lp = leafPlan(s) ?? bellPlan(s) ?? leafPlan(s, 1) ?? (s.hits > 0 ? leafPlan(s, 2) : null); // M2 S7: 잎 하나가 덤불 옆이면 더 멀리서 · S8(🧪): 덤불 감수는 ★★★를 이미 놓쳤을 때만
       if (lp) return seqMem.set(s, [lp.pts[1]]), press(lp.pts[0].x, lp.pts[0].y);
+      const st = stepAway(s); // S8: 그래도 없으면 덤불 반대쪽으로 옮겨 선다 — 다음에 다시 잎 길을 찾는다
+      if (st) return st;
     }
     const a = slowdashSmart.act(s, rng);
     if (!a.pointer) return a;
@@ -310,6 +312,18 @@ export const slowdashSmartStroke: Bot<DashState> = {
     return a;
   },
 };
+/** ✏️ M2 S8(🧪 S7 ④): 장인이 덤불을 지나는 곧은 톡밖에 없을 때 — 가장 가까운 덤불 반대쪽으로 .2 옮겨 선다(덤불 안 걸리는 곧은 걸음, 없으면 null) */
+function stepAway(s: DashState) {
+  if (!s.thorns.length) return null;
+  const m0 = s.thorns.reduce((b, q) => (Math.hypot(q.x - s.nx, q.y - s.ny) < Math.hypot(b.x - s.nx, b.y - s.ny) ? q : b));
+  const a0 = Math.atan2(s.ny - m0.y, s.nx - m0.x);
+  for (const da of [0, 0.6, -0.6, 1.2, -1.2]) {
+    const q = { x: s.nx + Math.cos(a0 + da) * 0.2, y: s.ny + Math.sin(a0 + da) * 0.2 };
+    if (q.x < K.X0 || q.x > K.X1 || q.y < K.Y0 || q.y > K.Y1 || K.thorn(s, K.path(s, [q])) || K.danger(s, q.x, q.y, new Set()) < 40) continue;
+    return press(q.x, q.y);
+  }
+  return null;
+}
 /** 버릇⑤ 휘젓기(📋 S006 새 막 누르기): 늘 아무렇게나 지그재그 넷 — 1틱씩 그리고 뗀다 */
 export const slowdashScribble: Bot<DashState> = {
   name: '휘젓기',
