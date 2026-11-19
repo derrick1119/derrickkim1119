@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Bot, Input } from './core.ts';
 import { mulberry32 } from './rng.ts';
-import { STAGES, apply, geometry, setLevel, visibleM, cloneSim, freeM, jackEarly, logLate, paintStage, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, screwshopBlind, startStage, starsOf, star3, shotDead, bonkDead, streakDead, tapDead, starText, gaugeOf, setLearn, starKinds, TRAY_WARN, type Level, type ShopState, type Sim, type StageDef, type Src } from './game.ts';
+import { STAGES, apply, geometry, setLevel, visibleM, cloneSim, freeM, jackEarly, logLate, paintStage, peek, poseOf, stuckM, viewOf, screwshop as g, screwshopHabit, screwshopRandom, screwshopSmart, screwshopBlind, startStage, starsOf, dead3, gapOf, starText, gaugeOf, setLearn, starKinds, TRAY_WARN, planMove, habitPick, bestMove, type Plan, type Level, type ShopState, type Sim, type StageDef, type Src } from './game.ts';
 
 export interface Try { ok: boolean; stars: number; sec: number; peak: number; best: number; shot: number; taps: number; /** 끝난 판(되짚기·F13용) */ s: ShopState }
 
@@ -167,6 +167,78 @@ export function trayRead(hands = 48) {
   }
   const r2 = (x: number) => +(x / Math.max(1, fails)).toFixed(2);
   return { hands, fails, none, warn: TRAY_WARN ?? null, f30: +(drop / Math.max(1, n4)).toFixed(2), f31saw: r2(saw), f31pre: r2(pre), reach4: r2(saw4), pre4: r2(pre4), first4: first };
+}
+
+/** ✏️ S067(M3″ W1 · 🧪 S066 lib): 알고 서툰 봇 — e 몫은 뺄 수 있는 아무 나사, 나머지는 장인 수(별 조건을 앎) */
+export const knowE = (e: number): Bot<ShopState> => {
+  const memo = new WeakMap<object, { key: string; m: number }>();
+  return { name: `알고 서툰 ε${e}`, act(s, rng) {
+    if (!ready(s)) return NO;
+    const key = `${s.stage}:${s.tries}:${s.S.gone}`;
+    let m = memo.get(s);
+    if (!m || m.key !== key) {
+      let mv = -1;
+      if (rng() < e) { const o = knownFree(s); if (o.length) mv = o[Math.floor(rng() * o.length)]; } else mv = planMove(s);
+      memo.set(s, (m = { key, m: mv < 0 ? habitPick(s.L, s.S, s.known) : mv }));
+    }
+    return m.m >= 0 ? tapI(s, m.m) : NO;
+  } };
+};
+/** ✏️ S067(📐 S066 run.ts mkExpert): 캐주얼 — mix 몫은 장인 수(deaf면 별 조건 모름), 나머지는 '맞는 색' 버릇 */
+const deafD = (d: StageDef): Plan => ({ ...d, H: undefined, T: undefined, C: 99, P: 9 });
+export const casual = (mix: number, deaf = false): Bot<ShopState> => ({ name: `캐주얼(${deaf ? '모름' : '앎'} ${mix})`, act(s, rng) {
+  if (!ready(s)) return NO;
+  if (rng() >= mix) { const m = habitPick(s.L, s.S, s.known); return m >= 0 ? tapI(s, m) : NO; }
+  let m = bestMove(viewOf(s), s.S, deaf ? deafD(STAGES[s.stage]) : STAGES[s.stage]);
+  if (m < 0) m = habitPick(s.L, s.S);
+  return m >= 0 ? tapI(s, m) : NO;
+} });
+/** 한 번 도전(tryStage와 같은 손) + '★3!' 알림(s.sg 3번 비트)이 뜬 순간 별이 3개가 아니었나(bad) */
+function runA(bot: Bot<ShopState>, seed: number, k: number, hand: number) {
+  const s = g.create(seed), d = STAGES[k];
+  if (k) startStage(s, k);
+  const rng = mulberry32(hand ^ 0x9e3779b9), t0 = s.t;
+  let a = 0, bad = 0;
+  while (s.phase !== 'result' && s.t - t0 < 600 * 60) { const sg = s.sg; g.step(s, bot.act(s, rng)); if (s.sg & 8 & ~sg) (a = 1), (bad = +(starsOf(d, s.S) < 3)); }
+  const st = s.phase === 'result' && s.ok ? starsOf(d, s.S) : 0;
+  return { st, a, bad };
+}
+/** M3″ L1 잠금 문턱: 월드 1 → 2 · 2 → 3(월드마다 · 오너 '매 챕터에서') */
+export const LOCK = [15, 15];
+/**
+ * ✏️ S067(M3″ W1 · 📋 S066 F36~F39): 별이 닿나 · 잠금이 막나 · 칩이 이웃 판과 같나 · 거짓 '★3!'
+ * 48손(24씨앗 × 손 묶음 0 · 7) · 판마다 3번(손 = 씨앗 + (묶음 + 번째) × 100003 · 🧪 lib once와 같음). 원래 칸과 따로 둔다.
+ */
+export function starFloor(seeds = 24) {
+  const H = Array.from({ length: seeds }, (_, i) => 1000 + i * 7).flatMap((sd) => [0, 7].map((hb) => [sd, hb])), K = STAGES.length, n = H.length;
+  const know = knowE(0.3), casK = casual(0.5), casD = casual(0.3, true), r2 = (x: number) => +x.toFixed(2);
+  const tries = (bot: Bot<ShopState>, k: number, m: number) => H.map(([sd, hb]) => Array.from({ length: m }, (_, j) => runA(bot, sd, k, sd + (hb + j) * 100003)));
+  const firstClear = (r: { st: number }[]) => r.find((x) => x.st > 0)?.st ?? 0;
+  const per: [string, number, number, number][] = [], wNew: number[][][] = [], wCas: number[][] = [], wHab: number[][] = [];
+  let clr = 0, bad = 0, alerts = 0, missAfter = 0;
+  for (let k = 0; k < K; k++) {
+    const kn = tries(know, k, 3), w = k < 20, nb = tries(screwshopNewbie, k, w ? 3 : 1), ck = tries(casK, k, 1);
+    for (const r of kn) for (const x of r) (clr += +(x.st > 0)), (bad += x.bad), (alerts += x.a), (missAfter += +(x.a && !x.bad && x.st > 0 && x.st < 3));
+    per.push([STAGES[k].slot, r2(kn.filter((r) => r.some((x) => x.st === 3)).length / n), r2(ck.filter((r) => r[0].st === 3).length / n), r2(nb.filter((r) => r[0].st >= 2).length / n)]);
+    if (w) (wNew[k] = nb.map((r) => [Math.max(...r.map((x) => x.st)), firstClear(r)])), (wCas[k] = tries(casD, k, 3).map(firstClear)), (wHab[k] = tries(screwshopHabit, k, 3).map(firstClear));
+  }
+  const avg = (j: 1 | 2 | 3) => r2(per.reduce((a, p) => a + p[j], 0) / K), lo = per.reduce((a, p) => (p[1] < a[1] ? p : a));
+  const blk = (f: (k: number, h: number) => number) => [[0, 10], [10, 20]].map(([a, z], w) => r2(H.filter((_, h) => { let t = 0; for (let k = a; k < z; k++) t += f(k, h); return t < LOCK[w]; }).length / n));
+  const z = { shot: 0, taps: 0, streak: 0, bonks: 0, peak: 0, best: 0 } as Sim, chip = STAGES.map((d) => { const t = starText(d, z); return [t.c2, starKinds(d)[1], t.c3]; });
+  let c2 = 0, kind3 = 0, num3 = 0, any = 0;
+  chip.forEach((c, i) => { if (!i) return; const p = chip[i - 1], a = c[0] !== p[0], b = c[1] !== p[1], u = !b && c[2] !== p[2]; (c2 += +a), (kind3 += +b), (num3 += +u), (any += +(a || b || u)); });
+  return {
+    hands: n,
+    /** F36 ★3 바닥: 알고 서툰(ε.3) 같은 판 3번 안 ★3 평균 · 판 최저 · 캐주얼 앎 첫 번 ★3 · 처음 첫 번 ★2 이상 */
+    f36: { know3: avg(1), know3min: [lo[0], lo[1]], cas1: avg(2), new2: avg(3) },
+    /** F37 잠금 막힘(월드 1 → 2 · 2 → 3): 처음 봇 세 번 중 최고 · 깬 대로 · 캐주얼(모름 3할 · 깬 대로) · 버릇(깬 대로) */
+    f37: { lock: LOCK, best3: blk((k, h) => wNew[k][h][0]), asIs: blk((k, h) => wNew[k][h][1]), cas: blk((k, h) => wCas[k][h]), habit: blk((k, h) => wHab[k][h]) },
+    /** F38 별 칩 이웃 바뀜(27쌍): ★2 말 · ★3 종류 · ★2나 ★3 칩 글 · ★3 숫자만 */
+    f38: { pairs: K - 1, c2, kind3, any, num3 },
+    /** F39 거짓 ★3: 알고 서툰 도전 중 '★3!' 알림이 뜬 판(alerts) 가운데 그 순간 별이 3개가 아니던 판(bad · 0이어야) · 알림 뒤 ★2를 잃고 깬 판(같이 봄) */
+    f39: { tries: K * n * 3, clr, alerts, bad, rate: r2(bad / Math.max(1, alerts)), missAfter },
+    per,
+  };
 }
 
 /**
@@ -432,9 +504,10 @@ export function newsOf(k: number, seeds = 24) {
 export const twinsOf = (rows: { slot: string; big: ReturnType<typeof bigOf> }[]) => rows.flatMap((a, i) => rows.slice(i + 1).filter((b) => a.slot[0] === b.slot[0] && a.big.core === b.big.core && a.big.m === b.big.m && a.big.first === b.big.first).map((b) => [a.slot, b.slot]));
 /** 한 판만 빠르게 (테스트용): 봇별 클리어·★3 */
 /** ✏️ S023(M2′ G6 · 📐 S022 starRead · 🧪 S022 F25 · F27): 별이 와닿나 — ★3 종류 · 조건 지식 몫 K · 판 중 ✗ · 첫 나옴 노출 */
-export const kindOf = (d: StageDef) => (d.B !== undefined ? '쾅' : d.H !== undefined ? '한 방' : d.T !== undefined ? '톡' : '연속');
-const sat = (d: StageDef, S: Sim) => [d.B !== undefined ? S.bonks >= d.B : S.peak <= d.P, d.B !== undefined ? S.bonks >= d.B && S.peak <= d.P : star3(d, S)];
-const deadOf = (d: StageDef, L: Level, S: Sim) => (d.B !== undefined ? bonkDead(d, L, S) || S.peak > d.P : d.H !== undefined ? shotDead(d, L, S) : d.T !== undefined ? tapDead(d, L, S) : streakDead(d, L, S));
+export const kindOf = (_d: StageDef) => '한 방'; // ✏️ S067(M3″ S1): 모든 판 ★3 = 한 번에 H
+/** [★2 조건, ★3 = 별 3개] — ✏️ S067(🧪 S066 🔴②): ★3 칸은 ★3 조건만이 아니라 별 3개 */
+const sat = (d: StageDef, S: Sim) => [S.peak <= gapOf(d), starsOf(d, S) === 3];
+const deadOf = dead3;
 export function starOf(k: number, seeds = 24, sm?: ShopState[]) {
   const d = STAGES[k], ids = Array.from({ length: seeds }, (_, i) => 1000 + i * 7);
   const rate = (st: ShopState[]) => [0, 1].map((j) => +(st.filter((s) => s.phase === 'result' && s.ok && sat(d, s.S)[j]).length / st.length).toFixed(2));
@@ -615,10 +688,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const n = Number(process.argv[2] ?? 12), t0 = Date.now(), rep = measure(n);
   const dir = join(import.meta.dirname, 'reports');
   mkdirSync(dir, { recursive: true });
-  const build = /빌드 (M[\d.′]+(?:-S\d+)?)/.exec(readFileSync(join(import.meta.dirname, 'index.html'), 'utf8'))?.[1] ?? '?'; // 🧪: 'M0' 고정 → 실제 빌드
+  const build = /빌드 (M[\d.′″]+(?:-S\d+)?)/.exec(readFileSync(join(import.meta.dirname, 'index.html'), 'utf8'))?.[1] ?? '?'; // 🧪: 'M0' 고정 → 실제 빌드
   const tray = n >= 24 ? trayRead() : undefined; // ✏️ S064(M3′ F30 · F31): 원래 칸과 따로 둔다(원래 칸 바이트 같음을 보려고)
-  writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: new Date().toISOString().slice(0, 10), build, ...rep, tray }, null, 1) + '\n');
+  const stars = n >= 24 ? starFloor(n) : undefined; // ✏️ S067(M3″ F36~F39): 위와 같은 까닭으로 따로
+  writeFileSync(join(dir, 'funqa.json'), JSON.stringify({ at: new Date().toISOString().slice(0, 10), build, ...rep, tray, stars }, null, 1) + '\n');
   console.log(JSON.stringify(rep.summary), `${((Date.now() - t0) / 1000).toFixed(0)}s`);
   for (const r of rep.stages) console.log(r.stage, r.name, ...Object.keys(BOTS).map((b) => `${b} ${JSON.stringify(r[b])}`));
   if (tray) console.log('tray', JSON.stringify(tray));
+  if (stars) console.log('stars', JSON.stringify({ ...stars, per: undefined }));
 }

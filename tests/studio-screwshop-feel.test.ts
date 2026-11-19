@@ -2,8 +2,9 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { Juice } from '../studio/screwshop/juice.ts';
-import { STAGES, TRAY_WARN, hamOver, missGoal, screwshop, startStage, starKinds } from '../studio/screwshop/game.ts';
-import { screwshopNewbie, trayRead, tryStage } from '../studio/screwshop/funqa.ts';
+import { STAGES, TRAY_WARN, hamOver, missGoal, screwshop, startStage, starKinds, starsOf, gapOf } from '../studio/screwshop/game.ts';
+import { knowE, screwshopNewbie, starFloor, trayRead, tryStage } from '../studio/screwshop/funqa.ts';
+import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { bonkSemi } from '../studio/screwshop/sfx.ts';
 
 /** 그리기 호출을 모두 삼키는 가짜 캔버스(멈춤 · 쿨다운 틱만 본다) */
@@ -181,5 +182,30 @@ describe('넘치는 쟁반(✏️ S064 · M3′ · 오너 "빈칸에 들어가�
     expect(g).toContain("s.phase !== 'result' && !(s.S.slots.length >= TRAY_WARN! && t >= s.w4)) {"); // 띠 그리기 조건
     expect(g).toContain("if (e.kind === 'teach' && S.slots.length < TRAY_WARN!) say("); // ✏️ S065(🧪 S065 🟡③): 4칸이 되는 톡의 별 토스트도 안 그린다
     expect(tray).toContain('at = (SLOTS - i) * 3 - 2,'); // 다섯째는 턱에 1틱만 머문다(🧪 S065 🟡① · 첫 쟁반 밖 ≤ .6초)
+  });
+});
+
+describe('별 하나로(✏️ S067 · M3″ S1 · S2 · 오너 11-19 \'바꾸기\' · 🧪 S066 🔴②)', () => {
+  it('쾅 판(1-1 예외) 밖 27판은 ★3이 모두 \'한 번에 H\' · ★2는 빈칸 2칸(예외 1-3만 1칸) · 이웃 판 ★2 말이 바뀌는 쌍은 예외 판 앞뒤뿐', () => {
+    const ex = STAGES.filter((d) => d.B || gapOf(d) !== 2).map((d) => d.slot);
+    expect(ex).toEqual(['1-1', '1-3']); // P1 ③ 예외 ≤ 2판(밝힘)
+    for (const d of STAGES.filter((x) => !x.B)) expect([starKinds(d), d.H >= 2], d.slot).toEqual([['gap', 'shot'], true]);
+    const f = starFloor(1).f38; // 손 2개라 F36 · F37 값은 안 본다 — 칩 이웃 바뀜(F38)만
+    expect([f.c2, f.kind3], '바뀜은 1-1 → 1-2 · 1-2 → 1-3 · 1-3 → 1-4(★2) · 1-1 → 1-2(★3 종류)뿐').toEqual([3, 1]);
+  });
+  it("'★3!' 알림은 별이 3개가 될 때만 — 알고 서툰 봇이 빈칸을 넘긴 뒤 한 번에 H를 따도 알림 0(F39) · 💡는 놓친 별의 것", () => {
+    let alerts = 0, bad = 0;
+    for (const k of [1, 4, 9, 13, 19, 24, 27]) for (let i = 0; i < 6; i++) {
+      const s = screwshop.create(1000 + i * 7), d = STAGES[k];
+      startStage(s, k);
+      const rng = mulberry32((1000 + i * 7) ^ 0x9e3779b9), bot = knowE(0.3), t0 = s.t;
+      while (s.phase !== 'result' && s.t - t0 < 600 * 60) { const sg = s.sg; screwshop.step(s, bot.act(s, rng)); if (s.sg & 8 & ~sg) (alerts++, (bad += +(starsOf(d, s.S) < 3))); }
+    }
+    expect(alerts, '알림이 뜬 판이 있어야 잰 것').toBeGreaterThan(5);
+    expect(bad, "별 3개가 아닌데 '★3!'").toBe(0);
+    const g = src('game.ts');
+    expect(g).toMatch(/m3 = !s\.hint && !d\.B && starsOf\(d, S\) > 2/);
+    expect(g, '★2를 놓친 결과 카드에 ★3 💡(tip2)를 붙이지 않는다').toMatch(/tp = !soon && ok2 && s\.got === 2 && d\.tip2/);
+    for (const d of STAGES.filter((x) => !x.B)) expect([missGoal(d, false).startsWith('★2 빈칸'), missGoal(d, true).startsWith('★3 한 번에')], d.slot).toEqual([true, true]);
   });
 });

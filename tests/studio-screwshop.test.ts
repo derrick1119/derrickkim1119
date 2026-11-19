@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/screwshop/core.ts';
-import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, jackEarly, logLate, paintStage, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setAspect, setCue, screwshop as g, screwshopSmart, shotDead, starText, startStage, streakDead, tapDead, tipLine, setLearn, starKinds, KB, gaugeOf } from '../studio/screwshop/game.ts';
+import { HINT_Y, RES_BY, RETRY_Y, STAGES, apply, bodySd, jackEarly, logLate, paintStage, comOf, geometry, blockedM, bonkDead, cloneSim, freeM, newSim, peek, poseOf, retrace, setAspect, setCue, screwshop as g, screwshopSmart, shotDead, starText, startStage, tipLine, setLearn, starKinds, KB, gaugeOf, gapOf, dead3, starsOf, missGoal } from '../studio/screwshop/game.ts';
 import { mulberry32 } from '../studio/screwshop/rng.ts';
 import { sfx, streakHz } from '../studio/screwshop/sfx.ts';
 import { f16, screwshopMash, screwshopNewbie, tryStage } from '../studio/screwshop/funqa.ts';
@@ -716,18 +716,20 @@ describe('🪵 통나무가 먼저 떨어져 → 빈칸 (✏️ S013 · 🧪 S01
     for (const slot of ['1-5', '1-8', '2-3']) expect(tipLine(STAGES.find((d) => d.slot === slot)!.tip2!), slot).toMatch(/^🔑는 /);
   });
 
-  it('별 글(✏️ S024 · 오너 "알기 쉽게"): 28판 칩 · 결과 · 배우기 줄에 기호(≥ ≤ + · a / b) 0 · 칩은 ★ 이름표 · 톡은 남은 수 · T번 다 썼는데 나사가 남으면 ✗ · 연속도 못 따면 ✗', () => {
+  it('별 글(✏️ S024 · 오너 "알기 쉽게"): 28판 칩 · 결과 · 배우기 줄에 기호(≥ ≤ + · a / b) 0 · 칩은 ★ 이름표 · ✏️ S067(M3″ 새 별 · 옛 톡 · 연달아 단언을 바꿈): 쾅 판 밖은 칩이 늘 \'★2 빈칸 G칸까지\' · \'★3 한 번에 H개 쏙\' · 빈칸이 G칸을 넘으면 ★3도 ✗(별 3개) · 한 번에 H는 ★2가 있어야 별 3 · 결과 줄도 같은 말', () => {
     for (const [k, d] of STAGES.entries()) {
       const s = g.create(1); if (k) startStage(s, k);
       const tx = starText(d, s.S);
       for (const x of Object.values(tx)) { expect(x, d.slot).not.toMatch(/[≥≤+]/); expect(x, d.slot).not.toMatch(/\d ?\/ ?\d+ ?\(/); }
       expect([tx.c1.slice(0, 2), tx.c2.slice(0, 2), tx.c3.slice(0, 2)], d.slot).toEqual(['★1', '★2', '★3']);
-      if (d.B === undefined && d.H === undefined && d.T !== undefined) { s.S.taps = 3; expect(starText(d, s.S).c3).toBe(`★3 톡 ${d.T - 3}번 남음`); s.S.taps = d.T; expect(tapDead(d, s.L, s.S), d.slot).toBe(true); s.S.n = s.L.N; expect(tapDead(d, s.L, s.S), d.slot).toBe(false); }
-      if (d.B === undefined && d.H === undefined && d.T === undefined) {
-        expect(streakDead(d, s.L, s.S), d.slot).toBe(false);
-        s.S.n = s.L.N - 1; s.S.streak = 0; s.S.best = 0;
-        expect(streakDead(d, s.L, s.S), d.slot).toBe(d.C > 1);
-      }
+      if (d.B) continue; // 쾅 판(1-1 예외)은 아래 '1판 겹별' 단언이 본다
+      const G = gapOf(d);
+      expect([tx.c2, tx.c3], d.slot).toEqual([`★2 빈칸 ${G}칸까지`, `★3 한 번에 ${d.H}개 쏙`]);
+      expect([missGoal(d, false), missGoal(d, true)], d.slot).toEqual([tx.c2, tx.c3]);
+      expect(dead3(d, s.L, s.S), `${d.slot} 처음엔 ★3이 살아 있다`).toBe(false);
+      expect(starsOf(d, { ...s.S, peak: G, shot: d.H }), `${d.slot} 빈칸 G칸 + 한 번에 H`).toBe(3);
+      expect(starsOf(d, { ...s.S, peak: G + 1, shot: d.H }), `${d.slot} 빈칸이 넘친 한 번에 H는 별 2`).toBe(2);
+      expect(dead3(d, s.L, { ...s.S, peak: G + 1 }), `${d.slot} 빈칸이 넘치면 ★3(별 3개)도 ✗`).toBe(true);
     }
   });
 
