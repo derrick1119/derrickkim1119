@@ -30,6 +30,8 @@ export interface ArcadeReport {
   fun: number;
   /** 처음 하는 사람의 첫 몇 초 (0078): 손 안 대고 10초에 하트를 잃은 판 비율 · 3초 늦게 시작해 1.5초마다 판단하는 무작위 봇이 처음 13초에 하트를 잃은 판 비율 */
   firstLoss?: { idle: number; late: number };
+  /** 연타 (0080): 잘하는 봇 판의 분당 누름 수 · 같은 자리 연속 누름 최대 (8판 중앙값) */
+  presses?: { perMin: number; maxSame: number | null };
 }
 
 const median = (a: number[]) => {
@@ -70,6 +72,40 @@ export function firstSeconds<S>(g: GameDef<S>, dumb: Bot<S>, seeds: number[]): {
     if (life(g, b) < h0) late++;
   }
   return { idle: +(idle / seeds.length).toFixed(3), late: +(late / seeds.length).toFixed(3) };
+}
+
+/**
+ * 연타 (0080). 오너가 싫어하는 '조금씩 누르는 번거로움'을 센다. 잘하는 봇 판에서
+ *  perMin  — 손을 안 대다가 새로 누른 횟수(탭·꾹·포인터)를 분당으로
+ *  maxSame — 같은 자리(포인터 0.1 격자·같은 방향·같은 키)를 잇달아 누른 최대 횟수.
+ *            어디를 눌러도 같은 게임(GameDef.anywhere, 공룡 쿵)이나 자리 없는 입력만 쓰는 게임은 null
+ */
+export function pressStats<S>(g: GameDef<S>, smart: Bot<S>, seeds: number[]): { perMin: number; maxSame: number | null } {
+  const per: number[] = [], same: number[] = [];
+  let placed = false;
+  for (const sd of seeds) {
+    const st = g.create(sd), rng = mulberry32(sd ^ 0x9e3779b9);
+    let held = NO_INPUT, was = false, n = 0, run = 0, best = 0, lastKey = '', t = 0;
+    for (; t < 60 * 180 && !g.over(st); t++) {
+      const inp = t % REACT === 0 ? (held = smart.act(st, rng)) : { ...held, tap: false, move: undefined, pick: undefined };
+      const on = !!(inp.tap || inp.hold || inp.pointer || inp.move || inp.pick !== undefined);
+      if (on && !was) {
+        n++;
+        const p = inp.pointer;
+        const where = !!p || !!inp.move || inp.pick !== undefined || inp.aim !== undefined || inp.dir !== 0;
+        placed ||= where;
+        const key = p ? `${Math.round(p.x * 10)},${Math.round(p.y * 10)}` : `${inp.move ?? ''}${inp.pick ?? ''}${inp.dir}${inp.aim === undefined ? '' : Math.round(inp.aim * 10)}`;
+        run = where && key === lastKey ? run + 1 : where ? 1 : 0;
+        best = Math.max(best, run);
+        lastKey = key;
+      }
+      was = on;
+      g.step(st, inp);
+    }
+    per.push(n / Math.max(1, t / 3600));
+    same.push(best);
+  }
+  return { perMin: Math.round(median(per)), maxSame: placed && !g.anywhere ? median(same) : null };
 }
 
 export function evaluateGame<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, n = 24): ArcadeReport {
@@ -134,6 +170,7 @@ export function evaluateGame<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, n = 
     parts: Object.fromEntries(Object.entries(parts).map(([k, v]) => [k, +v.toFixed(3)])) as ArcadeReport['parts'],
     fun: +fun.toFixed(3),
     firstLoss: firstSeconds(g, dumb, seeds),
+    presses: pressStats(g, smart, seeds.slice(0, 8)),
   };
 }
 
@@ -143,7 +180,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const t0 = performance.now();
     const r = evaluateGame(e.game as GameDef<unknown>, e.dumb as Bot<unknown>, e.smart as Bot<unknown>);
     out[r.id] = r;
-    console.log(`${r.name.padEnd(8)} 재미 ${r.fun.toFixed(3)}${r.reveals ? ` · 펼쳐짐 ${r.reveals.join('/')} (못함 ${r.dumbReveals?.join('/')})` : ''} · 숙련격차 ${r.skillGap}× · 못함 ${r.dumb.sec}s/${r.dumb.score}점 · 잘함 ${r.smart.sec}s/${r.smart.score}점 (3분 버팀 ${Math.round(r.smart.capped * 100)}%) · 첫 몇 초 하트·지킬 것 손실 손 안 댐 ${Math.round((r.firstLoss?.idle ?? 0) * 100)}%/늦은 사람 ${Math.round((r.firstLoss?.late ?? 0) * 100)}% · ${((performance.now() - t0) / 1000).toFixed(1)}s`);
+    console.log(`${r.name.padEnd(8)} 재미 ${r.fun.toFixed(3)}${r.reveals ? ` · 펼쳐짐 ${r.reveals.join('/')} (못함 ${r.dumbReveals?.join('/')})` : ''} · 숙련격차 ${r.skillGap}× · 못함 ${r.dumb.sec}s/${r.dumb.score}점 · 잘함 ${r.smart.sec}s/${r.smart.score}점 (3분 버팀 ${Math.round(r.smart.capped * 100)}%) · 연타 분당 ${r.presses?.perMin}번 · 같은 자리 최대 ${r.presses?.maxSame ?? '—'} · 첫 몇 초 하트·지킬 것 손실 손 안 댐 ${Math.round((r.firstLoss?.idle ?? 0) * 100)}%/늦은 사람 ${Math.round((r.firstLoss?.late ?? 0) * 100)}% · ${((performance.now() - t0) / 1000).toFixed(1)}s`);
   }
   writeFileSync(join(import.meta.dirname, 'reports', 'eval.json'), JSON.stringify(out, null, 1) + '\n');
 }

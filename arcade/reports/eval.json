@@ -33,6 +33,10 @@
   "firstLoss": {
    "idle": 0,
    "late": 0
+  },
+  "presses": {
+   "perMin": 35,
+   "maxSame": 2
   }
  },
  "hookpirate": {
@@ -69,6 +73,10 @@
   "firstLoss": {
    "idle": 0,
    "late": 0
+  },
+  "presses": {
+   "perMin": 32,
+   "maxSame": 2
   }
  },
  "topspin": {
@@ -105,6 +113,10 @@
   "firstLoss": {
    "idle": 0,
    "late": 0
+  },
+  "presses": {
+   "perMin": 20,
+   "maxSame": 2
   }
  },
  "stompdino": {
@@ -141,6 +153,10 @@
   "firstLoss": {
    "idle": 0,
    "late": 0
+  },
+  "presses": {
+   "perMin": 25,
+   "maxSame": null
   }
  },
  "iceslide": {
@@ -177,6 +193,10 @@
   "firstLoss": {
    "idle": 0,
    "late": 0
+  },
+  "presses": {
+   "perMin": 30,
+   "maxSame": 2
   }
  },
  "axeback": {
@@ -213,6 +233,10 @@
   "firstLoss": {
    "idle": 0,
    "late": 0
+  },
+  "presses": {
+   "perMin": 39,
+   "maxSame": 2
   }
  }
 }

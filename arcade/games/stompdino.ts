@@ -733,6 +733,7 @@ export const stompdino: GameDef<DinoState> = {
     palette: { bg: '#2a1838', ink: '#fff2dc', muted: '#c9a6a0', accent: '#ffc24a', hot: '#ff5a3c', soft: '#4a2a48' },
   },
   guard: (s) => s.eggs,
+  anywhere: true,
   reveals: (s) => [...s.seen].filter((k) => !k.startsWith('st')).length,
   create(seed) {
     const s = {

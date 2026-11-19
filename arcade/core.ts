@@ -219,6 +219,8 @@ export interface GameDef<S> {
   reveals?(s: S): number;
   /** 지면 줄어드는 판 안 자원의 수(이글루 하트·체력·쿠키·알·불빛·판자…). 계기판이 '손대기 전에 잃는가'를 하트와 함께 잰다 (0079) */
   guard?(s: S): number;
+  /** 어디를 눌러도 같은 일이 일어나는 게임(꾹 누르기만 하는 쿵 등): 계기판이 '같은 자리 연타'를 세지 않는다 (0080) */
+  anywhere?: boolean;
   create(seed: number): S;
   step(s: S, input: Input): void;
   over(s: S): boolean;
