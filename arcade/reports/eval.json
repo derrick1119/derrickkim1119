@@ -48,6 +48,12 @@
    "capped": 0,
    "scoreRatio": 1
   },
+  "wow": {
+   "firstSec": 0.52,
+   "seen": 1,
+   "dumbPerMin": 6.6,
+   "smartPerMin": 13.2
+  },
   "habitGap": 1.32
  },
  "puffhamster": {
@@ -98,6 +104,12 @@
    "sec": 136.9,
    "capped": 0,
    "scoreRatio": 1
+  },
+  "wow": {
+   "firstSec": 0.17,
+   "seen": 1,
+   "dumbPerMin": 9.2,
+   "smartPerMin": 16.8
   },
   "habitGap": 1.88
  },
@@ -150,6 +162,12 @@
    "capped": 0,
    "scoreRatio": 0.25
   },
+  "wow": {
+   "firstSec": 0.88,
+   "seen": 1,
+   "dumbPerMin": 2.4,
+   "smartPerMin": 1.9
+  },
   "habitGap": 1.71
  },
  "umbrellaparry": {
@@ -200,6 +218,12 @@
    "sec": 176.5,
    "capped": 0,
    "scoreRatio": 0.75
+  },
+  "wow": {
+   "firstSec": 1.32,
+   "seen": 1,
+   "dumbPerMin": 7.3,
+   "smartPerMin": 25.1
   },
   "habitGap": 2.3
  },
@@ -252,6 +276,12 @@
    "capped": 0,
    "scoreRatio": 0.95
   },
+  "wow": {
+   "firstSec": 1.06,
+   "seen": 1,
+   "dumbPerMin": 3.2,
+   "smartPerMin": 5.5
+  },
   "habitGap": 3.04
  },
  "wavesurf": {
@@ -302,6 +332,12 @@
    "sec": 164.5,
    "capped": 0,
    "scoreRatio": 0.73
+  },
+  "wow": {
+   "firstSec": 0.93,
+   "seen": 1,
+   "dumbPerMin": 3.2,
+   "smartPerMin": 10.1
   },
   "habitGap": 2.37
  }
