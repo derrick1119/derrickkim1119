@@ -73,7 +73,7 @@
   "downPct": 0.34
  },
  "F6": {
-  "star2plus2": 2,
+  "star2plus2": 1,
   "clearMax3": 1,
   "clear": [
    1,
@@ -98,7 +98,9 @@
    "smart": {
     "clear": 1,
     "star": 3,
+    "star2p": 1,
     "star3": 1,
+    "cancels": 0,
     "s2": 1,
     "s3": 1,
     "sec": 4.32,
@@ -113,7 +115,9 @@
    "habit": {
     "clear": 1,
     "star": 1,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 0,
     "sec": 3.78,
@@ -128,7 +132,9 @@
    "habit2": {
     "clear": 1,
     "star": 2,
+    "star2p": 1,
     "star3": 0,
+    "cancels": 0,
     "s2": 1,
     "s3": 0,
     "sec": 3.98,
@@ -143,7 +149,9 @@
    "habit3": {
     "clear": 1,
     "star": 2,
+    "star2p": 1,
     "star3": 0,
+    "cancels": 0,
     "s2": 1,
     "s3": 0,
     "sec": 40.22,
@@ -158,7 +166,9 @@
    "habit4": {
     "clear": 1,
     "star": 2,
+    "star2p": 1,
     "star3": 0,
+    "cancels": 0,
     "s2": 1,
     "s3": 0,
     "sec": 4.12,
@@ -173,7 +183,9 @@
    "random": {
     "clear": 1,
     "star": 1.29,
+    "star2p": 0.25,
     "star3": 0.04,
+    "cancels": 0.17,
     "s2": 0.25,
     "s3": 0.04,
     "sec": 88.85,
@@ -188,7 +200,9 @@
    "spam": {
     "clear": 1,
     "star": 1.63,
+    "star2p": 0.63,
     "star3": 0,
+    "cancels": 0.08,
     "s2": 0.63,
     "s3": 0,
     "sec": 4.89,
@@ -203,7 +217,9 @@
    "humanNew": {
     "clear": 1,
     "star": 2.63,
+    "star2p": 1,
     "star3": 0.63,
+    "cancels": 0,
     "s2": 1,
     "s3": 0.63,
     "sec": 8.08,
@@ -218,7 +234,9 @@
    "human": {
     "clear": 1,
     "star": 2.54,
+    "star2p": 1,
     "star3": 0.54,
+    "cancels": 0,
     "s2": 1,
     "s3": 0.54,
     "sec": 7.17,
@@ -233,7 +251,9 @@
    "humanPro": {
     "clear": 1,
     "star": 2.46,
+    "star2p": 1,
     "star3": 0.46,
+    "cancels": 0,
     "s2": 1,
     "s3": 0.46,
     "sec": 6.43,
@@ -248,7 +268,9 @@
    "humanTap": {
     "clear": 0.92,
     "star": 2.54,
+    "star2p": 0.92,
     "star3": 0.71,
+    "cancels": 0.17,
     "s2": 0.92,
     "s3": 0.71,
     "sec": 6.18,
@@ -263,7 +285,9 @@
    "newbie": {
     "clear": 1,
     "star": 2.04,
+    "star2p": 1,
     "star3": 0.04,
+    "cancels": 0.08,
     "s2": 1,
     "s3": 0.04,
     "sec": 13.03,
@@ -288,7 +312,9 @@
    "smart": {
     "clear": 1,
     "star": 2.79,
+    "star2p": 1,
     "star3": 0.79,
+    "cancels": 0,
     "s2": 1,
     "s3": 0.79,
     "sec": 6.13,
@@ -303,7 +329,9 @@
    "habit": {
     "clear": 1,
     "star": 2,
+    "star2p": 1,
     "star3": 0,
+    "cancels": 0,
     "s2": 1,
     "s3": 0,
     "sec": 5.25,
@@ -318,7 +346,9 @@
    "habit2": {
     "clear": 1,
     "star": 2,
+    "star2p": 1,
     "star3": 0,
+    "cancels": 0,
     "s2": 1,
     "s3": 0,
     "sec": 5.43,
@@ -333,7 +363,9 @@
    "habit3": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 0,
     "sec": 8.63,
@@ -348,7 +380,9 @@
    "habit4": {
     "clear": 1,
     "star": 2,
+    "star2p": 1,
     "star3": 0,
+    "cancels": 0,
     "s2": 1,
     "s3": 0,
     "sec": 5.2,
@@ -363,7 +397,9 @@
    "random": {
     "clear": 0.5,
     "star": 0.75,
+    "star2p": 0.25,
     "star3": 0,
+    "cancels": 0,
     "s2": 0.04,
     "s3": 0.21,
     "sec": 34.54,
@@ -378,7 +414,9 @@
    "spam": {
     "clear": 1,
     "star": 2,
+    "star2p": 1,
     "star3": 0,
+    "cancels": 0,
     "s2": 1,
     "s3": 0,
     "sec": 7.28,
@@ -393,7 +431,9 @@
    "humanNew": {
     "clear": 1,
     "star": 2.58,
+    "star2p": 1,
     "star3": 0.58,
+    "cancels": 0,
     "s2": 0.96,
     "s3": 0.63,
     "sec": 13.54,
@@ -408,7 +448,9 @@
    "human": {
     "clear": 1,
     "star": 2.67,
+    "star2p": 1,
     "star3": 0.67,
+    "cancels": 0,
     "s2": 1,
     "s3": 0.67,
     "sec": 11.18,
@@ -423,7 +465,9 @@
    "humanPro": {
     "clear": 1,
     "star": 2.83,
+    "star2p": 1,
     "star3": 0.83,
+    "cancels": 0,
     "s2": 1,
     "s3": 0.83,
     "sec": 9.78,
@@ -438,7 +482,9 @@
    "humanTap": {
     "clear": 1,
     "star": 3,
+    "star2p": 1,
     "star3": 1,
+    "cancels": 0,
     "s2": 1,
     "s3": 1,
     "sec": 9.85,
@@ -453,7 +499,9 @@
    "newbie": {
     "clear": 1,
     "star": 1.92,
+    "star2p": 0.92,
     "star3": 0,
+    "cancels": 0.04,
     "s2": 0.92,
     "s3": 0,
     "sec": 18.68,
@@ -478,7 +526,9 @@
    "smart": {
     "clear": 1,
     "star": 2.5,
+    "star2p": 1,
     "star3": 0.5,
+    "cancels": 0,
     "s2": 0.5,
     "s3": 1,
     "sec": 9.67,
@@ -493,7 +543,9 @@
    "habit": {
     "clear": 1,
     "star": 2,
+    "star2p": 1,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 1,
     "sec": 3.82,
@@ -508,7 +560,9 @@
    "habit2": {
     "clear": 1,
     "star": 2,
+    "star2p": 1,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 1,
     "sec": 4.02,
@@ -523,7 +577,9 @@
    "habit3": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 0,
     "sec": 5.65,
@@ -538,7 +594,9 @@
    "habit4": {
     "clear": 1,
     "star": 2,
+    "star2p": 1,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 1,
     "sec": 3.95,
@@ -553,7 +611,9 @@
    "random": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 0,
     "sec": 11.89,
@@ -568,7 +628,9 @@
    "spam": {
     "clear": 0.83,
     "star": 1,
+    "star2p": 0.17,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 0.17,
     "sec": 10.88,
@@ -583,7 +645,9 @@
    "humanNew": {
     "clear": 0.79,
     "star": 1.5,
+    "star2p": 0.5,
     "star3": 0.21,
+    "cancels": 0.13,
     "s2": 0.42,
     "s3": 0.29,
     "sec": 34.45,
@@ -598,7 +662,9 @@
    "human": {
     "clear": 0.92,
     "star": 1.5,
+    "star2p": 0.54,
     "star3": 0.04,
+    "cancels": 0.17,
     "s2": 0.13,
     "s3": 0.46,
     "sec": 23.38,
@@ -613,7 +679,9 @@
    "humanPro": {
     "clear": 1,
     "star": 2.38,
+    "star2p": 0.92,
     "star3": 0.46,
+    "cancels": 0,
     "s2": 0.54,
     "s3": 0.83,
     "sec": 18.78,
@@ -628,7 +696,9 @@
    "humanTap": {
     "clear": 0.79,
     "star": 1.17,
+    "star2p": 0.33,
     "star3": 0.04,
+    "cancels": 0.08,
     "s2": 0.21,
     "s3": 0.17,
     "sec": 18.52,
@@ -643,7 +713,9 @@
    "newbie": {
     "clear": 1,
     "star": 1.33,
+    "star2p": 0.33,
     "star3": 0,
+    "cancels": 0.08,
     "s2": 0,
     "s3": 0.33,
     "sec": 27.46,
@@ -668,7 +740,9 @@
    "smart": {
     "clear": 1,
     "star": 2.79,
+    "star2p": 1,
     "star3": 0.79,
+    "cancels": 0,
     "s2": 0.79,
     "s3": 1,
     "sec": 7.13,
@@ -683,7 +757,9 @@
    "habit": {
     "clear": 1,
     "star": 2,
+    "star2p": 1,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 1,
     "sec": 3.82,
@@ -698,7 +774,9 @@
    "habit2": {
     "clear": 1,
     "star": 2,
+    "star2p": 1,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 1,
     "sec": 3.72,
@@ -713,7 +791,9 @@
    "habit3": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 0,
     "sec": 6.15,
@@ -728,7 +808,9 @@
    "habit4": {
     "clear": 1,
     "star": 2,
+    "star2p": 1,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 1,
     "sec": 3.92,
@@ -743,7 +825,9 @@
    "random": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 0,
     "sec": 14.4,
@@ -758,7 +842,9 @@
    "spam": {
     "clear": 1,
     "star": 1.58,
+    "star2p": 0.58,
     "star3": 0,
+    "cancels": 0.04,
     "s2": 0,
     "s3": 0.58,
     "sec": 8.08,
@@ -773,7 +859,9 @@
    "humanNew": {
     "clear": 1,
     "star": 2.08,
+    "star2p": 0.88,
     "star3": 0.21,
+    "cancels": 0,
     "s2": 0.21,
     "s3": 0.88,
     "sec": 16,
@@ -788,7 +876,9 @@
    "human": {
     "clear": 1,
     "star": 2.38,
+    "star2p": 0.92,
     "star3": 0.46,
+    "cancels": 0,
     "s2": 0.46,
     "s3": 0.92,
     "sec": 12.03,
@@ -803,7 +893,9 @@
    "humanPro": {
     "clear": 1,
     "star": 2.71,
+    "star2p": 1,
     "star3": 0.71,
+    "cancels": 0,
     "s2": 0.71,
     "s3": 1,
     "sec": 9.82,
@@ -818,7 +910,9 @@
    "humanTap": {
     "clear": 1,
     "star": 2.17,
+    "star2p": 0.92,
     "star3": 0.25,
+    "cancels": 0,
     "s2": 0.25,
     "s3": 0.92,
     "sec": 9.55,
@@ -833,7 +927,9 @@
    "newbie": {
     "clear": 1,
     "star": 1.21,
+    "star2p": 0.21,
     "star3": 0,
+    "cancels": 0.04,
     "s2": 0,
     "s3": 0.21,
     "sec": 23.35,
@@ -858,7 +954,9 @@
    "smart": {
     "clear": 1,
     "star": 2.83,
+    "star2p": 1,
     "star3": 0.83,
+    "cancels": 0,
     "s2": 1,
     "s3": 0.83,
     "sec": 9.35,
@@ -873,7 +971,9 @@
    "habit": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 239.88,
     "s2": 0,
     "s3": 0,
     "sec": 8.6,
@@ -888,7 +988,9 @@
    "habit2": {
     "clear": 0.5,
     "star": 1,
+    "star2p": 0.5,
     "star3": 0,
+    "cancels": 92.67,
     "s2": 0.5,
     "s3": 0,
     "sec": 5.81,
@@ -903,7 +1005,9 @@
    "habit3": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 0,
     "sec": 6.77,
@@ -918,7 +1022,9 @@
    "habit4": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 239.54,
     "s2": 0,
     "s3": 0,
     "sec": 8.6,
@@ -933,7 +1039,9 @@
    "random": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 1.38,
     "s2": 0,
     "s3": 0,
     "sec": 8.42,
@@ -948,7 +1056,9 @@
    "spam": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 9.75,
     "s2": 0,
     "s3": 0,
     "sec": 6,
@@ -963,7 +1073,9 @@
    "humanNew": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 1.58,
     "s2": 0,
     "s3": 0,
     "sec": 55.74,
@@ -978,7 +1090,9 @@
    "human": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 1.21,
     "s2": 0,
     "s3": 0,
     "sec": 126.75,
@@ -993,7 +1107,9 @@
    "humanPro": {
     "clear": 0.04,
     "star": 0.08,
+    "star2p": 0.04,
     "star3": 0,
+    "cancels": 1.13,
     "s2": 0.04,
     "s3": 0,
     "sec": 300,
@@ -1008,7 +1124,9 @@
    "humanTap": {
     "clear": 0.04,
     "star": 0.08,
+    "star2p": 0.04,
     "star3": 0,
+    "cancels": 1.79,
     "s2": 0.04,
     "s3": 0,
     "sec": 17.17,
@@ -1023,7 +1141,9 @@
    "newbie": {
     "clear": 0.96,
     "star": 1.96,
+    "star2p": 0.96,
     "star3": 0.04,
+    "cancels": 4.17,
     "s2": 0.96,
     "s3": 0.04,
     "sec": 27.38,
@@ -1048,7 +1168,9 @@
    "smart": {
     "clear": 1,
     "star": 2.79,
+    "star2p": 1,
     "star3": 0.79,
+    "cancels": 0,
     "s2": 0.79,
     "s3": 1,
     "sec": 5.93,
@@ -1063,7 +1185,9 @@
    "habit": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 229.25,
     "s2": 0,
     "s3": 0,
     "sec": 10.45,
@@ -1078,7 +1202,9 @@
    "habit2": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 255.21,
     "s2": 0,
     "s3": 0,
     "sec": 10.88,
@@ -1093,7 +1219,9 @@
    "habit3": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 0,
     "sec": 7.65,
@@ -1108,7 +1236,9 @@
    "habit4": {
     "clear": 0.08,
     "star": 0.17,
+    "star2p": 0.08,
     "star3": 0,
+    "cancels": 205.13,
     "s2": 0,
     "s3": 0.08,
     "sec": 10.3,
@@ -1123,7 +1253,9 @@
    "random": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 0.25,
     "s2": 0,
     "s3": 0,
     "sec": 11.88,
@@ -1138,7 +1270,9 @@
    "spam": {
     "clear": 0.13,
     "star": 0.21,
+    "star2p": 0.08,
     "star3": 0,
+    "cancels": 5.75,
     "s2": 0.08,
     "s3": 0,
     "sec": 6.18,
@@ -1153,7 +1287,9 @@
    "humanNew": {
     "clear": 0.67,
     "star": 1.33,
+    "star2p": 0.58,
     "star3": 0.08,
+    "cancels": 0.08,
     "s2": 0.58,
     "s3": 0.08,
     "sec": 18.08,
@@ -1168,7 +1304,9 @@
    "human": {
     "clear": 0.83,
     "star": 2,
+    "star2p": 0.83,
     "star3": 0.33,
+    "cancels": 0.21,
     "s2": 0.75,
     "s3": 0.42,
     "sec": 13.33,
@@ -1183,7 +1321,9 @@
    "humanPro": {
     "clear": 1,
     "star": 2.63,
+    "star2p": 1,
     "star3": 0.63,
+    "cancels": 0.04,
     "s2": 1,
     "s3": 0.63,
     "sec": 11.21,
@@ -1198,7 +1338,9 @@
    "humanTap": {
     "clear": 0.96,
     "star": 1.96,
+    "star2p": 0.88,
     "star3": 0.13,
+    "cancels": 0.17,
     "s2": 0.88,
     "s3": 0.13,
     "sec": 8.65,
@@ -1213,7 +1355,9 @@
    "newbie": {
     "clear": 0.88,
     "star": 1.38,
+    "star2p": 0.46,
     "star3": 0.04,
+    "cancels": 1.83,
     "s2": 0.46,
     "s3": 0.04,
     "sec": 17.21,
@@ -1238,7 +1382,9 @@
    "smart": {
     "clear": 1,
     "star": 2.25,
+    "star2p": 1,
     "star3": 0.25,
+    "cancels": 0,
     "s2": 0.38,
     "s3": 0.88,
     "sec": 5.23,
@@ -1253,7 +1399,9 @@
    "habit": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 241.29,
     "s2": 0,
     "s3": 0,
     "sec": 8.67,
@@ -1268,7 +1416,9 @@
    "habit2": {
     "clear": 0.96,
     "star": 1.83,
+    "star2p": 0.88,
     "star3": 0,
+    "cancels": 6.21,
     "s2": 0,
     "s3": 0.88,
     "sec": 4.07,
@@ -1283,7 +1433,9 @@
    "habit3": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 0,
     "sec": 7.68,
@@ -1298,7 +1450,9 @@
    "habit4": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 240.92,
     "s2": 0,
     "s3": 0,
     "sec": 8.67,
@@ -1313,7 +1467,9 @@
    "random": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 0.96,
     "s2": 0,
     "s3": 0,
     "sec": 9.56,
@@ -1328,7 +1484,9 @@
    "spam": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 9.92,
     "s2": 0,
     "s3": 0,
     "sec": 6.01,
@@ -1343,7 +1501,9 @@
    "humanNew": {
     "clear": 0.13,
     "star": 0.13,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 0.79,
     "s2": 0,
     "s3": 0,
     "sec": 50.47,
@@ -1358,7 +1518,9 @@
    "human": {
     "clear": 0.54,
     "star": 0.83,
+    "star2p": 0.29,
     "star3": 0,
+    "cancels": 1.29,
     "s2": 0.13,
     "s3": 0.17,
     "sec": 59.67,
@@ -1373,7 +1535,9 @@
    "humanPro": {
     "clear": 0.92,
     "star": 1.92,
+    "star2p": 0.79,
     "star3": 0.21,
+    "cancels": 0.54,
     "s2": 0.42,
     "s3": 0.58,
     "sec": 41.41,
@@ -1388,7 +1552,9 @@
    "humanTap": {
     "clear": 0.33,
     "star": 0.71,
+    "star2p": 0.33,
     "star3": 0.04,
+    "cancels": 1.71,
     "s2": 0.04,
     "s3": 0.33,
     "sec": 17.75,
@@ -1403,7 +1569,9 @@
    "newbie": {
     "clear": 1,
     "star": 1.21,
+    "star2p": 0.21,
     "star3": 0,
+    "cancels": 2.13,
     "s2": 0,
     "s3": 0.21,
     "sec": 28.56,
@@ -1428,7 +1596,9 @@
    "smart": {
     "clear": 1,
     "star": 2.67,
+    "star2p": 1,
     "star3": 0.67,
+    "cancels": 0,
     "s2": 0.67,
     "s3": 1,
     "sec": 6.28,
@@ -1443,7 +1613,9 @@
    "habit": {
     "clear": 1,
     "star": 2,
+    "star2p": 1,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 1,
     "sec": 3.85,
@@ -1458,7 +1630,9 @@
    "habit2": {
     "clear": 1,
     "star": 2,
+    "star2p": 1,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 1,
     "sec": 3.78,
@@ -1473,7 +1647,9 @@
    "habit3": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 0,
     "sec": 11.32,
@@ -1488,7 +1664,9 @@
    "habit4": {
     "clear": 1,
     "star": 2,
+    "star2p": 1,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 1,
     "sec": 4.07,
@@ -1503,7 +1681,9 @@
    "random": {
     "clear": 0,
     "star": 0,
+    "star2p": 0,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 0,
     "sec": 14.45,
@@ -1518,7 +1698,9 @@
    "spam": {
     "clear": 1,
     "star": 1.79,
+    "star2p": 0.79,
     "star3": 0,
+    "cancels": 0,
     "s2": 0,
     "s3": 0.79,
     "sec": 7.68,
@@ -1533,7 +1715,9 @@
    "humanNew": {
     "clear": 1,
     "star": 2.58,
+    "star2p": 1,
     "star3": 0.58,
+    "cancels": 0.04,
     "s2": 0.96,
     "s3": 0.63,
     "sec": 21.77,
@@ -1548,7 +1732,9 @@
    "human": {
     "clear": 1,
     "star": 2.92,
+    "star2p": 1,
     "star3": 0.92,
+    "cancels": 0.04,
     "s2": 1,
     "s3": 0.92,
     "sec": 13.83,
@@ -1563,7 +1749,9 @@
    "humanPro": {
     "clear": 1,
     "star": 2.92,
+    "star2p": 1,
     "star3": 0.92,
+    "cancels": 0,
     "s2": 0.92,
     "s3": 1,
     "sec": 11.65,
@@ -1578,7 +1766,9 @@
    "humanTap": {
     "clear": 1,
     "star": 2.92,
+    "star2p": 0.96,
     "star3": 0.96,
+    "cancels": 0,
     "s2": 0.96,
     "s3": 0.96,
     "sec": 8.97,
@@ -1593,7 +1783,9 @@
    "newbie": {
     "clear": 1,
     "star": 1.54,
+    "star2p": 0.46,
     "star3": 0.08,
+    "cancels": 0.04,
     "s2": 0.21,
     "s3": 0.33,
     "sec": 20.86,
