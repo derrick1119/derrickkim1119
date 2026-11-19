@@ -193,7 +193,20 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(Math.hypot(s.nx - 0.4, s.ny - 0.8)).toBeLessThan(0.03); // 지운 뒤 새로 그은 길로만 간다
     const r = tryStage(BOTS.habit, 101, K('shield')); // 측정기: 60초 진전 없음 = 막힘(실패)
     expect(r.sec).toBeLessThan(120);
-    expect(r.stall && !r.ok).toBe(true);
+    expect(r.ok).toBe(false);
+    // S011 압박: 0.2초 안에 또 아무것도 못 벤 튕김이면 멈칫·무적이 없다(방패 앞 연타로 세상을 멈춰 버티던 구멍) — 버릇 봇은 이제 막히지 않고 진다
+    expect(r.stall).toBe(false);
+    const b = g.create(3);
+    startStage(b, K('shield'));
+    for (let k = 0; k < 400 && !b.foes.some((f) => f.k === 'shield' && f.st !== 0); k++) g.step(b, { tap: false, dir: 0, pointer: null });
+    const sh = b.foes.find((f) => f.k === 'shield')!;
+    (b.nx = sh.x), (b.ny = sh.y + 0.12), (sh.fa = Math.PI / 2), (b.g = 100), (b.inv = 0);
+    const tap = () => (g.step(b, at(sh.x, sh.y - 0.05)), g.step(b, { tap: false, dir: 0, pointer: null }));
+    tap();
+    expect(b.freeze).toBeGreaterThan(0); // 한 번 튕김은 멈칫(그대로)
+    for (let k = 0; k < 4; k++) g.step(b, { tap: false, dir: 0, pointer: null });
+    tap();
+    expect(b.freeze).toBe(0);
   });
 
   it('S005 효과음: 시뮬·봇은 소리를 모른다(헤드리스로 한 판 돌려도 AudioContext 0) · 연쇄 음계는 5음계로 오르고 8번째부터 고정', () => {

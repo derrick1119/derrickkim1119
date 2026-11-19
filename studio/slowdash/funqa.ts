@@ -67,7 +67,7 @@ export function detour(s: DashState, p: Pt): Pt[] | null {
   return best && best.pts;
 }
 /** 사람 반응 봇: pick이 고른 자리(게임 좌표 x, y)를 react초 늦게·err만큼 빗나가게. slow면 꾹 누른 채 반응한다 */
-export function human(name: string, react: number, err: number, slow: boolean, pick?: Pick, stroke: boolean | 'naive' = false): Bot<DashState> {
+export function human(name: string, react: number, err: number, slow: boolean, pick?: Pick, stroke: boolean | 'naive' = false, fixP = 1): Bot<DashState> {
   const mem = new WeakMap<object, { st: 'idle' | 'wait' | 'hold'; until: number; x: number; y: number; ox: number; oy: number; bend: Pt | null; half: number; seq: Pt[]; fix: boolean }>();
   const choose: Pick = pick ?? ((s, rng) => { const p = smartAim(s, rng); return p && { x: p.x, y: p.y * K.A }; });
   const RT = Math.round(react * 60), REFLEX = 9, COOL = 15;
@@ -87,7 +87,7 @@ export function human(name: string, react: number, err: number, slow: boolean, p
           // ✏️ S010 빨간 덤불(미리 보기)을 보면: 손가락을 닌자로 되돌려 지우고, 덤불 옆으로 꺾어 다시 그린다(처음 하는 사람은 아직 모름 — 해 보니 클리어 8판 .75→.50)
           m.fix = true;
           const end = { x: s.aim.x, y: s.aim.y };
-          if (K.thorn(s, K.path(s, [...s.stroke, end])) && stroke === true) {
+          if (K.thorn(s, K.path(s, [...s.stroke, end])) && stroke === true && (fixP >= 1 || rng() < fixP)) { // S011 fixP: 빨강을 보고 되돌리는 비율(🧪 낙관 위험)
             let dt = detour(s, end);
             if (!dt) { // 돌아갈 길이 없으면 끝점을 덤불 반대쪽으로 살짝 옮겨 곧게 다시
               const dx = end.x - s.nx, dy = end.y - s.ny, d = Math.hypot(dx, dy) || 1, n0 = K.path(s, [end]).hits.length;
@@ -296,6 +296,7 @@ export const BOTS: Record<string, Bot<DashState>> = {
   humanTap: human('사람 캐주얼 · 꾹 없이 탭만', 0.5, 0.03, false),
   smartStroke: slowdashSmartStroke,
   humanStroke: human('사람 캐주얼 + 한붓', 0.5, 0.03, true, undefined, true),
+  humanStroke30: human('사람 한붓 · 빨강 보고 되돌리기 30%', 0.5, 0.03, true, undefined, true, 0.3),
   scribble: slowdashScribble,
   newbie: human('처음 하는 사람', 0.7, 0.05, true, newbiePick, 'naive'),
 };
@@ -451,7 +452,7 @@ export function measure(seeds = 24, only?: string[]) {
         }
     });
   // 🧪 F5 v1.2(S004 착시 뒤): 가장 잘하는 탭 주기(16~48틱)의 ★ 평균(3판~)이 사람 꾹 ★보다 .5 넘게 낮아야 '꾹이 꼭 필요'
-  let tapSweep: { C: number; star: number; clear: number }[] | null = null, F5sweep: number | null = null;
+  let tapSweep: { C: number; star: number; clear: number }[] | null = null, F5sweep: number | null = null, F5sweepStroke: number | null = null;
   if (has('human')) {
     const n = Math.max(2, Math.min(6, seeds));
     tapSweep = [16, 24, 32, 40, 48].map((C) => {
@@ -459,6 +460,8 @@ export function measure(seeds = 24, only?: string[]) {
       return { C, star: r2(mean(t.map((x) => x.stars))), clear: r2(mean(t.map((x) => +x.ok))) };
     });
     F5sweep = r2(mean(from3.map((r) => (r.human as Row).star)) - Math.max(...tapSweep.map((x) => x.star)));
+    // S011(🧪 잣대): ⓒ 확정 뒤 꾹 = 한붓 그리기라서, 같은 스윕을 사람 한붓 ★으로도 낸다
+    if (has('humanStroke')) F5sweepStroke = r2(mean(from3.map((r) => (r.humanStroke as Row).star)) - Math.max(...tapSweep.map((x) => x.star)));
   }
   // S006 한붓 지표: 한붓 낙차(장인 + 한붓 ★ − 장인 ★) · 사람 한붓 꾹 ★ − 가장 잘하는 탭 ★(3판~) · 휘젓기 ★2 이상(2판~)
   // S008: 한붓 요약은 판 범위별(1~5 꺾기 판 · 6~10) — 섞으면 서로 반대로 읽힌다(🧪 S007). 탭 기준은 같은 범위의 humanTap ★(사람 반응 0.5초)
@@ -481,6 +484,9 @@ export function measure(seeds = 24, only?: string[]) {
     at: new Date().toISOString().slice(0, 10),
     stroke,
     F5sweep,
+    F5sweepStroke,
+    // S011 덤불 판(3·4·5·6·8·9) ★★★: 사람 한붓 − 사람 탭, 되돌리기 30% 봇도
+    thornS3: (() => { const T = stages.filter((r) => STAGES[(r.k as number) - 1].thorns?.length); const a = (n: string) => T.every((r) => r[n]) ? r2(mean(T.map((r) => (r[n] as Row).s3))) : null; return { humanStroke: a('humanStroke'), humanStroke30: a('humanStroke30'), humanTap: a('humanTap'), newbie: a('newbie') }; })(),
     tapSweep,
     freeStars,
     seeds,
@@ -511,7 +517,8 @@ if (process.argv[1]?.endsWith('funqa.ts')) {
   console.log(`격차 ${m.gap}× · 장인÷버릇② ${m.gapHabit2}× · 첫인상 ${JSON.stringify(m.firstImpression)} · ${((Date.now() - t0) / 1000).toFixed(1)}초`);
   console.log(`한붓 1~5 ${JSON.stringify(m.stroke.s1to5)}`);
   console.log(`한붓 6~10 ${JSON.stringify(m.stroke.s6to10)}`);
-  console.log(`F5 스윕(사람 꾹 ★ − 가장 잘하는 탭 ★, 3판~) ${m.F5sweep} · ${JSON.stringify(m.tapSweep)}`);
+  console.log(`F5 스윕(사람 꾹 ★ − 가장 잘하는 탭 ★, 3판~) ${m.F5sweep} · 한붓 기준 ${m.F5sweepStroke} · ${JSON.stringify(m.tapSweep)}`);
+  console.log(`덤불 판 ★★★ ${JSON.stringify(m.thornS3)}`);
   console.log(`F5 느린 시간 ${JSON.stringify(m.F5)} · F6 연타 ${JSON.stringify(m.F6)}`);
   console.log(`공짜 별 ${m.freeStars.length}: ${m.freeStars.join(" · ")}`);
   console.log(`버릇 ★3(3판~) 최대 ${JSON.stringify(m.habitStar3Max3plus)} · ★ 평균(3판~) ${JSON.stringify(m.habitStarMean3plus)}`);

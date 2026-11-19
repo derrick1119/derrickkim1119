@@ -233,7 +233,7 @@ export interface DashState {
   foes: Foe[]; shots: Shot[]; barrels: Barrel[]; mirrors: Mirror[]; smokes: Smoke[]; thorns: { x: number; y: number; r: number }[]; nid: number;
   wave: number; waveT: number;
   dashN: number; chain: number; best: number; hits: number; arrows: number; backK: number; boomBest: number; boomBy: Record<number, number>;
-  mirK: number; bossCombo: number; dashes: number; firstDash: boolean; firstBig: number; firstPress: number;
+  mirK: number; bounceT: number; bossCombo: number; dashes: number; firstDash: boolean; firstBig: number; firstPress: number;
   combo: { id: number; n: number; t: number };
   seen: Set<string>; spotted: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; spot: { id: number; t: number; label: string } | null;
   events: Ev[]; cuts: Cut[]; inks: Ink[]; trail: { legs: number[][]; t: number; n: number } | null;
@@ -486,7 +486,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     const th = thornOf(s, P.legs);
     if (th) {
       // 꼬리털만 걸린다: ★★★(꼬리 하나도 안 잃기)만 놓치고 목숨은 안 준다 — 처음 하는 사람이 덤불 때문에 지지는 않게
-      see(s, 'thorn', '가시덤불 — 지나가면 꼬리가 걸려요. 꺾어 돌아가요');
+      see(s, 'thorn', '덤불도 한 대! ★★★ 놓침 — 꺾어 돌아가요');
       s.hits++;
       ev(s, 'hurt', th.x, th.y, s.hp, '가시덤불에 걸렸어요 — ★★★ 놓침');
     }
@@ -495,13 +495,16 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
   if (Math.abs(last[2] - last[0]) > 0.005) s.face = last[2] > last[0] ? 1 : -1;
   s.nx = P.ex;
   s.ny = P.ey;
-  s.inv = Math.max(s.inv, INV_DASH);
+  // ✏️ S011 압박: 아무것도 못 벤 튕김이 60틱 안에 또 오면 무적을 안 준다 — 방패 앞 연타 튕김으로 서서 버티던 구멍(한 번 튕김은 그대로 봐줌)
+  const idle = n === 0 && P.bounce && s.t - s.bounceT < 12;
+  if (P.bounce && n === 0) s.bounceT = s.t;
+  if (!idle) s.inv = Math.max(s.inv, INV_DASH);
   s.combo = { id, n, t: s.t };
   s.best = Math.max(s.best, n);
   if (n > 0 || P.shots.length) s.chain++;
   else s.chain = 0;
   if (s.chain >= 3) see(s, 'chain', '연쇄 — 쉬지 않고 이어 베면 점수가 불어나요');
-  s.freeze = n > 0 ? Math.min(8, 2 + n) : P.bounce ? 3 : 0;
+  s.freeze = n > 0 ? Math.min(8, 2 + n) : P.bounce && !idle ? 3 : 0; // S011: 연달아 튕기면 멈칫도 없다(세상이 멈춰 서서 버티던 진짜 원인)
   if (n >= 3) s.slowT = 30;
   if (n >= 3 && s.firstBig < 0) s.firstBig = s.t;
   s.trail = { legs: P.legs, t: s.t, n };
@@ -849,7 +852,7 @@ export const slowdash: GameDef<DashState> = {
       stars: 0, base: 0, got: 0, starOk: [false, false, false], pts: 0, won: false, dead: false, again: false, tries: 0,
       nx: 0.5, ny: 1.17, face: 1, hp: HP, inv: 0, g: GMAX, down: false, lock: false, stiff: 0, whiffs: 0, stroke: [], aim: null, holdT: 0, freeze: 0, slowT: 0,
       strikes: [], foes: [], shots: [], barrels: [], mirrors: [], smokes: [], thorns: [], nid: 0, wave: 0, waveT: 0,
-      dashN: 0, chain: 0, best: 0, hits: 0, arrows: 0, backK: 0, boomBest: 0, boomBy: {}, mirK: 0, bossCombo: 0, dashes: 0,
+      dashN: 0, chain: 0, best: 0, hits: 0, arrows: 0, backK: 0, boomBest: 0, boomBy: {}, mirK: 0, bounceT: -999, bossCombo: 0, dashes: 0,
       firstDash: false, firstBig: -1, firstPress: -1, combo: { id: -1, n: 0, t: -99 },
       seen: new Set<string>(), spotted: new Set<string>(), newsQ: [], news: null, spot: null, events: [], cuts: [], inks: [], trail: null,
       camX: 0, mood: 0, moodT: 0, owlT: -999, sheathT: -999, slowVis: 0,
@@ -880,6 +883,8 @@ export const slowdash: GameDef<DashState> = {
           }
           s.aim = q;
           s.holdT++;
+          // ✏️ S011 첫 빨간 덤불: 그리는 길이 처음 덤불에 걸리면 한 번 알려 준다(다시 그리기를 배우게)
+          if (s.thorns.length && !s.seen.has('thornRed') && s.holdT % 4 === 0 && thornOf(s, tracePath(s, strokeOf(s), reachFor(s, strokeOf(s))).legs)) see(s, 'thornRed', '빨간 덤불은 한 대! 손가락을 닌자로 되돌리면 다시 그려요');
         }
       } else {
         if (s.down && s.aim) doDash(s, strokeOf(s));
