@@ -821,6 +821,7 @@ export const iceslide: GameDef<IceState> = {
     palette: { bg: '#121a3a', ink: '#f2f6ff', muted: '#8f9cc6', accent: '#9fe8ff', hot: '#ff8a4c', soft: '#26315e' },
   },
   guard: (s) => s.lights,
+  cleared: (s) => (s.phase === 'result' && s.ok ? { stage: s.stage, got: s.got, of: s.starOk.length } : null),
   reveals: (s) => s.seen.size,
   create(seed) {
     const s = blank(seed);

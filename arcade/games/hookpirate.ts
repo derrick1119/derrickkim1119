@@ -1005,6 +1005,7 @@ export const hookpirate: GameDef<HookState> = {
     palette: { bg: '#2a1838', ink: '#fff4e0', muted: '#c9a7b8', accent: '#ffc24a', hot: '#ff5a3c', soft: '#4a2a4c' },
   },
   guard: (s) => s.hp,
+  cleared: (s) => (s.phase === 'result' && s.ok ? { stage: s.stage, got: s.got, of: s.starOk.length } : null),
   reveals: (s) => s.seen.size,
   create(seed) {
     const s = {

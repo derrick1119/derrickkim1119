@@ -34,6 +34,8 @@ export interface ArcadeReport {
   presses?: { perMin: number; maxSame: number | null };
   /** 버릇 격차 (0081): 잘하는 봇의 초당 점수 ÷ 가장 잘한 버릇 봇의 초당 점수 (24판 중앙값). 1에 가까우면 버릇만으로 충분 = 전략이 얕다 */
   habitGap?: number;
+  /** 버릇 봇 ★3 (0082, 기준 13): 3판부터 판별 '깬 판 중 별을 다 딴 비율'의 최댓값(버릇 봇 중 가장 높은 것)과 그 판 */
+  habitStar3?: { rate: number; stage: number; bot: string };
 }
 
 const median = (a: number[]) => {
@@ -112,6 +114,37 @@ export function pressStats<S>(g: GameDef<S>, smart: Bot<S>, seeds: number[]): { 
   return { perMin: Math.round(median(per)), maxSame: placed && !g.anywhere ? median(same) : null };
 }
 
+/**
+ * 버릇 봇 판별 ★3 (0082, 기준 13: 3판부터 < 50%). 버릇 봇마다 판을 처음 깬 순간의 별을 모아
+ * 3판(번호 2)부터 '깬 판 중 별을 다 딴 비율'을 판별로 낸다. 깬 판이 4판 미만인 판은 뺀다.
+ */
+export function habitStars<S>(g: GameDef<S>, habits: Bot<S>[], seeds: number[]): { rate: number; stage: number; bot: string } | undefined {
+  if (!g.cleared || !habits.length) return undefined;
+  let worst = { rate: 0, stage: 0, bot: habits[0].name };
+  for (const h of habits) {
+    const cl = new Map<number, number>(), full = new Map<number, number>();
+    for (const sd of seeds) {
+      const st = g.create(sd), rng = mulberry32(sd ^ 0x9e3779b9), seen = new Set<number>();
+      let held = NO_INPUT;
+      for (let t = 0; t < 60 * 180 && !g.over(st); t++) {
+        const inp = t % REACT === 0 ? (held = h.act(st, rng)) : { ...held, tap: false, move: undefined, pick: undefined };
+        g.step(st, inp);
+        const c = g.cleared(st);
+        if (c && !seen.has(c.stage)) {
+          seen.add(c.stage);
+          cl.set(c.stage, (cl.get(c.stage) ?? 0) + 1);
+          if (c.got >= c.of && c.of >= 3) full.set(c.stage, (full.get(c.stage) ?? 0) + 1);
+        }
+      }
+    }
+    for (const [k, n] of cl) {
+      const r = (full.get(k) ?? 0) / n;
+      if (k >= 2 && n >= 4 && r > worst.rate) worst = { rate: +r.toFixed(2), stage: k + 1, bot: h.name };
+    }
+  }
+  return worst;
+}
+
 export function evaluateGame<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, n = 24, habits: Bot<S>[] = []): ArcadeReport {
   const seeds = [...Array(n).keys()].map((i) => 1000 + i * 7919);
   const d = seeds.map((sd) => runBot(g, dumb, sd));
@@ -175,6 +208,7 @@ export function evaluateGame<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, n = 
     fun: +fun.toFixed(3),
     firstLoss: firstSeconds(g, dumb, seeds),
     presses: pressStats(g, smart, seeds.slice(0, 8)),
+    habitStar3: habitStars(g, habits, seeds),
     habitGap: habits.length ? +(median(m.map(rate)) / Math.max(1e-9, ...habits.map((h) => median(seeds.map((sd) => rate(runBot(g, h, sd, 60 * 180, REACT))))))).toFixed(2) : undefined,
   };
 }
@@ -185,7 +219,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const t0 = performance.now();
     const r = evaluateGame(e.game as GameDef<unknown>, e.dumb as Bot<unknown>, e.smart as Bot<unknown>, 24, (e.habits ?? []) as Bot<unknown>[]);
     out[r.id] = r;
-    console.log(`${r.name.padEnd(8)} 재미 ${r.fun.toFixed(3)}${r.reveals ? ` · 펼쳐짐 ${r.reveals.join('/')} (못함 ${r.dumbReveals?.join('/')})` : ''} · 숙련격차 ${r.skillGap}× · 못함 ${r.dumb.sec}s/${r.dumb.score}점 · 잘함 ${r.smart.sec}s/${r.smart.score}점 (3분 버팀 ${Math.round(r.smart.capped * 100)}%) ${r.habitGap ? `· 버릇 격차 ${r.habitGap}× ` : ''}· 연타 분당 ${r.presses?.perMin}번 · 같은 자리 최대 ${r.presses?.maxSame ?? '—'} · 첫 몇 초 하트·지킬 것 손실 손 안 댐 ${Math.round((r.firstLoss?.idle ?? 0) * 100)}%/늦은 사람 ${Math.round((r.firstLoss?.late ?? 0) * 100)}% · ${((performance.now() - t0) / 1000).toFixed(1)}s`);
+    console.log(`${r.name.padEnd(8)} 재미 ${r.fun.toFixed(3)}${r.reveals ? ` · 펼쳐짐 ${r.reveals.join('/')} (못함 ${r.dumbReveals?.join('/')})` : ''} · 숙련격차 ${r.skillGap}× · 못함 ${r.dumb.sec}s/${r.dumb.score}점 · 잘함 ${r.smart.sec}s/${r.smart.score}점 (3분 버팀 ${Math.round(r.smart.capped * 100)}%) ${r.habitGap ? `· 버릇 격차 ${r.habitGap}× ` : ''}${r.habitStar3 ? `· 버릇 ★3 최고 ${Math.round(r.habitStar3.rate * 100)}%(${r.habitStar3.stage}판) ` : ''}· 연타 분당 ${r.presses?.perMin}번 · 같은 자리 최대 ${r.presses?.maxSame ?? '—'} · 첫 몇 초 하트·지킬 것 손실 손 안 댐 ${Math.round((r.firstLoss?.idle ?? 0) * 100)}%/늦은 사람 ${Math.round((r.firstLoss?.late ?? 0) * 100)}% · ${((performance.now() - t0) / 1000).toFixed(1)}s`);
   }
   writeFileSync(join(import.meta.dirname, 'reports', 'eval.json'), JSON.stringify(out, null, 1) + '\n');
 }

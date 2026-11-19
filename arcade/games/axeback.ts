@@ -802,6 +802,7 @@ export const axeback: GameDef<AxeState> = {
     palette: { bg: '#2a1c3a', ink: '#fff3dc', muted: '#c9a98a', accent: '#ffcf5a', hot: '#ff6a4a', soft: '#4a3050' },
   },
   guard: (s) => s.boards,
+  cleared: (s) => (s.phase === 'result' && s.ok ? { stage: s.stage, got: s.got, of: s.starOk.length } : null),
   reveals: (s) => s.seen.size,
   create(seed) {
     const s = {

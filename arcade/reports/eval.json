@@ -38,6 +38,11 @@
    "perMin": 35,
    "maxSame": 2
   },
+  "habitStar3": {
+   "rate": 0.5,
+   "stage": 5,
+   "bot": "늘 가장 많이 맞히는 쪽으로 바로"
+  },
   "habitGap": 1.18
  },
  "hookpirate": {
@@ -78,6 +83,11 @@
   "presses": {
    "perMin": 32,
    "maxSame": 2
+  },
+  "habitStar3": {
+   "rate": 0.42,
+   "stage": 3,
+   "bot": "늘 지금 가장 많이 쓰러뜨리는 것을 바로"
   },
   "habitGap": 1.54
  },
@@ -120,6 +130,11 @@
    "perMin": 20,
    "maxSame": 2
   },
+  "habitStar3": {
+   "rate": 0.43,
+   "stage": 3,
+   "bot": "늘 최대로, 가장 가까운 적에 직선"
+  },
   "habitGap": 2.81
  },
  "stompdino": {
@@ -160,6 +175,11 @@
   "presses": {
    "perMin": 25,
    "maxSame": null
+  },
+  "habitStar3": {
+   "rate": 0,
+   "stage": 0,
+   "bot": "들어오면 바로 작은 쿵"
   },
   "habitGap": 5.88
  },
@@ -202,6 +222,11 @@
    "perMin": 30,
    "maxSame": 2
   },
+  "habitStar3": {
+   "rate": 0.29,
+   "stage": 3,
+   "bot": "늘 가장 가까운 적을 가까운 연못으로"
+  },
   "habitGap": 2.6
  },
  "axeback": {
@@ -242,6 +267,11 @@
   "presses": {
    "perMin": 39,
    "maxSame": 2
+  },
+  "habitStar3": {
+   "rate": 0.13,
+   "stage": 6,
+   "bot": "늘 가장 가까운 괴물에게 곧장"
   },
   "habitGap": 1.45
  }

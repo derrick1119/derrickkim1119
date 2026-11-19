@@ -221,6 +221,8 @@ export interface GameDef<S> {
   guard?(s: S): number;
   /** 어디를 눌러도 같은 일이 일어나는 게임(꾹 누르기만 하는 쿵 등): 계기판이 '같은 자리 연타'를 세지 않는다 (0080) */
   anywhere?: boolean;
+  /** 판을 깬 결과 화면이면 {판 번호(0부터), 딴 별, 그 판의 별 수}, 아니면 null. 계기판이 버릇 봇의 판별 ★3 비율을 잰다 (0082, 기준 13) */
+  cleared?(s: S): { stage: number; got: number; of: number } | null;
   create(seed: number): S;
   step(s: S, input: Input): void;
   over(s: S): boolean;

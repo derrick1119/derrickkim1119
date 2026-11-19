@@ -695,6 +695,7 @@ export const topspin: GameDef<SpinState> = {
     palette: { bg: '#161a33', ink: '#fff3dc', muted: '#9aa0c8', accent: '#ffc95a', hot: '#ff5a4e', soft: '#2a2f55' },
   },
   guard: (s) => s.cookies,
+  cleared: (s) => (s.phase === 'result' && s.ok ? { stage: s.stage, got: s.got, of: s.starOk.length } : null),
   reveals: (s) => s.seen.size,
   create(seed) {
     const s = {

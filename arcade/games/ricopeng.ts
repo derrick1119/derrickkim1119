@@ -734,6 +734,7 @@ export const ricopeng: GameDef<PengState> = {
     palette: { bg: '#0b1633', ink: '#f2f8ff', muted: '#8fa6c8', accent: '#7ff0d0', hot: '#ff6b6b', soft: '#1f3563' },
   },
   guard: (s) => s.ig,
+  cleared: (s) => (s.phase === 'result' && s.ok ? { stage: s.stage, got: s.got, of: s.starOk.length } : null),
   reveals: (s) => s.seen.size,
   create(seed) {
     const s = {
