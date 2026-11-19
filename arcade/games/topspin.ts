@@ -55,7 +55,7 @@ const COST: Record<K, number> = { sol: 0.035, bot: 0.12, spk: 0.32, boss: 0.1 };
 const PTS: Record<K, number> = { sol: 10, bot: 25, spk: 30, boss: 200 };
 const BOSS_HP = 4;
 /** 배우는 판은 너그럽게: [행진 빠르기 배수, 최소 회전] (1판·2판·그 뒤) */
-const EASE = [[0.36, 0.75], [0.66, 0.5], [1, S0]];
+const EASE = [[0.36, 0.75], [0.66, 0.5], [1.15, S0]];
 
 type StarK = 'clear' | 'nolose' | 'multi' | 'bump' | 'spkfly' | 'tower' | 'shots' | 'bossfly';
 interface Star { k: StarK; n: number; label: string }
@@ -523,6 +523,7 @@ function foeStep(s: SpinState, dt: number) {
       s.cookies -= n;
       s.lost += n;
       ev(s, 'steal', f.x, YB, s.cookies, f.k);
+      if (!s.sim) s.debris.push({ k: 'T' + f.k, x: f.x, y: f.y, a: 0, t: s.t, seed: f.seed, face: 1 });
     }
   }
 }
@@ -854,8 +855,8 @@ export const topspinSmart: Bot<SpinState> = {
     // 먼저 넓게(각도 24 × 세기 2) — 그다음 좋은 셋 둘레를 촘촘히
     const holds = s.stage === 0 ? [3, 30] : [3, 24, 48];
     const cand: Plan[] = [];
-    for (let k = 0; k < 20; k++) {
-      const a = (k / 20) * Math.PI * 2 + 0.07;
+    for (let k = 0; k < 18; k++) {
+      const a = (k / 18) * Math.PI * 2 + 0.07;
       for (const hd of holds) cand.push(tryShot(s, a, hd, 120));
     }
     // 진지에 가까운 것 몇을 곧장 겨눠 보기
@@ -1344,10 +1345,12 @@ function getBg(w: number, h: number, sc: number): Bg {
     g.closePath();
     g.fill();
     // 밤 색 덧칠 + 스탠드 빛 웅덩이
-    g.fillStyle = 'rgba(16,18,58,.38)';
+    g.fillStyle = 'rgba(16,18,58,.32)';
     g.fillRect(0, top, w, h - top);
     g.globalCompositeOperation = 'screen';
-    g.fillStyle = radg(g, R(0.82), R(0.62), R(0.02), R(0.75), [0, 'rgba(255,190,110,.38)'], [0.5, 'rgba(255,170,90,.12)'], [1, 'rgba(255,170,90,0)']);
+    g.fillStyle = radg(g, R(0.8), R(0.6), R(0.02), R(0.8), [0, 'rgba(255,190,110,.42)'], [0.5, 'rgba(255,170,90,.15)'], [1, 'rgba(255,170,90,0)']);
+    g.fillRect(0, top, w, h - top);
+    g.fillStyle = radg(g, w / 2, R(OY + 0.55 * KY), R(0.05), R(0.5), [0, 'rgba(120,140,255,.10)'], [1, 'rgba(120,140,255,0)']);
     g.fillRect(0, top, w, h - top);
     g.globalCompositeOperation = 'source-over';
     // 침대 밑 그림자
@@ -2428,7 +2431,9 @@ function drawAll(ctx: C2, s: SpinState, w: number, h: number, th: Theme) {
 
   // ── 사건 → 연출 (상태는 건드리지 않는다) ──
   const seenT = fx.memo.t ?? -1;
-  const say = (x: number, y: number, text: string, col: string, size: number) => {
+  const busy = t - (fx.memo.bigT ?? -99) < 40;
+  const say = (x: number, y: number, text: string, col: string, size: number, must = false) => {
+    if (busy && !must) return;
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
     x = clamp(x, w * 0.14, w * 0.86);
@@ -2465,7 +2470,7 @@ function drawAll(ctx: C2, s: SpinState, w: number, h: number, th: Theme) {
         fx.burst(ex, ey - R(0.025), '#ffd27a', 6 + Math.round(P * 10), 2 + P * 3, 1.8);
         fx.burst(ex, ey - R(0.025), '#ffffff', 3 + Math.round(P * 5), 1.5 + P * 2.5, 1.3);
         fx.kick(1 + P * 4);
-        if (P > 0.35 && t - (fx.memo.tangT ?? -99) > 10) (fx.memo.tangT = t), say(ex, ey - R(0.08), '탕!', '#ffe9a8', 14 + P * 8);
+        if (P > 0.45 && t - (fx.memo.tangT ?? -99) > 18) (fx.memo.tangT = t), say(ex, ey - R(0.08), '탕!', '#ffe9a8', 14 + P * 8);
         fx.memo['wf' + (e.n ?? 0)] = t;
         fx.memo['wfy' + (e.n ?? 0)] = e.n === 3 || e.n === 4 ? e.x : e.y;
         break;
@@ -2489,7 +2494,7 @@ function drawAll(ctx: C2, s: SpinState, w: number, h: number, th: Theme) {
         fx.burst(ex, ey - R(0.05), '#e8eef8', 10, 3, 1.8);
         fx.burst(ex, ey - R(0.05), '#ffd27a', 6, 2.5, 1.5);
         fx.kick(5);
-        say(ex, ey - R(0.12), e.k === 'boss' ? '쾅! 약해!' : '쾅!', '#d8e4ff', 17);
+        say(ex, ey - R(0.12), e.k === 'boss' ? '쾅! 약해!' : '쾅!', '#d8e4ff', 17, true);
         if (e.k === 'bot' && t - (fx.memo.bipT ?? -99) > 30) (fx.memo.bipT = t), say(ex + R(0.06), ey - R(0.2), '삐빅?!', '#ffe27a', 13);
         fx.memo.ouchT = t;
         break;
@@ -2498,18 +2503,17 @@ function drawAll(ctx: C2, s: SpinState, w: number, h: number, th: Theme) {
         fx.burst(ex, ey - R(0.05), '#ffffff', 6, 2.5, 1.5);
         fx.kick(6);
         fx.blink('#c8ff9a', 0.12);
-        say(ex, ey - R(0.13), '따끔!', '#e8ffb0', 19);
+        say(ex, ey - R(0.13), '따끔!', '#e8ffb0', 19, true);
         fx.memo.ouchT = t;
         break;
       case 'spkfly':
-        say(ex, ey - R(0.16), '콕! 가시 쓰러짐', '#e8ffb0', 14);
+        say(ex, ey - R(0.16), '콕! 가시 쓰러짐', '#e8ffb0', 14, true);
         break;
       case 'drum':
         fx.ring(ex, ey - R(0.03), '#ffd34a', R(0.11), 4);
         fx.burst(ex, ey - R(0.04), '#ffe9a8', 10, 3, 1.8);
         fx.kick(3);
-        if (e.n) say(ex, ey - R(0.1), e.n >= 2 ? `둥! ×${e.n}` : '둥!', '#ffe27a', 17);
-        if (e.n) say(ex, ey - R(0.16), '회전 +', '#9ff0ff', 13);
+        if (e.n) say(ex, ey - R(0.1), e.n >= 2 ? `둥! ×${e.n}` : '둥! 회전 +', '#ffe27a', 16);
         fx.memo['dr' + Math.round(e.x * 100) + ':' + Math.round(e.y * 100)] = t;
         break;
       case 'topple':
@@ -2528,7 +2532,7 @@ function drawAll(ctx: C2, s: SpinState, w: number, h: number, th: Theme) {
         fx.kick(9);
         fx.burst(ex, R(OY + KY * 1.02), '#e8b070', 16, 3.4, 2.4);
         fx.burst(ex, R(OY + KY * 1.02), '#ff7a9a', 8, 3, 2);
-        say(ex, R(OY + KY * 0.94), '냠! 하트 -1', '#ffb3a8', 18);
+        say(ex, R(OY + KY * 0.94), '냠! 하트 -1', '#ffb3a8', 18, true);
         fx.memo.stealT = t;
         fx.memo.bearT2 = t;
         break;
@@ -2545,7 +2549,7 @@ function drawAll(ctx: C2, s: SpinState, w: number, h: number, th: Theme) {
         fx.ring(ex, ey - R(0.1), '#ffd34a', R(0.16), 5);
         fx.kick(10);
         fx.blink('#fff0c0', 0.25);
-        say(ex, ey - R(0.26), (e.n ?? 0) > 0 ? `으악! 남은 힘 ${e.n}` : '대장 쓰러짐!', '#ffd0a8', 19);
+        say(ex, ey - R(0.26), (e.n ?? 0) > 0 ? `으악! 남은 힘 ${e.n}` : '대장 쓰러짐!', '#ffd0a8', 19, true);
         break;
       case 'goo':
         if (t - (fx.memo.gooT ?? -99) > 18) (fx.memo.gooT = t), fx.burst(ex, ey, '#ff6a80', 4, 1.2, 2), say(ex, ey - R(0.1), '찐득', '#ffb0c0', 12);
@@ -2681,6 +2685,37 @@ function drawAll(ctx: C2, s: SpinState, w: number, h: number, th: Theme) {
   for (const db of s.debris) {
     const age = t - db.t, a = Math.min(1, (150 - age) / 40);
     if (a <= 0) continue;
+    if (db.k[0] === 'T') {
+      // 쿠키 도둑: 하트 쿠키를 머리에 이고 깡충깡충 달아난다
+      if (age > 110) continue;
+      const kk = db.k.slice(1) as K, k = R(FOE_H[kk]) * depthK(db.y), yy = db.y - age * 0.0045, hop = Math.abs(Math.sin(age * 0.35)) * R(0.02);
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, (110 - age) / 30);
+      ctx.translate(X(db.x + Math.sin(age * 0.2) * 0.01), Y(yy));
+      ctx.fillStyle = 'rgba(6,4,20,.35)';
+      ell(ctx, 0, 0, k * 0.3, k * 0.08);
+      ctx.fill();
+      ctx.translate(0, -hop);
+      drawFoeAt(ctx, kk, k, { ph: age * 3, t, hurt: 0, ko: false, stun: false, seed: db.seed, hp: 1, key: t * 0.3 });
+      heartPath(ctx, 0, -k * 1.22, R(0.022));
+      ctx.fillStyle = '#d89a58';
+      ctx.fill();
+      stroke(ctx, 1.3);
+      ctx.fillStyle = '#ff7a9a';
+      heartPath(ctx, 0, -k * 1.235, R(0.014));
+      ctx.fill();
+      ctx.restore();
+      if (age < 50) {
+        font(0.032, 900);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ffd0c8';
+        ctx.strokeStyle = 'rgba(0,0,0,.5)';
+        ctx.lineWidth = 3;
+        ctx.strokeText('헤헤!', X(db.x) + R(0.06), Y(yy) - k * 1.3);
+        ctx.fillText('헤헤!', X(db.x) + R(0.06), Y(yy) - k * 1.3);
+      }
+      continue;
+    }
     const k = R(FOE_H[db.k as K]) * depthK(db.y);
     ctx.save();
     ctx.globalAlpha = a * 0.9;
@@ -3013,7 +3048,7 @@ function drawAll(ctx: C2, s: SpinState, w: number, h: number, th: Theme) {
     ctx.font = `900 ${size}px system-ui, sans-serif`;
     const tw2 = ctx.measureText(txt).width, rx = tw2 / 2 + 18, ry = size * 0.78;
     const sc2 = Math.min(age < 6 ? 1.6 - 0.6 * (age / 6) : 1, (w - 10) / (rx * 2.3));
-    const bx = clamp(fx.memo.bigX, rx * 1.15 * sc2 + 4, w - rx * 1.15 * sc2 - 4), by = clamp(fx.memo.bigY - R(0.22), R(0.42), R(1.05));
+    const bx = clamp(fx.memo.bigX, rx * 1.15 * sc2 + 4, w - rx * 1.15 * sc2 - 4), by = clamp(fx.memo.bigY < Y(0.45) ? fx.memo.bigY + R(0.2) : fx.memo.bigY - R(0.22), R(0.42), R(1.05));
     ctx.globalAlpha = a;
     ctx.translate(bx, by);
     ctx.rotate(-0.05);
@@ -3214,7 +3249,11 @@ function drawAll(ctx: C2, s: SpinState, w: number, h: number, th: Theme) {
       font(0.034, 900);
       ctx.textAlign = 'center';
       const lab = charge ? (cS >= 0.999 ? '회전 최대!' : '윙윙… 회전 모으는 중') : s.mode === 'run' ? '회전' : s.mode === 'wob' ? '비틀비틀…' : '꾹 눌러 돌리기';
-      ctx.fillStyle = fr > 0.45 ? '#2a1606' : '#e8ecff';
+      ctx.lineWidth = 3;
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(12,8,30,.85)';
+      ctx.strokeText(lab, gx + gw / 2, r1 + 1, gw - R(0.02));
+      ctx.fillStyle = '#ffffff';
       ctx.fillText(lab, gx + gw / 2, r1 + 1, gw - R(0.02));
       // 진지 하트
       const hx0 = w - R(0.235);

@@ -102,7 +102,7 @@ export const STAGES: StageDef[] = [
       { wait: 480, foes: [...train('gob', 'T', 0.22, 0, 3), ...train('gob', 'T', 0.78, 40, 3)] },
       { wait: 520, foes: [...train('gob', 'L', 0.3, 0, 3), ...train('gob', 'R', 0.55, 50, 3)] },
     ],
-    stars: [S('snow', 3, '눈덩이로 셋 빠뜨리기'), S('strokes', 8, '여덟 번만 긋고 지키기')],
+    stars: [S('snow', 3, '눈덩이로 셋 빠뜨리기'), S('strokes', 10, '열 번만 긋고 지키기')],
   },
   {
     key: 'spike', name: '대장간 앞', place: 1, news: '스파이크 신발 — 얼음에서 안 미끄러져요', goal: '등불 지키기', lights: 4, regen: 0.14, speed: 1.05,
