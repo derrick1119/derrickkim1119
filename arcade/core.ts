@@ -229,6 +229,8 @@ export interface GameDef<S> {
   anywhere?: boolean;
   /** 판을 깬 결과 화면이면 {판 번호(0부터), 딴 별, 그 판의 별 수}, 아니면 null. 계기판이 버릇 봇의 판별 ★3 비율을 잰다 (0082, 기준 13) */
   cleared?(s: S): { stage: number; got: number; of: number } | null;
+  /** 지금까지 '큰 순간' 띠(여럿이 한꺼번에·연쇄)를 띄운 수. 계기판이 처음 하는 사람의 첫 큰 순간까지 시간을 잰다 (0086) */
+  wows?(s: S): number;
   create(seed: number): S;
   step(s: S, input: Input): void;
   over(s: S): boolean;
