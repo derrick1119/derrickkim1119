@@ -86,36 +86,57 @@ interface StageDef {
 const S3 = (k: Star['k'], n: number, label: string): Star => ({ k, n, label });
 /** 판 8개. 좌표는 뒤집기 전 — 판마다(다시 할 때도) 시드로 좌우를 뒤집고 살짝 흔든다 */
 const RAW: Omit<StageDef, 'stars'>[] = [
+  // ✏️ M1 S007: 📐 CONTENT v2 — 1-1~1-5 꺾기 판(한붓 획). 뒤의 다섯(수리검 · 방패 · 통 · 거울 · 대장)은 S008에 다시 짠다
   {
     key: 'dummy', name: '대숲 입구', place: 0, news: '', goal: '숲 지나가기',
-    hint: '여럿을 한 줄에 세워 베면 게이지가 오히려 차요', start: [0.5, 1.17],
+    hint: '꾹 누르고 줄 끝을 겨눠요', start: [0.5, 1.17], g0: 70, ease: [5, 1.5, 0.8],
     waves: [
       { need: 0, wait: 1e9, foes: [['dummy', 0.5, 0.95, 0], ['dummy', 0.5, 0.79, 0], ['dummy', 0.5, 0.63, 0]] },
       { need: 0, wait: 1e9, foes: [['dummy', 0.24, 1.0, 0], ['dummy', 0.41, 1.0, 0], ['dummy', 0.59, 1.0, 0], ['dummy', 0.76, 1.0, 0]] },
-      { need: 0, wait: 1e9, foes: [['dummy', 0.27, 0.58, 0], ['dummy', 0.38, 0.69, 0], ['dummy', 0.49, 0.8, 0], ['dummy', 0.6, 0.91, 0], ['dummy', 0.71, 1.02, 0]] },
+      { need: 0, wait: 1e9, foes: [['dummy', 0.7, 0.62, 0], ['dummy', 0.58, 0.62, 0], ['dummy', 0.46, 0.62, 0], ['dummy', 0.34, 0.62, 0], ['dummy', 0.22, 0.62, 0], ['dummy', 0.7, 0.76, 0], ['dummy', 0.7, 0.9, 0]] },
     ],
     n: 4, gift3: true,
   },
   {
-    key: 'sword', name: '대숲 오솔길', place: 0, news: '칼잡이 — 다가와 칼을 휘둘러요', goal: '숲 지나가기',
-    hint: '칼을 들면(빨간 반달) 얼른 다른 데로 번쩍!', start: [0.5, 1.12],
+    key: 'bend', name: '갈림길', place: 0, news: '한붓 획 — 누른 채 그으면 그 길로 벤다', goal: '숲 지나가기',
+    hint: '누른 채 꺾어 그어요', start: [0.5, 1.17], g0: 50, ease: [3, 1.5, 0.8],
     waves: [
-      { need: 0, wait: 1e9, foes: [['sword', 0.2, 0.72, 1], ['sword', 0.32, 0.72, 1], ['sword', 0.44, 0.72, 1]] },
-      { need: 0, wait: 660, foes: [['sword', 0.8, 0.98, 2], ['sword', 0.68, 0.98, 2], ['sword', 0.56, 0.98, 2]] },
-      { need: 1, wait: 660, foes: [['sword', 0.12, 0.64, 1], ['sword', 0.24, 0.64, 1], ['sword', 0.36, 0.64, 1], ['sword', 0.48, 0.64, 1]] },
-      { need: 0, wait: 660, foes: [['sword', 0.5, 0.52, 3], ['sword', 0.5, 0.66, 3], ['sword', 0.5, 0.8, 3], ['sword', 0.34, 0.52, 3], ['sword', 0.66, 0.52, 3]] },
+      { need: 0, wait: 1e9, foes: [['dummy', 0.5, 0.6, 0], ['dummy', 0.5, 0.98, 0], ['dummy', 0.5, 0.86, 0], ['dummy', 0.5, 0.73, 0], ['dummy', 0.63, 0.6, 0], ['dummy', 0.76, 0.6, 0], ['dummy', 0.89, 0.6, 0]] },
+      { need: 0, wait: 1e9, foes: [['dummy', 0.8, 0.6, 0], ['dummy', 0.2, 0.6, 0], ['dummy', 0.35, 0.6, 0], ['dummy', 0.5, 0.6, 0], ['dummy', 0.65, 0.6, 0], ['dummy', 0.8, 0.78, 0], ['dummy', 0.8, 0.92, 0], ['dummy', 0.2, 0.78, 0], ['dummy', 0.2, 0.92, 0]] },
+      { need: 0, wait: 1e9, foes: [['dummy', 0.5, 1.12, 0], ['dummy', 0.18, 0.6, 0], ['dummy', 0.82, 0.6, 0], ['dummy', 0.42, 0.99, 0], ['dummy', 0.34, 0.86, 0], ['dummy', 0.26, 0.73, 0], ['dummy', 0.58, 0.99, 0], ['dummy', 0.66, 0.86, 0], ['dummy', 0.74, 0.73, 0]] },
     ],
-    n: 4,
+    n: 6,
+  },
+  {
+    key: 'sword', name: '오솔길', place: 0, news: '칼잡이 — 다가와 칼을 휘둘러요', goal: '숲 지나가기',
+    hint: '모이길 기다려 꺾어 이어요', start: [0.5, 1.12], g0: 60, ease: [1.5, 1.2, 1],
+    waves: [
+      { need: 1, wait: 1e9, foes: [['sword', 0.14, 0.7, 1], ['sword', 0.2, 0.77, 1], ['sword', 0.26, 0.84, 1], ['sword', 0.8, 0.6, 2], ['sword', 0.88, 0.6, 2], ['sword', 0.84, 0.68, 2]] },
+      { need: 1, wait: 600, foes: [['sword', 0.86, 0.7, 2], ['sword', 0.8, 0.77, 2], ['sword', 0.74, 0.84, 2], ['sword', 0.2, 0.52, 3], ['sword', 0.28, 0.52, 3], ['sword', 0.24, 0.6, 3]] },
+      { need: 0, wait: 660, foes: [['sword', 0.12, 0.66, 1], ['sword', 0.2, 0.74, 1], ['sword', 0.28, 0.82, 1], ['sword', 0.88, 0.66, 2], ['sword', 0.8, 0.74, 2], ['sword', 0.72, 0.82, 2], ['sword', 0.46, 0.52, 3], ['sword', 0.54, 0.52, 3]] },
+    ],
+    n: 5,
+  },
+  {
+    key: 'twin', name: '두 갈래', place: 0, news: '두 무리 — 돌아서 한 획에', goal: '숲 지나가기',
+    hint: '양쪽을 U자로 돌아 이어요', start: [0.5, 1.1], g0: 60, ease: [1, 1, 1],
+    waves: [
+      { need: 1, wait: 1e9, foes: [['sword', 0.14, 0.76, 1], ['sword', 0.14, 0.88, 1], ['sword', 0.14, 1.0, 1], ['sword', 0.86, 0.76, 2], ['sword', 0.86, 0.88, 2], ['sword', 0.86, 1.0, 2]] },
+      { need: 1, wait: 720, foes: [['sword', 0.3, 0.52, 3], ['sword', 0.42, 0.52, 3], ['sword', 0.58, 0.52, 3], ['sword', 0.7, 0.52, 3], ['sword', 0.12, 1.18, 1], ['sword', 0.88, 1.18, 2]] },
+      { need: 1, wait: 720, foes: [['sword', 0.12, 0.6, 1], ['sword', 0.12, 0.72, 1], ['sword', 0.24, 0.6, 1], ['sword', 0.88, 0.6, 2], ['sword', 0.88, 0.72, 2], ['sword', 0.76, 0.6, 2]] },
+      { need: 0, wait: 720, foes: [['sword', 0.14, 0.9, 1], ['sword', 0.14, 1.02, 1], ['sword', 0.86, 0.9, 2], ['sword', 0.86, 1.02, 2], ['sword', 0.44, 0.52, 3], ['sword', 0.56, 0.52, 3]] },
+    ],
+    n: 5,
   },
   {
     key: 'archer', name: '달빛 언덕', place: 0, news: '화살병 — 날아오는 화살도 벨 수 있어요', goal: '언덕 넘어가기',
-    hint: '빨간 점선이 겨누는 곳에서 비켜 서요 — 화살도 벨 수 있어요', start: [0.5, 1.15],
+    hint: '화살 사이로 꺾어 그어요', start: [0.5, 1.15], g0: 55, ease: [1, 1, 1],
     waves: [
-      { need: 0, wait: 1e9, foes: [['archer', 0.3, 0.5, 3], ['archer', 0.7, 0.5, 3], ['sword', 0.14, 0.92, 1], ['sword', 0.26, 0.92, 1]] },
-      { need: 1, wait: 720, foes: [['archer', 0.5, 0.49, 3], ['sword', 0.86, 0.72, 2], ['sword', 0.86, 0.86, 2], ['sword', 0.86, 1.0, 2]] },
-      { need: 0, wait: 720, foes: [['archer', 0.2, 0.5, 3], ['archer', 0.5, 0.5, 3], ['archer', 0.8, 0.5, 3], ['sword', 0.38, 1.22, 1], ['sword', 0.62, 1.22, 2]] },
+      { need: 1, wait: 1e9, foes: [['sword', 0.26, 0.82, 1], ['sword', 0.2, 0.74, 1], ['sword', 0.14, 0.65, 1], ['archer', 0.42, 0.56, 3], ['archer', 0.58, 0.56, 3]] },
+      { need: 1, wait: 720, foes: [['sword', 0.74, 0.82, 2], ['sword', 0.8, 0.74, 2], ['sword', 0.86, 0.65, 2], ['archer', 0.5, 0.5, 3], ['sword', 0.2, 0.52, 3], ['sword', 0.28, 0.52, 3]] },
+      { need: 0, wait: 780, foes: [['sword', 0.24, 0.84, 1], ['sword', 0.18, 0.76, 1], ['sword', 0.12, 0.68, 1], ['archer', 0.44, 0.52, 3], ['archer', 0.56, 0.52, 3], ['sword', 0.76, 0.84, 2], ['sword', 0.82, 0.76, 2], ['sword', 0.88, 0.68, 2]] },
     ],
-    n: 4, strike: 32, // S002: 셋이면 화살이 버릇 봇을 못 맞혀 버릇② ★3 .54(공짜) → 넷(장인 ★★ 0 — 1-5 화살병 판은 S005에 다시 짬)
+    n: 5, // 📐 CONTENT v2: strike 없음(고리 일격은 꺾기 판에서 뺀다)
   },
   {
     key: 'shuri', name: '기와 지붕', place: 1, news: '수리검 — 셋이 부채꼴로 날아와요', goal: '지붕 건너가기',
@@ -172,7 +193,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
   },
 ];
 const NUM = ['', '하나', '둘', '셋', '넷', '다섯', '여섯', '일곱'];
-/** S002: 지금 8판의 임시 N(📋 — 장인 ★★ ≥ .8 · 버릇 ★★ 낮게, funqa 24시드로 고름). 10판 표(CONTENT)는 S005~S006에 */
+/** S002: 6~10판(수리검~대장)의 임시 N(📋 — 장인 ★★ ≥ .8 · 버릇 ★★ 낮게, funqa 24시드로 고름). 10판 표(CONTENT)는 S005~S006에 */
 export const STAGES: StageDef[] = RAW.map((d) => ({ ...d, stars: [S3('multi', d.n, `한 번에 ${NUM[d.n]} 베기`), S3('nohit', 0, '꼬리 하나도 안 잃기')] }));
 export const STAGE_COUNT = STAGES.length;
 const easeOf = (s: DashState) => STAGES[s.stage].ease ?? EASE[Math.min(s.stage, 2)];

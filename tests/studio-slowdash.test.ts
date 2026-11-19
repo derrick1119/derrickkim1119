@@ -8,6 +8,8 @@ import { BOTS, measure, tapEvery, try3, tryStage } from '../studio/slowdash/funq
 import { chainHz, sfx } from '../studio/slowdash/sfx.ts';
 
 const A = g.aspect ?? 1.52;
+/** 판 번호는 판이 늘면 바뀐다 — key로 찾는다(S007 10판) */
+const K = (key: string) => STAGES.findIndex((d) => d.key === key);
 
 describe('느린 시간 닌자 시뮬', () => {
   it('같은 시드·같은 봇이면 같은 판', () => {
@@ -20,7 +22,7 @@ describe('느린 시간 닌자 시뮬', () => {
     startStage(s, 5);
     expect(s.stage).toBe(5);
     expect(s.phase).toBe('play');
-    expect(STAGES.length).toBe(8);
+    expect(STAGES.length).toBe(10); // S007: 1-1~1-5 꺾기 판 + 예전 뒤 다섯
   });
 
   it('누르는 동안 게이지가 줄고(느린 시간), 닌자 위에서 떼면 돌진하지 않는다(취소)', () => {
@@ -56,7 +58,7 @@ describe('느린 시간 닌자 시뮬', () => {
 
   it('S002 하트 폐지: 져도 게임이 끝나지 않고 그 판만 바로 다시 · 결과 화면은 놓친 별 이유를 쉬운 말로', () => {
     const s = g.create(5);
-    startStage(s, 1);
+    startStage(s, K('sword'));
     let fails = 0;
     for (let t = 0; t < 60 * 120 && fails < 2; t++) {
       g.step(s, { tap: false, dir: 0, pointer: null }); // 가만히 서 있으면 칼잡이에게 맞아 진다
@@ -64,7 +66,7 @@ describe('느린 시간 닌자 시뮬', () => {
     }
     expect(fails).toBe(2);
     expect(g.over(s)).toBe(false);
-    expect(s.stage).toBe(1);
+    expect(s.stage).toBe(K('sword'));
     const w = g.create(7);
     w.stage = 1;
     w.best = 2;
@@ -78,7 +80,7 @@ describe('느린 시간 닌자 시뮬', () => {
   it('S003 헛방: 아무것도 못 벤 획은 헛방으로 세고 근처 칼잡이가 바로 칼을 든다 · 방패 바로 앞 0길이 떼기는 취소가 아니라 튕김(헛방)', () => {
     // (경직 20틱은 S003 측정으로 뺐다 — 장인 '옮겨 서기'를 막아 5판 ★3 .92 → .04, 연타엔 효과 0. TALK S003)
     const s = g.create(4);
-    startStage(s, 1);
+    startStage(s, K('sword'));
     for (let k = 0; k < 40; k++) g.step(s, { tap: false, dir: 0, pointer: null });
     const near = s.foes.find((f) => f.k === 'sword')!;
     near.cool = 99;
@@ -91,7 +93,7 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(s.events.some((e) => e.kind === 'whiffme')).toBe(true);
     // 방패 바로 앞: 길이 0이어도 '튕김' 사건이 나고 헛방으로 센다
     const t = g.create(9);
-    startStage(t, 4);
+    startStage(t, K('shield'));
     for (let k = 0; k < 80; k++) g.step(t, { tap: false, dir: 0, pointer: null });
     const sh = t.foes.find((f) => f.k === 'shield')!;
     sh.fa = Math.atan2(t.ny - sh.y, t.nx - sh.x);
@@ -105,10 +107,10 @@ describe('느린 시간 닌자 시뮬', () => {
   });
 
   it('S004 찾아오는 위협: 일격 판에서 내린 자리에 32틱 뒤 일격 — 그 자리에 남으면 맞고, 꾹(느린 시간) 하면 비켜 갈 틈이 있다', () => {
-    expect(STAGES.filter((d) => d.strike).map((d) => d.key)).toEqual(['archer', 'shuri', 'mirror', 'boss']);
+    expect(STAGES.filter((d) => d.strike).map((d) => d.key)).toEqual(['shuri', 'mirror', 'boss']); // S007: 꺾기 판(1-5 화살병)에서는 고리 일격을 뺐다(📐 CONTENT v2)
     const run = (holdAfter: boolean) => {
       const s = g.create(3);
-      startStage(s, 2);
+      startStage(s, K('shuri'));
       s.foes = [];
       for (let k = 0; k < 40; k++) g.step(s, { tap: false, dir: 0, pointer: null });
       g.step(s, { tap: false, dir: 0, pointer: { x: s.nx, y: (s.ny - 0.3) / A } });
