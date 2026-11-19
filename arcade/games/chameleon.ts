@@ -2513,7 +2513,6 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
   ctx.save();
   fx.begin(ctx);
   // ── 하늘 · 무지개 · 구름 ──
-  (globalThis as any).__pm?.push(['1', performance.now()]);
   ctx.drawImage(bg.sky, 0, 0, w, Y(WALL_T));
   if (W.rain) {
     ctx.save();
@@ -2541,7 +2540,6 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
     ctx.fill();
   }
   // ── 먼 마을 · 가까운 집 (시차) ──
-  (globalThis as any).__pm?.push(['2', performance.now()]);
   const fw = bg.far.width / sc, mw = bg.mid.width / sc;
   const fo = -((((cam * w * 0.22) % fw) + fw) % fw), mo = -((((cam * w * 0.55) % mw) + mw) % mw);
   ctx.drawImage(bg.far, fo, 0, fw, bg.far.height / sc);
@@ -2549,7 +2547,6 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
   ctx.drawImage(bg.mid, mo, 0, mw, bg.mid.height / sc);
   ctx.drawImage(bg.mid, mo + mw, 0, mw, bg.mid.height / sc);
   // ── 골목을 가로지르는 깃발 줄 ──
-  (globalThis as any).__pm?.push(['3', performance.now()]);
   {
     const cols = ['#ff5a5a', '#ffd23a', '#4ab8ff', '#5ad85a', '#ff8ac0', '#ffffff', '#ffa63a'];
     const pw = w * 0.95, po = -((((cam * w * 0.7) % pw) + pw) % pw);
@@ -2582,7 +2579,6 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
     }
   }
   // ── 망원경 발코니 (차양 뒤) ──
-  (globalThis as any).__pm?.push(['4', performance.now()]);
   W.guards.forEach((g, i) => {
     if (g.k !== 'scope') return;
     const z = gz[i], [ex, ey] = guardEye(g, 1, X, Y, R);
@@ -2590,7 +2586,6 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
     drawScope(ctx, X(g.x), Y(SCOPE_Y), R(SCOPE_K), ang, t, t - s.bark[i] < 40 ? 1 : 0);
   });
   // ── 진열대 칸 ──
-  (globalThis as any).__pm?.push(['5', performance.now()]);
   for (let i = 0; i < W.segs.length; i++) {
     const g = W.segs[i];
     if (X(g.b) < -20 || X(g.a) > w + 20) continue;
@@ -2674,14 +2669,12 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
     }
   }
   // ── 손수레 ──
-  (globalThis as any).__pm?.push(['6', performance.now()]);
   for (const c of W.carts) {
     const cx = cartX(c, b.wt);
     if (X(cx) < -R(0.6) || X(cx) > w + R(0.6)) continue;
     drawCart(ctx, X(cx), Y(WALL_B), c.w * w, c.pat, T, sc, X(cx - c.w / 2), cx / (0.12 * c.w), t);
   }
   // ── 과일 선반 ──
-  (globalThis as any).__pm?.push(['7', performance.now()]);
   W.fruits.forEach((fxw, i) => {
     const px = X(fxw), py = Y(0.655);
     if (px < -30 || px > w + 30) return;
@@ -2705,7 +2698,6 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
     }
   });
   // ── 계산대 (카멜레온이 걷는 곳) ──
-  (globalThis as any).__pm?.push(['8', performance.now()]);
   {
     const top = Y(WALL_B), mid = Y(0.955), bot = Y(CNT_B);
     ctx.fillStyle = lin(ctx, 0, top, 0, mid, [0, '#e8b070'], [1, '#c48444']);
@@ -2739,7 +2731,6 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
     ctx.fillRect(-10, mid, w + 20, 1.5);
   }
   // ── 거리 ──
-  (globalThis as any).__pm?.push(['9', performance.now()]);
   {
     const so = -((((cam * w) % w) + w) % w), sh = (STREET_B - CNT_B) * w;
     ctx.drawImage(bg.street, so, Y(CNT_B), w, sh);
@@ -2797,7 +2788,6 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
     }
   }
   // ── 시선 부채꼴 (늘 보인다: 노란 빛 · 들키면 빨강) ──
-  (globalThis as any).__pm?.push(['10', performance.now()]);
   W.guards.forEach((g, i) => {
     const z = gz[i];
     if (z.h < 0.012) return;
@@ -2859,7 +2849,6 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
     ctx.restore();
   });
   // ── 경비 ──
-  (globalThis as any).__pm?.push(['11', performance.now()]);
   W.guards.forEach((g, i) => {
     if (g.k === 'scope') return;
     const z = gz[i], face = z.c >= g.x ? 1 : -1;
@@ -2898,7 +2887,6 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
     }
   });
   // ── 고양이 ──
-  (globalThis as any).__pm?.push(['12', performance.now()]);
   if (W.cat) {
     const near = b.x - b.cat < 0.2 ? 1 : 0, leap = Math.max(0, 1 - (t - vm.pounce) / 24);
     const cxp = X(b.cat);
@@ -2932,7 +2920,6 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
     }
   }
   // ── 카멜레온 ──
-  (globalThis as any).__pm?.push(['13', performance.now()]);
   {
     const morphing = b.mode === STOP && b.m < 1 && play;
     const matched = b.worn === back && (b.mode === WALK || b.m >= 1) && b.mode !== IDLE;
@@ -2970,7 +2957,6 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
     }
   }
   // ── 무늬 물결: 바뀌는 순간 무늬가 화면 가득 퍼진다 ──
-  (globalThis as any).__pm?.push(['14', performance.now()]);
   {
     const age = t - (fx.memo.waveT ?? -99), dur = fx.memo.waveBig ? 46 : 32;
     if (age >= 0 && age < dur) {
@@ -2993,7 +2979,6 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
     }
   }
   // ── 비 ──
-  (globalThis as any).__pm?.push(['15', performance.now()]);
   if (W.rain) {
     ctx.fillStyle = 'rgba(120,170,220,.08)';
     ctx.fillRect(0, 0, w, Y(STREET_B));
@@ -3016,7 +3001,6 @@ function drawAll(ctx: C2, s: ChamState, w: number, h: number, th: Theme) {
   }
 
   // ── 사건 연출 ──
-  (globalThis as any).__pm?.push(['16', performance.now()]);
   const seenT = fx.memo.t ?? -1;
   const say = (x: number, y: number, text: string, col: string, size: number) => {
     let rec = sayMem.get(s);

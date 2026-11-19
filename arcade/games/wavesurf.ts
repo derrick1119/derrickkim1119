@@ -68,7 +68,7 @@ export const STAGES: StageDef[] = [
     key: 'calm', name: '모래성 해변', news: '', hint: '꾹 누르면 파도가 솟아요 — 떼면 쏴아!', newKind: '', place: 0,
     tg: 50, hmax: 0.62, curl: 100, L: 6.3,
     build: (b) => {
-      b.beach(0.42, 0.68, 'ccc', false);
+      b.beach(0.33, 0.55, 'ccc', false);
       b.shells(1.3, 0.3, 4, 0.08, 0.06);
       b.beach(1.95, 2.55, 'cbc');
       b.shells(2.95, 0.36, 4, 0.08, 0.05);
@@ -2475,7 +2475,7 @@ function drawThrow(ctx: C2, x0: number, y0: number, x1: number, yb: number, Hp: 
   const u = clamp(age / 12, 0, 1), tx = x0 + (x1 - x0) * u, ty = y0 + (yb - y0) * u * u;
   // 혀의 뒤끝은 따라오며 짧아진다 (긴 띠가 아니라 쏟아지는 물 덩이)
   const tail = Math.max(0, u - 0.45), bx = x0 + (x1 - x0) * tail, by = y0 + (yb - y0) * tail * tail;
-  const cx = (bx + tx) / 2, cy = Math.min(by, ty) - Hp * 0.12 * (1 - u);
+  const cx = (bx + tx) / 2, cy = Math.min(by, ty) - Hp * 0.06 * (1 - u);
   const n = 10, wd = Math.max(5, Hp * 0.16);
   const P = (k: number) => {
     const v = k / n, q = 1 - v;
@@ -2856,7 +2856,7 @@ function drawAll(ctx: C2, s: SurfState, w: number, h: number, th: Theme) {
       pose = { crouch: 0, arms: 'up', face: ph < 0.4 ? 'yawn' : 'grin', glassesUp: true, board: true, lean: -0.05 };
     } else if (s.mode === CHARGE) {
       const cu = curlOf(s), k = s.H / STAGES[s.stage].hmax;
-      pose = { crouch: 0.3 + 0.6 * k, arms: 'bal', face: cu > 0.3 ? 'panic' : 'focus', glassesUp: false, board: true, lean: 0.12 + 0.15 * k };
+      pose = { crouch: 0.3 + 0.5 * k, arms: 'bal', face: cu > 0.4 ? 'panic' : 'focus', glassesUp: false, board: true, lean: 0.06 + 0.08 * k };
       ang = faceAngle(R(s.H), w) + Math.sin(t * 0.3) * 0.03;
     } else if (s.mode === AIR) {
       ang = airAngle(s);
@@ -3077,7 +3077,7 @@ function drawAll(ctx: C2, s: SurfState, w: number, h: number, th: Theme) {
     }
     // 말림 경고
     const cu = curlOf(s);
-    if (cu > 0) {
+    if (cu > 0.35) {
       const bx = sx + R(0.02), by = Y(s.h + BODY) - R(0.06);
       ctx.fillStyle = cu > 0.5 && t % 8 < 4 ? '#ff4d3d' : '#ffb12e';
       ell(ctx, bx, by, R(0.03), R(0.03));
@@ -3472,12 +3472,12 @@ function drawAll(ctx: C2, s: SurfState, w: number, h: number, th: Theme) {
       xx += pw + gap * scl;
     }
     let hint = d.hint;
-    if (s.phase === 'play' && s.mode === CHARGE) hint = curlOf(s) > 0 ? '파도가 말려요 — 얼른 떼요!' : '하얀 자리에 파도가 쏟아져요 — 떼면 쏴아!';
+    if (s.phase === 'play' && s.mode === CHARGE) hint = curlOf(s) > 0.5 ? '파도가 말려요 — 얼른 떼요!' : curlOf(s) > 0 ? '꼭대기! 지금 떼면 제일 멀리' : '하얀 자리에 파도가 쏟아져요 — 떼면 쏴아!';
     else if (s.phase === 'result') hint = s.ok ? (s.won ? '모든 바다를 건넜어요!' : `별 ${s.got}개! 다음 바다엔 새것이 나와요`) : '얼마나 키울지, 언제 뗄지 골라요';
     else if (s.stage === 0 && !s.firstRelease) hint = '꾹 눌렀다 떼면 파도가 쏴아!';
     font(0.034, 900);
     ctx.textAlign = 'center';
-    ctx.fillStyle = s.mode === CHARGE && curlOf(s) > 0 ? '#e2403a' : '#2a6fb0';
+    ctx.fillStyle = s.mode === CHARGE && curlOf(s) > 0.5 ? '#e2403a' : s.mode === CHARGE && curlOf(s) > 0 ? '#d9822a' : '#2a6fb0';
     ctx.fillText(hint, w / 2, ty + R(0.092), w - R(0.06));
   }
 }
