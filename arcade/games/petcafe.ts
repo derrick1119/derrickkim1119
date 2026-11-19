@@ -78,19 +78,19 @@ export const WEEKS: WeekDef[] = [
     key: 'group', name: '단체 손님', news: '단체 손님은 넷이 한 접시를 같이 먹어요', hint: '단체 손님 넷이 다 좋아하는 걸!',
     cards: ['honey', 'soup', 'carrot', 'acorn'], pool: ['bear', 'rabbit', 'squirrel'],
     days: [{ n: 8 }, { n: 9, ev: 'group' }, { n: 7, rain: true }, { n: 9, ev: 'group' }, { n: 8 }],
-    goal: 100, stars: [S('money', 100, '돈 100 모으기'), S('group', 2, '단체 손님 두 번 대접하기'), S('perfect', 3, '모두 웃는 날 세 번')], offers: ['table', 'plant', 'table', 'plant', 'table'],
+    goal: 120, stars: [S('money', 120, '돈 120 모으기'), S('group', 2, '단체 손님 두 번 대접하기'), S('perfect', 3, '모두 웃는 날 세 번')], offers: ['table', 'plant', 'table', 'plant', 'table'],
   },
   {
     key: 'gourmet', name: '미식가', news: '미식가는 딱 하나만 먹어요 — 맞히면 세 배!', hint: '미식가가 바라는 걸 메뉴판에!',
     cards: ['fish', 'berry', 'honey', 'soup'], pool: ['bear', 'fox', 'hedgehog', 'squirrel'],
     days: [{ n: 8 }, { n: 8, ev: 'gourmet' }, { n: 9, ev: 'group' }, { n: 7, ev: 'gourmet', rain: true }, { n: 9 }],
-    goal: 120, stars: [S('money', 120, '돈 120 모으기'), S('gourmet', 2, '미식가 두 번 감동시키기'), S('perfect', 4, '모두 웃는 날 네 번')], offers: ['cat', 'table', 'plant', 'cat', 'table'],
+    goal: 140, stars: [S('money', 140, '돈 140 모으기'), S('gourmet', 2, '미식가 두 번 감동시키기'), S('perfect', 4, '모두 웃는 날 네 번')], offers: ['cat', 'table', 'plant', 'cat', 'table'],
   },
   {
     key: 'festival', name: '숲속 축제', news: '재료 값이 오르는 날 — 그 메뉴는 재료비가 두 배', hint: '축제 날엔 손님 열 명, 팁 두 배!',
     cards: ['honey', 'carrot', 'fish', 'cocoa'], pool: ['bear', 'rabbit', 'fox', 'squirrel'],
     days: [{ n: 8 }, { n: 8, ev: 'priceup' }, { n: 7, rain: true }, { n: 10, ev: 'festival' }, { n: 9, ev: 'gourmet' }],
-    goal: 150, stars: [S('money', 150, '돈 150 모으기'), S('festival', 0, '축제 날 손님 모두 웃게 하기'), S('money', 240, '돈 240 모으기')], offers: ['table', 'cat', 'table', 'plant', 'plant'],
+    goal: 170, stars: [S('money', 170, '돈 170 모으기'), S('festival', 0, '축제 날 손님 모두 웃게 하기'), S('money', 240, '돈 240 모으기')], offers: ['table', 'cat', 'table', 'plant', 'plant'],
   },
 ];
 export const STAGE_COUNT = WEEKS.length;
@@ -204,7 +204,7 @@ export interface CafeState {
   // 오늘
   res: DayRes | null; actors: Actor[]; dayEnd: number; todayIn: number; todayCost: number; bought: boolean; pushed: DishId | null; dropped: DishId | null;
   down: boolean; firstTap: number; firstBig: number; wowN: number; taps: number;
-  seen: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; spot: { x: number; y: number; t: number; label: string; r: number } | null;
+  seen: Set<string>; once: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; spot: { x: number; y: number; t: number; label: string; r: number } | null;
   events: Ev[];
 }
 
@@ -409,7 +409,7 @@ function stepOpen(s: CafeState) {
         see(s, 'sold', '');
         ev(s, 'sold', 0, 0, { d: o.dish!, text: String(o.i) });
         const key = `sold${s.stage}-${s.day}-${s.tries}`;
-        if (!runSeen.has(s, key)) (runSeen.add(s, key), wow(s));
+        if (!s.once.has(key)) (s.once.add(key), wow(s));
       }
       if (o.k === 'owl') (wow(s), ev(s, 'gourmet', 0, 0, { text: String(o.i), d: o.dish! }));
       if (o.grp >= 0 && s.actors.filter((b) => b.o.grp === o.grp).every((b) => b.paid)) (wow(s), ev(s, 'group', 0, 0, { text: String(o.i), d: o.dish! }));
@@ -417,13 +417,13 @@ function stepOpen(s: CafeState) {
   }
   // 하트 줄줄이: 하트 셋이 잇달아 (하루 한 번)
   const key = `run${s.stage}-${s.day}-${s.tries}`;
-  if (!runSeen.has(s, key)) {
+  if (!s.once.has(key)) {
     let run = 0;
     for (const a of s.actors) {
       if (!a.paid) break;
       run = a.o.res === 'fav' ? run + 1 : 0;
       if (run >= 3) {
-        runSeen.add(s, key);
+        s.once.add(key);
         wow(s);
         ev(s, 'run', 0.5, 0.6, { n: run, text: String(a.o.i) });
         break;
@@ -448,13 +448,6 @@ function stepOpen(s: CafeState) {
     ev(s, 'close', 0.5, 0.5, { n: profit });
   }
 }
-/** 하루 한 번만 띄우는 띠 기억 */
-const runSeen = {
-  m: new WeakMap<object, Set<string>>(),
-  has(s: object, k: string) { return this.m.get(s)?.has(k) ?? false; },
-  add(s: object, k: string) { let x = this.m.get(s); if (!x) this.m.set(s, (x = new Set())); x.add(k); },
-};
-
 function starMet(s: CafeState, st: Star): boolean {
   switch (st.k) {
     case 'survive': return true;
@@ -554,7 +547,7 @@ const game: GameDef<CafeState> & { wows(s: CafeState): number } = {
       wSmiles: 0, wHearts: 0, wGroups: 0, wGourmet: 0, wPerfect: 0, wFest: false, wSad: 0, best: 0,
       res: null, actors: [], dayEnd: 0, todayIn: 0, todayCost: 0, bought: false, pushed: null, dropped: null,
       down: false, firstTap: -1, firstBig: -1, wowN: 0, taps: 0,
-      seen: new Set<string>(), newsQ: [], news: null, spot: null, events: [],
+      seen: new Set<string>(), once: new Set<string>(), newsQ: [], news: null, spot: null, events: [],
     } as unknown as CafeState;
     startWeek(s);
     return s;
@@ -2476,7 +2469,7 @@ function drawAll(ctx: C2, s: CafeState, w: number, h: number, th: Theme) {
     const b = bandMemo.get(s);
     if (b && t - b.t < 70) {
       const age = t - b.t, sc2 = age < 7 ? 1.7 - 0.7 * (age / 7) : 1, a = Math.min(1, (70 - age) / 14);
-      const by = R(0.915);
+      const by = R(0.885);
       ctx.save();
       ctx.globalAlpha = a;
       ctx.translate(w / 2, by);
@@ -2507,7 +2500,7 @@ function drawAll(ctx: C2, s: CafeState, w: number, h: number, th: Theme) {
   if (eve && s.res) {
     const u = ease(s.pt / 10), r0 = s.res, profit = r0.revenue - r0.cost;
     ctx.save();
-    ctx.translate(w / 2, R(0.3));
+    ctx.translate(w / 2, R(0.265));
     ctx.scale(0.6 + 0.4 * u, 0.6 + 0.4 * u);
     ctx.globalAlpha = u;
     ctx.fillStyle = 'rgba(80,30,10,.3)';
@@ -3132,7 +3125,7 @@ function drawResult(ctx: C2, s: CafeState, R: (v: number) => number, t: number, 
   ctx.translate(w / 2, R(0.52));
   ctx.scale(0.5 + 0.5 * u, 0.5 + 0.5 * u);
   ctx.globalAlpha = u;
-  const ch = R(0.4);
+  const ch = R(0.47);
   ctx.fillStyle = 'rgba(60,30,10,.35)';
   rr(ctx, -R(0.43), -ch / 2 + 6, R(0.86), ch, R(0.05));
   ctx.fill();
@@ -3149,7 +3142,7 @@ function drawResult(ctx: C2, s: CafeState, R: (v: number) => number, t: number, 
     outText(ctx, s.won ? '숲속 최고 카페!' : `${s.stage + 1}주 장사 성공!`, 0, -ch / 2 + R(0.055), '#ffffff', '#c8783a', 5, R(0.8));
     const nS = s.starOk.length;
     for (let j = 0; j < nS; j++) {
-      const ag = age - (16 + j * 14), sx = (j - (nS - 1) / 2) * R(0.13), sy = -R(0.04);
+      const ag = age - (16 + j * 14), sx = (j - (nS - 1) / 2) * R(0.13), sy = -R(0.095);
       const pop = ag < 0 ? 0 : ag < 8 ? 1.9 - 0.9 * (ag / 8) : 1;
       starPath(ctx, sx, sy, R(0.05) * (ag < 0 ? 1 : pop));
       ctx.fillStyle = ag >= 0 && s.starOk[j] ? '#ffc21a' : 'rgba(160,110,60,.25)';
@@ -3162,12 +3155,12 @@ function drawResult(ctx: C2, s: CafeState, R: (v: number) => number, t: number, 
     }
     font(ctx, R(0.034), 800);
     ctx.fillStyle = INK;
-    W.stars.forEach((q, j) => ctx.fillText(`${s.starOk[j] ? '★' : '☆'} ${q.label}`, 0, R(0.035 + j * 0.04), R(0.78)));
-    coin(ctx, -R(0.12), ch / 2 - R(0.075), R(0.016));
+    W.stars.forEach((q, j) => ctx.fillText(`${s.starOk[j] ? '★' : '☆'} ${q.label}`, 0, R(-0.02 + j * 0.04), R(0.78)));
+    coin(ctx, -R(0.12), ch / 2 - R(0.085), R(0.016));
     font(ctx, R(0.04), 900);
     ctx.textAlign = 'left';
     ctx.fillStyle = '#8a5208';
-    ctx.fillText(`금요일 돈 ${s.money}`, -R(0.095), ch / 2 - R(0.073));
+    ctx.fillText(`금요일 돈 ${s.money}`, -R(0.095), ch / 2 - R(0.083));
     ctx.textAlign = 'center';
     if (!s.won && age > 60) {
       const nx = WEEKS[s.stage + 1];

@@ -2116,6 +2116,22 @@ function drawAll(ctx: C2, s: PetState, w: number, h: number, th: Theme) {
   drawFlag(ctx, X(0.035), Y(0.9), R(0.1), '#3d8df5', t);
   drawFlag(ctx, X(0.965), Y(0.47), R(0.085), '#ff5a3a', t + 40);
 
+  // 나비 둘 (구경꾼)
+  for (let i = 0; i < 2; i++) {
+    const u = t * 0.006 + i * 3.1, bx = X(0.5 + 0.42 * Math.sin(u * (1 + i * 0.3)) * (i ? -1 : 1)), by = Y(0.6 + 0.2 * Math.sin(u * 1.7 + i) + 0.03 * Math.sin(t * 0.07 + i));
+    const fl = Math.abs(Math.sin(t * 0.35 + i * 2)), k = R(0.016);
+    ctx.fillStyle = i ? '#ffb0d8' : '#fff27a';
+    ctx.strokeStyle = 'rgba(80,40,20,.6)';
+    ctx.lineWidth = 1;
+    for (const sd of [-1, 1]) {
+      ell(ctx, bx + sd * k * 0.7 * (0.3 + fl), by - k * 0.2, k * 0.7 * (0.3 + fl), k * 0.75);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#5a3a1a';
+    ell(ctx, bx, by, k * 0.18, k * 0.6);
+    ctx.fill();
+  }
   // ── 힘 겨루기 막대 (지금 싸우면) ──
   drawMeter(ctx, s, vis, pred, X, Y, R, font, w);
 
@@ -2128,7 +2144,7 @@ function drawAll(ctx: C2, s: PetState, w: number, h: number, th: Theme) {
       let x = hx, y = hy0, alt = alt0, tilt = 0, sq = 0, alpha = 1, face: Face = u.side ? 'angry' : 'idle';
       const r = R(sizeOf(u.k, u.star, u.side, u.row));
       const since = f.t - u.hitT;
-      if (u.act && !u.dead) {
+      if (u.act && !u.dead && !f.done) {
         const tg = f.u[u.tgt];
         if (tg && (u.role === 0 || u.role === 3)) {
           const [tx, ty0, ta] = homeOf(f, tg, vis, tg.side ? -1 - u.tgt : tg.pid);
@@ -2173,7 +2189,11 @@ function drawAll(ctx: C2, s: PetState, w: number, h: number, th: Theme) {
         alpha = Math.max(0, 1 - dt / 60);
         face = 'ko';
       }
-      if (s.phase === 'result' && !u.dead) face = u.side === 0 ? (s.ok ? 'happy' : 'dizzy') : s.ok ? 'dizzy' : 'happy';
+      if (f.done && !u.dead) {
+        const won = (u.side === 0) === (f.done === 1);
+        face = won ? 'happy' : 'dizzy';
+        if (won) alt += Math.abs(Math.sin(t * 0.2 + i * 1.3)) * 0.035;
+      }
       if (u.healT > 0 && f.t - u.healT < 20 && !u.dead) face = 'happy';
       actors.push({
         k: u.k, star: u.star, el: u.el, enemy: !!u.side, x, y, alt, r, alpha, sel: false, glow: 0, dead: u.dead,
