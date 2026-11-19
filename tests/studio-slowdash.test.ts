@@ -156,6 +156,17 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(tap.dashes).toBeGreaterThan(0); // 탭 스윕 대조군이 실제로 움직인다
   });
 
+  it('S006 한붓 봇: 장인 + 한붓은 꺾인 획을 실제로 쓰고 꺾인 획이 한 줄보다 많이 벤다 · 휘젓기 봇은 꺾인 획만 긋는다', () => {
+    const a = [0, 1, 2, 3].map((k) => tryStage(BOTS.smartStroke, 101, k));
+    expect(a.every((x) => x.ok)).toBe(true);
+    const bent = a.filter((x) => x.bent > 0);
+    expect(bent.length).toBeGreaterThan(0);
+    expect(Math.max(...bent.map((x) => x.bentCut))).toBeGreaterThan(Math.max(...a.map((x) => x.lineCut)));
+    const sc = tryStage(BOTS.scribble, 101, 1);
+    expect(sc.dashes).toBeGreaterThan(0);
+    expect(sc.bent).toBeGreaterThan(0.9);
+  });
+
   it('장인 봇은 8판을 모두 지나간다 (콘텐츠가 풀린다)', () => {
     for (let k = 0; k < STAGES.length; k++) for (const seed of [11, 22]) expect(tryStage(slowdashSmart, seed, k).ok, `${k + 1}판 시드 ${seed}`).toBe(true);
   });

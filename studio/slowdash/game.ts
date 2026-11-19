@@ -3847,4 +3847,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
 }
 
 /** 측정용(✏️ M1 S001 funqa 봇): 돌진 선 따라가기·닿는 거리·땅 범위 — 시뮬과 같은 것을 쓴다 */
-export const measureKit = { trace: (s: DashState, tx: number, ty: number) => trace(s, s.nx, s.ny, tx, ty, Math.max(HOP, reachOf(s.g)), true), reachOf, HOP, DMAX, A, X0, X1, Y0, Y1, GBASE, GPER, SLOW, ENTER };
+export const measureKit = { trace: (s: DashState, tx: number, ty: number) => trace(s, s.nx, s.ny, tx, ty, Math.max(HOP, reachOf(s.g)), true),
+  /** S006: 한붓 획 미리 보기(시뮬과 같은 tracePath · 길이 한도) · 내릴 자리 위험(장인과 같은 danger, 틱) */
+  path: (s: DashState, pts: { x: number; y: number }[]) => tracePath(s, pts, reachOf(s.g) >= HOP ? reachFor(s, pts) : HOP),
+  danger: (s: DashState, x: number, y: number, skip: Set<number>) => danger(s, x, y, skip, new Set()),
+  STROKE_STEP, reachOf, HOP, DMAX, A, X0, X1, Y0, Y1, GBASE, GPER, SLOW, ENTER };

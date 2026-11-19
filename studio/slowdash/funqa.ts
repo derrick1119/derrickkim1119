@@ -28,16 +28,36 @@ function smartAim(s: DashState, rng: Rng) {
 }
 
 type Pick = (s: DashState, rng: Rng) => { x: number; y: number } | null;
+type Pt = { x: number; y: number };
+/** ✏️ S006 한붓 계획(📋): 적 a를 지나 꺾어 적 b 너머까지 — 한 줄보다 많이 베고 내릴 자리가 안전한(40틱 넘게) 길 중 가장 많이 베는 것 */
+export function strokePlan(s: DashState): { pts: Pt[]; n: number } | null {
+  const F = live(s).slice(0, 10);
+  let best: { pts: Pt[]; n: number } | null = null;
+  for (const a of F)
+    for (const b of F) {
+      if (a === b) continue;
+      const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
+      const pts = [{ x: a.x, y: a.y }, { x: b.x + (dx / d) * 0.1, y: b.y + (dy / d) * 0.1 }];
+      if (Math.hypot(pts[1].x - a.x, pts[1].y - a.y) < K.STROKE_STEP) continue;
+      const P = K.path(s, pts), n = P.hits.length;
+      if (!best || n > best.n) {
+        if (K.danger(s, P.ex, P.ey, new Set(P.hits.map((h) => h.id))) < 40) continue;
+        best = { pts, n };
+      }
+    }
+  return best;
+}
+const straightN = (s: DashState, p: Pt) => K.path(s, [p]).hits.length;
 /** 사람 반응 봇: pick이 고른 자리(게임 좌표 x, y)를 react초 늦게·err만큼 빗나가게. slow면 꾹 누른 채 반응한다 */
-export function human(name: string, react: number, err: number, slow: boolean, pick?: Pick): Bot<DashState> {
-  const mem = new WeakMap<object, { st: 'idle' | 'wait' | 'hold'; until: number; x: number; y: number; ox: number; oy: number }>();
+export function human(name: string, react: number, err: number, slow: boolean, pick?: Pick, stroke = false): Bot<DashState> {
+  const mem = new WeakMap<object, { st: 'idle' | 'wait' | 'hold'; until: number; x: number; y: number; ox: number; oy: number; bend: Pt | null; half: number }>();
   const choose: Pick = pick ?? ((s, rng) => { const p = smartAim(s, rng); return p && { x: p.x, y: p.y * K.A }; });
   const RT = Math.round(react * 60), REFLEX = 9, COOL = 15;
   return {
     name,
     act(s, rng) {
       let m = mem.get(s);
-      if (!m) mem.set(s, (m = { st: 'idle', until: 0, x: 0, y: 0, ox: 0, oy: 0 }));
+      if (!m) mem.set(s, (m = { st: 'idle', until: 0, x: 0, y: 0, ox: 0, oy: 0, bend: null, half: 0 }));
       if (s.phase !== 'play') return (m.st = 'idle'), NO;
       // ✏️ 한붓 획(오너 피드백) 뒤: 빗나감은 겨눌 때 한 번만 정한다 — 틱마다 흔들면 누르는 동안 손이 떨려 엉뚱한 획이 그려졌다
       const aimErr = () => ((m!.ox = (rng() * 2 - 1) * err), (m!.oy = (rng() * 2 - 1) * err));
@@ -45,6 +65,10 @@ export function human(name: string, react: number, err: number, slow: boolean, p
       if (m.st === 'hold') {
         if (!s.down && s.t > m.until - RT + 2) return (m.st = 'idle'), (m.until = s.t + COOL), NO; // 게이지가 바닥나 저절로 벴다
         if (s.t >= m.until) return (m.st = 'idle'), (m.until = s.t + COOL), NO; // 뗀다
+        if (m.bend) { // 한붓: 앞 절반은 꺾는 점, 뒤 절반은 끝점으로 손가락을 옮긴다(그리는 동안 세상은 느리다)
+          const q = s.t < m.half ? m.bend : { x: m.x, y: m.y };
+          return press(q.x + m.ox, q.y + m.oy);
+        }
         if (!pick && (m.until - s.t) % 6 === 0) { // 처음 하는 사람(pick)은 다시 겨누지 않는다 — 장인 계획을 빌려 '그리는' 것을 막음(한붓 획 뒤)
           const p = smartAim(s, rng); // 느린 세상을 보며 다시 겨눈다
           if (p && Math.hypot(p.x - m.x, p.y * K.A - m.y) > 0.02) (m.x = p.x), (m.y = p.y * K.A), aimErr();
@@ -57,6 +81,19 @@ export function human(name: string, react: number, err: number, slow: boolean, p
         if (slow) {
           m.st = 'hold';
           m.until = s.t + RT;
+          m.bend = null;
+          if (stroke) {
+            // S006: 꾹 누른 느린 세상에서 한붓 길을 찾는다 — 한 줄보다 하나 넘게 더 베면 꺾는 점 하나를 그린다(+0.15초)
+            const plan = strokePlan(s);
+            if (plan && plan.n >= straightN(s, { x: m.x, y: m.y }) + 1) {
+              m.bend = plan.pts[0];
+              (m.x = plan.pts[1].x), (m.y = plan.pts[1].y);
+              m.until = s.t + RT + 9;
+              m.half = s.t + Math.round((RT + 9) / 2);
+              const q = m.bend;
+              return press(q.x + m.ox, q.y + m.oy);
+            }
+          }
           const p = noisy();
           return press(p.x, p.y);
         }
@@ -86,6 +123,44 @@ const newbiePick: Pick = (s, rng) => {
     return { x: e.x + (dx / d) * 0.08, y: e.y + (dy / d) * 0.08 };
   }
   return { x: K.X0 + rng() * (K.X1 - K.X0), y: K.Y0 + rng() * (K.Y1 - K.Y0) };
+};
+
+/** 장인 + 한붓(S006): 장인이 그을 때, 꺾인 한 획이 하나 넘게 더 베면 그 길로(꾹 1틱 → 끝점 1틱 → 떼기) */
+const seqMem = new WeakMap<object, Pt[]>();
+export const slowdashSmartStroke: Bot<DashState> = {
+  name: '장인 + 한붓',
+  act(s, rng) {
+    const q = seqMem.get(s);
+    if (q && q.length) {
+      const p = q.shift()!;
+      return press(p.x, p.y);
+    }
+    if (q && s.down) return seqMem.delete(s), NO;
+    const a = slowdashSmart.act(s, rng);
+    if (!a.pointer) return a;
+    const aim = { x: a.pointer.x, y: a.pointer.y * K.A }, plan = strokePlan(s);
+    if (plan && plan.n >= straightN(s, aim) + 1) {
+      seqMem.set(s, [plan.pts[1]]);
+      return press(plan.pts[0].x, plan.pts[0].y);
+    }
+    return a;
+  },
+};
+/** 버릇⑤ 휘젓기(📋 S006 새 막 누르기): 늘 아무렇게나 지그재그 넷 — 1틱씩 그리고 뗀다 */
+export const slowdashScribble: Bot<DashState> = {
+  name: '휘젓기',
+  act(s, rng) {
+    const q = seqMem.get(s);
+    if (q && q.length) {
+      const p = q.shift()!;
+      return press(p.x, p.y);
+    }
+    if (q && s.down) return seqMem.delete(s), NO;
+    if (!ready(s) || s.t % 24) return NO;
+    const pts = Array.from({ length: 4 }, () => ({ x: K.X0 + rng() * (K.X1 - K.X0), y: K.Y0 + rng() * (K.Y1 - K.Y0) }));
+    seqMem.set(s, pts.slice(1));
+    return press(pts[0].x, pts[0].y);
+  },
 };
 
 /** 연타: 0.4초마다 살아 있는 적 아무나를 1틱 톡 */
@@ -161,12 +236,25 @@ export const BOTS: Record<string, Bot<DashState>> = {
   human: human('사람 캐주얼(0.5초)', 0.5, 0.03, true),
   humanPro: human('사람 숙련(0.35초)', 0.35, 0.015, true),
   humanTap: human('사람 캐주얼 · 꾹 없이 탭만', 0.5, 0.03, false),
+  smartStroke: slowdashSmartStroke,
+  humanStroke: human('사람 캐주얼 + 한붓', 0.5, 0.03, true, undefined, true),
+  scribble: slowdashScribble,
   newbie: human('처음 하는 사람', 0.7, 0.05, true, newbiePick),
 };
 
 export interface Try {
   ok: boolean; stars: number; s2: boolean; s3: boolean; sec: number; best: number; hits: number; dashes: number; whiff: number;
-  holdAvg: number; downPct: number; empty: number; cancels: number; s: DashState;
+  holdAvg: number; downPct: number; empty: number; cancels: number; bent: number; bentCut: number; lineCut: number; s: DashState;
+}
+
+/** 🧪 S006: 정말 꺾인 획인가(어느 꺾는 점에서든 방향이 25° 넘게 바뀜) — 획 점이 있다고 꺾인 것이 아니다(누르는 중 다시 겨누기) */
+function turned(p: Pt[]) {
+  for (let i = 1; i + 1 < p.length; i++) {
+    const a = Math.atan2(p[i].y - p[i - 1].y, p[i].x - p[i - 1].x), b = Math.atan2(p[i + 1].y - p[i].y, p[i + 1].x - p[i].x);
+    const d = Math.abs(((b - a + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+    if (Math.hypot(p[i].x - p[i - 1].x, p[i].y - p[i - 1].y) > 0.02 && Math.hypot(p[i + 1].x - p[i].x, p[i + 1].y - p[i].y) > 0.02 && d > 0.44) return true;
+  }
+  return false;
 }
 
 /** k판을 한 번 도전(첫 결과가 나올 때까지, 하트 무관) */
@@ -174,20 +262,20 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
   const s = g.create(seed);
   if (k) startStage(s, k);
   const rng = mulberry32(hand ^ 0x9e3779b9), t0 = s.t, d0 = s.dashes, emptyG = K.GBASE + K.GPER * K.HOP;
-  let whiff = 0, down = 0, holds = 0, holdT = 0, cur = 0, empty = 0, dn = s.dashes, cancels = 0;
+  let whiff = 0, down = 0, holds = 0, holdT = 0, cur = 0, empty = 0, dn = s.dashes, cancels = 0, bent = 0, bentCut = 0, lineCut = 0;
   while (s.phase !== 'result' && s.t - t0 < maxSec * 60) {
-    const was = s.down;
+    const was = s.down, px = s.nx, py = s.ny;
     g.step(s, bot.act(s, rng));
     if (s.down) (down++, cur++);
     else if (was) (holds++, (holdT += cur), (cur = 0));
     if (s.g < emptyG) empty++;
-    if (s.dashes > dn) ((dn = s.dashes), s.combo.n === 0 && whiff++);
+    if (s.dashes > dn) ((dn = s.dashes), s.combo.n === 0 && whiff++, turned([{ x: px, y: py }, ...s.stroke, { x: s.nx, y: s.ny }]) ? (bent++, (bentCut += s.combo.n)) : (lineCut += s.combo.n));
     for (let i = s.events.length - 1; i >= 0 && s.events[i].t === s.t; i--) if (s.events[i].kind === 'cancel') cancels++; // 🧪 S001: 조용한 취소(방패 바로 앞 길이 0 등)
   }
   const ok = s.phase === 'result' && s.ok, T = Math.max(1, s.t - t0), n = s.dashes - d0;
   return {
     ok, stars: ok ? s.got : 0, s2: ok && s.starOk[1], s3: ok && s.starOk[2], sec: (s.t - t0) / 60, best: s.best, hits: s.hits, dashes: n,
-    whiff: n ? whiff / n : 0, holdAvg: holds ? holdT / holds / 60 : 0, downPct: down / T, empty: empty / T, cancels, s,
+    whiff: n ? whiff / n : 0, holdAvg: holds ? holdT / holds / 60 : 0, downPct: down / T, empty: empty / T, cancels, bent: n ? bent / n : 0, bentCut: bent ? bentCut / bent : 0, lineCut: n - bent ? lineCut / (n - bent) : 0, s,
   };
 }
 /** 처음 하는 사람: 같은 판을 3번까지 */
@@ -210,13 +298,16 @@ const median = (a: number[]) => {
   const b = [...a].sort((x, y) => x - y);
   return b.length ? (b.length % 2 ? b[(b.length - 1) / 2] : (b[b.length / 2 - 1] + b[b.length / 2]) / 2) : 0;
 };
-type Row = { clear: number; star: number; star2p: number; star3: number; cancels: number; s2: number; s3: number; sec: number; best: number; hit: number; dashes: number; whiff: number; holdAvg: number; downPct: number; empty: number; tries?: number };
+type Row = { clear: number; star: number; star2p: number; star3: number; cancels: number; bent: number; bentCut: number; lineCut: number; s2: number; s3: number; sec: number; best: number; hit: number; dashes: number; whiff: number; holdAvg: number; downPct: number; empty: number; tries?: number };
 const sum = (t: (Try & { tries?: number })[]): Row => ({
   clear: r2(mean(t.map((x) => +x.ok))),
   star: r2(mean(t.map((x) => x.stars))),
   star2p: r2(mean(t.map((x) => +(x.stars >= 2)))),
   star3: r2(mean(t.map((x) => +(x.stars === 3)))),
   cancels: r2(mean(t.map((x) => x.cancels))),
+  bent: r2(mean(t.map((x) => x.bent))),
+  bentCut: r2(mean(t.filter((x) => x.bent > 0).map((x) => x.bentCut))),
+  lineCut: r2(mean(t.map((x) => x.lineCut))),
   s2: r2(mean(t.map((x) => +x.s2))),
   s3: r2(mean(t.map((x) => +x.s3))),
   sec: r2(median(t.map((x) => x.sec))),
@@ -302,8 +393,21 @@ export function measure(seeds = 24, only?: string[]) {
     });
     F5sweep = r2(mean(from3.map((r) => (r.human as Row).star)) - Math.max(...tapSweep.map((x) => x.star)));
   }
+  // S006 한붓 지표: 한붓 낙차(장인 + 한붓 ★ − 장인 ★) · 사람 한붓 꾹 ★ − 가장 잘하는 탭 ★(3판~) · 휘젓기 ★2 이상(2판~)
+  const stroke = has('smartStroke') && has('smart')
+    ? {
+        drop: r2(mean(stages.map((_, k) => R('smartStroke', k)!.star - R('smart', k)!.star))),
+        bent: r2(mean(stages.map((_, k) => R('smartStroke', k)!.bent))),
+        bentCut: r2(mean(stages.map((_, k) => R('smartStroke', k)!.bentCut).filter((x) => x > 0))),
+        lineCut: r2(mean(stages.map((_, k) => R('smartStroke', k)!.lineCut))),
+        humanStrokeVsTap: tapSweep && has('humanStroke') ? r2(mean(from3.map((r) => (r.humanStroke as Row).star)) - Math.max(...tapSweep.map((x) => x.star))) : null,
+        scribbleStar2p: has('scribble') ? r2(Math.max(...stages.slice(1).map((_, j) => R('scribble', j + 1)!.star2p))) : null,
+        scribbleClear3: has('scribble') ? r2(Math.max(...from3.map((_, j) => R('scribble', j + 2)!.clear))) : null,
+      }
+    : null;
   return {
     at: new Date().toISOString().slice(0, 10),
+    stroke,
     F5sweep,
     tapSweep,
     freeStars,
@@ -333,6 +437,7 @@ if (process.argv[1]?.endsWith('funqa.ts')) {
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'funqa.json'), JSON.stringify(m, null, 1) + '\n');
   console.log(`격차 ${m.gap}× · 장인÷버릇② ${m.gapHabit2}× · 첫인상 ${JSON.stringify(m.firstImpression)} · ${((Date.now() - t0) / 1000).toFixed(1)}초`);
+  console.log(`한붓 ${JSON.stringify(m.stroke)}`);
   console.log(`F5 스윕(사람 꾹 ★ − 가장 잘하는 탭 ★, 3판~) ${m.F5sweep} · ${JSON.stringify(m.tapSweep)}`);
   console.log(`F5 느린 시간 ${JSON.stringify(m.F5)} · F6 연타 ${JSON.stringify(m.F6)}`);
   console.log(`공짜 별 ${m.freeStars.length}: ${m.freeStars.join(" · ")}`);
