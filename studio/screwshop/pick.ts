@@ -12,9 +12,9 @@ import { STAGES, apply, bestMove, cloneSim, freeM, geometry, habitPick, newSim, 
 /**
  * ✏️ S067(M3″ S1 · 오너 11-19 '바꾸기'): 게임 별은 모든 판 ★2 빈칸 2칸까지 · ★3 한 번에 H가 됐다. 칠 고르기는 옛 별(S066 판 정의)로 그대로 —
  * 실린 칠 · 지문(값 열 포함)이 바뀌지 않게(S025 PICK_STAR와 같은 까닭). 새 별은 실린 24칠로 따로 잰다(funqa · 테스트).
- * OLD = 판 id별 S066 별 값(P · C · T · B · H) · oldStars = S066 starsOf · 다시 칠한 판(2-10 · 3-5 · 3-7 · id 22 · 25 · 28)은 빼서 새 별로 고른다(M3″ P1 ②)
+ * OLD = 판 id별 S066 별 값(P · C · T · B · H) · oldStars = S066 starsOf · 다시 칠한 판(S067 1-5 · 2-10 · 3-5 · 3-6 · 3-7 · S068 1-10 · id 10 · 22 · 25 · 26 · 28 · 14)은 빼서 새 별로 고른다(M3″ P1 ②)
  */
-const OLD: Record<number, Partial<StageDef>> = { 0: { P: 0, C: 6, T: 6, B: 3, H: undefined }, 1: { P: 1, C: 6, H: 3 }, 2: { P: 1, C: 13, H: 4 }, 3: { P: 2, C: 6, H: 3 }, 4: { P: 1, C: 8, H: 4 }, 5: { P: 2, C: 5, H: 3 }, 6: { P: 1, C: 18, H: 2 }, 7: { P: 2, C: 6, H: 7 }, 8: { P: 2, C: 6, H: 4 }, 9: { P: 1, C: 6, H: 4 }, 11: { P: 1, C: 6, H: 5 }, 12: { P: 2, C: 6, H: 5 }, 13: { P: 2, C: 6, H: 5 }, 14: { P: 1, C: 6, H: 5 }, 15: { P: 1, C: 6, H: 4 }, 16: { P: 2, C: 6, H: 4 }, 17: { P: 0, C: 6, B: 3, H: undefined }, 18: { P: 1, C: 6, H: 3 }, 19: { P: 1, C: 6, H: 4 }, 20: { P: 0, C: 6, H: 3 }, 21: { P: 1, C: 6, H: 4 }, 23: { P: 0, C: 6, H: 5 }, 24: { P: 2, C: 6, H: 4 } };
+const OLD: Record<number, Partial<StageDef>> = { 0: { P: 0, C: 6, T: 6, B: 3, H: undefined }, 1: { P: 1, C: 6, H: 3 }, 2: { P: 1, C: 13, H: 4 }, 3: { P: 2, C: 6, H: 3 }, 4: { P: 1, C: 8, H: 4 }, 5: { P: 2, C: 5, H: 3 }, 6: { P: 1, C: 18, H: 2 }, 7: { P: 2, C: 6, H: 7 }, 8: { P: 2, C: 6, H: 4 }, 9: { P: 1, C: 6, H: 4 }, 11: { P: 1, C: 6, H: 5 }, 12: { P: 2, C: 6, H: 5 }, 13: { P: 2, C: 6, H: 5 }, 15: { P: 1, C: 6, H: 4 }, 16: { P: 2, C: 6, H: 4 }, 17: { P: 0, C: 6, B: 3, H: undefined }, 18: { P: 1, C: 6, H: 3 }, 19: { P: 1, C: 6, H: 4 }, 20: { P: 0, C: 6, H: 3 }, 21: { P: 1, C: 6, H: 4 }, 23: { P: 0, C: 6, H: 5 }, 24: { P: 2, C: 6, H: 4 } };
 const oldStar3 = (d: StageDef, S: Sim) => (d.H !== undefined ? S.shot >= d.H : d.T !== undefined ? S.taps <= d.T : S.best >= d.C!);
 export const oldStars = (d: StageDef, S: Sim) => (d.B !== undefined ? (S.bonks >= d.B ? (S.peak <= d.P ? 3 : 2) : 1) : 1 + (S.peak <= d.P ? 1 : 0) + (oldStar3(d, S) ? 1 : 0));
 import { mulberry32, type Rng } from './rng.ts';
@@ -272,7 +272,7 @@ export const VALUE: ((L: Level, d: StageDef, r: Rng) => number)[] = [
   // 📐C S012 1-9 🦆 (id 13): 공통 gate · F20′ full · 따라 하기 거름(pv — 끄면 같은 좌표에서 따라 하기 ★3 .54 이상)
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 16, full: true, pv: true, ham: true, save: true }), // 📐B S026: ★3 H5 · ham · save · mc 16
   // 📐B S012 1-10 🚜 (id 14): 공통 gate · F20′ full · 따라 하기 거름(pv — 끄면 따라 하기 ★3 .33) · ✏️ S012: F17 1위 버릇 맞는 색(lead — 이웃 1-8 🐴 · 1-9 🦆 = ✨)
-  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true, pv: true, lead: 'top' }), // 📐C S013(F17): 위에서부터는 이 판에서 ★2를 못 따므로 'top' = 맞는 색 · ✨가 ★2 이상인 칠은 −2 → 1위 없음
+  (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 1, full: true, pv: true, pvn: 4, key: true, lead: 'top' }), // ✏️ S068(M3″ P1 ②): 새 별로 다시 고름 · 따라 하기 거름 3 → 4번 + 🔑 끈 판 거름(100시드 미리 보기 ★3 .26 → .19 · 카드 짝 3손 .91 · F19 🔑 .33 → .5 · 🪵 .33 → .25 · pvn 5는 🔑 .38 · 카드 짝 .79 · key 없이는 24시드 미리 보기 .33) · 📐C S013(F17): 위에서부터는 이 판에서 ★2를 못 따므로 'top' = 맞는 색 · ✨가 ★2 이상인 칠은 −2 → 1위 없음
   // 📐A S012 2-3 🐳 (id 15): 공통 gate · F20′ full · 따라 하기 거름(pv — 끄면 ★3 .29) · F17 1위 버릇 ✨ 최다(이웃 2-2 🌻 = 맞는 색)
   (L, d, r) => gate(L, d, r, { pend: 1, hc: 1, mc: 16, pv: true, full: true, avoid: ['habit'], chain: 0.5, ham: true, save: true }), // 📐B S026: ★3 H4 · ham · save · mc 16 · SCAN 3072 // 📐C S014: 장인 판 🔨 쾅 나사가 빈칸에 가는 칠 −0.5 → 막 누르기 클리어 .17 → .08 // 📐C S013: 파도 · 꼬마 물고기로 N 18 · 막 누르기 클리어 mc 4 · F17 맞는 색 ★2 이상 칠 −2(2-2 맞 · 2-4 맞·✨)
   // 📐A S012 2-4 🦀 (id 16): 공통 gate · F20′ full · F17 1위 버릇 맞는 색(이웃 2-3 🐳 = ✨)
