@@ -679,7 +679,7 @@ function blank(seed: number): SurfState {
   };
 }
 
-export const wavesurf: GameDef<SurfState> & { wows: (s: SurfState) => number } = {
+export const wavesurf: GameDef<SurfState> = {
   id: 'wavesurf',
   name: '파도 만들기 꼬마 서퍼',
   genes: ['wavemake', 'hold', 'combo'],
