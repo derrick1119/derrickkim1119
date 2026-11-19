@@ -60,6 +60,17 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(a.events.some((e) => e.kind === 'sweep' && e.n === 3)).toBe(true);
     expect(a.g).toBe(100);
     expect(a.slowT).toBe(60);
+    expect(a.free).toBe(240); // 🧪: 다음 한 획 공짜
+    const hold = (s: typeof a) => {
+      for (let k = 0; k < 20; k++) g.step(s, { tap: false, dir: 0, pointer: { x: 0.2, y: 0.9 / A } });
+      g.step(s, { tap: false, dir: 0, pointer: null });
+    };
+    for (let k = 0; k < 40; k++) g.step(a, { tap: false, dir: 0, pointer: null });
+    hold(a);
+    expect(a.g).toBe(100); // 꾹 해도 안 줄고 돌진에도 안 듦
+    expect(a.free).toBe(0); // 한 번 쓰면 끝
+    hold(a);
+    expect(a.g).toBeLessThan(100);
     const b = go(1);
     expect(b.events.some((e) => e.kind === 'sweep')).toBe(false);
     expect(b.g).toBeLessThan(100);
