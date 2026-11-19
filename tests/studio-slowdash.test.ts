@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/slowdash/core.ts';
-import { STAGES, missOf, slowdash as g, slowdashRandom, slowdashSmart, startStage } from '../studio/slowdash/game.ts';
+import { STAGES, STRIKE, missOf, slowdash as g, slowdashRandom, slowdashSmart, startStage } from '../studio/slowdash/game.ts';
 import { BOTS, measure, try3, tryStage } from '../studio/slowdash/funqa.ts';
 
 const A = g.aspect ?? 1.52;
@@ -101,6 +101,28 @@ describe('느린 시간 닌자 시뮬', () => {
     g.step(t, { tap: false, dir: 0, pointer: null });
     expect(t.events.some((e) => e.kind === 'bounce' && e.t === t.t)).toBe(true);
     expect(t.whiffs).toBe(w0 + 1);
+  });
+
+  it('S004 찾아오는 위협: 일격 판에서 내린 자리에 32틱 뒤 일격 — 그 자리에 남으면 맞고, 꾹(느린 시간) 하면 비켜 갈 틈이 있다', () => {
+    expect(STAGES.filter((d) => d.strike).map((d) => d.key)).toEqual(['archer', 'shuri', 'mirror', 'boss']);
+    const run = (holdAfter: boolean) => {
+      const s = g.create(3);
+      startStage(s, 2);
+      s.foes = [];
+      for (let k = 0; k < 40; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+      g.step(s, { tap: false, dir: 0, pointer: { x: s.nx, y: (s.ny - 0.3) / A } });
+      g.step(s, { tap: false, dir: 0, pointer: null }); // 내림 → 일격 하나
+      expect(s.strikes).toHaveLength(1);
+      expect(s.strikes[0].t).toBeGreaterThan(30); // 32틱에서 시작(떼는 틱에 세상이 한 틱 흐름)
+      // 사람 반응 0.5초(30틱) 동안 그냥 서 있기 vs 꾹 누른 채 0.5초 겨누기
+      for (let k = 0; k < 30; k++) g.step(s, { tap: false, dir: 0, pointer: holdAfter ? { x: 0.2, y: (s.ny + 0.1) / A } : null });
+      g.step(s, { tap: false, dir: 0, pointer: null }); // 떼기 → 옆으로 돌진(그 자리에 새 일격이 생기니 첫 일격이 터질 때까지만 본다)
+      for (let k = 0; k < 6; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+      return s.hits;
+    };
+    expect(run(false)).toBeGreaterThan(0); // 실시간 0.5초면 이미 맞았다
+    expect(run(true)).toBe(0); // 꾹 하면 세상이 느려져 비켜 간다
+    expect(STRIKE.r).toBeGreaterThan(0);
   });
 
   it('장인 봇은 8판을 모두 지나간다 (콘텐츠가 풀린다)', () => {

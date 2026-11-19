@@ -55,6 +55,8 @@ const MELEE: Partial<Record<K, { start: number; reach: number; wind: number; res
 /** S003: 방패 무사가 도는 속도(rad/틱, 예전 .03 — 사람 반응 한 번에 등이 다시 앞이 되던 것) · 헛방 벌(먹 · 경직 틱 · 근처 칼잡이 반격 거리).
  *  ✏️ S003 측정(24시드): 먹 -10은 '옮겨 서기' 빈 획까지 벌해 장인 5판 클리어 1 → .67, 경직 20틱은 장인 5판 ★3 .92 → .04 · 연타(24틱 간격)엔 한 번도 안 걸림 → 둘 다 0.
  *  남긴 것: 헛방을 세고 근처 칼잡이가 바로 칼을 든다. */
+/** strikeR: 일격 반지름 · strikeOn: 측정용 끄기(1/0) · strikeT: 판에 값이 없을 때 쓸 실험값(0이면 판 값) */
+export const STRIKE = { r: 0.075, on: 1, t: 0 };
 export const TUNE = { shieldTurn: 0.015, whiffG: 0, stiff: 0, whiffR: 0.2, counterR: 0, counterT: 14 };
 /** ✏️ S003 📐 안 A '착지 반격': 내린 자리 counterR 안의 칼잡이·방패·대장이 곧바로 짧은 칼(counterT틱 — 사람 반응 0.5초보다 짧다)을 든다.
  *  꾹 하면 세상이 0.12배라 내릴 자리를 읽고 비켜 내릴 수 있다 = 느린 시간이 '읽는 시간'. 0이면 끔(측정용).
@@ -76,6 +78,8 @@ interface StageDef {
   n: number;
   /** 판별 시작 먹(없으면 G0) · 너그러움 [먹 차는 배수, 칼 드는 시간 배수, 걷는 속도 배수](없으면 EASE) · ★★★ 선물 별(맞을 수 없는 판) */
   g0?: number; ease?: [number, number, number]; gift3?: boolean;
+  /** ✏️ S004 '찾아오는 위협'(🧪 처방 · 📋 실험): 내린 자리에 몇 틱 뒤 일격(0이면 없음) */
+  strike?: number;
   stars: [Star, Star];
 }
 
@@ -111,7 +115,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
       { need: 1, wait: 720, foes: [['archer', 0.5, 0.49, 3], ['sword', 0.86, 0.72, 2], ['sword', 0.86, 0.86, 2], ['sword', 0.86, 1.0, 2]] },
       { need: 0, wait: 720, foes: [['archer', 0.2, 0.5, 3], ['archer', 0.5, 0.5, 3], ['archer', 0.8, 0.5, 3], ['sword', 0.38, 1.22, 1], ['sword', 0.62, 1.22, 2]] },
     ],
-    n: 4, // S002: 셋이면 화살이 버릇 봇을 못 맞혀 버릇② ★3 .54(공짜) → 넷(장인 ★★ 0 — 1-5 화살병 판은 S005에 다시 짬)
+    n: 4, strike: 32, // S002: 셋이면 화살이 버릇 봇을 못 맞혀 버릇② ★3 .54(공짜) → 넷(장인 ★★ 0 — 1-5 화살병 판은 S005에 다시 짬)
   },
   {
     key: 'shuri', name: '기와 지붕', place: 1, news: '수리검 — 셋이 부채꼴로 날아와요', goal: '지붕 건너가기',
@@ -121,7 +125,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
       { need: 1, wait: 720, foes: [['sword', 0.14, 1.0, 1], ['sword', 0.26, 1.0, 1], ['sword', 0.38, 1.0, 1], ['shuri', 0.76, 0.6, 2]] },
       { need: 0, wait: 720, foes: [['shuri', 0.3, 0.5, 3], ['shuri', 0.7, 0.5, 3], ['archer', 0.5, 0.48, 3], ['sword', 0.14, 0.86, 1], ['sword', 0.86, 0.86, 2]] },
     ],
-    n: 4,
+    n: 4, strike: 32,
   },
   {
     key: 'shield', name: '높은 지붕', place: 1, news: '방패 무사 — 앞은 튕겨요, 등 뒤를 베요', goal: '지붕 건너가기',
@@ -153,7 +157,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
       { need: 1, wait: 780, foes: [['archer', 0.14, 0.5, 1], ['archer', 0.86, 0.5, 2], ['sword', 0.14, 1.2, 1], ['sword', 0.26, 1.2, 1], ['sword', 0.38, 1.2, 1], ['sword', 0.5, 1.2, 1]] },
       { need: 0, wait: 780, foes: [['shield', 0.36, 0.98, 1], ['shield', 0.64, 0.98, 2], ['shuri', 0.5, 0.5, 3], ['sword', 0.3, 0.5, 3], ['sword', 0.7, 0.5, 3]] },
     ],
-    n: 4, // S002: 셋이면 버릇②가 ★★ .88 · ★3 .88(공짜) → 넷(장인 ★★ .21, 거울 판은 S006에 월드 4로 빠짐)
+    n: 4, strike: 32, // S002: 셋이면 버릇②가 ★★ .88 · ★3 .88(공짜) → 넷(장인 ★★ .21, 거울 판은 S006에 월드 4로 빠짐)
   },
   {
     key: 'boss', name: '성 마당', place: 2, news: '대장 곰 — 네 번 베야 쓰러져요', goal: '대장 이기기',
@@ -164,7 +168,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
       { need: 1, wait: 600, foes: [['sword', 0.14, 0.9, 1], ['sword', 0.14, 1.04, 1], ['sword', 0.86, 0.9, 2], ['archer', 0.5, 0.48, 3]] },
       { need: 1, wait: 700, foes: [['sword', 0.3, 0.5, 3], ['sword', 0.5, 0.5, 3], ['sword', 0.7, 0.5, 3], ['shuri', 0.86, 1.1, 2]] },
     ],
-    n: 3,
+    n: 3, strike: 32,
   },
 ];
 const NUM = ['', '하나', '둘', '셋', '넷', '다섯', '여섯', '일곱'];
@@ -195,6 +199,7 @@ export interface DashState {
   nx: number; ny: number; face: number; hp: number; inv: number; g: number;
   down: boolean; lock: boolean; stiff: number; whiffs: number; aim: { x: number; y: number } | null; holdT: number;
   freeze: number; slowT: number;
+  strikes: { x: number; y: number; t: number; t0: number }[];
   foes: Foe[]; shots: Shot[]; barrels: Barrel[]; mirrors: Mirror[]; smokes: Smoke[]; nid: number;
   wave: number; waveT: number;
   dashN: number; chain: number; best: number; hits: number; arrows: number; backK: number; boomBest: number; boomBy: Record<number, number>;
@@ -425,6 +430,12 @@ function doDash(s: DashState, tx: number, ty: number) {
     ev(s, 'multi', ks.reduce((a, c) => a + c.x, 0) / ks.length, ks.reduce((a, c) => a + c.y, 0) / ks.length, n);
   }
   if (P.bounce) ev(s, 'bounce', P.ex, P.ey);
+  // ✏️ S004 '찾아오는 위협': 너구리 포수가 내린 자리를 노린다 — 빨간 고리가 조이고, 그 자리에 남아 있으면 맞는다.
+  //   실시간 사람 반응(0.5초)보다 짧게 닿고, 꾹 하면(세상 0.12배) 비켜 갈 틈이 생긴다.
+  {
+    const T = STRIKE.on ? STRIKE.t || STAGES[s.stage].strike || 0 : 0;
+    if (T > 0) s.strikes.push({ x: s.nx, y: s.ny, t: T, t0: T });
+  }
   if (TUNE.counterR > 0)
     for (const f of s.foes)
       if (MELEE[f.k] && (f.st === IDLE || f.st === REST) && Math.hypot(f.x - s.nx, f.y - s.ny) < TUNE.counterR) {
@@ -537,6 +548,14 @@ function world(s: DashState, dt: number) {
   s.waveT += dt;
   const hidden = inSmoke(s, s.nx, s.ny);
   for (const f of [...s.foes]) foeStep(s, f, dt, hidden);
+  for (const k of s.strikes) {
+    k.t -= dt;
+    if (k.t <= 0) {
+      ev(s, 'strike', k.x, k.y);
+      if (Math.hypot(s.nx - k.x, s.ny - k.y) < STRIKE.r) hurt(s, s.nx, s.ny, '내린 자리를 노렸어요');
+    }
+  }
+  s.strikes = s.strikes.filter((k) => k.t > 0);
   if (s.phase !== 'play') return;
   // 서로 겹치지 않게
   for (let i = 0; i < s.foes.length; i++)
@@ -627,6 +646,7 @@ function newStage(s: DashState) {
   s.slowT = 0;
   s.foes = [];
   s.shots = [];
+  s.strikes = [];
   s.barrels = (d.barrels ?? []).map(([x, y]) => ({ id: ++s.nid, x: F(x), y, fuse: -1, owner: 0, born: s.t }));
   s.mirrors = (d.mirrors ?? []).map(([ax, ay, bx, by]) => ({ ax: F(ax), ay, bx: F(bx), by }));
   s.smokes = (d.smokes ?? []).map(([x, y, r], k) => ({ x: F(x), y, r, vx: (k % 2 ? -1 : 1) * 0.0006, vy: (k % 2 ? 1 : -1) * 0.0004 }));
@@ -742,7 +762,7 @@ export const slowdash: GameDef<DashState> = {
       rng: mulberry32(seed), seed, t: 0, wt: 0, stage: 0, phase: 'play', pt: 0, ok: false, why: '',
       stars: 0, base: 0, got: 0, starOk: [false, false, false], pts: 0, won: false, dead: false, again: false, tries: 0,
       nx: 0.5, ny: 1.17, face: 1, hp: HP, inv: 0, g: GMAX, down: false, lock: false, stiff: 0, whiffs: 0, aim: null, holdT: 0, freeze: 0, slowT: 0,
-      foes: [], shots: [], barrels: [], mirrors: [], smokes: [], nid: 0, wave: 0, waveT: 0,
+      strikes: [], foes: [], shots: [], barrels: [], mirrors: [], smokes: [], nid: 0, wave: 0, waveT: 0,
       dashN: 0, chain: 0, best: 0, hits: 0, arrows: 0, backK: 0, boomBest: 0, boomBy: {}, mirK: 0, bossCombo: 0, dashes: 0,
       firstDash: false, firstBig: -1, firstPress: -1, combo: { id: -1, n: 0, t: -99 },
       seen: new Set<string>(), spotted: new Set<string>(), newsQ: [], news: null, spot: null, events: [], cuts: [], inks: [], trail: null,
@@ -826,6 +846,7 @@ function danger(s: DashState, qx: number, qy: number, skipF: Set<number>, skipS:
     const cx = sh.x + sh.vx * tt - qx, cy = sh.y + sh.vy * tt - qy;
     if (Math.hypot(cx, cy) < NIN_HIT + 0.018) T = Math.min(T, tt);
   });
+  for (const k of s.strikes) if (Math.hypot(k.x - qx, k.y - qy) < STRIKE.r + 0.02) T = Math.min(T, k.t);
   const hidden = inSmoke(s, qx, qy);
   for (const f of s.foes) {
     if (skipF.has(f.id) || f.st === ENTER) continue;
@@ -2997,6 +3018,20 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
         }
       },
     });
+  }
+  // S004 일격 고리: 빨간 고리가 조여 들고 닿는 순간 번쩍(위험 빨강만)
+  for (const k of s.strikes) {
+    const u = 1 - k.t / k.t0, rr0 = R(STRIKE.r) * (1.8 - 0.8 * u);
+    ctx.save();
+    ctx.globalAlpha = 0.35 + 0.55 * u;
+    ctx.strokeStyle = '#ff4a3d';
+    ctx.lineWidth = R(0.006) + R(0.008) * u;
+    ell(ctx, X(k.x), Y(k.y), rr0, rr0 * 0.45);
+    ctx.stroke();
+    ctx.fillStyle = `rgba(255,74,61,${0.12 + 0.28 * u})`;
+    ell(ctx, X(k.x), Y(k.y), R(STRIKE.r), R(STRIKE.r) * 0.45);
+    ctx.fill();
+    ctx.restore();
   }
   // 닌자
   const since = t - (s.trail?.t ?? -999);
