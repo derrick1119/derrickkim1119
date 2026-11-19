@@ -127,7 +127,7 @@ const STAGE_DEFS: StageDef[] = [
       { k: 'cloud', x: 0, y: 0.78, x0: 0.6, v: 0.0024, h: 0.22, r: 0.15 },
     ],
     candies: [[0.5, 1.04], [0.62, 0.89]],
-    stars: [GOAL, CANDY, NOHURT], sun0: 0.5, burn: 0.009, time: 60,
+    stars: [GOAL, CANDY, NOHURT], sun0: 0.5, burn: 0.0105, time: 60,
   },
   {
     key: 'laundry', name: '빨래 널린 마당', news: '빨랫줄 — 바람에 흔들리는 이불 그림자', hint: '이불이 앞으로 흔들릴 때 그늘이 길을 덮어요 — 때를 맞춰요',
@@ -141,7 +141,7 @@ const STAGE_DEFS: StageDef[] = [
       { k: 'porch', x: 0.92, y: 1.06, w: 0.18, d: 0.12, h: 0.15 },
     ],
     candies: [[0.31, 1.06], [0.66, 0.95]],
-    stars: [GOAL, CANDY, NOHURT], sun0: 0.9, burn: 0.009, time: 60,
+    stars: [GOAL, CANDY, NOHURT], sun0: 0.9, burn: 0.0105, time: 60,
   },
   {
     key: 'mirror', name: '볼록거울 모퉁이', news: '볼록거울 — 반사 빛은 그림자와 거꾸로 움직여요', hint: '반짝이는 빛 동그라미는 햇빛이에요 — 유령에게 닿지 않게',
@@ -158,7 +158,7 @@ const STAGE_DEFS: StageDef[] = [
       { k: 'porch', x: 0.92, y: 0.84, w: 0.18, d: 0.12, h: 0.15 },
     ],
     candies: [[0.3, 1.16], [0.62, 0.86]],
-    stars: [GOAL, CANDY, NOHURT], sun0: 0.5, burn: 0.009, time: 60,
+    stars: [GOAL, CANDY, NOHURT], sun0: 0.5, burn: 0.0105, time: 60,
   },
   {
     key: 'parasol', name: '파라솔 카페 거리', news: '큰 파라솔 — 높아서 그림자가 멀리 움직여요', hint: '해를 천천히 끌면 파라솔 그늘에 유령을 태워 갈 수 있어요',
@@ -170,7 +170,7 @@ const STAGE_DEFS: StageDef[] = [
       { k: 'porch', x: 0.92, y: 1.01, w: 0.18, d: 0.12, h: 0.15 },
     ],
     candies: [[0.5, 1.02], [0.75, 0.9]],
-    stars: [GOAL, CANDY, NOHURT], sun0: 0.5, burn: 0.009, time: 60,
+    stars: [GOAL, CANDY, NOHURT], sun0: 0.5, burn: 0.0105, time: 60,
   },
   {
     key: 'truck', name: '트럭 지나가는 길', news: '트럭 — 지나가는 트럭 그림자를 타요', hint: '트럭 그림자가 인도까지 닿게 해를 맞추면 쭉 실려 가요',
@@ -182,7 +182,7 @@ const STAGE_DEFS: StageDef[] = [
       { k: 'porch', x: 0.925, y: 1.04, w: 0.17, d: 0.12, h: 0.15 },
     ],
     candies: [[0.4, 1.06], [0.62, 1.06]],
-    stars: [GOAL, CANDY, NOHURT], sun0: 0.5, burn: 0.009, time: 60,
+    stars: [GOAL, CANDY, NOHURT], sun0: 0.5, burn: 0.0105, time: 60,
   },
   {
     key: 'sunset', name: '노을 언덕길', news: '해 질 녘 — 그림자가 아주 길어요', hint: '해가 낮아 그림자가 길어요 — 조금만 끌어도 멀리 돌아요',
@@ -198,7 +198,7 @@ const STAGE_DEFS: StageDef[] = [
       { k: 'porch', x: 0.91, y: 0.9, w: 0.2, d: 0.12, h: 0.15 },
     ],
     candies: [[0.3, 1.18], [0.58, 0.95], [0.66, 0.79]],
-    stars: [GOAL, CANDY, NOHURT], sun0: 0.5, lf: 1.35, burn: 0.01, time: 70,
+    stars: [GOAL, CANDY, NOHURT], sun0: 0.5, lf: 1.35, burn: 0.0115, time: 70,
   },
 ];
 /**
@@ -599,8 +599,8 @@ function endStage(s: GhostState, ok: boolean, why: string) {
     s.starOk = d.stars.map((q) => starMet(s, q));
     s.got = s.starOk.filter(Boolean).length;
     s.stars += s.got;
-    // 판이 갈수록 별 값이 커진다 (1판 ×1 … 8판 ×2.75)
-    s.pts += Math.round((CLEAR_PTS + s.got * STAR_PTS) * (1 + 0.25 * s.stage));
+    // 판이 갈수록 별 값이 커진다 (1판 ×1 … 8판 ×3.45)
+    s.pts += Math.round((CLEAR_PTS + s.got * STAR_PTS) * (1 + 0.35 * s.stage));
     if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS);
     s.mood = 2;
     s.moodT = 999;
@@ -670,7 +670,7 @@ function ghostStep(s: GhostState) {
     if (candyShaded(G, ui, s.wt, j)) {
       s.taken[j] = true;
       s.candies++;
-      s.pts += Math.round(CANDY_PTS * (1 + 0.25 * s.stage));
+      s.pts += Math.round(CANDY_PTS * (1 + 0.35 * s.stage));
       ev(s, 'candy', G.cand[j].x, G.cand[j].y, s.candies, s.candies >= G.cand.length ? 'all' : '');
     }
   }
@@ -2368,7 +2368,7 @@ function drawAll(ctx: C2, s: GhostState, w: number, h: number, th: Theme) {
 
   // 뜨거울 때: 화면 가장자리가 붉게
   if (s.hot > 0 && s.phase === 'play') {
-    ctx.fillStyle = radg(ctx, X(gx), Y(gy), R(0.25), R(1.0), [0, 'rgba(255,120,60,0)'], [1, `rgba(255,120,60,${0.22 + 0.08 * Math.sin(t * 0.5)})`]);
+    ctx.fillStyle = radg(ctx, X(gx), Y(gy) - R(0.06), R(0.12), R(0.75), [0, 'rgba(255,110,60,0)'], [1, `rgba(255,110,60,${0.32 + 0.1 * Math.sin(t * 0.5)})`]);
     ctx.fillRect(0, 0, w, h);
   }
 

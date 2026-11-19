@@ -887,7 +887,7 @@ const OUT = '#5a361b';
 // ── 장소별 팔레트: 0 부엌 · 1 거실 · 2 복도 계단 ──
 interface Pal { wall: [string, string]; stripe: string; dot: string; wain: string; wainD: string; floor: [string, string, string, string]; seam: string; cab: string; cabD: string; top: string }
 const PAL: Pal[] = [
-  { wall: ['#fff6cf', '#ffe193'], stripe: 'rgba(255,255,255,.42)', dot: '#ffc35c', wain: '#a8e8d1', wainD: '#78cdb0', floor: ['#f3cb92', '#ebbb7e', '#e2ad6f', '#d89f61'], seam: '#b5793f', cab: '#9fe3cb', cabD: '#6fc7a9', top: '#e8b073' },
+  { wall: ['#fff3c2', '#ffdb84'], stripe: 'rgba(255,255,255,.4)', dot: '#ffbb4d', wain: '#9fe4ca', wainD: '#6fc7a7', floor: ['#f3cb92', '#ebbb7e', '#e2ad6f', '#d89f61'], seam: '#b5793f', cab: '#9fe3cb', cabD: '#6fc7a9', top: '#e8b073' },
   { wall: ['#eafcf3', '#c6f1de'], stripe: 'rgba(255,255,255,.5)', dot: '#86d9bb', wain: '#ffd98f', wainD: '#efbb5e', floor: ['#efc48d', '#e5b37a', '#daa46c', '#cf965f'], seam: '#ad713c', cab: '#ffcf86', cabD: '#e9ad55', top: '#d9965a' },
   { wall: ['#fff3e2', '#ffd9b5'], stripe: 'rgba(255,255,255,.45)', dot: '#ffb27f', wain: '#a8e8d1', wainD: '#78cdb0', floor: ['#f1c890', '#e7b77c', '#dda96e', '#d29b62'], seam: '#b1763f', cab: '#a8e8d1', cabD: '#78cdb0', top: '#e3aa6c' },
 ];
@@ -2787,7 +2787,7 @@ function drawAll(ctx: C2, s: PuffState, w: number, h: number, _th: Theme) {
       const cx = X(s.cx - CAT_L * 0.4), cy = sy(floorH(s, s.cx) + 0.2);
       fx.burst(cx, cy, '#ffd43b', 14, 3.5, 2.6);
       fx.kick(4);
-      if (X(s.cx) > w * 0.02) say(cx + w * 0.05, cy - w * 0.08, '데굴!', '#ffffff', 22);
+      if (X(s.cx) > w * 0.02) (fx.memo.catSaid = t), say(cx + w * 0.05, cy - w * 0.08, '데굴!', '#ffffff', 22);
       fx.memo.catHitT = t;
     } else if (e.kind === 'vacbump') {
       fx.kick(6);
@@ -3070,6 +3070,9 @@ function drawAll(ctx: C2, s: PuffState, w: number, h: number, _th: Theme) {
     }
   }
   drawFront(ctx, s, w, h, sy, t);
+  // 따뜻한 비네트 (가장자리를 살짝 눌러 가운데로 눈이 가게)
+  ctx.fillStyle = radg(ctx, w * 0.5, w * 0.62, w * 0.35, w * 0.95, [0, 'rgba(170,100,30,0)'], [1, 'rgba(170,100,30,.16)']);
+  ctx.fillRect(-20, -20, w + 40, h + 40);
   // 햇살 속 먼지
   ctx.fillStyle = 'rgba(255,250,215,.6)';
   ctx.beginPath();
@@ -3103,7 +3106,7 @@ function drawAll(ctx: C2, s: PuffState, w: number, h: number, _th: Theme) {
     }
     drawCatHead(ctx, r + 6, iy + r * 0.12, r * 3.4, hit ? (s.cscare > 0 ? 3 : 2) : 1, t);
     ctx.restore();
-    if (hit) {
+    if (hit && t - (fx.memo.catSaid ?? -999) > 60) {
       for (let k = 0; k < 3; k++) {
         const a = t * 0.18 + (k * TAU) / 3;
         ctx.fillStyle = '#ffd43b';

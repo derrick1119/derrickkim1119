@@ -78,7 +78,7 @@ export const STAGES: StageDef[] = [
     stars: [],
   },
   {
-    key: 'rock', name: '바위 해변', news: '바위 — 파도를 타고 넘어요', hint: '바위 앞에서 떼면 훌쩍 넘어요', newKind: 'rock', place: 0,
+    key: 'rock', name: '바위 해변', news: '바위 — 떼서 훌쩍 뛰어넘어요', hint: '바위 앞에서 떼면 훌쩍 넘어요', newKind: 'rock', place: 0,
     tg: 50, hmax: 0.62, curl: 60, L: 7.7,
     build: (b) => {
       b.beach(0.8, 1.3, 'cc');
@@ -1031,18 +1031,26 @@ function parasolBg(g: C2, x: number, base: number, r: number, c1: string) {
   g.lineTo(cx + r, cy + r * 0.2);
   g.stroke();
 }
-function getBg(w: number, h: number, sc: number): Bg {
-  const key = `${w}x${h}@${sc}`;
+/** 장소별 하늘: 0 한낮 · 1 맑은 오전 · 2 항구 한낮 · 3 늦은 오후(금빛) — 모두 밝게 */
+const SKY: [string[], number, number, string][] = [
+  [['#2b9be6', '#4fbaf2', '#94dcf8', '#c9f1ff', '#e2fbff'], 0.8, 0.19, '255,250,205'],
+  [['#2aa7ec', '#58c8f5', '#a2e6f8', '#d6f8ff', '#ecfdff'], 0.2, 0.17, '255,252,215'],
+  [['#3093e0', '#5ab6ef', '#9fd6f5', '#d2efff', '#eef9ff'], 0.68, 0.15, '255,248,200'],
+  [['#3a8fd8', '#6fb2e8', '#f0d2a2', '#ffd99e', '#ffe9c4'], 0.74, 0.33, '255,226,160'],
+];
+function getBg(w: number, h: number, sc: number, place: number): Bg {
+  const key = `${w}x${h}@${sc}:${place}`;
   const got = BG.get(key);
   if (got) return got;
   const R = (r: number) => r * w;
+  const [sk, sunX, sunY, glow] = SKY[place] ?? SKY[0];
   const sky = layer(w, R(0.86), sc, (g) => {
-    g.fillStyle = lin(g, 0, 0, 0, R(0.86), [0, '#2b9be6'], [0.35, '#4fbaf2'], [0.68, '#94dcf8'], [0.8, '#c9f1ff'], [1, '#e2fbff']);
+    g.fillStyle = lin(g, 0, 0, 0, R(0.86), [0, sk[0]], [0.35, sk[1]], [0.68, sk[2]], [0.8, sk[3]], [1, sk[4]]);
     g.fillRect(0, 0, w, R(0.86));
-    g.fillStyle = radg(g, R(0.8), R(0.19), 0, R(0.42), [0, 'rgba(255,255,236,1)'], [0.1, 'rgba(255,250,205,.95)'], [0.3, 'rgba(255,244,180,.38)'], [1, 'rgba(255,240,170,0)']);
+    g.fillStyle = radg(g, R(sunX), R(sunY), 0, R(place === 3 ? 0.55 : 0.42), [0, 'rgba(255,255,236,1)'], [0.1, `rgba(${glow},.95)`], [0.3, `rgba(${glow},.38)`], [1, `rgba(${glow},0)`]);
     g.fillRect(0, 0, w, R(0.86));
-    g.fillStyle = '#fffcea';
-    ell(g, R(0.8), R(0.19), R(0.05), R(0.05));
+    g.fillStyle = place === 3 ? '#fff4d0' : '#fffcea';
+    ell(g, R(sunX), R(sunY), R(place === 3 ? 0.065 : 0.05), R(place === 3 ? 0.065 : 0.05));
     g.fill();
   });
   const far = layer(R(FAR_W), R(0.24), sc, (g) => {
@@ -1089,8 +1097,8 @@ function getBg(w: number, h: number, sc: number): Bg {
   const shore = layer(R(SHORE_W), R(0.47), sc, (g) => {
     const Ly = (y: number) => R(y - SHORE_Y);
     const W = R(SHORE_W);
-    // 모래 띠
-    g.fillStyle = lin(g, 0, Ly(0.66), 0, Ly(0.79), [0, '#fff6dc'], [0.55, '#ffe6b0'], [1, '#f0cc86']);
+    // 모래 띠 (썰물엔 넓은 갯벌)
+    g.fillStyle = place === 3 ? lin(g, 0, Ly(0.66), 0, Ly(0.79), [0, '#fff0d0'], [0.4, '#f6d9a0'], [1, '#d9b072']) : lin(g, 0, Ly(0.66), 0, Ly(0.79), [0, '#fff6dc'], [0.55, '#ffe6b0'], [1, '#f0cc86']);
     g.beginPath();
     g.moveTo(0, Ly(0.79));
     for (let i = 0; i <= 46; i++) {
@@ -1107,12 +1115,112 @@ function getBg(w: number, h: number, sc: number): Bg {
     }
     // 젖은 모래 · 거품 줄
     g.fillStyle = 'rgba(214,170,96,.55)';
-    g.fillRect(0, Ly(0.765), W, R(0.02));
-    // 오두막 · 파라솔 · 망루 · 야자수
+    g.fillRect(0, Ly(place === 3 ? 0.735 : 0.765), W, R(place === 3 ? 0.05 : 0.02));
     const thing = (x: number, fn: (xx: number) => void) => {
       for (const dx of [-SHORE_W, 0, SHORE_W]) fn(R(x + dx));
     };
-    thing(0.42, (x) => {
+    if (place === 3) {
+      // 갯벌 웅덩이 · 얹힌 나룻배
+      for (let i = 0; i < 9; i++)
+        thing(hsh(i * 4.1) * SHORE_W, (x) => {
+          g.fillStyle = 'rgba(90,190,230,.75)';
+          ell(g, x, Ly(0.75 + hsh(i * 2.3) * 0.025), R(0.03 + hsh(i) * 0.03), R(0.006));
+          g.fill();
+          g.fillStyle = 'rgba(255,255,255,.6)';
+          ell(g, x - R(0.01), Ly(0.748 + hsh(i * 2.3) * 0.025), R(0.01), R(0.002));
+          g.fill();
+        });
+      thing(0.8, (x) => {
+        const b = Ly(0.73);
+        g.fillStyle = '#c0603a';
+        g.beginPath();
+        g.moveTo(x - R(0.06), b - R(0.018));
+        g.lineTo(x + R(0.06), b - R(0.024));
+        g.quadraticCurveTo(x + R(0.05), b + R(0.004), x + R(0.02), b + R(0.004));
+        g.lineTo(x - R(0.04), b + R(0.004));
+        g.closePath();
+        g.fill();
+        g.fillStyle = '#ffffff';
+        g.fillRect(x - R(0.058), b - R(0.02), R(0.115), R(0.004));
+      });
+    }
+    if (place === 1)
+      // 알록달록 해변 오두막 줄
+      for (const [hx, col] of [[0.36, '#7fe0c0'], [0.46, '#ffb3c8'], [0.56, '#ffe07a'], [1.5, '#9fd3ff'], [1.6, '#ffb38a']] as [number, string][])
+        thing(hx, (x) => {
+          const b = Ly(0.71), ww = R(0.075), hh = R(0.06);
+          g.fillStyle = '#8a6a4a';
+          g.fillRect(x - ww * 0.4, b - R(0.01), 2, R(0.012));
+          g.fillRect(x + ww * 0.4 - 2, b - R(0.01), 2, R(0.012));
+          g.fillStyle = col;
+          g.fillRect(x - ww / 2, b - hh - R(0.01), ww, hh);
+          g.fillStyle = 'rgba(255,255,255,.55)';
+          for (let k = 0; k < 4; k++) g.fillRect(x - ww / 2 + (k * ww) / 4, b - hh - R(0.01), 1.5, hh);
+          g.fillStyle = '#ffffff';
+          g.beginPath();
+          g.moveTo(x - ww * 0.62, b - hh - R(0.01));
+          g.lineTo(x, b - hh - R(0.045));
+          g.lineTo(x + ww * 0.62, b - hh - R(0.01));
+          g.closePath();
+          g.fill();
+          g.strokeStyle = 'rgba(29,53,87,.4)';
+          g.lineWidth = 1;
+          g.stroke();
+          g.fillStyle = '#5a3a1c';
+          rr(g, x - R(0.01), b - R(0.045), R(0.02), R(0.035), 2);
+          g.fill();
+        });
+    if (place === 2) {
+      // 항구 마을: 언덕 위 하얀 집 · 방파제 · 매어 둔 배
+      g.fillStyle = lin(g, 0, Ly(0.55), 0, Ly(0.69), [0, '#7fcf7a'], [1, '#5fb862']);
+      g.beginPath();
+      g.moveTo(0, Ly(0.69));
+      for (let i = 0; i <= 30; i++) g.lineTo((i / 30) * W, Ly(0.6 - 0.04 * Math.sin((i / 30) * TAU * 2) - 0.02 * Math.sin((i / 30) * TAU * 5)));
+      g.lineTo(W, Ly(0.69));
+      g.closePath();
+      g.fill();
+      for (let i = 0; i < 14; i++)
+        thing(0.08 + i * 0.16 + hsh(i) * 0.05, (x) => {
+          const b = Ly(0.665 - hsh(i * 3) * 0.04), ww = R(0.045 + hsh(i * 5) * 0.02), hh = R(0.035 + hsh(i * 7) * 0.015);
+          g.fillStyle = '#ffffff';
+          g.fillRect(x - ww / 2, b - hh, ww, hh);
+          g.fillStyle = ['#2f7cf6', '#ef4b45', '#ffb12e', '#3fc0c0'][i % 4];
+          g.beginPath();
+          g.moveTo(x - ww * 0.6, b - hh);
+          g.lineTo(x, b - hh - R(0.02));
+          g.lineTo(x + ww * 0.6, b - hh);
+          g.closePath();
+          g.fill();
+          g.fillStyle = '#5f86a8';
+          g.fillRect(x - ww * 0.25, b - hh * 0.6, ww * 0.18, hh * 0.3);
+          g.fillRect(x + ww * 0.1, b - hh * 0.6, ww * 0.18, hh * 0.3);
+        });
+      for (const bx of [0.3, 0.95, 1.7])
+        thing(bx, (x) => {
+          const b = Ly(0.785);
+          g.strokeStyle = '#6a4a2a';
+          g.lineWidth = 1.5;
+          g.beginPath();
+          g.moveTo(x, b - R(0.012));
+          g.lineTo(x, b - R(0.09));
+          g.stroke();
+          g.fillStyle = '#ffffff';
+          g.beginPath();
+          g.moveTo(x + 1, b - R(0.085));
+          g.lineTo(x + R(0.035), b - R(0.02));
+          g.lineTo(x + 1, b - R(0.02));
+          g.fill();
+          g.fillStyle = bx > 1 ? '#2f7cf6' : '#ef4b45';
+          g.beginPath();
+          g.moveTo(x - R(0.04), b - R(0.016));
+          g.lineTo(x + R(0.045), b - R(0.016));
+          g.lineTo(x + R(0.03), b);
+          g.lineTo(x - R(0.03), b);
+          g.closePath();
+          g.fill();
+        });
+    }
+    if (place === 0 || place === 1) thing(0.42 + (place === 1 ? 0.8 : 0), (x) => {
       const b = Ly(0.705), ww = R(0.12), hh = R(0.06);
       g.fillStyle = '#d9945a';
       g.fillRect(x - ww / 2, b - hh, ww, hh);
@@ -1135,7 +1243,7 @@ function getBg(w: number, h: number, sc: number): Bg {
         g.stroke();
       }
     });
-    thing(1.55, (x) => {
+    if (place !== 2) thing(1.55 - (place === 1 ? 0.6 : 0), (x) => {
       // 망루 (빨강·하양)
       const b = Ly(0.715);
       g.strokeStyle = '#f4f4f4';
@@ -1167,8 +1275,9 @@ function getBg(w: number, h: number, sc: number): Bg {
       g.fillRect(x + R(0.012), Ly(0.752), R(0.008), R(0.012));
       g.fillRect(x + R(0.03), Ly(0.752), R(0.008), R(0.012));
     });
-    for (const [px, ph, pl, sd] of [[0.1, 0.24, 0.12, 1], [0.23, 0.2, -0.1, 2], [0.62, 0.27, 0.1, 3], [0.9, 0.21, -0.14, 4], [1.3, 0.25, 0.08, 5], [1.42, 0.19, -0.12, 6], [1.75, 0.26, 0.12, 7], [2.08, 0.22, -0.1, 8]])
-      thing(px, (x) => palm(g, x, Ly(0.715 + hsh(sd) * 0.02), R(ph), pl, sd * 13, w / 360));
+    const palms = [[0.1, 0.24, 0.12, 1], [0.23, 0.2, -0.1, 2], [0.62, 0.27, 0.1, 3], [0.9, 0.21, -0.14, 4], [1.3, 0.25, 0.08, 5], [1.42, 0.19, -0.12, 6], [1.75, 0.26, 0.12, 7], [2.08, 0.22, -0.1, 8]];
+    for (const [px, ph, pl, sd] of place === 2 || place === 3 ? palms.filter((_, i) => i % 2 === 0) : palms)
+      thing(px + place * 0.07, (x) => palm(g, x, Ly(0.715 + hsh(sd) * 0.02), R(ph), pl, sd * 13 + place, w / 360));
   });
   const fore = layer(R(FORE_W), R(0.31), sc, (g) => {
     const Ly = (y: number) => R(y - FORE_Y);
@@ -2419,7 +2528,7 @@ function drawAll(ctx: C2, s: SurfState, w: number, h: number, th: Theme) {
   const R = (r: number) => r * w;
   const sc = typeof ctx.getTransform === 'function' ? ctx.getTransform().a || 1 : 1;
   const lsc = Math.min(3, Math.max(1, Math.round(sc)));
-  const bg = getBg(Math.round(w), Math.round(h), lsc);
+  const bg = getBg(Math.round(w), Math.round(h), lsc, d.place);
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, R(sz))}px system-ui, sans-serif`);
   // 카메라: 서퍼를 따라간다 (판이 바뀌면 바로)
   if (fx.memo.cam === undefined || fx.memo.stg !== s.stage * 100 + s.tries || Math.abs(fx.memo.cam - s.x) > 1) fx.memo.cam = s.x;
@@ -2512,9 +2621,13 @@ function drawAll(ctx: C2, s: SurfState, w: number, h: number, th: Theme) {
   fx.memo.t = t;
 
   ctx.save();
+  ctx.fillStyle = '#2b9be6';
+  ctx.fillRect(-30, -30, w + 60, R(0.5));
+  ctx.fillStyle = '#ffd892';
+  ctx.fillRect(-30, R(1.2), w + 60, h - R(1.2) + 30);
   fx.begin(ctx);
   // ═════ 하늘 · 해 · 구름 · 갈매기 ═════
-  ctx.drawImage(bg.sky, 0, 0, w, R(0.86));
+  ctx.drawImage(bg.sky, -12, -12, w + 24, R(0.86) + 12);
   ctx.save();
   ctx.translate(R(0.8), R(0.19));
   ctx.rotate(t * 0.002);
@@ -2568,7 +2681,8 @@ function drawAll(ctx: C2, s: SurfState, w: number, h: number, th: Theme) {
   }
   tile(ctx, bg.shore, lsc, cam * R(0.3), R(SHORE_Y + BGY), w);
   // ═════ 석호 (청록 → 물길) ═════
-  ctx.fillStyle = lin(ctx, 0, R(0.78 + BGY), 0, yb, [0, '#2a9fdc'], [0.5, '#24b6dc'], [1, '#22c8d8']);
+  const ebb = d.place === 3;
+  ctx.fillStyle = ebb ? lin(ctx, 0, R(0.78 + BGY), 0, yb, [0, '#38aee0'], [0.5, '#3cc4dc'], [1, '#4dd4d6']) : lin(ctx, 0, R(0.78 + BGY), 0, yb, [0, '#2a9fdc'], [0.5, '#24b6dc'], [1, '#22c8d8']);
   ctx.fillRect(0, R(0.775 + BGY), w, yb - R(0.775 + BGY) + 1);
   ctx.fillStyle = 'rgba(255,255,255,.55)';
   ctx.fillRect(0, R(0.775 + BGY), w, 1.5);
@@ -2626,7 +2740,35 @@ function drawAll(ctx: C2, s: SurfState, w: number, h: number, th: Theme) {
     ctx.quadraticCurveTo(b - R(0.01), yb - R(0.004), b - R(0.06), top + R(0.008));
     ctx.stroke();
   }
-  // 해변 물건 · 장애물 (파도 뒤)
+  // ═════ 부서진 파도 · 거품 ═════
+  for (const b of s.breaks) {
+    const age = t - b.t, xs = X(b.x);
+    if (age < 24) {
+      const k = 1 - age / 24;
+      drawWave(ctx, xs, yb, R(b.H) * k * k, w, Math.min(1, 0.5 + age / 8), t);
+    }
+    // 입술이 앞으로 던져져 내려앉는다
+    const lo = b.x + bandLo(b.H), hi = b.x + bandHi(b.H);
+    if (age < 16 && b.H > 0.08) {
+      const g0 = waveGeom(xs, yb, R(b.H), w);
+      drawThrow(ctx, g0.lipX + R(b.H) * 0.2, g0.top + R(b.H) * 0.05, X(b.x + lipD(b.H)), yb - R(0.01), R(b.H), age);
+    }
+    if (age >= 8 && age < 80 && b.H > 0.08) {
+      const a = Math.max(0, Math.min(1, (age - 8) / 5)) * Math.max(0, 1 - (age - 30) / 50);
+      ctx.fillStyle = `rgba(255,255,255,${0.45 * a})`;
+      ctx.beginPath();
+      ctx.ellipse((X(lo) + X(hi)) / 2, yb + 1, (X(hi) - X(lo)) / 2, R(0.014), 0, 0, TAU);
+      ctx.fill();
+    }
+  }
+  // ═════ 지금 키우는 파도 ═════
+  const sx = X(s.x), wob = Math.sin(t * 0.09) * 1.2;
+  if (s.mode === CHARGE && s.phase === 'play') {
+    const cu = curlOf(s);
+    drawWave(ctx, sx, yb, R(s.H), w, cu, t);
+    if (t % 3 === 0) spray(f, s.x - 0.05 - s.H * 0.2, s.H * 0.98, 1, 0.006, -0.004, '#ffffff', 2.5);
+  }
+  // 해변 물건 · 장애물 (파도 앞 — 키우는 동안에도 보이게)
   const near = (it: Item) => Math.abs(it.x - s.x);
   for (let i = 0; i < s.items.length; i++) {
     const it = s.items[i];
@@ -2669,27 +2811,6 @@ function drawAll(ctx: C2, s: SurfState, w: number, h: number, th: Theme) {
     }
     void near;
   }
-  // ═════ 부서진 파도 · 거품 ═════
-  for (const b of s.breaks) {
-    const age = t - b.t, xs = X(b.x);
-    if (age < 24) {
-      const k = 1 - age / 24;
-      drawWave(ctx, xs, yb, R(b.H) * k * k, w, Math.min(1, 0.5 + age / 8), t);
-    }
-    // 입술이 앞으로 던져져 내려앉는다
-    const lo = b.x + bandLo(b.H), hi = b.x + bandHi(b.H);
-    if (age < 16 && b.H > 0.08) {
-      const g0 = waveGeom(xs, yb, R(b.H), w);
-      drawThrow(ctx, g0.lipX + R(b.H) * 0.2, g0.top + R(b.H) * 0.05, X(b.x + lipD(b.H)), yb - R(0.01), R(b.H), age);
-    }
-    if (age >= 8 && age < 80 && b.H > 0.08) {
-      const a = Math.max(0, Math.min(1, (age - 8) / 5)) * Math.max(0, 1 - (age - 30) / 50);
-      ctx.fillStyle = `rgba(255,255,255,${0.45 * a})`;
-      ctx.beginPath();
-      ctx.ellipse((X(lo) + X(hi)) / 2, yb + 1, (X(hi) - X(lo)) / 2, R(0.014), 0, 0, TAU);
-      ctx.fill();
-    }
-  }
   if (s.surge) {
     const sg = s.surge, age = t - sg.t0 - 10;
     if (age >= 0) {
@@ -2716,13 +2837,6 @@ function drawAll(ctx: C2, s: SurfState, w: number, h: number, th: Theme) {
         if (prog < 1 && t % 2 === 0) spray(f, fxw2, hgt / w, 2, 0.008, 0.01, '#ffffff', 2.5);
       }
     }
-  }
-  // ═════ 지금 키우는 파도 ═════
-  const sx = X(s.x), wob = Math.sin(t * 0.09) * 1.2;
-  if (s.mode === CHARGE && s.phase === 'play') {
-    const cu = curlOf(s);
-    drawWave(ctx, sx, yb, R(s.H), w, cu, t);
-    if (t % 3 === 0) spray(f, s.x - 0.05 - s.H * 0.2, s.H * 0.98, 1, 0.006, -0.004, '#ffffff', 2.5);
   }
   // 서퍼 그림자
   if (s.mode === AIR || s.mode === TUMBLE) {
@@ -2827,7 +2941,7 @@ function drawAll(ctx: C2, s: SurfState, w: number, h: number, th: Theme) {
   }
   f.deb = f.deb.filter((q) => q.t0 >= 0 && X(q.x) < w + R(0.5));
   // ═════ 가까운 얕은 물 ═════
-  ctx.fillStyle = lin(ctx, 0, yb, 0, R(1.25), [0, 'rgba(38,200,214,.93)'], [0.5, 'rgba(70,220,214,.95)'], [1, 'rgba(140,236,214,.98)']);
+  ctx.fillStyle = ebb ? lin(ctx, 0, yb, 0, R(1.25), [0, 'rgba(70,214,214,.9)'], [0.5, 'rgba(150,226,200,.94)'], [1, 'rgba(214,226,170,.98)']) : lin(ctx, 0, yb, 0, R(1.25), [0, 'rgba(38,200,214,.93)'], [0.5, 'rgba(70,220,214,.95)'], [1, 'rgba(140,236,214,.98)']);
   ctx.fillRect(0, yb + 1, w, R(1.26) - yb);
   // 물길 수면선 (반짝 + 잔물결)
   ctx.strokeStyle = 'rgba(255,255,255,.85)';
