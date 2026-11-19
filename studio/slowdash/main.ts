@@ -57,7 +57,7 @@ function cues() {
     const e = s.events[i];
     if (e.kind === 'dash') (sfx.play('dash'), (e.n ?? 0) > 0 && sfx.play('slash', e.n));
     else if (e.kind === 'bounce') sfx.play('clink');
-    else if (e.kind === 'ding') sfx.play('clink'); // M2 S6 🔔 댕
+    else if (e.kind === 'ding' || e.kind === 'tok') sfx.play('clink'); // M2 S6 🔔 댕 · S7 🎋 툭
     else if (e.kind === 'shotcut') sfx.play('shotcut');
     else if (e.kind === 'hurt') sfx.play('hurt');
     else if (e.kind === 'fail') sfx.play('fail');
@@ -127,7 +127,7 @@ function title() {
 function start() {
   const seed = Number(q.get('seed')) || (Date.now() % 1_000_000) + 1;
   s = g.create(seed);
-  { const st = trial ? STAGE_COUNT + 1 : Math.floor(Number(q.get('stage'))); if (st > 1 && st <= STAGES.length) startStage(s, st - 1); } // ✏️ S009 시험·스크린샷용 ?stage=N · M2 ?trial=1
+  { const st = Math.floor(Number(q.get('stage'))) || (trial ? STAGE_COUNT + 1 : 0); if (st > 1 && st <= STAGES.length) startStage(s, st - 1); } // ✏️ S009 시험·스크린샷용 ?stage=N · M2 ?trial=1
   if (q.get('owl') === '1') s.owlAsk = true; // M2 S4 스크린샷용: 부엉이 카드부터
   sfx.wake();
   wasDown = false;

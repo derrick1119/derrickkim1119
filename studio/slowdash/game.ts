@@ -72,7 +72,7 @@ const ENTER = 0, IDLE = 1, WIND = 2, REST = 3, STUN = 4, AIM = 5;
 
 type Star = { k: 'multi' | 'nohit' | 'arrow' | 'back' | 'boom' | 'mirror' | 'boss'; n?: number; label: string };
 /** [종류, x, y, 들어오는 쪽(0 그 자리 펑 · 1 왼쪽 · 2 오른쪽 · 3 뒤쪽 대숲)] */
-type Spawn = [K | 'barrel', number, number, number];
+type Spawn = [K | 'barrel' | 'bamboo', number, number, number];
 interface Wave { need: number; wait: number; foes: Spawn[] }
 interface StageDef {
   key: string; name: string; place: number; news: string; hint: string; goal: string;
@@ -212,10 +212,13 @@ const NUM = ['', '하나', '둘', '셋', '넷', '다섯', '여섯', '일곱'];
 export const STAGES: StageDef[] = RAW.map((d) => ({ ...d, stars: [S3('multi', d.n, `한 번에 ${NUM[d.n]} 베기`), S3('nohit', 0, '한 대도 안 맞기')] }));
 export const STAGE_COUNT = STAGES.length;
 /** ✏️ M2 S1 시험 판(📐 월드 2 표): 아직 판 목록에 안 넣는다 — funqa가 잴 때만 STAGES 끝에 잠깐 붙인다(1~10 지표가 안 바뀌게) */
-export const TRIAL: StageDef[] = ([
+/** 월드 2 판에 별 셋(★ 지나가기 · ★★ 한 번에 N · ★★★ 한 대도 안 맞기)을 붙인다 */
+const starsOf = (a: Omit<StageDef, 'stars'>[]): StageDef[] => a.map((d) => ({ ...d, stars: [S3('multi', d.n, `한 번에 ${NUM[d.n]} 베기`), S3('nohit', 0, '한 대도 안 맞기')] as [Star, Star] }));
+export const TRIAL: StageDef[] = starsOf([
   { // M2 S2: 잎 5 → 3(소개 판 — 처음 하는 사람 중앙값 74초) · 마지막 잎은 위 가운데(가운데면 휘젓기 .54)
     key: 'leaf', name: '첫 기와', place: 1, news: '잎 너구리 — 곧게 오면 휙! 꺾어 들어가 베요', goal: '지붕 건너가기', card: '곧게 오면 휙! 꺾어요',
-    hint: '꺾어 들어가요', start: [0.5, 1.15], gap: 420, g0: 70, ease: [3, 1.5, 0.8],
+    // M2 S7 ㊻: 간격 끔(96시드: 첫 도전 .57→.69 · 3번 합친 87→54초)
+    hint: '꺾어 들어가요', start: [0.5, 1.15], g0: 70, ease: [3, 1.5, 0.8],
     waves: [
       { need: 1, wait: 1e9, foes: [['dummy', 0.5, 0.95, 0], ['dummy', 0.5, 0.82, 0], ['dummy', 0.5, 0.69, 0], ['leaf', 0.7, 0.62, 0]] },
       { need: 0, wait: 900, foes: [['dummy', 0.32, 0.82, 0], ['dummy', 0.44, 0.82, 0], ['dummy', 0.56, 0.82, 0], ['leaf', 0.2, 0.82, 0]] },
@@ -247,7 +250,7 @@ export const TRIAL: StageDef[] = ([
     n: 5,
   },
   {
-    key: 'smoke', name: '굴뚝 연기', place: 1, news: '연기 속에선 적이 못 봐요', card: '연기 속은 안 보여요', // 🧪 S6: '먹 채우고'는 틀린 말이었다(연기는 눈만 가림) goal: '굴뚝 지나가기',
+    key: 'smoke', name: '굴뚝 연기', place: 1, news: '연기 속에선 적이 못 봐요', card: '연기 속은 안 보여요', goal: '굴뚝 지나가기', // 🧪 S6: '먹 채우고'는 틀린 말이었다(연기는 눈만 가림)
     hint: '연기에 숨어 기다려요', start: [0.5, 1.15], gap: 420, g0: 60, ease: [1.2, 1.5, 0.9], smokes: [[0.3, 0.75, 0.11], [0.7, 0.92, 0.11]],
     waves: [
       { need: 1, wait: 1e9, foes: [['sword', 0.14, 0.62, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.26, 0.78, 1], ['sword', 0.32, 0.86, 1], ['archer', 0.5, 0.5, 3]] },
@@ -267,6 +270,22 @@ export const TRIAL: StageDef[] = ([
     ],
     n: 4, // M2 S5(🧪): 5는 장인 .04 · 사람 0 — 아무도 못 받는 별
   },
+  // ✏️ M2 S7: 📐 2-6 뒤뜰 대밭 — 🎋 대나무(꺾어 넘겨 덤불 너머 베기). 소개 판이라 간격은 2-1과 같게(㊻)
+  {
+    key: 'bamboo', name: '뒤뜰 대밭', place: 1, news: '대나무 — 꺾어 베면 칼 간 쪽으로 쓰러져요', card: '꺾어 베면 쓰러져요', goal: '대밭 지나가기',
+    // ㊻ 96시드: 간격을 줄여도 처음 하는 사람은 그대로(.61~.67) → 판 25초를 지킴
+    hint: '옆에서 꺾어 줄 쪽으로', start: [0.5, 1.15], gap: 420, g0: 70, ease: [3, 1.5, 0.8], thorns: [[0.39, 0.7, 0.05], [0.61, 0.6, 0.05]],
+    waves: [
+      { need: 1, wait: 1e9, foes: [['bamboo', 0.56, 0.92, 0], ['dummy', 0.42, 0.92, 0], ['dummy', 0.32, 0.92, 0], ['dummy', 0.22, 0.92, 0]] },
+      { need: 0, wait: 900, foes: [['bamboo', 0.52, 0.7, 0], ['dummy', 0.64, 0.7, 0], ['dummy', 0.29, 0.7, 0], ['dummy', 0.21, 0.7, 0], ['dummy', 0.13, 0.7, 0]] }, // ✏️ 둘째 배치: 칼잡이 2 뺌(걸어와 덤불 너머 줄과 한 줄이 돼 대나무 없이도 넷 — 낙차 0)
+      { need: 0, wait: 900, foes: [['bamboo', 0.38, 0.94, 0], ['sword', 0.26, 0.78, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.14, 0.62, 1], ['leaf', 0.72, 0.66, 0]] },
+      { need: 0, wait: 900, foes: [['bamboo', 0.48, 0.6, 0], ['leaf', 0.34, 0.6, 0], ['archer', 0.71, 0.6, 3], ['archer', 0.79, 0.6, 3], ['archer', 0.87, 0.6, 3]] }, // ✏️ 둘째 배치: 칼잡이 2 뺌
+    ],
+    n: 4,
+  },
+] as Omit<StageDef, 'stars'>[]);
+/** ✏️ M2 S6 보류: 🔔 종루(2-6)는 미리 정한 폐기 기준에 걸려(사용 .46 < .5 · 낙차 .12 < .2 · 처음 봇 0~.08) 판 목록에서 뺀다 — 코드와 판은 다시 잴 수 있게 남김(M2 S7: 플레이 빌드에선 빠지게 따로 둠) */
+export const SHELVED: StageDef[] = /* @__PURE__ */ starsOf([
   // ✏️ M2 S6: 📐 2-6 종루 — 🔔 종(되돌아 두 번). 소개 판이라 다음 무리 간격은 짧게(㊻)
   {
     key: 'bell', name: '종루', place: 1, news: '종 — 한 획에 두 번 지나가야 깨져요', card: '갔다가 되돌아 두 번', goal: '종루 지나가기',
@@ -279,9 +298,7 @@ export const TRIAL: StageDef[] = ([
     ],
     n: 4,
   },
-] as Omit<StageDef, 'stars'>[]).map((d) => ({ ...d, stars: [S3('multi', d.n, `한 번에 ${NUM[d.n]} 베기`), S3('nohit', 0, '한 대도 안 맞기')] as [Star, Star] }));
-/** ✏️ M2 S6 보류: 🔔 종루(2-6)는 미리 정한 폐기 기준에 걸려(사용 .46 < .5 · 낙차 .12 < .2 · 처음 봇 0~.08) 판 목록에서 뺀다 — 코드와 판은 다시 잴 수 있게 남김 */
-export const SHELVED: StageDef[] = TRIAL.splice(TRIAL.findIndex((d) => d.key === 'bell'), 1);
+] as Omit<StageDef, 'stars'>[]);
 const easeOf = (s: DashState) => STAGES[s.stage].ease ?? EASE[Math.min(s.stage, 2)];
 
 interface Foe {
@@ -294,11 +311,13 @@ interface Shot { k: number; x: number; y: number; vx: number; vy: number; a: num
 interface Barrel { id: number; x: number; y: number; fuse: number; owner: number; born: number }
 interface Mirror { ax: number; ay: number; bx: number; by: number }
 interface Smoke { x: number; y: number; r: number; vx: number; vy: number }
+/** ✏️ M2 S7 🎋 대나무(📐): 꺾어 들어간 칼에 베이면 칼이 가던 쪽(dx,dy)으로 쓰러진다 — fall = 쓰러진 틱(-1 서 있음) · wob = 마지막 '툭' */
+interface Bamboo { id: number; x: number; y: number; fall: number; dx: number; dy: number; wob: number }
 /** 베인 적 (연출: 잠깐 멈췄다 반으로 갈라진다) */
 interface Cut { k: K; x: number; y: number; a: number; t: number; face: number; n: number; seed: number; boom: boolean }
 interface Ink { x: number; y: number; r: number; t: number; seed: number }
 interface Ev { t: number; kind: string; x: number; y: number; n?: number; text?: string }
-interface Path { legs: number[][]; hits: { id: number; leg: number }[]; bounce: boolean; barrels: number[]; shots: number[]; ex: number; ey: number; dodges: { id: number; leg: number }[]; bells: { id: number; n: number }[] }
+interface Path { legs: number[][]; hits: { id: number; leg: number }[]; bounce: boolean; barrels: number[]; shots: number[]; ex: number; ey: number; dodges: { id: number; leg: number }[]; bells: { id: number; n: number }[]; falls: { id: number; leg: number; dx: number; dy: number; k?: number }[]; toks: number[] }
 
 export interface DashState {
   rng: Rng; seed: number; t: number; wt: number; stage: number; phase: 'play' | 'result'; pt: number; ok: boolean; why: string;
@@ -311,10 +330,10 @@ export interface DashState {
   anchor: { x: number; y: number } | null; dwell: number;
   freeze: number; slowT: number;
   strikes: { x: number; y: number; t: number; t0: number }[];
-  foes: Foe[]; shots: Shot[]; barrels: Barrel[]; mirrors: Mirror[]; smokes: Smoke[]; thorns: { x: number; y: number; r: number }[]; nid: number;
+  foes: Foe[]; shots: Shot[]; barrels: Barrel[]; mirrors: Mirror[]; smokes: Smoke[]; bamboos: Bamboo[]; thorns: { x: number; y: number; r: number }[]; nid: number;
   wave: number; waveT: number;
   dashN: number; chain: number; best: number; hits: number; arrows: number; backK: number; boomBest: number; boomBy: Record<number, number>;
-  mirK: number; bounceT: number; bents: number; leafGuide: boolean; leafCut: boolean; dodgeN: number; bellGuide: boolean;
+  mirK: number; bounceT: number; bents: number; leafGuide: boolean; leafCut: boolean; dodgeN: number; bellGuide: boolean; bambooGuide: boolean;
   /** ✏️ M2 S4 부엉이 귀띔: 이 판에서 진 수 · 물어봄(화면이 카드를 띄운다) · 거절함(이 시도) · 쓰는 중(★★★ 없음, 길을 보여 줌) */
   failN: number; owlAsk: boolean; owlNo: boolean; owl: boolean; bossCombo: number; dashes: number; firstDash: boolean; firstBig: number; firstPress: number;
   combo: { id: number; n: number; t: number };
@@ -333,7 +352,7 @@ function see(s: DashState, key: string, text: string) {
   if (URGENT.has(key)) (s.newsQ.unshift(text), (s.news = null));
   else s.newsQ.push(text);
 }
-const URGENT = new Set(['thorn', 'thornRed', 'leaf', 'leafDemo', 'bell']);
+const URGENT = new Set(['thorn', 'thornRed', 'leaf', 'leafDemo', 'bell', 'bamboo']);
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const KIND_NAME: Record<K, string> = { dummy: '허수아비', sword: '칼잡이', archer: '화살병', shuri: '수리검', shield: '방패 무사', boss: '대장 곰', leaf: '잎 너구리', bell: '종' };
 
@@ -362,7 +381,7 @@ function trace(s: DashState, px: number, py: number, tx: number, ty: number, max
   if (L < 1e-6) (dx = 0), (dy = -1);
   else (dx /= L), (dy /= L);
   let rem = Math.min(L, maxLen), x = px, y = py, skip = -1;
-  const out: Path = { legs: [], hits: [], bounce: false, barrels: [], shots: [], ex: px, ey: py, dodges: [], bells: [] };
+  const out: Path = { legs: [], hits: [], bounce: false, barrels: [], shots: [], ex: px, ey: py, dodges: [], bells: [], falls: [], toks: [] };
   const used = new Set<number>();
   for (let leg = 0; leg < 3 && rem > 1e-4; leg++) {
     let len = Math.min(rem, boxExit(x, y, dx, dy)), mi = -1;
@@ -400,6 +419,13 @@ function trace(s: DashState, px: number, py: number, tx: number, ty: number, max
         }
         used.add(c.f.id);
         out.hits.push({ id: c.f.id, leg });
+      }
+      for (const b of s.bamboos) { // 🎋 첫 방향과 25° 안이면 '툭'(잎과 같은 말) · 꺾어 들어가면 이 토막 쪽으로 쓰러짐
+        const qx = b.x - x, qy = b.y - y, u = qx * dx + qy * dy, r = BAMBOO.r + bw;
+        if (b.fall >= 0 || u < -r * 0.5 || u > end + r * 0.5 || Math.abs(qx * dy - qy * dx) > r || out.falls.some((q) => q.id === b.id)) continue;
+        const [fx, fy] = fd ?? (leg === 0 ? [dx, dy] : [Number.NaN, 0]);
+        if (fx * dx + fy * dy > Math.cos(LEAF_A)) out.toks.includes(b.id) || out.toks.push(b.id);
+        else out.falls.push({ id: b.id, leg, dx, dy });
       }
       for (const b of s.barrels) {
         const qx = b.x - x, qy = b.y - y, u = qx * dx + qy * dy;
@@ -454,10 +480,12 @@ function bellsOf(s: DashState, out: Path, bw: number) {
 const STROKE_STEP = 0.035, STROKE_MAX = 40, STROKE_LEN = 1.6, ERASE_R = 0.045, ERASE_DWELL = 12; // M2 S2: ⅓초 → 0.2초(🧪 1-6·1-9) // 오너 질문 뒤: 점 한도 24 → 40(큰 원)
 /** ✏️ S009 꺾는 점 너그럽게(📋): 꺾인 한붓 획은 칼날 폭이 BEND_W배 — 손가락으로 그린 길은 적 위를 정확히 지나기 어렵다 */
 export const BEND = { w: 1.8 };
+/** ✏️ M2 S7 🎋 대나무 맞는 반지름 · 쓰러지는 길이(📐 .40 — 휘젓기 ★★ > .25면 .32로) */
+export const BAMBOO = { r: 0.03, L: 0.4 };
 /** 한 줄은 DMAX(.85)까지, 꺾인 한붓 획은 먹이 되는 만큼 STROKE_LEN까지(먹 값은 길이대로) */
 const reachFor = (s: DashState, pts: unknown[]) => (pts.length > 1 ? Math.min(STROKE_LEN, (s.g - GBASE) / GPER) : reachOf(s.g));
 function tracePath(s: DashState, pts: { x: number; y: number }[], maxLen: number): Path {
-  const out: Path = { legs: [], hits: [], bounce: false, barrels: [], shots: [], ex: s.nx, ey: s.ny, dodges: [], bells: [] };
+  const out: Path = { legs: [], hits: [], bounce: false, barrels: [], shots: [], ex: s.nx, ey: s.ny, dodges: [], bells: [], falls: [], toks: [] };
   const used = new Set<number>();
   let x = s.nx, y = s.ny, rem = maxLen;
   // 🍃 이 획의 첫 방향: 닌자에서 .08 넘게 떨어진 첫 점 쪽(손가락 점은 촘촘해서 첫 토막만으로는 방향이 흔들린다)
@@ -468,6 +496,8 @@ function tracePath(s: DashState, pts: { x: number; y: number }[], maxLen: number
     if (Math.hypot(q.x - x, q.y - y) < 1e-4) continue;
     const P = trace(s, x, y, q.x, q.y, rem, true, pts.length > 1 ? BW * BEND.w : BW, fd), base = out.legs.length;
     for (const h of P.dodges) if (!out.dodges.some((q) => q.id === h.id)) out.dodges.push({ id: h.id, leg: base + h.leg });
+    for (const h of P.falls) if (!out.falls.some((q) => q.id === h.id)) out.falls.push({ ...h, leg: base + h.leg });
+    for (const id of P.toks) out.toks.includes(id) || out.toks.push(id);
     out.legs.push(...P.legs);
     for (const h of P.hits) if (!used.has(h.id)) used.add(h.id), out.hits.push({ id: h.id, leg: base + h.leg });
     for (const b of P.barrels) if (!out.barrels.includes(b)) out.barrels.push(b);
@@ -481,6 +511,18 @@ function tracePath(s: DashState, pts: { x: number; y: number }[], maxLen: number
   }
   if (!out.legs.length) out.legs.push([s.nx, s.ny, s.nx, s.ny]);
   (out.ex = x), (out.ey = y);
+  out.toks = out.toks.filter((id) => !out.falls.some((q) => q.id === id)); // 🎋 앞에서 툭 했어도 뒤 꺾인 토막이 베면 쓰러짐
+  for (const fl of out.falls) { // 🎋 쓰러진 줄(길이 BAMBOO.L · 곧은 칼 폭)은 펑과 같다 — 방패도 앞뒤 없이 · 잎은 휙 · 덤불은 넘어감 · 연쇄 없음
+    const b = s.bamboos.find((q) => q.id === fl.id)!;
+    fl.k = 0;
+    for (const f of s.foes) {
+      const u = clamp((f.x - b.x) * fl.dx + (f.y - b.y) * fl.dy, 0, BAMBOO.L);
+      if (used.has(f.id) || f.k === 'bell' || Math.hypot(b.x + fl.dx * u - f.x, b.y + fl.dy * u - f.y) > RAD[f.k] + BW) continue;
+      if (f.k === 'leaf') out.dodges.some((q) => q.id === f.id) || out.dodges.push({ id: f.id, leg: fl.leg });
+      else used.add(f.id), out.hits.push({ id: f.id, leg: fl.leg }), fl.k++;
+    }
+  }
+  out.hits.sort((a, b) => a.leg - b.leg);
   out.dodges = out.dodges.filter((q) => !used.has(q.id)); // 앞에서 휙 했어도 뒤 꺾인 토막이 베면 베인 것
   bellsOf(s, out, pts.length > 1 ? BW * BEND.w : BW);
   return out;
@@ -603,6 +645,20 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     kill(s, f, n, a, false);
   }
   if (boss && n >= 3) s.bossCombo = Math.max(s.bossCombo, n - 1);
+  for (const fl of P.falls) { // 🎋 쓰러짐
+    const b = s.bamboos.find((q) => q.id === fl.id)!;
+    (b.fall = s.t), (b.dx = fl.dx), (b.dy = fl.dy);
+    (s.bambooGuide = false), (s.dodgeN = 0);
+    ev(s, 'fall', b.x, b.y, fl.k);
+    see(s, 'bambooFall', '쓰러진 대나무가 줄을 베어요!');
+  }
+  for (const id of P.toks) { // 🎋 곧은 칼엔 '툭' — 흔들리기만(벌 없음 · 먹도 안 돌려줌)
+    const b = s.bamboos.find((q) => q.id === id)!;
+    b.wob = s.t;
+    ev(s, 'tok', b.x, b.y);
+    see(s, 'bamboo', '대나무는 곧은 칼엔 툭! 꺾어 들어가요');
+    if (!s.bambooGuide) (s.bambooGuide = true), s.dodgeN++;
+  }
   for (const bq of P.bells) if (bq.n === 1) { // 🔔 한 번만 지나면 '댕' — 다음엔 되돌아 두 번
     const f = s.foes.find((q) => q.id === bq.id);
     if (!f) continue;
@@ -695,7 +751,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
         ev(s, 'counter', f.x, f.y);
       }
   // ✏️ S003 헛방 벌(📐 CONTENT 개발 메모 2): 아무것도 못 벤 획 — 먹 -10 · 20틱 다시 못 긋기 · 근처 칼잡이가 그 틈에 바로 칼을 든다
-  if (n === 0 && !P.shots.length && !P.barrels.length) {
+  if (n === 0 && !P.shots.length && !P.barrels.length && !P.toks.length && !P.falls.length) {
     s.g = Math.max(0, s.g - TUNE.whiffG);
     s.stiff = TUNE.stiff;
     s.whiffs++;
@@ -797,6 +853,7 @@ function world(s: DashState, dt: number) {
   if (dt <= 0) return;
   s.wt += dt;
   s.waveT += dt;
+  if (s.bamboos.some((b) => b.fall >= 0 && s.t - b.fall > 30)) s.bamboos = s.bamboos.filter((b) => b.fall < 0 || s.t - b.fall <= 30); // 🎋 쓰러지고 0.5초 뒤 사라짐
   const hidden = inSmoke(s, s.nx, s.ny);
   for (const f of [...s.foes]) foeStep(s, f, dt, hidden);
   for (const k of s.strikes) {
@@ -869,6 +926,10 @@ function spawnWave(s: DashState) {
       s.barrels.push({ id: ++s.nid, x, y, fuse: -1, owner: 0, born: s.t });
       continue;
     }
+    if (k === 'bamboo') { // 🎋 적이 아니다 — 깨기·need 셈에 안 들고, 안 쓰면 남는다
+      s.bamboos.push({ id: ++s.nid, x, y, fall: -1, dx: 0, dy: -1, wob: -99 });
+      continue;
+    }
     const sd = side === 1 ? (flip ? 2 : 1) : side === 2 ? (flip ? 1 : 2) : side;
     const ex = sd === 1 ? -0.08 : sd === 2 ? 1.08 : x, ey = sd === 3 ? Y0 - 0.12 : y;
     const instant = s.stage === 0 && s.wave === 0;
@@ -902,6 +963,8 @@ function newStage(s: DashState) {
   s.barrels = (d.barrels ?? []).map(([x, y]) => ({ id: ++s.nid, x: F(x), y, fuse: -1, owner: 0, born: s.t }));
   s.mirrors = (d.mirrors ?? []).map(([ax, ay, bx, by]) => ({ ax: F(ax), ay, bx: F(bx), by }));
   s.thorns = (d.thorns ?? []).map(([x, y, r]) => ({ x: F(x), y, r }));
+  s.bamboos = [];
+  s.bambooGuide = false;
   s.smokes = (d.smokes ?? []).map(([x, y, r], k) => ({ x: F(x), y, r, vx: (k % 2 ? -1 : 1) * 0.0006, vy: (k % 2 ? 1 : -1) * 0.0004 }));
   s.wave = 0;
   s.waveT = 0;
@@ -1008,19 +1071,9 @@ function cosmetic(s: DashState) {
 export const slowdash: GameDef<DashState> = {
   id: 'slowdash',
   name: '느린 시간 닌자',
-  genes: ['bullettime', 'pointer', 'chain'],
-  twist: '누르고 있는 동안만 세상이 느려지는데 그 게이지가 돌진(길수록 많이)에도 들어서, 적을 한 줄에 여럿 세워 벨 때만 게이지가 오히려 찬다 — 기다려 줄 세우기와 날아오는 것 피하기 사이의 줄타기',
-  rules: [
-    '꾹 누르면 세상이 느려지고 닌자에서 손가락까지 선이 보여요. 떼면 번쩍! 그 선 위의 적을 모두 베요.',
-    '선이 길수록·오래 누를수록 게이지가 줄고, 한 번에 여럿 벨수록 많이 차요.',
-    '맞으면 체력 -1, 다 잃으면 하트 -1(그 판 다시). 적을 모두 베면 다음 판!',
-  ],
   controls: 'touch',
-  hint: '꾹 누르면 느려지고, 떼면 번쩍 돌진! / 화살표로 겨누고 스페이스',
   aspect: A,
   art: {
-    concept: '달밤 대나무 숲의 여우 닌자 — 먹물 그림책',
-    mood: '커다란 보름달 아래 대나무 숲 실루엣이 겹겹이 흔들리고, 반딧불이 떠다닌다. 누르면 세상이 먹빛 회색으로 바래며 느려지고, 떼는 순간 하얀 칼빛이 번쩍 — 베인 너구리 졸개들이 반으로 갈라져 먹물이 튄다.',
     palette: { bg: '#141a33', ink: '#f4ead2', muted: '#8c93b8', accent: '#ffd36b', hot: '#ff5a4e', soft: '#2a3358' },
   },
   reveals: (s) => s.seen.size,
@@ -1029,8 +1082,8 @@ export const slowdash: GameDef<DashState> = {
       rng: mulberry32(seed), seed, t: 0, wt: 0, stage: 0, phase: 'play', pt: 0, ok: false, why: '',
       stars: 0, base: 0, got: 0, starOk: [false, false, false], pts: 0, won: false, dead: false, again: false, tries: 0,
       nx: 0.5, ny: 1.17, face: 1, hp: HP, inv: 0, g: GMAX, down: false, lock: false, stiff: 0, whiffs: 0, stroke: [], anchor: null, dwell: 0, aim: null, holdT: 0, freeze: 0, slowT: 0,
-      strikes: [], foes: [], shots: [], barrels: [], mirrors: [], smokes: [], thorns: [], nid: 0, wave: 0, waveT: 0,
-      dashN: 0, chain: 0, best: 0, hits: 0, arrows: 0, backK: 0, boomBest: 0, boomBy: {}, mirK: 0, bounceT: -999, bents: 0, leafGuide: false, leafCut: false, dodgeN: 0, bellGuide: false, failN: 0, owlAsk: false, owlNo: false, owl: false, bossCombo: 0, dashes: 0,
+      strikes: [], foes: [], shots: [], barrels: [], mirrors: [], smokes: [], bamboos: [], thorns: [], nid: 0, wave: 0, waveT: 0,
+      dashN: 0, chain: 0, best: 0, hits: 0, arrows: 0, backK: 0, boomBest: 0, boomBy: {}, mirK: 0, bounceT: -999, bents: 0, leafGuide: false, leafCut: false, dodgeN: 0, bellGuide: false, bambooGuide: false, failN: 0, owlAsk: false, owlNo: false, owl: false, bossCombo: 0, dashes: 0,
       firstDash: false, firstBig: -1, firstPress: -1, combo: { id: -1, n: 0, t: -99 },
       seen: new Set<string>(), spotted: new Set<string>(), newsQ: [], news: null, spot: null, events: [], cuts: [], inks: [], trail: null,
       camX: 0, mood: 0, moodT: 0, owlT: -999, sheathT: -999, slowVis: 0,
@@ -1117,6 +1170,21 @@ export const slowdash: GameDef<DashState> = {
   score: (s) => s.pts,
   draw(ctx, s, w, h, th: Theme) {
     drawAll(ctx, s, w, h, th);
+  },
+};
+/** ✏️ M2 S7 번들 덜기: 공장 때 설계 메모(화면에서 안 씀) — 플레이 빌드는 이 export를 안 가져가서 빠진다 */
+export const NOTES = {
+  genes: ['bullettime', 'pointer', 'chain'],
+  twist: '누르고 있는 동안만 세상이 느려지는데 그 게이지가 돌진(길수록 많이)에도 들어서, 적을 한 줄에 여럿 세워 벨 때만 게이지가 오히려 찬다 — 기다려 줄 세우기와 날아오는 것 피하기 사이의 줄타기',
+  rules: [
+    '꾹 누르면 세상이 느려지고 닌자에서 손가락까지 선이 보여요. 떼면 번쩍! 그 선 위의 적을 모두 베요.',
+    '선이 길수록·오래 누를수록 게이지가 줄고, 한 번에 여럿 벨수록 많이 차요.',
+    '맞으면 체력 -1, 다 잃으면 하트 -1(그 판 다시). 적을 모두 베면 다음 판!',
+  ],
+  hint: '꾹 누르면 느려지고, 떼면 번쩍 돌진! / 화살표로 겨누고 스페이스',
+  art: {
+    concept: '달밤 대나무 숲의 여우 닌자 — 먹물 그림책',
+    mood: '커다란 보름달 아래 대나무 숲 실루엣이 겹겹이 흔들리고, 반딧불이 떠다닌다. 누르면 세상이 먹빛 회색으로 바래며 느려지고, 떼는 순간 하얀 칼빛이 번쩍 — 베인 너구리 졸개들이 반으로 갈라져 먹물이 튄다.',
   },
 };
 
@@ -2810,73 +2878,7 @@ function drawBarrel(ctx: C2, x: number, y: number, k: number, fuse: number, t: n
   }
   ctx.restore();
 }
-function drawMirror(ctx: C2, ax: number, ay: number, bx: number, by: number, H: number, t: number, flash: number) {
-  ctx.save();
-  ctx.fillStyle = 'rgba(4,6,18,.35)';
-  ctx.beginPath();
-  ctx.moveTo(ax, ay);
-  ctx.lineTo(bx, by);
-  ctx.lineTo(bx + H * 0.25, by + H * 0.1);
-  ctx.lineTo(ax + H * 0.25, ay + H * 0.1);
-  ctx.closePath();
-  ctx.fill();
-  const g = lin(ctx, ax, ay - H, bx, by, [0, '#f2f6ff'], [0.35, '#a7b3cc'], [0.6, '#e4ebf7'], [1, '#8e9ab4']);
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.moveTo(ax, ay - H * 0.1);
-  ctx.lineTo(bx, by - H * 0.1);
-  ctx.lineTo(bx, by - H);
-  ctx.lineTo(ax, ay - H);
-  ctx.closePath();
-  ctx.fill();
-  ctx.save();
-  ctx.clip();
-  const sh = ((t * 0.6) % (Math.abs(bx - ax) + H * 2)) - H;
-  ctx.fillStyle = 'rgba(255,255,255,.55)';
-  ctx.beginPath();
-  ctx.moveTo(Math.min(ax, bx) + sh, Math.max(ay, by));
-  ctx.lineTo(Math.min(ax, bx) + sh + H * 0.12, Math.max(ay, by));
-  ctx.lineTo(Math.min(ax, bx) + sh + H * 0.5, Math.min(ay, by) - H);
-  ctx.lineTo(Math.min(ax, bx) + sh + H * 0.38, Math.min(ay, by) - H);
-  ctx.fill();
-  ctx.fillStyle = 'rgba(255,248,220,.5)';
-  ctx.beginPath();
-  ctx.arc((ax + bx) / 2 + H * 0.1, (ay + by) / 2 - H * 0.65, H * 0.1, 0, TAU);
-  ctx.fill();
-  if (flash > 0) {
-    ctx.fillStyle = `rgba(255,255,255,${flash})`;
-    ctx.fillRect(Math.min(ax, bx) - 5, Math.min(ay, by) - H - 5, Math.abs(bx - ax) + 10, Math.abs(by - ay) + H + 10);
-  }
-  ctx.restore();
-  ctx.strokeStyle = '#3a2418';
-  ctx.lineWidth = H * 0.07;
-  ctx.lineJoin = 'round';
-  ctx.beginPath();
-  ctx.moveTo(ax, ay - H * 0.1);
-  ctx.lineTo(bx, by - H * 0.1);
-  ctx.lineTo(bx, by - H);
-  ctx.lineTo(ax, ay - H);
-  ctx.closePath();
-  ctx.stroke();
-  ctx.strokeStyle = '#6e4630';
-  ctx.lineWidth = H * 0.025;
-  ctx.stroke();
-  ctx.fillStyle = '#e8c04a';
-  for (const [px, py] of [[ax, ay - H], [bx, by - H], [ax, ay - H * 0.1], [bx, by - H * 0.1]]) {
-    ctx.beginPath();
-    ctx.arc(px, py, H * 0.05, 0, TAU);
-    ctx.fill();
-  }
-  ctx.strokeStyle = '#3a2418';
-  ctx.lineWidth = H * 0.08;
-  ctx.beginPath();
-  ctx.moveTo(ax, ay - H * 0.1);
-  ctx.lineTo(ax, ay + H * 0.02);
-  ctx.moveTo(bx, by - H * 0.1);
-  ctx.lineTo(bx, by + H * 0.02);
-  ctx.stroke();
-  ctx.restore();
-}
+// ✏️ M2 S7 번들 덜기: drawMirror(거울 그림)는 뺐다 — 거울은 어느 판에도 없다(시뮬 반사 규칙은 남김). 다시 쓰면 git 기록에서 되살림
 /** ✏️ S009 가시덤불: 먹빛 덤불 + 가시. hot = 지금 그리는 길이 걸림 */
 /** S012 1-2 길잡이: 적 a를 지나 꺾어 적 b 너머까지 — 셋 넘게 베는 길 중 가장 많이 베는 것(그리기 전용, 시뮬과 무관) */
 function guideOf(s: DashState, min = 4) {
@@ -2910,7 +2912,7 @@ export const ONBOARD = { moveDemo: true };
 /** 1-1 둘째 웨이브(가로 넷)이고 아직 꺾은 획을 안 그었으면: 손가락이 줄 끝으로 가서 꺾어 긋는 길을 그어 보인다(GDD §7) */
 const moveDemo = (s: DashState) => ONBOARD.moveDemo && s.stage === 0 && s.wave === 2 && s.bents === 0;
 /** M2 S2 손가락 시범: 잎 길잡이가 보이고 휙이 LEAF_DEMO번 넘게 났을 때 · M2 S3: 1-1 옮겨 서기 시범도 손가락 */
-const demoNow = (s: DashState) => s.owl || moveDemo(s) || ((s.leafGuide || s.bellGuide) && s.dodgeN >= LEAF_DEMO);
+const demoNow = (s: DashState) => s.owl || moveDemo(s) || ((s.leafGuide || s.bellGuide || s.bambooGuide) && s.dodgeN >= LEAF_DEMO);
 /** ✏️ M2 S6 🔔 종 길잡이: 종 너머 .13까지 갔다가 ±20~35° 돌아 .30 되돌아오는 V(종을 두 번 지나는 것 중 가장 많이 베는 길) */
 function bellGuideOf(s: DashState) {
   let best: { x: number; y: number }[] | null = null, bn = 0;
@@ -2925,14 +2927,34 @@ function bellGuideOf(s: DashState) {
   }
   return best;
 }
+/** ✏️ M2 S7 🎋 대나무 길잡이(📐 bambooPlan): 쓰러짐 줄에 적이 가장 많이 걸리는 방향 u로 [대나무 − u×.16 → 대나무] 꺾어 들어감.
+ *  닌자에서 첫 점까지가 u와 30° 안이면 앞에 옆걸음 점(u에 수직 .12)을 넣는다 · 덤불에 걸리는 길은 뒤로 */
+function bambooGuideOf(s: DashState, safe?: (P: Path) => boolean) {
+  let best: { x: number; y: number }[] | null = null, bn = 0;
+  for (const B of s.bamboos) {
+    if (B.fall >= 0) continue;
+    for (let i = 0; i < 16; i++) {
+      const ux = Math.cos((i * TAU) / 16), uy = Math.sin((i * TAU) / 16), p1 = { x: B.x - ux * 0.16, y: B.y - uy * 0.16 };
+      if (p1.x < X0 || p1.x > X1 || p1.y < Y0 || p1.y > Y1) continue;
+      const d = Math.hypot(p1.x - s.nx, p1.y - s.ny) || 1, pts = [p1, { x: B.x, y: B.y }];
+      if (((p1.x - s.nx) * ux + (p1.y - s.ny) * uy) / d > Math.cos(0.52)) pts.unshift({ x: clamp(p1.x - uy * 0.12, X0, X1), y: clamp(p1.y + ux * 0.12, Y0, Y1) });
+      const P = tracePath(s, pts, reachFor(s, pts));
+      if (!P.falls.some((q) => q.id === B.id) || (safe && !safe(P))) continue;
+      const v = P.hits.length - (thornOf(s, P.legs) ? 0.5 : 0);
+      if (v > bn) (bn = v), (best = pts);
+    }
+  }
+  return best;
+}
 /** 지금 화면에 그려 주는 길잡이(1-2 ㄱ자 · 첫 휙 뒤 잎) — 그리기와 측정 봇이 같은 것을 본다 */
 function guideNow(s: DashState) {
   if (s.phase !== 'play' || s.down) return null;
-  if (s.owl) return (s.foes.some((f) => f.k === 'leaf' && f.st !== ENTER) ? leafGuideOf(s) : null) ?? (s.foes.some((f) => f.k === 'bell' && f.st !== ENTER) ? bellGuideOf(s) : null) ?? guideOf(s, 2) ?? guideOf(s, 1); // M2 S4 부엉이: 지금 가장 많이 베는 길
+  if (s.owl) return (s.foes.some((f) => f.k === 'leaf' && f.st !== ENTER) ? leafGuideOf(s) : null) ?? (s.foes.some((f) => f.k === 'bell' && f.st !== ENTER) ? bellGuideOf(s) : null) ?? bambooGuideOf(s) ?? guideOf(s, 2) ?? guideOf(s, 1); // M2 S4 부엉이: 지금 가장 많이 베는 길
   if (moveDemo(s)) return guideOf(s, 3); // 🧪 S3: 하나 베어도 남은 셋을 꿰는 길로 계속
   if (s.stage === 1 && s.bents === 0) return guideOf(s);
   if (s.leafGuide) return leafGuideOf(s);
   if (s.bellGuide) return bellGuideOf(s);
+  if (s.bambooGuide) return bambooGuideOf(s);
   return null;
 }
 
@@ -3306,11 +3328,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   // ── 서 있는 것들: 깊이(발 y) 순서로 ──
   type Item = { y: number; draw: () => void };
   const items: Item[] = [];
-  const recentFlash = (kind: string) => fx.memo['fl' + kind] ?? -99;
-  for (const m of s.mirrors) {
-    const H = R(0.11), fl = Math.max(0, 1 - (t - recentFlash('m')) / 12);
-    items.push({ y: Math.max(m.ay, m.by), draw: () => drawMirror(ctx, X(m.ax), Y(m.ay), X(m.bx), Y(m.by), H, t, fl * 0.8) });
-  }
   {
     const hot = prev ? thornOf(s, prev.legs)?.m : null;
     for (const m of s.thorns) items.push({ y: m.y - m.r * 0.6, draw: () => drawThorn(ctx, X(m.x), Y(m.y), R(m.r) * 1.25, t, m === hot) });
@@ -3370,6 +3387,24 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.restore();
   };
   for (const f of s.foes) items.push({ y: f.y, draw: () => drawFoe(f, 1, false) });
+  for (const b of s.bamboos) items.push({ y: b.y, draw: () => { // ✏️ M2 S7 🎋 대나무(임시 그림 — 🎨 M3): 밑동이 베는 자리 · 툭이면 흔들 · 꺾어 베면 칼 간 쪽으로 쓰러짐
+    const H = R(BAMBOO.L * 0.7), bx = X(b.x), by = Y(b.y), p = b.fall < 0 ? 0 : Math.min(1, (t - b.fall) / 12), w0 = t - b.wob;
+    let a = Math.atan2(b.dy, b.dx) + Math.PI / 2;
+    if (a > Math.PI) a -= TAU;
+    ctx.save();
+    ctx.globalAlpha = b.fall < 0 ? 1 : Math.max(0, 1 - (t - b.fall - 12) / 18);
+    ctx.fillStyle = 'rgba(0,0,0,.3)';
+    ell(ctx, bx, by, R(0.03), R(0.012));
+    ctx.fill();
+    bamboo(ctx, bx, by - H - (R(BAMBOO.L) - H) * p, by, R(0.024), '#7ad070', 'rgba(235,255,220,.55)', b.id, 2, b.fall < 0 ? (w0 < 24 ? Math.sin(w0 * 0.9) * 0.18 * (1 - w0 / 24) : 0) : a * p * p);
+    if (b.fall < 0) { // 베는 자리: 밑동 고리
+      ctx.strokeStyle = `rgba(255,236,150,${0.55 + 0.25 * Math.sin(t * 0.2)})`;
+      ctx.lineWidth = 2;
+      ell(ctx, bx, by - R(0.015), R(0.026), R(0.011));
+      ctx.stroke();
+    }
+    ctx.restore();
+  } });
   // 베인 적: 잠깐 멈췄다가(칼을 집어넣는 '찰칵') 반으로 갈라진다
   const SPLIT = 10;
   for (const c of s.cuts) {
@@ -3785,17 +3820,29 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.textBaseline = 'middle';
       ctx.fillText(String(i + 1), bx, by + 1);
     });
-    for (const dq of prev.dodges) { // 🍃 곧은 칼이면 '휙' — 꺾어 들어가야 베인다
-      const f = s.foes.find((q) => q.id === dq.id);
+    for (const fl of prev.falls) { // 🎋 쓰러질 줄(점선)
+      const b = s.bamboos.find((q) => q.id === fl.id);
+      if (!b) continue;
+      ctx.setLineDash([R(0.014), R(0.012)]);
+      ctx.strokeStyle = '#ffd84a';
+      ctx.lineWidth = R(0.012);
+      ctx.beginPath();
+      ctx.moveTo(X(b.x), Y(b.y));
+      ctx.lineTo(X(b.x + fl.dx * BAMBOO.L), Y(b.y + fl.dy * BAMBOO.L));
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    for (const dq of [...prev.dodges, ...prev.toks.map((id) => ({ id }))]) { // 🍃 곧은 칼이면 '휙' · 🎋 '툭' — 꺾어 들어가야 베인다
+      const f = s.foes.find((q) => q.id === dq.id) ?? s.bamboos.find((q) => q.id === dq.id), txt = 'k' in (f ?? {}) ? '휙! 꺾어요' : '툭! 꺾어요';
       if (!f) continue;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.lineWidth = 3;
       ctx.strokeStyle = 'rgba(0,0,0,.6)';
       font(0.04, 900); // 🧪 M2 S1: 머리 위는 '×명 한 줄!'에 가려서 발밑으로·크게
-      ctx.strokeText('휙! 꺾어요', X(f.x), Y(f.y) + R(0.05));
+      ctx.strokeText(txt, X(f.x), Y(f.y) + R(0.05));
       ctx.fillStyle = '#c8ffb0';
-      ctx.fillText('휙! 꺾어요', X(f.x), Y(f.y) + R(0.05));
+      ctx.fillText(txt, X(f.x), Y(f.y) + R(0.05));
     }
     if (prev.hits.length >= 2) {
       font(0.05, 900);
@@ -4299,6 +4346,8 @@ export const measureKit = { trace: (s: DashState, tx: number, ty: number) => tra
   thorn: (s: DashState, P: Path) => !!thornOf(s, P.legs),
   /** M2 S1: 화면에 그려 주는 길잡이(처음 하는 사람 봇이 보고 따라 그린다) */
   guide: (s: DashState) => guideNow(s),
+  /** M2 S7 🎋 장인 봇 bambooPlan(safe = 내릴 자리·덤불 거르기) */
+  bamboo: (s: DashState, safe?: (P: Path) => boolean) => bambooGuideOf(s, safe),
   demo: (s: DashState) => !!guideNow(s) && demoNow(s),
   owl: (s: DashState) => s.owl,
   STROKE_STEP, reachOf, HOP, DMAX, A, X0, X1, Y0, Y1, GBASE, GPER, SLOW, ENTER };

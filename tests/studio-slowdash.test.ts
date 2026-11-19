@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/slowdash/core.ts';
 import { ONBOARD, STAGES, STRIKE, TRIAL, WORLD_LOCK, measureKit, missOf, useOwl, worldStars, slowdash as g, slowdashRandom, slowdashSmart, startStage } from '../studio/slowdash/game.ts';
-import { BOTS, measure, tapEvery, try3, tryStage } from '../studio/slowdash/funqa.ts';
+import { BOTS, measure, setBambooOff, tapEvery, try3, tryStage } from '../studio/slowdash/funqa.ts';
 import { chainHz, sfx } from '../studio/slowdash/sfx.ts';
 
 const A = g.aspect ?? 1.52;
@@ -343,7 +343,7 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(l.dodgeN).toBeGreaterThanOrEqual(3);
     expect(l.owlAsk).toBe(true);
     expect(WORLD_LOCK).toBe(18);
-    expect(TRIAL.map((d) => d.key)).toEqual(['leaf', 'leafWait', 'leafShuri', 'smoke', 'leafShield']); // M2 S5 월드 2: 2-1~2-5
+    expect(TRIAL.map((d) => d.key)).toEqual(['leaf', 'leafWait', 'leafShuri', 'smoke', 'leafShield', 'bamboo']); // M2 S5 월드 2: 2-1~2-5 · S7 2-6 🎋
     expect(worldStars({ a: 3, b: 2 }, ['a', 'b', 'c'])).toBe(5);
   });
 
@@ -367,6 +367,49 @@ describe('느린 시간 닌자 시뮬', () => {
     const two = go([[0.5, 1.1], [0.5, 0.95], [0.5, 0.8], [0.5, 0.62], [0.42, 0.72], [0.36, 0.85], [0.3, 0.95]]); // 너머까지 갔다가 되돌아 V
     expect(two.s.foes.includes(two.f)).toBe(false);
     expect(TRIAL.some((d) => d.key === 'bell')).toBe(false);
+  });
+
+  it('M2 S7 🎋 대나무: 꺾어 들어간 칼에 베이면 칼 간 쪽으로 쓰러져 덤불 너머 줄을 벤다(닌자는 덤불에 안 걸림) · 곧은 칼엔 툭(안 쓰러짐 · 헛방 벌 없음) · 2-6 · 대조 봇은 안 씀', () => {
+    const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y: y / A } });
+    const go = (pts: number[][]) => {
+      const s = g.create(3);
+      startStage(s, K('bend'));
+      for (let k = 0; k < 60; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+      s.foes = s.foes.slice(0, 3);
+      s.foes.forEach((f, i) => ((f.k as string) = 'dummy', (f.x = 0.33 - i * 0.08), (f.y = 0.75)));
+      s.thorns = [{ x: 0.42, y: 0.75, r: 0.04 }];
+      s.bamboos = [{ id: 999, x: 0.5, y: 0.75, fall: -1, dx: 0, dy: -1, wob: -99 }];
+      (s.nx = 0.5), (s.ny = 1.1), (s.g = 90), (s.inv = 0), (s.hits = 0), (s.whiffs = 0);
+      for (const [x, y] of pts) for (let k = 0; k < 3; k++) g.step(s, at(x, y));
+      g.step(s, { tap: false, dir: 0, pointer: null });
+      return s;
+    };
+    const bent = go([[0.5, 1.1], [0.66, 0.95], [0.7, 0.82], [0.66, 0.75], [0.5, 0.75]]); // 옆으로 올라가 꺾어 왼쪽으로 대나무까지
+    expect(bent.foes).toHaveLength(0); // 쓰러진 줄이 덤불 너머 셋을 벰
+    expect(bent.events.some((e) => e.kind === 'fall' && e.n === 3)).toBe(true);
+    expect(bent.hits).toBe(0); // 줄은 덤불을 넘어가고 닌자는 안 걸림
+    for (const pts of [[[0.5, 0.7]], [[0.5, 1.0], [0.5, 0.9], [0.5, 0.8], [0.5, 0.7]]]) { // 톡 · 곧게 그은 획
+      const st = go(pts);
+      expect(st.foes).toHaveLength(3);
+      expect(st.bamboos[0].fall).toBe(-1);
+      expect(st.events.some((e) => e.kind === 'tok')).toBe(true);
+      expect(st.whiffs).toBe(0); // 툭은 헛방 벌이 없다
+      expect(st.bambooGuide).toBe(true); // 첫 툭 뒤 꺾는 길잡이
+    }
+    expect(TRIAL.map((d) => d.key).indexOf('bamboo')).toBe(5); // 2-6
+    for (const d of TRIAL) expect(d.goal && d.ease && d.card).toBeTruthy(); // 🧪 S7: 줄 끝 주석이 뒤 설정을 지우던 것(2-4 goal 빠짐)
+    STAGES.push(...TRIAL);
+    try {
+      const k = STAGES.length - TRIAL.length + 5;
+      for (const sd of [101, 108, 115]) expect(tryStage(BOTS.spam, sd, k).ok).toBe(false);
+      expect([101, 108, 115].filter((sd) => try3(BOTS.newbieLow, sd, k).ok).length).toBeGreaterThanOrEqual(2);
+      expect([101, 108, 115, 122].map((sd) => tryStage(BOTS.humanTap, sd, k).tapFall).every((n) => n === 0)).toBe(true); // 곧은 획 쓰러짐 0
+      setBambooOff(true); // ㊾ 대조 봇은 대나무를 안 쓴다
+      expect([101, 108, 115].some((sd) => tryStage(BOTS.smartStroke, sd, k).bambooUse)).toBe(false);
+    } finally {
+      setBambooOff(false);
+      STAGES.length -= TRIAL.length;
+    }
   });
 
   it('S005 효과음: 시뮬·봇은 소리를 모른다(헤드리스로 한 판 돌려도 AudioContext 0) · 연쇄 음계는 5음계로 오르고 8번째부터 고정', () => {

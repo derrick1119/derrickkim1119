@@ -119,6 +119,20 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
     await page.mouse.up();
     await page.waitForTimeout(1600); // M2 S2: 휙 뒤 손가락 시범
     await page.screenshot({ path: join(out, '14-leaf-demo.png') });
+    // ✏️ M2 S7 🎋 2-6 첫 무리: 옆으로 올라가 꺾어 왼쪽으로 대나무까지 — 쓰러질 줄(점선) · 떼면 쓰러져 셋
+    await page.goto(url + '&trial=1&stage=16');
+    await page.waitForTimeout(3000);
+    await page.screenshot({ path: join(out, '22-bamboo-idle.png') });
+    {
+      const pts = [[0.7, 1.02], [0.74, 0.96], [0.73, 0.92], [0.66, 0.92], [0.6, 0.92], [0.555, 0.92]].map(([x, y]) => at2(x, y));
+      await page.mouse.move(pts[0].x, pts[0].y);
+      await page.mouse.down();
+      for (const p of pts.slice(1)) (await page.mouse.move(p.x, p.y, { steps: 3 }), await page.waitForTimeout(30));
+      await page.screenshot({ path: join(out, '20-bamboo.png') });
+      await page.mouse.up();
+      await page.waitForTimeout(180);
+      await page.screenshot({ path: join(out, '21-bamboo-fall.png') });
+    }
     // M2 S4 부엉이: 곧게 두 번 더 휙 → 묻는 카드
     await page.goto(url + '&stage=3&owl=1');
     await page.waitForTimeout(500);
