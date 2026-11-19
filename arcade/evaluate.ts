@@ -41,7 +41,7 @@ export interface ArcadeReport {
   /** 큰 순간 (0089, GameDef.wows): 처음 하는 사람(무작위 봇)의 첫 입력부터 첫 큰 순간까지 초(중앙값, 3분 안에 못 보면 null) · 분당 큰 순간(무작위 · 잘하는 봇) */
   wow?: { firstSec: number | null; seen: number; dumbPerMin: number; smartPerMin: number };
   /** 판별 변화 (0092, cleared 필요): 2판부터 판별 손 모양(분당 누름·누르는 길이)의 변동계수 최댓값 · 2판부터 분당 큰 순간 ÷ 1판(wows 있을 때) */
-  stages?: { change: number; lateWow: number | null; n: number };
+  stages?: { change: number; lateWow: number | null; n: number; tapOnly?: boolean };
 }
 
 const median = (a: number[]) => {
@@ -181,7 +181,7 @@ export function wowStats<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, seeds: n
  * 판마다 하는 일이 바뀌나 (0092, 한계 지표). 잘하는 봇 판을 판(cleared)별로 끊어
  * 분당 누름·한 번 누르는 길이·분당 큰 순간(wows)을 잰다. 나사 공방 "폐기 한계가 좀 보인더".
  */
-export function stageProfile<S>(g: GameDef<S>, smart: Bot<S>, seeds: number[]): { change: number; lateWow: number | null; n: number } | undefined {
+export function stageProfile<S>(g: GameDef<S>, smart: Bot<S>, seeds: number[]): { change: number; lateWow: number | null; n: number; tapOnly?: boolean } | undefined {
   if (!g.cleared) return undefined;
   const per = new Map<number, { t: number; presses: number; holdT: number; wows: number }>();
   for (const sd of seeds) {
@@ -214,6 +214,8 @@ export function stageProfile<S>(g: GameDef<S>, smart: Bot<S>, seeds: number[]): 
     change: +Math.max(cv(late.map((r) => r.perMin)), cv(late.map((r) => r.hold))).toFixed(2),
     lateWow: g.wows && first && first.wowMin > 0 ? +(median(late.map((r) => r.wowMin)) / first.wowMin).toFixed(2) : null,
     n: rows.length,
+    // 톡만 쓰는 게임(한 번 누름이 0.2초 미만): 손 모양은 늘 같고 바뀌는 건 '무엇을 고르나'라 손 모양 변화로 재지 않는다 (0097)
+    tapOnly: median(rows.map((r) => r.hold)) < 12 || undefined,
   };
 }
 

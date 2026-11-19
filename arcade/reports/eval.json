@@ -1,274 +1,341 @@
 {
- "shadowghost": {
-  "id": "shadowghost",
-  "name": "그림자 길 유령 꼬마",
+ "alchemylab": {
+  "id": "alchemylab",
+  "name": "꼬마 마녀 조합 연구소",
   "n": 24,
   "dumb": {
-   "score": 728.5,
-   "sec": 81.1
+   "score": 460,
+   "sec": 92.3
   },
   "smart": {
-   "score": 3434.5,
-   "sec": 55.8,
+   "score": 3060,
+   "sec": 64.1,
    "capped": 0
   },
-  "skillGap": 4.71,
+  "skillGap": 6.64,
   "reveals": [
-   5.1,
-   8,
-   8
-  ],
-  "dumbReveals": [
-   2.3,
-   5.1
-  ],
-  "parts": {
-   "skill": 0.745,
-   "onboarding": 1,
-   "session": 1,
-   "simplicity": 0.85,
-   "unfold": 1
-  },
-  "fun": 0.904,
-  "firstLoss": {
-   "idle": 0,
-   "late": 0
-  },
-  "presses": {
-   "perMin": 35,
-   "maxSame": 2.5
-  },
-  "habitStar3": {
-   "rate": 0.04,
-   "stage": 3,
-   "bot": "늘 눈앞만 그늘로"
-  },
-  "human": {
-   "sec": 59.2,
-   "capped": 0,
-   "scoreRatio": 1
-  },
-  "wow": {
-   "firstSec": 0.52,
-   "seen": 1,
-   "dumbPerMin": 6.6,
-   "smartPerMin": 13.2
-  },
-  "stages": {
-   "change": 0.28,
-   "lateWow": 0.23,
-   "n": 8
-  },
-  "habitGap": 1.32
- },
- "puffhamster": {
-  "id": "puffhamster",
-  "name": "부풀리기 햄스터 대탈출",
-  "n": 24,
-  "dumb": {
-   "score": 975,
-   "sec": 72.7
-  },
-  "smart": {
-   "score": 4735,
-   "sec": 135.4,
-   "capped": 0
-  },
-  "skillGap": 4.85,
-  "reveals": [
-   7,
-   9,
-   12
-  ],
-  "dumbReveals": [
-   6.6,
-   7.9
-  ],
-  "parts": {
-   "skill": 0.76,
-   "onboarding": 1,
-   "session": 1,
-   "simplicity": 0.85,
-   "unfold": 1
-  },
-  "fun": 0.908,
-  "firstLoss": {
-   "idle": 0,
-   "late": 0
-  },
-  "presses": {
-   "perMin": 19,
-   "maxSame": null
-  },
-  "habitStar3": {
-   "rate": 0,
-   "stage": 0,
-   "bot": "앞에 물건이 있으면 늘 부풀기"
-  },
-  "human": {
-   "sec": 136.9,
-   "capped": 0,
-   "scoreRatio": 1
-  },
-  "wow": {
-   "firstSec": 0.17,
-   "seen": 1,
-   "dumbPerMin": 9.2,
-   "smartPerMin": 16.8
-  },
-  "stages": {
-   "change": 0.56,
-   "lateWow": 0.75,
-   "n": 7
-  },
-  "habitGap": 1.88
- },
- "froglily": {
-  "id": "froglily",
-  "name": "연잎 개구리 대경주",
-  "n": 24,
-  "dumb": {
-   "score": 1191.5,
-   "sec": 73.9
-  },
-  "smart": {
-   "score": 11649,
-   "sec": 147.1,
-   "capped": 0
-  },
-  "skillGap": 9.77,
-  "reveals": [
-   2.5,
    5,
-   7.1
+   9,
+   9
   ],
   "dumbReveals": [
-   2.5,
-   3.6
+   3.6,
+   6
   ],
   "parts": {
-   "skill": 1,
+   "skill": 0.91,
    "onboarding": 1,
    "session": 1,
    "simplicity": 0.85,
    "unfold": 1
   },
-  "fun": 0.978,
+  "fun": 0.954,
   "firstLoss": {
    "idle": 0,
    "late": 0
   },
   "presses": {
    "perMin": 41,
-   "maxSame": null
+   "maxSame": 2
   },
   "habitStar3": {
-   "rate": 0.28,
+   "rate": 0.27,
    "stage": 3,
-   "bot": "늘 끝까지 모아 멀리"
+   "bot": "늘 최근에 만든 것 + 아무거나"
   },
   "human": {
-   "sec": 173.2,
+   "sec": 80,
    "capped": 0,
-   "scoreRatio": 0.25
+   "scoreRatio": 1
   },
   "wow": {
-   "firstSec": 0.88,
+   "firstSec": 2.08,
    "seen": 1,
-   "dumbPerMin": 2.4,
-   "smartPerMin": 1.9
+   "dumbPerMin": 6.4,
+   "smartPerMin": 20.6
   },
   "stages": {
-   "change": 0.03,
-   "lateWow": 0.06,
-   "n": 7
+   "change": 0.13,
+   "lateWow": 0.76,
+   "n": 8,
+   "tapOnly": true
   },
-  "habitGap": 1.71
+  "habitGap": 5.01
  },
- "umbrellaparry": {
-  "id": "umbrellaparry",
-  "name": "우산 튕기기 꼬마 vs 구름 거인",
+ "petsquad": {
+  "id": "petsquad",
+  "name": "동물 군단 합체 전투",
   "n": 24,
   "dumb": {
-   "score": 577.5,
-   "sec": 70.6
+   "score": 1168,
+   "sec": 173.4
   },
   "smart": {
-   "score": 3692.5,
-   "sec": 121.1,
-   "capped": 0
+   "score": 6536,
+   "sec": 111.9,
+   "capped": 0.041666666666666664
   },
-  "skillGap": 6.38,
+  "skillGap": 5.59,
   "reveals": [
-   6,
+   5.1,
    7.9,
-   10
+   9.8
   ],
   "dumbReveals": [
-   3.3,
-   5.1
+   2.5,
+   5.3
   ],
   "parts": {
-   "skill": 0.892,
+   "skill": 0.828,
    "onboarding": 1,
-   "session": 1,
+   "session": 0.958,
    "simplicity": 0.85,
    "unfold": 1
   },
-  "fun": 0.948,
+  "fun": 0.924,
   "firstLoss": {
    "idle": 0,
    "late": 0
   },
   "presses": {
-   "perMin": 28,
+   "perMin": 22,
    "maxSame": 3
+  },
+  "habitStar3": {
+   "rate": 0.25,
+   "stage": 3,
+   "bot": "늘 가장 비싼 것 사기"
+  },
+  "human": {
+   "sec": 126.5,
+   "capped": 0,
+   "scoreRatio": 1
+  },
+  "wow": {
+   "firstSec": 8.47,
+   "seen": 1,
+   "dumbPerMin": 3,
+   "smartPerMin": 13.1
+  },
+  "stages": {
+   "change": 0.41,
+   "lateWow": 0.22,
+   "n": 7,
+   "tapOnly": true
+  },
+  "habitGap": 3.17
+ },
+ "tinykingdom": {
+  "id": "tinykingdom",
+  "name": "꼬마 왕국 두 갈래",
+  "n": 24,
+  "dumb": {
+   "score": 1127.5,
+   "sec": 118.9
+  },
+  "smart": {
+   "score": 6190,
+   "sec": 130.3,
+   "capped": 0
+  },
+  "skillGap": 5.49,
+  "reveals": [
+   6.5,
+   9.9,
+   15.1
+  ],
+  "dumbReveals": [
+   5.9,
+   10.8
+  ],
+  "parts": {
+   "skill": 0.819,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.927,
+  "firstLoss": {
+   "idle": 0,
+   "late": 0
+  },
+  "presses": {
+   "perMin": 22,
+   "maxSame": 5.5
+  },
+  "habitStar3": {
+   "rate": 0.33,
+   "stage": 6,
+   "bot": "늘 왼쪽"
+  },
+  "human": {
+   "sec": 134.5,
+   "capped": 0,
+   "scoreRatio": 1
+  },
+  "wow": {
+   "firstSec": 0,
+   "seen": 1,
+   "dumbPerMin": 15.5,
+   "smartPerMin": 20.7
+  },
+  "stages": {
+   "change": 0.04,
+   "lateWow": 0.76,
+   "n": 7,
+   "tapOnly": true
+  },
+  "habitGap": 2.99
+ },
+ "reeftank": {
+  "id": "reeftank",
+  "name": "작은 어항 생태계",
+  "n": 24,
+  "dumb": {
+   "score": 730,
+   "sec": 145.1
+  },
+  "smart": {
+   "score": 5240,
+   "sec": 140.4,
+   "capped": 0
+  },
+  "skillGap": 7.17,
+  "reveals": [
+   5,
+   8,
+   12.9
+  ],
+  "dumbReveals": [
+   4,
+   8.4
+  ],
+  "parts": {
+   "skill": 0.947,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.964,
+  "firstLoss": {
+   "idle": 0,
+   "late": 0
+  },
+  "presses": {
+   "perMin": 17,
+   "maxSame": 3
+  },
+  "habitStar3": {
+   "rate": 0.32,
+   "stage": 3,
+   "bot": "버릇: 늘 가장 큰 생물"
+  },
+  "human": {
+   "sec": 142.1,
+   "capped": 0,
+   "scoreRatio": 1
+  },
+  "wow": {
+   "firstSec": 1.78,
+   "seen": 1,
+   "dumbPerMin": 11.3,
+   "smartPerMin": 13.7
+  },
+  "stages": {
+   "change": 0.01,
+   "lateWow": 1.03,
+   "n": 7,
+   "tapOnly": true
+  },
+  "habitGap": 5.7
+ },
+ "petcafe": {
+  "id": "petcafe",
+  "name": "동물 손님 카페 하루",
+  "n": 24,
+  "dumb": {
+   "score": 570.5,
+   "sec": 180
+  },
+  "smart": {
+   "score": 2389.5,
+   "sec": 128.7,
+   "capped": 0
+  },
+  "skillGap": 4.18,
+  "reveals": [
+   6.9,
+   8,
+   13
+  ],
+  "dumbReveals": [
+   5.5,
+   7.3
+  ],
+  "parts": {
+   "skill": 0.688,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.885,
+  "firstLoss": {
+   "idle": 0,
+   "late": 0
+  },
+  "presses": {
+   "perMin": 29,
+   "maxSame": 2
   },
   "habitStar3": {
    "rate": 0,
    "stage": 0,
-   "bot": "늘 정면에서 받아치기"
+   "bot": "늘 가장 싼 메뉴"
   },
   "human": {
-   "sec": 176.5,
+   "sec": 151.3,
    "capped": 0,
-   "scoreRatio": 0.75
+   "scoreRatio": 1
   },
   "wow": {
-   "firstSec": 1.32,
+   "firstSec": 7.72,
    "seen": 1,
-   "dumbPerMin": 7.3,
-   "smartPerMin": 25.1
+   "dumbPerMin": 7.8,
+   "smartPerMin": 28.8
   },
   "stages": {
-   "change": 0.15,
-   "lateWow": 0.66,
-   "n": 6
+   "change": 0.08,
+   "lateWow": 0.83,
+   "n": 5,
+   "tapOnly": true
   },
-  "habitGap": 2.3
+  "habitGap": 4.19
  },
- "chameleon": {
-  "id": "chameleon",
-  "name": "카멜레온 무늬 숨바꼭질",
+ "treasuremap": {
+  "id": "treasuremap",
+  "name": "보물섬 갈림길 탐험",
   "n": 24,
   "dumb": {
-   "score": 2037.5,
-   "sec": 96.3
+   "score": 431.5,
+   "sec": 101.6
   },
   "smart": {
-   "score": 10275,
-   "sec": 121.1,
+   "score": 2179,
+   "sec": 119.3,
    "capped": 0
   },
   "skillGap": 5.04,
   "reveals": [
-   4,
-   7.6,
-   11
+   6.3,
+   9.8,
+   14.1
   ],
   "dumbReveals": [
-   4,
-   6.8
+   5.5,
+   9.9
   ],
   "parts": {
    "skill": 0.778,
@@ -283,92 +350,31 @@
    "late": 0
   },
   "presses": {
-   "perMin": 14,
-   "maxSame": null
+   "perMin": 20,
+   "maxSame": 4
   },
   "habitStar3": {
-   "rate": 0.33,
+   "rate": 0.18,
    "stage": 3,
-   "bot": "늘 처음 만난 무늬로 갈아입기"
+   "bot": "버릇: 늘 상자 길"
   },
   "human": {
-   "sec": 133.6,
+   "sec": 124.8,
    "capped": 0,
-   "scoreRatio": 0.95
+   "scoreRatio": 1
   },
   "wow": {
-   "firstSec": 1.06,
+   "firstSec": 0.35,
    "seen": 1,
-   "dumbPerMin": 3.2,
-   "smartPerMin": 5.5
+   "dumbPerMin": 11.3,
+   "smartPerMin": 16.6
   },
   "stages": {
-   "change": 0.56,
-   "lateWow": 0.54,
-   "n": 7
+   "change": 0.08,
+   "lateWow": 0.51,
+   "n": 6,
+   "tapOnly": true
   },
-  "habitGap": 3.04
- },
- "wavesurf": {
-  "id": "wavesurf",
-  "name": "파도 만들기 꼬마 서퍼",
-  "n": 24,
-  "dumb": {
-   "score": 4330,
-   "sec": 112.3
-  },
-  "smart": {
-   "score": 23712.5,
-   "sec": 160.8,
-   "capped": 0
-  },
-  "skillGap": 5.48,
-  "reveals": [
-   3,
-   5,
-   10
-  ],
-  "dumbReveals": [
-   2.9,
-   6.1
-  ],
-  "parts": {
-   "skill": 0.818,
-   "onboarding": 1,
-   "session": 1,
-   "simplicity": 0.85,
-   "unfold": 1
-  },
-  "fun": 0.926,
-  "firstLoss": {
-   "idle": 0,
-   "late": 0
-  },
-  "presses": {
-   "perMin": 23,
-   "maxSame": null
-  },
-  "habitStar3": {
-   "rate": 0.17,
-   "stage": 7,
-   "bot": "가까이 오면 늘 최대로"
-  },
-  "human": {
-   "sec": 164.5,
-   "capped": 0,
-   "scoreRatio": 0.73
-  },
-  "wow": {
-   "firstSec": 0.93,
-   "seen": 1,
-   "dumbPerMin": 3.2,
-   "smartPerMin": 10.1
-  },
-  "stages": {
-   "change": 0.23,
-   "lateWow": 0.68,
-   "n": 7
-  },
-  "habitGap": 2.37
+  "habitGap": 5.92
  }
 }
