@@ -7,8 +7,8 @@
   "8판 ★★★ (habit 1 · 장인 1)"
  ],
  "seeds": 24,
- "gap": 3.85,
- "gapHabit2": 1.17,
+ "gap": 6.74,
+ "gapHabit2": 2.36,
  "runs": {
   "smart": {
    "score": 7965,
@@ -25,28 +25,28 @@
    "min": 5
   },
   "habit2": {
-   "score": 6805,
+   "score": 3375,
    "stagesCleared": 5,
    "won": 0,
    "stars": 10,
    "min": 5
   },
   "random": {
-   "score": 2070,
+   "score": 1182,
    "stagesCleared": 1.92,
    "won": 0,
    "stars": 3.67,
    "min": 5
   },
   "spam": {
-   "score": 4282,
+   "score": 2369,
    "stagesCleared": 4.08,
    "won": 0,
    "stars": 7.25,
    "min": 5
   },
   "human": {
-   "score": 4173,
+   "score": 3880,
    "stagesCleared": 4.33,
    "won": 0,
    "stars": 10.83,

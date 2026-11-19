@@ -182,7 +182,7 @@ interface Path { legs: number[][]; hits: { id: number; leg: number }[]; bounce: 
 
 export interface DashState {
   rng: Rng; seed: number; t: number; wt: number; stage: number; phase: 'play' | 'result'; pt: number; ok: boolean; why: string;
-  stars: number; got: number; starOk: boolean[]; pts: number; won: boolean; dead: boolean; again: boolean; tries: number;
+  stars: number; base: number; got: number; starOk: boolean[]; pts: number; won: boolean; dead: boolean; again: boolean; tries: number;
   nx: number; ny: number; face: number; hp: number; inv: number; g: number;
   down: boolean; lock: boolean; aim: { x: number; y: number } | null; holdT: number;
   freeze: number; slowT: number;
@@ -621,6 +621,7 @@ function newStage(s: DashState) {
   s.pt = 0;
   s.trail = null;
   s.starOk = [false, false, false];
+  if (!s.again) s.base = s.pts;
   s.seen.add(d.key);
   if (d.smokes) s.seen.add('smoke');
   spawnWave(s);
@@ -673,6 +674,7 @@ function endStage(s: DashState, ok: boolean, why: string) {
     s.moodT = 999;
     ev(s, 'clear', 0.5, 0.8);
   } else {
+    s.pts = s.base; // ✏️ S002(🧪): 진 시도의 점수는 남기지 않는다(오래 머물수록 점수가 쌓이던 것)
     s.tries++; // ✏️ S002: 하트 폐지 — 지면 그 판만 바로 다시(📐 GDD §10)
     s.mood = 4;
     s.moodT = 999;
@@ -713,7 +715,7 @@ export const slowdash: GameDef<DashState> = {
   create(seed) {
     const s = {
       rng: mulberry32(seed), seed, t: 0, wt: 0, stage: 0, phase: 'play', pt: 0, ok: false, why: '',
-      stars: 0, got: 0, starOk: [false, false, false], pts: 0, won: false, dead: false, again: false, tries: 0,
+      stars: 0, base: 0, got: 0, starOk: [false, false, false], pts: 0, won: false, dead: false, again: false, tries: 0,
       nx: 0.5, ny: 1.17, face: 1, hp: HP, inv: 0, g: GMAX, down: false, lock: false, aim: null, holdT: 0, freeze: 0, slowT: 0,
       foes: [], shots: [], barrels: [], mirrors: [], smokes: [], nid: 0, wave: 0, waveT: 0,
       dashN: 0, chain: 0, best: 0, hits: 0, arrows: 0, backK: 0, boomBest: 0, boomBy: {}, mirK: 0, bossCombo: 0, dashes: 0,
@@ -3671,7 +3673,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       font(0.034, 800);
       ctx.textAlign = 'left';
       ctx.fillStyle = '#dfe6ff';
-      ctx.fillText('체력', hx0, r1 + 1);
+      ctx.fillText('꼬리', hx0, r1 + 1); // ✏️ S002(🧪): 별 칩 '꼬리 하나도 안 잃기'와 말 맞춤 — 꼬리 아이콘은 S007
       for (let j = 0; j < HP; j++) {
         const hx = hx0 + R(0.085) + j * R(0.04);
         heartPath(ctx, hx, r1, R(0.014));
@@ -3687,7 +3689,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     {
       const pr = s.phase === 'play' ? [starNow(s, d.stars[0]), starNow(s, d.stars[1])] : ['', ''];
       const labels = [d.goal, d.stars[0].label + (pr[0] && !starMet(s, d.stars[0]) && d.stars[0].k !== 'nohit' ? ` ${pr[0]}` : ''), d.stars[1].label + (pr[1] && !starMet(s, d.stars[1]) && d.stars[1].k !== 'nohit' ? ` ${pr[1]}` : '')];
-      const ok = s.phase === 'result' && s.ok ? s.starOk : [false, starMet(s, d.stars[0]) && d.stars[0].k !== 'nohit', starMet(s, d.stars[1]) && d.stars[1].k !== 'nohit'];
+      const ok = s.phase === 'result' && s.ok ? s.starOk : [false, starMet(s, d.stars[0]) && d.stars[0].k !== 'nohit', starMet(s, d.stars[1]) && (d.stars[1].k !== 'nohit' || !!d.gift3)]; // 선물 별은 처음부터 켜짐(🧪 S002)
       const bad = [false, d.stars[0].k === 'nohit' && s.hits > 0, d.stars[1].k === 'nohit' && s.hits > 0];
       font(0.034, 800);
       const ws = labels.map((l) => ctx.measureText(l).width + R(0.07));
