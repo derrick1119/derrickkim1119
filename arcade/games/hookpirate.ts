@@ -250,7 +250,7 @@ function countKO(s: HookState, q: Body, act: number, how: string) {
     if (s.firstBig < 0) s.firstBig = s.t;
   }
   if (n >= 2 && s.firstBig < 0 && s.stage === 0) s.firstBig = s.t;
-  if (n >= 2) ev(s, 'multi', q.x, q.y, n, undefined, q.k);
+  if (n >= 2) ev(s, 'multi', q.x, q.y, n, r.sp ? 'spin' : r.bm ? 'boom' : how === 'chomp' ? 'chomp' : 'hit', q.k);
 }
 
 /** 쓰러뜨리기: (dx,dy) 쪽으로 날아가 바다로 풍덩(갑판에 떨어지면 뼈가 와르르) */
@@ -2386,9 +2386,27 @@ function drawShark(ctx: C2, x: number, y: number, k: number, ang: number, full: 
   if (!full) {
     ctx.save();
     ctx.translate(x, y);
-    ctx.fillStyle = 'rgba(10,20,50,.35)';
-    ell(ctx, 0, k * 0.05, k * 0.55, k * 0.16, Math.atan2(Math.sin(ang) * 0.5, Math.cos(ang)));
+    // 물속 그림자: 상어 몸 모양
+    ctx.save();
+    ctx.rotate(Math.atan2(Math.sin(ang) * 0.5, Math.cos(ang)));
+    ctx.fillStyle = 'rgba(8,16,40,.5)';
+    ctx.beginPath();
+    ctx.moveTo(k * 0.75, k * 0.05);
+    ctx.quadraticCurveTo(k * 0.3, -k * 0.16, -k * 0.45, k * 0.03);
+    ctx.lineTo(-k * 0.75, -k * 0.14 + Math.sin(t * 0.3) * k * 0.05);
+    ctx.lineTo(-k * 0.65, k * 0.06);
+    ctx.lineTo(-k * 0.75, k * 0.24 + Math.sin(t * 0.3) * k * 0.05);
+    ctx.lineTo(-k * 0.45, k * 0.09);
+    ctx.quadraticCurveTo(k * 0.3, k * 0.26, k * 0.75, k * 0.05);
     ctx.fill();
+    for (const sd of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(k * 0.1, k * 0.05);
+      ctx.lineTo(-k * 0.05, k * 0.05 + sd * k * 0.28);
+      ctx.lineTo(k * 0.25, k * 0.05 + sd * k * 0.08);
+      ctx.fill();
+    }
+    ctx.restore();
     ctx.strokeStyle = 'rgba(255,255,255,.7)';
     ctx.lineWidth = 1.5;
     const bx = -Math.cos(ang), by = -Math.sin(ang) * 0.5;
@@ -2401,11 +2419,11 @@ function drawShark(ctx: C2, x: number, y: number, k: number, ang: number, full: 
     const fc = Math.cos(ang) >= 0 ? 1 : -1;
     ctx.scale(fc, 1);
     ctx.beginPath();
-    ctx.moveTo(-k * 0.16, k * 0.02);
-    ctx.quadraticCurveTo(-k * 0.05, -k * 0.25, k * 0.12, -k * 0.38 + Math.sin(t * 0.1) * k * 0.02);
-    ctx.quadraticCurveTo(k * 0.06, -k * 0.15, k * 0.14, k * 0.02);
+    ctx.moveTo(-k * 0.2, k * 0.02);
+    ctx.quadraticCurveTo(-k * 0.06, -k * 0.3, k * 0.16, -k * 0.46 + Math.sin(t * 0.1) * k * 0.02);
+    ctx.quadraticCurveTo(k * 0.08, -k * 0.18, k * 0.18, k * 0.02);
     ctx.closePath();
-    fillOut(ctx, lin(ctx, 0, -k * 0.38, 0, k * 0.02, [0, '#8a96b0'], [1, '#4a5670']), 1.6);
+    fillOut(ctx, lin(ctx, 0, -k * 0.46, 0, k * 0.02, [0, '#6a7690'], [1, '#2e3850']), 2);
     ctx.strokeStyle = 'rgba(255,255,255,.8)';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -2535,17 +2553,18 @@ function drawHand(ctx: C2, x: number, y: number, k: number, press: number) {
 }
 
 // ── 장면 ──
-interface Look { parrotT: number; say: string; gullT: number; hurtT: number; latchT: number; latchX: number; latchY: number; recent: { x: number; y: number; t: number; size: number }[] }
+interface Look { bigHow: string; parrotT: number; say: string; gullT: number; hurtT: number; latchT: number; latchX: number; latchY: number; recent: { x: number; y: number; t: number; size: number }[] }
 const LOOK = new WeakMap<object, Look>();
 const SKH: Record<string, number> = { skel: 0.14, shield: 0.145, boss: 0.22 };
 const dep = (y: number) => 0.86 + 0.24 * clamp(y, -0.1, 1.1);
-const BIG_TXT = (n: number) => (n >= 4 ? `${numKo(n)} 와르르!!` : n === 3 ? '스트라이크!' : '쾅! 둘!');
+const BIG_TXT = (n: number, how: string) =>
+  how === 'spin' ? `빙글빙글 ${numKo(n)}!` : how === 'boom' ? `펑! ${numKo(n)}!` : how === 'chomp' ? `냠냠! ${numKo(n)}!` : n >= 4 ? `${numKo(n)} 와르르!!` : n === 3 ? '스트라이크!' : '쾅! 둘!';
 
 function drawAll(ctx: C2, s: HookState, w: number, h: number, th: Theme) {
   void th;
   const fx = juice(s), t = s.t, d = STAGES[s.stage];
   let lk = LOOK.get(s);
-  if (!lk) LOOK.set(s, (lk = { parrotT: -99, say: '', gullT: -99, hurtT: -99, latchT: -99, latchX: 0, latchY: 0, recent: [] }));
+  if (!lk) LOOK.set(s, (lk = { bigHow: 'hit', parrotT: -99, say: '', gullT: -99, hurtT: -99, latchT: -99, latchX: 0, latchY: 0, recent: [] }));
   const L = lk;
   const sc = typeof ctx.getTransform === 'function' ? ctx.getTransform().a || 1 : 1;
   const bg = getBg(Math.round(w), Math.round(h), Math.min(3, Math.max(1, Math.round(sc))));
@@ -2696,11 +2715,11 @@ function drawAll(ctx: C2, s: HookState, w: number, h: number, th: Theme) {
     }
     if (b.k === 'shark') {
       if (b.st === DIVE) {
-        if (b.tm > 200) items.push({ y: -1, f: () => ((ctx.globalAlpha = (b.tm - 200) / 40), drawShark(ctx, bx, byy - bob, R(0.1), b.ang + Math.PI / 2, false, t, 0), (ctx.globalAlpha = 1)) });
+        if (b.tm > 200) items.push({ y: -1, f: () => ((ctx.globalAlpha = (b.tm - 200) / 40), drawShark(ctx, bx, byy - bob, R(0.14), b.ang + Math.PI / 2, false, t, 0), (ctx.globalAlpha = 1)) });
         continue;
       }
       const full = b.st === HOOKED || b.st === LEAP;
-      items.push({ y: full ? b.y : -1, f: () => drawShark(ctx, bx, (full ? byy : byy - bob) - R(b.z) - (full ? R(0.03) : 0), R(0.1) * dep(b.y), full ? Math.atan2(s.cy - b.y, s.cx - b.x) : b.ang + Math.PI / 2, full, t, Math.max(0, 1 - (t - b.hurtT) / 20)) });
+      items.push({ y: full ? b.y : -1, f: () => drawShark(ctx, bx, (full ? byy : byy - bob) - R(b.z) - (full ? R(0.03) : 0), R(0.14) * dep(b.y), full ? Math.atan2(s.cy - b.y, s.cx - b.x) : b.ang + Math.PI / 2, full, t, Math.max(0, 1 - (t - b.hurtT) / 20)) });
       continue;
     }
     if (b.k === 'barrel' || b.k === 'keg') {
@@ -3149,12 +3168,13 @@ function drawAll(ctx: C2, s: HookState, w: number, h: number, th: Theme) {
         const n = e.n ?? 2;
         fx.memo.bigT = t;
         fx.memo.bigN = n;
+        L.bigHow = e.text ?? 'hit';
         fx.memo.bigX = ex;
         fx.memo.bigY = ey;
         fx.blink('#fff6d0', Math.min(0.45, 0.12 + n * 0.07));
         fx.kick(3 + n * 2);
         fx.burst(ex, ey - R(0.05), '#ffd84a', 10 + n * 5, 4 + n * 0.5, 2.6);
-        squawk(n >= 4 ? `꽥! ${numKo(n)}!!` : n === 3 ? '꽥! 스트라이크!' : '꽥!');
+        squawk(n >= 4 ? `꽥! ${numKo(n)}!!` : n === 3 ? '꽥! 대단해!' : '꽥!');
         L.gullT = t;
         break;
       }
@@ -3266,7 +3286,7 @@ function drawHud(ctx: C2, s: HookState, w: number, h: number, fx: ReturnType<typ
   if (fx.memo.bigT !== undefined && t - fx.memo.bigT < 56) {
     const age = t - fx.memo.bigT, n = fx.memo.bigN, sc2 = age < 6 ? 1.9 - 0.9 * (age / 6) : 1 + 0.03 * Math.sin(age * 0.4), a = Math.min(1, (56 - age) / 16);
     const bx = clamp(fx.memo.bigX, w * 0.34, w * 0.66), by = R(s.phase === 'play' && s.pt < CARD_T && (s.stage > 0 || s.again) ? 1.17 : 0.2);
-    const txt = BIG_TXT(n), size = Math.min(34, 20 + n * 3);
+    const txt = BIG_TXT(n, LOOK.get(s)?.bigHow ?? 'hit'), size = Math.min(32, 20 + n * 2.5);
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate(bx, by);
@@ -3310,6 +3330,21 @@ function drawHud(ctx: C2, s: HookState, w: number, h: number, fx: ReturnType<typ
   for (let x = 0; x < w; x += R(0.16)) ctx.fillRect(x, 0, 1, hb);
   ctx.fillStyle = '#d9a441';
   ctx.fillRect(0, hb - 2, w, 2);
+  // 둥근 판 (이름 · 하트+별)
+  {
+    font(0.044, 900);
+    const nw = ctx.measureText(d.name).width;
+    font(0.034, 700);
+    const sw2 = ctx.measureText(` / ${STAGE_COUNT}`).width;
+    ctx.fillStyle = 'rgba(0,0,0,.28)';
+    rr(ctx, R(0.018), hb * 0.14, R(0.1) + nw + sw2, hb * 0.72, hb * 0.36);
+    ctx.fill();
+    font(0.042, 900);
+    const sw = ctx.measureText(String(s.stars)).width;
+    const pw = sw + R(0.24);
+    rr(ctx, w - R(0.018) - pw, hb * 0.14, pw, hb * 0.72, hb * 0.36);
+    ctx.fill();
+  }
   {
     const cx = R(0.055), cy = hb / 2;
     ctx.beginPath();
