@@ -40,9 +40,9 @@ const FLY_REF = 0.03, FLY0 = 0.009, FLY1 = 0.021, G = 0.0011;
 /** 장난감 북(범퍼): 반지름 · 튕기면 회전 + */
 const BR = 0.05, BUMP_S = 0.24;
 /** 블록 탑: 반지름 · 무너지는 길이 · 덮는 반폭 · 무너지는 데 걸리는 틱 */
-const TWR = 0.04, TOWER_L = 0.32, TOWER_W = 0.06, TOWER_T = 10;
+const TWR = 0.04, TOWER_L = 0.38, TOWER_W = 0.07, TOWER_T = 10;
 const RESULT_OK = 180, RESULT_FAIL = 150, CARD_T = 150, NEWS_T = 150;
-const STAR_PTS = 100, CLEAR_PTS = 50, WIN_PTS = 300;
+const STAR_PTS = 150, CLEAR_PTS = 50, WIN_PTS = 500;
 const COOKIES = 3, LIVES = 3;
 
 type K = 'sol' | 'bot' | 'spk' | 'boss';
@@ -102,7 +102,7 @@ export const STAGES: StageDef[] = [
       { need: 1, wait: 620, foes: [...col('sol', 0.14, [-0.04, -0.14, -0.24, -0.34]), ...col('sol', 0.86, [-0.04, -0.14, -0.24, -0.34]), ['bot', 0.5, -0.1]] },
       { need: 1, wait: 620, foes: [...row('bot', -0.04, [0.3, 0.7]), ...row('sol', -0.15, [0.2, 0.36, 0.5, 0.64, 0.8])] },
     ],
-    stars: [st('clear', 0, '진지 지키기'), st('nolose', 0, '하트 안 잃기'), st('bump', 3, '한 번에 북 세 번 튕기기')],
+    stars: [st('clear', 0, '진지 지키기'), st('nolose', 0, '하트 안 잃기'), st('bump', 4, '한 번에 북 네 번 튕기기')],
   },
   {
     key: 'spk', name: '밤송이 언덕', news: '가시 병정 — 팽이로 치면 회전이 확 깎여요', goal: '진지 지키기',
@@ -124,7 +124,7 @@ export const STAGES: StageDef[] = [
       { need: 1, wait: 620, foes: [...row('sol', -0.04, [0.2, 0.32, 0.44, 0.56, 0.68, 0.8]), ['bot', 0.3, -0.16], ['spk', 0.7, -0.16]] },
       { need: 1, wait: 620, foes: [...col('sol', 0.25, [-0.04, -0.14, -0.24]), ...col('sol', 0.75, [-0.04, -0.14, -0.24]), ['bot', 0.5, -0.1], ['spk', 0.5, -0.26]] },
     ],
-    stars: [st('clear', 0, '진지 지키기'), st('tower', 3, '무너진 탑으로 셋 덮치기'), st('multi', 6, '한 번에 여섯 쓰러뜨리기')],
+    stars: [st('clear', 0, '진지 지키기'), st('tower', 3, '무너진 탑으로 셋 덮치기'), st('multi', 7, '한 번에 일곱 쓰러뜨리기')],
   },
   {
     key: 'jam', name: '잼 엎지른 밤', news: '딸기잼 — 팽이도 병정도 발이 묶여요', goal: '진지 지키기',
@@ -135,7 +135,7 @@ export const STAGES: StageDef[] = [
       { need: 1, wait: 620, foes: [...row('sol', -0.04, [0.24, 0.36, 0.48, 0.6, 0.72]), ['spk', 0.5, -0.15], ['bot', 0.78, -0.15]] },
       { need: 1, wait: 620, foes: [...col('sol', 0.3, [-0.04, -0.14, -0.24, -0.34]), ...col('sol', 0.7, [-0.04, -0.14, -0.24, -0.34]), ['bot', 0.5, -0.2]] },
     ],
-    stars: [st('clear', 0, '진지 지키기'), st('shots', 8, '팽이 여덟 번 안에 지키기'), st('nolose', 0, '하트 안 잃기')],
+    stars: [st('clear', 0, '진지 지키기'), st('shots', 6, '팽이 여섯 번 안에 지키기'), st('nolose', 0, '하트 안 잃기')],
   },
   {
     key: 'boss', name: '태엽 대장', news: '큰 로봇 대장 — 세게 네 번 쳐야 해요', goal: '대장 이기기',
@@ -821,7 +821,11 @@ function tryShot(s: SpinState, ang: number, hold: number, maxRun: number): Plan 
     if (x.k === 'multi' && c.best >= x.n) v += 260;
     if (x.k === 'bump') v += c.bumpBest >= x.n ? 220 : c.runBump * 25;
     if (x.k === 'spkfly') v += (c.spkFly - s.spkFly) * 140;
-    if (x.k === 'tower') v += c.towerBest >= x.n ? 240 : 0;
+    if (x.k === 'tower') {
+      if (c.towerBest >= x.n) v += 300;
+      // 덮을 것이 모자란 채로 탑을 쓰러뜨리면 아깝다
+      else c.towers.forEach((tw, i) => tw.st !== 0 && s.towers[i].st === 0 && (v -= 140));
+    }
     if (x.k === 'bossfly') v += (c.bossFly - s.bossFly) * 200;
     if (x.k === 'shots') v += ko === 0 ? -150 : 0;
   }
@@ -850,20 +854,17 @@ export const topspinSmart: Bot<SpinState> = {
     // 먼저 넓게(각도 24 × 세기 2) — 그다음 좋은 셋 둘레를 촘촘히
     const holds = s.stage === 0 ? [3, 30] : [3, 24, 48];
     const cand: Plan[] = [];
-    for (let k = 0; k < 24; k++) {
-      const a = (k / 24) * Math.PI * 2 + 0.07;
-      for (const hd of holds) cand.push(tryShot(s, a, hd, 140));
+    for (let k = 0; k < 20; k++) {
+      const a = (k / 20) * Math.PI * 2 + 0.07;
+      for (const hd of holds) cand.push(tryShot(s, a, hd, 120));
     }
-    for (const f of live) {
-      const a = Math.atan2(f.y - s.y, f.x - s.x);
-      cand.push(tryShot(s, a, 48, 140));
-    }
+    // 진지에 가까운 것 몇을 곧장 겨눠 보기
+    for (const f of [...live].sort((p, q) => q.y - p.y).slice(0, 4)) cand.push(tryShot(s, Math.atan2(f.y - s.y, f.x - s.x), 24, 120));
     cand.sort((p, q) => q.v - p.v);
-    const top3 = cand.slice(0, 3);
     let best = cand[0];
-    for (const c of top3)
-      for (const da of [-0.06, 0.06]) {
-        const r = tryShot(s, c.ang + da, c.hold, 140);
+    for (const c of cand.slice(0, 2))
+      for (const da of [-0.08, 0.08]) {
+        const r = tryShot(s, c.ang + da, c.hold, 120);
         if (r.v > best.v) best = r;
       }
     m.plan = best;

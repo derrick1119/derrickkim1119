@@ -1088,11 +1088,11 @@ function predPos(s: HookState, q: Body, T: number) {
 }
 
 /** 이 걸 것에 갈고리를 걸면 무슨 일이 생길까 (시뮬레이션과 같은 기하로 어림) */
-function plan(s: HookState, b0: Body): Plan {
+function plan(s: HookState, b0: Body, dt = 0): Plan {
   const b = blockedBy(s, b0), D = Math.hypot(b.x - s.cx, b.y - s.cy) || 1e-6, tOut = D / HOOK_V;
   const P: Plan = { b: b0, tgt: b, mode: 0, n: 0, boom: 0, shark: 0, shield: 0, spin: 0, bossD: 0, bossKO: false, self: 0, ex: s.cx, ey: s.cy, T: tOut * 2 + REEL_T, hit: new Set() };
   if (b.k === 'shield' && shieldBlocks(b, s.cx, s.cy)) return P;
-  const tMid = tOut + (b.k === 'mast' ? SPIN_T / 2 : D / (YANK_V1 * 1.6));
+  const tMid = dt + tOut + (b.k === 'mast' ? SPIN_T / 2 : D / (YANK_V1 * 1.6));
   const ps: { q: Body; x: number; y: number }[] = [];
   for (const q of s.bodies)
     if (q !== b && PIR(q.k) && (q.st === ENTER || q.st === WALK || q.st === WIND || q.st === STUN)) {
@@ -1124,7 +1124,7 @@ function plan(s: HookState, b0: Body): Plan {
       const a = a0 + ((TAU * k) / SPIN_T) * dir, px = b.x + Math.cos(a) * R, py = b.y + Math.sin(a) * R;
       for (const q of qs) {
         if (P.hit.has(q.id) || (q.k === 'boss' && P.bossD)) continue;
-        const p = predPos(s, q, tOut + k);
+        const p = predPos(s, q, dt + tOut + k);
         if (!p || Math.hypot(p.x - px, p.y - py) >= CAP_R + RAD[q.k] + 0.006) continue;
         if (q.k === 'boss') (P.bossD = 1), (P.bossKO = q.hp <= 1), P.bossKO && add(q, 'spin');
         else add(q, 'spin');
@@ -1274,8 +1274,8 @@ export const hookpirateSmart: Bot<HookState> = {
       for (let k = 6; k <= 72; k += 6) {
         const a = shk.ang + 0.007 * k, fx = 0.5 + Math.cos(a) * 0.47, fy = 0.52 + Math.sin(a) * 0.56;
         if (Math.hypot(fx - s.cx, fy - s.cy) > ROPE) continue;
-        const P = plan(s, { ...shk, x: fx, y: fy });
-        if (P.shark >= 3 && here > k + P.T + 60) return NO;
+        const P = plan(s, { ...shk, x: fx, y: fy }, k);
+        if (P.shark >= goals.find((st) => st.k === 'shark')!.n && here > k + P.T + 60) return NO;
       }
     }
     const pool = live.length + s.queue.length;

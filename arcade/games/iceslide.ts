@@ -23,7 +23,7 @@ const GH = 1.3, FY0 = 0.39, SQ = 0.7, P0 = 0.86;
 /** 얼음 칸 */
 const NX = 24, CELL = 1 / NX, NY = Math.ceil(GH / CELL);
 /** 붓 반지름 · 길이당 얼음 값 · 게이지 최대 · 얼음 수명 · 화롯불 곁 녹는 배수 */
-const BR = 0.055, COST = 52, GMAX = 100, ICE_LIFE = 330, HEAT_RATE = 7;
+const BR = 0.055, COST = 52, GMAX = 100, ICE_LIFE = 270, HEAT_RATE = 7;
 /** 물리 (틱당) */
 const RUN = 0.0034, ACC = 0.14, SLOPE = 0.0011, VMAX = 0.021, ICE_FR = 0.997, GROUND_FR = 0.9, STOPV = 0.0026, SLIP_KEEP = 0.45;
 const WALL_E = 0.45, BONK_V = 0.0075, KNOCK_V = 0.0075, E_COL = 0.85, GETUP = 30, DIZZY_T = 70, SMASH_T = 30, TAUNT_T = 300;
@@ -96,7 +96,7 @@ export const STAGES: StageDef[] = [
   {
     key: 'ball', name: '눈길 언덕', place: 1, news: '눈덩이 — 등불로 굴러와요! 얼음으로 방향을 틀어요', goal: '등불 지키기', lights: 4, regen: 0.14, speed: 1,
     hint: '눈덩이를 얼음길로 틀어 도깨비 무리에 볼링!',
-    ponds: [[0.14, 0.72, 0.1], [0.86, 0.72, 0.1]], balls: { every: 230, xs: [0.3, 0.7, 0.5] },
+    ponds: [[0.14, 0.72, 0.1], [0.86, 0.72, 0.1]], balls: { every: 150, xs: [0.3, 0.7, 0.5] },
     waves: [
       { wait: 480, foes: [...train('gob', 'L', 0.42, 20, 3, 20), ...train('gob', 'R', 0.42, 60, 3, 20)] },
       { wait: 480, foes: [...train('gob', 'T', 0.22, 0, 3), ...train('gob', 'T', 0.78, 40, 3)] },
@@ -107,13 +107,13 @@ export const STAGES: StageDef[] = [
   {
     key: 'spike', name: '대장간 앞', place: 1, news: '스파이크 신발 — 얼음에서 안 미끄러져요', goal: '등불 지키기', lights: 4, regen: 0.14, speed: 1.05,
     hint: '옆 도깨비를 미끄러뜨려 스파이크를 들이받아요',
-    ponds: [[0.16, 0.55, 0.1], [0.84, 0.55, 0.1], [0.5, 0.88, 0.07]],
+    ponds: [[0.16, 0.55, 0.1], [0.84, 0.55, 0.1], [0.5, 0.88, 0.07]], balls: { every: 420, xs: [0.5, 0.35, 0.65] },
     waves: [
       { wait: 500, foes: [['gob', 'T', 0.3, 0], ['spike', 'T', 0.41, 0], ['gob', 'T', 0.52, 0], ['gob', 'T', 0.75, 60]] },
       { wait: 500, foes: [['gob', 'L', 0.26, 0], ['spike', 'L', 0.36, 0], ['gob', 'R', 0.3, 40], ['spike', 'R', 0.4, 40], ['gob', 'R', 0.5, 40]] },
       { wait: 540, foes: [...train('gob', 'T', 0.72, 0, 3), ['gob', 'T', 0.24, 50], ['spike', 'T', 0.35, 50], ['gob', 'T', 0.46, 50], ['spike', 'L', 0.4, 90], ['gob', 'L', 0.3, 90]] },
     ],
-    stars: [S('spike', 2, '스파이크 도깨비 둘 빠뜨리기'), S('nolose', 0, '불빛 하나도 안 잃기')],
+    stars: [S('spike', 3, '스파이크 도깨비 셋 빠뜨리기'), S('combo', 3, '한 번에 셋 빠뜨리기')],
   },
   {
     key: 'fat', name: '방앗간 마당', place: 2, news: '뚱보 도깨비 — 얼음에선 쌩, 앞의 것을 밀어내요', goal: '등불 지키기', lights: 4, regen: 0.14, speed: 1.05,
@@ -143,7 +143,7 @@ export const STAGES: StageDef[] = [
     ponds: [[0.15, 0.62, 0.11], [0.85, 0.62, 0.11], [0.5, 0.36, 0.08]], balls: { every: 320, xs: [0.3, 0.7] },
     waves: [
       { wait: 520, foes: [['boss', 'T', 0.5, 0], ...train('gob', 'L', 0.35, 30, 3), ...train('gob', 'R', 0.35, 60, 2)] },
-      { wait: 520, foes: [...train('gob', 'T', 0.3, 0, 4), ['gob', 'T', 0.6, 40], ['fat', 'T', 0.7, 40], ['gob', 'R', 0.4, 60], ['spike', 'R', 0.5, 60]] },
+      { wait: 520, foes: [...train('gob', 'T', 0.3, 0, 4), ['gob', 'T', 0.6, 40], ['fat', 'T', 0.7, 40], ['gob', 'R', 0.4, 60], ['gob', 'R', 0.5, 60]] },
       { wait: 560, foes: [['hammer', 'L', 0.4, 0], ...train('gob', 'L', 0.4, 22, 2), ...train('gob', 'T', 0.65, 30, 4), ['gob', 'R', 0.45, 60]] },
     ],
     stars: [S('combo', 4, '한 번에 넷 빠뜨리기'), S('nolose', 0, '불빛 하나도 안 잃기')],
@@ -656,7 +656,7 @@ function newStage(s: IceState) {
   s.pend = [];
   s.wave = 0;
   s.waveT = 0;
-  s.ballT = 120;
+  s.ballT = d.key === 'ball' ? 50 : 240;
   s.ballI = 0;
   s.down = false;
   s.painting = false;
@@ -864,7 +864,7 @@ function cloneSim(s: IceState): IceState {
     combo: { ...s.combo }, events: [], sinks: [], brush: [], pend: [], sim: true, down: false,
   };
 }
-interface Outcome { pts: number; dunks: number; lost: number; regain: number; best: number; snowD: number; spikeD: number; fatD: number; hamD: number; bossHits: number; bonks: number; ok: boolean }
+interface Outcome { orphan: number; pts: number; dunks: number; lost: number; regain: number; best: number; snowD: number; spikeD: number; fatD: number; hamD: number; bossHits: number; bonks: number; ok: boolean }
 /** 지금부터 H틱: plan대로 그으면 어떻게 되나 (같은 물리) */
 function simulate(s: IceState, plan: Plan | null, H: number): Outcome {
   const w = cloneSim(s);
@@ -879,7 +879,12 @@ function simulate(s: IceState, plan: Plan | null, H: number): Outcome {
     world(w, 1);
     if (w.phase !== 'play') break;
   }
+  // 들이받을 짝이 곁에 없는 스파이크 = 곧 불빛을 훔친다
+  let orphan = 0;
+  for (const e of w.ents)
+    if (e.k === 'spike' && e.st !== SLIDE && !w.ents.some((o) => o.k !== 'spike' && o.st !== SLIDE && o.st !== FLEE && Math.hypot(o.x - e.x, o.y - e.y) < 0.3)) orphan++;
   return {
+    orphan,
     pts: w.pts - s.pts, dunks: w.dunks - s.dunks, lost: w.lost - s.lost, regain: w.regain - s.regain, best: w.best,
     snowD: w.snowD - s.snowD, spikeD: w.spikeD - s.spikeD, fatD: w.fatD - s.fatD, hamD: w.hamD - s.hamD, bossHits: w.bossHits - s.bossHits, bonks: w.bonks - s.bonks,
     ok: w.phase === 'play' || w.ok,
@@ -887,7 +892,7 @@ function simulate(s: IceState, plan: Plan | null, H: number): Outcome {
 }
 function value(s: IceState, o: Outcome) {
   const d = STAGES[s.stage];
-  let v = o.pts * 2 + o.dunks * 40 - o.lost * 700 + o.regain * 500 + o.bossHits * 300 + o.bonks * 6;
+  let v = o.pts * 2 + o.dunks * 40 - o.lost * 700 + o.regain * 500 + o.bossHits * 300 + o.bonks * 6 - o.orphan * 380;
   for (const st of d.stars) {
     if (starMet(s, st) && st.k !== 'nolose' && st.k !== 'strokes') continue;
     if (st.k === 'combo' && o.best >= st.n) v += 450;
@@ -947,7 +952,24 @@ function cands(s: IceState): (Plan & { pre: number })[] {
         }
     }
     // 눈덩이는 옆으로 틀기만 해도 등불을 비켜 간다
-    if (e.k === 'ball') for (const sx of [-1, 1]) add(px, py, px + sx, py + 0.25, 0.3, urgent);
+    if (e.k === 'ball') {
+      for (const sx of [-1, 1]) add(px, py, px + sx, py + 0.25, 0.3, urgent);
+      // 볼링: 무리가 곧 있을 자리로, 그 너머에 연못이 있으면 연못까지
+      for (const o of live) {
+        if (o === e || o.k === 'ball') continue;
+        for (const tau of [15, 35]) {
+          const ox = o.x + o.vx * tau, oy = o.y + o.vy * tau, dx = ox - px, dy = oy - py, d = Math.hypot(dx, dy);
+          if (d < 0.05 || d > 0.6) continue;
+          const ux = dx / d, uy = dy / d;
+          let far = d + 0.15;
+          for (const p of s.ponds) {
+            const qx = p.x - px, qy = p.y - py, al = qx * ux + qy * uy;
+            if (al > d && al < d + 0.45 && Math.abs(qx * uy - qy * ux) < p.r * 0.9) far = Math.max(far, al - p.r * 0.4);
+          }
+          add(px, py, px + ux, py + uy, far, urgent + 14);
+        }
+      }
+    }
     // 둘을 한 줄로: e에서 o를 지나 그 너머 연못까지
     for (const o of live) {
       if (o === e || o.k === 'ball') continue;
@@ -1002,10 +1024,10 @@ export const iceslideSmart: Bot<IceState> = {
     const cs = cands(s);
     if (!cs.length) return NO;
     cs.sort((a, b) => b.pre - a.pre);
-    const H = 150, base = value(s, simulate(s, null, H)), d = STAGES[s.stage];
+    const H = 130, base = value(s, simulate(s, null, H)), d = STAGES[s.stage];
     let best: Plan | null = null, bv = 0;
     const strokesStar = d.stars.some((q) => q.k === 'strokes'), gw = clamp(0.3 / d.regen, 0.8, 2.4) * (s.g < 40 ? 1.4 : 1);
-    for (const c of cs.slice(0, 12)) {
+    for (const c of cs.slice(0, 9)) {
       const v = value(s, simulate(s, c, H)) - base - c.len * COST * gw - (strokesStar ? 140 : 0);
       if (v > bv) (bv = v), (best = c);
     }

@@ -946,3 +946,1132 @@ export const ricopengHabit2: Bot<PengState> = {
   },
 };
 
+
+// ───────────────────────────── 그리기 ─────────────────────────────
+const TAU = Math.PI * 2;
+const hsh = (k: number) => {
+  const v = Math.sin(k * 127.1 + 311.7) * 43758.5453;
+  return v - Math.floor(v);
+};
+type C2 = CanvasRenderingContext2D;
+function ell(ctx: C2, x: number, y: number, rx: number, ry: number, rot = 0) {
+  ctx.beginPath();
+  ctx.ellipse(x, y, Math.max(0.1, rx), Math.max(0.1, ry), rot, 0, TAU);
+}
+function lin(ctx: C2, x0: number, y0: number, x1: number, y1: number, ...st: [number, string][]) {
+  const g = ctx.createLinearGradient(x0, y0, x1, y1);
+  for (const [o, c] of st) g.addColorStop(o, c);
+  return g;
+}
+function radg(ctx: C2, x: number, y: number, r0: number, r1: number, ...st: [number, string][]) {
+  const g = ctx.createRadialGradient(x, y, Math.max(0, r0), x, y, Math.max(0.1, r1));
+  for (const [o, c] of st) g.addColorStop(o, c);
+  return g;
+}
+function rr(ctx: C2, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, Math.max(0, Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2)));
+}
+function starPath(ctx: C2, x: number, y: number, r: number) {
+  ctx.beginPath();
+  for (let k = 0; k < 10; k++) {
+    const a = -Math.PI / 2 + (k * Math.PI) / 5, q = k % 2 ? r * 0.45 : r;
+    if (k) ctx.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q);
+    else ctx.moveTo(x + Math.cos(a) * q, y + Math.sin(a) * q);
+  }
+  ctx.closePath();
+}
+function heartPath(ctx: C2, x: number, y: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x, y + r * 0.9);
+  ctx.bezierCurveTo(x - r * 1.5, y - r * 0.1, x - r * 0.9, y - r * 1.25, x, y - r * 0.45);
+  ctx.bezierCurveTo(x + r * 0.9, y - r * 1.25, x + r * 1.5, y - r * 0.1, x, y + r * 0.9);
+  ctx.closePath();
+}
+/** 눈송이 (판 메달·눈덩이 아이콘 장식) */
+function flakePath(ctx: C2, x: number, y: number, r: number) {
+  ctx.beginPath();
+  for (let k = 0; k < 6; k++) {
+    const a = (k * Math.PI) / 3, cx = Math.cos(a), cy = Math.sin(a);
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + cx * r, y + cy * r);
+    for (const sd of [-1, 1]) {
+      const b = a + sd * 0.6;
+      ctx.moveTo(x + cx * r * 0.6, y + cy * r * 0.6);
+      ctx.lineTo(x + cx * r * 0.6 + Math.cos(b) * r * 0.3, y + cy * r * 0.6 + Math.sin(b) * r * 0.3);
+    }
+  }
+}
+/** 펄럭이는 띠 (목도리 꼬리) */
+function ribbon(ctx: C2, x0: number, y0: number, len: number, wd: number, t: number, ph: number, col: string, dir: number) {
+  const pts: number[][] = [];
+  for (let i = 0; i <= 6; i++) {
+    const u = i / 6;
+    pts.push([x0 + dir * len * u, y0 + len * 0.35 * u + Math.sin(t * 0.16 + ph + u * 4) * wd * 1.2 * u]);
+  }
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for (const [c, lw] of [[OUT, wd + 2.2], [col, wd]] as [string, number][]) {
+    ctx.strokeStyle = c;
+    ctx.lineWidth = lw;
+    ctx.beginPath();
+    pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+    ctx.stroke();
+  }
+}
+const OUT = '#16223f';
+
+// ── 판(장소)별 팔레트: 0 초록 오로라 · 1 보라 오로라 · 2 청록·분홍 · 3 붉은 오로라(대장) ──
+const PAL = [
+  { sky: ['#030920', '#0b1c4a', '#1f3f78'], au: ['107,255,200', '79,216,255'], far: ['#1d3767', '#2f5590', '#5b86c0'], ice: ['#4f80b8', '#7fb0de', '#acd4f3'], tint: '120,255,210' },
+  { sky: ['#06051d', '#18144a', '#36327e'], au: ['185,139,255', '93,252,210'], far: ['#252f6a', '#38489a', '#6a79c8'], ice: ['#5876bd', '#88a6e2', '#b7cdf6'], tint: '190,150,255' },
+  { sky: ['#020e1b', '#0a2b44', '#1a4e6c'], au: ['93,255,176', '255,139,216'], far: ['#16425e', '#24637f', '#4f93b0'], ice: ['#4689ad', '#77b6d6', '#a9dcef'], tint: '120,255,200' },
+  { sky: ['#0a0517', '#220f38', '#452255'], au: ['255,122,184', '127,255,240'], far: ['#33204f', '#4c3270', '#7b5aa0'], ice: ['#6a76b8', '#97a3dc', '#c5cdf2'], tint: '255,150,200' },
+];
+const HZ = YT - 0.1;
+const GB = 1.31;
+
+interface Bg { sky: HTMLCanvasElement; far: HTMLCanvasElement; floor: HTMLCanvasElement; yard: HTMLCanvasElement }
+const BG = new Map<string, Bg>();
+function layer(w: number, h: number, sc: number, paint: (c: C2) => void) {
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.ceil(w * sc));
+  c.height = Math.max(1, Math.ceil(h * sc));
+  const g = c.getContext('2d')!;
+  g.scale(sc, sc);
+  paint(g);
+  return c;
+}
+/** 빙산 실루엣 한 줄 */
+function bergs(g: C2, w: number, base: number, hgt: number, n: number, seed: number, col: string, hi: string) {
+  let x = -w * 0.1;
+  for (let k = 0; k < n; k++) {
+    const bw = w * (0.18 + hsh(seed + k) * 0.22), bh = hgt * (0.45 + hsh(seed + k * 3) * 0.55), px = x + bw * (0.3 + hsh(seed + k * 7) * 0.4);
+    g.fillStyle = col;
+    g.beginPath();
+    g.moveTo(x, base);
+    g.lineTo(x + bw * 0.12, base - bh * 0.55);
+    g.lineTo(px - bw * 0.1, base - bh * 0.9);
+    g.lineTo(px, base - bh);
+    g.lineTo(px + bw * 0.14, base - bh * 0.78);
+    g.lineTo(x + bw * 0.88, base - bh * 0.35);
+    g.lineTo(x + bw, base);
+    g.closePath();
+    g.fill();
+    // 빛 받는 면
+    g.fillStyle = hi;
+    g.beginPath();
+    g.moveTo(px, base - bh);
+    g.lineTo(px + bw * 0.14, base - bh * 0.78);
+    g.lineTo(x + bw * 0.88, base - bh * 0.35);
+    g.lineTo(x + bw, base);
+    g.lineTo(px + bw * 0.05, base);
+    g.closePath();
+    g.fill();
+    x += bw * 0.78;
+  }
+}
+function getBg(w: number, h: number, place: number, sc: number): Bg {
+  const key = `${w}x${h}:${place}:${sc}`;
+  const hit = BG.get(key);
+  if (hit) return hit;
+  const P = PAL[place], R = (r: number) => r * w;
+  const sky = layer(w, R(HZ) + R(0.06), sc, (g) => {
+    g.fillStyle = lin(g, 0, 0, 0, R(HZ), [0, P.sky[0]], [0.55, P.sky[1]], [1, P.sky[2]]);
+    g.fillRect(0, 0, w, R(HZ) + R(0.06));
+    for (let k = 0; k < 80; k++) {
+      g.globalAlpha = 0.25 + hsh(k * 3.1) * 0.65;
+      g.fillStyle = k % 9 ? '#e3ecff' : '#fff0c0';
+      const r = k % 7 ? 0.6 : 1.2;
+      g.beginPath();
+      g.arc(hsh(k * 1.7) * w, hsh(k * 2.9) * R(HZ) * 0.95, r, 0, TAU);
+      g.fill();
+    }
+    g.globalAlpha = 1;
+    // 초승달
+    const mx = R(0.82), my = R(0.15), mr = R(0.035);
+    g.fillStyle = radg(g, mx, my, 0, mr * 4, [0, 'rgba(255,250,220,.25)'], [1, 'rgba(255,250,220,0)']);
+    g.fillRect(mx - mr * 4, my - mr * 4, mr * 8, mr * 8);
+    g.fillStyle = '#fff6da';
+    g.beginPath();
+    g.arc(mx, my, mr, 0, TAU);
+    g.fill();
+    g.fillStyle = P.sky[1];
+    g.beginPath();
+    g.arc(mx + mr * 0.45, my - mr * 0.25, mr * 0.88, 0, TAU);
+    g.fill();
+  });
+  const far = layer(w * 1.2, R(0.2), sc, (g) => {
+    bergs(g, w * 1.2, R(0.2), R(0.15), 9, 11 + place, P.far[0], P.far[1]);
+    bergs(g, w * 1.2, R(0.2), R(0.1), 9, 37 + place, P.far[1], P.far[2]);
+    // 바다 위 빛
+    g.fillStyle = lin(g, 0, R(0.17), 0, R(0.2), [0, 'rgba(255,255,255,0)'], [1, 'rgba(200,230,255,.25)']);
+    g.fillRect(0, R(0.17), w * 1.2, R(0.03));
+  });
+  const floor = layer(w, h, sc, (g) => {
+    // 얼음 바닥
+    g.fillStyle = lin(g, 0, R(YT), 0, R(YI + 0.1), [0, P.ice[0]], [0.5, P.ice[1]], [1, P.ice[2]]);
+    g.fillRect(0, R(YT), w, R(YI + 0.2 - YT));
+    // 반질반질 줄무늬(원근)
+    for (let k = 0; k < 14; k++) {
+      const y = R(YT + (YI - YT) * Math.pow((k + 0.5) / 14, 1.2));
+      g.strokeStyle = `rgba(255,255,255,${0.05 + 0.05 * (k % 3 === 0 ? 1 : 0)})`;
+      g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(R(XL), y);
+      g.quadraticCurveTo(w / 2, y + R(0.006), R(XR), y);
+      g.stroke();
+    }
+    // 스케이트 자국
+    g.lineCap = 'round';
+    for (let k = 0; k < 9; k++) {
+      const x0 = R(XL + 0.05 + hsh(k * 5.3) * 0.75), y0 = R(YT + 0.06 + hsh(k * 2.1) * 0.55), L = R(0.08 + hsh(k) * 0.12), bend = (hsh(k * 9) - 0.5) * L;
+      g.strokeStyle = 'rgba(255,255,255,.22)';
+      g.lineWidth = 1.2;
+      g.beginPath();
+      g.moveTo(x0, y0);
+      g.quadraticCurveTo(x0 + L * 0.5, y0 + bend * 0.4, x0 + L, y0 + bend * 0.2);
+      g.stroke();
+    }
+    // 금
+    for (let k = 0; k < 5; k++) {
+      let x = R(XL + 0.08 + hsh(k * 13.1) * 0.7), y = R(YT + 0.1 + hsh(k * 7.7) * 0.5);
+      g.strokeStyle = 'rgba(30,60,110,.28)';
+      g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(x, y);
+      for (let j = 0; j < 4; j++) {
+        x += R(0.02 + hsh(k * 3 + j) * 0.03) * (hsh(k + j * 5) < 0.5 ? -1 : 1);
+        y += R(0.01 + hsh(k * 5 + j) * 0.02);
+        g.lineTo(x, y);
+      }
+      g.stroke();
+    }
+    // 가장자리 눈가루
+    for (let k = 0; k < 26; k++) {
+      const side = k % 2, x = side ? R(XR - 0.01 - hsh(k) * 0.05) : R(XL + 0.01 + hsh(k) * 0.05), y = R(YT + hsh(k * 3.3) * (YI - YT));
+      g.fillStyle = 'rgba(240,248,255,.35)';
+      ell(g, x, y, R(0.02 + hsh(k * 2) * 0.025), R(0.008 + hsh(k * 4) * 0.008));
+      g.fill();
+    }
+    // 위 빙벽 (튕기는 벽): 얼음 절벽 + 굴 셋 + 눈 지붕 + 고드름
+    const cy0 = R(HZ), cy1 = R(YT);
+    g.fillStyle = lin(g, 0, cy0, 0, cy1, [0, '#e6f4ff'], [0.25, '#9cc6ec'], [1, '#5f8fc4']);
+    g.fillRect(0, cy0, w, cy1 - cy0);
+    for (let k = 0; k < 18; k++) {
+      const x = R(hsh(k * 4.1)), wd = R(0.02 + hsh(k) * 0.05);
+      g.fillStyle = `rgba(255,255,255,${0.1 + hsh(k * 2) * 0.15})`;
+      g.fillRect(x, cy0 + R(0.02), wd * 0.25, cy1 - cy0 - R(0.02));
+      g.fillStyle = 'rgba(40,80,140,.15)';
+      g.fillRect(x + wd * 0.3, cy0 + R(0.03), wd * 0.15, cy1 - cy0 - R(0.03));
+    }
+    for (const cx of [0.2, 0.5, 0.8]) {
+      const gx = R(cx), gw2 = R(0.07), top = cy0 + R(0.035);
+      g.fillStyle = lin(g, 0, top, 0, cy1, [0, '#0c1a3a'], [1, '#22406e']);
+      g.beginPath();
+      g.moveTo(gx - gw2, cy1);
+      g.lineTo(gx - gw2, top + gw2 * 0.6);
+      g.quadraticCurveTo(gx - gw2, top, gx, top);
+      g.quadraticCurveTo(gx + gw2, top, gx + gw2, top + gw2 * 0.6);
+      g.lineTo(gx + gw2, cy1);
+      g.closePath();
+      g.fill();
+      g.strokeStyle = 'rgba(230,245,255,.7)';
+      g.lineWidth = 2;
+      g.stroke();
+    }
+    // 눈 지붕
+    g.fillStyle = '#f4f9ff';
+    g.beginPath();
+    g.moveTo(0, cy0 + R(0.02));
+    for (let k = 0; k <= 12; k++) g.quadraticCurveTo(R((k - 0.5) / 12), cy0 - R(0.02 + hsh(k) * 0.015), R(k / 12), cy0 + R(0.012 + hsh(k * 3) * 0.01));
+    g.lineTo(w, cy0 - R(0.04));
+    g.lineTo(0, cy0 - R(0.04));
+    g.closePath();
+    g.fill();
+    g.fillStyle = '#ffffff';
+    for (let k = 0; k < 40; k++) {
+      const x = R(hsh(k * 6.1)), L = R(0.012 + hsh(k * 2.7) * 0.03);
+      if (Math.abs(x / w - 0.2) < 0.07 || Math.abs(x / w - 0.5) < 0.07 || Math.abs(x / w - 0.8) < 0.07) continue;
+      g.fillStyle = 'rgba(235,248,255,.95)';
+      g.beginPath();
+      g.moveTo(x - R(0.006), cy0 + R(0.015));
+      g.lineTo(x + R(0.006), cy0 + R(0.015));
+      g.lineTo(x, cy0 + R(0.015) + L);
+      g.closePath();
+      g.fill();
+    }
+    // 빙벽 아래 그늘
+    g.fillStyle = lin(g, 0, cy1, 0, cy1 + R(0.06), [0, 'rgba(10,30,70,.35)'], [1, 'rgba(10,30,70,0)']);
+    g.fillRect(0, cy1, w, R(0.06));
+    // 양옆 눈둑 (튕기는 벽): 위는 눈, 얼음판 쪽은 파란 그늘 면
+    for (const sd of [-1, 1]) {
+      const edge = sd < 0 ? R(XL) : R(XR), face = R(0.022), outer = sd < 0 ? 0 : w;
+      g.fillStyle = lin(g, outer, 0, edge, 0, [0, '#dfeeff'], [1, '#f6fbff']);
+      g.beginPath();
+      g.moveTo(outer, cy1 - R(0.03));
+      g.lineTo(edge - sd * face, cy1 - R(0.01));
+      for (let k = 0; k <= 10; k++) g.lineTo(edge - sd * face + sd * R(hsh(k + sd * 5) * 0.006), R(YT + (YI + 0.12 - YT) * (k / 10)));
+      g.lineTo(outer, R(YI + 0.14));
+      g.closePath();
+      g.fill();
+      g.fillStyle = lin(g, edge - sd * face, 0, edge, 0, [0, '#a9c8ea'], [1, '#6f9ccc']);
+      g.beginPath();
+      g.moveTo(edge - sd * face, cy1 - R(0.01));
+      g.lineTo(edge, cy1);
+      g.lineTo(edge, R(YI + 0.12));
+      g.lineTo(edge - sd * face, R(YI + 0.12));
+      g.closePath();
+      g.fill();
+      g.strokeStyle = 'rgba(255,255,255,.8)';
+      g.lineWidth = 1.5;
+      g.beginPath();
+      g.moveTo(edge - sd * face, cy1 - R(0.01));
+      g.lineTo(edge - sd * face, R(YI + 0.12));
+      g.stroke();
+      for (let k = 0; k < 8; k++) {
+        g.fillStyle = 'rgba(120,160,210,.35)';
+        ell(g, outer + sd * -R(0.012 + hsh(k * 3 + sd) * 0.02), R(YT + 0.05 + k * 0.085), R(0.012), R(0.006));
+        g.fill();
+      }
+    }
+  });
+  const yard = layer(w, h - R(YI) + R(0.02), sc, (g) => {
+    const top = 0, H = h - R(YI) + R(0.02);
+    g.fillStyle = lin(g, 0, top, 0, H, [0, '#e9f3ff'], [1, '#c6dbf3']);
+    g.beginPath();
+    g.moveTo(0, top + R(0.02));
+    for (let k = 0; k <= 10; k++) g.quadraticCurveTo(R((k - 0.5) / 10), top - R(0.004 + hsh(k * 2) * 0.012), R(k / 10), top + R(0.01));
+    g.lineTo(w, H);
+    g.lineTo(0, H);
+    g.closePath();
+    g.fill();
+    // 눈 벽돌 담 (이글루 마당 경계)
+    for (let k = 0; k < 14; k++) {
+      const bx = R(XL + k * 0.064), bw = R(0.058);
+      if (bx + bw > R(XR) + 1) break;
+      if (Math.abs(bx + bw / 2 - w / 2) < R(0.12)) continue;
+      g.fillStyle = lin(g, 0, top, 0, top + R(0.035), [0, '#ffffff'], [1, '#b8d0ec']);
+      rr(g, bx, top - R(0.012), bw, R(0.035), R(0.008));
+      g.fill();
+      g.strokeStyle = 'rgba(70,110,170,.45)';
+      g.lineWidth = 1;
+      g.stroke();
+    }
+    for (let k = 0; k < 16; k++) {
+      g.fillStyle = 'rgba(150,185,225,.35)';
+      ell(g, R(hsh(k * 7.3)), R(0.06 + hsh(k * 3.1) * 0.15), R(0.03 + hsh(k) * 0.03), R(0.006));
+      g.fill();
+    }
+  });
+  const out = { sky, far, floor, yard };
+  BG.set(key, out);
+  return out;
+}
+
+/** 오로라 커튼 (매 프레임 흐른다) */
+function aurora(ctx: C2, w: number, t: number, P: (typeof PAL)[number], k: number) {
+  const R = (r: number) => r * w;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let b = 0; b < 3; b++) {
+    const base = R(0.13 + b * 0.05), amp = R(0.03 + b * 0.012), col = b === 1 ? P.au[1] : P.au[0], tall = R(0.09 - b * 0.015);
+    const g = ctx.createLinearGradient(0, base - tall, 0, base + tall * 0.6);
+    g.addColorStop(0, `rgba(${col},0)`);
+    g.addColorStop(0.55, `rgba(${col},${(0.22 - b * 0.04) * k})`);
+    g.addColorStop(0.8, `rgba(${col},${(0.4 - b * 0.08) * k})`);
+    g.addColorStop(1, `rgba(${col},0)`);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    const N = 22;
+    for (let i = 0; i <= N; i++) {
+      const x = (i / N) * w * 1.1 - w * 0.05, y = base + Math.sin(i * 0.55 + t * (0.012 + b * 0.004) + b * 2) * amp + Math.sin(i * 1.3 - t * 0.02) * amp * 0.3;
+      if (i) ctx.lineTo(x, y - tall);
+      else ctx.moveTo(x, y - tall);
+    }
+    for (let i = N; i >= 0; i--) {
+      const x = (i / N) * w * 1.1 - w * 0.05, y = base + Math.sin(i * 0.55 + t * (0.012 + b * 0.004) + b * 2) * amp + Math.sin(i * 1.3 - t * 0.02) * amp * 0.3;
+      ctx.lineTo(x, y + tall * 0.6);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** 아기 펭귄 (주인공). pose: 0 서기 1 겨누기 2 던지기 3 깜짝 4 어질 5 만세 · aim = 겨눈 각도 */
+function drawPeng(ctx: C2, k: number, pose: number, t: number, aim: number, ammo: boolean, sub = 0) {
+  const breath = 1 + Math.sin(t * 0.09) * 0.02;
+  const lean = pose === 1 || pose === 2 ? clamp(Math.cos(aim) * 0.35, -0.3, 0.3) * (pose === 2 ? 1.3 : 0.7) : pose === 4 ? Math.sin(t * 0.2) * 0.15 : 0;
+  const hop = pose === 5 ? Math.abs(Math.sin(t * 0.18)) * k * 0.12 : 0;
+  ctx.save();
+  // 그림자
+  ctx.fillStyle = 'rgba(10,25,60,.35)';
+  ell(ctx, 0, 0, k * 0.32, k * 0.08);
+  ctx.fill();
+  ctx.translate(0, -hop);
+  // 발
+  ctx.fillStyle = '#ff9a2f';
+  ctx.strokeStyle = OUT;
+  ctx.lineWidth = Math.max(1, k * 0.025);
+  for (const sd of [-1, 1]) {
+    ell(ctx, sd * k * 0.12, -k * 0.02, k * 0.1, k * 0.045, sd * 0.15);
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.rotate(lean * 0.4);
+  const sy = pose === 2 ? 1.08 : breath, sx = pose === 2 ? 0.93 : 2 - breath;
+  ctx.scale(sx, sy);
+  // 몸 (등 = 남색, 배 = 흰색)
+  const bx = 0, by = -k * 0.43;
+  ctx.fillStyle = lin(ctx, -k * 0.3, by - k * 0.4, k * 0.3, by + k * 0.4, [0, '#3a4d78'], [0.5, '#24335a'], [1, '#141e38']);
+  ell(ctx, bx, by, k * 0.31, k * 0.43);
+  ctx.fill();
+  ctx.lineWidth = Math.max(1.2, k * 0.03);
+  ctx.stroke();
+  // 날개 (지느러미)
+  const flapIdle = Math.sin(t * 0.09) * 0.08;
+  for (const sd of [-1, 1]) {
+    ctx.save();
+    ctx.translate(sd * k * 0.27, by - k * 0.02);
+    let rot = sd * (0.35 + flapIdle);
+    const throwing = (pose === 1 || pose === 2) && sd === (Math.cos(aim) >= 0 ? 1 : -1);
+    if (pose === 1 && throwing) rot = sd * -2.3;
+    if (pose === 2 && throwing) rot = sd * -1.0 + Math.sin(sub * 0.5) * 0.2;
+    if (pose === 5) rot = sd * (-2.2 + Math.sin(t * 0.4) * 0.4);
+    if (pose === 3) rot = sd * -1.4;
+    if (pose === 4) rot = sd * (0.9 + Math.sin(t * 0.3 + sd) * 0.3);
+    ctx.rotate(rot);
+    ctx.fillStyle = lin(ctx, 0, 0, 0, k * 0.3, [0, '#2c3d66'], [1, '#18233f']);
+    ell(ctx, 0, k * 0.14, k * 0.075, k * 0.17);
+    ctx.fill();
+    ctx.stroke();
+    if (pose === 1 && throwing && ammo) {
+      // 머리 위로 든 눈덩이
+      ctx.fillStyle = radg(ctx, -k * 0.03, k * 0.31, 0, k * 0.11, [0, '#ffffff'], [0.7, '#e6f1fd'], [1, '#a9c8ea']);
+      ctx.beginPath();
+      ctx.arc(0, k * 0.33, k * 0.1, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = '#6b8fbf';
+      ctx.lineWidth = Math.max(1, k * 0.02);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  // 배
+  ctx.fillStyle = lin(ctx, 0, by - k * 0.2, 0, by + k * 0.4, [0, '#ffffff'], [1, '#d8e6f6']);
+  ell(ctx, 0, by + k * 0.08, k * 0.21, k * 0.31);
+  ctx.fill();
+  // 얼굴 흰 테
+  ctx.fillStyle = '#ffffff';
+  ell(ctx, -k * 0.095, by - k * 0.2, k * 0.1, k * 0.09);
+  ctx.fill();
+  ell(ctx, k * 0.095, by - k * 0.2, k * 0.1, k * 0.09);
+  ctx.fill();
+  // 목도리
+  ctx.fillStyle = lin(ctx, 0, by - k * 0.08, 0, by + k * 0.02, [0, '#ff5a64'], [1, '#c92a3c']);
+  rr(ctx, -k * 0.27, by - k * 0.08, k * 0.54, k * 0.1, k * 0.05);
+  ctx.fill();
+  ctx.strokeStyle = OUT;
+  ctx.lineWidth = Math.max(1, k * 0.022);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,.7)';
+  ctx.lineWidth = Math.max(1, k * 0.016);
+  for (const sx2 of [-0.15, -0.05, 0.05, 0.15]) {
+    ctx.beginPath();
+    ctx.moveTo(k * sx2, by - k * 0.07);
+    ctx.lineTo(k * (sx2 + 0.02), by + k * 0.01);
+    ctx.stroke();
+  }
+  ribbon(ctx, k * 0.18, by - k * 0.02, k * 0.3, Math.max(2, k * 0.06), t, 0, '#e8434f', 1);
+  // 눈
+  const ey = by - k * 0.2;
+  if (pose === 4) {
+    ctx.strokeStyle = OUT;
+    ctx.lineWidth = Math.max(1.2, k * 0.025);
+    for (const sd of [-1, 1]) {
+      ctx.beginPath();
+      for (let a = 0; a < 9; a++) {
+        const rr2 = k * 0.006 * a, an = a * 0.9 + t * 0.2;
+        const px = sd * k * 0.095 + Math.cos(an) * rr2, py = ey + Math.sin(an) * rr2;
+        if (a) ctx.lineTo(px, py);
+        else ctx.moveTo(px, py);
+      }
+      ctx.stroke();
+    }
+  } else if (pose === 5) {
+    ctx.strokeStyle = OUT;
+    ctx.lineWidth = Math.max(1.5, k * 0.03);
+    for (const sd of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(sd * k * 0.095, ey + k * 0.02, k * 0.045, Math.PI * 1.1, Math.PI * 1.9);
+      ctx.stroke();
+    }
+  } else {
+    const blink = pose === 0 && Math.sin(t * 0.023) > 0.985;
+    const look = pose === 1 || pose === 2 ? Math.cos(aim) * k * 0.025 : 0, lookY = pose === 1 || pose === 2 ? Math.sin(aim) * k * 0.02 : 0;
+    for (const sd of [-1, 1]) {
+      const ex = sd * k * 0.095;
+      if (blink) {
+        ctx.strokeStyle = OUT;
+        ctx.lineWidth = Math.max(1.2, k * 0.025);
+        ctx.beginPath();
+        ctx.moveTo(ex - k * 0.04, ey);
+        ctx.lineTo(ex + k * 0.04, ey);
+        ctx.stroke();
+        continue;
+      }
+      const big = pose === 3 ? 1.2 : 1;
+      ctx.fillStyle = '#10152a';
+      ell(ctx, ex + look, ey + lookY, k * 0.042 * big, k * 0.052 * big);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(ex + look - k * 0.014, ey + lookY - k * 0.02, k * 0.016 * big, 0, TAU);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(ex + look + k * 0.012, ey + lookY + k * 0.016, k * 0.007, 0, TAU);
+      ctx.fill();
+    }
+    if (pose === 1) {
+      // 힘줌: 눈썹
+      ctx.strokeStyle = OUT;
+      ctx.lineWidth = Math.max(1, k * 0.02);
+      for (const sd of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(sd * k * 0.14, ey - k * 0.075);
+        ctx.lineTo(sd * k * 0.05, ey - k * 0.06);
+        ctx.stroke();
+      }
+    }
+  }
+  // 볼터치
+  ctx.fillStyle = 'rgba(255,120,150,.55)';
+  for (const sd of [-1, 1]) {
+    ell(ctx, sd * k * 0.15, ey + k * 0.06, k * 0.045, k * 0.025);
+    ctx.fill();
+  }
+  // 부리
+  ctx.fillStyle = lin(ctx, 0, ey, 0, ey + k * 0.09, [0, '#ffc04a'], [1, '#ff8a1e']);
+  ctx.beginPath();
+  if (pose === 5 || pose === 3) {
+    ctx.moveTo(-k * 0.045, ey + k * 0.035);
+    ctx.lineTo(k * 0.045, ey + k * 0.035);
+    ctx.lineTo(0, ey + k * 0.075);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#c0392b';
+    ell(ctx, 0, ey + k * 0.085, k * 0.03, k * 0.02);
+    ctx.fill();
+  } else {
+    ctx.moveTo(-k * 0.045, ey + k * 0.035);
+    ctx.quadraticCurveTo(0, ey + k * 0.02, k * 0.045, ey + k * 0.035);
+    ctx.lineTo(0, ey + k * 0.085);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = OUT;
+    ctx.lineWidth = Math.max(1, k * 0.018);
+    ctx.stroke();
+  }
+  if (pose === 3) {
+    // 땀방울
+    ctx.fillStyle = '#9fe0ff';
+    ctx.beginPath();
+    ctx.moveTo(k * 0.27, ey - k * 0.12);
+    ctx.quadraticCurveTo(k * 0.31, ey - k * 0.03, k * 0.27, ey - k * 0.02);
+    ctx.quadraticCurveTo(k * 0.23, ey - k * 0.03, k * 0.27, ey - k * 0.12);
+    ctx.fill();
+  }
+  ctx.restore();
+  if (pose === 4)
+    for (let j = 0; j < 3; j++) {
+      const an = t * 0.12 + (j * TAU) / 3;
+      ctx.fillStyle = '#ffe66b';
+      starPath(ctx, Math.cos(an) * k * 0.28, -k * 0.95 + Math.sin(an) * k * 0.07, k * 0.05);
+      ctx.fill();
+    }
+}
+
+/** 장난꾸러기 눈사람 (발 = 0,0) */
+function drawSnowman(ctx: C2, k: number, t: number, seed: number, mood: number) {
+  const bob = Math.sin(t * 0.12 + seed) * k * 0.015, sway = Math.sin(t * 0.07 + seed) * 0.05;
+  const hats = ['#3fb6a8', '#a46bff', '#ffcc3a', '#ff6b8b'], hat = hats[seed % 4];
+  ctx.save();
+  ctx.rotate(sway * 0.5);
+  const ball = (y: number, r: number) => {
+    ctx.fillStyle = radg(ctx, -r * 0.35, y - r * 0.4, r * 0.1, r * 1.3, [0, '#ffffff'], [0.6, '#eaf3fd'], [1, '#a9c3e3']);
+    ctx.beginPath();
+    ctx.arc(0, y, r, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = '#5a7aa8';
+    ctx.lineWidth = Math.max(1, k * 0.025);
+    ctx.stroke();
+  };
+  ball(-k * 0.22, k * 0.24);
+  // 팔 (나뭇가지)
+  ctx.strokeStyle = '#6b4424';
+  ctx.lineWidth = Math.max(1.5, k * 0.035);
+  ctx.lineCap = 'round';
+  for (const sd of [-1, 1]) {
+    const wave = Math.sin(t * 0.15 + seed + sd) * 0.3 + (mood ? -0.5 : 0);
+    const ax = sd * k * 0.16, ay = -k * 0.52, ex = ax + sd * k * 0.26, ey = ay - k * (0.12 + wave * 0.15);
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(ex, ey);
+    ctx.moveTo(ax + sd * k * 0.16, ay - k * 0.06 - wave * k * 0.08);
+    ctx.lineTo(ax + sd * k * 0.2, ay - k * 0.16 - wave * k * 0.1);
+    ctx.stroke();
+  }
+  ball(-k * 0.52 + bob, k * 0.18);
+  // 단추
+  ctx.fillStyle = '#28303f';
+  for (const yy of [-0.46, -0.56]) {
+    ctx.beginPath();
+    ctx.arc(0, k * yy + bob, k * 0.022, 0, TAU);
+    ctx.fill();
+  }
+  const hy = -k * 0.78 + bob * 1.5;
+  ball(hy, k * 0.145);
+  // 털모자
+  ctx.fillStyle = hat;
+  ctx.beginPath();
+  ctx.moveTo(-k * 0.13, hy - k * 0.06);
+  ctx.quadraticCurveTo(0, hy - k * 0.3, k * 0.13, hy - k * 0.06);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = OUT;
+  ctx.lineWidth = Math.max(1, k * 0.022);
+  ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  rr(ctx, -k * 0.14, hy - k * 0.09, k * 0.28, k * 0.05, k * 0.025);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(k * 0.02, hy - k * 0.25, k * 0.04, 0, TAU);
+  ctx.fill();
+  ctx.stroke();
+  // 얼굴: 장난꾸러기 눈썹 + 숯 눈 + 당근 코 + 씨익
+  ctx.fillStyle = '#1c2230';
+  for (const sd of [-1, 1]) {
+    ctx.beginPath();
+    ctx.arc(sd * k * 0.05, hy - k * 0.01, k * (mood ? 0.03 : 0.024), 0, TAU);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#ffffff';
+  for (const sd of [-1, 1]) {
+    ctx.beginPath();
+    ctx.arc(sd * k * 0.05 - k * 0.008, hy - k * 0.02, k * 0.008, 0, TAU);
+    ctx.fill();
+  }
+  ctx.strokeStyle = '#1c2230';
+  ctx.lineWidth = Math.max(1, k * 0.02);
+  for (const sd of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(sd * k * 0.09, hy - k * (mood ? 0.07 : 0.05));
+    ctx.lineTo(sd * k * 0.02, hy - k * (mood ? 0.03 : 0.045));
+    ctx.stroke();
+  }
+  ctx.fillStyle = lin(ctx, 0, hy, k * 0.14, hy, [0, '#ff9a2a'], [1, '#e8641a']);
+  ctx.beginPath();
+  ctx.moveTo(0, hy + k * 0.005);
+  ctx.lineTo(k * 0.15, hy + k * 0.03);
+  ctx.lineTo(0, hy + k * 0.04);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  if (mood) {
+    ctx.fillStyle = '#1c2230';
+    ell(ctx, 0, hy + k * 0.08, k * 0.035, k * 0.03);
+    ctx.fill();
+  } else
+    for (let j = 0; j < 5; j++) {
+      ctx.fillStyle = '#1c2230';
+      ctx.beginPath();
+      ctx.arc(-k * 0.06 + j * k * 0.03, hy + k * 0.065 + Math.sin((j / 4) * Math.PI) * k * 0.02, k * 0.012, 0, TAU);
+      ctx.fill();
+    }
+  ctx.restore();
+}
+
+/** 통통한 바다표범 (배로 미끄러지며 다가온다, 앞에서 본 모습) · shield면 얼음 방패를 앞에 든다 */
+function drawSeal(ctx: C2, k: number, t: number, seed: number, slide: number, shield: number, mood: number) {
+  const sq = 1 + slide * 0.08;
+  ctx.save();
+  ctx.scale(sq, 2 - sq);
+  // 뒷지느러미
+  ctx.fillStyle = '#6f849c';
+  ctx.strokeStyle = OUT;
+  ctx.lineWidth = Math.max(1, k * 0.025);
+  for (const sd of [-1, 1]) {
+    ctx.save();
+    ctx.translate(sd * k * 0.1, -k * 0.55);
+    ctx.rotate(sd * (0.6 + Math.sin(t * 0.2 + seed) * 0.2));
+    ell(ctx, 0, -k * 0.06, k * 0.05, k * 0.1);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+  // 몸
+  ctx.fillStyle = lin(ctx, 0, -k * 0.6, 0, 0, [0, '#a8bacd'], [0.6, '#8ea2b9'], [1, '#6f839b']);
+  ell(ctx, 0, -k * 0.27, k * 0.34, k * 0.29);
+  ctx.fill();
+  ctx.stroke();
+  // 점박이
+  ctx.fillStyle = 'rgba(70,90,115,.45)';
+  for (let j = 0; j < 5; j++) {
+    ell(ctx, (hsh(seed + j) - 0.5) * k * 0.5, -k * (0.35 + hsh(seed + j * 3) * 0.18), k * 0.03, k * 0.022);
+    ctx.fill();
+  }
+  // 앞지느러미 (철퍼덕)
+  const pad = Math.sin(t * 0.25 + seed) * 0.4 * (slide > 0.3 ? 1 : 0.3);
+  ctx.fillStyle = '#7b90a8';
+  for (const sd of [-1, 1]) {
+    ctx.save();
+    ctx.translate(sd * k * 0.28, -k * 0.1);
+    ctx.rotate(sd * (0.9 + pad * sd));
+    ell(ctx, 0, k * 0.06, k * 0.05, k * 0.11);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+  // 얼굴
+  const fy = -k * 0.3;
+  ctx.fillStyle = '#f2f6fb';
+  ell(ctx, -k * 0.055, fy + k * 0.06, k * 0.07, k * 0.055);
+  ctx.fill();
+  ell(ctx, k * 0.055, fy + k * 0.06, k * 0.07, k * 0.055);
+  ctx.fill();
+  ctx.fillStyle = '#2b2f3a';
+  ell(ctx, 0, fy + k * 0.025, k * 0.035, k * 0.025);
+  ctx.fill();
+  // 눈
+  for (const sd of [-1, 1]) {
+    const ex = sd * k * 0.12, ey = fy - k * 0.06;
+    ctx.fillStyle = '#0d1018';
+    ell(ctx, ex, ey, k * 0.05, k * (shield && mood === 0 ? 0.035 : 0.055));
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(ex - k * 0.015, ey - k * 0.018, k * 0.016, 0, TAU);
+    ctx.fill();
+    if (shield) {
+      ctx.strokeStyle = '#1b2130';
+      ctx.lineWidth = Math.max(1, k * 0.022);
+      ctx.beginPath();
+      ctx.moveTo(ex - sd * k * 0.06, ey - k * 0.09);
+      ctx.lineTo(ex + sd * k * 0.04, ey - k * 0.06);
+      ctx.stroke();
+    }
+  }
+  // 수염
+  ctx.strokeStyle = 'rgba(30,40,60,.6)';
+  ctx.lineWidth = 1;
+  for (const sd of [-1, 1])
+    for (let j = 0; j < 3; j++) {
+      ctx.beginPath();
+      ctx.moveTo(sd * k * 0.08, fy + k * 0.06 + j * k * 0.015);
+      ctx.lineTo(sd * k * 0.22, fy + k * 0.04 + j * k * 0.03);
+      ctx.stroke();
+    }
+  // 메롱
+  if (!shield && mood === 0) {
+    ctx.fillStyle = '#ff7a9a';
+    ell(ctx, k * 0.02, fy + k * 0.13, k * 0.025, k * 0.02);
+    ctx.fill();
+  }
+  ctx.restore();
+  if (shield) {
+    // 얼음 방패 (앞쪽, 반투명)
+    const fl = shield > 1 ? 1 : 0;
+    ctx.save();
+    ctx.translate(0, -k * 0.16);
+    ctx.fillStyle = lin(ctx, -k * 0.3, -k * 0.2, k * 0.3, k * 0.15, [0, 'rgba(230,250,255,.92)'], [0.5, 'rgba(150,215,250,.78)'], [1, 'rgba(90,160,220,.85)']);
+    rr(ctx, -k * 0.3, -k * 0.13, k * 0.6, k * 0.24, k * 0.07);
+    ctx.fill();
+    ctx.strokeStyle = fl ? '#ffe36b' : '#e8fbff';
+    ctx.lineWidth = Math.max(1.5, k * 0.035);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.85)';
+    ctx.lineWidth = Math.max(1, k * 0.02);
+    ctx.beginPath();
+    ctx.moveTo(-k * 0.22, -k * 0.06);
+    ctx.lineTo(-k * 0.1, -k * 0.09);
+    ctx.moveTo(-k * 0.2, k * 0.0);
+    ctx.lineTo(-k * 0.14, -k * 0.01);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+/** 북극곰 대장 (네 발로 엉금엉금, 빨간 망토·얼음 왕관) */
+function drawBear(ctx: C2, k: number, t: number, hp: number, hurt: number) {
+  const step = Math.sin(t * 0.1) * k * 0.02;
+  ctx.save();
+  if (hurt > 0) ctx.translate(Math.sin(t * 2.2) * k * 0.03, 0);
+  // 망토
+  ctx.fillStyle = lin(ctx, 0, -k * 0.75, 0, -k * 0.2, [0, '#ff5a5a'], [1, '#a81e2e']);
+  ctx.beginPath();
+  ctx.moveTo(-k * 0.3, -k * 0.62);
+  ctx.quadraticCurveTo(-k * 0.55, -k * 0.3, -k * 0.42, -k * 0.12);
+  ctx.lineTo(k * 0.42, -k * 0.12);
+  ctx.quadraticCurveTo(k * 0.55, -k * 0.3, k * 0.3, -k * 0.62);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = OUT;
+  ctx.lineWidth = Math.max(1.5, k * 0.02);
+  ctx.stroke();
+  // 몸
+  ctx.fillStyle = radg(ctx, -k * 0.12, -k * 0.5, k * 0.05, k * 0.55, [0, '#ffffff'], [0.6, '#eef3f9'], [1, '#bfcde0']);
+  ell(ctx, 0, -k * 0.34, k * 0.38, k * 0.32);
+  ctx.fill();
+  ctx.stroke();
+  // 앞발
+  ctx.fillStyle = '#e9eff7';
+  for (const sd of [-1, 1]) {
+    ell(ctx, sd * k * 0.2, -k * 0.06 + (sd > 0 ? step : -step), k * 0.1, k * 0.07);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#3a3f4c';
+    for (let j = -1; j <= 1; j++) {
+      ctx.beginPath();
+      ctx.arc(sd * k * 0.2 + j * k * 0.03, -k * 0.02 + (sd > 0 ? step : -step), k * 0.01, 0, TAU);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#e9eff7';
+  }
+  // 머리
+  const hy = -k * 0.55;
+  for (const sd of [-1, 1]) {
+    ctx.fillStyle = '#eef3f9';
+    ctx.beginPath();
+    ctx.arc(sd * k * 0.15, hy - k * 0.17, k * 0.065, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#d9a6b2';
+    ctx.beginPath();
+    ctx.arc(sd * k * 0.15, hy - k * 0.17, k * 0.03, 0, TAU);
+    ctx.fill();
+  }
+  ctx.fillStyle = radg(ctx, -k * 0.06, hy - k * 0.1, k * 0.03, k * 0.3, [0, '#ffffff'], [1, '#c8d5e6']);
+  ell(ctx, 0, hy, k * 0.22, k * 0.19);
+  ctx.fill();
+  ctx.stroke();
+  // 얼음 왕관
+  ctx.fillStyle = lin(ctx, 0, hy - k * 0.36, 0, hy - k * 0.18, [0, '#e8fbff'], [1, '#7cc6f2']);
+  ctx.beginPath();
+  ctx.moveTo(-k * 0.12, hy - k * 0.17);
+  ctx.lineTo(-k * 0.13, hy - k * 0.3);
+  ctx.lineTo(-k * 0.06, hy - k * 0.23);
+  ctx.lineTo(0, hy - k * 0.35);
+  ctx.lineTo(k * 0.06, hy - k * 0.23);
+  ctx.lineTo(k * 0.13, hy - k * 0.3);
+  ctx.lineTo(k * 0.12, hy - k * 0.17);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  // 눈·눈썹 (성났다 → 맞으면 질끈)
+  for (const sd of [-1, 1]) {
+    const ex = sd * k * 0.08, ey = hy - k * 0.03;
+    if (hurt > 0) {
+      ctx.strokeStyle = OUT;
+      ctx.lineWidth = Math.max(1.5, k * 0.025);
+      ctx.beginPath();
+      ctx.moveTo(ex - k * 0.03, ey - k * 0.02);
+      ctx.lineTo(ex + k * 0.03, ey);
+      ctx.lineTo(ex - k * 0.03, ey + k * 0.02);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = '#121620';
+      ctx.beginPath();
+      ctx.arc(ex, ey, k * 0.028, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(ex - k * 0.008, ey - k * 0.01, k * 0.009, 0, TAU);
+      ctx.fill();
+    }
+    ctx.strokeStyle = OUT;
+    ctx.lineWidth = Math.max(1.5, k * 0.025);
+    ctx.beginPath();
+    ctx.moveTo(sd * k * 0.14, ey - k * 0.07);
+    ctx.lineTo(sd * k * 0.03, ey - k * 0.04);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#f2f5fa';
+  ell(ctx, 0, hy + k * 0.08, k * 0.09, k * 0.07);
+  ctx.fill();
+  ctx.fillStyle = '#20242e';
+  ell(ctx, 0, hy + k * 0.05, k * 0.04, k * 0.028);
+  ctx.fill();
+  ctx.strokeStyle = '#20242e';
+  ctx.lineWidth = Math.max(1, k * 0.015);
+  ctx.beginPath();
+  ctx.moveTo(-k * 0.04, hy + k * 0.12);
+  ctx.quadraticCurveTo(0, hy + (hurt > 0 ? k * 0.09 : k * 0.1), k * 0.04, hy + k * 0.12);
+  ctx.stroke();
+  ctx.restore();
+  // 체력 칸
+  for (let j = 0; j < BEAR_HP; j++) {
+    ctx.fillStyle = j < hp ? '#ff5a6a' : 'rgba(255,255,255,.25)';
+    heartPath(ctx, (j - (BEAR_HP - 1) / 2) * k * 0.13, -k * 1.08, k * 0.045);
+    ctx.fill();
+    ctx.strokeStyle = OUT;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  }
+}
+
+/** 아기 펭귄 친구 (회색 솜털, 뒤뚱뒤뚱 옆으로) */
+function drawChick(ctx: C2, k: number, t: number, dir: number, dizzy: number, seed: number) {
+  const wob = Math.sin(t * 0.3 + seed) * 0.12;
+  ctx.save();
+  ctx.fillStyle = 'rgba(10,25,60,.3)';
+  ell(ctx, 0, 0, k * 0.28, k * 0.07);
+  ctx.fill();
+  ctx.rotate(dizzy > 0 ? Math.sin(t * 0.4) * 0.3 : wob);
+  ctx.scale(dir, 1);
+  ctx.fillStyle = radg(ctx, -k * 0.08, -k * 0.5, k * 0.05, k * 0.45, [0, '#e4e8ef'], [1, '#9aa4b4']);
+  ell(ctx, 0, -k * 0.38, k * 0.27, k * 0.36);
+  ctx.fill();
+  ctx.strokeStyle = OUT;
+  ctx.lineWidth = Math.max(1, k * 0.03);
+  ctx.stroke();
+  ctx.fillStyle = '#2a3048';
+  ell(ctx, 0, -k * 0.62, k * 0.2, k * 0.14);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ell(ctx, k * 0.06, -k * 0.55, k * 0.12, k * 0.1);
+  ctx.fill();
+  if (dizzy > 0) {
+    ctx.strokeStyle = OUT;
+    ctx.lineWidth = Math.max(1, k * 0.03);
+    ctx.beginPath();
+    ctx.arc(k * 0.08, -k * 0.56, k * 0.035, 0, Math.PI * 1.6);
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = '#10152a';
+    ctx.beginPath();
+    ctx.arc(k * 0.09, -k * 0.57, k * 0.03, 0, TAU);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#ffb04a';
+  ctx.beginPath();
+  ctx.moveTo(k * 0.16, -k * 0.53);
+  ctx.lineTo(k * 0.26, -k * 0.5);
+  ctx.lineTo(k * 0.16, -k * 0.47);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,130,160,.6)';
+  ell(ctx, k * 0.1, -k * 0.48, k * 0.03, k * 0.02);
+  ctx.fill();
+  ctx.fillStyle = '#ffd34a';
+  rr(ctx, -k * 0.18, -k * 0.44, k * 0.36, k * 0.06, k * 0.03);
+  ctx.fill();
+  ctx.restore();
+  if (dizzy > 0)
+    for (let j = 0; j < 3; j++) {
+      const an = t * 0.15 + (j * TAU) / 3;
+      ctx.fillStyle = '#ffe66b';
+      starPath(ctx, Math.cos(an) * k * 0.25, -k * 0.9 + Math.sin(an) * k * 0.06, k * 0.06);
+      ctx.fill();
+    }
+}
+
+/** 얼음 기둥 (육각 수정) — 발 = 0,0, r = 바닥 반지름(px) */
+function drawPillar(ctx: C2, r: number, hgt: number, t: number, flash: number) {
+  ctx.fillStyle = 'rgba(10,30,70,.3)';
+  ell(ctx, r * 0.15, r * 0.1, r * 1.25, r * 0.45);
+  ctx.fill();
+  ctx.fillStyle = '#eef7ff';
+  ell(ctx, 0, 0, r * 1.15, r * 0.42);
+  ctx.fill();
+  const w2 = r * 0.95;
+  ctx.fillStyle = lin(ctx, -w2, 0, w2, 0, [0, 'rgba(200,240,255,.95)'], [0.35, 'rgba(130,200,245,.9)'], [0.7, 'rgba(80,150,220,.92)'], [1, 'rgba(60,120,200,.95)']);
+  ctx.beginPath();
+  ctx.moveTo(-w2, 0);
+  ctx.lineTo(-w2, -hgt * 0.85);
+  ctx.lineTo(-w2 * 0.4, -hgt);
+  ctx.lineTo(w2 * 0.5, -hgt * 0.95);
+  ctx.lineTo(w2, -hgt * 0.8);
+  ctx.lineTo(w2, 0);
+  ctx.quadraticCurveTo(0, r * 0.35, -w2, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#2d5a92';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,.75)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-w2 * 0.55, -hgt * 0.1);
+  ctx.lineTo(-w2 * 0.55, -hgt * 0.85);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,.35)';
+  ctx.beginPath();
+  ctx.moveTo(w2 * 0.15, -hgt * 0.05);
+  ctx.lineTo(w2 * 0.15, -hgt * 0.9);
+  ctx.stroke();
+  const gl = 0.4 + 0.3 * Math.sin(t * 0.05) + flash;
+  ctx.fillStyle = `rgba(255,255,255,${Math.min(1, gl)})`;
+  starPath(ctx, -w2 * 0.4, -hgt * 0.92, r * 0.25);
+  ctx.fill();
+}
+
+/** 얼음벽 벽돌 (hp 2 = 멀쩡, 1 = 금) */
+function drawBlock(ctx: C2, r: number, hp: number, shake: number) {
+  const hw = r * 1.05, hgt = r * 1.5;
+  ctx.save();
+  ctx.translate(shake, 0);
+  ctx.fillStyle = 'rgba(10,30,70,.3)';
+  ell(ctx, r * 0.1, r * 0.15, hw * 1.15, r * 0.4);
+  ctx.fill();
+  ctx.fillStyle = lin(ctx, 0, -hgt, 0, 0, [0, 'rgba(225,248,255,.95)'], [1, 'rgba(110,180,235,.92)']);
+  rr(ctx, -hw, -hgt, hw * 2, hgt, r * 0.25);
+  ctx.fill();
+  ctx.strokeStyle = '#2d5a92';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,.7)';
+  rr(ctx, -hw, -hgt, hw * 2, r * 0.35, r * 0.2);
+  ctx.fill();
+  if (hp <= 1) {
+    ctx.strokeStyle = '#1d3f72';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(-hw * 0.1, -hgt);
+    ctx.lineTo(hw * 0.15, -hgt * 0.6);
+    ctx.lineTo(-hw * 0.2, -hgt * 0.35);
+    ctx.lineTo(hw * 0.1, 0);
+    ctx.moveTo(hw * 0.15, -hgt * 0.6);
+    ctx.lineTo(hw * 0.7, -hgt * 0.5);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** 눈덩이 (r = 반지름 px, spin = 굴러간 거리) */
+function drawSnowball(ctx: C2, x: number, y: number, r: number, spin: number, glow: number) {
+  if (glow > 0) {
+    ctx.fillStyle = radg(ctx, x, y, r * 0.5, r * 2.4, [0, `rgba(200,240,255,${0.45 * glow})`], [1, 'rgba(200,240,255,0)']);
+    ctx.beginPath();
+    ctx.arc(x, y, r * 2.4, 0, TAU);
+    ctx.fill();
+  }
+  ctx.fillStyle = radg(ctx, x - r * 0.35, y - r * 0.4, r * 0.1, r * 1.2, [0, '#ffffff'], [0.55, '#eef5fd'], [1, '#a6c3e6']);
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, TAU);
+  ctx.fill();
+  ctx.strokeStyle = '#5f86bb';
+  ctx.lineWidth = Math.max(1, r * 0.1);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(120,160,210,.6)';
+  ctx.lineWidth = Math.max(1, r * 0.09);
+  for (let j = 0; j < 3; j++) {
+    const a = spin * 0.35 + (j * TAU) / 3;
+    ctx.beginPath();
+    ctx.arc(x + Math.cos(a) * r * 0.45, y + Math.sin(a) * r * 0.45, r * 0.22, a, a + 1.6);
+    ctx.stroke();
+  }
+}
+
+/** 손가락 그림 (첫 안내) */
+function drawHand(ctx: C2, x: number, y: number, k: number, press: number) {
+  ctx.save();
+  ctx.translate(x, y + press * k * 0.1);
+  ctx.rotate(-0.25);
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = OUT;
+  ctx.lineWidth = k * 0.07;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-k * 0.12, 0);
+  ctx.lineTo(-k * 0.12, k * 0.55);
+  ctx.quadraticCurveTo(-k * 0.45, k * 0.42, -k * 0.38, k * 0.62);
+  ctx.lineTo(-k * 0.12, k * 1.05);
+  ctx.quadraticCurveTo(k * 0.1, k * 1.25, k * 0.42, k * 1.05);
+  ctx.quadraticCurveTo(k * 0.55, k * 0.75, k * 0.48, k * 0.5);
+  ctx.quadraticCurveTo(k * 0.45, k * 0.38, k * 0.32, k * 0.4);
+  ctx.quadraticCurveTo(k * 0.3, k * 0.3, k * 0.18, k * 0.32);
+  ctx.quadraticCurveTo(k * 0.15, k * 0.24, k * 0.1, k * 0.26);
+  ctx.lineTo(k * 0.1, 0);
+  ctx.quadraticCurveTo(-k * 0.01, -k * 0.14, -k * 0.12, 0);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.fill();
+  ctx.restore();
+}
+
+/** 이글루 (cx, base = 바닥 가운데, rw = 반폭 px) · hp만큼 멀쩡하고, 잃을 때마다 금이 간다 */
+function drawIgloo(ctx: C2, cx: number, base: number, rw: number, hp: number, t: number, shake: number) {
+  const rh = rw * 0.72;
+  ctx.save();
+  ctx.translate(cx + shake, base);
+  ctx.fillStyle = 'rgba(20,40,80,.25)';
+  ell(ctx, 0, 0, rw * 1.08, rh * 0.18);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(0, 0, rw, rh, 0, Math.PI, TAU);
+  ctx.closePath();
+  ctx.fillStyle = radg(ctx, -rw * 0.35, -rh * 0.7, rw * 0.1, rw * 1.3, [0, '#ffffff'], [0.6, '#e2eefb'], [1, '#a9c4e4']);
+  ctx.fill();
+  ctx.strokeStyle = '#5a7fb2';
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
+  ctx.save();
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(90,125,175,.45)';
+  ctx.lineWidth = 1.1;
+  for (let row = 1; row < 5; row++) {
+    const yy = -rh * (row / 5);
+    const half = rw * Math.sqrt(1 - Math.pow(row / 5, 2));
+    ctx.beginPath();
+    ctx.moveTo(-half, yy);
+    ctx.lineTo(half, yy);
+    ctx.stroke();
+    for (let j = -4; j <= 4; j++) {
+      const xx = (j + (row % 2) * 0.5) * rw * 0.22;
+      if (Math.abs(xx) > half) continue;
+      ctx.beginPath();
+      ctx.moveTo(xx, yy);
+      ctx.lineTo(xx, yy + rh / 5);
+      ctx.stroke();
+    }
+  }
+  // 금
+  ctx.strokeStyle = '#2c4a7a';
+  ctx.lineWidth = 1.6;
+  const cracks = HP_IG - hp;
+  for (let c = 0; c < cracks; c++) {
+    let x = (c === 0 ? -0.5 : c === 1 ? 0.45 : 0.05) * rw, y = -rh * 0.85;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    for (let j = 0; j < 5; j++) {
+      x += (hsh(c * 7 + j) - 0.5) * rw * 0.25;
+      y += rh * 0.16;
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+  // 따뜻한 동그란 창
+  const wx = rw * 0.5, wy = -rh * 0.45, gl = 0.75 + 0.15 * Math.sin(t * 0.07);
+  ctx.fillStyle = radg(ctx, wx, wy, 0, rw * 0.3, [0, `rgba(255,210,120,${0.5 * gl})`], [1, 'rgba(255,210,120,0)']);
+  ctx.beginPath();
+  ctx.arc(wx, wy, rw * 0.3, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = lin(ctx, wx, wy - rw * 0.08, wx, wy + rw * 0.08, [0, '#fff1b8'], [1, '#ffb04a']);
+  ell(ctx, wx, wy, rw * 0.085, rw * 0.075);
+  ctx.fill();
+  ctx.strokeStyle = '#5a7fb2';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+const recentSay = new WeakMap<object, { x: number; y: number; t: number; size: number }[]>();
+/** 화면 위 크기: 먼 쪽은 작게, 가까운 쪽은 크게 */
+const dep = (y: number) => 0.8 + 0.32 * clamp((y - YT) / (YI - YT), 0, 1);
+const FOE_H: Record<K, number> = { snow: 0.12, seal: 0.115, shield: 0.115, bear: 0.24, chick: 0.07 };
+const PENG_H = 0.16;
+/** 공중의 눈덩이를 그릴 화면 y */
+const ballY = (y: number) => y - BALL_H * dep(y);
