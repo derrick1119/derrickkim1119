@@ -77,7 +77,7 @@ export const STAGES: StageDef[] = [
     waves: [
       { wait: 460, foes: train('gob', 'T', 0.28, 0, 3) },
       { wait: 460, foes: train('gob', 'L', 0.3, 0, 3) },
-      { wait: 480, foes: train('gob', 'T', 0.72, 0, 3) },
+      { wait: 480, foes: train('gob', 'T', 0.72, 0, 2) },
     ],
     stars: [S('combo', 3, '한 번에 셋 빠뜨리기')],
   },
@@ -3001,7 +3001,9 @@ function drawAll(ctx: C2, s: IceState, w: number, h: number, th: Theme) {
   const say = (x: number, y: number, text: string, col: string, size: number) => {
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
-    x = clamp(x, w * 0.14, w * 0.86);
+    ctx.font = `800 ${size}px system-ui, sans-serif`;
+    const half = ctx.measureText(text).width / 2 + 8;
+    x = clamp(x, Math.min(w / 2, half), Math.max(w / 2, w - half));
     y = clamp(y, Y(-0.05), Y(GH) - 10);
     for (let k = 0; k < 6 && rec.some((q) => t - q.t < 36 && Math.abs(q.x - x) < w * 0.28 && Math.abs(q.y - y) < (size + q.size) * 0.6); k++) y -= size + 4;
     rec.push({ x, y, t, size });
@@ -3048,8 +3050,7 @@ function drawAll(ctx: C2, s: IceState, w: number, h: number, th: Theme) {
         fx.blink('#ff5a4a', 0.25);
         fx.kick(8);
         fx.burst(LX, LY, '#ffcf5a', 18, 3.4, 2.4);
-        say(ex, ey - R(0.16), '히히, 불빛 내 거!', '#ffb3a6', 15);
-        say(LX, LY - R(0.06), `불빛 -1`, '#ff8a7a', 18);
+        if (t - (fx.memo.stealSay ?? -99) > 45) (fx.memo.stealSay = t), say(ex, ey - R(0.16), '히히, 불빛 내 거!', '#ffb3a6', 15), say(LX, LY - R(0.06), '불빛 -1', '#ff8a7a', 18);
         break;
       case 'smother':
         fx.blink('#dbe8ff', 0.3);
