@@ -30,22 +30,24 @@ function smartAim(s: DashState, rng: Rng) {
 type Pick = (s: DashState, rng: Rng) => { x: number; y: number } | null;
 /** 사람 반응 봇: pick이 고른 자리(게임 좌표 x, y)를 react초 늦게·err만큼 빗나가게. slow면 꾹 누른 채 반응한다 */
 export function human(name: string, react: number, err: number, slow: boolean, pick?: Pick): Bot<DashState> {
-  const mem = new WeakMap<object, { st: 'idle' | 'wait' | 'hold'; until: number; x: number; y: number }>();
+  const mem = new WeakMap<object, { st: 'idle' | 'wait' | 'hold'; until: number; x: number; y: number; ox: number; oy: number }>();
   const choose: Pick = pick ?? ((s, rng) => { const p = smartAim(s, rng); return p && { x: p.x, y: p.y * K.A }; });
   const RT = Math.round(react * 60), REFLEX = 9, COOL = 15;
   return {
     name,
     act(s, rng) {
       let m = mem.get(s);
-      if (!m) mem.set(s, (m = { st: 'idle', until: 0, x: 0, y: 0 }));
+      if (!m) mem.set(s, (m = { st: 'idle', until: 0, x: 0, y: 0, ox: 0, oy: 0 }));
       if (s.phase !== 'play') return (m.st = 'idle'), NO;
-      const noisy = () => ({ x: m!.x + (rng() * 2 - 1) * err, y: m!.y + (rng() * 2 - 1) * err });
+      // ✏️ 한붓 획(오너 피드백) 뒤: 빗나감은 겨눌 때 한 번만 정한다 — 틱마다 흔들면 누르는 동안 손이 떨려 엉뚱한 획이 그려졌다
+      const aimErr = () => ((m!.ox = (rng() * 2 - 1) * err), (m!.oy = (rng() * 2 - 1) * err));
+      const noisy = () => ({ x: m!.x + m!.ox, y: m!.y + m!.oy });
       if (m.st === 'hold') {
         if (!s.down && s.t > m.until - RT + 2) return (m.st = 'idle'), (m.until = s.t + COOL), NO; // 게이지가 바닥나 저절로 벴다
         if (s.t >= m.until) return (m.st = 'idle'), (m.until = s.t + COOL), NO; // 뗀다
-        if ((m.until - s.t) % 6 === 0) {
+        if (!pick && (m.until - s.t) % 6 === 0) { // 처음 하는 사람(pick)은 다시 겨누지 않는다 — 장인 계획을 빌려 '그리는' 것을 막음(한붓 획 뒤)
           const p = smartAim(s, rng); // 느린 세상을 보며 다시 겨눈다
-          if (p) (m.x = p.x), (m.y = p.y * K.A);
+          if (p && Math.hypot(p.x - m.x, p.y * K.A - m.y) > 0.02) (m.x = p.x), (m.y = p.y * K.A), aimErr();
         }
         const p = noisy();
         return press(p.x, p.y);
@@ -68,6 +70,7 @@ export function human(name: string, react: number, err: number, slow: boolean, p
       if (!c) return (m.until = s.t + 6), NO;
       m.x = c.x;
       m.y = c.y;
+      aimErr();
       m.st = 'wait';
       m.until = s.t + (slow ? REFLEX : RT);
       return NO;

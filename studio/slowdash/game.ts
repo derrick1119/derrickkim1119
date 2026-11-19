@@ -198,6 +198,8 @@ export interface DashState {
   stars: number; base: number; got: number; starOk: boolean[]; pts: number; won: boolean; dead: boolean; again: boolean; tries: number;
   nx: number; ny: number; face: number; hp: number; inv: number; g: number;
   down: boolean; lock: boolean; stiff: number; whiffs: number; aim: { x: number; y: number } | null; holdT: number;
+  /** ✏️ 오너 피드백(2026-11-19 "한붓그리기처럼 그은 위치대로 단칼에"): 꾹 누른 채 그은 점들 — 떼면 이 길을 따라 한 번에 돌진하며 벤다 */
+  stroke: { x: number; y: number }[];
   freeze: number; slowT: number;
   strikes: { x: number; y: number; t: number; t0: number }[];
   foes: Foe[]; shots: Shot[]; barrels: Barrel[]; mirrors: Mirror[]; smokes: Smoke[]; nid: number;
@@ -303,6 +305,39 @@ function trace(s: DashState, px: number, py: number, tx: number, ty: number, max
   return out;
 }
 
+/** 한붓 획: 닌자에서 점들을 차례로 이어 maxLen까지 돌진 선을 이어 붙인다(같은 적은 한 번만 · 방패 앞에서 튕기면 거기서 멈춤) */
+const STROKE_STEP = 0.035, STROKE_MAX = 24, STROKE_LEN = 1.6;
+/** 한 줄은 DMAX(.85)까지, 꺾인 한붓 획은 먹이 되는 만큼 STROKE_LEN까지(먹 값은 길이대로) */
+const reachFor = (s: DashState, pts: unknown[]) => (pts.length > 1 ? Math.min(STROKE_LEN, (s.g - GBASE) / GPER) : reachOf(s.g));
+function tracePath(s: DashState, pts: { x: number; y: number }[], maxLen: number): Path {
+  const out: Path = { legs: [], hits: [], bounce: false, barrels: [], shots: [], ex: s.nx, ey: s.ny };
+  const used = new Set<number>();
+  let x = s.nx, y = s.ny, rem = maxLen;
+  for (const q of pts) {
+    if (rem <= 1e-4) break;
+    if (Math.hypot(q.x - x, q.y - y) < 1e-4) continue;
+    const P = trace(s, x, y, q.x, q.y, rem, true), base = out.legs.length;
+    out.legs.push(...P.legs);
+    for (const h of P.hits) if (!used.has(h.id)) used.add(h.id), out.hits.push({ id: h.id, leg: base + h.leg });
+    for (const b of P.barrels) if (!out.barrels.includes(b)) out.barrels.push(b);
+    for (const j of P.shots) if (!out.shots.includes(j)) out.shots.push(j);
+    rem -= P.legs.reduce((a, l) => a + Math.hypot(l[2] - l[0], l[3] - l[1]), 0);
+    (x = P.ex), (y = P.ey);
+    if (P.bounce) {
+      out.bounce = true;
+      break;
+    }
+  }
+  if (!out.legs.length) out.legs.push([s.nx, s.ny, s.nx, s.ny]);
+  (out.ex = x), (out.ey = y);
+  return out;
+}
+const strokeOf = (s: DashState) => (s.aim ? [...s.stroke, s.aim] : s.stroke);
+const strokeLen = (s: DashState) => {
+  let x = s.nx, y = s.ny, L = 0;
+  for (const q of strokeOf(s)) (L += Math.hypot(q.x - x, q.y - y)), (x = q.x), (y = q.y);
+  return L;
+};
 const pathLen = (P: Path) => P.legs.reduce((a, l) => a + Math.hypot(l[2] - l[0], l[3] - l[1]), 0);
 
 function hurt(s: DashState, x: number, y: number, why: string) {
@@ -355,10 +390,10 @@ function explode(s: DashState, b: Barrel) {
 }
 
 /** 떼는 순간: 선을 따라 한순간에 돌진하며 벤다 */
-function doDash(s: DashState, tx: number, ty: number) {
+function doDash(s: DashState, pts: { x: number; y: number }[]) {
   if (s.phase !== 'play') return;
   const L = reachOf(s.g), full = L >= HOP;
-  const P = trace(s, s.nx, s.ny, tx, ty, full ? L : HOP, true);
+  const P = tracePath(s, pts, full ? reachFor(s, pts) : HOP);
   // 닌자 바로 위에서 떼면 취소 (게이지도 안 든다)
   if (pathLen(P) < 0.03 && !P.hits.length && !P.bounce) return void ev(s, 'cancel', s.nx, s.ny); // S003: 방패 바로 앞 0길이는 취소가 아니라 '챙' 튕김(헛방)
   if (full) s.g = Math.max(0, s.g - dashCost(pathLen(P)));
@@ -761,7 +796,7 @@ export const slowdash: GameDef<DashState> = {
     const s = {
       rng: mulberry32(seed), seed, t: 0, wt: 0, stage: 0, phase: 'play', pt: 0, ok: false, why: '',
       stars: 0, base: 0, got: 0, starOk: [false, false, false], pts: 0, won: false, dead: false, again: false, tries: 0,
-      nx: 0.5, ny: 1.17, face: 1, hp: HP, inv: 0, g: GMAX, down: false, lock: false, stiff: 0, whiffs: 0, aim: null, holdT: 0, freeze: 0, slowT: 0,
+      nx: 0.5, ny: 1.17, face: 1, hp: HP, inv: 0, g: GMAX, down: false, lock: false, stiff: 0, whiffs: 0, stroke: [], aim: null, holdT: 0, freeze: 0, slowT: 0,
       strikes: [], foes: [], shots: [], barrels: [], mirrors: [], smokes: [], nid: 0, wave: 0, waveT: 0,
       dashN: 0, chain: 0, best: 0, hits: 0, arrows: 0, backK: 0, boomBest: 0, boomBy: {}, mirK: 0, bossCombo: 0, dashes: 0,
       firstDash: false, firstBig: -1, firstPress: -1, combo: { id: -1, n: 0, t: -99 },
@@ -779,11 +814,22 @@ export const slowdash: GameDef<DashState> = {
         if (!s.down && !s.lock && s.stiff <= 0) {
           s.down = true;
           s.holdT = 0;
+          s.stroke = [];
           if (s.firstPress < 0) s.firstPress = s.t;
         }
-        if (s.down) (s.aim = { x: clamp(p.x, X0, X1), y: clamp(p.y * A, Y0, Y1) }), s.holdT++;
+        if (s.down) {
+          const q = { x: clamp(p.x, X0, X1), y: clamp(p.y * A, Y0, Y1) };
+          // 한붓 획: 처음 누른 점, 그다음은 손가락이 STROKE_STEP 넘게 움직일 때마다 점을 남긴다(가만히 누르면 지금처럼 한 줄)
+          const last = s.stroke[s.stroke.length - 1];
+          if (!last ? s.aim : Math.hypot(q.x - last.x, q.y - last.y) >= STROKE_STEP && s.stroke.length < STROKE_MAX) {
+            if (!last && s.aim && Math.hypot(q.x - s.aim.x, q.y - s.aim.y) >= STROKE_STEP) s.stroke.push(s.aim);
+            else if (last) s.stroke.push(q);
+          }
+          s.aim = q;
+          s.holdT++;
+        }
       } else {
-        if (s.down && s.aim) doDash(s, s.aim.x, s.aim.y);
+        if (s.down && s.aim) doDash(s, strokeOf(s));
         s.down = false;
         s.lock = false;
         s.aim = null;
@@ -792,7 +838,7 @@ export const slowdash: GameDef<DashState> = {
         s.g -= DRAIN;
         if (s.g <= 0) {
           s.g = 0;
-          if (s.aim) doDash(s, s.aim.x, s.aim.y);
+          if (s.aim) doDash(s, strokeOf(s));
           s.down = false;
           s.lock = true;
           s.aim = null;
@@ -2771,7 +2817,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, R(sz))}px system-ui, sans-serif`);
   const sv = s.slowVis;
   const L = reachOf(s.g), canCut = L >= HOP;
-  const prev = s.down && s.aim && s.phase === 'play' ? trace(s, s.nx, s.ny, s.aim.x, s.aim.y, canCut ? L : HOP, true) : null;
+  const prev = s.down && s.aim && s.phase === 'play' ? tracePath(s, strokeOf(s), canCut ? reachFor(s, strokeOf(s)) : HOP) : null;
   const targets = new Set(prev ? prev.hits.map((q) => q.id) : []);
 
   ctx.save();
@@ -3263,8 +3309,17 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.shadowBlur = 0;
     }
     const last = prev.legs[prev.legs.length - 1];
-    const want = Math.hypot(s.aim.x - s.nx, s.aim.y - s.ny);
-    if (prev.legs.length === 1 && want > pathLen(prev) + 0.03 && !prev.bounce) {
+    const want = strokeLen(s);
+    // 그은 획(먹 붓 자국) — 실제 돌진 선은 그 위에 흰 칼빛으로
+    if (s.stroke.length) {
+      ctx.strokeStyle = 'rgba(10,14,30,.28)';
+      ctx.lineWidth = R(0.012);
+      ctx.beginPath();
+      ctx.moveTo(X(s.nx), Y(s.ny) - R(0.04));
+      for (const q of strokeOf(s)) ctx.lineTo(X(q.x), Y(q.y) - R(0.04));
+      ctx.stroke();
+    }
+    if (want > pathLen(prev) + 0.03 && !prev.bounce) {
       ctx.strokeStyle = 'rgba(255,140,120,.55)';
       ctx.lineWidth = 2;
       ctx.setLineDash([3, 5]);
@@ -3278,7 +3333,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.fillStyle = '#ffb3a6';
       ctx.fillText(canCut ? '게이지만큼만!' : '게이지 부족 — 짧게만', X(s.aim.x), Y(s.aim.y) - R(0.08));
     }
-    for (let j = 1; j < prev.legs.length; j++) {
+    for (let j = 1; j < prev.legs.length && s.mirrors.length; j++) { // 거울 꺾임 별(한붓 꺾임에는 안 그림)
       ctx.fillStyle = `rgba(255,255,255,${0.6 + 0.4 * pulse})`;
       starPath(ctx, X(prev.legs[j][0]), Y(prev.legs[j][1]) - R(0.04), R(0.022));
       ctx.fill();

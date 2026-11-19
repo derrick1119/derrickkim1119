@@ -125,6 +125,26 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(STRIKE.r).toBeGreaterThan(0);
   });
 
+  it('오너 피드백 한붓 획: 꾹 누른 채 그은 길을 따라 한 번에 돌진하며 베고, 가만히 누르면 예전처럼 한 줄', () => {
+    const s = g.create(1);
+    for (let k = 0; k < 60; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+    const [a, b, c] = s.foes;
+    [a.x, a.y, b.x, b.y, c.x, c.y] = [0.3, 1.0, 0.3, 0.8, 0.62, 0.78]; // 한 줄로 안 서는 셋
+    const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y: y / A } });
+    for (const [x, y] of [[0.3, 1.1], [0.3, 0.95], [0.3, 0.85], [0.3, 0.74], [0.45, 0.76], [0.6, 0.78], [0.72, 0.78]]) for (let k = 0; k < 3; k++) g.step(s, at(x, y));
+    expect(s.stroke.length).toBeGreaterThanOrEqual(3);
+    g.step(s, { tap: false, dir: 0, pointer: null });
+    expect(s.best).toBe(3); // 꺾인 획 하나로 셋
+    expect(Math.hypot(s.nx - 0.72, s.ny - 0.78)).toBeLessThan(0.05);
+    // 가만히 누르면 점이 안 남는다(한 줄 돌진 = 봇·예전 손맛 그대로)
+    const t = g.create(1);
+    for (let k = 0; k < 60; k++) g.step(t, { tap: false, dir: 0, pointer: null });
+    for (let k = 0; k < 10; k++) g.step(t, at(0.5, 0.56));
+    expect(t.stroke).toHaveLength(0);
+    g.step(t, { tap: false, dir: 0, pointer: null });
+    expect(t.best).toBe(3);
+  });
+
   it('장인 봇은 8판을 모두 지나간다 (콘텐츠가 풀린다)', () => {
     for (let k = 0; k < STAGES.length; k++) for (const seed of [11, 22]) expect(tryStage(slowdashSmart, seed, k).ok, `${k + 1}판 시드 ${seed}`).toBe(true);
   });

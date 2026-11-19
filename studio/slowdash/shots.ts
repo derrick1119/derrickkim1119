@@ -48,18 +48,16 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
   await page.screenshot({ path: join(out, '04-release-flash.png') });
   await page.waitForTimeout(700);
   await page.screenshot({ path: join(out, '05-after-cut.png') });
-  // 둘째 줄: 가로 넷(0.24~0.76, 1.0) — 닌자는 위쪽에 있으니 아래로 내려가 옆으로 긋기는 두 번에 나눠서
+  // 둘째 줄: 가로 넷 — 오너 피드백 '한붓 획': 꾹 누른 채 줄 왼쪽 끝으로 내려가 오른쪽으로 쭉 그은 뒤 떼기
   await page.waitForTimeout(1500);
   p = at(0.12, 1.0);
   await page.mouse.move(p.x, p.y);
   await page.mouse.down();
-  await page.waitForTimeout(300);
-  await page.mouse.up();
-  await page.waitForTimeout(900);
-  p = at(0.9, 1.0);
-  await page.mouse.move(p.x, p.y);
-  await page.mouse.down();
-  await page.waitForTimeout(500);
+  for (let i = 1; i <= 12; i++) {
+    const q = at(0.12 + (0.78 * i) / 12, 1.0);
+    await page.mouse.move(q.x, q.y);
+    await page.waitForTimeout(40);
+  }
   await page.screenshot({ path: join(out, '06-hold-row.png') });
   await page.mouse.up();
   await page.waitForTimeout(120);
