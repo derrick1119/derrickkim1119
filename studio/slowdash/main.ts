@@ -45,7 +45,9 @@ document.addEventListener('visibilitychange', () => (document.hidden ? sfx.sleep
 /** 이번 틱에 생긴 사건 → 소리 (시뮬은 소리를 모른다) */
 let wasDown = false;
 function cues() {
-  if (s.down !== wasDown) ((wasDown = s.down), s.down && sfx.play('press'), sfx.slow(s.down));
+  // 🧪 S005: 먹먹함은 실제 느린 시간일 때만(게이지 0 · 결과 화면에서는 안 걸림)
+  const slowNow = s.down && s.g > 0 && s.phase === 'play';
+  if (slowNow !== wasDown) ((wasDown = slowNow), slowNow && sfx.play('press'), sfx.slow(slowNow));
   for (let i = s.events.length - 1; i >= 0 && s.events[i].t === s.t; i--) {
     const e = s.events[i];
     if (e.kind === 'dash') (sfx.play('dash'), (e.n ?? 0) > 0 && sfx.play('slash', e.n));

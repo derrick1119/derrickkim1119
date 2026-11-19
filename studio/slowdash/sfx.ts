@@ -97,11 +97,12 @@ export const sfx = {
     last[c] = t;
     switch (c) {
       case 'press': return void (H(t), this.buzz(8));
-      case 'dash': return void (S(t), this.buzz(12));
+      case 'dash': return void (S(t), this.buzz(6)); // 🧪 S005: 진동 순서 헛돌진 < 베기 < 맞음 < 실패
       case 'slash': // 베인 적마다 3틱 간격으로 '챙' — 연쇄 음계로 올라간다
+        K(t + 0.15); // 칼집 '착' 뒤에 차례로 갈라진다(🎨 §4.2)
         for (let k = 1; k <= Math.min(n, 8); k++) C(t + 0.2 + (k - 1) * 0.05, chainHz(k), 0.9);
         I(t + 0.2 + Math.min(n, 8) * 0.05);
-        return void this.buzz(n >= 3 ? [20, 30, 20] : 10);
+        return void this.buzz(n >= 3 ? [20, 30, 20] : 14);
       case 'sheath': return K(t);
       case 'ink': return I(t);
       case 'clink': return void (tone('sine', 1800, 1800, t, 0.3, 0.2), tone('sine', 2700, 2700, t, 0.22, 0.1), hiss(t, 0.02, 0.15, filt('highpass', 3000)), this.buzz(20));
@@ -109,7 +110,7 @@ export const sfx = {
       case 'whiff': return tone('triangle', 300, 220, t, 0.08, 0.12);
       case 'strike': return void (D(t, 0.6), hiss(t, 0.05, 0.15, filt('highpass', 2500)));
       case 'hurt': return void (tone('sine', 520, 260, t, 0.14, 0.3), [0, 0.04, 0.08].forEach((d) => hiss(t + d, 0.03, 0.08, filt('bandpass', 4000, 3))), this.buzz([30, 40, 30]));
-      case 'fail': return void (tone('triangle', 660, 330, t, 0.4, 0.25), this.buzz(40));
+      case 'fail': return void (tone('triangle', 660, 330, t, 0.4, 0.25), this.buzz([60, 40, 80]));
       case 'wave': return D(t, 0.7);
       case 'clear':
         D(t);
