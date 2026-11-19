@@ -24,7 +24,12 @@
    "downPct": 0.03,
    "empty": 0,
    "leafCombo": 1,
-   "bentDodge": 0.14
+   "bentDodge": 0.14,
+   "busy": 2.68,
+   "idlePct": 0.56,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0
   },
   "humanStroke": {
    "clear": 1,
@@ -48,7 +53,12 @@
    "downPct": 0.4,
    "empty": 0,
    "leafCombo": 1,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 8.22,
+   "idlePct": 0.22,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0
   },
   "humanStroke30": {
    "clear": 1,
@@ -72,7 +82,12 @@
    "downPct": 0.4,
    "empty": 0,
    "leafCombo": 1,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 8.22,
+   "idlePct": 0.22,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0
   },
   "newbie": {
    "secAll": 44.46,
@@ -99,7 +114,12 @@
    "empty": 0.47,
    "tries": 1.04,
    "leafCombo": 0.54,
-   "bentDodge": 0.18
+   "bentDodge": 0.18,
+   "busy": 43.25,
+   "idlePct": 0.01,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.75
   },
   "newbieLow": {
    "secAll": 83.87,
@@ -126,7 +146,12 @@
    "empty": 0.41,
    "tries": 1.67,
    "leafCombo": 0.63,
-   "bentDodge": 0.12
+   "bentDodge": 0.12,
+   "busy": 43.25,
+   "idlePct": 0.01,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.96
   },
   "newbieNever": {
    "secAll": 287.1,
@@ -153,7 +178,12 @@
    "empty": 0.36,
    "tries": 2.21,
    "leafCombo": 0.92,
-   "bentDodge": 0.13
+   "bentDodge": 0.13,
+   "busy": 94.07,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "humanTap": {
    "clear": 0,
@@ -177,7 +207,12 @@
    "downPct": 0.02,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 112.46,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "smart": {
    "clear": 0,
@@ -201,7 +236,12 @@
    "downPct": 0.14,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 120.45,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "habit2": {
    "clear": 0,
@@ -225,7 +265,12 @@
    "downPct": 0.5,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 141.95,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "spam": {
    "clear": 0,
@@ -249,7 +294,12 @@
    "downPct": 0.04,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 110.65,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "scribble": {
    "clear": 0.42,
@@ -273,7 +323,12 @@
    "downPct": 0.17,
    "empty": 0.72,
    "leafCombo": 0.5,
-   "bentDodge": 0.01
+   "bentDodge": 0.01,
+   "busy": 92.91,
+   "idlePct": 0.01,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.46
   },
   "smartStrokeSolo": {
    "clear": 1,
@@ -340,7 +395,12 @@
    "downPct": 0.01,
    "empty": 0,
    "leafCombo": 1,
-   "bentDodge": 0.12
+   "bentDodge": 0.12,
+   "busy": 3.48,
+   "idlePct": 0.78,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0
   },
   "humanStroke": {
    "clear": 1,
@@ -364,7 +424,12 @@
    "downPct": 0.19,
    "empty": 0,
    "leafCombo": 1,
-   "bentDodge": 0.01
+   "bentDodge": 0.01,
+   "busy": 7.28,
+   "idlePct": 0.64,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0
   },
   "humanStroke30": {
    "clear": 1,
@@ -388,7 +453,12 @@
    "downPct": 0.18,
    "empty": 0,
    "leafCombo": 1,
-   "bentDodge": 0.01
+   "bentDodge": 0.01,
+   "busy": 7.2,
+   "idlePct": 0.65,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0
   },
   "newbie": {
    "secAll": 41.82,
@@ -415,7 +485,12 @@
    "empty": 0.68,
    "tries": 1.17,
    "leafCombo": 0.42,
-   "bentDodge": 0.12
+   "bentDodge": 0.12,
+   "busy": 33.79,
+   "idlePct": 0.19,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.71
   },
   "newbieLow": {
    "secAll": 43.69,
@@ -442,7 +517,12 @@
    "empty": 0.66,
    "tries": 1.29,
    "leafCombo": 0.58,
-   "bentDodge": 0.14
+   "bentDodge": 0.14,
+   "busy": 34.91,
+   "idlePct": 0.16,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.96
   },
   "newbieNever": {
    "secAll": 371.17,
@@ -469,7 +549,12 @@
    "empty": 0.64,
    "tries": 2.38,
    "leafCombo": 0.79,
-   "bentDodge": 0.16
+   "bentDodge": 0.16,
+   "busy": 112.57,
+   "idlePct": 0.03,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "humanTap": {
    "clear": 0,
@@ -493,7 +578,12 @@
    "downPct": 0.02,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 98.57,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "smart": {
    "clear": 0,
@@ -517,7 +607,12 @@
    "downPct": 0.13,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 104.14,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "habit2": {
    "clear": 0,
@@ -541,7 +636,12 @@
    "downPct": 0.5,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 115.62,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "spam": {
    "clear": 0,
@@ -565,7 +665,12 @@
    "downPct": 0.04,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 96.05,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "scribble": {
    "clear": 0.04,
@@ -589,7 +694,12 @@
    "downPct": 0.17,
    "empty": 0.88,
    "leafCombo": 0.25,
-   "bentDodge": 0.01
+   "bentDodge": 0.01,
+   "busy": 100.3,
+   "idlePct": 0.02,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.13
   },
   "smartStrokeSolo": {
    "clear": 1,
@@ -656,7 +766,12 @@
    "downPct": 0.01,
    "empty": 0,
    "leafCombo": 1,
-   "bentDodge": 0.09
+   "bentDodge": 0.09,
+   "busy": 4.17,
+   "idlePct": 0.82,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0
   },
   "humanStroke": {
    "clear": 1,
@@ -680,7 +795,12 @@
    "downPct": 0.18,
    "empty": 0,
    "leafCombo": 1,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 9.63,
+   "idlePct": 0.65,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0
   },
   "humanStroke30": {
    "clear": 1,
@@ -704,7 +824,12 @@
    "downPct": 0.18,
    "empty": 0,
    "leafCombo": 1,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 9.63,
+   "idlePct": 0.65,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0
   },
   "newbie": {
    "secAll": 99.57,
@@ -731,7 +856,12 @@
    "empty": 0.74,
    "tries": 1.75,
    "leafCombo": 0.67,
-   "bentDodge": 0.13
+   "bentDodge": 0.13,
+   "busy": 53.45,
+   "idlePct": 0.11,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.96
   },
   "newbieLow": {
    "secAll": 136.24,
@@ -758,7 +888,12 @@
    "empty": 0.74,
    "tries": 1.96,
    "leafCombo": 0.5,
-   "bentDodge": 0.2
+   "bentDodge": 0.2,
+   "busy": 67.1,
+   "idlePct": 0.08,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.96
   },
   "newbieNever": {
    "secAll": 244.31,
@@ -785,7 +920,12 @@
    "empty": 0.73,
    "tries": 2.71,
    "leafCombo": 0.46,
-   "bentDodge": 0.16
+   "bentDodge": 0.16,
+   "busy": 73.4,
+   "idlePct": 0.03,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "humanTap": {
    "clear": 0,
@@ -809,7 +949,12 @@
    "downPct": 0.02,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 109.8,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "smart": {
    "clear": 0,
@@ -833,7 +978,12 @@
    "downPct": 0.12,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 118.53,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "habit2": {
    "clear": 0,
@@ -857,7 +1007,12 @@
    "downPct": 0.5,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 142.27,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "spam": {
    "clear": 0,
@@ -881,7 +1036,12 @@
    "downPct": 0.04,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 109.85,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "scribble": {
    "clear": 0,
@@ -905,7 +1065,12 @@
    "downPct": 0.17,
    "empty": 0.82,
    "leafCombo": 0.13,
-   "bentDodge": 0.02
+   "bentDodge": 0.02,
+   "busy": 32.67,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.33
   },
   "smartStrokeSolo": {
    "clear": 1,
@@ -949,7 +1114,7 @@
  },
  {
   "key": "smoke",
-  "name": "굴뚝 연기",
+  "name": "굴뚝 골목",
   "smartStroke": {
    "clear": 1,
    "star": 3,
@@ -972,7 +1137,12 @@
    "downPct": 0.03,
    "empty": 0,
    "leafCombo": 1,
-   "bentDodge": 0.03
+   "bentDodge": 0.03,
+   "busy": 3.75,
+   "idlePct": 0.25,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0
   },
   "humanStroke": {
    "clear": 1,
@@ -996,7 +1166,12 @@
    "downPct": 0.38,
    "empty": 0,
    "leafCombo": 1,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 8.52,
+   "idlePct": 0.07,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0
   },
   "humanStroke30": {
    "clear": 1,
@@ -1020,7 +1195,12 @@
    "downPct": 0.38,
    "empty": 0,
    "leafCombo": 1,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 8.52,
+   "idlePct": 0.07,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0
   },
   "newbie": {
    "secAll": 27.88,
@@ -1047,7 +1227,12 @@
    "empty": 0.52,
    "tries": 1.13,
    "leafCombo": 0.5,
-   "bentDodge": 0.11
+   "bentDodge": 0.11,
+   "busy": 27.32,
+   "idlePct": 0.01,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.5
   },
   "newbieLow": {
    "secAll": 52.46,
@@ -1074,7 +1259,12 @@
    "empty": 0.53,
    "tries": 1.54,
    "leafCombo": 0.42,
-   "bentDodge": 0.12
+   "bentDodge": 0.12,
+   "busy": 28.56,
+   "idlePct": 0.01,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.79
   },
   "newbieNever": {
    "secAll": 194.22,
@@ -1101,7 +1291,12 @@
    "empty": 0.55,
    "tries": 2.63,
    "leafCombo": 0.42,
-   "bentDodge": 0.17
+   "bentDodge": 0.17,
+   "busy": 31.87,
+   "idlePct": 0.01,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.88
   },
   "humanTap": {
    "clear": 0,
@@ -1125,7 +1320,12 @@
    "downPct": 0.01,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 74.36,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.96
   },
   "smart": {
    "clear": 0,
@@ -1149,7 +1349,12 @@
    "downPct": 0.05,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 68.48,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "habit2": {
    "clear": 0,
@@ -1173,7 +1378,12 @@
    "downPct": 0.48,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 66.08,
+   "idlePct": 0.02,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "spam": {
    "clear": 0,
@@ -1197,7 +1407,12 @@
    "downPct": 0.04,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 68.6,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "scribble": {
    "clear": 0.04,
@@ -1221,7 +1436,12 @@
    "downPct": 0.17,
    "empty": 0.77,
    "leafCombo": 0.38,
-   "bentDodge": 0.04
+   "bentDodge": 0.04,
+   "busy": 31.5,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.42
   },
   "smartStrokeSolo": {
    "clear": 1,
@@ -1288,7 +1508,12 @@
    "downPct": 0.01,
    "empty": 0,
    "leafCombo": 0.96,
-   "bentDodge": 0.05
+   "bentDodge": 0.05,
+   "busy": 4.45,
+   "idlePct": 0.81,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0
   },
   "humanStroke": {
    "clear": 1,
@@ -1312,7 +1537,12 @@
    "downPct": 0.24,
    "empty": 0,
    "leafCombo": 0.75,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 15.07,
+   "idlePct": 0.5,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0
   },
   "humanStroke30": {
    "clear": 1,
@@ -1336,7 +1566,12 @@
    "downPct": 0.24,
    "empty": 0,
    "leafCombo": 0.75,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 14.58,
+   "idlePct": 0.51,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0
   },
   "newbie": {
    "secAll": 124.68,
@@ -1363,7 +1598,12 @@
    "empty": 0.77,
    "tries": 2.63,
    "leafCombo": 0.46,
-   "bentDodge": 0.17
+   "bentDodge": 0.17,
+   "busy": 52.63,
+   "idlePct": 0.06,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.75
   },
   "newbieLow": {
    "secAll": 117.03,
@@ -1390,7 +1630,12 @@
    "empty": 0.78,
    "tries": 2.38,
    "leafCombo": 0.5,
-   "bentDodge": 0.15
+   "bentDodge": 0.15,
+   "busy": 56.53,
+   "idlePct": 0.05,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.83
   },
   "newbieNever": {
    "secAll": 240.67,
@@ -1417,7 +1662,12 @@
    "empty": 0.75,
    "tries": 2.92,
    "leafCombo": 0.25,
-   "bentDodge": 0.15
+   "bentDodge": 0.15,
+   "busy": 66.38,
+   "idlePct": 0.01,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.88
   },
   "humanTap": {
    "clear": 0,
@@ -1441,7 +1691,12 @@
    "downPct": 0.02,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 113.5,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.92
   },
   "smart": {
    "clear": 0,
@@ -1465,7 +1720,12 @@
    "downPct": 0.1,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 115.65,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "habit2": {
    "clear": 0,
@@ -1489,7 +1749,12 @@
    "downPct": 0.5,
    "empty": 0.01,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 141.45,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 1
   },
   "spam": {
    "clear": 0,
@@ -1513,7 +1778,12 @@
    "downPct": 0.04,
    "empty": 0.25,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 16.76,
+   "idlePct": 0,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.5
   },
   "scribble": {
    "clear": 0.08,
@@ -1537,7 +1807,12 @@
    "downPct": 0.17,
    "empty": 0.83,
    "leafCombo": 0.5,
-   "bentDodge": 0.04
+   "bentDodge": 0.04,
+   "busy": 73.1,
+   "idlePct": 0.03,
+   "toks": 0,
+   "fall1": 0,
+   "owl": 0.79
   },
   "smartStrokeSolo": {
    "clear": 1,
@@ -1604,7 +1879,12 @@
    "downPct": 0.04,
    "empty": 0,
    "leafCombo": 0.04,
-   "bentDodge": 0.05
+   "bentDodge": 0.05,
+   "busy": 2.75,
+   "idlePct": 0.55,
+   "toks": 2.04,
+   "fall1": 1,
+   "owl": 0
   },
   "humanStroke": {
    "clear": 1,
@@ -1628,7 +1908,12 @@
    "downPct": 0.5,
    "empty": 0.02,
    "leafCombo": 0.17,
-   "bentDodge": 0.07
+   "bentDodge": 0.07,
+   "busy": 12.62,
+   "idlePct": 0.11,
+   "toks": 1.92,
+   "fall1": 0.96,
+   "owl": 0.21
   },
   "humanStroke30": {
    "clear": 1,
@@ -1652,7 +1937,12 @@
    "downPct": 0.44,
    "empty": 0,
    "leafCombo": 0.13,
-   "bentDodge": 0.04
+   "bentDodge": 0.04,
+   "busy": 10.88,
+   "idlePct": 0.14,
+   "toks": 1.25,
+   "fall1": 0.96,
+   "owl": 0.54
   },
   "newbie": {
    "secAll": 37.59,
@@ -1679,7 +1969,12 @@
    "empty": 0.46,
    "tries": 1.08,
    "leafCombo": 0.13,
-   "bentDodge": 0.15
+   "bentDodge": 0.15,
+   "busy": 35.34,
+   "idlePct": 0.02,
+   "toks": 5.46,
+   "fall1": 1,
+   "owl": 0.67
   },
   "newbieLow": {
    "secAll": 49.26,
@@ -1706,7 +2001,12 @@
    "empty": 0.48,
    "tries": 1.25,
    "leafCombo": 0.21,
-   "bentDodge": 0.14
+   "bentDodge": 0.14,
+   "busy": 41.98,
+   "idlePct": 0.02,
+   "toks": 9.75,
+   "fall1": 0.42,
+   "owl": 0.92
   },
   "newbieNever": {
    "secAll": 158.72,
@@ -1733,7 +2033,12 @@
    "empty": 0.47,
    "tries": 2.21,
    "leafCombo": 0.5,
-   "bentDodge": 0.11
+   "bentDodge": 0.11,
+   "busy": 62.35,
+   "idlePct": 0.01,
+   "toks": 16.96,
+   "fall1": 0.17,
+   "owl": 0.96
   },
   "humanTap": {
    "clear": 0,
@@ -1757,7 +2062,12 @@
    "downPct": 0.02,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 83.78,
+   "idlePct": 0,
+   "toks": 2.83,
+   "fall1": 0,
+   "owl": 0.71
   },
   "smart": {
    "clear": 0,
@@ -1781,7 +2091,12 @@
    "downPct": 0.12,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 78.64,
+   "idlePct": 0.02,
+   "toks": 4.96,
+   "fall1": 0,
+   "owl": 1
   },
   "habit2": {
    "clear": 0,
@@ -1805,7 +2120,12 @@
    "downPct": 0.48,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 78.22,
+   "idlePct": 0.02,
+   "toks": 20.25,
+   "fall1": 0,
+   "owl": 1
   },
   "spam": {
    "clear": 0,
@@ -1829,7 +2149,12 @@
    "downPct": 0.04,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 73.67,
+   "idlePct": 0.01,
+   "toks": 53.5,
+   "fall1": 0,
+   "owl": 1
   },
   "scribble": {
    "clear": 0,
@@ -1853,7 +2178,12 @@
    "downPct": 0.17,
    "empty": 0.73,
    "leafCombo": 0.17,
-   "bentDodge": 0.01
+   "bentDodge": 0.01,
+   "busy": 78.07,
+   "idlePct": 0.01,
+   "toks": 20.75,
+   "fall1": 0.04,
+   "owl": 0.5
   },
   "smartStrokeSolo": {
    "clear": 1,
@@ -1940,7 +2270,12 @@
    "downPct": 0.05,
    "empty": 0,
    "leafCombo": 1,
-   "bentDodge": 0.01
+   "bentDodge": 0.01,
+   "busy": 4.71,
+   "idlePct": 0.36,
+   "toks": 0.29,
+   "fall1": 0.96,
+   "owl": 0
   },
   "humanStroke": {
    "clear": 0.96,
@@ -1964,7 +2299,12 @@
    "downPct": 0.54,
    "empty": 0.01,
    "leafCombo": 1,
-   "bentDodge": 0.01
+   "bentDodge": 0.01,
+   "busy": 21.26,
+   "idlePct": 0.02,
+   "toks": 0.42,
+   "fall1": 1,
+   "owl": 0
   },
   "humanStroke30": {
    "clear": 0.96,
@@ -1988,7 +2328,12 @@
    "downPct": 0.5,
    "empty": 0.04,
    "leafCombo": 0.96,
-   "bentDodge": 0.02
+   "bentDodge": 0.02,
+   "busy": 17.08,
+   "idlePct": 0.03,
+   "toks": 0.29,
+   "fall1": 1,
+   "owl": 0.04
   },
   "newbie": {
    "secAll": 36.58,
@@ -2015,7 +2360,12 @@
    "empty": 0.45,
    "tries": 1.25,
    "leafCombo": 0.71,
-   "bentDodge": 0.1
+   "bentDodge": 0.1,
+   "busy": 36.29,
+   "idlePct": 0.01,
+   "toks": 3.67,
+   "fall1": 0.96,
+   "owl": 0.46
   },
   "newbieLow": {
    "secAll": 46.59,
@@ -2042,7 +2392,12 @@
    "empty": 0.44,
    "tries": 1.46,
    "leafCombo": 0.75,
-   "bentDodge": 0.11
+   "bentDodge": 0.11,
+   "busy": 35.53,
+   "idlePct": 0.01,
+   "toks": 5.04,
+   "fall1": 0.42,
+   "owl": 0.75
   },
   "newbieNever": {
    "secAll": 92.01,
@@ -2069,7 +2424,12 @@
    "empty": 0.5,
    "tries": 2,
    "leafCombo": 0.75,
-   "bentDodge": 0.11
+   "bentDodge": 0.11,
+   "busy": 45.18,
+   "idlePct": 0.01,
+   "toks": 9.67,
+   "fall1": 0.04,
+   "owl": 0.88
   },
   "humanTap": {
    "clear": 0,
@@ -2093,7 +2453,12 @@
    "downPct": 0.02,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 89.43,
+   "idlePct": 0,
+   "toks": 3.25,
+   "fall1": 0,
+   "owl": 1
   },
   "smart": {
    "clear": 0,
@@ -2117,7 +2482,12 @@
    "downPct": 0.05,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 75.75,
+   "idlePct": 0.01,
+   "toks": 31.79,
+   "fall1": 0,
+   "owl": 1
   },
   "habit2": {
    "clear": 0,
@@ -2141,7 +2511,12 @@
    "downPct": 0.48,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 71.75,
+   "idlePct": 0.02,
+   "toks": 15.17,
+   "fall1": 0,
+   "owl": 1
   },
   "spam": {
    "clear": 0,
@@ -2165,7 +2540,12 @@
    "downPct": 0.04,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 71.6,
+   "idlePct": 0,
+   "toks": 36.5,
+   "fall1": 0,
+   "owl": 1
   },
   "scribble": {
    "clear": 0.08,
@@ -2189,7 +2569,12 @@
    "downPct": 0.17,
    "empty": 0.72,
    "leafCombo": 0.38,
-   "bentDodge": 0.01
+   "bentDodge": 0.01,
+   "busy": 48.43,
+   "idlePct": 0,
+   "toks": 11.63,
+   "fall1": 0,
+   "owl": 0.29
   },
   "smartStrokeSolo": {
    "clear": 1,
@@ -2276,7 +2661,12 @@
    "downPct": 0.05,
    "empty": 0,
    "leafCombo": 0.96,
-   "bentDodge": 0.01
+   "bentDodge": 0.01,
+   "busy": 3.27,
+   "idlePct": 0.43,
+   "toks": 0.46,
+   "fall1": 0,
+   "owl": 0
   },
   "humanStroke": {
    "clear": 0.96,
@@ -2300,7 +2690,12 @@
    "downPct": 0.5,
    "empty": 0.1,
    "leafCombo": 0.92,
-   "bentDodge": 0.03
+   "bentDodge": 0.03,
+   "busy": 16.48,
+   "idlePct": 0.03,
+   "toks": 0.71,
+   "fall1": 0,
+   "owl": 0.17
   },
   "humanStroke30": {
    "clear": 0.96,
@@ -2324,7 +2719,12 @@
    "downPct": 0.46,
    "empty": 0.04,
    "leafCombo": 0.88,
-   "bentDodge": 0.01
+   "bentDodge": 0.01,
+   "busy": 14.63,
+   "idlePct": 0.04,
+   "toks": 0.29,
+   "fall1": 0,
+   "owl": 0.08
   },
   "newbie": {
    "secAll": 76.93,
@@ -2351,7 +2751,12 @@
    "empty": 0.56,
    "tries": 2.04,
    "leafCombo": 0.21,
-   "bentDodge": 0.09
+   "bentDodge": 0.09,
+   "busy": 36.42,
+   "idlePct": 0.01,
+   "toks": 1.75,
+   "fall1": 0,
+   "owl": 0.46
   },
   "newbieLow": {
    "secAll": 86.48,
@@ -2378,7 +2783,12 @@
    "empty": 0.59,
    "tries": 2.17,
    "leafCombo": 0.29,
-   "bentDodge": 0.09
+   "bentDodge": 0.09,
+   "busy": 36.88,
+   "idlePct": 0.02,
+   "toks": 3.42,
+   "fall1": 0,
+   "owl": 0.71
   },
   "newbieNever": {
    "secAll": 201.08,
@@ -2405,7 +2815,12 @@
    "empty": 0.6,
    "tries": 2.92,
    "leafCombo": 0.17,
-   "bentDodge": 0.04
+   "bentDodge": 0.04,
+   "busy": 78.06,
+   "idlePct": 0.01,
+   "toks": 6.46,
+   "fall1": 0,
+   "owl": 0.71
   },
   "humanTap": {
    "clear": 0,
@@ -2429,7 +2844,12 @@
    "downPct": 0.02,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 88.83,
+   "idlePct": 0,
+   "toks": 2.33,
+   "fall1": 0,
+   "owl": 0.96
   },
   "smart": {
    "clear": 0,
@@ -2453,7 +2873,12 @@
    "downPct": 0.04,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 72.77,
+   "idlePct": 0.01,
+   "toks": 4.63,
+   "fall1": 0,
+   "owl": 1
   },
   "habit2": {
    "clear": 0,
@@ -2477,7 +2902,12 @@
    "downPct": 0.47,
    "empty": 0.01,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 67.32,
+   "idlePct": 0.03,
+   "toks": 5.13,
+   "fall1": 0,
+   "owl": 1
   },
   "spam": {
    "clear": 0,
@@ -2501,7 +2931,12 @@
    "downPct": 0.04,
    "empty": 0.02,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 70.37,
+   "idlePct": 0,
+   "toks": 17.46,
+   "fall1": 0,
+   "owl": 1
   },
   "scribble": {
    "clear": 0.13,
@@ -2525,7 +2960,12 @@
    "downPct": 0.17,
    "empty": 0.78,
    "leafCombo": 0.21,
-   "bentDodge": 0.02
+   "bentDodge": 0.02,
+   "busy": 49.14,
+   "idlePct": 0,
+   "toks": 11.38,
+   "fall1": 0,
+   "owl": 0.46
   },
   "smartStrokeSolo": {
    "clear": 1,
@@ -2612,7 +3052,12 @@
    "downPct": 0.05,
    "empty": 0,
    "leafCombo": 1,
-   "bentDodge": 0.05
+   "bentDodge": 0.05,
+   "busy": 3.09,
+   "idlePct": 0.43,
+   "toks": 0.46,
+   "fall1": 0,
+   "owl": 0
   },
   "humanStroke": {
    "clear": 1,
@@ -2636,7 +3081,12 @@
    "downPct": 0.5,
    "empty": 0,
    "leafCombo": 1,
-   "bentDodge": 0.02
+   "bentDodge": 0.02,
+   "busy": 14.23,
+   "idlePct": 0.07,
+   "toks": 0.42,
+   "fall1": 0,
+   "owl": 0
   },
   "humanStroke30": {
    "clear": 1,
@@ -2660,7 +3110,12 @@
    "downPct": 0.49,
    "empty": 0,
    "leafCombo": 1,
-   "bentDodge": 0.02
+   "bentDodge": 0.02,
+   "busy": 13.61,
+   "idlePct": 0.08,
+   "toks": 0.25,
+   "fall1": 0,
+   "owl": 0
   },
   "newbie": {
    "secAll": 67.39,
@@ -2687,7 +3142,12 @@
    "empty": 0.54,
    "tries": 2,
    "leafCombo": 0.75,
-   "bentDodge": 0.13
+   "bentDodge": 0.13,
+   "busy": 37.04,
+   "idlePct": 0,
+   "toks": 2,
+   "fall1": 0,
+   "owl": 0.71
   },
   "newbieLow": {
    "secAll": 78.63,
@@ -2714,7 +3174,12 @@
    "empty": 0.56,
    "tries": 2.17,
    "leafCombo": 0.79,
-   "bentDodge": 0.13
+   "bentDodge": 0.13,
+   "busy": 36.63,
+   "idlePct": 0.01,
+   "toks": 1.96,
+   "fall1": 0,
+   "owl": 0.92
   },
   "newbieNever": {
    "secAll": 120.93,
@@ -2741,7 +3206,12 @@
    "empty": 0.6,
    "tries": 2.71,
    "leafCombo": 0.71,
-   "bentDodge": 0.15
+   "bentDodge": 0.15,
+   "busy": 36.68,
+   "idlePct": 0,
+   "toks": 2.13,
+   "fall1": 0,
+   "owl": 0.83
   },
   "humanTap": {
    "clear": 0,
@@ -2765,7 +3235,12 @@
    "downPct": 0.02,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 91.75,
+   "idlePct": 0,
+   "toks": 2.63,
+   "fall1": 0,
+   "owl": 1
   },
   "smart": {
    "clear": 0,
@@ -2789,7 +3264,12 @@
    "downPct": 0.02,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 83.76,
+   "idlePct": 0,
+   "toks": 2.42,
+   "fall1": 0,
+   "owl": 1
   },
   "habit2": {
    "clear": 0,
@@ -2813,7 +3293,12 @@
    "downPct": 0.5,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 91.25,
+   "idlePct": 0,
+   "toks": 10.96,
+   "fall1": 0,
+   "owl": 1
   },
   "spam": {
    "clear": 0,
@@ -2837,7 +3322,12 @@
    "downPct": 0.04,
    "empty": 0,
    "leafCombo": 0,
-   "bentDodge": 0
+   "bentDodge": 0,
+   "busy": 84.25,
+   "idlePct": 0,
+   "toks": 31.42,
+   "fall1": 0,
+   "owl": 1
   },
   "scribble": {
    "clear": 0,
@@ -2861,7 +3351,12 @@
    "downPct": 0.17,
    "empty": 0.76,
    "leafCombo": 0.75,
-   "bentDodge": 0.03
+   "bentDodge": 0.03,
+   "busy": 30.72,
+   "idlePct": 0,
+   "toks": 5.83,
+   "fall1": 0,
+   "owl": 0.29
   },
   "smartStrokeSolo": {
    "clear": 1,
@@ -2920,6 +3415,397 @@
    "spamClear": 0,
    "scribbleClear": 0,
    "humanStrokeSec": 15.6,
+   "straightHumanClear": 0
+  }
+ },
+ {
+  "key": "boss2",
+  "name": "큰 너구리 지붕",
+  "smartStroke": {
+   "clear": 1,
+   "star": 2.83,
+   "star2p": 1,
+   "star3": 0.83,
+   "cancels": 0,
+   "bent": 0.86,
+   "bentCut": 2.5,
+   "lineCut": 0.69,
+   "s2": 0.83,
+   "s3": 1,
+   "stall": 0,
+   "timeout": 0,
+   "sec": 6.25,
+   "best": 5,
+   "hit": 0,
+   "dashes": 10.17,
+   "whiff": 0.05,
+   "holdAvg": 0.03,
+   "downPct": 0.05,
+   "empty": 0,
+   "leafCombo": 1,
+   "bentDodge": 0.01,
+   "busy": 2.87,
+   "idlePct": 0.52,
+   "toks": 0.13,
+   "fall1": 0,
+   "owl": 0
+  },
+  "humanStroke": {
+   "clear": 1,
+   "star": 2.5,
+   "star2p": 0.92,
+   "star3": 0.58,
+   "cancels": 0.08,
+   "bent": 0.82,
+   "bentCut": 2.16,
+   "lineCut": 0.6,
+   "s2": 0.63,
+   "s3": 0.88,
+   "stall": 0,
+   "timeout": 0,
+   "sec": 14.41,
+   "best": 4.75,
+   "hit": 0.08,
+   "dashes": 13.63,
+   "whiff": 0.17,
+   "holdAvg": 0.64,
+   "downPct": 0.52,
+   "empty": 0.02,
+   "leafCombo": 1,
+   "bentDodge": 0.02,
+   "busy": 13.73,
+   "idlePct": 0.05,
+   "toks": 0.25,
+   "fall1": 0,
+   "owl": 0.13
+  },
+  "humanStroke30": {
+   "clear": 1,
+   "star": 2.21,
+   "star2p": 0.83,
+   "star3": 0.38,
+   "cancels": 0,
+   "bent": 0.85,
+   "bentCut": 2.18,
+   "lineCut": 0.54,
+   "s2": 0.54,
+   "s3": 0.67,
+   "stall": 0,
+   "timeout": 0,
+   "sec": 13.93,
+   "best": 4.63,
+   "hit": 0.42,
+   "dashes": 12.92,
+   "whiff": 0.11,
+   "holdAvg": 0.63,
+   "downPct": 0.5,
+   "empty": 0.01,
+   "leafCombo": 1,
+   "bentDodge": 0.02,
+   "busy": 13.2,
+   "idlePct": 0.05,
+   "toks": 0.08,
+   "fall1": 0,
+   "owl": 0.08
+  },
+  "newbie": {
+   "secAll": 45.17,
+   "first": 0.71,
+   "clear": 0.96,
+   "star": 1,
+   "star2p": 0.04,
+   "star3": 0,
+   "cancels": 0.08,
+   "bent": 0.44,
+   "bentCut": 1.09,
+   "lineCut": 0.27,
+   "s2": 0.04,
+   "s3": 0,
+   "stall": 0,
+   "timeout": 0,
+   "sec": 39.87,
+   "best": 2.83,
+   "hit": 3.75,
+   "dashes": 39.17,
+   "whiff": 0.55,
+   "holdAvg": 0.62,
+   "downPct": 0.6,
+   "empty": 0.49,
+   "tries": 1.46,
+   "leafCombo": 0.63,
+   "bentDodge": 0.17,
+   "busy": 39.78,
+   "idlePct": 0,
+   "toks": 1.29,
+   "fall1": 0,
+   "owl": 0.88
+  },
+  "newbieLow": {
+   "secAll": 68.98,
+   "first": 0.5,
+   "clear": 0.88,
+   "star": 0.96,
+   "star2p": 0.08,
+   "star3": 0,
+   "cancels": 0.13,
+   "bent": 0.35,
+   "bentCut": 1.26,
+   "lineCut": 0.28,
+   "s2": 0.08,
+   "s3": 0,
+   "stall": 0.08,
+   "timeout": 0,
+   "sec": 37.99,
+   "best": 3,
+   "hit": 4.58,
+   "dashes": 46.13,
+   "whiff": 0.62,
+   "holdAvg": 0.6,
+   "downPct": 0.6,
+   "empty": 0.45,
+   "tries": 1.75,
+   "leafCombo": 0.71,
+   "bentDodge": 0.15,
+   "busy": 37.94,
+   "idlePct": 0,
+   "toks": 1.08,
+   "fall1": 0,
+   "owl": 0.92
+  },
+  "newbieNever": {
+   "secAll": 130.98,
+   "first": 0.04,
+   "clear": 0.13,
+   "star": 0.21,
+   "star2p": 0.08,
+   "star3": 0,
+   "cancels": 0.08,
+   "bent": 0.13,
+   "bentCut": 1.02,
+   "lineCut": 0.17,
+   "s2": 0.08,
+   "s3": 0,
+   "stall": 0.08,
+   "timeout": 0,
+   "sec": 37.93,
+   "best": 2.54,
+   "hit": 6.42,
+   "dashes": 47,
+   "whiff": 0.81,
+   "holdAvg": 0.54,
+   "downPct": 0.57,
+   "empty": 0.53,
+   "tries": 2.83,
+   "leafCombo": 0.5,
+   "bentDodge": 0.31,
+   "busy": 37.93,
+   "idlePct": 0,
+   "toks": 1.42,
+   "fall1": 0,
+   "owl": 1
+  },
+  "humanTap": {
+   "clear": 0,
+   "star": 0,
+   "star2p": 0,
+   "star3": 0,
+   "cancels": 1,
+   "bent": 0,
+   "bentCut": 0,
+   "lineCut": 0.14,
+   "s2": 0,
+   "s3": 0,
+   "stall": 1,
+   "timeout": 0,
+   "sec": 95.32,
+   "best": 3.58,
+   "hit": 0.63,
+   "dashes": 119.54,
+   "whiff": 0.92,
+   "holdAvg": 0.02,
+   "downPct": 0.02,
+   "empty": 0,
+   "leafCombo": 0,
+   "bentDodge": 0,
+   "busy": 95.32,
+   "idlePct": 0,
+   "toks": 1.29,
+   "fall1": 0,
+   "owl": 1
+  },
+  "smart": {
+   "clear": 0,
+   "star": 0,
+   "star2p": 0,
+   "star3": 0,
+   "cancels": 0,
+   "bent": 0,
+   "bentCut": 0,
+   "lineCut": 0.09,
+   "s2": 0,
+   "s3": 0,
+   "stall": 1,
+   "timeout": 0,
+   "sec": 85.22,
+   "best": 2.17,
+   "hit": 4.79,
+   "dashes": 170.92,
+   "whiff": 0.94,
+   "holdAvg": 0.02,
+   "downPct": 0.03,
+   "empty": 0,
+   "leafCombo": 0,
+   "bentDodge": 0,
+   "busy": 85.22,
+   "idlePct": 0,
+   "toks": 0.79,
+   "fall1": 0,
+   "owl": 1
+  },
+  "habit2": {
+   "clear": 0,
+   "star": 0,
+   "star2p": 0,
+   "star3": 0,
+   "cancels": 0,
+   "bent": 0,
+   "bentCut": 0,
+   "lineCut": 0.01,
+   "s2": 0,
+   "s3": 0,
+   "stall": 1,
+   "timeout": 0,
+   "sec": 97.72,
+   "best": 2.33,
+   "hit": 15.71,
+   "dashes": 2914,
+   "whiff": 1,
+   "holdAvg": 0.02,
+   "downPct": 0.5,
+   "empty": 0,
+   "leafCombo": 0,
+   "bentDodge": 0,
+   "busy": 97.72,
+   "idlePct": 0,
+   "toks": 2.75,
+   "fall1": 0,
+   "owl": 1
+  },
+  "spam": {
+   "clear": 0,
+   "star": 0,
+   "star2p": 0,
+   "star3": 0,
+   "cancels": 0.79,
+   "bent": 0,
+   "bentCut": 0,
+   "lineCut": 0.13,
+   "s2": 0,
+   "s3": 0,
+   "stall": 0.08,
+   "timeout": 0,
+   "sec": 50.6,
+   "best": 2.33,
+   "hit": 22.25,
+   "dashes": 133.79,
+   "whiff": 0.89,
+   "holdAvg": 0.02,
+   "downPct": 0.04,
+   "empty": 0,
+   "leafCombo": 0,
+   "bentDodge": 0,
+   "busy": 50.6,
+   "idlePct": 0,
+   "toks": 11.88,
+   "fall1": 0,
+   "owl": 1
+  },
+  "scribble": {
+   "clear": 0.04,
+   "star": 0.04,
+   "star2p": 0,
+   "star3": 0,
+   "cancels": 0,
+   "bent": 1,
+   "bentCut": 0.17,
+   "lineCut": 0,
+   "s2": 0,
+   "s3": 0,
+   "stall": 0.13,
+   "timeout": 0,
+   "sec": 36.92,
+   "best": 2.71,
+   "hit": 36.96,
+   "dashes": 109.25,
+   "whiff": 0.88,
+   "holdAvg": 0.07,
+   "downPct": 0.17,
+   "empty": 0.7,
+   "leafCombo": 0.42,
+   "bentDodge": 0.1,
+   "busy": 36.92,
+   "idlePct": 0,
+   "toks": 3.79,
+   "fall1": 0,
+   "owl": 0.92
+  },
+  "smartStrokeSolo": {
+   "clear": 1,
+   "star": 2.71,
+   "star2p": 1,
+   "star3": 0.71,
+   "cancels": 0,
+   "bent": 0.86,
+   "bentCut": 2.05,
+   "lineCut": 0.86,
+   "s2": 0.75,
+   "s3": 0.96,
+   "stall": 0,
+   "timeout": 0,
+   "sec": 6,
+   "best": 4.96,
+   "hit": 0,
+   "dashes": 12.17,
+   "whiff": 0.02,
+   "holdAvg": 0.03,
+   "downPct": 0.06,
+   "empty": 0
+  },
+  "bamboo": {
+   "use": 0.75,
+   "drop": 0.63,
+   "s2": [
+    0.83,
+    0.21
+   ],
+   "s3": [
+    1,
+    1
+   ],
+   "best": [
+    5,
+    4.08
+   ],
+   "humanUse": 0.38,
+   "newbieLowUse": 0.33,
+   "tapFall": 0,
+   "scribbleS2": 0
+  },
+  "summary": {
+   "use": 1,
+   "drop": 0.12,
+   "newbieClear": 0.96,
+   "newbieLowClear": 0.88,
+   "newbieNeverClear": 0.13,
+   "newbieLowFirst": 0.5,
+   "newbieLowSecAll": 68.98,
+   "newbieNeverFirst": 0.04,
+   "newbieNeverSecAll": 130.98,
+   "humanStrokeClear": 1,
+   "bentDodge": 0.02,
+   "spamClear": 0,
+   "scribbleClear": 0.04,
+   "humanStrokeSec": 14.41,
    "straightHumanClear": 0
   }
  }

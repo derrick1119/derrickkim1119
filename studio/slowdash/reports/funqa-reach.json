@@ -1,0 +1,36 @@
+{
+ "newbieLow": {
+  "reachAll": 0.38,
+  "reachW1": 0.75,
+  "stuckAt": {
+   "shield": 1,
+   "barrel": 1,
+   "mix": 3,
+   "shuri": 1,
+   "leafShuri": 1,
+   "leafShield": 5,
+   "jars": 3,
+   "end": 9
+  }
+ },
+ "newbieNever": {
+  "reachAll": 0,
+  "reachW1": 0.58,
+  "stuckAt": {
+   "shield": 1,
+   "barrel": 1,
+   "mix": 6,
+   "shuri": 2,
+   "leaf": 3,
+   "leafWait": 5,
+   "leafShuri": 6
+  }
+ },
+ "humanStroke": {
+  "reachAll": 1,
+  "reachW1": 1,
+  "stuckAt": {
+   "end": 24
+  }
+ }
+}

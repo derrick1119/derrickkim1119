@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
 const here = import.meta.dirname, out = join(here, '../../web/public/studio/slowdash');
-const js = (await build({ entryPoints: [join(here, 'main.ts')], bundle: true, minify: true, format: 'iife', write: false, target: 'es2022', legalComments: 'none' })).outputFiles[0].text;
+const js = (await build({ entryPoints: [join(here, 'main.ts')], bundle: true, minify: true, define: { 'globalThis.__SHIP__': 'true' }, format: 'iife', write: false, target: 'es2022', legalComments: 'none' })).outputFiles[0].text;
 const html = readFileSync(join(here, 'index.html'), 'utf8').replace('/*BUNDLE*/', () => js.replace(/<\/script/g, '<\\/script'));
 mkdirSync(out, { recursive: true });
 writeFileSync(join(out, 'index.html'), html);

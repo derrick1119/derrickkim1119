@@ -51,6 +51,8 @@ export function strokePlan(s: DashState): { pts: Pt[]; n: number } | null {
   return best;
 }
 const straightN = (s: DashState, p: Pt) => K.path(s, [p]).hits.length;
+/** M2 S9: 잎 성질(잎 너구리 · 2-10 큰 너구리) */
+const leafy = (s: DashState, f: Foe) => f.k === 'leaf' || (f.k === 'boss' && !!STAGES[s.stage].leafBoss);
 const isLeaf = (s: DashState, id: number) => (s.foes as unknown as Foe[]).some((f) => f.id === id && (f.k === 'leaf' || f.k === 'bell')); // M2 S6: 🔔도 '새것'
 /** M2 S1 낙차 대조군 스위치: 켜면 한붓 봇이 잎 너구리를 다른 적과 한 획에 엮지 않는다 */
 let LEAF_SOLO = false;
@@ -58,7 +60,7 @@ let LEAF_SOLO = false;
 export function leafPlan(s: DashState, far = 0): { pts: Pt[]; n: number } | null { // far 1: 더 먼 꺾는 점 · 2: 덤불도 감수(★★★만 잃음)
   const thornOk = far >= 2;
   let best: { pts: Pt[]; n: number } | null = null;
-  for (const L of live(s).filter((f) => f.k === 'leaf')) {
+  for (const L of live(s).filter((f) => leafy(s, f))) {
     const dx = L.x - s.nx, dy = L.y - s.ny, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d;
     for (const sg of [1, -1])
       for (const off of far ? [0.13, 0.18, 0.26, 0.34] : [0.13, 0.18]) {
@@ -246,7 +248,7 @@ export function human(name: string, react: number, err: number, slow: boolean, p
       if (!ready(s) || s.t < m.until) return NO;
       let c = choose(s, rng);
       if (!c && stroke === true) { // 🍃·🔔만 남으면 장인 겨눔이 없다 — 겨누고 꾹(그다음 bestPlan이 꺾는 길을 그린다)
-        const L = live(s).find((f) => f.k === 'leaf' || f.k === 'bell');
+        const L = live(s).find((f) => leafy(s, f) || f.k === 'bell');
         if (L) c = { x: L.x, y: L.y };
       }
       if (!c) return (m.until = s.t + 6), NO;
@@ -291,7 +293,7 @@ export const slowdashSmartStroke: Bot<DashState> = {
       }
       if (a0.pointer) return a0;
     }
-    if (!s.down && !s.lock && s.g >= 25 && L.length && L.every((f) => f.k === 'leaf' || f.k === 'bell')) { // 🍃·🔔만 남으면 장인 탭은 못 벤다 — 바로 들어가기
+    if (!s.down && !s.lock && s.g >= 25 && L.length && L.every((f) => leafy(s, f) || f.k === 'bell')) { // 🍃·🔔만 남으면 장인 탭은 못 벤다 — 바로 들어가기
       const lp = leafPlan(s) ?? bellPlan(s) ?? leafPlan(s, 1) ?? (s.hits > 0 ? leafPlan(s, 2) : null); // M2 S7: 잎 하나가 덤불 옆이면 더 멀리서 · S8(🧪): 덤불 감수는 ★★★를 이미 놓쳤을 때만
       if (lp) return seqMem.set(s, [lp.pts[1]]), press(lp.pts[0].x, lp.pts[0].y);
       const st = stepAway(s); // S8: 그래도 없으면 덤불 반대쪽으로 옮겨 선다 — 다음에 다시 잎 길을 찾는다
@@ -425,7 +427,9 @@ export const BOTS: Record<string, Bot<DashState>> = {
 };
 
 export interface Try {
-  ok: boolean; stall: boolean; leafCombo: boolean; bentDodge: number; smokeT: number; bambooUse: boolean; tapFall: number; stars: number; s2: boolean; s3: boolean; sec: number; best: number; hits: number; dashes: number; whiff: number;
+  ok: boolean; stall: boolean; leafCombo: boolean; bentDodge: number; smokeT: number; bambooUse: boolean; tapFall: number;
+  /** M2 S9(🧪 S8 ⑤): 판에 적이 0마리인 틱(빈 기다림) · 툭 수 · 첫 무리에서 쓰러짐으로 벤 수 · 부엉이를 쓴 판 */
+  idleT: number; toks: number; fall1: number; owled: boolean; stars: number; s2: boolean; s3: boolean; sec: number; best: number; hits: number; dashes: number; whiff: number;
   holdAvg: number; downPct: number; empty: number; cancels: number; bent: number; bentCut: number; lineCut: number; s: DashState;
 }
 
@@ -448,9 +452,11 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
   const rng = mulberry32(hand ^ 0x9e3779b9), t0 = s.t, d0 = s.dashes, emptyG = K.GBASE + K.GPER * K.HOP;
   let whiff = 0, down = 0, holds = 0, holdT = 0, cur = 0, empty = 0, dn = s.dashes, cancels = 0, bent = 0, bentCut = 0, lineCut = 0;
   // ✏️ S010 300초 측정 고침: 60초 동안 아무것도 못 베고 웨이브도 그대로면 '막힘' — 사람이면 그만둔다(실패로 셈)
-  let prog = s.t, mark = '', leafCombo = false, bentDodge = 0, smokeT = 0, bambooUse = false, tapFall = 0;
+  let prog = s.t, mark = '', leafCombo = false, bentDodge = 0, smokeT = 0, bambooUse = false, tapFall = 0, idleT = 0, toks = 0, fall1 = 0, owled = false;
   while (s.phase !== 'result' && s.t - t0 < maxSec * 60) {
     if (s.smokes.length && s.smokes.some((m) => Math.hypot(s.nx - m.x, s.ny - m.y) < m.r)) smokeT++; // M2 S5 연기에 숨은 틱
+    if (!s.foes.length) idleT++;
+    if (s.owl) owled = true;
     if (s.owlAsk) useOwl(s, opt.owlYes ?? true); // M2 S4 부엉이가 물으면(2-1 휙 세 번) 받는다 — 따를지는 봇이 정함
     const now = `${s.wave}/${s.foes.length}/${s.hp}`; // S012: 덤불 맞음(목숨 그대로)은 진전이 아니다 — 휘젓기 6판 300초
     if (now !== mark) (mark = now), (prog = s.t);
@@ -460,7 +466,8 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
     if (s.down) (down++, cur++);
     else if (was) (holds++, (holdT += cur), (cur = 0));
     if (s.g < emptyG) empty++;
-    if (s.dashes > dn) for (const e of s.events) if (e.t === s.t && e.kind === 'fall') ((e.n ?? 0) >= 1 && (bambooUse = true), s.stroke.length <= 1 && tapFall++); // 🎋 쓰러진 줄이 벤 판 · 곧은 획(점 하나)으로 쓰러짐
+    if (s.dashes > dn) for (const e of s.events) if (e.t === s.t && e.kind === 'fall') ((e.n ?? 0) >= 1 && (bambooUse = true), s.stroke.length <= 1 && tapFall++, s.wave === 1 && (fall1 += e.n ?? 0));
+    if (s.dashes > dn) for (const e of s.events) if (e.t === s.t && e.kind === 'tok') toks++; // 🎋 쓰러진 줄이 벤 판 · 곧은 획(점 하나)으로 쓰러짐
     if (s.dashes > dn && s.combo.n >= 2 && s.cuts.slice(-s.combo.n).some((c) => c.k === 'leaf' || c.k === 'bell')) leafCombo = true; // 🍃·🔔 새것을 다른 적과 한 획에
     if (s.dashes > dn && turned([{ x: px, y: py }, ...s.stroke, { x: s.nx, y: s.ny }]) && s.events.some((e) => e.t === s.t && e.kind === 'dodge')) bentDodge++; // 🍃 꺾었는데 휙(모든 토막 — 🧪 S2: 꺾은 뒤만 세면 규칙상 거의 0)
     if (s.dashes > dn) ((dn = s.dashes), s.combo.n === 0 && whiff++, turned([{ x: px, y: py }, ...s.stroke, { x: s.nx, y: s.ny }]) ? (bent++, (bentCut += s.combo.n)) : (lineCut += s.combo.n));
@@ -473,6 +480,10 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
     smokeT,
     bambooUse,
     tapFall,
+    idleT,
+    toks,
+    fall1,
+    owled,
     bentDodge: bent ? bentDodge / bent : 0,
     ok, stars: ok ? s.got : 0, s2: ok && s.starOk[1], s3: ok && s.starOk[2], sec: (s.t - t0) / 60, best: s.best, hits: s.hits, dashes: n,
     whiff: n ? whiff / n : 0, holdAvg: holds ? holdT / holds / 60 : 0, downPct: down / T, empty: empty / T, cancels, bent: n ? bent / n : 0, bentCut: bent ? bentCut / bent : 0, lineCut: n - bent ? lineCut / (n - bent) : 0, s,
@@ -695,6 +706,30 @@ export function measureCampaign(seeds = 24) {
   return out;
 }
 
+/** ✏️ M2 S9 20판 첫 표(📋 S8): 1-1부터 2-10까지 판마다 6번까지(넷째부터 부엉이) 도전해서 어디까지 가나 — 안 배우는 봇(배움 정의는 S10) */
+export function measureReach(seeds = 24) {
+  const out: Record<string, unknown> = {};
+  STAGES.length = STAGE_COUNT_W1;
+  STAGES.push(...TRIAL);
+  try {
+    for (const name of ['newbieLow', 'newbieNever', 'humanStroke']) {
+      const far = Array.from({ length: seeds }, (_, i) => {
+        const sd = 401 + i * 13;
+        for (let k = 0; k < STAGES.length; k++) {
+          let ok = false;
+          for (let a = 0; a < 6 && !ok; a++) ok = tryStage(BOTS[name], sd + k * 31, k, 300, sd + k * 31 + a * 977, a >= 3 ? { owlNow: true } : {}).ok;
+          if (!ok) return k;
+        }
+        return STAGES.length;
+      });
+      out[name] = { reachAll: r2(mean(far.map((x) => +(x >= STAGES.length)))), reachW1: r2(mean(far.map((x) => +(x >= STAGE_COUNT_W1)))), stuckAt: Object.fromEntries([...new Set(far)].sort((a, b) => a - b).map((k) => [k >= STAGES.length ? 'end' : STAGES[k].key, far.filter((x) => x === k).length])) };
+    }
+  } finally {
+    STAGES.length = STAGE_COUNT_W1;
+  }
+  return out;
+}
+
 /** ✏️ M2 S1 시험 판(월드 2 초안) 재기: TRIAL 판을 STAGES 끝에 잠깐 붙여 재고 뗀다 — 1~10 지표는 그대로 */
 export function measureTrial(seeds = 24, only?: string[]) {
   const out: Record<string, unknown>[] = [];
@@ -707,7 +742,7 @@ export function measureTrial(seeds = 24, only?: string[]) {
     try {
       for (const name of ['smartStroke', 'humanStroke', 'humanStroke30', 'newbie', 'newbieLow', 'newbieNever', 'humanTap', 'smart', 'habit2', 'spam', 'scribble']) {
         const t = seedsOf.map((sd) => (name.startsWith('newbie') ? try3(BOTS[name], sd, k) : tryStage(BOTS[name], sd, k)));
-        row[name] = { ...sum(t), leafCombo: r2(mean(t.map((x) => +x.leafCombo))), bentDodge: r2(mean(t.map((x) => x.bentDodge))) };
+        row[name] = { ...sum(t), leafCombo: r2(mean(t.map((x) => +x.leafCombo))), bentDodge: r2(mean(t.map((x) => x.bentDodge))), busy: r2(median(t.map((x) => x.sec - x.idleT / 60))), idlePct: r2(mean(t.map((x) => x.idleT / 60 / Math.max(1, x.sec)))), toks: r2(mean(t.map((x) => x.toks))), fall1: r2(mean(t.map((x) => +(x.fall1 > 0)))), owl: r2(mean(t.map((x) => +x.owled))) }; // S9 칸: 할 일(초) · 빈 % · 툭 · 첫 무리 쓰러짐 판 · 부엉이 판
       }
       LEAF_SOLO = true; // 낙차 대조군: 잎은 따로만 베는 장인 한붓
       row.smartStrokeSolo = sum(seedsOf.map((sd) => tryStage(BOTS.smartStroke, sd, k)));
@@ -752,6 +787,9 @@ if (process.argv[1]?.endsWith('funqa.ts')) {
   const w2 = measureTrial(n);
   writeFileSync(join(dir, 'funqa-w2.json'), JSON.stringify(w2, null, 1) + '\n');
   for (const r of w2) console.log(`시험 판 ${r.key}: ${JSON.stringify(r.summary)}`);
+  const reach = measureReach(n);
+  writeFileSync(join(dir, 'funqa-reach.json'), JSON.stringify(reach, null, 1) + '\n');
+  console.log(`20판 도달(판마다 6번 · 넷째부터 부엉이): ${JSON.stringify(reach)}`);
   const camp = measureCampaign(n);
   writeFileSync(join(dir, 'funqa-campaign.json'), JSON.stringify(camp, null, 1) + '\n');
   console.log(`다시 하기(월드 1 → 별 18/12): ${JSON.stringify(camp)}`);

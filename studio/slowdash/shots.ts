@@ -133,6 +133,10 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
       await page.waitForTimeout(180);
       await page.screenshot({ path: join(out, '21-bamboo-fall.png') });
     }
+    // ✏️ M2 S9 2-10 큰 너구리 지붕: 시작 3초 뒤(머리에 잎 · 네 칸 목숨)
+    await page.goto(url + '&trial=1&stage=20');
+    await page.waitForTimeout(3000);
+    await page.screenshot({ path: join(out, '23-boss2.png') });
     // M2 S4 부엉이: 곧게 두 번 더 휙 → 묻는 카드
     await page.goto(url + '&stage=3&owl=1');
     await page.waitForTimeout(500);

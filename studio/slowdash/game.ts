@@ -21,6 +21,9 @@ import type { Bot, GameDef, Input, Theme } from './core.ts';
 import { juice } from './juice.ts';
 
 const A = 1.52;
+/** ✏️ M2 S9 크기 ①(📋 S8): 플레이 빌드에서만 참(build.ts define). 어느 판에도 없는 장치(보류한 🔔 종 · 거울 · 연기)의 코드를 번들에서만 뺀다 —
+ *  시뮬·테스트·측정(tsx·vitest)에서는 그대로 돈다. 판에 이 장치가 다시 들어가면 테스트 '배포 판에 없는 장치'가 막는다(㊿⑦ (57)) */
+declare global { var __SHIP__: boolean | undefined }
 /** 땅(발 자리) 범위: 가로 X0~X1, 세로 Y0(먼 쪽)~Y1(가까운 쪽) — 화면 좌표(가로 폭 = 1)와 같다 */
 const X0 = 0.06, X1 = 0.94, Y0 = 0.47, Y1 = 1.27;
 /** 닌자가 맞는 거리 · 칼날 반폭(선에서 이만큼 + 적 몸 반지름 안이면 베임) */
@@ -76,7 +79,7 @@ type Spawn = [K | 'barrel' | 'bamboo', number, number, number];
 interface Wave { need: number; wait: number; foes: Spawn[] }
 interface StageDef {
   key: string; name: string; place: number; news: string; hint: string; goal: string;
-  start: [number, number]; mirrors?: number[][]; barrels?: number[][]; smokes?: number[][];
+  start: [number, number]; mirrors?: number[][]; barrels?: number[][]; smokes?: number[][]; /** M2 S9 📐 2-10: 이 판의 대장은 잎 성질(곧은 칼은 휙) */ leafBoss?: boolean;
   /** ✏️ S009 가시덤불 [x, y, r]: 돌진 길이 지나가면 꼬리 하나를 잃는다(계속 간다) — 곧은 줄은 걸리고, 꺾어 돌면 안 걸린다 */
   thorns?: number[][];
   waves: Wave[];
@@ -317,6 +320,18 @@ export const TRIAL: StageDef[] = starsOf([
     ],
     n: 5, // 📐: N 6이면 장인 ★★ .04
   },
+  // ✏️ M2 S9: 📐 2-10 큰 너구리 지붕 — 1-10 대장 틀(hp 4 · 맞으면 밀림) + 잎 성질(leafBoss). 통은 두지 않음(펑에 휙인지 한 대인지 헷갈림)
+  {
+    key: 'boss2', name: '큰 너구리 지붕', place: 1, news: '큰 너구리 — 곧은 칼은 휙, 꺾어 네 번', card: '꺾어서 네 번 베요', goal: '큰 너구리 이기기',
+    hint: '졸개 꿰고 꺾어 너구리까지', start: [0.5, 1.15], g0: 70, ease: [1.5, 2.5, 0.8], thorns: [[0.5, 0.98, 0.05]], leafBoss: true,
+    waves: [
+      { need: 1, wait: 1e9, foes: [['boss', 0.5, 0.7, 3], ['sword', 0.3, 0.92, 1], ['sword', 0.2, 0.8, 1], ['sword', 0.7, 0.92, 2], ['sword', 0.8, 0.8, 2]] },
+      { need: 1, wait: 540, foes: [['leaf', 0.3, 0.6, 0], ['leaf', 0.7, 0.6, 0], ['archer', 0.5, 0.5, 3], ['shuri', 0.2, 0.5, 3]] },
+      { need: 1, wait: 540, foes: [['bamboo', 0.5, 0.86, 0], ['sword', 0.14, 0.62, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.26, 0.78, 1], ['shield', 0.7, 0.6, 3]] },
+      { need: 1, wait: 540, foes: [['sword', 0.14, 0.72, 1], ['sword', 0.2, 0.8, 1], ['sword', 0.26, 0.88, 1], ['sword', 0.86, 0.72, 2], ['sword', 0.8, 0.8, 2], ['sword', 0.74, 0.88, 2], ['leaf', 0.5, 0.56, 0]] },
+    ],
+    n: 5, // 📐: 너구리만 남으면 다음 졸개가 걸어 들어와 '너구리 + 졸개 넷' 한 줄이 ★★
+  },
 ] as Omit<StageDef, 'stars'>[]);
 /** ✏️ M2 S6 보류: 🔔 종루(2-6)는 미리 정한 폐기 기준에 걸려(사용 .46 < .5 · 낙차 .12 < .2 · 처음 봇 0~.08) 판 목록에서 뺀다 — 코드와 판은 다시 잴 수 있게 남김(M2 S7: 플레이 빌드에선 빠지게 따로 둠) */
 export const SHELVED: StageDef[] = /* @__PURE__ */ starsOf([
@@ -387,6 +402,9 @@ function see(s: DashState, key: string, text: string) {
   else s.newsQ.push(text);
 }
 const URGENT = new Set(['thorn', 'thornRed', 'leaf', 'leafDemo', 'bell', 'bamboo']);
+/** 🍃 잎 성질: 잎 너구리 · 2-10 큰 너구리(leafBoss 판의 대장) — 첫 방향 25° 안의 칼은 휙 */
+const leafy = (s: DashState, f: Foe) => f.k === 'leaf' || (f.k === 'boss' && !!STAGES[s.stage].leafBoss);
+const nameOf = (s: DashState, f: Foe) => (f.k === 'boss' && STAGES[s.stage].leafBoss ? '큰 너구리' : KIND_NAME[f.k]);
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const KIND_NAME: Record<K, string> = { dummy: '허수아비', sword: '칼잡이', archer: '화살병', shuri: '수리검', shield: '방패 무사', boss: '대장 곰', leaf: '잎 너구리', bell: '종' };
 
@@ -419,7 +437,7 @@ function trace(s: DashState, px: number, py: number, tx: number, ty: number, max
   const used = new Set<number>();
   for (let leg = 0; leg < 3 && rem > 1e-4; leg++) {
     let len = Math.min(rem, boxExit(x, y, dx, dy)), mi = -1;
-    s.mirrors.forEach((m, j) => {
+    if (!globalThis.__SHIP__) s.mirrors.forEach((m, j) => {
       if (j === skip) return;
       const ex = m.bx - m.ax, ey = m.by - m.ay, den = dx * ey - dy * ex;
       if (Math.abs(den) < 1e-9) return;
@@ -444,7 +462,7 @@ function trace(s: DashState, px: number, py: number, tx: number, ty: number, max
           break;
         }
         if (c.f.k === 'bell') continue; // 🔔 종은 토막 하나로는 안 깨진다 — 한 획 전체에서 따로 두 번 들어왔는지 tracePath가 센다
-        if (c.f.k === 'leaf') { // 🍃 첫 방향과 거의 같은 칼이면 '휙'(fd 없으면 이 토막이 첫 방향)
+        if (leafy(s, c.f)) { // 🍃 첫 방향과 거의 같은 칼이면 '휙'(fd 없으면 이 토막이 첫 방향)
           const [fx, fy] = fd ?? (leg === 0 ? [dx, dy] : [Number.NaN, 0]);
           if (fx * dx + fy * dy > Math.cos(LEAF_A)) {
             if (!out.dodges.some((q) => q.id === c.f.id)) out.dodges.push({ id: c.f.id, leg });
@@ -476,7 +494,7 @@ function trace(s: DashState, px: number, py: number, tx: number, ty: number, max
     x += dx * end;
     y += dy * end;
     rem -= end;
-    if (out.bounce || mi < 0 || end < len) break;
+    if (globalThis.__SHIP__ || out.bounce || mi < 0 || end < len) break;
     const m = s.mirrors[mi], mx = m.bx - m.ax, my = m.by - m.ay, ml = Math.hypot(mx, my), nx = -my / ml, ny = mx / ml, dd = dx * nx + dy * ny;
     dx -= 2 * dd * nx;
     dy -= 2 * dd * ny;
@@ -558,7 +576,7 @@ function tracePath(s: DashState, pts: { x: number; y: number }[], maxLen: number
   }
   out.hits.sort((a, b) => a.leg - b.leg);
   out.dodges = out.dodges.filter((q) => !used.has(q.id)); // 앞에서 휙 했어도 뒤 꺾인 토막이 베면 베인 것
-  bellsOf(s, out, pts.length > 1 ? BW * BEND.w : BW);
+  if (!globalThis.__SHIP__) bellsOf(s, out, pts.length > 1 ? BW * BEND.w : BW);
   return out;
 }
 const strokeOf = (s: DashState) => (s.aim ? [...s.stroke, s.aim] : s.stroke);
@@ -607,7 +625,7 @@ function explode(s: DashState, b: Barrel) {
   let k = 0;
   for (const f of [...s.foes]) {
     if (Math.hypot(f.x - b.x, f.y - b.y) > BLAST + RAD[f.k] * 0.5) continue;
-    if (f.k === 'bell') { // 🔔 펑에도 댕
+    if (!globalThis.__SHIP__ && f.k === 'bell') { // 🔔 펑에도 댕
       ev(s, 'ding', f.x, f.y);
       continue;
     }
@@ -660,6 +678,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     gain += GAIN * n;
     s.pts += PTS[f.k] * n;
     if (h.leg > 0) s.mirK++;
+    if (leafy(s, f)) (s.leafCut = true), (s.leafGuide = false), (s.dodgeN = 0);
     if (f.k === 'boss') {
       boss = true;
       f.hp--;
@@ -674,8 +693,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
       s.pts += 300;
     }
     if (f.k === 'shield') s.backK++;
-    if (f.k === 'leaf') (s.leafCut = true), (s.leafGuide = false), (s.dodgeN = 0);
-    if (f.k === 'bell') (s.bellGuide = false), (s.dodgeN = 0), see(s, 'bellCut', '쩍!'); // M2 S8 번들 덜기 ⓑ: 보류한 종의 알림 글은 짧게(어느 판에도 종이 없음)
+    if (!globalThis.__SHIP__ && f.k === 'bell') (s.bellGuide = false), (s.dodgeN = 0), see(s, 'bellCut', '쩍!'); // M2 S8 번들 덜기 ⓑ: 보류한 종의 알림 글은 짧게(어느 판에도 종이 없음)
     kill(s, f, n, a, false);
   }
   if (boss && n >= 3) s.bossCombo = Math.max(s.bossCombo, n - 1);
@@ -693,7 +711,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     see(s, 'bamboo', '대나무는 곧은 칼엔 툭! 꺾어 들어가요');
     if (!s.bambooGuide) (s.bambooGuide = true), s.dodgeN++;
   }
-  for (const bq of P.bells) if (bq.n === 1) { // 🔔 한 번만 지나면 '댕' — 다음엔 되돌아 두 번
+  if (!globalThis.__SHIP__) for (const bq of P.bells) if (bq.n === 1) { // 🔔 한 번만 지나면 '댕' — 다음엔 되돌아 두 번
     const f = s.foes.find((q) => q.id === bq.id);
     if (!f) continue;
     f.hurtT = 20;
@@ -815,7 +833,7 @@ function foeStep(s: DashState, f: Foe, dt: number, hidden: boolean) {
       (f.st = IDLE), (f.tm = 0);
       if (!s.spotted.has(f.k) && f.k !== 'dummy') {
         s.spotted.add(f.k);
-        s.spot = { id: f.id, t: s.t, label: KIND_NAME[f.k] };
+        s.spot = { id: f.id, t: s.t, label: nameOf(s, f) };
       }
     }
     return;
@@ -839,7 +857,7 @@ function foeStep(s: DashState, f: Foe, dt: number, hidden: boolean) {
       if (f.tm <= 0) {
         if (d < m.reach && s.inv <= 0) {
           ev(s, 'slash', f.x, f.y, 1);
-          hurt(s, s.nx, s.ny, `${KIND_NAME[f.k]}에게 베였어요`);
+          hurt(s, s.nx, s.ny, `${nameOf(s, f)}에게 베였어요`);
         } else {
           ev(s, 'whiff', f.x, f.y, 0);
           f.whiff = 40;
@@ -888,7 +906,7 @@ function world(s: DashState, dt: number) {
   s.wt += dt;
   s.waveT += dt;
   if (s.bamboos.some((b) => b.fall >= 0 && s.t - b.fall > 30)) s.bamboos = s.bamboos.filter((b) => b.fall < 0 || s.t - b.fall <= 30); // 🎋 쓰러지고 0.5초 뒤 사라짐
-  const hidden = inSmoke(s, s.nx, s.ny);
+  const hidden = !globalThis.__SHIP__ && inSmoke(s, s.nx, s.ny);
   for (const f of [...s.foes]) foeStep(s, f, dt, hidden);
   for (const k of s.strikes) {
     k.t -= dt;
@@ -936,7 +954,7 @@ function world(s: DashState, dt: number) {
     if (b.fuse <= 0 && s.barrels.includes(b)) explode(s, b);
     if (s.phase !== 'play') return;
   }
-  for (const m of s.smokes) {
+  if (!globalThis.__SHIP__) for (const m of s.smokes) {
     m.x += m.vx * dt;
     m.y += m.vy * dt;
     if (m.x < X0 + m.r * 0.6 || m.x > X1 - m.r * 0.6) m.vx = -m.vx;
@@ -1237,7 +1255,7 @@ function danger(s: DashState, qx: number, qy: number, skipF: Set<number>, skipS:
     if (Math.hypot(cx, cy) < NIN_HIT + 0.018) T = Math.min(T, tt);
   });
   for (const k of s.strikes) if (Math.hypot(k.x - qx, k.y - qy) < STRIKE.r + 0.02) T = Math.min(T, k.t);
-  const hidden = inSmoke(s, qx, qy);
+  const hidden = !globalThis.__SHIP__ && inSmoke(s, qx, qy);
   for (const f of s.foes) {
     if (skipF.has(f.id) || f.st === ENTER) continue;
     const d = Math.hypot(f.x - qx, f.y - qy), m = MELEE[f.k];
@@ -1347,7 +1365,7 @@ function judge(s: DashState, x: number, y: number, L: number): Choice {
     if (f.k === 'archer' && farm) obj -= 400;
     if (h.leg > 0 && goal(d, 'mirror') && s.mirK < 3) obj += 130;
   }
-  if (d.key === 'boss' && n >= 3 && bossIn) obj += 300;
+  if ((d.key === 'boss' || d.leafBoss) && n >= 3 && bossIn) obj += 300;
   let boom = 0;
   for (const bid of P.barrels) {
     const b = s.barrels.find((q) => q.id === bid)!;
@@ -2930,7 +2948,7 @@ function guideOf(s: DashState, min = 4) {
 /** ✏️ M2 S1 🍃 잎 길잡이(📐): 첫 '휙' 뒤 아직 잎을 못 베었으면, 잎 옆에서 꺾어 들어가는 길(가장 많이 베는 것) */
 function leafGuideOf(s: DashState) {
   let best: { x: number; y: number }[] | null = null, bn = 0;
-  for (const L of s.foes.filter((f) => f.k === 'leaf' && f.st !== ENTER)) {
+  for (const L of s.foes.filter((f) => leafy(s, f) && f.st !== ENTER)) {
     const dx = L.x - s.nx, dy = L.y - s.ny, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d;
     for (const sg of [1, -1]) {
       const p1 = { x: clamp(L.x + nx * sg * 0.15, X0, X1), y: clamp(L.y + ny * sg * 0.15, Y0, Y1) };
@@ -2985,11 +3003,11 @@ function bambooGuideOf(s: DashState, safe?: (P: Path) => boolean) {
 /** 지금 화면에 그려 주는 길잡이(1-2 ㄱ자 · 첫 휙 뒤 잎) — 그리기와 측정 봇이 같은 것을 본다 */
 function guideNow(s: DashState) {
   if (s.phase !== 'play' || s.down) return null;
-  if (s.owl) return (s.foes.some((f) => f.k === 'leaf' && f.st !== ENTER) ? leafGuideOf(s) : null) ?? (s.foes.some((f) => f.k === 'bell' && f.st !== ENTER) ? bellGuideOf(s) : null) ?? bambooGuideOf(s) ?? guideOf(s, 2) ?? guideOf(s, 1); // M2 S4 부엉이: 지금 가장 많이 베는 길
+  if (s.owl) return (s.foes.some((f) => leafy(s, f) && f.st !== ENTER) ? leafGuideOf(s) : null) ?? (!globalThis.__SHIP__ && s.foes.some((f) => f.k === 'bell' && f.st !== ENTER) ? bellGuideOf(s) : null) ?? bambooGuideOf(s) ?? guideOf(s, 2) ?? guideOf(s, 1); // M2 S4 부엉이: 지금 가장 많이 베는 길
   if (moveDemo(s)) return guideOf(s, 3); // 🧪 S3: 하나 베어도 남은 셋을 꿰는 길로 계속
   if (s.stage === 1 && s.bents === 0) return guideOf(s);
   if (s.leafGuide) return leafGuideOf(s);
-  if (s.bellGuide) return bellGuideOf(s);
+  if (!globalThis.__SHIP__ && s.bellGuide) return bellGuideOf(s);
   if (s.bambooGuide || bambooIntro(s)) return bambooGuideOf(s);
   return null;
 }
@@ -3388,6 +3406,15 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.restore();
     if (f.k === 'shield' && !shieldBehind) drawShieldDisc(ctx, k, f.fa, Math.max(0, 1 - (t - (fx.memo['bn' + f.id] ?? -99)) / 10));
     if (f.k === 'boss') {
+      if (d.leafBoss) { // ✏️ M2 S9 2-10 큰 너구리(임시 그림 — 1-10 곰 + 머리에 큰 잎 · 🎨 M3)
+        ctx.fillStyle = '#7ad070';
+        ctx.save();
+        ctx.translate(k * 0.05, -k * 1.12);
+        ctx.rotate(-0.5);
+        ell(ctx, 0, 0, k * 0.2, k * 0.08);
+        ctx.fill();
+        ctx.restore();
+      }
       for (let j = 0; j < 4; j++) {
         ctx.fillStyle = j < f.hp ? '#ff5a4e' : 'rgba(255,255,255,.2)';
         ctx.save();

@@ -343,7 +343,7 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(l.dodgeN).toBeGreaterThanOrEqual(3);
     expect(l.owlAsk).toBe(true);
     expect(WORLD_LOCK).toBe(18);
-    expect(TRIAL.map((d) => d.key)).toEqual(['leaf', 'leafWait', 'leafShuri', 'smoke', 'leafShield', 'bamboo', 'roofs', 'jars', 'moon']); // M2 S5 월드 2: 2-1~2-5 · S7 2-6 🎋 · S8 2-7~2-9 섞기
+    expect(TRIAL.map((d) => d.key)).toEqual(['leaf', 'leafWait', 'leafShuri', 'smoke', 'leafShield', 'bamboo', 'roofs', 'jars', 'moon', 'boss2']); // M2 S5 월드 2: 2-1~2-5 · S7 2-6 🎋 · S8 2-7~2-9 섞기 · S9 2-10 큰 너구리
     expect(worldStars({ a: 3, b: 2 }, ['a', 'b', 'c'])).toBe(5);
   });
 
@@ -424,6 +424,34 @@ describe('느린 시간 닌자 시뮬', () => {
     }
   });
 
+  it('M2 S9 2-10 큰 너구리: 1-10 대장 + 잎 성질 — 곧은 칼은 휙(목숨 그대로), 꺾어 들어온 칼에 한 대 · 연타로는 못 깬다', () => {
+    const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y: y / A } });
+    STAGES.push(...TRIAL);
+    try {
+      const k = STAGES.length - TRIAL.length + TRIAL.findIndex((d) => d.key === 'boss2');
+      const go = (pts: number[][]) => {
+        const s = g.create(3);
+        startStage(s, k);
+        for (let i = 0; i < 60; i++) g.step(s, { tap: false, dir: 0, pointer: null });
+        const f = s.foes.find((q) => q.k === 'boss')!;
+        s.foes = [f];
+        (f.x = 0.5), (f.y = 0.75), (s.nx = 0.5), (s.ny = 1.1), (s.g = 90), (s.inv = 0);
+        for (const [x, y] of pts) for (let i = 0; i < 3; i++) g.step(s, at(x, y));
+        g.step(s, { tap: false, dir: 0, pointer: null });
+        return { s, f };
+      };
+      const a = go([[0.5, 0.65]]); // 곧게
+      expect(a.f.hp).toBe(4);
+      expect(a.s.events.some((e) => e.kind === 'dodge')).toBe(true);
+      const b = go([[0.5, 1.1], [0.62, 0.95], [0.66, 0.82], [0.5, 0.75], [0.4, 0.72]]); // 옆으로 올라가 꺾어 들어가기
+      expect(b.f.hp).toBe(3);
+      for (const sd of [101, 108, 115]) expect(tryStage(BOTS.spam, sd, k).ok).toBe(false);
+      expect(tryStage(BOTS.smartStroke, 101, k).ok).toBe(true);
+    } finally {
+      STAGES.length -= TRIAL.length;
+    }
+  });
+
   it('S005 효과음: 시뮬·봇은 소리를 모른다(헤드리스로 한 판 돌려도 AudioContext 0) · 연쇄 음계는 5음계로 오르고 8번째부터 고정', () => {
     runBot(g, slowdashSmart, 5, 60 * 120);
     expect(sfx.live).toBe(false);
@@ -479,6 +507,16 @@ describe('느린 시간 닌자 시뮬', () => {
 
 describe('느린 시간 닌자 플레이 빌드', () => {
   const f = 'web/public/studio/slowdash/index.html';
+  it('M2 S9 크기: 어느 판에도 없는 장치(🔔 종 · 거울 · 연기)는 플레이 빌드에서만 빠진다 — 판(월드 1 · 월드 2)에 그 장치가 하나라도 있으면 실패', () => {
+    for (const d of [...STAGES, ...TRIAL]) {
+      expect(d.mirrors?.length ?? 0).toBe(0);
+      expect(d.smokes?.length ?? 0).toBe(0);
+      expect(d.waves.some((w) => w.foes.some((q) => q[0] === 'bell'))).toBe(false);
+    }
+    const html = readFileSync(f, 'utf8');
+    expect(html).not.toContain('__SHIP__'); // define가 먹었다
+    expect(html).not.toContain('종은 두 번'); // 종 코드가 빠졌다
+  });
   it('빌드가 있고 한 장으로 묶였다 (gzip ≤ 40KB)', () => {
     expect(existsSync(f)).toBe(true);
     const html = readFileSync(f, 'utf8');
