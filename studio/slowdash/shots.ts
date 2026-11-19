@@ -119,12 +119,12 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
     await page.mouse.up();
     await page.waitForTimeout(1600); // M2 S2: 휙 뒤 손가락 시범
     await page.screenshot({ path: join(out, '14-leaf-demo.png') });
-    // ✏️ M2 S7 🎋 2-6 첫 무리: 옆으로 올라가 꺾어 왼쪽으로 대나무까지 — 쓰러질 줄(점선) · 떼면 쓰러져 셋
+    // ✏️ M2 S7 🎋 2-6 첫 무리(S8 배치): 오른쪽으로 올라가 꺾어 왼쪽으로 대나무까지 — 쓰러질 줄(점선) · 떼면 쓰러져 셋
     await page.goto(url + '&trial=1&stage=16');
     await page.waitForTimeout(3000);
     await page.screenshot({ path: join(out, '22-bamboo-idle.png') });
     {
-      const pts = [[0.7, 1.02], [0.74, 0.96], [0.73, 0.92], [0.66, 0.92], [0.6, 0.92], [0.555, 0.92]].map(([x, y]) => at2(x, y));
+      const pts = [[0.7, 1.02], [0.86, 0.98], [0.9, 0.92], [0.8, 0.9], [0.68, 0.9], [0.5, 0.9]].map(([x, y]) => at2(x, y)); // S8 첫 무리: 오른쪽에서 꺾어 허 둘 → 대나무 → 왼쪽 둘
       await page.mouse.move(pts[0].x, pts[0].y);
       await page.mouse.down();
       for (const p of pts.slice(1)) (await page.mouse.move(p.x, p.y, { steps: 3 }), await page.waitForTimeout(30));

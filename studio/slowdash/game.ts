@@ -251,11 +251,11 @@ export const TRIAL: StageDef[] = starsOf([
   },
   {
     key: 'smoke', name: '굴뚝 연기', place: 1, news: '연기 속에선 적이 못 봐요', card: '연기 속은 안 보여요', goal: '굴뚝 지나가기', // 🧪 S6: '먹 채우고'는 틀린 말이었다(연기는 눈만 가림)
-    hint: '연기에 숨어 기다려요', start: [0.5, 1.15], gap: 420, g0: 60, ease: [1.2, 1.5, 0.9], smokes: [[0.3, 0.75, 0.11], [0.7, 0.92, 0.11]],
+    hint: '날아오는 쪽으로 줄 따라 쭉', start: [0.5, 1.15], g0: 60, ease: [1.2, 1.5, 0.9], // 📐 S8: 간격 끔 · 다음 무리는 남은 적 둘 이하거나 8초(빈 기다림 58→7%)
     waves: [
       { need: 1, wait: 1e9, foes: [['sword', 0.14, 0.62, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.26, 0.78, 1], ['sword', 0.32, 0.86, 1], ['archer', 0.5, 0.5, 3]] },
-      { need: 0, wait: 900, foes: [['sword', 0.86, 0.62, 2], ['sword', 0.8, 0.7, 2], ['sword', 0.74, 0.78, 2], ['sword', 0.68, 0.86, 2], ['archer', 0.3, 0.5, 3], ['leaf', 0.8, 0.6, 0]] },
-      { need: 0, wait: 900, foes: [['sword', 0.14, 0.7, 1], ['sword', 0.2, 0.8, 1], ['sword', 0.26, 0.9, 1], ['sword', 0.86, 0.7, 2], ['sword', 0.8, 0.8, 2], ['sword', 0.74, 0.9, 2], ['shuri', 0.5, 0.5, 3], ['leaf', 0.5, 0.8, 0]] },
+      { need: 2, wait: 480, foes: [['sword', 0.86, 0.62, 2], ['sword', 0.8, 0.7, 2], ['sword', 0.74, 0.78, 2], ['sword', 0.68, 0.86, 2], ['archer', 0.3, 0.5, 3], ['leaf', 0.8, 0.6, 0]] },
+      { need: 2, wait: 480, foes: [['sword', 0.14, 0.7, 1], ['sword', 0.2, 0.8, 1], ['sword', 0.26, 0.9, 1], ['sword', 0.86, 0.7, 2], ['sword', 0.8, 0.8, 2], ['sword', 0.74, 0.9, 2], ['shuri', 0.5, 0.5, 3], ['leaf', 0.5, 0.8, 0]] },
     ],
     n: 5,
   },
@@ -273,15 +273,49 @@ export const TRIAL: StageDef[] = starsOf([
   // ✏️ M2 S7: 📐 2-6 뒤뜰 대밭 — 🎋 대나무(꺾어 넘겨 덤불 너머 베기). 소개 판이라 간격은 2-1과 같게(㊻)
   {
     key: 'bamboo', name: '뒤뜰 대밭', place: 1, news: '대나무 — 꺾어 베면 칼 간 쪽으로 쓰러져요', card: '꺾어 베면 쓰러져요', goal: '대밭 지나가기',
-    // ㊻ 96시드: 간격을 줄여도 처음 하는 사람은 그대로(.61~.67) → 판 25초를 지킴
-    hint: '옆에서 꺾어 줄 쪽으로', start: [0.5, 1.15], gap: 420, g0: 70, ease: [3, 1.5, 0.8], thorns: [[0.39, 0.7, 0.05], [0.61, 0.6, 0.05]],
+    // 📐 S8: 간격 끔 · 다음 무리는 9초 뒤(새 F12 — 빈 기다림 57→11%)
+    hint: '옆에서 꺾어 줄 쪽으로', start: [0.5, 1.15], g0: 70, ease: [3, 1.5, 0.8], thorns: [[0.39, 0.7, 0.05], [0.61, 0.6, 0.05]],
     waves: [
-      { need: 1, wait: 1e9, foes: [['bamboo', 0.56, 0.92, 0], ['dummy', 0.42, 0.92, 0], ['dummy', 0.32, 0.92, 0], ['dummy', 0.22, 0.92, 0]] },
-      { need: 0, wait: 900, foes: [['bamboo', 0.52, 0.7, 0], ['dummy', 0.64, 0.7, 0], ['dummy', 0.29, 0.7, 0], ['dummy', 0.21, 0.7, 0], ['dummy', 0.13, 0.7, 0]] }, // ✏️ 둘째 배치: 칼잡이 2 뺌(걸어와 덤불 너머 줄과 한 줄이 돼 대나무 없이도 넷 — 낙차 0)
-      { need: 0, wait: 900, foes: [['bamboo', 0.38, 0.94, 0], ['sword', 0.26, 0.78, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.14, 0.62, 1], ['leaf', 0.72, 0.66, 0]] },
-      { need: 0, wait: 900, foes: [['bamboo', 0.48, 0.6, 0], ['leaf', 0.34, 0.6, 0], ['archer', 0.71, 0.6, 3], ['archer', 0.79, 0.6, 3], ['archer', 0.87, 0.6, 3]] }, // ✏️ 둘째 배치: 칼잡이 2 뺌
+      { need: 1, wait: 1e9, foes: [['bamboo', 0.5, 0.9, 0], ['dummy', 0.41, 0.9, 0], ['dummy', 0.2, 0.9, 0], ['dummy', 0.59, 0.9, 0], ['dummy', 0.8, 0.9, 0]] }, // 📐 S8: 대나무 한가운데 — 허수아비에서 허수아비로 그은 선이 대나무를 지나 쓰러짐을 봄(처음 대나무로 벤 판 .39→.53, 288시드)
+      { need: 0, wait: 540, foes: [['bamboo', 0.52, 0.7, 0], ['dummy', 0.64, 0.7, 0], ['dummy', 0.29, 0.7, 0], ['dummy', 0.21, 0.7, 0], ['dummy', 0.13, 0.7, 0]] }, // ✏️ 둘째 배치: 칼잡이 2 뺌(걸어와 덤불 너머 줄과 한 줄이 돼 대나무 없이도 넷 — 낙차 0)
+      { need: 0, wait: 540, foes: [['bamboo', 0.38, 0.94, 0], ['sword', 0.26, 0.78, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.14, 0.62, 1], ['leaf', 0.72, 0.66, 0]] },
+      { need: 0, wait: 540, foes: [['bamboo', 0.48, 0.6, 0], ['leaf', 0.34, 0.6, 0], ['archer', 0.71, 0.6, 3], ['archer', 0.79, 0.6, 3], ['archer', 0.87, 0.6, 3]] }, // ✏️ 둘째 배치: 칼잡이 2 뺌
     ],
     n: 4,
+  },
+  // ✏️ M2 S8: 📐 2-7~2-9 섞기 판(새 코드 0) — 간격 없이 앞 무리가 남아 있을 때 다음 무리가 걸어 들어온다(새 F12: 할 일 시간)
+  {
+    key: 'roofs', name: '두 지붕 사이', place: 1, news: '대나무로 건너편 줄까지', card: '양쪽 줄을 한 획에', goal: '지붕 건너가기',
+    hint: '한쪽은 칼, 건너편은 대나무', start: [0.5, 1.15], g0: 70, ease: [2, 3, 0.7], thorns: [[0.3, 0.76, 0.05], [0.7, 0.76, 0.05]],
+    waves: [
+      { need: 1, wait: 1e9, foes: [['bamboo', 0.5, 0.86, 0], ['sword', 0.14, 0.64, 1], ['sword', 0.2, 0.72, 1], ['sword', 0.26, 0.8, 1], ['sword', 0.86, 0.64, 2], ['sword', 0.8, 0.72, 2], ['sword', 0.74, 0.8, 2]] },
+      { need: 1, wait: 540, foes: [['leaf', 0.5, 0.56, 0], ['dummy', 0.5, 0.7, 0], ['sword', 0.14, 0.62, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.26, 0.78, 1], ['archer', 0.8, 0.5, 3]] },
+      { need: 1, wait: 540, foes: [['bamboo', 0.5, 0.62, 0], ['dummy', 0.38, 0.62, 0], ['dummy', 0.2, 0.62, 0], ['sword', 0.86, 0.62, 2], ['sword', 0.8, 0.7, 2], ['sword', 0.74, 0.78, 2], ['archer', 0.2, 0.5, 3]] },
+      { need: 1, wait: 540, foes: [['sword', 0.14, 0.72, 1], ['sword', 0.2, 0.8, 1], ['sword', 0.26, 0.88, 1], ['sword', 0.86, 0.72, 2], ['sword', 0.8, 0.8, 2], ['sword', 0.74, 0.88, 2], ['leaf', 0.5, 0.56, 0]] },
+    ],
+    n: 5,
+  },
+  {
+    key: 'jars', name: '장독대', place: 1, news: '장독은 펑, 대나무는 쓰러짐 — 골라요', card: '펑은 위, 대나무는 옆', goal: '장독대 지나가기',
+    hint: '위 무리는 장독, 옆 줄은 대나무', start: [0.5, 1.15], g0: 60, ease: [1.5, 3, 0.7], thorns: [[0.34, 0.8, 0.05], [0.66, 0.8, 0.05]],
+    waves: [
+      { need: 1, wait: 1e9, foes: [['barrel', 0.5, 0.6, 0], ['dummy', 0.42, 0.54, 0], ['dummy', 0.58, 0.54, 0], ['dummy', 0.5, 0.5, 0], ['sword', 0.14, 0.66, 1], ['sword', 0.2, 0.74, 1], ['sword', 0.26, 0.82, 1]] },
+      { need: 1, wait: 480, foes: [['bamboo', 0.5, 0.86, 0], ['dummy', 0.62, 0.86, 0], ['dummy', 0.8, 0.86, 0], ['sword', 0.86, 0.62, 2], ['sword', 0.8, 0.7, 2], ['sword', 0.74, 0.78, 2], ['archer', 0.3, 0.5, 3]] },
+      { need: 1, wait: 480, foes: [['barrel', 0.34, 0.62, 0], ['dummy', 0.26, 0.54, 0], ['dummy', 0.42, 0.54, 0], ['sword', 0.14, 0.66, 1], ['sword', 0.2, 0.74, 1], ['sword', 0.26, 0.82, 1], ['leaf', 0.66, 0.9, 0]] },
+      { need: 1, wait: 480, foes: [['barrel', 0.62, 0.6, 0], ['shield', 0.56, 0.52, 3], ['dummy', 0.7, 0.52, 0], ['sword', 0.14, 0.86, 1], ['sword', 0.22, 0.94, 1], ['leaf', 0.3, 0.6, 0]] },
+    ],
+    n: 5, // 📐: 방패는 하나(방패 다섯 + 수리검은 처음 3번 안 .04)
+  },
+  {
+    key: 'moon', name: '달 밝은 마루', place: 1, news: '섞여 와요 — 잎부터 꺾어요', card: '잎 먼저, 줄은 나중', goal: '마루 건너가기',
+    hint: '잎 먼저 꺾고 남은 줄 기다려', start: [0.5, 1.15], g0: 60, ease: [1.2, 2, 0.9], thorns: [[0.38, 0.78, 0.05], [0.62, 0.78, 0.05]],
+    waves: [
+      { need: 1, wait: 1e9, foes: [['leaf', 0.36, 0.66, 0], ['leaf', 0.64, 0.66, 0], ['sword', 0.14, 0.66, 1], ['sword', 0.2, 0.74, 1], ['sword', 0.26, 0.82, 1], ['shuri', 0.5, 0.5, 3]] },
+      { need: 1, wait: 420, foes: [['bamboo', 0.5, 0.88, 0], ['shield', 0.5, 0.64, 3], ['sword', 0.86, 0.62, 2], ['sword', 0.8, 0.7, 2], ['sword', 0.74, 0.78, 2], ['dummy', 0.24, 0.6, 0], ['dummy', 0.16, 0.6, 0]] },
+      { need: 2, wait: 420, foes: [['bamboo', 0.24, 0.92, 0], ['sword', 0.14, 0.6, 1], ['sword', 0.2, 0.68, 1], ['sword', 0.26, 0.76, 1], ['leaf', 0.7, 0.62, 0], ['shield', 0.62, 0.56, 3], ['archer', 0.4, 0.5, 3]] },
+      { need: 1, wait: 420, foes: [['barrel', 0.5, 0.68, 0], ['sword', 0.14, 0.72, 1], ['sword', 0.2, 0.8, 1], ['sword', 0.26, 0.88, 1], ['sword', 0.86, 0.72, 2], ['sword', 0.8, 0.8, 2], ['sword', 0.74, 0.88, 2], ['leaf', 0.5, 0.54, 0], ['archer', 0.8, 0.5, 3], ['shield', 0.5, 0.86, 0]] },
+    ],
+    n: 5, // 📐: N 6이면 장인 ★★ .04
   },
 ] as Omit<StageDef, 'stars'>[]);
 /** ✏️ M2 S6 보류: 🔔 종루(2-6)는 미리 정한 폐기 기준에 걸려(사용 .46 < .5 · 낙차 .12 < .2 · 처음 봇 0~.08) 판 목록에서 뺀다 — 코드와 판은 다시 잴 수 있게 남김(M2 S7: 플레이 빌드에선 빠지게 따로 둠) */
@@ -641,7 +675,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     }
     if (f.k === 'shield') s.backK++;
     if (f.k === 'leaf') (s.leafCut = true), (s.leafGuide = false), (s.dodgeN = 0);
-    if (f.k === 'bell') (s.bellGuide = false), (s.dodgeN = 0), see(s, 'bellCut', '쩍! 종이 깨졌어요');
+    if (f.k === 'bell') (s.bellGuide = false), (s.dodgeN = 0), see(s, 'bellCut', '쩍!'); // M2 S8 번들 덜기 ⓑ: 보류한 종의 알림 글은 짧게(어느 판에도 종이 없음)
     kill(s, f, n, a, false);
   }
   if (boss && n >= 3) s.bossCombo = Math.max(s.bossCombo, n - 1);
@@ -664,7 +698,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     if (!f) continue;
     f.hurtT = 20;
     ev(s, 'ding', f.x, f.y);
-    see(s, 'bell', '종은 한 획에 두 번 지나가야 깨져요 — 갔다가 되돌아요');
+    see(s, 'bell', '종은 두 번 지나야 깨져요');
     s.bellGuide = true;
     s.dodgeN++;
   }
@@ -2985,16 +3019,7 @@ function drawThorn(ctx: C2, x: number, y: number, r: number, t: number, hot: boo
   ctx.restore();
 }
 
-function drawSmoke(ctx: C2, x: number, y: number, r: number, t: number, thin: number) {
-  for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * TAU + t * 0.006 * (i % 2 ? 1 : -1), px = x + Math.cos(a) * r * 0.55, py = y - r * 0.25 + Math.sin(a) * r * 0.28;
-    const pr = r * (0.45 + 0.1 * Math.sin(t * 0.02 + i));
-    ctx.fillStyle = radg(ctx, px, py - pr * 0.2, 0, pr, [0, `rgba(196,198,222,${0.8 * thin})`], [0.6, `rgba(160,162,195,${0.6 * thin})`], [1, 'rgba(140,142,180,0)']);
-    ctx.beginPath();
-    ctx.arc(px, py, pr, 0, TAU);
-    ctx.fill();
-  }
-}
+// ✏️ M2 S8 번들 덜기 ⓐ: drawSmoke(연기 그림)는 뺐다 — 2-4에서 연기를 빼 어느 판에도 없다(시뮬은 남김, M5에 다시 짤 때 git 기록에서 되살림)
 /** 부엉이 구경꾼 (대숲 위 가지) */
 function drawOwl(ctx: C2, x: number, y: number, k: number, t: number, look: number, hoot: number) {
   ctx.save();
@@ -3252,11 +3277,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.fill();
     }
     ell(ctx, cx, cy, r0 * 0.6, r0 * 0.24);
-    ctx.fill();
-  }
-  for (const m of s.smokes) {
-    ctx.fillStyle = 'rgba(10,10,30,.18)';
-    ell(ctx, X(m.x), Y(m.y), R(m.r), R(m.r) * 0.4);
     ctx.fill();
   }
   for (const f of s.foes) {
@@ -3632,7 +3652,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   }
   frontProps(ctx, d.place, w, t);
   // 연기 (가린다)
-  for (const m of s.smokes) drawSmoke(ctx, X(m.x), Y(m.y), R(m.r) * 1.15, wt, 1);
   if (inSmoke(s, s.nx, s.ny) && s.phase === 'play') {
     font(0.034, 900);
     ctx.textAlign = 'center';

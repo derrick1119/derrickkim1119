@@ -343,7 +343,7 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(l.dodgeN).toBeGreaterThanOrEqual(3);
     expect(l.owlAsk).toBe(true);
     expect(WORLD_LOCK).toBe(18);
-    expect(TRIAL.map((d) => d.key)).toEqual(['leaf', 'leafWait', 'leafShuri', 'smoke', 'leafShield', 'bamboo']); // M2 S5 월드 2: 2-1~2-5 · S7 2-6 🎋
+    expect(TRIAL.map((d) => d.key)).toEqual(['leaf', 'leafWait', 'leafShuri', 'smoke', 'leafShield', 'bamboo', 'roofs', 'jars', 'moon']); // M2 S5 월드 2: 2-1~2-5 · S7 2-6 🎋 · S8 2-7~2-9 섞기
     expect(worldStars({ a: 3, b: 2 }, ['a', 'b', 'c'])).toBe(5);
   });
 
