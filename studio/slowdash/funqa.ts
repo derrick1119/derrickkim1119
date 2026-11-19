@@ -135,6 +135,20 @@ export const slowdashHabit4: Bot<DashState> = {
   },
 };
 
+/** 🧪 S004 대조군(📋 F5 고침): 장인 조준을 C틱마다 1틱 톡 — 리듬만으로 피해지는지 본다 */
+export function tapEvery(C: number): Bot<DashState> {
+  const lastT = new WeakMap<object, number>();
+  return {
+    name: `톡 ${C}틱마다`,
+    act(s, rng) {
+      if (!ready(s) || s.t - (lastT.get(s) ?? -999) < C) return NO;
+      const q = slowdashSmart.act(s, rng);
+      if (q.pointer) lastT.set(s, s.t);
+      return q;
+    },
+  };
+}
+
 export const BOTS: Record<string, Bot<DashState>> = {
   smart: slowdashSmart,
   habit: slowdashHabit,
@@ -278,8 +292,20 @@ export function measure(seeds = 24, only?: string[]) {
           }
         }
     });
+  // 🧪 F5 v1.2(S004 착시 뒤): 가장 잘하는 탭 주기(16~48틱)의 ★ 평균(3판~)이 사람 꾹 ★보다 .5 넘게 낮아야 '꾹이 꼭 필요'
+  let tapSweep: { C: number; star: number; clear: number }[] | null = null, F5sweep: number | null = null;
+  if (has('human')) {
+    const n = Math.max(2, Math.min(6, seeds));
+    tapSweep = [16, 24, 32, 40, 48].map((C) => {
+      const t = STAGES.slice(2).flatMap((_, j) => Array.from({ length: n }, (__, i) => tryStage(tapEvery(C), 101 + i * 7, j + 2)));
+      return { C, star: r2(mean(t.map((x) => x.stars))), clear: r2(mean(t.map((x) => +x.ok))) };
+    });
+    F5sweep = r2(mean(from3.map((r) => (r.human as Row).star)) - Math.max(...tapSweep.map((x) => x.star)));
+  }
   return {
     at: new Date().toISOString().slice(0, 10),
+    F5sweep,
+    tapSweep,
     freeStars,
     seeds,
     gap: r2(score.smart / Math.max(1, score.random)),
@@ -307,6 +333,7 @@ if (process.argv[1]?.endsWith('funqa.ts')) {
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'funqa.json'), JSON.stringify(m, null, 1) + '\n');
   console.log(`격차 ${m.gap}× · 장인÷버릇② ${m.gapHabit2}× · 첫인상 ${JSON.stringify(m.firstImpression)} · ${((Date.now() - t0) / 1000).toFixed(1)}초`);
+  console.log(`F5 스윕(사람 꾹 ★ − 가장 잘하는 탭 ★, 3판~) ${m.F5sweep} · ${JSON.stringify(m.tapSweep)}`);
   console.log(`F5 느린 시간 ${JSON.stringify(m.F5)} · F6 연타 ${JSON.stringify(m.F6)}`);
   console.log(`공짜 별 ${m.freeStars.length}: ${m.freeStars.join(" · ")}`);
   console.log(`버릇 ★3(3판~) 최대 ${JSON.stringify(m.habitStar3Max3plus)} · ★ 평균(3판~) ${JSON.stringify(m.habitStarMean3plus)}`);

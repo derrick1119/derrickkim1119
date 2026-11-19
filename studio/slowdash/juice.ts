@@ -40,7 +40,7 @@ export class Juice {
       const life = 22 + this.rand() * 18;
       this.particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life, max: life, color, size: size * (0.6 + this.rand() * 0.8) });
     }
-    if (this.particles.length > 400) this.particles.splice(0, this.particles.length - 400);
+    if (this.particles.length > 160) this.particles.splice(0, this.particles.length - 160); // ✏️ S005(🎨 ART §4.3 렉 방지): 400 → 160
   }
 
   /** 떠오르는 글자 (+1, 연쇄!, 건설!) */

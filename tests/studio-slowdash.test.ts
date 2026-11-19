@@ -4,7 +4,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/slowdash/core.ts';
 import { STAGES, STRIKE, missOf, slowdash as g, slowdashRandom, slowdashSmart, startStage } from '../studio/slowdash/game.ts';
-import { BOTS, measure, try3, tryStage } from '../studio/slowdash/funqa.ts';
+import { BOTS, measure, tapEvery, try3, tryStage } from '../studio/slowdash/funqa.ts';
+import { chainHz, sfx } from '../studio/slowdash/sfx.ts';
 
 const A = g.aspect ?? 1.52;
 
@@ -143,6 +144,16 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(t.stroke).toHaveLength(0);
     g.step(t, { tap: false, dir: 0, pointer: null });
     expect(t.best).toBe(3);
+  });
+
+  it('S005 효과음: 시뮬·봇은 소리를 모른다(헤드리스로 한 판 돌려도 AudioContext 0) · 연쇄 음계는 5음계로 오르고 8번째부터 고정', () => {
+    runBot(g, slowdashSmart, 5, 60 * 120);
+    expect(sfx.live).toBe(false);
+    sfx.play('slash', 3); // 깨우기 전에는 아무 일도 없다
+    expect(sfx.live).toBe(false);
+    expect([1, 2, 3, 8, 12].map(chainHz)).toEqual([587, 659, 784, 1568, 1568]);
+    const tap = tryStage(tapEvery(48), 101, 2);
+    expect(tap.dashes).toBeGreaterThan(0); // 탭 스윕 대조군이 실제로 움직인다
   });
 
   it('장인 봇은 8판을 모두 지나간다 (콘텐츠가 풀린다)', () => {

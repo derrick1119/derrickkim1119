@@ -5,6 +5,7 @@
 import { TICK } from './core.ts';
 import { peek } from './juice.ts';
 import { STAGES, slowdash as g, type DashState } from './game.ts';
+import { sfx } from './sfx.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('slowdash:' + k) ?? 0); } catch { return 0; } },
@@ -23,6 +24,42 @@ root.append(canvas, overlay);
 const ctx = canvas.getContext('2d', { alpha: false })!;
 const aspect = g.aspect ?? 1.52;
 const pal = g.art!.palette;
+
+// 소리 (✏️ S005 · 🎨 ART §4.1): 헤더 🔊 · M키 · 저장. 첫 소리는 '시작' 누름에서
+const soundBtn = document.getElementById('sound') as HTMLButtonElement | null;
+sfx.muted = store.get('mute') === 1;
+function showSound() {
+  if (!soundBtn) return;
+  soundBtn.textContent = sfx.muted ? '🔇' : '🔊';
+  soundBtn.setAttribute('aria-pressed', String(!sfx.muted));
+  soundBtn.setAttribute('aria-label', sfx.muted ? '소리 켜기' : '소리 끄기');
+}
+function toggleSound() {
+  sfx.setMuted(!sfx.muted);
+  store.set('mute', sfx.muted ? 1 : 0);
+  showSound();
+}
+soundBtn?.addEventListener('click', toggleSound);
+showSound();
+document.addEventListener('visibilitychange', () => (document.hidden ? sfx.sleep() : running && sfx.wake()));
+/** 이번 틱에 생긴 사건 → 소리 (시뮬은 소리를 모른다) */
+let wasDown = false;
+function cues() {
+  if (s.down !== wasDown) ((wasDown = s.down), s.down && sfx.play('press'), sfx.slow(s.down));
+  for (let i = s.events.length - 1; i >= 0 && s.events[i].t === s.t; i--) {
+    const e = s.events[i];
+    if (e.kind === 'dash') (sfx.play('dash'), (e.n ?? 0) > 0 && sfx.play('slash', e.n));
+    else if (e.kind === 'bounce') sfx.play('clink');
+    else if (e.kind === 'shotcut') sfx.play('shotcut');
+    else if (e.kind === 'hurt') sfx.play('hurt');
+    else if (e.kind === 'fail') sfx.play('fail');
+    else if (e.kind === 'clear') sfx.play('clear');
+    else if (e.kind === 'wave') sfx.play('wave');
+    else if (e.kind === 'strike') sfx.play('strike');
+    else if (e.kind === 'whiffme') sfx.play('whiff');
+  }
+  if (s.phase === 'result' && s.ok) for (let j = 0; j < 3; j++) if (s.pt === 12 + j * 12 && s.starOk[j]) sfx.play('star', j + 1);
+}
 
 const q = new URLSearchParams(location.search);
 let s: DashState = g.create(1), running = false, acc = 0, last = 0, keyboard = false, spaceDown = false;
@@ -73,6 +110,8 @@ function title() {
 function start() {
   const seed = Number(q.get('seed')) || (Date.now() % 1_000_000) + 1;
   s = g.create(seed);
+  sfx.wake();
+  wasDown = false;
   running = true;
   overlay.hidden = true;
   pointer = latch = null;
@@ -105,6 +144,7 @@ function loop(now: number) {
     if (spaceDown) pointer = { ...cursor };
     // 아주 짧은 탭도 최소 한 틱은 '누름'으로 보이게
     g.step(s, { tap: false, dir: 0, pointer: pointer ?? latch });
+    cues();
     latch = null;
     acc -= TICK;
     if (g.over(s)) return void end();
@@ -129,6 +169,7 @@ const release = () => void (pointer = null);
 window.addEventListener('pointerup', release);
 window.addEventListener('pointercancel', release);
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+window.addEventListener('keydown', (e) => void (e.key === 'm' || e.key === 'M' ? toggleSound() : 0));
 canvas.addEventListener('keydown', (e) => {
   if (e.key.startsWith('Arrow') || e.key === ' ') e.preventDefault();
   if (!running) return;
