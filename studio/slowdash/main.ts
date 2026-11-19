@@ -4,7 +4,7 @@
  */
 import { TICK } from './core.ts';
 import { peek } from './juice.ts';
-import { STAGES, STAGE_COUNT, TRIAL, slowdash as g, startStage, type DashState } from './game.ts';
+import { STAGES, STAGE_COUNT, TRIAL, WORLD_LOCK, slowdash as g, startStage, useOwl, worldStars, type DashState } from './game.ts';
 import { sfx } from './sfx.ts';
 
 const store = {
@@ -20,7 +20,12 @@ canvas.setAttribute('aria-label', `${g.name} 게임 화면. 꾹 누르면 느려
 const overlay = document.createElement('button');
 overlay.type = 'button';
 overlay.className = 'g-overlay';
-root.append(canvas, overlay);
+// ✏️ M2 S4 판 고르기·부엉이 귀띔 카드(단추가 여럿이라 overlay(단추 하나)와 따로)
+const picker = document.createElement('div');
+picker.className = 'g-overlay g-pick';
+picker.setAttribute('role', 'dialog');
+picker.hidden = true;
+root.append(canvas, overlay, picker);
 const ctx = canvas.getContext('2d', { alpha: false })!;
 const aspect = g.aspect ?? 1.52;
 const pal = g.art!.palette;
@@ -66,7 +71,13 @@ function cues() {
 const q = new URLSearchParams(location.search);
 // ✏️ M2 S1: ?trial=1 이면 월드 2 시험 판(🍃 2-1 '첫 기와')을 11판으로 붙여 바로 시작 — 오너·스크린샷용(판 목록엔 아직 없음)
 const trial = q.get('trial') === '1';
-if (trial) STAGES.push(...TRIAL);
+// ✏️ M2 S4 별 저장(판마다 가장 좋은 별) · 월드 잠금: 월드 1 별 18개면 월드 2(지금은 2-1 시험 판)가 판 목록에 붙는다
+const W1 = STAGES.slice(0, STAGE_COUNT).map((d) => d.key);
+const bestOf = () => Object.fromEntries(STAGES.map((d) => [d.key, store.get('st:' + d.key)]));
+const w2Open = () => trial || worldStars(bestOf(), W1) >= WORLD_LOCK;
+const openW2 = () => { if (STAGES.length === STAGE_COUNT && w2Open()) STAGES.push(...TRIAL); };
+openW2();
+let paused = false, saved = -1;
 let s: DashState = g.create(1), running = false, acc = 0, last = 0, keyboard = false, spaceDown = false;
 let pointer: { x: number; y: number } | null = null, latch: { x: number; y: number } | null = null, cursor = { x: 0.5, y: 0.55 };
 const keys = new Set<string>();
@@ -116,6 +127,7 @@ function start() {
   const seed = Number(q.get('seed')) || (Date.now() % 1_000_000) + 1;
   s = g.create(seed);
   { const st = trial ? STAGE_COUNT + 1 : Math.floor(Number(q.get('stage'))); if (st > 1 && st <= STAGES.length) startStage(s, st - 1); } // ✏️ S009 시험·스크린샷용 ?stage=N · M2 ?trial=1
+  if (q.get('owl') === '1') s.owlAsk = true; // M2 S4 스크린샷용: 부엉이 카드부터
   sfx.wake();
   wasDown = false;
   running = true;
@@ -141,6 +153,48 @@ function end() {
   );
 }
 
+/** M2 S4 부엉이 귀띔 카드: 길을 보여 줄까(★★★ 없음)? */
+function askOwl() {
+  paused = true;
+  pointer = latch = null;
+  picker.innerHTML = `<b>부엉!</b><span class="msg">길을 보여 줄까요? 이 판은 ★★★를 못 받아요</span><div class="row"><button type="button" data-owl="1">길 보여 줘</button><button type="button" data-owl="0">혼자 할래</button></div>`;
+  picker.hidden = false;
+  picker.querySelector('button')?.focus();
+}
+/** M2 S4 판 고르기: 월드마다 판과 가장 좋은 별 · 잠긴 월드는 모을 별 수 */
+function openPicker() {
+  if (!running) return;
+  paused = true;
+  pointer = latch = null;
+  const best = bestOf(), w1 = worldStars(best, W1), st = (n: number) => '★'.repeat(n) + '☆'.repeat(3 - n);
+  const btn = (i: number) => `<button type="button" data-k="${i}"><i>${i < STAGE_COUNT ? i + 1 : `2-${i - STAGE_COUNT + 1}`}</i>${st(best[STAGES[i].key] ?? 0)}</button>`;
+  picker.innerHTML =
+    `<b>판 고르기</b><span class="msg">달밤 대숲 · ★ ${w1}/30</span><div class="grid">${W1.map((_, i) => btn(i)).join('')}</div>` +
+    (STAGES.length > STAGE_COUNT
+      ? `<span class="msg">기와 지붕 마을</span><div class="grid">${STAGES.slice(STAGE_COUNT).map((_, j) => btn(STAGE_COUNT + j)).join('')}</div>`
+      : `<span class="msg">기와 지붕 마을 — 잠김</span><span>달밤 대숲 별 ${WORLD_LOCK}개면 열려요 · 지금 ${w1}개</span>`) +
+    `<div class="row"><button type="button" data-close="1">닫기</button></div>`;
+  picker.hidden = false;
+  picker.querySelector('button')?.focus();
+}
+picker.addEventListener('click', (e) => {
+  const b = (e.target as HTMLElement).closest('button');
+  if (!b) return;
+  if (b.dataset.owl) useOwl(s, b.dataset.owl === '1');
+  else if (b.dataset.k) {
+    const seed = (Date.now() % 1_000_000) + 1;
+    s = g.create(seed);
+    startStage(s, Number(b.dataset.k));
+    saved = -1;
+  }
+  picker.hidden = true;
+  paused = false;
+  last = performance.now();
+  canvas.focus({ preventScroll: true });
+});
+const pickBtn = document.getElementById('pick');
+pickBtn?.addEventListener('click', () => (picker.hidden ? openPicker() : (picker.hidden = true, (paused = false), (last = performance.now()))));
+
 function loop(now: number) {
   if (!running) return;
   acc += Math.min(0.25, (now - last) / 1000);
@@ -150,10 +204,18 @@ function loop(now: number) {
     cursor = { x: Math.max(0, Math.min(1, cursor.x + kx * 0.012)), y: Math.max(0, Math.min(1, cursor.y + ky * 0.012 / aspect * 1.4)) };
     if (spaceDown) pointer = { ...cursor };
     // 아주 짧은 탭도 최소 한 틱은 '누름'으로 보이게
+    if (paused) { acc = 0; break; } // 판 고르기·귀띔 카드가 떠 있는 동안 세상이 멈춘다
     g.step(s, { tap: false, dir: 0, pointer: pointer ?? latch });
     cues();
     latch = null;
     acc -= TICK;
+    if (s.phase === 'result' && s.ok && saved !== s.t) { // M2 S4: 깬 판의 별을 저장(가장 좋은 것만)
+      saved = s.t;
+      const k = 'st:' + STAGES[s.stage].key;
+      if (s.got > store.get(k)) store.set(k, s.got);
+      openW2();
+    }
+    if (s.owlAsk && !paused) askOwl();
     if (g.over(s)) return void end();
   }
   draw();
@@ -178,6 +240,7 @@ window.addEventListener('pointerup', release);
 window.addEventListener('pointercancel', release);
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 window.addEventListener('keydown', (e) => void (e.key === 'm' || e.key === 'M' ? toggleSound() : 0));
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !picker.hidden && !s.owlAsk) (picker.hidden = true), (paused = false), (last = performance.now()); }); // M2 S4 판 고르기 닫기
 canvas.addEventListener('keydown', (e) => {
   if (e.key.startsWith('Arrow') || e.key === ' ') e.preventDefault();
   if (!running) return;

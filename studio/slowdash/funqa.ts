@@ -13,7 +13,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { runBot, type Bot, type Input } from './core.ts';
 import { mulberry32, type Rng } from './rng.ts';
-import { STAGES, TRIAL, measureKit as K, slowdash as g, slowdashHabit, slowdashHabit2, slowdashRandom, slowdashSmart, startStage, type DashState } from './game.ts';
+import { STAGES, TRIAL, useOwl, measureKit as K, slowdash as g, slowdashHabit, slowdashHabit2, slowdashRandom, slowdashSmart, startStage, type DashState } from './game.ts';
 
 const NO: Input = { tap: false, dir: 0, pointer: null };
 const press = (x: number, y: number): Input => ({ tap: false, dir: 0, pointer: { x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y / K.A)) } });
@@ -94,8 +94,8 @@ export function detour(s: DashState, p: Pt): Pt[] | null {
   return best && best.pts;
 }
 /** 사람 반응 봇: pick이 고른 자리(게임 좌표 x, y)를 react초 늦게·err만큼 빗나가게. slow면 꾹 누른 채 반응한다 */
-export function human(name: string, react: number, err: number, slow: boolean, pick?: Pick, stroke: boolean | 'naive' = false, fixP = 1, follow = { guide: 0.5, demo: 0.5 }): Bot<DashState> {
-  const mem = new WeakMap<object, { st: 'idle' | 'wait' | 'hold'; until: number; x: number; y: number; ox: number; oy: number; bend: Pt | null; half: number; seq: Pt[]; fix: boolean; fg?: boolean; fd?: boolean }>();
+export function human(name: string, react: number, err: number, slow: boolean, pick?: Pick, stroke: boolean | 'naive' = false, fixP = 1, follow: { guide: number; demo: number; owl?: number } = { guide: 0.5, demo: 0.5 }): Bot<DashState> {
+  const mem = new WeakMap<object, { st: 'idle' | 'wait' | 'hold'; until: number; x: number; y: number; ox: number; oy: number; bend: Pt | null; half: number; seq: Pt[]; fix: boolean; fg?: boolean; fd?: boolean; fo?: boolean }>();
   const choose: Pick = pick ?? ((s, rng) => { const p = smartAim(s, rng); return p && { x: p.x, y: p.y * K.A }; });
   const RT = Math.round(react * 60), REFLEX = 9, COOL = 15;
   return {
@@ -163,9 +163,11 @@ export function human(name: string, react: number, err: number, slow: boolean, p
             const f = live(s);
             // M2 S1~S2: 화면의 길잡이(점선)·손가락 시범 — 따라 하는 사람인지는 사람(판)마다 처음 볼 때 한 번 정하고(🧪: 획마다 굴리면 결국 다 따라 함), 따라 하는 사람은 누를 때 반쯤 따라 그린다
             const gd = K.guide(s), dm = gd ? K.demo(s) : false;
-            if (gd && dm && m.fd === undefined) m.fd = follow.demo > 0 && rng() < follow.demo;
-            if (gd && !dm && m.fg === undefined) m.fg = follow.guide > 0 && rng() < follow.guide;
-            if (gd && (dm ? m.fd || m.fg : m.fg)) { // 🧪 S3: 따라 하는 사람은 볼 때마다 따라 그린다(전엔 반쯤)
+            const ow = gd ? K.owl(s) : false;
+            if (gd && ow && m.fo === undefined) m.fo = (follow.owl ?? 0.5) > 0 && rng() < (follow.owl ?? 0.5); // M2 S4: 부엉이는 판이 멈추고 뜨는 카드라 한 번 더 정한다(📋 가정 ㊱)
+            if (gd && !ow && dm && m.fd === undefined) m.fd = follow.demo > 0 && rng() < follow.demo;
+            if (gd && !ow && !dm && m.fg === undefined) m.fg = follow.guide > 0 && rng() < follow.guide;
+            if (gd && (ow ? m.fo || m.fd || m.fg : dm ? m.fd || m.fg : m.fg)) { // 🧪 S3: 따라 하는 사람은 볼 때마다 따라 그린다(전엔 반쯤)
               m.bend = gd[0];
               (m.x = gd[1].x), (m.y = gd[1].y);
               m.until = s.t + RT + 9;
@@ -357,7 +359,7 @@ export const BOTS: Record<string, Bot<DashState>> = {
   newbie: human('처음 하는 사람(길잡이를 반쯤 따라 그림)', 0.7, 0.05, true, newbiePick, 'naive', 1, { guide: 1, demo: 1 }),
   // ✏️ M2 S2(🧪 낙관 위험 ㉛): 처음 하는 사람을 나눠 잰다 — 점선은 안 보고 손가락 시범만 가끔(25%) 따라 함 · 끝까지 안 따라 함(바닥값)
   newbieLow: human('처음 하는 사람(넷 중 하나만 시범을 따라 함)', 0.7, 0.05, true, newbiePick, 'naive', 1, { guide: 0, demo: 0.25 }),
-  newbieNever: human('처음 하는 사람(안 따라 함)', 0.7, 0.05, true, newbiePick, 'naive', 1, { guide: 0, demo: 0 }),
+  newbieNever: human('처음 하는 사람(안 따라 함)', 0.7, 0.05, true, newbiePick, 'naive', 1, { guide: 0, demo: 0, owl: 0 }), // 귀띔도 안 따름
 };
 
 export interface Try {
@@ -377,14 +379,16 @@ function turned(p: Pt[]) {
 
 /** k판을 한 번 도전(첫 결과가 나올 때까지, 하트 무관) */
 const STALL = 60;
-export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 300, hand = seed): Try {
+export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 300, hand = seed, opt: { owlNow?: boolean; owlYes?: boolean } = {}): Try {
   const s = g.create(seed);
   if (k) startStage(s, k);
+  if (opt.owlNow) useOwl(s, true); // M2 S4: 같은 판 세 번 진 뒤(다시 하기 흐름)
   const rng = mulberry32(hand ^ 0x9e3779b9), t0 = s.t, d0 = s.dashes, emptyG = K.GBASE + K.GPER * K.HOP;
   let whiff = 0, down = 0, holds = 0, holdT = 0, cur = 0, empty = 0, dn = s.dashes, cancels = 0, bent = 0, bentCut = 0, lineCut = 0;
   // ✏️ S010 300초 측정 고침: 60초 동안 아무것도 못 베고 웨이브도 그대로면 '막힘' — 사람이면 그만둔다(실패로 셈)
   let prog = s.t, mark = '', leafCombo = false, bentDodge = 0;
   while (s.phase !== 'result' && s.t - t0 < maxSec * 60) {
+    if (s.owlAsk) useOwl(s, opt.owlYes ?? true); // M2 S4 부엉이가 물으면(2-1 휙 세 번) 받는다 — 따를지는 봇이 정함
     const now = `${s.wave}/${s.foes.length}/${s.hp}`; // S012: 덤불 맞음(목숨 그대로)은 진전이 아니다 — 휘젓기 6판 300초
     if (now !== mark) (mark = now), (prog = s.t);
     if (s.t - prog > STALL * 60) break;
@@ -577,6 +581,40 @@ export function measure(seeds = 24, only?: string[]) {
   };
 }
 
+/** ✏️ M2 S4 다시 하기 규칙(📋): 월드 1을 한 번씩 깬 뒤 별 합이 lock 미만이면 별이 가장 적은 판(같으면 앞 판)부터 한 판씩 다시 ·
+ *  판마다 가장 좋은 별만 셈 · 같은 판을 세 번 지면 귀띔을 쓴다(★★★ 없음). 다시 한 판 수(18·12까지)와 처음 한 바퀴 별 합 */
+export function campaign(bot: Bot<DashState>, seed: number, maxReplays = 10) {
+  const best = Array(STAGE_W1).fill(0) as number[];
+  let tries = 0;
+  const clear = (k: number, round: number) => {
+    for (let a = 0; a < 6; a++) {
+      const r = tryStage(bot, seed + k * 31 + round * 1013, k, 300, seed + a * 977 + round * 131 + k, { owlNow: a >= 3 });
+      tries++;
+      if (r.ok) return r.stars;
+    }
+    return 0;
+  };
+  for (let k = 0; k < STAGE_W1; k++) best[k] = clear(k, 0);
+  const first = best.reduce((x, y) => x + y, 0), sums = [first];
+  for (let r = 1; r <= maxReplays && sums[sums.length - 1] < 18; r++) {
+    const k = best.indexOf(Math.min(...best));
+    best[k] = Math.max(best[k], clear(k, r));
+    sums.push(best.reduce((x, y) => x + y, 0));
+  }
+  const to = (n: number) => { const i = sums.findIndex((v) => v >= n); return i < 0 ? Infinity : i; };
+  return { first, to18: to(18), to12: to(12), tries };
+}
+const STAGE_W1 = 10;
+export function measureCampaign(seeds = 24) {
+  const out: Record<string, unknown> = {};
+  for (const name of ['newbieNever', 'newbieLow', 'human', 'spam', 'scribble']) {
+    const r = Array.from({ length: seeds }, (_, i) => campaign(BOTS[name], 301 + i * 11));
+    const fin = (v: number) => (Number.isFinite(v) ? v : 99);
+    out[name] = { first: r2(median(r.map((x) => x.first))), to18: median(r.map((x) => fin(x.to18))), open18: r2(mean(r.map((x) => +Number.isFinite(x.to18)))), to12: median(r.map((x) => fin(x.to12))), open12: r2(mean(r.map((x) => +Number.isFinite(x.to12)))) };
+  }
+  return out;
+}
+
 /** ✏️ M2 S1 시험 판(월드 2 초안) 재기: TRIAL 판을 STAGES 끝에 잠깐 붙여 재고 뗀다 — 1~10 지표는 그대로 */
 export function measureTrial(seeds = 24) {
   const out: Record<string, unknown>[] = [];
@@ -611,6 +649,9 @@ if (process.argv[1]?.endsWith('funqa.ts')) {
   const w2 = measureTrial(n);
   writeFileSync(join(dir, 'funqa-w2.json'), JSON.stringify(w2, null, 1) + '\n');
   for (const r of w2) console.log(`시험 판 ${r.key}: ${JSON.stringify(r.summary)}`);
+  const camp = measureCampaign(n);
+  writeFileSync(join(dir, 'funqa-campaign.json'), JSON.stringify(camp, null, 1) + '\n');
+  console.log(`다시 하기(월드 1 → 별 18/12): ${JSON.stringify(camp)}`);
   console.log(`격차 ${m.gap}× · 장인÷버릇② ${m.gapHabit2}× · 첫인상 ${JSON.stringify(m.firstImpression)} · ${((Date.now() - t0) / 1000).toFixed(1)}초`);
   console.log(`한붓 1~5 ${JSON.stringify(m.stroke.s1to5)}`);
   console.log(`한붓 6~10 ${JSON.stringify(m.stroke.s6to10)}`);

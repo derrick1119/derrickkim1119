@@ -95,6 +95,11 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
   await page.goto(url + '&stage=2');
   await page.waitForTimeout(2600);
   await page.screenshot({ path: join(out, '12-guide.png') });
+  // ✏️ M2 S4 판 고르기
+  await page.click('#pick');
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: join(out, '17-picker.png') });
+  await page.keyboard.press('Escape');
   // ✏️ M2 S3 새것 카드: 1-6 시작 카드 한 줄
   await page.goto(url + '&stage=6');
   await page.waitForTimeout(700);
@@ -113,6 +118,13 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
     await page.mouse.up();
     await page.waitForTimeout(1600); // M2 S2: 휙 뒤 손가락 시범
     await page.screenshot({ path: join(out, '14-leaf-demo.png') });
+    // M2 S4 부엉이: 곧게 두 번 더 휙 → 묻는 카드
+    await page.goto(url + '&stage=3&owl=1');
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: join(out, '18-owl.png') });
+    await page.click('[data-owl="1"]');
+    await page.waitForTimeout(2600);
+    await page.screenshot({ path: join(out, '19-owl-guide.png') });
   }
 }
 await browser.close();

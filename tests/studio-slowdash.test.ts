@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/slowdash/core.ts';
-import { ONBOARD, STAGES, STRIKE, TRIAL, measureKit, missOf, slowdash as g, slowdashRandom, slowdashSmart, startStage } from '../studio/slowdash/game.ts';
+import { ONBOARD, STAGES, STRIKE, TRIAL, WORLD_LOCK, measureKit, missOf, useOwl, worldStars, slowdash as g, slowdashRandom, slowdashSmart, startStage } from '../studio/slowdash/game.ts';
 import { BOTS, measure, tapEvery, try3, tryStage } from '../studio/slowdash/funqa.ts';
 import { chainHz, sfx } from '../studio/slowdash/sfx.ts';
 
@@ -299,6 +299,36 @@ describe('느린 시간 닌자 시뮬', () => {
       ONBOARD.moveDemo = true;
     }
     for (const d of STAGES.slice(1)) expect((d.card ?? '').replace(/[^가-힣]/g, '').length, d.key).toBeLessThanOrEqual(12);
+  });
+
+  it('M2 S4 부엉이 귀띔: 같은 판을 세 번 지면 묻고, 쓰면 길을 보여 주고 그 판은 ★★★가 없다 · 거절하면 그 시도엔 다시 안 묻는다 · 월드 잠금 18', () => {
+    const s = g.create(5);
+    startStage(s, K('sword'));
+    let fails = 0;
+    for (let t = 0; t < 60 * 400 && fails < 3; t++) {
+      g.step(s, { tap: false, dir: 0, pointer: null }); // 가만히 서 있으면 진다
+      if (s.phase === 'result' && !s.ok && s.pt === 1) fails++;
+    }
+    for (let t = 0; t < 400 && s.phase !== 'play'; t++) g.step(s, { tap: false, dir: 0, pointer: null });
+    expect(s.failN).toBe(3);
+    expect(s.owlAsk).toBe(true);
+    useOwl(s, true);
+    expect(s.owl && !s.owlAsk).toBe(true);
+    for (let t = 0; t < 120; t++) g.step(s, { tap: false, dir: 0, pointer: null });
+    expect(measureKit.guide(s)).not.toBeNull(); // 부엉이 길
+    // 귀띔을 쓰고 깨면 ★★★ 없음(맞지 않아도)
+    const w = g.create(7);
+    startStage(w, K('bend'));
+    useOwl(w, true);
+    const r = tryStage(BOTS.smartStroke, 101, K('bend'), 300, 101, { owlNow: true });
+    expect(r.ok && !r.s3).toBe(true);
+    const n = g.create(5);
+    startStage(n, K('sword'));
+    n.owlAsk = true;
+    useOwl(n, false);
+    expect(n.owl || n.owlAsk).toBe(false);
+    expect(WORLD_LOCK).toBe(18);
+    expect(worldStars({ a: 3, b: 2 }, ['a', 'b', 'c'])).toBe(5);
   });
 
   it('S005 효과음: 시뮬·봇은 소리를 모른다(헤드리스로 한 판 돌려도 AudioContext 0) · 연쇄 음계는 5음계로 오르고 8번째부터 고정', () => {
