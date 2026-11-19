@@ -406,17 +406,22 @@ export function measure(seeds = 24, only?: string[]) {
     F5sweep = r2(mean(from3.map((r) => (r.human as Row).star)) - Math.max(...tapSweep.map((x) => x.star)));
   }
   // S006 한붓 지표: 한붓 낙차(장인 + 한붓 ★ − 장인 ★) · 사람 한붓 꾹 ★ − 가장 잘하는 탭 ★(3판~) · 휘젓기 ★2 이상(2판~)
-  const stroke = has('smartStroke') && has('smart')
-    ? {
-        drop: r2(mean(stages.map((_, k) => R('smartStroke', k)!.star - R('smart', k)!.star))),
-        bent: r2(mean(stages.map((_, k) => R('smartStroke', k)!.bent))),
-        bentCut: r2(mean(stages.map((_, k) => R('smartStroke', k)!.bentCut).filter((x) => x > 0))),
-        lineCut: r2(mean(stages.map((_, k) => R('smartStroke', k)!.lineCut))),
-        humanStrokeVsTap: tapSweep && has('humanStroke') ? r2(mean(from3.map((r) => (r.humanStroke as Row).star)) - Math.max(...tapSweep.map((x) => x.star))) : null,
-        scribbleStar2p: has('scribble') ? r2(Math.max(...stages.slice(1).map((_, j) => R('scribble', j + 1)!.star2p))) : null,
-        scribbleClear3: has('scribble') ? r2(Math.max(...from3.map((_, j) => R('scribble', j + 2)!.clear))) : null,
-      }
-    : null;
+  // S008: 한붓 요약은 판 범위별(1~5 꺾기 판 · 6~10) — 섞으면 서로 반대로 읽힌다(🧪 S007). 탭 기준은 같은 범위의 humanTap ★(사람 반응 0.5초)
+  const strokeOf = (from: number, to: number) => {
+    if (!has('smartStroke') || !has('smart')) return null;
+    const ks = stages.map((_, k) => k).filter((k) => k >= from && k < to), k3 = ks.filter((k) => k >= 2);
+    return {
+      drop: r2(mean(ks.map((k) => R('smartStroke', k)!.star - R('smart', k)!.star))),
+      bent: r2(mean(ks.map((k) => R('smartStroke', k)!.bent))),
+      humanStrokeVsTap: has('humanStroke') && has('humanTap') && k3.length ? r2(mean(k3.map((k) => R('humanStroke', k)!.star)) - mean(k3.map((k) => R('humanTap', k)!.star))) : null,
+      newbieVsTap: has('newbie') && has('humanTap') && k3.length ? r2(mean(k3.map((k) => R('newbie', k)!.star)) - mean(k3.map((k) => R('humanTap', k)!.star))) : null,
+      scribbleS2: has('scribble') ? r2(Math.max(...ks.map((k) => R('scribble', k)!.s2))) : null,
+      spamClear: has('spam') ? r2(Math.max(...k3.map((k) => R('spam', k)!.clear))) : null,
+      newbieClear: has('newbie') ? ks.map((k) => R('newbie', k)!.clear) : null,
+      humanClear: has('human') ? ks.map((k) => R('human', k)!.clear) : null,
+    };
+  };
+  const stroke = { s1to5: strokeOf(0, 5), s6to10: strokeOf(5, STAGES.length) };
   return {
     at: new Date().toISOString().slice(0, 10),
     stroke,
@@ -449,7 +454,8 @@ if (process.argv[1]?.endsWith('funqa.ts')) {
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'funqa.json'), JSON.stringify(m, null, 1) + '\n');
   console.log(`격차 ${m.gap}× · 장인÷버릇② ${m.gapHabit2}× · 첫인상 ${JSON.stringify(m.firstImpression)} · ${((Date.now() - t0) / 1000).toFixed(1)}초`);
-  console.log(`한붓 ${JSON.stringify(m.stroke)}`);
+  console.log(`한붓 1~5 ${JSON.stringify(m.stroke.s1to5)}`);
+  console.log(`한붓 6~10 ${JSON.stringify(m.stroke.s6to10)}`);
   console.log(`F5 스윕(사람 꾹 ★ − 가장 잘하는 탭 ★, 3판~) ${m.F5sweep} · ${JSON.stringify(m.tapSweep)}`);
   console.log(`F5 느린 시간 ${JSON.stringify(m.F5)} · F6 연타 ${JSON.stringify(m.F6)}`);
   console.log(`공짜 별 ${m.freeStars.length}: ${m.freeStars.join(" · ")}`);

@@ -1065,6 +1065,8 @@ export const slowdashSmart: Bot<DashState> = {
     const here = danger(s, s.nx, s.ny, none, none), L = Math.max(HOP, reachOf(s.g));
     const live = s.foes.filter((f) => f.st !== ENTER), d = STAGES[s.stage];
     if (!live.length && here > 40) return NO;
+    // ✏️ S008(🧪 S007 1-1 탭 봇 300초 멈춤): 적이 하나만 남으면 줄 세울 일이 없다 — 옮겨 서기 굴레 대신 바로 벤다
+    if (live.length === 1 && here > 40) return at(live[0].x, live[0].y);
     const wm = waitMem.get(s);
     farm = goal(d, 'arrow') && s.arrows < 3 && (!wm || s.t - wm.since < 900);
     let best: Choice | null = null, repo: Choice | null = null, kill: Choice | null = null;
