@@ -429,7 +429,9 @@ export const BOTS: Record<string, Bot<DashState>> = {
 export interface Try {
   ok: boolean; stall: boolean; leafCombo: boolean; bentDodge: number; smokeT: number; bambooUse: boolean; tapFall: number;
   /** M2 S9(🧪 S8 ⑤): 판에 적이 0마리인 틱(빈 기다림) · 툭 수 · 첫 무리에서 쓰러짐으로 벤 수 · 부엉이를 쓴 판 */
-  idleT: number; toks: number; fall1: number; owled: boolean; stars: number; s2: boolean; s3: boolean; sec: number; best: number; hits: number; dashes: number; whiff: number;
+  idleT: number; toks: number; fall1: number; owled: boolean;
+  /** 오너 피드백: 한 획 싹쓸이(한 돌진에 셋 넘게 베고 화면의 적이 0) 횟수 */
+  sweeps: number; stars: number; s2: boolean; s3: boolean; sec: number; best: number; hits: number; dashes: number; whiff: number;
   holdAvg: number; downPct: number; empty: number; cancels: number; bent: number; bentCut: number; lineCut: number; s: DashState;
 }
 
@@ -452,7 +454,7 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
   const rng = mulberry32(hand ^ 0x9e3779b9), t0 = s.t, d0 = s.dashes, emptyG = K.GBASE + K.GPER * K.HOP;
   let whiff = 0, down = 0, holds = 0, holdT = 0, cur = 0, empty = 0, dn = s.dashes, cancels = 0, bent = 0, bentCut = 0, lineCut = 0;
   // ✏️ S010 300초 측정 고침: 60초 동안 아무것도 못 베고 웨이브도 그대로면 '막힘' — 사람이면 그만둔다(실패로 셈)
-  let prog = s.t, mark = '', leafCombo = false, bentDodge = 0, smokeT = 0, bambooUse = false, tapFall = 0, idleT = 0, toks = 0, fall1 = 0, owled = false;
+  let prog = s.t, mark = '', leafCombo = false, bentDodge = 0, smokeT = 0, bambooUse = false, tapFall = 0, idleT = 0, toks = 0, fall1 = 0, owled = false, sweeps = 0;
   while (s.phase !== 'result' && s.t - t0 < maxSec * 60) {
     if (s.smokes.length && s.smokes.some((m) => Math.hypot(s.nx - m.x, s.ny - m.y) < m.r)) smokeT++; // M2 S5 연기에 숨은 틱
     if (!s.foes.length) idleT++;
@@ -467,7 +469,7 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
     else if (was) (holds++, (holdT += cur), (cur = 0));
     if (s.g < emptyG) empty++;
     if (s.dashes > dn) for (const e of s.events) if (e.t === s.t && e.kind === 'fall') ((e.n ?? 0) >= 1 && (bambooUse = true), s.stroke.length <= 1 && tapFall++, s.wave === 1 && (fall1 += e.n ?? 0));
-    if (s.dashes > dn) for (const e of s.events) if (e.t === s.t && e.kind === 'tok') toks++; // 🎋 쓰러진 줄이 벤 판 · 곧은 획(점 하나)으로 쓰러짐
+    if (s.dashes > dn) for (const e of s.events) if (e.t === s.t && (e.kind === 'tok' || e.kind === 'sweep')) e.kind === 'tok' ? toks++ : sweeps++; // 🎋 쓰러진 줄이 벤 판 · 곧은 획(점 하나)으로 쓰러짐
     if (s.dashes > dn && s.combo.n >= 2 && s.cuts.slice(-s.combo.n).some((c) => c.k === 'leaf' || c.k === 'bell')) leafCombo = true; // 🍃·🔔 새것을 다른 적과 한 획에
     if (s.dashes > dn && turned([{ x: px, y: py }, ...s.stroke, { x: s.nx, y: s.ny }]) && s.events.some((e) => e.t === s.t && e.kind === 'dodge')) bentDodge++; // 🍃 꺾었는데 휙(모든 토막 — 🧪 S2: 꺾은 뒤만 세면 규칙상 거의 0)
     if (s.dashes > dn) ((dn = s.dashes), s.combo.n === 0 && whiff++, turned([{ x: px, y: py }, ...s.stroke, { x: s.nx, y: s.ny }]) ? (bent++, (bentCut += s.combo.n)) : (lineCut += s.combo.n));
@@ -484,6 +486,7 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
     toks,
     fall1,
     owled,
+    sweeps,
     bentDodge: bent ? bentDodge / bent : 0,
     ok, stars: ok ? s.got : 0, s2: ok && s.starOk[1], s3: ok && s.starOk[2], sec: (s.t - t0) / 60, best: s.best, hits: s.hits, dashes: n,
     whiff: n ? whiff / n : 0, holdAvg: holds ? holdT / holds / 60 : 0, downPct: down / T, empty: empty / T, cancels, bent: n ? bent / n : 0, bentCut: bent ? bentCut / bent : 0, lineCut: n - bent ? lineCut / (n - bent) : 0, s,
@@ -514,7 +517,7 @@ const median = (a: number[]) => {
   const b = [...a].sort((x, y) => x - y);
   return b.length ? (b.length % 2 ? b[(b.length - 1) / 2] : (b[b.length / 2 - 1] + b[b.length / 2]) / 2) : 0;
 };
-type Row = { clear: number; star: number; star2p: number; star3: number; cancels: number; bent: number; bentCut: number; lineCut: number; s2: number; s3: number; stall: number; timeout: number; sec: number; secAll?: number; first?: number; best: number; hit: number; dashes: number; whiff: number; holdAvg: number; downPct: number; empty: number; tries?: number };
+type Row = { sweeps?: number; clear: number; star: number; star2p: number; star3: number; cancels: number; bent: number; bentCut: number; lineCut: number; s2: number; s3: number; stall: number; timeout: number; sec: number; secAll?: number; first?: number; best: number; hit: number; dashes: number; whiff: number; holdAvg: number; downPct: number; empty: number; tries?: number };
 const sum = (t: (Try & { tries?: number; secAll?: number; first?: boolean })[]): Row => ({
   ...(t[0]?.secAll !== undefined ? { secAll: r2(median(t.map((x) => x.secAll!))), first: r2(mean(t.map((x) => +x.first!))) } : {}),
   clear: r2(mean(t.map((x) => +x.ok))),
@@ -537,6 +540,7 @@ const sum = (t: (Try & { tries?: number; secAll?: number; first?: boolean })[]):
   holdAvg: r2(mean(t.filter((x) => x.holdAvg > 0).map((x) => x.holdAvg))),
   downPct: r2(mean(t.map((x) => x.downPct))),
   empty: r2(mean(t.map((x) => x.empty))),
+  sweeps: r2(mean(t.map((x) => x.sweeps))), // 오너 피드백: 판마다 한 획 싹쓸이 횟수
   ...(t[0]?.tries !== undefined ? { tries: r2(mean(t.map((x) => x.tries ?? 1))) } : {}),
 });
 

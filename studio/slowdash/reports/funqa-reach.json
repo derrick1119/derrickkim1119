@@ -1,29 +1,30 @@
 {
  "newbieLow": {
-  "reachAll": 0.38,
-  "reachW1": 0.75,
+  "reachAll": 0.46,
+  "reachW1": 0.79,
   "stuckAt": {
    "shield": 1,
    "barrel": 1,
-   "mix": 3,
+   "mix": 2,
    "shuri": 1,
    "leafShuri": 1,
-   "leafShield": 5,
-   "jars": 3,
-   "end": 9
+   "leafShield": 4,
+   "jars": 2,
+   "moon": 1,
+   "end": 11
   }
  },
  "newbieNever": {
   "reachAll": 0,
-  "reachW1": 0.58,
+  "reachW1": 0.63,
   "stuckAt": {
    "shield": 1,
-   "barrel": 1,
-   "mix": 6,
+   "mix": 5,
    "shuri": 2,
+   "boss": 1,
    "leaf": 3,
    "leafWait": 5,
-   "leafShuri": 6
+   "leafShuri": 7
   }
  },
  "humanStroke": {
