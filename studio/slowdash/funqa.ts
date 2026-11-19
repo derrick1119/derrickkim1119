@@ -95,7 +95,7 @@ export function detour(s: DashState, p: Pt): Pt[] | null {
 }
 /** 사람 반응 봇: pick이 고른 자리(게임 좌표 x, y)를 react초 늦게·err만큼 빗나가게. slow면 꾹 누른 채 반응한다 */
 export function human(name: string, react: number, err: number, slow: boolean, pick?: Pick, stroke: boolean | 'naive' = false, fixP = 1, follow = { guide: 0.5, demo: 0.5 }): Bot<DashState> {
-  const mem = new WeakMap<object, { st: 'idle' | 'wait' | 'hold'; until: number; x: number; y: number; ox: number; oy: number; bend: Pt | null; half: number; seq: Pt[]; fix: boolean }>();
+  const mem = new WeakMap<object, { st: 'idle' | 'wait' | 'hold'; until: number; x: number; y: number; ox: number; oy: number; bend: Pt | null; half: number; seq: Pt[]; fix: boolean; fg?: boolean; fd?: boolean }>();
   const choose: Pick = pick ?? ((s, rng) => { const p = smartAim(s, rng); return p && { x: p.x, y: p.y * K.A }; });
   const RT = Math.round(react * 60), REFLEX = 9, COOL = 15;
   return {
@@ -125,7 +125,15 @@ export function human(name: string, react: number, err: number, slow: boolean, p
             }
             if (dt) {
               const n0 = { x: s.nx, y: s.ny / K.A * K.A }, lerp = (a: Pt, b: Pt, k: number) => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k });
-              m.seq = [...Array.from({ length: 21 }, () => n0), ...[0.25, 0.5, 0.75, 1].map((k) => lerp(n0, dt[0], k)), ...[0.25, 0.5, 0.75, 1].map((k) => lerp(dt[0], dt[1], k)), dt[1]];
+              m.seq = [...Array.from({ length: 13 }, () => n0), ...[0.25, 0.5, 0.75, 1].map((k) => lerp(n0, dt[0], k)), ...[0.25, 0.5, 0.75, 1].map((k) => lerp(dt[0], dt[1], k)), dt[1]];
+              return press(n0.x, n0.y);
+            }
+          } else if (stroke === true && K.path(s, [...s.stroke, end]).dodges.length) {
+            // ✏️ M2 S2(🧪): 미리 보기에 '휙! 꺾어요'가 뜨면 빨간 덤불 때처럼 지우고 잎 옆에서 꺾어 다시 그린다
+            const lp = leafPlan(s);
+            if (lp) {
+              const n0 = { x: s.nx, y: s.ny }, lerp = (a: Pt, b: Pt, k: number) => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k });
+              m.seq = [...Array.from({ length: 13 }, () => n0), ...[0.25, 0.5, 0.75, 1].map((k) => lerp(n0, lp.pts[0], k)), ...[0.25, 0.5, 0.75, 1].map((k) => lerp(lp.pts[0], lp.pts[1], k)), lp.pts[1]];
               return press(n0.x, n0.y);
             }
           }
@@ -153,8 +161,11 @@ export function human(name: string, react: number, err: number, slow: boolean, p
           if (stroke === 'naive') {
             // ✏️ S007(📋): 처음 하는 사람은 30%쯤 아무 적 둘을 이어 꺾어 본다(계획 없이)
             const f = live(s);
-            const gd = K.guide(s), fp = K.demo(s) ? follow.demo : follow.guide; // M2 S1~S2: 화면의 길잡이(점선)·손가락 시범을 보고 follow 비율만큼 따라 그린다
-            if (gd && fp > 0 && rng() < fp) {
+            // M2 S1~S2: 화면의 길잡이(점선)·손가락 시범 — 따라 하는 사람인지는 사람(판)마다 처음 볼 때 한 번 정하고(🧪: 획마다 굴리면 결국 다 따라 함), 따라 하는 사람은 누를 때 반쯤 따라 그린다
+            const gd = K.guide(s), dm = gd ? K.demo(s) : false;
+            if (gd && dm && m.fd === undefined) m.fd = follow.demo > 0 && rng() < follow.demo;
+            if (gd && !dm && m.fg === undefined) m.fg = follow.guide > 0 && rng() < follow.guide;
+            if (gd && (dm ? m.fd || m.fg : m.fg) && rng() < 0.5) {
               m.bend = gd[0];
               (m.x = gd[1].x), (m.y = gd[1].y);
               m.until = s.t + RT + 9;
@@ -343,9 +354,9 @@ export const BOTS: Record<string, Bot<DashState>> = {
   humanStroke: human('사람 캐주얼 + 한붓', 0.5, 0.03, true, undefined, true),
   humanStroke30: human('사람 한붓 · 빨강 보고 되돌리기 30%', 0.5, 0.03, true, undefined, true, 0.3),
   scribble: slowdashScribble,
-  newbie: human('처음 하는 사람(길잡이를 반쯤 따라 그림)', 0.7, 0.05, true, newbiePick, 'naive'),
+  newbie: human('처음 하는 사람(길잡이를 반쯤 따라 그림)', 0.7, 0.05, true, newbiePick, 'naive', 1, { guide: 1, demo: 1 }),
   // ✏️ M2 S2(🧪 낙관 위험 ㉛): 처음 하는 사람을 나눠 잰다 — 점선은 안 보고 손가락 시범만 가끔(25%) 따라 함 · 끝까지 안 따라 함(바닥값)
-  newbieLow: human('처음 하는 사람(시범만 가끔)', 0.7, 0.05, true, newbiePick, 'naive', 1, { guide: 0, demo: 0.25 }),
+  newbieLow: human('처음 하는 사람(넷 중 하나만 시범을 따라 함)', 0.7, 0.05, true, newbiePick, 'naive', 1, { guide: 0, demo: 0.25 }),
   newbieNever: human('처음 하는 사람(안 따라 함)', 0.7, 0.05, true, newbiePick, 'naive', 1, { guide: 0, demo: 0 }),
 };
 
@@ -383,7 +394,7 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
     else if (was) (holds++, (holdT += cur), (cur = 0));
     if (s.g < emptyG) empty++;
     if (s.dashes > dn && s.combo.n >= 2 && s.cuts.slice(-s.combo.n).some((c) => c.k === 'leaf')) leafCombo = true; // 🍃 잎을 다른 적과 한 획에
-    if (s.dashes > dn && turned([{ x: px, y: py }, ...s.stroke, { x: s.nx, y: s.ny }]) && s.events.some((e) => e.t === s.t && e.kind === 'dodge' && (e.n ?? 0) > 0)) bentDodge++; // 🍃 꺾었는데 휙(꺾은 뒤 토막에서 — 곧은 앞 토막이 스친 것은 빼고)
+    if (s.dashes > dn && turned([{ x: px, y: py }, ...s.stroke, { x: s.nx, y: s.ny }]) && s.events.some((e) => e.t === s.t && e.kind === 'dodge')) bentDodge++; // 🍃 꺾었는데 휙(모든 토막 — 🧪 S2: 꺾은 뒤만 세면 규칙상 거의 0)
     if (s.dashes > dn) ((dn = s.dashes), s.combo.n === 0 && whiff++, turned([{ x: px, y: py }, ...s.stroke, { x: s.nx, y: s.ny }]) ? (bent++, (bentCut += s.combo.n)) : (lineCut += s.combo.n));
     for (let i = s.events.length - 1; i >= 0 && s.events[i].t === s.t; i--) if (s.events[i].kind === 'cancel') cancels++; // 🧪 S001: 조용한 취소(방패 바로 앞 길이 0 등)
   }
@@ -398,9 +409,14 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
 }
 /** 처음 하는 사람: 같은 판을 3번까지 */
 export function try3(bot: Bot<DashState>, seed: number, k: number) {
-  let last: Try | null = null;
-  for (let a = 0; a < 3; a++) if ((last = tryStage(bot, seed, k, 300, seed + a * 977)).ok) return { ...last, tries: a + 1 };
-  return { ...last!, tries: 3 };
+  let last: Try | null = null, all = 0, first = false;
+  for (let a = 0; a < 3; a++) {
+    last = tryStage(bot, seed, k, 300, seed + a * 977);
+    all += last.sec;
+    if (a === 0) first = last.ok;
+    if (last.ok) return { ...last, tries: a + 1, secAll: all, first };
+  }
+  return { ...last!, tries: 3, secAll: all, first }; // M2 S2(🧪): 3번 합친 시간 · 첫 도전 클리어
 }
 
 /** 처음 10초(첫인상 — 공장 기준 17 · FUN F1·F2) */
@@ -416,8 +432,9 @@ const median = (a: number[]) => {
   const b = [...a].sort((x, y) => x - y);
   return b.length ? (b.length % 2 ? b[(b.length - 1) / 2] : (b[b.length / 2 - 1] + b[b.length / 2]) / 2) : 0;
 };
-type Row = { clear: number; star: number; star2p: number; star3: number; cancels: number; bent: number; bentCut: number; lineCut: number; s2: number; s3: number; stall: number; timeout: number; sec: number; best: number; hit: number; dashes: number; whiff: number; holdAvg: number; downPct: number; empty: number; tries?: number };
-const sum = (t: (Try & { tries?: number })[]): Row => ({
+type Row = { clear: number; star: number; star2p: number; star3: number; cancels: number; bent: number; bentCut: number; lineCut: number; s2: number; s3: number; stall: number; timeout: number; sec: number; secAll?: number; first?: number; best: number; hit: number; dashes: number; whiff: number; holdAvg: number; downPct: number; empty: number; tries?: number };
+const sum = (t: (Try & { tries?: number; secAll?: number; first?: boolean })[]): Row => ({
+  ...(t[0]?.secAll !== undefined ? { secAll: r2(median(t.map((x) => x.secAll!))), first: r2(mean(t.map((x) => +x.first!))) } : {}),
   clear: r2(mean(t.map((x) => +x.ok))),
   star: r2(mean(t.map((x) => x.stars))),
   star2p: r2(mean(t.map((x) => +(x.stars >= 2)))),
@@ -579,7 +596,7 @@ export function measureTrial(seeds = 24) {
       STAGES.pop();
     }
     const R = (n: string) => row[n] as Row & { leafCombo?: number };
-    row.summary = { use: R('smartStroke').leafCombo, drop: r2(R('smartStroke').star - R('smartStrokeSolo').star), newbieClear: R('newbie').clear, newbieLowClear: R('newbieLow').clear, newbieNeverClear: R('newbieNever').clear, newbieMix: r2(0.2 * R('newbie').clear + 0.8 * R('newbieLow').clear), newbieLowSec: R('newbieLow').sec, humanStrokeClear: R('humanStroke').clear, bentDodge: (R('humanStroke') as Row & { bentDodge?: number }).bentDodge, spamClear: R('spam').clear, scribbleClear: R('scribble').clear, humanStrokeSec: R('humanStroke').sec, straightHumanClear: R('humanTap').clear };
+    row.summary = { use: R('smartStroke').leafCombo, drop: r2(R('smartStroke').star - R('smartStrokeSolo').star), newbieClear: R('newbie').clear, newbieLowClear: R('newbieLow').clear, newbieNeverClear: R('newbieNever').clear, newbieLowFirst: R('newbieLow').first, newbieLowSecAll: R('newbieLow').secAll, newbieNeverFirst: R('newbieNever').first, newbieNeverSecAll: R('newbieNever').secAll, humanStrokeClear: R('humanStroke').clear, bentDodge: (R('humanStroke') as Row & { bentDodge?: number }).bentDodge, spamClear: R('spam').clear, scribbleClear: R('scribble').clear, humanStrokeSec: R('humanStroke').sec, straightHumanClear: R('humanTap').clear };
     out.push(row);
   }
   return out;

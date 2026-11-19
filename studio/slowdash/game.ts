@@ -363,7 +363,7 @@ function trace(s: DashState, px: number, py: number, tx: number, ty: number, max
 }
 
 /** 한붓 획: 닌자에서 점들을 차례로 이어 maxLen까지 돌진 선을 이어 붙인다(같은 적은 한 번만 · 방패 앞에서 튕기면 거기서 멈춤) */
-const STROKE_STEP = 0.035, STROKE_MAX = 40, STROKE_LEN = 1.6, ERASE_R = 0.045, ERASE_DWELL = 20; // 오너 질문 뒤: 점 한도 24 → 40(큰 원)
+const STROKE_STEP = 0.035, STROKE_MAX = 40, STROKE_LEN = 1.6, ERASE_R = 0.045, ERASE_DWELL = 12; // M2 S2: ⅓초 → 0.2초(🧪 1-6·1-9) // 오너 질문 뒤: 점 한도 24 → 40(큰 원)
 /** ✏️ S009 꺾는 점 너그럽게(📋): 꺾인 한붓 획은 칼날 폭이 BEND_W배 — 손가락으로 그린 길은 적 위를 정확히 지나기 어렵다 */
 export const BEND = { w: 1.8 };
 /** 한 줄은 DMAX(.85)까지, 꺾인 한붓 획은 먹이 되는 만큼 STROKE_LEN까지(먹 값은 길이대로) */
