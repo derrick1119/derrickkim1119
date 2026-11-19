@@ -7,9 +7,10 @@ import { juice, peek } from './juice.ts';
 import { sfx } from './sfx.ts';
 import { LOCK, STAGES, lockedW, setAspect, setCue, setLearn, startStage, worldOf, worldStars, screwshop as g, type ShopState } from './game.ts';
 
+const mem = new Map<string, number>(); // ✏️ S068(🧪 S068 🔴①): 저장이 막혀도 이 세션 별 · 배움이 판을 바꿔도 남게(새 판은 s를 새로 만든다)
 const store = {
-  get(k: string) { try { return Number(localStorage.getItem('screwshop:' + k) ?? 0); } catch { return 0; } },
-  set(k: string, v: number) { try { localStorage.setItem('screwshop:' + k, String(v)); } catch { /* 저장 불가여도 동작 */ } },
+  get(k: string) { try { return Number(localStorage.getItem('screwshop:' + k) ?? 0); } catch { return mem.get(k) ?? 0; } },
+  set(k: string, v: number) { mem.set(k, v); try { localStorage.setItem('screwshop:' + k, String(v)); } catch { /* 저장 불가여도 동작 */ } },
 };
 
 const root = document.getElementById('game')!;
@@ -241,7 +242,7 @@ function loop(now: number) {
     const st0 = s.stage;
     g.step(s, input);
     if (s.learn !== learnSaved) store.set('learn', (learnSaved = s.learn));
-    if (s.menu) (s.menu = false), keepStars(), showPick(worldOf(s.stage)); // 도구 줄 🗺️ 판(✏️ S013) · ✏️ S068: 월드 끝 🔒 → 이 월드 판 고르기(별을 먼저 저장)
+    if (s.menu) (s.menu = false), keepStars(), showPick(s.menuW || worldOf(s.stage)), (s.menuW = 0); // 도구 줄 🗺️ 판(✏️ S013) · ✏️ S068: 월드 끝 🔒 → 이 월드 판 고르기(별을 먼저 저장)
     if (s.stage !== st0) keepStars();
     if (g.over(s)) return end();
   }

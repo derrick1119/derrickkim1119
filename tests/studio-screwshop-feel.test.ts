@@ -287,3 +287,31 @@ describe('결과 별은 조건 자리에(✏️ S068 · M3″ S4 · 🧪 S067 �
     expect(src('game.ts')).toContain('S.shot >= d.H ? (S.peak > G ? 0 : true) : dead3(d, s.L, S) ? false : null');
   });
 });
+
+describe('잠금 · 별 숫자 맞추기(✏️ S068 · 🧪 S068 🔴 2 · 🟡 4)', () => {
+  it('이 판으로 15번째 별을 따면 \'🔓 ▶\' — ★3이어도 안 넘어가고 누르면 열린 월드(2) 판 고르기 · 시뮬(저장 별 없음)에선 늘 0', () => {
+    const W1 = STAGES.map((d, k) => (d.slot[0] === '1' ? k : -1)).filter((k) => k >= 0), k = W1[1], A = 1.45, up = { tap: false, dir: 0 as const, pointer: null };
+    const s = screwshop.create(7), rng = mulberry32(3);
+    startStage(s, k);
+    s.saved = STAGES.map((_, j) => (W1.includes(j) && j !== k ? (j === W1[2] ? 0 : 2) : 0)); // 1-2 · 1-3 빼고 8판 × 2 = 16 → 1-2를 깨면 ≥ 17 · 1-3 0
+    s.saved[W1[3]] = 0; s.saved[W1[4]] = 0; // 12 → 1-2 ★3이면 15
+    expect(lockedW(s, 2), '시작: 잠김').toBe(true);
+    for (let i = 0; i < 600 * 60 && s.phase !== 'result'; i++) screwshop.step(s, screwshopSmart.act(s, rng));
+    expect([s.got, s.opened], '1-2 ★3 → 15 → 열림').toEqual([3, 2]);
+    for (let i = 0; i < 400; i++) screwshop.step(s, up);
+    expect(s.stage, '자동으로 안 넘어감').toBe(k);
+    screwshop.step(s, { tap: false, dir: 0, pointer: { x: 0.7, y: RES_BY / A } }), screwshop.step(s, up);
+    expect([!!s.menu, s.menuW], '🔓 → 월드 2 판 고르기').toEqual([true, 2]);
+    expect(tryStage(screwshopSmart, 1000, k).s.opened, '시뮬').toBe(0);
+  });
+  it("저장이 막혀도 세션 별 · 배움이 판을 바꿔도 남는다(메모리 받침) · 위 칸 ★ = 이 월드 별 · 별 2개 이상이면 🔒이 금 · ★☆★ 셋째는 보통 별 · 1-3 첫 판 ★2 칩 금테", () => {
+    const m = src('main.ts'), g = src('game.ts');
+    expect(m).toContain('catch { return mem.get(k) ?? 0; }');
+    expect(m).toContain('set(k: string, v: number) { mem.set(k, v);');
+    expect(g).toContain('hud = worldStars(s, worldOf(s.stage)), stt = `★ ${hud}');
+    expect(g).not.toContain('`★ ${s.stars}');
+    expect(g).toContain("lg = nl && s.got > 1");
+    expect(g).toContain("k3 = k === 2 && s.got > 2, big = k3 ? 1.15 : 1");
+    expect(g).toContain("(n === 2 && gapOf(d) !== GAP && !s.bestSt[s.stage] && !s.saved?.[s.stage])");
+  });
+});

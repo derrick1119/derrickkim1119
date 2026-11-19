@@ -683,7 +683,7 @@ export interface ShopState {
   /** 판별 최고 별·점수 (↺ 다시 해도 합계는 최고만) · ★3 못 땄을 때 결과 화면에서 기다리는 중 */
   bestSt: number[]; bestPts: number[]; retries: number;
   /** 💡 밤톨의 귀띔(GDD §11 · ✏️ S012): 이 판에서 진 횟수 · 귀띔을 켰나(켜면 그 판 ★ 최대 2) · 손가락 캐시 */
-  sf: number; hint: boolean; /** ✏️ S068(M3″ L1): 저장된 판별 최고 별(main.ts가 넣음 · 없으면 잠금 끔 — 시뮬 · ?stage) */ saved?: number[]; /** 도구 줄 🗺️ 판 → main.ts가 판 고르기를 연다(✏️ S013) */ menu?: boolean; hintK?: string; hintM?: number; /** 💡 켠 때의 톡 수(✏️ S015) — 그 뒤 톡 0이면 도구 줄로 끌 수 있다 */ hintN?: number;
+  sf: number; hint: boolean; /** ✏️ S068(M3″ L1): 저장된 판별 최고 별(main.ts가 넣음 · 없으면 잠금 끔 — 시뮬 · ?stage) */ saved?: number[]; /** ✏️ S068(🧪 S068 🟡①): 이 판으로 문턱을 넘어 연 월드(0 = 없음) · 판 고르기를 열 월드 */ opened?: number; menuW?: number; /** 도구 줄 🗺️ 판 → main.ts가 판 고르기를 연다(✏️ S013) */ menu?: boolean; hintK?: string; hintM?: number; /** 💡 켠 때의 톡 수(✏️ S015) — 그 뒤 톡 0이면 도구 줄로 끌 수 있다 */ hintN?: number;
   /** 실패 되짚기(📐 S003): 톡마다 그 전 상태·결과 · 진 이유 */
   hist: Hist[]; blame: Why | null;
   seen: Set<string>; tips: Set<string>; /** ✏️ S061: 이 판에 띄운 소개 띠 수(≤ 2) */ bandN: number; events: Ev[]; news: { text: string; t: number } | null; newsQ: string[]; startT: number; clearT: number;
@@ -772,6 +772,7 @@ const peekX = (L: Level, j: number) => (L.boxes === 1 ? 0.64 + j * 0.15 : 0.73 +
 
 function newStage(s: ShopState) {
   const d = STAGES[s.stage];
+  s.opened = 0;
   s.L = buildLevel(s.seed, s.stage);
   s.S = newSim(s.L);
   const L = s.L;
@@ -986,7 +987,9 @@ function finish(s: ShopState) {
     s.got = st;
     if (s.teach && (s.taught || (s.teach === 2 ? S.peak <= gapOf(d) : st === 3))) s.learn |= KB[starKinds()[s.teach - 2]]; // ✏️ S024: 깬 판에서 짚기를 봤거나 그 별을 땄으면 배움(🧪 S024 ⑨)
     // ↺ 다시 해도 판별 최고만 합계에 (S002)
+    const w = worldOf(s.stage), was = lockedW(s, w + 1);
     if (st > (s.bestSt[s.stage] ?? 0)) (s.stars += st - (s.bestSt[s.stage] ?? 0)), (s.bestSt[s.stage] = st);
+    s.opened = was && !lockedW(s, w + 1) ? w + 1 : 0; // ✏️ S068(🧪 S068 🟡①): 이 판으로 다음 월드가 열림 → '🔓 ▶'
     if (pp > (s.bestPts[s.stage] ?? 0)) (s.pts += pp - (s.bestPts[s.stage] ?? 0)), (s.bestPts[s.stage] = pp);
     s.clearT = s.t;
     if (s.stage === STAGES.length - 1 && !s.won) (s.won = true), (s.pts += WIN_PTS);
@@ -1313,12 +1316,12 @@ export const screwshop: GameDef<ShopState> = {
         if (release && s.pt < CARD) return void (s.pt = CARD); // 🎨 §5-7: 리빌 중 톡 = 끝 자세 + 카드
       }
       // ★3을 못 땄으면 자동으로 안 넘어간다(🧪 S001: ★1도 만세 + 자동 다음 판이라 놓친 걸 못 느낌) — 왼쪽 ↺ 다시 · 오른쪽 다음
-      if (s.ok && (s.got < 3 || nextLocked(s))) { // ✏️ S068(L1): 다음 월드가 잠겼으면 ★3이어도 자동으로 안 넘어간다
+      if (s.ok && (s.got < 3 || nextLocked(s) || s.opened)) { // ✏️ S068(L1): 다음 월드가 잠겼거나 이 판으로 열렸으면 ★3이어도 자동으로 안 넘어간다
         const yy = s.ay * A, inBtn = release && s.pt > CARD + 40 && abs(yy - RES_BY) < 0.045;
         if (inBtn && s.ax > 0.1 && s.ax < 0.48) s.retries++, newStage(s);
         else if (inBtn && s.ax > 0.52 && s.ax < 0.9) {
           if (s.won) s.dead = true;
-          else if (nextLocked(s)) s.menu = true; // 🔒 → 이 월드 판 고르기(앞 판을 다시 해 별을 채운다)
+          else if (s.opened || nextLocked(s)) (s.menu = true), (s.menuW = s.opened || worldOf(s.stage)); // 🔒 → 이 월드 판 고르기(앞 판을 다시 해 별을 채운다) · 🔓 → 열린 월드 판 고르기
           else s.stage++, (s.sf = 0), (s.hint = false), newStage(s);
         }
         return;
@@ -3648,7 +3651,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
   ctx.textAlign = 'right';
   ctx.fillStyle = '#ffd166';
   // ✏️ S027 🧪 🔴①(오너 '따도 안 기쁘다'): 판 중에 딴 별은 위 ★ 칸에도 붙는다 — '★ 0 +★3'(날아온 별이 앉는 순간 통통)
-  const gotNow = s.phase === 'play' ? `${s.sg & 4 ? '★2' : ''}${s.sg & 8 && !dead3(STAGES[s.stage], s.L, s.S) ? '★3' : ''}` : '', stt = `★ ${s.stars}${gotNow ? ` +${gotNow}` : ''}`;
+  const gotNow = s.phase === 'play' ? `${s.sg & 4 ? '★2' : ''}${s.sg & 8 && !dead3(STAGES[s.stage], s.L, s.S) ? '★3' : ''}` : '', hud = worldStars(s, worldOf(s.stage)), stt = `★ ${hud}${gotNow ? ` +${gotNow}` : ''}`; // ✏️ S068(🧪 S068 🔴②): 위 칸 ★ = 이 월드 별(판 고르기 '★ n' · 🔒 n/15★와 같은 수)
   if (gotNow) {
     const land = s.starFx ? t - s.starFx.t0 - 40 : 99, pop = land >= 0 && land < 16 ? 1 + 0.35 * sin((land / 16) * Math.PI) : 1, gw0 = mw(ctx, ` +${gotNow}`);
     ctx.save();
@@ -3660,7 +3663,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     ctx.restore();
     ctx.textAlign = 'right';
     ctx.fillStyle = '#ffd166';
-    ftx(ctx, `★ ${s.stars}`, w - R(0.03) - gw0, hb * 0.52);
+    ftx(ctx, `★ ${hud}`, w - R(0.03) - gw0, hb * 0.52);
   } else ftx(ctx, stt, w - R(0.03), hb * 0.52);
   ctx.fillStyle = th.hot;
   // ↺ 지금 다시 (하트 대신, S003): 판 중 언제든 같은 판을 처음부터 — 한 방 칩이 ✗면 반짝 · 도구 줄이 있으면 그쪽으로(🎨 ART §6 · ✏️ S014)
@@ -3713,14 +3716,14 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
     for (let k = 0; k < 3; k++) { // ✏️ S056(🧪 S055 🟡③): 별 간격 7 → 11틱 · 낙하 4 → 6틱 · 셋째 앞에 4틱 숨 — '하나, 둘, 셋!'
       const ag = age - STAR_AT[k], got = gs[k], sx = w / 2 + (k - 1) * R(0.11), sy = Y(T + 0.15);
       if (ag < 0) continue;
-      const fall = ag < 6 ? (1 - (ag / 6) ** 2) * R(0.14) : 0, sc = ag < 6 ? 1.5 : ag < 8 ? 0.9 : 1, big = k === 2 && got ? 1.15 : 1;
+      const fall = ag < 6 ? (1 - (ag / 6) ** 2) * R(0.14) : 0, sc = ag < 6 ? 1.5 : ag < 8 ? 0.9 : 1, k3 = k === 2 && s.got > 2, big = k3 ? 1.15 : 1; // ✏️ S068(🧪 S068 🟡③): ★☆★의 셋째는 보통 별(★3 축하는 별 3개일 때만)
       font(0.08 * sc * big, 900);
       ctx.fillStyle = got ? '#ffd166' : 'rgba(255,246,224,.3)';
       ftx(ctx, got ? '★' : '☆', sx, sy - fall);
       if (ag >= 6 && (fx.memo['star' + k] ?? -1) < s.clearT) {
         fx.memo['star' + k] = s.clearT;
-        if (got) fx.burst(sx, sy - R(0.02), '#ffd166', k === 2 ? 16 : 8, 3.2, 2.2), fx.burst(sx, sy - R(0.02), '#ffffff', 4, 3, 1.6), fx.ring(sx, sy - R(0.02), '#ffd166', R(k === 2 ? 0.12 : 0.07), 3), fx.jolt(0, 1, k === 2 ? 3 : 2);
-        cue('star', got ? k : -1);
+        if (got) fx.burst(sx, sy - R(0.02), '#ffd166', k3 ? 16 : 8, 3.2, 2.2), fx.burst(sx, sy - R(0.02), '#ffffff', 4, 3, 1.6), fx.ring(sx, sy - R(0.02), '#ffd166', R(k3 ? 0.12 : 0.07), 3), fx.jolt(0, 1, k3 ? 3 : 2);
+        cue('star', got ? (k === 2 && !k3 ? 1 : k) : -1);
       }
     }
     // 글: ★3이면 없음(깜짝이면 '깜짝 ★3!') · 놓쳤으면 놓친 별 하나의 까닭 + 💡 방법 — ✏️ S056(🧪 S055 🟡④): 마지막 별이 꽂힌 뒤 페이드인
@@ -3737,11 +3740,11 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       ftx(ctx, line, w / 2, Y(T + 0.235));
     }
     ctx.globalAlpha = 1;
-    const nl = nextLocked(s), w0 = worldOf(s.stage);
-    if ((s.got < 3 || nl) && age > STAR_AT[2] + 8) {
+    const nl = nextLocked(s), w0 = worldOf(s.stage), op = !!s.opened, lg = nl && s.got > 1; // 🧪 S068 🟡②: 별 2개 이상이면 🔒이 금(같은 판을 다시 해도 별이 거의 안 는다)
+    if ((s.got < 3 || nl || op) && age > STAR_AT[2] + 8) {
       // ↺ 다시 · 다음 ▶ — 버튼 안만 받는다(🧪 S002) · ✏️ S055 🎨: 주 버튼은 금 · 다른 하나는 나무 명판 · ✏️ S056(🧪 S055 🔴①): 라벨은 놓친 별에 맞춘다 · ★3을 아직 안 배웠으면 '다음 판'이 금
       const by = Y(RES_BY), bh = R(0.075);
-      ([[0.1, soon || s.got > 2 ? '↺ 다시' : `↺ 다시 (${ok2 ? '★3' : '★2'} 도전)`, !soon || nl], /* 🧪 S056 🟡②: ★3을 아직 안 배웠으면 별 표시 없이 */ [0.52, s.won ? '끝내기 ▶' : nl ? `🔒 ${worldStars(s, w0)}/${LOCK[w0 - 1]}★` : '다음 판 ▶', soon && !nl]] as const).forEach(([x0, txt, main]) => {
+      ([[0.1, soon || s.got > 2 ? '↺ 다시' : `↺ 다시 (${ok2 ? '★3' : '★2'} 도전)`, (!soon || nl) && !lg && !op], /* 🧪 S056 🟡②: ★3을 아직 안 배웠으면 별 표시 없이 */ [0.52, s.won ? '끝내기 ▶' : op ? '🔓 ▶' : nl ? `🔒 ${worldStars(s, w0)}/${LOCK[w0 - 1]}★` : '다음 판 ▶', (soon && !nl) || lg || op]] as const).forEach(([x0, txt, main]) => {
         ctx.fillStyle = main ? '#b9741c' : '#3e2616';
         bp(ctx);
         ctx.roundRect(X(x0), by - bh / 2 + 4, R(0.38), bh, bh / 2);
@@ -3789,7 +3792,7 @@ function drawHud(ctx: CanvasRenderingContext2D, s: ShopState, d: StageDef, w: nu
       ctx.strokeStyle = st ? '#ffd166' : 'rgba(255,225,180,.25)';
       ctx.lineWidth = st ? 1.5 : 1;
       ctx.stroke();
-      if (s.teach === n && s.phase === 'play') (ctx.strokeStyle = `rgba(255,209,102,${0.55 + 0.45 * Math.sin(t / 8)})`), (ctx.lineWidth = 2.5), ctx.stroke(); // ✏️ S024: 배우는 별 칩은 금빛 테가 숨 쉰다
+      if ((s.teach === n || (n === 2 && gapOf(d) !== GAP && !s.bestSt[s.stage] && !s.saved?.[s.stage])) && s.phase === 'play') // ✏️ S068(🧪 S068 🟡④): 예외 판(1-3 · ★2 빈칸 1칸) 첫 판엔 ★2 칩도 금테 (ctx.strokeStyle = `rgba(255,209,102,${0.55 + 0.45 * Math.sin(t / 8)})`), (ctx.lineWidth = 2.5), ctx.stroke(); // ✏️ S024: 배우는 별 칩은 금빛 테가 숨 쉰다
       ctx.textAlign = 'left';
       font(0.038, 900);
       ctx.fillStyle = '#ffd166';
