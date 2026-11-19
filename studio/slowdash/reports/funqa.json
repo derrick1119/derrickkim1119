@@ -1,0 +1,373 @@
+{
+ "at": "2026-11-19",
+ "seeds": 12,
+ "gap": 5.65,
+ "runs": {
+  "smart": {
+   "score": 7866,
+   "stagesCleared": 8,
+   "won": 1,
+   "stars": 21.5,
+   "min": 1.33
+  },
+  "habit": {
+   "score": 2050,
+   "stagesCleared": 4,
+   "won": 0,
+   "stars": 7,
+   "min": 1.05
+  },
+  "habit2": {
+   "score": 3794,
+   "stagesCleared": 4.92,
+   "won": 0,
+   "stars": 9.83,
+   "min": 1.25
+  },
+  "random": {
+   "score": 1393,
+   "stagesCleared": 1.75,
+   "won": 0,
+   "stars": 2.42,
+   "min": 3.02
+  }
+ },
+ "firstImpression": {
+  "randomHurtIn10s": 0,
+  "firstPressSec": 0.9
+ },
+ "habitStar3Max3plus": {
+  "habit": 0,
+  "habit2": 0
+ },
+ "stages": [
+  {
+   "k": 1,
+   "key": "dummy",
+   "name": "대숲 입구",
+   "stars": [
+    "한 번에 셋 베기",
+    "한 번에 다섯 베기"
+   ],
+   "smart": {
+    "clear": 1,
+    "star": 3,
+    "star3": 1,
+    "sec": 4.32,
+    "best": 5,
+    "hit": 0
+   },
+   "habit": {
+    "clear": 1,
+    "star": 1,
+    "star3": 0,
+    "sec": 3.78,
+    "best": 1,
+    "hit": 0
+   },
+   "habit2": {
+    "clear": 1,
+    "star": 2,
+    "star3": 0,
+    "sec": 3.98,
+    "best": 3,
+    "hit": 0
+   },
+   "random": {
+    "clear": 1,
+    "star": 1.08,
+    "star3": 0,
+    "sec": 122.6,
+    "best": 2,
+    "hit": 0
+   }
+  },
+  {
+   "k": 2,
+   "key": "sword",
+   "name": "대숲 오솔길",
+   "stars": [
+    "한 번도 안 맞기",
+    "한 번에 넷 베기"
+   ],
+   "smart": {
+    "clear": 1,
+    "star": 2.83,
+    "star3": 0.83,
+    "sec": 6.13,
+    "best": 3.83,
+    "hit": 0
+   },
+   "habit": {
+    "clear": 1,
+    "star": 2,
+    "star3": 0,
+    "sec": 5.25,
+    "best": 1,
+    "hit": 0
+   },
+   "habit2": {
+    "clear": 1,
+    "star": 2,
+    "star3": 0,
+    "sec": 5.43,
+    "best": 2.75,
+    "hit": 0
+   },
+   "random": {
+    "clear": 0.58,
+    "star": 0.92,
+    "star3": 0,
+    "sec": 30.19,
+    "best": 3.17,
+    "hit": 2.17
+   }
+  },
+  {
+   "k": 3,
+   "key": "archer",
+   "name": "달빛 언덕",
+   "stars": [
+    "날아오는 화살 셋 베기",
+    "한 번도 안 맞기"
+   ],
+   "smart": {
+    "clear": 1,
+    "star": 2.58,
+    "star3": 0.58,
+    "sec": 9.91,
+    "best": 2.83,
+    "hit": 0
+   },
+   "habit": {
+    "clear": 1,
+    "star": 2,
+    "star3": 0,
+    "sec": 3.82,
+    "best": 1,
+    "hit": 0
+   },
+   "habit2": {
+    "clear": 1,
+    "star": 2,
+    "star3": 0,
+    "sec": 4.02,
+    "best": 2.58,
+    "hit": 0
+   },
+   "random": {
+    "clear": 0,
+    "star": 0,
+    "star3": 0,
+    "sec": 12.87,
+    "best": 1.33,
+    "hit": 3
+   }
+  },
+  {
+   "k": 4,
+   "key": "shuri",
+   "name": "기와 지붕",
+   "stars": [
+    "한 번에 넷 베기",
+    "한 번도 안 맞기"
+   ],
+   "smart": {
+    "clear": 1,
+    "star": 2.83,
+    "star3": 0.83,
+    "sec": 7.25,
+    "best": 3.83,
+    "hit": 0
+   },
+   "habit": {
+    "clear": 1,
+    "star": 2,
+    "star3": 0,
+    "sec": 3.82,
+    "best": 1,
+    "hit": 0
+   },
+   "habit2": {
+    "clear": 1,
+    "star": 2,
+    "star3": 0,
+    "sec": 3.72,
+    "best": 2.58,
+    "hit": 0
+   },
+   "random": {
+    "clear": 0,
+    "star": 0,
+    "star3": 0,
+    "sec": 14.07,
+    "best": 1.25,
+    "hit": 3
+   }
+  },
+  {
+   "k": 5,
+   "key": "shield",
+   "name": "높은 지붕",
+   "stars": [
+    "방패 무사 셋을 등 뒤에서",
+    "한 번에 셋 베기"
+   ],
+   "smart": {
+    "clear": 1,
+    "star": 2.83,
+    "star3": 0.83,
+    "sec": 9.73,
+    "best": 2.83,
+    "hit": 0
+   },
+   "habit": {
+    "clear": 0,
+    "star": 0,
+    "star3": 0,
+    "sec": 8.65,
+    "best": 0,
+    "hit": 3
+   },
+   "habit2": {
+    "clear": 0.5,
+    "star": 1,
+    "star3": 0,
+    "sec": 5.81,
+    "best": 1.67,
+    "hit": 1.5
+   },
+   "random": {
+    "clear": 0,
+    "star": 0,
+    "star3": 0,
+    "sec": 8.42,
+    "best": 0.83,
+    "hit": 3
+   }
+  },
+  {
+   "k": 6,
+   "key": "barrel",
+   "name": "창고 마당",
+   "stars": [
+    "통 하나로 셋 날리기",
+    "한 번도 안 맞기"
+   ],
+   "smart": {
+    "clear": 1,
+    "star": 2.67,
+    "star3": 0.67,
+    "sec": 5.98,
+    "best": 3,
+    "hit": 0
+   },
+   "habit": {
+    "clear": 0,
+    "star": 0,
+    "star3": 0,
+    "sec": 9.68,
+    "best": 1.08,
+    "hit": 3
+   },
+   "habit2": {
+    "clear": 0,
+    "star": 0,
+    "star3": 0,
+    "sec": 10.84,
+    "best": 2,
+    "hit": 3
+   },
+   "random": {
+    "clear": 0,
+    "star": 0,
+    "star3": 0,
+    "sec": 10.51,
+    "best": 2.83,
+    "hit": 3
+   }
+  },
+  {
+   "k": 7,
+   "key": "mirror",
+   "name": "거울 정원",
+   "stars": [
+    "거울로 꺾어 셋 베기",
+    "한 번에 셋 베기"
+   ],
+   "smart": {
+    "clear": 1,
+    "star": 2.25,
+    "star3": 0.25,
+    "sec": 5.44,
+    "best": 3.17,
+    "hit": 0
+   },
+   "habit": {
+    "clear": 0,
+    "star": 0,
+    "star3": 0,
+    "sec": 8.67,
+    "best": 0,
+    "hit": 3
+   },
+   "habit2": {
+    "clear": 1,
+    "star": 2,
+    "star3": 0,
+    "sec": 4.07,
+    "best": 3,
+    "hit": 0
+   },
+   "random": {
+    "clear": 0,
+    "star": 0,
+    "star3": 0,
+    "sec": 9.97,
+    "best": 1.58,
+    "hit": 3
+   }
+  },
+  {
+   "k": 8,
+   "key": "boss",
+   "name": "성 마당",
+   "stars": [
+    "대장을 졸개 둘과 한 번에",
+    "한 번도 안 맞기"
+   ],
+   "smart": {
+    "clear": 1,
+    "star": 2.42,
+    "star3": 0.42,
+    "sec": 6.48,
+    "best": 2.42,
+    "hit": 0
+   },
+   "habit": {
+    "clear": 1,
+    "star": 2,
+    "star3": 0,
+    "sec": 3.85,
+    "best": 1,
+    "hit": 0
+   },
+   "habit2": {
+    "clear": 1,
+    "star": 2,
+    "star3": 0,
+    "sec": 3.78,
+    "best": 2,
+    "hit": 0
+   },
+   "random": {
+    "clear": 0,
+    "star": 0,
+    "star3": 0,
+    "sec": 14.23,
+    "best": 2,
+    "hit": 3
+   }
+  }
+ ]
+}
