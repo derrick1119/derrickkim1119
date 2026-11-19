@@ -737,7 +737,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     see(s, 'leaf', '잎 너구리는 곧은 칼을 휙! 꺾어 들어가 베요');
     if (n === 0) s.g = Math.min(GMAX, s.g + GAIN); // 휙만 난 획에만(🧪 M2 S1: 섞인 판에서 '먹 우물' 막기) 휙 하며 먹을 흘린다(+7) — 잎만 남으면 먹을 얻을 길이 없어 처음 하는 사람이 말라 갇히던 것(꾹 동안 주는 먹 > 쉬는 동안 차는 먹)
     s.dodgeN++;
-    if (s.dodgeN >= OWL_DODGES && !s.owl && !s.owlNo) s.owlAsk = true; // M2 S4 ㉛: 2-1에서 휙 세 번이면 부엉이가 묻는다
+    if (s.dodgeN >= OWL_DODGES && !s.owl && !s.owlNo) s.owlAsk = true; // M2 S4 ㉛: 2-1에서 휙 세 번이면 부엉이가 묻는다 · S10: 큰 너구리 휙을 빼 보니 카드 .92→.75지만 처음 첫 도전 .45→.36 · 3번 안 .81→.73(카드가 돕고 있음) → 그대로(📋)
     if (s.dodgeN === LEAF_DEMO) see(s, 'leafDemo', '손가락을 따라 옆에서 꺾어 그어 보세요');
     s.leafGuide = true; // 휙 뒤: 다음에 잎을 벨 때까지 잎 길잡이(📐 첫 휙 뒤 한 번 → 처음 봇이 먹이 말라 다시 막혀서 휙마다)
   }
