@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/slowdash/core.ts';
 import { STAGES, slowdash as g, slowdashRandom, slowdashSmart, startStage } from '../studio/slowdash/game.ts';
-import { measure, tryStage } from '../studio/slowdash/funqa.ts';
+import { BOTS, measure, try3, tryStage } from '../studio/slowdash/funqa.ts';
 
 const A = g.aspect ?? 1.52;
 
@@ -47,13 +47,30 @@ describe('느린 시간 닌자 시뮬', () => {
   });
 
   it('M0 기준선: 숙련 격차 ≥ 3 · 처음 10초에 무작위가 안 맞는다 · 버릇 봇 ★3(3판~) < 50% · 무작위 1판 클리어', () => {
-    const m = measure(4);
+    const m = measure(4, ['smart', 'habit', 'habit2', 'random']);
     expect(m.gap).toBeGreaterThanOrEqual(3);
     expect(m.firstImpression.randomHurtIn10s).toBe(0);
     expect(m.habitStar3Max3plus.habit).toBeLessThan(0.5);
     expect(m.habitStar3Max3plus.habit2).toBeLessThan(0.5);
     expect((m.stages[0].random as { clear: number }).clear).toBeGreaterThanOrEqual(0.75);
     expect(runBot(g, slowdashRandom, 3, 60 * 600).s.stars).toBeGreaterThanOrEqual(0);
+  });
+
+  it('M1 S001 측정기: 사람 반응 봇 · 연타 · 버릇 ③④ · 처음 하는 사람이 있고, F5(느린 시간 낙차)·F6(연타)을 한 번에 낸다', () => {
+    for (const b of ['human', 'humanNew', 'humanPro', 'humanTap', 'spam', 'habit3', 'habit4', 'newbie']) expect(BOTS[b], b).toBeDefined();
+    const m = measure(2, ['smart', 'random', 'human', 'humanTap', 'spam']);
+    expect(m.F5).not.toBeNull();
+    expect(m.F6!.clear).toHaveLength(STAGES.length);
+    // 사람 반응 봇(꾹 판)은 실제로 누른 채 겨눈다(평균 꾹 ≈ 반응 0.5초) · 탭 판은 1틱
+    expect(m.F5!.holdAvg).toBeGreaterThan(0.3);
+    expect((m.stages[0].humanTap as { holdAvg: number }).holdAvg).toBeLessThan(0.05);
+  });
+
+  it('처음 하는 사람은 같은 판을 3번까지 도전하고, 사람 반응 봇은 같은 시드면 같은 결과', () => {
+    const a = try3(BOTS.newbie, 5, 0), b = tryStage(BOTS.human, 9, 1), c = tryStage(BOTS.human, 9, 1);
+    expect(a.tries).toBeGreaterThanOrEqual(1);
+    expect(a.tries).toBeLessThanOrEqual(3);
+    expect([b.ok, b.sec, b.dashes, b.best]).toEqual([c.ok, c.sec, c.dashes, c.best]);
   });
 });
 
