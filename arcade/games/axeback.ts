@@ -707,8 +707,10 @@ function world(s: AxeState, dt: number) {
   if (dt <= 0) return;
   s.wt += dt;
   s.stT += dt;
-  s.waveT += dt;
   const d = STAGES[s.stage];
+  // 첫 던지기 전(1판)엔 괴물이 제자리에서 꿈틀대기만 하고 다가오지 않는다 — 처음 화면을 읽는 동안 기다려 준다
+  if (s.stage === 0 && s.firstThrow < 0) for (const f of s.foes) f.t0 += dt;
+  else s.waveT += dt;
   for (const f of [...s.foes]) {
     if (f.st === 1) {
       f.stT += dt;

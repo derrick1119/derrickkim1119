@@ -34,6 +34,8 @@ const RB = 0.0032;
 const KB0 = 0.0006, KB1 = 0.0012, KBR = 0.0003;
 /** 한 사람을 공중에서 띄울 수 있는 최대 횟수 (그 뒤엔 뻗어서 떨어진다) */
 const MAXFLY = 4;
+/** 1판은 너그럽게: 둥지 앞에서 머뭇거리는 시간 · 도망 속도 */
+const GRAB_T1 = 40, FLEE_V1 = 0.0022;
 const GRAB_D = 0.1, GRAB_T = 4, DAZE_T = 22, ROLL_V = 0.0085, FLEE_V = 0.0035, EXIT = 0.74;
 /** 익룡: 나는 높이 · 부딪힘 거리(가로·높이) */
 const PZ = 0.24, PT_HR = 0.08, PT_VZ = 0.075;
@@ -179,6 +181,8 @@ export interface DinoState {
   foes: Foe[]; rocks: Rock[]; shocks: Shock[]; nid: number; wi: number; quakeT: number;
   combo: number; bestCombo: number; grabs: number; maxFly: number; bestMulti: number; pteroKO: number; bowl: number; bossKO: number; kos: number;
   firstPress: number; firstBig: number; stomps: number;
+  /** 1판: 첫 쿵 전에는 시간이 멈춘다 (꼬마들은 둘레에서 메롱만) */
+  wait: boolean;
   seen: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; spot: { id: number; t: number; label: string } | null;
   events: Ev[]; eggFly: EggFly[]; log: { stage: number; ok: boolean; got: number; stars: boolean[]; kos: number; t: number }[]; skos: number; st0: number;
   // 연출용
@@ -288,6 +292,7 @@ function stompNow(s: DinoState, ch: number, auto: boolean) {
   s.shocks.push(sh);
   if (!auto) {
     s.stomps++;
+    s.wait = false;
     s.rec = REC;
     s.lastCh = ch;
     s.stompT = s.t;
@@ -399,7 +404,7 @@ function foeStep(s: DinoState, f: Foe) {
         f.face = f.x > 0 ? -1 : 1;
       } else if (s.eggs > 0) {
         f.st = GRAB;
-        f.tm = f.k === 'mammoth' ? 50 : GRAB_T;
+        f.tm = f.k === 'mammoth' ? 50 : s.stage === 0 ? GRAB_T1 : GRAB_T;
         ev(s, 'reach', f.x, f.y);
       }
       break;
@@ -427,8 +432,9 @@ function foeStep(s: DinoState, f: Foe) {
       }
       break;
     case FLEE:
-      f.x += (f.x / d) * FLEE_V;
-      f.y += (f.y / d) * FLEE_V;
+      const fv = s.stage === 0 && f.k !== 'ptero' ? FLEE_V1 : FLEE_V;
+      f.x += (f.x / d) * fv;
+      f.y += (f.y / d) * fv;
       f.face = f.x > 0 ? 1 : -1;
       if (d > EXIT) {
         f.st = GONE;
@@ -643,6 +649,9 @@ function newStage(s: DinoState) {
   const key = STAGES[s.stage].key;
   if (key === 'quake') see(s, 'quake', '');
   s.seen.add('st' + s.stage);
+  s.wait = s.stage === 0;
+  const ws = STAGES[s.stage].waves;
+  while (s.wi < ws.length && ws[s.wi][0] <= 0) spawnWave(s, ws[s.wi]), s.wi++;
 }
 
 function starMet(s: DinoState, st: Star) {
@@ -731,7 +740,7 @@ export const stompdino: GameDef<DinoState> = {
       eggs: EGGS, lost: 0, left: 0, flip: false, rot: 0, down: false, holdT: 0, rec: 0, lock: false, freeze: 0,
       foes: [], rocks: [], shocks: [], nid: 0, wi: 0, quakeT: QUAKE_P,
       combo: 0, bestCombo: 0, grabs: 0, maxFly: 0, bestMulti: 0, pteroKO: 0, bowl: 0, bossKO: 0, kos: 0,
-      firstPress: -1, firstBig: -1, stomps: 0,
+      firstPress: -1, firstBig: -1, stomps: 0, wait: false,
       seen: new Set<string>(), newsQ: [], news: null, spot: null, events: [], eggFly: [], log: [], skos: 0, st0: 0,
       lastCh: 0, stompT: -999, mood: 0, moodT: 0, birdT: -999,
     } as DinoState;
@@ -775,6 +784,11 @@ export const stompdino: GameDef<DinoState> = {
         } else if (s.hearts <= 0) s.dead = true;
         else (s.again = true), newStage(s);
       }
+      return;
+    }
+    if (s.wait) {
+      cosmetic(s);
+      s.pt++;
       return;
     }
     if (s.freeze > 0) {
@@ -825,7 +839,7 @@ function predict(f: Foe, n: number): Pred {
     st = WALK;
   }
   if (st === FLEE) {
-    const d = dist(x, y) || 1e-6, m = FLEE_V * left;
+    const d = dist(x, y) || 1e-6, m = (stage0 ? FLEE_V1 : FLEE_V) * left;
     return { ...out(), x: x + (x / d) * m, y: y + (y / d) * m };
   }
   if (st === GRAB) return { ...out(), grabAt: n - left + tm };
@@ -839,7 +853,7 @@ function predict(f: Foe, n: number): Pred {
   p.x = (x / d) * reach;
   p.y = (y / d) * reach;
   p.st = GRAB;
-  p.grabAt = n - left + need + (f.k === 'mammoth' ? 50 : GRAB_T);
+  p.grabAt = n - left + need + (f.k === 'mammoth' ? 50 : stage0 ? GRAB_T1 : GRAB_T);
   return p;
 }
 
@@ -882,7 +896,7 @@ function scan(s: DinoState, tr: number): { hits: Hit[]; risk: number; rocks: { d
   return { hits, risk, rocks };
 }
 
-let wantFly3 = false, wantPtero = false, guard = 1;
+let wantFly3 = false, wantPtero = false, guard = 1, stage0 = false;
 function valueOf(s: DinoState, sc: ReturnType<typeof scan>, ch: number): number {
   const r = rOf(ch);
   let v = -sc.risk * guard;
@@ -949,6 +963,7 @@ export const stompdinoSmart: Bot<DinoState> = {
     wantFly3 = d.stars.some((q) => q.k === 'fly3') && s.maxFly < 3;
     wantPtero = d.stars.some((q) => q.k === 'ptero') && s.pteroKO < 1;
     guard = d.stars.some((q) => q.k === 'nograb') && s.grabs === 0 ? 2.5 : 1;
+    stage0 = s.stage === 0;
     if (s.down) {
       let best = -1e9, bt = 0;
       for (let tr = 0; tr <= 48; tr += 3) {
@@ -1770,11 +1785,13 @@ function drawCave(ctx: C2, k: number, kind: K, pose: number, t: number, seed: nu
     ell(ctx, x1, y1, k * 0.055, k * 0.055);
     fs(ctx, col, lw);
   };
-  const air = pose === 1 || pose === 3;
+  const air = pose === 1 || pose === 3, tease = pose === 7;
   const flail = Math.sin(t * 0.7 + seed) * 0.5;
   if (pose === 2) ctx.translate(0, k * 0.16);
+  if (tease) ctx.translate(0, -Math.abs(Math.sin(t * 0.16 + seed)) * k * 0.12);
   // 뒤팔
-  if (air) arm(-k * 0.08, -k * 0.5, -k * 0.24, -k * (0.82 + flail * 0.15), SKIN2);
+  if (tease) arm(-k * 0.08, -k * 0.5, -k * 0.24, -k * (0.8 + Math.sin(t * 0.32 + seed) * 0.12), SKIN2);
+  else if (air) arm(-k * 0.08, -k * 0.5, -k * 0.24, -k * (0.82 + flail * 0.15), SKIN2);
   else if (pose === 5) arm(-k * 0.06, -k * 0.52, -k * 0.06, -k * 1.02, SKIN2);
   else if (!shield) arm(-k * 0.1, -k * 0.5, -k * 0.2, -k * (0.32 + Math.sin(ph) * 0.05), SKIN2);
   // 다리
@@ -1784,6 +1801,7 @@ function drawCave(ctx: C2, k: number, kind: K, pose: number, t: number, seed: nu
       fs(ctx, sd > 0 ? SKIN2 : SKIN, lw);
     }
   } else if (air) legs(0.9 + flail, 0.3);
+  else if (tease) legs(0.25, 0.15);
   else legs(pose === 0 || pose === 5 ? (pose === 5 ? 0.75 : 0.5) : 0.1);
   // 몸통 (털옷)
   const by = -k * 0.44;
@@ -1899,7 +1917,12 @@ function drawCave(ctx: C2, k: number, kind: K, pose: number, t: number, seed: nu
   }
   // 입
   const mx = hx + k * head * 0.5, my = hyy + k * 0.09;
-  if (air || pose === 3) {
+  if (tease) {
+    ell(ctx, mx, my, k * 0.03, k * 0.022);
+    fs(ctx, '#5a1a1a', lw * 0.6);
+    ell(ctx, mx + k * 0.01, my + k * 0.035, k * 0.026, k * 0.03);
+    fs(ctx, '#ff6a7a', lw * 0.6);
+  } else if (air || pose === 3) {
     ell(ctx, mx, my, k * 0.04, k * 0.05);
     fs(ctx, '#5a1a1a', lw * 0.7);
   } else if (pose === 5) {
@@ -1936,6 +1959,8 @@ function drawCave(ctx: C2, k: number, kind: K, pose: number, t: number, seed: nu
       ctx.stroke();
     }
     ctx.restore();
+  } else if (tease) {
+    arm(k * 0.08, -k * 0.5, k * 0.24, -k * (0.8 + Math.sin(t * 0.32 + seed + Math.PI) * 0.12), SKIN);
   } else if (air) {
     arm(k * 0.08, -k * 0.5, k * 0.24, -k * (0.86 - flail * 0.15), SKIN);
     if (!kid) club(k * 0.24, -k * (0.86 - flail * 0.15), 0.6 + flail);
@@ -2296,7 +2321,7 @@ function drawHand(ctx: C2, x: number, y: number, k: number, press: number) {
   ctx.restore();
 }
 
-const recentSay = new WeakMap<object, { x: number; y: number; t: number; size: number }[]>();
+const recentSay = new WeakMap<object, { x: number; y: number; t: number; size: number; text: string }[]>();
 const depth = (y: number) => 0.86 + 0.22 * ((y + 0.62) / 1.2);
 const FOE_H: Record<K, number> = { kid: 0.105, man: 0.13, shield: 0.135, mammoth: 0.28, ptero: 0.3 };
 const DINO_Y = -0.088, DINO_H = 0.235, NEST_R = 0.095;
@@ -2320,10 +2345,12 @@ function drawAll(ctx: C2, s: DinoState, w: number, h: number, th: Theme) {
   const say = (x: number, y: number, text: string, col: string, size: number) => {
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
+    // 같은 말은 겹쳐 쌓지 않는다 (합친 말로 한 번만)
+    if (rec.some((q) => q.text === text && t - q.t < 50)) return;
     x = clamp(x, w * 0.14, w * 0.86);
     y = clamp(y, Y(0.2), Y(GE - 0.03));
     for (let k = 0; k < 6 && rec.some((q) => t - q.t < 36 && Math.abs(q.x - x) < w * 0.28 && Math.abs(q.y - y) < (size + q.size) * 0.6); k++) y -= size + 4;
-    rec.push({ x, y, t, size });
+    rec.push({ x, y, t, size, text });
     if (rec.length > 12) rec.shift();
     fx.pop(x, y, text, col, size);
   };
@@ -2603,7 +2630,7 @@ function drawAll(ctx: C2, s: DinoState, w: number, h: number, th: Theme) {
       ctx.restore();
       return;
     }
-    const pose = f.st === AIR ? 1 : f.st === DAZE ? 2 : f.st === KO ? 3 : f.st === GRAB ? 4 : f.st === FLEE ? 5 : f.k === 'shield' && t - f.hitT < 24 ? 6 : 0;
+    const pose = s.wait ? 7 : f.st === AIR ? 1 : f.st === DAZE ? 2 : f.st === KO ? 3 : f.st === GRAB ? 4 : f.st === FLEE ? 5 : f.k === 'shield' && t - f.hitT < 24 ? 6 : 0;
     if (glow) {
       ctx.shadowColor = glow;
       ctx.shadowBlur = k * 0.3;
@@ -2628,6 +2655,15 @@ function drawAll(ctx: C2, s: DinoState, w: number, h: number, th: Theme) {
     }
     ctx.restore();
     if (f.st === DAZE || f.st === KO) dizzy(ctx, px, py - k * (f.k === 'mammoth' ? 1.0 : f.st === KO ? 0.8 : 0.9), k * 0.28, t + f.seed);
+    if (s.wait && f.k === 'kid' && (t + f.seed * 7) % 140 < 50) {
+      font(0.032, 900);
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(40,10,30,.7)';
+      ctx.strokeText('메롱~', px, py - k * 1.2);
+      ctx.fillStyle = '#ffd0d8';
+      ctx.fillText('메롱~', px, py - k * 1.2);
+    }
     if (f.st === GRAB) {
       const pulse = 1 + 0.2 * Math.sin(t * 0.8);
       ctx.save();
@@ -2763,12 +2799,15 @@ function drawAll(ctx: C2, s: DinoState, w: number, h: number, th: Theme) {
       case 'whiff':
         say(X(0.12), GY(DINO_Y) - R(0.2), '헛쿵~', '#e0d0d8', 13);
         break;
-      case 'grab':
+      case 'grab': {
         fx.blink('#ff5040', 0.2);
         fx.kick(5);
         fx.memo.sadT = t;
-        say(ex, ey - R(0.16), '알을 뺏겼어! 쿵으로 되찾아요', '#ffb0a0', 15);
+        // 한꺼번에 여럿이면 한 줄로 합친다
+        const n = s.events.filter((q) => q.kind === 'grab' && t - q.t < 30).length;
+        say(X(0), GY(0) - R(0.3), n >= 2 ? `알 ${['', '', '둘', '셋'][Math.min(3, n)]} 뺏겼어! 쿵으로 되찾아요` : '알을 뺏겼어! 쿵으로 되찾아요', '#ffb0a0', 15);
         break;
+      }
       case 'back':
         fx.burst(ex, ey - R(0.05), '#fff3d0', 14, 3, 2.4);
         say(ex, ey - R(0.14), '알 찾았다!', '#c8ff9a', 17);
