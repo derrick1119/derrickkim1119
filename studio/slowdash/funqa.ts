@@ -98,7 +98,7 @@ export function human(name: string, react: number, err: number, slow: boolean, p
             }
             if (dt) {
               const n0 = { x: s.nx, y: s.ny / K.A * K.A }, lerp = (a: Pt, b: Pt, k: number) => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k });
-              m.seq = [n0, n0, ...[0.25, 0.5, 0.75, 1].map((k) => lerp(n0, dt[0], k)), ...[0.25, 0.5, 0.75, 1].map((k) => lerp(dt[0], dt[1], k)), dt[1]];
+              m.seq = [...Array.from({ length: 21 }, () => n0), ...[0.25, 0.5, 0.75, 1].map((k) => lerp(n0, dt[0], k)), ...[0.25, 0.5, 0.75, 1].map((k) => lerp(dt[0], dt[1], k)), dt[1]];
               return press(n0.x, n0.y);
             }
           }

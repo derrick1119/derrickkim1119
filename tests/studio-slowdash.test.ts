@@ -187,6 +187,8 @@ describe('느린 시간 닌자 시뮬', () => {
     for (const [x, y] of [[0.5, 0.9], [0.6, 0.85], [0.7, 0.8]]) for (let k = 0; k < 2; k++) g.step(s, at(x, y));
     expect(s.stroke.length).toBeGreaterThan(0);
     g.step(s, at(0.5, 1.12));
+    expect(s.stroke.length).toBeGreaterThan(0); // 닌자를 스쳐 지나가면 안 지워진다(원을 닫을 때)
+    for (let k = 0; k < 20; k++) g.step(s, at(0.5, 1.12)); // 닌자 위에 ⅓초 머물면 지워진다
     expect(s.stroke).toHaveLength(0);
     for (const [x, y] of [[0.4, 1.0], [0.4, 0.8]]) for (let k = 0; k < 2; k++) g.step(s, at(x, y));
     g.step(s, { tap: false, dir: 0, pointer: null });
@@ -228,6 +230,21 @@ describe('느린 시간 닌자 시뮬', () => {
     for (let k = 0; k < 600 && b.bents === 0; k++) g.step(b, run.act(b, rng));
     expect(b.bents).toBeGreaterThan(0); // 꺾은 획을 그으면 길잡이가 꺼진다
     expect(b.best).toBeGreaterThanOrEqual(Math.max(3, before));
+  });
+
+  it('오너 질문 "어떨 때는 원, 어떨 때는 직선": 천천히 그려도(한 틱에 판 1%씩) 그은 원대로 획이 남는다', () => {
+    const s = g.create(3);
+    startStage(s, K('bend'));
+    for (let k = 0; k < 60; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+    s.foes = [];
+    (s.nx = 0.5), (s.ny = 1.0), (s.g = 100);
+    for (let i = 0; i <= 60; i++) {
+      const a = (i / 60) * Math.PI * 2;
+      g.step(s, { tap: false, dir: 0, pointer: { x: 0.5 + Math.cos(a) * 0.1, y: (0.7 + Math.sin(a) * 0.1) / A } });
+    }
+    expect(s.stroke.length).toBeGreaterThanOrEqual(12);
+    g.step(s, { tap: false, dir: 0, pointer: null });
+    expect(s.trail!.legs.length).toBeGreaterThanOrEqual(12); // 원을 따라 돌진(전엔 곧은 줄 하나)
   });
 
   it('S005 효과음: 시뮬·봇은 소리를 모른다(헤드리스로 한 판 돌려도 AudioContext 0) · 연쇄 음계는 5음계로 오르고 8번째부터 고정', () => {

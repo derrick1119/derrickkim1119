@@ -228,6 +228,8 @@ export interface DashState {
   down: boolean; lock: boolean; stiff: number; whiffs: number; aim: { x: number; y: number } | null; holdT: number;
   /** ✏️ 오너 피드백(2026-11-19 "한붓그리기처럼 그은 위치대로 단칼에"): 꾹 누른 채 그은 점들 — 떼면 이 길을 따라 한 번에 돌진하며 벤다 */
   stroke: { x: number; y: number }[];
+  /** 처음 누른 자리(획의 첫 점) · 닌자 위에 머문 틱(다시 그리기) */
+  anchor: { x: number; y: number } | null; dwell: number;
   freeze: number; slowT: number;
   strikes: { x: number; y: number; t: number; t0: number }[];
   foes: Foe[]; shots: Shot[]; barrels: Barrel[]; mirrors: Mirror[]; smokes: Smoke[]; thorns: { x: number; y: number; r: number }[]; nid: number;
@@ -338,7 +340,7 @@ function trace(s: DashState, px: number, py: number, tx: number, ty: number, max
 }
 
 /** 한붓 획: 닌자에서 점들을 차례로 이어 maxLen까지 돌진 선을 이어 붙인다(같은 적은 한 번만 · 방패 앞에서 튕기면 거기서 멈춤) */
-const STROKE_STEP = 0.035, STROKE_MAX = 24, STROKE_LEN = 1.6, ERASE_R = 0.045;
+const STROKE_STEP = 0.035, STROKE_MAX = 40, STROKE_LEN = 1.6, ERASE_R = 0.045, ERASE_DWELL = 20; // 오너 질문 뒤: 점 한도 24 → 40(큰 원)
 /** ✏️ S009 꺾는 점 너그럽게(📋): 꺾인 한붓 획은 칼날 폭이 BEND_W배 — 손가락으로 그린 길은 적 위를 정확히 지나기 어렵다 */
 export const BEND = { w: 1.8 };
 /** 한 줄은 DMAX(.85)까지, 꺾인 한붓 획은 먹이 되는 만큼 STROKE_LEN까지(먹 값은 길이대로) */
@@ -855,7 +857,7 @@ export const slowdash: GameDef<DashState> = {
     const s = {
       rng: mulberry32(seed), seed, t: 0, wt: 0, stage: 0, phase: 'play', pt: 0, ok: false, why: '',
       stars: 0, base: 0, got: 0, starOk: [false, false, false], pts: 0, won: false, dead: false, again: false, tries: 0,
-      nx: 0.5, ny: 1.17, face: 1, hp: HP, inv: 0, g: GMAX, down: false, lock: false, stiff: 0, whiffs: 0, stroke: [], aim: null, holdT: 0, freeze: 0, slowT: 0,
+      nx: 0.5, ny: 1.17, face: 1, hp: HP, inv: 0, g: GMAX, down: false, lock: false, stiff: 0, whiffs: 0, stroke: [], anchor: null, dwell: 0, aim: null, holdT: 0, freeze: 0, slowT: 0,
       strikes: [], foes: [], shots: [], barrels: [], mirrors: [], smokes: [], thorns: [], nid: 0, wave: 0, waveT: 0,
       dashN: 0, chain: 0, best: 0, hits: 0, arrows: 0, backK: 0, boomBest: 0, boomBy: {}, mirK: 0, bounceT: -999, bents: 0, bossCombo: 0, dashes: 0,
       firstDash: false, firstBig: -1, firstPress: -1, combo: { id: -1, n: 0, t: -99 },
@@ -874,22 +876,28 @@ export const slowdash: GameDef<DashState> = {
           s.down = true;
           s.holdT = 0;
           s.stroke = [];
+          s.anchor = null;
+          s.dwell = 0;
           if (s.firstPress < 0) s.firstPress = s.t;
         }
         if (s.down) {
           const q = { x: clamp(p.x, X0, X1), y: clamp(p.y * A, Y0, Y1) };
           // 한붓 획: 처음 누른 점, 그다음은 손가락이 STROKE_STEP 넘게 움직일 때마다 점을 남긴다(가만히 누르면 지금처럼 한 줄)
-          // ✏️ S010 다시 그리기: 그리던 손가락을 닌자 위로 되돌리면 획이 지워진다(빨간 덤불을 보고 길을 다시 그을 수 있게)
-          if (s.stroke.length && Math.hypot(q.x - s.nx, q.y - s.ny) < ERASE_R) (s.stroke = []), (s.aim = null), ev(s, 'erase', s.nx, s.ny);
+          // ✏️ 오너 질문(M2 전 "어떨 때는 원이 그려지고 어떨 때는 직선만"): 전에는 첫 점을 '한 틱 전 손가락'과 비교해서,
+          //   천천히 그리기 시작하면(한 프레임에 판 3.5% 미만) 획이 끝내 시작되지 않고 곧은 줄이 됐다 → 처음 누른 자리(anchor)와 비교한다
+          if (!s.anchor) s.anchor = q;
+          // ✏️ S010 다시 그리기 → 손가락을 닌자 위에 잠깐(⅓초) 두면 지워진다 — 원을 닌자 쪽으로 닫거나 스쳐 지날 때 지워지던 것 막기
+          const onNinja = Math.hypot(q.x - s.nx, q.y - s.ny) < ERASE_R;
+          s.dwell = onNinja && s.stroke.length ? s.dwell + 1 : 0;
+          if (s.dwell >= ERASE_DWELL) (s.stroke = []), (s.anchor = q), (s.dwell = 0), ev(s, 'erase', s.nx, s.ny);
           const last = s.stroke[s.stroke.length - 1];
-          if (!last ? s.aim : Math.hypot(q.x - last.x, q.y - last.y) >= STROKE_STEP && s.stroke.length < STROKE_MAX) {
-            if (!last && s.aim && Math.hypot(q.x - s.aim.x, q.y - s.aim.y) >= STROKE_STEP) s.stroke.push(s.aim);
-            else if (last) s.stroke.push(q);
-          }
+          if (!last) {
+            if (Math.hypot(q.x - s.anchor.x, q.y - s.anchor.y) >= STROKE_STEP) s.stroke.push(s.anchor);
+          } else if (Math.hypot(q.x - last.x, q.y - last.y) >= STROKE_STEP && s.stroke.length < STROKE_MAX) s.stroke.push(q);
           s.aim = q;
           s.holdT++;
           // ✏️ S011 첫 빨간 덤불: 그리는 길이 처음 덤불에 걸리면 한 번 알려 준다(다시 그리기를 배우게)
-          if (s.thorns.length && !s.seen.has('thornRed') && s.holdT % 4 === 0 && thornOf(s, tracePath(s, strokeOf(s), reachFor(s, strokeOf(s))).legs)) see(s, 'thornRed', '빨간 덤불은 한 대! 손가락을 닌자로 되돌리면 다시 그려요');
+          if (s.thorns.length && !s.seen.has('thornRed') && s.holdT % 4 === 0 && thornOf(s, tracePath(s, strokeOf(s), reachFor(s, strokeOf(s))).legs)) see(s, 'thornRed', '빨간 덤불은 한 대! 손가락을 닌자 위에 잠깐 두면 지워져요');
         }
       } else {
         if (s.down && s.aim) doDash(s, strokeOf(s));
