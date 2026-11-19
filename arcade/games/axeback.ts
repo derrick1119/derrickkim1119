@@ -4,14 +4,14 @@
  *   떼면 도끼가 빙글빙글 날아갔다 손으로 되돌아온다. 키보드는 화살표로 커서 + 스페이스.
  * 규칙(결정적, 3줄): 도끼는 손가락 쪽으로 곧게 나가 돌아설 때 안쪽(가운데 쪽)으로 크게 휘어 돌아온다 — 옆으로 던질수록 크게 휜다.
  *   갈 때 한 번, 올 때 한 번 벤다. 오갈 때 둘 다 베고 돌아오면 '탁!' 받기 연속 +1 — 도끼가 커지고 빨라진다. 한쪽만 베면 연속이 끊긴다.
- *   도끼가 날아가 있는 동안엔 새로 못 던진다(떼어 두면 돌아오자마자 던진다). 괴물이 오두막에 닿으면 문 판자 -1, 다 깨지면 하트 -1(그 판 다시).
+ *   도끼가 날아가 있는 동안엔 새로 못 던진다(떼어 두면 돌아오자마자 던진다). 괴물이 오두막 울타리에 닿으면 판자 -1, 다 깨지면 하트 -1(그 판 다시).
  * 와우: 첫 던지기에 도끼가 빙글빙글 날아가 그루터기 셋을 '퍽퍽퍽' 베고 손으로 돌아와 '탁!' — 나무 조각과 나뭇잎이 흩날린다.
  * 판 7개: 목표 = 오두막 지키기(모든 괴물 베기). 별 = 판마다 하나씩 늘어나는 쉬운 한 줄.
  * 펼쳐짐(하는 일이 바뀐다): 1판 그루터기(줄 서서 걸어옴) → 2판 덩굴(옆에서 꼬불꼬불 빠르게 — 휘어 돌아오는 길로 쓸기)
  *   → 3판 바위(도끼가 튕겨 꺾임 — 바위에 튕겨 옆줄 베기) → 4판 껍질 괴물(한 번 베면 껍질만 — 오갈 때 두 번 맞히기)
  *   → 5판 박쥐 떼(하늘을 가로질러 줄지어 옴 — 앞질러 던지기) → 6판 전나무(베면 도끼가 가던 쪽으로 쓰러져 괴물을 덮침 — 갈 때·올 때 어느 쪽에서 벨지)
  *   → 7판 고목 대장(받기 연속이 높을수록 세게 — 연속 지키기 vs 급한 졸개).
- * 웃음: 오두막에 부딪힌 괴물은 지붕에 '쾅' 박치기하고 데굴데굴, 껍질이 벗겨진 괴물은 얼굴이 빨개져 허둥지둥 달린다.
+ * 웃음: 울타리에 부딪힌 괴물은 '쾅' 박치기하고 데굴데굴, 껍질이 벗겨진 괴물은 얼굴이 빨개져 허둥지둥 달린다.
  *   지붕 위 다람쥐가 큰 순간마다 펄쩍 뛰고, 오두막이 맞으면 눈을 가린다.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
@@ -60,7 +60,7 @@ const col = (k: K, x: number, n: number, d = 0, gap = 40): Spawn[] => [...Array(
 /** 판 7개. 좌표는 뒤집기 전 — 2판부터 판마다(다시 할 때도) 시드로 좌우를 뒤집는다 */
 export const STAGES: StageDef[] = [
   {
-    key: 'stump', name: '오두막 앞마당', place: 0, news: '', goal: '오두막 지키기', boards: 5, speed: 0.75,
+    key: 'stump', name: '오두막 앞마당', place: 0, news: '', goal: '오두막 지키기', boards: 5, speed: 0.62,
     hint: '도끼는 갈 때 한 번, 올 때 한 번 베요',
     pre: [[0.5, 0.6], [0.5, 0.71], [0.5, 0.82]],
     waves: [
@@ -478,6 +478,7 @@ function newStage(s: AxeState) {
     f.len = pathLen(f.wp);
     f.t0 = s.wt + 70;
     f.pre = true;
+    (f.x = x), (f.y = y);
   }
   spawnWave(s);
 }
@@ -731,7 +732,7 @@ function world(s: AxeState, dt: number) {
       s.mood = 4;
       s.moodT = 50;
       ev(s, 'bang', f.x, f.y, s.boards, f.k);
-      if (s.boards <= 0) return endStage(s, false, f.k === 'boss' ? '대장이 오두막에 닿았어요' : '오두막 문이 부서졌어요');
+      if (s.boards <= 0) return endStage(s, false, f.k === 'boss' ? '대장이 울타리를 넘었어요' : '울타리가 다 부서졌어요');
     }
     if (f.k === 'boss' && s.wt >= f.summonT && !hidden(f, s.wt)) {
       f.summonT = s.wt + 300;
@@ -740,6 +741,7 @@ function world(s: AxeState, dt: number) {
         g.wp = detour(s, [clamp(f.x + sx * 0.13, 0.1, 0.9), f.y + 0.02, winX(f.x + sx * 0.2), CY]);
         g.len = pathLen(g.wp);
         g.t0 = s.wt + 10;
+        (g.x = g.wp[0]), (g.y = g.wp[1]);
       }
       ev(s, 'summon', f.x, f.y);
     }
@@ -787,7 +789,7 @@ export const axeback: GameDef<AxeState> = {
   rules: [
     '누른 채 끌면 도끼 길이 보이고, 떼면 날아갔다 손으로 돌아와요. 갈 때 한 번, 올 때 한 번 베요.',
     '갈 때 하나, 올 때 또 하나 베고 돌아오면 받기 연속! 도끼가 커지고 빨라져요. 못 하면 끊겨요.',
-    '괴물이 오두막에 닿으면 문 판자 -1, 다 깨지면 하트 -1(그 판 다시). 다 베면 다음 판!',
+    '괴물이 울타리에 닿으면 판자 -1, 다 깨지면 하트 -1(그 판 다시). 다 베면 다음 판!',
   ],
   controls: 'touch',
   hint: '누른 채 끌어 겨누고, 떼면 도끼가 날아갔다 돌아와요 / 화살표로 겨누고 스페이스',
@@ -1355,6 +1357,14 @@ function getBg(w: number, h: number, place: number, sc: number): Bg {
     // 노을빛 웅덩이
     g.fillStyle = radg(g, sunX, R(0.05), R(0.02), R(0.7), [0, `rgba(${P.glow},.32)`], [1, `rgba(${P.glow},0)`]);
     g.fillRect(0, 0, w, h - hz);
+    // 풀빛 얼룩 (밋밋하지 않게)
+    for (let k = 0; k < 22; k++) {
+      const x = hsh(k * 3.9 + 2) * w, y = (0.08 + hsh(k * 6.1) * 0.9) * gh, r = R(0.07 + hsh(k * 2.9) * 0.08) * (0.6 + y / gh * 0.6);
+      g.fillStyle = radg(g, x, y, 0, r, [0, k % 3 ? 'rgba(40,70,30,.16)' : `rgba(${P.glow},.12)`], [1, 'rgba(40,70,30,0)']);
+      g.beginPath();
+      g.ellipse(x, y, r, r * 0.45, 0, 0, TAU);
+      g.fill();
+    }
     // 오솔길: 오두막 → 숲
     const pathPt = (u: number) => [w * (0.5 - 0.07 * Math.sin(u * 3.0)) , (1.2 - HZ) * w * (1 - u)];
     g.fillStyle = P.path;
@@ -2466,7 +2476,7 @@ function drawSquirrel(ctx: C2, x: number, y: number, k: number, t: number, cheer
   ctx.restore();
 }
 
-const FOE_H: Record<K, number> = { stump: 0.135, vine: 0.115, bark: 0.155, bat: 0.11, boss: 0.38 };
+const FOE_H: Record<K, number> = { stump: 0.135, vine: 0.115, bark: 0.155, bat: 0.135, boss: 0.4 };
 const JACK_H = 0.2, TREE_H = 0.33;
 const depth = (y: number) => 0.8 + 0.3 * clamp((y - HZ) / (1.12 - HZ), 0, 1);
 const fenceMem = new WeakMap<object, { broken: boolean[]; max: number; stage: number; tries: number }>();
@@ -3205,11 +3215,11 @@ function drawAll(ctx: C2, s: AxeState, w: number, h: number, th: Theme) {
         fx.ring(X(HX), Y(HY) - R(0.12), n >= 3 ? '#ffd84a' : '#ffffff', R(0.08 + Math.min(6, n) * 0.012), 4);
         fx.burst(X(HX), Y(HY) - R(0.12), n >= 3 ? '#ffd84a' : '#fff3dc', 10 + Math.min(8, n) * 2, 3, 2);
         fx.kick(2 + Math.min(5, n));
-        say(X(HX), Y(HY) - R(0.24), '탁!', '#ffffff', 22);
+        fx.pop(X(HX), Y(HY) - R(0.2), '탁!', '#ffffff', 24 + Math.min(6, n));
         say(X(HX) + R(0.17), Y(HY) - R(0.12), `받기 ×${n}`, n >= 5 ? '#ffd84a' : '#fff0c8', Math.min(26, 15 + n * 1.5));
         if (n === 3 || n === 5) (fx.memo.bigT = t), (fx.memo.bigN = n), (fx.memo.bigX = X(HX)), (fx.memo.bigY = Y(0.82)), (fx.memo.bigK = 1), fx.blink('#ffe9a0', 0.25);
       } else if (e.text !== 'end') {
-        say(X(HX), Y(HY) - R(0.22), '탁', '#e8dcc8', 15);
+        fx.pop(X(HX), Y(HY) - R(0.2), '탁', '#e8dcc8', 16);
         if (n >= 2) say(X(HX) + R(0.15), Y(HY) - R(0.1), '연속 끊김…', '#c8b8c8', 13);
       }
     }
@@ -3275,16 +3285,17 @@ function drawAll(ctx: C2, s: AxeState, w: number, h: number, th: Theme) {
   // 큰 순간 띠: 나무 팻말
   if (fx.memo.bigT !== undefined && t - fx.memo.bigT < 56) {
     const age = t - fx.memo.bigT, n = fx.memo.bigN, kind = fx.memo.bigK ?? 0, sc2 = age < 6 ? 1.8 - 0.8 * (age / 6) : 1, a = Math.min(1, (56 - age) / 16);
-    const bx = clamp(fx.memo.bigX, w * 0.3, w * 0.7), by = clamp(fx.memo.bigY - R(0.2), Y(0.3), Y(1.0));
+    const by = clamp(fx.memo.bigY - R(0.2), Y(0.38), Y(0.9));
     const txt = kind === 1 ? (n >= 5 ? '황금 도끼!' : '도끼가 커졌다!') : kind === 2 ? `나무로 ${n}마리!` : kind === 3 ? '대장을 쓰러뜨렸다!' : n >= 5 ? `${n}마리 싹둑!` : `${n}마리 한 번에!`;
     const size = Math.min(34, kind ? 26 : 20 + n * 3);
     ctx.save();
     ctx.globalAlpha = a;
+    ctx.font = `900 ${size}px system-ui, sans-serif`;
+    const tw = ctx.measureText(txt).width, pw = tw + 30, ph = size * 1.5, half = (pw / 2) * sc2 + 6;
+    const bx = half * 2 >= w ? w / 2 : clamp(fx.memo.bigX, half, w - half);
     ctx.translate(bx, by);
     ctx.rotate(-0.05);
     ctx.scale(sc2, sc2);
-    ctx.font = `900 ${size}px system-ui, sans-serif`;
-    const tw = ctx.measureText(txt).width, pw = tw + 30, ph = size * 1.5;
     ctx.fillStyle = 'rgba(20,8,10,.4)';
     rr(ctx, -pw / 2 + 4, -ph / 2 + 5, pw, ph, 8);
     ctx.fill();

@@ -42,7 +42,7 @@ const BLAST = 0.15, CAP_R = 0.042;
 // ── 해적 ──
 const ENTER_T = 44, WIND_T = 34, STUN_T = 46, HP = 3, INV = 80, SOOT_T = 80;
 const RESULT_OK = 200, RESULT_FAIL = 170, CARD_T = 160;
-const STAR_PTS = 300, WIN_PTS = 500;
+const STAR_PTS = 500, WIN_PTS = 800;
 /** 술통이 모자라면 이만큼마다 하나씩 굴러 들어온다 */
 const SUPPLY_T = 330;
 
@@ -76,7 +76,7 @@ export const STAGES: StageDef[] = [
     key: 'barrel', name: '뱃머리', spot: '술통', news: '', hint: '해적 줄 뒤의 술통을 톡 — 끌려오며 다 쓰러뜨려요',
     start: [0.5, 0.72], spd: 0.75, wind: 1.7, things: [['barrel', 0.5, 0.15]],
     waves: [
-      { need: 0, wait: 1e9, init: [['skel', 0.5, 0.33], ['skel', 0.5, 0.48]] },
+      { need: 0, wait: 1e9, init: [['skel', 0.535, 0.33], ['skel', 0.47, 0.48]] },
       { need: 0, wait: 520, groups: [['skel', 1, 3]], drops: [['barrel', 0.2, 0.47]] },
       { need: 0, wait: 520, groups: [['skel', 4, 3]], drops: [['barrel', 0.8, 0.47]] },
       { need: 0, wait: 1e9, groups: [['skel', 0, 2], ['skel', 5, 2]], drops: [['barrel', 0.5, 0.2]] },
@@ -129,7 +129,7 @@ export const STAGES: StageDef[] = [
   },
   {
     key: 'shark', name: '상어 바다', spot: '상어 — 낚으면 갑판을 냠냠!', news: '상어 — 배를 도는 상어를 낚으면 길 위를 냠냠', hint: '상어가 해적 줄 뒤로 올 때 톡 — 갑판을 가로지르며 냠냠',
-    start: [0.5, 0.72], spd: 1.4, wind: 0.8, things: [['shark', 0, 0], ['barrel', 0.26, 0.26], ['mast', 0.5, 0.5], ['cannon', 0.78, 0.7]],
+    start: [0.5, 0.72], spd: 1.2, wind: 0.8, things: [['shark', 0, 0], ['barrel', 0.26, 0.26], ['keg', 0.72, 0.3], ['cannon', 0.78, 0.7]],
     waves: [
       { need: 0, wait: 1e9, groups: [['skel', 1, 3], ['skel', 3, 3], ['skel', 5, 2]] },
       { need: 1, wait: 480, groups: [['skel', 4, 4], ['shield', 0, 1], ['skel', 0, 2], ['skel', 6, 2]] },
@@ -147,7 +147,7 @@ export const STAGES: StageDef[] = [
       { need: 2, wait: 520, groups: [['skel', 0, 4], ['skel', 5, 3], ['skel', 2, 2]], drops: [['barrel', 0.3, 0.84]] },
       { need: 0, wait: 1e9, groups: [['skel', 2, 4], ['shield', 3, 1], ['skel', 3, 3], ['skel', 6, 2]] },
     ],
-    stars: [CLEAR, S('boss', 2, '해골 선장 들이받으며 졸개 둘'), S('nohit', 0, '한 번도 안 맞기')],
+    stars: [CLEAR, S('boss', 2, '선장 칠 때 졸개도 둘'), S('nohit', 0, '한 번도 안 맞기')],
   },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -506,7 +506,7 @@ function yankStep(s: HookState) {
   h.x = b.x;
   h.y = b.y;
   b.fa = Math.atan2(-uy, -ux);
-  const rr = RAD[b.k] + (b.k === 'shark' ? 0.008 : 0);
+  const rr = RAD[b.k] + (b.k === 'shark' ? 0.016 : 0);
   for (const q of s.bodies) {
     if (q === b || !standing(q)) continue;
     if (Math.hypot(q.x - b.x, q.y - b.y) >= rr + RAD[q.k]) continue;
@@ -810,7 +810,7 @@ function spawnWave(s: HookState) {
   for (const [k, x, y] of w.drops ?? []) {
     const b = mkBody(s, k, F(x), y);
     b.st = DROP;
-    b.z = 0.32;
+    b.z = 0.2;
     s.bodies.push(b);
   }
   s.queue.sort((a, b) => a.t - b.t);
@@ -925,7 +925,7 @@ function supply(s: HookState) {
   x = clamp(x, 0.5 - lim, 0.5 + lim);
   const b = mkBody(s, 'barrel', x, y);
   b.st = DROP;
-  b.z = 0.32;
+  b.z = 0.2;
   s.bodies.push(b);
 }
 
@@ -1168,7 +1168,7 @@ function plan(s: HookState, b0: Body, dt = 0): Plan {
     return P;
   }
   P.mode = 1;
-  const ux = (s.cx - b.x) / D, uy = (s.cy - b.y) / D, L = D - CAP_R - RAD[b.k] * 0.8, rr = RAD[b.k] + (b.k === 'shark' ? 0.008 : 0);
+  const ux = (s.cx - b.x) / D, uy = (s.cy - b.y) / D, L = D - CAP_R - RAD[b.k] * 0.8, rr = RAD[b.k] + (b.k === 'shark' ? 0.016 : 0);
   type C = { q: Body; x: number; y: number; u: number };
   const cs: C[] = [];
   for (const p of ps) {
@@ -1272,7 +1272,7 @@ export const hookpirateSmart: Bot<HookState> = {
     // 상어가 곧 해적 줄 뒤로 온다면 그때까지 기다린다
     const shk = s.bodies.find((b) => b.k === 'shark' && b.st === SWIM);
     if (shk && goals.some((st) => st.k === 'shark')) {
-      for (let k = 6; k <= 72; k += 6) {
+      for (let k = 6; k <= 150; k += 8) {
         const a = shk.ang + 0.007 * k, fx = 0.5 + Math.cos(a) * 0.47, fy = 0.52 + Math.sin(a) * 0.56;
         if (Math.hypot(fx - s.cx, fy - s.cy) > ROPE) continue;
         const P = plan(s, { ...shk, x: fx, y: fy }, k);
@@ -1614,26 +1614,50 @@ function getBg(w: number, h: number, sc: number): Bg {
         for (const nx of [0.25, 0.75]) (g.beginPath(), g.arc(x + pw * nx, yy + 3, 1.1, 0, TAU), g.fill());
       }
     }
+    // 노을빛 (오른쪽 위 해에서) · 아래 그늘
+    g.fillStyle = radg(g, w * 0.85, PY0 * w, w * 0.05, w * 1.0, [0, 'rgba(255,190,110,.28)'], [1, 'rgba(255,190,110,0)']);
+    g.fillRect(0, 0, w, h);
+    g.fillStyle = lin(g, 0, (PY0 + 0.5 * KY) * w, 0, (PY0 + KY) * w, [0, 'rgba(60,20,40,0)'], [1, 'rgba(60,20,40,.22)']);
+    g.fillRect(0, 0, w, h);
     // 가장자리 그늘 (오목한 갑판)
     g.strokeStyle = 'rgba(60,25,10,.35)';
     g.lineWidth = w * 0.05;
     poly(g, outer);
     g.stroke();
-    // 고물 쪽 쇠창살 덮개 · 밧줄 뭉치
-    const gx = 0.5 * w, gy = (PY0 + 0.93 * KY) * w;
-    g.fillStyle = '#5a3418';
-    rr(g, gx - w * 0.08, gy - w * 0.03, w * 0.16, w * 0.06, 4);
+    // 고물 쪽: 지켜야 할 보물 상자 · 흩어진 금화
+    const gx = 0.5 * w, gy = (PY0 + 0.95 * KY) * w, cw = w * 0.13, ch = w * 0.07;
+    g.fillStyle = 'rgba(30,10,10,.35)';
+    ell(g, gx, gy + w * 0.005, cw * 0.65, w * 0.018);
     g.fill();
-    g.strokeStyle = '#2e1a0c';
+    rr(g, gx - cw / 2, gy - ch, cw, ch, 3);
+    g.fillStyle = lin(g, 0, gy - ch, 0, gy, [0, '#a8642a'], [1, '#6a3414']);
+    g.fill();
+    g.strokeStyle = OUT;
     g.lineWidth = 2;
     g.stroke();
-    g.strokeStyle = 'rgba(30,15,5,.8)';
-    g.lineWidth = 1.5;
-    for (let k = 1; k < 6; k++) (g.beginPath(), g.moveTo(gx - w * 0.08 + (k * w * 0.16) / 6, gy - w * 0.03), g.lineTo(gx - w * 0.08 + (k * w * 0.16) / 6, gy + w * 0.03), g.stroke());
     g.beginPath();
-    g.moveTo(gx - w * 0.08, gy);
-    g.lineTo(gx + w * 0.08, gy);
+    g.moveTo(gx - cw / 2, gy - ch);
+    g.quadraticCurveTo(gx, gy - ch - w * 0.05, gx + cw / 2, gy - ch);
+    g.closePath();
+    g.fillStyle = lin(g, 0, gy - ch - w * 0.04, 0, gy - ch, [0, '#c07a3a'], [1, '#8a4a20']);
+    g.fill();
     g.stroke();
+    g.fillStyle = '#ffd23f';
+    for (const dx of [-0.38, 0.38]) g.fillRect(gx + dx * cw - w * 0.006, gy - ch - w * 0.03, w * 0.012, ch + w * 0.03);
+    rr(g, gx - w * 0.012, gy - ch * 0.75, w * 0.024, w * 0.03, 2);
+    g.fill();
+    g.strokeStyle = OUT;
+    g.lineWidth = 1.2;
+    g.stroke();
+    for (let k = 0; k < 9; k++) {
+      const cx = gx + (hsh(k + 40) - 0.5) * cw * 1.6, cy = gy + (hsh(k + 41) - 0.3) * w * 0.03;
+      g.fillStyle = '#ffd23f';
+      ell(g, cx, cy, w * 0.008, w * 0.005);
+      g.fill();
+      g.strokeStyle = '#a8741a';
+      g.lineWidth = 0.8;
+      g.stroke();
+    }
     for (const [cx, cy] of [[0.24, 0.9], [0.77, 0.2]]) {
       const x = cx * w, y = (PY0 + cy * KY) * w;
       for (let k = 0; k < 3; k++) {
@@ -2290,15 +2314,30 @@ function drawCannon(ctx: C2, x: number, y: number, k: number, dir: number, flash
 }
 
 /** 돛대: 갑판에서 하늘 위까지 (감아 둔 돛 · 줄사다리 · 깃발) */
-function drawMast(ctx: C2, x: number, y: number, k: number, t: number, wrapped: number, flash: number) {
-  const top = -k * 0.3, wd = k * 0.05;
+function drawMast(ctx: C2, x: number, y: number, k: number, t: number, wrapped: number, flash: number, rails: number[][]) {
+  const top = -k * 0.3, wd = k * 0.045;
+  // 밧줄 사다리 (돛대 꼭대기에서 양쪽 난간으로)
+  const yy0 = k * 0.19;
+  ctx.lineWidth = 1.4;
+  for (const [rx, ry] of rails) {
+    ctx.strokeStyle = 'rgba(60,34,20,.75)';
+    for (const dx of [-wd * 0.6, wd * 0.6]) (ctx.beginPath(), ctx.moveTo(x + dx, yy0), ctx.lineTo(rx + dx * 3, ry), ctx.stroke());
+    ctx.strokeStyle = 'rgba(60,34,20,.45)';
+    for (let j = 1; j < 9; j++) {
+      const u = j / 9;
+      ctx.beginPath();
+      ctx.moveTo(x - wd * 0.6 + (rx - wd * 1.8 - x + wd * 0.6) * u, yy0 + (ry - yy0) * u);
+      ctx.lineTo(x + wd * 0.6 + (rx + wd * 1.8 - x - wd * 0.6) * u, yy0 + (ry - yy0) * u);
+      ctx.stroke();
+    }
+  }
   ctx.fillStyle = 'rgba(20,10,20,.35)';
   ell(ctx, x, y, wd * 2.4, wd * 0.8);
   ctx.fill();
   // 밑동 받침
   rr(ctx, x - wd * 1.6, y - wd * 1.2, wd * 3.2, wd * 1.4, wd * 0.4);
   fillOut(ctx, '#6a3a1a', 1.5);
-  ctx.fillStyle = lin(ctx, x - wd, 0, x + wd, 0, [0, '#5a3018'], [0.4, '#b07a46'], [1, '#4a2410']);
+  ctx.fillStyle = lin(ctx, x - wd, 0, x + wd, 0, [0, '#4a2410'], [0.3, '#c08a52'], [0.45, '#e0aa6a'], [1, '#4a2410']);
   ctx.fillRect(x - wd, top, wd * 2, y - top - wd);
   ctx.strokeStyle = OUT;
   ctx.lineWidth = 1.5;
@@ -2315,15 +2354,15 @@ function drawMast(ctx: C2, x: number, y: number, k: number, t: number, wrapped: 
     }
   }
   // 활대 · 감아 둔 돛
-  const yy = Math.max(k * 0.12, y - k * 0.95);
+  const yy = Math.max(k * 0.16, y - k * 0.95);
   ctx.fillStyle = '#5a3018';
   rr(ctx, x - k * 0.42, yy - wd * 0.5, k * 0.84, wd, wd * 0.5);
   ctx.fill();
-  for (let j = 0; j < 6; j++) {
-    const sx = x - k * 0.36 + j * k * 0.144;
-    ell(ctx, sx, yy + wd * 0.9, k * 0.085, wd * 1.3);
-    fillOut(ctx, lin(ctx, 0, yy, 0, yy + wd * 2.2, [0, '#fff4e0'], [1, '#d8c8a8']), 1.2);
-  }
+  rr(ctx, x - k * 0.38, yy + wd * 0.2, k * 0.76, wd * 1.1, wd * 0.55);
+  fillOut(ctx, lin(ctx, 0, yy, 0, yy + wd * 1.4, [0, '#fff4e0'], [1, '#cdb894']), 1.4);
+  ctx.strokeStyle = 'rgba(120,90,60,.5)';
+  ctx.lineWidth = 1;
+  for (let j = 1; j < 8; j++) (ctx.beginPath(), ctx.moveTo(x - k * 0.38 + j * k * 0.095, yy + wd * 0.25), ctx.quadraticCurveTo(x - k * 0.38 + j * k * 0.095 + 3, yy + wd * 0.75, x - k * 0.38 + j * k * 0.095, yy + wd * 1.25), ctx.stroke());
   ctx.strokeStyle = '#7a5a3a';
   ctx.lineWidth = 1;
   for (let j = 0; j < 4; j++) (ctx.beginPath(), ctx.moveTo(x - k * 0.3 + j * k * 0.2, yy - wd), ctx.lineTo(x - k * 0.3 + j * k * 0.2, yy + wd * 2.2), ctx.stroke());
@@ -2572,6 +2611,48 @@ function drawAll(ctx: C2, s: HookState, w: number, h: number, th: Theme) {
   ctx.restore();
   // ── 갑판 ──
   ctx.drawImage(bg.deck, 0, bob, w, h);
+  // 뱃머리 난간 위 갈매기 구경꾼 (큰 순간엔 놀라 날아올랐다 돌아온다)
+  {
+    const age = t - L.gullT, up = age < 90 ? Math.sin((age / 90) * Math.PI) : 0;
+    const gx = X(0.5) + up * R(0.12), gy = Y(BOW) - R(0.018) - up * R(0.14);
+    ctx.save();
+    ctx.translate(gx, gy);
+    ctx.fillStyle = 'rgba(20,8,20,.3)';
+    if (!up) (ell(ctx, 0, R(0.016), R(0.02), R(0.005)), ctx.fill());
+    const fl = up ? Math.sin(t * 0.7) : 0;
+    ell(ctx, 0, 0, R(0.022), R(0.014));
+    fillOut(ctx, '#f6f2ea', 1.4);
+    ctx.beginPath();
+    ctx.arc(R(0.017), -R(0.012), R(0.01), 0, TAU);
+    fillOut(ctx, '#ffffff', 1.4);
+    ctx.fillStyle = '#ffb02e';
+    ctx.beginPath();
+    ctx.moveTo(R(0.025), -R(0.013));
+    ctx.lineTo(R(0.036), -R(0.009));
+    ctx.lineTo(R(0.025), -R(0.007));
+    ctx.fill();
+    ctx.fillStyle = '#1a0c10';
+    ctx.beginPath();
+    ctx.arc(R(0.02), -R(0.014), 1.3, 0, TAU);
+    ctx.fill();
+    ctx.save();
+    ctx.rotate(-0.3 - fl * 0.9);
+    ell(ctx, -R(0.008), -R(0.004), R(0.016), R(0.007), 0.2);
+    fillOut(ctx, '#9aa4b8', 1.2);
+    ctx.restore();
+    if (!up) {
+      ctx.strokeStyle = '#ffb02e';
+      ctx.lineWidth = 1.5;
+      for (const dx of [-0.004, 0.004]) (ctx.beginPath(), ctx.moveTo(R(dx), R(0.012)), ctx.lineTo(R(dx), R(0.019)), ctx.stroke());
+    }
+    ctx.restore();
+    if (age > 0 && age < 30) {
+      font(0.03, 900);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#fff';
+      ctx.fillText('끼룩!', gx, gy - R(0.03));
+    }
+  }
   // 사다리 (지금 기어오르는 해적이 있는 곳)
   for (const b of s.bodies) {
     if (b.st !== ENTER) continue;
@@ -2603,12 +2684,14 @@ function drawAll(ctx: C2, s: HookState, w: number, h: number, th: Theme) {
   // ── 서 있는 것들 (깊이 순) ──
   type Item = { y: number; f: () => void };
   const items: Item[] = [];
+  const behind: (() => void)[] = [];
   const hk = s.hook;
   for (const b of s.bodies) {
     const bx = X(b.x), byy = Y(b.y);
     if (b.k === 'mast') {
       const fl = Math.max(0, 1 - (t - (fx.memo['m' + b.id] ?? -99)) / 14);
-      items.push({ y: b.y, f: () => drawMast(ctx, bx, byy, w, t, hk.st === H_SPIN ? 1 : 0, fl) });
+      const rails = [[X(0.5 - hw(b.y - 0.12) + 0.01), Y(b.y - 0.12) - R(0.02)], [X(0.5 + hw(b.y - 0.12) - 0.01), Y(b.y - 0.12) - R(0.02)]];
+      items.push({ y: b.y, f: () => drawMast(ctx, bx, byy, w, t, hk.st === H_SPIN ? 1 : 0, fl, rails) });
       continue;
     }
     if (b.k === 'shark') {
@@ -2625,7 +2708,7 @@ function drawAll(ctx: C2, s: HookState, w: number, h: number, th: Theme) {
       items.push({
         y: b.y,
         f: () => {
-          if (b.st === DROP) (ctx.fillStyle = `rgba(20,10,20,${0.35 * (1 - b.z / 0.32)})`), ell(ctx, bx, byy, k * 0.4, k * 0.13), ctx.fill();
+          if (b.st === DROP) (ctx.fillStyle = `rgba(20,10,20,${0.4 * (1 - b.z / 0.2)})`), ell(ctx, bx, byy, k * 0.45, k * 0.14), ctx.fill();
           const tilt = b.st === HOOKED ? -0.25 * Math.sign(s.cx - b.x || 1) : 0;
           ctx.save();
           ctx.translate(bx, byy - z);
@@ -2644,29 +2727,33 @@ function drawAll(ctx: C2, s: HookState, w: number, h: number, th: Theme) {
     // 해골 해적
     if (b.st === GONE) continue;
     const k = R(SKH[b.k]) * dep(b.y);
-    items.push({
-      y: b.y + (b.st === FLY ? 0.02 : 0),
-      f: () => {
-        let x = bx, y = byy, alpha = 1;
+    const drawP = () => {
+        let x = bx, y = byy;
         const fly = b.st === FLY;
-        if (b.st === ENTER) {
+        const climbing = b.st === ENTER;
+        if (climbing) {
+          // 난간 아래에서 기어 올라온다 (난간 위로 나온 몸만 보인다)
           const u = Math.min(1, b.tm / ENTER_T);
-          y += (1 - u) * k * 0.5;
-          alpha = Math.min(1, 0.35 + u);
+          y = Y(b.ry) + (1 - u) * k * 0.9;
+          x = X(b.rx) + (b.ox - b.rx) * w * (1 - u) * 0.25;
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(0, 0, w, Y(b.ry) + R(0.004));
+          ctx.clip();
         }
         if (fly) y -= R(b.z);
         if (b.st === HOOKED) x += Math.sin(t * 1.4) * 1.5;
-        if (!fly) {
+        if (!fly && !climbing) {
           ctx.fillStyle = 'rgba(20,8,20,.35)';
           ell(ctx, bx, byy, k * (b.k === 'boss' ? 0.36 : 0.26), k * 0.08);
           ctx.fill();
-        } else {
+        } else if (fly) {
           ctx.fillStyle = `rgba(20,8,20,${0.25 * Math.max(0, 1 - b.z * 4)})`;
           ell(ctx, bx, byy, k * 0.22, k * 0.06);
           ctx.fill();
         }
         ctx.save();
-        ctx.globalAlpha = alpha;
+        ctx.globalAlpha = 1;
         ctx.translate(x, y);
         if (fly) (ctx.translate(0, -k * 0.5), ctx.rotate(b.rot), ctx.translate(0, k * 0.5));
         if (b.st === HOOKED) ctx.rotate(-0.35 * Math.sign(s.cx - b.x || 1));
@@ -2677,6 +2764,15 @@ function drawAll(ctx: C2, s: HookState, w: number, h: number, th: Theme) {
         drawSkel(ctx, k, { k: b.k, walk: b.st === WALK && !(b.tut && !s.firstThrow) ? t * 0.28 + b.seed : 0, wind: b.st === WIND ? 1 : 0, hurt: b.st === STUN ? 1 : 0, fly, seed: b.seed, t, hp: b.hp, scared: fly || b.st === HOOKED });
         ctx.restore();
         ctx.shadowBlur = 0;
+        if (climbing) {
+          ctx.restore();
+          // 난간을 움켜쥔 뼈 손
+          ctx.fillStyle = '#f4ead2';
+          ctx.strokeStyle = OUT;
+          ctx.lineWidth = 1.2;
+          for (const dx of [-0.12, 0.12]) (ctx.beginPath(), ctx.arc(x + dx * k, Y(b.ry) - R(0.004), k * 0.04, 0, TAU), ctx.fill(), ctx.stroke());
+          return;
+        }
         if (b.st === STUN && b.k !== 'boss') {
           for (let j = 0; j < 3; j++) {
             const a = t * 0.15 + (j * TAU) / 3;
@@ -2717,8 +2813,10 @@ function drawAll(ctx: C2, s: HookState, w: number, h: number, th: Theme) {
             ctx.restore();
           }
         }
-      },
-    });
+      };
+    items.push({ y: b.y + (b.st === FLY ? 0.02 : 0), f: drawP });
+    // 선장 뒤에 가려진 해적은 위에 반투명으로 한 번 더 (다가온 적이 늘 보이게)
+    if ((b.st === WALK || b.st === WIND || b.st === STUN) && b.y < s.cy && Math.abs(b.x - s.cx) < 0.09 && s.cy - b.y < 0.16) behind.push(drawP);
   }
   // 부서진 조각 (뼈·판자·모자)
   for (const q of s.bits) {
@@ -2812,6 +2910,12 @@ function drawAll(ctx: C2, s: HookState, w: number, h: number, th: Theme) {
   });
   items.sort((a, b) => a.y - b.y);
   for (const it of items) it.f();
+  if (behind.length) {
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    for (const f of behind) f();
+    ctx.restore();
+  }
   // ── 갈고리와 사슬 ──
   if (hk.st === H_OUT || hk.st === H_BACK || hk.st === H_YANK || hk.st === H_PULL || hk.st === H_SPIN) {
     let hx = tgx, hy = tgy, z = 0;
@@ -3011,14 +3115,13 @@ function drawAll(ctx: C2, s: HookState, w: number, h: number, th: Theme) {
     const ex = X(e.x), ey = Y(e.y);
     switch (e.kind) {
       case 'throw':
-        say(cpx + s.face * R(0.06), cpy - capK * 1.05, '휙!', '#fff4d0', 15);
         fx.burst(cpx, Y(s.cy), '#e8d0a8', 5, 1.5, 1.6);
         break;
       case 'latch':
         L.latchT = t;
         L.latchX = ex;
         L.latchY = ey - R(e.k && PIR(e.k) ? SKH[e.k] * 0.5 : 0.04);
-        say(ex, L.latchY - R(0.05), e.k === 'mast' ? '휘리릭!' : e.k === 'cannon' || e.k === 'boss' ? '척! 으앗?' : '척!', '#ffffff', e.k === 'cannon' || e.k === 'boss' ? 16 : 18);
+        say(ex, L.latchY - R(0.05), e.k === 'mast' ? '휘리릭!' : e.k === 'cannon' || e.k === 'boss' ? '으앗?' : '척!', '#ffffff', 17);
         fx.kick(2.5);
         if (e.k === 'mast') fx.memo['m' + (s.bodies.find((b) => b.k === 'mast')?.id ?? 0)] = t;
         break;
@@ -3039,7 +3142,6 @@ function drawAll(ctx: C2, s: HookState, w: number, h: number, th: Theme) {
         fx.kick(Math.min(10, 2 + n * 1.5));
         if (e.text === 'kick') say(ex, ey - R(0.13), '뻥!', '#ffe9a8', 20);
         else if (e.text === 'chomp') say(ex, ey - R(0.12), '냠!', '#9ff0ff', 20);
-        else if (e.text === 'chain' && n < 3) say(ex, ey - R(0.12), '쿵!', '#ffd0a0', 15);
         else if (e.text !== 'boom' && n === 1) say(ex, ey - R(0.12), '쾅!', '#ffffff', 17);
         break;
       }
@@ -3119,8 +3221,8 @@ function drawAll(ctx: C2, s: HookState, w: number, h: number, th: Theme) {
         fx.memo['c' + (s.bodies.find((b) => b.k === 'cannon' && Math.hypot(b.x - e.x, b.y - e.y) < 0.01)?.id ?? 0)] = t;
         break;
       case 'thud':
-        say(ex, ey - R(0.16), '쿵!', '#ffe0b0', 18);
         fx.kick(6);
+        fx.burst(ex, ey - R(0.05), '#ffe0b0', 10, 2.6, 2);
         break;
       case 'spinend':
         say(cpx, cpy - capK * 1.25, '어질어질~', '#e8dcff', 14);
@@ -3326,7 +3428,7 @@ function drawHud(ctx: C2, s: HookState, w: number, h: number, fx: ReturnType<typ
       else fillOut(ctx, lost ? 'rgba(255,90,90,.5)' : 'rgba(255,255,255,.1)', 1.4, 'rgba(255,255,255,.3)');
     }
     // 갈고리 준비 (사슬 감는 중이면 차오른다)
-    const hk = s.hook, gx = w - R(0.27), gw = R(0.2), gh = R(0.026);
+    const hk = s.hook, gx = w - R(0.27), gw = R(0.22), gh = R(0.04);
     const ready = hk.st === H_IDLE && s.soot <= 0;
     const fr = ready ? 1 : hk.st === H_REEL ? 1 - hk.t / (REEL_T + 36) : 0;
     drawHookHead(ctx, gx - R(0.03), r1, R(0.014), -Math.PI / 2);
@@ -3344,8 +3446,12 @@ function drawHud(ctx: C2, s: HookState, w: number, h: number, fx: ReturnType<typ
     ctx.stroke();
     font(0.03, 900);
     ctx.textAlign = 'center';
-    ctx.fillStyle = ready ? '#0e3a2a' : '#3a3440';
-    ctx.fillText(s.soot > 0 ? '콜록…' : ready ? '던지기!' : '감는 중', gx + gw / 2, r1 + 1);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = ready ? 'rgba(255,255,255,.7)' : 'rgba(30,16,10,.85)';
+    const lab = s.soot > 0 ? '콜록…' : ready ? '던지기!' : '감는 중';
+    ctx.strokeText(lab, gx + gw / 2, r1 + 1);
+    ctx.fillStyle = ready ? '#0e3a2a' : '#f2e6d6';
+    ctx.fillText(lab, gx + gw / 2, r1 + 1);
   }
   // 2줄: 별 (쉬운 말)
   const r2 = ty + R(0.1);

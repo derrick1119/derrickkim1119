@@ -10,7 +10,8 @@
  * 판 8개: 목표 = 이글루 지키기(적을 모두 맞히기). 별 = 1판은 하나, 2판은 둘, 3판부터 셋(판마다 다른 쉬운 한 줄).
  * 펼쳐짐(하는 일이 바뀐다): 1판 눈사람(줄 꿰기) → 2판 바다표범(좌우로 미끄러짐 → 엇갈려 줄 설 때 쏘기) → 3판 얼음 기둥(꺾어 맞히기)
  *   → 4판 방패 바다표범(앞은 튕겨 냄 → 천장에 튕겨 등 뒤로) → 5판 깨지는 얼음벽(두 번 맞으면 와장창, 조각이 둘레를 쓰러뜨림)
- *   → 6판 눈덩이 개수 제한(다시 안 뭉쳐짐 → 아끼기) → 7판 아기 펭귄 소풍(친구는 피해서) → 8판 북극곰 대장(튕겨 여러 번).
+ *   → 6판 눈덩이 개수 제한(다시 안 뭉쳐짐 → 아끼기) → 7판 아기 펭귄 소풍(친구는 피해서) → 8판 북극곰 대장(체력 6, 튕길 때마다 다시 꿰여서
+ *   벽과 대장 사이를 오가게 쏘면 한 발로 여러 번 — 대장이 내려올수록 그 길이 열리지만 이글루에 닿으면 바로 무너진다).
  * 웃음: 맞은 바다표범은 뒤집혀 버둥거리며 미끄러져 나가고, 눈사람은 당근 코만 남기고 와르르. 이글루를 들이받은 적은 '쿵' 하고 어질어질.
  *   양옆 눈둑의 아기 펭귄 구경꾼이 큰 순간마다 폴짝 뛰며 날개를 파닥인다.
  */
@@ -139,7 +140,7 @@ export const STAGES: StageDef[] = [
   },
   {
     key: 'bear', name: '북극곰 대장 빙벽', place: 3, news: '북극곰 대장 — 여섯 번 맞혀야 해요', goal: '대장 이기기',
-    hint: '대장은 눈덩이를 튕겨 내요 — 빙벽과 대장 사이를 오가게!',
+    hint: '튕길 때마다 대장을 또 꿰요 — 벽과 대장 사이를 오가게!',
     pillars: [[0.25, 0.86, 0.036], [0.75, 0.86, 0.036]],
     waves: [
       { need: 0, wait: 1e9, foes: [['bear', 0.5, 0.56, 0.0006], ...line('snow', 2, 0.25, 0.6, 0.5, 0)] },
@@ -279,9 +280,28 @@ function shatter(F: Field, k: Block, b: Ball, out: Hap[] | null) {
  * 눈덩이 한 틱 (시뮬레이션·미리 보기·봇이 모두 같은 것을 쓴다).
  * 벽·빙벽·기둥·얼음벽·방패 앞면·북극곰에 닿으면 정확히 그 자리에서 튕기고(빨라짐), 지나간 길 위의 적은 모두 맞는다(커짐).
  */
+/** 원과 부딪히기 (ballStep 안에서만 쓰는 임시 값 — 봇이 수십만 번 부르므로 클로저·배열을 만들지 않는다) */
+let cU = 0, cNx = 0, cNy = 0, cObj: unknown = null, cKind = '', cSkip: unknown = null;
+function circ(b: Ball, cx: number, cy: number, cr: number, o: unknown, kd: string, front: boolean) {
+  if (o === cSkip) return;
+  const ox = b.x - cx, oy = b.y - cy, R = cr + b.r, bb = ox * b.dx + oy * b.dy;
+  if (bb >= 0) return;
+  const c = ox * ox + oy * oy - R * R;
+  if (c < 0) return;
+  const disc = bb * bb - c;
+  if (disc < 0) return;
+  const q = -bb - Math.sqrt(disc);
+  if (q < 0 || q >= cU) return;
+  const hx = (b.x + b.dx * q - cx) / R, hy = (b.y + b.dy * q - cy) / R;
+  if (front && hy < 0.3) return;
+  (cU = q), (cNx = hx), (cNy = hy), (cObj = o), (cKind = kd);
+}
+const LEGS: number[] = [];
+const CAND: { f: Foe; o: number }[] = [];
 function ballStep(F: Field, b: Ball, out: Hap[] | null) {
   let rem = b.v, skip: unknown = null;
-  const legs: number[] = [];
+  const legs = LEGS;
+  legs.length = 0;
   for (let it = 0; it < 6 && rem > 1e-7 && !b.done; it++) {
     let u = rem, nx = 0, ny = 0, obj: unknown = null, kind = '';
     if (b.dx < -1e-9) {
@@ -296,26 +316,11 @@ function ballStep(F: Field, b: Ball, out: Hap[] | null) {
       const q = (YT + b.r - b.y) / b.dy;
       if (q >= 0 && q < u && skip !== 'T') (u = q), (nx = 0), (ny = 1), (obj = 'T'), (kind = 'top');
     }
-    const circ = (cx: number, cy: number, cr: number, o: unknown, kd: string, front: boolean) => {
-      if (o === skip) return;
-      const ox = b.x - cx, oy = b.y - cy, R = cr + b.r, bb = ox * b.dx + oy * b.dy;
-      if (bb >= 0) return;
-      const c = ox * ox + oy * oy - R * R;
-      if (c < 0) return;
-      const disc = bb * bb - c;
-      if (disc < 0) return;
-      const q = -bb - Math.sqrt(disc);
-      if (q < 0 || q >= u) return;
-      const hx = (b.x + b.dx * q - cx) / R, hy = (b.y + b.dy * q - cy) / R;
-      if (front && hy < 0.3) return;
-      (u = q), (nx = hx), (ny = hy), (obj = o), (kind = kd);
-    };
-    for (const p of F.pillars) circ(p.x, p.y, p.r, p, 'pillar', false);
-    for (const k of F.blocks) if (k.hp > 0) circ(k.x, k.y, k.r, k, 'block', false);
-    for (const f of F.foes) {
-      if (f.dead || f.st !== GO) continue;
-      if (f.k === 'shield') circ(f.x, f.y, RAD.shield, f, 'shield', true);
-    }
+    (cU = u), (cNx = nx), (cNy = ny), (cObj = obj), (cKind = kind), (cSkip = skip);
+    for (const p of F.pillars) circ(b, p.x, p.y, p.r, p, 'pillar', false);
+    for (const k of F.blocks) if (k.hp > 0) circ(b, k.x, k.y, k.r, k, 'block', false);
+    for (const f of F.foes) if (f.k === 'shield' && !f.dead && f.st === GO) circ(b, f.x, f.y, RAD.shield, f, 'shield', true);
+    (u = cU), (nx = cNx), (ny = cNy), (obj = cObj), (kind = cKind);
     const x1 = b.x + b.dx * u, y1 = b.y + b.dy * u;
     legs.push(b.x, b.y, x1, y1);
     b.x = x1;
@@ -340,7 +345,8 @@ function ballStep(F: Field, b: Ball, out: Hap[] | null) {
     } else out?.push({ k: kind, x: x1, y: y1 });
   }
   // 길 위의 적 (지나간 순서대로)
-  const cand: { f: Foe; o: number }[] = [];
+  const cand = CAND;
+  cand.length = 0;
   for (const f of F.foes) {
     // 북극곰 대장은 튕길 때마다 다시 맞을 수 있다 (벽과 대장 사이를 오가면 여러 번)
     if (f.dead || f.st !== GO || (f.k === 'bear' ? b.bl === b.bounces : b.hit.includes(f.id))) continue;
@@ -417,6 +423,11 @@ function simulate(s: PengState, ax: number, ay: number, lead = 0, maxT = 120): S
     haps.length = 0;
     const d0 = b.dist;
     ballStep(F, b, haps);
+    if (!haps.length && !fly.length) {
+      let gone = false;
+      for (const f of F.foes) if (f.dead) gone = true;
+      if (!gone) continue;
+    }
     let pil = b.pil;
     for (const h of haps) {
       if (h.k === 'wall' || h.k === 'top' || h.k === 'pillar' || h.k === 'block' || h.k === 'shield') out.pts.push(h.x, h.y), out.bd.push(d0), out.bk.push(h.k);
@@ -452,6 +463,8 @@ function hurtIgloo(s: PengState, f: Foe) {
   s.mood = 3;
   s.moodT = 60;
   ev(s, 'bonk', f.x, YI, s.ig, KIND_NAME[f.k], { k: f.k, seed: f.seed });
+  // 연출: 담에 '쿵' 부딪혀 어질어질 튕겨 나간다 (n = -1)
+  s.wrecks.push({ k: f.k, x: f.x, y: YI - 0.01, t: s.t, a: -Math.PI / 2, n: -1, seed: f.seed, face: 1 });
   if (s.ig <= 0) endStage(s, false, f.k === 'bear' ? '대장이 이글루를 깔고 앉았어요' : '이글루가 무너졌어요');
 }
 
@@ -571,7 +584,7 @@ function world(s: PengState) {
   s.balls = s.balls.filter((b) => !b.done);
   s.foes = s.foes.filter((f) => !f.dead);
   // 첫 판 첫 줄은 첫 눈덩이가 떨어질 때까지 기다려 준다 (손가락 안내 그대로 쏘면 꼭 셋이 맞는다)
-  if (s.stage === 0 && s.firstShot >= 0 && !s.balls.length) for (const f of s.foes) if (f.vy === 0 && f.k === 'snow') f.vy = VY.snow;
+  if (s.stage === 0 && ((s.firstShot >= 0 && !s.balls.length) || s.wt > 360)) for (const f of s.foes) if (f.vy === 0 && f.k === 'snow') f.vy = VY.snow;
   if (s.cool > 0) s.cool--;
   if (!s.limited && s.ammo < AMMO) {
     s.reload++;
@@ -2194,7 +2207,6 @@ function drawAll(ctx: C2, s: PengState, w: number, h: number, th: Theme) {
   // ── 서 있는 것들: 깊이(발 y) 순서로 ──
   type Item = { y: number; draw: () => void };
   const items: Item[] = [];
-  const targets = new Map<number, number>();
   for (const p of s.pillars) {
     const fl = Math.max(0, 1 - (t - (fx.memo['pl' + Math.round(p.x * 100)] ?? -99)) / 12);
     items.push({ y: p.y, draw: () => (ctx.save(), ctx.translate(X(p.x), Y(p.y)), drawPillar(ctx, R(p.r), R(0.15) * dep(p.y), t, fl), ctx.restore()) });
@@ -2251,6 +2263,27 @@ function drawAll(ctx: C2, s: PengState, w: number, h: number, th: Theme) {
       y: c.y,
       draw: () => {
         const k = R(FOE_H[c.k]) * dep(c.y), cx = X(c.x), cy = Y(c.y), ax = Math.cos(c.a), ay = Math.sin(c.a);
+        if (c.n < 0) {
+          // 이글루 담에 '쿵' → 어질어질 뒤로 콩 튕겼다 사라진다
+          const u = age, fade = Math.max(0, 1 - u / 60);
+          if (fade <= 0) return;
+          ctx.save();
+          ctx.globalAlpha = fade;
+          ctx.translate(cx + Math.sin(u * 0.5) * k * 0.05, cy - k * 0.3 * Math.sin(Math.min(1, u / 24) * Math.PI) - Math.min(u, 24) * k * 0.012);
+          ctx.rotate(Math.sin(u * 0.4) * 0.25);
+          ctx.scale(1, u < 4 ? 0.8 : 1);
+          if (c.k === 'snow') drawSnowman(ctx, k, wt, c.seed, 1);
+          else if (c.k === 'bear') drawBear(ctx, k, wt, 0, 1);
+          else drawSeal(ctx, k, wt, c.seed, 0, c.k === 'shield' ? 1 : 0, 1);
+          for (let j = 0; j < 3; j++) {
+            const an = u * 0.25 + (j * TAU) / 3;
+            ctx.fillStyle = '#ffe66b';
+            starPath(ctx, Math.cos(an) * k * 0.28, -k * 0.95 + Math.sin(an) * k * 0.07, k * 0.07);
+            ctx.fill();
+          }
+          ctx.restore();
+          return;
+        }
         if (age < 4) {
           ctx.save();
           ctx.translate(cx + Math.sin(age * 3) * k * 0.06, cy);
@@ -2495,7 +2528,6 @@ function drawAll(ctx: C2, s: PengState, w: number, h: number, th: Theme) {
         if (bossShown > 1) continue;
       }
       shown++;
-      targets.set(f.id, hq.n);
       {
         const k0 = R(FOE_H[f.k]) * dep(f.y);
         ctx.strokeStyle = `rgba(255,90,78,${0.6 + 0.4 * pulse})`;
@@ -2648,7 +2680,8 @@ function drawAll(ctx: C2, s: PengState, w: number, h: number, th: Theme) {
     let rec = recentSay.get(s);
     if (!rec) recentSay.set(s, (rec = []));
     x = clamp(x, w * 0.14, w * 0.86);
-    y = clamp(y, Y(0.12), Y(GB) - 10);
+    const card = s.phase === 'result' || (s.pt < CARD_T && (s.stage > 0 || s.again));
+    y = clamp(y, card ? Y(0.36) : Y(0.14), Y(GB) - 10);
     for (let k = 0; k < 6 && rec.some((q) => t - q.t < 30 && Math.abs(q.x - x) < w * 0.22 && Math.abs(q.y - y) < (size + q.size) * 0.6); k++) y -= size + 2;
     rec.push({ x, y, t, size });
     if (rec.length > 12) rec.shift();
@@ -2721,7 +2754,7 @@ function drawAll(ctx: C2, s: PengState, w: number, h: number, th: Theme) {
         break;
       case 'bearhit':
         fx.kick(5);
-        say(X(e.x), Y(e.y) - R(0.25), '으앙!', '#ffd0c8', 18);
+        say(X(e.x) + (e.x < 0.5 ? R(0.16) : -R(0.16)), Y(e.y) - R(0.12), '으앙!', '#ffd0c8', 18);
         fx.burst(X(e.x), Y(e.y) - R(0.12), '#ffffff', 14, 3.4, 2.4);
         break;
       case 'bonk':
@@ -2765,6 +2798,12 @@ function drawAll(ctx: C2, s: PengState, w: number, h: number, th: Theme) {
     ctx.beginPath();
     ctx.arc(xx, yy, 1 + (j % 3) * 0.6, 0, TAU);
     ctx.fill();
+  }
+  // 큰 순간: 잠깐 느려지는 동안 가장자리가 푸르게 어두워지고 눈발이 멈춘 듯
+  if (s.slowT > 0 && s.phase === 'play') {
+    const a = Math.min(1, s.slowT / 12);
+    ctx.fillStyle = radg(ctx, w / 2, Y(0.75), R(0.35), R(1.0), [0, 'rgba(0,0,0,0)'], [1, `rgba(20,60,140,${0.38 * a})`]);
+    ctx.fillRect(-20, -20, w + 40, Y(GB) + 20);
   }
   ctx.restore();
   // 큰 순간 띠: 'N마리 와르르!'
