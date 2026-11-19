@@ -640,7 +640,7 @@ export function campaign(bot: Bot<DashState>, seed: number, maxReplays = 10) {
 }
 const STAGE_W1 = 10;
 /** M2 S6 숨는 봇 스위치(연기 판 낙차를 숨기 있음/없음으로) */
-export let HIDE = true;
+export let HIDE = false; // 🧪 S6: 연기 측정에서만 켠다(대조 봇이 연기 속에서 멈추던 부작용)
 export const setHide = (v: boolean) => void (HIDE = v);
 const STAGE_COUNT_W1 = 10;
 /** M2 S4 다시 하는 판에도 부엉이(🧪) — 끄면 S4 첫 측정과 같다 */
@@ -673,9 +673,11 @@ export function measureTrial(seeds = 24) {
       row.smartStrokeSolo = sum(seedsOf.map((sd) => tryStage(BOTS.smartStroke, sd, k)));
       LEAF_SOLO = false;
       if (d.smokes?.length) { // M2 S5 연기: 사용 = 장인 한붓이 연기에 1초 넘게 숨은 판 · 낙차 = 연기 있는 판 ★ − 연기 없앤 같은 판 ★
+        HIDE = true; // 숨는 봇으로 잼(📋 S6)
         const t = seedsOf.map((sd) => tryStage(BOTS.smartStroke, sd, k));
         STAGES[k] = { ...d, smokes: [] };
         const noSmoke = seedsOf.map((sd) => tryStage(BOTS.smartStroke, sd, k));
+        HIDE = false;
         const tH = seedsOf.map((sd) => tryStage(BOTS.humanStroke, sd, k));
         STAGES[k] = d;
         row.smoke = { use: r2(mean(t.map((x) => +(x.smokeT >= 60)))), drop: r2(mean(t.map((x) => x.stars)) - mean(noSmoke.map((x) => x.stars))), humanUse: r2(mean(tH.map((x) => +(x.smokeT >= 60)))) };

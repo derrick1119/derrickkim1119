@@ -247,7 +247,7 @@ export const TRIAL: StageDef[] = ([
     n: 5,
   },
   {
-    key: 'smoke', name: '굴뚝 연기', place: 1, news: '연기 속에선 적이 못 봐요 — 숨어 먹 채우고 꺾어 나와요', card: '연기에 숨어요', goal: '굴뚝 지나가기',
+    key: 'smoke', name: '굴뚝 연기', place: 1, news: '연기 속에선 적이 못 봐요', card: '연기 속은 안 보여요', // 🧪 S6: '먹 채우고'는 틀린 말이었다(연기는 눈만 가림) goal: '굴뚝 지나가기',
     hint: '연기에 숨어 기다려요', start: [0.5, 1.15], gap: 420, g0: 60, ease: [1.2, 1.5, 0.9], smokes: [[0.3, 0.75, 0.11], [0.7, 0.92, 0.11]],
     waves: [
       { need: 1, wait: 1e9, foes: [['sword', 0.14, 0.62, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.26, 0.78, 1], ['sword', 0.32, 0.86, 1], ['archer', 0.5, 0.5, 3]] },
@@ -2121,32 +2121,7 @@ function drawFoeBody(ctx: C2, k: number, p: Pose, t: number) {
   const bob = p.moving ? -Math.abs(Math.sin(t * 0.22 + p.seed)) * k * 0.035 : Math.sin(t * 0.06 + p.seed) * k * 0.01;
   const wind = p.st === WIND || p.st === AIM, scared = p.cut || p.hurt > 0;
   const mood = p.cut ? 3 : 0;
-  if (p.k === 'bell') { // ✏️ M2 S6 🔔 청동 종(임시 그림 — 🎨 M3): 작은 나무 틀에 매단 종 · 댕 하면 흔들림
-    ctx.save();
-    ctx.strokeStyle = '#5a3a1a';
-    ctx.lineWidth = k * 0.05;
-    ctx.beginPath();
-    ctx.moveTo(-k * 0.2, 0);
-    ctx.lineTo(-k * 0.2, -k * 0.62);
-    ctx.lineTo(k * 0.2, -k * 0.62);
-    ctx.lineTo(k * 0.2, 0);
-    ctx.stroke();
-    ctx.translate(0, -k * 0.58);
-    ctx.rotate(Math.sin(t * 0.5) * 0.35 * Math.min(1, p.hurt / 20));
-    ctx.fillStyle = lin(ctx, -k * 0.13, 0, k * 0.13, 0, [0, '#6b4a1c'], [0.5, '#d9a441'], [1, '#6b4a1c']);
-    ctx.beginPath();
-    ctx.moveTo(-k * 0.05, 0);
-    ctx.quadraticCurveTo(-k * 0.12, k * 0.08, -k * 0.15, k * 0.36);
-    ctx.lineTo(k * 0.15, k * 0.36);
-    ctx.quadraticCurveTo(k * 0.12, k * 0.08, k * 0.05, 0);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = O;
-    ctx.lineWidth = k * 0.025;
-    ctx.stroke();
-    ctx.restore();
-    return;
-  }
+  // M2 S6 🔔 종 그림·미리 보기는 보류하며 번들에서 뺐다(gzip 40KB 문턱 · 🧪) — 되살리면 git 기록 참고
   if (p.k === 'leaf') { // ✏️ M2 S1 🍃 잎 너구리(임시 그림 — 🎨 M3): 둥근 몸 · 눈가 얼룩 · 머리에 큰 잎
     ctx.save();
     ctx.translate(0, bob);
@@ -3810,19 +3785,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.textBaseline = 'middle';
       ctx.fillText(String(i + 1), bx, by + 1);
     });
-    for (const bq of prev.bells) { // 🔔 몇 번 들어가나: 1/2(댕) · 2/2(쩍)
-      const f = s.foes.find((q) => q.id === bq.id);
-      if (!f) continue;
-      font(0.04, 900);
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = 'rgba(0,0,0,.6)';
-      const txt = bq.n >= 2 ? '쩍! 2/2' : '댕 1/2 — 되돌아 한 번 더';
-      ctx.strokeText(txt, X(f.x), Y(f.y) + R(0.05));
-      ctx.fillStyle = bq.n >= 2 ? '#ff6a5a' : '#ffe08a';
-      ctx.fillText(txt, X(f.x), Y(f.y) + R(0.05));
-    }
     for (const dq of prev.dodges) { // 🍃 곧은 칼이면 '휙' — 꺾어 들어가야 베인다
       const f = s.foes.find((q) => q.id === dq.id);
       if (!f) continue;
