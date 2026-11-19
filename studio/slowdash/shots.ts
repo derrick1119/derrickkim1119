@@ -80,7 +80,7 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
   page.on('pageerror', (e: unknown) => errors.push(String(e)));
   await page.goto(url + '&stage=3');
   await page.click('.g-overlay');
-  await page.waitForTimeout(900);
+  await page.waitForTimeout(3000); // S012: 판 소개 카드가 지나간 뒤(알림 줄이 보이게)
   const box = (await page.locator('canvas').boundingBox())!;
   const at = (x: number, y: number) => ({ x: box.x + x * box.width, y: box.y + y * box.width });
   await page.screenshot({ path: join(out, '11-thorn-idle.png') }); // S010 누르기 전에도 덤불이 보이나
@@ -90,6 +90,11 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
   for (let i = 1; i <= 8; i++) ((p = at(0.5 - 0.2 * (i / 8), 1.12 - 0.22 * (i / 8))), await page.mouse.move(p.x, p.y), await page.waitForTimeout(30));
   await page.screenshot({ path: join(out, '10-thorn.png') });
   await page.mouse.up();
+  // ✏️ S012 1-2 길잡이: 꺾은 획을 아직 안 그었으면 ㄱ자 길을 손가락이 그려 보인다
+  await page.goto(url + '&stage=2');
+  await page.click('.g-overlay');
+  await page.waitForTimeout(2600);
+  await page.screenshot({ path: join(out, '12-guide.png') });
 }
 await browser.close();
 console.log(`콘솔 에러 ${errors.length}${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''} · 가로 스크롤 ${scroll.length ? scroll.join(', ') : '0'}`);

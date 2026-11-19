@@ -326,7 +326,7 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
   // ✏️ S010 300초 측정 고침: 60초 동안 아무것도 못 베고 웨이브도 그대로면 '막힘' — 사람이면 그만둔다(실패로 셈)
   let prog = s.t, mark = '';
   while (s.phase !== 'result' && s.t - t0 < maxSec * 60) {
-    const now = `${s.wave}/${s.foes.length}/${s.hits}`;
+    const now = `${s.wave}/${s.foes.length}/${s.hp}`; // S012: 덤불 맞음(목숨 그대로)은 진전이 아니다 — 휘젓기 6판 300초
     if (now !== mark) (mark = now), (prog = s.t);
     if (s.t - prog > STALL * 60) break;
     const was = s.down, px = s.nx, py = s.ny;

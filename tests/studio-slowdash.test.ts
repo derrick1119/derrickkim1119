@@ -209,6 +209,27 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(b.freeze).toBe(0);
   });
 
+  it('S012 알림·길잡이: 꾹 누른 길이 처음 덤불에 걸리면 알림이 줄 맨 앞에 바로 뜬다 · 1-2판은 꺾은 획을 긋기 전까지 셋 넘게 베는 ㄱ자 길이 있다', () => {
+    const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y: y / A } });
+    const s = g.create(3);
+    startStage(s, K('sword'));
+    for (let k = 0; k < 60; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+    s.foes = [];
+    (s.nx = 0.5), (s.ny = 1.12), (s.g = 100);
+    s.thorns = [{ x: 0.5, y: 0.92, r: 0.05 }];
+    for (let k = 0; k < 8; k++) g.step(s, at(0.5, 0.75));
+    expect(s.news?.text).toContain('빨간 덤불');
+    const b = g.create(3);
+    startStage(b, K('bend'));
+    for (let k = 0; k < 90; k++) g.step(b, { tap: false, dir: 0, pointer: null });
+    expect(b.bents).toBe(0);
+    const before = b.best;
+    const run = BOTS.smartStroke, rng = () => 0.5;
+    for (let k = 0; k < 600 && b.bents === 0; k++) g.step(b, run.act(b, rng));
+    expect(b.bents).toBeGreaterThan(0); // 꺾은 획을 그으면 길잡이가 꺼진다
+    expect(b.best).toBeGreaterThanOrEqual(Math.max(3, before));
+  });
+
   it('S005 효과음: 시뮬·봇은 소리를 모른다(헤드리스로 한 판 돌려도 AudioContext 0) · 연쇄 음계는 5음계로 오르고 8번째부터 고정', () => {
     runBot(g, slowdashSmart, 5, 60 * 120);
     expect(sfx.live).toBe(false);
