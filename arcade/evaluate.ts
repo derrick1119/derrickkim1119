@@ -40,6 +40,8 @@ export interface ArcadeReport {
   human?: { sec: number; capped: number; scoreRatio: number };
   /** 큰 순간 (0089, GameDef.wows): 처음 하는 사람(무작위 봇)의 첫 입력부터 첫 큰 순간까지 초(중앙값, 3분 안에 못 보면 null) · 분당 큰 순간(무작위 · 잘하는 봇) */
   wow?: { firstSec: number | null; seen: number; dumbPerMin: number; smartPerMin: number };
+  /** 판별 변화 (0092, cleared 필요): 2판부터 판별 손 모양(분당 누름·누르는 길이)의 변동계수 최댓값 · 2판부터 분당 큰 순간 ÷ 1판(wows 있을 때) */
+  stages?: { change: number; lateWow: number | null; n: number };
 }
 
 const median = (a: number[]) => {
@@ -175,6 +177,46 @@ export function wowStats<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, seeds: n
   };
 }
 
+/**
+ * 판마다 하는 일이 바뀌나 (0092, 한계 지표). 잘하는 봇 판을 판(cleared)별로 끊어
+ * 분당 누름·한 번 누르는 길이·분당 큰 순간(wows)을 잰다. 나사 공방 "폐기 한계가 좀 보인더".
+ */
+export function stageProfile<S>(g: GameDef<S>, smart: Bot<S>, seeds: number[]): { change: number; lateWow: number | null; n: number } | undefined {
+  if (!g.cleared) return undefined;
+  const per = new Map<number, { t: number; presses: number; holdT: number; wows: number }>();
+  for (const sd of seeds) {
+    const st = g.create(sd), rng = mulberry32(sd ^ 0x9e3779b9), done = new Set<number>();
+    let held = NO_INPUT, was = false, w0 = g.wows ? g.wows(st) : 0, cur = { t: 0, presses: 0, holdT: 0 };
+    for (let t = 0; t < 60 * 180 && !g.over(st); t++) {
+      const inp = t % REACT === 0 ? (held = smart.act(st, rng)) : { ...held, tap: false, move: undefined, pick: undefined };
+      const on = !!(inp.tap || inp.hold || inp.pointer || inp.move);
+      if (on && !was) cur.presses++;
+      if (on) cur.holdT++;
+      was = on;
+      cur.t++;
+      g.step(st, inp);
+      const c = g.cleared(st);
+      if (c && !done.has(c.stage)) {
+        done.add(c.stage);
+        const w = g.wows ? g.wows(st) : 0, p = per.get(c.stage) ?? { t: 0, presses: 0, holdT: 0, wows: 0 };
+        per.set(c.stage, { t: p.t + cur.t, presses: p.presses + cur.presses, holdT: p.holdT + cur.holdT, wows: p.wows + w - w0 });
+        w0 = w;
+        cur = { t: 0, presses: 0, holdT: 0 };
+      }
+    }
+  }
+  const rows = [...per.entries()].sort((a, b) => a[0] - b[0]).map(([k, p]) => ({ k, perMin: p.presses / Math.max(1e-9, p.t / 3600), hold: p.holdT / Math.max(1, p.presses), wowMin: p.wows / Math.max(1e-9, p.t / 3600) }));
+  const late = rows.filter((r) => r.k >= 1);
+  if (late.length < 2) return undefined;
+  const cv = (a: number[]) => { const m = a.reduce((x, y) => x + y, 0) / a.length; return m > 0 ? Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / a.length) / m : 0; };
+  const first = rows.find((r) => r.k === 0);
+  return {
+    change: +Math.max(cv(late.map((r) => r.perMin)), cv(late.map((r) => r.hold))).toFixed(2),
+    lateWow: g.wows && first && first.wowMin > 0 ? +(median(late.map((r) => r.wowMin)) / first.wowMin).toFixed(2) : null,
+    n: rows.length,
+  };
+}
+
 /** 사람 반응 간격: 0.3초 (0083) */
 export const HUMAN_REACT = 18;
 
@@ -254,6 +296,7 @@ export function evaluateGame<S>(g: GameDef<S>, dumb: Bot<S>, smart: Bot<S>, n = 
     habitStar3: habitStars(g, habits, seeds),
     human: humanPace(g, smart, seeds, smartScore),
     wow: wowStats(g, dumb, smart, seeds),
+    stages: stageProfile(g, smart, seeds.slice(0, 8)),
     habitGap: habits.length ? +(median(m.map(rate)) / Math.max(1e-9, ...habits.map((h) => median(seeds.map((sd) => rate(runBot(g, h, sd, 60 * 180, REACT))))))).toFixed(2) : undefined,
   };
 }
@@ -264,7 +307,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const t0 = performance.now();
     const r = evaluateGame(e.game as GameDef<unknown>, e.dumb as Bot<unknown>, e.smart as Bot<unknown>, 24, (e.habits ?? []) as Bot<unknown>[]);
     out[r.id] = r;
-    console.log(`${r.name.padEnd(8)} 재미 ${r.fun.toFixed(3)}${r.reveals ? ` · 펼쳐짐 ${r.reveals.join('/')} (못함 ${r.dumbReveals?.join('/')})` : ''} · 숙련격차 ${r.skillGap}× · 못함 ${r.dumb.sec}s/${r.dumb.score}점 · 잘함 ${r.smart.sec}s/${r.smart.score}점 (3분 버팀 ${Math.round(r.smart.capped * 100)}%) ${r.habitGap ? `· 버릇 격차 ${r.habitGap}× ` : ''}${r.wow ? `· 첫 와 ${r.wow.firstSec ?? '—'}s(${Math.round(r.wow.seen * 100)}%)·분당 ${r.wow.dumbPerMin}/${r.wow.smartPerMin} ` : ''}${r.human ? `· 사람 속도 ${r.human.sec}s·점수 ${Math.round(r.human.scoreRatio * 100)}% ` : ''}${r.habitStar3 ? `· 버릇 ★3 최고 ${Math.round(r.habitStar3.rate * 100)}%(${r.habitStar3.stage}판) ` : ''}· 연타 분당 ${r.presses?.perMin}번 · 같은 자리 최대 ${r.presses?.maxSame ?? '—'} · 첫 몇 초 하트·지킬 것 손실 손 안 댐 ${Math.round((r.firstLoss?.idle ?? 0) * 100)}%/늦은 사람 ${Math.round((r.firstLoss?.late ?? 0) * 100)}% · ${((performance.now() - t0) / 1000).toFixed(1)}s`);
+    console.log(`${r.name.padEnd(8)} 재미 ${r.fun.toFixed(3)}${r.reveals ? ` · 펼쳐짐 ${r.reveals.join('/')} (못함 ${r.dumbReveals?.join('/')})` : ''} · 숙련격차 ${r.skillGap}× · 못함 ${r.dumb.sec}s/${r.dumb.score}점 · 잘함 ${r.smart.sec}s/${r.smart.score}점 (3분 버팀 ${Math.round(r.smart.capped * 100)}%) ${r.habitGap ? `· 버릇 격차 ${r.habitGap}× ` : ''}${r.wow ? `· 첫 와 ${r.wow.firstSec ?? '—'}s(${Math.round(r.wow.seen * 100)}%)·분당 ${r.wow.dumbPerMin}/${r.wow.smartPerMin} ` : ''}${r.stages ? `· 판별 바뀜 ${r.stages.change} 큰 순간 이어짐 ${r.stages.lateWow ?? '—'} ` : ''}${r.human ? `· 사람 속도 ${r.human.sec}s·점수 ${Math.round(r.human.scoreRatio * 100)}% ` : ''}${r.habitStar3 ? `· 버릇 ★3 최고 ${Math.round(r.habitStar3.rate * 100)}%(${r.habitStar3.stage}판) ` : ''}· 연타 분당 ${r.presses?.perMin}번 · 같은 자리 최대 ${r.presses?.maxSame ?? '—'} · 첫 몇 초 하트·지킬 것 손실 손 안 댐 ${Math.round((r.firstLoss?.idle ?? 0) * 100)}%/늦은 사람 ${Math.round((r.firstLoss?.late ?? 0) * 100)}% · ${((performance.now() - t0) / 1000).toFixed(1)}s`);
   }
   writeFileSync(join(import.meta.dirname, 'reports', 'eval.json'), JSON.stringify(out, null, 1) + '\n');
 }

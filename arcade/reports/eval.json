@@ -54,6 +54,11 @@
    "dumbPerMin": 6.6,
    "smartPerMin": 13.2
   },
+  "stages": {
+   "change": 0.28,
+   "lateWow": 0.23,
+   "n": 8
+  },
   "habitGap": 1.32
  },
  "puffhamster": {
@@ -110,6 +115,11 @@
    "seen": 1,
    "dumbPerMin": 9.2,
    "smartPerMin": 16.8
+  },
+  "stages": {
+   "change": 0.56,
+   "lateWow": 0.75,
+   "n": 7
   },
   "habitGap": 1.88
  },
@@ -168,6 +178,11 @@
    "dumbPerMin": 2.4,
    "smartPerMin": 1.9
   },
+  "stages": {
+   "change": 0.03,
+   "lateWow": 0.06,
+   "n": 7
+  },
   "habitGap": 1.71
  },
  "umbrellaparry": {
@@ -224,6 +239,11 @@
    "seen": 1,
    "dumbPerMin": 7.3,
    "smartPerMin": 25.1
+  },
+  "stages": {
+   "change": 0.15,
+   "lateWow": 0.66,
+   "n": 6
   },
   "habitGap": 2.3
  },
@@ -282,6 +302,11 @@
    "dumbPerMin": 3.2,
    "smartPerMin": 5.5
   },
+  "stages": {
+   "change": 0.56,
+   "lateWow": 0.54,
+   "n": 7
+  },
   "habitGap": 3.04
  },
  "wavesurf": {
@@ -338,6 +363,11 @@
    "seen": 1,
    "dumbPerMin": 3.2,
    "smartPerMin": 10.1
+  },
+  "stages": {
+   "change": 0.23,
+   "lateWow": 0.68,
+   "n": 7
   },
   "habitGap": 2.37
  }
