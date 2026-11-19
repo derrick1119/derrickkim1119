@@ -43,6 +43,11 @@
    "stage": 5,
    "bot": "늘 가장 많이 맞히는 쪽으로 바로"
   },
+  "human": {
+   "sec": 116.6,
+   "capped": 0,
+   "scoreRatio": 0.99
+  },
   "habitGap": 1.18
  },
  "hookpirate": {
@@ -88,6 +93,11 @@
    "rate": 0.42,
    "stage": 3,
    "bot": "늘 지금 가장 많이 쓰러뜨리는 것을 바로"
+  },
+  "human": {
+   "sec": 151.8,
+   "capped": 0,
+   "scoreRatio": 1
   },
   "habitGap": 1.54
  },
@@ -135,6 +145,11 @@
    "stage": 3,
    "bot": "늘 최대로, 가장 가까운 적에 직선"
   },
+  "human": {
+   "sec": 148.4,
+   "capped": 0,
+   "scoreRatio": 0.9
+  },
   "habitGap": 2.81
  },
  "stompdino": {
@@ -180,6 +195,11 @@
    "rate": 0,
    "stage": 0,
    "bot": "들어오면 바로 작은 쿵"
+  },
+  "human": {
+   "sec": 198,
+   "capped": 0,
+   "scoreRatio": 0.62
   },
   "habitGap": 5.88
  },
@@ -227,6 +247,11 @@
    "stage": 3,
    "bot": "늘 가장 가까운 적을 가까운 연못으로"
   },
+  "human": {
+   "sec": 134.6,
+   "capped": 0,
+   "scoreRatio": 0.23
+  },
   "habitGap": 2.6
  },
  "axeback": {
@@ -272,6 +297,11 @@
    "rate": 0.13,
    "stage": 6,
    "bot": "늘 가장 가까운 괴물에게 곧장"
+  },
+  "human": {
+   "sec": 149.3,
+   "capped": 0,
+   "scoreRatio": 1.05
   },
   "habitGap": 1.45
  }
