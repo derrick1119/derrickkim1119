@@ -4,7 +4,7 @@
  */
 import { TICK } from './core.ts';
 import { peek } from './juice.ts';
-import { STAGES, slowdash as g, type DashState } from './game.ts';
+import { STAGES, STAGE_COUNT, slowdash as g, startStage, type DashState } from './game.ts';
 import { sfx } from './sfx.ts';
 
 const store = {
@@ -112,6 +112,7 @@ function title() {
 function start() {
   const seed = Number(q.get('seed')) || (Date.now() % 1_000_000) + 1;
   s = g.create(seed);
+  { const st = Math.floor(Number(q.get('stage'))); if (st > 1 && st <= STAGE_COUNT) startStage(s, st - 1); } // ✏️ S009 시험·스크린샷용 ?stage=N
   sfx.wake();
   wasDown = false;
   running = true;

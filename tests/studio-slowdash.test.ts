@@ -152,6 +152,31 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(t.best).toBe(3);
   });
 
+  it('S009 가시덤불: 곧은 줄이 덤불을 지나면 꼬리털만 걸리고(★★★만 놓침, 목숨은 그대로) 꺾어 돌면 안 걸린다 · 버릇은 ★★★을 못 따고 장인 한붓은 딴다', () => {
+    const at = (x: number, y: number) => ({ tap: false, dir: 0 as const, pointer: { x, y: y / A } });
+    const go = (pts: number[][]) => {
+      const s = g.create(3);
+      startStage(s, K('sword'));
+      for (let k = 0; k < 60; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+      s.foes = [];
+      (s.nx = 0.5), (s.ny = 1.12), (s.g = 100), (s.inv = 0);
+      s.thorns = [{ x: 0.5, y: 0.92, r: 0.05 }];
+      for (const [x, y] of pts) for (let k = 0; k < 3; k++) g.step(s, at(x, y));
+      g.step(s, { tap: false, dir: 0, pointer: null });
+      return s;
+    };
+    const straight = go([[0.5, 0.75]]);
+    expect(straight.hits).toBe(1);
+    expect(straight.hp).toBe(3);
+    expect(straight.events.some((e) => e.kind === 'hurt')).toBe(true);
+    const bent = go([[0.5, 1.12], [0.66, 1.0], [0.66, 0.85], [0.5, 0.75]]);
+    expect(bent.hits).toBe(0);
+    expect(STAGES.filter((d) => d.thorns?.length).map((d) => d.key)).toEqual(['sword', 'twin', 'archer', 'shield', 'mix', 'shuri']);
+    const k = K('sword'), seeds = [101, 108, 115, 122];
+    expect(seeds.filter((sd) => tryStage(BOTS.habit, sd, k).s3)).toHaveLength(0);
+    expect(seeds.filter((sd) => tryStage(BOTS.smartStroke, sd, k).s3).length).toBeGreaterThanOrEqual(2);
+  });
+
   it('S005 효과음: 시뮬·봇은 소리를 모른다(헤드리스로 한 판 돌려도 AudioContext 0) · 연쇄 음계는 5음계로 오르고 8번째부터 고정', () => {
     runBot(g, slowdashSmart, 5, 60 * 120);
     expect(sfx.live).toBe(false);

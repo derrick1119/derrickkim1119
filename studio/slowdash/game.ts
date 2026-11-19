@@ -73,6 +73,8 @@ interface Wave { need: number; wait: number; foes: Spawn[] }
 interface StageDef {
   key: string; name: string; place: number; news: string; hint: string; goal: string;
   start: [number, number]; mirrors?: number[][]; barrels?: number[][]; smokes?: number[][];
+  /** ✏️ S009 가시덤불 [x, y, r]: 돌진 길이 지나가면 꼬리 하나를 잃는다(계속 간다) — 곧은 줄은 걸리고, 꺾어 돌면 안 걸린다 */
+  thorns?: number[][];
   waves: Wave[];
   /** ✏️ M1 S002 별 틀(📐 GDD §5 · CONTENT §1): ★ 지나가기 · ★★ 한 번에 n 베기 · ★★★ 꼬리 하나도 안 잃기 — 모든 판 같음 */
   n: number;
@@ -108,8 +110,9 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 6,
   },
   {
-    key: 'sword', name: '오솔길', place: 0, news: '칼잡이 — 다가와 칼을 휘둘러요', goal: '숲 지나가기',
-    hint: '모이길 기다려 꺾어 이어요', start: [0.5, 1.12], g0: 60, ease: [1.5, 1.2, 1],
+    key: 'sword', name: '오솔길', place: 0, news: '칼잡이가 와요 · 가시덤불은 꺾어 돌아요', goal: '숲 지나가기',
+    hint: '덤불을 돌아 꺾어 이어요', start: [0.5, 1.12], g0: 60, ease: [1.5, 1.2, 1],
+    thorns: [[0.33, 0.96, 0.06], [0.67, 0.96, 0.06]], // ✏️ S009 📐 가시덤불
     waves: [
       { need: 1, wait: 1e9, foes: [['sword', 0.14, 0.7, 1], ['sword', 0.2, 0.77, 1], ['sword', 0.26, 0.84, 1], ['sword', 0.8, 0.6, 2], ['sword', 0.88, 0.6, 2], ['sword', 0.84, 0.68, 2]] },
       { need: 1, wait: 600, foes: [['sword', 0.86, 0.7, 2], ['sword', 0.8, 0.77, 2], ['sword', 0.74, 0.84, 2], ['sword', 0.2, 0.52, 3], ['sword', 0.28, 0.52, 3], ['sword', 0.24, 0.6, 3]] },
@@ -118,8 +121,9 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 5,
   },
   {
-    key: 'twin', name: '두 갈래', place: 0, news: '두 무리 — 돌아서 한 획에', goal: '숲 지나가기',
-    hint: '양쪽을 U자로 돌아 이어요', start: [0.5, 1.1], g0: 60, ease: [1, 1, 1],
+    key: 'twin', name: '두 갈래', place: 0, news: '두 무리 — 덤불 사이로 돌아서 한 획에', goal: '숲 지나가기',
+    hint: '덤불 위로 U자로 돌아 이어요', start: [0.5, 1.1], g0: 60, ease: [1, 1, 1],
+    thorns: [[0.3, 1.04, 0.055], [0.7, 1.04, 0.055]], // ✏️ S009 📐 가시덤불
     waves: [
       { need: 1, wait: 1e9, foes: [['sword', 0.14, 0.76, 1], ['sword', 0.14, 0.88, 1], ['sword', 0.14, 1.0, 1], ['sword', 0.86, 0.76, 2], ['sword', 0.86, 0.88, 2], ['sword', 0.86, 1.0, 2]] },
       { need: 1, wait: 720, foes: [['sword', 0.3, 0.52, 3], ['sword', 0.42, 0.52, 3], ['sword', 0.58, 0.52, 3], ['sword', 0.7, 0.52, 3], ['sword', 0.12, 1.18, 1], ['sword', 0.88, 1.18, 2]] },
@@ -130,7 +134,8 @@ const RAW: Omit<StageDef, 'stars'>[] = [
   },
   {
     key: 'archer', name: '달빛 언덕', place: 0, news: '화살병 — 날아오는 화살도 벨 수 있어요', goal: '언덕 넘어가기',
-    hint: '화살 사이로 꺾어 그어요', start: [0.5, 1.15], g0: 55, ease: [1, 1, 1],
+    hint: '덤불을 끼고 꺾어 화살병까지', start: [0.5, 1.15], g0: 55, ease: [1, 1, 1],
+    thorns: [[0.5, 0.8, 0.06], [0.3, 1.0, 0.05], [0.7, 1.0, 0.05]], // ✏️ S009 📐 가시덤불
     waves: [
       { need: 1, wait: 1e9, foes: [['sword', 0.26, 0.82, 1], ['sword', 0.2, 0.74, 1], ['sword', 0.14, 0.65, 1], ['archer', 0.42, 0.56, 3], ['archer', 0.58, 0.56, 3]] },
       { need: 1, wait: 720, foes: [['sword', 0.74, 0.82, 2], ['sword', 0.8, 0.74, 2], ['sword', 0.86, 0.65, 2], ['archer', 0.5, 0.5, 3], ['sword', 0.2, 0.52, 3], ['sword', 0.28, 0.52, 3]] },
@@ -141,7 +146,8 @@ const RAW: Omit<StageDef, 'stars'>[] = [
   // ✏️ M1 S008: 📐 1-6~1-10 꺾기 판(방패 · 통 · 섞기 · 수리검 · 대장) — 고리 일격 없음. 거울 판은 M2로(잘라내기 ③)
   {
     key: 'shield', name: '높은 지붕', place: 1, news: '방패 무사 — 앞은 튕겨요, 꺾어 등 뒤를 베요', goal: '지붕 건너가기',
-    hint: '방패 옆으로 올라가 꺾어 등을 베요', start: [0.5, 1.15], g0: 60, ease: [1.3, 2.5, 0.8],
+    hint: '덤불 옆으로 올라가 꺾어 등을 베요', start: [0.5, 1.15], g0: 60, ease: [1.3, 2.5, 0.8],
+    thorns: [[0.5, 0.93, 0.05], [0.2, 1.04, 0.05], [0.8, 1.04, 0.05]], // ✏️ S009 📐 가시덤불
     waves: [
       { need: 0, wait: 1e9, foes: [['shield', 0.5, 0.74, 3], ['dummy', 0.36, 0.82, 0], ['dummy', 0.29, 0.66, 0], ['dummy', 0.26, 0.58, 0], ['dummy', 0.64, 0.83, 0]] },
       { need: 1, wait: 780, foes: [['shield', 0.5, 0.72, 3], ['dummy', 0.5, 0.52, 0], ['sword', 0.16, 0.6, 1], ['sword', 0.84, 0.6, 2]] },
@@ -162,7 +168,8 @@ const RAW: Omit<StageDef, 'stars'>[] = [
   },
   {
     key: 'mix', name: '창고 처마', place: 2, news: '섞여 와요 — 화살병 먼저, 방패는 등 뒤로', goal: '처마 지나가기',
-    hint: '칼잡이를 지나 꺾어 화살병까지', start: [0.5, 1.15], g0: 60, ease: [1.2, 3, 0.7],
+    hint: '덤불 사이로 올라가 갈라 꺾어요', start: [0.5, 1.15], g0: 60, ease: [1.2, 3, 0.7],
+    thorns: [[0.36, 1.0, 0.05], [0.64, 1.0, 0.05]], // ✏️ S009 📐 가시덤불
     waves: [
       { need: 1, wait: 1e9, foes: [['sword', 0.26, 0.84, 1], ['sword', 0.2, 0.75, 1], ['sword', 0.14, 0.66, 1], ['archer', 0.4, 0.52, 3], ['archer', 0.6, 0.52, 3]] },
       { need: 1, wait: 720, foes: [['shield', 0.5, 0.72, 3], ['archer', 0.3, 0.5, 3], ['sword', 0.86, 0.9, 2], ['sword', 0.74, 0.9, 2]] },
@@ -172,7 +179,8 @@ const RAW: Omit<StageDef, 'stars'>[] = [
   },
   {
     key: 'shuri', name: '성벽 위', place: 2, news: '수리검 — 셋이 부채꼴로 날아와요', goal: '성벽 건너가기',
-    hint: '부채꼴 틈으로 꺾어 들어가요', start: [0.5, 1.15], g0: 60, ease: [1.2, 3, 0.7],
+    hint: '덤불을 비껴 옆에서 꺾어 꿰요', start: [0.5, 1.15], g0: 60, ease: [1.2, 3, 0.7],
+    thorns: [[0.3, 0.72, 0.05], [0.7, 0.72, 0.05]], // ✏️ S009 📐 가시덤불
     waves: [
       { need: 1, wait: 1e9, foes: [['shuri', 0.2, 0.55, 1], ['sword', 0.5, 0.52, 3], ['sword', 0.5, 0.64, 3], ['sword', 0.5, 0.76, 3], ['dummy', 0.75, 0.6, 0]] },
       { need: 1, wait: 720, foes: [['shield', 0.5, 0.7, 3], ['shuri', 0.5, 0.5, 3], ['sword', 0.14, 0.86, 1], ['sword', 0.26, 0.86, 1]] },
@@ -222,7 +230,7 @@ export interface DashState {
   stroke: { x: number; y: number }[];
   freeze: number; slowT: number;
   strikes: { x: number; y: number; t: number; t0: number }[];
-  foes: Foe[]; shots: Shot[]; barrels: Barrel[]; mirrors: Mirror[]; smokes: Smoke[]; nid: number;
+  foes: Foe[]; shots: Shot[]; barrels: Barrel[]; mirrors: Mirror[]; smokes: Smoke[]; thorns: { x: number; y: number; r: number }[]; nid: number;
   wave: number; waveT: number;
   dashN: number; chain: number; best: number; hits: number; arrows: number; backK: number; boomBest: number; boomBy: Record<number, number>;
   mirK: number; bossCombo: number; dashes: number; firstDash: boolean; firstBig: number; firstPress: number;
@@ -261,7 +269,7 @@ const fromFront = (f: Foe, dx: number, dy: number) => f.k === 'shield' && f.st !
  * 돌진 선 따라가기 (시뮬레이션·미리 보기·봇이 모두 같은 것을 쓴다).
  * 거울에 닿으면 꺾여 남은 길이만큼 이어 가고(최대 3토막), 방패를 앞에서 만나면 거기서 튕겨 멈춘다.
  */
-function trace(s: DashState, px: number, py: number, tx: number, ty: number, maxLen: number, cut: boolean): Path {
+function trace(s: DashState, px: number, py: number, tx: number, ty: number, maxLen: number, cut: boolean, bw = BW): Path {
   let dx = tx - px, dy = ty - py;
   const L = Math.hypot(dx, dy);
   if (L < 1e-6) (dx = 0), (dy = -1);
@@ -283,7 +291,7 @@ function trace(s: DashState, px: number, py: number, tx: number, ty: number, max
       const cand: { f: Foe; u: number }[] = [];
       for (const f of s.foes) {
         if (used.has(f.id)) continue;
-        const r = RAD[f.k] + BW, qx = f.x - x, qy = f.y - y, u = qx * dx + qy * dy;
+        const r = RAD[f.k] + bw, qx = f.x - x, qy = f.y - y, u = qx * dx + qy * dy;
         if (u < -r * 0.5 || u > len + r * 0.5) continue;
         if (Math.abs(qx * dy - qy * dx) > r) continue;
         cand.push({ f, u });
@@ -327,6 +335,8 @@ function trace(s: DashState, px: number, py: number, tx: number, ty: number, max
 
 /** 한붓 획: 닌자에서 점들을 차례로 이어 maxLen까지 돌진 선을 이어 붙인다(같은 적은 한 번만 · 방패 앞에서 튕기면 거기서 멈춤) */
 const STROKE_STEP = 0.035, STROKE_MAX = 24, STROKE_LEN = 1.6;
+/** ✏️ S009 꺾는 점 너그럽게(📋): 꺾인 한붓 획은 칼날 폭이 BEND_W배 — 손가락으로 그린 길은 적 위를 정확히 지나기 어렵다 */
+export const BEND = { w: 1.8 };
 /** 한 줄은 DMAX(.85)까지, 꺾인 한붓 획은 먹이 되는 만큼 STROKE_LEN까지(먹 값은 길이대로) */
 const reachFor = (s: DashState, pts: unknown[]) => (pts.length > 1 ? Math.min(STROKE_LEN, (s.g - GBASE) / GPER) : reachOf(s.g));
 function tracePath(s: DashState, pts: { x: number; y: number }[], maxLen: number): Path {
@@ -336,7 +346,7 @@ function tracePath(s: DashState, pts: { x: number; y: number }[], maxLen: number
   for (const q of pts) {
     if (rem <= 1e-4) break;
     if (Math.hypot(q.x - x, q.y - y) < 1e-4) continue;
-    const P = trace(s, x, y, q.x, q.y, rem, true), base = out.legs.length;
+    const P = trace(s, x, y, q.x, q.y, rem, true, pts.length > 1 ? BW * BEND.w : BW), base = out.legs.length;
     out.legs.push(...P.legs);
     for (const h of P.hits) if (!used.has(h.id)) used.add(h.id), out.hits.push({ id: h.id, leg: base + h.leg });
     for (const b of P.barrels) if (!out.barrels.includes(b)) out.barrels.push(b);
@@ -359,6 +369,17 @@ const strokeLen = (s: DashState) => {
   return L;
 };
 const pathLen = (P: Path) => P.legs.reduce((a, l) => a + Math.hypot(l[2] - l[0], l[3] - l[1]), 0);
+/** ✏️ S009 가시덤불: 돌진 길(토막들)이 처음 걸리는 덤불의 [덤불, 걸린 자리] — 없으면 null */
+function thornOf(s: DashState, legs: number[][]) {
+  for (const l of legs) {
+    const dx = l[2] - l[0], dy = l[3] - l[1], L2 = dx * dx + dy * dy;
+    for (const m of s.thorns) {
+      const u = L2 > 1e-9 ? clamp(((m.x - l[0]) * dx + (m.y - l[1]) * dy) / L2, 0, 1) : 0, cx = l[0] + dx * u, cy = l[1] + dy * u;
+      if (Math.hypot(cx - m.x, cy - m.y) < m.r + NIN_HIT) return { m, x: cx, y: cy }; // 📐 닌자 맞는 거리만큼 넓게
+    }
+  }
+  return null;
+}
 
 function hurt(s: DashState, x: number, y: number, why: string) {
   if (s.phase !== 'play' || s.inv > 0) return;
@@ -461,6 +482,15 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     see(s, 'shotcut', '날아오는 화살·수리검도 돌진 선에 끊겨요!');
   }
   s.g = Math.min(GMAX, s.g + gain);
+  {
+    const th = thornOf(s, P.legs);
+    if (th) {
+      // 꼬리털만 걸린다: ★★★(꼬리 하나도 안 잃기)만 놓치고 목숨은 안 준다 — 처음 하는 사람이 덤불 때문에 지지는 않게
+      see(s, 'thorn', '가시덤불 — 지나가면 꼬리가 걸려요. 꺾어 돌아가요');
+      s.hits++;
+      ev(s, 'hurt', th.x, th.y, s.hp, '가시덤불에 꼬리털이 걸렸어요');
+    }
+  }
   const last = P.legs[P.legs.length - 1];
   if (Math.abs(last[2] - last[0]) > 0.005) s.face = last[2] > last[0] ? 1 : -1;
   s.nx = P.ex;
@@ -704,6 +734,7 @@ function newStage(s: DashState) {
   s.strikes = [];
   s.barrels = (d.barrels ?? []).map(([x, y]) => ({ id: ++s.nid, x: F(x), y, fuse: -1, owner: 0, born: s.t }));
   s.mirrors = (d.mirrors ?? []).map(([ax, ay, bx, by]) => ({ ax: F(ax), ay, bx: F(bx), by }));
+  s.thorns = (d.thorns ?? []).map(([x, y, r]) => ({ x: F(x), y, r }));
   s.smokes = (d.smokes ?? []).map(([x, y, r], k) => ({ x: F(x), y, r, vx: (k % 2 ? -1 : 1) * 0.0006, vy: (k % 2 ? 1 : -1) * 0.0004 }));
   s.wave = 0;
   s.waveT = 0;
@@ -817,7 +848,7 @@ export const slowdash: GameDef<DashState> = {
       rng: mulberry32(seed), seed, t: 0, wt: 0, stage: 0, phase: 'play', pt: 0, ok: false, why: '',
       stars: 0, base: 0, got: 0, starOk: [false, false, false], pts: 0, won: false, dead: false, again: false, tries: 0,
       nx: 0.5, ny: 1.17, face: 1, hp: HP, inv: 0, g: GMAX, down: false, lock: false, stiff: 0, whiffs: 0, stroke: [], aim: null, holdT: 0, freeze: 0, slowT: 0,
-      strikes: [], foes: [], shots: [], barrels: [], mirrors: [], smokes: [], nid: 0, wave: 0, waveT: 0,
+      strikes: [], foes: [], shots: [], barrels: [], mirrors: [], smokes: [], thorns: [], nid: 0, wave: 0, waveT: 0,
       dashN: 0, chain: 0, best: 0, hits: 0, arrows: 0, backK: 0, boomBest: 0, boomBy: {}, mirK: 0, bossCombo: 0, dashes: 0,
       firstDash: false, firstBig: -1, firstPress: -1, combo: { id: -1, n: 0, t: -99 },
       seen: new Set<string>(), spotted: new Set<string>(), newsQ: [], news: null, spot: null, events: [], cuts: [], inks: [], trail: null,
@@ -1036,6 +1067,7 @@ function judge(s: DashState, x: number, y: number, L: number): Choice {
   v += P.shots.length * 8;
   if (goal(d, 'arrow') && s.arrows < 3) obj += P.shots.length * 130;
   if (P.bounce) v -= 80;
+  if (thornOf(s, P.legs)) v -= 650; // S009 가시덤불은 돌아간다
   const cost = reachOf(s.g) >= HOP ? dashCost(pathLen(P)) : 0, after = s.g - cost + GAIN * ((n * (n + 1)) / 2) + P.shots.length * SHOT_G;
   v += 1.2 * (after - s.g);
   const safe = danger(s, P.ex, P.ey, skipF, skipS);
@@ -2613,6 +2645,32 @@ function drawMirror(ctx: C2, ax: number, ay: number, bx: number, by: number, H: 
   ctx.stroke();
   ctx.restore();
 }
+/** ✏️ S009 가시덤불: 먹빛 덤불 + 가시. hot = 지금 그리는 길이 걸림 */
+function drawThorn(ctx: C2, x: number, y: number, r: number, t: number, hot: boolean) {
+  ctx.save();
+  const pulse = 0.5 + 0.5 * Math.sin(t * 0.5);
+  ctx.fillStyle = hot ? `rgba(220,50,40,${0.35 + 0.2 * pulse})` : 'rgba(70,110,60,.55)';
+  ell(ctx, x, y, r, r * 0.55);
+  ctx.fill();
+  ctx.lineWidth = Math.max(1.5, r * 0.05);
+  ctx.strokeStyle = hot ? 'rgba(255,120,100,.95)' : 'rgba(190,220,150,.7)';
+  ctx.setLineDash([4, 3]);
+  ell(ctx, x, y, r, r * 0.55);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.strokeStyle = hot ? 'rgba(255,200,190,.95)' : 'rgba(215,235,180,.9)';
+  ctx.lineWidth = Math.max(1.5, r * 0.07);
+  ctx.lineCap = 'round';
+  for (let k = 0; k < 14; k++) {
+    const a = k * 2.399, q = 0.3 + ((k * 37) % 10) / 16, px = x + Math.cos(a) * r * q * 0.8, py = y + Math.sin(a) * r * q * 0.45;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(px + Math.cos(a + 1.2) * r * 0.3, py - Math.abs(Math.sin(a + 1.2)) * r * 0.36);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function drawSmoke(ctx: C2, x: number, y: number, r: number, t: number, thin: number) {
   for (let i = 0; i < 8; i++) {
     const a = (i / 8) * TAU + t * 0.006 * (i % 2 ? 1 : -1), px = x + Math.cos(a) * r * 0.55, py = y - r * 0.25 + Math.sin(a) * r * 0.28;
@@ -2942,6 +3000,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       }
     }
   }
+  // ✏️ S009 가시덤불(땅): 그리는 길이 걸리면 빨갛게
   for (const b of s.barrels) {
     if (b.fuse < 0 && !(prev && prev.barrels.includes(b.id))) continue;
     const pulse = 0.5 + 0.5 * Math.sin(t * 0.6);
@@ -2961,6 +3020,10 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   for (const m of s.mirrors) {
     const H = R(0.11), fl = Math.max(0, 1 - (t - recentFlash('m')) / 12);
     items.push({ y: Math.max(m.ay, m.by), draw: () => drawMirror(ctx, X(m.ax), Y(m.ay), X(m.bx), Y(m.by), H, t, fl * 0.8) });
+  }
+  {
+    const hot = prev ? thornOf(s, prev.legs)?.m : null;
+    for (const m of s.thorns) items.push({ y: m.y - m.r * 0.6, draw: () => drawThorn(ctx, X(m.x), Y(m.y), R(m.r) * 1.25, t, m === hot) });
   }
   for (const b of s.barrels) {
     const pop = Math.min(1, 0.4 + (t - b.born) / 14);
@@ -3304,6 +3367,10 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.stroke();
     }
     ctx.restore();
+    { // ✏️ S009 느린 세상에서도 가시덤불은 또렷하게(길을 읽는 시간) — 걸리면 빨갛게
+      const hot = prev ? thornOf(s, prev.legs)?.m : null;
+      for (const m of s.thorns) drawThorn(ctx, X(m.x), Y(m.y), R(m.r) * 1.25, t, m === hot);
+    }
     for (const f of s.foes) if (targets.has(f.id)) drawFoe(f, 1, true);
     drawNinja(1);
   }
@@ -3873,4 +3940,5 @@ export const measureKit = { trace: (s: DashState, tx: number, ty: number) => tra
   /** S006: 한붓 획 미리 보기(시뮬과 같은 tracePath · 길이 한도) · 내릴 자리 위험(장인과 같은 danger, 틱) */
   path: (s: DashState, pts: { x: number; y: number }[]) => tracePath(s, pts, reachOf(s.g) >= HOP ? reachFor(s, pts) : HOP),
   danger: (s: DashState, x: number, y: number, skip: Set<number>) => danger(s, x, y, skip, new Set()),
+  thorn: (s: DashState, P: Path) => !!thornOf(s, P.legs),
   STROKE_STEP, reachOf, HOP, DMAX, A, X0, X1, Y0, Y1, GBASE, GPER, SLOW, ENTER };

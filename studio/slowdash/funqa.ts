@@ -40,6 +40,7 @@ export function strokePlan(s: DashState): { pts: Pt[]; n: number } | null {
       const pts = [{ x: a.x, y: a.y }, { x: b.x + (dx / d) * 0.1, y: b.y + (dy / d) * 0.1 }];
       if (Math.hypot(pts[1].x - a.x, pts[1].y - a.y) < K.STROKE_STEP) continue;
       const P = K.path(s, pts), n = P.hits.length;
+      if (K.thorn(s, P)) continue; // S009 가시덤불에 걸리는 길은 안 긋는다
       if (!best || n > best.n) {
         if (K.danger(s, P.ex, P.ey, new Set(P.hits.map((h) => h.id))) < 40) continue;
         best = { pts, n };
@@ -48,6 +49,23 @@ export function strokePlan(s: DashState): { pts: Pt[]; n: number } | null {
   return best;
 }
 const straightN = (s: DashState, p: Pt) => K.path(s, [p]).hits.length;
+/** ✏️ S009 가시덤불 돌아가기: 곧은 줄이 덤불에 걸리면, 덤불 양옆으로 꺾는 길 중 걸리지 않고 곧은 줄만큼 베는 것(없으면 null) */
+export function detour(s: DashState, p: Pt): Pt[] | null {
+  const P0 = K.path(s, [p]);
+  if (!K.thorn(s, P0)) return null;
+  let best: { pts: Pt[]; n: number } | null = null;
+  for (const m of s.thorns)
+    for (const sg of [1, -1])
+      for (const e of [0.1, 0.16]) {
+        const dx = p.x - s.nx, dy = p.y - s.ny, d = Math.hypot(dx, dy) || 1, nx = (-dy / d) * sg, ny = (dx / d) * sg;
+        const w = { x: m.x + nx * (m.r + e), y: m.y + ny * (m.r + e) }, pts = [w, p];
+        const P = K.path(s, pts);
+        if (K.thorn(s, P) || P.hits.length < P0.hits.length) continue;
+        if (K.danger(s, P.ex, P.ey, new Set(P.hits.map((h) => h.id))) < 40) continue;
+        if (!best || P.hits.length > best.n) best = { pts, n: P.hits.length };
+      }
+  return best && best.pts;
+}
 /** 사람 반응 봇: pick이 고른 자리(게임 좌표 x, y)를 react초 늦게·err만큼 빗나가게. slow면 꾹 누른 채 반응한다 */
 export function human(name: string, react: number, err: number, slow: boolean, pick?: Pick, stroke: boolean | 'naive' = false): Bot<DashState> {
   const mem = new WeakMap<object, { st: 'idle' | 'wait' | 'hold'; until: number; x: number; y: number; ox: number; oy: number; bend: Pt | null; half: number }>();
@@ -96,10 +114,10 @@ export function human(name: string, react: number, err: number, slow: boolean, p
             }
           } else if (stroke) {
             // S006: 꾹 누른 느린 세상에서 한붓 길을 찾는다 — 한 줄보다 하나 넘게 더 베면 꺾는 점 하나를 그린다(+0.15초)
-            const plan = strokePlan(s);
-            if (plan && plan.n >= straightN(s, { x: m.x, y: m.y }) + 1) {
-              m.bend = plan.pts[0];
-              (m.x = plan.pts[1].x), (m.y = plan.pts[1].y);
+            const plan = strokePlan(s), dt = plan && plan.n >= straightN(s, { x: m.x, y: m.y }) + 1 ? plan.pts : detour(s, { x: m.x, y: m.y });
+            if (dt) {
+              m.bend = dt[0];
+              (m.x = dt[1].x), (m.y = dt[1].y);
               m.until = s.t + RT + 9;
               m.half = s.t + Math.round((RT + 9) / 2);
               const q = m.bend;
@@ -154,6 +172,11 @@ export const slowdashSmartStroke: Bot<DashState> = {
     if (plan && plan.n >= straightN(s, aim) + 1) {
       seqMem.set(s, [plan.pts[1]]);
       return press(plan.pts[0].x, plan.pts[0].y);
+    }
+    const dt = detour(s, aim);
+    if (dt) {
+      seqMem.set(s, [dt[1]]);
+      return press(dt[0].x, dt[0].y);
     }
     return a;
   },

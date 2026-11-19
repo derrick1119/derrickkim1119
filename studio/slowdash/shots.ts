@@ -74,6 +74,22 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
   await page.keyboard.up(' ');
   await page.waitForTimeout(300);
 }
+{
+  // ✏️ S009 가시덤불: 1-3에서 덤불 쪽으로 곧게 그으면 걸리는 덤불이 빨갛게
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, colorScheme: 'dark', hasTouch: true });
+  page.on('pageerror', (e: unknown) => errors.push(String(e)));
+  await page.goto(url + '&stage=3');
+  await page.click('.g-overlay');
+  await page.waitForTimeout(900);
+  const box = (await page.locator('canvas').boundingBox())!;
+  const at = (x: number, y: number) => ({ x: box.x + x * box.width, y: box.y + y * box.width });
+  let p = at(0.5, 1.12);
+  await page.mouse.move(p.x, p.y);
+  await page.mouse.down();
+  for (let i = 1; i <= 8; i++) ((p = at(0.5 - 0.2 * (i / 8), 1.12 - 0.22 * (i / 8))), await page.mouse.move(p.x, p.y), await page.waitForTimeout(30));
+  await page.screenshot({ path: join(out, '10-thorn.png') });
+  await page.mouse.up();
+}
 await browser.close();
 console.log(`콘솔 에러 ${errors.length}${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''} · 가로 스크롤 ${scroll.length ? scroll.join(', ') : '0'}`);
 if (errors.length || scroll.length) process.exitCode = 1;
