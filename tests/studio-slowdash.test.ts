@@ -398,6 +398,13 @@ describe('느린 시간 닌자 시뮬', () => {
     }
     expect(TRIAL.map((d) => d.key).indexOf('bamboo')).toBe(5); // 2-6
     for (const d of TRIAL) expect(d.goal && d.ease && d.card).toBeTruthy(); // 🧪 S7: 줄 끝 주석이 뒤 설정을 지우던 것(2-4 goal 빠짐)
+    for (const d of TRIAL) { // 🧪 S8: 판 글(이름·알림·카드·귀띔)에 그 판에 없는 장치 이름 금지(2-4 연기를 빼고 글이 남았던 것)
+      const has = (k: string) => d.waves.some((w) => w.foes.some((f) => f[0] === k));
+      const txt = [d.name, d.news, d.card, d.hint].join(' ');
+      if (!d.smokes?.length) expect(txt).not.toContain('연기');
+      if (!has('bamboo')) expect(txt).not.toContain('대나무');
+      if (!has('leaf')) expect(txt).not.toMatch(/잎/);
+    }
     STAGES.push(...TRIAL);
     try {
       const k = STAGES.length - TRIAL.length + 5;
