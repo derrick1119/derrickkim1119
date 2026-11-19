@@ -108,6 +108,8 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
     for (let i = 1; i <= 6; i++) (await page.mouse.move(a.x + ((b.x - a.x) * i) / 6, a.y + ((b.y - a.y) * i) / 6), await page.waitForTimeout(30));
     await page.screenshot({ path: join(out, '13-leaf.png') });
     await page.mouse.up();
+    await page.waitForTimeout(1600); // M2 S2: 휙 뒤 손가락 시범
+    await page.screenshot({ path: join(out, '14-leaf-demo.png') });
   }
 }
 await browser.close();

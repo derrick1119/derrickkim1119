@@ -267,10 +267,14 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(a.s.events.some((e) => e.kind === 'dodge')).toBe(true);
     const b = go([[0.5, 1.1], [0.62, 0.95], [0.66, 0.82], [0.5, 0.75], [0.4, 0.72]]); // 옆으로 올라가 꺾어 들어가기
     expect(b.s.foes).toHaveLength(0);
+    // M2 S2 손가락 시범: 휙이 나면 잎 길잡이가 켜지고 손가락 시범이 보인다(measureKit.demo = 그리기와 같은 판단)
+    expect(a.s.leafGuide).toBe(true);
+    expect(a.s.dodgeN).toBeGreaterThanOrEqual(1);
     STAGES.push(TRIAL[0]);
     try {
       const k = STAGES.length - 1;
       for (const sd of [101, 108, 115]) expect(tryStage(BOTS.spam, sd, k).ok).toBe(false);
+      expect([101, 108, 115].filter((sd) => try3(BOTS.newbieLow, sd, k).ok).length).toBeGreaterThanOrEqual(2); // 시범만 가끔 따라 하는 처음 하는 사람도 깬다
       expect(tryStage(BOTS.smartStroke, 101, k).ok).toBe(true);
     } finally {
       STAGES.pop();

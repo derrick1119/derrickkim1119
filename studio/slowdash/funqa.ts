@@ -94,7 +94,7 @@ export function detour(s: DashState, p: Pt): Pt[] | null {
   return best && best.pts;
 }
 /** 사람 반응 봇: pick이 고른 자리(게임 좌표 x, y)를 react초 늦게·err만큼 빗나가게. slow면 꾹 누른 채 반응한다 */
-export function human(name: string, react: number, err: number, slow: boolean, pick?: Pick, stroke: boolean | 'naive' = false, fixP = 1): Bot<DashState> {
+export function human(name: string, react: number, err: number, slow: boolean, pick?: Pick, stroke: boolean | 'naive' = false, fixP = 1, follow = { guide: 0.5, demo: 0.5 }): Bot<DashState> {
   const mem = new WeakMap<object, { st: 'idle' | 'wait' | 'hold'; until: number; x: number; y: number; ox: number; oy: number; bend: Pt | null; half: number; seq: Pt[]; fix: boolean }>();
   const choose: Pick = pick ?? ((s, rng) => { const p = smartAim(s, rng); return p && { x: p.x, y: p.y * K.A }; });
   const RT = Math.round(react * 60), REFLEX = 9, COOL = 15;
@@ -153,24 +153,15 @@ export function human(name: string, react: number, err: number, slow: boolean, p
           if (stroke === 'naive') {
             // ✏️ S007(📋): 처음 하는 사람은 30%쯤 아무 적 둘을 이어 꺾어 본다(계획 없이)
             const f = live(s);
-            const gd = K.guide(s); // M2 S1: 화면의 길잡이(점선 + 손가락)가 보이면 반쯤은 따라 그린다
-            if (gd && rng() < 0.5) {
+            const gd = K.guide(s), fp = K.demo(s) ? follow.demo : follow.guide; // M2 S1~S2: 화면의 길잡이(점선)·손가락 시범을 보고 follow 비율만큼 따라 그린다
+            if (gd && fp > 0 && rng() < fp) {
               m.bend = gd[0];
               (m.x = gd[1].x), (m.y = gd[1].y);
               m.until = s.t + RT + 9;
               m.half = s.t + Math.round((RT + 9) / 2);
               return press(gd[0].x + m.ox, gd[0].y + m.oy);
             }
-            const lf = f.filter((x) => x.k === 'leaf');
-            if (lf.length && rng() < 0.3) { // M2 S1 🍃(📐): 처음 하는 사람의 꺾기에 '적 하나 + 아무 꺾는 점'도 — 잎이 있을 때만
-              const b = lf[Math.floor(rng() * lf.length)], a = rng() * Math.PI * 2, bend = { x: b.x + Math.cos(a) * 0.15, y: b.y + Math.sin(a) * 0.15 };
-              const dx = b.x - bend.x, dy = b.y - bend.y, d = Math.hypot(dx, dy) || 1;
-              m.bend = bend;
-              (m.x = b.x + (dx / d) * 0.08), (m.y = b.y + (dy / d) * 0.08);
-              m.until = s.t + RT + 9;
-              m.half = s.t + Math.round((RT + 9) / 2);
-              return press(bend.x + m.ox, bend.y + m.oy);
-            }
+            // M2 S2(🧪): '휙 전에도 잎 옆을 꺾던' 30%는 뺐다 — 규칙을 미리 아는 셈이라 낙관적이었다
             if (f.length >= 2 && rng() < 0.3) {
               const a = f[Math.floor(rng() * f.length)], b = f.filter((x) => x !== a)[Math.floor(rng() * (f.length - 1))];
               const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
@@ -352,11 +343,14 @@ export const BOTS: Record<string, Bot<DashState>> = {
   humanStroke: human('사람 캐주얼 + 한붓', 0.5, 0.03, true, undefined, true),
   humanStroke30: human('사람 한붓 · 빨강 보고 되돌리기 30%', 0.5, 0.03, true, undefined, true, 0.3),
   scribble: slowdashScribble,
-  newbie: human('처음 하는 사람', 0.7, 0.05, true, newbiePick, 'naive'),
+  newbie: human('처음 하는 사람(길잡이를 반쯤 따라 그림)', 0.7, 0.05, true, newbiePick, 'naive'),
+  // ✏️ M2 S2(🧪 낙관 위험 ㉛): 처음 하는 사람을 나눠 잰다 — 점선은 안 보고 손가락 시범만 가끔(25%) 따라 함 · 끝까지 안 따라 함(바닥값)
+  newbieLow: human('처음 하는 사람(시범만 가끔)', 0.7, 0.05, true, newbiePick, 'naive', 1, { guide: 0, demo: 0.25 }),
+  newbieNever: human('처음 하는 사람(안 따라 함)', 0.7, 0.05, true, newbiePick, 'naive', 1, { guide: 0, demo: 0 }),
 };
 
 export interface Try {
-  ok: boolean; stall: boolean; leafCombo: boolean; stars: number; s2: boolean; s3: boolean; sec: number; best: number; hits: number; dashes: number; whiff: number;
+  ok: boolean; stall: boolean; leafCombo: boolean; bentDodge: number; stars: number; s2: boolean; s3: boolean; sec: number; best: number; hits: number; dashes: number; whiff: number;
   holdAvg: number; downPct: number; empty: number; cancels: number; bent: number; bentCut: number; lineCut: number; s: DashState;
 }
 
@@ -378,7 +372,7 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
   const rng = mulberry32(hand ^ 0x9e3779b9), t0 = s.t, d0 = s.dashes, emptyG = K.GBASE + K.GPER * K.HOP;
   let whiff = 0, down = 0, holds = 0, holdT = 0, cur = 0, empty = 0, dn = s.dashes, cancels = 0, bent = 0, bentCut = 0, lineCut = 0;
   // ✏️ S010 300초 측정 고침: 60초 동안 아무것도 못 베고 웨이브도 그대로면 '막힘' — 사람이면 그만둔다(실패로 셈)
-  let prog = s.t, mark = '', leafCombo = false;
+  let prog = s.t, mark = '', leafCombo = false, bentDodge = 0;
   while (s.phase !== 'result' && s.t - t0 < maxSec * 60) {
     const now = `${s.wave}/${s.foes.length}/${s.hp}`; // S012: 덤불 맞음(목숨 그대로)은 진전이 아니다 — 휘젓기 6판 300초
     if (now !== mark) (mark = now), (prog = s.t);
@@ -389,6 +383,7 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
     else if (was) (holds++, (holdT += cur), (cur = 0));
     if (s.g < emptyG) empty++;
     if (s.dashes > dn && s.combo.n >= 2 && s.cuts.slice(-s.combo.n).some((c) => c.k === 'leaf')) leafCombo = true; // 🍃 잎을 다른 적과 한 획에
+    if (s.dashes > dn && turned([{ x: px, y: py }, ...s.stroke, { x: s.nx, y: s.ny }]) && s.events.some((e) => e.t === s.t && e.kind === 'dodge' && (e.n ?? 0) > 0)) bentDodge++; // 🍃 꺾었는데 휙(꺾은 뒤 토막에서 — 곧은 앞 토막이 스친 것은 빼고)
     if (s.dashes > dn) ((dn = s.dashes), s.combo.n === 0 && whiff++, turned([{ x: px, y: py }, ...s.stroke, { x: s.nx, y: s.ny }]) ? (bent++, (bentCut += s.combo.n)) : (lineCut += s.combo.n));
     for (let i = s.events.length - 1; i >= 0 && s.events[i].t === s.t; i--) if (s.events[i].kind === 'cancel') cancels++; // 🧪 S001: 조용한 취소(방패 바로 앞 길이 0 등)
   }
@@ -396,6 +391,7 @@ export function tryStage(bot: Bot<DashState>, seed: number, k: number, maxSec = 
   return {
     stall: s.phase !== 'result' && s.t - prog > STALL * 60,
     leafCombo,
+    bentDodge: bent ? bentDodge / bent : 0,
     ok, stars: ok ? s.got : 0, s2: ok && s.starOk[1], s3: ok && s.starOk[2], sec: (s.t - t0) / 60, best: s.best, hits: s.hits, dashes: n,
     whiff: n ? whiff / n : 0, holdAvg: holds ? holdT / holds / 60 : 0, downPct: down / T, empty: empty / T, cancels, bent: n ? bent / n : 0, bentCut: bent ? bentCut / bent : 0, lineCut: n - bent ? lineCut / (n - bent) : 0, s,
   };
@@ -451,7 +447,7 @@ export function measure(seeds = 24, only?: string[]) {
     const row: Record<string, unknown> = { k: k + 1, key: d.key, name: d.name, stars: d.stars.map((q) => q.label) };
     for (const name of names) {
       const bot = BOTS[name], seedsOf = Array.from({ length: seeds }, (_, i) => 101 + i * 7);
-      row[name] = sum(name === 'newbie' ? seedsOf.map((sd) => try3(bot, sd, k)) : seedsOf.map((sd) => tryStage(bot, sd, k)));
+      row[name] = sum(name.startsWith('newbie') ? seedsOf.map((sd) => try3(bot, sd, k)) : seedsOf.map((sd) => tryStage(bot, sd, k)));
     }
     return row;
   });
@@ -572,9 +568,9 @@ export function measureTrial(seeds = 24) {
     const k = STAGES.length - 1, seedsOf = Array.from({ length: seeds }, (_, i) => 101 + i * 7);
     const row: Record<string, unknown> = { key: d.key, name: d.name };
     try {
-      for (const name of ['smartStroke', 'humanStroke', 'humanStroke30', 'newbie', 'humanTap', 'smart', 'habit2', 'spam', 'scribble']) {
-        const t = seedsOf.map((sd) => (name === 'newbie' ? try3(BOTS[name], sd, k) : tryStage(BOTS[name], sd, k)));
-        row[name] = { ...sum(t), leafCombo: r2(mean(t.map((x) => +x.leafCombo))) };
+      for (const name of ['smartStroke', 'humanStroke', 'humanStroke30', 'newbie', 'newbieLow', 'newbieNever', 'humanTap', 'smart', 'habit2', 'spam', 'scribble']) {
+        const t = seedsOf.map((sd) => (name.startsWith('newbie') ? try3(BOTS[name], sd, k) : tryStage(BOTS[name], sd, k)));
+        row[name] = { ...sum(t), leafCombo: r2(mean(t.map((x) => +x.leafCombo))), bentDodge: r2(mean(t.map((x) => x.bentDodge))) };
       }
       LEAF_SOLO = true; // 낙차 대조군: 잎은 따로만 베는 장인 한붓
       row.smartStrokeSolo = sum(seedsOf.map((sd) => tryStage(BOTS.smartStroke, sd, k)));
@@ -583,7 +579,7 @@ export function measureTrial(seeds = 24) {
       STAGES.pop();
     }
     const R = (n: string) => row[n] as Row & { leafCombo?: number };
-    row.summary = { use: R('smartStroke').leafCombo, drop: r2(R('smartStroke').star - R('smartStrokeSolo').star), newbieClear: R('newbie').clear, spamClear: R('spam').clear, scribbleClear: R('scribble').clear, humanStrokeSec: R('humanStroke').sec, straightHumanClear: R('humanTap').clear };
+    row.summary = { use: R('smartStroke').leafCombo, drop: r2(R('smartStroke').star - R('smartStrokeSolo').star), newbieClear: R('newbie').clear, newbieLowClear: R('newbieLow').clear, newbieNeverClear: R('newbieNever').clear, newbieMix: r2(0.2 * R('newbie').clear + 0.8 * R('newbieLow').clear), newbieLowSec: R('newbieLow').sec, humanStrokeClear: R('humanStroke').clear, bentDodge: (R('humanStroke') as Row & { bentDodge?: number }).bentDodge, spamClear: R('spam').clear, scribbleClear: R('scribble').clear, humanStrokeSec: R('humanStroke').sec, straightHumanClear: R('humanTap').clear };
     out.push(row);
   }
   return out;
