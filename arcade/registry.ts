@@ -5,9 +5,21 @@
  * 졸업한 게임은 스튜디오(`studio/<게임>/`)가 이어받는다(원본 `games/guardian2.ts`·`sheepdog.ts`·`balloonpop.ts`·`duckbath.ts`·`screwshop.ts`·`animalbus.ts`·`demolition.ts`·`potionsort.ts`·`slowdash.ts`는 스튜디오 참고용으로 파일만 남김).
  */
 import type { Bot, GameDef } from './core.ts';
+import { ricopeng, ricopengRandom, ricopengSmart } from './games/ricopeng.ts';
+import { hookpirate, hookpirateRandom, hookpirateSmart } from './games/hookpirate.ts';
+import { topspin, topspinRandom, topspinSmart } from './games/topspin.ts';
+import { stompdino, stompdinoRandom, stompdinoSmart } from './games/stompdino.ts';
+import { iceslide, iceslideRandom, iceslideSmart } from './games/iceslide.ts';
+import { axeback, axebackRandom, axebackSmart } from './games/axeback.ts';
 
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S> }
 
 export const GAMES: Entry[] = [
-  // 31라운드 판정(2026-11-19): 느린 시간 닌자 졸업, 나머지 폐기 — 32라운드 만드는 중
+  // 32라운드(2026-11-19): 실시간 액션 2탄 6개 — 오너 선택 대기
+  { game: ricopeng, dumb: ricopengRandom, smart: ricopengSmart },
+  { game: hookpirate, dumb: hookpirateRandom, smart: hookpirateSmart },
+  { game: topspin, dumb: topspinRandom, smart: topspinSmart },
+  { game: stompdino, dumb: stompdinoRandom, smart: stompdinoSmart },
+  { game: iceslide, dumb: iceslideRandom, smart: iceslideSmart },
+  { game: axeback, dumb: axebackRandom, smart: axebackSmart },
 ];

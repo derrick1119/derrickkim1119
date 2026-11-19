@@ -26,7 +26,7 @@ const NX = 24, CELL = 1 / NX, NY = Math.ceil(GH / CELL);
 const BR = 0.055, COST = 52, GMAX = 100, ICE_LIFE = 270, HEAT_RATE = 7;
 /** 물리 (틱당) */
 const RUN = 0.0034, ACC = 0.14, SLOPE = 0.0011, VMAX = 0.021, ICE_FR = 0.997, GROUND_FR = 0.9, STOPV = 0.0026, SLIP_KEEP = 0.45;
-const WALL_E = 0.45, BONK_V = 0.0075, KNOCK_V = 0.0075, E_COL = 0.85, GETUP = 30, DIZZY_T = 70, SMASH_T = 30, TAUNT_T = 300;
+const WALL_E = 0.45, BONK_V = 0.0075, KNOCK_V = 0.0075, E_COL = 0.85, GETUP = 30, DIZZY_T = 70, SMASH_T = 30;
 const BALL_V = 0.0036, COMBO_T = 80;
 const LAN = { x: 0.5, y: 1.12, r: 0.055 };
 const RESULT_OK = 180, RESULT_FAIL = 150, CARD_T = 150, NEWS_T = 150;
@@ -454,7 +454,8 @@ function entStep(s: IceState, e: Ent, dt: number): boolean {
         break;
       }
       e.tm += dt;
-      if (s.firstPress >= 0 || e.tm > TAUNT_T) e.st = RUNS;
+      // 첫 손짓 전에는 메롱 춤만 춘다 (처음 화면을 읽는 사람을 기다린다)
+      if (s.firstPress >= 0) e.st = RUNS;
       break;
     case RUNS:
     case FLEE:
@@ -640,6 +641,8 @@ function world(s: IceState, dt: number) {
     }
   }
   const alive = s.ents.reduce((a, e) => a + (e.k === 'ball' ? 0 : 1), 0) + s.pend.length;
+  // 1판: 첫 손짓 전에는 다음 무리도 오지 않는다
+  if (s.stage === 0 && s.firstPress < 0) s.waveT = 0;
   if (s.wave < d.waves.length) {
     if ((alive === 0 && s.waveT >= 50) || s.waveT >= d.waves[s.wave - 1].wait) startWave(s);
   } else if (alive === 0) endStage(s, true, '');
@@ -3150,16 +3153,15 @@ function drawAll(ctx: C2, s: IceState, w: number, h: number, th: Theme) {
   // 큰 순간 띠: 얼음 판 위 'N마리 줄줄이 퐁당!'
   if (fx.memo.bigT !== undefined && t - fx.memo.bigT < 56) {
     const age = t - fx.memo.bigT, n = fx.memo.bigN, sc2 = age < 6 ? 1.8 - 0.8 * (age / 6) : 1, a = Math.min(1, (56 - age) / 16);
-    const bx = clamp(fx.memo.bigX, w * 0.3, w * 0.7), by = clamp(fx.memo.bigY - R(0.2), Y(0.05), Y(1.05));
     const txt = n >= 5 ? `${n}마리 줄줄이 퐁당!` : `${['', '', '', '셋', '넷'][n]} 퐁당!`, size = Math.min(34, 20 + n * 3);
     ctx.save();
+    ctx.font = `900 ${size}px system-ui, sans-serif`;
+    const tw = ctx.measureText(txt).width, pw = tw + 34, phh = size * 1.45, fit = Math.min(1, (w * 0.86) / (pw * sc2)), half = (pw * sc2 * fit) / 2 + 4;
+    const bx = clamp(fx.memo.bigX, Math.min(w / 2, half), Math.max(w / 2, w - half)), by = clamp(fx.memo.bigY - R(0.2), Y(0.05), Y(1.05));
     ctx.globalAlpha = a;
     ctx.translate(bx, by);
     ctx.rotate(-0.06);
-    ctx.scale(sc2, sc2);
-    ctx.font = `900 ${size}px system-ui, sans-serif`;
-    const tw = ctx.measureText(txt).width, pw = tw + 34, phh = size * 1.45, fit = Math.min(1, (w * 0.86) / (pw * sc2));
-    ctx.scale(fit, fit);
+    ctx.scale(sc2 * fit, sc2 * fit);
     ctx.fillStyle = 'rgba(8,20,50,.5)';
     rr(ctx, -pw / 2 + 3, -phh / 2 + 4, pw, phh, phh * 0.35);
     ctx.fill();
