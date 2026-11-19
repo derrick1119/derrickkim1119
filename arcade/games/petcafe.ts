@@ -63,7 +63,7 @@ interface WeekDef {
 /** 판 = 한 주(월~금) */
 export const WEEKS: WeekDef[] = [
   {
-    key: 'first', name: '첫 주', news: '', hint: '손님이 좋아하는 걸 메뉴판에!',
+    key: 'first', name: '개업 주', news: '', hint: '손님이 좋아하는 걸 메뉴판에!',
     cards: ['honey', 'carrot', 'fish', 'acorn'], pool: ['bear', 'rabbit', 'fox'],
     days: [{ n: 6, fixed: ['bear', 'bear', 'bear', 'rabbit', 'fox', 'rabbit'] }, { n: 6 }, { n: 7, add: 'squirrel' }, { n: 7, add: 'squirrel' }, { n: 7 }],
     goal: 0, stars: [S('survive', 0, '한 주 버티기')], offers: [null, 'plant', 'table', 'plant', 'table'],
@@ -1654,7 +1654,7 @@ const seatPos = (i: number): [number, number, 1 | -1] => {
 };
 const DOOR_XY: [number, number] = [0.875, 0.5];
 const BOARD = { x0: 0.285, x1: 0.715, y0: 0.175, y1: 0.43 };
-const HR = 0.046; // 손님 머리 반지름 (화면 폭 비율)
+const HR = 0.05; // 손님 머리 반지름 (화면 폭 비율)
 
 /** 손님 한 명의 지금 자리·자세 (연출 전용, 시뮬레이션과 같은 틱 기준) */
 function actorAt(a: Actor, pt: number): { x: number; y: number; pose: 'walk' | 'sit' | 'stand'; mood: Mood; face: 1 | -1; alpha: number; bubble: boolean; ate: number } | null {
@@ -2137,6 +2137,30 @@ function drawAll(ctx: C2, s: CafeState, w: number, h: number, th: Theme) {
     ctx.fillStyle = radg(ctx, x, y + R(0.03), 0, R(0.22), [0, `rgba(255,214,140,${0.45 * fl})`], [1, 'rgba(255,214,140,0)']);
     ctx.fillRect(x - R(0.25), y - R(0.1), R(0.5), R(0.4));
   }
+  // 깃발 줄 (축제 날엔 하나 더)
+  for (const [y0, sag, n, fest] of [[0.15, 0.03, 9, false], [0.175, 0.04, 12, true]] as const) {
+    if (fest && plan.ev !== 'festival') continue;
+    ctx.strokeStyle = '#7a4520';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(R(0.27), R(y0));
+    ctx.quadraticCurveTo(R(0.5), R(y0 + sag * 2), R(0.79), R(y0));
+    ctx.stroke();
+    for (let k = 0; k < n; k++) {
+      const u = (k + 0.5) / n, x = R(0.27 + 0.52 * u), y = R(y0) + R(sag * 2) * 2 * u * (1 - u), sw = Math.sin(t * 0.06 + k) * 0.08;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(sw);
+      ctx.fillStyle = ['#ff6f91', '#ffd23a', '#7cc8f0', '#8cd46a', '#ffa04a'][k % 5];
+      ctx.beginPath();
+      ctx.moveTo(-R(0.012), 0);
+      ctx.lineTo(R(0.012), 0);
+      ctx.lineTo(0, R(0.026));
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+  }
   // 메뉴판 (칠판)
   drawBoard(ctx, s, R, t, prev);
   for (const lx of [0.4, 0.62]) {
@@ -2212,7 +2236,7 @@ function drawAll(ctx: C2, s: CafeState, w: number, h: number, th: Theme) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = morning ? '#ffd9a0' : open ? '#aaf08a' : '#ffd9a0';
-    ctx.fillText(open ? 'OPEN' : 'CLOSED', 0, R(0.024), R(0.13));
+    ctx.fillText(open ? '영업 중' : '준비 중', 0, R(0.024), R(0.13));
     ctx.restore();
   }
   // 카운터 + 너구리 사장 + 직원 고양이
@@ -2301,6 +2325,14 @@ function drawAll(ctx: C2, s: CafeState, w: number, h: number, th: Theme) {
         ctx.globalAlpha = p.alpha;
         const r = R(HR) * (a.o.k === 'owl' ? 1.05 : 1);
         animal(ctx, a.o.k, R(p.x), R(p.y) + (p.pose === 'sit' ? -R(0.01) : 0), r, p.pose, p.mood, t, p.face, a.o.i * 1.3);
+        if (p.mood === 'sad') {
+          // 머리 위 비구름
+          const cx = R(p.x), cy = R(p.y) - R(0.2);
+          ctx.fillStyle = '#9fb4cc';
+          for (const [dx, dy, rr2] of [[-0.018, 0.004, 0.014], [0, -0.006, 0.018], [0.018, 0.004, 0.013]]) (ell(ctx, cx + R(dx), cy + R(dy), R(rr2), R(rr2) * 0.8), ctx.fill());
+          ctx.fillStyle = '#5a9ae8';
+          for (let k = 0; k < 3; k++) (ell(ctx, cx + R(-0.014 + k * 0.014), cy + R(0.02) + ((t * 0.8 + k * 7) % 10), R(0.003), R(0.005)), ctx.fill());
+        }
         ctx.restore();
         // 생각 풍선: 무엇을 고르나
         if (p.bubble) {
@@ -2338,6 +2370,51 @@ function drawAll(ctx: C2, s: CafeState, w: number, h: number, th: Theme) {
   }
   items.sort((a, b) => a.y - b.y);
   for (const it of items) it.f();
+  // 곰은 꿀 케이크를 한입에 꿀꺽
+  if (open) for (const a of s.actors) {
+    if (a.o.k !== 'bear' || a.o.dish !== 'honey' || s.pt - a.t0 < WALK + THINK) continue;
+    const key = `g${s.stage}_${s.tries}_${s.day}_${a.o.i}`;
+    if (fx.memo[key] !== undefined) continue;
+    fx.memo[key] = t;
+    const p = actorAt(a, s.pt);
+    if (p) (fx.pop(R(p.x), R(p.y) - R(0.2), '꿀꺽!', '#ffffff', 20), fx.burst(R(p.x), R(p.y) - R(0.12), '#ffd36a', 10, 2.6, 2.4));
+  }
+  // 창턱의 참새 (큰 순간마다 폴짝)
+  {
+    const bt = bandMemo.get(s)?.t ?? -999, jump = t - bt < 30 ? Math.abs(Math.sin((t - bt) * 0.35)) * R(0.03) : Math.abs(Math.sin(t * 0.05)) > 0.97 ? R(0.006) : 0;
+    const bx = R(0.215), by = R(0.398) - jump;
+    ell(ctx, bx, R(0.4), R(0.014), R(0.004));
+    ctx.fillStyle = 'rgba(80,40,10,.25)';
+    ctx.fill();
+    ell(ctx, bx, by - R(0.012), R(0.016), R(0.013));
+    ctx.fillStyle = '#7ab8f0';
+    ctx.fill();
+    ctx.strokeStyle = '#3a6a9a';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ell(ctx, bx + R(0.004), by - R(0.008), R(0.009), R(0.007));
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ell(ctx, bx - R(0.008), by - R(0.022), R(0.009), R(0.009));
+    ctx.fillStyle = '#7ab8f0';
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#ffb02a';
+    ctx.beginPath();
+    ctx.moveTo(bx - R(0.016), by - R(0.023));
+    ctx.lineTo(bx - R(0.024), by - R(0.02));
+    ctx.lineTo(bx - R(0.016), by - R(0.017));
+    ctx.fill();
+    ctx.fillStyle = '#2a1a10';
+    ell(ctx, bx - R(0.01), by - R(0.024), R(0.002), R(0.0025));
+    ctx.fill();
+    if (t - bt < 30) {
+      font(ctx, 14, 900);
+      ctx.fillStyle = '#ff6f91';
+      ctx.textAlign = 'center';
+      ctx.fillText('♪', bx + R(0.02), by - R(0.04));
+    }
+  }
   // 아침: 오늘 올 손님 (순서대로, 지금 메뉴로 미리 보기)
   if (morning && prev) drawForecast(ctx, s, R, t, prev);
   // 저녁 노을
@@ -2376,7 +2453,7 @@ function drawAll(ctx: C2, s: CafeState, w: number, h: number, th: Theme) {
     const b = bandMemo.get(s);
     if (b && t - b.t < 70) {
       const age = t - b.t, sc2 = age < 7 ? 1.7 - 0.7 * (age / 7) : 1, a = Math.min(1, (70 - age) / 14);
-      const by = R(0.56);
+      const by = R(0.915);
       ctx.save();
       ctx.globalAlpha = a;
       ctx.translate(w / 2, by);
@@ -2443,8 +2520,9 @@ function drawAll(ctx: C2, s: CafeState, w: number, h: number, th: Theme) {
   // NEW 스포트라이트
   if (s.spot && morning) {
     const age = t - s.spot.t, a = Math.min(1, age / 8, (150 - age) / 20);
+    const at = spotAt.get(s)?.get(s.spot.label);
     if (a > 0) {
-      const x = R(s.spot.x), y = R(s.spot.y), r = R(s.spot.r) * (1 + 0.06 * Math.sin(t * 0.2));
+      const x = R(at ? at[0] : s.spot.x), y = R(at ? at[1] : s.spot.y), r = R(at ? 0.07 : s.spot.r) * (1 + 0.06 * Math.sin(t * 0.2));
       ctx.save();
       ctx.globalAlpha = a;
       ctx.strokeStyle = '#ff5a6e';
@@ -2560,23 +2638,26 @@ function drawBoard(ctx: C2, s: CafeState, R: (v: number) => number, t: number, p
       ctx.restore();
     }
     // 아침: 오래된 순서 (꽉 찼을 때 제일 왼쪽이 다음에 내려감)
-    if (s.phase === 'morning' && s.menu.length >= SLOTS && i === 0 && !s.pushed) {
-      font(ctx, 12, 800);
-      ctx.fillStyle = '#ffb0a0';
-      ctx.fillText('다음에 내려감', X, Y - R(0.072));
-    }
-    if (s.phase === 'morning' && s.pushed === d) {
+    const pill = (text: string, bg: string) => {
       font(ctx, 12, 900);
-      ctx.fillStyle = '#aaf08a';
-      ctx.fillText('오늘 새로!', X, Y - R(0.072));
-    }
+      const tw = ctx.measureText(text).width + 10;
+      ctx.fillStyle = bg;
+      rr(ctx, X - tw / 2, Y - R(0.06) - 8, tw, 16, 8);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(text, X, Y - R(0.06) + 1);
+    };
+    if (s.phase === 'morning' && s.pushed === d) pill('오늘 새로', '#4cae5a');
+    else if (s.phase === 'morning' && s.menu.length >= SLOTS && i === 0 && !s.pushed) pill('다음에 내려감', '#e8604a');
     void prev;
   }
 }
 
+const spotAt = new WeakMap<object, Map<string, [number, number]>>();
 function drawForecast(ctx: C2, s: CafeState, R: (v: number) => number, t: number, prev: DayRes) {
-  const plan = planOf(s), n = plan.guests.length;
-  const y0 = R(0.545), y1 = R(0.745), x0 = R(0.03), x1 = R(0.97);
+  const plan = planOf(s), n = plan.guests.length, spots = new Map<string, [number, number]>();
+  spotAt.set(s, spots);
+  const y0 = R(0.53), y1 = R(0.765), x0 = R(0.025), x1 = R(0.975);
   ctx.fillStyle = 'rgba(80,40,10,.28)';
   rr(ctx, x0 + 2, y0 + 5, x1 - x0, y1 - y0, R(0.03));
   ctx.fill();
@@ -2586,89 +2667,104 @@ function drawForecast(ctx: C2, s: CafeState, R: (v: number) => number, t: number
   ctx.strokeStyle = '#c8783a';
   ctx.lineWidth = 2;
   ctx.stroke();
-  // 제목 줄: 오늘 손님 · 날씨/사건
+  // 제목 줄: 오늘 손님 · 날씨/사건 · 자리
+  const ty = y0 + R(0.027);
   font(ctx, R(0.036), 900);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = INK;
   const title = `${DAY_NAMES[s.day]}요일 손님 ${n}명`;
-  ctx.fillText(title, x0 + R(0.03), y0 + R(0.03));
-  let tx = x0 + R(0.04) + ctx.measureText(title).width;
-  const tag = (kind: string, label: string, col: string) => {
+  ctx.fillText(title, x0 + R(0.025), ty + 1);
+  let tx = x0 + R(0.035) + ctx.measureText(title).width;
+  const tag = (kind: string, label: string, col: string, key: string) => {
     font(ctx, 12, 900);
-    const tw = ctx.measureText(label).width + R(0.06);
+    const tw = ctx.measureText(label).width + R(0.062);
     ctx.fillStyle = col;
-    rr(ctx, tx, y0 + R(0.012), tw, R(0.038), R(0.019));
+    rr(ctx, tx, ty - R(0.02), tw, R(0.04), R(0.02));
     ctx.fill();
-    evIcon(ctx, kind, tx + R(0.022), y0 + R(0.031), R(0.012), t);
+    evIcon(ctx, kind, tx + R(0.022), ty, R(0.012), t);
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(label, tx + R(0.042), y0 + R(0.032));
+    ctx.fillText(label, tx + R(0.042), ty + 1);
+    spots.set(key, [(tx + tw / 2) / R(1), ty / R(1)]);
     tx += tw + R(0.01);
   };
-  if (plan.rain) tag('rain', '비', '#5a86b8');
-  if (plan.ev === 'group') tag('group', '단체 넷', '#8a5ac8');
-  if (plan.ev === 'gourmet') tag('gourmet', '미식가', '#2f3a5a');
-  if (plan.ev === 'festival') tag('festival', '축제·팁 두 배', '#e8506a');
-  if (plan.ev === 'priceup') tag('priceup', `${DISH[plan.up!].name} 값 두 배`, '#d84a3a');
-  // 자리 수
-  font(ctx, 12, 800);
+  if (plan.rain) tag('rain', '비', '#5a86b8', '비 오는 날');
+  if (plan.ev === 'group') tag('group', '단체 넷', '#8a5ac8', '단체 손님');
+  if (plan.ev === 'gourmet') tag('gourmet', '미식가', '#2f3a5a', '미식가');
+  if (plan.ev === 'festival') tag('festival', '축제 팁 두 배', '#e8506a', '축제 날');
+  if (plan.ev === 'priceup') tag('priceup', '재료 값 두 배', '#d84a3a', '_');
+  font(ctx, 12, 900);
   ctx.textAlign = 'right';
-  ctx.fillStyle = prev.out.some((o) => o.res === 'noseat') ? '#d0405a' : '#9a6a3a';
-  ctx.fillText(`자리 ${seatsOf(s.upg)}`, x1 - R(0.025), y0 + R(0.03));
-  // 손님 줄 (순서대로) + 지금 메뉴로 어떻게 될지
-  const gap = (x1 - x0 - R(0.04)) / Math.max(n, 6), hr = Math.min(R(0.032), gap * 0.4);
+  const noSeat = prev.out.some((o) => o.res === 'noseat');
+  ctx.fillStyle = noSeat ? '#d0405a' : '#9a6a3a';
+  ctx.fillText(`자리 ${seatsOf(s.upg)}`, x1 - R(0.022), ty + 1);
+  // 손님 줄 (들어오는 순서) + 지금 메뉴로 어떻게 될지
+  const gap = (x1 - x0 - R(0.03)) / Math.max(n, 6), hr = Math.min(R(0.03), gap * 0.38);
+  const cy = y0 + R(0.128);
   for (let i = 0; i < n; i++) {
-    const g = plan.guests[i], o = prev.out[i], cx = x0 + R(0.02) + gap * (i + 0.5), cy = y0 + R(0.098);
-    // 단체 묶음
+    const g = plan.guests[i], o = prev.out[i], cx = x0 + R(0.015) + gap * (i + 0.5);
     if (g.grp >= 0 && (i === 0 || plan.guests[i - 1].grp !== g.grp)) {
       let j = i;
       while (j < n && plan.guests[j].grp === g.grp) j++;
-      ctx.fillStyle = 'rgba(168,116,224,.18)';
-      rr(ctx, cx - gap * 0.48, cy - hr * 1.6, gap * (j - i) - gap * 0.04, hr * 3.5, R(0.02));
+      ctx.fillStyle = 'rgba(168,116,224,.16)';
+      rr(ctx, cx - gap * 0.47, cy - hr * 1.9, gap * (j - i) - gap * 0.06, hr * 4.1, R(0.02));
       ctx.fill();
-      ctx.strokeStyle = 'rgba(138,90,200,.6)';
+      ctx.strokeStyle = 'rgba(138,90,200,.65)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
     }
+    if (g.k === 'squirrel') spots.set('새 손님 다람쥐', [cx / R(1), cy / R(1)]);
     const mood: Mood = o.res === 'fav' ? 'love' : o.res === 'ok' ? 'happy' : o.res === 'noseat' ? 'wow' : 'sad';
     animal(ctx, g.k, cx, cy, hr, 'head', mood, t, 1, i);
-    // 아래 표시: 하트(+이어짐) · 웃음 · 시무룩 · 자리 없음
-    const my = cy + hr * 1.55;
+    const my = cy + hr * 1.75;
     if (o.res === 'fav') {
-      heart(ctx, cx, my, R(0.013));
+      heart(ctx, cx - (o.streak >= 2 ? R(0.012) : 0), my, R(0.012));
       if (o.streak >= 2) {
         font(ctx, 12, 900);
         ctx.textAlign = 'center';
-        outText(ctx, `×${o.streak}`, cx + R(0.022), my - R(0.012), '#ffffff', '#c0304a', 3);
+        outText(ctx, `${Math.min(o.streak, 9)}`, cx + R(0.014), my + 1, '#ffffff', '#c0304a', 3);
       }
     } else if (o.res === 'ok') {
       ell(ctx, cx, my, R(0.012), R(0.012));
       ctx.fillStyle = '#ffd23a';
       ctx.fill();
       ctx.strokeStyle = '#a86a06';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.2;
       ctx.stroke();
       ctx.beginPath();
       ctx.arc(cx, my, R(0.006), 0.15 * Math.PI, 0.85 * Math.PI);
       ctx.stroke();
     } else {
-      font(ctx, 12, 900);
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#5a7aa0';
-      ctx.fillText(o.res === 'noseat' ? '자리X' : '…', cx, my);
+      // 시무룩 구름 · 자리 없음 표시
+      ctx.fillStyle = '#9fb4cc';
+      for (const [dx, dr] of [[-0.6, 0.5], [0, 0.7], [0.6, 0.5]]) (ell(ctx, cx + dx * R(0.012), my, R(0.012) * dr, R(0.009) * dr), ctx.fill());
+      if (o.res === 'noseat') {
+        ctx.strokeStyle = '#d0405a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx - R(0.014), my - R(0.01));
+        ctx.lineTo(cx + R(0.014), my + R(0.01));
+        ctx.stroke();
+      }
     }
-    // 미식가: 바라는 음식
     if (g.k === 'owl' && g.wish) {
-      const bx = cx, by = cy - hr * 2.2;
+      const bx = cx, by = cy - hr * 2.15;
       ctx.fillStyle = '#ffffff';
-      ell(ctx, bx, by, R(0.028), R(0.022));
+      ell(ctx, bx, by, R(0.03), R(0.024));
       ctx.fill();
       ctx.strokeStyle = '#2f3a5a';
-      ctx.lineWidth = 1.2;
+      ctx.lineWidth = 1.5;
       ctx.stroke();
-      drawDish(ctx, g.wish, bx, by, R(0.014), t, false);
+      drawDish(ctx, g.wish, bx, by + 1, R(0.016), t, false);
+      spots.set('미식가', [bx / R(1), by / R(1)]);
     }
   }
+  // 아래 한 줄 설명: 하트 · 웃음 · 시무룩
+  font(ctx, 12, 800);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#9a6a3a';
+  const hearts = prev.hearts, ok = prev.smiles - prev.hearts, sad = prev.sad;
+  ctx.fillText(s.menu.length ? `하트 ${hearts} · 그냥 먹음 ${ok} · 시무룩 ${sad}` : '메뉴를 고르면 손님 얼굴이 바뀌어요', (x0 + x1) / 2, y1 - R(0.02));
 }
 
 function drawTop(ctx: C2, s: CafeState, R: (v: number) => number, t: number, w: number) {
@@ -2761,44 +2857,45 @@ function drawPanel(ctx: C2, s: CafeState, R: (v: number) => number, t: number, w
     ctx.lineWidth = on ? 3 : 1.5;
     ctx.stroke();
     // 음식 그림
-    drawDish(ctx, d, cw / 2, R(0.075), R(0.04), t);
-    font(ctx, R(0.033), 900);
+    drawDish(ctx, d, cw / 2, R(0.07), R(0.047), t);
+    font(ctx, R(0.034), 900);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = INK;
     ctx.fillText(DISH[d].name, cw / 2, R(0.142), cw - 6);
-    // 누가 하트? (좋아하는 손님 얼굴)
-    const lovers = (Object.keys(KIND) as Kind[]).filter((k) => KIND[k].fav === d && W.pool.concat(['hedgehog']).includes(k) && (k !== 'hedgehog' || W.cards.includes('soup')));
+    // 누가 하트? (제일 좋아하는 손님 얼굴)
+    const lovers = (Object.keys(KIND) as Kind[]).filter((k) => KIND[k].fav === d && k !== 'owl');
     const warmAll = plan.rain && DISH[d].warm;
+    const fy = R(0.18);
     if (warmAll) {
-      heart(ctx, cw / 2 - R(0.04), R(0.18), R(0.011));
+      heart(ctx, cw / 2 - R(0.04), fy, R(0.012));
       font(ctx, 12, 900);
       ctx.fillStyle = '#d0405a';
-      ctx.fillText('모두', cw / 2 + R(0.012), R(0.181));
+      ctx.fillText('오늘 모두', cw / 2 + R(0.014), fy + 1, cw - R(0.07));
     } else if (lovers.length) {
-      heart(ctx, cw / 2 - R(0.03), R(0.18), R(0.011));
-      lovers.slice(0, 1).forEach((k) => animal(ctx, k, cw / 2 + R(0.012), R(0.188), R(0.014), 'head', 'love', t, 1, i));
+      heart(ctx, cw / 2 - R(0.03), fy, R(0.012));
+      animal(ctx, lovers[0], cw / 2 + R(0.016), fy + R(0.004), R(0.018), 'head', 'love', t, 1, i);
     } else if (d === 'cocoa') {
-      font(ctx, 12, 800);
+      heart(ctx, cw / 2 - R(0.05), fy, R(0.011));
+      evIcon(ctx, 'rain', cw / 2 - R(0.01), fy, R(0.014), t);
+      font(ctx, 12, 900);
       ctx.fillStyle = '#5a86b8';
-      ctx.fillText('비 오면 하트', cw / 2, R(0.181), cw - 4);
+      ctx.fillText('모두', cw / 2 + R(0.035), fy + 1);
     } else if (d === 'berry') {
-      font(ctx, 12, 800);
-      ctx.fillStyle = '#6a4aa0';
-      ctx.fillText('미식가 별미', cw / 2, R(0.181), cw - 4);
+      heart(ctx, cw / 2 - R(0.03), fy, R(0.012));
+      animal(ctx, 'owl', cw / 2 + R(0.016), fy + R(0.004), R(0.016), 'head', 'love', t, 1, i);
     }
     // 재료비
     const up = plan.up === d;
-    ctx.fillStyle = up ? '#ffdcd6' : afford || on ? 'rgba(255,214,120,.35)' : 'rgba(200,200,200,.4)';
-    rr(ctx, R(0.012), ch - R(0.045), cw - R(0.024), R(0.036), R(0.018));
+    ctx.fillStyle = up ? '#ffd6cc' : 'rgba(255,214,120,.38)';
+    rr(ctx, R(0.012), ch - R(0.044), cw - R(0.024), R(0.034), R(0.017));
     ctx.fill();
     coin(ctx, R(0.034), ch - R(0.027), R(0.011));
     font(ctx, 12, 900);
     ctx.textAlign = 'left';
     ctx.fillStyle = up ? '#c0303a' : INK;
-    ctx.fillText(`${up ? '재료 ' : '재료 '}${cost}${up ? '↑' : ''}`, R(0.05), ch - R(0.026), cw - R(0.06));
+    ctx.fillText(`재료 ${cost}${up ? ' 두 배' : ''}`, R(0.05), ch - R(0.026), cw - R(0.06));
     if (on) {
-      // 메뉴판에 있음 표시
       ctx.fillStyle = '#ff9a2a';
       ell(ctx, cw - R(0.012), R(0.012), R(0.02), R(0.02));
       ctx.fill();
@@ -2811,13 +2908,17 @@ function drawPanel(ctx: C2, s: CafeState, R: (v: number) => number, t: number, w
       ctx.stroke();
     }
     if (morning && (locked || (!afford && !on))) {
-      ctx.fillStyle = 'rgba(255,248,236,.55)';
+      ctx.fillStyle = 'rgba(255,246,230,.5)';
       rr(ctx, 0, 0, cw, ch, R(0.025));
       ctx.fill();
       font(ctx, 12, 900);
       ctx.textAlign = 'center';
-      ctx.fillStyle = locked ? '#9a6a3a' : '#c0303a';
-      ctx.fillText(locked ? '내일 올려요' : '돈 모자람', cw / 2, R(0.11), cw - 6);
+      const label = locked ? '내일' : '돈 모자람', tw = ctx.measureText(label).width + 12;
+      ctx.fillStyle = locked ? 'rgba(154,106,58,.85)' : 'rgba(200,48,58,.9)';
+      rr(ctx, cw / 2 - tw / 2, -R(0.006), tw, 18, 9);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(label, cw / 2, -R(0.006) + 10);
     }
     ctx.restore();
   }
@@ -2944,10 +3045,10 @@ function drawPanel(ctx: C2, s: CafeState, R: (v: number) => number, t: number, w
     if (s.phase === 'morning') {
       if (firstEver && !s.menu.length) {
         hint = '꿀 케이크 카드를 톡! 곰 손님이 좋아해요';
-        target = [cardX(0) + CARD.w / 2, CARD.y0 + 0.11];
+        target = [cardX(0) + CARD.w * 0.62, CARD.y0 + 0.03];
       } else if (firstEver) {
         hint = '문 열기를 톡 — 손님이 들어와요!';
-        target = [(DOOR.x0 + DOOR.x1) / 2, (DOOR.y0 + DOOR.y1) / 2];
+        target = [(DOOR.x0 + DOOR.x1) / 2 + 0.06, DOOR.y0 + 0.02];
       } else if (!s.menu.length) hint = '오늘 손님이 좋아할 메뉴를 하나 톡!';
       else if (s.pushed) hint = '새 메뉴는 아침마다 한 가지 — 문 열기를 톡!';
       else if (s.stage === 0 && s.day === 1) hint = '아침마다 새 메뉴를 하나 더 올릴 수 있어요';
@@ -2961,8 +3062,13 @@ function drawPanel(ctx: C2, s: CafeState, R: (v: number) => number, t: number, w
     ctx.fillStyle = firstEver ? '#d0405a' : '#8a5a2c';
     ctx.fillText(hint, w / 2, R(1.552), w - R(0.04));
     if (target) {
-      const bob = Math.sin(t * 0.15) * R(0.012);
-      finger(ctx, R(target[0]) + R(0.03), R(target[1]) + R(0.02) + bob, R(0.05));
+      const bob = Math.abs(Math.sin(t * 0.12)) * R(0.016);
+      const tx2 = R(target[0]), ty2 = R(target[1]);
+      ctx.strokeStyle = `rgba(255,90,110,${0.8 - ((t * 0.03) % 1) * 0.8})`;
+      ctx.lineWidth = 3;
+      ell(ctx, tx2, ty2, R(0.02) + ((t * 0.03) % 1) * R(0.05), (R(0.02) + ((t * 0.03) % 1) * R(0.05)) * 0.7);
+      ctx.stroke();
+      finger(ctx, tx2, ty2 - bob, R(0.1));
     }
   }
 }
@@ -2970,19 +3076,25 @@ function drawPanel(ctx: C2, s: CafeState, R: (v: number) => number, t: number, w
 function finger(ctx: C2, x: number, y: number, s: number) {
   ctx.save();
   ctx.translate(x, y);
-  ctx.rotate(-0.35);
+  ctx.rotate(Math.PI - 0.3);
   ctx.fillStyle = 'rgba(80,40,10,.25)';
   ell(ctx, s * 0.12, s * 0.95, s * 0.4, s * 0.12);
   ctx.fill();
-  ctx.fillStyle = '#ffe0c4';
-  ctx.strokeStyle = '#8a5a3a';
-  ctx.lineWidth = Math.max(1.5, s * 0.06);
-  rr(ctx, -s * 0.11, -s * 0.05, s * 0.22, s * 0.6, s * 0.11);
-  ctx.fill();
-  ctx.stroke();
-  rr(ctx, -s * 0.3, s * 0.35, s * 0.62, s * 0.55, s * 0.2);
-  ctx.fill();
-  ctx.stroke();
+  for (const pass of [0, 1]) {
+    ctx.fillStyle = pass ? '#ffe0c4' : '#ffffff';
+    ctx.strokeStyle = pass ? '#8a5a3a' : '#ffffff';
+    ctx.lineWidth = pass ? Math.max(1.5, s * 0.06) : s * 0.16;
+    rr(ctx, -s * 0.11, -s * 0.05, s * 0.22, s * 0.6, s * 0.11);
+    if (pass) ctx.fill();
+    ctx.stroke();
+    rr(ctx, -s * 0.3, s * 0.35, s * 0.62, s * 0.55, s * 0.2);
+    if (pass) ctx.fill();
+    ctx.stroke();
+    if (pass) {
+      rr(ctx, -s * 0.11, -s * 0.05, s * 0.22, s * 0.5, s * 0.11);
+      ctx.fill();
+    }
+  }
   ctx.fillStyle = '#ffffff';
   ell(ctx, 0, s * 0.04, s * 0.06, s * 0.04);
   ctx.fill();
@@ -3027,7 +3139,13 @@ function drawResult(ctx: C2, s: CafeState, R: (v: number) => number, t: number, 
     }
     font(ctx, R(0.034), 800);
     ctx.fillStyle = INK;
-    W.stars.forEach((q, j) => ctx.fillText(`${s.starOk[j] ? '★' : '☆'} ${q.label}`, 0, R(0.04 + j * 0.042), R(0.78)));
+    W.stars.forEach((q, j) => ctx.fillText(`${s.starOk[j] ? '★' : '☆'} ${q.label}`, 0, R(0.035 + j * 0.04), R(0.78)));
+    coin(ctx, -R(0.12), ch / 2 - R(0.075), R(0.016));
+    font(ctx, R(0.04), 900);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#8a5208';
+    ctx.fillText(`금요일 돈 ${s.money}`, -R(0.095), ch / 2 - R(0.073));
+    ctx.textAlign = 'center';
     if (!s.won && age > 60) {
       const nx = WEEKS[s.stage + 1];
       font(ctx, R(0.036), 900);
@@ -3111,8 +3229,8 @@ function doEvents(_ctx: C2, s: CafeState, R: (v: number) => number, t: number, w
       case 'open':
         fx.ring(R(0.875), R(0.36), '#ffffff', R(0.18), 5);
         fx.burst(R(0.875), R(0.4), '#ffe9a0', 22, 4.5, 3);
-        fx.pop(R(0.86), R(0.18), '딸랑!', '#ffd23a', 24);
-        fx.pop(R(0.5), R(0.3), `재료 -${e.n}`, '#ffd0c0', 15);
+        fx.pop(R(0.8), R(0.3), '딸랑!', '#ffd23a', 24);
+        fx.pop(R(0.5), R(0.47), `재료 -${e.n}`, '#ffd0c0', 15);
         fx.kick(4);
         break;
       case 'heart': {
@@ -3120,7 +3238,6 @@ function doEvents(_ctx: C2, s: CafeState, R: (v: number) => number, t: number, w
         fx.burst(x, y, '#ff6f91', 10 + st * 3, 3 + st * 0.4, 2.6);
         fx.burst(x, y, '#ffd23a', 6 + st * 2, 3, 2);
         fx.pop(x, y - R(0.03), `+${e.n}`, '#ffd23a', 16 + Math.min(10, st * 2));
-        if (a && a.o.k === 'bear' && a.o.dish === 'honey') fx.pop(x - R(0.08), y + R(0.02), '꿀꺽!', '#ffffff', 18);
         if (st >= 2) fx.ring(x, y + R(0.03), '#ff6f91', R(0.05 + st * 0.012), 3);
         if (st >= 3) fx.kick(2 + st * 0.6);
         fx.memo.payT = t;

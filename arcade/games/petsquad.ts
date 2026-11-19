@@ -18,7 +18,6 @@ const COLX = [0.2, 0.5, 0.8];
 const MY_Y = [0.715, 0.875];
 /** 상대 진영: 0 앞줄 · 1 뒷줄 */
 const EN_Y = [0.455, 0.315];
-const FLY_Y = 0.385;
 const MID_Y = 0.53;
 const CARD_X = [0.175, 0.5, 0.825], CARD_Y = 1.07, CARD_W = 0.3, CARD_H = 0.25;
 const BTN_Y = 1.262, BTN_H = 0.1;
@@ -55,7 +54,7 @@ const STAR_M = [1, 1, 2.6, 6];
 const HP_X = 2.6, HEAL_X = 1.8;
 
 // ───────────────────────────── 판 ─────────────────────────────
-type StarK = 'win' | 'merge' | 'noloss' | 'save' | 'fast';
+type StarK = 'win' | 'merge' | 'noloss' | 'save' | 'fast' | 'shooter';
 interface StarDef { k: StarK; n: number; label: string }
 const ST = (k: StarK, n: number, label: string): StarDef => ({ k, n, label });
 /** 상대 하나: 종류 · 속성(판마다 돌리는 상대 속성 0~2, 3 없음) · 별 · 줄 · 칸 */
@@ -81,8 +80,8 @@ export const STAGES: StageDef[] = [
   {
     name: '두 줄 진영', who: '멧돼지 군단', news: '두 줄 진영 — 쏘는 동물은 뒷줄에서 쏴요', hint: '앞줄이 막고 뒷줄이 쏴요', spot: 'back',
     pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit'], mult: 1.7, win: 6,
-    foes: [F('boar', 0, 0, 1), F('raccoon', 0, 0, 0), F('raccoon', 1, 0, 2), F('sling', 0, 1, 0), F('sling', 0, 1, 2)],
-    stars: [ST('win', 0, '이기기'), ST('noloss', 0, '한 마리도 안 잃고 이기기'), ST('save', 2, '금화 2개 남기고 이기기')],
+    foes: [F('boar', 0, 0, 1), F('raccoon', 0, 0, 0), F('raccoon', 1, 0, 2), F('sling', 0, 1, 0), F('sling', 1, 1, 2)],
+    stars: [ST('win', 0, '이기기'), ST('noloss', 0, '한 마리도 안 잃고 이기기'), ST('shooter', 0, '쏘는 동물과 함께 이기기')],
   },
   {
     name: '다시 뽑기', who: '물방울 산적', news: '다시 뽑기 — 금화 1개로 가게 카드를 새로', hint: '모으는 동물이 없으면 다시 뽑기', spot: 'reroll',
@@ -100,7 +99,7 @@ export const STAGES: StageDef[] = [
     name: '치료사', who: '다람쥐 치료단', news: '치료사 — 양이 가게에! 상대 다람쥐도 고쳐요', hint: '양은 가장 다친 친구를 고쳐요', spot: 'heal',
     pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit', 'sheep'], mult: 2.3, win: 8,
     foes: [F('boar', 2, 0, 1), F('raccoon', 2, 0, 0), F('raccoon', 2, 0, 2), F('squirrel', 2, 1, 1), F('sling', 1, 1, 0), F('sling', 1, 1, 2)],
-    stars: [ST('win', 0, '이기기'), ST('merge', 2, '합체 두 번 하기'), ST('noloss', 0, '한 마리도 안 잃고 이기기')],
+    stars: [ST('win', 0, '이기기'), ST('merge', 1, '합체 한 번 하기'), ST('fast', 12, '12초 안에 이기기')],
   },
   {
     name: '곰 우두머리', who: '곰 우두머리', news: '우두머리 — 쿵! 앞줄 모두를 한꺼번에 쳐요', hint: '앞줄은 단단하게, 뒷줄은 세게', spot: 'boss',
@@ -112,7 +111,7 @@ export const STAGES: StageDef[] = [
 export const STAGE_COUNT = STAGES.length;
 const START_COINS = 5, LOSS_COINS = 3, REROLL = 1;
 const CLEAR_PTS = 100, STAR_PTS = 100, WIN_PTS = 200, HEART_PTS = 100, KO_PTS = 4;
-const FIGHT_MAX = 60 * 30, END_WAIT = 70, RESULT_OK = 170, RESULT_FAIL = 150, BANNER_T = 200;
+const FIGHT_MAX = 60 * 30, END_WAIT = 70, RESULT_OK = 170, RESULT_FAIL = 150, BANNER_T = 160;
 
 // ───────────────────────────── 상태 ─────────────────────────────
 interface Pet { id: number; k: Kind; star: number; born: number; land: number; mergeT: number; from: number }
@@ -136,7 +135,7 @@ export interface PetState {
   fight: Fight | null; fightCoins: number; merges: number; mergeAll: number; swaps: number; sells: number;
   stars: number; got: number; starOk: boolean[]; pts: number; won: boolean; dead: boolean; again: boolean; tries: number;
   down: boolean; firstTap: number; firstBig: number; wowN: number; slow: number;
-  seen: Set<string>; banner: { head: string; sub: string; t: number } | null; spot: { x: number; y: number; t: number; label: string; r: number } | null;
+  seen: Set<string>; banner: { head: string; sub: string; t: number } | null; spot: { x: number; y: number; t: number; label: string; rx: number; ry: number } | null;
   events: Ev[]; pred: Pred | null; predKey: string; say: { slot: number; text: string; t: number } | null; bigText: string; bigT: number;
 }
 
@@ -233,6 +232,14 @@ function rollShop(s: PetState, first: boolean) {
     } else if (r() < 0.45) k = fav() ?? pick();
     else k = pick();
     out.push(k);
+  }
+  // 새것을 소개하는 판의 첫 가게엔 그 새것이 꼭 있다 (3판 쏘는 동물 · 6판 양)
+  if (first && !s.again) {
+    const want = d.spot === 'back' ? (k: Kind) => K[k].role === 1 : d.spot === 'heal' ? (k: Kind) => k === 'sheep' : null;
+    if (want && !out.some(want)) {
+      const c = d.pool.filter(want);
+      out[2] = c[Math.floor(r() * c.length)];
+    }
   }
   // 섞기 (첫 칸이 늘 정답이면 버릇이 된다)
   for (let j = 2; j > 0; j--) {
@@ -440,12 +447,12 @@ function newStage(s: PetState) {
     s.banner = { head: `${s.stage + 1}판 · ${d.name}`, sub: d.news ? `NEW  ${d.news}` : d.hint, t: s.t };
     if (s.stage > 0) see(s, d.spot);
     const sp = d.spot;
-    if (sp === 'back') s.spot = { x: 0.5, y: MY_Y[1], t: s.t, label: '뒷줄', r: 0.36 };
-    else if (sp === 'reroll') s.spot = { x: 0.17, y: BTN_Y, t: s.t, label: '다시 뽑기', r: 0.13 };
-    else if (sp === 'fly') s.spot = { x: 0.5, y: FLY_Y - 0.03, t: s.t, label: '박쥐', r: 0.3 };
-    else if (sp === 'heal') s.spot = { x: 0.5, y: EN_Y[1], t: s.t, label: '다람쥐 치료사', r: 0.12 };
-    else if (sp === 'boss') s.spot = { x: 0.5, y: EN_Y[0] - 0.04, t: s.t, label: '우두머리', r: 0.2 };
-    else if (sp === 'element') s.spot = { x: 0.5, y: EN_Y[0], t: s.t, label: '상대 속성', r: 0.3 };
+    if (sp === 'back') s.spot = { x: 0.5, y: MY_Y[1] - 0.04, t: s.t, label: '뒷줄', rx: 0.47, ry: 0.07 };
+    else if (sp === 'reroll') s.spot = { x: REROLL_BTN[0], y: BTN_Y, t: s.t, label: '다시 뽑기', rx: 0.16, ry: 0.065 };
+    else if (sp === 'fly') s.spot = { x: 0.5, y: EN_Y[1] - 0.05, t: s.t, label: '박쥐', rx: 0.46, ry: 0.08 };
+    else if (sp === 'heal') s.spot = { x: 0.5, y: EN_Y[1] - 0.05, t: s.t, label: '다람쥐 치료사', rx: 0.12, ry: 0.09 };
+    else if (sp === 'boss') s.spot = { x: 0.5, y: EN_Y[0] - 0.1, t: s.t, label: '우두머리', rx: 0.17, ry: 0.15 };
+    else if (sp === 'element') s.spot = { x: 0.5, y: EN_Y[0] - 0.06, t: s.t, label: '상대 망토 색', rx: 0.46, ry: 0.09 };
     else s.spot = null;
     if (sp === 'back') see(s, 'shooter');
   } else s.banner = { head: `다시! ${s.stage + 1}판 · ${d.name}`, sub: '군단은 그대로 — 금화로 보태요', t: s.t };
@@ -457,6 +464,7 @@ function starMet(s: PetState, q: StarDef, f: Fight) {
     case 'noloss': return f.lost === 0;
     case 'save': return s.fightCoins >= q.n;
     case 'fast': return f.t <= q.n * 60;
+    case 'shooter': return f.u.some((u) => u.side === 0 && u.role === 1);
   }
 }
 /** 별 칸 옆 진행 */
@@ -609,7 +617,7 @@ function onFightEv(s: PetState, f: Fight, e: FEv) {
     if (b.side === 1) {
       s.pts += KO_PTS;
       if (b.role === 4) (s.slow = 30), wow(s, '우두머리 쿵!', 0.5, EN_Y[0]);
-      else if (f.koRun === 3 || (f.koRun >= 2 && f.u.every((u) => u.side === 0 || u.dead))) wow(s, f.koRun >= 3 ? '와르르!' : '두 마리 쿵!', 0.5, EN_Y[0]);
+      else if (f.koRun >= 2 && f.koRun <= 4) wow(s, f.koRun === 2 ? '두 마리 쿵!' : f.koRun === 3 ? '와르르!' : '싹쓸이!', 0.5, EN_Y[0]);
     }
     let alive = 0;
     for (const u of f.u) if (!u.dead && u.side === b.side) alive++;
@@ -738,7 +746,7 @@ function planValue(s: PetState, m: Mini): number {
   if (f.done === 1) {
     let stars = 0;
     for (const q of d.stars) {
-      const ok = q.k === 'win' ? true : q.k === 'merge' ? m.merges >= q.n : q.k === 'noloss' ? f.lost === 0 : q.k === 'save' ? m.coins >= q.n : f.t <= q.n * 60;
+      const ok = q.k === 'win' ? true : q.k === 'merge' ? m.merges >= q.n : q.k === 'noloss' ? f.lost === 0 : q.k === 'save' ? m.coins >= q.n : q.k === 'shooter' ? m.board.some((p) => p && K[p.k].role === 1) : f.t <= q.n * 60;
       if (ok) stars++;
       // 합체 별이 남았으면: 짝(같은 동물 별 하나 둘)은 반쯤 다가선 것
       else if (q.k === 'merge') stars += 0.3 * Math.min(q.n, m.merges + 0.5 * pairs(m)) / q.n;
@@ -1924,16 +1932,16 @@ function getBg(w: number, h: number, sc: number): HTMLCanvasElement {
 }
 
 // ── 연출 기억 (상태와 무관) ──
-interface Vis { flog: number; fight: Fight | null; ev: number; disp: Map<number, number>; cheer: number; sad: number; landed: Map<number, number>; pred: Pred | null; predKey: string; meter: number; ghosts: { k: Kind; star: number; x0: number; y0: number; x1: number; y1: number; t0: number; T: number; kind: string; el: number }[] }
+interface Vis { flog: number; fight: Fight | null; ev: number; disp: Map<number, number>; died: Map<number, number>; cheer: number; sad: number; landed: Map<number, number>; pred: Pred | null; predKey: string; meter: number; ghosts: { k: Kind; star: number; x0: number; y0: number; x1: number; y1: number; t0: number; T: number; kind: string; el: number }[] }
 const VIS = new WeakMap<object, Vis>();
 const visOf = (s: PetState): Vis => {
   let v = VIS.get(s);
-  if (!v) VIS.set(s, (v = { flog: 0, fight: null, ev: -1, disp: new Map(), cheer: -999, sad: -999, landed: new Map(), pred: null, predKey: '', meter: 0.5, ghosts: [] }));
+  if (!v) VIS.set(s, (v = { flog: 0, fight: null, ev: -1, disp: new Map(), died: new Map(), cheer: -999, sad: -999, landed: new Map(), pred: null, predKey: '', meter: 0.5, ghosts: [] }));
   return v;
 };
 const ROW_SC_MY = [1.0, 1.08], ROW_SC_EN = [0.9, 0.84];
 const STAR_SC = [1, 1, 1.24, 1.46];
-const BASE_R = 0.06;
+const BASE_R = 0.066;
 /** 전투 중인 동물의 자리 (가로 폭 단위): 발 밑 x, y, 공중 높이 */
 function homeOf(f: Fight, u: FU, vis: Vis, id: number): [number, number, number] {
   if (u.side === 0) {
@@ -1973,7 +1981,7 @@ function drawAll(ctx: C2, s: PetState, w: number, h: number, th: Theme) {
 
   // ── 사건 → 연출 ──
   for (const e of s.events) {
-    if (e.t <= vis.ev) continue;
+    if (e.t <= vis.ev || t - e.t > 12) continue;
     const ex = X(e.x), ey = Y(e.y);
     switch (e.kind) {
       case 'land': {
@@ -2011,7 +2019,6 @@ function drawAll(ctx: C2, s: PetState, w: number, h: number, th: Theme) {
       case 'clear':
         vis.cheer = t;
         for (let q = 0; q < 5; q++) fx.burst(X(0.15 + q * 0.175), Y(0.35 + (q % 2) * 0.1), ['#ff6a8a', '#ffd23a', '#5ad0ff', '#7ae06a', '#c08aff'][q], 16, 4.5, 3);
-        fx.pop(X(0.5), Y(MID_Y + 0.12), `+${e.n} 금화`, '#ffe14a', Math.max(16, R(0.06)));
         break;
       case 'fail':
         vis.sad = t;
@@ -2034,9 +2041,9 @@ function drawAll(ctx: C2, s: PetState, w: number, h: number, th: Theme) {
   vis.ev = Math.max(vis.ev, ...s.events.map((e) => e.t), vis.ev);
   vis.ghosts = vis.ghosts.filter((g) => t - g.t0 < g.T + 2);
 
+  ctx.drawImage(getBg(Math.round(w), Math.round(h), Math.min(3, Math.max(1, Math.round(sc)))), 0, 0, w, h);
   ctx.save();
   fx.begin(ctx);
-  ctx.drawImage(getBg(Math.round(w), Math.round(h), Math.min(3, Math.max(1, Math.round(sc)))), 0, 0, w, h);
   drawSkyLife(ctx, s, vis, w, t);
 
   // ── 칸 받침 ──
@@ -2047,16 +2054,30 @@ function drawAll(ctx: C2, s: PetState, w: number, h: number, th: Theme) {
       if (i >= 3 && s.stage < 2) continue;
     }
     const sel = s.sel === i, tgt = s.sel >= 0 && s.sel !== i && shop;
-    const rx = R(0.125 * (i < 3 ? 1 : 1.06)), ry = R(0.042);
-    ctx.fillStyle = 'rgba(40,80,20,.18)';
-    ell(ctx, X(sx), Y(sy) + R(0.006), rx, ry);
+    const rx = R(0.118 * (i < 3 ? 1 : 1.06)), ry = R(0.04), px = X(sx), py = Y(sy), th = R(0.014), used = !!s.board[i] || sel;
+    // 돌 받침: 옆면(두께) + 윗면
+    ctx.fillStyle = 'rgba(40,80,20,.22)';
+    ell(ctx, px, py + th + R(0.006), rx * 1.04, ry * 1.05);
     ctx.fill();
-    ctx.fillStyle = sel ? 'rgba(255,240,140,.9)' : tgt ? 'rgba(255,255,255,.5)' : 'rgba(255,255,240,.35)';
-    ell(ctx, X(sx), Y(sy), rx * 0.92, ry * 0.85);
-    ctx.fill();
-    ctx.strokeStyle = sel ? '#ffb020' : spotBack && i >= 3 ? `rgba(255,200,40,${0.6 + 0.4 * Math.sin(t * 0.2)})` : 'rgba(40,110,200,.55)';
+    if (used || i < nSlots) {
+      ctx.fillStyle = lin(ctx, px - rx, 0, px + rx, 0, [0, '#8aa0b8'], [0.5, '#b8c8da'], [1, '#7a8ea8']);
+      ctx.beginPath();
+      ctx.ellipse(px, py, rx, ry, 0, 0, Math.PI);
+      ctx.lineTo(px - rx, py + th);
+      ctx.ellipse(px, py + th, rx, ry, 0, Math.PI, 0, true);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = lin(ctx, 0, py - ry, 0, py + ry, [0, sel ? '#fff6b0' : '#f2f7ff'], [1, sel ? '#ffd860' : '#c8d8ec']);
+      ell(ctx, px, py, rx, ry);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.55)';
+      ell(ctx, px - rx * 0.25, py - ry * 0.35, rx * 0.45, ry * 0.3);
+      ctx.fill();
+    }
+    ctx.strokeStyle = sel ? '#ffb020' : spotBack && i >= 3 ? `rgba(255,200,40,${0.6 + 0.4 * Math.sin(t * 0.2)})` : '#3d7fd0';
     ctx.lineWidth = sel ? 3 : 2;
-    ctx.setLineDash(s.board[i] || sel ? [] : [5, 4]);
+    ctx.setLineDash(used ? [] : [5, 4]);
+    ell(ctx, px, py, rx * 0.9, ry * 0.82);
     ctx.stroke();
     ctx.setLineDash([]);
     if (tgt && Math.floor(t / 20) % 2 === 0) {
@@ -2072,12 +2093,23 @@ function drawAll(ctx: C2, s: PetState, w: number, h: number, th: Theme) {
   // 상대 받침 (붉은 테)
   for (const fo of d.foes) {
     if (fo.k === 'bat' || fo.k === 'bear') continue;
-    const ex = X(COLX[fo.col]), ey = Y(EN_Y[fo.row]), rx = R(0.11 * ROW_SC_EN[fo.row]), ry = R(0.036 * ROW_SC_EN[fo.row]);
-    ctx.fillStyle = 'rgba(255,230,220,.3)';
+    const ex = X(COLX[fo.col]), ey = Y(EN_Y[fo.row]), rx = R(0.105 * ROW_SC_EN[fo.row]), ry = R(0.034 * ROW_SC_EN[fo.row]), th = R(0.012 * ROW_SC_EN[fo.row]);
+    ctx.fillStyle = 'rgba(40,80,20,.2)';
+    ell(ctx, ex, ey + th + R(0.005), rx * 1.04, ry * 1.05);
+    ctx.fill();
+    ctx.fillStyle = lin(ctx, ex - rx, 0, ex + rx, 0, [0, '#b07a6a'], [0.5, '#d8a898'], [1, '#a06a5a']);
+    ctx.beginPath();
+    ctx.ellipse(ex, ey, rx, ry, 0, 0, Math.PI);
+    ctx.lineTo(ex - rx, ey + th);
+    ctx.ellipse(ex, ey + th, rx, ry, 0, Math.PI, 0, true);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = lin(ctx, 0, ey - ry, 0, ey + ry, [0, '#fff0ea'], [1, '#f0c8bc']);
     ell(ctx, ex, ey, rx, ry);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(220,70,50,.5)';
+    ctx.strokeStyle = '#d0503a';
     ctx.lineWidth = 2;
+    ell(ctx, ex, ey, rx * 0.88, ry * 0.8);
     ctx.stroke();
   }
   // 깃발 (내 편 파랑 · 상대 빨강)
@@ -2131,7 +2163,8 @@ function drawAll(ctx: C2, s: PetState, w: number, h: number, th: Theme) {
         tilt += Math.sin(since * 1.3) * 0.12 * (1 - since / 14);
       }
       if (u.dead) {
-        const dt = f.t - u.deadT, dir = u.col === 0 ? -1 : u.col === 2 ? 1 : u.side ? 1 : -1;
+        if (!vis.died.has(id)) vis.died.set(id, t - Math.min(8, f.t - u.deadT));
+        const dt = t - vis.died.get(id)!, dir = u.col === 0 ? -1 : u.col === 2 ? 1 : u.side ? 1 : -1;
         if (dt > 60) return;
         x += dir * dt * 0.006;
         y += (u.side ? -1 : 1) * dt * 0.0015;
@@ -2591,10 +2624,11 @@ function drawShots(ctx: C2, f: Fight, vis: Vis, X: (x: number) => number, Y: (y:
   }
 }
 function fightFx(s: PetState, f: Fight, vis: Vis, fx: ReturnType<typeof juice>, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number) {
-  if (vis.fight !== f) (vis.fight = f), (vis.flog = 0), vis.disp.clear();
+  if (vis.fight !== f) (vis.fight = f), (vis.flog = 0), vis.disp.clear(), vis.died.clear();
   const log = f.log!;
   for (; vis.flog < log.length; vis.flog++) {
     const e = log[vis.flog];
+    if (e.t < f.t - 8) continue;
     const b = e.b >= 0 ? f.u[e.b] : null, a = f.u[e.a];
     const pos = (u: FU, i: number) => {
       const [x, y, al] = homeOf(f, u, vis, u.side ? -1 - i : u.pid);
@@ -2812,14 +2846,15 @@ function drawShop(ctx: C2, s: PetState, vis: Vis, X: (x: number) => number, Y: (
     icon(-bw / 2 + R(0.05), 0);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    font(sub ? 0.045 : 0.06, 900);
+    font(sub ? 0.042 : 0.06, 900);
     ctx.lineJoin = 'round';
     ctx.lineWidth = 4;
     ctx.strokeStyle = on ? line : 'rgba(110,70,30,.4)';
     const tx = R(0.02);
-    ctx.strokeText(label, tx, sub ? -R(0.012) : R(0.003));
+    const mw = bw - R(0.1);
+    ctx.strokeText(label, tx, sub ? -R(0.012) : R(0.003), mw);
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(label, tx, sub ? -R(0.012) : R(0.003));
+    ctx.fillText(label, tx, sub ? -R(0.012) : R(0.003), mw);
     if (sub) {
       font(0.03, 800);
       ctx.fillStyle = on ? '#fff6dc' : '#8a7a60';
@@ -2832,7 +2867,7 @@ function drawShop(ctx: C2, s: PetState, vis: Vis, X: (x: number) => number, Y: (
     btn(REROLL_BTN, '#ffd86a', '#f0a020', '#8a5208', '팔기', `금화 +${v}`, true, 1 + 0.03 * Math.sin(t * 0.25), (x, y) => coinIcon(ctx, x - R(0.005), y, R(0.018)));
   } else if (rerollOn(s)) {
     const on = shop && s.coins >= REROLL;
-    btn(REROLL_BTN, '#7ac8ff', '#2f86e0', '#1a4a90', '다시', '뽑기 1', on, 1, (x, y) => {
+    btn(REROLL_BTN, '#7ac8ff', '#2f86e0', '#1a4a90', '다시 뽑기', '금화 1', on, 1, (x, y) => {
       ctx.strokeStyle = on ? '#ffffff' : '#8a7a60';
       ctx.lineWidth = 2.5;
       ctx.beginPath();
@@ -2848,9 +2883,9 @@ function drawShop(ctx: C2, s: PetState, vis: Vis, X: (x: number) => number, Y: (
     });
   }
   const has = s.board.some(Boolean);
-  const fightOn = shop && has;
+  const fightOn = (shop && has) || (s.phase === 'result' && s.pt > 50);
   const tip = s.stage === 0 && shop && firstTip(s) === 9;
-  btn(FIGHT_BTN, '#ff8a4a', '#e0381e', '#8a1a08', shop ? '싸움!' : s.phase === 'fight' ? '싸우는 중' : '', '', fightOn, fightOn ? 1 + (tip ? 0.06 : 0.025) * Math.sin(t * 0.22) : 1, (x, y) => {
+  btn(FIGHT_BTN, '#ff8a4a', '#e0381e', '#8a1a08', shop ? '싸움!' : s.phase === 'fight' ? '싸우는 중' : s.ok ? '다음 판' : '다시', '', fightOn, fightOn ? 1 + (tip ? 0.06 : 0.025) * Math.sin(t * 0.22) : 1, (x, y) => {
     // 칼 두 자루
     for (const sd of [-1, 1]) {
       ctx.save();
@@ -2874,7 +2909,7 @@ function drawShop(ctx: C2, s: PetState, vis: Vis, X: (x: number) => number, Y: (
   {
     const stars = d.stars, play = s.phase !== 'result';
     const labels = stars.map((q) => q.label + (play && starNow(s, q) ? ` ${starNow(s, q)}` : ''));
-    const okNow = s.phase === 'result' && s.ok ? s.starOk : stars.map((q) => (q.k === 'merge' ? s.merges >= q.n : false));
+    const okNow = s.phase === 'result' && s.ok ? s.starOk : stars.map((q) => (q.k === 'merge' ? s.merges >= q.n : q.k === 'shooter' ? s.board.some((p) => p && K[p.k].role === 1) : false));
     font(0.034, 800);
     const ws = labels.map((l) => ctx.measureText(l).width + R(0.07));
     const gap = R(0.012), tot = ws.reduce((a2, b2) => a2 + b2, 0) + gap * (ws.length - 1), scl = Math.min(1, (w - R(0.03)) / tot);
@@ -2992,19 +3027,19 @@ function drawCards(ctx: C2, s: PetState, fx: ReturnType<typeof juice>, X: (x: nu
   const t = s.t, d = STAGES[s.stage];
   // 스포트라이트 (새것)
   if (s.spot && s.phase === 'shop' && t - s.spot.t < 200) {
-    const sp = s.spot, a = Math.min(1, (200 - (t - sp.t)) / 30), pr = R(sp.r) * (1 + 0.06 * Math.sin(t * 0.2));
+    const sp = s.spot, a = Math.min(1, (200 - (t - sp.t)) / 30), pul = 1 + 0.04 * Math.sin(t * 0.2), prx = R(sp.rx) * pul, pry = R(sp.ry) * pul;
     ctx.save();
     ctx.globalAlpha = a;
     ctx.strokeStyle = '#ffd23a';
     ctx.lineWidth = 4;
     ctx.setLineDash([10, 7]);
     ctx.lineDashOffset = -t * 0.8;
-    ell(ctx, X(sp.x), Y(sp.y), pr, pr * (sp.r > 0.2 ? 0.45 : 0.75));
+    rr(ctx, X(sp.x) - prx, Y(sp.y) - pry, prx * 2, pry * 2, Math.min(prx, pry) * 0.6);
     ctx.stroke();
     ctx.setLineDash([]);
     font(0.034, 900);
     const lab = `NEW  ${sp.label}`, tw = ctx.measureText(lab).width + R(0.04);
-    const lx = clamp(X(sp.x), tw / 2 + 4, w - tw / 2 - 4), ly = Y(sp.y) - pr * (sp.r > 0.2 ? 0.45 : 0.75) - R(0.03);
+    const lx = clamp(X(sp.x), tw / 2 + 4, w - tw / 2 - 4), ly = Math.max(R(0.11), Y(sp.y) - pry - R(0.005));
     ctx.fillStyle = '#ff5a3a';
     rr(ctx, lx - tw / 2, ly - R(0.022), tw, R(0.044), R(0.022));
     ctx.fill();
@@ -3022,7 +3057,7 @@ function drawCards(ctx: C2, s: PetState, fx: ReturnType<typeof juice>, X: (x: nu
   if (s.phase === 'result') {
     age = s.pt;
     a = Math.min(1, age / 8);
-    cy = Y(MID_Y);
+    cy = Y(s.ok ? 0.34 : 0.6);
     if (s.ok) head = s.won ? '모든 판 승리!' : `${d.who} 이겼다!`;
     else (head = '으앗, 졌다…'), (sub = s.hearts > 0 ? `${s.why} · 하트 -1 · 같은 판 다시` : '하트가 없어요 — 끝');
   } else if (s.banner && s.phase === 'shop' && t - s.banner.t < BANNER_T) {
@@ -3039,7 +3074,7 @@ function drawCards(ctx: C2, s: PetState, fx: ReturnType<typeof juice>, X: (x: nu
     font(0.034, 800);
     const w2 = sub ? ctx.measureText(sub).width : 0;
     const okRes = s.phase === 'result' && s.ok;
-    const cw = Math.min(w - R(0.04), Math.max(w1, w2) + R(0.1)), ch = (sub || okRes ? R(0.15) : R(0.09)) * pop;
+    const cw = Math.min(w - R(0.04), Math.max(w1, w2, okRes ? R(0.5) : 0) + R(0.1)), ch = (okRes ? R(0.21) : sub ? R(0.15) : R(0.09)) * pop;
     ctx.translate(w / 2, cy);
     ctx.fillStyle = 'rgba(60,30,10,.3)';
     rr(ctx, -cw / 2 + 3, -ch / 2 + 5, cw, ch, R(0.035));
@@ -3067,19 +3102,32 @@ function drawCards(ctx: C2, s: PetState, fx: ReturnType<typeof juice>, X: (x: nu
     font(0.052, 900);
     ctx.fillStyle = s.phase === 'result' ? (s.ok ? '#d0500a' : '#5a6a88') : '#2a5a9a';
     if (okRes) {
-      ctx.fillText(head, 0, -R(0.032), w - R(0.1));
+      ctx.fillText(head, 0, -R(0.06), w - R(0.1));
       const nS = s.starOk.length;
       for (let j = 0; j < nS; j++) {
         const ag = s.pt - (16 + j * 14);
-        const sx = (j - (nS - 1) / 2) * R(0.085), sy = R(0.032);
+        const sx = (j - (nS - 1) / 2) * R(0.09), sy = R(0.0);
         const popS = ag < 0 ? 0.8 : ag < 8 ? 1.9 - 0.9 * (ag / 8) : 1;
-        starPath(ctx, sx, sy, R(0.032) * popS);
+        starPath(ctx, sx, sy, R(0.036) * popS);
         ctx.fillStyle = ag >= 0 && s.starOk[j] ? '#ffc93a' : 'rgba(90,50,20,.15)';
         ctx.fill();
         ctx.strokeStyle = ag >= 0 && s.starOk[j] ? '#9a5a08' : 'rgba(90,50,20,.35)';
         ctx.lineWidth = 1.6;
         ctx.stroke();
         if (ag >= 0 && s.starOk[j] && (fx.memo['st' + j] ?? -1) < s.t - ag) (fx.memo['st' + j] = s.t - ag), fx.burst(w / 2 + sx, cy + sy, '#ffd23a', 16, 3, 2.4);
+      }
+      const win = d.win, ga = s.pt - (20 + nS * 14);
+      if (ga >= 0 && (win > 0 || s.won)) {
+        const gp = ga < 8 ? 1.5 - 0.5 * (ga / 8) : 1;
+        ctx.save();
+        ctx.translate(0, R(0.06));
+        ctx.scale(gp, gp);
+        font(0.04, 900);
+        const txt = s.won ? '군단 최고!' : `금화 +${win}`, tw = ctx.measureText(txt).width;
+        if (!s.won) coinIcon(ctx, -tw / 2 - R(0.018), 0, R(0.02));
+        ctx.fillStyle = '#9a5a08';
+        ctx.fillText(txt, R(s.won ? 0 : 0.012), R(0.002));
+        ctx.restore();
       }
     } else {
       ctx.fillText(head, 0, sub ? -R(0.028) : R(0.002), w - R(0.1));

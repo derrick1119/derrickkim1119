@@ -7,9 +7,10 @@
  * 판·목표: 판마다 목표 하나(그림 쪽지) + 단서 한 줄. 물약 병(= 섞을 수 있는 횟수, 지킬 것 guard) 안에 목표를 만들면 판 끝.
  *   병을 다 쓰거나 재료가 모자라 더는 못 만들면 하트 -1 · 그 판 다시. 하트 셋을 다 잃거나 8판을 마치면 끝.
  * 별(쉬운 말, 1판 하나 · 판마다 하나씩): 목표 만들기 · ○번 안에 만들기 · 새것 ○개 발견하기 · 손님에게 보여 주기 · 하나도 안 터뜨리기.
- * 펼쳐짐(판마다 하는 일이 바뀐다): 1 섞어 보기(새것 둘) → 2 만든 것도 재료(연쇄 · 단서 쪽지) → 3 손님 마녀의 주문(둘을 함께 채우는 길 찾기)
+ * 펼쳐짐(판마다 하는 일이 바뀐다): 1 섞어 보기(새것 둘) → 2 만든 것도 재료(연쇄 · 단서 쪽지 · 점이 같으면 다른 길로도) → 3 손님 마녀의 주문(둘을 함께 채우는 길 찾기)
  *   → 4 금 간 병(한 번 쓰면 사라짐 — 나누는 순서) → 5 펑! 솥(없는 조합은 터져 재료 하나가 깨짐) → 6 큰 솥(셋까지 · 둘이면 솥을 톡)
  *   → 7 거꾸로 단서(그림자 + 불 = 고래 → 그림자는?) → 8 마지막(다 섞어서 별빛 고래).
+ * 미리 보기: 병 하나를 넣으면 다른 병마다 말풍선 — 아는 결과는 그림, 해 본 헛조합은 '펑', 처음이면 '?'. 생각하는 봇도 이 정보만 쓴다.
  * 웃음: 실패하면 검댕 연기에 얼굴이 새까매진 마녀가 콜록콜록, 펑! 솥은 모자가 날아가고 깨진 병 조각이 데굴데굴.
  *   새로 태어난 생물은 솥에서 튀어나와 다락방을 한 바퀴 뛰어다니며 제 소리('뭉게!')를 내고 선반으로 폴짝. 창틀 부엉이가 큰 순간마다 눈이 휘둥그레.
  */
@@ -70,7 +71,7 @@ export interface StageDef {
 }
 export const STAGES: StageDef[] = [
   { key: 'mix', name: '첫 실험', shelf: [W, F, E, WI], goal: null, need: 2, bottles: 6, stars: [S('goal', 0, '새것 둘 만들기')], news: '병 둘을 톡·톡 → 솥에서 새것이 태어나요', tip: '병 둘을 톡·톡 하면 새것이 태어나요' },
-  { key: 'chain', name: '무지개', shelf: [W, F, WI], goal: 'rainbow', clue: ['pup', WI], bottles: 7, stars: [S('goal', 0, '무지개 만들기'), S('within', 3, '세 번 안에 만들기')], news: '만든 것도 재료! 단서 쪽지를 봐요', tip: '단서: 구름 강아지 + 바람 = 무지개' },
+  { key: 'chain', name: '무지개', shelf: [W, F, WI, 'pup'], goal: 'rainbow', clue: ['pup', WI], bottles: 7, stars: [S('goal', 0, '무지개 만들기'), S('new', 2, '새것 둘 발견하기')], news: '만든 것도 재료! 단서 쪽지를 봐요', tip: '점이 같으면 다른 길로도 돼요 — 새것을 찾아요' },
   { key: 'guest', name: '꼬마 용', shelf: [W, F, E, WI], goal: 'dragon', clue: ['turtle', WI], guest: 'moth', bottles: 6, stars: [S('goal', 0, '꼬마 용 만들기'), S('guest', 0, '손님에게 불꽃 나비 보여 주기'), S('within', 2, '두 번 안에 만들기')], news: '손님 마녀가 불꽃 나비를 보고 싶대요', tip: '점을 세요 — 불꽃 나비에도 용의 점이 있어요' },
   { key: 'once', name: '별빛 고양이', shelf: [W, F, E, WI, 'pup'], goal: 'cat', clue: ['pup', 'fairy'], once: true, bottles: 4, stars: [S('goal', 0, '별빛 고양이 만들기'), S('within', 2, '두 번 안에 만들기'), S('new', 2, '새것 둘 발견하기')], news: '금 간 병 — 한 번 넣으면 사라져요', tip: '하나씩만 있어요 — 나누는 순서를 생각해요' },
   { key: 'boom', name: '무지개 고래', shelf: [W, F, E, WI, 'fish'], goal: 'whale', clue: ['rainbow', W], boom: true, bottles: 5, stars: [S('goal', 0, '무지개 고래 만들기'), S('noboom', 0, '하나도 안 터뜨리기'), S('within', 2, '두 번 안에 만들기')], news: '펑! 솥 — 없는 조합은 터져서 병이 깨져요', tip: '터지면 나중에 넣은 병이 깨져요' },
@@ -403,7 +404,7 @@ const tapSlotIn = (i: number) => {
 const tapPot = () => tapAt(POT_X, POT_Y);
 
 /** 생각하는 봇의 믿음: 만들어 본 것·쪽지에 나온 것은 있다, 해 보고 안 된 것은 없다. 처음 보는 점 조합은 — 점이 겹치지 않으면 거의 있고, 겹치면 셋에 하나꼴 */
-const P_DISTINCT = 0.95, P_REPEAT = 0.3;
+const P_DISTINCT = 0.95, P_REPEAT = 0.25;
 interface PCtx { new0: number; d: StageDef; g: number[]; gk: string; guestK: string; known: Set<string>; bad: Set<string>; codexK: Set<string>; memo: Map<string, number>; triple: boolean; once: boolean; boom: boolean; wantNew: number; mix0: number }
 function pExist(c: PCtx, k: string) {
   if (c.known.has(k)) return 1;
@@ -413,7 +414,7 @@ function pExist(c: PCtx, k: string) {
 function termValue(c: PCtx, mixes: number, newN: number, guest: boolean, booms: number) {
   let st = 0;
   for (const q of c.d.stars) st += q.k === 'goal' ? 1 : q.k === 'within' ? +(mixes <= q.n) : q.k === 'new' ? +(newN >= q.n) : q.k === 'guest' ? +guest : +(booms === 0);
-  return st * 100 + newN * 20 - mixes * 3;
+  return st * 100 + newN * 20 - mixes * 6;
 }
 /** 선반 열쇠: 'b'(처음 재료) 또는 'm'(만든 것, 만든 순서대로) + 점 열쇠. 선반은 6칸 — 꽉 차면 가장 오래된 만든 것이 나간다 */
 const kd = (x: string) => fromKey(x.slice(1));
@@ -464,7 +465,8 @@ function actValue(c: PCtx, keys: string[], idx: number[], left: number, mixes: n
   if (c.once) fk = keys.filter((_, i) => !idx.includes(i));
   else if (c.boom) fk = keys.filter((_, i) => i !== idx[idx.length - 1]);
   else fk = keys;
-  const bad = pvalue(c, fk, left - 1, mixes + 1, found, guest, booms + (c.boom ? 1 : 0), depth - 1);
+  // 헛수고(검댕)는 시간·병을 버리니 조금 더 아프게 본다
+  const bad = pvalue(c, fk, left - 1, mixes + 1, found, guest, booms + (c.boom ? 1 : 0), depth - 1) - 30;
   return p * ok + (1 - p) * bad;
 }
 /** 지금 선반에서 가장 좋은 조합 (선반 칸 번호들, 넣을 순서대로) */
@@ -2047,14 +2049,32 @@ function drawPot(ctx: C2, w: number, s: LabState, t: number) {
     line(ctx, 1.2);
   }
   const fl = brewing ? 1.5 : 1;
-  for (let i = 0; i < 5; i++) {
-    const fx2 = cx + (i - 2) * R(0.045), hgt = R(0.05) * fl * (0.7 + 0.3 * Math.sin(t * 0.3 + i * 1.7));
-    ctx.fillStyle = i % 2 ? '#ffb030' : '#ff6a2a';
-    ctx.beginPath();
-    ctx.moveTo(fx2 - R(0.025), fireY);
-    ctx.quadraticCurveTo(fx2 - R(0.015), fireY - hgt * 0.6, fx2, fireY - hgt);
-    ctx.quadraticCurveTo(fx2 + R(0.015), fireY - hgt * 0.6, fx2 + R(0.025), fireY);
+  // 장작
+  for (const sd of [-1, 1]) {
+    ctx.save();
+    ctx.translate(cx, fireY - R(0.008));
+    ctx.rotate(sd * 0.22);
+    rr(ctx, -R(0.08), -R(0.01), R(0.16), R(0.02), R(0.01));
+    ctx.fillStyle = '#8a5228';
     ctx.fill();
+    line(ctx, 1.2);
+    ctx.restore();
+  }
+  ctx.fillStyle = radg(ctx, cx, fireY - R(0.02), 0, R(0.12), [0, `rgba(255,170,60,${brewing ? 0.55 : 0.35})`], [1, 'rgba(255,170,60,0)']);
+  circ(ctx, cx, fireY - R(0.02), R(0.12));
+  ctx.fill();
+  for (let i = 0; i < 5; i++) {
+    const fx2 = cx + (i - 2) * R(0.035), hgt = R(i === 2 ? 0.065 : 0.045) * fl * (0.75 + 0.25 * Math.sin(t * 0.35 + i * 1.7)), fw = R(0.026);
+    const sway = Math.sin(t * 0.2 + i) * R(0.006);
+    for (const [q, c] of [[1, '#ff5a2a'], [0.7, '#ffa030'], [0.42, '#ffe25a']] as [number, string][]) {
+      ctx.fillStyle = c;
+      ctx.beginPath();
+      ctx.moveTo(fx2 - fw * q, fireY);
+      ctx.bezierCurveTo(fx2 - fw * q * 1.1, fireY - hgt * q * 0.5, fx2 + sway, fireY - hgt * q * 0.75, fx2 + sway * 1.5, fireY - hgt * q);
+      ctx.bezierCurveTo(fx2 + sway, fireY - hgt * q * 0.6, fx2 + fw * q * 1.1, fireY - hgt * q * 0.4, fx2 + fw * q, fireY);
+      ctx.closePath();
+      ctx.fill();
+    }
   }
   // 다리
   for (const sd of [-1, 1]) {
@@ -2172,7 +2192,7 @@ function drawNote(ctx: C2, w: number, s: LabState, t: number) {
   const title = d.goal ? (d.rev ? '그림자를 만들어요' : `${BY_ID[d.goal].name} 만들기`) : `새것 둘 만들기  ${Math.min(s.newN, d.need ?? 2)}/${d.need ?? 2}`;
   ctx.fillText(title, x0 + R(0.18), ty + 1);
   // 식: A + B = 목표
-  const ey = y0 + R(0.175), r = R(0.052);
+  const ey = y0 + R(0.172), r = R(0.06);
   const xs = [0.17, 0.4, 0.73].map(R), ops: [string, number][] = [['+', 0.285], ['=', 0.535]];
   const sym = (txt: string, x: number) => say(ctx, txt, R(x), ey - r * 0.9, fs * 1.4, '#a8703a', '#fff6e0', 3);
   for (const [o, ox] of ops) sym(o, ox);
@@ -2198,17 +2218,17 @@ function drawNote(ctx: C2, w: number, s: LabState, t: number) {
     ctx.stroke();
     noteCell(ctx, d.rev.other, xs[1], ey, r, t, 'show', fs);
     noteCell(ctx, d.rev.result, xs[2], ey, r, t, 'show', fs);
-    dotRow(ctx, BY_ID[d.goal].d, xs[0], ey + r * 0.35, r * 0.17, true);
-    dotRow(ctx, BY_ID[d.rev.other].d, xs[1], ey + r * 0.35, r * 0.17);
-    dotRow(ctx, BY_ID[d.rev.result].d, xs[2], ey + r * 0.35, r * 0.17);
+    dotRow(ctx, BY_ID[d.goal].d, xs[0], ey + r * 0.3, R(0.012), true);
+    dotRow(ctx, BY_ID[d.rev.other].d, xs[1], ey + r * 0.3, R(0.012));
+    dotRow(ctx, BY_ID[d.rev.result].d, xs[2], ey + r * 0.3, R(0.012));
   } else {
     const [a, b] = d.clue!;
     noteCell(ctx, a, xs[0], ey, r, t, 'show', fs);
     noteCell(ctx, b, xs[1], ey, r, t, s.codex.has(b) ? 'show' : 'hide', fs);
     noteCell(ctx, d.goal, xs[2], ey, r * 1.12, t, 'goal', fs);
-    dotRow(ctx, BY_ID[a].d, xs[0], ey + r * 0.35, r * 0.17);
-    dotRow(ctx, BY_ID[b].d, xs[1], ey + r * 0.35, r * 0.17);
-    dotRow(ctx, BY_ID[d.goal].d, xs[2], ey + r * 0.35, r * 0.17);
+    dotRow(ctx, BY_ID[a].d, xs[0], ey + r * 0.3, R(0.012));
+    dotRow(ctx, BY_ID[b].d, xs[1], ey + r * 0.3, R(0.012));
+    dotRow(ctx, BY_ID[d.goal].d, xs[2], ey + r * 0.3, R(0.012));
   }
   ctx.restore();
 }
@@ -2254,7 +2274,7 @@ function previewBubble(ctx: C2, s: LabState, x: number, y: number, r: number, t:
 function drawShelf(ctx: C2, w: number, s: LabState, t: number) {
   const R = (v: number) => v * w;
   const top = R(0.815), bot = R(1.315);
-  ctx.fillStyle = lin(ctx, 0, top, 0, bot, [0, '#7d4c28'], [1, '#6a3e20']);
+  ctx.fillStyle = lin(ctx, 0, top, 0, bot, [0, '#94603a'], [1, '#7a4a28']);
   ctx.fillRect(R(0.015), top, w - R(0.03), bot - top);
   for (let i = 0; i < 12; i++) {
     ctx.fillStyle = 'rgba(40,20,5,.12)';
@@ -2311,7 +2331,7 @@ function drawShelf(ctx: C2, w: number, s: LabState, t: number) {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(it.name, x, ty + R(0.02));
-        dotRow(ctx, it.d, x, ty + R(0.05), R(0.0105));
+        dotRow(ctx, it.d, x, ty + R(0.05), R(0.0115));
       }
       if (!sl || arriving) {
         if (d.once && !sl) {
@@ -2323,7 +2343,9 @@ function drawShelf(ctx: C2, w: number, s: LabState, t: number) {
       }
       // 고를 수 있으면 살짝 빛 + 들썩
       const ready = play && s.pot.length < cap(d);
-      const bob = ready ? Math.abs(Math.sin(t * 0.07 + i * 1.3)) * R(0.006) : 0;
+      // 큰 순간엔 선반의 생물들이 폴짝 (구경꾼)
+      const cheer = !!pop && (pop.kind === 'new' || pop.kind === 'goal') && s.t - pop.t < 50 && !BY_ID[sl.id].base;
+      const bob = cheer ? Math.abs(Math.sin((s.t - pop!.t) * 0.3 + i)) * R(0.03) : ready ? Math.abs(Math.sin(t * 0.07 + i * 1.3)) * R(0.006) : 0;
       if (ready) {
         ctx.fillStyle = radg(ctx, x, by - R(0.06), 0, R(0.11), [0, 'rgba(255,230,140,.35)'], [1, 'rgba(255,230,140,0)']);
         circ(ctx, x, by - R(0.06), R(0.11));
@@ -2337,7 +2359,7 @@ function drawShelf(ctx: C2, w: number, s: LabState, t: number) {
       }
       const isNew = sl.made >= 0 && s.t - sl.made < 600;
       const big = BY_ID[sl.id].base ? R(0.08) : R(0.095);
-      drawThing(ctx, sl.id, x, by - R(0.003) - bob, big, t, inPot ? 2 : 0, i * 3 + row);
+      drawThing(ctx, sl.id, x, by - R(0.003) - bob, big, t, inPot || cheer ? (cheer ? 1 : 2) : 0, i * 3 + row);
       if (d.once && BY_ID[sl.id].base) {
         // 금 간 병 표시
         ctx.beginPath();
@@ -2352,7 +2374,7 @@ function drawShelf(ctx: C2, w: number, s: LabState, t: number) {
         ctx.fill();
         line(ctx, 1.5);
         say(ctx, inPot > 1 ? '×2' : '쏙', x + R(0.11), by - R(0.144), Math.max(11, R(0.026)), OUT, '#ffd23a', 0.1);
-      } else if (play && s.pot.length > 0 && s.pot.length < cap(d)) previewBubble(ctx, s, x + R(0.1), by - R(0.135), R(0.034), t, previewOf(s, [sl.id]));
+      } else if (play && s.pot.length > 0 && s.pot.length < cap(d)) previewBubble(ctx, s, x + R(0.095), by - R(0.13), R(0.04), t, previewOf(s, [sl.id]));
       else if (isNew && play && !s.pot.length) {
         ctx.save();
         ctx.translate(x - R(0.1), by - R(0.14));
@@ -2403,7 +2425,7 @@ function bornPath(p: Pop, a: number, w: number): { x: number; y: number; sc: num
   const P0 = [POT_X, 0.43];
   if (p.kind === 'goal') {
     const u = ease(a / 16);
-    return { x: R(POT_X), y: R(0.53 - 0.12 * u), sc: 0.4 + 1.6 * u, say: a > 14 };
+    return { x: R(POT_X), y: R(0.53 - 0.04 * u) + (a > 16 ? -Math.abs(Math.sin(a * 0.12)) * R(0.02) : 0), sc: 0.4 + 1.5 * u, say: a > 14 };
   }
   if (p.kind === 'known') {
     if (a < 12) {
@@ -2416,12 +2438,12 @@ function bornPath(p: Pop, a: number, w: number): { x: number; y: number; sc: num
   // 새것: 0–16 솟기 · 16–30 멈칫 · 30–42 바닥으로 · 42–72 뛰어다니기 · 72–92 선반으로
   if (a < 16) {
     const u = ease(a / 16);
-    return { x: R(POT_X), y: R(0.53 - 0.12 * u), sc: 0.4 + 1.4 * u, say: false };
+    return { x: R(POT_X), y: R(0.53 - 0.06 * u), sc: 0.4 + 1.25 * u, say: false };
   }
-  if (a < 30) return { x: R(POT_X), y: R(0.41) + Math.sin(a * 0.6) * 1.5, sc: 1.8, say: true };
+  if (a < 30) return { x: R(POT_X), y: R(0.47) + Math.sin(a * 0.6) * 1.5, sc: 1.65, say: true };
   if (a < 42) {
     const u = (a - 30) / 12;
-    return { x: R(POT_X + 0.2 * u), y: R(0.41 + 0.375 * u - Math.sin(u * Math.PI) * 0.08), sc: 1.8 - 0.5 * u, say: true };
+    return { x: R(POT_X + 0.2 * u), y: R(0.47 + 0.315 * u - Math.sin(u * Math.PI) * 0.1), sc: 1.65 - 0.35 * u, say: true };
   }
   if (a < 72) {
     const u = (a - 42) / 30, xx = 0.7 + 0.2 * Math.sin(u * Math.PI);
@@ -2433,7 +2455,8 @@ function bornPath(p: Pop, a: number, w: number): { x: number; y: number; sc: num
 
 const bigText = new WeakMap<object, { text: string; sub: string; t: number; col: string }>();
 function big(s: LabState, text: string, sub: string, t: number, col = '#ffd23a') {
-  bigText.set(s, { text, sub, t, col });
+  const b = bigText.get(s);
+  if (!b || b.t <= t) bigText.set(s, { text, sub, t, col });
 }
 
 function drawAll(ctx: C2, s: LabState, w: number, h: number, th: Theme) {
@@ -2441,11 +2464,12 @@ function drawAll(ctx: C2, s: LabState, w: number, h: number, th: Theme) {
   // ── 사건 → 연출 ──
   const last = fx.memo.ev ?? 0;
   for (const e of s.events) {
-    if (e.n <= last) continue;
+    if (e.n <= last || t - e.t > 30) continue;
     const ex = R(e.x), ey = R(e.y);
     switch (e.kind) {
       case 'pour':
-        fx.ring(R(POT_X), R(0.535), '#ffffff', R(0.12), 3);
+        fx.ring(ex, ey, '#fff6a0', R(0.08), 3);
+        fx.burst(ex, ey, '#fff6c0', 8, 2.5, 2);
         break;
       case 'brew':
         fx.kick(3);
@@ -2459,8 +2483,8 @@ function drawAll(ctx: C2, s: LabState, w: number, h: number, th: Theme) {
         fx.ring(R(POT_X), R(0.45), '#ffe25a', R(0.4), 7);
         fx.ring(R(POT_X), R(0.45), '#ffffff', R(0.28), 4);
         for (const c of ['#ff5a6e', '#ffd23a', '#5ad0ff', '#8ae05a', it.col]) fx.burst(R(POT_X), R(0.45), c, 14, 6, 3.2);
-        if (e.kind === 'goal') big(s, `${it.name} 완성!`, '목표를 만들었어요', t, '#ffd23a');
-        else if (s.pop?.isNew) big(s, '새로 발견!', it.name, t, '#7ae0ff');
+        if (e.kind === 'goal') big(s, `${it.name} 완성!`, '목표를 만들었어요', e.t, '#ffd23a');
+        else if (s.pop?.isNew) big(s, '새로 발견!', it.name, e.t, '#7ae0ff');
         break;
       }
       case 'known':
@@ -2474,7 +2498,7 @@ function drawAll(ctx: C2, s: LabState, w: number, h: number, th: Theme) {
           fx.kick(16);
           fx.burst(R(POT_X), R(0.5), '#ff8a2a', 30, 7, 4);
           fx.burst(R(POT_X), R(0.5), '#3a3a40', 26, 5, 5);
-          big(s, '펑!', p.lost ? `${BY_ID[p.lost].name} 병이 깨졌어요` : '없는 조합이에요', t, '#ff8a3a');
+          big(s, '펑!', p.lost ? `${BY_ID[p.lost].name} 병이 깨졌어요` : '없는 조합이에요', e.t, '#ff8a3a');
           if (p.lostSlot >= 0) {
             const [lx, ly] = slotXY(p.lostSlot);
             fx.burst(R(lx), R(ly - 0.07), '#d8f4ff', 20, 4, 2.6);
@@ -2514,13 +2538,13 @@ function drawAll(ctx: C2, s: LabState, w: number, h: number, th: Theme) {
   drawNote(ctx, w, s, t);
   const pop = s.pop, pa = pop ? s.t - pop.t : 999;
   const bigNow = pop && pa < 60 && (pop.kind === 'new' || pop.kind === 'goal');
-  drawOwl(ctx, R(0.76), R(0.528), R(0.035), t, !!bigNow || (s.phase === 'result' && s.ok));
+  if (!d.guest) drawOwl(ctx, R(0.77), R(0.527), R(0.048), t, !!bigNow || (s.phase === 'result' && s.ok));
   // 손님
   if (d.guest) {
-    const gx = R(0.865), gy = R(0.66);
-    drawGuest(ctx, gx, gy, R(0.2), t, s.guestOk);
+    const gx = R(0.872), gy = R(0.69);
+    drawGuest(ctx, gx, gy, R(0.25), t, s.guestOk);
     // 말풍선: 보고 싶은 것
-    const bx = R(0.88), by = R(0.415), br2 = R(0.06);
+    const bx = R(0.865), by = R(0.43), br2 = R(0.06);
     if (!(s.phase === 'result' && s.ok)) {
       ctx.fillStyle = s.guestOk ? '#e8ffd8' : '#ffffff';
       rr(ctx, bx - br2 * 1.15, by - br2 * 1.2, br2 * 2.3, br2 * 2.1, br2 * 0.5);
@@ -2544,6 +2568,7 @@ function drawAll(ctx: C2, s: LabState, w: number, h: number, th: Theme) {
   drawPot(ctx, w, s, t);
   let mood: Mood = 'idle';
   if (s.phase === 'brew') mood = 'focus';
+  else if (s.phase === 'play' && s.pot.some((p) => s.t - p.t < 26)) mood = 'wow';
   else if (pop && s.phase === 'pop') mood = pop.kind === 'fail' ? 'soot' : pa < 30 ? 'wow' : 'happy';
   else if (s.phase === 'result') mood = s.ok ? 'happy' : 'sad';
   else if (pop && pop.kind === 'fail' && pa < 120) mood = 'soot';
@@ -2562,7 +2587,25 @@ function drawAll(ctx: C2, s: LabState, w: number, h: number, th: Theme) {
     ctx.globalAlpha = 1 - Math.max(0, (a - 12) / 4);
     drawThing(ctx, p.id, 0, R(0.06), R(0.065) * (1 - 0.3 * u), t);
     ctx.restore();
-    if (a === 14 || a === 15) say(ctx, '퐁당!', R(POT_X + 0.13), R(0.47), Math.max(14, R(0.045)), '#ffffff', '#2a7ad8', 4);
+  }
+  // 퐁당! 물기둥 (병이 솥에 닿는 순간)
+  for (const p of s.pot) {
+    const a = s.t - p.t;
+    if (a < 13 || a > 34) continue;
+    const u = (a - 13) / 21, col = BY_ID[p.id].col;
+    for (let i = 0; i < 10; i++) {
+      const ang = Math.PI * (0.15 + 0.7 * (i / 9)), v = R(0.1 + 0.05 * hsh(i + p.uid));
+      const x = R(POT_X) + Math.cos(ang) * v * u * 1.6, y = R(0.53) - Math.sin(ang) * v * u * 2.2 + R(0.3) * u * u;
+      ctx.globalAlpha = 1 - u;
+      ell(ctx, x, y, R(0.012), R(0.016));
+      ctx.fillStyle = i % 3 ? col : '#ffffff';
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1 - u;
+    ell(ctx, R(POT_X), R(0.535), R(0.05) + u * R(0.09), R(0.015) + u * R(0.025));
+    line(ctx, 3, '#ffffff');
+    ctx.globalAlpha = 1;
+    say(ctx, '퐁당!', R(POT_X + 0.14), R(0.47) - u * R(0.04), Math.max(15, R(0.05)), '#ffffff', '#2a7ad8', 4);
   }
   ctx.globalAlpha = 1;
   // 선반
@@ -2617,11 +2660,12 @@ function drawAll(ctx: C2, s: LabState, w: number, h: number, th: Theme) {
     if (pop.kind === 'goal' || (pop.kind === 'new' && pa < 30)) {
       // 뒤에서 도는 빛살
       ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
       ctx.translate(P.x, P.y - R(0.06) * P.sc);
       ctx.rotate(t * 0.02);
       for (let i = 0; i < 12; i++) {
         ctx.rotate(TAU / 12);
-        ctx.fillStyle = i % 2 ? 'rgba(255,240,160,.4)' : 'rgba(255,255,255,.3)';
+        ctx.fillStyle = i % 2 ? 'rgba(255,220,120,.22)' : 'rgba(255,255,255,.16)';
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(R(0.04), -R(0.24) * Math.min(1.4, P.sc));
@@ -2631,7 +2675,7 @@ function drawAll(ctx: C2, s: LabState, w: number, h: number, th: Theme) {
       ctx.restore();
     }
     drawThing(ctx, pop.id, P.x, P.y, R(0.075) * P.sc, t, pa < 30 ? 2 : 1, 7);
-    if (P.say) say(ctx, BY_ID[pop.id].say, P.x + R(0.1), P.y - R(0.12) * P.sc - R(0.02), Math.max(15, R(0.05)), '#ffffff', OUT, 4);
+    if (P.say) say(ctx, BY_ID[pop.id].say, clamp(P.x + R(0.12), R(0.14), w - R(0.14)), P.y - R(0.12) * P.sc - R(0.02), Math.max(15, R(0.05)), '#ffffff', OUT, 4);
   }
   // 1판 첫 섞기: 손가락이 물 → 불
   if (s.stage === 0 && !s.again && s.mixN === 0 && s.phase === 'play') {
@@ -2639,7 +2683,30 @@ function drawAll(ctx: C2, s: LabState, w: number, h: number, th: Theme) {
     const at = s.shelf.findIndex((x) => x?.id === want);
     if (at >= 0) {
       const [fx2, fy2] = slotXY(at);
-      drawFinger(ctx, R(fx2 + 0.06), R(fy2 - 0.13), R(0.06), t);
+      const pr = R(0.1) * (1 + 0.08 * Math.sin(t * 0.2));
+      circ(ctx, R(fx2), R(fy2 - 0.075), pr);
+      line(ctx, 3.5, `rgba(255,210,58,${0.6 + 0.4 * Math.sin(t * 0.2)})`);
+      drawFinger(ctx, R(fx2 + 0.07), R(fy2 - 0.1), R(0.08), t);
+    }
+    if (s.pot.length === 0) {
+      // 마녀 말풍선
+      const bx = R(0.37), by = R(0.41), txt = '물이랑 불을 섞어 볼까?';
+      ctx.font = `900 ${Math.max(13, R(0.04))}px system-ui, sans-serif`;
+      const tw = ctx.measureText(txt).width + R(0.05);
+      ctx.fillStyle = '#ffffff';
+      rr(ctx, bx - tw / 2, by - R(0.035), tw, R(0.07), R(0.03));
+      ctx.fill();
+      line(ctx, 2);
+      ctx.beginPath();
+      ctx.moveTo(bx - tw / 2 + R(0.03), by + R(0.03));
+      ctx.lineTo(bx - tw / 2 + R(0.0), by + R(0.065));
+      ctx.lineTo(bx - tw / 2 + R(0.07), by + R(0.03));
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.fillStyle = '#4a2c1a';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(txt, bx, by + 1);
     }
   }
   if (s.phase === 'play' && d.triple && s.pot.length === 2) {
@@ -2658,7 +2725,7 @@ function drawAll(ctx: C2, s: LabState, w: number, h: number, th: Theme) {
     const size = Math.min(36, R(0.085));
     ctx.save();
     ctx.globalAlpha = a;
-    ctx.translate(w / 2, R(0.27));
+    ctx.translate(w / 2, R(0.2));
     ctx.rotate(-0.05);
     ctx.scale(sc, sc);
     ctx.font = `900 ${size}px system-ui, sans-serif`;
@@ -2769,9 +2836,9 @@ function drawAll(ctx: C2, s: LabState, w: number, h: number, th: Theme) {
     ctx.fillRect(w - R(0.03) - cw - R(0.04), r1 - R(0.012), R(0.004), R(0.024));
     // 별 조건 (쉬운 말 · 칩, 넘치면 두 줄)
     const play = s.phase === 'play' || s.phase === 'brew' || s.phase === 'pop';
-    const labels = d.stars.map((q) => q.label + (q.k === 'new' && play ? ` ${Math.min(s.newN, q.n)}/${q.n}` : q.k === 'within' && play ? ` (${s.mixes}번)` : ''));
+    const labels = d.stars.map((q) => q.label + (q.k === 'new' && play ? ` ${Math.min(s.newN, q.n)}/${q.n}` : ''));
     const ok = d.stars.map((q) => (s.phase === 'result' && s.ok ? s.starOk[d.stars.indexOf(q)] : q.k === 'guest' ? s.guestOk : q.k === 'new' ? s.newN >= q.n : false));
-    const bad = d.stars.map((q) => (q.k === 'within' ? s.mixes > q.n || (s.mixes >= q.n && !(s.phase === 'result' && s.ok)) && s.phase !== 'intro' && s.mixes > 0 && s.mixes >= q.n && s.phase === 'play' : q.k === 'noboom' ? s.booms > 0 : false));
+    const bad = d.stars.map((q) => (q.k === 'within' ? s.mixes > q.n || (s.mixes >= q.n && s.phase === 'play') : q.k === 'noboom' ? s.booms > 0 : false));
     ctx.font = `800 ${fs2}px system-ui, sans-serif`;
     const ws = labels.map((l) => ctx.measureText(l).width + R(0.07));
     const lines: number[][] = [[]];
@@ -2822,8 +2889,34 @@ function drawAll(ctx: C2, s: LabState, w: number, h: number, th: Theme) {
     ctx.fillText(hint, w / 2, Math.min(h - R(0.022), lastRow + R(0.06)), w - R(0.04));
   }
 
-  // ═════════════ 판 카드 (시작 · 결과) ═════════════
+  // ═════════════ 판 카드 (시작 · 결과) + NEW 스포트라이트 ═════════════
   {
+    const SPOT: Record<string, [number, number, number, number]> = {
+      chain: [0.5, 0.21, 0.36, 1.07], guest: [0.86, 0.56, 0.13, 1.07], once: [0.5, 1.0, 0.0, 0.46], boom: [0.5, 0.6, 0.19, 1.07],
+      triple: [0.5, 0.6, 0.19, 1.07], reverse: [0.17, 0.235, 0.09, 1.07], final: [0.5, 0.6, 0.19, 1.07],
+    };
+    const sp = SPOT[d.key];
+    if (sp && sp[2] > 0 && (s.phase === 'intro' || (s.phase === 'play' && s.pt < 60 && !s.again)) && !s.again) {
+      const pulse = 1 + 0.06 * Math.sin(t * 0.25);
+      ctx.save();
+      ctx.translate(R(sp[0]), R(sp[1]));
+      ctx.setLineDash([10, 7]);
+      ctx.lineDashOffset = -t * 0.6;
+      ell(ctx, 0, 0, R(sp[2]) * pulse, R(sp[2]) * pulse * (d.key === 'chain' ? 0.32 : 1));
+      line(ctx, 4, '#ffd23a');
+      ctx.setLineDash([]);
+      ctx.restore();
+      const tx = R(sp[0]) + R(sp[2]) * (d.key === 'reverse' ? 0.2 : 0.6), ty = R(sp[1]) + (d.key === 'reverse' ? R(sp[2]) * 1.1 : -R(sp[2]) * (d.key === 'chain' ? 0.32 : 0.85));
+      ctx.save();
+      ctx.translate(clamp(tx, R(0.08), w - R(0.08)), ty);
+      ctx.rotate(-0.15);
+      rr(ctx, -R(0.055), -R(0.022), R(0.11), R(0.044), R(0.02));
+      ctx.fillStyle = '#ff5a6e';
+      ctx.fill();
+      line(ctx, 2);
+      say(ctx, 'NEW', 0, 1, Math.max(12, R(0.034)), '#ffffff', OUT, 0.1);
+      ctx.restore();
+    }
     let head = '', sub = '', a = 1, age = 0, kind = '';
     if (s.phase === 'intro') {
       age = s.pt;
@@ -2835,50 +2928,54 @@ function drawAll(ctx: C2, s: LabState, w: number, h: number, th: Theme) {
       age = s.pt;
       a = Math.min(1, age / 8);
       kind = s.ok ? 'ok' : 'fail';
-      head = s.ok ? (s.won ? '꼬마 마녀 연구소 대성공!' : `${d.goal ? BY_ID[d.goal].name : '새것 둘'} 성공!`) : `앗… ${s.why}`;
+      head = s.ok ? (s.won ? '연구소 대성공!' : `${d.goal ? BY_ID[d.goal].name : '새것 둘'} 성공!`) : `앗… ${s.why}`;
       sub = s.ok ? '' : s.hearts > 0 ? '하트 -1 · 같은 판 다시' : '끝 — 다음엔 점을 세어 봐요';
     }
     if (head) {
-      const cy = kind === 'ok' ? R(0.27) : R(0.46), pop2 = Math.min(1, 0.5 + age / 10);
+      const cy = kind === 'ok' ? R(0.21) : kind === 'intro' ? R(sp ? sp[3] : 1.07) : R(0.43), pop2 = Math.min(1, 0.55 + age / 12);
       ctx.save();
       ctx.globalAlpha = Math.max(0, a);
-      ctx.font = `900 ${R(0.052)}px system-ui, sans-serif`;
+      const hf = R(kind === 'ok' ? 0.062 : 0.055), sf = Math.max(12, R(0.04));
+      ctx.font = `900 ${hf}px system-ui, sans-serif`;
       const w1 = ctx.measureText(head).width;
-      ctx.font = `800 ${R(0.038)}px system-ui, sans-serif`;
+      ctx.font = `800 ${sf}px system-ui, sans-serif`;
       const w2 = sub ? ctx.measureText(sub).width : 0;
-      const cw = Math.min(w - R(0.04), Math.max(w1, w2) + R(0.1)), ch = (sub || kind === 'ok' ? R(0.15) : R(0.09)) * pop2;
+      const cw = Math.min(w - R(0.04), Math.max(w1, w2, kind === 'ok' ? R(0.6) : 0) + R(0.12)), ch = kind === 'ok' ? R(0.19) : sub ? R(0.16) : R(0.1);
       ctx.translate(w / 2, cy);
       ctx.scale(pop2, pop2);
-      ctx.fillStyle = 'rgba(60,30,10,.3)';
-      rr(ctx, -cw / 2 + 3, -ch / 2 + 5, cw, ch, R(0.04));
+      ctx.fillStyle = 'rgba(60,30,10,.35)';
+      rr(ctx, -cw / 2 + 3, -ch / 2 + 6, cw, ch, R(0.045));
       ctx.fill();
-      ctx.fillStyle = lin(ctx, 0, -ch / 2, 0, ch / 2, [0, '#fffaf0'], [1, '#f6e2bc']);
-      rr(ctx, -cw / 2, -ch / 2, cw, ch, R(0.04));
+      ctx.fillStyle = lin(ctx, 0, -ch / 2, 0, ch / 2, [0, '#fffaf0'], [1, kind === 'fail' ? '#f0d8d0' : '#f6e2bc']);
+      rr(ctx, -cw / 2, -ch / 2, cw, ch, R(0.045));
       ctx.fill();
-      line(ctx, 2.5);
+      line(ctx, 3);
+      ctx.fillStyle = kind === 'fail' ? '#e8a0a0' : '#ffd23a';
+      rr(ctx, -cw / 2 + R(0.02), -ch / 2 + R(0.012), cw - R(0.04), R(0.012), R(0.006));
+      ctx.fill();
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.font = `900 ${R(0.052)}px system-ui, sans-serif`;
-      ctx.fillStyle = kind === 'ok' ? '#c46a00' : kind === 'fail' ? '#c0303a' : '#4a2c1a';
       if (kind === 'ok') {
-        ctx.fillText(head, 0, -R(0.035), w - R(0.1));
+        say(ctx, head, 0, -R(0.045), hf, '#ff9a2a', OUT, 5);
         const nS = s.starOk.length;
         for (let j = 0; j < nS; j++) {
-          const ag = s.pt - (16 + j * 14);
-          const sx = (j - (nS - 1) / 2) * R(0.09), sy = R(0.032);
-          const popS = ag < 0 ? 1 : ag < 8 ? 1.9 - 0.9 * (ag / 8) : 1;
-          starPath(ctx, sx, sy, R(0.033) * popS);
-          ctx.fillStyle = ag >= 0 && s.starOk[j] ? '#ffc93a' : 'rgba(74,44,26,.15)';
+          const ag = s.pt - (16 + j * 16);
+          const sx = (j - (nS - 1) / 2) * R(0.12), sy = R(0.045);
+          const popS = ag < 0 ? 1 : ag < 8 ? 2.1 - 1.1 * (ag / 8) : 1;
+          starPath(ctx, sx, sy, R(0.045) * popS);
+          ctx.fillStyle = ag >= 0 && s.starOk[j] ? lin(ctx, sx, sy - R(0.04), sx, sy + R(0.04), [0, '#fff27a'], [1, '#ffb01a']) : 'rgba(74,44,26,.15)';
           ctx.fill();
-          line(ctx, 1.8, ag >= 0 && s.starOk[j] ? '#9a5a08' : 'rgba(74,44,26,.35)');
-          if (ag === 0 && s.starOk[j]) (fx.burst(w / 2 + sx, cy + sy, '#ffd23a', 18, 3.5, 2.6), fx.kick(3));
+          line(ctx, 2.2, ag >= 0 && s.starOk[j] ? '#9a5a08' : 'rgba(74,44,26,.35)');
+          if (ag === 0 && s.starOk[j]) (fx.burst(w / 2 + sx, cy + sy, '#ffd23a', 22, 4, 2.8), fx.ring(w / 2 + sx, cy + sy, '#fff6a0', R(0.08), 3), fx.kick(3));
         }
       } else {
-        ctx.fillText(head, 0, sub ? -R(0.03) : 0, w - R(0.1));
+        ctx.font = `900 ${hf}px system-ui, sans-serif`;
+        ctx.fillStyle = kind === 'fail' ? '#c0303a' : '#4a2c1a';
+        ctx.fillText(head, 0, sub ? -R(0.032) : 0, w - R(0.1));
         if (sub) {
-          ctx.font = `800 ${R(0.038)}px system-ui, sans-serif`;
+          ctx.font = `800 ${sf}px system-ui, sans-serif`;
           ctx.fillStyle = kind === 'intro' && !s.again ? '#e0405a' : '#7a4a28';
-          ctx.fillText(sub, 0, R(0.035), w - R(0.08));
+          ctx.fillText(sub, 0, R(0.04), w - R(0.08));
         }
       }
       ctx.restore();

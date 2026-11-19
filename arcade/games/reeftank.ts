@@ -20,18 +20,18 @@ const A = 1.5;
 // ───────────────────────────── 생물 ─────────────────────────────
 export const CLOWN = 0, ANEM = 1, SNAIL = 2, HORSE = 3, SHARK = 4, CRAB = 5, CORAL = 6, URCHIN = 7, SHRIMP = 8, WEED = 9;
 const NSP = 10;
-interface SpDef { key: string; name: string; k: number; size: number; job: string; job2: string; col: string; cap: number }
+interface SpDef { key: string; name: string; k: number; size: number; job: string; col: string; cap: number }
 export const SP: SpDef[] = [
-  { key: 'clown', name: '흰동가리', k: 3, size: 3, job: '말미잘에 쏙', job2: '아기를 낳아요', col: '#ff8a3d', cap: 12 },
-  { key: 'anem', name: '말미잘', k: 1, size: 5, job: '흰동가리 품기', job2: '셋까지', col: '#c86bd8', cap: 4 },
-  { key: 'snail', name: '달팽이', k: 2, size: 2, job: '이끼 냠냠', job2: '물이 맑아져요', col: '#e9b46a', cap: 8 },
-  { key: 'horse', name: '해마', k: 2, size: 6, job: '해초를 꼭', job2: '아기를 낳아요', col: '#ffc93f', cap: 8 },
-  { key: 'shark', name: '작은 상어', k: 1, size: 9, job: '못 숨으면 꿀꺽', job2: '아픈 물고기부터', col: '#8fa6b8', cap: 3 },
-  { key: 'crab', name: '게', k: 1, size: 7, job: '찌꺼기 청소', job2: '밤엔 세 배', col: '#ef5b4b', cap: 4 },
-  { key: 'coral', name: '산호', k: 1, size: 4, job: '숨을 곳·쑥쑥', job2: '맑으면 자라요', col: '#ff7aa2', cap: 8 },
-  { key: 'urchin', name: '성게', k: 1, size: 5, job: '이끼 듬뿍', job2: '산호를 갉아요', col: '#7a54c4', cap: 4 },
-  { key: 'shrimp', name: '청소 새우', k: 2, size: 1, job: '아픈 물고기 고침', job2: '', col: '#ff8fa6', cap: 6 },
-  { key: 'weed', name: '해초', k: 1, size: 8, job: '먹이가 쑥쑥', job2: '해마가 잡아요', col: '#3fbf6a', cap: 4 },
+  { key: 'clown', name: '흰동가리', k: 3, size: 3, job: '말미잘에 쏙', col: '#ff8a3d', cap: 12 },
+  { key: 'anem', name: '말미잘', k: 1, size: 5, job: '흰동가리 품기', col: '#c86bd8', cap: 4 },
+  { key: 'snail', name: '달팽이', k: 2, size: 2, job: '이끼 냠냠', col: '#e9b46a', cap: 8 },
+  { key: 'horse', name: '해마', k: 2, size: 6, job: '해초를 꼭', col: '#ffc93f', cap: 8 },
+  { key: 'shark', name: '작은 상어', k: 1, size: 9, job: '못 숨으면 꿀꺽', col: '#8fa6b8', cap: 3 },
+  { key: 'crab', name: '게', k: 1, size: 7, job: '찌꺼기 청소', col: '#ef5b4b', cap: 4 },
+  { key: 'coral', name: '산호', k: 1, size: 4, job: '숨을 곳·쑥쑥', col: '#ff7aa2', cap: 8 },
+  { key: 'urchin', name: '성게', k: 1, size: 5, job: '이끼 듬뿍', col: '#7a54c4', cap: 4 },
+  { key: 'shrimp', name: '청소 새우', k: 2, size: 1, job: '아픈 물고기 고침', col: '#ff8fa6', cap: 6 },
+  { key: 'weed', name: '해초', k: 1, size: 8, job: '먹이가 쑥쑥', col: '#3fbf6a', cap: 4 },
 ];
 export const isFish = (sp: number) => sp === CLOWN || sp === HORSE;
 
@@ -262,7 +262,8 @@ function endValue(d: StageDef, e: Eco, day: number): number {
     const w = i === 0 ? 3000 : 1000;
     v += starMet(e, q) ? w : starProg(e, q) * w * 0.45;
   });
-  return v + Math.min(e.clar, 7) * 12 + Math.min(e.food, 6) * 12;
+  // 같은 값이면 더 건강하고 다양한 어항 (동점 깨기)
+  return v + Math.min(e.clar, 7) * 12 + Math.min(e.food, 6) * 12 + kinds(e) * 5 + e.clar * 2 + e.food * 2 + e.born;
 }
 /** 남은 날을 아무것도 안 넣고 흘려 본다 (비관적 내다보기) */
 function rollout(d: StageDef, e: Eco, day: number): number {
@@ -332,7 +333,7 @@ export interface ReefState {
   hearts: number; stars: number; got: number; starOk: boolean[]; pts: number; ok: boolean; why: string; won: boolean; dead: boolean; tries: number; again: boolean;
   down: boolean; ax: number; ay: number; kc: number; kbd: boolean; lastDir: number; taps: number; firstTap: number; miss: number;
   log: { t: number; text: string; col: string }[];
-  ents: Ent[]; nid: number; wowN: number; band: { text: string; t: number; col: string } | null; babyEver: boolean;
+  ents: Ent[]; nid: number; wowN: number; hv: number; band: { text: string; t: number; col: string } | null; babyEver: boolean;
   seen: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; banner: number; events: Ev[];
   mood: string; moodT: number;
 }
@@ -421,7 +422,11 @@ function targetOf(s: ReefState, e: Ent): [number, number] {
     if (h && e.mode === 3) return [h.x + (e.slot ? 0.07 : -0.07), h.y - 0.2 + 0.012 * Math.sin(t * 0.04 + ph)];
     return [0.5 + 0.36 * Math.sin(t * 0.0035 + ph), 0.3 + 0.2 * Math.sin(t * 0.006 + ph * 1.7)];
   }
-  if (e.sp === SHARK) return [0.5 + 0.4 * Math.sin(t * 0.0055 + ph), 0.33 + 0.1 * Math.sin(t * 0.011 + ph) + night * 0.08];
+  if (e.sp === SHARK) {
+    const v = s.hv >= 0 ? host(s, s.hv) : undefined;
+    if (v && v.die < 0) return [v.x - e.face * 0.1, v.y + 0.01];
+    return [0.5 + 0.4 * Math.sin(t * 0.0055 + ph), 0.42 + 0.08 * Math.sin(t * 0.011 + ph) + night * 0.06];
+  }
   if (e.sp === SNAIL) return [0.08 + 0.84 * (0.5 + 0.5 * Math.sin(t * 0.0012 + ph * 3)), 0.3 + 0.38 * (0.5 + 0.5 * Math.sin(t * 0.0009 + ph * 5))];
   if (e.sp === CRAB) return [0.5 + 0.42 * Math.sin(t * (0.006 + night * 0.01) + ph), 0.955];
   if (e.sp === URCHIN) return [0.15 + 0.7 * (0.5 + 0.5 * Math.sin(t * 0.0016 + ph * 2)), 0.915];
@@ -453,11 +458,13 @@ function animate(s: ReefState) {
     const [gx, gy] = targetOf(s, e);
     const hunt = s.phase === 'day' && s.pt >= T_HUNT && s.pt < T_HUNT + 46 && s.eco.n[SHARK] > 0;
     let k = SPEED[e.sp] * (e.baby > 0 ? 1.3 : 1);
+    if (e.sp === SHARK && s.hv >= 0) k = 0.14;
+    if (e.id === s.hv) k = 0.012;
     if (hunt && (e.sp === CLOWN || e.sp === HORSE) && e.mode !== 0) k = 0.16;
     const dx = gx - e.x;
     e.x += dx * k;
     e.y += (gy - e.y) * k;
-    if (Math.abs(dx) > 0.002 && e.sp !== HORSE) e.face = dx > 0 ? 1 : -1;
+    if (Math.abs(dx) > (e.sp === SHARK ? 0.03 : 0.002) && e.sp !== HORSE) e.face = dx > 0 ? 1 : -1;
     if (e.sp === HORSE && e.mode === 3 && e.host >= 0) {
       const h = host(s, e.host);
       if (h) e.face = h.x > e.x ? 1 : -1;
@@ -486,7 +493,6 @@ function newStage(s: ReefState, again: boolean) {
   reconcile(s);
   s.banner = s.t;
   see(s, d.key, '');
-  if (d.night) see(s, 'nightIcon', '');
   ev(s, 'stage', 0.5, 0.5, `${s.stage + 1}판 · ${d.name}`);
 }
 
@@ -504,13 +510,12 @@ function startDay(s: ReefState, i: number) {
   if (s.firstTap < 0) s.firstTap = s.t;
   s.dropX = 0.2 + i * 0.3;
   s.banner = Math.min(s.banner, s.t - BANNER_T + 20);
-  see(s, 'sp' + sp, '');
   ev(s, 'pick', cardCX(i), (CY0 + CY1) / 2, '', SP[sp].col, sp);
 }
 
 /** 하루를 시각표대로 펼친다 */
 function director(s: ReefState) {
-  const r = s.res!, pt = s.pt, d = STAGES[s.stage];
+  const r = s.res!, pt = s.pt;
   if (pt === T_DROP) {
     const sp = r.add;
     if (sp >= 0) {
@@ -527,11 +532,14 @@ function director(s: ReefState) {
     }
     assignHomes(s);
   }
-  if (pt === T_HUG && r.add === CLOWN && r.hugC >= 3) {
-    for (const e of alive(s, CLOWN)) if (e.mode === 1) (e.joy = 120), ev(s, 'heart', e.x, e.y - 0.04);
-    wow(s, '쏙쏙쏙! 말미잘에 폭 안겼어요');
-    say(s, `흰동가리 ${r.hugC}마리가 말미잘에 쏙`, '#ffd6e6');
-    setMood(s, 'love');
+  if (pt === T_HUG && (r.add === CLOWN || r.add === ANEM)) {
+    const hug0 = Math.min(s.prev.n[CLOWN] - s.prev.sick, 3 * s.prev.n[ANEM]), more = r.hugC - hug0;
+    if (more >= 2) {
+      for (const e of alive(s, CLOWN)) if (e.mode === 1) (e.joy = 120), ev(s, 'heart', e.x, e.y - 0.04);
+      wow(s, more >= 3 ? '쏙쏙쏙! 말미잘에 폭 안겼어요' : '쏙쏙! 새 말미잘에 안겼어요');
+      setMood(s, 'love');
+      say(s, `흰동가리 ${more}마리가 말미잘에 쏙`, '#ffd6e6');
+    } else if (r.add === CLOWN) say(s, '말미잘이 꽉 찼어요 — 못 숨은 녀석은 위험!', '#ffe0c0');
   }
   if (pt === T_SICKIN && r.sickIn) {
     const c = alive(s, CLOWN).filter((e) => !e.sick);
@@ -552,29 +560,37 @@ function director(s: ReefState) {
     const fish = [...alive(s, CLOWN), ...alive(s, HORSE)];
     const hid = fish.filter((e) => e.mode !== 0).length;
     for (const e of fish) e.scare = 50;
-    ev(s, 'shark', 0.5, 0.35, r.night ? '밤 사냥!' : '상어다!', '#ffe0e0');
     if (hid >= 3) (wow(s, `다들 쏙! ${hid}마리가 숨었어요`, '#d6f3ff'), setMood(s, 'scared'));
-    see(s, 'hunt', '상어는 숨을 곳 밖의 물고기를 먹어요 — 너무 많을 땐 고마운 손님');
+    else ev(s, 'shark', 0.5, 0.35, r.night ? '밤 사냥!' : '상어다!', '#ffe0e0');
+    see(s, 'hunt', '상어는 못 숨은 물고기만 먹어요 — 너무 많을 땐 고마운 손님');
     say(s, r.eat.length ? `상어가 ${r.eat.length}마리 꿀꺽${r.eatSick ? ' (아픈 물고기부터)' : ''}` : r.hungry ? '숨어서 무사! 상어는 먹이를 먹었어요' : '숨어서 다들 무사!', r.eat.length ? '#ffd0c8' : '#c9ffd8');
   }
-  if (r.eat.length && pt >= T_HUNT + 14) {
-    const j = Math.floor((pt - T_HUNT - 14) / 12);
-    if ((pt - T_HUNT - 14) % 12 === 0 && j < r.eat.length) {
-      const sp = r.eat[j];
+  if (r.eat.length && pt >= T_HUNT + 4) {
+    const k = pt - T_HUNT - 4, j = Math.floor(k / 16);
+    if (j < r.eat.length && k % 16 === 0) {
+      // 표적: 상어에게 가장 가까운 못 숨은(아픈) 녀석
+      const sp = r.eat[j], sh = alive(s, SHARK)[0];
       const pool = alive(s, sp).filter((e) => (j < r.eatSick ? e.sick : e.mode === 0 && !e.sick));
-      const v = pool[0] ?? alive(s, sp)[0];
+      const cand = pool.length ? pool : alive(s, sp);
+      cand.sort((a, b) => (sh ? Math.hypot(a.x - sh.x, a.y - sh.y) - Math.hypot(b.x - sh.x, b.y - sh.y) : 0));
+      s.hv = cand[0]?.id ?? -1;
+      if (cand[0]) cand[0].scare = 40;
+    }
+    if (j < r.eat.length && k % 16 === 12) {
+      const v = s.ents.find((e) => e.id === s.hv && e.die < 0);
       if (v) {
         v.die = s.t;
         v.how = 'eat';
         ev(s, 'gulp', v.x, v.y, '꿀꺽!', '#ffffff');
       }
+      s.hv = -1;
       if (j === r.eat.length - 1) setMood(s, 'gulp');
     }
   }
   if (pt === T_HUNT + 20 && r.hungry) ev(s, 'hungry', 0.5, 0.4, '배고픈 상어 — 먹이 -' + r.hungry * 2, '#ffd6a8');
   if (pt === T_METER) {
     if (r.plank > 0) ev(s, 'plank', 0.5, 0.15, '', '#fff3a8', r.plank);
-    say(s, `먹이 ${sgn(r.food - r.food0)} · 맑기 ${sgn(r.clar - r.clar0)}`, '#fff3a8');
+    say(s, `먹이 +${Math.min(r.plank, 10 - r.food0)} −${r.demand} · 맑기 ${sgn(r.clar - r.clar0)}`, '#fff3a8');
     if (r.clean > 0) for (const e of s.ents) if (e.die < 0 && (e.sp === SNAIL || e.sp === URCHIN || e.sp === CRAB)) ev(s, 'clean', e.x, e.y);
     if (r.clar - r.clar0 >= 2 && r.clar >= 8) wow(s, '반짝반짝! 물이 맑아졌어요', '#dff9ff');
     if (r.clar <= 3 && !r.fail) see(s, 'murk', '물이 탁해요! 달팽이·게·성게가 이끼를 먹어요');
@@ -640,7 +656,6 @@ function director(s: ReefState) {
     if (r.fail.startsWith('먹이')) for (const e of [...alive(s, CLOWN), ...alive(s, HORSE)]) (e.die = s.t + (e.id % 5) * 4), (e.how = 'belly');
   }
   if (pt >= T_END) endDay(s);
-  void d;
 }
 
 function endDay(s: ReefState) {
@@ -706,7 +721,7 @@ export const reeftank: GameDef<ReefState> = {
       eco: startEco(STAGES[0]), prev: startEco(STAGES[0]), res: null, day: 0, deck: [], pickI: -1, dropX: 0.5,
       hearts: 3, stars: 0, got: 0, starOk: [false], pts: 0, ok: false, why: '', won: false, dead: false, tries: 0, again: false,
       down: false, ax: 0, ay: 0, kc: 0, kbd: false, lastDir: 0, taps: 0, firstTap: -1, miss: -99,
-      log: [], ents: [], nid: 1, wowN: 0, band: null, babyEver: false,
+      log: [], ents: [], nid: 1, wowN: 0, hv: -1, band: null, babyEver: false,
       seen: new Set<string>(), newsQ: [], news: null, banner: 0, events: [], mood: 'idle', moodT: 0,
     } as ReefState;
     newStage(s, false);
@@ -763,6 +778,8 @@ export const reeftankSmart: Bot<ReefState> = {
   name: '어항 박사',
   act(s) {
     if (!ready(s, 24)) return NO;
+    // 맨 처음 톡은 손가락이 가리키는 흰동가리 카드 (처음 하는 사람처럼)
+    if (s.stage === 0 && s.day === 0 && s.taps === 0) return atCard(0);
     const key = `${s.stage}:${s.tries}:${s.day}`;
     let m = brain.get(s);
     if (!m || m.key !== key) brain.set(s, (m = { key, m: planPick(STAGES[s.stage], s.eco, s.day, s.deck.slice(0, s.day + 2)) }));
@@ -1524,7 +1541,7 @@ function fire(s: ReefState, w: number) {
         break;
       case 'plank':
         for (let k = 0; k < 6; k++) fx.burst(sx(0.12 + k * 0.15), sy(0.12 + (k % 2) * 0.05), '#fff2a0', 4, 1.4, 2);
-        fx.pop(sx(0.5), sy(0.32), `먹이 +${e.n ?? 0}`, '#fff6b8', 16);
+        fx.pop(sx(0.5), sy(0.32), '먹이가 둥실둥실', '#fff6b8', 16);
         break;
       case 'clean':
         fx.burst(x, y, '#e6fdff', 6, 1.8, 2.2);
@@ -1728,6 +1745,15 @@ function drawAll(ctx: Ctx, s: ReefState, w: number, h: number, th: Theme) {
       const g = (e.drop > 0 ? 1 : ease((t - e.born) / 30)) * (k >= 0 ? (e.how === 'nibble' ? 1 - cl01(k / 40) : 1 - cl01((k - 25) / 30)) : 1);
       drawCoral(ctx, ex, ey, U * 0.23 * ps, t, e.id, Math.max(0.01, g), e.how === 'bleach' && k >= 0 ? cl01(k / 20) : 0);
     }
+  }
+  // 헤엄치는 친구들의 모래 그림자
+  for (const e of ents) {
+    if (e.die >= 0 || !(e.sp === CLOWN || e.sp === HORSE || e.sp === SHARK)) continue;
+    const gy = 0.9 + (e.id % 4) * 0.015, hgt = cl01((gy - e.y) / 0.8), sz = (e.sp === SHARK ? 0.13 : 0.05) * (1 - hgt * 0.5);
+    ctx.fillStyle = `rgba(40,80,90,${0.18 * (1 - hgt * 0.7)})`;
+    ctx.beginPath();
+    ctx.ellipse(tX(e.x), tY(gy), U * sz, U * sz * 0.22, 0, 0, TAU);
+    ctx.fill();
   }
   // 바닥 친구들 + 물고기 (깊이 순)
   const movers = ents.filter((e) => !planted(e.sp)).sort((a, b) => (a.sp === SNAIL ? 2 : a.y) - (b.sp === SNAIL ? 2 : b.y));
@@ -2537,51 +2563,61 @@ function drawOverlays(ctx: Ctx, s: ReefState, X: F1, Y: F1, R: F1, font: FontF, 
   if (s.news && s.t - s.news.t < NEWS_T && s.phase !== 'result') {
     const a = Math.min(1, (s.t - s.news.t) / 10, (NEWS_T - (s.t - s.news.t)) / 15);
     font(0.036);
-    const tw = ctx.measureText(s.news.text).width + R(0.06);
+    const ls = wrap(ctx, s.news.text, R(0.86)), tw = Math.max(...ls.map((l) => ctx.measureText(l).width)) + R(0.06), lh = R(0.044);
     ctx.globalAlpha = a;
-    ctx.fillStyle = 'rgba(20,50,70,.78)';
+    ctx.fillStyle = 'rgba(20,50,70,.8)';
     ctx.beginPath();
-    ctx.roundRect(w / 2 - tw / 2, Y(TY0 + 0.018), tw, R(0.05), R(0.025));
+    ctx.roundRect(w / 2 - tw / 2, Y(TY0 + 0.018), tw, R(0.012) + lh * ls.length, R(0.022));
     ctx.fill();
     ctx.fillStyle = '#fff6d8';
-    ctx.fillText(s.news.text, w / 2, Y(TY0 + 0.044));
+    ls.forEach((l, k) => ctx.fillText(l, w / 2, Y(TY0 + 0.018) + R(0.006) + lh * (k + 0.5)));
     ctx.globalAlpha = 1;
   }
   // 판 시작 띠 (NEW)
   const bk = s.t - s.banner;
   if (bk < BANNER_T && s.phase !== 'result') {
     const a = Math.min(1, bk / 10, (BANNER_T - bk) / 20), sc = back(bk / 14);
+    const bw = R(0.9), inner = bw - R(0.06);
+    font(0.038);
+    const l1 = wrap(ctx, d.news, inner);
+    font(0.034, 700);
+    const l2 = s.stage === 0 ? [] : wrap(ctx, d.tip, inner), goal = `목표: ${d.stars[0].label} (${d.days}일)`;
+    const lh = R(0.046), bh = R(0.085) + (l1.length + l2.length + 1) * lh;
     ctx.save();
     ctx.globalAlpha = a;
-    ctx.translate(w / 2, Y(TY0 + 0.15));
+    ctx.translate(w / 2, Y(TY0 + 0.025) + bh / 2);
     ctx.scale(sc, sc);
-    const bw = R(0.86), bh = R(s.stage === 0 ? 0.2 : 0.22);
-    ctx.fillStyle = 'rgba(15,45,70,.82)';
+    ctx.fillStyle = 'rgba(15,45,70,.84)';
     ctx.beginPath();
     ctx.roundRect(-bw / 2, -bh / 2, bw, bh, R(0.03));
     ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,.6)';
     ctx.lineWidth = 2;
     ctx.stroke();
-    font(0.06);
+    let ly = -bh / 2 + R(0.045);
+    font(0.056);
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(s.stage === 0 ? '작은 어항 생태계' : `${s.stage + 1}판 · ${d.name}`, 0, -bh * 0.26);
+    ctx.fillText(s.stage === 0 ? '작은 어항 생태계' : `${s.stage + 1}판 · ${d.name}`, 0, ly);
     if (s.stage > 0) {
-      font(0.032);
+      font(0.03);
       const tag = 'NEW', tw = ctx.measureText(tag).width + R(0.03);
       ctx.fillStyle = '#ff5f6d';
       ctx.beginPath();
-      ctx.roundRect(-bw / 2 + R(0.025), -bh * 0.26 - R(0.02), tw, R(0.04), R(0.01));
+      ctx.roundRect(-bw / 2 + R(0.025), ly - R(0.02), tw, R(0.04), R(0.01));
       ctx.fill();
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(tag, -bw / 2 + R(0.025) + tw / 2, -bh * 0.26 + 1);
+      ctx.fillText(tag, -bw / 2 + R(0.025) + tw / 2, ly + 1);
     }
+    ly += R(0.05);
     font(0.038);
     ctx.fillStyle = '#fff3a8';
-    ctx.fillText(d.news, 0, bh * 0.05);
+    for (const l of l1) (ctx.fillText(l, 0, ly), (ly += lh));
     font(0.034, 700);
     ctx.fillStyle = '#d8f3ff';
-    ctx.fillText(s.stage === 0 ? '첫 별 = 목표 · 하트 셋' : d.tip, 0, bh * 0.3);
+    for (const l of l2) (ctx.fillText(l, 0, ly), (ly += lh));
+    font(0.036);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(goal, 0, ly);
     ctx.restore();
   }
   // 큰 순간 띠
@@ -2612,30 +2648,33 @@ function drawOverlays(ctx: Ctx, s: ReefState, X: F1, Y: F1, R: F1, font: FontF, 
     ctx.restore();
   }
   // NEW 스포트라이트 (판 시작 3초)
-  if (s.stage > 0 && bk < 200 && s.phase === 'pick') {
+  if (s.stage > 0 && bk < 220 && s.phase === 'pick') {
     const p = 0.5 + 0.5 * Math.sin(t * 0.15);
-    let sx = -1, sy = 0, rr = 0;
-    if (d.key === 'algae') (sx = X(0.175)), (sy = Y((MY0 + MY1) / 2)), (rr = R(0.17));
-    else if (d.key === 'shark') {
-      const sh = s.ents.find((e) => e.sp === SHARK && e.die < 0);
-      if (sh) (sx = tX(sh.x)), (sy = tY(sh.y)), (rr = U * 0.17);
-    } else if (d.key === 'night' || d.key === 'current') (sx = X(0.13 + (d.key === 'night' ? 1 : 2) * 0.05)), (sy = Y(0.08)), (rr = R(0.035));
-    else (sx = X(cardCX(0))), (sy = Y((CY0 + CY1) / 2)), (rr = R(0.17));
-    if (sx >= 0) {
-      ctx.strokeStyle = `rgba(255,220,80,${0.6 + 0.4 * p})`;
-      ctx.lineWidth = 3 + 2 * p;
-      ctx.setLineDash([R(0.02), R(0.012)]);
-      ctx.beginPath();
-      ctx.arc(sx, sy, rr * (1 + 0.06 * p), 0, TAU);
-      ctx.stroke();
-      ctx.setLineDash([]);
+    let box: [number, number, number, number] | null = null, circ: [number, number, number] | null = null;
+    if (d.key === 'algae') box = [X(0.025), Y(MY0), R(0.3), Y(MY1) - Y(MY0)];
+    else if (d.key === 'shark' || d.key === 'coral') {
+      const sh = s.ents.find((e) => e.sp === (d.key === 'shark' ? SHARK : CORAL) && e.die < 0);
+      if (sh) circ = [tX(sh.x), tY(sh.y) - (d.key === 'coral' ? U * 0.08 : 0), U * (d.key === 'shark' ? 0.18 : 0.13)];
+    } else if (d.key === 'night' || d.key === 'current') circ = [X(0.13 + (d.key === 'night' ? 1 : 2) * 0.05), Y(0.08), R(0.03)];
+    else box = [X(cardCX(0) - CW / 2), Y(CY0), R(CW), Y(CY1) - Y(CY0)];
+    ctx.strokeStyle = `rgba(255,214,60,${0.65 + 0.35 * p})`;
+    ctx.lineWidth = 3 + 2 * p;
+    ctx.setLineDash([R(0.02), R(0.012)]);
+    ctx.lineDashOffset = -t * 0.6;
+    ctx.beginPath();
+    if (box) ctx.roundRect(box[0] - 4, box[1] - 4, box[2] + 8, box[3] + 8, R(0.03));
+    else if (circ) ctx.arc(circ[0], circ[1], circ[2] * (1 + 0.06 * p), 0, TAU);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    const lx = box ? box[0] + box[2] / 2 : circ ? circ[0] : 0, ly = box ? box[1] - R(0.006) : circ ? circ[1] + circ[2] + R(0.022) : 0;
+    if (box || (circ && circ[1] > Y(TY0))) {
       font(0.03);
       ctx.fillStyle = '#ff5f6d';
       ctx.beginPath();
-      ctx.roundRect(sx - R(0.04), sy - rr - R(0.04), R(0.08), R(0.034), R(0.01));
+      ctx.roundRect(lx - R(0.04), ly - R(0.017), R(0.08), R(0.034), R(0.01));
       ctx.fill();
       ctx.fillStyle = '#ffffff';
-      ctx.fillText('NEW', sx, sy - rr - R(0.022));
+      ctx.fillText('NEW', lx, ly + 1);
     }
   }
   // 처음: 손가락이 흰동가리 카드를 가리킨다
@@ -2705,13 +2744,27 @@ function drawOverlays(ctx: Ctx, s: ReefState, X: F1, Y: F1, R: F1, font: FontF, 
       ctx.fillText('으앗…', 0, -bh * 0.3);
       font(0.044);
       ctx.fillStyle = '#c42f2f';
-      ctx.fillText(s.why, 0, -bh * 0.05);
+      const wl = wrap(ctx, s.why, bw - R(0.06));
+      wl.forEach((l, k) => ctx.fillText(l, 0, -bh * 0.05 + (k - (wl.length - 1) / 2) * R(0.05)));
       font(0.036, 700);
       ctx.fillStyle = '#4a6a7a';
       ctx.fillText(s.hearts > 0 ? '하트 -1 · 새 카드로 같은 어항 다시' : '하트를 다 썼어요 — 끝!', 0, bh * 0.2);
     }
     ctx.restore();
   }
+}
+
+/** 폭에 맞게 낱말 단위로 줄을 나눈다 */
+function wrap(ctx: Ctx, text: string, maxW: number): string[] {
+  const out: string[] = [];
+  let cur = '';
+  for (const word of text.split(' ')) {
+    const next = cur ? `${cur} ${word}` : word;
+    if (cur && ctx.measureText(next).width > maxW) (out.push(cur), (cur = word));
+    else cur = next;
+  }
+  if (cur) out.push(cur);
+  return out;
 }
 
 function drawHand(ctx: Ctx, x: number, y: number, r: number, rot: number) {

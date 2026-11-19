@@ -38,13 +38,14 @@ type Out = 'big' | 'trap' | 'monster' | 'camp';
 export type Crew = 'fox' | 'bear' | 'owl';
 const PRICE: Record<Item, number> = { apple: 5, torch: 4, shield: 6 };
 const I_NAME: Record<Item, string> = { apple: '사과', torch: '횃불', shield: '방패' };
-const I_DESC: Record<Item, [string, string]> = { apple: ['체력 3 이하면', '꺼내 먹어요 +4'], torch: ['어두운 동굴을', '밝혀요'], shield: ['다음 싸움', '피해 -3'] };
+const I_DESC: Record<Item, string> = { apple: '쓰러지기 전 +4', torch: '동굴을 밝혀요', shield: '싸움 피해 -3' };
 const APPLE = 4, CAMP = 4, SHIELD = 3, TRAP = 3, BATS = 4, LOW = 3, BIG = 12, HPMAX = 10;
-const M_DMG = [0, 2, 4, 6], M_GOLD = [0, 7, 12, 18];
+const M_DMG = [0, 3, 5, 7], M_GOLD = [0, 7, 12, 18];
 const OUT_P: [Out, number][] = [['big', 0.35], ['trap', 0.3], ['monster', 0.2], ['camp', 0.15]];
 const CREW: Crew[] = ['fox', 'bear', 'owl'];
 const C_NAME: Record<Crew, string> = { fox: '여우 대장', bear: '곰 짐꾼', owl: '부엉이' };
-const C_DESC: Record<Crew, [string, string]> = { fox: ['싸울 때', '피해 -1'], bear: ['쉼터·사과', '회복 두 배'], owl: ['물음표 속이 보이고', '동굴도 밝혀요'] };
+const C_SHORT: Record<Crew, string> = { fox: '여우', bear: '곰', owl: '부엉이' };
+const C_DESC: Record<Crew, [string, string]> = { fox: ['싸울 때', '피해 -1'], bear: ['쉼터·사과', '회복 두 배'], owl: ['물음표 속 보기', '동굴도 밝혀요'] };
 
 type StarK = 'reach' | 'gold' | 'half' | 'kills' | 'boss';
 interface Star { k: StarK; n: number; label: string; short: string }
@@ -66,12 +67,12 @@ export const STAGES: Spec[] = [
     stars: [REACH], newKey: '', newLabel: '',
   },
   {
-    key: 'volcano', name: '화산 섬', news: '떠돌이 상인 — 금화로 사과·방패를 사요', tip: '산 만큼 금화가 줄어요 — 별도 금화!', rows: 5,
+    key: 'volcano', name: '화산 섬', news: '떠돌이 상인 — 금화로 사과·방패를 사요', tip: '물건을 사면 금화가 줄어요 — 별도 금화!', rows: 5,
     wt: [['chest', 0.32], ['monster', 0.44], ['camp', 0.24]], pw: [1, 2], chest: [4, 7], cave: [0, 0], shop: 2, pool: ['apple', 'shield'], caves: 0, boss: 0, crew: false,
     stars: [REACH, GOLD(20)], newKey: 'shop', newLabel: '떠돌이 상인',
   },
   {
-    key: 'ice', name: '얼음 섬', news: '어두운 동굴 — 횃불이 있으면 보석, 없으면 박쥐!', tip: '동굴 가기 전에 상인에게 횃불', rows: 6,
+    key: 'ice', name: '얼음 섬', news: '어두운 동굴 — 횃불이 있으면 보석, 없으면 박쥐!', tip: '동굴에 가려면 먼저 횃불을 사요', rows: 6,
     wt: [['chest', 0.22], ['monster', 0.46], ['camp', 0.16], ['cave', 0.16]], pw: [1, 3], chest: [3, 6], cave: [16, 20], shop: 1, pool: ['torch', 'apple', 'shield'], caves: 2, boss: 0, crew: false,
     stars: [REACH, GOLD(30), HALF], newKey: 'cave', newLabel: '어두운 동굴',
   },
@@ -160,6 +161,13 @@ function genOnce(d: Spec, rng: Rng, stage: number): Map {
   }
   const shopRow = d.shop === -2 ? 1 + Math.floor(rng() * Math.max(1, R - 3)) : d.shop;
   if (shopRow >= 0) map[shopRow][1] = makeNode(rng, 'shop', 1, d);
+  if (stage === 1 && shopRow >= 0) {
+    // 상인을 처음 만나는 섬: 상인 양옆은 센 괴물 (상인 길이 쉬는 길)
+    for (const l of [0, 2]) {
+      const m = makeNode(rng, 'monster', l, { ...d, pw: [2, 2] });
+      map[shopRow][l] = m;
+    }
+  }
   for (let c = 0, guard = 0; c < d.caves && guard < 40; guard++) {
     const r = Math.max(shopRow + 1, 1) + Math.floor(rng() * Math.max(1, R - Math.max(shopRow + 1, 1) - (d.boss ? 1 : 0)));
     const l = Math.floor(rng() * 3);
@@ -187,11 +195,13 @@ export function genMap(stage: number, seed: number): Map {
 }
 
 // ───────────────────────────── 미리 계산 (게임·카드 미리 보기·봇이 같은 식을 쓴다) ─────────────────────────────
-export interface PS { hp: number; gold: number; apple: number; torch: number; shield: number; kills: number; boss: number }
-const startPS = (): PS => ({ hp: HPMAX, gold: 0, apple: 0, torch: 0, shield: 0, kills: 0, boss: 0 });
-/** 싸움 피해: 여우 대장 -1, 방패가 있으면 다음 싸움에서 -3 (방패는 깨진다) */
+/** fear: 괴물을 연달아 이긴 수(최대 2) — 다음 괴물이 겁먹어 피해가 2씩 준다 (연쇄) */
+export interface PS { hp: number; gold: number; apple: number; torch: number; shield: number; kills: number; boss: number; fear: number }
+const startPS = (): PS => ({ hp: HPMAX, gold: 0, apple: 0, torch: 0, shield: 0, kills: 0, boss: 0, fear: 0 });
+const FEAR = 2, FEAR_MAX = 2;
+/** 싸움 피해: 겁먹음 -2씩, 여우 대장 -1, 방패가 있으면 다음 싸움에서 -3 (방패는 깨진다) */
 function fightDmg(dmg: number, p: PS, leader: Crew | null) {
-  let d = dmg - (leader === 'fox' ? 1 : 0);
+  let d = dmg - FEAR * p.fear - (leader === 'fox' ? 1 : 0);
   if (p.shield > 0) (p.shield--, (d -= SHIELD));
   return Math.max(0, d);
 }
@@ -220,9 +230,13 @@ function effect(kind: K | Out, n: Node, p: PS, leader: Crew | null): { gain: num
       if (hurt(fightDmg(n.dmg, p, leader))) return { gain, dead: true, taken, apples };
       gain = n.gold;
       p.kills++;
+      p.fear = Math.min(FEAR_MAX, p.fear + 1);
       if (kind === 'boss') p.boss = 1;
-      break;
+      p.gold += gain;
+      return { gain, dead: false, taken, apples };
   }
+  // 싸움이 아닌 곳에 들르면 기세(연쇄)가 끊긴다
+  p.fear = 0;
   p.gold += gain;
   return { gain, dead: false, taken, apples };
 }
@@ -239,7 +253,7 @@ function leaf(c: Plan, p: PS) {
 /** (r, l)의 사건을 마친 뒤부터 가장 좋은 값 */
 function after(c: Plan, r: number, l: number, p: PS): number {
   if (r >= c.map.length - 1) return leaf(c, p);
-  const key = `${r},${l},${p.hp},${p.gold},${p.apple},${p.torch},${p.shield},${p.kills},${p.boss}`;
+  const key = `${r},${l},${p.hp},${p.gold},${p.apple},${p.torch},${p.shield},${p.kills},${p.boss},${p.fear}`;
   const m = c.memo.get(key);
   if (m !== undefined) return m;
   let best = -Infinity;
@@ -251,6 +265,7 @@ function after(c: Plan, r: number, l: number, p: PS): number {
 function enter(c: Plan, r: number, l: number, p: PS): number {
   const n = c.map[r][l]!;
   if (n.k === 'shop') {
+    p = { ...p, fear: 0 };
     let best = after(c, r, l, p);
     for (const it of n.offers)
       if (p.gold >= PRICE[it]) {
@@ -285,8 +300,8 @@ export interface TState {
   map: Map; R: number; row: number; lane: number; trail: number[]; cam: number;
   wl0: number; wl1: number; wt: number; wT: number; toGoal: boolean;
   /** 지금 펼쳐지는 사건: 종류 · 사건 시계 · 사건 칸 · 멈칫 · 미리 계산한 결과 */
-  ek: string; et: number; node: Node | null; eff: Node | null; freeze: number; res: { q: PS; gain: number; dead: boolean; taken: number; apples: number } | null; hits: number[]; sceneT: number; bought: Item | null;
-  hp: number; gold: number; apple: number; torch: number; shield: number; kills: number; boss: number; leader: Crew | null;
+  ek: string; et: number; node: Node | null; eff: Node | null; freeze: number; slow: number; res: { q: PS; gain: number; dead: boolean; taken: number; apples: number } | null; hits: number[]; shUsed: boolean; sceneT: number; bought: Item | null;
+  hp: number; gold: number; apple: number; torch: number; shield: number; kills: number; boss: number; fear: number; fear0: number; leader: Crew | null;
   hearts: number; stars: number; got: number; starOk: boolean[]; pts: number; ok: boolean; why: string; won: boolean; dead: boolean; tries: number; again: boolean;
   opts: Opt[]; optT: number; sel: number; kb: boolean; lastDir: number; down: boolean;
   seen: Set<string>; spotted: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; spot: { i: number; label: string; t: number } | null;
@@ -308,7 +323,7 @@ const wow = (s: TState) => {
   s.cheerT = s.t;
   s.crabT = s.t;
 };
-const psOf = (s: TState): PS => ({ hp: s.hp, gold: s.gold, apple: s.apple, torch: s.torch, shield: s.shield, kills: s.kills, boss: s.boss });
+const psOf = (s: TState): PS => ({ hp: s.hp, gold: s.gold, apple: s.apple, torch: s.torch, shield: s.shield, kills: s.kills, boss: s.boss, fear: s.fear });
 const spec = (s: TState) => STAGES[s.stage];
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
@@ -330,6 +345,7 @@ function pathOpts(s: TState) {
   s.opts.forEach((o, i) => {
     const n = s.map[s.row + 1][o.lane]!;
     if (d.newKey && n.k === d.newKey && !s.spotted.has(n.k)) s.spotted.add(n.k), (s.spot = { i, label: d.newLabel, t: s.t });
+    else if (s.fear > 0 && (n.k === 'monster' || n.k === 'boss') && !s.spotted.has('fearcard')) s.spotted.add('fearcard'), (s.spot = { i, label: '겁먹은 괴물', t: s.t });
   });
 }
 
@@ -350,6 +366,7 @@ function newStage(s: TState, again: boolean) {
   s.shield = 0;
   s.kills = 0;
   s.boss = 0;
+  s.fear = 0;
   s.leader = null;
   s.ek = '';
   s.node = null;
@@ -436,6 +453,8 @@ function startEvent(s: TState, n: Node | null, kind: string) {
   const q = psOf(s);
   const e = effect(kind as K | Out, eff, q, s.leader);
   s.res = { q, ...e };
+  s.shUsed = q.shield < s.shield;
+  s.fear0 = s.fear;
   // 맞는 것은 여러 번 퉁퉁 나눠서
   const k = kind === 'boss' ? 4 : kind === 'monster' ? 3 : 1;
   for (let i = 0; i < k; i++) s.hits.push(Math.floor(e.taken / k) + (i < e.taken % k ? 1 : 0));
@@ -464,7 +483,7 @@ function runEvent(s: TState) {
     return;
   }
   if (k === 'shop') {
-    if (et === 1) see(s, 'shop', '');
+    if (et === 1) see(s, 'shop', ''), (s.fear = 0);
     if (et >= 16) {
       s.phase = 'shop';
       const n = s.node!;
@@ -482,6 +501,7 @@ function runEvent(s: TState) {
       wow(s);
       ev(s, 'goal', cx, cy, 0);
       s.freeze = 6;
+      s.slow = 30;
     }
     if (et >= 112) endStage(s, true, '');
     return;
@@ -523,9 +543,17 @@ function runEvent(s: TState) {
     if (k === 'monster' || k === 'boss') {
       s.kills = r.q.kills;
       s.boss = r.q.boss;
+      s.fear = r.q.fear;
       gainGold(s, r.gain, k);
       see(s, k, '');
       ev(s, k === 'boss' ? 'bosswin' : 'win', cx + 0.2, cy, r.gain);
+      // 연쇄: 앞줄 괴물이 겁먹는다
+      const ahead = s.row + 1 < s.R && s.map[s.row + 1].some((q) => q && (q.k === 'monster' || q.k === 'boss'));
+      if (ahead && s.fear > 0) {
+        if (see(s, 'fear', '연속으로 이기면 앞의 괴물이 겁먹어요!')) s.spotted.add('fear');
+        if (s.fear >= 2) wow(s), (s.slow = 16);
+        ev(s, 'fear', 0.5, 0.5, s.fear);
+      }
     }
   }
   if (T.gain === et) {
@@ -542,7 +570,7 @@ function runEvent(s: TState) {
   }
   if (et >= T.end) {
     // 화면 값과 미리 계산한 값이 늘 같아지게
-    Object.assign(s, { hp: r.q.hp, gold: r.q.gold, apple: r.q.apple, torch: r.q.torch, shield: r.q.shield, kills: r.q.kills, boss: r.q.boss });
+    Object.assign(s, { hp: r.q.hp, gold: r.q.gold, apple: r.q.apple, torch: r.q.torch, shield: r.q.shield, kills: r.q.kills, boss: r.q.boss, fear: r.q.fear });
     endEvent(s);
   }
 }
@@ -551,6 +579,7 @@ function gainGold(s: TState, g: number, k: string) {
   s.gainT = s.t;
   wow(s);
   s.freeze = k === 'chest' ? 5 : 7;
+  if (k === 'boss') s.slow = 30;
   ev(s, 'gold', 0.62, SC.y + SC.h * 0.45, g, k);
 }
 
@@ -623,6 +652,8 @@ export function hitOpt(s: TState, x: number, y: number): number {
     const r = optRect(s.opts.length, i);
     if (x >= r.x - 0.012 && x <= r.x + r.w + 0.012 && y >= r.y - 0.02 && y <= r.y + r.h + 0.02) return i;
   }
+  // 키보드로 고른 카드가 있으면 그것 (가상 커서가 지도 위에 있어도)
+  if (s.kb && s.sel >= 0) return s.sel;
   // 지도 위의 갈림길 칸을 눌러도 된다
   if (s.phase === 'pick')
     for (let i = 0; i < s.opts.length; i++) {
@@ -644,11 +675,11 @@ const game: GameDef<TState> & { wows(s: TState): number } = {
   id: 'treasuremap',
   name: '보물섬 갈림길 탐험',
   genes: ['pathpick', 'chain', 'pointer'],
-  twist: '길 카드에 결과가 미리 적혀 있고 섬 지도가 끝까지 다 보인다 — 톡 한 번이 걷기·상자·싸움을 저절로 펼치지만, 금화(별)와 체력(별·살아남기)이 서로 당겨서 어디서 싸우고 어디서 쉬고 무엇을 살지 길 전체를 짜야 한다',
+  twist: '괴물을 이기면 지도 위 앞줄 괴물들이 덜덜 떨며 약해진다(연달아 이길수록 더) — 싸움을 피하면 다음 싸움이 무섭고, 기세를 몰아 싸우면 쉬워져서, 결과가 다 적힌 길 카드와 끝까지 보이는 지도로 어디서 싸움을 몰아 하고 어디서 쉬고 무엇을 살지 길 전체를 짠다',
   rules: [
-    '갈림길에서 길 카드 하나를 톡 — 탐험대가 그 길로 가요. 카드에 결과가 적혀 있어요.',
-    '상자는 금화, 괴물은 체력을 깎고 금화, 천막은 쉬기. 체력이 0이면 하트 -1, 그 섬 다시.',
-    '꼭대기 보물에 닿으면 섬 끝. 별 조건을 보고 어디서 싸우고 쉴지 길을 짜요.',
+    '갈림길에서 길 카드 하나를 톡 — 탐험대가 그 길로 가요. 결과는 카드에 적혀 있어요.',
+    '상자는 금화, 괴물은 체력을 깎고 금화, 천막은 쉬기. 괴물을 연달아 이기면 앞의 괴물이 겁먹어 약해져요.',
+    '체력이 0이면 하트 -1, 그 섬 다시. 꼭대기 보물에 닿으면 끝 — 별 조건을 보고 길을 짜요.',
   ],
   controls: 'touch',
   hint: '길 카드를 톡 / ← → 로 고르고 스페이스, 숫자 1 2 3',
@@ -666,8 +697,8 @@ const game: GameDef<TState> & { wows(s: TState): number } = {
     const s = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'pick', pt: 0,
       map: [], R: 4, row: -1, lane: 1, trail: [1], cam: -1, wl0: 1, wl1: 1, wt: 0, wT: 1, toGoal: false,
-      ek: '', et: 0, node: null, eff: null, freeze: 0, res: null, hits: [], sceneT: -1, bought: null,
-      hp: HPMAX, gold: 0, apple: 0, torch: 0, shield: 0, kills: 0, boss: 0, leader: null,
+      ek: '', et: 0, node: null, eff: null, freeze: 0, slow: 0, res: null, hits: [], shUsed: false, sceneT: -1, bought: null,
+      hp: HPMAX, gold: 0, apple: 0, torch: 0, shield: 0, kills: 0, boss: 0, fear: 0, fear0: 0, leader: null,
       hearts: 3, stars: 0, got: 0, starOk: [false], pts: 0, ok: false, why: '', won: false, dead: false, tries: 0, again: false,
       opts: [], optT: 0, sel: -1, kb: false, lastDir: 0, down: false,
       seen: new Set<string>(), spotted: new Set<string>(), newsQ: [], news: null, spot: null, events: [], wowN: 0, firstPress: -1, firstBig: -1, picks: 0, taps: 0,
@@ -698,7 +729,6 @@ const game: GameDef<TState> & { wows(s: TState): number } = {
       if (can) {
         const i = hitOpt(s, p.x, p.y * A);
         if (i >= 0) choice = i;
-        else if (s.kb && s.sel >= 0) choice = s.sel;
         else ev(s, 'nudge', p.x, p.y * A);
       } else if (s.phase === 'intro' && s.pt > 24) beginPlay(s);
       else if (s.phase === 'result' && s.pt > 80) s.pt = RESULT_T;
@@ -724,6 +754,8 @@ const game: GameDef<TState> & { wows(s: TState): number } = {
           s.freeze--;
           return;
         }
+        // 잠깐 느려짐: 큰 순간에는 사건 시계가 반 속도
+        if (s.slow > 0 && s.slow-- % 2) return;
         s.et++;
         runEvent(s);
         return;
@@ -1784,11 +1816,27 @@ function drawMonster(ctx: C2, x: number, y: number, k: number, look: number, moo
       ctx.stroke();
     }
   }
-  // 입 (이빨)
+  // 입 (이빨) · 겁먹으면 삐뚤삐뚤
   ctx.fillStyle = '#7a1a2a';
   ctx.strokeStyle = OUT;
   ctx.lineWidth = lw;
   const my = ey + k * 0.2;
+  if (mood === 'scared') {
+    ctx.beginPath();
+    for (let i = 0; i <= 6; i++) {
+      const px = -k * 0.12 + (i / 6) * k * 0.24, py = my + (i % 2 ? -1 : 1) * k * 0.025;
+      i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    }
+    ctx.stroke();
+    for (const sd of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(sd * k * 0.25, ey - k * 0.12);
+      ctx.lineTo(sd * k * 0.07, ey - k * 0.17);
+      ctx.stroke();
+    }
+    ctx.restore();
+    return;
+  }
   ctx.beginPath();
   ctx.moveTo(-k * 0.16, my);
   ctx.quadraticCurveTo(0, my + k * (mood === 'hurt' ? 0.04 : 0.16), k * 0.16, my);
@@ -1883,7 +1931,8 @@ function drawBoss(ctx: C2, x: number, y: number, k: number, mood: MonMood, t: nu
     ctx.stroke();
   } else {
     ctx.fillStyle = '#2a1608';
-    ell(ctx, k * 0.12, -k * 0.53, k * 0.05, k * 0.06);
+    const pr = mood === 'scared' ? 0.6 : 1;
+    ell(ctx, k * 0.12, -k * 0.53, k * 0.05 * pr, k * 0.06 * pr);
     ctx.fill();
   }
   ctx.fillStyle = '#2a2a3a';
@@ -2176,11 +2225,11 @@ function drawMyst(ctx: C2, x: number, y: number, k: number, t: number) {
   ctx.fill();
 }
 /** 사건 아이콘 (지도·카드 공용). k = 키 */
-function drawKind(ctx: C2, kind: string, x: number, y: number, k: number, t: number, look: number, n?: Node | null) {
+function drawKind(ctx: C2, kind: string, x: number, y: number, k: number, t: number, look: number, n?: Node | null, scared = false) {
   switch (kind) {
     case 'chest': case 'big': drawChest(ctx, x, y, k * 0.95, 0, t, kind === 'big'); break;
-    case 'monster': drawMonster(ctx, x, y, k * (0.78 + (n?.pw ?? 2) * 0.11), look, 'angry', t); break;
-    case 'boss': drawBoss(ctx, x, y, k * 1.25, 'angry', t); break;
+    case 'monster': drawMonster(ctx, x, y, k * (0.78 + (n?.pw ?? 2) * 0.11), look, scared ? 'scared' : 'angry', t); break;
+    case 'boss': drawBoss(ctx, x, y, k * 1.25, scared ? 'scared' : 'angry', t); break;
     case 'camp': drawCamp(ctx, x - k * 0.15, y, k * 0.85, t); break;
     case 'shop': drawMerchant(ctx, x - k * 0.05, y, k * 0.95, t, false); break;
     case 'cave': drawCave(ctx, x, y, k * 1.0, 0); break;
@@ -2232,6 +2281,23 @@ function drawHand(ctx: C2, x: number, y: number, k: number, press: number) {
   ctx.restore();
 }
 
+/** 겁먹은 땀방울 */
+function sweat(ctx: C2, x: number, y: number, r: number, t: number) {
+  for (let i = 0; i < 2; i++) {
+    const u = ((t * 0.04 + i * 0.5) % 1), dx = (i ? 1 : -1) * r * (1.2 + u * 0.4), dy = u * r * 1.2;
+    ctx.globalAlpha = 1 - u * 0.6;
+    ctx.fillStyle = '#7ad0ff';
+    ctx.strokeStyle = '#2a6ab8';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x + dx, y + dy - r * 0.55);
+    ctx.quadraticCurveTo(x + dx + r * 0.35, y + dy, x + dx, y + dy + r * 0.25);
+    ctx.quadraticCurveTo(x + dx - r * 0.35, y + dy, x + dx, y + dy - r * 0.55);
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
 // ── 풍경 ──
 function drawPalm(ctx: C2, x: number, y: number, k: number, lean: number, t: number) {
   ctx.strokeStyle = OUT;
@@ -2644,7 +2710,7 @@ function drawWorld(ctx: C2, s: TState, w: number, t: number) {
     ctx.font = `900 ${Math.max(12, R(0.03))}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    if (s.phase !== 'event' || s.ek !== 'goal') txt(ctx, '보물', x, y - k * 0.95, '#c84a1a', '#ffffff', 3);
+    if (s.phase !== 'event' || s.ek !== 'goal') txt(ctx, '보물', x - k * 0.95, y - k * 0.25, '#c84a1a', '#ffffff', 3);
   }
   // ── 칸 (먼 줄부터) ──
   for (let r = s.R - 1; r >= Math.max(0, Math.floor(s.cam) - 1); r--) {
@@ -2656,12 +2722,15 @@ function drawWorld(ctx: C2, s: TState, w: number, t: number) {
       const optI = picking && r === s.row + 1 ? s.opts.findIndex((o) => o.lane === l) : -1;
       const here = r === s.row && l === s.lane;
       const k = R(0.085) * sc, x = R(nx), y = R(ny) + (optI >= 0 ? -Math.abs(Math.sin(t * 0.1 + l)) * R(0.012) : 0);
-      // 빈터
-      ctx.fillStyle = 'rgba(60,50,20,.18)';
-      ell(ctx, R(nx), R(ny) + k * 0.12, k * 0.78, k * 0.3);
+      // 빈터 (두께가 있는 흙 단)
+      ctx.fillStyle = 'rgba(60,50,20,.2)';
+      ell(ctx, R(nx), R(ny) + k * 0.16, k * 0.8, k * 0.3);
       ctx.fill();
-      ctx.fillStyle = P.path;
-      ell(ctx, R(nx), R(ny) + k * 0.06, k * 0.7, k * 0.26);
+      ctx.fillStyle = P.pathDk;
+      ell(ctx, R(nx), R(ny) + k * 0.11, k * 0.7, k * 0.26);
+      ctx.fill();
+      ctx.fillStyle = lin(ctx, 0, R(ny) - k * 0.2, 0, R(ny) + k * 0.3, [0, '#ffffff'], [0.25, P.path], [1, P.path]);
+      ell(ctx, R(nx), R(ny) + k * 0.05, k * 0.7, k * 0.25);
       ctx.fill();
       ctx.strokeStyle = P.pathDk;
       ctx.lineWidth = 1.2;
@@ -2695,7 +2764,16 @@ function drawWorld(ctx: C2, s: TState, w: number, t: number) {
         continue;
       }
       const kind = n.k === 'mystery' && s.leader === 'owl' ? n.out! : n.k;
-      drawKind(ctx, kind === 'big' ? 'chest' : kind, x, y, k, t, s.stage, n.k === 'mystery' ? MYST[n.out!] : n);
+      const fearful = s.fear > 0 && r === s.row + 1 && (kind === 'monster' || kind === 'boss') && s.phase !== 'event';
+      const fx2 = fearful ? Math.sin(t * 1.4 + l * 2) * R(0.004) * (1 + s.fear) : 0;
+      drawKind(ctx, kind === 'big' ? 'chest' : kind, x + fx2, y, k, t, s.stage, n.k === 'mystery' ? MYST[n.out!] : n, fearful);
+      if (fearful) {
+        sweat(ctx, x + fx2, y - k * 0.75, k * 0.18, t);
+        ctx.font = `900 ${Math.max(12, R(0.03))}px system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        txt(ctx, s.fear >= 2 ? '벌벌' : '덜덜', x - k * 0.6, y - k * 1.0, '#2a6ab8', '#ffffff', 3);
+      }
       if (n.k === 'mystery' && s.leader === 'owl') {
         ctx.fillStyle = '#ffd84a';
         ctx.strokeStyle = OUT;
@@ -2910,7 +2988,7 @@ function drawScene(ctx: C2, s: TState, w: number, t: number) {
     for (let i = 0; i < 5; i++) drawRock(ctx, px - k * 0.6 + i * k * 0.3, gy + k * 0.14, k * 0.18, '#a89070');
   }
   // 방패가 막는다
-  if ((kind === 'monster' || kind === 'boss') && r && r.q.shield < bag.shield + (et >= (T?.hit?.[0] ?? 0) ? 1 : 0) && et >= (T?.hit?.[0] ?? 0) - 2 && et < (T?.hit?.[0] ?? 0) + 20) {
+  if ((kind === 'monster' || kind === 'boss') && s.shUsed && et >= (T?.hit?.[0] ?? 0) - 2 && et < (T?.hit?.[0] ?? 0) + 20) {
     const a = 1 - Math.max(0, et - (T?.hit?.[0] ?? 0) - 10) / 10;
     ctx.globalAlpha = clamp(a, 0, 1);
     drawShieldIcon(ctx, px + k * 0.55, gy - k * 0.5, k * 0.3);
@@ -2982,10 +3060,17 @@ function drawScene(ctx: C2, s: TState, w: number, t: number) {
       ctx.translate(mx, gy - k * 0.3);
       ctx.rotate(u * 4);
       ctx.scale(1 - u * 0.7, 1 - u * 0.7);
-      const mood: MonMood = hurtNow || (Math.abs(et - hitNear) < 6 && et > 10) ? 'hurt' : u > 0 ? 'hurt' : 'angry';
+      const mood: MonMood = hurtNow || (Math.abs(et - hitNear) < 6 && et > 10) ? 'hurt' : u > 0 ? 'hurt' : s.fear0 > 0 ? 'scared' : 'angry';
       if (kind === 'boss') drawBoss(ctx, 0, k * 0.3, k * 1.15, mood, t);
       else drawMonster(ctx, 0, k * 0.3, k * (0.7 + (s.eff?.pw ?? 1) * 0.12), s.stage, mood, t);
+      if (mood === 'scared') sweat(ctx, 0, -k * (kind === 'boss' ? 0.75 : 0.6), k * 0.07, t);
       ctx.restore();
+      if (s.fear0 > 0 && et < (T!.hit![0] ?? 0) + 4) {
+        ctx.font = `900 ${Math.max(13, R(0.04))}px system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        txt(ctx, s.fear0 >= 2 ? '벌벌… 겁먹었다!' : '덜덜… 겁먹었다!', mx, gy - k * (kind === 'boss' ? 1.45 : 1.15), '#2a6ab8', '#ffffff', 4);
+      }
     }
     if (won) {
       for (let i = 0; i < 6; i++) {
@@ -3000,7 +3085,7 @@ function drawScene(ctx: C2, s: TState, w: number, t: number) {
     // 퉁! 부딪침
     const near = et - hitNear;
     if (et > 6 && Math.abs(near) < 5) {
-      const cx2 = (px + k * 0.3 + mx) / 2, cy2 = gy - k * 0.5, sz = R(0.07) * (1 + (5 - Math.abs(near)) * 0.08);
+      const cx2 = px + k * 0.3 + (mx - px - k * 0.3) * 0.62, cy2 = gy - k * 0.62, sz = R(0.06) * (1 + (5 - Math.abs(near)) * 0.08);
       ctx.fillStyle = '#ffffff';
       ctx.strokeStyle = OUT;
       ctx.lineWidth = 2;
@@ -3041,7 +3126,7 @@ function drawScene(ctx: C2, s: TState, w: number, t: number) {
     ctx.globalAlpha = 1;
   } else if (kind === 'shop' || kind === 'bye') {
     drawMerchant(ctx, ox, gy, k * 0.95, t, kind === 'bye');
-    const msg = kind === 'shop' ? '하나 골라 봐!' : s.bought ? '고마워!' : '또 만나~';
+    const msg = kind === 'shop' ? '하나만 골라 봐!' : s.bought ? '고마워!' : '또 만나~';
     ctx.font = `800 ${Math.max(13, R(0.04))}px system-ui, sans-serif`;
     const tw = ctx.measureText(msg).width + R(0.04), bx = ox - k * 0.25, by = gy - k * 1.05;
     ctx.fillStyle = '#ffffff';
@@ -3219,7 +3304,7 @@ function cardInfo(s: TState, o: Opt): CardInfo {
   if (o.kind === 'leave') return { col: '#8aa0b0', bg: ['#eef6ff', '#d4e6f4'], title: '그냥 가기', lines: [['금화 아끼기', GOLDC], [`지금 ${s.gold}`, INK]], icon: 'leave', node: null, dis: false, warn: false };
   if (o.kind === 'buy') {
     const it = o.item!, dis = s.gold < PRICE[it];
-    return { col: it === 'apple' ? '#e8483a' : it === 'torch' ? '#f09a2a' : '#3a8ae0', bg: ['#fff8e8', '#ffe8c0'], title: `${I_NAME[it]} 금화 ${PRICE[it]}`, lines: dis ? [['금화가', REDC], ['모자라요', REDC]] : [[I_DESC[it][0], INK], [I_DESC[it][1], GREENC]], icon: 'item:' + it, node: null, dis, warn: false };
+    return { col: it === 'apple' ? '#e8483a' : it === 'torch' ? '#f09a2a' : '#3a8ae0', bg: ['#fff8e8', '#ffe8c0'], title: I_NAME[it], lines: [[`금화 ${PRICE[it]}`, dis ? REDC : GOLDC], [dis ? '금화가 모자라요' : I_DESC[it], dis ? REDC : GREENC]], icon: 'item:' + it, node: null, dis, warn: false };
   }
   const n = s.map[s.row + 1][o.lane]!;
   const hidden = n.k === 'mystery' && s.leader !== 'owl';
@@ -3317,9 +3402,24 @@ function drawCards(ctx: C2, s: TState, w: number, t: number) {
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-    } else drawKind(ctx, ic, ix, iy, ik * 0.95, t, s.stage, info.node);
+    } else drawKind(ctx, ic, ix, iy, ik * 0.95, t, s.stage, info.node, s.fear > 0 && o.kind === 'path');
     if (info.node && (ic === 'monster' || ic === 'boss')) for (let q = 0; q < Math.min(3, info.node.pw); q++) drawSkull(ctx, x + cw - R(0.026) - q * R(0.034), y + R(0.03), R(0.014));
     if (info.node && ic === 'monster' && s.shield > 0) drawShieldIcon(ctx, x + R(0.03), y + ih - R(0.02), R(0.018));
+    if (info.node && (ic === 'monster' || ic === 'boss') && s.fear > 0 && o.kind === 'path') {
+      ctx.font = `900 ${Math.max(12, R(0.03))}px system-ui, sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      const lab = `겁먹음 -${FEAR * s.fear}`, tw = ctx.measureText(lab).width + R(0.02);
+      ctx.fillStyle = '#e4f4ff';
+      ctx.strokeStyle = '#2a6ab8';
+      ctx.lineWidth = 1.5;
+      rr(ctx, x + R(0.04), y + R(0.012), tw, R(0.036), R(0.018));
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#2a6ab8';
+      ctx.fillText(lab, x + R(0.05), y + R(0.031));
+      sweat(ctx, ix + ik * 0.05, iy - ik * 0.62, ik * 0.07, t);
+    }
     ctx.restore();
     // 글자
     ctx.textAlign = 'center';
@@ -3514,7 +3614,7 @@ function drawBar(ctx: C2, s: TState, w: number, t: number) {
   }
   // 금화
   const gx = R(0.66), gain = t - s.gainT < 20;
-  drawCoin(ctx, gx, r1, R(0.022) * (gain ? 1.2 : 1), t * 0.08);
+  drawCoin(ctx, gx, r1, R(0.022) * (gain ? 1.2 : 1), gain ? (t - s.gainT) * 0.3 : 0);
   ctx.font = `900 ${Math.max(16, R(0.05)) * (gain ? 1.15 : 1)}px system-ui, sans-serif`;
   ctx.fillStyle = '#b06a00';
   ctx.fillText(String(s.gold), gx + R(0.032), r1 + 1);
@@ -3535,17 +3635,29 @@ function drawBar(ctx: C2, s: TState, w: number, t: number) {
     const x = R(0.12 + i * 0.16), n = s[it];
     ctx.globalAlpha = n > 0 ? 1 : 0.3;
     if (it === 'apple') drawApple(ctx, x, r2, R(0.014));
-    else if (it === 'torch') drawTorch(ctx, x, r2 + R(0.008), R(0.04), false, t);
+    else if (it === 'torch') {
+      ctx.save();
+      ctx.translate(x, r2 + R(0.004));
+      ctx.rotate(0.7);
+      drawTorch(ctx, 0, 0, R(0.03), n > 0, t);
+      ctx.restore();
+    }
     else drawShieldIcon(ctx, x, r2, R(0.017));
     ctx.fillStyle = INK;
     ctx.fillText(`${I_NAME[it]} ${n}`, x + R(0.024), r2 + 1);
     ctx.globalAlpha = 1;
   });
+  if (s.fear > 0) {
+    ctx.textAlign = 'right';
+    ctx.font = `900 ${Math.max(12, R(0.032))}px system-ui, sans-serif`;
+    ctx.fillStyle = '#2a6ab8';
+    ctx.fillText(`기세 ${'●'.repeat(s.fear)}${'○'.repeat(FEAR_MAX - s.fear)}`, s.leader ? w - R(0.24) : w - R(0.025), r2 + 1);
+  }
   if (s.leader) {
     ctx.textAlign = 'right';
     ctx.font = `900 ${Math.max(12, R(0.032))}px system-ui, sans-serif`;
     ctx.fillStyle = '#7a42c8';
-    ctx.fillText(`대장 ${C_NAME[s.leader]}`, w - R(0.025), r2 + 1);
+    ctx.fillText(`대장: ${C_SHORT[s.leader]}`, w - R(0.025), r2 + 1);
   }
 }
 
@@ -3593,7 +3705,7 @@ function drawPanels(ctx: C2, s: TState, w: number, t: number) {
       y += 0.065;
       ctx.font = `800 ${Math.max(12, R(0.036))}px system-ui, sans-serif`;
       ctx.fillStyle = INK;
-      const parts = d.news.split(' — ');
+      const parts = d.news.split(' — ').filter((p) => p !== d.newLabel);
       parts.forEach((p, i) => ctx.fillText(p, cx, R(y + i * 0.045)));
       y += parts.length * 0.045 + 0.02;
     }
@@ -3725,8 +3837,8 @@ function drawAll(ctx: C2, s: TState, w: number, h: number, _th: Theme) {
         const n = e.n ?? 0;
         fx.kick(n > 0 ? 4 + n * 1.5 : 2);
         fx.burst((spx + scx) / 2, scy - R(0.06), '#ffffff', 10, 3, 2.4);
-        if (n > 0) fx.pop(spx, scy - R(0.18), `-${n}`, '#ff4a3a', 22), fx.blink('#ff8070', 0.12);
-        else fx.pop(spx, scy - R(0.18), '막았다!', '#4aa8ff', 18);
+        if (n > 0) fx.pop(spx + R(0.17), scy - R(0.27), `체력 -${n}`, '#ff4a3a', 22), fx.blink('#ff8070', 0.12);
+        else fx.pop(spx + R(0.17), scy - R(0.27), '안 아파!', '#4aa8ff', 18);
         break;
       }
       case 'shield':
@@ -3766,7 +3878,7 @@ function drawAll(ctx: C2, s: TState, w: number, h: number, _th: Theme) {
       case 'reveal':
         fx.ring(scx, scy - R(0.08), '#c8a8ff', R(0.2), 5);
         fx.burst(scx, scy - R(0.08), '#e0d0ff', 16, 4, 2.6);
-        fx.pop(scx, scy - R(0.28), e.text === 'big' ? '큰 상자다!' : e.text === 'trap' ? '함정이다!' : e.text === 'monster' ? '괴물이다!' : '쉼터다!', e.text === 'trap' || e.text === 'monster' ? '#ff6a4a' : '#ffd23a', 20);
+        fx.pop(scx, scy - R(0.2), e.text === 'big' ? '큰 상자다!' : e.text === 'trap' ? '함정이다!' : e.text === 'monster' ? '괴물이다!' : '쉼터다!', e.text === 'trap' || e.text === 'monster' ? '#ff6a4a' : '#ffd23a', 20);
         break;
       case 'goal':
         fx.blink('#fff6c0', 0.6);
@@ -3788,6 +3900,10 @@ function drawAll(ctx: C2, s: TState, w: number, h: number, _th: Theme) {
         break;
       case 'nudge':
         fx.ring(R(e.x), R(e.y), 'rgba(255,255,255,.8)', R(0.05), 3);
+        break;
+      case 'fear':
+        fx.pop(R(0.5), R(SC.y + 0.1), (e.n ?? 1) >= 2 ? '연속 두 번! 앞의 괴물들이 벌벌' : '앞의 괴물들이 겁먹었다!', '#7ad0ff', 17);
+        if ((e.n ?? 1) >= 2) big('기세 두 배! 괴물들이 벌벌', R(0.5), R(SC.y + 0.1));
         break;
       case 'clear':
         fx.burst(R(0.3), R(0.5), '#ffe14a', 26, 6, 3);
@@ -3835,11 +3951,11 @@ function drawAll(ctx: C2, s: TState, w: number, h: number, _th: Theme) {
   drawBar(ctx, s, w, t);
   drawCards(ctx, s, w, t);
   // 알림 · 첫 안내
-  const guide = s.stage === 0 && s.phase === 'pick' && s.picks === 0 ? '길 카드를 톡! 탐험대가 그 길로 가요' : s.phase === 'crew' ? '지도를 보고 이 섬의 대장을 골라요' : s.phase === 'shop' ? '하나 사거나 그냥 가요 (하나만!)' : s.phase === 'pick' && s.news && t - s.news.t < NEWS_T ? s.news.text : s.phase === 'pick' && s.stage === 0 && s.picks < 3 ? '카드에 결과가 적혀 있어요' : '';
+  const guide = s.stage === 0 && s.phase === 'pick' && s.picks === 0 ? '길 카드를 톡! 탐험대가 그 길로 가요' : s.phase === 'crew' ? '지도를 보고 이 섬의 대장을 골라요' : s.phase === 'pick' && s.news && t - s.news.t < NEWS_T ? s.news.text : s.phase === 'pick' && s.stage === 0 && s.picks < 3 ? '카드에 결과가 적혀 있어요' : '';
   if (guide) {
     ctx.font = `900 ${Math.max(13, R(0.04))}px system-ui, sans-serif`;
-    const tw = ctx.measureText(guide).width + R(0.06), gy = s.phase === 'shop' ? R(CARD_Y - 0.035) : R(MAP_TOP + 0.035);
-    if (s.phase !== 'shop' || true) {
+    const tw = ctx.measureText(guide).width + R(0.06), gy = R(MAP_TOP + 0.035);
+    {
       ctx.fillStyle = 'rgba(255,255,255,.94)';
       ctx.strokeStyle = '#ffb21a';
       ctx.lineWidth = 2.5;

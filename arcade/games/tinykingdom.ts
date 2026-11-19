@@ -23,7 +23,7 @@ const A = 1.6;
 const MAXV = 10;
 /** 막대: 0 식량 · 1 행복 · 2 금화 · 3 병사 */
 export const BAR = ['식량', '행복', '금화', '병사'];
-const WALK_T = 34, INTRO_T = 100, ACT_T = 84, EV_T = 124, RESULT_T = 190, FAIL_T = 186;
+const WALK_T = 34, INTRO_T = 120, ACT_T = 84, EV_T = 124, RESULT_T = 190, FAIL_T = 186;
 /** 별 하나 = 150 + 계절마다 50 (뒤 계절일수록 앞일을 더 맞춰야 한다) */
 const DAY_PTS = 5, CLEAR_PTS = 40, STAR_PTS = 150, STAR_UP = 50, WIN_PTS = 300;
 /** 단추 자리 (세로는 가로 폭 단위) */
@@ -37,7 +37,7 @@ export interface Opt { t: string; e: number[]; an: Anim; tag?: Tag; next?: strin
 export interface Card { id: string; who: Who; say: string; a: Opt; b: Opt }
 const WHO_NAME: Record<Who, string> = { farmer: '농부', knight: '기사', merchant: '상인', wizard: '마법사', jester: '광대', baker: '빵집 할머니', dragon: '용' };
 /** 큰 연출(띠)이 뜨는 결과 */
-const BIG = new Set<Anim>(['feast', 'harvest', 'wall', 'fireworks', 'dragonFeed', 'magic', 'build', 'rain', 'train']);
+const BIG = new Set<Anim>(['feast', 'harvest', 'wall', 'fireworks', 'dragonFeed', 'magic', 'build', 'rain', 'train', 'store', 'coinsIn', 'coinsOut', 'bread']);
 
 const o = (t: string, e: number[], an: Anim, tag?: Tag, next?: string): Opt => ({ t, e, an, tag, next });
 const C = (id: string, who: Who, say: string, a: Opt, b: Opt): Card => ({ id, who, say, a, b });
@@ -496,6 +496,10 @@ export function jumpTo(s: KState, k: number) {
   s.stage = k;
   s.firstTap = Math.max(0, s.firstTap);
   newStage(s);
+}
+/** 시험·스크린샷용: 지금 손님을 이 카드로 */
+export function setGuest(s: KState, id: string, swap = false) {
+  s.cur = dealOf(CARDS[id], swap, STAGES[s.stage].amp);
 }
 
 // ───────────────────────────── 봇 ─────────────────────────────
@@ -961,19 +965,31 @@ function drawIcon(ctx: C2, i: number, x: number, y: number, r: number) {
 }
 
 /** 결과 예고 칩: 아이콘 + 오르면 초록 ▲, 내리면 빨간 ▼ (칸 수만큼) */
+const chipW = (r: number) => r * 2.95;
 function chip(ctx: C2, i: number, n: number, x: number, y: number, r: number, danger: boolean, t: number) {
-  drawIcon(ctx, i, x, y, r);
-  const up = n > 0, m = Math.min(4, Math.abs(n));
-  for (let j = 0; j < m; j++) {
-    const ax = x + r * 1.05 + r * 0.42 + j * r * 0.62, ay = y + (up ? -1 : 1) * (j % 2 ? r * 0.12 : -r * 0.12) * 0;
-    tri(ctx, ax, ay, r * 0.42, up);
-    ctx.fillStyle = danger ? (Math.floor(t / 8) % 2 ? '#ff2a3a' : '#ffffff') : up ? '#2fbf4a' : '#ff4a5a';
+  const up = n > 0, flash = danger && Math.floor(t / 8) % 2;
+  if (danger) {
+    ctx.fillStyle = flash ? 'rgba(255,60,70,.35)' : 'rgba(255,60,70,.15)';
+    rr(ctx, x - r * 1.15, y - r * 1.15, chipW(r) + r * 0.3, r * 2.3, r * 0.6);
     ctx.fill();
-    ctx.strokeStyle = up ? '#14702a' : '#8a1a24';
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
   }
-  return r * 1.05 + r * 0.42 + m * r * 0.62 + r * 0.25;
+  drawIcon(ctx, i, x, y, r);
+  const ax = x + r * 1.45;
+  tri(ctx, ax, y + (up ? r * 0.05 : -r * 0.05), r * 0.38, up);
+  ctx.fillStyle = up ? '#2fbf4a' : '#ff4a5a';
+  ctx.fill();
+  ctx.strokeStyle = up ? '#14702a' : '#8a1a24';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.font = `900 ${Math.max(12, r * 1.25)}px system-ui, sans-serif`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#ffffff';
+  ctx.strokeText(String(Math.abs(n)), x + r * 1.88, y + 1);
+  ctx.fillStyle = up ? '#14883a' : '#d0303a';
+  ctx.fillText(String(Math.abs(n)), x + r * 1.88, y + 1);
+  return chipW(r);
 }
 
 // ── 사람들 ──
@@ -1612,9 +1628,10 @@ function drawKing(ctx: C2, x: number, y: number, H: number, mood: Mood, t: numbe
   for (const sd of [-1, 1]) (ell(ctx, sd * 7 * u, hy + 7 * u, 8 * u, 3.6 * u, sd * 0.3), ctx.fill(), ctx.stroke());
   // 왕관 (떨어지면 위로 날아감)
   ctx.save();
-  const cy = hy - hr * 0.78 - crownOff * 60 * u;
-  ctx.translate(crownOff * 30 * u, cy);
-  ctx.rotate(crownOff * 4);
+  const arc = Math.sin(Math.min(1, crownOff) * Math.PI);
+  const cy = hy - hr * 0.78 - arc * 70 * u + crownOff * crownOff * 62 * u;
+  ctx.translate(-crownOff * 46 * u, cy);
+  ctx.rotate(crownOff * 5.5);
   ctx.fillStyle = lin(ctx, 0, -18 * u, 0, 4 * u, [0, '#fff3a0'], [1, '#e8a810']);
   ctx.beginPath();
   ctx.moveTo(-18 * u, 4 * u);
@@ -1910,6 +1927,32 @@ const FAIL_TXT: [string, string][] = [
   ['성을 지킬 병사가 없어요!', '장군이 왕관을 탐내요!'],
 ];
 
+/** 카메라: 큰 결과일수록 그 자리로 잠깐 다가간다 [x, y, 얼마나] */
+const FOCUS: Partial<Record<Anim, [number, number, number]>> = {
+  feast: [0.5, 0.69, 0.42], music: [0.5, 0.69, 0.3], bread: [0.5, 0.69, 0.3], train: [0.5, 0.68, 0.32], harvest: [0.2, 0.62, 0.42], rain: [0.22, 0.6, 0.3],
+  store: [0.22, 0.68, 0.3], wall: [0.5, 0.57, 0.4], coinsIn: [0.74, 0.58, 0.32], coinsOut: [0.74, 0.6, 0.32], fireworks: [0.5, 0.45, 0.12], magic: [0.5, 0.46, 0.28],
+  dragonFeed: [0.55, 0.42, 0.3], rest: [0.62, 0.56, 0.2],
+};
+function camOf(s: KState, la: number, evA: number): [number, number, number] {
+  if (s.phase === 'act' && s.last) {
+    const f = s.last.k === 2 ? ([0.5, 0.6, 0.22] as [number, number, number]) : FOCUS[s.last.an[0]];
+    if (!f) return [0.5, 0.6, 1];
+    const e = eo(la / 12) * (1 - eo((la - 58) / 24));
+    return [f[0], f[1], 1 + f[2] * e];
+  }
+  if (s.phase === 'event' && s.ev) {
+    const f: [number, number, number] = s.ev.k === 'battle' ? [0.66, 0.6, 0.3] : s.ev.k === 'friend' ? [0.55, 0.42, 0.3] : [0.4, 0.55, 0.15];
+    const e = eo(evA / 16) * (1 - eo((evA - 96) / 26));
+    return [f[0], f[1], 1 + f[2] * e];
+  }
+  if (s.phase === 'fail' && s.broke) {
+    const f: [number, number][] = [[0.24, 0.68], [0.5, 0.69], [0.78, 0.55], [0.5, 0.57]];
+    const e = eo(s.pt / 20) * (1 - eo((s.pt - 150) / 30));
+    return [f[s.broke.bar][0], f[s.broke.bar][1], 1 + 0.3 * e];
+  }
+  return [0.5, 0.6, 1];
+}
+
 function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
   const fx = juice(s), X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w;
   const d = STAGES[s.stage], P = PAL[d.key], t = s.t, sea = d.key;
@@ -1925,7 +1968,7 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
   };
   const evA = s.phase === 'event' && s.ev ? s.t - s.ev.t : -1;
   // 막대 보이는 값 (움직이는 중이면 보간)
-  const since = s.phase === 'event' && s.ev ? evA : la;
+  const since = s.phase === 'event' && s.ev ? evA - (s.ev.k === 'battle' ? 70 : 0) : la;
   const shown = s.v.map((v, i) => {
     const u2 = eo((since - 6) / 24);
     return Math.max(0, Math.min(MAXV, s.prev[i] + (v - s.prev[i]) * u2));
@@ -1933,6 +1976,23 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
 
   ctx.save();
   fx.begin(ctx);
+  const cam = camOf(s, la, evA), cfx = X(cam[0]), cfy = Y(cam[1]), ck = cam[2];
+  const zmap = (x: number, y: number): [number, number] => [cfx + (x - cfx) * ck, cfy + (y - cfy) * ck];
+  const fz = {
+    burst: (x: number, y: number, c: string, n?: number, sp?: number, sz?: number) => {
+      const [a, b] = zmap(x, y);
+      fx.burst(a, b, c, n, (sp ?? 3) * ck, (sz ?? 3) * ck);
+    },
+    ring: (x: number, y: number, c: string, mx?: number, wd?: number) => {
+      const [a, b] = zmap(x, y);
+      fx.ring(a, b, c, (mx ?? 60) * ck, wd);
+    },
+  };
+  const words: (() => void)[] = [];
+  ctx.save();
+  ctx.translate(cfx, cfy);
+  ctx.scale(ck, ck);
+  ctx.translate(-cfx, -cfy);
   ctx.drawImage(bgLayer(Math.round(w), Math.round(h), sea, Math.min(3, Math.max(1, Math.round(sc)))), 0, 0, w, h);
   // 해
   {
@@ -2227,7 +2287,7 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
       const steps = Math.min(1, Math.floor(c01((wa - 8) / 30) * 3 + (wa >= 8 ? 1 : 0)) / 3);
       arW = s.prev[3] + (s.v[3] - s.prev[3]) * steps;
     }
-    const hgt = R(0.012 + c01(arW / 10) * 0.05), x0 = X(WALL.x0), x1 = X(WALL.x1), by = Y(WALL.y);
+    const hgt = R(0.01 + c01(arW / 10) * 0.065), x0 = X(WALL.x0), x1 = X(WALL.x1), by = Y(WALL.y);
     const seg = 10;
     for (let q = 0; q < seg; q++) {
       if (q === 4 || q === 5) continue;
@@ -2273,7 +2333,7 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
       const uu = gate ? (u < 0.5 ? 0.38 : 0.62) : u;
       const sx2 = x0 + (x1 - x0) * uu, sy2 = by + Math.sin(uu * Math.PI) * R(0.02) - hgt;
       const dance = animAge('music') >= 0 ? Math.abs(Math.sin(t * 0.3 + q)) * R(0.008) : 0;
-      soldier(ctx, sx2, sy2 - dance, R(0.016), t, q);
+      soldier(ctx, sx2, sy2 - dance, R(0.019), t, q);
     }
     // 병사 바닥: 무너진 성벽 틈으로 도적이 엿본다
     if (s.v[3] <= 1 && s.phase !== 'fail') {
@@ -2549,7 +2609,7 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
       if (party) (vx = PLAZA.x + Math.cos(ang) * PLAZA.rx * 0.8), (vy = PLAZA.y + Math.sin(ang) * PLAZA.ry * 0.85 + 0.01);
       const jump = party ? Math.abs(Math.sin(t * 0.32 + q)) * R(0.016) : ma >= 0 ? Math.abs(Math.sin(t * 0.2 + q)) * R(0.006) : jy >= 7 ? Math.abs(Math.sin(t * 0.15 + q)) * R(0.005) : 0;
       const arms = party || wa2 >= 0 || (ca >= 25) ? 1 : ba >= 30 ? 0.5 : 0;
-      villager(ctx, X(vx), Y(vy), R(0.022), cols[q], party || ba >= 30 ? 1 : mood, jump, arms, q);
+      villager(ctx, X(vx), Y(vy), R(party ? 0.03 : 0.026), cols[q], party || ba >= 30 ? 1 : mood, jump, arms, q);
     }
     // 행복 바닥: 주민 머리 위 먹구름
     if (s.v[1] <= 1 && s.phase !== 'fail') {
@@ -2610,7 +2670,7 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
   // 날짜 정해진 사건: 팻말
   if ((d.storm && !s.stormDone) || (d.battle && !s.battleDone)) {
     const left = (d.storm ? d.storm.after : d.battle!.after) - s.day;
-    const px = X(0.115), py = Y(0.81), lab = d.storm ? `눈보라 ${left}일 뒤` : `적군 ${left}일 뒤`;
+    const px = X(0.1), py = Y(0.815), lab = d.storm ? `눈보라 ${left}일 뒤` : `적군 ${left}일 뒤`;
     ctx.strokeStyle = OUT;
     ctx.fillStyle = '#a8743a';
     rr(ctx, px - R(0.006), py - R(0.08), R(0.012), R(0.08), 2);
@@ -2656,7 +2716,7 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
       fx.memo.lastT = L.t;
       fx.memo.lastAge = -1;
     }
-    const pa = fx.memo.lastAge ?? -1, at = (n: number) => pa < n && la >= n;
+    const pa = fx.memo.lastAge ?? -1;
     for (const an of anims) {
       const a = animAge(an);
       if (a < 0) continue;
@@ -2665,15 +2725,15 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
         if (fire(2)) {
           fx.blink('#fff2c0', 0.35);
           fx.kick(5);
-          for (const c of ['#ff7a8a', '#ffd23a', '#7ad0ff', '#9be36f']) fx.burst(X(PLAZA.x), Y(PLAZA.y) - R(0.05), c, 10, 4, 2.4);
-          fx.ring(X(PLAZA.x), Y(PLAZA.y), '#fff2a0', R(0.2), 5);
+          for (const c of ['#ff7a8a', '#ffd23a', '#7ad0ff', '#9be36f']) fz.burst(X(PLAZA.x), Y(PLAZA.y) - R(0.05), c, 10, 4, 2.4);
+          fz.ring(X(PLAZA.x), Y(PLAZA.y), '#fff2a0', R(0.2), 5);
         }
-        if (fire(20)) for (const c of ['#ff7a8a', '#ffd23a']) fx.burst(X(PLAZA.x), Y(PLAZA.y) - R(0.08), c, 8, 3, 2);
+        if (fire(20)) for (const c of ['#ff7a8a', '#ffd23a']) fz.burst(X(PLAZA.x), Y(PLAZA.y) - R(0.08), c, 8, 3, 2);
       } else if (an === 'harvest') {
-        for (const n of [4, 12, 20, 28]) if (fire(n)) fx.burst(X(0.08 + (n / 28) * 0.24), Y(0.6), '#ffe680', 8, 2.5, 2);
+        for (const n of [4, 12, 20, 28]) if (fire(n)) fz.burst(X(0.08 + (n / 28) * 0.24), Y(0.6), '#ffe680', 8, 2.5, 2);
         if (fire(4)) (fx.blink('#fff6c0', 0.3), fx.kick(3));
       } else if (an === 'wall') {
-        for (const n of [8, 18, 28]) if (fire(n)) (fx.kick(7), fx.burst(X(0.5 + (n - 18) * 0.012), Y(WALL.y + 0.02), '#d8c2a0', 14, 3, 3), fx.ring(X(0.5), Y(WALL.y + 0.02), '#ffffff', R(0.15), 3));
+        for (const n of [8, 18, 28]) if (fire(n)) (fx.kick(7), fz.burst(X(0.5 + (n - 18) * 0.012), Y(WALL.y + 0.02), '#d8c2a0', 14, 3, 3), fz.ring(X(0.5), Y(WALL.y + 0.02), '#ffffff', R(0.15), 3));
       } else if (an === 'train') {
         for (let q = 0; q < 5; q++) {
           const u = c01((a - q * 5) / 60), sx2 = X(0.3 + u * 0.42), sy2 = Y(PLAZA.y + 0.045);
@@ -2695,9 +2755,9 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
           ell(ctx, cx2, cy2, R(0.011) * Math.abs(Math.cos(t * 0.3 + q)) + 1, R(0.011));
           ctx.fill();
           ctx.stroke();
-          if (u > 0.92) fx.burst(tx0, ty0, '#ffe680', 2, 1.6, 1.6);
+          if (u > 0.92) fz.burst(tx0, ty0, '#ffe680', 2, 1.6, 1.6);
         }
-        if (!into && fire(30)) for (const c of ['#ff7aa8', '#7ad0ff', '#ffd23a']) fx.burst(X(0.77), Y(0.6), c, 6, 2.5, 2);
+        if (!into && fire(30)) for (const c of ['#ff7aa8', '#7ad0ff', '#ffd23a']) fz.burst(X(0.77), Y(0.6), c, 6, 2.5, 2);
       } else if (an === 'rain') {
         const u = eo(a / 18), cx2 = X(-0.1 + u * 0.32), cy2 = Y(0.48);
         ctx.save();
@@ -2728,7 +2788,7 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
         }
       } else if (an === 'fireworks') {
         for (let q = 0; q < 4; q++) {
-          const a2 = a - q * 9, ox = X(0.3 + q * 0.13), top = Y(0.2 + (q % 2) * 0.05);
+          const a2 = a - q * 9, ox = X(0.3 + q * 0.13), top = Y(0.27 + (q % 2) * 0.05);
           if (a2 < 0) continue;
           if (a2 < 16) {
             const yy = Y(PLAZA.y) + (top - Y(PLAZA.y)) * eo(a2 / 16);
@@ -2738,9 +2798,9 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
           }
           if (pa - (la - a2) < 16 && a2 >= 16) {
             const c = ['#ff5aa0', '#ffd23a', '#5ab0ff', '#9be36f'][q];
-            fx.burst(ox, top, c, 26, 4.5, 2.6);
-            fx.burst(ox, top, '#ffffff', 8, 2, 1.8);
-            fx.ring(ox, top, c, R(0.12), 3);
+            fz.burst(ox, top, c, 26, 4.5, 2.6);
+            fz.burst(ox, top, '#ffffff', 8, 2, 1.8);
+            fz.ring(ox, top, c, R(0.12), 3);
             fx.kick(4);
           }
         }
@@ -2775,7 +2835,7 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
           ctx.fill();
         }
         ctx.globalAlpha = 1;
-        if (fire(3)) (fx.blink('#f4e8ff', 0.4), fx.ring(X(CASTLE.x), Y(CASTLE.y - 0.08), '#e0c8ff', R(0.3), 5));
+        if (fire(3)) (fx.blink('#f4e8ff', 0.4), fz.ring(X(CASTLE.x), Y(CASTLE.y - 0.08), '#e0c8ff', R(0.3), 5));
       } else if (an === 'dragonFeed' || an === 'dragonShoo') {
         // 용은 아래 손님 자리에서 따로 그린다
         if (an === 'dragonFeed' && a > 28 && a < 76) {
@@ -2824,13 +2884,6 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
       }
     }
     // 고르자마자: 바뀐 막대 숫자가 떠오른다 + 큰 글자
-    if (at(6)) {
-      for (let i = 0; i < 4; i++) {
-        const dv = L.e[i];
-        if (!dv) continue;
-        fx.pop(X(0.02 + i * 0.245 + 0.12), Y(0.2), `${BAR[i]} ${dv > 0 ? '+' : ''}${dv}`, dv > 0 ? '#3fe060' : '#ff5a6a', Math.max(14, R(0.05)));
-      }
-    }
     fx.memo.lastAge = la;
   }
   // 큰 글자 (결과마다 한 번)
@@ -2839,7 +2892,7 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
     if (word && la < 60) {
       if (fx.memo.bigT !== L.t) (fx.memo.bigT = L.t), fx.kick(3);
       const pop = la < 8 ? 0.6 + 0.5 * eo(la / 8) : 1.1 - 0.1 * c01((la - 8) / 10);
-      bigWord(ctx, word[0], X(0.5), Y(0.36), Math.max(26, R(0.1)), word[1], la < 45 ? 1 : (60 - la) / 15, pop);
+      words.push(() => bigWord(ctx, word[0], X(0.5), Y(0.36), Math.max(26, R(0.1)), word[1], la < 45 ? 1 : (60 - la) / 15, pop));
     }
   }
 
@@ -2873,8 +2926,8 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
       }
       ctx.restore();
       if (fire(14)) (fx.kick(8), fx.blink('#ffffff', 0.5));
-      if (a < 90) bigWord(ctx, '눈보라!', X(0.5), Y(0.34), Math.max(28, R(0.11)), '#4a86d8', a < 80 ? 1 : (90 - a) / 10, a < 8 ? 0.6 + 0.5 * eo(a / 8) : 1.05);
-      else bigWord(ctx, s.stormOk ? '든든하게 버텼다!' : '휴, 지나갔다…', X(0.5), Y(0.34), Math.max(20, R(0.075)), s.stormOk ? '#2fbf4a' : '#8a7a6a', 1, 1);
+      if (a < 90) words.push(() => bigWord(ctx, '눈보라!', X(0.5), Y(0.34), Math.max(28, R(0.11)), '#4a86d8', a < 80 ? 1 : (90 - a) / 10, a < 8 ? 0.6 + 0.5 * eo(a / 8) : 1.05));
+      else words.push(() => bigWord(ctx, s.stormOk ? '든든하게 버텼다!' : '휴, 지나갔다…', X(0.5), Y(0.34), Math.max(20, R(0.075)), s.stormOk ? '#2fbf4a' : '#8a7a6a', 1, 1));
     } else if (E.k === 'battle') {
       const march = eo(a / 40), clash = a >= 40 && a < 72, after = a >= 72;
       for (let q = 0; q < 7; q++) {
@@ -2883,14 +2936,14 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
         if (clash) ex += Math.sin(a * 0.8 + q) * R(0.006);
         soldier(ctx, ex, ey, R(0.02), t, q, true);
       }
-      if (clash && a % 6 === 0) (fx.burst(X(0.72), Y(0.6), '#ffe680', 6, 3, 2), fx.burst(X(0.72), Y(0.62), '#d8c2a0', 4, 2, 2.5));
+      if (clash && a % 6 === 0) (fz.burst(X(0.72), Y(0.6), '#ffe680', 6, 3, 2), fz.burst(X(0.72), Y(0.62), '#d8c2a0', 4, 2, 2.5));
       if (fire(40)) (fx.kick(10), fx.blink('#ffffff', 0.35));
       if (after && fire(72)) {
-        if (E.win) for (const c of ['#ffd23a', '#4f8ef7', '#ffffff']) fx.burst(X(0.5), Y(0.5), c, 14, 4, 2.6);
-        else (fx.kick(12), fx.burst(X(0.55), Y(WALL.y), '#c8b49a', 20, 4, 3));
+        if (E.win) for (const c of ['#ffd23a', '#4f8ef7', '#ffffff']) fz.burst(X(0.5), Y(0.5), c, 14, 4, 2.6);
+        else (fx.kick(12), fz.burst(X(0.55), Y(WALL.y), '#c8b49a', 20, 4, 3));
       }
-      if (a < 70) bigWord(ctx, '적군이다!', X(0.5), Y(0.34), Math.max(26, R(0.1)), '#d0303a', 1, a < 8 ? 0.6 + 0.5 * eo(a / 8) : 1.05);
-      else bigWord(ctx, E.win ? '이겼다!' : '으앗, 졌다…', X(0.5), Y(0.34), Math.max(28, R(0.11)), E.win ? '#2f7ae0' : '#8a7a6a', 1, a < 80 ? 0.6 + 0.5 * eo((a - 72) / 8) : 1.05);
+      if (a < 70) words.push(() => bigWord(ctx, '적군이다!', X(0.5), Y(0.34), Math.max(26, R(0.1)), '#d0303a', 1, a < 8 ? 0.6 + 0.5 * eo(a / 8) : 1.05));
+      else words.push(() => bigWord(ctx, E.win ? '이겼다!' : '으앗, 졌다…', X(0.5), Y(0.34), Math.max(28, R(0.11)), E.win ? '#2f7ae0' : '#8a7a6a', 1, a < 80 ? 0.6 + 0.5 * eo((a - 72) / 8) : 1.05));
     } else if (E.k === 'friend') {
       const ang = a * 0.08, rad = R(0.22) * (1 - c01((a - 50) / 30));
       const dx = X(CASTLE.x) + Math.cos(ang) * rad + (a > 50 ? R(0.11) * c01((a - 50) / 30) : 0), dy = Y(0.36) + Math.sin(ang) * rad * 0.4 + (a > 50 ? R(0.03) * c01((a - 50) / 30) : 0);
@@ -2903,10 +2956,10 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
       }
       if (a % 8 === 0) {
         ctx.fillStyle = '#ff7aa8';
-        fx.burst(dx, dy - R(0.03), '#ff9ec0', 4, 2, 2.2);
+        fz.burst(dx, dy - R(0.03), '#ff9ec0', 4, 2, 2.2);
       }
-      if (fire(80)) (fx.blink('#ffe8f4', 0.5), fx.kick(6), fx.burst(X(CASTLE.x + 0.11), Y(0.37), '#ff7aa8', 24, 4, 2.6));
-      bigWord(ctx, '용과 친구가 됐어요!', X(0.5), Y(0.3), Math.max(18, R(0.07)), '#2fbf6a', 1, a < 8 ? 0.6 + 0.5 * eo(a / 8) : 1);
+      if (fire(80)) (fx.blink('#ffe8f4', 0.5), fx.kick(6), fz.burst(X(CASTLE.x + 0.11), Y(0.37), '#ff7aa8', 24, 4, 2.6));
+      words.push(() => bigWord(ctx, '용과 친구가 됐어요!', X(0.5), Y(0.3), Math.max(18, R(0.07)), '#2fbf6a', 1, a < 8 ? 0.6 + 0.5 * eo(a / 8) : 1));
     }
     fx.memo.evAge = a;
   }
@@ -2966,6 +3019,8 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
     }
   }
 
+  ctx.restore();
+  for (const f of words) f();
   // ═════════ 테라스: 손님 · 왕 · 말풍선 ═════════
   {
     const fy = Y(TERR);
@@ -3097,9 +3152,11 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
   if (s.phase === 'ask' || (s.phase === 'act' && la < 60) || (s.phase === 'walk' && s.pt > s.walkT - 14)) {
     const c = s.cur;
     const text = s.phase === 'act' && s.last ? (s.last.k === 2 ? '둘 다요? 최고!' : REPLY[s.last.an[0]]) : c.c.say;
-    const bx = X(0.345), by = Y(0.87), bw = X(0.37);
-    font(0.046, 900);
-    const lines = wrapText(ctx, text, bw - R(0.04));
+    const bx = X(0.335), by = Y(0.87), bw = X(0.405);
+    let fsz = 0.045;
+    font(fsz, 900);
+    let lines = wrapText(ctx, text, bw - R(0.04));
+    if (lines.length > 2) (fsz = 0.038), font(fsz, 900), (lines = wrapText(ctx, text, bw - R(0.04)));
     const bh = R(0.05) + lines.length * R(0.052) + R(0.02);
     const pop = s.phase === 'walk' ? eo((s.pt - (s.walkT - 14)) / 10) : 1;
     ctx.save();
@@ -3133,7 +3190,7 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText(WHO_NAME[c.c.who], R(0.022), R(0.027));
-    font(0.046, 900);
+    font(fsz, 900);
     ctx.fillStyle = INK;
     lines.forEach((ln, i) => ctx.fillText(ln, R(0.022), R(0.073) + i * R(0.052)));
     ctx.restore();
@@ -3335,6 +3392,31 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
       ctx.lineWidth = 1.2;
       rr(ctx, tx, ty, tw, th2, th2 / 2);
       ctx.stroke();
+      // 방금 바뀐 만큼: 막대 아래 작은 풍선
+      const dAge = s.phase === 'event' ? since : la, dv = dAge < 0 ? 0 : s.phase === 'act' && s.last ? s.last.e[i] : s.phase === 'event' && s.ev ? s.ev.e[i] : 0;
+      if (dv && dAge < 80) {
+        const bu = dAge < 6 ? eo(dAge / 6) * 1.25 : 1 + 0.25 * (1 - c01((dAge - 6) / 8));
+        const bxc = x0 + R(0.15), byc = y0 + bh2 + R(0.03);
+        ctx.save();
+        ctx.globalAlpha = c01((80 - dAge) / 15);
+        ctx.translate(bxc, byc);
+        ctx.scale(bu, bu);
+        const lab2 = `${dv > 0 ? '+' : ''}${dv}`;
+        font(0.044, 900);
+        const lw3 = ctx.measureText(lab2).width + R(0.04);
+        ctx.fillStyle = dv > 0 ? '#2fbf4a' : '#ff4a5a';
+        rr(ctx, -lw3 / 2, -R(0.024), lw3, R(0.048), R(0.024));
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        tri(ctx, 0, -R(0.03), R(0.01), true);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.fillText(lab2, 0, 1);
+        ctx.restore();
+      }
       // 가운데 표시 (반)
       ctx.fillStyle = OUT;
       tri(ctx, tx + tw / 2, ty - R(0.004), R(0.006), false);
@@ -3360,8 +3442,46 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
     }
   }
 
+  // ═════════ 아래 나무 판 (단추 받침) ═════════
+  {
+    const py0 = Y(1.088);
+    ctx.fillStyle = 'rgba(70,40,15,.3)';
+    ctx.fillRect(0, py0 - 3, w, 4);
+    ctx.fillStyle = lin(ctx, 0, py0, 0, h, [0, '#d79a5c'], [0.5, '#c4844a'], [1, '#a9693a']);
+    ctx.fillRect(0, py0, w, h - py0);
+    ctx.strokeStyle = 'rgba(90,50,20,.28)';
+    ctx.lineWidth = 1;
+    for (let q = 1; q < 6; q++) {
+      const yy = py0 + q * R(0.09);
+      ctx.beginPath();
+      ctx.moveTo(0, yy);
+      ctx.lineTo(w, yy);
+      ctx.stroke();
+      for (let k = 0; k < 3; k++) {
+        const xx = X((hsh(q * 7 + k) + q * 0.13) % 1);
+        ctx.beginPath();
+        ctx.moveTo(xx, yy - R(0.09));
+        ctx.lineTo(xx, yy);
+        ctx.stroke();
+      }
+    }
+    // 나뭇결
+    ctx.strokeStyle = 'rgba(255,230,190,.18)';
+    for (let q = 0; q < 14; q++) {
+      const yy = py0 + R(0.02) + hsh(q + 300) * (h - py0 - R(0.03)), xx = X(hsh(q + 301));
+      ctx.beginPath();
+      ctx.moveTo(xx, yy);
+      ctx.quadraticCurveTo(xx + R(0.06), yy - R(0.006), xx + R(0.14), yy);
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(255,240,210,.55)';
+    ctx.fillRect(0, py0, w, 2);
+    // 모서리 쇠장식 못
+    ctx.fillStyle = '#7a5a3a';
+    for (const [nx2, ny2] of [[0.018, 1.1], [0.982, 1.1], [0.018, 1.585], [0.982, 1.585]]) (ell(ctx, X(nx2), Y(ny2), R(0.007), R(0.007)), ctx.fill());
+  }
   // ═════════ 내일 손님 미리 보기 띠 · 첫 안내 ═════════
-  const stripY = Y(1.12), stripH = R(0.058);
+  const stripY = Y(1.118), stripH = R(0.064);
   {
     const first = s.stage === 0 && s.firstTap < 0;
     const nx = s.queue[0];
@@ -3406,7 +3526,7 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
         ctx.stroke();
         // 두 갈래 미니 칩
         let xx = X(0.205);
-        const ir = R(0.021);
+        const ir = R(0.024);
         for (const [k, q] of [[0, nx.L], [1, nx.R]] as [number, Opt][]) {
           ctx.fillStyle = k ? 'rgba(122,90,168,.1)' : 'rgba(255,140,90,.1)';
           for (let i = 0; i < 4; i++) {
@@ -3449,9 +3569,9 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
     for (const b of bs) {
       const isCrown = b.k === 2, q = isCrown ? null : b.k === 0 ? s.cur.L : s.cur.R;
       const e = effOf(s.cur, b.k);
-      const after = s.v.map((x, i) => x + e[i]);
+      const after = (s.phase === 'act' ? s.prev : s.v).map((x, i) => x + e[i]);
       const willBreak = after.some((x) => x <= 0 || x >= MAXV);
-      const chosen = s.phase === 'act' && s.last?.k === b.k && s.last.d === s.cur;
+      const chosen = s.phase === 'act' && (s.last?.k === b.k || s.last?.k === 2) && s.last.d === s.cur;
       const bob = live ? Math.sin(t * 0.12 + b.k * 1.3) * R(0.004) : 0;
       const wig = s.t - s.wiggleT < 30 ? Math.sin((s.t - s.wiggleT) * 0.8) * R(0.008) * (1 - (s.t - s.wiggleT) / 30) : 0;
       const x0 = X(b.x0) + wig, x1 = X(b.x1) + wig, y0 = Y(BY0) + bob, y1 = Y(BY1) + bob, bw = x1 - x0, bh = y1 - y0;
@@ -3536,29 +3656,32 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
         ctx.fillText(q.t, (x0 + x1) / 2, y0 + R(0.034), bw - R(0.03));
         // 결과 칩 (두 줄까지)
         const items = [0, 1, 2, 3].filter((i) => q.e[i]);
-        const r0 = bw < R(0.4) ? R(0.03) : R(0.036);
-        const rows = items.length > 2 && bw < R(0.4) ? 2 : 1;
+        let r0 = R(0.042);
+        const gap = R(0.03);
+        const rows = items.length * chipW(r0) + (items.length - 1) * gap > bw - R(0.04) ? 2 : 1;
+        if (rows === 2) r0 = R(0.034);
         const perRow = Math.ceil(items.length / rows);
         for (let rIdx = 0; rIdx < rows; rIdx++) {
           const its = items.slice(rIdx * perRow, rIdx * perRow + perRow);
-          const ws = its.map((i) => r0 * 1.05 + r0 * 0.42 + Math.min(4, Math.abs(q.e[i])) * r0 * 0.62 + r0 * 0.25);
-          const tot = ws.reduce((a2, b2) => a2 + b2, 0) + (its.length - 1) * R(0.012);
+          const ws = its.map(() => chipW(r0));
+          const tot = ws.reduce((a2, b2) => a2 + b2, 0) + (its.length - 1) * gap;
           let xx = (x0 + x1) / 2 - tot / 2 + r0;
-          const yy = y0 + (rows === 1 ? R(0.15) : R(0.115) + rIdx * R(0.075));
+          const yy = y0 + (rows === 1 ? R(0.142) : R(0.112) + rIdx * R(0.074));
           its.forEach((i, j) => {
-            const brk = after[i] <= 0 || after[i] >= MAXV;
+            const brk = (live || s.phase === 'walk') && (after[i] <= 0 || after[i] >= MAXV);
             chip(ctx, i, q.e[i], xx, yy, r0, brk && live, t);
-            xx += ws[j] + R(0.012);
+            xx += ws[j] + gap;
           });
         }
         // 꼬리표: 이어짐 · 잔치 · 용 · 위험
         const tags: [string, string][] = [];
-        if (willBreak) tags.push(['위험!', '#e0202e']);
-        if (q.next) tags.push(['이야기 이어짐', '#7a5aa8']);
+        if (willBreak && (live || s.phase === 'walk')) tags.push(['위험!', '#e0202e']);
+        if (q.next) tags.push([s.spot?.key === 'story' && s.t >= s.spot.t && Math.floor(t / 15) % 2 ? 'NEW 이야기 이어짐' : '이야기 이어짐', s.spot?.key === 'story' && s.t >= s.spot.t ? '#ff4a7a' : '#7a5aa8']);
         if (q.tag === 'pay') tags.push(['고마운 손님', '#2f9a5a']);
         if (q.tag === 'feast' && d.stars.some((x) => x.k === 'feast')) tags.push(['잔치', '#ff5a7a']);
         if (q.tag === 'dragon') tags.push(['용이 좋아해요', '#2fbf6a']);
         font(0.032, 900);
+        ctx.textAlign = 'center';
         let tx = (x0 + x1) / 2;
         const ty = y1 - R(0.035);
         const tws = tags.map(([tt]) => ctx.measureText(tt).width + R(0.03));
@@ -3639,7 +3762,7 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
     if (s.spot.key === 'preview') (sx = X(0.3)), (sy = stripY), (r = R(0.16)), (lab = '내일 손님');
     else if (s.spot.key === 'story') {
       const b = buttons(s).find((q) => (q.k === 0 ? s.cur.L : s.cur.R).next);
-      if (b) (sx = X((b.x0 + b.x1) / 2)), (sy = Y(BY1 - 0.04)), (r = R(0.12)), (lab = '이어지는 이야기');
+      if (b) (sx = X((b.x0 + b.x1) / 2)), (sy = Y(BY1 - 0.035)), (r = R(0.13)), (lab = '이어지는 이야기');
     } else if (s.spot.key === 'storm' || s.spot.key === 'battle') (sx = X(0.17)), (sy = Y(0.7)), (r = R(0.12)), (lab = s.spot.key === 'storm' ? '눈보라 예보' : '적군이 와요');
     else if (s.spot.key === 'crown') (sx = X(0.5)), (sy = Y((BY0 + BY1) / 2)), (r = R(0.13)), (lab = '왕관 카드');
     else if (s.spot.key === 'dragon') (sx = X(0.5)), (sy = Y(1.51)), (r = R(0.14)), (lab = '용과 친구');
@@ -3654,13 +3777,13 @@ function drawAll(ctx: C2, s: KState, w: number, h: number, th: Theme) {
       ctx.setLineDash([]);
       font(0.034, 900);
       const lw2 = ctx.measureText('NEW ' + lab).width + R(0.04);
-      const ly = Math.max(R(0.2), sy - r * 0.55 - R(0.035));
+      const ly = s.spot.key === 'story' || s.spot.key === 'crown' ? Y(BY0) - R(0.004) : s.spot.key === 'dragon' ? Y(1.57) : Math.max(R(0.2), sy - r * 0.55 - R(0.035));
       ctx.fillStyle = '#ff4a7a';
       rr(ctx, sx - lw2 / 2, ly - R(0.022), lw2, R(0.044), R(0.022));
-      ctx.fill();
+      if (s.spot.key !== 'story') ctx.fill();
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
-      ctx.fillText('NEW ' + lab, sx, ly + 1);
+      if (s.spot.key !== 'story') ctx.fillText('NEW ' + lab, sx, ly + 1);
     }
   }
   void th;
