@@ -887,13 +887,13 @@ function predict(s: AxeState, delay: number): Pred[] {
   return out;
 }
 
-interface Sim { two: boolean; kills: number; outN: number; backN: number; strips: number; clean: number; bounceK: number; bats: number; crush: number; boss: number; urg: number; killed: Set<number>; n: number; trees: number }
+interface Sim { waste: number; two: boolean; kills: number; outN: number; backN: number; strips: number; clean: number; bounceK: number; bats: number; crush: number; boss: number; urg: number; killed: Set<number>; n: number; trees: number }
 /** 미리 보기 표시: 어느 괴물을 어느 길에서 (0 베기 · 1 껍질 · 2 대장 껍질 · 3 대장 아픔) */
 interface Mark { id: number; leg: number; kind: number; n: number }
 interface FallMark { x: number; y: number; dx: number; dy: number; n: number }
 /** 던지기 한 번을 내다본다 (괴물은 지금 길대로 걷는다고 본다) */
 function simThrow(s: AxeState, pr: Pred[], fl: Flight, lv: number, marks?: Mark[], fallsOut?: FallMark[]): Sim {
-  const r = axeR(lv), res: Sim = { two: false, kills: 0, outN: 0, backN: 0, strips: 0, clean: 0, bounceK: 0, bats: 0, crush: 0, boss: 0, urg: 0, killed: new Set(), n: fl.n, trees: 0 };
+  const r = axeR(lv), res: Sim = { waste: 0, two: false, kills: 0, outN: 0, backN: 0, strips: 0, clean: 0, bounceK: 0, bats: 0, crush: 0, boss: 0, urg: 0, killed: new Set(), n: fl.n, trees: 0 };
   const hp = pr.map((p) => (p.f.k === 'boss' ? p.f.hp : p.f.k === 'bark' && !p.f.bare ? 2 : 1));
   const inside = pr.map(() => false), strippedNow = pr.map(() => false), outHit = pr.map(() => false), backHit = pr.map(() => false);
   const b0 = fl.bounce.length ? fl.bounce[0] : 1e9;
@@ -981,6 +981,7 @@ function simThrow(s: AxeState, pr: Pred[], fl: Flight, lv: number, marks?: Mark[
       res.urg += urgency(P.ttc);
       marks?.push({ id: P.f.id, leg: 2, kind: 0, n: res.kills });
     }
+    if (res.crush === c0) res.waste++;
     fallsOut?.push({ x: fa.x, y: fa.y, dx: fa.dx, dy: fa.dy, n: res.crush - c0 });
   }
   return res;
@@ -1022,7 +1023,7 @@ function judge(s: AxeState, sim: Sim, objectives: boolean): number {
       if (st.k === 'bounce') v += 45 * sim.bounceK;
       if (st.k === 'clean') v += 45 * sim.clean;
       if (st.k === 'bats') v += sim.bats >= st.n ? 160 : 8 * sim.bats;
-      if (st.k === 'crush') v += sim.crush >= st.n ? 160 : 25 * sim.crush;
+      if (st.k === 'crush') v += (sim.crush >= st.n ? 160 : 25 * sim.crush) - 30 * sim.waste;
       if (st.k === 'combo' && both) v += 25;
       if (st.k === 'bossk' && s.bossHits <= st.n && sim.boss > 0) {
         const left = bossHp(s) - sim.boss, hitsLeft = st.n - s.bossHits - 1;
@@ -2359,10 +2360,13 @@ function drawTree(ctx: C2, x: number, y: number, H: number, ang: number, dx: num
   rr(ctx, -H * 0.04, -H * 0.25, H * 0.08, H * 0.25, H * 0.02);
   ctx.fill();
   ctx.stroke();
-  fir(ctx, 0, -H * 0.15, H * 0.85, H * 0.5, '#24452e', P.rim, 7, 5);
-  ctx.globalAlpha = 0.5;
-  fir(ctx, H * 0.03, -H * 0.17, H * 0.75, H * 0.32, '#3a6a3e', null, 9, 5);
-  ctx.globalAlpha = 1;
+  const ga = ctx.globalAlpha;
+  fir(ctx, 0, -H * 0.15, H * 0.85, H * 0.66, '#1f402a', P.rim, 7, 5);
+  ctx.globalAlpha = ga * 0.55;
+  fir(ctx, -H * 0.03, -H * 0.18, H * 0.74, H * 0.42, '#3e7444', null, 9, 5);
+  ctx.globalAlpha = ga * 0.35;
+  fir(ctx, -H * 0.06, -H * 0.24, H * 0.6, H * 0.2, '#8ab060', null, 11, 4);
+  ctx.globalAlpha = ga;
   ctx.restore();
 }
 
@@ -2463,7 +2467,7 @@ function drawSquirrel(ctx: C2, x: number, y: number, k: number, t: number, cheer
 }
 
 const FOE_H: Record<K, number> = { stump: 0.135, vine: 0.115, bark: 0.155, bat: 0.11, boss: 0.38 };
-const JACK_H = 0.2;
+const JACK_H = 0.2, TREE_H = 0.33;
 const depth = (y: number) => 0.8 + 0.3 * clamp((y - HZ) / (1.12 - HZ), 0, 1);
 const fenceMem = new WeakMap<object, { broken: boolean[]; max: number; stage: number; tries: number }>();
 const recentSay = new WeakMap<object, { x: number; y: number; t: number; size: number }[]>();
@@ -2523,52 +2527,11 @@ function drawAll(ctx: C2, s: AxeState, w: number, h: number, th: Theme) {
   // ── 땅 위: 통나무 · 그루터기 · 위험 표시 ──
   for (const tr of s.trees) {
     if (tr.st !== 2) continue;
-    const a = clamp(1 - (tr.ft - 150) / 60, 0, 1), ex = tr.x + tr.dx * LOG_L, ey = tr.y + tr.dy * LOG_L * 0.8;
+    const a = clamp(1 - (tr.ft - 150) / 60, 0, 1);
     if (a > 0) {
       ctx.save();
       ctx.globalAlpha = a;
-      ctx.lineCap = 'round';
-      ctx.fillStyle = 'rgba(20,10,20,.3)';
-      ctx.lineWidth = R(0.06);
-      ctx.strokeStyle = 'rgba(20,10,20,.3)';
-      ctx.beginPath();
-      ctx.moveTo(X(tr.x) + R(0.01), Y(tr.y) + R(0.008));
-      ctx.lineTo(X(ex) + R(0.01), Y(ey) + R(0.008));
-      ctx.stroke();
-      ctx.strokeStyle = OUT;
-      ctx.lineWidth = R(0.064);
-      ctx.beginPath();
-      ctx.moveTo(X(tr.x), Y(tr.y) - R(0.02));
-      ctx.lineTo(X(ex), Y(ey) - R(0.02));
-      ctx.stroke();
-      ctx.strokeStyle = '#6e4628';
-      ctx.lineWidth = R(0.054);
-      ctx.stroke();
-      ctx.strokeStyle = '#9a6a3e';
-      ctx.lineWidth = R(0.022);
-      ctx.beginPath();
-      ctx.moveTo(X(tr.x), Y(tr.y) - R(0.03));
-      ctx.lineTo(X(ex), Y(ey) - R(0.03));
-      ctx.stroke();
-      ctx.strokeStyle = 'rgba(40,20,8,.6)';
-      ctx.lineWidth = 1.2;
-      for (let q = 1; q < 6; q++) {
-        const qx = X(tr.x + (ex - tr.x) * (q / 6)), qy = Y(tr.y + (ey - tr.y) * (q / 6)) - R(0.02), nx = -tr.dy, ny = tr.dx;
-        ctx.beginPath();
-        ctx.moveTo(qx - nx * R(0.02), qy - ny * R(0.02));
-        ctx.lineTo(qx + nx * R(0.012) + tr.dx * R(0.01), qy + ny * R(0.012) + tr.dy * R(0.01));
-        ctx.stroke();
-      }
-      ctx.fillStyle = '#e8c48c';
-      ctx.strokeStyle = OUT;
-      ctx.lineWidth = 1.5;
-      ell(ctx, X(ex), Y(ey) - R(0.02), R(0.027), R(0.027));
-      ctx.fill();
-      ctx.stroke();
-      ctx.strokeStyle = 'rgba(150,100,50,.8)';
-      ctx.lineWidth = 1;
-      ell(ctx, X(ex), Y(ey) - R(0.02), R(0.014), R(0.014));
-      ctx.stroke();
+      drawTree(ctx, X(tr.x), Y(tr.y), R(TREE_H) * depth(tr.y), Math.PI / 2, tr.dx, tr.dy, R(LOG_L), t, P);
       ctx.restore();
     }
     // 밑동 + 새싹
@@ -2688,7 +2651,7 @@ function drawAll(ctx: C2, s: AxeState, w: number, h: number, th: Theme) {
     ctx.save();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = s.axe ? 'rgba(255,240,210,.08)' : 'rgba(255,240,210,.16)';
+    ctx.strokeStyle = s.axe ? 'rgba(255,240,210,.06)' : 'rgba(255,240,210,.11)';
     ctx.lineWidth = 2 * axeR(lv) * w;
     ctx.beginPath();
     for (let i = 0; i < prevFl.n; i++) (i ? ctx.lineTo(X(prevFl.xs[i]), Y(prevFl.ys[i])) : ctx.moveTo(X(prevFl.xs[i]), Y(prevFl.ys[i])));
@@ -2743,7 +2706,7 @@ function drawAll(ctx: C2, s: AxeState, w: number, h: number, th: Theme) {
     if (tr.st === 2) continue;
     const ang = tr.st === 1 ? Math.min(1, (tr.ft / FALL) ** 2) * (Math.PI / 2) : 0;
     const grow = tr.st === 0 && t - tr.t < 20 ? (t - tr.t) / 20 : 1;
-    items.push({ y: tr.y, draw: () => drawTree(ctx, X(tr.x), Y(tr.y), R(0.27) * depth(tr.y) * grow, ang, tr.dx, tr.dy, R(LOG_L), t, P) });
+    items.push({ y: tr.y, draw: () => drawTree(ctx, X(tr.x), Y(tr.y), R(TREE_H) * depth(tr.y) * grow, ang, tr.dx, tr.dy, R(LOG_L), t, P) });
   }
   const targeted = new Set(marks.map((m) => m.id));
   const drawFoe = (f: Foe) => {
@@ -3244,7 +3207,7 @@ function drawAll(ctx: C2, s: AxeState, w: number, h: number, th: Theme) {
         fx.kick(2 + Math.min(5, n));
         say(X(HX), Y(HY) - R(0.24), '탁!', '#ffffff', 22);
         say(X(HX) + R(0.17), Y(HY) - R(0.12), `받기 ×${n}`, n >= 5 ? '#ffd84a' : '#fff0c8', Math.min(26, 15 + n * 1.5));
-        if (n === 3 || n === 5) (fx.memo.bigT = t), (fx.memo.bigN = n), (fx.memo.bigX = X(HX)), (fx.memo.bigY = Y(HY) - R(0.1)), (fx.memo.bigK = 1), fx.blink('#ffe9a0', 0.25);
+        if (n === 3 || n === 5) (fx.memo.bigT = t), (fx.memo.bigN = n), (fx.memo.bigX = X(HX)), (fx.memo.bigY = Y(0.82)), (fx.memo.bigK = 1), fx.blink('#ffe9a0', 0.25);
       } else if (e.text !== 'end') {
         say(X(HX), Y(HY) - R(0.22), '탁', '#e8dcc8', 15);
         if (n >= 2) say(X(HX) + R(0.15), Y(HY) - R(0.1), '연속 끊김…', '#c8b8c8', 13);
