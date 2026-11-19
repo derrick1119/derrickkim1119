@@ -521,7 +521,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     f.y = clamp(f.y + ny * sg * LEAF_HOP, Y0 + 0.02, Y1 - 0.02);
     ev(s, 'dodge', f.x, f.y);
     see(s, 'leaf', '잎 너구리는 곧은 칼을 휙! 꺾어 들어가 베요');
-    s.g = Math.min(GMAX, s.g + GAIN); // 휙 하며 먹을 흘린다(+7) — 잎만 남으면 먹을 얻을 길이 없어 처음 하는 사람이 말라 갇히던 것(꾹 동안 주는 먹 > 쉬는 동안 차는 먹)
+    if (n === 0) s.g = Math.min(GMAX, s.g + GAIN); // 휙만 난 획에만(🧪 M2 S1: 섞인 판에서 '먹 우물' 막기) 휙 하며 먹을 흘린다(+7) — 잎만 남으면 먹을 얻을 길이 없어 처음 하는 사람이 말라 갇히던 것(꾹 동안 주는 먹 > 쉬는 동안 차는 먹)
     s.leafGuide = true; // 휙 뒤: 다음에 잎을 벨 때까지 잎 길잡이(📐 첫 휙 뒤 한 번 → 처음 봇이 먹이 말라 다시 막혀서 휙마다)
   }
   for (const bid of P.barrels) {
@@ -3639,15 +3639,14 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     for (const dq of prev.dodges) { // 🍃 곧은 칼이면 '휙' — 꺾어 들어가야 베인다
       const f = s.foes.find((q) => q.id === dq.id);
       if (!f) continue;
-      const k = R(FOE_H[f.k]) * depth(f.y);
-      font(0.034, 900);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.lineWidth = 3;
       ctx.strokeStyle = 'rgba(0,0,0,.6)';
-      ctx.strokeText('휙! 꺾어요', X(f.x), Y(f.y) - k * 1.2);
+      font(0.04, 900); // 🧪 M2 S1: 머리 위는 '×명 한 줄!'에 가려서 발밑으로·크게
+      ctx.strokeText('휙! 꺾어요', X(f.x), Y(f.y) + R(0.05));
       ctx.fillStyle = '#c8ffb0';
-      ctx.fillText('휙! 꺾어요', X(f.x), Y(f.y) - k * 1.2);
+      ctx.fillText('휙! 꺾어요', X(f.x), Y(f.y) + R(0.05));
     }
     if (prev.hits.length >= 2) {
       font(0.05, 900);
@@ -3898,6 +3897,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.fillStyle = '#2a1a08';
     font(0.036, 900);
     ctx.textAlign = 'center';
+    if (s.stage >= STAGE_COUNT) font(0.026, 900);
     ctx.fillText(s.stage >= STAGE_COUNT ? `${2}-${s.stage - STAGE_COUNT + 1}` : String(s.stage + 1), cx, cy + 1); // M2 S1 시험 판은 '2-1'
     ctx.textAlign = 'left';
     ctx.fillStyle = '#fff6e0';
