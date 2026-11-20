@@ -92,7 +92,7 @@ const BODY = [
 const KEY = ['.............88...77.', '.............8.8.7.6.', '.............8887666.', '...............876...', '................6....', '...............6.....', '..............6......'];
 const HAT: Record<string, string[]> = { // 칼 병정 모자는 시안의 빨강 → 주황(빨강은 위험에만 · 🧪 S2: 보라는 남색 닌자와 한 덩어리)
   sword: ['.......ww', '.....vVVVVVV', '.....vvvvvVV', '.....vvvvvVV', '.....8888888', '....111111111'],
-  archer: ['........G', '.......GGE', '......GGGEE', '.....GGGGGEE', '.....GGGGEEE', '...EEEEEEEEEEE'],
+  archer: ['........r', '.......OOH', '......OOOHH', '.....OOOOOHH', '.....OOOOHHH', '...HHHHHHHHHHH'], // 🧪 S4: 초록 고깔이 잎 병정과 같은 '초록 머리' → 갈색 고깔 + 분홍 깃
   shield: ['........HH', '......677765', '.....67777665', '.....67777665', '....5666666655', '....111111111'],
   dummy: ['', '.....oooooo', '...ooOOOOOOoo', '..oooooooooooo'], // 연습 인형: 짚 삿갓 · 무기 없음
   shuri: ['', '', '', '.............r.r', '............rrr', '....rrrrrrrrrr'], // M3 S4 수리검 병정: 분홍 머리띠
@@ -181,7 +181,7 @@ const disc = (r: number, f: (x: number, y: number, d: number) => string) => {
 /** 냄비뚜껑 방패 — 0 앞(은빛) · 1 뒤(어두움) */
 export const lid = (back: number) => sprite('lid' + back, () => grid(disc(5, (x, y, d) => (back ? (d > 4.3 ? '3' : '4') : d > 4.3 ? (x + y < 0 ? '8' : '5') : d < 1.3 ? 'H' : x < -1 && y < -1 ? '9' : '7'))));
 /** 폭탄 통 — 심지에 불이 붙으면 1 */
-export const barrel = (lit: number) => sprite('br' + lit, () => grid(['....' + (lit ? 'yw' : '..'), '.....O', '..HHHHH', '.hjjhhhH', '.11111111', '.hjjhhhHH', '.hjjhhhHH', '.hjjhhhHH', '.11111111', '.hjjhhhHH', '..HHHHHH']));
+export const barrel = (lit: number) => sprite('br' + lit, () => grid(['....' + (lit ? 'wy' : 'yD'), '....DO', '.....O', '..HHHHH', '.hjjhhhH', '.DDDDDDDD', '.hjjhhhHH', '.hjjhhhHH', '.DDDDDDDD', '.hjjhhhHH', '..HHHHHH'])); // 🧪 S4: 병정과 섞여서 심지·불씨 + 빨간 띠(터지는 위험)
 /** 가시덤불(위험) — 1이면 걸린다(가시가 하얗게) */
 export const thorn = (hot: number) => sprite('th' + hot, () => grid(['...D....D...D', '.D.EE.D.EE.EE.D', '..EGGEEGGEEGGE', 'D.EGGGEGGGEGGE.D', '.EEGGEEGGGEEGGE', '..EEEEEEEEEEEE'].map((r) => (hot ? r.replace(/D/g, 'w') : r))));
 /** 구경꾼 부엉이(가지 위) */
