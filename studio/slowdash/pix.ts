@@ -36,41 +36,43 @@ export function sprite(key: string, make: () => string[][]): HTMLCanvasElement {
   return c;
 }
 
-// ── 주인공 '초침' (시안 그대로 · 30×24) ──
+// ── 주인공 '초침' — 사무라이(💬 오너 11-20 "닌자가 아니라 사무라이로 해줘") · 30×24 ──
+//   상투(청록 끈) · 흰 머리띠(뒤로 날리는 끈) · 청록 하오리(금 태엽 문장) · 흰 기모노 깃 · 남색 하카마 · 금 코등이 카타나
+//   청록은 겨눈 선·칼빛과 같은 주인공 색 · 하오리를 청록으로 해 파란 기와 위에서도 또렷하게(🧪 S12: 남색 옷과 파란 기와 대비 약함)
 const HERO = [
-  '...........NmmNNNNn...........',
-  '.........NmmmmNNNNNnn.........',
-  '........NmmmNNYYNNNNnn..nN....',
-  '.......nnnnnnYyyYnnnnnnnn.....',
-  '.......nnnnnnYwyYnnnnnnnNn....',
-  '.......NNNqqqqqqqqqqnnn..nn...',
-  '.......NNppppppppppppnn.......',
-  '.......Npppkwppppkwpppn.......',
-  '.......Npppkkppppkkpppn.......',
-  'TT.....Npppkkppppkkpppn.......',
-  'utTT...NprrpppppppprrpN.......',
-  '..utTT..NNppppqqppppnn........',
-  'T...utTT.Nqppppppppqn.........',
-  'utT..utTTTTTTTTTTTTTtt........',
-  '..utTTttttttttttttttuu........',
-  '......uTmmmNNNNNNNNNnnn.......',
-  '........mNmNNNNNNNNnnnnp......',
-  '........mNNmNNNNNNNnn.........',
-  '........ppNNmNNNNNNnn.........',
-  '.........nnnmnnnnnnnn.........',
-  '.........NNNNNNNNNNnn.........',
-  '.........mNNNn..NNNnn.........',
-  '........mNNn......NNnn........',
-  '.......nnnnn......nnnnn.......',
+  '.............TT2..............',
+  '............22322.............',
+  '.............222..............',
+  '.........2222222222...........',
+  '........223222222322..........',
+  '.......22222222222222.........',
+  '.....wwwwwwwwwwwwwwww.........',
+  '...w8w.2pppppppppppp2.........',
+  '..w8...2pppkwppppkwp2.........',
+  '..8w...2pppkkppppkkp2.........',
+  '....8..2prrppppppprr2.........',
+  '........2pppppqqppp2..........',
+  '.........2pppppppp2...........',
+  '.......uttttw8ww8wttttu.......',
+  '.....uutttttw8ww8wtttttuu.....',
+  '....utTtttttww88wwtttttTtupp..',
+  '....uttttytttwwttttttttttpp...',
+  '....utttyYytnnnntttttttuu.....',
+  '...nn.uttyttnnnnttttttuu......',
+  '.nn....nNNNNNNNNNNNNNNn.......',
+  '.......nNNmNNNnnNNNmNNn.......',
+  '......nNNmNNNNnnNNNNmNNn......',
+  '......nNmNNNn....nNNNmNn......',
+  '.....22222.........22222......',
 ];
-const BLADE: Dot[] = [[24, 15, 'u'], [24, 14, 'u'], [25, 15, 'u'], [25, 14, '8'], [26, 13, 'w'], [27, 12, 'w'], [28, 11, 'w'], [29, 10, 'w'], [27, 11, '8'], [28, 12, '8']];
+const BLADE: Dot[] = [[24, 16, '1'], [25, 16, '1'], [25, 14, 'Y'], [26, 14, 'Y'], [27, 14, 'Y'], [26, 13, 'w'], [26, 12, 'w'], [27, 11, 'w'], [27, 10, 'w'], [28, 9, 'w'], [28, 8, 'w'], [29, 7, 'w'], [27, 13, '8'], [27, 12, '8'], [28, 11, '8'], [28, 10, '8'], [29, 9, '8']];
 /** 얼굴 줄 바꾸기: 0 기본 · 1 웃음(이김·싹쓸이) · 2 아야(맞음·짐) */
 const FACES: Record<number, Record<number, string>> = {
-  1: { 7: '.......NppppppppppppppN.......', 8: '.......Npppkkppppkkpppn.......', 9: 'T......Nppkppkppkppkpn.......', 11: '.utTT...NNpppqSSqpppnn........' },
-  2: { 7: '.......Nppkppppppppkppn.......', 9: 'T......Nppkppppppppkppn.......', 11: '.utTT...NNppkqkqkpppnn........' },
+  1: { 8: '..w8...2pppppppppppp2.........', 9: '..8w...2ppkppkppkppk2.........', 11: '........2ppppqrrqpp2..........' },
+  2: { 8: '..w8...2ppkppppppkpp2.........', 9: '..8w...2pppkppppkppp2.........', 11: '........2pppkqkqkpp2..........' },
 };
 /** 주인공 스프라이트(발 = 아래 가운데) */
-export const heroGrid = (face: number) => grid(HERO.map((r, i) => FACES[face]?.[i]?.replace(/S/g, 'q') ?? r), [], BLADE);
+export const heroGrid = (face: number) => grid(HERO.map((r, i) => FACES[face]?.[i] ?? r), [], BLADE);
 export const hero = (face: number) => sprite('hero' + face, () => heroGrid(face));
 
 // ── 태엽 병정(시안 그대로 · 공통 몸 + 등 태엽 열쇠 + 모자 + 무기) ──

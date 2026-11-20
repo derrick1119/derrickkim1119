@@ -418,7 +418,7 @@ const TIP: Record<string, string> = {
   bellCut: '쩍!', bambooFall: '쓰러진 대나무가 줄을 베어요!', bamboo: '대나무는 곧은 칼엔 툭! 꺾어 들어가요', bell: '종은 두 번 지나야 깨져요',
   leaf: '잎 병정은 곧은 칼을 휙! 꺾어 들어가 베요', leafDemo: '손가락을 따라 옆에서 꺾어 그어 보세요', shotcut: '날아오는 화살·수리검도 돌진 선에 끊겨요!',
   thorn: '덤불도 한 대! ★★★ 놓침 — 꺾어 돌아가요', chain: '연쇄 — 쉬지 않고 이어 베면 점수가 불어나요', sweep: '싹쓸이! 다음 한 획은 먹이 안 들어요',
-  thornRed: '빨간 덤불은 한 대! 손가락을 닌자 위에 잠깐 두면 지워져요',
+  thornRed: '빨간 덤불은 한 대! 손가락을 사무라이 위에 잠깐 두면 지워져요',
 };
 function see(s: DashState, key: string, text = TIP[key] ?? '') {
   if (!key || s.seen.has(key)) return;
@@ -1163,7 +1163,7 @@ function cosmetic(s: DashState) {
 
 export const slowdash: GameDef<DashState> = {
   id: 'slowdash',
-  name: '느린 시간 닌자',
+  name: '벽력일섬',
   controls: 'touch',
   aspect: A,
   art: {
@@ -1271,14 +1271,14 @@ export const NOTES = {
   genes: ['bullettime', 'pointer', 'chain'],
   twist: '누르고 있는 동안만 세상이 느려지는데 그 게이지가 돌진(길수록 많이)에도 들어서, 적을 한 줄에 여럿 세워 벨 때만 게이지가 오히려 찬다 — 기다려 줄 세우기와 날아오는 것 피하기 사이의 줄타기',
   rules: [
-    '꾹 누르면 세상이 느려지고 닌자에서 손가락까지 선이 보여요. 떼면 번쩍! 그 선 위의 적을 모두 베요.',
+    '꾹 누르면 세상이 느려지고 사무라이에서 손가락까지 선이 보여요. 떼면 번쩍! 그 선 위의 적을 모두 베요.',
     '선이 길수록·오래 누를수록 게이지가 줄고, 한 번에 여럿 벨수록 많이 차요.',
     '맞으면 체력 -1, 다 잃으면 하트 -1(그 판 다시). 적을 모두 베면 다음 판!',
   ],
   hint: '꾹 누르면 느려지고, 떼면 번쩍 돌진! / 화살표로 겨누고 스페이스',
   art: {
-    concept: '시간이 멈춘 태엽 마을의 꼬마 닌자 \'초침\' — 도트',
-    mood: '초승달 아래 시간이 멈춘 태엽 마을. 불 켜진 창과 시계탑, 돌길·기와·광장. 누르면 세상이 청회색으로 가라앉고 닌자와 그은 길, 겨눈 병정만 색이 남는다.',
+    concept: '시간이 멈춘 태엽 마을의 꼬마 사무라이 \'초침\' — 도트 · 벽력일섬',
+    mood: '초승달 아래 시간이 멈춘 태엽 마을. 불 켜진 창과 시계탑, 돌길·기와·광장. 누르면 세상이 청회색으로 가라앉고 사무라이와 그은 길, 겨눈 병정만 색이 남는다.',
   },
 };
 
@@ -1600,7 +1600,7 @@ const OUT = '#0b0e1c';
 const HZ = 0.415, GB = 1.31;
 
 // ── 캐릭터 ──
-/** 여우 닌자. pose 0 서기 · 1 겨눔(느린 시간) · 2 벤 직후 · 3 아얏 · 4 만세 · 5 어질어질 */
+/** 주인공(M3 오너 요청: 사무라이 '초침'). pose 0 서기 · 1 겨눔(느린 시간) · 2 벤 직후 · 3 아얏 · 4 만세 · 5 어질어질 */
 /** M3 S2 🎨 도트 주인공 '초침'(옛 여우 벡터 그림을 걷어냄) · pose 0 기본 · 1 겨눔 · 2 번쩍 · 3 맞음 · 4 이김 · 5 짐 */
 function drawFox(ctx: C2, x: number, y: number, _k: number, face: number, pose: number, _t: number, alpha = 1) {
   const im = hero(pose === 3 || pose === 5 ? 2 : pose === 4 ? 1 : 0), w = im.width * PX, h = im.height * PX;
@@ -2722,9 +2722,9 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     font(0.095, 900);
     ctx.lineWidth = R(0.014);
     ctx.strokeStyle = 'rgba(10,12,30,.85)';
-    ctx.strokeText('느린 시간 닌자', w / 2, Y(0.6));
+    ctx.strokeText('벽력일섬', w / 2, Y(0.6));
     ctx.fillStyle = '#fff3cf';
-    ctx.fillText('느린 시간 닌자', w / 2, Y(0.6));
+    ctx.fillText('벽력일섬', w / 2, Y(0.6));
     font(0.04, 800);
     ctx.lineWidth = R(0.008);
     ctx.strokeText('꾹 · 긋기 · 떼기 — 다음 판으로!', w / 2, Y(0.6) + R(0.085));

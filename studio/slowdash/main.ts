@@ -156,7 +156,7 @@ function show(html: string) {
 function title() {
   const best = store.get('best');
   show(
-    `<b>느린 시간 닌자</b>` +
+    `<b>벽력일섬</b>` +
       `<ul><li><i>꾹</i>세상이 느려짐</li><li><i>긋기</i>꺾어 그린 길로</li><li><i>떼기</i>번쩍! 여럿 베기</li></ul>` + // S012 QC④ 이모지 0 · 한붓을 첫 화면에
       `<strong>시작</strong>` +
       (best ? `<span class="best">최고 ${best}점</span>` : '') +

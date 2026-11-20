@@ -552,7 +552,7 @@ describe('느린 시간 닌자 플레이 빌드', () => {
   it('빌드가 있고 한 장으로 묶였다 (gzip ≤ 40KB)', () => {
     expect(existsSync(f)).toBe(true);
     const html = readFileSync(f, 'utf8');
-    expect(html).toContain('<title>느린 시간 닌자</title>');
+    expect(html).toContain('<title>벽력일섬</title>'); // 💬 오너 11-20 "게임 제목은 벽력일섬으로 해줘"
     expect(html).not.toContain('/*BUNDLE*/');
     expect(gzipSync(html).length).toBeLessThanOrEqual(40 * 1024);
   });
