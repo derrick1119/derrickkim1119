@@ -15,7 +15,7 @@ const root = import.meta.dirname;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const cycle = process.argv.includes('--cycle') ? process.argv[process.argv.indexOf('--cycle') + 1] : '????';
 const evals: Record<string, ArcadeReport> = JSON.parse(readFileSync(join(root, 'reports', 'eval.json'), 'utf8'));
-const ab: { champion: string | null; graduated?: { id: string; name: string; at: string; round: number; studio: string; play: string }[]; discarded?: { id: string; name: string }[]; rounds: { round: number; openedAt: string; A: string | null; B: string | null; games?: string[]; winner: string | null; note?: string }[] } = JSON.parse(readFileSync(join(root, 'ab.json'), 'utf8'));
+const ab: { champion: string | null; graduated?: { id: string; name: string; at: string; round: number; studio: string; play: string }[]; discarded?: { id: string; name: string }[]; rounds: { round: number; openedAt: string; A: string | null; B: string | null; games?: string[]; winner: string | null; note?: string; machinePick?: string; machinePick2?: string }[] } = JSON.parse(readFileSync(join(root, 'ab.json'), 'utf8'));
 const cur = ab.rounds.at(-1)!;
 // 아이디어 메뉴 (오너 선택 2026-11-08): 라운드 사이에 만들기 전 한 줄 기획을 먼저 보여 준다
 const menu: { round: number; why: string; picked: number[] | null; items: { no: number; emoji: string; name: string; from: string; wow: string; first: string; depth: string }[] } | null = (() => {
@@ -82,6 +82,10 @@ const geneList = (Object.keys(GENE_KIND_LABEL) as GeneKind[]).map((k) => {
 }).join('');
 const ideaList = ideas.map((i) => `<li>${esc(ideaText(i))} <span class="muted">새 재료 ${i.fresh}개</span></li>`).join('');
 const done = ab.rounds.filter((r) => r.winner);
+// 0111: 기계 추천 1(재미 1위)·2(버릇 ★3 최저)가 오너 선택을 맞혔나 — 고른 라운드만 센다(전체 폐기는 맞힘 판정 없음)
+const picked = done.filter((r) => r.winner !== 'none' && r.machinePick2);
+const hit = (k: 'machinePick' | 'machinePick2') => picked.filter((r) => r.winner!.split(',').includes(r[k]!)).length;
+const pickLine = `<li><b>기계 추천 맞힘</b> — 32라운드부터 오너가 하나라도 고른 라운드 ${picked.length}개 중 추천 1(재미 1위) ${hit('machinePick')}번 · 추천 2(버릇대로 하면 ★3이 가장 어려운 것) ${hit('machinePick2')}번. 전체 폐기 라운드 ${done.filter((r) => r.winner === 'none' && r.machinePick2).length}개는 판정 없음. 계기판은 고르기를 돕는 참고일 뿐(0101).</li>`;
 
 const html = `<!DOCTYPE html>
 <html lang="ko">
@@ -152,6 +156,7 @@ ${(ab.graduated ?? []).length ? `<section aria-labelledby="grad-h">
   <ul class="hist">
     <li><b>2026-11-06</b> 오너 결정: 논리 퍼즐 라인(교차점) 폐기. 성공한 캐주얼 게임들처럼 기존 장르를 조합·변형해 새 게임을 만드는 공장으로 전환.</li>
     ${done.map((r) => `<li><b>${r.round}라운드</b> → ${r.winner === 'none' ? (r.games ? '모두 탈락' : '둘 다 탈락') : esc(r.winner!.split(',').map(nameOf).join(' · '))}</li>`).join('')}
+    ${pickLine}
     ${(ab.discarded ?? []).length ? `<li><b>2026-11-07</b> 오너 결정: 선택받지 못한 게임 ${ab.discarded!.length}개 폐기 — 계기판엔 지금 라운드와 졸업한 게임만 둔다.</li>` : ''}
   </ul>
 </section>
