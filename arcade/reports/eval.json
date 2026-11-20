@@ -1,26 +1,26 @@
 {
- "cakecut": {
-  "id": "cakecut",
-  "name": "✂️ 동물 손님 케이크 자르기",
+ "pengwalk": {
+  "id": "pengwalk",
+  "name": "🐧 펭귄 떼 길잡이",
   "n": 24,
   "dumb": {
-   "score": 120,
-   "sec": 45.1
+   "score": 550,
+   "sec": 180
   },
   "smart": {
-   "score": 3050,
-   "sec": 60.8,
+   "score": 5040,
+   "sec": 135.9,
    "capped": 0
   },
-  "skillGap": 25.21,
+  "skillGap": 9.15,
   "reveals": [
-   6,
-   9,
-   9
+   5,
+   8,
+   14
   ],
   "dumbReveals": [
-   4.9,
-   5.4
+   6.8,
+   10.8
   ],
   "parts": {
    "skill": 1,
@@ -35,55 +35,119 @@
    "late": 0
   },
   "presses": {
-   "perMin": 16,
+   "perMin": 7,
    "maxSame": 2
   },
   "habitStar3": {
-   "rate": 0.29,
-   "stage": 5,
-   "bot": "버릇: 가운데 가로부터"
+   "rate": 0,
+   "stage": 0,
+   "bot": "늘 맨 앞 펭귄 바로 앞 톡"
   },
   "human": {
-   "sec": 86.2,
+   "sec": 135.9,
    "capped": 0,
    "scoreRatio": 1
   },
   "wow": {
-   "firstSec": 0.25,
+   "firstSec": 0,
    "seen": 1,
-   "dumbPerMin": 8.5,
-   "smartPerMin": 17.8
+   "dumbPerMin": 8,
+   "smartPerMin": 21.6
   },
   "stages": {
-   "change": 0.23,
-   "lateWow": 0.5,
-   "n": 8
+   "change": 0.34,
+   "lateWow": 2.02,
+   "n": 6,
+   "tapOnly": true
   },
-  "precision": 0.58,
-  "habitGap": 2.2
+  "precision": 1,
+  "habitGap": 5.82
  },
- "drawroll": {
-  "id": "drawroll",
-  "name": "✏️ 그려서 굴리는 햄스터 공",
+ "lavawall": {
+  "id": "lavawall",
+  "name": "🌋 용암 막는 마을",
   "n": 24,
   "dumb": {
-   "score": 260,
-   "sec": 22.2
+   "score": 390,
+   "sec": 128.1
   },
   "smart": {
-   "score": 2592.5,
-   "sec": 52.8,
-   "capped": 0
+   "score": 2070.5,
+   "sec": 152.9,
+   "capped": 0.041666666666666664
   },
-  "skillGap": 9.94,
+  "skillGap": 5.3,
   "reveals": [
-   5.8,
-   9.1,
-   9.1
+   2.5,
+   3.9,
+   9
   ],
   "dumbReveals": [
-   4.5,
-   4.5
+   3.4,
+   5.1
+  ],
+  "parts": {
+   "skill": 0.802,
+   "onboarding": 1,
+   "session": 0.958,
+   "simplicity": 1,
+   "unfold": 1
+  },
+  "fun": 0.937,
+  "firstLoss": {
+   "idle": 0,
+   "late": 0
+  },
+  "presses": {
+   "perMin": 4,
+   "maxSame": 1
+  },
+  "habitStar3": {
+   "rate": 0,
+   "stage": 0,
+   "bot": "늘 집 바로 위에 가로로"
+  },
+  "human": {
+   "sec": 152.9,
+   "capped": 0,
+   "scoreRatio": 1
+  },
+  "wow": {
+   "firstSec": 0.19,
+   "seen": 1,
+   "dumbPerMin": 10.3,
+   "smartPerMin": 9
+  },
+  "stages": {
+   "change": 0.24,
+   "lateWow": 1.3,
+   "n": 6
+  },
+  "precision": 0.96,
+  "habitGap": 3.65
+ },
+ "circustramp": {
+  "id": "circustramp",
+  "name": "🎪 트램펄린 서커스",
+  "n": 24,
+  "dumb": {
+   "score": 1578.5,
+   "sec": 67.2
+  },
+  "smart": {
+   "score": 14581,
+   "sec": 156.8,
+   "capped": 0
+  },
+  "skillGap": 9.23,
+  "reveals": [
+   4,
+   8,
+   12
+  ],
+  "dumbReveals": [
+   3.8,
+   4.9
   ],
   "parts": {
    "skill": 1,
@@ -99,284 +163,222 @@
   },
   "presses": {
    "perMin": 8,
-   "maxSame": 1
+   "maxSame": 4
   },
   "habitStar3": {
    "rate": 0,
    "stage": 0,
-   "bot": "늘 집까지 곧은 선"
+   "bot": "버릇: 떨어질 자리 바로 밑"
   },
   "human": {
-   "sec": 90.1,
+   "sec": 156.8,
    "capped": 0,
    "scoreRatio": 1
   },
   "wow": {
-   "firstSec": 0.53,
+   "firstSec": 0.94,
    "seen": 1,
-   "dumbPerMin": 32,
-   "smartPerMin": 37.1
+   "dumbPerMin": 7.3,
+   "smartPerMin": 16.8
   },
   "stages": {
-   "change": 0.49,
-   "lateWow": 0.36,
-   "n": 8
+   "change": 0.27,
+   "lateWow": 0.59,
+   "n": 8,
+   "tapOnly": true
   },
-  "precision": 0.2,
-  "habitGap": 3.36
+  "precision": 0.97,
+  "habitGap": 3.19
  },
- "sweepup": {
-  "id": "sweepup",
-  "name": "🧹 빗자루 한 번 쓸기",
+ "fishloop": {
+  "id": "fishloop",
+  "name": "🐟 물고기 떼 그물 두르기",
   "n": 24,
   "dumb": {
-   "score": 475,
-   "sec": 53.2
+   "score": 1615,
+   "sec": 72.7
   },
   "smart": {
-   "score": 3767,
-   "sec": 90.7,
+   "score": 9013,
+   "sec": 77.6,
    "capped": 0
   },
-  "skillGap": 7.92,
+  "skillGap": 5.58,
   "reveals": [
-   4,
-   6.5,
-   9
+   6,
+   10,
+   11.3
   ],
   "dumbReveals": [
-   3.6,
-   4
+   6.3,
+   8
   ],
   "parts": {
-   "skill": 0.995,
+   "skill": 0.827,
    "onboarding": 1,
    "session": 1,
    "simplicity": 1,
    "unfold": 1
   },
-  "fun": 0.999,
+  "fun": 0.95,
   "firstLoss": {
    "idle": 0,
    "late": 0
   },
   "presses": {
-   "perMin": 28,
+   "perMin": 19,
+   "maxSame": 1.5
+  },
+  "habitStar3": {
+   "rate": 0.16,
+   "stage": 3,
+   "bot": "늘 떼 가운데 작은 원"
+  },
+  "human": {
+   "sec": 162.3,
+   "capped": 0,
+   "scoreRatio": 0.77
+  },
+  "wow": {
+   "firstSec": 0.51,
+   "seen": 1,
+   "dumbPerMin": 8.1,
+   "smartPerMin": 12.9
+  },
+  "stages": {
+   "change": 0.26,
+   "lateWow": 0.25,
+   "n": 8
+  },
+  "precision": 0.93,
+  "habitGap": 2.71
+ },
+ "sporebloom": {
+  "id": "sporebloom",
+  "name": "🍄 포자 숲 퍼뜨리기",
+  "n": 24,
+  "dumb": {
+   "score": 1811.5,
+   "sec": 174.1
+  },
+  "smart": {
+   "score": 9010,
+   "sec": 113.4,
+   "capped": 0
+  },
+  "skillGap": 4.97,
+  "reveals": [
+   4,
+   6.9,
+   10
+  ],
+  "dumbReveals": [
+   4.9,
+   8
+  ],
+  "parts": {
+   "skill": 0.771,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.912,
+  "firstLoss": {
+   "idle": 0,
+   "late": 0
+  },
+  "presses": {
+   "perMin": 15,
    "maxSame": 1
   },
   "habitStar3": {
-   "rate": 0.17,
-   "stage": 4,
-   "bot": "늘 가까운 구멍으로 곧장"
+   "rate": 0,
+   "stage": 0,
+   "bot": "버릇: 가장 큰 버섯 바로 톡"
   },
   "human": {
-   "sec": 99.1,
+   "sec": 123.8,
    "capped": 0,
    "scoreRatio": 0.98
   },
   "wow": {
-   "firstSec": 0.41,
+   "firstSec": 0.93,
    "seen": 1,
-   "dumbPerMin": 15.4,
-   "smartPerMin": 40.5
+   "dumbPerMin": 4.2,
+   "smartPerMin": 11.1
   },
   "stages": {
-   "change": 0.27,
-   "lateWow": 0.7,
-   "n": 8
-  },
-  "precision": 0.94,
-  "habitGap": 2.97
- },
- "pluckfarm": {
-  "id": "pluckfarm",
-  "name": "🥕 쑥쑥 뿌리 뽑기 텃밭",
-  "n": 24,
-  "dumb": {
-   "score": 1061,
-   "sec": 49.4
-  },
-  "smart": {
-   "score": 5791.5,
-   "sec": 49.1,
-   "capped": 0
-  },
-  "skillGap": 5.45,
-  "reveals": [
-   6,
-   9,
-   9
-  ],
-  "dumbReveals": [
-   4.5,
-   5.6
-  ],
-  "parts": {
-   "skill": 0.816,
-   "onboarding": 1,
-   "session": 1,
-   "simplicity": 1,
-   "unfold": 1
-  },
-  "fun": 0.946,
-  "firstLoss": {
-   "idle": 0,
-   "late": 0
-  },
-  "presses": {
-   "perMin": 17,
-   "maxSame": 1
-  },
-  "habitStar3": {
-   "rate": 0.17,
-   "stage": 3,
-   "bot": "버릇: 왼쪽부터"
-  },
-  "human": {
-   "sec": 50.7,
-   "capped": 0,
-   "scoreRatio": 1
-  },
-  "wow": {
-   "firstSec": 0.33,
-   "seen": 1,
-   "dumbPerMin": 6.5,
-   "smartPerMin": 9.8
-  },
-  "stages": {
-   "change": 0.09,
-   "lateWow": 0.57,
-   "n": 8,
-   "tapOnly": true
-  },
-  "precision": 1,
-  "habitGap": 7.3
- },
- "beadlink": {
-  "id": "beadlink",
-  "name": "🔮 구슬 더미 이어 긋기",
-  "n": 24,
-  "dumb": {
-   "score": 848,
-   "sec": 180
-  },
-  "smart": {
-   "score": 11851,
-   "sec": 98.1,
-   "capped": 0.041666666666666664
-  },
-  "skillGap": 13.96,
-  "reveals": [
-   3,
-   5.3,
-   6.3
-  ],
-  "dumbReveals": [
-   1.3,
-   2.1
-  ],
-  "parts": {
-   "skill": 1,
-   "onboarding": 1,
-   "session": 0.958,
-   "simplicity": 0.85,
-   "unfold": 1
-  },
-  "fun": 0.973,
-  "firstLoss": {
-   "idle": 0,
-   "late": 0
-  },
-  "presses": {
-   "perMin": 17,
-   "maxSame": 2
-  },
-  "habitStar3": {
-   "rate": 0.29,
-   "stage": 4,
-   "bot": "늘 맨 아래 구슬부터"
-  },
-  "human": {
-   "sec": 144.1,
-   "capped": 0,
-   "scoreRatio": 1
-  },
-  "wow": {
-   "firstSec": 8.84,
-   "seen": 1,
-   "dumbPerMin": 4,
-   "smartPerMin": 28
-  },
-  "stages": {
-   "change": 0.12,
-   "lateWow": 0.87,
-   "n": 7
-  },
-  "precision": 0.87,
-  "habitGap": 2.32
- },
- "icecrack": {
-  "id": "icecrack",
-  "name": "🧊 톡 깨는 빙판 구조대",
-  "n": 24,
-  "dumb": {
-   "score": 550,
-   "sec": 70.3
-  },
-  "smart": {
-   "score": 2945,
-   "sec": 68,
-   "capped": 0
-  },
-  "skillGap": 5.35,
-  "reveals": [
-   8,
-   12,
-   12
-  ],
-  "dumbReveals": [
-   5.3,
-   6.3
-  ],
-  "parts": {
-   "skill": 0.806,
-   "onboarding": 1,
-   "session": 1,
-   "simplicity": 1,
-   "unfold": 1
-  },
-  "fun": 0.943,
-  "firstLoss": {
-   "idle": 0,
-   "late": 0
-  },
-  "presses": {
-   "perMin": 9,
-   "maxSame": 1
-  },
-  "habitStar3": {
-   "rate": 0,
-   "stage": 0,
-   "bot": "늘 펭귄 바로 옆 톡"
-  },
-  "human": {
-   "sec": 69.6,
-   "capped": 0,
-   "scoreRatio": 1
-  },
-  "wow": {
-   "firstSec": 0,
-   "seen": 1,
-   "dumbPerMin": 21,
-   "smartPerMin": 26.8
-  },
-  "stages": {
-   "change": 0.34,
-   "lateWow": 0.42,
+   "change": 0.1,
+   "lateWow": 1.23,
    "n": 7,
    "tapOnly": true
   },
-  "precision": 0.99,
-  "habitGap": 2.94
+  "precision": 1,
+  "habitGap": 71.23
+ },
+ "raingarden": {
+  "id": "raingarden",
+  "name": "🌧️ 비구름 정원사",
+  "n": 24,
+  "dumb": {
+   "score": 1103.5,
+   "sec": 117.4
+  },
+  "smart": {
+   "score": 6743.5,
+   "sec": 83.6,
+   "capped": 0
+  },
+  "skillGap": 6.11,
+  "reveals": [
+   3.6,
+   5.5,
+   7
+  ],
+  "dumbReveals": [
+   2,
+   3.1
+  ],
+  "parts": {
+   "skill": 0.87,
+   "onboarding": 1,
+   "session": 1,
+   "simplicity": 1,
+   "unfold": 1
+  },
+  "fun": 0.963,
+  "firstLoss": {
+   "idle": 0,
+   "late": 0
+  },
+  "presses": {
+   "perMin": 27,
+   "maxSame": 2
+  },
+  "habitStar3": {
+   "rate": 0.27,
+   "stage": 6,
+   "bot": "버릇: 가장 시든 꽃"
+  },
+  "human": {
+   "sec": 86.7,
+   "capped": 0,
+   "scoreRatio": 0.95
+  },
+  "wow": {
+   "firstSec": 0.81,
+   "seen": 1,
+   "dumbPerMin": 3.2,
+   "smartPerMin": 18.6
+  },
+  "stages": {
+   "change": 0.29,
+   "lateWow": 0.6,
+   "n": 7,
+   "tapOnly": true
+  },
+  "precision": 0.92,
+  "habitGap": 1.59
  }
 }
