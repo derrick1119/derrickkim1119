@@ -2602,6 +2602,25 @@ function drawAll(ctx: C2, s: IceState, w: number, h: number, th: Theme) {
   items.sort((a, b) => a.y - b.y);
   for (const it of items) it.f();
 
+  // 물보라: 떨어진 조각·빠진 동물·배에 닿은 조각 둘레로 물방울이 솟았다 떨어진다
+  for (const e of s.events) {
+    const age = t - e.t, big = e.kind === 'drop' ? Math.min(1.6, 0.6 + (e.n ?? 2) * 0.1) : e.kind === 'dock' ? 1.2 : e.kind === 'plop' || e.kind === 'seal' ? 0.7 : 0;
+    if (!big || age < 0 || age > 36) continue;
+    const cx = SX(e.x, e.y), cy = SY(e.y) + R(0.02), u = age / 36;
+    ctx.strokeStyle = `rgba(255,255,255,${0.9 * (1 - u)})`;
+    ctx.lineWidth = R(0.008) * (1 - u) + 1;
+    ell(ctx, cx, cy, R(0.06 * big) * (0.6 + u), R(0.022 * big) * (0.6 + u));
+    ctx.stroke();
+    for (let k = 0; k < 14; k++) {
+      const a = (k / 14) * TAU + e.t * 0.37, sp = (0.6 + hsh(k + e.t) * 0.6) * big;
+      const dx = Math.cos(a) * R(0.09) * sp * u, dy = Math.sin(a) * R(0.035) * sp * u - Math.sin(u * Math.PI) * R(0.09) * sp;
+      ctx.globalAlpha = 1 - u * 0.6;
+      ctx.fillStyle = k % 3 ? '#ffffff' : '#9fe6ff';
+      ell(ctx, cx + dx, cy + dy, R(0.009) * (1 - u * 0.5), R(0.011) * (1 - u * 0.5));
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
   // 산산조각 파편
   for (const sh of s.shards) {
     const sx = SX(sh.x, sh.y), sy = SY(sh.y) - sh.z * w;

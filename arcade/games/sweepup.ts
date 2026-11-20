@@ -113,8 +113,8 @@ export const STAGES: StageDef[] = [
   {
     place: 1, key: 'curtain', news: '🎏 색깔 발 — 같은 색만 지나가요!', hint: '섞인 더미를 발 쪽으로 밀면 저절로 갈라져요',
     piles: [P(0.5, 0.78, 0.46, 0.2, 150, CANDY, [1, 1]), P(0.5, 1.1, 0.3, 0.12, 30, CANDY, [1, 1])],
-    holes: [[0.2, 0.25, 0.13, 0, 0], [0.8, 0.25, 0.13, 1, 0]],
-    segs: [[0, 0.42, 0.4, 0.42, 0], [0.4, 0, 0.4, 0.42, -1], [0.6, 0.42, 1, 0.42, 1], [0.6, 0, 0.6, 0.42, -1]],
+    holes: [[0.24, 0.23, 0.13, 0, 0], [0.76, 0.23, 0.13, 1, 0]],
+    segs: [[0, 0.42, 0.5, 0.42, 0], [0.5, 0.42, 1, 0.42, 1], [0.5, 0, 0.5, 0.42, -1]],
     sweeps: 5, stars: [{ k: 'count', n: 40 }, { k: 'fast', m: 3, n: 45 }, { k: 'more', n: 70 }],
   },
   {
@@ -868,7 +868,8 @@ function potential(S: Sim) {
       else worst = Math.min(worst, dd);
     }
     if (best < 9) v += 3.2 * Math.max(0, 1 - best / 0.7);
-    if (worst < 0.25) v -= 4 * (1 - worst / 0.25);
+    // 발이 막아 주는 판에선 다른 색 구멍 옆이어도 위험하지 않다
+    if (worst < 0.25 && !S.segs.length) v -= 4 * (1 - worst / 0.25);
   }
   return v;
 }
@@ -922,7 +923,7 @@ function roughScore(S: Sim, p: Path, col: number) {
       const u = clampF(((S.cat.x - ax) * ex + (S.cat.y - ay) * ey) / l2, 0, 1);
       if (Math.hypot(S.cat.x - ax - ex * u, S.cat.y - ay - ey * u) < CAT_R + BL + 0.03) pen += 40;
     }
-  return good - bad * 1.6 - pen;
+  return good - bad * (S.segs.length ? 0.2 : 1.6) - pen;
 }
 
 const SPEED = 0.034;
@@ -930,6 +931,13 @@ function candidates(s: SweepState): { p: Path; col: number }[] {
   const out: { p: Path; col: number }[] = [];
   const cols = [...new Set(s.holes.filter((h) => !h.shut).map((h) => h.col))];
   const clip = (v: number[]) => v.map((q, k) => (k % 2 ? clampF(q, 0.02, H - 0.02) : clampF(q, 0.02, W - 0.02)));
+  // 발이 있는 판: 발 앞 줄을 곧장 위로 · 발 앞을 따라 옆으로 갔다가 위로
+  if (s.segs.length)
+    for (const h of s.holes) {
+      if (h.shut) continue;
+      for (const off of [-0.13, 0, 0.13]) out.push({ p: mkPath(clip([h.x + off, 1.3, h.x + off, h.y]), SPEED), col: h.col });
+      out.push({ p: mkPath(clip([W - h.x, 0.53, h.x, 0.53, h.x, h.y]), SPEED), col: h.col });
+    }
   for (const col of cols) {
     const hs = holeFor(s, col);
     for (const c of clusters(s, col, 3)) {
@@ -949,6 +957,8 @@ function candidates(s: SweepState): { p: Path; col: number }[] {
         if (s.segs.length) {
           const fy = 0.56;
           for (const off of [0, 0.08, -0.08]) out.push({ p: mkPath(clip([c.x - ux * back + nx * off, c.y - uy * back + ny * off, h.x + (c.x - h.x) * 0.3, fy, h.x, h.y]), SPEED), col });
+          // 발 쪽으로 곧장 위로
+          out.push({ p: mkPath(clip([c.x, c.y + 0.14, c.x, h.y]), SPEED), col });
         }
         // 잠자는 고양이가 길에 있으면 옆으로 돌아가는 길
         const ct = s.cat;

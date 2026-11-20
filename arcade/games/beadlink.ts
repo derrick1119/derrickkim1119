@@ -31,7 +31,7 @@ const CAP = 360;
 /** CDAMP: 다른 구슬·벽에 닿아 있는 구슬은 틱마다 속도가 조금 준다(구름 마찰) — 와르르 내려앉은 뒤 금방 멈춘다 */
 const G = 0.0006, DAMP = 0.992, CDAMP = 0.86, ITERS = 3, SLEEP_V = 0.0005, CALM_N = 8;
 /** 맞닿음 허용 폭 · 손가락이 구슬에 닿는 여유 */
-const TOL = 0.017, HIT_PAD = 0.008;
+const TOL = 0.028, HIT_PAD = 0.008;
 /** 별 구슬은 무거운 금 — 더미가 움직이는 동안 더 세게 가라앉는다 */
 const STAR_G = 2.4;
 const POP_KICK = 0.0032;
@@ -1005,8 +1005,8 @@ function simStroke(W0: World, ch: number[], d: StageDef): World {
   const W = cloneWorld(W0);
   W.noRefill = true;
   applyStroke(W, ch, d.fire);
-  // 마지막 팡 뒤 70틱(무너짐의 큰 움직임)까지만 — 나머지 느린 미끄러짐은 판단에 거의 안 쓰인다
-  const end = W.t + ch.length * POP_GAP + 70;
+  // 마지막 팡 뒤 55틱(무너짐의 큰 움직임)까지만 — 나머지 느린 미끄러짐은 판단에 거의 안 쓰인다
+  const end = W.t + ch.length * POP_GAP + 55;
   for (let k = 0; k < 360 && !worldDone(W) && (W.t < end || pendingPop(W)); k++) tickWorld(W);
   return W;
 }
@@ -1030,7 +1030,7 @@ function quick(W: World, p: number[], d: StageDef): number {
   }
   return v;
 }
-export function plan(s: BeadState, wide = 8): number[] {
+export function plan(s: BeadState, wide = 6): number[] {
   const W = s.W, d = STAGES[s.stage];
   const cs = candidates(W);
   if (!cs.length) return [];
