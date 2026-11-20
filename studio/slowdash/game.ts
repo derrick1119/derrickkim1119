@@ -795,7 +795,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
   if (n > 0 || P.shots.length) s.chain++;
   else s.chain = 0;
   if (s.chain >= 3) see(s, 'chain', '연쇄 — 쉬지 않고 이어 베면 점수가 불어나요');
-  s.freeze = n > 0 ? Math.min(8, 2 + n) : P.bounce && !idle ? 3 : 0; // S011: 연달아 튕기면 멈칫도 없다(세상이 멈춰 서서 버티던 진짜 원인)
+  s.freeze = n > 0 ? Math.min(5, 1 + n) : P.bounce && !idle ? 3 : 0; // S011: 연달아 튕기면 멈칫도 없다(세상이 멈춰 서서 버티던 진짜 원인) · M3 S1 오너 "렉·연출 과도": 벤 뒤 멈칫 최대 8 → 5틱(133 → 83ms)
   if (n >= 3) s.slowT = 30;
   if (n >= 3 && s.firstBig < 0) s.firstBig = s.t;
   s.trail = { legs: P.legs, t: s.t, n };
@@ -2061,8 +2061,6 @@ function drawFox(ctx: C2, x: number, y: number, k: number, face: number, pose: n
   } else {
     // 벤 직후: 칼날을 뒤로 낮게 — 칼빛
     ctx.save();
-    ctx.shadowColor = '#bff4ff';
-    ctx.shadowBlur = k * 0.25;
     ctx.strokeStyle = lin(ctx, hand.x, hand.y, -k * 0.75, -k * 0.16 + lo, [0, '#ffffff'], [1, '#9fb6d8']);
     ctx.lineWidth = k * 0.045;
     ctx.beginPath();
@@ -2155,8 +2153,6 @@ function drawFox(ctx: C2, x: number, y: number, k: number, face: number, pose: n
   for (const [ex, ey] of eyes) {
     if (pose === 1) {
       ctx.save();
-      ctx.shadowColor = '#7ff0ff';
-      ctx.shadowBlur = k * 0.18;
       ctx.strokeStyle = '#d6fdff';
       ctx.lineWidth = k * 0.028;
       ctx.beginPath();
@@ -2251,9 +2247,16 @@ function brows(ctx: C2, pts: number[][], r: number, angry: boolean) {
 }
 function blade(ctx: C2, x0: number, y0: number, x1: number, y1: number, wd: number, glow: string | null) {
   ctx.save();
-  if (glow) {
-    ctx.shadowColor = glow;
-    ctx.shadowBlur = wd * 4;
+  if (glow) { // M3 S1 렉: 흐림 대신 굵은 옅은 선 한 겹
+    ctx.strokeStyle = glow;
+    ctx.globalAlpha *= 0.35;
+    ctx.lineWidth = wd * 3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
+    ctx.stroke();
+    ctx.globalAlpha /= 0.35;
   }
   ctx.strokeStyle = lin(ctx, x0, y0, x1, y1, [0, '#c9d4e6'], [1, '#ffffff']);
   ctx.lineWidth = wd;
@@ -3430,9 +3433,10 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     if (shieldBehind) drawShieldDisc(ctx, k, f.fa, 0);
     ctx.save();
     ctx.scale(face, 1);
-    if (outline) {
-      ctx.shadowColor = '#fff1b0';
-      ctx.shadowBlur = k * 0.25;
+    if (outline) { // M3 S1 렉: 그림자 흐림(shadowBlur) 대신 몸 뒤 옅은 금빛 후광 한 장
+      ctx.fillStyle = 'rgba(255,241,176,.32)';
+      ell(ctx, 0, -k * 0.46, k * 0.4, k * 0.52);
+      ctx.fill();
     }
     drawFoeBody(ctx, k, pose, wt);
     ctx.restore();
@@ -3516,8 +3520,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
           drawFoeBody(ctx, k, pose, wt);
           ctx.restore();
           ctx.save();
-          ctx.shadowColor = '#ffffff';
-          ctx.shadowBlur = 10;
           ctx.strokeStyle = '#ffffff';
           ctx.lineWidth = 3;
           ctx.beginPath();
@@ -3581,8 +3583,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ell(ctx, X(s.nx), Y(s.ny), k * 0.55, k * 0.2);
     ctx.fill();
     ctx.save();
-    ctx.shadowColor = 'rgba(150,215,255,.75)';
-    ctx.shadowBlur = k * 0.12;
     drawFox(ctx, X(s.nx), Y(s.ny), k, s.face, ninPose(), wt + t * 0.3, blinkOff ? 0.45 * alpha : alpha);
     ctx.restore();
     if (s.phase === 'play' && (s.hp < HP || t - (fx.memo.hurtT ?? -99) < 90)) {
@@ -3701,8 +3701,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.moveTo(x0, y0);
       ctx.lineTo(x1, y1);
       ctx.stroke();
-      ctx.shadowColor = sw ? '#ffd84a' : '#bff4ff';
-      ctx.shadowBlur = sw ? 28 : 16;
       ctx.strokeStyle = `rgba(255,255,255,${a})`;
       ctx.lineWidth = R(0.012) * (0.5 + a);
       ctx.stroke();
@@ -3755,12 +3753,10 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   }
   // ── 느린 시간: 세상이 먹빛으로 바랜다 → 닌자·겨눈 적·선만 또렷하게 ──
   if (sv > 0.02) {
-    ctx.save();
-    ctx.globalCompositeOperation = 'saturation';
-    ctx.fillStyle = `rgba(128,128,128,${0.85 * sv})`;
+    ctx.save(); // M3 S1 렉: 화면 전체 채도 합성(saturation)은 휴대폰 GPU에서 비싸다 → 회청색 덮기 한 겹
+    ctx.fillStyle = `rgba(52,58,76,${0.5 * sv})`;
     ctx.fillRect(-20, -20, w + 40, h + 40);
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = `rgba(16,24,60,${0.28 * sv})`;
+    ctx.fillStyle = `rgba(16,24,60,${0.22 * sv})`;
     ctx.fillRect(-20, -20, w + 40, h + 40);
     ctx.fillStyle = radg(ctx, X(s.nx), Y(s.ny) - R(0.1), R(0.2), R(0.95), [0, 'rgba(0,0,0,0)'], [1, `rgba(0,0,10,${0.45 * sv})`]);
     ctx.fillRect(-20, -20, w + 40, h + 40);
@@ -3822,15 +3818,12 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.moveTo(x0, y0);
       ctx.lineTo(x1, y1);
       ctx.stroke();
-      ctx.shadowColor = '#9ff0ff';
-      ctx.shadowBlur = canCut ? 14 : 0;
       ctx.strokeStyle = canCut ? '#f4ffff' : 'rgba(220,230,255,.6)';
       ctx.lineWidth = R(0.009);
       ctx.setLineDash(canCut ? [R(0.03), R(0.014)] : [R(0.012), R(0.012)]);
       ctx.lineDashOffset = -t * 1.5;
       ctx.stroke();
       ctx.setLineDash([]);
-      ctx.shadowBlur = 0;
     }
     const last = prev.legs[prev.legs.length - 1];
     const want = strokeLen(s);
@@ -4029,35 +4022,30 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     const ex = X(e.x), ey = Y(e.y);
     if (e.kind === 'dash') {
       const n = e.n ?? 0;
-      if (e.text === 'hop') say(ex, ey - R(0.12), '폴짝', '#dfe6ff', 13);
-      else {
-        fx.blink('#ffffff', Math.min(0.6, 0.18 + n * 0.1));
-        fx.kick(2 + n * 2.5);
-        fx.ring(ex, ey - R(0.04), '#e8fbff', R(0.08 + n * 0.02), 3);
-        fx.burst(ex, ey - R(0.04), '#ffffff', 8 + n * 3, 3, 2);
-        if (n > 0 && t - (fx.memo.bz ?? -99) > 40 && !s.events.some((q) => q.t === e.t && q.kind === 'sweep')) (fx.memo.bz = t), say(ex, ey - R(0.25), n >= 3 ? '번쩍!!' : '번쩍!', '#ffffff', 16 + Math.min(4, n) * 3);
-        if (n > 1) fx.memo.sheath = t;
+      if (e.text !== 'hop') { // M3 S1 오너 "연출이 과도해서 보는 맛이 없다": 벨 때마다 번쩍(흰 화면)·'번쩍!' 글자·'찰칵' 글자를 뺀다 → 칼빛 한 줄이 주인공
+        fx.kick(Math.min(5, 1 + n));
+        fx.ring(ex, ey - R(0.04), '#e8fbff', R(0.06 + n * 0.015), 2);
+        fx.burst(ex, ey - R(0.04), '#ffffff', 3 + n, 2.4, 1.6);
       }
     }
     if (e.kind === 'multi') {
       const n = e.n ?? 2;
       (fx.memo.bigT = t), (fx.memo.bigN = n), (fx.memo.bigX = ex), (fx.memo.bigY = ey);
-      fx.burst(ex, ey, '#ffd84a', 10 + n * 5, 4 + n * 0.5, 2.6);
-      fx.ring(ex, ey, '#ffd84a', R(0.12 + n * 0.03), 5);
+      fx.burst(ex, ey, '#ffd84a', 4 + n * 2, 3 + n * 0.3, 2.2);
+      fx.ring(ex, ey, '#ffd84a', R(0.1 + n * 0.02), 3);
     }
     if (e.kind === 'sweep') { // 한 획 싹쓸이
       fx.memo.swT = t;
-      fx.blink('#fff3c4', 0.6);
-      fx.kick(14);
-      fx.ring(ex, ey - R(0.04), '#ffd84a', R(0.7), 9);
-      fx.burst(ex, ey - R(0.04), '#ffd84a', 40, 7, 3);
-      fx.burst(ex, ey - R(0.04), '#1a1028', 20, 5, 4);
+      fx.blink('#fff3c4', 0.15);
+      fx.kick(6);
+      fx.ring(ex, ey - R(0.04), '#ffd84a', R(0.4), 5);
+      fx.burst(ex, ey - R(0.04), '#ffd84a', 16, 5, 2.6);
     }
     if (e.kind === 'chain' && (e.n ?? 0) >= 3) say(w * 0.8, Y(0.56), `연쇄 ×${e.n}`, '#9ff0ff', Math.min(26, 14 + (e.n ?? 2) * 1.5));
     if (e.kind === 'bounce') {
       say(ex, ey - R(0.14), '챙!', '#ffd86b', 18);
-      fx.burst(ex, ey - R(0.06), '#ffe9a0', 14, 3.4, 2);
-      fx.kick(5);
+      fx.burst(ex, ey - R(0.06), '#ffe9a0', 8, 3, 2);
+      fx.kick(3);
       for (const f of s.foes) if (f.k === 'shield' && Math.hypot(f.x - e.x, f.y - e.y) < 0.12) fx.memo['bn' + f.id] = t;
     }
     if (e.kind === 'shotcut') {
@@ -4065,8 +4053,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       say(ex, ey - R(0.1), '탁!', '#e8f4ff', 14);
     }
     if (e.kind === 'hurt') {
-      fx.blink('#ff3b30', 0.28);
-      fx.kick(9);
+      fx.blink('#ff3b30', 0.22);
+      fx.kick(6);
       fx.burst(ex, ey - R(0.06), '#ff8a7a', 14, 3.2, 2.2);
       say(ex, ey - R(0.16), '아얏!', '#ffb3a8', 18);
       fx.memo.hurtT = t;
@@ -4083,14 +4071,14 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       fx.burst(ex, ey - R(0.05), '#ffd166', 30, 6, 3.2);
       fx.burst(ex, ey - R(0.05), '#ff6a3d', 20, 4.5, 3);
       fx.burst(ex, ey - R(0.05), '#2a2030', 14, 2.6, 4);
-      fx.ring(ex, ey, '#ffb347', R(BLAST), 7);
-      fx.kick(12);
-      fx.blink('#ffb347', 0.35);
+      fx.ring(ex, ey, '#ffb347', R(BLAST), 5);
+      fx.kick(7);
+      fx.blink('#ffb347', 0.18);
       say(ex, ey - R(0.12), '펑!', '#ffd166', 26);
     }
     if (e.kind === 'bosshit') {
       say(ex, ey - R(0.24), '으윽!', '#ffd0c8', 18);
-      fx.kick(7);
+      fx.kick(4);
     }
     if (e.kind === 'empty') say(ex, ey - R(0.18), '게이지 바닥!', '#ffb3a8', 14);
     if (e.kind === 'clear') {
@@ -4102,34 +4090,29 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     }
     if (e.kind === 'fail') fx.kick(7);
   }
-  // 찰칵 (칼을 집어넣는 순간 = 갈라지는 순간)
-  if (fx.memo.sheath !== undefined && t - fx.memo.sheath >= SPLIT - 1 && fx.memo.sheathDone !== fx.memo.sheath) {
-    fx.memo.sheathDone = fx.memo.sheath;
-    say(X(s.nx) - R(0.1) * s.face, Y(s.ny) - R(0.05), '찰칵', '#cfe8ff', 13);
-  }
   for (const c of s.cuts) {
     const key = 'c' + c.t + ':' + c.seed;
     if (c.boom || t - c.t < SPLIT - 1 || fx.memo[key] !== undefined) continue;
     fx.memo[key] = 1;
-    fx.burst(X(c.x), Y(c.y) - R(0.05), '#1a1028', 10, 3, 3);
-    fx.burst(X(c.x), Y(c.y) - R(0.05), '#ffffff', 6, 2.5, 1.6);
+    fx.burst(X(c.x), Y(c.y) - R(0.05), '#1a1028', 5, 2.6, 2.6);
+    fx.burst(X(c.x), Y(c.y) - R(0.05), '#ffffff', 3, 2.2, 1.4);
   }
   fx.memo.t = t;
   ctx.drawImage(bg.paper, 0, 0, w, h);
   ctx.restore();
   // 큰 순간 띠: 먹물 붓자국 위에 'N명 베기!'
-  const swB = fx.memo.swT === fx.memo.bigT, bl = swB ? 80 : 52; // 싹쓸이 띠는 더 크게 · 더 오래 · 화면 가로로
-  if (fx.memo.bigT !== undefined && t - fx.memo.bigT < bl && s.phase === 'play') { // 🧪 S10: 결과가 뜨면 띠를 걷는다(판을 끝낸 싹쓸이 띠가 결과 제목을 덮던 것)
-    const age = t - fx.memo.bigT, n = fx.memo.bigN, sc2 = age < 6 ? 1.8 - 0.8 * (age / 6) : 1, a = Math.min(1, (bl - age) / 16);
+  const swB = fx.memo.swT === fx.memo.bigT, bl = swB ? 60 : 40; // 싹쓸이 띠는 조금 더 크게·오래 · M3 S1 오너 "연출 과도": 띠를 작게·짧게, 둘만 벤 건 띠 없음
+  if (fx.memo.bigT !== undefined && t - fx.memo.bigT < bl && s.phase === 'play' && (swB || fx.memo.bigN >= 3)) { // 🧪 S10: 결과가 뜨면 띠를 걷는다(판을 끝낸 싹쓸이 띠가 결과 제목을 덮던 것)
+    const age = t - fx.memo.bigT, n = fx.memo.bigN, sc2 = age < 5 ? 1.3 - 0.3 * (age / 5) : 1, a = Math.min(1, (bl - age) / 14);
     const bx = swB ? w / 2 : clamp(fx.memo.bigX, w * 0.3, w * 0.7), by = swB ? Y(s.ny < 0.72 ? 0.88 : 0.36) : clamp(fx.memo.bigY - R(0.2), Y(0.3), Y(1.1)); // 🧪: 싹쓸이 띠는 닌자 반대쪽에(덮지 않게)
-    const txt = swB ? '싹쓸이!' : `${n}명 베기!`, size = swB ? 44 : Math.min(36, 20 + n * 3.2); // 🧪: '싹둑'은 '싹쓸이'와 헷갈려 뺌
+    const txt = swB ? '싹쓸이!' : `${n}명 베기!`, size = swB ? 32 : Math.min(28, 16 + n * 2.4); // 🧪: '싹둑'은 '싹쓸이'와 헷갈려 뺌
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate(bx, by);
     ctx.rotate(-0.07);
     ctx.scale(sc2, sc2);
     ctx.font = `900 ${size}px system-ui, sans-serif`;
-    const tw = ctx.measureText(txt).width, rx = swB ? w * 0.5 : tw / 2 + 18, ry = size * (swB ? 0.95 : 0.75);
+    const tw = ctx.measureText(txt).width, rx = swB ? Math.max(tw / 2 + 24, w * 0.32) : tw / 2 + 16, ry = size * (swB ? 0.95 : 0.75);
     ctx.fillStyle = 'rgba(16,10,34,.88)';
     ctx.beginPath();
     for (let i = 0; i <= 18; i++) {
@@ -4159,13 +4142,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.fillStyle = '#cfefff';
       ctx.fillText(`${n}명 한 획 · 다음 한 획은 공짜!`, 0, size * 0.72);
     }
-    if (n >= 3)
-      for (let i = 0; i < 3; i++) {
-        const an = t * 0.08 + (i * TAU) / 3;
-        ctx.fillStyle = '#fff3b0';
-        starPath(ctx, Math.cos(an) * (rx + 8), Math.sin(an) * (ry + 6), 5);
-        ctx.fill();
-      }
     ctx.restore();
   }
 
@@ -4345,8 +4321,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       }
       if (s.free > 0 || t - (fx.memo.swT ?? -99) < 60) { // 싹쓸이: 게이지 금테(공짜 한 획 동안 계속)
         ctx.save();
-        ctx.shadowColor = '#ffd84a';
-        ctx.shadowBlur = 16;
         ctx.strokeStyle = '#ffd84a';
         ctx.lineWidth = 3;
         rr(ctx, gx, r1 - gh / 2, gw, gh, gh / 2);

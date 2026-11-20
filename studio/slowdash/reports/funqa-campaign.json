@@ -1,6 +1,6 @@
 {
  "newbieNever": {
-  "first": 12,
+  "first": 12.5,
   "to18": 99,
   "open18": 0,
   "to12": 0,
@@ -9,14 +9,14 @@
  "newbieLow": {
   "first": 13,
   "to18": 99,
-  "open18": 0,
+  "open18": 0.04,
   "to12": 0,
   "open12": 1
  },
  "human": {
-  "first": 16,
+  "first": 15.5,
   "to18": 7,
-  "open18": 0.75,
+  "open18": 0.63,
   "to12": 0,
   "open12": 1
  },
@@ -25,13 +25,13 @@
   "to18": 99,
   "open18": 0,
   "to12": 0,
-  "open12": 1
+  "open12": 0.96
  },
  "scribble": {
   "first": 9,
   "to18": 99,
   "open18": 0,
   "to12": 99,
-  "open12": 0.04
+  "open12": 0.17
  }
 }
