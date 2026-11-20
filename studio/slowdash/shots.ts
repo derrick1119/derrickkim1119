@@ -35,7 +35,7 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
   await page.waitForTimeout(1200);
   await page.screenshot({ path: join(out, '02-stage1.png') });
   const box = (await page.locator('canvas').boundingBox())!;
-  const at = (x: number, y: number) => ({ x: box.x + x * box.width, y: box.y + y * box.width });
+  const at = (x: number, y: number) => ({ x: box.x + x * box.width, y: box.y + box.height - box.width * 1.52 + y * box.width }); // M3 S9: 세상은 캔버스 아래쪽
   const cb = box.y + box.height;
   console.log(`아래 빈 곳(390×844): ${(((844 - cb) / 844) * 100).toFixed(1)}%`);
   // 1판 첫 줄: 허수아비 셋이 닌자 위로 한 줄(0.5, 0.95 · 0.79 · 0.63) → 그 너머를 꾹
@@ -83,7 +83,7 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
   await page.goto(url + '&stage=3');
   await page.waitForTimeout(3000); // S012: 판 소개 카드가 지나간 뒤(알림 줄이 보이게)
   const box = (await page.locator('canvas').boundingBox())!;
-  const at = (x: number, y: number) => ({ x: box.x + x * box.width, y: box.y + y * box.width });
+  const at = (x: number, y: number) => ({ x: box.x + x * box.width, y: box.y + box.height - box.width * 1.52 + y * box.width }); // M3 S9: 세상은 캔버스 아래쪽
   await page.screenshot({ path: join(out, '11-thorn-idle.png') }); // S010 누르기 전에도 덤불이 보이나
   let p = at(0.5, 1.12);
   await page.mouse.move(p.x, p.y);
@@ -110,7 +110,7 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
   await page.waitForTimeout(3000);
   {
     const box2 = (await page.locator('canvas').boundingBox())!;
-    const at2 = (x: number, y: number) => ({ x: box2.x + x * box2.width, y: box2.y + y * box2.width });
+    const at2 = (x: number, y: number) => ({ x: box2.x + x * box2.width, y: box2.y + box2.height - box2.width * 1.52 + y * box2.width });
     const a = at2(0.5, 1.15), b = at2(0.62, 0.58);
     await page.mouse.move(a.x, a.y);
     await page.mouse.down();

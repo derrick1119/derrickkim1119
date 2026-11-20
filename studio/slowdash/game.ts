@@ -1819,7 +1819,9 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   fx.begin(ctx);
   // ── 하늘 · 먼 숲 · 가까운 숲 (시차) ──
   const cam = s.camX; // M3 S3 🎨 배경 = 도트 한 장(태엽 마을 · 시계탑 · 원근 바닥 · 32색)
-  ctx.drawImage(pixBg(LW, LH, d.place, Math.round(Y(HZ) * sc), Math.round(Y(GB) * sc), BGV[d.key] ?? 0), 0, 0, w, h); // 월드 2 지붕 셋 + 대장 판(🧪 S7: 판 이름의 소품이 그 판에)
+  const dy = h - w * A; // M3 S9(🧪): 긴 캔버스의 남는 높이는 위 하늘로 — 판이 엄지 쪽으로 내려오고 아래에 손가락이 안 먹는 곳이 없다
+  ctx.drawImage(pixBg(LW, LH, d.place, Math.round((Y(HZ) + dy) * sc), Math.round((Y(GB) + dy) * sc), BGV[d.key] ?? 0), 0, 0, w, h); // 월드 2 지붕 셋 + 대장 판(🧪 S7: 판 이름의 소품이 그 판에)
+  ctx.translate(0, dy);
   // 부엉이 (가지 위 구경꾼)
   {
     const hoot = Math.max(0, 60 - (t - s.owlT));
@@ -2449,7 +2451,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.save();
       ctx.fillStyle = `rgba(4,6,16,${0.5 * a})`;
       ctx.beginPath();
-      ctx.rect(-20, -20, w + 40, h - (w * A - Y(GB)) + 20); // M3 S9: 긴 캔버스면 아래 띠 위까지
+      ctx.rect(-20, -20 - dy, w + 40, Y(GB) + 20 + dy); // M3 S9: 세상이 dy만큼 내려가 있다
       ctx.arc(cx, cy, r0, 0, TAU, true);
       ctx.fill();
       ctx.strokeStyle = `rgba(255,216,74,${a})`;
