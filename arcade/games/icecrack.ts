@@ -950,7 +950,14 @@ function phys(S: Sim, E: IceState | null) {
       }
     } else if (r.st === SWIM) {
       if (r.tc < 0 || S.owner[r.tc] !== FIXED) r.tc = nearestFixed(S, r.x, r.y);
-      const tx = r.tc >= 0 ? C[r.tc].cx : r.x, ty = r.tc >= 0 ? C[r.tc].cy : 0.02;
+      if (r.tc < 0) {
+        // 해안 얼음이 하나도 없으면 구조선이 건져 준다
+        const bt = G.boat, dd = Math.hypot(bt.x - r.x, bt.y - r.y);
+        if (dd < bt.r) (r.st = BOAT), (r.seat = S.seats++), ev(E, 'board', r.x, r.y, '');
+        else (r.x += ((bt.x - r.x) / dd) * SWIM_V), (r.y += ((bt.y - r.y) / dd) * SWIM_V);
+        continue;
+      }
+      const tx = C[r.tc].cx, ty = C[r.tc].cy;
       const dx = tx - r.x, dy = ty - r.y, d = Math.hypot(dx, dy);
       const reach = r.tc >= 0 ? C[r.tc].r * 0.8 : 0.01;
       if (d < reach && r.tc >= 0) {
@@ -1054,7 +1061,7 @@ function newStage(s: IceState) {
 function starList(stage: number): string[] {
   const d = STAGES[stage], out = ['펭귄을 모두 배로'];
   if (stage >= 1) out.push('아무도 물에 안 빠지기');
-  if (stage >= 2) out.push(d.star3 === 'seal' ? '물개도 물에 첨벙' : `${d.par}번 안에 구조`);
+  if (stage >= 2) out.push(d.star3 === 'seal' ? '물개도 물에 첨벙' : d.par === 1 ? '한 번에 구조' : `${['', '한', '두', '세', '네'][d.par]} 번 안에 구조`);
   return out;
 }
 
@@ -1791,11 +1798,11 @@ function drawBear(ctx: C2, x: number, y: number, u: number, face: number, mood: 
   }
   ctx.rotate(Math.sin(t * 0.05) * 0.04);
   ctx.scale(face, 1);
-  ctx.strokeStyle = '#8a8070';
-  ctx.lineWidth = Math.max(1, u * 0.06);
+  ctx.strokeStyle = '#5e4e3c';
+  ctx.lineWidth = Math.max(1.3, u * 0.08);
   const g = ctx.createLinearGradient(-u, -u * 2.4, u, 0);
-  g.addColorStop(0, '#ffffff');
-  g.addColorStop(1, '#e4ddc8');
+  g.addColorStop(0, '#fffaf0');
+  g.addColorStop(1, '#e6d2a8');
   ctx.fillStyle = g;
   // 몸
   ell(ctx, 0, -u * 0.8, u * 0.85, u * 0.82);
@@ -1821,6 +1828,14 @@ function drawBear(ctx: C2, x: number, y: number, u: number, face: number, mood: 
     ctx.fill();
     ctx.fillStyle = g;
   }
+  // 빨간 목도리
+  ctx.fillStyle = '#e8413a';
+  ctx.beginPath();
+  ctx.ellipse(u * 0.1, -u * 1.38, u * 0.62, u * 0.17, 0.08, 0, TAU);
+  ctx.fill();
+  ctx.fillRect(-u * 0.38, -u * 1.38, u * 0.2, u * 0.55);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(-u * 0.38, -u * 1.0, u * 0.2, u * 0.05);
   ctx.fillStyle = '#f2ecdc';
   ell(ctx, u * 0.45, -u * 1.68, u * 0.28, u * 0.2);
   ctx.fill();
@@ -2027,6 +2042,7 @@ function drawHand(ctx: C2, x: number, y: number, k: number, press: number) {
 }
 
 const evMark = new WeakMap<object, number>();
+const recentSay = new WeakMap<object, { x: number; y: number; t: number }[]>();
 const bigWord = new WeakMap<object, { text: string; t: number; x: number; y: number; n: number }>();
 const demoAt = new WeakMap<object, { x: number; y: number }>();
 
@@ -2042,7 +2058,17 @@ function drawAll(ctx: C2, s: IceState, w: number, h: number, th: Theme) {
     for (const e of s.events) {
       if (e.t <= last) continue;
       const ex = SX(e.x, e.y), ey = SY(e.y);
-      const say = (txt: string, col: string, sz: number) => txt && fx.pop(Math.max(R(0.12), Math.min(w - R(0.12), ex)), ey - R(0.06), txt, col, sz);
+      const say = (txt: string, col: string, sz: number) => {
+        if (!txt) return;
+        let rec = recentSay.get(s);
+        if (!rec) recentSay.set(s, (rec = []));
+        const x = Math.max(R(0.14), Math.min(w - R(0.14), ex));
+        let y = ey - R(0.06);
+        for (let k = 0; k < 6 && rec.some((q) => t - q.t < 40 && Math.abs(q.x - x) < w * 0.3 && Math.abs(q.y - y) < sz + 4); k++) y -= sz + 4;
+        rec.push({ x, y, t });
+        if (rec.length > 14) rec.shift();
+        fx.pop(x, y, txt, col, sz);
+      };
       switch (e.kind) {
         case 'crack': {
           const n = e.n ?? 4, big = (e.text ?? '').length > 2;
@@ -2725,7 +2751,7 @@ function drawAll(ctx: C2, s: IceState, w: number, h: number, th: Theme) {
     ctx.setLineDash([]);
     font(0.036, 900);
     const lab = `NEW  ${sp.label}`, tw = ctx.measureText(lab).width + R(0.05);
-    const lx = Math.max(tw / 2 + 4, Math.min(w - tw / 2 - 4, cx)), ly = cy - ry - R(0.03);
+    const lx = Math.max(tw / 2 + 4, Math.min(w - tw / 2 - 4, cx)), ly = Math.max(R(0.12), cy - ry - R(0.07));
     ctx.fillStyle = '#ff5a3a';
     rr(ctx, lx - tw / 2, ly - R(0.024), tw, R(0.048), R(0.024));
     ctx.fill();
@@ -2795,7 +2821,7 @@ function drawAll(ctx: C2, s: IceState, w: number, h: number, th: Theme) {
     font(0.04, 900);
     ctx.fillText(d.name, R(0.1), cy + 1, R(0.36));
     const nw = Math.min(R(0.36), ctx.measureText(d.name).width);
-    font(0.032, 700);
+    font(0.036, 700);
     ctx.fillStyle = '#6a8aa8';
     ctx.fillText(` / ${STAGE_COUNT}`, R(0.1) + nw, cy + 2);
     ctx.textAlign = 'right';

@@ -46,7 +46,7 @@ const MINLEN = 0.035;
 /** 구멍: 둘레 비탈 폭 · 끌어당김 · 빠지는 반지름 비율 */
 const RIM = 0.022, PULL = 0.0009, CAPF = 0.82;
 /** 고양이: 몸 반지름 · 깨는 충돌 속도 · 깨는 충돌 수 · 펄쩍 시간 · 깰 때 밀어내는 반지름·세기 */
-const CAT_R = 0.095, CAT_HIT = 0.014, CAT_BUMPS = 5, JUMP_T = 80, CAT_BLAST_R = 0.26, CAT_BLAST = 0.02;
+const CAT_R = 0.095, CAT_HIT = 0.016, CAT_BUMPS = 6, JUMP_T = 80, CAT_BLAST_R = 0.26, CAT_BLAST = 0.02;
 const RESULT = 190, CARD_T = 150, NEWS_T = 170;
 const STAR_PTS = 100, NET_PTS = 2, LEFT_PTS = 30, WIN_PTS = 300;
 /** 큰 순간: 한 획에 이만큼 밀면 '와르르' · 이 틱 안에 이만큼 들어가면 '퐁퐁퐁' */
@@ -667,6 +667,7 @@ function handlePointer(s: SweepState, p: { x: number; y: number } | null) {
       s.pushed = 0;
       s.surged = false;
       s.trail = [];
+      if (s.cat) s.cat.bumps = 0; // 고양이는 한 번 쓸 때 세게 여러 번 맞아야 깬다
       ev(s, 'land', f.x, f.y, '쓱!');
       return;
     }
@@ -812,6 +813,7 @@ function simStroke(S: Sim, p: Path, settle: number): Sim {
   b.has = false;
   b.len = 0;
   b.tired = false;
+  if (S.cat) S.cat.bumps = 0;
   const dur = Math.ceil(p.len / p.speed / REACT) * REACT + REACT;
   for (let tt = 0; tt < dur; tt++) {
     if (tt % REACT === 0) {
@@ -984,7 +986,7 @@ function plan(s: SweepState): Path | null {
   let best: Path | null = null, bv = -1e9;
   for (const c of ranked) {
     const S = corridor(s, c.p), p0 = potential(S);
-    simStroke(S, c.p, 28);
+    simStroke(S, c.p, s.cat ? 50 : 28);
     const v = value(s, S, 1) + potential(S) - p0;
     if (v > bv) (bv = v), (best = c.p);
   }
@@ -2242,10 +2244,21 @@ function drawCat(ctx: C2, s: SweepState, w: number) {
     ctx.beginPath();
     ctx.ellipse(-u * 0.6, u * 0.22, u * 0.28, u * 0.17, 0, 0, TAU);
     ctx.fill();
-    // 감은 눈 · 코
+    // 감은 눈 (맞으면 한쪽 눈을 슬쩍 뜬다) · 코
     ctx.strokeStyle = '#5a3218';
     ctx.lineWidth = Math.max(1.2, u * 0.07);
     for (const ex of [-0.78, -0.42]) {
+      if (c.bumps >= 3 && ex > -0.5) {
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(u * ex, u * 0.02, u * 0.1, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = '#3a2210';
+        ctx.beginPath();
+        ctx.arc(u * ex + u * 0.02, u * 0.03, u * 0.05, 0, TAU);
+        ctx.fill();
+        continue;
+      }
       ctx.beginPath();
       ctx.arc(u * ex, u * 0.02, u * 0.09, 0.2, Math.PI - 0.2);
       ctx.stroke();
@@ -2261,6 +2274,16 @@ function drawCat(ctx: C2, s: SweepState, w: number) {
     ctx.ellipse(u * 0.05, u * 0.55, u * 0.18, u * 0.11, 0, 0, TAU);
     ctx.fill();
     ctx.restore();
+    if (c.bumps >= 1) {
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = 'rgba(160,60,20,.7)';
+      ctx.lineWidth = 3;
+      ctx.font = `900 ${Math.round(R(0.04))}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      const tx = c.bumps >= 4 ? '으르릉…' : c.bumps >= 2 ? '?!' : '음냐…';
+      ctx.strokeText(tx, sx + u * 0.6, cy - u * 1.0);
+      ctx.fillText(tx, sx + u * 0.6, cy - u * 1.0);
+    }
     // Zzz
     const zt = (t % 120) / 120;
     ctx.fillStyle = `rgba(255,255,255,${1 - zt})`;

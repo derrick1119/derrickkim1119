@@ -31,7 +31,7 @@ const CAP = 360;
 /** CDAMP: 다른 구슬·벽에 닿아 있는 구슬은 틱마다 속도가 조금 준다(구름 마찰) — 와르르 내려앉은 뒤 금방 멈춘다 */
 const G = 0.0006, DAMP = 0.992, CDAMP = 0.86, ITERS = 3, SLEEP_V = 0.0005, CALM_N = 8;
 /** 맞닿음 허용 폭 · 손가락이 구슬에 닿는 여유 */
-const TOL = 0.028, HIT_PAD = 0.008;
+const TOL = 0.02, HIT_PAD = 0.008;
 /** 별 구슬은 무거운 금 — 더미가 움직이는 동안 더 세게 가라앉는다 */
 const STAR_G = 2.4;
 const POP_KICK = 0.0032;
@@ -421,7 +421,7 @@ const GOAL = S('goal', 0, '');
 export const STAGES: StageDef[] = [
   {
     key: 'connect', name: '첫 구슬병', news: '', hint: '같은 색 구슬을 쓱 이어 긋고 떼요', spot: '',
-    n: 44, colors: 3, bias: 0.55, maxGroup: 5, strokes: 10, fire: false, ice: 0, iron: 0, star: 0, rain: 0, rainQ: 0, preFire: 0,
+    n: 44, colors: 3, bias: 0.6, maxGroup: 7, strokes: 10, fire: false, ice: 0, iron: 0, star: 0, rain: 0, rainQ: 0, preFire: 0,
     goal: S('color', 7, '빨간 구슬 7개', 0), stars: [GOAL],
   },
   {
@@ -705,9 +705,10 @@ function touchAt(s: BeadState, x: number, y: number) {
     return;
   }
   if (!canAdd(W, ch, b)) {
-    // 아직 하나뿐이면 손가락이 간 구슬에서 새로 시작 (첫 구슬 색에 묶이지 않게 — 넉넉히)
-    if (ch.length !== 1) return;
-    ch[0] = b;
+    // 아직 둘 이하면 손가락이 간 구슬에서 새로 시작 (첫 구슬 색에 묶이지 않게 — 넉넉히)
+    if (ch.length > 2) return;
+    ch.length = 0;
+    ch.push(b);
     s.linkT = s.t;
     ev(s, 'link', W.x[b], W.y[b], { c: W.col[b], kind: W.kind[b], n: 1, r: W.r[b], uid: W.uid[b] });
     return;
