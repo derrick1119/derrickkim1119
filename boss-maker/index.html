@@ -330,35 +330,6 @@ canvas{display:block;width:100%;height:100%;border-radius:16px}
   .skillpick{grid-template-columns:64px minmax(0,1fr);align-items:baseline}
 }
 
-.hpbar{position:relative;height:24px;border:var(--edge);border-radius:999px;background:#d9d0f5;overflow:hidden;margin:6px 0 8px}
-.hpbar i{position:absolute;inset:0 auto 0 0;background:#3ec9ff}
-.hpbar b{position:relative;display:block;text-align:center;font:400 13px/18px var(--font-display)}
-.steps{display:flex;gap:6px;margin:2px 0 4px}
-.steps i{flex:1;height:10px;border-radius:999px;border:2px solid var(--ink);background:#fff}
-.steps i.done{background:#3ec9ff}.steps i.now{background:var(--sun)}.steps i.boss{flex:1.5;background:#ffd9cf}.steps i.boss.now{background:var(--coral)}
-.kit{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:6px 0}
-.kp{display:flex;align-items:center;gap:6px;min-width:0;padding:5px 6px;background:var(--paper);border:2px solid var(--ink);border-radius:12px}
-.kp b{display:block;font:400 12px/1.15 var(--font-display);overflow-wrap:anywhere}
-.kp small{display:block;font-size:10.5px;color:var(--ink-soft)}
-.kp.none{border-style:dashed;background:rgba(255,250,240,.6)}
-.chips{display:grid;gap:4px;margin:4px 0 8px}
-.chip{font-size:12.5px;background:#fff3c9;border:2px solid var(--ink);border-radius:10px;padding:3px 8px}
-.chip b{font:400 12.5px/1.2 var(--font-display);margin-right:6px}
-.doors{display:grid;gap:8px}
-.door{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;text-align:left;padding:9px 11px;background:var(--paper);border:var(--edge);border-radius:14px;box-shadow:var(--lip);color:var(--ink)}
-.door b{display:block;font:400 15px/1.2 var(--font-display)}
-.door .r{display:block;font-size:12.5px;color:var(--ink-soft)}
-.door .rw{color:#96610a}
-.door img,.door .dico{width:56px;height:56px}
-.door .dico{display:grid;place-items:center;border-radius:14px;border:2.5px solid var(--ink);font:400 28px/1 var(--font-display)}
-.door.repair .dico{background:#c5f5d6}.door.lab .dico{background:#d9d0f5}
-.door.elite{background:#ffe9e2}.door.boss{background:#ffd9cf}
-.door:active{transform:translateY(2px);box-shadow:0 2px 0 var(--ink)}
-.prow.one{grid-template-columns:minmax(0,1fr)}
-.newbot{background:#fff3c9;border:2px solid var(--ink);border-radius:12px;padding:8px 12px;font-size:13.5px;margin:8px 0}
-.newbot b{font-weight:400;font-family:var(--font-display)}
-.ascrow{display:flex;align-items:center;gap:6px;margin:6px 0;font-size:13px}
-.ascrow .mini[aria-pressed="true"]{background:var(--sky)}
 .botrow{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 10px;margin:0 -2px 6px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
 .botcard{flex:0 0 auto;width:88px;display:grid;justify-items:center;gap:2px;padding:6px 4px 7px;background:var(--paper);border:var(--edge);border-radius:14px;box-shadow:var(--lip);scroll-snap-align:start;color:var(--ink);text-align:center}
 .botcard img{width:58px;height:58px}
@@ -426,9 +397,9 @@ body.playing button:focus-visible{outline-color:#fff}
   <header class="bar">
     <div class="brand"><img id="logo" alt="" width="46" height="46"><h1>위인 로봇 대전</h1><span class="proto">프로토타입</span></div>
     <nav class="views" aria-label="화면 전환">
-      <button type="button" id="tabRun" aria-pressed="true">모험</button>
-      <button type="button" id="tabFree" aria-pressed="false">자유 대전</button>
-      <button type="button" id="tabCodex" aria-pressed="false">도감</button>
+      <button type="button" id="tabWorkshop" aria-pressed="true">작업실</button>
+      <button type="button" id="tabLab" aria-pressed="false">연구실</button>
+      <button type="button" id="tabChallenge" aria-pressed="false">도전</button>
     </nav>
   </header>
   <main>
@@ -467,7 +438,7 @@ body.playing button:focus-visible{outline-color:#fff}
 const W = 360, H = 540, TPS = 60, DT = 1 / TPS, TAU = Math.PI * 2;
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 /* 전력 타이밍 대전: 전력이 차오르고, 파츠 버튼을 눌러 쓴다. 빠른 공격은 강타 준비를 끊고, 강타는 가드를 깨고, 가드는 빠른 공격과 사격을 막는다 */
-const RULE = { time: 3600, hot: 2400, enMax: 10, enStart: 3, enRate: 1 / 60, guardCost: 2, guardLen: 48, guardGap: 16, parry: 18, block: 0.25, breakStun: 40, parryStun: 66, bonus: 12, gaugeMax: 100, gainHit: 0.8, gainHurt: 0.5, buffer: 20, lvUp: 0.1, whiff: 14 };
+const RULE = { time: 3600, hot: 2400, enMax: 10, enStart: 3, enRate: 1 / 60, guardCost: 2, guardLen: 48, guardGap: 16, parry: 18, block: 0.25, breakStun: 40, parryStun: 66, bonus: 12, gaugeMax: 100, gainHit: 0.8, gainHurt: 0.5, buffer: 20, lvUp: 0.08, whiff: 14 };
 const MAXLV = 5, SLOTS = ['A', 'A', 'B'], SLOTNAME = ['오른팔', '왼팔', '등'];
 const CLS = { fast: '빠른 공격', heavy: '강타', shot: '사격', bomb: '폭탄', dodge: '회피', heal: '수리', buff: '보조', trap: '함정', pass: '항상 켜짐' };
 /* 파츠. slot: A 팔, B 등. only가 있으면 그 위인의 로봇만 다는 전용 파츠. wind 준비, fly 날아가는 시간, rec 뒷동작 (틱) */
@@ -528,30 +499,7 @@ const SKILL = {
   mx: { now: (m, e) => { const n = Math.min(4, e.en); e.en -= n; m.en = Math.min(m.enMax, m.en + n); } },
   nb: { cls: 'bomb', wind: 20, fly: 96, rec: 12, dmg: 30, leak: 0.5 },
 };
-/* 이론: 모험에서 깨닫는 과학 법칙. 로봇에 늘 걸려 있는 효과를 준다 */
-const THEORY = {
-  in: { name: '관성의 법칙', desc: '전력 3을 더 갖고 싸움을 시작해요', lore: '멈춰 있는 것은 계속 멈춰 있고, 움직이는 것은 계속 움직이려 해요.' },
-  ec: { name: '에너지 보존', desc: '받아치면 전력을 2 더 얻어요', lore: '에너지는 사라지지 않고 모습만 바뀌어요.' },
-  hk: { name: '훅의 법칙', desc: '빠른 공격이 25% 더 세요', lore: '용수철은 늘인 만큼 되돌아가려는 힘이 커져요.' },
-  lv: { name: '지렛대의 원리', desc: '강타가 25% 더 세요', lore: '받침점에서 멀리 누를수록 작은 힘으로 큰 것을 들어요.' },
-  pb: { name: '포물선 운동', desc: '사격과 폭탄이 20% 더 세요', lore: '던진 물체는 앞으로 가면서 동시에 떨어져서 곡선을 그려요.' },
-  th: { name: '열역학 제1법칙', desc: '전력이 12% 빨리 차요', lore: '열도 에너지의 한 모습이라 일로 바꿀 수 있어요.' },
-  ps: { name: '파스칼의 원리', desc: '가드가 더 오래가고 받아치기 판정이 넉넉해져요', lore: '갇힌 액체를 누르면 그 압력이 모든 방향으로 똑같이 전해져요.' },
-  ar: { name: '작용·반작용', desc: '가드로 막거나 받아치면 상대가 4 다쳐요', lore: '내가 벽을 밀면 벽도 나를 똑같은 힘으로 밀어요.' },
-  by: { name: '부력', desc: '최대 체력이 30 늘고 그만큼 바로 회복해요', lore: '물에 잠긴 물체는 밀어낸 물의 무게만큼 가벼워져요.' },
-  fr: { name: '마찰열', desc: '빠른 공격이 맞으면 상대에게 1.5초 불이 붙어요', lore: '비비면 운동 에너지가 열로 바뀌어요.' },
-  dp: { name: '도플러 효과', desc: '내가 쏜 것이 30% 빨리 날아가요', lore: '다가오는 구급차 소리가 높게 들리는 건 파동이 눌리기 때문이에요.' },
-  rs: { name: '공명', desc: '필살기 게이지가 30% 빨리 차요', lore: '박자를 맞춰 밀면 그네가 점점 높이 올라가요.' },
-  ch: { name: '연쇄 반응', desc: '상대 동작을 끊으면 6을 더 때리고 전력 1을 얻어요', lore: '하나가 일으킨 반응이 다음 반응을 줄줄이 일으켜요.' },
-  om: { name: '축전', desc: '전력을 2 더 담을 수 있어요', lore: '축전기는 전기를 모아 두었다가 한꺼번에 내보내요.' },
-  rl: { name: '시간 지연', desc: '상대의 강타 준비가 15% 길어져요', lore: '아주 빠르게 움직이는 쪽의 시계는 느리게 가요.' },
-  un: { name: '불확정성', desc: '맞을 공격을 여덟 번에 한 번꼴로 피해요', lore: '아주 작은 세계에서는 위치와 속도를 동시에 정확히 알 수 없어요.' },
-  ld: { name: '피뢰침', desc: '기절과 마비 시간이 절반이 돼요', lore: '뾰족한 금속 막대가 번개를 땅으로 안전하게 흘려보내요.' },
-  en: { name: '엔트로피', desc: '25초부터 내 전력이 두 배로 차요', lore: '가만두면 세상은 점점 흐트러지는 쪽으로 가요.' },
-  hl: { name: '자가 수리', desc: '싸움에서 이길 때마다 체력을 12 더 회복해요', lore: '도마뱀 꼬리처럼 스스로 고치는 재료를 과학자들이 연구하고 있어요.' },
-};
-const TORDER = Object.keys(THEORY);
-/* 보스(한 대의 로봇) = 위인 로봇 + 파츠 셋(팔, 팔, 등) + 파츠 레벨 + 모는 솜씨(ai) + 깨달은 이론(th) */
+/* 보스(한 대의 로봇) = 위인 로봇 + 파츠 셋(팔, 팔, 등) + 파츠 레벨 + 모는 솜씨(ai) */
 function prep(b) {
   if (!SCI[b.bot]) b.bot = 'ar';
   const src = Array.isArray(b.parts) ? b.parts : [];
@@ -559,12 +507,11 @@ function prep(b) {
   if (b.parts[0] && b.parts[0] === b.parts[1]) b.parts[1] = null;
   if (b.lv === undefined) b.lv = 1;
   b.ai = clamp(Math.round(+b.ai || 3), 1, 5);
-  b.th = Array.isArray(b.th) ? b.th.filter(k => THEORY[k]) : [];
   return b;
 }
 const lvIn = (b, k) => clamp(Math.round(typeof b.lv === 'number' ? b.lv : (b.lv && b.lv[k]) || 1), 1, MAXLV);
 const partsOf = b => b.parts.filter(Boolean);
-const hpOf = b => b.hpMax || Math.round(SCI[b.bot].hp * (b.hpx || 1));   // 상대는 체력 배율이 붙고, 모험 중인 내 로봇은 키운 체력을 쓴다
+const hpOf = b => Math.round(SCI[b.bot].hp * (b.hpx || 1));   // 연습용 상대는 체력이 적다
 const avgCost = b => { const a = partsOf(b).map(k => PART[k].cost).filter(c => c !== undefined); return a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0; };
 
 /* ---------- 대결 계산 (같은 씨앗과 같은 입력이면 같은 결과) ---------- */
@@ -573,11 +520,10 @@ function rnd(d) { d.rs = d.rs + 0x6D2B79F5 | 0; let t = Math.imul(d.rs ^ d.rs >>
 function makeDuel(top, bot, seed) {
   const d = { rs: (seed ^ 0x9e3779b9) | 0, tick: 0, f: [], shots: [], over: null, ev: [] };
   const mk = (boss, side) => {
-    const has = k => boss.parts.includes(k), th = {}, max = hpOf(boss);
-    for (const k of boss.th || []) th[k] = 1;
-    return { boss, bot: boss.bot, side, dir: side ? 1 : -1, th, hp: boss.hp0 ? clamp(boss.hp0, 1, max) : max, max, en: (has('e') ? 5 : RULE.enStart) + (th.in ? 3 : 0), enMax: RULE.enMax + (has('e') ? 2 : 0) + (th.om ? 2 : 0), gauge: boss.bot === 'dv' ? 50 : 0, guardLen: RULE.guardLen + (th.ps ? 12 : 0),
+    const sc = SCI[boss.bot], has = k => boss.parts.includes(k);
+    return { boss, bot: boss.bot, side, dir: side ? 1 : -1, hp: hpOf(boss), max: hpOf(boss), en: has('e') ? 5 : RULE.enStart, enMax: RULE.enMax + (has('e') ? 2 : 0), gauge: boss.bot === 'dv' ? 50 : 0,
       act: null, q: null, qT: 0, stun: 0, guard: 0, guardT: 0, guardCd: 0, dodge: 0, fly: 0, sureT: 0, sure1: 0, haste: 0, lock: 0, jam: 0, rad: 0, rad2: 0, burn: 0, burnDps: 0, mine: 0, buff: 1, combo: 0, fl: 0, dot: 0,
-      shield: has('q'), thorn: has('g'), parryW: RULE.parry + (has('q') ? 12 : 0) + (th.ps ? 6 : 0), st: { parry: 0, cut: 0, brk: 0, dodge: 0, used: 0, dealt: {}, uses: {} }, ai: null };
+      shield: has('q'), thorn: has('g'), parryW: RULE.parry + (has('q') ? 12 : 0), st: { parry: 0, cut: 0, brk: 0, dodge: 0, used: 0, dealt: {} }, ai: null };
   };
   d.f = [mk(top, 0), mk(bot, 1)];
   return d;
@@ -595,15 +541,15 @@ function hurt(d, a, e, dmg, by, out) {
   if (dmg <= 0 || d.over) return;
   e.hp -= dmg; e.fl = 8;
   a.st.dealt[by] = (a.st.dealt[by] || 0) + dmg;
-  a.gauge = Math.min(RULE.gaugeMax, a.gauge + dmg * RULE.gainHit * (a.th.rs ? 1.3 : 1)); e.gauge = Math.min(RULE.gaugeMax, e.gauge + dmg * RULE.gainHurt * (e.th.rs ? 1.3 : 1));
+  a.gauge = Math.min(RULE.gaugeMax, a.gauge + dmg * RULE.gainHit); e.gauge = Math.min(RULE.gaugeMax, e.gauge + dmg * RULE.gainHurt);
   emit(d, { k: 'hit', side: e.side, dmg, by, out: out || 'hit' });
 }
-function stunned(d, e, n) { if (e.th.ld) n = Math.round(n / 2); if (n > e.stun) e.stun = n; if (e.act && e.act.k !== 'S') e.act = null; e.guard = 0; emit(d, { k: 'stun', side: e.side }); }
+function stunned(d, e, n) { if (n > e.stun) e.stun = n; if (e.act && e.act.k !== 'S') e.act = null; e.guard = 0; emit(d, { k: 'stun', side: e.side }); }
 function begin(d, m, code) {
   const e = d.f[1 - m.side];
   if (code === 'G') {
     if (m.act) { emit(d, { k: 'feint', side: m.side }); m.act = null; }   // 준비하던 동작을 버리고 가드 (속임수)
-    m.en -= RULE.guardCost; m.guard = m.guardLen; m.guardT = 0; emit(d, { k: 'guard', side: m.side }); return;
+    m.en -= RULE.guardCost; m.guard = RULE.guardLen; m.guardT = 0; emit(d, { k: 'guard', side: m.side }); return;
   }
   m.guard = 0;
   if (code === 'S') {
@@ -612,10 +558,10 @@ function begin(d, m, code) {
     return;
   }
   const k = m.boss.parts[code], p = PART[k], atk = p.cls === 'fast' || p.cls === 'heavy' || p.cls === 'shot';
-  m.en -= p.cost; m.st.used++; m.st.uses[k] = (m.st.uses[k] || 0) + 1;
+  m.en -= p.cost; m.st.used++;
   const hit = atk || p.cls === 'bomb';
   if (hit) m.combo++;
-  m.act = { k, sp: p, t: 0, i: code, pl: plOf(m, k), sure: atk && (m.sure1 || m.sureT > 0) ? 1 : 0, buff: hit ? m.buff * (m.sure1 && atk ? 1.08 : 1) : 1, third: hit && m.bot === 'py' && m.combo % 3 === 0 ? 1 : 0, w: Math.round((p.wind || 0) * (p.cls === 'heavy' && m.bot === 'gl' ? 0.8 : 1) * (p.cls === 'heavy' && e.th.rl ? 1.15 : 1)) };
+  m.act = { k, sp: p, t: 0, i: code, pl: plOf(m, k), sure: atk && (m.sure1 || m.sureT > 0) ? 1 : 0, buff: hit ? m.buff * (m.sure1 && atk ? 1.08 : 1) : 1, third: hit && m.bot === 'py' && m.combo % 3 === 0 ? 1 : 0, w: Math.round((p.wind || 0) * (p.cls === 'heavy' && m.bot === 'gl' ? 0.8 : 1)) };
   if (hit) { if (atk) m.sure1 = 0; m.buff = 1; }
   if (p.cls === 'dodge') { m.dodge = p.len; emit(d, { k: 'dodge', side: m.side }); }
   else emit(d, { k: 'start', side: m.side, key: k, cls: p.cls, wind: p.wind });
@@ -624,25 +570,24 @@ function begin(d, m, code) {
 function land(d, a, e, sp, by, x) {
   if (d.over || e.hp <= 0) return;
   const melee = sp.cls === 'fast' || sp.cls === 'heavy', bomb = sp.cls === 'bomb', sure = x.sure && !bomb;
-  let dmg = sp.dmg * x.pl * (a.boss.dmx || 1) * (x.buff || 1) * (sp.cls === 'heavy' && a.bot === 'ar' ? 1.2 : 1) * (sp.cls === 'shot' && a.bot === 'ga' ? 1.15 : 1) * (a.fly > 0 ? 1.4 : 1) * (x.sure ? 1.2 : 1) * (x.third ? 1.5 : 1) * (sp.cls === 'fast' && a.th.hk ? 1.25 : 1) * (sp.cls === 'heavy' && a.th.lv ? 1.25 : 1) * ((sp.cls === 'shot' || bomb) && a.th.pb ? 1.2 : 1), out = 'hit';
+  let dmg = sp.dmg * x.pl * (x.buff || 1) * (sp.cls === 'heavy' && a.bot === 'ar' ? 1.2 : 1) * (sp.cls === 'shot' && a.bot === 'ga' ? 1.15 : 1) * (a.fly > 0 ? 1.4 : 1) * (x.sure ? 1.2 : 1) * (x.third ? 1.5 : 1), out = 'hit';
   if (melee && e.mine > 0 && a.fly <= 0 && by[0] !== 'U') {   // 지뢰를 밟았다
     e.mine = 0; a.act = null; emit(d, { k: 'trap', side: a.side }); hurt(d, e, a, PART.m.dmg * plOf(e, 'm'), 'm'); if (a.hp <= 0) return; stunned(d, a, 18); return;
   }
   if (!sure) {
-    if (e.th.un && rnd(d) < 0.125) { if (melee && a.act) a.act.t -= RULE.whiff; emit(d, { k: 'miss', side: e.side, by, why: 'luck' }); return; }
     if ((melee || bomb) && (e.dodge > 0 || e.fly > 0)) { if (e.dodge > 0) { e.buff = 1.3; e.st.dodge++; } if (melee && a.act) a.act.t -= RULE.whiff; emit(d, { k: 'miss', side: e.side, by, why: e.fly > 0 ? 'fly' : 'dodge' }); return; }
     if (!melee && e.jam > 0) { emit(d, { k: 'miss', side: e.side, by, why: 'jam' }); return; }
     if (e.guard > 0 && !sp.pierce) {
       const perfect = e.guardT <= e.parryW;
       if (perfect && !bomb) {   // 받아치기: 딱 맞춰 누른 가드
-        e.st.parry++; e.en = Math.min(e.enMax, e.en + (e.bot === 'tu' ? 2 : 1) + (e.th.ec ? 2 : 0)); if (e.th.ar) hurt(d, e, a, 4, 'Tar'); e.gauge = Math.min(RULE.gaugeMax, e.gauge + RULE.bonus);
+        e.st.parry++; e.en = Math.min(e.enMax, e.en + (e.bot === 'tu' ? 2 : 1)); e.gauge = Math.min(RULE.gaugeMax, e.gauge + RULE.bonus);
         emit(d, { k: 'parry', side: e.side, by, melee });
         if (e.bot === 'ts') hurt(d, e, a, 8, 'Pts');
-        if (melee) { a.act = null; if (a.stun < RULE.parryStun) a.stun = Math.round((RULE.parryStun + (e.bot === 'ts' ? 18 : 0)) * (a.th.ld ? 0.5 : 1)); if (e.thorn) hurt(d, e, a, 10, 'g'); }
+        if (melee) { a.act = null; if (a.stun < RULE.parryStun) a.stun = RULE.parryStun + (e.bot === 'ts' ? 18 : 0); if (e.thorn) hurt(d, e, a, 10, 'g'); }
         return;
       }
       if (sp.cls === 'heavy') { e.guard = 0; a.st.brk++; out = 'break'; }   // 강타는 가드를 깬다
-      else { out = 'block'; dmg *= sp.leak !== undefined ? sp.leak : e.shield ? 0 : RULE.block; if (e.th.ar) hurt(d, e, a, 4, 'Tar'); if (melee && e.thorn) hurt(d, e, a, 5, 'g'); if (sp.stun && sp.halfStun) stunned(d, e, sp.stun / 2); }
+      else { out = 'block'; dmg *= sp.leak !== undefined ? sp.leak : e.shield ? 0 : RULE.block; if (melee && e.thorn) hurt(d, e, a, 5, 'g'); if (sp.stun && sp.halfStun) stunned(d, e, sp.stun / 2); }
     }
   }
   if (dmg > 0) hurt(d, a, e, dmg, by, out); else emit(d, { k: 'hit', side: e.side, dmg: 0, by, out });
@@ -652,14 +597,12 @@ function land(d, a, e, sp, by, x) {
   if (melee && e.bot === 'nt') hurt(d, e, a, dmg * 0.15, 'Pnt');
   if (sp.cls === 'fast' && a.bot === 'ed') a.en = Math.min(a.enMax, a.en + 0.5);
   if (a.bot === 'cu') e.rad2 = 120;
-  if (sp.burn) { e.burn = sp.burnLen; e.burnDps = sp.burn * x.pl * (a.boss.dmx || 1); e.burnBy = a.side; }
-  else if (sp.cls === 'fast' && a.th.fr && e.burn < 90) { e.burn = 90; e.burnDps = Math.max(e.burnDps, 3); }
+  if (sp.burn) { e.burn = sp.burnLen; e.burnDps = sp.burn * x.pl; e.burnBy = a.side; }
   if (sp.drain && e.en >= 1) { e.en -= sp.drain; a.en = Math.min(a.enMax, a.en + sp.drain); emit(d, { k: 'drain', side: e.side }); }
   if (sp.stun) { stunned(d, e, sp.stun); return; }
   const ea = e.act;   // 끊기: 준비 중이던 강타나 수리가 맞으면 날아간다
   if (ea && ea.k !== 'S' && ea.t < (ea.w || 0) && dmg >= 5 && (ea.sp.cls === 'heavy' || ea.sp.soft)) {
     e.act = null; a.st.cut++; a.gauge = Math.min(RULE.gaugeMax, a.gauge + RULE.bonus); if (a.bot === 'tu') a.en = Math.min(a.enMax, a.en + 1);
-    if (a.th.ch) { a.en = Math.min(a.enMax, a.en + 1); hurt(d, a, e, 6, 'Tch'); }
     emit(d, { k: 'cut', side: e.side, key: ea.k });
   }
 }
@@ -678,7 +621,7 @@ function stepDuel(d) {
     if (m.rad > 0) { m.rad--; burn += 4; }
     if (m.rad2 > 0) { m.rad2--; burn += 1; }
     if (burn && !d.over) { const dd = burn * DT; m.hp -= dd; m.dot += dd; e.st.dealt[m.rad > 0 ? 'Ucu' : m.burn > 0 ? 'f' : 'Pcu'] = (e.st.dealt[m.rad > 0 ? 'Ucu' : m.burn > 0 ? 'f' : 'Pcu'] || 0) + dd; e.gauge = Math.min(RULE.gaugeMax, e.gauge + dd * RULE.gainHit * 0.5); if (m.dot >= 2) { emit(d, { k: 'dot', side: m.side, dmg: m.dot }); m.dot = 0; } }
-    if (m.lock <= 0) m.en = Math.min(m.enMax, m.en + RULE.enRate * (d.tick >= (m.th.en ? 1500 : RULE.hot) ? 2 : 1) * (m.haste > 0 ? 2 : 1) * (m.bot === 'mx' ? 1.1 : 1) * (m.th.th ? 1.12 : 1));
+    if (m.lock <= 0) m.en = Math.min(m.enMax, m.en + RULE.enRate * (d.tick >= RULE.hot ? 2 : 1) * (m.haste > 0 ? 2 : 1) * (m.bot === 'mx' ? 1.1 : 1));
     if (m.stun > 0) { m.stun--; m.q = null; continue; }
     if (m.ai) aiStep(d, m, e);
     if (m.q !== null) { if (can(m, m.q)) { const c = m.q; m.q = null; begin(d, m, c); } else if (--m.qT <= 0) m.q = null; }
@@ -687,7 +630,7 @@ function stepDuel(d) {
       const sp = a.sp, w = a.w || 0, n = sp.hits || 1, gap = sp.gap || 0, by = a.k === 'S' ? 'U' + m.bot : a.k;
       a.t++;
       if (sp.cls === 'fast' || sp.cls === 'heavy') { for (let j = 0; j < n; j++) if (a.t === w + j * gap && m.act === a) land(d, m, e, sp, by, a); }
-      else if (sp.cls === 'shot' || sp.cls === 'bomb') { if (a.t === w) { const fly = Math.round((sp.fly || 0) * (m.th.dp ? 0.7 : 1)); for (let j = 0; j < n; j++) d.shots.push({ s: si, k: by, sp, t: 0, T: fly + j * gap, pl: a.pl, buff: a.buff, sure: a.sure, third: a.third, j }); emit(d, { k: 'fire', side: si, key: by }); } }
+      else if (sp.cls === 'shot' || sp.cls === 'bomb') { if (a.t === w) { const fly = sp.fly || 0; for (let j = 0; j < n; j++) d.shots.push({ s: si, k: by, sp, t: 0, T: fly + j * gap, pl: a.pl, buff: a.buff, sure: a.sure, third: a.third, j }); emit(d, { k: 'fire', side: si, key: by }); } }
       else if (sp.cls === 'heal') { if (a.t === w) { const h = Math.min(m.max - m.hp, sp.heal * a.pl); m.hp += h; emit(d, { k: 'heal', side: si, amt: h }); } }
       else if (sp.cls === 'buff') { if (a.t === w) { if (sp.sure) m.sure1 = 1; if (sp.jam) m.jam = sp.jam; emit(d, { k: 'buff', side: si, by: a.k }); } }
       else if (sp.cls === 'trap') { if (a.t === w) { m.mine = sp.len; emit(d, { k: 'buff', side: si, by: a.k }); } }
@@ -715,7 +658,7 @@ function aiStep(d, m, e) {
   const ea = e.act;
   if (ea && ea !== A.seen) {   // 상대가 뭔가 시작했다
     A.seen = ea;
-    const sp = ea.sp, arrive = (ea.w || 0) + (sp.cls === 'shot' || sp.cls === 'bomb' ? Math.round((sp.fly || 0) * (e.th.dp ? 0.7 : 1)) : 0) - ea.t;
+    const sp = ea.sp, arrive = (ea.w || 0) + (sp.cls === 'shot' || sp.cls === 'bomb' ? sp.fly || 0 : 0) - ea.t;
     if (rnd(d) < L.see && !ea.sure) {
       const guardAt = () => { const r = 3 + Math.floor(rnd(d) * (m.parryW - 4 + L.jit)); return d.tick + Math.max(L.delay, arrive - r); };
       if (sp.cls === 'heavy') {
@@ -768,111 +711,6 @@ function aiStep(d, m, e) {
 }
 const aiFor = b => ({ lv: b.ai || 3, plan: null, seen: null, next: 30, want: -1, wantT: 0 });
 
-/* ---------- 모험: 로봇 한 대로 3막을 올라간다. 이길 때마다 파츠, 강화, 이론 중 하나를 골라 키운다 ---------- */
-const rng32 = seed => { let s = seed | 0; return () => { s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; };
-const ACTS = [
-  { name: '고대와 르네상스', foes: ['ar', 'py', 'dv', 'gl'], boss: ['py', 'dv', 'gl'] },
-  { name: '근대', foes: ['nt', 'ga', 'mx', 'nb', 'gl', 'dv'], boss: ['nt', 'ga', 'mx', 'nb'] },
-  { name: '현대', foes: ['ed', 'cu', 'ts', 'nb', 'mx'], boss: ['tu'] },
-];
-const STEPS = 5;   // 막마다: 대결, 갈림길 셋, 보스
-const START = { ar: ['k', 'h', null], py: ['k', 'c', null], gl: ['k', '1', null], nt: ['k', 'p', null], dv: ['k', 'j', null], ed: ['k', 'f', null], ga: ['k', 'u', null], tu: ['k', 'c', null], cu: ['k', '4', null], ts: ['k', 'c', null], mx: ['k', 'l', null], nb: ['k', 'o', null] };
-const KIT = { ar: ['d', 'h', 'b'], py: ['k', 'c', 'i'], gl: ['1', 'c', 'r'], nt: ['p', 'k', 'x'], dv: ['j', 's', 'b'], ed: ['f', 's', 'e'], ga: ['u', 'q', 'r'], tu: ['k', 'q', '2'], cu: ['4', 's', 'm'], ts: ['k', 'q', 't'], mx: ['l', 'k', 'b'], nb: ['o', 'h', 'm'] };   // 강적과 보스가 쓰는 제 짝 파츠
-const RUNRULE = { heal: 0.22, bossHeal: 0.3, repair: 0.45, sip: 0.25, lab: 2, hpx: [0.42, 0.52, 0.64], stepHp: 0.03, eliteHp: 0.1, bossHp: [0.75, 0.85, 1.0], dmx: [0.6, 0.66, 0.74], eliteDmx: 0.06, bossDmx: [0.8, 0.82, 0.9], ai: [1, 2, 3], bossAi: [2, 3, 4], ascHp: 0.06, ascDmx: 0.04 };
-const DOOR = { duel: '대결', elite: '강적', repair: '정비소', lab: '실험실', boss: '보스' };
-const fitParts = (bot, sl) => PORDER.filter(k => PART[k].slot === sl && (!PART[k].only || PART[k].only === bot));
-const isAtk = k => { const c = PART[k].cls; return c === 'fast' || c === 'heavy' || c === 'shot' || c === 'bomb'; };
-function mkFoe(R, act, step, kind, bot, asc) {
-  const pick = a => a[Math.floor(R() * a.length)], sc = SCI[bot];
-  let parts, th = [], name;
-  if (kind === 'duel') {   // 연습기: 파츠가 덜 달렸다
-    const arms = fitParts(bot, 'A'), atk = arms.filter(isAtk), a0 = pick(atk);
-    let a1 = act > 0 || R() < 0.5 ? pick(arms.filter(k => k !== a0)) : null;
-    parts = [a0, a1, act > 0 && R() < 0.4 + act * 0.25 ? pick(fitParts(bot, 'B')) : null]; name = `${sc.name} 연습기`;
-  } else { parts = KIT[bot].slice(); name = kind === 'boss' ? `${sc.name}의 ${sc.bot}` : sc.bot; }
-  const free = TORDER.filter(k => k !== 'by' && k !== 'hl');
-  if (kind === 'elite') th = [pick(free)];
-  if (kind === 'boss') { th = []; while (th.length < act + 1) { const k = pick(free); if (!th.includes(k)) th.push(k); } }
-  const ai = clamp((kind === 'boss' ? RUNRULE.bossAi[act] : RUNRULE.ai[act] + (kind === 'elite' ? 1 : 0) + (step >= 3 ? 1 : 0)) + (asc >= 3 ? 1 : 0), 1, 5);
-  const hpx = (kind === 'boss' ? RUNRULE.bossHp[act] : RUNRULE.hpx[act] + step * RUNRULE.stepHp + (kind === 'elite' ? RUNRULE.eliteHp : 0)) * (1 + RUNRULE.ascHp * asc);
-  const dmx = (kind === 'boss' ? RUNRULE.bossDmx[act] : RUNRULE.dmx[act] + (kind === 'elite' ? RUNRULE.eliteDmx : 0)) * (1 + RUNRULE.ascDmx * asc);
-  return prep({ name, bot, parts, lv: clamp(1 + act + (kind === 'boss' ? 1 : 0), 1, MAXLV), ai, hpx: Math.round(hpx * 100) / 100, dmx: Math.round(dmx * 100) / 100, th, kind });
-}
-function newRun(bot, seed, asc) {
-  const R = rng32(seed), pick = a => a[Math.floor(R() * a.length)], map = [];
-  for (let act = 0; act < ACTS.length; act++) {
-    const A = ACTS[act], pool = A.foes.filter(k => k !== bot), steps = [];
-    for (let s = 0; s < STEPS; s++) {
-      if (s === STEPS - 1) { const bs = A.boss.filter(k => k !== bot); steps.push([{ t: 'boss', foe: mkFoe(R, act, s, 'boss', pick(bs.length ? bs : A.boss), asc) }]); continue; }
-      const mk = t => t === 'duel' || t === 'elite' ? { t, foe: mkFoe(R, act, s, t, pick(pool), asc) } : { t };
-      if (s === 0) { steps.push([mk('duel')]); continue; }
-      const kinds = s === STEPS - 2 ? ['repair', R() < 0.5 ? 'elite' : 'duel'] : [R() < 0.62 ? 'duel' : 'elite', pick(R() < 0.5 ? ['lab', 'repair'] : ['elite', 'lab', 'duel'])];
-      if (kinds[0] === kinds[1]) kinds[1] = kinds[0] === 'duel' ? 'elite' : 'duel';
-      steps.push(kinds.map(mk));
-    }
-    map.push(steps);
-  }
-  const max = SCI[bot].hp;
-  return { v: 1, bot, seed, asc: asc || 0, hp: max, max, parts: START[bot].slice(), lv: {}, th: [], act: 0, step: 0, map, pending: null, n: 0, over: null, st: { duels: 0, parry: 0, cut: 0, brk: 0, dodge: 0, ticks: 0, fast: 0, heavy: 0, shot: 0 }, got: [] };
-}
-const runR = run => rng32(run.seed * 31 + (++run.n) * 977);
-const runBoss = (run, name) => prep({ name: name || '내 로봇', bot: run.bot, parts: run.parts.slice(), lv: run.lv, ai: 3, th: run.th.slice(), hp0: run.hp, hpMax: run.max });
-const runDoors = run => run.map[run.act][run.step];
-function finalFoe(run) {   // 마지막 보스는 내가 많이 쓴 공격을 읽고 대비해 온다
-  const s = run.st, most = s.shot >= s.fast && s.shot >= s.heavy ? 'shot' : s.heavy > s.fast ? 'heavy' : 'fast', f = runDoors(run)[0].foe;
-  f.parts = most === 'shot' ? ['k', 'q', '2'] : most === 'heavy' ? ['k', 'c', 'b'] : ['c', 'g', 'x'];
-  f.th = most === 'shot' ? ['un', 'ps'] : most === 'heavy' ? ['rl', 'ch', 'in'] : ['ar', 'ps', 'ld'];
-  f.read = most;
-  return prep(f);
-}
-function rewardOpts(run, kind) {
-  const R = runR(run), pick = a => a[Math.floor(R() * a.length)], out = [];
-  const ths = TORDER.filter(k => !run.th.includes(k)), ups = run.parts.filter(k => k && (run.lv[k] || 1) < MAXLV);
-  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  if (kind !== 'duel' && ths.length) { for (const k of shuffle(ths).slice(0, 3)) out.push({ t: 'th', k }); return out; }
-  const have = new Set(run.parts.filter(Boolean)), own = SCI[run.bot].own;
-  let pool = PORDER.filter(k => !have.has(k) && (!PART[k].only || PART[k].only === run.bot));
-  if (!run.parts[2]) pool = pool.filter(k => PART[k].slot === 'B').concat(pool.filter(k => PART[k].slot === 'B'), pool);   // 등이 비었으면 등 파츠가 잘 나온다
-  const first = !have.has(own) && R() < 0.45 ? own : pick(pool);
-  out.push({ t: 'part', k: first, lv: 1 + run.act });
-  const rest = pool.filter(k => k !== first); if (rest.length) out.push({ t: 'part', k: pick(rest), lv: 1 + run.act });
-  out.push(ups.length && (run.hp > run.max * 0.55 || R() < 0.4) ? { t: 'up', k: pick(ups) } : { t: 'heal' });
-  return out;
-}
-function heal(run, q) { const b = Math.min(run.max - run.hp, Math.round(run.max * q)); run.hp += b; return b; }
-function runWin(run, d, node) {   // 이긴 뒤: 체력을 이어받고 조금 고치고, 보상을 준비한다
-  const me = d.f[1], s = run.st;
-  s.duels++; s.parry += me.st.parry; s.cut += me.st.cut; s.brk += me.st.brk; s.dodge += me.st.dodge; s.ticks += d.tick;
-  for (const k in me.st.uses) { const c = PART[k] && PART[k].cls; if (c === 'fast' || c === 'heavy') s[c] += me.st.uses[k]; else if (c === 'shot' || c === 'bomb') s.shot += me.st.uses[k]; }
-  run.hp = Math.max(1, Math.ceil(me.hp));
-  heal(run, Math.max(0.05, RUNRULE.heal - 0.03 * run.asc) + (node.t === 'boss' ? RUNRULE.bossHeal : 0)); if (run.th.includes('hl')) run.hp = Math.min(run.max, run.hp + 12);
-  if (node.t === 'boss' && run.act === ACTS.length - 1) { run.over = 'clear'; run.pending = null; return; }
-  run.pending = { t: 'reward', kind: node.t, opts: rewardOpts(run, node.t) };
-}
-function advance(run) {
-  run.pending = null;
-  if (++run.step >= STEPS) { run.step = 0; run.act++; }
-  if (run.act === ACTS.length - 1 && run.step === STEPS - 1) finalFoe(run);
-}
-function takeReward(run, o, slot) {   // slot: 파츠를 달 자리. 돌려주는 값이 false면 자리를 골라야 한다
-  if (o.t === 'part') {
-    const sl = PART[o.k].slot, spots = SLOTS.map((s, i) => s === sl ? i : -1).filter(i => i >= 0), empty = spots.find(i => !run.parts[i]);
-    if (slot === undefined) { if (empty !== undefined) slot = empty; else if (spots.length === 1) slot = spots[0]; else return false; }
-    run.parts[slot] = o.k; run.lv[o.k] = Math.max(run.lv[o.k] || 1, o.lv);
-  } else if (o.t === 'up') run.lv[o.k] = Math.min(MAXLV, (run.lv[o.k] || 1) + 1);
-  else if (o.t === 'heal') heal(run, RUNRULE.sip);
-  else if (o.t === 'th') { run.th.push(o.k); if (o.k === 'by') { run.max += 30; run.hp += 30; } }
-  advance(run);
-  return true;
-}
-function enterDoor(run, i) {   // 싸움이 아닌 방은 여기서 처리한다. 싸움이면 그 방을 돌려준다
-  const node = runDoors(run)[i];
-  if (node.t === 'repair') { node.healed = heal(run, RUNRULE.repair); advance(run); return null; }
-  if (node.t === 'lab') { run.pending = { t: 'lab' }; return null; }
-  return node;
-}
-function labUp(run, k) { run.lv[k] = Math.min(MAXLV, (run.lv[k] || 1) + RUNRULE.lab); advance(run); }
-
 /* ---------- 공유 코드 ---------- */
 const cleanName = s => [...String(s || '').replace(/\s+/g, ' ').trim()].slice(0, 12).join('');
 const hex = str => Array.from(new TextEncoder().encode(str), b => b.toString(16).padStart(2, '0')).join('');
@@ -912,53 +750,44 @@ function decode(str) {
 /* ---------- 기본 데이터 ---------- */
 const N = null;
 const AINAME = ['', '느긋함', '초보', '보통', '능숙', '고수'];
-const SAMPLES = [   // 자유 대전 상대. parts는 오른팔, 왼팔, 등 순서. 뒤로 갈수록 솜씨가 좋다
+const SAMPLES = [   // parts는 오른팔, 왼팔, 등 순서. 뒤로 갈수록 솜씨가 좋다
   { boss: { name: '깡통이', bot: 'ar', parts: ['h', 'c', N], lv: 1, ai: 1, hpx: 0.65 } },
   { boss: { name: '사과탄', bot: 'nt', parts: ['k', 'p', N], lv: 1, ai: 1, hpx: 0.7 } },
   { boss: { name: '번쩍번쩍', bot: 'ed', parts: ['f', 'k', N], lv: 1, ai: 2, hpx: 0.75 } },
   { boss: { name: '흔들흔들', bot: 'gl', parts: ['1', 'c', 'r'], lv: 1, ai: 2, hpx: 0.85 } },
-  { boss: { name: '찌릿찌릿', bot: 'ts', parts: ['k', 'q', 't'], lv: 1, ai: 3 } },
-  { boss: { name: '쾅쾅대장', bot: 'nb', parts: ['o', 'h', 'b'], lv: 1, ai: 4 } },
-  { boss: { name: '반짝이', bot: 'cu', parts: ['4', 's', 'm'], lv: 1, ai: 4 } },
-  { boss: { name: '도깨비불', bot: 'mx', parts: ['l', 'k', 'b'], lv: 1, ai: 5 } },
+  { boss: { name: '찌릿찌릿', bot: 'ts', parts: ['k', 'q', 't'], lv: 2, ai: 3 } },
+  { boss: { name: '쾅쾅대장', bot: 'nb', parts: ['o', 'h', 'b'], lv: 2, ai: 4 } },
+  { boss: { name: '반짝이', bot: 'cu', parts: ['4', 's', 'm'], lv: 2, ai: 4 } },
+  { boss: { name: '도깨비불', bot: 'mx', parts: ['l', 'k', 'b'], lv: 3, ai: 5 } },
 ].map(t => ({ tag: `${SCI[t.boss.bot].name} 로봇 · ${AINAME[t.boss.ai]}`, boss: prep(t.boss), code: encode(t.boss) }));
 
-/* 패키지 게임: 뽑기도 재화도 없다. meta는 지금까지 얻은 것(로봇, 본 파츠와 이론, 기록), run은 진행 중인 모험, 나머지는 자유 대전 설정 */
-const state = { view: 'run', pick: 'ar', asc: 0, run: null, rslot: null, quit: false,
-  meta: { bots: ['ar'], parts: ['k', 'h', 'c', 'b'], ths: [], met: ['ar'], runs: 0, clears: 0, wins: 0, best: 0, asc: 0 },
-  bot: 'ar', name: '내 로봇', builds: { ar: ['k', 'h', 'b'] }, slot: null, target: 0, imported: [], records: {}, coach: true };
+const state = { view: 'workshop', bot: 'ar', name: '내 로봇', builds: { ar: ['k', 'h', 'b'] }, slot: null, target: 0, imported: [], records: {}, bots: ['ar'], owned: ['k', 'h', 'c', 'b'], notes: 6, bolts: 12, lv: {}, lastPull: null, coach: true };
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const COARSE = matchMedia('(pointer: coarse)').matches;
-const LS = 'bossmaker.v7', LS_OLD = 'bossmaker.v6';
-const usable = (k, bot) => !!PART[k] && state.meta.parts.includes(k) && (!PART[k].only || PART[k].only === bot);
-const learn = (kind, k) => { const a = state.meta[kind]; if (!k || a.includes(k)) return false; a.push(k); return true; };
-function myBoss() {   // 자유 대전에서 고른 로봇과 파츠 (모두 1레벨)
-  if (!state.meta.bots.includes(state.bot)) state.bot = state.meta.bots[0] || 'ar';
-  const src = state.builds[state.bot] || (state.builds[state.bot] = START[state.bot].slice());
-  const b = prep({ name: state.name, bot: state.bot, parts: src.map(k => k && usable(k, state.bot) ? k : N), lv: 1, ai: 3 });
+const LS = 'bossmaker.v6';
+const lvOf = k => clamp(state.lv[k] || 1, 1, MAXLV);
+const upCost = k => [0, 4, 8, 14, 22][lvOf(k)];   // 다음 레벨로 올리는 데 드는 나사
+const usable = (k, bot) => !!PART[k] && state.owned.includes(k) && (!PART[k].only || PART[k].only === bot);
+function myBoss() {   // 지금 고른 로봇과 거기 달아 둔 파츠. 안 가진 파츠는 뺀다
+  if (!state.bots.includes(state.bot)) state.bot = state.bots[0] || 'ar';
+  const src = state.builds[state.bot] || (state.builds[state.bot] = [N, N, N]);
+  const b = prep({ name: state.name, bot: state.bot, parts: src.map(k => k && usable(k, state.bot) ? k : N), lv: state.lv, ai: 3 });
   state.builds[state.bot] = b.parts.slice();
   return b;
 }
-const snap = () => ({ meta: state.meta, run: state.run, pick: state.pick, asc: state.asc, bot: state.bot, name: state.name, builds: state.builds, view: state.view, records: state.records, imported: state.imported.map(t => t.code), sound: SND.on, coach: state.coach });
+const snap = () => ({ bot: state.bot, name: state.name, builds: state.builds, bots: state.bots, owned: state.owned, notes: state.notes, bolts: state.bolts, lv: state.lv, view: state.view, records: state.records, imported: state.imported.map(t => t.code), sound: SND.on, coach: state.coach });
 function save() { try { localStorage.setItem(LS, JSON.stringify(snap())); } catch (e) { /* 저장소가 없어도 그대로 동작 */ } }
 function applySaved(d) {
   if (d && typeof d === 'object') {
-    const M = state.meta, m = d.meta && typeof d.meta === 'object' ? d.meta : { bots: d.bots, parts: d.owned };   // 예전 저장은 얻은 로봇과 파츠만 이어받는다
-    if (Array.isArray(m.bots)) M.bots = [...new Set(M.bots.concat(m.bots.filter(k => SCI[k])))];
-    if (Array.isArray(m.parts)) M.parts = [...new Set(M.parts.concat(m.parts.filter(k => PART[k])))];
-    if (Array.isArray(m.ths)) M.ths = [...new Set(m.ths.filter(k => THEORY[k]))];
-    if (Array.isArray(m.met)) M.met = [...new Set(M.met.concat(m.met.filter(k => SCI[k])))];
-    for (const k of M.bots) if (!M.met.includes(k)) M.met.push(k);
-    for (const k of ['runs', 'clears', 'wins', 'best', 'asc']) if (Number.isFinite(m[k])) M[k] = Math.max(0, Math.floor(m[k]));
-    M.asc = Math.min(3, M.asc);
-    const r = d.run;
-    if (r && r.v === 1 && SCI[r.bot] && Array.isArray(r.map) && Array.isArray(r.parts) && r.st) state.run = r;
-    if (SCI[d.pick] && M.bots.includes(d.pick)) state.pick = d.pick;
-    if (Number.isFinite(d.asc)) state.asc = clamp(Math.floor(d.asc), 0, M.asc);
+    if (Array.isArray(d.bots)) state.bots = [...new Set(state.bots.concat(d.bots.filter(k => SCI[k])))];
+    if (Array.isArray(d.owned)) state.owned = [...new Set(state.owned.concat(d.owned.filter(k => PART[k])))];
+    if (Number.isFinite(d.notes)) state.notes = Math.max(0, Math.floor(d.notes));
+    if (Number.isFinite(d.bolts)) state.bolts = Math.max(0, Math.floor(d.bolts));
+    if (d.lv && typeof d.lv === 'object') for (const k in d.lv) if (PART[k]) state.lv[k] = clamp(Math.round(+d.lv[k] || 1), 1, MAXLV);
     if (d.builds && typeof d.builds === 'object') for (const k in d.builds) if (SCI[k] && Array.isArray(d.builds[k])) state.builds[k] = d.builds[k].slice(0, 3).map(x => x ? String(x) : N);
     if (SCI[d.bot]) state.bot = d.bot;
     if (typeof d.name === 'string') state.name = cleanName(d.name);
-    if (d.view === 'run' || d.view === 'free' || d.view === 'codex') state.view = d.view;
+    if (d.view === 'challenge' || d.view === 'workshop' || d.view === 'lab') state.view = d.view;
     if (d.sound === false) SND.on = false;
     if (d.coach === false) state.coach = false;
     if (d.records && typeof d.records === 'object') state.records = d.records;
@@ -1068,8 +897,17 @@ function pic(kind, key) {
 }
 const kidPic = mood => pic('k', mood), sciPic = key => pic('s', key);
 
-/* ---------- 도감: 만난 로봇, 파츠, 이론이 쌓인다 ---------- */
-const LORE = {   // 파츠마다: 바탕이 된 원리, 꼬마 과학자의 한마디
+/* ---------- 연구실: 공부해서 이론을 깨달으면 로봇과 파츠가 열린다 ---------- */
+const PULL_COST = 2;
+let pulling = false;
+const sciOpen = k => !SCI[k].need.length || SCI[k].need.some(n => state.bots.includes(n));
+function pullPool() {   // 'B위인' 로봇 설계도, 'P파츠'. 로봇을 먼저 얻어야 그 전용 파츠가 나온다
+  const out = [];
+  for (const k of SORDER) if (sciOpen(k)) { if (!state.bots.includes(k)) out.push('B' + k); else if (!state.owned.includes(SCI[k].own)) out.push('P' + SCI[k].own); }
+  for (const k of PORDER) if (!PART[k].only && !state.owned.includes(k)) out.push('P' + k);
+  return out;
+}
+const LORE = {   // 파츠마다: 깨달은 이론, 꼬마 과학자의 한마디
   k: ['용수철', '누른 만큼 튀어나온다!'], s: ['전동기', '돌아가는 건 다 쓸모가 있어!'], h: ['지렛대의 원리', '긴 막대만 있으면 뭐든 날릴 수 있어!'], c: ['포물선', '세게 쏘면 멀리 간다!'],
   q: ['껍질 정리', '껍질 안쪽은 안전하대!'], g: ['작용·반작용', '네가 민 만큼 나도 민다!'], b: ['가속도의 법칙', '힘을 주면 빨라진다. 많이 주면 많이!'], x: ['99%의 노력', '고장 나면 또 고치면 되지!'],
   r: ['로켓의 원리', '뒤로 뿜으면 앞으로 간다!'], m: ['압력', '밟으면 터진다. 안 밟으면 된다!'], e: ['전지', '전기는 담아 둘 수 있구나!'],
@@ -1077,46 +915,55 @@ const LORE = {   // 파츠마다: 바탕이 된 원리, 꼬마 과학자의 한�
   j: ['탄성', '당긴 만큼 날아간다!'], f: ['필라멘트', '뜨거우면 빛나고, 더 뜨거우면 탄다!'], u: ['전자기 유도', '자석이 지나가면 전기가 흐른다!'], 2: ['암호', '뒤섞으면 아무도 못 알아본다!'],
   4: ['엑스선', '뼈까지 다 보인다!'], t: ['공명', '박자만 맞추면 건물도 흔들려!'], l: ['전자기파', '빛도 전기와 자기의 물결이었어!'], o: ['안정된 폭약', '흙에 섞으면 얌전해진대. 불 붙이기 전까지는!'],
 };
-const BLORE = {   // 로봇마다: 생김새의 바탕이 된 것
+const BLORE = {   // 로봇 설계도를 얻을 때
   ar: ['부력의 원리', '넘친 물만큼 가벼워진다. 유레카!'], py: ['피타고라스 정리', '직각만 있으면 다 계산돼!'], gl: ['낙하의 법칙', '무거워도 가벼워도 같이 떨어진다!'], nt: ['만유인력', '사과도 달도 같은 힘에 끌린대!'],
   dv: ['비행 기계 스케치', '새처럼 날개를 달면 되잖아!'], ed: ['백열전구', '천 번 해 보면 한 번은 켜진다!'], ga: ['정규 분포', '가운데가 제일 많고 양 끝은 드물어!'], tu: ['계산하는 기계', '풀 수 있는 건 기계도 풀 수 있어!'],
   cu: ['방사능', '가만히 둬도 혼자 빛나!'], ts: ['교류', '왔다 갔다 하는 전기가 더 멀리 간다!'], mx: ['맥스웰의 도깨비', '문지기만 똑똑하면 뜨거운 것만 골라낸대!'], nb: ['다이너마이트', '위험한 것도 잘 싸 두면 들고 다닐 수 있어!'],
 };
+const pullSci = u => u[0] === 'B' ? u.slice(1) : PART[u.slice(1)].only || null;
+const pullLore = u => u[0] === 'B' ? BLORE[u.slice(1)] : LORE[u.slice(1)];
+const pullName = u => u[0] === 'B' ? `${SCI[u.slice(1)].name}의 로봇 ‘${SCI[u.slice(1)].bot}’` : `${PART[u.slice(1)].name} 파츠`;
 const itile = (k, cls) => `<span class="ico${cls || ''}" role="img" aria-label="${PART[k].name}" title="${PART[k].name}" style="background:${PART[k].tile}">${picon(k)}</span>`;
-const thTile = cls => `<span class="ico${cls || ''}" aria-hidden="true" style="background:#ffd23f">${picon('U')}</span>`;
-const whereMet = k => { const i = ACTS.findIndex(a => a.foes.includes(k) || a.boss.includes(k)); return i < 0 ? '' : `${i + 1}막에서 만나요`; };
-function codexHTML() {
-  const M = state.meta;
-  let h = `<h2 class="sec">로봇 <small>${M.bots.length} / ${SORDER.length} · 강적이나 보스로 나온 로봇을 이기면 얻어요</small></h2><div class="tree">`;
+function labHTML() {
+  const pool = pullPool(), can = pool.length && state.notes >= PULL_COST && !pulling;
+  let h = `<div class="starts one"><button type="button" class="b primary big" data-act="pull" data-k="pull"${can ? '' : ' disabled'}>${pulling ? '공부하는 중…' : pool.length ? '공부하기' : '전부 깨달았어요'}<small>${pool.length ? `연구 노트 ${PULL_COST}장을 써요 · 지금 ${state.notes}장` : '더 배울 이론이 없어요'}</small></button></div>`;
+  if (pool.length && state.notes < PULL_COST && !pulling) h += '<p class="dim">노트가 모자라요. 대결하면 이기든 지든 노트가 생겨요.</p>';
+  const lp = state.lastPull;
+  if (lp && pullLore(lp)) h += `<div class="eureka"><img src="${pullSci(lp) ? sciPic(pullSci(lp)) : kidPic('eureka')}" alt="" width="64" height="64"><div><b>유레카! ${pullLore(lp)[0]}</b><span>“${pullLore(lp)[1]}”</span><span class="got">${lp[0] === 'P' ? itile(lp.slice(1), ' sm') : ''}${pullName(lp)}을(를) 쓸 수 있어요</span></div></div>`;
+  h += '<h2 class="sec">위인 로봇 <small>열두 위인마다 로봇이 한 대씩 있어요. 앞 사람의 로봇을 얻으면 다음이 열려요</small></h2><div class="tree">';
   for (const k of SORDER) {
-    const sc = SCI[k], got = M.bots.includes(k), met = got || M.met.includes(k);
-    h += !met ? `<div class="sci locked"><span class="ico q">?</span><div class="info"><b>??? <small>${whereMet(k)}</small></b></div></div>`
-      : `<div class="sci"><img src="${botPic({ bot: k, parts: KIT[k] })}" alt="" width="60" height="60"><div class="info"><b>${sc.name}의 ${sc.bot} <small>${sc.field} · 체력 ${sc.hp}</small></b>`
-        + `<div class="pts"><span class="pt${got ? '' : ' no'}">${got ? '얻은 로봇' : '아직 못 얻음 · 강적이나 보스로 이겨야 해요'}</span></div>`
-        + `<span class="ult"><i>필살기</i>${sc.ult} · ${sc.desc}</span><span class="ult"><i>특성</i>${sc.pas}</span><span class="ult"><i>${BLORE[k][0]}</i>“${BLORE[k][1]}”</span></div></div>`;
+    const sc = SCI[k], open = sciOpen(k), got = state.bots.includes(k), own = sc.own;
+    h += `<div class="sci${open ? '' : ' locked'}"><img src="${got ? botPic({ bot: k, parts: [N, N, N] }) : sciPic(k)}" alt="" width="60" height="60"><div class="info"><b>${sc.name} <small>${sc.field}</small></b>`
+      + `<div class="pts"><span class="pt${got ? '' : ' no'}">${got ? `로봇 ‘${sc.bot}’ · 체력 ${sc.hp}` : open ? '로봇 설계도 ???' : '???'}</span>`
+      + (state.owned.includes(own) ? `<span class="pt">${itile(own, ' sm')}${PART[own].name}<small>전용 · Lv.${lvOf(own)}</small></span>` : `<span class="pt no"><span class="ico sm q">?</span>${got ? LORE[own][0] : '전용 파츠'}</span>`) + '</div>'
+      + `<span class="ult"><i>필살기</i>${sc.ult} · ${sc.desc}</span><span class="ult"><i>특성</i>${sc.pas}</span>`
+      + (open ? '' : `<span class="need">${sc.need.map(n => SCI[n].name).join(' 또는 ')}의 로봇을 얻으면 열려요</span>`) + '</div></div>';
   }
-  h += `</div><h2 class="sec">파츠 <small>${M.parts.length} / ${PORDER.length}</small></h2><div class="tree">`;
-  for (const k of PORDER) {
-    const p = PART[k], seen = M.parts.includes(k);
-    h += !seen ? `<div class="sci locked"><span class="ico q">?</span><div class="info"><b>??? <small>${p.only ? '전용 파츠' : '공용 파츠'} · 모험에서 발견해요</small></b></div></div>`
-      : `<div class="sci">${itile(k)}<div class="info"><b>${p.name} <small>${p.only ? SCI[p.only].name + ' 전용 · ' : ''}${CLS[p.cls]}${p.cost !== undefined ? ' · 전력 ' + p.cost : ''}</small></b><span class="ult">${p.desc}</span><span class="ult"><i>${LORE[k][0]}</i>“${LORE[k][1]}”</span></div></div>`;
-  }
-  h += `</div><h2 class="sec">이론 <small>${M.ths.length} / ${TORDER.length}</small></h2><div class="tree">`;
-  for (const k of TORDER) {
-    const t = THEORY[k], seen = M.ths.includes(k);
-    h += !seen ? '<div class="sci locked"><span class="ico q">?</span><div class="info"><b>??? <small>강적과 보스를 이기면 깨달아요</small></b></div></div>'
-      : `<div class="sci">${thTile()}<div class="info"><b>${t.name}</b><span class="ult">${t.desc}</span><span class="ult"><i>과학</i>${t.lore}</span></div></div>`;
-  }
-  return h + '</div>';
+  h += `</div><div class="tip"><img src="${kidPic('idle')}" alt="" width="58" height="58"><p>공부하면 새 로봇 설계도나 파츠를 깨달아. 로봇마다 필살기와 특성이 다르고, 그 로봇만 다는 전용 파츠도 있어!</p></div>`;
+  return h;
 }
-function renderInfoSheet() {   // 모험과 도감에서 보이는 요약
-  const M = state.meta;
+function renderLabSheet() {
   $('#sheetChallenge').innerHTML = `<div class="sheet"><div class="cell"><div class="who"><img src="${kidPic('idle')}" alt="" width="66" height="66"><div><span class="lab">꼬마 과학자</span><div class="opp"><b>${KID}</b></div></div></div></div>`
-    + `<div class="cell"><span class="lab">모험 · 완주</span><p class="num">${M.runs}번 · ${M.clears}번</p></div>`
-    + `<div class="cell"><span class="lab">로봇 · 파츠 · 이론</span><p class="num">${M.bots.length}/${SORDER.length} · ${M.parts.length}/${PORDER.length} · ${M.ths.length}/${TORDER.length}</p></div></div>`;
+    + `<div class="cell"><span class="lab">연구 노트 · 나사</span><p class="num">${state.notes}장 · ${state.bolts}개</p></div>`
+    + `<div class="cell"><span class="lab">로봇 · 파츠</span><p class="num">${state.bots.length} / ${SORDER.length} · ${state.owned.length} / ${PORDER.length}</p></div></div>`;
 }
-function renderLab(now) {   // 도감 화면 배경: 책상 앞의 꼬마 과학자
-  const g = ctx;
+function doPull() {
+  const pool = pullPool();
+  if (!pool.length || state.notes < PULL_COST || pulling) return;
+  const u = pool[Math.random() * pool.length | 0];
+  state.notes -= PULL_COST; state.lastPull = null; pulling = true; save(); renderAll();
+  scene = { kind: 'lab', pull: { u, t: performance.now() / 1000 } };
+  setTimeout(() => {
+    pulling = false; state.lastPull = u;
+    if (u[0] === 'B') { state.bots.push(u.slice(1)); if (!state.builds[u.slice(1)]) state.builds[u.slice(1)] = [N, N, N]; } else state.owned.push(u.slice(1));
+    save();
+    if (!play && state.view === 'lab') renderAll();
+    toast(`유레카! ${pullName(u)}`);
+  }, RM ? 60 : 1400);
+}
+const FORM = { gl: ['포물선', '진자', '낙하'], tu: ['0101', '암호', '기계'], cu: ['Ra', '폴로늄', '빛'], py: ['a²+b²', '=c²', '직각'], dv: ['설계도', '나사', '날개'], ar: ['π', '지렛대', '부력'], nt: ['F=ma', '중력', '관성'], ed: ['1%', '99%', '발명'], ga: ['Σ', '자기장', '5050'], ts: ['AC', '코일', '공명'], mx: ['∇·E', '빛', '도깨비'], nb: ['TNT', '도화선', '쾅'], _: ['?', '!', '아하'] };
+function renderLab(now) {
+  const g = ctx, pl = scene.pull, a = pl ? now - pl.t : 0, done = pl && (RM || a > 1.4);
   g.setTransform(1, 0, 0, 1, 0, 0);
   if (bgDuel) g.drawImage(bgDuel, 0, 0);
   g.setTransform(view.scale, 0, 0, view.scale, 0, 0);
@@ -1124,9 +971,35 @@ function renderLab(now) {   // 도감 화면 배경: 책상 앞의 꼬마 과학
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillStyle = '#c98b4a'; g.strokeStyle = INK; g.lineWidth = 4; g.lineJoin = 'round'; rrect(g, 40, 392, 280, 26, 8); g.fill(); g.stroke();
   g.fillStyle = '#a56a30'; for (const x of [62, 280]) { rrect(g, x, 418, 18, 62, 5); g.fill(); g.stroke(); }
-  drawKid(g, W / 2, 300, 2.1, 'idle', now);
-  g.font = '400 26px ' + FD; otext(g, `${KID}의 과학 도감`, W / 2, 110, '#fff', 7);
-  g.font = '400 15px ' + FB; otext(g, '모험에서 만난 것들이 여기 모여요', W / 2, 146, C.sun, 5);
+  drawKid(g, W / 2, 300, 2.1, done ? 'eureka' : pl ? 'study' : 'idle', now);
+  if (!pl) {
+    g.font = '400 26px ' + FD; otext(g, `${KID}의 연구실`, W / 2, 110, '#fff', 7);
+    g.font = '400 15px ' + FB; otext(g, '오늘은 뭘 공부해 볼까?', W / 2, 146, C.sun, 5);
+    return;
+  }
+  const sk = pullSci(pl.u), lore = pullLore(pl.u);
+  if (!done) {   // 공부 중: 위인이 말풍선 속에서 지켜보고, 공식이 떠다닌다
+    if (sk) {
+      g.globalAlpha = 0.92; g.fillStyle = '#fff'; g.beginPath(); g.ellipse(266, 122, 62, 60, 0, 0, TAU); g.fill(); g.stroke();
+      for (const [bx, by, br] of [[214, 190, 10], [198, 214, 6]]) { g.beginPath(); g.arc(bx, by, br, 0, TAU); g.fill(); g.stroke(); }
+      g.globalAlpha = 1; drawSci(g, sk, 266, 118, 0.95);
+    }
+    g.font = '400 18px ' + FD;
+    FORM[sk || '_'].forEach((txt, i) => { const q = (a * 0.9 + i * 0.33) % 1; g.globalAlpha = 1 - q; otext(g, txt, 60 + i * 44 + Math.sin(a * 4 + i) * 6, 250 - q * 120, C.sun, 5); });
+    g.globalAlpha = 1; g.font = '400 20px ' + FD; otext(g, (sk ? `${SCI[sk].name}의 책을 읽는 중` : '기초 과학 책을 읽는 중') + '.'.repeat(1 + Math.floor(a * 3) % 3), W / 2, 62, '#fff', 6);
+  } else {
+    const q = RM ? 1 : Math.min(1, (a - 1.4) / 0.25), sc = 0.4 + 0.6 * q + (RM ? 0 : 0.08 * Math.sin((a - 1.4) * 9) * (1 - Math.min(1, (a - 1.4) / 1.2)));
+    g.fillStyle = C.sun; g.beginPath(); g.arc(W / 2, 196, 17, 0, TAU); g.fill(); g.stroke(); g.fillStyle = STEEL; rrect(g, W / 2 - 7, 210, 14, 9, 3); g.fill(); g.stroke();
+    g.strokeStyle = C.sun; g.lineWidth = 4; g.lineCap = 'round'; for (let i = 0; i < 7; i++) { const an = Math.PI + i * Math.PI / 6; g.beginPath(); g.moveTo(W / 2 + Math.cos(an) * 26, 196 + Math.sin(an) * 26); g.lineTo(W / 2 + Math.cos(an) * 36, 196 + Math.sin(an) * 36); g.stroke(); }
+    g.strokeStyle = INK;
+    g.font = '400 40px ' + FD; otext(g, '유레카!', W / 2, 62, C.sun, 9);
+    g.font = '400 17px ' + FB; otext(g, `${lore[0]}을(를) 깨달았다`, W / 2, 100, '#fff', 5);
+    g.save(); g.translate(W / 2, 143); g.scale(sc, sc);
+    if (pl.u[0] === 'P') hitTileAt(g, pl.u.slice(1), -24, -24, 48); else { g.beginPath(); g.arc(0, 0, 30, 0, TAU); g.fillStyle = '#fff'; g.fill(); g.stroke(); drawSci(g, sk, 0, 2, 0.5); }
+    g.restore();
+    g.font = '400 13px ' + FB; otext(g, `“${lore[1]}”`, W / 2, 450, '#fff', 4);
+    g.font = '400 16px ' + FD; otext(g, pl.u[0] === 'B' ? `새 로봇 ‘${SCI[sk].bot}’ 설계 완료` : `${PART[pl.u.slice(1)].name} 파츠 사용 가능`, W / 2, 500, C.sun, 5);
+  }
 }
 function picon(k) {
   const s = 'fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"';
@@ -1185,181 +1058,117 @@ function toast(msg) {
   clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
 }
 
-/* ---------- 모험 화면 ---------- */
+/* ---------- 차고: 로봇을 고르고 파츠 셋을 단다 ---------- */
 const hasParts = b => partsOf(b).some(k => PART[k].cls !== 'pass');
 const costText = k => PART[k].cost !== undefined ? `전력 ${PART[k].cost} · ${CLS[PART[k].cls]}` : CLS[PART[k].cls];
-const hpBar = (hp, max) => `<div class="hpbar" role="img" aria-label="체력 ${hp} / ${max}"><i style="width:${(hp / max * 100).toFixed(1)}%"></i><b>체력 ${hp} / ${max}</b></div>`;
-const runProgress = run => run.act * STEPS + run.step;
-function buildHTML(run) {   // 지금 내 로봇: 파츠 셋과 깨달은 이론
-  let h = '<div class="kit">';
-  run.parts.forEach((k, i) => { h += k ? `<span class="kp">${itile(k, ' sm')}<span><b>${PART[k].name}</b><small>${SLOTNAME[i]} · Lv.${run.lv[k] || 1}</small></span></span>` : `<span class="kp none"><span class="ico sm none"></span><span><b>빈 자리</b><small>${SLOTNAME[i]}</small></span></span>`; });
-  h += '</div>';
-  if (run.th.length) h += `<div class="chips">${run.th.map(k => `<span class="chip" title="${THEORY[k].desc}"><b>${THEORY[k].name}</b>${THEORY[k].desc}</span>`).join('')}</div>`;
-  return h;
-}
-function doorCard(run, node, i) {
-  const t = node.t;
-  if (t === 'repair') return `<button type="button" class="door repair" data-act="door" data-v="${i}" data-k="door${i}"><span class="dico">＋</span><span><b>정비소</b><span class="r">체력을 ${Math.round(RUNRULE.repair * 100)}% 고쳐요</span></span></button>`;
-  if (t === 'lab') return `<button type="button" class="door lab" data-act="door" data-v="${i}" data-k="door${i}"><span class="dico">↑</span><span><b>실험실</b><span class="r">파츠 하나를 골라 ${RUNRULE.lab}단계 강화해요</span></span></button>`;
-  const f = node.foe, sc = SCI[f.bot], fresh = t !== 'duel' && !state.meta.bots.includes(f.bot);
-  return `<button type="button" class="door ${t}" data-act="door" data-v="${i}" data-k="door${i}"><img src="${botPic(f)}" alt="" width="56" height="56"><span><b>${DOOR[t]} · ${esc(f.name)}</b><span class="r">${t === 'duel' ? sc.name + '의 로봇 · ' : ''}솜씨 ${AINAME[f.ai]} · 체력 ${hpOf(f)}${f.th.length ? ' · 이론 ' + f.th.length + '개' : ''}</span>`
-    + `<span class="r rw">이기면 ${t === 'duel' ? '파츠나 강화' : '이론'}${fresh ? ' · 이 로봇을 얻어요!' : ''}</span></span></button>`;
-}
-function rewardCard(run, o, i) {
-  let ico, title, desc;
-  if (o.t === 'part') { const p = PART[o.k]; ico = itile(o.k); title = `${p.name} <i class="mat c-${p.cls}">${CLS[p.cls]}</i>${p.cost !== undefined ? `<i class="mat">전력 ${p.cost}</i>` : ''}<i class="mat">Lv.${o.lv}</i>${p.only ? '<i class="mat mv">전용</i>' : ''}`; desc = p.desc; }
-  else if (o.t === 'up') { const lv = run.lv[o.k] || 1; ico = itile(o.k); title = `${PART[o.k].name} 강화 <i class="mat">Lv.${lv} → ${lv + 1}</i>`; desc = '이 파츠가 10% 더 세져요'; }
-  else if (o.t === 'heal') { ico = `<span class="ico" style="background:#7dffb0">${picon('x')}</span>`; title = '응급 수리'; desc = `체력을 ${Math.round(RUNRULE.sip * 100)}% 고쳐요`; }
-  else { ico = thTile(); title = `${THEORY[o.k].name} <i class="mat mv">이론</i>`; desc = THEORY[o.k].desc; }
-  return `<div class="prow one"><button type="button" class="pick" data-act="reward" data-v="${i}" data-k="rw${i}">${ico}<span><b>${title}</b><span class="r">${desc}</span></span></button></div>`;
-}
-function runHTML() {
-  const run = state.run, M = state.meta;
-  if (!run) {   // 출발 전: 로봇을 고른다
-    const sc = SCI[state.pick], kit = START[state.pick];
-    let h = '<h2 class="sec">모험 <small>로봇 한 대로 과학사 3막을 올라가요</small></h2><div class="botrow" role="list">';
-    for (const k of SORDER) h += M.bots.includes(k) ? `<button type="button" class="botcard" role="listitem" data-act="pick" data-v="${k}" data-k="pick${k}" aria-pressed="${k === state.pick}"><img src="${botPic({ bot: k, parts: START[k] })}" alt="" width="56" height="56"><b>${SCI[k].name}</b><span>${SCI[k].bot}</span></button>`
-      : `<span class="botcard none" role="listitem"><span class="q">?</span><b>${M.met.includes(k) ? SCI[k].name : '???'}</b><span>${M.met.includes(k) ? '이기면 얻어요' : whereMet(k)}</span></span>`;
-    h += `</div><div class="ultline"><img src="${sciPic(state.pick)}" alt="" width="46" height="46"><p><b>${sc.name}의 로봇 ‘${sc.bot}’ · 체력 ${sc.hp}</b>필살기 ${sc.ult}: ${sc.desc}.<br>특성: ${sc.pas}.</p></div>`;
-    h += `<div class="kit">${kit.map((k, i) => k ? `<span class="kp">${itile(k, ' sm')}<span><b>${PART[k].name}</b><small>${SLOTNAME[i]} · ${costText(k)}</small></span></span>` : `<span class="kp none"><span class="ico sm none"></span><span><b>빈 자리</b><small>${SLOTNAME[i]} · 모험에서 채워요</small></span></span>`).join('')}</div>`;
-    if (M.asc > 0) h += `<div class="ascrow"><span>어려움</span>${Array.from({ length: M.asc + 1 }, (_, i) => `<button type="button" class="mini" data-act="asc" data-v="${i}" data-k="asc${i}" aria-pressed="${i === state.asc}">${i ? i + '단계' : '기본'}</button>`).join('')}</div>`;
-    h += '<div class="starts one"><button type="button" class="b fight big" data-act="startrun" data-k="startrun">모험 시작<small>이길 때마다 로봇을 키워요</small></button></div>';
-    h += `<p class="moveinfo">${M.runs ? `지금까지 ${M.runs}번 떠나 ${M.clears}번 완주 · 가장 멀리 ${Math.floor(M.best / STEPS) + 1}막 ${M.best % STEPS + 1}번째 방` : '첫 모험이에요'}</p>`;
-    h += `<div class="tip"><img src="${kidPic('idle')}" alt="" width="58" height="58"><p>위인들의 로봇이 차례로 시험하러 나와. 이길 때마다 파츠나 이론을 하나 골라 내 로봇을 키우고, 체력은 다음 싸움까지 이어져. 강적이나 보스를 이기면 그 로봇을 다음 모험부터 쓸 수 있어!</p></div>`;
-    return h;
-  }
-  if (run.over) {   // 끝난 모험
-    const s = run.st, clear = run.over === 'clear';
-    let h = `<h2 class="sec">${clear ? '모험 완주!' : '모험 끝'} <small>${SCI[run.bot].name}의 ${SCI[run.bot].bot}</small></h2>`;
-    h += `<div class="ultline"><img src="${kidPic(clear ? 'cheer' : 'idle')}" alt="" width="46" height="46"><p><b>${clear ? '과학사 끝까지 올랐어요' : `${run.act + 1}막 ${run.step + 1}번째 방에서 멈췄어요`}</b>싸움 ${s.duels}번 이김 · 받아치기 ${s.parry} · 끊기 ${s.cut} · 싸운 시간 ${Math.round(s.ticks / TPS)}초</p></div>`;
-    if (run.got.length) h += `<p class="newbot">새로 얻은 로봇: ${run.got.map(k => `<b>${SCI[k].name}의 ${SCI[k].bot}</b>`).join(', ')}</p>`;
-    h += buildHTML(run);
-    if (clear && run.asc < 3) h += `<p class="moveinfo">${run.asc + 1}단계 어려움이 열렸어요. 상대가 더 튼튼하고 세져요.</p>`;
-    return h + '<div class="actions"><button type="button" class="b primary" data-act="endrun" data-k="endrun">새 모험 준비</button></div>';
-  }
-  let h = `<h2 class="sec">${run.act + 1}막 · ${ACTS[run.act].name} <small>${run.asc ? run.asc + '단계 어려움 · ' : ''}${SCI[run.bot].name}의 ${SCI[run.bot].bot}</small></h2>`;
-  h += `<div class="steps" aria-label="이번 막 진행">${Array.from({ length: STEPS }, (_, i) => `<i class="${i < run.step ? 'done' : i === run.step ? 'now' : ''}${i === STEPS - 1 ? ' boss' : ''}"></i>`).join('')}</div>`;
-  h += hpBar(run.hp, run.max) + buildHTML(run);
-  const p = run.pending;
-  if (p && p.t === 'reward') {
-    if (state.rslot !== null) {   // 팔이 둘 다 찼으면 어느 쪽과 바꿀지 고른다
-      const o = p.opts[state.rslot];
-      h += `<h2 class="sec">${PART[o.k].name}을(를) 어디에 달까요 <small>달려 있던 파츠는 사라져요</small></h2>`;
-      SLOTS.forEach((sl, i) => { if (sl === PART[o.k].slot) { const cur = run.parts[i]; h += `<div class="prow one"><button type="button" class="pick" data-act="rslot" data-v="${i}" data-k="rs${i}">${cur ? itile(cur) : '<span class="ico none"></span>'}<span><b>${SLOTNAME[i]}</b><span class="r">${cur ? `${PART[cur].name} Lv.${run.lv[cur] || 1}과(와) 바꿔요` : '빈 자리에 달아요'}</span></span></button></div>`; } });
-      h += '<div class="actions"><button type="button" class="b" data-act="rcancel" data-k="rcancel">다른 보상 보기</button></div>';
-    } else {
-      h += `<h2 class="sec">보상 고르기 <small>${p.kind === 'duel' ? '하나만 가져가요' : '이론 하나를 깨달아요'}</small></h2>`;
-      p.opts.forEach((o, i) => { h += rewardCard(run, o, i); });
-      h += '<div class="actions"><button type="button" class="b" data-act="skip" data-k="skip">아무것도 안 고르기</button></div>';
-    }
-  } else if (p && p.t === 'lab') {
-    h += `<h2 class="sec">실험실 <small>파츠 하나를 ${RUNRULE.lab}단계 강화해요</small></h2>`;
-    for (const k of run.parts.filter(Boolean)) { const lv = run.lv[k] || 1, max = lv >= MAXLV; h += `<div class="prow one"><button type="button" class="pick" data-act="labup" data-v="${k}" data-k="lab${k}"${max ? ' disabled' : ''}>${itile(k)}<span><b>${PART[k].name} <i class="mat">Lv.${lv}${max ? ' 최대' : ' → ' + Math.min(MAXLV, lv + RUNRULE.lab)}</i></b><span class="r">${PART[k].desc}</span></span></button></div>`; }
-    h += '<div class="actions"><button type="button" class="b" data-act="skip" data-k="skip">그냥 지나가기</button></div>';
-  } else {
-    const doors = runDoors(run);
-    h += `<h2 class="sec">${doors.length > 1 ? '갈림길' : doors[0].t === 'boss' ? '보스의 방' : '다음 방'} <small>${doors.length > 1 ? '어디로 갈지 골라요' : '준비되면 들어가요'}</small></h2><div class="doors">`;
-    doors.forEach((node, i) => { h += doorCard(run, node, i); });
-    h += '</div>';
-    if (doors[0].t === 'boss' && doors[0].foe.read) h += `<p class="newbot">튜링의 기계가 내 버릇을 읽었어요: <b>${{ fast: '빠른 공격', heavy: '강타', shot: '사격' }[doors[0].foe.read]}</b>에 대비해 왔어요.</p>`;
-    h += `<div class="actions"><button type="button" class="mini warn" data-act="giveup" data-k="giveup">${state.quit ? '한 번 더 누르면 이 모험이 끝나요' : '모험 포기'}</button></div>`;
-  }
-  return h;
-}
-
-/* ---------- 자유 대전: 얻은 로봇과 파츠로 마음대로 조립해 붙는다 ---------- */
 function refreshSheet() {
   const b = myBoss(), sb = $('#shareBox');
   $('#myAvatar').src = botPic(b);
   if (hasParts(b)) sb.innerHTML = `<div class="share"><input id="codeOut" type="text" readonly aria-label="공유 코드" value="${esc(encode(b))}"><button type="button" class="b" id="copyCode">복사</button></div>`;
   else sb.innerHTML = '<p class="dim">공격 파츠를 하나 이상 달면 공유 코드가 나와요.</p>';
 }
-function freeHTML() {
-  const b = myBoss(), sc = SCI[b.bot], sel = state.slot, M = state.meta;
-  let h = '<h2 class="sec">자유 대전 <small>모험에서 얻은 로봇과 파츠로 조립해요. 모두 1레벨이에요</small></h2><div class="botrow" role="list">';
-  for (const k of SORDER) if (M.bots.includes(k)) h += `<button type="button" class="botcard" role="listitem" data-act="bot" data-v="${k}" data-k="bot${k}" aria-pressed="${k === b.bot}"><img src="${botPic({ bot: k, parts: state.builds[k] || START[k] })}" alt="" width="56" height="56"><b>${SCI[k].name}</b><span>${SCI[k].bot}</span></button>`;
-  h += `</div><div class="tower">`;
+function workshopHTML() {
+  const b = myBoss(), sc = SCI[b.bot], sel = state.slot;
+  let h = '<h2 class="sec">차고 <small>로봇을 고르고 파츠 셋을 달아요</small></h2><div class="botrow" role="list">';
+  for (const k of SORDER) {
+    const got = state.bots.includes(k);
+    h += got ? `<button type="button" class="botcard" role="listitem" data-act="bot" data-v="${k}" data-k="bot${k}" aria-pressed="${k === b.bot}"><img src="${botPic({ bot: k, parts: state.builds[k] || [N, N, N] })}" alt="" width="56" height="56"><b>${SCI[k].name}</b><span>${SCI[k].bot}</span></button>`
+      : `<span class="botcard none" role="listitem"><span class="q">?</span><b>${sciOpen(k) ? SCI[k].name : '???'}</b><span>연구실</span></span>`;
+  }
+  h += '</div>';
+  h += `<div class="ultline"><img src="${sciPic(b.bot)}" alt="" width="46" height="46"><p><b>${sc.name}의 로봇 ‘${sc.bot}’ · 체력 ${sc.hp}</b>필살기 ${sc.ult}: ${sc.desc}.<br>특성: ${sc.pas}.</p></div>`;
+  h += '<div class="tower">';
   SLOTS.forEach((sl, i) => {
     const k = b.parts[i];
     h += `<div class="trow"><span class="blk soft">${SLOTNAME[i]}</span><button type="button" class="gear wide${k ? '' : ' empty'}" data-act="slot" data-v="${i}" data-k="slot${i}" aria-pressed="${sel === i}">`
-      + (k ? `${itile(k)}<span class="nm"><b>${PART[k].name}${PART[k].only ? ' <i class="mat mv">전용</i>' : ''}</b><span class="when">${costText(k)}</span></span>` : `<span class="plus">＋</span><span class="nm"><span class="when">${sl === 'A' ? '팔에 달 파츠' : '등에 달 파츠'}</span></span>`) + '</button><span></span></div>';
+      + (k ? `${itile(k)}<span class="nm"><b>${PART[k].name}${PART[k].only ? ' <i class="mat mv">전용</i>' : ''}</b><span class="when">Lv.${lvOf(k)} · ${costText(k)}</span></span>` : `<span class="plus">＋</span><span class="nm"><span class="when">${sl === 'A' ? '팔에 달 파츠' : '등에 달 파츠'}</span></span>`) + '</button><span></span></div>';
   });
-  h += '</div>';
+  h += `<div class="trow"><span class="blk soft">공통</span><span class="gear wide fixed"><span class="ico" style="background:#9af7ff">${picon('q')}</span><span class="nm"><b>가드</b><span class="when">전력 ${RULE.guardCost} · 모든 로봇이 써요</span></span></span><span></span></div></div>`;
   if (sel !== null && sel !== undefined) {
     const cur = b.parts[sel], other = SLOTS[sel] === 'A' ? b.parts[1 - sel] : null;
-    h += `<div class="palette" id="picker"><div class="head"><span>${SLOTNAME[sel]}에 달 파츠</span><span class="tools">` + (cur ? '<button type="button" class="mini warn" data-act="unequip" data-k="uneq">빼기</button>' : '') + '<button type="button" class="mini" data-act="closepick" data-k="closepick">닫기</button></span></div><div class="cards">';
-    const list = PORDER.filter(k => PART[k].slot === SLOTS[sel] && (!PART[k].only || PART[k].only === b.bot)).sort((x, y) => M.parts.includes(y) - M.parts.includes(x));
+    h += `<div class="palette" id="picker"><div class="head"><span>${SLOTNAME[sel]}에 달 파츠</span><span class="tools">`
+      + (cur ? '<button type="button" class="mini warn" data-act="unequip" data-k="uneq">빼기</button>' : '')
+      + '<button type="button" class="mini" data-act="closepick" data-k="closepick">닫기</button></span></div><div class="cards">';
+    const list = PORDER.filter(k => PART[k].slot === SLOTS[sel] && (!PART[k].only || PART[k].only === b.bot)).sort((x, y) => state.owned.includes(y) - state.owned.includes(x));
     for (const k of list) {
       const it = PART[k];
-      if (!M.parts.includes(k)) { h += `<div class="prow one"><button type="button" class="pick" data-k="eq${k}" disabled><span class="ico q">?</span><span><b>???${it.only ? ' <i class="mat mv">전용</i>' : ''}</b><span class="r">모험에서 발견하면 여기서도 쓸 수 있어요</span></span></button></div>`; continue; }
-      const ok = k !== other;
-      h += `<div class="prow one"><button type="button" class="pick" data-act="equip" data-v="${k}" data-k="eq${k}" aria-pressed="${k === cur}"${ok ? '' : ' disabled'}><span class="ico" style="background:${it.tile}">${picon(k)}</span><span><b>${it.name} <i class="mat c-${it.cls}">${CLS[it.cls]}</i>${it.cost !== undefined ? `<i class="mat">전력 ${it.cost}</i>` : ''}${it.only ? '<i class="mat mv">전용</i>' : ''}</b><span class="r">${ok ? it.desc : '다른 팔에 이미 달려 있어요'}</span></span></button></div>`;
+      if (!state.owned.includes(k)) { h += `<div class="prow"><button type="button" class="pick" data-k="eq${k}" disabled><span class="ico q">?</span><span><b>${it.name}${it.only ? ' <i class="mat mv">전용</i>' : ''}</b><span class="r">연구실에서 ‘${LORE[k][0]}’을(를) 깨달으면 열려요</span></span></button></div>`; continue; }
+      const ok = k !== other, lv = lvOf(k), max = lv >= MAXLV;
+      h += `<div class="prow"><button type="button" class="pick" data-act="equip" data-v="${k}" data-k="eq${k}" aria-pressed="${k === cur}"${ok ? '' : ' disabled'}><span class="ico" style="background:${it.tile}">${picon(k)}</span><span><b>${it.name} <i class="mat c-${it.cls}">${CLS[it.cls]}</i>${it.cost !== undefined ? `<i class="mat">전력 ${it.cost}</i>` : ''}<i class="mat">Lv.${lv}</i>${it.only ? '<i class="mat mv">전용</i>' : ''}</b><span class="r">${ok ? it.desc : '다른 팔에 이미 달려 있어요'}</span></span></button>`
+        + `<button type="button" class="mini up" data-act="up" data-v="${k}" data-k="up${k}"${!max && state.bolts >= upCost(k) ? '' : ' disabled'}>${max ? '최대' : `강화<small>나사 ${upCost(k)}</small>`}</button></div>`;
     }
     h += '</div></div>';
   }
-  h += `<div class="ultline"><img src="${sciPic(b.bot)}" alt="" width="46" height="46"><p><b>${sc.name}의 로봇 ‘${sc.bot}’ · 체력 ${sc.hp}</b>필살기 ${sc.ult}: ${sc.desc}.<br>특성: ${sc.pas}.</p></div>`;
-  h += '<h2 class="sec">상대 고르기 <small>상대 로봇은 주인이 조립한 대로 AI가 몰아요</small></h2><div class="targets">';
-  targets().forEach((t, i) => { h += `<button type="button" class="target" data-act="target" data-i="${i}" data-k="tg${i}" aria-pressed="${i === state.target}"><img src="${botPic(t.boss)}" alt="" width="48" height="48"><b>${esc(t.boss.name)}</b><span class="tag">${t.tag}</span><span class="rec">${recText(state.records[t.code])}</span></button>`; });
-  h += `</div><div class="starts one"><button type="button" class="b fight big" data-act="duel" data-k="duel"${hasParts(b) ? '' : ' disabled'}>${hasParts(b) ? '대결 시작' : '공격 파츠를 먼저 달아요'}<small>${esc(targets()[state.target].boss.name)}와(과) 붙어요</small></button></div>`;
-  h += '<form class="import" id="importForm"><label for="codeIn">친구의 공유 코드로 불러오기</label><div class="row"><input id="codeIn" type="text" placeholder="bm9-…" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="submit" class="b">불러오기</button></div><p class="err" id="importErr" role="alert"></p></form>';
+  const avg = avgCost(b);
+  h += `<p class="moveinfo">평균 전력 ${avg ? avg.toFixed(1) : '-'} · 나사 ${state.bolts}개 · 전력은 1초에 1씩 차요</p>`;
+  h += `<div class="actions"><button type="button" class="b primary" data-act="go" data-k="go"${hasParts(b) ? '' : ' disabled'}>${hasParts(b) ? '상대 고르러 가기' : '공격 파츠를 먼저 달아요'}</button></div>`;
+  h += `<div class="rps"><span class="c-fast">빠른 공격</span>은 <span class="c-heavy">강타</span> 준비를 끊고, <span class="c-heavy">강타</span>는 <span class="c-guard">가드</span>를 깨고, <span class="c-guard">가드</span>는 <span class="c-fast">빠른 공격</span>과 <span class="c-shot">사격</span>을 막아요.</div>`;
+  h += `<div class="tip"><img src="${kidPic('idle')}" alt="" width="58" height="58"><p>싸움은 네가 직접 해! 전력이 차면 파츠 버튼을 눌러. 상대가 뭘 준비하는지 보고 끊거나 막고, 딱 맞춰 가드하면 받아칠 수 있어.</p></div>`;
   return h;
 }
 
+/* ---------- 도전 ---------- */
+function challengeHTML() {
+  let h = '<div class="starts one"><button type="button" class="b fight big" data-act="duel" data-k="duel">대결 시작<small>이번엔 내가 직접 싸워요</small></button></div><h2 class="sec">상대 고르기 <small>상대 로봇은 주인이 조립한 대로 AI가 몰아요</small></h2><div class="targets">';
+  targets().forEach((t, i) => {
+    h += `<button type="button" class="target" data-act="target" data-i="${i}" data-k="tg${i}" aria-pressed="${i === state.target}"><img src="${botPic(t.boss)}" alt="" width="48" height="48"><b>${esc(t.boss.name)}</b><span class="tag">${t.tag}</span><span class="rec">${recText(state.records[t.code])}</span></button>`;
+  });
+  h += '</div><form class="import" id="importForm"><label for="codeIn">공유 코드로 불러오기</label><div class="row"><input id="codeIn" type="text" placeholder="bm9-…" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="submit" class="b">불러오기</button></div><p class="err" id="importErr" role="alert"></p></form>';
+  return h;
+}
+function renderChallengeSheet() {
+  const t = targets()[state.target], b = t.boss, sc = SCI[b.bot];
+  const rows = b.parts.map((k, i) => `<span class="sc"><i>${SLOTNAME[i]}${k ? ' Lv.' + lvIn(b, k) : ''}</i>${k ? itile(k, ' sm') : '<span class="ico sm none"></span>'}</span>`).join('');
+  $('#sheetChallenge').innerHTML = `<div class="sheet"><div class="cell"><div class="who"><img src="${botPic(b)}" alt="" width="66" height="66"><div><span class="lab">상대 · ${t.tag}</span><div class="opp"><b>${esc(b.name)}</b></div></div></div></div>`
+    + `<div class="cell"><span class="lab">정찰 · 체력 ${hpOf(b)} · 평균 전력 ${avgCost(b).toFixed(1)}</span><div class="scoutrow">${rows}</div></div>`
+    + `<div class="cell"><span class="lab">필살기 · 내 기록</span><p class="dim">${sc.ult}: ${sc.desc}<br>${recText(state.records[t.code])}</p></div></div>`;
+}
+
 function renderAll() {
-  const v = state.view, fr = v === 'free';
-  $('#tabRun').setAttribute('aria-pressed', v === 'run');
-  $('#tabFree').setAttribute('aria-pressed', fr);
-  $('#tabCodex').setAttribute('aria-pressed', v === 'codex');
-  $('#sheetWorkshop').hidden = !fr;
-  $('#sheetChallenge').hidden = fr;
+  const v = state.view, ws = v === 'workshop';
+  $('#tabWorkshop').setAttribute('aria-pressed', ws);
+  $('#tabLab').setAttribute('aria-pressed', v === 'lab');
+  $('#tabChallenge').setAttribute('aria-pressed', v === 'challenge');
+  $('#sheetWorkshop').hidden = !ws;
+  $('#sheetChallenge').hidden = ws;
   if (state.target >= targets().length) state.target = 0;
-  if (fr) refreshSheet(); else renderInfoSheet();
+  if (ws) refreshSheet(); else if (v === 'lab') renderLabSheet(); else renderChallengeSheet();
   const keep = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.k : null, sx = (editor.querySelector('.botrow') || {}).scrollLeft || 0;
-  editor.innerHTML = fr ? freeHTML() : v === 'codex' ? codexHTML() : runHTML();
+  editor.innerHTML = ws ? workshopHTML() : v === 'lab' ? labHTML() : challengeHTML();
   const row = editor.querySelector('.botrow'); if (row) row.scrollLeft = sx;
   if (keep) { const el = editor.querySelector(`[data-k="${keep}"]`); if (el) el.focus({ preventScroll: true }); }
 }
-function changed(top) { save(); renderAll(); rebuildScene(); if (top) editor.scrollTop = 0; }
-function noteRun(run) { for (const k of run.parts) learn('parts', k); for (const k of run.th) learn('ths', k); state.meta.best = Math.max(state.meta.best, runProgress(run)); }
+function bossChanged() { save(); renderAll(); rebuildScene(); }
 
 editor.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el || el.disabled) return;
-  const act = el.dataset.act, v = el.dataset.v, run = state.run;
-  if (act !== 'giveup') state.quit = false;
-  if (act === 'pick') { state.pick = v; changed(); }
-  else if (act === 'asc') { state.asc = +v; changed(); }
-  else if (act === 'startrun') { state.run = newRun(state.pick, (Math.random() * 4294967296) >>> 0, state.asc); state.rslot = null; state.meta.runs++; noteRun(state.run); changed(true); }
-  else if (act === 'door' && run) {
-    const node = enterDoor(run, +v);
-    if (node) { save(); startPlay({ mode: 'run', boss: runBoss(run, state.name), foe: node.foe, node }); return; }
-    if (!run.pending) toast('정비 완료! 체력을 고쳤어요');
-    noteRun(run); changed(true);
-  }
-  else if (act === 'reward' && run && run.pending) { const o = run.pending.opts[+v]; if (!takeReward(run, o)) { state.rslot = +v; renderAll(); return; } state.rslot = null; noteRun(run); changed(true); }
-  else if (act === 'rslot' && run && run.pending) { takeReward(run, run.pending.opts[state.rslot], +v); state.rslot = null; noteRun(run); changed(true); }
-  else if (act === 'rcancel') { state.rslot = null; renderAll(); }
-  else if (act === 'skip' && run) { state.rslot = null; advance(run); noteRun(run); changed(true); }
-  else if (act === 'labup' && run) { labUp(run, v); toast(`${PART[v].name} Lv.${run.lv[v]}!`); noteRun(run); changed(true); }
-  else if (act === 'giveup' && run) { if (!state.quit) { state.quit = true; renderAll(); return; } state.quit = false; run.over = 'quit'; changed(true); }
-  else if (act === 'endrun') { state.run = null; state.rslot = null; if (!state.meta.bots.includes(state.pick)) state.pick = 'ar'; state.asc = Math.min(state.asc, state.meta.asc); changed(true); }
-  else if (act === 'bot') { state.bot = v; state.slot = null; changed(); }
+  const act = el.dataset.act, v = el.dataset.v, build = state.builds[state.bot];
+  if (act === 'bot') { state.bot = v; state.slot = null; bossChanged(); }
   else if (act === 'slot') { state.slot = state.slot === +v ? null : +v; renderAll(); const pk = $('#picker'); if (pk) pk.scrollIntoView({ block: 'nearest' }); }
-  else if (act === 'equip') { state.builds[state.bot][state.slot] = v; state.slot = null; changed(); }
-  else if (act === 'unequip') { state.builds[state.bot][state.slot] = null; state.slot = null; changed(); }
+  else if (act === 'equip') { build[state.slot] = v; state.slot = null; bossChanged(); }
+  else if (act === 'unequip') { build[state.slot] = null; state.slot = null; bossChanged(); }
+  else if (act === 'up') {
+    const cost = upCost(v);
+    if (lvOf(v) >= MAXLV || state.bolts < cost) return;
+    state.bolts -= cost; state.lv[v] = lvOf(v) + 1; save(); renderAll();
+    toast(`${PART[v].name} Lv.${lvOf(v)}! 8% 세졌어요`);
+  }
   else if (act === 'closepick') { state.slot = null; renderAll(); }
-  else if (act === 'target') { state.target = +el.dataset.i; save(); renderAll(); }
+  else if (act === 'go') setView('challenge');
+  else if (act === 'pull') doPull();
+  else if (act === 'target') { state.target = +el.dataset.i; save(); renderAll(); rebuildScene(); }
   else if (act === 'duel') {
     const b = myBoss();
-    if (!hasParts(b)) { toast('공격 파츠를 먼저 달아 주세요'); return; }
-    const t = targets()[state.target]; startPlay({ mode: 'free', boss: b, foe: t.boss, code: t.code });
+    if (!hasParts(b)) { toast('차고에서 공격 파츠를 먼저 달아 주세요'); return; }
+    const t = targets()[state.target]; startPlay({ boss: b, foe: t.boss, code: t.code });
   }
 });
 editor.addEventListener('submit', e => {
   e.preventDefault();
   const r = addImported($('#codeIn').value);
   if (r.error) { $('#importErr').textContent = r.error; return; }
-  save(); renderAll();
+  save(); renderAll(); rebuildScene();
   toast(`${targets()[state.target].boss.name} 불러왔어요`);
 });
 $('#bossName').addEventListener('input', e => { state.name = cleanName(e.target.value); save(); refreshSheet(); });
@@ -1369,10 +1178,10 @@ $('#sheetWorkshop').addEventListener('click', e => {
   const manual = () => { out.focus(); out.select(); toast('자동 복사가 막혀 있어요. 선택된 코드를 직접 복사해 주세요.'); };
   try { navigator.clipboard.writeText(code).then(() => toast('공유 코드를 복사했어요'), manual); } catch (err) { manual(); }
 });
-function setView(v) { if (state.view === v) return; state.view = v; state.slot = null; state.quit = false; save(); renderAll(); editor.scrollTop = 0; rebuildScene(); }
-$('#tabRun').addEventListener('click', () => setView('run'));
-$('#tabFree').addEventListener('click', () => setView('free'));
-$('#tabCodex').addEventListener('click', () => setView('codex'));
+function setView(v) { if (state.view === v) return; state.view = v; state.slot = null; save(); renderAll(); editor.scrollTop = 0; rebuildScene(); }
+$('#tabWorkshop').addEventListener('click', () => setView('workshop'));
+$('#tabChallenge').addEventListener('click', () => setView('challenge'));
+$('#tabLab').addEventListener('click', () => setView('lab'));
 
 /* ---------- 장면과 플레이 ---------- */
 let scene = { kind: 'lab', pull: null };
@@ -1380,7 +1189,7 @@ let play = null, acc = 0, shake = 0, banner = null;
 const fx = [];
 
 /* 무엇에 맞았는지 이름과 아이콘으로 보여 주기 */
-const HIT = { g: '가시 범퍼', Pnt: '작용·반작용', Pcu: '방사능', Pts: '찌릿 반격', Tar: '작용·반작용', Tch: '연쇄 반응' };
+const HIT = { g: '가시 범퍼', Pnt: '작용·반작용', Pcu: '방사능', Pts: '찌릿 반격' };
 const hitName = by => by[0] === 'U' ? SCI[by.slice(1)].ult : HIT[by] || (PART[by] ? PART[by].name : '충돌');
 const hitTile = by => by[0] === 'U' ? '#ffd23f' : PART[by] ? PART[by].tile : '#e8eefc';
 const hitChip = by => `<span class="ico sm" aria-hidden="true" style="background:${hitTile(by)}">${picon(by)}</span>`;
@@ -1401,13 +1210,9 @@ const dmgList = (d, side) => Object.entries(d.f[side].st.dealt).filter(e => e[1]
 function rebuildScene() {
   if (play) return;
   fx.length = 0; banner = null; caps.length = 0; shake = 0; freeze = 0; acc = 0;
-  if (state.view === 'codex') { scene = { kind: 'lab' }; return; }
-  const run = state.run;
-  let b, tag;
-  if (state.view === 'free') { b = myBoss(); tag = '자유 대전'; }
-  else if (run) { b = runBoss(run, state.name); tag = run.over ? (run.over === 'clear' ? '모험 완주' : '모험 끝') : `${run.act + 1}막 ${run.step + 1}번째 방`; }
-  else { b = prep({ name: state.name, bot: state.pick, parts: START[state.pick].slice(), lv: 1 }); tag = '출발 준비'; }
-  scene = { kind: 'show', boss: b, tag, duel: makeDuel(b, b, 1) };
+  if (state.view === 'lab') { scene = { kind: 'lab', pull: null }; return; }
+  const mine = state.view === 'workshop', b = mine ? myBoss() : targets()[state.target].boss;
+  scene = { kind: 'show', boss: b, mine, duel: makeDuel(b, b, 1) };
 }
 function startPlay(cfg) {
   play = cfg;
@@ -1473,66 +1278,51 @@ function go() {
   banner = { text: '대결 시작', t: performance.now() / 1000 };
 }
 function newDuel() {
-  const d = makeDuel(play.foe, play.boss, (Math.random() * 4294967296) >>> 0), runMode = play.mode === 'run', run = state.run;
+  const d = makeDuel(play.foe, play.boss, (Math.random() * 4294967296) >>> 0);
   d.f[0].ai = aiFor(play.foe);
   if (state.auto) d.f[1].ai = aiFor({ ai: state.auto });   // 시험용: 내 쪽도 AI가 몬다
-  scene = { kind: 'duel', duel: d, state: 'ready', lag: [d.f[0].hp / d.f[0].max, d.f[1].hp / d.f[1].max], fin: 0, saved: false, cut: null, first: false };
+  scene = { kind: 'duel', duel: d, state: 'ready', lag: [1, 1], fin: 0, saved: false, cut: null, first: false };
   acc = 0; fx.length = 0; banner = null; shake = 0; freeze = 0; caps.length = 0;
   buildPad(); updateCoachBtn();
   const fig = (b, cap, cls) => `<figure class="${cls}"><img src="${botPic(b)}" alt="" width="84" height="84"><figcaption>${esc(cap)}</figcaption></figure>`;
-  const how = '<ul class="how"><li><b class="c-fast">빠른 공격</b>은 <b class="c-heavy">강타</b> 준비를 끊어요</li><li><b class="c-heavy">강타</b>는 <b class="c-guard">가드</b>를 깨요</li><li><b class="c-guard">가드</b>는 <b class="c-fast">빠른 공격</b>과 <b class="c-shot">사격</b>을 막아요. 딱 맞추면 받아쳐요</li></ul><p class="dim">전력은 1초에 1씩 차고, 40초부터는 두 배로 차요. 1분 안에 상대 체력을 0으로 만들면 이겨요.</p>';
-  const foeTh = play.foe.th && play.foe.th.length ? `<p class="dim">상대의 이론: ${play.foe.th.map(k => THEORY[k].name).join(', ')}</p>` : '';
-  overlay.innerHTML = `<div class="vs">${fig(play.boss, KID + '의 ' + (play.boss.name || '로봇'), 'me')}<b>VS</b>${fig(play.foe, play.foe.name, 'foe')}</div><h2>${runMode ? `${run.act + 1}막 · ${DOOR[play.node.t]}` : '자유 대전'}</h2>`
-    + (state.meta.wins < 3 ? how : `<p class="dim">${SCI[play.foe.bot].name}의 로봇 · 솜씨 ${AINAME[play.foe.ai]} · 필살기 ${SCI[play.foe.bot].ult}</p>`) + foeTh
-    + `<p class="go">${COARSE ? '화면을 누르면 시작' : '클릭하거나 Enter를 누르면 시작'}</p>`;
+  overlay.innerHTML = `<div class="vs">${fig(play.boss, KID + '의 ' + (play.boss.name || '로봇'), 'me')}<b>VS</b>${fig(play.foe, '상대 · ' + play.foe.name, 'foe')}</div><h2>전력 타이밍 대결</h2>`
+    + '<ul class="how"><li><b class="c-fast">빠른 공격</b>은 <b class="c-heavy">강타</b> 준비를 끊어요</li><li><b class="c-heavy">강타</b>는 <b class="c-guard">가드</b>를 깨요</li><li><b class="c-guard">가드</b>는 <b class="c-fast">빠른 공격</b>과 <b class="c-shot">사격</b>을 막아요. 딱 맞추면 받아쳐요</li></ul>'
+    + `<p class="dim">전력은 1초에 1씩 차고, 40초부터는 두 배로 차요. 1분 안에 상대 체력을 0으로 만들면 이겨요.</p><p class="go">${COARSE ? '화면을 누르면 시작' : '클릭하거나 Enter를 누르면 시작'}</p>`;
   overlay.hidden = false;
   updatePad(d);
 }
 function finishDuel() {
-  const d = scene.duel, me = d.f[1], foe = d.f[0], runMode = play.mode === 'run', run = runMode ? state.run : null;
+  const d = scene.duel, me = d.f[1], foe = d.f[0];
   scene.state = 'over'; banner = null;
-  const res = d.over === 'bot' ? 'dw' : d.over === 'top' ? 'dl' : 'dd', win = res !== 'dl';
+  const res = d.over === 'bot' ? 'dw' : d.over === 'top' ? 'dl' : 'dd';
   if (!scene.saved) {
-    scene.saved = true; scene.unlock = null;
-    if (runMode) {   // 모험: 이기면 체력을 이어받고 보상을 준비한다. 지면 모험이 끝난다
-      learn('met', foe.bot);
-      if (win) {
-        state.meta.wins++;
-        if (play.node.t !== 'duel' && learn('bots', foe.bot)) { run.got.push(foe.bot); scene.unlock = foe.bot; if (!state.builds[foe.bot]) state.builds[foe.bot] = START[foe.bot].slice(); }
-        runWin(run, d, play.node);
-        if (run.over === 'clear') { state.meta.clears++; state.meta.asc = Math.max(state.meta.asc, Math.min(3, run.asc + 1)); }
-      } else { run.over = 'dead'; run.st.ticks += d.tick; }
-      noteRun(run);
-    } else { const rec = state.records[play.code] || (state.records[play.code] = {}); rec[res] = (rec[res] || 0) + 1; }
-    save();
+    scene.saved = true;
+    const rec = state.records[play.code] || (state.records[play.code] = {});
+    rec[res] = (rec[res] || 0) + 1; scene.gain = res === 'dw' ? 2 : 1; scene.gainB = res === 'dw' ? 6 : 3; state.notes += scene.gain; state.bolts += scene.gainB; save();
     sfx(res === 'dw' ? 'win' : res === 'dl' ? 'lose' : 'phase');
   }
-  const clear = runMode && run.over === 'clear';
-  const title = clear ? '모험 완주!' : runMode ? (win ? (play.node.t === 'boss' ? '보스 격파!' : '승리') : '모험 끝') : res === 'dw' ? '승리' : res === 'dl' ? '패배' : '무승부', mood = win && res !== 'dd' ? 'cheer' : res === 'dl' ? 'cry' : 'idle';
+  const title = res === 'dw' ? '승리' : res === 'dl' ? '패배' : '무승부', mood = res === 'dw' ? 'cheer' : res === 'dl' ? 'cry' : 'idle';
   const mine = dmgList(d, 1), theirs = dmgList(d, 0), top = Math.max(1, ...mine.map(e => e[1]), ...theirs.map(e => e[1]));
   const sum = arr => Math.round(arr.reduce((a, e) => a + e[1], 0));
-  const why = d.ko ? (res === 'dw' ? '상대 체력을 전부 깎았어요.' : res === 'dl' ? '내 체력이 바닥났어요.' : '동시에 쓰러졌어요.') : res === 'dd' ? '시간이 다 됐는데 남은 체력이 같아요.' : '시간이 다 돼서 남은 체력으로 판정했어요.';
+  const why = d.ko ? (res === 'dw' ? '상대 체력을 전부 깎았어요.' : res === 'dl' ? '내 체력이 바닥났어요.' : '동시에 쓰러졌어요.') : res === 'dd' ? '시간이 다 됐는데 남은 체력이 같아요.' : `시간이 다 돼서 남은 체력으로 판정했어요.`;
   let hint = '';
-  const worst = theirs[0] ? theirs[0][0] : '', wc = worst && PART[worst] ? PART[worst].cls : '';
+  const worst = theirs[0] ? theirs[0][0] : '', wc = worst && PART[worst] ? PART[worst].cls : worst[0] === 'U' ? 'skill' : '';
   if (res !== 'dw') {
     if (wc === 'heavy') hint = `상대 ${hitName(worst)}에 가장 많이 맞았어요. 준비 동작이 보이면 빠른 공격으로 끊거나 부스터로 피해 보세요.`;
     else if (wc === 'bomb') hint = `상대 ${hitName(worst)}에 가장 많이 맞았어요. 터질 때 가드하면 덜 아프고, 부스터가 있으면 아예 피할 수 있어요.`;
     else if (wc === 'shot') hint = `상대 ${hitName(worst)}에 가장 많이 맞았어요. 닿기 직전에 가드를 누르면 받아칠 수 있어요.`;
     else if (wc === 'fast') hint = `상대 ${hitName(worst)}에 가장 많이 맞았어요. 빠른 공격은 보고 막기 어려우니 상대 전력이 찼을 때 미리 가드해 보세요.`;
     else if (me.st.used < 8) hint = '전력을 아끼다 끝났어요. 전력이 가득 차면 그만큼 손해예요.';
-  } else if (me.st.parry + me.st.cut === 0) hint = '끊기나 받아치기를 노리면 체력을 덜 잃어요.';
+  } else if (me.st.parry + me.st.cut === 0) hint = '끊기나 받아치기를 노리면 더 쉽게 이겨요.';
   const rows = (arr, cls) => arr.length ? arr.slice(0, 4).map(([by, v]) => `<li class="${cls}">${hitChip(by)}<span class="nm">${hitName(by)}</span><span class="dbar"><i style="width:${Math.max(4, v / top * 100).toFixed(0)}%"></i></span><span class="tm">${Math.round(v)}</span></li>`).join('') : '<li class="none">피해를 못 줬어요</li>';
   const stat = m => `받아치기 ${m.st.parry} · 끊기 ${m.st.cut} · 가드 깨기 ${m.st.brk} · 회피 ${m.st.dodge}`;
-  const score = runMode && win ? `<p class="score"><small>${clear ? '남은 체력' : '이어 갈 체력'}</small><span class="me">${run.hp} / ${run.max}</span></p>` : `<p class="score"><small>남은 체력</small><span class="me">나 ${Math.ceil(me.hp)}</span><span>:</span><span class="foe">${Math.ceil(foe.hp)} 상대</span></p>`;
-  const s = run ? run.st : null;
-  const extra = clear ? `<p class="why hint">튜링의 기계: “네 버릇은 다 읽었는데, 그래도 졌네.”</p><p class="reward">싸움 ${s.duels}번 · 받아치기 ${s.parry} · 끊기 ${s.cut} · ${Math.round(s.ticks / TPS)}초</p>` : runMode && !win ? `<p class="reward">${run.act + 1}막 ${run.step + 1}번째 방까지 왔어요</p>` : '';
-  const got = scene.unlock ? `<p class="reward">새 로봇 ‘${SCI[scene.unlock].name}의 ${SCI[scene.unlock].bot}’을(를) 얻었어요!</p>` : '';
-  const btns = runMode ? `<button type="button" class="b primary" data-ov="exit">${win && !clear ? '보상 고르기' : '돌아가기'}</button>` : '<button type="button" class="b primary" data-ov="again">한 판 더</button><button type="button" class="b" data-ov="exit">나가기</button>';
-  overlay.innerHTML = `<img class="face small" src="${kidPic(mood)}" alt="" width="84" height="84"><h2>${title}</h2>` + score
-    + `<p class="why">${esc(why)}</p>` + (hint ? `<p class="why hint">${esc(hint)}</p>` : '') + extra + got
+  overlay.innerHTML = `<img class="face small" src="${kidPic(mood)}" alt="" width="84" height="84"><h2>${title}</h2>`
+    + `<p class="score"><small>남은 체력</small><span class="me">나 ${Math.ceil(me.hp)}</span><span>:</span><span class="foe">${Math.ceil(foe.hp)} 상대</span></p>`
+    + `<p class="why">${esc(why)}</p>` + (hint ? `<p class="why hint">${esc(hint)}</p>` : '')
     + `<p class="brk"><span class="me">나 · ${stat(me)}</span></p><p class="brk"><span class="foe">상대 · ${stat(foe)}</span></p>`
     + `<div class="dmgs"><h3>내가 준 피해 <small>${sum(mine)}</small></h3><ul class="tl">${rows(mine, 'me')}</ul><h3>내가 받은 피해 <small>${sum(theirs)}</small></h3><ul class="tl">${rows(theirs, 'foe')}</ul></div>`
-    + `<div class="btns">${btns}</div>`;
+    + `<p class="reward">연구 노트 +${scene.gain} · 나사 +${scene.gainB}</p>`
+    + '<div class="btns"><button type="button" class="b primary" data-ov="again">한 판 더</button><button type="button" class="b" data-ov="exit">나가기</button></div>';
   overlay.hidden = false;
   const first = overlay.querySelector('button'); if (first) first.focus();
 }
@@ -1540,7 +1330,7 @@ function exitPlay() {
   play = null;
   document.body.classList.remove('playing');
   overlay.hidden = true;
-  renderAll(); rebuildScene(); editor.scrollTop = 0;
+  renderAll(); rebuildScene();
 }
 overlay.addEventListener('click', e => {
   const b = e.target.closest('[data-ov]'); if (!b) return;
@@ -2247,16 +2037,16 @@ function botPic(b) {
   avCache.set(key, url);
   return url;
 }
-function renderShow(now) {   // 모험 준비와 자유 대전: 로봇 한 대를 세워 놓고 보여 준다
+function renderShow(now) {   // 차고와 도전: 로봇 한 대를 세워 놓고 보여 준다
   const g = ctx, b = scene.boss, sc = SCI[b.bot];
   camS.x = 0; camS.w = 170;
   g.setTransform(1, 0, 0, 1, 0, 0);
   if (G3) { G3.draw(scene.duel, now, { solo: 1 }); g.clearRect(0, 0, canvas.width, canvas.height); g.setTransform(view.scale, 0, 0, view.scale, 0, 0); }
   else { if (bgDuel) g.drawImage(bgDuel, 0, 0); g.setTransform(view.scale, 0, 0, view.scale, 0, 0); const p = proj2(0, 0); flatBot(g, scene.duel.f[1], p.x, p.y, p.s * 1.2); }
   g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.font = '400 13px ' + FB; otext(g, `${scene.tag} · ${sc.name}의 로봇 ‘${sc.bot}’`, W / 2, 24, C.sun, 4);
+  g.font = '400 13px ' + FB; otext(g, scene.mine ? `${sc.name}의 로봇 ‘${sc.bot}’` : `상대 · ${sc.name}의 로봇 ‘${sc.bot}’`, W / 2, 24, C.sun, 4);
   g.font = '400 27px ' + FD; otext(g, b.name || '내 로봇', W / 2, 52, '#fff', 7);
-  g.font = '400 13px ' + FB; otext(g, `체력 ${b.hp0 ? b.hp0 + ' / ' : ''}${hpOf(b)} · 필살기 ${sc.ult}`, W / 2, 82, '#d8d0f0', 4);
+  g.font = '400 13px ' + FB; otext(g, `체력 ${hpOf(b)} · 필살기 ${sc.ult}`, W / 2, 82, '#d8d0f0', 4);
   const its = partsOf(b); let x = W / 2 - its.length * 19;
   for (const k of its) { hitTileAt(g, k, x + 2, 480, 34); x += 38; }
 }
@@ -2320,16 +2110,15 @@ function readHash() {
   if (!/^bm9-/i.test(h)) return false;
   const r = addImported(h);
   if (r.error) return false;
-  state.view = 'free';
+  state.view = 'challenge';
   return true;
 }
 function start(data) {
   let saved = null;
-  try { saved = JSON.parse(localStorage.getItem(LS) || localStorage.getItem(LS_OLD) || 'null'); } catch (e) { /* 저장소 없이 시작 */ }
-  applySaved(data && data.meta ? data : saved);
+  try { saved = JSON.parse(localStorage.getItem(LS) || 'null'); } catch (e) { /* 저장소 없이 시작 */ }
+  applySaved(data && data.bots ? data : saved);
   readHash();
   for (const k of PORDER) hitImg(k);
-  hitImg('U');
   $('#logo').src = kidPic('idle'); updateSndBtn(); updateCoachBtn();
   $('#bossName').value = state.name;
   renderAll();
@@ -2338,7 +2127,7 @@ function start(data) {
   requestAnimationFrame(ms => { last = ms / 1000; requestAnimationFrame(frame); });
 }
 window.addEventListener('hashchange', () => { if (!play && readHash()) { save(); renderAll(); rebuildScene(); } });
-window.__bm = { makeDuel, stepDuel, press, can, aiFor, encode, decode, prep, SAMPLES, RULE, PART, PORDER, SCI, SORDER, SKILL, THEORY, TORDER, ACTS, STEPS, START, KIT, W, H, state, camS, peek: () => scene, has3: () => !!G3, tap, myBoss, newRun, runBoss, runDoors, save, renderAll, rebuildScene };
+window.__bm = { makeDuel, stepDuel, press, can, aiFor, encode, decode, prep, SAMPLES, RULE, PART, PORDER, SCI, SORDER, SKILL, W, H, state, camS, peek: () => scene, has3: () => !!G3, tap, myBoss };
 if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(snap);
 if (window.claude && window.claude.hot && window.claude.hot.ready) window.claude.hot.ready(start);
 else start((window.claude && window.claude.hot && window.claude.hot.data) || {});
