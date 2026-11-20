@@ -1788,13 +1788,16 @@ const POP = {
 const chainPop = (n: number): [string, string, number] => [`연쇄 ×${n}`, '#9ff0ff', Math.min(26, 14 + n * 1.5)];
 /** 큰 순간 띠: [글, 크기px] (🧪: '싹둑'은 '싹쓸이'와 헷갈려 뺌) */
 const bannerOf = (sw: boolean, n: number): [string, number] => [sw ? '싹쓸이!' : `${n}명 베기!`, sw ? 24 : Math.min(22, 14 + n * 2)];
+/** 꾹 글 두 줄(위 하늘): [N명 한 줄! 또는 스으…, 까닭] (M3 S12) */
+const HOLD2: Record<string, string> = { bounce: '방패에 튕겨요!', dodge: '휙! 꺾어요', tok: '툭! 꺾어요' };
+const holdCap = (n: number, why: string): [string, string] => [n >= 2 ? `${n}명 한 줄!` : '스으…', HOLD2[why] ?? ''];
 /** 아래 팁 줄 */
 const HINT = {
   hold: '떼면 번쩍! 선 위의 적을 모두 베요', short: '게이지가 모자라 짧게만 돌진해요', first: '꾹 누르면 느려져요 — 떼면 번쩍!', bend: '끝에서 꺾어 쭉!',
   owl: '부엉이 길 — 손가락을 따라 그어요(★★★ 없음)', won: '모든 판을 지나왔어요!', lose: '날아오는 건 비켜 서요 — 빨간 표시를 보세요',
   stars: (n: number) => `★ ${n}개! 다음 판엔 새 적이 나와요`,
 };
-export interface WarmText { f: string; t: string; lw: number; lj?: CanvasLineJoin; mw?: number; rot?: number }
+export interface WarmText { f: string; t: string; lw: number; lj?: CanvasLineJoin; mw?: number }
 /** 켠 뒤 미리 그려 둘 글 목록(그리는 곳과 같은 글꼴 · 같은 선 · 같은 기울기) — 첫 떼기에 뜨는 것이 먼저(꾹 글은 꾹 하는 동안 실제로 그려진다) */
 export function textWarm(w: number): WarmText[] {
   const out: WarmText[] = [], add = (f: string, t: string, lw: number, o: Partial<WarmText> = {}) => out.push({ f, t, lw, ...o });
@@ -1805,9 +1808,9 @@ export function textWarm(w: number): WarmText[] {
   for (const [t, , z] of [POP.hurt, POP.bounce, POP.shotcut, POP.boom, POP.clink, POP.whiff, POP.bosshit, POP.empty, ...[3, 4, 5, 6].map(chainPop), POP.shoot, POP.shoot3]) add(`800 ${z}px system-ui, sans-serif`, t, 3);
   for (const t of Object.values(TIP)) if (t !== TIP.sweep && t !== TIP.chain) hint(t);
   hint(HINT.hold), hint(HINT.short), hint(HINT.bend), hint(HINT.first, 0.04);
-  add(fontOf(w, 0.05, 900), '스으…', 4, { rot: -0.12 });
-  for (let k = 2; k <= 5; k++) add(fontOf(w, 0.05, 900), `${k}명 한 줄!`, 4);
-  for (const t of ['휙! 꺾어요', '툭! 꺾어요']) add(fontOf(w, 0.04, 900), t, 3);
+  for (let k = 1; k <= 5; k++) add(fontOf(w, 0.05, 900), holdCap(k, '')[0], 4);
+  for (const t of Object.values(HOLD2)) add(fontOf(w, 0.04, 900), t, 3);
+  for (const t of ['휙', '툭']) add(fontOf(w, 0.032, 900), t, 3);
   add(fontOf(w, 0.03, 900), '123456', 0);
   hint(HINT.won), hint(HINT.lose), [1, 2, 3].forEach((n) => hint(HINT.stars(n)));
   return out;
@@ -1823,7 +1826,6 @@ export function warmText(ctx: C2, it: WarmText, x: number, y: number, part: numb
   ctx.textBaseline = 'middle';
   ctx.lineJoin = it.lj ?? 'miter';
   ctx.translate(x, y);
-  if (it.rot) ctx.rotate(it.rot);
   if (part === 0) ctx.measureText(it.t);
   else if (part === 1) (ctx.lineWidth = it.lw), ctx.strokeText(it.t, 0, 0);
   else if (it.mw) ctx.fillText(it.t, 0, 0, it.mw);
@@ -2401,10 +2403,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.moveTo(bx + R(0.02), by - R(0.02));
       ctx.lineTo(bx - R(0.02), by + R(0.02));
       ctx.stroke();
-      font(0.034, 900);
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#ffd86b';
-      ctx.fillText('방패에 튕겨요!', bx, by - R(0.04));
     }
     // 벨 차례 번호
     prev.hits.forEach((hq, i) => {
@@ -2437,28 +2435,37 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.setLineDash([]);
     }
     for (const dq of [...prev.dodges, ...prev.toks.map((id) => ({ id }))]) { // 🍃 곧은 칼이면 '휙' · 🎋 '툭' — 꺾어 들어가야 베인다
-      const f = s.foes.find((q) => q.id === dq.id) ?? s.bamboos.find((q) => q.id === dq.id), txt = 'k' in (f ?? {}) ? '휙! 꺾어요' : '툭! 꺾어요';
+      const f = s.foes.find((q) => q.id === dq.id) ?? s.bamboos.find((q) => q.id === dq.id), txt = 'k' in (f ?? {}) ? '휙' : '툭';
       if (!f) continue;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.lineWidth = 3;
       ctx.strokeStyle = 'rgba(0,0,0,.6)';
-      font(0.04, 900); // 🧪 M2 S1: 머리 위는 '×명 한 줄!'에 가려서 발밑으로·크게
+      font(0.032, 900); // 🧪 M2 S1: 발밑 · M3 S12: 한 글자만(긴 말은 위 하늘 두 줄에)
       ctx.strokeText(txt, X(f.x), Y(f.y) + R(0.05));
       ctx.fillStyle = '#c8ffb0';
       ctx.fillText(txt, X(f.x), Y(f.y) + R(0.05));
     }
-    if (prev.hits.length >= 2) {
-      font(0.05, 900);
+    // M3 S12(🧪 S10 허들 2 숙련 ❌: 1-10·2-10에서 꾹 때 글 넷이 닌자 위 60px 안에 겹침 · 오너 '연출 과도'):
+    //   꾹 글('N명 한 줄!' · '스으…' · '휙! 꺾어요' · '방패에 튕겨요!')은 위 하늘 한곳에 두 줄로 — 판 위엔 번호 · ✕ · '휙' 한 글자만
+    {
+      const [c1, c2] = holdCap(prev.hits.length, prev.bounce ? 'bounce' : prev.dodges.length ? 'dodge' : prev.toks.length ? 'tok' : ''), cy = Math.max(R(0.085 + 0.15), dy * 0.75) - dy;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      font(0.05, 900);
       ctx.lineWidth = 4;
       ctx.strokeStyle = 'rgba(10,8,20,.75)';
-      const txt = `${prev.hits.length}명 한 줄!`;
-      const tx = clamp(X(prev.ex), R(0.16), w - R(0.16)), ty = Y(prev.ey) - R(0.17);
-      ctx.strokeText(txt, tx, ty);
-      ctx.fillStyle = prev.hits.length >= 3 ? '#ffd84a' : '#ffffff';
-      ctx.fillText(txt, tx, ty);
+      ctx.strokeText(c1, w / 2, cy);
+      ctx.fillStyle = prev.hits.length >= 3 ? '#ffd84a' : prev.hits.length >= 2 ? '#ffffff' : '#dff6ff';
+      ctx.fillText(c1, w / 2, cy);
+      if (c2) {
+        font(0.04, 900);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(0,0,0,.6)';
+        ctx.strokeText(c2, w / 2, cy + R(0.065));
+        ctx.fillStyle = prev.bounce ? '#ffd86b' : '#c8ffb0';
+        ctx.fillText(c2, w / 2, cy + R(0.065));
+      }
     }
     // 손가락 자리
     ctx.strokeStyle = 'rgba(255,255,255,.8)';
@@ -2467,21 +2474,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.arc(X(s.aim.x), Y(s.aim.y), R(0.02 + 0.006 * pulse), 0, TAU);
     ctx.stroke();
     ctx.restore();
-    // '스으…'
-    if (s.g > 0) {
-      ctx.save();
-      ctx.globalAlpha = Math.min(1, sv * 1.4);
-      ctx.translate(X(s.nx) - R(0.1) * s.face, Y(s.ny) - R(0.2) + Math.sin(t * 0.05) * 3);
-      ctx.rotate(-0.12);
-      font(0.05, 900);
-      ctx.textAlign = 'center';
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = 'rgba(8,10,24,.8)';
-      ctx.strokeText('스으…', 0, 0);
-      ctx.fillStyle = '#dff6ff';
-      ctx.fillText('스으…', 0, 0);
-      ctx.restore();
-    }
   }
   // 첫 안내: 손가락 그림 하나 (허수아비 너머를 꾹)
   if (s.stage === 0 && !s.firstDash && s.phase === 'play' && !s.down) {
