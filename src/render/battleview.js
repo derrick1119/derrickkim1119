@@ -1,7 +1,7 @@
 // 전장 렌더러: 한지 배경, y 정렬된 종이 인형과 지형지물, 장판, 투사체, 이펙트
 import { W, H, VIEW } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, OCHRE, TEAL, FONT_B, text, ell, rr, rrPath, poly, line, path, st, drawSprite, clamp, lerp, easeOutBack } from './draw.js';
-import { getLook, getWeapon } from './sprites.js';
+import { getLook, getWeapon, blinking } from './sprites.js';
 import { defOf } from '../sim/battle.js';
 import { makeGround, makeFar, vignette, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, FAR_H } from './terrain.js';
 import { Fx } from './fx.js';
@@ -46,7 +46,13 @@ export function drawUnit(g, u, T, alpha = 1, march = false) {
   const by = y - hop * k, fl = u.flash > 0 ? u.flash * 0.85 : 0;
   if (u.root > 0) { for (let i = 0; i < 3; i++) { const a = i / 3 * TAU + u.id; g.beginPath(); g.arc(u.x + Math.cos(a) * u.r * 0.8, u.y - 2 + Math.sin(a) * u.r * 0.35, 5, PI, TAU); st(g, INK, 4); g.beginPath(); g.arc(u.x + Math.cos(a) * u.r * 0.8, u.y - 2 + Math.sin(a) * u.r * 0.35, 5, PI, TAU); st(g, '#5f9a4a', 2); } }
   const sx = dir * k * flip * sxm;
-  drawSprite(g, L.front, x, by, sx, k * sy, tilt, fl);
+  const bl = blinking(T, u.id);
+  drawSprite(g, bl && L.frontBlink ? L.frontBlink : L.front, x, by, sx, k * sy, tilt, fl);
+  // 머리는 목에 꿴 종이 한 장: 걸을 때 까딱이고, 가만히 있을 때도 살짝 움직이며, 가끔 눈을 깜빡인다
+  if (L.head) {
+    const ny = -L.neck * k * sy, ht = tilt * 0.5 + (moving ? Math.sin(ph * 2 + 0.6) * 0.04 : Math.sin(T * 1.7 + u.id * 1.3) * 0.03) + (act > 0 ? dir * act * 0.07 : 0), a2 = tilt + ht;
+    drawSprite(g, bl && L.blink ? L.blink : L.head, x - ny * Math.sin(tilt) + ny * Math.sin(a2), by + ny * Math.cos(tilt) - ny * Math.cos(a2), sx, k * sy, a2, fl);
+  }
   if (wspr) {
     const ct = Math.cos(tilt), sn = Math.sin(tilt), fsx = flip * sxm;
     const put = (px, py, sg) => {
@@ -255,7 +261,7 @@ export class BattleView {
         case 'synergy': case 'chase': out.push(e); break;
         case 'death': {
           const L = getLook(e.utype); fx.puff(e.x, e.y - 12, e.boss ? 14 : 4, PAPER, e.boss ? 18 : 9); fx.scraps(e.x, e.y - 22, e.boss ? 26 : 6, e.team === 0 ? [PAPER, '#c9d6e6', '#e9dec4'] : [PAPER, '#efc9b8', '#e9dec4']);
-          fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.front, sx: L.scale, sy: L.scale, life: 0.3 });
+          fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.front, sx: L.scale, sy: L.scale, life: 0.3 }); if (L.head) fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.head, sx: L.scale, sy: L.scale, life: 0.3 });
           if (e.boss) { fx.shake = 16; fx.flash = 1; fx.flashCol = '#fff'; fx.ring(e.x, e.y, 150, INK, 0.7, 8); sfx('boom'); } else sfx('death');
           break;
         }

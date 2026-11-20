@@ -61,7 +61,8 @@ src/data/stages.js         고개(장) 이름과 풍경
 src/sim/battle.js          전투 시뮬레이션 (DOM 비의존): 이어지는 전장, 물결, 사기, 패·덱, 영웅 기력, 진법, 지형·날씨, 본대, 군기 수레, 행군
 src/state.js               원정 상태: 덱, 노정(길 위에서 만나는 것들), 전리품, 장터, 공적 해금, 저장(localStorage)
 src/render/draw.js         그리기 도구, 종이 인형 스프라이트(종이 테두리 + 그림자)
-src/render/sprites.js      병종 인형 그림, 갈아 끼우는 무기 그림
+src/render/figures.js      인형 그림: 사람·도깨비(몸과 머리를 따로 오린 관절 인형), 요괴·탈것, 셀 음영 도구
+src/render/sprites.js      병종별 외형 등록(몸·머리·눈 감은 머리 스프라이트), 갈아 끼우는 무기 그림
 src/render/icons.js        전술 패·보물 아이콘
 src/render/terrain.js      이어 붙여 흐르는 한지 바닥·먼 산, 길가의 주막·장터·푯말
 src/render/battleview.js   전장 렌더러, 이벤트 → 이펙트/사운드

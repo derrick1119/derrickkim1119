@@ -1,17 +1,19 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../style.css"><style>html,body{overflow:auto;display:block;background:#e9dec4}</style></head>
-<body><canvas id="c" width="1440" height="1560"></canvas>
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../style.css"><style>html,body{overflow:auto;display:block;background:#e9dec4}#c{position:static;transform:none}</style></head>
+<body><canvas id="c" width="1440" height="1500"></canvas>
 <script type="module">
-import { LOOKS, getLook } from '../src/render/sprites.js';
+// 인형 한눈에 보기 (?s=배율, ?blink=1 눈 감은 그림)
+import { LOOKS, getLook, portrait } from '../src/render/sprites.js';
 import { drawSprite, text } from '../src/render/draw.js';
+const q = new URLSearchParams(location.search), S = Number(q.get('s') || 2.1), per = Number(q.get('per') || 8);
 const c = document.getElementById('c'), g = c.getContext('2d');
-await document.fonts.load("700 20px 'Gowun Batang'", '가A');
+await Promise.all([document.fonts.load("700 20px 'Gowun Batang'", '가A'), document.fonts.load("20px 'Yeon Sung'", '가A')]);
 g.fillStyle = '#e9dec4'; g.fillRect(0, 0, c.width, c.height);
 let i = 0;
 for (const k of Object.keys(LOOKS)) {
-  const L = getLook(k), col = i % 8, row = Math.floor(i / 8), x = 90 + col * 178, y = 300 + row * 330, s = L.scale * 2.1, h = L.hold;
-  drawSprite(g, L.front, x, y, s, s);
-  if (L.weapon) drawSprite(g, L.weapon, x + h.x * s, y + h.y * s, s, s, h.a);
-  text(g, k, x, y + 30, { size: 20 }); i++;
+  const L = getLook(k), col = i % per, row = Math.floor(i / per), x = 90 + col * (1440 / per), y = 190 * S / 2.1 + row * 190 * S / 2.1 * 1.9;
+  const s = S * (L.boss ? 0.55 : 1);
+  if (q.get('blink') && (L.blink || L.frontBlink)) { drawSprite(g, L.frontBlink || L.front, x, y, s * L.scale, s * L.scale); if (L.blink) drawSprite(g, L.blink, x, y, s * L.scale, s * L.scale); } else portrait(g, k, x, y, s);
+  text(g, k, x, y + 26, { size: 18 }); i++;
 }
 window.done = true;
 </script></body></html>
