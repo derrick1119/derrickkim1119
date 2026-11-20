@@ -2,7 +2,7 @@
 // curse 는 사건에서 얻는 부정(나쁜 효과)이며 전리품으로는 나오지 않는다.
 const U = (m, t) => (m.unit[t] || (m.unit[t] = {}));
 export const RELICS = {
-  drum: { name: '큰북', desc: '전투 시작 시 사기 +3', mod: m => { m.startMorale += 3; } },
+  drum: { name: '큰북', desc: '싸움이 시작될 때마다 사기 +2', mod: m => { m.startMorale += 2; } },
   banner: { name: '장군기', desc: '배후 공격 피해 +50% → +80%', mod: m => { m.flank += 0.3; } },
   horseshoe: { name: '무쇠 편자', req: 'knight', desc: '기마 무사 돌격 피해 +40%, 더 짧은 거리로 돌격 준비', mod: m => { m.chargeMult *= 1.4; m.chargeDist *= 0.7; } },
   grail: { name: '정화수 사발', desc: '정화 굿 회복량 +50%, 범위 +20%', mod: m => { m.grailHeal *= 1.5; m.grailR *= 1.2; } },
@@ -15,11 +15,11 @@ export const RELICS = {
   crest: { name: '호랑이 가죽', desc: '영웅 체력 +30%, 영웅 전용 패 비용 -1', mod: m => { m.heroHp *= 1.3; m.heroCost += 1; } },
   sack: { name: '엽전 꾸러미', desc: '승리 시 엽전 +50%', mod: m => { m.gold *= 1.5; } },
   oath: { name: '결사의 맹세', desc: '병력이 절반 이하인 부대의 피해 +30%', mod: m => { m.lastStand += 0.3; } },
-  vanguard: { name: '선봉 깃발', desc: '전투 시작 8초간 이동 속도 +30%, 피해 +15%', mod: m => { m.vanguard = 1; } },
+  vanguard: { name: '선봉 깃발', desc: '싸움이 시작되고 10초간 이동 속도 +30%, 피해 +15%', mod: m => { m.vanguard = 1; } },
   powder: { name: '화약 비법', desc: '도사·화차 폭발 범위 +25%', mod: m => { m.aoeR *= 1.25; } },
-  amulet: { name: '수호 부적', desc: '전투 시작 시 모든 아군에게 보호막 80', mod: m => { m.startShield += 80; } },
+  amulet: { name: '수호 부적', desc: '싸움이 시작될 때 전장의 모든 아군에게 보호막 80', mod: m => { m.startShield += 80; } },
   ginseng: { name: '산삼', desc: '모든 아군 체력 +10%', mod: m => { m.hpAll *= 1.1; } },
-  gamtu: { name: '도깨비 감투', desc: '전투 시작 5초간 받는 피해 -50%', mod: m => { m.openGuard = 0.5; } },
+  gamtu: { name: '도깨비 감투', desc: '싸움이 시작되고 6초간 받는 피해 -50%', mod: m => { m.openGuard = 0.5; } },
   obsidian: { name: '흑요 부적', desc: '예고 원(바위·두목 기술) 피해 -35%', mod: m => { m.teleResist = 0.35; } },
   sotdae: { name: '솟대', desc: '[대기] 중인 부대가 받는 피해 -18%', mod: m => { m.holdGuard = 0.18; } },
   pill: { name: '청심환', desc: '기절·속박·약화 지속 시간 -50%', mod: m => { m.debuff *= 0.5; } },
@@ -40,7 +40,7 @@ export const RELICS = {
   fuse: { name: '긴 심지', req: 'cannon', desc: '화차 장전 속도 +30%', mod: m => { U(m, 'cannon').as = 1.3; } },
   ironmace: { name: '무쇠 철퇴', req: 'berserk', desc: '철퇴 장사가 한 명 더 타격, 공격력 +10%', mod: m => { const u = U(m, 'berserk'); u.cleave = 1; u.atk = 1.1; } },
   // ── 부정 ──
-  c_trick: { name: '도깨비 장난', curse: true, desc: '전투 시작 시 사기 -2', mod: m => { m.startMorale -= 2; } },
+  c_trick: { name: '도깨비 장난', curse: true, desc: '싸움이 시작될 때마다 사기 -2', mod: m => { m.startMorale -= 2; } },
   c_luck: { name: '액운', curse: true, desc: '싸움에서 얻는 엽전 -25%', mod: m => { m.gold *= 0.75; } },
   c_fog: { name: '눈먼 안개', curse: true, desc: '원거리 병종 사거리 -10%', mod: m => { m.rangeMul *= 0.9; } },
   c_chill: { name: '으스스한 한기', curse: true, desc: '사기 회복 속도 -15%', mod: m => { m.moraleRate *= 0.85; } },

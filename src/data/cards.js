@@ -1,4 +1,6 @@
-// 전술 패: 전투 중 손패에서 사기를 내고 쓰는 카드
+import { UNITS, PLAYER_TYPES, HEROES } from './units.js';
+
+// 패: 싸움 중 손패에서 사기를 내고 쓴다 (전술 패 + 병력 패 + 영웅 패)
 // kind: attack(공격) / support(지원) / tactic(책략) / hero(영웅 전용) / curse(부정)
 // v = 기본 수치, up = 강화했을 때 덮어쓰는 수치 (upCost = 강화 시 줄어드는 비용)
 export const CARDS = {
@@ -26,13 +28,19 @@ export const CARDS = {
   // ── 부정 ──
   doubt: { name: '잡념', ch: '념', kind: 'curse', cost: 1, target: false, v: {}, up: {}, desc: () => '쓸모없는 패. 사기 1을 내면 버릴 수 있다' },
 };
+// ── 병력 패·영웅 패: 내면 그 자리에 부대가 선다. 부대가 전멸하면 버린 더미로 돌아가 다시 뽑힌다 ──
+for (const t of PLAYER_TYPES) CARDS['u_' + t] = { name: UNITS[t].name, ch: UNITS[t].name[0], kind: 'unit', unit: t, cost: UNITS[t].cost, rare: UNITS[t].cost > 2 ? 1 : 0, target: true, r: 46, v: {}, up: {}, desc: () => UNITS[t].desc };
+for (const h of HEROES) CARDS['h_' + h] = { name: UNITS[h].name, ch: '영', kind: 'lead', unit: h, cost: 4, target: true, r: 46, v: {}, up: {}, desc: () => UNITS[h].desc };
 for (const k of Object.keys(CARDS)) CARDS[k].id = k;
-export const KIND = { attack: { name: '공격', col: '#b8382a' }, support: { name: '지원', col: '#2f6f5c' }, tactic: { name: '책략', col: '#2f4d7e' }, hero: { name: '영웅', col: '#b8742a' }, curse: { name: '부정', col: '#5a4a7a' } };
+export const KIND = { unit: { name: '병력', col: '#3f5f8a' }, lead: { name: '영웅', col: '#a8322a' }, attack: { name: '공격', col: '#b8382a' }, support: { name: '지원', col: '#2f6f5c' }, tactic: { name: '책략', col: '#5a4a8a' }, hero: { name: '영웅기', col: '#b8742a' }, curse: { name: '부정', col: '#5a5346' } };
+export const isUnit = c => CARDS[c.id].kind === 'unit' || CARDS[c.id].kind === 'lead';
+export const MAX_LV = 6;
 export const cardVals = c => Object.assign({}, CARDS[c.id].v, c.up ? CARDS[c.id].up : {});
 export const cardCost = c => Math.max(0, CARDS[c.id].cost - (c.up && CARDS[c.id].upCost || 0));
-export const cardName = c => CARDS[c.id].name + (c.up ? '+' : '');
+export const cardName = c => CARDS[c.id].name + (isUnit(c) ? ((c.lv || 1) > 1 ? ' Lv' + c.lv : '') : c.up ? '+' : '');
 export const cardDesc = c => CARDS[c.id].desc(cardVals(c));
+// 시작 덱: 영웅 1 + 병력 5 + 전술 5 + 영웅기 2
 export function starterDeck(hero) {
-  const ids = ['sling', 'sling', 'sling', 'rain', 'heal', 'heal', 'horn'].concat(Object.keys(CARDS).filter(k => CARDS[k].hero === hero));
-  return ids.map(id => ({ id, up: false }));
+  const ids = ['h_' + hero, 'u_sword', 'u_shield', 'u_xbow', 'u_sword', 'u_xbow', 'sling', 'sling', 'rain', 'heal', 'horn'].concat(Object.keys(CARDS).filter(k => CARDS[k].hero === hero));
+  return ids.map(id => ({ id, up: false, lv: 1 }));
 }

@@ -33,7 +33,7 @@ export const BOSSES = [
 ];
 
 // 깊이(0 = 첫 싸움) → 요괴 예산. 밸런스는 tools/campaign.mjs 로 맞춘다.
-export function budgetFor(ch, row, kind, hard) { return (8 + (ch * (ROWS + 1) + row) * 1.3) * (kind === 'elite' ? 1.15 : 1) * (1 + 0.05 * hard); }
+export function budgetFor(ch, row, kind, hard) { return (12 + ch * 6 + row * 1.6) * (kind === 'elite' ? 1.15 : 1) * (1 + 0.05 * hard); }
 
 export function genEncounter(ch, row, kind, R, hard = 0) {
   if (kind === 'boss') { const b = BOSSES[ch]; return Object.assign({ ch, row, kind, boss: true, tip: UNITS[b.key].tip, foe: {} }, b); }

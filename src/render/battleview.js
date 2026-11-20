@@ -1,9 +1,9 @@
 // 전장 렌더러: 한지 배경, y 정렬된 종이 인형과 지형지물, 장판, 투사체, 이펙트
-import { W, H, GRID } from '../config.js';
+import { W, H, VIEW } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, OCHRE, TEAL, FONT_B, text, ell, rr, rrPath, poly, line, path, st, drawSprite, clamp, lerp } from './draw.js';
 import { getLook, getWeapon } from './sprites.js';
 import { defOf } from '../sim/battle.js';
-import { makeGround, propSprite } from './terrain.js';
+import { makeGround, makeFar, vignette, stopSprite, GW, FW, FAR_H } from './terrain.js';
 import { Fx } from './fx.js';
 import { icon } from '../ui/ui.js';
 
@@ -11,7 +11,7 @@ const PI = Math.PI;
 function swing(p) { if (p < 0.28) return lerp(0, -0.9, p / 0.28); if (p < 0.55) return lerp(-0.9, 1.7, (p - 0.28) / 0.27); return lerp(1.7, 0, (p - 0.55) / 0.45); }
 
 // 종이 인형 한 장: 걷기는 깡충거림과 기울임, 공격은 내지르기와 무기 휘두르기
-export function drawUnit(g, u, T, alpha = 1) {
+export function drawUnit(g, u, T, alpha = 1, march = false) {
   const L = getLook(u.type), k = L.scale, hold = L.hold, WP = u.def && u.def.wpn ? getWeapon(u.def.wpn) : null;
   const mode = WP ? WP.mode : hold.mode, ha = WP ? WP.a : hold.a, wspr = WP ? WP.spr : L.weapon, hand = WP ? WP.hand : 'R';
   const c = Math.cos(u.facing), s = Math.sin(u.facing);
@@ -19,10 +19,12 @@ export function drawUnit(g, u, T, alpha = 1) {
   const nd = c > 0.35 ? 1 : c < -0.35 ? -1 : u._dir; if (nd !== u._dir) { u._dir = nd; u._flipT = T; }
   // 방향을 바꿀 때는 종이를 뒤집듯 가로로 접혔다 펴진다
   const fk = clamp((T - u._flipT) / 0.16, 0, 1), dir = u._dir, flip = fk < 1 ? Math.max(0.12, Math.abs(1 - 2 * fk)) * (fk < 0.5 ? -1 : 1) : 1;
-  const ph = u.walk * 0.26, moving = u.moving && !L.still;
+  // 행군 중에는 제자리걸음으로 앞을 보고 걷는다 (앞서 나가 기다리는 병사는 서 있는다)
+  const walkin = march && u.team === 0 && !u.waiting; if (walkin) u._dir = 1;
+  const ph = walkin ? T * 8.5 + u.id : u.walk * 0.26, moving = (u.moving || walkin) && !L.still;
   let hop = moving ? Math.abs(Math.sin(ph)) * 3.2 : 0, tilt = moving ? Math.sin(ph) * 0.085 : Math.sin(T * 2 + u.id) * 0.018;
   if (L.float) hop += 3 + Math.sin(T * 3.2 + u.id) * 2.2;
-  if (L.still) { tilt = 0; hop = u.moving ? Math.abs(Math.sin(ph * 1.6)) * 1.2 : 0; }
+  if (L.still) { tilt = 0; hop = u.moving || walkin ? Math.abs(Math.sin(ph * 1.6)) * 1.2 : 0; }
   const ap = clamp((T - u.atkT) / (mode === 'lob' ? 0.9 : 0.36), 0, 1), act = ap < 1 ? Math.sin(ap * PI) : 0;
   let x = u.x, y = u.y - (u.jumpH || 0), sy = 1, sxm = 1;
   // 막 세워진 인형은 톡 하고 일어선다. 걸을 때는 디딜 때마다 살짝 눌린다
@@ -83,18 +85,21 @@ const TELE = { boulder: RED, slam: RED, bomb: '#d9702a', root: '#4f8a4a', dark: 
 const AMB = { pass: ['#f3c4c9', '#f8dcdc', '#fbf7ec'], grove: ['#9bbf6a', '#d9c25a', '#7aa65a'], dusk: ['#8fd3e8', '#b8a0e0', '#dfe8ee'] };
 
 export class BattleView {
-  constructor(theme, map, seed) {
-    this.theme = theme; this.map = map; this.ground = makeGround(theme, map, seed); this.fx = new Fx(); this.dust = 0;
+  constructor(theme, seed) { this.fx = new Fx(); this.dust = 0; this.scroll = 0; this.props = []; this.setTheme(theme, seed); }
+  setTheme(theme, seed) {
+    this.theme = theme; this.ground = makeGround(theme, seed); this.far = makeFar(theme, seed);
     // 바람에 날리는 꽃잎·나뭇잎·도깨비불
-    this.amb = []; for (let i = 0; i < 18; i++) this.amb.push({ x: Math.random() * W, y: 180 + Math.random() * 900, s: 2.4 + Math.random() * 2.6, v: 14 + Math.random() * 22, ph: Math.random() * 9, col: AMB[theme][i % 3] });
-    this.props = (map.obstacles || []).map(o => ({ o, spr: propSprite(o, theme), y: o.kind === 'wall' || o.kind === 'barricade' ? o.y + o.h : o.y + (o.r || 0) * 0.6 }));
+    this.amb = []; for (let i = 0; i < 22; i++) this.amb.push({ x: Math.random() * W, y: 110 + Math.random() * 440, s: 2.4 + Math.random() * 2.6, v: 14 + Math.random() * 22, ph: Math.random() * 9, col: AMB[theme][i % 3] });
   }
+  // 길가에 서 있는 것 (주막·장터·푯말 …): 바닥과 함께 흐른다
+  addProp(kind, wx, y = 152) { this.props.push({ spr: stopSprite(kind), wx, y }); if (this.props.length > 5) this.props.shift(); }
   draw(g, b, T, opt = {}) {
-    const fx = this.fx;
+    const fx = this.fx, sc = Math.max(0, this.scroll);
     g.save();
     if (fx.shake > 0) g.translate((Math.random() - 0.5) * fx.shake, (Math.random() - 0.5) * fx.shake);
-    g.drawImage(this.ground, 0, 0, W, H);
-    if (opt.deploy) this.drawDeploy(g, opt.deploy, T);
+    for (let x = -((sc * 0.25) % FW); x < W; x += FW) g.drawImage(this.far, x, 0, FW, FAR_H);
+    for (let x = -(sc % GW); x < W; x += GW) g.drawImage(this.ground, x, 0, GW, H);
+    if (opt.deploy) this.drawDeployZone(g, opt.deploy, T);
     for (const z of b.zones) this.drawZone(g, z, T);
     for (const c of b.corpses) {
       if (c.revive) { g.globalAlpha = 0.85; path(g, p => { p.moveTo(c.x, c.y - 16); p.quadraticCurveTo(c.x + 7, c.y - 6, c.x + 4, c.y); p.quadraticCurveTo(c.x, c.y + 3, c.x - 4, c.y); p.quadraticCurveTo(c.x - 7, c.y - 6, c.x, c.y - 16); }, '#9fd3e8', INK, 1); g.globalAlpha = 1; g.beginPath(); g.arc(c.x, c.y - 4, 14, -PI / 2, -PI / 2 + TAU * (1 - c.t / 3)); st(g, '#4f8fb8', 2.6); }
@@ -104,34 +109,33 @@ export class BattleView {
     if (opt.orders) this.drawOrders(g, b, T);
     fx.drawLayer(g, true);
     const list = [];
-    for (const u of b.units) { if (u.dead || u.hidden > 0) continue; if (opt.skip && opt.skip.has(u.squad)) continue; list.push({ y: u.y, u }); }
-    for (const o of this.props) list.push(o);
+    for (const u of b.units) { if (u.dead || u.hidden > 0 || u.x > W + 60) continue; list.push({ y: u.y, u }); }
+    for (const p of this.props) { const x = p.wx - sc; if (x > -90 && x < W + 90) list.push({ y: p.y, spr: p.spr, x }); }
     if (opt.extra) for (const e of opt.extra) list.push(e);
     list.sort((a, c) => a.y - c.y);
-    for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha); else if (it.spr) drawSprite(g, it.spr, it.o.x, it.o.y); }
+    for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march); else if (it.spr) drawSprite(g, it.spr, it.x, it.y); }
     this.dust -= opt.dt || 0;
-    if (this.dust <= 0) { this.dust = 0.09; for (const u of b.units) if (!u.dead && u.moving && u.def.charge && u.run > 60 && u.hidden <= 0) fx.puff(u.x - Math.cos(u.facing) * 12, u.y - 2, 1, '#e8dcc0', 6); }
+    if (this.dust <= 0) { this.dust = 0.09; for (const u of b.units) if (!u.dead && u.moving && u.def.charge && u.run > 60 && u.hidden <= 0) fx.puff(u.x - Math.cos(u.facing) * 12, u.y - 2, 1, '#e8dcc0', 6); if (opt.march) for (const u of b.units) if (!u.dead && u.team === 0 && Math.random() < 0.05) fx.puff(u.x - 10, u.y - 1, 1, '#e8dcc0', 5); }
     for (const p of b.proj) this.drawProj(g, p, T);
-    this.drawAmbient(g, T, opt.dt || 0);
+    this.drawAmbient(g, T, opt.dt || 0, opt.march);
     fx.drawLayer(g, false);
     g.restore();
+    g.drawImage(vignette(this.theme === 'dusk'), 0, 0, W, H);
     if (fx.flash > 0) { g.globalAlpha = fx.flash * 0.45; g.fillStyle = fx.flashCol; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
   }
-  drawAmbient(g, T, dt) {
-    const night = this.theme === 'dusk';
+  drawAmbient(g, T, dt, march) {
+    const night = this.theme === 'dusk', wind = march ? 230 : 0;
     for (const a of this.amb) {
-      if (night) { a.y -= a.v * 0.5 * dt; a.x += Math.sin(T * 0.9 + a.ph) * 8 * dt; if (a.y < 170) { a.y = 1080; a.x = Math.random() * W; } g.globalAlpha = 0.25 + 0.2 * Math.sin(T * 2 + a.ph); ell(g, a.x, a.y, a.s * 2.2, a.s * 2.2, a.col); g.globalAlpha = 0.85; ell(g, a.x, a.y, a.s * 0.7, a.s * 0.7, '#f6fbff'); }
-      else { a.x += (a.v + Math.sin(T * 1.3 + a.ph) * 10) * dt; a.y += (a.v * 0.45 + Math.cos(T * 1.7 + a.ph) * 9) * dt; if (a.x > W + 12 || a.y > 1090) { a.x = -10 - Math.random() * 60; a.y = 170 + Math.random() * 820; } g.globalAlpha = 0.8; g.save(); g.translate(a.x, a.y); g.rotate(T * 1.6 + a.ph); g.scale(1, 0.35 + 0.65 * Math.abs(Math.sin(T * 2.2 + a.ph))); ell(g, 0, 0, a.s * 1.25, a.s * 0.7, a.col, 'rgba(38,42,54,0.45)', 0.7); g.restore(); }
+      if (night) { a.y -= a.v * 0.5 * dt; a.x += (Math.sin(T * 0.9 + a.ph) * 8 - wind) * dt; if (a.y < 100) { a.y = 556; a.x = Math.random() * W; } if (a.x < -12) a.x = W + 10; g.globalAlpha = 0.25 + 0.2 * Math.sin(T * 2 + a.ph); ell(g, a.x, a.y, a.s * 2.2, a.s * 2.2, a.col); g.globalAlpha = 0.85; ell(g, a.x, a.y, a.s * 0.7, a.s * 0.7, '#f6fbff'); }
+      else { a.x -= (a.v + Math.sin(T * 1.3 + a.ph) * 10 + wind) * dt; a.y += (a.v * 0.45 + Math.cos(T * 1.7 + a.ph) * 9) * dt; if (a.x < -12 || a.y > 566) { a.x = W + 10 + Math.random() * 60; a.y = 100 + Math.random() * 400; } g.globalAlpha = 0.8; g.save(); g.translate(a.x, a.y); g.rotate(T * 1.6 + a.ph); g.scale(1, 0.35 + 0.65 * Math.abs(Math.sin(T * 2.2 + a.ph))); ell(g, 0, 0, a.s * 1.25, a.s * 0.7, a.col, 'rgba(38,42,54,0.45)', 0.7); g.restore(); }
     }
     g.globalAlpha = 1;
   }
-  drawDeploy(g, d, T) {
-    for (let r = 0; r < GRID.rows; r++) for (let c = 0; c < GRID.cols; c++) {
-      const x = GRID.x0 + c * GRID.cw, y = GRID.py0 + r * GRID.ch, hot = d.hot && d.hot.col === c && d.hot.row === r;
-      g.globalAlpha = hot ? 0.55 : 0.22 + (d.dragging ? 0.1 : 0); rr(g, x + 4, y + 4, GRID.cw - 8, GRID.ch - 8, 8, hot ? (d.ok ? '#bcd3ea' : '#eab3a6') : PAPER);
-      g.globalAlpha = hot ? 1 : 0.5; g.setLineDash(hot ? [] : [7, 6]); g.beginPath(); rrPath(g, x + 4, y + 4, GRID.cw - 8, GRID.ch - 8, 8); st(g, hot ? (d.ok ? INDIGO : RED) : INK, hot ? 3 : 1.4); g.setLineDash([]);
-    }
-    g.globalAlpha = 1;
+  // 병력 패를 끌 때: 세울 수 있는 곳을 옅게 칠한다
+  drawDeployZone(g, d, T) {
+    const x1 = d.maxX + 34, col = d.ok ? INDIGO : RED;
+    g.globalAlpha = 0.1; g.fillStyle = col; g.fillRect(VIEW.x0 - 6, VIEW.y0 - 26, x1 - VIEW.x0 + 6, VIEW.y1 - VIEW.y0 + 40);
+    g.globalAlpha = 0.75; g.setLineDash([12, 9]); g.lineDashOffset = -T * 30; line(g, [x1, VIEW.y0 - 26, x1, VIEW.y1 + 14], col, 3); g.setLineDash([]); g.globalAlpha = 1;
   }
   drawZone(g, z, T) {
     if (z.kind === 'tele') {
@@ -193,10 +197,11 @@ export class BattleView {
   }
   // 시뮬레이션 이벤트 → 이펙트/사운드
   handle(b, sfx) {
-    const fx = this.fx;
+    const fx = this.fx, out = [];
     for (const e of b.events) {
       switch (e.type) {
         case 'hit':
+          if (e.kind === 'rout') { fx.txt(e.x + 40, e.y - 110, '군기가 흔들린다!', RED, 22, 1.1); fx.shake = Math.max(fx.shake, 5); sfx('warn'); break; }
           if (e.block) { fx.star(e.x, e.y - 18, 9, '#dfe6ee'); sfx('clang'); break; }
           if (e.kind === 'burn') { fx.burst(e.x, e.y - 16, 1, '#ff9a2e', 50, 3); break; }
           if (e.kind === 'melee' || e.kind === 'proj') { fx.burst(e.x, e.y - 16, e.flank ? 4 : 2, e.team === 0 ? '#e4826a' : '#f6d98a', 110); if (e.kind === 'melee' && (e.big || e.flank)) fx.slash(e.x, e.y - 18, e.big ? 26 : 18, e.team === 0 ? REDD : INK); sfx(e.kind === 'proj' ? 'thud' : 'hit'); }
@@ -204,6 +209,10 @@ export class BattleView {
           if (e.big && e.amt >= 60) fx.txt(e.x, e.y - 42, String(Math.round(e.amt)), e.team === 0 ? RED : INK, 20, 0.7);
           break;
         case 'melee': fx.star(e.x, e.y, e.big ? 15 : 10); break;
+        case 'squadLost': fx.txt(e.x, e.y - 66, '전멸!', RED, 26, 1.1); break;
+        case 'bannerDown': fx.shake = 18; fx.flash = 0.9; fx.flashCol = '#fff'; fx.ring(e.x, e.y, 220, RED, 0.8, 10); fx.scraps(e.x, e.y - 50, 26, [PAPER, '#c9d6e6', '#b8342a']); sfx('boom'); out.push(e); break;
+        case 'waveClear': out.push(e); break;
+        case 'waveStart': sfx('warn'); break;
         case 'death': {
           const L = getLook(e.utype); fx.puff(e.x, e.y - 12, e.boss ? 14 : 4, PAPER, e.boss ? 18 : 9); fx.scraps(e.x, e.y - 22, e.boss ? 26 : 6, e.team === 0 ? [PAPER, '#c9d6e6', '#e9dec4'] : [PAPER, '#efc9b8', '#e9dec4']);
           fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.front, sx: L.scale, sy: L.scale, life: 0.3 });
@@ -232,6 +241,7 @@ export class BattleView {
         case 'redraw': case 'shuffle': sfx('card'); break;
         case 'cast': {
           const id = e.id, x = e.x, y = e.y;
+          if (e.unit) { sfx('place'); break; }
           if (id === 'sling') { fx.add({ k: 'arc', x, y: y + 260, x1: x, y1: y, h: 60, life: 0.01, size: 6, col: '#a59f8f' }); fx.ring(x, y, e.r * 1.2, INK, 0.3, 5); fx.burst(x, y - 6, 9, '#a59f8f', 170, 4); fx.puff(x, y - 4, 4, '#e8dcc0', 9); fx.shake = Math.max(fx.shake, 4); sfx('thud'); }
           else if (id === 'rain' || id === 'firerain') sfx('shoot');
           else if (id === 'thunder') { fx.bolt(x, y - 10); fx.star(x, y - 18, 30, '#fffbe6'); fx.ring(x, y, 70, '#b8862a', 0.4, 7); fx.burst(x, y - 14, 12, '#f0d264', 240, 4); fx.flash = 0.55; fx.flashCol = '#fffbe6'; fx.shake = Math.max(fx.shake, 9); sfx('boom'); }
@@ -248,19 +258,20 @@ export class BattleView {
           else if (id === 'strike') sfx('leap');
           else if (id === 'order') { fx.ring(x, y, e.r * 1.2, '#b8862a', 0.5, 8); fx.txt(x, y - 80, '호령!', '#b8742a', 30, 1); sfx('horn'); }
           else if (id === 'sanctuary') { fx.ring(x, y, 170, '#5f8fb8', 0.6, 8); sfx('bless'); }
-          else if (id === 'sutra') { fx.flash = 0.3; fx.flashCol = '#f6efd0'; fx.txt(360, 620, '독경', '#b8862a', 40, 1.1); sfx('bless'); }
+          else if (id === 'sutra') { fx.flash = 0.3; fx.flashCol = '#f6efd0'; fx.txt(640, 330, '독경', '#b8862a', 40, 1.1); sfx('bless'); }
           else if (id === 'meteor') { fx.add({ k: 'fall', x, y, life: 1.1, size: 18, col: '#f0d264', tail: '#ff9a2e' }); sfx('magic'); }
           else if (id === 'blink') { fx.ring(x, y, e.r, '#8fb6c8', 0.4, 6); sfx('leap'); }
-          else if (id === 'doubt') { fx.txt(360, 1040, '잡념을 떨쳤다', '#5a4a7a', 24, 1); sfx('card'); }
+          else if (id === 'doubt') { fx.txt(640, 520, '잡념을 떨쳤다', '#5a4a7a', 24, 1); sfx('card'); }
           break;
         }
       }
     }
     b.events.length = 0;
+    return out; // 장면이 처리할 일 (물결 끝, 군기 쓰러짐)
   }
 }
 
 // 진형 미리보기(드래그 중)용 임시 인형
 export function ghostUnits(type, n, x, y, formation, wpn) {
-  const def = defOf(type, wpn); return formation(n).map(([dx, dy], i) => ({ type, def, x: x + dx, y: y + dy, r: def.r, facing: -PI / 2, walk: 0, moving: false, atkT: -9, id: i, flash: 0, hp: 1, maxHp: 1, team: 0, stun: 0, root: 0, haste: 0, weaken: 0, barrier: 0, fuse: 0, run: 0, born: -9 }));
+  const def = defOf(type, wpn); return formation(n).map(([dx, dy], i) => ({ type, def, x: x + dy, y: y + dx, r: def.r, facing: 0, walk: 0, moving: false, atkT: -9, id: i, flash: 0, hp: 1, maxHp: 1, team: 0, stun: 0, root: 0, haste: 0, weaken: 0, barrier: 0, fuse: 0, run: 0, born: -9 }));
 }

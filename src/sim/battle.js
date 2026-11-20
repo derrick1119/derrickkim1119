@@ -1,10 +1,13 @@
 // 전투 시뮬레이션 (DOM 비의존 — Node 에서도 돌아간다)
-import { W, H, FIELD, CELL, cellCenter } from '../config.js';
+// 한 원정 동안 이어지는 하나의 전장: 아군은 왼쪽, 요괴 무리(물결)는 오른쪽 화면 밖에서 걸어 들어온다.
+// 병력·영웅·전술이 모두 패이고, 손패에서 사기를 내고 쓴다.
+import { W, H, FIELD, VIEW, CELL, BANNER_POS, spawnPos } from '../config.js';
 import { UNITS, lvlMult } from '../data/units.js';
-import { CARDS, cardVals, cardCost } from '../data/cards.js';
+import { CARDS, cardVals, cardCost, isUnit } from '../data/cards.js';
 import { WEAPONS, ARMS } from '../data/weapons.js';
 
-const NC = Math.ceil(W / CELL), NR = Math.ceil(H / CELL);
+const NC = Math.ceil((FIELD.x1 + 30) / CELL), NR = Math.ceil(H / CELL);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const PI = Math.PI, TAU = PI * 2;
 const HC = 48; // 공간 해시 셀
 export const PACE = 2.2; // 체력 배율 — 전투 호흡 조절
@@ -18,7 +21,7 @@ export const DEFAULT_MODS = {
   // 패 관련: 영웅 패 비용 감소, 손패 보충 시간 배율, 전투마다 공짜로 쓰는 패 수, 패 위력
   heroCost: 0, drawRate: 1, freeFirst: 0, cardPow: 1, summonLife: 0,
 };
-export const HAND = 4, REFILL = 2.2, MORALE_RATE = 0.36;
+export const HAND = 5, REFILL = 2.2, MORALE_RATE = 0.36, MAX_CAP = 9, ROUT = 0.15;
 // 요괴 쪽 보정 (강적 특성, 험로 단계)
 export const DEFAULT_FOE = { hp: 1, atk: 1, as: 1, spd: 1, regen: 0 };
 
@@ -55,24 +58,39 @@ class Heap {
 export class Battle {
   constructor(o) {
     this.mods = Object.assign({}, DEFAULT_MODS, o.mods || {}); if (!o.mods || !o.mods.unit) this.mods.unit = {};
-    this.foe = Object.assign({}, DEFAULT_FOE, o.foe || {});
+    this.foe = Object.assign({}, DEFAULT_FOE);
     this.rand = mulberry(o.seed || 1);
-    this.time = 0; this.over = false; this.winner = -1; this.reason = '';
+    this.time = 0; this.over = false;
     this.units = []; this.squads = []; this.proj = []; this.zones = []; this.corpses = []; this.events = [];
-    this.timeLimit = o.timeLimit || 120;
-    this.power = o.power || 1;
-    this.moraleMax = 10; this.morale = Math.max(0, Math.min(10, 3 + this.mods.startMorale));
-    this.lost = 0; this.kills = 0; this.pending = 0; this.uid = 1; this.auraT = 0;
-    this.map = o.map || {};
-    this.buildNav(this.map);
-    for (const s of o.player || []) this.addSquad(0, s);
-    for (const s of o.enemy || []) this.addSquad(1, s);
-    this.startCount = [this.count(0), this.count(1)];
-    if (this.mods.startShield) for (const u of this.units) if (u.team === 0) { u.barrier = this.mods.startShield; u.barrierT = 30; }
+    this.power = o.power || 1; this.cap = o.cap || 5;
+    this.moraleMax = 10; this.morale = clamp(4 + (o.morale || 0), 0, 10);
+    this.lost = 0; this.kills = 0; this.pending = 0; this.uid = 1; this.sid = 1; this.auraT = 0;
+    this.waveOn = false; this.waveT = 0; this.waveLost = 0; this.waves = 0;
+    this.buildNav({});
+    this.raiseBanner(true);
+    // 패: 뽑을 더미 → 손패 → (전술은 버린 더미, 병력은 전장) → 더미가 비면 섞어서 다시 쓴다
+    this.hand = new Array(HAND).fill(null); this.slotT = new Array(HAND).fill(0); this.drawPile = []; this.discard = []; this.played = 0; this.free = 0;
+    const deck = (o.deck || []).map(c => this.copyCard(c)), out = new Set();
+    for (const [uid, x, y] of o.start || []) { const c = deck.find(q => q.uid === uid); if (c) { out.add(uid); this.deploy(c, x, y, true); } }
+    this.drawPile = this.shuffle(deck.filter(c => !out.has(c.uid))); for (let i = 0; i < HAND; i++) this.hand[i] = this.drawCard();
     this.centroids();
-    // 전술 패: 뽑을 더미 → 손패 4장 → 버린 더미, 더미가 비면 섞어서 다시 쓴다
-    this.hand = [null, null, null, null]; this.slotT = [0, 0, 0, 0]; this.drawPile = []; this.discard = []; this.played = 0; this.free = this.mods.freeFirst;
-    if (o.deck && o.deck.length) { this.drawPile = o.deck.map((c, i) => ({ id: c.id, up: !!c.up, k: i })); this.shuffle(this.drawPile); for (let i = 0; i < HAND; i++) this.hand[i] = this.drawCard(); }
+  }
+  copyCard(c) { return { uid: c.uid, id: c.id, up: !!c.up, lv: c.lv || 1, wpn: c.wpn }; }
+  // 원정 덱이 바뀌면(새 패·강화·무기·태우기) 전장의 패에 반영한다
+  syncDeck(deck) {
+    const by = new Map(deck.map(c => [c.uid, c])), seen = new Set();
+    const fix = c => { if (!c) return c; const r = by.get(c.uid); if (!r) return null; seen.add(c.uid); c.up = !!r.up; c.lv = r.lv || 1; c.wpn = r.wpn; return c; };
+    this.drawPile = this.drawPile.map(fix).filter(Boolean); this.discard = this.discard.map(fix).filter(Boolean);
+    for (let i = 0; i < HAND; i++) if (this.hand[i]) { this.hand[i] = fix(this.hand[i]); if (!this.hand[i]) this.slotT[i] = 0.3; }
+    for (const sq of this.squads) { if (!sq.card) continue; const c = fix(sq.card); sq.card = c; if (c && sq.alive > 0) this.refit(sq, c); }
+    for (const c of deck) if (!seen.has(c.uid)) this.drawPile.splice((this.rand() * (this.drawPile.length + 1)) | 0, 0, this.copyCard(c));
+  }
+  // 전장에 선 부대의 조련 단계·무기를 바꾼다
+  refit(sq, c) {
+    const nd = defOf(sq.type, c.wpn), od = sq.def, k = lvlMult(c.lv) / lvlMult(sq.lvl);
+    if (nd === od && k === 1) return;
+    for (const u of sq.units) { if (u.dead) continue; const h = k * nd.hp / od.hp; u.maxHp *= h; u.hp *= h; if (od.atk) u.atk *= k * nd.atk / od.atk; if (od.heal) u.healAmt *= k * nd.heal / od.heal; u.def = nd; u.lvl = c.lv; }
+    sq.def = nd; sq.lvl = c.lv;
   }
   shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = (this.rand() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
   drawCard() {
@@ -85,15 +103,13 @@ export class Battle {
 
   // ───────── 생성 ─────────
   addSquad(team, s) {
-    const def = defOf(s.type, s.wpn);
-    const pos = s.x !== undefined ? { x: s.x, y: s.y } : cellCenter(team, s.col, s.row);
-    const n = s.n || def.n;
-    const sq = { id: this.squads.length, team, type: s.type, def, lvl: s.lvl || 1, units: [], alive: 0, total: n, order: { kind: 'auto' }, cx: pos.x, cy: pos.y, hero: !!def.hero, ref: s };
-    if (s.hold) sq.order = { kind: 'hold', x: pos.x, y: pos.y, until: s.holdFor || Infinity };
-    if (s.flank) { const L = s.flank === 'L'; sq.order = { kind: 'move', path: [[L ? 76 : 644, 640], [L ? 120 : 600, 950]], x: L ? 76 : 644, y: 640, then: 'auto', t0: 0, wait: s.wait || 0 }; }
+    const def = defOf(s.type, s.wpn), pos = { x: s.x, y: s.y }, n = s.n || def.n;
+    const sq = { id: this.sid++, team, type: s.type, def, lvl: s.lvl || 1, units: [], alive: 0, total: n, order: { kind: 'auto' }, cx: pos.x, cy: pos.y, hero: !!def.hero, home: { x: pos.x, y: pos.y } };
+    // 측면 돌격: 길 가장자리를 따라 들어와 후방을 노린다
+    if (s.flank) { const y = s.flank === 'L' ? VIEW.y0 + 30 : VIEW.y1 - 30; sq.order = { kind: 'move', path: [[VIEW.x1 - 240, y], [VIEW.x0 + 330, y]], x: VIEW.x1 - 240, y, then: 'auto', wait: this.time + (s.wait || 0) }; pos.y = y; sq.cy = y; }
     this.squads.push(sq);
     const offs = formation(n);
-    for (let i = 0; i < n; i++) this.spawn(s.type, team, pos.x + offs[i][0], pos.y + offs[i][1], sq, sq.lvl, offs[i]);
+    for (let i = 0; i < n; i++) { const o = [offs[i][1], offs[i][0]]; this.spawn(s.type, team, pos.x + o[0], pos.y + o[1], sq, sq.lvl, o); }
     return sq;
   }
   spawn(type, team, x, y, sq, lvl, off) {
@@ -103,7 +119,7 @@ export class Battle {
     if (team === 0) { if (def.hero) hp *= md.heroHp; else if (!def.range && !def.mounted && !def.heal) hp *= md.hpInf; }
     const u = {
       id: this.uid++, team, type, def, squad: sq, lvl, x, y, px: x, py: y, vx: 0, vy: 0, r: def.r, hp, maxHp: hp,
-      atk: (def.atk || 0) * m * (team === 0 ? (um && um.atk || 1) * (def.hero ? md.heroAtk : 1) : this.foe.atk), healAmt: (def.heal || 0) * m * (team === 0 && def.hero ? md.heroAtk : 1), facing: team === 0 ? -PI / 2 : PI / 2,
+      atk: (def.atk || 0) * m * (team === 0 ? (um && um.atk || 1) * (def.hero ? md.heroAtk : 1) : this.foe.atk), healAmt: (def.heal || 0) * m * (team === 0 && def.hero ? md.heroAtk : 1), facing: team === 0 ? 0 : PI,
       target: null, cd: 0.2 + this.rand() * 0.5, retarget: this.rand() * 0.3, swing: 0, swingTarget: null, atkT: -9, cast: 0,
       moving: false, walk: this.rand() * 10, still: 0, stuck: 0, run: 0, stun: 0, root: 0, haste: 0, weaken: 0, rage: 0, burn: 0, burnDmg: 0, burnAcc: 0,
       slow: 0, slowAmt: 0, guard: 0, guardAmt: 0, dmgUp: 0, dmgUpAmt: 0, regen: 0, regenAmt: 0, life: 0, temp: false, born: this.time,
@@ -202,7 +218,7 @@ export class Battle {
   // ───────── 메인 루프 ─────────
   step(dt) {
     if (this.over) return;
-    this.time += dt;
+    this.time += dt; if (this.waveOn) this.waveT += dt;
     this.morale = Math.min(this.moraleMax, this.morale + dt * MORALE_RATE * this.mods.moraleRate);
     for (let i = 0; i < HAND; i++) if (!this.hand[i] && (this.slotT[i] -= dt) <= 0) { const c = this.drawCard(); if (c) { this.hand[i] = c; this.ev('draw', { slot: i }); } }
     this.hash(); this.centroids();
@@ -213,11 +229,48 @@ export class Battle {
     for (let i = 0; i < this.units.length; i++) { const u = this.units[i]; if (!u.dead) { u.px = u.x; u.py = u.y; this.think(u, dt); } }
     this.collide(dt);
     this.updateProj(dt); this.updateZones(dt); this.updateCorpses(dt);
-    if (this.units.length > 160) this.units = this.units.filter(u => !u.dead || this.time - u.deadT < 2);
-    const a0 = this.count(0), a1 = this.count(1) + this.pending;
-    if (a1 === 0) this.finish(0, 'clear'); else if (a0 === 0) this.finish(1, 'wipe'); else if (this.time >= this.timeLimit) this.finish(1, 'time');
+    if (this.units.length > 180) this.units = this.units.filter(u => !u.dead || this.time - u.deadT < 2);
+    // 물결을 다 물리치면 다음 행군으로 (군기 수레는 그때마다 조금 수리된다 — 제대로 고치려면 주막에 들러야 한다)
+    if (this.waveOn && this.count(1) + this.pending === 0) {
+      this.waveOn = false; this.repair(0.06);
+      this.ev('waveClear', { time: this.waveT, lost: this.waveLost });
+    }
   }
-  finish(w, reason) { this.over = true; this.winner = w; this.reason = reason; this.ev('end', { winner: w, reason }); }
+  // 새 물결: [병종, 열, 줄, 옵션] 목록을 오른쪽 화면 밖에 세운다
+  startWave(list, o = {}) {
+    this.units = this.units.filter(u => !u.dead); this.squads = this.squads.filter(q => q.alive > 0);
+    this.foe = Object.assign({}, DEFAULT_FOE, o.foe || {}); this.waveOn = true; this.waveT = 0; this.waveLost = 0; this.waves++;
+    for (const [type, col, row, op] of list) { const p = spawnPos(col, row); if (UNITS[type].structure) p.x = VIEW.x1 - 80 - row * 34; this.addSquad(1, Object.assign({ type, x: p.x, y: p.y, lvl: o.lvl || 1 }, op || {})); }
+    const md = this.mods; this.morale = clamp(this.morale + md.startMorale, 0, this.moraleMax); this.free = md.freeFirst;
+    if (md.startShield) for (const u of this.units) if (u.team === 0 && !u.dead && !u.def.structure) { u.barrier = Math.max(u.barrier, md.startShield); u.barrierT = 30; }
+    this.ev('waveStart');
+  }
+  repair(f) { for (const u of this.banner.units) if (!u.dead) u.hp = Math.min(u.maxHp, u.hp + u.maxHp * f); }
+  bannerHp() { const u = this.banner.units[0]; return u && !u.dead ? u.hp / u.maxHp : 0; }
+  // 군기 수레를 세운다. 쓰러진 뒤 다시 세울 때는 주변 요괴를 밀쳐 낸다
+  raiseBanner(first) {
+    this.banner = this.addSquad(0, { type: 'banner', x: BANNER_POS.x, y: BANNER_POS.y });
+    if (first) return;
+    for (const e of this.units) { if (e.dead || e.team !== 1) continue; const d = hyp(e.x - BANNER_POS.x, e.y - BANNER_POS.y); if (d > 420) continue; this.damage(e, 90 * this.power, null, 'aoe'); if (e.dead) continue; if (!e.def.structure) { e.stun = Math.max(e.stun, e.def.boss ? 1 : 2.5); if (!e.def.boss) e.x += (1 - d / 420) * 150 + 40; } }
+    this.ev('impact', { x: BANNER_POS.x, y: BANNER_POS.y, r: 300, style: 'strike' });
+  }
+  // ───────── 행군 ─────────
+  // 싸움이 끝나면 화면이 앞으로 나아간다: 앞서 나간 병사는 제자리에서 기다리고(화면에서는 뒤로 밀리고), 뒤처진 병사는 걸어서 따라붙는다
+  beginMarch() {
+    for (const sq of this.squads) { if (sq.team !== 0 || sq.alive <= 0 || sq.def.banner) continue; sq.home.x = clamp(sq.home.x, 130, sq.def.range > 0 || sq.def.heal ? 360 : 600); if (sq.order.kind !== 'auto') sq.order = { kind: 'hold', x: sq.home.x, y: sq.home.y }; for (const u of sq.units) { u.target = null; u.path = null; } }
+  }
+  march(dx, dt) {
+    let ahead = 0;
+    for (const u of this.units) {
+      if (u.dead || u.team !== 0 || u.def.structure) continue; const sq = u.squad, tx = sq.home.x + u.slot.dx, ty = sq.home.y + u.slot.dy;
+      if (u.x > tx + 1) { u.x = Math.max(tx, u.x - dx); u.waiting = true; ahead = Math.max(ahead, u.x - tx); } else { u.waiting = false; if (u.x < tx - 1) u.x = Math.min(tx, u.x + 70 * dt); }
+      if (Math.abs(u.y - ty) > 1) u.y += clamp(ty - u.y, -50 * dt, 50 * dt);
+      u.facing = 0; u.px = u.x; u.py = u.y;
+    }
+    for (const c of this.corpses) c.x -= dx; for (const z of this.zones) z.x -= dx;
+    this.corpses = this.corpses.filter(c => c.x > -60); this.zones = this.zones.filter(z => z.x > -200);
+    return ahead;
+  }
   auras() {
     for (const u of this.units) { u.auraDmg = 0; u.auraHaste = 0; }
     for (const s of this.units) { if (s.dead || !s.def.aura) continue; const a = s.def.aura; this.near(s.x, s.y, a.r, o => { if (o.team === s.team && !o.dead && hyp(o.x - s.x, o.y - s.y) <= a.r) { if (a.dmg) o.auraDmg = a.dmg; if (a.haste && o !== s) o.auraHaste = a.haste; } }); }
@@ -229,7 +282,7 @@ export class Battle {
       if (o.kind === 'focus' && (!o.target || o.target.alive <= 0)) sq.order = { kind: 'auto' };
       else if (o.kind === 'hold' && o.until !== undefined && this.time > o.until) sq.order = { kind: 'auto' };
       else if (o.kind === 'move') {
-        if (o.wait && this.time < o.wait) continue;
+        if (o.wait && this.time < o.wait) { o.t0 = this.time; continue; }
         let arrived = 0; for (const u of sq.units) if (!u.dead && hyp(o.x + u.slot.dx - u.x, o.y + u.slot.dy - u.y) < 16) arrived++;
         if (o.t0 === undefined) o.t0 = this.time;
         const late = this.time - o.t0 > 9;
@@ -244,25 +297,41 @@ export class Battle {
 
   // ───────── 플레이어 명령 ─────────
   orderMove(sq, x, y) {
-    x = Math.max(FIELD.x0 + 30, Math.min(FIELD.x1 - 30, x)); y = Math.max(FIELD.y0 + 24, Math.min(FIELD.y1 - 24, y));
+    x = clamp(x, VIEW.x0 + 30, VIEW.x1 - 30); y = clamp(y, VIEW.y0 + 20, VIEW.y1 - 20); sq.home = { x, y };
     if (this.isBlocked(x, y)) { const c = this.freeCell((x / CELL) | 0, (y / CELL) | 0); if (c >= 0) { x = (c % NC + 0.5) * CELL; y = (((c / NC) | 0) + 0.5) * CELL; } }
     sq.order = { kind: 'move', x, y, t0: this.time }; for (const u of sq.units) { u.target = null; u.path = null; }
   }
   orderFocus(sq, target) { sq.order = { kind: 'focus', target }; for (const u of sq.units) { u.retarget = 0; u.path = null; } }
   orderAuto(sq) { sq.order = { kind: 'auto' }; for (const u of sq.units) u.retarget = 0; }
-  orderHold(sq) { sq.order = { kind: 'hold', x: sq.cx, y: sq.cy }; for (const u of sq.units) if (!u.dead) { u.slot.dx = u.x - sq.cx; u.slot.dy = u.y - sq.cy; u.target = null; } }
+  orderHold(sq) { sq.home = { x: sq.cx, y: sq.cy }; sq.order = { kind: 'hold', x: sq.cx, y: sq.cy }; for (const u of sq.units) if (!u.dead) { u.slot.dx = u.x - sq.cx; u.slot.dy = u.y - sq.cy; u.target = null; } }
   squadNear(x, y, team, maxD) {
     let best = null, bd = maxD;
     for (const u of this.units) { if (u.dead || u.team !== team || u.hidden > 0) continue; const d = hyp(u.x - x, u.y - 14 - y) - u.r * 0.5; if (d < bd) { bd = d; best = u.squad; } }
     return best;
   }
   hero() { for (const u of this.units) if (!u.dead && u.def.hero && u.team === 0) return u; return null; }
+  heroUnit(type) { for (const u of this.units) if (!u.dead && u.type === type && u.team === 0) return u; return null; }
+  squadCount() { let n = 0; for (const q of this.squads) if (q.team === 0 && q.alive > 0 && !q.temp && !q.hero && !q.def.banner) n++; return n; }
+  // 병력 패를 놓을 수 있는 오른쪽 한계 (요괴 전열 바로 앞까지)
+  deployMaxX() { let m = 860; for (const e of this.units) if (!e.dead && e.team === 1 && e.hidden <= 0) m = Math.min(m, e.x - 150); return Math.max(260, m); }
   // ───────── 전술 패 ─────────
   costOf(c) { if (!c) return 99; const d = CARDS[c.id]; return Math.max(0, cardCost(c) - (c.id === 'horn' ? this.mods.hornCost : 0) - (d.hero ? this.mods.heroCost : 0)); }
-  canPlay(i) {
-    const c = this.hand[i]; if (!c || this.over) return false;
-    if (CARDS[c.id].hero && !this.hero()) return false;
-    return this.free > 0 || this.morale >= this.costOf(c);
+  // 못 쓰는 까닭: cap(부대 한도) / hero(영웅 없음) / morale(사기 부족)
+  whyNot(i) {
+    const c = this.hand[i]; if (!c || this.over) return 'none';
+    const d = CARDS[c.id];
+    if (d.kind === 'unit' && this.squadCount() >= this.cap) return 'cap';
+    if (d.kind === 'lead' && this.heroUnit(d.unit)) return 'hero';
+    if (d.hero && !this.heroUnit(d.hero)) return 'hero';
+    return this.free > 0 || this.morale >= this.costOf(c) ? '' : 'morale';
+  }
+  canPlay(i) { return this.whyNot(i) === ''; }
+  // 병력·영웅 패를 내면 그 자리에 부대가 선다. 패는 부대가 전멸할 때 버린 더미로 돌아간다
+  deploy(c, x, y, quiet) {
+    x = clamp(x, VIEW.x0 + 44, VIEW.x1 - 60); y = clamp(y, VIEW.y0 + 26, VIEW.y1 - 26);
+    const sq = this.addSquad(0, { type: CARDS[c.id].unit, x, y, lvl: c.lv || 1, wpn: c.wpn }); sq.card = c;
+    if (!quiet) { for (const u of sq.units) { u.stun = 0.3; u.cd = 0.5; } this.ev('appear', { x, y, summon: true, ally: true, r: 44 }); }
+    return sq;
   }
   // 손패를 모두 버리고 새로 뽑는다 (사기 1)
   canRedraw() { return !this.over && this.morale >= 1 && this.hand.some(c => c) && this.drawPile.length + this.discard.length > 0; }
@@ -274,7 +343,7 @@ export class Battle {
   spot(x, y) { if (this.isBlocked(x, y)) { const c = this.freeCell((x / CELL) | 0, (y / CELL) | 0); if (c >= 0) return [(c % NC + 0.5) * CELL, (((c / NC) | 0) + 0.5) * CELL]; } return [x, y]; }
   allies(x, y, r, fn) { for (const u of this.units) if (!u.dead && u.team === 0 && !u.def.structure && hyp(u.x - x, u.y - y) <= r + u.r) fn(u); }
   summon(type, x, y, n, life, P) {
-    [x, y] = this.spot(Math.max(FIELD.x0 + 40, Math.min(FIELD.x1 - 40, x)), Math.max(FIELD.y0 + 30, Math.min(FIELD.y1 - 30, y)));
+    x = clamp(x, VIEW.x0 + 40, VIEW.x1 - 40); y = clamp(y, VIEW.y0 + 30, VIEW.y1 - 30);
     const sq = this.addSquad(0, { type, x, y, n, lvl: 1 }); sq.temp = true; sq.total = 0;
     for (const u of sq.units) { u.temp = true; u.life = life + this.mods.summonLife; u.hp = u.maxHp *= P; u.atk *= P; u.stun = 0.35; u.cd = 0.5; }
     this.ev('appear', { x, y, summon: true, ally: true, r: 44 });
@@ -283,12 +352,13 @@ export class Battle {
   play(i, x, y) {
     if (!this.canPlay(i)) return false;
     const c = this.hand[i], id = c.id, s = CARDS[id], v = cardVals(c), md = this.mods, P = this.power * md.cardPow, cost = this.costOf(c);
-    x = Math.max(FIELD.x0, Math.min(FIELD.x1, x || 0)); y = Math.max(FIELD.y0, Math.min(FIELD.y1, y || 0));
-    if (this.free > 0) { this.free--; this.ev('text', { x: 360, y: 1040, s: '공짜 패!', c: '#b8862a' }); }
-    else { this.morale -= cost; if (cost > 0 && md.refund && this.rand() < md.refund) { this.morale = Math.min(this.moraleMax, this.morale + cost); this.ev('text', { x: 360, y: 1040, s: '사기 환급!', c: '#b8862a' }); } }
+    x = clamp(x || 0, VIEW.x0, VIEW.x1); y = clamp(y || 0, VIEW.y0, VIEW.y1);
+    if (this.free > 0) { this.free--; this.ev('text', { x: 640, y: 520, s: '공짜 패!', c: '#b8862a' }); }
+    else { this.morale -= cost; if (cost > 0 && md.refund && this.rand() < md.refund) { this.morale = Math.min(this.moraleMax, this.morale + cost); this.ev('text', { x: 640, y: 520, s: '사기 환급!', c: '#b8862a' }); } }
     this.hand[i] = null; this.slotT[i] = REFILL * md.drawRate; this.played++;
+    if (isUnit(c)) { x = Math.min(x, this.deployMaxX()); this.deploy(c, x, y); this.ev('cast', { id, x, y, r: 46, unit: true, slot: i }); return true; }
     if (id !== 'doubt') this.discard.push(c);
-    const h = this.hero(), hm = h ? lvlMult(h.lvl) : 1;
+    const h = s.hero ? this.heroUnit(s.hero) : this.hero(), hm = h ? lvlMult(h.lvl) : 1;
     let r = s.r || 0;
     if (id === 'sling') this.aoe(x, y, r, v.dmg * P, 1, null, { kb: 10 });
     else if (id === 'rain') this.zones.push({ kind: 'rain', x, y, r, t: 0, dur: 2.0, acc: 0.25, dmg: v.tick * P * md.rainDmg, burn: md.rainBurn * P });
@@ -308,15 +378,15 @@ export class Battle {
     else if (id === 'ambush') this.summon('sword', x, y, v.n, v.life, P);
     else if (id === 'archers') this.summon('xbow', x, y, v.n, v.life, P);
     else if (id === 'decoy') { const sq = this.summon('decoy', x, y, 1, v.life, 1); for (const u of sq.units) { u.hp = u.maxHp = v.hp * P; u.taunt = r; u.stun = 0; } }
-    else if (id === 'strike') { [x, y] = this.spot(x, y); h.jump = { sx: h.x, sy: h.y, tx: x, ty: y, t: 0, dur: 0.42, dmg: v.dmg * hm, r, stun: v.stun }; h.swing = 0; h.target = null; }
+    else if (id === 'strike') { h.jump = { sx: h.x, sy: h.y, tx: x, ty: y, t: 0, dur: 0.42, dmg: v.dmg * hm, r, stun: v.stun }; h.swing = 0; h.target = null; }
     else if (id === 'order') { x = h.x; y = h.y; r = 150; this.allies(x, y, r, u => { u.haste = Math.max(u.haste, v.dur); u.dmgUp = Math.max(u.dmgUp, v.dur); u.dmgUpAmt = Math.max(u.dmgUpAmt, 0.2); }); }
     else if (id === 'sanctuary') this.allies(x, y, r, u => { u.barrier = v.barrier * hm; u.barrierT = 7; u.hp = Math.min(u.maxHp, u.hp + u.maxHp * 0.15); u.root = 0; u.weaken = 0; u.slow = 0; });
     else if (id === 'sutra') { for (const u of this.units) if (!u.dead && u.team === 0 && !u.def.structure) { u.root = 0; u.weaken = 0; u.burn = 0; u.slow = 0; u.stun = 0; u.regen = v.dur; u.regenAmt = v.regen / 100; } }
     else if (id === 'meteor') this.zones.push({ kind: 'tele', style: 'meteor', ally: true, x, y, r, t: 0, delay: 1.1, hits: 1, dmg: v.dmg * hm, burn: 4, burnDmg: 20 * hm, kb: 20, src: h });
     else if (id === 'blink') {
       const moved = new Set();
-      this.allies(x, y, r, u => { if (u.jump || u.temp && u.def.decoy) return; const fx = u.x, fy = u.y; let ny = Math.min(FIELD.y1 - 20, u.y + 190), nx = u.x; [nx, ny] = this.spot(nx, ny); u.x = nx; u.y = ny; u.px = nx; u.py = ny; u.path = null; u.target = null; u.retarget = 0.6; u.root = 0; u.hp = Math.min(u.maxHp, u.hp + u.maxHp * v.heal / 100); moved.add(u.squad); this.ev('blink', { x: fx, y: fy, tx: nx, ty: ny }); });
-      for (const sq of moved) { const o = sq.order; if (o.kind === 'hold' || o.kind === 'move') { o.y = Math.min(FIELD.y1 - 30, o.y + 190); o.path = null; } }
+      this.allies(x, y, r, u => { if (u.jump || u.temp && u.def.decoy) return; const fx = u.x, fy = u.y, nx = Math.max(VIEW.x0 + 60, u.x - 200); u.x = nx; u.px = nx; u.path = null; u.target = null; u.retarget = 0.6; u.root = 0; u.hp = Math.min(u.maxHp, u.hp + u.maxHp * v.heal / 100); moved.add(u.squad); this.ev('blink', { x: fx, y: fy, tx: nx, ty: u.y }); });
+      for (const sq of moved) { const o = sq.order; if (o.kind === 'hold' || o.kind === 'move') { o.x = Math.max(VIEW.x0 + 60, o.x - 200); o.path = null; sq.home.x = o.x; } }
     }
     this.ev('cast', { id, x, y, r, up: c.up, slot: i });
     return true;
@@ -336,6 +406,7 @@ export class Battle {
     if (u.jump) { this.doJump(u, dt); return; }
     if (u.hidden > 0) { u.hidden -= dt; if (u.hidden <= 0) this.finishLeap(u); return; }
     if (u.stun > 0) { u.stun -= dt; u.moving = false; u.run = 0; return; }
+    if (def.structure && !def.lob && !def.atk) { u.moving = false; return; }
     const as = this.atkSpeed(u);
     u.cd -= dt * as;
     if (u.cast > 0) { u.cast -= dt; u.moving = false; return; }
@@ -345,10 +416,13 @@ export class Battle {
     if (def.lob) { this.catapultAI(u); return; }
     if (def.bomber) { this.bomberAI(u, dt); return; }
     if (def.leap) { u.leapCd -= dt; if (u.leapCd <= 0 && this.tryLeap(u)) return; }
+    // 요괴는 먼저 화면 안으로 걸어 들어온다 (치유·지원 요괴가 밖에 남아 싸움이 끝나지 않는 일을 막는다)
+    if (u.team === 1 && u.x > VIEW.x1 - 24 && !def.structure && sq.order.kind !== 'move') { this.moveTo(u, VIEW.x1 - 110, u.y, dt); return; }
     const o = sq.order;
     u.retarget -= dt;
     if (u.retarget <= 0 || (u.target && (u.target.dead || u.target.hidden > 0))) { u.retarget = 0.3 + this.rand() * 0.15; u.target = def.heal ? this.pickHeal(u, o) : this.pickTarget(u, o); }
-    if (o.kind === 'move' && !(o.wait && this.time < o.wait)) {
+    if (o.kind === 'move' && o.wait && this.time < o.wait) { u.moving = false; return; }
+    if (o.kind === 'move') {
       const gx = o.x + u.slot.dx, gy = o.y + u.slot.dy;
       if (u.stuck > 0.5 && !def.heal && !def.range) { // 길이 막히면 눈앞의 적과 싸운다
         let e = null, bd = 34; this.near(u.x, u.y, 60, n => { if (n.team !== u.team && !n.dead) { const d = hyp(n.x - u.x, n.y - u.y) - n.r - u.r; if (d < bd) { bd = d; e = n; } } });
@@ -365,13 +439,15 @@ export class Battle {
   idle(u, dt) {
     u.moving = false; u.still += dt; if (u.still > 0.4) u.run = 0;
     let e = null, bd = 260; this.near(u.x, u.y, 260, n => { if (n.team !== u.team && !n.dead) { const d = hyp(n.x - u.x, n.y - u.y); if (d < bd) { bd = d; e = n; } } });
-    this.face(u, e ? Math.atan2(e.y - u.y, e.x - u.x) : (u.team === 0 ? -PI / 2 : PI / 2), dt, 6);
+    this.face(u, e ? Math.atan2(e.y - u.y, e.x - u.x) : (u.team === 0 ? 0 : PI), dt, 6);
   }
   toSlot(u, o, dt) { const gx = o.x + u.slot.dx, gy = o.y + u.slot.dy; if (hyp(gx - u.x, gy - u.y) > 6) this.moveTo(u, gx, gy, dt); else this.idle(u, dt); }
   face(u, a, dt, rate) { const d = angDiff(u.facing, a), m = rate * dt; u.facing += Math.abs(d) < m ? d : Math.sign(d) * m; }
   rangeOf(u) { const def = u.def; if (!(def.range > 0)) return 5 + (def.reach || 0); if (u.team !== 0) return def.range; const um = this.mods.unit[u.type]; return def.range * (def.heal ? 1 : this.mods.rangeMul) * (um && um.range || 1); }
   engage(u, t, dt, o) {
     const def = u.def, dx = t.x - u.x, dy = t.y - u.y, d = hyp(dx, dy), gap = d - u.r - t.r, rng = this.rangeOf(u);
+    // 요괴는 화면 안으로 들어온 뒤에야 싸운다
+    if (u.team === 1 && u.x > VIEW.x1 - 14 && !def.structure) { this.moveTo(u, VIEW.x1 - 70, u.y, dt); return; }
     if (def.minRange && d < def.minRange) { u.moving = false; this.face(u, Math.atan2(dy, dx), dt, 6); return; }
     if (gap <= rng) {
       this.face(u, Math.atan2(dy, dx), dt, 9); u.moving = false; u.still += dt;
@@ -386,6 +462,7 @@ export class Battle {
     const hold = o.kind === 'hold'; const sx = hold ? o.x + u.slot.dx : 0, sy = hold ? o.y + u.slot.dy : 0;
     for (let i = 0; i < pool.length; i++) {
       const e = pool[i]; if (e.dead || e.team === u.team || e.hidden > 0 || e.jump) continue;
+      if (e.team === 1 && e.x > VIEW.x1 + 6) continue;
       const d = hyp(e.x - u.x, e.y - u.y) - e.r - u.r;
       if (hold) { if (melee) { if (hyp(e.x - sx, e.y - sy) > 105 + e.r) continue; } else if (d > rng) continue; }
       let s = d;
@@ -394,7 +471,7 @@ export class Battle {
       if (def.antiCav && (e.def.mounted || e.def.large)) s -= 50;
       if (def.range > 0 && e.def.shield) s += 45;
       if (def.minRange && d + e.r + u.r < def.minRange) s += 500;
-      if (e.taunt) { if (d < e.taunt) s -= 400; } else if (melee && e.def.structure) s += 40;
+      if (e.taunt) { if (d < e.taunt) s -= 400; } else if (e.def.banner) s += 70; else if (melee && e.def.structure) s += 40;
       if (e === u.target) s -= 20;
       if (def.prefer === 'cluster' && d < rng + 60) s -= 16 * Math.min(4, this.clusterScore(e, 52));
       if (s < bs) { bs = s; best = e; }
@@ -428,7 +505,7 @@ export class Battle {
     if (o.kind === 'hold') { this.toSlot(u, o, dt); return; }
     // 가장 가까운 전투 병력을 뒤따른다
     let a = null, bd = 1e9; for (const e of this.units) { if (e.dead || e.team !== u.team || e.def.support || e.def.structure) continue; const d = hyp(e.x - u.x, e.y - u.y); if (d < bd) { bd = d; a = e; } }
-    if (a) { const gy = a.y + (u.team === 0 ? 74 : -74); if (hyp(a.x - u.x, gy - u.y) > 34) { this.moveTo(u, a.x + u.slot.dx, gy, dt); return; } }
+    if (a) { const gx = a.x + (u.team === 0 ? -74 : 74); if (hyp(gx - u.x, a.y - u.y) > 34) { this.moveTo(u, gx, a.y + u.slot.dy, dt); return; } }
     this.idle(u, dt);
   }
   heal(u, t) { const amt = u.healAmt * (u.team === 0 ? this.mods.priestHeal : 1); t.hp = Math.min(t.maxHp, t.hp + amt);
@@ -438,7 +515,7 @@ export class Battle {
   moveTo(u, gx, gy, dt) {
     if (u.root > 0 || u.def.structure) { u.moving = false; return; }
     let spd = u.def.spd * (u.team === 1 ? this.foe.spd : 1); if (u.haste > 0) spd *= 1.35; if (u.slow > 0) spd *= 1 - u.slowAmt;
-    if (u.team === 0 && this.mods.vanguard && this.time < 8) spd *= 1.3;
+    if (u.team === 0 && this.mods.vanguard && this.waveOn && this.waveT < 10) spd *= 1.3;
     for (const s of this.slow) if (u.x > s.x && u.x < s.x + s.w && u.y > s.y && u.y < s.y + s.h) { spd *= 0.55; break; }
     let tx = gx, ty = gy;
     if (this.hasObst && !this.los(u.x, u.y, gx, gy)) {
@@ -530,10 +607,10 @@ export class Battle {
     }
     if (src) {
       if (src.weaken > 0) mult *= 0.7; if (src.auraDmg) mult *= 1 + src.auraDmg; if (src.rage > 0) mult *= 1.25; if (src.dmgUp > 0) mult *= 1 + src.dmgUpAmt;
-      if (src.team === 0) { const md = this.mods; if (md.lastStand && src.squad.alive <= src.squad.total / 2) mult *= 1 + md.lastStand; if (md.vanguard && this.time < 8) mult *= 1.15; }
+      if (src.team === 0) { const md = this.mods; if (md.lastStand && src.squad.alive <= src.squad.total / 2) mult *= 1 + md.lastStand; if (md.vanguard && this.waveOn && this.waveT < 10) mult *= 1.15; }
     }
     let d = amt * mult; if (t.guard > 0) d *= 1 - t.guardAmt;
-    if (t.team === 0) { const md = this.mods; if (md.openGuard && this.time < 5) d *= 1 - md.openGuard; if (md.holdGuard && t.squad.order.kind === 'hold') d *= 1 - md.holdGuard; }
+    if (t.team === 0) { const md = this.mods; if (md.openGuard && this.waveOn && this.waveT < 6) d *= 1 - md.openGuard; if (md.holdGuard && t.squad.order.kind === 'hold') d *= 1 - md.holdGuard; }
     if (t.barrier > 0) { const a = Math.min(t.barrier, d); t.barrier -= a; d -= a; if (d <= 0) { this.ev('hit', { x: t.x, y: t.y, amt: 0, block: true, team: t.team, kind }); return 0; } }
     t.hp -= d; t.flash = 1;
     this.ev('hit', { x: t.x, y: t.y, amt: d, flank, block, team: t.team, kind, big: d > 45 });
@@ -544,15 +621,14 @@ export class Battle {
     if (t.dead) return;
     t.dead = true; t.hp = 0; t.deadT = this.time; t.squad.alive--; t.moving = false;
     this.ev('death', { x: t.x, y: t.y, team: t.team, utype: t.type, boss: !!t.def.boss, r: t.r });
-    if (t.team === 0) { if (!t.temp) this.lost++; if (t.def.hero) this.dropHeroCards(); } else { this.kills++; this.morale = Math.min(this.moraleMax, this.morale + (t.def.boss ? 2 : t.def.large ? 0.3 : 0.12)); }
+    if (t.team === 0) {
+      if (t.def.banner) this.ev('bannerDown', { x: t.x, y: t.y }); else if (!t.temp) { this.lost++; this.waveLost++; }
+      // 부대가 전멸하면 패는 버린 더미로 돌아가지만, 군기가 흔들린다 (군기 수레 체력을 잃는다)
+      const sq = t.squad; if (sq.alive <= 0 && sq.card) { this.discard.push(sq.card); this.ev('squadLost', { x: t.x, y: t.y, id: sq.card.id }); sq.card = null; const bu = this.banner.units[0]; if (bu && !bu.dead) this.damage(bu, bu.maxHp * (sq.hero ? ROUT * 2 : ROUT), null, 'rout'); }
+    } else { this.kills++; this.morale = Math.min(this.moraleMax, this.morale + (t.def.boss ? 2 : t.def.large ? 0.3 : 0.12)); }
     if (t.def.bomber && !t.exploded) this.zones.push({ kind: 'tele', style: 'bomb', x: t.x, y: t.y, r: t.def.bomber.r, t: 0, delay: 0.7, hits: 2, dmg: t.def.bomber.dmg * lvlMult(t.lvl), kb: 22 });
     else if (t.def.revive && !t.revived && !this.inGrail(t.x, t.y)) { this.corpses.push({ x: t.x, y: t.y, t: 3, revive: true, u: t }); this.pending++; }
     else if (!t.def.structure && !t.def.boss && !silent) this.corpses.push({ x: t.x, y: t.y, t: 12, raisable: true });
-  }
-  // 영웅이 쓰러지면 영웅 패는 이번 싸움에서 빠진다
-  dropHeroCards() {
-    const keep = c => !CARDS[c.id].hero; this.drawPile = this.drawPile.filter(keep); this.discard = this.discard.filter(keep);
-    for (let i = 0; i < HAND; i++) if (this.hand[i] && !keep(this.hand[i])) { this.hand[i] = null; this.slotT[i] = 0.6; }
   }
   inGrail(x, y) { for (const z of this.zones) if (z.kind === 'grail' && hyp(z.x - x, z.y - y) < z.r) return true; return false; }
   aoe(x, y, r, dmg, hits, src, o = {}) {
@@ -579,7 +655,7 @@ export class Battle {
     if (k >= 1) { u.jump = null; u.jumpH = 0; this.aoe(u.x, u.y, j.r, j.dmg, 1 - u.team, u, { stun: j.stun || 1.5, kb: 26 }); this.ev('impact', { x: u.x, y: u.y, r: j.r, style: 'strike' }); u.cd = 0.3; u.retarget = 0; }
   }
   tryLeap(u) {
-    if (this.time < 1) { u.leapCd = 0.2; return false; }
+    if (u.x > VIEW.x1 - 30) { u.leapCd = 0.4; return false; }
     let best = null, bs = -1e9;
     for (const e of this.units) { if (e.dead || e.team === u.team || !e.def.soft || e.def.structure || e.hidden > 0) continue; const d = hyp(e.x - u.x, e.y - u.y); if (d < 150) continue; const s = (e.def.support ? 200 : 0) + d * 0.3 + this.rand() * 80; if (s > bs) { bs = s; best = e; } }
     if (!best) { u.leapCd = 3; return false; }
@@ -624,7 +700,7 @@ export class Battle {
   bossAbilities(u, dt) {
     for (const a of u.abils) { a.t -= dt; if (a.t <= 0) { if (this.useAbility(u, a.id)) { a.t = a.cd; break; } else a.t = 1; } }
   }
-  playerSquads() { return this.squads.filter(s => s.team === 0 && s.alive > 0 && !s.temp); }
+  playerSquads() { return this.squads.filter(s => s.team === 0 && s.alive > 0 && !s.temp && !s.def.banner); }
   useAbility(u, id) {
     const m = lvlMult(u.lvl);
     if (id === 'slam') {
@@ -679,7 +755,7 @@ export class Battle {
         for (const q of this.rects) { const cx = Math.max(q.x, Math.min(u.x, q.x + q.w)), cy = Math.max(q.y, Math.min(u.y, q.y + q.h)); let dx = u.x - cx, dy = u.y - cy; const d = hyp(dx, dy), rr = u.r * 0.8; if (d < rr) { if (d < 0.01) { const l = u.x - q.x, r = q.x + q.w - u.x, t = u.y - q.y, b = q.y + q.h - u.y, m = Math.min(l, r, t, b); if (m === t) u.y = q.y - rr; else if (m === b) u.y = q.y + q.h + rr; else if (m === l) u.x = q.x - rr; else u.x = q.x + q.w + rr; } else { u.x = cx + dx / d * rr; u.y = cy + dy / d * rr; } } }
         for (const q of this.circs) { const dx = u.x - q.x, dy = u.y - q.y, d = hyp(dx, dy), rr = q.r + u.r * 0.8; if (d < rr && d > 0.01) { u.x = q.x + dx / d * rr; u.y = q.y + dy / d * rr; } }
       }
-      u.x = Math.max(FIELD.x0 + u.r, Math.min(FIELD.x1 - u.r, u.x)); u.y = Math.max(FIELD.y0 + u.r, Math.min(FIELD.y1 - u.r, u.y));
+      u.x = clamp(u.x, FIELD.x0 + u.r, (u.team === 0 ? VIEW.x1 : FIELD.x1) - u.r); u.y = clamp(u.y, FIELD.y0 + 6, FIELD.y1 - 4);
       const mv = hyp(u.x - u.px, u.y - u.py);
       if (dt > 0) { u.vx = (u.x - u.px) / dt; u.vy = (u.y - u.py) / dt; if (u.moving && mv < u.def.spd * dt * 0.3) u.stuck += dt; else u.stuck = 0; }
     }

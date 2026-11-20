@@ -5,6 +5,8 @@ export class Fx {
   constructor() { this.p = []; this.shake = 0; this.flash = 0; this.flashCol = '#fff'; }
   add(o) { o.t = 0; this.p.push(o); return o; }
   clear() { this.p.length = 0; this.shake = 0; this.flash = 0; }
+  // 행군할 때 바닥에 붙은 것들은 바닥과 함께 뒤로 흐른다
+  shift(dx) { for (const p of this.p) if (p.ground) p.x -= dx; }
   update(dt) {
     if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 28);
     if (this.flash > 0) this.flash = Math.max(0, this.flash - dt * 3.2);

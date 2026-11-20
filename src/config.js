@@ -1,18 +1,11 @@
-// 화면/전장 상수
-export const W = 720, H = 1280;
-export const FIELD = { x0: 34, x1: 686, y0: 176, y1: 1078 };
-// 배치 격자 (아군: 아래, 적군: 위)
-export const GRID = { cols: 6, rows: 3, cw: 104, ch: 84, x0: 48, py0: 818, ey0: 192 };
+// 화면/전장 상수 — 가로 화면(1280×720). 아군은 왼쪽에서 오른쪽으로 행군하고 요괴는 오른쪽에서 걸어 들어온다
+export const W = 1280, H = 720;
+export const HUD_H = 64, BAR_Y = 566;
+// 보이는 전장(발 위치 기준)과 시뮬레이션 전장. 시뮬레이션 쪽이 오른쪽으로 더 넓어 화면 밖에서 요괴가 모인다
+export const VIEW = { x0: 24, x1: 1256, y0: 134, y1: 548 };
+export const FIELD = { x0: 24, x1: 1720, y0: 134, y1: 548 };
+export const MID_Y = (VIEW.y0 + VIEW.y1) / 2;
 export const CELL = 24; // 길찾기 격자 크기
-
-export function cellCenter(team, col, row) {
-  const y0 = team === 0 ? GRID.py0 : GRID.ey0;
-  // 적군 진형은 위아래를 뒤집어 0번 줄이 전열이 되게 한다
-  const r = team === 0 ? row : GRID.rows - 1 - row;
-  return { x: GRID.x0 + (col + 0.5) * GRID.cw, y: y0 + (r + 0.5) * GRID.ch };
-}
-export function cellAt(x, y) {
-  const col = Math.floor((x - GRID.x0) / GRID.cw), row = Math.floor((y - GRID.py0) / GRID.ch);
-  if (col < 0 || col >= GRID.cols || row < 0 || row >= GRID.rows) return null;
-  return { col, row };
-}
+export const BANNER_POS = { x: 72, y: MID_Y };
+// 요괴 진형: 열(0~5)은 길의 폭, 줄(0=전열)은 깊이
+export function spawnPos(col, row) { return { x: VIEW.x1 + 70 + row * 96, y: VIEW.y0 + 40 + col * ((VIEW.y1 - VIEW.y0 - 80) / 5) }; }

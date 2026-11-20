@@ -32,6 +32,9 @@ export const UNITS = {
     desc: '법력으로 지키는 치유 영웅', tip: '두 명을 동시에 치유. 전용 패 [법력 결계]·[독경]을 들고 시작합니다.' },
   archmage: { name: '신선', role: '영웅', side: 0, hero: true, cost: 0, n: 1, hp: 560, atk: 46, as: 2.2, range: 245, spd: 54, r: 13, proj: 'fireball', aoe: 54, soft: true, prefer: 'cluster',
     desc: '구름을 탄 도술 영웅', tip: '강력한 범위 도술. 전용 패 [불벼락]·[축지법]을 들고 시작합니다.' },
+  // ───── 본진 ─────
+  banner: { name: '군기 수레', role: '본진', side: 0, cost: 0, n: 1, hp: 520, atk: 0, as: 9, range: 0, spd: 0, r: 20, structure: true, banner: true,
+    desc: '행군의 중심', tip: '군기 수레가 부서지면 깃발 하나를 잃습니다. 싸움이 끝날 때마다 수리됩니다.' },
   // ───── 패로 불러내는 것 ─────
   decoy: { name: '허수아비', role: '미끼', side: 0, cost: 0, n: 1, hp: 190, atk: 0, as: 9, range: 0, spd: 0, r: 13, structure: true, decoy: true,
     desc: '적의 눈길을 끈다', tip: '주변 적이 허수아비를 먼저 공격합니다.' },

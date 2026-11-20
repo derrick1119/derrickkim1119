@@ -219,6 +219,19 @@ function scarecrow(g) {
   ell(g, 0, -38, 7.4, 7.2, '#ecdcae', INK, 1.2); line(g, [-4.2, -39.5, -1.6, -38.2], INK, 1.1); line(g, [-4.2, -38.2, -1.6, -39.5], INK, 1.1); ell(g, 3, -38.8, 1, 1.2, INK); g.beginPath(); g.moveTo(-3, -34.6); g.quadraticCurveTo(0, -32.4, 3.4, -34.8); st(g, INK, 1); line(g, [-6, -35, -7.4, -31.5], '#d9b24a', 1); line(g, [6, -35, 7.4, -31.5], '#d9b24a', 1);
   HATS.paeraeng(g);
 }
+// 군기 수레: 행군의 중심. 큰 깃발과 북을 실었다
+function bannerCart(g) {
+  line(g, [-22, -12, -34, -6], WOODD, 2.8);
+  line(g, [-6, -16, -6, -100], INK, 4.4); line(g, [-6, -16, -6, -100], '#7a3a2a', 2.6); poly(g, [-9, -100, -6, -108, -3, -100], OCHRE, INK, 0.9);
+  path(g, p => { p.moveTo(-6, -98); p.lineTo(34, -95); p.quadraticCurveTo(29, -80, 34, -64); p.lineTo(-6, -61); p.closePath(); }, INDIGO, INK, 1.4);
+  path(g, p => { p.moveTo(-6, -98); p.lineTo(34, -95); p.lineTo(33.2, -91.4); p.lineTo(-6, -94.4); p.closePath(); }, RED); path(g, p => { p.moveTo(-6, -61); p.lineTo(34, -64); p.lineTo(33.2, -67.6); p.lineTo(-6, -64.6); p.closePath(); }, RED);
+  g.beginPath(); g.moveTo(-6, -98); g.lineTo(34, -95); g.quadraticCurveTo(29, -80, 34, -64); g.lineTo(-6, -61); st(g, INK, 1.4);
+  ell(g, 13, -79.6, 9.4, 9.4, WHITE, INK, 1); g.fillStyle = RED; g.font = "400 13px 'Yeon Sung', serif"; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('군', 13, -78.8);
+  for (const y of [-58, -50]) line(g, [-6, y, -12, y + 6], OCHRE, 1.3);
+  rr(g, -24, -20, 48, 10, 2.4, '#9a6a3c', INK, 1.3); for (const x of [-18, -8, 2, 12]) line(g, [x, -19, x, -11], WOODD, 0.9);
+  rr(g, 4, -36, 18, 16, 4, '#a8322a', INK, 1.2); ell(g, 13, -36, 9, 3.4, '#f3e7c8', INK, 1.1); for (const x of [8, 13, 18]) line(g, [x, -32, x, -21], OCHRE, 1);
+  for (const s of [-1, 1]) { ell(g, s * 15, -8, 9, 9, WOODD, INK, 1.3); ell(g, s * 15, -8, 6, 6, '#d9c39a', INK, 0.9); for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; line(g, [s * 15, -8, s * 15 + Math.cos(a) * 6, -8 + Math.sin(a) * 6], WOODD, 1.1); } ell(g, s * 15, -8, 1.8, 1.8, '#3a2a22'); }
+}
 function ghostDoll(o) { return g => { g.globalAlpha = 0.9; doll(g, Object.assign({ robe: '#c5d9df', collar: '#eef6f8', skin: '#e9f0f1', pale: true, tatter: true, hat: 'jeonrip', plain: true }, o)); g.globalAlpha = 1; }; }
 
 // ───────────── 무기 (원점 = 손잡이, 위쪽을 향함) ─────────────
@@ -277,6 +290,7 @@ export const LOOKS = {
   bishop: { body: g => doll(g, { robe: '#9a9a92', kasaya: '#a8442f', beads: true, hat: 'bald', hem: '#7a7a72' }), hold: hold(0, 'cast'), scale: 1.3, hero: true, h: 62 },
   archmage: { body: g => { ITEM.cloud(g); g.save(); g.translate(0, -3); doll(g, { robe: WHITE, sash: '#8fb6c8', beard: 'long', hat: 'sage', hem: '#8fb6c8', item: gg => { ell(gg, 9, -15.5, 3.6, 4.4, '#b8742a', INK, 1); ell(gg, 9, -20.6, 2, 2, '#b8742a', INK, 1); } }); g.restore(); }, hold: hold(0, 'cast', HX, HY - 3), scale: 1.3, hero: true, h: 62, float: true },
   decoy: { body: scarecrow, weapon: 'none', hold: hold(0, 'none'), h: 54, still: true },
+  banner: { body: bannerCart, weapon: 'none', hold: hold(0, 'none'), h: 104, still: true, scale: 1.1 },
   // 적군
   goblin: Object.assign(dk({ skin: '#d9603f' }), { scale: 0.8 }),
   orc: Object.assign(dk({ skin: '#4f9a8a', cloth: '#d98a3e' }), { scale: 1.06 }),

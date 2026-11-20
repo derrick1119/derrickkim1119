@@ -7,22 +7,21 @@ import { preloadLooks } from './render/sprites.js';
 import { warmIcons } from './render/icons.js';
 import { TitleScene } from './scenes/title.js';
 import { HeroScene } from './scenes/hero.js';
-import { BattleScene } from './scenes/battle.js';
-import { RewardScene } from './scenes/reward.js';
+import { RunScene } from './scenes/run.js';
 import { EndScene } from './scenes/end.js';
-import { MapScene } from './scenes/map.js';
-import { EventScene } from './scenes/event.js';
-import { ShopScene } from './scenes/shop.js';
 import { MetaScene } from './scenes/meta.js';
 
 const canvas = document.getElementById('game');
 const g = canvas.getContext('2d');
-let scale = 1;
+let scale = 1, rot = false;
+// 가로 화면 게임. 휴대전화를 세로로 들고 있으면 화면을 90도 돌려 그려서, 기기를 눕히면 바로 맞게 보인다
 function resize() {
   const vw = window.innerWidth, vh = window.innerHeight;
-  const k = Math.min(vw / W, vh / H);
+  rot = vh > vw * 1.1 && window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  const aw = rot ? vh : vw, ah = rot ? vw : vh, k = Math.min(aw / W, ah / H);
   const cw = Math.floor(W * k), ch = Math.floor(H * k);
   canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
+  canvas.style.transform = rot ? 'translate(-50%, -50%) rotate(90deg)' : 'translate(-50%, -50%)';
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
   scale = Math.min(2.5, Math.max(1, k * dpr));
   canvas.width = Math.round(W * scale); canvas.height = Math.round(H * scale);
@@ -31,7 +30,10 @@ window.addEventListener('resize', resize); resize();
 
 const inp = { x: 0, y: 0, px: 0, py: 0, down: false, pressed: false, released: false, dragged: false, id: null };
 ui.inp = inp; ui.sfx = sfx;
-function pos(e) { const r = canvas.getBoundingClientRect(); inp.x = (e.clientX - r.left) / r.width * W; inp.y = (e.clientY - r.top) / r.height * H; }
+function pos(e) {
+  const r = canvas.getBoundingClientRect(), u = (e.clientX - r.left) / r.width, v = (e.clientY - r.top) / r.height;
+  if (rot) { inp.x = v * W; inp.y = (1 - u) * H; } else { inp.x = u * W; inp.y = v * H; }
+}
 canvas.addEventListener('pointerdown', e => {
   if (inp.down) return; e.preventDefault(); unlockAudio();
   inp.id = e.pointerId; try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* 무시 */ }
@@ -44,7 +46,7 @@ canvas.addEventListener('click', unlockAudio); canvas.addEventListener('touchend
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('keydown', e => { if (nav.cur && nav.cur.key) nav.cur.key(e.key); });
 
-nav.scenes = { title: TitleScene, hero: HeroScene, map: MapScene, battle: BattleScene, reward: RewardScene, event: EventScene, shop: ShopScene, meta: MetaScene, end: EndScene };
+nav.scenes = { title: TitleScene, hero: HeroScene, run: RunScene, meta: MetaScene, end: EndScene };
 
 let last = 0;
 function frame(ts) {
