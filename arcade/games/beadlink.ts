@@ -29,7 +29,7 @@ const K_N = 0, K_FIRE = 1, K_ICE = 2, K_IRON = 3, K_STAR = 4, K_RAIN = 5;
 const CAP = 360;
 // 물리 (틱 단위)
 /** CDAMP: 다른 구슬·벽에 닿아 있는 구슬은 틱마다 속도가 조금 준다(구름 마찰) — 와르르 내려앉은 뒤 금방 멈춘다 */
-const G = 0.0006, DAMP = 0.992, CDAMP = 0.86, ITERS = 3, SLEEP_V = 0.0005, CALM_N = 8;
+const G = 0.0006, DAMP = 0.992, CDAMP = 0.86, ITERS = 3, SLEEP_V = 0.0007, CALM_N = 6;
 /** 맞닿음 허용 폭 · 손가락이 구슬에 닿는 여유 */
 const TOL = 0.02, HIT_PAD = 0.008;
 /** 별 구슬은 무거운 금 — 더미가 움직이는 동안 더 세게 가라앉는다 */
@@ -1421,6 +1421,64 @@ function drawRoom(ctx: C2, s: BeadState, w: number, h: number) {
     ell(ctx, sx + Math.cos(a) * R(0.04), sy - R(0.07) + Math.sin(a) * R(0.04), R(0.022), R(0.01), a);
     ctx.fill();
   }
+  // 커튼 (왼쪽 끝) · 물고기 그림 액자 (오른쪽 벽)
+  const sway = Math.sin(t * 0.03) * R(0.004);
+  ctx.fillStyle = lin(ctx, 0, 0, R(0.09), 0, [0, '#ff9a8a'], [0.5, '#ffb9a8'], [1, '#f08a7a']);
+  ctx.beginPath();
+  ctx.moveTo(0, R(0.17));
+  ctx.lineTo(R(0.085), R(0.17));
+  ctx.quadraticCurveTo(R(0.06) + sway, R(0.4), R(0.035) + sway, R(0.6));
+  ctx.quadraticCurveTo(R(0.06) + sway, R(0.66), R(0.03), R(0.7));
+  ctx.lineTo(0, R(0.7));
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(190,80,70,.35)';
+  ctx.lineWidth = 1.5;
+  for (const k of [0.02, 0.045]) {
+    ctx.beginPath();
+    ctx.moveTo(R(k), R(0.18));
+    ctx.quadraticCurveTo(R(k * 0.8) + sway, R(0.45), R(k * 0.6), R(0.68));
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#e9b04a';
+  ell(ctx, R(0.045) + sway, R(0.6), R(0.022), R(0.014));
+  ctx.fill();
+  ctx.fillStyle = '#c98a55';
+  rr(ctx, 0, R(0.162), R(0.11), R(0.014), R(0.007));
+  ctx.fill();
+  const fx0 = R(0.83), fy0 = R(0.36), fw = R(0.15), fh = R(0.12);
+  ctx.fillStyle = 'rgba(140,80,40,.2)';
+  rr(ctx, fx0 + R(0.008), fy0 + R(0.01), fw, fh, R(0.01));
+  ctx.fill();
+  ctx.fillStyle = '#d9a066';
+  rr(ctx, fx0, fy0, fw, fh, R(0.01));
+  ctx.fill();
+  ctx.fillStyle = '#e8f6ff';
+  rr(ctx, fx0 + R(0.012), fy0 + R(0.012), fw - R(0.024), fh - R(0.024), R(0.006));
+  ctx.fill();
+  const fcx = fx0 + fw / 2, fcy = fy0 + fh / 2, wig = Math.sin(t * 0.08) * 0.15;
+  ctx.fillStyle = '#5ab0f0';
+  ell(ctx, fcx - R(0.005), fcy, R(0.04), R(0.024));
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(fcx + R(0.03), fcy);
+  ctx.lineTo(fcx + R(0.058), fcy - R(0.02) + wig * R(0.02));
+  ctx.lineTo(fcx + R(0.058), fcy + R(0.02) + wig * R(0.02));
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ell(ctx, fcx - R(0.028), fcy - R(0.006), R(0.008), R(0.008));
+  ctx.fill();
+  ctx.fillStyle = '#1a2a3a';
+  ell(ctx, fcx - R(0.029), fcy - R(0.006), R(0.004), R(0.004));
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(120,200,255,.8)';
+  ctx.lineWidth = 1.2;
+  for (let k = 0; k < 3; k++) {
+    ctx.beginPath();
+    ctx.arc(fcx - R(0.06), fcy - R(0.025) - k * R(0.016), R(0.005 + k * 0.002), 0, TAU);
+    ctx.stroke();
+  }
   // 햇살 (창에서 탁자 쪽으로)
   ctx.save();
   ctx.globalAlpha = 0.16 + 0.03 * Math.sin(t * 0.02);
@@ -1470,6 +1528,14 @@ function drawTable(ctx: C2, s: BeadState, w: number) {
     ctx.fill();
   }
   ctx.restore();
+  // 탁자에 굴러 나온 구슬 몇 개 (장식)
+  const loose: [number, number, number][] = [[0.79, 1.338, 2], [0.045, 1.342, 4], [0.825, 1.352, 1]];
+  for (const [lx, ly, c] of loose) {
+    ctx.fillStyle = 'rgba(110,50,15,.25)';
+    ell(ctx, R(lx + 0.006), R(ly + 0.014), R(0.02), R(0.006));
+    ctx.fill();
+    drawGlassBead(ctx, R(lx), R(ly), R(0.018), c, lx * 100, s.t, 1);
+  }
 }
 /** 병 받침 (다리 둘) · 별 구멍 아래 접시 */
 function drawStand(ctx: C2, s: BeadState, w: number) {
@@ -1635,6 +1701,15 @@ function drawTube(ctx: C2, s: BeadState, w: number, font: (sz: number, wgt?: num
   ctx.lineWidth = 2;
   rr(ctx, x0, y - hh, x1 - x0, hh * 2, hh);
   ctx.stroke();
+  // 나무 마개
+  for (const [cx0, sd] of [[x0, 1], [x1, -1]] as const) {
+    ctx.fillStyle = lin(ctx, 0, y - hh, 0, y + hh, [0, '#e6a868'], [1, '#b8743f']);
+    rr(ctx, cx0 - (sd > 0 ? R(0.012) : R(0.018)), y - hh - R(0.004), R(0.03), hh * 2 + R(0.008), R(0.01));
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(110,60,20,.5)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  }
   ctx.fillStyle = 'rgba(255,255,255,.55)';
   rr(ctx, x0 + hh * 0.6, y - hh * 0.75, x1 - x0 - hh * 1.2, hh * 0.35, hh * 0.2);
   ctx.fill();
