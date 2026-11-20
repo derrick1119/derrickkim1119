@@ -1884,17 +1884,20 @@ function drawGoalThing(ctx: C2, st: number, x: number, y: number, k: number, t: 
   const bob = Math.sin(t * 0.04) * k * 0.08;
   ctx.translate(0, bob);
   if (st === 5) {
-    // 오로라 띠
+    // 오로라 커튼 (화면을 가로지르는 빛 띠)
     ctx.globalCompositeOperation = 'lighter';
-    for (let i = 0; i < 3; i++) {
-      ctx.strokeStyle = ['rgba(90,255,170,.35)', 'rgba(120,200,255,.3)', 'rgba(220,120,255,.25)'][i];
-      ctx.lineWidth = k * (0.35 - i * 0.08);
-      ctx.beginPath();
-      for (let q = -1.6; q <= 1.6; q += 0.1) {
-        const yy = Math.sin(q * 2 + t * 0.03 + i) * k * 0.18 - i * k * 0.12;
-        q === -1.6 ? ctx.moveTo(q * k, yy) : ctx.lineTo(q * k, yy);
+    for (let i = 0; i < 4; i++) {
+      const col = ['90,255,170', '120,220,255', '220,130,255', '140,255,200'][i];
+      for (let q = -3.2; q <= 3.2; q += 0.08) {
+        const yy = Math.sin(q * 1.3 + t * 0.025 + i * 1.7) * k * 0.35 - i * k * 0.5;
+        const hh = k * (0.9 + 0.4 * Math.sin(q * 3 + i + t * 0.04));
+        const g = ctx.createLinearGradient(0, yy - hh, 0, yy + k * 0.1);
+        g.addColorStop(0, `rgba(${col},0)`);
+        g.addColorStop(0.7, `rgba(${col},.22)`);
+        g.addColorStop(1, `rgba(${col},0)`);
+        ctx.fillStyle = g;
+        ctx.fillRect(q * k, yy - hh, k * 0.085, hh + k * 0.1);
       }
-      ctx.stroke();
     }
     ctx.globalCompositeOperation = 'source-over';
   } else if (st === 6) {
@@ -2562,7 +2565,7 @@ function drawSkyThings(ctx: C2, s: RocketState, V: View, gy: (a: number) => numb
   }
   // 목표 줄 + 목표 그림
   const goalY = gy(d.goal);
-  if (goalY > -R(0.2) && goalY < Y(PANEL_Y) + R(0.1)) {
+  if (goalY > -R(0.2) && goalY < Y(PANEL_Y) + R(s.stage === 5 ? 0.6 : 0.1)) {
     ctx.strokeStyle = 'rgba(255,255,255,.85)';
     ctx.lineWidth = 2;
     ctx.setLineDash([8, 6]);
