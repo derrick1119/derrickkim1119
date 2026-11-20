@@ -63,7 +63,7 @@ export const STAGES: StageDef[] = [
     cs: [[0.5, 1.13, ME, 18, 'home'], [0.15, 0.95, NEU, 2, 'castle'], [0.85, 0.95, NEU, 3, 'castle'], [0.5, 0.79, NEU, 3, 'castle'], [0.2, 0.52, RED, 5, 'castle'], [0.74, 0.44, RED, 8, 'home']],
     es: [[0, 1], [0, 2], [0, 3], [1, 4], [3, 4], [3, 5], [2, 5], [4, 5]],
     river: [[-0.1, 0.62], [0.3, 0.68], [0.6, 0.6], [1.1, 0.66]],
-    limit: 22, ai: 1, stars: [ST('win', 0, '빨간 왕관 성 차지'), ST('clash', 1, '길에서 적 행렬 막기')],
+    limit: 26, ai: 1, stars: [ST('win', 0, '빨간 왕관 성 차지'), ST('clash', 1, '길에서 적 행렬 막기')],
   },
   {
     name: '탑 성', foe: '빨간 남작', news: '탑 성 — 지키는 병사가 두 배로 세요', hint: '탑은 병사 하나가 둘 몫을 막아요', spot: 'tower', spotLabel: '탑 성', spotAt: 2,
@@ -1057,6 +1057,50 @@ function getBg(m: MapRT, w: number, h: number, sc: number): HTMLCanvasElement {
       g.fillStyle = 'rgba(255,255,220,.35)';
       ell(g, R(hx - hr * 0.3), R(hy - hr * 0.2), R(hr * 0.4), R(hr * 0.12), -0.2);
       g.fill();
+    }
+    // 밭 (빈 풀밭에 줄무늬 밭 몇 개)
+    const rp0 = riverPts(m);
+    let fields = 0;
+    for (let i = 0; i < 300 && fields < 3; i++) {
+      const fx0 = 0.1 + hsh(i * 3.77 + 5) * 0.8, fy0 = 0.2 + hsh(i * 6.13 + 7) * 0.95;
+      if (fy0 > MAP_BOT - 0.08) continue;
+      let ok = distPoly(rp0, fx0, fy0) > RIVER_W * 0.5 + 0.09;
+      for (let q = 0; ok && q < m.nc; q++) if (Math.abs(fx0 - m.x[q]) < 0.22 && fy0 > m.y[q] - 0.32 && fy0 < m.y[q] + 0.1) ok = false;
+      for (const e of m.ed) {
+        if (!ok) break;
+        for (let k = 0; k <= 16 && ok; k++) {
+          const [px, py] = onEdge(e, m, e.a, k / 16);
+          if (Math.hypot(px - fx0, py - fy0) < 0.1) ok = false;
+        }
+      }
+      if (!ok) continue;
+      fields++;
+      g.save();
+      g.translate(R(fx0), R(fy0));
+      g.transform(1, 0, -0.35, 0.55, 0, 0);
+      const fw = R(0.13), fh = R(0.11);
+      g.fillStyle = 'rgba(70,50,20,.18)';
+      rr(g, -fw / 2 + 3, -fh / 2 + 5, fw, fh, R(0.01));
+      g.fill();
+      g.fillStyle = i % 2 ? '#e9c25a' : '#c8a060';
+      rr(g, -fw / 2, -fh / 2, fw, fh, R(0.01));
+      g.fill();
+      g.strokeStyle = i % 2 ? '#c89a30' : '#9a7040';
+      g.lineWidth = R(0.008);
+      for (let k = 1; k < 6; k++) {
+        g.beginPath();
+        g.moveTo(-fw / 2 + (fw * k) / 6, -fh / 2 + 2);
+        g.lineTo(-fw / 2 + (fw * k) / 6, fh / 2 - 2);
+        g.stroke();
+      }
+      if (!(i % 2)) {
+        g.fillStyle = '#5cb848';
+        for (let k = 0; k < 5; k++) for (let r2 = 0; r2 < 3; r2++) {
+          ell(g, -fw / 2 + (fw * (k + 0.5)) / 5.5 + R(0.006), -fh / 2 + (fh * (r2 + 0.5)) / 3, R(0.007), R(0.009));
+          g.fill();
+        }
+      }
+      g.restore();
     }
     // 풀잎
     g.strokeStyle = 'rgba(60,130,40,.35)';
@@ -2330,6 +2374,17 @@ function drawMarches(ctx: C2, s: FlagState, X: (x: number) => number, Y: (y: num
       const [x0, y0] = onEdge(e, m, mc.a, uk);
       const side = (k % 2 ? 1 : -1) * 0.016, x = x0 + px * side, y = y0 + py * side * 0.6;
       items.push({ x, y, draw: () => drawSoldier(ctx, X(x), Y(y), R(0.052), mc.f, tau * 0.45 + k * 1.3, 'walk', dir) });
+    }
+    // 흙먼지 꼬리
+    for (let k = 0; k < 5; k++) {
+      const uk = u - (Math.ceil(shown / 2) + 0.5) * gap - 0.03 - k * 0.025;
+      if (uk < 0.04) continue;
+      const [dx, dy] = onEdge(e, m, mc.a, uk), ph = (tau * 0.2 + k) % 1;
+      items.push({ x: dx, y: dy - 0.05, draw: () => {
+        ctx.fillStyle = `rgba(240,220,170,${0.5 - k * 0.08})`;
+        ell(ctx, X(dx), Y(dy) - R(0.012) - ph * R(0.01), R(0.02 + k * 0.006), R(0.012 + k * 0.004));
+        ctx.fill();
+      } });
     }
     // 앞장선 깃발 · 숫자
     items.push({

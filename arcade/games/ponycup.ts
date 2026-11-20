@@ -24,6 +24,8 @@ const PANEL_Y = 0.098, PANEL_H = 0.15;
 const PONY_X = 0.5, PONY_Y = 0.8, PONY_R = 0.15;
 /** 능력 띠 */
 const STATS_Y = 0.935;
+/** 훈련 중 큰 글자 자리 (카드 판 위, 비어 있는 동안) */
+const WOW_TRAIN_Y = 1.1;
 /** 카드 */
 const CARD_Y = 1.215, CARD_H = 0.37;
 const cardXs = (n: number) => (n <= 3 ? [0.17, 0.5, 0.83] : [0.125, 0.375, 0.625, 0.875]);
@@ -278,6 +280,7 @@ function train(s: PonyState, i: number) {
   s.phase = 'anim';
   s.pt = 0;
   s.spot = null;
+  s.banner = null;
   s.trainsAll++;
   see(s, 'train');
   ev(s, 'pick', cardXs(s.cards.length)[i], CARD_Y, i);
@@ -288,7 +291,7 @@ function applyTrain(s: PonyState) {
   s.fat = c.fat1;
   if (c.k === 'rest') {
     ev(s, 'rest', PONY_X, PONY_Y - 0.12, c.fat0 - c.fat1);
-    if (c.fat0 >= 50) wow(s, '푹 잤다! 쌩쌩!', 0.5, 0.42);
+    if (c.fat0 >= 50) wow(s, '푹 잤다! 쌩쌩!', 0.5, WOW_TRAIN_Y);
     return;
   }
   const lv0 = lvOf(s.st[c.stat]);
@@ -302,8 +305,8 @@ function applyTrain(s: PonyState) {
     return;
   }
   ev(s, 'gain', PONY_X, PONY_Y - 0.22, c.got, STAT_NAME[c.stat]);
-  if (c.bonus) (s.friendBonus++, see(s, 'combo'), wow(s, '우정 콤보! 두 배!', 0.5, 0.42));
-  else if (lv1 > lv0) (c.lvUp = true), see(s, 'body'), wow(s, BODY_WOW[c.stat], 0.5, 0.42);
+  if (c.bonus) (s.friendBonus++, see(s, 'combo'), wow(s, '우정 콤보! 두 배!', 0.5, WOW_TRAIN_Y));
+  else if (lv1 > lv0) (c.lvUp = true), see(s, 'body'), wow(s, BODY_WOW[c.stat], 0.5, WOW_TRAIN_Y);
 }
 function afterAnim(s: PonyState) {
   const d = STAGES[s.stage];
@@ -348,7 +351,7 @@ function newStage(s: PonyState) {
     const n = s.cards.length, xs = cardXs(n);
     if (d.spot === 'rest') s.spot = { x: xs[n - 1], y: CARD_Y, t: s.t, label: '쉬기', rx: cardW(n) / 2 + 0.02, ry: CARD_H / 2 + 0.02 };
     else if (d.spot === 'friend') s.spot = { x: 0.5, y: CARD_Y - CARD_H / 2 + 0.03, t: s.t, label: '친구', rx: 0.48, ry: 0.05 };
-    else if (d.spot === 'rain') s.spot = { x: 0.5, y: PANEL_Y + PANEL_H - 0.022, t: s.t, label: '비 오는 날', rx: 0.3, ry: 0.03 };
+    else if (d.spot === 'rain') s.spot = { x: 0.37, y: PANEL_Y + 0.024, t: s.t, label: '비 오는 날', rx: 0.14, ry: 0.024 };
     else if (d.spot === 'hurdle') s.spot = { x: 0.5, y: PANEL_Y + 0.07, t: s.t, label: '장애물 길', rx: 0.47, ry: 0.045 };
     else if (d.spot === 'spurt') s.spot = { x: 0.82, y: PANEL_Y + 0.07, t: s.t, label: '마지막 힘', rx: 0.15, ry: 0.045 };
     else s.spot = null;
@@ -2026,7 +2029,7 @@ function drawAll(ctx: C2, s: PonyState, w: number, h: number, th: Theme) {
         break;
       case 'big':
         fx.kick(9);
-        fx.blink('#fffbe0', 0.28);
+        if (isRaceView(s)) fx.blink('#fffbe0', 0.22);
         for (let q = 0; q < 6; q++) fx.burst(X(0.15 + q * 0.14), Y(e.y) + R((q % 2) * 0.04), ['#ffd23a', '#ff6a8a', '#5ad0ff', '#7ae06a', '#c08aff', '#ffffff'][q], 10, 4, 2.6);
         break;
       case 'fore':
@@ -2080,7 +2083,7 @@ function drawAll(ctx: C2, s: PonyState, w: number, h: number, th: Theme) {
 }
 
 // ───────── 목장 (훈련) ─────────
-const HILL_CX = 0.64, HILL_HW = 0.3, HILL_H = 0.24, HILL_BASE = PONY_Y + 0.03;
+const HILL_CX = 0.64, HILL_HW = 0.3, HILL_H = 0.19, HILL_BASE = PONY_Y + 0.03;
 const hillY = (x: number, a: number) => {
   const q = (x - HILL_CX) / HILL_HW;
   return Math.abs(q) >= 1 ? PONY_Y : Math.min(PONY_Y, HILL_BASE - HILL_H * a * Math.cos((q * Math.PI) / 2) ** 2);
@@ -2167,6 +2170,13 @@ function ponyPose(s: PonyState): PPose {
 function drawRanch(ctx: C2, s: PonyState, vis: Vis, fx: ReturnType<typeof juice>, w: number, h: number, scl: number, font: (sz: number, wgt?: number) => void) {
   const X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w, t = s.t;
   ctx.drawImage(getRanchBg(Math.round(w), Math.round(h), scl), 0, 0, w, h);
+  const d = STAGES[s.stage], rainy = (s.phase === 'train' || s.phase === 'anim') && d.rain.includes(s.turn);
+  if (rainy) {
+    // 비 오는 날: 하늘이 흐려지고 빗줄기
+    ctx.fillStyle = 'rgba(70,90,130,.38)';
+    ctx.fillRect(0, 0, w, Y(0.985));
+    for (let i = 0; i < 4; i++) cloudDark(ctx, X(0.1 + i * 0.28), Y(0.3), R(0.09));
+  }
   ctx.save();
   fx.begin(ctx);
   // 구경꾼 (울타리 위)
@@ -2174,7 +2184,7 @@ function drawRanch(ctx: C2, s: PonyState, vis: Vis, fx: ReturnType<typeof juice>
   const sp: [number, number][] = [[0.1, 0], [0.29, 3], [0.5, 1], [0.7, 4], [0.89, 2]];
   sp.forEach(([sx, kind], i) => {
     const mood = laugh ? 'laugh' : cheer ? 'cheer' : Math.sin(t * 0.03 + i * 2) > 0.92 ? 'cheer' : 'idle';
-    drawCritter(ctx, kind, X(sx), Y(0.375), R(0.034), t, mood, i);
+    drawCritter(ctx, kind, X(sx), Y(0.378), R(0.038), t, mood, i);
     if ((laugh || cheer) && i % 2 === 0 && Math.floor(t / 18) % 2 === 0) {
       font(0.036, 900);
       ctx.textAlign = 'center';
@@ -2185,6 +2195,19 @@ function drawRanch(ctx: C2, s: PonyState, vis: Vis, fx: ReturnType<typeof juice>
       ctx.strokeText(txt, X(sx) + R(0.05), Y(0.31));
       ctx.fillText(txt, X(sx) + R(0.05), Y(0.31));
     }
+  });
+  // 뒤쪽: 대회 상대들도 몸을 푼다 (잘하는 능력 표시)
+  RIVALS.forEach((rk, i) => {
+    const rx = [0.13, 0.31, 0.69, 0.87][i], ry = 0.515, hop = Math.max(0, Math.sin(t * 0.05 + i * 1.7)) > 0.9;
+    drawRunner(ctx, rk, X(rx), Y(ry), R(0.033), t * 0.02 + i, hop ? 'happy' : 'stand', t, RIVAL_LANES[i]);
+    const bi = RV[rk].best, bx = X(rx + 0.02), by = Y(ry - 0.11);
+    ctx.fillStyle = 'rgba(255,255,255,.92)';
+    ell(ctx, bx, by, R(0.019), R(0.019));
+    ctx.fill();
+    ctx.strokeStyle = STAT_DARK[bi];
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    statIcon(ctx, bi, bx, by, R(0.012));
   });
   // 훈련 무대
   const c = s.phase === 'anim' ? s.cur : null, u = s.pt;
@@ -2257,9 +2280,37 @@ function drawRanch(ctx: C2, s: PonyState, vis: Vis, fx: ReturnType<typeof juice>
     const q = (u - APPLY_T) / 24;
     for (let q2 = 0; q2 < 5; q2++) sparkle(ctx, X(pp.x + (hsh(q2 + u) - 0.5) * 0.3), Y(pp.y - 0.1 - hsh(q2 + 3) * 0.3), R(0.02) * (1 - q), '#fffbe0');
   }
+  if (rainy) {
+    ctx.strokeStyle = 'rgba(220,235,255,.75)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    for (let i = 0; i < 46; i++) {
+      const rx = ((hsh(i) * 1.2 - 0.1) * w + t * 1.2 * (1 + (i % 3) * 0.2)) % (w * 1.1), ry = (hsh(i + 50) * R(0.75) + t * R(0.02) * (1 + (i % 4) * 0.15)) % R(0.72) + R(0.27);
+      ctx.moveTo(rx, ry);
+      ctx.lineTo(rx - R(0.012), ry + R(0.04));
+    }
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(220,235,255,.6)';
+    for (let i = 0; i < 6; i++) {
+      const q = ((t * 0.03 + i * 0.37) % 1), gx = X(hsh(i + 9) * 0.9 + 0.05), gy = Y(0.5 + hsh(i + 19) * 0.42);
+      ctx.globalAlpha = 1 - q;
+      ell(ctx, gx, gy, R(0.03) * q + 2, R(0.009) * q + 1);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
   drawStats(ctx, s, vis, w, font);
   drawCards(ctx, s, fx, w, h, font);
   ctx.restore();
+}
+function cloudDark(ctx: C2, cx: number, cy: number, cw: number) {
+  ctx.fillStyle = 'rgba(150,165,190,.9)';
+  ctx.beginPath();
+  for (const [dx, dy, q] of [[-0.5, 0.1, 0.4], [0, -0.15, 0.55], [0.5, 0.1, 0.42], [0.2, 0.15, 0.4]]) {
+    ctx.moveTo(cx + dx * cw + q * cw, cy + dy * cw);
+    ctx.arc(cx + dx * cw, cy + dy * cw, q * cw, 0, TAU);
+  }
+  ctx.fill();
 }
 /** 훈련 전 몸 (오르기 직전까지는 예전 몸으로) */
 function statsBefore(s: PonyState): number[] {
@@ -2708,7 +2759,7 @@ function drawCards(ctx: C2, s: PonyState, fx: ReturnType<typeof juice>, w: numbe
   if (tip >= 0) {
     const tx = X(xs[tip]), ty = Y(CARD_Y);
     const press = (Math.sin(t * 0.16) + 1) / 2;
-    drawHand(ctx, tx + cw * 0.2, ty + ch * 0.12, R(0.1), press);
+    drawHand(ctx, tx + cw * 0.3, ty + ch * 0.24, R(0.1), press);
     const txt = '👆 훈련 카드를 톡!';
     font(0.05, 900);
     const tw = ctx.measureText(txt).width + R(0.06), by = Y(CARD_Y - CARD_H / 2 - 0.05);
@@ -2918,22 +2969,23 @@ function drawPanel(ctx: C2, s: PonyState, vis: Vis, w: number, font: (sz: number
     font(0.029, 900);
     ctx.fillStyle = STAT_DARK[si];
     ctx.textAlign = 'center';
-    const nm = k === 'hurdle' && d.bar ? `장애물 꾀${d.bar}` : SEG[k].name;
+    const spurt = d.spurt && i === d.course.length - 1;
+    const nm = k === 'hurdle' && d.bar ? `장애물 꾀${d.bar}` : spurt ? '막판 꾀!' : SEG[k].name;
+    if (spurt) ctx.fillStyle = STAT_DARK[3];
     ctx.fillText(nm, mid, sy + sh + R(0.02), sw + 2);
-    if (d.spurt && i === d.course.length - 1) {
-      ctx.fillStyle = '#ff5a3a';
-      ctx.beginPath();
-      ctx.moveTo(cx + sw - R(0.035), sy + R(0.006));
-      ctx.lineTo(cx + sw - R(0.005), sy + R(0.006));
-      ctx.lineTo(cx + sw - R(0.02), sy + R(0.024));
-      ctx.closePath();
-      ctx.fill();
-      font(0.026, 900);
-      ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = '#c03a1a';
-      ctx.lineWidth = 2.5;
-      ctx.strokeText('막판!', cx + sw * 0.75, sy + R(0.012));
-      ctx.fillText('막판!', cx + sw * 0.75, sy + R(0.012));
+    if (spurt) {
+      // 막판 질주: 꾀 반짝이 화살
+      for (let j = 0; j < 2; j++) {
+        const ax = cx + sw * (0.7 + j * 0.13), ay = sy + sh / 2;
+        ctx.fillStyle = j ? '#ff7a3a' : '#a46bff';
+        ctx.beginPath();
+        ctx.moveTo(ax - R(0.012), ay - R(0.016));
+        ctx.lineTo(ax + R(0.008), ay);
+        ctx.lineTo(ax - R(0.012), ay + R(0.016));
+        ctx.lineTo(ax - R(0.004), ay);
+        ctx.closePath();
+        ctx.fill();
+      }
     }
     cx += sw + 2;
   });

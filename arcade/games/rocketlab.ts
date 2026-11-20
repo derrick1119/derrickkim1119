@@ -850,25 +850,21 @@ function mix(a: string, b: string, u: number) {
   return `rgb(${pa.map((v, i) => Math.round(v + (pb[i] - v) * q)).join(',')})`;
 }
 
-// ── 하늘 색 (높이 m) ──
-const SKY: [number, string, string][] = [
-  [0, '#62c6ff', '#dff5ff'],
-  [1400, '#4aa6f2', '#a9dcff'],
-  [2800, '#2f6fd6', '#6fb0f2'],
-  [4200, '#1d3a9a', '#3b6fc8'],
-  [5600, '#10184f', '#26398a'],
-  [7200, '#070b2c', '#141d56'],
+// ── 하늘 색: 판마다 목표 높이에서 그 판의 하늘 (구름 섬은 낮 → 달 정거장은 별빛 우주) ──
+const SKY: [string, string][] = [
+  ['#62c6ff', '#dff5ff'],
+  ['#4fb4fa', '#bfe8ff'],
+  ['#3c94ec', '#94d0ff'],
+  ['#2c6ad0', '#6aa8f0'],
+  ['#1f3f9e', '#4a74cc'],
+  ['#141f62', '#2e3f8e'],
+  ['#080c30', '#18215a'],
 ];
-function skyAt(alt: number): [string, string] {
-  for (let i = 1; i < SKY.length; i++) {
-    if (alt <= SKY[i][0]) {
-      const u = (alt - SKY[i - 1][0]) / (SKY[i][0] - SKY[i - 1][0]);
-      return [mix(SKY[i - 1][1], SKY[i][1], u), mix(SKY[i - 1][2], SKY[i][2], u)];
-    }
-  }
-  return [SKY[SKY.length - 1][1], SKY[SKY.length - 1][2]];
+const lvl = (st: number, alt: number) => (STAGES[st].sky * Math.max(0, alt)) / STAGES[st].goal;
+function skyAt(level: number): [string, string] {
+  const q = clamp(level, 0, SKY.length - 1), i = Math.min(SKY.length - 2, Math.floor(q)), u = q - i;
+  return [mix(SKY[i][0], SKY[i + 1][0], u), mix(SKY[i][1], SKY[i + 1][1], u)];
 }
-
 // ── 배경 그림 (크기마다 한 번) ──
 const BG = new Map<string, HTMLCanvasElement>();
 function layer(w: number, h: number, sc: number, paint: (c: C2) => void) {
@@ -1310,22 +1306,22 @@ function flame(ctx: C2, cx: number, y: number, wd: number, len: number, t: numbe
   if (len <= 0) return;
   const f = 0.85 + 0.15 * Math.sin(t * 1.7 + seed) + 0.08 * Math.sin(t * 3.1 + seed * 2);
   const L = len * f;
+  const tongue = (ww: number, ll: number, fill: string | CanvasGradient) => {
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    ctx.moveTo(cx - ww / 2, y);
+    ctx.bezierCurveTo(cx - ww * 0.75, y + ll * 0.35, cx - ww * 0.2, y + ll * 0.75, cx + Math.sin(t * 0.9 + seed) * ww * 0.15, y + ll);
+    ctx.bezierCurveTo(cx + ww * 0.2, y + ll * 0.75, cx + ww * 0.75, y + ll * 0.35, cx + ww / 2, y);
+    ctx.closePath();
+    ctx.fill();
+  };
   ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.fillStyle = radg(ctx, cx, y + L * 0.2, 0, L, [0, 'rgba(255,255,230,.95)'], [0.3, 'rgba(255,220,90,.9)'], [0.65, 'rgba(255,120,40,.6)'], [1, 'rgba(255,60,20,0)']);
-  ctx.beginPath();
-  ctx.moveTo(cx - wd / 2, y);
-  ctx.quadraticCurveTo(cx - wd * 0.7, y + L * 0.45, cx, y + L);
-  ctx.quadraticCurveTo(cx + wd * 0.7, y + L * 0.45, cx + wd / 2, y);
-  ctx.closePath();
+  ctx.fillStyle = radg(ctx, cx, y + L * 0.3, 0, L * 0.9, [0, 'rgba(255,200,80,.45)'], [1, 'rgba(255,160,60,0)']);
+  ell(ctx, cx, y + L * 0.35, wd * 1.4, L * 0.7);
   ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,.85)';
-  ctx.beginPath();
-  ctx.moveTo(cx - wd * 0.25, y);
-  ctx.quadraticCurveTo(cx - wd * 0.3, y + L * 0.25, cx, y + L * 0.42);
-  ctx.quadraticCurveTo(cx + wd * 0.3, y + L * 0.25, cx + wd * 0.25, y);
-  ctx.closePath();
-  ctx.fill();
+  tongue(wd * 1.05, L, lin(ctx, 0, y, 0, y + L, [0, '#ff9a2a'], [0.6, '#ff5a1a'], [1, 'rgba(255,60,20,0)']));
+  tongue(wd * 0.72, L * 0.7, lin(ctx, 0, y, 0, y + L * 0.7, [0, '#fff27a'], [0.7, '#ffc23a'], [1, 'rgba(255,190,60,0)']));
+  tongue(wd * 0.38, L * 0.38, lin(ctx, 0, y, 0, y + L * 0.38, [0, '#ffffff'], [1, 'rgba(255,255,220,0)']));
   ctx.restore();
 }
 /** 부품 하나 (아래 y = yb, 가로 폭 단위 k = 화면 폭) */
@@ -1997,7 +1993,7 @@ function drawGoalThing(ctx: C2, st: number, x: number, y: number, k: number, t: 
 // ── 비행 화면 (카메라) ──
 /** 화면 가로 폭 단위로 1m가 얼마나 되나 */
 const KM = 0.74 / 700;
-const ROCKET_SY = 0.7;
+const ROCKET_SY = 0.78;
 interface View { mode: 'build' | 'ign' | 'asc' | 'hold' | 'desc' | 'land' | 'tip' | 'result'; alt: number; cam: number; u: number; step: number }
 function viewOf(s: RocketState): View {
   const f = s.fl;
@@ -2027,11 +2023,18 @@ function fuelOf(f: Flight, step: number) {
     return clamp(1 - (step - s0) / Math.max(1, s1 - s0), 0, 1);
   };
 }
+/** 비행 화면에서 한 틱에 오르는 높이 (m) */
+const velTick = (f: Flight, step: number) => {
+  const per = f.res.steps / f.asc;
+  return altAt(f, Math.min(f.res.steps - 1, step + per)) - altAt(f, step);
+};
+/** 달 정거장 높이: 붙을 비행이면 꼭대기 바로 위로 (팔이 닿게) */
+const stationAlt = (s: RocketState) => (s.fl && s.fl.res.ev.some((e) => e.k === 'dock') ? s.fl.res.apex + 150 : STAGES[s.stage].goal + DOCK_BAND * 0.5);
 const evStep = (f: Flight, k: FlyEv['k']) => f.res.ev.find((e) => e.k === k)?.step ?? Infinity;
 
 // ── 그림 기억 (화면 전용) ──
 interface Puff { x: number; alt: number; r: number; vx: number; va: number; life: number; max: number; dark: number }
-interface Debris { parts: PK[]; boost: number; x: number; alt: number; t0: number; vx: number; vr: number }
+interface Debris { parts: PK[]; boost: number; x: number; alt: number; t0: number; vx: number; vr: number; v0: number }
 interface Vis {
   ev: number; lastT: number; puffs: Puff[]; debris: Debris[]; ghost: { k: PK; i: number; t0: number } | null; attachDone: number;
   pred: Pred | null; predKey: string; shown: number; stackH: number; cheer: number; sad: number; wind: number; chuteT: number; bigDone: number; gmax: number;
@@ -2107,12 +2110,12 @@ function drawAll(ctx: C2, s: RocketState, w: number, h: number, th: Theme) {
         fx.kick(7);
         if (f) {
           const S = stackOf(s.parts, e.n ?? 0);
-          vis.debris.push({ parts: S.pieces.filter((p) => p.g === (e.n ?? 0)).map((p) => p.k), boost: 0, x: PAD_X, alt: V.alt, t0: t, vx: (hsh(t) - 0.5) * 0.004, vr: (hsh(t + 1) - 0.5) * 0.12 });
+          vis.debris.push({ parts: S.pieces.filter((p) => p.g === (e.n ?? 0)).map((p) => p.k), boost: 0, x: PAD_X, alt: V.alt - 40, t0: t, vx: (hsh(t) - 0.5) * 0.004, vr: (hsh(t + 1) - 0.5) * 0.12, v0: velTick(f, V.step) });
         }
         break;
       case 'boostOff':
         fx.pop(rocketX - R(0.18), Y(ROCKET_SY), '슝—', '#ffffff', Math.max(16, R(0.05)));
-        vis.debris.push({ parts: [], boost: e.n ?? 2, x: PAD_X, alt: V.alt, t0: t, vx: 0, vr: 0.05 });
+        if (f) vis.debris.push({ parts: [], boost: e.n ?? 2, x: PAD_X, alt: V.alt, t0: t, vx: 0, vr: 0.05, v0: velTick(f, V.step) });
         break;
       case 'spin':
         fx.pop(rocketX, Y(ROCKET_SY - 0.35), '빙글빙글~', '#ffe0ff', Math.max(18, R(0.06)));
@@ -2188,13 +2191,14 @@ function drawAll(ctx: C2, s: RocketState, w: number, h: number, th: Theme) {
   }
 
   // ── 하늘 ──
-  const [skyT, skyB] = skyAt(V.cam + 300);
+  const camL = lvl(s.stage, V.cam + 250);
+  const [skyT, skyB] = skyAt(camL);
   ctx.fillStyle = lin(ctx, 0, 0, 0, Y(PANEL_Y), [0, skyT], [1, skyB]);
   ctx.fillRect(0, 0, w, Y(PANEL_Y));
   ctx.save();
   fx.begin(ctx);
   // 별 (높이 올라갈수록)
-  const starA = clamp((V.cam - 2400) / 2200, 0, 1);
+  const starA = clamp((camL - 3) / 1.5, 0, 1);
   if (starA > 0) {
     for (let i = 0; i < 60; i++) {
       const sx = X(hsh(i + 300)), sy = ((hsh(i + 301) * Y(PANEL_Y) + V.cam * KM * w * 0.15) % Y(PANEL_Y));
@@ -2207,7 +2211,7 @@ function drawAll(ctx: C2, s: RocketState, w: number, h: number, th: Theme) {
   }
   // 해
   const sunY = Y(0.17) + V.cam * KM * w * 0.05;
-  if (sunY < Y(PANEL_Y)) {
+  if (sunY < Y(PANEL_Y) && camL < 4) {
     const sx = X(0.14), sr = R(0.045);
     ctx.save();
     ctx.translate(sx, sunY);
@@ -2237,12 +2241,30 @@ function drawAll(ctx: C2, s: RocketState, w: number, h: number, th: Theme) {
     ctx.stroke();
   }
   // 하늘 구름 (높이마다)
-  for (let i = 0; i < 26; i++) {
-    const alt = 260 + i * 270 + hsh(i + 40) * 140;
-    if (alt > 4200) break;
+  for (let i = 0; i < 30; i++) {
+    const alt = 260 + i * 270 + hsh(i + 40) * 140, cl = lvl(s.stage, alt), ca = clamp(4 - cl, 0, 1);
+    if (ca <= 0) continue;
     const y = gy(alt), x = X(((hsh(i + 41) * 1.3 - 0.15 + t * 0.0002 * (1 + (i % 3))) % 1.3) - 0.15);
     if (y < -R(0.1) || y > Y(PANEL_Y) + R(0.1)) continue;
-    cloud(ctx, x, y, R(0.07 + hsh(i + 42) * 0.06), alt > 3000 ? 0.6 : 0.95);
+    cloud(ctx, x, y, R(0.07 + hsh(i + 42) * 0.06), 0.95 * ca);
+  }
+  // 달 (높은 하늘)
+  const moonA = clamp((camL - 3.8) / 1.2, 0, 1);
+  if (moonA > 0) {
+    const mx = X(0.74), my = Y(0.22), mr = R(0.12);
+    ctx.globalAlpha = moonA;
+    ctx.fillStyle = radg(ctx, mx, my, mr * 0.8, mr * 1.8, [0, 'rgba(255,250,210,.35)'], [1, 'rgba(255,250,210,0)']);
+    ell(ctx, mx, my, mr * 1.8, mr * 1.8);
+    ctx.fill();
+    ctx.fillStyle = radg(ctx, mx - mr * 0.3, my - mr * 0.3, 0, mr * 1.1, [0, '#fffbe6'], [1, '#e8d8a0']);
+    ell(ctx, mx, my, mr, mr);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(180,160,110,.45)';
+    for (const [dx, dy, r] of [[-0.3, -0.2, 0.2], [0.35, 0.1, 0.16], [-0.05, 0.4, 0.12], [0.1, -0.45, 0.09]]) {
+      ell(ctx, mx + dx * mr, my + dy * mr, r * mr, r * mr);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
   }
   // 먼 산 · 땅 (카메라 따라 내려감)
   const drop = V.cam * KM * w;
@@ -2307,7 +2329,7 @@ function drawAll(ctx: C2, s: RocketState, w: number, h: number, th: Theme) {
   for (const db of vis.debris) {
     const tt = t - db.t0;
     if (tt > 150) continue;
-    const alt = db.alt - 0.9 * tt * tt - 4 * tt;
+    const alt = db.alt + db.v0 * tt - 0.55 * tt * tt;
     const y = gy(alt), x = X(db.x + db.vx * tt);
     if (y > Y(PANEL_Y) + R(0.3)) continue;
     if (db.boost) {
@@ -2440,15 +2462,22 @@ function drawSkyThings(ctx: C2, s: RocketState, V: View, gy: (a: number) => numb
       const alt = d.birds[0] + (d.birds[1] - d.birds[0]) * hsh(i + 120);
       const y = gy(alt);
       if (y < -R(0.05) || y > Y(PANEL_Y)) continue;
-      let x = X(((hsh(i + 121) + t * 0.0007 * (i % 2 ? 1 : -1)) % 1 + 1) % 1);
-      const near = flying && V.alt > alt - 40 && Math.abs(x - X(PAD_X)) < R(0.16);
+      let x = X(((hsh(i + 121) + t * 0.0007 * (i % 2 ? 1 : -1)) % 1 + 1) % 1), yy = y;
+      const side = x < X(PAD_X) ? -1 : 1, dist = Math.abs(x - X(PAD_X));
       let hit = false;
-      if (near && V.mode === 'asc') {
-        if (nose) x += (x < X(PAD_X) ? -1 : 1) * R(0.1);
-        else hit = true;
+      if (flying && V.alt > alt - 250 && dist < R(0.2)) {
+        const past = Math.max(0, V.alt - alt + 250);
+        if (nose) x += side * Math.min(R(0.16), R(past * KM * 0.6));
+        else if (V.alt > alt - 60) {
+          // 부딪혀 튕겨 나간다 (빙글빙글 · 엑스 눈)
+          hit = true;
+          const k = Math.min(1, (V.alt - alt + 60) / 500);
+          x += side * R(0.25) * k;
+          yy -= R(0.12) * k;
+        }
       }
-      bird(ctx, x + (hit ? R(0.08) * Math.sin(i) : 0), y - (hit ? R(0.04) : 0), R(0.022), t, i, hit);
-      if (hit && Math.floor(t + i) % 23 === 0) fx.burst(x, y, '#ffffff', 4, 2, 1.8);
+      bird(ctx, x, yy, R(0.024), t, i, hit);
+      if (hit && Math.floor(t + i) % 17 === 0) fx.burst(x, yy, '#ffffff', 5, 2.2, 2);
     }
   }
   // 별 깃발 (높이 별)
@@ -2488,18 +2517,10 @@ function drawSkyThings(ctx: C2, s: RocketState, V: View, gy: (a: number) => numb
     ctx.setLineDash([]);
     const reached = !!f && f.ok && (V.mode !== 'asc' || V.alt >= d.goal);
     if (d.spot === 'mag') {
-      const sy = gy(d.goal + DOCK_BAND * 0.5);
+      const sy = gy(stationAlt(s));
       ctx.fillStyle = 'rgba(255,230,120,.16)';
       ctx.fillRect(0, gy(d.goal + DOCK_BAND), X(GAUGE_X - 0.06), goalY - gy(d.goal + DOCK_BAND));
-      drawGoalThing(ctx, s.stage, X(0.7), sy, R(0.2), t, reached && !!f?.dockOk);
-      // 도킹 팔
-      const armX = X(0.7) - R(0.12), dockOk = f?.dockOk && (V.mode === 'hold' || (V.mode === 'asc' && V.u > 0.98));
-      ctx.strokeStyle = '#c8ccd8';
-      ctx.lineWidth = R(0.018);
-      ctx.beginPath();
-      ctx.moveTo(armX, sy);
-      ctx.lineTo(dockOk ? X(PAD_X) + R(0.06) : armX - R(0.06), dockOk ? gy(V.alt) - R(rocketHeight(s.parts) * 0.9) : sy);
-      ctx.stroke();
+      drawGoalThing(ctx, s.stage, X(0.72), sy, R(0.2), t, reached && !!f?.dockOk);
     } else drawGoalThing(ctx, s.stage, X(0.66), goalY - R(0.04), R(0.17), t, reached);
     font(0.034, 900);
     ctx.textAlign = 'left';
@@ -2581,19 +2602,34 @@ function drawTheRocket(ctx: C2, s: RocketState, V: View, vis: Vis, X: (x: number
   if (V.mode === 'ign' || V.mode === 'asc' || V.mode === 'tip') {
     const base = V.mode === 'tip' ? Y(PAD_Y - 0.008) : Y(PAD_Y - 0.008) - (V.alt - V.cam) * KM * w;
     const shake = V.mode === 'ign' ? Math.sin(t * 2.3) * R(0.004) * V.u : 0;
-    const scale = rocketScale(vis.stackH);
+    const fu = V.mode === 'asc' ? clamp(V.u * 4, 0, 1) : 0;
+    const scale = rocketScale(vis.stackH) * (1 - 0.22 * fu);
     ctx.save();
     ctx.translate(X(PAD_X) + shake, base);
     let mood: Mood = V.mode === 'ign' ? 'wow' : 'happy';
     if (V.mode === 'tip') {
       // 픽 쓰러져 데굴데굴
-      const u = V.u, fall = clamp((u - 0.12) / 0.25, 0, 1), roll = clamp((u - 0.37) / 0.5, 0, 1);
+      const u = V.u, fall = clamp((u - 0.12) / 0.25, 0, 1), roll = clamp((u - 0.37) / 0.45, 0, 1);
       const shk = u < 0.12 ? Math.sin(t * 2.5) * 0.04 : 0;
-      ctx.translate(R(0.08) * fall + R(0.3) * ease(roll), -R(0.04) * Math.sin(fall * Math.PI) * 0);
-      ctx.rotate(shk + (Math.PI / 2) * ease(fall) + roll * Math.PI * 2.2);
+      const half = (stackOf(parts, 0).maxW / 2) * w * rocketScale(vis.stackH);
+      // 오른쪽 아래 모서리를 축으로 픽 → 땅에 누워 데굴데굴 (통통 튀며 굴러감)
+      ctx.translate(half + R(0.2) * ease(roll), -Math.abs(Math.sin(roll * Math.PI * 3)) * R(0.03) * (1 - roll));
+      ctx.rotate(shk + (Math.PI / 2) * (fall * fall) + Math.sin(roll * Math.PI * 6) * 0.06 * (1 - roll));
+      ctx.translate(-half, 0);
       mood = fall > 0.5 ? 'dizzy' : 'scared';
     } else if (step >= spin0) ctx.rotate((step - spin0) * 0.5 + Math.sin(t * 0.2) * 0.1), (mood = 'dizzy');
     else if (V.mode === 'asc') ctx.rotate(Math.sin(t * 0.3) * 0.015);
+    const dd = STAGES[s.stage];
+    if (V.mode === 'asc' && dd.birds && !parts.includes('nose') && V.alt >= dd.birds[0] && V.alt <= dd.birds[1]) {
+      ctx.translate(Math.sin(t * 1.9) * R(0.006), 0);
+      if (t % 9 === 0) {
+        const fx = juice(s), ny = base - R(vis.stackH * scale * 0.95);
+        fx.burst(X(PAD_X), ny, '#ffffff', 8, 3, 2.4);
+        fx.burst(X(PAD_X), ny, '#7aa8ff', 4, 2.5, 2);
+        fx.pop(X(PAD_X) + R(t % 18 ? 0.12 : -0.12), ny, '꽥!', '#ffffff', Math.max(14, R(0.045)));
+        fx.kick(2);
+      }
+    }
     ctx.scale(scale, scale);
     const fl = V.mode === 'ign' ? 0.5 + V.u * 0.6 : V.mode === 'tip' ? (V.u < 0.15 ? 0.7 : 0) : burning ? 1 : 0;
     drawRocket(ctx, parts, 0, 0, w, { dropped, boosters: boostOn ? B.acc.boost : 0, flame: fl, boostFlame: boostOn ? fl : 0, fuel, mood, wave: 0, t });
@@ -2604,21 +2640,39 @@ function drawTheRocket(ctx: C2, s: RocketState, V: View, vis: Vis, X: (x: number
   const chute = parts.includes('chute');
   let x = X(PAD_X), y: number, rot = 0, mood: Mood = f.ok ? 'happy' : 'sad', wave = 0, open = 0;
   if (V.mode === 'hold') {
-    y = Y(ROCKET_SY) - R(vis.stackH * rocketScale(vis.stackH) * 0.75);
+    const u = V.u, scale = rocketScale(vis.stackH) * 0.78, S = stackOf(parts, dropped);
+    y = Y(ROCKET_SY) - R(S.top * scale) - R(0.04) * ease(u * 3);
     mood = f.ok ? 'proud' : 'wow';
     wave = f.ok ? 1 : 0;
-    // 몸통은 아래로 떨어져 나간다
-    const u = V.u;
-    ctx.save();
-    ctx.globalAlpha = 1 - u;
-    ctx.translate(X(PAD_X), Y(ROCKET_SY) + R(0.3) * u * u);
-    ctx.rotate(u * 0.6);
-    const scale = rocketScale(vis.stackH);
-    ctx.scale(scale, scale);
-    const S = stackOf(parts, dropped);
-    for (const p of S.pieces) drawPiece(ctx, p.k, 0, -p.y * w, w, 0, t);
-    ctx.restore();
+    // 몸통은 '퐁' 떨어져 나간다
+    if (u < 0.6) {
+      ctx.save();
+      ctx.globalAlpha = 1 - u / 0.6;
+      ctx.translate(X(PAD_X), Y(ROCKET_SY) + R(0.45) * u * u);
+      ctx.rotate(u * 0.8);
+      ctx.scale(scale, scale);
+      for (const p of S.pieces) drawPiece(ctx, p.k, 0, -p.y * w, w, 0, t);
+      ctx.restore();
+    }
     if (chute) open = clamp((u - 0.7) / 0.3, 0, 1);
+    // 달 정거장 도킹 팔: 자석에 철컥
+    if (f.dockOk) {
+      const sy = Y(PAD_Y - (stationAlt(s) - V.cam) * KM), ax = X(0.72) - R(0.1), k = ease(u * 2.5);
+      const tx = X(PAD_X) + R(0.02), ty = y - R(CAP_H) - R(0.05);
+      ctx.strokeStyle = OUT;
+      ctx.lineWidth = R(0.022);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(ax, sy);
+      ctx.lineTo(ax + (tx - ax) * k, sy + (ty - sy) * k);
+      ctx.stroke();
+      ctx.strokeStyle = '#d8dce8';
+      ctx.lineWidth = R(0.014);
+      ctx.stroke();
+      ctx.fillStyle = '#ffd84a';
+      ell(ctx, ax + (tx - ax) * k, sy + (ty - sy) * k, R(0.014), R(0.014));
+      ctx.fill();
+    }
   } else if (V.mode === 'desc') {
     y = Y(0.5) - Math.max(0, (V.cam - Math.max(0, V.alt - (PAD_Y - 0.5) / KM)) * KM * w);
     if (V.alt < (PAD_Y - 0.5) / KM) y = Y(PAD_Y - 0.008) - V.alt * KM * w;
@@ -2633,7 +2687,7 @@ function drawTheRocket(ctx: C2, s: RocketState, V: View, vis: Vis, X: (x: number
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(rot);
-  drawCapsule(ctx, 0, 0, w, { nose: false, chute: chute && open <= 0, wings: 0, mag: false, mood, wave, t, open: open > 0 });
+  drawCapsule(ctx, 0, 0, w, { nose: false, chute: chute && open <= 0, wings: 0, mag: parts.includes('mag') && V.mode === 'hold', mood, wave, t, open: open > 0 });
   ctx.restore();
 }
 
@@ -2659,7 +2713,7 @@ function drawGauge(ctx: C2, s: RocketState, V: View, vis: Vis, X: (x: number) =>
   ctx.clip();
   for (let i = 0; i < 20; i++) {
     const m0 = (M * i) / 20, m1 = (M * (i + 1)) / 20;
-    ctx.fillStyle = skyAt(m0)[0];
+    ctx.fillStyle = skyAt(lvl(s.stage, m0))[0];
     ctx.fillRect(gx - gw / 2, gyv(m1), gw, gyv(m0) - gyv(m1) + 1);
   }
   // 새 떼 띠

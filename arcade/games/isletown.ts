@@ -103,14 +103,14 @@ export const STAGES: StageDef[] = [
     map: ['To..', 'oTo.', 'ooo.', '....', '....'],
     queue: [H, F, H, H, H],
     chunks: [{ at: 12, map: ['....', '....', '...o', '..oT', '....'], pack: [B, H, H] }],
-    goal: 24, stars: [ST('score', 24, '점수 24 넘기기'), ST('quiet', 0, '대장간 옆에 집 없이'), ST('score', 32, '점수 32 넘기기')],
+    goal: 24, stars: [ST('score', 24, '점수 24 넘기기'), ST('quiet', 0, '대장간 옆에 집 없이'), ST('score', 34, '점수 34 넘기기')],
   },
   {
     name: '퐁퐁 분수', news: '분수 — 둘레 8칸(대각선도) 모두 +2', hint: '분수는 가운데, 둘레를 빙 채워요', spot: 'fount',
-    map: ['....', 'TTo.', 'ooo.', '.oo.', '....'],
-    queue: [H, W, H, B, H],
-    chunks: [{ at: 16, map: ['....', '...o', '...o', '....', '....'], pack: [H, W, H] }],
-    goal: 36, stars: [ST('score', 36, '점수 36 넘기기'), ST('ring', 6, '분수 둘레에 여섯 채'), ST('combo', 8, '한 번에 8점 받기')],
+    map: ['TT..', 'Tooo', '.ooo', '....', '....'],
+    queue: [H, W, H, B, H, H],
+    chunks: [{ at: 16, map: ['....', '....', '....', '.oo.', '....'], pack: [H, H] }],
+    goal: 26, stars: [ST('score', 26, '점수 26 넘기기'), ST('ring', 7, '분수 둘레에 일곱 채'), ST('combo', 8, '한 번에 8점 받기')],
   },
   {
     name: '화산 섬', news: '화산 섬 — 용암 옆 집은 −3, 대장간은 +4', hint: '집은 용암에서 멀리, 대장간은 가까이', spot: 'lava',
@@ -127,7 +127,7 @@ export const STAGES: StageDef[] = [
       { at: 12, map: ['.oo.', '....', '....', '....', '....'], pack: [L, H] },
       { at: 26, map: ['....', '....', '..oo', '...o', '....'], pack: [F, H] },
     ],
-    goal: 36, stars: [ST('score', 36, '점수 36 넘기기'), ST('quiet', 0, '대장간 옆에 집 없이'), ST('score', 46, '점수 46 넘기기')],
+    goal: 36, stars: [ST('score', 36, '점수 36 넘기기'), ST('quiet', 0, '대장간 옆에 집 없이'), ST('score', 40, '점수 40 넘기기')],
   },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -497,7 +497,7 @@ function starLean(m: Mini): number {
     else if (q.k === 'bakery') v += Math.max(0, ...cs.map((c, i) => (c.b?.k === 'bakery' ? Math.min(q.n, NB4[i].filter((j) => j >= 0 && cs[j].b?.k === 'house').length) : 0))) * 3;
     else if (q.k === 'quiet') v -= cs.some((c, i) => c.b?.k === 'forge' && NB4[i].some((j) => j >= 0 && cs[j].b?.k === 'house')) ? 8 : 0;
     else if (q.k === 'nolava') v -= cs.some((c, i) => (c.b?.k === 'lava' || (!c.land && c.fut === 'lava')) && NB4[i].some((j) => j >= 0 && cs[j].b?.k === 'house')) ? 8 : 0;
-    else if (q.k === 'ring') v += Math.max(0, ...cs.map((c, i) => (c.b?.k === 'fount' ? Math.min(q.n, NB8[i].filter((j) => cs[j].b).length) : 0))) * 1.5;
+    else if (q.k === 'ring') v += Math.max(0, ...cs.map((c, i) => (c.b?.k === 'fount' ? (NB8[i].filter((j) => cs[j].b).length >= q.n ? 4 : 0) + (NB8[i].filter((j) => cs[j].land || cs[j].chunk >= 0).length >= q.n ? 10 : 0) : 0)));
     else if (q.k === 'combo') v += m.best1 >= q.n ? 8 : 0;
     else if (q.k === 'rise') v += Math.min(q.n, m.risen) * 6;
   }

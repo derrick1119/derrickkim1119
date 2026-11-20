@@ -4,7 +4,8 @@
  *   도움닫기 → 뻥 → 슬로모션 → 골망 출렁 / 몸 날려 탁! / 관중석 팝콘 와르르. 아무것도 안 누르면 아무 일도 없다(타이머 없음).
  * 와우: 상대 골키퍼는 **내 버릇을 배우고**(같은 곳만 차면 미리 그쪽으로 뜀), 상대의 버릇은 **몸짓으로 보인다**
  *   (골키퍼가 한쪽으로 기울기, 키커가 꼬리를 흔들고 힐끔 보기). 단서가 늘 맞진 않고, 뒤 판 상대는 찡긋 윙크로 속인다.
- * 미리 보기: 칸마다 장갑 = 막힐 확률(찰 때) / 막을 확률(막을 때). 단서를 정직하다고 보고 그린다(찡긋은 사람이 읽는다).
+ * 미리 보기: 칸마다 '골 %·막기 %' 딱지 + 장갑(막힐/막을 확률) = 상대 버릇(배운 것·바람 포함)으로 본 확률. 지금의 몸짓
+ *   (기울기·힐끔)은 그 줄을 노랗게 '이쪽으로 뛸 듯!' — 둘을 합쳐 읽는 건 사람 몫, 찡긋이면 분홍 '거짓 기울기'.
  * 판 6개 · 판마다 새것: 1 곰돌이(늘 가운데) → 2 고양이(몸짓 단서) → 3 여우(내 버릇을 배움 · 여우 수첩)
  *   → 4 너구리(바람: 공이 한 칸 밀림) → 5 부엉이(찡긋 = 거짓말) → 6 사자 대장(큰 몸: 옆 칸까지 닿음).
  * 한 경기 = 5번씩 차고 막기(동점이면 서든데스). 이기면 다음 판, 지면 하트 -1 · 그 판만 다시.
@@ -93,10 +94,10 @@ const RUN = 14, FLY = 34, SHOT_T = RUN + FLY, RES_T = 58, END_OK = 190, END_FAIL
 type Role = 'kick' | 'keep';
 type Out = 'goal' | 'save' | 'miss';
 type MissK = '' | 'over' | 'wide' | 'post' | 'blown';
+/** 한 차례: opp = 상대가 고른 칸(내가 찰 땐 골키퍼가 뛸 곳, 막을 땐 키커가 찰 곳) · tell = 기운 쪽(열) · pick = 내 톡 · ball = 공이 간 칸 */
 interface Turn {
   n: number; role: Role; opp: number; tell: number; wink: boolean; wind: -1 | 0 | 1;
   pick: number; ball: number; aim: number; miss: MissK; out: Out | null; asleep: boolean;
-  /** 실제 상대 골키퍼가 뛴 곳 (내가 찰 때 opp) · 상대 키커가 찬 곳 (막을 때 opp) */
 }
 interface Memo { freq: number[]; dlt: number[]; last: number; n: number }
 interface Ev { t: number; kind: string; x: number; y: number; n?: number; text?: string }
@@ -105,7 +106,7 @@ export interface KickState {
   hearts: number; stars: number; got: number; starOk: boolean[]; pts: number; won: boolean; dead: boolean; ok: boolean;
   again: boolean; tries: number; n: number; turn: Turn; mine: Out[]; theirs: Out[];
   myGoals: number; oppGoals: number; saves: number; windGoals: number; tricks: number;
-  memK: Memo; memD: Memo; history: Turn[];
+  memK: Memo; memD: Memo; tie: boolean;
   /** 이번 경기에서 내가 고른 칸 수 (찰 때 · 막을 때) — 여우 수첩 그림 */
   cntK: number[]; cntD: number[];
   down: boolean; firstTap: number; firstBig: number; wowN: number; taps: number;
@@ -340,7 +341,7 @@ function shoot(s: KickState, c: number) {
 }
 /** 공이 닿은 순간: 점수·연출 */
 function land(s: KickState) {
-  const tu = s.turn, d = STAGES[s.stage];
+  const tu = s.turn;
   const bx = tu.ball >= 0 ? cellX(tu.ball) : 0.5, by = tu.ball >= 0 ? cellY(tu.ball) : GY0;
   const lead0 = s.myGoals - s.oppGoals;
   if (tu.role === 'kick') {
@@ -365,13 +366,10 @@ function land(s: KickState) {
     } else if (tu.wink) s.tricks++;
     ev(s, 'k' + tu.out!, bx, by, tu.ball, tu.miss);
   }
-  void d;
   s.phase = 'res';
   s.pt = 0;
 }
 function afterTurn(s: KickState) {
-  s.history.push(s.turn);
-  if (s.history.length > 12) s.history.shift();
   s.n++;
   const reg = s.n >= KICKS * 2, pair = s.n % 2 === 0;
   if (reg && pair && (s.myGoals !== s.oppGoals || s.n >= (KICKS + SD_MAX) * 2)) return endMatch(s);
@@ -387,6 +385,7 @@ function endMatch(s: KickState) {
   s.phase = 'end';
   s.pt = 0;
   s.ok = s.myGoals > s.oppGoals;
+  s.tie = s.myGoals === s.oppGoals;
   if (s.ok) {
     s.starOk = d.stars.map((q) => starMet(s, q));
     s.got = s.starOk.filter(Boolean).length;
@@ -438,7 +437,7 @@ const game: GameDef<KickState> & { wows(s: KickState): number } = {
       hearts: 3, stars: 0, got: 0, starOk: [false], pts: 0, won: false, dead: false, ok: false,
       again: false, tries: 0, n: 0, turn: null, mine: [], theirs: [],
       myGoals: 0, oppGoals: 0, saves: 0, windGoals: 0, tricks: 0,
-      memK: newMemo(), memD: newMemo(), history: [], cntK: [0, 0, 0, 0, 0, 0], cntD: [0, 0, 0, 0, 0, 0],
+      memK: newMemo(), memD: newMemo(), tie: false, cntK: [0, 0, 0, 0, 0, 0], cntD: [0, 0, 0, 0, 0, 0],
       down: false, firstTap: -1, firstBig: -1, wowN: 0, taps: 0,
       seen: new Set<string>(), banner: null, spot: null, events: [], bigText: '', bigT: -999, bigY: 0.6,
     } as unknown as KickState;
@@ -2394,7 +2393,7 @@ function drawAll(ctx: C2, s: KickState, w: number, h: number, th: Theme) {
           fx.ring(X(px), Y(py), '#fff27a', R(0.12), 5);
           fx.burst(X(px), Y(py), '#ffffff', 14, 4, 2.4);
           fx.pop(X(px), Y(py) - R(0.05), '땡!', '#fff27a', Math.max(24, R(0.085)));
-        } else fx.pop(X(ball.x), Y(ball.y) - R(0.05), e.text === 'blown' ? '휘잉~' : e.text === 'over' ? '붕~' : '휙~', '#ffffff', Math.max(18, R(0.06)));
+        } else fx.pop(clamp(X(ball.x), R(0.12), R(0.88)), Y(ball.y) - R(0.05), e.text === 'blown' ? '휘잉~' : e.text === 'over' ? '붕~' : '휙~', '#ffffff', Math.max(18, R(0.06)));
         break;
       }
       case 'clear':
@@ -2429,7 +2428,7 @@ function drawAll(ctx: C2, s: KickState, w: number, h: number, th: Theme) {
       const b2 = vis.seed / 2147483647;
       vis.corn.push({ x: sx, y: sy, vx: (a2 - 0.5) * 0.014, vy: -0.006 - b2 * 0.01, rot: a2 * 6, vr: (b2 - 0.5) * 0.3, col: b2 < 0.3 ? '#ffe08a' : '#fffbe8', life: 50 + Math.floor(a2 * 30) });
     }
-    fx.pop(X(sx), Y(sy) + R(0.05), '내 팝콘!', '#ffffff', Math.max(16, R(0.05)));
+    fx.pop(clamp(X(sx), R(0.14), R(0.86)), Y(sy) + R(0.06), '내 팝콘!', '#ffffff', Math.max(16, R(0.05)));
     fx.kick(6);
   }
 
@@ -2830,7 +2829,7 @@ function drawCards(ctx: C2, s: KickState, fx: ReturnType<typeof juice>, X: (x: n
     a = Math.min(1, age / 8);
     cy = Y(s.ok ? 0.62 : 0.66);
     if (s.ok) head = s.won ? `우승! ${s.myGoals} : ${s.oppGoals}` : `${d.who} 이겼다! ${s.myGoals} : ${s.oppGoals}`;
-    else (head = `으앗, 졌다… ${s.myGoals} : ${s.oppGoals}`), (sub = s.hearts > 0 ? '하트 -1 · 같은 판 다시' : '하트가 없어요 — 끝');
+    else (head = `으앗, 졌다… ${s.myGoals} : ${s.oppGoals}`), (sub = (s.tie ? '서든데스까지 비김 · ' : '') + (s.hearts > 0 ? '하트 -1 · 같은 판 다시' : '하트가 없어요 — 끝'));
   } else if (s.banner && t - s.banner.t < BANNER_T) {
     age = t - s.banner.t;
     a = Math.min(1, age / 8, (BANNER_T - age) / 25);
