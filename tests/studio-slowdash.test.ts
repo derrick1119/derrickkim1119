@@ -595,7 +595,8 @@ describe('느린 시간 닌자 플레이 빌드', () => {
     expect(wm.some((q) => q.t === '싹쓸이!' && q.f.startsWith('900 24px') && q.lw === 6 && q.lj === 'round')).toBe(true); // 큰 순간 띠
     expect(wm.some((q) => q.t === '싹쓸이! 다음 한 획은 먹이 안 들어요' && q.mw)).toBe(true); // 알림 글(🧪 첫 떼기 9.1ms)
     expect(main).toMatch(/warmText\(warmC, /); // 화면 밖 캔버스에(판 캔버스엔 안 그림)
-    expect(main).toMatch(/dt > 20\) return/); // 직전 프레임이 제때 온 경우에만 · 한 조각씩(🧪 S11 1차: 켠 뒤 프레임이 길어짐)
+    expect(main).toMatch(/dt > Math\.max\(20, frameAvg \* 1\.1\)\) return/); // 그 기기의 평소 프레임보다 늦지 않은 프레임에만 · 한 조각씩(🧪 S11 1차: 켠 뒤 프레임이 길어짐)
+    expect(main).toMatch(/if \(s\.down\) warmRest = 60;/); // 꾹·뗀 뒤 1초는 쉰다(🧪 S11: 켜자마자 떼기 켬 1/10 · 끔 6/10)
   });
   it('M3 S1 시안 모음: 스타일 넷(도트·3D·2.5D·2D)과 캐릭터 셋 그림이 있고, 모음 페이지가 일곱 장을 모두 가리킨다', () => {
     const dir = 'web/public/studio/slowdash/concepts/', page = readFileSync(dir + 'index.html', 'utf8');

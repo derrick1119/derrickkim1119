@@ -117,11 +117,16 @@ function size() {
 //   🧪 S11 1차: 프레임마다 하나씩 → 첫 떼기 12·10 → 20·15/30이지만 켠 뒤 3초 ≤50ms 20·21 → 10·11/30(켜자마자 프레임이 길어짐)
 //   2차: 브라우저가 한가할 때(requestIdleCallback) → CPU 4배에선 한가한 틈이 거의 없어 첫 떼기 전에 못 끝냄
 //   3차: 직전 프레임이 제때(≤ 20ms) 온 경우에만 글 하나씩 → 켠 뒤 4초에도 다 못 끝냄(2-6 남은 글 13~20)
-//   → 4차: 글 하나를 세 조각(재기 · 테두리 · 채우기)으로 나눠 제때 온 프레임마다 한 조각 · 첫 떼기에 뜨는 글부터 · ?twarm=0 이면 끔(비교용)
-let warmQ: WarmText[] = [], warmPart = 0, DPR = 1;
+//   4차: 글 하나를 세 조각(재기 · 테두리 · 채우기)으로 나눠 제때 온 프레임마다 한 조각 · 첫 떼기에 뜨는 글부터
+//   → 5차(🧪 S11: 켜고 0.7초에 누르면 켬 1/10 · 끔 6/10 — 꾹·떼는 프레임에도 예열이 돌았다 · CPU 6배에선 20ms 안 프레임이 7~33%뿐이라 거의 안 돎):
+//     꾹 하는 동안과 뗀 뒤 약 1초는 쉬고, '제때'는 그 기기의 평소 프레임(지수 평균 × 1.1, 최소 20ms) · ?twarm=0 이면 끔(비교용)
+let warmQ: WarmText[] = [], warmPart = 0, warmRest = 0, frameAvg = 17, DPR = 1;
 const warmC = document.createElement('canvas').getContext('2d');
 function warmTick(dt: number) {
-  if (!warmQ.length || !warmC || dt > 20) return;
+  if (dt > 0 && dt < 200) frameAvg += (dt - frameAvg) * 0.1;
+  if (s.down) warmRest = 60;
+  if (warmRest > 0) return void warmRest--;
+  if (!warmQ.length || !warmC || dt > Math.max(20, frameAvg * 1.1)) return;
   warmC.setTransform(DPR, 0, 0, DPR, 0, 0);
   if (warmText(warmC, warmQ[0], W / 2, 50, warmPart)) warmPart++;
   else (warmQ.shift(), (warmPart = 0));
