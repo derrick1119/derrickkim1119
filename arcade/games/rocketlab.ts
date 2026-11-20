@@ -1043,6 +1043,45 @@ function getGround(w: number, sc: number) {
       ell(g, px + Math.cos(a) * prx * 0.86, py + Math.sin(a) * pry * 0.86, R(0.006), R(0.003));
       g.fill();
     }
+    // 나무 울타리 + 깃발 줄 (구경꾼 자리)
+    for (const [x0, x1] of [[-0.02, 0.27], [0.76, 1.02]] as [number, number][]) {
+      const fy = R(0.93);
+      g.fillStyle = 'rgba(40,70,20,.22)';
+      g.fillRect(R(x0), fy + R(0.012), R(x1 - x0), R(0.01));
+      for (let x = x0; x <= x1; x += 0.045) {
+        g.fillStyle = lin(g, R(x), 0, R(x + 0.016), 0, [0, '#c89058'], [1, '#9a6a3a']);
+        g.fillRect(R(x), fy - R(0.05), R(0.016), R(0.062));
+        g.beginPath();
+        g.moveTo(R(x), fy - R(0.05));
+        g.lineTo(R(x + 0.008), fy - R(0.06));
+        g.lineTo(R(x + 0.016), fy - R(0.05));
+        g.fill();
+      }
+      g.fillStyle = '#d8a46a';
+      g.fillRect(R(x0), fy - R(0.038), R(x1 - x0), R(0.011));
+      g.fillRect(R(x0), fy - R(0.014), R(x1 - x0), R(0.011));
+      // 깃발 줄
+      g.strokeStyle = 'rgba(90,60,30,.7)';
+      g.lineWidth = 1;
+      g.beginPath();
+      for (let x = x0; x <= x1 + 0.001; x += 0.02) {
+        const y = fy - R(0.075) + Math.sin(((x - x0) / (x1 - x0)) * Math.PI) * R(0.02);
+        x === x0 ? g.moveTo(R(x), y) : g.lineTo(R(x), y);
+      }
+      g.stroke();
+      const cols = ['#ff5a5a', '#ffd23a', '#3d9df5', '#5ad04a', '#ff9ac0'];
+      let i = 0;
+      for (let x = x0 + 0.02; x < x1 - 0.01; x += 0.04, i++) {
+        const y = fy - R(0.075) + Math.sin(((x - x0) / (x1 - x0)) * Math.PI) * R(0.02);
+        g.fillStyle = cols[i % 5];
+        g.beginPath();
+        g.moveTo(R(x - 0.014), y);
+        g.lineTo(R(x + 0.014), y);
+        g.lineTo(R(x), y + R(0.03));
+        g.closePath();
+        g.fill();
+      }
+    }
     // 건초 더미 (낙하산 없이 떨어지면 여기로)
     const bx = R(0.7), by = R(0.955);
     g.fillStyle = 'rgba(40,70,20,.3)';
