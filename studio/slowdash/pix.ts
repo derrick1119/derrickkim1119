@@ -97,6 +97,9 @@ const HAT: Record<string, string[]> = { // 칼 병정 모자는 시안의 빨강
   dummy: ['', '.....oooooo', '...ooOOOOOOoo', '..oooooooooooo'], // 연습 인형: 짚 삿갓 · 무기 없음
   shuri: ['', '', '', '.............r.r', '............rrr', '....rrrrrrrrrr'], // M3 S4 수리검 병정: 분홍 머리띠
   leaf: ['.......GG', '.....GGGGE', '....GGGEGEE', '...GGGEGGGE', '....EEGEEE', '.......E'], // M3 S4 잎 병정: 머리에 큰 잎(곧게 그으면 휙)
+  boss: ['.......ww', '......wwww', '.....yyyyYY', '....yyYyyyYY', '....yyyyyyYY', '...YYYYYYYYYY'], // M3 S7 태엽 장군(1-10): 금빛 투구 + 흰 깃 · 두 배 크기
+  doll: ['......GG', '.....GGGE', '....rrGrr', '...rrrrrrr', '....rr.rr'], // M3 S7 태엽 큰 인형(2-10 · 잎 성질): 분홍 리본 + 잎
+  bell: ['', '.....oooooo', '...ooOOOOOOoo', '..oooooooooooo'], // 보류된 종(그림만 맞춤)
 };
 const ARM: Record<string, Dot[]> = {
   sword: [[1, 2, 'j'], [2, 2, 'h'], [1, 3, 'j'], [2, 3, 'h'], [1, 4, 'j'], [2, 4, 'h'], [1, 5, 'j'], [2, 5, 'h'], [1, 6, 'j'], [2, 6, 'h'], [1, 7, 'j'], [2, 7, 'h'], [1, 1, 'j'], [0, 8, 'H'], [1, 8, 'H'], [2, 8, 'H'], [3, 8, 'H'], [1, 9, 'j'], [2, 9, 'h'], [2, 10, 'h'], [2, 11, 'h'], [14, 12, 'H'], [14, 13, 'H']],
@@ -105,8 +108,11 @@ const ARM: Record<string, Dot[]> = {
   dummy: [],
   shuri: [[1, 10, '8'], [0, 11, '8'], [1, 11, '9'], [2, 11, '8'], [1, 12, '8'], [14, 12, 'H'], [14, 13, 'H']],
   leaf: [[14, 12, 'H'], [14, 13, 'H']],
+  boss: [[1, 2, '9'], [2, 2, '8'], [1, 3, '9'], [2, 3, '8'], [1, 4, '9'], [2, 4, '8'], [1, 5, '9'], [2, 5, '8'], [1, 6, '9'], [2, 6, '8'], [0, 7, 'y'], [1, 7, 'y'], [2, 7, 'y'], [3, 7, 'y'], [1, 8, 'H'], [2, 8, 'H'], [14, 12, 'H'], [14, 13, 'H']], // 은빛 칼 + 금 손잡이
+  doll: [[14, 12, 'H'], [14, 13, 'H']],
+  bell: [],
 };
-export const SOLDIER = new Set(Object.keys(HAT));
+export const SOLDIER = new Set(Object.keys(HAT).filter((k) => k !== 'doll')); // doll은 boss의 2-10 모습
 /** 태엽 병정 스프라이트(발 = 아래 가운데) · 얼굴은 왼쪽을 본다 */
 export const soldierGrid = (k: string) => grid(BODY, [KEY, HAT[k]], ARM[k]);
 export const soldier = (k: string) => sprite('so' + k, () => soldierGrid(k));
@@ -118,8 +124,9 @@ const hs = (n: number) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; 
  * 판 배경 한 장(lw×lh 도트)을 굽는다. place 0 태엽 마을 골목(돌길) · 1 지붕(기와) · 2 시계탑 광장(타일).
  * hz = 지평선 줄(도트), gb = 땅 끝 줄. '멈춘 시간' 표식 = 시계탑(초침은 청록 — 주인공 이름).
  */
-export const pixBg = (lw: number, lh: number, place: number, hz: number, gb: number) => sprite(`bg${lw}x${lh}:${place}`, () => bgGrid(lw, lh, place, hz, gb));
-export function bgGrid(lw: number, lh: number, place: number, hz: number, gb: number): string[][] {
+export const pixBg = (lw: number, lh: number, place: number, hz: number, gb: number, v = 0) => sprite(`bg${lw}x${lh}:${place}:${v}`, () => bgGrid(lw, lh, place, hz, gb, v));
+/** v(M3 S7 · 🧪 🔴B 월드마다 조합 3가지): 지붕(place 1)에서 0 푸른 기와 · 1 갈색 기와 + 굴뚝 · 2 밤 기와 + 빨랫줄 */
+export function bgGrid(lw: number, lh: number, place: number, hz: number, gb: number, v = 0): string[][] {
   {
     const g = Array.from({ length: lh }, () => Array<string>(lw).fill('0'));
     const put = (x: number, y: number, c: string) => { x |= 0; y |= 0; if (x >= 0 && y >= 0 && x < lw && y < lh) g[y][x] = c; };
@@ -150,18 +157,20 @@ export function bgGrid(lw: number, lh: number, place: number, hz: number, gb: nu
     for (let j = 1; j < cr - 1; j++) (put(cx, cy - j, '1'), put(cx + j * 0.6, cy + j * 0.3, '1')); // 시침·분침
     for (let j = 1; j < cr; j++) put(cx - j * 0.7, cy - j * 0.7, 't'); // 멈춘 초침(청록)
     rect(tx + 4, ty + th - 8, tw - 8, 5, 'o'); // 아래 문 불빛
+    if (place === 1 && v === 1) for (const cx of [0.12, 0.42, 0.86]) { const x = Math.round(lw * cx); rect(x, hz - 14, 4, 12, 'O'); rect(x - 1, hz - 15, 6, 2, 'H'); for (let j = 0; j < 4; j++) put(x + 1 + (j % 2), hz - 17 - j * 2, '6'); } // 굴뚝 + 연기
+    if (place === 1 && v === 2) for (let k = 0; k < 2; k++) { const y0 = hz - 18 + k * 7; for (let x = 0; x < lw; x++) { const y = y0 + Math.round(Math.sin(x / lw * Math.PI) * 3); put(x, y, '6'); if (x % 9 === 3) rect(x, y + 1, 3, 4, 'rmyGo'[(x + k) % 5]); } } // 빨랫줄
     // 지평선 담(용마루)
     rect(0, hz, lw, 2, '4');
     for (let x = 0; x < lw; x += 4) put(x, hz, '5');
     // 땅: 원근(멀수록 줄이 촘촘)
-    const base = place === 2 ? ['5', '6', '4'] : place === 1 ? ['3', '4', '2'] : ['3', '4', '2'];
+    const base = place === 2 ? ['5', '6', '4'] : place === 1 ? [['3', '4', '2'], ['H', 'h', 'O'], ['2', '3', '1']][v] : ['3', '4', '2'];
     for (let y = hz + 2, row = 0; y < lh; row++) {
       const hgt = Math.max(2, Math.round(2 + ((y - hz) / (gb - hz)) * 5)), off = row % 2 && place !== 1 ? 0.5 : 0, cw = place === 1 ? hgt + 2 : hgt * (place === 2 ? 3 : 2) + 2;
       for (let x = -cw; x < lw + cw; x += cw) {
         const x0 = Math.round(x + off * cw), c = hs(row * 31 + x) < 0.5 ? base[0] : base[1];
         for (let j = 0; j < hgt; j++) for (let i = 0; i < cw; i++) {
           let ch = c;
-          if (place === 1) ch = i === 0 ? '2' : i === 1 ? '5' : j === hgt - 1 ? '3' : '4'; // 기와: 세로 골(2) · 빛 줄(5) · 단 끝(3) — 돌길과 다른 무늬(🧪 S3)
+          if (place === 1) ch = i === 0 ? base[2] : i === 1 ? (v === 1 ? 'j' : '5') : j === hgt - 1 ? base[0] : base[1]; // 기와: 세로 골 · 빛 줄 · 단 끝 — 돌길과 다른 무늬(🧪 S3)
           else if (j === hgt - 1 || i === cw - 1) ch = base[2]; // 줄눈
           else if (place !== 1 && i === 0 && j === 0) ch = place === 2 ? '7' : '5';
           put(x0 + i, y + j, ch);

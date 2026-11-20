@@ -1604,149 +1604,19 @@ function drawFox(ctx: C2, x: number, y: number, _k: number, face: number, pose: 
   ctx.drawImage(im, -w / 2, -h + PX, w, h);
   ctx.restore();
 }
-interface Pose { k: K; st: number; tm: number; fa: number; seed: number; hurt: number; whiff: number; hp: number; moving: boolean; cut: boolean }
-function eyePair(ctx: C2, pts: number[][], r: number, mood: number, iris = '#ffffff', pupil = '#14101a') {
-  for (const [ex, ey] of pts) {
-    if (mood === 2) {
-      ctx.strokeStyle = pupil;
-      ctx.lineWidth = r * 0.6;
-      ctx.beginPath();
-      ctx.moveTo(ex - r, ey - r);
-      ctx.lineTo(ex + r, ey + r);
-      ctx.moveTo(ex + r, ey - r);
-      ctx.lineTo(ex - r, ey + r);
-      ctx.stroke();
-      continue;
-    }
-    ctx.fillStyle = iris;
-    ctx.beginPath();
-    ctx.arc(ex, ey, r * (mood === 3 ? 1.3 : 1), 0, TAU);
-    ctx.fill();
-    ctx.fillStyle = pupil;
-    ctx.beginPath();
-    ctx.arc(ex + r * 0.25, ey + r * 0.1, r * (mood === 3 ? 0.35 : 0.55), 0, TAU);
-    ctx.fill();
-  }
-}
-function brows(ctx: C2, pts: number[][], r: number, angry: boolean) {
-  ctx.strokeStyle = '#140d10';
-  ctx.lineWidth = r * 0.55;
-  for (const [ex, ey] of pts) {
-    const inner = ex > pts[0][0] ? -1 : 1;
-    ctx.beginPath();
-    ctx.moveTo(ex - r * 1.1 * inner, ey - r * (angry ? 2.1 : 1.6));
-    ctx.lineTo(ex + r * 1.0 * inner, ey - r * (angry ? 1.3 : 1.7));
-    ctx.stroke();
-  }
-}
-function blade(ctx: C2, x0: number, y0: number, x1: number, y1: number, wd: number, glow: string | null) {
-  ctx.save();
-  if (glow) { // M3 S1 렉: 흐림 대신 굵은 옅은 선 한 겹
-    ctx.strokeStyle = glow;
-    ctx.globalAlpha *= 0.35;
-    ctx.lineWidth = wd * 3;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(x0, y0);
-    ctx.lineTo(x1, y1);
-    ctx.stroke();
-    ctx.globalAlpha /= 0.35;
-  }
-  ctx.strokeStyle = lin(ctx, x0, y0, x1, y1, [0, '#c9d4e6'], [1, '#ffffff']);
-  ctx.lineWidth = wd;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(x0, y0);
-  ctx.lineTo(x1, y1);
-  ctx.stroke();
-  ctx.restore();
-}
+interface Pose { k: K; st: number; tm: number; fa: number; seed: number; hurt: number; whiff: number; hp: number; moving: boolean; cut: boolean; alt?: boolean }
 
 /** 적 하나 (발 자리 원점, 오른쪽 보기). k = 키 */
 function drawFoeBody(ctx: C2, k: number, p: Pose, t: number) {
   if (SOLDIER.has(p.k)) { // M3 S2 🎨 도트 태엽 병정(칼·활·방패·연습 인형) — 나머지 적은 S3
-    const im = soldier(p.k), w = im.width * PX, h = im.height * PX, bob = p.moving && Math.sin(t * 0.22 + p.seed) > 0 ? -PX : 0;
+    const z = p.k === 'boss' ? 2 : 1, im = soldier(p.k === 'boss' && p.alt ? 'doll' : p.k), w = im.width * PX * z, h = im.height * PX * z, bob = p.moving && Math.sin(t * 0.22 + p.seed) > 0 ? -PX : 0;
     ctx.save();
-    ctx.scale(-1, 1); // 시안 병정은 왼쪽을 본다
-    ctx.drawImage(im, -w / 2, -h + PX + bob, w, h);
+    ctx.scale(-1, 1); // 시안 병정은 왼쪽을 본다 · M3 S7 대장 둘은 같은 태엽 몸을 두 배로(태엽 장군 · 태엽 큰 인형)
+    ctx.drawImage(im, -w / 2, -h + PX * z + bob, w, h);
     ctx.restore();
     return;
   }
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  const bob = p.moving ? -Math.abs(Math.sin(t * 0.22 + p.seed)) * k * 0.035 : Math.sin(t * 0.06 + p.seed) * k * 0.01;
-  const wind = p.st === WIND || p.st === AIM, scared = p.cut || p.hurt > 0;
-  const mood = p.cut ? 3 : 0;
-  // M2 S6 🔔 종 그림·미리 보기는 보류하며 번들에서 뺐다(gzip 40KB 문턱 · 🧪) — 되살리면 git 기록 참고
-  // 대장 곰
-  ctx.translate(0, bob);
-  ctx.fillStyle = '#21160f';
-  ell(ctx, -k * 0.1, -k * 0.03, k * 0.08, k * 0.045);
-  ctx.fill();
-  ell(ctx, k * 0.1, -k * 0.03, k * 0.08, k * 0.045);
-  ctx.fill();
-  ctx.fillStyle = lin(ctx, 0, -k * 0.6, 0, 0, [0, '#5e4230'], [1, '#2c1d14']);
-  ell(ctx, 0, -k * 0.3, k * 0.26, k * 0.28);
-  ctx.fill();
-  ctx.strokeStyle = OUT;
-  ctx.lineWidth = k * 0.032;
-  ctx.stroke();
-  ctx.fillStyle = lin(ctx, 0, -k * 0.5, 0, -k * 0.15, [0, '#a52a33'], [1, '#6a141c']);
-  rr(ctx, -k * 0.17, -k * 0.5, k * 0.34, k * 0.32, k * 0.07);
-  ctx.fill();
-  ctx.strokeStyle = '#e8c04a';
-  ctx.lineWidth = k * 0.014;
-  ctx.stroke();
-  for (let j = 1; j < 4; j++) {
-    ctx.beginPath();
-    ctx.moveTo(-k * 0.16, -k * 0.5 + j * k * 0.08);
-    ctx.lineTo(k * 0.16, -k * 0.5 + j * k * 0.08);
-    ctx.stroke();
-  }
-  const hy = -k * 0.66;
-  ctx.fillStyle = '#4a3324';
-  ell(ctx, -k * 0.12, hy - k * 0.14, k * 0.055, k * 0.055);
-  ctx.fill();
-  ell(ctx, k * 0.16, hy - k * 0.14, k * 0.055, k * 0.055);
-  ctx.fill();
-  ctx.fillStyle = lin(ctx, 0, hy - k * 0.18, 0, hy + k * 0.16, [0, '#6e4c36'], [1, '#3a2719']);
-  ell(ctx, k * 0.03, hy, k * 0.2, k * 0.18);
-  ctx.fill();
-  ctx.strokeStyle = OUT;
-  ctx.stroke();
-  ctx.fillStyle = '#c9a07a';
-  ell(ctx, k * 0.15, hy + k * 0.06, k * 0.085, k * 0.065);
-  ctx.fill();
-  ctx.fillStyle = '#140d10';
-  ell(ctx, k * 0.2, hy + k * 0.03, k * 0.03, k * 0.022);
-  ctx.fill();
-  const ep = [[k * 0.02, hy - k * 0.02], [k * 0.11, hy - k * 0.025]];
-  eyePair(ctx, ep, k * 0.026, mood, '#ffd84a');
-  if (!scared) brows(ctx, ep, k * 0.026, true);
-  ctx.strokeStyle = 'rgba(255,220,200,.5)';
-  ctx.lineWidth = k * 0.01;
-  ctx.beginPath();
-  ctx.moveTo(-k * 0.06, hy - k * 0.08);
-  ctx.lineTo(-k * 0.02, hy + k * 0.05);
-  ctx.stroke();
-  ctx.fillStyle = lin(ctx, 0, hy - k * 0.3, 0, hy - k * 0.08, [0, '#4a5060'], [1, '#1e2028']);
-  ctx.beginPath();
-  ctx.arc(k * 0.03, hy - k * 0.08, k * 0.19, Math.PI, 0);
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = OUT;
-  ctx.lineWidth = k * 0.02;
-  ctx.stroke();
-  ctx.strokeStyle = '#f2c94c';
-  ctx.lineWidth = k * 0.035;
-  ctx.beginPath();
-  ctx.arc(k * 0.03, hy - k * 0.32, k * 0.14, 0.3, Math.PI - 0.3, true);
-  ctx.stroke();
-  if (wind) blade(ctx, k * 0.05, -k * 0.62, -k * 0.35, -k * 1.15, k * 0.05, '#ff5a4e');
-  else blade(ctx, k * 0.18, -k * 0.32, k * 0.55, -k * 0.62, k * 0.05, null);
-  ctx.fillStyle = '#5e4230';
-  ell(ctx, wind ? k * 0.05 : k * 0.18, wind ? -k * 0.62 : -k * 0.32, k * 0.06, k * 0.06);
-  ctx.fill();
+  void k;
 }
 function shuriPath(ctx: C2, r: number) {
   ctx.beginPath();
@@ -1934,7 +1804,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   fx.begin(ctx);
   // ── 하늘 · 먼 숲 · 가까운 숲 (시차) ──
   const cam = s.camX; // M3 S3 🎨 배경 = 도트 한 장(태엽 마을 · 시계탑 · 원근 바닥 · 32색)
-  ctx.drawImage(pixBg(LW, LH, d.place, Math.round(Y(HZ) * sc), Math.round(Y(GB) * sc)), 0, 0, w, h);
+  ctx.drawImage(pixBg(LW, LH, d.place, Math.round(Y(HZ) * sc), Math.round(Y(GB) * sc), s.stage >= STAGE_COUNT ? (s.stage - STAGE_COUNT) % 3 : 0), 0, 0, w, h); // 월드 2는 판마다 지붕 셋이 돌아가며
   // 부엉이 (가지 위 구경꾼)
   {
     const hoot = Math.max(0, 60 - (t - s.owlT));
@@ -2061,6 +1931,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.translate(0, -R(z));
     if (f.hurtT > 0) ctx.translate(Math.sin(t * 2) * k * 0.04, 0);
     const pose = foePose(f, moving);
+    if (d.leafBoss) pose.alt = true; // 2-10 태엽 큰 인형
     const shieldBehind = f.k === 'shield' && Math.sin(f.fa) <= -0.2;
     if (shieldBehind) drawShieldDisc(ctx, k, f.fa, 0);
     ctx.save();
@@ -2074,15 +1945,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.restore();
     if (f.k === 'shield' && !shieldBehind) drawShieldDisc(ctx, k, f.fa, Math.max(0, 1 - (t - (fx.memo['bn' + f.id] ?? -99)) / 10));
     if (f.k === 'boss') {
-      if (d.leafBoss) { // ✏️ M2 S9 2-10 큰 너구리(임시 그림 — 1-10 곰 + 머리에 큰 잎 · 🎨 M3)
-        ctx.fillStyle = '#7ad070';
-        ctx.save();
-        ctx.translate(k * 0.05, -k * 1.12);
-        ctx.rotate(-0.5);
-        ell(ctx, 0, 0, k * 0.2, k * 0.08);
-        ctx.fill();
-        ctx.restore();
-      }
       for (let j = 0; j < 4; j++) {
         ctx.fillStyle = j < f.hp ? '#ff5a4e' : 'rgba(255,255,255,.2)';
         ctx.save();
