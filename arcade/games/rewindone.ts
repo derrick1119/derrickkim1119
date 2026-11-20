@@ -35,7 +35,7 @@ const HCY = 0.05, HR = 0.036;
 /** 톡이 물건을 잡는 거리 */
 const TAP_R = 0.13;
 
-type Kind = 'bridge' | 'pot' | 'barrel' | 'arrow' | 'raft' | 'log' | 'water' | 'balloon' | 'crate' | 'gear';
+type Kind = 'bridge' | 'pot' | 'barrel' | 'arrow' | 'raft' | 'log' | 'water' | 'balloon' | 'crate' | 'gear' | 'stack' | 'ferry' | 'sack';
 const WAIT = 0, FWD = 1, REW = 2, HOLD = 3, DONE = 4;
 
 export interface Thing {
@@ -49,8 +49,8 @@ export interface Thing {
   path: Float32Array | null;
   /** 크기(소리 높낮이) · 처음 움직인 틱 · 태어난 틱 · 부딪히면 다치나(0 = 물에 뜬 빈 통처럼 괜찮음) · 이번 되감기를 시작한 τ */
   big: number; moved: number; born: number; harm: number; rs: number;
-  /** 제자리까지 되감은 뒤 쉬는 틱 (첫 판 다리는 넉넉히) */
-  hf: number;
+  /** 제자리까지 되감은 뒤 쉬는 틱 (첫 판 다리는 넉넉히) · 다시 톡으로 멈춘 뒤 쉬는 틱 · 지난 틱에 옆으로 움직인 거리(나룻배) */
+  hf: number; hs: number; dx: number;
 }
 
 /** 배우 종류 · 역할 */
@@ -67,21 +67,27 @@ const H_IDLE = 0, H_WALK = 1, H_WAIT = 2, H_FALL = 3, H_FAIL = 4, H_WIN = 5;
 export interface Hero { x: number; y: number; st: number; on: number; vy: number; t: number; delay: number; waitT: number; why: string; fallY: number }
 
 // ───────────────────────────── 판 정의 ─────────────────────────────
-type Key = 'bridge' | 'pot' | 'barrel' | 'arrow' | 'raft' | 'log' | 'water' | 'balloon' | 'crate' | 'gear' | 'cross' | 'grand';
-type StarK = 'goal' | 'sand' | 'safe' | 'rescue';
+type Key = 'bridge' | 'pot' | 'barrel' | 'arrow' | 'stairs' | 'twice' | 'raft' | 'log' | 'water' | 'balloon' | 'ferry' | 'chain' | 'crate' | 'gear' | 'scale' | 'fire' | 'cross' | 'grand';
+type StarK = 'goal' | 'sand' | 'safe' | 'rescue' | 'taps';
 interface StageDef { key: Key; ch: number; name: string; news: string; hint: string; stars: StarK[]; fix: string; spot: string }
 export const STAGES: StageDef[] = [
   { key: 'bridge', ch: 0, name: '무너진 다리', news: '', hint: '다리를 톡! 다리만 시간이 거꾸로', stars: ['goal'], fix: '분수', spot: '' },
   { key: 'pot', ch: 0, name: '떨어진 화분', news: '제자리까지 되감으면 주인이 받아 들어요', hint: '깨진 화분을 톡 — 할머니 손으로 쏙', stars: ['goal', 'sand'], fix: '꽃 화단', spot: '할머니' },
   { key: 'barrel', ch: 0, name: '굴러오는 술통', news: '굴러오는 통 — 위험한 것만 골라 되감아요', hint: '점선을 봐요: 누구에게 굴러가나?', stars: ['goal', 'safe', 'sand'], fix: '가로등', spot: '술통 수레' },
   { key: 'arrow', ch: 0, name: '도깨비 화살', news: '날아간 화살을 되감으면 쏜 도깨비가 뿅!', hint: '화살을 톡 — 도깨비에게 돌아가요', stars: ['goal', 'safe', 'sand'], fix: '풍차', spot: '도깨비' },
+  { key: 'stairs', ch: 0, name: '와르르 계단', news: '무너지다 만 모양에서 멈추면 그게 길이 돼요', hint: '상자가 계단 모양일 때 다시 톡!', stars: ['goal', 'safe', 'sand'], fix: '깃발 줄', spot: '상자 탑' },
+  { key: 'twice', ch: 0, name: '갈 때 하나 올 때 하나', news: '한 물건으로 두 번 — 굴러갈 때 하나, 되감을 때 하나', hint: '두 번째 도깨비가 길에 서면 톡', stars: ['goal', 'sand', 'taps'], fix: '열기구', spot: '도깨비 둘' },
   { key: 'raft', ch: 1, name: '떠내려간 뗏목', news: '뗏목을 되감으면 탄 아이도 함께 돌아와요', hint: '폭포에 닿기 전에 뗏목을 톡', stars: ['goal', 'rescue', 'sand'], fix: '물레방아', spot: '뗏목' },
   { key: 'log', ch: 1, name: '통나무 다리', news: '되감는 중에 다시 톡 — 그 자리에 멈춰요', hint: '통나무가 강을 가로지를 때 다시 톡!', stars: ['goal', 'safe', 'sand'], fix: '나룻배', spot: '말뚝' },
   { key: 'water', ch: 1, name: '터진 물탱크', news: '쏟아진 물도 거꾸로 — 물탱크로 쏙', hint: '물이 차기 전에 물탱크를 톡', stars: ['goal', 'safe', 'sand'], fix: '새 떼', spot: '물탱크' },
   { key: 'balloon', ch: 1, name: '날아간 고양이', news: '날아가는 풍선을 되감아 고양이를 내려요', hint: '풍선을 톡 — 아이 품으로', stars: ['goal', 'rescue', 'sand'], fix: '무지개', spot: '풍선' },
+  { key: 'ferry', ch: 1, name: '나룻배 왕복', news: '되감아 데려오고, 그냥 두면 태워 건너가요', hint: '부엉이가 나루에 오면 나룻배를 톡', stars: ['goal', 'safe', 'sand'], fix: '연 날리기', spot: '나룻배' },
+  { key: 'chain', ch: 1, name: '두 뗏목 맞추기', news: '되감기는 하나씩 — 두 뗏목을 같은 때 붙여요', hint: '하나를 붙인 뒤 얼른 다른 하나도', stars: ['goal', 'sand', 'taps'], fix: '물고기', spot: '뗏목 둘' },
   { key: 'crate', ch: 2, name: '상자 승강기', news: '올라탄 채로 되감으면 같이 올라가요', hint: '부엉이가 상자에 타면 톡!', stars: ['goal', 'safe', 'sand'], fix: '숫자판', spot: '상자' },
   { key: 'gear', ch: 2, name: '굴러간 톱니', news: '톱니를 되감아 끼우면 기계가 움직여요', hint: '거꾸로 구르는 톱니에 부딪히지 않게', stars: ['goal', 'safe', 'sand'], fix: '큰 톱니', spot: '톱니 기계' },
-  { key: 'cross', ch: 2, name: '하나씩만', news: '되감기는 한 번에 하나 — 순서가 중요해요', hint: '상자를 올리는 동안엔 화살을 못 돌려요', stars: ['goal', 'safe', 'sand'], fix: '큰 종', spot: '도깨비' },
+  { key: 'scale', ch: 2, name: '저울 승강기', news: '되감은 자루가 접시에 앉으면 반대쪽이 올라가요', hint: '부엉이가 접시에 타면 자루를 톡', stars: ['goal', 'safe', 'sand'], fix: '종', spot: '모래 자루' },
+  { key: 'fire', ch: 2, name: '거꾸로 솟는 물', news: '쏟아진 물을 되감으면 지금 타는 불을 지나 솟아요', hint: '등불 말고 물을 되감아요', stars: ['goal', 'sand', 'taps'], fix: '뻐꾸기', spot: '쏟아진 물' },
+  { key: 'cross', ch: 2, name: '하나씩만', news: '되감기는 한 번에 하나 — 순서가 중요해요', hint: '상자를 올리는 동안엔 화살을 못 돌려요', stars: ['goal', 'safe', 'sand'], fix: '시계추', spot: '도깨비' },
   { key: 'grand', ch: 2, name: '시계탑 꼭대기', news: '마지막 — 전부 다 나와요', hint: '무엇부터 되감을지 차례를 봐요', stars: ['goal', 'safe', 'sand'], fix: '시계 바늘', spot: '' },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -93,6 +99,8 @@ export interface Level {
   gearX: number; gearY: number; heroX: number; heroY: number; heroDelay: number; fallY: number;
   /** 물길(세로 강·도랑) · 마른 웅덩이 · 승강기 구멍 · 도개교(기계가 움직이면 내려옴) */
   canal: [number, number] | null; basin: [number, number] | null; shaft: [number, number, number, number] | null; gate: [number, number, number] | null;
+  /** 저울 [받침 x, 받침 y, 왼 접시 x, 오른 접시 x, 접시 폭, 오른 접시 아래 y, 위 y] · 불 [x0, x1, y] · 되감기 횟수 별 */
+  scale: number[] | null; fire: number[] | null; tapsPar: number;
   /** 판 장식(골목·수레·발코니·탑 위치) */
   deco: Record<string, number>;
 }
@@ -144,6 +152,32 @@ const CR_FRAY = 24;
 const crFall = (th: Thing) => Math.sqrt((2 * (th.y2 - th.y)) / G);
 // 풍선
 const BAL_V = 0.0011;
+
+// 와르르 계단: 과일 상자 탑이 옆으로 무너지며 잠깐 계단 모양이 된다
+const ST_N = 4, ST_DX = 0.072, ST_CH = 0.05, ST_CW = 0.1, ST_SLUMP = 50, ST_STAG = 5;
+/** 상자 k(0 = 맨 아래)의 윗면 가운데 */
+function stackCrate(th: Thing, k: number, tau: number) {
+  const q = smooth(Math.min(1, tau / ST_SLUMP));
+  P.x = th.x + k * ST_DX * q;
+  P.y = th.y - (k + 1) * ST_CH;
+  P.a = tau > 0 && tau < ST_SLUMP ? Math.sin(tau * 0.45 + k) * 0.025 * (1 - q) : 0;
+  if (tau > ST_SLUMP && k > 0) {
+    const dt = tau - ST_SLUMP - (ST_N - 1 - k) * ST_STAG;
+    if (dt > 0) {
+      const H0 = k * ST_CH, drop = Math.min(H0, 0.5 * G * dt * dt);
+      P.y += drop;
+      P.x += Math.min(1, dt / 18) * k * 0.034;
+      P.a = drop < H0 ? (drop / H0) * 0.35 * (k % 2 ? 1 : -1) : 0;
+    }
+  }
+  return P;
+}
+const stackDur = () => Math.ceil(ST_SLUMP + (ST_N - 1) * ST_STAG + Math.sqrt((2 * (ST_N - 1) * ST_CH) / G) + 6);
+// 나룻배: 줄을 따라 왼쪽 나루 → 오른쪽 나루
+const FERRY_V = 0.0016;
+// 모래 자루: 저울 왼쪽 접시에서 미끄러져 바닥으로
+const SK_SLIP = 12;
+const skFall = (th: Thing) => Math.sqrt((2 * (th.y2 - th.y)) / G);
 
 /** 물건의 대표 자세(톡 잡기·위험·그리기) */
 function pose(th: Thing, tau: number) {
@@ -225,6 +259,30 @@ function pose(th: Thing, tau: number) {
       P.a = Math.sin(d * 0.06) * 0.15;
       break;
     }
+    case 'stack': {
+      let sx = 0, sy = 0;
+      for (let k = 0; k < ST_N; k++) (stackCrate(th, k, tau), (sx += P.x), (sy += P.y));
+      P.x = sx / ST_N;
+      P.y = sy / ST_N;
+      P.a = 0;
+      break;
+    }
+    case 'ferry': {
+      P.x = th.x + Math.min(th.x2 - th.x, FERRY_V * tau);
+      P.y = th.y + Math.sin(tau * 0.08) * 0.002;
+      P.a = Math.sin(tau * 0.06) * 0.015;
+      break;
+    }
+    case 'sack': {
+      if (tau <= SK_SLIP) (P.x = th.x), (P.y = th.y), (P.a = Math.sin(tau * 0.9) * 0.08 * (tau / SK_SLIP));
+      else {
+        const dt = tau - SK_SLIP, ft = skFall(th);
+        P.x = th.x + Math.min(dt, ft) * 0.0016;
+        P.y = dt < ft ? th.y + 0.5 * G * dt * dt : th.y2;
+        P.a = Math.min(dt, ft) * 0.05;
+      }
+      break;
+    }
     case 'crate': {
       P.x = th.x;
       if (tau <= CR_FRAY) (P.y = th.y), (P.a = Math.sin(tau * 0.8) * 0.04 * (tau / CR_FRAY));
@@ -244,6 +302,8 @@ const LYof = (th: Thing) => th.h;
 export interface World {
   t: number; L: Level; th: Thing[]; ac: Actor[]; hero: Hero; sand: number; used: number; rew: number; nid: number;
   hurt: number; saved: number; ko: number; mach: number; taps: number;
+  /** 저울 기울기(1 = 오른쪽 접시가 위) · 불(1 = 타는 중) */
+  tilt: number; fire: number;
 }
 interface Ev { t: number; kind: string; x: number; y: number; v: number; id: number; text?: string }
 type Sink = ((kind: string, x: number, y: number, v?: number, id?: number) => void) | null;
@@ -255,7 +315,7 @@ export function cloneWorld(W: World): World {
 }
 function newWorld(L: Level): World {
   const W: World = {
-    t: 0, L, th: L.things.map(cloneT), ac: L.actors.map(cloneA), sand: L.sand, used: 0, rew: -1, nid: 100, hurt: 0, saved: 0, ko: 0, mach: -1, taps: 0,
+    t: 0, L, th: L.things.map(cloneT), ac: L.actors.map(cloneA), sand: L.sand, used: 0, rew: -1, nid: 100, hurt: 0, saved: 0, ko: 0, mach: -1, taps: 0, tilt: L.scale ? 1 : 0, fire: L.fire ? 1 : 0,
     hero: { x: L.heroX, y: L.heroY, st: H_IDLE, on: -1, vy: 0, t: 0, delay: L.heroDelay, waitT: 0, why: '', fallY: L.fallY },
   };
   return W;
@@ -266,7 +326,7 @@ const actorOf = (W: World, id: number) => W.ac.find((q) => q.id === id);
 /** 화분 조각·홍수가 막는 길 [x0, x1, y] */
 function blockOf(th: Thing): [number, number, number] | null {
   if (th.st === DONE) return null;
-  if (th.k === 'pot' && th.tau >= potHit(th) - 1) return [th.x - 0.065, th.x + 0.065, th.y2];
+  if (th.k === 'pot' && th.n === 0 && th.tau >= potHit(th) - 1) return [th.x - 0.065, th.x + 0.065, th.y2];
   if (th.k === 'water' && water(th, th.tau) > 0.18) return [th.x2, th.y2, th.h];
   return null;
 }
@@ -313,27 +373,47 @@ function dangerOf(th: Thing): typeof D | null {
   return null;
 }
 
-/** 발판들 [x0, x1, y, id] — 땅(id -1)과 물건 */
+/** 발판들 [x0, x1, y, id, 한 번에 오를 수 있는 높이] — 땅(id -1) · 도개교(-2) · 저울 접시(-3) · 물건 */
+const STAIR = 0.065;
 function supports(W: World, out: number[]) {
   out.length = 0;
   const g = W.L.ground;
-  for (let i = 0; i < g.length; i += 3) out.push(g[i], g[i + 1], g[i + 2], -1);
+  for (let i = 0; i < g.length; i += 3) out.push(g[i], g[i + 1], g[i + 2], -1, STEP);
   const gate = W.L.gate;
-  if (gate && W.mach >= 0 && W.t - W.mach >= 56) out.push(gate[0], gate[1], gate[2], -2);
+  if (gate && W.mach >= 0 && W.t - W.mach >= 56) out.push(gate[0], gate[1], gate[2], -2, STEP);
+  const sc = W.L.scale;
+  if (sc) out.push(sc[3] - sc[4] / 2, sc[3] + sc[4] / 2, sc[5] + (sc[6] - sc[5]) * W.tilt, -3, STEP);
   for (const th of W.th) {
     if (th.st === DONE && th.k !== 'raft' && th.k !== 'log') continue;
     if (th.k === 'bridge') {
       const pw = (th.x2 - th.x) / th.n;
-      for (let i = 0; i < th.n; i++) if (th.tau <= brFall(i) + 1) out.push(th.x + i * pw - (i === 0 ? 0.004 : 0), th.x + (i + 1) * pw + (i === th.n - 1 ? 0.004 : 0), th.y, th.id);
+      for (let i = 0; i < th.n; i++) if (th.tau <= brFall(i) + 1) out.push(th.x + i * pw - (i === 0 ? 0.004 : 0), th.x + (i + 1) * pw + (i === th.n - 1 ? 0.004 : 0), th.y, th.id, STEP);
     } else if (th.k === 'raft') {
-      if (th.tau < th.dur) out.push(th.x - th.w / 2, th.x + th.w / 2, th.y + RAFT_V * th.tau, th.id);
+      if (th.tau < th.dur) out.push(th.x - th.w / 2, th.x + th.w / 2, th.y + RAFT_V * th.tau, th.id, STEP);
     } else if (th.k === 'log') {
-      if (th.tau >= LOG_LIE && th.tau < th.dur) out.push(th.x - 0.02, th.x2, th.y + LOG_V * (th.tau - LOG_LIE), th.id);
+      if (th.tau >= LOG_LIE && th.tau < th.dur) out.push(th.x - 0.02, th.x2, th.y + LOG_V * (th.tau - LOG_LIE), th.id, STEP);
     } else if (th.k === 'crate') {
       pose(th, th.tau);
-      out.push(th.x - th.w / 2, th.x + th.w / 2, P.y, th.id);
+      out.push(th.x - th.w / 2, th.x + th.w / 2, P.y, th.id, STEP);
+    } else if (th.k === 'ferry') {
+      pose(th, th.tau);
+      out.push(P.x - th.w / 2, P.x + th.w / 2, th.y, th.id, STEP);
+    } else if (th.k === 'stack') {
+      for (let k = 0; k < ST_N; k++) {
+        stackCrate(th, k, th.tau);
+        if (Math.abs(P.a) < 0.12) out.push(P.x - ST_CW / 2, P.x + ST_CW / 2, P.y, 1e6 + th.id * 10 + k, STAIR);
+      }
     }
   }
+}
+/** 발판 id → 물건 id (상자 탑은 상자마다 따로) */
+const supThing = (id: number) => (id >= 1e6 ? Math.floor((id - 1e6) / 10) : id);
+/** 흘러가는 중인 뗏목·통나무·나룻배엔 올라타지 않는다 (멈춰 있을 때만) */
+function boardable(W: World, id: number): boolean {
+  if (id < 0) return true;
+  const th = thingOf(W, supThing(id));
+  if (!th || (th.k !== 'raft' && th.k !== 'log' && th.k !== 'ferry')) return true;
+  return th.st !== FWD || th.tau >= th.dur;
 }
 const SUP: number[] = [];
 
@@ -395,6 +475,22 @@ function crossEv(_W: World, th: Thing, t0: number, t1: number, E: Sink) {
     case 'balloon':
       if (up && at(th.dur)) E('balloonGone', x, y, 0, th.id);
       break;
+    case 'stack':
+      if (up && at(1)) E('stackTip', th.x, th.y - 0.2, 0, th.id);
+      if (up && at(ST_SLUMP + 6)) E('stackFall', x, th.y, 0, th.id);
+      if (!up && atR(ST_SLUMP + 2)) E('stackStairs', x, y, 0, th.id);
+      break;
+    case 'ferry':
+      if (up && at(1)) E('ferryGo', x, y, 0, th.id);
+      if (up && at(Math.ceil((th.x2 - th.x) / FERRY_V))) E('ferryArrive', x, y, 0, th.id);
+      break;
+    case 'sack': {
+      const q = SK_SLIP + skFall(th);
+      if (up && at(SK_SLIP)) E('sackSlip', x, y, 0, th.id);
+      if (up && at(q)) E('sackLand', x, th.y2, 0, th.id);
+      if (!up && atR(SK_SLIP)) E('sackBack', th.x, th.y, 0, th.id);
+      break;
+    }
   }
 }
 
@@ -439,7 +535,7 @@ const canDock = (th: Thing) => th.dock >= 0 && ((th.tau >= th.dock && th.tau <= 
 function stopRew(W: World, th: Thing, E: Sink, why: number) {
   W.rew = -1;
   th.st = HOLD;
-  th.hold = HOLD_STOP;
+  th.hold = th.hs;
   if (canDock(th)) {
     th.tau = th.dock;
     pose(th, th.tau);
@@ -480,13 +576,15 @@ function shoot(W: World, g: Actor, E: Sink) {
   if (kid) (tx = kid.x), (ty = kid.y);
   else {
     const walking = H.st === H_WALK || H.st === H_IDLE;
-    tx = Math.max(0.06, Math.min(0.95, H.x + (walking ? V * F * 0.97 : 0)));
+    const fr = H.on >= 0 ? thingOf(W, supThing(H.on)) : undefined;
+    const lead = walking ? V * F * 0.97 : fr && fr.k === 'ferry' && fr.st === FWD ? Math.min(FERRY_V * F, fr.x2 - fr.x - FERRY_V * fr.tau) : 0;
+    tx = Math.max(0.06, Math.min(0.95, H.x + lead));
     ty = H.y;
   }
   const bx = g.x - 0.03, by = g.y - 0.06;
   const th: Thing = {
     id: W.nid++, k: 'arrow', tau: 0, dur: F, st: FWD, hold: 0, owner: g.id, rider: -1, dock: -1,
-    x: bx, y: by, x2: tx, y2: ty - 0.035, w: 0.08, h: 0.16 + Math.abs(tx - bx) * 0.12, n: F, path: null, big: 0.4, moved: W.t, born: W.t, harm: 1, rs: 0, hf: HOLD_FULL,
+    x: bx, y: by, x2: tx, y2: ty - 0.035, w: 0.08, h: 0.16 + Math.abs(tx - bx) * 0.12, n: F, path: null, big: 0.4, moved: W.t, born: W.t, harm: 1, rs: 0, hf: HOLD_FULL, hs: HOLD_STOP, dx: 0,
   };
   W.th.push(th);
   g.shots++;
@@ -500,6 +598,7 @@ export function stepWorld(W: World, E: Sink) {
   // ── 물건
   for (const th of W.th) {
     const t0 = th.tau;
+    const fx0 = th.k === 'ferry' ? Math.min(th.x2 - th.x, FERRY_V * th.tau) : 0;
     switch (th.st) {
       case WAIT:
         if (--th.hold <= 0) (th.st = FWD), (th.moved = W.t);
@@ -525,6 +624,7 @@ export function stepWorld(W: World, E: Sink) {
         break;
     }
     if (th.tau !== t0) crossEv(W, th, t0, th.tau, E);
+    if (th.k === 'ferry') th.dx = Math.min(th.x2 - th.x, FERRY_V * th.tau) - fx0;
     // 끝까지 가 버리면 태운 배우는 위험
     if (th.rider >= 0 && th.st === FWD && th.tau >= th.dur) {
       const r = actorOf(W, th.rider);
@@ -534,8 +634,31 @@ export function stepWorld(W: World, E: Sink) {
   }
   // 오래된 화살(꽂힌 것)은 치운다 (세계를 가볍게)
   if (W.th.length > 14) W.th = W.th.filter((q) => !(q.k === 'arrow' && (q.st === DONE || (q.tau >= q.dur && W.t - q.born > 600))));
+  // 저울: 모래 자루가 왼쪽 접시에 있으면 오른쪽 접시가 올라간다 (지금 시간으로 천천히)
+  if (W.L.scale) {
+    const sk = W.th.find((q) => q.k === 'sack');
+    const on = sk ? sk.tau <= 6 : false, d = (on ? 1 : 0) - W.tilt;
+    W.tilt += Math.max(-0.013, Math.min(0.013, d));
+  }
+  // 불: 되감기로 거꾸로 솟는 물이 지나가면 꺼진다
+  if (W.fire && W.L.fire) {
+    const f = W.L.fire;
+    for (const th of W.th) {
+      if (th.k !== 'pot' || th.n !== 1 || th.st !== REW) continue;
+      pose(th, th.tau);
+      if (P.x > f[0] - 0.03 && P.x < f[1] + 0.03 && P.y > f[2] - 0.16 && P.y < f[2] + 0.01) {
+        W.fire = 0;
+        E?.('steam', (f[0] + f[1]) / 2, f[2] - 0.04, 0, th.id);
+      }
+    }
+  }
   // ── 배우
   for (const a of W.ac) {
+    if (a.role === R_WALK && !a.ko && a.vx > 0 && W.t >= a.next && a.x !== a.x0) {
+      const d = a.x0 - a.x;
+      a.x += Math.sign(d) * Math.min(Math.abs(d), a.vx);
+      if (a.x === a.x0) E?.('guard', a.x, a.y, 0, a.id);
+    }
     if (a.role === R_RIDER && a.ride >= 0 && !a.hurt) {
       const th = thingOf(W, a.ride);
       if (th) {
@@ -587,8 +710,21 @@ function stepHero(W: World, E: Sink) {
     return;
   }
   if (H.st === H_FALL) {
+    const py = H.y;
     H.vy += G;
     H.y += H.vy;
+    // 발판 위로 떨어지면 쿵 착지 (물·구덩이면 풍덩)
+    supports(W, SUP);
+    for (let i = 0; i < SUP.length; i += 5) {
+      if (H.x < SUP[i] || H.x > SUP[i + 1] || py > SUP[i + 2] + 0.002 || H.y < SUP[i + 2]) continue;
+      H.y = SUP[i + 2];
+      H.vy = 0;
+      H.on = SUP[i + 3];
+      H.st = H_WAIT;
+      H.why = '';
+      E?.('land', H.x, H.y, 0, -1);
+      return;
+    }
     if (H.y > H.fallY) {
       H.st = H_FAIL;
       H.why = H.why || '풍덩!';
@@ -597,14 +733,19 @@ function stepHero(W: World, E: Sink) {
     }
     return;
   }
+  // 나룻배는 옆으로 실어 간다
+  if (H.on >= 0) {
+    const th = thingOf(W, supThing(H.on));
+    if (th && th.k === 'ferry') H.x += th.dx;
+  }
   supports(W, SUP);
   // 발밑: 올라탄 것이 움직이면 같이
-  let under = -9, uy = 0, best = 9;
-  for (let i = 0; i < SUP.length; i += 4) {
+  let under = -9, uy = 0, best = 9, ux0 = 0, ustep = STEP;
+  for (let i = 0; i < SUP.length; i += 5) {
     if (H.x < SUP[i] - 0.006 || H.x > SUP[i + 1] + 0.006) continue;
     const dy = Math.abs(SUP[i + 2] - H.y);
-    const lim = SUP[i + 3] === H.on && H.on >= 0 ? 0.08 : STEP;
-    if (dy <= lim && dy < best) (best = dy), (under = SUP[i + 3]), (uy = SUP[i + 2]);
+    const lim = SUP[i + 3] === H.on && H.on !== -1 && H.on !== -2 ? 0.08 : STEP;
+    if (dy <= lim && dy < best) (best = dy), (under = SUP[i + 3]), (uy = SUP[i + 2]), (ux0 = SUP[i]), (ustep = SUP[i + 4]);
   }
   if (under === -9) {
     H.st = H_FALL;
@@ -613,10 +754,10 @@ function stepHero(W: World, E: Sink) {
     E?.('fall', H.x, H.y, 0, H.on);
     return;
   }
-  if (under !== H.on && under >= 0) E?.('board', H.x, uy, 0, under);
+  if (under !== H.on && under >= 0) E?.('board', H.x, uy, 0, supThing(under));
   H.on = under;
   H.y = uy;
-  // 막힘(화분 조각·물)
+  // 막힘(화분 조각·물·불)
   const nx = H.x + V;
   for (const th of W.th) {
     const b = blockOf(th);
@@ -633,18 +774,25 @@ function stepHero(W: World, E: Sink) {
     }
     if (nx + 0.025 > b[0] && H.x + 0.025 <= b[0] + 0.004) return wait(W, H, E);
   }
-  // 한 발 앞 발판 (조금 더 앞까지 이어져 있어야 걷는다 — 낭떠러지 끝에 바짝 서지 않게)
-  let nb = -9, ny = 0, nbest = 9;
-  for (let i = 0; i < SUP.length; i += 4) {
+  if (W.fire && L.fire && Math.abs(H.y - L.fire[2]) < 0.06 && nx + 0.03 > L.fire[0] && H.x < L.fire[1]) return wait(W, H, E);
+  // 한 발 앞 발판: 오르막은 그 발판이 허락하는 높이까지(계단은 앞으로 이어진 것만), 내리막은 계단에서만 조금 더
+  const canStep = (i: number, fromY: number, fromX0: number, fromStep: number) => {
+    const ty = SUP[i + 2], up = fromY - ty;
+    if (up > 0.001) return up <= SUP[i + 4] && (SUP[i + 4] <= STEP || SUP[i] > fromX0 + 0.02);
+    return -up <= (SUP[i + 4] > STEP || fromStep > STEP ? 0.07 : STEP);
+  };
+  let nb = -9, ny = 0, nbest = 9, nx0 = 0, nstep = STEP;
+  for (let i = 0; i < SUP.length; i += 5) {
     if (nx < SUP[i] || nx > SUP[i + 1]) continue;
+    if (!canStep(i, H.y, ux0, ustep) || (SUP[i + 3] !== under && !boardable(W, SUP[i + 3]))) continue;
     const dy = Math.abs(SUP[i + 2] - H.y);
-    if (dy <= STEP && dy < nbest) (nbest = dy), (nb = SUP[i + 3]), (ny = SUP[i + 2]);
+    if (dy < nbest) (nbest = dy), (nb = SUP[i + 3]), (ny = SUP[i + 2]), (nx0 = SUP[i]), (nstep = SUP[i + 4]);
   }
   if (nb === -9) return wait(W, H, E);
   if (nx + LOOK < 1) {
     let ok = false;
     const fx = nx + LOOK;
-    for (let i = 0; i < SUP.length && !ok; i += 4) if (fx >= SUP[i] && fx <= SUP[i + 1] && Math.abs(SUP[i + 2] - ny) <= STEP) ok = true;
+    for (let i = 0; i < SUP.length && !ok; i += 5) if (fx >= SUP[i] && fx <= SUP[i + 1] && canStep(i, ny, nx0, nstep) && (SUP[i + 3] === nb || boardable(W, SUP[i + 3]))) ok = true;
     if (!ok) return wait(W, H, E);
   }
   // 길을 막은 도깨비 앞에서는 겁먹고 선다
@@ -670,7 +818,7 @@ function wait(W: World, H: Hero, E: Sink) {
 const rnd = (r: Rng, a: number, b: number) => a + (b - a) * r();
 let NID = 1;
 function T(k: Kind, o: Partial<Thing>): Thing {
-  return { id: NID++, k, tau: 0, dur: 1, st: WAIT, hold: 1, owner: -1, rider: -1, dock: -1, x: 0, y: 0, x2: 0, y2: 0, w: 0, h: 0, n: 0, path: null, big: 1, moved: -1, born: 0, harm: 1, rs: 0, hf: HOLD_FULL, ...o };
+  return { id: NID++, k, tau: 0, dur: 1, st: WAIT, hold: 1, owner: -1, rider: -1, dock: -1, x: 0, y: 0, x2: 0, y2: 0, w: 0, h: 0, n: 0, path: null, big: 1, moved: -1, born: 0, harm: 1, rs: 0, hf: HOLD_FULL, hs: HOLD_STOP, dx: 0, ...o };
 }
 /** 판이 시작되기 전에 이미 벌어진 일 (끝 자세에서 시작 — 되감기 값이 정해져 있다) */
 function pre(th: Thing): Thing {
@@ -733,10 +881,27 @@ function crateT(x: number, yTop: number, yRest: number, w: number, w0: number): 
   return th;
 }
 
+function stackT(x: number, y: number, w0: number): Thing {
+  const th = T('stack', { x, y, hold: w0, harm: 0, big: 1.2, hs: 170 });
+  th.dur = stackDur();
+  th.dock = ST_SLUMP;
+  return th;
+}
+function ferryT(x0: number, x1: number, y: number, w0: number): Thing {
+  const th = T('ferry', { x: x0, x2: x1, y, w: 0.13, hold: w0, harm: 0, big: 1.1 });
+  th.dur = Math.ceil((x1 - x0) / FERRY_V) + 10;
+  return th;
+}
+function sackT(x: number, yPan: number, yFloor: number, w0: number): Thing {
+  const th = T('sack', { x, y: yPan, y2: yFloor, hold: w0, harm: 0, big: 1 });
+  th.dur = Math.ceil(SK_SLIP + skFall(th) + 8);
+  return th;
+}
+
 function baseLevel(key: Key, ch: number): Level {
   return {
     key, ch, ground: [], things: [], actors: [], sand: 240, par: 0, stars: [], gearX: 0.91, gearY: ch === 2 ? LY3 : LY, heroX: 0.07, heroY: ch === 2 ? LY3 : LY, heroDelay: 40,
-    fallY: (ch === 2 ? LY3 : LY) + 0.16, canal: null, basin: null, shaft: null, gate: null, deco: {},
+    fallY: (ch === 2 ? LY3 : LY) + 0.16, canal: null, basin: null, shaft: null, gate: null, deco: {}, scale: null, fire: null, tapsPar: 9,
   };
 }
 
@@ -814,6 +979,34 @@ function rawLevel(si: number, r: Rng): Level {
       L.sand = 240;
       break;
     }
+    case 'stairs': {
+      const sx = rnd(r, 0.34, 0.38), stage = sx + (ST_N - 1) * ST_DX + ST_CW / 2 - 0.006;
+      L.ground = [0, stage, lane, stage, 1, lane - ST_N * ST_CH];
+      L.things.push(stackT(sx, lane, Math.round(rnd(r, 12, 20))));
+      const gm = Ac('grandma', R_DECO, 0.2, 0.5), cat = Ac('cat', R_VILL, 0.15, lane);
+      L.actors.push(gm, cat);
+      L.things.push(potT(0.15, 0.5, Math.round(rnd(r, 60, 100)), gm.id, lane));
+      L.deco.balc = 0.15;
+      L.deco.stage = stage;
+      L.gearY = lane - ST_N * ST_CH;
+      L.sand = 260;
+      break;
+    }
+    case 'twice': {
+      L.ground = [0, 1, lane];
+      const ax = rnd(r, 0.5, 0.55), top = 0.47;
+      const fm = Ac('farmer', R_DECO, ax + 0.07, top - 0.005);
+      L.actors.push(fm);
+      L.deco.alley = ax;
+      L.deco.top = top;
+      L.things.push(T('barrel', { path: rollPath([ax, top + 0.01, ax, lane, ax + 0.02, 1.13], 0.034, 0.0012, 0.00011, 0.0052), hold: Math.round(rnd(r, 18, 28)), owner: fm.id, big: 1 }));
+      L.things[0].dur = L.things[0].path!.length / 3 - 1;
+      // 첫째 도깨비는 골목 앞을 막고 서 있고, 둘째는 통이 지나간 뒤 그 자리로 걸어와 선다
+      L.actors.push(Ac('walker', R_WALK, ax, lane));
+      L.actors.push(Ac('walker', R_WALK, 0.84, lane, { x0: ax, x1: 0.84, vx: rnd(r, 0.0022, 0.0026), next: Math.round(rnd(r, 4, 12)) }));
+      L.sand = 240;
+      break;
+    }
     case 'raft': {
       L.ground = [0, 0.45, lane, 0.63, 1, lane];
       L.canal = [0.45, 0.63];
@@ -875,6 +1068,57 @@ function rawLevel(si: number, r: Rng): Level {
       L.actors.push(Ac('goblin', R_ARCH, gx, 0.36, { next: Math.round(rnd(r, 160, 190)), per: 200 }));
       L.deco.roof = gx;
       L.sand = 260;
+      break;
+    }
+    case 'ferry': {
+      L.ground = [0, 0.36, lane, 0.7, 1, lane];
+      L.canal = [0.36, 0.7];
+      L.things.push(ferryT(0.42, 0.635, lane, Math.round(rnd(r, 8, 16))));
+      const gx = rnd(r, 0.8, 0.86);
+      L.actors.push(Ac('goblin', R_ARCH, gx, 0.36, { next: Math.round(rnd(r, 150, 175)), per: Math.round(rnd(r, 160, 180)), alt: 1 }));
+      L.actors.push(Ac('kid', R_VILL, rnd(r, 0.88, 0.92), lane));
+      L.deco.roof = gx;
+      L.sand = 260;
+      break;
+    }
+    case 'chain': {
+      L.ground = [0, 0.3, lane, 0.74, 1, lane];
+      L.canal = [0.3, 0.74];
+      const a = raftT(0.408, lane - 0.12, 1.17, 0.226, Math.round(rnd(r, 8, 18)), -1, lane);
+      const b = raftT(0.629, lane - 0.12, 1.17, 0.228, Math.round(rnd(r, 40, 60)), -1, lane);
+      a.hs = b.hs = 230;
+      L.things.push(a, b);
+      L.actors.push(Ac('duck', R_DECO, 0.5, 1.05), Ac('mom', R_DECO, 0.84, lane));
+      L.sand = 300;
+      break;
+    }
+    case 'scale': {
+      L.ground = [0, 0.4, lane, 0.62, 1, UP3];
+      L.scale = [0.3, 0.42, 0.13, 0.51, 0.22, lane, UP3];
+      L.gearY = UP3;
+      L.things.push(sackT(0.13, 0.74, lane, Math.round(rnd(r, 12, 22))));
+      const gx = rnd(r, 0.84, 0.9);
+      L.actors.push(Ac('goblin', R_ARCH, gx, UP3, { next: Math.round(rnd(r, 170, 200)), per: Math.round(rnd(r, 170, 190)), alt: 1 }));
+      L.actors.push(Ac('cat', R_VILL, 0.06, lane));
+      L.deco.roof = gx;
+      L.sand = 260;
+      break;
+    }
+    case 'fire': {
+      L.ground = [0, 1, lane];
+      L.fire = [0.46, 0.6, lane];
+      // 등불(먼저 떨어져 불을 냄 — 되감아도 불은 그대로) · 물통(그 전에 쏟아짐 — 되감으면 불을 지나 솟는다)
+      const bv = Ac('beaver', R_DECO, 0.42, 0.56), mole = Ac('mole', R_DECO, 0.64, 0.5);
+      L.actors.push(bv, mole);
+      const lamp = potT(0.5, 0.58, 1, bv.id, lane - 0.01);
+      lamp.n = 2;
+      lamp.harm = 0;
+      const pail = potT(rnd(r, 0.52, 0.55), 0.52, 1, mole.id, lane);
+      pail.n = 1;
+      pail.harm = 0;
+      L.things.push(pre(lamp), pre(pail));
+      L.actors.push(Ac('kid', R_DECO, 0.86, lane));
+      L.sand = 240;
       break;
     }
     case 'crate': {
@@ -1041,7 +1285,7 @@ function simPlan(W0: World, acts: number[], i0: number, maxT = 1800): Out {
   return { win: H.st === H_WIN, fail: H.st === H_FAIL, t: W.t, x: H.x, hurt: W.hurt, used: W.used, saved: W.saved, stuck: H.st === H_WAIT };
 }
 /** 판 하나를 처음부터 끝까지 잘하는 머리로 둬 본다 → 할 일 목록 [틱, 물건 id, 멈출 τ(-1이면 되감기 시작)] */
-interface Plan { acts: number[]; used: number; win: boolean; hurt: number; saved: number; t: number }
+interface Plan { acts: number[]; used: number; win: boolean; hurt: number; saved: number; t: number; taps: number }
 function planFrom(W0: World, maxT = 3600): Plan {
   const W = cloneWorld(W0), acts: number[] = [];
   let intent = -1;
@@ -1062,7 +1306,7 @@ function planFrom(W0: World, maxT = 3600): Plan {
     if (W.rew < 0) intent = -1;
     if (W.t % DEC === 0 && (base.t <= W.t || W.rew >= 0)) base = rollout(W, 1300, intent);
   }
-  return { acts, used: W.used, win: W.hero.st === H_WIN, hurt: W.hurt, saved: W.saved, t: W.t - t0 };
+  return { acts, used: W.used, win: W.hero.st === H_WIN, hurt: W.hurt, saved: W.saved, t: W.t - t0, taps: W.taps - W0.taps };
 }
 
 // ───────────────────────────── 버릇 봇의 머리 ─────────────────────────────
@@ -1102,7 +1346,7 @@ function trialHabit(L: Level, pick: (W: World) => number, maxT = 3600): World {
 }
 function starsOf(L: Level, W: World): boolean[] {
   const win = W.hero.st === H_WIN;
-  return L.stars.map((k) => (k === 'goal' ? win : k === 'sand' ? win && W.used <= L.par : k === 'safe' ? win && W.hurt === 0 : win && W.saved > 0 && W.hurt === 0));
+  return L.stars.map((k) => (k === 'goal' ? win : k === 'sand' ? win && W.used <= L.par : k === 'safe' ? win && W.hurt === 0 : k === 'taps' ? win && W.taps <= L.tapsPar : win && W.saved > 0 && W.hurt === 0));
 }
 
 // ───────────────────────────── 판 고르기 (변형 셋, 잘하는 머리로 검사) ─────────────────────────────
@@ -1120,6 +1364,7 @@ export function buildLevel(variant: number, si: number): Level {
     const W = newWorld(L), pl = planFrom(W);
     if (!pl.win) continue;
     L.par = Math.max(30, Math.ceil((pl.used + 20) / 6) * 6);
+    L.tapsPar = Math.max(1, pl.taps);
     if (pl.hurt > 0 && L.stars.includes('safe')) continue;
     fb ??= L;
     if (si >= 2) {

@@ -24,10 +24,10 @@ const G = 0.0009, BUOY = 0.0003, VUP = 0.0085, EPS = 0.0025, OVL = 0.008;
 const STEP = 0.072, SPD = 0.0042, MAXDROP = 0.32, HOP = 0.15, GAP = 0.018;
 /** 카메라 배율: 세상 폭 1/ZOOM 이 화면 폭 (2차: 1.4배 가까이) */
 const ZOOM = 1.4;
-const SAW_K = 0.011, SAW_LAUNCH = 1.05, SAW_IMP = 5;
+const SAW_K = 0.015, SAW_LAUNCH = 2.2, SAW_IMP = 6;
 const FLAT_H = 0.026, PIT = -0.22;
 const vFall = (L: number) => 0.022 + 0.0016 * Math.min(L, 12);
-const RESULT_OK = 210, RESULT_FAIL = 150, BANNER_T = 150, CALM_FAIL = 50, VAULT_T = 330;
+const RESULT_OK = 210, RESULT_FAIL = 150, BANNER_T = 130, CALM_FAIL = 50, VAULT_T = 330;
 const CLEAR_PTS = 100, STAR_PTS = 100, WIN_PTS = 300, HEART_PTS = 100;
 
 export type Kind =
@@ -112,10 +112,10 @@ export const STAGES: StageDef[] = [
     par: 2, budget: 5, stars: [ST('clear', 0, '황금알 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('empty', 0, '주머니 비우고 끝내기')], next: '',
   },
   {
-    ch: 0, name: '양팔 저울', news: '양팔 저울 — 두 접시 무게가 똑같으면 문이 열려요', spot: [0.25, 0.3, 0.17],
+    ch: 0, name: '양팔 저울', news: '두 접시 무게가 똑같으면 문이 열려요', spot: [0.25, 0.3, 0.17],
     hints: [],
-    solids: [gnd(0, XW), sol('plate', 0.08, 0.2, 0.28, 0.292, { pair: 2 }), sol('plate', 0.3, 0.42, 0.28, 0.292, { pair: 1 }), sol('gate', 0.48, 0.52, 0, 0.27, { gate: 1 }), sol('hedge', 0.46, 0.54, 0.27, 1.2), sol('ped', 0.6, 0.7, 0, 0.04)],
-    bodies: [bd('rock', 0.14, 0.292), bd('apple', 0.33, 0.292), bd('pot', 0.39, 0.292), bd('crate', 0.24)],
+    solids: [gnd(0, XW), sol('plate', 0.08, 0.2, 0.28, 0.292, { pair: 2 }), sol('plate', 0.3, 0.42, 0.28, 0.292, { pair: 1 }), sol('gate', 0.48, 0.52, 0, 0.27, { gate: 1 }), sol('hedge', 0.46, 0.54, 0.27, 0.36), sol('ped', 0.6, 0.7, 0, 0.04)],
+    bodies: [bd('rock', 0.36, 0.292), bd('apple', 0.11, 0.292), bd('pot', 0.17, 0.292), bd('crate', 0.24)],
     cat: [0.04, 0], prize: { x: 0.65, y: 0.04, k: 'cup' },
     par: 2, budget: 6, stars: [ST('clear', 0, '황금잔 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('empty', 0, '주머니 비우고 끝내기')], next: '',
   },
@@ -140,10 +140,10 @@ export const STAGES: StageDef[] = [
   {
     ch: 1, name: '도개교', news: '도개교 — 균형추가 무거우면 다리가 올라가요', spot: [0.51, 0.06, 0.08],
     hints: [],
-    solids: [gnd(0, 0.26), sol('water', 0.26, 0.47, -0.4, -0.24), gnd(0.47, XW), sol('shelf', 0.53, 0.65, 0.36, 0.375, { cap: 9 }), sol('ped', 0.645, XW, 0, 0.04), sol('twig', 0.04, 0.18, 0.42, 0.435, { cap: 3 })],
-    bodies: [bd('dog', 0.58), bd('barrel', 0.585, 0.375), bd('apple', 0.11, 0.435)],
-    bridge: { hx: 0.47, len: 0.21, dir: -1, cwx: 0.505, cwy: 0.012, rise: 0.24, a: 1 },
-    cat: [0.04, 0], prize: { x: 0.68, y: 0.04, k: 'crown' },
+    solids: [gnd(0, 0.26), sol('water', 0.26, 0.47, -0.4, -0.24), gnd(0.47, XW), sol('shelf', 0.55, 0.66, 0.36, 0.375, { cap: 9 }), sol('ped', 0.655, XW, 0, 0.04), sol('twig', 0.04, 0.18, 0.42, 0.435, { cap: 3 })],
+    bodies: [bd('dog', 0.6), bd('barrel', 0.605, 0.375), bd('apple', 0.11, 0.435)],
+    bridge: { hx: 0.47, len: 0.21, dir: -1, cwx: 0.495, cwy: 0.012, rise: 0.24, a: 1 },
+    cat: [0.04, 0], prize: { x: 0.685, y: 0.04, k: 'crown' },
     par: 2, budget: 5, stars: [ST('clear', 0, '왕관 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('flat', 0, '경비견 납작하게')], next: '',
   },
   {
@@ -156,10 +156,10 @@ export const STAGES: StageDef[] = [
     par: 4, budget: 7, stars: [ST('clear', 0, '황금잔 훔치기'), ST('taps', 4, '톡 4번 안에'), ST('flat', 0, '둘 다 납작하게')], next: '',
   },
   {
-    ch: 1, name: '바람 다리', news: '떠오른 상자를 바람에 실어 — 해자 위에서 무게를 돌려주면?', spot: [0.37, 0.0, 0.1],
+    ch: 1, name: '바람 다리', news: '바람에 실린 상자, 해자 위에서 무게를 돌려주면?', spot: [0.36, 0.0, 0.11],
     hints: [],
-    solids: [gnd(0, 0.3), sol('water', 0.3, 0.44, -0.3, -0.1), gnd(0.44, XW), sol('wall', 0.44, XW, 0.2, 1.2), sol('ped', 0.62, 0.7, 0, 0.04)],
-    bodies: [bd('crate', 0.18), bd('dog', 0.54)],
+    solids: [gnd(0, 0.26), sol('water', 0.26, 0.46, -0.3, -0.1), gnd(0.46, XW), sol('wall', 0.46, XW, 0.2, 1.2), sol('ped', 0.62, 0.7, 0, 0.04)],
+    bodies: [bd('crate', 0.15), bd('dog', 0.56)],
     wind: [{ x0: 0, x1: XW, y0: 0.3, y1: 1.2, vx: 0.0045 }],
     cat: [0.04, 0], prize: { x: 0.66, y: 0.04, k: 'harp' },
     par: 4, budget: 7, stars: [ST('clear', 0, '황금 하프 훔치기'), ST('taps', 4, '톡 4번 안에'), ST('empty', 0, '주머니 비우고 끝내기')], next: '',
@@ -173,12 +173,11 @@ export const STAGES: StageDef[] = [
     par: 4, budget: 7, stars: [ST('clear', 0, '황금 하프 훔치기'), ST('taps', 4, '톡 4번 안에'), ST('flat', 0, '곰 납작하게')], next: '',
   },
   {
-    ch: 1, name: '연쇄 투석기', news: '한 번 주면 줄줄이 — 선반 → 시소 → 대포알!', spot: [0.38, 0.1, 0.16],
+    ch: 1, name: '와르르 선반', news: '한 번 주면 줄줄이 — 선반이 차례로 와르르!', spot: [0.32, 0.4, 0.13],
     hints: [],
-    solids: [gnd(0, XW), sol('shelf', 0.22, 0.34, 0.4, 0.415, { cap: 6 }), sol('ped', 0.61, 0.7, 0, 0.04)],
-    bodies: [bd('bear', 0.15), bd('pot', 0.29, 0.415), bd('ball', 0.46, 0.1), bd('sack', 0.62, 0.04)],
-    saw: { px: 0.38, py: 0.05, hl: 0.12, lim: 0.4, th: 0.4 },
-    cat: [0.03, 0], prize: { x: 0.655, y: 0.04, k: 'egg' },
+    solids: [gnd(0, XW), sol('shelf', 0.25, 0.39, 0.5, 0.515, { cap: 5 }), sol('shelf', 0.25, 0.39, 0.3, 0.315, { cap: 10 }), sol('wall', 0.2, 0.25, 0.28, 1.2), sol('ped', 0.6, 0.7, 0, 0.04)],
+    bodies: [bd('crate', 0.12), bd('bear', 0.32), bd('barrel', 0.32, 0.315), bd('sack', 0.32, 0.515)],
+    cat: [0.03, 0], prize: { x: 0.65, y: 0.04, k: 'egg' },
     par: 2, budget: 6, stars: [ST('clear', 0, '황금알 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('flat', 0, '곰 납작하게')], next: '',
   },
   {
@@ -194,10 +193,19 @@ export const STAGES: StageDef[] = [
   {
     ch: 2, name: '샹들리에', news: '샹들리에 사슬은 6까지 — 넘으면 와장창', spot: [0.42, 0.46, 0.09],
     hints: [],
-    solids: [gnd(0, XW), sol('ped', 0.6, 0.7, 0, 0.04), sol('shelf', 0.1, 0.24, 0.28, 0.295), sol('stone', 0.51, 0.59, 0.14, 0.16), sol('stone', 0.0, 0.1, 0.46, 0.48)],
-    bodies: [bd('anvil', 0.17, 0.295), bd('bear', 0.41), bd('chand', 0.41, 0.46, { rope: 6, ay: 0.58 }), bd('vase', 0.55, 0.16), bd('feather', 0.05, 0.48)],
+    solids: [gnd(0, XW), sol('ped', 0.6, 0.7, 0, 0.04), sol('shelf', 0.1, 0.24, 0.28, 0.295), sol('stone', 0.51, 0.59, 0.14, 0.16), sol('stone', 0.0, 0.1, 0.5, 0.52)],
+    bodies: [bd('anvil', 0.17, 0.295), bd('bear', 0.41), bd('chand', 0.41, 0.46, { rope: 6, ay: 0.58 }), bd('vase', 0.55, 0.16), bd('feather', 0.05, 0.52)],
     cat: [0.03, 0], prize: { x: 0.65, y: 0.04, k: 'gem' },
     par: 2, budget: 5, stars: [ST('clear', 0, '보석 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('flat', 0, '곰 납작하게')], next: '',
+  },
+  {
+    ch: 2, name: '쿵 고양이', news: '고양이도 톡! 무거워진 고양이는 마루를 뚫어요', spot: [0.44, 0.33, 0.07],
+    hints: [],
+    solids: [gnd(0, XW), sol('stone', 0, 0.25, 0.3, 0.33), sol('trap', 0.25, 0.5, 0.315, 0.33, { cap: 8 }), sol('wall', 0.5, 0.54, 0.33, 1.2), sol('shelf', 0.04, 0.16, 0.47, 0.485), sol('ped', 0.6, 0.7, 0, 0.04)],
+    bodies: [bd('anvil', 0.1, 0.485), bd('bear', 0.43), bd('apple', 0.2, 0.33)],
+    catTap: true,
+    cat: [0.03, 0.33], prize: { x: 0.65, y: 0.04, k: 'gem' },
+    par: 2, budget: 6, stars: [ST('clear', 0, '보석 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('flat', 0, '곰 납작하게')], next: '',
   },
   {
     ch: 2, name: '주머니 둘', news: '주머니가 둘! 두 번 훔치고, 다음 톡에 합쳐서 줘요', spot: [0.37, 0.1, 0.09],
@@ -209,22 +217,13 @@ export const STAGES: StageDef[] = [
     par: 3, budget: 6, stars: [ST('clear', 0, '황금잔 훔치기'), ST('taps', 3, '톡 3번 안에'), ST('flat', 0, '곰 납작하게')], next: '',
   },
   {
-    ch: 2, name: '쿵 고양이', news: '고양이도 톡! 무거워진 고양이는 마루를 뚫어요', spot: [0.44, 0.33, 0.07],
-    hints: [],
-    solids: [gnd(0, XW), sol('stone', 0, 0.25, 0.3, 0.33), sol('trap', 0.25, 0.5, 0.315, 0.33, { cap: 8 }), sol('wall', 0.5, 0.54, 0.0, 1.2), sol('shelf', 0.04, 0.16, 0.47, 0.485), sol('ped', 0.6, 0.7, 0, 0.04)],
-    bodies: [bd('anvil', 0.1, 0.485), bd('bear', 0.43), bd('apple', 0.2, 0.33)],
-    slots: 2, catTap: true,
-    cat: [0.03, 0.33], prize: { x: 0.65, y: 0.04, k: 'gem' },
-    par: 2, budget: 6, stars: [ST('clear', 0, '보석 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('flat', 0, '곰 납작하게')], next: '',
-  },
-  {
-    ch: 2, name: '둥실 고양이', news: '고양이 무게를 훔치면 둥실 — 위층으로', spot: [0.39, 0.05, 0.07],
+    ch: 2, name: '둥실 고양이', news: '고양이 무게를 훔치면 둥실 — 위층으로 헤엄쳐 가요', spot: [0.39, 0.05, 0.07],
     hints: [],
     solids: [gnd(0, XW), sol('stone', 0, 0.36, 0.3, 0.33), sol('stone', 0.47, XW, 0.3, 0.33), sol('wall', 0.44, 0.47, 0, 0.3), sol('ped', 0.63, 0.7, 0.33, 0.37)],
-    bodies: [bd('pumpkin', 0.16), bd('dog', 0.56, 0.33), bd('chand', 0.565, 0.47, { rope: 6, ay: 0.58 })],
+    bodies: [bd('pumpkin', 0.16), bd('dog', 0.555, 0.33), bd('chand', 0.665, 0.47, { rope: 6, ay: 0.58 })],
     slots: 2, catTap: true,
     cat: [0.03, 0], prize: { x: 0.665, y: 0.37, k: 'map' },
-    par: 3, budget: 6, stars: [ST('clear', 0, '보물 지도 훔치기'), ST('taps', 3, '톡 3번 안에'), ST('empty', 0, '주머니 비우고 끝내기')], next: '',
+    par: 3, budget: 6, stars: [ST('clear', 0, '보물 지도 훔치기'), ST('taps', 3, '톡 3번 안에'), ST('flat', 0, '경비견 납작하게')], next: '',
   },
   {
     ch: 2, name: '왕관의 방', news: '마지막 방 — 지금까지 배운 것을 모두', spot: null,
@@ -548,7 +547,7 @@ function rules(W: World): boolean {
   }
   // 와장창: 술통·화분·샹들리에·꽃병은 세게 떨어지면 부서진다 (밑의 경비병을 납작하게 한 다음)
   for (const b of W.b) {
-    if (!live(b) || !b.shat || W.t - b.land > 2 || b.hitV < 0.014) continue;
+    if (!live(b) || !b.shat || ((W.t - b.land > 2 || b.hitV < 0.014) && b.load - b.w < Math.max(3, b.w))) continue; // 세게 떨어지거나, 제 무게보다 무거운 것에 눌리면
     b.st = 3;
     if (b.k === 'vase') W.frags++;
     changed = true;
@@ -674,22 +673,21 @@ function catAI(W: World) {
   let lift = 0, blocked = false;
   // 앞쪽 띠(지금 앞면 → 한 걸음 뒤 앞면)만 본다: 뒤에 있는 것에 막히지 않게
   const x0 = dir > 0 ? c.x + c.hw - 0.004 : nx - c.hw, x1 = dir > 0 ? nx + c.hw : c.x - c.hw + 0.004, yb = c.y + 0.003, yt = c.y + c.h;
-  // 막는 것은 한 뼘(GAP) 앞에서 멈춘다 (그림이 겹치지 않게) · 턱은 바로 앞만
-  const g0 = dir > 0 ? x0 : x0 - GAP, g1 = dir > 0 ? x1 + GAP : x1;
+  // 막는 것은 한 뼘(GAP) 앞에서 멈춘다 (그림이 겹치지 않게). 턱은 발이 제대로 걸칠 때(OVL) 오른다.
+  // 몸 하나는 '그것이 놓인 자리에서' STEP 이하이고 발이 닿으면 계단처럼 오를 수 있다 (납작한 개 위 사과).
+  const g0 = dir > 0 ? x0 : x0 - GAP, g1 = dir > 0 ? x1 + GAP : x1, f0 = nx - c.hw, f1 = nx + c.hw;
   for (const q of W.s) {
     if (!q.on || g1 <= q.x0 || g0 >= q.x1 || q.y1 <= yb || q.y0 >= yt) continue;
-    const near = !(x1 <= q.x0 || x0 >= q.x1);
     if (q.y1 - c.y <= STEP) {
-      if (near) lift = Math.max(lift, q.y1 - c.y);
+      if (Math.min(f1, q.x1) - Math.max(f0, q.x0) > OVL) lift = Math.max(lift, q.y1 - c.y);
     } else blocked = true;
   }
   for (const o of W.b) {
     if (o === c || !live(o) || o.k === 'bridge' || o.sup === BODY + c.id) continue;
     if (g1 <= o.x - o.hw || g0 >= o.x + o.hw || o.y + o.h <= yb || o.y >= yt) continue;
-    const near = !(x1 <= o.x - o.hw || x0 >= o.x + o.hw);
-    if (o.y + o.h - c.y <= STEP && o.y <= c.y + STEP) {
-      if (near) lift = Math.max(lift, o.y + o.h - c.y);
-    } else blocked = true;
+    const climb = o.y + o.h - Math.max(c.y, o.y) <= STEP && o.y <= c.y + STEP;
+    if (!climb) blocked = true;
+    else if (Math.min(f1, o.x + o.hw) - Math.max(f0, o.x - o.hw) > OVL && o.y + o.h - c.y <= STEP) lift = Math.max(lift, o.y + o.h - c.y);
   }
   if (W.saw && c.sup !== PLANK) {
     const pt = plankTop(W.saw, nx + dir * c.hw * 0.5);
@@ -1768,6 +1766,44 @@ function drawSolids(ctx: C2, s: WSState, v: V) {
       ctx.fillStyle = '#c0392b';
       ell(ctx, cx, T - D * 0.85, pw * 0.36, R(0.008));
       ctx.fill();
+    } else if (q.k === 'plate' && q.pair >= 0) {
+      // 양팔 저울 접시 (짝 발판과 같은 무게면 문이 열린다)
+      const o = W.s[q.pair], cx = (X0 + X1) / 2, eq = pressed(W, q), bt = v.Y(0.45);
+      if (q.id < o.id) {
+        const mx = (cx + (v.X(o.x0) + v.X(o.x1)) / 2) / 2, tilt = clamp((o.load - q.load) * 0.02, -0.18, 0.18);
+        ctx.fillStyle = lin(ctx, mx - R(0.012), 0, mx + R(0.012), 0, [0, '#a8763e'], [1, '#6a4422']);
+        ctx.fillRect(mx - R(0.01), bt, R(0.02), v.Y(0) - bt);
+        ctx.save();
+        ctx.translate(mx, bt);
+        ctx.rotate(tilt);
+        ctx.fillStyle = '#c8962c';
+        rr(ctx, -(mx - cx) - R(0.01), -R(0.008), (mx - cx) * 2 + R(0.02), R(0.016), R(0.008));
+        ctx.fill();
+        stroke(ctx, OUT, 1.4);
+        ctx.restore();
+        ctx.fillStyle = eq ? '#5fd46a' : '#ffffff';
+        ell(ctx, mx, bt - R(0.035), R(0.03), R(0.03));
+        ctx.fill();
+        stroke(ctx, OUT, 1.6);
+        txt(ctx, eq ? '=' : q.load > o.load ? '>' : '<', mx, bt - R(0.033), R(0.045), eq ? '#ffffff' : '#c0392b', 900, 'center', '');
+      }
+      const oc = (v.X(o.x0) + v.X(o.x1)) / 2, my = v.Y(0.45) + (q.id < o.id ? -1 : 1) * 0;
+      ctx.strokeStyle = '#8a7040';
+      ctx.lineWidth = 1.5;
+      for (const sx of [X0 + R(0.01), X1 - R(0.01)]) {
+        ctx.beginPath();
+        ctx.moveTo(sx, T - D * 0.5);
+        ctx.lineTo((cx + (cx + oc) / 2) / 2 + (cx < oc ? -1 : 1) * R(0.0), my);
+        ctx.stroke();
+      }
+      ctx.fillStyle = lin(ctx, X0, 0, X1, 0, [0, '#f6d77a'], [0.5, '#fff1b0'], [1, '#c8962c']);
+      ctx.beginPath();
+      ctx.moveTo(X0 - R(0.01), T - D * 0.6);
+      ctx.lineTo(X1 + R(0.01), T - D * 0.6);
+      ctx.quadraticCurveTo(cx, T + R(0.03), X0 - R(0.01), T - D * 0.6);
+      ctx.fill();
+      stroke(ctx, OUT, 1.5);
+      txt(ctx, String(q.load), cx, T + R(0.045), R(0.04), eq ? '#c8ffb0' : '#fff2c4', 900);
     } else if (q.k === 'plate') {
       const p = q.load >= q.need, cx = (X0 + X1) / 2, sink = p ? R(0.006) : 0;
       ctx.fillStyle = p ? lin(ctx, X0, 0, X1, 0, [0, '#9be06f'], [1, '#4fae3e']) : lin(ctx, X0, 0, X1, 0, [0, '#f6d77a'], [1, '#c8962c']);
@@ -1775,6 +1811,31 @@ function drawSolids(ctx: C2, s: WSState, v: V) {
       ctx.fill();
       stroke(ctx, OUT, 1.4);
       txt(ctx, `${Math.min(q.load, 99)}/${q.need}`, cx, T + R(0.03), R(0.037), p ? '#c8ffb0' : '#fff2c4', 900);
+    } else if (q.k === 'gate' && ch === 0) {
+      const top = v.Y(q.y1), bot = v.Y(q.y0);
+      if (bot - top > 2) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(X0 - R(0.02), top, X1 - X0 + R(0.04), bot - top);
+        ctx.clip();
+        for (let k = 0; k < 3; k++) {
+          const x = X0 + (X1 - X0) * (k / 3), pw = (X1 - X0) / 3 - 1;
+          ctx.fillStyle = lin(ctx, x, 0, x + pw, 0, [0, '#f0d6a8'], [1, '#c8a070']);
+          ctx.beginPath();
+          ctx.moveTo(x, bot);
+          ctx.lineTo(x, top + R(0.015));
+          ctx.lineTo(x + pw / 2, top);
+          ctx.lineTo(x + pw, top + R(0.015));
+          ctx.lineTo(x + pw, bot);
+          ctx.closePath();
+          ctx.fill();
+          stroke(ctx, OUT, 1.2);
+        }
+        ctx.fillStyle = '#a8763e';
+        ctx.fillRect(X0 - R(0.008), bot - (bot - top) * 0.75, X1 - X0 + R(0.016), R(0.012));
+        ctx.fillRect(X0 - R(0.008), bot - (bot - top) * 0.3, X1 - X0 + R(0.016), R(0.012));
+        ctx.restore();
+      }
     } else if (q.k === 'gate') {
       const top = v.Y(q.y1), bot = v.Y(q.y0);
       if (bot - top > 2) {
@@ -3697,7 +3758,7 @@ function drawOverlays(ctx: C2, s: WSState, v: V, vw: V) {
     }
     ctx.save();
     ctx.globalAlpha = a;
-    const cy = R(0.15), pop = Math.min(1, 0.6 + age / 10);
+    const cy = R(0.14), pop = Math.min(1, 0.6 + age / 10);
     ctx.translate(w / 2, cy);
     ctx.scale(pop, pop);
     ctx.font = `900 ${R(0.05)}px system-ui, sans-serif`;
@@ -3714,7 +3775,7 @@ function drawOverlays(ctx: C2, s: WSState, v: V, vw: V) {
     stroke(ctx, '#8a5a20', 2.2);
     txt(ctx, bn.head, 0, bn.sub ? -R(0.025) : 0, R(0.05), '#2a5a9a', 900, 'center', '', cw - R(0.04));
     if (bn.sub) {
-      const isNew = d.spot !== null && s.tries === 0 && s.stage > 0;
+      const isNew = d.spot !== null && s.tries === 0 && s.stage > 0 && bn.sub === d.news;
       if (isNew) {
         ctx.fillStyle = '#ff5a3a';
         rr(ctx, -cw / 2 + R(0.02), R(0.012), R(0.07), R(0.036), R(0.018));
@@ -3825,7 +3886,7 @@ function vaultPos(i: number, cx: number, fy: number, R: (r: number) => number): 
   for (let cap = 7; cap >= 1; cap--, r++) {
     if (i < base + cap) {
       const c = i - base;
-      return [cx + (c - (cap - 1) / 2) * R(0.088) + (r % 2) * R(0.01), fy - R(0.035) - r * R(0.058)];
+      return [cx + (c - (cap - 1) / 2) * R(0.088) + (r % 2) * R(0.01), fy - R(0.03) - r * R(0.07)];
     }
     base += cap;
   }
@@ -3864,94 +3925,140 @@ function silhouette(ctx: C2, ch: number, x: number, y: number, u: number) {
 }
 function drawVault(ctx: C2, s: WSState, v: V) {
   const R = v.R, w = v.w, t = s.t, pt = s.pt, fx = juice(s), top = R(0.085), bot = v.pb, fy = bot - R(0.1);
-  ctx.fillStyle = lin(ctx, 0, top, 0, bot, [0, '#3e2a48'], [0.6, '#6a4436'], [1, '#3a2418']);
+  // 따뜻한 굴 방
+  ctx.fillStyle = lin(ctx, 0, top, 0, bot, [0, '#7a4a3a'], [0.55, '#a8683e'], [1, '#6a3e22']);
   ctx.fillRect(0, top, w, bot - top);
-  for (let k = 0; k < 40; k++) {
+  ctx.fillStyle = radg(ctx, w / 2, fy - R(0.25), 0, R(0.75), [0, 'rgba(255,220,140,.55)'], [1, 'rgba(255,200,120,0)']);
+  ctx.fillRect(0, top, w, bot - top);
+  for (let k = 0; k < 30; k++) {
     const x = hsh(k) * w, y = top + hsh(k + 9) * (fy - top), r = R(0.03 + hsh(k + 3) * 0.04);
-    ctx.fillStyle = `rgba(20,10,20,${0.12 + hsh(k + 5) * 0.1})`;
+    ctx.fillStyle = `rgba(80,40,20,${0.12 + hsh(k + 5) * 0.1})`;
     ell(ctx, x, y, r, r * 0.7);
     ctx.fill();
   }
+  // 벽 장식: 보물 지도 · 별 깃발
+  ctx.save();
+  ctx.translate(R(0.16), top + R(0.36));
+  ctx.rotate(-0.08);
+  ctx.fillStyle = '#f6e6b8';
+  rr(ctx, -R(0.09), -R(0.065), R(0.18), R(0.13), R(0.01));
+  ctx.fill();
+  stroke(ctx, OUT, 1.6);
+  ctx.strokeStyle = '#d8303a';
+  ctx.lineWidth = R(0.008);
+  ctx.setLineDash([R(0.012), R(0.01)]);
+  ctx.beginPath();
+  ctx.moveTo(-R(0.06), R(0.03));
+  ctx.quadraticCurveTo(0, -R(0.06), R(0.05), R(0.01));
+  ctx.stroke();
+  ctx.setLineDash([]);
+  txt(ctx, 'X', R(0.055), R(0.012), R(0.04), '#d8303a', 900, 'center', '');
+  ctx.restore();
   // 등불 둘
-  for (const lx of [0.14, 0.86]) {
-    const x = R(lx), y = top + R(0.12), fl = 1 + Math.sin(t * 0.3 + lx * 9) * 0.1;
-    ctx.fillStyle = radg(ctx, x, y, 0, R(0.32) * fl, [0, 'rgba(255,210,120,.55)'], [1, 'rgba(255,200,100,0)']);
-    ell(ctx, x, y, R(0.32) * fl, R(0.32) * fl);
+  for (const lx of [0.08, 0.92]) {
+    const x = R(lx), y = top + R(0.14), fl = 1 + Math.sin(t * 0.3 + lx * 9) * 0.1;
+    ctx.fillStyle = radg(ctx, x, y, 0, R(0.3) * fl, [0, 'rgba(255,230,150,.7)'], [1, 'rgba(255,200,100,0)']);
+    ell(ctx, x, y, R(0.3) * fl, R(0.3) * fl);
     ctx.fill();
-    ctx.strokeStyle = '#2a1a10';
+    ctx.strokeStyle = '#3a2010';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(x, top);
     ctx.lineTo(x, y - R(0.03));
     ctx.stroke();
     ctx.fillStyle = '#ffd36a';
-    rr(ctx, x - R(0.02), y - R(0.03), R(0.04), R(0.055), R(0.01));
+    rr(ctx, x - R(0.022), y - R(0.03), R(0.044), R(0.06), R(0.012));
     ctx.fill();
-    stroke(ctx, OUT, 1.5);
+    stroke(ctx, OUT, 1.6);
   }
-  // 나무 바닥
-  ctx.fillStyle = lin(ctx, 0, fy, 0, bot, [0, '#8a5a32'], [1, '#5a3a20']);
+  // 바닥 · 융단
+  ctx.fillStyle = lin(ctx, 0, fy, 0, bot, [0, '#9a6a3e'], [1, '#6a4424']);
   ctx.fillRect(0, fy, w, bot - fy);
-  ctx.fillStyle = 'rgba(255,220,160,.25)';
-  ctx.fillRect(0, fy, w, 2);
-  // 보물 더미 (빛)
-  const cx = w / 2, nThis = STAGES.filter((q) => q.ch === s.d.ch).length, n = s.stash.length, before = Math.max(0, n - nThis);
-  ctx.fillStyle = radg(ctx, cx, fy - R(0.1), 0, R(0.42), [0, 'rgba(255,220,100,.45)'], [1, 'rgba(255,220,100,0)']);
-  ell(ctx, cx, fy - R(0.1), R(0.42), R(0.3));
+  ctx.fillStyle = '#c0392b';
+  ell(ctx, w / 2, fy + R(0.045), R(0.4), R(0.04));
   ctx.fill();
+  ctx.strokeStyle = '#f2c44c';
+  ctx.lineWidth = 2;
+  ell(ctx, w / 2, fy + R(0.045), R(0.36), R(0.03));
+  ctx.stroke();
+  // 금화 무더기 (훔친 보물이 많을수록 높게)
+  const cx = w / 2, nThis = STAGES.filter((q) => q.ch === s.d.ch).length, n = s.stash.length, before = Math.max(0, n - nThis);
+  const heap = R(0.06 + Math.min(0.12, n * 0.007));
+  ctx.fillStyle = lin(ctx, 0, fy - heap, 0, fy, [0, '#fff1a0'], [0.5, '#ffc83a'], [1, '#c88a10']);
+  ctx.beginPath();
+  ctx.moveTo(cx - R(0.36), fy + R(0.01));
+  ctx.quadraticCurveTo(cx, fy - heap * 2.2, cx + R(0.36), fy + R(0.01));
+  ctx.closePath();
+  ctx.fill();
+  stroke(ctx, '#8a5a08', 1.6);
+  for (let k = 0; k < 26; k++) {
+    const u2 = hsh(k + 30) * 2 - 1, x = cx + u2 * R(0.32), y = fy - (1 - u2 * u2) * heap * 1.05 + hsh(k + 7) * R(0.02);
+    ctx.fillStyle = '#ffe680';
+    ell(ctx, x, y, R(0.016), R(0.008));
+    ctx.fill();
+    stroke(ctx, '#b07a10', 1);
+  }
+  // 보물: 이번 장 것은 하나씩 떨어져 쌓인다
   let landed = 0;
+  const gy0 = fy - heap * 0.9;
   for (let i = 0; i < n; i++) {
-    const [px, py] = vaultPos(i, cx, fy, R);
+    const [px, py0] = vaultPos(i, cx, gy0, R), py = py0;
     let y = py, sc = 1;
     if (i >= before) {
-      const j = i - before, t0 = 24 + j * 20, q = (pt - t0) / 20;
+      const j = i - before, t0 = 24 + j * 18, q = (pt - t0) / 18;
       if (q < 0) continue;
       if (q < 1) y = top - R(0.05) + (py - top + R(0.05)) * q * q;
       else {
         landed++;
         const b2 = q - 1;
-        if (b2 < 0.6) (y = py - Math.sin((b2 / 0.6) * Math.PI) * R(0.03)), (sc = 1 + 0.15 * (1 - b2 / 0.6));
+        if (b2 < 0.6) (y = py - Math.sin((b2 / 0.6) * Math.PI) * R(0.035)), (sc = 1 + 0.18 * (1 - b2 / 0.6));
         const key = 'vl' + i;
         if (!fx.memo[key]) {
           fx.memo[key] = 1;
-          fx.burst(px, py, '#ffe14a', 16, 3.5, 2.6);
+          fx.burst(px, py, '#ffe14a', 18, 3.8, 2.8);
           fx.sound('coin', 1 + j * 0.12, 1.1);
-          fx.kick(2);
+          fx.kick(2.5);
         }
       }
     } else landed++;
-    drawLoot(ctx, s.stash[i], px, y, R(0.04) * sc, t + i * 7);
+    ctx.fillStyle = 'rgba(255,240,170,.35)';
+    ell(ctx, px, y, R(0.045) * sc, R(0.045) * sc);
+    ctx.fill();
+    drawLoot(ctx, s.stash[i], px, y, R(0.042) * sc, t + i * 7);
   }
-  for (let k = 0; k < Math.min(24, s.gemN * 3); k++) drawLoot(ctx, 'gem', cx + (hsh(k + 61) - 0.5) * R(0.62), fy - R(0.012), R(0.016), t + k * 13);
-  // 고양이: 다 쌓이면 보물 위에서 데굴데굴
-  const allIn = pt > 24 + nThis * 20 + 24;
-  const [tx, ty] = vaultPos(Math.max(0, n - 1), cx, fy, R);
+  for (let k = 0; k < Math.min(24, s.gemN * 3); k++) drawLoot(ctx, 'gem', cx + (hsh(k + 61) - 0.5) * R(0.62), fy + R(0.015), R(0.018), t + k * 13);
+  // 고양이 방석 · 고양이: 다 쌓이면 보물 위에서 데굴데굴
+  ctx.fillStyle = '#7a4ab8';
+  ell(ctx, R(0.84), fy + R(0.01), R(0.09), R(0.03));
+  ctx.fill();
+  const allIn = pt > 24 + nThis * 18 + 24;
+  const [tx, ty] = vaultPos(Math.max(0, n - 1), cx, gy0, R);
   ctx.save();
   if (allIn) {
-    ctx.translate(tx, ty - R(0.045));
+    ctx.translate(tx, ty - R(0.06));
     ctx.rotate(Math.sin(t * 0.12) * 0.9);
-    drawCat(ctx, 0, R(0.03), R(0.12), 1, 'win', t, [], 1, 1);
+    drawCat(ctx, 0, R(0.04), R(0.13), 1, 'win', t, [], 1, 1);
     if (Math.floor(t / 30) !== Math.floor((t - 1) / 30)) fx.sound('boing', 1.3, 0.5);
-  } else drawCat(ctx, R(0.14), fy, R(0.13), 1, 'win', t, [], 1, 1);
+  } else drawCat(ctx, R(0.84), fy, R(0.14), -1, 'win', t, [], 1, 1);
   ctx.restore();
   // 글
   const won = s.won;
-  txt(ctx, won ? '성 털기 끝! 모든 보물을 훔쳤다!' : `${s.d.ch + 1}장 ${CH_NAME[s.d.ch]} 털기 끝!`, w / 2, top + R(0.07), R(0.06), '#ffe14a', 900, 'center', '#2a1a10', w - R(0.06));
-  txt(ctx, `고양이의 비밀 창고 — 보물 ${landed}개${s.gemN ? ` · 보석 ${s.gemN}` : ''} · 별 ${s.stars}`, w / 2, top + R(0.135), R(0.038), '#fff6dc', 800, 'center', '#2a1a10', w - R(0.06));
+  txt(ctx, won ? '성 털기 끝! 모든 보물을 훔쳤다!' : `${s.d.ch + 1}장 ${CH_NAME[s.d.ch]} 털기 끝!`, w / 2, top + R(0.065), R(0.062), '#ffe14a', 900, 'center', '#2a1a10', w - R(0.06));
+  txt(ctx, `고양이의 비밀 창고 · 보물 ${landed}개${s.gemN ? ` · 보석 ${s.gemN}` : ''} · 별 ${s.stars}`, w / 2, top + R(0.13), R(0.038), '#fff6dc', 800, 'center', '#2a1a10', w - R(0.06));
   if (!won) {
-    const nc = s.d.ch + 1, bx = w - R(0.2), by = top + R(0.42);
-    ctx.fillStyle = 'rgba(255,240,210,.12)';
-    rr(ctx, bx - R(0.16), by - R(0.3), R(0.32), R(0.36), R(0.03));
+    const nc = s.d.ch + 1, bx = w - R(0.2), by = top + R(0.47);
+    ctx.fillStyle = 'rgba(40,20,40,.35)';
+    rr(ctx, bx - R(0.16), by - R(0.3), R(0.32), R(0.37), R(0.03));
     ctx.fill();
-    stroke(ctx, 'rgba(255,230,160,.5)', 1.6);
+    stroke(ctx, 'rgba(255,230,160,.6)', 1.6);
     silhouette(ctx, nc, bx, by, R(0.1));
     txt(ctx, `다음: ${nc + 1}장 ${CH_NAME[nc]}`, bx, by + R(0.035), R(0.036), '#ffe9a0', 900, 'center', '#2a1a10');
-    txt(ctx, '♥ +1', bx, by - R(0.24), R(0.036), '#ff8a95', 900, 'center', '#2a1a10');
+    txt(ctx, '♥ +1', bx, by - R(0.25), R(0.038), '#ff8a95', 900, 'center', '#2a1a10');
   } else if (t % 24 === 0) {
     fx.burst(R(0.15 + hsh(t) * 0.7), top + R(0.15 + hsh(t + 3) * 0.3), ['#ffe14a', '#ff8ad8', '#7fd8ff'][(t / 24) % 3 | 0], 26, 4.5, 2.6);
     fx.sound('pop', 0.8 + hsh(t) * 0.6, 0.8);
   }
-  if (pt > 70) txt(ctx, '톡 하면 계속', w / 2, bot - R(0.04), R(0.036), '#fff6dc', 800, 'center', '#2a1a10');
+  if (pt > 70) txt(ctx, '톡 하면 계속', w / 2, bot - R(0.035), R(0.036), '#fff6dc', 800, 'center', '#2a1a10');
 }
 
 function drawAll(ctx: CanvasRenderingContext2D, s: WSState, w: number, h: number, th: Theme) {
