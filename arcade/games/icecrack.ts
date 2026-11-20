@@ -120,15 +120,15 @@ export const STAGES: StageDef[] = [
     bergs: [[0.64, 0.66, 0.08], [0.64, 1.12, 0.1]],
     flows: [{ p: [[-0.1, 0.7], [0.45, 0.74], [0.64, 0.87], [0.84, 1.02]], w: 0.24, v: 0.0036 }],
     boat: [0.88, 1.05],
-    taps: 5, par: 1, star3: 'par',
+    taps: 5, par: 2, star3: 'par',
   },
   {
     key: 'bear', name: '북극곰 이웃', news: '북극곰 — 같은 조각에 뜨면 펭귄이 놀라 첨벙!', spot: '북극곰', hint: '곰과 펭귄을 먼저 갈라 놓고 떼어 내요',
     nc: 7, nr: 8,
     ice: [[[-1, -1], [2, -1], [2, 0.58], [0.74, 0.6], [0.72, 0.98], [0.12, 0.98], [0.1, 0.6], [-1, 0.58]]],
     faults: [[[0.02, 0.58], [0.42, 0.6], [0.84, 0.58]], [[0.43, 0.82], [0.44, 1.02]]],
-    pens: [[0.56, 0.86], [0.62, 0.72]],
-    bear: [0.27, 0.8],
+    pens: [[0.55, 0.9], [0.6, 0.79]],
+    bear: [0.26, 0.84],
     flows: [TONGUE],
     boat: [0.88, 1.04],
     taps: 5, par: 2, star3: 'par',
@@ -1048,9 +1048,9 @@ function newStage(s: IceState) {
     if (d.key === 'flow') return [d.flows[0].p[1][0], d.flows[0].p[1][1], 0.12];
     if (d.key === 'tip') return [d.pens[1][0], d.pens[1][1] - 0.01, 0.16];
     if (d.key === 'thick') return [0.17, 0.6, 0.16];
-    if (d.key === 'seal' && G.seal) return [G.cells[G.seal[0]].cx, G.cells[G.seal[0]].cy, 0.09];
+    if (d.key === 'seal' && G.seal) return [G.cells[G.seal[0]].cx, G.cells[G.seal[0]].cy - 0.03, 0.1];
     if (d.key === 'berg') return [G.bergs[0].x, G.bergs[0].y, 0.14];
-    if (d.key === 'bear' && G.bear) return [G.cells[G.bear[0]].cx, G.cells[G.bear[0]].cy, 0.1];
+    if (d.key === 'bear' && G.bear) return [G.cells[G.bear[0]].cx, G.cells[G.bear[0]].cy - 0.07, 0.12];
     if (d.key === 'whirl' && G.whirl) return [G.whirl.x, G.whirl.y, 0.13];
     return null;
   };
@@ -1467,6 +1467,7 @@ export const icecrackHabit: Bot<IceState> = {
           const px = x + Math.cos(a0 + da) * 0.1, py = y + Math.sin(a0 + da) * 0.1, h = hitCell(s, px, py);
           if (h && !s.riders.some((q) => q.st === ON && q.cell === h.c)) return [px, py];
         }
+        if (hitCell(s, x, y)) return [x, y];
       }
       return null;
     });

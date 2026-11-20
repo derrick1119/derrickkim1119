@@ -34,7 +34,7 @@ const G = 0.0006, DAMP = 0.992, CDAMP = 0.86, ITERS = 3, SLEEP_V = 0.0005, CALM_
 const TOL = 0.02, HIT_PAD = 0.008;
 /** 별 구슬은 무거운 금 — 더미가 움직이는 동안 더 세게 가라앉는다 */
 const STAR_G = 2.4;
-const POP_KICK = 0.0032;
+const POP_KICK = 0.0042;
 const POP_GAP = 4, FIRE_N = 8, FR = 0.165, V_SMASH = 0.002, IRON_HITS = 2, DROP = 0.04, REFILL_DELAY = 12, REFILL_GAP = 3;
 const SLOT_ORDER = [2, 4, 0, 5, 1, 3];
 const slotX = (k: number) => XL + 0.06 + (k * (XR - XL - 0.12)) / 5;
@@ -594,16 +594,18 @@ function buildStage(seed: number, k: number): World {
 /** 첫 판: 맨 위 근처에 빨간 구슬 다섯이 맞닿아 줄지어 있다 (손가락 시범이 이걸 잇는다) */
 function demoPath(W: World, adj: number[][], rng: Rng) {
   const n = W.n, top = Math.min(...[...Array(n).keys()].map((i) => W.y[i]));
-  const cand = [...Array(n).keys()].filter((i) => W.y[i] < top + 0.1 && W.x[i] < XC - 0.08).sort((a, b) => W.x[a] - W.x[b]);
+  // 위에서 두세 줄 아래 가로 줄 — 터지면 위 구슬이 와르르 내려앉는 자리
+  const band = (i: number) => W.y[i] > top + 0.12 && W.y[i] < top + 0.27;
+  const cand = [...Array(n).keys()].filter((i) => band(i) && W.x[i] < XC - 0.1).sort((a, b) => W.x[a] - W.x[b]);
   let best: number[] = [];
   for (const s0 of cand) {
-    const path = [s0];
+    const path = [s0], y0 = W.y[s0];
     while (path.length < 5) {
       const last = path[path.length - 1];
       let nb = -1, sc = -1e9;
       for (const b of adj[last]) {
-        if (path.includes(b) || W.kind[b] !== K_N) continue;
-        const v = (W.x[b] - W.x[last]) * 4 - Math.abs(W.y[b] - top - 0.06) * 6;
+        if (path.includes(b) || W.kind[b] !== K_N || !band(b)) continue;
+        const v = (W.x[b] - W.x[last]) * 4 - Math.abs(W.y[b] - y0) * 5;
         if (v > sc) (sc = v), (nb = b);
       }
       if (nb < 0 || W.x[nb] < W.x[last] - 0.01) break;
@@ -616,7 +618,6 @@ function demoPath(W: World, adj: number[][], rng: Rng) {
   for (const b of best) for (const nb of adj[b]) if (!best.includes(nb) && W.col[nb] === 0) W.col[nb] = 1 + Math.floor(rng() * 2);
   W.demo = best.map((b) => W.uid[b]);
 }
-
 // ───────────────────────────── 상태 ─────────────────────────────
 type Phase = 'play' | 'resolve' | 'clear' | 'fail';
 type Face = 'idle' | 'watch' | 'wow' | 'happy' | 'dizzy' | 'scared';
@@ -1280,12 +1281,13 @@ function drawAll(ctx: C2, s: BeadState, w: number, h: number, th: Theme) {
         fx.pop(x, y - r * 1.5, '폭죽 구슬!', '#ffe27a', Math.max(16, R(0.05)));
         break;
       case 'deliver':
-        fx.burst(R(XC), R(1.31), '#ffd23a', 30, 5.5, 3.2);
-        fx.burst(R(XC), R(1.31), '#ffffff', 12, 4, 2);
-        fx.ring(R(XC), R(1.3), '#fff0a0', R(0.2), 7);
+        fx.burst(x, R(1.25), '#ffd23a', 26, 5.5, 3.2);
+        fx.burst(R(XC), R(1.31), '#ffd23a', 14, 4, 2.6);
+        fx.burst(x, R(1.25), '#ffffff', 12, 4, 2);
+        fx.ring(x, R(1.24), '#fff0a0', R(0.2), 7);
         fx.blink('#fff4c0', 0.35);
         fx.kick(8);
-        fx.pop(R(XC), R(1.2), '쏙!', '#fff1a0', Math.max(20, R(0.075)));
+        fx.pop(x, R(1.16), '쏙!', '#fff1a0', Math.max(20, R(0.075)));
         break;
       case 'tong':
         fx.burst(x, y + r * 0.9, 'rgba(255,255,255,.9)', 3, 1.4, 1.6);
@@ -1524,23 +1526,29 @@ function drawJarBack(ctx: C2, s: BeadState, w: number) {
   ctx.beginPath();
   ctx.ellipse(R(XC), R(RIM_Y), R((XR - XL) / 2 + 0.024), R(0.032), 0, Math.PI, TAU);
   ctx.stroke();
-  // 바닥 별 구멍
+  // 바닥: 별 그물 (별 구슬만 쏙 빠진다)
   if (d.star) {
-    const cx = R(XC), cy = R(HOLE_Y + 0.01);
-    ctx.fillStyle = '#8a5a14';
-    starPath(ctx, cx, cy, R(0.062), 0.5);
-    ctx.fill();
-    ctx.fillStyle = radg(ctx, cx, cy, 0, cx, cy, R(0.05), [0, '#2a1a08'], [1, '#5a3a10']);
-    starPath(ctx, cx, cy, R(0.05), 0.5);
-    ctx.fill();
-    ctx.strokeStyle = `rgba(255,220,90,${0.6 + 0.3 * Math.sin(s.t * 0.12)})`;
-    ctx.lineWidth = 2.5;
-    starPath(ctx, cx, cy, R(0.064), 0.5);
+    ctx.strokeStyle = `rgba(255,200,60,${0.55 + 0.25 * Math.sin(s.t * 0.12)})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let x = XL + 0.01; x <= XR - 0.01; x += 0.01) {
+      const y = R(floorY(x) + 0.004);
+      x === XL + 0.01 ? ctx.moveTo(R(x), y) : ctx.lineTo(R(x), y);
+    }
     ctx.stroke();
-  } else {
-    ctx.fillStyle = 'rgba(160,200,220,.5)';
-    ell(ctx, R(XC), R(HOLE_Y + 0.008), R(HOLE_W * 0.5), R(0.008));
-    ctx.fill();
+    for (let x = XL + 0.045; x < XR - 0.03; x += 0.068) {
+      const cx = R(x), cy = R(floorY(x) + 0.008);
+      ctx.fillStyle = '#7a4a10';
+      starPath(ctx, cx, cy, R(0.02), 0.5);
+      ctx.fill();
+      ctx.fillStyle = '#2a1a08';
+      starPath(ctx, cx, cy, R(0.014), 0.5);
+      ctx.fill();
+      ctx.strokeStyle = '#ffd24a';
+      ctx.lineWidth = 1.5;
+      starPath(ctx, cx, cy, R(0.021), 0.5);
+      ctx.stroke();
+    }
   }
 }
 function drawJarFront(ctx: C2, s: BeadState, w: number) {
@@ -2488,7 +2496,7 @@ function drawGoal(ctx: C2, s: BeadState, w: number, font: (sz: number, wgt?: num
   ctx.textBaseline = 'middle';
   font(0.04, 900);
   ctx.fillStyle = '#5a2a0a';
-  const lab = g.label.replace(/\s*\d+개.*$/, '').replace(/\s*\d+개$/, '');
+  const lab = g.k === 'color' ? `${CNAME[g.c ?? 0]} 구슬` : g.k === 'any' ? '터뜨린 구슬' : g.k === 'ice' ? '녹인 얼음' : g.k === 'star' ? '내린 별 구슬' : g.k === 'smash' ? '쇠구슬로 깬 구슬' : g.label;
   ctx.fillText(lab, R(0.095), cy - R(0.012), R(0.3));
   // 진척 막대
   const bx = R(0.095), bw = R(0.36), by = cy + R(0.016);
