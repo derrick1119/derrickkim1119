@@ -413,7 +413,14 @@ export interface DashState {
 }
 
 const ev = (s: DashState, kind: string, x: number, y: number, n?: number, text?: string) => s.events.push({ t: s.t, kind, x, y, n, text });
-function see(s: DashState, key: string, text: string) {
+/** 처음 알림(see) 글 — M3 S11 렉: 한곳에 모아 켠 뒤 미리 한 번 그려 둔다(textWarm · 처음 쓰는 글이 첫 떼기 프레임을 4~9ms 끌었다) */
+const TIP: Record<string, string> = {
+  bellCut: '쩍!', bambooFall: '쓰러진 대나무가 줄을 베어요!', bamboo: '대나무는 곧은 칼엔 툭! 꺾어 들어가요', bell: '종은 두 번 지나야 깨져요',
+  leaf: '잎 병정은 곧은 칼을 휙! 꺾어 들어가 베요', leafDemo: '손가락을 따라 옆에서 꺾어 그어 보세요', shotcut: '날아오는 화살·수리검도 돌진 선에 끊겨요!',
+  thorn: '덤불도 한 대! ★★★ 놓침 — 꺾어 돌아가요', chain: '연쇄 — 쉬지 않고 이어 베면 점수가 불어나요', sweep: '싹쓸이! 다음 한 획은 먹이 안 들어요',
+  thornRed: '빨간 덤불은 한 대! 손가락을 닌자 위에 잠깐 두면 지워져요',
+};
+function see(s: DashState, key: string, text = TIP[key] ?? '') {
   if (!key || s.seen.has(key)) return;
   s.seen.add(key);
   if (!text) return;
@@ -716,7 +723,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
       s.pts += 300;
     }
     if (f.k === 'shield') s.backK++;
-    if (!globalThis.__SHIP__ && f.k === 'bell') (s.bellGuide = false), (s.dodgeN = 0), see(s, 'bellCut', '쩍!'); // M2 S8 번들 덜기 ⓑ: 보류한 종의 알림 글은 짧게(어느 판에도 종이 없음)
+    if (!globalThis.__SHIP__ && f.k === 'bell') (s.bellGuide = false), (s.dodgeN = 0), see(s, 'bellCut'); // M2 S8 번들 덜기 ⓑ: 보류한 종의 알림 글은 짧게(어느 판에도 종이 없음)
     kill(s, f, n, a, false);
   }
   if (boss && n >= 3) s.bossCombo = Math.max(s.bossCombo, n - 1);
@@ -725,13 +732,13 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     (b.fall = s.t), (b.dx = fl.dx), (b.dy = fl.dy);
     (s.bambooGuide = false), (s.dodgeN = 0);
     ev(s, 'fall', b.x, b.y, fl.k);
-    see(s, 'bambooFall', '쓰러진 대나무가 줄을 베어요!');
+    see(s, 'bambooFall');
   }
   for (const id of P.toks) { // 🎋 곧은 칼엔 '툭' — 흔들리기만(벌 없음 · 먹도 안 돌려줌)
     const b = s.bamboos.find((q) => q.id === id)!;
     b.wob = s.t;
     ev(s, 'tok', b.x, b.y);
-    see(s, 'bamboo', '대나무는 곧은 칼엔 툭! 꺾어 들어가요');
+    see(s, 'bamboo');
     if (!s.bambooGuide) (s.bambooGuide = true), s.dodgeN++;
   }
   if (!globalThis.__SHIP__) for (const bq of P.bells) if (bq.n === 1) { // 🔔 한 번만 지나면 '댕' — 다음엔 되돌아 두 번
@@ -739,7 +746,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     if (!f) continue;
     f.hurtT = 20;
     ev(s, 'ding', f.x, f.y);
-    see(s, 'bell', '종은 두 번 지나야 깨져요');
+    see(s, 'bell');
     s.bellGuide = true;
     s.dodgeN++;
   }
@@ -754,11 +761,11 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     f.x = clamp(f.x + nx * sg * LEAF_HOP, X0 + 0.02, X1 - 0.02);
     f.y = clamp(f.y + ny * sg * LEAF_HOP, Y0 + 0.02, Y1 - 0.02);
     ev(s, 'dodge', f.x, f.y, dq.leg); // n = 휙 난 토막(0 = 첫 토막)
-    see(s, 'leaf', '잎 병정은 곧은 칼을 휙! 꺾어 들어가 베요');
+    see(s, 'leaf');
     if (n === 0) s.g = Math.min(GMAX, s.g + GAIN); // 휙만 난 획에만(🧪 M2 S1: 섞인 판에서 '먹 우물' 막기) 휙 하며 먹을 흘린다(+7) — 잎만 남으면 먹을 얻을 길이 없어 처음 하는 사람이 말라 갇히던 것(꾹 동안 주는 먹 > 쉬는 동안 차는 먹)
     s.dodgeN++;
     if (s.dodgeN >= OWL_DODGES && !s.owl && !s.owlNo) s.owlAsk = true; // M2 S4 ㉛: 2-1에서 휙 세 번이면 부엉이가 묻는다 · S10: 큰 너구리 휙을 빼 보니 카드 .92→.75지만 처음 첫 도전 .45→.36 · 3번 안 .81→.73(카드가 돕고 있음) → 그대로(📋)
-    if (s.dodgeN === LEAF_DEMO) see(s, 'leafDemo', '손가락을 따라 옆에서 꺾어 그어 보세요');
+    if (s.dodgeN === LEAF_DEMO) see(s, 'leafDemo');
     s.leafGuide = true; // 휙 뒤: 다음에 잎을 벨 때까지 잎 길잡이(📐 첫 휙 뒤 한 번 → 처음 봇이 먹이 말라 다시 막혀서 휙마다)
   }
   for (const bid of P.barrels) {
@@ -772,14 +779,14 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     s.arrows++;
     gain += SHOT_G;
     s.pts += 5;
-    see(s, 'shotcut', '날아오는 화살·수리검도 돌진 선에 끊겨요!');
+    see(s, 'shotcut');
   }
   s.g = Math.min(GMAX, s.g + gain);
   {
     const th = thornOf(s, P.legs);
     if (th) {
       // 꼬리털만 걸린다: ★★★(꼬리 하나도 안 잃기)만 놓치고 목숨은 안 준다 — 처음 하는 사람이 덤불 때문에 지지는 않게
-      see(s, 'thorn', '덤불도 한 대! ★★★ 놓침 — 꺾어 돌아가요');
+      see(s, 'thorn');
       s.hits++;
       ev(s, 'hurt', th.x, th.y, s.hp, '가시덤불에 걸렸어요 — ★★★ 놓침');
     }
@@ -797,7 +804,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
   s.best = Math.max(s.best, n);
   if (n > 0 || P.shots.length) s.chain++;
   else s.chain = 0;
-  if (s.chain >= 3) see(s, 'chain', '연쇄 — 쉬지 않고 이어 베면 점수가 불어나요');
+  if (s.chain >= 3) see(s, 'chain');
   s.freeze = n > 0 ? Math.min(HITSTOP.max, HITSTOP.base + n) : P.bounce && !idle ? 3 : 0; // S011: 연달아 튕기면 멈칫도 없다(세상이 멈춰 서서 버티던 진짜 원인) · M3 S1 오너 "렉·연출 과도": 벤 뒤 멈칫 최대 8 → 5틱(133 → 83ms)
   if (n >= 3) s.slowT = 30;
   if (n >= 3 && s.firstBig < 0) s.firstBig = s.t;
@@ -819,7 +826,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     s.free = 240; // 🧪: 셋을 베면 먹이 이미 가득인 때가 많아(76~89%) '가득'만으로는 안 느껴짐 → 다음 한 획 공짜(꾹 4초까지)
     s.trail.sw = true;
     ev(s, 'sweep', P.ex, P.ey, n);
-    see(s, 'sweep', '싹쓸이! 다음 한 획은 먹이 안 들어요');
+    see(s, 'sweep');
   }
   if (P.bounce) ev(s, 'bounce', P.ex, P.ey);
   // ✏️ S004 '찾아오는 위협': 너구리 포수가 내린 자리를 노린다 — 빨간 고리가 조이고, 그 자리에 남아 있으면 맞는다.
@@ -1207,7 +1214,7 @@ export const slowdash: GameDef<DashState> = {
           s.aim = q;
           s.holdT++;
           // ✏️ S011 첫 빨간 덤불: 그리는 길이 처음 덤불에 걸리면 한 번 알려 준다(다시 그리기를 배우게)
-          if (s.thorns.length && !s.seen.has('thornRed') && s.holdT % 4 === 0 && thornOf(s, tracePath(s, strokeOf(s), reachFor(s, strokeOf(s))).legs)) see(s, 'thornRed', '빨간 덤불은 한 대! 손가락을 닌자 위에 잠깐 두면 지워져요');
+          if (s.thorns.length && !s.seen.has('thornRed') && s.holdT % 4 === 0 && thornOf(s, tracePath(s, strokeOf(s), reachFor(s, strokeOf(s))).legs)) see(s, 'thornRed');
         }
       } else {
         if (s.down && s.aim) doDash(s, strokeOf(s));
@@ -1769,6 +1776,62 @@ function pxLine(ctx: C2, x0: number, y0: number, x1: number, y1: number, n: numb
 }
 /** 판별 배경 v(pix.ts bgGrid) — 빨랫줄 판엔 빨랫줄, 굴뚝 판엔 굴뚝, 2-10은 큰 시계탑 */
 const BGV: Record<string, number> = { leafWait: 2, smoke: 1, leafShield: 2, roofs: 1, jars: 2, boss2: 3 };
+// ── M3 S11 렉(🧪 첫 떼기 ❌ 12·10/30): 처음 쓰는 글(글꼴·크기·글자가 처음)이 한 번에 4~9ms(CPU 4배) — '아얏!' '부엉!' '싹쓸이!' 알림 글이
+//    첫 떼기 프레임에 몰려 그 프레임만 27~31ms였다. 같은 글꼴·크기·선 굵기·기울기로 켠 뒤 한 프레임에 하나씩 미리 그려 둔다(그 위를 판이 바로 덮는다).
+//    글자만 미리 그리면 9.1 → 3.3ms, 같은 문장이면 0(글자 모양 + 문장 다듬기 둘 다) → 쓰는 글을 표 하나에 모아 그 표로 예열한다.
+const fontOf = (w: number, sz: number, wgt = 800) => `${wgt} ${Math.max(12, sz * w)}px system-ui, sans-serif`;
+/** 떠오르는 글(사건마다 한 마디): [글, 색, 크기px] */
+const POP = {
+  bounce: ['챙!', '#ffd86b', 18], shotcut: ['탁!', '#e8f4ff', 14], hurt: ['아얏!', '#ffb3a8', 18], whiff: ['헛방!', '#d8dcef', 14], shoot: ['슝', '#ffd0c8', 12],
+  shoot3: ['휙휙휙', '#ffd0c8', 12], clink: ['팅!', '#e8f4ff', 14], boom: ['펑!', '#ffd166', 26], bosshit: ['으윽!', '#ffd0c8', 18], empty: ['게이지 바닥!', '#ffb3a8', 14],
+} satisfies Record<string, [string, string, number]>;
+const chainPop = (n: number): [string, string, number] => [`연쇄 ×${n}`, '#9ff0ff', Math.min(26, 14 + n * 1.5)];
+/** 큰 순간 띠: [글, 크기px] (🧪: '싹둑'은 '싹쓸이'와 헷갈려 뺌) */
+const bannerOf = (sw: boolean, n: number): [string, number] => [sw ? '싹쓸이!' : `${n}명 베기!`, sw ? 24 : Math.min(22, 14 + n * 2)];
+/** 아래 팁 줄 */
+const HINT = {
+  hold: '떼면 번쩍! 선 위의 적을 모두 베요', short: '게이지가 모자라 짧게만 돌진해요', first: '꾹 누르면 느려져요 — 떼면 번쩍!', bend: '끝에서 꺾어 쭉!',
+  owl: '부엉이 길 — 손가락을 따라 그어요(★★★ 없음)', won: '모든 판을 지나왔어요!', lose: '날아오는 건 비켜 서요 — 빨간 표시를 보세요',
+  stars: (n: number) => `★ ${n}개! 다음 판엔 새 적이 나와요`,
+};
+export interface WarmText { f: string; t: string; lw: number; lj?: CanvasLineJoin; mw?: number; rot?: number }
+/** 켠 뒤 미리 그려 둘 글 목록(그리는 곳과 같은 글꼴 · 같은 선 · 같은 기울기) — 첫 떼기에 뜨는 것이 먼저(꾹 글은 꾹 하는 동안 실제로 그려진다) */
+export function textWarm(w: number): WarmText[] {
+  const out: WarmText[] = [], add = (f: string, t: string, lw: number, o: Partial<WarmText> = {}) => out.push({ f, t, lw, ...o });
+  const hint = (t: string, sz = 0.035) => add(fontOf(w, sz, 900), t, 0, { mw: w - 0.04 * w });
+  for (const [t, z] of [bannerOf(true, 0), ...[2, 3, 4].map((n) => bannerOf(false, n))]) add(`900 ${z}px system-ui, sans-serif`, t, 6, { lj: 'round' });
+  add(fontOf(w, 0.036, 900), '부엉!', 3);
+  hint(TIP.sweep), hint(TIP.chain);
+  for (const [t, , z] of [POP.hurt, POP.bounce, POP.shotcut, POP.boom, POP.clink, POP.whiff, POP.bosshit, POP.empty, ...[3, 4, 5, 6].map(chainPop), POP.shoot, POP.shoot3]) add(`800 ${z}px system-ui, sans-serif`, t, 3);
+  for (const t of Object.values(TIP)) if (t !== TIP.sweep && t !== TIP.chain) hint(t);
+  hint(HINT.hold), hint(HINT.short), hint(HINT.bend), hint(HINT.first, 0.04);
+  add(fontOf(w, 0.05, 900), '스으…', 4, { rot: -0.12 });
+  for (let k = 2; k <= 5; k++) add(fontOf(w, 0.05, 900), `${k}명 한 줄!`, 4);
+  for (const t of ['휙! 꺾어요', '툭! 꺾어요']) add(fontOf(w, 0.04, 900), t, 3);
+  add(fontOf(w, 0.03, 900), '123456', 0);
+  hint(HINT.won), hint(HINT.lose), [1, 2, 3].forEach((n) => hint(HINT.stars(n)));
+  return out;
+}
+/** 글 하나의 한 조각을 미리 그린다(0 재기 = 글꼴 찾기·문장 다듬기 · 1 테두리 · 2 채우기) — 화면 밖 캔버스 · 판 캔버스와 같은 배율이어야 같은 글자 모양이 쓰인다.
+ *  조각으로 나눈 까닭(🧪 S11): 글 하나를 한 번에 하면 4~9ms(CPU 4배)라 켠 뒤 프레임이 길어졌다. 남은 조각이 없으면 false */
+export function warmText(ctx: C2, it: WarmText, x: number, y: number, part: number): boolean {
+  if (part === 1 && !it.lw) part = 2;
+  if (part > 2) return false;
+  ctx.save();
+  ctx.font = it.f;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = it.lj ?? 'miter';
+  ctx.translate(x, y);
+  if (it.rot) ctx.rotate(it.rot);
+  if (part === 0) ctx.measureText(it.t);
+  else if (part === 1) (ctx.lineWidth = it.lw), ctx.strokeText(it.t, 0, 0);
+  else if (it.mw) ctx.fillText(it.t, 0, 0, it.mw);
+  else ctx.fillText(it.t, 0, 0);
+  ctx.restore();
+  return part < 2;
+}
+
 let LO: C2 | null = null;
 /** 도트 세상 캔버스(한 장을 다시 쓴다) */
 function loLayer(lw: number, lh: number): C2 | null {
@@ -1809,7 +1872,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     lo.strokeText = defer(true);
     ctx = lo;
   }
-  const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, R(sz))}px system-ui, sans-serif`);
+  const font = (sz: number, wgt = 800) => (ctx.font = fontOf(w, sz, wgt));
   const sv = s.slowVis;
   const L = reachOf(s.g), canCut = L >= HOP;
   const prev = s.down && s.aim && s.phase === 'play' ? tracePath(s, strokeOf(s), canCut ? reachFor(s, strokeOf(s)) : HOP) : null;
@@ -2508,30 +2571,30 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       fx.ring(ex, ey - R(0.04), '#e8fbff', R(0.22), 3);
       fx.burst(ex, ey - R(0.04), '#ffd84a', 16, 5, 2.6);
     }
-    if (e.kind === 'chain' && (e.n ?? 0) >= 3) say(w * 0.8, Y(0.56), `연쇄 ×${e.n}`, '#9ff0ff', Math.min(26, 14 + (e.n ?? 2) * 1.5));
+    if (e.kind === 'chain' && (e.n ?? 0) >= 3) say(w * 0.8, Y(0.56), ...chainPop(e.n ?? 2));
     if (e.kind === 'bounce') {
-      say(ex, ey - R(0.14), '챙!', '#ffd86b', 18);
+      say(ex, ey - R(0.14), ...POP.bounce);
       fx.burst(ex, ey - R(0.06), '#ffe9a0', 8, 3, 2);
       fx.kick(3);
       for (const f of s.foes) if (f.k === 'shield' && Math.hypot(f.x - e.x, f.y - e.y) < 0.12) fx.memo['bn' + f.id] = t;
     }
     if (e.kind === 'shotcut') {
       fx.burst(ex, ey - R(0.05), '#ffffff', 8, 2.6, 1.6);
-      say(ex, ey - R(0.1), '탁!', '#e8f4ff', 14);
+      say(ex, ey - R(0.1), ...POP.shotcut);
     }
     if (e.kind === 'hurt') {
       fx.blink('#ff3b30', 0.22);
       fx.kick(6);
       fx.burst(ex, ey - R(0.06), '#ff8a7a', 14, 3.2, 2.2);
-      say(ex, ey - R(0.16), '아얏!', '#ffb3a8', 18);
+      say(ex, ey - R(0.16), ...POP.hurt);
       fx.memo.hurtT = t;
     }
-    if (e.kind === 'whiff') say(ex, ey - R(0.15), '헛방!', '#d8dcef', 14);
+    if (e.kind === 'whiff') say(ex, ey - R(0.15), ...POP.whiff);
     if (e.kind === 'slash') fx.burst(ex, ey - R(0.05), '#ff6a5a', 10, 3, 2);
-    if (e.kind === 'shoot') say(ex, ey - R(0.14), e.n ? '휙휙휙' : '슝', '#ffd0c8', 12);
+    if (e.kind === 'shoot') say(ex, ey - R(0.14), ...(e.n ? POP.shoot3 : POP.shoot));
     if (e.kind === 'clink') {
       fx.burst(ex, ey - R(0.05), '#ffffff', 10, 2.6, 1.6);
-      say(ex, ey - R(0.1), '팅!', '#e8f4ff', 14);
+      say(ex, ey - R(0.1), ...POP.clink);
       fx.memo.flm = t;
     }
     if (e.kind === 'boom') {
@@ -2541,13 +2604,13 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       fx.ring(ex, ey, '#ffb347', R(BLAST), 5);
       fx.kick(7);
       fx.blink('#ffb347', 0.18);
-      say(ex, ey - R(0.12), '펑!', '#ffd166', 26);
+      say(ex, ey - R(0.12), ...POP.boom);
     }
     if (e.kind === 'bosshit') {
-      say(ex, ey - R(0.24), '으윽!', '#ffd0c8', 18);
+      say(ex, ey - R(0.24), ...POP.bosshit);
       fx.kick(4);
     }
-    if (e.kind === 'empty') say(ex, ey - R(0.18), '게이지 바닥!', '#ffb3a8', 14);
+    if (e.kind === 'empty') say(ex, ey - R(0.18), ...POP.empty);
     if (e.kind === 'clear') {
       fx.burst(w * 0.3, Y(0.7), '#ffd84a', 36, 6, 3);
       fx.burst(w * 0.7, Y(0.7), '#9ff0ff', 36, 6, 3);
@@ -2579,7 +2642,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   if (fx.memo.bigT !== undefined && t - fx.memo.bigT < bl && s.phase === 'play' && (swB || fx.memo.bigN >= 3)) { // 🧪 S10: 결과가 뜨면 띠를 걷는다(판을 끝낸 싹쓸이 띠가 결과 제목을 덮던 것)
     const age = t - fx.memo.bigT, n = fx.memo.bigN, sc2 = age < 5 ? 1.3 - 0.3 * (age / 5) : 1, a = Math.min(1, (bl - age) / 14);
     const bx = w / 2, by = R(0.085) + R(0.075); // M3 S1 🧪 🔴: 띠가 다음에 겨눌 무리를 덮었다 → HUD 바로 아래 작은 칩(덮는 면적 ≈ 2%) · 부제는 뺌(아래 팁 줄이 같은 말)
-    const txt = swB ? '싹쓸이!' : `${n}명 베기!`, size = swB ? 24 : Math.min(22, 14 + n * 2); // 🧪: '싹둑'은 '싹쓸이'와 헷갈려 뺌
+    const [txt, size] = bannerOf(swB, n); // 🧪: '싹둑'은 '싹쓸이'와 헷갈려 뺌
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate(bx, by);
@@ -2870,11 +2933,11 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       let hint = d.hint;
       const fresh = s.news && s.phase === 'play' && s.t - s.news.t < NEWS_T; // ✏️ S012: 처음 알림(see)이 여기 뜬다 — 전엔 어디에도 안 그려졌다
       if (fresh) hint = s.news!.text;
-      else if (s.stage === 0 && !s.firstDash && s.phase === 'play') hint = '꾹 누르면 느려져요 — 떼면 번쩍!';
-      else if (moveDemo(s) && !s.down && s.phase === 'play') hint = '끝에서 꺾어 쭉!'; // 🧪 S3: 그림(꺾기)과 같은 말
-      else if (s.owl && !s.down && s.phase === 'play') hint = '부엉이 길 — 손가락을 따라 그어요(★★★ 없음)'; // M2 S4
-      else if (s.down && s.phase === 'play') hint = canCut ? '떼면 번쩍! 선 위의 적을 모두 베요' : '게이지가 모자라 짧게만 돌진해요';
-      else if (s.phase === 'result') hint = s.ok ? (s.won ? '모든 판을 지나왔어요!' : `★ ${s.got}개! 다음 판엔 새 적이 나와요`) : '날아오는 건 비켜 서요 — 빨간 표시를 보세요';
+      else if (s.stage === 0 && !s.firstDash && s.phase === 'play') hint = HINT.first;
+      else if (moveDemo(s) && !s.down && s.phase === 'play') hint = HINT.bend; // 🧪 S3: 그림(꺾기)과 같은 말
+      else if (s.owl && !s.down && s.phase === 'play') hint = HINT.owl; // M2 S4
+      else if (s.down && s.phase === 'play') hint = canCut ? HINT.hold : HINT.short;
+      else if (s.phase === 'result') hint = s.ok ? (s.won ? HINT.won : HINT.stars(s.got)) : HINT.lose;
       const first = s.stage === 0 && !s.firstDash;
       font(first ? 0.04 : 0.035, 900);
       ctx.textAlign = 'center';

@@ -25,7 +25,7 @@ for (const [name, q] of [['1-1', 'stage=1'], ['2-10', 'trial=1&stage=20'], ['2-6
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
     // M3 S8(🧪 S6 (83) 사각지대): 페이지를 여는 순간부터 rAF 간격 · 긴 작업(longtask) · 첫 그림(FCP)을 잰다
     await p.addInitScript("window.__f = []; window.__lt = 0; { let l = 0; const g = (t) => (l && window.__f.push(t - l), (l = t), requestAnimationFrame(g)); requestAnimationFrame(g); } try { new PerformanceObserver((li) => li.getEntries().forEach((e) => (window.__lt = Math.max(window.__lt, e.duration)))).observe({ type: 'longtask', buffered: true }); } catch {}");
-    await p.goto(`${file}?seed=${seed}&${q}&dpr=2${process.env.NOWARM ? '&warm=0' : ''}`);
+    await p.goto(`${file}?seed=${seed}&${q}&dpr=2${process.env.NOWARM ? '&warm=0' : ''}${process.env.TWARM0 ? '&twarm=0' : ''}`); // TWARM0: 글 예열 끔(M3 S11 비교용)
     await p.waitForTimeout(3000); // 🧪 S5: 켠 뒤 3초 최대 프레임(예열이 화면을 멈추지 않는지)
     loads.push(Math.round(Math.max(...((await p.evaluate('window.__f.slice()')) as number[]))));
     fcps.push(Math.round((await p.evaluate("(performance.getEntriesByName('first-contentful-paint')[0] || { startTime: 0 }).startTime")) as number));
@@ -70,4 +70,4 @@ for (let seed = 1; seed <= Math.min(N, 5); seed++) {
 rows.push(`판 고르기 → 2-10 들어갈 때 최대 프레임 [${picks.join(' ')}]ms`);
 await b.close();
 console.log(rows.join('\n'));
-console.log(`렉 측정(시드 ${N} · ${process.env.MUTE ? '소리 끔' : '소리 켬'} · CPU 4배 · DPR 2): 통과선 밖 ${bad}번(첫 떼기 > 34ms · 켠 뒤 > 50ms) · 첫 떼기 ≥50ms ${over} → ${bad === 0 && over === 0 ? '✅' : '❌'}`);
+console.log(`렉 측정(시드 ${N} · ${process.env.MUTE ? '소리 끔' : '소리 켬'}${process.env.TWARM0 ? ' · 글 예열 끔' : ''} · CPU 4배 · DPR 2): 통과선 밖 ${bad}번(첫 떼기 > 34ms · 켠 뒤 > 50ms) · 첫 떼기 ≥50ms ${over} → ${bad === 0 && over === 0 ? '✅' : '❌'}`);

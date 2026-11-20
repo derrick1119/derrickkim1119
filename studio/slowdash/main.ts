@@ -4,7 +4,7 @@
  */
 import { TICK } from './core.ts';
 import { peek } from './juice.ts';
-import { STAGES, STAGE_COUNT, TRIAL, WORLD_LOCK, slowdash as g, startStage, useOwl, worldStars, type DashState } from './game.ts';
+import { STAGES, STAGE_COUNT, TRIAL, WORLD_LOCK, slowdash as g, startStage, textWarm, useOwl, warmText, worldStars, type DashState, type WarmText } from './game.ts';
 import { sfx } from './sfx.ts';
 
 const store = {
@@ -109,9 +109,24 @@ function size() {
   canvas.width = Math.round(W * dpr);
   canvas.height = Math.round(H * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (q.get('twarm') !== '0' && warmC) (DPR = dpr), (warmC.canvas.width = Math.round(w * dpr)), (warmC.canvas.height = Math.round(100 * dpr)), (warmQ = textWarm(W)), (warmPart = 0); // 글자 크기가 화면 너비를 따르므로 크기가 바뀌면 다시
   draw();
 }
 
+// M3 S11 렉(🧪 첫 떼기): 처음 쓰는 글을 켠 뒤 미리 한 번씩 그려 둔다 — 첫 그림(FCP) 뒤 · 화면 밖 작은 캔버스에(판 캔버스와 같은 배율)
+//   🧪 S11 1차: 프레임마다 하나씩 → 첫 떼기 12·10 → 20·15/30이지만 켠 뒤 3초 ≤50ms 20·21 → 10·11/30(켜자마자 프레임이 길어짐)
+//   2차: 브라우저가 한가할 때(requestIdleCallback) → CPU 4배에선 한가한 틈이 거의 없어 첫 떼기 전에 못 끝냄
+//   3차: 직전 프레임이 제때(≤ 20ms) 온 경우에만 글 하나씩 → 켠 뒤 4초에도 다 못 끝냄(2-6 남은 글 13~20)
+//   → 4차: 글 하나를 세 조각(재기 · 테두리 · 채우기)으로 나눠 제때 온 프레임마다 한 조각 · 첫 떼기에 뜨는 글부터 · ?twarm=0 이면 끔(비교용)
+let warmQ: WarmText[] = [], warmPart = 0, DPR = 1;
+const warmC = document.createElement('canvas').getContext('2d');
+function warmTick(dt: number) {
+  if (!warmQ.length || !warmC || dt > 20) return;
+  warmC.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if (warmText(warmC, warmQ[0], W / 2, 50, warmPart)) warmPart++;
+  else (warmQ.shift(), (warmPart = 0));
+  (window as unknown as { __slowdashWarm?: number }).__slowdashWarm = warmQ.length; // 측정용: 남은 글 수
+}
 function draw() {
   g.draw(ctx, s, W, H, pal);
   ctx.save();
@@ -224,6 +239,7 @@ pickBtn?.addEventListener('click', () => (picker.hidden ? openPicker() : (picker
 
 function loop(now: number) {
   if (!running) return;
+  warmTick(now - last);
   acc += Math.min(0.25, (now - last) / 1000);
   qualityTick(now - last);
   last = now;

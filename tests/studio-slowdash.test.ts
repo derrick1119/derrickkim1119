@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/slowdash/core.ts';
-import { ONBOARD, STAGES, STRIKE, TRIAL, WORLD_LOCK, measureKit, missOf, useOwl, worldStars, slowdash as g, slowdashRandom, slowdashSmart, startStage } from '../studio/slowdash/game.ts';
+import { ONBOARD, STAGES, STRIKE, TRIAL, WORLD_LOCK, measureKit, missOf, textWarm, useOwl, worldStars, slowdash as g, slowdashRandom, slowdashSmart, startStage } from '../studio/slowdash/game.ts';
 import { BOTS, measure, setBambooOff, tapEvery, try3, tryStage } from '../studio/slowdash/funqa.ts';
 import { chainHz, sfx } from '../studio/slowdash/sfx.ts';
 import { PAL, PX, SOLDIER, bgGrid, heroGrid, soldierGrid } from '../studio/slowdash/pix.ts';
@@ -584,6 +584,18 @@ describe('느린 시간 닌자 플레이 빌드', () => {
     }
     const src = readFileSync('studio/slowdash/game.ts', 'utf8');
     expect(src).not.toMatch(/function getBg|createRadialGradient/); // 옛 벡터 배경 굽기 · 매 프레임 원형 그라데이션 없음
+  });
+  it('M3 S11 렉(🧪 첫 떼기): 사건 글·알림 글은 표에서만 나오고, 그 표 전부를 켠 뒤 틈틈이 같은 글꼴·같은 선 굵기로 화면 밖에 미리 그린다', () => {
+    const src = readFileSync('studio/slowdash/game.ts', 'utf8'), main = readFileSync('studio/slowdash/main.ts', 'utf8');
+    expect(src).not.toMatch(/\bsay\([^;]*, '[^']+', '#/); // say(…, '글', '#색', 크기) 같은 따로 쓴 글 없음 → POP 표
+    expect(src).not.toMatch(/\bsee\(s, '\w+', '[^']/); // 알림 글은 TIP 표
+    const wm = textWarm(390), has = (f: string, t: string, lw: number) => wm.some((q) => q.f === f && q.t === t && q.lw === lw);
+    expect(has('800 18px system-ui, sans-serif', '아얏!', 3)).toBe(true); // 떠오르는 글(juice: 800 · 선 3)
+    expect(has(`900 ${0.036 * 390}px system-ui, sans-serif`, '부엉!', 3)).toBe(true); // 부엉이(🧪 첫 떼기 4.2ms)
+    expect(wm.some((q) => q.t === '싹쓸이!' && q.f.startsWith('900 24px') && q.lw === 6 && q.lj === 'round')).toBe(true); // 큰 순간 띠
+    expect(wm.some((q) => q.t === '싹쓸이! 다음 한 획은 먹이 안 들어요' && q.mw)).toBe(true); // 알림 글(🧪 첫 떼기 9.1ms)
+    expect(main).toMatch(/warmText\(warmC, /); // 화면 밖 캔버스에(판 캔버스엔 안 그림)
+    expect(main).toMatch(/dt > 20\) return/); // 직전 프레임이 제때 온 경우에만 · 한 조각씩(🧪 S11 1차: 켠 뒤 프레임이 길어짐)
   });
   it('M3 S1 시안 모음: 스타일 넷(도트·3D·2.5D·2D)과 캐릭터 셋 그림이 있고, 모음 페이지가 일곱 장을 모두 가리킨다', () => {
     const dir = 'web/public/studio/slowdash/concepts/', page = readFileSync(dir + 'index.html', 'utf8');
