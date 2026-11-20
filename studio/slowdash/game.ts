@@ -2650,7 +2650,11 @@ let LO: C2 | null = null;
 /** 도트 세상 캔버스(한 장을 다시 쓴다) */
 function loLayer(lw: number, lh: number): C2 | null {
   if (typeof document === 'undefined') return null;
-  if (!LO) LO = document.createElement('canvas').getContext('2d')!;
+  if (!LO) {
+    LO = document.createElement('canvas').getContext('2d')!;
+    for (const f of [0, 1, 2]) hero(f); // 🧪 M3 S2: 처음 쓸 때 굽던 그림 때문에 첫 '번쩍'이 한 프레임 끊겼다 → 미리 굽기
+    for (const k of SOLDIER) soldier(k);
+  }
   const c = LO.canvas;
   if (c.width !== lw || c.height !== lh) ((c.width = lw), (c.height = lh));
   LO.setTransform(1, 0, 0, 1, 0, 0);
