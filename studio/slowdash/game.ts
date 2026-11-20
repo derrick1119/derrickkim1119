@@ -2214,8 +2214,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     const a = 1 - since / life;
     for (const lg of s.trail.legs) {
       const x0 = X(lg[0]), y0 = Y(lg[1]) - R(0.05), x1 = X(lg[2]), y1 = Y(lg[3]) - R(0.05);
-      pxLine(ctx, x0, y0, x1, y1, a > 0.5 ? 3 : 2, sw ? `rgba(255,211,64,${0.7 * a})` : `rgba(25,182,167,${0.7 * a})`); // M3 S8 도트 칼자국: 청록(싹쓸이는 금) 계단 + 흰 심
-      pxLine(ctx, x0, y0, x1, y1, 1, `rgba(255,255,255,${a})`);
+      pxLine(ctx, x0, y0, x1, y1, sw ? (a > 0.5 ? 6 : 4) : a > 0.5 ? 3 : 2, sw ? `rgba(255,211,64,${0.7 * a})` : `rgba(25,182,167,${0.7 * a})`); // M3 S8 도트 칼자국: 청록(싹쓸이는 금) 계단 + 흰 심
+      pxLine(ctx, x0, y0, x1, y1, sw ? 2 : 1, `rgba(255,255,255,${a})`); // 🧪 S8: 싹쓸이 칼자국이 큰 금 고리에 묻혔다 → 굵게(6칸) · 고리는 작게 흰색
       if (since < 14) for (const u of [0.25, 0.5, 0.75]) drawFox(ctx, X(lg[0] + (lg[2] - lg[0]) * u), Y(lg[1] + (lg[3] - lg[1]) * u), R(NIN_H) * depth(lg[1] + (lg[3] - lg[1]) * u), s.face, 2, wt, 0.16 * (1 - since / 14) * (0.5 + u));
     }
   }
@@ -2286,15 +2286,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     const pulse = 0.5 + 0.5 * Math.sin(t * 0.4);
     ctx.save();
     ctx.lineCap = 'round';
-    for (const lg of prev.legs) { // M3 S8 도트 겨눈 선: 어두운 3칸 바탕 + 청록 흐르는 점선(먹 모자라면 회색 짧은 점선)
-      const x0 = X(lg[0]), y0 = Y(lg[1]) - R(0.04), x1 = X(lg[2]), y1 = Y(lg[3]) - R(0.04);
-      pxLine(ctx, x0, y0, x1, y1, 3, canCut ? 'rgba(10,14,30,.55)' : 'rgba(10,14,30,.35)');
-      pxLine(ctx, x0, y0, x1, y1, 1, canCut ? '#7cf8dd' : '#9db5d0', canCut ? [5, 2] : [2, 2], (1e6 - (t >> 1)) % 7);
-    }
-    const last = prev.legs[prev.legs.length - 1];
-    const want = strokeLen(s);
-    // 그은 획(먹 붓 자국) — 실제 돌진 선은 그 위에 흰 칼빛으로
-    if (s.stroke.length) {
+    if (s.stroke.length) { // 그은 획(먹 붓 자국) — 🧪 S8: 겨눈 선 위를 덮어 흐렸다 → 겨눈 선 아래에 먼저
       ctx.strokeStyle = 'rgba(10,14,30,.28)';
       ctx.lineWidth = R(0.012);
       ctx.beginPath();
@@ -2302,6 +2294,13 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       for (const q of strokeOf(s)) ctx.lineTo(X(q.x), Y(q.y) - R(0.04));
       ctx.stroke();
     }
+    for (const lg of prev.legs) { // M3 S8 도트 겨눈 선: 어두운 3칸 바탕 + 청록 흐르는 점선(먹 모자라면 회색 짧은 점선)
+      const x0 = X(lg[0]), y0 = Y(lg[1]) - R(0.04), x1 = X(lg[2]), y1 = Y(lg[3]) - R(0.04);
+      pxLine(ctx, x0, y0, x1, y1, 3, canCut ? 'rgba(10,14,30,.55)' : 'rgba(10,14,30,.35)');
+      pxLine(ctx, x0, y0, x1, y1, 1, canCut ? '#7cf8dd' : '#9db5d0', canCut ? [5, 2] : [2, 2], (1e6 - (t >> 1)) % 7);
+    }
+    const last = prev.legs[prev.legs.length - 1];
+    const want = strokeLen(s);
     if (want > pathLen(prev) + 0.03 && !prev.bounce) {
       ctx.strokeStyle = 'rgba(255,140,120,.55)';
       ctx.lineWidth = 2;
@@ -2504,7 +2503,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       fx.memo.swT = t;
       fx.blink('#fff3c4', 0.15);
       fx.kick(6);
-      fx.ring(ex, ey - R(0.04), '#ffd84a', R(0.4), 5);
+      fx.ring(ex, ey - R(0.04), '#e8fbff', R(0.22), 3);
       fx.burst(ex, ey - R(0.04), '#ffd84a', 16, 5, 2.6);
     }
     if (e.kind === 'chain' && (e.n ?? 0) >= 3) say(w * 0.8, Y(0.56), `연쇄 ×${e.n}`, '#9ff0ff', Math.min(26, 14 + (e.n ?? 2) * 1.5));
