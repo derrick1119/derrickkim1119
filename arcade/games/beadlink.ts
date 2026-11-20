@@ -444,13 +444,13 @@ export const STAGES: StageDef[] = [
   },
   {
     key: 'rain', name: '무지개 구슬', news: '무지개 구슬은 아무 색과도 이어져요 — 떨어진 덩어리를 잇는 다리', hint: '무지개로 떨어진 같은 색을 이어요', spot: 'rain',
-    n: 47, colors: 5, bias: 0, maxGroup: 4, strokes: 6, fire: true, ice: 0, iron: 0, star: 0, rain: 4, rainQ: 0.07, preFire: 0,
+    n: 47, colors: 5, bias: 0, maxGroup: 4, strokes: 7, fire: true, ice: 0, iron: 0, star: 0, rain: 4, rainQ: 0.07, preFire: 0,
     goal: S('color', 7, '초록 구슬 7개', 3), stars: [GOAL, S('chain', 8, '한 번에 8개 잇기'), S('fewer', 26, '구슬 26개 안 넘게')],
   },
   {
     key: 'all', name: '마지막 병', news: '얼음·쇠구슬·무지개 — 모두 다 나와요', hint: '별 구슬 둘을 바닥 별 그물까지!', spot: '',
     n: 47, colors: 5, bias: 0, maxGroup: 4, strokes: 8, fire: true, ice: 4, iron: 2, star: 2, rain: 2, rainQ: 0.05, preFire: 0,
-    goal: S('star', 2, '별 구슬 2개 내리기'), stars: [GOAL, S('smash', 2, '쇠구슬로 2개 깨기'), S('fewer', 24, '구슬 24개 안 넘게')],
+    goal: S('star', 2, '별 구슬 2개 내리기'), stars: [GOAL, S('color', 6, '노란 구슬 6개', 2), S('fewer', 24, '구슬 24개 안 넘게')],
   },
 ];
 for (const d of STAGES) d.stars[0] = { ...GOAL, label: d.goal.label };
