@@ -4,8 +4,9 @@ import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, tex
 import { BattleView, ghostUnits } from '../render/battleview.js';
 import { getLook } from '../render/sprites.js';
 import { Battle, formation } from '../sim/battle.js';
-import { G, meta, save, battleSetup, cap, used, lvlOf, countOf, squadAtCell, unitStats, goldFor } from '../state.js';
-import { STAGES, CHAPTERS, MAPS } from '../data/stages.js';
+import { G, meta, save, battleSetup, cap, used, lvlOf, countOf, squadAtCell, unitStats, goldFor, depth } from '../state.js';
+import { CHAPTERS, MAPS } from '../data/stages.js';
+import { AFFIX } from '../data/encounters.js';
 import { UNITS, SKILLS } from '../data/units.js';
 import { RELICS } from '../data/relics.js';
 import { ui, button, iconBtn, panel, bar, icon, seal, stamp, brushTitle, C, inRect } from '../ui/ui.js';
@@ -26,8 +27,11 @@ export function portrait(g, type, x, y, s, t = 0, bob = false) {
 
 export class BattleScene {
   constructor() {
-    const r = this.r = G.run; this.st = STAGES[r.stage]; this.ch = CHAPTERS[this.st.ch];
-    this.view = new BattleView(this.ch.theme, MAPS[this.st.map], r.stage * 7 + 3);
+    const r = this.r = G.run; this.st = r.enc; this.ch = CHAPTERS[r.ch];
+    this.view = new BattleView(this.ch.theme, MAPS[this.st.map], depth() * 7 + 3);
+    this.first = (meta.runs || 0) <= 1 && r.wins === 0;
+    const types = [...new Set(this.st.enemy.map(e => e[0]))].sort((a, b) => (UNITS[b].boss ? 1 : 0) - (UNITS[a].boss ? 1 : 0));
+    this.intro = types.filter(t => !meta.seen[t]); if (!this.intro.length) this.intro = types.filter(t => t === this.st.key);
     this.phase = 'deploy'; this.T = 0; this.speed = 1; this.menu = false; this.slow = 1; this.endT = 0;
     this.sel = null; this.tipOpen = true; this.drag = null; this.scroll = 0; this.order = null; this.aim = null;
     this.toastS = ''; this.toastT = 0; this.banner = 2.6; this.res = null; this.hinted = false; this.fightBanner = 0;
@@ -123,18 +127,18 @@ export class BattleScene {
       for (let k = 0; k < this.speed; k++) { b.step(dt * ts); this.view.handle(b, sfx); }
       fx.update(dt * Math.max(0.35, ts));
       if (b.over) { this.endT += dt; if (this.endT > 1.4) this.finish(); }
-      if (this.r.stage === 0 && !this.hinted && b.time > 2 && this.toastT <= 0) { this.toast('부대를 끌어 명령을 내려보세요! (끄는 동안 시간이 느려집니다)', 5); this.hinted = true; }
+      if (this.first && !this.hinted && b.time > 2 && this.toastT <= 0) { this.toast('부대를 끌어 명령을 내려보세요! (끄는 동안 시간이 느려집니다)', 5); this.hinted = true; }
     }
   }
   finish() {
     const b = this.b, r = this.r, st = this.st; this.phase = 'result'; this.order = null; this.aim = null;
-    r.kills += b.kills; r.lost += b.lost;
+    r.kills += b.kills; r.lost += b.lost; r.nextMorale = 0;
+    for (const e of st.enemy) meta.seen[e[0]] = 1;
     if (b.winner === 0) {
-      const c1 = b.lost <= st.starDeaths, c2 = b.time <= st.starTime, grade = 1 + (c1 ? 1 : 0) + (c2 ? 1 : 0), gold = goldFor(grade, st.boss);
-      r.gold += gold; r.merit = (r.merit || 0) + grade;
+      const c1 = b.lost <= st.starDeaths, c2 = b.time <= st.starTime, grade = 1 + (c1 ? 1 : 0) + (c2 ? 1 : 0), gold = goldFor(grade, st.kind);
+      r.gold += gold; r.merit = (r.merit || 0) + grade; r.wins++;
       this.res = { win: true, grade, c1, c2, gold, t: 0, stamped: false };
-      meta.best = Math.max(meta.best, r.stage + 1);
-      if (r.stage >= STAGES.length - 1) { r.done = true; meta.clears++; } else r.rewardPending = { boss: !!st.boss };
+      r.rewardPending = { kind: st.kind };
       sfx('win');
     } else { r.crowns--; this.res = { win: false, reason: b.reason, t: 0 }; sfx('lose'); }
     save();
@@ -197,7 +201,7 @@ export class BattleScene {
     icon.banner(g, 686, 54, '#b8442f', true); text(g, String(b.count(1) + b.pending), 642, 40, { size: 40, font: FONT_B, fill: C.cream, align: 'right' }); text(g, '요괴', 584, 44, { size: 17, fill: '#e4826a', align: 'right' }); bar(g, 452, 68, 190, 14, e, '#e4826a', { right: true });
     const left = fight ? b.timeLimit - b.time : st.time, low = fight && left < 15;
     ell(g, 360, 62, 58, 58, PAPER, INK, 4); g.beginPath(); g.arc(360, 62, 49, 0, TAU); inkStroke(g, INK + '66', 1.6);
-    text(g, fmtTime(left), 360, 56, { size: 38, font: FONT_B, fill: low ? RED : INK }); text(g, `${st.id} 고개`, 360, 91, { size: 15, fill: SUB });
+    text(g, fmtTime(left), 360, 56, { size: 38, font: FONT_B, fill: low ? RED : INK }); text(g, this.ch.short, 360, 91, { size: 15, fill: SUB });
     // 둘째 줄: 남은 깃발, 전공 조건, 버튼
     for (let k = 0; k < 3; k++) icon.flag(g, 22 + k * 26, 136, 0.95, k < r.crowns ? RED : '#c9c2b0');
     const lost = fight ? b.lost : 0, tt = fight ? b.time : 0;
@@ -247,11 +251,12 @@ export class BattleScene {
     panel(g, x, y, w, h);
     if (!sel) {
       const stg = this.st;
-      rr(g, x + 18, y + 18, 96, 32, 6, stg.boss ? RED : INDIGO); text(g, stg.boss ? '두목' : `${stg.id} 고개`, x + 66, y + 35, { size: 18, fill: C.cream });
+      rr(g, x + 18, y + 18, 96, 32, 6, stg.boss || stg.kind === 'elite' ? RED : INDIGO); text(g, stg.boss ? '두목' : stg.kind === 'elite' ? '강적' : '싸움', x + 66, y + 35, { size: 18, fill: C.cream });
       text(g, stg.name, x + 126, y + 35, { size: 30, font: FONT_B, align: 'left', maxW: 380 });
       text(g, stg.enemyName, x + w - 22, y + 37, { size: 17, fill: RED, align: 'right', maxW: 150 });
-      textBlock(g, stg.tip, x + 22, y + 76, w - 200, 27, { size: 19, align: 'left', weight: 400 });
-      (stg.intro || []).slice(0, 2).forEach((t, n) => { const px = x + w - 62 - n * 80; rr(g, px - 36, y + 58, 72, 96, 5, '#efe2c4', INK, 1.6); g.save(); g.beginPath(); g.rect(px - 35, y + 59, 70, 94); g.clip(); portrait(g, t, px, y + 148, UNITS[t].boss ? 0.6 : 1.15, this.T); g.restore(); });
+      const tip = this.first ? '아래 패를 끌어 부대를 배치하세요. 싸움이 시작되면 부대를 끌어 이동시키고, 요괴 위에 놓아 집중 공격을 명령할 수 있습니다.' : (stg.affix ? `[${AFFIX[stg.affix].name}] ${AFFIX[stg.affix].desc}. ` : '') + stg.tip;
+      textBlock(g, tip, x + 22, y + 76, w - 200, 27, { size: 19, align: 'left', weight: 400 });
+      this.intro.slice(0, 2).forEach((t, n) => { const px = x + w - 62 - n * 80; rr(g, px - 36, y + 58, 72, 96, 5, '#efe2c4', INK, 1.6); g.save(); g.beginPath(); g.rect(px - 35, y + 59, 70, 94); g.clip(); portrait(g, t, px, y + 148, UNITS[t].boss ? 0.6 : 1.15, this.T); g.restore(); });
       text(g, '요괴 부대를 탭하면 정보를 볼 수 있습니다', x + 22, y + h - 24, { size: 16, align: 'left', fill: SUB, weight: 400 });
       return;
     }
@@ -309,7 +314,7 @@ export class BattleScene {
       g.translate(0, (1 - easeOutBack(k)) * -30);
       text(g, this.ch.name, 360, 340, { size: 26, fill: SUB });
       brushTitle(g, 360, 418, 470, 88, st.name, st.boss ? RED : INDIGO, 46);
-      text(g, st.boss ? '두목과의 싸움' : this.ch.sub, 360, 504, { size: 22, fill: SUB });
+      text(g, st.boss ? '두목과의 싸움' : st.affix ? `강적 — ${AFFIX[st.affix].name}: ${AFFIX[st.affix].desc}` : this.ch.sub, 360, 504, { size: 22, fill: st.affix ? RED : SUB });
       g.restore();
     }
     if (this.fightBanner > 0) { const k = clamp(this.fightBanner / 0.3, 0, 1), s = 1 + (1 - k) * 0.6; g.save(); g.globalAlpha = k; g.translate(360, 560); g.scale(s, s); text(g, '전투 개시!', 0, 0, { size: 84, font: FONT_B, fill: INK, stroke: PAPER, lw: 14 }); g.restore(); }
@@ -330,7 +335,7 @@ export class BattleScene {
       [[`손실 ${st.starDeaths}명 이하  (${b.lost}명)`, R.c1], [`${st.starTime}초 안에 섬멸  (${Math.ceil(b.time)}초)`, R.c2]].forEach(([s, ok], n) => { const y = 620 + n * 46; icon.check(g, 138, y, 1.1, ok); text(g, s, 168, y + 1, { size: 22, align: 'left', fill: ok ? INK : '#a9a394' }); });
       rr(g, 220, 724, 280, 56, 28, '#efe2c4', INK, 2); icon.coin(g, 268, 752, 18); text(g, `엽전 + ${R.gold}`, 384, 753, { size: 28, font: FONT_B });
       g.restore();
-      if (t > 1.0) { if (r.done) { if (button(g, 'done', 190, 812, 340, 78, '원정 완료', { size: 38 })) nav.go('end', { win: true }); } else if (button(g, 'reward', 190, 812, 340, 78, '전리품 고르기', { size: 36 })) nav.go('reward'); }
+      if (t > 1.0 && button(g, 'reward', 190, 812, 340, 78, '전리품 고르기', { size: 36 })) nav.go('reward');
     } else {
       panel(g, 70, 400, 580, 440);
       brushTitle(g, 360, 402, 330, 84, '패전', '#5a5346', 54);
@@ -346,7 +351,7 @@ export class BattleScene {
     g.fillStyle = 'rgba(31,42,68,0.55)'; g.fillRect(0, 0, W, H);
     panel(g, 90, 300, 540, 640);
     brushTitle(g, 360, 302, 300, 72, '잠시 멈춤', INDIGO, 38);
-    text(g, `${this.ch.name}  ${this.st.id}`, 360, 384, { size: 24 });
+    text(g, `${this.ch.name}  ·  ${this.st.name}`, 360, 384, { size: 22, maxW: 480 });
     const rel = r.relics.map(id => RELICS[id].name);
     text(g, rel.length ? '지닌 보물' : '지닌 보물 없음', 360, 424, { size: 19, fill: SUB });
     if (rel.length) textBlock(g, rel.join(' · '), 360, 452, 480, 24, { size: 18, weight: 400 });

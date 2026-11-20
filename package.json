@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node tools/serve.mjs 8080",
     "build": "node tools/build.mjs",
-    "balance": "node tools/simtest.mjs 12"
+    "balance": "node tools/campaign.mjs 30 casual"
   },
   "devDependencies": {
     "esbuild": "^0.25.0"

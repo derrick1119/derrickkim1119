@@ -62,11 +62,11 @@ export const UNITS = {
   necro: { name: '저승사자', role: '소환', side: 1, n: 1, hp: 190, atk: 16, as: 1.8, range: 215, spd: 46, r: 12, proj: 'dark', soft: true, raise: { cd: 5, max: 7 },
     desc: '쓰러진 자를 망령으로 일으킨다', tip: '쓰러진 자리에서 망령 병사를 일으킵니다. 살려두면 끝이 없으니 최우선으로 잡으세요.' },
   // ───── 보스 ─────
-  warchief: { name: '두억시니', role: '보스', side: 1, boss: true, n: 1, hp: 2100, atk: 46, as: 1.6, range: 0, reach: 14, spd: 52, r: 26, large: true, splash: 46, abil: ['slam', 'warcry'],
+  warchief: { name: '두억시니', role: '보스', side: 1, boss: true, n: 1, hp: 1900, atk: 44, as: 1.6, range: 0, reach: 14, spd: 52, r: 26, large: true, splash: 46, abil: ['slam', 'warcry'],
     desc: '땅을 내려찍는 도깨비 두목', tip: '붉은 원이 보이면 부대를 빼세요. 체력이 절반이 되면 무리 전체가 광분합니다.' },
-  elder: { name: '당산 목신', role: '보스', side: 1, boss: true, n: 1, hp: 3000, atk: 50, as: 2.0, range: 0, reach: 18, spd: 30, r: 30, large: true, splash: 44, abil: ['roots', 'saplings'],
+  elder: { name: '당산 목신', role: '보스', side: 1, boss: true, n: 1, hp: 2600, atk: 48, as: 2.0, range: 0, reach: 18, spd: 30, r: 30, large: true, splash: 44, abil: ['roots', 'saplings'],
     desc: '숲을 깨우는 천년 고목', tip: '뿌리 감옥(초록 원)을 피하고, 아기 장승이 쌓이기 전에 본체에 화력을 집중하세요.' },
-  skelking: { name: '어둑시니', role: '보스', side: 1, boss: true, n: 1, hp: 3500, atk: 48, as: 1.7, range: 0, reach: 18, spd: 50, r: 26, large: true, splash: 40, abil: ['brand', 'summon'],
+  skelking: { name: '어둑시니', role: '보스', side: 1, boss: true, n: 1, hp: 2800, atk: 44, as: 1.7, range: 0, reach: 18, spd: 50, r: 26, large: true, splash: 40, abil: ['brand', 'summon'],
     desc: '볼수록 커지는 어둠', tip: '어둠의 낙인(보라 원)을 피하고, 후방에 불려 나오는 망령에 대비해 예비대를 남겨두세요.' },
 };
 for (const k of Object.keys(UNITS)) UNITS[k].id = k;

@@ -2,13 +2,17 @@ import { W, H } from './config.js';
 import { nav } from './nav.js';
 import { ui } from './ui/ui.js';
 import { sfx, unlockAudio } from './audio.js';
-import { load } from './state.js';
+import { load, G } from './state.js';
 import { preloadLooks } from './render/sprites.js';
 import { TitleScene } from './scenes/title.js';
 import { HeroScene } from './scenes/hero.js';
 import { BattleScene } from './scenes/battle.js';
 import { RewardScene } from './scenes/reward.js';
 import { EndScene } from './scenes/end.js';
+import { MapScene } from './scenes/map.js';
+import { EventScene } from './scenes/event.js';
+import { ShopScene } from './scenes/shop.js';
+import { MetaScene } from './scenes/meta.js';
 
 const canvas = document.getElementById('game');
 const g = canvas.getContext('2d');
@@ -39,7 +43,7 @@ canvas.addEventListener('click', unlockAudio); canvas.addEventListener('touchend
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('keydown', e => { if (nav.cur && nav.cur.key) nav.cur.key(e.key); });
 
-nav.scenes = { title: TitleScene, hero: HeroScene, battle: BattleScene, reward: RewardScene, end: EndScene };
+nav.scenes = { title: TitleScene, hero: HeroScene, map: MapScene, battle: BattleScene, reward: RewardScene, event: EventScene, shop: ShopScene, meta: MetaScene, end: EndScene };
 
 let last = 0;
 function frame(ts) {
@@ -62,7 +66,7 @@ async function boot() {
   try { await Promise.all([document.fonts.load("20px 'Yeon Sung'", '가A1'), document.fonts.load("700 20px 'Gowun Batang'", '가A1'), document.fonts.load("400 20px 'Gowun Batang'", '가A1')]); } catch (e) { /* 폰트 없이 진행 */ }
   load(); preloadLooks();
   const q = new URLSearchParams(location.search);
-  window.__game = { nav, inp };
+  window.__game = { nav, inp, run: () => G.run };
   nav.now('title');
   if (q.get('debug')) { const m = await import('./debug.js'); m.debugBoot(q); }
   requestAnimationFrame(frame);

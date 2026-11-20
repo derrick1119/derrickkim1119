@@ -11,7 +11,11 @@ export const DEFAULT_MODS = {
   startMorale: 0, moraleRate: 1, flank: 1.5, chargeMult: 1, chargeDist: 1, grailHeal: 1, grailR: 1, rainDmg: 1, rainBurn: 0,
   hornDur: 0, hornCost: 0, hpInf: 1, rangeMul: 1, rangedAS: 1, priestHeal: 1, heroCd: 1, heroHp: 1, gold: 1, lastStand: 0,
   vanguard: 0, aoeR: 1, startShield: 0,
+  // 병종 전용 배율 unit[type] = { hp, atk, as, range, cleave, block }
+  unit: {}, hpAll: 1, heroAtk: 1, openGuard: 0, teleResist: 0, holdGuard: 0, debuff: 1, refund: 0, goldFlat: 0,
 };
+// 요괴 쪽 보정 (강적 특성, 험로 단계)
+export const DEFAULT_FOE = { hp: 1, atk: 1, as: 1, spd: 1, regen: 0 };
 
 function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const hyp = Math.hypot;
@@ -36,13 +40,14 @@ class Heap {
 
 export class Battle {
   constructor(o) {
-    this.mods = Object.assign({}, DEFAULT_MODS, o.mods || {});
+    this.mods = Object.assign({}, DEFAULT_MODS, o.mods || {}); if (!o.mods || !o.mods.unit) this.mods.unit = {};
+    this.foe = Object.assign({}, DEFAULT_FOE, o.foe || {});
     this.rand = mulberry(o.seed || 1);
     this.time = 0; this.over = false; this.winner = -1; this.reason = '';
     this.units = []; this.squads = []; this.proj = []; this.zones = []; this.corpses = []; this.events = [];
     this.timeLimit = o.timeLimit || 120;
     this.power = o.power || 1;
-    this.moraleMax = 10; this.morale = Math.min(10, 3 + this.mods.startMorale);
+    this.moraleMax = 10; this.morale = Math.max(0, Math.min(10, 3 + this.mods.startMorale));
     this.heroSkill = o.heroSkill || null; this.heroCd = 5;
     this.lost = 0; this.kills = 0; this.pending = 0; this.uid = 1; this.auraT = 0;
     this.map = o.map || {};
@@ -72,11 +77,12 @@ export class Battle {
   }
   spawn(type, team, x, y, sq, lvl, off) {
     const def = UNITS[type], m = lvlMult(lvl), md = this.mods;
-    let hp = def.hp * m * PACE;
+    const um = team === 0 ? md.unit[type] : null;
+    let hp = def.hp * m * PACE * (team === 0 ? md.hpAll * (um && um.hp || 1) : this.foe.hp);
     if (team === 0) { if (def.hero) hp *= md.heroHp; else if (!def.range && !def.mounted && !def.heal) hp *= md.hpInf; }
     const u = {
       id: this.uid++, team, type, def, squad: sq, lvl, x, y, px: x, py: y, vx: 0, vy: 0, r: def.r, hp, maxHp: hp,
-      atk: (def.atk || 0) * m, healAmt: (def.heal || 0) * m, facing: team === 0 ? -PI / 2 : PI / 2,
+      atk: (def.atk || 0) * m * (team === 0 ? (um && um.atk || 1) * (def.hero ? md.heroAtk : 1) : this.foe.atk), healAmt: (def.heal || 0) * m * (team === 0 && def.hero ? md.heroAtk : 1), facing: team === 0 ? -PI / 2 : PI / 2,
       target: null, cd: 0.2 + this.rand() * 0.5, retarget: this.rand() * 0.3, swing: 0, swingTarget: null, atkT: -9, cast: 0,
       moving: false, walk: this.rand() * 10, still: 0, stuck: 0, run: 0, stun: 0, root: 0, haste: 0, weaken: 0, rage: 0, burn: 0, burnDmg: 0, burnAcc: 0,
       barrier: 0, barrierT: 0, auraDmg: 0, auraHaste: 0, slot: { dx: off ? off[0] : 0, dy: off ? off[1] : 0 }, dead: false, hidden: 0, flash: 0, eng: 0,
@@ -194,7 +200,7 @@ export class Battle {
     for (const u of this.units) { u.auraDmg = 0; u.auraHaste = 0; }
     for (const s of this.units) { if (s.dead || !s.def.aura) continue; const a = s.def.aura; this.near(s.x, s.y, a.r, o => { if (o.team === s.team && !o.dead && hyp(o.x - s.x, o.y - s.y) <= a.r) { if (a.dmg) o.auraDmg = a.dmg; if (a.haste && o !== s) o.auraHaste = a.haste; } }); }
   }
-  atkSpeed(u) { let s = 1; if (u.haste > 0) s += 0.3; if (u.auraHaste) s += u.auraHaste; if (u.def.frenzy && u.hp < u.maxHp * 0.5) s += 0.5; if (u.team === 0 && u.def.range > 0) s *= this.mods.rangedAS; return s; }
+  atkSpeed(u) { let s = 1; if (u.haste > 0) s += 0.3; if (u.auraHaste) s += u.auraHaste; if (u.def.frenzy && u.hp < u.maxHp * 0.5) s += 0.5; if (u.team === 0) { if (u.def.range > 0) s *= this.mods.rangedAS; const um = this.mods.unit[u.type]; if (um && um.as) s *= um.as; } else s *= this.foe.as; return s; }
   updateOrders() {
     for (const sq of this.squads) {
       const o = sq.order; if (!sq.alive) continue;
@@ -239,7 +245,7 @@ export class Battle {
     if (!this.canCast(id)) return false;
     const s = SKILLS[id], P = this.power, md = this.mods;
     x = Math.max(FIELD.x0, Math.min(FIELD.x1, x || 0)); y = Math.max(FIELD.y0, Math.min(FIELD.y1, y || 0));
-    if (s.hero) this.heroCd = s.cd * md.heroCd; else this.morale -= this.costOf(id);
+    if (s.hero) this.heroCd = s.cd * md.heroCd; else { this.morale -= this.costOf(id); if (md.refund && this.rand() < md.refund) { this.morale = Math.min(this.moraleMax, this.morale + 2); this.ev('text', { x: 360, y: 1040, s: '사기 환급!', c: '#b8862a' }); } }
     const h = this.hero(), hm = h ? lvlMult(h.lvl) : 1;
     if (id === 'rain') this.zones.push({ kind: 'rain', x, y, r: s.r, t: 0, dur: 2.3, acc: 0.25, dmg: 26 * P * md.rainDmg, burn: md.rainBurn });
     else if (id === 'grail') this.zones.push({ kind: 'grail', x, y, r: s.r * md.grailR, t: 0, dur: 3.1, acc: 0.5, heal: 0.36 / 6 * md.grailHeal });
@@ -258,6 +264,7 @@ export class Battle {
   think(u, dt) {
     const def = u.def, sq = u.squad;
     if (u.flash > 0) u.flash -= dt * 5;
+    if (u.team === 1 && this.foe.regen && u.hp < u.maxHp) u.hp = Math.min(u.maxHp, u.hp + u.maxHp * this.foe.regen * dt);
     if (u.haste > 0) u.haste -= dt; if (u.weaken > 0) u.weaken -= dt; if (u.root > 0) u.root -= dt; if (u.rage > 0) u.rage -= dt;
     if (u.barrierT > 0) { u.barrierT -= dt; if (u.barrierT <= 0) u.barrier = 0; }
     if (u.burn > 0) { u.burn -= dt; u.burnAcc += dt; if (u.burnAcc >= 0.5) { u.burnAcc -= 0.5; this.damage(u, u.burnDmg * 0.5, null, 'burn'); if (u.dead) return; } }
@@ -297,7 +304,7 @@ export class Battle {
   }
   toSlot(u, o, dt) { const gx = o.x + u.slot.dx, gy = o.y + u.slot.dy; if (hyp(gx - u.x, gy - u.y) > 6) this.moveTo(u, gx, gy, dt); else this.idle(u, dt); }
   face(u, a, dt, rate) { const d = angDiff(u.facing, a), m = rate * dt; u.facing += Math.abs(d) < m ? d : Math.sign(d) * m; }
-  rangeOf(u) { const def = u.def; return def.range > 0 ? def.range * (u.team === 0 ? this.mods.rangeMul : 1) : 5 + (def.reach || 0); }
+  rangeOf(u) { const def = u.def; if (!(def.range > 0)) return 5 + (def.reach || 0); if (u.team !== 0) return def.range; const um = this.mods.unit[u.type]; return def.range * (def.heal ? 1 : this.mods.rangeMul) * (um && um.range || 1); }
   engage(u, t, dt, o) {
     const def = u.def, dx = t.x - u.x, dy = t.y - u.y, d = hyp(dx, dy), gap = d - u.r - t.r, rng = this.rangeOf(u);
     if (def.minRange && d < def.minRange) { u.moving = false; this.face(u, Math.atan2(dy, dx), dt, 6); return; }
@@ -363,7 +370,7 @@ export class Battle {
 
   moveTo(u, gx, gy, dt) {
     if (u.root > 0 || u.def.structure) { u.moving = false; return; }
-    let spd = u.def.spd; if (u.haste > 0) spd *= 1.35;
+    let spd = u.def.spd * (u.team === 1 ? this.foe.spd : 1); if (u.haste > 0) spd *= 1.35;
     if (u.team === 0 && this.mods.vanguard && this.time < 8) spd *= 1.3;
     for (const s of this.slow) if (u.x > s.x && u.x < s.x + s.w && u.y > s.y && u.y < s.y + s.h) { spd *= 0.55; break; }
     let tx = gx, ty = gy;
@@ -421,7 +428,7 @@ export class Battle {
     if (hyp(t.x - u.x, t.y - u.y) - u.r - t.r > this.rangeOf(u) + 16) return;
     this.damage(t, u.atk, u, 'melee');
     this.ev('melee', { x: (t.x + u.x) / 2, y: (t.y + u.y) / 2 - 12, big: !!def.splash || !!def.cleave, team: u.team });
-    if (def.cleave) { let n = def.cleave - 1; this.near(t.x, t.y, 44, e => { if (n > 0 && e !== t && e.team !== u.team && !e.dead && hyp(e.x - u.x, e.y - u.y) < u.r + e.r + 26) { n--; this.damage(e, u.atk * 0.8, u, 'melee'); } }); }
+    if (def.cleave) { const um = u.team === 0 ? this.mods.unit[u.type] : null; let n = def.cleave - 1 + (um && um.cleave || 0); this.near(t.x, t.y, 44, e => { if (n > 0 && e !== t && e.team !== u.team && !e.dead && hyp(e.x - u.x, e.y - u.y) < u.r + e.r + 26) { n--; this.damage(e, u.atk * 0.8, u, 'melee'); } }); }
     if (def.splash) this.near(t.x, t.y, def.splash + 16, e => { if (e !== t && e.team !== u.team && !e.dead && hyp(e.x - t.x, e.y - t.y) < def.splash + e.r) this.damage(e, u.atk * 0.5, u, 'aoe'); });
   }
   fire(u, t) {
@@ -443,7 +450,7 @@ export class Battle {
         flank = true; mult *= src.team === 0 ? this.mods.flank : 1.4;
         if (t.def.boss) mult = 1 + (mult - 1) * 0.5;
         if (src.stab) { mult *= src.def.backstab / 1.4; src.stab = false; }
-      } else if (t.def.shield && dot > 0.1) { mult *= kind === 'proj' ? 0.3 : 0.75; block = kind === 'proj'; }
+      } else if (t.def.shield && dot > 0.1) { const tm = t.team === 0 ? this.mods.unit[t.type] : null; mult *= kind === 'proj' ? 0.3 : 0.75 - (tm && tm.block || 0); block = kind === 'proj'; }
       if (src.def.antiCav) { if (t.def.mounted) mult *= 2; else if (t.def.large) mult *= 1.5; }
     }
     if (src) {
@@ -451,6 +458,7 @@ export class Battle {
       if (src.team === 0) { const md = this.mods; if (md.lastStand && src.squad.alive <= src.squad.total / 2) mult *= 1 + md.lastStand; if (md.vanguard && this.time < 8) mult *= 1.15; }
     }
     let d = amt * mult;
+    if (t.team === 0) { const md = this.mods; if (md.openGuard && this.time < 5) d *= 1 - md.openGuard; if (md.holdGuard && t.squad.order.kind === 'hold') d *= 1 - md.holdGuard; }
     if (t.barrier > 0) { const a = Math.min(t.barrier, d); t.barrier -= a; d -= a; if (d <= 0) { this.ev('hit', { x: t.x, y: t.y, amt: 0, block: true, team: t.team, kind }); return 0; } }
     t.hp -= d; t.flash = 1;
     this.ev('hit', { x: t.x, y: t.y, amt: d, flank, block, team: t.team, kind, big: d > 45 });
@@ -473,9 +481,10 @@ export class Battle {
       if (e.dead || e.jump) return; if (hits !== 2 && e.team !== hits) return;
       const d = hyp(e.x - x, e.y - y); if (d > r + e.r * 0.6) return;
       n++; this.damage(e, dmg, src, 'aoe'); if (e.dead) return;
-      if (o.stun && !e.def.boss) e.stun = Math.max(e.stun, o.stun);
-      if (o.root && !e.def.boss) e.root = Math.max(e.root, o.root);
-      if (o.weaken) e.weaken = Math.max(e.weaken, o.weaken);
+      const dk = e.team === 0 ? this.mods.debuff : 1;
+      if (o.stun && !e.def.boss) e.stun = Math.max(e.stun, o.stun * dk);
+      if (o.root && !e.def.boss) e.root = Math.max(e.root, o.root * dk);
+      if (o.weaken) e.weaken = Math.max(e.weaken, o.weaken * dk);
       if (o.burn) { e.burn = Math.max(e.burn, o.burn); e.burnDmg = Math.max(e.burnDmg, o.burnDmg || 6); }
       if (o.kb && !e.def.boss && !e.def.structure && d > 0.5) { const k = o.kb * (e.def.large ? 0.3 : 1); e.x += (e.x - x) / d * k; e.y += (e.y - y) / d * k; }
     });
@@ -552,7 +561,7 @@ export class Battle {
       const sqs = this.playerSquads().sort((a, b) => b.alive - a.alive + (this.rand() - 0.5) * 3).slice(0, id === 'roots' ? 2 : 3); if (!sqs.length) return false;
       for (const s of sqs) this.zones.push(id === 'roots'
         ? { kind: 'tele', style: 'root', x: s.cx, y: s.cy, r: 72, t: 0, delay: 1.6, hits: 0, dmg: 40 * m, root: 3, src: u }
-        : { kind: 'tele', style: 'dark', x: s.cx, y: s.cy, r: 60, t: 0, delay: 1.9, hits: 0, dmg: 42 * m, weaken: 4, src: u });
+        : { kind: 'tele', style: 'dark', x: s.cx, y: s.cy, r: 60, t: 0, delay: 1.9, hits: 0, dmg: 36 * m, weaken: 4, src: u });
       u.cast = 0.7; this.ev('text', { x: u.x, y: u.y - 100, s: id === 'roots' ? '뿌리 감옥!' : '어둠의 낙인!', c: id === 'roots' ? '#3f7a3a' : '#5a4a8a', big: true }); return true;
     }
     if (id === 'saplings') {
@@ -614,7 +623,7 @@ export class Battle {
     for (const z of this.zones) {
       z.t += dt;
       if (z.kind === 'tele') {
-        if (z.t >= z.delay) { z.done = true; this.aoe(z.x, z.y, z.r, z.dmg, z.hits, z.src && !z.src.dead ? z.src : null, z); this.ev('impact', { x: z.x, y: z.y, r: z.r, style: z.style }); }
+        if (z.t >= z.delay) { z.done = true; this.aoe(z.x, z.y, z.r, z.hits !== 1 ? z.dmg * (1 - this.mods.teleResist) : z.dmg, z.hits, z.src && !z.src.dead ? z.src : null, z); this.ev('impact', { x: z.x, y: z.y, r: z.r, style: z.style }); }
       } else if (z.kind === 'mark') { if (z.t >= z.delay) z.done = true; }
       else if (z.kind === 'spawn') {
         if (z.t >= z.delay) {

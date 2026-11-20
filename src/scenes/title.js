@@ -3,8 +3,8 @@ import { W, H } from '../config.js';
 import { TAU, INK, PAPER, RED, INDIGO, OCHRE, SUB, FONT_B, text, ell, rr, poly, line, path, st, makeCanvas, rng } from '../render/draw.js';
 import { button, iconBtn, icon, panel, seal, C } from '../ui/ui.js';
 import { nav } from '../nav.js';
-import { G, meta, save } from '../state.js';
-import { STAGES } from '../data/stages.js';
+import { G, meta, save, sceneFor } from '../state.js';
+import { CHAPTERS } from '../data/stages.js';
 import { audio, setMuted, sfx } from '../audio.js';
 import { portrait } from './battle.js';
 
@@ -64,16 +64,17 @@ export class TitleScene {
       return;
     }
     if (r) {
-      const stg = STAGES[Math.min(r.stage, STAGES.length - 1)];
-      if (button(g, 'cont', 140, 1066, 440, 100, `이어하기  ${stg.id}`, { size: 46 })) nav.go(r.rewardPending ? 'reward' : 'battle');
-      if (button(g, 'new', 210, 1184, 300, 66, '새 원정', { style: 'paper', size: 30 })) this.confirm = true;
+      if (button(g, 'cont', 140, 1050, 440, 96, `이어하기 · ${CHAPTERS[Math.min(2, r.ch)].short}`, { size: 40 })) nav.go(sceneFor());
+      if (button(g, 'new', 140, 1164, 212, 62, '새 원정', { style: 'paper', size: 28 })) this.confirm = true;
+      if (button(g, 'meta', 368, 1164, 212, 62, '공적 장부', { style: 'paper', size: 28 })) nav.go('meta');
     } else {
       const pulse = 1 + Math.sin(t * 4) * 0.012;
-      g.save(); g.translate(360, 1130); g.scale(pulse, pulse); g.translate(-360, -1130);
-      if (button(g, 'start', 150, 1074, 420, 112, '출  정', { size: 58 })) nav.go('hero');
+      g.save(); g.translate(360, 1100); g.scale(pulse, pulse); g.translate(-360, -1100);
+      if (button(g, 'start', 150, 1046, 420, 108, '출  정', { size: 58 })) nav.go('hero');
       g.restore();
+      if (button(g, 'meta', 230, 1172, 260, 60, `공적 장부${meta.merit ? ' · ' + meta.merit : ''}`, { style: 'paper', size: 26 })) nav.go('meta');
     }
     if (iconBtn(g, 'snd', 644, 1196, 60, 56, (gg, x, y) => icon.sound(gg, x - 3, y, !audio.muted))) { setMuted(!audio.muted); sfx('click'); }
-    if (meta.best > 0) { panel(g, 16, 1206, 196, 40, 'tag'); text(g, `최고 기록 ${STAGES[Math.min(meta.best, STAGES.length) - 1].id}${meta.clears ? ` · 평정 ${meta.clears}` : ''}`, 114, 1227, { size: 17, maxW: 176 }); }
+    if (meta.best > 0) { panel(g, 16, 16, 230, 40, 'tag'); text(g, meta.clears ? `평정 ${meta.clears}회` : `최고 기록 · ${CHAPTERS[Math.min(2, Math.floor((meta.best - 1) / 6))].short}`, 131, 37, { size: 17, maxW: 210 }); }
   }
 }
