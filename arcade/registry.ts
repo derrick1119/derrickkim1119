@@ -5,10 +5,22 @@
  * 졸업한 게임은 스튜디오(`studio/<게임>/`)가 이어받는다(원본 `games/guardian2.ts`·`sheepdog.ts`·`balloonpop.ts`·`duckbath.ts`·`screwshop.ts`·`animalbus.ts`·`demolition.ts`·`potionsort.ts`·`slowdash.ts`·`petsquad.ts`는 스튜디오 참고용으로 파일만 남김).
  */
 import type { Bot, GameDef } from './core.ts';
+import { cakecut, cakecutRandom, cakecutSmart, cakecutHabit, cakecutHabit2 } from './games/cakecut.ts';
+import { drawroll, drawrollRandom, drawrollSmart, drawrollHabit, drawrollHabit2 } from './games/drawroll.ts';
+import { sweepup, sweepupRandom, sweepupSmart, sweepupHabit, sweepupHabit2 } from './games/sweepup.ts';
+import { pluckfarm, pluckfarmRandom, pluckfarmSmart, pluckfarmHabit, pluckfarmHabit2 } from './games/pluckfarm.ts';
+import { beadlink, beadlinkRandom, beadlinkSmart, beadlinkHabit, beadlinkHabit2 } from './games/beadlink.ts';
+import { icecrack, icecrackRandom, icecrackSmart, icecrackHabit, icecrackHabit2 } from './games/icecrack.ts';
 
 /** habits: 늘 같은 버릇대로 하는 봇들(기준 13, 0081 계기판 '버릇 격차') */
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S>; habits?: Bot<S>[] }
 
 export const GAMES: Entry[] = [
-  // 35라운드 판정(2026-11-20): 전체 폐기(이유: 첫인상·손맛이 약함) — 36라운드 만드는 중
+  // 36라운드(2026-11-20): 직접 만지는 물리 장난감 6개 — 톡 또는 한 번 긋기
+  { game: cakecut, dumb: cakecutRandom, smart: cakecutSmart, habits: [cakecutHabit, cakecutHabit2] },
+  { game: drawroll, dumb: drawrollRandom, smart: drawrollSmart, habits: [drawrollHabit, drawrollHabit2] },
+  { game: sweepup, dumb: sweepupRandom, smart: sweepupSmart, habits: [sweepupHabit, sweepupHabit2] },
+  { game: pluckfarm, dumb: pluckfarmRandom, smart: pluckfarmSmart, habits: [pluckfarmHabit, pluckfarmHabit2] },
+  { game: beadlink, dumb: beadlinkRandom, smart: beadlinkSmart, habits: [beadlinkHabit, beadlinkHabit2] },
+  { game: icecrack, dumb: icecrackRandom, smart: icecrackSmart, habits: [icecrackHabit, icecrackHabit2] },
 ];
