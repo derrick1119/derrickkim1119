@@ -623,11 +623,11 @@ export const lavawall: GameDef<LavaState> & { wows(s: LavaState): number } = {
     return s;
   },
   step(s, inp: Input) {
+    s.tick++;
     if (s.events.length && s.tick - s.events[0].t >= 120) s.events = s.events.filter((e) => s.tick - e.t < 120);
     handlePointer(s, inp.pointer ?? null);
     if (!s.news || s.tick - s.news.t > NEWS_T) s.news = s.newsQ.length ? { text: s.newsQ.shift()!, t: s.tick } : s.news;
     s.pt++;
-    s.tick++;
     if (s.phase === 'result') {
       if (s.pt >= RESULT) {
         if (s.ok) {
@@ -912,11 +912,11 @@ const ROOF = ['#e8553e', '#4a8fe0', '#f2b632', '#9a6bd6', '#3fb37a', '#ff8a5c'];
 const SHIRT = ['#ff6b6b', '#4dabf7', '#ffd43b', '#b197fc', '#69db7c', '#ffa94d'];
 
 interface Puff { x: number; y: number; vx: number; vy: number; r: number; life: number; max: number; dark: boolean }
-interface Look { puffs: Puff[]; ground: HTMLCanvasElement | null; key: string; demo: number; said: { x: number; y: number; t: number }[] }
+interface Look { puffs: Puff[]; ground: HTMLCanvasElement | null; key: string; demo: number; said: { x: number; y: number; t: number }[]; hit: Set<number>; hitT: number }
 const looks = new WeakMap<object, Look>();
 function look(s: LavaState): Look {
   let l = looks.get(s);
-  if (!l) looks.set(s, (l = { puffs: [], ground: null, key: '', demo: 0, said: [] }));
+  if (!l) looks.set(s, (l = { puffs: [], ground: null, key: '', demo: 0, said: [], hit: new Set(), hitT: -99 }));
   return l;
 }
 
@@ -1144,6 +1144,27 @@ function drawAll(ctx: C2, s: LavaState, w: number, h: number, th: Theme) {
   });
   items.sort((a, b) => a.y - b.y);
   for (const it of items) it.f();
+  // 용암이 돌벽에 처음 닿는 순간: 치익! 불꽃 (벽마다 한 번)
+  if (lk.key) {
+    for (const b of s.blocks) {
+      if (lk.hit.has(b.t * 1000 + b.i)) continue;
+      const i = b.i, r = (i / GW) | 0, c = i - r * GW;
+      let m = 0;
+      for (const j of [i - GW, i - 1, i + 1, i + GW]) if (j >= 0 && j < N && Math.abs((j % GW) - c) <= 1) m = Math.max(m, s.L[j]);
+      if (m < 0.12) continue;
+      lk.hit.add(b.t * 1000 + b.i);
+      const x = SX(b.x, b.y), y = SY(b.y);
+      fx.burst(x, y - R(0.015), '#ffb02e', 7, 3.2, 2);
+      fx.burst(x, y - R(0.015), '#fff3b0', 3, 2.4, 1.6);
+      puff(x, y - R(0.02), 1, 0.8, R(0.02));
+      if (t - lk.hitT > 50) {
+        lk.hitT = t;
+        fx.ring(x, y, '#ffb02e', R(0.09), 4);
+        fx.kick(3);
+        say(x, y - R(0.07), '치익! 꺾였다!', '#ffd08a', 19);
+      }
+    }
+  }
   // 주민 (집 둘레를 걷고, 용암이 오면 허둥지둥, 바다에 닿으면 지붕 위에서 환호)
   s.houses.forEach((hs, k) => drawFolk(ctx, s, hs, k, SX(hs.c + 0.5, hs.r + 0.5), SY(hs.r + 0.75), R(0.084), t));
 
@@ -1231,8 +1252,10 @@ function drawAll(ctx: C2, s: LavaState, w: number, h: number, th: Theme) {
     const x = SX(e.x, e.y), y = SY(e.y);
     switch (e.kind) {
       case 'thud':
-        fx.burst(x, y, '#e8dcc0', 8, 2.4, 2.4);
-        fx.kick(2.2);
+        fx.burst(x, y, '#8a7a66', 10, 2.6, 2.2);
+        fx.burst(x, y - R(0.02), '#ffffff', 5, 2, 1.6);
+        puff(x, y, 3, 0.9, R(0.018), true);
+        fx.kick(2.6);
         if ((e.n ?? 0) <= 9) say(x, y - R(0.05), e.text!, '#ffffff', 15 + Math.min(8, e.n ?? 0));
         break;
       case 'wallwow':

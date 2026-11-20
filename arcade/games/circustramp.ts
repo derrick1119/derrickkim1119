@@ -446,7 +446,8 @@ function rawLevel(key: Spot, r: Rng): Level {
     L.goal = 4;
     L.stock = 5;
   } else if (key === 'both') {
-    L.plats.push({ x: rnd(r, 0.18, 0.25), h: rnd(r, 0.66, 0.8), dir: 1 }, { x: rnd(r, 0.76, 0.83), h: rnd(r, 0.6, 0.76), dir: -1 });
+    const sh = r() < 0.5 ? -1 : 1;
+    L.plats.push({ x: rnd(r, 0.18, 0.25) + sh * 0.085, h: rnd(r, 0.64, 0.8), dir: 1 }, { x: rnd(r, 0.76, 0.83) + sh * 0.085, h: rnd(r, 0.6, 0.78), dir: -1 });
     const order: number[][] = [[0, 1, 0, 0, 1, 0], [1, 0, 0, 1, 0, 0], [0, 0, 1, 0, 1, 0], [0, 1, 0, 1, 0, 0]];
     L.seq = order[Math.floor(r() * order.length)].map((p) => ({ k: (p ? 2 : 0) as Kind, p }));
     L.flags.push({ x: 0, h: rnd(r, 0.32, 0.52) }, { x: 0, h: rnd(r, 0.32, 0.52) });
@@ -558,6 +559,9 @@ function placeFlags(L: Level, r: Rng): boolean {
     // 두 무대의 첫 떨어질 자리가 가까워야 한 트램펄린으로 둘 다 받는다 (버릇처럼 바로 밑에 따로 놓으면 둘)
     const d = Math.abs(firstFloorX(L, launch(L, gl.k, gl.p)) - firstFloorX(L, launch(L, gr.k, gr.p)));
     if (d < CATCH + 0.008 || d > CATCH + 0.04) return false;
+    // 함께 받는 자리가 화면 한가운데면 '늘 가운데' 버릇이 우연히 맞힌다 — 비켜 놓는다
+    const mid = (firstFloorX(L, launch(L, gl.k, gl.p)) + firstFloorX(L, launch(L, gr.k, gr.p))) / 2;
+    if (Math.abs(mid - 0.5) < 0.062) return false;
     L.flags[1].x = a.x + jit();
     L.flags[0].x = b.x + jit();
   } else {
@@ -839,7 +843,7 @@ function newStage(s: CircusState) {
     }
     if (d.key === 'hoop' && L.hoops[0]) s.spot = { x: L.hoops[0].x, y: L.hoops[0].y, r: 0.11, label: d.spot, t: s.t };
     if (d.key === 'fan' && L.fans[0]) s.spot = { x: 0.08, y: L.fans[0].y1 * 0.5, r: 0.12, label: d.spot, t: s.t };
-    if (d.key === 'both') s.spot = { x: L.plats[1].x + 0.05, y: L.plats[1].h + 0.08, r: 0.12, label: d.spot, t: s.t };
+    if (d.key === 'both' && L.plats[1]) s.spot = { x: L.plats[1].x + 0.05, y: L.plats[1].h + 0.08, r: 0.12, label: d.spot, t: s.t };
   }
   s.again = false;
 }
@@ -942,7 +946,7 @@ function sinkOf(s: CircusState): Sink {
       if (n >= 3) see(s, 'tower3');
     } else if (kind === 'miss' || kind === 'wall') {
       s.ohT = s.t;
-      ev(s, kind, x, y, kind === 'wall' ? '쿵! 천막 벽' : '푹!', '#ffd0c0', 0, k);
+      ev(s, kind, x, y, kind === 'wall' ? '쿵!' : '푹!', '#ffd0c0', 0, k);
     } else if (kind === 'net') ev(s, 'net', x, 0.06, '출렁~ 안전망', '#e8f4ff', 0, k);
     else if (kind === 'break') ev(s, 'break', x, y, '펑! 찢어졌다', '#ffe2b0', 0, k);
     else if (kind === 'hoop') (ev(s, 'hoop', x, y, '불꽃 통과!', '#ffd23a', 0, k), see(s, 'hoopPass'));
@@ -2377,4 +2381,4 @@ function drawHud(ctx: C2, s: CircusState, w: number, h: number, R: (r: number) =
 }
 
 /** 점검용 (저장소 밖 스크립트가 쓴다) */
-export const __dbg = { crossings, habitEnd, rawLevel, placeFlags, judgeLevel, trial, smartPick, habitPick, routes, habitRoute, launch, groupsOf, starsOf, newWorld, stepWorld, putTramp, forecast };
+export const __dbg = { newStage, crossings, habitEnd, rawLevel, placeFlags, judgeLevel, trial, smartPick, habitPick, routes, habitRoute, launch, groupsOf, starsOf, newWorld, stepWorld, putTramp, forecast };

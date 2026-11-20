@@ -46,37 +46,37 @@ export const STAGES: StageDef[] = [
   {
     key: 'wind', name: '첫 바람', news: '', hint: '바람 위쪽 버섯을 톡! 포자가 바람을 타요', spot: '',
     map: ['.......', '..o....', '.....~~', 'm..LLL.', '.M.....', 'm...o..', '.......', '..LL...', '.....~.'],
-    wind: RT, sway: 0.3, speed: 3.78, goal: 13, time: 45, grace: 99, spread: 99, par: 9, stars: ['goal'],
+    wind: RT, sway: 0.3, speed: 3.8, goal: 13, time: 45, grace: 99, spread: 99, par: 9, stars: ['goal'],
   },
   {
     key: 'mold', name: '회색 곰팡이', news: '곰팡이가 번져요 — 다 큰 버섯은 밀어내요', hint: '맞닿은 곳엔 큰 버섯을 남겨 둬요', spot: '곰팡이',
     map: ['.......', '....o..', '.M...X.', '..LL.Xx', '.......', '.o.....', '.m..~~.', '.M..L..', '.......'],
-    wind: RT, sway: 0.45, speed: 3.78, goal: 24, time: 30, grace: 9, spread: 2.2, par: 9, stars: ['goal', 'more'],
+    wind: RT, sway: 0.45, speed: 3.8, goal: 24, time: 30, grace: 9, spread: 2.2, par: 9, stars: ['goal', 'more'],
   },
   {
     key: 'rain', name: '지나가는 비구름', news: '비 맞은 곳의 버섯은 쑥쑥 자라요', hint: '비구름 쪽으로 포자를 보내요', spot: '비구름',
     map: ['..M..M.', '.......', '.o..LL.', '......o', '.......', '~~.....', '...o...', 'xX.LL..', 'XXx....'],
-    wind: DN, sway: 0.45, speed: 3.51, goal: 28, time: 30, grace: 5, spread: 1.8, par: 6, stars: ['goal', 'more', 'par'], rain: 4,
+    wind: DN, sway: 0.45, speed: 3.5, goal: 28, time: 30, grace: 5, spread: 1.8, par: 6, stars: ['goal', 'more', 'par'], rain: 4,
   },
   {
     key: 'water', name: '물웅덩이 건너기', news: '물·돌엔 못 자라요 — 크게 부풀려 건너요', hint: '작게 터뜨리면 물에 퐁당 — 통나무를 디뎌요', spot: '물 위 통나무',
     map: ['.....Xx', '.o.....', '.....o.', '.......', '~~~~~~~', '~~WWW~~', '....o..', '..M..M.', '...m...'],
-    wind: UP, sway: 0.45, speed: 4.05, goal: 25, time: 28, grace: 5, spread: 1.8, par: 6, stars: ['goal', 'more', 'par'],
+    wind: UP, sway: 0.45, speed: 4, goal: 25, time: 28, grace: 5, spread: 1.8, par: 6, stars: ['goal', 'more', 'par'],
   },
   {
     key: 'shift', name: '바뀌는 바람', news: '바람이 곧 바뀌어요 — 화살표 예보를 봐요', hint: '좋은 바람이 올 때까지 아껴 둬요', spot: '바람 예보',
     map: ['.......', '.M..o..', '.......', '..LL...', '.....X.', 'o....x.', '.......', '..~~...', '.m.~.LL'],
-    wind: RT, sway: 0.1, speed: 3.78, goal: 27, time: 30, grace: 5, spread: 2.0, par: 6, stars: ['goal', 'more', 'par'], shift: true,
+    wind: RT, sway: 0.1, speed: 3.8, goal: 27, time: 30, grace: 5, spread: 2.0, par: 6, stars: ['goal', 'more', 'par'], shift: true,
   },
   {
     key: 'giant', name: '큰 버섯', news: '큰 버섯은 늦게 크지만 아주 멀리 터져요', hint: '물 건너 섬까지 — 큰 버섯을 아껴 둬요', spot: '큰 버섯',
     map: ['....~ii', '....~ii', '.o..~~i', '.....~~', '..LL...', '....o..', 'Xx.....', '.......', 'G..m...'],
-    wind: -Math.PI / 4, sway: 0.45, speed: 3.65, goal: 28, time: 28, grace: 5, spread: 1.7, par: 5, stars: ['goal', 'island', 'par'],
+    wind: -Math.PI / 4, sway: 0.45, speed: 3.7, goal: 31, time: 28, grace: 5, spread: 1.6, par: 5, stars: ['goal', 'island', 'par'],
   },
   {
     key: 'fest', name: '숲 잔치', news: '양쪽에서 곰팡이가 와요 — 비·바람도 함께', hint: '어느 쪽부터 막을지 골라요', spot: '',
     map: ['X.....x', 'x..o..X', '....~~.', '..LL~..', '.......', '...M...', '.o...LL', '~~..o..', 'G..m...'],
-    wind: UP, sway: 0.3, speed: 3.65, goal: 30, time: 30, grace: 5, spread: 1.8, par: 6, stars: ['goal', 'more', 'par'], rain: 4, shift: true,
+    wind: UP, sway: 0.3, speed: 3.7, goal: 30, time: 30, grace: 5, spread: 1.8, par: 6, stars: ['goal', 'more', 'par'], rain: 4, shift: true,
   },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -730,7 +730,7 @@ function drawAll(ctx: C2, s: SporeState, w: number, h: number) {
   v.lastT = t;
   ctx.save();
   fx.begin(ctx);
-  drawBack(ctx, s, w, X, Y, R, dusk, wdx, t);
+  drawBack(ctx, w, X, Y, R, dusk, wdx, t);
   drawGround(ctx, s, X, Y, R, t, rain);
   // ═════════ 판 위: 뒤 줄부터 (돌 · 통나무 · 곰팡이 · 버섯) ═════════
   drawGrassEdge(ctx, X, Y, R, t, wdx, BY - 0.004, 0.012, 1);
@@ -746,7 +746,7 @@ function drawAll(ctx: C2, s: SporeState, w: number, h: number) {
     }
     for (let c = 0; c < COLS; c++) {
       const i = r * COLS + c, x = X(cellX(i)), y = Y(cellY(i) + (s.type[i] === LOG ? -0.016 : 0.006));
-      if (s.type[i] === STONE) drawStone(ctx, x, Y(cellY(i) + 0.012), R(0.05), i);
+      if (s.type[i] === STONE) drawStone(ctx, x, Y(cellY(i) + 0.012), R(0.05));
       if (s.type[i] === SOIL && s.own[i] === NONE && !(s.born[i] > 0 && t - s.born[i] < 30)) drawPlant(ctx, x, Y(cellY(i) + 0.014), R(0.036), i, t, wdx);
       if (s.own[i] === MOLD) drawMold(ctx, s, i, x, y, R(0.062), t);
       else if (s.own[i] === MINE) drawCellShrooms(ctx, s, i, x, y, R(0.088), t, wdx, wdy);
@@ -929,7 +929,7 @@ function drawAll(ctx: C2, s: SporeState, w: number, h: number) {
     ctx.fillRect(-10, Y(0.085), w + 20, Y(by2y(ROWS) + 0.06 - 0.085));
   }
   // ═════════ 구경꾼 달팽이 ═════════
-  drawSnail(ctx, s, X, Y, R, t, v);
+  drawSnail(ctx, X, Y, R, t, v);
   // ═════════ 새것 스포트라이트 ═════════
   if (s.spot && t - s.spot.t < 230) {
     const sp = s.spot, a = Math.min(1, (230 - (t - sp.t)) / 30), pul = 1 + 0.05 * Math.sin(t * 0.2), prx = R(sp.rx) * pul, pry = R(sp.ry) * pul;
@@ -1083,7 +1083,7 @@ function drawAll(ctx: C2, s: SporeState, w: number, h: number) {
 }
 
 // ───────────── 배경: 하늘 · 해 · 나무 기둥 · 잎 지붕 ─────────────
-function drawBack(ctx: C2, s: SporeState, w: number, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, dusk: number, wdx: number, t: number) {
+function drawBack(ctx: C2, w: number, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, dusk: number, wdx: number, t: number) {
   const top = mix('#8fd3ff', '#ff9a8a', dusk * dusk), mid = mix('#d8f3ff', '#ffcf9a', dusk), low = mix('#eaf8d0', '#ffe2b0', dusk);
   ctx.fillStyle = lin(ctx, 0, 0, 0, Y(BY + 0.02), [[0, top], [0.55, mid], [1, low]]);
   ctx.fillRect(-12, -12, w + 24, Y(BY + 0.03) + 12);
@@ -1171,7 +1171,6 @@ function drawBack(ctx: C2, s: SporeState, w: number, X: (x: number) => number, Y
       ctx.stroke();
     }
   }
-  void s;
 }
 
 // ───────────── 숲 바닥 판 (디오라마 받침) ─────────────
@@ -1406,7 +1405,7 @@ function drawPlant(ctx: C2, x: number, y: number, r: number, i: number, t: numbe
   }
 }
 
-function drawStone(ctx: C2, x: number, y: number, r: number, i: number) {
+function drawStone(ctx: C2, x: number, y: number, r: number) {
   ctx.fillStyle = 'rgba(40,20,8,.3)';
   ell(ctx, x + r * 0.15, y + r * 0.35, r * 1.05, r * 0.42);
   ctx.fill();
@@ -1423,7 +1422,6 @@ function drawStone(ctx: C2, x: number, y: number, r: number, i: number) {
   ctx.fillStyle = 'rgba(255,255,255,.45)';
   ell(ctx, x - r * 0.45, y - r * 0.3, r * 0.18, r * 0.1, -0.5);
   ctx.fill();
-  void i;
 }
 
 function drawLog(ctx: C2, xa: number, xb: number, y: number, ry: number, wet: boolean, t: number, i: number) {
@@ -1657,7 +1655,6 @@ function drawCellShrooms(ctx: C2, s: SporeState, i: number, x: number, y: number
     }
     ctx.globalAlpha = 1;
   }
-  void s;
 }
 /** 포자를 쏟은 버섯이 쪼그라드는 모습 */
 function drawDeflate(ctx: C2, x: number, y: number, u: number, q: number, hue: number) {
@@ -1726,7 +1723,7 @@ function drawRain(ctx: C2, x: number, y: number, R: (r: number) => number, t: nu
   drawFace(ctx, x, cy - R(0.005), R(0.025), 'sleep', t);
 }
 
-function drawSnail(ctx: C2, s: SporeState, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, t: number, v: Vis) {
+function drawSnail(ctx: C2, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, t: number, v: Vis) {
   const span = 0.8, ph = (t * 0.00035) % (2 * span), dir = ph < span ? 1 : -1, px = 0.1 + (ph < span ? ph : 2 * span - ph);
   const x = X(px), y = Y(by2y(ROWS) + 0.035), u = R(0.03), wow = t - v.wowT < 70;
   ctx.save();
@@ -1788,7 +1785,6 @@ function drawSnail(ctx: C2, s: SporeState, X: (x: number) => number, Y: (y: numb
     ctx.fillText('우와!', x, y - R(0.077));
     ctx.globalAlpha = 1;
   }
-  void s;
 }
 
 function drawHand(ctx: C2, x: number, y: number, k: number, press: number) {
@@ -1916,10 +1912,22 @@ function drawHud(ctx: C2, s: SporeState, w: number, h: number, X: (x: number) =>
   }
   // ── 아래 띠: 버섯 수 막대 · 해 · 별 조건
   const by = Y(by2y(ROWS) + 0.068);
-  ctx.fillStyle = lin(ctx, 0, by, 0, h, [[0, '#7a5232'], [1, '#5e3c22']]);
+  ctx.fillStyle = lin(ctx, 0, by, 0, h, [[0, '#8a5c36'], [1, '#6a4428']]);
   ctx.fillRect(0, by, w, h - by);
-  ctx.fillStyle = 'rgba(255,255,255,.07)';
+  // 나뭇결 판자
+  ctx.strokeStyle = 'rgba(60,30,10,.22)';
+  ctx.lineWidth = 1;
+  for (let k = 0; k < 7; k++) {
+    const ly = by + R(0.012) + k * R(0.04);
+    ctx.beginPath();
+    ctx.moveTo(0, ly);
+    for (let x = 0; x <= w; x += R(0.1)) ctx.lineTo(x, ly + Math.sin(x * 0.03 + k * 1.7) * 1.5);
+    ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(255,240,210,.12)';
   ctx.fillRect(0, by, w, 2);
+  ctx.fillStyle = 'rgba(40,20,5,.35)';
+  ctx.fillRect(0, by + 2, w, 2);
   // 버섯 막대
   const bx0 = R(0.05), bx1 = w - R(0.05), bh = R(0.04), byy = by + R(0.03), tot = d.goal * 1.35;
   ctx.fillStyle = 'rgba(0,0,0,.28)';
