@@ -258,7 +258,7 @@ export const TRIAL: StageDef[] = starsOf([
       { need: 0, wait: 540, foes: [['sword', 0.4, 0.55, 3], ['sword', 0.5, 0.55, 3], ['sword', 0.6, 0.55, 3], ['leaf', 0.5, 0.8, 0]] },
       { need: 1, wait: 540, foes: [['sword', 0.14, 0.62, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.26, 0.78, 1], ['leaf', 0.7, 0.58, 0]] },
       { need: 1, wait: 540, foes: [['sword', 0.86, 0.62, 2], ['sword', 0.8, 0.7, 2], ['sword', 0.74, 0.78, 2], ['leaf', 0.3, 0.58, 0]] },
-      { need: 1, wait: 540, foes: [['sword', 0.14, 0.62, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.26, 0.78, 1], ['leaf', 0.7, 0.58, 0]] },
+      { need: 1, wait: 540, foes: [['sword', 0.14, 0.62, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.26, 0.78, 1], ['leaf', 0.7, 0.58, 0], ['shuri', 0.5, 0.5, 3]] }, // 🧪 S10: 덧붙인 무리에도 이 판 새것(수리검)
     ],
     n: 5,
   },
@@ -269,7 +269,7 @@ export const TRIAL: StageDef[] = starsOf([
       { need: 1, wait: 1e9, foes: [['sword', 0.14, 0.62, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.26, 0.78, 1], ['sword', 0.32, 0.86, 1], ['archer', 0.5, 0.5, 3]] },
       { need: 1, wait: 540, foes: [['sword', 0.86, 0.62, 2], ['sword', 0.8, 0.7, 2], ['sword', 0.74, 0.78, 2], ['sword', 0.68, 0.86, 2], ['archer', 0.3, 0.5, 3], ['leaf', 0.8, 0.6, 0]] },
       { need: 1, wait: 540, foes: [['sword', 0.14, 0.7, 1], ['sword', 0.2, 0.8, 1], ['sword', 0.26, 0.9, 1], ['sword', 0.86, 0.7, 2], ['sword', 0.8, 0.8, 2], ['sword', 0.74, 0.9, 2], ['shuri', 0.5, 0.5, 3], ['leaf', 0.5, 0.8, 0]] },
-      { need: 1, wait: 540, foes: [['sword', 0.14, 0.62, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.26, 0.78, 1], ['leaf', 0.7, 0.58, 0]] },
+      { need: 1, wait: 540, foes: [['sword', 0.14, 0.62, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.26, 0.78, 1], ['leaf', 0.7, 0.58, 0], ['archer', 0.8, 0.5, 3]] }, // 🧪 S10: 덧붙인 무리에도 이 판 새것(화살병)
       { need: 1, wait: 540, foes: [['sword', 0.86, 0.62, 2], ['sword', 0.8, 0.7, 2], ['sword', 0.74, 0.78, 2], ['leaf', 0.3, 0.58, 0]] },
       { need: 1, wait: 540, foes: [['sword', 0.14, 0.66, 1], ['sword', 0.2, 0.74, 1], ['sword', 0.26, 0.82, 1], ['sword', 0.86, 0.66, 2], ['sword', 0.8, 0.74, 2], ['sword', 0.74, 0.82, 2], ['dummy', 0.5, 0.56, 0]] },
     ],
@@ -4119,7 +4119,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   ctx.restore();
   // 큰 순간 띠: 먹물 붓자국 위에 'N명 베기!'
   const swB = fx.memo.swT === fx.memo.bigT, bl = swB ? 80 : 52; // 싹쓸이 띠는 더 크게 · 더 오래 · 화면 가로로
-  if (fx.memo.bigT !== undefined && t - fx.memo.bigT < bl) {
+  if (fx.memo.bigT !== undefined && t - fx.memo.bigT < bl && s.phase === 'play') { // 🧪 S10: 결과가 뜨면 띠를 걷는다(판을 끝낸 싹쓸이 띠가 결과 제목을 덮던 것)
     const age = t - fx.memo.bigT, n = fx.memo.bigN, sc2 = age < 6 ? 1.8 - 0.8 * (age / 6) : 1, a = Math.min(1, (bl - age) / 16);
     const bx = swB ? w / 2 : clamp(fx.memo.bigX, w * 0.3, w * 0.7), by = swB ? Y(s.ny < 0.72 ? 0.88 : 0.36) : clamp(fx.memo.bigY - R(0.2), Y(0.3), Y(1.1)); // 🧪: 싹쓸이 띠는 닌자 반대쪽에(덮지 않게)
     const txt = swB ? '싹쓸이!' : `${n}명 베기!`, size = swB ? 44 : Math.min(36, 20 + n * 3.2); // 🧪: '싹둑'은 '싹쓸이'와 헷갈려 뺌

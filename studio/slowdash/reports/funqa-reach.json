@@ -1,15 +1,15 @@
 {
  "newbieLow": {
-  "reachAll": 0.67,
+  "reachAll": 0.58,
   "reachW1": 0.83,
   "stuckAt": {
    "shield": 1,
    "mix": 2,
    "shuri": 1,
-   "leafShuri": 2,
+   "leafShuri": 4,
    "leafShield": 1,
    "boss2": 1,
-   "end": 16
+   "end": 14
   }
  },
  "newbieNever": {
@@ -21,7 +21,8 @@
    "shuri": 3,
    "leaf": 2,
    "leafWait": 5,
-   "leafShuri": 8
+   "leafShuri": 7,
+   "moon": 1
   }
  },
  "humanStroke": {
