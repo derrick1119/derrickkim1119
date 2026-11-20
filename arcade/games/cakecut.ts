@@ -22,7 +22,7 @@ import { juice } from '../juice.ts';
 
 const A = 1.45;
 /** 3/4 시점: 바닥 세로 눌림 · 케이크 높이 · 위층 높이 · 화면에서 접시 가운데 높이 (가로 폭 단위) */
-const SQ = 0.62, HC = 0.1, HT = 0.075, YC = 0.9;
+const SQ = 0.62, HC = 0.12, HT = 0.08, YC = 0.9;
 /** 자른 뒤 두 쪽이 벌어지는 틈 · 부스러기 기준(전체 넓이 대비) · 딸기·초·크림 꽃 반지름 */
 const GAP = 0.06, CRUMB = 0.008, BR = 0.03, CR = 0.024, RR = 0.022;
 const TAU = Math.PI * 2;
@@ -628,7 +628,7 @@ function perimeterPts(P: Poly, n: number, inset: number): [number, number][] {
 // ───────────────────────────── 게임 상태 ─────────────────────────────
 type Mood = 'idle' | 'watch' | 'wow' | 'happy' | 'sad' | 'angry' | 'smug';
 /** 조각의 눈에 보이는 움직임(논리 자리 + 출렁임) */
-interface PV { dx: number; dy: number; vx: number; vy: number; rot: number; vr: number; jig: number; born: number; m: number; serve: null | { t0: number; x0: number; y0: number; x1: number; y1: number } }
+interface PV { dx: number; dy: number; vx: number; vy: number; rot: number; vr: number; jig: number; born: number; m: number; tl: number; tlv: number; ax: number; ay: number; serve: null | { t0: number; x0: number; y0: number; x1: number; y1: number } }
 interface TV { z: number; vz: number; wob: number; wv: number }
 interface Frag { k: TK; x: number; y: number; z: number; vx: number; vy: number; vz: number; a: number; va: number; side: number; t: number; tip: number }
 interface Smear { x0: number; y0: number; x1: number; y1: number; t: number; nx: number; ny: number }
@@ -683,7 +683,8 @@ function newStage(s: CakeState) {
   ev(s, 'stage', 0.5, 0.5);
 }
 function mkPV(s: CakeState, p: Pc, born: number): PV {
-  return { dx: 0, dy: 0, vx: 0, vy: 0, rot: 0, vr: 0, jig: 0, born, m: Math.max(0.15, p.w / (s.B.W0 / STAGES[s.stage].N)), serve: null };
+  // 눈에 보이는 무게: 케이크 반쪽 = 1 (작은 조각일수록 휙 미끄러지고 더 흔들린다)
+  return { dx: 0, dy: 0, vx: 0, vy: 0, rot: 0, vr: 0, jig: 0, born, m: Math.max(0.55, Math.min(1.3, Math.sqrt(p.w / (s.B.W0 / 2)))), tl: 0, tlv: 0, ax: 0, ay: 0, serve: null };
 }
 const setMood = (s: CakeState, g: Guest, m: Mood, say = '') => ((g.mood = m), (g.moodT = s.t), say && ((g.say = say), (g.sayT = s.t)));
 
@@ -736,7 +737,7 @@ function tryCut(s: CakeState) {
     const par = s.pv.get(sp.from.id);
     for (const c of sp.into) {
       const v = mkPV(s, c, s.t);
-      if (par) (v.dx = par.dx), (v.dy = par.dy), (v.vx = par.vx), (v.vy = par.vy), (v.rot = par.rot);
+      if (par) (v.dx = par.dx), (v.dy = par.dy), (v.vx = par.vx), (v.vy = par.vy), (v.rot = par.rot), (v.tl = par.tl), (v.tlv = par.tlv), (v.ax = par.ax), (v.ay = par.ay);
       npv.set(c.id, v);
     }
     for (const cr of sp.crumbs) ev(s, 'crumb', cr.cx + cr.ox, cr.cy + cr.oy, '부스러기…', '#fff3df');
@@ -746,9 +747,14 @@ function tryCut(s: CakeState) {
     if (sd) {
       v.dx -= (sd * L.nx * GAP) / 2;
       v.dy -= (sd * L.ny * GAP) / 2;
-      const push = 0.0085 / Math.sqrt(v.m);
+      const push = 0.0095 / Math.sqrt(v.m);
       v.vx += sd * L.nx * push;
       v.vy += sd * L.ny * push;
+      // 칼금 바깥쪽으로 윗면이 쏠렸다가 흔들흔들 돌아온다
+      v.ax = sd * L.nx;
+      v.ay = sd * L.ny;
+      v.tl = 0;
+      v.tlv = 0.075 / v.m;
       // 지렛대: 칼 줄에서 먼 조각일수록 살짝 돈다
       const lev = -L.ny * (p.cx + p.ox) + L.nx * (p.cy + p.oy) - (-L.ny * 0.5 + L.nx * 0.5);
       v.vr += (sd * lev * 0.012) / v.m;
@@ -773,7 +779,7 @@ function tryCut(s: CakeState) {
   s.cutsUsed++;
   s.everCut = true;
   s.lock = s.t + 30;
-  s.slow = 12;
+  s.slow = 8;
   const mx = (st.x0 + st.x1) / 2, my = (st.y0 + st.y1) / 2;
   const n = s.B.pcs.length;
   const big = s.cutsUsed === 1 || r.nNew >= 2;
@@ -856,13 +862,15 @@ function finish(s: CakeState) {
 }
 
 function physics(s: CakeState) {
-  const sf = s.slow > 0 ? 0.3 : 1;
+  const sf = s.slow > 0 ? 0.35 : 1;
   if (s.slow > 0) s.slow--;
   for (const [, v] of s.pv) {
     if (v.serve) continue;
-    const k = 0.016, c = 0.13;
+    const k = 0.03, c = 0.13;
     v.vx += ((-k * v.dx - c * v.vx) / v.m) * sf;
     v.vy += ((-k * v.dy - c * v.vy) / v.m) * sf;
+    v.tlv += ((-0.07 * v.tl - 0.09 * v.tlv) / v.m) * sf;
+    v.tl += v.tlv * sf;
     v.dx += v.vx * sf;
     v.dy += v.vy * sf;
     v.vr += ((-0.02 * v.rot - 0.16 * v.vr) / v.m) * sf;
@@ -1131,7 +1139,7 @@ const rgba = (c: string, a: number) => {
   return `rgba(${r},${g},${b},${a})`;
 };
 /** 조각 하나를 세상에 놓는 변환 (논리 자리 + 출렁임 + 나눠 줄 때 날아감) */
-interface Xf { tx: number; ty: number; cs: number; sn: number; sc: number; lift: number; cx: number; cy: number; H: number }
+interface Xf { tx: number; ty: number; cs: number; sn: number; sc: number; lift: number; cx: number; cy: number; H: number; shx: number; shy: number }
 function xfOf(s: CakeState, p: Pc, v: PV): Xf {
   let tx = p.cx + p.ox + v.dx, ty = p.cy + p.oy + v.dy, sc = 1, lift = 0, rot = v.rot;
   if (v.serve) {
@@ -1144,7 +1152,8 @@ function xfOf(s: CakeState, p: Pc, v: PV): Xf {
     if (s.phase === 'result' && s.ok) sc *= 1 - ease((s.pt - 55) / 70) * 0.85;
   }
   const age = s.t - v.born, jig = v.jig * Math.sin(age * 0.45) * 0.09 + 0.012 * Math.sin(s.t * 0.05 + p.id);
-  return { tx, ty, cs: Math.cos(rot), sn: Math.sin(rot), sc, lift, cx: p.cx, cy: p.cy, H: HC * (1 + jig) };
+  const sh = v.serve ? 0 : Math.max(-0.45, Math.min(0.45, v.tl));
+  return { tx, ty, cs: Math.cos(rot), sn: Math.sin(rot), sc, lift, cx: p.cx, cy: p.cy, H: HC * (1 + jig), shx: v.ax * sh, shy: v.ay * sh };
 }
 const wpt = (f: Xf, u: number, v: number): [number, number] => [f.tx + f.sc * (f.cs * (u - f.cx) - f.sn * (v - f.cy)), f.ty + f.sc * (f.sn * (u - f.cx) + f.cs * (v - f.cy))];
 
@@ -1495,56 +1504,65 @@ function drawRoom(ctx: C2, s: CakeState, w: number, h: number, X: (u: number) =>
 }
 
 function drawTable(ctx: C2, s: CakeState, w: number, X: (u: number) => number, R: (r: number) => number) {
-  void s;
-  const y0 = R(0.44), y1 = R(1.3);
-  // 식탁보
+  const y0 = R(0.44), y1 = R(1.3), t = s.t;
+  // 꿀색 나무 식탁 (분홍 케이크·민트 받침과 대비)
   const g = ctx.createLinearGradient(0, y0, 0, y1);
-  g.addColorStop(0, '#ffe3ea');
-  g.addColorStop(1, '#fff3f5');
+  g.addColorStop(0, '#c98a52');
+  g.addColorStop(0.5, '#dba26a');
+  g.addColorStop(1, '#e8b47c');
   ctx.fillStyle = g;
   ctx.fillRect(0, y0, w, y1 - y0);
-  // 체크무늬 (원근)
   ctx.save();
   ctx.beginPath();
   ctx.rect(0, y0, w, y1 - y0);
   ctx.clip();
-  ctx.fillStyle = 'rgba(255,120,150,.13)';
-  for (let k = -6; k <= 16; k++) {
-    if (k % 2) continue;
-    const xt = 0.5 + ((k / 10) - 0.5) * 0.82, xb = k / 10, xt2 = 0.5 + ((k + 1) / 10 - 0.5) * 0.82, xb2 = (k + 1) / 10;
+  // 판자 이음매 (원근)
+  for (let k = -4; k <= 12; k++) {
+    const xt = 0.5 + (k / 8 - 0.5) * 0.8, xb = k / 8;
+    ctx.strokeStyle = 'rgba(120,70,35,.35)';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(X(xt), y0);
-    ctx.lineTo(X(xt2), y0);
-    ctx.lineTo(X(xb2), y1);
     ctx.lineTo(X(xb), y1);
-    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,225,180,.25)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(X(xt) + 1.5, y0);
+    ctx.lineTo(X(xb) + 1.5, y1);
+    ctx.stroke();
+    // 나뭇결
+    ctx.strokeStyle = 'rgba(140,85,40,.16)';
+    ctx.lineWidth = 1;
+    for (let q = 0; q < 3; q++) {
+      const fx = (q + 0.5 + hsh(k * 3 + q) * 0.6) / 3.6;
+      ctx.beginPath();
+      for (let yy = 0; yy <= 12; yy++) {
+        const v = yy / 12, xa = xt + (xb - xt) * v, xa2 = 0.5 + ((k + 1) / 8 - 0.5) * 0.8 + ((k + 1) / 8 - (0.5 + ((k + 1) / 8 - 0.5) * 0.8)) * v;
+        const x = X(xa + (xa2 - xa) * fx) + Math.sin(v * 9 + k + q) * R(0.004), y = y0 + (y1 - y0) * v;
+        yy ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+    }
   }
-  let yy = y0;
-  for (let k = 0; yy < y1; k++) {
-    const hgt = R(0.045 + k * 0.012);
-    if (k % 2 === 0) ctx.fillRect(0, yy, w, hgt);
-    yy += hgt;
-  }
+  // 창문 햇살 반사
+  const sh2 = ctx.createRadialGradient(X(0.5), R(0.75), R(0.05), X(0.5), R(0.8), R(0.75));
+  sh2.addColorStop(0, `rgba(255,240,205,${0.28 + 0.03 * Math.sin(t * 0.02)})`);
+  sh2.addColorStop(1, 'rgba(255,240,205,0)');
+  ctx.fillStyle = sh2;
+  ctx.fillRect(0, y0, w, y1 - y0);
   ctx.restore();
   // 뒤 가장자리 그림자
-  const sh = ctx.createLinearGradient(0, y0, 0, y0 + R(0.04));
-  sh.addColorStop(0, 'rgba(160,80,80,.25)');
-  sh.addColorStop(1, 'rgba(160,80,80,0)');
+  const sh = ctx.createLinearGradient(0, y0, 0, y0 + R(0.05));
+  sh.addColorStop(0, 'rgba(90,45,20,.4)');
+  sh.addColorStop(1, 'rgba(90,45,20,0)');
   ctx.fillStyle = sh;
-  ctx.fillRect(0, y0, w, R(0.04));
-  // 앞 레이스
-  ctx.fillStyle = '#ffffff';
-  for (let k = 0; k < 18; k++) {
-    ctx.beginPath();
-    ctx.arc(X((k + 0.5) / 18), y1, R(0.03), 0, Math.PI);
-    ctx.fill();
-  }
-  ctx.fillStyle = 'rgba(255,170,190,.5)';
-  for (let k = 0; k < 18; k++) {
-    ctx.beginPath();
-    ctx.arc(X((k + 0.5) / 18), y1 + R(0.012), R(0.006), 0, TAU);
-    ctx.fill();
-  }
+  ctx.fillRect(0, y0, w, R(0.05));
+  // 앞 모서리 (두께)
+  ctx.fillStyle = '#a8683a';
+  ctx.fillRect(0, y1, w, R(0.012));
+  ctx.fillStyle = 'rgba(255,230,190,.55)';
+  ctx.fillRect(0, y1 - 1, w, 1.5);
 }
 
 function drawStand(ctx: C2, X: (u: number) => number, Yz: (v: number, z: number) => number, R: (r: number) => number, t: number) {
@@ -1595,8 +1613,8 @@ function drawSlab(ctx: C2, s: CakeState, P: Poly, cutE: boolean[], f: Xf, z0: nu
   const n = P.length / 2, o = polyArea(P) > 0 ? 1 : -1;
   const W: [number, number][] = [];
   for (let i = 0; i < n; i++) W.push(wpt(f, P[2 * i], P[2 * i + 1]));
-  const sx = (k: number) => X(W[k][0]);
-  const SY = (k: number, z: number) => Yz(W[k][1], z * f.sc + f.lift);
+  const SX = (k: number, z: number) => X(W[k][0] + f.shx * z * f.sc);
+  const SY = (k: number, z: number) => Yz(W[k][1] + f.shy * z * f.sc, z * f.sc + f.lift);
   const walls: { i: number; my: number; nx: number }[] = [];
   for (let i = 0; i < n; i++) {
     const j = (i + 1) % n, dx = W[j][0] - W[i][0], dy = W[j][1] - W[i][1], L = Math.hypot(dx, dy) || 1;
@@ -1608,35 +1626,42 @@ function drawSlab(ctx: C2, s: CakeState, P: Poly, cutE: boolean[], f: Xf, z0: nu
   const hgt = z1 - z0, t = s.t;
   for (const wl of walls) {
     const i = wl.i, j = (i + 1) % n, lit = 0.92 - wl.nx * 0.1;
-    const ax = sx(i), bx = sx(j);
+    const PX = (k: number, z: number) => SX(k, z);
     if (!cutE[i]) {
       ctx.fillStyle = shade(d.frost, lit * 0.97);
       ctx.beginPath();
-      ctx.moveTo(ax, SY(i, z1));
-      ctx.lineTo(bx, SY(j, z1));
-      ctx.lineTo(bx, SY(j, z0));
-      ctx.lineTo(ax, SY(i, z0));
+      ctx.moveTo(PX(i, z1), SY(i, z1));
+      ctx.lineTo(PX(j, z1), SY(j, z1));
+      ctx.lineTo(PX(j, z0), SY(j, z0));
+      ctx.lineTo(PX(i, z0), SY(i, z0));
       ctx.fill();
       // 흘러내린 크림 (출렁)
       const da = 0.28 + 0.22 * hsh(Math.round(P[2 * i] * 300) + Math.round(P[2 * i + 1] * 977)) + 0.03 * Math.sin(t * 0.06 + i);
       const db = 0.28 + 0.22 * hsh(Math.round(P[2 * j] * 300) + Math.round(P[2 * j + 1] * 977)) + 0.03 * Math.sin(t * 0.06 + j);
       ctx.fillStyle = shade(d.frost2, lit);
       ctx.beginPath();
-      ctx.moveTo(ax, SY(i, z1));
-      ctx.lineTo(bx, SY(j, z1));
-      ctx.lineTo(bx, SY(j, z1 - hgt * db));
-      ctx.lineTo(ax, SY(i, z1 - hgt * da));
+      ctx.moveTo(PX(i, z1), SY(i, z1));
+      ctx.lineTo(PX(j, z1), SY(j, z1));
+      ctx.lineTo(PX(j, z1 - hgt * db), SY(j, z1 - hgt * db));
+      ctx.lineTo(PX(i, z1 - hgt * da), SY(i, z1 - hgt * da));
       ctx.fill();
+      // 바닥 가장자리 그늘
+      ctx.strokeStyle = 'rgba(120,50,50,.28)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(PX(i, z0), SY(i, z0));
+      ctx.lineTo(PX(j, z0), SY(j, z0));
+      ctx.stroke();
       continue;
     }
     // 자른 면: 층
     const band = (f0: number, f1: number, col: string) => {
       ctx.fillStyle = col;
       ctx.beginPath();
-      ctx.moveTo(ax, SY(i, z1 - hgt * f0));
-      ctx.lineTo(bx, SY(j, z1 - hgt * f0));
-      ctx.lineTo(bx, SY(j, z1 - hgt * f1));
-      ctx.lineTo(ax, SY(i, z1 - hgt * f1));
+      ctx.moveTo(PX(i, z1 - hgt * f0), SY(i, z1 - hgt * f0));
+      ctx.lineTo(PX(j, z1 - hgt * f0), SY(j, z1 - hgt * f0));
+      ctx.lineTo(PX(j, z1 - hgt * f1), SY(j, z1 - hgt * f1));
+      ctx.lineTo(PX(i, z1 - hgt * f1), SY(i, z1 - hgt * f1));
       ctx.fill();
     };
     band(0, 1, shade(d.sponge, lit));
@@ -1650,38 +1675,54 @@ function drawSlab(ctx: C2, s: CakeState, P: Poly, cutE: boolean[], f: Xf, z0: nu
     for (let k = 0; k < 3; k++) {
       const q = hsh(i * 7 + k + Math.round(P[2 * i] * 100)), zz = z1 - hgt * (0.18 + 0.12 * k + (k === 2 ? 0.3 : 0));
       ctx.beginPath();
-      ctx.arc(ax + (bx - ax) * q, SY(i, zz) + (SY(j, zz) - SY(i, zz)) * q, R(0.0035), 0, TAU);
+      ctx.arc(PX(i, zz) + (PX(j, zz) - PX(i, zz)) * q, SY(i, zz) + (SY(j, zz) - SY(i, zz)) * q, R(0.0035), 0, TAU);
       ctx.fill();
     }
+    // 단면 테두리: 칼에 잘린 면이 또렷하게
+    ctx.strokeStyle = 'rgba(150,90,50,.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PX(i, z1), SY(i, z1));
+    ctx.lineTo(PX(i, z0), SY(i, z0));
+    ctx.lineTo(PX(j, z0), SY(j, z0));
+    ctx.lineTo(PX(j, z1), SY(j, z1));
+    ctx.stroke();
   }
   if (!top) return;
   // 윗면
   ctx.beginPath();
-  for (let i = 0; i < n; i++) (i ? ctx.lineTo : ctx.moveTo).call(ctx, sx(i), SY(i, z1));
+  for (let i = 0; i < n; i++) (i ? ctx.lineTo : ctx.moveTo).call(ctx, SX(i, z1), SY(i, z1));
   ctx.closePath();
-  const [c0x, c0y] = [X(f.tx), Yz(f.ty, z1 * f.sc + f.lift)];
+  const [c0x, c0y] = [X(f.tx + f.shx * z1 * f.sc), Yz(f.ty + f.shy * z1 * f.sc, z1 * f.sc + f.lift)];
   const g = ctx.createRadialGradient(c0x - R(0.08), c0y - R(0.05), R(0.02), c0x, c0y, R(0.36 * f.sc));
   g.addColorStop(0, shade(d.frost, 1.12));
   g.addColorStop(1, shade(d.frost, 0.97));
   ctx.fillStyle = g;
   ctx.fill();
+  // 윗면 윤곽: 배경과 떨어져 보이게
+  ctx.strokeStyle = rgba(d.frost2, 0.55);
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
 }
 
 function drawPiece(ctx: C2, s: CakeState, p: Pc, f: Xf, d: StageDef, X: (u: number) => number, Yz: (v: number, z: number) => number, R: (r: number) => number, w: number) {
   const t = s.t, P = p.P, n = P.length / 2;
-  // 그림자
-  ctx.fillStyle = `rgba(120,50,50,${0.2 * (1 - Math.min(0.7, f.lift * 5))})`;
-  ctx.beginPath();
-  for (let i = 0; i < n; i++) {
-    const [u, v] = wpt(f, P[2 * i], P[2 * i + 1]);
-    (i ? ctx.lineTo : ctx.moveTo).call(ctx, X(u + 0.012), Yz(v + 0.02, 0));
+  // 그림자: 넓고 옅은 것 + 바로 밑 진한 것
+  const fade = 1 - Math.min(0.7, f.lift * 5);
+  for (const [ox, oy, al] of [[0.03, 0.05, 0.16], [0.014, 0.022, 0.26]] as const) {
+    ctx.fillStyle = `rgba(90,40,30,${al * fade})`;
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const [u, v] = wpt(f, P[2 * i], P[2 * i + 1]);
+      (i ? ctx.lineTo : ctx.moveTo).call(ctx, X(u + ox), Yz(v + oy, 0));
+    }
+    ctx.fill();
   }
-  ctx.fill();
   drawSlab(ctx, s, P, p.E, f, 0, f.H, d, X, Yz, R, true);
   // 윗면 장식: 원래 좌표계 → 화면 아핀 변환으로 그려 조각에 맞게 잘린다
   const zt = f.H * f.sc + f.lift;
   const a = w * f.sc * f.cs, b = w * SQ * f.sc * f.sn, c = -w * f.sc * f.sn, dd = w * SQ * f.sc * f.cs;
-  const e = w * (f.tx - f.sc * (f.cs * f.cx - f.sn * f.cy)), ff = w * (YC - 0.5 * SQ - zt + SQ * (f.ty - f.sc * (f.sn * f.cx + f.cs * f.cy)));
+  const e = w * (f.tx + f.shx * f.H * f.sc - f.sc * (f.cs * f.cx - f.sn * f.cy)), ff = w * (YC - 0.5 * SQ - zt + SQ * (f.ty + f.shy * f.H * f.sc - f.sc * (f.sn * f.cx + f.cs * f.cy)));
   ctx.save();
   ctx.transform(a, b, c, dd, e, ff);
   ctx.beginPath();
@@ -1770,9 +1811,10 @@ function drawPiece(ctx: C2, s: CakeState, p: Pc, f: Xf, d: StageDef, X: (u: numb
       }
       const tf = d.tf ?? ['#fffaf3', d.frost2, d.sponge];
       drawSlab(ctx, s, T, cutE, f, f.H, f.H + HT, { ...d, frost: tf[0], frost2: tf[1], sponge: tf[2], jam: tf[1] }, X, Yz, R, true);
-      const zt2 = (f.H + HT) * f.sc + f.lift, ff2 = w * (YC - 0.5 * SQ - zt2 + SQ * (f.ty - f.sc * (f.sn * f.cx + f.cs * f.cy)));
+      const zt2 = (f.H + HT) * f.sc + f.lift, ff2 = w * (YC - 0.5 * SQ - zt2 + SQ * (f.ty + f.shy * (f.H + HT) * f.sc - f.sc * (f.sn * f.cx + f.cs * f.cy)));
+      const e2 = e + w * f.shx * HT * f.sc;
       ctx.save();
-      ctx.transform(a, b, c, dd, e, ff2);
+      ctx.transform(a, b, c, dd, e2, ff2);
       ctx.beginPath();
       for (let i = 0; i < T.length; i += 2) (i ? ctx.lineTo : ctx.moveTo).call(ctx, T[i], T[i + 1]);
       ctx.closePath();
@@ -1801,8 +1843,8 @@ function drawPiece(ctx: C2, s: CakeState, p: Pc, f: Xf, d: StageDef, X: (u: numb
   s.B.tp.forEach((tp, i) => tp.on && tp.pc === p.id && tops.push(i));
   tops.sort((i, j) => s.B.tp[i].y - s.B.tp[j].y);
   for (const i of tops) {
-    const tp = s.B.tp[i], tv = s.tv[i], [u, v] = wpt(f, tp.x, tp.y);
-    const z = ((tp.tier ? f.H + HT : f.H) + tv.z) * f.sc + f.lift, x = X(u), y = Yz(v, z), sz = f.sc;
+    const tp = s.B.tp[i], tv = s.tv[i], [u, v] = wpt(f, tp.x, tp.y), zb = tp.tier ? f.H + HT : f.H;
+    const z = (zb + tv.z) * f.sc + f.lift, x = X(u + f.shx * zb * f.sc), y = Yz(v + f.shy * zb * f.sc, z), sz = f.sc;
     if (tp.k === 'rose') drawRose(ctx, x, y, R(RR) * sz * 1.15, tv.wob);
     if (tp.k === 'berry') drawBerry(ctx, x, y, R(BR) * sz * 1.3, tv.wob, 0, 0);
     if (tp.k === 'candle') drawCandle(ctx, x, y, R(0.012) * sz, R(0.075) * sz, tv.wob * 0.5, t, i, true);

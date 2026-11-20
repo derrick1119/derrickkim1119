@@ -17,11 +17,12 @@ import { juice } from '../juice.ts';
 
 const A = 1.5;
 /** 물리 (화면 폭 = 1) */
-const G = 2.4, R = 0.06, LT = 0.011, SUB = 2, DT = 1 / 60 / SUB;
+/** 한 틱(1/60초)에 세상은 1.25틱만큼 흐른다 (장난감이 쌩 구르게) */
+const G = 2.4, R = 0.06, LT = 0.011, SUB = 2, DT = 1.25 / 60 / SUB;
 /** 떼는 순간 햄스터가 달려 나가는 빠르기 · 구름 저항 · 닿아 있을 때 감쇠 · 튕김 */
-const DASH = 0.25, DRIVE = 0.55, DRIVE_T = 26, ROLL_FR = 0.2, DAMP = 0.1, AIR = 0.02, BOUNCE = 0.3;
+const DASH = 0.25, DRIVE = 0.55, DRIVE_T = 21, ROLL_FR = 0.2, DAMP = 0.1, AIR = 0.02, BOUNCE = 0.3;
 const SPRING_V = 1.95, WIND_V = -1.75, WIND_KY = 3.4, WIND_KX = 0.35, WIND_FADE = 0.16, WIND_CURL = 0.9;
-const REST_V = 0.05, REST_T = 30, ROLL_MAX = 60 * 14;
+const REST_V = 0.05, REST_T = 26, ROLL_MAX = 60 * 12;
 /** 선: 점 간격 · 공 둘레 안 그려지는 거리 · 가장 짧은 획 */
 const MINSEG = 0.03, KEEP = R + LT + 0.004, MIN_STROKE = 0.06;
 const RIVER = 1.36, OUT_Y = 1.42;
@@ -389,7 +390,7 @@ function tick(L: Layout, S: Sim) {
       b.hop = false;
       S.ev?.('land', b.x, b.y + R);
     }
-    if (b.air === 27 && !b.hop) (b.hop = true), S.ev?.('air', b.x, b.y);
+    if (b.air === 22 && !b.hop) (b.hop = true), S.ev?.('air', b.x, b.y);
     for (const st of S.stars)
       if (st.got < 0 && (b.x - st.x) ** 2 + (b.y - st.y) ** 2 < (R + STAR_R) ** 2) (st.got = S.t), S.ev?.('star', st.x, st.y);
     if (!S.gateOpen && L.btn && Math.hypot(b.x - L.btn.x, b.y - L.btn.y) < R + 0.045) (S.gateOpen = true), S.ev?.('button', L.btn.x, L.btn.y);
@@ -592,7 +593,8 @@ function newStage(s: RollState) {
   s.waitT = s.t;
   s.starOk = s.L.d.goals.map(() => false);
   const d = s.L.d;
-  if (!s.again) s.banner = { head: `${s.stage + 1}판 · ${d.name}`, sub: d.news ? `NEW  ${d.news}` : d.goals.map((g) => GOAL_TEXT(g, d))[0], t: s.t };
+  if (!s.again && s.stage === 0) s.banner = null;
+  else if (!s.again) s.banner = { head: `${s.stage + 1}판 · ${d.name}`, sub: d.news ? `NEW  ${d.news}` : d.goals.map((g) => GOAL_TEXT(g, d))[0], t: s.t };
   else s.banner = { head: '다시 한 번!', sub: d.hint, t: s.t };
   if (d.key) s.seen.add(d.key);
 }

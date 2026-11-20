@@ -432,7 +432,7 @@ export const STAGES: StageDef[] = [
   {
     key: 'ice', name: '얼음 구슬', news: '얼음 구슬은 못 이어요 — 옆 구슬이 터지면 녹아요', hint: '얼음 옆을 지나가게 이어요', spot: 'ice',
     n: 46, colors: 4, bias: 0, maxGroup: 5, strokes: 7, fire: true, ice: 11, iron: 0, star: 0, rain: 0, rainQ: 0, preFire: 0,
-    goal: S('ice', 9, '얼음 9개 녹이기'), stars: [GOAL, S('within', 5, '다섯 번 안에'), S('color', 7, '파란 구슬 7개', 1)],
+    goal: S('ice', 9, '얼음 9개 녹이기'), stars: [GOAL, S('within', 5, '다섯 번 안에'), S('color', 8, '파란 구슬 8개', 1)],
   },
   {
     key: 'star', name: '별 그물', news: '별 구슬이 병 바닥에 닿으면 별 그물로 쏙!', hint: '별 구슬 밑을 터뜨려 바닥까지 내려요', spot: 'star',
@@ -1236,8 +1236,8 @@ function drawAll(ctx: C2, s: BeadState, w: number, h: number, th: Theme) {
         const m = PAL[e.c] ?? null, k = e.n;
         if (e.kind === K_RAIN) for (const c of RAINBOW) fx.burst(x, y, c, 3, 3.6, 2.6);
         else if (e.kind === K_ICE) (fx.burst(x, y, '#e8f8ff', 10, 3.6, 2.8), fx.burst(x, y, m?.base ?? '#fff', 6, 3, 2.6));
-        else (fx.burst(x, y, m?.base ?? '#fff', 11, 3.8, 3.2), fx.burst(x, y, m?.light ?? '#fff', 5, 2.6, 2.4));
-        fx.burst(x, y, '#ffffff', 4, 4.5, 1.6);
+        else (fx.burst(x, y, m?.base ?? '#fff', 14, 4.6, 4.2), fx.burst(x, y, m?.light ?? '#fff', 6, 3, 3), fx.burst(x, y, m?.dark ?? '#fff', 4, 3.6, 3.4));
+        fx.burst(x, y, '#ffffff', 6, 5.2, 1.8);
         fx.ring(x, y, m?.glow ?? '#ffffff', r * (1.8 + Math.min(1.2, k * 0.1)), 4);
         if (e.k === 'pop') fx.pop(x, y - r * 0.5, k >= 6 ? '팡!!' : '팡!', '#ffffff', Math.max(14, R(0.04 + Math.min(0.03, k * 0.004))));
         fx.kick(e.k === 'bpop' ? 3 : 1.6 + Math.min(6, k * 0.55));
@@ -1861,6 +1861,20 @@ function drawBeads(ctx: C2, s: BeadState, w: number) {
     const v = beadVisual(s, i);
     ell(ctx, R(v.x + W.r[i] * 0.14), R(v.y + W.r[i] * 0.2), R(W.r[i]), R(W.r[i]));
     ctx.fill();
+  }
+  // 와르르 떨어지는 구슬 꼬리
+  for (let i = 0; i < W.n; i++) {
+    if (!W.alive[i] || W.asleep) continue;
+    const vy = W.y[i] - W.py[i], vx = W.x[i] - W.px[i];
+    if (vy < 0.0022) continue;
+    const m = PAL[W.col[i]], k = Math.min(1, (vy - 0.0022) / 0.007);
+    for (let q = 1; q <= 3; q++) {
+      ctx.globalAlpha = 0.22 * k * (1 - q / 4);
+      ctx.fillStyle = m ? m.glow : W.kind[i] === K_IRON ? '#c9d2db' : '#fff3b0';
+      ell(ctx, R(W.x[i] - vx * q * 3), R(W.y[i] - vy * q * 3), R(W.r[i]) * (1 - q * 0.12), R(W.r[i]) * (1 - q * 0.12));
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
   }
   for (let i = 0; i < W.n; i++) {
     if (!W.alive[i]) continue;

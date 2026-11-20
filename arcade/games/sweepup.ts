@@ -185,7 +185,7 @@ const Y0 = 0.3, KY = 0.66, SB = 0.8, SF = 0.95;
 const scl = (y: number) => SB + (SF - SB) * (y / H);
 const PX = (x: number, y: number) => 0.5 + (x - 0.5) * scl(y);
 const PY = (y: number) => Y0 + y * KY;
-const BAND = 1.285;
+const BAND = 1.276;
 function toFloor(sx: number, sy: number) {
   const y = (sy - Y0) / KY;
   return { x: 0.5 + (sx - 0.5) / scl(y), y };
@@ -900,7 +900,7 @@ function clusters(S: Sim, col: number, top: number) {
     sy[id] += S.y[i];
   }
   const out: { x: number; y: number; n: number }[] = [];
-  for (let id = 0; id < cnt.length; id++) if (cnt[id] >= 3) out.push({ x: sx[id] / cnt[id], y: sy[id] / cnt[id], n: cnt[id] });
+  for (let id = 0; id < cnt.length; id++) if (cnt[id] >= 1) out.push({ x: sx[id] / cnt[id], y: sy[id] / cnt[id], n: cnt[id] });
   out.sort((a, b) => b.n - a.n);
   return out.slice(0, top);
 }
@@ -2794,7 +2794,7 @@ function drawHud(ctx: C2, s: SweepState, w: number, h: number, th: Theme, font: 
   ctx.roundRect(0, Y(ty), w, Y(tb - ty) + 4, [R(0.03), R(0.03), 0, 0]);
   ctx.fill();
   // 쓸기 남은 수: 작은 빗자루들
-  const r1 = Y(ty + 0.035);
+  const r1 = Y(ty + 0.032);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#ffeacc';
@@ -2854,7 +2854,7 @@ function drawHud(ctx: C2, s: SweepState, w: number, h: number, th: Theme, font: 
   // 별 조건 (한 줄씩)
   const rows = d.stars.length;
   for (let k = 0; k < rows; k++) {
-    const st = d.stars[k], ry = Y(ty + 0.078 + k * 0.042);
+    const st = d.stars[k], ry = Y(ty + 0.072 + k * 0.04);
     const ok = s.phase === 'result' && s.ok ? s.starOk[k] : starNow(s, st) && (st.k !== 'clean' && st.k !== 'cat' ? true : s.used > 0);
     const lost = (st.k === 'clean' && s.bad > st.n) || (st.k === 'cat' && !!s.cat && s.cat.woke > 0) || (st.k === 'fast' && s.used > st.m && !s.fastOk);
     star5(ctx, R(0.05), ry, R(0.017));
@@ -2885,5 +2885,5 @@ function drawHud(ctx: C2, s: SweepState, w: number, h: number, th: Theme, font: 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffe9a8';
   font(0.036, 900);
-  ctx.fillText(hint, w / 2, Y(ty + 0.078 + rows * 0.042 + (rows < 3 ? 0.004 : -0.004)), w - R(0.05));
+  ctx.fillText(hint, w / 2, Y(ty + 0.072 + rows * 0.04 + (rows < 3 ? 0.006 : -0.002)), w - R(0.05));
 }

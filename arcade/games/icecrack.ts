@@ -65,7 +65,7 @@ interface StageDef {
 
 const FULL = (y: number) => [[-1, -1], [2, -1], [2, y], [-1, y]];
 const MAIN = (y: number): Flow => ({ p: [[-0.1, y], [0.55, y + 0.02], [0.84, y + 0.06]], w: 0.2, v: 0.0036 });
-const TONGUE: Flow = { p: [[-0.1, 1.02], [0.55, 1.04], [0.84, 1.06]], w: 0.22, v: 0.0036 };
+const TONGUE: Flow = { p: [[-0.1, 1.08], [0.55, 1.09], [0.84, 1.1]], w: 0.25, v: 0.0036 };
 
 /** 판 7개. 좌표는 바다 평면(가로 0~1, 세로 0 해안 ~ 1.2 앞). 결(보로노이)은 게임 시드마다 다르게 흔들린다 */
 export const STAGES: StageDef[] = [
@@ -75,9 +75,9 @@ export const STAGES: StageDef[] = [
     ice: [[[-1, -1], [2, -1], [2, 0.66], [0.66, 0.66], [0.64, 1.0], [0.14, 1.0], [0.13, 0.66], [-1, 0.66]]],
     faults: [[[0.02, 0.62], [0.38, 0.63], [0.78, 0.62]], [[0.08, 0.8], [0.4, 0.79], [0.72, 0.81]]],
     pens: [[0.32, 0.87], [0.47, 0.85]],
-    flows: [TONGUE],
-    boat: [0.88, 1.04],
-    taps: 8, par: 1, star3: '',
+    flows: [{ p: [[-0.1, 0.9], [0.4, 0.94], [0.84, 1.08]], w: 0.36, v: 0.0036 }],
+    boat: [0.88, 1.08],
+    taps: 9, par: 1, star3: '',
   },
   {
     key: 'tip', name: '기우뚱 조각', news: '기우뚱 — 펭귄보다 한 칸 넉넉해야 버텨요', spot: '작은 조각', hint: '펭귄 바로 옆을 깨면 조각이 작아요 — 넉넉하게',
@@ -87,7 +87,7 @@ export const STAGES: StageDef[] = [
     pens: [[0.32, 0.7], [0.45, 0.72], [0.58, 0.69]],
     flows: [MAIN(0.8)],
     boat: [0.88, 0.92],
-    taps: 6, par: 1, star3: '',
+    taps: 8, par: 1, star3: '',
   },
   {
     key: 'thick', name: '두꺼운 얼음', news: '두꺼운 얼음 — 금이 멈춰요 (톡 한 칸은 깨져요)', spot: '두꺼운 얼음', hint: '금이 막힌 두꺼운 칸을 직접 톡!',
@@ -108,7 +108,7 @@ export const STAGES: StageDef[] = [
     pens: [[0.5, 0.87], [0.56, 0.74]],
     seal: [0.28, 0.84],
     flows: [TONGUE],
-    boat: [0.88, 1.04],
+    boat: [0.88, 1.08],
     taps: 4, par: 2, star3: 'seal',
   },
   {
@@ -130,7 +130,7 @@ export const STAGES: StageDef[] = [
     pens: [[0.55, 0.9], [0.6, 0.79]],
     bear: [0.26, 0.84],
     flows: [TONGUE],
-    boat: [0.88, 1.04],
+    boat: [0.88, 1.08],
     taps: 5, par: 2, star3: 'par',
   },
   {
@@ -667,7 +667,31 @@ function applyCrack(S: Sim, pl: Pending, E: IceState | null) {
   const [kx, ky] = toWorld(S, pl.body, pl.bx, pl.by);
   for (const b of pl.bonds) S.broken[b] = 1;
   const list = par ? par.cells.slice() : C.map((_, i) => i).filter((i) => S.owner[i] === FIXED);
-  for (const r of S.riders) if (r.st === ON && r.cell === pl.c0) fall(S, r, E, r.k === BEAR ? '첨벙!' : '퐁!');
+  for (const r of S.riders) {
+    if (r.st !== ON || r.cell !== pl.c0) continue;
+    // 펭귄은 톡 한 칸에서 옆 칸으로 깡충 피한다 (물개·곰은 퐁)
+    let best = -1, bd = 9;
+    if (r.k === PEN)
+      for (const b of C[pl.c0].bonds) {
+        const bd2 = G.bonds[b], o = bd2.a === pl.c0 ? bd2.b : bd2.a;
+        if (S.owner[o] !== S.owner[pl.c0]) continue;
+        const dd = Math.hypot(C[o].cx - C[pl.c0].cx - r.lx, C[o].cy - C[pl.c0].cy - r.ly);
+        if (dd < bd) (bd = dd), (best = o);
+      }
+    if (best < 0) fall(S, r, E, r.k === BEAR ? '첨벙!' : '퐁!');
+    else {
+      const c = C[best], lim = c.r * 0.45, dx = C[pl.c0].cx - c.cx, dy = C[pl.c0].cy - c.cy, dl = Math.hypot(dx, dy) || 1;
+      r.cell = best;
+      r.lx = Math.max(-lim, Math.min(lim, (dx / dl) * lim * 0.6 + (r.id % 2 ? 0.01 : -0.01)));
+      r.ly = Math.max(-lim, Math.min(lim, (dy / dl) * lim * 0.6));
+      r.mood = 1;
+      r.moodT = 40;
+      if (E) {
+        const [x, y] = toWorld(S, pl.body, c.cx + r.lx, c.cy + r.ly);
+        ev(E, 'dodge', x, y, '깡충!');
+      }
+    }
+  }
   S.owner[pl.c0] = GONE;
   const rest = list.filter((i) => i !== pl.c0);
   const comps = components(rest, C, G.bonds, S.broken, S.owner);
@@ -1045,7 +1069,7 @@ function newStage(s: IceState) {
   s.banner = { head: `${s.stage + 1}판 · ${d.name}`, sub: s.again ? '다시 한 번! 결을 잘 보고 톡' : s.stage ? `NEW ${d.news}` : '펭귄을 모두 구조선으로!', t: s.t };
   see(s, d.key);
   const spotAt = (): [number, number, number] | null => {
-    if (d.key === 'flow') return [d.flows[0].p[1][0], d.flows[0].p[1][1], 0.12];
+    if (d.key === 'flow') return [0.08, 1.08, 0.09];
     if (d.key === 'tip') return [d.pens[1][0], d.pens[1][1] - 0.01, 0.16];
     if (d.key === 'thick') return [0.17, 0.6, 0.16];
     if (d.key === 'seal' && G.seal) return [G.cells[G.seal[0]].cx, G.cells[G.seal[0]].cy - 0.03, 0.1];
@@ -2139,6 +2163,7 @@ function drawAll(ctx: C2, s: IceState, w: number, h: number, th: Theme) {
           if ((e.n ?? 0) >= 2) say(e.text ?? '', '#ffffff', R(0.045)), fx.kick(2);
           break;
         case 'climb':
+        case 'dodge':
           say(e.text ?? '', '#e8fbff', R(0.042));
           break;
         case 'whirl':
