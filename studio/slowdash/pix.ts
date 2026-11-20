@@ -29,8 +29,9 @@ export function sprite(key: string, make: () => string[][]): HTMLCanvasElement {
   const g = make();
   c = document.createElement('canvas');
   (c.width = g[0].length), (c.height = g.length);
-  const x = c.getContext('2d')!;
-  g.forEach((r, j) => r.forEach((ch, i) => ch !== '.' && ((x.fillStyle = PAL[ch]), x.fillRect(i, j, 1, 1))));
+  const x = c.getContext('2d')!, im = x.createImageData(c.width, c.height); // M3 S8 렉: 칸마다 fillRect(배경 2만 5천 번) → 픽셀을 한 번에(판 진입 멈춤 · 첫 그림)
+  g.forEach((r, j) => r.forEach((ch, i) => { if (ch === '.') return; const v = parseInt(PAL[ch].slice(1), 16), o = (j * c!.width + i) * 4; im.data.set([v >> 16, (v >> 8) & 255, v & 255, 255], o); }));
+  x.putImageData(im, 0, 0);
   cache.set(key, c);
   return c;
 }

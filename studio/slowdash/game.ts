@@ -1754,6 +1754,19 @@ function foePose(f: Foe, moving: boolean): Pose {
 function blit(ctx: C2, im: HTMLCanvasElement, x: number, y: number) {
   ctx.drawImage(im, x - (im.width * PX) / 2, y - im.height * PX + PX, im.width * PX, im.height * PX);
 }
+/** M3 S8 🎨 도트 칼빛(🧪 S4: 주인공인 칼빛 한 줄이 화면에서 가장 흐렸다): 낮은 해상도 칸 단위 계단 선 · 굵기 n칸 · 점선 [켬, 끔]칸 · off만큼 흐름 */
+function pxLine(ctx: C2, x0: number, y0: number, x1: number, y1: number, n: number, col: string, dash?: [number, number], off = 0) {
+  let a = Math.round(x0 / PX), b = Math.round(y0 / PX), e = 0, k = 0;
+  const c = Math.round(x1 / PX), d = Math.round(y1 / PX), dx = Math.abs(c - a), dy = -Math.abs(d - b), sx = a < c ? 1 : -1, sy = b < d ? 1 : -1, h = n >> 1;
+  ctx.fillStyle = col;
+  for (e = dx + dy; ; k++) {
+    if (!dash || (k + off) % (dash[0] + dash[1]) < dash[0]) ctx.fillRect((a - h) * PX, (b - h) * PX, n * PX, n * PX);
+    if (a === c && b === d) break;
+    const e2 = 2 * e;
+    if (e2 >= dy) (e += dy), (a += sx);
+    if (e2 <= dx) (e += dx), (b += sy);
+  }
+}
 /** 판별 배경 v(pix.ts bgGrid) — 빨랫줄 판엔 빨랫줄, 굴뚝 판엔 굴뚝, 2-10은 큰 시계탑 */
 const BGV: Record<string, number> = { leafWait: 2, smoke: 1, leafShield: 2, roofs: 1, jars: 2, boss2: 3 };
 let LO: C2 | null = null;
@@ -2201,18 +2214,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     const a = 1 - since / life;
     for (const lg of s.trail.legs) {
       const x0 = X(lg[0]), y0 = Y(lg[1]) - R(0.05), x1 = X(lg[2]), y1 = Y(lg[3]) - R(0.05);
-      ctx.save();
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = sw ? `rgba(255,214,90,${0.5 * a})` : `rgba(150,230,255,${0.35 * a})`; // 싹쓸이는 금빛 칼자국
-      ctx.lineWidth = R(sw ? 0.11 : 0.07) * (0.6 + a * 0.6);
-      ctx.beginPath();
-      ctx.moveTo(x0, y0);
-      ctx.lineTo(x1, y1);
-      ctx.stroke();
-      ctx.strokeStyle = `rgba(255,255,255,${a})`;
-      ctx.lineWidth = R(0.012) * (0.5 + a);
-      ctx.stroke();
-      ctx.restore();
+      pxLine(ctx, x0, y0, x1, y1, a > 0.5 ? 3 : 2, sw ? `rgba(255,211,64,${0.7 * a})` : `rgba(25,182,167,${0.7 * a})`); // M3 S8 도트 칼자국: 청록(싹쓸이는 금) 계단 + 흰 심
+      pxLine(ctx, x0, y0, x1, y1, 1, `rgba(255,255,255,${a})`);
       if (since < 14) for (const u of [0.25, 0.5, 0.75]) drawFox(ctx, X(lg[0] + (lg[2] - lg[0]) * u), Y(lg[1] + (lg[3] - lg[1]) * u), R(NIN_H) * depth(lg[1] + (lg[3] - lg[1]) * u), s.face, 2, wt, 0.16 * (1 - since / 14) * (0.5 + u));
     }
   }
@@ -2283,20 +2286,10 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     const pulse = 0.5 + 0.5 * Math.sin(t * 0.4);
     ctx.save();
     ctx.lineCap = 'round';
-    for (const lg of prev.legs) {
+    for (const lg of prev.legs) { // M3 S8 도트 겨눈 선: 어두운 3칸 바탕 + 청록 흐르는 점선(먹 모자라면 회색 짧은 점선)
       const x0 = X(lg[0]), y0 = Y(lg[1]) - R(0.04), x1 = X(lg[2]), y1 = Y(lg[3]) - R(0.04);
-      ctx.strokeStyle = canCut ? 'rgba(10,14,30,.55)' : 'rgba(10,14,30,.35)';
-      ctx.lineWidth = R(0.026);
-      ctx.beginPath();
-      ctx.moveTo(x0, y0);
-      ctx.lineTo(x1, y1);
-      ctx.stroke();
-      ctx.strokeStyle = canCut ? '#f4ffff' : 'rgba(220,230,255,.6)';
-      ctx.lineWidth = R(0.009);
-      ctx.setLineDash(canCut ? [R(0.03), R(0.014)] : [R(0.012), R(0.012)]);
-      ctx.lineDashOffset = -t * 1.5;
-      ctx.stroke();
-      ctx.setLineDash([]);
+      pxLine(ctx, x0, y0, x1, y1, 3, canCut ? 'rgba(10,14,30,.55)' : 'rgba(10,14,30,.35)');
+      pxLine(ctx, x0, y0, x1, y1, 1, canCut ? '#7cf8dd' : '#9db5d0', canCut ? [5, 2] : [2, 2], (1e6 - (t >> 1)) % 7);
     }
     const last = prev.legs[prev.legs.length - 1];
     const want = strokeLen(s);
