@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>데이 &amp; 나이트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="stage">
+  <canvas id="view"></canvas>
+  <div id="ui">
+    <div id="toast"></div>
+    <div id="card"><div class="t"></div><div class="s"></div></div>
+
+    <div id="hud">
+      <button id="btn-menu" type="button" aria-label="메뉴"><span></span><span></span><span></span></button>
+      <button id="btn-lantern" type="button" aria-label="등불 켜고 끄기">
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <path class="ring" d="M24 4a6 6 0 0 1 6 6" />
+          <path class="frame" d="M17 14h14l-2 4H19z" />
+          <path class="glass" d="M18 18h12l3 18H15z" />
+          <path class="frame" d="M14 36h20v4H14z" />
+          <circle class="flame" cx="24" cy="28" r="4" />
+        </svg>
+        <i></i>
+      </button>
+    </div>
+
+    <div id="catch"></div>
+    <div id="dlg"><div class="who"></div><div class="txt"></div><div class="next">▾</div></div>
+    <div id="choices"></div>
+
+    <div id="place" class="panel">
+      <h2>빛을 어디에 둘까</h2>
+      <p class="lead">지금까지 만난 빛 정령들이 마지막으로 묻는다. 눌러서 자리를 바꿀 수 있다.</p>
+      <div class="rows"></div>
+      <div class="scale"><span class="l">인간의 밤</span><div class="bar"><i></i></div><span class="r">나이트의 하늘</span></div>
+      <button type="button" class="go">이대로 약속한다</button>
+    </div>
+
+    <div id="fade"></div>
+
+    <div id="title">
+      <div class="inner">
+        <h1><span class="d">데이</span><span class="amp">&amp;</span><span class="n">나이트</span></h1>
+        <p class="sub">빛과 어둠이 나눠 가진 약속</p>
+        <p class="run"></p>
+        <div class="btns">
+          <button type="button" data-act="new">여정을 시작한다</button>
+          <button type="button" data-act="continue">이어서 걷는다</button>
+          <button type="button" data-act="gallery">엔딩 기록</button>
+        </div>
+      </div>
+      <p class="foot">언덕을 위아래로 끌어 길을 잇고, 가고 싶은 곳을 누르세요.</p>
+    </div>
+
+    <div id="menu" class="panel">
+      <h2>잠시 멈춤</h2>
+      <div class="btns">
+        <button type="button" data-act="resume">계속 걷는다</button>
+        <button type="button" data-act="restart">이 장을 처음부터</button>
+        <button type="button" data-act="sound">소리 끄기</button>
+        <button type="button" data-act="title">첫 화면으로</button>
+      </div>
+      <p class="help">· 가고 싶은 곳을 누르면 걸어갑니다.<br>· 언덕을 위아래로 끌면 모양이 바뀝니다. 발밑의 땅은 움직이지 않습니다.<br>· 반짝이는 것은 눌러서 살펴볼 수 있습니다.</p>
+    </div>
+
+    <div id="ending">
+      <div class="inner">
+        <p class="kind"></p>
+        <h2></h2>
+        <p class="desc"></p>
+        <p class="count"></p>
+        <div class="btns">
+          <button type="button" data-act="again">다시 여정을 떠난다</button>
+          <button type="button" data-act="title">첫 화면으로</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="gallery" class="panel">
+      <h2>엔딩 기록</h2>
+      <div class="list"></div>
+      <button type="button" class="go" data-act="close">닫기</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/util.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/terrain.js"></script>
+<script src="js/art.js"></script>
+<script src="js/render.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/story.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/levels2.js"></script>
+<script src="js/levels3.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
