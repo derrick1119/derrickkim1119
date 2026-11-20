@@ -467,9 +467,10 @@
         "petcafe",
         "treasuremap"
       ],
-      "winner": null,
-      "note": "33라운드 전체 폐기(이유: 조작이 어색하거나 어려움, 방향: 완전히 다른 장르) 뒤 실시간 액션을 떠난 장르 6개: 조합 발견 · 오토배틀러(합치기) · 두 갈래 결정 · 생태계 키우기 · 하루 계획 경영 · 갈림길 탐험. 조작은 큰 단추 톡 하나, 내 속도대로. 기계 추천 2(버릇 ★3 최저): 카페(0%). 오너가 고른다",
-      "machinePick": "reeftank"
+      "winner": "petsquad",
+      "note": "33라운드 전체 폐기(이유: 조작이 어색하거나 어려움, 방향: 완전히 다른 장르) 뒤 실시간 액션을 떠난 장르 6개: 조합 발견 · 오토배틀러(합치기) · 두 갈래 결정 · 생태계 키우기 · 하루 계획 경영 · 갈림길 탐험. 조작은 큰 단추 톡 하나, 내 속도대로. 기계 추천 2(버릇 ★3 최저): 카페(0%). 오너가 고른다 · 오너: \"2번 스튜디오 개설해서 진행하자. 나머지는 폐기\" → 동물 군단 합체 전투 졸업(스튜디오), 나머지 5개 폐기. 기계 추천(어항)·기계 추천 2(카페) 빗나감. 32·33 연속 전체 폐기 뒤 오너 답(조작 쉽게·다른 장르)대로 바꾼 첫 라운드에서 선택",
+      "machinePick": "reeftank",
+      "decidedAt": "2026-11-20"
     }
   ],
   "graduated": [
@@ -593,6 +594,19 @@
         "bullettime",
         "pointer",
         "chain"
+      ]
+    },
+    {
+      "id": "petsquad",
+      "name": "동물 군단 합체 전투",
+      "at": "2026-11-20",
+      "round": 34,
+      "studio": "studio/petsquad",
+      "play": "https://derrick1119.github.io/derrickkim1119/studio/petsquad/",
+      "genes": [
+        "autobattle",
+        "merge",
+        "pointer"
       ]
     }
   ],
@@ -1805,6 +1819,61 @@
       ],
       "at": "2026-11-20",
       "why": "33라운드 전체 폐기(오너: \"폐기\") — 서로 다른 뼈대 6개, 밝은 낮 (코드: git 611c86d)"
+    },
+    {
+      "id": "alchemylab",
+      "name": "꼬마 마녀 조합 연구소",
+      "genes": [
+        "alchemy",
+        "chain",
+        "pointer"
+      ],
+      "at": "2026-11-20",
+      "why": "34라운드 선택 안 됨 — 동물 군단 합체 전투만 졸업 (코드: git 4de2f5d)"
+    },
+    {
+      "id": "tinykingdom",
+      "name": "꼬마 왕국 두 갈래",
+      "genes": [
+        "dilemma",
+        "decorate",
+        "pointer"
+      ],
+      "at": "2026-11-20",
+      "why": "34라운드 선택 안 됨 — 동물 군단 합체 전투만 졸업 (코드: git 4de2f5d)"
+    },
+    {
+      "id": "reeftank",
+      "name": "작은 어항 생태계",
+      "genes": [
+        "ecosystem",
+        "idle",
+        "pointer"
+      ],
+      "at": "2026-11-20",
+      "why": "34라운드 선택 안 됨 — 동물 군단 합체 전투만 졸업 (코드: git 4de2f5d)"
+    },
+    {
+      "id": "petcafe",
+      "name": "동물 손님 카페 하루",
+      "genes": [
+        "tycoon",
+        "decorate",
+        "pointer"
+      ],
+      "at": "2026-11-20",
+      "why": "34라운드 선택 안 됨 — 동물 군단 합체 전투만 졸업 (코드: git 4de2f5d)"
+    },
+    {
+      "id": "treasuremap",
+      "name": "보물섬 갈림길 탐험",
+      "genes": [
+        "pathpick",
+        "chain",
+        "pointer"
+      ],
+      "at": "2026-11-20",
+      "why": "34라운드 선택 안 됨 — 동물 군단 합체 전투만 졸업 (코드: git 4de2f5d)"
     }
   ]
 }
