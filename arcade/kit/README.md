@@ -16,3 +16,4 @@
 ## 라운드를 열 때 (공장이 직접)
 - 게임 측정 뒤 `ab.json` 새 라운드의 `machinePick`·`machinePick2`는 `arcade/picks.ts` 계산 그대로(0114, `tests/arcade-picks.test.ts`가 맞춰 봄). 계기판이 같은 계산을 '기계 추천(참고만)'으로 보인다.
 - `npx tsx arcade/cli-dashboard.ts --cycle NNNN` → `node arcade/kit/browser-check.cjs <id들> <폴더>`: 콘솔 에러 0 · 가로 스크롤 390 · 게임마다 소리 남 · 끄기 맞음을 확인하고 실험 기록에 적는다.
+- 아이디어 메뉴(0117): 다음 라운드 초안은 `arcade/menus/round<N>.draft.json`(계기판 메뉴 모양 + `exists` 이미 있음 위험 + `alternates`). `tests/arcade-menu.test.ts`가 모든 메뉴의 칸을 검사한다(아직 안 고른 메뉴는 첫 3초·깊이까지).
