@@ -85,8 +85,20 @@ let pointer: { x: number; y: number } | null = null, latch: { x: number; y: numb
 const keys = new Set<string>();
 let W = 0, H = 0;
 
+// M3 S1 오너 "렉이 좀 걸리는거 같고": 프레임이 50fps 밑으로 ¾초 넘게 처지면 캔버스 해상도를 한 단계 낮춘다(2 → 1.5 → 1.15 → 1, 다시 올리지 않음)
+let dprCap = 2, slowN = 0, ema = 16.7;
+const qualityTick = (ms: number) => {
+  if (ms > 100 || dprCap <= 1) return; // 탭이 숨었거나 멈췄던 프레임은 빼고
+  ema += (ms - ema) * 0.05;
+  if (ema <= 21) return void (slowN = 0);
+  if (++slowN < 45) return;
+  dprCap = dprCap > 1.6 ? 1.5 : dprCap > 1.2 ? 1.15 : 1;
+  (slowN = 0), (ema = 16.7);
+  size();
+};
 function size() {
-  const w = Math.min(root.clientWidth || 390, 460), dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.min(root.clientWidth || 390, 460), dpr = Math.min(dprCap, window.devicePixelRatio || 1);
+  (window as unknown as { __slowdashDpr?: number }).__slowdashDpr = dpr;
   W = w;
   H = w * aspect;
   canvas.style.width = `${W}px`;
@@ -207,6 +219,7 @@ pickBtn?.addEventListener('click', () => (picker.hidden ? openPicker() : (picker
 function loop(now: number) {
   if (!running) return;
   acc += Math.min(0.25, (now - last) / 1000);
+  qualityTick(now - last);
   last = now;
   while (acc >= TICK) {
     const kx = (keys.has('ArrowRight') ? 1 : 0) - (keys.has('ArrowLeft') ? 1 : 0), ky = (keys.has('ArrowDown') ? 1 : 0) - (keys.has('ArrowUp') ? 1 : 0);
