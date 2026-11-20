@@ -2174,7 +2174,7 @@ function drawAll(ctx: C2, s: RocketState, w: number, h: number, th: Theme) {
   }
   vis.ev = Math.max(vis.ev, ...s.events.map((e) => e.t), vis.ev);
   // 붙이기 도착: 철컥!
-  if (s.attachT !== vis.attachDone && t - s.attachT >= ATTACH_T - 2 && s.lastPart >= 0) {
+  if (s.attachT !== vis.attachDone && t - s.attachT >= ATTACH_T - 2 && t - s.attachT < 30 && build && s.lastPart >= 0) {
     vis.attachDone = s.attachT;
     const k = s.parts[s.lastPart];
     const S = stackOf(s.parts, 0);
@@ -2276,6 +2276,24 @@ function drawAll(ctx: C2, s: RocketState, w: number, h: number, th: Theme) {
   }
   // 목표·별 깃발·새 떼 (하늘 세계)
   drawSkyThings(ctx, s, V, gy, X, Y, R, font, t, fx);
+  // 속도 줄 (빠르게 오를 때)
+  if (f && V.mode === 'asc') {
+    const v = velTick(f, V.step), k = clamp((v - 4) / 20, 0, 1);
+    if (k > 0) {
+      ctx.strokeStyle = `rgba(255,255,255,${0.45 * k})`;
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      for (let i = 0; i < 12; i++) {
+        const xx = X(0.04 + hsh(i + 500) * 0.8), len = R(0.06 + 0.14 * k);
+        const yy = ((hsh(i + 501) * Y(PANEL_Y) + t * R(0.04) * (0.6 + hsh(i + 502))) % (Y(PANEL_Y) + len)) - len;
+        if (Math.abs(xx - X(PAD_X)) < R(0.12)) continue;
+        ctx.beginPath();
+        ctx.moveTo(xx, yy);
+        ctx.lineTo(xx, yy + len);
+        ctx.stroke();
+      }
+    }
+  }
   // 바람 줄
   if (t - vis.wind < 90 && f) {
     const a = 1 - (t - vis.wind) / 90, up = f.wind >= 0 || s.parts.includes('wing');
@@ -2570,6 +2588,36 @@ function drawTheRocket(ctx: C2, s: RocketState, V: View, vis: Vis, X: (x: number
       ctx.textBaseline = 'middle';
       txt(ctx, '흔들흔들!', X(PAD_X) + R(0.2), base - R(vis.stackH * scale * 0.6), '#ffe0ff');
     }
+    // 고양이 말풍선
+    const pr = vis.pred, d = STAGES[s.stage];
+    const say = !parts.length ? (s.stage === 0 && !s.again ? '엔진 붙여 줘!' : '부품 붙여 줘!') : age < 40 && P[parts[parts.length - 1]].thr > 0 ? '부릉부릉!' : !pr ? '엔진이 있어야 날아…' : pr.tip ? '너무 무거워…' : B.wob > 0 ? '어지러워…' : pr.apex >= d.goal ? '이제 갈 수 있어!' : '조금만 더!';
+    if (say && t - s.attachT > 14) {
+      const capTop = base - R(vis.stackH * scale) - R(0.02);
+      const bx = X(PAD_X) - R(0.17), by = Math.max(Y(0.17), capTop - R(0.02));
+      ctx.font = `800 ${Math.max(12, R(0.034))}px system-ui, sans-serif`;
+      const tw = ctx.measureText(say).width + R(0.04), th2 = R(0.05);
+      const bl = clamp(bx - tw / 2, R(0.02), X(GAUGE_X) - R(0.05) - tw);
+      ctx.fillStyle = 'rgba(40,30,70,.2)';
+      rr(ctx, bl + 2, by - th2 + 3, tw, th2, th2 / 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      rr(ctx, bl, by - th2, tw, th2, th2 / 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(bl + tw * 0.7, by - 1);
+      ctx.lineTo(bl + tw * 0.86, by + R(0.02));
+      ctx.lineTo(bl + tw * 0.86 - R(0.025), by - 1);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = OUT;
+      ctx.lineWidth = 1.5;
+      rr(ctx, bl, by - th2, tw, th2, th2 / 2);
+      ctx.stroke();
+      ctx.fillStyle = '#3a2a4e';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(say, bl + tw / 2, by - th2 / 2 + 1);
+    }
     return;
   }
   if (V.mode === 'result') {
@@ -2778,6 +2826,12 @@ function drawGauge(ctx: C2, s: RocketState, V: View, vis: Vis, X: (x: number) =>
   // 지금 쏘면 여기까지 (만들 때) / 지금 높이 (날 때)
   if (V.mode === 'build') {
     const mv = vis.shown, py = gyv(mv), ok = !!pred && !pred.tip && pred.apex >= d.goal;
+    if (!pred || Math.abs(py - gY) > R(0.05)) {
+      font(0.028, 900);
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      txt(ctx, `목표 ${fmt(d.goal)}m`, gx - gw / 2 - R(0.012), gY, '#ffffff', 'rgba(150,40,20,.8)', 3);
+    }
     if (pred) {
       // 로켓에서 자까지 점선
       ctx.strokeStyle = ok ? 'rgba(80,220,90,.95)' : 'rgba(255,120,80,.95)';
@@ -3244,7 +3298,7 @@ function drawFlightPanel(ctx: C2, s: RocketState, V: View, vis: Vis, X: (x: numb
     txt(ctx, '날아라!', X(0.69), Y(1.2), '#ffffff');
   }
   drawStarsRow(ctx, s, vis, X, Y, R, font, w);
-  hintLine(ctx, s, s.phase === 'result' ? (s.ok ? '톡 하면 다음 판' : '톡 하면 다시 조립') : V.mode === 'ign' ? '3, 2, 1… 점화!' : V.mode === 'tip' ? '너무 무거워서 못 떴어요…' : '비행은 저절로! 구경해요', Y, R, font, w);
+  hintLine(ctx, s, s.phase === 'result' ? (s.won ? `모든 판 끝! 별 ${s.stars}개` : s.ok ? '톡 하면 다음 판' : s.hearts > 0 ? '톡 하면 다시 조립' : '하트가 없어요 — 끝') : V.mode === 'ign' ? '3, 2, 1… 점화!' : V.mode === 'tip' ? '너무 무거워서 못 떴어요…' : '비행은 저절로! 구경해요', Y, R, font, w);
 }
 function drawTop(ctx: C2, s: RocketState, R: (r: number) => number, font: (sz: number, wgt?: number) => void, w: number) {
   const d = STAGES[s.stage], hb = R(0.085);
