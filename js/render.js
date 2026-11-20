@@ -34,7 +34,7 @@
       dawn:  { skyTop: '#4a5e92', skyBot: '#ecbcaa', haze: '#ffe4ce', far: '#a7a4bc', near: '#666584', deep: '#444664', wFar: '#b9a8c4', wNear: '#56628e', tint: '#62648a', tintAmt: 0.32, ink: '#24263c', dark: 0.06, cloud: '#f4c8c2' },
     },
     city: {
-      day:   { skyTop: '#93b9d0', skyBot: '#efe6d2', haze: '#fbf2de', far: '#bcc3cc', near: '#7c8294', deep: '#5a6072', tint: '#7c8294', tintAmt: 0.06, ink: '#34343c', dark: 0, cloud: '#ffffff' },
+      day:   { skyTop: '#8db3d2', skyBot: '#f6e6c8', haze: '#fff3da', far: '#e2ceb6', near: '#b08f84', deep: '#77606a', tint: '#b08f84', tintAmt: 0.05, ink: '#3a3038', dark: 0, cloud: '#ffffff' },
       dusk:  { skyTop: '#55548a', skyBot: '#ee9c72', haze: '#ffc994', far: '#a98e9c', near: '#5c4f68', deep: '#3e3550', tint: '#5c4f68', tintAmt: 0.36, ink: '#261f2e', dark: 0.1, cloud: '#f2b29c' },
       night: { skyTop: '#090c26', skyBot: '#1f2448', haze: '#2c3158', far: '#30365a', near: '#161a36', deep: '#0c0e22', tint: '#161a36', tintAmt: 0.62, ink: '#050610', dark: 0.38, cloud: '#262b52' },
       dawn:  { skyTop: '#48588c', skyBot: '#e6b2a4', haze: '#fbdcc8', far: '#9c9ab4', near: '#565a7c', deep: '#3a3d5c', tint: '#565a7c', tintAmt: 0.34, ink: '#202236', dark: 0.06, cloud: '#eec0bc' },

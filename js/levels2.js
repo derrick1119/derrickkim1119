@@ -319,10 +319,15 @@
       { type: 'streetlight', layer: 'st', x: 250, lit: 'A_lit_street' }, { type: 'streetlight', layer: 'st', x: 1130, lit: 'A_lit_street' },
       { type: 'streetlight', layer: 'st', x: 1960, lit: 'A_lit_street' }, { type: 'streetlight', layer: 'st', x: 2244, lit: 'A_lit_street' },
       { type: 'subway', layer: 'st', x: 2470 }, { type: 'billboard', layer: 'sign', x: 1120 },
-      { type: 'streetlight', layer: 'st', x: 3300, lit: 'A_lit_street' }, { type: 'streetlight', layer: 'st', x: 4100, lit: 'A_lit_street' },
+      { type: 'streetlight', layer: 'st', x: 3300, lit: 'A_lit_street' }, { type: 'streetlight', layer: 'st', x: 2560, lit: 'A_lit_street' }, { type: 'streetlight', layer: 'st', x: 4100, lit: 'A_lit_street' },
     ],
     start: { layer: 'st', x: 120 },
     things: [
+      // 인간에게 돌아간 빛은 그 자리에 꺼지지 않는 작은 낮을 만든다
+      { id: 'neonLight', kind: 'none', layer: 'r_a', x: 880, up: 30, light: { r: 96, flag: 'A_lit_neon' }, visible: false },
+      { id: 'streetLight1', kind: 'none', layer: 'st', x: 2575, up: 56, light: { r: 104, flag: 'A_lit_street' }, visible: false },
+      { id: 'streetLight2', kind: 'none', layer: 'st', x: 3315, up: 56, light: { r: 104, flag: 'A_lit_street' }, visible: false },
+      { id: 'hospLight', kind: 'none', layer: 'r_a', x: 3600, up: 20, light: { r: 96, flag: 'A_lit_hospital' }, visible: false },
       { id: 'neon', kind: 'spirit', spirit: 'neon', layer: 'r_a', x: 902, dy: 30, tired: 0.2 },
       { id: 'street', kind: 'spirit', spirit: 'street', layer: 'st', x: 2470, dy: 12, tired: 0.7, scale: 0.85 },
       { id: 'hosp', kind: 'spirit', spirit: 'hospital', layer: 'r_a', x: 3720, dy: 30, tired: 0.6 },

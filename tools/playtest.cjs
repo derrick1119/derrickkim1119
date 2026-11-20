@@ -3,7 +3,8 @@
  *
  *   node tools/playtest.cjs            처음부터 결말까지 한 번에 + 결말 판정 표
  *   node tools/playtest.cjs ch2        한 장만
- *   node tools/playtest.cjs full       전체 여정만 / endings 결말 판정만
+ *   node tools/playtest.cjs full       전체 여정만 / run2 2회차 단서만 / endings 결말 판정만
+ *   node tools/playtest.cjs full --pick=1 --expect=repeat   선택지마다 둘째 것을 골라 다른 갈래를 지나 본다
  *   node tools/playtest.cjs --shots=폴더   단계마다 화면을 저장
  *
  * 서버 없이 index.html 을 file:// 로 열어 Playwright(Chromium)로 돌린다.
@@ -16,6 +17,8 @@ const ROOT = path.resolve(__dirname, '..');
 const args = process.argv.slice(2);
 const shotDir = (args.find((a) => a.startsWith('--shots=')) || '').slice(8);
 const only = args.filter((a) => !a.startsWith('--'));
+const pick = parseInt((args.find((a) => a.startsWith('--pick=')) || '').slice(7) || '0', 10);   // 선택지에서 몇 번째를 고를지
+const expect = (args.find((a) => a.startsWith('--expect=')) || '').slice(9);
 const SOL = require('./solutions.cjs');
 
 async function runLevel(page, id, steps, opts) {
@@ -150,12 +153,13 @@ async function runLevel(page, id, steps, opts) {
   if (!only.length || only.includes('full')) {
     const page = await open('?auto=1&speed=6');
     try {
-      await page.evaluate(() => { DN.AUTO.afterEnding = 'again'; DN.Game.titleAction('new'); });
+      await page.evaluate((n) => { DN.AUTO.afterEnding = 'again'; if (n) DN.AUTO.choose = (o) => o[Math.min(n, o.length - 1)]; DN.Game.titleAction('new'); }, pick);
       await page.waitForFunction(() => DN.Game.level.id === 'prologue');
       for (const id of Object.keys(SOL.levels)) await runLevel(page, id, SOL.levels[id]);
       await page.waitForFunction(() => DN.Game.level.id === 'prologue' && DN.Game.S && DN.Game.S.run === 2, null, { timeout: 30000 });
       const r = await page.evaluate(() => ({ ending: DN.Game.lastEnding, meta: DN.Game.meta, run2: DN.Game.flags.run2 }));
-      if (r.ending !== SOL.fullEnding) throw new Error(`기대한 결말 ${SOL.fullEnding}, 실제 ${r.ending}`);
+      const want = expect || SOL.fullEnding;
+      if (r.ending !== want) throw new Error(`기대한 결말 ${want}, 실제 ${r.ending}`);
       if (!r.run2 || r.meta.runs !== 1) throw new Error('2회차로 넘어가지 않음: ' + JSON.stringify(r));
       console.log(`✓ 전체 여정 (결말: ${r.ending}, 이어서 2회차 시작)`);
     } catch (e) { failed++; console.log(`✗ 전체 여정: ${e.message}`); if (shotDir) await page.screenshot({ path: path.join(shotDir, `full_FAIL.png`) }); }

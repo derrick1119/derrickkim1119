@@ -41,10 +41,11 @@
   }
   G.save = function () { store({ meta: G.meta, S: G.S }); };
 
-  function newRun() {
-    const again = G.meta.runs > 0;
+  function newRun(runNo) {
+    const run = runNo || G.meta.runs + 1;
+    const again = run > 1;
     return {
-      ci: 0, run: G.meta.runs + 1,
+      ci: 0, run,
       A: {},                            // 빛의 행방: 정령 → 'human' | 'night'
       B: 0,                             // 나이트와의 관계 점수
       C: { hari: false, night: false }, // 고백
@@ -81,8 +82,7 @@
       if (q.get('level') && DN.LEVELS[q.get('level')]) {
         // 개발용: 특정 장면부터 시작
         const id = q.get('level');
-        if (q.get('run')) G.meta.runs = parseInt(q.get('run'), 10) - 1;
-        G.S = newRun();
+        G.S = newRun(q.get('run') ? parseInt(q.get('run'), 10) : 0);
         DN.Story.debugState(G.S, id);
         if (DN.CHAPTERS.includes(id)) G.startChapter(DN.CHAPTERS.indexOf(id), true);
         else { G.mode = 'play'; G.S.ci = DN.Story.sceneChapter(id); G.gotoScene(id); }
