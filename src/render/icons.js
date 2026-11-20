@@ -140,6 +140,55 @@ export const CARD_ART = {
     path(g, p => { p.moveTo(-1.4, -5); p.quadraticCurveTo(-7.6, -2, -6, 4.6); p.quadraticCurveTo(-2.6, 0, 1.2, -1); p.closePath(); }, RED, INK, 0.9); g.restore();
     for (const [x, y] of [[-14, 10], [-9, 15]]) line(g, [x, y, x - 5, y + 3], INK, 1.3);
   },
+  flash(g) { // 일섬: 한 줄기 칼빛
+    path(g, p => { p.moveTo(-21, 13); p.quadraticCurveTo(-4, -4, 21, -15); p.quadraticCurveTo(0, 2, -21, 13); p.closePath(); }, WHITE, INK, 1.1);
+    for (const [x, y, l] of [[-15, -4, 9], [-9, -12, 7], [8, 9, 9]]) line(g, [x, y, x - l, y + l * 0.62], INK, 1.2);
+    g.save(); g.translate(2, 3); g.rotate(1.02); path(g, p => { p.moveTo(-1.7, 2); p.quadraticCurveTo(-0.9, -12, 4.4, -24); p.quadraticCurveTo(3.4, -11, 2, 2); p.closePath(); }, STEEL, INK, 1.2); g.globalAlpha = 0.7; line(g, [1.2, -3, 3.2, -19], '#fff', 0.9); g.globalAlpha = 1; rr(g, -3.8, 1.6, 7.6, 2.6, 1, GOLD, INK, 0.9); line(g, [0, 4.4, 0, 12], INK, 3.4); line(g, [0, 4.4, 0, 12], '#7a1f1c', 1.9); g.restore();
+    spark(g, 18, -17, 4.4, '#fffbe6');
+  },
+  veil(g) { // 안개 걸음: 안개 속의 삿갓
+    cloud(g, -6, 9, 1.1, '#dfe6ee'); 
+    path(g, p => { p.moveTo(-13, -3); p.quadraticCurveTo(-6, -11, 1, -17); p.quadraticCurveTo(8, -11, 15, -3); p.quadraticCurveTo(1, 0.6, -13, -3); p.closePath(); }, '#d9b77a', INK, 1.2); for (const x of [-8, -3, 5, 10]) line(g, [1 + (x - 1) * 0.1, -16, x, -3.4], '#a8884a', 0.6);
+    g.globalAlpha = 0.85; path(g, p => { p.moveTo(-6, -1); p.quadraticCurveTo(-7, 6, 1, 7); p.quadraticCurveTo(9, 6, 8, -1); p.closePath(); }, '#3a3f58', INK, 1); g.globalAlpha = 1;
+    cloud(g, 7, 13, 0.95, '#eef3f4'); cloud(g, -12, 16, 0.7, '#eef3f4'); spark(g, 16, -14, 3.2, '#fffbe6');
+  },
+  mark(g) { // 표적: 화살이 꽂힌 과녁
+    ell(g, -2, 3, 16, 16, WHITE, INK, 1.3); ell(g, -2, 3, 11.4, 11.4, RED, INK, 0.9); ell(g, -2, 3, 7, 7, WHITE, INK, 0.9); ell(g, -2, 3, 3, 3, RED, INK, 0.8);
+    for (const a of [0, PI / 2, PI, PI * 1.5]) line(g, [-2 + Math.cos(a) * 16, 3 + Math.sin(a) * 16, -2 + Math.cos(a) * 20.6, 3 + Math.sin(a) * 20.6], INK, 1.6);
+    g.save(); g.translate(-2, 3); g.rotate(0.86); line(g, [0, 0, 0, -25], INK, 2.8); line(g, [0, 0, 0, -25], '#e9d9b0', 1.3); poly(g, [-2.6, -19, 0, -21.6, 2.6, -19, 2.6, -25.6, 0, -23, -2.6, -25.6], WHITE, INK, 0.8); g.restore();
+  },
+  snare(g) { // 올가미: 말뚝에 맨 올가미
+    line(g, [12, 20, 12, -2], INK, 4.4); line(g, [12, 20, 12, -2], WOOD, 2.6); poly(g, [9.6, -2, 12, -7.6, 14.4, -2], WOODD, INK, 0.9);
+    cord(g, p => { p.ellipse(-5, 6, 13.6, 8.6, -0.2, 0, TAU); }, '#d9b77a', 2); cord(g, p => { p.moveTo(7.4, 2); p.quadraticCurveTo(10, 4, 12, 7); }, '#d9b77a', 2);
+    for (let i = 0; i < 9; i++) { const a = i / 9 * TAU; line(g, [-5 + Math.cos(a) * 12.6, 6 + Math.sin(a) * 8 - 0.8, -5 + Math.cos(a) * 14.4, 6 + Math.sin(a) * 9.2 + 0.6], '#a8884a', 0.7); }
+    ell(g, 7.6, 2.2, 2.4, 2.2, '#b98a55', INK, 0.9);
+    for (const [x, y] of [[-12, -9], [-3, -13], [6, -11]]) { line(g, [x, y, x - 1.6, y - 5], LEAFD, 1.2); line(g, [x, y, x + 1.8, y - 4.4], LEAFD, 1.2); }
+  },
+  pangut(g) { // 판굿: 상모 끝에서 휘도는 긴 종이 띠
+    cord(g, p => { p.moveTo(3, -9); p.bezierCurveTo(24, -24, 26, 8, 6, 12); p.bezierCurveTo(-14, 16, -24, 0, -12, -10); p.bezierCurveTo(-4, -17, 8, -4, -2, 2); }, WHITE, 2.6);
+    ell(g, 0, -6, 9.6, 2.9, '#2e2c35', INK, 1.1); path(g, p => { p.moveTo(-5, -6.6); p.quadraticCurveTo(-5, -14.6, 0, -14.6); p.quadraticCurveTo(5, -14.6, 5, -6.6); p.closePath(); }, '#38363f', INK, 1.1); line(g, [-4.8, -8, 4.8, -8], GOLD, 1.3);
+    line(g, [0, -14.6, 2, -18], INK, 1.8); ell(g, 3, -9, 1.3, 1.3, GOLD, INK, 0.6);
+    for (const [x, y, c] of [[-17, 15, RED], [15, 17, INDIGO], [19, -16, GOLD]]) spark(g, x, y, 3.2, c);
+  },
+  deong(g) { // 덩더쿵: 장구
+    for (const s of [-1, 1]) { g.beginPath(); g.arc(s * 15, 0, 6, s > 0 ? -0.9 : PI - 0.9, s > 0 ? 0.9 : PI + 0.9); st(g, INK, 1.5); g.beginPath(); g.arc(s * 16, 0, 10, s > 0 ? -0.8 : PI - 0.8, s > 0 ? 0.8 : PI + 0.8); st(g, INK, 1.5); }
+    path(g, p => { p.moveTo(-10, -9); p.quadraticCurveTo(0, -2, 10, -9); p.lineTo(10, 9); p.quadraticCurveTo(0, 2, -10, 9); p.closePath(); }, '#b8342a', INK, 1.3);
+    for (const [x, y0, y1] of [[-6, -6.6, 6.6], [0, -5, 5], [6, -6.6, 6.6]]) line(g, [x, y0, x, y1], '#7a1f1c', 0.8);
+    for (const s of [-1, 1]) { ell(g, s * 10, 0, 3.4, 10.6, '#f3e7c8', INK, 1.3); ell(g, s * 10, 0, 1.6, 6.4, null, '#c9bfa6', 0.8); }
+    for (let i = -1; i <= 1; i++) { line(g, [-10, -9.4 + (i + 1) * 0.2, 10, 9.4 - (1 - i) * 0.2 - (i + 1) * 9.2], GOLD, 0.8); }
+    line(g, [-10, -10, 10, -10], WHITE, 1); line(g, [-10, 10, 10, 10], WHITE, 1);
+    g.save(); g.translate(5, -16); g.rotate(0.9); line(g, [0, 0, 0, -11], INK, 2.6); line(g, [0, 0, 0, -11], '#d9b77a', 1.3); ell(g, 0, -12, 2, 2, WOODD, INK, 0.8); g.restore();
+  },
+  bulwark(g) { // 버티기: 엇걸어 버틴 쌍도끼
+    for (const s of [-1, 1]) { g.save(); g.scale(s, 1); g.rotate(0.6); line(g, [0, 22, 0, -12], INK, 4); line(g, [0, 22, 0, -12], WOOD, 2.2); path(g, p => { p.moveTo(-1.6, -14); p.quadraticCurveTo(9, -18.6, 13.6, -11); p.quadraticCurveTo(15, -3, 10, 3); p.quadraticCurveTo(6, -2, -1.6, -1); p.closePath(); }, '#6e727c', INK, 1.2); path(g, p => { p.moveTo(9.6, -15); p.quadraticCurveTo(15.4, -8, 10.4, 2); p.quadraticCurveTo(12.4, -8, 8.4, -14); p.closePath(); }, STEEL); rr(g, -2.4, -15, 4.8, 3, 1, IRON, INK, 0.8); g.restore(); }
+    ell(g, 0, 4, 5.4, 5.4, '#d9963f', INK, 1.2); for (const x of [-2.6, 0, 2.6]) poly(g, [x - 0.8, 0.4, x + 0.8, 0.4, x, 6.6], BLACK);
+    for (const a of [-2.3, -1.57, -0.84]) line(g, [Math.cos(a) * 17, -6 + Math.sin(a) * 17, Math.cos(a) * 22, -6 + Math.sin(a) * 22], INK, 1.5);
+  },
+  raid(g) { // 산채 패거리: 산마루 너머로 솟은 깃발과 철퇴
+    line(g, [-2, 12, -2, -21], INK, 3.2); line(g, [-2, 12, -2, -21], WOOD, 1.7); path(g, p => { p.moveTo(-2, -20); p.lineTo(15, -17); p.lineTo(10, -11.6); p.lineTo(15.6, -6); p.lineTo(-2, -4); p.closePath(); }, '#d9963f', INK, 1.2); for (const x of [2.4, 6.6, 10.4]) poly(g, [x - 1, -18, x + 1, -17.6, x - 0.4, -6.4], BLACK);
+    for (const [x, a] of [[-13, -0.35], [11, 0.4]]) { g.save(); g.translate(x, 8); g.rotate(a); line(g, [0, 6, 0, -9], INK, 3); line(g, [0, 6, 0, -9], '#5a3a26', 1.6); for (let i = 0; i < 6; i++) { const q = i / 6 * TAU; poly(g, [Math.cos(q - 0.4) * 3.6, -13 + Math.sin(q - 0.4) * 3.6, Math.cos(q) * 7, -13 + Math.sin(q) * 7, Math.cos(q + 0.4) * 3.6, -13 + Math.sin(q + 0.4) * 3.6], GREY, INK, 0.6); } ell(g, 0, -13, 4.6, 4.6, IRON, INK, 1); g.restore(); }
+    path(g, p => { p.moveTo(-22, 20); p.lineTo(-12, 6); p.lineTo(-5, 12); p.lineTo(3, 3); p.lineTo(12, 13); p.lineTo(17, 8); p.lineTo(22, 20); p.closePath(); }, LEAFD, INK, 1.3); line(g, [-12, 6, -9, 12], '#2c4f44', 0.9); line(g, [3, 3, 5.4, 10], '#2c4f44', 0.9);
+  },
   order(g) { // 호령
     g.save(); g.rotate(-0.16); line(g, [-11, 22, -11, -19], INK, 3.4); line(g, [-11, 22, -11, -19], '#7a3a2a', 1.8); poly(g, [-13.4, -19, -11, -24.6, -8.6, -19], GOLD, INK, 0.9);
     path(g, p => { p.moveTo(-11, -18); p.lineTo(17, -15); p.quadraticCurveTo(13, -7, 17, 2); p.lineTo(-11, 4); p.closePath(); }, INDIGO, INK, 1.3);

@@ -1,36 +1,52 @@
-// 영웅 고르기 (가로)
+// 영웅 고르기 (가로): 위에는 영웅 일곱의 얼굴, 아래에는 고른 영웅의 고유기와 전용 패
 import { W, H } from '../config.js';
-import { TAU, INK, PAPER, RED, INDIGO, SUB, FONT_B, text, textBlock, ell, rr } from '../render/draw.js';
-import { button, panel, brushTitle, C, tapped } from '../ui/ui.js';
+import { TAU, INK, PAPER, RED, INDIGO, SUB, FONT_B, text, ell, rr } from '../render/draw.js';
+import { button, panel, brushTitle, seal, C, tapped } from '../ui/ui.js';
 import { nav } from '../nav.js';
 import { newRun, heroOpen, UNLOCKS, meta } from '../state.js';
-import { UNITS, HEROES, HERO_SKILLS } from '../data/units.js';
-import { CARDS, KIND } from '../data/cards.js';
+import { UNITS, HEROES, HERO_SKILLS, HERO_COL } from '../data/units.js';
+import { CARDS } from '../data/cards.js';
 import { dimBackdrop } from './title.js';
 import { portrait } from '../render/sprites.js';
-import { cardIcon } from '../render/icons.js';
+import { cardFace } from '../ui/cards.js';
 import { sfx } from '../audio.js';
 
+const ROLE = { commander: '선봉 · 근접', blade: '자객 · 근접', hunter: '저격 · 원거리', bishop: '치유 · 지원', archmage: '도술 · 광역', sangsoe: '풍물 · 지원', chief: '버팀 · 근접' };
 export class HeroScene {
   constructor() { this.t = 0; this.sel = 0; }
   frame(g, dt) {
     this.t += dt; dimBackdrop(g);
-    brushTitle(g, 640, 50, 430, 66, '영웅을 고르세요', INDIGO, 38);
-    text(g, '영웅은 기력이 찰 때마다 고유기 셋을 차례로 스스로 씁니다 — 영웅 패 한 장과 전용 영웅기 패 두 장을 들고 떠납니다', 640, 106, { size: 18, fill: SUB, weight: 400, maxW: 1100 });
+    brushTitle(g, 640, 44, 430, 60, '영웅을 고르세요', INDIGO, 36);
+    // 영웅 일곱
     HEROES.forEach((id, i) => {
-      const d = UNITS[id], cards = Object.values(CARDS).filter(c => c.hero === id), x = 40 + i * 404, y = 132, w = 392, h = 420, on = this.sel === i, locked = !heroOpen(id);
-      if (tapped('h' + i, x, y, w, h)) { if (locked) sfx('deny'); else { this.sel = i; sfx('card'); } }
-      panel(g, x, y, w, h); if (on) rr(g, x - 4, y - 4, w + 8, h + 8, 9, null, RED, 5);
-      ell(g, x + 104, y + 106, 78, 78, on ? '#efd9a8' : '#e9dec4', INK, 2.4); g.save(); g.beginPath(); g.arc(x + 104, y + 106, 76, 0, TAU); g.clip(); g.fillStyle = '#a9b78f'; g.globalAlpha = 0.5; g.fillRect(x + 20, y + 142, 170, 50); g.globalAlpha = 1; portrait(g, id, x + 102, y + 172, 1.6, this.t, on); g.restore();
-      text(g, d.name, x + 200, y + 74, { size: 44, font: FONT_B, align: 'left' });
-      text(g, d.desc, x + 202, y + 118, { size: 18, align: 'left', fill: SUB, maxW: 176 });
-      text(g, `체력 ${Math.round(d.hp * 2.2)} · 패 비용 4`, x + 202, y + 148, { size: 15, align: 'left', fill: SUB, weight: 400, maxW: 176 });
-      rr(g, x + 18, y + 190, w - 36, 28, 14, on ? '#f6e6b8' : '#e9dec4', INK, 1.2); text(g, `자동 고유기: ${HERO_SKILLS[id].map(s => s.name).join(' → ')}`, x + w / 2, y + 204.6, { size: 14.5, maxW: w - 56 });
-      cards.forEach((c, n) => { const yy = y + 262 + n * 78; rr(g, x + 18, yy - 36, w - 36, 72, 6, on ? '#fbf3df' : '#efe4c9', INK, 1.4); rr(g, x + 26, yy - 28, 60, 60, 7, '#f3e3c0', KIND.hero.col, 1.8); cardIcon(g, c.id, x + 56, yy + 2, 1.05); ell(g, x + 32, yy - 24, 12, 12, '#d9a441', INK, 1.6); text(g, String(c.cost), x + 32, yy - 23, { size: 16, font: FONT_B }); text(g, c.name, x + 98, yy - 14, { size: 22, font: FONT_B, align: 'left' }); textBlock(g, c.desc(c.v), x + 98, yy + 10, w - 130, 18, { size: 14, align: 'left', weight: 400, fill: SUB }); });
-      if (locked) { rr(g, x, y, w, h, 6, 'rgba(241,231,207,0.78)'); panel(g, x + 36, y + 172, w - 72, 70, 'navy'); text(g, `공적 장부에서 열기 · 공적 ${UNLOCKS.find(u => u.id === id).cost}`, x + w / 2, y + 208, { size: 19, fill: C.cream, maxW: w - 100 }); }
+      const d = UNITS[id], x = 44 + i * 172, y = 84, w = 160, h = 150, on = this.sel === i, locked = !heroOpen(id);
+      if (tapped('h' + i, x, y, w, h)) { this.sel = i; sfx('card'); }
+      rr(g, x + 2, y + 4, w, h, 7, 'rgba(40,28,16,0.26)'); rr(g, x, y, w, h, 7, on ? '#fdf5d6' : PAPER, INK, 2.2);
+      g.save(); g.beginPath(); g.rect(x + 4, y + 4, w - 8, 100); g.clip(); g.fillStyle = on ? '#f3e2b0' : '#ece0c2'; g.fillRect(x + 4, y + 4, w - 8, 100); g.fillStyle = 'rgba(140,160,120,0.55)'; g.fillRect(x + 4, y + 82, w - 8, 24);
+      if (locked) g.globalAlpha = 0.5; portrait(g, id, x + w / 2 - 4, y + 100, 0.86, this.t, on); g.restore();
+      g.fillStyle = INK; g.fillRect(x + 4, y + 104, w - 8, 1.6); g.fillStyle = HERO_COL[id]; g.fillRect(x + 4, y + 105.6, w - 8, 3);
+      text(g, d.name, x + w / 2, y + 123, { size: 21, font: FONT_B, fill: locked ? SUB : INK }); text(g, locked ? `공적 ${UNLOCKS.find(u => u.id === id).cost}` : ROLE[id], x + w / 2, y + 140, { size: 12.5, fill: locked ? RED : SUB, weight: 400 });
+      if (on) rr(g, x - 3, y - 3, w + 6, h + 6, 9, null, RED, 4);
     });
-    if (button(g, 'go', 840, 584, 400, 100, meta.hard ? `출정 · 험로 ${meta.hard}` : '출  정', { size: meta.hard ? 38 : 52 })) { newRun(HEROES[this.sel]); nav.go('run'); }
-    if (button(g, 'back', 40, 596, 200, 76, '뒤로', { style: 'paper', size: 30 })) nav.go('title');
-    text(g, '부대가 전멸하면 패는 덱으로 돌아오지만 군기 수레가 깎입니다. 군기를 지키며 세 고개를 넘으세요.', 540, 634, { size: 16, fill: SUB, weight: 400, maxW: 560 });
+    // 고른 영웅
+    const id = HEROES[this.sel], d = UNITS[id], locked = !heroOpen(id), cards = Object.keys(CARDS).filter(k => CARDS[k].hero === id), col = HERO_COL[id];
+    panel(g, 40, 248, 1200, 322);
+    ell(g, 152, 408, 94, 94, '#efd9a8', INK, 2.4); ell(g, 152, 408, 87, 87, null, 'rgba(201,150,46,0.8)', 1.2);
+    g.save(); g.beginPath(); g.arc(152, 408, 92, 0, TAU); g.clip(); g.fillStyle = 'rgba(140,160,120,0.6)'; g.fillRect(50, 452, 210, 60); portrait(g, id, 148, 484, 1.75, this.t, true); g.restore();
+    text(g, d.name, 272, 298, { size: 46, font: FONT_B, align: 'left' }); g.save(); g.translate(272 + g.measureText(d.name).width + 34, 292); g.rotate(-0.06); seal(g, 0, 0, 34, '영', col); g.restore();
+    text(g, d.desc, 274, 340, { size: 19, align: 'left', fill: SUB, maxW: 440 });
+    text(g, `체력 ${Math.round(d.hp * 2.2)}  ·  ${ROLE[id]}  ·  패 비용 4`, 274, 368, { size: 15, align: 'left', fill: SUB, weight: 400, maxW: 440 });
+    text(g, '자동 고유기 — 기력이 찰 때마다 차례로 스스로 씁니다', 274, 402, { size: 14.5, align: 'left', fill: col, maxW: 440 });
+    HERO_SKILLS[id].forEach((sk, n) => {
+      const yy = 420 + n * 46; rr(g, 270, yy, 448, 40, 6, '#fbf3df', 'rgba(38,42,54,0.5)', 1.2);
+      ell(g, 290, yy + 20, 11, 11, col, INK, 1.2); text(g, String(n + 1), 290, yy + 21, { size: 14, font: FONT_B, fill: C.cream });
+      text(g, sk.name, 310, yy + 21, { size: 19, font: FONT_B, align: 'left' }); text(g, sk.desc, 420, yy + 21, { size: 14, align: 'left', fill: SUB, weight: 400, maxW: 290 });
+    });
+    cards.forEach((k, n) => cardFace(g, { id: k }, 748 + n * 242, 262, 222, 294));
+    if (locked) { const cost = UNLOCKS.find(u => u.id === id).cost; rr(g, 60, 262, 184, 30, 6, '#8a2a26', INK, 1.6); text(g, `잠김 · 공적 ${cost}`, 152, 278, { size: 16, fill: C.cream }); if (button(g, 'meta', 840, 588, 400, 96, `공적 장부에서 열기 · ${cost}`, { style: 'paper', size: 28 })) nav.go('meta'); }
+    else if (button(g, 'go', 840, 588, 400, 96, meta.hard ? `출정 · 험로 ${meta.hard}` : '출  정', { size: meta.hard ? 38 : 52 })) { newRun(id); nav.go('run'); }
+    if (button(g, 'back', 40, 598, 200, 76, '뒤로', { style: 'paper', size: 30 })) nav.go('title');
+    text(g, '영웅 패 한 장과 전용 영웅기 패 두 장을 들고 떠납니다. 원정 중에 다른 영웅이 합류하면 합동기가 열립니다.', 540, 626, { size: 15.5, fill: SUB, weight: 400, maxW: 560 });
+    text(g, '부대가 전멸하면 패는 덱으로 돌아오지만 군기 수레가 깎입니다.', 540, 650, { size: 15.5, fill: SUB, weight: 400, maxW: 560 });
   }
 }

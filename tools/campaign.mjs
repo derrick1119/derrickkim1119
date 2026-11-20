@@ -1,10 +1,10 @@
 // 원정 전체 시뮬레이션: 행군하며 물결·갈림길·사건·장터·주막을 차례로 지나 세 고개를 넘는다
 // node tools/campaign.mjs [runs] [mode: casual|bot|auto] [all]   ("all" = 공적 해금을 모두 연 상태)
 import { Battle, HAND } from '../src/sim/battle.js';
-import { G, meta, UNLOCKS, newRun, battleSetup, waveSetup, mods, powerNow, curStop, chooseFork, encounterHere, advance, rollRewards, applyReward, upgradeCard, canUp, removeCard, equip, goldFor, genShop, buyItem, pickEvent, unitCards, act } from '../src/state.js';
+import { G, meta, UNLOCKS, heroOpen, newRun, battleSetup, waveSetup, mods, powerNow, curStop, chooseFork, encounterHere, advance, rollRewards, applyReward, upgradeCard, canUp, removeCard, equip, goldFor, genShop, buyItem, pickEvent, unitCards, act } from '../src/state.js';
 import { eventView } from '../src/data/events.js';
 import { CARDS, isUnit } from '../src/data/cards.js';
-import { UNITS } from '../src/data/units.js';
+import { UNITS, HEROES } from '../src/data/units.js';
 import { canEquip } from '../src/data/weapons.js';
 import { VIEW, MID_Y } from '../src/config.js';
 
@@ -24,6 +24,11 @@ function spotFor(b, c, foes, mine, sharp) {
   if (kind === 'heal' || kind === 'grail' || kind === 'sanctuary') { const q = cluster(mine, r, o => o.hp < o.maxHp * 0.65 ? 1 : 0); return q && q.s >= (kind === 'heal' ? 2 : 3) ? q.u : null; }
   if (kind === 'wall' || kind === 'cry') { const q = cluster(mine, r, o => o.target ? 1 : 0); return q && q.s >= 4 ? q.u : null; }
   if (kind === 'horn' || kind === 'order') return foes.length && mine.filter(u => u.target).length >= 4 ? mine[0] : null;
+  if (kind === 'mark' || kind === 'snare' || kind === 'flash') { if (!foes.length) return null; const q = cluster(foes, r || 60, o => o.def.boss ? 3 : o.def.large ? 1.5 : 1); return q && q.s >= 2 ? q.u : null; }
+  if (kind === 'deong') return foes.length >= 6 ? mine[0] : null;
+  if (kind === 'pangut') return foes.length && b.morale >= 5 ? mine[0] : null;
+  if (kind === 'veil' || kind === 'bulwark') { const h = mine.find(u => u.def.hero && u.hp < u.maxHp * 0.6 && u.target); return h || null; }
+  if (kind === 'raid') { if (foes.length < 4) return null; const q = cluster(foes, 90, () => 1); return q ? { x: Math.max(VIEW.x0 + 80, q.u.x - 90), y: q.u.y } : null; }
   if (kind === 'sutra') return mine.filter(u => u.hp < u.maxHp * 0.7).length >= 5 ? mine[0] : null;
   if (kind === 'torch') return b.sky === 'night' && b.torch <= 0 && foes.length ? mine[0] : null;
   if (kind === 'stakes') { const f = foes.filter(u => !u.def.range); if (f.length < 3) return null; let x = 1e9, y = 0; for (const u of f) if (u.x < x) { x = u.x; y = u.y; } return x < 900 ? { x: x - 60, y } : null; }
@@ -58,7 +63,7 @@ const dmg = [0, 0, 0], dmgN = [0, 0, 0];
 const st = {}, bump = (k, fails) => { const s = st[k] || (st[k] = [0, 0]); s[0]++; s[1] += fails; };
 let chaseN = 0, clears = 0, totalT = 0, nB = 0, deckN = 0, unitN = 0, lvN = 0; const reach = [0, 0, 0, 0];
 for (let k = 0; k < runs; k++) {
-  const r = newRun(['commander', 'bishop', 'archmage'][k % 3].replace(/bishop|archmage/, h => meta.unlocked[h] ? h : 'commander'));
+  const HS = (process.env.HERO ? [process.env.HERO] : HEROES).filter(h => process.env.HERO || heroOpen(h)), r = newRun(HS[k % HS.length]);
   const b = new Battle(battleSetup((Math.random() * 1e9) | 0));
   const tick = n => { for (let j = 0; j < n; j++) { b.step(1 / 30); if (j % (mode === 'casual' ? 45 : 10) === 0) command(b); } b.events.length = 0; };
   for (let guard = 0; r.flags > 0 && !r.done && guard < 200; guard++) {

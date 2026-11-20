@@ -1,7 +1,7 @@
 // 병종 인형 스프라이트 — 몸 한 장 + (사람·도깨비는) 머리 한 장 + 손에 든 무기 한 장. 그림은 figures.js
 import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, SKIN, st, fs, ell, rr, poly, line, path, paperSprite, drawSprite } from './draw.js';
 import { WEAPONS as WDATA, ARMS } from '../data/weapons.js';
-import { doll, dokkaebi, ITEM, DITEM, fox, jangseung, wisp, cart, horseman, boar, catapult, mokshin, eoduksini, scarecrow, stakeLog, bannerCart, part, dk, lt, E, R, P, curve, rope, WHITE, BLACK, STEEL, IRON, WOOD, WOODD, HX, HY } from './figures.js';
+import { doll, dokkaebi, ITEM, DITEM, fox, jangseung, wisp, cart, horse, boar, catapult, mokshin, eoduksini, scarecrow, stakeLog, bannerCart, part, dk, lt, E, R, P, curve, rope, WHITE, BLACK, STEEL, IRON, WOOD, WOODD, HX, HY } from './figures.js';
 
 // ───────────── 무기 (원점 = 손잡이, 위쪽을 향함) ─────────────
 const STEELD = '#aab4ba', BRASS = '#c9962e';
@@ -89,6 +89,9 @@ const WEAPONS = {
   },
   firebow(g) { WEAPONS.bow(g, { wood: '#a8322a', wrap: '#2b2a30', tip: OCHRE, extra: gg => { for (const y of [-19.4, 19.4]) { part(gg, p => { p.moveTo(6, y - 5); p.quadraticCurveTo(10.4, y - 1, 7.6, y + 3); p.quadraticCurveTo(6, y + 4.2, 4.4, y + 3); p.quadraticCurveTo(2, y - 0.4, 6, y - 5); p.closePath(); }, '#ff9a2e', null, { lw: 0.8 }); ell(gg, 6, y + 0.8, 1.2, 1.5, '#ffe9a0'); } } }); },
   pyeonjeon(g) { WEAPONS.bow(g, { wood: '#3a3238', wrap: RED, tip: BRASS, extra: gg => { gg.save(); gg.translate(1.6, 0); gg.rotate(1.5708); part(gg, R(-1.9, -11.6, 3.8, 17), '#d9b77a', R(0.2, -11.6, 1.7, 17), { lw: 0.9 }); for (const y of [-7.6, -2.6, 2.4]) line(gg, [-1.9, y, 1.9, y], '#8a6a3c', 0.8); gg.restore(); } }); },
+  greatbow(g) { g.save(); g.scale(1.1, 1.1); WEAPONS.bow(g, { wood: '#5a3a2a', wrap: RED, tip: BRASS, grip: '#2b2a30' }); g.restore(); },
+  // 꽹과리 채: 끝에 삼색 천을 단 나무 채
+  chae(g) { line(g, [0, 3, -4.6, 10], RED, 1.2); line(g, [0, 3, 0.6, 11], OCHRE, 1.2); line(g, [0, 3, 4.6, 9.4], INDIGO, 1.2); shaft(g, 4, -15, '#d9b77a', 1.5); part(g, E(0, -17.4, 3.1, 3.3), WOODD, E(1, -16.6, 2.4, 2.6), { hi: E(-1, -18.6, 0.9, 0.6), lw: 1 }); band(g, 1.6, 3.6, 1.8, OCHRE); },
   crossbow(g) {
     part(g, P(-2.2, -20.4, 2.2, -20.4, 2.6, 6, 1, 8.4, -1, 8.4, -2.6, 6), WOOD, R(0.3, -21, 3, 30), { hi: R(-1.7, -19, 0.8, 23), hk: 0.22, lw: 1.1 });
     const c = p => { p.moveTo(-12, -9.4); p.quadraticCurveTo(0, -21.4, 12, -9.4); }; curve(g, c, INK, 3.8); curve(g, c, '#5a3a26', 2.2); line(g, [-12, -9.4, 0, -5.6, 12, -9.4], '#fbf7ec', 0.8);
@@ -132,18 +135,22 @@ const GHOST = { robe: '#c5d9df', top: '#b3ccd4', collar: '#eef6f8', git: '#9ab6c
 export const LOOKS = {
   // 아군
   sword: { doll: { robe: INDIGO, top: '#2f2d38', sleeve: '#b8342a', git: '#1f1e26', legs: CREAM, sash: OCHRE, hem: '#22385c', hat: 'jeonrip', brow: 'stern', eyes: 'sharp', mouth: 'flat' }, hold: hold(0.3), h: 63 },
-  shield: { doll: { robe: TEAL, top: '#4f8270', legs: CREAM, sash: OCHRE, hem: '#2c4f44', hat: 'band', brow: 'stern', mouth: 'grit', item: ITEM.shield }, hold: hold(0.25), h: 60 },
-  spear: { doll: { robe: '#efe6d0', top: '#f6efdc', vest: '#9a5a3c', git: '#7a4a2c', legs: '#e3d9bf', shoe: '#c9a86a', sash: INDIGO, hat: 'paeraeng', brow: 'calm', mouth: 'flat' }, hold: hold(0.1, 'thrust'), h: 60 },
-  knight: { body: g => { g.scale(1.12, 1.12); horseman(g, gg => doll(gg, { robe: '#a84a32', top: '#b8553a', studs: true, pauldron: '#aeb6bd', sash: OCHRE, hat: 'tugu', metal: '#aeb6bd', brow: 'stern', mouth: 'flat' })); }, hold: hold(0.42, 'thrust', 9.4, -43.6), h: 82, w: 130, ox: 62 },
-  xbow: { doll: { robe: '#f3ecdd', top: '#f6f0e2', vest: INDIGO, git: '#22385c', legs: CREAM, sash: RED, hat: 'band', bandCol: INDIGO, brow: 'calm', eyes: 'sharp', mouth: 'flat', back: ITEM.quiver }, hold: hold(0, 'shoot'), h: 60 },
-  wizard: { doll: { robe: '#8fa6b8', top: '#9db3c4', git: '#5f7890', sash: BLACK, hem: '#5f7890', dots: '#dfe8ee', hat: 'yugeon', beard: 'goatee', brow: 'calm', eyes: 'sharp', mouth: 'flat' }, hold: hold(0, 'cast'), h: 64 },
-  priest: { doll: { robe: WHITE, top: '#fffaf0', git: RED, stripes: [RED, OCHRE, INDIGO], goreum: RED, sash: RED, hem: RED, hat: 'gokkal', brow: 'soft', eyes: 'soft', mouth: 'flat' }, hold: hold(0, 'cast'), h: 66 },
+  shield: { doll: { robe: TEAL, top: '#4f8270', legs: CREAM, sash: OCHRE, hem: '#2c4f44', hat: 'band', skin: '#e4bb8e', jaw: 'square', eyes: 'round', brow: 'flat', nose: 'broad', mouth: 'grit', item: ITEM.shield }, hold: hold(0.25), h: 60 },
+  spear: { doll: { robe: '#efe6d0', top: '#f6efdc', vest: '#9a5a3c', git: '#7a4a2c', legs: '#e3d9bf', shoe: '#c9a86a', sash: INDIGO, hat: 'paeraeng', skin: '#e8c093', jaw: 'round', eyes: 'droop', brow: 'worry', mouth: 'flat', beard: 'stubble' }, hold: hold(0.1, 'thrust'), h: 60 },
+  knight: { doll: { riding: true, lift: 25.5, under: g => { g.save(); g.translate(3, 0); g.scale(1.35, 1.35); horse(g); g.restore(); }, robe: '#a84a32', top: '#b8553a', legs: '#3a3640', studs: true, pauldron: '#aeb6bd', sash: OCHRE, hem: OCHRE, hat: 'tugu', metal: '#aeb6bd', jaw: 'square', brow: 'thick', eyes: 'calm', beard: 'mustache', mouth: 'flat' }, hold: hold(0.18, 'thrust', HX, HY - 25.5), h: 96, w: 150, ox: 64, scale: 0.86 },
+  xbow: { doll: { robe: '#f3ecdd', top: '#f6f0e2', vest: INDIGO, git: '#22385c', legs: CREAM, sash: RED, hat: 'band', bandCol: INDIGO, jaw: 'slim', brow: 'thin', eyes: 'calm', mouth: 'flat', back: ITEM.quiver }, hold: hold(0, 'shoot'), h: 60 },
+  wizard: { doll: { robe: '#8fa6b8', top: '#9db3c4', git: '#5f7890', sash: BLACK, hem: '#5f7890', dots: '#dfe8ee', hat: 'yugeon', beard: 'goatee', skin: '#f3d6b2', jaw: 'long', brow: 'arch', eyes: 'heavy', mouth: 'flat' }, hold: hold(0, 'cast'), h: 64 },
+  priest: { doll: { robe: WHITE, top: '#fffaf0', git: RED, stripes: [RED, OCHRE, INDIGO], goreum: RED, sash: RED, hem: RED, hat: 'gokkal', skin: '#f6dcc0', jaw: 'round', brow: 'thin', eyes: 'soft', lash: true, lip: '#b8443a', mouth: 'flat' }, hold: hold(0, 'cast'), h: 66 },
   cannon: { body: cart, weapon: 'none', hold: hold(0, 'shoot'), h: 46, still: true },
-  berserk: { doll: { robe: '#6b5a44', legs: '#d9cdb0', bare: true, bareChest: true, sash: RED, hem: '#4a3d2e', hat: 'band', bandCol: RED, brow: 'thick', beard: 'short', mouth: 'grit', scar: true }, hold: hold(0.4), wide: 1.16, h: 60 },
+  berserk: { doll: { robe: '#6b5a44', legs: '#d9cdb0', bare: true, bareChest: true, sash: RED, hem: '#4a3d2e', hat: 'band', bandCol: RED, skin: '#dcae80', jaw: 'square', brow: 'bushy', eyes: 'glare', nose: 'broad', beard: 'short', mouth: 'grit', scar: true }, hold: hold(0.4), wide: 1.16, h: 60 },
   // 영웅
-  commander: { doll: { robe: '#8a2a26', top: '#b8342a', studs: true, pauldron: '#d9b24a', git: '#7a1f1c', legs: '#2f2d38', sash: OCHRE, hem: OCHRE, hat: 'tugu', beard: 'full', brow: 'thick', eyes: 'sharp', mouth: 'flat', back: g => ITEM.cape(g, '#1f2a44') }, hold: hold(0.22), scale: 1.3, hero: true, h: 70 },
-  bishop: { doll: { robe: '#9a9a92', top: '#a8a8a0', git: '#7a7a72', kasaya: '#a8442f', beads: true, hem: '#7a7a72', hat: 'bald', brow: 'old', browCol: '#7a7a72', eyes: 'closed', mouth: 'smile' }, hold: hold(0, 'cast'), scale: 1.3, hero: true, h: 58 },
-  archmage: { doll: { robe: WHITE, top: '#fffaf0', git: '#8fb6c8', sash: '#8fb6c8', hem: '#8fb6c8', hat: 'sage', beard: 'long', brow: 'old', old: true, eyes: 'sharp', mouth: 'flat', item: ITEM.gourd, under: ITEM.cloud, lift: 3 }, hold: hold(0, 'cast', HX, HY - 3), scale: 1.3, hero: true, h: 64, float: true },
+  commander: { doll: { robe: '#8a2a26', top: '#b8342a', studs: true, pauldron: '#d9b24a', git: '#7a1f1c', legs: '#2f2d38', sash: OCHRE, hem: OCHRE, hat: 'tugu', beard: 'full', jaw: 'square', brow: 'thick', eyes: 'calm', bags: true, mouth: 'flat', back: g => ITEM.cape(g, '#1f2a44') }, hold: hold(0.22), scale: 1.3, hero: true, h: 70 },
+  bishop: { doll: { robe: '#9a9a92', top: '#a8a8a0', git: '#7a7a72', kasaya: '#a8442f', beads: true, hem: '#7a7a72', hat: 'bald', jaw: 'round', brow: 'old', browCol: '#7a7a72', eyes: 'closed', lines: true, mouth: 'smile' }, hold: hold(0, 'cast'), scale: 1.3, hero: true, h: 58 },
+  archmage: { doll: { robe: WHITE, top: '#fffaf0', git: '#8fb6c8', sash: '#8fb6c8', hem: '#8fb6c8', hat: 'sage', beard: 'long', jaw: 'long', brow: 'old', old: true, eyes: 'narrow', lines: true, mouth: 'smile', item: ITEM.gourd, under: ITEM.cloud, lift: 3 }, hold: hold(0, 'cast', HX, HY - 3), scale: 1.3, hero: true, h: 64, float: true },
+  blade: { doll: { robe: '#3a3f58', top: '#2f3348', git: '#1f2130', collar: '#b8342a', cuff: '#b8342a', legs: '#2a2c38', sash: '#b8342a', hem: '#b8342a', hat: 'satgat', skin: '#f3d6b2', jaw: 'slim', brow: 'thin', eyes: 'sharp', lash: true, lip: '#a8443a', mouth: 'flat', item: ITEM.braid }, hold: hold(0.3), scale: 1.3, hero: true, h: 66 },
+  hunter: { doll: { robe: '#6b5a3c', top: '#7a6844', vest: '#d9963f', pelt: true, git: '#4a3d2e', legs: '#d9cdb0', shoe: '#5a4030', sash: '#4a3d2e', hem: '#4a3d2e', hat: 'fur', skin: '#e4bb8e', jaw: 'square', brow: 'flat', eyes: 'round', beard: 'stubble', mouth: 'smirk', back: ITEM.quiver }, hold: hold(0, 'shoot'), scale: 1.3, hero: true, h: 64 },
+  sangsoe: { doll: { robe: '#f6efdc', top: '#fffaf0', vest: INDIGO, git: '#22385c', legs: CREAM, sash: OCHRE, hem: '#22385c', cross: [RED, OCHRE], hat: 'sangmo', skin: '#e8c093', jaw: 'round', brow: 'arch', eyes: 'smile', mouth: 'grin', item: ITEM.gong }, hold: hold(0.4, 'cast'), scale: 1.3, hero: true, h: 68 },
+  chief: { doll: { robe: '#5a4a3a', top: '#6b4a3a', vest: '#8a6a4a', fur: true, bare: true, git: '#3a2a22', legs: '#3a3640', sash: '#8a2a26', hem: '#3a2a22', wrist: '#3a2a22', hat: 'wild', hair: '#3a2a26', skin: '#d9a878', jaw: 'square', brow: 'bushy', eyes: 'glare', nose: 'broad', beard: 'wild', scar: true }, hold: hold(0.4), wide: 1.16, scale: 1.3, hero: true, h: 62 },
   decoy: { body: scarecrow, weapon: 'none', hold: hold(0, 'none'), h: 54, still: true },
   stake: { body: stakeLog, weapon: 'none', hold: hold(0, 'none'), h: 40, still: true },
   banner: { body: bannerCart, weapon: 'none', hold: hold(0, 'none'), h: 104, still: true, scale: 1.1 },
@@ -175,7 +182,7 @@ const HEAD = { w: 74, h: 68, ox: 37, oy: 80, bw: 1.7 };
 export function getLook(type) {
   let L = cache.get(type); if (L) return L;
   const d = LOOKS[type]; if (!d) throw new Error('unknown look ' + type);
-  const o = { w: d.w || 110, ox: d.ox || 55, h: 132, oy: 114, border: d.border }, ho = Object.assign({ border: d.border }, HEAD);
+  const lift = d.doll && d.doll.lift || 0, o = { w: d.w || 110, ox: d.ox || 55, h: 132, oy: 114, border: d.border }, ho = Object.assign({ border: d.border }, HEAD, { oy: HEAD.oy + lift });
   const wrap = fn => d.wide ? g => { g.scale(d.wide, 1); fn(g); } : fn;
   let front, head = null, blink = null, frontBlink = null;
   if (d.doll) {
@@ -187,7 +194,7 @@ export function getLook(type) {
     front = paperSprite(g => dokkaebi(g, d.dok, 'body'), o); head = paperSprite(g => dokkaebi(g, d.dok, 'head'), ho); blink = paperSprite(g => dokkaebi(g, Object.assign({}, d.dok, { blink: true }), 'head'), ho);
   } else { front = paperSprite(wrap(d.body), o); if (d.blinkBody) frontBlink = paperSprite(wrap(d.blinkBody), o); }
   const weapon = d.weapon && d.weapon !== 'none' ? paperSprite(WEAPONS[d.weapon], { w: 60, h: 90, ox: 30, oy: 62, border: d.border }) : null;
-  L = { front, back: front, head, blink, frontBlink, neck: d.neck || 33, weapon, hold: d.hold, scale: (d.scale || 1) * UNIT_SCALE, h: d.h || 60, hero: !!d.hero, boss: !!d.boss, float: !!d.float, still: !!d.still };
+  L = { front, back: front, head, blink, frontBlink, neck: (d.neck || 33) + lift, weapon, hold: d.hold, scale: (d.scale || 1) * UNIT_SCALE, h: d.h || 60, hero: !!d.hero, boss: !!d.boss, float: !!d.float, still: !!d.still };
   cache.set(type, L); return L;
 }
 // 지금 눈을 깜빡일 때인가 (인형마다 박자가 조금씩 다르다)
@@ -216,7 +223,7 @@ export function portrait(g, type, x, y, s, t = 0, bob = false, wpn) {
   } else if (L.weapon) drawSprite(g, L.weapon, x + h.x * k, yy + h.y * k, k, k, h.a);
 }
 // 무기 그림만 (보관함·전리품용). [그림 중심까지의 거리, 길이] 로 칸 가운데에 비슷한 크기로 맞춘다
-const ICON = { hwando: [12, 34], twin: [10, 28], axe: [9, 34], flail: [12, 40], spear: [16, 56], lance: [18, 64], dangpa: [17, 58], hyeopdo: [16, 64], woldo: [14, 68], mace: [11, 34], bigaxe: [12, 45], thresher: [15, 52], crossbow: [8, 34], gun: [11, 46], firetal: [12.5, 20], icetal: [12.5, 20], bolttal: [12.5, 20], featherfan: [5, 24], fans: [3, 22], staff: [11, 62], bells: [8, 30], bowl: [10, 28] };
+const ICON = { chae: [6, 26], hwando: [12, 34], twin: [10, 28], axe: [9, 34], flail: [12, 40], spear: [16, 56], lance: [18, 64], dangpa: [17, 58], hyeopdo: [16, 64], woldo: [14, 68], mace: [11, 34], bigaxe: [12, 45], thresher: [15, 52], crossbow: [8, 34], gun: [11, 46], firetal: [12.5, 20], icetal: [12.5, 20], bolttal: [12.5, 20], featherfan: [5, 24], fans: [3, 22], staff: [11, 62], bells: [8, 30], bowl: [10, 28] };
 export function weaponIcon(g, wid, x, y, s = 1) {
   const W = getWeapon(wid), d = WDATA[wid]; if (!W) return;
   if (W.hand === 'L') { drawSprite(g, W.spr, x + 2 * s, y, s * 1.6, s * 1.6, 0.5); return; }

@@ -3,6 +3,7 @@ import { W, H, VIEW } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, OCHRE, TEAL, FONT_B, text, ell, rr, rrPath, poly, line, path, st, drawSprite, clamp, lerp, easeOutBack } from './draw.js';
 import { getLook, getWeapon, blinking } from './sprites.js';
 import { defOf } from '../sim/battle.js';
+import { HERO_COL } from '../data/units.js';
 import { makeGround, makeFar, vignette, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, FAR_H } from './terrain.js';
 import { Fx } from './fx.js';
 import { icon } from '../ui/ui.js';
@@ -41,6 +42,7 @@ export function drawUnit(g, u, T, alpha = 1, march = false) {
   g.save(); if (alpha < 1) g.globalAlpha = alpha;
   if (L.float || u.jumpH) { g.fillStyle = 'rgba(50,36,20,0.16)'; g.beginPath(); g.ellipse(u.x, u.y + 1, u.r * 0.9, u.r * 0.36, 0, 0, TAU); g.fill(); }
   if (u.guard > 0) { g.beginPath(); g.ellipse(u.x, u.y, u.r * 1.3, u.r * 0.62, 0, 0, TAU); st(g, INK, 3.4); g.beginPath(); g.ellipse(u.x, u.y, u.r * 1.3, u.r * 0.62, 0, 0, TAU); st(g, '#8fb6e6', 1.8); }
+  if (u.mark > 0) { const mr = u.r * 1.2, my = u.y + 1; g.beginPath(); g.ellipse(u.x, my, mr, mr * 0.46, 0, 0, TAU); st(g, RED, 1.8); for (const a of [0, PI / 2, PI, PI * 1.5]) line(g, [u.x + Math.cos(a) * mr * 0.7, my + Math.sin(a) * mr * 0.32, u.x + Math.cos(a) * mr * 1.25, my + Math.sin(a) * mr * 0.58], RED, 1.8); }
   if (u.slow > 0) { g.globalAlpha = alpha * 0.8; ell(g, u.x, u.y + 1, u.r * 1.05, u.r * 0.46, 'rgba(143,211,232,0.5)', '#4f8fb8', 1.2); g.globalAlpha = alpha; }
   if (u.gauge !== undefined && u.def && u.def.hero && u.team === 0) { const gz = clamp(u.gauge, 0, 1), rx = u.r * 1.75, ry = u.r * 0.82; g.beginPath(); g.ellipse(u.x, u.y + 2, rx, ry, 0, 0, TAU); st(g, 'rgba(38,42,54,0.3)', 4.4); if (gz > 0.01) { g.beginPath(); g.ellipse(u.x, u.y + 2, rx, ry, 0, -PI / 2, -PI / 2 + TAU * gz); st(g, gz > 0.9 && Math.sin(T * 14) > 0 ? '#fff3b0' : OCHRE, 3.2); } }
   const by = y - hop * k, fl = u.flash > 0 ? u.flash * 0.85 : 0;
@@ -215,6 +217,7 @@ export class BattleView {
     } else {
       const a = p.ang || 0;
       if (p.kind === 'dark') { g.globalAlpha = 0.5; ell(g, p.x - Math.cos(a) * 8, p.y - Math.sin(a) * 8, 5, 5, '#8fd3e8'); g.globalAlpha = 1; ell(g, p.x, p.y, 6, 6, '#3d3560', INK, 1.2); return; }
+      if (p.kind === 'note') { for (let i = 0; i < 3; i++) { g.globalAlpha = 0.9 - i * 0.28; g.beginPath(); g.arc(p.x - Math.cos(a) * i * 7, p.y - Math.sin(a) * i * 7, 4.4 + i * 2, a - 0.9, a + 0.9); st(g, i ? '#e2b24a' : INK, i ? 1.8 : 3.4); if (!i) { g.beginPath(); g.arc(p.x, p.y, 4.4, a - 0.9, a + 0.9); st(g, '#fff3c0', 1.8); } } g.globalAlpha = 1; return; }
       if (p.kind === 'stone') { ell(g, p.x, p.y, 4.4, 4, '#a59f8f', INK, 1.2); return; }
       if (p.kind === 'bullet') { g.globalAlpha = 0.5; line(g, [p.x - Math.cos(a) * 34, p.y - Math.sin(a) * 34, p.x, p.y], '#fbf7ec', 3); g.globalAlpha = 1; ell(g, p.x, p.y, 2.8, 2.8, '#3a3a44', INK, 1); return; }
       if (p.kind === 'spark') { const nx = -Math.sin(a), ny = Math.cos(a), pts = []; for (let i = 0; i <= 4; i++) { const d = i * 9, o = (i % 2 ? 1 : -1) * (i === 0 || i === 4 ? 0 : 5); pts.push(p.x - Math.cos(a) * d + nx * o, p.y - Math.sin(a) * d + ny * o); } line(g, pts, INK, 5); line(g, pts, '#b89cf0', 2.6); ell(g, p.x, p.y, 3.4, 3.4, '#fffbe6', INK, 1); return; }
@@ -230,6 +233,7 @@ export class BattleView {
       switch (e.type) {
         case 'hit':
           if (e.kind === 'rout') { fx.txt(e.x + 40, e.y - 110, '군기가 흔들린다!', RED, 22, 1.1); fx.shake = Math.max(fx.shake, 5); sfx('warn'); break; }
+          if (e.dodge) { fx.puff(e.x, e.y - 16, 2, '#dfe6ee', 7); fx.txt(e.x, e.y - 50, '흘림', '#5a4a8a', 16, 0.5); break; }
           if (e.block) { fx.star(e.x, e.y - 18, 9, '#dfe6ee'); sfx('clang'); break; }
           if (e.kind === 'burn') { fx.burst(e.x, e.y - 16, 1, '#ff9a2e', 50, 3); break; }
           if (e.kind === 'melee' || e.kind === 'proj') { fx.burst(e.x, e.y - 16, e.flank ? 4 : 2, e.team === 0 ? '#e4826a' : '#f6d98a', 110); if (e.kind === 'melee' && (e.big || e.flank)) fx.slash(e.x, e.y - 18, e.big ? 26 : 18, e.team === 0 ? REDD : INK); sfx(e.kind === 'proj' ? 'thud' : 'hit'); }
@@ -242,7 +246,7 @@ export class BattleView {
         case 'waveClear': out.push(e); break;
         case 'waveStart': sfx('warn'); break;
         case 'heroSkill': {
-          const col = e.hero === 'commander' ? RED : e.hero === 'bishop' ? '#b8862a' : INDIGO, id = e.id;
+          const col = HERO_COL[e.hero] || INDIGO, id = e.id, P2 = e.pts || [];
           fx.add({ k: 'text', x: e.x, y: e.y - 100, vy: -20, drag: 1.5, s: e.name + '!', col, size: 30, life: 1.3, big: true }); fx.ring(e.x, e.y, 64, col, 0.35, 6);
           if (id === 'whirl') { fx.ring(e.x, e.y, 112, INK, 0.3, 7); for (let i = 0; i < 4; i++) fx.slash(e.x + Math.cos(i * 1.57) * 52, e.y - 16 + Math.sin(i * 1.57) * 34, 34, REDD, i * 1.57 + 1.2); fx.shake = Math.max(fx.shake, 6); sfx('charge'); }
           else if (id === 'roar') { fx.ring(e.x, e.y, 190, RED, 0.6, 9); sfx('horn'); }
@@ -253,10 +257,22 @@ export class BattleView {
           else if (id === 'chain') { for (let i = 0; i + 3 < e.pts.length; i += 2) { fx.beam(e.pts[i], e.pts[i + 1], e.pts[i + 2], e.pts[i + 3], '#b89cf0', 0.36, 4); fx.star(e.pts[i + 2], e.pts[i + 3], 16, '#fffbe6'); } fx.flash = 0.25; fx.flashCol = '#e6dcf2'; sfx('magic'); }
           else if (id === 'frost') { fx.ring(e.tx, e.ty, 124, '#4f8fb8', 0.5, 7); fx.burst(e.tx, e.ty - 10, 10, '#bfe3ee', 160, 4); sfx('magic'); }
           else if (id === 'fire') { fx.add({ k: 'fall', x: e.tx, y: e.ty, life: 0.9, size: 16, col: '#f0d264', tail: '#ff9a2e' }); sfx('magic'); }
+          else if (id === 'dash') { fx.beam(P2[0], P2[1] - 18, P2[2], P2[3] - 18, '#eef0ff', 0.32, 7); const a = Math.atan2(P2[3] - P2[1], P2[2] - P2[0]); for (let i = 1; i < 4; i++) fx.slash(P2[0] + (P2[2] - P2[0]) * i / 4, P2[1] + (P2[3] - P2[1]) * i / 4 - 18, 30, col, a); fx.shake = Math.max(fx.shake, 5); sfx('charge'); }
+          else if (id === 'flurry') { for (let i = 0; i + 1 < P2.length; i += 2) fx.slash(P2[i] + (Math.random() - 0.5) * 10, P2[i + 1] - 18, 28, i % 4 ? col : '#eef0ff', i * 1.3); sfx('charge'); }
+          else if (id === 'shadow') { fx.slash(e.tx, e.ty - 18, 44, '#eef0ff', 0.8); fx.slash(e.tx, e.ty - 18, 44, col, 2.3); fx.star(e.tx, e.ty - 20, 22, '#fffbe6'); fx.shake = Math.max(fx.shake, 6); sfx('leap'); }
+          else if (id === 'pierce') { fx.beam(P2[0], P2[1], P2[2], P2[3], '#fff3b0', 0.4, 5); fx.beam(P2[0], P2[1], P2[2], P2[3], col, 0.28, 2); sfx('shoot'); }
+          else if (id === 'burst') { for (let i = 0; i + 1 < P2.length; i += 2) { fx.beam(e.x, e.y - 30, P2[i], P2[i + 1] - 14, '#e9d9b0', 0.24, 2.4); fx.star(P2[i], P2[i + 1] - 14, 12, '#fffbe6'); } sfx('shoot'); }
+          else if (id === 'snipe') { fx.beam(P2[0], P2[1], P2[2], P2[3], '#fffbe6', 0.45, 6); fx.star(e.tx, e.ty - 16, 30, '#fffbe6'); fx.ring(e.tx, e.ty, 60, col, 0.4, 7); fx.shake = Math.max(fx.shake, 8); sfx('thud'); }
+          else if (id === 'jajin') { fx.ring(e.x, e.y, 250, '#5fae8a', 0.6, 7); fx.ring(e.x, e.y, 150, '#f0d264', 0.45, 4); sfx('clang'); }
+          else if (id === 'sinmyeong') { fx.ring(e.x, e.y, 250, '#f0d264', 0.7, 8); fx.burst(e.x, e.y - 30, 12, '#f0d264', 200, 4); sfx('bless'); }
+          else if (id === 'hwimori') { fx.ring(e.x, e.y, 230, col, 0.5, 9); fx.ring(e.x, e.y, 120, '#f0d264', 0.4, 5); fx.flash = 0.25; fx.flashCol = '#fff3c0'; fx.shake = Math.max(fx.shake, 5); sfx('clang'); }
+          else if (id === 'quake') { fx.ring(e.x, e.y, 124, INK, 0.4, 9); fx.puff(e.x, e.y - 4, 12, '#e8dcc0', 16); fx.burst(e.x, e.y - 6, 12, '#a59f8f', 220, 4.5); fx.shake = Math.max(fx.shake, 11); sfx('boom'); }
+          else if (id === 'provoke') { fx.ring(e.x, e.y, 250, col, 0.7, 9); sfx('horn'); }
+          else if (id === 'throw') { fx.star(e.tx, e.ty - 14, 28, '#fbf7ec'); fx.ring(e.tx, e.ty, 60, INK, 0.35, 6); fx.puff(e.tx, e.ty - 6, 8, '#e8dcc0', 12); fx.shake = Math.max(fx.shake, 8); sfx('charge'); }
           break;
         }
         case 'combo': fx.flash = 0.7; fx.flashCol = '#fff3b0'; fx.shake = 12; fx.ring(e.ax, e.ay, 260, OCHRE, 0.8, 10); fx.ring(e.bx, e.by, 260, OCHRE, 0.8, 10); fx.beam(e.ax, e.ay - 30, e.bx, e.by - 30, '#f0d264', 0.6, 6); sfx('boss'); out.push(e); break;
-        case 'comboFx': for (const [x, y] of e.pts) { fx.bolt(x, y - 8); fx.star(x, y - 16, 22, '#fffbe6'); } break;
+        case 'comboFx': for (const [x, y] of e.pts) { if (e.style === 'slash') { fx.slash(x, y - 18, 48, '#eef0ff', 0.8); fx.slash(x, y - 18, 48, '#5a4a8a', 2.3); } else if (e.style === 'arrow') { fx.add({ k: 'arrow', x, y, life: 0.2 }); fx.add({ k: 'stuck', ground: true, x, y, life: 0.9 }); } else { fx.bolt(x, y - 8); fx.star(x, y - 16, 22, '#fffbe6'); } } break;
         case 'morale': fx.add({ k: 'text', x: e.x, y: e.y - 52, vy: -42, drag: 1.5, s: '사기 +' + Math.round(e.n * 10) / 10, col: '#b8862a', size: 21, life: 1 }); sfx('coin'); break;
         case 'synergy': case 'chase': out.push(e); break;
         case 'death': {
@@ -265,7 +281,7 @@ export class BattleView {
           if (e.boss) { fx.shake = 16; fx.flash = 1; fx.flashCol = '#fff'; fx.ring(e.x, e.y, 150, INK, 0.7, 8); sfx('boom'); } else sfx('death');
           break;
         }
-        case 'shoot': sfx(e.kind === 'fireball' || e.kind === 'dark' || e.kind === 'iceball' || e.kind === 'spark' ? 'magic' : e.kind === 'shell' ? 'boom' : e.kind === 'bullet' ? 'thud' : 'shoot'); if (e.kind === 'bullet') fx.puff(e.x, e.y - 26, 3, '#d9d4c8', 7); if (e.kind === 'shell') { fx.puff(e.x, e.y - 30, 4, '#d9d4c8', 9); fx.shake = Math.max(fx.shake, 3); } break;
+        case 'shoot': if (e.kind === 'note') { sfx('clang'); break; } sfx(e.kind === 'fireball' || e.kind === 'dark' || e.kind === 'iceball' || e.kind === 'spark' ? 'magic' : e.kind === 'shell' ? 'boom' : e.kind === 'bullet' ? 'thud' : 'shoot'); if (e.kind === 'bullet') fx.puff(e.x, e.y - 26, 3, '#d9d4c8', 7); if (e.kind === 'shell') { fx.puff(e.x, e.y - 30, 4, '#d9d4c8', 9); fx.shake = Math.max(fx.shake, 3); } break;
         case 'heal': if (!e.quiet && e.fx !== undefined) fx.beam(e.fx, e.fy - 34, e.x, e.y - 16, e.team === 0 ? '#f0d264' : '#e4826a', 0.22, 3); fx.add({ k: 'plus', x: e.x + (Math.random() - 0.5) * 12, y: e.y - 30, vy: -40, life: 0.6, size: 5.5, col: e.team === 0 ? '#5fae6a' : '#e4826a' }); sfx('heal'); break;
         case 'charge': fx.star(e.x, e.y - 14, 24, '#fbf7ec'); fx.ring(e.x, e.y, 46, INK, 0.3, 5); fx.puff(e.x, e.y - 6, 6, '#e8dcc0', 9); fx.txt(e.x, e.y - 52, '돌격!', e.team === 0 ? INDIGO : RED, 24, 0.8); fx.shake = Math.max(fx.shake, 5); sfx('charge'); break;
         case 'impact': {
@@ -296,6 +312,14 @@ export class BattleView {
           else if (id === 'heal') { fx.ring(x, y, e.r * 1.25, '#5fae6a', 0.5, 6); for (let i = 0; i < 6; i++) fx.add({ k: 'plus', x: x + (Math.random() - 0.5) * e.r * 1.4, y: y - 10 - Math.random() * 30, vy: -50, life: 0.7, size: 6, col: '#5fae6a' }); sfx('heal'); }
           else if (id === 'grail') { fx.ring(x, y, e.r * 1.3, '#b8862a', 0.6, 7); sfx('bless'); }
           else if (id === 'wall') { fx.ring(x, y, e.r * 1.25, INDIGO, 0.5, 8); fx.txt(x, y - 50, '방패 진!', INDIGO, 26, 0.9); sfx('clang'); }
+          else if (id === 'flash') { const a = Math.atan2(y - e.sy, x - e.sx); fx.beam(e.sx, e.sy - 18, x, y - 18, '#eef0ff', 0.34, 8); for (let i = 1; i < 5; i++) fx.slash(e.sx + (x - e.sx) * i / 5, e.sy + (y - e.sy) * i / 5 - 18, 34, '#5a4a8a', a); fx.txt(x, y - 60, '일섬!', '#5a4a8a', 28, 0.9); fx.shake = Math.max(fx.shake, 6); sfx('charge'); }
+          else if (id === 'veil') { fx.puff(x, y - 14, 12, '#dfe6ee', 15); fx.ring(x, y, 60, '#8fa6b8', 0.5, 6); sfx('leap'); }
+          else if (id === 'mark') { fx.ring(x, y, e.r * 1.2, RED, 0.5, 7); fx.ring(x, y, e.r * 0.6, RED, 0.5, 4); fx.txt(x, y - 50, '표적!', RED, 26, 0.9); sfx('warn'); }
+          else if (id === 'snare') { fx.ring(x, y, e.r * 1.2, '#8a5a2c', 0.5, 7); fx.burst(x, y - 8, 10, '#d9b77a', 160, 4); fx.puff(x, y - 4, 6, '#e8dcc0', 10); sfx('thud'); }
+          else if (id === 'pangut') { fx.ring(x, y, 150, '#f0d264', 0.6, 7); fx.txt(x, y - 70, '얼쑤!', '#2f6f5c', 28, 0.9); sfx('clang'); sfx('card'); }
+          else if (id === 'deong') { fx.ring(x, y, 420, '#f0d264', 0.8, 10); fx.ring(x, y, 220, '#2f6f5c', 0.6, 7); fx.flash = 0.4; fx.flashCol = '#fff3c0'; fx.shake = Math.max(fx.shake, 8); fx.txt(x, y - 70, '덩더쿵!', '#2f6f5c', 30, 1); sfx('boom'); sfx('clang'); }
+          else if (id === 'bulwark') { fx.ring(x, y, 150, '#8a2a26', 0.6, 9); fx.txt(x, y - 70, '덤벼라!', '#8a2a26', 28, 0.9); sfx('horn'); }
+          else if (id === 'raid') { fx.txt(x, y - 50, '산채에서 왔다!', '#8a2a26', 24, 1); sfx('horn'); }
           else if (id === 'horn') { sfx('horn'); fx.flash = 0.3; fx.flashCol = '#f6d98a'; }
           else if (id === 'cry') { fx.ring(x, y, e.r * 1.25, RED, 0.5, 8); fx.txt(x, y - 50, '와아아!', RED, 28, 0.9); sfx('horn'); }
           else if (id === 'ambush') { fx.txt(x, y - 60, '매복이다!', INDIGO, 26, 1); sfx('leap'); }

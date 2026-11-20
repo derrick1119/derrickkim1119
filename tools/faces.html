@@ -1,0 +1,13 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../style.css"><style>html,body{overflow:auto;display:block;background:#e9dec4}#c{position:static;transform:none}</style></head>
+<body><canvas id="c" width="1440" height="1300"></canvas>
+<script type="module">
+// 얼굴만 크게 보기: 눈매·눈썹·턱선이 서로 다른지 확인한다
+import { LOOKS, getLook } from '../src/render/sprites.js';
+import { drawSprite, text } from '../src/render/draw.js';
+const c = document.getElementById('c'), g = c.getContext('2d');
+await document.fonts.load("700 20px 'Gowun Batang'", '가A');
+g.fillStyle = '#e9dec4'; g.fillRect(0, 0, c.width, c.height);
+const ks = Object.keys(LOOKS).filter(k => LOOKS[k].doll), per = 7, S = Number(new URLSearchParams(location.search).get('s') || 6);
+ks.forEach((k, i) => { const x = 110 + (i % per) * 203, y = 440 + Math.floor(i / per) * 400, L = getLook(k); drawSprite(g, L.head, x, y, S, S); text(g, k, x, y - 60, { size: 16 }); });
+window.done = true;
+</script></body></html>

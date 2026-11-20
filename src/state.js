@@ -1,5 +1,5 @@
 // 원정(런) 상태: 덱(병력·영웅·전술 패), 노정(길 위에서 차례로 만나는 것들), 전리품, 장터, 공적(원정 사이 성장), 저장
-import { UNITS, lvlMult } from './data/units.js';
+import { UNITS, HEROES, lvlMult } from './data/units.js';
 import { RELICS, CURSES } from './data/relics.js';
 import { genEncounter } from './data/encounters.js';
 import { DEFAULT_MODS, PACE, MAX_CAP, defOf } from './sim/battle.js';
@@ -26,6 +26,8 @@ export function save() { try { localStorage.setItem(KEY, JSON.stringify({ meta, 
 export const UNLOCKS = [
   { id: 'bishop', name: '영웅 · 고승', desc: '법력 결계로 군대를 지키는 치유 영웅', cost: 20, unit: 'bishop' },
   { id: 'archmage', name: '영웅 · 신선', desc: '불벼락을 내리는 도술 영웅', cost: 30, unit: 'archmage' },
+  { id: 'sangsoe', name: '영웅 · 상쇠', desc: '사기를 돋우고 판을 흔드는 풍물 영웅', cost: 25, unit: 'sangsoe' },
+  { id: 'chief', name: '영웅 · 두령', desc: '적을 끌어모아 버티는 녹림 영웅', cost: 35, unit: 'chief' },
   { id: 'berserk', name: '병력 · 철퇴 장사', desc: '전리품과 장터에 철퇴 장사 패가 나옵니다', cost: 25, unit: 'berserk' },
   { id: 'cannon', name: '병력 · 화차', desc: '전리품과 장터에 화차 패가 나옵니다', cost: 35, unit: 'cannon' },
   { id: 'p_gold', name: '노잣돈', desc: '엽전 60을 들고 출발합니다', cost: 20 },
@@ -35,7 +37,9 @@ export const UNLOCKS = [
 ];
 export const has = id => !!meta.unlocked[id];
 export function buyUnlock(id) { const u = UNLOCKS.find(x => x.id === id); if (!u || has(id) || meta.merit < u.cost) return false; meta.merit -= u.cost; meta.unlocked[id] = true; save(); return true; }
-export const heroOpen = h => h === 'commander' || has(h);
+// 장군·검객·명궁은 처음부터 고를 수 있다
+export const FREE_HEROES = ['commander', 'blade', 'hunter'];
+export const heroOpen = h => FREE_HEROES.includes(h) || has(h);
 const BASE_TYPES = ['sword', 'shield', 'spear', 'xbow', 'priest', 'knight', 'wizard'];
 export const unitPool = () => BASE_TYPES.concat(['berserk', 'cannon'].filter(has));
 export const HARD_DESC = ['', '요괴 체력 +8%', '요괴 체력 +16%, 수 +5%', '요괴 체력 +24%, 수 +10%', '요괴 체력 +32%, 수 +15%', '요괴 체력 +40%, 수 +20%'];
@@ -148,7 +152,7 @@ export function describeReward(o) {
 function makeReward(kind, keys) {
   const r = G.run, types = unitPool(), owned = ownedTypes();
   if (kind === 'unit') { const fresh = types.filter(t => !owned.includes(t)); const t = fresh.length && rnd() < 0.6 ? pick(fresh) : pick(types); return { kind: 'card', id: 'u_' + t, lv: 1, key: 'cd' + 'u_' + t }; }
-  if (kind === 'lead') { const hs = ['commander', 'bishop', 'archmage'].filter(h => !r.deck.some(c => c.id === 'h_' + h)); if (!hs.length) return null; const h = pick(hs); return { kind: 'card', id: 'h_' + h, lv: 1, key: 'cd' + 'h_' + h }; }
+  if (kind === 'lead') { const hs = HEROES.filter(h => !r.deck.some(c => c.id === 'h_' + h)); if (!hs.length) return null; const h = pick(hs); return { kind: 'card', id: 'h_' + h, lv: 1, key: 'cd' + 'h_' + h }; }
   if (kind === 'tactic') { const o = rollCards(keys.kind || 'battle', 1, keys)[0]; return o ? { kind: 'card', id: o.id, up: o.up, key: 'cd' + o.id } : null; }
   if (kind === 'train') { const c = unitCards().filter(c => (c.lv || 1) < MAX_LV && !keys.has('tr' + c.uid)); if (!c.length) return null; const x = pick(c); return { kind, uid: x.uid, id: x.id, key: 'tr' + x.uid }; }
   if (kind === 'upgrade') { const c = r.deck.filter(c => !isUnit(c) && canUp(c) && !keys.has('up' + c.id)); if (!c.length) return null; const x = pick(c); return { kind, uid: x.uid, id: x.id, key: 'up' + x.id }; }
