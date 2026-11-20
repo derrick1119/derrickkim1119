@@ -166,7 +166,7 @@ export const STAGES: StageDef[] = [
   },
 ];
 export const STAGE_COUNT = STAGES.length;
-const SWAP_T = 9, RESULT_T = 210, FAIL_T = 120, CLEAR_PTS = 100, STAR_PTS = 100, HEART_PTS = 100;
+const SWAP_T = 9, RESULT_T = 280, FAIL_T = 120, CLEAR_PTS = 100, STAR_PTS = 100, HEART_PTS = 100;
 const budgetOf = (d: StageDef) => Math.max(4, d.par + 3);
 const josa = (w: string) => ((w.charCodeAt(w.length - 1) - 0xac00) % 28 ? '을' : '를');
 /** 별 조건(쉬운 말, 판마다 하나씩 늘어난다): 1판 탈출 · 2판 +한 번만 · 3판부터 +n번 안에 */
@@ -648,7 +648,7 @@ function pick(s: SwapState, x: number, y: number): number {
 const inBox = (x: number, y: number, b: [number, number, number, number]) => Math.abs(x - b[0]) <= b[2] / 2 && Math.abs(y - b[1]) <= b[3] / 2;
 function tapAt(s: SwapState, x: number, y: number) {
   if (inBox(x, y, RETRY)) {
-    if (s.w.swaps > 0 || s.sel >= 0) newStage(s, true), ev(s, 'retry');
+    if (s.w.swaps > 0 || (s.sel >= 0 && !s.lock)) newStage(s, true), ev(s, 'retry');
     return;
   }
   const id = pick(s, x, y);
@@ -2889,7 +2889,7 @@ function drawAll(ctx: C2, s: SwapState, w: number, h: number, th: Theme) {
       if (o.st === 0 && t % 12 === 0) fx.burst(x + rpx * 0.6, Y(GY) - R(0.01), '#bfeaff', 3, 1.5, 1.6), fx.sound('splash', 1.6 - 0.1 * o.z, 0.25);
     }
     // 막혔을 때 말풍선(가끔 다시) — 맨 위에 그리려고 모아 둔다
-    if (o.st === 1 && o.blk >= 0 && v.bubT[o.id] && (t - v.bonk[o.id]) % 300 < 150 && s.phase === 'play') {
+    if (o.st === 1 && o.blk >= 0 && v.bubT[o.id] && (t - v.bonk[o.id]) % 300 < 150 && s.phase === 'play' && (s.sel !== o.id || s.lock)) {
       const top = Y(GY) - Math.max(R(holeH(Math.min(7, heightOf(o)))), rpx * 2.1) - lift;
       bubs.push([x, top - R(0.02), v.bubT[o.id]]);
     }
@@ -2946,7 +2946,7 @@ function drawAll(ctx: C2, s: SwapState, w: number, h: number, th: Theme) {
     }
     for (const o of W_.th) if (swappable(o)) sizePips(ctx, o, X(cen(o)[0]), Y(cen(o)[1]) + R(Math.max(0.05, zr(o) * 1.05)) + R(0.018), R, o.id === s.sel);
   }
-  if (s.phase === 'play' && s.sel >= 0 && s.stage < 4) {
+  if (s.phase === 'play' && s.sel >= 0 && s.stage < 4 && !s.lock) {
     const o = W_.th[s.sel], [cx, cy] = cen(o);
     bubble(ctx, X(cx), Y(cy) - R(Math.max(0.06, zr(o) * 1.4)) - R(0.03), '이제 바꿀 것을 톡!', R, 0);
   }
@@ -3358,7 +3358,7 @@ function drawHud(ctx: C2, s: SwapState, v: Vis, w: number, h: number, R: (v: num
   ctx.fillStyle = 'rgba(255,255,255,.15)';
   ctx.fillRect(0, by0, w, R(0.005));
   const [rx, ry, rw, rh] = RETRY;
-  const canRetry = s.phase === 'play' && (s.w.swaps > 0 || s.sel >= 0);
+  const canRetry = s.phase === 'play' && (s.w.swaps > 0 || (s.sel >= 0 && !s.lock));
   ctx.fillStyle = canRetry ? '#fff3c4' : 'rgba(255,243,196,.45)';
   rr(ctx, R(rx - rw / 2), R(ry - rh / 2), R(rw), R(rh), R(0.02));
   ctx.fill();

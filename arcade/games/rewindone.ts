@@ -426,7 +426,7 @@ function origin(W: World, th: Thing, E: Sink) {
     th.st = DONE;
     o.t = W.t;
     if (o.k === 'machine') (W.mach = W.t), E?.('machine', o.x, o.y, 0, th.id);
-    else E?.('catch', x, y, 0, th.id);
+    else E?.('catch', o.x, o.y - 0.06, 0, th.id);
     return;
   }
   th.st = HOLD;
@@ -707,7 +707,7 @@ function rollPath(pts: number[], r: number, v0: number, acc: number, vmax: numbe
 const LY = 0.86, LY3 = 0.95, UP3 = 0.6;
 
 function bridgeT(x0: number, x1: number, y: number, w0: number, n = 4): Thing {
-  return T('bridge', { x: x0, x2: x1, y, n, hold: w0, dur: Math.ceil(brFall(n - 1) + brLand + 34), big: 1.2 });
+  return T('bridge', { x: x0, x2: x1, y, n, hold: w0, dur: Math.ceil(brFall(n - 1) + brLand + 12), big: 1.2 });
 }
 function potT(x: number, yb: number, w0: number, owner: number, yl = LY): Thing {
   const th = T('pot', { x, y: yb, y2: yl, hold: w0, owner, big: 0.6 });
@@ -1472,7 +1472,6 @@ export const rewindoneSmart: Bot<RewState> = {
   },
 };
 const REACT_SMART = 3;
-const habitMemo = new Map<string, number[]>();
 /** 버릇 봇: 버릇 머리가 고른 물건을 톡 (같은 판이면 같은 결정 — 기억해 둔다) */
 function habitBot(name: string, pick: (W: World) => number): Bot<RewState> {
   return {
@@ -1492,7 +1491,6 @@ function habitBot(name: string, pick: (W: World) => number): Bot<RewState> {
     },
   };
 }
-void habitMemo;
 /** 측정·조율용 (게임에는 안 씀) */
 export const _dbg = { jump: (s: RewState, st: number) => ((s.stage = st), (s.fixed = st), (s.gears = st), newStage(s)), rollout, value, tryTap, tap: (W: World, th: Thing, E: Sink) => tapThing(W, th, E), rawLevel, planFrom: (L: Level) => planFrom(newWorld(L)), trialHabit, habitFirst, habitNear, starsOf, newWorld, stepWorld };
 export const rewindoneHabit: Bot<RewState> = habitBot('버릇: 먼저 움직인 것부터', habitFirst);
@@ -3725,17 +3723,6 @@ function drawAll(ctx: C2, s: RewState, w: number, h: number, _th: Theme) {
       ell(ctx, px, py - R(0.06), R(0.009), R(0.005));
       ctx.fill();
     }
-    if (can) {
-      font(0.036, 900);
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const lx = X((L.canal[0] + L.canal[1]) / 2), ly = Y(LY - 0.13), tw = ctx.measureText('지금 다시 톡!').width + R(0.04);
-      ctx.fillStyle = '#3ab85a';
-      rr(ctx, lx - tw / 2, ly - R(0.024), tw, R(0.048), R(0.024));
-      ctx.fill();
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText('지금 다시 톡!', lx, ly + 1);
-    }
   }
   // ═════════ 물건 ═════════
   const rewTh = W.rew >= 0 ? thingOf(W, W.rew) : undefined;
@@ -3817,6 +3804,22 @@ function drawAll(ctx: C2, s: RewState, w: number, h: number, _th: Theme) {
       ell(ctx, px, py, R(0.005), R(0.005));
       ctx.fill();
     }
+  }
+  // 말뚝에 걸 수 있는 동안: '지금 다시 톡!' (되감기 빛 위에)
+  for (const th of W.th) {
+    if (th.dock < 0 || !L.canal || th.st !== REW || !canDock(th)) continue;
+    font(0.04, 900);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const lx = X((L.canal[0] + L.canal[1]) / 2), ly = Y(LY + 0.14) + Math.sin(t * 0.4) * 2, tw = ctx.measureText('지금 다시 톡!').width + R(0.05);
+    ctx.fillStyle = '#2aa84a';
+    rr(ctx, lx - tw / 2, ly - R(0.028), tw, R(0.056), R(0.028));
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('지금 다시 톡!', lx, ly + 1);
   }
   // ═════════ 손가락 안내 ═════════
   drawGuide(ctx, s, v, font);
@@ -3920,7 +3923,8 @@ function drawGuide(ctx: C2, s: RewState, v: View, font: (sz: number, w?: number)
 /** 사건 → 파티클·글자·흔들림·소리 (사건마다 소리, 큰 것은 낮게, 연쇄는 높아지게) */
 function doEvents(_ctx: C2, s: RewState, v: View) {
   const fx = juice(s), { X, Y, R, t } = v;
-  const seenT = fx.memo.t ?? -1;
+  // 처음 그릴 때 밀린 옛 사건은 건너뛴다 (화면이 늦게 붙어도 글자가 한꺼번에 쏟아지지 않게)
+  const seenT = fx.memo.t ?? t - 2;
   for (const e of s.events) {
     if (e.t <= seenT || e.t > t) continue;
     const x = X(e.x), y = Y(e.y), cx = Math.max(R(0.14), Math.min(X(1) - R(0.14), x));

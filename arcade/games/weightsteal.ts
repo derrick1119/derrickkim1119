@@ -21,11 +21,13 @@ import { juice } from '../juice.ts';
 // ───────────────────────────── 물리 상수 (세상 좌표: x 0~1, y 위쪽 +, 땅 = 0) ─────────────────────────────
 const A = 1.5;
 const G = 0.0009, BUOY = 0.0003, VUP = 0.0085, EPS = 0.0025, OVL = 0.008;
-const STEP = 0.072, SPD = 0.0042, MAXDROP = 0.32, HOP = 0.15;
+const STEP = 0.072, SPD = 0.0042, MAXDROP = 0.32, HOP = 0.15, GAP = 0.018;
+/** 카메라 배율: 세상 폭 1/ZOOM 이 화면 폭 (2차: 1.4배 가까이) */
+const ZOOM = 1.4;
 const SAW_K = 0.011, SAW_LAUNCH = 1.05, SAW_IMP = 5;
 const FLAT_H = 0.026, PIT = -0.22;
 const vFall = (L: number) => 0.022 + 0.0016 * Math.min(L, 12);
-const RESULT_OK = 210, RESULT_FAIL = 150, BANNER_T = 170, CALM_FAIL = 50;
+const RESULT_OK = 210, RESULT_FAIL = 150, BANNER_T = 150, CALM_FAIL = 50, VAULT_T = 330;
 const CLEAR_PTS = 100, STAR_PTS = 100, WIN_PTS = 300, HEART_PTS = 100;
 
 export type Kind =
@@ -60,7 +62,7 @@ const NONE = -1, BODY = 1000, PLANK = 3000, ROPE = 4000, KIN = 5000;
 const REST = 0, FALL = 1, RISE = 2, FIXED = 3;
 
 export type SK = 'ground' | 'hedge' | 'stone' | 'wall' | 'twig' | 'plank' | 'plate' | 'gate' | 'ceil' | 'shelf' | 'ped' | 'deck' | 'trap' | 'water';
-interface SolidDef { k: SK; x0: number; x1: number; y0: number; y1: number; cap?: number; need?: number; gate?: number }
+interface SolidDef { k: SK; x0: number; x1: number; y0: number; y1: number; cap?: number; need?: number; gate?: number; pair?: number }
 interface BodyDef { k: Kind; x: number; y: number; w?: number; rope?: number; ay?: number; kin?: boolean; tap?: boolean }
 type PrizeK = 'key' | 'crown' | 'gem' | 'cup' | 'egg' | 'map' | 'harp' | 'bigcrown';
 type StarK = 'clear' | 'taps' | 'empty' | 'flat' | 'gem' | 'keep' | 'float';
@@ -72,7 +74,7 @@ interface WindDef { x0: number; x1: number; y0: number; y1: number; vx: number }
 export interface StageDef {
   ch: number; name: string; news: string; spot: [number, number, number] | null; hints: [Kind | 'cat', string][];
   solids: SolidDef[]; bodies: BodyDef[]; cat: [number, number]; prize: { x: number; y: number; k: PrizeK }; gems?: [number, number][];
-  saw?: SawDef; bridge?: BridgeDef; wind?: WindDef[]; ceil?: number; slots?: number; catTap?: boolean;
+  saw?: SawDef; bridge?: BridgeDef; wind?: WindDef[]; ceil?: number; slots?: number; catTap?: boolean; z?: number;
   par: number; budget: number; stars: StarDef[]; next: string;
 }
 
@@ -209,13 +211,13 @@ export interface Body {
   tap: boolean; sq: number; frag: number; shat: boolean; rope: number; ax: number; ay: number; kin: boolean;
   tw: number; land: number; hitV: number; flatT: number; face: number;
 }
-export interface Solid { id: number; k: SK; x0: number; x1: number; y0: number; y1: number; gy0: number; cap: number; on: boolean; need: number; gate: number; open: number; load: number; brokeT: number }
+export interface Solid { id: number; k: SK; x0: number; x1: number; y0: number; y1: number; gy0: number; cap: number; on: boolean; need: number; gate: number; pair: number; open: number; load: number; brokeT: number }
 interface Saw { px: number; py: number; hl: number; th: number; om: number; lim: number; slamT: number; thick: number }
 interface Bridge { hx: number; len: number; dir: number; a: number; va: number; cw: number; bb: number; deck: number; cy0: number; rise: number; slamT: number }
 interface Gem { x: number; y: number; got: number }
 export interface WEv { t: number; k: string; i: number; x: number; y: number; v: number }
 export interface World {
-  t: number; b: Body[]; s: Solid[]; saw: Saw | null; br: Bridge | null; wind: WindDef[]; ceil: number;
+  t: number; b: Body[]; s: Solid[]; saw: Saw | null; br: Bridge | null; wind: WindDef[]; ceil: number; xw: number; z: number;
   cat: number; cs: string; prize: { x: number; y: number; k: PrizeK }; gems: Gem[];
   pouch: number[]; slots: number; taps: number; budget: number; catTap: boolean;
   done: number; why: string; calm: number; flats: number; floats: number; breaks: number; frags: number; ev: WEv[] | null;
@@ -236,16 +238,16 @@ export function makeWorld(d: StageDef): World {
   for (const q of d.bodies) b.push(mk(q));
   const cat = b.length;
   b.push(mk({ k: 'cat', x: d.cat[0], y: d.cat[1], tap: !!d.catTap }));
-  const s: Solid[] = d.solids.map((q, id) => ({ id, k: q.k, x0: q.x0, x1: q.x1, y0: q.y0, y1: q.y1, gy0: q.y0, cap: q.cap ?? 0, on: true, need: q.need ?? 0, gate: q.gate ?? -1, open: 0, load: 0, brokeT: -999 }));
+  const s: Solid[] = d.solids.map((q, id) => ({ id, k: q.k, x0: q.x0, x1: q.x1, y0: q.y0, y1: q.y1, gy0: q.y0, cap: q.cap ?? 0, on: true, need: q.need ?? 0, gate: q.gate ?? -1, pair: q.pair ?? -1, open: 0, load: 0, brokeT: -999 }));
   const W: World = {
-    t: 0, b, s, saw: null, br: null, wind: d.wind ?? [], ceil: d.ceil ?? 0.9, cat, cs: 'walk', prize: { ...d.prize }, gems: (d.gems ?? []).map(([x, y]) => ({ x, y, got: -1 })),
+    t: 0, b, s, saw: null, br: null, wind: d.wind ?? [], ceil: d.ceil ?? 0.58, xw: 1 / (d.z ?? ZOOM), z: d.z ?? ZOOM, cat, cs: 'walk', prize: { ...d.prize }, gems: (d.gems ?? []).map(([x, y]) => ({ x, y, got: -1 })),
     pouch: [], slots: d.slots ?? 1, taps: 0, budget: d.budget, catTap: !!d.catTap, done: 0, why: '', calm: 0, flats: 0, floats: 0, breaks: 0, frags: 0, ev: null,
   };
   if (d.saw) W.saw = { px: d.saw.px, py: d.saw.py, hl: d.saw.hl, th: d.saw.th, om: 0, lim: d.saw.lim, slamT: -999, thick: 0.018 };
   if (d.bridge) {
     const q = d.bridge;
     const deck = s.length;
-    s.push({ id: deck, k: 'deck', x0: q.dir < 0 ? q.hx - q.len : q.hx, x1: q.dir < 0 ? q.hx : q.hx + q.len, y0: -0.03, y1: 0, gy0: -0.03, cap: 0, on: q.a < 0.03, need: 0, gate: -1, open: 0, load: 0, brokeT: -999 });
+    s.push({ id: deck, k: 'deck', x0: q.dir < 0 ? q.hx - q.len : q.hx, x1: q.dir < 0 ? q.hx : q.hx + q.len, y0: -0.03, y1: 0, gy0: -0.03, cap: 0, on: q.a < 0.03, need: 0, gate: -1, pair: -1, open: 0, load: 0, brokeT: -999 });
     const cw = b.length;
     b.push(mk({ k: 'cwt', x: q.cwx, y: q.cwy, kin: true }));
     const bb = b.length;
@@ -458,7 +460,7 @@ function devices(W: World) {
   // 저울문
   for (const g of W.s) {
     if (g.gate < 0) continue;
-    const p = W.s[g.gate], want = p.load >= p.need ? 1 : 0;
+    const want = pressed(W, W.s[g.gate]) ? 1 : 0;
     const was = g.open;
     g.open += Math.max(-0.008, Math.min(0.04, want - g.open));
     g.y0 = g.gy0 + g.open * (g.y1 - g.gy0 + 0.02);
@@ -467,6 +469,12 @@ function devices(W: World) {
   }
 }
 
+/** 발판이 눌렸나: 무게 몇 이상(need) · 또는 짝 발판과 무게가 같음(양팔 저울) */
+export function pressed(W: World, p: Solid): boolean {
+  if (p.need > 0) return p.load >= p.need;
+  if (p.pair >= 0) return p.load > 0 && p.load === W.s[p.pair].load;
+  return false;
+}
 function rules(W: World): boolean {
   let changed = false;
   for (const q of W.s) {
@@ -591,7 +599,7 @@ function motion(W: World) {
     else if (b.k !== 'cat' || b.mode !== FALL) b.vx = 0;
     if (b.mode !== FALL) b.vx *= 0.985;
     if (b.x < b.hw) (b.x = b.hw), (b.vx = 0);
-    if (b.x > 1 - b.hw) (b.x = 1 - b.hw), (b.vx = 0);
+    if (b.x > W.xw - b.hw) (b.x = W.xw - b.hw), (b.vx = 0);
   }
   // 구덩이·물
   for (const b of B) {
@@ -631,16 +639,22 @@ function catAI(W: World) {
   let lift = 0, blocked = false;
   // 앞쪽 띠(지금 앞면 → 한 걸음 뒤 앞면)만 본다: 뒤에 있는 것에 막히지 않게
   const x0 = dir > 0 ? c.x + c.hw - 0.004 : nx - c.hw, x1 = dir > 0 ? nx + c.hw : c.x - c.hw + 0.004, yb = c.y + 0.003, yt = c.y + c.h;
+  // 막는 것은 한 뼘(GAP) 앞에서 멈춘다 (그림이 겹치지 않게) · 턱은 바로 앞만
+  const g0 = dir > 0 ? x0 : x0 - GAP, g1 = dir > 0 ? x1 + GAP : x1;
   for (const q of W.s) {
-    if (!q.on || x1 <= q.x0 || x0 >= q.x1 || q.y1 <= yb || q.y0 >= yt) continue;
-    if (q.y1 - c.y <= STEP) lift = Math.max(lift, q.y1 - c.y);
-    else blocked = true;
+    if (!q.on || g1 <= q.x0 || g0 >= q.x1 || q.y1 <= yb || q.y0 >= yt) continue;
+    const near = !(x1 <= q.x0 || x0 >= q.x1);
+    if (q.y1 - c.y <= STEP) {
+      if (near) lift = Math.max(lift, q.y1 - c.y);
+    } else blocked = true;
   }
   for (const o of W.b) {
     if (o === c || !live(o) || o.k === 'bridge' || o.sup === BODY + c.id) continue;
-    if (x1 <= o.x - o.hw || x0 >= o.x + o.hw || o.y + o.h <= yb || o.y >= yt) continue;
-    if (o.y + o.h - c.y <= STEP && o.y <= c.y + STEP) lift = Math.max(lift, o.y + o.h - c.y);
-    else blocked = true;
+    if (g1 <= o.x - o.hw || g0 >= o.x + o.hw || o.y + o.h <= yb || o.y >= yt) continue;
+    const near = !(x1 <= o.x - o.hw || x0 >= o.x + o.hw);
+    if (o.y + o.h - c.y <= STEP && o.y <= c.y + STEP) {
+      if (near) lift = Math.max(lift, o.y + o.h - c.y);
+    } else blocked = true;
   }
   if (W.saw && c.sup !== PLANK) {
     const pt = plankTop(W.saw, nx + dir * c.hw * 0.5);
@@ -777,16 +791,16 @@ export const tappable = (W: World) => W.b.filter((b) => live(b) && b.tap && (b.k
 // ───────────────────────────── 게임 상태 ─────────────────────────────
 interface Ev { t: number; k: string; i: number; x: number; y: number; v: number; text?: string }
 export interface WSState {
-  rng: Rng; seed: number; t: number; stage: number; phase: 'play' | 'result' | 'fail'; pt: number;
+  rng: Rng; seed: number; t: number; stage: number; phase: 'play' | 'result' | 'fail' | 'vault'; pt: number; restarts: number; vaultFrom: number;
   W: World; d: StageDef;
   hearts: number; stars: number; got: number; starOk: boolean[]; pts: number; won: boolean; dead: boolean; tries: number; why: string;
   down: boolean; ax: number; ay: number; firstTap: number; firstBig: number; wowN: number; lastWow: number; lastTap: number; stageT: number;
   seen: Set<string>; banner: { head: string; sub: string; t: number } | null; events: Ev[];
   stash: PrizeK[]; gemN: number; best: number[];
 }
-const GY = 1.05;
-/** 화면(너비 단위) ↔ 세상 */
-const toWorld = (sx: number, sy: number) => ({ x: sx, y: GY - sy });
+const GY = 1.03;
+/** 화면(너비 단위) ↔ 세상 (카메라 배율 W.z) */
+const toWorld = (W: World, sx: number, sy: number) => ({ x: sx / W.z, y: (GY - sy) / W.z });
 const HIT = 0.06;
 
 function see(s: WSState, key: string) {
@@ -815,7 +829,7 @@ function pull(s: WSState) {
   if (s.events.length > 80) s.events = s.events.filter((e) => s.t - e.t < 150);
 }
 
-function newStage(s: WSState) {
+function newStage(s: WSState, again = false) {
   s.d = STAGES[s.stage];
   s.W = makeWorld(s.d);
   s.W.ev = [];
@@ -827,7 +841,7 @@ function newStage(s: WSState) {
   const fresh = see(s, 'stage' + s.stage);
   if ((s.d.slots ?? 1) > 1) see(s, 'pouch2');
   if (s.d.wind) see(s, 'wind');
-  s.banner = { head: `${s.stage + 1}판 · ${s.d.name}`, sub: fresh || s.tries === 0 ? s.d.news : '다시 한 번!', t: s.t };
+  s.banner = { head: `${s.stage + 1}판 · ${s.d.name}`, sub: again ? '처음부터 다시! (하트는 그대로)' : fresh || s.tries === 0 ? s.d.news : '다시 한 번!', t: s.t };
 }
 
 function finish(s: WSState, ok: boolean) {
@@ -852,9 +866,12 @@ function finish(s: WSState, ok: boolean) {
   }
 }
 
+/** 왼쪽 위 ↺ 다시 단추 (화면 너비 단위) */
+export const RESTART = { x: 0.055, y: 0.0425, r: 0.05 };
+const isRestart = (sx: number, sy: number) => Math.hypot(sx - RESTART.x, sy - RESTART.y) < RESTART.r + 0.012;
 /** 손가락 자리에서 가장 가까운 만질 수 있는 물건 (없으면 -1) */
 export function pickBody(W: World, sx: number, sy: number): number {
-  const p = toWorld(sx, sy);
+  const p = toWorld(W, sx, sy);
   let best = -1, bd = HIT, bc = 9;
   for (const b of tappable(W)) {
     let d: number, c: number;
@@ -877,9 +894,9 @@ export function bodyScreen(W: World, i: number): { x: number; y: number } {
   const b = W.b[i];
   if (b.k === 'bridge' && W.br) {
     const B = W.br, phi = B.a * (Math.PI / 2);
-    return { x: B.hx + B.dir * Math.cos(phi) * B.len * 0.55, y: GY - Math.sin(phi) * B.len * 0.55 };
+    return { x: (B.hx + B.dir * Math.cos(phi) * B.len * 0.55) * W.z, y: GY - Math.sin(phi) * B.len * 0.55 * W.z };
   }
-  return { x: b.x, y: GY - (b.y + b.h / 2) };
+  return { x: b.x * W.z, y: GY - (b.y + b.h / 2) * W.z };
 }
 
 const game: GameDef<WSState> & { wows(s: WSState): number } = {
@@ -907,7 +924,7 @@ const game: GameDef<WSState> & { wows(s: WSState): number } = {
     const s = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'play', pt: 0, W: null, d: STAGES[0],
       hearts: 3, stars: 0, got: 0, starOk: [], pts: 0, won: false, dead: false, tries: 0, why: '',
-      down: false, ax: 0.5, ay: 0.5, firstTap: -1, firstBig: -1, wowN: 0, lastWow: -99, lastTap: -99, stageT: 0,
+      down: false, ax: 0.5, ay: 0.5, firstTap: -1, firstBig: -1, wowN: 0, lastWow: -99, lastTap: -99, stageT: 0, restarts: 0, vaultFrom: 0,
       seen: new Set<string>(), banner: null, events: [], stash: [], gemN: 0, best: STAGES.map(() => 0),
     } as unknown as WSState;
     newStage(s);
@@ -918,6 +935,13 @@ const game: GameDef<WSState> & { wows(s: WSState): number } = {
     const p = inp.pointer ?? null, fresh = !!p && !s.down;
     s.down = !!p;
     if (p) (s.ax = p.x), (s.ay = p.y);
+    if (s.phase === 'play' && fresh && isRestart(p!.x, p!.y * A)) {
+      // ↺ 다시: 하트는 그대로, 그 판 처음부터
+      s.restarts++;
+      s.events.push({ t: s.t, k: 'restart', i: -1, x: 0.5, y: 0.5, v: 0 });
+      newStage(s, true);
+      return;
+    }
     if (s.phase === 'play') {
       if (fresh) {
         const i = pickBody(s.W, p!.x, p!.y * A);
@@ -927,7 +951,7 @@ const game: GameDef<WSState> & { wows(s: WSState): number } = {
             if (s.firstTap < 0) s.firstTap = s.t;
             s.lastTap = s.t;
           }
-        } else s.events.push({ t: s.t, k: 'miss', i: -1, x: p!.x, y: GY - p!.y * A, v: 0 });
+        } else s.events.push({ t: s.t, k: 'miss', i: -1, x: p!.x / s.W.z, y: (GY - p!.y * A) / s.W.z, v: 0 });
       }
       tick(s.W);
       pull(s);
@@ -937,12 +961,18 @@ const game: GameDef<WSState> & { wows(s: WSState): number } = {
       tick(s.W);
       pull(s);
       s.pt++;
-      const T = s.phase === 'result' ? RESULT_OK : RESULT_FAIL;
-      if (s.pt >= T || (fresh && s.pt > 50)) {
-        if (s.phase === 'result') {
+      const T = s.phase === 'result' ? RESULT_OK : s.phase === 'vault' ? VAULT_T : RESULT_FAIL;
+      if (s.pt >= T || (fresh && s.pt > (s.phase === 'vault' ? 70 : 50))) {
+        const endCh = s.won || (s.stage + 1 < STAGES.length && STAGES[s.stage + 1].ch !== s.d.ch);
+        if (s.phase === 'result' && endCh) {
+          // 장 끝: 비밀 창고 장면
+          s.phase = 'vault';
+          s.pt = 0;
+          s.events.push({ t: s.t, k: 'vault', i: -1, x: 0.5, y: 0.5, v: s.d.ch });
+        } else if (s.phase === 'result' || s.phase === 'vault') {
           if (s.won) s.dead = true;
           else {
-            if (STAGES[s.stage + 1].ch !== s.d.ch) s.hearts = Math.min(3, s.hearts + 1);
+            if (endCh) s.hearts = Math.min(3, s.hearts + 1);
             s.stage++;
             s.tries = 0;
             newStage(s);
@@ -1375,13 +1405,13 @@ function getBg(ch: number, w: number, h: number): HTMLCanvasElement {
   return c;
 }
 
-interface V { w: number; h: number; X: (x: number) => number; Y: (y: number) => number; R: (r: number) => number; t: number; ch: number }
+interface V { w: number; h: number; X: (x: number) => number; Y: (y: number) => number; R: (r: number) => number; t: number; ch: number; pb: number; z: number }
 /** 몸이 서는 화면 높이: 윗면 가운데 */
 const baseY = (v: V, y: number) => v.Y(y) - v.R(DEP * 0.5);
 
 const GRASS = ['#9be06f', '#74c452'], DIRT = ['#c99a62', '#9a6a3c'];
 function solidFace(ctx: C2, v: V, x0: number, x1: number, y0: number, y1: number, top: [string, string], front: [string, string], edge = 'rgba(255,255,255,.35)') {
-  const X0 = v.X(x0), X1 = v.X(x1), T = v.Y(y1), B = Math.min(v.Y(y0), v.R(PANEL) + 2), D = v.R(DEP);
+  const X0 = v.X(x0), X1 = v.X(x1), T = v.Y(y1), B = Math.min(v.Y(y0), v.pb + 2), D = v.R(DEP);
   ctx.fillStyle = lin(ctx, 0, T, 0, B, [0, front[0]], [1, front[1]]);
   ctx.fillRect(X0, T, X1 - X0, B - T);
   ctx.fillStyle = lin(ctx, 0, T - D, 0, T, [0, top[0]], [1, top[1]]);
@@ -1447,7 +1477,7 @@ function leafBlob(ctx: C2, x: number, y: number, r: number, t: number, k: number
 
 /** 땅속 단면 (디오라마의 아래층): 흙 띠 · 뿌리 · 조약돌 · 지렁이 · 묻힌 뼈 */
 function underground(ctx: C2, v: V, q: Solid, t: number) {
-  const R = v.R, T = v.Y(q.y1), B = R(PANEL), X0 = v.X(q.x0), X1 = v.X(q.x1);
+  const R = v.R, T = v.Y(q.y1), B = v.pb, X0 = v.X(q.x0), X1 = v.X(q.x1);
   ctx.save();
   ctx.beginPath();
   ctx.rect(X0, T + 2, X1 - X0, B - T);
@@ -1525,7 +1555,7 @@ function drawSolids(ctx: C2, s: WSState, v: V) {
         underground(ctx, v, q, t);
       } else if (ch === 1) {
         solidFace(ctx, v, q.x0, q.x1, q.y0, q.y1, ['#e8dcc4', '#d4c4a4'], ['#c8b08a', '#9e8460']);
-        bricks(ctx, v, q.x0, q.x1, T + 2, Math.min(v.Y(q.y0), R(PANEL)), 'rgba(110,80,50,.35)', 0.09, 0.03);
+        bricks(ctx, v, q.x0, q.x1, T + 2, Math.min(v.Y(q.y0), v.pb), 'rgba(110,80,50,.35)', 0.09, 0.03);
         ctx.strokeStyle = 'rgba(140,110,80,.3)';
         ctx.lineWidth = 1;
         for (let x = Math.ceil(q.x0 / 0.06) * 0.06; x < q.x1; x += 0.06) {
@@ -1542,11 +1572,11 @@ function drawSolids(ctx: C2, s: WSState, v: V) {
         ctx.fillStyle = '#f2c44c';
         ctx.fillRect(X0, T - D * 0.8, X1 - X0, 1.5);
         ctx.fillRect(X0, T - D * 0.24, X1 - X0, 1.5);
-        bricks(ctx, v, q.x0, q.x1, T + 2, Math.min(v.Y(q.y0), R(PANEL)), 'rgba(50,30,15,.35)', 0.1, 0.03);
+        bricks(ctx, v, q.x0, q.x1, T + 2, Math.min(v.Y(q.y0), v.pb), 'rgba(50,30,15,.35)', 0.1, 0.03);
       }
     } else if (q.k === 'hedge') {
       solidFace(ctx, v, q.x0, q.x1, q.y0, q.y1, ['#8fd66a', '#6dbd4e'], ['#5fae46', '#3f8a34'], 'rgba(220,255,200,.45)');
-      const B2 = Math.min(v.Y(q.y0), R(PANEL));
+      const B2 = Math.min(v.Y(q.y0), v.pb);
       ctx.save();
       ctx.beginPath();
       ctx.rect(X0, T - D * 1.6, X1 - X0, B2 - T + D * 1.6);
@@ -1580,7 +1610,7 @@ function drawSolids(ctx: C2, s: WSState, v: V) {
         continue;
       }
       solidFace(ctx, v, q.x0, q.x1, q.y0, q.y1, top, fr);
-      bricks(ctx, v, q.x0, q.x1, T + 2, Math.min(v.Y(q.y0), R(PANEL)), 'rgba(90,60,35,.3)', 0.08, 0.035);
+      bricks(ctx, v, q.x0, q.x1, T + 2, Math.min(v.Y(q.y0), v.pb), 'rgba(90,60,35,.3)', 0.08, 0.035);
       if (q.k === 'wall' && q.y0 > 0.1) {
         ctx.fillStyle = 'rgba(0,0,0,.18)';
         ctx.fillRect(X0, v.Y(q.y0), X1 - X0, R(0.012));
@@ -1752,7 +1782,7 @@ function drawWater(ctx: C2, s: WSState, v: V, front: boolean) {
   const t = v.t, R = v.R;
   for (const q of s.W.s) {
     if (q.k !== 'water') continue;
-    const X0 = v.X(q.x0), X1 = v.X(q.x1), top = v.Y(-0.035), bot = R(PANEL) + 2;
+    const X0 = v.X(q.x0), X1 = v.X(q.x1), top = v.Y(-0.035), bot = v.pb + 2;
     if (!front) {
       ctx.fillStyle = lin(ctx, 0, top, 0, bot, [0, '#5cc0f0'], [1, '#1f6fa8']);
       ctx.fillRect(X0, top, X1 - X0, bot - top);
@@ -2687,6 +2717,16 @@ function drawCat(ctx: C2, x: number, y: number, u: number, dir: number, mode: st
     ctx.quadraticCurveTo(hx - hr * 0.7, hy - hr * 0.3 + dy, hx - hr * 0.9, hy - hr * 0.6 + dy);
     ctx.fill();
   }
+  if (mode === 'worry') {
+    ctx.fillStyle = fur0;
+    ctx.save();
+    ctx.translate(u * 0.22, -u * 0.62);
+    ctx.rotate(-2.6 + Math.sin(t * 0.5) * 0.25);
+    rr(ctx, -u * 0.05, 0, u * 0.1, u * 0.34, u * 0.05);
+    ctx.fill();
+    stroke(ctx, OUT, lw * 0.8);
+    ctx.restore();
+  }
   // 앞발: 둥실이면 허우적, 이기면 만세
   if (float || win || air) {
     ctx.fillStyle = fur0;
@@ -2771,11 +2811,29 @@ function catMode(s: WSState): string {
   const W = s.W, c = W.b[W.cat];
   if (c.st === 1) return 'flat';
   if (s.phase === 'result') return 'win';
+  if (isStuck(s)) return 'worry';
   if (W.cs === 'float' || (c.w === 0 && c.load === 0)) return 'float';
   if (W.cs === 'air' || W.cs === 'hop') return 'air';
   if (W.cs === 'creak') return 'creak';
   if (W.cs === 'walk') return 'walk';
   return 'wait';
+}
+/** 막힘 알아채기 (브라우저 그리기 쪽에서만 — 시뮬레이션·봇 측정에는 영향 없음): 남은 톡으로 이길 길이 없나 */
+const STUCK = new WeakMap<object, { key: string; stuck: boolean }>();
+function isStuck(s: WSState): boolean {
+  const W = s.W;
+  if (s.phase !== 'play' || W.done || W.taps === 0 || W.calm < 45) return false;
+  const key = `${s.stage}:${s.stageT}:${W.taps}`;
+  let m = STUCK.get(s);
+  if (!m || m.key !== key) {
+    const p = planTaps(W, s.stage), V = cloneWorld(W);
+    for (const i of p) {
+      if (!tapBody(V, i)) break;
+      settle(V);
+    }
+    STUCK.set(s, (m = { key, stuck: V.done !== 1 }));
+  }
+  return m.stuck;
 }
 const sackPos = (W: World) => {
   const c = W.b[W.cat];
@@ -2935,9 +2993,18 @@ function drawBodies(ctx: C2, s: WSState, v: V) {
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(1 + sq, 1 - sq);
-      drawCat(ctx, 0, 0, R(0.13), b.face, catMode(s), t, W.pouch, W.slots, wow);
+      drawCat(ctx, 0, 0, R(0.108), b.face, catMode(s), t, W.pouch, W.slots, wow);
       ctx.restore();
-      if ((W.cs === 'wait' || W.cs === 'creak') && s.phase === 'play' && W.calm > 90 && Math.sin(t * 0.05) > -0.3) {
+      const stuck = isStuck(s);
+      if (stuck) {
+        // 다시? 말풍선 (머리 긁적)
+        const bx = clamp(x + R(0.06) * b.face, v.w * 0.14, v.w * 0.86), by = y - R(0.17);
+        ctx.fillStyle = '#ffffff';
+        rr(ctx, bx - R(0.05), by - R(0.026), R(0.1), R(0.052), R(0.026));
+        ctx.fill();
+        stroke(ctx, OUT, 1.6);
+        txt(ctx, '다시?', bx, by + 1, R(0.034), '#e8453a', 900, 'center', '');
+      } else if ((W.cs === 'wait' || W.cs === 'creak') && s.phase === 'play' && W.calm > 90 && Math.sin(t * 0.05) > -0.3) {
         // ? 말풍선
         const bx = x + R(0.05) * b.face, by = y - R(0.16);
         ctx.fillStyle = '#ffffff';
@@ -3058,7 +3125,7 @@ function drawPrize(ctx: C2, s: WSState, v: V) {
 
 /** 살아 있는 세계 (아무것도 안 해도 움직이는 것) */
 function drawAmbient(ctx: C2, s: WSState, v: V, front: boolean) {
-  const R = v.R, t = v.t, w = v.w;
+  const R = (r: number) => r * v.w, t = v.t, w = v.w; // 배경에 붙은 것은 화면 단위
   if (!front) {
     if (v.ch < 2) {
       for (let k = 0; k < 3; k++) {
@@ -3192,8 +3259,8 @@ function playEvents(s: WSState, v: V) {
   const say = (wx: number, wy: number, text: string, col: string, size: number) => {
     let rec = SAY.get(s);
     if (!rec) SAY.set(s, (rec = []));
-    const x = clamp(v.X(wx), R(0.14), v.w - R(0.14));
-    let y = clamp(baseY(v, wy) - R(0.06), R(0.16), R(PANEL - 0.08));
+    const x = clamp(v.X(wx), v.w * 0.16, v.w * 0.84);
+    let y = clamp(baseY(v, wy) - R(0.06), v.w * 0.24, v.pb - v.w * 0.08);
     for (let k = 0; k < 5 && rec.some((q) => s.t - q.t < 40 && Math.abs(q.x - x) < R(0.22) && Math.abs(q.y - y) < size + 4); k++) y -= size + 4;
     rec.push({ x, y, t: s.t, text, col, size });
     if (rec.length > 14) rec.shift();
@@ -3390,7 +3457,7 @@ function drawTags(ctx: C2, s: WSState, v: V) {
     let x: number, y: number;
     if (b.k === 'bridge' && W.br) {
       const q = bodyScreen(W, b.id);
-      (x = v.X(q.x) + R(0.03)), (y = q.y * v.w - R(0.05));
+      (x = q.x * v.w + R(0.03)), (y = q.y * v.w - R(0.05));
     } else if (b.k === 'cat') (x = v.X(b.x) + R(0.04) * b.face), (y = baseY(v, b.y) - R(0.15));
     else (x = v.X(b.x) + R(b.hw * 0.75)), (y = baseY(v, b.y + (b.st === 1 ? FLAT_H : b.h)) - R(GUARD(b.k) && b.st === 0 ? 0.05 : 0.025));
     const hot = give && s.phase === 'play' && Math.sin(t * 0.18) > 0;
@@ -3431,12 +3498,31 @@ function drawHud(ctx: C2, s: WSState, v: V) {
   ctx.fillStyle = 'rgba(120,70,20,.35)';
   ctx.fillRect(0, hb - 1.5, w, 1.5);
   const cy = hb / 2;
-  ctx.fillStyle = ['#5fb44a', '#d9564a', '#8a5ad8'][d.ch];
-  ell(ctx, R(0.055), cy, R(0.033), R(0.033));
+  // ↺ 다시 단추 (하트는 그대로) — 막혔을 때는 반짝
+  const stuck = isStuck(s), pul = stuck ? 1 + 0.12 * Math.sin(s.t * 0.25) : 1, bxr = R(RESTART.x), byr = R(RESTART.y);
+  if (stuck) {
+    ctx.fillStyle = 'rgba(255,210,60,.55)';
+    ell(ctx, bxr, byr, R(0.045) * pul * 1.25, R(0.045) * pul * 1.25);
+    ctx.fill();
+  }
+  ctx.fillStyle = s.phase === 'play' ? ['#5fb44a', '#d9564a', '#8a5ad8'][d.ch] : 'rgba(120,90,60,.4)';
+  ell(ctx, bxr, byr, R(0.034) * pul, R(0.034) * pul);
   ctx.fill();
   stroke(ctx, OUT, 1.6);
-  txt(ctx, `${d.ch + 1}`, R(0.055), cy + 1, R(0.04), '#ffffff', 900, 'center', '');
-  txt(ctx, `${s.stage + 1}판 ${d.name}`, R(0.1), cy + 1, R(0.04), '#4a2a10', 900, 'left', '', R(0.46));
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = R(0.008);
+  ctx.beginPath();
+  ctx.arc(bxr, byr, R(0.017), -Math.PI * 0.9, Math.PI * 0.6);
+  ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(bxr - R(0.026), byr - R(0.012));
+  ctx.lineTo(bxr - R(0.008), byr - R(0.014));
+  ctx.lineTo(bxr - R(0.018), byr + R(0.004));
+  ctx.closePath();
+  ctx.fill();
+  const inCh = STAGES.slice(0, s.stage).filter((q) => q.ch === d.ch).length + 1;
+  txt(ctx, `${d.ch + 1}-${inCh} ${d.name}`, R(0.105), cy + 1, R(0.042), '#4a2a10', 900, 'left', '', R(0.44));
   // 별 · 하트
   const st = String(s.stars);
   ctx.font = `900 ${R(0.04)}px system-ui, sans-serif`;
@@ -3549,7 +3635,7 @@ function drawPanel(ctx: C2, s: WSState, v: V) {
   if (!n) txt(ctx, '아직 텅', sx + sw2 / 2, by + bh * 0.6, R(0.036), 'rgba(255,233,160,.55)', 800, 'center', '');
 }
 
-function drawOverlays(ctx: C2, s: WSState, v: V) {
+function drawOverlays(ctx: C2, s: WSState, v: V, vw: V) {
   const R = v.R, w = v.w, W = s.W, d = s.d, t = v.t, fx = juice(s);
   // 시작 카드 + 새것 스포트라이트
   const bn = s.banner, age = bn ? t - bn.t : 999;
@@ -3563,13 +3649,13 @@ function drawOverlays(ctx: C2, s: WSState, v: V) {
       ctx.lineWidth = 3.5;
       ctx.setLineDash([9, 6]);
       ctx.lineDashOffset = -t * 0.8;
-      ell(ctx, v.X(sx), baseY(v, sy), R(sr) * pul, R(sr) * pul * 0.8);
+      ell(ctx, vw.X(sx), baseY(vw, sy), vw.R(sr) * pul, vw.R(sr) * pul * 0.8);
       ctx.stroke();
       ctx.restore();
     }
     ctx.save();
     ctx.globalAlpha = a;
-    const cy = R(0.2), pop = Math.min(1, 0.6 + age / 10);
+    const cy = R(0.15), pop = Math.min(1, 0.6 + age / 10);
     ctx.translate(w / 2, cy);
     ctx.scale(pop, pop);
     ctx.font = `900 ${R(0.05)}px system-ui, sans-serif`;
@@ -3601,7 +3687,8 @@ function drawOverlays(ctx: C2, s: WSState, v: V) {
   if (s.phase === 'play' && !W.done) {
     let tip = '', target = -1;
     const hint = d.hints[W.taps];
-    if (hint && s.tries < 2) {
+    if (isStuck(s)) tip = '막혔어요 — 왼쪽 위 ↺ 다시 (하트는 그대로)';
+    else if (hint && s.tries < 2) {
       tip = hint[1];
       target = W.b.findIndex((b) => b.k === hint[0] && live(b));
     } else if (W.pouch.length) tip = W.pouch.length < W.slots ? `하나 더 훔치거나 · 무게 0인 것을 톡 = 주기` : `훔친 무게 ${W.pouch.reduce((a, c) => a + c, 0)} — 줄 물건을 톡!`;
@@ -3692,9 +3779,20 @@ function drawOverlays(ctx: C2, s: WSState, v: V) {
 
 function drawAll(ctx: CanvasRenderingContext2D, s: WSState, w: number, h: number, th: Theme) {
   void th;
-  const d = s.d, t = s.t;
-  const v: V = { w, h, X: (x) => x * w, Y: (y) => (GY - y) * w, R: (r) => r * w, t, ch: d.ch };
+  const d = s.d, t = s.t, z = s.W.z, pb = PANEL * w;
+  const v: V = { w, h, X: (x) => x * z * w, Y: (y) => (GY - y * z) * w, R: (r) => r * z * w, t, ch: d.ch, pb, z };
+  const vu: V = { w, h, X: (x) => x * w, Y: (y) => y * w, R: (r) => r * w, t, ch: d.ch, pb, z: 1 };
   const fx = juice(s);
+  if (s.phase === 'vault') {
+    ctx.save();
+    fx.begin(ctx);
+    drawVault(ctx, s, vu);
+    ctx.restore();
+    drawHud(ctx, s, vu);
+    drawPanel(ctx, s, vu);
+    playEvents(s, v);
+    return;
+  }
   ctx.save();
   fx.begin(ctx);
   ctx.drawImage(getBg(d.ch, w, h), -6, -6, w + 12, h + 12);
@@ -3730,7 +3828,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: WSState, w: number, h: number
   playEvents(s, v);
   // 디오라마 가장자리 그늘 (작은 상자 속 세상처럼)
   {
-    const top = v.R(0.085), bot = v.R(PANEL);
+    const top = w * 0.085, bot = pb;
     const g = ctx.createRadialGradient(w / 2, (top + bot) / 2, v.R(0.35), w / 2, (top + bot) / 2, v.R(0.85));
     g.addColorStop(0, 'rgba(60,30,10,0)');
     g.addColorStop(1, 'rgba(60,30,10,.22)');
@@ -3739,7 +3837,7 @@ function drawAll(ctx: CanvasRenderingContext2D, s: WSState, w: number, h: number
   }
   drawSays(ctx, s);
   ctx.restore();
-  drawHud(ctx, s, v);
-  drawPanel(ctx, s, v);
-  drawOverlays(ctx, s, v);
+  drawHud(ctx, s, vu);
+  drawPanel(ctx, s, vu);
+  drawOverlays(ctx, s, vu, v);
 }
