@@ -137,6 +137,10 @@ for (const [w, scheme] of [[390, 'dark'], [340, 'light']] as const) {
     await page.goto(url + '&trial=1&stage=20');
     await page.waitForTimeout(3000);
     await page.screenshot({ path: join(out, '23-boss2.png') });
+    // ✏️ M3 S3 (🧪): 시계탑 광장(place 2 · 1-8) — 탑이 위 판 띠에 가리지 않는지
+    await page.goto(url + '&stage=8');
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: join(out, '27-plaza.png') });
     // M2 S4 부엉이: 곧게 두 번 더 휙 → 묻는 카드
     await page.goto(url + '&stage=3&owl=1');
     await page.waitForTimeout(500);

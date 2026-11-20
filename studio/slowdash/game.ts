@@ -2441,8 +2441,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.fillRect(-wd / 2 - PX, -L, wd + 2 * PX, L);
       ctx.fillStyle = '#64ba5b';
       ctx.fillRect(-wd / 2, -L, wd, L);
-      ctx.fillStyle = '#c8f0a8';
-      ctx.fillRect(-wd / 2 + PX, -L, PX, L);
       ctx.fillStyle = '#2f6c43';
       for (let yy = -PX * 6; yy > -L; yy -= PX * 7) ctx.fillRect(-wd / 2 - PX, yy, wd + 2 * PX, PX);
       ctx.restore();

@@ -124,7 +124,7 @@ export function bgGrid(lw: number, lh: number, place: number, hz: number, gb: nu
     for (let y = 0; y < hz; y++) for (let x = 0; x < lw; x++) { const v = (y / hz) * 2.2; g[y][x] = String(Math.min(2, Math.floor(v) + ((v % 1) * 16 > BAY[(y & 3) * 4 + (x & 3)] ? 1 : 0))); }
     for (let k = 0; k < 26; k++) put(hs(k) * lw, hs(k + 50) * hz * 0.7, k % 5 ? '7' : '9');
     // 달(왼쪽 위 · 초승달)
-    const mx = lw * 0.2, my = hz * 0.28, mr = 7;
+    const mx = lw * 0.2, my = Math.max(hz * 0.28, 21), mr = 7; // 🧪 S3: 위 판 띠(HUD ≈ 11칸)에 가리지 않게
     for (let y = -mr; y <= mr; y++) for (let x = -mr; x <= mr; x++) if (x * x + y * y <= mr * mr && (x + 3) ** 2 + (y - 2) ** 2 > (mr - 1) ** 2) put(mx + x, my + y, x * x + y * y > (mr - 1) ** 2 ? '8' : '9');
     // 먼 집들(실루엣 + 불 켜진 창)
     const roofC = place === 1 ? '3' : '2';
@@ -136,7 +136,7 @@ export function bgGrid(lw: number, lh: number, place: number, hz: number, gb: nu
       x += bw + 1 + Math.floor(hs(k + 29) * 3);
     }
     // 시계탑(광장은 크게 가운데 · 나머지는 오른쪽 멀리)
-    const big = place === 2, tw = big ? 22 : 14, tx = Math.round(big ? lw / 2 - tw / 2 : lw * 0.66), th = big ? hz - 4 : hz * 0.8, ty = hz - th;
+    const big = place === 2, tw = big ? 22 : 14, tx = Math.round(big ? lw / 2 - tw / 2 : lw * 0.66), th = hz - (big ? 21 : 23), ty = hz - th; // 뾰족 끝도 HUD 아래
     rect(tx, ty, tw, th, '3');
     rect(tx + tw - 3, ty, 3, th, '2'); // 그늘 쪽
     for (let j = 0; j < 8; j++) rect(tx + j, ty - 8 + j, tw - 2 * j, 1, j ? '2' : '1'); // 뾰족 지붕
@@ -152,13 +152,13 @@ export function bgGrid(lw: number, lh: number, place: number, hz: number, gb: nu
     // 땅: 원근(멀수록 줄이 촘촘)
     const base = place === 2 ? ['5', '6', '4'] : place === 1 ? ['3', '4', '2'] : ['3', '4', '2'];
     for (let y = hz + 2, row = 0; y < lh; row++) {
-      const hgt = Math.max(2, Math.round(2 + ((y - hz) / (gb - hz)) * 5)), off = row % 2 ? 0.5 : 0, cw = hgt * (place === 2 ? 3 : 2) + 2;
+      const hgt = Math.max(2, Math.round(2 + ((y - hz) / (gb - hz)) * 5)), off = row % 2 && place !== 1 ? 0.5 : 0, cw = place === 1 ? hgt + 2 : hgt * (place === 2 ? 3 : 2) + 2;
       for (let x = -cw; x < lw + cw; x += cw) {
         const x0 = Math.round(x + off * cw), c = hs(row * 31 + x) < 0.5 ? base[0] : base[1];
         for (let j = 0; j < hgt; j++) for (let i = 0; i < cw; i++) {
           let ch = c;
-          if (j === hgt - 1 || i === cw - 1) ch = base[2]; // 줄눈
-          else if (place === 1 && j === 0) ch = '5'; // 기와 윗줄 빛
+          if (place === 1) ch = i === 0 ? '2' : i === 1 ? '5' : j === hgt - 1 ? '3' : '4'; // 기와: 세로 골(2) · 빛 줄(5) · 단 끝(3) — 돌길과 다른 무늬(🧪 S3)
+          else if (j === hgt - 1 || i === cw - 1) ch = base[2]; // 줄눈
           else if (place !== 1 && i === 0 && j === 0) ch = place === 2 ? '7' : '5';
           put(x0 + i, y + j, ch);
         }
