@@ -1,16 +1,16 @@
 /**
  * 🌋 용암 막는 마을 (37라운드: 살아 움직이는 세계 — 한 번 긋기) — 흐름 돌리기 × 그린 선이 길이 된다.
- * 세상은 저절로 움직인다: 언덕 꼭대기 화산이 정해진 박자로 꿀렁 분출하고(다음 분출 차례·쪽이 화산 위에 미리 보인다),
- *   용암은 격자 흐름(결정적, 1/30초마다)으로 낮은 곳을 찾아 갈라지고 고이며 천천히 비탈을 내려온다.
- * 손짓 하나(한 번 긋기): 누르고 쓱 — 손가락이 지나간 자리에 돌벽이 줄줄이 쿵쿵 솟는다(긋는 동안 바로). 돌은 판마다 정해진 만큼.
+ * 세상은 저절로 움직인다: 언덕 꼭대기 화산이 정해진 박자로 꿀렁 분출하고(다음 분출까지 남은 초·터질 쪽 화살표, 흘러갈 길 점선이 미리 보인다),
+ *   용암은 격자 흐름(결정적, 1/20초마다, 8방향, 두꺼울수록 잘 흐르고 얇은 막은 남아 굳는 끈적한 흐름)으로 낮은 곳을 찾아 갈라지고 고이며
+ *   천천히 비탈을 내려온다. 화면이 뜨면 이미 흘러내려오고 있고, 첫 판은 첫 집까지 10초 넘게 걸린다.
+ * 손짓 하나(한 번 긋기): 누르고 쓱 — 손가락이 지나간 자리에 돌이 0.5칸마다 하나씩 쿵쿵 솟아 벽이 된다(긋는 동안 바로). 돌은 판마다 정해진 만큼.
  *   벽은 굵고(손가락이 조금 빗나가도 흐름이 같다), 용암은 벽에 막혀 벽을 따라 꺾여 흐른다. 키보드: 화살표로 커서, 스페이스를 누른 채 화살표.
- * 와우: 내가 그은 벽을 따라 용암 강이 굽이쳐 마을을 비켜 가고, 바다(호수)에 닿는 순간 치이익— 거대한 김 구름과 함께 검은 돌로 굳어
- *   새 땅이 생긴다. 주민들은 지붕 위에서 환호. 못 막으면 집이 '앗뜨!' 하고 주민이 엉덩이에 불 붙은 채 뛰어다닌다.
- * 판: 판마다 지킬 집 수. 모든 분출이 끝나고 용암이 멈추면 판 끝 — 지킨 집이 모자라면 하트 −1, 그 판 다시.
- * 펼쳐짐(하는 일이 바뀐다): 1 한 갈래(비스듬히 그어 돌리기) → 2 두 갈래(분화구가 왼쪽·오른쪽 번갈아 — 돌을 나눠 쓰기)
- *   → 3 녹는 벽(오래 고여 닿으면 녹는다 — 막지 말고 비스듬히 흘리기) → 4 호수(식히는 곳 — 호수로 끌어들이기)
- *   → 5 돌무더기(획이 지나가면 돌 +8 — 줍는 길로 긋기) → 6 굳은 용암 둑(지난 분출이 굳어 새 길 — 그 둑을 이어 쓰기)
- *   → 7 큰 분출(모두 함께).
+ * 와우: 내가 그은 벽을 따라 용암 강이 굽이쳐 마을을 비켜 가고, 바다·호수에 닿는 순간 치이익— 거대한 김 구름과 함께 검은 돌로 굳어
+ *   새 땅이 생긴다. 주민들은 지붕 위에서 환호, 바닷가의 촌장 할아버지는 '만세!'. 못 막으면 집이 '앗뜨!' 하고 주민이 엉덩이에 불 붙은 채 뛰어다닌다.
+ * 판: 판마다 지킬 집 수(별 첫 줄). 모든 분출이 끝나고 용암이 멈추면 판 끝 — 지킨 집이 모자라면 하트 −1, 그 판 다시. 하트 셋을 다 잃거나 6판을 마치면 끝.
+ * 펼쳐짐(하는 일이 바뀐다): 1 한 갈래(비스듬히 그어 옆 골짜기로 돌리기) → 2 두 갈래(분화구가 왼쪽·오른쪽 번갈아 — 예고를 보고 돌을 나눠 쓰기)
+ *   → 3 녹는 벽(고여서 오래 닿으면 녹는다 — 막지 말고 비스듬히 흘리기) → 4 호수(식히는 곳 — 호수로 끌어들여 섬 만들기, 돌 아끼기)
+ *   → 5 돌무더기(돌이 모자라다 — 획이 무더기를 지나가면 돌 +8, 줍는 길로 긋기) → 6 큰 분출(세 번 번갈아 + 지난 분출이 굳은 검은 둑 + 호수 — 둑을 이어 쓰기).
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -493,7 +493,6 @@ function emitter(s: LavaState): Emit {
     const r = (i / GW) | 0, c = i - r * GW;
     if (kind === 'erupt') {
       ev(s, 'erupt', c + 0.5, 0.2, '꿀렁!', n);
-      if (s.stage === 0 || s.t > 0) see(s, '', '');
     } else if (kind === 'steam' || kind === 'lakesteam') {
       const e = s.erupts.find((q) => s.t >= q.at) ? [...s.erupts].reverse().find((q) => s.t >= q.at)! : null;
       if (kind === 'steam' && e && !e.sea) {
@@ -795,11 +794,9 @@ function candidates(s: LavaState, B: Sim, rng: Rng): Path[] {
   return out;
 }
 
-export const DBG = { on: false, plans: 0, evals: 0 };
 function plan(s: LavaState, rng: Rng): Path | null {
   const base = rollout(cloneSim(s), HORIZON);
   const v0 = value(s, base, 0);
-  DBG.plans++;
   const cs = candidates(s, base, rng);
   if (!cs.length) return null;
   // 1차: 처음 탈 집이 타던 때보다 조금 뒤까지만 흘려 보고, 좋은 둘만 끝까지
@@ -810,7 +807,6 @@ function plan(s: LavaState, rng: Rng): Path | null {
   for (const p of cs) {
     const { S, used, piles } = applyPath(s, p);
     if (!used) continue;
-    DBG.evals++;
     rollout(S, cut);
     tried.push({ p, S, used, piles, v: value(s, S, used, piles) });
   }
@@ -819,7 +815,6 @@ function plan(s: LavaState, rng: Rng): Path | null {
   for (const c of tried.slice(0, 3)) {
     rollout(c.S, HORIZON);
     const v = value(s, c.S, c.used, c.piles);
-    if (DBG.on) console.log('   cand', c.p.pts.map((x) => x.toFixed(1)).join(','), 'used', c.used, 'v', v.toFixed(0), 'alive', alive(c.S), 'melt', c.S.meltN, 'lake', c.S.lakeLeft, '/', c.S.lakeN, 'piles', c.piles);
     if (v > bv) (bv = v), (best = c.p);
   }
   return best;
@@ -854,10 +849,11 @@ function strokeBot(name: string, pick: (s: LavaState, rng: Rng) => Path | null, 
 export const lavawallSmart: Bot<LavaState> = strokeBot('용암 길잡이', (s, rng) => plan(s, rng), 100, 3);
 
 /** 버릇 봇: 늘 아직 안 탄 가장 위쪽 집 바로 위에 가로로 짧게 */
+const habitMem = new WeakMap<object, Set<string>>();
 export const lavawallHabit: Bot<LavaState> = strokeBot('늘 집 바로 위에 가로로', (s) => {
   const hs = s.houses.filter((h) => h.alive);
-  const mem = (s as unknown as { _hb?: Set<string> });
-  const done = (mem._hb ??= new Set());
+  let done = habitMem.get(s);
+  if (!done) habitMem.set(s, (done = new Set()));
   const h = hs.filter((q) => !done.has(`${s.stage}:${s.tries}:${q.c},${q.r}`)).sort((a, b) => a.r - b.r)[0];
   if (!h) return null;
   done.add(`${s.stage}:${s.tries}:${h.c},${h.r}`);
@@ -866,11 +862,11 @@ export const lavawallHabit: Bot<LavaState> = strokeBot('늘 집 바로 위에 �
 }, 30);
 
 /** 독립 버릇 봇: 늘 화산 바로 밑에 가로로 길게 (판마다 한 번) */
+const habit2Mem = new WeakMap<object, string>();
 export const lavawallHabit2: Bot<LavaState> = strokeBot('늘 화산 바로 밑에 가로로', (s) => {
-  const mem = (s as unknown as { _h2?: string });
   const key = `${s.stage}:${s.tries}`;
-  if (mem._h2 === key) return null;
-  mem._h2 = key;
+  if (habit2Mem.get(s) === key) return null;
+  habit2Mem.set(s, key);
   const y = 2.2;
   return mkPath([2, y, GW - 2, y], SPEED);
 }, 30);
