@@ -797,6 +797,13 @@ if (process.argv[1]?.endsWith('funqa.ts')) {
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'funqa.json'), JSON.stringify(m, null, 1) + '\n');
   const w2 = measureTrial(n);
+  // ✏️ M2 S11(📋 S10 (64)): 새것 낙차를 S9와 견줌 — 판에 무리를 더해도 그 판 새것이 별에서 빠지면 안 된다(−.2 넘게 떨어지면 ❌). S9 값: S9 커밋(673abf9) 보고서와 같은 24시드(시드 수를 섞으면 잡음이 ❌로 보임)
+  const S9: Record<string, number[]> = { leaf: [0.62], leafWait: [0.37], leafShuri: [0.71], smoke: [0], leafShield: [0.5], bamboo: [0, 1], roofs: [-0.12, 0.17], jars: [0.04, 0.13], moon: [1.38, 0.04], boss2: [0.12, 0.63] };
+  for (const r of w2) {
+    const b = S9[r.key as string] ?? [], leaf = (r.summary as { drop: number }).drop, bam = (r.bamboo as { drop?: number } | undefined)?.drop;
+    r.vsS9 = { leaf: [leaf, b[0]], bamboo: bam === undefined ? null : [bam, b[1]], fell: leaf < (b[0] ?? -9) - 0.2 || (bam !== undefined && bam < (b[1] ?? -9) - 0.2) };
+  }
+  console.log(`새것 낙차 S9 대비(지금/S9 · ❌ = −.2 넘게 떨어짐): ${w2.map((r) => { const v = r.vsS9 as { leaf: number[]; bamboo: number[] | null; fell: boolean }; return `${r.key} 🍃${v.leaf.join('/')}${v.bamboo ? ` 🎋${v.bamboo.join('/')}` : ''}${v.fell ? ' ❌' : ''}`; }).join(' · ')}`);
   writeFileSync(join(dir, 'funqa-w2.json'), JSON.stringify(w2, null, 1) + '\n');
   for (const r of w2) console.log(`시험 판 ${r.key}: ${JSON.stringify(r.summary)}`);
   const reach = measureReach(n);
