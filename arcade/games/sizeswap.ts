@@ -187,7 +187,7 @@ export const STAGES: StageDef[] = [
   },
 ];
 export const STAGE_COUNT = STAGES.length;
-const SWAP_T = 9, RESULT_T = 280, FAIL_T = 120, CLEAR_PTS = 100, STAR_PTS = 100, HEART_PTS = 100;
+const SWAP_T = 9, RESULT_T = 280, FAIL_T = 120, ALBUM_T = 340, CLEAR_PTS = 100, STAR_PTS = 100, HEART_PTS = 100;
 const budgetOf = (d: StageDef) => Math.max(4, d.par + 3);
 const josa = (w: string) => ((w.charCodeAt(w.length - 1) - 0xac00) % 28 ? '을' : '를');
 /** 별 조건(쉬운 말, 판마다 하나씩 늘어난다): 1판 탈출 · 2판 +한 번만 · 3판부터 +n번 안에 */
@@ -551,7 +551,7 @@ export function solve(stage: number, w0: World, left: number): [number, number][
 // ───────────────────────────── 게임 상태 ─────────────────────────────
 interface Ev { t: number; k: string; a: number; b: number; n: number }
 export interface SwapState {
-  seed: number; t: number; stage: number; w: World; phase: 'play' | 'result' | 'fail'; pt: number; why: string;
+  seed: number; t: number; stage: number; w: World; phase: 'play' | 'result' | 'fail' | 'album'; pt: number; why: string; slow: number; album: number;
   hearts: number; pts: number; got: number; ofStars: number; starOk: boolean[]; sel: number; lock: boolean; down: boolean;
   dex: number[]; newDex: Kind[]; again: boolean; tries: number; dead: boolean; won: boolean; calm: number;
   firstTap: number; firstBig: number; wowN: number; seen: Set<string>; events: Ev[];
@@ -574,6 +574,7 @@ const ev = (s: SwapState, k: string, a = -1, b = -1, n = 0) => s.events.push({ t
 function newStage(s: SwapState, again: boolean) {
   const d = STAGES[s.stage];
   s.w = mkWorld(d);
+  s.slow = 0;
   s.flags = s.w.th.map((o) => (o.c === 'pond' ? bridged(s.w, o) : o.c === 'keeper' ? !onDuty(s.w, o) : o.c === 'iron' ? pressed(s.w, o) : false));
   s.phase = 'play';
   s.pt = 0;
@@ -694,6 +695,8 @@ function tapAt(s: SwapState, x: number, y: number) {
   }
   s.w.swaps++;
   s.w.pend = { a: s.sel, b: id, t: s.w.t + SWAP_T };
+  // 빛줄기가 오가는 동안 세상이 반 빠르기로(잠깐 느려짐)
+  s.slow = SWAP_T * 2;
   // 첫 뿅부터는 안내 띠·NEW 표시를 걷어 장면이 잘 보이게
   if (s.banner && s.t - s.banner.t < 200) s.banner.t = s.t - 200;
   s.spot = null;
@@ -774,7 +777,7 @@ const game: GameDef<SwapState> & { wows(s: SwapState): number } = {
     const s = {
       seed, t: 0, stage: 0, w: null as unknown as World, phase: 'play', pt: 0, why: '', hearts: 3, pts: 0, got: 0, ofStars: 1, starOk: [false],
       sel: -1, lock: false, down: false, dex: DEX.map(() => 0), newDex: [], again: false, tries: 0, dead: false, won: false, calm: 0,
-      firstTap: -1, firstBig: -1, wowN: 0, seen: new Set<string>(), events: [], banner: null, spot: null, big: null, flags: [], best: [], replays: 0,
+      slow: 0, album: 0, firstTap: -1, firstBig: -1, wowN: 0, seen: new Set<string>(), events: [], banner: null, spot: null, big: null, flags: [], best: [], replays: 0,
     } as SwapState;
     newStage(s, false);
     return s;
@@ -788,7 +791,8 @@ const game: GameDef<SwapState> & { wows(s: SwapState): number } = {
         if (s.firstTap < 0) s.firstTap = s.t;
         tapAt(s, p!.x, p!.y * A);
       }
-      tick(s.w);
+      if (s.slow > 0) s.slow--;
+      if (s.slow % 2 === 0) tick(s.w);
       absorb(s);
       s.calm = settled(s.w) ? s.calm + 1 : 0;
       if (s.w.fail) failStage(s, '사육사에게 잡혔어요!');
@@ -799,6 +803,14 @@ const game: GameDef<SwapState> & { wows(s: SwapState): number } = {
       const replay = fresh && s.pt > 60 && s.got < s.ofStars && !s.won && inBox(p!.x, p!.y * A, REPLAY);
       if (replay) (s.replays++, newStage(s, false), ev(s, 'retry'));
       else if (s.pt >= RESULT_T + (s.got < s.ofStars ? 90 : 0) || (fresh && s.pt > 60)) {
+        const nd = STAGES[s.stage + 1];
+        // 장이 끝나면(또는 마지막 판) 도감 한 쪽이 펼쳐진다
+        if (s.won || (nd && nd.ch !== STAGES[s.stage].ch)) (s.phase = 'album'), (s.pt = 0), (s.album = STAGES[s.stage].ch), ev(s, 'album');
+        else (s.stage++), newStage(s, false);
+      }
+    } else if (s.phase === 'album') {
+      s.pt++;
+      if (s.pt >= ALBUM_T || (fresh && s.pt > 70)) {
         if (s.won) s.dead = true;
         else (s.stage++), newStage(s, false);
       }
@@ -836,6 +848,8 @@ const ready = (s: SwapState, calm: number) => s.phase === 'play' && !s.down && !
 export const sizeswapSmart: Bot<SwapState> = {
   name: '물리를 돌려 보고 바꾸기',
   act(s) {
+    // 결과·도감은 잠깐 보고 '다음' 톡
+    if ((s.phase === 'result' && s.pt > 75) || (s.phase === 'album' && s.pt > 110)) return s.down ? NO : at01(NEXT[0], NEXT[1]);
     if (!ready(s, 8)) return NO;
     const plan = solve(s.stage, s.w, budgetOf(STAGES[s.stage]) - s.w.swaps);
     if (!plan || !plan.length) return plan ? NO : at01(RETRY[0], RETRY[1]);
@@ -2453,12 +2467,12 @@ interface Vis {
   sz: number[]; sv: number[]; land: number[]; landDone: boolean[]; face: number[]; faceK: Face[]; bonk: number[]; bubT: string[];
   ang: number[]; flee: number[]; knock: number[]; logA: number[]; step: number[];
   beam: { a: number; b: number; t: number } | null; chain: number; lift: number[]; caught: { k: number; wk: number; t: number } | null;
-  roar: { from: number; to: number; t: number }[]; starT: number; pops: { x: number; y: number; t: number }[]; react: ({ t: number; text: string } | null)[]; card: string; dings: number; chimed: boolean; wob: number[]; hop: number[]; hopA: number[];
+  roar: { from: number; to: number; t: number }[]; starT: number; pops: { x: number; y: number; t: number }[]; react: ({ t: number; text: string } | null)[]; card: string; dings: number; chimed: boolean; wob: number[]; hop: number[]; hopA: number[]; albumT: number; albumN: number; albumNext: boolean;
 }
 const VIS = new WeakMap<object, Vis>();
 function visOf(s: SwapState): Vis {
   let v = VIS.get(s);
-  if (!v) VIS.set(s, (v = { w: null, ev: -1, sz: [], sv: [], land: [], landDone: [], face: [], faceK: [], bonk: [], bubT: [], ang: [], flee: [], knock: [], logA: [], step: [], beam: null, chain: 0, lift: [], caught: null, roar: [], starT: 0, pops: [], react: [], card: '', dings: 0, chimed: false, wob: [], hop: [], hopA: [] }));
+  if (!v) VIS.set(s, (v = { w: null, ev: -1, sz: [], sv: [], land: [], landDone: [], face: [], faceK: [], bonk: [], bubT: [], ang: [], flee: [], knock: [], logA: [], step: [], beam: null, chain: 0, lift: [], caught: null, roar: [], starT: 0, pops: [], react: [], card: '', dings: 0, chimed: false, wob: [], hop: [], hopA: [], albumT: 0, albumN: 0, albumNext: false }));
   if (v.w !== s.w) {
     const n = s.w.th.length;
     v.w = s.w;
@@ -2687,6 +2701,12 @@ function drawAll(ctx: C2, s: SwapState, w: number, h: number, th: Theme) {
         break;
       case 'retry':
         fx.sound('whoosh', 0.9, 0.8);
+        break;
+      case 'album':
+        v.albumT = e.t;
+        v.albumN = 0;
+        v.albumNext = false;
+        fx.sound('whoosh', 0.7, 1);
         break;
       case 'clear':
         v.starT = e.t;
@@ -3589,6 +3609,7 @@ function drawHud(ctx: C2, s: SwapState, v: Vis, w: number, h: number, R: (v: num
   }
   // ── 결과·실패 카드 ──
   if (s.phase === 'result') drawResult(ctx, s, v, w, h, R, font);
+  if (s.phase === 'album') drawAlbum(ctx, s, v, w, h, R, font);
   if (s.phase === 'fail' && s.pt > 28) {
     const u = clamp((s.pt - 28) / 14, 0, 1);
     ctx.save();
@@ -3610,6 +3631,139 @@ function drawHud(ctx: C2, s: SwapState, v: Vis, w: number, h: number, R: (v: num
     ctx.fillText(s.hearts > 0 ? `하트 -1 · 다시 해 봐요!` : '하트를 다 썼어요', R(0.5), cy + R(0.18));
     ctx.restore();
   }
+}
+/** 그 장에서 처음 만나는 친구들 */
+function chFriends(ch: number): Kind[] {
+  const out: Kind[] = [];
+  STAGES.forEach((d) => {
+    for (const t of d.things) if (t.walk && DEX.includes(t.k) && !out.includes(t.k) && !STAGES.some((e, j) => j < STAGES.indexOf(d) && e.things.some((u) => u.walk && u.k === t.k))) d.ch === ch && out.push(t.k);
+  });
+  return out;
+}
+/** 장 끝 보상: 도감 한 쪽이 펼쳐지며 이번 장 친구들이 '찰칵' 붙고, 다음 장 무대가 실루엣으로 */
+function drawAlbum(ctx: C2, s: SwapState, v: Vis, w: number, h: number, R: (v: number) => number, font: (sz: number, wgt?: number) => void) {
+  const t = s.t, k0 = t - v.albumT, ch = s.album, fr = chFriends(ch), u = clamp(k0 / 20, 0, 1);
+  ctx.save();
+  ctx.fillStyle = `rgba(30,15,5,${0.55 * u})`;
+  ctx.fillRect(0, 0, w, h);
+  // 책장이 펼쳐짐(가로로 열림)
+  const open = ease(clamp(k0 / 22, 0, 1)), x0 = R(0.05), y0 = R(0.15), pw = R(0.9), ph = R(1.2);
+  ctx.translate(R(0.5), 0);
+  ctx.scale(Math.max(0.02, open), 1);
+  ctx.translate(-R(0.5), 0);
+  ctx.fillStyle = 'rgba(30,15,5,.35)';
+  rr(ctx, x0 + R(0.01), y0 + R(0.012), pw, ph, R(0.04));
+  ctx.fill();
+  ctx.fillStyle = lin(ctx, 0, y0, 0, y0 + ph, [0, '#fff8e6'], [1, '#f6e2b8']);
+  rr(ctx, x0, y0, pw, ph, R(0.04));
+  ctx.fill();
+  stroke(ctx, '#a8743a', 3);
+  // 공책 고리
+  for (let q = 0; q < 6; q++) {
+    ctx.fillStyle = '#c8a070';
+    ell(ctx, x0 + R(0.03), y0 + R(0.12 + q * 0.19), R(0.012), R(0.012));
+    ctx.fill();
+  }
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#d9480f';
+  font(0.05, 900);
+  ctx.fillText(`${ch + 1}장 ${CHAPTERS[ch]} 도감`, R(0.5), y0 + R(0.06));
+  ctx.fillStyle = '#6a4a2a';
+  font(0.032, 800);
+  ctx.fillText(s.won ? '동물원 친구들이 모두 탈출했어요!' : '이번 장에서 탈출한 친구들', R(0.5), y0 + R(0.115));
+  // 사진: 하나씩 찰칵
+  const cols = fr.length > 4 ? 3 : 2, cw = R(cols === 3 ? 0.24 : 0.3), chh = cw * 1.18, gap = R(0.03);
+  const gx0 = R(0.5) - (cols * cw + (cols - 1) * gap) / 2;
+  fr.forEach((k, i) => {
+    const kk = k0 - (34 + i * 30);
+    if (kk < 0) return;
+    if (v.albumN <= i) {
+      v.albumN = i + 1;
+      const fx = juice(s);
+      fx.sound('coin', 1 + i * 0.12, 1);
+      fx.sound('chime', 1 + i * 0.08, 0.7);
+      fx.blink('#ffffff', 0.45);
+    }
+    const col = i % cols, row = Math.floor(i / cols), px = gx0 + col * (cw + gap) + cw / 2, py = y0 + R(0.16) + row * (chh + gap) + chh / 2;
+    const pop = kk < 10 ? 1 + 0.35 * Math.sin((kk / 10) * Math.PI) : 1, rot = (i % 2 ? 0.05 : -0.05) * (1 + (kk < 10 ? 1 - kk / 10 : 0));
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(rot);
+    ctx.scale(pop, pop);
+    ctx.fillStyle = 'rgba(40,20,10,.25)';
+    rr(ctx, -cw / 2 + R(0.006), -chh / 2 + R(0.008), cw, chh, R(0.008));
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    rr(ctx, -cw / 2, -chh / 2, cw, chh, R(0.008));
+    ctx.fill();
+    stroke(ctx, '#d8ccb8', 1.5);
+    const iw = cw - R(0.03), ih = chh - R(0.075);
+    ctx.fillStyle = lin(ctx, 0, -chh / 2, 0, -chh / 2 + ih, [0, '#9fdcff'], [0.6, '#d8f4ff'], [0.61, '#9fdc6a'], [1, '#7cc64e']);
+    ctx.fillRect(-iw / 2, -chh / 2 + R(0.015), iw, ih);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-iw / 2, -chh / 2 + R(0.015), iw, ih);
+    ctx.clip();
+    const L: Look = { t, ph: 0, face: 'happy', sq: 0, lift: Math.abs(Math.sin(t * 0.1 + i)) * R(0.008), walk: 0, tall: ih * 0.85, swim: 0, seed: i };
+    drawAnimal(ctx, k, -R(0.01), -chh / 2 + R(0.015) + ih * 0.92, Math.min(iw, ih) * (k === 'giraffe' ? 0.16 : 0.3), L);
+    ctx.restore();
+    ctx.fillStyle = '#4a2a12';
+    font(0.03, 900);
+    ctx.fillText(K[k].name, 0, chh / 2 - R(0.03));
+    // 테이프
+    ctx.fillStyle = 'rgba(255,220,120,.75)';
+    ctx.fillRect(-R(0.035), -chh / 2 - R(0.012), R(0.07), R(0.024));
+    if (kk < 18) {
+      ctx.fillStyle = '#ff4a6a';
+      font(0.034, 900);
+      ctx.fillText('찰칵!', 0, -chh / 2 - R(0.04));
+    }
+    ctx.restore();
+  });
+  // 다음 장 미리 보기(실루엣 무대)
+  const done = k0 > 34 + fr.length * 30;
+  const ny = y0 + R(0.86);
+  if (done && !s.won) {
+    const nch = ch + 1, wx = R(0.12), ww = R(0.76), wh = R(0.25), a2 = clamp((k0 - (34 + fr.length * 30)) / 20, 0, 1);
+    if (!v.albumNext) (v.albumNext = true), juice(s).sound('swell', 0.8, 0.8);
+    ctx.globalAlpha = a2;
+    ctx.save();
+    rr(ctx, wx, ny, ww, wh, R(0.03));
+    ctx.clip();
+    const bg = getBg(nch, Math.round(w), Math.round(h), 1);
+    ctx.drawImage(bg, 0, R(0.25), w, R(0.5), wx, ny, ww, wh);
+    ctx.fillStyle = 'rgba(20,30,70,.62)';
+    ctx.fillRect(wx, ny, ww, wh);
+    chFriends(nch).forEach((k, i, arr) => {
+      const px = wx + (ww * (i + 0.5)) / arr.length, py = ny + wh * 0.62;
+      portrait(ctx, k, px, py, R(0.045), 'sil', t);
+    });
+    ctx.restore();
+    rr(ctx, wx, ny, ww, wh, R(0.03));
+    stroke(ctx, '#3d8df5', 3);
+    ctx.fillStyle = '#ffffff';
+    font(0.04, 900);
+    ctx.fillText(`다음 장 · ${CHAPTERS[nch]}`, R(0.5), ny + R(0.045));
+    ctx.fillStyle = '#3d6fb0';
+    font(0.032, 900);
+    ctx.fillText(`새 친구 ${chFriends(nch).length}마리가 기다려요…?`, R(0.5), ny + wh + R(0.035));
+    ctx.globalAlpha = 1;
+  } else if (done && s.won) {
+    if (!v.albumNext) (v.albumNext = true), juice(s).sound('clear', 1.2, 1), juice(s).burst(R(0.5), ny, '#ffe14a', 40, 6, 3);
+    ctx.fillStyle = '#d9480f';
+    font(0.05, 900);
+    ctx.fillText(`탈출한 친구들 ${s.dex.filter(Boolean).length}/${DEX.length}`, R(0.5), ny + R(0.08));
+    ctx.fillStyle = '#6a4a2a';
+    font(0.034, 800);
+    ctx.fillText('동물원 대탈출 완성!', R(0.5), ny + R(0.15));
+  }
+  if (k0 > 70) {
+    ctx.fillStyle = `rgba(74,42,18,${0.6 + 0.4 * Math.sin(t * 0.15)})`;
+    font(0.034, 900);
+    ctx.fillText(s.won ? '톡 하면 끝!' : '톡 하면 다음 장 ▶', R(0.5), y0 + ph - R(0.035));
+  }
+  ctx.restore();
 }
 function drawResult(ctx: C2, s: SwapState, v: Vis, w: number, h: number, R: (v: number) => number, font: (sz: number, wgt?: number) => void) {
   void h;

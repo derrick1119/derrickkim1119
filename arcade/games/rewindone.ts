@@ -1611,6 +1611,7 @@ export const rewindone: GameDef<RewState> & { wows(s: RewState): number } = {
       if (H.st === H_WIN) s.endT = s.t + 70;
       else if (H.st === H_FAIL) s.endT = s.t + 80;
       else if (H.st === H_WAIT && W.sand <= 0 && H.waitT > 420) (H.st = H_FAIL), (H.why = '모래가 바닥났어요!'), (s.endT = s.t + 40);
+      else if (H.st === H_WAIT && s.stage >= 2 && H.waitT > 1200) (H.st = H_FAIL), (H.why = '꼼짝 못 하겠어요!'), (s.endT = s.t + 40);
     }
     if (s.endT >= 0 && s.t >= s.endT) {
       if (H.st === H_WIN) finish(s, true, '');
@@ -4464,6 +4465,7 @@ function starText(s: RewState, k: StarK): string {
   if (k === 'goal') return '시계 부품까지 가기';
   if (k === 'sand') return `되감기 ${(L.par / 60).toFixed(1)}초 안에`;
   if (k === 'safe') return '아무도 안 다치게';
+  if (k === 'taps') return L.tapsPar <= 1 ? '되감기 한 번으로' : `되감기 ${L.tapsPar}번으로`;
   const r = L.actors.find((a) => a.role === R_RIDER);
   return r && r.k === 'cat' ? '고양이 구하기' : '아이 구하기';
 }
@@ -4539,7 +4541,7 @@ function drawHud(ctx: C2, s: RewState, w: number, h: number, v: View, font: (sz:
   L.stars.forEach((k, j) => {
     const txt = starText(s, k), tw = ctx.measureText(txt).width + R(0.07);
     if (cx + tw > w - R(0.02)) (cx = R(0.03)), (cy += R(0.05));
-    const on = res[j], broken = !on && ((k === 'sand' && W.used > L.par) || ((k === 'safe' || k === 'rescue') && W.hurt > 0));
+    const on = res[j], broken = !on && ((k === 'sand' && W.used > L.par) || (k === 'taps' && W.taps > L.tapsPar) || ((k === 'safe' || k === 'rescue') && W.hurt > 0));
     ctx.fillStyle = on ? 'rgba(255,220,90,.22)' : 'rgba(0,0,0,.28)';
     rr(ctx, cx, cy - R(0.022), tw, R(0.044), R(0.022));
     ctx.fill();
@@ -4565,7 +4567,7 @@ function drawHud(ctx: C2, s: RewState, w: number, h: number, v: View, font: (sz:
 /** 지금 지켜지고 있는 별 (부품은 아직이면 꺼짐) */
 function starsLive(s: RewState): boolean[] {
   const L = s.L, W = s.W, win = W.hero.st === H_WIN;
-  return L.stars.map((k) => (k === 'goal' ? win : k === 'sand' ? W.used <= L.par : k === 'safe' ? W.hurt === 0 : W.saved > 0));
+  return L.stars.map((k) => (k === 'goal' ? win : k === 'sand' ? W.used <= L.par : k === 'safe' ? W.hurt === 0 : k === 'taps' ? W.taps <= L.tapsPar : W.saved > 0));
 }
 /** 복원된 것 작은 그림 (결과 화면) */
 function fixIcon(ctx: C2, k: number, x: number, y: number, r: number, t: number) {
