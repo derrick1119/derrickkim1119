@@ -3417,6 +3417,13 @@ function playEvents(s: WSState, v: V) {
       case 'fail':
         fx.sound('fail', 1, 1);
         break;
+      case 'restart':
+        fx.sound('rewind', 1, 1);
+        fx.blink('#fff6dc', 0.3);
+        break;
+      case 'vault':
+        fx.sound('chime', 0.8, 1.1);
+        break;
     }
   }
   fx.memo.ev = s.t;
@@ -3775,6 +3782,141 @@ function drawOverlays(ctx: C2, s: WSState, v: V, vw: V) {
     }
     ctx.restore();
   }
+}
+
+/** 장 끝 보상: 고양이의 비밀 창고 — 이번 장 보물이 하나씩 떨어져 쌓이고, 고양이가 보물 위에서 뒹군다 */
+function vaultPos(i: number, cx: number, fy: number, R: (r: number) => number): [number, number] {
+  let r = 0, base = 0;
+  for (let cap = 7; cap >= 1; cap--, r++) {
+    if (i < base + cap) {
+      const c = i - base;
+      return [cx + (c - (cap - 1) / 2) * R(0.088) + (r % 2) * R(0.01), fy - R(0.035) - r * R(0.058)];
+    }
+    base += cap;
+  }
+  return [cx, fy - R(0.4)];
+}
+function silhouette(ctx: C2, ch: number, x: number, y: number, u: number) {
+  ctx.fillStyle = '#2a1c38';
+  if (ch === 1) {
+    ctx.fillRect(x - u, y - u * 0.55, u * 2, u * 0.55);
+    for (let k = 0; k < 6; k++) ctx.fillRect(x - u + k * u * 0.36, y - u * 0.68, u * 0.2, u * 0.14);
+    ctx.fillRect(x - u * 1.05, y - u * 1.05, u * 0.42, u * 1.05);
+    ctx.fillRect(x + u * 0.63, y - u * 1.05, u * 0.42, u * 1.05);
+    for (const tx of [-0.84, 0.84]) {
+      ctx.beginPath();
+      ctx.moveTo(x + tx * u - u * 0.28, y - u * 1.05);
+      ctx.lineTo(x + tx * u, y - u * 1.5);
+      ctx.lineTo(x + tx * u + u * 0.28, y - u * 1.05);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#4a3a5a';
+    ctx.fillRect(x - u * 0.3, y - u * 0.4, u * 0.6, u * 0.06);
+  } else {
+    ctx.fillRect(x - u * 0.45, y - u * 1.4, u * 0.9, u * 1.4);
+    ctx.beginPath();
+    ctx.moveTo(x - u * 0.6, y - u * 1.4);
+    ctx.lineTo(x, y - u * 2.05);
+    ctx.lineTo(x + u * 0.6, y - u * 1.4);
+    ctx.fill();
+    ctx.strokeStyle = '#4a3a5a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y - u * 0.75, u * 0.22, 0, Math.PI);
+    ctx.stroke();
+  }
+  txt(ctx, '?', x, y - u * 0.75, u * 0.6, '#ffe9a0', 900, 'center', 'rgba(20,10,30,.8)');
+}
+function drawVault(ctx: C2, s: WSState, v: V) {
+  const R = v.R, w = v.w, t = s.t, pt = s.pt, fx = juice(s), top = R(0.085), bot = v.pb, fy = bot - R(0.1);
+  ctx.fillStyle = lin(ctx, 0, top, 0, bot, [0, '#3e2a48'], [0.6, '#6a4436'], [1, '#3a2418']);
+  ctx.fillRect(0, top, w, bot - top);
+  for (let k = 0; k < 40; k++) {
+    const x = hsh(k) * w, y = top + hsh(k + 9) * (fy - top), r = R(0.03 + hsh(k + 3) * 0.04);
+    ctx.fillStyle = `rgba(20,10,20,${0.12 + hsh(k + 5) * 0.1})`;
+    ell(ctx, x, y, r, r * 0.7);
+    ctx.fill();
+  }
+  // 등불 둘
+  for (const lx of [0.14, 0.86]) {
+    const x = R(lx), y = top + R(0.12), fl = 1 + Math.sin(t * 0.3 + lx * 9) * 0.1;
+    ctx.fillStyle = radg(ctx, x, y, 0, R(0.32) * fl, [0, 'rgba(255,210,120,.55)'], [1, 'rgba(255,200,100,0)']);
+    ell(ctx, x, y, R(0.32) * fl, R(0.32) * fl);
+    ctx.fill();
+    ctx.strokeStyle = '#2a1a10';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, top);
+    ctx.lineTo(x, y - R(0.03));
+    ctx.stroke();
+    ctx.fillStyle = '#ffd36a';
+    rr(ctx, x - R(0.02), y - R(0.03), R(0.04), R(0.055), R(0.01));
+    ctx.fill();
+    stroke(ctx, OUT, 1.5);
+  }
+  // 나무 바닥
+  ctx.fillStyle = lin(ctx, 0, fy, 0, bot, [0, '#8a5a32'], [1, '#5a3a20']);
+  ctx.fillRect(0, fy, w, bot - fy);
+  ctx.fillStyle = 'rgba(255,220,160,.25)';
+  ctx.fillRect(0, fy, w, 2);
+  // 보물 더미 (빛)
+  const cx = w / 2, nThis = STAGES.filter((q) => q.ch === s.d.ch).length, n = s.stash.length, before = Math.max(0, n - nThis);
+  ctx.fillStyle = radg(ctx, cx, fy - R(0.1), 0, R(0.42), [0, 'rgba(255,220,100,.45)'], [1, 'rgba(255,220,100,0)']);
+  ell(ctx, cx, fy - R(0.1), R(0.42), R(0.3));
+  ctx.fill();
+  let landed = 0;
+  for (let i = 0; i < n; i++) {
+    const [px, py] = vaultPos(i, cx, fy, R);
+    let y = py, sc = 1;
+    if (i >= before) {
+      const j = i - before, t0 = 24 + j * 20, q = (pt - t0) / 20;
+      if (q < 0) continue;
+      if (q < 1) y = top - R(0.05) + (py - top + R(0.05)) * q * q;
+      else {
+        landed++;
+        const b2 = q - 1;
+        if (b2 < 0.6) (y = py - Math.sin((b2 / 0.6) * Math.PI) * R(0.03)), (sc = 1 + 0.15 * (1 - b2 / 0.6));
+        const key = 'vl' + i;
+        if (!fx.memo[key]) {
+          fx.memo[key] = 1;
+          fx.burst(px, py, '#ffe14a', 16, 3.5, 2.6);
+          fx.sound('coin', 1 + j * 0.12, 1.1);
+          fx.kick(2);
+        }
+      }
+    } else landed++;
+    drawLoot(ctx, s.stash[i], px, y, R(0.04) * sc, t + i * 7);
+  }
+  for (let k = 0; k < Math.min(24, s.gemN * 3); k++) drawLoot(ctx, 'gem', cx + (hsh(k + 61) - 0.5) * R(0.62), fy - R(0.012), R(0.016), t + k * 13);
+  // 고양이: 다 쌓이면 보물 위에서 데굴데굴
+  const allIn = pt > 24 + nThis * 20 + 24;
+  const [tx, ty] = vaultPos(Math.max(0, n - 1), cx, fy, R);
+  ctx.save();
+  if (allIn) {
+    ctx.translate(tx, ty - R(0.045));
+    ctx.rotate(Math.sin(t * 0.12) * 0.9);
+    drawCat(ctx, 0, R(0.03), R(0.12), 1, 'win', t, [], 1, 1);
+    if (Math.floor(t / 30) !== Math.floor((t - 1) / 30)) fx.sound('boing', 1.3, 0.5);
+  } else drawCat(ctx, R(0.14), fy, R(0.13), 1, 'win', t, [], 1, 1);
+  ctx.restore();
+  // 글
+  const won = s.won;
+  txt(ctx, won ? '성 털기 끝! 모든 보물을 훔쳤다!' : `${s.d.ch + 1}장 ${CH_NAME[s.d.ch]} 털기 끝!`, w / 2, top + R(0.07), R(0.06), '#ffe14a', 900, 'center', '#2a1a10', w - R(0.06));
+  txt(ctx, `고양이의 비밀 창고 — 보물 ${landed}개${s.gemN ? ` · 보석 ${s.gemN}` : ''} · 별 ${s.stars}`, w / 2, top + R(0.135), R(0.038), '#fff6dc', 800, 'center', '#2a1a10', w - R(0.06));
+  if (!won) {
+    const nc = s.d.ch + 1, bx = w - R(0.2), by = top + R(0.42);
+    ctx.fillStyle = 'rgba(255,240,210,.12)';
+    rr(ctx, bx - R(0.16), by - R(0.3), R(0.32), R(0.36), R(0.03));
+    ctx.fill();
+    stroke(ctx, 'rgba(255,230,160,.5)', 1.6);
+    silhouette(ctx, nc, bx, by, R(0.1));
+    txt(ctx, `다음: ${nc + 1}장 ${CH_NAME[nc]}`, bx, by + R(0.035), R(0.036), '#ffe9a0', 900, 'center', '#2a1a10');
+    txt(ctx, '♥ +1', bx, by - R(0.24), R(0.036), '#ff8a95', 900, 'center', '#2a1a10');
+  } else if (t % 24 === 0) {
+    fx.burst(R(0.15 + hsh(t) * 0.7), top + R(0.15 + hsh(t + 3) * 0.3), ['#ffe14a', '#ff8ad8', '#7fd8ff'][(t / 24) % 3 | 0], 26, 4.5, 2.6);
+    fx.sound('pop', 0.8 + hsh(t) * 0.6, 0.8);
+  }
+  if (pt > 70) txt(ctx, '톡 하면 계속', w / 2, bot - R(0.04), R(0.036), '#fff6dc', 800, 'center', '#2a1a10');
 }
 
 function drawAll(ctx: CanvasRenderingContext2D, s: WSState, w: number, h: number, th: Theme) {
