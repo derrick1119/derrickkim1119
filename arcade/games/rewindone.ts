@@ -1957,6 +1957,93 @@ function clockGlyph(ctx: C2, x: number, y: number, r: number, t: number, a: numb
   ctx.fill();
   ctx.restore();
 }
+/** 한 물건만 색을 입혀 덧그린다 (화면 밖 캔버스에 그리고 그 모양에만 색) */
+let tintCv: HTMLCanvasElement | null = null;
+function tinted(ctx: C2, fn: (o: C2) => void, col: string, a: number) {
+  if (typeof document === 'undefined') return;
+  const cw = ctx.canvas.width, chh = ctx.canvas.height;
+  if (!tintCv) tintCv = document.createElement('canvas');
+  if (tintCv.width !== cw || tintCv.height !== chh) (tintCv.width = cw), (tintCv.height = chh);
+  const o = tintCv.getContext('2d');
+  if (!o) return;
+  o.setTransform(1, 0, 0, 1, 0, 0);
+  o.globalCompositeOperation = 'source-over';
+  o.globalAlpha = 1;
+  o.clearRect(0, 0, cw, chh);
+  o.setTransform(ctx.getTransform());
+  fn(o);
+  o.setTransform(1, 0, 0, 1, 0, 0);
+  o.globalCompositeOperation = 'source-atop';
+  o.globalAlpha = a;
+  o.fillStyle = col;
+  o.fillRect(0, 0, cw, chh);
+  o.globalAlpha = 1;
+  o.globalCompositeOperation = 'source-over';
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(tintCv, 0, 0);
+  ctx.restore();
+}
+/** 작은 시계 표시: 바늘이 자기 시간만큼 돌아가 있다 (쉬는 중이면 모래시계 빛) */
+function clockBadge(ctx: C2, x: number, y: number, r: number, tau: number, rest: boolean) {
+  ctx.fillStyle = 'rgba(40,30,60,.35)';
+  ell(ctx, x + 1, y + 2, r, r);
+  ctx.fill();
+  ctx.fillStyle = rest ? '#fff3c8' : '#ffffff';
+  ell(ctx, x, y, r, r);
+  ctx.fill();
+  ctx.strokeStyle = rest ? '#ffb02e' : '#5a8ad8';
+  ctx.lineWidth = Math.max(1.5, r * 0.18);
+  ctx.stroke();
+  ctx.strokeStyle = '#2a2238';
+  ctx.lineWidth = Math.max(1.2, r * 0.14);
+  ctx.lineCap = 'round';
+  const a = -Math.PI / 2 + tau * 0.08;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + Math.cos(a) * r * 0.7, y + Math.sin(a) * r * 0.7);
+  ctx.moveTo(x, y);
+  ctx.lineTo(x, y - r * 0.45);
+  ctx.stroke();
+}
+/** 되감는 물건이 돌아갈 길: 빛나는 길 위로 시간 가루가 제자리 쪽으로 흘러간다 */
+function drawRewindPath(ctx: C2, v: View, th: Thing, t: number) {
+  if (th.k === 'water' || th.tau < 4) return;
+  const { X, Y, R } = v;
+  const at = (q: number) => {
+    const c = thingCenter({ ...th, tau: q });
+    return [X(c.x), Y(c.y)];
+  };
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(127,232,255,.35)';
+  ctx.lineWidth = R(0.018);
+  ctx.beginPath();
+  const step = Math.max(2, Math.floor(th.tau / 20));
+  for (let q = th.tau; q >= 0; q -= step) {
+    const [x, y] = at(q);
+    if (q === th.tau) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  const [ox, oy] = at(0);
+  ctx.lineTo(ox, oy);
+  ctx.stroke();
+  // 제자리 표시
+  ctx.strokeStyle = 'rgba(255,255,255,.8)';
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 2;
+  ell(ctx, ox, oy, R(0.035), R(0.035));
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // 시간 가루
+  for (let k = 0; k < 7; k++) {
+    const q = (t * 0.03 + k / 7) % 1, [x, y] = at(Math.max(0, th.tau * (1 - q)));
+    ctx.fillStyle = k % 2 ? '#bff6ff' : '#ffe08a';
+    ell(ctx, x, y, R(0.007) * (1.2 - q * 0.6), R(0.007) * (1.2 - q * 0.6));
+    ctx.fill();
+  }
+  ctx.restore();
+}
 /** 작은 모래시계 아이콘 */
 function hourglass(ctx: C2, x: number, y: number, r: number, fill: number, flip: number) {
   ctx.save();
@@ -2993,6 +3080,174 @@ function drawThingAt(ctx: C2, v: View, th: Thing, tau: number, a = 1) {
       return drawGearT(ctx, v, th, tau, a);
     case 'water':
       return drawWaterT(ctx, v, th, tau);
+    case 'stack':
+      return drawStackT(ctx, v, th, tau, a);
+    case 'ferry':
+      return drawFerryT(ctx, v, th, tau, a);
+    case 'sack':
+      return drawSackT(ctx, v, th, tau, a);
+  }
+}
+/** 과일 상자 탑 (상자마다 과일) */
+function drawStackT(ctx: C2, v: View, th: Thing, tau: number, a = 1) {
+  const { X, Y, R } = v;
+  const stairs = tau > 3 && tau < ST_SLUMP + 4;
+  ctx.save();
+  ctx.globalAlpha *= a;
+  const fruit = ['#ff5a4a', '#ffb02e', '#7ad04a', '#ff8ad0'];
+  for (let k = 0; k < ST_N; k++) {
+    stackCrate(th, k, tau);
+    const cx = X(P.x), top = Y(P.y), cw = R(ST_CW), chh = R(ST_CH);
+    ctx.save();
+    ctx.translate(cx, top + chh / 2);
+    ctx.rotate(P.a);
+    ctx.fillStyle = lin(ctx, 0, -chh / 2, 0, chh / 2, [[0, '#f0be7a'], [1, '#b0703a']]);
+    rr(ctx, -cw / 2, -chh / 2, cw, chh, R(0.006));
+    ctx.fill();
+    ctx.strokeStyle = '#7a4418';
+    ctx.lineWidth = Math.max(1.5, R(0.004));
+    ctx.strokeRect(-cw / 2 + R(0.005), -chh / 2 + R(0.005), cw - R(0.01), chh - R(0.01));
+    for (let f = 0; f < 4; f++) {
+      ctx.fillStyle = fruit[(f + k) % 4];
+      ell(ctx, -cw * 0.33 + f * cw * 0.22, -chh / 2 - R(0.004), R(0.011), R(0.011));
+      ctx.fill();
+    }
+    if (stairs) {
+      // 계단일 때 윗면이 반짝 (밟을 수 있다)
+      ctx.fillStyle = 'rgba(255,255,200,.55)';
+      ctx.fillRect(-cw / 2 + R(0.004), -chh / 2, cw - R(0.008), R(0.005));
+    }
+    ctx.restore();
+  }
+  ctx.restore();
+}
+/** 줄 따라 건너는 나룻배 */
+function drawFerryT(ctx: C2, v: View, th: Thing, tau: number, a = 1) {
+  const { X, Y, R, t } = v;
+  pose(th, tau);
+  const x = X(P.x), y = Y(P.y), w = R(th.w);
+  ctx.save();
+  ctx.globalAlpha *= a;
+  ctx.strokeStyle = 'rgba(255,255,255,.55)';
+  ctx.lineWidth = 2;
+  ell(ctx, x, y + R(0.014), w * 0.6, R(0.02));
+  ctx.stroke();
+  ctx.fillStyle = lin(ctx, 0, y - R(0.01), 0, y + R(0.03), [[0, '#e0a060'], [1, '#8a5228']]);
+  ctx.beginPath();
+  ctx.moveTo(x - w / 2 - R(0.01), y - R(0.004));
+  ctx.lineTo(x + w / 2 + R(0.01), y - R(0.004));
+  ctx.lineTo(x + w / 2 - R(0.01), y + R(0.028));
+  ctx.lineTo(x - w / 2 + R(0.01), y + R(0.028));
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#f0c890';
+  ctx.fillRect(x - w / 2, y - R(0.006), w, R(0.008));
+  // 줄을 잡는 기둥 · 도르래
+  ctx.fillStyle = '#6a4020';
+  ctx.fillRect(x - R(0.004), y - R(0.07), R(0.008), R(0.066));
+  brass(ctx, x, y - R(0.07), R(0.01), 6, -tau * 0.2);
+  ctx.fillStyle = '#ff6a5a';
+  ctx.beginPath();
+  ctx.moveTo(x + w * 0.35, y - R(0.006));
+  ctx.lineTo(x + w * 0.35, y - R(0.05));
+  ctx.lineTo(x + w * 0.35 + R(0.025), y - R(0.042) + Math.sin(t * 0.2) * R(0.003));
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+/** 모래 자루 */
+function drawSackT(ctx: C2, v: View, th: Thing, tau: number, a = 1) {
+  const { X, Y, R } = v;
+  pose(th, tau);
+  ctx.save();
+  ctx.globalAlpha *= a;
+  ctx.translate(X(P.x), Y(P.y));
+  ctx.rotate(P.a);
+  ctx.fillStyle = lin(ctx, -R(0.03), -R(0.06), R(0.03), 0, [[0, '#e8cf98'], [1, '#b0915a']]);
+  ctx.beginPath();
+  ctx.moveTo(-R(0.032), 0);
+  ctx.quadraticCurveTo(-R(0.04), -R(0.04), -R(0.012), -R(0.058));
+  ctx.lineTo(R(0.012), -R(0.058));
+  ctx.quadraticCurveTo(R(0.04), -R(0.04), R(0.032), 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#8a6a3a';
+  rr(ctx, -R(0.014), -R(0.064), R(0.028), R(0.01), R(0.004));
+  ctx.fill();
+  ctx.fillStyle = '#7a5a2a';
+  ctx.font = `900 ${Math.max(9, R(0.022))}px system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('모래', 0, -R(0.026));
+  ctx.restore();
+}
+/** 저울: 받침 · 들보 · 두 접시 (자루가 올라오면 오른쪽 접시가 올라간다) */
+function drawScale(ctx: C2, v: View, L: Level, W: World) {
+  const { X, Y, R } = v;
+  const [px, py, lx, rx, pw, yDown, yUp] = L.scale!;
+  const tilt = W.tilt, ry = yDown + (yUp - yDown) * tilt, ly = 0.74 - 0.2 + 0.2 * tilt;
+  // 기둥
+  ctx.fillStyle = lin(ctx, X(px) - R(0.02), 0, X(px) + R(0.02), 0, [[0, '#9a6a4a'], [1, '#6a4428']]);
+  ctx.fillRect(X(px) - R(0.014), Y(py), R(0.028), Y(LY3) - Y(py));
+  ctx.fillStyle = '#5a3a24';
+  rr(ctx, X(px) - R(0.05), Y(LY3) - R(0.02), R(0.1), R(0.02), R(0.005));
+  ctx.fill();
+  // 들보 (왼쪽 끝 lx, 오른쪽 끝 rx)
+  const bly = py - 0.06 + (ly - 0.64) * 0.25, bry = py - 0.06 + (ry - 0.775) * 0.25;
+  ctx.strokeStyle = '#8a5228';
+  ctx.lineWidth = R(0.016);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(X(lx), Y(bly));
+  ctx.lineTo(X(rx), Y(bry));
+  ctx.stroke();
+  brass(ctx, X(px), Y(py - 0.06 + ((bly + bry) / 2 - (py - 0.06)) * 0.5), R(0.018), 8, tilt * 2);
+  // 사슬 · 접시
+  ctx.strokeStyle = '#8a8a9a';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([3, 2]);
+  for (const [cx, top, bot, half] of [[lx, bly, ly, 0.06], [rx, bry, ry, pw / 2]] as [number, number, number, number][]) {
+    ctx.beginPath();
+    ctx.moveTo(X(cx), Y(top));
+    ctx.lineTo(X(cx - half * 0.8), Y(bot));
+    ctx.moveTo(X(cx), Y(top));
+    ctx.lineTo(X(cx + half * 0.8), Y(bot));
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.fillStyle = lin(ctx, 0, Y(ly), 0, Y(ly) + R(0.02), [[0, '#ffd88a'], [1, '#c88a2a']]);
+  rr(ctx, X(lx - 0.06), Y(ly), R(0.12), R(0.018), R(0.008));
+  ctx.fill();
+  ctx.fillStyle = lin(ctx, 0, Y(ry), 0, Y(ry) + R(0.024), [[0, '#ffd88a'], [1, '#c88a2a']]);
+  rr(ctx, X(rx - pw / 2), Y(ry), R(pw), R(0.022), R(0.008));
+  ctx.fill();
+  ctx.strokeStyle = '#8a5a10';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+/** 불 (지금 시간으로 타오른다 — 되감아도 꺼지지 않는다, 물만 끈다) */
+function drawFire(ctx: C2, v: View, f: number[], t: number) {
+  const { X, Y, R } = v;
+  const x0 = X(f[0]), x1 = X(f[1]), y = Y(f[2]);
+  ctx.fillStyle = '#8a5a2a';
+  for (let k = 0; k < 5; k++) (ell(ctx, x0 + ((k + 0.5) / 5) * (x1 - x0), y - R(0.008), R(0.02), R(0.008), k * 0.4), ctx.fill());
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = 'rgba(255,170,60,.25)';
+  ell(ctx, (x0 + x1) / 2, y - R(0.05), (x1 - x0) * 0.7, R(0.08));
+  ctx.fill();
+  ctx.restore();
+  for (let k = 0; k < 7; k++) {
+    const fx = x0 + ((k + 0.5) / 7) * (x1 - x0), hh = R(0.05 + 0.03 * Math.abs(Math.sin(t * 0.21 + k * 1.7))), fl = Math.sin(t * 0.3 + k) * R(0.006);
+    for (const [col, sc] of [['#ff5a2a', 1], ['#ffb02e', 0.7], ['#fff2a0', 0.4]] as [string, number][]) {
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(fx - R(0.014) * sc, y);
+      ctx.quadraticCurveTo(fx - R(0.016) * sc, y - hh * sc * 0.5, fx + fl, y - hh * sc);
+      ctx.quadraticCurveTo(fx + R(0.016) * sc, y - hh * sc * 0.5, fx + R(0.014) * sc, y);
+      ctx.closePath();
+      ctx.fill();
+    }
   }
 }
 /** 물건의 '지나온 길'(되감으면 이 길을 거꾸로 간다) — 흐린 점선 */
@@ -4084,23 +4339,35 @@ function drawAll(ctx: C2, s: RewState, w: number, h: number, _th: Theme) {
   }
   // 집 주인·배우(뒤쪽: 발코니·지붕·수레·물탱크)
   for (const a of W.ac) if (a.y < 0.7 && a.role !== R_RIDER && a.k !== 'machine') drawActor(ctx, v, s, a);
+  // 저울 · 불 (지금 시간으로 움직이는 것)
+  if (L.scale) drawScale(ctx, v, L, W);
+  if (L.fire && W.fire) drawFire(ctx, v, L.fire, t);
   for (const th of W.th) {
     if (th.st === DONE && th.k !== 'water') continue;
-    // 잔상: 되감는 물건은 조금 전(τ가 컸던) 자리들이 시안빛으로 남는다
-    if (th.st === REW && th.k !== 'water' && th.k !== 'bridge') {
-      ctx.save();
-      for (let k = 3; k >= 1; k--) {
-        ctx.globalAlpha = 0.14 * (4 - k);
-        drawThingAt(ctx, v, th, Math.min(th.dur, th.tau + k * 7), 1);
-      }
-      ctx.restore();
+    if (th.st === REW && th.k !== 'water') {
+      // 되감기: 지나온 길이 필름처럼 잔상 4장으로 남고, 물건은 그 길을 따라 거꾸로 빨려 든다 (시간 빛 = 푸른색)
+      drawRewindPath(ctx, v, th, t);
+      if (th.k !== 'bridge')
+        tinted(ctx, (o) => {
+          for (let k = 4; k >= 1; k--) {
+            o.globalAlpha = 0.16 + 0.1 * (4 - k);
+            drawThingAt(o, v, th, Math.min(th.dur, th.tau + k * 7), 1);
+          }
+          o.globalAlpha = 1;
+        }, '#6fdcff', 0.75);
     }
     drawThingAt(ctx, v, th, th.tau);
+    if (th.st === REW && th.k !== 'water') tinted(ctx, (o) => drawThingAt(o, v, th, th.tau), '#7fe8ff', 0.42);
+    // 되감을 수 있는 물건: 작은 시계 (자기 시간이 앞으로 가는 중)
+    if (th.st !== REW && th.st !== WAIT && th.tau > 0 && !(th.k === 'arrow' && th.tau >= th.n && th.st === HOLD)) {
+      const c = thingCenter(th);
+      clockBadge(ctx, X(c.x + Math.min(0.08, c.r * 0.6)), Y(c.y - Math.min(0.08, c.r * 0.6)), R(0.019), th.tau, th.st === HOLD);
+    }
     // 쉬는 중 고리 (곧 다시 움직인다)
     if (th.st === HOLD && th.k !== 'arrow') {
       pose(th, th.tau);
       const cx = th.k === 'bridge' ? X((th.x + th.x2) / 2) : X(P.x), cy = th.k === 'bridge' ? Y(th.y - 0.1) : Y(P.y - 0.08);
-      const max = th.tau === 0 ? th.hf : HOLD_STOP, q = Math.min(1, th.hold / max);
+      const max = th.tau === 0 ? th.hf : th.hs, q = Math.min(1, th.hold / max);
       ctx.strokeStyle = 'rgba(255,255,255,.85)';
       ctx.lineWidth = 3;
       ctx.beginPath();
@@ -4149,7 +4416,7 @@ function drawAll(ctx: C2, s: RewState, w: number, h: number, _th: Theme) {
     // 모래가 물건으로 흘러간다
     ctx.fillStyle = '#ffd25a';
     for (let k = 0; k < 6; k++) {
-      const q = ((t * 0.035 + k / 6) % 1), sx = X(0.07), sy = Y(1.25);
+      const q = ((t * 0.035 + k / 6) % 1), sx = SV.X(0.055), sy = SV.Y(BOTY + 0.045);
       const px = sx + (X(tc.x) - sx) * q, py = sy + (Y(tc.y) - sy) * q - Math.sin(q * Math.PI) * R(0.12);
       ell(ctx, px, py, R(0.005), R(0.005));
       ctx.fill();
@@ -4172,11 +4439,11 @@ function drawAll(ctx: C2, s: RewState, w: number, h: number, _th: Theme) {
     ctx.fillText('지금 다시 톡!', lx, ly + 1);
   }
   // ═════════ 손가락 안내 ═════════
-  drawGuide(ctx, s, v, font);
+  drawGuide(ctx, s, v, font, SV);
   // ═════════ 사건 → 연출 · 소리 ═════════
   doEvents(ctx, s, v);
   ctx.restore();
-  drawHud(ctx, s, w, h, v, font);
+  drawHud(ctx, s, w, h, SV, font, v);
 }
 /** 물건의 가운데·크기 (시계 문양 자리) */
 function thingCenter(th: Thing): { x: number; y: number; r: number } {
@@ -4239,7 +4506,7 @@ function drawActor(ctx: C2, v: View, s: RewState, a: Actor) {
   critter(ctx, a.k, X(a.x), Y(a.y), u, mood, t + a.id * 13, dir, arms);
 }
 /** 처음 하는 사람: 손가락이 물건 위에서 톡 + 안내 한 줄 */
-function drawGuide(ctx: C2, s: RewState, v: View, font: (sz: number, w?: number) => void) {
+function drawGuide(ctx: C2, s: RewState, v: View, font: (sz: number, w?: number) => void, SV: View) {
   const { X, Y, R, t } = v;
   const W = s.W, H = W.hero;
   let target: Thing | null = null, line = '';
@@ -4268,12 +4535,12 @@ function drawGuide(ctx: C2, s: RewState, v: View, font: (sz: number, w?: number)
     font(0.042, 900);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const tw = ctx.measureText('👆 ' + line).width + R(0.06), cy = Y(0.6);
+    const tw = ctx.measureText('👆 ' + line).width + SV.R(0.06), cy = SV.Y(0.2);
     ctx.fillStyle = 'rgba(40,30,60,.72)';
-    rr(ctx, X(0.5) - tw / 2, cy - R(0.034), tw, R(0.068), R(0.034));
+    rr(ctx, SV.X(0.5) - tw / 2, cy - SV.R(0.034), tw, SV.R(0.068), SV.R(0.034));
     ctx.fill();
     ctx.fillStyle = '#ffffff';
-    ctx.fillText('👆 ' + line, X(0.5), cy + 1);
+    ctx.fillText('👆 ' + line, SV.X(0.5), cy + 1);
   }
 }
 /** 사건 → 파티클·글자·흔들림·소리 (사건마다 소리, 큰 것은 낮게, 연쇄는 높아지게) */
@@ -4579,7 +4846,7 @@ function starText(s: RewState, k: StarK): string {
   const r = L.actors.find((a) => a.role === R_RIDER);
   return r && r.k === 'cat' ? '고양이 구하기' : '아이 구하기';
 }
-function drawHud(ctx: C2, s: RewState, w: number, h: number, v: View, font: (sz: number, w?: number) => void) {
+function drawHud(ctx: C2, s: RewState, w: number, h: number, v: View, font: (sz: number, w?: number) => void, wv: View) {
   const { R } = v;
   const L = s.L, W = s.W, d = STAGES[s.stage], t = s.t;
   // ── 위 띠: 판 · 부품 · 하트
@@ -4672,7 +4939,7 @@ function drawHud(ctx: C2, s: RewState, w: number, h: number, v: View, font: (sz:
     cx += tw + R(0.016);
   });
   // ── 판 띠·결과·장 넘김
-  drawCards(ctx, s, w, v, font);
+  drawCards(ctx, s, w, v, font, wv);
 }
 /** 지금 지켜지고 있는 별 (부품은 아직이면 꺼짐) */
 function starsLive(s: RewState): boolean[] {
@@ -4762,7 +5029,7 @@ function fixIcon(ctx: C2, k: number, x: number, y: number, r: number, t: number)
   ctx.restore();
 }
 const FIX_TEXT = ['분수가 다시 솟아요!', '창가 꽃이 활짝!', '가로등에 불이 켜져요!', '풍차가 돌아요!', '물레방아가 돌아요!', '나룻배가 돌아왔어요!', '새 떼가 돌아왔어요!', '무지개가 떴어요!', '시계 숫자판이 빛나요!', '큰 톱니가 돌아요!', '종이 다시 울려요!', '시계 바늘이 다시 가요!'];
-function drawCards(ctx: C2, s: RewState, w: number, v: View, font: (sz: number, w?: number) => void) {
+function drawCards(ctx: C2, s: RewState, w: number, v: View, font: (sz: number, w?: number) => void, wv: View) {
   const { R, t } = v;
   const mid = R(0.6);
   if (s.phase === 'chapter') {
@@ -4892,12 +5159,12 @@ function drawCards(ctx: C2, s: RewState, w: number, v: View, font: (sz: number, 
       ctx.strokeStyle = '#ffe066';
       ctx.lineWidth = 3;
       ctx.setLineDash([6, 5]);
-      ell(ctx, v.X(sp.x), v.Y(sp.y), R(sp.r) * (1 + Math.sin(t * 0.15) * 0.05), R(sp.r) * (1 + Math.sin(t * 0.15) * 0.05));
+      ell(ctx, wv.X(sp.x), wv.Y(sp.y), wv.R(sp.r) * (1 + Math.sin(t * 0.15) * 0.05), wv.R(sp.r) * (1 + Math.sin(t * 0.15) * 0.05));
       ctx.stroke();
       ctx.setLineDash([]);
       font(0.032, 900);
       ctx.textAlign = 'center';
-      const lx = Math.max(R(0.12), Math.min(w - R(0.12), v.X(sp.x))), ly = v.Y(sp.y) - R(sp.r) - R(0.03);
+      const lx = Math.max(R(0.12), Math.min(w - R(0.12), wv.X(sp.x))), ly = Math.max(R(TOPH + 0.04), wv.Y(sp.y) - wv.R(sp.r) - R(0.03));
       const tw = ctx.measureText('NEW ' + sp.label).width + R(0.04);
       ctx.fillStyle = '#ff5a4a';
       rr(ctx, lx - tw / 2, ly - R(0.022), tw, R(0.044), R(0.022));
