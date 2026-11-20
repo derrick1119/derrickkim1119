@@ -34,7 +34,7 @@ export const UNITS = {
     desc: '구름을 탄 도술 영웅', tip: '강력한 범위 도술. 기력이 차면 연쇄 번개 → 서리 안개 → 삼매진화를 차례로 씁니다.' },
   blade: { name: '검객', role: '영웅', side: 0, hero: true, cost: 0, n: 1, hp: 700, atk: 24, as: 0.52, range: 0, spd: 112, r: 12, prefer: 'soft', dodge: 0.3,
     desc: '쌍검을 든 떠돌이 검객', tip: '빠르게 베며 적 후방을 노리고, 공격 열 중 셋을 흘려 냅니다. 기력이 차면 질풍 베기 → 검무 → 그림자 베기를 차례로 씁니다.' },
-  hunter: { name: '명궁', role: '영웅', side: 0, hero: true, cost: 0, n: 1, hp: 560, atk: 57, as: 1.3, range: 300, spd: 60, r: 13, proj: 'bolt', soft: true, pierce: true,
+  hunter: { name: '명궁', role: '영웅', side: 0, hero: true, cost: 0, n: 1, hp: 560, atk: 60, as: 1.3, range: 300, spd: 60, r: 13, proj: 'bolt', soft: true, pierce: true,
     desc: '범을 잡던 대궁의 명수', tip: '멀리서 쏘는 한 발 한 발이 묵직하고 방패를 꿰뚫습니다. 기력이 차면 관통시 → 연발 → 급소 저격을 차례로 씁니다.' },
   sangsoe: { name: '상쇠', role: '영웅', side: 0, hero: true, cost: 0, n: 1, hp: 780, atk: 24, as: 1.2, range: 200, spd: 62, r: 13, proj: 'note', soft: true, aura: { haste: 0.2, r: 160 },
     desc: '꽹과리로 판을 이끄는 풍물패 상쇠', tip: '주변 아군 공격 속도 +20%. 기력이 차면 자진모리 → 신명(사기 +1) → 휘모리를 차례로 씁니다.' },
