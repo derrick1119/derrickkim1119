@@ -1,8 +1,9 @@
 // 공용 그리기 도구 — 한지 위 종이 인형극 그림체 (가는 먹선 + 종이 테두리)
 export const TAU = Math.PI * 2;
 export const INK = '#262a36', PAPER = '#f8f0dc', HANJI = '#e9dec4', RED = '#c8402f', REDD = '#7a1f1c', INDIGO = '#2f4d7e', NAVY = '#1f2a44', TEAL = '#3f6b5c', OCHRE = '#d9a441', SKIN = '#f1cfa4', BROWN = '#7a5a40', SUB = '#6b5a44';
-export const FONT = "'Gowun Batang', 'Apple SD Gothic Neo', 'Malgun Gothic', serif";
-export const FONT_B = "'Yeon Sung', 'Gowun Batang', 'Apple SD Gothic Neo', serif";
+// 도장에 찍는 한자는 'Hanja Seal'(Noto Serif KR 부분집합)이 맡는다
+export const FONT = "'Gowun Batang', 'Hanja Seal', 'Apple SD Gothic Neo', 'Malgun Gothic', serif";
+export const FONT_B = "'Yeon Sung', 'Hanja Seal', 'Gowun Batang', 'Apple SD Gothic Neo', serif";
 
 export function st(g, col, lw) { g.strokeStyle = col; g.lineWidth = lw; g.lineJoin = 'round'; g.lineCap = 'round'; g.stroke(); }
 export function fs(g, fill, sc, lw) { if (fill) { g.fillStyle = fill; g.fill(); } if (sc) st(g, sc, lw || 1.2); }

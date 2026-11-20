@@ -4,7 +4,7 @@ import { TAU, INK, PAPER, RED, INDIGO, SUB, FONT_B, text, ell, rr } from '../ren
 import { button, panel, brushTitle, seal, C, tapped } from '../ui/ui.js';
 import { nav } from '../nav.js';
 import { newRun, heroOpen, UNLOCKS, meta } from '../state.js';
-import { UNITS, HEROES, HERO_SKILLS, HERO_COL } from '../data/units.js';
+import { UNITS, HEROES, HERO_SKILLS, HERO_COL, HERO_SEAL } from '../data/units.js';
 import { CARDS } from '../data/cards.js';
 import { dimBackdrop } from './title.js';
 import { portrait } from '../render/sprites.js';
@@ -33,7 +33,7 @@ export class HeroScene {
     panel(g, 40, 248, 1200, 322);
     ell(g, 152, 408, 94, 94, '#efd9a8', INK, 2.4); ell(g, 152, 408, 87, 87, null, 'rgba(201,150,46,0.8)', 1.2);
     g.save(); g.beginPath(); g.arc(152, 408, 92, 0, TAU); g.clip(); g.fillStyle = 'rgba(140,160,120,0.6)'; g.fillRect(50, 452, 210, 60); portrait(g, id, 148, 484, 1.75, this.t, true); g.restore();
-    text(g, d.name, 272, 298, { size: 46, font: FONT_B, align: 'left' }); g.save(); g.translate(272 + g.measureText(d.name).width + 34, 292); g.rotate(-0.06); seal(g, 0, 0, 34, '영', col); g.restore();
+    text(g, d.name, 272, 298, { size: 46, font: FONT_B, align: 'left' }); g.save(); g.translate(272 + g.measureText(d.name).width + 34, 292); g.rotate(-0.06); seal(g, 0, 0, 34, HERO_SEAL[id], col); g.restore();
     text(g, d.desc, 274, 340, { size: 19, align: 'left', fill: SUB, maxW: 440 });
     text(g, `체력 ${Math.round(d.hp * 2.2)}  ·  ${ROLE[id]}  ·  패 비용 4`, 274, 368, { size: 15, align: 'left', fill: SUB, weight: 400, maxW: 440 });
     text(g, '자동 고유기 — 기력이 찰 때마다 차례로 스스로 씁니다', 274, 402, { size: 14.5, align: 'left', fill: col, maxW: 440 });

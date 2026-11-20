@@ -21,7 +21,7 @@ import { cardIcon, relicIcon } from '../render/icons.js';
 import { sfx, audio, setMuted } from '../audio.js';
 import { nav } from '../nav.js';
 
-export const GRADE = ['', '병', '을', '갑'];
+export const GRADE = ['', '丙', '乙', '甲'];
 const MARCH = 520, MARCH_V = 300;
 const FIGHT = t => t === 'battle' || t === 'elite' || t === 'boss';
 const talkTime = s => clamp(1.3 + s.length * 0.07, 2, 3.6);
@@ -269,7 +269,7 @@ export class RunScene {
     icon.flag(g, mx, cy - 18 + Math.abs(Math.sin(T * 6)) * (this.phase === 'march' ? 3 : 0), 0.9, OCHRE);
     // 오른쪽: 엽전, 보물, 빠르기, 멈춤
     panel(g, 928, 14, 128, 36, 'tag'); icon.coin(g, 948, 32, 11); text(g, String(r.gold), 1004, 33, { size: 20, font: FONT_B, maxW: 80 });
-    if (iconBtn(g, 'relics', 1066, 13, 62, 38, (gg, x, y) => { if (r.relics.length) relicIcon(gg, r.relics[r.relics.length - 1], x - 12, y, 0.52); else text(gg, '보', x - 12, y + 1, { size: 18, font: FONT_B, fill: SUB }); text(gg, String(r.relics.length), x + 15, y + 1, { size: 19, font: FONT_B }); })) this.sub = new RelicView({ onClose: () => { this.sub = null; } });
+    if (iconBtn(g, 'relics', 1066, 13, 62, 38, (gg, x, y) => { if (r.relics.length) relicIcon(gg, r.relics[r.relics.length - 1], x - 12, y, 0.52); else text(gg, '寶', x - 12, y + 1, { size: 18, font: FONT_B, fill: SUB }); text(gg, String(r.relics.length), x + 15, y + 1, { size: 19, font: FONT_B }); })) this.sub = new RelicView({ onClose: () => { this.sub = null; } });
     if (iconBtn(g, 'speed', 1138, 13, 58, 38, (gg, x, y) => text(gg, '×' + this.speed, x, y + 1, { size: 22, font: FONT_B, fill: this.speed > 1 ? RED : INK }), { on: this.speed > 1 })) this.speed = this.speed === 1 ? 2 : 1;
     if (iconBtn(g, 'menu', 1206, 13, 60, 38, icon.menu)) this.menu = true;
     // 싸움 중: 전공 조건과 두목 체력

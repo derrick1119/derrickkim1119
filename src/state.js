@@ -72,8 +72,8 @@ export const powerNow = () => 1 + 0.085 * depth();
 // ───────── 노정: 한 고개에서 차례로 만나는 것들 ─────────
 // 지도를 펼쳐 고르지 않는다. 길을 걷다 보면 차례로 만나고, 갈림길에서는 길가 푯말 둘 중 하나를 고른다
 export const STOP = {
-  battle: { ch: '전', name: '싸움', col: '#2f4d7e' }, elite: { ch: '강', name: '강적', col: '#c8402f' }, event: { ch: '?', name: '사건', col: '#6a5a8a' },
-  shop: { ch: '장', name: '장터', col: '#b8742a' }, rest: { ch: '주', name: '주막', col: '#2f6f5c' }, treasure: { ch: '보', name: '보물', col: '#b8862a' }, boss: { ch: '두', name: '두목', col: '#7a1f1c' }, fork: { ch: '갈', name: '갈림길', col: '#5a5346' },
+  battle: { ch: '戰', name: '싸움', col: '#2f4d7e' }, elite: { ch: '强', name: '강적', col: '#c8402f' }, event: { ch: '?', name: '사건', col: '#6a5a8a' },
+  shop: { ch: '場', name: '장터', col: '#b8742a' }, rest: { ch: '酒', name: '주막', col: '#2f6f5c' }, treasure: { ch: '寶', name: '보물', col: '#b8862a' }, boss: { ch: '頭', name: '두목', col: '#7a1f1c' }, fork: { ch: '岐', name: '갈림길', col: '#5a5346' },
 };
 const FORK_DESC = { battle: '요괴 무리가 지키는 길', elite: '강적이 버티는 험한 길 — 보물을 지키고 있다', event: '무언가 기다리는 샛길', shop: '장이 서는 길', treasure: '옛 보물이 묻혔다는 길' };
 export function genRoad(ch) {

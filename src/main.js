@@ -68,7 +68,7 @@ function frame(ts) {
 }
 
 async function boot() {
-  try { await Promise.all([document.fonts.load("20px 'Yeon Sung'", '가A1'), document.fonts.load("700 20px 'Gowun Batang'", '가A1'), document.fonts.load("400 20px 'Gowun Batang'", '가A1')]); } catch (e) { /* 폰트 없이 진행 */ }
+  try { await Promise.all([document.fonts.load("20px 'Yeon Sung'", '가A1'), document.fonts.load("700 20px 'Gowun Batang'", '가A1'), document.fonts.load("400 20px 'Gowun Batang'", '가A1'), document.fonts.load("900 20px 'Hanja Seal'", '甲')]); } catch (e) { /* 폰트 없이 진행 */ }
   load(); preloadLooks(); warmIcons();
   const q = new URLSearchParams(location.search);
   window.__game = { nav, inp, run: () => G.run };

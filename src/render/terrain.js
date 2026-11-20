@@ -181,7 +181,7 @@ const STOPS = {
     post(g, 56, 62, 2.6); line(g, [56, -60, 71, -60], INK, 2.6); line(g, [56, -60, 71, -60], WOODD, 1.2);
     g.globalAlpha = 0.28; ell(g, 70, -47, 15, 15, '#ffd27a'); g.globalAlpha = 1;
     part(g, p => rrPath(p, 63, -58, 14, 20, 5.4), RED, RC(70.6, -58, 7, 20), { hi: E(66.4, -49, 1.5, 5), lw: 1.2 }); rr(g, 65.4, -60, 9.2, 3, 1, '#2b2a30'); rr(g, 65.4, -39, 9.2, 2.6, 1, '#2b2a30'); line(g, [70, -36.4, 70, -31], OCHRE, 1.2);
-    text(g, '주', 70, -47.4, { size: 12, font: FONT_B, fill: WHITE });
+    text(g, '酒', 70, -47.4, { size: 12, font: FONT_B, fill: WHITE });
     jar(g, -52, 0, 1, '#6b4a3a'); jar(g, -41.4, 1, 0.76, '#8a6248'); grassTuft(g, 44, 1, 0.7, TEAL, SR());
   },
   shop(g) { // 장터 좌판: 줄무늬 차일 아래 늘어놓은 물건

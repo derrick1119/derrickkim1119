@@ -46,7 +46,7 @@ export function cardFace(g, c, x, y, w, h, o = {}) {
     textBlock(g, o.text || cardText(c, o.P || 1), x + w / 2, y + hh + (unit ? 174 : 178), w - (unit ? 18 : 24), unit ? 19 : 22, { size: unit ? 13.5 : 16.5, fill: SUB, weight: 400 });
   } else if (!mini) { const ky = y + h - 13; text(g, k.name, x + w / 2, ky, { size: 13, fill: col }); for (const sg of [-1, 1]) { line(g, [x + w / 2 + sg * 22, ky, x + w / 2 + sg * (w / 2 - 12), ky], col + '77', 1); ell(g, x + w / 2 + sg * 22, ky, 1.3, 1.3, col + 'aa'); } }
   rr(g, x + 3.5, y + 3.5, w - 7, h - 7, r - 2, null, gilt ? '#c9962e' : 'rgba(38,42,54,0.16)', gilt ? 1.6 : 0.9);
-  if (c.wpn && !mini) { ell(g, x + w - 13, y + hh + 13, 9, 9, RED, INK, 1.2); text(g, '무', x + w - 13, y + hh + 14, { size: 11, fill: C.cream }); }
+  if (c.wpn && !mini) { ell(g, x + w - 13, y + hh + 13, 9, 9, RED, INK, 1.2); text(g, '武', x + w - 13, y + hh + 14, { size: 11, fill: C.cream }); }
   // 비용 엽전
   const cost = o.cost === undefined ? cardCost(c) : o.cost, cr = big ? 19 : mini ? Math.max(9, w * 0.15) : 14, ccx = x + cr - 3, ccy = y + cr - 3;
   ell(g, ccx + 0.6, ccy + 1.8, cr, cr, 'rgba(30,20,10,0.3)'); ell(g, ccx, ccy, cr, cr, o.free ? '#9bd07a' : '#e4b54c', INK, 2);

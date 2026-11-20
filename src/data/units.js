@@ -97,6 +97,8 @@ export const HERO_SKILLS = {
   sangsoe: [{ id: 'jajin', name: '자진모리', desc: '주변 아군 공격 속도 +30%' }, { id: 'sinmyeong', name: '신명', desc: '사기 +1, 주변 아군 회복' }, { id: 'hwimori', name: '휘모리', desc: '주변 적의 넋을 빼 기절시킨다' }],
   chief: [{ id: 'quake', name: '땅울림', desc: '땅을 내리쳐 주변 적에게 피해와 감속' }, { id: 'provoke', name: '도발', desc: '적을 끌어모으고 받는 피해 -50%' }, { id: 'throw', name: '메치기', desc: '눈앞의 적을 집어 던져 기절' }],
 };
+// 영웅의 낙관: 將(장군) 劍(검객) 弓(명궁) 僧(고승) 仙(신선) 樂(상쇠) 頭(두령)
+export const HERO_SEAL = { commander: '將', blade: '劍', hunter: '弓', bishop: '僧', archmage: '仙', sangsoe: '樂', chief: '頭' };
 // 영웅마다 두르는 빛깔 (고유기 이름·이펙트)
 export const HERO_COL = { commander: '#c8402f', bishop: '#b8862a', archmage: '#2f4d7e', blade: '#5a4a8a', hunter: '#8a5a2c', sangsoe: '#2f6f5c', chief: '#8a2a26' };
 // 영웅 둘이 함께 전장에 있으면 합동기 기력이 따로 찬다. 합동기는 두 영웅이 저마다 한 몫씩 보탠다

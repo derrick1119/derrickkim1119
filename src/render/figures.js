@@ -544,7 +544,7 @@ export function bannerCart(g) {
   part(g, p => { p.moveTo(-6, -98); p.lineTo(34, -95); p.quadraticCurveTo(29, -80, 34, -64); p.lineTo(-6, -61); p.closePath(); }, INDIGO, p => { p.moveTo(14, -100); p.quadraticCurveTo(20, -80, 16, -60); p.lineTo(36, -60); p.lineTo(36, -100); p.closePath(); }, { hi: P(-5, -96, 2, -95.6, 3, -64, -5, -63), hk: 0.14, lw: 1.4 });
   path(g, P(-6, -98, 34, -95, 33.2, -91.4, -6, -94.4), RED); path(g, P(-6, -61, 34, -64, 33.2, -67.6, -6, -64.6), RED);
   curve(g, p => { p.moveTo(-6, -98); p.lineTo(34, -95); p.quadraticCurveTo(29, -80, 34, -64); p.lineTo(-6, -61); }, INK, 1.4);
-  part(g, E(13, -79.6, 9.4, 9.4), WHITE, E(15, -77.6, 8, 8), { k: 0.1, lw: 1 }); g.fillStyle = RED; g.font = "400 13px 'Yeon Sung', serif"; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('군', 13, -78.8);
+  part(g, E(13, -79.6, 9.4, 9.4), WHITE, E(15, -77.6, 8, 8), { k: 0.1, lw: 1 }); g.fillStyle = RED; g.font = "900 12.5px 'Hanja Seal', 'Yeon Sung', serif"; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('軍', 13, -79.2);
   for (const y of [-58, -50]) line(g, [-6, y, -12, y + 6], OCHRE, 1.3);
   part(g, p => p.rect(-24, -20, 48, 10), '#9a6a3c', R(-24, -14.6, 48, 5), { hi: R(-23, -19.4, 46, 1.4), lw: 1.3 }); for (const x of [-18, -8, 2, 12]) line(g, [x, -19, x, -11], WOODD, 0.9);
   part(g, p => p.rect(4, -36, 18, 16), '#a8322a', R(15, -37, 8, 18)); part(g, E(13, -36, 9, 3.4), '#f3e7c8', E(15, -35, 7.6, 2.6), { k: 0.12, lw: 1.1 }); for (const x of [8, 13, 18]) line(g, [x, -32, x, -21], OCHRE, 1);

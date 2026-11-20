@@ -118,4 +118,6 @@ HERO=sangsoe node tools/campaign.mjs 16 casual   # 영웅 하나만 골라 돌�
 
 ## 폰트
 
-Yeon Sung, Gowun Batang (SIL Open Font License 1.1) — `assets/fonts/` 에 라이선스 전문 포함.
+Yeon Sung, Gowun Batang, Noto Serif KR (SIL Open Font License 1.1) — `assets/fonts/` 에 라이선스 전문 포함.
+
+도장·낙관의 한자(戰·强·得·甲 …)는 Noto Serif KR Black 에서 필요한 글자만 뽑은 작은 글꼴(`noto-serif-kr-hanja-900-subset.woff2`, 17KB)로 찍습니다. 새 한자 도장을 넣으려면 `tools/hanja_font.py` 의 글자 목록에 더하고 다시 돌리세요(목록에 없는 한자는 기기의 기본 글꼴로 보입니다).

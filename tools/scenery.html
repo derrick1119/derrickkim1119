@@ -6,7 +6,7 @@ import { makeGround, makeFar, stopSprite, obstacleSprite, drawRiver, GW, FW, FAR
 import { drawSprite, text } from '../src/render/draw.js';
 const q = new URLSearchParams(location.search), th = q.get('t') || 'pass', off = Number(q.get('x') || 0);
 const c = document.getElementById('c'), g = c.getContext('2d');
-await document.fonts.load("400 20px 'Yeon Sung'", '주');
+await Promise.all([document.fonts.load("400 20px 'Yeon Sung'", '주'), document.fonts.load("900 20px 'Hanja Seal'", '甲')]);
 g.fillStyle = '#e9dec4'; g.fillRect(0, 0, c.width, c.height);
 g.save(); g.beginPath(); g.rect(0, 0, 1440, 720); g.clip(); g.drawImage(makeFar(th, 3), -off * 0.25, 0, FW, FAR_H); g.drawImage(makeGround(th, 3), -off, 0, GW, 720);
 drawRiver(g, { river: { x: 900, w: 70 }, bridges: [{ x: 900, y: 300, w: 70, h: 80 }], slow: [{ x: 900, y: 460, w: 70, h: 70 }] }, th, 1, 1);

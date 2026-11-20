@@ -47,7 +47,7 @@ export class RewardOverlay extends Overlay {
       g.save(); g.globalAlpha = clamp((t - n * 0.1) / 0.2, 0, 1) * (done && !mine ? 0.35 : 1);
       if (d.card) { cardFace(g, d.card, x, y, w, h); if (o.kind !== 'card') { rr(g, x + 36, y - 14, 152, 28, 14, COL[d.col], INK, 1.6); text(g, d.title, x + 112, y + 1, { size: 17, fill: C.cream }); } } else tile(g, d, x, y, w, h, t);
       g.restore();
-      if (mine) stamp(g, x + w / 2, y + 250, 40, '득', RED, -0.14);
+      if (mine) stamp(g, x + w / 2, y + 250, 40, '得', RED, -0.14);
       else if (!done && t > 0.45 && button(g, 'rw' + n, x + 12, y + h + 12, w - 24, 54, '고르기', { size: 27 })) {
         this.taken = n; applyReward(o); r.pending = null; save(); sfx('card');
         if (o.kind === 'weapon') this.deck({ weapon: o.id, onClose: () => { this.sub = null; this.finish(); } });
@@ -76,11 +76,11 @@ export class ShopOverlay extends Overlay {
       rr(g, x + 3, y + 5, w, h, 6, 'rgba(50,36,20,0.24)'); rr(g, x, y, w, h, 6, PAPER, INK, 2.6);
       g.save(); g.beginPath(); rrPath(g, x + 2, y + 2, w - 4, 32, 5); g.clip(); g.fillStyle = col; g.fillRect(x, y, w, 34); g.restore(); text(g, d.title, x + w / 2, y + 19, { size: 20, font: FONT_B, fill: C.cream });
       if (card) cardFace(g, it, x + 10, y + 42, 96, 124);
-      else { rr(g, x + 10, y + 42, 96, 124, 5, '#efe4c9', INK, 1.4); const cx = x + 58, cy = y + 104; if (d.relic) { relicIcon(g, d.relic, cx, cy, 1.5); if (it.kind === 'cleanse') stamp(g, cx + 26, cy + 38, 15, '정', TEAL, -0.1); } else if (d.weapon) weaponIcon(g, d.weapon, cx, cy, 0.95); else if (d.misc === 'burn') miscIcon(g, 'burn', cx, cy, 1.5); else { g.save(); g.beginPath(); g.rect(x + 11, y + 43, 94, 122); g.clip(); portrait(g, 'spear', cx, cy + 50, 1.2, t, !it.sold); g.restore(); ell(g, cx + 30, cy - 40, 13, 13, PAPER, INK, 1.6); text(g, '↑', cx + 30, cy - 39, { size: 20, font: FONT_B, fill: TEAL }); } }
+      else { rr(g, x + 10, y + 42, 96, 124, 5, '#efe4c9', INK, 1.4); const cx = x + 58, cy = y + 104; if (d.relic) { relicIcon(g, d.relic, cx, cy, 1.5); if (it.kind === 'cleanse') stamp(g, cx + 26, cy + 38, 15, '淨', TEAL, -0.1); } else if (d.weapon) weaponIcon(g, d.weapon, cx, cy, 0.95); else if (d.misc === 'burn') miscIcon(g, 'burn', cx, cy, 1.5); else { g.save(); g.beginPath(); g.rect(x + 11, y + 43, 94, 122); g.clip(); portrait(g, 'spear', cx, cy + 50, 1.2, t, !it.sold); g.restore(); ell(g, cx + 30, cy - 40, 13, 13, PAPER, INK, 1.6); text(g, '↑', cx + 30, cy - 39, { size: 20, font: FONT_B, fill: TEAL }); } }
       text(g, d.name, x + 116, y + 58, { size: 19, font: FONT_B, align: 'left', maxW: w - 126 });
       textBlock(g, d.desc.split('\n').join(' · '), x + 116, y + 84, w - 128, 19.5, { size: 14, align: 'left', fill: SUB, weight: 400 });
       g.restore();
-      if (it.sold) stamp(g, x + w - 52, y + h - 30, 22, '득', RED, -0.14);
+      if (it.sold) stamp(g, x + w - 52, y + h - 30, 22, '得', RED, -0.14);
       else if (button(g, 'buy' + n, x + 10, y + h - 54, w - 20, 44, `엽전 ${it.price}`, { style: afford ? 'indigo' : 'grey', size: 22 })) this.buy(it);
     });
     if (button(g, 'shdeck', 50, 590, 280, 62, `덱 살피기 · ${r.deck.length}장`, { style: 'paper', size: 24 })) this.deck({});

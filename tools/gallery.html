@@ -6,7 +6,7 @@ import { LOOKS, getLook, portrait } from '../src/render/sprites.js';
 import { drawSprite, text } from '../src/render/draw.js';
 const q = new URLSearchParams(location.search), S = Number(q.get('s') || 2.1), per = Number(q.get('per') || 8);
 const c = document.getElementById('c'), g = c.getContext('2d');
-await Promise.all([document.fonts.load("700 20px 'Gowun Batang'", '가A'), document.fonts.load("20px 'Yeon Sung'", '가A')]);
+await Promise.all([document.fonts.load("700 20px 'Gowun Batang'", '가A'), document.fonts.load("20px 'Yeon Sung'", '가A'), document.fonts.load("900 20px 'Hanja Seal'", '甲')]);
 g.fillStyle = '#e9dec4'; g.fillRect(0, 0, c.width, c.height);
 let i = 0;
 for (const k of Object.keys(LOOKS)) {

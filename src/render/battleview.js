@@ -14,7 +14,8 @@ const LEFT = { goblin: 'broom', orc: 'bat', garcher: 'sandal', rshield: 'lid', s
 function swing(p) { if (p < 0.28) return lerp(0, -0.9, p / 0.28); if (p < 0.55) return lerp(-0.9, 1.7, (p - 0.28) / 0.27); return lerp(1.7, 0, (p - 0.55) / 0.45); }
 
 // 종이 인형 한 장: 걷기는 깡충거림과 기울임, 공격은 내지르기와 무기 휘두르기
-export function drawUnit(g, u, T, alpha = 1, march = false) {
+// T = 화면의 시계(걸음·깜빡임), ST = 전투의 시계(공격·등장 시각은 전투 시간으로 적혀 있다)
+export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   const L = getLook(u.type), k = L.scale, hold = L.hold, WP = u.def && u.def.wpn ? getWeapon(u.def.wpn) : null;
   const mode = WP ? WP.mode : hold.mode, ha = WP ? WP.a : hold.a, wspr = WP ? WP.spr : L.weapon, hand = WP ? WP.hand : 'R';
   const c = Math.cos(u.facing), s = Math.sin(u.facing);
@@ -28,10 +29,10 @@ export function drawUnit(g, u, T, alpha = 1, march = false) {
   let hop = moving ? Math.abs(Math.sin(ph)) * 3.2 : 0, tilt = moving ? Math.sin(ph) * 0.085 : Math.sin(T * 2 + u.id) * 0.018;
   if (L.float) hop += 3 + Math.sin(T * 3.2 + u.id) * 2.2;
   if (L.still) { tilt = 0; hop = u.moving || walkin ? Math.abs(Math.sin(ph * 1.6)) * 1.2 : 0; }
-  const ap = clamp((T - u.atkT) / (mode === 'lob' ? 0.9 : 0.36), 0, 1), act = ap < 1 ? Math.sin(ap * PI) : 0;
+  const ap = clamp((ST - u.atkT) / (mode === 'lob' ? 0.9 : 0.36), 0, 1), act = ap < 1 ? Math.sin(ap * PI) : 0;
   let x = u.x, y = u.y - (u.jumpH || 0), sy = 1, sxm = 1;
   // 막 세워진 인형은 톡 하고 일어선다. 걸을 때는 디딜 때마다 살짝 눌린다
-  const age = T - (u.born || 0); if (age >= 0 && age < 0.3) { const e = age / 0.3, b = 1 + 2.2 * Math.pow(e - 1, 3) + 1.2 * Math.pow(e - 1, 2); sy *= 0.3 + 0.7 * b; sxm *= 1.25 - 0.25 * b; }
+  const age = ST - (u.born || 0); if (age >= 0 && age < 0.3) { const e = age / 0.3, b = 1 + 2.2 * Math.pow(e - 1, 3) + 1.2 * Math.pow(e - 1, 2); sy *= 0.3 + 0.7 * b; sxm *= 1.25 - 0.25 * b; }
   if (moving) { const q = Math.abs(Math.cos(ph)); sy *= 1 - 0.05 * q * q; }
   if (act > 0) {
     if (mode === 'slash' || mode === 'thrust' || mode === 'bite') { x += c * act * 6 * k; y += s * act * 6 * k; tilt += dir * act * (mode === 'bite' ? 0.2 : 0.12); }
@@ -59,21 +60,25 @@ export function drawUnit(g, u, T, alpha = 1, march = false) {
   }
   if (wspr) {
     const ct = Math.cos(tilt), sn = Math.sin(tilt), fsx = flip * sxm;
+    // 휘두른 자리에 남는 흰 궤적 (hx, hy = 손, r0→r1 = 무기가 돈 각)
+    const trail = (hx, hy, r0, r1, back, q) => { const a = clamp((0.86 - q) / 0.3, 0, 1) * alpha; if (a <= 0.02) return; g.save(); g.lineCap = 'round'; g.globalAlpha = a * 0.4; g.beginPath(); g.arc(hx, hy, 25 * k, r0 - PI / 2, r1 - PI / 2, back); st(g, INK, 6.4 * k); g.globalAlpha = a * 0.9; g.beginPath(); g.arc(hx, hy, 25 * k, r0 - PI / 2, r1 - PI / 2, back); st(g, '#fffdf2', 3.6 * k); g.restore(); };
+    // 찌르거나 쏜 방향으로 뻗는 짧은 선
+    const streak = (hx, hy, d0, d1, a) => { if (a <= 0.02) return; g.save(); g.lineCap = 'round'; g.globalAlpha = a * alpha * 0.4; line(g, [hx + c * d0 * k, hy + s * d0 * k, hx + c * d1 * k, hy + s * d1 * k], INK, 5.4 * k); g.globalAlpha = a * alpha * 0.9; line(g, [hx + c * d0 * k, hy + s * d0 * k, hx + c * d1 * k, hy + s * d1 * k], '#fffdf2', 2.8 * k); g.restore(); };
     const put = (px, py, sg) => {
       const hx0 = px * k * dir * fsx, hy0 = py * k * sy; let hx = x + hx0 * ct - hy0 * sn, hy = by + hx0 * sn + hy0 * ct, rot;
       if (mode === 'thrust') {
         const ready = u.def && u.def.charge && u.run > 60 && u.moving, w = Math.max(act, ready ? 1 : 0), rest = sg * ha, aim = u.facing + PI / 2;
         let d = aim - rest; while (d > PI) d -= TAU; while (d < -PI) d += TAU;
-        rot = rest + d * w; hx += c * act * 9 * k; hy += s * act * 9 * k;
-      } else if (mode === 'cast') rot = sg * (ha - act * (WP ? WP.cast : 0.95)) + tilt;
+        rot = rest + d * w; hx += c * act * 9 * k; hy += s * act * 9 * k; if (ap < 0.7) streak(hx, hy, 26, 26 + 34 * Math.min(1, ap / 0.3), 1 - ap / 0.7);
+      } else if (mode === 'cast') { rot = sg * (ha - act * (WP ? WP.cast : 0.95)) + tilt; if (act > 0.2) { g.save(); g.globalAlpha = act * alpha * 0.85; ell(g, hx + Math.sin(rot) * 22 * k, hy - Math.cos(rot) * 22 * k, 7 * k * act, 7 * k * act, null, '#fff6c8', 2.2 * k); g.restore(); } }
       else if (mode === 'lob') rot = sg * (ha + (ap < 0.22 ? lerp(0, 1.7, ap / 0.22) : lerp(1.7, 0, (ap - 0.22) / 0.78)));
-      else if (mode === 'shoot') rot = sg * (ha - act * (hand === 'C' ? 0.28 : 0.08)) + tilt;
-      else rot = sg * (ha + (ap < 1 ? swing(ap) : 0)) + tilt;
+      else if (mode === 'shoot') { rot = sg * (ha - act * (hand === 'C' ? 0.28 : 0.08)) + tilt; if (ap < 0.45) streak(hx, hy, 12, 12 + 30 * Math.min(1, ap / 0.2), 1 - ap / 0.45); }
+      else { rot = sg * (ha + (ap < 1 ? swing(ap) : 0)) + tilt; if (ap > 0.28 && ap < 0.86) trail(hx, hy, sg * (ha - 0.9) + tilt, sg * (ha + (ap < 0.55 ? swing(ap) : 1.7)) + tilt, sg < 0, ap); }
       drawSprite(g, wspr, hx, hy, sg * k * Math.abs(fsx), k, rot, fl);
     };
     if (hand === 'L') put(-hold.x - 2, hold.y, dir);
     else if (hand === 'C') put(hold.x * 0.42, hold.y - 1.5, dir);
-    else { put(hold.x, hold.y, dir); if (hand === 'B') { const hx0 = -hold.x * k * dir * fsx, hy0 = hold.y * k * sy; const rot = -dir * (ha + (mode === 'cast' ? -act * 0.95 : ap < 1 ? swing(clamp(ap * 1.25 - 0.25, 0, 1)) : 0)) + tilt; drawSprite(g, wspr, x + hx0 * ct - hy0 * sn, by + hx0 * sn + hy0 * ct, -dir * k * Math.abs(fsx), k, rot, fl); } }
+    else { put(hold.x, hold.y, dir); if (hand === 'B') { const hx0 = -hold.x * k * dir * fsx, hy0 = hold.y * k * sy; const q = clamp(ap * 1.25 - 0.25, 0, 1), rot = -dir * (ha + (mode === 'cast' ? -act * 0.95 : ap < 1 ? swing(q) : 0)) + tilt, bx = x + hx0 * ct - hy0 * sn, byy = by + hx0 * sn + hy0 * ct; drawSprite(g, wspr, bx, byy, -dir * k * Math.abs(fsx), k, rot, fl); if (mode !== 'cast' && ap < 1 && q > 0.28 && q < 0.86) trail(bx, byy, -dir * (ha - 0.9) + tilt, -dir * (ha + (q < 0.55 ? swing(q) : 1.7)) + tilt, dir > 0, q); } }
   }
   const top = by - L.h * k;
   if (u.barrier > 0) { g.globalAlpha = alpha * 0.5; ell(g, x, by - L.h * k * 0.45, u.r * 1.55, L.h * k * 0.62, 'rgba(160,205,235,0.3)', '#5f8fb8', 2); g.globalAlpha = alpha; }
@@ -131,7 +136,7 @@ export class BattleView {
     if (kout > 0) for (const o of this.oldTer.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: kout }); }
     if (opt.extra) for (const e of opt.extra) list.push(e);
     list.sort((a, c) => a.y - c.y);
-    for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march); else if (it.spr) { if (it.sy === undefined) drawSprite(g, it.spr, it.x, it.y); else if (it.sy > 0.02) drawSprite(g, it.spr, it.x, it.y, 1 + (1 - Math.min(1, it.sy)) * 0.15, it.sy); } }
+    for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march, b.time); else if (it.spr) { if (it.sy === undefined) drawSprite(g, it.spr, it.x, it.y); else if (it.sy > 0.02) drawSprite(g, it.spr, it.x, it.y, 1 + (1 - Math.min(1, it.sy)) * 0.15, it.sy); } }
     this.dust -= opt.dt || 0;
     if (this.dust <= 0) { this.dust = 0.09; for (const u of b.units) if (!u.dead && u.moving && u.def.charge && u.run > 60 && u.hidden <= 0) fx.puff(u.x - Math.cos(u.facing) * 12, u.y - 2, 1, '#e8dcc0', 6); if (opt.march) for (const u of b.units) if (!u.dead && u.team === 0 && Math.random() < 0.05) fx.puff(u.x - 10, u.y - 1, 1, '#e8dcc0', 5); }
     for (const p of b.proj) this.drawProj(g, p, T);

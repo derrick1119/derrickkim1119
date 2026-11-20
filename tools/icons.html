@@ -7,7 +7,7 @@ import { CARDS } from '../src/data/cards.js';
 import { RELICS } from '../src/data/relics.js';
 import { text } from '../src/render/draw.js';
 const c = document.getElementById('c'), g = c.getContext('2d');
-await Promise.all([document.fonts.load("700 20px 'Gowun Batang'", '가A'), document.fonts.load("20px 'Yeon Sung'", '가A')]);
+await Promise.all([document.fonts.load("700 20px 'Gowun Batang'", '가A'), document.fonts.load("20px 'Yeon Sung'", '가A'), document.fonts.load("900 20px 'Hanja Seal'", '甲')]);
 g.fillStyle = '#e9dec4'; g.fillRect(0, 0, c.width, c.height);
 const sheet = (ids, draw, name, y0) => ids.forEach((k, i) => { const x = 80 + (i % 11) * 128, y = y0 + Math.floor(i / 11) * 170; draw(g, k, x, y, 2.1); text(g, name(k), x, y + 72, { size: 17 }); });
 text(g, '전술 패', 80, 40, { size: 30, align: 'left' }); sheet(Object.keys(CARD_ART), cardIcon, k => CARDS[k] ? CARDS[k].name : k, 120);

@@ -4,7 +4,7 @@ import { INK, INDIGO, SUB, FONT_B, text, textBlock, ell, rr, clamp, easeOutBack 
 import { button, panel, brushTitle, seal, tapped, C } from '../ui/ui.js';
 import { nav } from '../nav.js';
 import { newRun } from '../state.js';
-import { UNITS, HERO_COL } from '../data/units.js';
+import { UNITS, HERO_COL, HERO_SEAL } from '../data/units.js';
 import { PROLOGUE, PROLOGUE_HERO } from '../data/story.js';
 import { dimBackdrop } from './title.js';
 import { portrait, getLook } from '../render/sprites.js';
@@ -28,7 +28,7 @@ export class PrologueScene {
     const n = p.art.length, gy = y + 228;
     g.save(); g.globalAlpha *= 0.5; ell(g, 640, gy - 2, 150 + n * 110, 20, 'rgba(140,160,120,0.9)'); g.restore();
     p.art.forEach((a, m) => { const L = getLook(a), big = p.who === a, s = (big ? 1.95 : 1.7) * 1.1 / L.scale * (L.hero ? 1.3 : a === 'banner' ? 1.05 : a === 'treant' ? 1.15 : 1); portrait(g, a, 640 + (m - (n - 1) / 2) * 190 - (big ? 10 : 0), gy, s, t, big); });
-    if (p.who) { g.save(); g.translate(640 + 150, y + 60); g.rotate(0.06); seal(g, 0, 0, 44, UNITS[p.who].name.slice(0, 1), HERO_COL[p.who]); g.restore(); text(g, UNITS[p.who].name, 640 + 150, y + 104, { size: 20, font: FONT_B }); }
+    if (p.who) { g.save(); g.translate(640 + 150, y + 60); g.rotate(0.06); seal(g, 0, 0, 44, HERO_SEAL[p.who], HERO_COL[p.who]); g.restore(); text(g, UNITS[p.who].name, 640 + 150, y + 104, { size: 20, font: FONT_B }); }
     g.fillStyle = 'rgba(38,42,54,0.35)'; g.fillRect(x + 60, y + 262, w - 120, 1.2);
     const rows = p.s.split('\n').length; g.globalAlpha *= k; textBlock(g, p.s, 640, y + 340 - (rows - 1) * 20, w - 120, 40, { size: 26, font: FONT_B });
     g.restore();
