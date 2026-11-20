@@ -1,6 +1,5 @@
 /* 데이 & 나이트 — 그림
- * 데이와 나이트는 컨셉 아트에서 오려낸 종이 인형(몸통 + 두 다리 + 앞자락),
- * 그 밖의 모든 것(하리, 빛 정령, 그을음, 소품)은 캔버스로 직접 그린다.
+ * 인물도 소품도 모두 캔버스에 단순한 도형으로 직접 그린다. 그림 파일은 쓰지 않는다.
  */
 (function (root) {
   'use strict';
@@ -9,109 +8,140 @@
   const TAU = Math.PI * 2;
   const Art = (DN.Art = {});
 
-  /* ───────── 스프라이트 불러오기 ───────── */
-  const PARTS = ['body', 'leg_l', 'leg_r', 'front'];
-  const img = {};      // img.day.body ...
-  const variants = {}; // variants['night:sil'] = {body: canvas, ...}
-  Art.ready = false;
+  /* ───────── 쌍둥이 (그리고 잊힌 셋째) ─────────
+   * 컨셉 아트의 인상만 남겨 단순한 도형으로 그린다:
+   * 발목까지 흐르는 긴 물결 머리, 민소매에 층진 치마, 허리의 리본, 맨발.
+   * 데이는 눈을 뜨고 있고, 나이트는 눈을 감고 고개를 조금 숙인다. 나이트의 치맛단은 해져 있다. */
+  Art.ready = true;
+  Art.load = () => Promise.resolve();
 
-  Art.load = function () {
-    const assets = DN.ASSETS || {};
-    const jobs = [];
-    for (const who of ['day', 'night']) {
-      img[who] = {};
-      for (const p of PARTS) {
-        jobs.push(new Promise((res) => {
-          const im = new Image();
-          im.onload = () => res();
-          im.onerror = () => res();
-          im.src = assets[`${who}_${p}`] || `assets/${who}_${p}.png`;
-          img[who][p] = im;
-        }));
-      }
-    }
-    return Promise.all(jobs).then(() => { Art.ready = true; });
-  };
-
-  /** 파츠마다 같은 처리를 입힌 변형판을 만들어 둔다 (실루엣, 황혼 등) */
-  function variant(who, key, paint) {
-    const id = who + ':' + key;
-    if (variants[id]) return variants[id];
-    const out = {};
-    for (const p of PARTS) {
-      const src = img[who][p];
-      const c = document.createElement('canvas');
-      c.width = src.naturalWidth || 1; c.height = src.naturalHeight || 1;
-      const x = c.getContext('2d');
-      x.drawImage(src, 0, 0);
-      paint(x, c.width, c.height, src);
-      out[p] = c;
-    }
-    return (variants[id] = out);
-  }
-  const VARIANT = {
-    /* 멀리 선 그림자 */
-    sil: (x, w, h) => {
-      x.globalCompositeOperation = 'source-atop';
-      x.fillStyle = 'rgba(28,22,48,0.86)'; x.fillRect(0, 0, w, h);
-    },
-    /* 잊힌 셋째, 황혼: 데이의 그림에 노을빛을 입힌다 */
-    dusk: (x, w, h, src) => {
-      const g = x.createLinearGradient(0, 0, 0, h);
-      g.addColorStop(0, '#8d6fb0'); g.addColorStop(0.45, '#c9799a'); g.addColorStop(1, '#e8a878');
-      x.globalCompositeOperation = 'color';
-      x.fillStyle = g; x.fillRect(0, 0, w, h);
-      x.globalCompositeOperation = 'multiply';
-      x.fillStyle = 'rgba(214,170,196,0.55)'; x.fillRect(0, 0, w, h);
-      x.globalCompositeOperation = 'destination-in';
-      x.drawImage(src, 0, 0);
-    },
-    /* 기억 속 장면: 빛바랜 색 */
-    memory: (x, w, h, src) => {
-      x.globalCompositeOperation = 'color';
-      x.fillStyle = '#c9a36a'; x.fillRect(0, 0, w, h);
-      x.globalCompositeOperation = 'destination-in';
-      x.drawImage(src, 0, 0);
-    },
+  const TWIN = {
+    day:   { hair: '#f2ede3', hair2: '#dcd4c6', dress: '#f4eddd', dress2: '#e2d7c3', inner: '#d3c7b4', ribbon: '#3a3531', skin: '#f4ddcc', eye: '#6f5a34', closed: false, torn: false },
+    night: { hair: '#2f2a31', hair2: '#1d1a21', dress: '#4b454c', dress2: '#39343b', inner: '#9ca6b2', ribbon: '#bdb9b4', skin: '#f0dacc', eye: '#2a2428', closed: true, torn: true },
+    dusk:  { hair: '#b99fca', hair2: '#9a80b4', dress: '#efc0b4', dress2: '#dba0a4', inner: '#c98aa0', ribbon: '#6b4b7a', skin: '#f3dccd', eye: '#5a3f66', closed: false, torn: false },
   };
 
   /**
-   * 데이 / 나이트 그리기. (x, y) = 발 위치.
-   * opt: h 키, dir(1 오른쪽, -1 왼쪽), phase 걸음 위상, moving 0..1, alpha, variant
+   * (x, y) = 발 위치. opt: h 키, dir(1 오른쪽, -1 왼쪽), phase 걸음 위상, moving 0..1, t, alpha,
+   *   variant('dusk' = 황혼), hold(등불을 앞으로 든 팔)
    * 손 위치(등불 거는 곳)를 돌려준다.
    */
   Art.girl = function (ctx, who, x, y, opt) {
     opt = opt || {};
-    const m = DN.SPRITES[who];
-    const h = opt.h || 112;
-    const s = h / m.h;
-    const dir = opt.dir || 1;
-    const mv = opt.moving || 0;
-    const ph = opt.phase || 0;
-    const swing = Math.sin(ph) * 0.26 * mv;
-    const bob = -Math.abs(Math.cos(ph)) * 2.2 * mv + Math.sin((opt.t || 0) * 1.6 + (who === 'day' ? 0 : 2)) * 0.6;
-    const lean = 0.03 * mv;
-    const parts = opt.variant ? variant(who, opt.variant, VARIANT[opt.variant]) : img[who];
+    const P = TWIN[opt.variant === 'dusk' ? 'dusk' : who] || TWIN.day;
+    const h = opt.h || 104, k = h / 104, dir = opt.dir || 1;
+    const mv = opt.moving || 0, ph = opt.phase || 0, t = opt.t || 0;
+    const seed = who === 'day' ? 0 : 2.1;
+    const bob = -Math.abs(Math.cos(ph)) * 1.8 * mv + Math.sin(t * 1.5 + seed) * 0.5;
+    const sw = Math.sin(ph) * mv;                        // 걸음
+    const w1 = Math.sin(t * 1.3 + seed) * 2 - mv * 3;    // 머리카락과 치맛자락의 일렁임
+    const w2 = Math.sin(t * 1.7 + seed + 1) * 2.4 - mv * 5;
+    const w3 = Math.sin(t * 1.1 + seed + 2) * 3 - mv * 7;
+    const nod = P.closed ? 3 : 0;                         // 나이트는 고개를 숙인다
+    const hold = opt.hold ? 1 : 0;
     ctx.save();
     if (opt.alpha !== undefined) ctx.globalAlpha *= opt.alpha;
     ctx.translate(x, y + bob);
-    ctx.scale(dir * s, s);
-    ctx.rotate(lean);
-    ctx.translate(-m.foot[0], -m.foot[1]);
-    ctx.drawImage(parts.body, 0, 0);
-    for (const [key, a] of [['l', -swing], ['r', swing]]) {
-      const pv = m.legs[key].pivot;
-      ctx.save();
-      ctx.translate(pv[0], pv[1]); ctx.rotate(a); ctx.translate(-pv[0], -pv[1]);
-      ctx.drawImage(parts['leg_' + key], 0, 0);
-      ctx.restore();
+    ctx.scale(dir * k, k);
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+
+    // 뒤로 흐르는 머리카락
+    ctx.fillStyle = P.hair2;
+    ctx.beginPath();
+    ctx.moveTo(3, -98 + nod);
+    ctx.bezierCurveTo(-13, -101 + nod, -19, -88, -15, -74);
+    ctx.bezierCurveTo(-28 + w1, -62, -12 + w1, -52, -24 + w2, -40);
+    ctx.bezierCurveTo(-35 + w2, -28, -16 + w3, -22, -26 + w3, -6);
+    ctx.bezierCurveTo(-13 + w3, -9, -7 + w2, -22, -9 + w1, -36);
+    ctx.bezierCurveTo(-3, -50, -5, -64, -1, -76);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = P.hair;
+    ctx.beginPath();
+    ctx.moveTo(1, -97 + nod);
+    ctx.bezierCurveTo(-11, -99 + nod, -15, -88, -12, -75);
+    ctx.bezierCurveTo(-21 + w1, -63, -9 + w1, -52, -18 + w2, -40);
+    ctx.bezierCurveTo(-25 + w2, -29, -13 + w3, -24, -18 + w3, -14);
+    ctx.bezierCurveTo(-9 + w2, -20, -4 + w1, -34, -6, -48);
+    ctx.bezierCurveTo(-2, -58, -3, -68, 0, -77);
+    ctx.closePath(); ctx.fill();
+
+    // 다리와 맨발
+    ctx.strokeStyle = P.skin; ctx.lineWidth = 3;
+    for (const [hx, s] of [[-2, -1], [3, 1]]) {
+      const fx = hx + s * sw * 9, lift = Math.max(0, s * Math.cos(ph)) * 3 * mv;
+      ctx.beginPath(); ctx.moveTo(hx, -30); ctx.quadraticCurveTo(hx + s * sw * 3, -16, fx, -2.5 - lift); ctx.stroke();
+      ctx.fillStyle = P.skin;
+      ctx.beginPath(); ctx.ellipse(fx + 2.4, -1.6 - lift, 3.6, 1.7, 0, 0, TAU); ctx.fill();
     }
-    ctx.drawImage(parts.front, 0, 0);
-    ctx.restore();
-    return {
-      x: x + dir * s * (m.hand[0] - m.foot[0]),
-      y: y + bob + s * (m.hand[1] - m.foot[1]),
+
+    // 치마: 뒤가 길고 앞이 짧은 두 겹
+    const hemB = -17 + Math.sin(t * 1.6 + seed) * 0.8, hemF = -27;
+    const hem = (x0, y0, x1, y1, n, amp) => {            // 해진 치맛단(나이트) 또는 물결 단(데이)
+      for (let i = 1; i <= n; i++) {
+        const u = i / n, px = x0 + (x1 - x0) * u, py = y0 + (y1 - y0) * u;
+        if (P.torn) ctx.lineTo(px - (x1 - x0) / n * 0.5, py + (i % 2 ? amp : amp * 0.3));
+        else ctx.quadraticCurveTo(px - (x1 - x0) / n * 0.5, py + amp, px, py);
+        if (P.torn) ctx.lineTo(px, py);
+      }
     };
+    ctx.fillStyle = P.inner;                              // 안감
+    ctx.beginPath(); ctx.moveTo(-9, -52); ctx.lineTo(-19 + w2 * 0.5, hemB + 3);
+    hem(-19 + w2 * 0.5, hemB + 3, 11, hemF + 5, 5, 4); ctx.lineTo(7, -52); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = P.dress2;                             // 아랫단
+    ctx.beginPath(); ctx.moveTo(-8, -56); ctx.quadraticCurveTo(-17, -40, -21 + w2 * 0.6, hemB - 3);
+    hem(-21 + w2 * 0.6, hemB - 3, 14, hemF, 6, 4.5); ctx.quadraticCurveTo(11, -42, 8, -56); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = P.dress;                              // 윗단
+    ctx.beginPath(); ctx.moveTo(-7, -58); ctx.quadraticCurveTo(-14, -46, -16 + w1 * 0.5, -31);
+    hem(-16 + w1 * 0.5, -31, 12, -36, 5, 3.5); ctx.quadraticCurveTo(9, -47, 7, -58); ctx.closePath(); ctx.fill();
+
+    // 뒤쪽 팔
+    ctx.strokeStyle = P.skin; ctx.lineWidth = 3.4;
+    ctx.beginPath(); ctx.moveTo(-5, -70); ctx.quadraticCurveTo(-9 - sw * 2, -58, -7 - sw * 5, -47); ctx.stroke();
+    // 몸통 (민소매)
+    ctx.fillStyle = P.dress;
+    ctx.beginPath(); ctx.moveTo(-7, -72); ctx.quadraticCurveTo(0, -75, 6, -72); ctx.lineTo(7.5, -56); ctx.lineTo(-7.5, -56); ctx.closePath(); ctx.fill();
+    // 리본
+    ctx.fillStyle = P.ribbon;
+    ctx.fillRect(-7.6, -58.6, 15.2, 2.6);
+    ctx.beginPath(); ctx.moveTo(4, -57.3); ctx.lineTo(8.6, -60.6); ctx.lineTo(8.6, -54); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(4, -57.3); ctx.lineTo(0, -60.2); ctx.lineTo(0, -54.4); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = P.ribbon; ctx.lineWidth = 1.7;
+    ctx.beginPath(); ctx.moveTo(4, -57); ctx.quadraticCurveTo(3 + w1 * 0.4, -46, 5 + w1 * 0.6, -37); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(5, -57); ctx.quadraticCurveTo(8 + w1 * 0.4, -47, 9 + w1 * 0.7, -40); ctx.stroke();
+
+    // 목과 얼굴
+    ctx.strokeStyle = P.skin; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(1, -74); ctx.lineTo(2, -78 + nod * 0.4); ctx.stroke();
+    ctx.fillStyle = P.skin;
+    ctx.beginPath(); ctx.ellipse(3, -86 + nod, 9.6, 10.6, 0, 0, TAU); ctx.fill();
+    // 눈과 볼
+    if (P.closed) {
+      ctx.strokeStyle = P.eye; ctx.lineWidth = 1.3;
+      ctx.beginPath(); ctx.arc(8, -85.5 + nod, 2.6, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+    } else {
+      const blink = Math.sin(t * 0.8 + seed * 3) > 0.985 ? 0.15 : 1;
+      ctx.fillStyle = P.eye;
+      ctx.beginPath(); ctx.ellipse(8, -85 + nod, 1.25, 2 * blink, 0, 0, TAU); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(232,150,130,0.3)';
+    ctx.beginPath(); ctx.ellipse(7.6, -80.5 + nod, 2.6, 1.5, 0, 0, TAU); ctx.fill();
+    // 앞머리와 옆머리
+    ctx.fillStyle = P.hair;
+    ctx.beginPath();
+    ctx.moveTo(-9, -82 + nod);
+    ctx.bezierCurveTo(-12, -100 + nod, 11, -102 + nod, 13, -88 + nod);
+    ctx.bezierCurveTo(9, -93 + nod, 5, -93 + nod, 1, -89 + nod);
+    ctx.bezierCurveTo(1, -80, -2 + w1 * 0.3, -70, -4 + w1 * 0.5, -60);
+    ctx.bezierCurveTo(-8, -66, -9, -74, -9, -82 + nod);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = P.hair2; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(3, -98 + nod); ctx.quadraticCurveTo(6, -94 + nod, 5, -91 + nod); ctx.stroke();
+
+    // 앞쪽 팔 (등불을 들면 앞으로 내민다)
+    const ax = hold ? 14 : 8 + sw * 5, ay = hold ? -57 : -47;
+    ctx.strokeStyle = P.skin; ctx.lineWidth = 3.4;
+    ctx.beginPath(); ctx.moveTo(5, -70); ctx.quadraticCurveTo(hold ? 9 : 9 + sw * 2, -61, ax, ay); ctx.stroke();
+    ctx.restore();
+    return { x: x + dir * k * ax, y: y + bob + k * ay };
   };
 
   /* ───────── 등불 ───────── */
@@ -339,7 +369,8 @@
     // 뭉게뭉게한 덩어리
     for (let layer = 0; layer < 3; layer++) {
       const rr = R * (1 - layer * 0.2);
-      ctx.fillStyle = ['rgba(26,20,26,0.55)', 'rgba(20,15,22,0.75)', 'rgba(12,9,14,0.92)'][layer];
+      ctx.fillStyle = opt.eater ? ['rgba(60,24,40,0.5)', 'rgba(48,16,34,0.75)', 'rgba(30,8,22,0.92)'][layer]
+        : ['rgba(26,20,26,0.55)', 'rgba(20,15,22,0.75)', 'rgba(12,9,14,0.92)'][layer];
       ctx.beginPath();
       const n = 44;
       for (let i = 0; i <= n; i++) {
@@ -364,7 +395,7 @@
       const bl = (Math.sin(t * 1.3 + seed * 5) > 0.96) ? 0.15 : 1;
       const look = Math.sin(t * 0.7 + seed) * 1.5;
       for (const sx of [-R * 0.3, R * 0.3]) {
-        ctx.fillStyle = 'rgba(244,236,200,0.95)';
+        ctx.fillStyle = opt.eater ? 'rgba(255,196,120,0.98)' : 'rgba(244,236,200,0.95)';
         ctx.beginPath(); ctx.ellipse(sx, -R * 0.95, R * 0.13, R * 0.17 * bl, 0, 0, TAU); ctx.fill();
         ctx.fillStyle = '#120c12';
         ctx.beginPath(); ctx.arc(sx + look, -R * 0.93, R * 0.055, 0, TAU); ctx.fill();
@@ -549,19 +580,42 @@
   };
 
   /* 빛을 되비추는 오래된 종 */
+  /* 빛을 모아 되비추는 종 (사물로 놓인다: 원점이 종의 한가운데) */
   PROP.bell = function (ctx, e, p) {
-    ctx.strokeStyle = e.shade('#6a5040'); ctx.lineWidth = 3; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(-17, 2); ctx.lineTo(-15, -86); ctx.lineTo(15, -86); ctx.lineTo(17, e.gy(17) + 2); ctx.stroke();
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(-16, -40); ctx.lineTo(16, -30); ctx.stroke();
     const sw = Math.sin(e.t * 1.3) * 0.05;
-    ctx.save(); ctx.translate(0, -84); ctx.rotate(sw);
-    ctx.fillStyle = e.shade('#d7a85a', 0.98);
-    ctx.beginPath(); ctx.moveTo(-5, 2); ctx.quadraticCurveTo(-6, 18, -13, 30); ctx.lineTo(13, 30); ctx.quadraticCurveTo(6, 18, 5, 2); ctx.closePath(); ctx.fill();
+    ctx.save(); ctx.translate(0, -18); ctx.rotate(sw);
+    ctx.strokeStyle = e.shade('#6a5040'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(0, 2); ctx.stroke();
+    ctx.fillStyle = p.on ? '#ffe9a8' : e.shade('#d7a85a', 0.98);
+    ctx.beginPath(); ctx.moveTo(-5, 2); ctx.quadraticCurveTo(-6, 18, -14, 31); ctx.lineTo(14, 31); ctx.quadraticCurveTo(6, 18, 5, 2); ctx.closePath(); ctx.fill();
     ctx.strokeStyle = e.ink(0.45); ctx.lineWidth = 1; ctx.stroke();
-    ctx.fillStyle = 'rgba(255,250,225,0.75)';
-    ctx.beginPath(); ctx.ellipse(-3, 18, 2.2, 8, 0.2, 0, TAU); ctx.fill();
+    ctx.fillStyle = 'rgba(255,250,225,0.8)';
+    ctx.beginPath(); ctx.ellipse(-3, 19, 2.2, 8, 0.2, 0, TAU); ctx.fill();
     ctx.restore();
+    if (p.on) e.glow(ctx, 0, 0, 60, [255, 226, 150], 0.7);
+  };
+  /* 종을 매단 틀 */
+  PROP.belfry = function (ctx, e, p) {
+    const h = p.h || 250;
+    ctx.strokeStyle = e.shade('#6a5040'); ctx.lineWidth = 3.4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-22, 3); ctx.lineTo(-16, -h - 26); ctx.lineTo(16, -h - 26); ctx.lineTo(22, e.gy(22) + 3); ctx.stroke();
+    ctx.lineWidth = 2;
+    for (let y = -40; y > -h; y -= 60) { ctx.beginPath(); ctx.moveTo(-21, y); ctx.lineTo(20, y - 30); ctx.stroke(); }
+  };
+  /* 배의 놋쇠 반사등 */
+  PROP.reflector = function (ctx, e, p) {
+    ctx.fillStyle = p.on ? '#fff0b8' : e.shade('#c9a25a');
+    ctx.beginPath(); ctx.arc(0, 0, 13, 0.25 * Math.PI, 1.75 * Math.PI); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = e.ink(0.45); ctx.lineWidth = 1; ctx.stroke();
+    if (p.on) e.glow(ctx, 0, 0, 54, [255, 226, 150], 0.7);
+  };
+  PROP.mast = function (ctx, e, p) {
+    const h = p.h || 240;
+    ctx.strokeStyle = e.shade('#5a4636'); ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, 3); ctx.lineTo(0, -h); ctx.stroke();
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-34, -h * 0.72); ctx.lineTo(34, -h * 0.72); ctx.moveTo(-22, -h * 0.94); ctx.lineTo(22, -h * 0.94); ctx.stroke();
+    ctx.strokeStyle = e.ink(0.25); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(-34, -h * 0.72); ctx.lineTo(0, -h); ctx.lineTo(34, -h * 0.72); ctx.stroke();
   };
 
   PROP.lighthouse = function (ctx, e, p) {
@@ -713,7 +767,7 @@
   /* 기억 조각 */
   PROP.shard = function (ctx, e, p) {
     const bob = Math.sin(e.t * 1.6 + (p.seed || 0)) * 4, rot = Math.sin(e.t * 0.8 + (p.seed || 0)) * 0.3;
-    ctx.save(); ctx.translate(0, -34 + bob); ctx.rotate(rot);
+    ctx.save(); ctx.translate(0, bob); ctx.rotate(rot);
     e.glow(ctx, 0, 0, 46, [255, 214, 150], 0.55);
     ctx.fillStyle = 'rgba(255,232,180,0.9)';
     ctx.beginPath(); ctx.moveTo(0, -11); ctx.lineTo(7, -2); ctx.lineTo(3, 10); ctx.lineTo(-6, 6); ctx.lineTo(-7, -4); ctx.closePath(); ctx.fill();
@@ -730,6 +784,53 @@
       const a = e.t * 0.9 + i * 2.1, r = 9 + i * 3;
       ctx.beginPath(); ctx.arc(Math.cos(a) * r, -(p.dy || 26) + Math.sin(a) * r * 0.6, 1.5, 0, TAU); ctx.fill();
     }
+  };
+
+  /* 골목 위의 광고판 (꼭대기에 멈춘 시계) */
+  PROP.billboard = function (ctx, e) {
+    ctx.strokeStyle = e.shade('#3a3842'); ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-52, 8); ctx.lineTo(-52, 360); ctx.moveTo(52, 8); ctx.lineTo(52, 360); ctx.stroke();
+    ctx.fillStyle = e.shade('#2c2a38', 0.92); ctx.fillRect(-60, 12, 120, 62);
+    ctx.strokeStyle = e.shade('#6a6878'); ctx.lineWidth = 2;
+    ctx.beginPath(); for (let i = 0; i < 4; i++) { const x = -40 + i * 26; ctx.moveTo(x, 58); ctx.lineTo(x, 30); ctx.lineTo(x + 10, 44); } ctx.stroke();
+    ctx.fillStyle = e.shade('#e6e0d2');
+    ctx.beginPath(); ctx.arc(0, -20, 15, 0, TAU); ctx.fill();
+    ctx.strokeStyle = e.shade('#3a3842'); ctx.lineWidth = 2; ctx.stroke();
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(-9, -16); ctx.moveTo(0, -20); ctx.lineTo(0, -31); ctx.stroke();
+  };
+  PROP.none = function () {};
+
+  /* 등불을 거는 고리 */
+  PROP.hook = function (ctx, e, p) {
+    const pulse = 0.5 + 0.5 * Math.sin(e.t * 2.6 + (p.seed || 0));
+    ctx.strokeStyle = e.shade('#4a4038'); ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, -5); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, 5, -0.5 * Math.PI, 1.1 * Math.PI); ctx.stroke();
+    if (p.active && !p.held) {
+      ctx.strokeStyle = `rgba(255,236,180,${0.35 + pulse * 0.45})`; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(0, 0, 11 + pulse * 3, 0, TAU); ctx.stroke();
+    }
+  };
+  /* 황혼에만 드러나는 것이 숨어 있는 자리의 희미한 반짝임 */
+  PROP.glint = function (ctx, e, p) {
+    const tw = Math.max(0, Math.sin(e.t * 1.7 + (p.seed || 0) * 0.37));
+    const c = p.violet ? '214,170,255' : '255,232,190';
+    ctx.strokeStyle = `rgba(${c},${0.15 + tw * 0.55})`; ctx.lineWidth = 1.2; ctx.lineCap = 'round';
+    const r = 3 + tw * 4;
+    ctx.beginPath(); ctx.moveTo(-r, 0); ctx.lineTo(r, 0); ctx.moveTo(0, -r); ctx.lineTo(0, r); ctx.stroke();
+  };
+  /* 등 기둥 (고리를 다는 곳) */
+  PROP.post = function (ctx, e, p) {
+    const h = p.h || 70;
+    ctx.strokeStyle = e.shade('#4a4038'); ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, 3); ctx.lineTo(0, -h - 14); ctx.stroke();
+    ctx.lineWidth = 2.2;
+    ctx.beginPath(); ctx.moveTo(0, -h - 14); ctx.quadraticCurveTo(0, -h - 26, (p.arm || 0) * 0.5, -h - 24); ctx.lineTo(p.arm || 0, -h - 12); ctx.stroke();
+  };
+  /* 다리지기의 오두막 창 */
+  PROP.hut = function (ctx, e, p) {
+    PROP.house(ctx, e, Object.assign({ w: 50, h: 32, roof: '#7f6a52' }, p));
   };
 
   /* 눈길을 끄는 반짝임 (누를 수 있는 것 위에) */

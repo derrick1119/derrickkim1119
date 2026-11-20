@@ -7,7 +7,7 @@
  *   node tools/playtest.cjs --shots=폴더   단계마다 화면을 저장
  *
  * 서버 없이 index.html 을 file:// 로 열어 Playwright(Chromium)로 돌린다.
- * 대사는 건너뛰고, 언덕 끌기와 걷기는 게임의 실제 규칙(Terrain.drag / 길찾기)을 그대로 거친다.
+ * 대사는 건너뛰고, 걷기와 등불 다루기는 게임의 실제 규칙(길찾기, 구역 판정)을 그대로 거친다.
  */
 const path = require('path');
 const { chromium } = require('playwright');
@@ -36,16 +36,32 @@ async function runLevel(page, id, steps, opts) {
   let n = 0;
   for (const s of steps) {
     const [op, a, b, c] = s;
-    if (op === 'drag') {
-      // [drag, 겹, 손잡이 번호, 값]
-      const got = await ev(([L, k, v]) => {
-        const G = DN.Game, ly = G.terrain.layer(L), kn = ly.knobs[k];
-        const walkers = G.agents.filter((x) => !x.rides && x.visible);
-        if (G.terrain.underfoot(ly, kn, walkers)) return 'underfoot';
-        return G.terrain.drag(ly, kn, v, G.agents.filter((x) => x.visible && x.layer && x.kind !== 'boat'));
-      }, [a, b, c]);
-      if (got === 'underfoot') throw new Error(`[${id}] ${a}#${b}: 발밑이라 움직일 수 없음`);
-      if (Math.abs(got - c) > 3 && !s[4]) throw new Error(`[${id}] ${a}#${b}: ${c} 까지 못 감 (실제 ${got})`);
+    if (op === 'hang') {
+      // [hang, 고리] — 등불을 고리에 건다
+      await idle();
+      const ok = await ev((h) => DN.Game.hangAt(DN.Game.thing(h)), a);
+      if (!ok && !b) throw new Error(`[${id}] ${a} 에 등불을 걸 수 없음`);
+      await until(() => DN.Game.lan.mode !== 'fly', null, '등불이 날아감');
+    } else if (op === 'canthang') {
+      await idle();
+      const ok = await ev((h) => DN.Game.hangAt(DN.Game.thing(h)), a);
+      if (ok) throw new Error(`[${id}] ${a} 에 걸 수 있으면 안 됨`);
+    } else if (op === 'recall') {
+      await idle();
+      const ok = await ev(() => DN.Game.recall());
+      if (!ok && !a) throw new Error(`[${id}] 등불을 불러올 수 없음`);
+      await until(() => DN.Game.lan.mode !== 'fly', null, '등불이 돌아옴');
+    } else if (op === 'rimto') {
+      // [rimto, 사물] — 빛의 가장자리가 그 사물을 지나도록 크기를 맞춘다
+      await idle();
+      const ok = await ev((tid) => { const G = DN.Game, p = G.thingPoint(G.thing(tid)); return G.setRadius(Math.hypot(p.x - G.lan.x, p.y - G.lan.y), true); }, a);
+      if (!ok) throw new Error(`[${id}] 빛의 가장자리를 ${a} 에 맞출 수 없음`);
+    } else if (op === 'r') {
+      // [r, 반지름] — 빛의 크기 (0 = 끔)
+      await idle();
+      const ok = await ev((v) => DN.Game.setRadius(v, true), a);
+      if (!ok && !b) throw new Error(`[${id}] 빛을 ${a} 로 바꿀 수 없음`);
+      if (ok && b === 'refuse') throw new Error(`[${id}] 빛을 ${a} 로 바꿀 수 있으면 안 됨 (발밑이 사라져야 한다)`);
     } else if (op === 'go') {
       // [go, 겹, x] — 그 지점을 눌러 걸어가고, 실제로 도착하는지 확인
       await idle();
@@ -59,20 +75,35 @@ async function runLevel(page, id, steps, opts) {
           if (stillHere) throw new Error(`[${id}] ${a} ${b} 에 닿지 못함 (지금 ${at})`);
         }
       }
+    } else if (op === 'cantgo') {
+      // [cantgo, 겹, x] — 걸어가 봐도 닿지 못해야 한다 (들고 있는 빛이 함께 움직이는 경우)
+      await idle();
+      await ev(([L, x]) => { const G = DN.Game; G.tap(x, G.terrain.yAt(L, x)); }, [a, b]);
+      await page.waitForTimeout(150);
+      await until(() => { const G = DN.Game, p = G.player; return G.busy === 0 && !p.path.length; }, null, `${a} ${b} 쪽으로 가 봄`);
+      const got = await ev(([L, x]) => { const p = DN.Game.player; return p.layer.id === L && Math.abs(p.x - x) < 30; }, [a, b]);
+      if (got) throw new Error(`[${id}] ${a} ${b} 에 닿아 버림 — 퍼즐이 비어 있다`);
+      await ev(() => { DN.Game.player.goal = null; });
     } else if (op === 'cant') {
       // [cant, 겹, x] — 아직은 갈 수 없어야 한다 (퍼즐이 저절로 풀려 있지 않은지)
       const ok = await ev(([L, x]) => { const G = DN.Game, p = G.player; const r = G.terrain.reach(p.layer, p.x, G.modeFor(p)); return G.terrain.reachable(r, L, x); }, [a, b]);
       if (ok) throw new Error(`[${id}] ${a} ${b} 에 벌써 갈 수 있음 — 퍼즐이 비어 있다`);
     } else if (op === 'thing') {
       await idle();
-      await ev((tid) => { const G = DN.Game, t = G.thing(tid); const y = t.sky ? t.y : G.terrain.yAt(t.layer, t.x) - t.dy; const x = t.sky ? t.x - G.cam.x * (t.par || 0) + G.cam.x : t.x; G.tap(x, y); }, a);
+      const ok = await ev((tid) => {
+        const G = DN.Game, t = G.thing(tid);
+        if (!t || !G.present(t)) return false;
+        const pt = t.sky ? { x: t.x - G.cam.x * (t.par || 0) + G.cam.x, y: t.y } : G.thingPoint(t);
+        G.tap(pt.x, pt.y);
+        return true;
+      }, a);
+      if (!ok) throw new Error(`[${id}] ${a} 가 지금은 보이지 않음`);
       await page.waitForTimeout(120);
       await until(() => { const G = DN.Game, p = G.player; return G.busy === 0 && !G.pendingThing && (!p || !p.path.length); }, null, `${a} 살펴보기`);
-    } else if (op === 'lantern') {
-      await idle();
-      await ev((on) => { const G = DN.Game; if (G.lantern.on !== on) G.toggleLantern(); }, a);
-      const now = await ev(() => DN.Game.lantern.on);
-      if (now !== a) throw new Error(`[${id}] 등불을 ${a ? '켤' : '끌'} 수 없음`);
+    } else if (op === 'absent') {
+      // [absent, 사물] — 지금은 보이지 않아야 한다
+      const ok = await ev((tid) => { const G = DN.Game, t = G.thing(tid); return !!t && G.present(t); }, a);
+      if (ok) throw new Error(`[${id}] ${a} 가 벌써 보임`);
     } else if (op === 'wait') {
       await until(new Function('return (' + a + ')'), null, b || a, c);
     } else if (op === 'eval') {
@@ -83,7 +114,7 @@ async function runLevel(page, id, steps, opts) {
     } else if (op === 'level') {
       await until((lv) => DN.Game.level.id === lv, a, `${a} 장으로 넘어감`);
     }
-    if (shotDir && (op === 'go' || op === 'thing' || op === 'drag')) {
+    if (shotDir && (op === 'go' || op === 'thing' || op === 'hang' || op === 'r')) {
       await page.waitForTimeout(350);
       await page.screenshot({ path: path.join(shotDir, `${id}_${String(n++).padStart(2, '0')}_${op}.png`) });
     }
@@ -129,6 +160,16 @@ async function runLevel(page, id, steps, opts) {
       console.log(`✓ 전체 여정 (결말: ${r.ending}, 이어서 2회차 시작)`);
     } catch (e) { failed++; console.log(`✗ 전체 여정: ${e.message}`); if (shotDir) await page.screenshot({ path: path.join(shotDir, `full_FAIL.png`) }); }
     await page.close();
+  }
+
+  // 2회차에만 닿는 단서
+  if (!only.length || only.includes('run2')) {
+    for (const [id, steps] of Object.entries(SOL.run2 || {})) {
+      const page = await open(`?level=${id}&run=2&auto=1&speed=6`);
+      try { await runLevel(page, id + '(2회차)', steps); console.log(`✓ 2회차 단서 ${id}`); }
+      catch (e) { failed++; console.log(`✗ 2회차 단서 ${id}: ${e.message}`); if (shotDir) await page.screenshot({ path: path.join(shotDir, `run2_${id}_FAIL.png`) }); }
+      await page.close();
+    }
   }
 
   if (!only.length || only.includes('endings')) {

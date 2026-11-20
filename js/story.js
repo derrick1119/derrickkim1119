@@ -227,11 +227,14 @@
 
   /* 주소창의 ?level= 로 중간 장부터 볼 때 필요한 능력을 채워 준다 */
   Story.sceneChapter = (id) => ({ memory: 4, cavemouth: 4, nightwalk: 5 }[id] || 0);
+  /* 주소창의 ?level= 로 중간 장부터 볼 때, 그때까지 배웠을 것들을 채워 준다 */
   Story.debugState = function (S, id) {
     const i = DN.CHAPTERS.includes(id) ? DN.CHAPTERS.indexOf(id) : Story.sceneChapter(id);
-    if (i >= 1) S.lantern.has = true;
-    if (i >= 2) S.hari = true;
-    if (i >= 3) S.lantern.canOff = true;
+    if (i >= 1) S.lantern = true;
+    if (i >= 2) { S.hari = true; S.hooks = true; }
+    if (i >= 3) S.shutter = true;
     if (i >= 4) S.shadowWalk = true;
+    if (id === 'cavemouth' || i >= 5) S.duskSight = true;
+    if (i >= 5) S.duskWalk = true;
   };
 })(typeof globalThis !== 'undefined' ? globalThis : window);

@@ -1,28 +1,30 @@
 /* 데이 & 나이트 — 게임 본체
- * 입력(누르기 = 걷기, 끌기 = 언덕 움직이기), 인물 이동, 카메라, 장면 스크립트, 저장.
+ * 누르면 걷고, 등불을 다룬다: 들고 다니거나, 고리에 걸거나, 빛의 크기를 끌어서 바꾼다.
+ * 등불 둘레의 동그란 빛 안은 낮, 밖은 밤, 가장자리는 황혼이다 (terrain.js 참고).
  */
 (function (root) {
   'use strict';
   const DN = (root.DN = root.DN || {});
   const U = DN.U, T = DN.T, Art = DN.Art, R = DN.Render, UI = DN.UI, Au = DN.Audio;
   const TAU = Math.PI * 2;
-  const SAVE_KEY = 'day-and-night-v1';
+  const SAVE_KEY = 'day-and-night-v2';
   const CANCEL = { cancelled: true };
+  const R_OPEN = 190, R_MAX = 240, R_MIN = 52, REACH = 580;
 
   const G = (DN.Game = {
     mode: 'boot',           // boot | title | play | ending
     time: 0, tod: 1, todOverride: null,
+    isNight: false, dayR: null, dayTod: 0.12,
     level: null, terrain: null,
     agents: [], things: [], triggers: [], particles: [], tweens: [], waits: [],
     player: null, day: null, hari: null, night: null,
     flags: {},
     cam: { x: 0, pan: 0, script: null },
-    lantern: { has: false, on: false, canOff: false },
-    lanternPos: null,
+    lan: { has: false, mode: 'held', hook: null, holder: null, x: 0, y: 0, r: 0, open: R_OPEN, closed: false, fly: null },
     busy: 0, paused: false, epoch: 0, speed: 1,
     S: null, meta: { runs: 0, endings: [] },
-    pointer: null, hover: null, tapMark: null,
-    starAmount: 0, lastStar: null, sun: null, farLights: 1, darkMul: 1, shadowSolid: 0,
+    pointer: null, tapMark: null,
+    starAmount: 0, lastStar: null, sun: null, farLights: 1, eyes: 1,
   });
 
   /* ───────── 저장 ───────── */
@@ -40,18 +42,26 @@
   G.save = function () { store({ meta: G.meta, S: G.S }); };
 
   function newRun() {
+    const again = G.meta.runs > 0;
     return {
       ci: 0, run: G.meta.runs + 1,
-      A: {},                          // 빛의 행방: 정령 → 'human' | 'night'
-      B: 0,                           // 나이트와의 관계 점수
+      A: {},                            // 빛의 행방: 정령 → 'human' | 'night'
+      B: 0,                             // 나이트와의 관계 점수
       C: { hari: false, night: false }, // 고백
-      bond: 0,                        // 하리와의 유대
-      clues: [],                      // 황혼의 단서
-      wish: null,                     // 최종장의 마지막 말
-      lantern: { has: false, canOff: false },
-      hari: false, shadowWalk: false,
+      bond: 0,                          // 하리와의 유대
+      clues: [],                        // 황혼의 단서
+      wish: null,                       // 최종장의 마지막 말
+      // 배운 것들
+      lantern: false,                   // 등불 (프롤로그)
+      hooks: false,                     // 등불 걸기 (1장, 하리)
+      shutter: false,                   // 빛을 줄이고 끄기 (2장)
+      shadowWalk: false,                // 그림자 걸음 (3장)
+      duskSight: false,                 // 가장자리에서 기억 조각 보기 (4장)
+      duskWalk: again,                  // 황혼 걸음 — 지난 여정의 기억은 처음부터 남아 있다
+      hari: false,
     };
   }
+  G.newRun = newRun;
 
   /* ───────── 시작 ───────── */
   G.boot = function () {
@@ -71,8 +81,8 @@
       if (q.get('level') && DN.LEVELS[q.get('level')]) {
         // 개발용: 특정 장면부터 시작
         const id = q.get('level');
+        if (q.get('run')) G.meta.runs = parseInt(q.get('run'), 10) - 1;
         G.S = newRun();
-        if (q.get('run')) G.S.run = parseInt(q.get('run'), 10);
         DN.Story.debugState(G.S, id);
         if (DN.CHAPTERS.includes(id)) G.startChapter(DN.CHAPTERS.indexOf(id), true);
         else { G.mode = 'play'; G.S.ci = DN.Story.sceneChapter(id); G.gotoScene(id); }
@@ -97,7 +107,7 @@
     G.S = null;
     loadLevel(DN.LEVELS.title);
     G.saved = (restore() || {}).S || G.saved;
-    UI.hud({ show: false });
+    refreshHud();
     UI.showTitle(G.meta, !!(G.saved && G.saved.ci > 0));
     UI.fade(false, 600);
   };
@@ -139,51 +149,6 @@
     if (ci < DN.CHAPTERS.length) G.startChapter(ci);
   };
 
-  /* ───────── 장면 불러오기 ───────── */
-  function loadLevel(level) {
-    G.level = level;
-    G.terrain = new DN.Terrain(level);
-    G.flags = {};
-    if (G.S) { G.flags.run2 = G.S.run >= 2; for (const k in G.S.A) G.flags['A_' + k] = G.S.A[k]; }
-    G.agents = []; G.things = []; G.triggers = []; G.particles = []; G.tweens = []; G.waits = [];
-    G.day = G.hari = G.night = G.player = null;
-    G.cam.pan = 0; G.cam.script = null;
-    G.todOverride = null;
-    G.sun = null; G.lastStar = null; G.starAmount = 0; G.farLights = 1; G.darkMul = 1;
-    G.hover = null; G.pointer = null; G.tapMark = null; G.lanternPos = null;
-    const sky = level.sky || {};
-    if (sky.sun) G.sun = Object.assign({ a: 1 }, sky.sun);
-    if (sky.lastStar) G.lastStar = Object.assign({ a: 0 }, sky.lastStar);
-    if (sky.stars) G.starAmount = sky.stars;
-    G.lantern.has = !!(G.S && G.S.lantern.has) && !level.noLantern;
-    G.lantern.canOff = !!(G.S && G.S.lantern.canOff);
-    G.lantern.on = G.lantern.has;
-    R.prepare(level, G.terrain);
-
-    if (level.start) {
-      const kind = level.startAs || 'day';
-      const a = G.addAgent({ id: kind, kind, layer: level.start.layer, x: level.start.x, dir: level.start.dir || 1, lantern: kind === 'day', h: level.start.h });
-      G.player = a;
-      if (kind === 'day') G.day = a; else G.night = a;
-      if (kind === 'day' && G.S && G.S.hari && level.hari !== false) {
-        G.hari = G.addAgent({ id: 'hari', kind: 'hari', layer: level.start.layer, x: level.start.x - 62, follow: G.day, pole: true });
-      }
-    }
-    for (const t of level.things || []) {
-      if (t.run2 && !(G.S && G.S.run >= 2)) continue;
-      G.addThing(t);
-    }
-    for (const t of level.triggers || []) G.triggers.push(Object.assign({ done: false }, t));
-    G.tod = todFor(level, G.player ? G.player.x : 0);
-    if (level.setup) level.setup(makeApi(G.epoch));
-    refreshBlocks();
-    const W = R.W;
-    G.cam.x = U.clamp((G.player ? G.player.x : 0) - W * 0.4, 0, Math.max(0, level.width - W));
-    if (level.camCenter !== undefined) G.cam.x = U.clamp(level.camCenter - W / 2, 0, Math.max(0, level.width - W));
-  }
-
-  G.loadEnding = function (cfg) { G.endingCfg = cfg; loadLevel(DN.LEVELS.ending); };
-
   /** 장 안의 딸린 장면으로 넘어간다 (기억 속, 동굴 어귀 등). 저장 지점은 바뀌지 않는다. */
   G.gotoScene = async function (id) {
     G.epoch++; G.busy = 0;
@@ -201,6 +166,58 @@
     if (level.intro) G.run(level.intro);
   };
 
+  G.loadEnding = function (cfg) { G.endingCfg = cfg; loadLevel(DN.LEVELS.ending); };
+
+  /* ───────── 장면 불러오기 ───────── */
+  function loadLevel(level) {
+    G.level = level;
+    G.terrain = new DN.Terrain(level);
+    G.flags = {};
+    G.terrain.flags = G.flags;
+    if (G.S) { G.flags.run2 = G.S.run >= 2; for (const k in G.S.A) G.flags['A_' + k] = G.S.A[k]; }
+    G.agents = []; G.things = []; G.triggers = []; G.particles = []; G.tweens = []; G.waits = [];
+    G.day = G.hari = G.night = G.player = null;
+    G.cam.pan = 0; G.cam.script = null;
+    G.todOverride = null;
+    G.sun = null; G.lastStar = null; G.starAmount = 0; G.farLights = 1; G.eyes = 1;
+    G.pointer = null; G.tapMark = null; G.pendingThing = null;
+    G.isNight = !!level.night; G.dayR = null; G.dayTod = level.dayTod === undefined ? 0.12 : level.dayTod;
+    G.rMax = level.rMax || R_MAX;
+    const sky = level.sky || {};
+    if (sky.sun) G.sun = Object.assign({ a: 1 }, sky.sun);
+    if (sky.lastStar) G.lastStar = Object.assign({ a: 0 }, sky.lastStar);
+    if (sky.stars) G.starAmount = sky.stars;
+    const lan = G.lan;
+    lan.has = !!(G.S && G.S.lantern) && !level.noLantern;
+    lan.mode = 'held'; lan.hook = null; lan.fly = null; lan.holder = null;
+    lan.open = level.rOpen || R_OPEN; lan.closed = !!level.startClosed; lan.r = lan.closed || !lan.has ? 0 : lan.open;
+    R.prepare(level, G.terrain);
+
+    if (level.start) {
+      const kind = level.startAs || 'day';
+      const a = G.addAgent({ id: kind, kind, layer: level.start.layer, x: level.start.x, dir: level.start.dir || 1, h: level.start.h });
+      G.player = a;
+      if (kind === 'day') { G.day = a; lan.holder = a; } else G.night = a;
+      if (kind === 'day' && G.S && G.S.hari && level.hari !== false) {
+        G.hari = G.addAgent({ id: 'hari', kind: 'hari', layer: level.start.layer, x: level.start.x - 62, follow: G.day, pole: true });
+      }
+    }
+    for (const t of level.things || []) {
+      if (t.run2 && !(G.S && G.S.run >= 2)) continue;
+      G.addThing(t);
+    }
+    for (const t of level.triggers || []) G.triggers.push(Object.assign({ done: false }, t));
+    G.tod = todFor(level, G.player ? G.player.x : 0);
+    if (level.setup) level.setup(makeApi(G.epoch));
+    refreshBlocks();
+    placeLantern();
+    G.lightSig = '';
+    updateLight();
+    const W = R.W;
+    G.cam.x = U.clamp((G.player ? G.player.x : 0) - W * 0.4, 0, Math.max(0, level.width - W));
+    if (level.camCenter !== undefined) G.cam.x = U.clamp(level.camCenter - W / 2, 0, Math.max(0, level.width - W));
+  }
+
   function todFor(level, x) {
     const k = level.tod;
     if (k === undefined) return 0;
@@ -213,25 +230,24 @@
   }
 
   /* ───────── 인물 ───────── */
-  const HEIGHT = { day: 112, night: 112, hari: 70, child: 62, keeper: 92, boat: 0 };
+  const HEIGHT = { day: 104, night: 104, hari: 70, child: 62, keeper: 92, boat: 0 };
   G.addAgent = function (def) {
     const a = Object.assign({
       kind: 'day', dir: 1, phase: Math.random() * 6, moving: 0, path: [], speed: 118,
-      visible: true, alpha: 1, goal: null, done: null, trail: [], ti: 0, rides: false, emote: null,
+      visible: true, alpha: 1, goal: null, done: null, trail: [], ti: 0, emote: null,
     }, def);
     a.layer = G.terrain.layer(a.layer);
     a.y = G.terrain.yAt(a.layer, a.x);
     a.h = def.h || HEIGHT[a.kind];
-    a.speed = def.speed || (a.h && a.h < 100 && a.kind === 'day' ? 100 : a.speed);
-    if (a.kind === 'boat' || a.follow) a.rides = true;
     G.agents.push(a);
     return a;
   };
   G.agent = (id) => G.agents.find((a) => a.id === id);
-  G.removeAgent = function (a) { const i = G.agents.indexOf(a); if (i >= 0) G.agents.splice(i, 1); };
 
   G.modeFor = function (a) {
-    return { water: a.kind === 'boat', dark: G.lantern.has && !G.lantern.on && G.S && G.S.shadowWalk };
+    const S = G.S || {};
+    if (a.kind === 'boat') return { water: true, star: !!(G.flags.starSeen && G.lan.r < 8) };
+    return { shadow: !!S.shadowWalk, dusk: !!S.duskWalk && G.lan.mode === 'hung', shy: a.kind === 'night' && a === G.player };
   };
 
   /** (wx, wy) 쪽으로 걸어갈 수 있는 데까지 간다. 목표에 닿을 수 있으면 true */
@@ -246,7 +262,7 @@
       if (r.prev[node] !== -2) exact = true;
       else node = ter.nearest(r, wx, ter.yAt(L, wx)).node;
     } else {
-      const n = ter.nearest(r, wx, wy, null, ter.hit(wx, wy + 4));
+      const n = ter.nearest(r, wx, wy, ter.hit(wx, wy + 4));
       node = n.node; exact = n.dist < 46;
     }
     a.path = ter.path(r, node);
@@ -254,16 +270,10 @@
     return exact;
   };
 
-  function replan(a) {
-    if (!a.goal) return;
-    const g = a.goal;
-    G.goTo(a, g.wx, g.wy, g.opt);
-  }
-
   function updateAgent(a, dt) {
     const ter = G.terrain;
     if (a.follow) { updateFollower(a, dt); return; }
-    if (a.goal && a.goal.version !== ter.version) replan(a);   // 지형이 바뀌면 길을 다시 찾는다
+    if (a.goal && a.goal.version !== ter.version) G.goTo(a, a.goal.wx, a.goal.wy, a.goal.opt);   // 빛이 바뀌면 길을 다시 찾는다
     let walking = false;
     if (a.path.length) {
       let budget = a.speed * dt;
@@ -290,8 +300,7 @@
     a.y = ter.yAt(a.layer, a.x);
     a.moving = U.approach(a.moving, walking ? 1 : 0, 10, dt);
     if (walking) a.phase += dt * 8.6 * (a.speed / 118);
-    // 따라오는 이를 위한 발자취
-    const tr = a.trail, last = tr[tr.length - 1];
+    const tr = a.trail, last = tr[tr.length - 1];   // 따라오는 이를 위한 발자취
     if (!last || last.layer !== a.layer || Math.abs(last.x - a.x) >= 6) tr.push({ layer: a.layer, x: a.x });
     if (a.emote) { a.emote.t -= dt; if (a.emote.t <= 0) a.emote = null; }
   }
@@ -303,7 +312,7 @@
     let budget = lead.speed * 1.18 * dt;
     while (tr.length - a.ti > gap && budget > 0) {
       const p = tr[a.ti];
-      if (p.layer !== a.layer) { a.layer = p.layer; }
+      if (p.layer !== a.layer) a.layer = p.layer;
       const dx = p.x - a.x;
       if (Math.abs(dx) > 400) { a.x = p.x; a.ti++; continue; }
       if (Math.abs(dx) <= budget) { a.x = p.x; budget -= Math.abs(dx); a.ti++; }
@@ -314,6 +323,7 @@
     if (a.ti > 400) { tr.splice(0, 300); a.ti -= 300; }
     if (!walking && lead.moving < 0.2) a.dir = lead.x >= a.x ? 1 : -1;
     a.y = ter.yAt(a.layer, a.x);
+    if (a.y >= T.ABSENT) a.y = lead.y;
     a.moving = U.approach(a.moving, walking ? 1 : 0, 10, dt);
     if (walking) a.phase += dt * 11;
     if (a.emote) { a.emote.t -= dt; if (a.emote.t <= 0) a.emote = null; }
@@ -322,79 +332,45 @@
   /** 앞장서는 이를 바꾼다 (5장: 하리가 등불을 들고 데이를 이끈다) */
   G.setLead = function (lead, follower) {
     G.player = lead;
-    lead.follow = null; lead.rides = false; lead.trail = []; lead.path = []; lead.goal = null; lead.lantern = true;
-    if (follower) { follower.follow = lead; follower.rides = true; follower.ti = 0; follower.path = []; follower.goal = null; follower.lantern = false; }
-  };
-
-  /** 따라오는 이를 이끄는 이 곁으로 옮긴다 (장면 전환용) */
-  G.snapFollower = function (a) {
-    const lead = a.follow;
-    a.layer = lead.layer; a.x = lead.x - lead.dir * 58; a.ti = lead.trail.length;
-    a.y = G.terrain.yAt(a.layer, a.x);
+    lead.follow = null; lead.trail = []; lead.path = []; lead.goal = null;
+    if (follower) { follower.follow = lead; follower.ti = 0; follower.path = []; follower.goal = null; }
+    if (G.lan.mode === 'held') G.lan.holder = lead;
   };
 
   /* ───────── 사물 ───────── */
   G.addThing = function (def) {
-    const t = Object.assign({ kind: 'spot', r: 46, dy: 30, visible: true, fade: 0, awake: 1, gone: false, seed: Math.random() * 100 }, def);
+    const t = Object.assign({ kind: 'spot', r: 46, dy: 30, visible: true, gone: false, seed: Math.random() * 100, vis: 1 }, def);
     t.layerRef = t.layer ? G.terrain.layer(t.layer) : null;
     G.things.push(t);
     return t;
   };
   G.thing = (id) => G.things.find((t) => t.id === id);
 
+  /** 사물의 세계 좌표 (발치). up 이 있으면 능선에서 그만큼 위 */
   function thingPos(t) {
-    if (t.sky) return { x: t.x, y: t.y };
-    const y = t.layerRef ? G.terrain.yAt(t.layerRef, t.x) : t.y;
-    return { x: t.x, y };
+    if (t.layerRef) return { x: t.x, y: G.terrain.yAt(t.layerRef, t.x) };
+    return { x: t.x, y: t.y };
   }
+  /** 눌러야 하는 자리 / 빛을 재는 자리 */
+  function thingPoint(t) {
+    const p = thingPos(t);
+    return { x: p.x, y: p.y - (t.layerRef ? (t.up !== undefined ? t.up : t.dy) : 0) };
+  }
+  G.thingPoint = thingPoint;
 
   function refreshBlocks() {
     const list = [];
     for (const t of G.things) {
       if (t.kind !== 'soot' || t.gone) continue;
-      const active = t.type === 'hungry' ? t.awake > 0.5 : true;
-      if (active) list.push({ layer: t.layer, x0: t.x - t.rad * 0.8, x1: t.x + t.rad * 0.8 });
+      const span = { layer: t.layer, x0: t.x - t.rad * 0.8, x1: t.x + t.rad * 0.8 };
+      if (t.type === 'eater') list.push(Object.assign(span, { when: 'day' }));       // 빛을 먹는 그을음: 빛 속에서 깨어나 막는다
+      else if (t.type === 'dense') list.push(Object.assign(span, { dense: true }));  // 짙은 그을음: 모아진 빛에만 흩어진다
+      else list.push(Object.assign(span, { when: 'night' }));                        // 두려움: 어둠 속에서만 버틴다
     }
-    for (const b of (G.level.blocks || [])) if (!b.unless || !G.flags[b.unless]) list.push(b);
+    for (const b of (G.level.blocks || [])) if (!b.unless || !G.flags[b.unless]) list.push(Object.assign({ always: !b.when && !b.dense }, b));
     G.terrain.setBlocks(list);
-    G.terrain.version++;
   }
   G.refreshBlocks = refreshBlocks;
-
-  function updateThings(dt) {
-    const p = G.player;
-    let changed = false;
-    for (const t of G.things) {
-      if (t.kind !== 'soot' || t.gone) continue;
-      const pos = thingPos(t);
-      if (t.type === 'hungry') {
-        // 빛을 먹는 그을음: 등불이 켜져 있으면 깨어나 길을 막는다
-        const want = G.lantern.on ? 1 : 0.12;
-        const before = t.awake > 0.5;
-        t.awake = U.approach(t.awake, want, 3.2, dt);
-        if ((t.awake > 0.5) !== before) changed = true;
-      } else if (!t.fading && p && G.lantern.has && G.lantern.on && !t.sturdy) {
-        const lp = G.lanternPos || { x: p.x, y: p.y - 40 };
-        if (Math.hypot(lp.x - pos.x, lp.y - (pos.y - t.rad * 0.8)) < (t.reach || 132)) G.disperse(t);
-      }
-      if (t.fading) {
-        t.fade += dt * 1.25;
-        if (t.fade >= 1) { t.gone = true; t.visible = false; changed = true; if (t.onGone) G.run(t.onGone); }
-      }
-    }
-    if (changed) refreshBlocks();
-  }
-
-  G.disperse = function (t) {
-    if (t.fading || t.gone) return;
-    t.fading = true;
-    const pos = thingPos(t);
-    Au.sfx('poof');
-    for (let i = 0; i < 26; i++) {
-      const a = Math.random() * TAU, sp = 30 + Math.random() * 90;
-      G.particles.push({ x: pos.x + Math.cos(a) * t.rad * 0.5, y: pos.y - t.rad * 0.8 + Math.sin(a) * t.rad * 0.5, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 40, life: 0, max: 0.7 + Math.random() * 0.7, r: 2 + Math.random() * 4, col: [20, 15, 22], add: false });
-    }
-  };
 
   G.sparkle = function (x, y, rgb, n, spread) {
     for (let i = 0; i < (n || 14); i++) {
@@ -403,37 +379,191 @@
     }
   };
 
-  /* ───────── 등불 ───────── */
-  G.toggleLantern = function () {
-    if (G.mode !== 'play' || G.paused || !G.lantern.has) return;
-    if (G.busy && !G.flags.lanternFree) return;
-    if (!G.lantern.canOff) { UI.lanternShake(); return; }
-    const p = G.player;
-    if (!G.lantern.on && p && p.layer.shadow) {
-      UI.lanternShake(); Au.sfx('no');
-      UI.toast('그림자 위에서는 등불을 켤 수 없어요. 단단한 곳으로 먼저 건너가세요.', 3600);
-      return;
+  /* ───────── 등불 ─────────
+   * held : 누군가 들고 있다. 빛의 원이 그 사람을 따라다닌다.
+   * hung : 고리에 걸려 있다. 원은 그 자리에 머문다. (황혼 걸음을 배웠다면 가장자리를 디딜 수 있다)
+   * fly  : 고리로, 또는 손으로 날아가는 중. */
+  function heldPoint(a) { return { x: a.x + a.dir * 15 * (a.h / 104 || 1), y: a.y - (a.kind === 'day' ? 46 : 30) * (a.kind === 'day' ? a.h / 104 : 1) }; }
+
+  /** 등불의 자리를 정한다. dt 를 주면 돌아설 때 부드럽게 따라가고, 안 주면 곧바로 옮긴다. */
+  function placeLantern(dt) {
+    const lan = G.lan;
+    if (lan.mode === 'fly' && lan.fly) {
+      const f = lan.fly, k = U.easeInOut(f.k);
+      const to = f.hook ? thingPoint(f.hook) : heldPoint(lan.holder);
+      lan.x = U.lerp(f.x0, to.x, k); lan.y = U.lerp(f.y0, to.y, k) - Math.sin(k * Math.PI) * 46;
+    } else if (lan.mode === 'hung' && lan.hook) {
+      const p = thingPoint(lan.hook); lan.x = p.x; lan.y = p.y;
+    } else if (lan.holder) {
+      const p = heldPoint(lan.holder);
+      lan.x = dt && !DN.AUTO ? U.approach(lan.x, p.x, 14, dt) : p.x; lan.y = p.y;
     }
-    G.setLantern(!G.lantern.on);
+  }
+
+  /** 지금의 빛의 원들 (세계 좌표) */
+  function bubbles() {
+    const lan = G.lan, list = [];
+    if (!G.isNight) return list;
+    const r = Math.max(lan.has ? lan.r : 0, G.dayR || 0);
+    if (r > 6) {
+      const c = lan.has ? lan : (G.player ? { x: G.player.x, y: G.player.y - 46 } : { x: 0, y: 0 });
+      list.push({ x: c.x, y: c.y, r, main: true });
+    }
+    for (const t of G.things) {
+      if (t.light && (!t.light.flag || G.flags[t.light.flag]) && !t.gone) {
+        const p = thingPoint(t);
+        list.push({ x: p.x, y: p.y, r: t.light.r, soft: true, focus: !!t.light.focus });
+      }
+    }
+    // 종과 거울: 빛을 받으면 모아서 다른 곳에 비춘다 (이어 비추기도 한다)
+    for (const t of G.things) if (t.kind === 'mirror') t.on = false;
+    for (let pass = 0; pass < 2; pass++) {
+      for (const t of G.things) {
+        if (t.kind !== 'mirror' || t.on) continue;
+        const p = thingPoint(t);
+        if (list.some((b) => Math.hypot(p.x - b.x, p.y - b.y) < b.r - T.RIM)) {
+          t.on = true;
+          list.push({ x: t.fx, y: t.fy, r: t.fr, focus: true, from: t });
+        }
+      }
+    }
+    if (G.level.bubbles) for (const b of G.level.bubbles(G)) list.push(b);
+    return list;
+  }
+
+  function updateLight() {
+    const lan = G.lan, ter = G.terrain;
+    const list = bubbles();
+    let sig = G.isNight ? 'N' : 'D';
+    for (const b of list) sig += `|${Math.round(b.x / 2)},${Math.round(b.y / 2)},${Math.round(b.r / 2)}`;
+    const arcOn = G.isNight && lan.has && lan.mode === 'hung' && G.dayR === null && G.S && G.S.duskWalk && lan.r > 40;
+    sig += arcOn ? '|A' : '';
+    if (sig === G.lightSig) return;
+    G.lightSig = sig;
+    G.bubbleList = list;
+    ter.setLight(list, !G.isNight);
+    if (arcOn) ter.setArc(lan.x, lan.y, lan.r); else if (ter.arc) ter.setArc(0, 0, 0);
+  }
+  G.updateLight = () => { G.lightSig = ''; updateLight(); };
+
+  /** 화면 좌표의 빛의 원들 (렌더러가 쓴다) */
+  G.screenBubbles = function () {
+    const lan = G.lan, walk = G.terrain.arc !== null;
+    return (G.bubbleList || []).map((b) => ({ x: b.x - G.cam.x, y: b.y, r: b.r, soft: b.soft, walk: walk && b.main }));
   };
-  G.setLantern = function (on) {
-    if (G.lantern.on === on) return;
-    G.lantern.on = on;
-    Au.sfx(on ? 'on' : 'off');
-    G.terrain.version++;
+
+  /** 서 있는 자리가 여전히 디딜 수 있는 곳인가 */
+  function footOK() {
+    const p = G.player;
+    if (!p) return true;
+    return G.terrain.standable(p.layer, Math.round(p.x / T.STEP), G.modeFor(p));
+  }
+
+  /** 등불을 바꿔 보고, 발밑이 사라지면 되돌린다 */
+  function tryLantern(change, why) {
+    const lan = G.lan;
+    const keep = { mode: lan.mode, hook: lan.hook, r: lan.r, open: lan.open, closed: lan.closed, x: lan.x, y: lan.y, fly: lan.fly };
+    const was = footOK();
+    change();
+    placeLantern();
+    G.updateLight();
+    if (was && !footOK()) {
+      Object.assign(lan, keep);
+      placeLantern();
+      G.updateLight();
+      if (why !== false) { UI.lanternShake(); Au.sfx('no'); UI.toast(why || '빛을 바꾸면 발밑의 길이 사라져요. 단단한 곳으로 먼저 옮겨 가세요.', 3600); }
+      return false;
+    }
+    return true;
+  }
+
+  /** 빛의 크기를 정한다 (0 = 끔) */
+  G.setRadius = function (r, quiet) {
+    const lan = G.lan;
+    if (!lan.has) return false;
+    r = r < R_MIN * 0.75 ? 0 : U.clamp(r, R_MIN, G.rMax);
+    const before = lan.closed;
+    const ok = tryLantern(() => { lan.closed = r === 0; if (r > 0) lan.open = r; lan.r = r; }, quiet ? false : undefined);
+    if (ok && before !== lan.closed) { Au.sfx(lan.closed ? 'off' : 'on'); if (G.level.onLantern) G.level.onLantern(makeApi(G.epoch), !lan.closed); }
     refreshHud();
-    if (G.level.onLantern) G.level.onLantern(makeApi(G.epoch), on);
+    return ok;
+  };
+
+  G.toggleLantern = function () {
+    const lan = G.lan;
+    if (G.mode !== 'play' || G.paused || !lan.has) return;
+    if (G.busy && !G.flags.lanternFree) return;
+    if (!(G.S && G.S.shutter)) { UI.lanternShake(); return; }
+    G.setRadius(lan.closed ? lan.open : 0);
+  };
+
+  /** 등불을 고리에 건다 */
+  G.hangAt = function (hook) {
+    const lan = G.lan;
+    if (!lan.has || lan.mode === 'fly') return false;
+    const from = { x: lan.x, y: lan.y };
+    const ok = tryLantern(() => { lan.mode = 'hung'; lan.hook = hook; });
+    if (!ok) return false;
+    Au.sfx('chime');
+    lan.mode = 'fly'; lan.fly = { x0: from.x, y0: from.y, hook, k: 0 };
+    placeLantern(); G.updateLight();
+    G.tween(lan.fly, 'k', 1, 0.5).then(() => {
+      lan.mode = 'hung'; lan.hook = hook; lan.fly = null; placeLantern(); G.updateLight();
+      if (G.level.openOnHang && lan.closed) G.setRadius(lan.open, true);   // 밤의 영역에서는 걸자마자 빛을 연다
+      refreshHud();
+    });
+    refreshHud();
+    return true;
+  };
+
+  /** 등불을 손으로 불러들인다. 들고 있으면 발밑이 사라질 때는 덮어서 불러온다. */
+  G.recall = function () {
+    const lan = G.lan;
+    if (!lan.has || lan.mode !== 'hung') return false;
+    const from = { x: lan.x, y: lan.y };
+    let ok = tryLantern(() => { lan.mode = 'held'; lan.hook = null; }, false);
+    if (!ok) ok = tryLantern(() => { lan.mode = 'held'; lan.hook = null; lan.closed = true; lan.r = 0; });
+    if (!ok) return false;
+    Au.sfx('pick');
+    lan.mode = 'fly'; lan.fly = { x0: from.x, y0: from.y, hook: null, k: 0 };
+    placeLantern(); G.updateLight();
+    G.tween(lan.fly, 'k', 1, 0.45).then(() => { lan.mode = 'held'; lan.fly = null; placeLantern(); G.updateLight(); refreshHud(); });
+    refreshHud();
+    return true;
   };
 
   function refreshHud() {
+    const lan = G.lan, S = G.S || {};
     UI.hud({
       show: G.mode === 'play',
-      lantern: G.lantern.has && G.lantern.canOff && !(G.level && G.level.lockLantern),
-      on: G.lantern.on,
+      lantern: lan.has && !!S.shutter && !(G.level && G.level.lockLantern),
+      on: !lan.closed,
+      recall: lan.has && lan.mode === 'hung',
       nudge: !!G.flags.nudgeLantern,
     });
   }
   G.refreshHud = refreshHud;
+
+  /* 밤이 온다: 낮이 등불 안으로 오므라든다 / 날이 샌다: 낮이 다시 온 세상으로 퍼진다 */
+  G.nightfall = async function (dur) {
+    G.todOverride = null;
+    G.dayR = 1700; G.isNight = true;
+    G.dayTod = G.tod;
+    G.updateLight();
+    Au.sfx('dark');
+    const target = G.lan.has ? G.lan.r : 0;
+    await Promise.all([G.tween(G, 'dayR', Math.max(target, 1), dur || 3.2, U.easeInOut), G.tween(G, 'dayTod', G.level.dayTod === undefined ? 0.12 : G.level.dayTod, dur || 3.2)]);
+    G.dayR = null;
+    G.updateLight();
+  };
+  G.daybreak = async function (dur) {
+    G.dayR = Math.max(G.lan.has ? G.lan.r : 0, 1);
+    await Promise.all([G.tween(G, 'dayR', 1900, dur || 3.4, U.easeInOut), G.tween(G, 'dayTod', 3, dur || 3.4)]);
+    G.tod = 3; G.todOverride = 3;
+    G.isNight = false; G.dayR = null;
+    for (const a of G.agents) if (a.kind === 'night' && a !== G.player) a.visible = false;   // 나이트는 낮에 남지 않는다
+    G.updateLight();
+  };
 
   /* ───────── 스크립트 ───────── */
   function makeApi(ep) {
@@ -473,6 +603,8 @@
       tween: wrap((obj, key, to, dur, ease) => G.tween(obj, key, to, dur, ease)),
       tod: wrap((v, dur) => { if (G.todOverride === null) G.todOverride = G.tod; return G.tween(G, 'todOverride', v, dur || 2); }),
       todFree: () => { G.todOverride = null; },
+      nightfall: wrap((dur) => G.nightfall(dur)),
+      daybreak: wrap((dur) => G.daybreak(dur)),
       cam: wrap((x, dur) => {
         const tx = U.clamp(x - R.W / 2, 0, Math.max(0, G.level.width - R.W));
         if (!G.cam.script) G.cam.script = { x: G.cam.x };
@@ -486,14 +618,13 @@
       sfx: (n) => Au.sfx(n),
       emote: (a, txt, sec) => { (typeof a === 'string' ? G.agent(a) : a).emote = { txt, t: sec || 1.8 }; },
       thing: G.thing, agent: G.agent,
-      flag: (k, v) => { G.flags[k] = v === undefined ? true : v; refreshBlocks(); refreshHud(); },
+      flag: (k, v) => { G.flags[k] = v === undefined ? true : v; refreshBlocks(); G.updateLight(); refreshHud(); },
       face: (a, dir) => { (typeof a === 'string' ? G.agent(a) : a).dir = dir; },
-      lantern: (on) => G.setLantern(on),
-      give: (what) => {
-        if (what === 'lantern') { G.S.lantern.has = true; G.lantern.has = true; G.lantern.on = true; }
-        if (what === 'off') { G.S.lantern.canOff = true; G.lantern.canOff = true; }
-        if (what === 'shadow') { G.S.shadowWalk = true; }
-        refreshHud();
+      /** 배운 것을 적어 둔다: lantern, hooks, shutter, shadowWalk, duskSight, duskWalk */
+      learn: (what) => {
+        G.S[what] = true;
+        if (what === 'lantern') { G.lan.has = true; G.lan.closed = false; G.lan.r = G.lan.open; placeLantern(); }
+        G.updateLight(); refreshHud();
       },
       clue: (id) => { if (!G.S.clues.includes(id)) { G.S.clues.push(id); Au.sfx('star'); } },
       next: () => { guard(); G.nextChapter(); },
@@ -524,7 +655,6 @@
     G.time += dt;
     UI.tick(dt);
     Au.tick();
-    // 대기와 보간
     for (let i = G.waits.length - 1; i >= 0; i--) {
       const w = G.waits[i];
       let ok = false;
@@ -539,8 +669,15 @@
       if (k >= 1) { G.tweens.splice(i, 1); tw.res(); }
     }
     for (const a of G.agents) updateAgent(a, dt);
-    updateThings(dt);
+
+    // 등불
+    const lan = G.lan;
+    const want = lan.has && !lan.closed ? lan.open : 0;
+    if (!(G.pointer && G.pointer.kind === 'rim')) lan.r = DN.AUTO || Math.abs(lan.r - want) < 1 ? want : U.approach(lan.r, want, 9, dt);
+    placeLantern(dt);
+    updateLight();
     if (G.level.update) G.level.update(G.api(), dt);
+    updateLight();
 
     // 발 디딘 곳에서 벌어지는 일
     const p = G.player;
@@ -549,7 +686,7 @@
         if (tr.done) continue;
         if (tr.if && !tr.if(G)) continue;
         if (tr.layers && !tr.layers.includes(p.layer.id)) continue;
-        const hit = tr.x1 !== undefined ? (p.x >= tr.x0 && p.x <= tr.x1) : (tr.dir === -1 ? p.x <= tr.x : p.x >= tr.x);
+        const hit = tr.x1 !== undefined ? (p.x >= tr.x0 && p.x <= tr.x1) : p.x >= tr.x;
         if (!hit) continue;
         tr.done = true;
         // 대사가 끝나면 가던 길을 마저 간다 (장면이 바뀌거나 자리를 옮긴 경우는 빼고)
@@ -577,12 +714,11 @@
       }
     }
 
-    // 시간대
+    // 해가 떠 있는 동안의 하늘빛
     const todTarget = G.todOverride !== null ? G.todOverride : todFor(G.level, p ? p.x : 0);
     G.tod = G.todOverride !== null ? todTarget : U.approach(G.tod, todTarget, 1.2, dt);
-    G.eyes = U.approach(G.eyes === undefined ? 1 : G.eyes, (G.lantern.has && !G.lantern.on) ? 0.66 : 1, 1.6, dt);   // 불을 끄면 눈이 어둠에 익는다
-    G.shadowSolid = U.approach(G.shadowSolid, (G.lantern.has && !G.lantern.on && G.S && G.S.shadowWalk) ? 1 : 0, 5, dt);
-    Au.setMood(G.tod, G.level.theme, G.lantern.on || !G.lantern.has);
+    G.eyes = U.approach(G.eyes, (G.isNight && lan.r < 8 && G.dayR === null) ? 0.6 : 1, 1.6, dt);   // 불을 끄면 눈이 어둠에 익는다
+    Au.setMood(G.isNight ? 2 : G.tod, G.level.theme, !G.isNight || lan.r > 8);
 
     // 카메라
     const W = R.W, maxX = Math.max(0, G.level.width - W);
@@ -597,15 +733,12 @@
       G.cam.x = U.approach(G.cam.x, tx, 2.6, dt);
     }
 
-    // 입자
     for (let i = G.particles.length - 1; i >= 0; i--) {
       const q = G.particles[i];
       q.life += dt; q.x += q.vx * dt; q.y += q.vy * dt; q.vy += (q.g === undefined ? 30 : q.g) * dt; q.vx *= 0.985;
       if (q.life >= q.max) G.particles.splice(i, 1);
     }
     if (G.tapMark) { G.tapMark.t += dt; if (G.tapMark.t > 0.6) G.tapMark = null; }
-    Au.rumble(G.pointer && G.pointer.kind === 'knob' && G.pointer.moved ? Math.min(0.4, 0.1 + (G.pointer.vel || 0) * 0.01) : 0);
-    if (G.pointer) G.pointer.vel = U.approach(G.pointer.vel || 0, 0, 6, dt);
   };
 
   /* ───────── 입력 ───────── */
@@ -614,14 +747,7 @@
     const sx = (e.clientX - rect.left) / R.cssScale, sy = (e.clientY - rect.top) / R.cssScale;
     return { sx, sy, wx: sx + G.cam.x, wy: sy };
   }
-  function dragAgents() { return G.agents.filter((a) => a.visible && a.layer && a.kind !== 'boat'); }
-  function knobUnder(wx, wy) {
-    const L = G.terrain.hit(wx, wy);
-    if (!L) return null;
-    const k = L.knobAt(wx);
-    if (!k || (L.def.lock && !G.flags[L.def.lock])) return null;
-    return { L, k };
-  }
+  function canShape() { return G.lan.has && G.isNight && G.dayR === null && G.S && G.S.shutter && !G.level.lockLantern && G.lan.mode !== 'fly'; }
 
   function bindInput(canvas) {
     canvas.addEventListener('pointerdown', (e) => {
@@ -629,40 +755,32 @@
       if (G.mode !== 'play' || G.busy || G.paused || !G.player) return;
       e.preventDefault();
       try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
-      const w = toWorld(e);
-      const p = (G.pointer = { id: e.pointerId, sx0: w.sx, sy0: w.sy, wx: w.wx, wy: w.wy, moved: false, kind: 'pan', pan0: G.cam.pan, vel: 0 });
-      const hit = knobUnder(w.wx, w.wy);
-      if (hit) {
-        if (G.terrain.underfoot(hit.L, hit.k, G.agents.filter((a) => !a.rides && a.visible))) { p.kind = 'locked'; p.L = hit.L; p.k = hit.k; }
-        else { p.kind = 'knob'; p.L = hit.L; p.k = hit.k; p.v0 = hit.k.v; p.bell = Math.max(0.45, hit.L.bell(hit.k, w.wx)); }
+      const w = toWorld(e), lan = G.lan;
+      const p = (G.pointer = { id: e.pointerId, sx0: w.sx, sy0: w.sy, wx: w.wx, wy: w.wy, moved: false, kind: 'pan', pan0: G.cam.pan });
+      if (canShape()) {
+        // 빛의 가장자리를 잡았거나, 등불에서 바깥으로 끌기 시작했다
+        const d = Math.hypot(w.wx - lan.x, w.wy - lan.y);
+        if ((lan.r > 8 && Math.abs(d - lan.r) < 30) || d < 30) p.kind = 'rim';
       }
     });
     canvas.addEventListener('pointermove', (e) => {
-      const w = toWorld(e);
-      const p = G.pointer;
+      const w = toWorld(e), p = G.pointer, lan = G.lan;
       if (!p || p.id !== e.pointerId) {
-        if (G.mode === 'play' && !G.busy && e.pointerType === 'mouse') {
-          G.hover = knobUnder(w.wx, w.wy);
-          canvas.style.cursor = G.hover ? 'ns-resize' : 'pointer';
+        if (G.mode === 'play' && !G.busy && e.pointerType === 'mouse' && canShape()) {
+          const d = Math.hypot(w.wx - lan.x, w.wy - lan.y);
+          canvas.style.cursor = (lan.r > 8 && Math.abs(d - lan.r) < 30) || d < 30 ? 'grab' : 'pointer';
         }
         return;
       }
       const dx = w.sx - p.sx0, dy = w.sy - p.sy0;
       if (!p.moved && Math.hypot(dx, dy) > 7) p.moved = true;
-      if (!p.moved) return;
-      if (p.kind === 'knob') {
-        if (G.busy) return;
-        const before = p.k.v;
-        G.terrain.drag(p.L, p.k, p.v0 + dy / p.bell, dragAgents().concat(G.agents.filter((a) => a.kind === 'boat' && false)));
-        p.vel = (p.vel || 0) + Math.abs(p.k.v - before);
-        if (G.level.onDrag && p.k.v !== before) G.level.onDrag(G.api(), p.L, p.k);
+      if (!p.moved || G.busy) return;
+      if (p.kind === 'rim') {
+        const ok = G.setRadius(Math.hypot(w.wx - lan.x, w.wy - lan.y), p.told);
+        if (!ok) p.told = true;
       } else if (p.kind === 'pan') {
         const W = R.W, maxX = Math.max(0, G.level.width - W);
         G.cam.pan = U.clamp(p.pan0 - dx, -G.cam.x - 2000, maxX + 2000);
-      } else if (p.kind === 'locked' && !p.told) {
-        p.told = true;
-        Au.sfx('no');
-        UI.toast('발밑의 땅은 움직일 수 없어요. 다른 곳으로 옮겨 가서 끌어 보세요.', 3600);
       }
     });
     const up = (e) => {
@@ -671,35 +789,54 @@
       G.pointer = null;
       if (G.mode !== 'play' || G.busy) return;
       if (!p.moved) { tap(p.wx, p.wy); return; }
-      if (p.kind === 'knob') {
-        Au.sfx('tap');
-        G.flags.dragged = (G.flags.dragged || 0) + 1;
-        if (G.level.onDragEnd) G.level.onDragEnd(G.api(), p.L, p.k);
-      }
+      if (p.kind === 'rim') { G.flags.shaped = (G.flags.shaped || 0) + 1; Au.sfx('tap'); }
     };
     canvas.addEventListener('pointerup', up);
     canvas.addEventListener('pointercancel', up);
+    canvas.addEventListener('wheel', (e) => {
+      if (G.mode !== 'play' || G.busy || !canShape()) return;
+      e.preventDefault();
+      const lan = G.lan, cur = lan.closed ? 0 : lan.open;
+      G.setRadius(cur + (e.deltaY < 0 ? 14 : -14), true);
+    }, { passive: false });
     root.addEventListener('keydown', (e) => {
       if (e.repeat) return;
       if ((e.key === 'l' || e.key === 'L' || e.key === 'f' || e.key === 'F') && !UI.talking()) G.toggleLantern();
+      if ((e.key === 'r' || e.key === 'R') && !UI.talking() && !G.busy) G.recall();
       if (e.key === 'Escape') UI.openMenu();
     });
   }
 
+  /** 지금 이 사물을 누를 수 있는가 (황혼에만 있는 것은 가장자리가 닿아야 보인다) */
+  function present(t) {
+    if (!t.visible || t.gone) return false;
+    if (t.if && !t.if(G)) return false;
+    if (t.when === 'dusk') { const p = thingPoint(t); return G.isNight && G.terrain.zoneAt(p.x, p.y) === 'dusk'; }
+    return true;
+  }
+  G.present = present;
+
   function tap(wx, wy) {
-    const p = G.player;
-    // 누를 수 있는 사물
+    const p = G.player, lan = G.lan;
+    // 걸려 있는 등불이나 든 사람을 누르면 불러들인다
+    if (lan.has && lan.mode === 'hung' && Math.hypot(wx - lan.x, wy - lan.y) < 34) { G.recall(); return; }
     let best = null, bd = Infinity;
     for (const t of G.things) {
-      if (!t.tap || !t.visible || t.gone) continue;
-      if (t.if && !t.if(G)) continue;
-      const pos = thingPos(t);
-      const cx = t.sky ? pos.x - G.cam.x * (t.par || 0) + G.cam.x : pos.x;
-      const d = Math.hypot(wx - cx, wy - (pos.y - (t.sky ? 0 : t.dy)));
+      if (!(t.tap || t.kind === 'hook') || !present(t)) continue;
+      if (t.kind === 'hook' && !(G.S && G.S.hooks && lan.has && G.isNight && G.dayR === null)) continue;
+      const pt = t.sky ? { x: t.x - G.cam.x * (t.par || 0) + G.cam.x, y: t.y } : thingPoint(t);
+      const d = Math.hypot(wx - pt.x, wy - pt.y);
       if (d < t.r && d < bd) { bd = d; best = t; }
     }
     G.tapMark = { x: wx, y: wy, t: 0, thing: !!best };
     Au.sfx('tap');
+    if (best && best.kind === 'hook') {
+      const pt = thingPoint(best);
+      if (Math.hypot(pt.x - p.x, pt.y - (p.y - 40)) > REACH) { p.emote = { txt: '…', t: 1.4 }; UI.toast('너무 멀어요. 조금 더 가까이 가서 걸어 보세요.', 3000); return; }
+      if (lan.mode === 'hung' && lan.hook === best) { G.recall(); return; }
+      G.hangAt(best);
+      return;
+    }
     if (best) {
       if (best.sky || best.remote) {
         if (!best.zone || (p.x >= best.zone[0] && p.x <= best.zone[1])) { G.run((g) => best.tap(g, best)); return; }
@@ -713,43 +850,69 @@
       return;
     }
     G.pendingThing = null;
-    const ok = G.goTo(p, wx, wy);
+    G.goTo(p, wx, wy);
     G.flags.walked = (G.flags.walked || 0) + 1;
-    if (!ok && G.level.onStuck) G.level.onStuck(G.api());
   }
   G.tap = tap;
 
-  /* ───────── 그리기 (렌더러가 부른다) ───────── */
+  /* ───────── 그리기 (렌더러가 구역마다 부른다) ───────── */
   G.drawLayerThings = function (ctx, L, env, camX) {
-    const ter = G.terrain, t = G.time;
+    const ter = G.terrain, t = G.time, pass = env.pass;
     for (const th of G.things) {
-      if (th.layerRef !== L || !th.visible || th.gone) continue;
+      if (th.layerRef !== L && !(th.layerRef === null && L.index === ter.layers.length - 1)) continue;
+      if (!th.visible || th.gone) continue;
       if (th.if && !th.if(G)) continue;
-      const sx = th.x - camX;
-      if (sx < -200 || sx > R.W + 200) continue;
-      const y = ter.yAt(L, th.x);
+      if (th.when && th.when !== pass && !(th.when === 'dusk' && th.glint && pass === 'night')) continue;
+      const pos = thingPos(th), sx = pos.x - camX, y = pos.y;
+      if (sx < -260 || sx > R.W + 260) continue;
       ctx.save();
       if (th.kind === 'soot') {
-        Art.soot(ctx, sx, y + 4, th.rad, t, { awake: th.awake, fade: th.fade, seed: th.seed });
-      } else if (th.kind === 'spirit') {
-        if (!th.hiddenBody) {
-          Art.spirit(ctx, th.spirit, sx, y - (th.dy || 30), t, { tired: th.tired, scale: th.scale, alpha: th.alpha });
-          R.lights.push({ x: sx, y: y - (th.dy || 30), r: 120 * (th.scale || 1), a: 0.85 });
+        if (th.type === 'eater') {
+          // 빛 속에서는 깨어 커지고, 어둠 속에서는 웅크려 잔다
+          Art.soot(ctx, sx, y + 4, th.rad, t, { awake: pass === 'day' ? 1 : 0.12, seed: th.seed, eater: true });
+        } else if (th.type === 'dense') {
+          const lit = ter.inFocus(th.x, y - th.rad * 0.8);
+          th.vis = U.approach(th.vis, lit ? 0 : 1, 4, 0.016);
+          if (th.vis > 0.02) Art.soot(ctx, sx, y + 4, th.rad, t, { awake: 1, fade: 1 - th.vis, seed: th.seed, dense: true });
+        } else if (pass === 'night') {
+          Art.soot(ctx, sx, y + 4, th.rad, t, { awake: 1, seed: th.seed });
         }
+      } else if (th.kind === 'spirit') {
+        Art.spirit(ctx, th.spirit, sx, y - (th.dy || 30), t, { tired: th.tired, scale: th.scale, alpha: th.alpha });
       } else if (th.kind === 'npc') {
-        Art.folk(ctx, sx, y, { who: th.who, dir: th.dir || -1, t, tint: (c) => env.shade(c), shiver: th.shiver, pole: th.pole, alpha: th.alpha });
+        Art.folk(ctx, sx, y, { who: th.who, dir: th.dir || -1, t, tint: (c) => env.shade(c), shiver: th.shiver && pass === 'night', pole: th.pole, alpha: th.alpha });
       } else if (th.kind === 'girl') {
-        Art.girl(ctx, th.who, sx, y, { h: th.h || 112, dir: th.dir || 1, t, variant: th.variant, alpha: th.alpha });
+        if (!(th.who === 'night' && pass === 'day' && G.isNight && !th.anyZone)) Art.girl(ctx, th.who, sx, y, { h: th.h, dir: th.dir || 1, t, variant: th.variant, alpha: th.alpha });
+      } else if (th.kind === 'hook') {
+        const pt = thingPoint(th);
+        const can = G.S && G.S.hooks && G.lan.has && G.isNight;
+        ctx.translate(sx, pt.y);
+        Art.prop(ctx, 'hook', env, { active: can, held: G.lan.mode === 'hung' && G.lan.hook === th, seed: th.x });
+      } else if (th.kind === 'mirror') {
+        const pt = thingPoint(th);
+        ctx.translate(sx, pt.y);
+        Art.prop(ctx, th.look || 'bell', env, { on: th.on });
+      } else if (th.kind === 'shard') {
+        const pt = thingPoint(th);
+        ctx.translate(sx, pt.y);
+        if (pass === 'dusk') Art.prop(ctx, 'shard', env, { seed: th.x });
+        else Art.prop(ctx, 'glint', env, { seed: th.x });
+      } else if (th.kind === 'clue') {
+        const pt = thingPoint(th);
+        ctx.translate(sx, pt.y);
+        if (th.alpha !== undefined) ctx.globalAlpha = th.alpha;
+        if (pass === 'night' && th.when === 'dusk') Art.prop(ctx, 'glint', env, { seed: th.x, violet: true });
+        else Art.prop(ctx, 'clue', env, { seed: th.x, dy: 0 });
       } else {
-        ctx.translate(sx, y);
+        const pt = thingPoint(th);
+        ctx.translate(sx, th.kind === 'spot' ? pt.y : y);
         env.layer = L; env.ax = th.x;
         if (th.alpha !== undefined) ctx.globalAlpha = th.alpha;
-        Art.prop(ctx, th.kind === 'spot' ? (th.mark || 'spark') : th.kind, env, th);
+        Art.prop(ctx, th.kind === 'spot' ? (th.mark || 'spark') : th.kind, env, Object.assign({}, th, { dy: 0 }));
         env.layer = null;
       }
       ctx.restore();
     }
-    // 인물: 따르는 이 먼저, 이끄는 이 나중
     for (const a of G.agents) {
       if (a.layer !== L || !a.visible) continue;
       drawAgent(ctx, a, env, camX);
@@ -757,30 +920,23 @@
   };
 
   function drawAgent(ctx, a, env, camX) {
-    const sx = a.x - camX, t = G.time;
+    const sx = a.x - camX, t = G.time, lan = G.lan;
     if (sx < -200 || sx > R.W + 200) return;
+    if (a.kind === 'night' && env.pass === 'day' && G.isNight && !a.anyZone) return;   // 나이트는 빛 속에 서지 않는다
+    const holds = lan.has && lan.mode === 'held' && lan.holder === a;
     ctx.save();
     if (a.alpha !== 1) ctx.globalAlpha = a.alpha;
     let hand = null;
     if (a.kind === 'day' || a.kind === 'night') {
-      hand = Art.girl(ctx, a.kind, sx, a.y + 3, { h: a.h, dir: a.dir, phase: a.phase, moving: a.moving, t, variant: a.variant });
+      hand = Art.girl(ctx, a.kind, sx, a.y + 2, { h: a.h, dir: a.dir, phase: a.phase, moving: a.moving, t, variant: a.variant, hold: holds });
     } else if (a.kind === 'boat') {
       ctx.translate(sx, a.y + Math.sin(t * 1.5 + a.x * 0.01) * 2);
       Art.prop(ctx, 'boat', env, { dir: a.dir, seed: a.seed || 0, home: a.home, hull: a.hull, sail: a.sail, s: a.s || 1 });
     } else {
-      hand = Art.folk(ctx, sx, a.y + 2, { who: a.kind, dir: a.dir, phase: a.phase, moving: a.moving, t, tint: (c) => env.shade(c), pole: a.pole && !a.lantern, shiver: a.shiver });
+      hand = Art.folk(ctx, sx, a.y + 2, { who: a.kind, dir: a.dir, phase: a.phase, moving: a.moving, t, tint: (c) => env.shade(c), pole: a.pole && !holds, shiver: a.shiver });
     }
     ctx.restore();
-    if (hand && a.lantern && G.lantern.has) {
-      const lp = Art.lantern(ctx, hand.x, hand.y, G.lantern.on, t, Math.sin(a.phase) * 0.12 * a.moving);
-      G.lanternPos = { x: lp.x + camX, y: lp.y };
-      if (G.lantern.on) {
-        const dark = U.clamp(R.pal.dark / 0.4, 0.25, 1);
-        const flick = 1 + Math.sin(t * 9) * 0.012 + Math.sin(t * 23) * 0.008;
-        R.lights.push({ x: lp.x, y: lp.y, r: (G.level.lightR || 250) * flick, a: 0.96, warm: dark });
-        R.glows.push({ x: lp.x * R.scale, y: lp.y * R.scale, r: 26 * R.scale, rgb: [255, 226, 150], a: 0.55 * dark + 0.15 });
-      }
-    }
+    if (hand && holds) Art.lantern(ctx, hand.x, hand.y, lan.r > 8, t, Math.sin(a.phase) * 0.12 * a.moving);
     if (a.emote) {
       const k = Math.min(1, a.emote.t * 3);
       ctx.save(); ctx.globalAlpha = k;
@@ -794,7 +950,23 @@
   }
 
   G.drawOver = function (ctx, env, camX) {
+    const lan = G.lan, t = G.time;
     if (G.level.drawOver) G.level.drawOver(ctx, G, env, camX);
+    // 걸려 있거나 날아가는 등불
+    if (lan.has && lan.mode !== 'held') Art.lantern(ctx, lan.x - camX, lan.y - 14, lan.r > 8, t, 0);
+    // 종과 거울이 되비추는 빛줄기
+    if (R.collect) {
+      for (const th of G.things) {
+        if (th.kind !== 'mirror' || !th.on) continue;
+        const p = thingPoint(th);
+        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+        for (const [w, al] of [[9, 0.08], [3, 0.2], [1.2, 0.5]]) {
+          ctx.strokeStyle = `rgba(255,232,170,${al * (0.8 + 0.2 * Math.sin(t * 8))})`; ctx.lineWidth = w;
+          ctx.beginPath(); ctx.moveTo(p.x - camX, p.y); ctx.lineTo(th.fx - camX, th.fy); ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
     for (const q of G.particles) {
       if (q.add) continue;
       const k = 1 - q.life / q.max;
@@ -804,8 +976,17 @@
   };
 
   G.drawTop = function (ctx, env, camX) {
-    const ter = G.terrain, t = G.time;
-    // 빛나는 입자
+    const lan = G.lan, t = G.time;
+    // 등불의 따스한 빛무리
+    if (lan.has && lan.r > 8) {
+      const gx = (lan.x - camX) * R.scale, gy = (lan.mode === 'held' ? lan.y + 12 : lan.y) * R.scale;
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'lighter';
+      const fl = 1 + Math.sin(t * 9) * 0.03;
+      const gr = ctx.createRadialGradient(gx, gy, 0, gx, gy, 44 * R.scale * fl);
+      gr.addColorStop(0, `rgba(255,226,150,${G.isNight ? 0.5 : 0.18})`); gr.addColorStop(1, 'rgba(255,226,150,0)');
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(gx, gy, 44 * R.scale * fl, 0, TAU); ctx.fill();
+      ctx.restore();
+    }
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     for (const q of G.particles) {
       if (!q.add) continue;
@@ -815,41 +996,19 @@
     }
     ctx.restore();
     if (G.level.drawTop) G.level.drawTop(ctx, G, env, camX);
-
-    // 끌 수 있는 언덕의 손잡이
-    if (G.mode === 'play' && !G.busy) {
-      const walkers = G.agents.filter((a) => !a.rides && a.visible);
-      for (const L of ter.layers) {
-        if (L.def.lock && !G.flags[L.def.lock]) continue;
-        for (const k of L.knobs) {
-          if (k.lo === k.hi || !k.hint) continue;
-          const sx = k.c - camX;
-          if (sx < 20 || sx > R.W - 20) continue;
-          const i = Math.round(k.c / T.STEP);
-          if (ter.hiddenAt(L, i)) continue;
-          const y = L.ys[i];
-          if (y > 690) continue;
-          const active = (G.pointer && G.pointer.k === k) || (G.hover && G.hover.k === k);
-          const locked = ter.underfoot(L, k, walkers);
-          const pulse = 0.5 + 0.5 * Math.sin(t * 2.4 + k.c * 0.01);
-          const a = locked ? 0.16 : active ? 0.95 : 0.34 + pulse * 0.3;
-          const off = active ? 3 : pulse * 3;
-          ctx.save();
-          ctx.translate(sx, y);
-          ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-          for (const pass of [0, 1]) {
-            ctx.strokeStyle = pass === 0 ? `rgba(40,30,44,${a * 0.55})` : `rgba(255,250,235,${a})`;
-            ctx.lineWidth = pass === 0 ? 5 : 2.4;
-            ctx.beginPath();
-            if (k.v > k.lo + 1) { ctx.moveTo(-9, -15 - off); ctx.lineTo(0, -24 - off); ctx.lineTo(9, -15 - off); }
-            if (k.v < k.hi - 1) { ctx.moveTo(-9, 15 + off); ctx.lineTo(0, 24 + off); ctx.lineTo(9, 15 + off); }
-            ctx.stroke();
-          }
-          ctx.restore();
-        }
+    // 빛의 가장자리를 잡는 손잡이
+    if (G.mode === 'play' && !G.busy && canShape() && lan.r > 8) {
+      const a = (G.pointer && G.pointer.kind === 'rim') ? 0.95 : 0.4 + 0.25 * Math.sin(t * 2.4);
+      const hx = lan.x - camX + lan.r * 0.74, hy = lan.y - lan.r * 0.67;
+      ctx.save(); ctx.translate(hx, hy); ctx.rotate(-0.74);
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      for (const pass of [0, 1]) {
+        ctx.strokeStyle = pass === 0 ? `rgba(40,30,44,${a * 0.5})` : `rgba(255,250,235,${a})`;
+        ctx.lineWidth = pass === 0 ? 5 : 2.2;
+        ctx.beginPath(); ctx.moveTo(-9, -7); ctx.lineTo(-15, 0); ctx.lineTo(-9, 7); ctx.moveTo(9, -7); ctx.lineTo(15, 0); ctx.lineTo(9, 7); ctx.stroke();
       }
+      ctx.restore();
     }
-    // 누른 자리
     if (G.tapMark) {
       const k = G.tapMark.t / 0.6;
       ctx.strokeStyle = G.tapMark.thing ? `rgba(255,236,170,${1 - k})` : `rgba(255,252,240,${0.8 * (1 - k)})`;
@@ -857,8 +1016,6 @@
       ctx.beginPath(); ctx.ellipse(G.tapMark.x - camX, G.tapMark.y, 8 + k * 22, (8 + k * 22) * 0.7, 0, 0, TAU); ctx.stroke();
     }
   };
-
-  G.drawMural = function (ctx, b, ox, pal, t) { if (G.level.drawMural) G.level.drawMural(ctx, G, b, ox, pal, t); };
 
   /* ───────── 결말 ───────── */
   G.finish = async function () {

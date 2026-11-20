@@ -28,6 +28,7 @@
         </svg>
         <i></i>
       </button>
+      <button id="btn-recall" type="button" class="gone" aria-label="걸어 둔 등불 부르기">부르기</button>
     </div>
 
     <div id="catch"></div>
@@ -55,7 +56,7 @@
           <button type="button" data-act="gallery">엔딩 기록</button>
         </div>
       </div>
-      <p class="foot">언덕을 위아래로 끌어 길을 잇고, 가고 싶은 곳을 누르세요.</p>
+      <p class="foot">가고 싶은 곳을 누르면 걷습니다. 밤이 오면, 등불 속에 낮이 한 줌 남습니다.</p>
     </div>
 
     <div id="menu" class="panel">
@@ -66,7 +67,7 @@
         <button type="button" data-act="sound">소리 끄기</button>
         <button type="button" data-act="title">첫 화면으로</button>
       </div>
-      <p class="help">· 가고 싶은 곳을 누르면 걸어갑니다.<br>· 언덕을 위아래로 끌면 모양이 바뀝니다. 발밑의 땅은 움직이지 않습니다.<br>· 반짝이는 것은 눌러서 살펴볼 수 있습니다.</p>
+      <p class="help">· 가고 싶은 곳을 누르면 걸어갑니다.<br>· 등불 둘레의 빛 안은 낮, 밖은 밤입니다. 밤에만 있는 것과 낮에만 있는 것이 다릅니다.<br>· 고리를 누르면 등불을 걸고, 빛의 가장자리를 끌면 크기가 바뀝니다. (배운 뒤부터)<br>· 반짝이는 것은 눌러서 살펴볼 수 있습니다.</p>
     </div>
 
     <div id="ending">
@@ -91,7 +92,6 @@
 </div>
 
 <script src="js/util.js"></script>
-<script src="js/sprites.js"></script>
 <script src="js/terrain.js"></script>
 <script src="js/art.js"></script>
 <script src="js/render.js"></script>

@@ -53,6 +53,7 @@ button { font-family: inherit; color: var(--ink); cursor: pointer; }
 #btn-lantern.shake { animation: shake .4s; }
 @keyframes nudge { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
 @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(calc(-6 * var(--u))); } 75% { transform: translateX(calc(6 * var(--u))); } }
+#btn-recall { right: calc(120 * var(--u)); bottom: calc(40 * var(--u)); height: calc(52 * var(--u)); padding: 0 calc(20 * var(--u)); border-radius: calc(26 * var(--u)); font-size: calc(19 * var(--u)); }
 #hud.hide button, #hud button.gone { opacity: 0; pointer-events: none; }
 
 /* 대화 */
@@ -124,7 +125,7 @@ button { font-family: inherit; color: var(--ink); cursor: pointer; }
 #title .inner { margin-top: calc(-150 * var(--u)); }
 #title h1 { margin: 0; font-size: calc(92 * var(--u)); font-weight: 700; letter-spacing: .06em; display: flex; align-items: baseline; gap: calc(22 * var(--u)); justify-content: center; text-shadow: 0 calc(3 * var(--u)) calc(26 * var(--u)) rgba(24, 14, 44, .55); }
 #title h1 .d { color: #fff7e0; }
-#title h1 .n { color: #25234a; text-shadow: 0 0 calc(22 * var(--u)) rgba(230, 226, 255, .65); }
+#title h1 .n { color: #dcd8f6; text-shadow: 0 calc(3 * var(--u)) calc(26 * var(--u)) rgba(10, 8, 40, .8); }
 #title h1 .amp { font-size: calc(54 * var(--u)); color: #f6c4a2; }
 #title .sub { margin: calc(8 * var(--u)) 0 0; font-size: calc(24 * var(--u)); letter-spacing: .34em; text-shadow: 0 calc(2 * var(--u)) calc(12 * var(--u)) rgba(24, 14, 44, .7); }
 #title .run { min-height: calc(26 * var(--u)); margin: calc(10 * var(--u)) 0 calc(18 * var(--u)); font-size: calc(18 * var(--u)); color: #e9d2ff; text-shadow: 0 0 calc(10 * var(--u)) rgba(40, 20, 70, .9); }

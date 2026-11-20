@@ -40,6 +40,8 @@
       if (e.key === ' ' || e.key === 'Enter') { if (pending) { e.preventDefault(); UI.advance(); } }
     });
     el.lantern.addEventListener('click', () => game.toggleLantern());
+    el.recall = $('#btn-recall');
+    el.recall.addEventListener('click', () => { if (!game.busy) game.recall(); });
     el.menuBtn.addEventListener('click', () => UI.openMenu());
     el.menu.addEventListener('click', (e) => {
       const act = e.target && e.target.dataset && e.target.dataset.act;
@@ -158,6 +160,7 @@
     el.lantern.classList.toggle('on', !!st.on);
     el.lantern.classList.toggle('off', !st.on);
     el.lantern.classList.toggle('nudge', !!st.nudge);
+    el.recall.classList.toggle('gone', !st.recall);
   };
   UI.lanternShake = function () {
     el.lantern.classList.remove('shake'); void el.lantern.offsetWidth; el.lantern.classList.add('shake');

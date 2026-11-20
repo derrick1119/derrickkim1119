@@ -1,14 +1,17 @@
-/* 데이 & 나이트 — 지형
+/* 데이 & 나이트 — 지형과 세 구역
  *
- * 세계는 뒤에서 앞으로 겹쳐진 "언덕 겹"들로 이루어진다. 각 겹은 능선 곡선 하나를 가지며
- * 능선 아래는 화면 바닥까지 채워져 뒤쪽 겹을 가린다.
+ * 풍경은 뒤에서 앞으로 겹쳐진 언덕 겹들이고, 인물은 능선 위를 걷는다.
+ * 지형은 움직이지 않는다. 바뀌는 것은 "빛"이다.
  *
- *  - 인물은 능선 위를 걷는다. 앞쪽 겹에 가려진 곳은 걸을 수 없다.
- *  - 두 능선이 만나는 곳에서 다른 겹으로 건너갈 수 있다.
- *  - 플레이어는 겹의 "손잡이(knob)"를 위아래로 끌어 능선 모양을 바꾼다.
- *    단, 누군가 서 있는 자리의 땅은 움직일 수 없다.
+ *   밤이 오면 낮은 등불 안으로 오므라든다. 등불 둘레의 동그란 빛(bubble) 안은 낮,
+ *   밖은 밤, 그 가장자리의 얇은 띠는 황혼이다.
  *
- * DOM 에 의존하지 않으므로 Node 에서도 그대로 돌려 레벨을 검증할 수 있다.
+ *   - 낮에만 있는 것 : 낮의 길(구름), 깨어난 '빛 먹는 그을음'
+ *   - 밤에만 있는 것 : 그을음(두려움), 그림자 다리, 밤의 섬
+ *   - 황혼(가장자리) : 낮의 것도 밤의 것도 디딜 수 있고, 아무것도 막지 않는다.
+ *                      걸어 둔 등불의 가장자리는 그 자체가 길이 된다 (황혼 걸음).
+ *
+ * DOM 에 의존하지 않으므로 Node 에서도 그대로 돌려 볼 수 있다.
  */
 (function (root) {
   'use strict';
@@ -17,61 +20,32 @@
 
   const STEP = 4;          // 능선 표본 간격(px)
   const ABSENT = 4000;     // 겹이 없는 곳의 y
-  const FLOOR_Y = 704;     // 이보다 아래의 능선은 걸을 수 없다 (화면 밖)
+  const FLOOR_Y = 704;     // 이보다 아래는 걸을 수 없다 (화면 밖)
   const MAX_RISE = 17;     // 한 표본 사이에 오를 수 있는 최대 높이 (절벽 판정)
   const CROSS_TOL = 7;     // 두 능선이 "만난다"고 보는 높이 차
   const HIDE_TOL = 2;      // 앞 겹이 이만큼 이상 높으면 뒤 겹은 가려진 것
+  const RIM = 15;          // 황혼 띠의 반 두께
+  const FOOT = 8;          // 구역을 재는 높이 (발 조금 위)
 
   class Layer {
     constructor(def, index) {
       this.def = def;
       this.id = def.id;
       this.index = index;
-      this.kind = def.kind || 'hill';        // 'hill' 부드러운 곡선 | 'poly' 꺾은선(지붕) | 'step' 계단
-      this.pts = def.pts.map((p) => [p[0], p[1]]);
+      this.kind = def.kind || 'hill';        // 'hill' 부드러운 곡선 | 'poly' 꺾은선(지붕, 계단)
+      this.pts = (def.pts || [[0, ABSENT], [1, ABSENT]]).map((p) => [p[0], p[1]]);
       this.walk = def.walk !== false;
-      this.water = !!def.water;              // 배만 다닐 수 있는 물결
-      this.shadow = !!def.shadow;            // 등불을 꺼야 걸을 수 있는 그림자 길
-      this.thin = !!def.thin || this.shadow; // 뒤를 가리지 않는 얇은 띠
+      this.water = !!def.water;              // 배만 다니는 물결
+      this.zone = def.zone || null;          // 'day' | 'night' | 'dusk' : 그 구역(과 황혼)에서만 실재한다
+      this.needs = def.needs || null;        // 이 깃발이 서야 놓이는 다리
+      this.thin = !!def.thin;                // 뒤를 가리지 않는 얇은 띠 (다리)
       this.thick = def.thick || 0;           // 0 = 바닥까지 채워진 언덕, 그 밖 = 떠 있는 섬의 두께
       this.style = def.style || 'hill';
       this.tone = def.tone;
-      this.knobs = (def.knobs || []).map((k, i) => ({
-        i, c: k.c, w: k.w, lo: k.lo, hi: k.hi, v: k.v || 0, v0: k.v || 0,
-        flat: k.flat === undefined ? (this.kind === 'hill' ? 0.25 : 1) : k.flat,
-        hint: k.hint !== false,
-      }));
+      this.dynamic = !!def.dynamic;          // 빛의 가장자리처럼 매번 다시 놓이는 겹
       this.x0 = this.pts[0][0];
       this.x1 = this.pts[this.pts.length - 1][0];
       this.ys = null;
-    }
-
-    bell(k, x) {
-      const t = Math.abs(x - k.c) / k.w;
-      if (t >= 1) return 0;
-      if (t <= k.flat) return 1;
-      const u = (t - k.flat) / (1 - k.flat);
-      return 0.5 * (1 + Math.cos(Math.PI * u));
-    }
-
-    baseY(x) {
-      const p = this.pts;
-      if (x < this.x0 || x > this.x1) return ABSENT;
-      // 구간 찾기
-      let lo = 0, hi = p.length - 1;
-      while (hi - lo > 1) { const m = (lo + hi) >> 1; if (p[m][0] <= x) lo = m; else hi = m; }
-      if (this.kind === 'step') return p[lo][1];
-      const a = p[lo], b = p[hi];
-      const h = b[0] - a[0];
-      if (h <= 0) return a[1];
-      const t = (x - a[0]) / h;
-      if (this.kind === 'poly') return a[1] + (b[1] - a[1]) * t;   // 꺾은선 (지붕, 계단)
-      const pa = p[lo - 1] || a, pb = p[hi + 1] || b;
-      const ma = (b[1] - pa[1]) / Math.max(1, b[0] - pa[0]);
-      const mb = (pb[1] - a[1]) / Math.max(1, pb[0] - a[0]);
-      const t2 = t * t, t3 = t2 * t;
-      return (2 * t3 - 3 * t2 + 1) * a[1] + (t3 - 2 * t2 + t) * h * ma +
-             (-2 * t3 + 3 * t2) * b[1] + (t3 - t2) * h * mb;
     }
 
     /** 떠 있는 섬의 두께 (양 끝은 둥글게 얇아진다) */
@@ -87,87 +61,141 @@
     }
 
     y(x) {
-      let y = this.baseY(x);
-      if (y >= ABSENT) return ABSENT;
-      for (const k of this.knobs) if (k.v !== 0) y += k.v * this.bell(k, x);
-      return y;
-    }
-
-    /** x 에서 가장 영향력이 큰 손잡이 */
-    knobAt(x, minBell) {
-      let best = null, bb = minBell === undefined ? 0.12 : minBell;
-      for (const k of this.knobs) {
-        if (k.lo === k.hi) continue;
-        const b = this.bell(k, x);
-        if (b > bb) { bb = b; best = k; }
-      }
-      return best;
+      const p = this.pts;
+      if (x < this.x0 || x > this.x1) return ABSENT;
+      let lo = 0, hi = p.length - 1;
+      while (hi - lo > 1) { const m = (lo + hi) >> 1; if (p[m][0] <= x) lo = m; else hi = m; }
+      const a = p[lo], b = p[hi];
+      const h = b[0] - a[0];
+      if (h <= 0) return a[1];
+      const t = (x - a[0]) / h;
+      if (this.kind === 'poly') return a[1] + (b[1] - a[1]) * t;
+      const pa = p[lo - 1] || a, pb = p[hi + 1] || b;
+      const ma = (b[1] - pa[1]) / Math.max(1, b[0] - pa[0]);
+      const mb = (pb[1] - a[1]) / Math.max(1, pb[0] - a[0]);
+      const t2 = t * t, t3 = t2 * t;
+      return (2 * t3 - 3 * t2 + 1) * a[1] + (t3 - 2 * t2 + t) * h * ma +
+             (-2 * t3 + 3 * t2) * b[1] + (t3 - t2) * h * mb;
     }
   }
 
   class Terrain {
     constructor(def) {
       this.width = def.width;
-      this.layers = def.layers.map((l, i) => new Layer(l, i));
+      const defs = def.layers.concat([
+        // 걸어 둔 등불의 가장자리: 아래쪽 호(늘어진 다리)와 위쪽 호(둥근 지붕)
+        { id: 'arc_dn', zone: 'dusk', thin: true, dynamic: true },
+        { id: 'arc_up', zone: 'dusk', thin: true, dynamic: true },
+      ]);
+      this.layers = defs.map((l, i) => new Layer(l, i));
       this.byId = {};
       for (const l of this.layers) this.byId[l.id] = l;
       this.N = Math.ceil(this.width / STEP) + 1;
-      for (const l of this.layers) l.ys = new Float32Array(this.N);
-      this.blocked = this.layers.map(() => new Uint8Array(this.N));
+      for (const l of this.layers) {
+        l.ys = new Float32Array(this.N);
+        if (l.dynamic) l.ys.fill(ABSENT);
+        else for (let i = 0; i < this.N; i++) l.ys[i] = l.y(i * STEP);
+      }
+      this.bubbles = [];     // [{x, y, r, focus}] 빛의 원들 (세계 좌표)
+      this.allDay = true;    // 해가 떠 있는 동안에는 온 세상이 낮
+      this.blocks = [];      // [{layer, x0, x1, when: 'night' | 'day', dense, always}]
+      this.flags = {};
+      this.arc = null;
       this.version = 0;
-      this.resampleAll();
     }
 
     layer(id) { return typeof id === 'string' ? this.byId[id] : id; }
 
-    resample(layer) {
-      const ys = layer.ys;
-      for (let i = 0; i < this.N; i++) ys[i] = layer.y(i * STEP);
+    /* ───────── 빛과 구역 ───────── */
+    setLight(bubbles, allDay) {
+      this.bubbles = bubbles;
+      this.allDay = !!allDay;
       this.version++;
     }
-    resampleAll() { for (const l of this.layers) this.resample(l); }
 
-    /** 표본 보간으로 얻는 능선 높이 (그리기·이동에 쓰는 값) */
+    /** (x, y)가 낮인가, 황혼인가, 밤인가 */
+    zoneAt(x, y) {
+      if (this.allDay) return 'day';
+      let z = 'night';
+      for (const b of this.bubbles) {
+        const d = Math.hypot(x - b.x, y - b.y);
+        if (d < b.r - RIM) return 'day';
+        if (d <= b.r + RIM) z = 'dusk';
+      }
+      return z;
+    }
+
+    /** 종이나 거울이 모아 준 센 빛 안인가 (짙은 그을음은 여기서만 흩어진다) */
+    inFocus(x, y) {
+      if (this.allDay) return true;
+      for (const b of this.bubbles) if (b.focus && Math.hypot(x - b.x, y - b.y) < b.r - RIM) return true;
+      return false;
+    }
+
+    /** 걸어 둔 등불의 가장자리를 길로 놓는다. r 이 작으면 거둔다. */
+    setArc(cx, cy, r) {
+      const dn = this.byId.arc_dn.ys, up = this.byId.arc_up.ys;
+      dn.fill(ABSENT); up.fill(ABSENT);
+      this.arc = r > 40 ? { x: cx, y: cy, r } : null;
+      if (this.arc) {
+        const a = Math.max(0, Math.ceil((cx - r) / STEP)), b = Math.min(this.N - 1, Math.floor((cx + r) / STEP));
+        for (let i = a; i <= b; i++) {
+          const dx = i * STEP - cx, s2 = r * r - dx * dx;
+          if (s2 <= 0) continue;
+          const s = Math.sqrt(s2);
+          dn[i] = cy + s; up[i] = cy - s;
+        }
+      }
+      this.version++;
+    }
+
+    setBlocks(list) { this.blocks = list.map((b) => Object.assign({}, b, { layer: this.layer(b.layer) })); this.version++; }
+
+    /* ───────── 능선 ───────── */
     yAt(layer, x) {
       layer = this.layer(layer);
       const f = U.clamp(x / STEP, 0, this.N - 1);
       const i = Math.floor(f), j = Math.min(this.N - 1, i + 1);
       const a = layer.ys[i], b = layer.ys[j];
-      if (layer.kind === 'step') return a;
       if (a >= ABSENT || b >= ABSENT) return Math.min(a, b);
       return a + (b - a) * (f - i);
     }
 
-    /** 앞쪽 겹에 가려졌는가 */
+    /** 앞쪽 겹에 가려졌는가 (구역을 타는 겹과 얇은 다리는 아무것도 가리지 않는다) */
     hiddenAt(layer, i) {
+      if (layer.thin) return false;
       const y = layer.ys[i];
       for (let k = layer.index + 1; k < this.layers.length; k++) {
         const f = this.layers[k];
-        if (f.thin) continue;
+        if (f.thin || f.zone) continue;
         if (f.covers(i * STEP, y, f.ys[i])) return true;
       }
       return false;
     }
 
-    /** mode: {water, dark}. water=배, dark=등불이 꺼져 그림자 길을 걸을 수 있음 */
+    /**
+     * 그 자리에 설 수 있는가.
+     * mode: { water 배, star 별이 보임, shadow 그림자 걸음, dusk 황혼 걸음, shy 빛 속에 서지 못함(나이트) }
+     */
     standable(layer, i, mode) {
       if (!layer.walk) return false;
       if (layer.water !== !!mode.water) return false;
-      if (layer.shadow && !mode.dark) return false;
       const y = layer.ys[i];
       if (y >= FLOOR_Y) return false;
-      if (!mode.water && this.blocked[layer.index][i]) return false;
-      return !this.hiddenAt(layer, i);
-    }
-
-    setBlocks(list) {
-      for (const b of this.blocked) b.fill(0);
-      for (const it of list) {
-        const l = this.layer(it.layer);
-        if (!l) continue;
-        const a = Math.max(0, Math.floor(it.x0 / STEP)), b = Math.min(this.N - 1, Math.ceil(it.x1 / STEP));
-        for (let i = a; i <= b; i++) this.blocked[l.index][i] = 1;
+      if (layer.needs && !this.flags[layer.needs]) return false;
+      const x = i * STEP;
+      const z = this.zoneAt(x, y - FOOT);
+      if (mode.water) return z === 'night' && !!mode.star;      // 배는 별이 보이는 어둠 속으로만 나아간다
+      if (layer.zone === 'dusk') { if (!mode.dusk) return false; }
+      else if (layer.zone === 'night') { if (z === 'day' || !mode.shadow) return false; }
+      else if (layer.zone === 'day') { if (z === 'night') return false; }
+      if (mode.shy && z === 'day') return false;
+      for (const b of this.blocks) {
+        if (b.layer !== layer || x < b.x0 || x > b.x1) continue;
+        if (b.dense) { if (!this.inFocus(x, y - FOOT)) return false; }
+        else if (b.always || (b.when === 'night' ? z === 'night' : z === 'day')) return false;
       }
+      return !this.hiddenAt(layer, i);
     }
 
     node(layer, x) { return this.layer(layer).index * this.N + U.clamp(Math.round(x / STEP), 0, this.N - 1); }
@@ -196,7 +224,6 @@
         const n = queue[head++];
         const li = Math.floor(n / N), i = n % N;
         const ly = this.layers[li], y = ly.ys[i];
-        // 같은 겹 좌우
         for (let d = -1; d <= 1; d += 2) {
           const j = i + d;
           if (j < 0 || j >= N) continue;
@@ -206,7 +233,6 @@
           if (!can(li, j)) continue;
           prev[m] = n; queue[tail++] = m;
         }
-        // 다른 겹으로 건너가기
         for (let k = 0; k < L; k++) {
           if (k === li) continue;
           const m = k * N + i;
@@ -222,13 +248,12 @@
     reachable(r, layer, x) { return r.prev[this.node(layer, x)] !== -2; }
 
     /** 닿을 수 있는 곳 가운데 (wx, wy)에 가장 가까운 지점 */
-    nearest(r, wx, wy, only, prefer) {
+    nearest(r, wx, wy, prefer) {
       let best = -1, bd = Infinity;
       const N = this.N;
       for (let q = 0; q < r.count; q++) {
         const n = r.nodes[q];
         const li = Math.floor(n / N), i = n % N;
-        if (only && this.layers[li] !== only) continue;
         const dx = i * STEP - wx, dy = this.layers[li].ys[i] - wy;
         let d = dx * dx + dy * dy;
         if (prefer && this.layers[li] === prefer) d -= 30;   // 두 겹이 겹친 곳에서는 누른 겹을 고른다
@@ -255,59 +280,9 @@
       }
       return null;
     }
-
-    /** 손잡이가 누군가의 발밑 땅을 움직이는가 */
-    underfoot(layer, knob, agents) {
-      for (const a of agents) {
-        if (a.rides) continue; // 배는 물결과 함께 움직인다
-        if (a.layer === layer && layer.bell(knob, a.x) > 0.02) return true;
-      }
-      return false;
-    }
-
-    /** 이 배치에서 모든 인물이 여전히 보이는가 (앞 언덕이 인물을 덮지 않는가) */
-    agentsVisible(agents) {
-      for (const a of agents) {
-        if (!a.layer) continue;
-        const y = this.yAt(a.layer, a.x);
-        for (let k = a.layer.index + 1; k < this.layers.length; k++) {
-          const f = this.layers[k];
-          if (f.thin) continue;
-          if (f.covers(a.x, y, this.yAt(f, a.x))) return false;
-        }
-      }
-      return true;
-    }
-
-    /** 손잡이를 v 로 옮긴다. 제약에 걸리면 허용되는 데까지만 옮기고 실제 값을 돌려준다. */
-    drag(layer, knob, v, agents) {
-      layer = this.layer(layer);
-      agents = agents || [];
-      if (this.underfoot(layer, knob, agents)) return knob.v;
-      const from = knob.v;
-      const want = U.clamp(v, knob.lo, knob.hi);
-      if (want === from) return from;
-      const apply = (val) => { knob.v = val; this.resample(layer); };
-      apply(want);
-      if (this.agentsVisible(agents)) return want;
-      // 이분법으로 허용 한계 찾기
-      let good = from, bad = want;
-      for (let it = 0; it < 7; it++) {
-        const mid = (good + bad) / 2;
-        apply(mid);
-        if (this.agentsVisible(agents)) good = mid; else bad = mid;
-      }
-      apply(good);
-      return good;
-    }
-
-    resetKnobs() {
-      for (const l of this.layers) for (const k of l.knobs) k.v = k.v0;
-      this.resampleAll();
-    }
   }
 
   DN.Terrain = Terrain;
   DN.Layer = Layer;
-  DN.T = { STEP, ABSENT, FLOOR_Y, MAX_RISE, CROSS_TOL, HIDE_TOL };
+  DN.T = { STEP, ABSENT, FLOOR_Y, MAX_RISE, CROSS_TOL, HIDE_TOL, RIM, FOOT };
 })(typeof globalThis !== 'undefined' ? globalThis : window);

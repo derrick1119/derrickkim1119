@@ -4,67 +4,72 @@
   const DN = (root.DN = root.DN || {});
   const U = DN.U, L = DN.LEVELS, H = DN.LevelHelp;
 
-  /* ═════════ 2장 — 항구: 길 잃은 배들 ═════════ */
-  const PIER = 3700, LH_X = 4060;
+  /* ═════════ 2장 — 항구: 길 잃은 배들 ═════════
+   * 등불을 끄는 법을 배운다. 불을 꺼야 별이 보이고, 배들은 그 별을 보고 돌아온다.
+   * 하지만 밧줄을 받아 줄 사람에게는 빛이 있어야 한다 — 필요한 만큼만 켠다. */
+  const QY = 500, CY = 404;                 // 부두 길 높이, 곶 위의 높이
+  const MAST_X = 2700, FOG_X = 3010, LH_X = 3900, PIER_X = 3470;
+  const W1 = 566, W2 = 618, W3 = 668;
+  const BERTH = [3330, 3290, 3250];
 
   L.ch2 = {
     id: 'ch2', title: '2장 · 항구', sub: '길 잃은 배들',
-    width: 4700, theme: 'harbor',
-    tod: [[0, 0.75], [1300, 1], [2300, 1.7], [3000, 2]],
-    sky: { lastStar: { x: PIER, y: 96, par: 1, r: 3.4 } },
+    width: 4600, theme: 'harbor',
+    tod: [[0, 0.75], [1000, 0.9], [1700, 1]],
+    sky: { lastStar: { x: 3330, y: 96, par: 1, r: 3.4 } },
     backdrop: [
       { kind: 'mountains', par: 0.1, base: 300, amp: 110, freq: 0.002, fade: 0.75, seed: 61 },
       { kind: 'mountains', par: 0.2, base: 330, amp: 60, freq: 0.0045, fade: 0.5, seed: 67 },
     ],
     layers: [
-      { id: 'h_far', walk: false, tone: 0.05, pts: H.band(-200, 5000, 248, 16, 201) },
-      { id: 'h_d', tone: 0.26, pts: H.band(-200, 5000, 322, 6, 202),
-        knobs: [{ c: 2700, w: 230, lo: 0, hi: 116 }, { c: 3250, w: 230, lo: 0, hi: 116 }] },
-      { id: 'h_c', tone: 0.52, pts: H.band(-200, 5000, 408, 6, 203),
-        knobs: [{ c: 2150, w: 230, lo: 0, hi: 116 }] },
-      // 부두 길: 오른쪽 끝은 안벽
-      { id: 'h_b', tone: 0.82, pts: H.band(-200, 2300, 494, 5, 204).concat([[2440, 494], [2500, 497], [2512, 640], [2522, 790]]) },
-      // 바다: 배만 다닌다. 별을 본 뒤에야 물결을 움직일 수 있다
-      { id: 'w1', style: 'water', water: true, tone: 0.15, lock: 'boatsOn', pts: H.band(-200, 5000, 545, 3, 205, 300) },
-      { id: 'w2', style: 'water', water: true, tone: 0.55, lock: 'boatsOn', pts: H.band(-200, 5000, 605, 3, 206, 300),
-        knobs: [{ c: 3960, w: 190, lo: -78, hi: 0 }] },
-      { id: 'w3', style: 'water', water: true, tone: 0.95, lock: 'boatsOn', pts: H.band(-200, 5000, 662, 3, 207, 300),
-        knobs: [{ c: 3620, w: 170, lo: -76, hi: 0 }, { c: 4340, w: 170, lo: -76, hi: 0 }] },
-    ],
-    blocks: [
-      { layer: 'h_c', x0: 2880, x1: 2970, prop: 'rocks' },
+      { id: 'h_far', walk: false, tone: 0.05, pts: H.band(-200, 5000, 250, 16, 201) },
+      { id: 'h_mid', walk: false, tone: 0.3, pts: H.band(-200, 5000, 330, 10, 202) },
+      // 부두 길 → 곶으로 오르는 벼랑길
+      { id: 'road', tone: 0.72, pts: H.band(-200, 2200, QY, 4, 204).concat([[2330, QY], [2600, 468], [2900, 428], [3200, 410], [3500, CY], [3900, CY], [4300, CY], [4900, CY]]) },
+      { id: 'w1', style: 'water', water: true, tone: 0.15, pts: H.band(-200, 5000, W1, 2, 205, 300) },
+      { id: 'w2', style: 'water', water: true, tone: 0.55, pts: H.band(-200, 5000, W2, 2, 206, 300) },
+      { id: 'w3', style: 'water', water: true, tone: 0.95, pts: H.band(-200, 5000, W3, 2, 207, 300) },
     ],
     props: [
       { type: 'pine', layer: 'h_far', x: 500, s: 0.8 }, { type: 'pine', layer: 'h_far', x: 1900, s: 0.9 }, { type: 'pine', layer: 'h_far', x: 3300, s: 0.8 },
-      { type: 'tree', layer: 'h_d', x: 400, seed: 2 }, { type: 'pine', layer: 'h_d', x: 1250, s: 1 }, { type: 'tree', layer: 'h_d', x: 2200, seed: 6, autumn: true }, { type: 'pine', layer: 'h_d', x: 3700, s: 1.1 },
-      { type: 'house', layer: 'h_c', x: 380, roof: '#5f7f96' }, { type: 'house', layer: 'h_c', x: 520, roof: '#b4664a', w: 40 }, { type: 'tree', layer: 'h_c', x: 1100, seed: 9 },
-      { type: 'fence', layer: 'h_c', x: 1700, n: 8 }, { type: 'pine', layer: 'h_c', x: 3460, s: 0.9 },
-      { type: 'lighthouse', layer: 'h_c', x: LH_X, lit: 'A_lit_lighthouse' },
-      { type: 'house', layer: 'h_c', x: LH_X + 96, w: 40, h: 26, roof: '#b9523f', lit: 'A_lit_lighthouse' },
-      { type: 'house', layer: 'h_b', x: 300, roof: '#5f7f96', w: 50 }, { type: 'lamp', layer: 'h_b', x: 420 },
-      { type: 'crate', layer: 'h_b', x: 640 }, { type: 'crate', layer: 'h_b', x: 662, s: 0.8 },
-      { type: 'house', layer: 'h_b', x: 1000, roof: '#b4664a', w: 56, h: 32 }, { type: 'lamp', layer: 'h_b', x: 1120 },
-      { type: 'sundial', layer: 'h_b', x: 1500 }, { type: 'crate', layer: 'h_b', x: 1840 }, { type: 'house', layer: 'h_b', x: 1960, roof: '#8a7a5a' },
-      { type: 'lamp', layer: 'h_b', x: 2330 }, { type: 'crate', layer: 'h_b', x: 2410, s: 0.9 },
-      { type: 'pier', layer: 'w1', x: 2500, w: 130, dy: -44 },
+      { type: 'tree', layer: 'h_mid', x: 400, seed: 2 }, { type: 'house', layer: 'h_mid', x: 760, roof: '#5f7f96' }, { type: 'pine', layer: 'h_mid', x: 1250, s: 1 },
+      { type: 'tree', layer: 'h_mid', x: 2200, seed: 6, autumn: true }, { type: 'pine', layer: 'h_mid', x: 3000, s: 1.1 },
+      { type: 'house', layer: 'road', x: 300, roof: '#5f7f96', w: 50 }, { type: 'lamp', layer: 'road', x: 420 },
+      { type: 'crate', layer: 'road', x: 640 }, { type: 'crate', layer: 'road', x: 662, s: 0.8 },
+      { type: 'house', layer: 'road', x: 1000, roof: '#b4664a', w: 56, h: 32 }, { type: 'lamp', layer: 'road', x: 1120 },
+      { type: 'sundial', layer: 'road', x: 1300 }, { type: 'crate', layer: 'road', x: 1560 }, { type: 'house', layer: 'road', x: 2080, roof: '#8a7a5a' },
+      { type: 'lamp', layer: 'road', x: 2250 },
+      { type: 'mast', layer: 'road', x: MAST_X, h: 262 },
+      { type: 'pine', layer: 'road', x: 3560, s: 0.9 },
+      { type: 'lighthouse', layer: 'road', x: LH_X, lit: 'A_lit_lighthouse' },
+      { type: 'house', layer: 'road', x: LH_X + 110, w: 40, h: 26, roof: '#b9523f', lit: 'A_lit_lighthouse' },
       { type: 'boat', layer: 'w1', x: 700, s: 0.8, hull: '#6f8296', seed: 1 }, { type: 'boat', layer: 'w1', x: 1640, s: 0.85, dir: -1, seed: 4 },
       { type: 'boat', layer: 'w2', x: 1180, s: 0.9, hull: '#7a6a8a', seed: 2 }, { type: 'boat', layer: 'w2', x: 2260, s: 0.9, seed: 7 },
-      { type: 'pier', layer: 'w1', x: PIER - 150, w: 170, dy: -8 },
+      { type: 'pier', layer: 'w1', x: PIER_X - 70, w: 150, dy: -8 },
+      { type: 'post', layer: 'w1', x: PIER_X + 40, h: 52, dy: -8, arm: 0 },
     ],
-    start: { layer: 'h_b', x: 130 },
+    start: { layer: 'road', x: 130 },
     things: [
-      { id: 'keeper', kind: 'npc', who: 'keeper', layer: 'h_b', x: 900, dir: -1 },
-      H.clue({ id: 'hour', layer: 'h_b', x: 1500, dy: 50 }, 'hour', [
+      { id: 'keeper', kind: 'npc', who: 'keeper', layer: 'road', x: 900, dir: -1 },
+      H.clue({ id: 'hour', layer: 'road', x: 1300, dy: 50 }, 'hour', [
         ['narr', '낡은 해시계. 낮의 눈금과 밤의 눈금 사이에, 닳아서 읽을 수 없는 세 번째 눈금이 있다.'],
         ['hari', '여기 뭐라고 새겨져 있었나 봐. …"낮도 밤도 아닌 시간"?'],
         ['day', '낮도 밤도 아닌 시간이라. 교대할 때 말고는 그런 건 없는데.'],
       ]),
-      { id: 'lh', kind: 'spot', layer: 'h_c', x: LH_X, standX: LH_X - 70, dy: 150, r: 110, touch: 40, touchY: 200,
-        if: (G) => !G.flags.lhTalked,
+      H.soot('s1', 'road', 1960, 36), H.soot('s2', 'road', 2360, 34), H.soot('s3', 'road', 3330, 32),
+      H.soot('fog', 'road', FOG_X, 54, 'dense'),
+      H.hook('hk_mast', 'road', MAST_X - 34, 222),
+      { id: 'refl', kind: 'mirror', look: 'reflector', layer: 'road', x: MAST_X, up: 244, fx: FOG_X, fy: 421 - 44, fr: 122 },
+      // 선창: 밧줄을 받아 줄 사람은 빛이 있어야 나온다
+      H.hook('hk_pier', 'w1', PIER_X + 40, 72),
+      { id: 'docker', kind: 'npc', who: 'keeper', layer: 'w1', x: PIER_X, dy: 0, dir: -1, alpha: 0.25 },
+      { id: 'lhLight', kind: 'none', layer: 'road', x: LH_X, up: 160, light: { r: 330, flag: 'A_lit_lighthouse' }, visible: false },
+      { id: 'lh', kind: 'spot', layer: 'road', x: LH_X, standX: LH_X - 70, dy: 150, r: 110, touch: 40, touchY: 200,
+        if: (G) => G.isNight && !G.flags.lhTalked,
         tap: async (g) => {
           const G = g.G;
           g.flag('lhTalked');
-          const sp = G.addThing({ id: 'lsp', kind: 'spirit', spirit: 'lighthouse', layer: 'h_c', x: LH_X, dy: 162, tired: 0.85, alpha: 0, scale: 0.8 });
+          const sp = G.addThing({ id: 'lsp', kind: 'spirit', spirit: 'lighthouse', layer: 'road', x: LH_X, dy: 162, tired: 0.85, alpha: 0, scale: 0.8 });
           g.sfx('chime');
           await g.tween(sp, 'alpha', 1, 1.4);
           await g.talk([
@@ -76,11 +81,11 @@
             ['day', '불을… 끄라고? 내가?'],
           ]);
           if (g.run2) await g.say('lighthouse', '전에도 너는 한참 망설였지. 괜찮아. 어둠은 너를 해치지 않아.');
-          g.give('off');
-          await g.say('narr', '등불을 끌 수 있게 되었다.');
+          g.learn('shutter');
+          await g.say('narr', '등불의 빛을 줄이거나 끌 수 있게 되었다.');
           g.flag('nudgeLantern');
-          g.toast('오른쪽 아래의 등불 단추를 눌러 불을 꺼 보세요.', 20000);
-          await g.until(() => !G.lantern.on);
+          g.toast('빛의 가장자리를 안쪽으로 끌거나, 오른쪽 아래의 등불 단추를 눌러 불을 꺼 보세요.', 20000);
+          await g.until(() => G.lan.r < 8);
           g.flag('nudgeLantern', false);
           g.toastOff();
           await g.wait(0.8);
@@ -97,40 +102,47 @@
           await g.talk([
             ['narr', '눈이 어둠에 익자, 하늘 한구석에 희미한 점 하나가 떠올랐다.'],
             ['hari', '어…? 별이다. 진짜 별이야!\n할아버지 이야기에만 나오는 건 줄 알았는데.'],
-            ['day', '등불을 켜고 있을 때는 보이지 않았어. …저 별빛이 물 위에 길을 내고 있네.'],
-            ['lighthouse', '옛 뱃사람들은 저걸 보고 돌아왔지. 물결만 잔잔히 이어 주면, 배들은 알아서 찾아올 거야.'],
+            ['day', '내 빛이 가리고 있었구나. …저 별빛이 물 위에 길을 내고 있어.'],
+            ['lighthouse', '옛 뱃사람들은 저걸 보고 돌아왔지. 어둡게만 두면, 배들은 알아서 찾아올 거야.'],
           ]);
           g.flag('boatsOn');
-          g.toast('등불을 끈 채로, 물결을 위로 끌어 배들이 별빛 아래 선창까지 올 물길을 이어 주세요.', 14000);
+          g.toast('배들은 어둠 속에서 별을 보고 돌아옵니다. 빛이 크면 별이 가려져요.', 9000);
         } },
     ],
     triggers: [
-      { x: 800, layers: ['h_b'], run: async (g) => {
-        await g.walk(g.day, 'h_b', 836);
+      { x: 800, run: async (g) => {
+        await g.walk(g.day, 'road', 836);
         await g.talk([
-          ['keeper', '등불을 든 아가씨라니. 이 밤에 불이 붙는 등은 처음 보는구먼.'],
-          ['keeper', '나는 저 곶의 등대지기요. 해가 지니 등대가 꺼졌어. 사십 년 만에 처음 있는 일이야.'],
+          ['keeper', '등불을 든 아가씨라니. 불이 붙는 등은 오랜만에 보는구먼.'],
+          ['keeper', '나는 저 곶의 등대지기요. 어젯밤 해가 지자 등대가 꺼졌어. 사십 년 만에 처음 있는 일이야.'],
           ['keeper', '배 세 척이 아직 바다에 있소. 등대 없이는 암초를 못 피해.'],
           ['hari', '어떡해요…!'],
           ['keeper', '옛날 뱃사람들은 별을 보고 길을 찾았다지. 허나 요즘 하늘엔 별이 없으니.'],
           ['day', '등대의 빛을 찾아올게요.'],
-          ['keeper', '곶으로 가려면 뒤쪽 벼랑길을 타시오. 부디 조심하고.'],
+          ['keeper', '곶으로 가려면 벼랑길을 타시오. 곧 해가 지니, 부디 조심하고.'],
         ]);
       } },
-      { x: 2400, layers: ['h_b'], run: async (g) => {
-        await g.say('day', '부두는 여기서 끝이야. 등대는 저 벼랑길 너머에 있어.');
-        g.toast('뒤쪽 벼랑길을 끌어내려 건너가세요.', 6000);
+      { x: 1760, run: async (g) => {
+        await g.nightfall(3.4);
+        await g.talk([
+          ['narr', '해가 바다 너머로 잠기자, 낮은 등불 속으로 오므라들었다.'],
+          ['hari', '부두에도 그을음이 끼기 시작했어. 다들 문을 걸어 잠갔나 봐.'],
+        ]);
       } },
-      { x: 2790, layers: ['h_c'], run: async (g) => {
-        await g.say('hari', '길이 무너졌어. 더 위쪽 길로 돌아가야겠다.');
+      { x: 2560, if: (G) => G.isNight, run: async (g) => {
+        await g.talk([
+          ['hari', '벼랑길에 바다 안개 같은 그을음이 꽉 찼어. 종 앞에 있던 것처럼 짙어.'],
+          ['day', '저 돛대 위에 놋쇠 반사등이 있네. 저기에 빛을 주면 될 거야.'],
+        ]);
+        g.toast('돛대의 고리에 등불을 걸어 보세요.', 8000);
       } },
     ],
     setup: (g) => {
       const G = g.G;
       G.boats = [
-        G.addAgent({ id: 'b1', kind: 'boat', layer: 'w2', x: 4210, dir: -1, speed: 66, seed: 3, slot: 0 }),
-        G.addAgent({ id: 'b2', kind: 'boat', layer: 'w3', x: 3440, dir: 1, speed: 66, seed: 5, hull: '#6f8296', slot: 1 }),
-        G.addAgent({ id: 'b3', kind: 'boat', layer: 'w3', x: 4560, dir: -1, speed: 66, seed: 8, hull: '#7a6a8a', slot: 2 }),
+        G.addAgent({ id: 'b1', kind: 'boat', layer: 'w1', x: 4380, dir: -1, speed: 70, seed: 3, slot: 0 }),
+        G.addAgent({ id: 'b2', kind: 'boat', layer: 'w2', x: 4270, dir: -1, speed: 70, seed: 5, hull: '#6f8296', slot: 1 }),
+        G.addAgent({ id: 'b3', kind: 'boat', layer: 'w3', x: 4470, dir: -1, speed: 70, seed: 8, hull: '#7a6a8a', slot: 2 }),
       ];
     },
     intro: async (g) => {
@@ -142,29 +154,48 @@
       ]);
     },
     update: (g, dt) => {
-      const G = g.G, ter = G.terrain, dark = !G.lantern.on;
+      const G = g.G, ter = G.terrain, lan = G.lan;
       if (!G.lastStar) return;
-      G.lastStar.a = U.approach(G.lastStar.a, G.flags.starSeen ? (dark ? 1 : 0.1) : 0, 1.4, dt);
+      // 별은 빛이 작을수록 또렷하다
+      const seeing = G.flags.starSeen ? U.clamp(1.25 - lan.r / 160, 0.1, 1) : 0;
+      G.lastStar.a = U.approach(G.lastStar.a, seeing, 1.6, dt);
       if (!G.flags.boatsOn || G.flags.boatsDone) return;
-      let home = 0;
+      const docker = G.thing('docker');
+      const lit = ter.zoneAt(PIER_X, W1 - 40) === 'day';
+      docker.alpha = U.approach(docker.alpha, lit ? 1 : 0.25, 4, dt);
+      let home = 0, waiting = 0, dazzled = 0;
       for (const b of G.boats) {
         if (b.home) { home++; continue; }
-        if (!dark) { b.path = []; b.plan = -1; continue; }   // 등불이 밝으면 별이 보이지 않는다
-        if (b.plan === ter.version) continue;
-        b.plan = ter.version;
-        const r = ter.reach(b.layer, b.x, { water: true });
-        const gx = PIER - b.slot * 50, goal = ter.node('w1', gx);
-        if (r.prev[goal] !== -2) {
-          b.path = ter.path(r, goal);
-          b.done = () => { b.home = true; b.dir = -1; g.sfx('join'); G.sparkle(b.x, b.y - 30, [210, 225, 255], 18, 60); };
-        } else {
-          b.path = ter.path(r, ter.nearest(r, gx, ter.yAt('w1', gx)).node);
-          b.done = null;
+        const gx = BERTH[b.slot];
+        const dark = ter.zoneAt(b.x, b.y - 8) === 'night';
+        if (Math.abs(b.x - gx) < 6) {
+          // 선창 앞까지 왔다. 밧줄을 받아 줄 사람이 빛 속에 나와 있어야 하고, 배는 눈이 부시지 않아야 한다
+          if (lit && dark) { b.home = true; g.sfx('join'); G.sparkle(b.x, b.y - 30, [210, 225, 255], 18, 60); }
+          else if (!lit) waiting++; else dazzled++;
+          continue;
         }
+        if (seeing < 0.4 || !dark) { b.path = []; continue; }     // 별을 놓쳤다
+        b.x = Math.max(gx, b.x - b.speed * dt);                    // 별빛을 따라 온다
+        b.y = ter.yAt(b.layer, b.x);
       }
-      if (home === G.boats.length && !G.busy) {
-        G.flags.boatsDone = true;
-        G.run(L.ch2.afterBoats);
+      if (!G.busy) {
+        if (waiting && !G.flags.toldDocker) {
+          G.flags.toldDocker = true;
+          G.run(async (g2) => {
+            await g2.talk([
+              ['hari', '배가 왔는데… 밧줄을 받아 줄 사람이 없어!'],
+              ['hari', '선창지기 아저씨가 저기 숨어 있어. 캄캄해서 못 나오는 거야.'],
+              ['day', '저 사람에게는 빛이 필요해. 그런데 배들에게는 어둠이 필요하고.'],
+            ]);
+            g2.toast('선창의 고리에 등불을 걸고, 빛의 가장자리를 끌어 꼭 필요한 만큼만 밝히세요.', 14000);
+          });
+        } else if (dazzled && lit && !G.flags.toldDazzle && G.lan.mode === 'hung') {
+          G.flags.toldDazzle = true;
+          G.run(async (g2) => { await g2.say('keeper', '어이쿠, 눈이 부셔서 배가 안 보여! 빛을 조금만 줄여 다오!'); });
+        } else if (home === G.boats.length) {
+          G.flags.boatsDone = true;
+          G.run(L.ch2.afterBoats);
+        }
       }
     },
     afterBoats: async (g) => {
@@ -172,7 +203,7 @@
       g.toastOff();
       await g.wait(1.2);
       await g.talk([
-        ['narr', '세 척의 배가 별빛 아래로 돌아왔다.'],
+        ['narr', '세 척의 배가 별빛 아래로 돌아왔다. 선창에는 손바닥만 한 빛 하나.'],
         ['hari', '다 왔어! 전부 무사해!'],
         ['lighthouse', '봤지? 사람들은 원래 별을 보고 길을 찾았어. 내가 생기기 전에는.'],
         ['lighthouse', '내가 너무 밝아서, 다들 잊어버린 거야. 하늘을 보는 법을.'],
@@ -184,9 +215,10 @@
       if (r.v === 'self') await g.say('lighthouse', '나더러 고르라고… 그렇다면, 눈을 좀 감고 싶어. 백 년 치만큼.');
       if (r.where === 'human') {
         if (r.v !== 'self') await g.say('lighthouse', '…그래. 안개 낀 밤에만 켤게. 맑은 밤에는, 별에게 맡기고.');
-        g.flag('A_lit_lighthouse');
         g.sfx('on');
         sp.tired = 0.3;
+        g.flag('A_lit_lighthouse');
+        await g.say('narr', '등대에 불이 돌아왔다. 곶 위가 환해지자, 별은 다시 그 빛에 묻혔다.');
       } else {
         if (r.v !== 'self') await g.say('lighthouse', '고마워. 처음으로, 눈을 감아 볼게.');
         g.sfx('star');
@@ -194,11 +226,10 @@
         sp.visible = false;
       }
       // 황혼 타임 #2
-      await g.tod(2.7, 3);
-      await g.cam(4250, 2);
-      await H.summonNight(g, 'h_d', 4420, -1);
+      await g.cam(4150, 2);
+      await H.summonNight(g, 'h_mid', 4420, -1);
       await g.talk([
-        ['narr', '새벽이 가까워 온다. 벼랑 위에서, 나이트가 별을 올려다보고 있다.'],
+        ['narr', '새벽이 가까워 온다. 빛이 닿지 않는 벼랑 위에서, 나이트가 별을 올려다보고 있다.'],
         ['night', '그건 건드리지 마.'],
         ['day', '나이트! 저 별은—'],
         ['night', '하나 남았어. 수천 개 가운데, 저거 하나.'],
@@ -218,7 +249,7 @@
         ['night', '저게 꺼지면, 나는—'],
         ['narr', '나이트는 말을 맺지 않았다.'],
       ]);
-      await g.tween(G.night, 'alpha', 0, 2);
+      await g.daybreak(3.6);
       await g.say('hari', '별이 하나뿐이라니. …원래는 얼마나 많았을까?');
       await g.fade(true, 1200);
       g.next();
@@ -226,94 +257,100 @@
     drawOver: (ctx, G, env, camX) => {
       // 별빛이 물 위에 내리는 길
       const a = G.lastStar ? G.lastStar.a : 0;
-      if (a < 0.05 || !G.flags.starSeen) return;
-      const x = PIER - camX, y1 = G.terrain.yAt('w1', PIER);
+      if (a < 0.05 || env.pass !== 'night') return;
+      const x = 3330 - camX;
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
-      const gr = ctx.createLinearGradient(0, 96, 0, y1 + 40);
+      const gr = ctx.createLinearGradient(0, 96, 0, W3 + 30);
       gr.addColorStop(0, `rgba(200,215,255,${0.16 * a})`); gr.addColorStop(1, `rgba(200,215,255,${0.03 * a})`);
       ctx.fillStyle = gr;
-      ctx.beginPath(); ctx.moveTo(x - 3, 96); ctx.lineTo(x + 3, 96); ctx.lineTo(x + 70, y1 + 40); ctx.lineTo(x - 120, y1 + 40); ctx.closePath(); ctx.fill();
-      for (let i = 0; i < 14; i++) {
+      ctx.beginPath(); ctx.moveTo(x - 3, 96); ctx.lineTo(x + 3, 96); ctx.lineTo(x + 90, W3 + 30); ctx.lineTo(x - 130, W3 + 30); ctx.closePath(); ctx.fill();
+      for (let i = 0; i < 16; i++) {
         const tw = 0.5 + 0.5 * Math.sin(G.time * 2.4 + i * 1.7);
         ctx.fillStyle = `rgba(225,235,255,${0.75 * a * tw})`;
-        ctx.beginPath(); ctx.ellipse(x - 110 + ((i * 53) % 170), y1 + 4 + ((i * 29) % 30), 5, 1.2, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(x - 110 + ((i * 53) % 190), W1 + 4 + ((i * 29) % 96), 5, 1.2, 0, 0, Math.PI * 2); ctx.fill();
       }
       ctx.restore();
     },
   };
 
-  /* ═════════ 3장 — 대도시: 별 없는 하늘 ═════════ */
+  /* ═════════ 3장 — 대도시: 별 없는 하늘 ═════════
+   * 그림자 걸음: 그림자 다리는 어둠 속에서만 단단하다.
+   * 빛을 먹는 그을음: 빛이 닿으면 깨어나 길을 막고, 어둠 속에서는 잔다. */
+  const SY = 648, RA = 560, RH = 500;       // 길바닥, 옥상, 병원 옥상
   L.ch3 = {
     id: 'ch3', title: '3장 · 대도시', sub: '별 없는 하늘',
-    width: 4300, theme: 'city',
-    tod: [[0, 1], [900, 1.25], [1250, 2]],
+    width: 4600, theme: 'city',
+    tod: [[0, 0.9], [560, 1]],
     sky: { cloudAlpha: 0.35 },
     backdrop: [
       { kind: 'skyline', par: 0.12, base: 430, amp: 300, fade: 0.62, seed: 5 },
       { kind: 'skyline', par: 0.26, base: 470, amp: 210, fade: 0.34, seed: 9 },
     ],
     layers: [
-      { id: 'r_c', kind: 'poly', style: 'roof', tone: 0.18,
+      { id: 'r_c', kind: 'poly', style: 'roof', tone: 0.18, walk: false,
         pts: [[-200, 790], [596, 790], [600, 360], [840, 360], [844, 790], [1896, 790], [1900, 330], [2140, 330], [2144, 790],
-              [2596, 790], [2600, 390], [2860, 390], [2864, 790], [3796, 790], [3800, 330], [4060, 330], [4064, 790], [4600, 790]] },
-      { id: 'r_b', kind: 'poly', style: 'roof', tone: 0.48,
-        pts: [[-200, 790], [196, 790], [200, 440], [520, 440], [524, 790], [896, 790], [900, 470], [1300, 470], [1304, 790],
-              [1496, 790], [1500, 430], [1760, 430], [1764, 790], [2196, 790], [2200, 450], [2500, 450], [2504, 790],
-              [3376, 790], [3380, 420], [3700, 420], [3704, 790], [4600, 790]],
-        knobs: [{ c: 1100, w: 202, lo: 0, hi: 100 }, { c: 3540, w: 162, lo: 0, hi: 96 }] },
+              [2996, 790], [3000, 380], [3260, 380], [3264, 790], [4196, 790], [4200, 380], [4520, 380], [4524, 790], [4800, 790]] },
+      { id: 'r_b', kind: 'poly', style: 'roof', tone: 0.46, walk: false,
+        pts: [[-200, 790], [196, 790], [200, 440], [520, 440], [524, 790], [1296, 790], [1300, 450], [1620, 450], [1624, 790],
+              [2396, 790], [2400, 450], [2660, 450], [2664, 790], [3596, 790], [3600, 420], [3860, 420], [3864, 790], [4800, 790]] },
+      // 걸어 다니는 옥상 줄: 계단, 건물, 골목(끊긴 곳)
       { id: 'r_a', kind: 'poly', style: 'roof', tone: 0.76,
-        pts: [[-200, 790], [376, 790], [380, 648], [560, 560], [800, 560], [804, 500], [1040, 500], [1044, 790],
-              [1180, 790], [1184, 540], [1420, 540], [1424, 790], [1796, 790], [1800, 560], [2100, 560], [2290, 648], [2294, 790],
-              [2596, 790], [2600, 648], [2800, 560], [3000, 560], [3120, 500], [3124, 470], [3460, 470], [3464, 790], [4600, 790]],
-        knobs: [{ c: 922, w: 120, lo: 0, hi: 70 }, { c: 1302, w: 120, lo: -50, hi: 40 }, { c: 3292, w: 170, lo: 0, hi: 42 }] },
-      // 건물 사이에 드리운 그림자: 등불을 꺼야 밟을 수 있다
-      { id: 'sh1', shadow: true, pts: [[1392, 560], [1610, 586], [1828, 560]] },
-      { id: 'st', kind: 'poly', style: 'street', tone: 1, pts: [[-200, 648], [4600, 648]] },
+        pts: [[-200, 790], [376, 790], [380, SY], [560, RA], [1000, RA], [1004, 790], [1236, 790], [1240, RA], [1700, RA], [1880, SY], [1884, 790],
+              [2696, 790], [2700, SY], [2880, RA], [3400, RA], [3520, RH], [3900, RH], [3904, 790], [4046, 790], [4050, RH], [4420, RH], [4424, 790], [4800, 790]] },
+      // 광고판 위: 걸어서는 닿지 못한다 (황혼 걸음을 아는 이만)
+      { id: 'sign', style: 'rock', thick: 16, tone: 0.3, pts: [[1056, 446], [1120, 444], [1184, 446]] },
+      H.shadow('sh1', 1000, 1240, RA),
+      H.shadow('sh2', 3900, 4050, RH),
+      { id: 'st', kind: 'poly', style: 'street', tone: 1, pts: [[-200, SY], [4800, SY]] },
     ],
     blocks: [
       { layer: 'st', x0: 760, x1: 900, prop: 'cars' },
-      { layer: 'st', x0: 2010, x1: 2150, prop: 'cars' },
-      { layer: 'st', x0: 3560, x1: 3700, prop: 'cars' },
+      { layer: 'st', x0: 3000, x1: 3140, prop: 'cars' },
     ],
     props: [
-      { type: 'tank', layer: 'r_c', x: 700 }, { type: 'antenna', layer: 'r_c', x: 2000 }, { type: 'antenna', layer: 'r_c', x: 2780, s: 0.8 }, { type: 'tank', layer: 'r_c', x: 3990, s: 0.9 },
-      { type: 'tank', layer: 'r_b', x: 300 }, { type: 'neon', layer: 'r_b', x: 420, w: 70, col: '#5ad2ff', lit: 'cityLit' }, { type: 'antenna', layer: 'r_b', x: 1240 },
-      { type: 'tank', layer: 'r_b', x: 1640, s: 0.9 }, { type: 'neon', layer: 'r_b', x: 2330, w: 80, col: '#ffd45a', lit: 'cityLit' }, { type: 'antenna', layer: 'r_b', x: 3420, s: 0.9 },
-      { type: 'antenna', layer: 'r_a', x: 600, s: 0.8 }, { type: 'tank', layer: 'r_a', x: 990, s: 0.9 },
-      { type: 'neon', layer: 'r_a', x: 1330, w: 84, col: '#ff5ac8', lit: 'A_lit_neon' },
-      { type: 'antenna', layer: 'r_a', x: 2060 }, { type: 'tank', layer: 'r_a', x: 2890, s: 0.85 },
-      { type: 'cross', layer: 'r_a', x: 3190, lit: 'A_lit_hospital' }, { type: 'antenna', layer: 'r_a', x: 3430, s: 0.8 },
+      { type: 'tank', layer: 'r_c', x: 700 }, { type: 'antenna', layer: 'r_c', x: 2000 }, { type: 'antenna', layer: 'r_c', x: 3200, s: 0.8 }, { type: 'tank', layer: 'r_c', x: 4440, s: 0.9 },
+      { type: 'tank', layer: 'r_b', x: 300 }, { type: 'neon', layer: 'r_b', x: 420, w: 70, col: '#5ad2ff', lit: 'cityLit' }, { type: 'antenna', layer: 'r_b', x: 1560 },
+      { type: 'neon', layer: 'r_b', x: 2520, w: 80, col: '#ffd45a', lit: 'cityLit' }, { type: 'antenna', layer: 'r_b', x: 3640, s: 0.9 },
+      { type: 'antenna', layer: 'r_a', x: 620, s: 0.8 }, { type: 'neon', layer: 'r_a', x: 880, w: 84, col: '#ff5ac8', lit: 'A_lit_neon' },
+      { type: 'tank', layer: 'r_a', x: 1300, s: 0.9 }, { type: 'antenna', layer: 'r_a', x: 1660 },
+      { type: 'tank', layer: 'r_a', x: 2960, s: 0.85 }, { type: 'antenna', layer: 'r_a', x: 3360, s: 0.8 },
+      { type: 'cross', layer: 'r_a', x: 3600, lit: 'A_lit_hospital' }, { type: 'antenna', layer: 'r_a', x: 4380, s: 0.8 },
       { type: 'streetlight', layer: 'st', x: 250, lit: 'A_lit_street' }, { type: 'streetlight', layer: 'st', x: 1130, lit: 'A_lit_street' },
-      { type: 'streetlight', layer: 'st', x: 1650, lit: 'A_lit_street' }, { type: 'subway', layer: 'st', x: 2460 },
-      { type: 'clock', layer: 'st', x: 2370 }, { type: 'streetlight', layer: 'st', x: 2560, lit: 'A_lit_street' },
-      { type: 'streetlight', layer: 'st', x: 3880, lit: 'A_lit_street' },
+      { type: 'streetlight', layer: 'st', x: 1960, lit: 'A_lit_street' }, { type: 'streetlight', layer: 'st', x: 2244, lit: 'A_lit_street' },
+      { type: 'subway', layer: 'st', x: 2470 }, { type: 'billboard', layer: 'sign', x: 1120 },
+      { type: 'streetlight', layer: 'st', x: 3300, lit: 'A_lit_street' }, { type: 'streetlight', layer: 'st', x: 4100, lit: 'A_lit_street' },
     ],
     start: { layer: 'st', x: 120 },
     things: [
-      { id: 'neon', kind: 'spirit', spirit: 'neon', layer: 'r_a', x: 1352, dy: 30, tired: 0.2 },
-      { id: 'street', kind: 'spirit', spirit: 'street', layer: 'st', x: 2460, dy: 12, tired: 0.7, scale: 0.85 },
-      { id: 'hosp', kind: 'spirit', spirit: 'hospital', layer: 'r_a', x: 3330, dy: 30, tired: 0.6 },
-      { id: 'hungry', kind: 'soot', type: 'hungry', layer: 'r_a', x: 1960, rad: 40, awake: 0.12 },
-      H.clue({ id: 'clock', run2: true, layer: 'st', x: 2370, dy: 70 }, 'clock', [
-        ['narr', '멈춘 시계. 바늘은 해 질 녘을 가리킨 채 서 있다.'],
+      { id: 'neon', kind: 'spirit', spirit: 'neon', layer: 'r_a', x: 902, dy: 30, tired: 0.2 },
+      { id: 'street', kind: 'spirit', spirit: 'street', layer: 'st', x: 2470, dy: 12, tired: 0.7, scale: 0.85 },
+      { id: 'hosp', kind: 'spirit', spirit: 'hospital', layer: 'r_a', x: 3720, dy: 30, tired: 0.6 },
+      // 옥상: 그을음 다음에 빛 먹는 그을음
+      H.soot('s1', 'r_a', 1350, 36), Object.assign(H.soot('e1', 'r_a', 1580, 40, 'eater'), { if: (G) => G.isNight }),
+      // 길바닥: 그을음 · 빛 먹는 그을음 · 그을음이 붙어 있다. 빛의 가장자리를 꼭 그 경계에 놓아야 한다
+      H.soot('s2', 'st', 2068, 35), Object.assign(H.soot('e2', 'st', 2130, 32, 'eater'), { if: (G) => G.isNight }), H.soot('s3', 'st', 2192, 35),
+      H.hook('hk_street', 'st', 2244, 96),
+      // 골목 아래의 낮은 고리 (2회차: 여기 걸면 빛의 가장자리가 광고판 위를 지난다)
+      { id: 'hk_alley', kind: 'hook', x: 1120, y: 640, r: 46, run2: true },
+      H.clue({ id: 'clock', run2: true, layer: 'sign', x: 1120 }, 'clock', [
+        ['narr', '광고판 꼭대기에 멈춘 시계가 걸려 있다. 바늘은 해 질 녘을 가리킨다.'],
         ['narr', '열두 숫자 사이에, 지워진 눈금이 하나 더 있다. 낮의 끝과 밤의 처음 사이.'],
         ['day', '여기에도… 세 번째 자리.'],
       ]),
     ],
     triggers: [
       { x: 640, layers: ['st'], run: async (g) => {
-        await g.say('day', '길이 막혔어. 지붕 위로 건너가자.');
-        g.toast('건물을 위아래로 끌어 옥상 높이를 맞추면 건너갈 수 있어요.', 9000);
+        await g.say('day', '길이 막혔어. 저 계단으로 지붕 위에 올라가자.');
+      } },
+      { x: 600, layers: ['r_a'], run: async (g) => {
+        await g.nightfall(3.2);
+        await g.say('narr', '마지막 햇빛이 지자, 수백만 개의 창문이 한꺼번에 눈을 감았다.\n한 번도 어두워진 적 없던 도시가, 처음으로 밤을 만났다.');
       } },
       // 네온
-      { x: 1250, run: async (g) => {
+      { x: 800, layers: ['r_a'], if: (G) => G.isNight, run: async (g) => {
         const G = g.G, sp = G.thing('neon');
-        g.toastOff();
-        await g.tod(2, 2.5);
-        g.todFree();
         await g.talk([
-          ['narr', '마지막 햇빛이 지자, 수백만 개의 창문이 한꺼번에 눈을 감았다.\n한 번도 어두워진 적 없던 도시가, 처음으로 밤을 만났다.'],
           ['narr', '꺼진 간판 뒤에서, 분홍빛 하나가 까칠하게 깜빡인다.'],
           ['neon', '뭐야, 날 찾으러 왔어? 안 가. 절대 안 가.'],
           ['neon', '밤새도록 깜빡였어. 그런데 아무도 날 "보지" 않아.\n지나가면서 눈이 부시다고만 하지.'],
@@ -328,15 +365,15 @@
         else if (r.where === 'human') { await g.say('neon', '…쳇. 알았어. 대신 좀 덜 깜빡일 거야.'); g.flag('A_lit_neon'); }
         else await g.say('neon', '…진짜? 의외네, 낮의 언니.');
         await g.talk([
-          ['neon', '아, 가는 길은 알려 줄게. 불을 끄고 그림자를 밟아 봐.'],
-          ['neon', '밤은 생각보다 단단하거든.'],
+          ['neon', '아, 가는 길은 알려 줄게. 저 건물 사이에 드리운 그림자 보여?'],
+          ['neon', '빛이 닿으면 그냥 그림자야. 그런데 캄캄할 때 밟으면… 밤은 생각보다 단단하거든.'],
         ]);
-        g.give('shadow');
+        g.learn('shadowWalk');
         if (r.where === 'night') { await Promise.all([g.tween(sp, 'dy', 560, 3), g.tween(sp, 'alpha', 0, 3)]); sp.visible = false; }
-        await g.say('narr', '그림자 걸음을 배웠다. 등불을 끄면, 그림자 위를 걸을 수 있다.');
+        await g.say('narr', '그림자 걸음을 배웠다. 그림자는 어둠 속에서만 단단하다.');
         g.toast('등불을 끄고, 옥상 끝에서 이어지는 그림자를 밟아 건너세요.', 9000);
       } },
-      { x: 1440, layers: ['sh1'], run: async (g) => {
+      { x: 1050, layers: ['sh1'], run: async (g) => {
         g.toastOff();
         await g.say('hari', '그, 그림자 위를 걷는 거야? 떨어지면 어떡해…');
         const v = await g.choose([
@@ -346,15 +383,25 @@
         if (v) { g.S.bond++; await g.say('hari', '…어, 진짜 단단하네! 물 위를 걷는 것 같아.'); }
         else await g.say('hari', '으으… 알았어. 꼭 잡고 갈게.');
       } },
-      { x: 1830, layers: ['r_a'], run: async (g) => {
+      { x: 1420, layers: ['r_a'], run: async (g) => {
         await g.talk([
-          ['day', '저 그을음은 다른 것들과 달라. 빛을 먹고 커지는 놈이야.'],
-          ['day', '등불을 켜면 깨어나서 길을 막을 거야. 끈 채로, 조용히 지나가자.'],
+          ['day', '저 앞의 그을음은 다른 것들과 달라. 빛을 먹고 커지는 놈이야.'],
+          ['day', '빛이 닿으면 깨어나서 길을 막을 거야. 어둠 속에서는 자고 있고.'],
         ]);
+        g.toast('그을음은 빛으로 물리치고, 빛 먹는 그을음은 불을 끄고 지나가세요.', 8000);
+      } },
+      { x: 1940, layers: ['st'], run: async (g) => {
+        await g.talk([
+          ['hari', '어떡해. 그을음이랑 빛 먹는 놈이 딱 붙어 있어.'],
+          ['hari', '불을 켜면 가운데 놈이 막고, 끄면 양옆이 막아.'],
+          ['day', '…빛의 가장자리. 낮도 밤도 아닌 그 띠에서는, 둘 다 가만히 있었어.'],
+        ]);
+        g.toast('앞쪽 가로등의 고리에 등불을 걸고, 빛의 가장자리가 두 그을음의 경계에 오도록 크기를 맞추세요.', 14000);
       } },
       // 가로등
-      { x: 2390, layers: ['st'], run: async (g) => {
+      { x: 2380, layers: ['st'], run: async (g) => {
         const G = g.G, sp = G.thing('street');
+        g.toastOff();
         await g.talk([
           ['narr', '지하철 입구 계단 밑에, 주황빛 하나가 쪼그려 앉아 있다.'],
           ['street', '…나는 길을 밝히려던 게 아니었어.'],
@@ -372,7 +419,7 @@
         if (r.where === 'night') { await Promise.all([g.tween(sp, 'dy', 640, 3), g.tween(sp, 'alpha', 0, 3)]); sp.visible = false; }
       } },
       // 병원 야간등
-      { x: 3250, layers: ['r_a'], run: async (g) => {
+      { x: 3640, layers: ['r_a'], run: async (g) => {
         const G = g.G, sp = G.thing('hosp');
         await g.talk([
           ['narr', '병원 옥상. 초록빛 작은 불이 창문 쪽으로 자꾸만 몸을 기울인다.'],
@@ -397,19 +444,20 @@
         }
         sp.visible = false;
         g.flag('spiritsDone');
-        g.toast('옆 건물의 옥상으로 건너가세요. 날이 밝아 오고 있어요.', 7000);
+        g.toast('그림자를 밟고 옆 건물의 옥상으로 건너가세요. 날이 밝아 오고 있어요.', 7000);
       } },
       // 황혼 타임 #3
-      { x: 3560, layers: ['r_b'], if: (G) => G.flags.spiritsDone, run: async (g) => {
+      { x: 4140, layers: ['r_a'], if: (G) => G.flags.spiritsDone, run: async (g) => {
         const G = g.G;
         g.toastOff();
-        await g.walk(G.day, 'r_b', 3610);
+        await g.walk(G.day, 'r_a', 4170);
         g.face(G.day, 1);
-        await g.tod(2.75, 3);
-        await g.cam(3800, 2);
-        await H.summonNight(g, 'r_c', 3890, -1);
+        G.setRadius(0, true);
+        await g.cam(4280, 2);
+        const n = G.addThing({ id: 'nightTop', kind: 'girl', who: 'night', layer: 'r_c', x: 4380, dir: -1, alpha: 0 });
+        await g.tween(n, 'alpha', 1, 2.2);
         await g.talk([
-          ['narr', '새벽이 오기 직전. 맞은편 옥상에 나이트가 서 있다.\n이번에는, 이쪽을 보고.'],
+          ['narr', '새벽이 오기 직전. 데이가 등불을 덮자, 맞은편 옥상의 어둠 속에 나이트가 서 있다.\n이번에는, 이쪽을 보고.'],
           ['day', '나이트. 저 사람들을 봐. 다치고, 길을 잃고, 무서워하고 있어. 인간을 구해야 해.'],
           ['night', '구해? 누가, 누구를.'],
           ['night', '약속은 언니가 먼저 깼잖아.'],
@@ -427,7 +475,9 @@
           trust: '…정말로 찾아볼 거야? 이번에는?',
         }[v]);
         await g.say('night', '첫 불이 켜진 곳을 찾아. 인간 아이가 길을 알 거야.');
-        await g.tween(G.night, 'alpha', 0, 2);
+        await g.tween(n, 'alpha', 0, 1.6);
+        n.visible = false;
+        await g.daybreak(3.4);
         await g.talk([
           ['hari', '첫 불…? 할아버지 노래에 나와!'],
           ['hari', '♪ 첫 불은 산 아래 굴에서, 빛나는 손이 건넸지…'],
