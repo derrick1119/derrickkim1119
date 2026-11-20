@@ -8,6 +8,7 @@ import { UNITS, HEROES } from '../data/units.js';
 import { CARDS, KIND, starterDeck } from '../data/cards.js';
 import { dimBackdrop } from './title.js';
 import { portrait } from './battle.js';
+import { cardIcon } from '../render/icons.js';
 import { sfx } from '../audio.js';
 
 export class HeroScene {
@@ -26,7 +27,7 @@ export class HeroScene {
       text(g, d.name, 264, y + 50, { size: 44, font: FONT_B, align: 'left' });
       text(g, d.desc, 266, y + 94, { size: 21, align: 'left', fill: SUB });
       rr(g, 260, y + 118, 398, 126, 5, on ? '#fbf3df' : '#efe4c9', INK, 1.6);
-      cards.forEach((c, n) => { const yy = y + 150 + n * 60; seal(g, 292, yy, 46, c.ch, KIND.hero.col); ell(g, 272, yy - 20, 12, 12, '#d9a441', INK, 1.6); text(g, String(c.cost), 272, yy - 19, { size: 16, font: FONT_B }); text(g, c.name, 326, yy - 13, { size: 22, font: FONT_B, align: 'left' }); text(g, c.desc(c.v), 326, yy + 13, { size: 15, align: 'left', weight: 400, fill: SUB, maxW: 322 }); });
+      cards.forEach((c, n) => { const yy = y + 150 + n * 60; rr(g, 268, yy - 24, 48, 48, 7, '#f3e3c0', KIND.hero.col, 1.8); cardIcon(g, c.id, 292, yy, 0.86); ell(g, 272, yy - 20, 12, 12, '#d9a441', INK, 1.6); text(g, String(c.cost), 272, yy - 19, { size: 16, font: FONT_B }); text(g, c.name, 326, yy - 13, { size: 22, font: FONT_B, align: 'left' }); text(g, c.desc(c.v), 326, yy + 13, { size: 15, align: 'left', weight: 400, fill: SUB, maxW: 322 }); });
       if (locked) { rr(g, 40, y, 640, 266, 6, 'rgba(241,231,207,0.78)'); rr(g, 190, y + 96, 340, 74, 37, '#1f2a44', INK, 3); text(g, `공적 장부에서 열기 · 공적 ${UNLOCKS.find(u => u.id === id).cost}`, 360, y + 134, { size: 21, fill: C.cream, maxW: 310 }); }
     });
     if (button(g, 'go', 250, 1102, 430, 106, meta.hard ? `출정 · 험로 ${meta.hard}` : '출  정', { size: meta.hard ? 40 : 54 })) { newRun(HEROES[this.sel]); nav.go('map'); }

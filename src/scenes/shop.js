@@ -8,6 +8,7 @@ import { KIND, CARDS, cardName } from '../data/cards.js';
 import { dimBackdrop } from './title.js';
 import { portrait, weaponIcon } from '../render/sprites.js';
 import { cardFace, DeckView, ArmyView } from '../ui/cards.js';
+import { relicIcon, miscIcon } from '../render/icons.js';
 import { sfx } from '../audio.js';
 
 const COL = { blue: INDIGO, green: TEAL, purple: '#b8742a', gold: RED };
@@ -31,7 +32,7 @@ export class ShopScene {
       if (card) cardFace(g, it, x + 12, y + 44, 84, 104);
       else {
         rr(g, x + 12, y + 44, 84, 104, 5, '#efe4c9', INK, 1.4); g.save(); g.beginPath(); g.rect(x + 13, y + 45, 82, 102); g.clip();
-        if (it.kind === 'recruit' || it.kind === 'train' || it.kind === 'reinforce') portrait(g, it.type, x + 54, y + 138, 1.15, t + n, !it.sold); else if (it.kind === 'relic') stamp(g, x + 54, y + 96, 32, '보', '#b8742a', -0.1); else if (it.kind === 'cleanse') stamp(g, x + 54, y + 96, 32, '정', TEAL, -0.1); else if (it.kind === 'weapon') weaponIcon(g, it.id, x + 54, y + 98, 0.92); else if (it.kind === 'burn') stamp(g, x + 54, y + 96, 32, '화', '#7a1f1c', -0.1); else icon.sack(g, x + 54, y + 100, 2.4);
+        if (it.kind === 'recruit' || it.kind === 'train' || it.kind === 'reinforce') portrait(g, it.type, x + 54, y + 138, 1.15, t + n, !it.sold); else if (it.kind === 'relic') relicIcon(g, it.id, x + 54, y + 96, 1.42); else if (it.kind === 'cleanse') { relicIcon(g, it.id, x + 54, y + 94, 1.25); stamp(g, x + 78, y + 126, 15, '정', TEAL, -0.1); } else if (it.kind === 'weapon') weaponIcon(g, it.id, x + 54, y + 98, 0.92); else if (it.kind === 'burn') miscIcon(g, 'burn', x + 54, y + 96, 1.42); else icon.sack(g, x + 54, y + 100, 2.4);
         g.restore();
       }
       text(g, d.name, x + 108, y + 60, { size: 20, font: FONT_B, align: 'left', maxW: w - 120 });

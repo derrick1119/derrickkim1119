@@ -4,6 +4,7 @@ import { ui } from './ui/ui.js';
 import { sfx, unlockAudio } from './audio.js';
 import { load, G } from './state.js';
 import { preloadLooks } from './render/sprites.js';
+import { warmIcons } from './render/icons.js';
 import { TitleScene } from './scenes/title.js';
 import { HeroScene } from './scenes/hero.js';
 import { BattleScene } from './scenes/battle.js';
@@ -65,7 +66,7 @@ function frame(ts) {
 
 async function boot() {
   try { await Promise.all([document.fonts.load("20px 'Yeon Sung'", '가A1'), document.fonts.load("700 20px 'Gowun Batang'", '가A1'), document.fonts.load("400 20px 'Gowun Batang'", '가A1')]); } catch (e) { /* 폰트 없이 진행 */ }
-  load(); preloadLooks();
+  load(); preloadLooks(); warmIcons();
   const q = new URLSearchParams(location.search);
   window.__game = { nav, inp, run: () => G.run };
   nav.now('title');

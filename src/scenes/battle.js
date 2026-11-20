@@ -7,12 +7,13 @@ import { Battle, formation, HAND, REFILL } from '../sim/battle.js';
 import { CARDS, KIND, cardName } from '../data/cards.js';
 import { WEAPONS, ARMS } from '../data/weapons.js';
 import { cardFace, cardBack, cardText, ArmyView, DeckView } from '../ui/cards.js';
+import { cardIcon, relicIcon } from '../render/icons.js';
 import { G, meta, save, battleSetup, cap, used, lvlOf, countOf, squadAtCell, unitStats, goldFor, depth } from '../state.js';
 import { CHAPTERS, MAPS } from '../data/stages.js';
 import { AFFIX } from '../data/encounters.js';
 import { UNITS } from '../data/units.js';
 import { RELICS } from '../data/relics.js';
-import { ui, button, iconBtn, panel, bar, icon, seal, stamp, brushTitle, C, inRect } from '../ui/ui.js';
+import { ui, button, iconBtn, panel, bar, icon, seal, stamp, brushTitle, C, inRect, tapped } from '../ui/ui.js';
 import { sfx, audio, setMuted } from '../audio.js';
 import { nav } from '../nav.js';
 
@@ -190,11 +191,11 @@ export class BattleScene {
         const r = d.r * (c.id === 'grail' ? b.mods.grailR : 1);
         g.globalAlpha = 0.22; ell(g, i.x, i.y, r, r, col); g.globalAlpha = 1;
         g.setLineDash([12, 8]); g.lineDashOffset = -T * 40; g.beginPath(); g.arc(i.x, i.y, r, 0, TAU); inkStroke(g, col, 3.4); g.setLineDash([]);
-        seal(g, i.x, i.y, 46, d.ch, col); text(g, cardName(c), i.x, i.y - r - 20, { size: 26, font: FONT_B, stroke: PAPER, lw: 6 });
+        ell(g, i.x, i.y, 30, 30, PAPER, col, 3); cardIcon(g, c.id, i.x, i.y, 1.05); text(g, cardName(c), i.x, i.y - r - 20, { size: 26, font: FONT_B, stroke: PAPER, lw: 6 });
       } else {
         g.globalAlpha = 0.14; g.fillStyle = col; g.fillRect(FIELD.x0, FIELD.y0, FIELD.x1 - FIELD.x0, FIELD.y1 - FIELD.y0); g.globalAlpha = 1;
         g.setLineDash([16, 10]); g.lineDashOffset = -T * 40; rr(g, FIELD.x0 + 6, FIELD.y0 + 6, FIELD.x1 - FIELD.x0 - 12, FIELD.y1 - FIELD.y0 - 12, 14, null, col, 4); g.setLineDash([]);
-        seal(g, i.x, i.y - 30, 54, d.ch, col); text(g, `${cardName(c)} — 손을 떼면 전군에 사용`, 360, 312, { size: 28, font: FONT_B, stroke: PAPER, lw: 7 });
+        ell(g, i.x, i.y - 30, 36, 36, PAPER, col, 3); cardIcon(g, c.id, i.x, i.y - 30, 1.25); text(g, `${cardName(c)} — 손을 떼면 전군에 사용`, 360, 312, { size: 28, font: FONT_B, stroke: PAPER, lw: 7 });
       }
     }
     // 고른 패의 설명
@@ -372,9 +373,10 @@ export class BattleScene {
     panel(g, 90, 300, 540, 640);
     brushTitle(g, 360, 302, 300, 72, '잠시 멈춤', INDIGO, 38);
     text(g, `${this.ch.name}  ·  ${this.st.name}`, 360, 384, { size: 22, maxW: 480 });
-    const rel = r.relics.map(id => RELICS[id].name);
-    text(g, rel.length ? '지닌 보물' : '지닌 보물 없음', 360, 424, { size: 19, fill: SUB });
-    if (rel.length) textBlock(g, rel.join(' · '), 360, 452, 480, 24, { size: 18, weight: 400 });
+    const rel = r.relics, pitch = Math.min(48, 470 / Math.max(1, rel.length));
+    text(g, rel.length ? '지닌 보물' : '지닌 보물 없음', 360, 422, { size: 19, fill: SUB });
+    rel.forEach((id, n) => { const x = 360 + (n - (rel.length - 1) / 2) * pitch; if (tapped('rel' + n, x - pitch / 2, 438, pitch, 48)) this.relSel = id; if (this.relSel === id) ell(g, x, 462, 23, 23, '#f6e6b8', RED, 2); relicIcon(g, id, x, 462, Math.min(0.82, pitch / 44)); });
+    if (rel.length) text(g, this.relSel && rel.includes(this.relSel) ? `${RELICS[this.relSel].name} — ${RELICS[this.relSel].desc}` : '보물을 누르면 효과를 볼 수 있습니다', 360, 502, { size: 16, fill: this.relSel ? INK : SUB, weight: 400, maxW: 500 });
     if (button(g, 'm1', 170, 524, 380, 76, '계속하기', { size: 36 })) this.menu = false;
     if (button(g, 'm4', 170, 614, 380, 64, `전술 패 보기 · ${r.deck.length}장`, { style: 'paper', size: 28 })) this.deckView = new DeckView({ P: this.b.power * this.b.mods.cardPow, onClose: () => { this.deckView = null; } });
     if (button(g, 'm2', 170, 692, 380, 64, audio.muted ? '소리 켜기' : '소리 끄기', { style: 'paper', size: 28 })) setMuted(!audio.muted);

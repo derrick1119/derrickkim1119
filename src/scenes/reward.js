@@ -1,7 +1,7 @@
 // 전리품 고르기 (싸움·강적·두목·보물 상자): 군대 전리품 하나 → 전술 패 한 장
 import { W, H } from '../config.js';
 import { INK, PAPER, RED, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, clamp, easeOutBack } from '../render/draw.js';
-import { ui, button, panel, brushTitle, stamp, icon, C } from '../ui/ui.js';
+import { ui, button, panel, brushTitle, stamp, icon, C, tapped } from '../ui/ui.js';
 import { nav } from '../nav.js';
 import { G, save, has, rollRewards, rollCards, describeReward, applyReward, addCard, finishNode, lvlOf, cap } from '../state.js';
 import { UNITS } from '../data/units.js';
@@ -9,6 +9,7 @@ import { RELICS } from '../data/relics.js';
 import { dimBackdrop } from './title.js';
 import { portrait, weaponIcon } from '../render/sprites.js';
 import { cardFace, DeckView, ArmyView } from '../ui/cards.js';
+import { relicIcon } from '../render/icons.js';
 import { sfx } from '../audio.js';
 
 const COL = { blue: INDIGO, green: TEAL, purple: '#b8742a', gold: RED };
@@ -42,7 +43,7 @@ export class RewardScene {
       g.fillStyle = INK; g.fillRect(x + 2, y + 174, w - 4, 2.4);
       const cx = x + w / 2, cy = y + 116;
       if (o.kind === 'recruit' || o.kind === 'train' || o.kind === 'reinforce') { portrait(g, o.type, cx, cy + 48, 1.7, t + n, !done); if (o.kind !== 'recruit') { ell(g, cx + 68, cy - 30, 19, 19, PAPER, INK, 2); text(g, o.kind === 'train' ? '↑' : '+', cx + 68, cy - 29, { size: 30, font: FONT_B, fill: TEAL }); } }
-      else if (o.kind === 'relic') stamp(g, cx, cy + 2, 46, '보', '#b8742a', -0.1);
+      else if (o.kind === 'relic') { g.save(); g.globalAlpha *= 0.6; ell(g, cx, cy + 4, 56, 44, PAPER, INK + '55', 1.2); g.restore(); relicIcon(g, o.id, cx, cy + 3, 2.1, Math.sin(t * 2 + n) * 0.04); }
       else if (o.kind === 'weapon') { g.save(); g.globalAlpha *= 0.6; ell(g, cx, cy + 4, 58, 44, PAPER, INK + '55', 1.2); g.restore(); weaponIcon(g, o.id, cx, cy + 4, 1.5); }
       else if (o.kind === 'hero') { portrait(g, r.hero, cx, cy + 50, 1.45, t, !done); ell(g, cx + 68, cy - 30, 19, 19, PAPER, INK, 2); text(g, '↑', cx + 68, cy - 29, { size: 30, font: FONT_B, fill: RED }); }
       else icon.sack(g, cx, cy + 6, 3.4);
@@ -59,8 +60,13 @@ export class RewardScene {
     const sq = r.squads, per = Math.min(92, 640 / Math.max(1, sq.length));
     sq.forEach((s, n) => { const x = 46 + per * n + per / 2 - 6, y = 876; g.save(); if (!s.placed) g.globalAlpha = 0.5; portrait(g, s.type, x, y, UNITS[s.type].hero ? 1.05 : 1.2, t, false, s.wpn); g.restore(); rr(g, x - 22, y + 6, 44, 19, 4, NAVY); text(g, `Lv${lvlOf(s.type)}`, x, y + 16, { size: 13, fill: '#f0d99a' }); });
     panel(g, 24, 932, 672, 152, 'navy');
-    text(g, r.relics.length ? '지닌 보물' : '지닌 보물 없음', 46, 962, { size: 22, font: FONT_B, fill: C.cream, align: 'left' });
-    textBlock(g, r.relics.map(id => RELICS[id].name).join(' · '), 46, 998, 630, 26, { size: 17, fill: '#f0d99a', align: 'left', weight: 400 });
+    text(g, r.relics.length ? `지닌 보물 · ${r.relics.length}` : '지닌 보물 없음', 46, 962, { size: 22, font: FONT_B, fill: C.cream, align: 'left' });
+    if (r.relics.length) {
+      text(g, '눌러서 자세히 보기', 674, 963, { size: 15, fill: '#a9b6d0', align: 'right', weight: 400 });
+      const pitch = Math.min(78, 632 / r.relics.length), named = pitch >= 68;
+      r.relics.forEach((id, k) => { const x = 44 + pitch * (k + 0.5); relicIcon(g, id, x, named ? 1012 : 1026, Math.min(0.92, pitch / 46)); if (named) text(g, RELICS[id].name, x, 1056, { size: 13.5, fill: '#f0d99a', weight: 400, maxW: pitch - 4 }); });
+      if (!this.over && tapped('relics', 24, 932, 672, 152)) this.over = new ArmyView({ tab: 1, onClose: () => { this.over = null; } });
+    }
     if (!done) { const rc = p.free > 0 ? 0 : 15 + p.rerolls * 10; if (button(g, 'reroll', 190, 1118, 340, 78, rc ? `다시 뽑기 · 엽전 ${rc}` : '다시 뽑기 · 무료', { style: r.gold >= rc ? 'paper' : 'grey', size: 28 })) { if (r.gold >= rc) { r.gold -= rc; if (p.free > 0) p.free--; else p.rerolls++; p.opts = rollRewards(p.kind); this.t = 0; save(); sfx('card'); } else sfx('deny'); } return; }
     const got = p.opts[p.taken], wpn = got && got.kind === 'weapon';
     if (button(g, 'army', 30, 1118, wpn ? 300 : 200, 84, wpn ? '바로 끼우기' : '군대 · 무기', { style: wpn ? 'teal' : 'paper', size: wpn ? 32 : 26 })) this.over = new ArmyView({ weapon: wpn ? got.id : null, onClose: () => { this.over = null; } });

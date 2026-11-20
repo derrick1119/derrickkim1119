@@ -8,6 +8,7 @@ import { UNITS } from '../data/units.js';
 import { RELICS } from '../data/relics.js';
 import { G, lvlOf, countOf, cap, used, unitStats, equip } from '../state.js';
 import { portrait, weaponIcon } from '../render/sprites.js';
+import { cardIcon, relicIcon } from '../render/icons.js';
 import { sfx } from '../audio.js';
 
 const SCALED = ['dmg', 'tick', 'burn', 'dps', 'hp', 'barrier'];
@@ -28,7 +29,9 @@ export function cardFace(g, c, x, y, w, h, o = {}) {
   g.globalAlpha *= 0.14; ell(g, cx, cy, ss * 0.95, ss * 0.72, col); g.globalAlpha /= 0.14;
   g.restore();
   g.setLineDash([3, 5]); g.beginPath(); g.arc(cx, cy, ss * 0.74, 0, TAU); st(g, col + '99', 1.2); g.setLineDash([]);
-  g.save(); g.translate(cx, cy); g.rotate(-0.05); seal(g, 0, 0, ss, d.ch, col); g.restore();
+  cardIcon(g, c.id, cx, cy + (big ? 2 : 1), ss / (mini ? 36 : 40));
+  // 큰 패에는 낙관처럼 작은 도장을 곁들인다
+  if (big) { g.save(); g.translate(x + w - 30, y + hh + 108); g.rotate(-0.08); seal(g, 0, 0, 27, d.ch, col); g.restore(); }
   if (!mini) text(g, cardName(c), x + w / 2 + (big ? 0 : 9), y + hh / 2 + 1, { size: big ? 27 : Math.min(19, hh * 0.62), font: FONT_B, fill: C.cream, maxW: w - (big ? 60 : 44) });
   if (big) {
     rr(g, x + w / 2 - 34, y + hh + 132, 68, 24, 12, null, col, 1.4); text(g, k.name, x + w / 2, y + hh + 145, { size: 15, fill: col });
@@ -93,7 +96,7 @@ export function weaponTile(g, id, wid, x, y, w, h, o = {}) {
   return hit;
 }
 export class ArmyView {
-  constructor(o = {}) { const r = G.run; this.onClose = o.onClose; this.onChange = o.onChange; this.tab = 0; this.t = 0; const fit = o.weapon ? r.squads.filter(s => canEquip(s.type, o.weapon)) : [], cls = o.weapon ? WEAPONS[o.weapon].cls : '';
+  constructor(o = {}) { const r = G.run; this.onClose = o.onClose; this.onChange = o.onChange; this.tab = o.tab || 0; this.t = 0; const fit = o.weapon ? r.squads.filter(s => canEquip(s.type, o.weapon)) : [], cls = o.weapon ? WEAPONS[o.weapon].cls : '';
     // 새 무기는 그 무기를 본업으로 쓰는 부대부터 권한다
     const best = fit.find(s => !s.wpn && !UNITS[s.type].hero && WEAPONS[ARMS[s.type].base].cls === cls) || fit.find(s => !s.wpn && !UNITS[s.type].hero) || fit.find(s => !s.wpn) || fit[0];
     this.sel = o.uid || (best || r.squads[0]).uid; this.hint = o.weapon || null; }
@@ -107,8 +110,14 @@ export class ArmyView {
     ['부대 · 무기', `보물 ${r.relics.length}`].forEach((s, n) => { if (button(g, 'tab' + n, 398 + n * 138, 168, 130, 42, s, { style: this.tab === n ? 'navy' : 'paper', size: 19, r: 8 })) this.tab = n; });
     if (this.tab === 1) {
       text(g, r.relics.length ? '지닌 보물' : '지닌 보물이 없습니다', 60, 250, { size: 24, font: FONT_B, align: 'left' });
-      const lh = Math.min(40, 780 / Math.max(1, r.relics.length));
-      r.relics.forEach((id, n) => { const x = RELICS[id], y = 292 + n * lh; text(g, x.name, 60, y, { size: Math.min(20, lh * 0.56), align: 'left', fill: x.curse ? '#6a4a9a' : INK }); text(g, x.desc, 214, y, { size: Math.min(17, lh * 0.5), align: 'left', fill: SUB, weight: 400, maxW: 450 }); });
+      const lh = Math.min(62, 800 / Math.max(1, r.relics.length)), two = lh >= 46;
+      r.relics.forEach((id, n) => {
+        const x = RELICS[id], y = 300 + n * lh;
+        if (two) rr(g, 50, y - lh / 2 + 3, 620, lh - 6, 6, x.curse ? '#efe6f4' : '#f6edd6', INK + '55', 1.2);
+        relicIcon(g, id, 84, y, Math.min(0.94, lh / 60));
+        if (two) { text(g, x.name, 122, y - 10, { size: 20, font: FONT_B, align: 'left', fill: x.curse ? '#6a4a9a' : INK }); text(g, x.desc, 122, y + 13, { size: 15.5, align: 'left', fill: SUB, weight: 400, maxW: 530 }); }
+        else { text(g, x.name, 112, y, { size: Math.min(19, lh * 0.5), align: 'left', fill: x.curse ? '#6a4a9a' : INK, maxW: 130 }); text(g, x.desc, 250, y, { size: Math.min(16, lh * 0.44), align: 'left', fill: SUB, weight: 400, maxW: 414 }); }
+      });
     } else this.drawArmy(g, r, t);
     if (button(g, 'armyclose', 230, 1092, 260, 62, '닫기', { size: 28 })) { if (this.onClose) this.onClose(); }
   }

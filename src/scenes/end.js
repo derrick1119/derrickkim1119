@@ -9,6 +9,7 @@ import { UNITS } from '../data/units.js';
 import { RELICS } from '../data/relics.js';
 import { backdrop } from './title.js';
 import { portrait } from './battle.js';
+import { relicIcon } from '../render/icons.js';
 
 export class EndScene {
   constructor(a) { this.win = !!(a && a.win); this.t = 0; this.r = G.run; this.gain = settleRun(this.win); this.conf = Array.from({ length: 60 }, () => ({ x: Math.random() * W, y: -Math.random() * H, v: 90 + Math.random() * 140, c: [RED, INDIGO, '#d9a441', '#3f6b5c', '#fbf7ec'][(Math.random() * 5) | 0], p: Math.random() * 6 })); }
@@ -26,7 +27,7 @@ export class EndScene {
       [['쌓은 전공', `${r.merit || 0}`], ['물리친 요괴', `${r.kills}`], ['잃은 병사', `${r.lost}`], ['지닌 보물', `${r.relics.length}개`]].forEach(([a, b], n) => { const x = 100 + (n % 2) * 280, y = 810 + Math.floor(n / 2) * 50; text(g, a, x, y, { size: 22, align: 'left', fill: SUB }); text(g, b, x + 230, y, { size: 30, font: FONT_B, align: 'right' }); });
       const sq = r.squads.slice(0, 10), per = 560 / sq.length;
       sq.forEach((s, n) => portrait(g, s.type, 86 + per * n + per / 2, 1004, UNITS[s.type].hero ? 0.95 : 1.1, t));
-      text(g, r.relics.map(id => RELICS[id].name).join(' · '), 360, 1034, { size: 16, fill: SUB, maxW: 560, weight: 400 });
+      const rp = Math.min(40, 540 / Math.max(1, r.relics.length)); r.relics.forEach((id, n) => relicIcon(g, id, 360 + (n - (r.relics.length - 1) / 2) * rp, 1034, Math.min(0.64, rp / 40)));
     }
     if (t > 0.8 && button(g, 'home', 60, 1100, 290, 96, '처음으로', { style: 'paper', size: 34 })) { G.run = null; save(); nav.go('title'); }
     if (t > 0.8 && button(g, 'meta', 370, 1100, 290, 96, '공적 장부', { size: 34 })) { G.run = null; save(); nav.go('meta'); }

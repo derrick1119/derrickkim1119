@@ -3,6 +3,7 @@ import { W, H } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, line, st, clamp } from '../render/draw.js';
 import { button, panel, brushTitle, seal, icon, C, tapped, ui } from '../ui/ui.js';
 import { DeckView, ArmyView } from '../ui/cards.js';
+import { relicIcon } from '../render/icons.js';
 import { nav } from '../nav.js';
 import { G, meta, openNodes, enterNode, lvlOf, countOf, cap, used, HARD_DESC } from '../state.js';
 import { CHAPTERS } from '../data/stages.js';
@@ -28,6 +29,8 @@ export class MapScene {
     for (let k = 0; k < 3; k++) icon.flag(g, 30 + k * 28, 152, 1.05, k < r.crowns ? RED : '#c9c2b0');
     panel(g, 530, 132, 174, 40, 'tag'); icon.coin(g, 554, 152, 12); text(g, `엽전 ${r.gold}`, 628, 153, { size: 20, maxW: 130 });
     text(g, r.hard ? `험로 ${r.hard}단계  ·  ${ch.sub}` : ch.sub, 360, 153, { size: 18, fill: SUB, weight: 400, maxW: 380 });
+    // 지닌 보물 한 줄 (누르면 자세히)
+    if (r.relics.length) { const rp = Math.min(34, 420 / r.relics.length), x0 = 360 - (r.relics.length - 1) / 2 * rp; r.relics.forEach((id, n) => relicIcon(g, id, x0 + n * rp, 187, Math.min(0.56, rp / 38))); if (!this.over && tapped('relstrip', x0 - 20, 170, (r.relics.length - 1) * rp + 40, 32)) this.over = new ArmyView({ tab: 1, onClose: () => { this.over = null; } }); }
     // 길
     for (const n of m.nodes) for (const id of n.next) {
       const a = pos(n), b = pos(m.nodes[id]), walked = m.done.includes(n.id) && (m.done.includes(id) || m.cur === id), live = m.cur === n.id && m.done.includes(n.id);

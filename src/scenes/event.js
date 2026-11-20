@@ -3,7 +3,20 @@ import { W, H } from '../config.js';
 import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr } from '../render/draw.js';
 import { ui, button, panel, brushTitle, icon, C, tapped, isDown } from '../ui/ui.js';
 import { DeckView } from '../ui/cards.js';
-import { cardName } from '../data/cards.js';
+import { cardName, CARDS } from '../data/cards.js';
+import { RELICS } from '../data/relics.js';
+import { WEAPONS } from '../data/weapons.js';
+import { cardIcon, relicIcon } from '../render/icons.js';
+import { weaponIcon } from '../render/sprites.js';
+
+// 결과 문장에 나온 보물·무기·패 이름을 찾아 아이콘을 곁들인다
+function resultIcon(s) {
+  const m = /(보물|부정|무기|패 강화:|패) \[([^\]]+?)\+?\]/.exec(s); if (!m) return null;
+  const name = m[2], find = (tbl) => Object.keys(tbl).find(k => tbl[k].name === name);
+  if (m[1] === '보물' || m[1] === '부정') { const id = find(RELICS); return id ? (g, x, y) => relicIcon(g, id, x, y, 0.8) : null; }
+  if (m[1] === '무기') { const id = find(WEAPONS); return id ? (g, x, y) => weaponIcon(g, id, x, y, 0.62) : null; }
+  const id = find(CARDS); return id ? (g, x, y) => cardIcon(g, id, x, y, 0.8) : null;
+}
 import { nav } from '../nav.js';
 import { G, save, finishNode, upgradeCard } from '../state.js';
 import { eventView } from '../data/events.js';
@@ -36,7 +49,7 @@ export class EventScene {
       });
     } else {
       const n = textBlock(g, this.result[0], 360, 500, 580, 32, { size: 23, weight: 400 });
-      this.result.slice(1).forEach((s, i) => { const bad = /-\d|부정 \[/.test(s) && !/씻겨/.test(s); const y = 500 + n * 32 + 40 + i * 62; rr(g, 70, y - 26, 580, 52, 8, bad ? '#efd9cf' : '#dfe8d4', INK, 1.6); text(g, s, 360, y + 1, { size: 20, fill: bad ? RED : TEAL, maxW: 550 }); });
+      this.result.slice(1).forEach((s, i) => { const bad = /-\d|부정 \[/.test(s) && !/씻겨/.test(s); const y = 500 + n * 32 + 40 + i * 62; const ic = resultIcon(s); rr(g, 70, y - 26, 580, 52, 8, bad ? '#efd9cf' : '#dfe8d4', INK, 1.6); if (ic) { ic(g, 102, y); text(g, s, 386, y + 1, { size: 20, fill: bad ? RED : TEAL, maxW: 500 }); } else text(g, s, 360, y + 1, { size: 20, fill: bad ? RED : TEAL, maxW: 550 }); });
       if (this.t > 0.2 && !this.left && button(g, 'go', 190, 990, 340, 84, '길을 떠난다', { size: 38 })) { this.left = true; finishNode(); nav.go('map'); }
     }
     if (this.over) this.over.frame(g, dt);

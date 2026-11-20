@@ -66,6 +66,7 @@ src/sim/battle.js          전투 시뮬레이션 (DOM 비의존, Node 에서도
 src/state.js               원정 상태: 지도 생성, 전리품, 장터, 공적 해금, 저장(localStorage)
 src/render/draw.js         그리기 도구, 종이 인형 스프라이트(종이 테두리 + 그림자)
 src/render/sprites.js      병종 인형 그림 (앞모습 한 장 + 손에 든 무기 한 장), 갈아 끼우는 무기 그림
+src/render/icons.js        전술 패·보물 아이콘 (종이 오림 그림체)
 src/render/terrain.js      한지 배경·지형지물
 src/render/battleview.js   전장 렌더러, 이벤트 → 이펙트/사운드
 src/ui/ui.js               한지 패널·도장 버튼·아이콘
@@ -86,7 +87,7 @@ node tools/campaign.mjs 20 auto    # 무조작
 node tools/campaign.mjs 30 casual all   # 공적 해금을 모두 연 상태
 ```
 
-디버그 진입: `?debug=1&ch=1&row=2&kind=elite&fight=1`, `?debug=1&scene=map`, `&scene=event&id=fox`, `&scene=shop`, `&scene=meta&merit=60`. 덱·무기 확인: `&cards=thunder,volley!` (! = 강화), `&items=gun,axe` (보관함), `&wpn=xbow:gun,sword:twin` (바로 장착). 인형 확인은 `tools/gallery.html`.
+디버그 진입: `?debug=1&ch=1&row=2&kind=elite&fight=1`, `?debug=1&scene=map`, `&scene=event&id=fox`, `&scene=shop`, `&scene=meta&merit=60`. 덱·무기 확인: `&cards=thunder,volley!` (! = 강화), `&items=gun,axe` (보관함), `&wpn=xbow:gun,sword:twin` (바로 장착). 인형 확인은 `tools/gallery.html`, 패·보물 아이콘 확인은 `tools/icons.html`.
 
 ## 폰트
 
