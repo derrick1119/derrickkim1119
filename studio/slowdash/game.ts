@@ -102,7 +102,7 @@ const S3 = (k: Star['k'], n: number, label: string): Star => ({ k, n, label });
 const RAW: Omit<StageDef, 'stars'>[] = [
   // ✏️ M1 S007: 📐 CONTENT v2 — 1-1~1-5 꺾기 판(한붓 획). 뒤의 다섯(수리검 · 방패 · 통 · 거울 · 대장)은 S008에 다시 짠다
   {
-    key: 'dummy', name: '대숲 입구', place: 0, news: '', goal: '숲 지나가기',
+    key: 'dummy', name: '태엽 골목', place: 0, news: '', goal: '골목 지나가기',
     hint: '꾹 누르고 줄 끝을 겨눠요', start: [0.5, 1.17], g0: 70, ease: [5, 1.5, 0.8],
     waves: [
       { need: 0, wait: 1e9, foes: [['dummy', 0.5, 0.95, 0], ['dummy', 0.5, 0.79, 0], ['dummy', 0.5, 0.63, 0]] },
@@ -112,7 +112,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 4, gift3: true,
   },
   {
-    key: 'bend', name: '갈림길', place: 0, news: '한붓 획 — 누른 채 그으면 그 길로 벤다', goal: '숲 지나가기', card: '길게 그을수록 먹이 들어요',
+    key: 'bend', name: '갈림길', place: 0, news: '한붓 획 — 누른 채 그으면 그 길로 벤다', goal: '골목 지나가기', card: '길게 그을수록 먹이 들어요',
     hint: '누른 채 꺾어 그어요', start: [0.5, 1.17], g0: 50, ease: [3, 1.5, 0.8],
     waves: [
       { need: 0, wait: 1e9, foes: [['dummy', 0.5, 0.6, 0], ['dummy', 0.5, 0.98, 0], ['dummy', 0.5, 0.86, 0], ['dummy', 0.5, 0.73, 0], ['dummy', 0.63, 0.6, 0], ['dummy', 0.76, 0.6, 0], ['dummy', 0.89, 0.6, 0]] },
@@ -122,7 +122,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 6,
   },
   {
-    key: 'sword', name: '오솔길', place: 0, news: '칼잡이가 와요 · 가시덤불은 꺾어 돌아요', goal: '숲 지나가기', card: '칼잡이 · 덤불은 돌아요',
+    key: 'sword', name: '좁은 골목', place: 0, news: '칼 병정가 와요 · 가시덤불은 꺾어 돌아요', goal: '골목 지나가기', card: '칼 병정 · 덤불은 돌아요',
     hint: '덤불을 돌아 꺾어 이어요', start: [0.5, 1.12], g0: 60, ease: [1.5, 1.2, 1],
     thorns: [[0.33, 0.96, 0.06], [0.67, 0.96, 0.06]], // ✏️ S009 📐 가시덤불
     waves: [
@@ -133,7 +133,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 5,
   },
   {
-    key: 'twin', name: '두 갈래', place: 0, news: '두 무리 — 덤불 사이로 돌아서 한 획에', goal: '숲 지나가기', card: '두 무리를 한 획에',
+    key: 'twin', name: '두 갈래', place: 0, news: '두 무리 — 덤불 사이로 돌아서 한 획에', goal: '골목 지나가기', card: '두 무리를 한 획에',
     hint: '덤불 위로 U자로 돌아 이어요', start: [0.5, 1.1], g0: 60, ease: [1, 1, 1],
     thorns: [[0.3, 1.04, 0.055], [0.7, 1.04, 0.055]], // ✏️ S009 📐 가시덤불
     waves: [
@@ -145,8 +145,8 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 5,
   },
   {
-    key: 'archer', name: '달빛 언덕', place: 0, news: '화살병 — 날아오는 화살도 벨 수 있어요', goal: '언덕 넘어가기', card: '화살도 벨 수 있어요',
-    hint: '덤불을 끼고 꺾어 화살병까지', start: [0.5, 1.15], g0: 55, ease: [1, 1, 1],
+    key: 'archer', name: '달빛 계단', place: 0, news: '활 병정 — 날아오는 화살도 벨 수 있어요', goal: '계단 올라가기', card: '화살도 벨 수 있어요',
+    hint: '덤불을 끼고 꺾어 활 병정까지', start: [0.5, 1.15], g0: 55, ease: [1, 1, 1],
     thorns: [[0.5, 0.8, 0.06], [0.3, 1.0, 0.05], [0.7, 1.0, 0.05]], // ✏️ S009 📐 가시덤불
     waves: [
       { need: 1, wait: 1e9, foes: [['sword', 0.26, 0.82, 1], ['sword', 0.2, 0.74, 1], ['sword', 0.14, 0.65, 1], ['archer', 0.42, 0.56, 3], ['archer', 0.58, 0.56, 3]] },
@@ -157,7 +157,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
   },
   // ✏️ M1 S008: 📐 1-6~1-10 꺾기 판(방패 · 통 · 섞기 · 수리검 · 대장) — 고리 일격 없음. 거울 판은 M2로(잘라내기 ③)
   {
-    key: 'shield', name: '높은 지붕', place: 1, news: '방패 무사 — 앞은 튕겨요, 꺾어 등 뒤를 베요', goal: '지붕 건너가기', card: '앞은 튕겨요, 등 뒤를!',
+    key: 'shield', name: '높은 지붕', place: 1, news: '방패 병정 — 앞은 튕겨요, 꺾어 등 뒤를 베요', goal: '지붕 건너가기', card: '앞은 튕겨요, 등 뒤를!',
     hint: '덤불 옆으로 올라가 꺾어 등을 베요', start: [0.5, 1.15], g0: 60, ease: [1.3, 2.5, 0.8],
     thorns: [[0.5, 0.93, 0.05], [0.2, 1.04, 0.05], [0.8, 1.04, 0.05]], // ✏️ S009 📐 가시덤불
     waves: [
@@ -168,8 +168,8 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 5,
   },
   {
-    key: 'barrel', name: '창고 마당', place: 2, news: '폭탄 통 — 베면 둘레까지 펑! 방패도 날려요', goal: '마당 지나가기', card: '통을 베면 펑!',
-    hint: '칼잡이를 꿰고 꺾어 통을 지나 멀리 (펑!)', start: [0.5, 1.17], g0: 60, ease: [1.3, 2.5, 0.8],
+    key: 'barrel', name: '창고 앞 광장', place: 2, news: '폭탄 통 — 베면 둘레까지 펑! 방패도 날려요', goal: '광장 지나가기', card: '통을 베면 펑!',
+    hint: '칼 병정를 꿰고 꺾어 통을 지나 멀리 (펑!)', start: [0.5, 1.17], g0: 60, ease: [1.3, 2.5, 0.8],
     barrels: [[0.5, 0.64]],
     waves: [
       { need: 0, wait: 1e9, foes: [['sword', 0.24, 0.9, 1], ['sword', 0.18, 0.78, 1], ['sword', 0.12, 0.66, 1], ['dummy', 0.42, 0.58, 0], ['dummy', 0.58, 0.58, 0], ['dummy', 0.5, 0.52, 0]] },
@@ -179,7 +179,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 5,
   },
   {
-    key: 'mix', name: '창고 처마', place: 2, news: '섞여 와요 — 화살병 먼저, 방패는 등 뒤로', goal: '처마 지나가기', card: '화살병 먼저!',
+    key: 'mix', name: '분수 광장', place: 2, news: '섞여 와요 — 활 병정 먼저, 방패는 등 뒤로', goal: '광장 지나가기', card: '활 병정 먼저!',
     hint: '덤불 사이로 올라가 갈라 꺾어요', start: [0.5, 1.15], g0: 60, ease: [1.2, 3, 0.7],
     thorns: [[0.36, 1.0, 0.05], [0.64, 1.0, 0.05]], // ✏️ S009 📐 가시덤불
     waves: [
@@ -190,7 +190,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 4,
   },
   {
-    key: 'shuri', name: '성벽 위', place: 2, news: '수리검 — 셋이 부채꼴로 날아와요', goal: '성벽 건너가기', card: '부채꼴 틈으로',
+    key: 'shuri', name: '시계탑 아래', place: 2, news: '수리검 — 셋이 부채꼴로 날아와요', goal: '탑 아래 건너가기', card: '부채꼴 틈으로',
     hint: '덤불을 비껴 옆에서 꺾어 꿰요', start: [0.5, 1.15], g0: 60, ease: [1.2, 3, 0.7],
     thorns: [[0.3, 0.72, 0.05], [0.7, 0.72, 0.05]], // ✏️ S009 📐 가시덤불
     waves: [
@@ -201,7 +201,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 4,
   },
   {
-    key: 'boss', name: '성 마당', place: 2, news: '대장 곰 — 네 번 베야 쓰러져요', goal: '대장 이기기', card: '대장은 네 번 베요',
+    key: 'boss', name: '시계탑 광장', place: 2, news: '태엽 장군 — 네 번 베야 쓰러져요', goal: '대장 이기기', card: '대장은 네 번 베요',
     hint: '졸개를 꿰고 꺾어 대장까지 한 획에', start: [0.5, 1.17], g0: 60, ease: [1.2, 2.5, 0.8],
     waves: [
       { need: 1, wait: 1e9, foes: [['boss', 0.5, 0.74, 3], ['sword', 0.3, 0.92, 1], ['sword', 0.2, 0.8, 1], ['sword', 0.7, 0.92, 2], ['sword', 0.8, 0.8, 2]] },
@@ -221,7 +221,7 @@ const starsOf = (a: Omit<StageDef, 'stars'>[]): StageDef[] => a.map((d) => ({ ..
 export const TRIAL: StageDef[] = starsOf([
   // ✏️ M2 S10: 📐 메우기 — 2-1~2-6 · 2-8 · 2-10에 '앞 무리가 하나 남으면 걸어 들어옴'(need 1 · wait 540) + 무리(칼 셋 + 꺾는 잎, 2-7 무리 베낌). 2-5는 칼 드는 시간 4 · 화살병 뺌(벽 .45→.82) · 2-8 방패 → 칼(벽 .67→.78)
   { // M2 S2: 잎 5 → 3(소개 판 — 처음 하는 사람 중앙값 74초) · 마지막 잎은 위 가운데(가운데면 휘젓기 .54)
-    key: 'leaf', name: '첫 기와', place: 1, news: '잎 너구리 — 곧게 오면 휙! 꺾어 들어가 베요', goal: '지붕 건너가기', card: '곧게 오면 휙! 꺾어요',
+    key: 'leaf', name: '첫 기와', place: 1, news: '잎 병정 — 곧게 오면 휙! 꺾어 들어가 베요', goal: '지붕 건너가기', card: '곧게 오면 휙! 꺾어요',
     // M2 S7 ㊻: 간격 끔(96시드: 첫 도전 .57→.69 · 3번 합친 87→54초)
     hint: '꺾어 들어가요', start: [0.5, 1.15], g0: 70, ease: [3, 1.5, 0.8],
     waves: [
@@ -289,7 +289,7 @@ export const TRIAL: StageDef[] = starsOf([
   },
   // ✏️ M2 S7: 📐 2-6 뒤뜰 대밭 — 🎋 대나무(꺾어 넘겨 덤불 너머 베기). 소개 판이라 간격은 2-1과 같게(㊻)
   {
-    key: 'bamboo', name: '뒤뜰 대밭', place: 1, news: '대나무 — 꺾어 베면 칼 간 쪽으로 쓰러져요', card: '꺾어 베면 쓰러져요', goal: '대밭 지나가기',
+    key: 'bamboo', name: '대나무 옥상', place: 1, news: '대나무 — 꺾어 베면 칼 간 쪽으로 쓰러져요', card: '꺾어 베면 쓰러져요', goal: '옥상 지나가기',
     // 📐 S8: 간격 끔 · 다음 무리는 9초 뒤(새 F12 — 빈 기다림 57→11%)
     hint: '옆에서 꺾어 줄 쪽으로', start: [0.5, 1.15], g0: 70, ease: [3, 1.5, 0.8], thorns: [[0.39, 0.7, 0.05], [0.61, 0.6, 0.05]],
     waves: [
@@ -338,8 +338,8 @@ export const TRIAL: StageDef[] = starsOf([
   },
   // ✏️ M2 S9: 📐 2-10 큰 너구리 지붕 — 1-10 대장 틀(hp 4 · 맞으면 밀림) + 잎 성질(leafBoss). 통은 두지 않음(펑에 휙인지 한 대인지 헷갈림)
   {
-    key: 'boss2', name: '큰 너구리 지붕', place: 1, news: '큰 너구리 — 곧은 칼은 휙, 꺾어 네 번', card: '꺾어서 네 번 베요', goal: '큰 너구리 이기기',
-    hint: '졸개 꿰고 꺾어 너구리까지', start: [0.5, 1.15], g0: 70, ease: [1.5, 2.5, 0.8], thorns: [[0.5, 0.98, 0.05]], leafBoss: true,
+    key: 'boss2', name: '큰 인형 지붕', place: 1, news: '태엽 큰 인형 — 곧은 칼은 휙, 꺾어 네 번', card: '꺾어서 네 번 베요', goal: '큰 인형 이기기',
+    hint: '졸개 꿰고 꺾어 큰 인형까지', start: [0.5, 1.15], g0: 70, ease: [1.5, 2.5, 0.8], thorns: [[0.5, 0.98, 0.05]], leafBoss: true,
     waves: [
       { need: 1, wait: 1e9, foes: [['boss', 0.5, 0.7, 3], ['sword', 0.3, 0.92, 1], ['sword', 0.2, 0.8, 1], ['sword', 0.7, 0.92, 2], ['sword', 0.8, 0.8, 2]] },
       { need: 1, wait: 540, foes: [['leaf', 0.3, 0.6, 0], ['leaf', 0.7, 0.6, 0], ['archer', 0.5, 0.5, 3], ['shuri', 0.2, 0.5, 3]] },
@@ -348,7 +348,7 @@ export const TRIAL: StageDef[] = starsOf([
       { need: 1, wait: 540, foes: [['sword', 0.14, 0.62, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.26, 0.78, 1], ['leaf', 0.7, 0.58, 0]] },
       { need: 1, wait: 540, foes: [['sword', 0.86, 0.62, 2], ['sword', 0.8, 0.7, 2], ['sword', 0.74, 0.78, 2], ['leaf', 0.3, 0.58, 0]] },
     ],
-    n: 5, // 📐: 너구리만 남으면 다음 졸개가 걸어 들어와 '너구리 + 졸개 넷' 한 줄이 ★★
+    n: 5, // 📐: 너구리만 남으면 다음 졸개가 걸어 들어와 '큰 인형 + 졸개 넷' 한 줄이 ★★
   },
 ] as Omit<StageDef, 'stars'>[]);
 /** ✏️ M2 S6 보류: 🔔 종루(2-6)는 미리 정한 폐기 기준에 걸려(사용 .46 < .5 · 낙차 .12 < .2 · 처음 봇 0~.08) 판 목록에서 뺀다 — 코드와 판은 다시 잴 수 있게 남김(M2 S7: 플레이 빌드에선 빠지게 따로 둠) */
@@ -424,9 +424,9 @@ function see(s: DashState, key: string, text: string) {
 const URGENT = new Set(['thorn', 'thornRed', 'leaf', 'leafDemo', 'bell', 'bamboo']);
 /** 🍃 잎 성질: 잎 너구리 · 2-10 큰 너구리(leafBoss 판의 대장) — 첫 방향 25° 안의 칼은 휙 */
 const leafy = (s: DashState, f: Foe) => f.k === 'leaf' || (f.k === 'boss' && !!STAGES[s.stage].leafBoss);
-const nameOf = (s: DashState, f: Foe) => (f.k === 'boss' && STAGES[s.stage].leafBoss ? '큰 너구리' : KIND_NAME[f.k]);
+const nameOf = (s: DashState, f: Foe) => (f.k === 'boss' && STAGES[s.stage].leafBoss ? '태엽 큰 인형' : KIND_NAME[f.k]);
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
-const KIND_NAME: Record<K, string> = { dummy: '허수아비', sword: '칼잡이', archer: '화살병', shuri: '수리검', shield: '방패 무사', boss: '대장 곰', leaf: '잎 너구리', bell: '종' };
+const KIND_NAME: Record<K, string> = { dummy: '연습 인형', sword: '칼 병정', archer: '활 병정', shuri: '수리검', shield: '방패 병정', boss: '태엽 장군', leaf: '잎 병정', bell: '종' };
 
 // ───────────────────────────── 시뮬레이션 ─────────────────────────────
 
@@ -754,7 +754,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     f.x = clamp(f.x + nx * sg * LEAF_HOP, X0 + 0.02, X1 - 0.02);
     f.y = clamp(f.y + ny * sg * LEAF_HOP, Y0 + 0.02, Y1 - 0.02);
     ev(s, 'dodge', f.x, f.y, dq.leg); // n = 휙 난 토막(0 = 첫 토막)
-    see(s, 'leaf', '잎 너구리는 곧은 칼을 휙! 꺾어 들어가 베요');
+    see(s, 'leaf', '잎 병정는 곧은 칼을 휙! 꺾어 들어가 베요');
     if (n === 0) s.g = Math.min(GMAX, s.g + GAIN); // 휙만 난 획에만(🧪 M2 S1: 섞인 판에서 '먹 우물' 막기) 휙 하며 먹을 흘린다(+7) — 잎만 남으면 먹을 얻을 길이 없어 처음 하는 사람이 말라 갇히던 것(꾹 동안 주는 먹 > 쉬는 동안 차는 먹)
     s.dodgeN++;
     if (s.dodgeN >= OWL_DODGES && !s.owl && !s.owlNo) s.owlAsk = true; // M2 S4 ㉛: 2-1에서 휙 세 번이면 부엉이가 묻는다 · S10: 큰 너구리 휙을 빼 보니 카드 .92→.75지만 처음 첫 도전 .45→.36 · 3번 안 .81→.73(카드가 돕고 있음) → 그대로(📋)
@@ -1270,8 +1270,8 @@ export const NOTES = {
   ],
   hint: '꾹 누르면 느려지고, 떼면 번쩍 돌진! / 화살표로 겨누고 스페이스',
   art: {
-    concept: '달밤 대나무 숲의 여우 닌자 — 먹물 그림책',
-    mood: '커다란 보름달 아래 대나무 숲 실루엣이 겹겹이 흔들리고, 반딧불이 떠다닌다. 누르면 세상이 먹빛 회색으로 바래며 느려지고, 떼는 순간 하얀 칼빛이 번쩍 — 베인 너구리 졸개들이 반으로 갈라져 먹물이 튄다.',
+    concept: '시간이 멈춘 태엽 마을의 꼬마 닌자 \'초침\' — 도트',
+    mood: '초승달 아래 시간이 멈춘 태엽 마을. 불 켜진 창과 시계탑, 돌길·기와·광장. 누르면 세상이 청회색으로 가라앉고 닌자와 그은 길, 겨눈 병정만 색이 남는다.',
   },
 };
 

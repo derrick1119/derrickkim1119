@@ -163,7 +163,7 @@ function end() {
   draw();
   show(
     `<b>${sc}점</b>` + // S3 QC④ 이모지 0
-      `<span class="msg">${s.won ? '성 마당까지 다 지나갔어요!' : `${cleared}판까지 지나갔어요`} · ★ ${stars}</span>` +
+      `<span class="msg">${s.won ? '시계탑 광장까지 다 지나갔어요!' : `${cleared}판까지 지나갔어요`} · ★ ${stars}</span>` +
       `<span class="best">최고 ${best}점</span><strong>다시</strong>`,
   );
 }
@@ -189,10 +189,10 @@ function openPicker() {
     return `<button type="button" data-k="${i}"><span class="n"><i>${i < STAGE_COUNT ? i + 1 : `2-${i - STAGE_COUNT + 1}`}</i> ${d.name} <em>${st(b)}</em></span><small>${note}</small></button>`;
   };
   picker.innerHTML =
-    `<b>판 고르기</b><span class="msg">달밤 대숲 · ★ ${w1}/30</span><div class="grid">${W1.map((_, i) => btn(i)).join('')}</div>` +
+    `<b>판 고르기</b><span class="msg">태엽 마을 · ★ ${w1}/30</span><div class="grid">${W1.map((_, i) => btn(i)).join('')}</div>` +
     (STAGES.length > STAGE_COUNT
       ? `<span class="msg">기와 지붕 마을</span><div class="grid">${STAGES.slice(STAGE_COUNT).map((_, j) => btn(STAGE_COUNT + j)).join('')}</div>`
-      : `<span class="msg">기와 지붕 마을 — 잠김</span><span>달밤 대숲 별 ${WORLD_LOCK}개면 열려요 · 지금 ${w1}개</span>`) +
+      : `<span class="msg">기와 지붕 마을 — 잠김</span><span>태엽 마을 별 ${WORLD_LOCK}개면 열려요 · 지금 ${w1}개</span>`) +
     `<div class="row"><button type="button" data-close="1">닫기</button></div>`;
   picker.hidden = false;
   picker.querySelector('button')?.focus();
@@ -285,6 +285,20 @@ size();
 //   ?title=1 이면 예전처럼 타이틀부터(스크린샷·비교용)
 if (q.get('title') === '1') title();
 else start();
+// M3 S5 렉(🧪: 첫 '번쩍'이 판마다 한 번 끊김 — 트레이스로 보니 그 프레임만 게임 코드가 23~25ms, 평소 6~11ms):
+//   처음 도는 돌진·베기·그리기 코드를 브라우저가 그때 처음 컴파일하는 비용이다 → 켜자마자 화면 밖 가짜 판에서 한 번 베고 그려 둔다(시드·저장·소리는 안 건드림)
+setTimeout(() => {
+  try {
+    const t = g.create(7), c = document.createElement('canvas').getContext('2d')!;
+    if (s.stage) startStage(t, s.stage); // 지금 하는 판의 적·장치 코드까지(대장 휙 · 대나무 쓰러짐)
+    (c.canvas.width = W), (c.canvas.height = H);
+    for (let i = 0; i < 240; i++) { // 꺾은 획 한 번 + 곧은 획 한 번
+      const pt = i >= 60 && i < 100 ? { x: 0.3, y: 0.5 } : i >= 100 && i < 130 ? { x: 0.7, y: 0.3 } : i >= 160 && i < 190 ? { x: 0.5, y: 0.25 } : null;
+      g.step(t, { tap: false, dir: 0, pointer: pt });
+      if ((i > 125 && i < 145) || (i > 185 && i < 205)) g.draw(c, t, W, H, pal);
+    }
+  } catch { /* 예열이 실패해도 게임은 그대로 */ }
+}, 50);
 // 타이틀 뒤에서도 달밤이 흐르게(시뮬은 멈춘 채 그림만)
 (function idle() {
   if (!running) draw();

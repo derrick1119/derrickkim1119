@@ -43,11 +43,16 @@ function hiss(t0: number, dur: number, vol: number, out: AudioNode, f0?: number,
   src.start(t0, Math.random() * 0.3);
   src.stop(t0 + dur + 0.02);
 }
+// M3 S5 렉(🧪: 첫 '번쩍'이 끊기는 주범 = 벨 때 소리 노드를 한꺼번에 60개 넘게 만듦): 주파수가 안 움직이는 필터는 한 번 만들어 같이 쓴다
+const SF = new Map<string, BiquadFilterNode>();
+const sf = (type: BiquadFilterType, f: number) => { const k = type + f; let b = SF.get(k); if (!b) SF.set(k, (b = filt(type, f))); return b; };
+/** 소리 노드를 울리기 직전에 만든다(한 프레임에 몰리지 않게) — dt초 뒤에 울릴 것을 그 60ms 전에 만든다 */
+const soon = (dt: number, f: (t: number) => void) => (dt < 0.07 ? f(ac!.currentTime + dt) : void setTimeout(() => ac && f(ac.currentTime + 0.06), (dt - 0.06) * 1000));
 const S = (t: number) => hiss(t, 0.09, 0.3, filt('bandpass', 1500, 2), 1500, 6000);
-const C = (t: number, f: number, v = 1) => (tone('sine', f, f, t, 0.22, 0.28 * v), tone('sine', f * 1.5, f * 1.5, t, 0.16, 0.11 * v), hiss(t, 0.01, 0.1 * v, filt('highpass', 5000)));
-const K = (t: number) => (hiss(t, 0.015, 0.22, filt('highpass', 3000)), tone('triangle', 900, 900, t, 0.02, 0.15));
-const I = (t: number) => hiss(t, 0.07, 0.2, filt('lowpass', 600));
-const D = (t: number, v = 1) => (tone('sine', 90, 50, t, 0.3, 0.45 * v), tone('triangle', 700, 500, t, 0.04, 0.15 * v), hiss(t, 0.06, 0.2 * v, filt('lowpass', 300)));
+const C = (t: number, f: number, v = 1) => (tone('sine', f, f, t, 0.22, 0.28 * v), tone('sine', f * 1.5, f * 1.5, t, 0.16, 0.11 * v), hiss(t, 0.01, 0.1 * v, sf('highpass', 5000)));
+const K = (t: number) => (hiss(t, 0.015, 0.22, sf('highpass', 3000)), tone('triangle', 900, 900, t, 0.02, 0.15));
+const I = (t: number) => hiss(t, 0.07, 0.2, sf('lowpass', 600));
+const D = (t: number, v = 1) => (tone('sine', 90, 50, t, 0.3, 0.45 * v), tone('triangle', 700, 500, t, 0.04, 0.15 * v), hiss(t, 0.06, 0.2 * v, sf('lowpass', 300)));
 const H = (t: number) => hiss(t, 0.18, 0.08, filt('lowpass', 400), 400, 1200);
 
 export const sfx = {
@@ -74,7 +79,7 @@ export const sfx = {
       const t = ac.currentTime;
       master.gain.setValueAtTime(0, t);
       master.gain.setValueAtTime(0.5, t + 0.6);
-      ac.resume().then(() => this.play('slash', 3), () => {});
+      ac.resume().then(() => (this.play('dash'), this.play('slash', 3)), () => {}); // M3 S5: 첫 떼기에 같이 나는 '돌진' 소리도
     }
     if (ac.state === 'suspended') void ac.resume();
   },
@@ -104,9 +109,9 @@ export const sfx = {
       case 'press': return void (H(t), this.buzz(8));
       case 'dash': return void (S(t), this.buzz(6)); // 🧪 S005: 진동 순서 헛돌진 < 베기 < 맞음 < 실패
       case 'slash': // 베인 적마다 3틱 간격으로 '챙' — 연쇄 음계로 올라간다
-        K(t + 0.15); // 칼집 '착' 뒤에 차례로 갈라진다(🎨 §4.2)
-        for (let k = 1; k <= Math.min(n, 8); k++) C(t + 0.2 + (k - 1) * 0.05, chainHz(k), 0.9);
-        I(t + 0.2 + Math.min(n, 8) * 0.05);
+        soon(0.15, K); // 칼집 '착' 뒤에 차례로 갈라진다(🎨 §4.2) · M3 S5: 음마다 울리기 직전에 만든다
+        for (let k = 1; k <= Math.min(n, 8); k++) soon(0.2 + (k - 1) * 0.05, (u) => C(u, chainHz(k), 0.9));
+        soon(0.2 + Math.min(n, 8) * 0.05, I);
         return void this.buzz(n >= 3 ? [20, 30, 20] : 14);
       case 'sheath': return K(t);
       case 'ink': return I(t);
