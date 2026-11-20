@@ -5,22 +5,10 @@
  * 졸업한 게임은 스튜디오(`studio/<게임>/`)가 이어받는다(원본 `games/guardian2.ts`·`sheepdog.ts`·`balloonpop.ts`·`duckbath.ts`·`screwshop.ts`·`animalbus.ts`·`demolition.ts`·`potionsort.ts`·`slowdash.ts`·`petsquad.ts`는 스튜디오 참고용으로 파일만 남김).
  */
 import type { Bot, GameDef } from './core.ts';
-import { molepop, molepopRandom, molepopSmart, molepopHabit, molepopHabit2 } from './games/molepop.ts';
-import { spotkick, spotkickRandom, spotkickSmart, spotkickHabit, spotkickHabit2 } from './games/spotkick.ts';
-import { isletown, isletownRandom, isletownSmart, isletownHabit, isletownHabit2 } from './games/isletown.ts';
-import { flagcastle, flagcastleRandom, flagcastleSmart, flagcastleHabit, flagcastleHabit2 } from './games/flagcastle.ts';
-import { rocketlab, rocketlabRandom, rocketlabSmart, rocketlabHabit, rocketlabHabit2 } from './games/rocketlab.ts';
-import { ponycup, ponycupRandom, ponycupSmart, ponycupHabit, ponycupHabit2 } from './games/ponycup.ts';
 
 /** habits: 늘 같은 버릇대로 하는 봇들(기준 13, 0081 계기판 '버릇 격차') */
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S>; habits?: Bot<S>[] }
 
 export const GAMES: Entry[] = [
-  // 35라운드(2026-11-20): 또 다른 장르 6개 · 톡 하나 · 톡마다 크게
-  { game: molepop, dumb: molepopRandom, smart: molepopSmart, habits: [molepopHabit, molepopHabit2] },
-  { game: spotkick, dumb: spotkickRandom, smart: spotkickSmart, habits: [spotkickHabit, spotkickHabit2] },
-  { game: isletown, dumb: isletownRandom, smart: isletownSmart, habits: [isletownHabit, isletownHabit2] },
-  { game: flagcastle, dumb: flagcastleRandom, smart: flagcastleSmart, habits: [flagcastleHabit, flagcastleHabit2] },
-  { game: rocketlab, dumb: rocketlabRandom, smart: rocketlabSmart, habits: [rocketlabHabit, rocketlabHabit2] },
-  { game: ponycup, dumb: ponycupRandom, smart: ponycupSmart, habits: [ponycupHabit, ponycupHabit2] },
+  // 35라운드 판정(2026-11-20): 전체 폐기(이유: 첫인상·손맛이 약함) — 36라운드 만드는 중
 ];
