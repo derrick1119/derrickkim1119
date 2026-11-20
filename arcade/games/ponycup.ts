@@ -118,7 +118,7 @@ export const STAGES: StageDef[] = [
   },
   {
     name: '장애물 대회', news: '장애물 — 꾀가 모자라면 걸려 넘어져요', hint: '꾀를 길 띠의 숫자만큼!', spot: 'hurdle',
-    course: [['hill', 0.9], ['hurdle', 1.0], ['water', 0.8], ['hurdle', 0.8]], trains: 4, goal: 2, lv: 69, bar: 45,
+    course: [['hill', 0.9], ['hurdle', 1.0], ['water', 0.8], ['hurdle', 0.8]], trains: 4, goal: 2, lv: 66, bar: 45,
     cards: ['run', 'hill', 'swim', 'jump', 'rest'], fatigue: true, friends: true, rain: [2], spurt: false,
     stars: [ST('goal', '2등 안에 들기'), ST('first', '1등 하기'), ST('clean', '장애물에 안 걸리기')],
   },
@@ -2727,6 +2727,19 @@ function drawCards(ctx: C2, s: PonyState, fx: ReturnType<typeof juice>, w: numbe
       ctx.fillStyle = '#5a3a1a';
       const sub = c.k === 'rest' ? `지침 -${c.gain}` : c.applied ? (c.fail ? `넘어져서 ${STAT_NAME[si]} +${c.got}뿐…` : `${STAT_NAME[si]} +${c.got}!${c.bonus ? ' 우정 두 배!' : ''}`) : `${iga(STAT_NAME[si])} 오르는 중…`;
       ctx.fillText(sub, w / 2, cy + R(0.075), w * 0.9);
+      // 큰 능력 그림 (오르면 뿅)
+      const bo = c.applied ? pop(Math.min(1, (u - APPLY_T) / 12)) : 1 + Math.abs(Math.sin(u * 0.25)) * 0.08;
+      for (const sd of [-1, 1]) {
+        const ix = w / 2 + sd * R(0.38), iy = cy + R(0.03);
+        ctx.fillStyle = 'rgba(255,250,235,.9)';
+        ell(ctx, ix, iy, R(0.065) * bo, R(0.065) * bo);
+        ctx.fill();
+        ctx.strokeStyle = c.k === 'rest' ? '#3a9a3a' : STAT_DARK[si];
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        if (c.k === 'rest') dropIcon(ctx, ix, iy, R(0.035) * bo);
+        else statIcon(ctx, si, ix, iy, R(0.04) * bo * (c.fail && c.applied ? 0.7 : 1));
+      }
       ctx.restore();
     }
     // 고른 카드가 망아지 쪽으로 날아간다
