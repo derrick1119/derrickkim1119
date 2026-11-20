@@ -9,7 +9,7 @@ export const PAL: Record<string, string> = {
   0: '#0e0f22', 1: '#1a1c3d', 2: '#252a53', 3: '#313c68', 4: '#3f527f', 5: '#556d97', 6: '#7490b4', 7: '#9db5d0', 8: '#cbdbea', 9: '#f1f6f4',
   o: '#f0cf8e', O: '#8f7657', n: '#22235c', N: '#373b93', m: '#5d68d4', p: '#ffdab5', q: '#e6a47c', r: '#ff8f92',
   u: '#0e6c74', t: '#19b6a7', T: '#7cf8dd', w: '#ffffff', y: '#ffd340', Y: '#c98919', H: '#7b4a2c', h: '#c6824b', j: '#f4c486',
-  v: '#9a6ae0', V: '#5b3794', G: '#64ba5b', E: '#2f6c43', D: '#ff2d4b', k: '#0e0f22',
+  v: '#f0903a', V: '#a8551e', G: '#64ba5b', E: '#2f6c43', D: '#ff2d4b', k: '#0e0f22',
 };
 type Dot = [number, number, string];
 
@@ -90,17 +90,21 @@ const BODY = [
   '....111...111',
 ];
 const KEY = ['.............88...77.', '.............8.8.7.6.', '.............8887666.', '...............876...', '................6....', '...............6.....', '..............6......'];
-const HAT: Record<string, string[]> = { // 칼 병정 모자는 시안의 빨강 → 보라(빨강은 위험에만 · 🧪 캐릭터 시안 규칙)
+const HAT: Record<string, string[]> = { // 칼 병정 모자는 시안의 빨강 → 주황(빨강은 위험에만 · 🧪 S2: 보라는 남색 닌자와 한 덩어리)
   sword: ['.......ww', '.....vVVVVVV', '.....vvvvvVV', '.....vvvvvVV', '.....8888888', '....111111111'],
   archer: ['........G', '.......GGE', '......GGGEE', '.....GGGGGEE', '.....GGGGEEE', '...EEEEEEEEEEE'],
   shield: ['........HH', '......677765', '.....67777665', '.....67777665', '....5666666655', '....111111111'],
   dummy: ['', '.....oooooo', '...ooOOOOOOoo', '..oooooooooooo'], // 연습 인형: 짚 삿갓 · 무기 없음
+  shuri: ['', '', '', '.............r.r', '............rrr', '....rrrrrrrrrr'], // M3 S4 수리검 병정: 분홍 머리띠
+  leaf: ['.......GG', '.....GGGGE', '....GGGEGEE', '...GGGEGGGE', '....EEGEEE', '.......E'], // M3 S4 잎 병정: 머리에 큰 잎(곧게 그으면 휙)
 };
 const ARM: Record<string, Dot[]> = {
   sword: [[1, 2, 'j'], [2, 2, 'h'], [1, 3, 'j'], [2, 3, 'h'], [1, 4, 'j'], [2, 4, 'h'], [1, 5, 'j'], [2, 5, 'h'], [1, 6, 'j'], [2, 6, 'h'], [1, 7, 'j'], [2, 7, 'h'], [1, 1, 'j'], [0, 8, 'H'], [1, 8, 'H'], [2, 8, 'H'], [3, 8, 'H'], [1, 9, 'j'], [2, 9, 'h'], [2, 10, 'h'], [2, 11, 'h'], [14, 12, 'H'], [14, 13, 'H']],
   archer: [[1, 8, 'H'], [0, 9, 'H'], [0, 10, 'h'], [0, 11, 'h'], [0, 12, 'h'], [0, 13, 'h'], [0, 14, 'H'], [1, 15, 'H'], [1, 9, '8'], [1, 10, '8'], [1, 11, '8'], [1, 12, '8'], [1, 13, '8'], [1, 14, '8'], [2, 11, 'j'], [2, 12, 'h'], [14, 12, 'H'], [14, 13, 'H']],
   shield: [[14, 12, 'H'], [14, 13, 'H']], // 방패 원판은 게임이 따로 그린다(앞·뒤 판정이 보여야 해서)
   dummy: [],
+  shuri: [[1, 10, '8'], [0, 11, '8'], [1, 11, '9'], [2, 11, '8'], [1, 12, '8'], [14, 12, 'H'], [14, 13, 'H']],
+  leaf: [[14, 12, 'H'], [14, 13, 'H']],
 };
 export const SOLDIER = new Set(Object.keys(HAT));
 /** 태엽 병정 스프라이트(발 = 아래 가운데) · 얼굴은 왼쪽을 본다 */
@@ -168,3 +172,19 @@ export function bgGrid(lw: number, lh: number, place: number, hz: number, gb: nu
     return g;
   }
 }
+
+// ── M3 S4 소품(🧪 🔴A: 흐린 벡터 → 외곽선 도트) ──
+const disc = (r: number, f: (x: number, y: number, d: number) => string) => {
+  const n = r * 2 + 1;
+  return Array.from({ length: n }, (_, y) => Array.from({ length: n }, (_, x) => { const d = Math.hypot(x - r, y - r); return d > r + 0.3 ? '.' : f(x - r, y - r, d); }).join(''));
+};
+/** 냄비뚜껑 방패 — 0 앞(은빛) · 1 뒤(어두움) */
+export const lid = (back: number) => sprite('lid' + back, () => grid(disc(5, (x, y, d) => (back ? (d > 4.3 ? '3' : '4') : d > 4.3 ? (x + y < 0 ? '8' : '5') : d < 1.3 ? 'H' : x < -1 && y < -1 ? '9' : '7'))));
+/** 폭탄 통 — 심지에 불이 붙으면 1 */
+export const barrel = (lit: number) => sprite('br' + lit, () => grid(['....' + (lit ? 'yw' : '..'), '.....O', '..HHHHH', '.hjjhhhH', '.11111111', '.hjjhhhHH', '.hjjhhhHH', '.hjjhhhHH', '.11111111', '.hjjhhhHH', '..HHHHHH']));
+/** 가시덤불(위험) — 1이면 걸린다(가시가 하얗게) */
+export const thorn = (hot: number) => sprite('th' + hot, () => grid(['...D....D...D', '.D.EE.D.EE.EE.D', '..EGGEEGGEEGGE', 'D.EGGGEGGGEGGE.D', '.EEGGEEGGGEEGGE', '..EEEEEEEEEEEE'].map((r) => (hot ? r.replace(/D/g, 'w') : r))));
+/** 구경꾼 부엉이(가지 위) */
+export const owl = (blink: number) => sprite('ow' + blink, () => grid(['..H.....H', '..HhhhhhH', '.Hjjhhjjh', blink ? '.HkkjjkkH' : '.Hykjjkyh', '.HjjhyhjjH', '..hhhhhhH', '..hjhjhhH', '..hhhhhhH', '...y..y', 'HHHHHHHHHHHH']));
+/** 안내 손가락(검지가 위) — 손끝은 (2, 0) */
+export const hand = () => sprite('hd', () => grid(['..w', '..ww', '..ww', '..ww.w', '..wwwww.w', '.8wwwwwww', '8wwwwwwww', '.8wwwwww8', '..8wwww8', '...8888']));
