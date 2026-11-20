@@ -26,9 +26,11 @@ describe('동물 군단 합체 전투 시뮬', () => {
 
   it('첫 톡(가게 카드)에 동물이 진영에 내려앉고 금화가 준다', () => {
     const s = g.create(1);
-    const n0 = s.board.filter(Boolean).length, c0 = s.coins;
+    // 마리 수(별 둘 = 셋 합친 것) — M1 S2부터 1-1 첫 톡은 합체라 칸 수는 줄 수 있다
+    const heads = () => s.board.reduce((n, p) => n + (p ? (p.star === 1 ? 1 : p.star === 2 ? 3 : 9) : 0), 0);
+    const n0 = heads(), c0 = s.coins;
     tapAt(s, 0.175, 1.07);
-    expect(s.board.filter(Boolean).length + s.merges).toBeGreaterThan(n0);
+    expect(heads()).toBe(n0 + 1);
     expect(s.coins).toBeLessThan(c0);
     expect(s.firstTap).toBeGreaterThan(0);
   });
@@ -49,8 +51,11 @@ describe('동물 군단 합체 전투 시뮬', () => {
     expect(s.merges).toBeGreaterThanOrEqual(1);
   });
 
-  it('아무것도 안 누르면 가게에서 기다릴 뿐 — 하트·금화가 그대로', () => {
+  it('아무것도 안 누르면 가게에서 기다릴 뿐 — 하트·금화가 그대로 (2판부터)', () => {
     const s = g.create(2);
+    tapAt(s, 0.645, 1.262); // 1판은 저절로 싸움이 있으니 먼저 싸워서 넘긴다
+    let t = 0;
+    while (s.stage === 0 && t++ < 60 * 30) g.step(s, { tap: false, dir: 0, pointer: null });
     const h = s.hearts, c = s.coins;
     for (let k = 0; k < 60 * 10; k++) g.step(s, { tap: false, dir: 0, pointer: null });
     expect([s.phase, s.hearts, s.coins]).toEqual(['shop', h, c]);
@@ -61,6 +66,30 @@ describe('동물 군단 합체 전투 시뮬', () => {
     expect(smart.filter((s) => s.won).length).toBeGreaterThanOrEqual(2);
     const habit = [1, 2, 3].map((sd) => runBot(g, petsquadHabit2, sd).s);
     expect(habit.every((s) => !s.won)).toBe(true);
+  });
+});
+
+describe('M1 S2 첫 30초 (📐 CONTENT §5)', () => {
+  it('1-1엔 사자 둘이 미리 서 있고, 첫 톡(사자 카드)이 곧 합체다', () => {
+    const s = g.create(1);
+    expect(s.board.filter((p) => p?.k === 'lion').length).toBe(2);
+    const i = s.shop.findIndex((c) => c.k === 'lion');
+    tapAt(s, [0.175, 0.5, 0.825][i], 1.07);
+    expect(s.merges).toBe(1);
+    expect(s.board.some((p) => p?.k === 'lion' && p.star === 2)).toBe(true);
+  });
+
+  it('1-1에서만 4초 동안 톡이 없으면 싸움이 저절로 시작된다(2판은 아님)', () => {
+    const s = g.create(1);
+    for (let k = 0; k < 239; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+    expect(s.phase).toBe('shop');
+    g.step(s, { tap: false, dir: 0, pointer: null });
+    expect(s.phase).toBe('fight');
+    let t = 0;
+    while (s.stage === 0 && t++ < 60 * 30) g.step(s, { tap: false, dir: 0, pointer: null });
+    expect(s.stage).toBe(1); // 이기고 다음 판이 저절로 열린다
+    for (let k = 0; k < 60 * 6; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+    expect(s.phase).toBe('shop');
   });
 });
 

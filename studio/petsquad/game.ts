@@ -113,7 +113,9 @@ export const STAGES: StageDef[] = [
 export const STAGE_COUNT = STAGES.length;
 const START_COINS = 5, LOSS_COINS = 3, REROLL = 1;
 const CLEAR_PTS = 100, STAR_PTS = 100, WIN_PTS = 200, HEART_PTS = 100, KO_PTS = 4;
-const FIGHT_MAX = 60 * 30, END_WAIT = 70, RESULT_OK = 170, RESULT_FAIL = 150, BANNER_T = 160;
+/** 1-1 저절로 싸움까지 톡 없는 틱 */
+const AUTO_FIGHT = 240;
+const FIGHT_MAX = 60 * 30, END_WAIT = 70, RESULT_OK = 110, RESULT_FAIL = 150, BANNER_T = 160;
 
 // ───────────────────────────── 상태 ─────────────────────────────
 interface Pet { id: number; k: Kind; star: number; born: number; land: number; mergeT: number; from: number }
@@ -136,7 +138,7 @@ export interface PetState {
   hearts: number; coins: number; board: (Pet | null)[]; shop: Card[]; sel: number; nid: number; rerolls: number; buys: number;
   fight: Fight | null; fightCoins: number; merges: number; mergeAll: number; swaps: number; sells: number;
   stars: number; got: number; starOk: boolean[]; pts: number; won: boolean; dead: boolean; again: boolean; tries: number;
-  down: boolean; firstTap: number; firstBig: number; wowN: number; slow: number;
+  down: boolean; firstTap: number; firstBig: number; wowN: number; slow: number; idle: number;
   seen: Set<string>; banner: { head: string; sub: string; t: number } | null; spot: { x: number; y: number; t: number; label: string; rx: number; ry: number } | null;
   events: Ev[]; pred: Pred | null; predKey: string; say: { slot: number; text: string; t: number } | null; bigText: string; bigT: number; bigY: number;
 }
@@ -441,6 +443,7 @@ function newStage(s: PetState) {
   s.sel = -1;
   s.fight = null;
   s.rerolls = 0;
+  s.idle = 0;
   if (!s.again) s.merges = 0;
   rollShop(s, true);
   s.starOk = d.stars.map(() => false);
@@ -656,12 +659,13 @@ const game: GameDef<PetState> & { wows(s: PetState): number } = {
       hearts: 3, coins: START_COINS, board: [null, null, null, null, null, null], shop: [], sel: -1, nid: 0, rerolls: 0, buys: 0,
       fight: null, fightCoins: 0, merges: 0, mergeAll: 0, swaps: 0, sells: 0,
       stars: 0, got: 0, starOk: [false], pts: 0, won: false, dead: false, again: false, tries: 0,
-      down: false, firstTap: -1, firstBig: -1, wowN: 0, slow: 0,
+      down: false, firstTap: -1, firstBig: -1, wowN: 0, slow: 0, idle: 0,
       seen: new Set<string>(), banner: null, spot: null, events: [], pred: null, predKey: '', say: null, bigText: '', bigT: -999, bigY: MID_Y,
     } as unknown as PetState;
     s.rots = STAGES.map(() => Math.floor(s.rng() * 3));
+    // ✏️ M1 S2 첫 30초(📐 CONTENT §5): 1-1엔 사자 둘이 미리 서 있다 → 첫 톡(사자 카드)이 곧 '빵!' 합체
+    s.board[0] = { id: ++s.nid, k: 'lion', star: 1, born: -999, land: -999, mergeT: -999, from: -1 };
     s.board[1] = { id: ++s.nid, k: 'lion', star: 1, born: -999, land: -999, mergeT: -999, from: -1 };
-    s.board[0] = { id: ++s.nid, k: 'hedge', star: 1, born: -999, land: -999, mergeT: -999, from: -1 };
     newStage(s);
     s.banner = null;
     return s;
@@ -678,8 +682,11 @@ const game: GameDef<PetState> & { wows(s: PetState): number } = {
       if (any) {
         if (s.firstTap < 0) s.firstTap = s.t;
         tap(s, h);
-      }
+        s.idle = 0;
+      } else s.idle++;
       s.pt++;
+      // ✏️ M1 S2(📐 CONTENT §5): 1-1에서만 4초 동안 톡이 없으면 싸움이 저절로 — 처음 온 사람도 첫 돌진을 본다
+      if (s.phase === 'shop' && s.stage === 0 && !s.again && s.idle >= AUTO_FIGHT && s.board.some(Boolean)) startFight(s);
     } else if (s.phase === 'fight') fightTick(s);
     else {
       s.pt++;
@@ -918,7 +925,7 @@ export const petsquadHabit2: Bot<PetState> = {
 /** ✏️ M1 S1 사람 흉내 봇(📋 M1 완료 기준 · 🧪 P2·P10): 잘하는 봇의 계획(막대가 보여 주는 것)을 따르되 1.5초에 한 번만 톡, 다시 뽑기는 안 한다 */
 const humMem = new WeakMap<object, number>();
 export const petsquadHuman: Bot<PetState> = {
-  name: '사람 흉내(1.5초에 한 톡·다시 뽑기 안 함)',
+  name: '사람 흉내(1.5초에 한 톡·다시 뽑기 안 함·1판은 손가락 안내대로)',
   act(s) {
     if (s.phase !== 'shop' || s.down) return NO;
     const last = humMem.get(s);
@@ -927,6 +934,11 @@ export const petsquadHuman: Bot<PetState> = {
       return NO;
     }
     humMem.set(s, s.t);
+    // ✏️ M1 S2: 1-1에선 화면 손가락 안내를 따른다(처음 온 사람이 하는 대로 — 사자 톡 → 빵! → 싸움!)
+    if (s.stage === 0 && !s.again && s.sel < 0) {
+      const tip = firstTip(s);
+      return tip === 9 ? tapFight(s) : tapCard(tip);
+    }
     const pl = makePlan(s);
     if (s.sel >= 0) {
       if (pl.swap && pl.swap[0] === s.sel) return tapSlot(pl.swap[1]);
@@ -942,6 +954,19 @@ export const petsquadHuman: Bot<PetState> = {
 
 /** ✏️ M1 S1 버릇 봇 공장(📐 GDD §6.3 · 🧪 P7): 살 수 있는 카드 중 버릇이 고른 것을 사고, 없으면 싸움. 다시 뽑기·자리 바꾸기는 안 한다 */
 export interface CardSee { i: number; k: Kind; cost: number; merge: boolean; strong: number; front: boolean }
+/** ✏️ M1 S2(🧪 S1 측정기 한계): 진영이 가득 차서 못 사는 카드가 있으면, 그 카드보다 값이 싼 가장 약한 동물을 판다(사람도 그렇게 한다) */
+function weakestToSell(s: PetState): number {
+  if (seeCards(s).length) return -1;
+  let want = 0;
+  for (const c of s.shop) if (c && !c.sold && K[c.k].cost <= s.coins + 1 && landing(s, c.k).slot < 0) want = Math.max(want, K[c.k].cost);
+  if (!want) return -1;
+  let wi = -1, wv = 1e9;
+  s.board.forEach((p, i) => {
+    const v = p ? K[p.k].cost * STAR_M[p.star] : 1e9;
+    if (p && v < wv) (wv = v), (wi = i);
+  });
+  return wv < want ? wi : -1;
+}
 function seeCards(s: PetState): CardSee[] {
   const d = STAGES[s.stage], els = d.foes.map((f) => foeEl(s.rots[s.stage], f)), out: CardSee[] = [];
   for (let i = 0; i < 3; i++) {
@@ -959,8 +984,11 @@ export function habitBot(name: string, pick: (cs: CardSee[], s: PetState) => Car
     name,
     act(s) {
       return habitTap(s, () => {
+        if (s.sel >= 0) return tapReroll(); // 고른 동물 팔기(왼쪽 단추가 '팔기'로 바뀐다)
         const cs = seeCards(s), c = cs.length ? pick(cs, s) : undefined;
-        return c ? tapCard(c.i) : tapFight(s);
+        if (c) return tapCard(c.i);
+        const w = weakestToSell(s);
+        return w >= 0 ? tapSlot(w) : tapFight(s);
       });
     },
   };
@@ -2025,7 +2053,7 @@ function homeOf(f: Fight, u: FU, vis: Vis, id: number): [number, number, number]
   vis.disp.set(id, ny);
   return [COLX[u.col], ny, 0];
 }
-const sizeOf = (k: Kind, star: number, side: number, row: number) => BASE_R * STAR_SC[star] * (k === 'bear' ? 1.75 : k === 'bug' ? 0.85 : 1) * (side ? ROW_SC_EN[Math.min(1, row)] : ROW_SC_MY[row]);
+const sizeOf = (k: Kind, star: number, side: number, row: number) => BASE_R * STAR_SC[star] * (k === 'bear' ? 1.75 : k === 'bug' ? 1.3 : 1) * (side ? ROW_SC_EN[Math.min(1, row)] : ROW_SC_MY[row]);
 
 interface Actor { k: Kind; star: number; el: number; enemy: boolean; x: number; y: number; alt: number; r: number; L: Look; hp: number; max: number; showHp: boolean; alpha: number; sel: boolean; glow: number; say: string; sayT: number; dead: boolean }
 

@@ -3,21 +3,22 @@
  *   npx tsx studio/petsquad/funqa.ts [--seeds 24] → studio/petsquad/reports/funqa.json
  * ✏️ M1 S1(📋 측정 먼저 · 🧪 M0 보완점 8): 판별 칸(클리어 · ★3 · 별 · 큰 순간 · 톡 · 다시 뽑기 · 초),
  *   사람 흉내 봇(1.5초에 한 톡)의 첫 싸움 초 · 첫 30초 안 합체·승리, 버릇 봇 6종(GDD §6.3)의 판별 ★3과 '가장 잘 통한 버릇' 연속.
+ * ✏️ M1 S2: 버릇 봇은 진영이 가득 차면 가장 약한 동물을 팔고 산다 · 회차도 24시드.
  * 판별 도전의 출발 군단 = 잘하는 봇이 그 시드에서 그 판에 처음 닿았을 때의 군단·금화(사람이 실제로 들고 올 법한 것).
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { runBot, type Bot } from './core.ts';
 import { mulberry32 } from './rng.ts';
-import { HABITS, STAGE_COUNT, jumpTo, petsquad as g, petsquadHabit, petsquadHabit2, petsquadHuman, petsquadRandom, petsquadSmart, type Kind, type PetState } from './game.ts';
+import { HABITS, STAGE_COUNT, jumpTo, petsquad as g, petsquadHabit2, petsquadHuman, petsquadRandom, petsquadSmart, type Kind, type PetState } from './game.ts';
 
-export const BOTS: Bot<PetState>[] = [petsquadSmart, petsquadHabit, petsquadHabit2, petsquadRandom];
+export const BOTS: Bot<PetState>[] = [petsquadSmart, petsquadHuman, ...HABITS, petsquadHabit2, petsquadRandom];
 const r2 = (x: number) => Math.round(x * 100) / 100;
 const avg = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
 const taps = (s: PetState) => s.buys + s.rerolls + s.swaps + s.sells;
 
 /** 회차: 처음부터 끝까지 한 번 */
-export function measure(seeds: number[], bots = BOTS) {
+export function measure(seeds: number[], bots: Bot<PetState>[] = BOTS) {
   const out: Record<string, unknown> = {};
   for (const b of bots) {
     const rs = seeds.map((seed) => runBot(g, b, seed));
@@ -106,7 +107,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const n = Number(process.argv[process.argv.indexOf('--seeds') + 1]) || 24;
   const seeds = Array.from({ length: n }, (_, i) => i + 1);
   const t0 = performance.now();
-  const bots = [petsquadSmart, petsquadHuman, ...HABITS, petsquadHabit2, petsquadRandom];
+  const bots = BOTS;
   const st = perStage(seeds, bots);
   const sm = st[petsquadSmart.name], rnd = st[petsquadRandom.name];
   const habit3 = HABITS.map((h) => Math.max(...st[h.name].slice(2).map((x) => x.별3)));
@@ -121,7 +122,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       가게톡_판당최대_잘하는봇: Math.max(...sm.map((x) => x.톡)), 가게톡_판당최대_사람흉내: Math.max(...st[petsquadHuman.name].map((x) => x.톡)),
     },
     판별: st,
-    회차: measure(seeds.slice(0, 12), [petsquadSmart, petsquadHabit, petsquadHabit2, petsquadRandom]),
+    회차: measure(seeds), // ✏️ M1 S2: 24시드 · 사람 흉내·버릇 6종도 회차로(🧪 S1 측정기 보완)
   };
   const dir = join(import.meta.dirname, 'reports');
   mkdirSync(dir, { recursive: true });
