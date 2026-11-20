@@ -20,9 +20,10 @@ for (const [name, q] of [['1-1', 'stage=1'], ['2-10', 'trial=1&stage=20'], ['2-6
   for (let seed = 1; seed <= N; seed++) {
     const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
     if (process.env.MUTE) await p.addInitScript("localStorage.setItem('slowdash:mute', '1')"); // 원인 가르기: 소리 끔
+    if (process.env.FONTWARM) await p.addInitScript("addEventListener('load', () => { const c = document.createElement('canvas').getContext('2d'); for (const w of [700, 800, 900]) for (let z = 12; z <= 34; z++) { c.font = w + ' ' + z + 'px system-ui, sans-serif'; c.fillText('0123456789명베기싹쓸이탁팅챙펑휙아얏!×', 0, 20); } })"); // 원인 가르기: 글자 미리 그림
     const cdp = await p.context().newCDPSession(p);
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
-    await p.goto(`${file}?seed=${seed}&${q}&dpr=2`);
+    await p.goto(`${file}?seed=${seed}&${q}&dpr=2${process.env.NOWARM ? '&warm=0' : ''}`);
     await p.evaluate('window.__f = []; { let l = performance.now(); const g = (t) => (window.__f.push(t - l), (l = t), requestAnimationFrame(g)); requestAnimationFrame(g); }'); // 글로 넘김(tsx의 __name이 페이지에 없음)
     await p.waitForTimeout(3000); // 🧪 S5: 켠 뒤 3초 최대 프레임(예열이 화면을 멈추지 않는지)
     loads.push(Math.round(Math.max(...((await p.evaluate('window.__f.slice(1)')) as number[]))));
