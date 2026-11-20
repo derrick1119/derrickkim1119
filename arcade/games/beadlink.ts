@@ -35,7 +35,7 @@ const TOL = 0.02, HIT_PAD = 0.008;
 /** 별 구슬은 무거운 금 — 더미가 움직이는 동안 더 세게 가라앉는다 */
 const STAR_G = 2.4;
 const POP_KICK = 0.0042;
-const POP_GAP = 4, FIRE_N = 8, FR = 0.165, V_SMASH = 0.002, IRON_HITS = 2, DROP = 0.04, REFILL_DELAY = 12, REFILL_GAP = 3;
+const POP_GAP = 4, FIRE_N = 8, FR = 0.165, V_SMASH = 0.002, IRON_HITS = 2, DROP = 0.02, REFILL_DELAY = 12, REFILL_GAP = 3;
 const SLOT_ORDER = [2, 4, 0, 5, 1, 3];
 const slotX = (k: number) => XL + 0.06 + (k * (XR - XL - 0.12)) / 5;
 
@@ -61,7 +61,7 @@ interface WEv { k: string; x: number; y: number; c: number; kind: number; r: num
 export interface World {
   n: number; x: Float64Array; y: Float64Array; px: Float64Array; py: Float64Array; vy0: Float64Array;
   r: Float64Array; w: Float64Array; col: Int8Array; kind: Int8Array; alive: Uint8Array; uid: Int32Array;
-  popAt: Int32Array; fresh: Uint8Array; born: Int32Array; blast: Uint8Array; seq: Int16Array; hit: Int32Array; hitV: Float32Array; ihit: Int8Array; ry: Float64Array; stat: Uint8Array; ical: Int8Array;
+  popAt: Int32Array; fresh: Uint8Array; born: Int32Array; blast: Uint8Array; seq: Int16Array; hit: Int32Array; hitV: Float32Array; ihit: Int8Array; ry: Float64Array; stat: Uint8Array; ical: Int8Array; drop: Uint8Array; lose: Uint8Array;
   t: number; calm: number; asleep: boolean; nextUid: number;
   queue: Int8Array; qi: number; refill: number; refillT: number; spawnK: number; noRefill: boolean;
   cnt: Int32Array; total: number; melted: number; smashed: number; fires: number; delivered: number; strokes: number; maxChain: number;
@@ -72,7 +72,7 @@ function newWorld(): World {
   return {
     n: 0, x: new Float64Array(CAP), y: new Float64Array(CAP), px: new Float64Array(CAP), py: new Float64Array(CAP), vy0: new Float64Array(CAP),
     r: new Float64Array(CAP), w: new Float64Array(CAP), col: new Int8Array(CAP), kind: new Int8Array(CAP), alive: new Uint8Array(CAP), uid: new Int32Array(CAP),
-    popAt: new Int32Array(CAP), fresh: new Uint8Array(CAP), born: new Int32Array(CAP), blast: new Uint8Array(CAP), seq: new Int16Array(CAP), hit: new Int32Array(CAP), hitV: new Float32Array(CAP), ihit: new Int8Array(CAP), ry: new Float64Array(CAP), stat: new Uint8Array(CAP), ical: new Int8Array(CAP),
+    popAt: new Int32Array(CAP), fresh: new Uint8Array(CAP), born: new Int32Array(CAP), blast: new Uint8Array(CAP), seq: new Int16Array(CAP), hit: new Int32Array(CAP), hitV: new Float32Array(CAP), ihit: new Int8Array(CAP), ry: new Float64Array(CAP), stat: new Uint8Array(CAP), ical: new Int8Array(CAP), drop: new Uint8Array(CAP), lose: new Uint8Array(CAP),
     t: 0, calm: 0, asleep: false, nextUid: 1,
     queue: new Int8Array(0), qi: 0, refill: 0, refillT: 0, spawnK: 0, noRefill: false,
     cnt: new Int32Array(5), total: 0, melted: 0, smashed: 0, fires: 0, delivered: 0, strokes: 0, maxChain: 0,
@@ -84,7 +84,7 @@ function cloneWorld(W: World): World {
     ...W,
     x: W.x.slice(), y: W.y.slice(), px: W.px.slice(), py: W.py.slice(), vy0: W.vy0.slice(), r: W.r.slice(), w: W.w.slice(),
     col: W.col.slice(), kind: W.kind.slice(), alive: W.alive.slice(), uid: W.uid.slice(), popAt: W.popAt.slice(), fresh: W.fresh.slice(),
-    born: W.born.slice(), blast: W.blast.slice(), seq: W.seq.slice(), hit: W.hit.slice(), hitV: W.hitV.slice(), ihit: W.ihit.slice(), ry: W.ry.slice(), stat: W.stat.slice(), ical: W.ical.slice(), cnt: W.cnt.slice(), ev: null,
+    born: W.born.slice(), blast: W.blast.slice(), seq: W.seq.slice(), hit: W.hit.slice(), hitV: W.hitV.slice(), ihit: W.ihit.slice(), ry: W.ry.slice(), stat: W.stat.slice(), ical: W.ical.slice(), drop: W.drop.slice(), lose: W.lose.slice(), cnt: W.cnt.slice(), ev: null,
   };
 }
 function addBead(W: World, x: number, y: number, r: number, kind: number, col: number): number {
@@ -110,12 +110,14 @@ function addBead(W: World, x: number, y: number, r: number, kind: number, col: n
   W.ry[i] = y;
   W.stat[i] = 0;
   W.ical[i] = 0;
+  W.drop[i] = 0;
+  W.lose[i] = 0;
   return i;
 }
 /** 죽은 구슬을 빼고 앞으로 당긴다 (이음이 없을 때만 — 번호가 바뀐다) */
 function compact(W: World) {
   let j = 0;
-  const arrs = [W.x, W.y, W.px, W.py, W.vy0, W.r, W.w, W.col, W.kind, W.alive, W.uid, W.popAt, W.fresh, W.born, W.blast, W.seq, W.hit, W.hitV, W.ihit, W.ry, W.stat, W.ical];
+  const arrs = [W.x, W.y, W.px, W.py, W.vy0, W.r, W.w, W.col, W.kind, W.alive, W.uid, W.popAt, W.fresh, W.born, W.blast, W.seq, W.hit, W.hitV, W.ihit, W.ry, W.stat, W.ical, W.drop, W.lose];
   for (let i = 0; i < W.n; i++) {
     if (!W.alive[i]) continue;
     if (i !== j) for (const a of arrs) a[j] = a[i];
@@ -150,6 +152,8 @@ function popBead(W: World, i: number, how: string) {
     const dx = W.x[j] - W.x[i], dy = W.y[j] - W.y[i], d = Math.hypot(dx, dy) || 1e-6;
     // 팡! 둘레 구슬이 살짝 튀며 출렁 (쇠구슬·끼인 것은 그대로)
     if (d < W.r[i] + W.r[j] + 0.03 && !W.stat[j] && W.kind[j] !== K_IRON) kick(W, j, dx / d, dy / d - 0.5, POP_KICK);
+    // 받치던 구슬이 터지면 그 쇠구슬은 헐거워진다
+    if (W.kind[j] === K_IRON && W.stat[j] && dy < 0 && -dy / d > 0.35 && d < W.r[i] + W.r[j] + 0.03) W.lose[j] = 1;
     if (W.kind[j] !== K_ICE || W.popAt[j] >= 0 || !touching(W, i, j)) continue;
     W.kind[j] = K_N;
     W.melted++;
@@ -219,6 +223,7 @@ function solve(W: World, i: number, j: number, smash: boolean) {
 function smashBead(W: World, a: number, b: number) {
   W.smashed++;
   W.ihit[a]++;
+  W.drop[a] = 1;
   popBead(W, b, 'smash');
   push(W, 'thud', a, W.smashed);
   W.px[a] = W.x[a] - (W.x[a] - W.px[a]) * 0.7;
@@ -306,7 +311,7 @@ function physics(W: World) {
 /** 쇠구슬: 밑에서 받치는 구슬이 있는 동안은 끼여서 꼼짝 안 하고, 받침이 다 없어지면 쿵 떨어진다 (떨어지며 3개까지 깸) */
 function ironRest(W: World, i: number, v: number) {
   if (W.stat[i]) {
-    if (supported(W, i)) return;
+    if (supported(W, i, W.lose[i] ? 0.012 : 0.06)) return;
     W.stat[i] = 0;
     W.w[i] = 0.22;
     W.ry[i] = W.y[i];
@@ -315,16 +320,16 @@ function ironRest(W: World, i: number, v: number) {
     push(W, 'drop', i);
     return;
   }
-  if (v < 0.0008 && touch[i] && supported(W, i)) {
-    if (++W.ical[i] >= 4) (W.stat[i] = 1), (W.w[i] = 0), (W.ihit[i] = 0), (W.px[i] = W.x[i]), (W.py[i] = W.y[i]);
+  if (v < 0.0008 && touch[i] && supported(W, i, 0.012)) {
+    if (++W.ical[i] >= 4) (W.stat[i] = 1), (W.w[i] = 0), (W.ihit[i] = 0), (W.lose[i] = 0), (W.px[i] = W.x[i]), (W.py[i] = W.y[i]);
   } else W.ical[i] = 0;
 }
-function supported(W: World, i: number): boolean {
+function supported(W: World, i: number, tol: number): boolean {
   const xi = W.x[i], yi = W.y[i], ri = W.r[i];
-  if (yi + ri > SLANT_Y - 0.005 || xi - ri < XL + 0.004 || xi + ri > XR - 0.004) return true;
+  if (yi + ri > floorY(xi) - 0.008) return true;
   for (let j = 0; j < W.n; j++) {
     if (j === i || !W.alive[j] || W.kind[j] === K_STAR) continue;
-    const dx = W.x[j] - xi, dy = W.y[j] - yi, rr = ri + W.r[j] + 0.02;
+    const dx = W.x[j] - xi, dy = W.y[j] - yi, rr = ri + W.r[j] + tol;
     if (dy <= 0 || dx * dx + dy * dy > rr * rr) continue;
     if (dy / Math.sqrt(dx * dx + dy * dy) > 0.35) return true;
   }
@@ -399,7 +404,7 @@ function applyStroke(W: World, ch: number[], fire: boolean): number {
 }
 
 // ───────────────────────────── 판 ─────────────────────────────
-type GK = 'goal' | 'color' | 'any' | 'ice' | 'star' | 'smash' | 'fire' | 'chain' | 'within';
+type GK = 'goal' | 'color' | 'any' | 'ice' | 'star' | 'smash' | 'fire' | 'chain' | 'within' | 'irons' | 'fewer';
 interface StarDef { k: GK; n: number; c?: number; label: string }
 type Spot = '' | 'fire' | 'ice' | 'star' | 'iron' | 'rain';
 interface StageDef {
@@ -435,17 +440,17 @@ export const STAGES: StageDef[] = [
   {
     key: 'iron', name: '쇠구슬', news: '무거운 쇠구슬 — 못 이어요. 밑이 비면 쿵! 떨어져 깨요', hint: '쇠구슬 밑을 비워 쿵!', spot: 'iron',
     n: 46, colors: 4, bias: 0, maxGroup: 5, strokes: 6, fire: true, ice: 0, iron: 2, star: 0, rain: 0, rainQ: 0, preFire: 0,
-    goal: S('smash', 6, '쇠구슬로 6개 깨기'), stars: [GOAL, S('within', 5, '다섯 번 안에'), S('color', 6, '빨간 구슬 6개', 0)],
+    goal: S('smash', 6, '쇠구슬로 6개 깨기'), stars: [GOAL, S('within', 4, '네 번 안에'), S('fewer', 24, '구슬 24개 안 넘게')],
   },
   {
     key: 'rain', name: '무지개 구슬', news: '무지개 구슬은 아무 색과도 이어져요 — 떨어진 덩어리를 잇는 다리', hint: '무지개로 떨어진 같은 색을 이어요', spot: 'rain',
     n: 47, colors: 5, bias: 0, maxGroup: 4, strokes: 6, fire: true, ice: 0, iron: 0, star: 0, rain: 4, rainQ: 0.07, preFire: 0,
-    goal: S('color', 8, '초록 구슬 8개', 3), stars: [GOAL, S('color', 6, '보라 구슬 6개', 4), S('within', 4, '네 번 안에')],
+    goal: S('color', 7, '초록 구슬 7개', 3), stars: [GOAL, S('chain', 8, '한 번에 8개 잇기'), S('fewer', 26, '구슬 26개 안 넘게')],
   },
   {
-    key: 'all', name: '마지막 병', news: '얼음·쇠구슬·무지개 — 모두 다 나와요', hint: '별 구슬 둘을 별 구멍으로!', spot: '',
+    key: 'all', name: '마지막 병', news: '얼음·쇠구슬·무지개 — 모두 다 나와요', hint: '별 구슬 둘을 바닥 별 그물까지!', spot: '',
     n: 47, colors: 5, bias: 0, maxGroup: 4, strokes: 8, fire: true, ice: 4, iron: 2, star: 2, rain: 2, rainQ: 0.05, preFire: 0,
-    goal: S('star', 2, '별 구슬 2개 내리기'), stars: [GOAL, S('ice', 4, '얼음 4개 녹이기'), S('color', 6, '노란 구슬 6개', 2)],
+    goal: S('star', 2, '별 구슬 2개 내리기'), stars: [GOAL, S('smash', 2, '쇠구슬로 2개 깨기'), S('fewer', 24, '구슬 24개 안 넘게')],
   },
 ];
 for (const d of STAGES) d.stars[0] = { ...GOAL, label: d.goal.label };
@@ -462,6 +467,12 @@ function metric(W: World, q: StarDef): number {
     case 'fire': return W.fires;
     case 'chain': return W.maxChain;
     case 'within': return W.strokes;
+    case 'fewer': return W.total;
+    case 'irons': {
+      let k = 0;
+      for (let i = 0; i < W.n; i++) if (W.alive[i] && W.kind[i] === K_IRON && W.drop[i]) k++;
+      return k;
+    }
     default: return 0;
   }
 }
@@ -469,6 +480,7 @@ const goalMet = (W: World, d: StageDef) => metric(W, d.goal) >= d.goal.n;
 function starMet(W: World, q: StarDef, d: StageDef): boolean {
   if (q.k === 'goal') return goalMet(W, d);
   if (q.k === 'within') return goalMet(W, d) && W.strokes <= q.n;
+  if (q.k === 'fewer') return goalMet(W, d) && W.total <= q.n;
   return metric(W, q) >= q.n;
 }
 
@@ -987,6 +999,7 @@ function value(W: World, d: StageDef, left: number): number {
   for (const q of extra) {
     const m = metric(W, q);
     if (q.k === 'within') stars += W.strokes + est <= q.n ? (margin >= 1 ? 0.8 : 0.5) : 0;
+    else if (q.k === 'fewer') stars += W.total + est * 4 <= q.n ? 0.7 : W.total + est * 2 <= q.n ? 0.3 : 0;
     else if (m >= q.n) stars += 1;
     else if (q.k === 'chain') stars += best + rains >= q.n ? 0.6 : 0.1 + (0.4 * best) / q.n;
     else if (q.k === 'fire') stars += fires ? 0.6 : 0.15;
@@ -1295,10 +1308,10 @@ function drawAll(ctx: C2, s: BeadState, w: number, h: number, th: Theme) {
         fx.kick(6);
         break;
       case 'fizzle':
-        fx.pop(x, y - R(0.06), e.text ?? '', '#fff3e0', Math.max(14, R(0.042)));
+        fx.pop(clamp(x, R(0.2), R(0.66)), y - R(0.05), e.text ?? '', '#fff3e0', Math.max(14, R(0.042)));
         break;
       case 'warn':
-        fx.pop(x, y - R(0.06), e.text ?? '', '#e8f6ff', Math.max(13, R(0.038)));
+        fx.pop(clamp(x, R(0.25), R(0.62)), y - R(0.11), e.text ?? '', '#e8f6ff', Math.max(13, R(0.036)));
         break;
     }
   }
@@ -2546,7 +2559,7 @@ function drawBottom(ctx: C2, s: BeadState, w: number, h: number, font: (sz: numb
   ctx.fillStyle = lin(ctx, 0, y0, 0, h, [0, '#8a4f26'], [1, '#6a3a1a']);
   ctx.fillRect(0, y0, w, h - y0);
   const n = d.stars.length, cy = y0 + R(0.034), pad = R(0.06), avail = w - R(0.03) - n * 4;
-  const prog = (q: StarDef) => (q.k === 'goal' || q.k === 'within' ? '' : ` ${Math.min(metric(W, q), q.n)}/${q.n}`);
+  const prog = (q: StarDef) => (q.k === 'goal' || q.k === 'within' ? '' : q.k === 'fewer' ? ` (${W.total})` : ` ${Math.min(metric(W, q), q.n)}/${q.n}`);
   const labs = d.stars.map((q) => q.label + (q.k === 'goal' ? '' : prog(q)));
   let fs = 0.036;
   font(fs, 800);
@@ -2560,8 +2573,8 @@ function drawBottom(ctx: C2, s: BeadState, w: number, h: number, font: (sz: numb
   let x = R(0.015) + Math.max(0, (avail - sum * k0) / 2);
   for (let k = 0; k < n; k++) {
     const q = d.stars[k], cw = tws[k] * k0 + 4;
-    const met = s.phase === 'clear' ? s.starOk[k] : q.k === 'within' ? false : starMet(W, q, d);
-    const lost = q.k === 'within' && W.strokes > q.n;
+    const met = s.phase === 'clear' ? s.starOk[k] : q.k === 'within' || q.k === 'fewer' ? false : starMet(W, q, d);
+    const lost = (q.k === 'within' && W.strokes > q.n) || (q.k === 'fewer' && W.total > q.n);
     ctx.fillStyle = met ? '#ffe9a0' : lost ? 'rgba(0,0,0,.2)' : 'rgba(255,240,220,.16)';
     rr(ctx, x + 2, cy - R(0.025), cw - 4, R(0.05), R(0.025));
     ctx.fill();
@@ -2608,7 +2621,10 @@ function drawBanner(ctx: C2, s: BeadState, w: number, font: (sz: number, wgt?: n
   const w1 = ctx.measureText(head).width;
   font(0.036, 800);
   const w2 = sub ? ctx.measureText(sub).width : 0;
-  const cw = Math.min(w - R(0.04), Math.max(w1, w2, okRes ? R(0.52) : 0) + R(0.1)), ch = (okRes ? R(0.21) : sub ? R(0.15) : R(0.09)) * pop;
+  const stat = okRes ? `터뜨린 구슬 ${s.W.total}개 · 남은 긋기 ${s.left}` : '';
+  font(0.034, 800);
+  const w3 = stat ? ctx.measureText(stat).width : 0;
+  const cw = Math.min(w - R(0.04), Math.max(w1, w2, w3, okRes ? R(0.52) : 0) + R(0.1)), ch = (okRes ? R(0.21) : sub ? R(0.15) : R(0.09)) * pop;
   ctx.translate(R(0.5), cy);
   ctx.fillStyle = 'rgba(80,30,10,.3)';
   rr(ctx, -cw / 2 + 3, -ch / 2 + 5, cw, ch, R(0.035));
@@ -2650,7 +2666,7 @@ function drawBanner(ctx: C2, s: BeadState, w: number, font: (sz: number, wgt?: n
     }
     font(0.034, 800);
     ctx.fillStyle = '#8a5a20';
-    ctx.fillText(`터뜨린 구슬 ${s.W.total} · 가장 긴 이음 ${s.W.maxChain}개 · 남은 긋기 ${s.left}`, 0, R(0.068), w - R(0.1));
+    ctx.fillText(stat, 0, R(0.068), cw - R(0.06));
   } else {
     ctx.fillText(head, 0, sub ? -R(0.03) : R(0.002), w - R(0.1));
     if (sub) {

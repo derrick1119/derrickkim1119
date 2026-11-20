@@ -1,20 +1,22 @@
 /**
  * 🧊 톡 깨는 빙판 구조대 (36라운드: 직접 만지는 물리 장난감 — 톡) — 톡 깨기 × 가리키기.
- * 손이 하는 일은 하나: 빙판을 직접 톡. 톡 한 자리는 산산조각(별 모양 파편)이 나고, 금이 그 자리에서 사방으로 달린다.
- * 규칙(결정적): 빙판은 판마다 시드로 만든 보로노이 '결'(조각 경계)로 이루어져 있다. 금은 톡 한 자리에서 결을 따라 퍼지는데,
- *   보통 결은 조금(한두 마디), 살짝 보이는 약한 결(반짝이는 선)은 끝까지 쭉, 두꺼운 얼음 결은 거의 안 퍼진다(다익스트라 예산).
- *   해안에 이어진 얼음은 그대로, 떨어져 나간 조각은 다각형 강체(뜨기·물살 끌림·부딪힘·돌기)로 물살을 따라 흐른다.
- *   펭귄이 탄 조각이 구조선에 닿으면 '쿵' 하고 펭귄들이 배에 폴짝. 조각 칸 수가 탄 무게보다 하나 많아야 버틴다(펭귄 1·물개 2·곰 2) —
- *   모자라면 기우뚱 미끄러져 퐁! 빠진 펭귄은 헤엄쳐 해안 얼음으로 돌아온다(하트 대신 별 하나가 깎임).
- * 와우: 첫 톡에 '쩍!' — 톡 한 칸이 별처럼 산산조각, 반짝이던 약한 결을 따라 금이 쩌저적 달려 펭귄을 태운 큰 조각이 풍덩 떨어져
+ * 손이 하는 일은 하나: 빙판을 직접 톡. 톡 한 칸은 별처럼 산산조각(파편이 튄다)이 나고, 그 자리에서 금이 달린다.
+ * 규칙(결정적): 빙판은 판마다 시드로 흔든 보로노이 '결'(조각 경계)로 되어 있다. 금은 세 단계로 퍼진다 —
+ *   ① 톡 한 칸은 산산조각 ② 그 칸의 꼭짓점에서 보통 결을 따라 짧게 별 모양(다익스트라 예산) ③ 닿은 곳에 살짝 보이는 '반짝이는 결'이
+ *   있으면 그 결을 따라 끝까지 쭉(곁가지 없음). 두꺼운 얼음은 별이 거의 안 퍼지고 반짝이는 결도 거기서 멈춘다(톡 한 칸은 그래도 깨진다).
+ *   해안에 이어진 얼음은 그대로, 떨어져 나간 덩어리는 다각형 강체(칸마다 물살 끌림·돌기·부딪힘·잠들기, 고정 간격)로 물살을 따라 흐른다.
+ *   펭귄이 탄 조각이 구조선에 '쿵' 닿으면 펭귄들이 하나씩 배로 폴짝. 조각 칸 수 − 1 이 탄 무게(펭귄 1·곰 2)보다 작으면 기우뚱 —
+ *   넘치는 만큼 가장자리 펭귄부터 퐁(물개가 탄 조각은 통째로 뒤집힘). 톡 한 칸 위의 펭귄은 옆 칸으로 깡충 피한다.
+ *   빠진 펭귄은 헤엄쳐 해안 얼음으로 돌아온다(하트 대신 '아무도 물에 안 빠지기' 별이 깎임). 곰과 펭귄이 한 조각으로 뜨면 펭귄이 놀라 첨벙.
+ * 와우: 첫 톡에 '쩌저적!' — 톡 한 칸이 별처럼 산산조각, 반짝이던 결을 따라 금이 달려 펭귄을 태운 큰 조각이 풍덩 떨어져
  *   출렁이며 물살을 타고 구조선에 쿵, 펭귄들이 하나씩 폴짝.
  * 판 7개: 목표 = 펭귄을 모두 배로. 별(판마다 하나씩 늘림) = 펭귄을 모두 배로 · 아무도 물에 안 빠지기 · (판마다) 몇 번 안에 / 물개도 물에 첨벙.
  *   실패 = 톡을 다 쓰고 조각이 멈췄는데 펭귄이 남음 → 하트 -1, 같은 판 다시. 하트 셋을 다 잃거나 7판을 마치면 끝. 시간 제한 없음.
- * 펼쳐짐(하는 일이 바뀐다): 1 물살(목을 끊어 보내기) → 2 기우뚱(작은 조각은 퐁 — 넉넉하게 끊기) → 3 두꺼운 얼음(금이 막힘 — 구멍을 뚫어 잇기)
- *   → 4 물개(물개를 직접 톡 해 물에 퐁, 펭귄과 반대) → 5 빙산(큰 조각은 틈에 걸림 — 알맞게 작게) → 6 북극곰(곰과 펭귄을 다른 조각으로)
- *   → 7 소용돌이(작은 조각은 빙글빙글 꿀꺽 — 크게 끊기).
- * 웃음: 펭귄은 뒤뚱뒤뚱, 조각이 떨어지면 "오오?" 하고 날개를 퍼덕, 기우뚱하면 미끄러지며 "으아아" 퐁 — 헤엄쳐 와서 "영차".
- *   물개는 물에 빠지면 "신난다~♪" 하고 뱅글뱅글 헤엄. 해안의 아기 펭귄들이 구경하며 폴짝폴짝.
+ * 펼쳐짐(하는 일이 바뀐다): 1 물살(반짝이는 결로 끊어 보내기) → 2 기우뚱(펭귄 옆 작은 결 말고 넉넉한 큰 결) → 3 두꺼운 얼음(결이 막힌
+ *   두꺼운 칸을 직접 톡) → 4 물개(물개를 먼저 톡 해 물에 퐁 — 펭귄과 반대) → 5 빙산(큰 조각은 틈에 걸림 — 알맞게 작게)
+ *   → 6 북극곰(곰과 펭귄 사이 결을 먼저, 그다음 목 — 순서) → 7 소용돌이(작은 조각은 빙글빙글 꿀꺽 — 이번엔 크게).
+ * 웃음: 펭귄은 뒤뚱뒤뚱, 조각이 뜨면 "둥실~?" 놀랐다가 날개를 퍼덕, 기우뚱하면 "으아아 퐁" — 헤엄쳐 와서 "영차".
+ *   물개는 물에 빠지면 "첨벙~ 신난다♪" 하고 뱅글뱅글. 해안의 아기 펭귄들이 구경하다 구조되면 폴짝폴짝.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -37,7 +39,8 @@ const WEIGHT = [1, 9, 2];
 const ON = 0, SWIM = 1, HOP = 2, BOAT = 3, SEA = 4;
 const FIXED = -1, GONE = -2, LAND = -2;
 
-interface Flow { p: number[][]; w: number; v: number }
+/** 물살: 중심선 · 폭 · 빠르기 · (그림용) 화살표를 그릴 선 */
+interface Flow { p: number[][]; w: number; v: number; show?: number[][] }
 interface StageDef {
   key: string;
   name: string;
@@ -75,7 +78,7 @@ export const STAGES: StageDef[] = [
     ice: [[[-1, -1], [2, -1], [2, 0.66], [0.66, 0.66], [0.64, 1.0], [0.14, 1.0], [0.13, 0.66], [-1, 0.66]]],
     faults: [[[0.02, 0.62], [0.38, 0.63], [0.78, 0.62]], [[0.08, 0.8], [0.4, 0.79], [0.72, 0.81]]],
     pens: [[0.32, 0.87], [0.47, 0.85]],
-    flows: [{ p: [[-0.1, 0.9], [0.4, 0.94], [0.84, 1.08]], w: 0.36, v: 0.0036 }],
+    flows: [{ p: [[-0.1, 0.9], [0.4, 0.94], [0.84, 1.08]], w: 0.36, v: 0.0036, show: [[-0.1, 1.1], [0.5, 1.11], [0.8, 1.1]] }],
     boat: [0.88, 1.08],
     taps: 9, par: 1, star3: '',
   },
@@ -127,8 +130,8 @@ export const STAGES: StageDef[] = [
     nc: 7, nr: 8,
     ice: [[[-1, -1], [2, -1], [2, 0.58], [0.74, 0.6], [0.72, 0.98], [0.12, 0.98], [0.1, 0.6], [-1, 0.58]]],
     faults: [[[0.02, 0.58], [0.42, 0.6], [0.84, 0.58]], [[0.43, 0.82], [0.44, 1.02]]],
-    pens: [[0.55, 0.9], [0.6, 0.79]],
-    bear: [0.26, 0.84],
+    pens: [[0.5, 0.9], [0.64, 0.8]],
+    bear: [0.25, 0.84],
     flows: [TONGUE],
     boat: [0.88, 1.08],
     taps: 5, par: 2, star3: 'par',
@@ -426,8 +429,7 @@ export interface IceState extends Sim {
   ok: boolean; why: string; down: boolean; pending: Pending | null; winT: number;
   seen: Set<string>; banner: { head: string; sub: string; t: number } | null; spot: { x: number; y: number; t: number; label: string; r: number } | null;
   events: Ev[]; dead: boolean; won: boolean; tries: number; again: boolean; firstTap: number; wowN: number;
-  cracks: { t: number; c0: number; bx: number; by: number; body: number; bonds: number[]; times: number[] }[];
-  shards: Shard[]; sealIn: boolean; slow: number;
+  shards: Shard[]; sealIn: boolean;
 }
 
 const ev = (s: IceState | null, kind: string, x: number, y: number, text?: string, n?: number) => s && s.events.push({ t: s.t, kind, x, y, text, n });
@@ -1027,7 +1029,7 @@ function crunch(S: Sim, p: Piece, E: IceState | null) {
   for (const c of p.cells) S.owner[c] = GONE;
   const i = S.pieces.indexOf(p);
   if (i >= 0) S.pieces.splice(i, 1);
-  ev(E, 'crunch', p.x, p.y, '와작!', p.cells.length);
+  ev(E, 'crunch', p.x, p.y, p.dock >= 0 ? '' : '와작!', p.cells.length);
 }
 
 function cloneSim(S: Sim): Sim {
@@ -1042,7 +1044,7 @@ function cloneSim(S: Sim): Sim {
 function busy(S: Sim, swim = true) {
   for (const p of S.pieces) {
     if (p.dock >= 0 || p.tip >= 0 || p.panic >= 0 || p.sink >= 0) return true;
-    if (!p.sleep && ridersOn(S, p.id).length && p.born > -1) return true;
+    if (!p.sleep && ridersOn(S, p.id).length) return true;
   }
   for (const r of S.riders) if (r.st === HOP || (swim && r.st === SWIM)) return true;
   return false;
@@ -1076,7 +1078,6 @@ function newStage(s: IceState) {
   s.pending = null;
   s.winT = -1;
   s.sealIn = false;
-  s.cracks = [];
   s.shards = [];
   s.starOk = starList(s.stage).map(() => false);
   s.banner = { head: `${s.stage + 1}판 · ${d.name}`, sub: s.again ? '다시 한 번! 결을 잘 보고 톡' : s.stage ? `NEW ${d.news}` : '펭귄을 모두 구조선으로!', t: s.t };
@@ -1140,8 +1141,6 @@ function tap(s: IceState, sx: number, sy: number) {
   s.pending = pl;
   s.banner = null;
   const [wx, wy] = toWorld(s, pl.body, pl.bx, pl.by);
-  s.cracks.push({ t: s.t, c0: pl.c0, bx: pl.bx, by: pl.by, body: pl.body, bonds: pl.bonds, times: pl.times });
-  if (s.cracks.length > 6) s.cracks.shift();
   ev(s, 'crack', wx, wy, pl.weakRun >= 3 ? '쩌저적!' : '쩍!', pl.bonds.length);
   see(s, 'crack');
   if (pl.weakRun >= 3) see(s, 'weak');
@@ -1197,7 +1196,7 @@ const game: GameDef<IceState> = {
       geo: null as unknown as Geo, owner: new Int16Array(0), broken: new Uint8Array(0), pieces: [], riders: [], nid: 0, falls: 0, fixedVer: 0, grid: null, gridVer: -1, seats: 0,
       taps: 0, used: 0, lastTap: 0, hearts: 3, stars: 0, got: 0, starOk: [], pts: 0, ok: false, why: '', down: false, pending: null, winT: -1,
       seen: new Set<string>(), banner: null, spot: null, events: [], dead: false, won: false, tries: 0, again: false, firstTap: -1, wowN: 0,
-      cracks: [], shards: [], sealIn: false, slow: 0,
+      shards: [], sealIn: false,
     } as IceState;
     newStage(s);
     return s;
@@ -2173,7 +2172,7 @@ function drawAll(ctx: C2, s: IceState, w: number, h: number, th: Theme) {
           say(e.text ?? '', '#e8fbff', R(0.05));
           break;
         case 'bump':
-          if ((e.n ?? 0) >= 2) say(e.text ?? '', '#ffffff', R(0.045)), fx.kick(2);
+          if ((e.n ?? 0) >= 4 && e.text === '쿵!') say('쿵!', '#ffffff', R(0.045)), fx.kick(2);
           break;
         case 'climb':
         case 'dodge':
@@ -2287,7 +2286,7 @@ function drawAll(ctx: C2, s: IceState, w: number, h: number, th: Theme) {
   }
   // 물살 (화살표)
   for (const f of G.flows) {
-    const pts = f.p;
+    const pts = f.show ?? f.p;
     let L = 0;
     const segs: number[] = [];
     for (let k = 0; k + 1 < pts.length; k++) segs.push(Math.hypot(pts[k + 1][0] - pts[k][0], pts[k + 1][1] - pts[k][1])), (L += segs[k]);
@@ -2807,8 +2806,8 @@ function drawAll(ctx: C2, s: IceState, w: number, h: number, th: Theme) {
   if (s.stage === 0 && s.firstTap < 0 && s.phase === 'play') {
     let dm = demoAt.get(s.geo);
     if (!dm) {
-      const p = plan(s);
-      dm = p ?? { x: 0.4, y: 0.6 };
+      const best = searchBest(s, s, 1, 320)[0];
+      dm = best ? { x: best.x, y: best.y } : { x: 0.4, y: 0.6 };
       demoAt.set(s.geo, dm);
     }
     const cyc = t % 80, press = cyc < 10 ? cyc / 10 : cyc < 22 ? 1 - (cyc - 10) / 12 : 0;

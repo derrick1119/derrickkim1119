@@ -1,15 +1,21 @@
 /**
  * 그려서 굴리는 햄스터 공 (36라운드: 직접 만지는 물리 장난감 — 한 번 긋기)
  *   그린 선이 길이 된다(drawline) × 가리키기(pointer).
- * 손짓 하나: 한 번 긋기. 손가락이 지나간 자리에 바로 굵은 크레용 선이 그려지고, 떼는 순간 그 선이 나무 길로 굳으며
- *   햄스터 공이 '출발!' 하고 진짜 물리(중력·경사·튕김)로 그 위를 굴러간다. 공이 구르는 동안엔 손을 쉬어도 된다(시간 압박 없음).
- *   공이 길 위에서 멈추면(낭떠러지·집 말고) 남은 잉크로 한 번 더 긋고, 떼면 다시 출발.
- * 규칙(결정적): 고정 간격(1/60, 안에서 2번 나눔) 원 vs 선분 사슬 충돌. 선은 사람이 그린 그대로(점 간격만 0.03으로 고름).
- *   잉크(그을 수 있는 길이)와 선 수는 판마다 정해져 있다. 공이 강·화면 밖으로 떨어지거나, 선을 다 쓰고 멈추면 그 판 다시(하트 −1, 1·2판은 안 깎임).
- * 와우: 내가 그린 삐뚤빼뚤한 선이 그대로 나무 길이 되어 햄스터 공이 데굴데굴 굴러가며 별을 줍고, 끊긴 끝에서 붕 날아 집 구멍에 쏙.
- * 판 8개(하는 일이 바뀐다): 첫 길 → 별 줍기(길 모양을 휘기) → 낭떠러지(잉크가 모자라 끝을 올려 점프) → 용수철(떨어뜨려 튕기기)
- *   → 바람 기둥(들어가는 빠르기로 높이 정하기) → 단추 문(단추를 먼저 밟는 길) → 고리(빠르기를 모아 한 바퀴) → 쌍둥이(한 길로 둘 다).
- * 웃음: 공 속 햄스터는 달리고(빠르면 뒤집혀 빙글), 날면 만세, 떨어지면 '풍덩' 하고 눈이 빙글빙글. 지붕 위 참새가 구경하며 놀란다.
+ * 손짓 하나: 한 번 긋기. 손가락이 지나간 자리에 바로 굵은 크레용 선이 그려지고(지금 떼면 공이 갈 길이 하얀 점으로 0.8초 보인다),
+ *   떼는 순간 그 선이 처음부터 끝까지 톡톡 나무 길로 굳으며 출발 문이 탁 넘어가고 햄스터 공이 '출발!' — 진짜 물리(중력·경사·튕김)로 굴러간다.
+ *   공이 구르는 동안엔 손을 쉰다(시간 압박 없음). 공이 길 위에서 멈추면 남은 잉크로 한 번 더 긋고, 떼면 다시 출발.
+ *   공 근처(앞·아래)에서 시작한 획은 공 발밑과 저절로 이어지고, 다른 공 발밑 근처에서 끝난 획은 그 공까지 이어진다(턱에 걸려 멈추지 않게).
+ * 규칙(결정적): 고정 간격(1/60, 안에서 3번 나눔, 세상은 1.25배속) 원 vs 선분 사슬 충돌 · 구름 저항 · 튕김 · 에너지 지킴(틈에 끼어 튀어 오르지 않게).
+ *   선은 사람이 그린 그대로(점 간격만 0.03으로 고름). 잉크(그을 수 있는 길이)와 선 수는 판마다 정해져 있다.
+ *   공이 강·화면 밖으로 떨어지거나, 선을 다 쓰고 멈추면 그 판 다시(하트 −1, 1·2판은 안 깎임). 하트 셋을 다 잃거나 8판을 마치면 끝.
+ * 와우: 내가 그린 삐뚤빼뚤한 선이 그대로 나무 길이 되어 햄스터 공이 데굴데굴 '쌩~' 굴러가며 별을 줍고, 끊긴 끝에서 붕 날아 집 구멍에 쏙.
+ * 판 8개(하는 일이 바뀐다): 1 첫 길(내리막 긋기) → 2 별 줍기(길을 휘어 별 지나기) → 3 낭떠러지(잉크가 모자라 끝을 올려 붕 점프)
+ *   → 4 용수철(공을 용수철 위로 떨어뜨려 높이 뿅 — 옆으로 너무 빠르면 집 벽에 쿵) → 5 바람 기둥(기둥 아래로 들여보내면 둥실 떠 집 쪽으로)
+ *   → 6 단추 문(문이 반대쪽: 집을 넘어 날아가 비탈 위 단추를 누르고 굴러 돌아와 쏙 — 곧은 선은 지붕에 막힌다)
+ *   → 7 고리(높이에서 빠르기를 모아 나무 고리를 한 바퀴) → 8 쌍둥이(양쪽 공이 같이 출발 — 한 줄로 V를 그려 가운데 양쪽 문 집에 둘 다).
+ * 별(한 판에 하나씩 늘어 셋): 햄스터를 집으로 · 별 줍기 · 선 한 번만 긋기 / 잉크 반 남기기.
+ * 웃음: 공 속 햄스터는 기다리며 쳇바퀴를 달리고, 구르면 신나고, 아주 빠르면 같이 빙글, 날면 만세, 풍덩 빠지면 눈이 빙글빙글(강에 둥둥),
+ *   멈추면 갸우뚱 '?'. 집 지붕 위 참새가 공을 따라 고개를 돌리고, 큰일마다 파닥이며 ♪, 실패하면 날개로 눈을 가린다. 집에 들어가면 창문으로 손 흔들기.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -68,14 +74,14 @@ export const STAGES: StageDef[] = [
     name: '첫 길', key: 'draw', news: '', hint: '👆 출발대에서 집까지 길을 쓱 그려요!',
     blocks: [[0, 0.44, 0.22, 1.6, CLIFF]],
     ground: [[0.2, 1.08], [0.45, 1.15], [0.7, 1.24], [1.02, 1.24]],
-    pads: [[0.19, 0.44]], house: [0.86, 1.24], stars: [], ink: 1.6, strokes: 2, goals: ['home'], safe: true,
+    pads: [[0.19, 0.44]], house: [0.86, 1.24], stars: [], ink: 1.6, strokes: 3, goals: ['home'], safe: true,
     demo: [[0.23, 0.45], [0.36, 0.6], [0.5, 0.86], [0.62, 1.08], [0.73, 1.23]],
   },
   {
     name: '별 줍기', key: 'star', news: '⭐ 별 — 공이 지나가면 주워요', hint: '길을 휘어서 별 쪽으로 지나가게!',
     blocks: [[0, 0.4, 0.22, 1.6, CLIFF]],
     ground: [[0.2, 1.02], [0.42, 1.1], [0.66, 1.2], [1.02, 1.2]],
-    pads: [[0.19, 0.4]], house: [0.86, 1.2], stars: [[0.5, 0.72]], ink: 1.4, strokes: 2, goals: ['home', 'stars'], safe: true,
+    pads: [[0.19, 0.4]], house: [0.86, 1.2], stars: [[0.5, 0.72]], ink: 1.5, strokes: 3, goals: ['home', 'stars'], safe: true,
     spot: [0.5, 0.72, 0.09, 0.09],
   },
   {
@@ -98,16 +104,16 @@ export const STAGES: StageDef[] = [
   },
   {
     name: '단추 문', key: 'button', news: '🔴 단추 문 — 집 뒤 단추를 누르면 문이 열려요', hint: '집을 넘어 단추를 누르고 굴러 돌아와요!',
-    blocks: [[0, 0.3, 0.2, 1.6, CLIFF], [0.36, 1.1, 0.76, 1.6, CLIFF]],
-    ground: [[0.74, 1.1], [0.84, 1.07], [0.92, 0.98], [1.02, 0.8]],
-    btn: [0.93, 0.95], gate: true, pads: [[0.17, 0.3]], house: [0.52, 1.1, 1], stars: [[0.52, 0.5]], ink: 0.8, strokes: 2, goals: ['home', 'stars', 'one'],
-    spot: [0.93, 0.95, 0.08, 0.08],
+    blocks: [[0, 0.5, 0.2, 1.6, CLIFF], [0.36, 1.1, 0.8, 1.6, CLIFF]],
+    ground: [[0.78, 1.1], [0.88, 1.065], [0.95, 0.97], [0.99, 0.82], [0.99, 0.5]],
+    btn: [0.94, 0.95], gate: true, pads: [[0.17, 0.5]], house: [0.6, 1.1, 1], stars: [[0.6, 0.62]], ink: 0.8, strokes: 2, goals: ['home', 'stars', 'one'],
+    spot: [0.94, 0.95, 0.08, 0.08],
   },
   {
     name: '고리', key: 'loop', news: '🎡 고리 — 빠르면 한 바퀴 빙글!', hint: '높이에서 쭉 내려와야 한 바퀴 돌아요',
-    blocks: [[0, 0.5, 0.16, 1.6, CLIFF], [0.3, 1.18, 1.02, 1.6, WOOD]],
-    loop: [0.59, 1.03, 0.15], pads: [[0.13, 0.5]], house: [0.88, 1.18], stars: [[0.59, 0.93], [0.26, 0.82]], ink: 0.9, strokes: 2, goals: ['home', 'stars', 'half'],
-    spot: [0.59, 1.03, 0.19, 0.19],
+    blocks: [[0, 0.5, 0.16, 1.6, CLIFF], [0.28, 1.18, 1.02, 1.6, WOOD]],
+    loop: [0.65, 1.04, 0.14], pads: [[0.13, 0.5]], house: [0.89, 1.18], stars: [[0.65, 0.95], [0.3, 0.84]], ink: 0.9, strokes: 2, goals: ['home', 'stars', 'one'],
+    spot: [0.65, 1.04, 0.18, 0.18],
   },
   {
     name: '쌍둥이', key: 'twin', news: '🐹🐹 쌍둥이 — 한 길로 둘 다 집에!', hint: '양쪽 공이 같이 출발해요 — 한 줄로 둘 다!',
@@ -141,7 +147,7 @@ interface Layout {
   spot: number[] | null;
   demo: number[][] | null;
 }
-interface Ball { x: number; y: number; vx: number; vy: number; drv: number; dd: number; rot: number; nx: number; ny: number; con: boolean; air: number; slow: number; home: number; out: boolean; hop: boolean; spun: number }
+interface Ball { x: number; y: number; vx: number; vy: number; drv: number; dd: number; zm: boolean; rot: number; nx: number; ny: number; con: boolean; air: number; slow: number; home: number; out: boolean; hop: boolean; spun: number }
 interface Star { x: number; y: number; got: number }
 interface Sim {
   t: number;
@@ -233,7 +239,7 @@ function newSim(L: Layout, jit: number[]): Sim {
   return {
     t: 0,
     segs: L.segs.slice(),
-    balls: L.pads.map((p) => ({ x: p.x, y: p.y - R, vx: 0, vy: 0, drv: 0, dd: L.dir, rot: 0, nx: 0, ny: -1, con: true, air: 0, slow: REST_T, home: -1, out: false, hop: false, spun: 0 })),
+    balls: L.pads.map((p) => ({ x: p.x, y: p.y - R, vx: 0, vy: 0, drv: 0, dd: L.dir, zm: false, rot: 0, nx: 0, ny: -1, con: true, air: 0, slow: REST_T, home: -1, out: false, hop: false, spun: 0 })),
     stars: d.stars.map(([x, y], i) => ({ x: (L.flip ? 1 - x : x) + (jit[i * 2] - 0.5) * 0.03, y: y + (jit[i * 2 + 1] - 0.5) * 0.03, got: -1 })),
     gateOpen: !d.gate,
     loopPh: 0,
@@ -413,6 +419,7 @@ function tick(L: Layout, S: Sim) {
     }
     if (b.y > OUT_Y || b.x < -0.1 || b.x > 1.1) (b.out = true), S.ev?.('out', b.x, Math.min(b.y, RIVER));
     const sp = Math.hypot(b.vx, b.vy), w = L.wind && inWind(L.wind, b.x, b.y);
+    if (!b.zm && sp > 1.7) (b.zm = true), S.ev?.('zoom', b.x, b.y);
     if (b.drv <= 0 && ((b.con && sp < REST_V) || (w && sp < 0.14))) b.slow++;
     else b.slow = 0;
   }
@@ -518,6 +525,7 @@ function dash(L: Layout, S: Sim) {
     b.slow = 0;
     b.drv = DRIVE_T;
     b.dd = dir;
+    b.zm = false;
   }
   S.moving = true;
   S.rollT = 0;
@@ -700,6 +708,7 @@ export const drawroll: GameDef<RollState> = {
         if (!S.moving && S.used < s.L.d.strokes && S.ink > 0.01) {
           const q = toW(p!);
           penDown(s.L, S, q.x, q.y);
+          ev(s, 'pen', q.x, q.y, '쓱—');
           s.drawing = true;
           s.drew = true;
           s.tip = q;
@@ -920,7 +929,9 @@ function plan(s: RollState): number[][] {
     for (let i = 0; i < 50; i++) twin([...rp(), ...rp()]);
     cands.sort((a, b) => b.v - a.v);
     for (const c of cands.slice(0, 4)) for (let j = 0; j < 8; j++) twin(c.par.slice(1).map((x, k) => x + rr(-1, 1) * [0.15, 0.15, 0.06, 0.06, 0.02][k % 5]));
-  } else for (let i = 0; i < 90; i++) tryPar(randPar());
+  } else
+    // 집에 들어가는 후보가 나올 때까지 (최대 세 번) 더 찾아본다
+    for (let round = 0; round < 3 && !cands.some((c) => c.v >= 30000); round++) for (let i = 0; i < 70; i++) tryPar(randPar());
   cands.sort((a, b) => b.v - a.v);
   const SC = [0, 3, 0, 0.15, 0.2, 0.06, 0.06, 0, 0.15, 0.03, 0.03, 0, 0];
   for (const c of cands.filter((q) => q.par[0] >= 0).slice(0, 6))
@@ -1269,6 +1280,23 @@ function drawBlock(ctx: C2, b: Block, X: (x: number) => number, Y: (y: number) =
     ctx.fill();
   }
   ctx.restore();
+  // 아래로 갈수록 어둡게 · 풀 끝에 늘어진 덩굴
+  ctx.fillStyle = lin(ctx, 0, y0, 0, y1, [0, 'rgba(60,30,10,0)'], [1, 'rgba(60,30,10,.28)']);
+  ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+  ctx.fillStyle = 'rgba(255,240,210,.18)';
+  ctx.fillRect(x0, y0, Math.min(R2(0.025), x1 - x0), y1 - y0);
+  ctx.strokeStyle = '#4fa83a';
+  ctx.lineWidth = 2;
+  for (let k = 0; k < Math.max(1, Math.floor((x1 - x0) / R2(0.12))); k++) {
+    const vx = x0 + R2(0.03) + k * R2(0.12) + hsh(k + b.y0 * 7) * R2(0.05), len = R2(0.05 + hsh(k + 2 + b.x0) * 0.08);
+    if (vx > x1 - 4) break;
+    ctx.beginPath();
+    ctx.moveTo(vx, y0 + R2(0.02));
+    ctx.quadraticCurveTo(vx + Math.sin(t * 0.03 + k) * 3, y0 + len * 0.6, vx + 2, y0 + len);
+    ctx.stroke();
+    ctx.fillStyle = '#5fbe45';
+    for (let j = 1; j < 4; j++) (ell(ctx, vx + (j % 2 ? 3 : -3), y0 + R2(0.02) + (len * j) / 4, 2.6, 1.6, j % 2 ? 0.5 : -0.5), ctx.fill());
+  }
   // 윗면 (3/4으로 보이는 풀밭)
   ctx.fillStyle = '#b6ef7e';
   ctx.beginPath();
@@ -1845,7 +1873,7 @@ function drawPreview(ctx: C2, s: RollState, X: (x: number) => number, Y: (y: num
     const C = cloneSim(S), pts: number[][] = [];
     if (penUp(s.L, C)) {
       dash(s.L, C);
-      for (let k = 0; k < 48 && verdict(C) === 0; k++) {
+      for (let k = 0; k < 60 && verdict(C) === 0; k++) {
         tick(s.L, C);
         if (k % 4 === 3) for (const b of C.balls) if (b.home < 0 && !b.out) pts.push([b.x, b.y, k]);
       }
@@ -1853,7 +1881,7 @@ function drawPreview(ctx: C2, s: RollState, X: (x: number) => number, Y: (y: num
     look.pv = { key, pts };
   }
   for (const [x, y, k] of look.pv.pts) {
-    ctx.fillStyle = `rgba(255,255,255,${0.85 - k / 70})`;
+    ctx.fillStyle = `rgba(255,255,255,${0.9 - k / 80})`;
     ell(ctx, X(x), Y(y), R2(0.009), R2(0.009));
     ctx.fill();
     ctx.strokeStyle = `rgba(90,60,30,${0.4 - k / 140})`;
@@ -1885,7 +1913,8 @@ function drawBall(ctx: C2, s: RollState, b: Ball, X: (x: number) => number, Y: (
     // 강에 풍덩: 둥둥 떠서 어질어질
     y = RIVER + 0.01 + Math.sin(t * 0.12) * 0.006;
   }
-  const r = R2(R), px = X(x), py = Y(y);
+  const waiting = s.phase === 'play' && !s.S.moving && s.S.dashes === 0 && b.home < 0;
+  const r = R2(R), px = X(x) + (waiting ? Math.sin(t * 0.45) * R2(0.003) : 0), py = Y(y);
   const sp = Math.hypot(b.vx, b.vy);
   // 빠르면 바람 줄
   if (s.S.moving && sp > 1.0 && b.home < 0 && !b.out) {
@@ -1918,7 +1947,7 @@ function drawBall(ctx: C2, s: RollState, b: Ball, X: (x: number) => number, Y: (
   // 햄스터: 보통은 서 있고, 아주 빠르면 공과 같이 빙글
   const spin = mood === 'zoom' ? b.rot : mood === 'dizzy' ? t * 0.15 : 0;
   const tilt = Math.max(-0.35, Math.min(0.35, b.vx * 0.25));
-  drawHamster(ctx, px, py + r * 0.12, r * 0.78, spin + (mood === 'zoom' ? 0 : tilt), mood, t, b.rot);
+  drawHamster(ctx, px, py + r * 0.1, r * 0.88, spin + (mood === 'zoom' ? 0 : tilt), mood, t, b.rot);
   ctx.restore();
   // 공 앞면: 테두리·반짝임·도는 줄
   ctx.strokeStyle = 'rgba(70,140,190,.75)';
@@ -2248,6 +2277,12 @@ function handleEvents(s: RollState, fx: ReturnType<typeof juice>, look: Look, X:
       fx.ring(x, y, '#ffffff', 50, 4);
       fx.pop(x, y - 30, '풍덩!', '#ffffff', 30);
       fx.kick(6);
+    } else if (e.kind === 'zoom') {
+      fx.pop(x, y - 34, '쌩~!', '#fff6a0', 24);
+      fx.burst(x, y, '#ffffff', 6, 2.4, 2);
+    } else if (e.kind === 'pen') {
+      fx.pop(x + 26, y - 18, e.text ?? '', '#ffb084', 18);
+      fx.burst(x, y, '#fff27a', 8, 2.2, 2.4);
     } else if (e.kind === 'bonk') {
       fx.pop(x, y - 20, '콩!', '#ffffff', 22);
       fx.burst(x, y, '#ffffff', 8, 2.6, 2.4);
@@ -2348,7 +2383,7 @@ function drawHud(ctx: C2, s: RollState, w: number, h: number, X: (x: number) => 
     ctx.fill();
   }
   // 아랫판: 크레용 잉크 · 남은 선 · 안내
-  const by0 = Y(1.375);
+  const by0 = Y(1.425);
   ctx.fillStyle = lin(ctx, 0, by0, 0, h, [0, 'rgba(160,98,48,.96)'], [1, 'rgba(120,70,30,.98)']);
   rr(ctx, R2(0.015), by0, w - R2(0.03), h - by0 - R2(0.012), R2(0.03));
   ctx.fill();
@@ -2357,8 +2392,11 @@ function drawHud(ctx: C2, s: RollState, w: number, h: number, X: (x: number) => 
   ctx.stroke();
   ctx.strokeStyle = 'rgba(255,220,170,.25)';
   ctx.lineWidth = 1;
-  for (let k = 1; k < 3; k++) (ctx.beginPath(), ctx.moveTo(R2(0.03), by0 + ((h - by0) * k) / 3), ctx.lineTo(w - R2(0.03), by0 + ((h - by0) * k) / 3), ctx.stroke());
-  const frac = Math.max(0, S.ink / d.ink), crY = by0 + R2(0.036), crX0 = R2(0.115), crW = R2(0.48);
+  ctx.beginPath();
+  ctx.moveTo(R2(0.03), by0 + R2(0.006));
+  ctx.lineTo(w - R2(0.03), by0 + R2(0.006));
+  ctx.stroke();
+  const frac = Math.max(0, S.ink / d.ink), crY = (by0 + h - R2(0.012)) / 2, crX0 = R2(0.115), crW = R2(0.48);
   ctx.fillStyle = '#fff1d6';
   font(0.03, 800);
   ctx.textAlign = 'left';
@@ -2432,9 +2470,10 @@ function drawHud(ctx: C2, s: RollState, w: number, h: number, X: (x: number) => 
   font(0.036, 900);
   ctx.textAlign = 'center';
   ctx.fillStyle = '#fff6dc';
-  ctx.strokeStyle = 'rgba(60,30,10,.6)';
-  ctx.lineWidth = 3;
-  const hy = by0 + R2(0.092);
+  ctx.strokeStyle = 'rgba(20,50,90,.75)';
+  ctx.lineWidth = 4;
+  ctx.lineJoin = 'round';
+  const hy = by0 - R2(0.03);
   ctx.strokeText(hint, w / 2, hy, w - R2(0.06));
   ctx.fillText(hint, w / 2, hy, w - R2(0.06));
   drawCards(ctx, s, w, R2, font, fx);
@@ -2451,7 +2490,7 @@ function drawCards(ctx: C2, s: RollState, w: number, R2: (r: number) => number, 
   if (s.phase === 'result') {
     age = s.pt;
     a = Math.min(1, age / 8);
-    cy = R2(s.ok ? 0.42 : 0.5);
+    cy = R2(s.ok ? 0.74 : 0.7);
     if (s.ok) head = s.won ? '모든 집에 쏙! 🎉' : s.S.balls.length > 1 ? '둘 다 쏙쏙!' : '집에 쏙!';
     else {
       head = s.failKind === 'stop' ? '멈춰 버렸어요…' : '앗, 풍덩!';
