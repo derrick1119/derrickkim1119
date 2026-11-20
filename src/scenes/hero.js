@@ -44,7 +44,7 @@ export class HeroScene {
     });
     cards.forEach((k, n) => cardFace(g, { id: k }, 748 + n * 242, 262, 222, 294));
     if (locked) { const cost = UNLOCKS.find(u => u.id === id).cost; rr(g, 60, 262, 184, 30, 6, '#8a2a26', INK, 1.6); text(g, `잠김 · 공적 ${cost}`, 152, 278, { size: 16, fill: C.cream }); if (button(g, 'meta', 840, 588, 400, 96, `공적 장부에서 열기 · ${cost}`, { style: 'paper', size: 28 })) nav.go('meta'); }
-    else if (button(g, 'go', 840, 588, 400, 96, meta.hard ? `출정 · 험로 ${meta.hard}` : '출  정', { size: meta.hard ? 38 : 52 })) { newRun(id); nav.go('run'); }
+    else if (button(g, 'go', 840, 588, 400, 96, meta.hard ? `출정 · 험로 ${meta.hard}` : '출  정', { size: meta.hard ? 38 : 52 })) nav.go('prologue', { hero: id });
     if (button(g, 'back', 40, 598, 200, 76, '뒤로', { style: 'paper', size: 30 })) nav.go('title');
     text(g, '영웅 패 한 장과 전용 영웅기 패 두 장을 들고 떠납니다. 원정 중에 다른 영웅이 합류하면 합동기가 열립니다.', 540, 626, { size: 15.5, fill: SUB, weight: 400, maxW: 560 });
     text(g, '부대가 전멸하면 패는 덱으로 돌아오지만 군기 수레가 깎입니다.', 540, 650, { size: 15.5, fill: SUB, weight: 400, maxW: 560 });

@@ -731,7 +731,7 @@ export class Battle {
   kill(t, src, silent) {
     if (t.dead) return;
     t.dead = true; t.hp = 0; t.deadT = this.time; t.squad.alive--; t.moving = false;
-    this.ev('death', { x: t.x, y: t.y, team: t.team, utype: t.type, boss: !!t.def.boss, r: t.r });
+    this.ev('death', { x: t.x, y: t.y, team: t.team, utype: t.type, boss: !!t.def.boss, r: t.r, last: !(t.def.revive && !t.revived) });
     if (t.team === 0) {
       if (t.def.banner) this.ev('bannerDown', { x: t.x, y: t.y }); else if (!t.temp) { this.lost++; this.waveLost++; }
       // 부대가 전멸하면 패는 버린 더미로 돌아가지만, 군기가 흔들린다 (군기 수레 체력을 잃는다)
@@ -742,7 +742,7 @@ export class Battle {
     }
     if (t.def.bomber && !t.exploded) this.zones.push({ kind: 'tele', style: 'bomb', x: t.x, y: t.y, r: t.def.bomber.r, t: 0, delay: 0.7, hits: 2, dmg: t.def.bomber.dmg * lvlMult(t.lvl), kb: 22 });
     else if (t.def.revive && !t.revived && !this.inGrail(t.x, t.y)) { this.corpses.push({ x: t.x, y: t.y, t: 3, revive: true, u: t }); this.pending++; }
-    else if (!t.def.structure && !t.def.boss && !silent) this.corpses.push({ x: t.x, y: t.y, t: 12, raisable: true });
+    else if (!t.def.structure && !t.def.boss && !silent) this.corpses.push({ x: t.x, y: t.y, t: 12, raisable: true, type: t.type });
   }
   inGrail(x, y) { for (const z of this.zones) if (z.kind === 'grail' && hyp(z.x - x, z.y - y) < z.r) return true; return false; }
   aoe(x, y, r, dmg, hits, src, o = {}) {

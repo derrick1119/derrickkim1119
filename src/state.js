@@ -6,9 +6,10 @@ import { DEFAULT_MODS, PACE, MAX_CAP, defOf } from './sim/battle.js';
 import { CARDS, MAX_LV, starterDeck, cardName, isUnit } from './data/cards.js';
 import { WEAPONS, ARMS, LOOT_WEAPONS, CLS_NAME, canEquip } from './data/weapons.js';
 import { VIEW, MID_Y } from './config.js';
+import { TALES, TALE_BY_ID } from './data/story.js';
 
 const KEY = 'gogae.save.v3';
-export const meta = { best: 0, clears: 0, runs: 0, merit: 0, unlocked: {}, hard: 0, hardMax: 0, seen: {} };
+export const meta = { best: 0, clears: 0, runs: 0, merit: 0, unlocked: {}, hard: 0, hardMax: 0, seen: {}, tales: [] };
 export const G = { run: null };
 const rnd = () => Math.random();
 const pick = arr => arr[(rnd() * arr.length) | 0];
@@ -21,6 +22,14 @@ export function load() {
   } catch (e) { /* 저장소 없음 */ }
 }
 export function save() { try { localStorage.setItem(KEY, JSON.stringify({ meta, run: G.run })); } catch (e) { /* 무시 */ } }
+
+// ───────── 주막의 옛이야기: 아직 못 들은 것부터, 지금 고개의 이야기를 먼저 ─────────
+export function hearTale(ch) {
+  const got = meta.tales || (meta.tales = []), left = TALES.filter(t => !got.includes(t.id)), t = left.find(x => x.ch === ch) || left[0];
+  if (t) { got.push(t.id); save(); return { id: t.id, fresh: true }; }
+  const pool = TALES.filter(x => x.ch === ch); return { id: (pool[(rnd() * pool.length) | 0] || TALES[0]).id, fresh: false };
+}
+export const taleView = p => ({ tale: TALE_BY_ID[p.id] || TALES[0], fresh: !!p.fresh, n: (meta.tales || []).length, of: TALES.length });
 
 // ───────── 공적으로 여는 것들 ─────────
 export const UNLOCKS = [
@@ -46,7 +55,7 @@ export const HARD_DESC = ['', '요괴 체력 +8%', '요괴 체력 +16%, 수 +5%'
 
 // ───────── 원정 시작 ─────────
 export function newRun(hero) {
-  const r = G.run = { hero, ch: 0, flags: 3, gold: has('p_gold') ? 60 : 0, deck: [], nextId: 1, items: [], relics: [], cap: 5 + (has('p_cap') ? 1 : 0), wins: 0, merit: 0, kills: 0, lost: 0, bosses: 0, hard: Math.min(meta.hard || 0, meta.hardMax || 0), road: null, pending: null, evSeen: [], burns: 0, nextMorale: 0 };
+  const r = G.run = { hero, ch: 0, flags: 3, gold: has('p_gold') ? 60 : 0, deck: [], nextId: 1, items: [], relics: [], cap: 5 + (has('p_cap') ? 1 : 0), wins: 0, merit: 0, kills: 0, lost: 0, bosses: 0, hard: Math.min(meta.hard || 0, meta.hardMax || 0), road: null, pending: null, evSeen: [], burns: 0, nextMorale: 0, seen: {} };
   for (const c of starterDeck(hero)) r.deck.push(Object.assign({ uid: r.nextId++ }, c));
   if (has('p_relic')) { const id = pick(relicPool()); if (id) r.relics.push(id); }
   r.road = genRoad(0); meta.runs++;

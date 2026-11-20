@@ -1,7 +1,9 @@
 // 공적 장부: 원정에서 쌓은 공적으로 영웅·병력·출발 혜택을 연다 (가로)
 import { W, H } from '../config.js';
-import { INK, PAPER, RED, INDIGO, TEAL, OCHRE, SUB, FONT_B, text, rr } from '../render/draw.js';
-import { button, panel, brushTitle, stamp, C } from '../ui/ui.js';
+import { INK, PAPER, RED, INDIGO, TEAL, OCHRE, SUB, FONT_B, text, textBlock, rr } from '../render/draw.js';
+import { button, panel, brushTitle, stamp, tapped, C } from '../ui/ui.js';
+import { TALES } from '../data/story.js';
+import { CHAPTERS } from '../data/stages.js';
 import { nav } from '../nav.js';
 import { meta, save, UNLOCKS, has, buyUnlock, HARD_DESC } from '../state.js';
 import { dimBackdrop } from './title.js';
@@ -9,12 +11,35 @@ import { portrait } from '../render/sprites.js';
 import { sfx } from '../audio.js';
 
 export class MetaScene {
-  constructor() { this.t = 0; }
+  constructor() { this.t = 0; this.book = false; this.sel = 0; }
+  // 이야기책: 주막에서 들은 옛이야기를 다시 읽는다
+  drawBook(g) {
+    const got = meta.tales || [];
+    brushTitle(g, 250, 48, 360, 66, '이야기책', '#2f6f5c', 38);
+    text(g, `들은 이야기 ${got.length} / ${TALES.length}`, 520, 44, { size: 30, font: FONT_B, align: 'left' });
+    text(g, '원정 중 주막에 들를 때마다 주모가 한 토막씩 들려줍니다', 520, 78, { size: 16, fill: SUB, weight: 400, align: 'left' });
+    panel(g, 30, 108, 420, 574); panel(g, 470, 108, 780, 464);
+    TALES.forEach((t, n) => {
+      const y = 126 + n * 35 + Math.floor(n / 5) * 9, has = got.includes(t.id), on = this.sel === n;
+      if (tapped('tale' + n, 46, y, 388, 32)) this.sel = n;
+      rr(g, 46, y, 388, 32, 5, on ? '#f6e3a8' : has ? '#fbf3df' : '#ebe2cc', on ? '#c9962e' : 'rgba(38,42,54,0.35)', on ? 2 : 1);
+      text(g, has ? t.title : '· · ·', 66, y + 17, { size: 18, font: FONT_B, align: 'left', fill: has ? INK : '#a9a394' }); text(g, CHAPTERS[t.ch].short, 420, y + 17, { size: 12.5, align: 'right', fill: SUB, weight: 400 });
+    });
+    const t = TALES[this.sel], has = got.includes(t.id);
+    if (has) {
+      text(g, t.title, 860, 190, { size: 40, font: FONT_B }); g.fillStyle = 'rgba(201,150,46,0.8)'; g.fillRect(700, 226, 320, 1.6);
+      textBlock(g, t.s, 860, 290, 700, 44, { size: 23 });
+      text(g, `— ${CHAPTERS[t.ch].name} 의 주막에서`, 1210, 530, { size: 15, align: 'right', fill: SUB, weight: 400 });
+    } else { stamp(g, 860, 300, 46, '?', '#a9a394', -0.1); text(g, '아직 듣지 못한 이야기입니다', 860, 384, { size: 24, font: FONT_B, fill: SUB }); text(g, `${CHAPTERS[t.ch].name} 의 주막에 들러 보세요`, 860, 420, { size: 17, fill: SUB, weight: 400 }); }
+    if (button(g, 'bookback', 960, 584, 290, 86, '장부로', { style: 'paper', size: 32 })) this.book = false;
+  }
   frame(g, dt) {
     this.t += dt; dimBackdrop(g, 0.82);
+    if (this.book) { this.drawBook(g); return; }
+    if (button(g, 'book', 1010, 22, 240, 62, `이야기책 ${(meta.tales || []).length}/${TALES.length}`, { style: 'teal', size: 23 })) { this.book = true; return; }
     brushTitle(g, 250, 48, 360, 66, '공적 장부', INDIGO, 38);
     text(g, `쌓인 공적 ${meta.merit}`, 520, 44, { size: 30, font: FONT_B, align: 'left' });
-    text(g, '원정이 끝날 때마다 전공 등급과 물리친 두목만큼 공적이 쌓입니다', 520, 78, { size: 16, fill: SUB, weight: 400, align: 'left', maxW: 700 });
+    text(g, '원정이 끝날 때마다 전공 등급과 물리친 두목만큼 공적이 쌓입니다', 520, 78, { size: 16, fill: SUB, weight: 400, align: 'left', maxW: 470 });
     UNLOCKS.forEach((u, n) => {
       const x = 30 + (n % 2) * 620, y = 108 + Math.floor(n / 2) * 90, w = 600, h = 82, open = has(u.id), afford = meta.merit >= u.cost;
       rr(g, x, y + 4, w, h, 6, 'rgba(50,36,20,0.2)'); rr(g, x, y, w, h, 6, open ? '#e6efdc' : PAPER, INK, 2.4);

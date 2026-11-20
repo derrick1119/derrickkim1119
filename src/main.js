@@ -10,6 +10,7 @@ import { HeroScene } from './scenes/hero.js';
 import { RunScene } from './scenes/run.js';
 import { EndScene } from './scenes/end.js';
 import { MetaScene } from './scenes/meta.js';
+import { PrologueScene } from './scenes/prologue.js';
 
 const canvas = document.getElementById('game');
 const g = canvas.getContext('2d');
@@ -46,7 +47,7 @@ canvas.addEventListener('click', unlockAudio); canvas.addEventListener('touchend
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('keydown', e => { if (nav.cur && nav.cur.key) nav.cur.key(e.key); });
 
-nav.scenes = { title: TitleScene, hero: HeroScene, run: RunScene, meta: MetaScene, end: EndScene };
+nav.scenes = { title: TitleScene, hero: HeroScene, prologue: PrologueScene, run: RunScene, meta: MetaScene, end: EndScene };
 
 let last = 0;
 function frame(ts) {

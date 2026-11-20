@@ -42,7 +42,7 @@ export const UNITS = {
     desc: '쌍도끼를 든 녹림의 두령', tip: '가까운 적이 두령에게 몰리고, 근접 피해를 덜 받습니다. 기력이 차면 땅울림 → 도발 → 메치기를 차례로 씁니다.' },
   // ───── 본진 ─────
   banner: { name: '군기 수레', role: '본진', side: 0, cost: 0, n: 1, hp: 520, atk: 0, as: 9, range: 0, spd: 0, r: 20, structure: true, banner: true,
-    desc: '행군의 중심', tip: '군기 수레가 부서지면 깃발 하나를 잃습니다. 싸움이 끝날 때마다 수리됩니다.' },
+    desc: '서낭대와 큰북을 실은 수레', tip: '서낭신을 모신 깃대와 북을 실었습니다. 부서지면 깃발 하나를 잃고, 셋을 다 잃으면 신이 떠납니다. 싸움이 끝날 때마다 수리됩니다.' },
   // ───── 패로 불러내는 것 ─────
   stake: { name: '목책', role: '방벽', side: 0, cost: 0, n: 1, hp: 120, atk: 0, as: 9, range: 0, spd: 0, r: 12, structure: true, stake: true,
     desc: '길을 막는다', tip: '요괴의 길을 막는 말뚝.' },
@@ -62,7 +62,7 @@ export const UNITS = {
   treant: { name: '장승', role: '거대', side: 1, n: 2, hp: 430, atk: 22, as: 1.8, range: 0, spd: 36, r: 15, large: true, splash: 34,
     desc: '느리지만 매우 단단하다', tip: '느리고 단단한 거대 요괴. 창병(1.5배)과 원거리 화력으로 다가오기 전에 깎으세요.' },
   sapling: { name: '아기 장승', role: '소환', side: 1, n: 3, hp: 90, atk: 10, as: 1.2, range: 0, spd: 58, r: 10,
-    desc: '목신이 불러낸 작은 장승', tip: '목신이 계속 불러냅니다. 본체를 빨리 쓰러뜨리세요.' },
+    desc: '당산 할배가 불러낸 작은 장승', tip: '당산 할배가 계속 불러냅니다. 본체를 빨리 쓰러뜨리세요.' },
   bomber: { name: '도깨비불', role: '자폭', side: 1, n: 4, hp: 44, atk: 0, as: 1, range: 0, spd: 96, r: 9, bomber: { dmg: 125, r: 58 },
     desc: '다가와서 터진다', tip: '뭉친 부대에 다가와 터집니다. 닿기 전에 잡으면 그 자리에서 터져 적도 휘말립니다!' },
   wolf: { name: '멧돼지', role: '돌격', side: 1, n: 3, hp: 205, atk: 19, as: 1.1, range: 0, spd: 124, r: 14, mounted: true, charge: { mult: 3.2, dist: 110, kb: 30 }, prefer: 'soft',
@@ -78,12 +78,12 @@ export const UNITS = {
   necro: { name: '저승사자', role: '소환', side: 1, n: 1, hp: 190, atk: 16, as: 1.8, range: 215, spd: 46, r: 12, proj: 'dark', soft: true, raise: { cd: 5, max: 7 },
     desc: '쓰러진 자를 망령으로 일으킨다', tip: '쓰러진 자리에서 망령 병사를 일으킵니다. 살려두면 끝이 없으니 최우선으로 잡으세요.' },
   // ───── 보스 ─────
-  warchief: { name: '두억시니', role: '보스', side: 1, boss: true, n: 1, hp: 1900, atk: 44, as: 1.6, range: 0, reach: 14, spd: 52, r: 26, large: true, splash: 46, abil: ['slam', 'warcry'],
-    desc: '땅을 내려찍는 도깨비 두목', tip: '붉은 원이 보이면 부대를 빼세요. 체력이 절반이 되면 무리 전체가 광분합니다.' },
-  elder: { name: '당산 목신', role: '보스', side: 1, boss: true, n: 1, hp: 2600, atk: 48, as: 2.0, range: 0, reach: 18, spd: 30, r: 30, large: true, splash: 44, abil: ['roots', 'saplings'],
-    desc: '숲을 깨우는 천년 고목', tip: '뿌리 감옥(초록 원)을 피하고, 아기 장승이 쌓이기 전에 본체에 화력을 집중하세요.' },
+  warchief: { name: '푸른 김서방', role: '보스', side: 1, boss: true, n: 1, hp: 1900, atk: 44, as: 1.6, range: 0, reach: 14, spd: 52, r: 26, large: true, splash: 46, abil: ['slam', 'warcry'],
+    desc: '터를 잃고 쫓겨 온 도깨비 두목', tip: '붉은 원이 보이면 부대를 빼세요. 체력이 절반이 되면 무리 전체가 광분합니다.' },
+  elder: { name: '당산 할배', role: '보스', side: 1, boss: true, n: 1, hp: 2600, atk: 48, as: 2.0, range: 0, reach: 18, spd: 30, r: 30, large: true, splash: 44, abil: ['roots', 'saplings'],
+    desc: '베어진 숲의 그루터기에서 깨어난 신령', tip: '뿌리 감옥(초록 원)을 피하고, 아기 장승이 쌓이기 전에 본체에 화력을 집중하세요.' },
   skelking: { name: '어둑시니', role: '보스', side: 1, boss: true, n: 1, hp: 2800, atk: 44, as: 1.7, range: 0, reach: 18, spd: 50, r: 26, large: true, splash: 40, abil: ['brand', 'summon'],
-    desc: '볼수록 커지는 어둠', tip: '어둠의 낙인(보라 원)을 피하고, 후방에 불려 나오는 망령에 대비해 예비대를 남겨두세요.' },
+    desc: '올려다볼수록 커지는 어둠', tip: '어둠의 낙인(보라 원)을 피하고, 후방에 불려 나오는 망령에 대비해 예비대를 남겨두세요.' },
 };
 for (const k of Object.keys(UNITS)) UNITS[k].id = k;
 

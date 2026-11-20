@@ -74,7 +74,7 @@ export class TitleScene {
     text(g, '도깨비', 250, ty, { size: 132, font: FONT_B, fill: INK, stroke: '#ecdfc2', lw: 10 });
     text(g, '고개', 400, ty + 128, { size: 132, font: FONT_B, fill: INK, stroke: '#ecdfc2', lw: 10 });
     g.save(); g.translate(520, ty - 34); g.rotate(0.06); seal(g, 0, 0, 78, '진'); g.restore();
-    text(g, '패를 뽑아 군대를 세우고, 고개를 넘어 지켜라', 372, ty + 232, { size: 22, fill: SUB, stroke: '#ecdfc2', lw: 5 });
+    text(g, '서낭대를 모시고, 백중 새벽까지 세 고개를 넘어라', 372, ty + 232, { size: 22, fill: SUB, stroke: '#ecdfc2', lw: 5 });
     const r = G.run;
     if (this.confirm) {
       g.fillStyle = 'rgba(31,42,68,0.55)'; g.fillRect(0, 0, W, H);

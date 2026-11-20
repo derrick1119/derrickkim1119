@@ -480,7 +480,7 @@ export function catapult(g) {
   part(g, p => p.rect(-9, -33.6, 18, 4.8), WOODD, R(-9, -31, 18, 2.4), { lw: 1.1 }); rope(g, p => { p.moveTo(-6, -31); p.lineTo(-7, -17); }, '#d9c39a', 1);
   part(g, E(0, -11.8, 4.8, 4.4), '#d9603f', E(1.4, -10.6, 4, 3.6), { lw: 1 }); for (const s of [-1, 1]) ell(g, s * 1.7, -12.2, 0.9, 1.1, INK); poly(g, [-1.1, -15.8, 0, -19.6, 1.1, -15.8], '#f3e7c8', INK, 0.7);
 }
-// ───────── 당산 목신 (두목) ─────────
+// ───────── 당산 할배: 목신 (두목) ─────────
 export function mokshin(g) {
   const bark = '#8a6844', bd = '#6f5234';
   for (const x of [-16, -6, 6, 16]) part(g, p => { p.moveTo(x - 6.6, -1); p.quadraticCurveTo(x, -9, x + 6.6, -1); p.quadraticCurveTo(x, 2.6, x - 6.6, -1); p.closePath(); }, bd, null, { lw: 1.1 });
@@ -522,6 +522,21 @@ export function scarecrow(g) {
   part(g, E(0, -38, 7.6, 7.4), '#ecdcae', E(2.6, -36.4, 6.4, 6.2), { k: 0.14 }); for (const [a, b] of [[-4.4, -39.8], [-4.4, -38.2]]) line(g, [a, b, -1.6, b === -39.8 ? -38.2 : -39.8], INK, 1.1); ell(g, 3, -38.8, 1.1, 1.3, INK); line(g, [-3.2, -34, 3.8, -34.2], INK, 1); for (const x of [-1.8, 0.2, 2.2]) line(g, [x, -35, x, -33.2], INK, 0.5);
   g.save(); g.translate(0, 4.4); HATS.paeraeng(g); g.restore();
 }
+// 쓰러진 자리에 남는 것: 도깨비는 사람이 쓰다 버린 헌 물건으로, 망령은 이름 적힌 호패로 돌아간다
+export const LEFTOVER = {
+  // 몽당빗자루
+  broom(g) { g.rotate(-0.5); line(g, [0, 0, 0, -13], INK, 3.6); line(g, [0, 0, 0, -13], '#b98a55', 2); part(g, p => { p.moveTo(-3, -1); p.lineTo(-6.4, 9); p.lineTo(-2.6, 8); p.lineTo(-1.4, 10.4); p.lineTo(1.2, 8.4); p.lineTo(3, 10.4); p.lineTo(6, 8.6); p.lineTo(3, -1); p.closePath(); }, '#d9b24a', P(0.6, -2, 7, -2, 7, 11, 1.6, 11), { lw: 1.1 }); for (const x of [-2, 0.4, 2.6]) line(g, [x * 0.5, 1, x * 1.5, 8], '#a8843c', 0.6); line(g, [-3.2, 1, 3.2, 1], RED, 1.4); },
+  // 빨랫방망이
+  bat(g) { g.rotate(0.9); part(g, p => { p.moveTo(-1.5, 8); p.lineTo(-1.5, 0); p.quadraticCurveTo(-4.2, -3, -3.6, -12); p.quadraticCurveTo(0, -14.6, 3.6, -12); p.quadraticCurveTo(4.2, -3, 1.5, 0); p.lineTo(1.5, 8); p.closePath(); }, WOOD, P(0.6, -15, 5, -15, 5, 9, 0.6, 9), { hi: R(-2.6, -11, 1, 9), hk: 0.24, lw: 1.1 }); line(g, [-1.5, 5, 1.5, 5.4], WOODD, 0.8); },
+  // 짚신
+  sandal(g) { g.rotate(0.3); part(g, E(0, 0, 8.6, 4.6), '#d9b77a', E(2.6, 1.6, 7, 3.6), { k: 0.18, lw: 1.1 }); for (const x of [-5, -2, 1, 4]) line(g, [x, -3.2, x + 0.6, 3.2], '#a8843c', 0.6); curve(g, p => { p.moveTo(-3.6, -3.6); p.quadraticCurveTo(1, -8.6, 6.4, -2.4); }, INK, 2.2); curve(g, p => { p.moveTo(-3.6, -3.6); p.quadraticCurveTo(1, -8.6, 6.4, -2.4); }, '#e6cc94', 1.1); },
+  // 솥뚜껑
+  lid(g) { part(g, E(0, -1, 10.6, 5), '#3a3a44', E(3.4, 1, 9, 4), { hi: E(-4, -2.8, 3.6, 1), hic: '#6e6e7c', lw: 1.2 }); curve(g, p => p.ellipse(0, -1, 6.4, 2.8, 0, 0, PI * 2), '#55555f', 0.8); part(g, E(0, -3.6, 2.4, 1.7), '#4a4a55', E(0.9, -3, 1.8, 1.2), { lw: 0.9 }); },
+  // 부지깽이
+  poker(g) { g.rotate(1.15); line(g, [0, 9, 0, -12], INK, 3.4); line(g, [0, 9, 0, -12], '#8a6a3c', 1.9); line(g, [0, -6, 0, -12], '#2b2a30', 2.1); ell(g, 0, -12, 1.4, 1.6, '#d9553f', INK, 0.6); },
+  // 호패: 줄에 꿴 이름패
+  hopae(g) { g.rotate(-0.25); curve(g, p => { p.moveTo(0, -9); p.quadraticCurveTo(7, -13, 9.6, -6); }, RED, 1); part(g, p => { p.moveTo(-3.6, -9.4); p.lineTo(3.6, -9.4); p.lineTo(3.6, 5.4); p.lineTo(-3.6, 5.4); p.closePath(); }, '#e3c890', R(0.6, -9.4, 3, 15), { k: 0.16, lw: 1.1 }); ell(g, 0, -7.2, 0.9, 0.9, INK); for (const y of [-3.6, -0.6, 2.4]) line(g, [-1.4, y, 1.4, y + 0.5], INK, 1); },
+};
 export function stakeLog(g) { g.save(); g.rotate(0.12); part(g, P(-5, 2, -5, -30, 0, -40, 5, -30, 5, 2), WOOD, P(1, -41, 6, -41, 6, 3, 1.6, 3), { hi: P(-4, -29, -2.6, -30, -2.6, 0, -4, 0), hk: 0.2, lw: 1.3 }); rr(g, -5.6, -14, 11.2, 3.4, 1, '#d9b77a', INK, 0.8); g.restore(); ell(g, 0, 2, 7, 2.6, '#8a6844', INK, 1); }
 export function bannerCart(g) {
   line(g, [-22, -12, -34, -6], INK, 4.2); line(g, [-22, -12, -34, -6], WOODD, 2.6);

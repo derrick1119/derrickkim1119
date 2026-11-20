@@ -1,7 +1,7 @@
 // 전장 렌더러: 한지 배경, y 정렬된 종이 인형과 지형지물, 장판, 투사체, 이펙트
 import { W, H, VIEW } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, OCHRE, TEAL, FONT_B, text, ell, rr, rrPath, poly, line, path, st, drawSprite, clamp, lerp, easeOutBack } from './draw.js';
-import { getLook, getWeapon, blinking } from './sprites.js';
+import { getLook, getWeapon, blinking, leftover } from './sprites.js';
 import { defOf } from '../sim/battle.js';
 import { HERO_COL } from '../data/units.js';
 import { makeGround, makeFar, vignette, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, FAR_H } from './terrain.js';
@@ -9,6 +9,8 @@ import { Fx } from './fx.js';
 import { icon } from '../ui/ui.js';
 
 const PI = Math.PI;
+// 쓰러진 자리에 남는 것
+const LEFT = { goblin: 'broom', orc: 'bat', garcher: 'sandal', rshield: 'lid', shaman: 'poker', skel: 'hopae', skelarcher: 'hopae' };
 function swing(p) { if (p < 0.28) return lerp(0, -0.9, p / 0.28); if (p < 0.55) return lerp(-0.9, 1.7, (p - 0.28) / 0.27); return lerp(1.7, 0, (p - 0.55) / 0.45); }
 
 // 종이 인형 한 장: 걷기는 깡충거림과 기울임, 공격은 내지르기와 무기 휘두르기
@@ -116,6 +118,7 @@ export class BattleView {
     for (const z of b.zones) this.drawZone(g, z, T);
     for (const c of b.corpses) {
       if (c.revive) { g.globalAlpha = 0.85; path(g, p => { p.moveTo(c.x, c.y - 16); p.quadraticCurveTo(c.x + 7, c.y - 6, c.x + 4, c.y); p.quadraticCurveTo(c.x, c.y + 3, c.x - 4, c.y); p.quadraticCurveTo(c.x - 7, c.y - 6, c.x, c.y - 16); }, '#9fd3e8', INK, 1); g.globalAlpha = 1; g.beginPath(); g.arc(c.x, c.y - 4, 14, -PI / 2, -PI / 2 + TAU * (1 - c.t / 3)); st(g, '#4f8fb8', 2.6); }
+      else if (LEFT[c.type]) { g.globalAlpha = clamp(c.t / 2, 0, 1); drawSprite(g, leftover(LEFT[c.type]), c.x, c.y, 1, 1, ((c.x * 7 + c.y * 13) % 10 - 5) * 0.09); g.globalAlpha = 1; } // 도깨비는 헌 물건으로, 망령은 호패로 돌아간다
       else { g.globalAlpha = clamp(c.t / 3, 0, 0.6); poly(g, [c.x - 7, c.y - 1, c.x - 2, c.y - 5, c.x + 6, c.y - 3, c.x + 8, c.y + 2, c.x - 3, c.y + 4], PAPER, INK, 1); g.globalAlpha = 1; }
     }
     if (opt.rings) for (const r of opt.rings) { g.globalAlpha = 0.9; ell(g, r.x, r.y + 1, r.r * 1.35, r.r * 0.72, r.col + '55', r.col, 2.4); g.globalAlpha = 1; }
@@ -279,6 +282,7 @@ export class BattleView {
           const L = getLook(e.utype); fx.puff(e.x, e.y - 12, e.boss ? 14 : 4, PAPER, e.boss ? 18 : 9); fx.scraps(e.x, e.y - 22, e.boss ? 26 : 6, e.team === 0 ? [PAPER, '#c9d6e6', '#e9dec4'] : [PAPER, '#efc9b8', '#e9dec4']);
           fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.front, sx: L.scale, sy: L.scale, life: 0.3 }); if (L.head) fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.head, sx: L.scale, sy: L.scale, life: 0.3 });
           if (e.boss) { fx.shake = 16; fx.flash = 1; fx.flashCol = '#fff'; fx.ring(e.x, e.y, 150, INK, 0.7, 8); sfx('boom'); } else sfx('death');
+          if (e.team === 1) out.push(e);
           break;
         }
         case 'shoot': if (e.kind === 'note') { sfx('clang'); break; } sfx(e.kind === 'fireball' || e.kind === 'dark' || e.kind === 'iceball' || e.kind === 'spark' ? 'magic' : e.kind === 'shell' ? 'boom' : e.kind === 'bullet' ? 'thud' : 'shoot'); if (e.kind === 'bullet') fx.puff(e.x, e.y - 26, 3, '#d9d4c8', 7); if (e.kind === 'shell') { fx.puff(e.x, e.y - 30, 4, '#d9d4c8', 9); fx.shake = Math.max(fx.shake, 3); } break;

@@ -1,7 +1,7 @@
 // 병종 인형 스프라이트 — 몸 한 장 + (사람·도깨비는) 머리 한 장 + 손에 든 무기 한 장. 그림은 figures.js
 import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, SKIN, st, fs, ell, rr, poly, line, path, paperSprite, drawSprite } from './draw.js';
 import { WEAPONS as WDATA, ARMS } from '../data/weapons.js';
-import { doll, dokkaebi, ITEM, DITEM, fox, jangseung, wisp, cart, horse, boar, catapult, mokshin, eoduksini, scarecrow, stakeLog, bannerCart, part, dk, lt, E, R, P, curve, rope, WHITE, BLACK, STEEL, IRON, WOOD, WOODD, HX, HY } from './figures.js';
+import { doll, dokkaebi, ITEM, DITEM, fox, jangseung, wisp, cart, horse, LEFTOVER, boar, catapult, mokshin, eoduksini, scarecrow, stakeLog, bannerCart, part, dk, lt, E, R, P, curve, rope, WHITE, BLACK, STEEL, IRON, WOOD, WOODD, HX, HY } from './figures.js';
 
 // ───────────── 무기 (원점 = 손잡이, 위쪽을 향함) ─────────────
 const STEELD = '#aab4ba', BRASS = '#c9962e';
@@ -207,6 +207,8 @@ export function getWeapon(wid) {
   w = { spr: paperSprite(WEAPONS[d.spr] || WEAPONS.hwando, { w: 64, h: 104, ox: 32, oy: 66 }), a: d.a || 0, mode: d.mode || 'slash', hand: d.hand || 'R', cast: d.cast === undefined ? 0.95 : d.cast };
   wcache.set(wid, w); return w;
 }
+const lcache = new Map();
+export function leftover(kind) { let s = lcache.get(kind); if (!s) { s = paperSprite(LEFTOVER[kind] || LEFTOVER.broom, { w: 44, h: 44, ox: 22, oy: 24, bw: 1.6 }); lcache.set(kind, s); } return s; }
 export const baseWeapon = type => (ARMS[type] ? ARMS[type].base : null);
 export function preloadLooks() { for (const k of Object.keys(LOOKS)) getLook(k); for (const k of Object.keys(WDATA)) getWeapon(k); }
 

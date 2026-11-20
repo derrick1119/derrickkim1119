@@ -25,11 +25,11 @@ export const AFFIX = {
 const SPREAD = { 1: [2.5], 2: [1.5, 3.5], 3: [0.75, 2.5, 4.25], 4: [0.25, 1.75, 3.25, 4.75] };
 
 export const BOSSES = [
-  { name: '두억시니', enemyName: '도깨비 두목 두억시니', map: 'arena', lvl: 1, time: 130, starDeaths: 8, starTime: 75, key: 'warchief',
+  { name: '푸른 김서방', enemyName: '도깨비 두목 푸른 김서방', map: 'arena', lvl: 1, time: 130, starDeaths: 8, starTime: 75, key: 'warchief',
     enemy: [['warchief', 2.5, 1], ['orc', 1, 0], ['orc', 4, 0], ['goblin', 2.5, 0, { n: 6 }], ['garcher', 0.5, 2, { n: 4 }], ['garcher', 4.5, 2, { n: 4 }]] },
-  { name: '당산 목신', enemyName: '천년 묵은 당산 목신', map: 'grove', lvl: 2, time: 140, starDeaths: 9, starTime: 85, key: 'elder',
+  { name: '당산 할배', enemyName: '잊힌 숲의 당산 할배', map: 'grove', lvl: 2, time: 140, starDeaths: 9, starTime: 85, key: 'elder',
     enemy: [['elder', 2.5, 1], ['treant', 1, 0, { n: 1 }], ['treant', 4, 0, { n: 1 }], ['shaman', 2.5, 2, { n: 2 }], ['garcher', 0.5, 2, { n: 4 }], ['garcher', 4.5, 2, { n: 4 }], ['goblin', 2.5, 0, { n: 6 }]] },
-  { name: '어둑시니', enemyName: '어둠의 주인 어둑시니', map: 'throne', lvl: 3, time: 150, starDeaths: 10, starTime: 95, key: 'skelking',
+  { name: '어둑시니', enemyName: '잊힌 것들의 그림자 어둑시니', map: 'throne', lvl: 3, time: 150, starDeaths: 10, starTime: 95, key: 'skelking',
     enemy: [['skelking', 2.5, 1], ['skel', 1, 0, { n: 4 }], ['skel', 2.5, 0, { n: 4 }], ['skel', 4, 0, { n: 4 }], ['rshield', 0, 0, { n: 2 }], ['skelarcher', 1, 2, { n: 3 }], ['skelarcher', 4, 2, { n: 3 }], ['necro', 2.5, 2], ['rassassin', 5, 2, { n: 2 }]] },
 ];
 

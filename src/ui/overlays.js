@@ -8,7 +8,7 @@ import { CARDS, KIND, cardName, isUnit } from '../data/cards.js';
 import { RELICS } from '../data/relics.js';
 import { WEAPONS } from '../data/weapons.js';
 import { UNITS } from '../data/units.js';
-import { portrait, weaponIcon } from '../render/sprites.js';
+import { portrait, weaponIcon, getLook } from '../render/sprites.js';
 import { cardIcon, relicIcon, miscIcon } from '../render/icons.js';
 import { sfx } from '../audio.js';
 
@@ -107,7 +107,7 @@ function resultIcon(s) {
   const id = Object.keys(CARDS).find(k => !isUnit({ id: k }) && CARDS[k].name === name); return id ? (g, x, y) => cardIcon(g, id, x, y, 0.74) : null;
 }
 export class ChoiceOverlay extends Overlay {
-  constructor(o) { super(); Object.assign(this, { title: o.title, art: o.art, body: o.text, choices: o.choices, onDone: o.onDone, col: o.col || '#6a5a8a', result: null }); }
+  constructor(o) { super(); Object.assign(this, { title: o.title, art: o.art, body: o.text, choices: o.choices, onDone: o.onDone, col: o.col || '#6a5a8a', tale: o.tale || null, result: null }); }
   draw(g) {
     const r = G.run, t = this.t;
     dim(g, 0.6);
@@ -115,6 +115,12 @@ export class ChoiceOverlay extends Overlay {
     brushTitle(g, 330, 76, 360, 62, this.title, this.col, 34);
     ell(g, 330, 270, 112, 112, '#efe2c4', INK, 3); g.save(); g.beginPath(); g.arc(330, 270, 110, 0, TAU); g.clip(); g.fillStyle = '#a9b78f'; g.globalAlpha = 0.5; g.fillRect(210, 326, 240, 60); g.globalAlpha = 1; portrait(g, this.art, 330, 360, UNITS[this.art].hero || UNITS[this.art].boss ? 1.9 : 2.3, t, true); g.restore();
     textBlock(g, this.result ? this.result[0] : this.body, 330, 424, 480, 27, { size: 19, weight: 400 });
+    // 주막에서 듣는 옛이야기 한 토막
+    if (this.tale && !this.result) {
+      const tl = this.tale.tale; rr(g, 84, 486, 492, 146, 7, '#fbf3df', 'rgba(38,42,54,0.5)', 1.3); rr(g, 84, 486, 6, 146, 3, this.col);
+      text(g, `「${tl.title}」`, 104, 506, { size: 19, font: FONT_B, align: 'left' }); if (this.tale.fresh) { rr(g, 430, 494, 134, 24, 5, this.col); text(g, `이야기책 ${this.tale.n} / ${this.tale.of}`, 497, 507, { size: 13, fill: C.cream }); }
+      textBlock(g, tl.s, 104, 532, 456, 21.5, { size: 15, align: 'left', weight: 400, fill: SUB });
+    }
     panel(g, 1040, 84, 164, 38, 'tag'); icon.coin(g, 1062, 103, 11); text(g, `엽전 ${r.gold}`, 1132, 104, { size: 18, maxW: 110 });
     if (!this.result) {
       const n = this.choices.length, ch = Math.min(104, 440 / n), y0 = 140;
@@ -123,8 +129,10 @@ export class ChoiceOverlay extends Overlay {
         if (!lack && tapped('ch' + k, 620, y, 580, ch)) { sfx('card'); if (c.deck) this.deck({ mode: c.deck, filter: c.filter, title: c.label, onPick: uid => { const before = cardName(r.deck.find(q => q.uid === uid)), card = upgradeCard(uid); this.sub = null; if (!card) return; this.result = [c.story, `${isUnit(card) ? '조련' : '패 강화'}: [${before}] → [${cardName(card)}]`]; save(); } }); else { this.result = c.pick(); save(); } }
         const dn = !lack && isDown('ch' + k, 620, y, 580, ch), o = dn ? 3 : 0;
         g.save(); if (lack) g.globalAlpha = 0.5;
-        rr(g, 620, y + 5, 580, ch, 12, '#d9cdb0', INK, 2.4); rr(g, 620, y + o, 580, ch, 12, PAPER, INK, 2.4);
-        text(g, c.label, 644, y + ch * 0.34 + o, { size: Math.min(27, ch * 0.3), font: FONT_B, align: 'left', maxW: 530 });
+        rr(g, 620, y + 5, 580, ch, 12, '#d9cdb0', INK, 2.4); rr(g, 620, y + o, 580, ch, 12, c.hero ? '#fbf1cf' : PAPER, INK, 2.4);
+        // 영웅이 있을 때만 열리는 갈래
+        if (c.hero) { rr(g, 623.4, y + 3.4 + o, 573.2, ch - 6.8, 9, null, '#c9962e', 1.5); g.save(); g.beginPath(); g.rect(1120, y + 4 + o, 74, ch - 8); g.clip(); portrait(g, c.hero, 1158, y + ch + 14 + o, 1.25 * 1.43 / getLook(c.hero).scale); g.restore(); }
+        text(g, c.label, 644, y + ch * 0.34 + o, { size: Math.min(27, ch * 0.3), font: FONT_B, align: 'left', maxW: c.hero ? 470 : 530 });
         text(g, lack ? `${c.desc}  (엽전 부족)` : c.desc, 646, y + ch * 0.7 + o, { size: Math.min(17, ch * 0.19), align: 'left', fill: lack ? RED : SUB, weight: 400, maxW: 530 });
         g.restore();
       });
@@ -133,6 +141,33 @@ export class ChoiceOverlay extends Overlay {
       if (this.result.length < 2) text(g, '별일 없이 지나갑니다', 910, 200, { size: 20, fill: SUB });
       if (!this.left && button(g, 'go', 740, 540, 340, 76, '길을 떠난다', { size: 34 })) { this.left = true; this.onDone(); }
     }
+  }
+}
+
+// ───────── 이야기 한 장면: 두목의 사연, 영웅의 인연 (한 줄씩 눌러 넘긴다) ─────────
+// lines: [[말하는 이(병종 id) 또는 null(해설), 글], …]
+export class StoryOverlay extends Overlay {
+  constructor(o) { super(); this.lines = o.lines; this.onDone = o.onDone; this.col = o.col || INDIGO; this.i = 0; this.pt = 0; }
+  next() { if (this.left) return; if (this.i < this.lines.length - 1) { this.i++; this.pt = 0; sfx('card'); } else { this.left = true; this.onDone(); } }
+  draw(g, dt) {
+    const [who, s] = this.lines[this.i], k = clamp(this.pt / 0.22, 0, 1), t = this.t; this.pt += dt;
+    dim(g, 0.6);
+    if (!this.left && button(g, 'stskip', 1090, 596, 150, 50, '건너뛰기', { style: 'paper', size: 20 })) { this.left = true; this.onDone(); return; }
+    const x = 170, y = 372, w = 940, h = 176;
+    if (who) {
+      const L = getLook(who), d = UNITS[who], ps = 2.2 * 1.1 / L.scale * (L.boss ? 1.7 : L.hero ? 1.3 : 1);
+      panel(g, x, y, w, h);
+      ell(g, x + 104, y + 62, 96, 96, '#efe2c4', INK, 3); ell(g, x + 104, y + 62, 89, 89, null, 'rgba(201,150,46,0.8)', 1.2);
+      g.save(); g.beginPath(); g.arc(x + 104, y + 62, 94, 0, TAU); g.clip(); g.fillStyle = 'rgba(140,160,120,0.55)'; g.fillRect(x, y + 104, 220, 70); portrait(g, who, x + 100, y + 142, ps, t, true); g.restore();
+      brushTitle(g, x + 330, y + 4, 180, 44, d.name, d.side ? '#7a1f1c' : this.col, 26);
+      g.save(); g.globalAlpha = k; textBlock(g, s, x + 232, y + 74, 660, 34, { size: 24, align: 'left' }); g.restore();
+    } else {
+      panel(g, x, y, w, h);
+      g.save(); g.globalAlpha = k; const n = s.split('\n').length; textBlock(g, s, 640, y + h / 2 - (n - 1) * 19 + 2, 860, 38, { size: 25, font: FONT_B }); g.restore();
+    }
+    for (let n = 0; n < this.lines.length; n++) ell(g, 640 + (n - (this.lines.length - 1) / 2) * 16, y + h + 20, 4, 4, n === this.i ? C.cream : 'rgba(251,247,236,0.35)');
+    if (this.pt > 0.5) { g.globalAlpha = 0.55 + Math.sin(t * 5) * 0.3; text(g, '▼', x + w - 34, y + h - 26, { size: 18, fill: SUB }); g.globalAlpha = 1; }
+    if (this.pt > 0.2 && tapped('story', 0, 0, W, H)) this.next();
   }
 }
 

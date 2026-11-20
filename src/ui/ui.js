@@ -127,6 +127,19 @@ export function brushTitle(g, x, y, w, h, label, col = INDIGO, size = 40) {
   text(g, label, x, y + 2.6, { size, font: FONT_B, fill: 'rgba(8,10,24,0.32)', maxW: w - 20 }); text(g, label, x, y + 1, { size, font: FONT_B, fill: C.cream, maxW: w - 20 });
 }
 
+// 말풍선: 인형 머리 위에 뜨는 한지 쪽지. (x, y) = 말하는 이의 머리 위, k = 0→1 로 톡 튀어나온다
+export function bubble(g, x, y, s, k = 1) {
+  g.save(); g.font = `700 16px ${FONT}`;
+  const lines = []; let cur = ''; for (const w of s.split(' ')) { const t = cur ? cur + ' ' + w : w; if (cur && g.measureText(t).width > 250) { lines.push(cur); cur = w; } else cur = t; } lines.push(cur);
+  const w = Math.max(...lines.map(l => g.measureText(l).width)) + 28, h = lines.length * 21 + 15, bx = clamp(x - w / 2, 10, 1270 - w), by = y - h - 11, tx = clamp(x, bx + 14, bx + w - 14);
+  g.translate(tx, y); g.scale(k, k); g.translate(-tx, -y); g.globalAlpha *= Math.min(1, k * 1.4);
+  const shape = (dx, dy) => { g.beginPath(); rrPath(g, bx + dx, by + dy, w, h, 9); g.moveTo(tx - 7 + dx, by + h - 1 + dy); g.lineTo(tx + dx, y + dy); g.lineTo(tx + 7 + dx, by + h - 1 + dy); g.closePath(); };
+  shape(2, 3); g.fillStyle = 'rgba(40,28,16,0.24)'; g.fill();
+  shape(0, 0); g.fillStyle = '#fdf8ea'; g.fill(); st(g, INK, 1.8); g.fillStyle = '#fdf8ea'; g.fillRect(tx - 5.6, by + h - 2.4, 11.2, 3);
+  lines.forEach((l, i) => text(g, l, bx + w / 2, by + 18.5 + i * 21, { size: 16 }));
+  g.restore();
+}
+
 export const icon = {
   banner(g, x, y, col, flip, s = 1) { line(g, [x, y + 26 * s, x, y - 26 * s], INK, 4.5 * s); line(g, [x, y + 26 * s, x, y - 26 * s], '#7a5a40', 2.4 * s); const d = (flip ? -1 : 1) * s; path(g, p => { p.moveTo(x, y - 24 * s); p.lineTo(x + d * 30, y - 22 * s); p.lineTo(x + d * 24, y - 12 * s); p.lineTo(x + d * 30, y - 2 * s); p.lineTo(x, y); p.closePath(); }, col, INK, 1.6 * s); },
   flag(g, x, y, s = 1, col = INDIGO) { line(g, [x, y + 12 * s, x, y - 14 * s], INK, 3.4 * s); line(g, [x, y + 12 * s, x, y - 14 * s], '#7a5a40', 1.8 * s); poly(g, [x, y - 14 * s, x + 15 * s, y - 10.5 * s, x, y - 6 * s], col, INK, 1.3 * s); },

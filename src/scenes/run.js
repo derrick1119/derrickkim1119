@@ -4,7 +4,8 @@ import { W, H, VIEW, HUD_H, BAR_Y } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, poly, line, st as inkStroke, clamp, easeOutBack } from '../render/draw.js';
 import { BattleView, ghostUnits } from '../render/battleview.js';
 import { Battle, formation, defOf, HAND, REFILL } from '../sim/battle.js';
-import { G, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, STOP } from '../state.js';
+import { G, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, STOP } from '../state.js';
+import { MARCH as MARCH_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines } from '../data/story.js';
 import { CHAPTERS } from '../data/stages.js';
 import { AFFIX } from '../data/encounters.js';
 import { CARDS, KIND, cardName, isUnit } from '../data/cards.js';
@@ -12,16 +13,19 @@ import { eventView } from '../data/events.js';
 import { RELICS } from '../data/relics.js';
 import { UNITS, HERO_SKILLS, COMBOS, SYNERGIES } from '../data/units.js';
 import { TERRAINS, SKY } from '../data/terrain.js';
-import { portrait } from '../render/sprites.js';
-import { ui, button, iconBtn, panel, bar, icon, seal, stamp, brushTitle, C, inRect, tapped } from '../ui/ui.js';
+import { portrait, getLook } from '../render/sprites.js';
+import { ui, button, iconBtn, panel, bar, icon, seal, stamp, brushTitle, bubble, C, inRect, tapped } from '../ui/ui.js';
 import { cardFace, cardBack, cardText, DeckView, RelicView } from '../ui/cards.js';
-import { RewardOverlay, ShopOverlay, ChoiceOverlay, ForkOverlay, restChoices } from '../ui/overlays.js';
+import { RewardOverlay, ShopOverlay, ChoiceOverlay, ForkOverlay, StoryOverlay, restChoices } from '../ui/overlays.js';
 import { cardIcon, relicIcon } from '../render/icons.js';
 import { sfx, audio, setMuted } from '../audio.js';
 import { nav } from '../nav.js';
 
 export const GRADE = ['', '병', '을', '갑'];
 const MARCH = 520, MARCH_V = 300;
+const FIGHT = t => t === 'battle' || t === 'elite' || t === 'boss';
+const talkTime = s => clamp(1.3 + s.length * 0.07, 2, 3.6);
+const DOK = ['goblin', 'orc', 'garcher', 'rshield', 'shaman'], GHOST = ['skel', 'skelarcher'];
 
 export class RunScene {
   constructor() {
@@ -29,50 +33,97 @@ export class RunScene {
     this.b = new Battle(battleSetup()); this.view = new BattleView(CHAPTERS[Math.min(2, r.ch)].theme, r.ch * 31 + 7);
     this.T = 0; this.dt = 0; this.speed = 1; this.slow = 1; this.menu = false; this.over = null; this.sub = null;
     this.order = null; this.aim = null; this.slotAnim = []; this.toastS = ''; this.toastT = 0; this.note = null; this.grade = null; this.enc = null; this.fade = 0; this.endT = 0;
-    this.first = (meta.runs || 0) <= 1 && r.wins === 0; this.hints = 0;
+    this.first = (meta.runs || 0) <= 1 && r.wins === 0; this.hints = 0; this.talk = null; if (!r.seen) r.seen = {};
     const rd = r.road;
+    if (rd.i === 0 && rd.state !== 'reward') this.note = { s: CHAPTERS[r.ch].name, sub: CHAPTERS[r.ch].sub, col: INDIGO, t: 2.6 };
     if (rd.state === 'reward') { this.phase = 'stop'; this.reward(curStop().type); }
     else if (rd.state === 'at') { this.phase = 'march'; this.arrive(); }
     else this.march(r.wins === 0 && rd.i === 0 ? 300 : MARCH, true);
-    if (rd.i === 0 && rd.state !== 'reward') this.note = { s: CHAPTERS[r.ch].name, sub: CHAPTERS[r.ch].sub, col: INDIGO, t: 2.6 };
   }
   toast(s, t = 2.4) { this.toastS = s; this.toastT = t; }
   sync() { const b = this.b, r = this.r; b.mods = mods(); b.cap = r.cap; b.power = powerNow(); b.syncDeck(r.deck); }
 
   // ───────── 흐름 ─────────
   march(dist = MARCH, quiet) {
-    const st = curStop(); this.phase = 'march'; this.left = dist; this.over = null; this.b.beginMarch();
-    if (st) this.view.addProp(st.type, this.view.scroll + dist + (st.type === 'battle' || st.type === 'elite' || st.type === 'boss' ? 1190 : 1010));
+    const st = curStop(), lines = this.marchLines(st); this.phase = 'march'; this.over = null; this.b.beginMarch();
+    // 말할 거리가 있으면 그만큼 더 걷는다 (고개 이름 띠가 걷힌 뒤에 말을 꺼낸다)
+    if (lines) { this.say(lines); dist = Math.max(dist, (lines.reduce((a, l) => a + talkTime(l[1]), 0) + (this.note ? this.note.t : 0) + 0.3) * MARCH_V); }
+    this.left = dist;
+    if (st) this.view.addProp(st.type, this.view.scroll + dist + (FIGHT(st.type) ? 1190 : 1010));
     if (!quiet) sfx('order');
   }
   arrive() {
-    const r = this.r, b = this.b, rd = r.road, st = curStop(); rd.state = 'at'; this.sync();
+    const r = this.r, b = this.b, rd = r.road, st = curStop(); rd.state = 'at'; this.sync(); this.bossSaid = false; this.storyDone = false;
     const done = () => this.leave();
     if (st.type === 'fork') { this.phase = 'stop'; this.over = new ForkOverlay({ a: st.a, b: st.b, onPick: k => { chooseFork(k); this.over = null; this.arrive(); } }); }
     else if (st.type === 'battle' || st.type === 'elite' || st.type === 'boss') {
       // 싸움터를 먼저 차린다(지형·하늘). 요괴가 닿기 전 잠깐이 진형을 고칠 시간이다
       const e = this.enc = encounterHere(); b.prepWave(waveSetup(e)); this.phase = 'prep'; this.prepT = this.first ? 5.5 : 4; this.grade = null;
-      this.note = { s: e.name, sub: e.boss ? '두목과의 싸움' : e.affix ? `강적 — ${AFFIX[e.affix].name}: ${AFFIX[e.affix].desc}` : e.enemyName + '가 몰려옵니다', col: e.boss || e.affix ? RED : INDIGO, t: 2.2 };
+      this.note = { s: e.name, sub: e.boss ? (BOSS[e.key] ? BOSS[e.key].sub : '두목과의 싸움') : e.affix ? `강적 — ${AFFIX[e.affix].name}: ${AFFIX[e.affix].desc}` : e.enemyName + '가 몰려옵니다', col: e.boss || e.affix ? RED : INDIGO, t: 2.2 };
       if (e.boss) sfx('boss');
     }
     else if (st.type === 'event') { this.phase = 'stop'; const id = r.pending && r.pending.kind === 'event' ? r.pending.id : pickEvent(); r.pending = { kind: 'event', id }; const v = eventView({ id }); this.over = new ChoiceOverlay({ title: v.title, art: v.art, text: v.text, choices: v.choices, onDone: done }); }
     else if (st.type === 'shop') { this.phase = 'stop'; const items = r.pending && r.pending.kind === 'shop' ? r.pending.items : genShop(); r.pending = { kind: 'shop', items }; this.over = new ShopOverlay({ items, onDone: done }); }
-    else if (st.type === 'rest') { this.phase = 'stop'; b.repair(1); this.over = new ChoiceOverlay({ title: '주막', art: 'priest', col: '#2f6f5c', text: '고갯마루 주막에 들렀습니다.\n군기 수레를 말끔히 고치고 숨을 고릅니다.\n두목과 맞서기 전에 무엇을 할까요?', choices: restChoices(), onDone: done }); }
+    else if (st.type === 'rest') { this.phase = 'stop'; b.repair(1); const tl = r.pending && r.pending.kind === 'rest' ? r.pending : Object.assign({ kind: 'rest' }, hearTale(r.ch)); r.pending = tl; this.over = new ChoiceOverlay({ title: '주막', art: 'priest', col: '#2f6f5c', text: '고갯마루 주막에서 수레를 고칩니다.\n주모가 옛이야기 한 토막을 들려줍니다.', tale: taleView(tl), choices: restChoices(), onDone: done }); }
     else { this.phase = 'stop'; this.reward('treasure'); }
     save();
   }
-  reward(kind) { this.phase = 'stop'; this.over = new RewardOverlay({ kind, onDone: () => this.leave() }); }
+  // 전리품. 다른 영웅이 합류했으면 두 영웅이 몇 마디 나눈 뒤에 떠난다
+  reward(kind) {
+    const r = this.r, leads = () => r.deck.filter(c => CARDS[c.id].kind === 'lead').map(c => CARDS[c.id].unit), before = leads();
+    this.phase = 'stop'; this.over = new RewardOverlay({ kind, onDone: () => { const who = leads().find(h => !before.includes(h)); if (who && before.length) this.over = new StoryOverlay({ lines: bondLines(who, before[0]), onDone: () => this.leave() }); else this.leave(); } });
+  }
+  // 싸움이 끝나면: 두목이었다면 사연을 듣고 나서 전리품을 고른다
+  afterWave() {
+    const e = this.enc, st = e.boss && BOSS[e.key];
+    if (st && !this.storyDone) { this.storyDone = true; this.phase = 'stop'; this.talk = null; this.over = new StoryOverlay({ lines: st.after, col: '#7a1f1c', onDone: () => this.reward(e.kind) }); } else this.reward(e.kind);
+  }
+
+  // ───────── 한 줄 대사: 걷거나 싸우는 인형 머리 위에 뜬다 ─────────
+  // lines: [[말하는 이, 글, (자리)], …]. 말하는 이가 전장에 없으면 그 줄은 건너뛴다
+  say(lines) { if (lines && lines.length) this.talk = { q: lines.slice(), cur: null, t: 0, last: null }; }
+  speaker(who, last) {
+    const b = this.b, ok = u => !u.dead && u.hidden <= 0 && u.x > 30 && u.x < W - 30;
+    if (who === 'B') return b.units.find(u => ok(u) && u.def.boss) || null;
+    if (who === 'H') who = this.r.hero;
+    if (who !== 'S') return b.units.find(u => ok(u) && u.type === who) || null;
+    const pool = b.units.filter(u => ok(u) && u.team === 0 && !u.def.hero && !u.def.structure && !u.temp), other = pool.filter(u => !last || u.squad !== last.squad);
+    const from = other.length ? other : pool; return from.length ? from[(Math.random() * from.length) | 0] : null;
+  }
+  marchLines(st) {
+    if (!st) return null; const r = this.r, M = MARCH_TALK[Math.min(2, r.ch)], i = r.road.i;
+    const ls = st.type === 'boss' ? M.boss : [M.seq[0], M.seq[1], [['H', M.hero[r.hero]]], M.seq[2], M.seq[3], M.seq[4]][i] || CHATTER[(i + r.ch) % CHATTER.length];
+    const heard = (meta.seen.talk || 0) > r.ch, live = (heard && st.type !== 'boss' ? ls.slice(0, 1) : ls).filter(l => this.speaker(l[0])); return live.length ? live : null;
+  }
+  talkTick(dt) {
+    const k = this.talk; if (!k) return; if (!k.cur && this.note) return;
+    if (k.cur) { k.t -= dt; if (k.cur.u.dead) k.t = Math.min(k.t, 0.25); if (k.t > 0) return; k.cur = null; }
+    while (k.q.length) { const l = k.q.shift(), u = l[2] || this.speaker(l[0], k.last); if (!u) continue; k.cur = { u, s: l[1], t0: this.T }; k.last = u; k.t = talkTime(l[1]); return; }
+    this.talk = null;
+  }
+  drawTalk(g) {
+    const k = this.talk; if (!k || !k.cur) return; const u = k.cur.u, L = u.type ? getLook(u.type) : null;
+    const top = u.h || (L ? Math.min(150, L.h * L.scale + (L.float ? 12 : 4)) : 70);
+    bubble(g, clamp(u.x, 30, W - 30), Math.max(HUD_H + 70, u.y - top - (u.jumpH || 0)), k.cur.s, easeOutBack(clamp((this.T - k.cur.t0) / 0.18, 0, 1)));
+  }
   // 지금 칸을 마치고 다시 걷는다 (두목을 물리쳤으면 다음 고개로)
   leave() {
     const r = this.r; this.over = null; this.sync();
-    if (advance()) { this.phase = 'over'; nav.go('end', { win: true }); return; }
-    if (r.ch !== this.ch) { this.ch = r.ch; this.fade = 1; this.sync(); this.note = { s: CHAPTERS[r.ch].name, sub: '깃발 하나를 되찾고 · 부대 한도 +1 · 모든 병력 패 Lv +1', col: INDIGO, t: 3.2 }; sfx('win'); }
+    if (advance()) { meta.seen.talk = 3; this.phase = 'over'; nav.go('end', { win: true }); return; }
+    if (r.ch !== this.ch) { meta.seen.talk = Math.max(meta.seen.talk || 0, r.ch); this.ch = r.ch; this.fade = 1; this.sync(); this.note = { s: CHAPTERS[r.ch].name, sub: '깃발 하나를 되찾고 · 부대 한도 +1 · 모든 병력 패 Lv +1', col: INDIGO, t: 3.2 }; sfx('win'); }
     this.march();
   }
   waveClear(e) {
     const r = this.r, b = this.b, enc = this.enc, c1 = e.lost <= enc.starDeaths, c2 = e.time <= enc.starTime, grade = 1 + (c1 ? 1 : 0) + (c2 ? 1 : 0), gold = goldFor(grade, enc.kind);
     r.gold += gold; r.merit = (r.merit || 0) + grade; r.wins++; r.kills = b.kills; r.lost = b.lost; r.nextMorale = 0; r.road.state = 'reward';
     this.grade = { grade, gold, t: 0, stamped: false }; this.phase = 'clear'; this.order = null; this.aim = null; sfx('win'); save();
+  }
+  // 요괴가 쓰러질 때: 두목의 마지막 한마디, 처음 보는 것에 놀란 병사의 한마디
+  onDeath(e) {
+    const r = this.r;
+    if (e.boss && this.enc && BOSS[this.enc.key]) { this.say([[null, BOSS[this.enc.key].fall, { x: e.x, y: e.y, h: 96 }]]); return; }
+    const kind = DOK.includes(e.utype) ? 'dok' : GHOST.includes(e.utype) && e.last ? 'ghost' : null;
+    if (kind && !r.seen[kind] && !this.talk) { r.seen[kind] = 1; this.say(FIRST_SIGHT[kind]); }
   }
   bannerDown() {
     const r = this.r, b = this.b; r.flags--; save();
@@ -131,10 +182,12 @@ export class RunScene {
         if (this.phase === 'march') { const dx = MARCH_V * dt * ts, ahead = b.march(dx, dt * ts); view.scroll += dx; view.fx.shift(dx); this.left -= dx; if (this.left <= 0 && (ahead < 6 || this.left < -700)) { this.arrive(); break; } }
         b.step(dt * ts);
         if (this.phase === 'prep') { this.prepT -= dt * ts; if (this.prepT <= 0) { b.startWave(this.enc.enemy, waveSetup(this.enc)); this.phase = 'fight'; } }
-        for (const e of view.handle(b, sfx)) { if (e.type === 'waveClear' && this.phase === 'fight') this.waveClear(e); else if (e.type === 'bannerDown' && this.phase !== 'over') this.bannerDown(); else if (e.type === 'synergy') this.toast(`진법 발동 — ${e.name}: ${e.desc}`, 2.8); else if (e.type === 'chase') this.note = { s: '요괴 본대가 따라붙었다!', sub: '싸움을 끌수록 더 몰려옵니다 — 서둘러 물리치세요', col: RED, t: 2.2 }; else if (e.type === 'combo') this.note = { s: '합동기 — ' + e.name, sub: '', col: '#b8742a', t: 1.8 }; }
+        this.talkTick(dt * ts);
+        if (this.phase === 'fight' && this.enc.boss && !this.bossSaid && BOSS[this.enc.key] && this.speaker('B')) { this.bossSaid = true; this.say([['B', BOSS[this.enc.key].enter]]); }
+        for (const e of view.handle(b, sfx)) { if (e.type === 'waveClear' && this.phase === 'fight') this.waveClear(e); else if (e.type === 'bannerDown' && this.phase !== 'over') this.bannerDown(); else if (e.type === 'synergy') this.toast(`진법 발동 — ${e.name}: ${e.desc}`, 2.8); else if (e.type === 'chase') this.note = { s: '뒤에서 어둠이 밀려온다!', sub: '쫓기던 요괴들이 더 몰려옵니다 — 서둘러 물리치세요', col: RED, t: 2.2 }; else if (e.type === 'death') this.onDeath(e); else if (e.type === 'combo') this.note = { s: '합동기 — ' + e.name, sub: '', col: '#b8742a', t: 1.8 }; }
       }
       view.fx.update(dt * Math.max(0.35, ts));
-      if (this.phase === 'clear') { this.grade.t += dt; if (this.grade.t > 1.5) this.reward(this.enc.kind); }
+      if (this.phase === 'clear') { this.grade.t += dt; if (this.grade.t > 1.5) this.afterWave(); }
       if (this.phase === 'over') { this.endT -= dt; if (this.endT <= 0 && !this.gone) { this.gone = true; nav.go('end', { win: false }); } }
       if (this.first && this.phase === 'fight' && this.toastT <= 0) { if (this.hints === 0 && b.waveT > 1.5) { this.toast('아래 병력 패를 전장으로 끌어다 놓으면 부대가 섭니다 (사기를 냅니다)', 5); this.hints = 1; } else if (this.hints === 1 && b.waveT > 9) { this.toast('사기는 저절로 차지 않습니다 — 요괴 무리를 물리칠 때마다 오릅니다. 아껴 쓰세요', 5.5); this.hints = 2; } else if (this.hints === 2 && b.waveT > 18) { this.toast('부대를 끌면 이동, 요괴 위에 놓으면 집중 공격 · 끄는 동안 시간이 느려집니다', 5); this.hints = 3; } }
     } else view.fx.update(0);
@@ -147,6 +200,7 @@ export class RunScene {
     }
     view.draw(g, b, this.T, opt);
     this.drawOrder(g, i);
+    if (!this.over && !this.menu && !this.sub) this.drawTalk(g);
     if (this.slow < 0.9) { g.globalAlpha = (1 - this.slow) * 0.2; g.fillStyle = NAVY; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
     if (this.fade > 0) { // 고개가 바뀔 때: 종이가 하얗게 바랬다가 새 풍경으로
       const f0 = this.fade; this.fade = Math.max(0, this.fade - dt * 1.4); if (f0 > 0.5 && this.fade <= 0.5) view.setTheme(CHAPTERS[r.ch].theme, r.ch * 31 + 7);
