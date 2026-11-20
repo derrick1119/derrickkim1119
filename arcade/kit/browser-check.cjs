@@ -15,7 +15,7 @@ const { chromium } = require('playwright');
   });
   const snd = () => p.evaluate(() => window.__snd), acState = () => p.evaluate(() => window.__ac.map((a) => a.state).join(',') || 'none');
   const errs = []; p.on('console', (m) => m.type() === 'error' && errs.push(m.text())); p.on('pageerror', (e) => errs.push(String(e)));
-  await p.goto('file:///home/user/derrickkim1119/web/public/arcade/index.html');
+  await p.goto('file://' + require('node:path').resolve(__dirname, '../../web/public/arcade/index.html'));
   await p.waitForTimeout(500);
   console.log('scrollWidth', await p.evaluate(() => document.documentElement.scrollWidth), await p.evaluate(() => [...document.querySelectorAll('[data-game]')].map((e) => e.dataset.game).join(',')));
   const out = process.argv[3] ?? __dirname;
