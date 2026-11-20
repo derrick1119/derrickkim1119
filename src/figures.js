@@ -4,13 +4,23 @@
   'use strict';
   const T = window.TYT;
   const F = (T.F = {});
-  const TAU = Math.PI * 2;
+  const TAU = Math.PI * 2, d2r = Math.PI / 180;
 
   F.styles = {
     leo: { skin: '#e7b793', hair: '#3a2b25', hairStyle: 'short', top: '#d7a23c', bottom: '#4b5669', shoe: '#33291f' },
     leoBed: { skin: '#e9c0a2', hair: '#3a2b25', hairStyle: 'beanie', beanie: '#d7a23c', top: '#c5d3da', stripe: '#9fb4c2', bottom: '#c5d3da', shoe: '#33291f' },
     ana: { skin: '#f0c7a9', hair: '#2a2024', hairStyle: 'bob', top: '#c9573f', bottom: '#e9dcc3', skirt: 30, shoe: '#5a3a2e' },
     lily: { skin: '#f3ccb0', hair: '#3b2a23', hairStyle: 'apple', tie: '#c9573f', top: '#7fb0c9', bottom: '#7fb0c9', skirt: 17, shoe: '#c9573f', kid: true },
+    /* chapter one */
+    anaBlack: { skin: '#f0c7a9', hair: '#2a2024', hairStyle: 'bob', top: '#2f2b35', bottom: '#2f2b35', skirt: 30, shoe: '#221d24' },
+    leoHome: { skin: '#e9c0a2', hair: '#3a2b25', hairStyle: 'beanie', beanie: '#d7a23c', top: '#d7a23c', bottom: '#4b5669', shoe: '#33291f' },
+    leoKid: { skin: '#f0c4a6', hair: '#3a2b25', hairStyle: 'short', top: '#d7a23c', bottom: '#4b5669', shoe: '#33291f', kid: true },
+    nana: { skin: '#eec3a6', hair: '#f3efe6', hairStyle: 'bun', glasses: true, top: '#7b5a86', scarf: '#e9dcc3', bottom: '#3f6b70', skirt: 34, shoe: '#4a3530' },
+    bram: { skin: '#e2ad88', hair: '#f3efe6', hairStyle: 'short', beard: '#f3efe6', cap: '#2f4460', top: '#2f4460', bottom: '#6b5a48', shoe: '#33291f' },
+    rosa: { skin: '#f1c8aa', hair: '#6b3f2a', hairStyle: 'bob', top: '#e9b93a', bottom: '#e9b93a', skirt: 26, shoe: '#5a3a2e' },
+    post: { skin: '#e7b793', hair: '#3a2b25', hairStyle: 'short', cap: '#3f6b8a', top: '#3f6b8a', bottom: '#2f4460', shoe: '#33291f' },
+    villagerA: { skin: '#e7b793', hair: '#8a8a8a', hairStyle: 'short', top: '#6f9a8a', bottom: '#5a4a44', shoe: '#33291f' },
+    villagerB: { skin: '#f0c7a9', hair: '#c9c2b4', hairStyle: 'bun', top: '#c9805a', bottom: '#5d6f8a', skirt: 28, shoe: '#4a3530' },
   };
 
   const ADULT = { thigh: 24, shin: 24, torso: 30, sh: 26, neck: 11, R: 9.5, ua: 15, fa: 14, legW: 7.6, armW: 5.6, torsoW: 17, hand: 3.1 };
@@ -52,6 +62,11 @@
       g.closePath();
     } else if (style === 'beanie') {
       g.arc(0, 0, R + 1.5, -20 * d, 176 * d, true);
+      g.closePath();
+    } else if (style === 'bun') {
+      g.arc(0, 0, R + 1.1, -30 * d, 172 * d, true);
+      g.quadraticCurveTo(-R * 0.7, R * 0.5, -R * 0.2, R * 0.05);
+      g.quadraticCurveTo(R * 0.25, -R * 0.38, R * 0.88, -R * 0.46);
       g.closePath();
     }
   }
@@ -179,9 +194,15 @@
       g.beginPath(); g.ellipse(-R * 0.35, -R - 4.2, 2.6, 5.4, -0.5 + (o.hairSway || 0), 0, TAU); g.fill();
       g.fillStyle = st.tie; g.beginPath(); g.arc(-R * 0.22, -R - 0.4, 1.9, 0, TAU); g.fill();
     }
+    if (st.hairStyle === 'bun') { g.fillStyle = st.hair; g.beginPath(); g.arc(-R * 0.92, -R * 0.62, R * 0.46, 0, TAU); g.fill(); }
     g.fillStyle = st.skin;
     g.beginPath(); g.arc(0, 0, R, 0, TAU); g.fill();
     g.beginPath(); g.arc(R - 0.2, 1.3, 1.75, 0, TAU); g.fill(); /* nose */
+    if (st.beard) {
+      g.fillStyle = st.beard;
+      g.beginPath(); g.moveTo(-R * 0.5, R * 0.3); g.quadraticCurveTo(R * 0.1, R * 1.75, R * 0.95, R * 0.42);
+      g.quadraticCurveTo(R * 0.4, R * 0.5, R * 0.2, R * 0.12); g.closePath(); g.fill();
+    }
     if (face.blush !== 0) {
       g.fillStyle = T.rgba('#e2725b', face.blush == null ? 0.22 : face.blush);
       g.beginPath(); g.arc(R * 0.42, R * 0.4, R * 0.27, 0, TAU); g.fill();
@@ -201,6 +222,16 @@
     g.fillStyle = st.hairStyle === 'beanie' ? st.beanie : st.hair;
     hairPath(g, st.hairStyle, R, st);
     g.fill();
+    if (st.glasses) {
+      g.strokeStyle = '#6b5a48'; g.lineWidth = 0.8;
+      g.beginPath(); g.arc(ex, ey + 0.2, 2.5, 0, TAU); g.stroke();
+      g.beginPath(); g.moveTo(ex - 2.5, ey); g.lineTo(-R * 0.6, ey - 0.8); g.stroke();
+    }
+    if (st.cap) {
+      g.fillStyle = st.cap;
+      g.beginPath(); g.arc(0, -R * 0.12, R + 1.2, -168 * d2r, -12 * d2r, false); g.closePath(); g.fill();
+      g.beginPath(); g.ellipse(R * 0.9, -R * 0.36, R * 0.6, R * 0.16, 0.12, 0, TAU); g.fill();
+    }
     if (st.hairStyle === 'beanie') {
       g.strokeStyle = T.shade(st.beanie, 0.16); g.lineWidth = 3.6; g.lineCap = 'round';
       const d = Math.PI / 180, r1 = R + 1.5;

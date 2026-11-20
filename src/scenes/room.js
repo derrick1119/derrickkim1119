@@ -39,7 +39,6 @@
     title: { a: 0 },
     dip: { a: 0 },
     card: { a: 0, flip: 0, write: 0, y: 0 },
-    talk: null,        /* { who, text, k, done } */
     fam: { a: 0 },     /* Ana and Lily present */
     ana: { cry: 0, joy: 0, look: 0 },
     leo: { lean: 0, look: 0, reach: 0, speak: 0 },
@@ -50,6 +49,8 @@
     motes: [],
     frag: 0,
   });
+
+  const TALK = T.talk(S);
 
   /* ---------- static geometry ---------- */
   function buildTree() {
@@ -299,7 +300,7 @@
   /* ---------- lifecycle ---------- */
   S.enter = function (args) {
     const st = T.state;
-    S.sel = null; S.talk = null;
+    S.sel = null; TALK.clear();
     S.dip.a = 0; S.card.a = 0; S.card.flip = 0; S.card.write = 0;
     S.hold.k = 0; S.hold.on = false; S.lastLeaf.fall = 0;
     S.ana.cry = 0; S.ana.joy = 0; S.leo.lean = 0; S.leo.reach = 0; S.leo.look = 0;
@@ -309,7 +310,8 @@
       for (let i = 0; i < 9; i++) S.leaves.push({ x: WIN.x + r() * WIN.w, y: WIN.y + r() * WIN.h, s: 5 + r() * 5, ph: r() * 9, v: 16 + r() * 16, c: ['#d98a3d', '#c96a34', '#e0a03c', '#b9532f'][i % 4] });
       for (let i = 0; i < 46; i++) S.motes.push({ x: -480 + r() * 760, y: 180 + r() * 600, ph: r() * 20, s: 1 + r() * 2.2 });
     }
-    S.title.a = 0;
+    S.title.a = 0; S.title.leaving = false;
+    T.state.chapter = 0;
     if (args.title) {
       S.mode = 'title'; S.title.a = 1; S.tod = 0; S.fam.a = 0; S.zoom.k = 0;
     } else if (args.final) {
@@ -336,6 +338,13 @@
     S.frag = 12;
     T.audio.pad(null);
     T.audio.ambience(0.5, 0.3);
+  };
+  const overChapter = (x, y) => Math.abs(x) < 190 && Math.abs(y - 842) < 26;
+  S.skipToChapter = function () {
+    if (S.mode !== 'title' || S.title.leaving || T.director.busy()) return;
+    S.title.leaving = true;
+    T.audio.unlock();
+    T.director.go('kitchen', { style: 'fade', color: '#0f1522', out: 1.4, in: 1.6 });
   };
   S.begin = function () {
     if (S.mode !== 'title' || S.title.leaving) return;
@@ -403,18 +412,6 @@
     S.runFinal();
   };
 
-  function say(who, text, o = {}) {
-    const k = S.clock;
-    const n = P.count(text);
-    S.talk = { who, text, k: 0, done: false, a: 1 };
-    T.announce((who === 'leo' ? '레오: ' : '아나: ') + text.replace(/\n/g, ' '));
-    const tk = S.talk;
-    k.tween(tk, 'k', 1, Math.max(0.6, n * (o.slow ? 0.11 : 0.062)), T.ease.lin).then(() => { tk.done = true; });
-    return new Promise((res) => {
-      tk.next = () => { if (!tk.done) { tk.k = 1; tk.done = true; k.tweens = k.tweens.filter((w) => w.obj !== tk); return; } tk.next = null; res(); };
-    }).then(() => k.tween(tk, 'a', 0, 0.35)).then(() => { if (S.talk === tk) S.talk = null; });
-  }
-
   S.runFinal = async function () {
     const k = S.clock, A = T.audio;
     A.ambience(0.4, 0.16);
@@ -423,10 +420,10 @@
     k.tween(S.leo, 'look', 1, 1.4);
     await k.wait(1.5);
     S.leo.speak = 1;
-    await say('leo', '먼저 가서 넓은 집도 짓고,\n맛있는 것도 많이 해놓을게.');
-    await say('leo', '당신 왔을 때\n같이 행복할 수 있게.');
+    await TALK.say('leo', '먼저 가서 넓은 집도 짓고,\n맛있는 것도 많이 해놓을게.');
+    await TALK.say('leo', '당신 왔을 때\n같이 행복할 수 있게.');
     A.pad(3, 0.14);
-    const p = say('leo', '그러니까…  천천히 와.', { slow: true });
+    const p = TALK.say('leo', '그러니까…  천천히 와.', { slow: true });
     k.wait(1.5).then(() => A.motif({ voice: 'felt', vel: 0.42, beat: 0.8 }));
     await p;
     S.leo.speak = 0;
@@ -437,8 +434,8 @@
     k.tween(S.ana, 'joy', 1, 1.6, T.ease.io);
     await k.wait(1.3);
     A.pad(5, 0.14);
-    await say('ana', '약속했다.\n넓은 집, 맛있는 거.');
-    await say('leo', '응, 약속.');
+    await TALK.say('ana', '약속했다.\n넓은 집, 맛있는 거.');
+    await TALK.say('leo', '응, 약속.');
     await k.wait(0.6);
     S.mode = 'hold';
     k.tween(S, 'hintA', 1, 1);
@@ -477,7 +474,8 @@
   S.pointer = function (type, x, y) {
     if (S.mode === 'title') {
       T.cursor('pointer');
-      if (type === 'up' || type === 'down') S.begin();
+      if (type === 'down' && overChapter(x, y)) S.skipToChapter();
+      else if (type === 'up' || type === 'down') S.begin();
     } else if (S.mode === 'hub') {
       const id = spotAt(x, y);
       T.cursor(id && !S.sel ? 'pointer' : 'default');
@@ -485,7 +483,7 @@
     } else if (S.mode === 'card') {
       if (type === 'down' && S.card.tap) S.card.tap();
     } else if (S.mode === 'final') {
-      if (type === 'down' && S.talk && S.talk.next) S.talk.next();
+      if (type === 'down') TALK.tap();
     } else if (S.mode === 'hold') {
       const [dx, dy] = T.par(0.2);
       const near = Math.hypot(x - LILY_HAND[0] - dx, y - LILY_HAND[1] - dy) < 120;
@@ -495,7 +493,7 @@
   };
   S.key = function (key) {
     const act = key === ' ' || key === 'Enter';
-    if (S.mode === 'title') { if (act) S.begin(); else return false; }
+    if (S.mode === 'title') { if (act) S.begin(); else if (key === '1') S.skipToChapter(); else return false; }
     else if (S.mode === 'hub') {
       const open = openSpots();
       if (!open.length) return false;
@@ -505,7 +503,7 @@
       else return false;
       S.kbShow = true;
     } else if (S.mode === 'card') { if (act && S.card.tap) S.card.tap(); else return false; }
-    else if (S.mode === 'final') { if (act && S.talk && S.talk.next) S.talk.next(); else return false; }
+    else if (S.mode === 'final') { if (act) TALK.tap(); else return false; }
     else if (S.mode === 'hold') { if (act) S.takeHand(); else return false; }
   };
 
@@ -866,41 +864,21 @@
       P.text(g, '아나', 124, 168, { size: 46, color: '#b54a36', k: T.clamp(sig * 2 - 0.6), seed: 6, alpha: 0.85 });
     }
     g.restore();
-    if (c.ready) continueDot(g, 0, 790, '#f3ead8');
+    if (c.ready) T.continueDot(g, 0, 790, '#f3ead8');
   }
-  function continueDot(g, x, y, color) {
-    const p = 0.5 + 0.5 * Math.sin(T.time * 3);
-    g.save();
-    g.globalAlpha = 0.35 + 0.4 * p; g.fillStyle = color;
-    g.beginPath(); g.arc(x, y + p * 3, 5, 0, TAU); g.fill();
-    g.restore();
-  }
-  T.continueDot = continueDot;
-
-  function drawTalk(g) {
-    const tk = S.talk;
-    if (!tk) return;
-    const V = T.view;
-    const gr = g.createLinearGradient(0, 640, 0, 900);
-    gr.addColorStop(0, 'rgba(14,20,32,0)'); gr.addColorStop(1, T.rgba('#0e1420', 0.62 * tk.a));
-    g.fillStyle = gr; g.fillRect(-V.W / 2, 640, V.W, 260);
-    const col = tk.who === 'leo' ? '#fbeccb' : '#ffdccf';
-    const lines = tk.text.split('\n').length;
-    P.text(g, tk.text, 0, lines > 1 ? 782 : 810, { font: 'serif', size: 38, color: col, k: tk.k, alpha: tk.a, lh: 1.5 });
-    if (tk.done && tk.a > 0.9) continueDot(g, 0, 872, col);
-  }
-
   function drawTitle(g) {
     const V = T.view, W = V.W, a = S.title.a;
     g.fillStyle = T.rgba('#0f1522', 0.72 * a); g.fillRect(-W / 2, 0, W, V.H);
     const ta = T.clamp(a * 1.6 - 0.6);
     P.text(g, 'TAKE YOUR TIME', 0, 318, { font: 'serif', size: 25, track: 11, color: '#e9dcc0', alpha: 0.85 * ta });
     P.text(g, '천천히 와', 0, 470, { size: 178, color: '#f7eeda', alpha: ta, seed: 2, glow: 'rgba(255,214,150,0.35)' });
-    P.text(g, '프롤로그', 0, 548, { font: 'serif', size: 24, track: 14, color: '#e9dcc0', alpha: 0.8 * ta });
     if (!S.title.leaving) {
       const p = 0.55 + 0.45 * Math.sin(T.time * 2.2);
-      P.text(g, '화면을 눌러 시작', 0, 762, { font: 'serif', size: 26, color: '#f3ead8', alpha: p * ta });
-      P.text(g, '소리를 켜면 더 좋아요', 0, 806, { font: 'serif', size: 19, color: '#c9cfdb', alpha: 0.7 * ta });
+      P.text(g, '화면을 눌러 시작', 0, 742, { font: 'serif', size: 26, color: '#f3ead8', alpha: p * ta });
+      P.text(g, '소리를 켜면 더 좋아요', 0, 782, { font: 'serif', size: 19, color: '#c9cfdb', alpha: 0.7 * ta });
+      /* a quiet way straight to the second part */
+      P.text(g, '1장 「항구」부터 보기', 0, 850, { font: 'serif', size: 21, color: '#e9dcc0', alpha: 0.82 * ta });
+      g.fillStyle = T.rgba('#e9dcc0', 0.4 * ta); g.fillRect(-98, 860, 196, 1.2);
     }
   }
 
@@ -967,7 +945,7 @@
       g.fillStyle = gr; g.fillRect(-W / 2, 760, W, 140);
       P.text(g, text, 0, 850, { font: 'serif', size: 26, color: '#f3ead8', alpha: 0.9 * S.hintA });
     }
-    drawTalk(g);
+    TALK.draw(g);
     drawCard(g);
     if (S.title.a > 0.003) drawTitle(g);
     if (S.dip.a > 0.003) { g.fillStyle = T.rgba('#fff6e2', S.dip.a); g.fillRect(-W / 2, 0, W, V.H); }

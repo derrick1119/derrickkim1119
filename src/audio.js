@@ -164,6 +164,18 @@
       osc('triangle', f, t, t + dur + 0.1, lp, 1);
       osc('sine', f * 2, t, t + dur + 0.1, lp, 0.25);
       dry.gain.value = 0.8; sendG.gain.value = 0.4;
+    } else if (voice === 'bell') {
+      /* the harbour bell: a struck bronze tone, each partial dying at its own pace */
+      const dur = o.dur || 8;
+      out.gain.value = vel;
+      [[0.5, 0.3, 1], [1, 1, 0.82], [1.19, 0.42, 0.55], [1.5, 0.22, 0.45], [2, 0.38, 0.4], [2.51, 0.16, 0.26], [3.01, 0.08, 0.18]].forEach((q) => {
+        const oo = ctx.createOscillator(); oo.type = 'sine'; oo.frequency.value = f * q[0];
+        const gg = ctx.createGain();
+        gg.gain.setValueAtTime(0.0001, t); gg.gain.linearRampToValueAtTime(q[1], t + 0.006);
+        gg.gain.exponentialRampToValueAtTime(0.0001, t + dur * q[2]);
+        oo.connect(gg); gg.connect(out); oo.start(t); oo.stop(t + dur * q[2] + 0.1);
+      });
+      dry.gain.value = 0.55; sendG.gain.value = 0.9;
     } else { /* 'glass': a far, thin shimmer for stars */
       const dur = o.dur || 2.6;
       env(out, t, vel * 0.5, 0.02, 0.5, dur);
@@ -258,6 +270,15 @@
       t += n[1] * beat;
     });
   };
+  /* The harbour bell tolls the same four notes, low and slow. i picks one of them. */
+  A.toll = function (i, vel) {
+    A.note({ m: [57, 55, 53, 60][((i % 4) + 4) % 4], vel: vel == null ? 0.34 : vel, voice: 'bell' });
+  };
+  /* up the scale a step at a time, for things that are counted */
+  A.scaleStep = function (i, o = {}) {
+    const deg = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23, 24, 26, 28, 29, 31];
+    A.note({ m: 53 + deg[Math.min(deg.length - 1, i)], vel: o.vel || 0.3, voice: o.voice || 'box', at: o.at || 0, dur: 1.8 });
+  };
   /* a small rising figure that says "yes, that's a promise" */
   A.promise = function () {
     [53, 60, 65, 69, 72, 77].forEach((m, i) => A.note({ m, at: i * 0.13, vel: 0.3 + i * 0.03, voice: i > 2 ? 'box' : 'felt', dur: 4 }));
@@ -295,6 +316,9 @@
     else if (name === 'step') burst({ type: 'lowpass', f0: 700, f1: 200, dur: 0.1, vel: 0.2, q: 0.5, rate: 3, verb: 0.2 });
     else if (name === 'whoosh') burst({ f0: 300, f1: 1400, dur: 0.7, vel: 0.3, q: 0.8, rate: 4, attack: 0.3, verb: 0.5 });
     else if (name === 'star') A.note({ m: 72 + [0, 4, 7, 9, 12, 16][Math.floor((k || 0) * 6) % 6], vel: 0.22, voice: 'glass' });
+    else if (name === 'knock') { burst({ type: 'lowpass', f0: 1400, f1: 300, dur: 0.07, vel: 0.5, q: 0.7, rate: 5, verb: 0.35 }); A.note({ m: 43 + Math.floor((k || 0) * 5), vel: 0.22, voice: 'pluck', dur: 0.2 }); }
+    else if (name === 'bike') { A.note({ m: 91, vel: 0.2, voice: 'box', dur: 1.2 }); A.note({ m: 91, at: 0.16, vel: 0.16, voice: 'box', dur: 1.2 }); }
+    else if (name === 'door') burst({ type: 'lowpass', f0: 420, f1: 120, dur: 0.22, vel: 0.5, q: 0.6, rate: 2.5, verb: 0.4 });
     else if (name === 'join') { A.note({ m: 72, vel: 0.26, voice: 'box' }); A.note({ m: 77, at: 0.1, vel: 0.26, voice: 'box' }); }
   };
 

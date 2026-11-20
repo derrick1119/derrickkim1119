@@ -104,15 +104,16 @@
   T.resize = resize;
 
   /* Bake static art once into an offscreen layer covering a virtual rectangle. */
-  T.bake = function (x0, y0, w, h, fn) {
+  T.bake = function (x0, y0, w, h, fn, k) {
+    const ps = V.ps * (k || 1);   /* k > 1 for art the camera will move in on */
     const c = document.createElement('canvas');
-    c.width = Math.max(1, Math.ceil(w * V.ps));
-    c.height = Math.max(1, Math.ceil(h * V.ps));
+    c.width = Math.max(1, Math.ceil(w * ps));
+    c.height = Math.max(1, Math.ceil(h * ps));
     const g = c.getContext('2d');
-    g.scale(V.ps, V.ps);
+    g.scale(ps, ps);
     g.translate(-x0, -y0);
     fn(g);
-    return { c, x0, y0, w: c.width / V.ps, h: c.height / V.ps };
+    return { c, x0, y0, w: c.width / ps, h: c.height / ps };
   };
   T.blit = function (g, L, dx = 0, dy = 0) { g.drawImage(L.c, L.x0 + dx, L.y0 + dy, L.w, L.h); };
 
@@ -145,7 +146,7 @@
 
   /* ---------- scenes + director ---------- */
   T.scenes = {};
-  T.state = { done: { photo: false, book: false, drawing: false, leash: false }, count: 0, order: [], together: false };
+  T.state = { done: { photo: false, book: false, drawing: false, leash: false }, count: 0, order: [], together: false, chapter: 0, cp: null };
 
   const D = (T.director = {
     cur: null,

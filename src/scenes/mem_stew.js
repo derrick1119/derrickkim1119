@@ -12,10 +12,10 @@
   const S = (T.scenes.stew = { L: {}, ang: 0, total: 0, p: 0, shown: 0, last: null, drag: false, taste: { k: 0 }, joy: { k: 0 }, lastNote: 0, lastBub: 0, snow: [], steam: [] });
   const M = T.memory(S, { id: 'book', line: '평생 밥은 내가 해줄게.', seed: 9, chord: 2, lineY: 792, size: 70, ink: '#fff3d8', bandColor: '#1d2f33' });
 
-  S.build = function () {
-    M.rebuild();
+  /* The kitchen itself. Chapter one comes back to this room on a colder night (o.cold). */
+  S.paintBg = function (g, o = {}) {
     const V = T.view, x0 = -V.W / 2 - 20, w = V.W + 40;
-    S.L.bg = T.bake(x0, 0, w, 900, (g) => {
+    {
       /* wall */
       P.wash(g, P.box(x0, 0, w, 640, 0, 1), '#e6c88c', [x0, 0, w, 640], { seed: 2, len: 260, wid: 44, tone: 0.045, dir: Math.PI / 2, spread: 0.14 });
       P.tint(g, P.box(x0, 0, w, 640, 0, 1), 0, 0, 0, 640, [[0, 'rgba(120,70,30,0.30)'], [0.5, 'rgba(120,70,30,0.04)'], [1, 'rgba(120,70,30,0)']]);
@@ -41,7 +41,7 @@
       g.fillStyle = '#2a3559';
       g.fillRect(-534, 352, 70, 64); g.fillRect(-470, 330, 60, 86); g.fillRect(-400, 362, 78, 54);
       g.fillStyle = '#e9c66f'; g.fillRect(-452, 346, 9, 11); g.fillRect(-380, 378, 9, 11); g.fillRect(-512, 372, 9, 11);
-      g.fillStyle = '#e8eef8'; g.fillRect(-534, 404, 212, 12);
+      if (!o.cold) { g.fillStyle = '#e8eef8'; g.fillRect(-534, 404, 212, 12); }
       P.fill(g, P.box(-432, 164, 8, 252, 0.4, 11), '#f3e7cc');
       P.fill(g, P.box(-560, 424, 264, 16, 0.8, 12), '#f3e7cc');
       /* a short curtain */
@@ -95,20 +95,29 @@
       P.fill(g, P.rr(-60, COUNTER - 22, 168, 10, 3), '#2a3436');
       /* sink side: the pan from her last attempt */
       P.fill(g, P.rr(-506, COUNTER - 14, 150, 9, 4), '#c9d0ca');
-      g.save(); g.translate(-430, COUNTER - 16); g.rotate(-0.34);
-      P.fill(g, P.rr(-58, -9, 96, 18, 8), '#2f3538');
-      P.fill(g, P.rr(34, -4, 74, 8, 4), '#2f3538');
-      P.fill(g, P.ellipse(-12, -8, 38, 6), '#17191b');
-      g.restore();
+      if (!o.cold) {
+        g.save(); g.translate(-430, COUNTER - 16); g.rotate(-0.34);
+        P.fill(g, P.rr(-58, -9, 96, 18, 8), '#2f3538');
+        P.fill(g, P.rr(34, -4, 74, 8, 4), '#2f3538');
+        P.fill(g, P.ellipse(-12, -8, 38, 6), '#17191b');
+        g.restore();
+      }
       /* a plate of very black toast by her side */
-      P.fill(g, P.ellipse(398, COUNTER - 10, 46, 7), '#f6efe0');
-      P.fill(g, P.rough([[372, COUNTER - 30], [404, COUNTER - 34], [408, COUNTER - 14], [376, COUNTER - 12]], 1.2, 40), '#2b2523');
-      P.fill(g, P.rough([[396, COUNTER - 38], [428, COUNTER - 34], [426, COUNTER - 16], [394, COUNTER - 18]], 1.2, 41), '#3a2e29');
+      if (!o.cold) {
+        P.fill(g, P.ellipse(398, COUNTER - 10, 46, 7), '#f6efe0');
+        P.fill(g, P.rough([[372, COUNTER - 30], [404, COUNTER - 34], [408, COUNTER - 14], [376, COUNTER - 12]], 1.2, 40), '#2b2523');
+        P.fill(g, P.rough([[396, COUNTER - 38], [428, COUNTER - 34], [426, COUNTER - 16], [394, COUNTER - 18]], 1.2, 41), '#3a2e29');
+      }
       /* pendant lamp */
       P.line(g, 24, 0, 24, 196, 3, '#5c4a3a');
       P.fill(g, P.poly([[-28, 250], [76, 250], [50, 196], [-2, 196]]), '#c9573f');
       P.fill(g, P.rr(-30, 246, 108, 9, 4), '#a8412e');
-    });
+    }
+  };
+  S.build = function () {
+    M.rebuild();
+    const V = T.view, x0 = -V.W / 2 - 20, w = V.W + 40;
+    S.L.bg = T.bake(x0, 0, w, 900, (g) => S.paintBg(g));
   };
 
   S.enter = function () {

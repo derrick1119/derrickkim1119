@@ -11,7 +11,8 @@
     if (name === 'night') { mark(2); return ['room', {}]; }
     if (name === 'dawn') { mark(4); return ['room', {}]; }
     if (name === 'final') { mark(4); st.together = true; return ['room', { final: true }]; }
-    if (['home', 'stew', 'swing', 'walk', 'ending'].includes(name)) return [name, {}];
+    if (['home', 'stew', 'swing', 'walk', 'ending', 'kitchen'].includes(name)) return [name, {}];
+    if (['sea', 'quay', 'street', 'hills', 'house', 'top'].includes(name)) return ['harbor', { cp: name }];
     return null;
   }
 
@@ -19,7 +20,8 @@
     T.P.clearLayout();
     const st = T.state;
     let first = ['room', { title: true }];
-    if (saved && saved.done && saved.count > 0) {
+    if (saved && saved.chapter === 1) first = saved.cp ? ['harbor', { cp: saved.cp }] : ['kitchen', {}];
+    else if (saved && saved.done && saved.count > 0) {
       Object.assign(st.done, saved.done); st.count = saved.count; st.together = !!saved.together;
       first = ['room', st.together ? { final: true } : {}];
     }
@@ -31,7 +33,7 @@
   function boot() {
     /* keep a viewer's place if the page is republished under them */
     const hot = window.claude && window.claude.hot;
-    if (hot && hot.snapshot) hot.snapshot(() => ({ done: T.state.done, count: T.state.count, together: T.state.together }));
+    if (hot && hot.snapshot) hot.snapshot(() => ({ done: T.state.done, count: T.state.count, together: T.state.together, chapter: T.state.chapter, cp: T.state.cp }));
     if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
   }
 

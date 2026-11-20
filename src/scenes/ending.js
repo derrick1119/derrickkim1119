@@ -77,13 +77,24 @@
     T.audio.pad(null);
     T.director.go('room', { style: 'fade', color: '#161d2a', out: 1.6, in: 1.6, args: { title: true } });
   };
-  const overAgain = (x, y) => Math.abs(x) < 190 && Math.abs(y - 806) < 44;
-  S.pointer = function (type, x, y) {
-    const over = S.canReplay && overAgain(x, y);
-    T.cursor(over ? 'pointer' : 'default');
-    if (type === 'down' && over) S.replay();
+  /* on into chapter one */
+  S.next1 = function () {
+    if (!S.canReplay || T.director.busy()) return;
+    S.canReplay = false;
+    T.audio.pad(null);
+    T.director.go('kitchen', { style: 'fade', color: '#0f1522', out: 1.8, in: 1.6 });
   };
-  S.key = function (key) { if ((key === ' ' || key === 'Enter') && S.canReplay) S.replay(); else return false; };
+  const overNext = (x, y) => Math.abs(x) < 190 && Math.abs(y - 792) < 40;
+  const overAgain = (x, y) => Math.abs(x) < 150 && Math.abs(y - 858) < 20;
+  S.pointer = function (type, x, y) {
+    const a = S.canReplay && overNext(x, y), b = S.canReplay && overAgain(x, y);
+    T.cursor(a || b ? 'pointer' : 'default');
+    if (type === 'down' && a) S.next1(); else if (type === 'down' && b) S.replay();
+  };
+  S.key = function (key) {
+    if (!S.canReplay) return false;
+    if (key === ' ' || key === 'Enter') S.next1(); else if (key === 'r' || key === 'R') S.replay(); else return false;
+  };
 
   S.update = function (dt) { if (S.sea.a > 0) S.boat.x += dt * 9; };
 
@@ -170,9 +181,10 @@
     if (S.again.a > 0.003) {
       const a = S.again.a;
       g.save(); g.globalAlpha = a;
-      P.fill(g, P.rr(-150, 774, 300, 62, 31), 'rgba(58,63,92,0.78)');
+      P.fill(g, P.rr(-150, 760, 300, 62, 31), 'rgba(58,63,92,0.78)');
       g.restore();
-      P.text(g, '처음부터 다시 보기', 0, 814, { font: 'serif', size: 25, color: '#fff6e4', alpha: a });
+      P.text(g, '이어서 보기', 0, 800, { font: 'serif', size: 26, color: '#fff6e4', alpha: a });
+      P.text(g, '처음부터 다시 보기', 0, 864, { font: 'serif', size: 19, color: '#4a4f6e', alpha: 0.85 * a });
     }
   };
 })();
