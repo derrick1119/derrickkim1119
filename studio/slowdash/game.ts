@@ -2449,7 +2449,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.save();
       ctx.fillStyle = `rgba(4,6,16,${0.5 * a})`;
       ctx.beginPath();
-      ctx.rect(-20, -20, w + 40, Y(GB) + 20);
+      ctx.rect(-20, -20, w + 40, h - (w * A - Y(GB)) + 20); // M3 S9: 긴 캔버스면 아래 띠 위까지
       ctx.arc(cx, cy, r0, 0, TAU, true);
       ctx.fill();
       ctx.strokeStyle = `rgba(255,216,74,${a})`;
@@ -2753,7 +2753,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   }
   // ═════════════ 아래 띠: 게이지 · 체력 · 별 · 안내 ═════════════
   {
-    const ty = Y(GB);
+    const ty = h - (w * A - Y(GB)); // M3 S9: 캔버스가 세상보다 길면 아래 띠는 맨 아래로(사이는 도트 바닥)
     ctx.fillStyle = lin(ctx, 0, ty, 0, h, [0, 'rgba(14,18,42,.96)'], [1, 'rgba(6,8,22,.98)']);
     rr(ctx, 0, ty, w, h - ty + 4, R(0.025));
     ctx.fill();

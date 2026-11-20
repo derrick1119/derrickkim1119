@@ -101,7 +101,9 @@ function size() {
   const w = Math.min(root.clientWidth || 390, 460), dpr = Math.min(dprCap, window.devicePixelRatio || 1);
   (window as unknown as { __slowdashDpr?: number }).__slowdashDpr = dpr;
   W = w;
-  H = w * aspect;
+  // M3 S9(🧪 S1: 판 아래 빈 띠 24% · 340px 33%): 세상(판 좌표)은 그대로 w×aspect, 캔버스만 화면 높이까지 늘린다(최대 1.45배) — 늘어난 곳은 도트 바닥, 아래 띠는 맨 아래로
+  const top = canvas.getBoundingClientRect().top + (window.scrollY || 0);
+  H = Math.round(Math.max(w * aspect, Math.min((window.innerHeight || 0) - top - 8, w * aspect * 1.45)));
   canvas.style.width = `${W}px`;
   canvas.style.height = `${H}px`;
   canvas.width = Math.round(W * dpr);
@@ -117,7 +119,7 @@ function draw() {
     ctx.strokeStyle = spaceDown ? '#ffffff' : 'rgba(255,255,255,.6)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(cursor.x * W, cursor.y * H, spaceDown ? 7 : 10, 0, Math.PI * 2);
+    ctx.arc(cursor.x * W, cursor.y * W * aspect, spaceDown ? 7 : 10, 0, Math.PI * 2);
     ctx.stroke();
   }
 }
@@ -249,7 +251,7 @@ function loop(now: number) {
 
 const toPoint = (e: PointerEvent) => {
   const r = canvas.getBoundingClientRect();
-  return { x: Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), y: Math.max(0, Math.min(1, (e.clientY - r.top) / r.height)) };
+  return { x: Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), y: Math.max(0, Math.min(1, (e.clientY - r.top) / (r.width * aspect))) }; // 세상 높이 기준(캔버스가 더 길어도)
 };
 canvas.addEventListener('pointerdown', (e) => {
   e.preventDefault();

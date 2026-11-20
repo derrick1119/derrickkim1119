@@ -31,7 +31,7 @@ for (const [name, q] of [['1-1', 'stage=1'], ['2-10', 'trial=1&stage=20'], ['2-6
     fcps.push(Math.round((await p.evaluate("(performance.getEntriesByName('first-contentful-paint')[0] || { startTime: 0 }).startTime")) as number));
     lts.push(Math.round((await p.evaluate('window.__lt')) as number));
     const box = await (await p.$('canvas')).boundingBox();
-    const at = (x: number, y: number) => [box.x + x * box.width, box.y + y * box.height];
+    const at = (x: number, y: number) => [box.x + x * box.width, box.y + y * box.width * 1.52]; // 세상 높이 기준(M3 S9 긴 캔버스)
     for (let i = 0; i < 2; i++) {
       await p.mouse.move(...at(0.5, 0.75));
       await p.mouse.down();
