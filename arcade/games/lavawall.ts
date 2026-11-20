@@ -127,7 +127,7 @@ export interface LavaState extends Sim {
   dead: boolean; won: boolean; again: boolean; tries: number;
   down: boolean; lx: number; ly: number; acc: number; strokeN: number; strokeEnd: number; firstTouch: number; strokes: number;
   seen: Set<string>; newsQ: string[]; news: { text: string; t: number } | null;
-  events: Ev[]; wowN: number; cheerT: number; hurtT: number;
+  events: Ev[]; wowN: number; cheerT: number; hurtT: number; lakeHit: number;
 }
 
 const ev = (s: LavaState, kind: string, x: number, y: number, text?: string, n?: number) => s.events.push({ t: s.tick, kind, x, y, text, n });
@@ -457,7 +457,7 @@ export function starText(st: Star): string {
   switch (st.k) {
     case 'keep': return `집 ${st.n}채 지키기`;
     case 'all': return '집 다 지키기';
-    case 'sea': return '용암 반을 바다로';
+    case 'sea': return '용암을 바다까지 보내기';
     case 'lake': return '호수 반 메우기';
     case 'half': return '돌 반만 쓰기';
     case 'nomelt': return '벽 안 녹이기';
@@ -502,8 +502,9 @@ function emitter(s: LavaState): Emit {
         s.cheerT = s.tick;
         ev(s, 'sea', c + 0.5, r + 0.5, '치이익!');
         see(s, 'sea', '♨ 바다에 닿은 용암은 검은 돌로 굳어 새 땅이 돼요');
-      } else if (kind === 'lakesteam' && !s.seen.has('lakehit' + s.stage + ':' + s.tries)) {
-        s.seen.add('lakehit' + s.stage + ':' + s.tries);
+      } else if (kind === 'lakesteam' && s.lakeHit !== s.stage * 100 + s.tries) {
+        s.lakeHit = s.stage * 100 + s.tries;
+        see(s, 'lakehit', '♨ 호수에 든 용암은 치이익 섬이 돼요');
         s.wowN++;
         s.cheerT = s.tick;
         ev(s, 'sea', c + 0.5, r + 0.5, '치이익!');
@@ -617,7 +618,7 @@ export const lavawall: GameDef<LavaState> & { wows(s: LavaState): number } = {
       rng, seed, tick: 0, stage: 0, phase: 'play', pt: 0, flip, ink: 0, inkMax: 0, used: 0, piles: [], blocks: [], walls: 0,
       hearts: 3, stars: 0, got: 0, starOk: [], pts: 0, ok: false, why: '', dead: false, won: false, again: false, tries: 0,
       down: false, lx: 0, ly: 0, acc: 0, strokeN: 0, strokeEnd: 0, firstTouch: -1, strokes: 0,
-      seen: new Set<string>(), newsQ: [], news: null, events: [], wowN: 0, cheerT: -999, hurtT: -999,
+      seen: new Set<string>(), newsQ: [], news: null, events: [], wowN: 0, cheerT: -999, hurtT: -999, lakeHit: -1,
     } as unknown as LavaState;
     newStage(s);
     return s;
@@ -1776,7 +1777,7 @@ function drawPile(ctx: C2, x: number, y: number, r: number, t: number) {
     ctx.fill();
   }
   ctx.fillStyle = '#ffffff';
-  ctx.font = `900 ${Math.round(r * 0.75)}px system-ui, sans-serif`;
+  ctx.font = `900 ${Math.max(13, Math.round(r * 0.9))}px system-ui, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.lineWidth = 3;
