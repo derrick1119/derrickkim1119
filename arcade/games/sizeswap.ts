@@ -2467,12 +2467,12 @@ interface Vis {
   sz: number[]; sv: number[]; land: number[]; landDone: boolean[]; face: number[]; faceK: Face[]; bonk: number[]; bubT: string[];
   ang: number[]; flee: number[]; knock: number[]; logA: number[]; step: number[];
   beam: { a: number; b: number; t: number } | null; chain: number; lift: number[]; caught: { k: number; wk: number; t: number } | null;
-  roar: { from: number; to: number; t: number }[]; starT: number; pops: { x: number; y: number; t: number }[]; react: ({ t: number; text: string } | null)[]; card: string; dings: number; chimed: boolean; wob: number[]; hop: number[]; hopA: number[]; albumT: number; albumN: number; albumNext: boolean;
+  roar: { from: number; to: number; t: number }[]; starT: number; pops: { x: number; y: number; t: number }[]; react: ({ t: number; text: string } | null)[]; card: string; dings: number; chimed: boolean; wob: number[]; hop: number[]; hopA: number[]; albumT: number; albumN: number; albumNext: boolean; slid: boolean[];
 }
 const VIS = new WeakMap<object, Vis>();
 function visOf(s: SwapState): Vis {
   let v = VIS.get(s);
-  if (!v) VIS.set(s, (v = { w: null, ev: -1, sz: [], sv: [], land: [], landDone: [], face: [], faceK: [], bonk: [], bubT: [], ang: [], flee: [], knock: [], logA: [], step: [], beam: null, chain: 0, lift: [], caught: null, roar: [], starT: 0, pops: [], react: [], card: '', dings: 0, chimed: false, wob: [], hop: [], hopA: [], albumT: 0, albumN: 0, albumNext: false }));
+  if (!v) VIS.set(s, (v = { w: null, ev: -1, sz: [], sv: [], land: [], landDone: [], face: [], faceK: [], bonk: [], bubT: [], ang: [], flee: [], knock: [], logA: [], step: [], beam: null, chain: 0, lift: [], caught: null, roar: [], starT: 0, pops: [], react: [], card: '', dings: 0, chimed: false, wob: [], hop: [], hopA: [], albumT: 0, albumN: 0, albumNext: false, slid: [] }));
   if (v.w !== s.w) {
     const n = s.w.th.length;
     v.w = s.w;
@@ -2498,6 +2498,7 @@ function visOf(s: SwapState): Vis {
     v.roar = [];
     v.react = Array(n).fill(null);
     v.wob = Array(n).fill(-999);
+    v.slid = Array(n).fill(false);
     v.hop = Array(n).fill(-999);
     v.hopA = Array(n).fill(0);
   }
@@ -2987,6 +2988,7 @@ function drawAll(ctx: C2, s: SwapState, w: number, h: number, th: Theme) {
         fx.burst(x - dir * rpx * 0.4, y, '#e0c898', 4, 1.6, 2);
       }
     }
+    if (slide && !v.slid[o.id]) (v.slid[o.id] = true), fx.sound('whoosh', 1.5 - 0.15 * o.z, 0.9), fx.sound('boing', 1.6 - 0.15 * o.z, 0.4);
     if (slide && t % 10 === 0) fx.burst(x, y - rpx * 0.3, '#ffffff', 3, 1.2, 1.6);
     if (sel) glowUnder(ctx, x, y, rpx, t);
     if (!caught && !swim && !slide) {
@@ -3673,7 +3675,7 @@ function drawAlbum(ctx: C2, s: SwapState, v: Vis, w: number, h: number, R: (v: n
   font(0.032, 800);
   ctx.fillText(s.won ? '동물원 친구들이 모두 탈출했어요!' : '이번 장에서 탈출한 친구들', R(0.5), y0 + R(0.115));
   // 사진: 하나씩 찰칵
-  const cols = fr.length > 4 ? 3 : 2, cw = R(cols === 3 ? 0.24 : 0.3), chh = cw * 1.18, gap = R(0.03);
+  const cols = fr.length > 4 ? 3 : fr.length === 3 ? 3 : 2, cw = R(cols === 3 ? 0.24 : 0.25), chh = cw * 1.18, gap = R(0.03);
   const gx0 = R(0.5) - (cols * cw + (cols - 1) * gap) / 2;
   fr.forEach((k, i) => {
     const kk = k0 - (34 + i * 30);
@@ -3723,7 +3725,7 @@ function drawAlbum(ctx: C2, s: SwapState, v: Vis, w: number, h: number, R: (v: n
   });
   // 다음 장 미리 보기(실루엣 무대)
   const done = k0 > 34 + fr.length * 30;
-  const ny = y0 + R(0.86);
+  const ny = y0 + R(0.79);
   if (done && !s.won) {
     const nch = ch + 1, wx = R(0.12), ww = R(0.76), wh = R(0.25), a2 = clamp((k0 - (34 + fr.length * 30)) / 20, 0, 1);
     if (!v.albumNext) (v.albumNext = true), juice(s).sound('swell', 0.8, 0.8);
@@ -3751,12 +3753,15 @@ function drawAlbum(ctx: C2, s: SwapState, v: Vis, w: number, h: number, R: (v: n
     ctx.globalAlpha = 1;
   } else if (done && s.won) {
     if (!v.albumNext) (v.albumNext = true), juice(s).sound('clear', 1.2, 1), juice(s).burst(R(0.5), ny, '#ffe14a', 40, 6, 3);
+    // 모두 함께: 열두 친구가 줄지어 깡총
+    DEX.forEach((k, i) => {
+      const gx = R(0.17 + (i % 6) * 0.132 + (i >= 6 ? 0.066 : 0)), gy = ny + R(i < 6 ? 0.09 : 0.2), hop = Math.max(0, Math.sin(t * 0.12 + i * 0.9)) * R(0.012);
+      const L: Look = { t, ph: 0, face: 'happy', sq: 0, lift: hop, walk: 0, tall: R(0.08), swim: 0, seed: i };
+      if (s.dex[i] || s.won) drawAnimal(ctx, k, gx, gy, R(k === 'giraffe' ? 0.016 : 0.024), L);
+    });
     ctx.fillStyle = '#d9480f';
-    font(0.05, 900);
-    ctx.fillText(`탈출한 친구들 ${s.dex.filter(Boolean).length}/${DEX.length}`, R(0.5), ny + R(0.08));
-    ctx.fillStyle = '#6a4a2a';
-    font(0.034, 800);
-    ctx.fillText('동물원 대탈출 완성!', R(0.5), ny + R(0.15));
+    font(0.044, 900);
+    ctx.fillText(`탈출한 친구들 ${s.dex.filter(Boolean).length}/${DEX.length} · 대탈출 완성!`, R(0.5), ny + R(0.27));
   }
   if (k0 > 70) {
     ctx.fillStyle = `rgba(74,42,18,${0.6 + 0.4 * Math.sin(t * 0.15)})`;

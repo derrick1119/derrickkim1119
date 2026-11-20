@@ -328,6 +328,8 @@ function blockOf(th: Thing): [number, number, number] | null {
   if (th.st === DONE) return null;
   if (th.k === 'pot' && th.n === 0 && th.tau >= potHit(th) - 1) return [th.x - 0.065, th.x + 0.065, th.y2];
   if (th.k === 'water' && water(th, th.tau) > 0.18) return [th.x2, th.y2, th.h];
+  // 상자 탑: 우뚝 선 탑·와르르 쌓인 더미는 못 넘는다 (계단 모양일 때만 오른다)
+  if (th.k === 'stack' && (th.tau <= 3 || th.tau >= ST_SLUMP + 4)) return [th.x - ST_CW / 2, th.x + (ST_N - 1) * ST_DX + ST_CW / 2, th.y];
   return null;
 }
 /** 위험한 동그라미(움직이는 동안) — 앞으로든 거꾸로든 */
@@ -401,7 +403,7 @@ function supports(W: World, out: number[]) {
     } else if (th.k === 'stack') {
       for (let k = 0; k < ST_N; k++) {
         stackCrate(th, k, th.tau);
-        if (Math.abs(P.a) < 0.12) out.push(P.x - ST_CW / 2, P.x + ST_CW / 2, P.y, 1e6 + th.id * 10 + k, STAIR);
+        if (th.tau > 3 && th.tau < ST_SLUMP + 4) out.push(P.x - ST_CW / 2, P.x + ST_CW / 2, P.y, 1e6 + th.id * 10 + k, STAIR);
       }
     }
   }
@@ -611,7 +613,7 @@ export function stepWorld(W: World, E: Sink) {
         break;
       case REW:
         // 주인공이 올라탄 뗏목·통나무는 말뚝(걸림 자리)을 지나치지 않고 척 걸린다
-        if (th.dock >= 0 && H.on === th.id && th.tau > th.dock && th.tau - RW <= th.dock) {
+        if (th.dock >= 0 && supThing(H.on) === th.id && th.tau > th.dock && th.tau - RW <= th.dock) {
           th.tau = th.dock + 1;
           stopRew(W, th, E, 0);
           break;
@@ -654,7 +656,7 @@ export function stepWorld(W: World, E: Sink) {
   }
   // ── 배우
   for (const a of W.ac) {
-    if (a.role === R_WALK && !a.ko && a.vx > 0 && W.t >= a.next && a.x !== a.x0) {
+    if (a.role === R_WALK && !a.ko && a.vx > 0 && W.t >= a.next && a.x !== a.x0 && !(Math.abs(a.x - H.x) < 0.09 && Math.abs(a.y - H.y) < 0.05)) {
       const d = a.x0 - a.x;
       a.x += Math.sign(d) * Math.min(Math.abs(d), a.vx);
       if (a.x === a.x0) E?.('guard', a.x, a.y, 0, a.id);
@@ -785,7 +787,8 @@ function stepHero(W: World, E: Sink) {
   for (let i = 0; i < SUP.length; i += 5) {
     if (nx < SUP[i] || nx > SUP[i + 1]) continue;
     if (!canStep(i, H.y, ux0, ustep) || (SUP[i + 3] !== under && !boardable(W, SUP[i + 3]))) continue;
-    const dy = Math.abs(SUP[i + 2] - H.y);
+    // 오를 수 있으면 높은 쪽(상자 위)으로
+    const dy = SUP[i + 2] - H.y;
     if (dy < nbest) (nbest = dy), (nb = SUP[i + 3]), (ny = SUP[i + 2]), (nx0 = SUP[i]), (nstep = SUP[i + 4]);
   }
   if (nb === -9) return wait(W, H, E);
@@ -999,11 +1002,11 @@ function rawLevel(si: number, r: Rng): Level {
       L.actors.push(fm);
       L.deco.alley = ax;
       L.deco.top = top;
-      L.things.push(T('barrel', { path: rollPath([ax, top + 0.01, ax, lane, ax + 0.02, 1.13], 0.034, 0.0012, 0.00011, 0.0052), hold: Math.round(rnd(r, 18, 28)), owner: fm.id, big: 1 }));
+      L.things.push(T('barrel', { path: rollPath([ax, top + 0.01, ax, lane, ax + 0.02, 1.13], 0.034, 0.0012, 0.00011, 0.0052), hold: Math.round(rnd(r, 2, 8)), owner: fm.id, big: 1 }));
       L.things[0].dur = L.things[0].path!.length / 3 - 1;
       // 첫째 도깨비는 골목 앞을 막고 서 있고, 둘째는 통이 지나간 뒤 그 자리로 걸어와 선다
       L.actors.push(Ac('walker', R_WALK, ax, lane));
-      L.actors.push(Ac('walker', R_WALK, 0.84, lane, { x0: ax, x1: 0.84, vx: rnd(r, 0.0022, 0.0026), next: Math.round(rnd(r, 4, 12)) }));
+      L.actors.push(Ac('walker', R_WALK, 0.86, lane, { x0: ax, x1: 0.86, vx: rnd(r, 0.003, 0.0034), next: Math.round(rnd(r, 26, 34)) }));
       L.sand = 240;
       break;
     }
@@ -1388,6 +1391,10 @@ export interface RewState {
   seen: Set<string>; events: Ev[]; banner: { head: string; sub: string; t: number } | null; spot: { x: number; y: number; r: number; label: string; t: number } | null;
   wowN: number; firstTap: number; down: boolean; ax: number; ay: number; slow: number; magnet: boolean; idleT: number; lastTap: number;
   sel: number;
+  /** 카메라: 화면 왼쪽 위의 세계 좌표 · 당김(1 = 판 전체, 1.4 = 가까이). 시뮬레이션과 같은 틱에 움직여 톡·봇이 같은 화면을 본다 */
+  cam: { x: number; y: number; z: number };
+  /** 막 끝낸 장 (장 끝 되살림 장면) */
+  chDone: number;
 }
 const ev = (s: RewState, kind: string, x: number, y: number, v = 0, id = -1, text?: string) => s.events.push({ t: s.t, kind, x, y, v, id, text });
 const see = (s: RewState, key: string) => s.seen.add(key);
@@ -1418,11 +1425,74 @@ function newStage(s: RewState) {
     s.spot = { x: sx, y: sy, r: 0.11, label: d.spot, t: s.t + 150 };
   }
   s.again = false;
+  updateCam(s, true);
 }
+
+// ───────────────────────────── 카메라 ─────────────────────────────
+/** 가장 가깝게 당긴 배율 · 장면 높이(폭 단위) */
+const ZMAX = 1.4, SCN = BOTY;
+/** 지금 봐야 할 것(주인공·움직이는 물건·되돌아갈 자리·쏘려는 도깨비)을 담는 카메라 목표 */
+function camTarget(s: RewState): { x: number; y: number; z: number } {
+  const W = s.W, H = W.hero, L = s.L;
+  const walking = H.st === H_WALK || H.st === H_IDLE;
+  let x0 = H.x - 0.1, x1 = H.x + (walking ? 0.3 : 0.22), y0 = H.y - 0.22, y1 = H.y + 0.05;
+  const add = (x: number, y: number, rx: number, ry: number) => {
+    x0 = Math.min(x0, x - rx);
+    x1 = Math.max(x1, x + rx);
+    y0 = Math.min(y0, y - ry);
+    y1 = Math.max(y1, y + ry);
+  };
+  for (const th of W.th) {
+    if (th.st === DONE) continue;
+    const active = th.st === REW || th.st === HOLD || (th.st === FWD && th.tau < th.dur) || (th.st === WAIT && th.hold < 45);
+    const c = thingCenter(th);
+    const ahead = c.x > H.x - 0.12 && c.x < H.x + 0.5;
+    if (!active && !(ahead && th.tau > 0)) continue;
+    add(c.x, c.y, Math.min(0.12, c.r * 0.8), Math.min(0.1, c.r * 0.7));
+    if (th.st === REW) {
+      pose(th, 0);
+      add(P.x, P.y, 0.04, 0.04);
+      const o = th.owner >= 0 ? actorOf(W, th.owner) : undefined;
+      if (o) add(o.x, o.y - 0.05, 0.04, 0.06);
+    } else if (th.k === 'arrow' && th.tau < th.n) {
+      add(th.x2, th.y2, 0.03, 0.03);
+      add(th.x, th.y, 0.04, 0.04);
+    }
+  }
+  for (const a of W.ac) {
+    if (a.ko || a.hurt || a.k === 'machine') continue;
+    if (a.role === R_ARCH && a.next - W.t < 70) add(a.x, a.y - 0.05, 0.05, 0.06);
+    else if (a.role === R_RIDER || a.role === R_WALK) {
+      if (Math.abs(a.x - H.x) < 0.5) add(a.x, a.y - 0.05, 0.04, 0.06);
+    } else if (a.role === R_VILL && W.th.some((q) => dangerOf(q) !== null && Math.hypot(D.x - a.x, D.y - a.y) < 0.3)) add(a.x, a.y - 0.05, 0.04, 0.06);
+  }
+  if (H.x > L.gearX - 0.45) add(L.gearX, L.gearY - 0.06, 0.05, 0.06);
+  const bw = x1 - x0 + 0.03, bh = y1 - y0 + 0.03;
+  const z = Math.max(1, Math.min(ZMAX, 1 / bw, SCN / bh));
+  const vw = 1 / z, vh = SCN / z;
+  const cx = (x0 + x1) / 2;
+  // 주인공 발은 화면 아래쪽 2/3 근처 (위는 지붕·발코니, 아래는 앞마당)
+  const want = Math.min(y0 - 0.03, H.y - vh * 0.64);
+  return { x: Math.max(0, Math.min(1 - vw, cx - vw / 2)), y: Math.max(0, Math.min(BOTY - vh, want)), z };
+}
+function updateCam(s: RewState, snap: boolean) {
+  const t = camTarget(s), c = s.cam;
+  if (snap) (c.x = t.x), (c.y = t.y), (c.z = t.z);
+  else {
+    c.z += (t.z - c.z) * 0.035;
+    c.x += (t.x - c.x) * 0.05;
+    c.y += (t.y - c.y) * 0.05;
+  }
+  c.x = Math.max(0, Math.min(1 - 1 / c.z, c.x));
+  c.y = Math.max(0, Math.min(BOTY - SCN / c.z, c.y));
+}
+/** 화면(0~1) → 세계 */
+const toWorldX = (s: RewState, px: number) => s.cam.x + px / s.cam.z;
+const toWorldY = (s: RewState, py: number) => s.cam.y + (py * A - TOPH) / s.cam.z;
 
 /** 손가락이 닿은 자리 → 가장 가까운 물건을 톡 */
 function tapAt(s: RewState, px: number, py: number) {
-  const W = s.W, wx = px, wy = py * A - TOPH;
+  const W = s.W, wx = toWorldX(s, px), wy = toWorldY(s, py);
   if (s.banner && s.t - s.banner.t < 150) s.banner.t = s.t - 150;
   let best: Thing | null = null, bd = TAP_R;
   for (const th of W.th) {
@@ -1478,6 +1548,16 @@ function tapDist(th: Thing, x: number, y: number): number {
     }
     case 'crate':
       return Math.max(0, Math.hypot(x - P.x, y - (P.y + 0.06)) - 0.07);
+    case 'stack': {
+      // 상자들 둘레 (넉넉히)
+      let bd = 9;
+      for (let k = 0; k < ST_N; k++) (stackCrate(th, k, th.tau), (bd = Math.min(bd, Math.hypot(x - P.x, y - (P.y + ST_CH / 2)) - 0.06)));
+      return Math.max(0, bd);
+    }
+    case 'ferry':
+      return segDist(x, y, P.x - th.w / 2, th.y - 0.01, P.x + th.w / 2, th.y - 0.01);
+    case 'sack':
+      return Math.max(0, Math.hypot(x - P.x, y - (P.y - 0.03)) - 0.04);
     case 'balloon':
       return Math.max(0, Math.min(Math.hypot(x - P.x, y - P.y), Math.hypot(x - P.x, y - P.y - 0.13)) - 0.04);
     case 'pot':
@@ -1570,6 +1650,7 @@ export const rewindone: GameDef<RewState> & { wows(s: RewState): number } = {
     const s = {
       seed, variant: ((seed >>> 0) * 2654435761 >>> 0) % VARIANTS, t: 0, stage: 0, phase: 'play', pt: 0, endT: -1, hearts: 3, stars: 0, got: 0, starOk: [], pts: 0, ok: false, why: '', won: false, dead: false, again: false, tries: 0,
       gears: 0, fixed: 0, seen: new Set<string>(), events: [], banner: null, spot: null, wowN: 0, firstTap: -1, down: false, ax: 0.5, ay: 0.5, slow: 0, magnet: true, idleT: 0, lastTap: -99, sel: -1,
+      cam: { x: 0, y: 0, z: 1 }, chDone: -1,
     } as unknown as RewState;
     newStage(s);
     return s;
@@ -1604,6 +1685,7 @@ export const rewindone: GameDef<RewState> & { wows(s: RewState): number } = {
     if (press) tapAt(s, p!.x, p!.y);
     // 큰 순간엔 잠깐 느려진다 (세계를 두 틱에 한 번만)
     if (!(s.slow > 0 && s.t % 2 === 0)) stepWorld(s.W, sinkOf(s));
+    updateCam(s, false);
     const W = s.W, H = W.hero;
     if (H.st === H_WAIT && W.rew < 0) s.idleT++;
     else s.idleT = 0;
@@ -1628,7 +1710,12 @@ export const rewindone: GameDef<RewState> & { wows(s: RewState): number } = {
 // ───────────────────────────── 봇 ─────────────────────────────
 const NO: Input = { tap: false, dir: 0, pointer: null };
 /** 물건을 누르는 자리 (화면 비율) */
-function tapPoint(th: Thing): { x: number; y: number } {
+function tapPoint(s: RewState, th: Thing): { x: number; y: number } {
+  const w = worldTap(th), c = s.cam;
+  return { x: (w.x - c.x) * c.z, y: (TOPH + (w.y - c.y) * c.z) / A };
+}
+/** 물건을 누르는 세계 자리 */
+function worldTap(th: Thing): { x: number; y: number } {
   pose(th, th.tau);
   let x = P.x, y = P.y;
   if (th.k === 'bridge') y = th.y + 0.05;
@@ -1638,7 +1725,9 @@ function tapPoint(th: Thing): { x: number; y: number } {
   else if (th.k === 'log' && th.tau < LOG_LIE) (x = th.x + Math.sin(P.a) * th.w * 0.5), (y = th.y - Math.cos(P.a) * th.w * 0.5);
   else if (th.k === 'log' || th.k === 'raft') (x = th.k === 'log' ? (th.x + th.x2) / 2 : th.x), (y = P.y - 0.01);
   else if (th.k === 'balloon') y = P.y + 0.02;
-  return { x, y: (y + TOPH) / A };
+  else if (th.k === 'stack') (x = th.x + 0.1), (y = th.y - 0.08);
+  else if (th.k === 'sack') y = P.y - 0.02;
+  return { x, y };
 }
 interface Mind { stage: number; tries: number; plan: Plan | null; i: number; up: boolean; want: number; again: boolean }
 const minds = new WeakMap<object, Mind>();
@@ -1702,7 +1791,7 @@ export const rewindoneSmart: Bot<RewState> = {
       if (th.tau > ts) return NO;
       m.i += 3;
       m.up = true;
-      return { tap: false, dir: 0, pointer: tapPoint(th) };
+      return { tap: false, dir: 0, pointer: tapPoint(s, th) };
     }
     if (W.t < a[m.i]) return NO;
     const late = W.t - a[m.i];
@@ -1714,7 +1803,7 @@ export const rewindoneSmart: Bot<RewState> = {
     // 늦게 누르면(사람 속도·느린 화면) 남은 계획이 그 세계에 안 맞을 수 있다 — 누른 뒤 확인
     if (late > 0) m.again = true;
     m.up = true;
-    return { tap: false, dir: 0, pointer: tapPoint(th) };
+    return { tap: false, dir: 0, pointer: tapPoint(s, th) };
   },
 };
 const REACT_SMART = 3;
@@ -1733,7 +1822,7 @@ function habitBot(name: string, pick: (W: World) => number): Bot<RewState> {
       if (id < 0) return NO;
       const th = thingOf(W, id)!;
       m.up = true;
-      return { tap: false, dir: 0, pointer: tapPoint(th) };
+      return { tap: false, dir: 0, pointer: tapPoint(s, th) };
     },
   };
 }
@@ -4094,6 +4183,12 @@ function thingCenter(th: Thing): { x: number; y: number; r: number } {
       return { x: P.x, y: P.y - 0.034, r: 0.07 };
     case 'balloon':
       return { x: P.x, y: P.y + 0.05, r: 0.09 };
+    case 'stack':
+      return { x: P.x, y: P.y + 0.03, r: 0.12 };
+    case 'ferry':
+      return { x: P.x, y: th.y - 0.02, r: 0.1 };
+    case 'sack':
+      return { x: P.x, y: P.y - 0.03, r: 0.07 };
     case 'pot':
       return { x: P.x, y: P.y, r: 0.07 };
     default:
