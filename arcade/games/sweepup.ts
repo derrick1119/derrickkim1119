@@ -122,7 +122,7 @@ export const STAGES: StageDef[] = [
     piles: [P(0.5, 0.1, 0.42, 0.06, 70, ACORN, [0, 0, 0, 1]), P(0.5, 0.62, 0.3, 0.2, 100, LEAF, [1])],
     holes: [[0.5, 1.24, 0.13, 3, 0], [0.14, 1.12, 0.12, 0, 0], [0.86, 1.12, 0.12, 0, 0]],
     slope: [0, -0.00032],
-    sweeps: 5, stars: [{ k: 'count', n: 50 }, { k: 'clean', n: 4 }, { k: 'more', n: 85 }],
+    sweeps: 5, stars: [{ k: 'count', n: 50 }, { k: 'clean', n: 5 }, { k: 'more', n: 75 }],
   },
   {
     place: 2, key: 'lids', news: '🧺 뚜껑 바구니 — 가득 차면 꽉 닫혀요', hint: '바구니마다 나눠 담아요 — 찬 바구니는 닫혀요',
@@ -1300,7 +1300,7 @@ const recentSay = new WeakMap<object, { x: number; y: number; t: number }[]>();
 
 function drawAll(ctx: C2, s: SweepState, w: number, h: number, th: Theme) {
   const fx = juice(s), t = s.t, d = STAGES[s.stage], place = d.place;
-  const Y = (y: number) => y * w, R = (r: number) => r * w;
+  const X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w;
   const SX = (x: number, y: number) => PX(x, y) * w, SY = (y: number) => PY(y) * w;
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.round(R(sz))}px system-ui, sans-serif`);
   const dpr = Math.abs(ctx.getTransform().a) || 1;
@@ -1567,6 +1567,19 @@ function drawAll(ctx: C2, s: SweepState, w: number, h: number, th: Theme) {
     if (e.kind === 'fail') fx.kick(8), fx.blink(th.hot, 0.18);
   }
   fx.memo.t = s.t;
+  // 빛 번짐 (창 쪽) · 가장자리 그늘 — 작은 방 안처럼
+  {
+    const lg = ctx.createRadialGradient(X(place === 1 ? 0.5 : 0.75), Y(0.16), R(0.02), X(0.6), Y(0.3), R(0.75));
+    lg.addColorStop(0, 'rgba(255,248,215,.32)');
+    lg.addColorStop(1, 'rgba(255,248,215,0)');
+    ctx.fillStyle = lg;
+    ctx.fillRect(0, Y(0.08), w, Y(BAND - 0.08));
+    const vg = ctx.createRadialGradient(w / 2, Y(0.75), R(0.45), w / 2, Y(0.75), R(0.95));
+    vg.addColorStop(0, 'rgba(70,35,10,0)');
+    vg.addColorStop(1, 'rgba(70,35,10,.22)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, Y(0.08), w, Y(BAND - 0.08));
+  }
   // 쓸고 있는 동안 빗자루 뒤로 먼지
   if (s.b.down && !s.b.tired && s.b.spd > 0.004 && t % 3 === 0) {
     const bx = s.b.x - s.b.dx * 0.03, by = s.b.y - s.b.dy * 0.03;

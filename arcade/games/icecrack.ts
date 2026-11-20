@@ -80,14 +80,14 @@ export const STAGES: StageDef[] = [
     taps: 9, par: 1, star3: '',
   },
   {
-    key: 'tip', name: '기우뚱 조각', news: '기우뚱 — 펭귄보다 한 칸 넉넉해야 버텨요', spot: '작은 조각', hint: '펭귄 바로 옆을 깨면 조각이 작아요 — 넉넉하게',
+    key: 'tip', name: '기우뚱 조각', news: '기우뚱 — 펭귄 수보다 한 칸 더 커야 버텨요', spot: '작은 조각', hint: '펭귄 바로 옆을 깨면 조각이 작아요 — 넉넉하게',
     nc: 7, nr: 8,
     ice: [FULL(0.8)],
     faults: [[[0.2, 0.85], [0.22, 0.6], [0.45, 0.57], [0.66, 0.6], [0.69, 0.85]], [[0.08, 0.85], [0.1, 0.4], [0.45, 0.36], [0.8, 0.4], [0.82, 0.85]]],
     pens: [[0.32, 0.7], [0.45, 0.72], [0.58, 0.69]],
     flows: [MAIN(0.8)],
     boat: [0.88, 0.92],
-    taps: 8, par: 1, star3: '',
+    taps: 9, par: 1, star3: '',
   },
   {
     key: 'thick', name: '두꺼운 얼음', news: '두꺼운 얼음 — 금이 멈춰요 (톡 한 칸은 깨져요)', spot: '두꺼운 얼음', hint: '금이 막힌 두꺼운 칸을 직접 톡!',
@@ -933,7 +933,20 @@ function phys(S: Sim, E: IceState | null) {
     }
     if (p.tip >= 0 && ++p.tip >= TIP_T) {
       p.tip = -1;
-      for (const r of ridersOn(S, p.id)) fall(S, r, E, r.k === SEAL ? '' : '으아아 퐁!');
+      const rs = ridersOn(S, p.id);
+      if (rs.some((r) => r.k === SEAL)) for (const r of rs) fall(S, r, E, r.k === SEAL ? '' : '으아아 퐁!');
+      else {
+        // 넘치는 만큼만, 가장자리에 선 것부터 미끄러진다
+        const C2 = S.geo.cells;
+        const far = (r: Rider) => Math.hypot(C2[r.cell].cx + r.lx - p.ox, C2[r.cell].cy + r.ly - p.oy);
+        rs.sort((a, b) => far(b) - far(a));
+        let wgt = rs.reduce((a, r) => a + WEIGHT[r.k], 0);
+        for (const r of rs) {
+          if (wgt <= p.cells.length - 1) break;
+          wgt -= WEIGHT[r.k];
+          fall(S, r, E, '으아아 퐁!');
+        }
+      }
     }
     if (p.panic >= 0 && ++p.panic >= PANIC_T) {
       p.panic = -1;

@@ -24,7 +24,7 @@ const A = 1.45;
 /** 3/4 시점: 바닥 세로 눌림 · 케이크 높이 · 위층 높이 · 화면에서 접시 가운데 높이 (가로 폭 단위) */
 const SQ = 0.62, HC = 0.12, HT = 0.08, YC = 0.9;
 /** 자른 뒤 두 쪽이 벌어지는 틈 · 부스러기 기준(전체 넓이 대비) · 딸기·초·크림 꽃 반지름 */
-const GAP = 0.06, CRUMB = 0.008, BR = 0.03, CR = 0.024, RR = 0.022;
+const GAP = 0.066, CRUMB = 0.008, BR = 0.03, CR = 0.024, RR = 0.022;
 const TAU = Math.PI * 2;
 /** 칼 각도 격자(봇·판 생성이 같이 씀): 15° 간격 */
 const ANG = Array.from({ length: 12 }, (_, k) => (k * Math.PI) / 12);
@@ -747,14 +747,14 @@ function tryCut(s: CakeState) {
     if (sd) {
       v.dx -= (sd * L.nx * GAP) / 2;
       v.dy -= (sd * L.ny * GAP) / 2;
-      const push = 0.0095 / Math.sqrt(v.m);
+      const push = 0.019 / Math.sqrt(v.m);
       v.vx += sd * L.nx * push;
       v.vy += sd * L.ny * push;
       // 칼금 바깥쪽으로 윗면이 쏠렸다가 흔들흔들 돌아온다
       v.ax = sd * L.nx;
       v.ay = sd * L.ny;
       v.tl = 0;
-      v.tlv = 0.075 / v.m;
+      v.tlv = 0.07 / v.m;
       // 지렛대: 칼 줄에서 먼 조각일수록 살짝 돈다
       const lev = -L.ny * (p.cx + p.ox) + L.nx * (p.cy + p.oy) - (-L.ny * 0.5 + L.nx * 0.5);
       v.vr += (sd * lev * 0.012) / v.m;
@@ -866,10 +866,10 @@ function physics(s: CakeState) {
   if (s.slow > 0) s.slow--;
   for (const [, v] of s.pv) {
     if (v.serve) continue;
-    const k = 0.03, c = 0.13;
+    const k = 0.024, c = 0.19;
     v.vx += ((-k * v.dx - c * v.vx) / v.m) * sf;
     v.vy += ((-k * v.dy - c * v.vy) / v.m) * sf;
-    v.tlv += ((-0.07 * v.tl - 0.09 * v.tlv) / v.m) * sf;
+    v.tlv += ((-0.028 * v.tl - 0.08 * v.tlv) / v.m) * sf;
     v.tl += v.tlv * sf;
     v.dx += v.vx * sf;
     v.dy += v.vy * sf;

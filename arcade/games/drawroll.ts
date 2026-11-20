@@ -18,7 +18,7 @@ import { juice } from '../juice.ts';
 const A = 1.5;
 /** 물리 (화면 폭 = 1) */
 /** 한 틱(1/60초)에 세상은 1.25틱만큼 흐른다 (장난감이 쌩 구르게) */
-const G = 2.4, R = 0.06, LT = 0.011, SUB = 2, DT = 1.25 / 60 / SUB;
+const G = 2.4, R = 0.06, LT = 0.011, SUB = 3, DT = 1.25 / 60 / SUB;
 /** 떼는 순간 햄스터가 달려 나가는 빠르기 · 구름 저항 · 닿아 있을 때 감쇠 · 튕김 */
 const DASH = 0.25, DRIVE = 0.55, DRIVE_T = 21, ROLL_FR = 0.2, DAMP = 0.1, AIR = 0.02, BOUNCE = 0.3;
 const SPRING_V = 1.95, WIND_V = -1.75, WIND_KY = 3.4, WIND_KX = 0.35, WIND_FADE = 0.16, WIND_CURL = 0.9;
@@ -80,8 +80,8 @@ export const STAGES: StageDef[] = [
   },
   {
     name: '낭떠러지', key: 'jump', news: '🪂 잉크가 모자라요 — 끝을 올려 붕!', hint: '끝을 위로 휘면 공이 붕 날아요',
-    blocks: [[0, 0.3, 0.24, 1.6, CLIFF], [0.78, 0.5, 1.02, 1.6, CLIFF]],
-    pads: [[0.21, 0.3]], house: [0.9, 0.5], stars: [[0.6, 0.24]], ink: 0.45, strokes: 2, goals: ['home', 'stars', 'one'],
+    blocks: [[0, 0.3, 0.24, 1.6, CLIFF], [0.76, 0.5, 1.02, 1.6, CLIFF]],
+    pads: [[0.21, 0.3]], house: [0.88, 0.5], stars: [[0.6, 0.24]], ink: 0.45, strokes: 2, goals: ['home', 'stars', 'one'],
     spot: [0.5, 0.5, 0.2, 0.2],
   },
   {
@@ -105,9 +105,9 @@ export const STAGES: StageDef[] = [
   },
   {
     name: '고리', key: 'loop', news: '🎡 고리 — 빠르면 한 바퀴 빙글!', hint: '높이에서 쭉 내려와야 한 바퀴 돌아요',
-    blocks: [[0, 0.36, 0.18, 1.6, CLIFF], [0.42, 1.18, 1.02, 1.6, WOOD]],
-    loop: [0.65, 1.05, 0.13], pads: [[0.15, 0.36]], house: [0.92, 1.18], stars: [[0.65, 0.97], [0.3, 0.8]], ink: 0.9, strokes: 2, goals: ['home', 'stars', 'half'],
-    spot: [0.65, 1.05, 0.17, 0.17],
+    blocks: [[0, 0.5, 0.16, 1.6, CLIFF], [0.3, 1.18, 1.02, 1.6, WOOD]],
+    loop: [0.59, 1.03, 0.15], pads: [[0.13, 0.5]], house: [0.88, 1.18], stars: [[0.59, 0.93], [0.26, 0.82]], ink: 0.9, strokes: 2, goals: ['home', 'stars', 'half'],
+    spot: [0.59, 1.03, 0.19, 0.19],
   },
   {
     name: '쌍둥이', key: 'twin', news: '🐹🐹 쌍둥이 — 한 길로 둘 다 집에!', hint: '양쪽 공이 같이 출발해요 — 한 줄로 둘 다!',
@@ -1113,7 +1113,7 @@ function drawSky(ctx: C2, w: number, h: number, t: number) {
   ctx.fillStyle = lin(ctx, 0, 0, 0, h, [0, '#5fc2ff'], [0.45, '#9fdcff'], [0.8, '#d8f4ff'], [1, '#eafaff']);
   ctx.fillRect(0, 0, w, h);
   // 해
-  const sx = w * 0.12, sy = w * 0.2;
+  const sx = w * 0.5, sy = w * 0.24;
   ctx.fillStyle = rad(ctx, sx, sy, 0, w * 0.3, [0, 'rgba(255,248,200,.85)'], [1, 'rgba(255,248,200,0)']);
   ctx.fillRect(sx - w * 0.3, sy - w * 0.3, w * 0.6, w * 0.6);
   ctx.save();
@@ -1129,8 +1129,8 @@ function drawSky(ctx: C2, w: number, h: number, t: number) {
     ctx.fill();
   }
   ctx.restore();
-  ctx.fillStyle = rad(ctx, sx - w * 0.015, sy - w * 0.015, 0, w * 0.06, [0, '#fffbe0'], [1, '#ffd84a']);
-  ell(ctx, sx, sy, w * 0.055, w * 0.055);
+  ctx.fillStyle = rad(ctx, sx - w * 0.012, sy - w * 0.012, 0, w * 0.05, [0, '#fffbe0'], [1, '#ffd84a']);
+  ell(ctx, sx, sy, w * 0.045, w * 0.045);
   ctx.fill();
   // 구름 (천천히 흐른다)
   for (let k = 0; k < 5; k++) {
@@ -1443,15 +1443,27 @@ function drawButton(ctx: C2, L: Layout, X: (x: number) => number, Y: (y: number)
 }
 function drawWind(ctx: C2, L: Layout, X: (x: number) => number, Y: (y: number) => number, R2: (r: number) => number, t: number) {
   const w = L.wind!, x0 = X(w.x0), x1 = X(w.x1), y0 = Y(w.y0), y1 = Y(w.y1);
-  ctx.fillStyle = lin(ctx, 0, y0, 0, y1, [0, 'rgba(255,255,255,0)'], [0.4, 'rgba(220,255,240,.18)'], [1, 'rgba(220,255,240,.32)']);
-  ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+  ctx.fillStyle = lin(ctx, 0, y0, 0, y1, [0, 'rgba(190,255,235,0)'], [0.25, 'rgba(190,255,235,.28)'], [1, 'rgba(170,250,225,.45)']);
+  rr(ctx, x0, y0, x1 - x0, y1 - y0, R2(0.03));
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.55)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 6]);
+  ctx.lineDashOffset = t * 0.8;
+  ctx.beginPath();
+  ctx.moveTo(x0, y1);
+  ctx.lineTo(x0, y0 + R2(0.05));
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x1, y0 + R2(0.05));
+  ctx.stroke();
+  ctx.setLineDash([]);
   // 위로 흐르는 바람 줄
   ctx.lineCap = 'round';
-  for (let k = 0; k < 9; k++) {
-    const x = x0 + ((k + 0.5) / 9) * (x1 - x0), per = y1 - y0, y = y1 - ((t * (2.2 + hsh(k) * 1.2) + hsh(k + 4) * per) % per);
+  for (let k = 0; k < 12; k++) {
+    const x = x0 + ((k + 0.5) / 12) * (x1 - x0), per = y1 - y0, y = y1 - ((t * (2.2 + hsh(k) * 1.2) + hsh(k + 4) * per) % per);
     const len = R2(0.06 + hsh(k + 2) * 0.05), a = Math.min(1, (y - y0) / R2(0.12));
-    ctx.strokeStyle = `rgba(255,255,255,${0.55 * a})`;
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = `rgba(255,255,255,${0.8 * a})`;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.moveTo(x + Math.sin(y * 0.05) * 3, y);
     ctx.quadraticCurveTo(x + 4, y - len / 2, x + Math.sin((y - len) * 0.05) * 3, y - len);
@@ -2200,7 +2212,7 @@ function handleEvents(s: RollState, fx: ReturnType<typeof juice>, look: Look, X:
   for (const e of s.events) {
     if (e.id <= look.ev) continue;
     look.ev = e.id;
-    const x = X(e.x), y = Y(e.y);
+    const x = Math.max(X(0.14), Math.min(X(0.86), X(e.x))), y = Math.max(Y(0.3), Y(e.y));
     if (e.kind === 'wow') {
       const big = e.text === '출발!' || e.text === '쏙!' || e.text === '한 바퀴!';
       fx.pop(x, y, e.text ?? '', e.text === '쏙!' ? '#ffe14a' : '#ffffff', big ? 34 : 28);

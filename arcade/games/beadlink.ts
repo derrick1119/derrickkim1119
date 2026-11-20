@@ -363,25 +363,18 @@ function tickWorld(W: World) {
 }
 
 // ───────────────────────────── 잇기 규칙 ─────────────────────────────
-/** 이음의 지금 색 (-1 = 아직 무지개뿐) · 마지막이 무지개인가 */
-function chainState(W: World, ch: number[]): { cc: number; rain: boolean } {
-  let cc = -1, rain = false;
-  for (const b of ch) {
-    if (W.kind[b] === K_RAIN) rain = true;
-    else {
-      cc = W.col[b];
-      rain = false;
-    }
-  }
-  return { cc, rain };
+/** 이음의 색: 무지개가 아닌 첫 구슬의 색 (-1 = 아직 무지개뿐) */
+function chainState(W: World, ch: number[]): { cc: number } {
+  for (const b of ch) if (W.kind[b] !== K_RAIN) return { cc: W.col[b] };
+  return { cc: -1 };
 }
 function canAdd(W: World, ch: number[], b: number): boolean {
   if (!linkable(W, b) || ch.includes(b)) return false;
   if (!ch.length) return true;
   if (!touching(W, ch[ch.length - 1], b)) return false;
   if (W.kind[b] === K_RAIN) return true;
-  const { cc, rain } = chainState(W, ch);
-  return cc < 0 || rain || W.col[b] === cc;
+  const { cc } = chainState(W, ch);
+  return cc < 0 || W.col[b] === cc;
 }
 /** 떼는 순간: 이음을 팡팡팡 차례로 터뜨리도록 예약 (게임·봇 시뮬레이션 공용) */
 function applyStroke(W: World, ch: number[], fire: boolean): number {
@@ -442,12 +435,12 @@ export const STAGES: StageDef[] = [
   {
     key: 'iron', name: '쇠구슬', news: '무거운 쇠구슬 — 못 이어요. 밑이 비면 쿵! 떨어져 깨요', hint: '쇠구슬 밑을 비워 쿵!', spot: 'iron',
     n: 46, colors: 4, bias: 0, maxGroup: 5, strokes: 6, fire: true, ice: 0, iron: 2, star: 0, rain: 0, rainQ: 0, preFire: 0,
-    goal: S('smash', 6, '쇠구슬로 6개 깨기'), stars: [GOAL, S('within', 5, '다섯 번 안에'), S('fire', 1, '폭죽 한 번 터뜨리기')],
+    goal: S('smash', 6, '쇠구슬로 6개 깨기'), stars: [GOAL, S('within', 5, '다섯 번 안에'), S('color', 6, '빨간 구슬 6개', 0)],
   },
   {
-    key: 'rain', name: '무지개 구슬', news: '무지개 구슬은 아무 색과 이어지고, 지나면 색을 갈아타요', hint: '두 색을 무지개로 길게 이어요', spot: 'rain',
+    key: 'rain', name: '무지개 구슬', news: '무지개 구슬은 아무 색과도 이어져요 — 떨어진 덩어리를 잇는 다리', hint: '무지개로 떨어진 같은 색을 이어요', spot: 'rain',
     n: 47, colors: 5, bias: 0, maxGroup: 4, strokes: 6, fire: true, ice: 0, iron: 0, star: 0, rain: 4, rainQ: 0.07, preFire: 0,
-    goal: S('color', 8, '초록 구슬 8개', 3), stars: [GOAL, S('chain', 9, '한 번에 9개 잇기'), S('within', 4, '네 번 안에')],
+    goal: S('color', 8, '초록 구슬 8개', 3), stars: [GOAL, S('color', 6, '보라 구슬 6개', 4), S('within', 4, '네 번 안에')],
   },
   {
     key: 'all', name: '마지막 병', news: '얼음·쇠구슬·무지개 — 모두 다 나와요', hint: '별 구슬 둘을 별 구멍으로!', spot: '',
@@ -535,7 +528,7 @@ function buildStage(seed: number, k: number): World {
   // 별: 위쪽 가운데 (밑을 파야 내려간다)
   pick(d.star, (i) => depth(i) > 0.35 && depth(i) < 0.6 && Math.abs(W.x[i] - XC) < 0.2 && W.r[i] < 0.0495 && ![...Array(n).keys()].some((j) => taken[j] && W.kind[j] === K_STAR && Math.abs(W.x[j] - W.x[i]) < 0.12), (i) => ((W.kind[i] = K_STAR), (W.col[i] = -1), (W.w[i] = 0.35)));
   // 쇠구슬: 위쪽 절반, 벽에서 조금 떨어져
-  pick(d.iron, (i) => depth(i) > 0.05 && depth(i) < 0.45 && W.x[i] > XL + 0.08 && W.x[i] < XR - 0.08, (i) => ((W.kind[i] = K_IRON), (W.col[i] = -1), (W.w[i] = 0), (W.stat[i] = 1)));
+  pick(d.iron, (i) => depth(i) > 0.05 && depth(i) < 0.4 && W.x[i] > XL + 0.04 && W.x[i] < XR - 0.04 && Math.abs(W.x[i] - XC) > 0.17 && ![...Array(n).keys()].some((j) => taken[j] && W.kind[j] === K_IRON && Math.abs(W.x[j] - W.x[i]) < 0.2), (i) => ((W.kind[i] = K_IRON), (W.col[i] = -1), (W.w[i] = 0), (W.stat[i] = 1)));
   pick(d.rain, (i) => depth(i) > 0.1 && depth(i) < 0.8, (i) => ((W.kind[i] = K_RAIN), (W.col[i] = -1)));
   pick(d.ice, (i) => depth(i) > 0.12 && depth(i) < 0.85, (i) => (W.kind[i] = K_ICE));
   pick(d.preFire, (i) => depth(i) < 0.3 && Math.abs(W.x[i] - XC) < 0.15, (i) => (W.kind[i] = K_FIRE));
