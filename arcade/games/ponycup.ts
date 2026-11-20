@@ -130,10 +130,10 @@ export const STAGES: StageDef[] = [
   },
 ];
 export const STAGE_COUNT = STAGES.length;
-const CLEAR_PTS = 100, STAR_PTS = 60, WIN_PTS = 300, HEART_PTS = 100;
+const CLEAR_PTS = 100, STAR_PTS = 60, FIRST_PTS = 60, WIN_PTS = 300, HEART_PTS = 100;
 const mulOf = (k: number) => 1 + 0.5 * k;
 /** 훈련 연출 길이 · 능력이 오르는 순간 · 대회 전 준비 · 결과 */
-const ANIM_T = 104, APPLY_T = 60, PRE_T = 72, RACE_TICKS = 380, END_WAIT = 56, RESULT_OK = 175, RESULT_FAIL = 165, BANNER_T = 150;
+const ANIM_T = 104, APPLY_T = 60, PRE_T = 56, RACE_TICKS = 330, END_WAIT = 45, RESULT_OK = 175, RESULT_FAIL = 165, BANNER_T = 150;
 
 // ───────────────────────────── 상태 ─────────────────────────────
 interface Card { k: TK; gain: number; friend: number; bonus: boolean; rain: boolean; p: number; born: number }
@@ -214,7 +214,7 @@ function makeRace(s: PonyState): Race {
   let x = 0;
   for (const [, len] of d.course) xs.push((x += len * SEG_LEN));
   const tmin = Math.min(...rs.map((r) => r.T)), tmax = Math.max(...rs.map((r) => r.T));
-  return { rs, xs, D: x, rc: 0, scale: tmin / RACE_TICKS, slow: false, slowT: 0, ended: -1, photo: false, passed: false, seg: 0, live: 0, tmin, tcap: Math.min(tmax, Math.max(rs[0].T, tmin * 1.22)) + tmin * 0.02 };
+  return { rs, xs, D: x, rc: 0, scale: tmin / RACE_TICKS, slow: false, slowT: 0, ended: -1, photo: false, passed: false, seg: 0, live: 0, tmin, tcap: Math.min(tmax, Math.max(rs[0].T, tmin * 1.1)) + tmin * 0.015 };
 }
 /** 경주 시각 rc에 그 선수가 간 거리 */
 function posAt(r: Runner, rc: number, xs: number[]): number {
@@ -379,7 +379,7 @@ function endRace(s: PonyState) {
     s.starOk = d.stars.map((q) => starMet(s, q));
     s.got = s.starOk.filter(Boolean).length;
     s.stars += s.got;
-    s.pts += (CLEAR_PTS + s.got * STAR_PTS) * mulOf(s.stage);
+    s.pts += (CLEAR_PTS + s.got * STAR_PTS + (s.rank === 1 ? FIRST_PTS : 0)) * mulOf(s.stage);
     if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS + s.hearts * HEART_PTS);
     ev(s, 'clear', 0.5, 0.4, s.rank);
   } else {
@@ -397,15 +397,15 @@ function raceTick(s: PonyState) {
   const mx = posAt(me, r.rc, r.xs);
   // 결승선 앞 코 차 승부: 망아지 곁에 누가 붙어 있으면 슬로모션
   let slow = false;
-  if (!me.done && mx > r.D * 0.88) for (let i = 1; i < r.rs.length; i++) {
+  if (!me.done && mx > r.D * 0.9) for (let i = 1; i < r.rs.length; i++) {
     const o = r.rs[i];
-    if (!o.done && Math.abs(posAt(o, r.rc, r.xs) - mx) < r.D * 0.03) slow = true;
+    if (!o.done && Math.abs(posAt(o, r.rc, r.xs) - mx) < r.D * 0.022) slow = true;
   }
   if (slow && !r.slow) (see(s, 'slowmo'), ev(s, 'slow', 0.5, 0.5));
   r.slow = slow;
   if (slow) r.slowT++;
   const before = r.live || livePlace(r);
-  r.rc += r.scale * (slow ? 0.26 : 1);
+  r.rc += r.scale * (slow ? 0.36 : 1);
   const now = livePlace(r);
   const nx = posAt(me, r.rc, r.xs), sg = segAt(Math.min(nx, r.D - 0.01), r.xs);
   if (sg !== r.seg) (r.seg = sg), ev(s, 'seg', 0.5, 0.5, sg);

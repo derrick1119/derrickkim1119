@@ -2329,7 +2329,7 @@ function drawAll(ctx: C2, s: RocketState, w: number, h: number, th: Theme) {
   for (const db of vis.debris) {
     const tt = t - db.t0;
     if (tt > 150) continue;
-    const alt = db.alt + db.v0 * tt - 0.55 * tt * tt;
+    const alt = db.alt + db.v0 * tt - 0.28 * tt * tt;
     const y = gy(alt), x = X(db.x + db.vx * tt);
     if (y > Y(PANEL_Y) + R(0.3)) continue;
     if (db.boost) {

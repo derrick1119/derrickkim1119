@@ -1,14 +1,19 @@
 /**
  * 둥실 섬 마을 짓기 (35라운드: 또 다른 장르 6개 — 톡 하나) — 이웃 점수 자리 고르기 × 꾸미기.
- * 조작은 톡뿐: 받은 건물(아래 카드)을 놓을 섬의 빈칸을 톡 → 건물이 하늘에서 '쿵' 내려앉고,
- *   옆 건물들이 점수 숫자를 휙휙 날려 꽂는다(좋아하는 이웃 +, 싫어하는 이웃 −). 한 번에 크게 받으면 숫자가 커지고 화면이 흔들린다.
+ * 조작은 톡뿐: 받은 건물(아래 '지금' 카드)을 놓을 섬의 빈칸을 톡 → 건물이 하늘에서 '쿵' 내려앉고,
+ *   옆 건물들이 점수 숫자를 휙휙 날려 꽂는다(좋아하는 이웃 +, 싫어하는 이웃 −). 한 번에 7점 이상 받으면 숫자가 커지고 화면이 흔들리며 잠깐 느려진다.
  *   빈칸마다 '여기 두면 몇 점'이 늘 떠 있다(고르기 전에 보이는 미리 보기). 아무것도 안 누르면 아무 일도 없다 — 시간 압박 없음.
- * 와우: 점수 막대가 표시까지 차면 바다에서 새 섬 조각이 '쑤욱' 솟아 놓을 땅이 넓어지고 새 건물 꾸러미가 배로 실려 온다.
- * 판: 건물이 다 떨어지거나 빈칸이 다 차면 끝. 목표 점수를 넘기면 별(쉬운 한 줄 말, 판마다 하나씩 늘어남), 못 넘기면 하트 −1·그 판만 다시.
- * 판 7개 · 판마다 새것(하는 일이 바뀐다): 1 집(나무 옆) · 새 섬 → 2 빵집(집을 모은다) → 3 등대(바다 쪽 끝자리를 아낀다)
- *   → 4 시끄러운 대장간(집과 떼어 놓을 구석을 남긴다) → 5 분수(빙 둘러 채운다) → 6 화산 섬(용암 칸 — 집은 멀리, 대장간은 가까이)
- *   → 7 축제 섬(새 섬 둘).
- * 고민: 지금 점수가 가장 큰 칸 vs 다음 건물(미리 보기)을 위해 남겨 둘 칸.
+ *   키보드: 화살표 커서 + 스페이스(플레이어가 가상 커서를 그린다).
+ * 와우: 점수 막대가 표시(섬 그림)까지 차면 바다가 부풀어 오르며 새 섬 조각이 '쑤욱' 솟아 놓을 땅이 넓어지고,
+ *   새 건물 꾸러미가 섬에서 카드 줄로 날아온다. 솟은 섬의 나무·용암도 옆 건물과 점수를 주고받는다(나무 옆 집 +3, 용암 옆 집 −3).
+ * 보이는 정보: 지금 건물 · 다음 건물 · 그다음 줄 · 새 섬이 솟으면 올 꾸러미 · 물속에 비치는 새 섬의 나무·용암.
+ * 판: 건물이 다 떨어지거나 빈칸이 다 차면 끝(한 판에 6~8번 톡). 목표 점수를 넘기면 깬다. 별은 쉬운 한 줄 말(1판 1개 → 2판 2개 → 3판부터 3개),
+ *   못 넘기면 하트 −1·그 판만 다시(같은 섬). 하트 셋을 다 잃거나 7판을 마치면 끝.
+ * 판 7개 · 판마다 새것(하는 일이 바뀐다, 새 건물은 늘 '다음' 카드에 NEW로 먼저 보인다):
+ *   1 집(나무 옆 +3) · 새 섬 → 2 빵집(집을 빵집 둘레에 모은다) → 3 등대(바다로 튀어나온 끝자리를 집에게 주지 않고 아낀다)
+ *   → 4 시끄러운 대장간(나무 둘에 끼인 구석을 집에게 주지 않고 남긴다) → 5 분수(대각선까지 둘레 8칸 +2 — 가운데에 두고 빙 채운다)
+ *   → 6 화산 섬(솟을 용암 옆엔 집 대신 대장간·빵집·등대) → 7 축제 섬(새 섬 둘, 다 섞어서).
+ * 고민: 지금 점수가 가장 큰 칸 vs 다음 건물을 위해 남겨 둘 칸. '지금 가장 큰 칸' 버릇은 3판부터 별을 다 못 딴다(별 조건이 바로 그 자리 아끼기).
  */
 import { mulberry32, shuffle, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -149,7 +154,7 @@ export interface IsleState {
   hearts: number; stars: number; got: number; starOk: boolean[]; ok: boolean; pts: number; won: boolean; dead: boolean; again: boolean; tries: number;
   down: boolean; firstTap: number; firstBig: number; wowN: number; slow: number;
   seen: Set<string>; banner: { head: string; sub: string; t: number } | null; spot: { sea: boolean; q: number; t: number; label: string } | null;
-  events: Ev[]; bigText: string; bigT: number; cheer: number;
+  events: Ev[]; bigText: string; bigT: number;
 }
 
 const ev = (s: IsleState, kind: string, i: number, n?: number, text?: string) => s.events.push({ t: s.t, kind, i, n, text });
@@ -411,7 +416,7 @@ const game: GameDef<IsleState> & { wows(s: IsleState): number } = {
       cells: [], queue: [], qi: 0, sc: 0, risen: 0, rising: -1, best1: 0, placed: 0, drop: null, nid: 0, rgains: [], rgn: 0,
       hearts: 3, stars: 0, got: 0, starOk: [false], ok: false, pts: 0, won: false, dead: false, again: false, tries: 0,
       down: false, firstTap: -1, firstBig: -1, wowN: 0, slow: 0,
-      seen: new Set<string>(), banner: null, spot: null, events: [], bigText: '', bigT: -999, cheer: -999,
+      seen: new Set<string>(), banner: null, spot: null, events: [], bigText: '', bigT: -999,
     } as unknown as IsleState;
     s.mirror = s.rng() < 0.5;
     s.plans = STAGES.map((d) => ({ queue: [...d.queue.slice(0, 2), ...shuffle(d.queue.slice(2), s.rng)], packs: d.chunks.map((c) => shuffle(c.pack.slice(), s.rng)) }));
@@ -1198,8 +1203,8 @@ function drawThings(ctx: C2, s: IsleState, vis: Vis, G: Geo) {
     drawResidents(ctx, s, vis, G, row);
   }
   // 말풍선
-  if (vis.say && t - vis.say.t < 70 && vis.say.text && s.cells[vis.say.i].b) {
-    const i = vis.say.i, a = Math.min(1, (70 - (t - vis.say.t)) / 15);
+  if (vis.say && t - vis.say.t >= 10 && t - vis.say.t < 80 && vis.say.text && s.cells[vis.say.i].b) {
+    const i = vis.say.i, a = Math.min(1, (t - vis.say.t - 10) / 5, (80 - (t - vis.say.t)) / 15);
     const x = X(cellX(i)), y = Y(cellY(i) - CH * 0.95);
     ctx.globalAlpha = a;
     ctx.font = `800 ${Math.max(12, R(0.034))}px system-ui, sans-serif`;
