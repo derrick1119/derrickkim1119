@@ -1790,7 +1790,7 @@ const chainPop = (n: number): [string, string, number] => [`연쇄 ×${n}`, '#9f
 const bannerOf = (sw: boolean, n: number): [string, number] => [sw ? '싹쓸이!' : `${n}명 베기!`, sw ? 24 : Math.min(22, 14 + n * 2)];
 /** 꾹 글 두 줄(위 하늘): [N명 한 줄! 또는 스으…, 까닭] (M3 S12) */
 const HOLD2: Record<string, string> = { bounce: '방패에 튕겨요!', dodge: '휙! 꺾어요', tok: '툭! 꺾어요' };
-const holdCap = (n: number, why: string): [string, string] => [n >= 2 ? `${n}명 한 줄!` : '스으…', HOLD2[why] ?? ''];
+const holdCap = (n: number, why: string): [string, string] => [n >= 2 ? `스으… ${n}명 한 줄!` : '스으…', HOLD2[why] ?? '']; // 🧪 S12: 2명 이상에도 '스으…'(1-1 첫 꾹의 '느려졌다' 신호)
 /** 아래 팁 줄 */
 const HINT = {
   hold: '떼면 번쩍! 선 위의 적을 모두 베요', short: '게이지가 모자라 짧게만 돌진해요', first: '꾹 누르면 느려져요 — 떼면 번쩍!', bend: '끝에서 꺾어 쭉!',
@@ -2449,7 +2449,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     // M3 S12(🧪 S10 허들 2 숙련 ❌: 1-10·2-10에서 꾹 때 글 넷이 닌자 위 60px 안에 겹침 · 오너 '연출 과도'):
     //   꾹 글('N명 한 줄!' · '스으…' · '휙! 꺾어요' · '방패에 튕겨요!')은 위 하늘 한곳에 두 줄로 — 판 위엔 번호 · ✕ · '휙' 한 글자만
     {
-      const [c1, c2] = holdCap(prev.hits.length, prev.bounce ? 'bounce' : prev.dodges.length ? 'dodge' : prev.toks.length ? 'tok' : ''), cy = Math.max(R(0.085 + 0.15), dy * 0.75) - dy;
+      const [c1, c2] = holdCap(prev.hits.length, prev.bounce ? 'bounce' : prev.dodges.length ? 'dodge' : prev.toks.length ? 'tok' : ''), cy = Math.max(R(0.26), s.stage === 0 ? dy + Y(HZ) - R(0.13) : dy * 0.75) - dy;
+      // ↑ 🧪 S12 QC: 짧은 화면에서 싹쓸이 칩 아래끝(≈ R(0.215))과 맞붙던 것 → R(0.26) 아래 · 1-1은 지평선 바로 위(손끝에서 265px 위라 눈을 옮겨야 했다 · (95))
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       font(0.05, 900);

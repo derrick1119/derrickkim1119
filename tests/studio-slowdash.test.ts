@@ -603,7 +603,8 @@ describe('느린 시간 닌자 플레이 빌드', () => {
     const src = readFileSync('studio/slowdash/game.ts', 'utf8');
     expect(src.match(/명 한 줄!`/g)?.length).toBe(1); // holdCap 한 곳
     expect(src).not.toMatch(/fillText\('스으…'|'휙! 꺾어요' :|fillText\('방패에 튕겨요!'/); // 닌자·적 옆에 따로 쓰던 것 없음
-    expect(src).toMatch(/cy = Math\.max\(R\(0\.085 \+ 0\.15\), dy \* 0\.75\) - dy/); // HUD·띠 아래, 판 위 하늘
+    expect(src).toMatch(/cy = Math\.max\(R\(0\.26\), s\.stage === 0 \? dy \+ Y\(HZ\) - R\(0\.13\) : dy \* 0\.75\) - dy/); // HUD·싹쓸이 칩 아래, 판 위 하늘(1-1은 지평선 바로 위)
+    expect(readFileSync('studio/slowdash/index.html', 'utf8')).not.toMatch(/font-size:(\d|1[01])px/); // QC 4: 글자 12px 이상(🧪 S12: 판 고르기 별 이유 11px)
   });
   it('M3 S1 시안 모음: 스타일 넷(도트·3D·2.5D·2D)과 캐릭터 셋 그림이 있고, 모음 페이지가 일곱 장을 모두 가리킨다', () => {
     const dir = 'web/public/studio/slowdash/concepts/', page = readFileSync(dir + 'index.html', 'utf8');
