@@ -8,7 +8,8 @@ export const EVENTS = {
   rest: { title: '주막', art: 'priest', text: '고갯마루 주막에 들렀습니다. 두목과 맞서기 전에 숨을 고를 수 있습니다.', choices: p => [
     { label: '쉬어 간다', desc: G.run.crowns < 3 ? '깃발 +1' : '깃발이 가득 — 대신 군량 +1', pick: () => ['뜨끈한 국밥 한 그릇에 기운을 차렸습니다.', act.flag(1)] },
     p.train ? { label: `${UNITS[p.train].name} 조련`, desc: `${UNITS[p.train].name} Lv +1 (체력·${UNITS[p.train].heal ? '치유량' : '공격력'} +20%)`, pick: () => ['주막 마당에서 밤새 합을 맞췄습니다.', act.trainType(p.train)] } : null,
-    { label: '영웅 수련', desc: '영웅 Lv +1 (체력·공격력·영웅기 +20%)', pick: () => ['영웅이 홀로 새벽 수련을 마쳤습니다.', act.hero()] },
+    { label: '영웅 수련', desc: '영웅 Lv +1 (체력·공격력·영웅 패 +20%)', pick: () => ['영웅이 홀로 새벽 수련을 마쳤습니다.', act.hero()] },
+    G.run.deck.some(c => !c.up && c.id !== 'doubt') ? { label: '병법을 가다듬는다', desc: '패 한 장을 골라 강화한다', deck: 'up', story: '등잔불 아래에서 밤새 병법을 가다듬었습니다.' } : null,
     { label: '잔치를 벌인다', cost: 90, desc: '엽전 90 → 깃발 +1 그리고 무작위 병종 Lv +1', pick: () => { act.gold(-90); return ['고기와 술이 돌자 사기가 하늘을 찌릅니다.', act.flag(1), act.train()]; } },
   ] },
   ssireum: { title: '도깨비 씨름', art: 'orc', text: '길목에서 도깨비 하나가 씨름 한 판을 청합니다. "이기면 엽전을 주마. 지면 네 것을 좀 가져가마!"\n도깨비는 왼다리가 약하다는 옛말이 있습니다.', choices: () => [
@@ -22,7 +23,7 @@ export const EVENTS = {
   ] },
   shrine: { title: '서낭당', art: 'priest', text: '고갯마루 서낭당에 돌무더기가 쌓여 있습니다. 무녀가 말합니다.\n"정성을 올리면 산신께서 굽어보실 겁니다."', choices: () => [
     { label: '엽전을 바친다', cost: 40, desc: '엽전 40 → 깃발 +1 (가득하면 군량 +1)', pick: () => { act.gold(-40); return ['오색 천이 바람에 나부낍니다.', act.flag(1)]; } },
-    { label: '돌 하나를 얹는다', desc: '부정이 있으면 하나 씻긴다. 없으면 엽전 +15', pick: () => { const c = act.cleanse(); return c ? ['마음이 한결 가벼워졌습니다.', c] : ['돌 틈에서 누가 놓고 간 엽전을 발견했습니다.', act.gold(15)]; } },
+    { label: '돌 하나를 얹는다', desc: '부정이나 [잡념] 이 있으면 하나 씻긴다. 없으면 엽전 +15', pick: () => { const c = act.cleanse() || act.clearDoubt(); return c ? ['마음이 한결 가벼워졌습니다.', c] : ['돌 틈에서 누가 놓고 간 엽전을 발견했습니다.', act.gold(15)]; } },
   ] },
   peddler: { title: '떠돌이 약장수', art: 'wizard', text: '"이 약으로 말할 것 같으면, 애들은 가라!"\n약장수가 봇짐을 풀어 놓습니다. 솜씨 좋은 의병도 소개해 준다고 합니다.', choices: () => [
     { label: '보약을 산다', cost: 50, desc: '엽전 50 → 무작위 병종 Lv +1', pick: () => { act.gold(-50); return ['쓴맛에 다들 얼굴을 찌푸렸지만 효험은 확실합니다.', act.train()]; } },
@@ -43,12 +44,12 @@ export const EVENTS = {
   ] },
   well: { title: '우물가의 귀신', art: 'skel', text: '달빛 아래 우물가에서 소복 입은 귀신이 흐느낍니다.\n"내 한을… 풀어 주오."', choices: () => [
     { label: '굿으로 한을 풀어 준다', cost: 45, desc: '엽전 45 → 보물 [수호 부적]', pick: () => { act.gold(-45); return ['귀신이 환하게 웃으며 부적 한 장을 남기고 사라집니다.', act.relic('amulet')]; } },
-    { label: '사연만 들어 준다', desc: '엽전 +60, 대신 부정이 하나 붙는다', pick: () => ['귀신이 숨겨 둔 패물이 있는 곳을 일러 줍니다. 등골이 서늘합니다.', act.gold(60), act.curse()] },
+    { label: '사연만 들어 준다', desc: '엽전 +60, 대신 덱에 [잡념] 이 섞인다', pick: () => ['귀신이 숨겨 둔 패물이 있는 곳을 일러 줍니다. 그 흐느낌이 자꾸 귓가에 맴돕니다.', act.gold(60), act.doubt()] },
     { label: '돌아보지 않고 떠난다', desc: '아무 일도 없다', pick: () => ['흐느낌이 바람 소리에 묻힙니다.'] },
   ] },
   smith: { title: '산골 대장간', art: 'berserk', text: '산골 대장간에서 망치 소리가 울립니다. 대장장이가 땀을 훔치며 묻습니다.\n"뭘 손봐 드릴까?"', choices: () => [
+    { label: '새 무기를 맞춘다', cost: 45, desc: '엽전 45 → 무작위 무기 하나', pick: () => { act.gold(-45); return ['대장장이가 갓 벼린 무기를 내밉니다. 임자를 잘 만나야 한답니다.', act.weapon()]; } },
     { label: '무기를 벼린다', cost: 55, desc: '엽전 55 → 무작위 근접 병종 Lv +1', pick: () => { act.gold(-55); return ['날이 시퍼렇게 섰습니다.', act.train(melee)]; } },
-    { label: '갑옷을 맞춘다', cost: 60, desc: '엽전 60 → 보물 [두정갑]', pick: () => { act.gold(-60); return ['쇠못을 촘촘히 박은 갑옷이 완성됐습니다.', act.relic('plate')]; } },
     { label: '구경만 한다', desc: '아무 일도 없다', pick: () => ['불꽃 튀는 모루를 한참 구경했습니다.'] },
   ] },
   sansam: { title: '심봤다!', art: 'bishop', text: '바위틈에서 백 년 묵은 산삼을 발견했습니다!', choices: () => [
@@ -63,6 +64,15 @@ export const EVENTS = {
   jangseung: { title: '길가의 장승', art: 'treant', text: '길가의 장승이 눈을 부라리고 서 있습니다. 정성껏 절을 올리면 길을 지켜 준다고 합니다.', choices: () => [
     { label: '절을 올린다', desc: '다음 싸움을 사기 +4 로 시작한다', pick: () => ['장승의 눈매가 조금 누그러진 듯합니다.', act.morale(4)] },
     { label: '금줄을 걸어 준다', cost: 30, desc: '엽전 30 → 보물 [솟대]', pick: () => { act.gold(-30); return ['새끼줄에 흰 종이를 끼워 걸자 바람이 잦아듭니다.', act.relic('sotdae')]; } },
+  ] },
+  scholar: { title: '떠돌이 선비', art: 'necro', text: '고갯길 정자에서 갓 쓴 선비가 장기판을 펴 놓고 있습니다.\n"심심하던 차에 잘 오셨소. 병법 이야기나 나눕시다."', choices: () => [
+    { label: '병법을 배운다', cost: 30, desc: '엽전 30 → 무작위 패 한 장 강화', pick: () => { act.gold(-30); return ['선비의 훈수 한마디에 눈이 번쩍 뜨입니다.', act.cardUp()]; } },
+    { label: '내기 장기를 둔다', desc: '55%: 새 패 한 장  ·  45%: 덱에 [잡념]', pick: () => chance(0.55) ? ['"허허, 졌소." 선비가 품에서 병법 한 수를 적어 줍니다.', act.card()] : ['외통수에 걸렸습니다. 분해서 밤잠을 설칩니다.', act.doubt()] },
+    { label: '인사만 하고 지나간다', desc: '아무 일도 없다', pick: () => ['선비가 다시 혼자 장기를 둡니다.'] },
+  ] },
+  tomb: { title: '옛 장수의 무덤', art: 'skel', text: '풀이 무성한 무덤 앞 돌상에 녹슨 병장기가 놓여 있습니다.\n누군가 오래전에 두고 간 듯합니다.', choices: () => [
+    { label: '병장기를 가져간다', desc: '무기 하나, 대신 덱에 [잡념] 이 섞인다', pick: () => ['녹을 벗겨 내니 제법 쓸 만합니다. 뒷덜미가 조금 서늘합니다.', act.weapon(), act.doubt()] },
+    { label: '술 한 잔 올리고 절한다', desc: '패 [함성] 을 얻는다', pick: () => ['바람결에 옛 장수의 호령이 들리는 듯합니다.', act.card('cry')] },
   ] },
 };
 export function eventView(p) { const e = EVENTS[p.id] || EVENTS.rest; return { title: e.title, art: e.art, text: e.text, choices: e.choices(p).filter(Boolean) }; }

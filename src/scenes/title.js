@@ -40,13 +40,14 @@ export function backdrop() {
 export function dimBackdrop(g, a = 0.72) { g.drawImage(backdrop(), 0, 0, W, H); g.fillStyle = `rgba(241,231,207,${a})`; g.fillRect(0, 0, W, H); }
 
 export class TitleScene {
-  constructor() { this.t = 0; this.confirm = false; }
+  constructor() { this.t = 0; this.confirm = false; this.petals = Array.from({ length: 22 }, () => ({ x: Math.random() * W, y: Math.random() * H, s: 3 + Math.random() * 3, v: 24 + Math.random() * 30, ph: Math.random() * 9 })); }
   frame(g, dt) {
     this.t += dt; const t = this.t;
     g.drawImage(backdrop(), 0, 0, W, H);
     // 고개 너머에서 넘어오는 요괴들과 지키는 의병
     portrait(g, 'warchief', 548, 770 + Math.sin(t * 1.6) * 4, 1.25, t); portrait(g, 'goblin', 448, 800, 1.7, t, true); portrait(g, 'bomber', 648, 700 + Math.sin(t * 2.4) * 8, 1.6, t); portrait(g, 'rassassin', 470, 880, 1.5, t);
     portrait(g, 'xbow', 110, 930, 1.9, t); portrait(g, 'sword', 320, 950, 1.9, t); portrait(g, 'shield', 150, 1010, 2.0, t); portrait(g, 'commander', 244, 990, 2.0, t, true);
+    for (const p of this.petals) { p.x += (p.v + Math.sin(t * 1.3 + p.ph) * 12) * dt; p.y += (p.v * 0.5 + Math.cos(t * 1.7 + p.ph) * 10) * dt; if (p.x > W + 12 || p.y > H + 12) { p.x = -12 - Math.random() * 80; p.y = Math.random() * H * 0.8; } g.save(); g.globalAlpha = 0.85; g.translate(p.x, p.y); g.rotate(t * 1.6 + p.ph); g.scale(1, 0.35 + 0.65 * Math.abs(Math.sin(t * 2.2 + p.ph))); ell(g, 0, 0, p.s * 1.25, p.s * 0.7, p.ph > 4.5 ? '#f3c4c9' : '#fbf1ee', 'rgba(38,42,54,0.4)', 0.7); g.restore(); }
     // 제목
     const ty = 238 + Math.sin(t * 1.3) * 3;
     text(g, '도깨비', 300, ty - 58, { size: 150, font: FONT_B, fill: INK, stroke: '#ecdfc2', lw: 10 });

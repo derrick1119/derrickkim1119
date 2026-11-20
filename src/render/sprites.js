@@ -1,5 +1,6 @@
 // 종이 인형 병종 스프라이트 — 앞모습 한 장 + (필요하면) 손에 든 무기 한 장
-import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, SKIN, st, fs, ell, rr, poly, line, path, paperSprite } from './draw.js';
+import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, SKIN, st, fs, ell, rr, poly, line, path, paperSprite, drawSprite } from './draw.js';
+import { WEAPONS as WDATA, ARMS } from '../data/weapons.js';
 
 const WHITE = '#fbf7ec', BLACK = '#2b2a30', STEEL = '#e4e8ea', IRON = '#4a4a55', WOOD = '#a9753f', WOODD = '#7a4a2c';
 const HX = 15.5, HY = -18.4; // 인형의 손 위치
@@ -46,15 +47,19 @@ const HATS = {
 function doll(g, o) {
   const robe = o.robe, sl = o.sleeve || robe, skin = o.skin || SKIN;
   if (o.back) o.back(g);
+  if (!o.tatter) for (const s of [-1, 1]) path(g, p => { p.moveTo(s * 2.2, -1.6); p.quadraticCurveTo(s * 3, 2.8, s * 8.6, 1.5); p.quadraticCurveTo(s * 9.2, -1.4, s * 5, -2.6); p.closePath(); }, o.shoe || '#3a3238', INK, 1);
   for (const s of [-1, 1]) {
     if (o.bare) ell(g, s * 12.4, -25, 3.6, 7.6, skin, INK, 1.1, s * -0.5);
-    else { path(g, p => { p.moveTo(s * 7, -33.5); p.quadraticCurveTo(s * 17.5, -31, s * 18, -19.5); p.lineTo(s * 12, -17); p.quadraticCurveTo(s * 10, -24, s * 6, -26); p.closePath(); }, sl, INK, 1.2); if (o.stripes) o.stripes.forEach((c, i) => line(g, [s * (13 + i * 1.6), -29 + i * 3.2, s * (11.5 + i * 1.5), -19.5 + i * 0.8], c, 1.8)); }
+    else { path(g, p => { p.moveTo(s * 7, -33.5); p.quadraticCurveTo(s * 17.5, -31, s * 18, -19.5); p.lineTo(s * 12, -17); p.quadraticCurveTo(s * 10, -24, s * 6, -26); p.closePath(); }, sl, INK, 1.2); line(g, [s * 12.4, -17.6, s * 17.6, -19.8], o.cuff || WHITE, 1.7); g.globalAlpha = 0.2; line(g, [s * 9.6, -30.4, s * 12.6, -22], INK, 0.9); g.globalAlpha = 1; if (o.stripes) o.stripes.forEach((c, i) => line(g, [s * (13 + i * 1.6), -29 + i * 3.2, s * (11.5 + i * 1.5), -19.5 + i * 0.8], c, 1.8)); }
   }
   path(g, p => {
     p.moveTo(-7.5, -34); p.lineTo(7.5, -34); p.quadraticCurveTo(10, -18, 15.5, -3);
     if (o.tatter) { p.lineTo(11, -6.5); p.lineTo(7.5, -1); p.lineTo(4, -6); p.lineTo(0, 0.5); p.lineTo(-4, -6); p.lineTo(-7.5, -1); p.lineTo(-11, -6.5); p.lineTo(-15.5, -3); } else p.quadraticCurveTo(0, 1.8, -15.5, -3);
     p.quadraticCurveTo(-10, -18, -7.5, -34); p.closePath();
   }, robe, INK, 1.25);
+  g.globalAlpha = 0.2; line(g, [-3.2, -15, -6.2, -3], INK, 1); line(g, [4.8, -14, 7.6, -3.2], INK, 1); line(g, [0.8, -9, 1, -0.8], INK, 0.9); g.globalAlpha = 1;
+  if (o.hem && !o.tatter) path(g, p => { p.moveTo(-15.5, -3); p.quadraticCurveTo(0, 1.8, 15.5, -3); p.lineTo(14.5, -5.8); p.quadraticCurveTo(0, -1.2, -14.5, -5.8); p.closePath(); }, o.hem, INK, 0.9);
+  if (o.dots) for (const [x, y] of [[-7, -12], [6.5, -9], [-2, -7], [9.5, -15], [-10.5, -6.5], [2.5, -15]]) ell(g, x, y, 0.9, 0.9, o.dots);
   if (o.vest) for (const s of [-1, 1]) path(g, p => { p.moveTo(s * 7.5, -34); p.lineTo(s * 3, -34); p.lineTo(s * 4.5, -3.5); p.quadraticCurveTo(s * 10, -2.5, s * 15.5, -3); p.quadraticCurveTo(s * 10, -18, s * 7.5, -34); p.closePath(); }, o.vest, INK, 1);
   path(g, p => { p.moveTo(-5.4, -34.2); p.lineTo(1.4, -25); p.lineTo(5.4, -34.2); p.lineTo(3.2, -34.2); p.lineTo(1.2, -29); p.lineTo(-3.2, -34.2); p.closePath(); }, o.collar || WHITE, INK, 0.85);
   if (o.kasaya) path(g, p => { p.moveTo(-7.6, -33.6); p.lineTo(-2.6, -34); p.lineTo(11.6, -12.5); p.lineTo(9.4, -17.4); p.lineTo(8.6, -22.5); p.closePath(); p.moveTo(-7.6, -33.6); p.lineTo(8.6, -22.5); }, o.kasaya, INK, 1);
@@ -62,10 +67,13 @@ function doll(g, o) {
   if (o.sash) { path(g, p => { p.moveTo(-9.3, -23.2); p.quadraticCurveTo(0, -21, 9.3, -23.2); p.lineTo(10, -19.4); p.quadraticCurveTo(0, -17.2, -10, -19.4); p.closePath(); }, o.sash, INK, 1); path(g, p => { p.moveTo(2, -19.6); p.lineTo(3.6, -10.5); p.lineTo(6.6, -11.5); p.lineTo(5.4, -19.8); p.closePath(); }, o.sash, INK, 0.85); }
   if (o.beads) for (let i = -3; i <= 3; i++) ell(g, i * 1.9, -30.6 + (9 - i * i) * 0.42, 1.15, 1.15, '#7a4a2c', INK, 0.5);
   ell(g, -HX, HY, 3, 3, skin, INK, 1.1); ell(g, HX, HY, 3, 3, skin, INK, 1.1);
+  if (!o.pale && o.hat !== 'bald') for (const s of [-1, 1]) ell(g, s * 7, -42, 1.5, 3, o.hat === 'sage' ? WHITE : o.hair || BLACK, INK, 0.7);
+  g.globalAlpha = 0.18; ell(g, 0, -33.6, 5, 1.6, INK); g.globalAlpha = 1;
   ell(g, 0, -41, 7.6, 7.4, skin, INK, 1.25);
   if (o.pale) { g.globalAlpha = 0.4; ell(g, -2.8, -40, 2.5, 2.3, '#4a4a6a'); ell(g, 2.8, -40, 2.5, 2.3, '#4a4a6a'); g.globalAlpha = 1; }
   else { g.globalAlpha = 0.5; ell(g, -4.9, -38.2, 1.7, 1.05, '#e98a6a'); ell(g, 4.9, -38.2, 1.7, 1.05, '#e98a6a'); g.globalAlpha = 1; }
-  ell(g, -2.8, -40.4, 0.95, 1.3, INK); ell(g, 2.8, -40.4, 0.95, 1.3, INK);
+  ell(g, -2.8, -40.4, 0.95, 1.3, INK); ell(g, 2.8, -40.4, 0.95, 1.3, INK); ell(g, -2.5, -40.9, 0.32, 0.32, '#fff'); ell(g, 3.1, -40.9, 0.32, 0.32, '#fff');
+  if (!o.beard) line(g, [-1.3, -36.9, 0, -36.4, 1.3, -36.9], '#8a4a3a', 0.8);
   if (o.brow) { line(g, [-5, -43.2, -1.4, -42.2], INK, 1.2); line(g, [5, -43.2, 1.4, -42.2], INK, 1.2); }
   if (o.beard === 'long') path(g, p => { p.moveTo(-4.8, -38); p.quadraticCurveTo(-5.4, -28, 0, -21.5); p.quadraticCurveTo(5.4, -28, 4.8, -38); p.quadraticCurveTo(0, -35.4, -4.8, -38); }, WHITE, INK, 0.9);
   else if (o.beard) path(g, p => { p.moveTo(-4.2, -37.4); p.quadraticCurveTo(0, -28.5, 4.2, -37.4); p.quadraticCurveTo(0, -35.6, -4.2, -37.4); }, o.beard, INK, 0.9);
@@ -93,12 +101,17 @@ function dokkaebi(g, o) {
   path(g, p => { p.moveTo(-13.5, -6); p.quadraticCurveTo(-16.5, -22, -12.5, -34); p.quadraticCurveTo(-8, -45.5, 0, -45.5); p.quadraticCurveTo(8, -45.5, 12.5, -34); p.quadraticCurveTo(16.5, -22, 13.5, -6); p.quadraticCurveTo(0, -2, -13.5, -6); p.closePath(); }, sk, INK, 1.3);
   path(g, p => { p.moveTo(-14, -12.5); p.quadraticCurveTo(0, -9.5, 14, -12.5); p.lineTo(13.4, -5.6); p.lineTo(8, -2.6); p.lineTo(4, -5.6); p.lineTo(0, -2); p.lineTo(-4, -5.6); p.lineTo(-8, -2.6); p.lineTo(-13.4, -5.6); p.closePath(); }, o.cloth || '#e6aa3e', INK, 1.1);
   for (const x of [-9, -3, 3.5, 9.5]) poly(g, [x - 1.4, -11.2, x + 1.4, -11, x + 0.2, -6.4], BLACK);
+  g.globalAlpha = 0.16; for (const [x, y, r] of [[-9, -18, 2.6], [8.5, -27, 2.2], [10, -16, 1.8], [-10.5, -28, 1.6]]) ell(g, x, y, r, r * 0.85, INK); g.globalAlpha = 0.22; ell(g, 0, -15.5, 7.5, 3.4, '#fff7e0'); g.globalAlpha = 1;
+  for (const s of [-1, 1]) for (const dx of [-2.2, 0, 2.2]) poly(g, [s * 6.5 + dx - 0.9, -0.4, s * 6.5 + dx, 1.6, s * 6.5 + dx + 0.9, -0.4], '#f3e7c8', INK, 0.5);
+  for (const s of [-1, 1]) poly(g, [s * 11.6, -34.5, s * 18.4, -39.5, s * 14, -28.5], sk, INK, 1.1);
   ell(g, -16, -20, 3.8, 5.4, sk, INK, 1.1, 0.3); ell(g, 16.4, -21, 3.8, 5.4, sk, INK, 1.1, -0.3);
+  line(g, [-18.6, -22.6, -14, -24.8], OCHRE, 1.6); line(g, [14.2, -25.6, 18.8, -23.6], OCHRE, 1.6);
   path(g, p => { p.moveTo(-12, -35); p.lineTo(-15.5, -43); p.lineTo(-9.5, -41.5); p.lineTo(-10, -49); p.lineTo(-4.5, -45.5); p.lineTo(-2, -50.5); p.lineTo(2, -45.5); p.lineTo(5, -50); p.lineTo(8, -44); p.lineTo(13.5, -45.5); p.lineTo(12, -35); p.quadraticCurveTo(0, -42, -12, -35); p.closePath(); }, o.hair || BLACK, INK, 1.1);
   if (o.horns === 2) for (const s of [-1, 1]) path(g, p => { p.moveTo(s * 4, -46); p.quadraticCurveTo(s * 9, -52, s * 8, -58); p.quadraticCurveTo(s * 3, -53, s * 1, -47); p.closePath(); }, '#f3e7c8', INK, 1.1);
   else path(g, p => { p.moveTo(-2.6, -46.5); p.quadraticCurveTo(0, -55, 1.6, -57.5); p.quadraticCurveTo(3.4, -52, 2.8, -46.5); p.closePath(); }, '#f3e7c8', INK, 1.1);
   ell(g, -5, -31, 3.8, 3.6, WHITE, INK, 1.1); ell(g, 5, -31, 3.8, 3.6, WHITE, INK, 1.1); ell(g, -4.2, -30.6, 1.4, 1.6, INK); ell(g, 4.2, -30.6, 1.4, 1.6, INK);
   line(g, [-9.5, -36.2, -2, -33.8], INK, 1.9); line(g, [9.5, -36.2, 2, -33.8], INK, 1.9);
+  ell(g, 0, -26.6, 2.3, 1.7, 'rgba(60,20,20,0.3)', INK, 0.8); g.globalAlpha = 0.3; ell(g, -9.4, -26, 2.2, 1.4, '#ffd9c0'); ell(g, 9.4, -26, 2.2, 1.4, '#ffd9c0'); g.globalAlpha = 1;
   path(g, p => { p.moveTo(-7.5, -23.5); p.quadraticCurveTo(0, -21, 7.5, -23.5); p.quadraticCurveTo(5.6, -16.8, 0, -16.8); p.quadraticCurveTo(-5.6, -16.8, -7.5, -23.5); p.closePath(); }, '#7a1f1c', INK, 1.1);
   poly(g, [-5.4, -22.6, -3.6, -18.4, -1.8, -22], WHITE, INK, 0.7); poly(g, [5.4, -22.6, 3.6, -18.4, 1.8, -22], WHITE, INK, 0.7);
   if (o.beads) for (let i = -3; i <= 3; i++) ell(g, i * 3.2, -13.8 - (9 - i * i) * 0.12, 1.5, 1.5, i % 2 ? RED : '#f3e7c8', INK, 0.6);
@@ -196,6 +209,16 @@ function eoduksini(g) {
   path(g, p => { p.moveTo(-5.6, -36.6); p.lineTo(-3.6, -34.6); p.lineTo(-1.8, -36.6); p.lineTo(0, -34.6); p.lineTo(1.8, -36.6); p.lineTo(3.6, -34.6); p.lineTo(5.6, -36.6); p.quadraticCurveTo(0, -30.6, -5.6, -36.6); p.closePath(); }, '#3a2a36', INK, 0.9);
   ell(g, 0, -46.4, 1.2, 1.4, '#e0503f');
 }
+function scarecrow(g) {
+  line(g, [0, 4, 0, -30], INK, 3.6); line(g, [0, 4, 0, -30], '#8a6a3c', 2);
+  line(g, [-19, -27, 19, -27], INK, 3.4); line(g, [-19, -27, 19, -27], '#8a6a3c', 1.8);
+  path(g, p => { p.moveTo(-17, -31); p.lineTo(17, -31); p.lineTo(15, -22); p.lineTo(8.5, -24); p.lineTo(10.5, -6); p.lineTo(6, -9); p.lineTo(2.5, -4.5); p.lineTo(-1.5, -9); p.lineTo(-5.5, -4.5); p.lineTo(-10.5, -7); p.lineTo(-8.5, -24); p.lineTo(-15, -22); p.closePath(); }, '#d8cfb2', INK, 1.2);
+  rr(g, -6.5, -19, 6, 6, 0.6, '#a84a32', INK, 0.8); rr(g, 2, -14, 5, 5, 0.6, INDIGO, INK, 0.8); line(g, [-5, -17, -2, -15], INK, 0.6);
+  for (const s of [-1, 1]) for (const d of [-2, 0, 2]) line(g, [s * 17, -27 + d, s * 22.5, -27 + d * 2.2], '#d9b24a', 1.1);
+  for (const x of [-7, -3.5, 0, 3.5, 7]) line(g, [x, -6, x * 1.2, -1], '#d9b24a', 1.1);
+  ell(g, 0, -38, 7.4, 7.2, '#ecdcae', INK, 1.2); line(g, [-4.2, -39.5, -1.6, -38.2], INK, 1.1); line(g, [-4.2, -38.2, -1.6, -39.5], INK, 1.1); ell(g, 3, -38.8, 1, 1.2, INK); g.beginPath(); g.moveTo(-3, -34.6); g.quadraticCurveTo(0, -32.4, 3.4, -34.8); st(g, INK, 1); line(g, [-6, -35, -7.4, -31.5], '#d9b24a', 1); line(g, [6, -35, 7.4, -31.5], '#d9b24a', 1);
+  HATS.paeraeng(g);
+}
 function ghostDoll(o) { return g => { g.globalAlpha = 0.9; doll(g, Object.assign({ robe: '#c5d9df', collar: '#eef6f8', skin: '#e9f0f1', pale: true, tatter: true, hat: 'jeonrip', plain: true }, o)); g.globalAlpha = 1; }; }
 
 // ───────────── 무기 (원점 = 손잡이, 위쪽을 향함) ─────────────
@@ -212,6 +235,27 @@ const WEAPONS = {
   stick(g) { line(g, [0, 3, 0, -13], INK, 3); line(g, [0, 3, 0, -13], '#d9b77a', 1.6); ell(g, 0, -14.5, 2.4, 2.4, WHITE, INK, 0.9); },
   arm(g) { rr(g, -2, -30, 4, 34, 1.6, '#b98a55', INK, 1.2); rr(g, -6.4, -35, 12.8, 7, 2.4, WOODD, INK, 1.1); ell(g, 0, -36.5, 5, 4.6, '#a59f8f', INK, 1.1); },
   none() {},
+  // ── 갈아 끼우는 무기 ──
+  twin(g) { path(g, p => { p.moveTo(-1.2, -3); p.quadraticCurveTo(-0.4, -13, 3.6, -23); p.quadraticCurveTo(2.8, -12, 1.5, -3); p.closePath(); }, STEEL, INK, 1.1); rr(g, -2.9, -4.4, 5.8, 2.2, 1, RED, INK, 0.9); line(g, [0, -2, 0, 4.2], '#2b2a30', 2.2); },
+  axe(g) { line(g, [0, 7, 0, -22], INK, 3.2); line(g, [0, 7, 0, -22], WOOD, 1.7); path(g, p => { p.moveTo(-0.8, -23.5); p.quadraticCurveTo(8, -27, 11.5, -20.5); p.quadraticCurveTo(12.5, -14, 8.5, -9.5); p.quadraticCurveTo(5, -13.5, -0.8, -12.5); p.closePath(); }, STEEL, INK, 1.1); g.globalAlpha = 0.5; line(g, [9.4, -20, 9.8, -12.4], '#fff', 1); g.globalAlpha = 1; rr(g, -2, -24.5, 4, 3, 0.8, IRON, INK, 0.8); },
+  flail(g) { line(g, [0, 7, 0, -20], INK, 3.2); line(g, [0, 7, 0, -20], WOOD, 1.7); rr(g, -1.9, -22, 3.8, 3, 0.8, IRON, INK, 0.8); for (const [x, y] of [[1.6, -23.6], [3.4, -25.2], [5.2, -26.4]]) ell(g, x, y, 1.1, 1.1, null, INK, 0.9); g.save(); g.translate(6.4, -26.6); g.rotate(2.5); rr(g, -2, -15, 4, 15, 1.4, WOODD, INK, 1.1); for (const y of [-12.5, -8, -3.5]) rr(g, -2.5, y, 5, 1.8, 0.5, IRON, INK, 0.6); g.restore(); },
+  dangpa(g) { line(g, [0, 12, 0, -32], INK, 3.2); line(g, [0, 12, 0, -32], '#8a5a34', 1.7); for (const s of [-1, 1]) { g.beginPath(); g.moveTo(0, -30); g.quadraticCurveTo(s * 8, -31, s * 7, -41); st(g, INK, 3.2); g.beginPath(); g.moveTo(0, -30); g.quadraticCurveTo(s * 8, -31, s * 7, -41); st(g, STEEL, 1.7); } poly(g, [-2.2, -31, 0, -46, 2.2, -31], STEEL, INK, 1); path(g, p => { p.moveTo(-0.6, -27); p.quadraticCurveTo(-5.4, -24, -4, -19); p.quadraticCurveTo(-1.6, -22.5, 0.8, -23.4); p.closePath(); }, RED, INK, 0.8); },
+  hyeopdo(g) { line(g, [0, 16, 0, -26], INK, 3.2); line(g, [0, 16, 0, -26], '#5a3a2a', 1.7); path(g, p => { p.moveTo(-1.6, -24); p.quadraticCurveTo(-2, -38, 5.4, -48); p.quadraticCurveTo(6, -36, 2, -24); p.closePath(); }, STEEL, INK, 1.1); g.globalAlpha = 0.5; line(g, [0.2, -27, 3.6, -42], '#fff', 0.9); g.globalAlpha = 1; rr(g, -3, -25.6, 6, 2.4, 1, OCHRE, INK, 0.9); for (const d of [-1.2, 0.6]) line(g, [d, -22.5, d - 2.6, -16], RED, 1.1); },
+  bigaxe(g) { line(g, [0, 10, 0, -30], INK, 3.6); line(g, [0, 10, 0, -30], WOODD, 2); for (const s of [-1, 1]) path(g, p => { p.moveTo(s * 0.8, -29); p.quadraticCurveTo(s * 9, -34, s * 13.5, -27); p.quadraticCurveTo(s * 15, -20, s * 11.5, -13); p.quadraticCurveTo(s * 6, -18, s * 0.8, -17); p.closePath(); }, STEEL, INK, 1.2); rr(g, -2.4, -30, 4.8, 14, 1, IRON, INK, 0.9); poly(g, [-1.8, -30, 0, -35.5, 1.8, -30], STEEL, INK, 0.8); },
+  thresher(g) { line(g, [0, 9, 0, -24], INK, 3.4); line(g, [0, 9, 0, -24], WOODD, 1.9); rr(g, -2, -26, 4, 3, 0.8, IRON, INK, 0.8); for (const [x, y] of [[-1.6, -27.6], [-3.2, -29.4], [-4.8, -31]]) ell(g, x, y, 1.2, 1.2, null, INK, 0.9); g.save(); g.translate(-6, -31.4); g.rotate(-2.3); rr(g, -2.4, -17, 4.8, 17, 1.6, IRON, INK, 1.1); for (const [x, y, sg] of [[-2.4, -13, -1], [2.4, -13, 1], [-2.4, -7, -1], [2.4, -7, 1]]) poly(g, [x, y - 1.6, x + sg * 3.6, y, x, y + 1.6], '#c9cdd2', INK, 0.6); g.restore(); },
+  bow(g, o = {}) { const c = p => { p.moveTo(4.5, -18.5); p.bezierCurveTo(-0.5, -16.5, -6.5, -9.5, -2, 0); p.bezierCurveTo(-6.5, 9.5, -0.5, 16.5, 4.5, 18.5); }; g.beginPath(); c(g); st(g, INK, 3.6); g.beginPath(); c(g); st(g, o.wood || '#8a4f2c', 2); line(g, [4.5, -18.5, 4.5, 18.5], WHITE, 0.8); for (const y of [-12, 12]) line(g, [-2.6, y, 1.2, y + (y < 0 ? -1.6 : 1.6)], o.wrap || OCHRE, 1.4); if (o.extra) o.extra(g); ell(g, -0.6, 0, 3, 3, SKIN, INK, 1.1); },
+  firebow(g) { WEAPONS.bow(g, { wood: '#a8322a', wrap: '#2b2a30', extra: gg => { for (const y of [-18.5, 18.5]) { path(gg, p => { p.moveTo(4.5, y - 4.4); p.quadraticCurveTo(8.4, y - 1, 6, y + 2.6); p.quadraticCurveTo(4.5, y + 3.6, 3, y + 2.6); p.quadraticCurveTo(1, y - 0.4, 4.5, y - 4.4); }, '#ff9a2e', INK, 0.8); ell(gg, 4.5, y + 0.8, 1.1, 1.3, '#ffe9a0'); } } }); },
+  pyeonjeon(g) { WEAPONS.bow(g, { wood: '#3a3238', wrap: RED, extra: gg => { gg.save(); gg.translate(1.4, 0); gg.rotate(1.5708); rr(gg, -1.8, -11, 3.6, 16, 1.4, '#d9b77a', INK, 0.9); for (const y of [-7, -2]) line(gg, [-1.8, y, 1.8, y], '#8a6a3c', 0.8); gg.restore(); } }); },
+  crossbow(g) { rr(g, -2, -20, 4, 28, 1.4, WOOD, INK, 1.1); g.beginPath(); g.moveTo(-11.5, -9.5); g.quadraticCurveTo(0, -20.5, 11.5, -9.5); st(g, INK, 3.6); g.beginPath(); g.moveTo(-11.5, -9.5); g.quadraticCurveTo(0, -20.5, 11.5, -9.5); st(g, '#5a3a26', 2); line(g, [-11.5, -9.5, 0, -6, 11.5, -9.5], WHITE, 0.8); line(g, [0, -6, 0, -22], '#e9d9b0', 1.2); poly(g, [-1.5, -21.5, 0, -25.5, 1.5, -21.5], STEEL, INK, 0.7); rr(g, -2.6, -4.6, 5.2, 2.6, 0.8, IRON, INK, 0.7); },
+  gun(g) { rr(g, -1.3, -34, 2.6, 30, 1, IRON, INK, 1); path(g, p => { p.moveTo(-2.2, -14); p.lineTo(2.2, -14); p.lineTo(2.6, 2); p.quadraticCurveTo(5.4, 7, 3.4, 11.5); p.lineTo(-1.6, 11); p.quadraticCurveTo(-1.4, 5, -2.6, 2); p.closePath(); }, WOODD, INK, 1.1); for (const y of [-27, -19]) rr(g, -1.9, y, 3.8, 1.6, 0.4, OCHRE, INK, 0.5); g.beginPath(); g.moveTo(2, -9); g.quadraticCurveTo(6.4, -11, 4.6, -5); st(g, RED, 1.2); ell(g, 4.6, -4.6, 0.9, 0.9, '#ff9a2e'); },
+  firetal(g, o = {}) { g.save(); g.rotate(0.06); rr(g, -3.8, -21, 7.6, 17, 0.8, o.paper || '#f0d264', INK, 1); g.beginPath(); if (o.bolt) { g.moveTo(1.4, -19); g.lineTo(-1.6, -13.4); g.lineTo(0.8, -12.8); g.lineTo(-1.4, -6.4); } else { g.moveTo(-1.8, -18.4); g.lineTo(1.8, -16.2); g.lineTo(-1.8, -13.6); g.lineTo(1.8, -11); g.lineTo(0, -7.4); } st(g, o.inkc || RED, 1.2); ell(g, 0, -5.8, 0.9, 0.9, o.inkc || RED); g.restore(); },
+  icetal(g) { WEAPONS.firetal(g, { paper: '#d6eef6', inkc: INDIGO }); for (const [x, y] of [[-5.6, -18], [5.4, -10]]) { line(g, [x - 1.8, y, x + 1.8, y], '#8fd3e8', 1); line(g, [x, y - 1.8, x, y + 1.8], '#8fd3e8', 1); } },
+  bolttal(g) { WEAPONS.firetal(g, { paper: '#f3ecff', inkc: '#6a4a9a', bolt: true }); line(g, [4.6, -20, 6.8, -16.4, 5, -15.6, 7.2, -11.6], OCHRE, 1.1); },
+  featherfan(g) { for (let i = -2; i <= 2; i++) { g.save(); g.rotate(i * 0.3); path(g, p => { p.moveTo(-1.8, 0); p.quadraticCurveTo(-3.4, -9, 0, -15.5); p.quadraticCurveTo(3.4, -9, 1.8, 0); p.closePath(); }, WHITE, INK, 0.8); line(g, [0, -1, 0, -13], '#b9c8cc', 0.6); g.restore(); } rr(g, -1.4, -1, 2.8, 7, 1, WOODD, INK, 0.8); ell(g, 0, 0.4, 2, 2, OCHRE, INK, 0.7); },
+  fans(g) { const cols = [RED, OCHRE, INDIGO, TEAL, RED]; for (let i = 0; i < 5; i++) { g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, 12, -Math.PI * 0.5 - 0.95 + i * 0.38, -Math.PI * 0.5 - 0.95 + (i + 1) * 0.38); g.closePath(); fs(g, cols[i], INK, 0.8); } g.beginPath(); g.arc(0, 0, 9, -Math.PI * 0.5 - 0.95, -Math.PI * 0.5 + 0.95); st(g, 'rgba(251,247,236,0.6)', 0.8); ell(g, 0, 0, 1.6, 1.6, OCHRE, INK, 0.7); line(g, [0, 1, -1.4, 7], RED, 1); line(g, [0, 1, 1.6, 6.4], INDIGO, 1); },
+  staff(g) { line(g, [0.5, 20.4, 0.9, -33.6], INK, 3.2); line(g, [0.5, 20.4, 0.9, -33.6], '#8a6a3c', 1.7); g.beginPath(); g.arc(0.9, -37.6, 4.6, 0, TAU); st(g, INK, 3); g.beginPath(); g.arc(0.9, -37.6, 4.6, 0, TAU); st(g, OCHRE, 1.6); for (const s of [-1, 1]) { g.beginPath(); g.arc(0.9 + s * 4.6, -33.6, 2, 0, TAU); st(g, INK, 2.2); g.beginPath(); g.arc(0.9 + s * 4.6, -33.6, 2, 0, TAU); st(g, OCHRE, 1); } },
+  bells(g) { line(g, [0, 5, 0, -12], INK, 3); line(g, [0, 5, 0, -12], WOODD, 1.6); line(g, [0, -4, -5, 4], RED, 1.2); line(g, [0, -4, 4.4, 5], INDIGO, 1.2); line(g, [0, -4, -1, 7], OCHRE, 1.2); for (const [x, y] of [[-4.4, -13], [4.4, -13], [0, -17.6], [-3, -20.6], [3.2, -20.4], [0, -11.6]]) { ell(g, x, y, 2.5, 2.5, '#e6b93e', INK, 0.9); line(g, [x - 1.2, y + 0.9, x + 1.2, y + 0.9], INK, 0.6); } g.globalAlpha = 0.5; ell(g, -1, -18.6, 0.9, 0.6, '#fff'); g.globalAlpha = 1; },
+  bowl(g) { for (const [a, l] of [[-0.5, 15], [0.1, 18], [0.6, 14]]) { g.save(); g.translate(0, -7); g.rotate(a); line(g, [0, 0, 0, -l], '#3f6b5c', 1.2); for (let y = -4; y > -l; y -= 3.6) { ell(g, -1.8, y, 1.9, 0.9, '#5f9a6a', INK, 0.5, 0.6); ell(g, 1.8, y - 1.6, 1.9, 0.9, '#5f9a6a', INK, 0.5, -0.6); } g.restore(); } path(g, p => { p.moveTo(-7.4, -7.4); p.quadraticCurveTo(-6.6, 1.2, 0, 1.2); p.quadraticCurveTo(6.6, 1.2, 7.4, -7.4); p.closePath(); }, WHITE, INK, 1.1); ell(g, 0, -7.4, 7.4, 2.2, '#bfe3ee', INK, 1); line(g, [-5, -2.6, 5, -2.6], INDIGO, 0.9); rr(g, -3, 1, 6, 1.8, 0.6, WHITE, INK, 0.8); },
 };
 
 // ───────────── 병종별 외형 ─────────────
@@ -219,19 +263,20 @@ const hold = (a, mode, x, y) => ({ x: x === undefined ? HX : x, y: y === undefin
 const dk = (o, w) => ({ body: g => dokkaebi(g, o), weapon: w || 'club', hold: hold(0.35, 'slash', 16.4, -21), h: 56 });
 export const LOOKS = {
   // 아군
-  sword: { body: g => doll(g, { robe: INDIGO, sash: RED, hat: 'jeonrip' }), weapon: 'hwando', hold: hold(0.3) },
-  shield: { body: g => doll(g, { robe: TEAL, sash: OCHRE, hat: 'band', item: ITEM.shield }), weapon: 'short', hold: hold(0.25) },
-  spear: { body: g => doll(g, { robe: '#9a5a3c', sash: INDIGO, hat: 'paeraeng' }), weapon: 'spear', hold: hold(0.1, 'thrust') },
-  knight: { body: g => { g.scale(1.12, 1.12); horseman(g); }, weapon: 'lance', hold: hold(0.42, 'thrust', 8.6, -43), h: 76, w: 130, ox: 62 },
-  xbow: { body: g => doll(g, { robe: '#f3ecdd', vest: INDIGO, sash: RED, hat: 'band', back: ITEM.quiver, item: ITEM.bow }), weapon: 'none', hold: hold(0, 'shoot') },
-  wizard: { body: g => doll(g, { robe: '#8fa6b8', sash: BLACK, hat: 'yugeon', beard: BLACK, item: ITEM.talisman }), weapon: 'none', hold: hold(0, 'cast') },
-  priest: { body: g => doll(g, { robe: WHITE, stripes: [RED, OCHRE, INDIGO], sash: RED, hat: 'gokkal', item: ITEM.fans }), weapon: 'none', hold: hold(0, 'cast') },
+  sword: { body: g => doll(g, { robe: INDIGO, sash: RED, hat: 'jeonrip', hem: '#22385c' }), hold: hold(0.3) },
+  shield: { body: g => doll(g, { robe: TEAL, sash: OCHRE, hat: 'band', hem: '#2c4f44', item: ITEM.shield }), hold: hold(0.25) },
+  spear: { body: g => doll(g, { robe: '#9a5a3c', sash: INDIGO, hat: 'paeraeng', hem: '#6f3f2a' }), hold: hold(0.1, 'thrust') },
+  knight: { body: g => { g.scale(1.12, 1.12); horseman(g); }, hold: hold(0.42, 'thrust', 8.6, -43), h: 76, w: 130, ox: 62 },
+  xbow: { body: g => doll(g, { robe: '#f3ecdd', vest: INDIGO, sash: RED, hat: 'band', back: ITEM.quiver }), hold: hold(0, 'shoot') },
+  wizard: { body: g => doll(g, { robe: '#8fa6b8', sash: BLACK, hat: 'yugeon', beard: BLACK, hem: '#5f7890', dots: '#dfe8ee' }), hold: hold(0, 'cast') },
+  priest: { body: g => doll(g, { robe: WHITE, stripes: [RED, OCHRE, INDIGO], sash: RED, hat: 'gokkal', hem: RED }), hold: hold(0, 'cast') },
   cannon: { body: cart, weapon: 'none', hold: hold(0, 'shoot'), h: 46, still: true },
-  berserk: { body: g => doll(g, { robe: '#6b5a44', bare: true, sash: RED, hat: 'band', bandCol: RED, brow: true, beard: BLACK }), weapon: 'mace', hold: hold(0.4), wide: 1.14 },
+  berserk: { body: g => doll(g, { robe: '#6b5a44', bare: true, sash: RED, hat: 'band', bandCol: RED, brow: true, beard: BLACK, hem: '#4a3d2e' }), hold: hold(0.4), wide: 1.14 },
   // 영웅
-  commander: { body: g => doll(g, { robe: '#b8342a', studs: true, sash: OCHRE, hat: 'tugu', beard: BLACK, brow: true }), weapon: 'woldo', hold: hold(0.22), scale: 1.3, hero: true, h: 64 },
-  bishop: { body: g => doll(g, { robe: '#9a9a92', kasaya: '#a8442f', beads: true, hat: 'bald', item: ITEM.ringstaff }), weapon: 'none', hold: hold(0, 'cast'), scale: 1.3, hero: true, h: 62 },
-  archmage: { body: g => { ITEM.cloud(g); g.save(); g.translate(0, -3); doll(g, { robe: WHITE, sash: '#8fb6c8', beard: 'long', hat: 'sage', item: ITEM.feather }); g.restore(); }, weapon: 'none', hold: hold(0, 'cast'), scale: 1.3, hero: true, h: 62, float: true },
+  commander: { body: g => doll(g, { robe: '#b8342a', studs: true, sash: OCHRE, hat: 'tugu', beard: BLACK, brow: true, hem: OCHRE }), hold: hold(0.22), scale: 1.3, hero: true, h: 64 },
+  bishop: { body: g => doll(g, { robe: '#9a9a92', kasaya: '#a8442f', beads: true, hat: 'bald', hem: '#7a7a72' }), hold: hold(0, 'cast'), scale: 1.3, hero: true, h: 62 },
+  archmage: { body: g => { ITEM.cloud(g); g.save(); g.translate(0, -3); doll(g, { robe: WHITE, sash: '#8fb6c8', beard: 'long', hat: 'sage', hem: '#8fb6c8', item: gg => { ell(gg, 9, -15.5, 3.6, 4.4, '#b8742a', INK, 1); ell(gg, 9, -20.6, 2, 2, '#b8742a', INK, 1); } }); g.restore(); }, hold: hold(0, 'cast', HX, HY - 3), scale: 1.3, hero: true, h: 62, float: true },
+  decoy: { body: scarecrow, weapon: 'none', hold: hold(0, 'none'), h: 54, still: true },
   // 적군
   goblin: Object.assign(dk({ skin: '#d9603f' }), { scale: 0.8 }),
   orc: Object.assign(dk({ skin: '#4f9a8a', cloth: '#d98a3e' }), { scale: 1.06 }),
@@ -264,4 +309,33 @@ export function getLook(type) {
   L = { front, back: front, weapon, hold: d.hold, scale: (d.scale || 1) * UNIT_SCALE, h: d.h || 58, hero: !!d.hero, boss: !!d.boss, float: !!d.float, still: !!d.still };
   cache.set(type, L); return L;
 }
-export function preloadLooks() { for (const k of Object.keys(LOOKS)) getLook(k); }
+// 갈아 끼우는 무기: 그림 한 장 + 쥐는 법 (data/weapons.js 의 a·mode·hand)
+const wcache = new Map();
+export function getWeapon(wid) {
+  let w = wcache.get(wid); if (w) return w;
+  const d = WDATA[wid]; if (!d) return null;
+  w = { spr: paperSprite(WEAPONS[d.spr] || WEAPONS.hwando, { w: 64, h: 104, ox: 32, oy: 66 }), a: d.a || 0, mode: d.mode || 'slash', hand: d.hand || 'R', cast: d.cast === undefined ? 0.95 : d.cast };
+  wcache.set(wid, w); return w;
+}
+export const baseWeapon = type => (ARMS[type] ? ARMS[type].base : null);
+export function preloadLooks() { for (const k of Object.keys(LOOKS)) getLook(k); for (const k of Object.keys(WDATA)) getWeapon(k); }
+
+// 인형 초상 (패·정보창·지도용): 몸 + 손에 든 무기
+export function portrait(g, type, x, y, s, t = 0, bob = false, wpn) {
+  const L = getLook(type), k = s * L.scale, yy = y - (bob ? Math.abs(Math.sin(t * 5)) * 3 * s : 0), h = L.hold;
+  drawSprite(g, L.front, x, yy, k, k);
+  const W = getWeapon(wpn || baseWeapon(type));
+  if (W) {
+    if (W.hand === 'L') drawSprite(g, W.spr, x + (-h.x - 2) * k, yy + h.y * k, k, k, W.a);
+    else if (W.hand === 'C') drawSprite(g, W.spr, x + h.x * 0.42 * k, yy + (h.y - 1.5) * k, k, k, W.a);
+    else { drawSprite(g, W.spr, x + h.x * k, yy + h.y * k, k, k, W.a); if (W.hand === 'B') drawSprite(g, W.spr, x - h.x * k, yy + h.y * k, -k, k, -W.a); }
+  } else if (L.weapon) drawSprite(g, L.weapon, x + h.x * k, yy + h.y * k, k, k, h.a);
+}
+// 무기 그림만 (보관함·전리품용). [그림 중심까지의 거리, 길이] 로 칸 가운데에 비슷한 크기로 맞춘다
+const ICON = { hwando: [12, 34], twin: [10, 28], axe: [9, 34], flail: [12, 40], spear: [16, 56], lance: [18, 64], dangpa: [17, 58], hyeopdo: [16, 64], woldo: [14, 68], mace: [11, 34], bigaxe: [12, 45], thresher: [15, 52], crossbow: [8, 34], gun: [11, 46], firetal: [12.5, 20], icetal: [12.5, 20], bolttal: [12.5, 20], featherfan: [5, 24], fans: [3, 22], staff: [11, 62], bells: [8, 30], bowl: [10, 28] };
+export function weaponIcon(g, wid, x, y, s = 1) {
+  const W = getWeapon(wid), d = WDATA[wid]; if (!W) return;
+  if (W.hand === 'L') { drawSprite(g, W.spr, x + 2 * s, y, s * 1.6, s * 1.6, 0.5); return; }
+  const [c, span] = ICON[d.spr] || [12, 34], k = s * Math.min(2.7, 62 / span), rot = d.spr === 'fans' || d.spr === 'bowl' || d.spr === 'featherfan' ? 0 : 0.6;
+  drawSprite(g, W.spr, x - Math.sin(rot) * c * k, y + Math.cos(rot) * c * k, k, k, rot);
+}

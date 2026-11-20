@@ -50,6 +50,7 @@ function frame(ts) {
   const dt = Math.min(0.05, (ts - last) / 1000 || 0.016); last = ts;
   g.setTransform(scale, 0, 0, scale, 0, 0);
   g.imageSmoothingQuality = 'high';
+  ui.top = 0; ui.layer = 0;
   if (nav.cur) nav.cur.frame(g, dt, inp);
   if (nav.dir) {
     nav.fade = Math.max(0, Math.min(1, nav.fade + nav.dir * dt * 4.5));

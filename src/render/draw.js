@@ -46,16 +46,31 @@ export const SS = 3;
 export function paperSprite(draw, o = {}) {
   const w = o.w || 110, h = o.h || 124, ox = o.ox || 55, oy = o.oy || 110;
   const c = makeCanvas(w * SS, h * SS), g = c.getContext('2d'); g.scale(SS, SS); g.translate(ox, oy); draw(g);
+  if (o.grain !== false) paperGrain(c, o.grain || 1);
   let img = c; const border = o.border === undefined ? PAPER : o.border;
   if (border) {
-    const sil = makeCanvas(c.width, c.height), sg = sil.getContext('2d'); sg.drawImage(c, 0, 0); sg.globalCompositeOperation = 'source-in'; sg.fillStyle = border; sg.fillRect(0, 0, c.width, c.height);
+    const tint = col => { const k = makeCanvas(c.width, c.height), kg = k.getContext('2d'); kg.drawImage(c, 0, 0); kg.globalCompositeOperation = 'source-in'; kg.fillStyle = col; kg.fillRect(0, 0, c.width, c.height); return k; };
+    const sil = tint(border), edge = tint('rgba(96,78,52,0.5)');
     const out = makeCanvas(c.width, c.height), og = out.getContext('2d'); const d = (o.bw || 2.4) * SS;
-    for (let i = 0; i < 20; i++) og.drawImage(sil, Math.cos(i / 20 * TAU) * d, Math.sin(i / 20 * TAU) * d);
+    // 가위로 오린 종이: 크림색 테두리 바깥에 가는 그늘선을 한 번 더 두른다
+    for (let i = 0; i < 24; i++) og.drawImage(edge, Math.cos(i / 24 * TAU) * (d + 1.6), Math.sin(i / 24 * TAU) * (d + 1.6));
+    for (let i = 0; i < 24; i++) og.drawImage(sil, Math.cos(i / 24 * TAU) * d, Math.sin(i / 24 * TAU) * d);
+    for (let i = 0; i < 12; i++) og.drawImage(sil, Math.cos(i / 12 * TAU) * d * 0.5, Math.sin(i / 12 * TAU) * d * 0.5);
     og.drawImage(c, 0, 0); img = out;
   }
   let sh = null;
   if (o.shadow !== false) { sh = makeCanvas(c.width, c.height); const hg = sh.getContext('2d'); hg.drawImage(img, 0, 0); hg.globalCompositeOperation = 'source-in'; hg.fillStyle = o.shadow || 'rgba(50,36,20,0.26)'; hg.fillRect(0, 0, c.width, c.height); }
   return { img, sh, w, h, ox, oy, flash: null };
+}
+// 색종이 질감: 왼쪽 위는 밝게, 오른쪽 아래는 살짝 어둡게 + 잔 섬유 (그려진 부분에만 입힌다)
+function paperGrain(c, k) {
+  const g = c.getContext('2d'), w = c.width, h = c.height, R = rng(w * 31 + h * 7);
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-atop';
+  const gr = g.createLinearGradient(w * 0.2, 0, w * 0.8, h); gr.addColorStop(0, `rgba(255,248,228,${0.2 * k})`); gr.addColorStop(0.45, 'rgba(255,248,228,0)'); gr.addColorStop(1, `rgba(46,30,22,${0.2 * k})`);
+  g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  g.lineWidth = 1; const n = Math.round(w * h / 520);
+  for (let i = 0; i < n; i++) { const x = R() * w, y = R() * h, a = R() * TAU, l = 3 + R() * 8; g.strokeStyle = R() < 0.5 ? `rgba(255,255,255,${0.16 * k})` : `rgba(70,50,30,${0.1 * k})`; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); }
+  g.restore();
 }
 export function flashOf(spr) {
   if (!spr.flash) { const f = makeCanvas(spr.img.width, spr.img.height), fg = f.getContext('2d'); fg.drawImage(spr.img, 0, 0); fg.globalCompositeOperation = 'source-in'; fg.fillStyle = '#ffffff'; fg.fillRect(0, 0, f.width, f.height); spr.flash = f; }

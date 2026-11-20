@@ -3,7 +3,9 @@ import { UNITS, lvlMult } from './data/units.js';
 import { MAPS } from './data/stages.js';
 import { RELICS, CURSES } from './data/relics.js';
 import { genEncounter, ROWS } from './data/encounters.js';
-import { DEFAULT_MODS, PACE } from './sim/battle.js';
+import { DEFAULT_MODS, PACE, defOf } from './sim/battle.js';
+import { CARDS, starterDeck, cardName } from './data/cards.js';
+import { WEAPONS, ARMS, LOOT_WEAPONS, CLS_NAME, canEquip } from './data/weapons.js';
 
 const KEY = 'gogae.save.v2';
 export const meta = { best: 0, clears: 0, runs: 0, merit: 0, unlocked: {}, hard: 0, hardMax: 0, seen: {} };
@@ -12,7 +14,7 @@ const rnd = () => Math.random();
 const pick = arr => arr[(rnd() * arr.length) | 0];
 
 export function load() {
-  try { const d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d) { Object.assign(meta, d.meta || {}); G.run = d.run && !d.run.done && d.run.crowns > 0 ? d.run : null; } } catch (e) { /* 저장소 없음 */ }
+  try { const d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d) { Object.assign(meta, d.meta || {}); G.run = d.run && !d.run.done && d.run.crowns > 0 ? d.run : null; if (G.run && !G.run.deck) { G.run.deck = starterDeck(G.run.hero); G.run.items = []; } } } catch (e) { /* 저장소 없음 */ }
 }
 export function save() { try { localStorage.setItem(KEY, JSON.stringify({ meta, run: G.run })); } catch (e) { /* 무시 */ } }
 
@@ -36,7 +38,7 @@ export const HARD_DESC = ['', '요괴 체력 +8%', '요괴 체력 +16%, 수 +5%'
 
 // ───────── 원정 시작 ─────────
 export function newRun(hero) {
-  const r = G.run = { hero, ch: 0, crowns: 3, gold: has('p_gold') ? 60 : 0, squads: [], nextId: 1, lvl: {}, extra: {}, relics: [], capBonus: has('p_cap') ? 1 : 0, wins: 0, merit: 0, kills: 0, lost: 0, bosses: 0, hard: Math.min(meta.hard || 0, meta.hardMax || 0), map: null, enc: null, pending: null, rewardPending: null, evSeen: [], nextMorale: 0 };
+  const r = G.run = { hero, ch: 0, crowns: 3, gold: has('p_gold') ? 60 : 0, squads: [], nextId: 1, lvl: {}, extra: {}, relics: [], capBonus: has('p_cap') ? 1 : 0, wins: 0, merit: 0, kills: 0, lost: 0, bosses: 0, hard: Math.min(meta.hard || 0, meta.hardMax || 0), map: null, enc: null, pending: null, rewardPending: null, evSeen: [], nextMorale: 0, deck: starterDeck(hero), items: [], burns: 0 };
   const add = (type, col, row) => r.squads.push({ uid: r.nextId++, type, col, row, placed: true, hold: false });
   const back = UNITS[hero].range || UNITS[hero].heal;
   add(hero, back ? 3 : 2, 1); add('shield', 2, 0); add('sword', 3, 0); add('xbow', back ? 2 : 3, 2);
@@ -49,7 +51,7 @@ export const countOf = type => UNITS[type].n + (G.run.extra[type] || 0);
 export const cap = () => 8 + Math.min(G.run.wins, 12) + G.run.capBonus;
 export const used = () => G.run.squads.reduce((a, s) => a + (s.placed ? UNITS[s.type].cost : 0), 0);
 export function mods() { const m = Object.assign({}, DEFAULT_MODS); m.unit = {}; for (const id of G.run.relics) RELICS[id].mod(m); return m; }
-export function unitStats(type, lvl) { const d = UNITS[type], m = lvlMult(lvl || lvlOf(type)); return { hp: Math.round(d.hp * m * PACE), atk: Math.round((d.atk || d.heal || 0) * m), n: d.side === 0 ? countOf(type) : d.n }; }
+export function unitStats(type, lvl, wpn) { const d = defOf(type, wpn), m = lvlMult(lvl || lvlOf(type)); return { hp: Math.round(d.hp * m * PACE), atk: Math.round((d.atk || d.heal || 0) * m), as: d.as, n: d.side === 0 ? countOf(type) : d.n }; }
 export function squadAtCell(col, row) { return G.run.squads.find(s => s.placed && s.col === col && s.row === row) || null; }
 export const depth = () => { const r = G.run, n = r.map.cur === null ? null : r.map.nodes[r.map.cur]; return r.ch * (ROWS + 1) + (n ? n.r : 0); };
 
@@ -106,10 +108,10 @@ export function sceneFor() { const r = G.run; if (!r.pending) return 'map'; retu
 // ───────── 싸움 준비 ─────────
 export function battleSetup(seed) {
   const r = G.run, e = r.enc, m = mods(); m.startMorale += r.nextMorale || 0;
-  const player = r.squads.filter(s => s.placed).map(s => ({ type: s.type, col: s.col, row: s.row, n: countOf(s.type), lvl: lvlOf(s.type), hold: s.hold, uid: s.uid }));
+  const player = r.squads.filter(s => s.placed).map(s => ({ type: s.type, col: s.col, row: s.row, n: countOf(s.type), lvl: lvlOf(s.type), hold: s.hold, uid: s.uid, wpn: s.wpn }));
   const enemy = e.enemy.map(([type, col, row, o]) => Object.assign({ type, col, row, lvl: e.lvl }, o || {}));
   const foe = Object.assign({}, e.foe || {}); foe.hp = (foe.hp || 1) * (1 + 0.08 * r.hard);
-  return { map: MAPS[e.map], player, enemy, mods: m, foe, seed: seed || ((rnd() * 1e9) | 0), timeLimit: e.time, power: 1 + 0.085 * depth(), heroSkill: UNITS[r.hero].skill };
+  return { map: MAPS[e.map], player, enemy, mods: m, foe, seed: seed || ((rnd() * 1e9) | 0), timeLimit: e.time, power: 1 + 0.085 * depth(), deck: r.deck };
 }
 export function goldFor(grade, kind) { const m = mods(); return Math.round((28 + grade * 9 + (kind === 'boss' ? 40 : kind === 'elite' ? 18 : 0)) * m.gold * (1 - 0.05 * G.run.hard) + m.goldFlat); }
 
@@ -122,7 +124,10 @@ export function describeReward(o) {
   if (o.kind === 'train') { const d = UNITS[o.type], l = lvlOf(o.type); return { title: '조련', name: `${d.name} Lv${l} → Lv${l + 1}`, desc: `모든 ${d.name}의 체력과 ${d.heal ? '치유량' : '공격력'} +20%`, col: 'green' }; }
   if (o.kind === 'reinforce') { const d = UNITS[o.type]; return { title: '증원', name: `${d.name} +${o.n}명`, desc: `${d.name} 부대 인원 ${countOf(o.type)} → ${countOf(o.type) + o.n}명\n군량은 그대로입니다.`, col: 'green' }; }
   if (o.kind === 'relic') { const x = RELICS[o.id]; return { title: '보물', name: x.name, desc: x.desc, col: 'purple' }; }
-  if (o.kind === 'hero') { const d = UNITS[r.hero], l = lvlOf(r.hero); return { title: '영웅 수련', name: `${d.name} Lv${l} → Lv${l + 1}`, desc: '영웅의 체력·공격력·영웅기 위력 +20%', col: 'gold' }; }
+  if (o.kind === 'hero') { const d = UNITS[r.hero], l = lvlOf(r.hero); return { title: '영웅 수련', name: `${d.name} Lv${l} → Lv${l + 1}`, desc: '영웅의 체력·공격력·영웅 패 위력 +20%', col: 'gold' }; }
+  if (o.kind === 'weapon') { const w = WEAPONS[o.id]; return { title: '무기', name: w.name, desc: `${w.desc}\n${CLS_NAME[w.cls]} — ${usersOf(o.id).join('·')}`, col: 'blue' }; }
+  if (o.kind === 'card') { const c = CARDS[o.id]; return { title: '전술 패', name: cardName(o), desc: c.desc(Object.assign({}, c.v, o.up ? c.up : {})), col: 'purple' }; }
+  if (o.kind === 'burn') return { title: '패 태우기', name: '패 한 장 없애기', desc: '덱에서 패 한 장을 골라 없앱니다. 덱이 얇을수록 좋은 패가 자주 손에 들어옵니다.', col: 'gold' };
   if (o.kind === 'cleanse') return { title: '부정 씻기', name: RELICS[o.id].name, desc: `부정 [${RELICS[o.id].name}] 을 씻어냅니다.\n(${RELICS[o.id].desc})`, col: 'gold' };
   return { title: '군량 수레', name: '군량 +1', desc: '부대를 더 많이 배치할 수 있습니다.', col: 'gold' };
 }
@@ -133,12 +138,14 @@ function makeReward(kind, keys) {
   if (kind === 'reinforce') { const c = owned.filter(t => (r.extra[t] || 0) < 4); if (!c.length) return null; const t = pick(c); return { kind, type: t, n: UNITS[t].n >= 5 ? 2 : 1, key: 'rf' + t }; }
   if (kind === 'relic') { const pool = relicPool().filter(id => !keys.has('rl' + id)); if (!pool.length) return null; const id = pick(pool); return { kind, id, key: 'rl' + id }; }
   if (kind === 'hero') { if (lvlOf(r.hero) >= 6) return null; return { kind, key: 'hero' }; }
+  if (kind === 'weapon') { const pool = weaponPool().filter(id => !keys.has('wp' + id)); if (!pool.length) return null; const fresh = pool.filter(id => !r.items.includes(id) && !r.squads.some(q => q.wpn === id)); const id = pick(fresh.length ? fresh : pool); return { kind, id, key: 'wp' + id }; }
+  if (kind === 'card') { const o = rollCards('shop', 1, keys)[0]; return o ? { kind, id: o.id, up: o.up, key: 'cd' + o.id } : null; }
   return { kind: 'supply', key: 'supply' };
 }
-const TABLE = [['recruit', 30], ['train', 30], ['reinforce', 14], ['relic', 14], ['hero', 7], ['supply', 5]];
+const TABLE = [['recruit', 27], ['train', 27], ['reinforce', 12], ['relic', 12], ['weapon', 13], ['hero', 6], ['supply', 3]];
 export function rollRewards(kind) {
   const r = G.run, out = [], keys = new Set(), total = TABLE.reduce((a, t) => a + t[1], 0);
-  const forced = kind === 'boss' || kind === 'treasure' ? ['relic', 'relic', 'relic'] : kind === 'elite' ? ['relic', 'relic', null] : (r.squads.length < 6 ? ['recruit', null, null] : [null, null, null]);
+  const forced = kind === 'boss' || kind === 'treasure' ? ['relic', 'relic', 'relic'] : kind === 'elite' ? ['relic', 'weapon', null] : (r.squads.length < 6 ? ['recruit', null, null] : [null, null, null]);
   for (let guard = 0; out.length < 3 && guard < 200; guard++) {
     let k = forced[out.length];
     if (!k || guard > 40) { let x = rnd() * total; for (const [name, w] of TABLE) { if ((x -= w) < 0) { k = name; break; } } }
@@ -155,9 +162,35 @@ export function applyReward(o) {
   else if (o.kind === 'relic') r.relics.push(o.id);
   else if (o.kind === 'hero') r.lvl[r.hero] = lvlOf(r.hero) + 1;
   else if (o.kind === 'cleanse') r.relics = r.relics.filter(id => id !== o.id);
+  else if (o.kind === 'weapon') r.items.push(o.id);
+  else if (o.kind === 'card') r.deck.push({ id: o.id, up: !!o.up });
+  else if (o.kind === 'burn') r.burns = (r.burns || 0) + 1;
   else r.capBonus += 1;
   save();
 }
+// ───────── 무기 ─────────
+export const usersOf = wid => Object.keys(ARMS).filter(t => canEquip(t, wid)).map(t => UNITS[t].name);
+export function weaponPool() { const types = [...new Set(G.run.squads.map(s => s.type))]; return LOOT_WEAPONS.filter(w => types.some(t => canEquip(t, w))); }
+// 부대에 무기를 끼운다 (wid 가 없으면 기본 무기로). 쓰던 무기는 보관함으로 돌아간다
+export function equip(uid, wid) {
+  const r = G.run, s = r.squads.find(q => q.uid === uid); if (!s) return false;
+  if (wid) { const i = r.items.indexOf(wid); if (i < 0 || !canEquip(s.type, wid)) return false; r.items.splice(i, 1); }
+  if (s.wpn) r.items.push(s.wpn);
+  if (wid) s.wpn = wid; else delete s.wpn;
+  save(); return true;
+}
+// ───────── 전술 패 ─────────
+export function cardPool() { const h = G.run.hero; return Object.keys(CARDS).filter(id => CARDS[id].kind !== 'curse' && (!CARDS[id].hero || CARDS[id].hero === h)); }
+export function rollCards(kind, n = 3, keys) {
+  const pool = cardPool().filter(id => !keys || !keys.has('cd' + id)), out = [], upP = kind === 'boss' ? 1 : kind === 'elite' ? 0.3 : kind === 'shop' ? 0.15 : 0.08;
+  const w = id => CARDS[id].hero ? 4 : [10, 7, 3][CARDS[id].rare || 0] + (kind === 'boss' || kind === 'elite' ? (CARDS[id].rare || 0) * 2 : 0);
+  for (let g = 0; out.length < n && g < 60; g++) { let x = rnd() * pool.reduce((a, id) => a + w(id), 0), id = pool[0]; for (const c of pool) { if ((x -= w(c)) < 0) { id = c; break; } } if (!id || out.some(o => o.id === id)) continue; out.push({ id, up: rnd() < upP }); }
+  return out;
+}
+export function addCard(id, up) { G.run.deck.push({ id, up: !!up }); save(); }
+export function removeCard(i) { const d = G.run.deck; if (i < 0 || i >= d.length || d.length <= 4) return null; const c = d.splice(i, 1)[0]; save(); return c; }
+export function upgradeCard(i) { const c = G.run.deck[i]; if (!c || c.up || CARDS[c.id].kind === 'curse') return null; c.up = true; save(); return c; }
+
 // 군량이 남으면 대기 중인 부대를 빈 칸에 세운다 (extra: 곧 늘어날 군량)
 export function autoPlace(s, extra = 0) {
   const r = G.run; if (used() + UNITS[s.type].cost > cap() + extra) return false;
@@ -170,17 +203,20 @@ export function autoPlace(s, extra = 0) {
 // ───────── 장터 ─────────
 export function genShop() {
   const r = G.run, items = [], keys = new Set(), add = (kind, price) => { for (let g = 0; g < 20; g++) { const o = makeReward(kind, keys); if (o && !keys.has(o.key)) { keys.add(o.key); items.push(Object.assign(o, { price, sold: false })); return; } } };
-  add('recruit', 58); add('recruit', 58); add('relic', 92 + r.ch * 10); add('relic', 104 + r.ch * 10); add('train', 62 + r.ch * 8);
+  add('recruit', 58); add('recruit', 58); add('relic', 92 + r.ch * 10);
   const curse = r.relics.find(id => RELICS[id].curse);
-  if (curse) items.push({ kind: 'cleanse', id: curse, key: 'cl', price: 45, sold: false }); else add(rnd() < 0.5 ? 'reinforce' : 'supply', 60);
+  if (curse) items.push({ kind: 'cleanse', id: curse, key: 'cl', price: 45, sold: false }); else add(pick(['train', 'train', 'reinforce', 'supply']), 62 + r.ch * 6);
+  add('card', 0); add('card', 0); add('weapon', 58 + r.ch * 6);
+  for (const it of items) if (it.kind === 'card') it.price = (CARDS[it.id].hero ? 50 : [36, 48, 66][CARDS[it.id].rare || 0]) + (it.up ? 22 : 0);
+  items.push({ kind: 'burn', key: 'burn', price: 40 + (r.burns || 0) * 20, sold: false });
   for (const it of items) if (it.kind === 'recruit') it.price = 36 + UNITS[it.type].cost * 11;
   return items;
 }
 export function buyItem(i) { const r = G.run, it = r.pending.items[i]; if (!it || it.sold || r.gold < it.price) return false; r.gold -= it.price; it.sold = true; applyReward(it); return true; }
 
 // ───────── 사건에서 쓰는 도우미 ─────────
-export const EVENT_IDS = ['ssireum', 'axe', 'shrine', 'peddler', 'lost', 'bangmangi', 'boar', 'well', 'smith', 'sansam', 'fox', 'jangseung'];
-const EVENT_MIN = { well: 1, smith: 1 };
+export const EVENT_IDS = ['ssireum', 'axe', 'shrine', 'peddler', 'lost', 'bangmangi', 'boar', 'well', 'smith', 'sansam', 'fox', 'jangseung', 'scholar', 'tomb'];
+const EVENT_MIN = { well: 1, tomb: 1 };
 export const act = {
   gold(n) { const r = G.run; r.gold = Math.max(0, r.gold + n); return n >= 0 ? `엽전 +${n}` : `엽전 ${n}`; },
   flag(n) { const r = G.run; if (n > 0) { if (r.crowns >= 3) { r.capBonus++; return '깃발이 가득해 군량 +1'; } r.crowns++; return '깃발 +1'; } if (r.crowns > 1) { r.crowns--; return '깃발 -1'; } return act.gold(-50); },
@@ -194,6 +230,11 @@ export const act = {
   hero() { const r = G.run; if (lvlOf(r.hero) >= 6) return act.gold(40); r.lvl[r.hero] = lvlOf(r.hero) + 1; return `${UNITS[r.hero].name} Lv${lvlOf(r.hero)}`; },
   cap(n) { G.run.capBonus += n; fitCap(); return n > 0 ? `군량 +${n}` : `군량 ${n}`; },
   morale(n) { G.run.nextMorale = n; return `다음 싸움 시작 사기 +${n}`; },
+  weapon(id) { const r = G.run; if (!id) { const pool = weaponPool(), fresh = pool.filter(w => !r.items.includes(w) && !r.squads.some(q => q.wpn === w)); id = pick(fresh.length ? fresh : pool); } if (!id) return act.gold(40); r.items.push(id); return `무기 [${WEAPONS[id].name}] — ${WEAPONS[id].desc}`; },
+  card(id, up) { if (!id) id = rollCards('battle', 1)[0].id; G.run.deck.push({ id, up: !!up }); return `패 [${CARDS[id].name}${up ? '+' : ''}] 을 얻었습니다`; },
+  cardUp() { const d = G.run.deck.filter(c => !c.up && CARDS[c.id].kind !== 'curse'); if (!d.length) return act.gold(30); const c = pick(d); c.up = true; return `패 강화: [${CARDS[c.id].name}] → [${CARDS[c.id].name}+]`; },
+  doubt() { G.run.deck.push({ id: 'doubt', up: false }); return '부정 -1: 덱에 쓸모없는 패 [잡념] 이 섞였습니다'; },
+  clearDoubt() { const d = G.run.deck, i = d.findIndex(c => c.id === 'doubt'); if (i < 0) return null; d.splice(i, 1); return '덱에서 [잡념] 이 사라졌습니다'; },
 };
 
 // ───────── 원정 끝: 공적 정산 ─────────

@@ -4,18 +4,28 @@ import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT, FONT_
 export const C = { paper: PAPER, tray: '#f1e7cf', ink: INK, sub: SUB, navy: NAVY, indigo: INDIGO, red: RED, redD: REDD, gold: OCHRE, teal: TEAL, grey: '#a9a394', cream: '#fbf7ec' };
 
 // 입력 상태는 main.js 가 매 프레임 갱신한다
-export const ui = { inp: null, active: null, sfx: null };
+// layer/top: 겹침 화면(덱·군대 살피기)이 떠 있으면 그 아래 층의 버튼은 눌리지 않는다
+export const ui = { inp: null, active: null, sfx: null, layer: 0, top: 0 };
 export function inRect(p, x, y, w, h) { return p.x >= x && p.x <= x + w && p.y >= y && p.y <= y + h; }
 export function tapped(id, x, y, w, h) {
-  const i = ui.inp; let hit = false;
+  const i = ui.inp; let hit = false; if (ui.layer < ui.top) return false;
   if (i.pressed && inRect(i, x, y, w, h) && !ui.active) ui.active = id;
   if (i.released && ui.active === id && inRect(i, x, y, w, h) && !i.dragged) hit = true;
   return hit;
 }
-export function isDown(id, x, y, w, h) { return ui.active === id && ui.inp.down && inRect(ui.inp, x, y, w, h); }
+export function isDown(id, x, y, w, h) { return ui.layer >= ui.top && ui.active === id && ui.inp.down && inRect(ui.inp, x, y, w, h); }
 
 export function panel(g, x, y, w, h, style = 'paper') {
-  if (style === 'paper') { rr(g, x + 3, y + 5, w, h, 6, 'rgba(50,36,20,0.22)'); rr(g, x, y, w, h, 6, PAPER, INK, 3); rr(g, x + 8, y + 8, w - 16, h - 16, 3, null, INK + '66', 1.2); }
+  if (style === 'paper') {
+    rr(g, x + 3, y + 5, w, h, 6, 'rgba(50,36,20,0.22)'); rr(g, x, y, w, h, 6, PAPER, INK, 3);
+    // 한지 결과 네 귀의 장식
+    let sd = (x * 13 + y * 7 + w * 3 + h) | 0; const R = () => { sd = (sd * 1664525 + 1013904223) >>> 0; return sd / 4294967296; };
+    g.save(); g.beginPath(); g.rect(x + 3, y + 3, w - 6, h - 6); g.clip(); g.lineWidth = 0.9; const n = Math.min(260, (w * h / 3600) | 0);
+    for (let k = 0; k < n; k++) { const px = x + R() * w, py = y + R() * h, a = R() * TAU, l = 5 + R() * 12; g.strokeStyle = R() < 0.5 ? 'rgba(160,136,92,0.16)' : 'rgba(255,255,255,0.5)'; g.beginPath(); g.moveTo(px, py); g.lineTo(px + Math.cos(a) * l, py + Math.sin(a) * l); g.stroke(); }
+    g.restore();
+    rr(g, x + 8, y + 8, w - 16, h - 16, 3, null, INK + '66', 1.2);
+    if (w > 150 && h > 110) for (const [cx, cy, sx, sy] of [[x + 8, y + 8, 1, 1], [x + w - 8, y + 8, -1, 1], [x + 8, y + h - 8, 1, -1], [x + w - 8, y + h - 8, -1, -1]]) { line(g, [cx + sx * 5, cy + sy * 20, cx + sx * 5, cy + sy * 5, cx + sx * 20, cy + sy * 5], OCHRE, 2); rr(g, cx + sx * 5 - 2.6, cy + sy * 5 - 2.6, 5.2, 5.2, 1, RED); }
+  }
   else if (style === 'navy') { rr(g, x + 3, y + 5, w, h, 10, 'rgba(50,36,20,0.22)'); rr(g, x, y, w, h, 10, NAVY, INK, 3); rr(g, x + 6, y + 6, w - 12, h - 12, 6, null, OCHRE + 'aa', 1.2); }
   else if (style === 'tray') { g.fillStyle = C.tray; g.fillRect(x, y, w, h); g.fillStyle = INK; g.fillRect(x, y - 4, w, 5); g.fillStyle = OCHRE; g.fillRect(x, y + 3, w, 2); }
   else if (style === 'tag') { rr(g, x, y, w, h, h / 2, PAPER, INK, 1.8); }
@@ -27,6 +37,7 @@ export function button(g, id, x, y, w, h, label, o = {}) {
   const r = o.r === undefined ? h / 2 : o.r;
   g.save(); if (dis) g.globalAlpha = 0.55;
   rr(g, x, y + 5, w, h, r, sty[1], INK, 3); rr(g, x, y + off, w, h, r, sty[0], INK, 3);
+  g.save(); g.globalAlpha *= o.style === 'paper' || o.style === 'grey' ? 0.4 : 0.13; rr(g, x + 4, y + 4 + off, w - 8, Math.max(4, h * 0.4), Math.max(2, r - 4), '#fff'); g.restore();
   rr(g, x + 7, y + 7 + off, w - 14, h - 14, Math.max(2, r - 7), null, sty[3], 1.3);
   const size = o.size || Math.min(36, h * 0.46);
   text(g, label, x + w / 2, y + h / 2 + off + 1, { size, font: o.font || FONT_B, fill: sty[2], maxW: w - 26 });

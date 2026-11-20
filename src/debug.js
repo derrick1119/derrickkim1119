@@ -11,6 +11,9 @@ export function debugBoot(q) {
   for (let i = 0; i < n; i++) { r.wins++; const s = { uid: r.nextId++, type: PLAN[i % PLAN.length], col: 0, row: 0, placed: false, hold: false }; r.squads.push(s); autoPlace(s); if (i % 2) { const t = r.squads[1 + (i % (r.squads.length - 1))].type; r.lvl[t] = (r.lvl[t] || 1) + 1; } }
   r.gold = Number(q.get('gold') || 150);
   if (q.get('relics')) r.relics = q.get('relics').split(',');
+  if (q.get('items')) r.items = q.get('items').split(',');
+  if (q.get('cards')) for (const id of q.get('cards').split(',')) r.deck.push({ id: id.replace(/[!+ ]/g, ''), up: /[!+ ]$/.test(id) });
+  if (q.get('wpn')) q.get('wpn').split(',').forEach(kv => { const [t, w] = kv.split(':'); const sq = r.squads.find(x => x.type === t && !x.wpn); if (sq) sq.wpn = w; });
   const node = r.map.nodes.find(x => kind === 'boss' ? x.type === 'boss' : x.r === row); node.type = kind === 'boss' ? 'boss' : kind;
   if (scene === 'battle') enterNode(node.id);
   else if (scene === 'event') { r.map.cur = node.id; r.pending = { kind: 'event', id: q.get('id') || 'fox', train: 'sword' }; }

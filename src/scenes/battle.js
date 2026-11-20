@@ -2,28 +2,25 @@
 import { W, H, FIELD, cellAt } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, poly, line, st as inkStroke, drawSprite, clamp, easeOutBack } from '../render/draw.js';
 import { BattleView, ghostUnits } from '../render/battleview.js';
-import { getLook } from '../render/sprites.js';
-import { Battle, formation } from '../sim/battle.js';
+import { portrait } from '../render/sprites.js';
+import { Battle, formation, HAND, REFILL } from '../sim/battle.js';
+import { CARDS, KIND, cardName } from '../data/cards.js';
+import { WEAPONS, ARMS } from '../data/weapons.js';
+import { cardFace, cardBack, cardText, ArmyView, DeckView } from '../ui/cards.js';
 import { G, meta, save, battleSetup, cap, used, lvlOf, countOf, squadAtCell, unitStats, goldFor, depth } from '../state.js';
 import { CHAPTERS, MAPS } from '../data/stages.js';
 import { AFFIX } from '../data/encounters.js';
-import { UNITS, SKILLS } from '../data/units.js';
+import { UNITS } from '../data/units.js';
 import { RELICS } from '../data/relics.js';
 import { ui, button, iconBtn, panel, bar, icon, seal, stamp, brushTitle, C, inRect } from '../ui/ui.js';
 import { sfx, audio, setMuted } from '../audio.js';
 import { nav } from '../nav.js';
 
 const TRAY_Y = 1086, BAR_Y = 1100;
-const SKCOL = { rain: RED, grail: '#2f6f5c', horn: '#b8742a', strike: INDIGO, sanctuary: INDIGO, meteor: INDIGO };
 export const GRADE = ['', '병', '을', '갑'];
 const fmtTime = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 
-// 인형 초상 (카드·정보창용)
-export function portrait(g, type, x, y, s, t = 0, bob = false) {
-  const L = getLook(type), k = s * L.scale, b = bob ? Math.abs(Math.sin(t * 5)) * 3 * s : 0, h = L.hold;
-  drawSprite(g, L.front, x, y - b, k, k);
-  if (L.weapon) drawSprite(g, L.weapon, x + h.x * k, y - b + h.y * k, k, k, h.a);
-}
+export { portrait };
 
 export class BattleScene {
   constructor() {
@@ -35,7 +32,7 @@ export class BattleScene {
     this.phase = 'deploy'; this.T = 0; this.speed = 1; this.menu = false; this.slow = 1; this.endT = 0;
     this.sel = null; this.tipOpen = true; this.drag = null; this.scroll = 0; this.order = null; this.aim = null;
     this.toastS = ''; this.toastT = 0; this.banner = 2.6; this.res = null; this.hinted = false; this.fightBanner = 0;
-    this.seed = (Math.random() * 1e9) | 0;
+    this.seed = (Math.random() * 1e9) | 0; this.army = null; this.deckView = null; this.slotAnim = [];
     this.rebuild();
     if (this.st.boss) sfx('boss');
   }
@@ -45,12 +42,13 @@ export class BattleScene {
 
   // ───────── 배치 단계 ─────────
   updateDeploy(i) {
-    if (this.menu || this.banner > 1.6) return;
+    if (this.menu || this.banner > 1.6 || this.army || this.deckView) return;
     const bench = this.bench(), maxScroll = Math.max(0, bench.length * 104 - 536);
     this.scroll = clamp(this.scroll, 0, maxScroll);
     if (i.pressed) {
       if (i.y >= TRAY_Y) { if (i.x < 552 && i.y > 1112) { const s = bench[Math.floor((i.x - 12 + this.scroll) / 104)]; this.drag = { s: s || null, from: 'tray', scroll0: this.scroll, mode: s ? 'pend' : 'scroll' }; } }
       else if (this.infoOpen() && inRect(i, 24, 470, 672, 190)) { /* 정보 패널이 처리 */ }
+      else if (inRect(i, 580, 156, 130, 56)) { /* 머리 띠 아래 버튼 */ }
       else if (i.y > 210) {
         const cell = cellAt(i.x, i.y), s = cell && squadAtCell(cell.col, cell.row);
         if (s) this.drag = { s, from: 'field', mode: 'pend' };
@@ -116,8 +114,8 @@ export class BattleScene {
       }
       const a = this.aim;
       if (a) {
-        if (!b.canCast(a.id)) this.aim = null;
-        else if (a.drag || a.live) { if (!i.down) { if (i.y < BAR_Y - 8 && i.y > 200 && (a.live || i.dragged)) { b.cast(a.id, i.x, i.y); this.aim = null; } else { a.drag = false; a.live = false; a.armed = true; } } }
+        if (!b.canPlay(a.slot) || b.hand[a.slot] !== a.card) this.aim = null;
+        else if (a.drag || a.live) { if (!i.down) { if (i.y < BAR_Y - 8 && i.y > 200 && (a.live || i.dragged)) { b.play(a.slot, i.x, i.y); this.aim = null; this.carded = true; } else { a.drag = false; a.live = false; a.armed = true; } } }
       }
     }
     const want = (this.order && this.order.moved) || (this.aim && (this.aim.live || (this.aim.drag && i.y < BAR_Y - 8))) ? 0.12 : 1;
@@ -128,6 +126,7 @@ export class BattleScene {
       fx.update(dt * Math.max(0.35, ts));
       if (b.over) { this.endT += dt; if (this.endT > 1.4) this.finish(); }
       if (this.first && !this.hinted && b.time > 2 && this.toastT <= 0) { this.toast('부대를 끌어 명령을 내려보세요! (끄는 동안 시간이 느려집니다)', 5); this.hinted = true; }
+      else if (this.first && !this.carded && b.time > 9 && this.toastT <= 0) { this.toast('아래 패를 끌어 전장에 놓으면 사기(엽전)를 내고 씁니다', 5); this.carded = true; }
     }
   }
   finish() {
@@ -146,7 +145,7 @@ export class BattleScene {
 
   // ───────── 프레임 ─────────
   frame(g, dt, i) {
-    this.T += dt; if (this.banner > 0) this.banner -= dt; if (this.toastT > 0) this.toastT -= dt; if (this.fightBanner > 0) this.fightBanner -= dt;
+    this.T += dt; this.dt = dt; ui.top = this.army || this.deckView ? 1 : 0; if (this.banner > 0) this.banner -= dt; if (this.toastT > 0) this.toastT -= dt; if (this.fightBanner > 0) this.fightBanner -= dt;
     if (this.phase === 'deploy') { this.updateDeploy(i); this.view.fx.update(dt); }
     else if (this.phase === 'fight') this.updateFight(dt, i);
     else { this.res.t += dt; this.view.fx.update(dt); }
@@ -159,7 +158,7 @@ export class BattleScene {
         const cell = i.y < TRAY_Y ? cellAt(i.x, i.y) : null;
         if (cell) { const o = squadAtCell(cell.col, cell.row), def = UNITS[d.s.type]; let ok = true; if (!d.s.placed) { if (o && o !== d.s) ok = !UNITS[o.type].hero && used() - UNITS[o.type].cost + def.cost <= cap(); else ok = used() + def.cost <= cap(); } opt.deploy.hot = cell; opt.deploy.ok = ok; }
         opt.skip = new Set(b.squads.filter(q => q.team === 0 && q.ref.uid === d.s.uid));
-        opt.extra = ghostUnits(d.s.type, countOf(d.s.type), i.x, i.y - 16, formation).map(u => ({ y: u.y + 400, u, alpha: 0.85 }));
+        opt.extra = ghostUnits(d.s.type, countOf(d.s.type), i.x, i.y - 16, formation, d.s.wpn).map(u => ({ y: u.y + 400, u, alpha: 0.85 }));
       }
       if (this.sel && this.sel.s && this.sel.s.placed) { const q = b.squads.find(q => q.team === 0 && q.ref.uid === this.sel.s.uid); if (q) opt.rings = q.units.map(u => ({ x: u.x, y: u.y, r: u.r, col: '#2f4d7e' })); }
     } else if (this.phase === 'fight') {
@@ -184,18 +183,30 @@ export class BattleScene {
       if (!o.target) { icon.flag(g, o.x + 4, o.y - 26, 1.3); text(g, '이동 후 대기', o.x, o.y + 30, { size: 22, font: FONT_B, stroke: PAPER, lw: 6 }); }
       else text(g, '집중 공격', tx, ty - 62, { size: 24, font: FONT_B, fill: RED, stroke: PAPER, lw: 6 });
     }
-    if (a && (a.live || a.drag) && i.y < BAR_Y - 8) {
-      const s = SKILLS[a.id], r = s.r * (a.id === 'grail' ? this.b.mods.grailR : 1), col = a.id === 'grail' || a.id === 'sanctuary' ? '#b8862a' : a.id === 'rain' ? INDIGO : '#d9702a';
-      g.globalAlpha = 0.22; ell(g, i.x, i.y, r, r, col); g.globalAlpha = 1;
-      g.setLineDash([12, 8]); g.lineDashOffset = -T * 40; g.beginPath(); g.arc(i.x, i.y, r, 0, TAU); inkStroke(g, col, 3.4); g.setLineDash([]);
-      seal(g, i.x, i.y, 46, s.ch, SKCOL[a.id]); text(g, s.name, i.x, i.y - r - 20, { size: 26, font: FONT_B, stroke: PAPER, lw: 6 });
-    } else if (a && a.armed) text(g, `${SKILLS[a.id].name} — 쓸 자리를 터치하세요`, 360, 1062, { size: 26, font: FONT_B, stroke: PAPER, lw: 6 });
+    if (!a) return;
+    const c = a.card, d = CARDS[c.id], col = KIND[d.kind].col, b = this.b;
+    if ((a.live || a.drag) && i.y < BAR_Y - 8) {
+      if (d.target) {
+        const r = d.r * (c.id === 'grail' ? b.mods.grailR : 1);
+        g.globalAlpha = 0.22; ell(g, i.x, i.y, r, r, col); g.globalAlpha = 1;
+        g.setLineDash([12, 8]); g.lineDashOffset = -T * 40; g.beginPath(); g.arc(i.x, i.y, r, 0, TAU); inkStroke(g, col, 3.4); g.setLineDash([]);
+        seal(g, i.x, i.y, 46, d.ch, col); text(g, cardName(c), i.x, i.y - r - 20, { size: 26, font: FONT_B, stroke: PAPER, lw: 6 });
+      } else {
+        g.globalAlpha = 0.14; g.fillStyle = col; g.fillRect(FIELD.x0, FIELD.y0, FIELD.x1 - FIELD.x0, FIELD.y1 - FIELD.y0); g.globalAlpha = 1;
+        g.setLineDash([16, 10]); g.lineDashOffset = -T * 40; rr(g, FIELD.x0 + 6, FIELD.y0 + 6, FIELD.x1 - FIELD.x0 - 12, FIELD.y1 - FIELD.y0 - 12, 14, null, col, 4); g.setLineDash([]);
+        seal(g, i.x, i.y - 30, 54, d.ch, col); text(g, `${cardName(c)} — 손을 떼면 전군에 사용`, 360, 312, { size: 28, font: FONT_B, stroke: PAPER, lw: 7 });
+      }
+    }
+    // 고른 패의 설명
+    g.globalAlpha = 0.95; rr(g, 30, 204, 660, 68, 10, PAPER, INK, 2.4); g.globalAlpha = 1;
+    rr(g, 40, 214, 6, 48, 3, col); text(g, cardName(c), 58, 238, { size: 26, font: FONT_B, align: 'left', maxW: 150 });
+    textBlock(g, a.armed ? cardText(c, b.power * b.mods.cardPow) + '  — 쓸 자리를 터치하세요' : cardText(c, b.power * b.mods.cardPow), 216, 228, 460, 21, { size: 16, align: 'left', weight: 400 });
   }
 
   // ───────── 머리 띠 ─────────
   drawHud(g, b) {
     const r = this.r, st = this.st, fight = this.phase !== 'deploy';
-    g.fillStyle = NAVY; g.fillRect(0, 0, W, 104); g.fillStyle = OCHRE; g.fillRect(0, 104, W, 3);
+    g.fillStyle = NAVY; g.fillRect(0, 0, W, 104); g.globalAlpha = 0.22; for (let x = 0; x < W; x += 20) poly(g, [x, 104, x + 10, 96, x + 20, 104], OCHRE); g.globalAlpha = 1; g.fillStyle = OCHRE; g.fillRect(0, 104, W, 3);
     const p = fight ? b.hpSum(0) / this.hp0 : 1, e = fight ? b.hpSum(1) / this.hp1 : 1;
     icon.banner(g, 34, 54, '#3f6ea8'); text(g, String(b.count(0)), 78, 40, { size: 40, font: FONT_B, fill: C.cream, align: 'left' }); text(g, '아군', 136, 44, { size: 17, fill: '#8fb6e6', align: 'left' }); bar(g, 78, 68, 190, 14, p, '#8fb6e6');
     icon.banner(g, 686, 54, '#b8442f', true); text(g, String(b.count(1) + b.pending), 642, 40, { size: 40, font: FONT_B, fill: C.cream, align: 'right' }); text(g, '요괴', 584, 44, { size: 17, fill: '#e4826a', align: 'right' }); bar(g, 452, 68, 190, 14, e, '#e4826a', { right: true });
@@ -214,11 +225,11 @@ export class BattleScene {
     const boss = b.units.find(u => !u.dead && u.def.boss);
     if (boss) { rr(g, 110, 160, 500, 34, 8, PAPER, INK, 2); text(g, boss.def.name, 126, 178, { size: 20, font: FONT_B, fill: RED, align: 'left', maxW: 110 }); bar(g, 246, 168, 354, 18, boss.hp / boss.maxHp, RED, { back: '#d9cdb0' }); }
   }
-  drawCard(g, s, x, y, dragging) {
+  drawUnitCard(g, s, x, y, dragging) {
     const d = UNITS[s.type], w = 98, h = 150;
     if (dragging) g.globalAlpha = 0.35;
     rr(g, x + 2, y + 4, w, h, 6, 'rgba(50,36,20,0.25)'); rr(g, x, y, w, h, 6, PAPER, INK, 2.4);
-    g.save(); g.beginPath(); rrPath(g, x + 2, y + 2, w - 4, 86, 5); g.clip(); g.fillStyle = d.hero ? '#f0dfae' : '#e4dcc0'; g.fillRect(x, y, w, 90); g.fillStyle = '#a9b78f'; g.globalAlpha *= 0.6; g.fillRect(x, y + 66, w, 24); g.globalAlpha /= 0.6; portrait(g, s.type, x + w / 2, y + 82, d.hero ? 1.0 : 1.1, this.T); g.restore();
+    g.save(); g.beginPath(); rrPath(g, x + 2, y + 2, w - 4, 86, 5); g.clip(); g.fillStyle = d.hero ? '#f0dfae' : '#e4dcc0'; g.fillRect(x, y, w, 90); g.fillStyle = '#a9b78f'; g.globalAlpha *= 0.6; g.fillRect(x, y + 66, w, 24); g.globalAlpha /= 0.6; portrait(g, s.type, x + w / 2, y + 82, d.hero ? 1.0 : 1.1, this.T, false, s.wpn); g.restore();
     line(g, [x + 2, y + 89, x + w - 2, y + 89], INK, 1.8);
     text(g, d.name, x + w / 2, y + 107, { size: 19, font: FONT_B, maxW: w - 10 });
     icon.sack(g, x + 20, y + 131, 0.75); text(g, String(d.cost), x + 36, y + 133, { size: 19, align: 'left' }); text(g, `${countOf(s.type)}명`, x + w - 8, y + 133, { size: 16, fill: SUB, align: 'right' });
@@ -233,7 +244,7 @@ export class BattleScene {
     icon.sack(g, 26, TRAY_Y + 23, 0.9); text(g, `군량 ${u} / ${c}`, 44, TRAY_Y + 25, { size: 20, align: 'left', fill: u >= c ? RED : INK });
     text(g, bench.length ? '패를 끌어 배치 · 부대를 탭하면 정보' : '부대를 끌어 자리를 바꿀 수 있습니다', 168, TRAY_Y + 25, { size: 17, align: 'left', fill: SUB, maxW: 380 });
     g.save(); g.beginPath(); g.rect(6, TRAY_Y + 38, 544, 160); g.clip();
-    bench.forEach((s, n) => { const x = 12 + n * 104 - this.scroll; if (x > -110 && x < 560) this.drawCard(g, s, x, 1124, d && d.mode === 'move' && d.s === s); });
+    bench.forEach((s, n) => { const x = 12 + n * 104 - this.scroll; if (x > -110 && x < 560) this.drawUnitCard(g, s, x, 1124, d && d.mode === 'move' && d.s === s); });
     if (!bench.length) text(g, '모든 부대 출전 준비 완료', 278, 1198, { size: 26, font: FONT_B, fill: SUB });
     g.restore();
     if (bench.length * 104 > 540) { g.fillStyle = 'rgba(38,42,54,0.2)'; g.fillRect(12, 1276, 532, 3); g.fillStyle = INK; g.fillRect(12 + this.scroll / (bench.length * 104) * 532, 1276, 532 * 536 / (bench.length * 104), 3); }
@@ -244,6 +255,7 @@ export class BattleScene {
     g.restore();
     this.drawInfo(g);
     if (!this.infoOpen() && iconBtn(g, 'tip', 652, 162, 52, 44, (gg, x, y) => text(gg, '?', x, y + 1, { size: 30, font: FONT_B }))) { this.tipOpen = true; this.sel = null; }
+    if (iconBtn(g, 'deck', 586, 162, 58, 44, (gg, x, y) => { cardBack(gg, x - 22, y - 15, 20, 28); text(gg, String(this.r.deck.length), x + 12, y + 1, { size: 22, font: FONT_B }); })) this.deckView = new DeckView({ P: this.b.power * this.b.mods.cardPow, onClose: () => { this.deckView = null; } });
   }
   drawInfo(g) {
     if (!this.infoOpen()) return;
@@ -260,9 +272,9 @@ export class BattleScene {
       text(g, '요괴 부대를 탭하면 정보를 볼 수 있습니다', x + 22, y + h - 24, { size: 16, align: 'left', fill: SUB, weight: 400 });
       return;
     }
-    const type = sel.enemy ? sel.type : sel.s.type, d = UNITS[type], lvl = sel.enemy ? sel.lvl : lvlOf(type), stt = unitStats(type, lvl), n = sel.enemy ? sel.n : stt.n;
+    const type = sel.enemy ? sel.type : sel.s.type, d = UNITS[type], lvl = sel.enemy ? sel.lvl : lvlOf(type), wpn = sel.enemy ? null : sel.s.wpn, stt = unitStats(type, lvl, wpn), n = sel.enemy ? sel.n : stt.n;
     rr(g, x + 18, y + 18, 108, h - 36, 5, sel.enemy ? '#efd9cf' : '#dbe3ea', INK, 1.6);
-    g.save(); g.beginPath(); g.rect(x + 19, y + 19, 106, h - 38); g.clip(); portrait(g, type, x + 72, y + 152, d.boss ? 0.95 : 1.9, this.T, true); g.restore();
+    g.save(); g.beginPath(); g.rect(x + 19, y + 19, 106, h - 38); g.clip(); portrait(g, type, x + 72, y + 152, d.boss ? 0.95 : 1.9, this.T, true, wpn); g.restore();
     text(g, d.name, x + 142, y + 38, { size: 32, font: FONT_B, fill: sel.enemy ? RED : INK, align: 'left' });
     const nw = (g.font = `32px ${FONT_B}`, g.measureText(d.name).width);
     rr(g, x + 152 + nw, y + 24, 56, 26, 5, NAVY); text(g, `Lv${lvl}`, x + 180 + nw, y + 38, { size: 16, fill: '#f0d99a' });
@@ -272,39 +284,45 @@ export class BattleScene {
     textBlock(g, d.tip, x + 142, y + 106, sel.enemy ? w - 166 : w - 336, 25, { size: 18, align: 'left', weight: 400 });
     if (!sel.enemy) {
       const s = sel.s;
-      text(g, '시작 명령', x + w - 96, y + 74, { size: 17, fill: SUB });
-      if (button(g, 'stance', x + w - 174, y + 92, 156, 70, s.hold ? '대기' : '돌격', { style: s.hold ? 'indigo' : 'red', size: 34 })) { s.hold = !s.hold; this.rebuild(); save(); }
+      const arm = ARMS[type];
+      text(g, '시작 명령', x + w - 96, y + (arm ? 62 : 74), { size: 16, fill: SUB });
+      if (button(g, 'stance', x + w - 174, y + (arm ? 76 : 92), 156, arm ? 46 : 70, s.hold ? '대기' : '돌격', { style: s.hold ? 'indigo' : 'red', size: arm ? 26 : 34 })) { s.hold = !s.hold; this.rebuild(); save(); }
+      if (arm && button(g, 'wpn', x + w - 174, y + 130, 156, 42, `무기 · ${WEAPONS[wpn || arm.base].name}`, { style: 'paper', size: 19, r: 10 })) this.army = new ArmyView({ uid: s.uid, onChange: () => this.rebuild(), onClose: () => { this.army = null; this.rebuild(); } });
     }
   }
-  skillBtn(g, id, cx, cy, sz, b, i) {
-    const s = SKILLS[id], can = b.canCast(id), armed = this.aim && this.aim.id === id, x = cx - sz / 2, y = cy - sz / 2;
-    if (i.pressed && inRect(i, x, y, sz, sz) && !this.menu && this.phase === 'fight' && !b.over) {
-      if (!can) { sfx('deny'); this.toast(s.hero ? (b.hero() ? '영웅기를 준비하는 중입니다' : '영웅이 쓰러졌습니다') : '사기가 부족합니다', 1.2); }
-      else if (!s.target) b.cast(id);
-      else if (armed) this.aim = null;
-      else { this.aim = { id, drag: true, armed: false, live: false }; this.order = null; sfx('click'); }
+  // 손패 한 칸
+  handCard(g, n, x, y, w, h, b, i, live) {
+    const c = b.hand[n], an = this.slotAnim[n] || (this.slotAnim[n] = { c: null, t: 9 });
+    if (an.c !== c) { an.c = c; an.t = 0; if (c) sfx('card'); } an.t += this.dt || 0;
+    if (!c) {
+      g.globalAlpha = 0.5; g.setLineDash([7, 6]); rr(g, x + 3, y + 3, w - 6, h - 6, 8, null, INK, 1.6); g.setLineDash([]); g.globalAlpha = 1;
+      if (b.drawPile.length + b.discard.length > 0) { const f = clamp(1 - b.slotT[n] / (REFILL * b.mods.drawRate), 0, 1); g.beginPath(); g.arc(x + w / 2, y + h / 2, 22, -Math.PI / 2, -Math.PI / 2 + TAU * f); inkStroke(g, INDIGO, 5); text(g, '뽑는 중', x + w / 2, y + h - 22, { size: 14, fill: SUB }); }
+      return;
     }
-    const oy = armed ? -6 : 0;
-    if (armed) rr(g, x - 6, y - 6 + oy, sz + 12, sz + 12, sz * 0.2, null, OCHRE, 4);
-    g.save(); if (!can) g.globalAlpha = 0.6;
-    seal(g, cx, cy + oy, sz, s.ch, can ? SKCOL[id] : '#8f897a', { k: 0.5, dy: -13 });
-    text(g, s.name, cx, cy + oy + sz * 0.3, { size: 16, fill: C.cream, maxW: sz - 12 });
+    const d = CARDS[c.id], can = b.canPlay(n), a = this.aim, armed = a && a.slot === n;
+    if (live && i.pressed && inRect(i, x, y, w, h)) {
+      if (!can) { sfx('deny'); this.toast(d.hero && !b.hero() ? '영웅이 쓰러져 쓸 수 없습니다' : '사기가 부족합니다', 1.2); }
+      else if (armed && a.armed) this.aim = null;
+      else { this.aim = { slot: n, card: c, drag: true, armed: false, live: false }; this.order = null; sfx('click'); }
+    }
+    const k = clamp(an.t / 0.22, 0, 1), up = armed ? (a.drag && i.y < BAR_Y - 8 ? 0 : -12) : 0, yy = y + up + (1 - easeOutBack(k)) * 46;
+    g.save(); g.globalAlpha = k * (armed && a.drag && i.y < BAR_Y - 8 ? 0.35 : 1);
+    if (armed) rr(g, x - 4, yy - 4, w + 8, h + 8, 12, null, OCHRE, 4);
+    cardFace(g, c, x, yy, w, h, { cost: b.free > 0 ? 0 : b.costOf(c), dim: !can, free: b.free > 0 });
+    if (d.hero && !b.hero()) text(g, '쓰러짐', x + w / 2, yy + h / 2, { size: 22, font: FONT_B, fill: C.cream, stroke: INK, lw: 5 });
     g.restore();
-    if (s.hero) {
-      if (!b.hero()) text(g, '쓰러짐', cx, cy - 4, { size: 20, font: FONT_B, fill: C.cream, stroke: INK, lw: 5 });
-      else if (b.heroCd > 0) { const f = clamp(b.heroCd / (s.cd * b.mods.heroCd), 0, 1); g.save(); g.beginPath(); rrPath(g, x, y, sz, sz, sz * 0.16); g.clip(); g.fillStyle = 'rgba(30,24,30,0.5)'; g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, sz, -Math.PI / 2, -Math.PI / 2 + TAU * f); g.closePath(); g.fill(); g.restore(); text(g, String(Math.ceil(b.heroCd)), cx, cy - 6, { size: 38, font: FONT_B, fill: C.cream, stroke: INK, lw: 6 }); }
-    }
-    ell(g, x + 6, y + 6 + oy, 15, 15, PAPER, INK, 2); text(g, s.hero ? '영' : String(b.costOf(id)), x + 6, y + 7 + oy, { size: 18, font: FONT_B });
   }
   drawBar(g, b, i) {
     panel(g, 0, BAR_Y, W, H - BAR_Y, 'tray');
-    text(g, '사기', 30, 1134, { size: 22, font: FONT_B, align: 'left' });
-    for (let k = 0; k < 10; k++) { const f = clamp(b.morale - k, 0, 1); icon.coin(g, 96 + k * 34, 1133, 13, f >= 1); if (f > 0 && f < 1) { g.save(); g.beginPath(); g.rect(96 + k * 34 - 13, 1133 + 13 - 26 * f, 26, 26 * f); g.clip(); icon.coin(g, 96 + k * 34, 1133, 13, true); g.restore(); } }
-    const ids = ['rain', 'grail', 'horn']; if (b.heroSkill) ids.push(b.heroSkill);
-    ids.forEach((id, n) => this.skillBtn(g, id, 76 + n * 126, 1212, 104, b, i));
-    const live = this.phase === 'fight' && !b.over && !this.menu, mine = b.squads.filter(q => q.team === 0 && q.alive > 0);
-    if (button(g, 'allhold', 574, 1124, 132, 62, '전군 대기', { style: 'navy', size: 24, r: 10 }) && live) { for (const q of mine) b.orderHold(q); this.view.fx.txt(360, 640, '전군 대기!', INDIGO, 38, 1); sfx('order'); }
-    if (button(g, 'allgo', 574, 1200, 132, 62, '전군 돌격', { style: 'red', size: 24, r: 10 }) && live) { for (const q of mine) b.orderAuto(q); this.view.fx.txt(360, 640, '전군 돌격!', RED, 38, 1); sfx('horn'); }
+    const live = this.phase === 'fight' && !b.over && !this.menu && !this.deckView, mine = b.squads.filter(q => q.team === 0 && q.alive > 0);
+    text(g, '사기', 14, 1123, { size: 21, font: FONT_B, align: 'left' });
+    for (let k = 0; k < 10; k++) { const f = clamp(b.morale - k, 0, 1), cx = 76 + k * 30; icon.coin(g, cx, 1122, 12, f >= 1); if (f > 0 && f < 1) { g.save(); g.beginPath(); g.rect(cx - 12, 1122 + 12 - 24 * f, 24, 24 * f); g.clip(); icon.coin(g, cx, 1122, 12, true); g.restore(); } }
+    cardBack(g, 372, 1108, 20, 28); text(g, String(b.drawPile.length), 404, 1123, { size: 19, font: FONT_B, align: 'left' });
+    g.globalAlpha = 0.6; cardBack(g, 440, 1108, 20, 28); g.globalAlpha = 1; text(g, String(b.discard.length), 472, 1123, { size: 19, font: FONT_B, align: 'left', fill: SUB });
+    for (let n = 0; n < HAND; n++) this.handCard(g, n, 8 + n * 139, 1144, 132, 130, b, i, live);
+    if (button(g, 'redraw', 572, 1106, 140, 34, '패 갈기 · 사기 1', { style: b.canRedraw() ? 'paper' : 'grey', size: 16, r: 8 }) && live) { if (b.redraw()) { this.aim = null; } else sfx('deny'); }
+    if (button(g, 'allhold', 572, 1150, 140, 56, '전군 대기', { style: 'navy', size: 23, r: 10 }) && live) { for (const q of mine) b.orderHold(q); this.view.fx.txt(360, 640, '전군 대기!', INDIGO, 38, 1); sfx('order'); }
+    if (button(g, 'allgo', 572, 1216, 140, 56, '전군 돌격', { style: 'red', size: 23, r: 10 }) && live) { for (const q of mine) b.orderAuto(q); this.view.fx.txt(360, 640, '전군 돌격!', RED, 38, 1); sfx('horn'); }
   }
   drawOverlays(g, b) {
     const st = this.st;
@@ -320,7 +338,9 @@ export class BattleScene {
     if (this.fightBanner > 0) { const k = clamp(this.fightBanner / 0.3, 0, 1), s = 1 + (1 - k) * 0.6; g.save(); g.globalAlpha = k; g.translate(360, 560); g.scale(s, s); text(g, '전투 개시!', 0, 0, { size: 84, font: FONT_B, fill: INK, stroke: PAPER, lw: 14 }); g.restore(); }
     if (this.toastT > 0) { g.globalAlpha = clamp(this.toastT / 0.3, 0, 1); const y = this.phase === 'deploy' ? 700 : 232; rr(g, 40, y - 26, 640, 52, 26, PAPER, INK, 2.4); text(g, this.toastS, 360, y + 1, { size: 20, maxW: 606 }); g.globalAlpha = 1; }
     if (this.phase === 'result') this.drawResult(g, b);
-    if (this.menu) this.drawMenu(g);
+    if (this.menu && !this.deckView) this.drawMenu(g);
+    if (this.army) this.army.frame(g, this.dt);
+    if (this.deckView) this.deckView.frame(g, this.dt);
   }
   drawResult(g, b) {
     const R = this.res, st = this.st, r = this.r, t = R.t;
@@ -355,11 +375,12 @@ export class BattleScene {
     const rel = r.relics.map(id => RELICS[id].name);
     text(g, rel.length ? '지닌 보물' : '지닌 보물 없음', 360, 424, { size: 19, fill: SUB });
     if (rel.length) textBlock(g, rel.join(' · '), 360, 452, 480, 24, { size: 18, weight: 400 });
-    if (button(g, 'm1', 170, 560, 380, 80, '계속하기', { size: 36 })) this.menu = false;
-    if (button(g, 'm2', 170, 660, 380, 72, audio.muted ? '소리 켜기' : '소리 끄기', { style: 'paper', size: 30 })) setMuted(!audio.muted);
-    if (fight) { if (button(g, 'm3', 170, 752, 380, 72, '싸움 물리기', { style: 'red', size: 30 })) { this.menu = false; this.b.finish(1, 'giveup'); } }
-    else if (this.phase === 'deploy') { if (button(g, 'm3', 170, 752, 380, 72, '처음 화면으로', { style: 'paper', size: 30 })) nav.go('title'); }
+    if (button(g, 'm1', 170, 524, 380, 76, '계속하기', { size: 36 })) this.menu = false;
+    if (button(g, 'm4', 170, 614, 380, 64, `전술 패 보기 · ${r.deck.length}장`, { style: 'paper', size: 28 })) this.deckView = new DeckView({ P: this.b.power * this.b.mods.cardPow, onClose: () => { this.deckView = null; } });
+    if (button(g, 'm2', 170, 692, 380, 64, audio.muted ? '소리 켜기' : '소리 끄기', { style: 'paper', size: 28 })) setMuted(!audio.muted);
+    if (fight) { if (button(g, 'm3', 170, 770, 380, 64, '싸움 물리기', { style: 'red', size: 28 })) { this.menu = false; this.b.finish(1, 'giveup'); } }
+    else if (this.phase === 'deploy') { if (button(g, 'm3', 170, 770, 380, 64, '처음 화면으로', { style: 'paper', size: 28 })) nav.go('title'); }
     text(g, '부대 끌기 = 이동 후 대기  ·  요괴 위에 놓기 = 집중 공격', 360, 866, { size: 17, fill: SUB, maxW: 500, weight: 400 });
-    text(g, '부대 탭 = 대기 ↔ 돌격  ·  진행은 자동 저장됩니다', 360, 894, { size: 17, fill: SUB, maxW: 500, weight: 400 });
+    text(g, '부대 탭 = 대기 ↔ 돌격  ·  패 끌기 = 사기를 내고 사용', 360, 894, { size: 17, fill: SUB, maxW: 500, weight: 400 });
   }
 }

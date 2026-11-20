@@ -1,9 +1,11 @@
 // 사건·주막: 선택지를 고르고 결과를 본다
 import { W, H } from '../config.js';
 import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr } from '../render/draw.js';
-import { button, panel, brushTitle, icon, C, tapped, isDown } from '../ui/ui.js';
+import { ui, button, panel, brushTitle, icon, C, tapped, isDown } from '../ui/ui.js';
+import { DeckView } from '../ui/cards.js';
+import { cardName } from '../data/cards.js';
 import { nav } from '../nav.js';
-import { G, save, finishNode } from '../state.js';
+import { G, save, finishNode, upgradeCard } from '../state.js';
 import { eventView } from '../data/events.js';
 import { dimBackdrop } from './title.js';
 import { portrait } from './battle.js';
@@ -13,7 +15,7 @@ import { sfx } from '../audio.js';
 export class EventScene {
   constructor() { this.t = 0; this.r = G.run; this.p = this.r.pending; this.v = eventView(this.p); this.result = this.p.result || null; this.rest = this.p.id === 'rest'; }
   frame(g, dt) {
-    this.t += dt; const r = this.r, v = this.v, t = this.t;
+    this.t += dt; const r = this.r, v = this.v, t = this.t; ui.top = this.over ? 1 : 0;
     dimBackdrop(g, 0.8);
     brushTitle(g, 360, 92, 420, 78, v.title, this.rest ? '#2f6f5c' : '#6a5a8a', 44);
     for (let k = 0; k < 3; k++) icon.flag(g, 30 + k * 28, 172, 1.05, k < r.crowns ? RED : '#c9c2b0');
@@ -24,7 +26,7 @@ export class EventScene {
       textBlock(g, v.text, 360, 492, 580, 30, { size: 21, weight: 400 });
       v.choices.forEach((c, n) => {
         const y = 648 + n * 122, lack = c.cost && r.gold < c.cost;
-        if (!lack && tapped('c' + n, 40, y, 640, 106)) { sfx('card'); this.result = c.pick(); this.p.result = this.result; save(); }
+        if (!lack && tapped('c' + n, 40, y, 640, 106)) { sfx('card'); if (c.deck) this.over = new DeckView({ mode: c.deck, onClose: () => { this.over = null; }, onPick: k => { const before = cardName(r.deck[k]), card = upgradeCard(k); this.over = null; if (!card) return; this.result = [c.story, `패 강화: [${before}] → [${cardName(card)}]`]; this.p.result = this.result; save(); } }); else { this.result = c.pick(); this.p.result = this.result; save(); } }
         const dn = !lack && isDown('c' + n, 40, y, 640, 106);
         g.save(); if (lack) g.globalAlpha = 0.5;
         rr(g, 40, y + 5, 640, 106, 12, '#d9cdb0', INK, 2.6); rr(g, 40, y + (dn ? 3 : 0), 640, 106, 12, PAPER, INK, 2.6);
@@ -37,5 +39,6 @@ export class EventScene {
       this.result.slice(1).forEach((s, i) => { const bad = /-\d|부정 \[/.test(s) && !/씻겨/.test(s); const y = 500 + n * 32 + 40 + i * 62; rr(g, 70, y - 26, 580, 52, 8, bad ? '#efd9cf' : '#dfe8d4', INK, 1.6); text(g, s, 360, y + 1, { size: 20, fill: bad ? RED : TEAL, maxW: 550 }); });
       if (this.t > 0.2 && !this.left && button(g, 'go', 190, 990, 340, 84, '길을 떠난다', { size: 38 })) { this.left = true; finishNode(); nav.go('map'); }
     }
+    if (this.over) this.over.frame(g, dt);
   }
 }

@@ -1,6 +1,8 @@
 // 전투 시뮬레이션 (DOM 비의존 — Node 에서도 돌아간다)
 import { W, H, FIELD, CELL, cellCenter } from '../config.js';
-import { UNITS, SKILLS, lvlMult } from '../data/units.js';
+import { UNITS, lvlMult } from '../data/units.js';
+import { CARDS, cardVals, cardCost } from '../data/cards.js';
+import { WEAPONS, ARMS } from '../data/weapons.js';
 
 const NC = Math.ceil(W / CELL), NR = Math.ceil(H / CELL);
 const PI = Math.PI, TAU = PI * 2;
@@ -13,12 +15,24 @@ export const DEFAULT_MODS = {
   vanguard: 0, aoeR: 1, startShield: 0,
   // 병종 전용 배율 unit[type] = { hp, atk, as, range, cleave, block }
   unit: {}, hpAll: 1, heroAtk: 1, openGuard: 0, teleResist: 0, holdGuard: 0, debuff: 1, refund: 0, goldFlat: 0,
+  // 패 관련: 영웅 패 비용 감소, 손패 보충 시간 배율, 전투마다 공짜로 쓰는 패 수, 패 위력
+  heroCost: 0, drawRate: 1, freeFirst: 0, cardPow: 1, summonLife: 0,
 };
+export const HAND = 4, REFILL = 2.2, MORALE_RATE = 0.36;
 // 요괴 쪽 보정 (강적 특성, 험로 단계)
 export const DEFAULT_FOE = { hp: 1, atk: 1, as: 1, spd: 1, regen: 0 };
 
 function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const hyp = Math.hypot;
+// 무기를 끼운 병종 정의 (기본 정의를 복사해 무기 효과를 덧씌운다)
+const DEFS = new Map();
+export function defOf(type, wpn) {
+  const base = UNITS[type], arm = ARMS[type]; if (!arm) return base;
+  const wid = wpn && WEAPONS[wpn] ? wpn : arm.base, key = type + ':' + wid;
+  let d = DEFS.get(key);
+  if (!d) { d = Object.assign({}, base); const w = WEAPONS[wid]; if (w.mod) w.mod(d); d.wpn = wid; DEFS.set(key, d); }
+  return d;
+}
 function angDiff(a, b) { let d = (b - a) % TAU; if (d > PI) d -= TAU; if (d < -PI) d += TAU; return d; }
 
 export function formation(n) {
@@ -48,7 +62,6 @@ export class Battle {
     this.timeLimit = o.timeLimit || 120;
     this.power = o.power || 1;
     this.moraleMax = 10; this.morale = Math.max(0, Math.min(10, 3 + this.mods.startMorale));
-    this.heroSkill = o.heroSkill || null; this.heroCd = 5;
     this.lost = 0; this.kills = 0; this.pending = 0; this.uid = 1; this.auraT = 0;
     this.map = o.map || {};
     this.buildNav(this.map);
@@ -57,6 +70,14 @@ export class Battle {
     this.startCount = [this.count(0), this.count(1)];
     if (this.mods.startShield) for (const u of this.units) if (u.team === 0) { u.barrier = this.mods.startShield; u.barrierT = 30; }
     this.centroids();
+    // 전술 패: 뽑을 더미 → 손패 4장 → 버린 더미, 더미가 비면 섞어서 다시 쓴다
+    this.hand = [null, null, null, null]; this.slotT = [0, 0, 0, 0]; this.drawPile = []; this.discard = []; this.played = 0; this.free = this.mods.freeFirst;
+    if (o.deck && o.deck.length) { this.drawPile = o.deck.map((c, i) => ({ id: c.id, up: !!c.up, k: i })); this.shuffle(this.drawPile); for (let i = 0; i < HAND; i++) this.hand[i] = this.drawCard(); }
+  }
+  shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = (this.rand() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  drawCard() {
+    if (!this.drawPile.length) { if (!this.discard.length) return null; this.drawPile = this.shuffle(this.discard); this.discard = []; this.ev('shuffle'); }
+    return this.drawPile.pop();
   }
   ev(type, o) { const e = o || {}; e.type = type; this.events.push(e); }
   count(team) { let n = 0; for (const u of this.units) if (!u.dead && u.team === team) n++; return n; }
@@ -64,7 +85,7 @@ export class Battle {
 
   // ───────── 생성 ─────────
   addSquad(team, s) {
-    const def = UNITS[s.type];
+    const def = defOf(s.type, s.wpn);
     const pos = s.x !== undefined ? { x: s.x, y: s.y } : cellCenter(team, s.col, s.row);
     const n = s.n || def.n;
     const sq = { id: this.squads.length, team, type: s.type, def, lvl: s.lvl || 1, units: [], alive: 0, total: n, order: { kind: 'auto' }, cx: pos.x, cy: pos.y, hero: !!def.hero, ref: s };
@@ -76,7 +97,7 @@ export class Battle {
     return sq;
   }
   spawn(type, team, x, y, sq, lvl, off) {
-    const def = UNITS[type], m = lvlMult(lvl), md = this.mods;
+    const def = sq && sq.type === type ? sq.def : defOf(type), m = lvlMult(lvl), md = this.mods;
     const um = team === 0 ? md.unit[type] : null;
     let hp = def.hp * m * PACE * (team === 0 ? md.hpAll * (um && um.hp || 1) : this.foe.hp);
     if (team === 0) { if (def.hero) hp *= md.heroHp; else if (!def.range && !def.mounted && !def.heal) hp *= md.hpInf; }
@@ -85,6 +106,7 @@ export class Battle {
       atk: (def.atk || 0) * m * (team === 0 ? (um && um.atk || 1) * (def.hero ? md.heroAtk : 1) : this.foe.atk), healAmt: (def.heal || 0) * m * (team === 0 && def.hero ? md.heroAtk : 1), facing: team === 0 ? -PI / 2 : PI / 2,
       target: null, cd: 0.2 + this.rand() * 0.5, retarget: this.rand() * 0.3, swing: 0, swingTarget: null, atkT: -9, cast: 0,
       moving: false, walk: this.rand() * 10, still: 0, stuck: 0, run: 0, stun: 0, root: 0, haste: 0, weaken: 0, rage: 0, burn: 0, burnDmg: 0, burnAcc: 0,
+      slow: 0, slowAmt: 0, guard: 0, guardAmt: 0, dmgUp: 0, dmgUpAmt: 0, regen: 0, regenAmt: 0, life: 0, temp: false, born: this.time,
       barrier: 0, barrierT: 0, auraDmg: 0, auraHaste: 0, slot: { dx: off ? off[0] : 0, dy: off ? off[1] : 0 }, dead: false, hidden: 0, flash: 0, eng: 0,
       path: null, pi: 0, pathT: 0, pgx: 0, pgy: 0, leapCd: def.leap ? 1.1 + this.rand() * 0.7 : 0, fuse: 0, jump: null, jumpH: 0, stab: false, revived: false, summoned: false, chargeFx: 0,
     };
@@ -181,8 +203,8 @@ export class Battle {
   step(dt) {
     if (this.over) return;
     this.time += dt;
-    this.morale = Math.min(this.moraleMax, this.morale + dt * 0.33 * this.mods.moraleRate);
-    if (this.heroCd > 0) this.heroCd -= dt;
+    this.morale = Math.min(this.moraleMax, this.morale + dt * MORALE_RATE * this.mods.moraleRate);
+    for (let i = 0; i < HAND; i++) if (!this.hand[i] && (this.slotT[i] -= dt) <= 0) { const c = this.drawCard(); if (c) { this.hand[i] = c; this.ev('draw', { slot: i }); } }
     this.hash(); this.centroids();
     for (const u of this.units) u.eng = 0;
     for (const u of this.units) if (!u.dead && u.target && !u.target.dead && !u.def.range && !u.def.heal) u.target.eng++;
@@ -235,28 +257,68 @@ export class Battle {
     return best;
   }
   hero() { for (const u of this.units) if (!u.dead && u.def.hero && u.team === 0) return u; return null; }
-  canCast(id) {
-    const s = SKILLS[id]; if (!s || this.over) return false;
-    if (s.hero) return this.heroCd <= 0 && !!this.hero();
-    return this.morale >= this.costOf(id);
+  // ───────── 전술 패 ─────────
+  costOf(c) { if (!c) return 99; const d = CARDS[c.id]; return Math.max(0, cardCost(c) - (c.id === 'horn' ? this.mods.hornCost : 0) - (d.hero ? this.mods.heroCost : 0)); }
+  canPlay(i) {
+    const c = this.hand[i]; if (!c || this.over) return false;
+    if (CARDS[c.id].hero && !this.hero()) return false;
+    return this.free > 0 || this.morale >= this.costOf(c);
   }
-  costOf(id) { const s = SKILLS[id]; return Math.max(1, s.cost - (id === 'horn' ? this.mods.hornCost : 0)); }
-  cast(id, x, y) {
-    if (!this.canCast(id)) return false;
-    const s = SKILLS[id], P = this.power, md = this.mods;
+  // 손패를 모두 버리고 새로 뽑는다 (사기 1)
+  canRedraw() { return !this.over && this.morale >= 1 && this.hand.some(c => c) && this.drawPile.length + this.discard.length > 0; }
+  redraw() {
+    if (!this.canRedraw()) return false; this.morale -= 1;
+    for (let i = 0; i < HAND; i++) { if (this.hand[i]) this.discard.push(this.hand[i]); this.hand[i] = null; this.slotT[i] = 0.5 + i * 0.12; }
+    this.ev('redraw'); return true;
+  }
+  spot(x, y) { if (this.isBlocked(x, y)) { const c = this.freeCell((x / CELL) | 0, (y / CELL) | 0); if (c >= 0) return [(c % NC + 0.5) * CELL, (((c / NC) | 0) + 0.5) * CELL]; } return [x, y]; }
+  allies(x, y, r, fn) { for (const u of this.units) if (!u.dead && u.team === 0 && !u.def.structure && hyp(u.x - x, u.y - y) <= r + u.r) fn(u); }
+  summon(type, x, y, n, life, P) {
+    [x, y] = this.spot(Math.max(FIELD.x0 + 40, Math.min(FIELD.x1 - 40, x)), Math.max(FIELD.y0 + 30, Math.min(FIELD.y1 - 30, y)));
+    const sq = this.addSquad(0, { type, x, y, n, lvl: 1 }); sq.temp = true; sq.total = 0;
+    for (const u of sq.units) { u.temp = true; u.life = life + this.mods.summonLife; u.hp = u.maxHp *= P; u.atk *= P; u.stun = 0.35; u.cd = 0.5; }
+    this.ev('appear', { x, y, summon: true, ally: true, r: 44 });
+    return sq;
+  }
+  play(i, x, y) {
+    if (!this.canPlay(i)) return false;
+    const c = this.hand[i], id = c.id, s = CARDS[id], v = cardVals(c), md = this.mods, P = this.power * md.cardPow, cost = this.costOf(c);
     x = Math.max(FIELD.x0, Math.min(FIELD.x1, x || 0)); y = Math.max(FIELD.y0, Math.min(FIELD.y1, y || 0));
-    if (s.hero) this.heroCd = s.cd * md.heroCd; else { this.morale -= this.costOf(id); if (md.refund && this.rand() < md.refund) { this.morale = Math.min(this.moraleMax, this.morale + 2); this.ev('text', { x: 360, y: 1040, s: '사기 환급!', c: '#b8862a' }); } }
+    if (this.free > 0) { this.free--; this.ev('text', { x: 360, y: 1040, s: '공짜 패!', c: '#b8862a' }); }
+    else { this.morale -= cost; if (cost > 0 && md.refund && this.rand() < md.refund) { this.morale = Math.min(this.moraleMax, this.morale + cost); this.ev('text', { x: 360, y: 1040, s: '사기 환급!', c: '#b8862a' }); } }
+    this.hand[i] = null; this.slotT[i] = REFILL * md.drawRate; this.played++;
+    if (id !== 'doubt') this.discard.push(c);
     const h = this.hero(), hm = h ? lvlMult(h.lvl) : 1;
-    if (id === 'rain') this.zones.push({ kind: 'rain', x, y, r: s.r, t: 0, dur: 2.3, acc: 0.25, dmg: 26 * P * md.rainDmg, burn: md.rainBurn });
-    else if (id === 'grail') this.zones.push({ kind: 'grail', x, y, r: s.r * md.grailR, t: 0, dur: 3.1, acc: 0.5, heal: 0.36 / 6 * md.grailHeal });
-    else if (id === 'horn') { for (const u of this.units) if (!u.dead && u.team === 0) { u.haste = 6 + md.hornDur; if (u.def.charge) u.run = 999; } }
-    else if (id === 'strike') {
-      if (this.isBlocked(x, y)) { const c = this.freeCell((x / CELL) | 0, (y / CELL) | 0); if (c >= 0) { x = (c % NC + 0.5) * CELL; y = (((c / NC) | 0) + 0.5) * CELL; } }
-      h.jump = { sx: h.x, sy: h.y, tx: x, ty: y, t: 0, dur: 0.42, dmg: 250 * hm, r: s.r }; h.swing = 0; h.target = null;
-    } else if (id === 'sanctuary') {
-      for (const u of this.units) if (!u.dead && u.team === 0 && hyp(u.x - x, u.y - y) <= s.r + u.r) { u.barrier = 150 * hm; u.barrierT = 7; u.hp = Math.min(u.maxHp, u.hp + u.maxHp * 0.15); u.root = 0; u.weaken = 0; }
-    } else if (id === 'meteor') this.zones.push({ kind: 'tele', style: 'meteor', x, y, r: s.r, t: 0, delay: 1.1, hits: 1, dmg: 380 * hm, burn: 4, burnDmg: 20 * hm, kb: 20, src: h });
-    this.ev('cast', { id, x, y, r: s.r });
+    let r = s.r || 0;
+    if (id === 'sling') this.aoe(x, y, r, v.dmg * P, 1, null, { kb: 10 });
+    else if (id === 'rain') this.zones.push({ kind: 'rain', x, y, r, t: 0, dur: 2.0, acc: 0.25, dmg: v.tick * P * md.rainDmg, burn: md.rainBurn * P });
+    else if (id === 'firerain') this.zones.push({ kind: 'rain', fire: true, x, y, r, t: 0, dur: 2.0, acc: 0.25, dmg: v.tick * P * md.rainDmg, burn: (v.burn + md.rainBurn * 0.5) * P });
+    else if (id === 'thunder') {
+      let best = null, bs = -1; for (const e of this.units) { if (e.dead || e.team !== 1 || e.hidden > 0) continue; const d = hyp(e.x - x, e.y - y); if (d > r + e.r) continue; if (e.hp > bs) { bs = e.hp; best = e; } }
+      if (!best) { let bd = 190; for (const e of this.units) { if (e.dead || e.team !== 1 || e.hidden > 0) continue; const d = hyp(e.x - x, e.y - y); if (d < bd) { bd = d; best = e; } } }
+      if (best) { x = best.x; y = best.y; this.damage(best, v.dmg * P, null, 'aoe'); if (!best.dead && !best.def.boss) best.stun = Math.max(best.stun, v.stun); }
+      r = 40;
+    } else if (id === 'volley') this.zones.push({ kind: 'tele', style: 'volley', ally: true, x, y, r, t: 0, delay: 1.4, hits: 1, dmg: v.dmg * P, stun: v.stun, kb: 18 });
+    else if (id === 'caltrop') this.zones.push({ kind: 'caltrop', x, y, r, t: 0, dur: v.dur, acc: 0.4, slow: v.slow / 100, dmg: v.dps * 0.5 * P });
+    else if (id === 'heal') this.allies(x, y, r, u => { const a = Math.min(u.maxHp - u.hp, u.maxHp * v.heal / 100); if (a > 0.5) { u.hp += a; this.ev('heal', { x: u.x, y: u.y, amt: a, team: 0, quiet: true }); } });
+    else if (id === 'grail') { r *= md.grailR; this.zones.push({ kind: 'grail', x, y, r, t: 0, dur: 3.1, acc: 0.5, heal: v.heal / 100 / 6 * md.grailHeal }); }
+    else if (id === 'wall') this.allies(x, y, r, u => { u.guard = v.dur; u.guardAmt = v.guard / 100; });
+    else if (id === 'horn') { for (const u of this.units) if (!u.dead && u.team === 0) { u.haste = v.dur + md.hornDur; if (u.def.charge) u.run = 999; } }
+    else if (id === 'cry') this.allies(x, y, r, u => { u.dmgUp = v.dur; u.dmgUpAmt = v.dmg / 100; });
+    else if (id === 'ambush') this.summon('sword', x, y, v.n, v.life, P);
+    else if (id === 'archers') this.summon('xbow', x, y, v.n, v.life, P);
+    else if (id === 'decoy') { const sq = this.summon('decoy', x, y, 1, v.life, 1); for (const u of sq.units) { u.hp = u.maxHp = v.hp * P; u.taunt = r; u.stun = 0; } }
+    else if (id === 'strike') { [x, y] = this.spot(x, y); h.jump = { sx: h.x, sy: h.y, tx: x, ty: y, t: 0, dur: 0.42, dmg: v.dmg * hm, r, stun: v.stun }; h.swing = 0; h.target = null; }
+    else if (id === 'order') { x = h.x; y = h.y; r = 150; this.allies(x, y, r, u => { u.haste = Math.max(u.haste, v.dur); u.dmgUp = Math.max(u.dmgUp, v.dur); u.dmgUpAmt = Math.max(u.dmgUpAmt, 0.2); }); }
+    else if (id === 'sanctuary') this.allies(x, y, r, u => { u.barrier = v.barrier * hm; u.barrierT = 7; u.hp = Math.min(u.maxHp, u.hp + u.maxHp * 0.15); u.root = 0; u.weaken = 0; u.slow = 0; });
+    else if (id === 'sutra') { for (const u of this.units) if (!u.dead && u.team === 0 && !u.def.structure) { u.root = 0; u.weaken = 0; u.burn = 0; u.slow = 0; u.stun = 0; u.regen = v.dur; u.regenAmt = v.regen / 100; } }
+    else if (id === 'meteor') this.zones.push({ kind: 'tele', style: 'meteor', ally: true, x, y, r, t: 0, delay: 1.1, hits: 1, dmg: v.dmg * hm, burn: 4, burnDmg: 20 * hm, kb: 20, src: h });
+    else if (id === 'blink') {
+      const moved = new Set();
+      this.allies(x, y, r, u => { if (u.jump || u.temp && u.def.decoy) return; const fx = u.x, fy = u.y; let ny = Math.min(FIELD.y1 - 20, u.y + 190), nx = u.x; [nx, ny] = this.spot(nx, ny); u.x = nx; u.y = ny; u.px = nx; u.py = ny; u.path = null; u.target = null; u.retarget = 0.6; u.root = 0; u.hp = Math.min(u.maxHp, u.hp + u.maxHp * v.heal / 100); moved.add(u.squad); this.ev('blink', { x: fx, y: fy, tx: nx, ty: ny }); });
+      for (const sq of moved) { const o = sq.order; if (o.kind === 'hold' || o.kind === 'move') { o.y = Math.min(FIELD.y1 - 30, o.y + 190); o.path = null; } }
+    }
+    this.ev('cast', { id, x, y, r, up: c.up, slot: i });
     return true;
   }
 
@@ -266,6 +328,9 @@ export class Battle {
     if (u.flash > 0) u.flash -= dt * 5;
     if (u.team === 1 && this.foe.regen && u.hp < u.maxHp) u.hp = Math.min(u.maxHp, u.hp + u.maxHp * this.foe.regen * dt);
     if (u.haste > 0) u.haste -= dt; if (u.weaken > 0) u.weaken -= dt; if (u.root > 0) u.root -= dt; if (u.rage > 0) u.rage -= dt;
+    if (u.slow > 0) u.slow -= dt; if (u.guard > 0) u.guard -= dt; if (u.dmgUp > 0) u.dmgUp -= dt;
+    if (u.regen > 0) { u.regen -= dt; u.hp = Math.min(u.maxHp, u.hp + u.maxHp * u.regenAmt * dt); }
+    if (u.temp) { u.life -= dt; if (u.life <= 0) { this.ev('vanish', { x: u.x, y: u.y, ally: true }); this.kill(u, null, true); return; } if (u.def.decoy) { u.moving = false; return; } }
     if (u.barrierT > 0) { u.barrierT -= dt; if (u.barrierT <= 0) u.barrier = 0; }
     if (u.burn > 0) { u.burn -= dt; u.burnAcc += dt; if (u.burnAcc >= 0.5) { u.burnAcc -= 0.5; this.damage(u, u.burnDmg * 0.5, null, 'burn'); if (u.dead) return; } }
     if (u.jump) { this.doJump(u, dt); return; }
@@ -329,7 +394,7 @@ export class Battle {
       if (def.antiCav && (e.def.mounted || e.def.large)) s -= 50;
       if (def.range > 0 && e.def.shield) s += 45;
       if (def.minRange && d + e.r + u.r < def.minRange) s += 500;
-      if (melee && e.def.structure) s += 40;
+      if (e.taunt) { if (d < e.taunt) s -= 400; } else if (melee && e.def.structure) s += 40;
       if (e === u.target) s -= 20;
       if (def.prefer === 'cluster' && d < rng + 60) s -= 16 * Math.min(4, this.clusterScore(e, 52));
       if (s < bs) { bs = s; best = e; }
@@ -354,7 +419,7 @@ export class Battle {
         this.face(u, Math.atan2(t.y - u.y, t.x - u.x), dt, 8); u.moving = false;
         if (u.cd <= 0) {
           u.cd = def.as; u.atkT = this.time; this.heal(u, t);
-          if (def.healN > 1) { let b = null, bs = 0.97; for (const e of this.units) if (!e.dead && e.team === u.team && e !== t && hyp(e.x - u.x, e.y - u.y) <= def.range + e.r && e.hp / e.maxHp < bs) { bs = e.hp / e.maxHp; b = e; } if (b) this.heal(u, b); }
+          if (def.healN > 1) { const done = [t]; for (let k = 1; k < def.healN; k++) { let b = null, bs = 0.97; for (const e of this.units) if (!e.dead && e.team === u.team && !e.def.structure && !done.includes(e) && hyp(e.x - u.x, e.y - u.y) <= def.range + e.r && e.hp / e.maxHp < bs) { bs = e.hp / e.maxHp; b = e; } if (!b) break; done.push(b); this.heal(u, b); } }
         }
         return;
       }
@@ -366,11 +431,13 @@ export class Battle {
     if (a) { const gy = a.y + (u.team === 0 ? 74 : -74); if (hyp(a.x - u.x, gy - u.y) > 34) { this.moveTo(u, a.x + u.slot.dx, gy, dt); return; } }
     this.idle(u, dt);
   }
-  heal(u, t) { const amt = u.healAmt * (u.team === 0 ? this.mods.priestHeal : 1); t.hp = Math.min(t.maxHp, t.hp + amt); this.ev('heal', { x: t.x, y: t.y, fx: u.x, fy: u.y, amt, team: u.team }); }
+  heal(u, t) { const amt = u.healAmt * (u.team === 0 ? this.mods.priestHeal : 1); t.hp = Math.min(t.maxHp, t.hp + amt);
+    if (u.def.healCleanse) { t.root = 0; t.weaken = 0; t.burn = 0; t.slow = 0; if (t.barrier < u.def.healCleanse * lvlMult(u.lvl)) { t.barrier = u.def.healCleanse * lvlMult(u.lvl); t.barrierT = Math.max(t.barrierT, 5); } }
+    this.ev('heal', { x: t.x, y: t.y, fx: u.x, fy: u.y, amt, team: u.team }); }
 
   moveTo(u, gx, gy, dt) {
     if (u.root > 0 || u.def.structure) { u.moving = false; return; }
-    let spd = u.def.spd * (u.team === 1 ? this.foe.spd : 1); if (u.haste > 0) spd *= 1.35;
+    let spd = u.def.spd * (u.team === 1 ? this.foe.spd : 1); if (u.haste > 0) spd *= 1.35; if (u.slow > 0) spd *= 1 - u.slowAmt;
     if (u.team === 0 && this.mods.vanguard && this.time < 8) spd *= 1.3;
     for (const s of this.slow) if (u.x > s.x && u.x < s.x + s.w && u.y > s.y && u.y < s.y + s.h) { spd *= 0.55; break; }
     let tx = gx, ty = gy;
@@ -426,18 +493,25 @@ export class Battle {
     if (!t || t.dead || t.hidden > 0) return;
     if (def.range > 0) { this.fire(u, t); return; }
     if (hyp(t.x - u.x, t.y - u.y) - u.r - t.r > this.rangeOf(u) + 16) return;
-    this.damage(t, u.atk, u, 'melee');
+    this.damage(t, u.atk, u, 'melee'); this.onHit(u, t);
     this.ev('melee', { x: (t.x + u.x) / 2, y: (t.y + u.y) / 2 - 12, big: !!def.splash || !!def.cleave, team: u.team });
     if (def.cleave) { const um = u.team === 0 ? this.mods.unit[u.type] : null; let n = def.cleave - 1 + (um && um.cleave || 0); this.near(t.x, t.y, 44, e => { if (n > 0 && e !== t && e.team !== u.team && !e.dead && hyp(e.x - u.x, e.y - u.y) < u.r + e.r + 26) { n--; this.damage(e, u.atk * 0.8, u, 'melee'); } }); }
     if (def.splash) this.near(t.x, t.y, def.splash + 16, e => { if (e !== t && e.team !== u.team && !e.dead && hyp(e.x - t.x, e.y - t.y) < def.splash + e.r) this.damage(e, u.atk * 0.5, u, 'aoe'); });
   }
+  // 무기에 붙은 타격 효과
+  onHit(u, t) {
+    const d = u.def; if (t.dead) return;
+    if (d.stunHit && !t.def.boss && !t.def.structure && this.rand() < d.stunHit.p) t.stun = Math.max(t.stun, d.stunHit.t);
+    if (d.burnHit) { t.burn = Math.max(t.burn, d.burnHit.t); t.burnDmg = Math.max(t.burnDmg, u.atk * d.burnHit.k); }
+    if (d.slowHit) { t.slow = Math.max(t.slow, d.slowHit.t); t.slowAmt = d.slowHit.amt * (t.def.boss ? 0.5 : 1); }
+  }
   fire(u, t) {
     const k = u.def.proj;
-    if (k === 'fireball' || k === 'shell') {
+    if (u.def.aoe > 0 && (k === 'fireball' || k === 'shell' || k === 'iceball')) {
       const d = hyp(t.x - u.x, t.y - u.y); const dur = Math.max(0.35, Math.min(1.5, d / (k === 'shell' ? 400 : 330)));
       const lead = t.moving ? 0.55 * dur : 0;
-      this.proj.push({ kind: k, lob: true, x: u.x, y: u.y, sx: u.x, sy: u.y, tx: t.x + t.vx * lead, ty: t.y + t.vy * lead, t: 0, dur, dmg: u.atk, aoe: u.def.aoe * (u.team === 0 ? this.mods.aoeR : 1), team: u.team, src: u });
-    } else this.proj.push({ kind: k, x: u.x, y: u.y - 12, ox: u.x, oy: u.y, target: t, tx: t.x, ty: t.y - 12, spd: k === 'bolt' ? 640 : 520, dmg: u.atk, team: u.team, src: u });
+      this.proj.push({ kind: k, lob: true, x: u.x, y: u.y, sx: u.x, sy: u.y, tx: t.x + t.vx * lead, ty: t.y + t.vy * lead, t: 0, dur, dmg: u.atk, aoe: u.def.aoe * (u.team === 0 ? this.mods.aoeR : 1), team: u.team, src: u, slow: u.def.slowHit });
+    } else this.proj.push({ kind: k, x: u.x, y: u.y - 12, ox: u.x, oy: u.y, target: t, tx: t.x, ty: t.y - 12, spd: k === 'bullet' ? 1250 : k === 'spark' ? 900 : k === 'bolt' || k === 'firearrow' ? 640 : 520, dmg: u.atk, team: u.team, src: u });
     this.ev('shoot', { kind: k, x: u.x, y: u.y, team: u.team });
   }
   damage(t, amt, src, kind, ox, oy) {
@@ -450,14 +524,15 @@ export class Battle {
         flank = true; mult *= src.team === 0 ? this.mods.flank : 1.4;
         if (t.def.boss) mult = 1 + (mult - 1) * 0.5;
         if (src.stab) { mult *= src.def.backstab / 1.4; src.stab = false; }
-      } else if (t.def.shield && dot > 0.1) { const tm = t.team === 0 ? this.mods.unit[t.type] : null; mult *= kind === 'proj' ? 0.3 : 0.75 - (tm && tm.block || 0); block = kind === 'proj'; }
+      } else if (t.def.shield && dot > 0.1 && !src.def.pierce) { const tm = t.team === 0 ? this.mods.unit[t.type] : null; mult *= kind === 'proj' ? 0.3 : 0.75 - (tm && tm.block || 0); block = kind === 'proj'; }
       if (src.def.antiCav) { if (t.def.mounted) mult *= 2; else if (t.def.large) mult *= 1.5; }
+      if (t.def.armor && kind === 'melee') mult *= 1 - t.def.armor;
     }
     if (src) {
-      if (src.weaken > 0) mult *= 0.7; if (src.auraDmg) mult *= 1 + src.auraDmg; if (src.rage > 0) mult *= 1.25;
+      if (src.weaken > 0) mult *= 0.7; if (src.auraDmg) mult *= 1 + src.auraDmg; if (src.rage > 0) mult *= 1.25; if (src.dmgUp > 0) mult *= 1 + src.dmgUpAmt;
       if (src.team === 0) { const md = this.mods; if (md.lastStand && src.squad.alive <= src.squad.total / 2) mult *= 1 + md.lastStand; if (md.vanguard && this.time < 8) mult *= 1.15; }
     }
-    let d = amt * mult;
+    let d = amt * mult; if (t.guard > 0) d *= 1 - t.guardAmt;
     if (t.team === 0) { const md = this.mods; if (md.openGuard && this.time < 5) d *= 1 - md.openGuard; if (md.holdGuard && t.squad.order.kind === 'hold') d *= 1 - md.holdGuard; }
     if (t.barrier > 0) { const a = Math.min(t.barrier, d); t.barrier -= a; d -= a; if (d <= 0) { this.ev('hit', { x: t.x, y: t.y, amt: 0, block: true, team: t.team, kind }); return 0; } }
     t.hp -= d; t.flash = 1;
@@ -469,10 +544,15 @@ export class Battle {
     if (t.dead) return;
     t.dead = true; t.hp = 0; t.deadT = this.time; t.squad.alive--; t.moving = false;
     this.ev('death', { x: t.x, y: t.y, team: t.team, utype: t.type, boss: !!t.def.boss, r: t.r });
-    if (t.team === 0) this.lost++; else { this.kills++; this.morale = Math.min(this.moraleMax, this.morale + (t.def.boss ? 2 : t.def.large ? 0.3 : 0.12)); }
+    if (t.team === 0) { if (!t.temp) this.lost++; if (t.def.hero) this.dropHeroCards(); } else { this.kills++; this.morale = Math.min(this.moraleMax, this.morale + (t.def.boss ? 2 : t.def.large ? 0.3 : 0.12)); }
     if (t.def.bomber && !t.exploded) this.zones.push({ kind: 'tele', style: 'bomb', x: t.x, y: t.y, r: t.def.bomber.r, t: 0, delay: 0.7, hits: 2, dmg: t.def.bomber.dmg * lvlMult(t.lvl), kb: 22 });
     else if (t.def.revive && !t.revived && !this.inGrail(t.x, t.y)) { this.corpses.push({ x: t.x, y: t.y, t: 3, revive: true, u: t }); this.pending++; }
     else if (!t.def.structure && !t.def.boss && !silent) this.corpses.push({ x: t.x, y: t.y, t: 12, raisable: true });
+  }
+  // 영웅이 쓰러지면 영웅 패는 이번 싸움에서 빠진다
+  dropHeroCards() {
+    const keep = c => !CARDS[c.id].hero; this.drawPile = this.drawPile.filter(keep); this.discard = this.discard.filter(keep);
+    for (let i = 0; i < HAND; i++) if (this.hand[i] && !keep(this.hand[i])) { this.hand[i] = null; this.slotT[i] = 0.6; }
   }
   inGrail(x, y) { for (const z of this.zones) if (z.kind === 'grail' && hyp(z.x - x, z.y - y) < z.r) return true; return false; }
   aoe(x, y, r, dmg, hits, src, o = {}) {
@@ -486,6 +566,7 @@ export class Battle {
       if (o.root && !e.def.boss) e.root = Math.max(e.root, o.root * dk);
       if (o.weaken) e.weaken = Math.max(e.weaken, o.weaken * dk);
       if (o.burn) { e.burn = Math.max(e.burn, o.burn); e.burnDmg = Math.max(e.burnDmg, o.burnDmg || 6); }
+      if (o.slow) { e.slow = Math.max(e.slow, o.slowT || 2); e.slowAmt = o.slow * (e.def.boss ? 0.5 : 1); }
       if (o.kb && !e.def.boss && !e.def.structure && d > 0.5) { const k = o.kb * (e.def.large ? 0.3 : 1); e.x += (e.x - x) / d * k; e.y += (e.y - y) / d * k; }
     });
     return n;
@@ -495,7 +576,7 @@ export class Battle {
   doJump(u, dt) {
     const j = u.jump; j.t += dt; const k = Math.min(1, j.t / j.dur);
     u.x = j.sx + (j.tx - j.sx) * k; u.y = j.sy + (j.ty - j.sy) * k; u.moving = false; u.jumpH = Math.sin(k * PI) * 70;
-    if (k >= 1) { u.jump = null; u.jumpH = 0; this.aoe(u.x, u.y, j.r, j.dmg, 1 - u.team, u, { stun: 1.5, kb: 26 }); this.ev('impact', { x: u.x, y: u.y, r: j.r, style: 'strike' }); u.cd = 0.3; u.retarget = 0; }
+    if (k >= 1) { u.jump = null; u.jumpH = 0; this.aoe(u.x, u.y, j.r, j.dmg, 1 - u.team, u, { stun: j.stun || 1.5, kb: 26 }); this.ev('impact', { x: u.x, y: u.y, r: j.r, style: 'strike' }); u.cd = 0.3; u.retarget = 0; }
   }
   tryLeap(u) {
     if (this.time < 1) { u.leapCd = 0.2; return false; }
@@ -518,7 +599,7 @@ export class Battle {
   bomberAI(u, dt) {
     if (u.fuse > 0) { u.fuse -= dt; u.moving = false; if (u.fuse <= 0) { u.exploded = true; const b = u.def.bomber; this.aoe(u.x, u.y, b.r, b.dmg * lvlMult(u.lvl), 1 - u.team, u, { kb: 22 }); this.ev('impact', { x: u.x, y: u.y, r: b.r, style: 'bomb' }); this.kill(u, null, true); } return; }
     u.retarget -= dt;
-    if (u.retarget <= 0 || !u.target || u.target.dead) { u.retarget = 0.4; let best = null, bs = 1e9; for (const e of this.units) { if (e.dead || e.team === u.team || e.hidden > 0) continue; const s = hyp(e.x - u.x, e.y - u.y) - 12 * Math.min(4, this.clusterScore(e, 50)); if (s < bs) { bs = s; best = e; } } u.target = best; }
+    if (u.retarget <= 0 || !u.target || u.target.dead) { u.retarget = 0.4; let best = null, bs = 1e9; for (const e of this.units) { if (e.dead || e.team === u.team || e.hidden > 0) continue; const d0 = hyp(e.x - u.x, e.y - u.y), s = d0 - 12 * Math.min(4, this.clusterScore(e, 50)) - (e.taunt && d0 < e.taunt + 40 ? 400 : 0); if (s < bs) { bs = s; best = e; } } u.target = best; }
     const t = u.target; if (!t) { this.idle(u, dt); return; }
     if (hyp(t.x - u.x, t.y - u.y) - u.r - t.r <= 7) { u.fuse = 0.5; this.ev('fuse', { x: u.x, y: u.y }); } else this.moveTo(u, t.x, t.y, dt);
   }
@@ -543,7 +624,7 @@ export class Battle {
   bossAbilities(u, dt) {
     for (const a of u.abils) { a.t -= dt; if (a.t <= 0) { if (this.useAbility(u, a.id)) { a.t = a.cd; break; } else a.t = 1; } }
   }
-  playerSquads() { return this.squads.filter(s => s.team === 0 && s.alive > 0); }
+  playerSquads() { return this.squads.filter(s => s.team === 0 && s.alive > 0 && !s.temp); }
   useAbility(u, id) {
     const m = lvlMult(u.lvl);
     if (id === 'slam') {
@@ -609,11 +690,11 @@ export class Battle {
     for (const p of this.proj) {
       if (p.lob) {
         p.t += dt; const k = Math.min(1, p.t / p.dur); p.x = p.sx + (p.tx - p.sx) * k; p.y = p.sy + (p.ty - p.sy) * k; p.h = Math.sin(k * PI) * (p.kind === 'shell' ? 90 : 60) + 14 * (1 - k);
-        if (k >= 1) { p.done = true; this.aoe(p.tx, p.ty, p.aoe, p.dmg, 1 - p.team, p.src, { kb: p.kind === 'shell' ? 14 : 0 }); this.ev('impact', { x: p.tx, y: p.ty, r: p.aoe, style: p.kind }); }
+        if (k >= 1) { p.done = true; this.aoe(p.tx, p.ty, p.aoe, p.dmg, 1 - p.team, p.src, { kb: p.kind === 'shell' ? 14 : 0, slow: p.slow ? p.slow.amt : 0, slowT: p.slow ? p.slow.t : 0 }); this.ev('impact', { x: p.tx, y: p.ty, r: p.aoe, style: p.kind }); }
       } else {
         const t = p.target; if (t && !t.dead && t.hidden <= 0) { p.tx = t.x; p.ty = t.y - 12; }
         const dx = p.tx - p.x, dy = p.ty - p.y, d = hyp(dx, dy), s = p.spd * dt; p.ang = Math.atan2(dy, dx);
-        if (d <= s + 6) { p.done = true; if (t && !t.dead && t.hidden <= 0) this.damage(t, p.dmg, p.src, 'proj', p.ox, p.oy); }
+        if (d <= s + 6) { p.done = true; if (t && !t.dead && t.hidden <= 0) { this.damage(t, p.dmg, p.src, 'proj', p.ox, p.oy); if (p.src) this.onHit(p.src, t); } }
         else { p.x += dx / d * s; p.y += dy / d * s; }
       }
     }
@@ -628,15 +709,18 @@ export class Battle {
       else if (z.kind === 'spawn') {
         if (z.t >= z.delay) {
           z.done = true; let sq = this.squads.find(s => s.team === z.team && s.type === z.utype && s.summonPool);
-          if (!sq) { sq = { id: this.squads.length, team: z.team, type: z.utype, def: UNITS[z.utype], lvl: z.lvl, units: [], alive: 0, total: 0, order: { kind: 'auto' }, cx: z.x, cy: z.y, summonPool: true }; this.squads.push(sq); }
+          if (!sq) { sq = { id: this.squads.length, team: z.team, type: z.utype, def: defOf(z.utype), lvl: z.lvl, units: [], alive: 0, total: 0, order: { kind: 'auto' }, cx: z.x, cy: z.y, summonPool: true }; this.squads.push(sq); }
           for (let i = 0; i < z.n; i++) { const u = this.spawn(z.utype, z.team, z.x + i * 6, z.y, sq, z.lvl, [0, 0]); u.summoned = true; u.revived = true; u.summoner = z.summoner || null; sq.total++; }
           this.ev('appear', { x: z.x, y: z.y, summon: true });
         }
       } else if (z.kind === 'rain') {
-        z.acc += dt; if (z.acc >= 0.4 && z.t < z.dur) { z.acc -= 0.4; this.aoe(z.x, z.y, z.r, z.dmg, 1, null, z.burn ? { burn: 3, burnDmg: z.burn * this.power } : {}); this.ev('rainTick', { x: z.x, y: z.y, r: z.r }); }
+        z.acc += dt; if (z.acc >= 0.4 && z.t < z.dur) { z.acc -= 0.4; this.aoe(z.x, z.y, z.r, z.dmg, 1, null, z.burn ? { burn: 3, burnDmg: z.burn } : {}); this.ev('rainTick', { x: z.x, y: z.y, r: z.r, fire: z.fire }); }
         if (z.t >= z.dur) z.done = true;
       } else if (z.kind === 'grail') {
-        z.acc += dt; if (z.acc >= 0.5 && z.t < z.dur) { z.acc -= 0.5; this.near(z.x, z.y, z.r + 20, u => { if (u.dead || u.team !== 0 || hyp(u.x - z.x, u.y - z.y) > z.r + u.r) return; const a = u.maxHp * z.heal; if (u.hp < u.maxHp) this.ev('heal', { x: u.x, y: u.y, amt: Math.min(a, u.maxHp - u.hp), team: 0, quiet: true }); u.hp = Math.min(u.maxHp, u.hp + a); u.root = 0; u.weaken = 0; u.burn = 0; }); }
+        z.acc += dt; if (z.acc >= 0.5 && z.t < z.dur) { z.acc -= 0.5; this.near(z.x, z.y, z.r + 20, u => { if (u.dead || u.team !== 0 || hyp(u.x - z.x, u.y - z.y) > z.r + u.r) return; const a = u.maxHp * z.heal; if (u.hp < u.maxHp) this.ev('heal', { x: u.x, y: u.y, amt: Math.min(a, u.maxHp - u.hp), team: 0, quiet: true }); u.hp = Math.min(u.maxHp, u.hp + a); u.root = 0; u.weaken = 0; u.burn = 0; u.slow = 0; }); }
+        if (z.t >= z.dur) z.done = true;
+      } else if (z.kind === 'caltrop') {
+        z.acc += dt; if (z.acc >= 0.5) { z.acc -= 0.5; this.near(z.x, z.y, z.r + 20, u => { if (u.dead || u.team !== 1 || u.jump || hyp(u.x - z.x, u.y - z.y) > z.r + u.r * 0.5) return; u.slow = Math.max(u.slow, 0.8); u.slowAmt = z.slow * (u.def.boss ? 0.5 : 1); this.damage(u, z.dmg, null, 'aoe'); }); }
         if (z.t >= z.dur) z.done = true;
       }
     }

@@ -23,12 +23,23 @@ export function makeGround(themeId, map, seed = 7) {
   for (let i = 0; i < 28; i++) { g.globalAlpha = 0.32 + R() * 0.2; g.fillStyle = T.wash[(R() * T.wash.length) | 0]; g.beginPath(); g.ellipse(R() * W, 190 + R() * 950, 70 + R() * 120, 40 + R() * 70, R() * 3, 0, TAU); g.fill(); }
   g.globalAlpha = 0.5; g.fillStyle = T.path; for (let y = 200; y < 1150; y += 60) { g.beginPath(); g.ellipse(360 + Math.sin(y * 0.008 + seed) * 70, y, 80, 54, 0, 0, TAU); g.fill(); }
   g.globalAlpha = 1;
+  // 마른 붓 자국: 가로로 길게 스친 옅은 먹
+  for (let i = 0; i < 26; i++) { const x = R() * W, y = 210 + R() * 900, l = 90 + R() * 200, col = T.wash[(R() * T.wash.length) | 0]; g.globalAlpha = 0.16 + R() * 0.14; for (let k = 0; k < 5; k++) { g.beginPath(); g.moveTo(x, y + k * 3.2); g.quadraticCurveTo(x + l * 0.5, y + k * 3.2 + (R() - 0.5) * 16, x + l * (0.8 + R() * 0.2), y + k * 3.2 + (R() - 0.5) * 6); st(g, col, 1.6 + R() * 1.8); } }
+  g.globalAlpha = 1;
+  // 길 가의 디딤돌
+  for (let y = 230; y < 1120; y += 74 + R() * 30) { const x = 360 + Math.sin(y * 0.008 + seed) * 70 + (R() - 0.5) * 90; g.globalAlpha = 0.5; ell(g, x, y, 9 + R() * 7, 5 + R() * 3, T.stone[(R() * 2) | 0], INK + '88', 1); } g.globalAlpha = 1;
   // 마당(둥근 굿판)
   if (map && map.mosaic) { const [mx, my, mr] = map.mosaic; g.globalAlpha = 0.45; ell(g, mx, my, mr, mr * 0.78, T.path); g.globalAlpha = 0.55; g.setLineDash([16, 12]); g.beginPath(); g.ellipse(mx, my, mr, mr * 0.78, 0, 0, TAU); st(g, INK, 2.2); g.setLineDash([]); g.beginPath(); g.ellipse(mx, my, mr * 0.62, mr * 0.48, 0, 0, TAU); st(g, INK + '66', 1.4); g.globalAlpha = 1; for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i / 5 * TAU, px = mx + Math.cos(a) * mr, py = my + Math.sin(a) * mr * 0.78; line(g, [px, py, px, py - 26], INK, 2.4); poly(g, [px, py - 26, px + 13, py - 22, px, py - 17], [RED, OCHRE, '#2f4d7e', '#fbf7ec', '#2b2a30'][i], INK, 1); } }
   // 한지 섬유
   for (let i = 0; i < 1500; i++) { const x = R() * W, y = R() * H, a = R() * TAU, l = 4 + R() * 10; g.globalAlpha = 0.15; g.strokeStyle = R() < 0.5 ? T.fiber : '#ffffff'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); }
   g.globalAlpha = 1;
   for (let i = 0; i < 80; i++) { const x = R() * W, y = 200 + R() * 920; line(g, [x - 3, y, x - 4.5, y - 6], T.tuft, 1.2); line(g, [x, y, x, y - 8], T.tuft, 1.2); line(g, [x + 3, y, x + 4.5, y - 6], T.tuft, 1.2); }
+  // 풀포기·들꽃·잔돌·먹 튄 자국
+  for (let i = 0; i < 34; i++) { const x = R() * W, y = 220 + R() * 880; for (let k = -3; k <= 3; k++) { g.beginPath(); g.moveTo(x + k * 2.2, y); g.quadraticCurveTo(x + k * 3.4, y - 7, x + k * 5.2 + (R() - 0.5) * 3, y - 10 - R() * 6); st(g, k % 2 ? T.tuft : T.pine, 1.1); } }
+  const petal = T.night ? ['#dfe8ee', '#b8a0e0'] : themeId === 'grove' ? ['#f0d264', '#fbf7ec'] : ['#f3c4c9', '#fbf7ec', '#f0d264'];
+  for (let i = 0; i < 46; i++) { const x = R() * W, y = 220 + R() * 880, c = petal[(R() * petal.length) | 0]; line(g, [x, y + 5, x, y], T.tuft, 1); for (let k = 0; k < 5; k++) { const a = k / 5 * TAU; ell(g, x + Math.cos(a) * 2.2, y + Math.sin(a) * 2.2, 1.5, 1.5, c, INK + '77', 0.5); } ell(g, x, y, 1, 1, OCHRE); }
+  for (let i = 0; i < 40; i++) { const x = R() * W, y = 210 + R() * 900; g.globalAlpha = 0.6; ell(g, x, y, 2.4 + R() * 3.4, 1.6 + R() * 1.8, T.stone[(R() * 2) | 0], INK + '99', 0.8); } g.globalAlpha = 1;
+  for (let i = 0; i < 70; i++) { g.globalAlpha = 0.1 + R() * 0.14; ell(g, R() * W, 190 + R() * 930, 0.8 + R() * 2.2, 0.8 + R() * 1.8, INK); } g.globalAlpha = 1;
   // 강
   if (map && map.river) {
     const rv = map.river, y0 = rv.y, y1 = rv.y + rv.h;
@@ -41,8 +52,13 @@ export function makeGround(themeId, map, seed = 7) {
   // 먼 산과 안개
   T.mtn.forEach((col, n) => { const yb = 150 + n * 46, amp = 60 - n * 14; g.globalAlpha = 0.5 + n * 0.1; g.fillStyle = col; g.beginPath(); g.moveTo(0, yb + 40); for (let x = 0; x <= W; x += 30) g.lineTo(x, yb - Math.abs(Math.sin(x * 0.011 + yb + seed)) * amp - Math.sin(x * 0.05) * 6); g.lineTo(W, yb + 40); g.closePath(); g.fill(); });
   g.globalAlpha = 1; const m = g.createLinearGradient(0, 150, 0, 250); const pc = T.paper; m.addColorStop(0, pc + '00'); m.addColorStop(1, pc); g.fillStyle = m; g.fillRect(0, 150, W, 100);
-  if (T.night) { g.globalAlpha = 0.9; ell(g, 560, 70, 34, 34, '#f4efdc', INK, 1.4); g.globalAlpha = 1; }
+  // 능선의 먹선과 산허리 안개
+  T.mtn.forEach((col, n) => { const yb = 150 + n * 46, amp = 60 - n * 14; g.globalAlpha = 0.35; g.beginPath(); for (let x = 0; x <= W; x += 30) { const y = yb - Math.abs(Math.sin(x * 0.011 + yb + seed)) * amp - Math.sin(x * 0.05) * 6; if (x) g.lineTo(x, y); else g.moveTo(x, y); } st(g, INK, 1.3); });
+  g.globalAlpha = 1; for (let i = 0; i < 7; i++) { const x = R() * W, y = 176 + R() * 50, rx = 90 + R() * 120; const mg = g.createRadialGradient(x, y, 0, x, y, rx); mg.addColorStop(0, 'rgba(255,252,240,0.5)'); mg.addColorStop(1, 'rgba(255,252,240,0)'); g.save(); g.translate(x, y); g.scale(1, 0.22); g.translate(-x, -y); g.fillStyle = mg; g.fillRect(x - rx, y - rx, rx * 2, rx * 2); g.restore(); }
+  if (T.night) { for (let i = 0; i < 40; i++) { g.globalAlpha = 0.4 + R() * 0.5; ell(g, R() * W, R() * 120, 0.8 + R() * 1.2, 0.8 + R() * 1.2, '#f4efdc'); } g.globalAlpha = 0.18; ell(g, 560, 70, 58, 58, '#f4efdc'); g.globalAlpha = 0.9; ell(g, 560, 70, 34, 34, '#f4efdc', INK, 1.4); g.globalAlpha = 1; }
   for (let y = 290; y < 1160; y += 190 + R() * 50) { pine(g, 2 + R() * 10, y, 0.95 + R() * 0.2, T); pine(g, 718 - R() * 10, y + 90, 0.95 + R() * 0.2, T); }
+  // 가장자리로 갈수록 바랜 종이
+  const vg = g.createRadialGradient(W / 2, 640, 300, W / 2, 640, 820); vg.addColorStop(0, 'rgba(70,48,24,0)'); vg.addColorStop(1, T.night ? 'rgba(20,24,44,0.34)' : 'rgba(70,48,24,0.26)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
   return c;
 }
 
