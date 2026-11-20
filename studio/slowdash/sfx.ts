@@ -70,6 +70,11 @@ export const sfx = {
       noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
       const d = noise.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      // 🧪 M3 S2: 첫 '번쩍' 때 소리 노드를 처음 만들며 한 프레임이 끊겼다 → 깨울 때(첫 누름 = 느린 시간) 소리 없이 한 번 미리 울려 둔다
+      const t = ac.currentTime;
+      master.gain.setValueAtTime(0, t);
+      master.gain.setValueAtTime(0.5, t + 0.6);
+      ac.resume().then(() => this.play('slash', 3), () => {});
     }
     if (ac.state === 'suspended') void ac.resume();
   },

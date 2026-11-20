@@ -106,3 +106,65 @@ export const SOLDIER = new Set(Object.keys(HAT));
 /** 태엽 병정 스프라이트(발 = 아래 가운데) · 얼굴은 왼쪽을 본다 */
 export const soldierGrid = (k: string) => grid(BODY, [KEY, HAT[k]], ARM[k]);
 export const soldier = (k: string) => sprite('so' + k, () => soldierGrid(k));
+
+// ── 배경(M3 S3 · 🧪 🔴1: 대숲 벡터를 줄인 '모자이크' → 32색 도트 · 후광·그라데이션 0) ──
+const BAY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+const hs = (n: number) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+/**
+ * 판 배경 한 장(lw×lh 도트)을 굽는다. place 0 태엽 마을 골목(돌길) · 1 지붕(기와) · 2 시계탑 광장(타일).
+ * hz = 지평선 줄(도트), gb = 땅 끝 줄. '멈춘 시간' 표식 = 시계탑(초침은 청록 — 주인공 이름).
+ */
+export const pixBg = (lw: number, lh: number, place: number, hz: number, gb: number) => sprite(`bg${lw}x${lh}:${place}`, () => bgGrid(lw, lh, place, hz, gb));
+export function bgGrid(lw: number, lh: number, place: number, hz: number, gb: number): string[][] {
+  {
+    const g = Array.from({ length: lh }, () => Array<string>(lw).fill('0'));
+    const put = (x: number, y: number, c: string) => { x |= 0; y |= 0; if (x >= 0 && y >= 0 && x < lw && y < lh) g[y][x] = c; };
+    const rect = (x: number, y: number, w: number, h: number, c: string) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) put(x + i, y + j, c); };
+    // 하늘: 0 → 1 → 2 디더링 띠 · 별
+    for (let y = 0; y < hz; y++) for (let x = 0; x < lw; x++) { const v = (y / hz) * 2.2; g[y][x] = String(Math.min(2, Math.floor(v) + ((v % 1) * 16 > BAY[(y & 3) * 4 + (x & 3)] ? 1 : 0))); }
+    for (let k = 0; k < 26; k++) put(hs(k) * lw, hs(k + 50) * hz * 0.7, k % 5 ? '7' : '9');
+    // 달(왼쪽 위 · 초승달)
+    const mx = lw * 0.2, my = hz * 0.28, mr = 7;
+    for (let y = -mr; y <= mr; y++) for (let x = -mr; x <= mr; x++) if (x * x + y * y <= mr * mr && (x + 3) ** 2 + (y - 2) ** 2 > (mr - 1) ** 2) put(mx + x, my + y, x * x + y * y > (mr - 1) ** 2 ? '8' : '9');
+    // 먼 집들(실루엣 + 불 켜진 창)
+    const roofC = place === 1 ? '3' : '2';
+    for (let k = 0, x = -4; x < lw; k++) {
+      const bw = 10 + Math.floor(hs(k + 9) * 9), bh = 8 + Math.floor(hs(k + 19) * (place === 1 ? 8 : 12)), top = hz - bh;
+      rect(x, top, bw, bh, roofC);
+      for (let j = 0; j < 5; j++) rect(x - 1 + j, top - j, bw + 2 - 2 * j, 1, j ? roofC : '1'); // 지붕 경사
+      for (let j = 0; j < 3; j++) if (hs(k * 7 + j) < 0.55) { const wx = x + 2 + Math.floor(hs(k * 3 + j) * (bw - 4)), wy = top + 2 + j * 3; if (wy < hz - 2) (rect(wx, wy, 2, 2, 'o'), put(wx + 1, wy + 1, 'O')); }
+      x += bw + 1 + Math.floor(hs(k + 29) * 3);
+    }
+    // 시계탑(광장은 크게 가운데 · 나머지는 오른쪽 멀리)
+    const big = place === 2, tw = big ? 22 : 14, tx = Math.round(big ? lw / 2 - tw / 2 : lw * 0.66), th = big ? hz - 4 : hz * 0.8, ty = hz - th;
+    rect(tx, ty, tw, th, '3');
+    rect(tx + tw - 3, ty, 3, th, '2'); // 그늘 쪽
+    for (let j = 0; j < 8; j++) rect(tx + j, ty - 8 + j, tw - 2 * j, 1, j ? '2' : '1'); // 뾰족 지붕
+    put(tx + tw / 2, ty - 9, 'y');
+    const cx = tx + tw / 2, cy = ty + (big ? 10 : 7), cr = big ? 7 : 5;
+    for (let y = -cr; y <= cr; y++) for (let x = -cr; x <= cr; x++) { const d = x * x + y * y; if (d <= cr * cr) put(cx + x, cy + y, d > (cr - 1) ** 2 ? '6' : '9'); }
+    for (let j = 1; j < cr - 1; j++) (put(cx, cy - j, '1'), put(cx + j * 0.6, cy + j * 0.3, '1')); // 시침·분침
+    for (let j = 1; j < cr; j++) put(cx - j * 0.7, cy - j * 0.7, 't'); // 멈춘 초침(청록)
+    rect(tx + 4, ty + th - 8, tw - 8, 5, 'o'); // 아래 문 불빛
+    // 지평선 담(용마루)
+    rect(0, hz, lw, 2, '4');
+    for (let x = 0; x < lw; x += 4) put(x, hz, '5');
+    // 땅: 원근(멀수록 줄이 촘촘)
+    const base = place === 2 ? ['5', '6', '4'] : place === 1 ? ['3', '4', '2'] : ['3', '4', '2'];
+    for (let y = hz + 2, row = 0; y < lh; row++) {
+      const hgt = Math.max(2, Math.round(2 + ((y - hz) / (gb - hz)) * 5)), off = row % 2 ? 0.5 : 0, cw = hgt * (place === 2 ? 3 : 2) + 2;
+      for (let x = -cw; x < lw + cw; x += cw) {
+        const x0 = Math.round(x + off * cw), c = hs(row * 31 + x) < 0.5 ? base[0] : base[1];
+        for (let j = 0; j < hgt; j++) for (let i = 0; i < cw; i++) {
+          let ch = c;
+          if (j === hgt - 1 || i === cw - 1) ch = base[2]; // 줄눈
+          else if (place === 1 && j === 0) ch = '5'; // 기와 윗줄 빛
+          else if (place !== 1 && i === 0 && j === 0) ch = place === 2 ? '7' : '5';
+          put(x0 + i, y + j, ch);
+        }
+      }
+      y += hgt;
+    }
+    return g;
+  }
+}

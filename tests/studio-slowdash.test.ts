@@ -6,7 +6,7 @@ import { runBot } from '../studio/slowdash/core.ts';
 import { ONBOARD, STAGES, STRIKE, TRIAL, WORLD_LOCK, measureKit, missOf, useOwl, worldStars, slowdash as g, slowdashRandom, slowdashSmart, startStage } from '../studio/slowdash/game.ts';
 import { BOTS, measure, setBambooOff, tapEvery, try3, tryStage } from '../studio/slowdash/funqa.ts';
 import { chainHz, sfx } from '../studio/slowdash/sfx.ts';
-import { PAL, PX, SOLDIER, heroGrid, soldierGrid } from '../studio/slowdash/pix.ts';
+import { PAL, PX, SOLDIER, bgGrid, heroGrid, soldierGrid } from '../studio/slowdash/pix.ts';
 
 const A = g.aspect ?? 1.52;
 /** 판 번호는 판이 늘면 바뀐다 — key로 찾는다(S007 10판) */
@@ -573,6 +573,17 @@ describe('느린 시간 닌자 플레이 빌드', () => {
     expect(heroGrid(0).length * PX).toBeGreaterThanOrEqual(0.19 * 390); // 주인공 키 ≈ 화면 폭 20%
     for (const k of ['dummy', 'sword', 'archer', 'shield']) expect(SOLDIER.has(k)).toBe(true);
     expect(readFileSync('studio/slowdash/game.ts', 'utf8')).toMatch(/loLayer\(LW, LH\)/); // 세상은 도트 캔버스에(렉 F13)
+  });
+  it('M3 S3 도트 배경(🧪 🔴1): 판 배경 세 곳 모두 32색 팔레트 글자만 쓰고(후광·그라데이션 0), 멈춘 시계탑 초침(청록)과 불 켜진 창이 있다', () => {
+    for (const place of [0, 1, 2]) {
+      const g = bgGrid(130, 198, place, 54, 170), all = g.flat();
+      expect(all.length).toBe(130 * 198);
+      expect(all.every((c) => c in PAL && c !== 'D')).toBe(true);
+      expect(all).toContain('t'); // 시계탑 초침
+      expect(all).toContain('o'); // 창 불빛
+    }
+    const src = readFileSync('studio/slowdash/game.ts', 'utf8');
+    expect(src).not.toMatch(/function getBg|createRadialGradient/); // 옛 벡터 배경 굽기 · 매 프레임 원형 그라데이션 없음
   });
   it('M3 S1 시안 모음: 스타일 넷(도트·3D·2.5D·2D)과 캐릭터 셋 그림이 있고, 모음 페이지가 일곱 장을 모두 가리킨다', () => {
     const dir = 'web/public/studio/slowdash/concepts/', page = readFileSync(dir + 'index.html', 'utf8');
