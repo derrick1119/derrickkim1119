@@ -19,7 +19,7 @@
 import { mulberry32, type Rng } from './rng.ts';
 import type { Bot, GameDef, Input, Theme } from './core.ts';
 import { PX, SOLDIER, barrel, hand, hero, lid, owl, pixBg, soldier, thorn } from './pix.ts';
-import { juice, strokeT } from './juice.ts';
+import { juice } from './juice.ts';
 
 const A = 1.52;
 /** ✏️ M2 S9 크기 ①(📋 S8): 플레이 빌드에서만 참(build.ts define). 어느 판에도 없는 장치(보류한 🔔 종 · 거울 · 연기)의 코드를 번들에서만 뺀다 —
@@ -1913,7 +1913,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
         hi.save();
         hi.setTransform(base.multiply(m));
         [hi.font, hi.fillStyle, hi.strokeStyle, hi.lineWidth, hi.textAlign, hi.textBaseline, hi.globalAlpha, hi.lineJoin] = st;
-        if (stroke) strokeT(hi, txt, x, y);
+        if (stroke) hi.strokeText(txt, x, y);
         else hi.fillText(txt, x, y);
         hi.restore();
       });
@@ -1946,7 +1946,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.fillStyle = '#fff3c4';
       ctx.strokeStyle = 'rgba(0,0,0,.5)';
       ctx.lineWidth = 3;
-      strokeT(ctx, '부엉!', ox + R(0.07), oy - R(0.08));
+      ctx.strokeText('부엉!', ox + R(0.07), oy - R(0.08));
       ctx.fillText('부엉!', ox + R(0.07), oy - R(0.08));
     }
   }
@@ -2359,7 +2359,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.fillStyle = '#e8ecff';
     ctx.strokeStyle = 'rgba(0,0,0,.5)';
     ctx.lineWidth = 3;
-    strokeT(ctx, '숨었다!', X(s.nx), Y(s.ny) - R(0.16));
+    ctx.strokeText('숨었다!', X(s.nx), Y(s.ny) - R(0.16));
     ctx.fillText('숨었다!', X(s.nx), Y(s.ny) - R(0.16));
   }
   // ── 느린 시간: 세상이 먹빛으로 바랜다 → 닌자·겨눈 적·선만 또렷하게 ──
@@ -2523,7 +2523,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.lineWidth = 3;
       ctx.strokeStyle = 'rgba(0,0,0,.6)';
       font(0.04, 900); // 🧪 M2 S1: 머리 위는 '×명 한 줄!'에 가려서 발밑으로·크게
-      strokeT(ctx, txt, X(f.x), Y(f.y) + R(0.05));
+      ctx.strokeText(txt, X(f.x), Y(f.y) + R(0.05));
       ctx.fillStyle = '#c8ffb0';
       ctx.fillText(txt, X(f.x), Y(f.y) + R(0.05));
     }
@@ -2535,7 +2535,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.strokeStyle = 'rgba(10,8,20,.75)';
       const txt = `${prev.hits.length}명 한 줄!`;
       const tx = clamp(X(prev.ex), R(0.16), w - R(0.16)), ty = Y(prev.ey) - R(0.17);
-      strokeT(ctx, txt, tx, ty);
+      ctx.strokeText(txt, tx, ty);
       ctx.fillStyle = prev.hits.length >= 3 ? '#ffd84a' : '#ffffff';
       ctx.fillText(txt, tx, ty);
     }
@@ -2556,7 +2556,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.textAlign = 'center';
       ctx.lineWidth = 4;
       ctx.strokeStyle = 'rgba(8,10,24,.8)';
-      strokeT(ctx, '스으…', 0, 0);
+      ctx.strokeText('스으…', 0, 0);
       ctx.fillStyle = '#dff6ff';
       ctx.fillText('스으…', 0, 0);
       ctx.restore();
@@ -2749,7 +2749,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.lineJoin = 'round';
     ctx.lineWidth = 6;
     ctx.strokeStyle = '#0b0818';
-    strokeT(ctx, txt, 0, 2);
+    ctx.strokeText(txt, 0, 2);
     ctx.fillStyle = lin(ctx, 0, -size / 2, 0, size / 2, [0, '#fff6c2'], [0.55, '#ffd23f'], [1, '#ff9a2e']);
     ctx.fillText(txt, 0, 2);
     ctx.restore();
@@ -2808,12 +2808,12 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     font(0.095, 900);
     ctx.lineWidth = R(0.014);
     ctx.strokeStyle = 'rgba(10,12,30,.85)';
-    strokeT(ctx, '느린 시간 닌자', w / 2, Y(0.6));
+    ctx.strokeText('느린 시간 닌자', w / 2, Y(0.6));
     ctx.fillStyle = '#fff3cf';
     ctx.fillText('느린 시간 닌자', w / 2, Y(0.6));
     font(0.04, 800);
     ctx.lineWidth = R(0.008);
-    strokeT(ctx, '꾹 · 긋기 · 떼기 — 다음 판으로!', w / 2, Y(0.6) + R(0.085));
+    ctx.strokeText('꾹 · 긋기 · 떼기 — 다음 판으로!', w / 2, Y(0.6) + R(0.085));
     ctx.fillStyle = '#ffe9a8';
     ctx.fillText('꾹 · 긋기 · 떼기 — 다음 판으로!', w / 2, Y(0.6) + R(0.085));
     ctx.restore();
