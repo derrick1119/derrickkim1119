@@ -107,7 +107,7 @@ export class Juice {
       ctx.font = `800 ${t.size}px system-ui, sans-serif`;
       ctx.lineWidth = 3;
       ctx.strokeStyle = 'rgba(0,0,0,.45)';
-      ctx.strokeText(t.text, t.x, t.y);
+      strokeT(ctx, t.text, t.x, t.y);
       ctx.fillStyle = t.color;
       ctx.fillText(t.text, t.x, t.y);
     }
@@ -143,4 +143,15 @@ export function drift(ctx: CanvasRenderingContext2D, w: number, h: number, t: nu
     ctx.fillRect(x, y, k % 6 ? 1.5 : 2.5, k % 6 ? 1.5 : 2.5);
   }
   ctx.globalAlpha = 1;
+}
+
+/**
+ * M3 S6 렉(🧪·트레이스: 첫 '번쩍' 프레임에 strokeText가 10.8ms, 둘째부터 0.1ms — 처음 보는 글자의 테두리 경로를 그때 만든다):
+ * 글자 테두리를 strokeText 대신 8방향으로 민 fillText로 — 채움 글자는 한 번 굽고 다시 쓰고, 도트 글자 테두리 모양이다.
+ */
+export function strokeT(ctx: CanvasRenderingContext2D, txt: string, x: number, y: number) {
+  const f = ctx.fillStyle, r = Math.max(1, ctx.lineWidth / 2);
+  ctx.fillStyle = ctx.strokeStyle;
+  for (let k = 0; k < 8; k++) ctx.fillText(txt, x + Math.round(Math.cos((k * Math.PI) / 4)) * r, y + Math.round(Math.sin((k * Math.PI) / 4)) * r);
+  ctx.fillStyle = f;
 }
