@@ -65,11 +65,11 @@ describe('동물 군단 합체 전투 시뮬', () => {
 
 describe('동물 군단 합체 전투 플레이 빌드', () => {
   const f = 'web/public/studio/petsquad/index.html';
-  it('빌드가 있고 한 장짜리 html, gzip 60KB 이하', () => {
+  it('빌드가 있고 한 장짜리 html, gzip 40KB 이하(📋 M0 상한)', () => {
     expect(existsSync(f)).toBe(true);
     const html = readFileSync(f, 'utf8');
     expect(html).toContain('<title>동물 군단 합체 전투</title>');
     expect(html).not.toContain('/*BUNDLE*/');
-    expect(gzipSync(html).length).toBeLessThan(60 * 1024);
+    expect(gzipSync(html).length).toBeLessThan(40 * 1024);
   });
 });
