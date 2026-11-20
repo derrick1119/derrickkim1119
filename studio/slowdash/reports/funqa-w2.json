@@ -392,7 +392,7 @@
  },
  {
   "key": "leafWait",
-  "name": "빨랫줄 골목",
+  "name": "빨랫줄 지붕",
   "smartStroke": {
    "clear": 1,
    "star": 2.83,
@@ -1174,7 +1174,7 @@
  },
  {
   "key": "smoke",
-  "name": "굴뚝 골목",
+  "name": "굴뚝 지붕",
   "smartStroke": {
    "clear": 1,
    "star": 3,
@@ -1956,7 +1956,7 @@
  },
  {
   "key": "bamboo",
-  "name": "뒤뜰 대밭",
+  "name": "대나무 옥상",
   "smartStroke": {
    "clear": 1,
    "star": 2.17,
@@ -2784,7 +2784,7 @@
  },
  {
   "key": "jars",
-  "name": "장독대",
+  "name": "통 쌓인 지붕",
   "smartStroke": {
    "clear": 1,
    "star": 2.04,
@@ -3612,7 +3612,7 @@
  },
  {
   "key": "boss2",
-  "name": "큰 너구리 지붕",
+  "name": "큰 인형 지붕",
   "smartStroke": {
    "clear": 1,
    "star": 2.83,
