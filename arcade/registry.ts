@@ -9,16 +9,18 @@ import { molepop, molepopRandom, molepopSmart, molepopHabit, molepopHabit2 } fro
 import { spotkick, spotkickRandom, spotkickSmart, spotkickHabit, spotkickHabit2 } from './games/spotkick.ts';
 import { isletown, isletownRandom, isletownSmart, isletownHabit, isletownHabit2 } from './games/isletown.ts';
 import { flagcastle, flagcastleRandom, flagcastleSmart, flagcastleHabit, flagcastleHabit2 } from './games/flagcastle.ts';
+import { rocketlab, rocketlabRandom, rocketlabSmart, rocketlabHabit, rocketlabHabit2 } from './games/rocketlab.ts';
 import { ponycup, ponycupRandom, ponycupSmart, ponycupHabit, ponycupHabit2 } from './games/ponycup.ts';
 
 /** habits: 늘 같은 버릇대로 하는 봇들(기준 13, 0081 계기판 '버릇 격차') */
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S>; habits?: Bot<S>[] }
 
 export const GAMES: Entry[] = [
-  // 35라운드(2026-11-20): 또 다른 장르 6개 · 톡 하나 · 톡마다 크게 (로켓은 만드는 중)
+  // 35라운드(2026-11-20): 또 다른 장르 6개 · 톡 하나 · 톡마다 크게
   { game: molepop, dumb: molepopRandom, smart: molepopSmart, habits: [molepopHabit, molepopHabit2] },
   { game: spotkick, dumb: spotkickRandom, smart: spotkickSmart, habits: [spotkickHabit, spotkickHabit2] },
   { game: isletown, dumb: isletownRandom, smart: isletownSmart, habits: [isletownHabit, isletownHabit2] },
   { game: flagcastle, dumb: flagcastleRandom, smart: flagcastleSmart, habits: [flagcastleHabit, flagcastleHabit2] },
+  { game: rocketlab, dumb: rocketlabRandom, smart: rocketlabSmart, habits: [rocketlabHabit, rocketlabHabit2] },
   { game: ponycup, dumb: ponycupRandom, smart: ponycupSmart, habits: [ponycupHabit, ponycupHabit2] },
 ];

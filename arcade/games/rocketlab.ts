@@ -6,7 +6,7 @@
  *   너무 무거우면 픽 쓰러져 데굴데굴, 너무 키가 크거나 한쪽만 무거우면 빙글빙글, 낙하산이 있으면 고양이 우주인이 둥실 내려와 손 흔들기.
  * 미리 보기: 로켓 옆 높이 자에 '지금 쏘면 여기까지' 선이 늘 보인다(같은 시뮬레이션, 바람은 빼고 — 바람이 흔들 수 있는 폭은 옅은 띠로).
  * 더 걸까 멈출까: 판마다 붙일 수 있는 부품 칸이 정해져 있고, 붙인 부품은 뗄 수 없다. 다음 카드는 모른다.
- * 판 7개 · 판마다 새것: 1 엔진·연료통 → 2 분리 단 → 3 새 떼(코 덮개) → 4 낙하산 → 5 바람 골짜기(날개) → 6 보조 로켓(짝으로) → 7 달 정거장(자석 짐 붙이기).
+ * 판 7개 · 판마다 새것: 1 엔진·연료통 → 2 분리 단 → 3 새 떼(코 덮개) → 4 낙하산 → 5 하늘 정거장(자석 짐 — 딱 멈추기) → 6 바람 골짜기(날개) → 7 오로라 우주(보조 로켓 짝).
  */
 import { hashString, mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -72,28 +72,28 @@ export const STAGES: StageDef[] = [
   },
   {
     name: '무지개 구름', place: '무지개 구름', news: '낙하산 — 고양이가 둥실 내려와요', hint: '낙하산 칸 하나를 남겨 둬요', spot: 'chute',
-    goal: 3200, slots: 6, pool: [['eng', 3], ['big', 2], ['tank', 3], ['sep', 1.6], ['nose', 1.2], ['chute', 1.6]], wind: 0.8, birds: [900, 1700],
-    first: ['eng', 'tank', 'chute'], stars: [ST('reach', 0, '무지개 구름까지 날기'), ST('chute', 0, '고양이를 낙하산으로 내리기'), ST('parts', 5, '부품 5개 안으로')], sky: 3,
+    goal: 2700, slots: 6, pool: [['eng', 3], ['big', 2], ['tank', 3], ['sep', 1.6], ['nose', 1.2], ['chute', 1.6]], wind: 0.8, birds: [900, 1700],
+    first: ['eng', 'tank', 'chute'], stars: [ST('reach', 0, '무지개 구름까지 날기'), ST('chute', 0, '고양이를 낙하산으로 내리기'), ST('high', 3600, '3600m 별 깃발 넘기')], sky: 3,
+  },
+  {
+    name: '하늘 정거장', place: '정거장', news: '자석 짐 — 정거장 높이에 딱 멈추면 철컥!', hint: '너무 높이 가면 정거장을 지나쳐요', spot: 'mag',
+    goal: 2800, slots: 7, pool: [['eng', 3], ['big', 2], ['tank', 3], ['sep', 1.4], ['nose', 1.2], ['chute', 1.4], ['mag', 2.6]], wind: 0.6, birds: [1000, 1800],
+    first: ['eng', 'tank', 'mag'], stars: [ST('reach', 0, '정거장 높이까지 날기'), ST('dock', 0, '자석 짐을 정거장에 붙이기'), ST('chute', 0, '고양이를 낙하산으로 내리기')], sky: 4,
   },
   {
     name: '바람 골짜기', place: '바람 섬', news: '날개 — 바람을 타고, 키 큰 로켓도 똑바로', hint: '바람이 세요 — 날개는 바람을 위로 타요', spot: 'wing',
     goal: 4000, slots: 7, pool: [['eng', 3], ['big', 2.2], ['tank', 3], ['sep', 1.6], ['nose', 1], ['chute', 1.2], ['wing', 1.8]], wind: 3.2, birds: [1000, 1800],
-    first: ['big', 'tank', 'wing'], stars: [ST('reach', 0, '바람 섬까지 날기'), ST('chute', 0, '고양이를 낙하산으로 내리기'), ST('high', 5000, '5000m 별 깃발 넘기')], sky: 4,
+    first: ['big', 'tank', 'wing'], stars: [ST('reach', 0, '바람 섬까지 날기'), ST('chute', 0, '고양이를 낙하산으로 내리기'), ST('high', 5000, '5000m 별 깃발 넘기')], sky: 5,
   },
   {
-    name: '오로라 하늘', place: '오로라', news: '보조 로켓 — 짧고 세요, 짝으로 붙여야 똑바로', hint: '하나만 붙이면 한쪽이 무거워 빙글빙글', spot: 'boost',
+    name: '오로라 우주', place: '오로라', news: '보조 로켓 — 짧고 세요, 짝으로 붙여야 똑바로', hint: '하나만 붙이면 한쪽이 무거워 빙글빙글', spot: 'boost',
     goal: 4600, slots: 7, pool: [['eng', 2.6], ['big', 2.2], ['tank', 3], ['sep', 1.6], ['nose', 1], ['chute', 1], ['wing', 1.2], ['boost', 2.4]], wind: 2.2, birds: [1100, 1900],
-    first: ['boost', 'tank', 'nose'], stars: [ST('reach', 0, '오로라까지 날기'), ST('parts', 6, '부품 6개 안으로'), ST('high', 5300, '5300m 별 깃발 넘기')], sky: 5,
-  },
-  {
-    name: '달 정거장', place: '달 정거장', news: '자석 짐 — 정거장 높이에 딱 멈추면 철컥!', hint: '너무 높이 가면 정거장을 지나쳐요', spot: 'mag',
-    goal: 2700, slots: 7, pool: [['eng', 2.6], ['big', 2.2], ['tank', 3], ['sep', 1.6], ['nose', 1], ['chute', 1.2], ['wing', 1], ['boost', 1.8], ['mag', 2.6]], wind: 0.6, birds: [1100, 1900],
-    first: ['eng', 'tank', 'mag'], stars: [ST('reach', 0, '정거장 높이까지 날기'), ST('dock', 0, '자석 짐을 정거장에 붙이기'), ST('chute', 0, '고양이를 낙하산으로 내리기')], sky: 6,
+    first: ['boost', 'tank', 'nose'], stars: [ST('reach', 0, '오로라까지 날기'), ST('parts', 6, '부품 6개 안으로'), ST('high', 5300, '5300m 별 깃발 넘기')], sky: 6,
   },
 ];
 export const STAGE_COUNT = STAGES.length;
 /** 정거장에 붙는 폭 (목표 위로 m) */
-const DOCK_BAND = 800;
+const DOCK_BAND = 900;
 const CLEAR_PTS = 100, STAR_PTS = 100, WIN_PTS = 200, HEART_PTS = 100;
 /** 비행 시간표 (틱): 점화 · 오름 · 꼭대기 · 내려옴 · 착지 */
 const IGN = 42, ASC_MIN = 170, ASC_MAX = 310, HOLD = 40, DESC = 96, LAND = 44, TIP_T = 120;
@@ -850,7 +850,7 @@ function mix(a: string, b: string, u: number) {
   return `rgb(${pa.map((v, i) => Math.round(v + (pb[i] - v) * q)).join(',')})`;
 }
 
-// ── 하늘 색: 판마다 목표 높이에서 그 판의 하늘 (구름 섬은 낮 → 달 정거장은 별빛 우주) ──
+// ── 하늘 색: 판마다 목표 높이에서 그 판의 하늘 (구름 섬은 낮 → 오로라 우주는 별빛) ──
 const SKY: [string, string][] = [
   ['#62c6ff', '#dff5ff'],
   ['#4fb4fa', '#bfe8ff'],
@@ -1883,7 +1883,7 @@ function drawGoalThing(ctx: C2, st: number, x: number, y: number, k: number, t: 
   ctx.translate(x, y);
   const bob = Math.sin(t * 0.04) * k * 0.08;
   ctx.translate(0, bob);
-  if (st === 5) {
+  if (st === 6) {
     // 오로라 커튼 (화면을 가로지르는 빛 띠)
     ctx.globalCompositeOperation = 'lighter';
     for (let i = 0; i < 4; i++) {
@@ -1900,8 +1900,8 @@ function drawGoalThing(ctx: C2, st: number, x: number, y: number, k: number, t: 
       }
     }
     ctx.globalCompositeOperation = 'source-over';
-  } else if (st === 6) {
-    // 달 정거장: 둥근 고리 + 태양판 + 도킹 팔
+  } else if (st === 4) {
+    // 하늘 정거장: 둥근 고리 + 태양판 + 도킹 팔
     ctx.fillStyle = 'rgba(200,220,255,.18)';
     ell(ctx, 0, 0, k * 1.1, k * 0.5);
     ctx.fill();
@@ -1978,7 +1978,7 @@ function drawGoalThing(ctx: C2, st: number, x: number, y: number, k: number, t: 
         ctx.arc(0, k * 0.05, k * (0.75 - i * 0.05), Math.PI * 1.08, Math.PI * 1.92);
         ctx.stroke();
       });
-    } else if (st === 4) {
+    } else if (st === 5) {
       // 바람개비
       ctx.fillStyle = '#f2efe6';
       ctx.fillRect(-k * 0.03, -k * 0.35, k * 0.06, k * 0.34);
@@ -2070,7 +2070,7 @@ const velTick = (f: Flight, step: number) => {
   const per = f.res.steps / f.asc;
   return altAt(f, Math.min(f.res.steps - 1, step + per)) - altAt(f, step);
 };
-/** 달 정거장 높이: 붙을 비행이면 꼭대기 바로 위로 (팔이 닿게) */
+/** 정거장 높이: 붙을 비행이면 꼭대기 바로 위로 (팔이 닿게) */
 const stationAlt = (s: RocketState) => (s.fl && s.fl.res.ev.some((e) => e.k === 'dock') ? s.fl.res.apex + 150 : STAGES[s.stage].goal + DOCK_BAND * 0.5);
 const evStep = (f: Flight, k: FlyEv['k']) => f.res.ev.find((e) => e.k === k)?.step ?? Infinity;
 
@@ -2565,7 +2565,7 @@ function drawSkyThings(ctx: C2, s: RocketState, V: View, gy: (a: number) => numb
   }
   // 목표 줄 + 목표 그림
   const goalY = gy(d.goal);
-  if (goalY > -R(0.2) && goalY < Y(PANEL_Y) + R(s.stage === 5 ? 0.6 : 0.1)) {
+  if (goalY > -R(0.2) && goalY < Y(PANEL_Y) + R(s.stage === 6 ? 0.6 : 0.1)) {
     ctx.strokeStyle = 'rgba(255,255,255,.85)';
     ctx.lineWidth = 2;
     ctx.setLineDash([8, 6]);
@@ -2577,9 +2577,22 @@ function drawSkyThings(ctx: C2, s: RocketState, V: View, gy: (a: number) => numb
     ctx.setLineDash([]);
     const reached = !!f && f.ok && (V.mode !== 'asc' || V.alt >= d.goal);
     if (d.spot === 'mag') {
-      const sy = gy(stationAlt(s));
-      ctx.fillStyle = 'rgba(255,230,120,.16)';
-      ctx.fillRect(0, gy(d.goal + DOCK_BAND), X(GAUGE_X - 0.06), goalY - gy(d.goal + DOCK_BAND));
+      const sy = gy(stationAlt(s)), topY = gy(d.goal + DOCK_BAND);
+      // 정거장 칸: 목표 ~ 목표+폭 (이 사이에 멈추면 철컥)
+      ctx.strokeStyle = 'rgba(255,225,110,.8)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 6]);
+      ctx.beginPath();
+      ctx.moveTo(0, topY);
+      ctx.lineTo(X(GAUGE_X - 0.06), topY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = lin(ctx, 0, topY, 0, topY + R(0.06), [0, 'rgba(255,225,110,.25)'], [1, 'rgba(255,225,110,0)']);
+      ctx.fillRect(0, topY, X(GAUGE_X - 0.06), R(0.06));
+      font(0.03, 900);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      txt(ctx, `여기 넘으면 지나쳐요 ${fmt(d.goal + DOCK_BAND)}m`, X(0.03), topY - R(0.006), '#fff2b0');
       drawGoalThing(ctx, s.stage, X(0.72), sy, R(0.2), t, reached && !!f?.dockOk);
     } else drawGoalThing(ctx, s.stage, X(0.66), goalY - R(0.04), R(0.17), t, reached);
     font(0.034, 900);
@@ -2745,7 +2758,7 @@ function drawTheRocket(ctx: C2, s: RocketState, V: View, vis: Vis, X: (x: number
       ctx.restore();
     }
     if (chute) open = clamp((u - 0.7) / 0.3, 0, 1);
-    // 달 정거장 도킹 팔: 자석에 철컥
+    // 정거장 도킹 팔: 자석에 철컥
     if (f.dockOk) {
       const sy = Y(PAD_Y - (stationAlt(s) - V.cam) * KM), ax = X(0.72) - R(0.1), k = ease(u * 2.5);
       const tx = X(PAD_X) + R(0.02), ty = y - R(CAP_H) - R(0.05);
@@ -3396,7 +3409,7 @@ function drawBanner(ctx: C2, s: RocketState, X: (x: number) => number, Y: (y: nu
     age = s.pt;
     a = Math.min(1, age / 8);
     cy = Y(s.ok ? 0.36 : 0.45);
-    if (s.ok) head = s.won ? '달까지 다녀왔다!' : `${d.place} 도착!`;
+    if (s.ok) head = s.won ? '우주까지 다녀왔다!' : `${d.place} 도착!`;
     else (head = '으앗, 못 닿았다…'), (sub = s.hearts > 0 ? `${s.why} · 하트 -1 · 같은 판 다시` : '하트가 없어요 — 끝');
   } else if (s.banner && s.phase === 'build' && t - s.banner.t < BANNER_T) {
     age = t - s.banner.t;
@@ -3472,4 +3485,4 @@ export function jumpTo(s: RocketState, k: number, parts: PK[] = []) {
   newStage(s);
   s.parts = parts.slice();
 }
-export { fly as rocketFly, predict as rocketPredict, P as ROCKET_PARTS };
+export { fly as rocketFly, predict as rocketPredict };

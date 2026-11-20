@@ -390,7 +390,7 @@ export function cellAt(x: number, y: number): number {
 
 const game: GameDef<IsleState> & { wows(s: IsleState): number } = {
   id: 'isletown',
-  name: '둥실 섬 마을 짓기',
+  name: '🏝️ 둥실 섬 마을 짓기',
   genes: ['placescore', 'decorate'],
   twist: '건물을 놓으면 옆 건물들이 점수 숫자를 휙휙 날려 꽂고(좋아하면 +, 싫어하면 −), 점수 막대가 차면 바다에서 새 섬 조각이 쑤욱 솟아 땅이 넓어진다',
   rules: [
