@@ -13,7 +13,7 @@
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
-import { juice } from '../juice.ts';
+import { juice, type Juice } from '../juice.ts';
 
 // ───────────────────────────── 화면·세계 상수 ─────────────────────────────
 /** 화면 세로 ÷ 가로 */
@@ -3904,19 +3904,34 @@ function heroMood(s: RewState): Mood {
 }
 
 function drawAll(ctx: C2, s: RewState, w: number, h: number, _th: Theme) {
-  const fx = juice(s), t = s.t, L = s.L, W = s.W, H = W.hero;
-  const X = (x: number) => x * w, Y = (y: number) => (TOPH + y) * w, R = (r: number) => r * w;
+  if (s.phase === 'chapter') return drawChapterScene(ctx, s, w, h);
+  const fx = juice(s), t = s.t, L = s.L, W = s.W, H = W.hero, c = s.cam;
+  // 세계(카메라로 당겨 봄) · 화면(띠·글자) · 먼 배경(조금만 따라 움직이고 흐리게)
+  const X = (x: number) => (x - c.x) * c.z * w, Y = (y: number) => (TOPH + (y - c.y) * c.z) * w, R = (r: number) => r * c.z * w;
   const v: View = { X, Y, R, t, fixed: s.fixed };
-  const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, R(sz))}px system-ui, sans-serif`);
+  const SV: View = { X: (x) => x * w, Y: (y) => (TOPH + y) * w, R: (r) => r * w, t, fixed: s.fixed };
+  const BV: View = { X: (x) => (x - c.x * 0.35) * w * 1.08, Y: (y) => (TOPH + y * 0.8 - 0.015) * w, R: (r) => r * w, t, fixed: s.fixed };
+  const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, sz * w)}px system-ui, sans-serif`);
   ctx.fillStyle = L.ch === 2 ? '#e8cca8' : '#bfe6ff';
   ctx.fillRect(0, 0, w, h);
   ctx.save();
   fx.begin(ctx);
-  // ═════════ 무대 ═════════
-  if (L.ch === 2) drawTower(ctx, v, L, w);
-  else {
-    drawSky(ctx, v, w, L.ch);
-    drawPanorama(ctx, v, w, L.ch);
+  // ═════════ 먼 배경 (흐리게) ═════════
+  if (L.ch === 2) {
+    drawTower(ctx, BV, L, w);
+    ctx.fillStyle = 'rgba(255,240,220,.28)';
+    ctx.fillRect(-10, -10, w + 20, h);
+  } else {
+    drawSky(ctx, BV, w, L.ch);
+    ctx.save();
+    ctx.filter = 'blur(1.3px)';
+    drawPanorama(ctx, BV, w, L.ch);
+    ctx.restore();
+    ctx.fillStyle = 'rgba(235,246,255,.3)';
+    ctx.fillRect(-10, -10, w + 20, BV.Y(0.5) + 10);
+  }
+  // ═════════ 무대 (당겨 본 세계) ═════════
+  if (L.ch !== 2) {
     if (L.ch === 1) drawMeadow(ctx, v, w);
     else {
       ctx.fillStyle = '#e8d4b8';
@@ -3978,7 +3993,7 @@ function drawAll(ctx: C2, s: RewState, w: number, h: number, _th: Theme) {
   if (L.ch !== 2) {
     drawGround(ctx, v, L, w);
     if (L.ch === 0) drawFountain(ctx, v, 0.12, 1.1);
-  } else drawFloors(ctx, v, L);
+  } else (drawTowerNear(ctx, v, L, w), drawFloors(ctx, v, L));
   drawFront(ctx, v, L, W);
   // 지붕 위 도깨비 자리(망루)
   for (const a of W.ac)
