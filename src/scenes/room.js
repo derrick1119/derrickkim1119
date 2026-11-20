@@ -104,6 +104,8 @@
   S.build = function () {
     const V = T.view, x0 = -V.W / 2 - 50, w = V.W + 100;
     if (!S.tree) buildTree();
+    if (S.builtGen === T.gen && S.L.back) return;
+    S.builtGen = T.gen;
 
     /* ---- back wall, floor, window frame (glass left open) ---- */
     S.L.back = T.bake(x0, -30, w, 960, (g) => {
@@ -298,6 +300,13 @@
   }
 
   /* ---------- lifecycle ---------- */
+  function seedAir() {
+    if (!S.leaves.length) {
+      const r = T.rng(5);
+      for (let i = 0; i < 9; i++) S.leaves.push({ x: WIN.x + r() * WIN.w, y: WIN.y + r() * WIN.h, s: 5 + r() * 5, ph: r() * 9, v: 16 + r() * 16, c: ['#d98a3d', '#c96a34', '#e0a03c', '#b9532f'][i % 4] });
+      for (let i = 0; i < 46; i++) S.motes.push({ x: -480 + r() * 760, y: 180 + r() * 600, ph: r() * 20, s: 1 + r() * 2.2 });
+    }
+  }
   S.enter = function (args) {
     const st = T.state;
     S.sel = null; TALK.clear();
@@ -305,11 +314,7 @@
     S.hold.k = 0; S.hold.on = false; S.lastLeaf.fall = 0;
     S.ana.cry = 0; S.ana.joy = 0; S.leo.lean = 0; S.leo.reach = 0; S.leo.look = 0;
     P.grainAmt = 0.11; P.vignette = 0.46; P.vignetteColor = '#0e1420';
-    if (!S.leaves.length) {
-      const r = T.rng(5);
-      for (let i = 0; i < 9; i++) S.leaves.push({ x: WIN.x + r() * WIN.w, y: WIN.y + r() * WIN.h, s: 5 + r() * 5, ph: r() * 9, v: 16 + r() * 16, c: ['#d98a3d', '#c96a34', '#e0a03c', '#b9532f'][i % 4] });
-      for (let i = 0; i < 46; i++) S.motes.push({ x: -480 + r() * 760, y: 180 + r() * 600, ph: r() * 20, s: 1 + r() * 2.2 });
-    }
+    seedAir();
     S.title.a = 0; S.title.leaving = false;
     T.state.chapter = 0;
     if (args.title) {
@@ -339,12 +344,16 @@
     T.audio.pad(null);
     T.audio.ambience(0.5, 0.3);
   };
-  const overChapter = (x, y) => Math.abs(x) < 190 && Math.abs(y - 842) < 26;
-  S.skipToChapter = function () {
-    if (S.mode !== 'title' || S.title.leaving || T.director.busy()) return;
+  /* a quiet row at the foot of the title: straight to any chapter */
+  const CHAPTERS = [['1장', 'kitchen'], ['2장', 'ch2'], ['3장', 'ch3'], ['4장', 'ch4'], ['5장', 'ch5'], ['6장', 'ch6'], ['마지막 장', 'ch7']];
+  const chapterX = (i) => (i - 3) * 100 + (i === 6 ? 22 : 0);
+  const overChapter = (x, y) => { if (Math.abs(y - 842) > 28) return -1; for (let i = 0; i < CHAPTERS.length; i++) if (Math.abs(x - chapterX(i)) < (i === 6 ? 62 : 46)) return i; return -1; };
+  S.skipToChapter = function (i) {
+    const c = CHAPTERS[i || 0];
+    if (S.mode !== 'title' || S.title.leaving || T.director.busy() || !c || !T.scenes[c[1]]) return;
     S.title.leaving = true;
     T.audio.unlock();
-    T.director.go('kitchen', { style: 'fade', color: '#0f1522', out: 1.4, in: 1.6 });
+    T.director.go(c[1], { style: 'fade', color: '#0f1522', out: 1.4, in: 1.6 });
   };
   S.begin = function () {
     if (S.mode !== 'title' || S.title.leaving) return;
@@ -474,7 +483,9 @@
   S.pointer = function (type, x, y) {
     if (S.mode === 'title') {
       T.cursor('pointer');
-      if (type === 'down' && overChapter(x, y)) S.skipToChapter();
+      const ci = overChapter(x, y);
+      S.title.hover = ci;
+      if (type === 'down' && ci >= 0) S.skipToChapter(ci);
       else if (type === 'up' || type === 'down') S.begin();
     } else if (S.mode === 'hub') {
       const id = spotAt(x, y);
@@ -493,7 +504,7 @@
   };
   S.key = function (key) {
     const act = key === ' ' || key === 'Enter';
-    if (S.mode === 'title') { if (act) S.begin(); else if (key === '1') S.skipToChapter(); else return false; }
+    if (S.mode === 'title') { if (act) S.begin(); else if (key >= '1' && key <= '7') S.skipToChapter(+key - 1); else return false; }
     else if (S.mode === 'hub') {
       const open = openSpots();
       if (!open.length) return false;
@@ -866,6 +877,26 @@
     g.restore();
     if (c.ready) T.continueDot(g, 0, 790, '#f3ead8');
   }
+  /* The room as a picture for the mirror lake, forty-five years on: someone else in the bed,
+     someone else in the chair. o: { tod, inBed(g), atChair(g) } */
+  S.paintStill = function (g, o) {
+    const tod = o.tod == null ? 5 : o.tod;
+    seedAir();
+    g.fillStyle = '#cfd4ca'; g.fillRect(-1100, -40, 2200, 1000);
+    drawOutside(g, tod, 0, 0);
+    T.blit(g, S.L.back);
+    T.blit(g, S.L.bed);
+    if (o.inBed) o.inBed(g);
+    T.blit(g, S.L.blanketFlat);
+    T.blit(g, S.L.cab);
+    drawLamp(g, T.rampNum(LAMP_K, tod));
+    T.blit(g, S.L.chair);
+    if (o.atChair) o.atChair(g);
+    lighting(g, tod, 0, 0);
+    drawCurtain(g, tod, 0, 0);
+  };
+  S.SPOTS = { LEO, ANA, LILY, LILY_HAND };
+
   function drawTitle(g) {
     const V = T.view, W = V.W, a = S.title.a;
     g.fillStyle = T.rgba('#0f1522', 0.72 * a); g.fillRect(-W / 2, 0, W, V.H);
@@ -876,9 +907,13 @@
       const p = 0.55 + 0.45 * Math.sin(T.time * 2.2);
       P.text(g, '화면을 눌러 시작', 0, 742, { font: 'serif', size: 26, color: '#f3ead8', alpha: p * ta });
       P.text(g, '소리를 켜면 더 좋아요', 0, 782, { font: 'serif', size: 19, color: '#c9cfdb', alpha: 0.7 * ta });
-      /* a quiet way straight to the second part */
-      P.text(g, '1장 「항구」부터 보기', 0, 850, { font: 'serif', size: 21, color: '#e9dcc0', alpha: 0.82 * ta });
-      g.fillStyle = T.rgba('#e9dcc0', 0.4 * ta); g.fillRect(-98, 860, 196, 1.2);
+      /* a quiet way straight to any chapter */
+      P.text(g, '장 바로 가기', 0, 814, { font: 'serif', size: 15, track: 6, color: '#c9cfdb', alpha: 0.55 * ta });
+      CHAPTERS.forEach((c, i) => {
+        const x = chapterX(i), on = S.title.hover === i;
+        P.text(g, c[0], x, 850, { font: 'serif', size: 21, color: on ? '#fff3d6' : '#e9dcc0', alpha: (on ? 1 : 0.78) * ta });
+        if (on) { g.fillStyle = T.rgba('#fff3d6', 0.6 * ta); g.fillRect(x - 22, 861, 44, 1.2); }
+      });
     }
   }
 

@@ -36,11 +36,21 @@
       /* window: snow is falling tonight */
       P.fill(g, P.box(-548, 150, 240, 280, 0.8, 10), '#f3e7cc');
       const ns = g.createLinearGradient(0, 164, 0, 416);
-      ns.addColorStop(0, '#1f2b4d'); ns.addColorStop(1, '#3b4a78');
-      g.fillStyle = ns; g.fillRect(-534, 164, 212, 252);
-      g.fillStyle = '#2a3559';
-      g.fillRect(-534, 352, 70, 64); g.fillRect(-470, 330, 60, 86); g.fillRect(-400, 362, 78, 54);
-      g.fillStyle = '#e9c66f'; g.fillRect(-452, 346, 9, 11); g.fillRect(-380, 378, 9, 11); g.fillRect(-512, 372, 9, 11);
+      if (o.dusk) {
+        /* the kitchen he built in Welcome Harbor looks out on the hill and the apple tree */
+        ns.addColorStop(0, '#93a6d6'); ns.addColorStop(0.6, '#f0c3a2'); ns.addColorStop(1, '#ffe0a8');
+        g.fillStyle = ns; g.fillRect(-534, 164, 212, 252);
+        g.fillStyle = '#84a184'; g.beginPath(); g.moveTo(-534, 416); g.lineTo(-534, 372); g.quadraticCurveTo(-430, 330, -322, 380); g.lineTo(-322, 416); g.fill();
+        g.fillStyle = '#6b4f52'; g.fillRect(-388, 318, 7, 52);
+        P.fill(g, P.ellipse(-384, 300, 34, 30), '#5f9a6a');
+        [[-398, 296], [-374, 308], [-380, 286]].forEach((q) => P.fill(g, P.circle(q[0], q[1], 4), '#c9433a'));
+      } else {
+        ns.addColorStop(0, '#1f2b4d'); ns.addColorStop(1, '#3b4a78');
+        g.fillStyle = ns; g.fillRect(-534, 164, 212, 252);
+        g.fillStyle = '#2a3559';
+        g.fillRect(-534, 352, 70, 64); g.fillRect(-470, 330, 60, 86); g.fillRect(-400, 362, 78, 54);
+        g.fillStyle = '#e9c66f'; g.fillRect(-452, 346, 9, 11); g.fillRect(-380, 378, 9, 11); g.fillRect(-512, 372, 9, 11);
+      }
       if (!o.cold) { g.fillStyle = '#e8eef8'; g.fillRect(-534, 404, 212, 12); }
       P.fill(g, P.box(-432, 164, 8, 252, 0.4, 11), '#f3e7cc');
       P.fill(g, P.box(-560, 424, 264, 16, 0.8, 12), '#f3e7cc');
@@ -118,9 +128,20 @@
     M.rebuild();
     const V = T.view, x0 = -V.W / 2 - 20, w = V.W + 40;
     S.L.bg = T.bake(x0, 0, w, 900, (g) => S.paintBg(g));
+    S.L.bg2 = null;
+  };
+  /* The last chapter plays this scene again, forty-five years on, in the kitchen he built:
+     other bodies in the same two places, no paper frame, nothing for the hand to do. */
+  S.restage = function (cast) {
+    const V = T.view, x0 = -V.W / 2 - 20, w = V.W + 40;
+    if (!S.L.bg2 || S.bg2Gen !== T.gen) { S.L.bg2 = T.bake(x0, 0, w, 900, (g) => S.paintBg(g, { cold: true, dusk: true })); S.bg2Gen = T.gen; }
+    S.plain = true; S.cast = cast;
+    S.ang = -0.6; S.shown = 1; S.p = 1; S.taste.k = 0; S.joy.k = 0; S.drag = false;
+    if (!S.steam.length) { const r = T.rng(3); for (let i = 0; i < 9; i++) S.steam.push({ ph: r() * 10, x: (r() - 0.5) * 120, sp: 0.5 + r() * 0.5 }); }
   };
 
   S.enter = function () {
+    S.plain = false; S.cast = null;
     M.enter();
     S.ang = -0.6; S.total = 0; S.p = 0; S.shown = 0; S.last = null; S.drag = false;
     S.taste.k = 0; S.joy.k = 0; S.lastNote = 0; S.lastBub = 0;
@@ -188,16 +209,18 @@
   S.draw = function (g) {
     const t = T.time, p = S.shown;
     const [bx, by] = T.par(0.3);
+    const plain = S.plain, cast = S.cast || { leo: F.styles.leo, ana: F.styles.ana };
     g.save(); g.translate(bx * 0.5, by * 0.5);
-    T.blit(g, S.L.bg);
+    T.blit(g, plain ? S.L.bg2 : S.L.bg);
+    if (plain) S.ang += 0.035;
 
     /* snow in the window */
-    g.save(); g.beginPath(); g.rect(-534, 164, 212, 240); g.clip();
+    g.save(); g.beginPath(); g.rect(-534, 164, 212, plain ? 0 : 240); g.clip();
     g.fillStyle = '#f2f5fb';
     for (const f of S.snow) { g.globalAlpha = 0.85; g.beginPath(); g.arc(-534 + f.x + Math.sin(f.ph * 1.2) * 6, 164 + f.y, f.s, 0, TAU); g.fill(); }
     g.restore();
     /* smoke from the burnt pan, still sulking */
-    g.strokeStyle = 'rgba(90,84,80,0.35)'; g.lineWidth = 5; g.lineCap = 'round';
+    g.strokeStyle = plain ? 'rgba(90,84,80,0)' : 'rgba(90,84,80,0.35)'; g.lineWidth = 5; g.lineCap = 'round';
     g.beginPath();
     for (let j = 0; j < 16; j++) { const yy = COUNTER - 40 - j * 9; g.lineTo(-446 + Math.sin(t * 1.3 + j * 0.5) * (3 + j * 0.9), yy); }
     g.stroke();
@@ -245,29 +268,31 @@
     /* the cook */
     const tk = T.ease.io(S.taste.k), joy = S.joy.k;
     const tip = [POT.x + Math.cos(S.ang) * 46, POT.y + 2 + Math.sin(S.ang) * 7];
-    const ana = { x: 262, y: COUNTER - 34, s: 372, style: F.styles.ana, flip: true, sit: true };
+    const ana = { x: 262, y: COUNTER - 34, s: plain ? 350 : 372, style: cast.ana, flip: true, sit: true };
     const sniff = T.smooth(T.clamp(p * 1.4));
     ana.lean = 0.04 + sniff * 0.22 + tk * 0.1 - joy * 0.2;
     ana.headTilt = 0.02 + sniff * 0.12 - joy * 0.22;
     const swing = 3 + sniff * 3;
     ana.legF = { a: Math.PI / 2 - 0.1, b: Math.PI / 2 - 0.25 + Math.sin(t * swing) * (0.2 + joy * 0.25) };
     ana.legB = { a: Math.PI / 2 - 0.2, b: Math.PI / 2 - 0.2 + Math.sin(t * swing + Math.PI) * (0.2 + joy * 0.25) };
-    ana.face = { eye: joy > 0.4 ? 'happy' : sniff > 0.75 && tk < 0.3 ? 'closed' : 'open', mouth: tk > 0.7 && joy < 0.3 ? 'open' : 'smile', blush: 0.24 + joy * 0.2 };
+    ana.face = { eye: joy > 0.4 ? 'happy' : sniff > 0.75 && tk < 0.3 ? 'closed' : 'open', mouth: tk > 0.7 && joy < 0.3 ? 'open' : 'smile', blush: 0.24 + joy * 0.2, old: plain };
     const aj0 = [ana.x - 46 - sniff * 14, COUNTER - 104];
     ana.armF = joy > 0.02 ? { a: T.lerp(0.9, 2.5, joy) + Math.sin(t * 10) * 0.12 * joy, b: 0.5 } : { hand: F.local(ana, aj0[0], aj0[1]) };
     ana.armB = joy > 0.02 ? { a: T.lerp(0.4, 2.2, joy) + Math.cos(t * 10) * 0.12 * joy, b: 0.5 } : { a: 0.5, b: 0.9 };
 
-    const leo = { x: -132, y: FLOORY - F.hipHeight(F.styles.leo, 400), s: 400, style: F.styles.leo, skip: { armF: true } };
+    const leo = { x: -132, y: FLOORY - F.hipHeight(cast.leo, plain ? 386 : 400), s: plain ? 386 : 400, style: cast.leo, skip: { armF: true } };
     leo.lean = 0.07 + tk * 0.06;
     leo.headTilt = 0.16 - tk * 0.22;
     leo.face = { eye: joy > 0.4 ? 'happy' : 'open', mouth: 'smile' };
+    if (plain) { leo.face.old = true; leo.lean = (leo.lean || 0) + 0.06; }
     leo.armB = { hand: F.local(leo, POT.x - POT.rx - 12, POT.y + 30) };
     /* spoon hand: stirring, then lifted across to her */
-    const mouth = [ana.x - 62 - sniff * 16, ana.y - 150];
+    const ms = plain ? 350 / 372 : 1;   /* she is a little smaller now */
+    const mouth = [ana.x - (62 + sniff * 16) * ms, ana.y - 150 * ms + (plain ? 16 : 0)];
     const stirHand = [tip[0] - 62, tip[1] - 58];
     const offer = [mouth[0] - 96, mouth[1] + 26];
     const hand = [T.lerp(stirHand[0], offer[0], tk), T.lerp(stirHand[1], offer[1], tk) - Math.sin(tk * Math.PI) * 40];
-    leo.x += tk * 34;
+    leo.x += tk * (plain ? 62 : 34);
     leo.armF = { hand: F.local(leo, hand[0], hand[1]) };
     const lj = F.person(g, leo);
     /* apron */
@@ -280,10 +305,10 @@
 
     const aj = F.person(g, ana);
     /* her own spoon, held like a flag */
-    if (joy < 0.02) { P.line(g, aj.handF[0], aj.handF[1] + 6, aj.handF[0] - 4, aj.handF[1] - 44, 4, '#c9d0ca'); P.fill(g, P.ellipse(aj.handF[0] - 5, aj.handF[1] - 50, 7, 10, -0.1), '#c9d0ca'); }
+    if (joy < 0.02 && !plain) { P.line(g, aj.handF[0], aj.handF[1] + 6, aj.handF[0] - 4, aj.handF[1] - 44, 4, '#c9d0ca'); P.fill(g, P.ellipse(aj.handF[0] - 5, aj.handF[1] - 50, 7, 10, -0.1), '#c9d0ca'); }
 
     /* wooden spoon, then his arm over it */
-    const hj = [leo.x + (hand[0] - leo.x), hand[1]];
+    const hj = plain && lj.handF ? [lj.handF[0] + 4, lj.handF[1] + 8] : [leo.x + (hand[0] - leo.x), hand[1]];
     P.line(g, hj[0] - 6, hj[1] - 10, spoonTip[0], spoonTip[1], 6, '#b98a5a');
     P.fill(g, P.ellipse(spoonTip[0], spoonTip[1], 12, 8, 0.4), tk > 0.2 ? stew : '#b98a5a');
     F.person(g, Object.assign({}, leo, { only: 'armF', skip: null }));
@@ -321,6 +346,7 @@
     g.restore();
     g.restore();
 
+    if (plain) return;
     const h = M.hint(1.8);
     if (h > 0 && S.p < 0.97) {
       const pts = [];

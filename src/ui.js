@@ -12,7 +12,10 @@
     g.restore();
   };
 
-  const WHO = { leo: ['레오', '#fbeccb'], ana: ['아나', '#ffdccf'], nana: ['할머니', '#f3e6f4'] };
+  const WHO = {
+    leo: ['레오', '#fbeccb'], ana: ['아나', '#ffdccf'], nana: ['할머니', '#f3e6f4'],
+    bram: ['브램 선장', '#dfe8f4'], rosa: ['로사', '#fff0c0'], mom: ['엄마', '#e2f2ee'], both: ['레오와 아나', '#fff3dc'],
+  };
 
   /* One line at a time at the foot of the screen. A tap finishes the line, the next tap moves on. */
   T.talk = function (S) {

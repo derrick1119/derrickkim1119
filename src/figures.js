@@ -21,6 +21,31 @@
     post: { skin: '#e7b793', hair: '#3a2b25', hairStyle: 'short', cap: '#3f6b8a', top: '#3f6b8a', bottom: '#2f4460', shoe: '#33291f' },
     villagerA: { skin: '#e7b793', hair: '#8a8a8a', hairStyle: 'short', top: '#6f9a8a', bottom: '#5a4a44', shoe: '#33291f' },
     villagerB: { skin: '#f0c7a9', hair: '#c9c2b4', hairStyle: 'bun', top: '#c9805a', bottom: '#5d6f8a', skirt: 28, shoe: '#4a3530' },
+    /* the later chapters */
+    mother: { skin: '#eec3a6', hair: '#b9b2a8', hairStyle: 'bob', top: '#3f7f86', scarf: '#f1c04a', bottom: '#5d6f8a', skirt: 32, shoe: '#4a3530' },
+    bramWife: { skin: '#eec3a6', hair: '#f6f2ea', hairStyle: 'bun', top: '#b98aa4', scarf: '#f6e9cc', bottom: '#6b5a78', skirt: 34, shoe: '#4a3530' },
+    rosaSon: { skin: '#e2ad88', hair: '#f3efe6', hairStyle: 'short', top: '#8a8f9a', bottom: '#4b5669', shoe: '#33291f' },
+    villagerC: { skin: '#e2ad88', hair: '#5a4a44', hairStyle: 'short', top: '#8a5578', bottom: '#4b5669', shoe: '#33291f' },
+    groom: { skin: '#e7b793', hair: '#3a2b25', hairStyle: 'short', top: '#4b5669', bottom: '#4b5669', shoe: '#221d24' },
+    kidA: { skin: '#f3ccb0', hair: '#3b2a23', hairStyle: 'short', top: '#d7a23c', bottom: '#4b5669', shoe: '#33291f', kid: true },
+    kidB: { skin: '#f0c4a6', hair: '#6b3f2a', hairStyle: 'apple', tie: '#f1c04a', top: '#c9573f', bottom: '#c9573f', skirt: 16, shoe: '#5a3a2e', kid: true },
+    kidC: { skin: '#f3ccb0', hair: '#2a2024', hairStyle: 'short', top: '#7fb0c9', bottom: '#5d6f8a', shoe: '#33291f', kid: true },
+  };
+  /* Leo in Welcome Harbor, k = 0 (as he arrived) … 4 (white). The beanie hides most of it. */
+  F.leoAt = function (k) {
+    const u = T.clamp(k / 4);
+    return Object.assign({}, F.styles.leoHome, { hair: T.mix('#3a2b25', '#f3efe6', u), skin: T.mix('#e9c0a2', '#e2b497', u) });
+  };
+  F.leoBare = function () { return Object.assign({}, F.styles.leoHome, { hairStyle: 'short', hair: '#f3efe6', skin: '#e2b497' }); };
+  /* Ana and Lily in the living world, by age */
+  F.anaAt = function (age, o) {
+    const u = T.clamp((age - 44) / 34);
+    return Object.assign({}, F.styles.ana, { hair: T.mix('#2a2024', '#f3efe8', u), skin: T.mix('#f0c7a9', '#ecc1a6', u) }, o || {});
+  };
+  F.lilyAt = function (age, o) {
+    if (age < 13) return Object.assign({}, F.styles.lily, o || {});
+    const u = T.clamp((age - 38) / 30);
+    return Object.assign({ skin: '#f3ccb0', hair: T.mix('#3b2a23', '#d9d2c6', u), hairStyle: 'bob', top: '#7fb0c9', bottom: '#5d8fb0', skirt: 28, shoe: '#c9573f' }, o || {});
   };
 
   const ADULT = { thigh: 24, shin: 24, torso: 30, sh: 26, neck: 11, R: 9.5, ua: 15, fa: 14, legW: 7.6, armW: 5.6, torsoW: 17, hand: 3.1 };
@@ -212,6 +237,7 @@
     if (face.eye === 'closed') { g.beginPath(); g.arc(ex, ey - 0.4, 1.5, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke(); }
     else if (face.eye === 'happy') { g.beginPath(); g.arc(ex, ey + 0.9, 1.5, 1.15 * Math.PI, 1.85 * Math.PI); g.stroke(); }
     else { g.beginPath(); g.arc(ex, ey, 0.95, 0, TAU); g.fill(); }
+    if (face.old) { g.lineWidth = 0.6; g.beginPath(); g.moveTo(ex - 2.6, ey - 1.6); g.lineTo(ex - 4.4, ey - 2.6); g.moveTo(ex - 2.8, ey + 0.4); g.lineTo(ex - 4.8, ey + 0.8); g.moveTo(ex + 0.4, ey + 3.4); g.lineTo(ex + 2.6, ey + 4.2); g.stroke(); g.lineWidth = 0.9; }
     if (face.mouth === 'smile') { g.beginPath(); g.arc(R * 0.5, R * 0.36, 2.3, 0.18 * Math.PI, 0.72 * Math.PI); g.stroke(); }
     else if (face.mouth === 'open') { g.beginPath(); g.ellipse(R * 0.66, R * 0.52, 1.3, 1.7, 0, 0, TAU); g.fill(); }
     else if (face.mouth === 'line') { g.beginPath(); g.moveTo(R * 0.5, R * 0.52); g.lineTo(R * 0.8, R * 0.5); g.stroke(); }

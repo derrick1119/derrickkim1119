@@ -15,6 +15,8 @@
   });
 
   S.build = function () {
+    if (S.bgGen === T.gen && S.L.bg) return;
+    S.bgGen = T.gen;
     const V = T.view, x0 = -V.W / 2 - 20, w = V.W + 40;
     S.L.bg = T.bake(x0, 0, w, 900, (g) => {
       T.scenes.stew.paintBg(g, { cold: true });

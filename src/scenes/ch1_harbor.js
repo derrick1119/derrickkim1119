@@ -54,6 +54,8 @@
   /* ---------- build: bake the town ---------- */
   const C = { terra: '#c8623f', teal: '#3f7f86', must: '#d7a23c', plum: '#8a5578', slate: '#5d6f8a', rose: '#d98a8f' };
   S.build = function () {
+    if (S.builtGen === T.gen && S.spr.nana) return;   /* baked art is good until the canvas changes size */
+    S.builtGen = T.gen;
     const H = K.house, sp = (S.spr = {});
     sp.shed = H({ w: 150, h: 112, roofH: 62, roof: 'hip', wall: '#e9dcc0', roofC: C.teal, door: { x: -30, c: '#6b5a48' }, win: [[22, -84, 40, 44, 0]], seed: 11 });
     sp.post = H({ w: 176, h: 156, roofH: 84, roof: 'gable', wall: '#f6e9cc', roofC: C.terra, door: { x: -44, c: C.slate }, win: [[14, -116, 50, 58, 1, true]], sign: 'envelope', signX: 84, chim: 40, seed: 21 });
@@ -207,6 +209,7 @@
   }
   S.enter = function (args) {
     const k = S.clock, A = T.audio;
+    S.hook = null;
     reset();
     const cp = args.cp || 'sea';
     T.state.chapter = 1; T.state.cp = cp;
@@ -523,11 +526,8 @@
   S.leave = function () {
     if (!S.canLeave || T.director.busy()) return;
     S.canLeave = false;
-    const st = T.state;
-    Object.keys(st.done).forEach((id) => { st.done[id] = false; });
-    st.count = 0; st.order = []; st.together = false; st.chapter = 0; st.cp = null;
     T.audio.pad(null);
-    T.director.go('room', { style: 'fade', color: '#161d2a', out: 1.8, in: 1.6, args: { title: true } });
+    T.director.go('ch2', { style: 'fade', color: '#fff6e6', out: 1.8, in: 1.6 });
   };
 
   /* ---------- input ---------- */
@@ -600,6 +600,7 @@
     const sky = g.createLinearGradient(0, 0, 0, 900);
     sky.addColorStop(0, '#8496cc'); sky.addColorStop(0.38, '#e9b9a4'); sky.addColorStop(0.7, '#ffdba6'); sky.addColorStop(1, '#fff0cc');
     g.fillStyle = sky; g.fillRect(-W / 2, 0, W, 900);
+    if (S.hook && S.hook.sky) S.hook.sky(g);
     let r = layer(g, 0.05);
     P.glow(g, 430, 560, 620, '#fff2c4', 0.9); P.glow(g, 430, 560, 170, '#ffffff', 0.75);
     g.restore();
@@ -674,16 +675,16 @@
       const y = fn(o.x);
       if (o.k === 'spr') T.blit(g, S.spr[o.s], o.x, y + 3);
       else if (o.k === 'lamp') K.lantern(g, o.x, y + 2, t, { s: o.s || 1, seed: o.x });
-      else if (o.k === 'tree') K.tree(g, o.x, y, o.s, o.c, null, null, Math.sin(t * 0.8 + o.x));
+      else if (o.k === 'tree') { if (!(S.hook && o.x === 4420)) K.tree(g, o.x, y, o.s, o.c, null, null, Math.sin(t * 0.8 + o.x)); }   /* later on, the swing hangs where this one stood */
       else if (o.k === 'box') { P.fill(g, P.rr(o.x - 13, y - 58, 26, 34, 6), '#c9573f'); P.fill(g, P.rr(o.x - 8, y - 46, 16, 4, 2), '#3a3032'); P.line(g, o.x, y - 24, o.x, y + 2, 6, '#8a4a3a'); }
-      else if (o.k === 'slip') drawSlip(g, o.x, y);
+      else if (o.k === 'slip') { if (!(S.hook && S.hook.flags.bramGone)) drawSlip(g, o.x, y); }
       else if (o.k === 'builder') drawBuilder(g, o.x, y);
       else if (o.k === 'rosa') drawRosa(g, o.x, y);
       else if (o.k === 'sitter') drawSitter(g, o.x, y);
       else if (o.k === 'roses') K.bush(g, o.x, y + 2, 1.15, '#5f8f62', ['#e5758f', '#f09aac', '#d9546f', '#f6e0e0']);
       else if (o.k === 'arch') drawArch(g, o.x, y);
       else if (o.k === 'home') drawHome(g);
-      else if (o.k === 'plot') drawPlot(g, o.x);
+      else if (o.k === 'plot') { if (S.hook && S.hook.plot) S.hook.plot(g, o.x); else drawPlot(g, o.x); }
     }
   }
   function drawSlip(g, x, y) {
@@ -1021,6 +1022,7 @@
   /* ---------- drawing: the frame ---------- */
   S.draw = function (g) {
     const V = T.view, W = V.W, t = T.time;
+    const who = S.hook ? S.hook.people : people;
     backdrop(g);
     /* cloud between here and the horizon */
     let r = layer(g, 0.55);
@@ -1033,15 +1035,15 @@
     tufts(g, y3, 5, '#6d8f70', xa, xb, 10);
     drawThings(g, 3, y3, xa, xb);
     if (tg === 3) ridgeGlow(g, y3, J2, pulse);
-    people(g, 3);
+    who(g, 3);
 
     hill(g, y2, xa, xb, '#c2ab63', '#93835e', 360);
     tufts(g, y2, 6, '#a08c4e', xa, xb, 11);
     drawThings(g, 2, y2, xa, xb);
     if (tg === 2) ridgeGlow(g, y2, J1, pulse);
-    people(g, 2);
+    who(g, 2);
 
-    if (xa < 700) drawBoat(g);
+    if (S.hook) { if (S.hook.beforeSea) S.hook.beforeSea(g, xa, xb); } else if (xa < 700) drawBoat(g);
     if (r[3] > SEA - 240) seaSurface(g, xa, xb);
     if (xa < 700) drawPier(g);
     if (xb > QUAY) {
@@ -1052,7 +1054,7 @@
       for (let x = Math.max(QUAY + 10, Math.floor(xa / 22) * 22); x < Math.min(xb, 1960); x += 22) { const y = y1(x) + 9 + ((x / 22) % 2) * 6; g.beginPath(); g.moveTo(x - 6, y); g.quadraticCurveTo(x, y - 4, x + 6, y); g.stroke(); }
       drawThings(g, 1, y1, xa, xb);
     }
-    people(g, 1);
+    who(g, 1);
     drawPostman(g);
 
     /* where two ridges want to meet */
@@ -1081,7 +1083,7 @@
     g.fillStyle = warm; g.fillRect(-W / 2, 0, W, 900);
     g.restore();
 
-    overlay(g);
+    if (S.hook) { if (S.hook.screen) S.hook.screen(g); } else overlay(g);
   };
 
   function overlay(g) {
@@ -1113,8 +1115,30 @@
       P.text(g, '1장 끝', 0, 150, { font: 'serif', size: 22, track: 10, color: '#4a4468', alpha: 0.75 * a });
       P.text(g, '2장 「약속 목록」', 0, 222, { font: 'serif', size: 46, track: 4, color: '#3a3f5c', alpha: a });
       g.save(); g.globalAlpha = a; P.fill(g, P.rr(-150, 774, 300, 62, 31), 'rgba(58,63,92,0.78)'); g.restore();
-      P.text(g, '처음으로 돌아가기', 0, 814, { font: 'serif', size: 25, color: '#fff6e4', alpha: a });
+      P.text(g, '이어서 보기', 0, 814, { font: 'serif', size: 26, color: '#fff6e4', alpha: a });
     }
     TALK.draw(g);
   }
+
+  /* ---------- the town on loan ----------
+     Later chapters play on this same hill. They borrow the world with their own cast and camera;
+     nothing of chapter 1's own business (boat, embrace, the walk) is drawn while a hook is set. */
+  T.world = {
+    S, K1, K2, K3,
+    C: { SEA, PIER_Y, QUAY, J1, J2, HOUSE, DOOR, STOP, PLOT, LEO_S, NANA_S },
+    y1, y2, y3, groundAt, hillOf, surf, HG, toScreen, toWorld, layer, handLamp,
+    cam: S.cam,
+    /* hook: { people(g, hill), plot(g, x), beforeSea(g, xa, xb), sky(g), screen(g), flags: { bramGone } } */
+    borrow(hook) {
+      S.build();
+      reset();
+      S.join1 = true; S.join2 = true; S.d2 = S.a2; S.d3 = S.a3;
+      S.swell = [];
+      S.ph = 'lent';
+      S.hook = Object.assign({ flags: {} }, hook);
+      S.hook.flags = S.hook.flags || {};
+    },
+    draw(g) { S.draw(g); },
+    bell: S.bell,
+  };
 })();

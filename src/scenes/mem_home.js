@@ -54,6 +54,8 @@
 
   S.build = function () {
     M.rebuild();
+    if (S.bgGen === T.gen && S.L.bg) return;
+    S.bgGen = T.gen;
     const V = T.view, x0 = -V.W / 2 - 20, w = V.W + 40;
     S.L.bg = T.bake(x0, 0, w, 900, (g) => {
       /* evening sky and the roofline */
@@ -184,6 +186,18 @@
     M.update(dt);
     S.shown += (S.p - S.shown) * (1 - Math.exp(-dt * 7));
   };
+
+  /* the same room as somewhere to dream in: the chalk drawn as far as k, nobody in it */
+  S.paintStill = function (g, k) {
+    const t = T.time;
+    T.blit(g, S.L.bg);
+    const bulbX = ROOM.x + 200, bulbY = ROOM.y + 54;
+    P.glow(g, bulbX, bulbY, 150 * (1 + Math.sin(t * 13) * 0.015), '#ffe2a0', 0.55);
+    g.fillStyle = '#fff4cf'; g.beginPath(); g.arc(bulbX, bulbY, 9, 0, TAU); g.fill();
+    for (const s of PLAN) { const kk = T.unlerp(s.a, s.b, k); if (kk > 0) P.chalk(g, s.pts, kk, s.c, s.w, s.seed); }
+    for (const l of LABELS) { const kk = T.unlerp(l.at, l.at + 0.07, k); if (kk > 0) P.text(g, l.t, l.x, l.y, { size: l.s, color: l.c, k: kk, alpha: 0.86, seed: 8 }); }
+  };
+  S.GEO = { ROOM, FLOOR, WALL_X };
 
   S.draw = function (g) {
     const V = T.view, t = T.time, p = S.shown;

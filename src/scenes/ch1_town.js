@@ -185,6 +185,24 @@
       P.fill(g, P.rr(-226, -76, 18, 18, 3), '#3f7f86');
     }, 1.3);
   };
+  /* the same boat fifty years later, finished and afloat. Origin at the waterline amidships;
+     drawn in two passes so whoever is aboard sits inside the hull. */
+  K.bigBoat = function (g, part) {
+    if (part === 'back') {
+      P.line(g, 10, -40, 10, -230, 6, '#6f4a34');
+      P.fill(g, P.poly([[14, -224], [14, -70], [120, -70]]), '#f6ecd6');
+      P.fill(g, P.poly([[6, -214], [6, -84], [-70, -84]]), '#efe2c6');
+      P.fill(g, P.poly([[10, -230], [10, -214], [38, -222]]), '#c9573f');
+      return;
+    }
+    const hull = P.soft([[-176, -62], [-186, -34], [-150, 10], [-40, 22], [80, 20], [164, 0], [206, -78], [176, -70], [0, -60]]);
+    P.fill(g, hull, '#b9774a');
+    g.save(); g.clip(hull);
+    g.strokeStyle = 'rgba(70,40,20,0.3)'; g.lineWidth = 2;
+    for (let i = 0; i < 5; i++) { g.beginPath(); g.moveTo(-190, -50 + i * 15); g.quadraticCurveTo(0, -38 + i * 15, 210, -66 + i * 13); g.stroke(); }
+    g.restore();
+    P.strokePts(g, [[-178, -62], [0, -60], [176, -70], [206, -78]], 7, '#f3e7cf', true);
+  };
   K.bike = function (g, x, y, s, ph, col) {
     g.save(); g.translate(x, y); g.scale(s, s);
     g.strokeStyle = '#3d3540'; g.lineWidth = 3;

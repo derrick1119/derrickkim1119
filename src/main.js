@@ -13,6 +13,7 @@
     if (name === 'final') { mark(4); st.together = true; return ['room', { final: true }]; }
     if (['home', 'stew', 'swing', 'walk', 'ending', 'kitchen'].includes(name)) return [name, {}];
     if (['sea', 'quay', 'street', 'hills', 'house', 'top'].includes(name)) return ['harbor', { cp: name }];
+    if (/^ch[2-7]$/.test(name) && T.scenes[name]) return [name, {}];
     return null;
   }
 
@@ -21,6 +22,7 @@
     const st = T.state;
     let first = ['room', { title: true }];
     if (saved && saved.chapter === 1) first = saved.cp ? ['harbor', { cp: saved.cp }] : ['kitchen', {}];
+    else if (saved && saved.chapter > 1 && T.scenes['ch' + saved.chapter]) first = ['ch' + saved.chapter, {}];
     else if (saved && saved.done && saved.count > 0) {
       Object.assign(st.done, saved.done); st.count = saved.count; st.together = !!saved.together;
       first = ['room', st.together ? { final: true } : {}];
