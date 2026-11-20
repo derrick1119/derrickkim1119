@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { GENE_KIND_LABEL, GENES, type GeneKind } from './core.ts';
 import { ideaText, suggest, usage } from './ideas.ts';
 import type { ArcadeReport } from './evaluate.ts';
+import { machinePicks } from './picks.ts';
 import { GAMES } from './registry.ts';
 
 const root = import.meta.dirname;
@@ -82,6 +83,9 @@ const geneList = (Object.keys(GENE_KIND_LABEL) as GeneKind[]).map((k) => {
 }).join('');
 const ideaList = ideas.map((i) => `<li>${esc(ideaText(i))} <span class="muted">새 재료 ${i.fresh}개</span></li>`).join('');
 const done = ab.rounds.filter((r) => r.winner);
+// 0114: 열린 라운드의 기계 추천 — 계산은 picks.ts 하나(테스트가 ab.json 기록과 맞춰 봄)
+const curPicks = cur.games && !cur.winner ? machinePicks(cur.games.filter((id) => evals[id]).map((id) => evals[id])) : {};
+const picksLine = curPicks.pick1 ? `<p class="muted">기계 추천(참고만 — 고르기는 오너 몫, 0101): 봇 재미 1위 <b>${esc(nameOf(curPicks.pick1))}</b>${curPicks.pick2 ? ` · 버릇대로 하면 ★3이 가장 어려운 것 <b>${esc(nameOf(curPicks.pick2))}</b>` : ''}</p>` : '';
 // 0111: 기계 추천 1(재미 1위)·2(버릇 ★3 최저)가 오너 선택을 맞혔나 — 고른 라운드만 센다(전체 폐기는 맞힘 판정 없음)
 const picked = done.filter((r) => r.winner !== 'none' && r.machinePick2);
 const hit = (k: 'machinePick' | 'machinePick2') => picked.filter((r) => r.winner!.split(',').includes(r[k]!)).length;
@@ -116,7 +120,7 @@ ${menuOpen ? `<h2 id="ab-h">${menu!.round}라운드 아이디어 메뉴 — 만�
   </article>`).join('')}</div>` : cur.winner ? `<h2 id="ab-h">${cur.round + 1}라운드 준비 중</h2>
   <p class="lead">${cur.round}라운드는 ${cur.winner === 'none' ? (cur.games ? '<b>모두 폐기</b>' : '<b>둘 다 탈락</b>') : `<b>${esc(cur.winner.split(',').map(nameOf).join(' · '))}</b> ${cur.games ? '선택' : '승'}`}. 공장이 다음 라운드 게임을 만들고 있습니다. 준비되면 알려 드립니다.</p>` : cur.games ? `<h2 id="ab-h">${cur.round}라운드 — ${cur.games.length}개 다 해 보고 마음에 드는 걸 골라 주세요</h2>
   <p class="lead">이번 라운드의 아이디어를 <b>전부 만들어</b> 한꺼번에 올렸습니다(A|B 대신, 오너 요청 2026-11-08). 하나씩 해 보고 <b>채팅에 마음에 드는 번호를 적어 주세요</b>(여러 개 가능, 예: “2, 5”). 고른 건 남겨서 더 키우고, 안 고른 건 폐기합니다. 다 별로면 이유를 한 줄 적어 주세요.</p>
-  <div class="ab">${cur.games.map((id, i) => card(String(i + 1), id, null)).join('')}</div>` : !cur.B ? `<h2 id="ab-h">${cur.round}라운드 — 한 판 해 보고 “좋아” / “별로”</h2>
+  <div class="ab">${cur.games.map((id, i) => card(String(i + 1), id, null)).join('')}</div>${picksLine}` : !cur.B ? `<h2 id="ab-h">${cur.round}라운드 — 한 판 해 보고 “좋아” / “별로”</h2>
   <p class="lead">이번 라운드는 오너가 준 아이디어로 만든 게임 하나입니다. 한 판 해 보고 <b>채팅에 “좋아” 또는 “별로”라고 답해 주세요.</b> 별로면 이유를 한 줄 적어 주세요. 좋으면 이 게임이 챔피언이 되고, 다음 게임이 여기에 도전합니다.</p>
   <div class="ab one">${card('A', cur.A, null)}</div>` : `<h2 id="ab-h">A|B ${cur.round}라운드 — 직접 해보고 골라 주세요</h2>
   <p class="lead">두 게임을 한 판씩 해 보고, <b>채팅에 “A” 또는 “B”라고 답해 주세요.</b> 고른 쪽이 챔피언이 되고, 공장은 그 챔피언에 도전할 새 조합을 만듭니다. 둘 다 별로면 이유를 한 줄 적어 주세요. 그게 다음 게임의 설계 기준이 됩니다.</p>
