@@ -14,6 +14,14 @@ python3 -m http.server 8000
 
 그다음 `http://localhost:8000`을 엽니다. 소리를 켜고 가로 화면으로 보는 것을 권합니다.
 
+파일 하나로 옮기고 싶다면 글꼴과 스크립트를 모두 넣은 HTML을 만들 수 있습니다.
+
+```bash
+python3 tools/bundle.py
+```
+
+`dist/take-your-time.html`이 생기고, 이 파일만 있으면 어디서든 열립니다.
+
 ## 프롤로그의 흐름
 
 늦가을 병실. 레오가 몰래 레시피 공책을 쓰고 있습니다. 빛나는 물건을 만지면 기억이 펼쳐지고,
@@ -66,6 +74,7 @@ src/scenes/ch1_kitchen.js  1장 첫 장면: 아나의 부엌, 레시피 공책
 src/scenes/ch1_town.js     항구 마을의 부품: 짓는 중인 집, 등불, 배, 구름
 src/scenes/ch1_harbor.js   1장 본편: 구름바다에서 언덕 위 빈 터까지
 tools/subset_fonts.py      글꼴을 쓰는 글자만 남겨 fonts.css로 묶기
+tools/bundle.py            게임 전체를 HTML 파일 하나로 묶기
 ```
 
 주소 끝에 이름을 붙이면 그 장면부터 볼 수 있습니다.
