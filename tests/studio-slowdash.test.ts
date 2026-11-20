@@ -585,7 +585,7 @@ describe('느린 시간 닌자 플레이 빌드', () => {
     const src = readFileSync('studio/slowdash/game.ts', 'utf8');
     expect(src).not.toMatch(/function getBg|createRadialGradient/); // 옛 벡터 배경 굽기 · 매 프레임 원형 그라데이션 없음
   });
-  it('M3 S11 렉(🧪 첫 떼기): 사건 글·알림 글은 표에서만 나오고, 그 표 전부를 켠 뒤 틈틈이 같은 글꼴·같은 선 굵기로 화면 밖에 미리 그린다', () => {
+  it('M3 S11 렉(🧪 첫 떼기): 사건 글·알림 글은 표에서만 나오고, 그 표 전부를 (?twarm=1이면) 켠 뒤 틈틈이 같은 글꼴·같은 선 굵기로 화면 밖에 미리 그린다', () => {
     const src = readFileSync('studio/slowdash/game.ts', 'utf8'), main = readFileSync('studio/slowdash/main.ts', 'utf8');
     expect(src).not.toMatch(/\bsay\([^;]*, '[^']+', '#/); // say(…, '글', '#색', 크기) 같은 따로 쓴 글 없음 → POP 표
     expect(src).not.toMatch(/\bsee\(s, '\w+', '[^']/); // 알림 글은 TIP 표
@@ -597,6 +597,13 @@ describe('느린 시간 닌자 플레이 빌드', () => {
     expect(main).toMatch(/warmText\(warmC, /); // 화면 밖 캔버스에(판 캔버스엔 안 그림)
     expect(main).toMatch(/dt > Math\.max\(20, frameAvg \* 1\.1\)\) return/); // 그 기기의 평소 프레임보다 늦지 않은 프레임에만 · 한 조각씩(🧪 S11 1차: 켠 뒤 프레임이 길어짐)
     expect(main).toMatch(/if \(s\.down\) warmRest = 60;/); // 꾹·뗀 뒤 1초는 쉰다(🧪 S11: 켜자마자 떼기 켬 1/10 · 끔 6/10)
+    expect(main).toMatch(/q\.get\('twarm'\) === '1'/); // M3 S12(📋 (92)): 켬/끔 잡음 안 · 켠 뒤 3초가 끔보다 낮음 → 기본 끔
+  });
+  it('M3 S12 꾹 글(🧪 S10 허들 2 숙련 ❌ · 오너 \'연출 과도\'): \'N명 한 줄!\' · \'스으…\' · \'휙! 꺾어요\' · \'방패에 튕겨요!\'는 위 하늘 두 줄에서만 그린다', () => {
+    const src = readFileSync('studio/slowdash/game.ts', 'utf8');
+    expect(src.match(/명 한 줄!`/g)?.length).toBe(1); // holdCap 한 곳
+    expect(src).not.toMatch(/fillText\('스으…'|'휙! 꺾어요' :|fillText\('방패에 튕겨요!'/); // 닌자·적 옆에 따로 쓰던 것 없음
+    expect(src).toMatch(/cy = Math\.max\(R\(0\.085 \+ 0\.15\), dy \* 0\.75\) - dy/); // HUD·띠 아래, 판 위 하늘
   });
   it('M3 S1 시안 모음: 스타일 넷(도트·3D·2.5D·2D)과 캐릭터 셋 그림이 있고, 모음 페이지가 일곱 장을 모두 가리킨다', () => {
     const dir = 'web/public/studio/slowdash/concepts/', page = readFileSync(dir + 'index.html', 'utf8');

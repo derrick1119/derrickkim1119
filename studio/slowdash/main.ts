@@ -109,7 +109,7 @@ function size() {
   canvas.width = Math.round(W * dpr);
   canvas.height = Math.round(H * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  if (q.get('twarm') !== '0' && warmC) (DPR = dpr), (warmC.canvas.width = Math.round(w * dpr)), (warmC.canvas.height = Math.round(100 * dpr)), (warmQ = textWarm(W)), (warmPart = 0); // 글자 크기가 화면 너비를 따르므로 크기가 바뀌면 다시
+  if (q.get('twarm') === '1' && warmC) (DPR = dpr), (warmC.canvas.width = Math.round(w * dpr)), (warmC.canvas.height = Math.round(100 * dpr)), (warmQ = textWarm(W)), (warmPart = 0); // 글자 크기가 화면 너비를 따르므로 크기가 바뀌면 다시
   draw();
 }
 
@@ -119,7 +119,8 @@ function size() {
 //   3차: 직전 프레임이 제때(≤ 20ms) 온 경우에만 글 하나씩 → 켠 뒤 4초에도 다 못 끝냄(2-6 남은 글 13~20)
 //   4차: 글 하나를 세 조각(재기 · 테두리 · 채우기)으로 나눠 제때 온 프레임마다 한 조각 · 첫 떼기에 뜨는 글부터
 //   → 5차(🧪 S11: 켜고 0.7초에 누르면 켬 1/10 · 끔 6/10 — 꾹·떼는 프레임에도 예열이 돌았다 · CPU 6배에선 20ms 안 프레임이 7~33%뿐이라 거의 안 돎):
-//     꾹 하는 동안과 뗀 뒤 약 1초는 쉬고, '제때'는 그 기기의 평소 프레임(지수 평균 × 1.1, 최소 20ms) · ?twarm=0 이면 끔(비교용)
+//     꾹 하는 동안과 뗀 뒤 약 1초는 쉬고, '제때'는 그 기기의 평소 프레임(지수 평균 × 1.1, 최소 20ms)
+//   → M3 S12(📋 (92)): 켬/끔이 잡음 안이고 켠 뒤 3초가 끔보다 낮아(15·15 대 18/30) **기본은 끔** · ?twarm=1 이면 켬(측정기 짝을 맞춘 뒤 다시 가린다)
 let warmQ: WarmText[] = [], warmPart = 0, warmRest = 0, frameAvg = 17, DPR = 1;
 const warmC = document.createElement('canvas').getContext('2d');
 function warmTick(dt: number) {
