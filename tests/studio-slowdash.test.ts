@@ -575,7 +575,7 @@ describe('느린 시간 닌자 플레이 빌드', () => {
     expect(readFileSync('studio/slowdash/game.ts', 'utf8')).toMatch(/loLayer\(LW, LH\)/); // 세상은 도트 캔버스에(렉 F13)
   });
   it('M3 S3 도트 배경(🧪 🔴1): 판 배경 세 곳 모두 32색 팔레트 글자만 쓰고(후광·그라데이션 0), 멈춘 시계탑 초침(청록)과 불 켜진 창이 있다', () => {
-    for (const [place, v] of [[0, 0], [1, 0], [1, 1], [1, 2], [2, 0]]) { // M3 S7: 지붕 셋(푸른 · 갈색+굴뚝 · 밤+빨랫줄)
+    for (const [place, v] of [[0, 0], [1, 0], [1, 1], [1, 2], [1, 3], [2, 0]]) { // M3 S7: 지붕 셋(푸른 · 갈색+굴뚝 · 밤+빨랫줄)
       const g = bgGrid(130, 198, place, 54, 170, v), all = g.flat();
       expect(all.length).toBe(130 * 198);
       expect(all.every((c) => c in PAL && c !== 'D')).toBe(true);

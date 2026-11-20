@@ -98,7 +98,7 @@ const HAT: Record<string, string[]> = { // 칼 병정 모자는 시안의 빨강
   shuri: ['', '', '', '.............r.r', '............rrr', '....rrrrrrrrrr'], // M3 S4 수리검 병정: 분홍 머리띠
   leaf: ['.......GG', '.....GGGGE', '....GGGEGEE', '...GGGEGGGE', '....EEGEEE', '.......E'], // M3 S4 잎 병정: 머리에 큰 잎(곧게 그으면 휙)
   boss: ['.......ww', '......wwww', '.....yyyyYY', '....yyYyyyYY', '....yyyyyyYY', '...YYYYYYYYYY'], // M3 S7 태엽 장군(1-10): 금빛 투구 + 흰 깃 · 두 배 크기
-  doll: ['......GG', '.....GGGE', '....rrGrr', '...rrrrrrr', '....rr.rr'], // M3 S7 태엽 큰 인형(2-10 · 잎 성질): 분홍 리본 + 잎
+  doll: ['.......GG', '......GGE', '..rrr...rrr', '.rrrrrqrrrrr', '..rrr...rrr'], // M3 S7 태엽 큰 인형(2-10 · 잎 성질): 분홍 리본(고리 둘 + 매듭) + 잎
   bell: ['', '.....oooooo', '...ooOOOOOOoo', '..oooooooooooo'], // 보류된 종(그림만 맞춤)
 };
 const ARM: Record<string, Dot[]> = {
@@ -114,7 +114,8 @@ const ARM: Record<string, Dot[]> = {
 };
 export const SOLDIER = new Set(Object.keys(HAT).filter((k) => k !== 'doll')); // doll은 boss의 2-10 모습
 /** 태엽 병정 스프라이트(발 = 아래 가운데) · 얼굴은 왼쪽을 본다 */
-export const soldierGrid = (k: string) => grid(BODY, [KEY, HAT[k]], ARM[k]);
+const COAT: Record<string, Record<string, string>> = { boss: { h: 'y', H: 'Y', j: 'o' }, doll: { h: 'r', H: 'q', j: 'p' } }; // 🧪 S7: 대장 몸이 졸개와 같아 포개지면 묻힘 → 장군 금 갑옷 · 큰 인형 분홍 옷
+export const soldierGrid = (k: string) => grid(BODY.map((r, i) => (i >= 11 && COAT[k] ? r.replace(/[hHj]/g, (c) => COAT[k][c]) : r)), [KEY, HAT[k]], ARM[k]);
 export const soldier = (k: string) => sprite('so' + k, () => soldierGrid(k));
 
 // ── 배경(M3 S3 · 🧪 🔴1: 대숲 벡터를 줄인 '모자이크' → 32색 도트 · 후광·그라데이션 0) ──
@@ -125,7 +126,7 @@ const hs = (n: number) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; 
  * hz = 지평선 줄(도트), gb = 땅 끝 줄. '멈춘 시간' 표식 = 시계탑(초침은 청록 — 주인공 이름).
  */
 export const pixBg = (lw: number, lh: number, place: number, hz: number, gb: number, v = 0) => sprite(`bg${lw}x${lh}:${place}:${v}`, () => bgGrid(lw, lh, place, hz, gb, v));
-/** v(M3 S7 · 🧪 🔴B 월드마다 조합 3가지): 지붕(place 1)에서 0 푸른 기와 · 1 갈색 기와 + 굴뚝 · 2 밤 기와 + 빨랫줄 */
+/** v(M3 S7 · 🧪 🔴B 월드마다 조합 3가지): 지붕(place 1)에서 0 푸른 기와 · 1 검은 기와(따뜻한 빛 줄) + 굴뚝 · 2 밤 기와 + 빨랫줄 · 3 대장 판(큰 시계탑) — 🧪: 갈색 기와는 병정 코트와 같은 색이라 뺌 */
 export function bgGrid(lw: number, lh: number, place: number, hz: number, gb: number, v = 0): string[][] {
   {
     const g = Array.from({ length: lh }, () => Array<string>(lw).fill('0'));
@@ -147,7 +148,7 @@ export function bgGrid(lw: number, lh: number, place: number, hz: number, gb: nu
       x += bw + 1 + Math.floor(hs(k + 29) * 3);
     }
     // 시계탑(광장은 크게 가운데 · 나머지는 오른쪽 멀리)
-    const big = place === 2, tw = big ? 22 : 14, tx = Math.round(big ? lw / 2 - tw / 2 : lw * 0.66), th = hz - (big ? 21 : 23), ty = hz - th; // 뾰족 끝도 HUD 아래
+    const big = place === 2 || v === 3, tw = big ? 22 : 14, tx = Math.round(big ? lw / 2 - tw / 2 : lw * 0.66), th = hz - (big ? 21 : 23), ty = hz - th; // 뾰족 끝도 HUD 아래
     rect(tx, ty, tw, th, '3');
     rect(tx + tw - 3, ty, 3, th, '2'); // 그늘 쪽
     for (let j = 0; j < 8; j++) rect(tx + j, ty - 8 + j, tw - 2 * j, 1, j ? '2' : '1'); // 뾰족 지붕
@@ -163,14 +164,14 @@ export function bgGrid(lw: number, lh: number, place: number, hz: number, gb: nu
     rect(0, hz, lw, 2, '4');
     for (let x = 0; x < lw; x += 4) put(x, hz, '5');
     // 땅: 원근(멀수록 줄이 촘촘)
-    const base = place === 2 ? ['5', '6', '4'] : place === 1 ? [['3', '4', '2'], ['H', 'h', 'O'], ['2', '3', '1']][v] : ['3', '4', '2'];
+    const base = place === 2 ? ['5', '6', '4'] : place === 1 ? [['3', '4', '2'], ['1', '2', '0'], ['2', '3', '1'], ['3', '4', '2']][v] : ['3', '4', '2'];
     for (let y = hz + 2, row = 0; y < lh; row++) {
       const hgt = Math.max(2, Math.round(2 + ((y - hz) / (gb - hz)) * 5)), off = row % 2 && place !== 1 ? 0.5 : 0, cw = place === 1 ? hgt + 2 : hgt * (place === 2 ? 3 : 2) + 2;
       for (let x = -cw; x < lw + cw; x += cw) {
         const x0 = Math.round(x + off * cw), c = hs(row * 31 + x) < 0.5 ? base[0] : base[1];
         for (let j = 0; j < hgt; j++) for (let i = 0; i < cw; i++) {
           let ch = c;
-          if (place === 1) ch = i === 0 ? base[2] : i === 1 ? (v === 1 ? 'j' : '5') : j === hgt - 1 ? base[0] : base[1]; // 기와: 세로 골 · 빛 줄 · 단 끝 — 돌길과 다른 무늬(🧪 S3)
+          if (place === 1) ch = i === 0 ? base[2] : i === 1 ? (v === 1 ? 'O' : '5') : j === hgt - 1 ? base[0] : base[1]; // 기와: 세로 골 · 빛 줄 · 단 끝 — 돌길과 다른 무늬(🧪 S3)
           else if (j === hgt - 1 || i === cw - 1) ch = base[2]; // 줄눈
           else if (place !== 1 && i === 0 && j === 0) ch = place === 2 ? '7' : '5';
           put(x0 + i, y + j, ch);

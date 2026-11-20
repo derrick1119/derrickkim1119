@@ -1754,6 +1754,8 @@ function foePose(f: Foe, moving: boolean): Pose {
 function blit(ctx: C2, im: HTMLCanvasElement, x: number, y: number) {
   ctx.drawImage(im, x - (im.width * PX) / 2, y - im.height * PX + PX, im.width * PX, im.height * PX);
 }
+/** 판별 배경 v(pix.ts bgGrid) — 빨랫줄 판엔 빨랫줄, 굴뚝 판엔 굴뚝, 2-10은 큰 시계탑 */
+const BGV: Record<string, number> = { leafWait: 2, smoke: 1, leafShield: 2, roofs: 1, jars: 2, boss2: 3 };
 let LO: C2 | null = null;
 /** 도트 세상 캔버스(한 장을 다시 쓴다) */
 function loLayer(lw: number, lh: number): C2 | null {
@@ -1804,7 +1806,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   fx.begin(ctx);
   // ── 하늘 · 먼 숲 · 가까운 숲 (시차) ──
   const cam = s.camX; // M3 S3 🎨 배경 = 도트 한 장(태엽 마을 · 시계탑 · 원근 바닥 · 32색)
-  ctx.drawImage(pixBg(LW, LH, d.place, Math.round(Y(HZ) * sc), Math.round(Y(GB) * sc), s.stage >= STAGE_COUNT ? (s.stage - STAGE_COUNT) % 3 : 0), 0, 0, w, h); // 월드 2는 판마다 지붕 셋이 돌아가며
+  ctx.drawImage(pixBg(LW, LH, d.place, Math.round(Y(HZ) * sc), Math.round(Y(GB) * sc), BGV[d.key] ?? 0), 0, 0, w, h); // 월드 2 지붕 셋 + 대장 판(🧪 S7: 판 이름의 소품이 그 판에)
   // 부엉이 (가지 위 구경꾼)
   {
     const hoot = Math.max(0, 60 - (t - s.owlT));
