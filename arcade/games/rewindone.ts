@@ -43,8 +43,8 @@ export interface Thing {
   x: number; y: number; x2: number; y2: number; w: number; h: number; n: number;
   /** 구르는 것: τ마다 [x, y, 회전] */
   path: Float32Array | null;
-  /** 크기(소리 높낮이) · 장식(버릇 봇이 잘 속는 것) · 처음 움직인 틱 */
-  big: number; moved: number; born: number;
+  /** 크기(소리 높낮이) · 처음 움직인 틱 · 태어난 틱 · 부딪히면 다치나(0 = 물에 뜬 빈 통처럼 괜찮음) */
+  big: number; moved: number; born: number; harm: number;
 }
 
 /** 배우 종류 · 역할 */
@@ -75,7 +75,7 @@ export const STAGES: StageDef[] = [
   { key: 'balloon', ch: 1, name: '날아간 고양이', news: '날아가는 풍선을 되감아 고양이를 내려요', hint: '풍선을 톡 — 아이 품으로', stars: ['goal', 'rescue', 'sand'], fix: '무지개', spot: '풍선' },
   { key: 'crate', ch: 2, name: '상자 승강기', news: '올라탄 채로 되감으면 같이 올라가요', hint: '부엉이가 상자에 타면 톡!', stars: ['goal', 'safe', 'sand'], fix: '숫자판', spot: '상자' },
   { key: 'gear', ch: 2, name: '굴러간 톱니', news: '톱니를 되감아 끼우면 기계가 움직여요', hint: '거꾸로 구르는 톱니에 부딪히지 않게', stars: ['goal', 'safe', 'sand'], fix: '큰 톱니', spot: '톱니 기계' },
-  { key: 'cross', ch: 2, name: '엇갈림', news: '거꾸로 가는 물건에 도깨비가 꽈당!', hint: '도깨비가 구멍 앞에 섰을 때 상자를 톡', stars: ['goal', 'safe', 'sand'], fix: '큰 종', spot: '도깨비' },
+  { key: 'cross', ch: 2, name: '하나씩만', news: '되감기는 한 번에 하나 — 순서가 중요해요', hint: '상자를 올리는 동안엔 화살을 못 돌려요', stars: ['goal', 'safe', 'sand'], fix: '큰 종', spot: '도깨비' },
   { key: 'grand', ch: 2, name: '시계탑 꼭대기', news: '마지막 — 전부 다 나와요', hint: '무엇부터 되감을지 차례를 봐요', stars: ['goal', 'safe', 'sand'], fix: '시계 바늘', spot: '' },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -132,7 +132,7 @@ const RAFT_V = 0.0009, LOG_V = 0.0008;
 const LOG_CHOP = 44, LOG_FALL = 30, LOG_LIE = LOG_CHOP + LOG_FALL;
 // 물탱크
 const WAT_CRACK = 16, WAT_FILL = 84;
-const water = (th: Thing, tau: number) => smooth((tau - WAT_CRACK) / WAT_FILL);
+const water = (_th: Thing, tau: number) => smooth((tau - WAT_CRACK) / WAT_FILL);
 // 상자
 const CR_FRAY = 24;
 const crFall = (th: Thing) => Math.sqrt((2 * (th.y2 - th.y)) / G);
@@ -267,7 +267,7 @@ function blockOf(th: Thing): [number, number, number] | null {
 /** 위험한 동그라미(움직이는 동안) — 앞으로든 거꾸로든 */
 const D = { x: 0, y: 0, r: 0 };
 function dangerOf(th: Thing): typeof D | null {
-  if (th.st === DONE || th.st === WAIT) return null;
+  if (th.st === DONE || th.st === WAIT || !th.harm) return null;
   const t = th.tau;
   if (th.st === HOLD && th.k !== 'arrow') return null;
   switch (th.k) {
@@ -300,7 +300,7 @@ function dangerOf(th: Thing): typeof D | null {
     case 'crate': {
       if (t <= CR_FRAY + 2 || t >= CR_FRAY + crFall(th)) return null;
       pose(th, t);
-      D.x = P.x, D.y = P.y + th.h * 0.5, D.r = th.w * 0.5;
+      D.x = P.x, D.y = P.y + th.h * 0.75, D.r = th.w * 0.42;
       return D;
     }
   }
@@ -332,7 +332,7 @@ function supports(W: World, out: number[]) {
 const SUP: number[] = [];
 
 /** 사건 τ 경계(앞으로 지날 때 · 거꾸로 지날 때) */
-function crossEv(W: World, th: Thing, t0: number, t1: number, E: Sink) {
+function crossEv(_W: World, th: Thing, t0: number, t1: number, E: Sink) {
   if (!E || t0 === t1) return;
   const up = t1 > t0, lo = Math.min(t0, t1), hi = Math.max(t0, t1);
   const at = (q: number) => q > lo && q <= hi;
@@ -473,7 +473,7 @@ function shoot(W: World, g: Actor, E: Sink) {
   const bx = g.x - 0.03, by = g.y - 0.06;
   const th: Thing = {
     id: W.nid++, k: 'arrow', tau: 0, dur: F, st: FWD, hold: 0, owner: g.id, rider: -1, dock: -1,
-    x: bx, y: by, x2: tx, y2: ty - 0.035, w: 0.08, h: 0.16 + Math.abs(tx - bx) * 0.12, n: F, path: null, big: 0.4, moved: W.t, born: W.t,
+    x: bx, y: by, x2: tx, y2: ty - 0.035, w: 0.08, h: 0.16 + Math.abs(tx - bx) * 0.12, n: F, path: null, big: 0.4, moved: W.t, born: W.t, harm: 1,
   };
   W.th.push(th);
   g.shots++;
@@ -529,17 +529,6 @@ export function stepWorld(W: World, E: Sink) {
       shoot(W, a, E);
       a.next += a.per;
     }
-    if (a.role === R_WALK && !a.ko) {
-      if (a.pause > 0) {
-        a.pause--;
-        if (a.pause === 0) a.vx = Math.abs(a.vx);
-      } else {
-        a.x += a.vx;
-        if (a.x <= a.x0) (a.x = a.x0), (a.vx = 0), (a.pause = 130), (a.t = W.t);
-        if (a.x >= a.x1) (a.x = a.x1), (a.vx = -Math.abs(a.vx || 0.0016));
-        if (a.vx === 0 && a.pause === 0) a.vx = 0.0016;
-      }
-    }
   }
   // ── 주인공
   stepHero(W, E);
@@ -547,7 +536,7 @@ export function stepWorld(W: World, E: Sink) {
   for (const th of W.th) {
     const d = dangerOf(th);
     if (!d) continue;
-    if ((H.st === H_WALK || H.st === H_WAIT || H.st === H_IDLE) && Math.hypot(H.x - d.x, H.y - HCY - d.y) < d.r + HR) {
+    if ((H.st === H_WALK || H.st === H_WAIT || H.st === H_IDLE) && H.on !== th.id && Math.hypot(H.x - d.x, H.y - HCY - d.y) < d.r + HR) {
       H.st = H_FAIL;
       H.why = th.k === 'arrow' ? '화살에 콕!' : th.k === 'pot' ? '화분에 쿵!' : th.k === 'gear' ? '톱니에 데굴!' : th.k === 'crate' ? '상자에 쿵!' : '술통에 데굴!';
       H.t = W.t;
@@ -569,14 +558,6 @@ export function stepWorld(W: World, E: Sink) {
     if (th.k !== 'water' || th.st === DONE || water(th, th.tau) < 0.5) continue;
     for (const a of W.ac) if (a.role === R_VILL && !a.hurt && a.x > th.x2 && a.x < th.y2) (a.hurt = true), (a.t = W.t), W.hurt++, E?.('wet', a.x, a.y - 0.03, 0, a.id);
   }
-  // 걷는 도깨비가 주인공에 닿으면
-  for (const a of W.ac)
-    if (a.role === R_WALK && !a.ko && (H.st === H_WALK || H.st === H_WAIT) && Math.abs(a.x - H.x) < 0.05 && Math.abs(a.y - H.y) < 0.04) {
-      H.st = H_FAIL;
-      H.why = '도깨비에게 콩!';
-      H.t = W.t;
-      E?.('bonk', H.x, H.y - HCY, 0, a.id);
-    }
 }
 
 function stepHero(W: World, E: Sink) {
@@ -633,7 +614,6 @@ function stepHero(W: World, E: Sink) {
     }
     if (nx + 0.025 > b[0] && H.x + 0.025 <= b[0] + 0.004) return wait(W, H, E);
   }
-  // 걷는 도깨비가 앞에 서 있으면 (닿으면 위에서 처리)
   // 한 발 앞 발판
   let nb = -9, ny = 0, nbest = 9;
   for (let i = 0; i < SUP.length; i += 4) {
@@ -663,7 +643,7 @@ function wait(W: World, H: Hero, E: Sink) {
 const rnd = (r: Rng, a: number, b: number) => a + (b - a) * r();
 let NID = 1;
 function T(k: Kind, o: Partial<Thing>): Thing {
-  return { id: NID++, k, tau: 0, dur: 1, st: WAIT, hold: 1, owner: -1, rider: -1, dock: -1, x: 0, y: 0, x2: 0, y2: 0, w: 0, h: 0, n: 0, path: null, big: 1, moved: -1, born: 0, ...o };
+  return { id: NID++, k, tau: 0, dur: 1, st: WAIT, hold: 1, owner: -1, rider: -1, dock: -1, x: 0, y: 0, x2: 0, y2: 0, w: 0, h: 0, n: 0, path: null, big: 1, moved: -1, born: 0, harm: 1, ...o };
 }
 function Ac(k: AK, role: number, x: number, y: number, o: Partial<Actor> = {}): Actor {
   return { id: NID++, k, role, x, y, x0: x, x1: x, vx: 0, ride: -1, ko: false, hurt: false, saved: false, t: -99, next: 1e9, per: 0, shots: 0, alt: 0, pause: 0, ...o };
@@ -802,7 +782,7 @@ function rawLevel(si: number, r: Rng): Level {
       L.things.push(raft);
       // 물에 떠내려가는 빈 통(먼저 움직임)
       const bx = 0.5 + rnd(r, -0.02, 0.02);
-      L.things.push(T('barrel', { path: rollPath([bx, 0.5, bx + 0.02, 1.16], 0.03, 0.0011, 0, 0.0011, 4), hold: 2, big: 0.8 }));
+      L.things.push(T('barrel', { path: rollPath([bx, 0.5, bx + 0.02, 1.16], 0.03, 0.0011, 0, 0.0011, 4), hold: 2, big: 0.8, harm: 0 }));
       L.things[1].dur = L.things[1].path!.length / 3 - 1;
       L.sand = 240;
       break;
@@ -813,11 +793,9 @@ function rawLevel(si: number, r: Rng): Level {
       const bv = Ac('beaver', R_DECO, 0.33, lane);
       L.actors.push(bv);
       L.things.push(logT(0.4, 0.66, lane, Math.round(rnd(r, 6, 14))));
-      // 오리 가족 탄 대야(먼저 움직이는 것 · 아무 일 없음)
-      const dk = Ac('duck', R_VILL, 0.52, 0.98);
-      L.actors.push(dk);
-      const gx = rnd(r, 0.75, 0.82);
-      L.actors.push(Ac('goblin', R_ARCH, gx, 0.36, { next: Math.round(rnd(r, 150, 175)), per: 9999 }));
+      L.actors.push(Ac('duck', R_DECO, 0.52, 1.0), Ac('kid', R_VILL, rnd(r, 0.84, 0.9), lane));
+      const gx = rnd(r, 0.72, 0.8);
+      L.actors.push(Ac('goblin', R_ARCH, gx, 0.36, { next: Math.round(rnd(r, 120, 150)), per: Math.round(rnd(r, 160, 180)), alt: 1 }));
       L.deco.roof = gx;
       L.sand = 200;
       break;
@@ -856,7 +834,7 @@ function rawLevel(si: number, r: Rng): Level {
       L.ground = [0, 0.5, lane, 0.66, 1, UP3];
       L.shaft = [0.5, 0.66, UP3, lane];
       L.gearY = UP3;
-      L.things.push(crateT(0.58, UP3, lane, 0.155, Math.round(rnd(r, 14, 24))));
+      L.things.push(crateT(0.58, UP3, lane, 0.17, Math.round(rnd(r, 14, 24))));
       // 비계에서 떨어지는 페인트 통(먼저 움직임 · 주인 있음)
       const pt = Ac('beaver', R_DECO, 0.3, 0.46);
       L.actors.push(pt);
@@ -883,9 +861,11 @@ function rawLevel(si: number, r: Rng): Level {
       L.ground = [0, 0.5, lane, 0.66, 1, UP3];
       L.shaft = [0.5, 0.66, UP3, lane];
       L.gearY = UP3;
-      L.things.push(crateT(0.58, UP3, lane, 0.155, Math.round(rnd(r, 8, 16))));
-      const wk = Ac('walker', R_WALK, 0.9, UP3, { x0: 0.69, x1: 0.92, vx: -0.0016 });
-      L.actors.push(wk);
+      L.things.push(crateT(0.58, UP3, lane, 0.17, Math.round(rnd(r, 8, 16))));
+      const gx = rnd(r, 0.82, 0.88);
+      L.actors.push(Ac('goblin', R_ARCH, gx, UP3, { next: Math.round(rnd(r, 100, 130)), per: Math.round(rnd(r, 165, 185)) }));
+      L.actors.push(Ac('cat', R_DECO, 0.2, lane));
+      L.deco.roof = gx;
       L.sand = 240;
       break;
     }
@@ -900,7 +880,7 @@ function rawLevel(si: number, r: Rng): Level {
       const gp = rollPath([0.12, 0.64, 0.15, 0.7, 0.24, lane, 0.31, lane, 0.38, lane + 0.17], 0.05, 0.001, 0.00009, 0.0042, 18);
       L.things.push(T('gear', { path: gp, hold: Math.round(rnd(r, 16, 26)), owner: m.id, big: 1.4 }));
       L.things[0].dur = gp.length / 3 - 1;
-      L.things.push(crateT(0.58, UP3, lane, 0.155, Math.round(rnd(r, 60, 80))));
+      L.things.push(crateT(0.58, UP3, lane, 0.17, Math.round(rnd(r, 60, 80))));
       const gx = rnd(r, 0.82, 0.9);
       L.actors.push(Ac('goblin', R_ARCH, gx, UP3, { next: Math.round(rnd(r, 120, 150)), per: 190 }));
       L.deco.roof = gx;
@@ -1393,6 +1373,8 @@ function habitBot(name: string, pick: (W: World) => number): Bot<RewState> {
   };
 }
 void habitMemo;
+/** 측정·조율용 (게임에는 안 씀) */
+export const _dbg = { planFrom: (L: Level) => planFrom(newWorld(L)), trialHabit, habitFirst, habitNear, starsOf, newWorld, stepWorld };
 export const rewindoneHabit: Bot<RewState> = habitBot('버릇: 먼저 움직인 것부터', habitFirst);
 export const rewindoneHabit2: Bot<RewState> = habitBot('버릇: 주인공에 가까운 것', habitNear);
 const dumbAt = new WeakMap<object, { next: number; until: number; p: { x: number; y: number } }>();

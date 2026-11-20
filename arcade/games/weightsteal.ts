@@ -31,7 +31,7 @@ const CLEAR_PTS = 100, STAR_PTS = 100, WIN_PTS = 300, HEART_PTS = 100;
 export type Kind =
   | 'cat' | 'rock' | 'feather' | 'apple' | 'crate' | 'pumpkin' | 'dog' | 'bear' | 'helmet' | 'anvil'
   | 'pot' | 'chand' | 'cwt' | 'bridge' | 'barrel' | 'ball' | 'pillow' | 'vase' | 'sack';
-interface KDef { hw: number; h: number; w: number; sq?: number; frag?: number; name: string }
+interface KDef { hw: number; h: number; w: number; sq?: number; frag?: number; shat?: boolean; name: string }
 const KD: Record<Kind, KDef> = {
   cat: { hw: 0.034, h: 0.078, w: 3, name: '고양이' },
   rock: { hw: 0.07, h: 0.112, w: 8, name: '바위' },
@@ -43,14 +43,14 @@ const KD: Record<Kind, KDef> = {
   bear: { hw: 0.07, h: 0.124, w: 9, sq: 8, name: '곰 경비병' },
   helmet: { hw: 0.04, h: 0.034, w: 3, name: '투구' },
   anvil: { hw: 0.05, h: 0.052, w: 10, name: '모루' },
-  pot: { hw: 0.034, h: 0.05, w: 2, name: '화분' },
-  chand: { hw: 0.078, h: 0.05, w: 4, name: '샹들리에' },
+  pot: { hw: 0.034, h: 0.05, w: 2, shat: true, name: '화분' },
+  chand: { hw: 0.078, h: 0.05, w: 4, shat: true, name: '샹들리에' },
   cwt: { hw: 0.045, h: 0.075, w: 6, name: '균형추' },
   bridge: { hw: 0.07, h: 0.04, w: 4, name: '도개교' },
-  barrel: { hw: 0.045, h: 0.08, w: 6, name: '술통' },
+  barrel: { hw: 0.045, h: 0.08, w: 6, shat: true, name: '술통' },
   ball: { hw: 0.036, h: 0.064, w: 7, name: '대포알' },
   pillow: { hw: 0.056, h: 0.03, w: 1, name: '방석' },
-  vase: { hw: 0.03, h: 0.066, w: 2, frag: 1, name: '꽃병' },
+  vase: { hw: 0.03, h: 0.066, w: 2, frag: 1, shat: true, name: '꽃병' },
   sack: { hw: 0.048, h: 0.07, w: 4, name: '밀가루 자루' },
 };
 const GUARD = (k: Kind) => k === 'dog' || k === 'bear';
@@ -138,11 +138,11 @@ export const STAGES: StageDef[] = [
   {
     ch: 1, name: '바람 부는 성벽', news: '바람 — 떠오른 것은 바람에 밀려 가요', spot: [0.5, 0.6, 0.14],
     hints: [],
-    solids: [gnd(0, 1), sol('wall', 0.8, 1, 0.21, 1.2), sol('ped', 0.86, 0.97, 0, 0.04)],
-    bodies: [bd('rock', 0.3), bd('bear', 0.69)],
+    solids: [gnd(0, 1), sol('wall', 0.82, 1, 0.21, 1.2), sol('ped', 0.86, 0.97, 0, 0.04)],
+    bodies: [bd('barrel', 0.3), bd('dog', 0.52), bd('bear', 0.72)],
     wind: [{ x0: 0, x1: 1, y0: 0.42, y1: 1.2, vx: 0.0045 }],
     cat: [0.06, 0], prize: { x: 0.915, y: 0.04, k: 'cup' },
-    par: 2, budget: 8, stars: [ST('clear', 0, '은잔 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('flat', 0, '곰 납작하게')], next: '저울문',
+    par: 4, budget: 9, stars: [ST('clear', 0, '은잔 훔치기'), ST('taps', 4, '톡 4번 안에'), ST('flat', 0, '둘 다 납작하게')], next: '저울문',
   },
   {
     ch: 1, name: '저울문', news: '저울문 — 발판에 무게 12가 실리면 문이 열려요', spot: [0.25, 0.33, 0.1],
@@ -165,28 +165,28 @@ export const STAGES: StageDef[] = [
   {
     ch: 2, name: '샹들리에', news: '샹들리에 사슬은 6까지 — 넘으면 와장창', spot: [0.62, 0.62, 0.1],
     hints: [],
-    solids: [gnd(0, 1), sol('ped', 0.86, 0.97, 0, 0.04), sol('shelf', 0.18, 0.34, 0.3, 0.315)],
-    bodies: [bd('anvil', 0.26, 0.315), bd('bear', 0.62), bd('chand', 0.62, 0.6, { rope: 6, ay: 0.82 }), bd('vase', 0.75)],
+    solids: [gnd(0, 1), sol('ped', 0.86, 0.97, 0, 0.04), sol('shelf', 0.16, 0.34, 0.3, 0.315), sol('stone', 0.7, 0.8, 0.14, 0.16)],
+    bodies: [bd('anvil', 0.25, 0.315), bd('bear', 0.6), bd('chand', 0.6, 0.6, { rope: 6, ay: 0.82 }), bd('vase', 0.75, 0.16)],
     ceil: 0.82,
     cat: [0.06, 0], prize: { x: 0.915, y: 0.04, k: 'gem' },
-    par: 2, budget: 8, stars: [ST('clear', 0, '큰 보석 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('keep', 0, '꽃병 안 깨기')], next: '주머니 둘',
+    par: 2, budget: 8, stars: [ST('clear', 0, '큰 보석 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('flat', 0, '곰 납작하게')], next: '주머니 둘',
   },
   {
     ch: 2, name: '주머니 둘', news: '주머니가 둘! 두 번 훔치고, 다음 톡에 합쳐서 줘요', spot: [0.5, 0.1, 0.1],
     hints: [],
     solids: [gnd(0, 1), sol('ceil', 0, 1, 0.2, 0.26), sol('ped', 0.86, 0.97, 0, 0.04)],
-    bodies: [bd('crate', 0.27), bd('bear', 0.52, 0, { w: 12 }), bd('apple', 0.7)],
+    bodies: [bd('crate', 0.27), bd('bear', 0.52), bd('helmet', 0.52, 0.124), bd('apple', 0.7)],
     ceil: 0.82, slots: 2,
     cat: [0.06, 0], prize: { x: 0.915, y: 0.04, k: 'cup' },
     par: 3, budget: 9, stars: [ST('clear', 0, '보물 잔 훔치기'), ST('taps', 3, '톡 3번 안에'), ST('flat', 0, '곰 납작하게')], next: '둥실 고양이',
   },
   {
-    ch: 2, name: '둥실 고양이', news: '고양이도 톡! 무게를 빼면 둥실 — 위층으로', spot: [0.45, 0.05, 0.08],
+    ch: 2, name: '둥실 고양이', news: '고양이도 톡! 무게를 빼면 둥실 — 위층으로', spot: [0.58, 0.05, 0.08],
     hints: [],
-    solids: [gnd(0, 1), sol('stone', 0, 0.5, 0.4, 0.44), sol('stone', 0.66, 1, 0.4, 0.44), sol('wall', 0.5, 0.53, 0, 0.4), sol('ped', 0.86, 0.97, 0.44, 0.48)],
-    bodies: [bd('pumpkin', 0.2), bd('dog', 0.76, 0.44), bd('chand', 0.77, 0.7, { rope: 6, ay: 0.82 })],
+    solids: [gnd(0, 1), sol('stone', 0, 0.5, 0.4, 0.44), sol('stone', 0.66, 1, 0.4, 0.44), sol('wall', 0.62, 0.66, 0, 0.4), sol('ped', 0.88, 0.97, 0.44, 0.48)],
+    bodies: [bd('pumpkin', 0.22), bd('dog', 0.78, 0.44), bd('chand', 0.79, 0.68, { rope: 6, ay: 0.82 })],
     ceil: 0.82, slots: 2, catTap: true,
-    cat: [0.06, 0], prize: { x: 0.915, y: 0.48, k: 'map' },
+    cat: [0.06, 0], prize: { x: 0.925, y: 0.48, k: 'map' },
     par: 4, budget: 10, stars: [ST('clear', 0, '비밀 지도 훔치기'), ST('taps', 4, '톡 4번 안에'), ST('flat', 0, '경비견 납작하게')], next: '왕관의 방',
   },
   {
@@ -205,7 +205,7 @@ export const STAGE_COUNT = STAGES.length;
 export interface Body {
   id: number; k: Kind; x: number; y: number; hw: number; h: number; w: number; w0: number;
   vx: number; vy: number; st: number; sup: number; load: number; mode: number; air: number;
-  tap: boolean; sq: number; frag: number; rope: number; ax: number; ay: number; kin: boolean;
+  tap: boolean; sq: number; frag: number; shat: boolean; rope: number; ax: number; ay: number; kin: boolean;
   tw: number; land: number; hitV: number; flatT: number; face: number;
 }
 export interface Solid { id: number; k: SK; x0: number; x1: number; y0: number; y1: number; gy0: number; cap: number; on: boolean; need: number; gate: number; open: number; load: number; brokeT: number }
@@ -228,7 +228,7 @@ export function makeWorld(d: StageDef): World {
     const K = KD[q.k];
     return {
       id: b.length, k: q.k, x: q.x, y: q.y, hw: K.hw, h: K.h, w: q.w ?? K.w, w0: q.w ?? K.w, vx: 0, vy: 0, st: 0, sup: NONE, load: 0, mode: REST, air: 0,
-      tap: q.tap ?? q.k !== 'cat', sq: K.sq ?? 0, frag: K.frag ?? 0, rope: q.rope ?? -1, ax: q.x, ay: q.ay ?? 0, kin: !!q.kin,
+      tap: q.tap ?? q.k !== 'cat', sq: K.sq ?? 0, frag: K.frag ?? 0, shat: !!K.shat, rope: q.rope ?? -1, ax: q.x, ay: q.ay ?? 0, kin: !!q.kin,
       tw: -999, land: -999, hitV: 0, flatT: -999, face: 1,
     };
   };
@@ -501,6 +501,14 @@ function rules(W: World): boolean {
       changed = true;
       addEv(W, 'frag', b.id, b.x, b.y, above);
     }
+  }
+  // 와장창: 술통·화분·샹들리에·꽃병은 세게 떨어지면 부서진다 (밑의 경비병을 납작하게 한 다음)
+  for (const b of W.b) {
+    if (!live(b) || !b.shat || W.t - b.land > 2 || b.hitV < 0.014) continue;
+    b.st = 3;
+    if (b.k === 'vase') W.frags++;
+    changed = true;
+    addEv(W, 'shatter', b.id, b.x, b.y, b.load);
   }
   return changed;
 }
