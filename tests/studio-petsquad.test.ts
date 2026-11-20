@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/petsquad/core.ts';
-import { HABITS, STAGES, STAGE_COUNT, petsquad as g, petsquadHabit2, petsquadHuman, petsquadSmart } from '../studio/petsquad/game.ts';
+import { HABITS, STAGES, STAGE_COUNT, canSkip, jumpTo, lineOf, petsquad as g, petsquadHabit2, petsquadHuman, petsquadSmart, setRandomShop } from '../studio/petsquad/game.ts';
 import { snapshots, tryStage } from '../studio/petsquad/funqa.ts';
 
 const A = g.aspect ?? 1.5;
@@ -66,6 +66,70 @@ describe('동물 군단 합체 전투 시뮬', () => {
     expect(smart.filter((s) => s.won).length).toBeGreaterThanOrEqual(2);
     const habit = [1, 2, 3].map((sd) => runBot(g, petsquadHabit2, sd).s);
     expect(habit.every((s) => !s.won)).toBe(true);
+  });
+});
+
+describe('M1 S3 보이는 카드 줄 (📐 CONTENT §3)', () => {
+  it('가게 = 판의 줄 앞 3장, 사면 그 자리에 줄의 다음 카드가 들어온다', () => {
+    const s = g.create(1), line = lineOf(0);
+    expect(s.shop.map((c) => c.k)).toEqual(line.slice(0, 3));
+    expect(s.queue).toEqual(line.slice(3));
+    tapAt(s, 0.175, 1.07);
+    expect(s.shop[0].k).toBe(line[3]);
+    expect(s.queue).toEqual(line.slice(4));
+  });
+
+  it('시드가 달라도 같은 판·같은 톡이면 같은 가게와 같은 전투(퍼즐)', () => {
+    const run = (seed: number) => {
+      const s = g.create(seed);
+      tapAt(s, 0.175, 1.07);
+      tapAt(s, 0.645, 1.262);
+      while (s.phase !== 'result') g.step(s, { tap: false, dir: 0, pointer: null });
+      return [s.shop.map((c) => c.k).join(), s.ok, s.got, s.fight!.t];
+    };
+    expect(run(3)).toEqual(run(77));
+  });
+
+  it('넘기기(금화 1): 앞 카드를 줄 끝으로 보내고, 남은 카드가 3장 이하면 막힌다', () => {
+    const s = g.create(1);
+    jumpTo(s, 3, [['lion', 1]], 30);
+    const front = s.shop.map((c) => c.k), c0 = s.coins;
+    tapAt(s, 0.17, 1.262);
+    expect(s.coins).toBe(c0 - 1);
+    expect(s.queue.slice(-3)).toEqual(front);
+    s.queue = [];
+    expect(canSkip(s)).toBe(false);
+    const c1 = s.coins;
+    tapAt(s, 0.17, 1.262);
+    expect(s.coins).toBe(c1);
+  });
+
+  it('?shop=random 끈: 예전 무작위 가게(시드마다 다름)', () => {
+    setRandomShop(true);
+    try {
+      const shops = new Set<string>();
+      for (let seed = 1; seed <= 6; seed++) {
+        const a = g.create(seed);
+        jumpTo(a, 3);
+        expect(a.queue.length).toBe(0); // 줄이 없다
+        shops.add(a.shop.map((c) => c.k).join());
+      }
+      expect(shops.size).toBeGreaterThan(1); // 시드마다 가게가 다르다
+    } finally {
+      setRandomShop(false);
+    }
+  });
+
+  it('카드 줄 판별: 잘하는 봇은 7판 모두 ★3, 버릇 봇 6종은 3판부터 ★3 0 (📋 S3 관문)', () => {
+    const sn = snapshots(1);
+    for (let k = 0; k < STAGE_COUNT; k++) {
+      const r = tryStage(petsquadSmart, 1, k, sn[k]);
+      expect([k, r.ok, r.got]).toEqual([k, true, r.of]);
+    }
+    for (const h of HABITS) for (let k = 2; k < STAGE_COUNT; k++) {
+      const r = tryStage(h, 1, k, sn[k]);
+      expect([h.name, k, r.got >= r.of]).toEqual([h.name, k, false]);
+    }
   });
 });
 

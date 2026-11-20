@@ -51,7 +51,8 @@ const K: Record<Kind, KD> = {
   squirrel: { name: '다람쥐', el: 3, role: 2, cost: 0, hp: 9, atk: 3, per: 68, say: '' },
   bear: { name: '곰 우두머리', el: 3, role: 4, cost: 0, hp: 80, atk: 5, per: 84, say: '' },
 };
-const STAR_M = [1, 1, 2.6, 6];
+/** 별마다 세기 배수 — ✏️ M1 S3(📐 CONTENT §0): 2.6·6이면 합체가 머릿수보다 약해서 3.2·14로 */
+const STAR_M = [1, 1, 3.2, 14];
 /** 체력 배수 (싸움이 눈으로 따라갈 만큼 길게) · 치료 배수 */
 const HP_X = 2.6, HEAL_X = 1.8;
 
@@ -62,50 +63,57 @@ const ST = (k: StarK, n: number, label: string): StarDef => ({ k, n, label });
 /** 상대 하나: 종류 · 속성(판마다 돌리는 상대 속성 0~2, 3 없음) · 별 · 줄 · 칸 */
 interface Foe { k: Kind; el: number; star: number; row: number; col: number }
 const F = (k: Kind, el: number, row: number, col: number, star = 1): Foe => ({ k, el, star, row, col });
+const L = (line: string) => line.split(' ') as Kind[];
 interface StageDef {
   name: string; who: string; news: string; hint: string; spot: '' | 'merge' | 'element' | 'back' | 'reroll' | 'fly' | 'heal' | 'boss';
   pool: Kind[]; mult: number; win: number; foes: Foe[]; stars: StarDef[];
+  /** ✏️ M1 S3 보이는 카드 줄(📐 CONTENT §2) — 없으면 그 판 동물 목록에서 고정 시드로 뽑은 임시 줄 */
+  line?: Kind[];
+  /** 임시 줄 시드(진짜 줄이 없을 때) — ✏️ M1 S3 봇 탐색으로 고름 */
+  lineSeed?: number;
 }
 export const STAGES: StageDef[] = [
   {
     name: '풀밭 첫 싸움', who: '무당벌레 셋', news: '', hint: '같은 동물 셋이 모이면 빵! 합체', spot: 'merge',
     pool: ['lion', 'hedge'], mult: 1, win: 5,
+    line: L('lion hedge hedge lion hedge lion hedge hedge lion hedge lion hedge'),
     foes: [F('bug', 3, 0, 0), F('bug', 3, 0, 1), F('bug', 3, 0, 2)],
     stars: [ST('win', 0, '상대 군단 이기기')],
   },
   {
     name: '너구리 패거리', who: '너구리 패거리', news: '상성 — 물은 불에, 불은 풀에, 풀은 물에 세요', hint: '상대 망토 색을 보고 센 색을 사요', spot: 'element',
     pool: ['lion', 'hedge', 'turtle'], mult: 1.1, win: 6,
-    foes: [F('raccoon', 0, 0, 0), F('raccoon', 0, 0, 1), F('raccoon', 0, 0, 2)],
+    line: L('turtle lion lion hedge lion turtle hedge lion turtle hedge lion turtle'),
+    foes: [F('raccoon', 2, 0, 0), F('raccoon', 2, 0, 1), F('raccoon', 2, 0, 2)], // 📐 CONTENT 1-2: 풀 두건 — 불 사자가 세다
     stars: [ST('win', 0, '이기기'), ST('merge', 1, '합체 한 번 하기')],
   },
   {
     name: '두 줄 진영', who: '멧돼지 군단', news: '두 줄 진영 — 쏘는 동물은 뒷줄에서 쏴요', hint: '앞줄이 막고 뒷줄이 쏴요', spot: 'back',
-    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit'], mult: 1.7, win: 6,
+    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit'], mult: 1.7, win: 6, lineSeed: 103, // ✏️ M1 S3 임시 줄: 잘하는 봇 ★3 가능 · 버릇 봇 6종 ★3 불가인 시드(봇 탐색)
     foes: [F('boar', 0, 0, 1), F('raccoon', 0, 0, 0), F('raccoon', 1, 0, 2), F('sling', 0, 1, 0), F('sling', 1, 1, 2)],
     stars: [ST('win', 0, '이기기'), ST('noloss', 0, '한 마리도 안 잃고 이기기'), ST('shooter', 0, '쏘는 동물과 함께 이기기')],
   },
   {
-    name: '다시 뽑기', who: '물방울 산적', news: '다시 뽑기 — 금화 1개로 가게 카드를 새로', hint: '모으는 동물이 없으면 다시 뽑기', spot: 'reroll',
-    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit'], mult: 2.0, win: 7,
+    name: '카드 넘기기', who: '물방울 산적', news: '넘기기 — 금화 1개로 앞 카드 셋을 줄 끝으로', hint: '원하는 카드가 뒤에 있으면 넘기기', spot: 'reroll',
+    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit'], mult: 2.0, win: 7, lineSeed: 306, // ✏️ M1 S3 임시 줄: 잘하는 봇 ★3 가능 · 버릇 봇 6종 ★3 불가인 시드(봇 탐색)
     foes: [F('boar', 0, 0, 1), F('raccoon', 0, 0, 0), F('raccoon', 0, 0, 2), F('sling', 2, 1, 0), F('sling', 0, 1, 1), F('sling', 2, 1, 2)],
     stars: [ST('win', 0, '이기기'), ST('merge', 2, '합체 두 번 하기'), ST('save', 3, '금화 3개 남기고 이기기')],
   },
   {
     name: '박쥐 떼', who: '박쥐 떼', news: '박쥐 — 뒷줄을 노려요. 쏘는 동물만 맞혀요', hint: '박쥐는 쏘는 동물만 맞혀요', spot: 'fly',
-    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit'], mult: 2.0, win: 7,
+    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit'], mult: 2.0, win: 7, lineSeed: 105, // ✏️ M1 S3 임시 줄: 잘하는 봇 ★3 가능 · 버릇 봇 6종 ★3 불가인 시드(봇 탐색)
     foes: [F('raccoon', 1, 0, 0), F('boar', 1, 0, 1), F('raccoon', 1, 0, 2), F('bat', 0, 2, 0), F('bat', 0, 2, 1), F('bat', 0, 2, 2)],
     stars: [ST('win', 0, '이기기'), ST('noloss', 0, '한 마리도 안 잃고 이기기'), ST('fast', 15, '15초 안에 이기기')],
   },
   {
     name: '치료사', who: '다람쥐 치료단', news: '치료사 — 양이 가게에! 상대 다람쥐도 고쳐요', hint: '양은 가장 다친 친구를 고쳐요', spot: 'heal',
-    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit', 'sheep'], mult: 2.3, win: 8,
+    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit', 'sheep'], mult: 2.3, win: 8, lineSeed: 106, // ✏️ M1 S3 임시 줄: 잘하는 봇 ★3 가능 · 버릇 봇 6종 ★3 불가인 시드(봇 탐색)
     foes: [F('boar', 2, 0, 1), F('raccoon', 2, 0, 0), F('raccoon', 2, 0, 2), F('squirrel', 2, 1, 1), F('sling', 1, 1, 0), F('sling', 1, 1, 2)],
     stars: [ST('win', 0, '이기기'), ST('merge', 1, '합체 한 번 하기'), ST('fast', 12, '12초 안에 이기기')],
   },
   {
     name: '곰 우두머리', who: '곰 우두머리', news: '우두머리 — 쿵! 앞줄 모두를 한꺼번에 쳐요', hint: '앞줄은 단단하게, 뒷줄은 세게', spot: 'boss',
-    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit', 'sheep'], mult: 2.6, win: 0,
+    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit', 'sheep'], mult: 2.6, win: 0, lineSeed: 3541, // ✏️ M1 S3 임시 줄: 잘하는 봇 ★3 가능 · 버릇 봇 6종 ★3 불가인 시드(봇 탐색)
     foes: [F('bear', 0, 0, 1), F('raccoon', 1, 0, 0), F('raccoon', 2, 0, 2), F('bat', 1, 2, 0), F('bat', 2, 2, 2)],
     stars: [ST('win', 0, '우두머리 이기기'), ST('noloss', 0, '한 마리도 안 잃고 이기기'), ST('save', 3, '금화 3개 남기고 이기기')],
   },
@@ -135,7 +143,7 @@ interface Pred { win: boolean; p: number; lost: number; sec: number; label: stri
 
 export interface PetState {
   rng: Rng; seed: number; t: number; stage: number; rots: number[]; phase: 'shop' | 'fight' | 'result'; pt: number; ok: boolean; why: string;
-  hearts: number; coins: number; board: (Pet | null)[]; shop: Card[]; sel: number; nid: number; rerolls: number; buys: number;
+  hearts: number; coins: number; board: (Pet | null)[]; shop: Card[]; queue: Kind[]; sel: number; nid: number; rerolls: number; buys: number;
   fight: Fight | null; fightCoins: number; merges: number; mergeAll: number; swaps: number; sells: number;
   stars: number; got: number; starOk: boolean[]; pts: number; won: boolean; dead: boolean; again: boolean; tries: number;
   down: boolean; firstTap: number; firstBig: number; wowN: number; slow: number; idle: number;
@@ -162,7 +170,7 @@ const slotsOf = (stage: number) => (stage >= 2 ? 6 : 3);
 const slotXY = (i: number): [number, number] => [COLX[i % 3], MY_Y[i < 3 ? 0 : 1]];
 
 // ───────────────────────────── 가게 ─────────────────────────────
-interface Shopper { coins: number; board: (Pet | null)[]; shop: Card[]; merges: number; stage: number; nid: number; t: number }
+interface Shopper { coins: number; board: (Pet | null)[]; shop: Card[]; queue: Kind[]; merges: number; stage: number; nid: number; t: number }
 type BuyRes = { ok: false; why: 'sold' | 'coins' | 'full' } | { ok: true; slot: number; merged: number; from: number[] };
 
 /** 그 카드를 사면 어디로 가나 (합체면 합쳐질 칸) — 미리 보기·봇·실제가 같은 것을 쓴다 */
@@ -206,6 +214,41 @@ function buyCard(sh: Shopper, i: number): BuyRes {
   }
   sh.merges += merged;
   return { ok: true, slot: at, merged, from };
+}
+
+// ───────────────────────────── 보이는 카드 줄 (✏️ M1 S3 · 📐 GDD §1 비틀기 ① · CONTENT §3) ─────────────────────────────
+// 판마다 정해진 카드 줄. 앞 3장은 살 수 있고(가게), 그 뒤는 '다음'으로 흐리게 보인다. 산 자리엔 줄의 다음 카드가 들어온다.
+// 넘기기(금화 1) = 안 산 앞 카드를 순서대로 줄 끝으로 보내고 줄 앞에서 셋. 남은 카드가 3장 이하면 막힌다. ?shop=random이면 예전 무작위 가게.
+let RANDOM_SHOP = false;
+export function setRandomShop(on: boolean) {
+  RANDOM_SHOP = on;
+}
+export const lineMode = () => !RANDOM_SHOP;
+export function lineOf(stage: number): Kind[] {
+  const d = STAGES[stage];
+  if (d.line) return d.line.slice();
+  // 임시 줄(진짜 줄은 S5): 동물 셋을 골라 한 마리씩 셋 모이게 엇갈려 깐다(a b a c b a c b c) — 합체할 길이 늘 있다
+  const r = mulberry32(d.lineSeed ?? 9173 + stage * 7919), out: Kind[] = [], pick = () => d.pool[Math.floor(r() * d.pool.length)];
+  for (let g = 0; g < 2; g++) {
+    const [a, b, c] = [pick(), pick(), pick()];
+    out.push(a, b, a, c, b, a, c, b, c);
+  }
+  return out.slice(0, 15);
+}
+const card = (sh: Shopper): Card => (sh.queue.length ? { k: sh.queue.shift()!, sold: false, born: sh.t, shake: -999 } : { k: 'lion', sold: true, born: sh.t, shake: -999 });
+function lineShop(s: PetState) {
+  s.queue = lineOf(s.stage);
+  s.shop = [card(s), card(s), card(s)];
+}
+/** 산 자리에 줄의 다음 카드 */
+function refill(sh: Shopper, i: number) {
+  if (sh.queue.length) sh.shop[i] = card(sh);
+}
+const leftCards = (sh: Shopper) => sh.queue.length + sh.shop.filter((c) => !c.sold).length;
+export const canSkip = (sh: Shopper) => leftCards(sh) > 3;
+function skipLine(sh: Shopper) {
+  for (const c of sh.shop) if (!c.sold) sh.queue.push(c.k);
+  sh.shop = [card(sh), card(sh), card(sh)];
 }
 
 function rollShop(s: PetState, first: boolean) {
@@ -445,7 +488,8 @@ function newStage(s: PetState) {
   s.rerolls = 0;
   s.idle = 0;
   if (!s.again) s.merges = 0;
-  rollShop(s, true);
+  if (lineMode()) lineShop(s);
+  else rollShop(s, true);
   s.starOk = d.stars.map(() => false);
   s.got = 0;
   s.predKey = '';
@@ -454,7 +498,7 @@ function newStage(s: PetState) {
     if (s.stage > 0) see(s, d.spot);
     const sp = d.spot;
     if (sp === 'back') s.spot = { x: 0.5, y: MY_Y[1] - 0.04, t: s.t, label: '뒷줄', rx: 0.47, ry: 0.07 };
-    else if (sp === 'reroll') s.spot = { x: REROLL_BTN[0], y: BTN_Y, t: s.t, label: '다시 뽑기', rx: 0.16, ry: 0.065 };
+    else if (sp === 'reroll') s.spot = { x: REROLL_BTN[0], y: BTN_Y, t: s.t, label: lineMode() ? '넘기기' : '다시 뽑기', rx: 0.16, ry: 0.065 };
     else if (sp === 'fly') s.spot = { x: 0.5, y: EN_Y[1] - 0.05, t: s.t, label: '박쥐', rx: 0.46, ry: 0.08 };
     else if (sp === 'heal') s.spot = { x: 0.5, y: EN_Y[1] - 0.05, t: s.t, label: '다람쥐 치료사', rx: 0.12, ry: 0.09 };
     else if (sp === 'boss') s.spot = { x: 0.5, y: EN_Y[0] - 0.1, t: s.t, label: '우두머리', rx: 0.17, ry: 0.15 };
@@ -552,6 +596,7 @@ function tap(s: PetState, h: Hit) {
       return;
     }
     s.buys++;
+    if (lineMode()) refill(s, h.i);
     const p = s.board[r.slot]!;
     const [x, y] = slotXY(r.slot);
     if (r.merged) {
@@ -569,9 +614,14 @@ function tap(s: PetState, h: Hit) {
       ev(s, 'nobuy', REROLL_BTN[0], REROLL_BTN[1], 0, '금화가 모자라요');
       return;
     }
+    if (lineMode() && !canSkip(s)) {
+      ev(s, 'nobuy', REROLL_BTN[0], REROLL_BTN[1], 0, '줄 끝이에요');
+      return;
+    }
     s.coins -= REROLL;
     s.rerolls++;
-    rollShop(s, false);
+    if (lineMode()) skipLine(s);
+    else rollShop(s, false);
     ev(s, 'reroll', 0.5, CARD_Y);
     return;
   }
@@ -656,13 +706,13 @@ const game: GameDef<PetState> & { wows(s: PetState): number } = {
   create(seed) {
     const s = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, rots: [], phase: 'shop', pt: 0, ok: false, why: '',
-      hearts: 3, coins: START_COINS, board: [null, null, null, null, null, null], shop: [], sel: -1, nid: 0, rerolls: 0, buys: 0,
+      hearts: 3, coins: START_COINS, board: [null, null, null, null, null, null], shop: [], queue: [], sel: -1, nid: 0, rerolls: 0, buys: 0,
       fight: null, fightCoins: 0, merges: 0, mergeAll: 0, swaps: 0, sells: 0,
       stars: 0, got: 0, starOk: [false], pts: 0, won: false, dead: false, again: false, tries: 0,
       down: false, firstTap: -1, firstBig: -1, wowN: 0, slow: 0, idle: 0,
       seen: new Set<string>(), banner: null, spot: null, events: [], pred: null, predKey: '', say: null, bigText: '', bigT: -999, bigY: MID_Y,
     } as unknown as PetState;
-    s.rots = STAGES.map(() => Math.floor(s.rng() * 3));
+    s.rots = STAGES.map(() => (s.rng(), 0)); // ✏️ M1 S3: 상대 속성 돌리기 없앰(판이 정해져야 퍼즐) — 난수 흐름은 그대로 둔다
     // ✏️ M1 S2 첫 30초(📐 CONTENT §5): 1-1엔 사자 둘이 미리 서 있다 → 첫 톡(사자 카드)이 곧 '빵!' 합체
     s.board[0] = { id: ++s.nid, k: 'lion', star: 1, born: -999, land: -999, mergeT: -999, from: -1 };
     s.board[1] = { id: ++s.nid, k: 'lion', star: 1, born: -999, land: -999, mergeT: -999, from: -1 };
@@ -724,7 +774,7 @@ const tapReroll = () => at(REROLL_BTN[0], BTN_Y);
 
 interface Mini extends Shopper { stage: number }
 const cloneMini = (s: Shopper): Mini => ({
-  coins: s.coins, board: s.board.map((p) => (p ? { ...p } : null)), shop: s.shop.map((c) => ({ ...c })), merges: s.merges, stage: s.stage, nid: s.nid, t: s.t,
+  coins: s.coins, board: s.board.map((p) => (p ? { ...p } : null)), shop: s.shop.map((c) => ({ ...c })), queue: s.queue.slice(), merges: s.merges, stage: s.stage, nid: s.nid, t: s.t,
 });
 const unitVal = (p: Pet) => K[p.k].cost * (p.star === 1 ? 1 : p.star === 2 ? 4.5 : 16);
 /** 앞날 값: 동물(별) + 합체 직전 짝 + 금화 */
@@ -822,7 +872,15 @@ function makePlan(s: PetState): Plan {
   if (rerollOn(s) && s.coins >= REROLL + 1 && s.rerolls < 6 && !best.swap && best.sell < 0) {
     const d = STAGES[s.stage], r = mulberry32(s.seed * 31 + s.stage * 7 + s.rerolls * 131 + s.coins);
     let sum = 0;
-    const N = 5;
+    const N = lineMode() ? 0 : 5;
+    // ✏️ M1 S3: 카드 줄이면 넘긴 뒤 가게가 정해져 있다 — 상상하지 않고 그대로 계산
+    if (lineMode() && canSkip(s)) {
+      const m = cloneMini(s);
+      m.coins -= REROLL;
+      skipLine(m);
+      const v = bestBuys(s, m).v;
+      if (v > best.v + 20) best = { buys: [], swap: null, reroll: true, sell: -1, v };
+    }
     for (let j = 0; j < N; j++) {
       const m = cloneMini(s);
       m.coins -= REROLL;
@@ -830,7 +888,7 @@ function makePlan(s: PetState): Plan {
       m.shop = [0, 1, 2].map(() => ({ k: own.length && r() < 0.45 ? own[Math.floor(r() * own.length)] : d.pool[Math.floor(r() * d.pool.length)], sold: false, born: 0, shake: 0 }));
       sum += bestBuys(s, m).v;
     }
-    if (sum / N > best.v + 20) best = { buys: [], swap: null, reroll: true, sell: -1, v: sum / N };
+    if (N && sum / N > best.v + 20) best = { buys: [], swap: null, reroll: true, sell: -1, v: sum / N };
   }
   planMem.set(s, { key, plan: best });
   return best;
@@ -916,7 +974,7 @@ export const petsquadHabit2: Bot<PetState> = {
         if (c.sold || K[c.k].cost > s.coins || landing(s, c.k).slot < 0) continue;
         if (!fav || c.k === fav) return tapCard(i);
       }
-      if (rerollOn(s) && s.coins >= REROLL + (fav ? K[fav].cost : 1) && s.rerolls < 3) return tapReroll();
+      if (rerollOn(s) && s.coins >= REROLL + (fav ? K[fav].cost : 1) && s.rerolls < 3 && (!lineMode() || canSkip(s))) return tapReroll();
       return tapFight(s);
     });
   },
@@ -2909,6 +2967,36 @@ function drawShop(ctx: C2, s: PetState, vis: Vis, X: (x: number) => number, Y: (
     }
     ctx.restore();
   }
+  // ✏️ M1 S3 '다음' 카드 줄(📐 CONTENT §3): 가게 다음 3장을 판대 위 오른쪽에 작고 흐리게 · 남은 장 수는 왼쪽
+  if (lineMode() && s.phase === 'shop') {
+    const y0 = Y(SHOP_TOP) - R(0.008), r0 = R(0.03);
+    font(0.032, 800);
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff6dc';
+    ctx.strokeStyle = 'rgba(74,42,18,.8)';
+    ctx.lineWidth = 3;
+    ctx.strokeText('다음', X(0.665), y0);
+    ctx.fillText('다음', X(0.665), y0);
+    s.queue.slice(0, 3).forEach((k, j) => {
+      const x0 = X(0.73 + j * 0.088);
+      ctx.save();
+      ctx.globalAlpha = 0.85 - j * 0.15;
+      ctx.fillStyle = '#fff3d6';
+      rr(ctx, x0 - r0 * 1.25, y0 - r0 * 1.25, r0 * 2.5, r0 * 2.5, r0 * 0.5);
+      ctx.fill();
+      ctx.strokeStyle = EL_DARK[K[k].el];
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      drawPet(ctx, k, x0, y0 + r0 * 0.45, r0 * 0.75, { el: K[k].el, star: 1, enemy: false, face: 'idle', t: s.t, sq: 0, tilt: 0, flash: 0, ph: j });
+      ctx.restore();
+    });
+    const more = s.queue.length - 3;
+    ctx.textAlign = 'left';
+    const txt = s.queue.length ? (more > 0 ? `남은 카드 +${more + 3}` : `남은 카드 ${s.queue.length}`) : '줄 끝';
+    ctx.strokeText(txt, X(0.035), y0);
+    ctx.fillText(txt, X(0.035), y0);
+  }
   // 금화 주머니 (판대 위 가운데)
   {
     const cx = X(0.5), cy = Y(SHOP_TOP) - R(0.008);
@@ -2962,7 +3050,7 @@ function drawShop(ctx: C2, s: PetState, vis: Vis, X: (x: number) => number, Y: (
     ctx.lineJoin = 'round';
     ctx.lineWidth = 4;
     ctx.strokeStyle = on ? line : 'rgba(110,70,30,.4)';
-    const tx = label === '다시 뽑기' || label === '팔기' ? 0 : R(0.02);
+    const tx = label === '다시 뽑기' || label === '넘기기' || label === '팔기' ? 0 : R(0.02);
     const mw = tx ? bw - R(0.1) : bw - R(0.03);
     ctx.strokeText(label, tx, sub ? -R(0.012) : R(0.003), mw);
     ctx.fillStyle = '#ffffff';
@@ -2979,7 +3067,8 @@ function drawShop(ctx: C2, s: PetState, vis: Vis, X: (x: number) => number, Y: (
     btn(REROLL_BTN, '#ffd86a', '#f0a020', '#8a5208', '팔기', `금화 +${v}`, true, 1 + 0.03 * Math.sin(t * 0.25), () => undefined);
   } else if (rerollOn(s)) {
     const on = shop && s.coins >= REROLL;
-    btn(REROLL_BTN, '#7ac8ff', '#2f86e0', '#1a4a90', '다시 뽑기', '금화 1', on, 1, () => undefined);
+    const sk = lineMode();
+    btn(REROLL_BTN, '#7ac8ff', '#2f86e0', '#1a4a90', sk ? '넘기기' : '다시 뽑기', sk && !canSkip(s) ? '줄 끝' : '금화 1', on && (!sk || canSkip(s)), 1, () => undefined);
   }
   const has = s.board.some(Boolean);
   const fightOn = (shop && has) || (s.phase === 'result' && s.pt > 50);

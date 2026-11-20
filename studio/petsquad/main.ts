@@ -4,7 +4,7 @@
  */
 import { TICK, type Input } from './core.ts';
 import { peek } from './juice.ts';
-import { STAGES, jumpTo, petsquad as g, type Kind, type PetState } from './game.ts';
+import { STAGES, jumpTo, petsquad as g, setRandomShop, type Kind, type PetState } from './game.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('petsquad:' + k) ?? 0); } catch { return 0; } },
@@ -25,6 +25,8 @@ const ctx = canvas.getContext('2d', { alpha: false })!;
 const aspect = g.aspect ?? 1.5;
 const pal = g.art!.palette;
 const q = new URLSearchParams(location.search);
+// ✏️ M1 S3: ?shop=random 이면 예전 무작위 가게·다시 뽑기(📋 되돌리기 끈 · 비교용)
+setRandomShop(q.get('shop') === 'random');
 
 let s: PetState = g.create(1), running = false, acc = 0, last = 0, keyboard = false, spaceDown = false;
 let pointer: { x: number; y: number } | null = null, latch: { x: number; y: number } | null = null, cursor = { x: 0.5, y: 0.8 }, pick: number | undefined;
