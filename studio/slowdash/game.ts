@@ -18,7 +18,7 @@
  */
 import { mulberry32, type Rng } from './rng.ts';
 import type { Bot, GameDef, Input, Theme } from './core.ts';
-import { PX, SOLDIER, hero, soldier } from './pix.ts';
+import { PX, SOLDIER, hero, pixBg, soldier } from './pix.ts';
 import { juice } from './juice.ts';
 
 const A = 1.52;
@@ -1566,11 +1566,6 @@ function lin(ctx: C2, x0: number, y0: number, x1: number, y1: number, ...st: [nu
   for (const [o, c] of st) g.addColorStop(o, c);
   return g;
 }
-function radg(ctx: C2, x: number, y: number, r0: number, r1: number, ...st: [number, string][]) {
-  const g = ctx.createRadialGradient(x, y, Math.max(0, r0), x, y, Math.max(0.1, r1));
-  for (const [o, c] of st) g.addColorStop(o, c);
-  return g;
-}
 function rr(ctx: C2, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, Math.max(0, Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2)));
@@ -1611,342 +1606,7 @@ function ribbon(ctx: C2, x0: number, y0: number, len: number, wd: number, t: num
 const OUT = '#0b0e1c';
 
 // ── 장소별 팔레트: 0 대숲 · 1 지붕 · 2 마당 ──
-const PAL = [
-  { sky: ['#060a1d', '#15204a', '#34467a'], moon: '#fff3d2', far: '#2c3d6c', mid: '#162243', g: ['#2a3f4c', '#3d564c', '#4d6852'], mist: '120,145,205', place: '대숲' },
-  { sky: ['#08081e', '#211c4a', '#4f437a'], moon: '#ffe8c2', far: '#342c5e', mid: '#1b1736', g: ['#323c5e', '#435078', '#52608c'], mist: '150,130,200', place: '지붕' },
-  { sky: ['#0b0a1b', '#271d40', '#5e4562'], moon: '#ffdcb0', far: '#3a2b4c', mid: '#20172d', g: ['#5a5868', '#77727e', '#8b8590'], mist: '190,150,190', place: '마당' },
-];
 const HZ = 0.415, GB = 1.31;
-
-interface Bg { sky: HTMLCanvasElement; far: HTMLCanvasElement; mid: HTMLCanvasElement; ground: HTMLCanvasElement; paper: HTMLCanvasElement }
-const BG = new Map<string, Bg>();
-function layer(w: number, h: number, sc: number, paint: (c: C2) => void) {
-  const c = document.createElement('canvas');
-  c.width = Math.max(1, Math.ceil(w * sc));
-  c.height = Math.max(1, Math.ceil(h * sc));
-  const g = c.getContext('2d')!;
-  g.scale(sc, sc);
-  paint(g);
-  return c;
-}
-function bamboo(g: C2, x: number, top: number, bot: number, wd: number, col: string, hi: string, seed: number, leaves: number, lean: number) {
-  g.save();
-  g.translate(x, bot);
-  g.rotate(lean);
-  const L = bot - top;
-  g.fillStyle = col;
-  g.fillRect(-wd / 2, -L, wd, L);
-  g.fillStyle = hi;
-  g.fillRect(-wd / 2 + wd * 0.15, -L, wd * 0.18, L);
-  g.strokeStyle = 'rgba(0,0,0,.35)';
-  g.lineWidth = Math.max(1, wd * 0.12);
-  for (let yy = -wd * 3 - hsh(seed) * wd * 6; yy > -L; yy -= wd * (6 + hsh(seed + yy) * 3)) {
-    g.beginPath();
-    g.moveTo(-wd * 0.6, yy);
-    g.lineTo(wd * 0.6, yy);
-    g.stroke();
-  }
-  g.fillStyle = col;
-  for (let k = 0; k < leaves; k++) {
-    const ly = -L * (0.35 + hsh(seed * 3 + k) * 0.6), dir = hsh(seed + k * 7) < 0.5 ? -1 : 1;
-    for (let j = 0; j < 4; j++) {
-      const a = dir * (0.25 + j * 0.28) + (dir < 0 ? Math.PI : 0), ll = wd * (5 + hsh(seed + k + j) * 3);
-      g.save();
-      g.translate(0, ly + j * wd * 0.4);
-      g.rotate(a + 0.35 * dir);
-      g.beginPath();
-      g.moveTo(0, 0);
-      g.quadraticCurveTo(ll * 0.5, -ll * 0.16, ll, 0);
-      g.quadraticCurveTo(ll * 0.5, ll * 0.16, 0, 0);
-      g.fill();
-      g.restore();
-    }
-  }
-  g.restore();
-}
-function roofLine(g: C2, x0: number, x1: number, y: number, hgt: number, col: string, curl: number) {
-  g.fillStyle = col;
-  g.beginPath();
-  g.moveTo(x0 - curl, y - curl * 0.6);
-  g.quadraticCurveTo(x0 + (x1 - x0) * 0.12, y, (x0 + x1) / 2, y - hgt * 0.15);
-  g.quadraticCurveTo(x1 - (x1 - x0) * 0.12, y, x1 + curl, y - curl * 0.6);
-  g.lineTo(x1 - (x1 - x0) * 0.18, y - hgt);
-  g.lineTo(x0 + (x1 - x0) * 0.18, y - hgt);
-  g.closePath();
-  g.fill();
-}
-function getBg(w: number, h: number, place: number, sc: number): Bg {
-  const key = `${w}x${h}:${place}:${sc}`;
-  const hit = BG.get(key);
-  if (hit) return hit;
-  const P = PAL[place], hz = HZ * w, gb = GB * w;
-  const sky = layer(w, hz + w * 0.04, sc, (g) => {
-    g.fillStyle = lin(g, 0, 0, 0, hz, [0, P.sky[0]], [0.55, P.sky[1]], [1, P.sky[2]]);
-    g.fillRect(0, 0, w, hz + w * 0.04);
-    for (let k = 0; k < 70; k++) {
-      g.globalAlpha = 0.25 + hsh(k * 3.1) * 0.6;
-      g.fillStyle = k % 9 ? '#dfe6ff' : '#ffe9b0';
-      const r = k % 7 ? 0.7 : 1.3;
-      g.beginPath();
-      g.arc(hsh(k) * w, hsh(k + 99) * hz * 0.8, r, 0, TAU);
-      g.fill();
-    }
-    g.globalAlpha = 1;
-    const mx = w * 0.7, my = w * 0.255, mr = w * 0.1;
-    g.fillStyle = radg(g, mx, my, mr * 0.8, mr * 3.2, [0, `rgba(255,240,200,.35)`], [0.4, `rgba(255,230,190,.10)`], [1, 'rgba(255,230,190,0)']);
-    g.fillRect(0, 0, w, hz);
-    g.fillStyle = radg(g, mx - mr * 0.3, my - mr * 0.3, mr * 0.1, mr, [0, '#fffdf2'], [0.7, P.moon], [1, '#e8cf9e']);
-    g.beginPath();
-    g.arc(mx, my, mr, 0, TAU);
-    g.fill();
-    g.fillStyle = 'rgba(160,130,90,.13)';
-    for (const [cx, cy, cr] of [[-0.3, 0.2, 0.22], [0.25, -0.15, 0.15], [0.1, 0.4, 0.12], [-0.1, -0.4, 0.1]]) {
-      g.beginPath();
-      g.arc(mx + cx * mr, my + cy * mr, cr * mr, 0, TAU);
-      g.fill();
-    }
-    // 달에 걸친 구름
-    for (let k = 0; k < 4; k++) {
-      const cy = my + (k - 1.5) * mr * 0.55 + mr * 0.3, cx = mx - mr * 1.6 + k * mr * 0.9;
-      g.fillStyle = `rgba(${P.mist},${0.1 + 0.05 * (k % 2)})`;
-      ell(g, cx, cy, mr * (1.4 + hsh(k) * 0.6), mr * 0.12);
-      g.fill();
-    }
-    // 먼 산 능선
-    g.fillStyle = P.far;
-    g.globalAlpha = 0.55;
-    g.beginPath();
-    g.moveTo(0, hz + 4);
-    for (let x = 0; x <= w; x += w / 24) g.lineTo(x, hz - w * (0.05 + 0.04 * Math.sin(x / w * 7 + 1) + 0.02 * Math.sin(x / w * 19)));
-    g.lineTo(w, hz + 4);
-    g.fill();
-    g.globalAlpha = 1;
-  });
-  const fw = w * 1.3, fh = hz + w * 0.05;
-  const far = layer(fw, fh, sc, (g) => {
-    if (place === 0) {
-      for (let k = 0; k < 22; k++) {
-        const x = (k / 22) * fw + hsh(k) * 10, mx = w * 0.7 + w * 0.15;
-        if (Math.abs(x - mx) < w * 0.09) continue;
-        bamboo(g, x, -10, fh, w * (0.007 + hsh(k + 5) * 0.006), P.far, 'rgba(160,190,255,.12)', k + 10, 2, (hsh(k + 1) - 0.5) * 0.06);
-      }
-    } else if (place === 1) {
-      g.fillStyle = P.far;
-      for (let k = 0; k < 9; k++) {
-        const x0 = (k / 9) * fw + hsh(k) * 20, bw = w * (0.16 + hsh(k + 3) * 0.1), y = fh - w * (0.02 + hsh(k + 7) * 0.05);
-        roofLine(g, x0, x0 + bw, y - w * 0.04, w * 0.05, P.far, w * 0.02);
-        g.fillRect(x0 + bw * 0.12, y - w * 0.045, bw * 0.76, fh - y + w * 0.05);
-        g.fillStyle = 'rgba(255,200,120,.5)';
-        if (hsh(k + 2) < 0.6) g.fillRect(x0 + bw * 0.4, y - w * 0.02, w * 0.012, w * 0.012);
-        g.fillStyle = P.far;
-      }
-      // 먼 탑
-      const px = fw * 0.22, py = fh - w * 0.04;
-      for (let j = 0; j < 4; j++) roofLine(g, px - w * (0.07 - j * 0.012), px + w * (0.07 - j * 0.012), py - j * w * 0.055, w * 0.03, P.far, w * 0.015);
-      g.fillRect(px - w * 0.004, py - w * 0.29, w * 0.008, w * 0.08);
-    } else {
-      g.fillStyle = P.far;
-      const cx = fw * 0.3, by = fh - w * 0.02;
-      g.fillRect(cx - w * 0.12, by - w * 0.08, w * 0.24, w * 0.1);
-      for (let j = 0; j < 3; j++) {
-        roofLine(g, cx - w * (0.16 - j * 0.03), cx + w * (0.16 - j * 0.03), by - w * 0.08 - j * w * 0.065, w * 0.04, P.far, w * 0.02);
-        g.fillRect(cx - w * (0.1 - j * 0.025), by - w * 0.12 - j * w * 0.065, w * (0.2 - j * 0.05), w * 0.04);
-      }
-      g.fillStyle = 'rgba(255,190,120,.45)';
-      for (let j = 0; j < 5; j++) g.fillRect(cx - w * 0.08 + j * w * 0.04, by - w * 0.05, w * 0.012, w * 0.016);
-      g.fillStyle = P.far;
-      for (let x = 0; x < fw; x += w * 0.05) g.fillRect(x, by - w * 0.03 - (x > cx - w * 0.2 && x < cx + w * 0.2 ? 0 : 0), w * 0.045, w * 0.06);
-    }
-    g.fillStyle = lin(g, 0, fh - w * 0.12, 0, fh, [0, `rgba(${P.mist},0)`], [1, `rgba(${P.mist},.45)`]);
-    g.fillRect(0, fh - w * 0.12, fw, w * 0.12);
-  });
-  const mw = w * 1.4, mh = hz + w * 0.06;
-  const mid = layer(mw, mh, sc, (g) => {
-    if (place === 0) {
-      for (let k = 0; k < 9; k++) {
-        const x = (k / 9) * mw + hsh(k + 40) * 30, mx = w * 0.7 + w * 0.2;
-        if (Math.abs(x - mx) < w * 0.12) continue;
-        bamboo(g, x, -20, mh, w * (0.016 + hsh(k + 41) * 0.012), P.mid, 'rgba(150,180,240,.18)', k + 50, 4, (hsh(k + 42) - 0.5) * 0.08);
-      }
-    } else if (place === 1) {
-      for (let k = 0; k < 5; k++) {
-        const x0 = (k / 5) * mw + hsh(k + 20) * 30, bw = w * (0.26 + hsh(k + 21) * 0.12), y = mh - w * (0.0 + hsh(k + 22) * 0.04);
-        g.fillStyle = P.mid;
-        g.fillRect(x0 + bw * 0.1, y - w * 0.06, bw * 0.8, w * 0.1);
-        roofLine(g, x0, x0 + bw, y - w * 0.055, w * 0.06, P.mid, w * 0.03);
-        g.fillStyle = 'rgba(255,190,110,.55)';
-        g.fillRect(x0 + bw * 0.3, y - w * 0.035, w * 0.018, w * 0.02);
-        g.fillRect(x0 + bw * 0.6, y - w * 0.035, w * 0.018, w * 0.02);
-      }
-    } else {
-      for (let k = 0; k < 5; k++) {
-        const x0 = (k / 5) * mw + hsh(k + 60) * 40, y = mh;
-        g.fillStyle = P.mid;
-        g.fillRect(x0 - w * 0.008, y - w * 0.18, w * 0.016, w * 0.18);
-        for (let j = 0; j < 4; j++) {
-          ell(g, x0 + (j % 2 ? 1 : -1) * w * 0.04, y - w * (0.12 + j * 0.035), w * (0.08 - j * 0.012), w * 0.022);
-          g.fill();
-        }
-      }
-      g.fillStyle = P.mid;
-      g.fillRect(0, mh - w * 0.045, mw, w * 0.05);
-      g.fillStyle = 'rgba(255,255,255,.08)';
-      g.fillRect(0, mh - w * 0.047, mw, 2);
-    }
-    g.fillStyle = lin(g, 0, mh - w * 0.1, 0, mh, [0, `rgba(${P.mist},0)`], [1, `rgba(${P.mist},.35)`]);
-    g.fillRect(0, mh - w * 0.1, mw, w * 0.1);
-  });
-  const ground = layer(w, gb - hz, sc, (g) => {
-    const gh = gb - hz;
-    g.fillStyle = lin(g, 0, 0, 0, gh, [0, P.g[0]], [0.45, P.g[1]], [1, P.g[2]]);
-    g.fillRect(0, 0, w, gh);
-    if (place === 0) {
-      for (let k = 0; k < 26; k++) {
-        const y = hsh(k + 3) * gh, x = hsh(k + 9) * w, d = 0.5 + y / gh;
-        g.fillStyle = k % 3 ? 'rgba(110,150,95,.20)' : 'rgba(150,170,110,.14)';
-        ell(g, x, y, w * 0.07 * d, w * 0.018 * d);
-        g.fill();
-      }
-      for (let k = 0; k < 40; k++) {
-        const y = hsh(k + 70) * gh, x = hsh(k + 71) * w, d = 0.5 + y / gh, a = hsh(k + 72) * TAU;
-        g.fillStyle = k % 4 ? 'rgba(150,170,90,.35)' : 'rgba(200,180,110,.35)';
-        g.save();
-        g.translate(x, y);
-        g.rotate(a);
-        ell(g, 0, 0, w * 0.014 * d, w * 0.003 * d);
-        g.fill();
-        g.restore();
-      }
-      for (let k = 0; k < 9; k++) {
-        const y = hsh(k + 30) * gh, x = hsh(k + 31) * w, d = 0.6 + y / gh;
-        g.fillStyle = 'rgba(0,0,0,.25)';
-        ell(g, x + 2, y + 2, w * 0.016 * d, w * 0.007 * d);
-        g.fill();
-        g.fillStyle = lin(g, x, y - w * 0.01, x, y + w * 0.01, [0, '#8e95a6'], [1, '#4c5262']);
-        ell(g, x, y, w * 0.015 * d, w * 0.008 * d);
-        g.fill();
-      }
-    } else if (place === 1) {
-      // 기와 줄: 먼 쪽은 촘촘, 가까운 쪽은 넓게
-      let y = 0, row = 0;
-      while (y < gh) {
-        const d = 0.45 + y / gh, rh = w * 0.045 * d;
-        g.fillStyle = row % 2 ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.03)';
-        g.fillRect(0, y, w, rh);
-        const tw = w * 0.05 * d;
-        for (let x = (row % 2) * tw * 0.5 - tw; x < w + tw; x += tw) {
-          g.fillStyle = lin(g, x, 0, x + tw, 0, [0, 'rgba(255,245,225,.16)'], [0.45, 'rgba(255,255,255,.03)'], [1, 'rgba(0,0,0,.25)']);
-          rr(g, x + tw * 0.08, y + rh * 0.05, tw * 0.84, rh * 0.95, tw * 0.4);
-          g.fill();
-        }
-        g.fillStyle = 'rgba(0,0,0,.35)';
-        g.fillRect(0, y + rh - 1.5, w, 1.5);
-        y += rh;
-        row++;
-      }
-      g.fillStyle = 'rgba(20,22,40,.9)';
-      g.fillRect(0, 0, w, w * 0.02);
-      g.fillStyle = 'rgba(160,170,220,.25)';
-      g.fillRect(0, w * 0.02, w, 1.5);
-    } else {
-      // 갈퀴로 고른 모래 무늬
-      g.strokeStyle = 'rgba(255,255,255,.10)';
-      for (let k = 0; k < 34; k++) {
-        const y0 = (k / 34) * gh, d = 0.5 + y0 / gh;
-        g.lineWidth = 1.2 * d;
-        g.beginPath();
-        for (let x = 0; x <= w; x += w / 30) g.lineTo(x, y0 + Math.sin(x / w * 6 + k * 0.4) * w * 0.006 * d);
-        g.stroke();
-      }
-      g.strokeStyle = 'rgba(0,0,0,.08)';
-      for (let k = 0; k < 34; k++) {
-        const y0 = (k / 34) * gh + 2, d = 0.5 + y0 / gh;
-        g.lineWidth = 1 * d;
-        g.beginPath();
-        for (let x = 0; x <= w; x += w / 30) g.lineTo(x, y0 + Math.sin(x / w * 6 + k * 0.4) * w * 0.006 * d);
-        g.stroke();
-      }
-      for (const [x, y, r] of [[0.08, 0.15, 0.03], [0.93, 0.5, 0.035], [0.1, 0.78, 0.028]]) {
-        const cx = x * w, cy = y * gh, cr = r * w;
-        g.strokeStyle = 'rgba(255,255,255,.12)';
-        for (let j = 1; j < 4; j++) {
-          g.lineWidth = 1.2;
-          ell(g, cx, cy, cr * (1 + j * 0.5), cr * (0.45 + j * 0.22));
-          g.stroke();
-        }
-        g.fillStyle = 'rgba(0,0,0,.3)';
-        ell(g, cx + 3, cy + 3, cr, cr * 0.5);
-        g.fill();
-        g.fillStyle = lin(g, cx, cy - cr, cx, cy + cr, [0, '#9a9aa8'], [1, '#55556a']);
-        ell(g, cx, cy - cr * 0.15, cr, cr * 0.55);
-        g.fill();
-        g.fillStyle = 'rgba(90,140,90,.6)';
-        ell(g, cx - cr * 0.2, cy - cr * 0.45, cr * 0.5, cr * 0.18);
-        g.fill();
-      }
-    }
-    // 달빛에 드리운 대나무 그림자 (비스듬한 띠)
-    if (place === 0)
-      for (let k = 0; k < 7; k++) {
-        const x0 = w * (-0.2 + k * 0.2 + hsh(k + 900) * 0.08), bw = w * (0.012 + hsh(k + 901) * 0.02);
-        g.fillStyle = 'rgba(6,12,30,.16)';
-        g.beginPath();
-        g.moveTo(x0, 0);
-        g.lineTo(x0 + bw, 0);
-        g.lineTo(x0 + bw - w * 0.35, gh);
-        g.lineTo(x0 - w * 0.35 - bw * 0.5, gh);
-        g.closePath();
-        g.fill();
-      }
-    // 풀포기 (가까울수록 크게)
-    if (place === 0)
-      for (let k = 0; k < 140; k++) {
-        const y = hsh(k + 300) * gh, x = hsh(k + 301) * w, d = 0.45 + y / gh, hgt = w * 0.016 * d;
-        g.strokeStyle = k % 5 ? 'rgba(30,60,40,.55)' : 'rgba(20,40,30,.6)';
-        g.lineWidth = 1.2 * d;
-        for (let j = -1; j <= 1; j++) {
-          g.beginPath();
-          g.moveTo(x + j * hgt * 0.15, y);
-          g.quadraticCurveTo(x + j * hgt * 0.3, y - hgt * 0.6, x + j * hgt * 0.55, y - hgt * (1 - Math.abs(j) * 0.25));
-          g.stroke();
-        }
-        g.strokeStyle = 'rgba(170,220,150,.35)';
-        g.lineWidth = 0.8 * d;
-        g.beginPath();
-        g.moveTo(x, y - hgt * 0.5);
-        g.lineTo(x, y - hgt * 0.95);
-        g.stroke();
-      }
-    // 달빛 웅덩이 · 가장자리 그늘 · 먼 쪽 안개
-    g.fillStyle = radg(g, w * 0.6, gh * 0.25, 0, w * 0.75, [0, 'rgba(255,240,210,.16)'], [0.6, 'rgba(255,240,210,.05)'], [1, 'rgba(255,240,210,0)']);
-    g.fillRect(0, 0, w, gh);
-    g.fillStyle = lin(g, 0, 0, w, 0, [0, 'rgba(4,8,20,.45)'], [0.18, 'rgba(4,8,20,0)'], [0.82, 'rgba(4,8,20,0)'], [1, 'rgba(4,8,20,.45)']);
-    g.fillRect(0, 0, w, gh);
-    g.fillStyle = lin(g, 0, gh * 0.7, 0, gh, [0, 'rgba(4,8,20,0)'], [1, 'rgba(4,8,20,.35)']);
-    g.fillRect(0, gh * 0.7, w, gh * 0.3);
-    g.fillStyle = lin(g, 0, 0, 0, w * 0.1, [0, `rgba(${P.mist},.35)`], [1, `rgba(${P.mist},0)`]);
-    g.fillRect(0, 0, w, w * 0.1);
-  });
-  const paper = layer(w, h, sc, (g) => {
-    for (let k = 0; k < 900; k++) {
-      g.fillStyle = k % 2 ? 'rgba(255,245,220,.05)' : 'rgba(0,0,0,.05)';
-      g.fillRect(hsh(k * 1.7) * w, hsh(k * 2.3 + 5) * h, 1 + (k % 3), 1);
-    }
-    g.strokeStyle = 'rgba(255,240,210,.035)';
-    g.lineWidth = 0.8;
-    for (let k = 0; k < 120; k++) {
-      const x = hsh(k + 500) * w, y = hsh(k + 600) * h, a = hsh(k + 700) * TAU, l = 4 + hsh(k + 800) * 10;
-      g.beginPath();
-      g.moveTo(x, y);
-      g.quadraticCurveTo(x + Math.cos(a) * l * 0.5 + 2, y + Math.sin(a) * l * 0.5, x + Math.cos(a) * l, y + Math.sin(a) * l);
-      g.stroke();
-    }
-  });
-  const out = { sky, far, mid, ground, paper };
-  if (BG.size > 12) BG.clear();
-  BG.set(key, out);
-  return out;
-}
 
 // ── 캐릭터 ──
 /** 여우 닌자. pose 0 서기 · 1 겨눔(느린 시간) · 2 벤 직후 · 3 아얏 · 4 만세 · 5 어질어질 */
@@ -2317,7 +1977,7 @@ function drawBarrel(ctx: C2, x: number, y: number, k: number, fuse: number, t: n
   ctx.stroke();
   if (fuse >= 0) {
     const fl = 0.6 + 0.4 * Math.sin(t * 0.9);
-    ctx.fillStyle = radg(ctx, k * 0.05, -k * 0.6, 0, k * 0.16, [0, `rgba(255,240,150,${fl})`], [1, 'rgba(255,120,40,0)']);
+    ctx.fillStyle = `rgba(255,214,90,${fl * 0.6})`; // M3 S3: 원형 그라데이션 대신 한 색
     ctx.beginPath();
     ctx.arc(k * 0.05, -k * 0.6, k * 0.16, 0, TAU);
     ctx.fill();
@@ -2533,109 +2193,6 @@ function drawHand(ctx: C2, x: number, y: number, k: number, press: number) {
 }
 
 
-function lantern(ctx: C2, x: number, y: number, k: number, t: number) {
-  ctx.save();
-  ctx.translate(x, y);
-  const fl = 0.75 + 0.25 * Math.sin(t * 0.13) * Math.sin(t * 0.07);
-  ctx.fillStyle = radg(ctx, 0, -k * 0.62, 0, k * 0.9, [0, `rgba(255,200,120,${0.35 * fl})`], [1, 'rgba(255,200,120,0)']);
-  ctx.beginPath();
-  ctx.arc(0, -k * 0.62, k * 0.9, 0, TAU);
-  ctx.fill();
-  ctx.fillStyle = 'rgba(4,6,18,.4)';
-  ell(ctx, 0, 0, k * 0.3, k * 0.08);
-  ctx.fill();
-  const stone = lin(ctx, -k * 0.2, 0, k * 0.2, 0, [0, '#8d92a3'], [1, '#4a4e5e']);
-  ctx.fillStyle = stone;
-  ctx.strokeStyle = OUT;
-  ctx.lineWidth = k * 0.03;
-  rr(ctx, -k * 0.22, -k * 0.12, k * 0.44, k * 0.12, k * 0.03);
-  ctx.fill();
-  ctx.stroke();
-  rr(ctx, -k * 0.07, -k * 0.45, k * 0.14, k * 0.34, k * 0.03);
-  ctx.fill();
-  ctx.stroke();
-  rr(ctx, -k * 0.2, -k * 0.52, k * 0.4, k * 0.08, k * 0.03);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = `rgba(255,214,140,${fl})`;
-  rr(ctx, -k * 0.13, -k * 0.74, k * 0.26, k * 0.22, k * 0.02);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = 'rgba(80,50,30,.6)';
-  ctx.fillRect(-k * 0.015, -k * 0.74, k * 0.03, k * 0.22);
-  ctx.fillStyle = stone;
-  ctx.beginPath();
-  ctx.moveTo(-k * 0.3, -k * 0.74);
-  ctx.quadraticCurveTo(0, -k * 0.82, k * 0.3, -k * 0.74);
-  ctx.lineTo(0, -k * 0.98);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  ctx.restore();
-}
-/** 앞쪽 소품 (화면 아래 모서리 — 깊이감) */
-function frontProps(ctx: C2, place: number, w: number, t: number) {
-  const R = (r: number) => r * w, gb = GB * w;
-  if (place === 0) {
-    ctx.fillStyle = 'rgba(4,6,18,.35)';
-    ell(ctx, R(0.05), gb - R(0.01), R(0.12), R(0.03));
-    ctx.fill();
-    ctx.fillStyle = lin(ctx, 0, gb - R(0.08), 0, gb, [0, '#6e7488'], [1, '#2e3240']);
-    ctx.strokeStyle = OUT;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-R(0.02), gb);
-    ctx.quadraticCurveTo(-R(0.01), gb - R(0.07), R(0.05), gb - R(0.075));
-    ctx.quadraticCurveTo(R(0.11), gb - R(0.07), R(0.12), gb);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(110,170,90,.85)';
-    ell(ctx, R(0.04), gb - R(0.066), R(0.045), R(0.014));
-    ctx.fill();
-    for (const [x, hgt] of [[0.9, 0.07], [0.95, 0.1], [0.985, 0.06]]) {
-      ctx.fillStyle = lin(ctx, R(x) - R(0.02), 0, R(x) + R(0.02), 0, [0, '#7a8a3a'], [1, '#3e4a1e']);
-      ctx.beginPath();
-      ctx.moveTo(R(x) - R(0.022), gb);
-      ctx.quadraticCurveTo(R(x) - R(0.012), gb - R(hgt) * 0.6, R(x), gb - R(hgt));
-      ctx.quadraticCurveTo(R(x) + R(0.012), gb - R(hgt) * 0.6, R(x) + R(0.022), gb);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      ctx.strokeStyle = 'rgba(30,40,10,.6)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(R(x) - R(0.016), gb - R(hgt) * 0.25);
-      ctx.lineTo(R(x) + R(0.012), gb - R(hgt) * 0.35);
-      ctx.stroke();
-      ctx.strokeStyle = OUT;
-      ctx.lineWidth = 2;
-    }
-  } else if (place === 1) {
-    ctx.fillStyle = '#121528';
-    ctx.fillRect(0, gb - R(0.014), w, R(0.02));
-    for (let x = R(0.02); x < w; x += R(0.06)) {
-      ctx.fillStyle = lin(ctx, x - R(0.02), 0, x + R(0.02), 0, [0, '#5a6688'], [1, '#2a3048']);
-      ctx.beginPath();
-      ctx.arc(x, gb - R(0.012), R(0.02), 0, TAU);
-      ctx.fill();
-      ctx.strokeStyle = OUT;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      ctx.strokeStyle = 'rgba(200,210,255,.35)';
-      ctx.beginPath();
-      ctx.arc(x, gb - R(0.012), R(0.011), 0, TAU);
-      ctx.stroke();
-    }
-  } else {
-    lantern(ctx, R(0.06), gb - R(0.005), R(0.13), t);
-    ctx.fillStyle = '#141820';
-    for (let j = 0; j < 4; j++) {
-      ell(ctx, w - R(0.04) - j * R(0.035), gb - R(0.05) + j * R(0.018), R(0.07 - j * 0.01), R(0.02));
-      ctx.fill();
-    }
-  }
-}
 const recentSay = new WeakMap<object, { x: number; y: number; t: number; size: number }[]>();
 /** 화면 위 크기: 먼 쪽은 작게, 가까운 쪽은 크게 */
 const depth = (y: number) => 0.84 + 0.26 * ((y - Y0) / (Y1 - Y0));
@@ -2663,11 +2220,11 @@ function loLayer(lw: number, lh: number): C2 | null {
 }
 function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   const fx = juice(s), X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w;
-  const d = STAGES[s.stage], P = PAL[d.place], t = s.t, wt = s.wt;
+  const d = STAGES[s.stage], t = s.t, wt = s.wt;
   // M3 S2 🎨 도트 세상: 세상(배경·적·닌자·칼빛)은 가로 w/PX칸 캔버스에 그리고 정수배로 키운다 — 칠하는 픽셀이 1/36이라 렉이 준다(F13).
   //   글자는 흐려지지 않게 큰 화면에 나중에 쓴다(lo의 fillText·strokeText를 가로채 그때 변환째로 미뤄 둠).
   const hi = ctx, LW = Math.round(w / PX), LH = Math.round(h / PX), lo = loLayer(LW, LH), later: (() => void)[] = [];
-  const sc = LW / w, bg = getBg(Math.round(w), Math.round(h), d.place, sc);
+  const sc = LW / w;
   if (lo) {
     const base = hi.getTransform().scale(w / LW, h / LH), defer = (stroke: boolean) => (txt: string, x: number, y: number) => {
       const m = lo.getTransform(), st = [lo.font, lo.fillStyle, lo.strokeStyle, lo.lineWidth, lo.textAlign, lo.textBaseline, lo.globalAlpha, lo.lineJoin] as const;
@@ -2695,12 +2252,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   ctx.save();
   fx.begin(ctx);
   // ── 하늘 · 먼 숲 · 가까운 숲 (시차) ──
-  ctx.fillStyle = P.sky[0];
-  ctx.fillRect(-20, -20, w + 40, h + 40);
-  ctx.drawImage(bg.sky, 0, 0, w, Y(HZ) + R(0.04));
-  const cam = s.camX;
-  ctx.drawImage(bg.far, -R(0.15) - cam * R(0.06), Y(HZ) + R(0.05) - bg.far.height / sc, bg.far.width / sc, bg.far.height / sc);
-  ctx.drawImage(bg.mid, -R(0.2) - cam * R(0.14), Y(HZ) + R(0.06) - bg.mid.height / sc, bg.mid.width / sc, bg.mid.height / sc);
+  const cam = s.camX; // M3 S3 🎨 배경 = 도트 한 장(태엽 마을 · 시계탑 · 원근 바닥 · 32색)
+  ctx.drawImage(pixBg(LW, LH, d.place, Math.round(Y(HZ) * sc), Math.round(Y(GB) * sc)), 0, 0, w, h);
   // 부엉이 (가지 위 구경꾼)
   {
     const hoot = Math.max(0, 60 - (t - s.owlT));
@@ -2716,8 +2269,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.fillText('부엉!', ox + R(0.07), oy - R(0.08));
     }
   }
-  ctx.drawImage(bg.ground, 0, Y(HZ), w, Y(GB) - Y(HZ));
-  if (d.place !== 1) for (const lx of [0.035, 0.965]) lantern(ctx, X(lx), Y(HZ + 0.06), R(0.085), t + lx * 50);
   // ── 땅 위: 먹물 자국 · 그림자 · 위험 표시 ──
   for (const k of s.inks) {
     const a = Math.max(0, 1 - (t - k.t) / 420) * Math.min(1, Math.max(0, t - k.t - 8) / 6);
@@ -2881,7 +2432,21 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.fillStyle = 'rgba(0,0,0,.3)';
     ell(ctx, bx, by, R(0.03), R(0.012));
     ctx.fill();
-    bamboo(ctx, bx, by - H - (R(BAMBOO.L) - H) * p, by, R(0.024), '#7ad070', 'rgba(235,255,220,.55)', b.id, 2, b.fall < 0 ? (w0 < 24 ? Math.sin(w0 * 0.9) * 0.18 * (1 - w0 / 24) : 0) : a * p * p);
+    { // M3 S3: 도트 대나무(줄기 · 빛 줄 · 마디) — 옛 벡터 대나무 함수는 배경과 함께 걷어냄
+      const L = H + (R(BAMBOO.L) - H) * p, wd = R(0.024);
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.rotate(b.fall < 0 ? (w0 < 24 ? Math.sin(w0 * 0.9) * 0.18 * (1 - w0 / 24) : 0) : a * p * p);
+      ctx.fillStyle = '#2f6c43';
+      ctx.fillRect(-wd / 2 - PX, -L, wd + 2 * PX, L);
+      ctx.fillStyle = '#64ba5b';
+      ctx.fillRect(-wd / 2, -L, wd, L);
+      ctx.fillStyle = '#c8f0a8';
+      ctx.fillRect(-wd / 2 + PX, -L, PX, L);
+      ctx.fillStyle = '#2f6c43';
+      for (let yy = -PX * 6; yy > -L; yy -= PX * 7) ctx.fillRect(-wd / 2 - PX, yy, wd + 2 * PX, PX);
+      ctx.restore();
+    }
     if (b.fall < 0) { // 베는 자리: 밑동 고리
       ctx.strokeStyle = `rgba(255,236,150,${0.55 + 0.25 * Math.sin(t * 0.2)})`;
       ctx.lineWidth = 2;
@@ -2979,7 +2544,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   const drawNinja = (alpha = 1) => {
     const k = R(NIN_H) * depth(s.ny);
     const blinkOff = s.inv > INV_DASH && s.phase === 'play' && Math.floor(t / 4) % 2 === 0;
-    ctx.fillStyle = radg(ctx, X(s.nx), Y(s.ny), 0, k * 0.55, [0, 'rgba(200,235,255,.32)'], [1, 'rgba(200,235,255,0)']);
+    ctx.fillStyle = 'rgba(124,248,221,.22)'; // M3 S3: 발밑 빛도 한 색(청록 = 내 힘)
     ell(ctx, X(s.nx), Y(s.ny), k * 0.55, k * 0.2);
     ctx.fill();
     ctx.save();
@@ -3108,7 +2673,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       if (since < 14) for (const u of [0.25, 0.5, 0.75]) drawFox(ctx, X(lg[0] + (lg[2] - lg[0]) * u), Y(lg[1] + (lg[3] - lg[1]) * u), R(NIN_H) * depth(lg[1] + (lg[3] - lg[1]) * u), s.face, 2, wt, 0.16 * (1 - since / 14) * (0.5 + u));
     }
   }
-  frontProps(ctx, d.place, w, t);
   // 연기 (가린다)
   if (inSmoke(s, s.nx, s.ny) && s.phase === 'play') {
     font(0.034, 900);
@@ -3119,46 +2683,12 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.strokeText('숨었다!', X(s.nx), Y(s.ny) - R(0.16));
     ctx.fillText('숨었다!', X(s.nx), Y(s.ny) - R(0.16));
   }
-  // 떨어지는 댓잎 · 반딧불 (느린 시간엔 같이 느려진다)
-  for (let j = 0; j < 7; j++) {
-    const sp = 0.4 + hsh(j) * 0.4, yy = ((hsh(j + 3) * h + wt * sp) % (h * 0.95)) - R(0.05), xx = hsh(j + 7) * w + Math.sin(wt * 0.02 + j) * R(0.04);
-    ctx.save();
-    ctx.translate(xx, yy);
-    ctx.rotate(Math.sin(wt * 0.03 + j * 2) * 1.2);
-    ctx.fillStyle = d.place === 2 ? 'rgba(255,170,190,.75)' : 'rgba(150,200,120,.7)';
-    ctx.beginPath();
-    ctx.moveTo(-R(0.014), 0);
-    ctx.quadraticCurveTo(0, -R(0.006), R(0.014), 0);
-    ctx.quadraticCurveTo(0, R(0.006), -R(0.014), 0);
-    ctx.fill();
-    ctx.restore();
-  }
-  for (let j = 0; j < 9; j++) {
-    const xx = (hsh(j + 20) * w + Math.sin(wt * 0.011 + j) * R(0.06)) % w, yy = Y(HZ) + hsh(j + 21) * R(0.8) + Math.sin(wt * 0.017 + j * 3) * R(0.03);
-    const gl = 0.4 + 0.6 * Math.abs(Math.sin(wt * 0.03 + j));
-    ctx.fillStyle = radg(ctx, xx, yy, 0, R(0.018), [0, `rgba(255,240,150,${0.7 * gl})`], [1, 'rgba(255,240,150,0)']);
-    ctx.beginPath();
-    ctx.arc(xx, yy, R(0.018), 0, TAU);
-    ctx.fill();
-  }
-  // 가까운 대나무 (화면 가장자리, 시차가 가장 크다)
-  for (const [bx, wd, sd] of [[-0.015, 0.035, 1], [0.035, 0.018, 2], [1.0, 0.03, 3], [0.965, 0.016, 4]]) {
-    const xx = X(bx) - cam * R(0.25);
-    ctx.fillStyle = '#05070f';
-    ctx.fillRect(xx - R(wd) / 2, -10, R(wd), h * 0.9);
-    ctx.fillStyle = 'rgba(120,150,220,.12)';
-    ctx.fillRect(xx - R(wd) / 2 + R(wd) * 0.15, -10, R(wd) * 0.2, h * 0.9);
-    ctx.fillStyle = 'rgba(0,0,0,.6)';
-    for (let yy = R(0.12) + sd * 7; yy < h * 0.9; yy += R(0.16)) ctx.fillRect(xx - R(wd) * 0.6, yy, R(wd) * 1.2, R(0.006));
-  }
   // ── 느린 시간: 세상이 먹빛으로 바랜다 → 닌자·겨눈 적·선만 또렷하게 ──
   if (sv > 0.02) {
     ctx.save(); // M3 S1 렉: 화면 전체 채도 합성(saturation)은 휴대폰 GPU에서 비싸다 → 회청색 덮기 한 겹
     ctx.fillStyle = `rgba(52,58,76,${0.5 * sv})`;
     ctx.fillRect(-20, -20, w + 40, h + 40);
     ctx.fillStyle = `rgba(16,24,60,${0.22 * sv})`;
-    ctx.fillRect(-20, -20, w + 40, h + 40);
-    ctx.fillStyle = radg(ctx, X(s.nx), Y(s.ny) - R(0.1), R(0.2), R(0.95), [0, 'rgba(0,0,0,0)'], [1, `rgba(0,0,10,${0.45 * sv})`]);
     ctx.fillRect(-20, -20, w + 40, h + 40);
     // 시간이 늘어지는 물결
     for (let j = 0; j < 3; j++) {
@@ -3498,7 +3028,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     fx.burst(X(c.x), Y(c.y) - R(0.05), '#ffffff', 3, 2.2, 1.4);
   }
   fx.memo.t = t;
-  ctx.drawImage(bg.paper, 0, 0, w, h);
   ctx.restore();
   if (lo) { // 도트 세상을 큰 화면에 정수배로 붙이고, 미뤄 둔 글자를 쓴다
     ctx = hi;
