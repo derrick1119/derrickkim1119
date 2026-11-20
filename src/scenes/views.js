@@ -11,7 +11,7 @@
   /* ---------- the lake ---------- */
   /* o: { paint(g, t), leo: style, nana: bool, mirror: 0..1 (how plainly he sees himself), warm: bool } */
   T.lake = function (o) {
-    const L = Object.assign({ dark: true, rip: [], amp: 0, reach: { k: 0 }, mote: null, fade: { a: 1 }, mirror: 0.25 }, o);
+    const L = Object.assign({ dark: true, mood: 'still', chord: 4, rip: [], amp: 0, reach: { k: 0 }, mote: null, fade: { a: 1 }, mirror: 0.25 }, o);
     const SC = 0.7, TOP = 232, PH = 640;
     L.build = function () {
       const V = T.view;
@@ -281,7 +281,7 @@
   /* ---------- the dream: their first flat, as she remembers it ---------- */
   /* o: { chalk: {k}, near: {k} (he comes to sit by her), lift: {k} (she looks up) } */
   T.dream = function (o) {
-    const D = Object.assign({ dark: true, chalk: { k: 0 }, near: { k: 0 }, lift: { k: 0 }, lean: { k: 0 } }, o);
+    const D = Object.assign({ dark: true, mood: 'night', chord: 2, chalk: { k: 0 }, near: { k: 0 }, lift: { k: 0 }, lean: { k: 0 } }, o);
     D.draw = function (g, t) {
       const H = T.scenes.home, G = H.GEO, W = T.view.W;
       H.paintStill(g, D.chalk.k);

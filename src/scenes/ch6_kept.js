@@ -127,7 +127,7 @@
       await X.wait(1.2);
       const lake = T.lake({ paint: T.vig.grand, leo: F.leoAt(3), mirror: 0.6, warm: true, leoFace: { eye: 'happy', old: true } });
       await X.view(lake, { color: '#1b2a40' });
-      A.pad(0, 0.15);
+
       X.age('아나, 81');
       T.announce('호수. 여든이 넘은 아나가 손주들 사이에서 스튜를 젓으며 웃는다.');
       await X.wait(3);
@@ -140,7 +140,7 @@
       leo.x = PL.TREE_X - 30; leo.flip = false; ps.night = 1; bean.x = PL.TREE_X - 26; bean.flip = false;
       X.cam(px + 110, py + 6, 1); X.camSnap();
       await X.view(null, { color: '#1b2a40' });
-      A.pad(5, 0.15);
+      X.bed(5, 0.14, 'night');
       leo.pose2 = 1;
       const look = leo.pose;
       leo.pose = (o, a, t) => { if (a.onSwing) return look(o, a, t); o.headTilt = -0.3; if (S.paintG) o.armF = { a: 2.5 + Math.sin(t * 2.2) * 0.3, b: 0.2 }; };

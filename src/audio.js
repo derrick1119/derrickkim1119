@@ -1,6 +1,7 @@
 /* Take Your Time — audio: everything is synthesised, no files.
    One small lullaby in F, 3/4. The player's hands play it note by note inside the memories;
-   the whole tune is only heard once, at the end. */
+   the whole tune is only heard once, at the end. From chapter 1 on, its left hand keeps
+   going quietly underneath (A.bed), with a bar of the melody drifting through now and then. */
 (function () {
   'use strict';
   const T = window.TYT;
@@ -84,7 +85,16 @@
     const lg2 = ctx.createGain(); lg2.gain.value = 160;
     lfo2.connect(lg2); lg2.connect(wf.frequency);
     wind.connect(wf); wf.connect(wg); wg.connect(A.amb);
-    hush.start(); wind.start(); lfo.start(); lfo2.start();
+    /* the cloud sea: a slow wash that comes and goes like breathing */
+    const sea = ctx.createBufferSource(); sea.buffer = nb; sea.loop = true; sea.playbackRate.value = 1.25;
+    const sf = ctx.createBiquadFilter(); sf.type = 'lowpass'; sf.frequency.value = 760; sf.Q.value = 0.3;
+    const sw = ctx.createGain(); sw.gain.value = 0.55;
+    const sl = ctx.createOscillator(); sl.frequency.value = 0.105;
+    const slg = ctx.createGain(); slg.gain.value = 0.45;
+    sl.connect(slg); slg.connect(sw.gain);
+    const sg2 = (A.seaGain = ctx.createGain()); sg2.gain.value = 0;
+    sea.connect(sf); sf.connect(sw); sw.connect(sg2); sg2.connect(A.amb);
+    hush.start(); wind.start(); lfo.start(); lfo2.start(); sea.start(1.3); sl.start();
   }
 
   /* Must be called from inside a user gesture; safe to call again and again. */
@@ -95,10 +105,13 @@
         const AC = window.AudioContext || window.webkitAudioContext;
         if (!AC) { A.failed = true; return; }
         build(new AC());
+        if (wantAmb) A.ambience(wantAmb[0], wantAmb[1], wantAmb[2]);
+        if (wantBed) A.bed(wantBed[0], wantBed[1], wantBed[2]);
       }
       if (A.ctx.state === 'suspended') { const p = A.ctx.resume(); if (p && p.catch) p.catch(() => {}); }
     } catch (_) { A.failed = true; }
   };
+  let wantAmb = null;
   const ok = () => !!A.ctx && !A.failed;
   const now = () => A.ctx.currentTime;
 
@@ -134,9 +147,9 @@
     const voice = o.voice || 'felt';
     const out = ctx.createGain();
     const dry = ctx.createGain();
-    out.connect(dry); dry.connect(A.music);
+    out.connect(dry); dry.connect(o.dest || A.music);
     const sendG = ctx.createGain();
-    out.connect(sendG); sendG.connect(A.send);
+    out.connect(sendG); sendG.connect(o.sendDest || A.send);
     if (voice === 'felt') {
       /* a felted upright: round, quick to bloom, slow to leave */
       const dur = o.dur || 3.6;
@@ -197,7 +210,7 @@
       p.oscs.forEach((o) => o.stop(t + 7));
       padNow = null;
     }
-    if (index == null) return;
+    if (index == null) { if (bed) A.bed(null); return; }
     const c = CHORDS[index % CHORDS.length];
     const g = ctx.createGain(); g.gain.value = 0;
     g.gain.setTargetAtTime(level == null ? 0.2 : level, t, 1.6);
@@ -215,10 +228,103 @@
     padNow = { g, oscs };
   };
 
+  /* ---------- the bed ---------- */
+  /* The lullaby's own harmony, one bar after another, played as softly as a hand that is
+     thinking of something else. It never stops between scenes: a new call only changes where
+     in the tune it is, how busy it is, and how loud. bed(null) lets it die away. */
+  const MOODS = {
+    walk: { beat: 1.0, arp: 0.92, high: 'box', spark: 0.3, ghost: 0.3, pad: 1, gain: 1 },         /* out of doors, going somewhere */
+    home: { beat: 1.12, arp: 0.8, high: 'box', spark: 0.22, ghost: 0.26, pad: 1, gain: 0.9 },     /* a table, a lamp */
+    still: { beat: 1.34, arp: 0.5, high: 'glass', spark: 0.3, ghost: 0.16, pad: 1.1, gain: 0.85 }, /* the lake; a kitchen at night */
+    sea: { beat: 1.2, arp: 0.62, high: 'glass', spark: 0.5, ghost: 0.2, pad: 1.15, gain: 0.95 },   /* crossing */
+    night: { beat: 1.22, arp: 0.7, high: 'glass', spark: 0.42, ghost: 0.3, pad: 1, gain: 0.9 },    /* stars */
+  };
+  let bed = null, wantBed = null;
+  function bedBar(b, t) {
+    const m = b.mood, r = b.r, B = m.beat, k = (b.base + b.bar) % CHORDS.length, c = CHORDS[k];
+    const N = (o) => A.note(Object.assign({ voice: 'felt', dest: b.bus, sendDest: b.send }, o, { at: o.at - now() - 0.03 }));
+    const jit = () => (r() - 0.5) * 0.03;
+    /* three held tones under everything, swelling and thinning across the bar */
+    const ctx = A.ctx, len = 3 * B, g = ctx.createGain(), lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 1150; lp.Q.value = 0.3;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.05 * m.pad, t + len * 0.45);
+    g.gain.linearRampToValueAtTime(0.036 * m.pad, t + len);
+    g.gain.linearRampToValueAtTime(0.0001, t + len + 2.2);
+    lp.connect(g); g.connect(b.bus); g.connect(b.send);
+    [[c[0] + 12, 'sine', 0.8], [c[1], 'triangle', 0.6], [c[2], 'triangle', 0.6], [c[1] + 12, 'sine', 0.5], [c[2] + 12, 'sine', 0.4]].forEach((q, i) => {
+      const o = ctx.createOscillator(); o.type = q[1]; o.frequency.value = mtof(q[0]); o.detune.value = i % 2 ? 5 : -5;
+      const og = ctx.createGain(); og.gain.value = q[2];
+      o.connect(og); og.connect(lp); o.start(t); o.stop(t + len + 2.3);
+    });
+    /* two bars of the tune itself, some of the time, as if half remembered */
+    if (k % 2 === 0) b.ghost = r() < m.ghost;
+    /* the left hand: a bass note, then the chord opened out, never quite the same way twice.
+       It sits an octave up where a phone can still play it, and steps down when the tune is passing */
+    const up = b.ghost ? 0 : 12, v = b.ghost ? 0.8 : 1;
+    N({ m: c[0] + 12, at: t + jit(), vel: 0.34, dur: 5 });
+    const shape = Math.floor(r() * 4), on = () => r() < m.arp;
+    if (shape === 0) { if (on()) N({ m: c[1] + up, at: t + B + jit(), vel: 0.26 * v, dur: 3.4 }); if (on()) N({ m: c[2] + up, at: t + 2 * B + jit(), vel: 0.25 * v, dur: 3.4 }); }
+    else if (shape === 1) { if (on()) N({ m: c[2] + up, at: t + B + jit(), vel: 0.26 * v, dur: 3.4 }); if (on()) N({ m: c[1] + 12 + up, at: t + 2 * B + jit(), vel: 0.22 * v, dur: 3.4 }); }
+    else if (shape === 2) { if (on()) { N({ m: c[1] + up, at: t + B + jit(), vel: 0.22 * v, dur: 4 }); N({ m: c[2] + up, at: t + B + 0.05 + jit(), vel: 0.22 * v, dur: 4 }); } }
+    else { if (on()) N({ m: c[1] + up, at: t + 2 * B + jit(), vel: 0.25 * v, dur: 3.4 }); if (on()) N({ m: c[2] + up, at: t + 2.5 * B + jit(), vel: 0.21 * v, dur: 3 }); }
+    if (b.ghost) {
+      let bt = t;
+      MELODY[k].forEach((n) => { N({ m: n[0], at: bt + jit(), vel: n[1] >= 2 ? 0.32 : 0.29, dur: n[1] >= 2 ? 5 : 3.6 }); bt += n[1] * B; });
+    } else if (r() < m.spark) {
+      /* otherwise a single high note, somewhere in the bar */
+      const pick = [c[1] + 12, c[2] + 12, c[1] + 24, c[2] + 12][Math.floor(r() * 4)];
+      N({ m: m.high === 'glass' ? pick - 12 : pick, at: t + (1 + Math.floor(r() * 3) * 0.5) * B + jit(), vel: m.high === 'glass' ? 0.3 : 0.2, voice: m.high });
+    }
+    b.bar++;
+    b.next = t + len;
+  }
+  function bedPump(until) {
+    if (bed && bed.next < now() - 0.05) bed.next = now() + 0.12;   /* the page was asleep: do not play the missed bars at once */
+    while (bed && bed.next < until) bedBar(bed, bed.next);
+  }
+  /* step aside for something that has its own harmony, then come back */
+  function duck(sec, depth, at) {
+    if (!bed) return;
+    const t = now() + (at || 0), b = bed, to = b.gain * (depth || 0);
+    [[b.bus, 1], [b.send, 0.6]].forEach((q) => {
+      q[0].gain.cancelScheduledValues(t);
+      q[0].gain.setTargetAtTime(to * q[1], t, 0.35);
+      q[0].gain.setTargetAtTime(b.gain * q[1], t + sec, 1.4);
+    });
+  }
+  A.bed = function (index, level, mood) {
+    wantBed = index == null ? null : [index, level, mood];
+    if (!ok()) return;
+    const ctx = A.ctx, t = now();
+    if (index == null) {
+      if (!bed) return;
+      const b = bed; bed = null;
+      if (b.timer) clearInterval(b.timer);
+      [b.bus, b.send].forEach((n) => { n.gain.cancelScheduledValues(t); n.gain.setTargetAtTime(0, t, 0.9); });
+      return;
+    }
+    if (padNow) { const p = padNow; padNow = null; p.g.gain.cancelScheduledValues(t); p.g.gain.setTargetAtTime(0, t, 1.1); p.oscs.forEach((o) => o.stop(t + 7)); }
+    const md = MOODS[mood] || MOODS.walk, gain = T.clamp((level == null ? 0.14 : level) / 0.14, 0.7, 1.05) * md.gain * 1.1;
+    if (bed) {   /* already playing: keep the pulse, move on from the next bar */
+      bed.base = (index - bed.bar % CHORDS.length + CHORDS.length * 64) % CHORDS.length; bed.mood = md; bed.gain = gain;
+      [[bed.bus, 1], [bed.send, 0.6]].forEach((q) => { q[0].gain.cancelScheduledValues(t); q[0].gain.setTargetAtTime(gain * q[1], t, 1.2); });
+      return;
+    }
+    const bus = ctx.createGain(), send = ctx.createGain();
+    bus.gain.value = 0; bus.gain.setTargetAtTime(gain, t, 0.8); bus.connect(A.music);
+    send.gain.value = 0; send.gain.setTargetAtTime(0.6 * gain, t, 0.8); send.connect(A.send);
+    bed = { base: index, bar: 0, next: t + 0.5, mood: md, r: T.rng(11 + index), bus, send, gain, ghost: false, timer: null };
+    if (typeof ctx.startRendering !== 'function') { bed.timer = setInterval(() => { if (bed && A.ctx.state === 'running') bedPump(now() + 1.5); }, 240); bedPump(t + 1.5); }
+  };
+  A._bedPump = bedPump; /* test hooks: schedule ahead when rendering offline; see where it has got to */
+  A._bedInfo = () => bed && { bar: bed.bar, gain: bed.gain };
+
   /* ---------- the tune ---------- */
   /* the four-note call: "take — your — time" */
   A.motif = function (o = {}) {
     const beat = o.beat || 0.78, voice = o.voice || 'felt', vel = o.vel || 0.5, up = o.up || 0;
+    if (ok()) duck(4 * beat + 1.5, 0.3, o.at || 0);
     [[69, 0], [67, 1], [65, 2], [72, 3]].forEach((n) => A.note({ m: n[0] + up, at: (o.at || 0) + n[1] * beat, vel: n[1] === 3 ? vel * 1.1 : vel, voice, dur: n[1] === 3 ? 5 : 3 }));
     return 4 * beat + 2;
   };
@@ -227,7 +333,7 @@
     const n = FLAT[((i % FLAT.length) + FLAT.length) % FLAT.length];
     const at = o.at || 0;
     A.note({ m: n.m + (o.up || 0), vel: o.vel || 0.5, voice: o.voice || 'box', at });
-    if (o.bass !== false && (i === 0 || FLAT[(i - 1 + FLAT.length) % FLAT.length].bar !== n.bar)) {
+    if (o.bass !== false && !bed && (i === 0 || FLAT[(i - 1 + FLAT.length) % FLAT.length].bar !== n.bar)) {
       const c = CHORDS[n.bar];
       A.note({ m: c[0] + 12, vel: 0.3, voice: 'felt', dur: 4, at });
       A.note({ m: c[1], at: at + 0.12, vel: 0.16, voice: 'felt', dur: 3 });
@@ -257,12 +363,14 @@
     if (o.left !== false) { /* a last soft F, rolled */
       [41, 53, 60, 65, 69].forEach((m, i) => A.note({ m, at: t + i * 0.11, vel: vel * 0.32, voice: 'felt', dur: 6 }));
     }
+    if (ok()) duck(t - at0 + 2.5, 0, at0);   /* the whole tune is heard alone */
     return t - at0 + 3;
   };
   /* a stray phrase drifting through the hospital room */
   A.fragment = function (seed) {
     const r = T.rng(seed || 1);
     const bar = Math.floor(r() * 4) * 2;
+    if (ok()) duck(7, 0.3);
     let t = 0;
     const beat = 1.05 + r() * 0.2;
     MELODY[bar].concat(MELODY[bar + 1]).forEach((n) => {
@@ -281,14 +389,17 @@
   };
   /* a small rising figure that says "yes, that's a promise" */
   A.promise = function () {
+    if (ok()) duck(3, 0.35);
     [53, 60, 65, 69, 72, 77].forEach((m, i) => A.note({ m, at: i * 0.13, vel: 0.3 + i * 0.03, voice: i > 2 ? 'box' : 'felt', dur: 4 }));
   };
 
   /* ---------- ambience and small sounds ---------- */
-  A.ambience = function (level, wind) {
+  A.ambience = function (level, wind, sea) {
+    wantAmb = [level, wind, sea];
     if (!ok()) return;
     A.amb.gain.setTargetAtTime(level, now(), 1.2);
     if (wind != null) A.windGain.gain.setTargetAtTime(wind, now(), 1.5);
+    A.seaGain.gain.setTargetAtTime(sea || 0, now(), 2);
   };
   function burst(o) {
     if (!ok()) return;

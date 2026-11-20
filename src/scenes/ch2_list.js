@@ -51,7 +51,7 @@
 
       /* the first anniversary: what she made for him comes down on to his table */
       ps.food.show = true; ps.food.drop = 0; ps.food.glow = 1; ps.food.burnt = true; ps.food.color = '#a8452a';
-      A.pad(2, 0.14);
+      X.bed(2, 0.13, 'home');
       T.announce('첫 기일. 아나가 차린 음식이 레오의 식탁에 내려앉는다.');
       await X.tween(ps.food, 'drop', 1, 2.8, T.ease.out3);
       A.sfx('join');
@@ -100,7 +100,7 @@
       leo.x = PL.HX - 200; leo.flip = false; ps.food.show = false;
       S.actors = S.actors.filter((a) => a !== nana);
       await X.view(null, { color: '#1b2a40' });
-      A.pad(4, 0.14);
+      X.bed(4, 0.13, 'walk');
       for (let i = 0; i < 4; i++) {
         const x = PL.SX[i];
         await X.tap(() => [x, W.y3(x) - 8, 40]);

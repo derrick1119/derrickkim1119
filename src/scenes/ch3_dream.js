@@ -40,7 +40,7 @@
         X.clearSpot();
       }
       await dreamt;
-      A.sfx('whoosh'); A.pad(5, 0.16);
+      A.sfx('whoosh');
       T.announce('레오가 아껴 둔 꿈을 호수에 띄운다.');
       await X.wait(0.8);
 
@@ -69,7 +69,7 @@
       const lake2 = T.lake({ paint: T.vig.morning, leo: F.leoAt(0), warm: true, leoFace: { mouth: 'smile', eye: 'happy' } });
       await X.view(lake2, { color: '#fff6e6', out: 1.8, in: 1.6 });
       T.announce('다음 날 아침. 아나가 릴리의 머리를 묶어 주며 오랜만에 웃는다.');
-      A.pad(0, 0.14);
+      X.bed(0, 0.13, 'walk');
       X.notes(4, { vel: 0.3 });
       await X.wait(6.5);
 

@@ -1,6 +1,7 @@
 /* Memory: Bean's lead → an evening walk up the hill behind the town.
-   The land gives under your finger: pull each far hill down until its ridge meets the path.
-   At the top the dark comes, and they paint the sky with the aurora they mean to see one day. */
+   Bean sits down in the middle of the path, twice, the way he does; a hand on his head and he
+   is off again. At the top the dark comes, and they paint the sky with the aurora they mean
+   to see one day. */
 (function () {
   'use strict';
   const T = window.TYT, P = T.P, F = T.F;
@@ -31,7 +32,7 @@
   const y2 = (x) => interp(K2, x) + S.d2 * bump(x, J1, 270);
   const y3 = (x) => interp(K3, x) + S.d3 * bump(x, J2, 250);
   const ym = (x) => interp(KM, x);
-  const hillOf = (x) => (x < J1 || !S.join1 ? 1 : x < J2 || !S.join2 ? 2 : 3);
+  const hillOf = (x) => (x < J1 ? 1 : x < J2 ? 2 : 3);
   const groundAt = (x) => { const h = hillOf(x); return h === 1 ? y1(x) : h === 2 ? y2(x) : y3(x); };
   const sizeAt = (x) => T.lerp(T.lerp(152, 144, T.smooth(T.unlerp(J1 - 50, J1 + 50, x))), 136, T.smooth(T.unlerp(J2 - 50, J2 + 50, x)));
 
@@ -59,9 +60,9 @@
     S.a2 = y1(J1) - interp(K2, J1);                  /* where each hill has to sit for the ridges to meet */
     S.d2 = S.a2;
     S.a3 = y2(J2) - interp(K3, J2);
-    S.d2 = S.a2 - 98; S.d3 = S.a3 - 116;
+    S.d3 = S.a3;                                      /* one path, bottom to top */
     S.join1 = false; S.join2 = false; S.x = -500; S.ph = 0; S.moving = false; S.phase = 'walk';
-    S.sit.k = 0; S.night.k = 0; S.point.k = 0; S.rest.k = 0; S.snap.k = 0; S.wob.k = 0;
+    S.sit.k = 0; S.night.k = 0; S.point.k = 0; S.rest.k = 0; S.snap.k = 0; S.wob.k = 0; S.hop = { k: 0 };
     S.drag = null; S.paint = []; S.painted = 0; S.lastNote = 0; S.auto = 0; S.autoLast = null; S.keyStep = 0;
     if (!S.stars.length) {
       const r = T.rng(23);
@@ -72,24 +73,18 @@
   };
 
   function target() { return !S.join1 ? 2 : !S.join2 ? 3 : 0; }
-  function moveHill(dy) {
-    const h = target();
-    if (!h || M.done) return;
+  /* where he has sat down, and whether he is sitting there now */
+  const beanAt = () => { const x = S.x + 58; return [x, groundAt(x) - 26]; };
+  const waitingAt = () => { const h = target(); return h && S.phase === 'walk' && !S.moving && S.x >= (h === 2 ? J1 : J2) - 74.5 ? h - 1 : 0; };
+  function petBean() {
+    const n = waitingAt();
+    if (!n || M.done) return;
     M.touch();
-    if (h === 2) {
-      S.d2 = T.clamp(S.d2 + dy, S.a2 - 140, S.a2 + 46);
-      if (Math.abs(S.d2 - S.a2) < 7) { S.d2 = S.a2; joined(1); }
-    } else {
-      S.d3 = T.clamp(S.d3 + dy, S.a3 - 150, S.a3 + 46);
-      if (Math.abs(S.d3 - S.a3) < 7) { S.d3 = S.a3; joined(2); }
-    }
-  }
-  function joined(n) {
     if (n === 1) S.join1 = true; else S.join2 = true;
-    S.drag = null;
-    const jx = n === 1 ? J1 : J2;
-    S.snap.x = jx; S.snap.y = n === 1 ? y1(jx) : y2(jx); S.snap.k = 1;
-    S.clock.tween(S.snap, 'k', 0, 1.4, T.ease.out);
+    const b = beanAt();
+    S.snap.x = b[0]; S.snap.y = b[1]; S.snap.k = 1;
+    S.clock.tween(S.snap, 'k', 0, 1.2, T.ease.out);
+    S.hop.k = 1; S.clock.tween(S.hop, 'k', 0, 0.5, T.ease.lin);
     T.audio.sfx('join');
     for (let i = 0; i < 3; i++) M.note({ voice: 'box', vel: 0.4, at: 0.25 + i * 0.36 });
   }
@@ -137,11 +132,9 @@
   S.pointer = function (type, x, y) {
     if (S.phase === 'done' && M.pointerDone(type)) return;
     if (S.phase === 'walk') {
-      const h = target();
-      T.cursor(S.drag ? 'grabbing' : h ? 'grab' : 'default');
-      if (type === 'down' && h) { S.drag = { y }; M.touch(); }
-      else if (type === 'move' && S.drag) { moveHill(y - S.drag.y); if (S.drag) S.drag.y = y; }
-      else if (type === 'up') S.drag = null;
+      const b = beanAt(), over = waitingAt() && Math.hypot(x - b[0], y - b[1]) < 110;
+      T.cursor(over ? 'pointer' : 'default');
+      if (type === 'down' && over) petBean();
     } else if (S.phase === 'paint') {
       T.cursor('crosshair');
       if (type === 'down') { S.drag = { y }; if (S.paint.length) S.paint[S.paint.length - 1].gap = true; addPaint(x, y); }
@@ -152,7 +145,7 @@
   S.key = function (key) {
     if (M.ready && (key === ' ' || key === 'Enter')) { M.tap(); return; }
     if (S.phase === 'walk') {
-      if (key === 'ArrowDown' || key === ' ' || key === 'Enter') moveHill(12); else if (key === 'ArrowUp') moveHill(-12); else return false;
+      if (key === ' ' || key === 'Enter') petBean(); else return false;
     } else if (S.phase === 'paint') {
       if (key === ' ' || key === 'Enter' || key.startsWith('Arrow')) {
         /* each press carries the brush a little further, back and forth across the sky */
@@ -258,7 +251,7 @@
       const waiting = !moving && !arrived;
       if (w.id === 'bean') {
         const slope = Math.atan2(groundAt(w.x + 14) - groundAt(w.x - 14), 28);
-        const b = F.dog(g, { x: w.x, y: gy + 2, rot: slope * 0.75, s: s * 1.5, walk: moving ? S.ph : null, sit: arrived ? sit : waiting ? 1 : 0, flip: arrived && sit > 0.4, wag: Math.sin(t * (waiting || arrived ? 12 : 7)), headTilt: arrived ? -0.25 * S.night.k : waiting ? -0.3 : 0 });
+        const b = F.dog(g, { x: w.x, y: gy + 2 - Math.sin((S.hop ? S.hop.k : 0) * Math.PI) * 16, rot: slope * 0.75, s: s * 1.5, walk: moving ? S.ph : null, sit: arrived ? sit : waiting ? 1 : 0, flip: arrived && sit > 0.4, wag: Math.sin(t * (waiting || arrived ? 12 : 7)), headTilt: arrived ? -0.25 * S.night.k : waiting ? -0.3 : 0 });
         collar = b.collar;
       } else {
         const st = w.id === 'leo' ? Object.assign({}, F.styles.leo, { scarf: '#c9573f' }) : Object.assign({}, F.styles.ana, { top: '#c9573f', scarf: '#f1e6cf' });
@@ -344,15 +337,12 @@
 
     /* the three hills, far to near, with whoever is standing on each */
     const o3 = px * 0.5, o2 = px * 0.8, o1 = px * 1.1;
-    const tgt = S.phase === 'walk' ? target() : 0;
-    const pulse = 0.5 + 0.5 * Math.sin(t * 2.6);
 
     g.save(); g.translate(o3, 0);
     g.fillStyle = tint('#7a6a9c'); hillPath(g, y3, x0 - o3, x1 - o3, 0); g.fill();
     tufts(g, y3, 5, tint('#5f5383'), x0 - o3, x1 - o3, 0, 60, 9);
     for (const tr of S.trees) if (tr.hill === 3) tree(g, tr.x, y3(tr.x), tr.s, tint(tr.c, 0.5), tint('#4a3d63'));
     bigTree(g, TREE, y3(TREE), n);
-    if (tgt === 3) ridgeGlow(g, y3, J2, pulse);
     walkers(g, 3);
     g.restore();
 
@@ -360,7 +350,6 @@
     g.fillStyle = tint('#9d6d88'); hillPath(g, y2, x0 - o2, x1 - o2, 0); g.fill();
     tufts(g, y2, 6, tint('#7e5471'), x0 - o2, x1 - o2, 0, 70, 11);
     for (const tr of S.trees) if (tr.hill === 2 && (tr.x < J1 - 60 || tr.x > J2 + 60)) tree(g, tr.x, y2(tr.x), tr.s, tint(tr.c, 0.5), tint('#5a3d56'));
-    if (tgt === 2) ridgeGlow(g, y2, J1, pulse);
     walkers(g, 2);
     g.restore();
 
@@ -370,20 +359,9 @@
     walkers(g, 1);
     g.restore();
 
-    /* the place where the two ridges should meet */
-    if (tgt) {
-      const jx = tgt === 2 ? J1 : J2, oa = tgt === 2 ? o1 : o2, ob = tgt === 2 ? o2 : o3;
-      const ya = tgt === 2 ? y1(jx) : y2(jx), yb = tgt === 2 ? y2(jx) : y3(jx);
-      g.save(); g.setLineDash([3, 8]); g.lineDashOffset = -t * 12;
-      P.strokePts(g, [[jx + ob, yb], [jx + oa, ya]], 2.5, T.rgba('#fff3d0', 0.5 + 0.3 * pulse));
-      g.restore();
-      P.glow(g, jx + oa, ya, 26, '#ffe9b0', 0.6 + 0.3 * pulse);
-      P.glow(g, jx + ob, yb, 26, '#ffe9b0', 0.6 + 0.3 * pulse);
-      g.fillStyle = '#fff3d0';
-      g.beginPath(); g.arc(jx + oa, ya, 5, 0, TAU); g.fill();
-      g.beginPath(); g.arc(jx + ob, yb, 5, 0, TAU); g.fill();
-    }
-    if (S.snap.k > 0.01) P.glow(g, S.snap.x + px * 0.8, S.snap.y, 60 + (1 - S.snap.k) * 160, '#fff0c0', S.snap.k * 0.9);
+    if (S.snap.k > 0.01) P.glow(g, S.snap.x + px * 0.8, S.snap.y, 40 + (1 - S.snap.k) * 110, '#fff0c0', S.snap.k * 0.8);
+    /* he wants a hand on his head */
+    if (waitingAt() && !M.done) { const b = beanAt(); P.beacon(g, b[0] + px * 0.8, b[1], 46, t, 1, '#fff0c8'); }
 
     /* tall grass at our feet */
     const fg = tint('#3f2d45', 0.5);
@@ -411,10 +389,8 @@
     /* hints */
     const h = M.hint(2);
     if (h > 0) {
-      if (tgt) {
-        const jx = tgt === 2 ? J1 : J2, ob = tgt === 2 ? o2 : o3;
-        const yb = tgt === 2 ? y2(jx) : y3(jx), ya = tgt === 2 ? y1(jx) : y2(jx);
-        P.fingerHint(g, [[jx + ob + 70, yb + 46], [jx + ob + 70, ya + 46]], (t * 0.5) % 1, h);
+      if (S.phase === 'walk') {
+        /* the beacon on Bean says it */
       } else if (S.phase === 'paint') {
         const pts = [];
         for (let i = 0; i <= 20; i++) pts.push([-480 + i * 34, 250 + Math.sin(i * 0.5) * 60]);
@@ -424,20 +400,5 @@
     M.drawOver(g);
   };
 
-  function ridgeGlow(g, fn, cx, pulse) {
-    g.save();
-    g.globalCompositeOperation = 'screen';
-    g.lineCap = 'round';
-    for (let pass = 0; pass < 2; pass++) {
-      g.strokeStyle = T.rgba('#ffe9b0', (pass ? 0.5 : 0.16) * (0.5 + 0.5 * pulse));
-      g.lineWidth = pass ? 3 : 12;
-      g.beginPath();
-      for (let x = cx - 260; x <= cx + 260; x += 16) {
-        const y = fn(x) + 1;
-        if (x === cx - 260) g.moveTo(x, y); else g.lineTo(x, y);
-      }
-      g.stroke();
-    }
-    g.restore();
-  }
+
 })();

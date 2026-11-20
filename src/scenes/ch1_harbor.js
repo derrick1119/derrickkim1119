@@ -1,7 +1,8 @@
 /* Chapter 1 「항구」 — arrival. One long walk, left to right and always upward:
    across the sea of cloud, onto the quay and into Nana's arms, up through a town where
    everyone is building for someone, into the house she kept ready, and on to the empty
-   plot at the top of the hill. The camera follows; the land gives under the finger. */
+   plot at the top of the hill. The camera follows; what the hand does is light the lamps:
+   the ones standing out in the cloud sea, the one at each turning of the road, and his own. */
 (function () {
   'use strict';
   const T = window.TYT, P = T.P, F = T.F, K = T.town;
@@ -10,6 +11,7 @@
   /* ---------- the lie of the land (world units; y grows downward) ---------- */
   const SEA = 652, PIER_Y = 640, QUAY = 520;
   const J1 = 1760, J2 = 2560;
+  const SEA_LAMP = -300;                           /* the lamp that stands off the end of the pier */
   const HOUSE = 3185, DOOR = 3085, STOP = 3800, PLOT = 4060;
   const K1 = [[520, 640], [900, 630], [1400, 606], [1760, 590], [1960, 650], [2200, 900], [2600, 1500], [7000, 1500]];
   const K2 = [[-4000, 900], [-60, 880], [60, 760], [360, 560], [760, 478], [1300, 446], [1760, 428], [2200, 410], [2560, 396], [2860, 470], [3100, 760], [3400, 1300], [7000, 1300]];
@@ -26,9 +28,9 @@
 
   const S = (T.scenes.harbor = {
     spr: {}, ph: 'sail', cam: { x: 0, y: 450, z: 1 }, camK: 2.2,
-    boat: { x: -1500 }, swell: [], tolls: 0, bell: { k: 0 },
+    boat: { x: -1500 }, lamps: [], tolls: 0, bell: { k: 0 },
     wx: 0, nx: 0, wph: 0, nph: 0, moving: false, nmoving: false,
-    d2: 0, d3: 0, a2: 0, a3: 0, join1: false, join2: false, snap: { k: 0, x: 0, y: 0 },
+    d2: 0, d3: 0, a2: 0, a3: 0, join1: false, join2: false, snap: { k: 0, x: 0, y: 0 }, gate: [null, { k: 0 }, { k: 0 }], r2: 0, r3: 0,
     leo: {}, nana: {}, hug: { k: 0 }, cup: { k: 0 }, arms: { k: 0 }, lampDown: false,
     drag: null, idle: 0, noteI: 0,
     home: { open: 0 }, st: null, eat: { k: 0 }, ghost: { a: 0 }, ladle: { k: 0 }, marks: { n: 0, fresh: 0 }, stool: { k: 0 }, sweater: { a: 1, lift: 0 }, clap: { k: 0 },
@@ -44,7 +46,7 @@
   const y3 = (x) => interp(K3, x) + S.d3 * bump(x, J2, 250);
   const hillOf = (x) => (x < J1 || !S.join1 ? 1 : x < J2 || !S.join2 ? 2 : 3);
   const groundAt = (x) => { if (x < QUAY) return PIER_Y; const h = hillOf(x); return h === 1 ? y1(x) : h === 2 ? y2(x) : y3(x); };
-  const surf = (x) => { let y = SEA; for (const s of S.swell) y -= s.h * bump(x, s.x, 190); return y - Math.sin(x * 0.013 + T.time * 0.8) * 4; };
+  const surf = (x) => SEA - Math.sin(x * 0.013 + T.time * 0.8) * 4;
   const HG = () => y3(HOUSE) + 2;                  /* Nana's doorstep */
   const UF = () => HG() - 186;                      /* her upstairs floor */
   const toScreen = (wx, wy) => [(wx - S.cam.x) * S.cam.z, 450 + (wy - S.cam.y) * S.cam.z];
@@ -79,6 +81,7 @@
         { x: 1458, k: 'spr', s: 'build1' }, { x: 1458, k: 'builder' }, { x: 1648, k: 'spr', s: 'small' },
         { x: 572, k: 'lamp' }, { x: 1076, k: 'lamp' }, { x: 1348, k: 'lamp' }, { x: 1562, k: 'lamp' }, { x: 1736, k: 'lamp' },
         { x: 1384, k: 'tree', c: '#3f8076', s: 1 }, { x: 1576, k: 'tree', c: '#e0a94a', s: 0.9 },
+        { x: J1 - 26, k: 'gate', n: 1 },
       ],
       2: [
         { x: 520, k: 'spr', s: 't1' }, { x: 1010, k: 'spr', s: 't2' }, { x: 1330, k: 'spr', s: 't3' },
@@ -87,6 +90,7 @@
         { x: 1962, k: 'lamp' }, { x: 2206, k: 'lamp' }, { x: 2456, k: 'lamp' },
         { x: 1920, k: 'tree', c: '#e0a94a', s: 1 }, { x: 2228, k: 'tree', c: '#3f8076', s: 0.9 }, { x: 2700, k: 'tree', c: '#4f8f7a', s: 1.1 },
         { x: 620, k: 'lamp' }, { x: 1110, k: 'lamp' }, { x: 1420, k: 'lamp' },
+        { x: J2 - 26, k: 'gate', n: 2 },
       ],
       3: [
         { x: 1080, k: 'spr', s: 'far1' }, { x: 1420, k: 'spr', s: 'far3' }, { x: 1830, k: 'spr', s: 'far2' }, { x: 2280, k: 'spr', s: 'far1' },
@@ -191,9 +195,9 @@
     const s = S;
     s.d2 = 0; s.d3 = 0;
     s.a2 = y1(J1) - interp(K2, J1);
-    s.d2 = s.a2; s.a3 = y2(J2) - interp(K3, J2); s.d2 = 0;
-    s.join1 = false; s.join2 = false; s.snap.k = 0;
-    s.boat.x = -1500; s.swell = [{ x: -1020, h: 176, ok: false }, { x: -480, h: 176, ok: false }]; s.tolls = 0; s.bell.k = 0;
+    s.d2 = s.a2; s.a3 = y2(J2) - interp(K3, J2); s.d3 = s.a3;   /* the three hills are one road */
+    s.join1 = false; s.join2 = false; s.snap.k = 0; s.gate[1].k = 0; s.gate[2].k = 0; s.r2 = 0; s.r3 = 0;
+    s.boat.x = -1500; s.lamps = [{ x: -1020, k: 0, ok: false }, { x: SEA_LAMP, k: 0, ok: false }]; s.tolls = 0; s.bell.k = 0;
     s.leo = { x: 0, y: PIER_Y, stand: 0, hop: 0, style: F.styles.leoBed, flip: false, lamp: false };
     s.nana = { x: 300, y: PIER_Y, flip: true, wave: 0 };
     s.wx = 60; s.nx = 130; s.wph = 0; s.nph = 0; s.moving = false; s.nmoving = false;
@@ -214,21 +218,23 @@
     const cp = args.cp || 'sea';
     T.state.chapter = 1; T.state.cp = cp;
     P.grainAmt = 0.15; P.vignette = 0.2; P.vignetteColor = '#4a3558';
-    A.ambience(0.3, 0.3);
-    A.pad(0, 0.12);
-    const joinAll = () => { S.join1 = true; S.join2 = true; S.d2 = S.a2; S.d3 = S.a3; };
+    const atSea = cp === 'sea' || cp === 'quay';
+    A.ambience(0.3, 0.3, atSea ? 0.55 : 0.2);
+    A.bed(0, 0.12, atSea ? 'sea' : 'walk');
+    const joinAll = () => { S.join1 = true; S.join2 = true; S.gate[1].k = 1; S.gate[2].k = 1; S.r2 = 9999; S.r3 = 9999; };
+    const seaLit = () => S.lamps.forEach((q) => { q.ok = true; q.k = 1; });
     if (cp === 'sea') {
       S.ph = 'sail';
       k.wait(1.2).then(() => k.tween(S.title, 'a', 1, 1.6)).then(() => k.wait(3.2)).then(() => k.tween(S.title, 'a', 0, 1.8));
       T.announce('1장, 항구. 작은 배가 구름바다를 건넌다.');
     } else if (cp === 'quay') {
-      S.swell.forEach((s) => { s.ok = true; s.h = 34; });
+      seaLit();
       S.boat.x = -560; S.tolls = 2; S.ph = 'sail';
     } else {
-      S.swell.forEach((s) => { s.ok = true; s.h = 34; });
+      seaLit();
       S.boat.x = -74; S.leo.lamp = true; S.nana.flip = false; S.lampDown = false;
       if (cp === 'street') { S.wx = 300; S.nx = 354; S.ph = 'walk'; }
-      else if (cp === 'hills') { S.wx = J1 - 320; S.nx = S.wx + 54; S.ph = 'walk'; }
+      else if (cp === 'hills') { S.join1 = true; S.gate[1].k = 1; S.r2 = 9999; S.wx = J1 + 40; S.nx = S.wx + 54; S.ph = 'walk'; }
       else if (cp === 'house') { joinAll(); S.wx = 2880; S.nx = 2934; S.ph = 'walk'; }
       else if (cp === 'top') { joinAll(); S.leo.style = F.styles.leoHome; S.sweater.a = 0; S.wx = DOOR + 250; S.nx = S.wx + 54; S.ph = 'climb'; }
       camTarget(1);
@@ -263,21 +269,20 @@
   function notes(n, o) { for (let i = 0; i < n; i++) note(Object.assign({ at: 0.2 + i * 0.36 }, o || {})); }
 
   /* ---------- sea ---------- */
-  function pressSwell(dy) {
-    const s = S.swell.find((q) => !q.ok);
-    if (!s || S.ph !== 'sail') return;
-    S.idle = 0;
-    s.h = T.clamp(s.h - dy, 30, 196);
-    if (s.h < 64) {
-      s.ok = true; S.drag = null;
-      S.clock.tween(s, 'h', 34, 0.7, T.ease.out);
-      T.audio.sfx('whoosh'); notes(3);
-    }
+  /* the lamps that stand out in the cloud sea: the boat waits in the mist until the next one is lit */
+  const seaLamp = () => S.lamps.find((q) => !q.ok);
+  function lightSea() {
+    const s = seaLamp();
+    if (!s || S.ph !== 'sail' || S.boat.x < s.x - 340) return;
+    s.ok = true; S.idle = 0;
+    S.clock.tween(s, 'k', 1, 0.8, T.ease.out);
+    T.audio.sfx('join'); notes(3);
+    T.announce('구름바다의 등불에 불이 들어오고, 배가 다시 나아간다.');
   }
   function sail(dt) {
     const b = S.boat, k = S.clock, A = T.audio;
-    const next = S.swell.find((q) => !q.ok);
-    const stop = next ? next.x - 262 : -74;
+    const next = seaLamp();
+    const stop = next ? next.x - 176 : -74;
     if (b.x < stop) b.x = Math.min(stop, b.x + 60 * dt);
     const th = [-900, -640, -330, -130];
     if (S.tolls < 4 && b.x > th[S.tolls]) { A.toll(S.tolls, 0.3 + S.tolls * 0.03); S.tolls++; S.bell.k = 1; k.tween(S.bell, 'k', 0, 3.2, T.ease.out); }
@@ -310,7 +315,7 @@
     S.running = true;
     while (S.wx < n.x - 37) { await k.wait(0.016); }
     S.running = false;
-    A.pad(3, 0.16);
+    A.bed(3, 0.15, 'walk');
     A.motif({ voice: 'felt', vel: 0.4, beat: 0.86 });
     k.tween(S.arms, 'k', 0, 0.5);
     await k.tween(S.hug, 'k', 1, 0.8, T.ease.out);
@@ -322,7 +327,7 @@
     await k.wait(2.2);
     await k.tween(S.cup, 'k', 0, 0.9, T.ease.io);
     S.lampDown = false; n.flip = false;
-    A.pad(0, 0.13);
+    A.bed(0, 0.13, 'walk'); A.ambience(0.3, 0.3, 0.25);
     await k.wait(0.5);
     S.camK = 1.4;
     S.ph = 'walk'; T.state.cp = 'street';
@@ -331,21 +336,21 @@
 
   /* ---------- walking, and the hills ---------- */
   function target() { return S.ph !== 'walk' ? 0 : !S.join1 ? 2 : !S.join2 ? 3 : 0; }
-  function moveHill(dy) {
-    const h = target();
-    if (!h) return;
+  const waitingAt = () => { const h = target(); return h && !S.moving && !S.nmoving && S.wx >= (h === 2 ? J1 : J2) - 104.5 ? h - 1 : 0; };
+  /* Nana holds her lamp to the one at the turning, and the road ahead comes alight */
+  function lightGate() {
+    const n = waitingAt();
+    if (!n) return;
+    const k = S.clock, q = gateAt(n);
     S.idle = 0;
-    if (h === 2) { S.d2 = T.clamp(S.d2 + dy, -34, S.a2 + 44); if (Math.abs(S.d2 - S.a2) < 7) { S.d2 = S.a2; joined(1); } }
-    else { S.d3 = T.clamp(S.d3 + dy, -34, S.a3 + 44); if (Math.abs(S.d3 - S.a3) < 7) { S.d3 = S.a3; joined(2); } }
-  }
-  function joined(n) {
-    const jx = n === 1 ? J1 : J2;
-    S.snap.x = jx; S.snap.y = n === 1 ? y1(jx) : y2(jx); S.snap.k = 1;
     if (n === 1) { S.join1 = true; T.state.cp = 'hills'; } else { S.join2 = true; T.state.cp = 'house'; }
-    S.drag = null;
-    S.clock.tween(S.snap, 'k', 0, 1.4, T.ease.out);
+    S.snap.x = q[0]; S.snap.y = q[1]; S.snap.k = 1;
+    k.tween(S.snap, 'k', 0, 1.4, T.ease.out);
+    k.tween(S.gate[n], 'k', 1, 0.6, T.ease.out);
+    k.tween(S, n === 1 ? 'r2' : 'r3', 2400, 6, T.ease.out);
     T.audio.sfx('join'); notes(3);
-    T.audio.pad(n === 1 ? 2 : 4, 0.13);
+    T.audio.bed(n === 1 ? 2 : 4, 0.13, 'walk');
+    T.announce('길목의 등불에 불이 붙고, 언덕길을 따라 등불이 하나씩 켜진다.');
   }
   function walk(dt) {
     const A = T.audio;
@@ -393,7 +398,7 @@
     S.ph = 'home'; S.st = 'enter'; S.camK = 1.3;
     L.x = S.wx; L.y = HG(); N.x = S.nx; N.y = HG(); N.flip = false;
     A.sfx('door');
-    A.pad(1, 0.14);
+    A.bed(1, 0.13, 'home'); A.ambience(0.24, 0.12);
     k.tween(S.home, 'open', 1, 1.8, T.ease.io);
     S.inWalk = { l: HOUSE - 34, n: HOUSE + 118 };
     await k.wait(2.6);
@@ -471,7 +476,7 @@
     await k.wait(1.9);
     S.wx = L.x; S.nx = N.x; S.inWalk = null;
     S.camK = 1.4; S.ph = 'climb'; S.st = null; T.state.cp = 'top';
-    A.pad(5, 0.13);
+    A.bed(5, 0.13, 'walk'); A.ambience(0.3, 0.3, 0.1);
     k.wait(2.5).then(() => { S.camK = 2.2; });
   }
   function homeMove(dt) {
@@ -511,7 +516,7 @@
     A.sfx('knock'); await k.wait(0.28); A.sfx('knock', 0.6);
     await k.tween(S.lamp, 'planted', 1, 0.9, T.ease.out);
     T.announce('레오가 배에서 가져온 등불을 빈 터에 꽂는다. 이제 여기에도 불이 켜졌다.');
-    A.pad(7, 0.2);
+    A.bed(7, 0.15, 'walk');
     A.theme({ beat: 0.9, vel: 0.5 });
     await k.wait(1.4);
     await k.tween(S.rest, 'k', 1, 1.3, T.ease.io);
@@ -536,11 +541,14 @@
     beam: () => [HOUSE - 50, UF() - 100, 56], sweater: () => [HOUSE + 78, UF() - 44, 44],
   };
   function spot() {
+    if (S.ph === 'sail') { const s = seaLamp(); return s && S.boat.x >= s.x - 340 ? [s.x + 24, surf(s.x) - 96, 56] : null; }
+    if (S.ph === 'walk') { const n = waitingAt(); if (n) { const q = gateAt(n); return [q[0], q[1], 48]; } return null; }
     if (S.ph === 'meet') return [S.nana.x, PIER_Y - 70, 70];
     if (S.ph === 'home' && S.wait && SPOT[S.st]) return SPOT[S.st]();
     if (S.ph === 'plot' && !S.plotGo) return [PLOT + 10, groundAt(PLOT) - 46, 70];
     return null;
   }
+  function tapSpot() { if (S.ph === 'sail') lightSea(); else if (S.ph === 'walk') lightGate(); else if (S.ph === 'meet') S.meet(); else if (S.ph === 'plot') S.claim(); else S.act(); }
   const overEnd = (x, y) => Math.abs(x) < 170 && Math.abs(y - 806) < 40;
   S.pointer = function (type, x, y) {
     if (type === 'down' && TALK.tap()) return;
@@ -549,29 +557,18 @@
       const [sx, sy] = toScreen(sp[0], sp[1]);
       const over = Math.hypot(x - sx, y - sy) < sp[2] * S.cam.z + 26;
       T.cursor(over ? 'pointer' : 'default');
-      if (type === 'down' && over) { if (S.ph === 'meet') S.meet(); else if (S.ph === 'plot') S.claim(); else S.act(); }
+      if (type === 'down' && over) tapSpot();
       return;
     }
     if (S.ph === 'end') { const o = S.canLeave && overEnd(x, y); T.cursor(o ? 'pointer' : 'default'); if (type === 'down' && o) S.leave(); return; }
-    const swell = S.ph === 'sail' && S.swell.find((q) => !q.ok);
-    const hill = target();
-    if (swell || hill) {
-      T.cursor(S.drag ? 'grabbing' : 'grab');
-      if (type === 'down') { S.drag = { y }; S.idle = 0; }
-      else if (type === 'move' && S.drag) { const dy = (y - S.drag.y) / S.cam.z; S.drag.y = y; if (swell) pressSwell(dy); else moveHill(dy); }
-      else if (type === 'up') S.drag = null;
-    } else { T.cursor('default'); if (type === 'up') S.drag = null; }
+    T.cursor('default');
   };
   S.key = function (key) {
     const act = key === ' ' || key === 'Enter';
     if (act && TALK.tap()) return;
-    if (spot()) { if (!act) return false; if (S.ph === 'meet') S.meet(); else if (S.ph === 'plot') S.claim(); else S.act(); return; }
+    if (spot()) { if (!act) return false; tapSpot(); return; }
     if (S.ph === 'end') { if (act && S.canLeave) S.leave(); else return false; return; }
-    const down = key === 'ArrowDown' || act, up = key === 'ArrowUp';
-    if (!down && !up) return false;
-    if (S.ph === 'sail' && S.swell.find((q) => !q.ok)) pressSwell(down ? 16 : -16);
-    else if (target()) moveHill(down ? 13 : -13);
-    else return false;
+    return false;
   };
 
   S.update = function (dt) {
@@ -657,24 +654,19 @@
     }
     g.globalAlpha = 1;
   }
-  function ridgeGlow(g, fn, cx, pulse) {
-    g.save(); g.globalCompositeOperation = 'screen'; g.lineCap = 'round';
-    for (let pass = 0; pass < 2; pass++) {
-      g.strokeStyle = T.rgba('#fff3c8', (pass ? 0.6 : 0.2) * (0.5 + 0.5 * pulse)); g.lineWidth = pass ? 3 : 13;
-      g.beginPath();
-      for (let x = cx - 250; x <= cx + 250; x += 16) { const y = fn(x) + 1; if (x === cx - 250) g.moveTo(x, y); else g.lineTo(x, y); }
-      g.stroke();
-    }
-    g.restore();
-  }
 
+  /* the lamps up each road come on outward from its turning, once that turning's lamp is lit */
+  const GATE_S = 1.3;
+  const lampLit = (h, x) => (h === 1 ? 1 : T.clamp(((h === 2 ? S.r2 : S.r3) - Math.abs(x - (h === 2 ? J1 : J2))) / 90));
+  const gateAt = (n) => { const x = (n === 1 ? J1 : J2) - 26, y = (n === 1 ? y1(x) : y2(x)) + 2; return [x + 16 * GATE_S, y - 74 * GATE_S]; };
   function drawThings(g, h, fn, xa, xb) {
     const t = T.time;
     for (const o of S.things[h]) {
       if (o.x < xa - 320 || o.x > xb + 320) continue;
       const y = fn(o.x);
       if (o.k === 'spr') T.blit(g, S.spr[o.s], o.x, y + 3);
-      else if (o.k === 'lamp') K.lantern(g, o.x, y + 2, t, { s: o.s || 1, seed: o.x });
+      else if (o.k === 'lamp') K.lantern(g, o.x, y + 2, t, { s: o.s || 1, seed: o.x, lit: lampLit(h, o.x) });
+      else if (o.k === 'gate') K.lantern(g, o.x, y + 2, t, { s: GATE_S, seed: o.x, lit: S.gate[o.n].k });
       else if (o.k === 'tree') { if (!(S.hook && o.x === 4420)) K.tree(g, o.x, y, o.s, o.c, null, null, Math.sin(t * 0.8 + o.x)); }   /* later on, the swing hangs where this one stood */
       else if (o.k === 'box') { P.fill(g, P.rr(o.x - 13, y - 58, 26, 34, 6), '#c9573f'); P.fill(g, P.rr(o.x - 8, y - 46, 16, 4, 2), '#3a3032'); P.line(g, o.x, y - 24, o.x, y + 2, 6, '#8a4a3a'); }
       else if (o.k === 'slip') { if (!(S.hook && S.hook.flags.bramGone)) drawSlip(g, o.x, y); }
@@ -969,13 +961,28 @@
     P.fill(g, P.rr(-64, -24, 132, 7, 3), '#a8744c');
     g.restore();
   }
+  function drawSeaLamps(g, xa, xb) {
+    const t = T.time;
+    for (const s of S.lamps) {
+      if (s.x < xa - 400 || s.x > xb + 100) continue;
+      const y = surf(s.x) + 34;
+      K.lantern(g, s.x, y, t, { s: 1.5, lit: s.k, seed: s.x });
+    }
+  }
+  /* until its lamp is lit, whoever is coming waits out in the mist */
+  function drawSeaMist(g, xa, xb) {
+    const t = T.time;
+    for (const s of S.lamps) {
+      const m = s.ok ? 1 - s.k : 1;
+      if (m < 0.01 || s.idle || s.x < xa - 100 || s.x > xb + 600) continue;
+      for (let i = 0; i < 5; i++) P.glow(g, s.x - 70 - i * 74 + Math.sin(t * 0.5 + i * 1.7) * 14, SEA - 64 - (i % 2) * 44, 128, '#fff6ea', 0.42 * m, 'source-over');
+    }
+  }
   function seaSurface(g, xa, xb) {
     const p = new Path2D();
     const a = Math.floor(xa / 58) * 58;
     for (let x = a; x <= xb + 58; x += 58) { const y = surf(x) + 20, rr = 44 + T.noise(x * 0.01, 3) * 8; p.moveTo(x + rr, y); p.arc(x, y, rr, 0, TAU); }
     p.rect(xa - 20, SEA + 30, xb - xa + 40, 1700);
-    /* each swell is a mass of its own */
-    for (const s of S.swell) { if (s.h < 40) continue; p.moveTo(s.x + 150, SEA + 30); p.ellipse(s.x, SEA + 30, 170, s.h + 30, 0, 0, TAU); }
     const gr = g.createLinearGradient(0, SEA - 190, 0, SEA + 260);
     gr.addColorStop(0, '#fffaf0'); gr.addColorStop(0.5, '#fbe9da'); gr.addColorStop(1, '#e0aebb');
     g.fillStyle = gr; g.fill(p);
@@ -1030,20 +1037,20 @@
     g.restore();
 
     r = layer(g, 1);
-    const xa = r[0], xb = r[1], tg = target(), pulse = 0.5 + 0.5 * Math.sin(t * 2.6);
+    const xa = r[0], xb = r[1];
     hill(g, y3, xa, xb, '#8eaa86', '#5f8a86', -20);
     tufts(g, y3, 5, '#6d8f70', xa, xb, 10);
     drawThings(g, 3, y3, xa, xb);
-    if (tg === 3) ridgeGlow(g, y3, J2, pulse);
     who(g, 3);
 
     hill(g, y2, xa, xb, '#c2ab63', '#93835e', 360);
     tufts(g, y2, 6, '#a08c4e', xa, xb, 11);
     drawThings(g, 2, y2, xa, xb);
-    if (tg === 2) ridgeGlow(g, y2, J1, pulse);
     who(g, 2);
 
+    drawSeaLamps(g, xa, xb);
     if (S.hook) { if (S.hook.beforeSea) S.hook.beforeSea(g, xa, xb); } else if (xa < 700) drawBoat(g);
+    drawSeaMist(g, xa, xb);
     if (r[3] > SEA - 240) seaSurface(g, xa, xb);
     if (xa < 700) drawPier(g);
     if (xb > QUAY) {
@@ -1057,14 +1064,6 @@
     who(g, 1);
     drawPostman(g);
 
-    /* where two ridges want to meet */
-    if (tg) {
-      const jx = tg === 2 ? J1 : J2, ya = tg === 2 ? y1(jx) : y2(jx), yb = tg === 2 ? y2(jx) : y3(jx);
-      g.save(); g.setLineDash([3, 8]); g.lineDashOffset = -t * 12;
-      P.strokePts(g, [[jx, yb], [jx, ya]], 2.5, T.rgba('#fff8e0', 0.6 + 0.3 * pulse));
-      g.restore();
-      [ya, yb].forEach((y) => { P.glow(g, jx, y, 28, '#ffeeb8', 0.7 + 0.3 * pulse); g.fillStyle = '#fff8e0'; g.beginPath(); g.arc(jx, y, 5, 0, TAU); g.fill(); });
-    }
     if (S.snap.k > 0.01) P.glow(g, S.snap.x, S.snap.y, 60 + (1 - S.snap.k) * 170, '#fff3c8', S.snap.k * 0.9);
     g.restore();
 
@@ -1090,18 +1089,6 @@
     const V = T.view, W = V.W, t = T.time;
     const sp = spot();
     if (sp && !TALK.cur) { const [sx, sy] = toScreen(sp[0], sp[1]); P.beacon(g, sx, sy, sp[2] * S.cam.z * 0.8, t, 1, '#fff0c8'); }
-    /* gesture hints, after a pause */
-    const h = T.clamp((S.idle - 2.4) / 1.2);
-    if (h > 0) {
-      const sw = S.ph === 'sail' && S.swell.find((q) => !q.ok);
-      if (sw && S.boat.x > sw.x - 700) { const [sx, sy] = toScreen(sw.x, SEA - sw.h - 10); P.fingerHint(g, [[sx, sy], [sx, sy + (sw.h - 40) * S.cam.z]], (t * 0.5) % 1, h, '#8a6f96'); }
-      const tg = target();
-      if (tg && !S.moving) {
-        const jx = tg === 2 ? J1 : J2, yb = tg === 2 ? y2(jx) : y3(jx), ya = tg === 2 ? y1(jx) : y2(jx);
-        const a = toScreen(jx + 76, yb + 40), b = toScreen(jx + 76, ya + 40);
-        P.fingerHint(g, [a, b], (t * 0.5) % 1, h);
-      }
-    }
     if (S.title.a > 0.01) {
       P.text(g, '1장', 0, 300, { font: 'serif', size: 26, track: 12, color: '#4a4468', alpha: 0.8 * S.title.a });
       P.text(g, '항구', 0, 430, { size: 150, color: '#3d3a5c', alpha: S.title.a, seed: 4 });
@@ -1125,15 +1112,15 @@
      nothing of chapter 1's own business (boat, embrace, the walk) is drawn while a hook is set. */
   T.world = {
     S, K1, K2, K3,
-    C: { SEA, PIER_Y, QUAY, J1, J2, HOUSE, DOOR, STOP, PLOT, LEO_S, NANA_S },
+    C: { SEA, PIER_Y, QUAY, J1, J2, HOUSE, DOOR, STOP, PLOT, LEO_S, NANA_S, SEA_LAMP },
     y1, y2, y3, groundAt, hillOf, surf, HG, toScreen, toWorld, layer, handLamp,
     cam: S.cam,
     /* hook: { people(g, hill), plot(g, x), beforeSea(g, xa, xb), sky(g), screen(g), flags: { bramGone } } */
     borrow(hook) {
       S.build();
       reset();
-      S.join1 = true; S.join2 = true; S.d2 = S.a2; S.d3 = S.a3;
-      S.swell = [];
+      S.join1 = true; S.join2 = true; S.gate[1].k = 1; S.gate[2].k = 1; S.r2 = 9999; S.r3 = 9999;
+      S.lamps = [{ x: SEA_LAMP, k: 0, ok: true, idle: true }];   /* dark, and no one out there, until a chapter says otherwise */
       S.ph = 'lent';
       S.hook = Object.assign({ flags: {} }, hook);
       S.hook.flags = S.hook.flags || {};

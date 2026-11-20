@@ -24,7 +24,7 @@
       S.cam = Wd().cam;
       T.state.chapter = def.chapter; T.state.cp = null;
       P.grainAmt = 0.15; P.vignette = 0.2; P.vignetteColor = '#4a3558';
-      T.audio.ambience(0.3, 0.3); T.audio.pad(def.pad == null ? 0 : def.pad, 0.12);
+      T.audio.ambience(0.3, 0.3, 0.15); S.bedNow = null; X.bed(def.pad == null ? 0 : def.pad, 0.12, def.mood);
       TALK.clear();
       Promise.resolve().then(() => def.script(X, args || {})).catch((e) => { console.error(e); });
     };
@@ -138,15 +138,17 @@
         g.restore();
       }
     }
-    /* a swell of cloud in a boat's way; resolves when the player has pressed it down */
-    X.swell = function (x) { return new Promise((res) => { S.sw = { x, h: 176, ok: false, res }; Wd().S.swell = [S.sw]; S.idle = 0; }); };
-    function pressSwell(dy) {
+    /* an unlit lamp out in the cloud sea: the boat waits in the mist before it. Resolves when the player has lit it */
+    X.seaLamp = function () { return new Promise((res) => { S.sw = { x: Wd().C.SEA_LAMP, k: 0, ok: false, res }; Wd().S.lamps = [S.sw]; S.idle = 0; }); };
+    function lightLamp() {
       const s = S.sw;
       if (!s || s.ok) return;
-      S.idle = 0;
-      s.h = T.clamp(s.h - dy, 30, 196);
-      if (s.h < 64) { s.ok = true; S.drag0 = null; S.clock.tween(s, 'h', 34, 0.7, T.ease.out); T.audio.sfx('whoosh'); X.notes(3); s.res(); }
+      s.ok = true; S.idle = 0;
+      S.clock.tween(s, 'k', 1, 0.8, T.ease.out);
+      T.audio.sfx('join'); X.notes(3);
+      s.res();
     }
+    const lampSpot = () => { const q = Wd().toScreen(S.sw.x + 24, Wd().surf(S.sw.x) - 96); return [q[0], q[1], 56 * S.cam.z]; };
 
     /* ---------- waiting for the player ---------- */
     /* spot: () => [x, y, r] in the world, or on the screen with { screen: true } */
@@ -215,7 +217,17 @@
       await k.wait(o.hold || 0.25);
       await k.tween(S.dip, 'a', 0, o.in || 1.2, T.ease.io);
     };
-    X.view = function (v, o) { return X.dip(() => { S.view = v; S.spot = null; if (v && v.enter) v.enter(S); }, o); };
+    /* the accompaniment: where in the tune, how loud, what kind of place. Views bring their own and hand it back */
+    X.bed = function (i, level, mood) { if (i != null && !S.view) S.bedNow = [i, level, mood]; T.audio.bed(i, level, mood); };
+    X.view = function (v, o) {
+      return X.dip(() => {
+        S.view = v; S.spot = null;
+        if (v && v.enter) v.enter(S);
+        if (v && v.quiet) T.audio.bed(null);
+        else if (v && v.mood) T.audio.bed(v.chord == null ? 4 : v.chord, 0.13, v.mood);
+        else if (!v && S.bedNow) T.audio.bed(S.bedNow[0], S.bedNow[1], S.bedNow[2]);
+      }, o);
+    };
     X.note = function (o) { T.audio.step(S.noteI++, Object.assign({ voice: 'box', vel: 0.38 }, o || {})); };
     X.notes = function (n, o) { for (let i = 0; i < n; i++) X.note(Object.assign({ at: 0.2 + i * 0.36 }, o || {})); };
     X.toll = function (i, vel) { T.audio.toll(i, vel); Wd().bell.k = 1; S.clock.tween(Wd().bell, 'k', 0, 3.2, T.ease.out); };
@@ -257,15 +269,19 @@
         return;
       }
       if (S.cards.end.a > 0.5) { const o = S.canNext && Math.abs(x) < 190 && Math.abs(y - 792) < 44; T.cursor(o ? 'pointer' : 'default'); if (type === 'down' && o) S.next(); return; }
-      const sw = S.sw && !S.sw.ok;
-      if (sw || S.gest || S.paintG) {
+      if (S.sw && !S.sw.ok && !S.view) {
+        const q = lampSpot(), over = Math.hypot(x - q[0], y - q[1]) < q[2] + 26;
+        T.cursor(over ? 'pointer' : 'default');
+        if (type === 'down' && over) lightLamp();
+        return;
+      }
+      if (S.gest || S.paintG) {
         T.cursor(S.paintG ? 'crosshair' : S.drag0 ? 'grabbing' : 'grab');
         if (type === 'down') { S.drag0 = [x, y]; S.idle = 0; if (S.paintG) paintAt(x, y, true); }
         else if (type === 'move' && S.drag0) {
           const dx = x - S.drag0[0], dy = y - S.drag0[1];
           S.drag0 = [x, y];
           if (S.paintG) paintAt(x, y);
-          else if (sw) pressSwell(dy / S.cam.z);
           else if (S.gest) { const d = (S.gest.axis === 'x' ? dx : dy) * S.gest.sign; if (d > 0) gestAdd(d); }
         } else if (type === 'up') S.drag0 = null;
       } else { T.cursor('default'); if (type === 'up') S.drag0 = null; }
@@ -278,7 +294,7 @@
       if (S.spot) { if (act && S.waitTap) S.waitTap(); else return false; return; }
       if (S.cards.end.a > 0.5) { if (act && S.canNext) S.next(); else return false; return; }
       if (S.view && S.view.key && S.view.key(key) !== false) return;
-      if (S.sw && !S.sw.ok) { if (key === 'ArrowDown' || act) pressSwell(16); else if (key === 'ArrowUp') pressSwell(-16); else return false; return; }
+      if (S.sw && !S.sw.ok) { if (act) lightLamp(); else return false; return; }
       if (S.gest) {
         const gk = S.gest.axis === 'x' ? (S.gest.sign > 0 ? 'ArrowRight' : 'ArrowLeft') : S.gest.sign > 0 ? 'ArrowDown' : 'ArrowUp';
         if (key === gk || act) gestAdd(S.gest.dist * 0.09); else return false;
@@ -300,7 +316,7 @@
       if (S.spot && S.waitTap) return 'tap';
       if (S.cards.end.a > 0.5) return S.canNext ? 'next' : null;
       if (S.view && S.view.want) { const w = S.view.want(); if (w) return w; }
-      if (S.sw && !S.sw.ok) return 'down';
+      if (S.sw && !S.sw.ok) return 'lamp';
       if (S.gest) return S.gest.axis === 'x' ? (S.gest.sign > 0 ? 'right' : 'left') : S.gest.sign > 0 ? 'down' : 'up';
       if (S.paintG) return 'paint';
       return null;
@@ -316,12 +332,13 @@
         const st = Math.sign(d) * Math.min(Math.abs(d), (a.go.v / (1 + slope * 0.9)) * dt);
         a.x += st; if (!a.keepFlip) a.flip = d < 0;
         a.ph += Math.abs(st) / (a.dog ? 5 : 10 * (a.s / 150)); a.moving = true;
+        if (a.id === 'leo' && !S.view) { const n = Math.floor(a.ph / Math.PI); if (n !== a.stepN) { a.stepN = n; if (n % 2 === 0) T.audio.sfx('step'); } }
         if (Math.abs(a.go.x - a.x) < 0.5) { a.x = a.go.x; a.moving = false; const r = a.go.res; a.go = null; r(); }
       }
       for (const b of S.boats) {
         if (!b.go) continue;
         let lim = b.go.x;
-        if (S.sw && !S.sw.ok && b.go.x > b.x && b.x < S.sw.x) lim = Math.min(lim, S.sw.x - 262);
+        if (S.sw && !S.sw.ok && b.go.x > b.x && b.x < S.sw.x) lim = Math.min(lim, S.sw.x - 176);
         const d = lim - b.x;
         if (Math.abs(d) > 0.5) b.x += Math.sign(d) * Math.min(Math.abs(d), b.go.v * dt);
         if (Math.abs(b.go.x - b.x) < 0.6) { b.x = b.go.x; const r = b.go.res; b.go = null; r(); }
@@ -348,10 +365,10 @@
       if (S.view) S.view.draw(g, t, S); else Wd().draw(g);
       /* invitations and hints */
       if (S.spot && !TALK.cur && S.dip.a < 0.3) { const q = spotScreen(); P.beacon(g, q[0], q[1], q[2] * 0.8, t, 1, '#fff0c8'); }
+      else if (S.sw && !S.sw.ok && !S.view && !TALK.cur && S.dip.a < 0.3) { const q = lampSpot(); P.beacon(g, q[0], q[1], q[2] * 0.8, t, 1, '#fff0c8'); }
       const h = T.clamp((S.idle - 2.4) / 1.2) * (1 - S.dip.a);
       if (h > 0 && !TALK.cur) {
-        if (S.sw && !S.sw.ok && !S.view) { const q = Wd().toScreen(S.sw.x, Wd().C.SEA - S.sw.h - 10); P.fingerHint(g, [[q[0], q[1]], [q[0], q[1] + (S.sw.h - 40) * S.cam.z]], (t * 0.5) % 1, h, '#8a6f96'); }
-        else if (S.gest && S.gest.hint) P.fingerHint(g, S.gest.hint(), (t * 0.5) % 1, h, S.gest.hintColor || '#fff6e0');
+        if (S.gest && S.gest.hint) P.fingerHint(g, S.gest.hint(), (t * 0.5) % 1, h, S.gest.hintColor || '#fff6e0');
         else if (S.paintG) { const pts = []; for (let i = 0; i <= 20; i++) pts.push([-460 + i * 34, 220 + Math.sin(i * 0.5) * 56]); P.fingerHint(g, pts, (t * 0.33) % 1, h, '#c8ffe6'); }
       }
       const dark = S.ps.night > 0.5 || (S.view && S.view.dark);

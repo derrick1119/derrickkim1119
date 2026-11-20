@@ -8,7 +8,7 @@
 
   /* ---------- the wedding, walked ---------- */
   function wedding() {
-    const V = { dark: false, p: 0, held: false, until: 0, ph: 0, done: false, steps: 0, hug: { k: 0 }, bow: { k: 0 }, petals: [], res: null };
+    const V = { dark: false, quiet: true, p: 0, held: false, until: 0, ph: 0, done: false, steps: 0, hug: { k: 0 }, bow: { k: 0 }, petals: [], res: null };
     const SHORE = 470, LX = -150, LEN = 1750;
     const r0 = T.rng(41);
     for (let i = 0; i < 46; i++) V.petals.push({ x: (r0() - 0.5) * 2000, y: r0() * 470, v: 26 + r0() * 30, ph: r0() * 9, c: ['#f6b6c2', '#fbe3a8', '#ffffff', '#e58aa0'][i % 4] });
@@ -178,7 +178,7 @@
       });
       X.age('아나, 56');
       nana.pose = (o, a, t) => { if (!a.hug) { o.armF = { a: 1.0 + 0.9 + Math.sin(t * 3.5) * 0.14, b: 0.5 }; o.y -= Math.abs(Math.sin(t * 3)) * 2; } };
-      const pressed = X.swell(-470);
+      const pressed = X.seaLamp();
       X.sail(S.b1, -74, 62);
       await pressed;
       await new Promise((res) => { const iv = () => (S.b1.x >= -74.5 ? res() : X.wait(0.2).then(iv)); iv(); });
@@ -237,7 +237,7 @@
       /* ---- the walk ---- */
       const V = wedding();
       await X.view(V, { out: 1.4, in: 1.6 });
-      A.pad(0, 0.16);
+
       T.announce('호수 속에서 릴리가 아나의 팔짱을 끼고 입장한다. 레오는 꽃길 위에서, 릴리의 빈 팔 옆을 나란히 걷는다. 누르고 있으면 걷는다.');
       await V.walked;
       await X.tween(V.hug, 'k', 1, 1.2);
@@ -249,7 +249,7 @@
       leo.x = PL.TREE_X - 40; leo.flip = false; post.hidden = true; bean.x = PL.TREE_X - 26; bean.flip = false;
       X.cam(PL.TREE_X + 40, py + 40, 1.5); X.camSnap();
       await X.view(null, { out: 1.4, in: 1.6 });
-      A.pad(5, 0.14);
+      X.bed(5, 0.13, 'home');
       const seat = () => { const q = PL.swingSeat(ps); return [q[0], q[1] - 6, 46]; };
       await X.tap(seat);
       await X.walk(leo, PL.TREE_X + 36, 60);

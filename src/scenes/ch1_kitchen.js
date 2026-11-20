@@ -47,6 +47,7 @@
     if (!S.rain.length) { const r = T.rng(14); for (let i = 0; i < 46; i++) S.rain.push({ x: r() * 212, y: r() * 252, v: 250 + r() * 160, l: 12 + r() * 16 }); }
     A.pad(null);
     A.ambience(0.7, 0.05);
+    k.wait(2.4).then(() => A.bed(4, 0.11, 'still'));   /* the tune's left hand, very far off */
     k.wait(1.6).then(() => { T.announce('아나, 서른여섯. 장례가 끝난 밤의 부엌.'); return k.tween(S.cap, 'a', 1, 1.4); })
       .then(() => k.wait(3.6)).then(() => k.tween(S.cap, 'a', 0, 1.6));
     k.wait(3.4).then(() => { if (S.mode === 'idle') S.mode = 'wait'; });

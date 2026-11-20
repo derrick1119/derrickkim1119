@@ -10,7 +10,7 @@
   function kitchen() {
     const St = T.scenes.stew;
     return {
-      dark: false,
+      dark: false, mood: 'home', chord: 1,
       enter() { St.restage({ leo: F.leoBare(), ana: F.anaAt(81) }); },
       draw(g) { St.draw(g); },
     };
@@ -43,7 +43,7 @@
   }
 
   T.stage('ch7', {
-    chapter: 7, title: ['마지막 장', '마중'], end: ['끝', '천천히 와', 'TAKE YOUR TIME'], endHand: true, endDim: 0.93, pad: 4,
+    chapter: 7, title: ['마지막 장', '마중'], end: ['끝', '천천히 와', 'TAKE YOUR TIME'], endHand: true, endDim: 0.93, pad: 4, mood: 'still',
     plot: { stage: 4, stones: 4, board: true, cross: [1, 1, 1, 1, 0], table: true, tree: 1, swing: 1, swingW: 1, garden: 1 },
     flags: { bramGone: true },
     build() { T.scenes.kitchen.build(); T.scenes.room.build(); T.scenes.stew.build(); },
@@ -77,7 +77,7 @@
       await X.tween(lake.said, 'k', 1, 2.2);
       await X.wait(2.6);
       /* the water goes dark */
-      A.pad(null);
+      X.bed(null);
       await X.tween(lake.fade, 'a', 0, 3.6);
       await X.wait(1.4);
       for (let i = 0; i < 4; i++) { X.toll(i, 0.5); await X.wait(1.5); }
@@ -92,13 +92,13 @@
       X.cam(leo.x - 50, 548, 1.5); X.camSnap();
       S.track = { a: leo, dx: -50 };
       await X.view(null, { color: '#1b2a40', out: 1.6, in: 2.2 });
-      A.pad(0, 0.13);
+      X.bed(0, 0.11, 'still'); A.ambience(0.3, 0.3, 0.5);
       T.announce('레오가 등불을 들고 항구로 걸어 내려간다. 느린 걸음, 굽은 등. 이제야 그가 얼마나 늙었는지 보인다.');
       X.walk(bean, 210, 44);
       await X.walk(leo, 132, 40);
       S.track = null;
       X.cam(qx - 60, qy, 1.05, 0.9);
-      const pressed = X.swell(-470);
+      const pressed = X.seaLamp();
       const arrived = X.sail(boat, -74, 56);
       await pressed;
       await arrived;
@@ -140,6 +140,7 @@
       await X.tween(ana.hug, 'k', 1, 1.1, T.ease.out);
       X.tween(leo.hug, 'k', 1, 1.1, T.ease.out);
       T.announce('두 사람이 끌어안는다. 긴 침묵.');
+      X.bed(null);
       bean.sit = 1;
       await X.wait(7.5);          /* the long quiet */
       A.theme({ voice: 'felt', vel: 0.36, beat: 0.74, left: true });
@@ -179,6 +180,7 @@
           await X.wait(0.8);
         },
       });
+      X.bed(4, 0.13, 'walk');
       leo.hand = ana.hand = true; leo.flip = ana.flip = false;
       X.tween(S.mem, 'house', 1, 3.4, T.ease.lin);
       X.walk(ana, PL.HX + 28, 54);
@@ -219,7 +221,7 @@
       S.swinging = true;
       X.cam(PL.TREE_X + 10, py + 52, 1.5); X.camSnap();
       await X.view(null, { color: '#161d2a', out: 1.6, in: 2.2 });
-      A.pad(5, 0.15);
+      X.bed(5, 0.14, 'night');
       T.announce('밤. 오로라 아래, 둘이 앉게 넓힌 그네에 레오와 아나가 나란히 앉아 있다.');
       await X.wait(4.4);
       ana.look = true;
@@ -250,6 +252,7 @@
       X.cam(PL.ROOM_X + 24, py + 56, 1.45, 0.6);
       await X.wait(1.8);
       await TALK.say('both', '천천히 와.', { slow: true });
+      X.bed(null);
       A.theme({ voice: 'box', vel: 0.36, beat: 0.66, left: true });
       await X.wait(3.2);
       X.end();

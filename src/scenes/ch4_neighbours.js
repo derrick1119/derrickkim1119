@@ -86,7 +86,7 @@
         S.b1 = X.boat({ x: -900, riders: [wife] });
       });
       X.toll(2);
-      const pressed = X.swell(-470);
+      const pressed = X.seaLamp();
       X.sail(S.b1, -74, 30);
       await pressed;
       await new Promise((res) => { const iv = () => (S.b1.x >= -74.5 ? res() : X.wait(0.2).then(iv)); iv(); });
@@ -114,7 +114,7 @@
       T.announce('브램 선장의 배가 처음으로 물에 떴다. 아흔아홉 살 아내가 타고 있다.');
       await X.tap(() => [16, PIER - 30, 50]);
       S.rope = null;
-      A.sfx('whoosh'); A.pad(3, 0.16); A.theme({ voice: 'box', vel: 0.3, beat: 0.62, left: false });
+      A.sfx('whoosh'); X.bed(3, 0.14, 'walk'); A.theme({ voice: 'box', vel: 0.3, beat: 0.62, left: false });
       X.sail(S.big, -1500, 54);
       [leo, nana].concat(crowd).forEach((a) => { a.pose = wave; });
       bram.pose = wave; wife.pose = (o, a, t) => { o.armF = { a: 2.0 + Math.sin(t * 5) * 0.2, b: 0.3 }; };
@@ -157,7 +157,7 @@
       /* ---- that night ---- */
       const lake = T.lake({ paint: T.vig.gray, leo: F.leoAt(0), found: { k: 0 }, mirror: 0.25, leoFace: {} });
       await X.view(lake, { color: '#1b2a40' });
-      A.pad(4, 0.14);
+
       T.announce('그날 밤, 호수. 아나의 머리에 첫 흰머리가 비친다.');
       await X.wait(2.6);
       await X.tween(lake.found, 'k', 1, 1.5);
