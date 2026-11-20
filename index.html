@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Take Your Time 프롤로그</title>
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<style>
+:root {
+  /* One fixed stage, letterboxed and centred. Everything is painted on the canvas;
+     the page itself only supplies the dark surround and two quiet controls. */
+  --ink: #161d2a;
+  --paper: #f3ead8;
+  --mustard: #d7a23c;
+  --coral: #c9573f;
+  --mist: #a9b6c6;
+  --font-hand: 'TYT Hand', 'Nanum Pen Script', cursive;
+  --font-body: 'TYT Batang', 'Gowun Batang', 'Noto Serif KR', serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; margin: 0; background: var(--ink); overflow: hidden; overscroll-behavior: none; }
+#wrap { position: fixed; inset: 0; }
+#stage { position: absolute; display: block; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; outline: none; }
+#stage:focus-visible { box-shadow: 0 0 0 2px var(--mustard); }
+#mute {
+  position: absolute; z-index: 2; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%;
+  background: rgba(22, 29, 42, .38); color: var(--paper); cursor: pointer; opacity: .7;
+  display: grid; place-items: center; transition: opacity .2s;
+}
+#mute:hover { opacity: 1; }
+#mute:focus-visible { outline: 2px solid var(--mustard); outline-offset: 2px; opacity: 1; }
+#mute svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#mute .off { display: none; }
+#mute[aria-pressed="true"] .off { display: inline; }
+#mute[aria-pressed="true"] .on { display: none; }
+#turn {
+  position: absolute; left: 16px; right: 16px; bottom: 20px; margin: 0; text-align: center;
+  font: 15px/1.5 var(--font-body); color: var(--mist); display: none;
+}
+@media (orientation: portrait) and (max-width: 640px) { #turn { display: block; } }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="stage" tabindex="0" role="img" aria-label="Take Your Time 프롤로그. 늦가을 병실에서 시작하는 짧은 이야기."></canvas>
+  <button id="mute" type="button" aria-pressed="false" aria-label="소리 끄기">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path class="on" d="M15.5 9.2a4 4 0 0 1 0 5.6M18 6.8a7.4 7.4 0 0 1 0 10.4"/><path class="off" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+  </button>
+  <p id="turn">화면을 가로로 돌리면 더 넓게 볼 수 있어요.</p>
+  <div id="live" class="sr" aria-live="polite"></div>
+</div>
+<script src="src/core.js"></script>
+<script src="src/paint.js"></script>
+<script src="src/figures.js"></script>
+<script src="src/audio.js"></script>
+<script src="src/scenes/memory.js"></script>
+<script src="src/scenes/room.js"></script>
+<script src="src/scenes/mem_home.js"></script>
+<script src="src/scenes/mem_stew.js"></script>
+<script src="src/scenes/mem_swing.js"></script>
+<script src="src/scenes/mem_walk.js"></script>
+<script src="src/scenes/ending.js"></script>
+<script src="src/main.js"></script>
+</body>
+</html>
