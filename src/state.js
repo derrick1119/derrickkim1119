@@ -101,7 +101,7 @@ export function startDeploy() {
   return out;
 }
 export function battleSetup(seed) { const r = G.run; return { mods: mods(), seed: seed || ((rnd() * 1e9) | 0), power: powerNow(), deck: r.deck, cap: r.cap, start: startDeploy(), morale: r.nextMorale || 0 }; }
-export function waveSetup(enc) { const r = G.run, foe = Object.assign({}, enc.foe || {}); foe.hp = (foe.hp || 1) * (1 + 0.08 * r.hard); return { foe, lvl: enc.lvl }; }
+export function waveSetup(enc) { const r = G.run, foe = Object.assign({}, enc.foe || {}); foe.hp = (foe.hp || 1) * (1 + 0.08 * r.hard); return { foe, lvl: enc.lvl, terrain: enc.terrain, sky: enc.sky, chase: enc.chase }; }
 export function goldFor(grade, kind) { const m = mods(); return Math.round((26 + grade * 8 + (kind === 'boss' ? 40 : kind === 'elite' ? 18 : 0)) * m.gold * (1 - 0.05 * G.run.hard) + m.goldFlat); }
 
 // ───────── 패 다루기 ─────────
@@ -110,7 +110,8 @@ export function removeCard(uid) { const d = G.run.deck, i = d.findIndex(c => c.u
 export const canUp = c => isUnit(c) ? (c.lv || 1) < MAX_LV : !c.up && CARDS[c.id].kind !== 'curse';
 // 전술 패는 강화(+), 병력·영웅 패는 조련(Lv +1: 체력·공격력 +20%)
 export function upgradeCard(uid) { const c = cardOf(uid); if (!c || !canUp(c)) return null; if (isUnit(c)) c.lv = (c.lv || 1) + 1; else c.up = true; save(); return c; }
-export function cardPool() { const h = G.run.hero; return Object.keys(CARDS).filter(id => !isUnit({ id }) && CARDS[id].kind !== 'curse' && (!CARDS[id].hero || CARDS[id].hero === h)); }
+// 영웅기 패는 덱에 그 영웅 패가 있을 때만 나온다
+export function cardPool() { const hs = G.run.deck.filter(c => CARDS[c.id].kind === 'lead').map(c => CARDS[c.id].unit); return Object.keys(CARDS).filter(id => !isUnit({ id }) && CARDS[id].kind !== 'curse' && (!CARDS[id].hero || hs.includes(CARDS[id].hero))); }
 export function rollCards(kind, n = 3, keys) {
   const pool = cardPool().filter(id => !keys || !keys.has('cd' + id)), out = [], upP = kind === 'boss' ? 1 : kind === 'elite' ? 0.3 : kind === 'shop' ? 0.15 : 0.08;
   const w = id => CARDS[id].hero ? 4 : [10, 7, 3][CARDS[id].rare || 0] + (kind === 'boss' || kind === 'elite' ? (CARDS[id].rare || 0) * 2 : 0);
@@ -147,7 +148,7 @@ export function describeReward(o) {
 function makeReward(kind, keys) {
   const r = G.run, types = unitPool(), owned = ownedTypes();
   if (kind === 'unit') { const fresh = types.filter(t => !owned.includes(t)); const t = fresh.length && rnd() < 0.6 ? pick(fresh) : pick(types); return { kind: 'card', id: 'u_' + t, lv: 1, key: 'cd' + 'u_' + t }; }
-  if (kind === 'lead') { const hs = ['commander', 'bishop', 'archmage'].filter(h => heroOpen(h) && !r.deck.some(c => c.id === 'h_' + h)); if (!hs.length) return null; const h = pick(hs); return { kind: 'card', id: 'h_' + h, lv: 1, key: 'cd' + 'h_' + h }; }
+  if (kind === 'lead') { const hs = ['commander', 'bishop', 'archmage'].filter(h => !r.deck.some(c => c.id === 'h_' + h)); if (!hs.length) return null; const h = pick(hs); return { kind: 'card', id: 'h_' + h, lv: 1, key: 'cd' + 'h_' + h }; }
   if (kind === 'tactic') { const o = rollCards(keys.kind || 'battle', 1, keys)[0]; return o ? { kind: 'card', id: o.id, up: o.up, key: 'cd' + o.id } : null; }
   if (kind === 'train') { const c = unitCards().filter(c => (c.lv || 1) < MAX_LV && !keys.has('tr' + c.uid)); if (!c.length) return null; const x = pick(c); return { kind, uid: x.uid, id: x.id, key: 'tr' + x.uid }; }
   if (kind === 'upgrade') { const c = r.deck.filter(c => !isUnit(c) && canUp(c) && !keys.has('up' + c.id)); if (!c.length) return null; const x = pick(c); return { kind, uid: x.uid, id: x.id, key: 'up' + x.id }; }
@@ -160,7 +161,8 @@ const TABLE = [['unit', 22], ['tactic', 28], ['train', 17], ['upgrade', 8], ['we
 export function rollRewards(kind) {
   const r = G.run, out = [], keys = new Set(), total = TABLE.reduce((a, t) => a + t[1], 0); keys.kind = kind;
   const few = unitCards().length < 7;
-  const forced = kind === 'boss' || kind === 'treasure' ? ['relic', 'relic', 'relic'] : kind === 'elite' ? ['relic', 'weapon', null] : [few ? 'unit' : null, 'tactic', null];
+  const solo = r.deck.filter(c => CARDS[c.id].kind === 'lead').length < 2;
+  const forced = kind === 'boss' ? [solo ? 'lead' : 'relic', 'relic', 'relic'] : kind === 'treasure' ? ['relic', 'relic', 'relic'] : kind === 'elite' ? ['relic', 'weapon', null] : [few ? 'unit' : null, 'tactic', null];
   for (let guard = 0; out.length < 3 && guard < 200; guard++) {
     let k = forced[out.length];
     if (!k || guard > 40) { let x = rnd() * total; for (const [name, w] of TABLE) { if ((x -= w) < 0) { k = name; break; } } }

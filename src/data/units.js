@@ -27,15 +27,17 @@ export const UNITS = {
     desc: '여럿을 후려치는 철퇴', tip: '한 번에 최대 3명을 타격. 체력이 절반 아래면 공격 속도 +50%.' },
   // ───── 영웅 ─────
   commander: { name: '장군', role: '영웅', side: 0, hero: true, cost: 0, n: 1, hp: 920, atk: 30.8, as: 0.847, range: 0, spd: 80, r: 14, aura: { dmg: 0.12, r: 130 },
-    desc: '언월도를 든 근접 영웅', tip: '주변 아군 피해 +12%. 전용 패 [언월 강타]·[호령]을 들고 시작합니다.' },
+    desc: '언월도를 든 근접 영웅', tip: '주변 아군 피해 +12%. 기력이 차면 회전 베기 → 호통 → 선봉 돌파를 차례로 씁니다.' },
   bishop: { name: '고승', role: '영웅', side: 0, hero: true, cost: 0, n: 1, hp: 640, atk: 0, heal: 55, healN: 2, as: 1.4, range: 195, spd: 58, r: 13, soft: true, support: true,
-    desc: '법력으로 지키는 치유 영웅', tip: '두 명을 동시에 치유. 전용 패 [법력 결계]·[독경]을 들고 시작합니다.' },
+    desc: '법력으로 지키는 치유 영웅', tip: '두 명을 동시에 치유. 기력이 차면 자비의 물결 → 금강 결계 → 항마진언을 차례로 씁니다.' },
   archmage: { name: '신선', role: '영웅', side: 0, hero: true, cost: 0, n: 1, hp: 560, atk: 46, as: 2.2, range: 245, spd: 54, r: 13, proj: 'fireball', aoe: 54, soft: true, prefer: 'cluster',
-    desc: '구름을 탄 도술 영웅', tip: '강력한 범위 도술. 전용 패 [불벼락]·[축지법]을 들고 시작합니다.' },
+    desc: '구름을 탄 도술 영웅', tip: '강력한 범위 도술. 기력이 차면 연쇄 번개 → 서리 안개 → 삼매진화를 차례로 씁니다.' },
   // ───── 본진 ─────
   banner: { name: '군기 수레', role: '본진', side: 0, cost: 0, n: 1, hp: 520, atk: 0, as: 9, range: 0, spd: 0, r: 20, structure: true, banner: true,
     desc: '행군의 중심', tip: '군기 수레가 부서지면 깃발 하나를 잃습니다. 싸움이 끝날 때마다 수리됩니다.' },
   // ───── 패로 불러내는 것 ─────
+  stake: { name: '목책', role: '방벽', side: 0, cost: 0, n: 1, hp: 120, atk: 0, as: 9, range: 0, spd: 0, r: 12, structure: true, stake: true,
+    desc: '길을 막는다', tip: '요괴의 길을 막는 말뚝.' },
   decoy: { name: '허수아비', role: '미끼', side: 0, cost: 0, n: 1, hp: 190, atk: 0, as: 9, range: 0, spd: 0, r: 13, structure: true, decoy: true,
     desc: '적의 눈길을 끈다', tip: '주변 적이 허수아비를 먼저 공격합니다.' },
   // ───── 적군 ─────
@@ -76,6 +78,29 @@ export const UNITS = {
     desc: '볼수록 커지는 어둠', tip: '어둠의 낙인(보라 원)을 피하고, 후방에 불려 나오는 망령에 대비해 예비대를 남겨두세요.' },
 };
 for (const k of Object.keys(UNITS)) UNITS[k].id = k;
+
+// ───── 영웅의 고유기: 기력이 찰 때마다 차례로 자동 발동한다 ─────
+export const HERO_SKILLS = {
+  commander: [{ id: 'whirl', name: '회전 베기', desc: '주변의 적을 크게 베어 밀쳐 낸다' }, { id: 'roar', name: '호통', desc: '주변 적은 약해지고 아군은 피해 +20%' }, { id: 'leap', name: '선봉 돌파', desc: '적이 가장 몰린 곳으로 뛰어들어 내려친다' }],
+  bishop: [{ id: 'wave', name: '자비의 물결', desc: '주변 아군의 체력을 크게 회복' }, { id: 'ward', name: '금강 결계', desc: '주변 아군에게 보호막' }, { id: 'smite', name: '항마진언', desc: '적 무리에 빛을 내리쳐 기절 — 망령에게 1.5배' }],
+  archmage: [{ id: 'chain', name: '연쇄 번개', desc: '적 다섯을 잇달아 꿰는 번개' }, { id: 'frost', name: '서리 안개', desc: '적 무리를 느리게 하는 안개' }, { id: 'fire', name: '삼매진화', desc: '적이 가장 몰린 곳에 큰 불덩이' }],
+};
+// 영웅 둘이 함께 전장에 있으면 합동기 기력이 따로 찬다
+export const COMBOS = {
+  'bishop+commander': { id: 'charge', name: '금강 돌격', desc: '전군에 보호막 · 속도 · 피해 +25%' },
+  'archmage+commander': { id: 'storm', name: '뇌격진', desc: '적 여덟에게 벼락과 기절' },
+  'archmage+bishop': { id: 'lotus', name: '연화 폭풍', desc: '전군 회복 + 모든 적에게 피해와 감속' },
+};
+// ───── 진법: 전장에 선 부대 구성에 따라 켜진다 ─────
+const INF = ['sword', 'shield', 'spear', 'berserk'], RNG = ['xbow', 'wizard', 'cannon'];
+export const SYN_CLASS = t => INF.includes(t) ? 'inf' : RNG.includes(t) ? 'rng' : t === 'knight' ? 'cav' : t === 'priest' || t === 'bishop' ? 'heal' : '';
+export const SYNERGIES = [
+  { id: 'phalanx', name: '방진', need: '보병 3', desc: '보병이 받는 피해 -15%', n: c => [c.inf, 3] },
+  { id: 'volley', name: '일제 사격', need: '원거리 2', desc: '원거리 공격 속도 +15%', n: c => [c.rng, 2] },
+  { id: 'cav', name: '기동대', need: '기마 2', desc: '돌격 피해 +25%', n: c => [c.cav, 2] },
+  { id: 'rite', name: '굿판', need: '치유 2', desc: '치유량 +25%', n: c => [c.heal, 2] },
+  { id: 'three', name: '삼군', need: '보병·원거리·기마', desc: '모든 아군 피해 +8%', n: c => [(c.inf ? 1 : 0) + (c.rng ? 1 : 0) + (c.cav ? 1 : 0), 3] },
+];
 
 export const PLAYER_TYPES = ['sword', 'shield', 'spear', 'xbow', 'priest', 'knight', 'wizard', 'berserk', 'cannon'];
 export const HEROES = ['commander', 'bishop', 'archmage'];

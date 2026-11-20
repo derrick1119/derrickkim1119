@@ -1,6 +1,7 @@
 // 싸움 편성 생성기: 고개와 깊이에 맞춰 요괴 부대를 뽑아 진형을 짠다
 // enemy 항목: [병종, 열(0~5), 줄(0=전열, 2=후열), 옵션{n, hold, flank:'L'|'R', wait}]
 import { UNITS } from './units.js';
+import { pickTerrain, pickSky } from './terrain.js';
 
 export const ROWS = 5; // 고개 하나의 갈림길 줄 수 (그 위가 두목)
 const THREAT = { goblin: 2, orc: 3, garcher: 2.5, rshield: 3.2, rassassin: 3, treant: 4.2, bomber: 3, wolf: 3.6, shaman: 3.4, skel: 3.2, skelarcher: 3, catapult: 4.2, necro: 5 };
@@ -26,17 +27,19 @@ const SPREAD = { 1: [2.5], 2: [1.5, 3.5], 3: [0.75, 2.5, 4.25], 4: [0.25, 1.75, 
 export const BOSSES = [
   { name: '두억시니', enemyName: '도깨비 두목 두억시니', map: 'arena', lvl: 1, time: 130, starDeaths: 8, starTime: 75, key: 'warchief',
     enemy: [['warchief', 2.5, 1], ['orc', 1, 0], ['orc', 4, 0], ['goblin', 2.5, 0, { n: 6 }], ['garcher', 0.5, 2, { n: 4 }], ['garcher', 4.5, 2, { n: 4 }]] },
-  { name: '당산 목신', enemyName: '천년 묵은 당산 목신', map: 'grove', lvl: 3, time: 140, starDeaths: 9, starTime: 85, key: 'elder',
+  { name: '당산 목신', enemyName: '천년 묵은 당산 목신', map: 'grove', lvl: 2, time: 140, starDeaths: 9, starTime: 85, key: 'elder',
     enemy: [['elder', 2.5, 1], ['treant', 1, 0, { n: 1 }], ['treant', 4, 0, { n: 1 }], ['shaman', 2.5, 2, { n: 2 }], ['garcher', 0.5, 2, { n: 4 }], ['garcher', 4.5, 2, { n: 4 }], ['goblin', 2.5, 0, { n: 6 }]] },
-  { name: '어둑시니', enemyName: '어둠의 주인 어둑시니', map: 'throne', lvl: 4, time: 150, starDeaths: 10, starTime: 95, key: 'skelking',
+  { name: '어둑시니', enemyName: '어둠의 주인 어둑시니', map: 'throne', lvl: 3, time: 150, starDeaths: 10, starTime: 95, key: 'skelking',
     enemy: [['skelking', 2.5, 1], ['skel', 1, 0, { n: 4 }], ['skel', 2.5, 0, { n: 4 }], ['skel', 4, 0, { n: 4 }], ['rshield', 0, 0, { n: 2 }], ['skelarcher', 1, 2, { n: 3 }], ['skelarcher', 4, 2, { n: 3 }], ['necro', 2.5, 2], ['rassassin', 5, 2, { n: 2 }]] },
 ];
 
 // 깊이(0 = 첫 싸움) → 요괴 예산. 밸런스는 tools/campaign.mjs 로 맞춘다.
-export function budgetFor(ch, row, kind, hard) { return (12 + ch * 6 + row * 1.6) * (kind === 'elite' ? 1.15 : 1) * (1 + 0.05 * hard); }
+export function budgetFor(ch, row, kind, hard) { return (10.5 + ch * 5 + row * 1.3) * (kind === 'elite' ? 1.15 : 1) * (1 + 0.05 * hard); }
 
 export function genEncounter(ch, row, kind, R, hard = 0) {
-  if (kind === 'boss') { const b = BOSSES[ch]; return Object.assign({ ch, row, kind, boss: true, tip: UNITS[b.key].tip, foe: {} }, b); }
+  // 본대: 싸움을 너무 오래 끌면 뒤따라온 요괴 본대가 차례로 들이닥친다
+  const chase = { at: 0, every: 11, types: [['goblin', 'orc'], ['orc', 'wolf', 'bomber'], ['skel', 'skelarcher', 'orc']][ch] };
+  if (kind === 'boss') { const b = BOSSES[ch]; chase.at = b.starTime + 30; return Object.assign({ ch, row, kind, boss: true, tip: UNITS[b.key].tip, foe: {}, terrain: 'arena', sky: ch === 2 ? 'night' : 'day', chase }, b); }
   const pool = POOLS[ch];
   let budget = budgetFor(ch, row, kind, hard);
   const first = ch === 0 && row === 0;
@@ -62,11 +65,13 @@ export function genEncounter(ch, row, kind, R, hard = 0) {
   flank.forEach((t, i) => enemy.push([t, i ? 5 : 0, 1, { flank: i ? 'R' : 'L', wait: i ? 5 : 0 }]));
   const key = FEATURE.find(t => picks.includes(t)) || 'goblin';
   const affixId = kind === 'elite' ? Object.keys(AFFIX)[(R() * Object.keys(AFFIX).length) | 0] : null;
-  const units = enemy.reduce((a, e) => a + ((e[3] && e[3].n) || UNITS[e[0]].n), 0);
+  const units = enemy.reduce((a, e) => a + ((e[3] && e[3].n) || UNITS[e[0]].n), 0), starTime = Math.round(46 + units * 0.9 + ch * 6 + (kind === 'elite' ? 12 : 0));
+  chase.at = starTime + 22;
   return {
+    terrain: first ? 'open' : pickTerrain(ch, R), sky: first ? 'day' : pickSky(ch, R), chase,
     ch, row, kind, boss: false, lvl: pool.lvl, map: pool.maps[(R() * pool.maps.length) | 0], enemy, key,
     name: (kind === 'elite' ? '강적 · ' : '') + NAMES[key][0], enemyName: NAMES[key][1], tip: UNITS[key].tip,
     affix: affixId, foe: affixId ? Object.assign({}, AFFIX[affixId].foe) : {},
-    time: 110 + ch * 10 + (kind === 'elite' ? 10 : 0), starDeaths: 4 + ch * 2 + Math.floor(row / 2), starTime: Math.round(40 + units * 0.9 + ch * 6 + (kind === 'elite' ? 12 : 0)),
+    time: 110 + ch * 10 + (kind === 'elite' ? 10 : 0), starDeaths: 4 + ch * 2 + Math.floor(row / 2), starTime,
   };
 }

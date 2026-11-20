@@ -110,6 +110,21 @@ export const CARD_ART = {
     line(g, [-9, 0, 15, 0], INK, 2.6); line(g, [-9, 0, 15, 0], '#e9d9b0', 1.2); poly(g, [14, -2.8, 20.5, 0, 14, 2.8], STEEL, INK, 0.9); poly(g, [-9, -2.2, -6, 0, -9, 2.2, -13, 2.2, -10.6, 0, -13, -2.2], WHITE, INK, 0.7);
     g.restore();
   },
+  stakes(g) { // 목책 세우기
+    g.globalAlpha = 0.2; ell(g, 0, 17, 21, 4.4, INK); g.globalAlpha = 1;
+    for (const [x, a, h] of [[-15, -0.16, 30], [-5, 0.1, 34], [5, -0.08, 33], [15, 0.14, 30]]) { g.save(); g.translate(x, 17); g.rotate(a); poly(g, [-3.6, 0, -3.6, -h + 8, 0, -h, 3.6, -h + 8, 3.6, 0], WOOD, INK, 1.2); line(g, [-1.2, -4, -1.2, -h + 10], 'rgba(122,74,44,0.6)', 0.9); g.restore(); }
+    cord(g, p => { p.moveTo(-20, 3); p.quadraticCurveTo(0, 7, 20, 2); }, '#d9b77a', 1.8); cord(g, p => { p.moveTo(-19, -7); p.quadraticCurveTo(0, -3, 19, -8); }, '#d9b77a', 1.8);
+  },
+  scout(g) { // 척후
+    for (const [x, y, a] of [[-15, 15, 0.5], [-7, 9, 0.5], [-13, 3, 0.5]]) { g.globalAlpha = 0.55; ell(g, x, y, 2.4, 4, '#8a6a4a', INK, 0.8, a); g.globalAlpha = 1; }
+    g.save(); g.translate(3, -2); g.rotate(-0.6); rr(g, -17, -4.4, 14, 8.8, 2, BRASS, INK, 1.2); rr(g, -4, -5.6, 13, 11.2, 2, '#8a5f1c', INK, 1.2); rr(g, 8, -7, 10, 14, 2, BRASS, INK, 1.3); ell(g, 18, 0, 2.4, 7, WATER, INK, 1.1); for (const x of [-4, 8]) rr(g, x - 1, -6.4, 2.4, 12.8, 0.8, GOLD, INK, 0.6); g.globalAlpha = 0.5; line(g, [-14, -2.4, 14, -3.4], '#fff', 1); g.globalAlpha = 1; g.restore();
+    rays(g, 19, -14, 5, 10, 3, INK, 1.3, -PI * 0.55, PI * 0.5); spark(g, -12, -15, 3, '#fffbe6');
+  },
+  torch(g) { // 횃불
+    rays(g, 2, -9, 15, 21, 7, FLAME, 1.6, -PI * 0.95, PI * 0.9);
+    g.save(); g.rotate(0.22); line(g, [0, 22, 0, -2], INK, 4.6); line(g, [0, 22, 0, -2], WOODD, 2.8); rr(g, -4.4, -6, 8.8, 9, 2, '#3a3238', INK, 1.1); for (const y of [-3, 0]) line(g, [-4.4, y, 4.4, y], '#d9b77a', 0.9); g.restore();
+    flame(g, 1, -12, 8.4); flame(g, -5, -9, 3.4, '#ffb84a'); ell(g, 9, -22, 1.2, 1.2, FLAME, INK, 0.5); ell(g, -9, -20, 1, 1, FLAME, INK, 0.5);
+  },
   decoy(g) { // 허수아비
     line(g, [0, 21, 0, -6], INK, 3.4); line(g, [0, 21, 0, -6], WOOD, 1.8); line(g, [-17, -3, 17, -3], INK, 3.2); line(g, [-17, -3, 17, -3], WOOD, 1.7);
     path(g, p => { p.moveTo(-15, -7); p.lineTo(15, -7); p.lineTo(13.4, 1.6); p.lineTo(7.6, -0.4); p.lineTo(9.4, 14); p.lineTo(5, 11); p.lineTo(1.6, 15.4); p.lineTo(-2, 11); p.lineTo(-5.6, 15); p.lineTo(-9.4, 12.4); p.lineTo(-7.6, -0.4); p.lineTo(-13.4, 1.6); p.closePath(); }, '#d8cfb2', INK, 1.2);

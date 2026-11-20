@@ -232,6 +232,7 @@ function bannerCart(g) {
   rr(g, 4, -36, 18, 16, 4, '#a8322a', INK, 1.2); ell(g, 13, -36, 9, 3.4, '#f3e7c8', INK, 1.1); for (const x of [8, 13, 18]) line(g, [x, -32, x, -21], OCHRE, 1);
   for (const s of [-1, 1]) { ell(g, s * 15, -8, 9, 9, WOODD, INK, 1.3); ell(g, s * 15, -8, 6, 6, '#d9c39a', INK, 0.9); for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; line(g, [s * 15, -8, s * 15 + Math.cos(a) * 6, -8 + Math.sin(a) * 6], WOODD, 1.1); } ell(g, s * 15, -8, 1.8, 1.8, '#3a2a22'); }
 }
+function stakeLog(g) { g.save(); g.rotate(0.12); poly(g, [-5, 2, -5, -30, 0, -40, 5, -30, 5, 2], WOOD, INK, 1.3); line(g, [-1.6, -4, -1.6, -28], 'rgba(122,74,44,0.6)', 1); rr(g, -5.6, -14, 11.2, 3.4, 1, '#d9b77a', INK, 0.8); g.restore(); ell(g, 0, 2, 7, 2.6, '#8a6844', INK, 1); }
 function ghostDoll(o) { return g => { g.globalAlpha = 0.9; doll(g, Object.assign({ robe: '#c5d9df', collar: '#eef6f8', skin: '#e9f0f1', pale: true, tatter: true, hat: 'jeonrip', plain: true }, o)); g.globalAlpha = 1; }; }
 
 // ───────────── 무기 (원점 = 손잡이, 위쪽을 향함) ─────────────
@@ -290,6 +291,7 @@ export const LOOKS = {
   bishop: { body: g => doll(g, { robe: '#9a9a92', kasaya: '#a8442f', beads: true, hat: 'bald', hem: '#7a7a72' }), hold: hold(0, 'cast'), scale: 1.3, hero: true, h: 62 },
   archmage: { body: g => { ITEM.cloud(g); g.save(); g.translate(0, -3); doll(g, { robe: WHITE, sash: '#8fb6c8', beard: 'long', hat: 'sage', hem: '#8fb6c8', item: gg => { ell(gg, 9, -15.5, 3.6, 4.4, '#b8742a', INK, 1); ell(gg, 9, -20.6, 2, 2, '#b8742a', INK, 1); } }); g.restore(); }, hold: hold(0, 'cast', HX, HY - 3), scale: 1.3, hero: true, h: 62, float: true },
   decoy: { body: scarecrow, weapon: 'none', hold: hold(0, 'none'), h: 54, still: true },
+  stake: { body: stakeLog, weapon: 'none', hold: hold(0, 'none'), h: 40, still: true },
   banner: { body: bannerCart, weapon: 'none', hold: hold(0, 'none'), h: 104, still: true, scale: 1.1 },
   // 적군
   goblin: Object.assign(dk({ skin: '#d9603f' }), { scale: 0.8 }),

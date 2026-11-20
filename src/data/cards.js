@@ -17,6 +17,9 @@ export const CARDS = {
   cry: { name: '함성', ch: '함', kind: 'support', cost: 2, r: 124, target: true, rare: 1, v: { dmg: 30, dur: 7 }, up: { dmg: 45, dur: 9 }, desc: v => `범위 내 아군이 ${v.dur}초간 주는 피해 +${v.dmg}%` },
   ambush: { name: '매복', ch: '복', kind: 'tactic', cost: 3, r: 44, target: true, rare: 1, v: { n: 4, life: 20 }, up: { n: 6, life: 25 }, desc: v => `그 자리에 환도 무사 ${v.n}명이 나타나 ${v.life}초간 싸운다` },
   archers: { name: '원군 궁수', ch: '궁', kind: 'tactic', cost: 3, r: 44, target: true, rare: 1, v: { n: 3, life: 20 }, up: { n: 5, life: 25 }, desc: v => `그 자리에 궁수 ${v.n}명이 나타나 ${v.life}초간 싸운다` },
+  stakes: { name: '목책 세우기', ch: '책', kind: 'tactic', cost: 2, r: 40, target: true, rare: 0, v: { hp: 260, life: 30 }, up: { hp: 420, life: 45 }, desc: v => `그 자리에 말뚝 넷을 세워 ${v.life}초간 길을 막는다 (하나에 체력 ${v.hp})` },
+  scout: { name: '척후', ch: '척', kind: 'tactic', cost: 1, target: false, rare: 0, v: { gain: 3, expose: 20 }, up: { gain: 4, expose: 30 }, desc: v => `다음 물결이 시작될 때 사기 +${v.gain}, 그 요괴들은 처음 8초간 받는 피해 +${v.expose}%. 미리 써 두는 패` },
+  torch: { name: '횃불', ch: '횃', kind: 'support', cost: 1, target: false, rare: 0, v: { dur: 20, range: 10 }, up: { dur: 30, range: 18 }, desc: v => `${v.dur}초간 밤의 불이익을 걷어내고 아군 원거리 사거리 +${v.range}%` },
   decoy: { name: '허수아비', ch: '허', kind: 'tactic', cost: 1, r: 130, target: true, rare: 1, v: { hp: 420, life: 7 }, up: { hp: 800, life: 10 }, desc: v => `${v.life}초 동안 주변 적의 눈길을 끄는 허수아비 (체력 ${v.hp})` },
   // ── 영웅 전용 ──
   strike: { name: '언월 강타', ch: '격', kind: 'hero', hero: 'commander', cost: 3, r: 85, target: true, v: { dmg: 250, stun: 1.5 }, up: { dmg: 340, stun: 2 }, desc: v => `장군이 뛰어들어 범위 피해 ${v.dmg}, 기절 ${v.stun}초` },
@@ -39,8 +42,8 @@ export const cardVals = c => Object.assign({}, CARDS[c.id].v, c.up ? CARDS[c.id]
 export const cardCost = c => Math.max(0, CARDS[c.id].cost - (c.up && CARDS[c.id].upCost || 0));
 export const cardName = c => CARDS[c.id].name + (isUnit(c) ? ((c.lv || 1) > 1 ? ' Lv' + c.lv : '') : c.up ? '+' : '');
 export const cardDesc = c => CARDS[c.id].desc(cardVals(c));
-// 시작 덱: 영웅 1 + 병력 5 + 전술 5 + 영웅기 2
+// 시작 덱: 영웅 1 + 병력 5 + 전술 6 + 영웅기 2
 export function starterDeck(hero) {
-  const ids = ['h_' + hero, 'u_sword', 'u_shield', 'u_xbow', 'u_sword', 'u_xbow', 'sling', 'sling', 'rain', 'heal', 'horn'].concat(Object.keys(CARDS).filter(k => CARDS[k].hero === hero));
+  const ids = ['h_' + hero, 'u_sword', 'u_shield', 'u_xbow', 'u_sword', 'u_xbow', 'sling', 'sling', 'rain', 'heal', 'horn', 'scout'].concat(Object.keys(CARDS).filter(k => CARDS[k].hero === hero));
   return ids.map(id => ({ id, up: false, lv: 1 }));
 }

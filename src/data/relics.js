@@ -8,11 +8,11 @@ export const RELICS = {
   grail: { name: '정화수 사발', desc: '정화 굿 회복량 +50%, 범위 +20%', mod: m => { m.grailHeal *= 1.5; m.grailR *= 1.2; } },
   firearrow: { name: '불화살', desc: '화살비 피해 +25%, 3초간 화상 부여', mod: m => { m.rainDmg *= 1.25; m.rainBurn = 12; } },
   goldhorn: { name: '금장 북채', desc: '진군의 북 비용 -1, 지속 +3초', mod: m => { m.hornCost += 1; m.hornDur += 3; } },
-  band: { name: '풍물패', desc: '사기 회복 속도 +30%', mod: m => { m.moraleRate *= 1.3; } },
+  band: { name: '풍물패', desc: '요괴 무리를 물리칠 때 사기를 0.5 더 얻는다', mod: m => { m.killMorale += 0.5; } },
   plate: { name: '두정갑', desc: '근접 보병(환도 무사·등패수·창병·철퇴 장사) 체력 +20%', mod: m => { m.hpInf *= 1.2; } },
   feather: { name: '뿔 깍지', desc: '원거리 병종 사거리 +12%, 공격 속도 +12%', mod: m => { m.rangeMul *= 1.12; m.rangedAS *= 1.12; } },
   censer: { name: '약탕기', desc: '무녀·고승 치유량 +40%', mod: m => { m.priestHeal *= 1.4; } },
-  crest: { name: '호랑이 가죽', desc: '영웅 체력 +30%, 영웅 전용 패 비용 -1', mod: m => { m.heroHp *= 1.3; m.heroCost += 1; } },
+  crest: { name: '호랑이 가죽', desc: '영웅 체력 +30%, 영웅의 기력이 25% 빨리 찬다', mod: m => { m.heroHp *= 1.3; m.heroGauge *= 1.25; } },
   sack: { name: '엽전 꾸러미', desc: '승리 시 엽전 +50%', mod: m => { m.gold *= 1.5; } },
   oath: { name: '결사의 맹세', desc: '병력이 절반 이하인 부대의 피해 +30%', mod: m => { m.lastStand += 0.3; } },
   vanguard: { name: '선봉 깃발', desc: '싸움이 시작되고 10초간 이동 속도 +30%, 피해 +15%', mod: m => { m.vanguard = 1; } },
@@ -43,7 +43,7 @@ export const RELICS = {
   c_trick: { name: '도깨비 장난', curse: true, desc: '싸움이 시작될 때마다 사기 -2', mod: m => { m.startMorale -= 2; } },
   c_luck: { name: '액운', curse: true, desc: '싸움에서 얻는 엽전 -25%', mod: m => { m.gold *= 0.75; } },
   c_fog: { name: '눈먼 안개', curse: true, desc: '원거리 병종 사거리 -10%', mod: m => { m.rangeMul *= 0.9; } },
-  c_chill: { name: '으스스한 한기', curse: true, desc: '사기 회복 속도 -15%', mod: m => { m.moraleRate *= 0.85; } },
+  c_chill: { name: '으스스한 한기', curse: true, desc: '싸움이 시작될 때 얻는 사기 -1', mod: m => { m.startMorale -= 1; } },
 };
 for (const k of Object.keys(RELICS)) RELICS[k].id = k;
 export const CURSES = Object.keys(RELICS).filter(k => RELICS[k].curse);

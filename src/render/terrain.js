@@ -122,3 +122,32 @@ export function stopSprite(kind) {
   s = paperSprite(STOPS[kind] || STOPS.battle, { w: 150, h: 130, ox: 75, oy: 116, bw: 2.4 });
   scache.set(kind, s); return s;
 }
+
+// ── 싸움터의 지형: 종이 무대 장치처럼 세워진다 (원점 = 밑동 가운데) ──
+const ocache = new Map();
+export function obstacleSprite(o, themeId) {
+  const T = THEMES[themeId] || THEMES.pass, key = themeId + ':' + o.kind + ':' + (o.h || o.r || 0) + ':' + (o.v || 0);
+  let s = ocache.get(key); if (s) return s;
+  const R = rng((o.v || 1) * 131 + (o.h || o.r || 3));
+  if (o.kind === 'wall') s = paperSprite(g => { for (let y = -7; y > -o.h - 4; y -= 12.5) for (const dx of [-7, 7]) ell(g, dx + (R() - 0.5) * 3, y + (dx > 0 ? -6 : 0), 11.5, 8.4, T.stone[(R() * 2) | 0], INK, 1.4); ell(g, 0, -o.h - 6, 12, 8, T.stone[0], INK, 1.4); ell(g, -8, -2, 7, 3, T.pine, INK, 0.9); }, { w: 70, h: o.h + 50, ox: 35, oy: o.h + 34, bw: 2 });
+  else if (o.kind === 'barricade') s = paperSprite(g => { line(g, [0, -4, 0, -o.h], INK, 3.6); line(g, [0, -4, 0, -o.h], '#d9b77a', 2); for (let y = -2; y > -o.h; y -= 12) { g.save(); g.translate(0, y); g.rotate(((y / 12) | 0) % 2 ? 0.2 : -0.2); poly(g, [-3.2, 2, -3.2, -22, 0, -30, 3.2, -22, 3.2, 2], '#b98a55', INK, 1.2); g.restore(); } }, { w: 60, h: o.h + 60, ox: 30, oy: o.h + 44, bw: 2 });
+  else if (o.kind === 'rock') s = paperSprite(g => { const r = o.r; poly(g, [-r, r * 0.3, -r * 0.85, -r * 0.6, -r * 0.25, -r * 1.25, r * 0.55, -r * 1.05, r, -r * 0.2, r * 0.8, r * 0.35, -r * 0.5, r * 0.45], T.stone[1], INK, 1.5); line(g, [-r * 0.5, -r * 0.4, -r * 0.1, -r, r * 0.35, -r * 0.6], INK + '88', 1.1); line(g, [r * 0.1, r * 0.2, r * 0.5, -r * 0.3], INK + '66', 1); ell(g, -r * 0.55, r * 0.26, r * 0.34, r * 0.16, T.pine, INK, 1); }, { w: o.r * 2 + 24, h: o.r * 2.4 + 24, ox: o.r + 12, oy: o.r * 1.5 + 12, bw: 2 });
+  else if (o.kind === 'tree') s = paperSprite(g => pine(g, 0, 8, 1.05, T), { w: 100, h: 124, ox: 50, oy: 106, bw: 2 });
+  else if (o.kind === 'pillar') s = paperSprite(g => { for (let i = 0; i < 5; i++) ell(g, (R() - 0.5) * 2, 4 - i * 12, 21 - i * 3.5, 8.4 - i * 0.8, T.stone[i % 2], INK, 1.4); }, { w: 64, h: 84, ox: 32, oy: 66, bw: 2 });
+  else s = paperSprite(() => {}, { w: 8, h: 8, ox: 4, oy: 4, border: null, shadow: false });
+  ocache.set(key, s); return s;
+}
+// 장애물이 서는 자리 (y 정렬과 그리기에 쓴다)
+export const obstacleBase = o => o.w ? { x: o.x + o.w / 2, y: o.y + o.h } : { x: o.x, y: o.y + (o.kind === 'tree' ? 0 : o.r * 0.5) };
+// 개울과 다리, 여울의 디딤돌 (바닥에 깔린다)
+export function drawRiver(g, ter, themeId, T, k) {
+  const C = THEMES[themeId] || THEMES.pass, rv = ter.river; if (!rv) return;
+  const water = C.night ? '#7f94ba' : themeId === 'grove' ? '#8fb9bf' : '#9cc0cf', deep = C.night ? '#566c96' : '#6f9aae', y0 = 96, y1 = 566;
+  g.save(); g.globalAlpha = k;
+  const band = p => { p.moveTo(rv.x + Math.sin(y0 * 0.04) * 4, y0); for (let y = y0; y <= y1; y += 30) p.lineTo(rv.x + Math.sin(y * 0.04) * 4, y); for (let y = y1; y >= y0; y -= 30) p.lineTo(rv.x + rv.w + Math.sin(y * 0.035 + 2) * 4, y); p.closePath(); };
+  g.beginPath(); band(g); g.fillStyle = water; g.fill(); st(g, INK, 2);
+  g.save(); g.beginPath(); band(g); g.clip(); for (let i = 0; i < 22; i++) { const y = y0 + ((i * 47 + T * 26) % (y1 - y0)), x = rv.x + 8 + ((i * 31) % (rv.w - 22)); g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 5, y + 6, x, y + 13); st(g, deep, 1.3); } g.restore();
+  for (const b of ter.bridges || []) { rr(g, b.x - 4, b.y + 8, b.w + 8, b.h - 16, 3, '#9a6f45', INK, 1.6); for (let x = b.x + 2; x < b.x + b.w; x += 11) line(g, [x, b.y + 10, x, b.y + b.h - 10], '#6f4c2c', 1.2); rr(g, b.x - 8, b.y + 3, b.w + 16, 7, 3, '#7a5a40', INK, 1.4); rr(g, b.x - 8, b.y + b.h - 10, b.w + 16, 7, 3, '#7a5a40', INK, 1.4); }
+  for (const f of ter.slow || []) for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) ell(g, f.x + 14 + i * (f.w - 28) / 2 + (j ? 5 : -5), f.y + 16 + j * (f.h - 32), 11, 7.4, C.stone[(i + j) % 2], INK, 1.3);
+  g.restore();
+}
