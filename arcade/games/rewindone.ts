@@ -759,6 +759,17 @@ function stepHero(W: World, E: Sink) {
   if (under !== H.on && under >= 0) E?.('board', H.x, uy, 0, supThing(under));
   H.on = under;
   H.y = uy;
+  // 상자 탑 발치(땅)에 떨어졌으면 탑 앞으로 밀려난다 — 지나쳐 갇히거나 계단 밑에 끼지 않게
+  if (H.on === -1)
+    for (const th of W.th) {
+      if (th.k !== 'stack') continue;
+      const x0 = th.x - ST_CW / 2, x1 = th.x + (ST_N - 1) * ST_DX + ST_CW / 2;
+      if (Math.abs(H.y - th.y) < 0.02 && H.x > x0 + 0.004 && H.x < x1) {
+        H.x = x0 - 0.03;
+        E?.('shove', H.x, H.y, 0, th.id);
+        return wait(W, H, E);
+      }
+    }
   // 막힘(화분 조각·물·불)
   const nx = H.x + V;
   for (const th of W.th) {
@@ -1113,10 +1124,10 @@ function rawLevel(si: number, r: Rng): Level {
       // 등불(먼저 떨어져 불을 냄 — 되감아도 불은 그대로) · 물통(그 전에 쏟아짐 — 되감으면 불을 지나 솟는다)
       const bv = Ac('beaver', R_DECO, 0.42, 0.56), mole = Ac('mole', R_DECO, 0.64, 0.5);
       L.actors.push(bv, mole);
-      const lamp = potT(0.5, 0.58, 1, bv.id, lane - 0.01);
+      const lamp = potT(0.47, 0.58, 1, bv.id, lane - 0.01);
       lamp.n = 2;
       lamp.harm = 0;
-      const pail = potT(rnd(r, 0.52, 0.55), 0.52, 1, mole.id, lane);
+      const pail = potT(rnd(r, 0.56, 0.59), 0.52, 1, mole.id, lane);
       pail.n = 1;
       pail.harm = 0;
       L.things.push(pre(lamp), pre(pail));
@@ -1197,11 +1208,11 @@ function rawLevel(si: number, r: Rng): Level {
 // ───────────────────────────── 앞을 셈 (같은 세계로) ─────────────────────────────
 interface Out { win: boolean; fail: boolean; t: number; x: number; hurt: number; used: number; saved: number; stuck: boolean }
 /** 아무것도 안 하고(또는 되감는 물건을 걸림 자리에서 멈추며) 앞으로 세어 본다 */
-function rollout(W0: World, maxT = 1300, dockId = -1): Out {
+function rollout(W0: World, maxT = 1300, dockId = -1, dockFrom = 0): Out {
   const W = cloneWorld(W0), H = W.hero, t0 = W.t;
   let still = 0;
   while (W.t - t0 < maxT) {
-    if (dockId >= 0 && W.rew === dockId) {
+    if (dockId >= 0 && W.rew === dockId && W.t >= dockFrom) {
       const th = thingOf(W, dockId)!;
       if (th.tau <= th.dock + 30) tapThing(W, th, null);
     }
@@ -1225,10 +1236,12 @@ function value(o: Out): number {
 /** 지금 톡 할 수 있는(되감을 수 있는) 물건 */
 const tappable = (th: Thing) => th.st !== DONE && th.st !== REW && th.tau > 0;
 const DEC = 6, LATER = 12;
+/** 손이 다시 누를 수 있는 간격(틱): 톡 → 뗌 → 다음 톡은 두 칸 뒤. 잘하는 봇은 자기 손 빠르기에 맞춰 계획한다 (판 고르기는 늘 6) */
+let PACE = DEC;
 function tryTap(W: World, id: number, toDock: boolean): number {
   const c = cloneWorld(W);
   tapThing(c, thingOf(c, id)!, null);
-  return value(rollout(c, 1300, toDock ? id : -1));
+  return value(rollout(c, 1300, toDock ? id : -1, c.t + 2 * PACE));
 }
 
 /** 잘하는 머리: 지금 무엇을(또는 멈춤을) 톡 할까 — 같은 세계로 앞을 세어 본다. 돌려주는 값: 물건 id(-1 없음) · 걸림 자리에서 멈출 생각인가 */
@@ -1255,11 +1268,11 @@ function decide(W: World, base: Out): typeof PICK {
     if (vNow <= bestV) continue;
     // 조금 뒤에 해도 똑같이 좋으면 기다린다 (되감기는 늦을수록 비싸지만, 다시 벌어지는 일은 너무 일찍 하면 헛일)
     const c2 = cloneWorld(W);
-    for (let k = 0; k < LATER; k++) stepWorld(c2, null);
+    for (let k = 0; k < Math.max(LATER, PACE); k++) stepWorld(c2, null);
     const t2 = thingOf(c2, th.id);
     if (t2 && tappable(t2) && c2.hero.st !== H_FAIL) {
       tapThing(c2, t2, null);
-      if (value(rollout(c2, 1300, dk ? th.id : -1)) >= vNow - 0.5) continue;
+      if (value(rollout(c2, 1300, dk ? th.id : -1, c2.t + 2 * PACE)) >= vNow - 0.5) continue;
     }
     PICK.id = th.id;
     PICK.dock = dk;
@@ -1293,21 +1306,25 @@ function planFrom(W0: World, maxT = 3600): Plan {
   const W = cloneWorld(W0), acts: number[] = [];
   let intent = -1;
   let base = rollout(W);
-  const t0 = W.t;
-  while (W.t - t0 < maxT && W.hero.st !== H_WIN && W.hero.st !== H_FAIL) {
-    if (W.t % DEC === 0) {
+  // 결정은 봇이 실제로 손을 쓸 수 있는 틱에만 (지금부터 PACE마다, 누른 뒤엔 두 칸 쉬고)
+  const t0 = W.t, pace = PACE;
+  let nextOk = t0;
+  while (W.t - t0 < maxT && W.hero.st !== H_WIN && W.hero.st !== H_FAIL && !(W.hero.st === H_WAIT && W.hero.waitT > 1200)) {
+    const on = (W.t - t0) % pace === 0;
+    if (on && W.t >= nextOk) {
       const p = decide(W, base);
       if (p.id >= 0) {
         const wasRew = W.rew === p.id;
         acts.push(W.t, p.id, wasRew ? thingOf(W, p.id)!.tau : -1);
         tapThing(W, thingOf(W, p.id)!, null);
+        nextOk = W.t + 2 * pace;
         intent = !wasRew && p.dock ? p.id : -1;
-        base = rollout(W, 1300, intent);
+        base = rollout(W, 1300, intent, nextOk);
       }
     }
     stepWorld(W, null);
     if (W.rew < 0) intent = -1;
-    if (W.t % DEC === 0 && (base.t <= W.t || W.rew >= 0)) base = rollout(W, 1300, intent);
+    if ((W.t - t0) % pace === 0 && (base.t <= W.t || W.rew >= 0)) base = rollout(W, 1300, intent, nextOk);
   }
   return { acts, used: W.used, win: W.hero.st === H_WIN, hurt: W.hurt, saved: W.saved, t: W.t - t0, taps: W.taps - W0.taps };
 }
@@ -1374,7 +1391,7 @@ export function buildLevel(variant: number, si: number): Level {
       const hb = trialHabit(L, habitFirst);
       if (starsOf(L, hb).every(Boolean)) continue;
     }
-    planCache.set(`${ck}:start`, pl);
+    planCache.set(`${ck}:${DEC}:0`, pl);
     pick = L;
   }
   const L = pick ?? fb ?? rawLevel(0, mulberry32(5));
@@ -1412,8 +1429,8 @@ function newStage(s: RewState) {
   s.idleT = 0;
   s.sel = -1;
   see(s, d.key);
-  if (s.again) s.banner = { head: `다시! ${s.stage + 1}판 · ${d.name}`, sub: d.hint, t: s.t };
-  else s.banner = s.stage === 0 ? null : { head: `${s.stage + 1}판 · ${d.name}`, sub: d.news ? `NEW  ${d.news}` : d.hint, t: s.t };
+  if (s.again) s.banner = { head: `다시! ${d.ch + 1}-${inCh(s.stage)} · ${d.name}`, sub: d.hint, t: s.t };
+  else s.banner = s.stage === 0 ? null : { head: `${d.ch + 1}-${inCh(s.stage)} · ${d.name}`, sub: d.news ? `NEW  ${d.news}` : d.hint, t: s.t };
   s.spot = null;
   if (!s.again && s.stage > 0 && d.spot) {
     const L = s.L, th = L.things[0];
@@ -1561,6 +1578,8 @@ function tapDist(th: Thing, x: number, y: number): number {
     case 'balloon':
       return Math.max(0, Math.min(Math.hypot(x - P.x, y - P.y), Math.hypot(x - P.x, y - P.y - 0.13)) - 0.04);
     case 'pot':
+      // 물통: 선반 위 통이나 쏟아진 물
+      if (th.n === 1) return Math.max(0, Math.min(Math.hypot(x - th.x, y - (th.y - 0.025)) - 0.035, Math.hypot(x - P.x, y - P.y) - 0.03));
       return Math.max(0, Math.hypot(x - P.x, y - P.y) - (th.tau >= potHit(th) ? 0.05 : 0.02));
     case 'gear':
       return Math.max(0, Math.hypot(x - P.x, y - (P.y - 0.05)) - 0.04);
@@ -1667,19 +1686,22 @@ export const rewindone: GameDef<RewState> & { wows(s: RewState): number } = {
     if (s.phase === 'result') {
       if (s.pt >= (s.ok ? 210 : 150) || (press && s.pt > 50)) {
         if (s.ok) {
-          if (s.won) s.dead = true;
-          else {
-            s.stage++;
-            if (STAGES[s.stage].ch !== STAGES[s.stage - 1].ch) (s.phase = 'chapter'), (s.pt = 0), ev(s, 'chapter', 0.5, 0.5);
-            else newStage(s);
-          }
+          if (s.won || STAGES[s.stage + 1].ch !== STAGES[s.stage].ch) (s.chDone = STAGES[s.stage].ch), (s.phase = 'chapter'), (s.pt = 0);
+          else s.stage++, newStage(s);
         } else if (s.hearts <= 0) s.dead = true;
         else (s.again = true), newStage(s);
       }
       return;
     }
     if (s.phase === 'chapter') {
-      if (s.pt >= 120 || (press && s.pt > 30)) newStage(s);
+      // 장 끝 장면: 이번 장에 되살린 것들이 마을 전경에서 차례로 '짠' → 시계탑 바늘 한 칸 → 다음 장 실루엣
+      const b = s.chDone * 6;
+      for (let j = 0; j < 6; j++) if (s.pt === REV0 + j * REVD) ev(s, 'revive', FIX_POS[b + j][0], FIX_POS[b + j][1], b + j);
+      if (s.pt === NOTCH_T) ev(s, 'notch', CLK[0], CLK[1], s.chDone + 1);
+      if (s.pt >= CH_END || (press && s.pt > 60)) {
+        if (s.won) s.dead = true;
+        else s.stage++, newStage(s);
+      }
       return;
     }
     if (press) tapAt(s, p!.x, p!.y);
@@ -1727,14 +1749,15 @@ function worldTap(th: Thing): { x: number; y: number } {
   else if (th.k === 'balloon') y = P.y + 0.02;
   else if (th.k === 'stack') (x = th.x + 0.1), (y = th.y - 0.08);
   else if (th.k === 'sack') y = P.y - 0.02;
+  else if (th.k === 'pot' && th.n === 1) (x = th.x), (y = th.y - 0.025);
   return { x, y };
 }
-interface Mind { stage: number; tries: number; plan: Plan | null; i: number; up: boolean; want: number; again: boolean }
+interface Mind { stage: number; tries: number; plan: Plan | null; i: number; up: boolean; want: number; again: boolean; rp: number; ck: number; gap: number; prevT: number }
 const minds = new WeakMap<object, Mind>();
 function mindOf(s: RewState): Mind {
   let m = minds.get(s);
-  if (!m) minds.set(s, (m = { stage: -1, tries: -1, plan: null, i: 0, up: false, want: -1, again: false }));
-  if (m.stage !== s.stage || m.tries !== s.tries) (m.stage = s.stage), (m.tries = s.tries), (m.plan = null), (m.i = 0), (m.want = -1);
+  if (!m) minds.set(s, (m = { stage: -1, tries: -1, plan: null, i: 0, up: false, want: -1, again: false, rp: 0, ck: 0, gap: DEC, prevT: -1 }));
+  if (m.stage !== s.stage || m.tries !== s.tries) (m.stage = s.stage), (m.tries = s.tries), (m.plan = null), (m.i = 0), (m.want = -1), (m.rp = 0), (m.ck = 0);
   return m;
 }
 /** 결과 화면은 톡으로 넘긴다 */
@@ -1748,37 +1771,51 @@ function skip(s: RewState, m: Mind): Input | null {
 export const rewindoneSmart: Bot<RewState> = {
   name: '시계 장인',
   act(s) {
-    const m = mindOf(s), sk = skip(s, m);
+    const m = mindOf(s);
+    // 내 손 빠르기 (부름 사이 틱)
+    if (m.prevT >= 0 && s.t > m.prevT) m.gap = Math.max(1, Math.min(60, s.t - m.prevT));
+    m.prevT = s.t;
+    const sk = skip(s, m);
     if (sk) return sk;
     if (s.down || m.up) return (m.up = false), NO;
     const W = s.W;
     if (W.hero.st === H_WIN || W.hero.st === H_FAIL) return NO;
+    const plan = () => {
+      PACE = m.gap;
+      const r = planFrom(W);
+      PACE = DEC;
+      return r;
+    };
     if (m.again && m.plan) {
       // 늦게 눌렀다: 남은 계획이 여전히 같은 결과를 내면 그대로, 나빠지면 다시 세운다
       m.again = false;
       const o = simPlan(W, m.plan.acts, m.i);
       if (!o.win || o.hurt > m.plan.hurt || o.used > m.plan.used + 4 || o.saved < m.plan.saved) {
-        m.plan = planFrom(W);
+        m.plan = plan();
         m.i = 0;
+        m.rp++;
       }
     }
     if (!m.plan) {
-      const key = `${s.variant}:${s.stage}:start`;
-      m.plan = W.t === 0 && W.used === 0 ? planCache.get(key) ?? null : null;
+      // 아직 아무것도 안 건드린 세계는 판·틱만으로 정해진다 — 같은 손 빠르기면 계획을 나눠 쓴다
+      const fresh = W.taps === 0 && W.used === 0, key = `${s.variant}:${s.stage}:${m.gap}:${W.t}`;
+      m.plan = fresh ? planCache.get(key) ?? null : null;
       if (!m.plan) {
-        m.plan = planFrom(W);
-        if (W.t === 0 && W.used === 0) planCache.set(key, m.plan);
+        m.plan = plan();
+        if (fresh) planCache.set(key, m.plan);
       }
       m.i = 0;
     }
     const pl = m.plan, a = pl.acts;
     const replan = () => {
-      m.plan = planFrom(W);
+      m.plan = plan();
       m.i = 0;
+      m.rp++;
     };
     if (m.i >= a.length) {
-      // 계획이 끝났는데 앞으로 셈이 '이김'이 아니면 다시
-      if (W.t % 30 < REACT_SMART && W.rew < 0 && W.sand > 0) {
+      // 계획이 끝났는데 앞으로 셈이 '이김'이 아니면 다시 (몇 번까지만)
+      if (W.t - m.ck >= 30 && W.rew < 0 && W.sand > 0 && m.rp < 12) {
+        m.ck = W.t;
         const o = rollout(W);
         if (!o.win || o.hurt > W.hurt) replan();
       }
@@ -1806,7 +1843,6 @@ export const rewindoneSmart: Bot<RewState> = {
     return { tap: false, dir: 0, pointer: tapPoint(s, th) };
   },
 };
-const REACT_SMART = 3;
 /** 버릇 봇: 버릇 머리가 고른 물건을 톡 (같은 판이면 같은 결정 — 기억해 둔다) */
 function habitBot(name: string, pick: (W: World) => number): Bot<RewState> {
   return {
@@ -1827,7 +1863,7 @@ function habitBot(name: string, pick: (W: World) => number): Bot<RewState> {
   };
 }
 /** 측정·조율용 (게임에는 안 씀) */
-export const _dbg = { jump: (s: RewState, st: number) => ((s.stage = st), (s.fixed = st), (s.gears = st), newStage(s)), rollout, value, tryTap, tap: (W: World, th: Thing, E: Sink) => tapThing(W, th, E), rawLevel, planFrom: (L: Level) => planFrom(newWorld(L)), trialHabit, habitFirst, habitNear, starsOf, newWorld, stepWorld };
+export const _dbg = { jump: (s: RewState, st: number) => ((s.stage = st), (s.fixed = st), (s.gears = st), newStage(s)), rollout, value, tryTap, tap: (W: World, th: Thing, E: Sink) => tapThing(W, th, E), rawLevel, planFrom: (L: Level) => planFrom(newWorld(L)), planW: planFrom, simPlan, mind: (s: RewState) => minds.get(s), tapPt: (s: RewState, k: string) => tapPoint(s, s.W.th.find((q) => q.k === k)!), trialHabit, habitFirst, habitNear, starsOf, newWorld, stepWorld };
 export const rewindoneHabit: Bot<RewState> = habitBot('버릇: 먼저 움직인 것부터', habitFirst);
 export const rewindoneHabit2: Bot<RewState> = habitBot('버릇: 주인공에 가까운 것', habitNear);
 const dumbAt = new WeakMap<object, { next: number; until: number; p: { x: number; y: number } }>();
@@ -1864,6 +1900,11 @@ function rr(ctx: C2, x: number, y: number, w: number, h: number, r: number) {
 }
 function lin(ctx: C2, x0: number, y0: number, x1: number, y1: number, stops: [number, string][]) {
   const g = ctx.createLinearGradient(x0, y0, x1, y1);
+  for (const [o, c] of stops) g.addColorStop(o, c);
+  return g;
+}
+function rad(ctx: C2, x: number, y: number, r: number, stops: [number, string][]) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r);
   for (const [o, c] of stops) g.addColorStop(o, c);
   return g;
 }
@@ -1959,30 +2000,76 @@ function clockGlyph(ctx: C2, x: number, y: number, r: number, t: number, a: numb
 }
 /** 한 물건만 색을 입혀 덧그린다 (화면 밖 캔버스에 그리고 그 모양에만 색) */
 let tintCv: HTMLCanvasElement | null = null;
-function tinted(ctx: C2, fn: (o: C2) => void, col: string, a: number) {
+function tinted(ctx: C2, fn: (o: C2) => void, col: string, a: number, box?: number[]) {
   if (typeof document === 'undefined') return;
   const cw = ctx.canvas.width, chh = ctx.canvas.height;
   if (!tintCv) tintCv = document.createElement('canvas');
   if (tintCv.width !== cw || tintCv.height !== chh) (tintCv.width = cw), (tintCv.height = chh);
   const o = tintCv.getContext('2d');
   if (!o) return;
+  const m = ctx.getTransform();
+  // 물건 둘레만 (화면 전체를 칠하면 휴대폰에서 무겁다)
+  let x0 = 0, y0 = 0, x1 = cw, y1 = chh;
+  if (box) {
+    x0 = Math.max(0, Math.floor(m.a * box[0] + m.e) - 2);
+    y0 = Math.max(0, Math.floor(m.d * box[1] + m.f) - 2);
+    x1 = Math.min(cw, Math.ceil(m.a * box[2] + m.e) + 2);
+    y1 = Math.min(chh, Math.ceil(m.d * box[3] + m.f) + 2);
+    if (x1 <= x0 || y1 <= y0) return;
+  }
+  const bw = x1 - x0, bh = y1 - y0;
   o.setTransform(1, 0, 0, 1, 0, 0);
   o.globalCompositeOperation = 'source-over';
   o.globalAlpha = 1;
-  o.clearRect(0, 0, cw, chh);
-  o.setTransform(ctx.getTransform());
+  o.clearRect(x0, y0, bw, bh);
+  o.save();
+  o.beginPath();
+  o.rect(x0, y0, bw, bh);
+  o.clip();
+  o.setTransform(m);
   fn(o);
+  o.restore();
   o.setTransform(1, 0, 0, 1, 0, 0);
   o.globalCompositeOperation = 'source-atop';
   o.globalAlpha = a;
   o.fillStyle = col;
-  o.fillRect(0, 0, cw, chh);
+  o.fillRect(x0, y0, bw, bh);
   o.globalAlpha = 1;
   o.globalCompositeOperation = 'source-over';
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.drawImage(tintCv, 0, 0);
+  ctx.drawImage(tintCv, x0, y0, bw, bh, x0, y0, bw, bh);
   ctx.restore();
+}
+/** 먼 배경을 1/3 해상도로 그려 늘린다 — 흐린 느낌을 거의 공짜로 (filter: blur는 휴대폰·소프트웨어 그리기에서 아주 느리다) */
+let softCv: HTMLCanvasElement | null = null;
+function softLayer(ctx: C2, w: number, h: number, fn: (o: C2) => void) {
+  if (typeof document === 'undefined') return fn(ctx);
+  const m = ctx.getTransform(), k = 3, cw = Math.max(1, Math.ceil((w * m.a) / k)), chh = Math.max(1, Math.ceil((h * m.d) / k));
+  if (!softCv) softCv = document.createElement('canvas');
+  if (softCv.width !== cw || softCv.height !== chh) (softCv.width = cw), (softCv.height = chh);
+  const o = softCv.getContext('2d');
+  if (!o) return fn(ctx);
+  o.setTransform(1, 0, 0, 1, 0, 0);
+  o.clearRect(0, 0, cw, chh);
+  o.setTransform(m.a / k, 0, 0, m.d / k, 0, 0);
+  fn(o);
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(softCv, 0, 0, cw, chh, 0, 0, (cw * k) / m.a, (chh * k) / m.d);
+  ctx.restore();
+}
+/** 물건(τ0..τ1 동안) 둘레 상자 — 화면 px */
+function thingBox(v: View, th: Thing, t0: number, t1: number): number[] {
+  let x0 = 9e9, y0 = 9e9, x1 = -9e9, y1 = -9e9;
+  const tau = th.tau;
+  for (let k = 0; k <= 4; k++) {
+    th.tau = Math.min(th.dur, t0 + ((t1 - t0) * k) / 4);
+    const c = thingCenter(th), r = th.k === 'bridge' ? 0.3 : c.r * 1.6 + 0.04;
+    (x0 = Math.min(x0, v.X(c.x - r))), (x1 = Math.max(x1, v.X(c.x + r))), (y0 = Math.min(y0, v.Y(c.y - r))), (y1 = Math.max(y1, v.Y(c.y + r)));
+  }
+  th.tau = tau;
+  return [x0, y0, x1, y1];
 }
 /** 작은 시계 표시: 바늘이 자기 시간만큼 돌아가 있다 (쉬는 중이면 모래시계 빛) */
 function clockBadge(ctx: C2, x: number, y: number, r: number, tau: number, rest: boolean) {
@@ -2649,6 +2736,8 @@ function drawBridgeT(ctx: C2, v: View, th: Thing, tau: number) {
 }
 function drawPot(ctx: C2, v: View, th: Thing, tau: number, a = 1) {
   const X = v.X, Y = v.Y, R = v.R, hit = potHit(th);
+  if (th.n === 1) return drawPail(ctx, v, th, tau, a);
+  if (th.n === 2) return drawLantern(ctx, v, th, tau, a);
   if (tau < hit) {
     pose(th, tau);
     ctx.save();
@@ -2688,6 +2777,82 @@ function drawPot(ctx: C2, v: View, th: Thing, tau: number, a = 1) {
   ctx.fillStyle = '#ff5a7a';
   ell(ctx, gx + R(0.02) * ex, gy - R(0.012), R(0.009), R(0.009));
   ctx.fill();
+  ctx.restore();
+}
+/** 물통: 기울어 쏟아지고(물덩이가 떨어져 바닥에 철썩), 되감으면 물이 거꾸로 솟아 통으로 */
+function drawPail(ctx: C2, v: View, th: Thing, tau: number, a = 1) {
+  const { X, Y, R } = v, hit = potHit(th);
+  ctx.save();
+  ctx.globalAlpha *= a;
+  // 선반의 통 (기울기만 τ를 따른다)
+  const tip = Math.min(1, tau / POT_TT);
+  ctx.save();
+  ctx.translate(X(th.x), Y(th.y));
+  ctx.rotate(tip * 1.6);
+  ctx.fillStyle = lin(ctx, -R(0.025), 0, R(0.025), 0, [[0, '#c8884a'], [1, '#8a5228']]);
+  ctx.beginPath();
+  ctx.moveTo(-R(0.026), -R(0.05));
+  ctx.lineTo(R(0.026), -R(0.05));
+  ctx.lineTo(R(0.02), 0);
+  ctx.lineTo(-R(0.02), 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#5a5a6a';
+  ctx.lineWidth = Math.max(1.5, R(0.004));
+  ctx.beginPath();
+  ctx.moveTo(-R(0.025), -R(0.035));
+  ctx.lineTo(R(0.025), -R(0.035));
+  ctx.moveTo(-R(0.022), -R(0.012));
+  ctx.lineTo(R(0.022), -R(0.012));
+  ctx.stroke();
+  if (tau < POT_TT * 0.6) {
+    ctx.fillStyle = '#6ad0f5';
+    ell(ctx, 0, -R(0.048), R(0.022), R(0.006));
+    ctx.fill();
+  }
+  ctx.restore();
+  // 물덩이 · 바닥 웅덩이
+  if (tau >= POT_TT && tau < hit) {
+    pose(th, tau);
+    const wy = Y(P.y + 0.02), len = R(Math.min(0.12, (tau - POT_TT) * 0.006));
+    ctx.fillStyle = 'rgba(100,200,250,.88)';
+    rr(ctx, X(P.x) - R(0.018), wy - len, R(0.036), len + R(0.02), R(0.016));
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.6)';
+    ell(ctx, X(P.x) - R(0.006), wy - len * 0.5, R(0.004), len * 0.3);
+    ctx.fill();
+  } else if (tau >= hit) {
+    const q = cl01((tau - hit) / 14);
+    ctx.fillStyle = 'rgba(90,190,245,.85)';
+    ell(ctx, X(th.x), Y(th.y2) - R(0.004), R(0.03 + 0.05 * q), R(0.009 + 0.004 * q));
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.5)';
+    ell(ctx, X(th.x) - R(0.02 * q), Y(th.y2) - R(0.006), R(0.012), R(0.003));
+    ctx.fill();
+  }
+  ctx.restore();
+}
+/** 등불: 떨어져 짚더미에 불을 낸다 (되감아도 불은 그대로) */
+function drawLantern(ctx: C2, v: View, th: Thing, tau: number, a = 1) {
+  const { X, Y, R, t } = v, hit = potHit(th);
+  pose(th, tau);
+  ctx.save();
+  ctx.globalAlpha *= a;
+  const x = X(P.x), y = tau >= hit ? Y(th.y2) - R(0.012) : Y(P.y + 0.03);
+  ctx.translate(x, y);
+  ctx.rotate(tau >= hit ? 1.4 : P.a);
+  ctx.fillStyle = '#5a4a3a';
+  rr(ctx, -R(0.016), -R(0.04), R(0.032), R(0.006), R(0.003));
+  ctx.fill();
+  rr(ctx, -R(0.014), -R(0.002), R(0.028), R(0.006), R(0.003));
+  ctx.fill();
+  const glow = tau >= hit ? 0.35 : 0.85 + Math.sin(t * 0.3) * 0.1;
+  ctx.fillStyle = `rgba(255,214,100,${glow})`;
+  rr(ctx, -R(0.012), -R(0.035), R(0.024), R(0.033), R(0.006));
+  ctx.fill();
+  ctx.strokeStyle = '#5a4a3a';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(-R(0.012), -R(0.035), R(0.024), R(0.033));
   ctx.restore();
 }
 function potShape(ctx: C2, r: number, x: number, y: number, t: number) {
@@ -3353,7 +3518,7 @@ function drawSky(ctx: C2, v: View, w: number, ch: number) {
 function drawPanorama(ctx: C2, v: View, w: number, ch: number) {
   const { X, Y, R, t, fixed } = v;
   // 무지개
-  if (fixed >= 8) {
+  if (fixed >= 10) {
     ctx.save();
     ctx.globalAlpha = 0.45;
     const cols = ['#ff6a6a', '#ffb04a', '#ffe36a', '#7ad86a', '#5ab8ff', '#a87aff'];
@@ -3431,7 +3596,7 @@ function drawPanorama(ctx: C2, v: View, w: number, ch: number) {
     ctx.lineTo(mx + R(0.022), my - R(0.03));
     ctx.closePath();
     ctx.fill();
-    const wr = R(0.028), wx = mx + R(0.03), wy = my + R(0.005), rot = fixed >= 5 ? t * 0.04 : 0;
+    const wr = R(0.028), wx = mx + R(0.03), wy = my + R(0.005), rot = fixed >= 7 ? t * 0.04 : 0;
     ctx.strokeStyle = '#8a5a2a';
     ctx.lineWidth = 2;
     ell(ctx, wx, wy, wr, wr);
@@ -3443,7 +3608,7 @@ function drawPanorama(ctx: C2, v: View, w: number, ch: number) {
       ctx.lineTo(wx + Math.cos(a) * wr, wy + Math.sin(a) * wr);
       ctx.stroke();
     }
-    if (fixed >= 5) {
+    if (fixed >= 7) {
       ctx.fillStyle = 'rgba(150,220,255,.8)';
       for (let k = 0; k < 4; k++) (ell(ctx, wx + wr * 0.9, wy + wr * 0.4 + ((t * 0.5 + k * 5) % 14), R(0.003), R(0.004)), ctx.fill());
     }
@@ -3466,7 +3631,7 @@ function drawPanorama(ctx: C2, v: View, w: number, ch: number) {
   ctx.fillStyle = '#5a4a3a';
   rr(ctx, tx - R(0.022), tt + R(0.008), R(0.044), R(0.03), R(0.012));
   ctx.fill();
-  if (fixed >= 11) {
+  if (fixed >= 15) {
     ctx.fillStyle = '#ffc94a';
     ctx.save();
     ctx.translate(tx, tt + R(0.012));
@@ -3480,6 +3645,8 @@ function drawPanorama(ctx: C2, v: View, w: number, ch: number) {
     ctx.restore();
   }
   clockFace(ctx, tx, Y(0.17), R(0.04), t, fixed);
+  cuckoo(ctx, tx, Y(0.17), R(0.04), t, fixed >= 16);
+  pendulum(ctx, tx, Y(0.235), R(0.06), t, fixed >= 17);
   // 집 지붕들
   for (let k = 0; k < 7; k++) {
     const hx = X(-0.02 + k * 0.17 + (k > 3 ? 0.05 : 0)), hy = Y(0.4 + hsh(k) * 0.03), hw = R(0.07 + hsh(k + 5) * 0.03);
@@ -3494,8 +3661,45 @@ function drawPanorama(ctx: C2, v: View, w: number, ch: number) {
     ctx.closePath();
     ctx.fill();
   }
-  // 새 떼 (7판)
-  if (fixed >= 7) {
+  // 열기구 (6판) · 연 (11판)
+  if (fixed >= 6) {
+    const bx = X(0.8) + Math.sin(t * 0.01) * R(0.02), by = Y(0.1) + Math.sin(t * 0.013) * R(0.01);
+    ctx.fillStyle = '#ff6a5a';
+    ell(ctx, bx, by, R(0.028), R(0.033));
+    ctx.fill();
+    ctx.fillStyle = '#ffd25a';
+    ctx.fillRect(bx - R(0.009), by - R(0.033), R(0.018), R(0.066));
+    ctx.strokeStyle = '#6a4a3a';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(bx - R(0.016), by + R(0.026));
+    ctx.lineTo(bx - R(0.008), by + R(0.05));
+    ctx.moveTo(bx + R(0.016), by + R(0.026));
+    ctx.lineTo(bx + R(0.008), by + R(0.05));
+    ctx.stroke();
+    ctx.fillStyle = '#9a6a3a';
+    ctx.fillRect(bx - R(0.009), by + R(0.05), R(0.018), R(0.012));
+  }
+  if (fixed >= 11)
+    for (const [kx, ky, kc] of [[0.3, 0.09, '#ff5a8a'], [0.42, 0.15, '#5ab8ff']] as [number, number, string][]) {
+      const x = X(kx) + Math.sin(t * 0.02 + kx * 9) * R(0.012), y = Y(ky) + Math.cos(t * 0.025 + kx * 7) * R(0.008);
+      ctx.fillStyle = kc;
+      ctx.beginPath();
+      ctx.moveTo(x, y - R(0.02));
+      ctx.lineTo(x + R(0.014), y);
+      ctx.lineTo(x, y + R(0.022));
+      ctx.lineTo(x - R(0.014), y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(80,60,60,.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y + R(0.022));
+      ctx.quadraticCurveTo(x + R(0.02), y + R(0.08), x - R(0.01), y + R(0.14));
+      ctx.stroke();
+    }
+  // 새 떼 (9판)
+  if (fixed >= 9) {
     ctx.strokeStyle = '#5a5a7a';
     ctx.lineWidth = 1.5;
     for (let k = 0; k < 5; k++) {
@@ -3508,27 +3712,57 @@ function drawPanorama(ctx: C2, v: View, w: number, ch: number) {
     }
   }
 }
-/** 시계판 — 9판에 숫자, 12판에 바늘이 다시 돈다 */
+/** 뻐꾸기 집 (16번째 복원): 시계판 위 작은 문에서 이따금 쏙 */
+function cuckoo(ctx: C2, x: number, y: number, r: number, t: number, on: boolean) {
+  const out = on ? Math.max(0, Math.sin(t * 0.03)) ** 3 : 0;
+  ctx.fillStyle = '#6a4a3a';
+  rr(ctx, x - r * 0.26, y - r * 1.5, r * 0.52, r * 0.34, r * 0.06);
+  ctx.fill();
+  if (!on) return;
+  ctx.fillStyle = '#5ab8ff';
+  ell(ctx, x, y - r * 1.33 - out * r * 0.3, r * 0.16, r * 0.14);
+  ctx.fill();
+  ctx.fillStyle = '#ffb02e';
+  ell(ctx, x + r * 0.17, y - r * 1.33 - out * r * 0.3, r * 0.08, r * 0.045);
+  ctx.fill();
+}
+/** 시계추 창 (17번째 복원부터 흔들린다) */
+function pendulum(ctx: C2, x: number, y: number, len: number, t: number, on: boolean) {
+  ctx.fillStyle = 'rgba(60,40,30,.55)';
+  rr(ctx, x - len * 0.42, y - len * 0.08, len * 0.84, len * 1.32, len * 0.12);
+  ctx.fill();
+  const a = on ? Math.sin(t * 0.06) * 0.42 : 0.05;
+  ctx.strokeStyle = '#d8b060';
+  ctx.lineWidth = Math.max(1, len * 0.05);
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + Math.sin(a) * len, y + Math.cos(a) * len);
+  ctx.stroke();
+  ctx.fillStyle = on ? '#ffc94a' : '#a08860';
+  ell(ctx, x + Math.sin(a) * len, y + Math.cos(a) * len, len * 0.2, len * 0.2);
+  ctx.fill();
+}
+/** 시계판 — 13번째 복원에 숫자, 14에 톱니, 18에 바늘이 다시 돈다 */
 function clockFace(ctx: C2, x: number, y: number, r: number, t: number, fixed: number) {
   ctx.fillStyle = '#8a6a4a';
   ell(ctx, x, y, r * 1.12, r * 1.12);
   ctx.fill();
-  ctx.fillStyle = fixed >= 9 ? '#fffbe8' : '#e8e0d0';
+  ctx.fillStyle = fixed >= 13 ? '#fffbe8' : '#e8e0d0';
   ell(ctx, x, y, r, r);
   ctx.fill();
-  ctx.fillStyle = fixed >= 9 ? '#3a2a1a' : 'rgba(60,40,30,.25)';
+  ctx.fillStyle = fixed >= 13 ? '#3a2a1a' : 'rgba(60,40,30,.25)';
   for (let k = 0; k < 12; k++) {
     const a = (k / 12) * TAU2;
     ell(ctx, x + Math.cos(a) * r * 0.8, y + Math.sin(a) * r * 0.8, r * 0.07, r * 0.07);
     ctx.fill();
   }
-  if (fixed >= 10) {
+  if (fixed >= 14) {
     ctx.save();
     ctx.globalAlpha = 0.5;
     brass(ctx, x, y, r * 0.42, 8, t * 0.02);
     ctx.restore();
   }
-  const h1 = fixed >= 12 ? t * 0.01 : -1.2, h2 = fixed >= 12 ? t * 0.0009 : 0.5;
+  const h1 = fixed >= 18 ? t * 0.01 : -1.2, h2 = fixed >= 18 ? t * 0.0009 : 0.5;
   ctx.strokeStyle = '#2a1a10';
   ctx.lineWidth = Math.max(1.5, r * 0.08);
   ctx.lineCap = 'round';
@@ -3640,6 +3874,26 @@ function drawHouses(ctx: C2, v: View, L: Level, s: RewState) {
       ctx.fill();
     }
   }
+  // 깃발 줄 (5판부터)
+  if (ch === 0 && fixed >= 5)
+    for (const [a0, a1, yy] of [[-0.02, 0.48, 0.6], [0.52, 1.02, 0.58]] as [number, number, number][]) {
+      ctx.strokeStyle = 'rgba(90,60,40,.6)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(X(a0), Y(yy));
+      ctx.quadraticCurveTo(X((a0 + a1) / 2), Y(yy + 0.05), X(a1), Y(yy));
+      ctx.stroke();
+      for (let q = 0; q < 8; q++) {
+        const u = (q + 0.5) / 8, fx2 = X(a0 + (a1 - a0) * u), fy = Y(yy) + (1 - Math.pow(2 * u - 1, 2)) * R(0.05) * 0.9;
+        ctx.fillStyle = ['#ff5a5a', '#ffcf3a', '#5ab8ff', '#7ad86a'][q % 4];
+        ctx.beginPath();
+        ctx.moveTo(fx2 - R(0.014), fy);
+        ctx.lineTo(fx2 + R(0.014), fy);
+        ctx.lineTo(fx2 + Math.sin(t * 0.06 + q) * R(0.003), fy + R(0.03));
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
   // 발코니 (화분 판)
   if (L.deco.balc !== undefined) {
     const bx = X(L.deco.balc), by = Y(0.5);
@@ -3816,7 +4070,17 @@ function drawGround(ctx: C2, v: View, L: Level, w: number) {
       ctx.fillStyle = '#e8f8ff';
       for (let k = 0; k < 8; k++) (ell(ctx, x0 + ((k + 0.5) / 8) * (x1 - x0), Y(1.17) + Math.sin(t * 0.3 + k) * 2, R(0.014), R(0.008)), ctx.fill());
       // 나룻배 (6판)
-      if (fixed >= 6) {
+      // 물고기 (12판)
+      if (fixed >= 12)
+        for (let k = 0; k < 2; k++) {
+          const ph = ((t * 0.012 + k * 0.5) % 1), jx = x0 + (0.3 + k * 0.4) * (x1 - x0), jy = Y(1.0 + k * 0.06) - Math.sin(ph * Math.PI) * R(0.05);
+          if (ph < 0.5) {
+            ctx.fillStyle = '#ff9a3a';
+            ell(ctx, jx, jy, R(0.012), R(0.006), -1 + ph * 4);
+            ctx.fill();
+          }
+        }
+      if (fixed >= 8) {
         const bx = x1 - R(0.03), by = Y(0.58) + Math.sin(t * 0.05) * 2;
         ctx.fillStyle = '#c8783a';
         ctx.beginPath();
@@ -3935,7 +4199,7 @@ function drawFront(ctx: C2, v: View, L: Level, W: World) {
   } else {
     // 시계탑 안: 높은 곳 배우의 발판 (창턱 · 비계)
     for (const a of W.ac) {
-      if (a.y > 0.7 || (a.k !== 'grandma' && a.k !== 'beaver')) continue;
+      if (a.y > 0.7 || (a.k !== 'grandma' && a.k !== 'beaver' && a.k !== 'mole')) continue;
       const px = X(a.x), py = Y(a.y);
       ctx.fillStyle = '#8a5a3a';
       ctx.fillRect(px - R(0.006) - R(0.05), py, R(0.012), Y(0.95) - py);
@@ -4038,7 +4302,7 @@ function drawTower(ctx: C2, v: View, _L: Level, w: number) {
     ctx.stroke();
   }
   // 큰 시계판 뒷모습 + 큰 톱니들 (10판부터 돈다)
-  const rot = fixed >= 10 ? t * 0.004 : 0;
+  const rot = fixed >= 14 ? t * 0.004 : 0;
   ctx.save();
   ctx.globalAlpha = 0.55;
   brass(ctx, X(0.32), Y(0.24), R(0.09), 14, rot);
@@ -4046,9 +4310,10 @@ function drawTower(ctx: C2, v: View, _L: Level, w: number) {
   brass(ctx, X(0.5), Y(0.12), R(0.05), 10, rot * 1.8);
   ctx.restore();
   clockFace(ctx, X(0.5), Y(0.31), R(0.08), t, fixed);
+  cuckoo(ctx, X(0.5), Y(0.31), R(0.08), t, fixed >= 16);
   // 큰 종 (11판부터 흔들리며 울린다)
   {
-    const bx = X(0.5), by = Y(0.02), sw = fixed >= 11 ? Math.sin(t * 0.05) * 0.25 : 0;
+    const bx = X(0.5), by = Y(0.02), sw = fixed >= 15 ? Math.sin(t * 0.05) * 0.25 : 0;
     ctx.save();
     ctx.translate(bx, by);
     ctx.rotate(sw);
@@ -4064,9 +4329,20 @@ function drawTower(ctx: C2, v: View, _L: Level, w: number) {
     ctx.fill();
     ctx.restore();
   }
+  pendulum(ctx, X(0.5), Y(0.41), R(0.18), t, fixed >= 17);
   // 기둥
   ctx.fillStyle = '#c8a07a';
   for (const px of [0.02, 0.98]) ctx.fillRect(X(px) - R(0.02), 0, R(0.04), Y(1.25));
+}
+/** 3장: 가까운 나무 들보·기둥 (당겨 본 세계) */
+function drawTowerNear(ctx: C2, v: View, _L: Level, w: number) {
+  const { X, Y, R } = v;
+  ctx.fillStyle = lin(ctx, 0, Y(0.3), 0, Y(0.33), [[0, '#a8744a'], [1, '#6a4428']]);
+  ctx.fillRect(-10, Y(0.3), w + 20, R(0.028));
+  for (const bx of [0.04, 0.96]) {
+    ctx.fillStyle = lin(ctx, X(bx) - R(0.02), 0, X(bx) + R(0.02), 0, [[0, '#a8744a'], [1, '#6a4428']]);
+    ctx.fillRect(X(bx) - R(0.018), Y(0.3), R(0.036), Y(1.2) - Y(0.3));
+  }
 }
 /** 바닥 판(3/4 두께) — 3장 */
 function drawFloors(ctx: C2, v: View, L: Level) {
@@ -4158,6 +4434,275 @@ function heroMood(s: RewState): Mood {
   return 'happy';
 }
 
+// ───────────────────────────── 장 끝 장면 ─────────────────────────────
+const REV0 = 26, REVD = 22, NOTCH_T = 168, CH_END = 300;
+const FIX_NAME = ['분수', '꽃 화단', '가로등', '풍차', '깃발 줄', '열기구', '물레방아', '나룻배', '새 떼', '무지개', '연', '물고기', '숫자판', '큰 톱니', '종', '뻐꾸기', '시계추', '시계 바늘'];
+/** 전경: 먼 마을 그림(drawPanorama)을 VZ배로 당겨 위에, 광장·강을 아래에 (화면 너비 단위 좌표) */
+const VZ = 1.25, VZX = 0.96, VY0 = 0.12;
+const vX = (x: number) => 0.5 + (x - 0.5) * VZX, vY = (y: number) => VY0 + y * VZ;
+const FIX_POS: [number, number][] = [
+  [0.5, 0.93], [0.15, 0.9], [0.3, 0.8], [vX(0.14), vY(0.26)], [0.5, 0.76], [vX(0.8), vY(0.1)],
+  [vX(0.9), vY(0.36)], [0.72, 1.12], [0.5, vY(0.14)], [vX(0.19), vY(0.1)], [vX(0.36), vY(0.12)], [0.3, 1.12],
+  [vX(0.56), vY(0.17)], [vX(0.56), vY(0.17)], [vX(0.56), vY(0.09)], [vX(0.56), vY(0.12)], [vX(0.56), vY(0.28)], [vX(0.56), vY(0.17)],
+];
+/** 큰 시계 (바늘이 장마다 한 칸 = 두 시간: 6시 → 8 → 10 → 정각 12시) — 화면 너비 단위 */
+const CLK = [0.2, 1.36];
+const clockHour = (k: number) => 6 + 2 * k;
+function drawChapterScene(ctx: C2, s: RewState, w: number, h: number) {
+  const fx = juice(s), t = s.t, ch = s.chDone, pt = s.pt;
+  let shown = ch * 6;
+  for (let j = 0; j < 6; j++) if (pt >= REV0 + j * REVD) shown++;
+  const PV: View = { X: (x) => vX(x) * w, Y: (y) => vY(y) * w, R: (r) => r * 1.12 * w, t, fixed: shown };
+  const SVV: View = { X: (x) => x * w, Y: (y) => y * w, R: (r) => r * w, t, fixed: shown };
+  const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, sz * w)}px system-ui, sans-serif`);
+  ctx.save();
+  fx.begin(ctx);
+  ctx.fillStyle = '#bfe6ff';
+  ctx.fillRect(-10, -10, w + 20, h + 20);
+  drawSky(ctx, PV, w, 0);
+  drawPanorama(ctx, PV, w, 0);
+  drawVistaFront(ctx, w, h, shown, t);
+  // 꼬마 시계공: 되살아날 때마다 폴짝
+  {
+    const ag = Math.min(...[0, 1, 2, 3, 4, 5].map((j) => (pt >= REV0 + j * REVD ? pt - (REV0 + j * REVD) : 99)));
+    const jump = ag < 16 ? Math.sin((ag / 16) * Math.PI) * w * 0.04 : 0;
+    drawOwl(ctx, w * 0.36, w * 1.05 - jump, w * 0.011, ag < 30 || pt > NOTCH_T ? 'cheer' : 'happy', t, 0);
+  }
+  // 막 되살아난 것: 빛 기둥
+  for (let j = 0; j < 6; j++) {
+    const ag = pt - (REV0 + j * REVD);
+    if (ag < 0 || ag > 30) continue;
+    const [px, py] = FIX_POS[ch * 6 + j], a = 1 - ag / 30;
+    ctx.fillStyle = rad(ctx, px * w, py * w, w * 0.12, [[0, `rgba(255,250,200,${0.7 * a})`], [1, 'rgba(255,250,200,0)']]);
+    ctx.fillRect(px * w - w * 0.12, py * w - w * 0.12, w * 0.24, w * 0.24);
+  }
+  // 제목 띠
+  const a0 = Math.min(1, pt / 10);
+  ctx.globalAlpha = a0;
+  ctx.fillStyle = 'rgba(255,250,240,.92)';
+  rr(ctx, w * 0.08, w * 0.025, w * 0.84, w * 0.12, w * 0.03);
+  ctx.fill();
+  ctx.strokeStyle = '#ffb02e';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  font(0.056, 900);
+  ctx.fillStyle = '#5a2e7a';
+  ctx.fillText(ch >= 2 ? '시계탑 마을이 다 살아났어요!' : `${ch + 1}장 · ${CH_NAME[ch]} 끝!`, w / 2, w * 0.065, w * 0.8);
+  font(0.032, 800);
+  ctx.fillStyle = '#8a5a3a';
+  ctx.fillText(`되살린 것 ${shown} / ${STAGE_COUNT}`, w / 2, w * 0.118, w * 0.8);
+  ctx.globalAlpha = 1;
+  // 아래 판: 큰 시계 + 다음 장
+  const py0 = h - w * 0.27;
+  ctx.fillStyle = lin(ctx, 0, py0, 0, h, [[0, '#7a5236'], [1, '#4a3020']]);
+  ctx.fillRect(-10, py0, w + 20, h - py0 + 10);
+  ctx.fillStyle = 'rgba(255,220,160,.25)';
+  ctx.fillRect(-10, py0, w + 20, 3);
+  const cx = CLK[0] * w, cy = h - w * 0.14, cr = w * 0.1;
+  ctx.fillStyle = '#c89a5a';
+  ell(ctx, cx, cy, cr * 1.14, cr * 1.14);
+  ctx.fill();
+  ctx.fillStyle = '#fffbe8';
+  ell(ctx, cx, cy, cr, cr);
+  ctx.fill();
+  for (let k = 0; k < 12; k++) {
+    const a = (k / 12) * TAU2 - Math.PI / 2, mark = k === 8 || k === 10 || k === 0, got = mark && clockHour(ch + (pt >= NOTCH_T ? 1 : 0)) >= (k || 12);
+    ctx.fillStyle = mark ? (got ? '#ffc93a' : '#c8402a') : '#3a2a1a';
+    const rr0 = cr * (mark ? 0.11 : 0.05);
+    ell(ctx, cx + Math.cos(a) * cr * 0.8, cy + Math.sin(a) * cr * 0.8, rr0, rr0);
+    ctx.fill();
+  }
+  // 바늘: 장을 깰 때마다 한 칸(두 시간) — 셋을 다 깨면 정각(12시)
+  const q = pt < NOTCH_T ? 0 : Math.min(1, (pt - NOTCH_T) / 14), ease = q >= 1 ? 1 : 1 - (1 - q) ** 3 + Math.sin(q * Math.PI) * 0.25;
+  const hr = clockHour(ch) + 2 * ease, ang = (hr / 12) * TAU2 - Math.PI / 2;
+  ctx.strokeStyle = '#3a2a1a';
+  ctx.lineWidth = Math.max(3, cr * 0.1);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + Math.cos(ang) * cr * 0.7, cy + Math.sin(ang) * cr * 0.7);
+  ctx.stroke();
+  ctx.lineCap = 'butt';
+  brass(ctx, cx, cy, cr * 0.14, 8, t * 0.02);
+  // 다음 장 실루엣 (장 끝) / 끝 축하 (마지막)
+  const na = Math.max(0, Math.min(1, (pt - NOTCH_T - 6) / 14));
+  const bx = w * 0.36, bw = w * 0.6, by = py0 + w * 0.025, bh = w * 0.2;
+  ctx.globalAlpha = 0.7 + 0.3 * na;
+  ctx.fillStyle = 'rgba(255,248,236,.96)';
+  rr(ctx, bx, by, bw, bh, w * 0.03);
+  ctx.fill();
+  ctx.textAlign = 'left';
+  if (ch < 2) {
+    font(0.03, 800);
+    ctx.fillStyle = '#8a6a5a';
+    ctx.fillText('다음 장', bx + w * 0.03, by + w * 0.035);
+    font(0.046, 900);
+    ctx.fillStyle = '#5a2e7a';
+    ctx.fillText(`${ch + 2}장 · ${CH_NAME[ch + 1]}`, bx + w * 0.03, by + w * 0.08, bw - w * 0.06);
+    font(0.028, 800);
+    ctx.fillStyle = '#8a5a3a';
+    ctx.fillText(CH_SUB[ch + 1], bx + w * 0.03, by + w * 0.12, bw - w * 0.06);
+    // 다음 장에 되살릴 것들의 실루엣 (바늘이 움직이면 하나씩 떠오른다)
+    for (let k = 0; k < 3; k++) {
+      const ix = bx + w * (0.09 + k * 0.2), iy = by + w * 0.16 - Math.max(0, 1 - Math.max(0, pt - NOTCH_T - 8 - k * 6) / 10) * w * 0.02 * na, ik = (ch + 1) * 6 + (ch === 0 ? [0, 3, 5] : [1, 2, 4])[k];
+      ctx.fillStyle = 'rgba(90,60,90,.12)';
+      ell(ctx, ix, iy, w * 0.04, w * 0.04);
+      ctx.fill();
+      ctx.save();
+      ctx.globalAlpha *= 0.4 + 0.5 * na;
+      tinted(ctx, (o) => fixIcon(o, ik, ix, iy, w * 0.032, t, false), '#3a2a4a', 1, [ix - w * 0.05, iy - w * 0.05, ix + w * 0.05, iy + w * 0.05]);
+      ctx.restore();
+    }
+  } else {
+    font(0.05, 900);
+    ctx.fillStyle = '#c8402a';
+    ctx.fillText('시계탑이 다시 째깍째깍!', bx + w * 0.03, by + w * 0.07, bw - w * 0.06);
+    font(0.03, 800);
+    ctx.fillStyle = '#6a4a3a';
+    ctx.fillText(`모은 별 ${s.stars}개 · 점수 ${Math.round(s.pts)}`, bx + w * 0.03, by + w * 0.125, bw - w * 0.06);
+    if (t % 16 === 0) for (const c of ['#ff5a7a', '#ffd25a', '#7fe8ff']) fx.burst(w * (0.15 + hsh(t) * 0.7), w * (0.2 + hsh(t + 1) * 0.3), c, 10, 4, 2.4);
+  }
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'center';
+  if (pt > 60) {
+    font(0.024, 700);
+    ctx.fillStyle = 'rgba(255,240,220,.8)';
+    ctx.fillText('톡 하면 넘어가요', w * 0.66, h - w * 0.012);
+  }
+  ctx.restore();
+  doEvents(ctx, s, SVV, w, w * 0.16 + 30, h - w * 0.28);
+}
+/** 장 끝 전경의 광장·강 (화면 너비 단위 좌표) */
+function drawVistaFront(ctx: C2, w: number, h: number, fixed: number, t: number) {
+  const X = (x: number) => x * w, R = (r: number) => r * w;
+  // 광장 바닥
+  ctx.fillStyle = lin(ctx, 0, R(0.74), 0, R(1.06), [[0, '#ead8b8'], [1, '#d8c09a']]);
+  ctx.fillRect(-10, R(0.74), w + 20, R(0.33));
+  ctx.strokeStyle = 'rgba(150,110,70,.18)';
+  ctx.lineWidth = 1;
+  for (let r = 0; r < 5; r++) {
+    ctx.beginPath();
+    ctx.moveTo(0, R(0.8 + r * 0.06));
+    ctx.lineTo(w, R(0.8 + r * 0.06));
+    ctx.stroke();
+  }
+  // 강
+  ctx.fillStyle = lin(ctx, 0, R(1.06), 0, R(1.24), [[0, '#6ac4ee'], [1, '#3a8ed0']]);
+  ctx.fillRect(-10, R(1.06), w + 20, h);
+  ctx.strokeStyle = 'rgba(255,255,255,.45)';
+  ctx.lineWidth = 2;
+  for (let k = 0; k < 6; k++) {
+    const wx = ((k * 0.19 + t * 0.001) % 1.1) * w - R(0.05), wy = R(1.1 + (k % 3) * 0.04);
+    ctx.beginPath();
+    ctx.moveTo(wx, wy);
+    ctx.quadraticCurveTo(wx + R(0.03), wy - R(0.012), wx + R(0.06), wy);
+    ctx.stroke();
+  }
+  // 깃발 줄 (5)
+  ctx.strokeStyle = 'rgba(90,60,40,.7)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(X(0.02), R(0.73));
+  ctx.quadraticCurveTo(X(0.5), R(0.8), X(0.98), R(0.73));
+  ctx.stroke();
+  for (let q = 0; q < 12; q++) {
+    const u = (q + 0.5) / 12, fx2 = X(0.02 + 0.96 * u), fy = R(0.73) + (1 - (2 * u - 1) ** 2) * R(0.035);
+    if (fixed < 5 && q % 3 !== 0) continue;
+    ctx.fillStyle = fixed >= 5 ? ['#ff5a5a', '#ffcf3a', '#5ab8ff', '#7ad86a'][q % 4] : '#a89a8a';
+    ctx.beginPath();
+    ctx.moveTo(fx2 - R(0.016), fy);
+    ctx.lineTo(fx2 + R(0.016), fy);
+    ctx.lineTo(fx2 + (fixed >= 5 ? Math.sin(t * 0.08 + q) * R(0.006) : 0), fy + R(fixed >= 5 ? 0.04 : 0.03));
+    ctx.closePath();
+    ctx.fill();
+  }
+  // 가로등 (3)
+  for (const lx of [0.3, 0.7]) {
+    ctx.fillStyle = '#4a4a5a';
+    ctx.fillRect(X(lx) - R(0.006), R(0.8), R(0.012), R(0.17));
+    if (fixed >= 3) {
+      ctx.fillStyle = rad(ctx, X(lx), R(0.79), R(0.07), [[0, 'rgba(255,240,150,.7)'], [1, 'rgba(255,240,150,0)']]);
+      ctx.fillRect(X(lx) - R(0.07), R(0.72), R(0.14), R(0.14));
+    }
+    ctx.fillStyle = fixed >= 3 ? '#fff2a0' : '#8a8a8a';
+    rr(ctx, X(lx) - R(0.018), R(0.77), R(0.036), R(0.034), R(0.008));
+    ctx.fill();
+  }
+  // 꽃 화단 (2)
+  for (const fx2 of [0.15, 0.85]) {
+    ctx.fillStyle = '#9a5a2a';
+    ctx.fillRect(X(fx2) - R(0.09), R(0.92), R(0.18), R(0.05));
+    for (let q = 0; q < 5; q++) {
+      const qx = X(fx2 - 0.07 + q * 0.035);
+      if (fixed >= 2) {
+        ctx.fillStyle = '#4a9a3a';
+        ctx.fillRect(qx - 1, R(0.89), 2, R(0.03));
+        ctx.fillStyle = ['#ff5a7a', '#ffcf3a', '#ff8ad0', '#ffffff', '#a87aff'][q];
+        ell(ctx, qx, R(0.885) - Math.sin(t * 0.05 + q) * 1.5, R(0.014), R(0.014));
+        ctx.fill();
+      } else {
+        ctx.strokeStyle = '#8a6a3a';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(qx, R(0.92));
+        ctx.quadraticCurveTo(qx + R(0.01), R(0.9), qx + R(0.018), R(0.91));
+        ctx.stroke();
+      }
+    }
+  }
+  // 분수 (1)
+  ctx.fillStyle = '#c8c0b8';
+  ell(ctx, X(0.5), R(0.99), R(0.14), R(0.035));
+  ctx.fill();
+  ctx.fillStyle = fixed >= 1 ? '#6ad0f5' : '#a8a098';
+  ell(ctx, X(0.5), R(0.985), R(0.12), R(0.025));
+  ctx.fill();
+  ctx.fillStyle = '#b8b0a8';
+  ctx.fillRect(X(0.5) - R(0.012), R(0.92), R(0.024), R(0.065));
+  if (fixed >= 1) {
+    ctx.strokeStyle = 'rgba(150,220,255,.9)';
+    ctx.lineWidth = Math.max(2, R(0.006));
+    for (const sd of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(X(0.5), R(0.92));
+      ctx.quadraticCurveTo(X(0.5 + sd * 0.05), R(0.86 - Math.sin(t * 0.1) * 0.005), X(0.5 + sd * 0.1), R(0.98));
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(200,240,255,.9)';
+    for (let k = 0; k < 5; k++) (ell(ctx, X(0.5) + (k - 2) * R(0.012), R(0.9) - ((t * 0.6 + k * 7) % 20) * 0.6, R(0.006), R(0.006)), ctx.fill());
+  }
+  // 나룻배 (8)
+  if (fixed >= 8) {
+    const bx = X(0.72) + Math.sin(t * 0.02) * R(0.02), by = R(1.13) + Math.sin(t * 0.06) * 2;
+    ctx.fillStyle = '#b8743a';
+    ctx.beginPath();
+    ctx.moveTo(bx - R(0.08), by - R(0.015));
+    ctx.lineTo(bx + R(0.08), by - R(0.015));
+    ctx.lineTo(bx + R(0.055), by + R(0.02));
+    ctx.lineTo(bx - R(0.055), by + R(0.02));
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(bx, by - R(0.015));
+    ctx.lineTo(bx, by - R(0.09));
+    ctx.lineTo(bx + R(0.05), by - R(0.025));
+    ctx.closePath();
+    ctx.fill();
+  }
+  // 물고기 (12)
+  if (fixed >= 12)
+    for (let k = 0; k < 3; k++) {
+      const ph = (t * 0.015 + k * 0.33) % 1;
+      if (ph > 0.5) continue;
+      const jx = X(0.2 + k * 0.1), jy = R(1.12) - Math.sin(ph * 2 * Math.PI * 0.5) * R(0.07);
+      ctx.fillStyle = '#ff9a3a';
+      ell(ctx, jx + ph * R(0.06), jy, R(0.016), R(0.008), -1 + ph * 4);
+      ctx.fill();
+    }
+}
 function drawAll(ctx: C2, s: RewState, w: number, h: number, _th: Theme) {
   if (s.phase === 'chapter') return drawChapterScene(ctx, s, w, h);
   const fx = juice(s), t = s.t, L = s.L, W = s.W, H = W.hero, c = s.cam;
@@ -4178,10 +4723,7 @@ function drawAll(ctx: C2, s: RewState, w: number, h: number, _th: Theme) {
     ctx.fillRect(-10, -10, w + 20, h);
   } else {
     drawSky(ctx, BV, w, L.ch);
-    ctx.save();
-    ctx.filter = 'blur(1.3px)';
-    drawPanorama(ctx, BV, w, L.ch);
-    ctx.restore();
+    softLayer(ctx, w, h, (o) => drawPanorama(o, BV, w, L.ch));
     ctx.fillStyle = 'rgba(235,246,255,.3)';
     ctx.fillRect(-10, -10, w + 20, BV.Y(0.5) + 10);
   }
@@ -4354,10 +4896,10 @@ function drawAll(ctx: C2, s: RewState, w: number, h: number, _th: Theme) {
             drawThingAt(o, v, th, Math.min(th.dur, th.tau + k * 7), 1);
           }
           o.globalAlpha = 1;
-        }, '#6fdcff', 0.75);
+        }, '#6fdcff', 0.75, thingBox(v, th, th.tau, th.tau + 28));
     }
     drawThingAt(ctx, v, th, th.tau);
-    if (th.st === REW && th.k !== 'water') tinted(ctx, (o) => drawThingAt(o, v, th, th.tau), '#7fe8ff', 0.42);
+    if (th.st === REW && th.k !== 'water') tinted(ctx, (o) => drawThingAt(o, v, th, th.tau), '#7fe8ff', 0.42, thingBox(v, th, th.tau, th.tau));
     // 되감을 수 있는 물건: 작은 시계 (자기 시간이 앞으로 가는 중)
     if (th.st !== REW && th.st !== WAIT && th.tau > 0 && !(th.k === 'arrow' && th.tau >= th.n && th.st === HOLD)) {
       const c = thingCenter(th);
@@ -4441,7 +4983,7 @@ function drawAll(ctx: C2, s: RewState, w: number, h: number, _th: Theme) {
   // ═════════ 손가락 안내 ═════════
   drawGuide(ctx, s, v, font, SV);
   // ═════════ 사건 → 연출 · 소리 ═════════
-  doEvents(ctx, s, v);
+  doEvents(ctx, s, v, w, SV.Y(0) + 30, SV.Y(BOTY) - 8);
   ctx.restore();
   drawHud(ctx, s, w, h, SV, font, v);
 }
@@ -4544,8 +5086,52 @@ function drawGuide(ctx: C2, s: RewState, v: View, font: (sz: number, w?: number)
   }
 }
 /** 사건 → 파티클·글자·흔들림·소리 (사건마다 소리, 큰 것은 낮게, 연쇄는 높아지게) */
-function doEvents(_ctx: C2, s: RewState, v: View) {
+/** 떠오르는 큰 글자: 화면 안으로 · 먼저 뜬 글자와 인물(머리)을 비켜서 놓는다 (위가 막히면 아래로, 둘 다 막히면 옆으로) */
+function say(ctx: C2, fx: Juice, x: number, y: number, text: string, col: string, size: number, w: number, top: number, avoid: number[][], bot = 1e9) {
+  const wid = (tx: string, sz: number) => {
+    ctx.font = `800 ${sz}px system-ui, sans-serif`;
+    const m = typeof ctx.measureText === 'function' ? ctx.measureText(tx) : null;
+    return (m && m.width) || tx.length * sz * 0.9;
+  };
+  const hw = wid(text, size) / 2 + 6, hh = size * 0.72;
+  x = Math.max(hw, Math.min(w - hw, x));
+  y = Math.max(top + hh, Math.min(bot - hh, y));
+  // 부딪히는 것의 위·아래 끝
+  const hit = (yy: number, xx: number): number[] | null => {
+    for (const p of fx.popups) if (p.life > 3 && Math.abs(p.x - xx) < wid(p.text, p.size) / 2 + 6 + hw && Math.abs(p.y - yy) < p.size * 0.72 + hh) return [p.y - p.size * 0.72, p.y + p.size * 0.72];
+    for (const [ax, ay, ar] of avoid) if (Math.abs(ax - xx) < ar + hw && Math.abs(ay - yy) < ar + hh) return [ay - ar, ay + ar];
+    return null;
+  };
+  const go = (dir: number, xx: number) => {
+    let yy = y;
+    for (let it = 0; it < 8; it++) {
+      const h = hit(yy, xx);
+      if (!h) return yy >= top + hh && yy <= bot - hh ? yy : null;
+      yy = dir < 0 ? h[0] - hh - 2 : h[1] + hh + 2;
+    }
+    return null;
+  };
+  let ny = go(-1, x) ?? go(1, x);
+  if (ny === null)
+    for (const dx of [-1, 1, -2, 2]) {
+      const xx = Math.max(hw, Math.min(w - hw, x + dx * hw * 1.1));
+      if ((ny = go(-1, xx)) !== null) {
+        x = xx;
+        break;
+      }
+    }
+  fx.pop(x, Math.max(top + hh, Math.min(bot - hh, ny ?? y)), text, col, size);
+}
+function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1e9) {
   const fx = juice(s), { X, Y, R, t } = v;
+  // 글자가 피해 갈 인물 머리 (화면 px: x, y, 반지름)
+  const avoid: number[][] = [];
+  if (s.phase === 'play') {
+    const H = s.W.hero;
+    avoid.push([X(H.x), Y(H.y - HCY), R(0.06)]);
+    for (const a of s.W.ac) if (!a.ko && (a.role === R_VILL || a.role === R_RIDER)) avoid.push([X(a.x), Y(a.y - 0.05), R(0.05)]);
+  }
+  const pop = (x: number, y: number, text: string, col: string, size: number) => say(ctx, fx, x, y, text, col, size, w, top, avoid, bot);
   // 처음 그릴 때 밀린 옛 사건은 건너뛴다 (화면이 늦게 붙어도 글자가 한꺼번에 쏟아지지 않게)
   const seenT = fx.memo.t ?? t - 2;
   for (const e of s.events) {
@@ -4560,7 +5146,7 @@ function doEvents(_ctx: C2, s: RewState, v: View) {
         fx.ring(X(c.x), Y(c.y), '#ffffff', R(c.r * 0.9), 3);
         fx.burst(X(c.x), Y(c.y), '#ffd25a', 18, 4, 2.4);
         fx.burst(X(c.x), Y(c.y), '#7fe8ff', 14, 3, 2.2);
-        fx.pop(Math.max(R(0.14), Math.min(X(1) - R(0.14), X(c.x))), Math.max(R(0.16), Y(c.y) - R(c.r) - R(0.09)), '되감기!', '#bff6ff', s.firstTap === t ? 34 : 26);
+        pop(Math.max(R(0.14), Math.min(X(1) - R(0.14), X(c.x))), Math.max(R(0.16), Y(c.y) - R(c.r) - R(0.09)), '되감기!', '#bff6ff', s.firstTap === t ? 34 : 26);
         fx.blink('#bff0ff', s.firstTap === t ? 0.3 : 0.14);
         fx.kick(s.firstTap === t ? 6 : 3);
         fx.sound('rewind', 1.25 / big, 1);
@@ -4568,13 +5154,13 @@ function doEvents(_ctx: C2, s: RewState, v: View) {
         break;
       }
       case 'stop':
-        fx.pop(cx, y - R(0.06), '멈춤!', '#ffffff', 20);
+        pop(cx, y - R(0.06), '멈춤!', '#ffffff', 20);
         fx.ring(x, y, '#ffffff', R(0.07), 3);
         fx.sound('tick', 1, 0.8);
         fx.sound('thud', 1.6, 0.4);
         break;
       case 'dock':
-        fx.pop(cx, y - R(0.07), '척! 걸렸다', '#fff27a', 26);
+        if (th?.k !== 'stack') pop(cx, y - R(0.07), '척! 걸렸다', '#fff27a', 26);
         fx.ring(x, y, '#fff27a', R(0.12), 5);
         fx.burst(x, y, '#ffffff', 16, 3.5, 2.2);
         fx.kick(4);
@@ -4582,13 +5168,13 @@ function doEvents(_ctx: C2, s: RewState, v: View) {
         fx.sound('ding', 1.1, 0.8);
         break;
       case 'origin':
-        if (th?.k !== 'bridge') fx.pop(cx, y - R(0.07), '착!', '#fff27a', 30);
+        if (th?.k !== 'bridge') pop(cx, y - R(0.07), '착!', '#fff27a', 30);
         fx.ring(x, y, '#ffd25a', R(0.1), 5);
         fx.burst(x, y, '#ffd25a', 16, 3.5, 2.4);
         fx.sound('ding', 1, 0.9);
         break;
       case 'catch': {
-        fx.pop(cx, y - R(0.08), '받았다! 고마워!', '#ffe0f0', 26);
+        pop(cx, y - R(0.08), '받았다! 고마워!', '#ffe0f0', 26);
         fx.burst(x, y, '#ff8ab8', 16, 3.5, 2.6);
         fx.burst(x, y, '#ffd25a', 12, 3, 2);
         fx.ring(x, y, '#ffd25a', R(0.12), 5);
@@ -4597,7 +5183,7 @@ function doEvents(_ctx: C2, s: RewState, v: View) {
         break;
       }
       case 'ko':
-        fx.pop(cx, y - R(0.13), '뿅! 꽈당!', '#fff27a', 38);
+        pop(cx, y - R(0.13), '뿅! 꽈당!', '#fff27a', 38);
         for (const c of ['#ffe066', '#7ad86a', '#ffffff']) fx.burst(x, y - R(0.04), c, 16, 5, 2.6);
         fx.ring(x, y - R(0.04), '#fff27a', R(0.16), 6);
         fx.blink('#fff6c8', 0.25);
@@ -4606,14 +5192,14 @@ function doEvents(_ctx: C2, s: RewState, v: View) {
         fx.sound('thud', 1.2, 0.6);
         break;
       case 'rescue':
-        fx.pop(cx, y - R(0.12), '구했다!', '#ffe0f0', 34);
+        pop(cx, y - R(0.12), '구했다!', '#ffe0f0', 34);
         fx.burst(x, y - R(0.04), '#ff8ab8', 20, 4, 2.6);
         fx.ring(x, y - R(0.04), '#ffd25a', R(0.14), 6);
         fx.kick(4);
         fx.sound('chime', 1.25, 1);
         break;
       case 'machine':
-        fx.pop(cx, y - R(0.12), '철컥! 기계가 돌아요', '#fff27a', 26);
+        pop(cx, y - R(0.12), '철컥! 기계가 돌아요', '#fff27a', 26);
         fx.burst(x, y, '#ffd25a', 26, 5, 2.8);
         fx.ring(x, y, '#ffd25a', R(0.18), 6);
         fx.blink('#fff6c8', 0.2);
@@ -4623,7 +5209,7 @@ function doEvents(_ctx: C2, s: RewState, v: View) {
         break;
       case 'plankMend': {
         const n = th ? th.n : 4, k = n - 1 - e.v;
-        if (k === n - 1) fx.pop(cx, y - R(0.08), '착!', '#fff27a', 40);
+        if (k === n - 1) pop(cx, y - R(0.08), '착!', '#fff27a', 40);
         fx.burst(x, y, '#ffd25a', 10 + k * 4, 3 + k * 0.6, 2.2);
         fx.burst(x, y + R(0.03), '#bff0ff', 8, 3, 2);
         fx.ring(x, y, '#ffd25a', R(0.06 + k * 0.02), 4);
@@ -4634,7 +5220,7 @@ function doEvents(_ctx: C2, s: RewState, v: View) {
       }
       case 'potMend':
       case 'barrelMend':
-        fx.pop(cx, y - R(0.06), '착!', '#fff27a', 28);
+        pop(cx, y - R(0.06), '착!', '#fff27a', 28);
         fx.burst(x, y - R(0.02), '#ffd25a', 18, 3.5, 2.4);
         fx.ring(x, y - R(0.02), '#ffffff', R(0.08), 4);
         fx.sound('ding', 1.3, 0.9);
@@ -4646,7 +5232,7 @@ function doEvents(_ctx: C2, s: RewState, v: View) {
         fx.sound('swell', 0.8 / big, 0.8);
         break;
       case 'creak':
-        fx.pop(cx, y - R(0.06), '삐걱…', '#ffe8c8', 18);
+        pop(cx, y - R(0.06), '삐걱…', '#ffe8c8', 18);
         fx.sound('crack', 0.6, 0.4);
         break;
       case 'plankLift':
@@ -4659,7 +5245,7 @@ function doEvents(_ctx: C2, s: RewState, v: View) {
       case 'plankSplash':
         fx.burst(x, y, '#bff0ff', 12, 3.5, 2.4);
         fx.burst(x, y, '#ffffff', 6, 2.5, 2);
-        if (e.v === 0) fx.pop(cx, y - R(0.04), '풍덩!', '#e8f8ff', 22);
+        if (e.v === 0) pop(cx, y - R(0.04), '풍덩!', '#e8f8ff', 22);
         fx.kick(2);
         fx.sound('splash', 1.15 - e.v * 0.05, 0.6);
         break;
@@ -4667,14 +5253,29 @@ function doEvents(_ctx: C2, s: RewState, v: View) {
         fx.sound('whoosh', 1.5, 0.5);
         break;
       case 'potBreak':
-        fx.pop(cx, y - R(0.06), '쨍그랑!', '#ffd8c8', 26);
+        if (th && th.n === 1) {
+          pop(cx, y - R(0.06), '철썩!', '#bff0ff', 26);
+          fx.burst(x, y - R(0.01), '#7fd8ff', 20, 4, 2.4);
+          fx.kick(3);
+          fx.sound('splash', 1, 0.9);
+          break;
+        }
+        if (th && th.n === 2) {
+          pop(cx, y - R(0.08), '화르륵!', '#ffd0a0', 28);
+          for (const c of ['#ff8a3a', '#ffd25a']) fx.burst(x, y - R(0.02), c, 18, 4, 2.6);
+          fx.kick(4);
+          fx.sound('crack', 1.4, 0.8);
+          fx.sound('zap', 0.6, 0.6);
+          break;
+        }
+        pop(cx, y - R(0.06), '쨍그랑!', '#ffd8c8', 26);
         fx.burst(x, y - R(0.01), '#d86a3a', 18, 4, 2.4);
         fx.burst(x, y - R(0.01), '#7a5a3a', 10, 3, 2);
         fx.kick(4);
         fx.sound('crack', 1.4, 0.9);
         break;
       case 'barrelSmash':
-        fx.pop(cx, y - R(0.06), '와장창!', '#ffe0c8', 24);
+        pop(cx, y - R(0.06), '와장창!', '#ffe0c8', 24);
         fx.burst(x, y - R(0.02), '#b8743a', 18, 4, 2.6);
         fx.kick(4);
         fx.sound('crack', 0.8, 0.8);
@@ -4700,12 +5301,92 @@ function doEvents(_ctx: C2, s: RewState, v: View) {
         fx.burst(x, y, '#ffd25a', 10, 2.5, 2);
         fx.sound('swell', 0.7, 0.7);
         break;
-      case 'chapter':
-        for (const c of ['#ffd25a', '#ffffff', '#7fe8ff']) fx.burst(X(0.5), Y(0.5), c, 18, 5, 2.6);
-        fx.sound('chime', 0.8, 1);
+      case 'revive': {
+        const q = e.v % 6;
+        // 하늘·탑 위의 것은 글자를 아래에 (제목 띠와 겹치지 않게)
+        pop(x, y < R(0.36) ? y + R(0.09) : y - R(0.06), FIX_NAME[e.v] + '!', '#fff27a', 30);
+        for (const c of ['#ffd25a', '#ffffff', ['#7fe8ff', '#ff8ab8', '#7ad86a'][q % 3]]) fx.burst(x, y, c, 16, 4.5, 2.6);
+        fx.ring(x, y, '#fff27a', R(0.14), 5);
+        fx.kick(3);
+        fx.sound('pop', 1 + q * 0.08, 0.7);
+        fx.sound('ding', 0.9 + q * 0.12, 0.9);
+        break;
+      }
+      case 'notch':
+        pop(x, y - R(0.15), e.v >= 3 ? '정각! 땡—' : '째깍! 한 칸', '#ffffff', 32);
+        fx.ring(x, y, '#ffd25a', R(0.2), 7);
+        for (const c of ['#ffd25a', '#ffffff']) fx.burst(x, y, c, 22, 5, 2.6);
+        fx.blink('#fff6c8', 0.22);
+        fx.kick(6);
+        fx.sound('tick', 0.7, 1);
+        fx.sound('chime', 0.75, 1.2);
+        break;
+      case 'stackTip':
+        pop(cx, y - R(0.1), '기우뚱…', '#ffe8c8', 20);
+        fx.sound('crack', 0.7, 0.5);
+        break;
+      case 'stackFall':
+        pop(cx, y - R(0.1), '와르르!', '#ffe0c8', 30);
+        for (const c of ['#c8884a', '#e8d0b0']) fx.burst(x, y, c, 16, 4.5, 2.6);
+        fx.kick(7);
+        fx.sound('thud', 0.55, 1.1);
+        fx.sound('crack', 0.9, 0.6);
+        break;
+      case 'stackStairs':
+        pop(cx, y - R(0.12), '계단이다!', '#fff27a', 28);
+        fx.ring(x, y, '#ffd25a', R(0.14), 5);
+        fx.burst(x, y, '#ffd25a', 16, 3.5, 2.4);
+        fx.sound('ding', 1.2, 0.9);
+        fx.sound('chime', 1.4, 0.6);
+        break;
+      case 'ferryGo':
+        fx.burst(x, y, '#bff0ff', 10, 2.5, 2);
+        fx.sound('whoosh', 0.9, 0.4);
+        fx.sound('splash', 1.4, 0.3);
+        break;
+      case 'ferryArrive':
+        fx.burst(x, y, '#bff0ff', 16, 3.5, 2.4);
+        fx.kick(3);
+        fx.sound('thud', 0.8, 0.7);
+        fx.sound('splash', 1.1, 0.5);
+        break;
+      case 'sackSlip':
+        pop(cx, y - R(0.08), '주르륵', '#ffe8c8', 20);
+        fx.sound('whoosh', 1.2, 0.5);
+        break;
+      case 'sackLand':
+        fx.burst(x, y, '#e8d0a0', 16, 3.5, 2.4);
+        fx.kick(4);
+        fx.sound('thud', 0.7, 1);
+        break;
+      case 'sackBack':
+        fx.burst(x, y, '#bff0ff', 12, 3, 2.2);
+        fx.sound('swell', 0.9, 0.7);
+        break;
+      case 'steam':
+        pop(cx, y - R(0.12), '치이익— 불 끔!', '#ffffff', 28);
+        for (const c of ['#ffffff', '#dfe8f0', '#bff0ff']) fx.burst(x, y, c, 18, 4, 3);
+        fx.ring(x, y, '#ffffff', R(0.14), 5);
+        fx.kick(4);
+        fx.sound('splash', 1.4, 0.9);
+        fx.sound('shrink', 1.2, 0.7);
+        break;
+      case 'guard':
+        pop(cx, y - R(0.12), '어흠!', '#ffe8c8', 18);
+        fx.sound('tick', 0.9, 0.5);
+        break;
+      case 'shove':
+        pop(cx, y - R(0.12), '으앗, 밀려났다!', '#ffe8c8', 22);
+        fx.burst(x, y, '#e8d0b0', 12, 3, 2.2);
+        fx.kick(4);
+        fx.sound('boing', 1.1, 0.7);
+        break;
+      case 'land':
+        fx.burst(x, y, '#e8d8c0', 6, 2, 1.8);
+        fx.sound('thud', 1.4, 0.4);
         break;
       case 'shoot':
-        fx.pop(cx, y - R(0.04), '슝!', '#ffe0d0', 20);
+        pop(cx, y - R(0.04), '슝!', '#ffe0d0', 20);
         fx.sound('zap', 1.4, 0.5);
         fx.sound('whoosh', 1.6, 0.4);
         break;
@@ -4714,7 +5395,7 @@ function doEvents(_ctx: C2, s: RewState, v: View) {
         fx.sound('splash', 0.7, 0.9);
         break;
       case 'treeFall':
-        fx.pop(cx, y - R(0.2), '쿵— 기우뚱', '#fff2d0', 20);
+        pop(cx, y - R(0.2), '쿵— 기우뚱', '#fff2d0', 20);
         fx.sound('crack', 0.7, 0.7);
         break;
       case 'logLand':
@@ -4724,7 +5405,7 @@ function doEvents(_ctx: C2, s: RewState, v: View) {
         fx.sound('splash', 0.8, 0.8);
         break;
       case 'burst':
-        fx.pop(cx, y - R(0.12), '콸콸!', '#bff0ff', 28);
+        pop(cx, y - R(0.12), '콸콸!', '#bff0ff', 28);
         fx.burst(x, y, '#7fd8ff', 22, 4.5, 2.6);
         fx.kick(4);
         fx.sound('crack', 0.9, 0.6);
@@ -4734,30 +5415,30 @@ function doEvents(_ctx: C2, s: RewState, v: View) {
         fx.sound('whoosh', 0.8, 0.6);
         break;
       case 'crateLand':
-        fx.pop(cx, y - R(0.05), '쿵!', '#ffe0c8', 30);
+        pop(cx, y - R(0.05), '쿵!', '#ffe0c8', 30);
         fx.burst(x, y, '#e8d0b0', 20, 4, 2.6);
         fx.kick(7);
         fx.sound('thud', 0.55, 1.2);
         break;
       case 'balloonGone':
       case 'lost':
-        fx.pop(cx, Math.max(R(0.2), y - R(0.06)), '아앗, 놓쳤다…', '#ffe0e0', 22);
+        pop(cx, Math.max(R(0.2), y - R(0.06)), '아앗, 놓쳤다…', '#ffe0e0', 22);
         fx.sound('fail', 1.3, 0.5);
         break;
       case 'hurt':
-        fx.pop(cx, y - R(0.08), '아야!', '#ffd0d0', 26);
+        pop(cx, y - R(0.08), '아야!', '#ffd0d0', 26);
         fx.burst(x, y, '#ffffff', 12, 3, 2);
         fx.kick(5);
         fx.sound('thud', 1.1, 0.8);
         fx.sound('fail', 1.4, 0.4);
         break;
       case 'wet':
-        fx.pop(cx, y - R(0.08), '냐아아!', '#bff0ff', 26);
+        pop(cx, y - R(0.08), '냐아아!', '#bff0ff', 26);
         fx.burst(x, y, '#7fd8ff', 14, 3, 2.2);
         fx.sound('splash', 1.3, 0.7);
         break;
       case 'bonk':
-        fx.pop(cx, y - R(0.12), s.W.hero.why || '쿵!', '#ffd0c0', 30);
+        pop(cx, y - R(0.12), s.W.hero.why || '쿵!', '#ffd0c0', 30);
         for (const c of ['#ffffff', '#ffe066']) fx.burst(x, y, c, 16, 4.5, 2.4);
         fx.ring(x, y, '#ffe066', R(0.1), 5);
         fx.kick(9);
@@ -4766,7 +5447,7 @@ function doEvents(_ctx: C2, s: RewState, v: View) {
         fx.sound('thud', 0.9, 0.9);
         break;
       case 'splash':
-        fx.pop(cx, y - R(0.1), '풍덩!', '#bff0ff', 34);
+        pop(cx, y - R(0.1), '풍덩!', '#bff0ff', 34);
         fx.burst(x, y, '#bff0ff', 26, 5, 2.8);
         fx.burst(x, y, '#ffffff', 12, 3.5, 2);
         fx.kick(7);
@@ -4776,7 +5457,7 @@ function doEvents(_ctx: C2, s: RewState, v: View) {
         fx.sound('whoosh', 0.6, 0.7);
         break;
       case 'stuck':
-        fx.pop(cx, y - R(0.18), '어?', '#ffffff', 22);
+        pop(cx, y - R(0.18), '어?', '#ffffff', 22);
         fx.sound('tick', 0.8, 0.4);
         break;
       case 'board':
@@ -4786,7 +5467,7 @@ function doEvents(_ctx: C2, s: RewState, v: View) {
         fx.sound('pop', 1.2, 0.5);
         break;
       case 'gearGet':
-        fx.pop(cx, y - R(0.14), '시계 부품!', '#fff27a', 36);
+        pop(cx, y - R(0.14), '시계 부품!', '#fff27a', 36);
         for (const c of ['#ffd25a', '#ffffff', '#ffe066']) fx.burst(x, y - R(0.07), c, 20, 5, 2.8);
         fx.ring(x, y - R(0.07), '#ffd25a', R(0.18), 6);
         fx.blink('#fff6c8', 0.25);
@@ -4795,15 +5476,15 @@ function doEvents(_ctx: C2, s: RewState, v: View) {
         fx.sound('chime', 1.2, 0.8);
         break;
       case 'notyet':
-        fx.pop(cx, y - R(0.05), '아직 그대로예요', '#ffffff', 16);
+        pop(cx, y - R(0.05), '아직 그대로예요', '#ffffff', 16);
         fx.sound('tick', 1.3, 0.4);
         break;
       case 'nosand':
-        fx.pop(cx, y - R(0.05), '모래가 없어요', '#ffd0c0', 18);
+        pop(cx, y - R(0.05), '모래가 없어요', '#ffd0c0', 18);
         fx.sound('fail', 1.6, 0.4);
         break;
       case 'empty':
-        fx.pop(cx, y - R(0.06), '모래가 다 떨어졌다!', '#ffd0c0', 20);
+        pop(cx, y - R(0.06), '모래가 다 떨어졌다!', '#ffd0c0', 20);
         fx.sound('fail', 1.4, 0.5);
         break;
       case 'miss':
@@ -4858,16 +5539,21 @@ function drawHud(ctx: C2, s: RewState, w: number, h: number, v: View, font: (sz:
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#fff2d8';
-  ctx.fillText(`${d.ch + 1}-${(s.stage % 4) + 1} ${d.name}`, R(0.03), R(0.044), R(0.46));
+  ctx.fillText(`${d.ch + 1}-${inCh(s.stage)} ${d.name}`, R(0.03), R(0.044), R(0.5));
   for (let k = 0; k < 3; k++) {
     heartPath(ctx, w - R(0.04) - k * R(0.048), R(0.042), R(0.016));
     ctx.fillStyle = k < s.hearts ? '#ff4a5a' : 'rgba(255,255,255,.18)';
     ctx.fill();
   }
-  brass(ctx, w - R(0.285), R(0.043), R(0.02), 8, t * 0.02);
+  // 부품 수: 하트 왼쪽에 오른쪽 맞춤 (두 자리여도 하트와 안 겹치게)
   font(0.036, 900);
   ctx.fillStyle = '#ffe6a0';
-  ctx.fillText(`${s.gears}/${STAGE_COUNT}`, w - R(0.258), R(0.045));
+  ctx.textAlign = 'right';
+  const gx = w - R(0.175);
+  ctx.fillText(`${s.gears}/${STAGE_COUNT}`, gx, R(0.045));
+  const gw = ctx.measureText(`${s.gears}/${STAGE_COUNT}`).width || R(0.1);
+  ctx.textAlign = 'left';
+  brass(ctx, gx - gw - R(0.026), R(0.043), R(0.02), 8, t * 0.02);
   // ── 아래 띠: 모래시계 · 별 조건
   const by = (TOPH + BOTY) * w;
   ctx.fillStyle = lin(ctx, 0, by, 0, h, [[0, '#4a2e5e'], [1, '#2e1c40']]);
@@ -4947,17 +5633,19 @@ function starsLive(s: RewState): boolean[] {
   return L.stars.map((k) => (k === 'goal' ? win : k === 'sand' ? W.used <= L.par : k === 'safe' ? W.hurt === 0 : k === 'taps' ? W.taps <= L.tapsPar : W.saved > 0));
 }
 /** 복원된 것 작은 그림 (결과 화면) */
-function fixIcon(ctx: C2, k: number, x: number, y: number, r: number, t: number) {
+function fixIcon(ctx: C2, k: number, x: number, y: number, r: number, t: number, bg = true) {
   ctx.save();
   ctx.translate(x, y);
   const pop = 1 + Math.max(0, Math.sin(t * 0.15)) * 0.08;
   ctx.scale(pop, pop);
-  ctx.fillStyle = '#fff3d0';
-  ell(ctx, 0, 0, r * 1.15, r * 1.15);
-  ctx.fill();
-  ctx.strokeStyle = '#ffb02e';
-  ctx.lineWidth = 2;
-  ctx.stroke();
+  if (bg) {
+    ctx.fillStyle = '#fff3d0';
+    ell(ctx, 0, 0, r * 1.15, r * 1.15);
+    ctx.fill();
+    ctx.strokeStyle = '#ffb02e';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
   if (k === 0) {
     ctx.fillStyle = '#5ac8f0';
     ell(ctx, 0, r * 0.45, r * 0.8, r * 0.25);
@@ -4973,7 +5661,7 @@ function fixIcon(ctx: C2, k: number, x: number, y: number, r: number, t: number)
     ctx.fillStyle = '#fff2a0';
     rr(ctx, -r * 0.3, -r * 0.7, r * 0.6, r * 0.45, r * 0.1);
     ctx.fill();
-  } else if (k === 3 || k === 4) {
+  } else if (k === 3 || k === 6) {
     ctx.strokeStyle = '#8a5a2a';
     ctx.lineWidth = 2;
     for (let q = 0; q < (k === 3 ? 4 : 8); q++) {
@@ -4983,7 +5671,32 @@ function fixIcon(ctx: C2, k: number, x: number, y: number, r: number, t: number)
       ctx.lineTo(Math.cos(a) * r * 0.85, Math.sin(a) * r * 0.85);
       ctx.stroke();
     }
+  } else if (k === 4) {
+    ctx.strokeStyle = '#8a5a3a';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.85, -r * 0.4);
+    ctx.quadraticCurveTo(0, r * 0.1, r * 0.85, -r * 0.4);
+    ctx.stroke();
+    for (let q = 0; q < 4; q++) {
+      const fx2 = (q - 1.5) * r * 0.42, fy = -r * 0.3 + (1 - ((q - 1.5) / 2) ** 2) * r * 0.2;
+      ctx.fillStyle = ['#ff5a5a', '#ffcf3a', '#5ab8ff', '#7ad86a'][q];
+      ctx.beginPath();
+      ctx.moveTo(fx2 - r * 0.16, fy);
+      ctx.lineTo(fx2 + r * 0.16, fy);
+      ctx.lineTo(fx2, fy + r * 0.45 + Math.sin(t * 0.2 + q) * r * 0.05);
+      ctx.closePath();
+      ctx.fill();
+    }
   } else if (k === 5) {
+    ctx.fillStyle = '#ff6a5a';
+    ell(ctx, 0, -r * 0.2, r * 0.5, r * 0.55);
+    ctx.fill();
+    ctx.fillStyle = '#ffd25a';
+    ctx.fillRect(-r * 0.15, -r * 0.75, r * 0.3, r * 1.1);
+    ctx.fillStyle = '#9a6a3a';
+    ctx.fillRect(-r * 0.18, r * 0.5, r * 0.36, r * 0.22);
+  } else if (k === 7) {
     ctx.fillStyle = '#c8783a';
     ctx.beginPath();
     ctx.moveTo(-r * 0.7, r * 0.1);
@@ -4997,7 +5710,7 @@ function fixIcon(ctx: C2, k: number, x: number, y: number, r: number, t: number)
     ctx.lineTo(0, -r * 0.7);
     ctx.lineTo(r * 0.45, 0);
     ctx.fill();
-  } else if (k === 6) {
+  } else if (k === 8) {
     ctx.strokeStyle = '#5a5a7a';
     ctx.lineWidth = 2;
     for (let q = 0; q < 3; q++) {
@@ -5008,7 +5721,7 @@ function fixIcon(ctx: C2, k: number, x: number, y: number, r: number, t: number)
       ctx.lineTo(bx + r * 0.2, by - fl);
       ctx.stroke();
     }
-  } else if (k === 7) {
+  } else if (k === 9) {
     ['#ff6a6a', '#ffe36a', '#7ad86a', '#5ab8ff'].forEach((c, i) => {
       ctx.strokeStyle = c;
       ctx.lineWidth = r * 0.14;
@@ -5016,8 +5729,32 @@ function fixIcon(ctx: C2, k: number, x: number, y: number, r: number, t: number)
       ctx.arc(0, r * 0.4, r * (0.85 - i * 0.15), Math.PI, 0);
       ctx.stroke();
     });
-  } else if (k === 9) brass(ctx, 0, 0, r * 0.8, 10, t * 0.05);
-  else if (k === 10) {
+  } else if (k === 10) {
+    ctx.fillStyle = '#ff5a8a';
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.75);
+    ctx.lineTo(r * 0.5, -r * 0.1);
+    ctx.lineTo(0, r * 0.45);
+    ctx.lineTo(-r * 0.5, -r * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#6a4a4a';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, r * 0.45);
+    ctx.quadraticCurveTo(r * 0.3, r * 0.7, -r * 0.1, r * 0.9);
+    ctx.stroke();
+  } else if (k === 11) {
+    ctx.fillStyle = '#5ac8f0';
+    ell(ctx, 0, r * 0.55, r * 0.8, r * 0.18);
+    ctx.fill();
+    ctx.fillStyle = '#ff9a3a';
+    ell(ctx, 0, -r * 0.1 - Math.abs(Math.sin(t * 0.12)) * r * 0.2, r * 0.42, r * 0.22, -0.5);
+    ctx.fill();
+  } else if (k === 13) brass(ctx, 0, 0, r * 0.8, 10, t * 0.05);
+  else if (k === 15) cuckoo(ctx, 0, r * 0.75, r * 0.95, t * 3, true);
+  else if (k === 16) pendulum(ctx, 0, -r * 0.6, r * 1.05, t * 2, true);
+  else if (k === 14) {
     ctx.fillStyle = '#e0a83a';
     ctx.beginPath();
     ctx.moveTo(-r * 0.3, -r * 0.5);
@@ -5025,47 +5762,18 @@ function fixIcon(ctx: C2, k: number, x: number, y: number, r: number, t: number)
     ctx.lineTo(r * 0.7, r * 0.5);
     ctx.quadraticCurveTo(r * 0.4, r * 0.2, r * 0.3, -r * 0.5);
     ctx.fill();
-  } else clockFace(ctx, 0, 0, r * 0.8, t * 8, k === 8 ? 9 : 12);
+  } else clockFace(ctx, 0, 0, r * 0.8, t * 8, k === 12 ? 13 : 18);
   ctx.restore();
 }
-const FIX_TEXT = ['분수가 다시 솟아요!', '창가 꽃이 활짝!', '가로등에 불이 켜져요!', '풍차가 돌아요!', '물레방아가 돌아요!', '나룻배가 돌아왔어요!', '새 떼가 돌아왔어요!', '무지개가 떴어요!', '시계 숫자판이 빛나요!', '큰 톱니가 돌아요!', '종이 다시 울려요!', '시계 바늘이 다시 가요!'];
+const FIX_TEXT = [
+  '분수가 다시 솟아요!', '창가 꽃이 활짝!', '가로등에 불이 켜져요!', '풍차가 돌아요!', '깃발 줄이 펄럭여요!', '열기구가 떠올라요!',
+  '물레방아가 돌아요!', '나룻배가 돌아왔어요!', '새 떼가 돌아왔어요!', '무지개가 떴어요!', '연이 하늘 높이!', '물고기가 뛰어올라요!',
+  '시계 숫자판이 빛나요!', '큰 톱니가 돌아요!', '종이 다시 울려요!', '뻐꾸기가 노래해요!', '시계추가 흔들려요!', '시계 바늘이 다시 가요!',
+];
+/** 장 안에서 몇 번째 판인가 (1부터) */
+const inCh = (i: number) => STAGES.slice(0, i + 1).filter((q) => q.ch === STAGES[i].ch).length;
 function drawCards(ctx: C2, s: RewState, w: number, v: View, font: (sz: number, w?: number) => void, wv: View) {
   const { R, t } = v;
-  const mid = R(0.6);
-  if (s.phase === 'chapter') {
-    const d = STAGES[s.stage], a = Math.min(1, s.pt / 10);
-    ctx.save();
-    ctx.globalAlpha = a;
-    ctx.fillStyle = 'rgba(40,24,60,.6)';
-    ctx.fillRect(0, R(TOPH), w, R(BOTY));
-    const cw = w - R(0.12), ch = R(0.4);
-    ctx.translate(w / 2, mid);
-    ctx.fillStyle = lin(ctx, 0, -ch / 2, 0, ch / 2, [[0, '#fffaf0'], [1, '#ffe8c8']]);
-    rr(ctx, -cw / 2, -ch / 2, cw, ch, R(0.04));
-    ctx.fill();
-    ctx.strokeStyle = '#ffb02e';
-    ctx.lineWidth = 4;
-    ctx.stroke();
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    font(0.07, 900);
-    ctx.fillStyle = '#5a2e7a';
-    ctx.fillText(`${d.ch + 1}장 · ${CH_NAME[d.ch]}`, 0, -R(0.11));
-    font(0.04, 800);
-    ctx.fillStyle = '#8a5a3a';
-    ctx.fillText(CH_SUB[d.ch], 0, -R(0.04));
-    // 모은 부품 줄
-    for (let k = 0; k < STAGE_COUNT; k++) {
-      const gx = (k - (STAGE_COUNT - 1) / 2) * R(0.058), on = k < s.gears;
-      if (on) brass(ctx, gx, R(0.05), R(0.022), 8, t * 0.03);
-      else (ctx.strokeStyle = 'rgba(120,90,60,.35)', ctx.lineWidth = 2, ell(ctx, gx, R(0.05), R(0.018), R(0.018)), ctx.stroke());
-    }
-    font(0.034, 800);
-    ctx.fillStyle = '#6a4a3a';
-    ctx.fillText('부품이 모일수록 시계탑 마을이 살아나요', 0, R(0.13));
-    ctx.restore();
-    return;
-  }
   let head = '', sub = '', a = 0, age = 0;
   if (s.phase === 'result') {
     age = s.pt;
@@ -5120,10 +5828,10 @@ function drawCards(ctx: C2, s: RewState, w: number, v: View, font: (sz: number, 
     }
     // 모은 부품 줄
     for (let k = 0; k < STAGE_COUNT; k++) {
-      const gx = (k - (STAGE_COUNT - 1) / 2) * R(0.062), on = k < s.gears, fresh = k === s.gears - 1;
+      const gx = (k - (STAGE_COUNT - 1) / 2) * R(0.044) + (Math.floor(k / 6) - 1) * R(0.012), on = k < s.gears, fresh = k === s.gears - 1;
       const gy = -chh / 2 + R(0.2);
-      if (on) brass(ctx, gx, gy - (fresh ? Math.max(0, 1 - s.pt / 30) * R(0.06) : 0), R(fresh ? 0.026 : 0.021), 8, t * 0.03, fresh ? 1 : 0);
-      else (ctx.strokeStyle = 'rgba(120,90,60,.35)', ctx.lineWidth = 2, ell(ctx, gx, gy, R(0.018), R(0.018)), ctx.stroke());
+      if (on) brass(ctx, gx, gy - (fresh ? Math.max(0, 1 - s.pt / 30) * R(0.06) : 0), R(fresh ? 0.022 : 0.017), 8, t * 0.03, fresh ? 1 : 0);
+      else (ctx.strokeStyle = 'rgba(120,90,60,.35)', ctx.lineWidth = 2, ell(ctx, gx, gy, R(0.014), R(0.014)), ctx.stroke());
     }
     font(0.04, 900);
     ctx.fillStyle = '#3a8a4a';
