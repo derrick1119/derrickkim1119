@@ -122,7 +122,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 6,
   },
   {
-    key: 'sword', name: '좁은 골목', place: 0, news: '칼 병정가 와요 · 가시덤불은 꺾어 돌아요', goal: '골목 지나가기', card: '칼 병정 · 덤불은 돌아요',
+    key: 'sword', name: '좁은 골목', place: 0, news: '칼 병정이 와요 · 가시덤불은 꺾어 돌아요', goal: '골목 지나가기', card: '칼 병정 · 덤불은 돌아요',
     hint: '덤불을 돌아 꺾어 이어요', start: [0.5, 1.12], g0: 60, ease: [1.5, 1.2, 1],
     thorns: [[0.33, 0.96, 0.06], [0.67, 0.96, 0.06]], // ✏️ S009 📐 가시덤불
     waves: [
@@ -145,7 +145,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 5,
   },
   {
-    key: 'archer', name: '달빛 계단', place: 0, news: '활 병정 — 날아오는 화살도 벨 수 있어요', goal: '계단 올라가기', card: '화살도 벨 수 있어요',
+    key: 'archer', name: '달빛 돌길', place: 0, news: '활 병정 — 날아오는 화살도 벨 수 있어요', goal: '돌길 지나가기', card: '화살도 벨 수 있어요',
     hint: '덤불을 끼고 꺾어 활 병정까지', start: [0.5, 1.15], g0: 55, ease: [1, 1, 1],
     thorns: [[0.5, 0.8, 0.06], [0.3, 1.0, 0.05], [0.7, 1.0, 0.05]], // ✏️ S009 📐 가시덤불
     waves: [
@@ -168,8 +168,8 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 5,
   },
   {
-    key: 'barrel', name: '창고 앞 광장', place: 2, news: '폭탄 통 — 베면 둘레까지 펑! 방패도 날려요', goal: '광장 지나가기', card: '통을 베면 펑!',
-    hint: '칼 병정를 꿰고 꺾어 통을 지나 멀리 (펑!)', start: [0.5, 1.17], g0: 60, ease: [1.3, 2.5, 0.8],
+    key: 'barrel', name: '광장 입구', place: 2, news: '폭탄 통 — 베면 둘레까지 펑! 방패도 날려요', goal: '광장 지나가기', card: '통을 베면 펑!',
+    hint: '칼 병정을 꿰고 꺾어 통을 지나 멀리 (펑!)', start: [0.5, 1.17], g0: 60, ease: [1.3, 2.5, 0.8],
     barrels: [[0.5, 0.64]],
     waves: [
       { need: 0, wait: 1e9, foes: [['sword', 0.24, 0.9, 1], ['sword', 0.18, 0.78, 1], ['sword', 0.12, 0.66, 1], ['dummy', 0.42, 0.58, 0], ['dummy', 0.58, 0.58, 0], ['dummy', 0.5, 0.52, 0]] },
@@ -179,7 +179,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 5,
   },
   {
-    key: 'mix', name: '분수 광장', place: 2, news: '섞여 와요 — 활 병정 먼저, 방패는 등 뒤로', goal: '광장 지나가기', card: '활 병정 먼저!',
+    key: 'mix', name: '광장 한가운데', place: 2, news: '섞여 와요 — 활 병정 먼저, 방패는 등 뒤로', goal: '광장 지나가기', card: '활 병정 먼저!',
     hint: '덤불 사이로 올라가 갈라 꺾어요', start: [0.5, 1.15], g0: 60, ease: [1.2, 3, 0.7],
     thorns: [[0.36, 1.0, 0.05], [0.64, 1.0, 0.05]], // ✏️ S009 📐 가시덤불
     waves: [
@@ -237,7 +237,7 @@ export const TRIAL: StageDef[] = starsOf([
   },
   // ✏️ M2 S5: 📐 CONTENT §4 월드 2 표 2-2~2-5(잎 섞기 · 연기) — 좌표는 표를 그대로 옮김
   {
-    key: 'leafWait', name: '빨랫줄 골목', place: 1, news: '줄 서길 기다려 꺾어 잎까지', card: '줄 세워 꺾어 잎까지', goal: '골목 지나가기',
+    key: 'leafWait', name: '빨랫줄 지붕', place: 1, news: '줄 서길 기다려 꺾어 잎까지', card: '줄 세워 꺾어 잎까지', goal: '지붕 건너가기',
     hint: '줄 서면 꺾어 잎까지', start: [0.5, 1.15], g0: 60, ease: [1.2, 1.5, 0.7], thorns: [[0.5, 0.95, 0.05]],
     waves: [
       { need: 1, wait: 1e9, foes: [['sword', 0.14, 0.62, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.26, 0.78, 1], ['sword', 0.32, 0.86, 1], ['leaf', 0.8, 0.56, 0]] },
@@ -264,7 +264,7 @@ export const TRIAL: StageDef[] = starsOf([
     n: 5,
   },
   {
-    key: 'smoke', name: '굴뚝 골목', place: 1, news: '화살·수리검도 돌진 선에 끊겨요 — 줄과 한 획에', card: '날아오는 것도 베요', goal: '골목 지나가기', // ✏️ M2 S8: 연기는 뺐다(숨어도 별 차이 0 → M5) · 키는 그대로(M5에 연기가 이 판으로 돌아옴 · 저장된 별) · 🧪 S8: 글을 못 바꿨던 것 고침
+    key: 'smoke', name: '굴뚝 지붕', place: 1, news: '화살·수리검도 돌진 선에 끊겨요 — 줄과 한 획에', card: '날아오는 것도 베요', goal: '지붕 건너가기', // ✏️ M2 S8: 연기는 뺐다(숨어도 별 차이 0 → M5) · 키는 그대로(M5에 연기가 이 판으로 돌아옴 · 저장된 별) · 🧪 S8: 글을 못 바꿨던 것 고침
     hint: '날아오는 쪽으로 줄 따라 쭉', start: [0.5, 1.15], g0: 60, ease: [1.2, 2, 0.9], // 📐 S8: 간격 끔 · 다음 무리는 남은 적 둘 이하거나 8초(빈 기다림 58→7%)
     waves: [
       { need: 1, wait: 1e9, foes: [['sword', 0.14, 0.62, 1], ['sword', 0.2, 0.7, 1], ['sword', 0.26, 0.78, 1], ['sword', 0.32, 0.86, 1], ['archer', 0.5, 0.5, 3]] },
@@ -314,8 +314,8 @@ export const TRIAL: StageDef[] = starsOf([
     n: 5,
   },
   {
-    key: 'jars', name: '장독대', place: 1, news: '장독은 펑, 대나무는 쓰러짐 — 골라요', card: '펑은 위, 대나무는 옆', goal: '장독대 지나가기',
-    hint: '위 무리는 장독, 옆 줄은 대나무', start: [0.5, 1.15], g0: 60, ease: [1.5, 3, 0.7], thorns: [[0.34, 0.8, 0.05], [0.66, 0.8, 0.05]],
+    key: 'jars', name: '통 쌓인 지붕', place: 1, news: '통은 펑, 대나무는 쓰러짐 — 골라요', card: '펑은 위, 대나무는 옆', goal: '장독대 지나가기',
+    hint: '위 무리는 통, 옆 줄은 대나무', start: [0.5, 1.15], g0: 60, ease: [1.5, 3, 0.7], thorns: [[0.34, 0.8, 0.05], [0.66, 0.8, 0.05]],
     waves: [
       { need: 1, wait: 1e9, foes: [['barrel', 0.5, 0.6, 0], ['dummy', 0.42, 0.54, 0], ['dummy', 0.58, 0.54, 0], ['dummy', 0.5, 0.5, 0], ['sword', 0.14, 0.66, 1], ['sword', 0.2, 0.74, 1], ['sword', 0.26, 0.82, 1]] },
       { need: 1, wait: 480, foes: [['bamboo', 0.5, 0.86, 0], ['dummy', 0.62, 0.86, 0], ['dummy', 0.8, 0.86, 0], ['sword', 0.86, 0.62, 2], ['sword', 0.8, 0.7, 2], ['sword', 0.74, 0.78, 2], ['archer', 0.3, 0.5, 3]] },
@@ -754,7 +754,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     f.x = clamp(f.x + nx * sg * LEAF_HOP, X0 + 0.02, X1 - 0.02);
     f.y = clamp(f.y + ny * sg * LEAF_HOP, Y0 + 0.02, Y1 - 0.02);
     ev(s, 'dodge', f.x, f.y, dq.leg); // n = 휙 난 토막(0 = 첫 토막)
-    see(s, 'leaf', '잎 병정는 곧은 칼을 휙! 꺾어 들어가 베요');
+    see(s, 'leaf', '잎 병정은 곧은 칼을 휙! 꺾어 들어가 베요');
     if (n === 0) s.g = Math.min(GMAX, s.g + GAIN); // 휙만 난 획에만(🧪 M2 S1: 섞인 판에서 '먹 우물' 막기) 휙 하며 먹을 흘린다(+7) — 잎만 남으면 먹을 얻을 길이 없어 처음 하는 사람이 말라 갇히던 것(꾹 동안 주는 먹 > 쉬는 동안 차는 먹)
     s.dodgeN++;
     if (s.dodgeN >= OWL_DODGES && !s.owl && !s.owlNo) s.owlAsk = true; // M2 S4 ㉛: 2-1에서 휙 세 번이면 부엉이가 묻는다 · S10: 큰 너구리 휙을 빼 보니 카드 .92→.75지만 처음 첫 도전 .45→.36 · 3번 안 .81→.73(카드가 돕고 있음) → 그대로(📋)
@@ -2825,14 +2825,14 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       age = s.pt;
       a = Math.min(1, age / 8);
       if (s.ok) {
-        head = s.won ? '성까지 다 지나왔다!' : `${d.goal} 성공!`;
+        head = s.won ? '시계탑까지 다 지나왔다!' : `${d.goal} 성공!`;
         // ✏️ S002(📋 M1 완료 기준 ②): 놓친 별은 무엇이 모자랐는지 쉬운 말로
         sub = missOf(s);
       } else (head = `으앗… ${s.why}`), (sub = '그 판만 바로 다시');
     } else if (s.pt < CARD_T && (s.stage > 0 || s.again)) {
       age = s.pt;
       a = Math.min(1, (CARD_T - s.pt) / 20, age / 6);
-      head = `${s.again ? '다시! ' : ''}${s.stage + 1}판 · ${d.name}`;
+      head = `${s.again ? '다시! ' : ''}${s.stage >= STAGE_COUNT ? `2-${s.stage - STAGE_COUNT + 1}` : `${s.stage + 1}판`} · ${d.name}`; // 🧪 S5: 월드 2 카드도 HUD처럼 2-N
       sub = d.card ? `NEW  ${d.card}` : d.news ? `NEW  ${d.news}` : '꾹 누르면 세상이 느려져요';
     }
     if (head) {

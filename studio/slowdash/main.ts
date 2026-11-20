@@ -287,18 +287,24 @@ if (q.get('title') === '1') title();
 else start();
 // M3 S5 렉(🧪: 첫 '번쩍'이 판마다 한 번 끊김 — 트레이스로 보니 그 프레임만 게임 코드가 23~25ms, 평소 6~11ms):
 //   처음 도는 돌진·베기·그리기 코드를 브라우저가 그때 처음 컴파일하는 비용이다 → 켜자마자 화면 밖 가짜 판에서 한 번 베고 그려 둔다(시드·저장·소리는 안 건드림)
-setTimeout(() => {
-  try {
-    const t = g.create(7), c = document.createElement('canvas').getContext('2d')!;
-    if (s.stage) startStage(t, s.stage); // 지금 하는 판의 적·장치 코드까지(대장 휙 · 대나무 쓰러짐)
-    (c.canvas.width = W), (c.canvas.height = H);
-    for (let i = 0; i < 240; i++) { // 꺾은 획 한 번 + 곧은 획 한 번
-      const pt = i >= 60 && i < 100 ? { x: 0.3, y: 0.5 } : i >= 100 && i < 130 ? { x: 0.7, y: 0.3 } : i >= 160 && i < 190 ? { x: 0.5, y: 0.25 } : null;
-      g.step(t, { tap: false, dir: 0, pointer: pt });
-      if ((i > 125 && i < 145) || (i > 185 && i < 205)) g.draw(c, t, W, H, pal);
-    }
-  } catch { /* 예열이 실패해도 게임은 그대로 */ }
-}, 50);
+//   🧪 S5: 한 번에 하면 켠 뒤 0.2~0.4초 멈춘다 → 프레임마다 3ms씩 나눠 한다
+{
+  const t = g.create(7), c = document.createElement('canvas').getContext('2d')!;
+  if (s.stage) startStage(t, s.stage); // 지금 하는 판의 적·장치 코드까지(대장 휙 · 대나무 쓰러짐)
+  let i = 0;
+  (c.canvas.width = W), (c.canvas.height = H);
+  const warm = () => {
+    try {
+      for (const t0 = performance.now(); i < 240 && performance.now() - t0 < 3; i++) { // 꺾은 획 한 번 + 곧은 획 한 번
+        const pt = i >= 60 && i < 100 ? { x: 0.3, y: 0.5 } : i >= 100 && i < 130 ? { x: 0.7, y: 0.3 } : i >= 160 && i < 190 ? { x: 0.5, y: 0.25 } : null;
+        g.step(t, { tap: false, dir: 0, pointer: pt });
+        if ((i > 125 && i < 145) || (i > 185 && i < 205)) (g.draw(c, t, W, H, pal), (i += 1)); // 그리기는 한 조각에 한 번
+      }
+      if (i < 240) requestAnimationFrame(warm);
+    } catch { /* 예열이 실패해도 게임은 그대로 */ }
+  };
+  requestAnimationFrame(warm);
+}
 // 타이틀 뒤에서도 달밤이 흐르게(시뮬은 멈춘 채 그림만)
 (function idle() {
   if (!running) draw();
