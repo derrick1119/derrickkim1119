@@ -100,7 +100,7 @@ export const CARD_ART = {
     g.save(); g.translate(7, -4); g.rotate(0.5); path(g, p => { p.moveTo(-1.6, 2); p.quadraticCurveTo(-0.8, -10, 4, -19); p.quadraticCurveTo(3.2, -9, 1.9, 2); p.closePath(); }, STEEL, INK, 1.1); g.restore(); spark(g, 19, -19, 3.2, '#fffbe6');
     for (const [x, y, r] of [[-11, 8, 9], [10, 9, 9], [0, 1, 11.5], [-7, -4, 7], [7, -3, 6.5]]) ell(g, x, y, r, r * 0.86, LEAFD, INK, 1.2);
     for (const [x, y, r] of [[-12, 5, 4], [3, -3, 5], [11, 6, 3.6]]) { g.globalAlpha = 0.5; ell(g, x, y, r, r * 0.6, LEAF); g.globalAlpha = 1; }
-    rr(g, -7, 2.4, 14, 6.8, 3.4, BLACK, INK, 0.9); for (const s of [-1, 1]) { ell(g, s * 3.2, 5.8, 2, 2.2, WHITE); ell(g, s * 3.2 + 0.5, 6.1, 0.9, 1.1, INK); }
+    rr(g, -7.6, 3, 15.2, 5.6, 2.6, BLACK, INK, 0.9); for (const s of [-1, 1]) { path(g, p => { p.moveTo(s * 1.2, 6.4); p.quadraticCurveTo(s * 3.4, 3.6, s * 6, 4.6); p.quadraticCurveTo(s * 4, 7.6, s * 1.2, 6.4); p.closePath(); }, WHITE); ell(g, s * 3.5, 5.6, 0.9, 1, INK); }
     for (const x of [-15, -5, 5, 15]) line(g, [x, 17, x + 1.6, 13], LEAFD, 1.3);
   },
   archers(g) { // 원군 궁수
@@ -130,7 +130,7 @@ export const CARD_ART = {
     path(g, p => { p.moveTo(-15, -7); p.lineTo(15, -7); p.lineTo(13.4, 1.6); p.lineTo(7.6, -0.4); p.lineTo(9.4, 14); p.lineTo(5, 11); p.lineTo(1.6, 15.4); p.lineTo(-2, 11); p.lineTo(-5.6, 15); p.lineTo(-9.4, 12.4); p.lineTo(-7.6, -0.4); p.lineTo(-13.4, 1.6); p.closePath(); }, '#d8cfb2', INK, 1.2);
     rr(g, -5.6, 2.4, 5, 5, 0.5, '#a84a32', INK, 0.8); rr(g, 1.6, 6, 4.2, 4.2, 0.5, INDIGO, INK, 0.8);
     for (const s of [-1, 1]) for (const d of [-1.6, 0, 1.6]) line(g, [s * 15, -3 + d, s * 20, -3 + d * 2.2], STRAW, 1.1);
-    ell(g, 0, -12, 6.2, 6, '#ecdcae', INK, 1.2); line(g, [-3.6, -13.4, -1.4, -12], INK, 1); line(g, [-3.6, -12, -1.4, -13.4], INK, 1); ell(g, 2.6, -12.6, 0.9, 1.1, INK); g.beginPath(); g.moveTo(-2.4, -9.2); g.quadraticCurveTo(0, -7.6, 2.8, -9.4); st(g, INK, 0.9);
+    ell(g, 0, -12, 6.2, 6, '#ecdcae', INK, 1.2); line(g, [-3.6, -13.4, -1.4, -12], INK, 1); line(g, [-3.6, -12, -1.4, -13.4], INK, 1); ell(g, 2.6, -12.6, 0.9, 1.1, INK); line(g, [-2.6, -8.8, 3, -9], INK, 0.9); for (const x of [-1.4, 0.2, 1.8]) line(g, [x, -9.6, x, -8.2], INK, 0.5);
     ell(g, 0, -17.4, 11, 3, '#d9b77a', INK, 1.1); path(g, p => { p.moveTo(-5, -17.6); p.quadraticCurveTo(-5, -23.6, 0, -23.6); p.quadraticCurveTo(5, -23.6, 5, -17.6); p.closePath(); }, '#e3c890', INK, 1.1);
   },
   strike(g) { // 언월 강타
@@ -251,7 +251,7 @@ export const RELIC_ART = {
     path(g, p => { p.moveTo(-5, -20); p.lineTo(5, -20); p.lineTo(7, -12); p.lineTo(20, -17); p.lineTo(18, -7); p.lineTo(10, -3); p.lineTo(11, 7); p.lineTo(20, 13); p.lineTo(17, 20); p.lineTo(6, 15); p.lineTo(3, 23); p.lineTo(-3, 23); p.lineTo(-6, 15); p.lineTo(-17, 20); p.lineTo(-20, 13); p.lineTo(-11, 7); p.lineTo(-10, -3); p.lineTo(-18, -7); p.lineTo(-20, -17); p.lineTo(-7, -12); p.closePath(); }, '#e69a3c', INK, 1.4);
     path(g, p => { p.moveTo(-4, -8); p.quadraticCurveTo(0, -5, 4, -8); p.lineTo(5, 12); p.quadraticCurveTo(0, 15, -5, 12); p.closePath(); }, '#f6e2b8');
     for (const [x, y, w, a] of [[-8, -5, 5, 0.3], [8, -5, 5, -0.3], [-9, 2, 5.6, 0.15], [9, 2, 5.6, -0.15], [-8, 9, 5, -0.2], [8, 9, 5, 0.2], [-14, -13, 4.4, 0.9], [14, -13, 4.4, -0.9], [-14.6, 15, 4.4, -0.8], [14.6, 15, 4.4, 0.8], [0, 18, 3, 0]]) { g.save(); g.translate(x, y); g.rotate(a); poly(g, [-w / 2, -1.2, w / 2, 0, -w / 2, 1.2], BLACK); g.restore(); }
-    for (const s of [-1, 1]) { ell(g, s * 4.6, -21, 2.4, 2.2, '#e69a3c', INK, 1); ell(g, s * 2.4, -15.6, 1, 1.2, INK); } poly(g, [-1.4, -12.6, 1.4, -12.6, 0, -10.6], '#c9705a', INK, 0.6);
+    for (const s of [-1, 1]) { ell(g, s * 4.6, -21, 2.4, 2.2, '#e69a3c', INK, 1); poly(g, [s * 0.9, -15, s * 3.8, -17, s * 3.6, -14.8], '#f6e2b8', INK, 0.6); ell(g, s * 2.7, -15.5, 0.6, 0.8, INK); line(g, [s * 0.6, -16.2, s * 4.2, -18], INK, 1); } poly(g, [-1.4, -12.6, 1.4, -12.6, 0, -10.6], '#c9705a', INK, 0.6);
   },
   sack(g) { // 엽전 꾸러미
     cord(g, p => { p.moveTo(-17, -17); p.quadraticCurveTo(-4, -6, 0, 0); p.quadraticCurveTo(6, 8, 16, 18); }, RED, 1.4);
@@ -329,7 +329,7 @@ export const RELIC_ART = {
     rr(g, -9, 17, 18, 4.6, 1.4, WOODD, INK, 1.1);
     path(g, p => { p.moveTo(-7.6, 17); p.quadraticCurveTo(-10, 3, -6, -5); p.lineTo(6, -5); p.quadraticCurveTo(10, 3, 7.6, 17); p.closePath(); }, '#3f8a6a', INK, 1.3); path(g, p => { p.moveTo(-4, -5); p.lineTo(0, 2); p.lineTo(4, -5); p.closePath(); }, GOLD, INK, 0.8); rr(g, -8.6, 5, 17.2, 3.4, 0.6, RED, INK, 0.8);
     for (const s of [-1, 1]) { path(g, p => { p.moveTo(s * 6, -4); p.quadraticCurveTo(s * 15, -3, s * 15, 6); p.lineTo(s * 10, 6.6); p.quadraticCurveTo(s * 10, 1, s * 6.6, 1); p.closePath(); }, RED, INK, 1.1); ell(g, s * 12.6, 7.4, 2.2, 2.2, SKIN, INK, 0.8); }
-    ell(g, 0, -11, 7.4, 7, '#f3dcc0', INK, 1.3); for (const s of [-1, 1]) { ell(g, s * 2.8, -11, 0.9, 1.2, INK); g.globalAlpha = 0.6; ell(g, s * 4.8, -8.6, 1.6, 1.1, '#e98a6a'); g.globalAlpha = 1; } line(g, [-1.4, -7.6, 0, -7, 1.4, -7.6], REDD, 0.9);
+    ell(g, 0, -11, 7.4, 7, '#f3dcc0', INK, 1.3); for (const s of [-1, 1]) { line(g, [s * 1.4, -10.6, s * 4.4, -11.4], INK, 1.2); line(g, [s * 1.2, -12.8, s * 4.6, -13.6], INK, 0.8); } line(g, [0, -10.4, -0.5, -8.6], '#b98a6a', 0.8); line(g, [-1.5, -7, 1.5, -7], REDD, 1);
     path(g, p => { p.moveTo(-7.6, -13); p.quadraticCurveTo(-7, -19.6, 0, -19.6); p.quadraticCurveTo(7, -19.6, 7.6, -13); p.quadraticCurveTo(0, -16, -7.6, -13); p.closePath(); }, BLACK, INK, 1); rr(g, -3, -24.4, 6, 5.6, 1.2, INDIGO, INK, 0.9); ell(g, 0, -21.4, 1.2, 1.2, GOLD);
   },
   knife(g) { // 은장도
@@ -395,9 +395,9 @@ export const RELIC_ART = {
     for (const s of [-1, 1]) path(g, p => { p.moveTo(s * 5, -13); p.quadraticCurveTo(s * 11, -19, s * 10, -25); p.quadraticCurveTo(s * 4, -20, s * 1.6, -14); p.closePath(); }, '#f3e7c8', INK, 1.1);
     path(g, p => { p.moveTo(-15, -6); p.lineTo(-18, -14); p.lineTo(-11, -12); p.lineTo(-9, -17); p.lineTo(-4, -13.6); p.lineTo(0, -17); p.lineTo(4, -13.6); p.lineTo(9, -17); p.lineTo(11, -12); p.lineTo(18, -14); p.lineTo(15, -6); p.closePath(); }, BLACK, INK, 1);
     path(g, p => { p.moveTo(-15, -7); p.quadraticCurveTo(-18, 6, -11, 14); p.quadraticCurveTo(0, 21, 11, 14); p.quadraticCurveTo(18, 6, 15, -7); p.quadraticCurveTo(0, -11, -15, -7); p.closePath(); }, '#8a64a8', INK, 1.4);
-    ell(g, -6, -1, 4, 3.8, WHITE, INK, 1); ell(g, -5.4, -0.6, 1.5, 1.7, INK); g.beginPath(); g.moveTo(3, -0.6); g.quadraticCurveTo(6.4, -4, 9.6, -0.6); st(g, INK, 1.6); line(g, [-11, -6, -2.6, -4.4], INK, 1.7); line(g, [11, -6, 2.6, -4.4], INK, 1.7);
-    path(g, p => { p.moveTo(-8, 7); p.quadraticCurveTo(0, 4.6, 8, 7); p.quadraticCurveTo(5, 13, 0, 13); p.quadraticCurveTo(-5, 13, -8, 7); p.closePath(); }, REDD, INK, 1); path(g, p => { p.moveTo(-0.6, 9); p.quadraticCurveTo(6, 9, 6.4, 16); p.quadraticCurveTo(6, 20.6, 2.6, 19.6); p.quadraticCurveTo(-1.4, 18, -0.6, 9); p.closePath(); }, '#e9788a', INK, 1); line(g, [2.4, 11, 3.4, 17], REDD, 0.8);
-    for (const s of [-1, 1]) poly(g, [s * 6.4, 6.6, s * 5, 10, s * 3.4, 6.4], WHITE, INK, 0.6);
+    for (const s of [-1, 1]) { path(g, p => { p.moveTo(s * 2.2, 0.6); p.quadraticCurveTo(s * 6, -4.6, s * 10.6, -3.4); p.quadraticCurveTo(s * 7.6, 2.6, s * 2.2, 0.6); p.closePath(); }, '#f6e9a8', INK, 1); ell(g, s * 6, -0.8, 1.2, 1.5, INK); line(g, [s * 11.6, -7.6, s * 2, -3], INK, 1.9); }
+    path(g, p => { p.moveTo(-8.6, 6.6); p.quadraticCurveTo(0, 4, 8.6, 6.6); p.quadraticCurveTo(6, 13.4, 0, 13.4); p.quadraticCurveTo(-6, 13.4, -8.6, 6.6); p.closePath(); }, REDD, INK, 1);
+    for (const x of [-4.4, -1.4, 1.6]) rr(g, x, 6, 2.8, 2.6, 0.4, WHITE, INK, 0.5); for (const s of [-1, 1]) { poly(g, [s * 7.4, 6.2, s * 5.8, 11.4, s * 4.2, 6], WHITE, INK, 0.6); poly(g, [s * 5.6, 13, s * 4.4, 8.6, s * 3, 13.2], WHITE, INK, 0.6); }
   },
   c_luck(g) { // 액운
     g.save(); g.rotate(-0.12); g.globalAlpha = 0.9; path(g, p => { p.arc(-1.6, 3, 14, PI * 0.56, PI * 1.56); p.lineTo(-3, -4); p.lineTo(-0.4, 1); p.lineTo(-3.6, 7); p.closePath(); }, '#8f897a', INK, 1.3); g.restore();
@@ -413,7 +413,7 @@ export const RELIC_ART = {
   c_chill(g) { // 으스스한 한기
     path(g, p => { p.moveTo(-2, -23); p.bezierCurveTo(4, -15, 14, -11, 12, 2); p.bezierCurveTo(11, 12, 5, 17, -1, 17); p.bezierCurveTo(-9, 17, -14, 10, -13, 1); p.bezierCurveTo(-12.4, -5, -8, -6, -7, -12); p.bezierCurveTo(-4, -9, -3, -16, -2, -23); p.closePath(); }, '#5fb6d9', INK, 1.4);
     path(g, p => { p.moveTo(-1, -6); p.bezierCurveTo(4, 0, 6.6, 5, 5, 9.6); p.bezierCurveTo(3, 13.6, -4, 13.6, -6, 9); p.bezierCurveTo(-7.4, 4.6, -3, 1, -1, -6); p.closePath(); }, '#d6f3fb');
-    for (const s of [-1, 1]) { ell(g, s * 3.4 - 0.6, 5.6, 1.5, 2, INK); } ell(g, -0.6, 10, 1.6, 2, INK);
+    for (const s of [-1, 1]) path(g, p => { p.moveTo(s * 1 - 0.6, 7); p.quadraticCurveTo(s * 3 - 0.6, 2.4, s * 5.8 - 0.6, 3); p.quadraticCurveTo(s * 4.4 - 0.6, 8, s * 1 - 0.6, 7); p.closePath(); }, '#123650'); line(g, [-3, 10.6, -1.4, 11.6, 0.2, 10.6, 1.8, 11.6], '#1f4f6f', 0.9);
     for (const [x, y, r] of [[16, -15, 4.6], [-16, -12, 3.4], [17, 14, 3.2]]) { for (let i = 0; i < 3; i++) { const a = i / 3 * PI; line(g, [x - Math.cos(a) * r, y - Math.sin(a) * r, x + Math.cos(a) * r, y + Math.sin(a) * r], INK, 2.2); line(g, [x - Math.cos(a) * r, y - Math.sin(a) * r, x + Math.cos(a) * r, y + Math.sin(a) * r], '#dff4fb', 1); } }
     cord(g, p => { p.moveTo(-9, 20); p.quadraticCurveTo(0, 23, 9, 20); }, ICE, 1.2);
   },

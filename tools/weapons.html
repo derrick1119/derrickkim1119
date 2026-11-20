@@ -1,0 +1,13 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../style.css"><style>html,body{overflow:auto;display:block;background:#e9dec4}#c{position:static;transform:none}</style></head>
+<body><canvas id="c" width="1440" height="620"></canvas>
+<script type="module">
+// 무기 그림 한눈에 보기
+import { getWeapon } from '../src/render/sprites.js';
+import { WEAPONS } from '../src/data/weapons.js';
+import { drawSprite, text } from '../src/render/draw.js';
+const c = document.getElementById('c'), g = c.getContext('2d');
+await document.fonts.load("700 20px 'Gowun Batang'", '가A');
+g.fillStyle = '#e9dec4'; g.fillRect(0, 0, c.width, c.height);
+Object.keys(WEAPONS).forEach((k, i) => { const x = 60 + (i % 13) * 108, y = 190 + Math.floor(i / 13) * 290, W = getWeapon(k); drawSprite(g, W.spr, x, y - (W.hand === 'L' ? 60 : 0), 3.2, 3.2); text(g, WEAPONS[k].name, x, y + 80, { size: 16 }); });
+window.done = true;
+</script></body></html>

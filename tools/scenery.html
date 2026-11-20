@@ -1,0 +1,17 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../style.css"><style>html,body{overflow:auto;display:block;background:#e9dec4}#c{position:static;transform:none}</style></head>
+<body><canvas id="c" width="1440" height="1500"></canvas>
+<script type="module">
+// 배경 그림 한눈에 보기: ?t=pass|grove|dusk
+import { makeGround, makeFar, stopSprite, obstacleSprite, drawRiver, GW, FW, FAR_H } from '../src/render/terrain.js';
+import { drawSprite, text } from '../src/render/draw.js';
+const q = new URLSearchParams(location.search), th = q.get('t') || 'pass', off = Number(q.get('x') || 0);
+const c = document.getElementById('c'), g = c.getContext('2d');
+await document.fonts.load("400 20px 'Yeon Sung'", '주');
+g.fillStyle = '#e9dec4'; g.fillRect(0, 0, c.width, c.height);
+g.save(); g.beginPath(); g.rect(0, 0, 1440, 720); g.clip(); g.drawImage(makeFar(th, 3), -off * 0.25, 0, FW, FAR_H); g.drawImage(makeGround(th, 3), -off, 0, GW, 720);
+drawRiver(g, { river: { x: 900, w: 70 }, bridges: [{ x: 900, y: 300, w: 70, h: 80 }], slow: [{ x: 900, y: 460, w: 70, h: 70 }] }, th, 1, 1);
+[{ kind: 'rock', r: 22, x: 300, y: 300, v: 1 }, { kind: 'rock', r: 30, x: 420, y: 420, v: 2 }, { kind: 'tree', x: 560, y: 330 }, { kind: 'wall', h: 90, x: 700, y: 420, v: 1 }, { kind: 'barricade', h: 110, x: 780, y: 460, v: 1 }, { kind: 'pillar', r: 20, x: 1100, y: 380, v: 1 }].forEach(o => drawSprite(g, obstacleSprite(o, th), o.x, o.y));
+g.restore();
+['rest', 'shop', 'event', 'treasure', 'fork', 'boss', 'battle', 'elite'].forEach((k, i) => { const x = 180 + (i % 4) * 350, y = 1060 + Math.floor(i / 4) * 370; drawSprite(g, stopSprite(k), x, y, 2.4, 2.4); text(g, k, x, y + 40, { size: 18 }); });
+window.done = true;
+</script></body></html>

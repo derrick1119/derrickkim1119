@@ -11,6 +11,7 @@ await Promise.all([document.fonts.load("700 20px 'Gowun Batang'", '가A'), docum
 g.fillStyle = '#e9dec4'; g.fillRect(0, 0, c.width, c.height);
 const sheet = (ids, draw, name, y0) => ids.forEach((k, i) => { const x = 80 + (i % 11) * 128, y = y0 + Math.floor(i / 11) * 170; draw(g, k, x, y, 2.1); text(g, name(k), x, y + 72, { size: 17 }); });
 text(g, '전술 패', 80, 40, { size: 30, align: 'left' }); sheet(Object.keys(CARD_ART), cardIcon, k => CARDS[k] ? CARDS[k].name : k, 120);
-text(g, '보물 · 부정', 80, 470, { size: 30, align: 'left' }); sheet(Object.keys(RELIC_ART), relicIcon, k => RELICS[k] ? RELICS[k].name : k, 550);
+const y2 = 120 + Math.ceil(Object.keys(CARD_ART).length / 11) * 170;
+text(g, '보물 · 부정', 80, y2 - 10, { size: 30, align: 'left' }); sheet(Object.keys(RELIC_ART), relicIcon, k => RELICS[k] ? RELICS[k].name : k, y2 + 70);
 window.done = true;
 </script></body></html>

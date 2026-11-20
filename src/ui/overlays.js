@@ -85,7 +85,7 @@ export class ShopOverlay extends Overlay {
     });
     if (button(g, 'shdeck', 50, 590, 280, 62, `덱 살피기 · ${r.deck.length}장`, { style: 'paper', size: 24 })) this.deck({});
     if (!this.left && button(g, 'leave', 480, 584, 320, 72, '장터를 떠난다', { size: 30 })) { this.left = true; this.onDone(); }
-    if (this.msgT > 0) { g.globalAlpha = Math.min(1, this.msgT * 3); rr(g, 830, 596, 400, 46, 23, PAPER, INK, 2.2); text(g, this.msg, 1030, 620, { size: 17, maxW: 380 }); g.globalAlpha = 1; }
+    if (this.msgT > 0) { g.globalAlpha = Math.min(1, this.msgT * 3); rr(g, 830, 596, 400, 46, 9, PAPER, INK, 2.2); rr(g, 833.4, 599.4, 393.2, 39.2, 6, null, 'rgba(201,150,46,0.7)', 0.9); text(g, this.msg, 1030, 620, { size: 17, maxW: 380 }); g.globalAlpha = 1; }
   }
   say(s) { this.msg = s; this.msgT = 2.6; }
   buy(it) {

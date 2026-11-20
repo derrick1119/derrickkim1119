@@ -22,7 +22,7 @@ export class EndScene {
     text(g, win ? '어둑시니가 물러가고 고갯길에 아침이 밝았습니다' : `${CHAPTERS[Math.min(2, r ? r.ch : 0)].name} 에서 군기가 꺾였습니다`, 640, 144, { size: 22, stroke: '#ecdfc2', lw: 6, maxW: 900 });
     if (r) { portrait(g, r.hero, 250, 560 - (win ? Math.abs(Math.sin(t * 4)) * 12 : 0), 3.6, t); if (win) { portrait(g, 'sword', 110, 600, 2.0, t, true); portrait(g, 'priest', 410, 600, 2.0, t, true); } }
     panel(g, 520, 180, 720, 380);
-    rr(g, 540, 198, 250, 46, 23, '#1f2a44', INK, 2.4); text(g, `공적 +${this.gain}  (모두 ${meta.merit})`, 665, 222, { size: 19, fill: '#f0d99a', maxW: 226 });
+    panel(g, 540, 198, 250, 46, 'navy'); text(g, `공적 +${this.gain}  (모두 ${meta.merit})`, 665, 222, { size: 19, fill: '#f0d99a', maxW: 226 });
     if (r) {
       [['쌓은 전공', `${r.merit || 0}`], ['이긴 싸움', `${r.wins}`], ['물리친 요괴', `${r.kills}`], ['잃은 병사', `${r.lost}`]].forEach(([a, b], n) => { const x = 820 + (n % 2) * 200, y = 208 + Math.floor(n / 2) * 34; text(g, a, x, y, { size: 18, align: 'left', fill: SUB }); text(g, b, x + 180, y, { size: 24, font: FONT_B, align: 'right' }); });
       text(g, `덱 ${r.deck.length}장`, 544, 290, { size: 20, font: FONT_B, align: 'left' });

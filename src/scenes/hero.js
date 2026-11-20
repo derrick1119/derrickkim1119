@@ -27,7 +27,7 @@ export class HeroScene {
       text(g, `체력 ${Math.round(d.hp * 2.2)} · 패 비용 4`, x + 202, y + 148, { size: 15, align: 'left', fill: SUB, weight: 400, maxW: 176 });
       rr(g, x + 18, y + 190, w - 36, 28, 14, on ? '#f6e6b8' : '#e9dec4', INK, 1.2); text(g, `자동 고유기: ${HERO_SKILLS[id].map(s => s.name).join(' → ')}`, x + w / 2, y + 204.6, { size: 14.5, maxW: w - 56 });
       cards.forEach((c, n) => { const yy = y + 262 + n * 78; rr(g, x + 18, yy - 36, w - 36, 72, 6, on ? '#fbf3df' : '#efe4c9', INK, 1.4); rr(g, x + 26, yy - 28, 60, 60, 7, '#f3e3c0', KIND.hero.col, 1.8); cardIcon(g, c.id, x + 56, yy + 2, 1.05); ell(g, x + 32, yy - 24, 12, 12, '#d9a441', INK, 1.6); text(g, String(c.cost), x + 32, yy - 23, { size: 16, font: FONT_B }); text(g, c.name, x + 98, yy - 14, { size: 22, font: FONT_B, align: 'left' }); textBlock(g, c.desc(c.v), x + 98, yy + 10, w - 130, 18, { size: 14, align: 'left', weight: 400, fill: SUB }); });
-      if (locked) { rr(g, x, y, w, h, 6, 'rgba(241,231,207,0.78)'); rr(g, x + 36, y + 172, w - 72, 70, 35, '#1f2a44', INK, 3); text(g, `공적 장부에서 열기 · 공적 ${UNLOCKS.find(u => u.id === id).cost}`, x + w / 2, y + 208, { size: 19, fill: C.cream, maxW: w - 100 }); }
+      if (locked) { rr(g, x, y, w, h, 6, 'rgba(241,231,207,0.78)'); panel(g, x + 36, y + 172, w - 72, 70, 'navy'); text(g, `공적 장부에서 열기 · 공적 ${UNLOCKS.find(u => u.id === id).cost}`, x + w / 2, y + 208, { size: 19, fill: C.cream, maxW: w - 100 }); }
     });
     if (button(g, 'go', 840, 584, 400, 100, meta.hard ? `출정 · 험로 ${meta.hard}` : '출  정', { size: meta.hard ? 38 : 52 })) { newRun(HEROES[this.sel]); nav.go('run'); }
     if (button(g, 'back', 40, 596, 200, 76, '뒤로', { style: 'paper', size: 30 })) nav.go('title');

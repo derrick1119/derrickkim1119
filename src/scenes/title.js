@@ -7,34 +7,55 @@ import { G, meta, save } from '../state.js';
 import { CHAPTERS } from '../data/stages.js';
 import { audio, setMuted, sfx } from '../audio.js';
 import { portrait } from '../render/sprites.js';
+import { THEMES, pine, bush, boulder, grassTuft } from '../render/terrain.js';
+import { part, dk, lt, R as RC, curve } from '../render/figures.js';
 
 let bg = null;
-function pineBig(g, x, y, s, flip) {
-  g.save(); g.translate(x, y); g.scale(s * (flip ? -1 : 1), s);
-  const tr = p => { p.moveTo(-4, 0); p.bezierCurveTo(8, -40, -14, -80, 6, -130); };
-  g.beginPath(); tr(g); st(g, INK, 13); g.beginPath(); tr(g); st(g, '#7a5a40', 9.5);
-  for (const [cx, cy, rx] of [[-34, -84, 46], [30, -108, 44], [-10, -142, 42], [26, -160, 30]]) { ell(g, cx, cy, rx, rx * 0.4, '#3f6b5c', INK, 2); for (let i = -2; i <= 2; i++) line(g, [cx + i * rx * 0.3, cy - rx * 0.28, cx + i * rx * 0.34, cy + rx * 0.08], '#2c4f44', 1.5); g.globalAlpha = 0.5; ell(g, cx - rx * 0.2, cy - rx * 0.15, rx * 0.5, rx * 0.11, '#6f9a86'); g.globalAlpha = 1; }
-  g.restore();
-}
-// 여러 장면이 함께 쓰는 배경
+const rgba = (c, a) => `rgba(${parseInt(c.slice(1, 3), 16)},${parseInt(c.slice(3, 5), 16)},${parseInt(c.slice(5, 7), 16)},${a})`;
+// 여러 장면이 함께 쓰는 배경: 붉은 해, 안개에 잠긴 겹산, 고갯마루의 솔
 export function backdrop() {
   if (bg) return bg;
-  const S = 1.5, c = makeCanvas(W * S, H * S), g = c.getContext('2d'); g.scale(S, S); const R = rng(77);
-  g.fillStyle = '#ecdfc2'; g.fillRect(0, 0, W, H);
-  ell(g, 900, 250, 78, 78, '#d9553f'); g.globalAlpha = 0.25; ell(g, 900, 250, 102, 102, '#d9553f'); g.globalAlpha = 1;
-  [['#a9b4b4', 330, 120, 0.004, 0.55], ['#7f8f96', 390, 96, 0.006, 0.7], ['#5a6b74', 450, 76, 0.008, 0.85]].forEach(([col, yb, amp, f, a], n) => {
-    g.globalAlpha = a; g.fillStyle = col; g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= W; x += 20) { const gap = Math.exp(-Math.pow((x - 760) / (220 - n * 36), 2)) * amp * 0.75; g.lineTo(x, yb - Math.abs(Math.sin(x * f + n * 2.2)) * amp - Math.sin(x * 0.03 + n) * 8 + gap); } g.lineTo(W, H); g.closePath(); g.fill();
-    g.globalAlpha = 1; const m = g.createLinearGradient(0, yb - 20, 0, yb + 80); m.addColorStop(0, 'rgba(236,223,194,0)'); m.addColorStop(1, 'rgba(236,223,194,0.92)'); g.fillStyle = m; g.fillRect(0, yb - 20, W, 100);
+  const S = 1.5, c = makeCanvas(W * S, H * S), g = c.getContext('2d'); g.scale(S, S); const R = rng(77), T = THEMES.pass, SKY = '#ecdfc2';
+  const sk = g.createLinearGradient(0, 0, 0, 520); sk.addColorStop(0, '#e6d6b4'); sk.addColorStop(0.5, SKY); sk.addColorStop(1, '#f3ead2'); g.fillStyle = sk; g.fillRect(0, 0, W, H);
+  // 해와 해무리
+  const halo = g.createRadialGradient(900, 250, 60, 900, 250, 210); halo.addColorStop(0, 'rgba(217,85,63,0.3)'); halo.addColorStop(1, 'rgba(217,85,63,0)'); g.fillStyle = halo; g.fillRect(690, 40, 420, 420);
+  ell(g, 900, 250, 78, 78, '#d5503b'); g.globalAlpha = 0.3; ell(g, 878, 226, 44, 34, '#f08a6a', null, 0, -0.6); g.globalAlpha = 1;
+  // 구름
+  const cloud = (x, y, w) => { const h = w * 0.15; path(g, p => { p.moveTo(x - w / 2, y); p.quadraticCurveTo(x - w * 0.5, y - h * 0.9, x - w * 0.28, y - h * 0.8); p.quadraticCurveTo(x - w * 0.2, y - h * 1.9, x + w * 0.02, y - h * 1.3); p.quadraticCurveTo(x + w * 0.16, y - h * 1.8, x + w * 0.26, y - h * 0.9); p.quadraticCurveTo(x + w * 0.5, y - h, x + w / 2, y); p.closePath(); }, 'rgba(255,252,242,0.8)', rgba(INK, 0.16), 1.2); line(g, [x - w * 0.3, y - h * 0.36, x + w * 0.22, y - h * 0.36], rgba(INK, 0.1), 1); };
+  cloud(1010, 300, 210); cloud(730, 196, 150); cloud(1180, 150, 170); cloud(610, 330, 120);
+  for (const [x0, y0] of [[690, 120], [1060, 96]]) for (let j = 0; j < 4; j++) { const x = x0 + j * 20 + R() * 6, y = y0 + (j % 2) * 9 + R() * 4; curve(g, p => { p.moveTo(x - 6, y - 2.6); p.quadraticCurveTo(x - 2.4, y - 4.4, x, y); p.quadraticCurveTo(x + 2.4, y - 4.4, x + 6, y - 2.6); }, rgba(INK, 0.55), 1.4); }
+  // 겹산: 능선은 짙고 산허리는 안개에 풀린다
+  [['#b3bcba', 330, 120, 0.004, 0.6], ['#8696a0', 392, 100, 0.006, 0.78], ['#5d707c', 452, 80, 0.008, 0.92]].forEach(([col, yb, amp, f, a], n) => {
+    const fy = x => yb - Math.abs(Math.sin(x * f + n * 2.2)) * amp - Math.max(0, Math.sin(x * f * 2.3 + n * 1.3)) * amp * 0.28 - Math.sin(x * 0.03 + n) * 7 + Math.exp(-Math.pow((x - 760) / (220 - n * 36), 2)) * amp * 0.75;
+    const shape = () => { g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= W; x += 10) g.lineTo(x, fy(x)); g.lineTo(W, H); g.closePath(); };
+    const gr = g.createLinearGradient(0, yb - amp, 0, yb + 70); gr.addColorStop(0, rgba(dk(col, 0.14), a)); gr.addColorStop(0.5, rgba(col, a * 0.9)); gr.addColorStop(1, rgba(lt(col, 0.5), a * 0.5)); shape(); g.fillStyle = gr; g.fill();
+    g.save(); shape(); g.clip(); const cd = dk(col, 0.42); g.globalAlpha = 0.17;
+    for (let x = 0; x < W; x += 16 + R() * 20) { const y = fy(x); line(g, [x, y + 3, x - 8 - R() * 12, y + 26 + R() * 30], cd, 1.4); if (R() < 0.6) line(g, [x + 5, y + 5, x + 14 + R() * 10, y + 24 + R() * 24], cd, 1.1); }
+    g.restore();
+    g.globalAlpha = 0.2 + n * 0.08; for (let x = 8; x < W; x += 5 + R() * 34) { const y = fy(x), h = 3 + R() * 4 + n * 1.5; line(g, [x, y + 1, x, y - h], cd, 1); ell(g, x - 0.6, y - h, 2.4 + R() * 1.8 + n * 0.6, 1.2 + n * 0.2, cd); if (R() < 0.5) ell(g, x + 1.6, y - h * 0.45, 2 + n * 0.6, 1, cd); }
+    g.globalAlpha = 0.32; g.beginPath(); for (let x = 0; x <= W; x += 10) { if (x) g.lineTo(x, fy(x)); else g.moveTo(x, fy(x)); } st(g, INK, 1.4); g.globalAlpha = 1;
+    const m = g.createLinearGradient(0, yb - 24, 0, yb + 84); m.addColorStop(0, 'rgba(240,230,205,0)'); m.addColorStop(1, 'rgba(240,230,205,0.94)'); g.fillStyle = m; g.fillRect(0, yb - 24, W, 108);
   });
-  for (let i = 0; i < 30; i++) { g.globalAlpha = 0.4; g.fillStyle = R() < 0.5 ? '#a9b78f' : '#93a57f'; g.beginPath(); g.ellipse(R() * W, 500 + R() * 240, 110 + R() * 150, 40 + R() * 50, R() * 3, 0, TAU); g.fill(); }
-  g.globalAlpha = 0.6; g.fillStyle = '#f3ead4'; for (let x = 520; x < 1320; x += 46) { g.beginPath(); g.ellipse(x, 610 + Math.sin(x * 0.01) * 26 - (x - 520) * 0.12, 60, 34 + (1320 - x) * 0.02, 0, 0, TAU); g.fill(); }
+  // 고갯마루: 번진 풀빛과 흙길
+  for (let i = 0; i < 34; i++) { const x = R() * W, y = 510 + R() * 230, rx = 130 + R() * 170, ry = rx * (0.24 + R() * 0.2), col = R() < 0.5 ? '#a9b78f' : '#93a57f', a = 0.3 + R() * 0.2; g.save(); g.translate(x, y); g.rotate((R() - 0.5) * 0.4); g.scale(1, ry / rx); const gr = g.createRadialGradient(0, 0, rx * 0.2, 0, 0, rx); gr.addColorStop(0, rgba(col, a * 0.7)); gr.addColorStop(0.72, rgba(col, a)); gr.addColorStop(1, rgba(col, 0)); g.fillStyle = gr; g.fillRect(-rx, -rx, rx * 2, rx * 2); g.restore(); }
+  const ry = x => 612 + Math.sin(x * 0.01) * 24 - (x - 520) * 0.12, hw = x => 30 + (1320 - x) * 0.022;
+  const tp = x => Math.min(1, Math.max(0, (x - 400) / 260));   // 왼쪽 끝은 풀밭으로 스며든다
+  for (let i = 0; i < 9; i++) { const gw = 24 - i * 3; g.globalAlpha = 0.085; g.fillStyle = '#f6eedb'; g.beginPath(); g.moveTo(400, ry(400)); for (let x = 420; x <= 1330; x += 20) g.lineTo(x, ry(x) - (hw(x) + gw) * tp(x)); for (let x = 1330; x >= 420; x -= 20) g.lineTo(x, ry(x) + (hw(x) + gw) * tp(x)); g.closePath(); g.fill(); }
   g.globalAlpha = 1;
   for (let i = 0; i < 3200; i++) { const x = R() * W, y = R() * H, a = R() * TAU, l = 4 + R() * 12; g.globalAlpha = 0.13; g.strokeStyle = R() < 0.5 ? '#a89468' : '#ffffff'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); }
+  for (let i = 0; i < 26; i++) { const x = R() * W, y = 520 + R() * 190; g.globalAlpha = 0.14 + R() * 0.12; for (let j = 0; j < 5; j++) ell(g, x + (R() - 0.5) * 26, y + (R() - 0.5) * 8, 2 + R() * 2, 1.1 + R() * 0.8, T.pineD, null, 0, -0.3); }
   g.globalAlpha = 1;
-  for (let i = 0; i < 90; i++) { const x = R() * W, y = 510 + R() * 200; line(g, [x - 3, y, x - 4.5, y - 7], '#5f7a5a', 1.3); line(g, [x, y, x, y - 9], '#5f7a5a', 1.3); line(g, [x + 3, y, x + 4.5, y - 7], '#5f7a5a', 1.3); }
+  for (let i = 0; i < 80; i++) grassTuft(g, R() * W, 512 + R() * 200, 0.8 + R() * 0.7, R() < 0.7 ? '#5f7a5a' : T.pine, R);
+  for (let i = 0; i < 16; i++) { const x = R() * W, y = 520 + R() * 190, col = ['#f3c4c9', '#fbf7ec', '#f0d264'][(R() * 3) | 0]; line(g, [x, y + 7, x + 0.6, y], '#5f7a5a', 1.1); for (let q = 0; q < 5; q++) { const a = q / 5 * TAU - 0.3; ell(g, x + Math.cos(a) * 2.6, y + Math.sin(a) * 2.6, 1.8, 1.8, col, rgba(INK, 0.45), 0.6); } ell(g, x, y, 1.2, 1.2, OCHRE); }
   // 솟대
-  line(g, [1090, 520, 1090, 400], INK, 5); line(g, [1090, 520, 1090, 400], '#7a5a40', 3); path(g, p => { p.moveTo(1072, 398); p.quadraticCurveTo(1090, 384, 1112, 396); p.lineTo(1122, 390); p.lineTo(1114, 402); p.quadraticCurveTo(1090, 410, 1072, 398); }, '#3a3238', INK, 1.6);
-  pineBig(g, 40, 560, 1.5); pineBig(g, 1250, 600, 1.4, true); pineBig(g, 1180, 730, 1.2);
+  line(g, [1090, 520, 1090, 400], INK, 5.4); line(g, [1090, 520, 1090, 400], '#7a5a40', 3.2); line(g, [1089, 516, 1089, 404], '#a8805c', 0.9);
+  part(g, p => { p.moveTo(1072, 398); p.quadraticCurveTo(1090, 384, 1112, 396); p.lineTo(1122, 390); p.lineTo(1114, 402); p.quadraticCurveTo(1090, 410, 1072, 398); p.closePath(); }, '#3a3238', RC(1060, 399, 70, 14), { k: 0.3, lw: 1.6 }); line(g, [1072, 398, 1064, 396], INK, 1.8);
+  // 앞쪽 솔과 바위, 덤불
+  g.globalAlpha = 0.5; pine(g, 150, 520, 1.1, T, true); pine(g, 896, 494, 0.8, T); g.globalAlpha = 1;
+  const far = g.createLinearGradient(0, 440, 0, 530); far.addColorStop(0, 'rgba(240,230,205,0)'); far.addColorStop(0.6, 'rgba(240,230,205,0.5)'); far.addColorStop(1, 'rgba(240,230,205,0)'); g.fillStyle = far; g.fillRect(0, 440, W, 90);
+  boulder(g, 560, 700, 30, T); bush(g, 500, 716, 2.2, T); bush(g, 1120, 712, 2.4, T); boulder(g, 1040, 716, 22, T);
+  pine(g, 40, 580, 3, T); pine(g, 1252, 610, 2.8, T, true); pine(g, 1182, 742, 2.4, T);
+  grassTuft(g, 96, 584, 2, '#5f7a5a', R); grassTuft(g, 1200, 616, 2, '#5f7a5a', R);
   bg = c; return c;
 }
 export function dimBackdrop(g, a = 0.72) { g.drawImage(backdrop(), 0, 0, W, H); g.fillStyle = `rgba(241,231,207,${a})`; g.fillRect(0, 0, W, H); }

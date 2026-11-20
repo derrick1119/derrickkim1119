@@ -21,38 +21,45 @@ export function cardText(c, P = 1) {
 
 // 패 한 장. o: { cost, dim, P, free, text }
 export function cardFace(g, c, x, y, w, h, o = {}) {
-  const d = CARDS[c.id], k = KIND[d.kind], col = k.col, unit = isUnit(c), big = h >= 240, mini = w < 96, r = Math.max(5, w * 0.06), hh = big ? 46 : mini ? h * 0.16 : Math.max(26, h * 0.2);
+  const d = CARDS[c.id], k = KIND[d.kind], col = k.col, unit = isUnit(c), big = h >= 240, mini = w < 96, r = Math.max(5, w * 0.06), hh = big ? 46 : mini ? h * 0.16 : Math.max(26, h * 0.2), gilt = c.up || (c.lv || 1) > 1;
   g.save(); if (o.dim) g.globalAlpha *= 0.45;
-  rr(g, x + 2, y + 4, w, h, r, 'rgba(50,36,20,0.28)');
-  rr(g, x, y, w, h, r, c.up || (c.lv || 1) > 1 ? '#fbf1cf' : PAPER, INK, 2.4);
+  rr(g, x + 2, y + 4, w, h, r, 'rgba(40,28,16,0.3)');
+  const pg = g.createLinearGradient(0, y, 0, y + h); pg.addColorStop(0, gilt ? '#fdf5d6' : '#fdf8ea'); pg.addColorStop(1, gilt ? '#f2e0ac' : '#eee3c7');
+  rr(g, x, y, w, h, r, pg, INK, 2.4);
   g.save(); g.beginPath(); rrPath(g, x + 1.5, y + 1.5, w - 3, h - 3, r - 1); g.clip();
-  g.fillStyle = col; g.fillRect(x, y, w, hh); g.fillStyle = INK; g.fillRect(x, y + hh, w, 2);
-  g.globalAlpha *= 0.16; for (let i = -1; i < w / 14 + 1; i++) poly(g, [x + i * 14, y + hh, x + i * 14 + 7, y + hh - 6, x + i * 14 + 14, y + hh], '#fff'); g.globalAlpha /= 0.16;
+  // 머리띠: 종류 색 위에 빛과 그늘, 아래로 먹선과 금선
+  g.fillStyle = col; g.fillRect(x, y, w, hh); g.fillStyle = 'rgba(255,255,255,0.16)'; g.fillRect(x, y, w, hh * 0.34); g.fillStyle = 'rgba(0,0,0,0.14)'; g.fillRect(x, y + hh * 0.74, w, hh * 0.26);
+  g.fillStyle = INK; g.fillRect(x, y + hh, w, 1.8); g.fillStyle = 'rgba(201,150,46,0.9)'; g.fillRect(x, y + hh + 1.8, w, 1.2);
   // 그림 칸: 옅은 먹 번짐 위에 아이콘(전술) 또는 인형(병력·영웅)
   const ah = big ? 120 : h - hh - (mini ? 4 : 24), cy = y + hh + (big ? 66 : ah / 2 + 2), cx = x + w / 2, ss = big ? 82 : Math.min(w * (mini ? 0.56 : 0.46), ah * 0.78);
-  g.globalAlpha *= 0.14; ell(g, cx, cy, ss * 0.95, ss * 0.72, col); g.globalAlpha /= 0.14;
-  if (unit) { g.globalAlpha *= 0.5; g.fillStyle = '#a9b78f'; g.fillRect(x, cy + ss * 0.42, w, ah); g.globalAlpha /= 0.5; const L = d.unit === 'knight' || d.unit === 'cannon' ? 0.82 : 1; portrait(g, d.unit, cx, cy + ss * 0.62, ss / (d.kind === 'lead' ? 66 : 54) * L, 0, false, c.wpn); }
+  const wg = g.createRadialGradient(cx, cy, ss * 0.1, cx, cy, ss * 1.1); wg.addColorStop(0, col + '3c'); wg.addColorStop(1, col + '00'); g.fillStyle = wg; g.fillRect(x, y + hh + 3, w, ah + 24);
+  if (unit) {
+    const gy = cy + ss * 0.42, gg = g.createLinearGradient(0, gy, 0, gy + ss * 0.7); gg.addColorStop(0, 'rgba(140,160,120,0.8)'); gg.addColorStop(1, 'rgba(140,160,120,0.2)'); g.fillStyle = gg; g.fillRect(x, gy, w, ah); g.fillStyle = 'rgba(38,42,54,0.22)'; g.fillRect(x, gy, w, 1);
+    const L = d.unit === 'knight' || d.unit === 'cannon' ? 0.82 : 1; portrait(g, d.unit, cx, cy + ss * 0.62, ss / (d.kind === 'lead' ? 66 : 54) * L, 0, false, c.wpn);
+  }
   g.restore();
   if (!unit) { g.setLineDash([3, 5]); g.beginPath(); g.arc(cx, cy, ss * 0.74, 0, TAU); st(g, col + '99', 1.2); g.setLineDash([]); cardIcon(g, c.id, cx, cy + (big ? 2 : 1), ss / (mini ? 36 : 40)); if (big) { g.save(); g.translate(x + w - 30, y + hh + 108); g.rotate(-0.08); seal(g, 0, 0, 27, d.ch, col); g.restore(); } }
-  if (!mini) text(g, cardName(c), x + w / 2 + (big ? 0 : 9), y + hh / 2 + 1, { size: big ? 27 : Math.min(19, hh * 0.62), font: FONT_B, fill: C.cream, maxW: w - (big ? 60 : 44) });
+  if (!mini) { const nx = x + w / 2 + (big ? 0 : 9), ny = y + hh / 2 + 1, no = { size: big ? 27 : Math.min(19, hh * 0.62), font: FONT_B, maxW: w - (big ? 60 : 44) }; text(g, cardName(c), nx, ny + 1.4, { ...no, fill: 'rgba(8,10,24,0.32)' }); text(g, cardName(c), nx, ny, { ...no, fill: C.cream }); }
   else if (unit && (c.lv || 1) > 1) { rr(g, x + w - 26, y + h - 17, 23, 14, 3, NAVY); text(g, 'Lv' + c.lv, x + w - 14.5, y + h - 9.6, { size: 10, fill: '#f0d99a' }); }
   if (big) {
-    rr(g, x + w / 2 - 34, y + hh + 132, 68, 24, 12, null, col, 1.4); text(g, k.name, x + w / 2, y + hh + 145, { size: 15, fill: col });
+    rr(g, x + w / 2 - 34, y + hh + 132, 68, 24, 5, null, col, 1.4); text(g, k.name, x + w / 2, y + hh + 145, { size: 15, fill: col });
     textBlock(g, o.text || cardText(c, o.P || 1), x + w / 2, y + hh + (unit ? 174 : 178), w - (unit ? 18 : 24), unit ? 19 : 22, { size: unit ? 13.5 : 16.5, fill: SUB, weight: 400 });
-  } else if (!mini) text(g, k.name, x + w / 2, y + h - 13, { size: 13, fill: col });
-  if (c.up || (c.lv || 1) > 1) rr(g, x + 3.5, y + 3.5, w - 7, h - 7, r - 2, null, '#c9962e', 1.6);
+  } else if (!mini) { const ky = y + h - 13; text(g, k.name, x + w / 2, ky, { size: 13, fill: col }); for (const sg of [-1, 1]) { line(g, [x + w / 2 + sg * 22, ky, x + w / 2 + sg * (w / 2 - 12), ky], col + '77', 1); ell(g, x + w / 2 + sg * 22, ky, 1.3, 1.3, col + 'aa'); } }
+  rr(g, x + 3.5, y + 3.5, w - 7, h - 7, r - 2, null, gilt ? '#c9962e' : 'rgba(38,42,54,0.16)', gilt ? 1.6 : 0.9);
   if (c.wpn && !mini) { ell(g, x + w - 13, y + hh + 13, 9, 9, RED, INK, 1.2); text(g, '무', x + w - 13, y + hh + 14, { size: 11, fill: C.cream }); }
   // 비용 엽전
-  const cost = o.cost === undefined ? cardCost(c) : o.cost, cr = big ? 19 : mini ? Math.max(9, w * 0.15) : 14;
-  ell(g, x + cr - 3, y + cr - 3, cr, cr, o.free ? '#9bd07a' : OCHRE, INK, 2); rr(g, x + cr - 3 - cr * 0.32, y + cr - 3 - cr * 0.32, cr * 0.64, cr * 0.64, 1, 'rgba(120,80,20,0.35)');
-  text(g, String(cost), x + cr - 3, y + cr - 2, { size: cr * 1.25, font: FONT_B, fill: INK, stroke: '#f6dc9a', lw: 3 });
+  const cost = o.cost === undefined ? cardCost(c) : o.cost, cr = big ? 19 : mini ? Math.max(9, w * 0.15) : 14, ccx = x + cr - 3, ccy = y + cr - 3;
+  ell(g, ccx + 0.6, ccy + 1.8, cr, cr, 'rgba(30,20,10,0.3)'); ell(g, ccx, ccy, cr, cr, o.free ? '#9bd07a' : '#e4b54c', INK, 2);
+  ell(g, ccx, ccy, cr * 0.76, cr * 0.76, null, o.free ? 'rgba(40,90,30,0.4)' : 'rgba(122,78,18,0.45)', Math.max(0.8, cr * 0.07));
+  g.beginPath(); g.arc(ccx, ccy, cr * 0.87, Math.PI * 1.06, Math.PI * 1.5); st(g, 'rgba(255,250,220,0.85)', Math.max(0.9, cr * 0.09));
+  text(g, String(cost), ccx, ccy + 1, { size: cr * 1.25, font: FONT_B, fill: INK, stroke: o.free ? '#d6f0c0' : '#f6dc9a', lw: 3 });
   g.restore();
 }
 // 패 뒷면 (더미·빈 자리)
 export function cardBack(g, x, y, w, h) {
-  const r = Math.max(5, w * 0.06);
-  rr(g, x + 2, y + 3, w, h, r, 'rgba(50,36,20,0.22)'); rr(g, x, y, w, h, r, NAVY, INK, 2.2); rr(g, x + 5, y + 5, w - 10, h - 10, r - 2, null, OCHRE + 'aa', 1.2);
-  g.save(); g.translate(x + w / 2, y + h / 2); g.rotate(Math.PI / 4); const q = Math.min(w, h) * 0.2; rr(g, -q, -q, q * 2, q * 2, 2, null, OCHRE, 1.6); rr(g, -q * 0.5, -q * 0.5, q, q, 1, OCHRE + '88'); g.restore();
+  const r = Math.max(3, w * 0.06), m = Math.max(2.4, w * 0.07), gr = g.createLinearGradient(0, y, 0, y + h); gr.addColorStop(0, '#3d5080'); gr.addColorStop(1, '#1f2a47');
+  rr(g, x + 2, y + 3, w, h, r, 'rgba(10,8,6,0.3)'); rr(g, x, y, w, h, r, gr, '#0c1120', 2); rr(g, x + m, y + m, w - m * 2, h - m * 2, Math.max(1, r - m * 0.6), null, 'rgba(226,184,90,0.85)', 1.1);
+  g.save(); g.translate(x + w / 2, y + h / 2); g.rotate(Math.PI / 4); const q = Math.min(w, h) * 0.2; rr(g, -q, -q, q * 2, q * 2, 2, null, '#e2b85a', 1.4); rr(g, -q * 0.5, -q * 0.5, q, q, 1, 'rgba(226,184,90,0.6)'); g.restore();
 }
 export function weaponTile(g, id, wid, x, y, w, h, o = {}) {
   const d = WEAPONS[wid], hit = !o.dim && tapped(id, x, y, w, h);

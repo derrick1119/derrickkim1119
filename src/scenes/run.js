@@ -196,15 +196,15 @@ export class RunScene {
   // ───────── 머리 띠: 깃발·군기, 노정, 엽전 ─────────
   drawHud(g, b) {
     const r = this.r, rd = r.road, fight = this.phase === 'fight', T = this.T;
-    g.fillStyle = NAVY; g.fillRect(0, 0, W, HUD_H); g.globalAlpha = 0.22; for (let x = 0; x < W; x += 20) poly(g, [x, HUD_H, x + 10, HUD_H - 8, x + 20, HUD_H], OCHRE); g.globalAlpha = 1; g.fillStyle = OCHRE; g.fillRect(0, HUD_H, W, 3);
+    panel(g, 0, 0, W, HUD_H, 'hud');
     for (let k = 0; k < 3; k++) icon.flag(g, 24 + k * 26, 30, 1.15, k < r.flags ? RED : '#566078');
     const hp = b.bannerHp(); text(g, '군기', 104, 21, { size: 14, fill: '#8fb6e6', align: 'left' }); bar(g, 104, 32, 120, 14, hp, hp < 0.35 ? '#e4826a' : '#8fb6e6');
     // 노정: 이번 고개에서 만날 것들
     const n = rd.stops.length, x0 = 330, x1 = 900, sx = k => x0 + k * (x1 - x0) / (n - 1), cy = 34;
     text(g, CHAPTERS[Math.min(2, r.ch)].short, 300, cy, { size: 18, font: FONT_B, fill: C.cream, align: 'right' });
-    line(g, [x0, cy, x1, cy], '#566078', 3);
+    line(g, [x0, cy, x1, cy], 'rgba(8,12,26,0.55)', 6); line(g, [x0, cy, x1, cy], '#56648a', 2.4);
     const prog = this.phase === 'march' ? clamp(1 - this.left / MARCH, 0, 1) : 1, mx = rd.i === 0 ? sx(0) - 26 * (1 - prog) : sx(rd.i - 1) + (sx(rd.i) - sx(rd.i - 1)) * prog;
-    line(g, [x0, cy, Math.max(x0, mx), cy], OCHRE, 3);
+    line(g, [x0, cy, Math.max(x0, mx), cy], C.gilt, 2.8);
     rd.stops.forEach((s, k) => {
       const x = sx(k), past = k < rd.i || (k === rd.i && rd.state === 'reward'), cur = k === rd.i && this.phase !== 'march';
       g.save(); if (past) g.globalAlpha = 0.4;
@@ -226,7 +226,7 @@ export class RunScene {
       [[`손실 ${b.waveLost}/${e.starDeaths}`, b.waveLost <= e.starDeaths], [`${Math.ceil(b.waveT)}/${e.starTime}초`, b.waveT <= e.starTime]].forEach(([s, ok], k) => { const x = 16 + k * 128; g.globalAlpha = ok ? 0.95 : 0.55; panel(g, x, 74, 120, 28, 'tag'); icon.check(g, x + 16, 88, 0.7, ok); text(g, s, x + 68, 89, { size: 15, fill: ok ? INK : '#8f897a', maxW: 86 }); g.globalAlpha = 1; });
       const left = b.count(1) + b.pending; g.globalAlpha = 0.95; panel(g, 1150, 74, 114, 28, 'tag'); g.globalAlpha = 1; text(g, `요괴 ${left}`, 1207, 89, { size: 15, fill: RED });
       const boss = b.units.find(u => !u.dead && u.def.boss);
-      if (boss && !this.aim) { rr(g, 400, 74, 480, 30, 8, PAPER, INK, 2); text(g, boss.def.name, 414, 90, { size: 18, font: FONT_B, fill: RED, align: 'left', maxW: 110 }); bar(g, 530, 81, 340, 16, boss.hp / boss.maxHp, RED, { back: '#d9cdb0' }); }
+      if (boss && !this.aim) { panel(g, 400, 74, 480, 30, 'tag'); text(g, boss.def.name, 414, 90, { size: 18, font: FONT_B, fill: RED, align: 'left', maxW: 110 }); bar(g, 530, 81, 340, 16, boss.hp / boss.maxHp, RED, { back: '#d9cdb0' }); }
     }
   }
   // 왼쪽 가장자리: 전장의 영웅(기력과 다음 고유기), 합동기, 진법
@@ -234,20 +234,20 @@ export class RunScene {
     let y = 110; const heroes = b.units.filter(u => !u.dead && u.team === 0 && u.def.hero);
     for (const u of heroes) {
       const sk = HERO_SKILLS[u.type][u.skillI], gz = clamp(u.gauge, 0, 1);
-      g.globalAlpha = 0.93; rr(g, 12, y, 212, 40, 8, PAPER, INK, 1.8); g.globalAlpha = 1;
-      ell(g, 34, y + 20, 16, 16, '#efd9a8', INK, 1.4); g.save(); g.beginPath(); g.arc(34, y + 20, 15, 0, TAU); g.clip(); portrait(g, u.type, 34, y + 58, 0.72); g.restore();
+      g.globalAlpha = 0.95; panel(g, 12, y, 212, 40, 'tag'); g.globalAlpha = 1;
+      ell(g, 34, y + 20, 16, 16, '#efd9a8', INK, 1.4); ell(g, 34, y + 20, 13.4, 13.4, null, 'rgba(201,150,46,0.8)', 1); g.save(); g.beginPath(); g.arc(34, y + 20, 15, 0, TAU); g.clip(); portrait(g, u.type, 34, y + 58, 0.72); g.restore();
       text(g, u.def.name, 58, y + 12, { size: 14, align: 'left' }); text(g, sk.name, 216, y + 12, { size: 13.5, align: 'right', fill: gz > 0.9 ? RED : SUB, font: FONT_B, maxW: 110 });
       bar(g, 58, y + 22, 156, 11, gz, gz > 0.9 ? '#f0d264' : OCHRE, { back: '#d9cdb0' });
       if (tapped('hc' + u.type, 12, y, 212, 40)) this.toast(`${u.def.name}의 고유기 (기력이 차면 자동): ${HERO_SKILLS[u.type].map(s => s.name).join(' → ')}`, 4);
       y += 44;
     }
     const pair = b.heroPair(), combo = pair && COMBOS[pair.key];
-    if (combo) { g.globalAlpha = 0.93; rr(g, 12, y, 212, 30, 8, '#fbf1cf', '#b8742a', 1.8); g.globalAlpha = 1; text(g, '합동기 · ' + combo.name, 20, y + 10, { size: 13, align: 'left', fill: '#b8742a', font: FONT_B }); bar(g, 20, y + 18, 196, 8, b.combo, '#d9702a', { back: '#d9cdb0' }); if (tapped('combo', 12, y, 212, 30)) this.toast(`합동기 ${combo.name} — ${combo.desc}`, 4); y += 34; }
+    if (combo) { g.globalAlpha = 0.93; rr(g, 12, y, 212, 30, 7, '#fbf1cf', '#b8742a', 1.8); g.globalAlpha = 1; text(g, '합동기 · ' + combo.name, 20, y + 10, { size: 13, align: 'left', fill: '#b8742a', font: FONT_B }); bar(g, 20, y + 18, 196, 8, b.combo, '#d9702a', { back: '#d9cdb0' }); if (tapped('combo', 12, y, 212, 30)) this.toast(`합동기 ${combo.name} — ${combo.desc}`, 4); y += 34; }
     let k = 0;
     for (const sy of SYNERGIES) {
       const [n, need] = sy.n(b.synN), on = n >= need; if (!n) continue;
       const x = 12 + (k % 2) * 108, yy = y + Math.floor(k / 2) * 28; k++;
-      g.globalAlpha = on ? 0.96 : 0.8; rr(g, x, yy, 104, 24, 12, on ? TEAL : PAPER, INK, 1.5); g.globalAlpha = 1;
+      g.globalAlpha = on ? 0.96 : 0.8; rr(g, x, yy, 104, 24, 6, on ? TEAL : PAPER, INK, 1.5); if (on) rr(g, x + 2.6, yy + 2.6, 98.8, 18.8, 3.6, null, 'rgba(226,184,90,0.7)', 0.9); g.globalAlpha = 1;
       text(g, on ? sy.name : `${sy.name} ${n}/${need}`, x + 52, yy + 13, { size: 13.5, fill: on ? C.cream : SUB, maxW: 94 });
       if (tapped('sy' + sy.id, x, yy, 104, 24)) this.toast(`진법 ${sy.name} (${sy.need}) — ${sy.desc}`, 3.5);
     }
@@ -270,9 +270,9 @@ export class RunScene {
     const c = b.hand[n], an = this.slotAnim[n] || (this.slotAnim[n] = { c: null, t: 9 });
     if (an.c !== c) { an.c = c; an.t = 0; if (c && this.T > 0.5) sfx('card'); } an.t += this.dt;
     if (!c) {
-      g.globalAlpha = 0.5; g.setLineDash([7, 6]); rr(g, x + 3, y + 3, w - 6, h - 6, 8, null, INK, 1.6); g.setLineDash([]); g.globalAlpha = 1;
-      if (b.drawPile.length + b.discard.length > 0) { const f = clamp(1 - b.slotT[n] / (REFILL * b.mods.drawRate), 0, 1); g.beginPath(); g.arc(x + w / 2, y + h / 2 - 6, 22, -Math.PI / 2, -Math.PI / 2 + TAU * f); inkStroke(g, INDIGO, 5); text(g, '뽑는 중', x + w / 2, y + h - 24, { size: 14, fill: SUB }); }
-      else text(g, '패 없음', x + w / 2, y + h / 2, { size: 14, fill: SUB });
+      rr(g, x + 3, y + 3, w - 6, h - 6, 8, 'rgba(6,10,22,0.3)'); g.setLineDash([7, 6]); rr(g, x + 3, y + 3, w - 6, h - 6, 8, null, 'rgba(164,175,204,0.55)', 1.4); g.setLineDash([]);
+      if (b.drawPile.length + b.discard.length > 0) { const f = clamp(1 - b.slotT[n] / (REFILL * b.mods.drawRate), 0, 1); g.beginPath(); g.arc(x + w / 2, y + h / 2 - 6, 22, -Math.PI / 2, -Math.PI / 2 + TAU * f); inkStroke(g, C.gilt, 4.4); text(g, '뽑는 중', x + w / 2, y + h - 24, { size: 14, fill: C.dim }); }
+      else text(g, '패 없음', x + w / 2, y + h / 2, { size: 14, fill: C.dim });
       return;
     }
     const why = b.whyNot(n), can = why === '', a = this.aim, armed = a && a.slot === n;
@@ -287,28 +287,28 @@ export class RunScene {
   }
   drawBar(g, b, i, live) {
     panel(g, 0, BAR_Y, W, H - BAR_Y, 'tray');
-    text(g, '사기', 16, 588, { size: 21, font: FONT_B, align: 'left' }); text(g, '무리 격파 +1', 62, 590, { size: 12.5, fill: SUB, align: 'left', weight: 400 }); text(g, b.morale.toFixed(0) + ' / 10', 226, 589, { size: 15, fill: SUB, align: 'right' });
+    text(g, '사기', 16, 590, { size: 21, font: FONT_B, align: 'left', fill: C.cream }); text(g, '무리 격파 +1', 62, 592, { size: 12.5, fill: C.dim, align: 'left', weight: 400 }); text(g, b.morale.toFixed(0) + ' / 10', 226, 591, { size: 15, fill: C.gilt, align: 'right' });
     for (let k = 0; k < 10; k++) { const f = clamp(b.morale - k, 0, 1), cx = 34 + (k % 5) * 42, cy = 618 + Math.floor(k / 5) * 32; icon.coin(g, cx, cy, 13, f >= 1); if (f > 0 && f < 1) { g.save(); g.beginPath(); g.rect(cx - 13, cy + 13 - 26 * f, 26, 26 * f); g.clip(); icon.coin(g, cx, cy, 13, true); g.restore(); } }
     const n = b.squadCount(), full = n >= b.cap;
-    icon.people(g, 26, 690, 0.95, full ? RED : INDIGO); text(g, `부대 ${n} / ${b.cap}`, 44, 691, { size: 17, align: 'left', fill: full ? RED : INK });
-    cardBack(g, 150, 677, 18, 26); text(g, String(b.drawPile.length), 176, 691, { size: 17, font: FONT_B, align: 'left' }); g.globalAlpha = 0.55; cardBack(g, 198, 677, 18, 26); g.globalAlpha = 1; text(g, String(b.discard.length), 224, 691, { size: 17, font: FONT_B, align: 'left', fill: SUB });
+    icon.people(g, 26, 690, 0.95, full ? RED : '#5f84c4'); text(g, `부대 ${n} / ${b.cap}`, 44, 691, { size: 17, align: 'left', fill: full ? '#f39a82' : C.cream });
+    cardBack(g, 150, 677, 18, 26); text(g, String(b.drawPile.length), 176, 691, { size: 17, font: FONT_B, align: 'left', fill: C.cream }); g.globalAlpha = 0.55; cardBack(g, 198, 677, 18, 26); g.globalAlpha = 1; text(g, String(b.discard.length), 224, 691, { size: 17, font: FONT_B, align: 'left', fill: C.dim });
     for (let k = 0; k < HAND; k++) this.handCard(g, k, 248 + k * 136, 574, 128, 138, b, i, live);
-    if (button(g, 'allhold', 936, 574, 162, 62, '전군 대기', { style: 'navy', size: 24, r: 10 }) && live) this.allOrder(true);
+    if (button(g, 'allhold', 936, 574, 162, 62, '전군 대기', { style: 'indigo', size: 24, r: 10 }) && live) this.allOrder(true);
     if (button(g, 'allgo', 1106, 574, 162, 62, '전군 돌격', { style: 'red', size: 24, r: 10 }) && live) this.allOrder(false);
     if (button(g, 'redraw', 936, 646, 162, 62, '패 갈기 · 사기 1', { style: b.canRedraw() ? 'paper' : 'grey', size: 19, r: 10 }) && live) { if (b.redraw()) this.aim = null; else sfx('deny'); }
     if (button(g, 'deck', 1106, 646, 162, 62, `덱 ${this.r.deck.length}장`, { style: this.r.items.length ? 'teal' : 'paper', size: 22, r: 10 }) && !this.over) this.sub = new DeckView({ P: b.power * b.mods.cardPow, onChange: () => this.sync(), onClose: () => { this.sub = null; this.sync(); } });
   }
   drawNotes(g, b) {
     const nt = this.note, gr = this.grade;
-    if (nt) { const k = clamp(Math.min(nt.t / 0.3, 1), 0, 1); g.save(); g.globalAlpha = k; g.translate(0, (1 - easeOutBack(k)) * -20); brushTitle(g, 640, 210, 520, 76, nt.s, nt.col, 40); if (nt.sub) { rr(g, 340, 258, 600, 36, 18, 'rgba(248,240,220,0.92)', INK, 1.6); text(g, nt.sub, 640, 277, { size: 18, maxW: 570 }); } g.restore(); }
+    if (nt) { const k = clamp(Math.min(nt.t / 0.3, 1), 0, 1); g.save(); g.globalAlpha = k; g.translate(0, (1 - easeOutBack(k)) * -20); brushTitle(g, 640, 210, 520, 76, nt.s, nt.col, 40); if (nt.sub) { rr(g, 340, 258, 600, 36, 8, 'rgba(248,240,220,0.94)', INK, 1.6); text(g, nt.sub, 640, 277, { size: 18, maxW: 570 }); } g.restore(); }
     if (gr && this.phase === 'clear') {
       const t = gr.t, kk = clamp((t - 0.25) / 0.16, 0, 1), sc = 2.2 - 1.2 * kk;
       text(g, '물리쳤다!', 560, 300, { size: 64, font: FONT_B, stroke: PAPER, lw: 12 });
       if (t > 0.25) { if (!gr.stamped && kk >= 1) { gr.stamped = true; sfx('star'); this.view.fx.shake = 6; } g.save(); g.globalAlpha = kk; g.translate(760, 300); g.scale(sc, sc); stamp(g, 0, 0, 52, GRADE[gr.grade], RED); g.restore(); }
-      if (t > 0.5) { rr(g, 540, 360, 200, 44, 22, PAPER, INK, 2); icon.coin(g, 574, 382, 14); text(g, `엽전 +${gr.gold}`, 652, 383, { size: 23, font: FONT_B }); }
+      if (t > 0.5) { panel(g, 540, 360, 200, 44, 'tag'); icon.coin(g, 574, 382, 14); text(g, `엽전 +${gr.gold}`, 652, 383, { size: 23, font: FONT_B }); }
     }
     if (this.phase === 'over') { g.fillStyle = `rgba(31,42,68,${clamp((1.8 - this.endT) / 1.2, 0, 0.6)})`; g.fillRect(0, 0, W, H); text(g, '깃발을 모두 잃었습니다', 640, 320, { size: 54, font: FONT_B, fill: C.cream, stroke: INK, lw: 8 }); }
-    if (this.toastT > 0) { g.globalAlpha = clamp(this.toastT / 0.3, 0, 1); rr(g, 290, 502, 700, 46, 23, PAPER, INK, 2.4); text(g, this.toastS, 640, 526, { size: 19, maxW: 670 }); g.globalAlpha = 1; }
+    if (this.toastT > 0) { g.globalAlpha = clamp(this.toastT / 0.3, 0, 1); rr(g, 290, 502, 700, 46, 9, 'rgba(31,42,68,0.2)'); rr(g, 290, 499, 700, 46, 9, PAPER, INK, 2.2); rr(g, 293.4, 502.4, 693.2, 39.2, 6, null, 'rgba(201,150,46,0.7)', 0.9); text(g, this.toastS, 640, 523, { size: 19, maxW: 670 }); g.globalAlpha = 1; }
   }
   drawMenu(g) {
     const r = this.r;

@@ -11,59 +11,66 @@ const hex = c => { const n = parseInt(c.slice(1, 7), 16); return [n >> 16, (n >>
 const mix = (c, t, k) => { const a = hex(c), b = hex(t); return '#' + a.map((v, i) => Math.round(v + (b[i] - v) * k).toString(16).padStart(2, '0')).join(''); };
 export const dk = (c, k = 0.22) => mix(c, '#1e1830', k);   // 그늘: 살짝 보랏빛으로 가라앉힌다
 export const lt = (c, k = 0.3) => mix(c, '#fff6de', k);    // 빛: 따뜻하게 밝힌다
-const E = (x, y, rx, ry, rot = 0) => p => p.ellipse(x, y, rx, ry, rot, 0, TAU);
-const R = (x, y, w, h) => p => p.rect(x, y, w, h);
-const P = (...pts) => p => { p.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) p.lineTo(pts[i], pts[i + 1]); p.closePath(); };
+export const E = (x, y, rx, ry, rot = 0) => p => p.ellipse(x, y, rx, ry, rot, 0, TAU);
+export const R = (x, y, w, h) => p => p.rect(x, y, w, h);
+export const P = (...pts) => p => { p.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) p.lineTo(pts[i], pts[i + 1]); p.closePath(); };
 // 한 조각: 바탕색 → (조각 안쪽에만) 그늘과 빛 → 먹선
 export function part(g, fn, col, sh, o = {}) {
   g.beginPath(); fn(g); g.fillStyle = col; g.fill();
   if (sh || o.hi) { g.save(); g.clip(); if (sh) { g.fillStyle = o.shc || dk(col, o.k === undefined ? 0.2 : o.k); g.beginPath(); sh(g); g.fill(); } if (o.hi) { g.fillStyle = o.hic || lt(col, o.hk === undefined ? 0.34 : o.hk); g.beginPath(); o.hi(g); g.fill(); } g.restore(); }
   if (o.lw !== 0) { g.beginPath(); fn(g); st(g, o.line || INK, o.lw || 1.2); }
 }
-const curve = (g, fn, col, lw) => { g.beginPath(); fn(g); st(g, col, lw); };
-const rope = (g, fn, col, lw = 1.6) => { curve(g, fn, INK, lw + 1.5); curve(g, fn, col, lw); };
+export const curve = (g, fn, col, lw) => { g.beginPath(); fn(g); st(g, col, lw); };
+export const rope = (g, fn, col, lw = 1.6) => { curve(g, fn, INK, lw + 1.5); curve(g, fn, col, lw); };
 
 // ───────── 얼굴 ─────────
-function eyes(g, o, cx, cy, big = 1) {
+// 가늘고 긴 눈매: 붓으로 그은 윗눈꺼풀이 눈꼬리에서 살짝 올라가고, 먹빛 눈동자는 눈꺼풀에 반쯤 가린다
+function eyes(g, o, cx, cy) {
+  const kind = o.eyes || 'calm';
   for (const s of [-1, 1]) {
-    const x = s * cx;
-    if (o.blink || o.eyes === 'closed') { curve(g, p => { p.moveTo(x - 2.4 * big, cy + 0.2); p.quadraticCurveTo(x, cy + 2 * big, x + 2.4 * big, cy + 0.2); }, INK, 1.3); continue; }
-    if (o.eyes === 'ghost') { ell(g, x, cy, 2.6, 3, '#39445e'); ell(g, x, cy + 0.2, 1.1, 1.4, '#bfe9f5'); continue; }
-    // 또렷한 먹빛 눈동자에 반짝임 둘 (작게 보여도 표정이 읽히도록)
-    const sharp = o.eyes === 'sharp', rx = 1.95 * big, ry = (sharp ? 2.1 : 2.65) * big;
-    ell(g, x, cy + 0.2, rx, ry, o.iris || '#2e2228'); ell(g, x - 0.65 * big, cy - 0.75 * big, 0.78 * big, 0.85 * big, '#fff'); ell(g, x + 0.7 * big, cy + 1.1 * big, 0.38 * big, 0.38 * big, 'rgba(255,255,255,0.75)');
-    if (sharp) { path(g, P(x - rx - 0.5, cy - ry * 0.55, x + rx + 0.5, cy - ry * 0.95 + (s > 0 ? 0 : 0), x + rx + 0.5, cy - ry - 0.8, x - rx - 0.5, cy - ry - 0.8), o.lid || SKIN); line(g, [x - s * (rx + 0.6), cy - ry * 0.5, x + s * (rx + 0.9), cy - ry * 0.85], INK, 1.2); }
-    else curve(g, p => { p.moveTo(x - rx - 0.2, cy - ry * 0.5); p.quadraticCurveTo(x, cy - ry - 0.7, x + rx + 0.2, cy - ry * 0.5); }, INK, 0.9);
+    const xi = s * (cx - 2.5), xo = s * (cx + 2.7);
+    if (o.blink || kind === 'closed') { curve(g, p => { p.moveTo(xi, cy + 0.2); p.quadraticCurveTo(s * cx, cy + 1.5, xo, cy - 0.3); }, INK, 1.3); line(g, [xo, cy - 0.3, xo + s * 0.9, cy - 0.8], INK, 0.9); continue; }
+    if (kind === 'ghost') { part(g, p => { p.moveTo(xi, cy + 1); p.quadraticCurveTo(s * cx, cy - 3.1, xo, cy - 1.7); p.quadraticCurveTo(s * (cx + 0.8), cy + 2.6, xi, cy + 1); p.closePath(); }, '#262d48', null, { lw: 0 }); ell(g, s * (cx + 0.3), cy - 0.2, 0.75, 0.85, '#bfe9f5'); continue; }
+    const up = kind === 'sharp' ? 1.0 : kind === 'soft' ? 0.35 : 0.65, open = kind === 'sharp' ? 1.6 : kind === 'soft' ? 2.2 : 1.9, yo = cy - up;
+    const top = p => { p.moveTo(xi, cy + 0.45); p.quadraticCurveTo(s * (cx - 0.3), cy - open, xo, yo); };
+    g.beginPath(); top(g); g.quadraticCurveTo(s * (cx + 0.5), cy + open * 0.6, xi, cy + 0.45); g.closePath(); g.fillStyle = '#f6f0e2'; g.fill();
+    g.save(); g.clip(); ell(g, s * (cx + 0.15), cy - 0.2, 1.5, 1.6, o.iris || '#2a2026'); ell(g, s * (cx + 0.15) - 0.45, cy - 0.75, 0.4, 0.4, 'rgba(255,255,255,0.8)'); g.restore();
+    curve(g, top, INK, 1.45); line(g, [xo, yo, xo + s * 1.15, yo - 0.55], INK, 1);
+    g.globalAlpha *= 0.5; curve(g, p => { p.moveTo(s * (cx - 1.3), cy + 1.1); p.quadraticCurveTo(s * (cx + 0.7), cy + open * 0.6, xo - s * 0.4, yo + 0.9); }, INK, 0.6); g.globalAlpha /= 0.5;
   }
 }
+// 눈썹: 붓을 눌렀다 빼듯 안쪽이 굵고 꼬리가 가늘다
+function brow(g, s, x0, y0, x1, y1, w, col, arch = 0.9) {
+  path(g, p => { p.moveTo(s * x0, y0 - w * 0.55); p.quadraticCurveTo(s * (x0 + x1) / 2, (y0 + y1) / 2 - arch - w * 0.5, s * x1, y1); p.quadraticCurveTo(s * (x0 + x1) / 2, (y0 + y1) / 2 - arch + w * 0.5, s * x0, y0 + w * 0.55); p.closePath(); }, col);
+}
 function face(g, o, skin) {
-  const cy = -41.4;
-  if (o.pale) { g.globalAlpha = 0.45; for (const s of [-1, 1]) ell(g, s * 3.5, cy + 0.4, 3.6, 3.8, '#4a4a6a'); g.globalAlpha = 1; }
-  else { g.globalAlpha = 0.5; for (const s of [-1, 1]) ell(g, s * 5.9, -38.2, 2, 1.25, '#f08a6a'); g.globalAlpha = 1; }
-  eyes(g, o, 3.5, cy);
-  // 눈썹
-  const b = o.brow || 'soft', bc = o.browCol || (o.old ? WHITE : INK);
+  const cy = -41.2;
+  if (o.pale) { g.globalAlpha = 0.4; for (const s of [-1, 1]) ell(g, s * 3.7, cy + 0.3, 3.8, 3.4, '#4a4a6a'); g.globalAlpha = 1; }
+  eyes(g, o, 3.75, cy);
+  const b = o.brow || 'calm', bc = o.browCol || (o.old ? WHITE : INK);
   for (const s of [-1, 1]) {
-    if (b === 'stern') line(g, [s * 6.3, -46.3, s * 1.5, -44.5], bc, 1.6);
-    else if (b === 'thick') { path(g, P(s * 6.6, -46.8, s * 1.2, -45.4, s * 1.4, -43.8, s * 6.4, -45), bc); }
-    else if (b === 'old') { path(g, p => { p.moveTo(s * 1.4, -45); p.quadraticCurveTo(s * 5, -47.8, s * 8.2, -44.4); p.quadraticCurveTo(s * 5, -45.6, s * 1.4, -43.8); p.closePath(); }, WHITE, INK, 0.6); }
-    else curve(g, p => { p.moveTo(s * 5.9, -45.6); p.quadraticCurveTo(s * 3.6, -46.8, s * 1.7, -45.6); }, bc, 1.2);
+    if (b === 'stern') brow(g, s, 1.2, -43.9, 7, -46.3, 1.5, bc, 0.5);
+    else if (b === 'thick') brow(g, s, 1, -43.8, 7.4, -46.6, 2.3, bc, 0.6);
+    else if (b === 'old') { path(g, p => { p.moveTo(s * 1.2, -44.8); p.quadraticCurveTo(s * 5, -47.6, s * 8.6, -43.6); p.quadraticCurveTo(s * 5, -45.4, s * 1.2, -43.6); p.closePath(); }, bc, INK, 0.5); }
+    else if (b === 'soft') brow(g, s, 1.5, -45, 6.8, -45.2, 1.1, bc, 1.1);
+    else brow(g, s, 1.3, -44.6, 7, -45.7, 1.3, bc, 0.8);
   }
-  curve(g, p => { p.moveTo(0.3, -39.6); p.quadraticCurveTo(1.3, -38.4, 0.2, -37.8); }, dk(skin, 0.36), 0.8);
-  // 입
-  const m = o.mouth || 'smile';
-  if (m === 'smile') curve(g, p => { p.moveTo(-1.9, -36.3); p.quadraticCurveTo(0, -35, 1.9, -36.3); }, '#8a3a2e', 1);
-  else if (m === 'flat') line(g, [-1.7, -36, 1.7, -36], '#6a3a2e', 1.1);
-  else if (m === 'frown') curve(g, p => { p.moveTo(-1.9, -35.6); p.quadraticCurveTo(0, -36.8, 1.9, -35.6); }, '#6a3a2e', 1.1);
-  else if (m === 'grit') { rr(g, -2.4, -37, 4.8, 2.2, 0.6, WHITE, INK, 0.7); line(g, [0, -37, 0, -34.8], INK, 0.5); line(g, [-2.4, -35.9, 2.4, -35.9], INK, 0.5); }
-  else if (m === 'o') ell(g, 0, -35.8, 1.5, 1.9, '#6a2a26', INK, 0.7);
+  // 콧날과 콧방울
+  curve(g, p => { p.moveTo(0.5, -41.4); p.quadraticCurveTo(1.5, -39, 0.9, -37.9); p.quadraticCurveTo(0.2, -37.4, -0.6, -37.8); }, dk(skin, 0.42), 0.85);
+  // 입: 굳게 다문 입이 기본
+  const m = o.mouth || 'flat', mc = '#7a3a30';
+  if (m === 'smile') curve(g, p => { p.moveTo(-2, -35.9); p.quadraticCurveTo(0, -35.1, 2, -35.9); }, mc, 1);
+  else if (m === 'flat') { curve(g, p => { p.moveTo(-2, -35.6); p.quadraticCurveTo(0, -35.9, 2, -35.6); }, mc, 1.1); line(g, [-0.7, -34.5, 0.7, -34.5], dk(skin, 0.3), 0.6); }
+  else if (m === 'frown') curve(g, p => { p.moveTo(-2.1, -35.2); p.quadraticCurveTo(0, -36.5, 2.1, -35.2); }, mc, 1.1);
+  else if (m === 'grit') { rr(g, -2.5, -36.8, 5, 2.1, 0.5, WHITE, INK, 0.7); line(g, [0, -36.8, 0, -34.7], INK, 0.5); for (const x of [-1.25, 1.25]) line(g, [x, -36.8, x, -34.7], INK, 0.4); }
+  else if (m === 'o') ell(g, 0, -35.6, 1.4, 1.8, '#5a2a26', INK, 0.7);
   // 수염
   const bd = o.beard, hc = o.beardCol || o.hair || BLACK;
-  if (bd === 'long') { part(g, p => { p.moveTo(-5.6, -38.4); p.quadraticCurveTo(-7, -27, -2.6, -19.6); p.quadraticCurveTo(0, -16.4, 2.6, -19.6); p.quadraticCurveTo(7, -27, 5.6, -38.4); p.quadraticCurveTo(3, -34.4, 0, -35.4); p.quadraticCurveTo(-3, -34.4, -5.6, -38.4); p.closePath(); }, WHITE, P(1, -40, 8, -40, 8, -16, 2.6, -16), { k: 0.12, lw: 1 }); for (const x of [-2.6, 0, 2.6]) line(g, [x, -32, x * 0.7, -21], '#c9d0d2', 0.7); }
-  else if (bd === 'full') { part(g, p => { p.moveTo(-8.2, -40.4); p.quadraticCurveTo(-8.6, -32.4, -4, -29.6); p.quadraticCurveTo(0, -28, 4, -29.6); p.quadraticCurveTo(8.6, -32.4, 8.2, -40.4); p.quadraticCurveTo(6, -35, 2.6, -37.4); p.quadraticCurveTo(0, -34.6, -2.6, -37.4); p.quadraticCurveTo(-6, -35, -8.2, -40.4); p.closePath(); }, hc, P(2, -42, 9, -42, 9, -27, 3, -27), { lw: 1 }); curve(g, p => { p.moveTo(-1.6, -35.4); p.quadraticCurveTo(0, -34.6, 1.6, -35.4); }, '#c98a7a', 0.9); }
-  else if (bd === 'short') { path(g, p => { p.moveTo(-3.6, -35.2); p.quadraticCurveTo(0, -30.2, 3.6, -35.2); p.quadraticCurveTo(0, -33.4, -3.6, -35.2); p.closePath(); }, hc, INK, 0.8); for (const s of [-1, 1]) curve(g, p => { p.moveTo(s * 0.5, -37.3); p.quadraticCurveTo(s * 2.6, -37.6, s * 4, -35.8); }, hc, 1.3); }
-  else if (bd === 'goatee') { path(g, p => { p.moveTo(-1.8, -34.6); p.quadraticCurveTo(0, -28.6, 1.8, -34.6); p.closePath(); }, hc, INK, 0.7); for (const s of [-1, 1]) curve(g, p => { p.moveTo(s * 0.6, -37.2); p.quadraticCurveTo(s * 3.6, -37, s * 5.4, -33.6); }, hc, 1.1); }
-  if (o.scar) { line(g, [4.6, -45.6, 6.6, -37.6], '#b8584a', 0.9); for (const y of [-43.6, -41, -39]) line(g, [4.4 + (y + 45.6) * 0.25, y, 6.2 + (y + 45.6) * 0.25, y - 0.5], '#b8584a', 0.7); }
+  if (bd === 'long') { part(g, p => { p.moveTo(-5.6, -38.4); p.quadraticCurveTo(-7, -27, -2.6, -19.6); p.quadraticCurveTo(0, -16.4, 2.6, -19.6); p.quadraticCurveTo(7, -27, 5.6, -38.4); p.quadraticCurveTo(3, -34.6, 0, -35.6); p.quadraticCurveTo(-3, -34.6, -5.6, -38.4); p.closePath(); }, WHITE, P(1, -40, 8, -40, 8, -16, 2.6, -16), { k: 0.12, lw: 1 }); for (const x of [-2.6, 0, 2.6]) line(g, [x, -32, x * 0.7, -21], '#c9d0d2', 0.7); for (const s of [-1, 1]) curve(g, p => { p.moveTo(s * 0.5, -36.9); p.quadraticCurveTo(s * 3.6, -37.2, s * 5.6, -32.6); }, WHITE, 1.5); }
+  else if (bd === 'full') { part(g, p => { p.moveTo(-8.2, -40.4); p.quadraticCurveTo(-8.6, -32.4, -4, -29.4); p.quadraticCurveTo(0, -27.6, 4, -29.4); p.quadraticCurveTo(8.6, -32.4, 8.2, -40.4); p.quadraticCurveTo(6, -35, 2.6, -37.3); p.quadraticCurveTo(0, -34.4, -2.6, -37.3); p.quadraticCurveTo(-6, -35, -8.2, -40.4); p.closePath(); }, hc, P(2, -42, 9, -42, 9, -27, 3, -27), { lw: 1 }); for (const x of [-4.6, -1.6, 1.6, 4.6]) line(g, [x, -33.4, x * 0.9, -30], '#4a4852', 0.6); curve(g, p => { p.moveTo(-1.7, -35.5); p.quadraticCurveTo(0, -35.9, 1.7, -35.5); }, '#b87a6a', 0.9); }
+  else if (bd === 'short') { path(g, p => { p.moveTo(-3.6, -34.8); p.quadraticCurveTo(0, -30.2, 3.6, -34.8); p.quadraticCurveTo(0, -33.2, -3.6, -34.8); p.closePath(); }, hc, INK, 0.8); for (const s of [-1, 1]) brow(g, s, 0.4, -37, 4.4, -35.4, 1.2, hc, -0.3); }
+  else if (bd === 'goatee') { path(g, p => { p.moveTo(-1.6, -34.2); p.quadraticCurveTo(0, -27.6, 1.6, -34.2); p.closePath(); }, hc, INK, 0.7); for (const s of [-1, 1]) curve(g, p => { p.moveTo(s * 0.6, -37); p.quadraticCurveTo(s * 3.8, -36.8, s * 5.6, -33); }, hc, 1.1); }
+  if (o.scar) { line(g, [5.2, -46, 6.8, -38.4], '#a8584a', 0.9); for (const y of [-44, -41.6]) line(g, [4.9 + (y + 46) * 0.2, y + 0.3, 6.9 + (y + 46) * 0.2, y - 0.4], '#a8584a', 0.7); }
 }
 
 // ───────── 모자 ─────────
@@ -196,14 +203,17 @@ export function doll(g, o, sel) {
     if (o.item) o.item(g);
   }
   if (head) {
+    // 머리는 목을 축으로 조금 줄인다 (어른스러운 비례)
+    g.save(); g.translate(0, -33.2); g.scale(0.92, 0.94); g.translate(0, 33.2);
     const hair = o.hair || BLACK;
     if (o.hat !== 'bald' && !o.noHair) ell(g, 0, -43.6, 9.9, 9.6, o.hat === 'sage' ? WHITE : hair, INK, 1.1);
     for (const s of [-1, 1]) { ell(g, s * 9.1, -41.8, 1.9, 2.7, skin, INK, 0.9); curve(g, p => p.arc(s * 9.2, -41.8, 1, s > 0 ? -1.2 : PI - 1.2 + 1.2, s > 0 ? 1.2 : PI + 1.2), dk(skin, 0.36), 0.6); }
-    part(g, p => { p.moveTo(-8.8, -45.4); p.bezierCurveTo(-8.8, -54.8, 8.8, -54.8, 8.8, -45.4); p.bezierCurveTo(9.2, -39.2, 5.4, -33.5, 0, -33.1); p.bezierCurveTo(-5.4, -33.5, -9.2, -39.2, -8.8, -45.4); p.closePath(); }, skin, p => { p.moveTo(4.6, -56); p.lineTo(12, -56); p.lineTo(12, -30); p.lineTo(-1, -30); p.quadraticCurveTo(8.4, -36.4, 6, -48); p.closePath(); }, { k: 0.1, lw: 1.25 });
+    part(g, p => { p.moveTo(-8.8, -45.4); p.bezierCurveTo(-8.8, -54.8, 8.8, -54.8, 8.8, -45.4); p.bezierCurveTo(8.9, -39.4, 5, -33.2, 0, -32.6); p.bezierCurveTo(-5, -33.2, -8.9, -39.4, -8.8, -45.4); p.closePath(); }, skin, p => { p.moveTo(4.6, -56); p.lineTo(12, -56); p.lineTo(12, -30); p.lineTo(-1, -30); p.quadraticCurveTo(8.4, -36.4, 6, -48); p.closePath(); }, { k: 0.1, lw: 1.25 });
     // 모자 그늘이 이마에 진다
     if (o.hat && o.hat !== 'bald' && o.hat !== 'sage') { g.globalAlpha = 0.16; path(g, p => { p.moveTo(-8.6, -47.4); p.quadraticCurveTo(0, -50, 8.6, -47.4); p.lineTo(8.8, -44.4); p.quadraticCurveTo(0, -47, -8.8, -44.4); p.closePath(); }, '#1e1830'); g.globalAlpha = 1; }
     face(g, o, skin);
     if (o.hat) HATS[o.hat](g, o);
+    g.restore();
   }
   g.globalAlpha = 1;
 }
@@ -257,7 +267,7 @@ export function dokkaebi(g, o, sel) {
     if (o.horns === 2) { horn(-6, -0.34); horn(6, 0.34); } else horn(0.4, 0.06);
     // 부리부리한 눈과 굵은 눈썹
     if (o.blink) for (const s of [-1, 1]) curve(g, p => { p.moveTo(s * 1.6, -38.6); p.quadraticCurveTo(s * 5.4, -36, s * 9.2, -39.4); }, INK, 1.7);
-    else for (const s of [-1, 1]) { ell(g, s * 5.4, -39.4, 4.2, 4, '#fff6c8', INK, 1); ell(g, s * 4.9, -39, 1.9, 2.2, '#8a2a1c'); ell(g, s * 4.9, -38.9, 1, 1.3, '#15121a'); ell(g, s * 4.9 - 0.9, -40.2, 0.8, 0.8, '#fff'); }
+    else for (const s of [-1, 1]) { g.save(); g.beginPath(); g.moveTo(s * 1.4, -39.6); g.quadraticCurveTo(s * 5.6, -44.4, s * 10, -41.6); g.quadraticCurveTo(s * 6, -34.6, s * 1.4, -39.6); g.closePath(); g.fillStyle = '#fff3b8'; g.fill(); g.clip(); ell(g, s * 5.2, -39.6, 1.7, 2, '#8a2a1c'); ell(g, s * 5.2, -39.5, 0.8, 1.1, '#15121a'); g.restore(); curve(g, p => { p.moveTo(s * 1.4, -39.6); p.quadraticCurveTo(s * 5.6, -44.4, s * 10, -41.6); p.quadraticCurveTo(s * 6, -34.6, s * 1.4, -39.6); }, INK, 1.1); }
     for (const s of [-1, 1]) path(g, P(s * 10.6, -45.4, s * 1.2, -42, s * 1.6, -39.8, s * 10.8, -42.6), o.hair || BLACK, INK, 0.7);
     part(g, E(0, -34.4, 2.9, 2.1), dk(sk, 0.24), null, { lw: 0.9 }); for (const s of [-1, 1]) ell(g, s * 1.2, -34.2, 0.55, 0.75, INK);
     g.globalAlpha = 0.35; for (const s of [-1, 1]) ell(g, s * 9.6, -34, 2.4, 1.5, '#ffd9c0'); g.globalAlpha = 1;
@@ -295,10 +305,10 @@ export function jangseung(g) {
   for (const [x, y0, y1] of [[-5.6, -22, -4], [5.2, -20, -5], [0.2, -18, -8], [-2.6, -12, -3]]) curve(g, p => { p.moveTo(x, y0); p.quadraticCurveTo(x + 1.4, (y0 + y1) / 2, x + 0.4, y1); }, '#8a6844', 0.9);
   ell(g, 4.6, -12, 1.5, 2.2, '#8a6844', '#6f5234', 0.7);
   part(g, p => { p.moveTo(-12, -50); p.lineTo(12, -50); p.lineTo(9, -59.6); p.lineTo(3.2, -59.6); p.lineTo(2.6, -64.6); p.lineTo(-2.6, -64.6); p.lineTo(-3.2, -59.6); p.lineTo(-9, -59.6); p.closePath(); }, '#3a3238', P(3, -66, 13, -66, 13, -49, 4, -49), { hi: R(-8, -58.6, 5, 1.2), hic: '#5e5660' });
-  for (const s of [-1, 1]) { part(g, E(s * 4.2, -41.6, 3.8, 4.1), WHITE, E(s * 4.2 + 1.2, -40.4, 3.2, 3.4), { k: 0.12, lw: 1.1 }); ell(g, s * 3.8, -41.2, 1.6, 1.9, INK); ell(g, s * 3.8 - 0.6, -42, 0.6, 0.6, '#fff'); path(g, P(s * 8.6, -48, s * 1.2, -45.6, s * 1.6, -44, s * 8.6, -45.8), '#3a3238'); }
+  for (const s of [-1, 1]) { const eye = p => { p.moveTo(s * 1.1, -41); p.quadraticCurveTo(s * 4.4, -46.4, s * 8.4, -43.4); p.quadraticCurveTo(s * 5.6, -37.4, s * 1.1, -41); p.closePath(); }; g.beginPath(); eye(g); g.fillStyle = '#f3ead2'; g.fill(); g.save(); g.clip(); ell(g, s * 4.5, -41.9, 1.7, 2, INK); g.fillStyle = 'rgba(58,50,56,0.3)'; g.fillRect(-10, -47, 20, 3.4); g.restore(); g.beginPath(); eye(g); st(g, INK, 1.2); path(g, P(s * 9.2, -49, s * 0.8, -45, s * 1.2, -42.8, s * 9.2, -46.4), '#3a3238'); }
   curve(g, p => { p.moveTo(0, -42.6); p.lineTo(-1.8, -35); p.lineTo(2, -35); }, dk(wd, 0.4), 1.3);
   part(g, p => p.rect(-7, -32.4, 14, 7.2), '#8a2a26', R(-7, -28, 14, 4), { shc: '#4a1216', lw: 1.1 }); for (const x of [-4.6, -1.6, 1.6, 4.6]) rr(g, x - 1.3, -31.6, 2.6, 5, 0.5, WHITE, INK, 0.6);
-  g.globalAlpha = 0.6; for (const s of [-1, 1]) ell(g, s * 6.6, -36.4, 1.7, 1.3, RED); g.globalAlpha = 1;
+  for (const s of [-1, 1]) curve(g, p => { p.moveTo(s * 3.4, -37.4); p.quadraticCurveTo(s * 7, -36.4, s * 7.6, -33.4); }, dk(wd, 0.36), 0.9);
   for (const y of [-21, -16.4, -11.8]) rr(g, -2.2, y, 4.4, 3.6, 0.5, null, dk(wd, 0.36), 0.8);
 }
 // ───────── 도깨비불 ─────────
@@ -307,8 +317,8 @@ export function wisp(g, o = {}) {
   part(g, p => { p.moveTo(0, -42); p.bezierCurveTo(4.4, -33, 12.6, -29, 10.6, -17); p.bezierCurveTo(9.6, -9.6, 4.4, -6.4, 0, -6.4); p.bezierCurveTo(-6.4, -6.4, -11.6, -11.6, -10.6, -19); p.bezierCurveTo(-10, -24.4, -6.4, -25.4, -5.4, -31); p.bezierCurveTo(-2.2, -28.6, -1, -35, 0, -42); p.closePath(); }, '#4fa9d6', P(3, -44, 13, -44, 13, -5, 5, -5), { k: 0.18 });
   part(g, p => { p.moveTo(0, -30); p.bezierCurveTo(4.6, -23.6, 7.4, -18.4, 5.6, -13.4); p.bezierCurveTo(3.6, -9.2, -3.6, -9.2, -5.6, -14); p.bezierCurveTo(-7, -18.6, -2.4, -22.4, 0, -30); p.closePath(); }, '#bfe9f5', null, { lw: 0, hi: E(-1, -15, 3, 3.6), hic: '#f2fcff' });
   if (o.blink) for (const s of [-1, 1]) line(g, [s * 1.6, -17.2, s * 5, -17.8], INK, 1.3);
-  else for (const s of [-1, 1]) { line(g, [s * 6, -20.4, s * 1.8, -18.2], INK, 1.5); ell(g, s * 3.2, -16.4, 1.1, 1.5, INK); }
-  ell(g, 0, -12.6, 1.5, 1.1, '#1f4f6f');
+  else for (const s of [-1, 1]) path(g, p => { p.moveTo(s * 1.3, -16.4); p.quadraticCurveTo(s * 3.4, -21.4, s * 6.6, -21); p.quadraticCurveTo(s * 5, -15.6, s * 1.3, -16.4); p.closePath(); }, '#123650');
+  curve(g, p => { p.moveTo(-2.4, -12.4); p.lineTo(-0.8, -11.4); p.lineTo(0.8, -12.4); p.lineTo(2.4, -11.4); }, '#1f4f6f', 0.9);
   for (const [x, y, r] of [[-12, -34, 1.6], [11, -37, 1.2], [13, -9, 1.3]]) ell(g, x, y, r, r * 1.3, '#8fd3e8', INK, 0.6);
 }
 // ───────── 화차 ─────────
@@ -397,7 +407,7 @@ export function scarecrow(g) {
   rr(g, -6.6, -19.4, 6.2, 6.2, 0.6, '#a84a32', INK, 0.8); for (const [x, y] of [[-6.6, -19.4], [-0.4, -13.2]]) line(g, [x - 0.8, y + 0.4, x + 0.8, y - 0.8], INK, 0.5); rr(g, 2, -14.4, 5.2, 5.2, 0.6, INDIGO, INK, 0.8);
   for (const s of [-1, 1]) for (const d of [-2.2, 0, 2.2]) line(g, [s * 17.4, -27 + d, s * 23, -27 + d * 2.3], '#d9b24a', 1.2);
   for (const x of [-7, -3.5, 0, 3.5, 7]) line(g, [x, -6, x * 1.25, -0.6], '#d9b24a', 1.2);
-  part(g, E(0, -38, 7.6, 7.4), '#ecdcae', E(2.6, -36.4, 6.4, 6.2), { k: 0.14 }); for (const [a, b] of [[-4.4, -39.8], [-4.4, -38.2]]) line(g, [a, b, -1.6, b === -39.8 ? -38.2 : -39.8], INK, 1.1); ell(g, 3, -38.8, 1.1, 1.3, INK); curve(g, p => { p.moveTo(-3, -34.6); p.quadraticCurveTo(0, -32.2, 3.6, -34.8); }, INK, 1); for (const x of [-1.4, 0.6, 2.4]) line(g, [x, -34.4, x, -33], INK, 0.5);
+  part(g, E(0, -38, 7.6, 7.4), '#ecdcae', E(2.6, -36.4, 6.4, 6.2), { k: 0.14 }); for (const [a, b] of [[-4.4, -39.8], [-4.4, -38.2]]) line(g, [a, b, -1.6, b === -39.8 ? -38.2 : -39.8], INK, 1.1); ell(g, 3, -38.8, 1.1, 1.3, INK); line(g, [-3.2, -34, 3.8, -34.2], INK, 1); for (const x of [-1.8, 0.2, 2.2]) line(g, [x, -35, x, -33.2], INK, 0.5);
   g.save(); g.translate(0, 4.4); HATS.paeraeng(g); g.restore();
 }
 export function stakeLog(g) { g.save(); g.rotate(0.12); part(g, P(-5, 2, -5, -30, 0, -40, 5, -30, 5, 2), WOOD, P(1, -41, 6, -41, 6, 3, 1.6, 3), { hi: P(-4, -29, -2.6, -30, -2.6, 0, -4, 0), hk: 0.2, lw: 1.3 }); rr(g, -5.6, -14, 11.2, 3.4, 1, '#d9b77a', INK, 0.8); g.restore(); ell(g, 0, 2, 7, 2.6, '#8a6844', INK, 1); }
