@@ -416,9 +416,9 @@ const game: GameDef<KickState> & { wows(s: KickState): number } = {
   genes: ['mindgame', 'turnbased'],
   twist: '상대 골키퍼는 내 버릇을 배워 같은 곳만 차면 미리 그쪽으로 뛰고, 상대의 버릇은 몸짓(기울기·꼬리·힐끔)으로 보인다 — 그런데 뒤 판 상대는 찡긋 윙크로 거짓 몸짓을 한다',
   rules: [
-    '찰 차례엔 찰 곳을, 막을 차례엔 뛸 곳을 톡! 5번씩 차고 막아 골이 많으면 이겨요.',
-    '상대 버릇은 몸짓에 보여요(기울기·꼬리). 장갑 그림 = 막힐 확률. 같은 곳만 고르면 상대가 배워요.',
-    '지면 하트 -1, 그 판만 다시. 찡긋 윙크는 거짓말!',
+    '찰 차례엔 찰 곳, 막을 차례엔 뛸 곳을 톡! 5번씩 차고 막아 골이 많으면 승리.',
+    '칸의 % = 상대 버릇으로 본 확률. 기울기·힐끔(몸짓)은 지금 갈 쪽 — 찡긋하면 거짓말!',
+    '같은 곳만 고르면 상대가 배워요. 지면 하트 -1, 그 판만 다시.',
   ],
   controls: 'touch',
   hint: '골대 칸을 톡 = 차기·막기 / 화살표로 고르고 스페이스',
@@ -1523,6 +1523,13 @@ function keeperAt(s: KickState): KeeperAt {
     } else if (out === 'goal') {
       k.face = q > 8 ? 'dizzy' : 'shock';
       k.arms = 'up';
+      if (!sd && q > 6) {
+        // 가운데서 놓치면 털썩 주저앉아 머리를 감싼다
+        const g = clamp((q - 6) / 8, 0, 1);
+        k.cy = lerp(k.cy, idle.cy + KH * 0.08, g);
+        k.sq = 0.12 * g;
+        k.arms = 'head';
+      }
     } else {
       k.face = q > 10 ? (mine ? 'happy' : 'shock') : 'focus';
       if (q > 18) {
@@ -2597,35 +2604,10 @@ function drawAll(ctx: C2, s: KickState, w: number, h: number, th: Theme) {
   ctx.fillStyle = 'rgba(30,60,20,.3)';
   ell(ctx, X(kp.cx), Y(LINE_Y + 0.006), kH * (0.32 - air * 0.12), kH * 0.07);
   ctx.fill();
-  if (s.phase === 'aim' && !keeperMine && tu.tell >= 0 && s.stage >= 1) {
-    // 기우는 쪽 화살표 (몸짓 단서를 크게)
-    const sd = tu.tell - 1, ax = X(0.5 + sd * 0.17), ay = Y(LINE_Y - 0.02), a = 0.55 + 0.35 * Math.sin(t * 0.2);
-    ctx.globalAlpha = a;
-    ctx.fillStyle = tu.wink ? '#ff8ad0' : '#ffe14a';
-    ctx.strokeStyle = OUT;
-    ctx.lineWidth = 1.5;
-    if (sd) {
-      ctx.beginPath();
-      ctx.moveTo(ax + sd * R(0.045), ay);
-      ctx.lineTo(ax, ay - R(0.025));
-      ctx.lineTo(ax, ay - R(0.01));
-      ctx.lineTo(ax - sd * R(0.04), ay - R(0.01));
-      ctx.lineTo(ax - sd * R(0.04), ay + R(0.01));
-      ctx.lineTo(ax, ay + R(0.01));
-      ctx.lineTo(ax, ay + R(0.025));
-      ctx.closePath();
-    } else {
-      ctx.beginPath();
-      ctx.arc(X(0.5), ay, R(0.02), 0, TAU);
-    }
-    ctx.fill();
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
   ctx.save();
   ctx.translate(X(kp.cx), Y(kp.cy));
   ctx.rotate(kp.rot);
-  drawCritter(ctx, kk, 0, kH * 0.45, kH, pose({ face: kp.face, lean: kp.lean, look: kp.look, arms: kp.arms, gloves: true, t: t + 30, jersey: keeperMine ? '#ffb020' : d.jersey, jersey2: keeperMine ? '#fff0c0' : d.jersey2, num: 1, tail: Math.sin(t * 0.1) * 0.3 }));
+  drawCritter(ctx, kk, 0, kH * 0.45, kH, pose({ face: kp.face, lean: kp.lean, look: kp.look, arms: kp.arms, sq: kp.sq, gloves: true, t: t + 30, jersey: keeperMine ? '#ffb020' : d.jersey, jersey2: keeperMine ? '#fff0c0' : d.jersey2, num: 1, tail: Math.sin(t * 0.1) * 0.3 }));
   ctx.restore();
   // 찡긋 반짝
   if (s.phase === 'aim' && tu.wink && !keeperMine) {

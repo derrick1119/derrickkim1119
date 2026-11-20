@@ -87,47 +87,47 @@ export const STAGES: StageDef[] = [
   {
     name: '빵 굽는 냄새', news: '빵집 — 옆에 집이 있을 때마다 +3', hint: '집을 빵집 둘레에 모아요', spot: 'bakery',
     map: ['....', 'To..', 'oooT', '.oT.', '....'],
-    queue: [H, B, H, H, H],
-    chunks: [{ at: 12, map: ['....', '....', '....', 'o..o', '.oo.'], pack: [H, H, B, H] }],
-    goal: 26, stars: [ST('score', 26, '점수 26 넘기기'), ST('bakery', 3, '빵집 옆에 집 셋')],
+    queue: [H, B, H, H],
+    chunks: [{ at: 10, map: ['....', '....', '....', 'o..o', '....'], pack: [H, H, B] }],
+    goal: 22, stars: [ST('score', 22, '점수 22 넘기기'), ST('bakery', 3, '빵집 옆에 집 셋')],
   },
   {
     name: '등대 언덕', news: '등대 — 바다 한 면마다 +3', hint: '바다로 튀어나온 끝자리는 등대 자리', spot: 'light',
     map: ['o..o', 'TooT', '.oo.', '....', '....'],
-    queue: [H, L, H, H, L, H],
-    chunks: [{ at: 14, map: ['....', '....', 'o..o', 'oTTo', '....'], pack: [H, B, H, H] }],
-    goal: 38, stars: [ST('score', 38, '점수 38 넘기기'), ST('light3', 1, '등대를 바다 세 면 자리에'), ST('score', 50, '점수 50 넘기기')],
+    queue: [H, L, H, H, L],
+    chunks: [{ at: 14, map: ['....', '....', 'o..o', '.TT.', '....'], pack: [H, B, H] }],
+    goal: 32, stars: [ST('score', 32, '점수 32 넘기기'), ST('light3', 1, '등대를 바다 세 면 자리에'), ST('score', 44, '점수 44 넘기기')],
   },
   {
     name: '땅땅 대장간', news: '대장간 — 나무 옆 +3, 집 옆은 −3', hint: '대장간 자리는 집과 떨어진 구석에', spot: 'forge',
-    map: ['To..', 'oToo', 'oooo', '....', '....'],
-    queue: [H, F, H, H, H, H, H, H],
-    chunks: [{ at: 14, map: ['....', '....', '....', '.ooT', '..o.'], pack: [B, H, H] }],
-    goal: 30, stars: [ST('score', 30, '점수 30 넘기기'), ST('quiet', 0, '대장간 옆에 집 없이'), ST('score', 40, '점수 40 넘기기')],
+    map: ['To..', 'oTo.', 'ooo.', '....', '....'],
+    queue: [H, F, H, H, H],
+    chunks: [{ at: 12, map: ['....', '....', '...o', '..oT', '....'], pack: [B, H, H] }],
+    goal: 24, stars: [ST('score', 24, '점수 24 넘기기'), ST('quiet', 0, '대장간 옆에 집 없이'), ST('score', 32, '점수 32 넘기기')],
   },
   {
     name: '퐁퐁 분수', news: '분수 — 둘레 8칸(대각선도) 모두 +2', hint: '분수는 가운데, 둘레를 빙 채워요', spot: 'fount',
-    map: ['....', 'TTo.', 'oooo', '.oo.', '....'],
-    queue: [H, W, H, B, H, H, H],
-    chunks: [{ at: 16, map: ['.oo.', '...o', '....', '....', '.oo.'], pack: [H, W, H, H, B] }],
-    goal: 44, stars: [ST('score', 44, '점수 44 넘기기'), ST('ring', 7, '분수 둘레에 일곱 채'), ST('combo', 8, '한 번에 8점 받기')],
+    map: ['....', 'TTo.', 'ooo.', '.oo.', '....'],
+    queue: [H, W, H, B, H],
+    chunks: [{ at: 16, map: ['....', '...o', '...o', '....', '....'], pack: [H, W, H] }],
+    goal: 36, stars: [ST('score', 36, '점수 36 넘기기'), ST('ring', 6, '분수 둘레에 여섯 채'), ST('combo', 8, '한 번에 8점 받기')],
   },
   {
     name: '화산 섬', news: '화산 섬 — 용암 옆 집은 −3, 대장간은 +4', hint: '집은 용암에서 멀리, 대장간은 가까이', spot: 'lava',
-    map: ['....', 'oTo.', 'ooo.', 'oTo.', '....'],
-    queue: [H, H, F, H, B, H, H],
-    chunks: [{ at: 12, map: ['.oo.', '...V', '...V', '....', '.oo.'], pack: [F, H, H, L] }],
-    goal: 32, stars: [ST('score', 32, '점수 32 넘기기'), ST('nolava', 0, '용암 옆에 집 없이'), ST('score', 40, '점수 40 넘기기')],
+    map: ['....', 'oTo.', 'ooo.', '.To.', '....'],
+    queue: [H, H, F, H, B],
+    chunks: [{ at: 12, map: ['..o.', '...V', '...V', '...o', '....'], pack: [F, H, L] }],
+    goal: 28, stars: [ST('score', 28, '점수 28 넘기기'), ST('nolava', 0, '용암 옆에 집 없이'), ST('score', 36, '점수 36 넘기기')],
   },
   {
     name: '축제 섬', news: '새 섬이 둘 — 점수를 더 모으면 또 솟아요', hint: '두 번째 섬까지 띄워요', spot: 'two',
-    map: ['....', '.oT.', 'oooo', '.oT.', '....'],
-    queue: [H, B, H, H, W, H],
+    map: ['....', '.oT.', 'oo..', '.oT.', '....'],
+    queue: [H, B, H, W],
     chunks: [
       { at: 12, map: ['.oo.', '....', '....', '....', '....'], pack: [L, H] },
-      { at: 34, map: ['....', '....', '....', 'o..o', '.oo.'], pack: [F, H, H, L] },
+      { at: 26, map: ['....', '....', '..oo', '...o', '....'], pack: [F, H] },
     ],
-    goal: 44, stars: [ST('score', 44, '점수 44 넘기기'), ST('quiet', 0, '대장간 옆에 집 없이'), ST('score', 56, '점수 56 넘기기')],
+    goal: 36, stars: [ST('score', 36, '점수 36 넘기기'), ST('quiet', 0, '대장간 옆에 집 없이'), ST('score', 46, '점수 46 넘기기')],
   },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -424,6 +424,13 @@ const game: GameDef<IsleState> & { wows(s: IsleState): number } = {
     const p = inp.pointer ?? null;
     const fresh = !!p && !s.down;
     s.down = !!p;
+    // 숫자가 다 꽂힌 뒤의 톡은 기다리지 않고 바로 다음 건물을 놓는다 (빨리 하는 사람)
+    if (s.phase === 'drop' && fresh && s.drop && s.drop.n === s.drop.gains.length && s.pt >= DROP + 4) {
+      s.best1 = Math.max(s.best1, s.drop.total);
+      s.drop = null;
+      afterMove(s);
+      if ((s.phase as IsleState['phase']) === 'pick') s.pt = 1;
+    }
     if (s.phase === 'pick') {
       s.pt++;
       if (fresh) {

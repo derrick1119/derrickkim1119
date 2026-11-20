@@ -29,7 +29,7 @@ const ME = 0, RED = 1, NEU = 2, PUR = 3;
 const isFoe = (o: number) => o === RED || o === PUR;
 
 type Kind = 'castle' | 'home' | 'tower' | 'farm' | 'cannon' | 'pirate';
-const KIND_NAME: Record<Kind, string> = { castle: '성', home: '본성', tower: '탑 성', farm: '농장 성', cannon: '대포 성', pirate: '해적 성' };
+const KIND_NAME: Record<Kind, string> = { castle: '성', home: '왕관 성', tower: '탑 성', farm: '농장 성', cannon: '대포 성', pirate: '해적 성' };
 /** 차례가 끝나면 깃발 성마다 +1 (농장 +3). '기다리기'는 내 성 +1 더 */
 const grow = (k: Kind) => (k === 'farm' ? 3 : 1);
 const mult = (k: Kind) => (k === 'tower' ? 2 : 1);
@@ -429,7 +429,7 @@ function applyEv(s: FlagState, e: TEv) {
       if (e.f === ME) {
         see(s, 'capture');
         s.pts += TAKE_PTS;
-        const name = m.k[e.c] === 'home' ? '본성 함락!' : m.k[e.c] === 'pirate' ? '해적 성 점령!' : m.k[e.c] === 'castle' ? '점령!' : `${KIND_NAME[m.k[e.c]]} 점령!`;
+        const name = m.k[e.c] === 'home' ? '왕관 성 함락!' : m.k[e.c] === 'pirate' ? '해적 성 점령!' : m.k[e.c] === 'castle' ? '점령!' : `${KIND_NAME[m.k[e.c]]} 점령!`;
         wow(s, name, x, y - 0.12);
       } else if (e.prev === ME) ev(s, 'ouch', x, y, { c: e.c, f: e.f });
       break;
@@ -466,7 +466,7 @@ function endTurn(s: FlagState) {
   s.cur = null;
   const foes = foesOf(s).length;
   if (!foes) return finish(s, true, '');
-  if (s.own[s.map.home[ME]] !== ME) return finish(s, false, '본성을 빼앗겼어요');
+  if (s.own[s.map.home[ME]] !== ME) return finish(s, false, '왕관 성을 빼앗겼어요');
   if (s.turn >= d.limit) return finish(s, false, '차례가 다 됐어요');
   s.phase = 'pick';
   s.pt = 0;
@@ -550,9 +550,9 @@ const game: GameDef<FlagState> & { wows(s: FlagState): number } = {
   genes: ['conquest', 'turnbased'],
   twist: '적의 다음 수가 빨간 화살표로 미리 보이고 내 행렬과 적 행렬이 함께 출발한다 — 같은 길로 맞받아 보내면 길 한가운데서 와르르 맞붙고, 이긴 쪽은 절반이 빠져나간 적 성까지 그대로 쳐들어간다',
   rules: [
-    '내 성을 톡, 이웃 성을 톡 — 병사 절반이 행진해 성문에서 병사 수끼리 빼기, 남으면 깃발이 내 색!',
-    '빨간 화살표가 적의 다음 수 — 같이 출발해서, 같은 길로 마주 오면 길 한가운데서 맞붙어요.',
-    "차례마다 깃발 성 +1('기다리기'는 내 성 +1 더). 적 왕관 성을 차지하면 승리, 내 왕관 성을 빼앗기면 하트 -1.",
+    '내 성을 톡, 이웃 성을 톡 — 병사 절반이 행진해 병사 수끼리 빼기, 남으면 깃발이 내 색!',
+    '빨간 화살표 = 적의 다음 수. 함께 출발해 같은 길에서 마주치면 길 한가운데서 맞붙어요.',
+    "차례마다 성마다 +1('기다리기'는 내 성 +1 더). 적 왕관 성을 뺏으면 승리, 내 왕관 성을 뺏기면 하트 -1.",
   ],
   controls: 'touch',
   hint: '내 성 톡 → 이웃 성 톡 · 기다리기 톡 / 화살표로 고르고 스페이스',
@@ -1261,7 +1261,7 @@ function drawBridge(g: C2, m: MapRT, e: Edge, cu: [number, number], w: number, o
 }
 
 // ── 성 ──
-interface CLook { sel: boolean; lift: number; flip: number; prev: number; n: number; cheer: number; hurt: number; can: boolean; zz: boolean; boom: number; t: number }
+interface CLook { sel: boolean; lift: number; flip: number; prev: number; n: number; cheer: number; hurt: number; can: boolean; zz: boolean; boom: number; t: number; threat: boolean }
 const castleSize = (m: MapRT, i: number) => (m.k[i] === 'home' ? 0.215 : 0.19) * (0.88 + 0.12 * clamp((m.y[i] - 0.4) / 0.74, 0, 1));
 function stoneWall(ctx: C2, x: number, y: number, w: number, h: number, k: number) {
   ctx.fillStyle = lin(ctx, x, y, x + w, y + h, [0, STONE[0]], [0.6, STONE[1]], [1, STONE[2]]);
@@ -1406,6 +1406,16 @@ function drawCastle(ctx: C2, m: MapRT, i: number, own: number, X: (x: number) =>
   ctx.fillStyle = 'rgba(40,80,20,.28)';
   ell(ctx, x + S * 0.07, y0 + S * 0.05, S * 0.6, S * 0.17);
   ctx.fill();
+  if (L.threat) {
+    const p = 0.5 + 0.5 * Math.sin(t * 0.25);
+    ctx.strokeStyle = `rgba(240,60,40,${0.55 + 0.35 * p})`;
+    ctx.lineWidth = Math.max(2, S * 0.03);
+    ctx.setLineDash([S * 0.08, S * 0.05]);
+    ctx.lineDashOffset = t * 0.6;
+    ell(ctx, x, y0 + S * 0.01, S * (0.68 + 0.04 * p), S * (0.22 + 0.02 * p));
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
   if (L.sel || L.can) {
     const p = 0.5 + 0.5 * Math.sin(t * 0.18);
     ctx.fillStyle = L.sel ? `rgba(255,220,60,${0.45 + 0.3 * p})` : `rgba(255,255,255,${0.18 + 0.18 * p})`;
@@ -1934,8 +1944,15 @@ function drawAll(ctx: C2, s: FlagState, w: number, h: number, th: Theme) {
         break;
       case 'wait':
         vis.trumpet = t;
-        for (let q = 0; q < m.nc; q++) if (s.own[q] === ME) fx.ring(X(m.x[q]), Y(m.y[q]) - R(0.05), '#9ad0ff', R(0.12), 4);
-        fx.pop(X(0.5), Y(0.62), '기다리기 — 병사 모으는 중', '#ffffff', Math.max(14, R(0.045)));
+        fx.kick(4);
+        fx.burst(X(WAIT_BTN[0] - 0.2), Y(WAIT_BTN[1]), '#ffe14a', 14, 4, 2.6);
+        for (let q = 0; q < m.nc; q++) {
+          if (s.own[q] !== ME) continue;
+          vis.cheers.push({ c: q, f: ME, t0: t });
+          fx.ring(X(m.x[q]), Y(m.y[q]) - R(0.05), '#9ad0ff', R(0.13), 5);
+          fx.pop(X(m.x[q]) + R(0.06), Y(m.y[q]) - R(0.26), '+1', '#cfe8ff', Math.max(16, R(0.05)));
+        }
+        fx.pop(X(0.5), Y(MAP_BOT - 0.05), '빠밤! 병사 모여라!', '#fff4c0', Math.max(15, R(0.048)));
         break;
       case 'take': {
         const f = e.f ?? ME;
@@ -2058,7 +2075,7 @@ function drawAll(ctx: C2, s: FlagState, w: number, h: number, th: Theme) {
   freeSpots(m).forEach(([x, y], k) => {
     const wander = Math.sin(t * 0.004 + k * 1.7) * 0.025;
     const hop = joyAge >= 0 && joyAge < 40 ? Math.abs(Math.sin(joyAge * 0.32 + k)) * R(0.02) : 0;
-    drawSheep(ctx, X(x + wander), Y(y), R(0.026), t, k, hop);
+    drawSheep(ctx, X(x + wander), Y(y), R(0.032), t, k, hop);
   });
   for (let q = 0; q < 2; q++) {
     const bx = ((t * 0.0016 + q * 0.47) % 1.4) - 0.2, by = 0.16 + q * 0.28 + Math.sin(t * 0.03 + q) * 0.01, fl = Math.sin(t * 0.35 + q * 2);
@@ -2118,7 +2135,7 @@ function drawAll(ctx: C2, s: FlagState, w: number, h: number, th: Theme) {
     drawCastle(ctx, m, i, s.own[i], X, Y, R, {
       sel: s.sel === i, lift: s.sel === i ? R(0.012) + Math.abs(Math.sin(t * 0.15)) * R(0.008) : 0,
       flip: fl < 26 ? fl / 26 : -1, prev: s.prevOwn[i], n: Math.round(vis.disp[i]), cheer: 0, hurt: vis.hurt[i], can: canSend || tip === i,
-      zz: sleepy(s) && isFoe(s.own[i]), boom: vis.boom[i], t,
+      zz: sleepy(s) && isFoe(s.own[i]), boom: vis.boom[i], t, threat: pick && s.own[i] === ME && s.plans.some((p) => p.b === i),
     });
   }
   // 왕 · 남작
@@ -2230,7 +2247,8 @@ function firstTip(s: FlagState): number {
 }
 function drawArrow(ctx: C2, m: MapRT, p: Move, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, t: number, col: string, foe: boolean, s: FlagState) {
   const e = m.ed[p.e], S0 = castleSize(m, p.a), S1 = castleSize(m, p.b);
-  const L = e.L, u0 = clamp((S0 * 0.45) / L, 0.05, 0.4), u1 = 1 - clamp((S1 * 0.55) / L, 0.05, 0.4);
+  const L = e.L, u0 = clamp((S0 * 0.45) / L, 0.05, 0.4), uEnd = 1 - clamp((S1 * 0.55) / L, 0.05, 0.4);
+  const grow = s.phase === 'pick' ? clamp(s.pt / 14, 0.15, 1) : 1, u1 = u0 + (uEnd - u0) * grow;
   const pts: [number, number][] = [];
   for (let k = 0; k <= 20; k++) pts.push(onEdge(e, m, p.a, u0 + ((u1 - u0) * k) / 20));
   const lw = R(foe ? 0.03 : 0.024);
@@ -2264,11 +2282,10 @@ function drawArrow(ctx: C2, m: MapRT, p: Move, X: (x: number) => number, Y: (y: 
   ctx.lineWidth = 2.5;
   ctx.stroke();
   ctx.restore();
-  void s;
 }
 function planBadge(ctx: C2, s: FlagState, p: Move, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, font: (sz: number, wgt?: number) => void, t: number) {
   const m = s.map, [mx, my] = onEdge(m.ed[p.e], m, p.a, 0.5), cnt = Math.ceil(s.n[p.a] / 2);
-  const bx = X(mx), by = Y(my) - R(0.005), r = R(0.034) * (1 + 0.06 * Math.sin(t * 0.2));
+  const bx = X(mx), by = Y(my) - R(0.005), r = R(0.034) * (1 + 0.06 * Math.sin(t * 0.2)) * (s.pt < 14 ? 0.4 + (0.6 * s.pt) / 14 + (s.pt > 9 ? 0.25 : 0) : 1);
   ctx.fillStyle = 'rgba(60,20,10,.3)';
   ell(ctx, bx + 2, by + 3, r, r);
   ctx.fill();
@@ -2537,7 +2554,7 @@ function drawPanel(ctx: C2, s: FlagState, X: (x: number) => number, Y: (y: numbe
   ctx.fillStyle = left <= 3 ? '#d0402a' : '#4a2a10';
   ctx.fillText(String(left), tx, ty + R(0.018));
   // 기다리기 단추
-  const [bx, by, bw, bh] = WAIT_BTN, on = pick && !(s.stage === 0 && s.sends === 0);
+  const [bx, by, bw, bh] = WAIT_BTN, on = pick;
   const press = s.my?.a === -1 && s.phase === 'march' && s.pt < 10 ? R(0.006) : 0;
   const x0 = X(bx) - R(bw) / 2, y0 = Y(by) - R(bh) / 2 + press;
   ctx.fillStyle = 'rgba(70,35,5,.35)';
@@ -2574,7 +2591,7 @@ function drawPanel(ctx: C2, s: FlagState, X: (x: number) => number, Y: (y: numbe
   font(0.03, 800);
   ctx.fillStyle = on ? '#e8f4ff' : '#f4f0e8';
   ctx.fillText('내 성 모두 +1', x0 + R(0.12), Y(by) + R(0.026) + press);
-  if (on && Math.sin(t * 0.1) > 0.6) {
+  if (on && !(s.stage === 0 && s.sends === 0) && Math.sin(t * 0.1) > 0.6) {
     ctx.strokeStyle = 'rgba(255,255,255,.6)';
     ctx.lineWidth = 2;
     rr(ctx, x0 - 3, y0 - 3, R(bw) + 6, R(bh) + 6, R(0.04));
@@ -2633,7 +2650,7 @@ function drawBanner(ctx: C2, s: FlagState, fx: ReturnType<typeof juice>, R: (r: 
     a = Math.min(1, Math.max(0, (age - 20) / 8));
     cy = R(s.ok ? 0.68 : 0.66);
     if (s.ok) head = s.won ? '모든 땅을 차지했다!' : `${d.foe} 함락!`;
-    else (head = s.why.includes('본성') ? '으앗, 왕관 성을 빼앗겼다…' : '해가 졌어요…'), (sub = s.hearts > 0 ? `${s.why} · 하트 -1 · 같은 판 다시` : '하트가 없어요 — 끝');
+    else (head = s.why.includes('왕관') ? '으앗, 왕관 성을 빼앗겼다…' : '해가 졌어요…'), (sub = s.hearts > 0 ? `${s.why} · 하트 -1 · 같은 판 다시` : '하트가 없어요 — 끝');
   } else if (s.banner && s.phase === 'pick' && t - s.banner.t < BANNER_T) {
     age = t - s.banner.t;
     a = Math.min(1, age / 8, (BANNER_T - age) / 25);

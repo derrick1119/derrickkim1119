@@ -879,11 +879,26 @@ function drawPony(ctx: C2, x: number, y: number, k: number, L: PL) {
   const hips: [number, number][] = [[0.56, -0.95], [0.66, -0.98], [-0.6, -0.95], [-0.5, -0.98]];
   const l1 = K(0.5), l2 = K(0.47);
   const farCol = '#d88a48', hoof = '#6a4030';
+  const lying = L.pose === 'lie';
+  /** 누우면 다리를 몸 밑에 접는다 */
+  const tuck = (lx: number, col: string) => {
+    ctx.fillStyle = col;
+    ctx.strokeStyle = OUT;
+    ctx.lineWidth = 1.8;
+    ell(ctx, K(lx), K(-0.42), K(0.28), K(0.14));
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = hoof;
+    ell(ctx, K(lx + 0.24), K(-0.4), K(0.08), K(0.1));
+    ctx.fill();
+  };
   // 먼 쪽 다리
-  for (const i of [1, 3]) {
-    const [a1, a2] = legsA(i);
-    leg(ctx, K(hips[i][0]), K(hips[i][1]), a1, a2, l1, l2, th * 0.92, farCol, hoof);
-  }
+  if (lying) (tuck(0.62, farCol), tuck(-0.42, farCol));
+  else
+    for (const i of [1, 3]) {
+      const [a1, a2] = legsA(i);
+      leg(ctx, K(hips[i][0]), K(hips[i][1]), a1, a2, l1, l2, th * 0.92, farCol, hoof);
+    }
   // 꼬리
   const tl = 0.62 + 0.13 * lvS, wnd = clamp(L.wind, 0, 1), sw = Math.sin(t * 0.09) * 0.25 * (1 - wnd);
   ctx.save();
@@ -960,10 +975,12 @@ function drawPony(ctx: C2, x: number, y: number, k: number, L: PL) {
   ctx.stroke();
   ctx.restore();
   // 가까운 다리
-  for (const i of [2, 0]) {
-    const [a1, a2] = legsA(i);
-    leg(ctx, K(hips[i][0]), K(hips[i][1]), a1, a2, l1, l2, th, P_BODY, hoof);
-  }
+  if (lying) (tuck(0.45, P_BODY), tuck(-0.6, P_BODY));
+  else
+    for (const i of [2, 0]) {
+      const [a1, a2] = legsA(i);
+      leg(ctx, K(hips[i][0]), K(hips[i][1]), a1, a2, l1, l2, th, P_BODY, hoof);
+    }
   mus(0.5, by + 0.06, (0.2 + 0.04 * lvP) * mg, (0.26 + 0.045 * lvP) * mg);
   // 목
   ctx.fillStyle = lin(ctx, K(0.5), K(-2), K(1), K(-1.2), [0, '#ffc87e'], [1, P_BODY]);
@@ -1163,7 +1180,6 @@ function drawPony(ctx: C2, x: number, y: number, k: number, L: PL) {
     }
   }
   ctx.restore();
-  if (L.sink > 0) void 0;
 }
 
 // ── 경주 상대 (옆모습) ──
@@ -2097,7 +2113,7 @@ function ponyPose(s: PonyState): PPose {
       if (u < 8) return { ...base, face: 'effort' };
       if (c.fail && u >= 34) {
         const x0 = 0.24 + easeIO(26 / 48) * (HILL_CX - 0.24);
-        const q = ease((u - 34) / 22), x = x0 + (0.22 - x0) * q;
+        const q = ease((u - 34) / 22), x = x0 + (0.32 - x0) * q;
         const lying = u >= 56;
         return home({ x, y: lying ? PONY_Y : hillY(x, 1), tilt: 0, rot: lying ? Math.PI : q * Math.PI * 2.5, pose: 'tumble', face: 'dizzy', wind: 0, sink: 0, ph: 0, flash: 0 }, 0);
       }
@@ -2197,7 +2213,13 @@ function drawRanch(ctx: C2, s: PonyState, vis: Vis, fx: ReturnType<typeof juice>
   // 망아지
   const k = R(PONY_R * 0.86);
   const upside = (1 - Math.cos(pp.rot)) / 2;
-  drawPony(ctx, X(pp.x), Y(pp.y) + upside * k * 0.5, k, { pose: pp.pose, ph: pp.ph, tilt: pp.tilt, rot: pp.rot, face: pp.face, wind: pp.wind, flash: pp.flash, flashStat: c ? c.stat : -1, sink: pp.sink, st: c && !c.applied ? statsBefore(s) : s.st, fat: shownFat(s), t, shadow: !(c && c.k === 'swim' && pp.sink > 0.1) });
+  // 능력 오르는 순간: 큰 빛기둥 (망아지 뒤)
+  if (c && c.applied && !c.fail && c.k !== 'rest' && u - APPLY_T < 26) {
+    const q = (u - APPLY_T) / 26;
+    ctx.fillStyle = lin(ctx, 0, Y(pp.y - 0.55), 0, Y(pp.y), [0, 'rgba(255,250,200,0)'], [0.6, `rgba(255,240,150,${0.55 * (1 - q)})`], [1, `rgba(255,255,255,${0.7 * (1 - q)})`]);
+    ctx.fillRect(X(pp.x) - R(0.2 + q * 0.06), Y(pp.y - 0.55), R(0.4 + q * 0.12), R(0.55));
+  }
+  drawPony(ctx, X(pp.x), Y(pp.y) + upside * k * 0.5 + pp.sink * k * 1.05, k, { pose: pp.pose, ph: pp.ph, tilt: pp.tilt, rot: pp.rot, face: pp.face, wind: pp.wind, flash: pp.flash, flashStat: c ? c.stat : -1, sink: pp.sink, st: c && !c.applied ? statsBefore(s) : s.st, fat: shownFat(s), t, shadow: !(c && c.k === 'swim' && pp.sink > 0.1) });
   if (c && c.k === 'swim') {
     drawPond(ctx, appear, t, w, false, pp.sink > 0.05 ? X(pp.x) : -1);
     if (pp.sink > 0.3 && u % 6 === 0) fx.burst(X(pp.x + 0.12), Y(PONY_Y - 0.06), '#e0f6ff', 4, 2.5, 2.4);
@@ -2233,8 +2255,6 @@ function drawRanch(ctx: C2, s: PonyState, vis: Vis, fx: ReturnType<typeof juice>
   // 능력 오르는 순간: 큰 빛기둥
   if (c && c.applied && !c.fail && c.k !== 'rest' && u - APPLY_T < 24) {
     const q = (u - APPLY_T) / 24;
-    ctx.fillStyle = lin(ctx, 0, Y(pp.y - 0.5), 0, Y(pp.y), [0, 'rgba(255,250,200,0)'], [0.6, `rgba(255,240,150,${0.5 * (1 - q)})`], [1, `rgba(255,255,255,${0.6 * (1 - q)})`]);
-    ctx.fillRect(X(pp.x) - R(0.18 + q * 0.06), Y(pp.y - 0.5), R(0.36 + q * 0.12), R(0.5));
     for (let q2 = 0; q2 < 5; q2++) sparkle(ctx, X(pp.x + (hsh(q2 + u) - 0.5) * 0.3), Y(pp.y - 0.1 - hsh(q2 + 3) * 0.3), R(0.02) * (1 - q), '#fffbe0');
   }
   drawStats(ctx, s, vis, w, font);
@@ -2363,8 +2383,8 @@ function drawPond(ctx: C2, a: number, t: number, w: number, back: boolean, px = 
   ctx.save();
   ell(ctx, cx, cy, rx, ry);
   ctx.clip();
-  ctx.fillStyle = 'rgba(70,165,235,.82)';
-  ctx.fillRect(cx - rx, cy - ry * 0.55, rx * 2, ry * 2);
+  ctx.fillStyle = 'rgba(70,165,235,.86)';
+  ctx.fillRect(cx - rx, cy - ry * 0.75, rx * 2, ry * 2);
   ctx.strokeStyle = 'rgba(255,255,255,.75)';
   ctx.lineWidth = 2;
   for (let j = 0; j < 3; j++) {
@@ -3344,11 +3364,13 @@ function drawRaceInfo(ctx: C2, s: PonyState, vis: Vis, fx: ReturnType<typeof jui
   // 아래: 지금 등수 · 지금 쓰는 능력
   const by = Y(1.3);
   if (s.phase === 'race' || s.phase === 'pre') {
+    const pre = s.phase === 'pre';
     const medal = place === 1 ? ['#ffe56a', '#e0a010'] : place === 2 ? ['#f6f8fc', '#a8b4c8'] : place === 3 ? ['#ffc89a', '#c8763a'] : ['#ece4dc', '#a89888'];
     const pa = t - vis.passT, pp = pa < 20 ? 1 + 0.35 * (1 - pa / 20) : 1;
     ctx.save();
     ctx.translate(R(0.16), by);
     ctx.scale(pp, pp);
+    if (pre) ctx.globalAlpha = 0;
     ctx.fillStyle = 'rgba(40,20,5,.3)';
     ell(ctx, 2, 4, R(0.11), R(0.11));
     ctx.fill();

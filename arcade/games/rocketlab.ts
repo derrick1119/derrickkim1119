@@ -1636,6 +1636,7 @@ function drawRocket(ctx: C2, parts: PK[], x: number, yb: number, sc: number, L: 
     mood: L.mood, wave: L.wave, t: L.t, open: L.open,
   });
 }
+const rocketScale = (hh: number) => Math.min(1.3, 0.7 / Math.max(0.3, hh));
 const rocketHeight = (parts: PK[]) => stackOf(parts, 0).top + CAP_H + (parts.includes('nose') ? 0.07 : 0) + (parts.includes('mag') ? 0.04 : 0);
 
 // ── 구경꾼 동물 ──
@@ -1744,7 +1745,7 @@ function drawCritter(ctx: C2, kind: Critter, x: number, y: number, r: number, t:
   ctx.stroke();
   void dark;
 }
-const CROWD: [Critter, number, number][] = [['bunny', 0.07, 0.955], ['bear', 0.2, 0.975], ['duck', 0.55, 0.985], ['pig', 0.86, 0.96], ['fox', 0.95, 0.985]];
+const CROWD: [Critter, number, number][] = [['bunny', 0.06, 0.95], ['bear', 0.17, 0.975], ['duck', 0.52, 0.985], ['pig', 0.8, 0.965], ['fox', 0.94, 0.982]];
 
 /** 손가락 (안내) */
 function drawHand(ctx: C2, x: number, y: number, k: number, press: number) {
@@ -2033,12 +2034,12 @@ interface Puff { x: number; alt: number; r: number; vx: number; va: number; life
 interface Debris { parts: PK[]; boost: number; x: number; alt: number; t0: number; vx: number; vr: number }
 interface Vis {
   ev: number; lastT: number; puffs: Puff[]; debris: Debris[]; ghost: { k: PK; i: number; t0: number } | null; attachDone: number;
-  pred: Pred | null; predKey: string; shown: number; stackH: number; cheer: number; sad: number; wind: number; chuteT: number; bigDone: number;
+  pred: Pred | null; predKey: string; shown: number; stackH: number; cheer: number; sad: number; wind: number; chuteT: number; bigDone: number; gmax: number;
 }
 const VIS = new WeakMap<object, Vis>();
 const visOf = (s: RocketState): Vis => {
   let v = VIS.get(s);
-  if (!v) VIS.set(s, (v = { ev: -1, lastT: -1, puffs: [], debris: [], ghost: null, attachDone: -999, pred: null, predKey: '', shown: 0, stackH: 0, cheer: -999, sad: -999, wind: -999, chuteT: -999, bigDone: -999 }));
+  if (!v) VIS.set(s, (v = { ev: -1, lastT: -1, puffs: [], debris: [], ghost: null, attachDone: -999, pred: null, predKey: '', shown: 0, stackH: 0, cheer: -999, sad: -999, wind: -999, chuteT: -999, bigDone: -999, gmax: 0 }));
   return v;
 };
 const gaugeMax = (st: number) => {
@@ -2408,16 +2409,23 @@ function drawTower(ctx: C2, s: RocketState, V: View, X: (x: number) => number, Y
   ell(ctx, tx, top - R(0.012), R(0.012), R(0.012));
   ctx.fill();
   // 팔 (로켓을 붙잡다가 발사하면 접힌다)
-  const rh = rocketHeight(s.parts), armBack = V.mode === 'build' || V.mode === 'result' ? 0 : clamp(V.mode === 'ign' ? V.u : 1, 0, 1);
-  for (const fy of [0.35, 0.75]) {
-    const ay = Y(PAD_Y - 0.01 - Math.max(0.08, rh * fy)) + drop;
+  const rh = rocketHeight(s.parts), scl = rocketScale(rh), armBack = V.mode === 'build' ? 0 : V.mode === 'ign' ? clamp(V.u * 1.5, 0, 1) : 1;
+  const S = stackOf(s.parts, 0);
+  for (const fy of [0.3, 0.72]) {
+    if (rh * scl < 0.2 && fy > 0.5) continue;
+    const ay = Y(PAD_Y - 0.01 - rh * scl * fy) + drop;
     if (ay < top) continue;
-    const len = (X(PAD_X) - tx - R(0.09)) * (1 - armBack * 0.7);
-    ctx.fillStyle = lin(ctx, 0, ay - R(0.008), 0, ay + R(0.008), [0, '#ffffff'], [1, '#b8bcc8']);
-    ctx.fillRect(tx, ay - R(0.007), len, R(0.014));
+    const half = (rh * fy > S.top ? CAP_W * 0.48 : S.maxW / 2) * scl;
+    const len = Math.max(R(0.02), (X(PAD_X) - tx - R(half) - R(0.004)) * (1 - armBack * 0.75));
+    ctx.fillStyle = lin(ctx, 0, ay - R(0.01), 0, ay + R(0.01), [0, '#ff7a6a'], [1, '#b8302a']);
+    ctx.fillRect(tx, ay - R(0.009), len, R(0.018));
     ctx.strokeStyle = OUT;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(tx, ay - R(0.007), len, R(0.014));
+    ctx.lineWidth = 1.2;
+    ctx.strokeRect(tx, ay - R(0.009), len, R(0.018));
+    ctx.fillStyle = '#ffffff';
+    for (let q = R(0.012); q < len - R(0.01); q += R(0.03)) ctx.fillRect(tx + q, ay - R(0.004), R(0.012), R(0.008));
+    ctx.fillStyle = '#5a5e70';
+    ctx.fillRect(tx + len - R(0.008), ay - R(0.013), R(0.01), R(0.026));
   }
   void s;
 }
@@ -2508,7 +2516,7 @@ function drawTheRocket(ctx: C2, s: RocketState, V: View, vis: Vis, X: (x: number
     const age = t - s.attachT, sq = age < 16 ? 1 - Math.sin((age / 16) * Math.PI) * 0.08 : 1;
     const sway = B.wob > 0 ? Math.sin(t * 0.14) * 0.05 * Math.min(2, B.wob) : 0;
     const base = Y(PAD_Y - 0.008);
-    const scale = Math.min(1, 0.68 / Math.max(0.3, vis.stackH));
+    const scale = rocketScale(vis.stackH);
     ctx.save();
     ctx.translate(X(PAD_X), base);
     ctx.rotate(sway);
@@ -2539,7 +2547,7 @@ function drawTheRocket(ctx: C2, s: RocketState, V: View, vis: Vis, X: (x: number
       ctx.font = `900 ${Math.max(13, R(0.04))}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      txt(ctx, '흔들흔들!', X(PAD_X), base - R(vis.stackH * scale + 0.05), '#ffe0ff');
+      txt(ctx, '흔들흔들!', X(PAD_X) + R(0.2), base - R(vis.stackH * scale * 0.6), '#ffe0ff');
     }
     return;
   }
@@ -2573,7 +2581,7 @@ function drawTheRocket(ctx: C2, s: RocketState, V: View, vis: Vis, X: (x: number
   if (V.mode === 'ign' || V.mode === 'asc' || V.mode === 'tip') {
     const base = V.mode === 'tip' ? Y(PAD_Y - 0.008) : Y(PAD_Y - 0.008) - (V.alt - V.cam) * KM * w;
     const shake = V.mode === 'ign' ? Math.sin(t * 2.3) * R(0.004) * V.u : 0;
-    const scale = Math.min(1, 0.68 / Math.max(0.3, vis.stackH));
+    const scale = rocketScale(vis.stackH);
     ctx.save();
     ctx.translate(X(PAD_X) + shake, base);
     let mood: Mood = V.mode === 'ign' ? 'wow' : 'happy';
@@ -2596,7 +2604,7 @@ function drawTheRocket(ctx: C2, s: RocketState, V: View, vis: Vis, X: (x: number
   const chute = parts.includes('chute');
   let x = X(PAD_X), y: number, rot = 0, mood: Mood = f.ok ? 'happy' : 'sad', wave = 0, open = 0;
   if (V.mode === 'hold') {
-    y = Y(ROCKET_SY) - R(Math.min(0.68, vis.stackH) * 0.6);
+    y = Y(ROCKET_SY) - R(vis.stackH * rocketScale(vis.stackH) * 0.75);
     mood = f.ok ? 'proud' : 'wow';
     wave = f.ok ? 1 : 0;
     // 몸통은 아래로 떨어져 나간다
@@ -2605,7 +2613,7 @@ function drawTheRocket(ctx: C2, s: RocketState, V: View, vis: Vis, X: (x: number
     ctx.globalAlpha = 1 - u;
     ctx.translate(X(PAD_X), Y(ROCKET_SY) + R(0.3) * u * u);
     ctx.rotate(u * 0.6);
-    const scale = Math.min(1, 0.68 / Math.max(0.3, vis.stackH));
+    const scale = rocketScale(vis.stackH);
     ctx.scale(scale, scale);
     const S = stackOf(parts, dropped);
     for (const p of S.pieces) drawPiece(ctx, p.k, 0, -p.y * w, w, 0, t);
@@ -2630,7 +2638,10 @@ function drawTheRocket(ctx: C2, s: RocketState, V: View, vis: Vis, X: (x: number
 }
 
 function drawGauge(ctx: C2, s: RocketState, V: View, vis: Vis, X: (x: number) => number, Y: (y: number) => number, R: (r: number) => number, font: (sz: number, wgt?: number) => void, t: number) {
-  const d = STAGES[s.stage], gx = X(GAUGE_X), y0 = Y(GAUGE_BOT), y1 = Y(GAUGE_TOP), gw = R(0.05), M = gaugeMax(s.stage);
+  const d = STAGES[s.stage], gx = X(GAUGE_X), y0 = Y(GAUGE_BOT), y1 = Y(GAUGE_TOP), gw = R(0.05);
+  const want = Math.max(gaugeMax(s.stage), V.mode === 'build' ? Math.max(vis.shown * 1.12, (vis.pred?.hi ?? 0) * 1.05) : (s.fl?.res.apex ?? 0) * 1.1);
+  vis.gmax = vis.gmax ? vis.gmax + (want - vis.gmax) * 0.1 : want;
+  const M = vis.gmax;
   const gyv = (m: number) => y0 - (y0 - y1) * clamp(m / M, 0, 1.02);
   // 자 몸통
   ctx.fillStyle = 'rgba(40,30,70,.28)';
@@ -2766,10 +2777,6 @@ function drawGauge(ctx: C2, s: RocketState, V: View, vis: Vis, X: (x: number) =>
     ell(ctx, gx, py, R(0.012), R(0.012));
     ctx.fill();
   }
-  font(0.026, 800);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  txt(ctx, '높이', gx, y0 + R(0.025), '#ffffff', 'rgba(40,30,70,.6)', 2.5);
 }
 
 /** 카드 그림 (부품 미니어처) */
@@ -2921,14 +2928,14 @@ function drawBuildPanel(ctx: C2, s: RocketState, vis: Vis, X: (x: number) => num
     // 그림
     cardArt(ctx, c.k, -cw * 0.2, -ch * 0.02, w * 0.95, t);
     // 막대 (무게·힘·연료)
-    const bx = cw * 0.06, by0 = -ch / 2 + R(0.075), rowH = R(0.04);
+    const bx = cw * 0.02, by0 = -ch / 2 + R(0.078), rowH = R(0.042);
     const vals = P[c.k].bars;
     for (let j = 0; j < 3; j++) {
       const yy = by0 + j * rowH;
-      barIcon(ctx, j, bx, yy, R(0.012));
+      barIcon(ctx, j, bx, yy, R(0.014));
       for (let q = 0; q < 4; q++) {
-        ctx.fillStyle = q < vals[j] ? (j === 0 ? '#7a7e94' : j === 1 ? '#ff7a2a' : '#3a9af0') : 'rgba(120,90,50,.18)';
-        rr(ctx, bx + R(0.02) + q * R(0.019), yy - R(0.008), R(0.015), R(0.016), R(0.004));
+        ctx.fillStyle = q < vals[j] ? (j === 0 ? '#6a6e84' : j === 1 ? '#ff6a1a' : '#2a8af0') : 'rgba(120,90,50,.16)';
+        rr(ctx, bx + R(0.024) + q * R(0.02), yy - R(0.01), R(0.017), R(0.02), R(0.005));
         ctx.fill();
       }
     }
