@@ -62,7 +62,7 @@
     S.d2 = S.a2 - 98; S.d3 = S.a3 - 116;
     S.join1 = false; S.join2 = false; S.x = -500; S.ph = 0; S.moving = false; S.phase = 'walk';
     S.sit.k = 0; S.night.k = 0; S.point.k = 0; S.rest.k = 0; S.snap.k = 0; S.wob.k = 0;
-    S.drag = null; S.paint = []; S.painted = 0; S.lastNote = 0; S.auto = 0; S.autoLast = null;
+    S.drag = null; S.paint = []; S.painted = 0; S.lastNote = 0; S.auto = 0; S.autoLast = null; S.keyStep = 0;
     if (!S.stars.length) {
       const r = T.rng(23);
       for (let i = 0; i < 90; i++) S.stars.push({ x: (r() - 0.5) * 2100, y: 40 + r() * 400, s: 0.8 + r() * 1.8, ph: r() * 9, at: r() });
@@ -155,9 +155,11 @@
       if (key === 'ArrowDown' || key === ' ' || key === 'Enter') moveHill(12); else if (key === 'ArrowUp') moveHill(-12); else return false;
     } else if (S.phase === 'paint') {
       if (key === ' ' || key === 'Enter' || key.startsWith('Arrow')) {
-        const u = (S.painted / 1450) * 1.15;
+        /* each press carries the brush a little further, back and forth across the sky */
+        S.keyStep = (S.keyStep || 0) + 1;
+        const u = (S.keyStep * 110) / 900, tri = Math.abs(((u + 1) % 2) - 1);
         if (S.paint.length) S.paint[S.paint.length - 1].gap = false;
-        addPaint(-520 + u * 900, 250 + Math.sin(u * 7) * 70);
+        addPaint(-520 + tri * 900, 250 + Math.sin(u * 5) * 70 + Math.floor(u) * 26);
       } else return false;
     } else return false;
   };
