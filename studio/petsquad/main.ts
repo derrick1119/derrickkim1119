@@ -4,7 +4,7 @@
  */
 import { TICK, type Input } from './core.ts';
 import { peek } from './juice.ts';
-import { STAGES, jumpTo, petsquad as g, type PetState } from './game.ts';
+import { STAGES, jumpTo, petsquad as g, type Kind, type PetState } from './game.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('petsquad:' + k) ?? 0); } catch { return 0; } },
@@ -63,9 +63,10 @@ function show(html: string) {
 function start() {
   const seed = Number(q.get('seed')) || (Date.now() % 1_000_000) + 1;
   s = g.create(seed);
-  // 시험·스크린샷용 ?stage=N (1부터) — 잘하는 봇이 사 둘 법한 군단으로 바로
+  // 시험·스크린샷용 ?stage=N (1부터) — 군단은 ?board=lion2,turtle1,-,… · 금화 ?coins=N (✏️ M1 S1: shots가 잘하는 봇이 실제로 들고 온 군단을 넘긴다)
   const st = Math.floor(Number(q.get('stage')));
-  if (st > 1 && st <= STAGES.length) jumpTo(s, st - 1, [['lion', 2], ['turtle', 1], ['hedge', 1], ['owl', 1], ['fox', 1], null], 8);
+  const board = (q.get('board') ?? 'lion2,turtle1,hedge1,owl1,fox1,-').split(',').map((x) => (x === '-' ? null : ([x.slice(0, -1) as Kind, Number(x.slice(-1)) || 1] as [Kind, number])));
+  if (st > 1 && st <= STAGES.length) jumpTo(s, st - 1, board, Number(q.get('coins')) || 8);
   running = true;
   overlay.hidden = true;
   pointer = latch = null;

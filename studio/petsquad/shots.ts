@@ -7,6 +7,7 @@ import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { snapshots } from './funqa.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const { chromium } = createRequire(import.meta.url)('playwright') as { chromium: any };
@@ -52,9 +53,11 @@ await page.screenshot({ path: join(out, '05-fight.png') });
 await page.waitForTimeout(3500);
 await page.screenshot({ path: join(out, '06-after-fight.png') });
 await page.close();
-// 뒤 판(큰 전투): 4판 · 7판(곰 우두머리)
+// 뒤 판(큰 전투): 4판 · 7판(곰 우두머리) — 잘하는 봇이 시드 2에서 그 판에 처음 닿았을 때의 군단·금화로(✏️ M1 S1 · 🧪 M0 보완점 8)
+const snaps = snapshots(2);
 for (const st of [4, 7]) {
-  const p = await open(390, 'light', `?seed=2&stage=${st}`);
+  const sn = snaps[st - 1]!, bq = sn.board.map((b) => (b ? b[0] + b[1] : '-')).join(',');
+  const p = await open(390, 'light', `?seed=2&stage=${st}&board=${bq}&coins=${sn.coins}`);
   const b = (await p.locator('canvas').boundingBox())!;
   await p.waitForTimeout(800);
   await p.screenshot({ path: join(out, `0${st === 4 ? 7 : 8}-stage${st}-shop.png`) });

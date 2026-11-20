@@ -85,14 +85,15 @@ let pointer: { x: number; y: number } | null = null, latch: { x: number; y: numb
 const keys = new Set<string>();
 let W = 0, H = 0;
 
-// M3 S1 오너 "렉이 좀 걸리는거 같고": 프레임이 50fps 밑으로 ¾초 넘게 처지면 캔버스 해상도를 한 단계 낮춘다(2 → 1.5 → 1.15 → 1, 다시 올리지 않음)
-let dprCap = 2, slowN = 0, ema = 16.7;
+// M3 S1 오너 "렉이 좀 걸리는거 같고": 프레임이 50fps 밑으로 ¾초 넘게 처지면 캔버스 해상도를 한 단계 낮춘다(2 → 1.5 → 1.25, 다시 올리지 않음)
+let dprCap = Number(q.get('dpr')) || 2, slowN = 0, ema = 16.7; // ?dpr=N: 측정용으로 해상도를 고정(🧪 M3 S1: 자동으로 내려간 값과 섞이지 않게)
+const DPR_MIN = 1.25, fixedDpr = q.has('dpr');
 const qualityTick = (ms: number) => {
-  if (ms > 100 || dprCap <= 1) return; // 탭이 숨었거나 멈췄던 프레임은 빼고
+  if (fixedDpr || ms > 100 || dprCap <= DPR_MIN) return; // 탭이 숨었거나 멈췄던 프레임은 빼고
   ema += (ms - ema) * 0.05;
   if (ema <= 21) return void (slowN = 0);
   if (++slowN < 45) return;
-  dprCap = dprCap > 1.6 ? 1.5 : dprCap > 1.2 ? 1.15 : 1;
+  dprCap = dprCap > 1.6 ? 1.5 : DPR_MIN; // 바닥 1.25(🧪: 1까지 내리면 그림이 흐려진다)
   (slowN = 0), (ema = 16.7);
   size();
 };

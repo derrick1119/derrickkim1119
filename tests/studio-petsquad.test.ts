@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/petsquad/core.ts';
-import { STAGES, STAGE_COUNT, petsquad as g, petsquadHabit2, petsquadSmart } from '../studio/petsquad/game.ts';
+import { HABITS, STAGES, STAGE_COUNT, petsquad as g, petsquadHabit2, petsquadHuman, petsquadSmart } from '../studio/petsquad/game.ts';
+import { snapshots, tryStage } from '../studio/petsquad/funqa.ts';
 
 const A = g.aspect ?? 1.5;
 /** 화면 톡 한 번(누른 한 틱 + 뗀 한 틱) — 좌표는 가로 폭 단위 */
@@ -60,6 +61,26 @@ describe('동물 군단 합체 전투 시뮬', () => {
     expect(smart.filter((s) => s.won).length).toBeGreaterThanOrEqual(2);
     const habit = [1, 2, 3].map((sd) => runBot(g, petsquadHabit2, sd).s);
     expect(habit.every((s) => !s.won)).toBe(true);
+  });
+});
+
+describe('M1 S1 측정 (📋 측정 먼저)', () => {
+  it('버릇 봇 6종(GDD §6.3)이 있고, 1판은 버릇 봇도 깬다', () => {
+    expect(HABITS.length).toBe(6);
+    for (const h of HABITS) expect(tryStage(h, 1, 0, null).ok).toBe(true);
+  });
+
+  it('판별 도전은 결정적이고, 잘하는 봇이 들고 온 군단으로 3판을 시작한다', () => {
+    const sn = snapshots(1);
+    expect(sn[2]?.board.some(Boolean)).toBe(true);
+    const a = tryStage(petsquadSmart, 1, 2, sn[2]), b = tryStage(petsquadSmart, 1, 2, sn[2]);
+    expect(a).toEqual(b);
+  });
+
+  it('사람 흉내 봇(1.5초에 한 톡)도 1판을 깨고 다시 뽑기를 안 한다', () => {
+    const r = tryStage(petsquadHuman, 3, 0, null);
+    expect(r.ok).toBe(true);
+    expect(r.rerolls).toBe(0);
   });
 });
 

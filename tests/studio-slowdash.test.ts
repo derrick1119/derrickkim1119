@@ -555,4 +555,18 @@ describe('느린 시간 닌자 플레이 빌드', () => {
     expect(html).not.toContain('/*BUNDLE*/');
     expect(gzipSync(html).length).toBeLessThanOrEqual(40 * 1024);
   });
+  it('M3 S1 렉 막기(오너 "렉이 좀 걸리는거 같고"): 매 프레임 그림자 흐림·화면 채도 합성을 쓰지 않고, 느리면 해상도를 낮추는 장치가 있다', () => {
+    const src = readFileSync('studio/slowdash/game.ts', 'utf8');
+    expect(src).not.toMatch(/shadowBlur\s*=\s*(?!0\b)/); // 흐림 0이 아닌 값 금지
+    expect(src).not.toMatch(/globalCompositeOperation\s*=\s*'saturation'/);
+    const main = readFileSync('studio/slowdash/main.ts', 'utf8');
+    expect(main).toMatch(/dprCap/);
+  });
+  it('M3 S1 시안 모음: 스타일 넷(도트·3D·2.5D·2D)과 캐릭터 셋 그림이 있고, 모음 페이지가 일곱 장을 모두 가리킨다', () => {
+    const dir = 'web/public/studio/slowdash/concepts/', page = readFileSync(dir + 'index.html', 'utf8');
+    for (const img of ['a-pixel.png', 'b-3d.webp', 'c-2_5d.webp', 'd-2d.webp', 'cast1.webp', 'cast2.webp', 'cast3.webp']) {
+      expect(existsSync(dir + img)).toBe(true);
+      expect(page).toContain(`src="${img}"`);
+    }
+  });
 });

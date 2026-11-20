@@ -553,6 +553,8 @@ const STROKE_STEP = 0.035, STROKE_MAX = 40, STROKE_LEN = 1.6, ERASE_R = 0.045, E
 export const BEND = { w: 1.8 };
 /** ✏️ M2 S7 🎋 대나무 맞는 반지름 · 쓰러지는 길이(📐 .40 — 휘젓기 ★★ > .25면 .32로) */
 export const BAMBOO = { r: 0.03, L: 0.4 };
+/** M3 S1 벤 뒤 멈칫(틱): min(max, base + 벤 수) — 오너 "렉·연출 과도"로 8·2 → 5·1 (측정기가 예전 값과 견줄 수 있게 내보냄) */
+export const HITSTOP = { max: 5, base: 1 };
 /** 한 줄은 DMAX(.85)까지, 꺾인 한붓 획은 먹이 되는 만큼 STROKE_LEN까지(먹 값은 길이대로) */
 const reachFor = (s: DashState, pts: unknown[]) => (pts.length > 1 ? Math.min(STROKE_LEN, (s.g - GBASE) / GPER) : reachOf(s.g));
 function tracePath(s: DashState, pts: { x: number; y: number }[], maxLen: number): Path {
@@ -795,7 +797,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
   if (n > 0 || P.shots.length) s.chain++;
   else s.chain = 0;
   if (s.chain >= 3) see(s, 'chain', '연쇄 — 쉬지 않고 이어 베면 점수가 불어나요');
-  s.freeze = n > 0 ? Math.min(5, 1 + n) : P.bounce && !idle ? 3 : 0; // S011: 연달아 튕기면 멈칫도 없다(세상이 멈춰 서서 버티던 진짜 원인) · M3 S1 오너 "렉·연출 과도": 벤 뒤 멈칫 최대 8 → 5틱(133 → 83ms)
+  s.freeze = n > 0 ? Math.min(HITSTOP.max, HITSTOP.base + n) : P.bounce && !idle ? 3 : 0; // S011: 연달아 튕기면 멈칫도 없다(세상이 멈춰 서서 버티던 진짜 원인) · M3 S1 오너 "렉·연출 과도": 벤 뒤 멈칫 최대 8 → 5틱(133 → 83ms)
   if (n >= 3) s.slowT = 30;
   if (n >= 3 && s.firstBig < 0) s.firstBig = s.t;
   s.trail = { legs: P.legs, t: s.t, n };
@@ -4104,15 +4106,14 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   const swB = fx.memo.swT === fx.memo.bigT, bl = swB ? 60 : 40; // 싹쓸이 띠는 조금 더 크게·오래 · M3 S1 오너 "연출 과도": 띠를 작게·짧게, 둘만 벤 건 띠 없음
   if (fx.memo.bigT !== undefined && t - fx.memo.bigT < bl && s.phase === 'play' && (swB || fx.memo.bigN >= 3)) { // 🧪 S10: 결과가 뜨면 띠를 걷는다(판을 끝낸 싹쓸이 띠가 결과 제목을 덮던 것)
     const age = t - fx.memo.bigT, n = fx.memo.bigN, sc2 = age < 5 ? 1.3 - 0.3 * (age / 5) : 1, a = Math.min(1, (bl - age) / 14);
-    const bx = swB ? w / 2 : clamp(fx.memo.bigX, w * 0.3, w * 0.7), by = swB ? Y(s.ny < 0.72 ? 0.88 : 0.36) : clamp(fx.memo.bigY - R(0.2), Y(0.3), Y(1.1)); // 🧪: 싹쓸이 띠는 닌자 반대쪽에(덮지 않게)
-    const txt = swB ? '싹쓸이!' : `${n}명 베기!`, size = swB ? 32 : Math.min(28, 16 + n * 2.4); // 🧪: '싹둑'은 '싹쓸이'와 헷갈려 뺌
+    const bx = w / 2, by = R(0.085) + R(0.075); // M3 S1 🧪 🔴: 띠가 다음에 겨눌 무리를 덮었다 → HUD 바로 아래 작은 칩(덮는 면적 ≈ 2%) · 부제는 뺌(아래 팁 줄이 같은 말)
+    const txt = swB ? '싹쓸이!' : `${n}명 베기!`, size = swB ? 24 : Math.min(22, 14 + n * 2); // 🧪: '싹둑'은 '싹쓸이'와 헷갈려 뺌
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate(bx, by);
-    ctx.rotate(-0.07);
     ctx.scale(sc2, sc2);
     ctx.font = `900 ${size}px system-ui, sans-serif`;
-    const tw = ctx.measureText(txt).width, rx = swB ? Math.max(tw / 2 + 24, w * 0.32) : tw / 2 + 16, ry = size * (swB ? 0.95 : 0.75);
+    const tw = ctx.measureText(txt).width, rx = tw / 2 + 14, ry = size * 0.72;
     ctx.fillStyle = 'rgba(16,10,34,.88)';
     ctx.beginPath();
     for (let i = 0; i <= 18; i++) {
@@ -4137,11 +4138,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.strokeText(txt, 0, 2);
     ctx.fillStyle = lin(ctx, 0, -size / 2, 0, size / 2, [0, '#fff6c2'], [0.55, '#ffd23f'], [1, '#ff9a2e']);
     ctx.fillText(txt, 0, 2);
-    if (swB) {
-      ctx.font = `800 ${R(0.036)}px system-ui, sans-serif`;
-      ctx.fillStyle = '#cfefff';
-      ctx.fillText(`${n}명 한 획 · 다음 한 획은 공짜!`, 0, size * 0.72);
-    }
     ctx.restore();
   }
 

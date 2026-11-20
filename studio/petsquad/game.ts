@@ -33,7 +33,7 @@ const mult = (a: number, b: number) => (beats(a, b) ? ADV : beats(b, a) ? DIS : 
 
 /** 역할: 0 앞에서 막기(박치기) · 1 뒤에서 쏘기 · 2 치료 · 3 날기(뒷줄을 노림) · 4 우두머리(앞줄 전체 쿵) */
 type Role = 0 | 1 | 2 | 3 | 4;
-type Kind = 'lion' | 'turtle' | 'hedge' | 'fox' | 'owl' | 'rabbit' | 'sheep' | 'bug' | 'raccoon' | 'boar' | 'sling' | 'bat' | 'squirrel' | 'bear';
+export type Kind = 'lion' | 'turtle' | 'hedge' | 'fox' | 'owl' | 'rabbit' | 'sheep' | 'bug' | 'raccoon' | 'boar' | 'sling' | 'bat' | 'squirrel' | 'bear';
 interface KD { name: string; el: El; role: Role; cost: number; hp: number; atk: number; per: number; say: string }
 const K: Record<Kind, KD> = {
   lion: { name: '사자', el: 1, role: 0, cost: 2, hp: 14, atk: 4, per: 54, say: '어흥!' },
@@ -914,6 +914,67 @@ export const petsquadHabit2: Bot<PetState> = {
     });
   },
 };
+
+/** ✏️ M1 S1 사람 흉내 봇(📋 M1 완료 기준 · 🧪 P2·P10): 잘하는 봇의 계획(막대가 보여 주는 것)을 따르되 1.5초에 한 번만 톡, 다시 뽑기는 안 한다 */
+const humMem = new WeakMap<object, number>();
+export const petsquadHuman: Bot<PetState> = {
+  name: '사람 흉내(1.5초에 한 톡·다시 뽑기 안 함)',
+  act(s) {
+    if (s.phase !== 'shop' || s.down) return NO;
+    const last = humMem.get(s);
+    if (last === undefined || s.t - last < 90) {
+      if (last === undefined) humMem.set(s, s.t - 45); // 판이 열리고 약 0.75초 뒤 첫 톡
+      return NO;
+    }
+    humMem.set(s, s.t);
+    const pl = makePlan(s);
+    if (s.sel >= 0) {
+      if (pl.swap && pl.swap[0] === s.sel) return tapSlot(pl.swap[1]);
+      if (pl.sell === s.sel) return tapReroll();
+      return tapSlot(s.sel);
+    }
+    if (pl.buys.length) return tapCard(pl.buys[0]);
+    if (pl.swap) return tapSlot(pl.swap[0]);
+    if (pl.sell >= 0) return tapSlot(pl.sell);
+    return tapFight(s);
+  },
+};
+
+/** ✏️ M1 S1 버릇 봇 공장(📐 GDD §6.3 · 🧪 P7): 살 수 있는 카드 중 버릇이 고른 것을 사고, 없으면 싸움. 다시 뽑기·자리 바꾸기는 안 한다 */
+export interface CardSee { i: number; k: Kind; cost: number; merge: boolean; strong: number; front: boolean }
+function seeCards(s: PetState): CardSee[] {
+  const d = STAGES[s.stage], els = d.foes.map((f) => foeEl(s.rots[s.stage], f)), out: CardSee[] = [];
+  for (let i = 0; i < 3; i++) {
+    const c = s.shop[i];
+    if (!c || c.sold || K[c.k].cost > s.coins) continue;
+    const l = landing(s, c.k);
+    if (l.slot < 0) continue;
+    const e = K[c.k].el;
+    out.push({ i, k: c.k, cost: K[c.k].cost, merge: l.merge, strong: els.filter((x) => beats(e, x)).length - els.filter((x) => beats(x, e)).length, front: K[c.k].role === 0 });
+  }
+  return out;
+}
+export function habitBot(name: string, pick: (cs: CardSee[], s: PetState) => CardSee | undefined): Bot<PetState> {
+  return {
+    name,
+    act(s) {
+      return habitTap(s, () => {
+        const cs = seeCards(s), c = cs.length ? pick(cs, s) : undefined;
+        return c ? tapCard(c.i) : tapFight(s);
+      });
+    },
+  };
+}
+const best = (cs: CardSee[], f: (c: CardSee) => number) => cs.reduce((a, c) => (f(c) > f(a) ? c : a));
+/** GDD §6.3 버릇 여섯: 왼쪽 · 가장 싼 · 합체되는 · 센 속성 · 앞줄 막는 동물 · 가장 비싼(넘기기 안 함) */
+export const HABITS: Bot<PetState>[] = [
+  habitBot('늘 왼쪽 카드', (cs) => cs[0]),
+  habitBot('늘 가장 싼 카드', (cs) => best(cs, (c) => -c.cost)),
+  habitBot('늘 합체되는 카드', (cs) => cs.find((c) => c.merge) ?? cs[0]),
+  habitBot('늘 센 속성', (cs) => best(cs, (c) => c.strong)),
+  habitBot('늘 앞줄(막는 동물)부터', (cs) => cs.find((c) => c.front) ?? cs[0]),
+  habitBot('늘 가장 비싼 카드', (cs) => best(cs, (c) => c.cost)),
+];
 
 // ───────────────────────────── 그리기 ─────────────────────────────
 type C2 = CanvasRenderingContext2D;
