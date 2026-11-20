@@ -2991,9 +2991,8 @@ function drawShop(ctx: C2, s: PetState, vis: Vis, X: (x: number) => number, Y: (
       drawPet(ctx, k, x0, y0 + r0 * 0.45, r0 * 0.75, { el: K[k].el, star: 1, enemy: false, face: 'idle', t: s.t, sq: 0, tilt: 0, flash: 0, ph: j });
       ctx.restore();
     });
-    const more = s.queue.length - 3;
     ctx.textAlign = 'left';
-    const txt = s.queue.length ? (more > 0 ? `남은 카드 +${more + 3}` : `남은 카드 ${s.queue.length}`) : '줄 끝';
+    const txt = s.queue.length ? `남은 카드 ${s.queue.length}장` : '줄 끝'; // 🧪 S3: '+9'가 보너스처럼 읽혀서
     ctx.strokeText(txt, X(0.035), y0);
     ctx.fillText(txt, X(0.035), y0);
   }
