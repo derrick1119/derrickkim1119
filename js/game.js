@@ -117,6 +117,7 @@
     if (!instant && !UI.faded) await UI.fade(true, 700);
     if (ep !== G.epoch) return;
     G.S.ci = ci;
+    G.snap = JSON.stringify(G.S);      // 이 장을 다시 시작할 때 돌아갈 상태
     G.save();
     const level = DN.LEVELS[DN.CHAPTERS[ci]];
     loadLevel(level);
@@ -127,7 +128,11 @@
     if (level.intro) G.run(level.intro);
   };
 
-  G.restartChapter = function () { if (G.S) G.startChapter(G.S.ci); };
+  G.restartChapter = function () {
+    if (!G.S) return;
+    if (G.snap) G.S = JSON.parse(G.snap);   // 이 장에서 한 선택은 없던 일이 된다
+    G.startChapter(G.S.ci);
+  };
 
   G.nextChapter = function () {
     const ci = G.S.ci + 1;

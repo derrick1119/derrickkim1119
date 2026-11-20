@@ -529,17 +529,22 @@
   };
 
   /* ═════════ 최종장 — 황혼의 언덕: 새 약속 ═════════ */
-  const hillLayers = () => ([
-    { id: 'f_far', walk: false, tone: 0.1, pts: [[-200, 470], [300, 452], [800, 474], [1300, 486], [1800, 468], [2300, 450], [2900, 474]] },
-    { id: 'f_b', tone: 0.5, pts: [[-200, 500], [300, 492], [700, 486], [1000, 474], [1200, 462], [1300, 458], [1400, 462], [1600, 474], [1900, 488], [2300, 494], [2900, 500]],
-      knobs: [{ c: 760, w: 230, lo: 0, hi: 118 }, { c: 1840, w: 230, lo: 0, hi: 118, hint: false }] },
-    { id: 'f_a', tone: 0.85, pts: [[-200, 590], [400, 584], [900, 590], [1300, 596], [1700, 590], [2200, 584], [2900, 590]] },
-    { id: 'f_f', walk: false, tone: 1, pts: [[-200, 676], [600, 684], [1300, 672], [2000, 686], [2900, 676]] },
+  // dy: 결말 장면에서는 글이 아래에 깔리므로 언덕을 조금 올려 그린다
+  const hillLayers = (dy) => {
+    const up = (pts) => pts.map(([x, y]) => [x, y + (dy || 0)]);
+    return [
+      { id: 'f_far', walk: false, tone: 0.1, pts: up([[-200, 470], [300, 452], [800, 474], [1300, 486], [1800, 468], [2300, 450], [2900, 474]]) },
+      { id: 'f_b', tone: 0.5, pts: up([[-200, 500], [300, 492], [700, 486], [1000, 474], [1200, 462], [1300, 458], [1400, 462], [1600, 474], [1900, 488], [2300, 494], [2900, 500]]),
+        knobs: dy ? [] : [{ c: 760, w: 230, lo: 0, hi: 118 }, { c: 1840, w: 230, lo: 0, hi: 118, hint: false }] },
+      { id: 'f_a', tone: 0.85, pts: up([[-200, 590], [400, 584], [900, 590], [1300, 596], [1700, 590], [2200, 584], [2900, 590]]) },
+      { id: 'f_f', walk: false, tone: 1, pts: up([[-200, 676], [600, 684], [1300, 672], [2000, 686], [2900, 676]]) },
+    ];
+  };
+  const hillBackdrop = (dy) => ([
+    { kind: 'mountains', par: 0.1, base: 440 + (dy || 0), amp: 150, freq: 0.0024, fade: 0.6, seed: 131 },
+    { kind: 'lights', par: 0.1, base: 396 + (dy || 0), amp: 60, n: 110, seed: 14 },
   ]);
-  const hillBackdrop = () => ([
-    { kind: 'mountains', par: 0.1, base: 440, amp: 150, freq: 0.0024, fade: 0.6, seed: 131 },
-    { kind: 'lights', par: 0.1, base: 396, amp: 60, n: 110, seed: 14 },
-  ]);
+  const END_DY = -92;
 
   L.finale = {
     id: 'finale', title: '최종장 · 황혼의 언덕', sub: '새 약속',
@@ -638,8 +643,8 @@
   L.ending = {
     id: 'ending', width: 2600, theme: 'hill', tod: 1, camCenter: 1300,
     sky: { stars: 0.03 },
-    backdrop: hillBackdrop(),
-    layers: hillLayers(),
+    backdrop: hillBackdrop(END_DY),
+    layers: hillLayers(END_DY),
     props: [
       { type: 'chairs', layer: 'f_b', x: 1300, gap: 44, s: 1.3, third: 'third' },
       { type: 'lonetree', layer: 'f_b', x: 1520, s: 1.1 },
@@ -652,7 +657,7 @@
       G.farLights = c.lights || 0;
       const has = (w) => (c.who || []).includes(w);
       const tod = G.todOverride;
-      if (tod < 1.6 || tod > 2.6) G.sun = { x: tod > 2.6 ? 1160 : 1420, y: tod < 0.6 ? 150 : 372, r: 60, par: 1, a: 1, col: tod > 2.6 ? '#ffe2c0' : '#ffc98a' };
+      if (tod < 1.6 || tod > 2.6) G.sun = { x: tod > 2.6 ? 1160 : 1420, y: (tod < 0.6 ? 150 : 372) + END_DY, r: 60, par: 1, a: 1, col: tod > 2.6 ? '#ffe2c0' : '#ffc98a' };
       if (c.bright) { G.darkMul = 0.25; }
       if (c.third) G.flags.third = true;
       const put = (who, x, dir, opt) => G.addThing(Object.assign({ id: 'e_' + who, kind: 'girl', who, layer: 'f_b', x, dir }, opt));

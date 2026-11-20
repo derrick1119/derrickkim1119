@@ -122,7 +122,7 @@
         for (let x = L.x0; x < L.x1; x += 22 + rnd() * 30) deco.push({ x, kind: 'puff', s: 15 + rnd() * 20, d: 6 + rnd() * 9 });
         if (L.thick) {
           // 섬의 양 끝을 둥글게
-          for (const [x, k] of [[L.x0 + 14, 0.36], [L.x0 + 52, 0.44], [L.x1 - 14, 0.36], [L.x1 - 52, 0.44]]) deco.push({ x, kind: 'puff', s: L.thick * k, d: L.thick * k * 0.9 });
+          for (const [x, k] of [[L.x0 + 12, 0.2], [L.x0 + 44, 0.3], [L.x1 - 12, 0.2], [L.x1 - 44, 0.3]]) deco.push({ x, kind: 'puff', s: L.thick * k, d: L.thick * k * 0.7 });
         }
       } else if (style === 'rock' || style === 'glass') {
         for (let x = L.x0 + 10; x < L.x1 - 10; x += 30 + rnd() * 70) deco.push({ x, kind: style === 'glass' ? 'dust' : 'crack', s: 0.6 + rnd() * 0.9, d: 6 + rnd() * 90, c: rnd() });
