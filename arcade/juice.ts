@@ -6,6 +6,8 @@
  * (0026에서 발견: 0023~0024 게임 셋이 render 호출을 빠뜨려 파티클·글자·번쩍이 한 번도 안 보였다. 그래서 한 곳에서 그린다.)
  * 상태 객체마다 하나씩 WeakMap에 붙어서, 새 판이 시작되면 자동으로 새로 생긴다.
  */
+import { sfx, type SfxName } from './sfx.ts';
+
 interface Particle { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number }
 interface Popup { x: number; y: number; text: string; color: string; life: number; size: number }
 
@@ -52,6 +54,11 @@ export class Juice {
   ring(x: number, y: number, color: string, max = 60, width = 4) {
     this.rings.push({ x, y, color, r: 4, max, width, life: 24 });
     if (this.rings.length > 20) this.rings.shift();
+  }
+
+  /** 효과음 (0109) — 사건이 생긴 순간 burst/pop과 같이 부른다. 브라우저에서 첫 누름 뒤에만 울리고, 봇 측정·테스트에선 아무것도 안 한다 */
+  sound(name: SfxName, pitch = 1, vol = 1) {
+    sfx.play(name, pitch, vol);
   }
 
   /** 화면 흔들림 */

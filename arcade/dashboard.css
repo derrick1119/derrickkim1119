@@ -58,6 +58,8 @@ p { margin: 0; }
 .g-canvas:focus-visible { box-shadow: 0 0 0 3px var(--hot); }
 .g-overlay { position: absolute; inset: 0; margin: auto; width: min(100%, 380px); border: 0; border-radius: 10px; background: color-mix(in srgb, var(--panel) 72%, transparent); color: var(--ink); font: inherit; cursor: pointer; display: grid; place-content: center; gap: 4px; text-align: center; }
 .g-overlay[hidden] { display: none; }
+.g-mute { position: relative; z-index: 2; margin-top: 6px; height: 30px; padding: 0 12px; border: 1px solid var(--line); border-radius: 15px; background: var(--panel); color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
+.g-mute:focus-visible { outline: 3px solid var(--hot); }
 .g-overlay b { font-size: 30px; }
 .g-overlay span { font-size: 14px; color: var(--muted); }
 .g-overlay:focus-visible { outline: 3px solid var(--hot); }

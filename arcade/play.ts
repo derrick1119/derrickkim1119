@@ -5,6 +5,7 @@
  */
 import { TICK, type GameDef, type Input, type Theme } from './core.ts';
 import { peek } from './juice.ts';
+import { sfx } from './sfx.ts';
 import { GAMES } from './registry.ts';
 
 function theme(el: HTMLElement): Theme {
@@ -27,7 +28,15 @@ function mount(root: HTMLElement, g: GameDef<any>) {
   const overlay = document.createElement('button');
   overlay.type = 'button';
   overlay.className = 'g-overlay';
-  root.append(canvas, overlay);
+  // 소리 켜기/끄기 (0109) — 저장할 수 있으면 기억, 못 해도 동작
+  const mute = document.createElement('button');
+  mute.type = 'button';
+  mute.className = 'g-mute';
+  const paintMute = () => { mute.textContent = sfx.muted ? '🔇 소리 꺼짐' : '🔊 소리 켜짐'; mute.setAttribute('aria-label', sfx.muted ? '소리 켜기' : '소리 끄기'); };
+  sfx.muted = store.get('muted') === 1;
+  paintMute();
+  mute.addEventListener('click', () => { sfx.setMuted(!sfx.muted); store.set('muted', sfx.muted ? 1 : 0); paintMute(); canvas.focus({ preventScroll: true }); });
+  root.append(canvas, overlay, mute);
   const ctx = canvas.getContext('2d')!;
   let s: any = null, seed = 1, running = false, acc = 0, last = 0, tapQueued = false, holding = false, aim: number | undefined, pointer: { x: number; y: number } | null = null, pick: number | undefined, move: Input['move'], swipeFrom: { x: number; y: number } | null = null, cursor = { x: 0.5, y: 0.5 }, spaceDown = false, latch: { x: number; y: number } | null = null;
   const keys = new Set<string>();
@@ -65,6 +74,7 @@ function mount(root: HTMLElement, g: GameDef<any>) {
     s = g.create(seed);
     running = true;
     overlay.hidden = true;
+    sfx.wake(); // 첫 누름(사용자 손짓) 안에서 소리를 깨운다
     last = performance.now();
     acc = 0;
     canvas.focus({ preventScroll: true });
