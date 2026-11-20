@@ -242,7 +242,7 @@ function newStage(s: SporeState) {
     }
     if (d.key === 'rain') {
       const r = rainAt(s, 0)!;
-      s.spot = { x: bx2x(r.x), y: by2y(r.y), rx: 0.2, ry: 0.15, label: d.spot, t: s.t };
+      s.spot = { x: bx2x(r.x), y: by2y(r.y) - 0.1, rx: 0.2, ry: 0.2, label: d.spot, t: s.t };
     }
     if (d.key === 'water') {
       const m = [...Array(NC).keys()].filter((i) => s.wet[i]);
@@ -462,7 +462,7 @@ function finish(s: SporeState, ok: boolean, why: string) {
     s.got = s.starOk.filter(Boolean).length;
     s.stars += s.got;
     const left = Math.max(0, (s.T - s.sun) / 60);
-    s.pts += Math.round((50 + STAR_PTS[s.got] + s.mine + 6 * left) * (1 + 0.2 * s.stage));
+    s.pts += Math.round((50 + STAR_PTS[s.got] + s.mine + (s.stage ? 8 * left : 0)) * (1 + 0.2 * s.stage));
     if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += 200 + s.hearts * 80);
     ev(s, 'clear', 0.5, 0.55, '', '', s.got);
   } else {
@@ -944,7 +944,7 @@ function drawAll(ctx: C2, s: SporeState, w: number, h: number) {
     ctx.setLineDash([]);
     font(0.036, 900);
     const lab = `NEW  ${sp.label}`, tw = ctx.measureText(lab).width + R(0.04);
-    const lx = Math.max(tw / 2 + 4, Math.min(w - tw / 2 - 4, X(sp.x))), ly = Y(sp.y) + pry + R(0.03) > Y(1.12) ? Y(sp.y) - pry - R(0.03) : Y(sp.y) + pry + R(0.03);
+    const lx = Math.max(tw / 2 + 4, Math.min(w - tw / 2 - 4, X(sp.x))), ly = Y(sp.y) - pry - R(0.03) > Y(BY) ? Y(sp.y) - pry - R(0.03) : Y(sp.y) + pry + R(0.03);
     ctx.fillStyle = '#ff5a3a';
     rr(ctx, lx - tw / 2, ly - R(0.023), tw, R(0.046), R(0.023));
     ctx.fill();

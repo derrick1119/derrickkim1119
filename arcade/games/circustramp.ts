@@ -44,7 +44,6 @@ const K_HOP = [0.0042, 0.003, 0.005];
 const K_E2 = [1, 1, 1];
 const K_BOOST = [0.13, 0.26, 0.13];
 const K_WEAR = [1, 3, 1];
-const K_NAME = ['원숭이', '곰', '토끼'];
 
 // ───────────────────────────── 판 ─────────────────────────────
 export interface Plat { x: number; h: number; dir: 1 | -1 }
@@ -322,31 +321,6 @@ function routes(L: Level, trs: Tr[], k: Kind, m0: Mover, maxNew = 2, hoops0 = 0)
   go({ ...m0 }, [], hoops0, 0, [], 0);
   return out;
 }
-/** 바닥만, 떨어질 자리 바로 밑에 (버릇 봇의 길) */
-function habitRoute(L: Level, k: Kind, m0: Mover): { lands: boolean; place: number; hoops: number; xs: number[] } {
-  const m = { ...m0 };
-  let place = 0, hm = 0;
-  const xs: number[] = [];
-  for (let n = 0; n < 1400; n++) {
-    const py = m.y;
-    move(L, m);
-    hm = hoopMask(L, m, hm);
-    if (m.vy < 0) {
-      if (flagHit(L, py, m) >= 0) return { lands: true, place, hoops: popc(hm), xs };
-      if (py >= MAT && m.y < MAT) {
-        if (place >= 4) break;
-        place++;
-        xs.push(m.x);
-        m.y = MAT;
-        m.vy = bounceVy(k, m.vy);
-        continue;
-      }
-    }
-    if (m.y <= 0 || m.x < WALL || m.x > 1 - WALL) break;
-    if (m.y > CEIL) (m.y = CEIL), (m.vy = -Math.abs(m.vy) * 0.3);
-  }
-  return { lands: false, place, hoops: popc(hm), xs };
-}
 /** 처음 떨어질 바닥 자리 (트램펄린 없을 때) */
 function firstFloorX(L: Level, m0: Mover): number {
   const m = { ...m0 };
@@ -367,7 +341,6 @@ function crossAt(L: Level, m0: Mover, y: number): number {
   }
   return NaN;
 }
-void K_NAME;
 
 // ───────────────────────────── 판 만들기 ─────────────────────────────
 const rnd = (r: Rng, a: number, b: number) => a + (b - a) * r();
@@ -408,12 +381,11 @@ function rawLevel(key: Spot, r: Rng): Level {
   } else if (key === 'stand') {
     L.plats.push(left());
     L.seq = mk([0, 0, 0, 0, 0]);
-    const P = L.plats[0], hs = rnd(r, 0.34, 0.46), cx = crossAt(L, launch(L, 0, 0), hs + MAT);
+    const hs = rnd(r, 0.34, 0.46), cx = crossAt(L, launch(L, 0, 0), hs + MAT);
     L.stands.push({ x: cx + rnd(r, -0.02, 0.02), h: hs });
     L.flags.push({ x: 0, h: rnd(r, 0.4, 0.62) });
     L.goal = 4;
     L.stock = 4;
-    void P;
   } else if (key === 'bear') {
     L.plats.push(left());
     const order: Kind[][] = [[0, 1, 0, 1, 0, 0], [0, 0, 1, 0, 1, 0], [1, 0, 0, 1, 0, 0], [0, 1, 0, 0, 1, 0]];
@@ -591,7 +563,7 @@ function placeFlags(L: Level, r: Rng): boolean {
 }
 
 /** 판에 맞는 성질인가: 그룹마다 길이 있고(아슬아슬한 길 없이), 버릇(떨어질 자리 바로 밑)으로는 다 못 하는가 */
-function judgeLevel(L: Level, si: number): boolean {
+function judgeLevel(L: Level): boolean {
   const gs = groupsOf(L), key = L.key;
   let habitFails = 0;
   for (const g of gs) {
@@ -616,7 +588,6 @@ function judgeLevel(L: Level, si: number): boolean {
     }
   }
   if ((key === 'stand' || key === 'bear' || key === 'fan') && habitFails === 0) return false;
-  void si;
   return true;
 }
 
@@ -648,7 +619,7 @@ export function buildLevel(seed: number, si: number): Level {
     const L = rawLevel(d.key, r);
     L.stars = d.stars;
     if (!placeFlags(L, r)) continue;
-    if (!judgeLevel(L, si)) continue;
+    if (!judgeLevel(L)) continue;
     // 똑똑한 봇이 다 깃발로 보내는지, 몇 개 쓰는지
     const sm = trial(L, (W) => smartPick(W, true));
     if (!sm.ok || sm.W.missed > 0 || sm.W.landed < L.seq.length) continue;
@@ -1313,7 +1284,7 @@ const shade = (hex: string) => {
 };
 
 /** 트램펄린 (매트 가운데 x, 매트 높이 y — 화면 px) */
-function drawTramp(ctx: C2, x: number, y: number, rx: number, legH: number, uses: number, max: number, dip: number, t: number, glow: number) {
+function drawTramp(ctx: C2, x: number, y: number, rx: number, legH: number, uses: number, max: number, dip: number, glow: number) {
   const ry = rx * 0.26;
   // 그림자
   ctx.fillStyle = 'rgba(40,10,20,.28)';
@@ -1375,7 +1346,6 @@ function drawTramp(ctx: C2, x: number, y: number, rx: number, legH: number, uses
     ctx.lineWidth = 1;
     ctx.stroke();
   }
-  void t;
 }
 
 function drawHand(ctx: C2, x: number, y: number, k: number, press: number) {
@@ -1576,7 +1546,7 @@ function drawAll(ctx: C2, s: CircusState, w: number, h: number, _th: Theme) {
     const n = 16;
     for (let k = 0; k < n; k++) {
       const x0 = X(-0.55 + (k * 2.1) / n), x1 = X(-0.55 + ((k + 1) * 2.1) / n);
-      ctx.fillStyle = k % 2 ? '#f4e2c4' : '#d8323e';
+      ctx.fillStyle = k % 2 ? '#f6e6cc' : '#d24450';
       ctx.beginPath();
       ctx.moveTo(px, py);
       ctx.lineTo(x0, by);
@@ -1584,6 +1554,9 @@ function drawAll(ctx: C2, s: CircusState, w: number, h: number, _th: Theme) {
       ctx.closePath();
       ctx.fill();
     }
+    // 부드러운 빛 (줄무늬 대비를 낮춰 곡예사가 먼저 보이게)
+    ctx.fillStyle = 'rgba(255,236,210,.16)';
+    ctx.fillRect(0, 0, w, by);
     // 천의 주름 그늘
     const g = ctx.createRadialGradient(px, R(0.25), R(0.1), px, R(0.45), R(0.95));
     g.addColorStop(0, 'rgba(255,220,160,.12)');
@@ -1668,7 +1641,7 @@ function drawAll(ctx: C2, s: CircusState, w: number, h: number, _th: Theme) {
       ctx.fillStyle = '#ffcf3a';
       ctx.fillRect(0, Y(row.y - 0.035), w, 2);
     });
-    ctx.fillStyle = lin(ctx, 0, Y(0.56), 0, Y(0.12), [[0, 'rgba(30,0,20,.42)'], [1, 'rgba(30,0,20,.12)']]);
+    ctx.fillStyle = lin(ctx, 0, Y(0.56), 0, Y(0.12), [[0, 'rgba(30,0,20,.5)'], [1, 'rgba(30,0,20,.22)']]);
     ctx.fillRect(0, Y(0.56), w, Y(0.12) - Y(0.56));
     // 조명 (천막 꼭대기에서 흔들리는 두 줄기)
     ctx.save();
@@ -1919,7 +1892,6 @@ function drawAll(ctx: C2, s: CircusState, w: number, h: number, _th: Theme) {
   hoopDraw(false);
   // ═════════ 안전망 (1판) ═════════
   if (L.net) {
-    const y0 = Y(0.035);
     ctx.strokeStyle = 'rgba(255,255,255,.55)';
     ctx.lineWidth = 1;
     const sag = (x: number) => {
@@ -1943,7 +1915,6 @@ function drawAll(ctx: C2, s: CircusState, w: number, h: number, _th: Theme) {
       ctx.lineTo(X(xx + 0.024), Y(0) + R(0.004));
       ctx.stroke();
     }
-    void y0;
   }
   // ═════════ 미리 보기 (점선 길) ═════════
   let target: { x: number; y: number } | null = null;
@@ -2012,7 +1983,7 @@ function drawAll(ctx: C2, s: CircusState, w: number, h: number, _th: Theme) {
     ctx.save();
     ctx.translate(X(tr.x), my);
     ctx.scale(sq, 1 / sq);
-    drawTramp(ctx, 0, 0, R(tr.lv < 0 ? 0.075 : 0.056), Y(base) - Y(tr.y), tr.uses, L.uses, dip, t, age < 10 ? 0.8 : 0);
+    drawTramp(ctx, 0, 0, R(tr.lv < 0 ? 0.075 : 0.056), Y(base) - Y(tr.y), tr.uses, L.uses, dip, age < 10 ? 0.8 : 0);
     ctx.restore();
   }
   // ═════════ 곡예사 ═════════
@@ -2379,6 +2350,3 @@ function drawHud(ctx: C2, s: CircusState, w: number, h: number, R: (r: number) =
     ctx.restore();
   }
 }
-
-/** 점검용 (저장소 밖 스크립트가 쓴다) */
-export const __dbg = { newStage, crossings, habitEnd, rawLevel, placeFlags, judgeLevel, trial, smartPick, habitPick, routes, habitRoute, launch, groupsOf, starsOf, newWorld, stepWorld, putTramp, forecast };

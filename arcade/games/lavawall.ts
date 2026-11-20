@@ -65,7 +65,7 @@ export const STAGES: StageDef[] = [
     key: 'one', news: '', hint: '용암 길 위에 비스듬히 쓱 — 돌벽이 용암을 돌려요',
     vents: [10], erupt: [[0, 0, 11, 0.042], [0, 13, 7, 0.042]],
     ways: [V([10, 0, 10, 4, 8, 9, 7, 14, 6, 19, 6, 23], 0.7, 1.0), V([12, 6, 14, 10, 15, 15, 15, 23], 0.6, 1.0)],
-    houses: [[7, 18], [6, 21], [3, 17], [11, 20]],
+    houses: [[7, 18], [6, 21], [3, 17], [11, 20], [2, 13]],
     ink: 36, stars: [{ k: 'keep', n: 2 }],
   },
   {
@@ -95,7 +95,7 @@ export const STAGES: StageDef[] = [
     ways: [V([6, 0, 5, 6, 5, 12, 4, 18, 4, 23], 0.6, 1.0), V([13, 0, 14, 6, 14, 12, 15, 18, 15, 23], 0.6, 1.0), V([9.5, 5, 9.5, 12, 9.5, 23], 0.5, 1.1)],
     houses: [[5, 14], [4, 19], [14, 14], [15, 19], [12, 17], [7, 17]],
     ink: 12, piles: [[2, 8], [17, 8]],
-    stars: [{ k: 'keep', n: 5 }, { k: 'piles' }, { k: 'all' }],
+    stars: [{ k: 'keep', n: 4 }, { k: 'piles' }, { k: 'all' }],
   },
   {
     key: 'big', news: 'NEW 큰 분출 — 세 번 연달아, 굳은 검은 둑도 써요', hint: '어느 쪽이 먼저 터지나 보고, 호수와 바다로 나눠 보내요',
@@ -103,7 +103,7 @@ export const STAGES: StageDef[] = [
     ways: [V([6, 0, 6, 6, 7, 12, 7, 23], 0.6, 1.0), V([13, 0, 13, 6, 12, 12, 11, 23], 0.6, 1.0)],
     crusts: [[3, 7, 5, 11]],
     houses: [[7, 14], [6, 19], [12, 15], [11, 20], [9, 17], [3, 16]],
-    ink: 30, piles: [[17, 6]], stars: [{ k: 'keep', n: 5 }, { k: 'lake' }, { k: 'all' }],
+    ink: 30, piles: [[17, 6]], stars: [{ k: 'keep', n: 4 }, { k: 'lake' }, { k: 'all' }],
   },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -850,7 +850,7 @@ function strokeBot(name: string, pick: (s: LavaState, rng: Rng) => Path | null, 
 }
 
 /** 잘하는 봇: 그대로 두면 탈 집을 같은 흐름으로 미리 보고, 그 위 용암 길에 비스듬한 후보 벽들을 세워 흘려 본 뒤 가장 좋은 것 */
-export const lavawallSmart: Bot<LavaState> = strokeBot('용암 길잡이', (s, rng) => plan(s, rng), 100, 4);
+export const lavawallSmart: Bot<LavaState> = strokeBot('용암 길잡이', (s, rng) => plan(s, rng), 100, 3);
 
 /** 버릇 봇: 늘 아직 안 탄 가장 위쪽 집 바로 위에 가로로 짧게 */
 export const lavawallHabit: Bot<LavaState> = strokeBot('늘 집 바로 위에 가로로', (s) => {
@@ -1168,6 +1168,9 @@ function drawAll(ctx: C2, s: LavaState, w: number, h: number, th: Theme) {
   // 주민 (집 둘레를 걷고, 용암이 오면 허둥지둥, 바다에 닿으면 지붕 위에서 환호)
   s.houses.forEach((hs, k) => drawFolk(ctx, s, hs, k, SX(hs.c + 0.5, hs.r + 0.5), SY(hs.r + 0.75), R(0.084), t));
 
+  // ── 촌장 할아버지 (바닷가 선착장에서 마을을 지켜본다) ──
+  drawChief(ctx, s, R(0.085), R(BAND - 0.006), R(0.13), t);
+
   // ── 지금 긋는 손가락 자리 ──
   if (s.down && s.phase === 'play') {
     const x = SX(s.lx, s.ly), y = SY(s.ly);
@@ -1211,7 +1214,7 @@ function drawAll(ctx: C2, s: LavaState, w: number, h: number, th: Theme) {
   // ── NEW 스포트라이트 ──
   if (s.stage > 0 && s.phase === 'play' && s.pt < 300 && s.used === 0) {
     let nx = GW / 2, ny = 1, nr = 0.12;
-    if (d.key === 'two') (nx = (s.vents[0] + s.vents[1]) / 2 + 0.5), (ny = -3.2), (nr = 0.16);
+    if (d.key === 'two') (nx = (s.vents[0] + s.vents[1]) / 2 + 0.5), (ny = -3.4), (nr = 0.15);
     if (d.key === 'melt') {
       const hs = s.houses.reduce((a, b) => (b.r < a.r ? b : a));
       (nx = hs.c + 0.5), (ny = hs.r - 3), (nr = 0.13);
@@ -1232,7 +1235,7 @@ function drawAll(ctx: C2, s: LavaState, w: number, h: number, th: Theme) {
     ctx.ellipse(x, y, R(nr) * pu, R(nr * 0.7) * pu, 0, 0, TAU2);
     ctx.stroke();
     ctx.setLineDash([]);
-    const ty = y - R(nr * 0.7) * pu - R(0.03);
+    const ty = d.key === 'two' ? y + R(nr * 0.7) * pu + R(0.03) : y - R(nr * 0.7) * pu - R(0.03);
     ctx.fillStyle = '#ff4d4d';
     ctx.beginPath();
     ctx.roundRect(x - R(0.06), ty - R(0.022), R(0.12), R(0.044), R(0.022));
@@ -1406,6 +1409,11 @@ function paintGround(s: LavaState, w: number, h: number): HTMLCanvasElement | nu
       g.fill();
     }
   g.restore();
+  // 깎은 풀밭 줄무늬 (원근 깊이)
+  for (let r = 0; r < SEA_R; r += 2) {
+    g.fillStyle = 'rgba(255,255,230,.05)';
+    g.fillRect(0, SY(r), w, SY(r + 1) - SY(r));
+  }
   // 해안 모래
   g.fillStyle = '#f3dfa2';
   g.beginPath();
@@ -1449,18 +1457,19 @@ function paintGround(s: LavaState, w: number, h: number): HTMLCanvasElement | nu
       g.fill();
     }
   }
-  // 지난 분출이 굳은 검은 둑
-  for (let i = 0; i < N; i++) {
-    if (s.wat[i] || !s.rock[i]) continue;
-    const r = (i / GW) | 0, c = i - r * GW;
-    g.fillStyle = '#3e3633';
-    quad(c, r, 0.8);
-    g.fill();
-    g.fillStyle = 'rgba(120,108,100,.7)';
-    g.beginPath();
-    g.ellipse(SX(c + 0.5, r + 0.4), SY(r + 0.35), R(0.012), R(0.006), 0, 0, Math.PI * 2);
-    g.fill();
-  }
+  // 지난 분출이 굳은 검은 둑 (울퉁불퉁 현무암 · 그림자)
+  for (const pass of [0, 1, 2])
+    for (let i = 0; i < N; i++) {
+      if (s.wat[i] || !s.rock[i]) continue;
+      const r = (i / GW) | 0, c = i - r * GW, x = SX(c + 0.5, r + 0.5), y = SY(r + 0.5), cw = (scl(r) * w) / GW, ch = CH * w;
+      const hh = hsh(i * 17 + 3);
+      g.fillStyle = pass === 0 ? 'rgba(30,40,20,.3)' : pass === 1 ? '#3e3633' : '#5c524c';
+      g.beginPath();
+      if (pass === 0) g.ellipse(x + 2, y + ch * 0.35, cw * 0.85, ch * 0.7, 0, 0, Math.PI * 2);
+      else if (pass === 1) g.ellipse(x, y - ch * 0.15, cw * 0.82, ch * 0.85, 0, 0, Math.PI * 2);
+      else g.ellipse(x - cw * 0.2 + hh * 3, y - ch * 0.45, cw * 0.32, ch * 0.22, 0, 0, Math.PI * 2);
+      g.fill();
+    }
   // 풀 포기 · 꽃 (작은 무늬)
   for (let k = 0; k < 160; k++) {
     const c = hsh(k * 3 + s.stage * 7) * GW, r = 2.5 + hsh(k * 5 + 1 + s.stage) * (SEA_R - 3);
@@ -1740,6 +1749,9 @@ function drawTree(ctx: C2, x: number, y: number, r: number, burnt: boolean, ph: 
   ctx.beginPath();
   ctx.arc(x + sw, y - r * 1.2, r * 0.8, 0, TAU2);
   ctx.fill();
+  ctx.strokeStyle = 'rgba(30,70,30,.6)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
   ctx.fillStyle = '#5cbf5a';
   ctx.beginPath();
   ctx.arc(x - r * 0.18 + sw, y - r * 1.38, r * 0.5, 0, TAU2);
@@ -1811,6 +1823,9 @@ function drawHouse(ctx: C2, s: LavaState, hs: House, k: number, x: number, y: nu
   ctx.fillRect(x - bw / 2 + scare, y - bh, bw, bh);
   ctx.fillStyle = '#ead6b0';
   ctx.fillRect(x + bw * 0.18 + scare, y - bh, bw * 0.32, bh);
+  ctx.strokeStyle = '#6b4a30';
+  ctx.lineWidth = 1.2;
+  ctx.strokeRect(x - bw / 2 + scare, y - bh, bw, bh);
   // 문 · 창
   ctx.fillStyle = '#8a5a3a';
   ctx.beginPath();
@@ -1828,6 +1843,9 @@ function drawHouse(ctx: C2, s: LavaState, hs: House, k: number, x: number, y: nu
   ctx.lineTo(x + bw * 0.62 + scare, y - bh + 1);
   ctx.closePath();
   ctx.fill();
+  ctx.strokeStyle = '#5a3424';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
   ctx.fillStyle = 'rgba(255,255,255,.25)';
   ctx.beginPath();
   ctx.moveTo(x - bw * 0.62 + scare, y - bh + 1);
@@ -1953,6 +1971,159 @@ function drawFolk(ctx: C2, s: LavaState, hs: House, k: number, hx: number, hy: n
   }
 }
 
+/** 촌장 할아버지: 평소엔 빙그레 · 용암이 다가오면 볼을 감싸고 덜덜 · 집이 타면 펄쩍 '앗!' · 바다에 닿거나 지키면 두 팔 들고 폴짝 · 지면 어질어질 */
+function drawChief(ctx: C2, s: LavaState, x: number, y: number, sz: number, t: number) {
+  const near = s.phase === 'play' && s.houses.some((h) => h.alive && h.near >= 0);
+  const hurt = s.tick - s.hurtT < 90, cheer = s.tick - s.cheerT < 150 || (s.phase === 'result' && s.ok);
+  const sad = s.phase === 'result' && !s.ok;
+  const mood = sad ? 'sad' : hurt ? 'hurt' : cheer ? 'happy' : near ? 'worry' : 'calm';
+  let jump = 0, shake = 0;
+  if (mood === 'happy') jump = Math.abs(Math.sin(t * 0.18)) * sz * 0.12;
+  if (mood === 'hurt') jump = Math.max(0, Math.sin(((s.tick - s.hurtT) / 90) * Math.PI)) * sz * 0.25;
+  if (mood === 'worry') shake = Math.sin(t * 1.3) * sz * 0.015;
+  const r = sz * 0.5, cx = x + shake, by = y - jump;
+  // 선착장 나무판
+  ctx.fillStyle = '#b07a48';
+  ctx.beginPath();
+  ctx.roundRect(x - sz * 0.62, y - sz * 0.04, sz * 1.24, sz * 0.12, 3);
+  ctx.fill();
+  ctx.strokeStyle = '#6e4a2a';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = '#6e4a2a';
+  ctx.fillRect(x - sz * 0.5, y + sz * 0.08, sz * 0.08, sz * 0.14);
+  ctx.fillRect(x + sz * 0.42, y + sz * 0.08, sz * 0.08, sz * 0.14);
+  // 그림자
+  ctx.fillStyle = 'rgba(40,30,20,.3)';
+  ctx.beginPath();
+  ctx.ellipse(x, y, r * 0.8 * (1 - jump / sz), r * 0.18, 0, 0, TAU2);
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#3b2616';
+  // 몸 (파란 멜빵바지)
+  ctx.fillStyle = '#4a8fe0';
+  ctx.beginPath();
+  ctx.ellipse(cx, by - r * 0.62, r * 0.62, r * 0.62, 0, 0, TAU2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#ffd84a';
+  ctx.beginPath();
+  ctx.arc(cx - r * 0.25, by - r * 0.85, r * 0.07, 0, TAU2);
+  ctx.arc(cx + r * 0.25, by - r * 0.85, r * 0.07, 0, TAU2);
+  ctx.fill();
+  // 팔
+  ctx.strokeStyle = '#ffd9b3';
+  ctx.lineWidth = r * 0.2;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  if (mood === 'happy') {
+    const wv = Math.sin(t * 0.5) * r * 0.15;
+    ctx.moveTo(cx - r * 0.5, by - r * 0.9);
+    ctx.lineTo(cx - r * 0.95, by - r * 1.75 + wv);
+    ctx.moveTo(cx + r * 0.5, by - r * 0.9);
+    ctx.lineTo(cx + r * 0.95, by - r * 1.75 - wv);
+  } else if (mood === 'worry' || mood === 'hurt') {
+    ctx.moveTo(cx - r * 0.5, by - r * 0.9);
+    ctx.lineTo(cx - r * 0.55, by - r * 1.45);
+    ctx.moveTo(cx + r * 0.5, by - r * 0.9);
+    ctx.lineTo(cx + r * 0.55, by - r * 1.45);
+  } else {
+    ctx.moveTo(cx - r * 0.5, by - r * 0.85);
+    ctx.lineTo(cx - r * 0.75, by - r * 0.35);
+    ctx.moveTo(cx + r * 0.5, by - r * 0.85);
+    ctx.lineTo(cx + r * 0.75, by - r * 0.35);
+  }
+  ctx.stroke();
+  // 머리
+  const hy = by - r * 1.5;
+  ctx.fillStyle = '#ffd9b3';
+  ctx.strokeStyle = '#3b2616';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx, hy, r * 0.55, 0, TAU2);
+  ctx.fill();
+  ctx.stroke();
+  // 흰 수염
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.45, hy + r * 0.05);
+  ctx.quadraticCurveTo(cx, hy + r * (mood === 'hurt' ? 0.75 : 0.9), cx + r * 0.45, hy + r * 0.05);
+  ctx.quadraticCurveTo(cx, hy + r * 0.35, cx - r * 0.45, hy + r * 0.05);
+  ctx.fill();
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  // 안전모 (빨강)
+  ctx.fillStyle = '#ff5a3a';
+  ctx.beginPath();
+  ctx.arc(cx, hy - r * 0.12, r * 0.52, Math.PI, 0);
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillRect(cx - r * 0.66, hy - r * 0.16, r * 1.32, r * 0.1);
+  ctx.strokeRect(cx - r * 0.66, hy - r * 0.16, r * 1.32, r * 0.1);
+  // 얼굴
+  ctx.fillStyle = '#2b2118';
+  if (mood === 'sad') {
+    ctx.strokeStyle = '#2b2118';
+    ctx.lineWidth = 1.5;
+    for (const dx of [-0.2, 0.2]) {
+      ctx.beginPath();
+      ctx.moveTo(cx + r * (dx - 0.08), hy - r * 0.02);
+      ctx.lineTo(cx + r * (dx + 0.08), hy + r * 0.1);
+      ctx.moveTo(cx + r * (dx + 0.08), hy - r * 0.02);
+      ctx.lineTo(cx + r * (dx - 0.08), hy + r * 0.1);
+      ctx.stroke();
+    }
+    // 어질어질 별
+    for (let k = 0; k < 3; k++) {
+      const a = t * 0.08 + (k * Math.PI * 2) / 3;
+      ctx.fillStyle = '#ffd84a';
+      star5(ctx, cx + Math.cos(a) * r * 0.7, hy - r * 0.75 + Math.sin(a) * r * 0.2, r * 0.13);
+      ctx.fill();
+    }
+  } else if (mood === 'worry' || mood === 'hurt') {
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.2, hy + r * 0.02, r * 0.09, 0, TAU2);
+    ctx.arc(cx + r * 0.2, hy + r * 0.02, r * 0.09, 0, TAU2);
+    ctx.fill();
+    ctx.fillStyle = '#7a2a1a';
+    ctx.beginPath();
+    ctx.ellipse(cx, hy + r * 0.28, r * 0.1, r * (mood === 'hurt' ? 0.16 : 0.1), 0, 0, TAU2);
+    ctx.fill();
+    ctx.fillStyle = '#7fd0ff';
+    ctx.beginPath();
+    ctx.arc(cx + r * 0.55, hy - r * 0.2 + ((t % 30) / 30) * r * 0.3, r * 0.09, 0, TAU2);
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.2, hy + r * 0.02, r * 0.07, 0, TAU2);
+    ctx.arc(cx + r * 0.2, hy + r * 0.02, r * 0.07, 0, TAU2);
+    ctx.fill();
+    ctx.fillStyle = '#ff9e9e';
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.34, hy + r * 0.15, r * 0.08, 0, TAU2);
+    ctx.arc(cx + r * 0.34, hy + r * 0.15, r * 0.08, 0, TAU2);
+    ctx.fill();
+  }
+  // 말풍선
+  const txt = mood === 'happy' ? '만세!' : mood === 'hurt' ? '앗뜨!' : mood === 'worry' ? '어어…' : mood === 'sad' ? '어질…' : '';
+  if (txt) {
+    ctx.font = `900 ${Math.max(12, Math.round(sz * 0.26))}px system-ui, sans-serif`;
+    const tw = ctx.measureText(txt).width + sz * 0.16, bx = cx + r * 0.6, byy = hy - r * 1.15;
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#3b2616';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(bx, byy - sz * 0.15, tw, sz * 0.3, sz * 0.14);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = mood === 'hurt' ? '#e8402a' : '#3b2616';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(txt, bx + sz * 0.08, byy + 1);
+  }
+}
+
 function drawHand(ctx: C2, x: number, y: number, sz: number, press: boolean) {
   ctx.save();
   ctx.translate(x, y);
@@ -2016,7 +2187,7 @@ function drawHud(ctx: C2, s: LavaState, w: number, h: number, th: Theme, font: (
     ctx.globalAlpha = a;
     font(0.034, 900);
     ctx.textAlign = 'center';
-    const tx = s.news.text, tw2 = Math.min(w - 10, ctx.measureText(tx).width + 24), by2 = R(BAND - 0.035);
+    const tx = s.news.text, tw2 = Math.min(w - 10, ctx.measureText(tx).width + 24), by2 = R(s.stage === 0 && s.firstTouch < 0 ? 1.12 : BAND - 0.035);
     ctx.fillStyle = 'rgba(70,36,24,.92)';
     ctx.beginPath();
     ctx.roundRect(w / 2 - tw2 / 2, by2 - R(0.026), tw2, R(0.052), R(0.026));
@@ -2095,19 +2266,19 @@ function drawHud(ctx: C2, s: LavaState, w: number, h: number, th: Theme, font: (
   if (s.stage === 0 && s.firstTouch < 0 && s.phase === 'play') {
     const bob = Math.sin(t * 0.12) * R(0.006);
     ctx.save();
-    font(0.056, 900);
+    font(0.05, 900);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const tx = '👆 쓱 그어 돌벽을 세워요!', tw = ctx.measureText(tx).width + R(0.08), yy = R(1.2) + bob;
+    const tx = '👆 쓱 그어 돌벽을 세워요!', tw = ctx.measureText(tx).width + R(0.07), yy = R(1.2) + bob, xc = R(0.585);
     ctx.fillStyle = 'rgba(70,36,24,.88)';
     ctx.beginPath();
-    ctx.roundRect(w / 2 - tw / 2, yy - R(0.045), tw, R(0.09), R(0.045));
+    ctx.roundRect(xc - tw / 2, yy - R(0.042), tw, R(0.084), R(0.042));
     ctx.fill();
     ctx.strokeStyle = '#ffd84a';
     ctx.lineWidth = 2.5;
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(tx, w / 2, yy + 1);
+    ctx.fillText(tx, xc, yy + 1);
     ctx.restore();
   }
   // ═════════════ 아래 띠 ═════════════

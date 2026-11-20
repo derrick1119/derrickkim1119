@@ -22,7 +22,7 @@ import { juice } from '../juice.ts';
 /** 화면 세로 ÷ 가로 */
 const A = 1.5;
 /** 화면(가로 폭 단위): 위 띠 아래 · 바다 좌표 y=0 자리 · 바다 세로 · 아래 띠 시작 */
-const HUD_H = 0.085, SEA_Y = 0.205, SH = 1.065, BAND = SEA_Y + SH;
+const HUD_H = 0.085, SEA_Y = 0.205, SH = 1.04, BAND = SEA_Y + SH;
 /** 물고기가 다니는 곳 (바다 좌표) */
 const FX0 = 0.05, FX1 = 0.95, FY0 = 0.2, FY1 = SH - 0.05;
 /** 배 (바다 좌표): 잡은 것이 올라가는 곳 */
@@ -50,12 +50,14 @@ const FLEE_V = 0.0045;
 // ── 그물 ──
 /** 그물 점 간격 · 이보다 짧으면 그물이 안 된다(톡) · 남은 줄이 이보다 짧으면 끝 · 선 바로 바깥도 잡힘(넉넉) */
 const PT_STEP = 0.012, MINLEN = 0.06, MIN_INK = 0.25, EDGE_GRACE = 0.016;
+/** 저절로 닫힘: 시작점에서 이만큼 멀어졌다가, 줄이 이만큼 깔린 뒤, 시작점 이만큼 안으로 돌아오면 */
+const CLOSE_FAR = 0.09, CLOSE_LEN = 0.3, CLOSE_R = 0.045;
 /** 목표를 채운 뒤 남은 줄이 이보다 짧으면 판이 끝난다 (반지름 0.1 원 하나) */
 const LOOP_MIN = 0.63;
 /** 오므라드는 시간 · 배로 올라가는 시간 */
 export const SHRINK_T = 22, LIFT_T = 44;
 /** 한 그물에 이만큼이면 큰 순간 */
-const WOW_N = 12;
+const WOW_N = 10;
 /** 해파리: 그물 줄이 이만큼 가까이 지나가면 녹는다 */
 const JR = 0.036;
 /** 황금 다랑어: 펜 끝이 이만큼 오면 달아남 · 몇 마리 값 */
@@ -129,7 +131,7 @@ export const STAGES: StageDef[] = [
       S(65, 0.12, 0.014, [0.3, 0.75, 0.16, 0.16, 16, 21, 0, 2], 0.2, 7),
       S(65, 0.12, -0.014, [0.7, 0.48, 0.16, 0.16, 23, 17, 2, 0.5], 0.2, 6.5),
     ],
-    jellies: [[0.24, 0.42], [0.76, 0.4], [0.27, 0.84], [0.73, 0.86], [0.5, 0.3], [0.5, 0.97]],
+    jellies: [[0.24, 0.42], [0.76, 0.4], [0.27, 0.84], [0.73, 0.86], [0.5, 0.3], [0.5, 0.95]],
     ink: 3.2, day: 70, full: 140, stars: [{ k: 'count', n: 90 }, { k: 'jelly' }, { k: 'nets', m: 3, n: 110 }],
   },
   {
@@ -195,7 +197,7 @@ interface Shark { x: number; y: number; vx: number; vy: number; a: number; p: nu
 interface Jelly { x: number; y: number; ph: number; zap: number }
 interface Tuna { x: number; y: number; vx: number; vy: number; a: number; p: number[]; bolt: number; caught: boolean }
 interface Turtle { x: number; y: number; dir: number; t0: number }
-interface Net { pts: number[]; len: number; tx: number; ty: number; alive: boolean; t0: number }
+interface Net { pts: number[]; len: number; tx: number; ty: number; alive: boolean; t0: number; far: number }
 interface Haul {
   pts: number[]; cx: number; cy: number; t0: number;
   /** 잡힌 물고기 [x, y, 각도] */
@@ -521,6 +523,14 @@ function advanceTip(s: FishState, nt: Net, qx: number, qy: number) {
     const m = Math.floor(gap / PT_STEP);
     for (let q = 1; q <= m; q++) P.push(lx + ((nt.tx - lx) * q) / m, ly + ((nt.ty - ly) * q) / m);
   }
+  const ds = Math.hypot(nt.tx - P[0], nt.ty - P[1]);
+  nt.far = Math.max(nt.far, ds);
+  // 한 바퀴 돌아 시작점에 다시 닿으면 그 순간 저절로 닫힌다
+  if (!why && nt.far > CLOSE_FAR && nt.len > CLOSE_LEN && ds < CLOSE_R) {
+    ev(s, 'snap', nt.tx, nt.ty);
+    closeNet(s, nt);
+    return;
+  }
   if (why === 'melt') {
     const j = s.jellies[cj];
     j.zap = 50;
@@ -535,7 +545,7 @@ function advanceTip(s: FishState, nt: Net, qx: number, qy: number) {
 }
 
 function startNet(s: FishState, x: number, y: number) {
-  s.net = { pts: [x, y], len: 0, tx: x, ty: y, alive: true, t0: s.t };
+  s.net = { pts: [x, y], len: 0, tx: x, ty: y, alive: true, t0: s.t, far: 0 };
   ev(s, 'start', x, y);
 }
 
@@ -1080,7 +1090,7 @@ export const fishloopSmart: Bot<FishState> = strokeBot('그물 선장', (s) => {
   if (b.wait > 0 && !stuck) return null;
   // 시작은 배 쪽(위)에서, 떼가 도는 쪽으로
   const near = s.schools.reduce((a, q) => (q.n > 0 && Math.hypot(q.cx - b.cx, q.cy - b.cy) < Math.hypot(a.cx - b.cx, a.cy - b.cy) ? q : a), s.schools[0]);
-  let a0 = -Math.PI / 2;
+  let a0 = -Math.PI / 2 + s.nets * 2.1;
   // 해파리가 있으면 해파리에서 먼 각도에서 시작
   if (s.jellies.length) {
     let bestA = a0, bd = -1;
@@ -1634,9 +1644,9 @@ function drawAll(ctx: C2, s: FishState, w: number, h: number, th: Theme) {
   }
   // 물빛 (먼 쪽이 깊고 가까운 쪽이 맑다) · 노을빛
   const wg = ctx.createLinearGradient(0, top, 0, bot);
-  wg.addColorStop(0, 'rgba(14,120,170,.62)');
-  wg.addColorStop(0.25, 'rgba(24,165,195,.45)');
-  wg.addColorStop(1, 'rgba(60,205,210,.3)');
+  wg.addColorStop(0, 'rgba(8,108,168,.66)');
+  wg.addColorStop(0.3, 'rgba(16,160,200,.5)');
+  wg.addColorStop(1, 'rgba(36,196,212,.36)');
   ctx.fillStyle = wg;
   ctx.fillRect(0, top, w, bot - top);
   if (df > 0.55) {
@@ -1868,6 +1878,7 @@ function drawAll(ctx: C2, s: FishState, w: number, h: number, th: Theme) {
     if (e.t <= seenT) continue;
     const x = SX(e.x), y = SY(e.y);
     if (e.kind === 'start') fx.ring(x, y, '#ffffff', R(0.07), 3), fx.burst(x, y, '#d8f6ff', 10, 2.4, 2.2);
+    if (e.kind === 'snap') fx.ring(x, y, '#fff6a8', R(0.09), 5), say(x, y - R(0.05), '휙!', '#fff6a8', 22);
     if (e.kind === 'close') {
       fx.ring(x, y, '#ffffff', R(0.16), 4);
       fx.burst(x, y, '#e8f8ff', 14, 3.2, 2.4);
@@ -2451,7 +2462,7 @@ function drawNetLive(ctx: C2, s: FishState, w: number, nt: Net, P: number[], pre
 const easeOut = (u: number) => 1 - (1 - u) * (1 - u) * (1 - u);
 function drawHaulShrink(ctx: C2, s: FishState, w: number, hl: Haul, SX: (x: number) => number, SY: (y: number) => number, dpr: number) {
   const R = (v: number) => v * w, t = s.t, age = t - hl.t0, u = clampF(age / SHRINK_T, 0, 1), k = easeOut(u);
-  const sc = hl.torn ? 1 - 0.35 * k : 1 - 0.78 * k;
+  const sc = hl.torn ? 1 - 0.35 * k : 1 - 0.7 * k;
   const SP: number[] = [];
   for (let q = 0; q < hl.pts.length; q += 2) {
     const px = hl.cx + (hl.pts[q] - hl.cx) * sc, py = hl.cy + (hl.pts[q + 1] - hl.cy) * sc;
@@ -2481,7 +2492,7 @@ function drawHaulShrink(ctx: C2, s: FishState, w: number, hl: Haul, SX: (x: numb
   ctx.fillStyle = glow;
   ctx.fillRect(SX(hl.cx) - R(0.2), SY(hl.cy) - R(0.2), R(0.4), R(0.4));
   for (let q = 0; q < hl.fish.length; q += 3) {
-    const j = q / 3, f = 1 - 0.82 * k * (0.7 + 0.3 * hsh(j));
+    const j = q / 3, f = 1 - 0.74 * k * (0.7 + 0.3 * hsh(j));
     const px = SX(hl.cx + (hl.fish[q] - hl.cx) * f) + Math.sin(t * 0.9 + j) * R(0.004) * k, py = SY(hl.cy + (hl.fish[q + 1] - hl.cy) * f);
     ctx.save();
     ctx.translate(px, py);
@@ -2623,10 +2634,19 @@ function drawBoat(ctx: C2, s: FishState, w: number, bob: number, SX: (x: number)
   ctx.closePath();
   ctx.fill();
   ctx.fillStyle = '#1d5e86';
-  ctx.font = `900 ${Math.round(R(0.036))}px system-ui, sans-serif`;
+  ctx.font = `900 ${Math.round(R(0.03))}px system-ui, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('냥냥호', R(0.03), R(0.04));
+  // 구명 튜브
+  const lbx = -R(0.12), lby = R(0.032), lr = R(0.02);
+  ctx.lineWidth = R(0.011);
+  for (let k = 0; k < 4; k++) {
+    ctx.strokeStyle = k % 2 ? '#ffffff' : '#ff4a3d';
+    ctx.beginPath();
+    ctx.arc(lbx, lby, lr, (k * Math.PI) / 2, ((k + 1) * Math.PI) / 2);
+    ctx.stroke();
+  }
   // 갑판
   const dg = ctx.createLinearGradient(0, -R(0.05), 0, 0);
   dg.addColorStop(0, '#c98a4b');
@@ -2657,6 +2677,19 @@ function drawBoat(ctx: C2, s: FishState, w: number, bob: number, SX: (x: number)
   ctx.lineTo(R(0.1), cy - R(0.01));
   ctx.lineTo(cx, cy);
   ctx.stroke();
+  // 깃발 (바람에 펄럭)
+  const fw = Math.sin(t * 0.15) * R(0.004);
+  ctx.fillStyle = '#4fc3f7';
+  ctx.beginPath();
+  ctx.moveTo(R(0.1), cy - R(0.01));
+  ctx.lineTo(R(0.1) - R(0.05), cy - R(0.003) + fw);
+  ctx.lineTo(R(0.1), cy + R(0.018));
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(R(0.082), cy + R(0.003) + fw * 0.5, R(0.005), 0, TAU);
+  ctx.fill();
   ctx.fillStyle = '#ffd23f';
   ctx.beginPath();
   ctx.arc(cx, cy, R(0.011), 0, TAU);
@@ -3108,7 +3141,8 @@ function drawHud(ctx: C2, s: FishState, w: number, h: number, font: (sz: number,
   ctx.roundRect(0, Y(ty), w, Y(tb - ty) + 4, [R(0.03), R(0.03), 0, 0]);
   ctx.fill();
   // 그물 줄 남은 길이 (밧줄 막대)
-  const r1 = Y(ty + 0.034);
+  const rows = d.stars.length, pad = (3 - rows) * 0.022;
+  const r1 = Y(ty + 0.032 + pad * 0.6);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#d8f2ff';
@@ -3143,9 +3177,8 @@ function drawHud(ctx: C2, s: FishState, w: number, h: number, font: (sz: number,
   ctx.fillStyle = s.caught >= goal ? '#ffd84a' : '#ffffff';
   ctx.fillText(s.caught >= goal ? `🐟 ${s.caught} ✓` : `🐟 ${s.caught} / ${goal}`, w - R(0.025), r1 + 1);
   // 별 조건 (한 줄씩)
-  const rows = d.stars.length;
   for (let k = 0; k < rows; k++) {
-    const st = d.stars[k], ry = Y(ty + 0.074 + k * 0.038);
+    const st = d.stars[k], ry = Y(ty + 0.074 + pad + k * 0.04);
     const ok = s.phase === 'result' && s.ok ? s.starOk[k] : starNow(s, st) && (st.k !== 'shark' && st.k !== 'jelly' ? true : s.nets > 0);
     const lost = (st.k === 'shark' && s.tears > 0) || (st.k === 'jelly' && s.melts > 0) || (st.k === 'nets' && s.nets >= st.m && !s.fastOk) || (st.k === 'tuna' && s.phase === 'result' && !s.tunaGot);
     star5(ctx, R(0.05), ry, R(0.017));
@@ -3176,5 +3209,5 @@ function drawHud(ctx: C2, s: FishState, w: number, h: number, font: (sz: number,
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffe9a8';
   font(0.036, 900);
-  ctx.fillText(hint, w / 2, Y(ty + 0.074 + rows * 0.038 + (rows < 3 ? 0.006 : -0.002)), w - R(0.05));
+  ctx.fillText(hint, w / 2, Y(ty + 0.078 + pad * 1.4 + rows * 0.04), w - R(0.05));
 }
