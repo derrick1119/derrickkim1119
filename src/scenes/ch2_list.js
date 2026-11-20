@@ -85,6 +85,8 @@
       await X.wait(1.6);
       const lake = T.lake({ paint: T.vig.floor, leo: F.leoAt(0), nana: true });
       await X.view(lake, { color: '#1b2a40' });
+      T.announce('거울 호수. 물결이 일어 비친 모습이 고리마다 어긋나 있다. 고리를 눌러 돌려 맞춘다.');
+      await lake.calm({ start: [3, 6] });
       X.age('아나, 37');
       T.announce('거울 호수. 부엌 바닥에 주저앉아 공책을 끌어안은 아나가 비친다.');
       await X.wait(3.2);
@@ -101,13 +103,16 @@
       S.actors = S.actors.filter((a) => a !== nana);
       await X.view(null, { color: '#1b2a40' });
       X.bed(4, 0.13, 'walk');
+      await X.tap(() => [PL.SX[0], W.y3(PL.SX[0]) - 8, 40]);
+      await X.walk(leo, PL.SX[0] - 34, 84);
+      leo.flip = false;
+      /* four holes, four stones: which goes where, so that the house will sit level */
+      T.announce('주춧돌 놓기. 구덩이 깊이와 돌 높이가 저마다 다르다. 네 돌의 머리가 모두 수평 줄에 닿게 놓는다.');
+      await X.play(T.puzzle.stones({ depth: [1, 3, 0, 2] }));
       for (let i = 0; i < 4; i++) {
-        const x = PL.SX[i];
-        await X.tap(() => [x, W.y3(x) - 8, 40]);
-        await X.walk(leo, x - 34, 84);
-        leo.flip = false; leo.pose2 = 1;
+        X.walk(leo, PL.SX[i] - 34, 110);
         A.sfx('knock', i / 4); ps.stones = i + 1; X.note();
-        await X.wait(0.35);
+        await X.wait(0.5);
       }
       ps.stage = 1;
       T.announce('레오가 집터에 주춧돌 네 개를 놓는다.');

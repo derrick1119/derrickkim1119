@@ -27,6 +27,8 @@
       await X.wait(1.7);
       const lake = T.lake({ paint: T.vig.tired, leo: F.leoAt(0), nana: true, i: 0 });
       await X.view(lake, { color: '#1b2a40' });
+      T.announce('호수에 물결이 인다. 고리 셋을 눌러 돌려 비친 모습을 맞춘다.');
+      await lake.calm({ start: [2, 5, 7] });
       X.age('아나, 39');
       T.announce('호수에 비친 아나는 지쳐 있다. 늦게까지 이어지는 일, 잠든 아이, 혼자 보내는 밤.');
       await X.wait(2.6);
@@ -78,12 +80,11 @@
       const push = (o, a, t) => { o.armF = { a: 1.9, b: 0.3 }; o.armB = { a: 1.7, b: 0.3 }; o.lean = 0.2; };
       await X.view(null, { color: '#fff6e6' });
       leo.pose = push; nana.pose = push; leo.push = true;
-      let stepN = 0;
-      await X.drag({
-        axis: 'y', sign: -1, dist: 300,
-        on: (p) => { ps.raise = p; const n = Math.floor(p * 6); if (n > stepN) { stepN = n; X.note(); A.sfx('knock', n / 6); } },
-        hint: () => { const a = W.toScreen(PL.HX, W.y3(PL.HX) - 40), b = W.toScreen(PL.HX, W.y3(PL.HX) - 240); return [a, b]; },
-      });
+      /* the timber is cut and lying in the grass: what goes up first? */
+      T.announce('뼈대 세우기. 풀밭에 놓인 나무 일곱 개를, 서로 받쳐 주는 차례대로 세운다.');
+      await X.tap(() => [PL.HX, W.y3(PL.HX) - 30, 60]);
+      await X.play(T.puzzle.frame());
+      for (let i = 0; i < 3; i++) { A.sfx('knock', i / 3); X.note(); X.tween(ps, 'raise', (i + 1) / 3, 0.5, T.ease.out); await X.wait(0.55); }
       ps.stage = 2; ps.raise = 0;
       leo.pose = null; nana.pose = (o, a, t) => { o.armF = { a: 1.35 + Math.sin(t * 16) * 0.16, b: 1.1 }; o.armB = { a: 1.2 - Math.sin(t * 16) * 0.16, b: 1.1 }; o.face.eye = 'happy'; };
       T.announce('집의 뼈대가 선다.');

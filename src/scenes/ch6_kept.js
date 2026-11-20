@@ -95,6 +95,9 @@
       await X.tap(bowl);
       await bite(); ps.food.fill = 0.45;
       leo.mood = 'laugh'; await X.wait(1.6); leo.mood = null;
+      /* what did she put in it? */
+      T.announce('아나의 맛 찾기. 네 가지 풀 가운데 둘을 골라 맛을 견주어 본다.');
+      await X.play(T.puzzle.taste({ answer: [0, 2] }));
       await X.card(notebook, {
         max: 18,
         run: async (c) => {
@@ -127,6 +130,8 @@
       await X.wait(1.2);
       const lake = T.lake({ paint: T.vig.grand, leo: F.leoAt(3), mirror: 0.6, warm: true, leoFace: { eye: 'happy', old: true } });
       await X.view(lake, { color: '#1b2a40' });
+      T.announce('호수. 고리 넷을 맞춘다.');
+      await lake.calm({ start: [5, 2, 7, 4], couple: true });
 
       X.age('아나, 81');
       T.announce('호수. 여든이 넘은 아나가 손주들 사이에서 스튜를 젓으며 웃는다.');

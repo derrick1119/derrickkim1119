@@ -13,6 +13,8 @@
   T.lake = function (o) {
     const L = Object.assign({ dark: true, mood: 'still', chord: 4, rip: [], amp: 0, reach: { k: 0 }, mote: null, fade: { a: 1 }, mirror: 0.25 }, o);
     const SC = 0.7, TOP = 232, PH = 640;
+    /* the picture can arrive broken into rings, each turned a little: tap a ring to turn it a notch */
+    const RCY = TOP + PH / 2 - 20, RADS = { 2: [0, 150, 280], 3: [0, 112, 202, 292], 4: [0, 88, 160, 232, 304] };
     L.build = function () {
       const V = T.view;
       const c = document.createElement('canvas');
@@ -33,7 +35,24 @@
       if (L.onTouch) L.onTouch(x, y);
     };
     /* the one dream he may send: a light he can carry to the water */
+    const aligned = (R) => R.rot.every((v) => v % 8 === 0);
+    function turn(i) {
+      const R = L.ring;
+      if (!R || R.solved || i < 0 || i >= R.n) return;
+      R.rot[i]++; if (R.couple && i > 0) R.rot[i - 1]++;
+      R.idle = 0;
+      T.audio.step(R.taps++, { voice: 'glass', vel: 0.3 });
+      if (aligned(R)) { R.solved = true; R.t = 1.3; L.amp = 0; T.audio.promise(); }
+    }
+    const ringNext = () => { const R = L.ring; if (!R || R.solved) return -1; for (let i = R.n - 1; i >= 0; i--) if (R.rot[i] % 8) return i; return -1; };
+    /* o: { start: [notches off, innermost first], couple: a ring drags the one inside it } */
+    L.calm = function (o) { const n = o.start.length; return new Promise((res) => { L.ring = { n, rot: o.start.slice(), vis: o.start.slice(), couple: !!o.couple, rad: RADS[n], solved: false, idle: 0, taps: 0, t: 0, res }; L.amp = 0.35; }); };
+    L.hintAt = () => { const i = ringNext(); if (i < 0) return null; const R = L.ring; return [0, i === 0 ? RCY : RCY - (R.rad[i] + R.rad[i + 1]) / 2]; };
     L.pointer = function (type, x, y) {
+      if (L.ring && !L.ring.solved) {
+        if (type === 'down') { const d = Math.hypot(x, y - RCY), R = L.ring; for (let i = 0; i < R.n; i++) if (d < R.rad[i + 1]) { turn(i); break; } }
+        return true;
+      }
       const m = L.mote;
       if (!m || m.gone) return false;
       if (type === 'down' && Math.hypot(x - m.x, y - m.y) < 80) { m.held = true; return true; }
@@ -41,10 +60,19 @@
       if (type === 'up' && m.held) { m.held = false; if (m.y > TOP + 60) L.release(); return true; }
       return false;
     };
-    L.key = function (key) { if (L.mote && !L.mote.gone && (key === ' ' || key === 'Enter' || key === 'ArrowDown')) { L.mote.x = 40; L.mote.y = 520; L.release(); return true; } return false; };
-    L.want = function () { return L.mote && !L.mote.gone ? 'mote' : null; };
+    L.key = function (key) {
+      if (L.ring && !L.ring.solved) { if (key >= '1' && key <= String(L.ring.n)) { turn(+key - 1); return true; } return false; }
+      if (L.mote && !L.mote.gone && (key === ' ' || key === 'Enter' || key === 'ArrowDown')) { L.mote.x = 40; L.mote.y = 520; L.release(); return true; } return false; };
+    L.want = function () { const i = ringNext(); return i >= 0 ? 'key:' + (i + 1) : L.mote && !L.mote.gone ? 'mote' : null; };
     L.release = function () { const m = L.mote; if (!m || m.gone) return; m.gone = true; L.rip.push({ x: m.x, y: m.y, t: T.time }); L.amp = 1; if (m.res) m.res(); };
-    L.update = function (dt) { L.amp = Math.max(0, L.amp - dt * 0.5); const m = L.mote; if (m && !m.held && !m.gone) { m.x += (m.hx - m.x) * dt * 3; m.y += (m.hy + Math.sin(T.time * 1.6) * 8 - m.y) * dt * 3; } };
+    L.update = function (dt) {
+      const R = L.ring;
+      if (R) {
+        R.idle += dt;
+        for (let i = 0; i < R.n; i++) R.vis[i] += (R.rot[i] - R.vis[i]) * Math.min(1, dt * 9);
+        if (R.solved) { R.t -= dt; if (R.t <= 0) { L.ring = null; R.res(); } } else L.amp = Math.max(L.amp, 0.3);
+      }
+      L.amp = Math.max(0, L.amp - dt * 0.5); const m = L.mote; if (m && !m.held && !m.gone) { m.x += (m.hx - m.x) * dt * 3; m.y += (m.hy + Math.sin(T.time * 1.6) * 8 - m.y) * dt * 3; } };
 
     L.draw = function (g, t) {
       const V = T.view, W = V.W;
@@ -97,8 +125,27 @@
       mg.fillStyle = mk; mg.fillRect(0, 0, mw, mh);
       g.save();
       g.globalAlpha = L.fade.a;
-      g.drawImage(L.mid, x0, TOP, pw, PH);
+      const R = L.ring;
+      if (!R) g.drawImage(L.mid, x0, TOP, pw, PH);
+      else {
+        /* outside the rings the picture lies still; inside, each ring is turned by its own amount */
+        g.save(); g.beginPath(); g.rect(x0 - 40, TOP, pw + 80, PH); g.moveTo(R.rad[R.n], RCY); g.arc(0, RCY, R.rad[R.n], 0, TAU); g.clip('evenodd');
+        g.drawImage(L.mid, x0, TOP, pw, PH); g.restore();
+        for (let i = 0; i < R.n; i++) {
+          g.save(); g.beginPath(); g.arc(0, RCY, R.rad[i + 1], 0, TAU);
+          if (R.rad[i] > 0) { g.moveTo(R.rad[i], RCY); g.arc(0, RCY, R.rad[i], 0, TAU); }
+          g.clip('evenodd');
+          g.translate(0, RCY); g.rotate((R.vis[i] * TAU) / 8); g.translate(0, -RCY);
+          g.drawImage(L.mid, x0, TOP, pw, PH); g.restore();
+        }
+        g.lineWidth = 2;
+        for (let i = 1; i <= R.n; i++) { g.strokeStyle = T.rgba('#dfeeff', R.solved ? 0.5 * T.clamp(R.t) : 0.34 + 0.1 * Math.sin(t * 2 + i)); g.beginPath(); g.arc(0, RCY, R.rad[i], 0, TAU); g.stroke(); }
+      }
       g.restore();
+      if (R && !R.solved) {
+        P.text(g, R.couple ? '고리를 눌러 돌려 주세요. 바깥 고리는 안쪽 고리를 함께 끌고 가요' : '물결의 고리를 눌러 돌려서, 흩어진 모습을 맞춰 주세요', 0, 866, { font: 'serif', size: 24, color: '#f3ead8', alpha: 0.9 });
+        if (R.idle > 9) { const q = L.hintAt(); if (q) P.beacon(g, q[0], q[1], 44, t, 1, '#fff0c8'); }
+      }
       /* rings where a finger went in */
       g.save(); g.lineWidth = 2;
       for (const r of L.rip) {

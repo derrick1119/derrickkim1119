@@ -86,7 +86,7 @@
         S.b1 = X.boat({ x: -900, riders: [wife] });
       });
       X.toll(2);
-      const pressed = X.seaLamp();
+      const pressed = X.seaLamp({ rounds: [[0, 1, 2, 3], [2, 1, 0, 3]] });
       X.sail(S.b1, -74, 30);
       await pressed;
       await new Promise((res) => { const iv = () => (S.b1.x >= -74.5 ? res() : X.wait(0.2).then(iv)); iv(); });
@@ -113,6 +113,8 @@
       }, { out: 0.8, in: 1 });
       T.announce('브램 선장의 배가 처음으로 물에 떴다. 아흔아홉 살 아내가 타고 있다.');
       await X.tap(() => [16, PIER - 30, 50]);
+      T.announce('밧줄 풀기. 말뚝 셋에 감긴 밧줄을, 감긴 차례의 거꾸로 푼다.');
+      await X.play(T.puzzle.rope({ order: [0, 2, 1, 0, 2] }));
       S.rope = null;
       A.sfx('whoosh'); X.bed(3, 0.14, 'walk'); A.theme({ voice: 'box', vel: 0.3, beat: 0.62, left: false });
       X.sail(S.big, -1500, 54);
@@ -157,6 +159,8 @@
       /* ---- that night ---- */
       const lake = T.lake({ paint: T.vig.gray, leo: F.leoAt(0), found: { k: 0 }, mirror: 0.25, leoFace: {} });
       await X.view(lake, { color: '#1b2a40' });
+      T.announce('밤의 호수. 이번에는 바깥 고리를 돌리면 안쪽 고리가 함께 돈다.');
+      await lake.calm({ start: [1, 3, 6], couple: true });
 
       T.announce('그날 밤, 호수. 아나의 머리에 첫 흰머리가 비친다.');
       await X.wait(2.6);

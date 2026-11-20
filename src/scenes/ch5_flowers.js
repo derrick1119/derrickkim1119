@@ -178,7 +178,7 @@
       });
       X.age('아나, 56');
       nana.pose = (o, a, t) => { if (!a.hug) { o.armF = { a: 1.0 + 0.9 + Math.sin(t * 3.5) * 0.14, b: 0.5 }; o.y -= Math.abs(Math.sin(t * 3)) * 2; } };
-      const pressed = X.seaLamp();
+      const pressed = X.seaLamp({ rounds: [[3, 0, 1, 2], [0, 2, 1, 3, 3]] });
       X.sail(S.b1, -74, 62);
       await pressed;
       await new Promise((res) => { const iv = () => (S.b1.x >= -74.5 ? res() : X.wait(0.2).then(iv)); iv(); });
@@ -233,6 +233,9 @@
       await X.card(invitation, { run: async (c) => { T.announce('릴리의 편지. 아빠, 나 결혼해. 보러 와 줄 거지? 릴리.'); await X.tween(c, 'w', 1, 4.4, T.ease.lin); }, max: 16 });
       X.walk(post, PL.HX - 640, 150);
       await X.wait(0.8);
+      /* the whole town weaves the road she will not walk on */
+      T.announce('꽃길에 걸 화환을 엮는다. 꽃이 되풀이되는 차례를 보고 빈자리를 채운다.');
+      await X.play(T.puzzle.garland({ pattern: [0, 1, 0, 2], len: 13, gaps: [5, 7, 10, 11, 12] }));
 
       /* ---- the walk ---- */
       const V = wedding();

@@ -197,7 +197,7 @@
     s.a2 = y1(J1) - interp(K2, J1);
     s.d2 = s.a2; s.a3 = y2(J2) - interp(K3, J2); s.d3 = s.a3;   /* the three hills are one road */
     s.join1 = false; s.join2 = false; s.snap.k = 0; s.gate[1].k = 0; s.gate[2].k = 0; s.r2 = 0; s.r3 = 0;
-    s.boat.x = -1500; s.lamps = [{ x: -1020, k: 0, ok: false }, { x: SEA_LAMP, k: 0, ok: false }]; s.tolls = 0; s.bell.k = 0;
+    s.boat.x = -1500; s.lamps = [{ x: -1020, k: 0, ok: false, mist: 1 }, { x: SEA_LAMP, k: 0, ok: false, mist: 1 }]; s.game = null; s.tolls = 0; s.bell.k = 0;
     s.leo = { x: 0, y: PIER_Y, stand: 0, hop: 0, style: F.styles.leoBed, flip: false, lamp: false };
     s.nana = { x: 300, y: PIER_Y, flip: true, wave: 0 };
     s.wx = 60; s.nx = 130; s.wph = 0; s.nph = 0; s.moving = false; s.nmoving = false;
@@ -222,7 +222,7 @@
     A.ambience(0.3, 0.3, atSea ? 0.55 : 0.2);
     A.bed(0, 0.12, atSea ? 'sea' : 'walk');
     const joinAll = () => { S.join1 = true; S.join2 = true; S.gate[1].k = 1; S.gate[2].k = 1; S.r2 = 9999; S.r3 = 9999; };
-    const seaLit = () => S.lamps.forEach((q) => { q.ok = true; q.k = 1; });
+    const seaLit = () => S.lamps.forEach((q) => { q.ok = true; q.k = 1; q.mist = 0; });
     if (cp === 'sea') {
       S.ph = 'sail';
       k.wait(1.2).then(() => k.tween(S.title, 'a', 1, 1.6)).then(() => k.wait(3.2)).then(() => k.tween(S.title, 'a', 0, 1.8));
@@ -273,11 +273,17 @@
   const seaLamp = () => S.lamps.find((q) => !q.ok);
   function lightSea() {
     const s = seaLamp();
-    if (!s || S.ph !== 'sail' || S.boat.x < s.x - 340) return;
-    s.ok = true; S.idle = 0;
+    if (!s || s.asked || S.ph !== 'sail' || S.boat.x < s.x - 340) return;
+    s.asked = true; S.idle = 0;
     S.clock.tween(s, 'k', 1, 0.8, T.ease.out);
-    T.audio.sfx('join'); notes(3);
-    T.announce('구름바다의 등불에 불이 들어오고, 배가 다시 나아간다.');
+    T.audio.sfx('join');
+    const open = () => { s.ok = true; S.clock.tween(s, 'mist', 0, 1.2); notes(3); T.announce('구름바다의 등불에 불이 들어오고, 배가 다시 나아간다.'); };
+    if (s.x !== SEA_LAMP) { open(); return; }
+    /* off the pier the harbour bell has something to ask first, and the lamps answer it */
+    T.announce('항구의 종이 묻고, 부두의 등불 넷이 대답한다. 종이 울린 차례대로 등불을 누른다.');
+    S.game = T.puzzle.bell({ rounds: [[0, 1, 2], [0, 1, 2, 3]] });
+    T.audio.bed(null);
+    S.game.begin(S.clock).then(() => { S.game = null; S.idle = 0; T.audio.bed(0, 0.12, 'sea'); open(); });
   }
   function sail(dt) {
     const b = S.boat, k = S.clock, A = T.audio;
@@ -541,7 +547,7 @@
     beam: () => [HOUSE - 50, UF() - 100, 56], sweater: () => [HOUSE + 78, UF() - 44, 44],
   };
   function spot() {
-    if (S.ph === 'sail') { const s = seaLamp(); return s && S.boat.x >= s.x - 340 ? [s.x + 24, surf(s.x) - 96, 56] : null; }
+    if (S.ph === 'sail') { const s = seaLamp(); return s && !s.asked && S.boat.x >= s.x - 340 ? [s.x + 24, surf(s.x) - 96, 56] : null; }
     if (S.ph === 'walk') { const n = waitingAt(); if (n) { const q = gateAt(n); return [q[0], q[1], 48]; } return null; }
     if (S.ph === 'meet') return [S.nana.x, PIER_Y - 70, 70];
     if (S.ph === 'home' && S.wait && SPOT[S.st]) return SPOT[S.st]();
@@ -552,6 +558,7 @@
   const overEnd = (x, y) => Math.abs(x) < 170 && Math.abs(y - 806) < 40;
   S.pointer = function (type, x, y) {
     if (type === 'down' && TALK.tap()) return;
+    if (S.game) { T.cursor('default'); S.game.pointer(type, x, y); return; }
     const sp = spot();
     if (sp) {
       const [sx, sy] = toScreen(sp[0], sp[1]);
@@ -566,6 +573,7 @@
   S.key = function (key) {
     const act = key === ' ' || key === 'Enter';
     if (act && TALK.tap()) return;
+    if (S.game) return S.game.key(key);
     if (spot()) { if (!act) return false; tapSpot(); return; }
     if (S.ph === 'end') { if (act && S.canLeave) S.leave(); else return false; return; }
     return false;
@@ -573,6 +581,7 @@
 
   S.update = function (dt) {
     S.idle += dt;
+    if (S.game) S.game.update(dt);
     if (S.ph === 'sail') sail(dt);
     if (S.running) { const v = 120; S.wx = Math.min(S.nana.x - 36, S.wx + v * dt); S.wph += (v * dt) / 9; S.moving = true; } else if (S.ph === 'hug' || S.ph === 'meet' || S.ph === 'dock') S.moving = false;
     if (S.ph === 'walk' || S.ph === 'climb' || S.ph === 'plot') walk(dt);
@@ -973,8 +982,8 @@
   function drawSeaMist(g, xa, xb) {
     const t = T.time;
     for (const s of S.lamps) {
-      const m = s.ok ? 1 - s.k : 1;
-      if (m < 0.01 || s.idle || s.x < xa - 100 || s.x > xb + 600) continue;
+      const m = s.mist || 0;
+      if (m < 0.01 || s.x < xa - 100 || s.x > xb + 600) continue;
       for (let i = 0; i < 5; i++) P.glow(g, s.x - 70 - i * 74 + Math.sin(t * 0.5 + i * 1.7) * 14, SEA - 64 - (i % 2) * 44, 128, '#fff6ea', 0.42 * m, 'source-over');
     }
   }
@@ -1089,6 +1098,7 @@
     const V = T.view, W = V.W, t = T.time;
     const sp = spot();
     if (sp && !TALK.cur) { const [sx, sy] = toScreen(sp[0], sp[1]); P.beacon(g, sx, sy, sp[2] * S.cam.z * 0.8, t, 1, '#fff0c8'); }
+    if (S.game) S.game.draw(g, t);
     if (S.title.a > 0.01) {
       P.text(g, '1장', 0, 300, { font: 'serif', size: 26, track: 12, color: '#4a4468', alpha: 0.8 * S.title.a });
       P.text(g, '항구', 0, 430, { size: 150, color: '#3d3a5c', alpha: S.title.a, seed: 4 });
@@ -1120,7 +1130,7 @@
       S.build();
       reset();
       S.join1 = true; S.join2 = true; S.gate[1].k = 1; S.gate[2].k = 1; S.r2 = 9999; S.r3 = 9999;
-      S.lamps = [{ x: SEA_LAMP, k: 0, ok: true, idle: true }];   /* dark, and no one out there, until a chapter says otherwise */
+      S.lamps = [{ x: SEA_LAMP, k: 0, ok: true, mist: 0 }];   /* dark, and no one out there, until a chapter says otherwise */
       S.ph = 'lent';
       S.hook = Object.assign({ flags: {} }, hook);
       S.hook.flags = S.hook.flags || {};
