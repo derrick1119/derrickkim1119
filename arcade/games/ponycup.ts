@@ -2088,7 +2088,7 @@ const hillY = (x: number, a: number) => {
   const q = (x - HILL_CX) / HILL_HW;
   return Math.abs(q) >= 1 ? PONY_Y : Math.min(PONY_Y, HILL_BASE - HILL_H * a * Math.cos((q * Math.PI) / 2) ** 2);
 };
-const HUR = [0.42, 0.66];
+const HUR = [0.36, 0.6];
 interface PPose { x: number; y: number; tilt: number; rot: number; pose: Pose; face: Face; wind: number; sink: number; ph: number; flash: number }
 function ponyPose(s: PonyState): PPose {
   const t = s.t, fat = s.fat;
@@ -2150,15 +2150,15 @@ function ponyPose(s: PonyState): PPose {
         return { x: x0 + (x1 - x0) * q, y: PONY_Y - Math.sin(q * Math.PI) * 0.13, jump: true };
       };
       let p: { x: number; y: number; jump: boolean };
-      if (u < 16) p = { x: 0.16 + (u / 16) * 0.12, y: PONY_Y, jump: false };
-      else if (u < 30) p = hop(16, 30, 0.28, 0.54);
-      else if (u < 40) p = { x: 0.54 + ((u - 30) / 10) * 0.0, y: PONY_Y, jump: false };
+      if (u < 16) p = { x: 0.1 + (u / 16) * 0.12, y: PONY_Y, jump: false };
+      else if (u < 30) p = hop(16, 30, 0.22, 0.48);
+      else if (u < 40) p = { x: 0.48, y: PONY_Y, jump: false };
       else if (c.fail) {
         const q = ease((u - 40) / 12), lying = u >= 52;
-        return home({ x: 0.54 + q * 0.08, y: PONY_Y, tilt: 0, rot: lying ? Math.PI : q * Math.PI, pose: 'tumble', face: 'dizzy', wind: 0, sink: 0, ph: 0, flash: 0 }, 0);
-      } else if (u < 54) p = hop(40, 54, 0.54, 0.82);
-      else p = { x: 0.82, y: PONY_Y, jump: false };
-      if (u >= 54) return home({ x: 0.82, y: PONY_Y, tilt: 0, rot: 0, pose: u < 88 ? 'flex' : 'stand', face: 'proud', wind: 0.2, sink: 0, ph: 0, flash: fl }, 0);
+        return home({ x: 0.48 + q * 0.08, y: PONY_Y, tilt: 0, rot: lying ? Math.PI : q * Math.PI, pose: 'tumble', face: 'dizzy', wind: 0, sink: 0, ph: 0, flash: 0 }, 0);
+      } else if (u < 54) p = hop(40, 54, 0.48, 0.74);
+      else p = { x: 0.74, y: PONY_Y, jump: false };
+      if (u >= 54) return home({ x: 0.74, y: PONY_Y, tilt: 0, rot: 0, pose: u < 88 ? 'flex' : 'stand', face: 'proud', wind: 0.2, sink: 0, ph: 0, flash: fl }, 0);
       return { x: p.x, y: p.y, tilt: p.jump ? -0.15 : 0, rot: 0, pose: p.jump ? 'jump' : 'gallop', face: 'effort', wind: 0.6, sink: 0, ph: t * 0.12, flash: 0 };
     }
     case 'rest': {
@@ -2915,7 +2915,7 @@ function drawPanel(ctx: C2, s: PonyState, vis: Vis, w: number, font: (sz: number
   const medal = rank === 1 ? ['#ffe56a', '#e0a010'] : rank === 2 ? ['#f0f4fa', '#a8b4c8'] : rank === 3 ? ['#ffc89a', '#c8763a'] : ['#e8e0d8', '#a89888'];
   const ok = rank <= d.goal, fa = t - vis.foreT, fpop = !race && fa < 30 ? 1 + 0.35 * (1 - fa / 30) : 1;
   font(0.034 * fpop, 900);
-  const lab = race ? `지금 ${rank}등` : `지금 달리면 ${rank}등`, lw2 = ctx.measureText(lab).width + R(0.07);
+  const lab = s.phase === 'pre' ? `목표 ${d.goal}등 안` : race ? `지금 ${rank}등` : `지금 달리면 ${rank}등`, lw2 = ctx.measureText(lab).width + R(0.07);
   const lx = x0 + pw - lw2 - R(0.012);
   ctx.fillStyle = ok ? lin(ctx, 0, r1 - R(0.02), 0, r1 + R(0.02), [0, medal[0]], [1, medal[1]]) : '#ffd8d0';
   rr(ctx, lx, r1 - R(0.02), lw2, R(0.04), R(0.02));
@@ -3454,7 +3454,7 @@ function drawRaceInfo(ctx: C2, s: PonyState, vis: Vis, fx: ReturnType<typeof jui
       font(0.06, 900);
       ctx.fillStyle = '#d0501a';
       ctx.textAlign = 'center';
-      ctx.fillText(s.pt < PRE_T - 20 ? '준비…' : '땅!', bx + bw / 2, by, bw - 8);
+      ctx.fillText(s.pt < PRE_T - 16 ? `준비… 목표 ${d.goal}등 안!` : '땅!', bx + bw / 2, by, bw - 8);
     } else {
       const spurt = d.spurt && si === d.course.length - 1;
       statIcon(ctx, spurt ? 3 : st, bx + R(0.065), by, R(0.035));

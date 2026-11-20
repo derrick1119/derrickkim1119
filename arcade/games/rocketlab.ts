@@ -3146,7 +3146,8 @@ function drawStarsRow(ctx: C2, s: RocketState, vis: Vis, X: (x: number) => numbe
   const d = STAGES[s.stage], pred = vis.pred;
   font(0.028, 800);
   const items = d.stars.map((q, j) => {
-    const on = s.phase === 'result' ? s.ok && s.starOk[j] : !!pred && !pred.tip && starPreview(s, q, pred);
+    const f = s.fl, passed = !!f && f.ok && (f.t > IGN + f.asc || flStep(f) >= evStep(f, 'pass'));
+    const on = s.phase === 'result' ? s.ok && s.starOk[j] : s.phase === 'fly' ? passed && starMet(s, q, f!.res) : !!pred && !pred.tip && starPreview(s, q, pred);
     return { label: q.label, on, w: ctx.measureText(q.label).width + R(0.06) };
   });
   const gap = R(0.012), total = items.reduce((a, it) => a + it.w, 0) + gap * (items.length - 1);
