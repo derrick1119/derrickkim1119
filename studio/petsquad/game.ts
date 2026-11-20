@@ -71,59 +71,64 @@ interface StageDef {
   line?: Kind[];
   /** 임시 줄 시드(진짜 줄이 없을 때) — ✏️ M1 S3 봇 탐색으로 고름 */
   lineSeed?: number;
+  /** ✏️ M1 S4 판 독립(📐 CONTENT §1): 시작 금화 · ★★ '금화 N개 남기기'의 N · 시작 진영 */
+  coins: number; n: number; start?: [Kind, number][];
 }
 export const STAGES: StageDef[] = [
   {
     name: '풀밭 첫 싸움', who: '무당벌레 셋', news: '', hint: '같은 동물 셋이 모이면 빵! 합체', spot: 'merge',
-    pool: ['lion', 'hedge'], mult: 1, win: 5,
+    pool: ['lion', 'hedge'], mult: 1, win: 5, coins: 4, n: 0, start: [['lion', 1], ['lion', 1]],
     line: L('lion hedge hedge lion hedge lion hedge hedge lion hedge lion hedge'),
     foes: [F('bug', 3, 0, 0), F('bug', 3, 0, 1), F('bug', 3, 0, 2)],
     stars: [ST('win', 0, '상대 군단 이기기')],
   },
   {
     name: '너구리 패거리', who: '너구리 패거리', news: '상성 — 물은 불에, 불은 풀에, 풀은 물에 세요', hint: '상대 망토 색을 보고 센 색을 사요', spot: 'element',
-    pool: ['lion', 'hedge', 'turtle'], mult: 1.1, win: 6,
+    pool: ['lion', 'hedge', 'turtle'], mult: 0.6, win: 6, coins: 6, n: 0,
     line: L('turtle lion lion hedge lion turtle hedge lion turtle hedge lion turtle'),
     foes: [F('raccoon', 2, 0, 0), F('raccoon', 2, 0, 1), F('raccoon', 2, 0, 2)], // 📐 CONTENT 1-2: 풀 두건 — 불 사자가 세다
     stars: [ST('win', 0, '이기기'), ST('merge', 1, '합체 한 번 하기')],
   },
   {
     name: '두 줄 진영', who: '멧돼지 군단', news: '두 줄 진영 — 쏘는 동물은 뒷줄에서 쏴요', hint: '앞줄이 막고 뒷줄이 쏴요', spot: 'back',
-    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit'], mult: 1.7, win: 6, lineSeed: 103, // ✏️ M1 S3 임시 줄: 잘하는 봇 ★3 가능 · 버릇 봇 6종 ★3 불가인 시드(봇 탐색)
+    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit'], mult: 0.6, win: 6, coins: 7, n: 3, lineSeed: 810, // ✏️ M1 S4 다시 고름(판 독립·별 틀): 잘하는 봇 ★3 가능 · 버릇 봇 6종 ★3 불가 · 무작위 승률이 목표에 가까운 시드
     foes: [F('boar', 0, 0, 1), F('raccoon', 0, 0, 0), F('raccoon', 1, 0, 2), F('sling', 0, 1, 0), F('sling', 1, 1, 2)],
     stars: [ST('win', 0, '이기기'), ST('noloss', 0, '한 마리도 안 잃고 이기기'), ST('shooter', 0, '쏘는 동물과 함께 이기기')],
   },
   {
     name: '카드 넘기기', who: '물방울 산적', news: '넘기기 — 금화 1개로 앞 카드 셋을 줄 끝으로', hint: '원하는 카드가 뒤에 있으면 넘기기', spot: 'reroll',
-    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit'], mult: 2.0, win: 7, lineSeed: 306, // ✏️ M1 S3 임시 줄: 잘하는 봇 ★3 가능 · 버릇 봇 6종 ★3 불가인 시드(봇 탐색)
+    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit'], mult: 0.7, win: 7, coins: 8, n: 3, lineSeed: 104, // ✏️ M1 S4 다시 고름(판 독립·별 틀): 잘하는 봇 ★3 가능 · 버릇 봇 6종 ★3 불가 · 무작위 승률이 목표에 가까운 시드
     foes: [F('boar', 0, 0, 1), F('raccoon', 0, 0, 0), F('raccoon', 0, 0, 2), F('sling', 2, 1, 0), F('sling', 0, 1, 1), F('sling', 2, 1, 2)],
     stars: [ST('win', 0, '이기기'), ST('merge', 2, '합체 두 번 하기'), ST('save', 3, '금화 3개 남기고 이기기')],
   },
   {
     name: '박쥐 떼', who: '박쥐 떼', news: '박쥐 — 뒷줄을 노려요. 쏘는 동물만 맞혀요', hint: '박쥐는 쏘는 동물만 맞혀요', spot: 'fly',
-    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit'], mult: 2.0, win: 7, lineSeed: 105, // ✏️ M1 S3 임시 줄: 잘하는 봇 ★3 가능 · 버릇 봇 6종 ★3 불가인 시드(봇 탐색)
+    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit'], mult: 0.8, win: 7, coins: 8, n: 3, lineSeed: 4650, // ✏️ M1 S4 다시 고름(판 독립·별 틀): 잘하는 봇 ★3 가능 · 버릇 봇 6종 ★3 불가 · 무작위 승률이 목표에 가까운 시드
     foes: [F('raccoon', 1, 0, 0), F('boar', 1, 0, 1), F('raccoon', 1, 0, 2), F('bat', 0, 2, 0), F('bat', 0, 2, 1), F('bat', 0, 2, 2)],
     stars: [ST('win', 0, '이기기'), ST('noloss', 0, '한 마리도 안 잃고 이기기'), ST('fast', 15, '15초 안에 이기기')],
   },
   {
     name: '치료사', who: '다람쥐 치료단', news: '치료사 — 양이 가게에! 상대 다람쥐도 고쳐요', hint: '양은 가장 다친 친구를 고쳐요', spot: 'heal',
-    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit', 'sheep'], mult: 2.3, win: 8, lineSeed: 106, // ✏️ M1 S3 임시 줄: 잘하는 봇 ★3 가능 · 버릇 봇 6종 ★3 불가인 시드(봇 탐색)
+    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit', 'sheep'], mult: 1.0, win: 8, coins: 9, n: 3, lineSeed: 1722, // ✏️ M1 S4 다시 고름(판 독립·별 틀): 잘하는 봇 ★3 가능 · 버릇 봇 6종 ★3 불가 · 무작위 승률이 목표에 가까운 시드
     foes: [F('boar', 2, 0, 1), F('raccoon', 2, 0, 0), F('raccoon', 2, 0, 2), F('squirrel', 2, 1, 1), F('sling', 1, 1, 0), F('sling', 1, 1, 2)],
     stars: [ST('win', 0, '이기기'), ST('merge', 1, '합체 한 번 하기'), ST('fast', 12, '12초 안에 이기기')],
   },
   {
     name: '곰 우두머리', who: '곰 우두머리', news: '우두머리 — 쿵! 앞줄 모두를 한꺼번에 쳐요', hint: '앞줄은 단단하게, 뒷줄은 세게', spot: 'boss',
-    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit', 'sheep'], mult: 2.6, win: 0, lineSeed: 3541, // ✏️ M1 S3 임시 줄: 잘하는 봇 ★3 가능 · 버릇 봇 6종 ★3 불가인 시드(봇 탐색)
+    pool: ['lion', 'hedge', 'turtle', 'fox', 'owl', 'rabbit', 'sheep'], mult: 0.7, win: 0, coins: 10, n: 3, lineSeed: 814, // ✏️ M1 S4 다시 고름(판 독립·별 틀): 잘하는 봇 ★3 가능 · 버릇 봇 6종 ★3 불가 · 무작위 승률이 목표에 가까운 시드
     foes: [F('bear', 0, 0, 1), F('raccoon', 1, 0, 0), F('raccoon', 2, 0, 2), F('bat', 1, 2, 0), F('bat', 2, 2, 2)],
     stars: [ST('win', 0, '우두머리 이기기'), ST('noloss', 0, '한 마리도 안 잃고 이기기'), ST('save', 3, '금화 3개 남기고 이기기')],
   },
 ];
+/** ✏️ M1 S4 별 틀(📐 GDD §5): 모든 판이 같은 세 별 — ★ 이기기 · ★★ 금화 N개 남기고 이기기 · ★★★ 한 마리도 안 잃고 이기기 */
+export const starsOf = (n: number): StarDef[] => [ST('win', 0, '이기기'), ST('save', n, n ? `금화 ${n}개 남기고 이기기` : '덤 별'), ST('noloss', 0, '한 마리도 안 잃고 이기기')];
+for (const d of STAGES) d.stars = starsOf(d.n);
 export const STAGE_COUNT = STAGES.length;
-const START_COINS = 5, LOSS_COINS = 3, REROLL = 1;
+const START_COINS = 5, REROLL = 1;
 const CLEAR_PTS = 100, STAR_PTS = 100, WIN_PTS = 200, HEART_PTS = 100, KO_PTS = 4;
 /** 1-1 저절로 싸움까지 톡 없는 틱 */
 const AUTO_FIGHT = 240;
-const FIGHT_MAX = 60 * 30, END_WAIT = 70, RESULT_OK = 110, RESULT_FAIL = 150, BANNER_T = 160;
+const FIGHT_MAX = 60 * 30, END_WAIT = 70, RESULT_OK = 110, BANNER_T = 160;
 
 // ───────────────────────────── 상태 ─────────────────────────────
 interface Pet { id: number; k: Kind; star: number; born: number; land: number; mergeT: number; from: number }
@@ -147,6 +152,8 @@ export interface PetState {
   fight: Fight | null; fightCoins: number; merges: number; mergeAll: number; swaps: number; sells: number;
   stars: number; got: number; starOk: boolean[]; pts: number; won: boolean; dead: boolean; again: boolean; tries: number;
   down: boolean; firstTap: number; firstBig: number; wowN: number; slow: number; idle: number;
+  /** ✏️ M1 S4: 싸움을 누른 순간(군단 그대로 다시용) · 판마다 진 횟수 */
+  snap: { board: (Pet | null)[]; coins: number; shop: Card[]; queue: Kind[]; merges: number } | null; lost: number[];
   seen: Set<string>; banner: { head: string; sub: string; t: number } | null; spot: { x: number; y: number; t: number; label: string; rx: number; ry: number } | null;
   events: Ev[]; pred: Pred | null; predKey: string; say: { slot: number; text: string; t: number } | null; bigText: string; bigT: number; bigY: number;
 }
@@ -487,7 +494,11 @@ function newStage(s: PetState) {
   s.fight = null;
   s.rerolls = 0;
   s.idle = 0;
-  if (!s.again) s.merges = 0;
+  // ✏️ M1 S4 판 독립·하트 폐지(📐 CONTENT §4): 판마다 정해진 시작 진영·금화로 — 진 뒤 '다시!'도 처음부터
+  s.board = [null, null, null, null, null, null];
+  for (const [j, b] of (d.start ?? []).entries()) s.board[j] = { id: ++s.nid, k: b[0], star: b[1], born: -999, land: -999, mergeT: -999, from: -1 };
+  s.coins = d.coins;
+  s.merges = 0;
   if (lineMode()) lineShop(s);
   else rollShop(s, true);
   s.starOk = d.stars.map(() => false);
@@ -505,7 +516,7 @@ function newStage(s: PetState) {
     else if (sp === 'element') s.spot = { x: 0.5, y: EN_Y[0] - 0.06, t: s.t, label: '상대 망토 색', rx: 0.46, ry: 0.09 };
     else s.spot = null;
     if (sp === 'back') see(s, 'shooter');
-  } else s.banner = { head: `다시! ${s.stage + 1}판 · ${d.name}`, sub: '군단은 그대로 — 금화로 보태요', t: s.t };
+  } else s.banner = { head: `처음부터 · ${s.stage + 1}판 · ${d.name}`, sub: '처음부터 — 줄을 다시 읽어 봐요', t: s.t };
 }
 function starMet(s: PetState, q: StarDef, f: Fight) {
   switch (q.k) {
@@ -520,7 +531,7 @@ function starMet(s: PetState, q: StarDef, f: Fight) {
 /** 별 칸 옆 진행 */
 function starNow(s: PetState, q: StarDef): string {
   if (q.k === 'merge') return `${Math.min(s.merges, q.n)}/${q.n}`;
-  if (q.k === 'save') return `${Math.min(s.coins, q.n)}/${q.n}`;
+  if (q.k === 'save') return ''; // 🧪 S4: '3/3'이 남은 금화인지 목표인지 헷갈려서 목표만 보인다
   return '';
 }
 function endFight(s: PetState) {
@@ -533,15 +544,28 @@ function endFight(s: PetState) {
     s.got = s.starOk.filter(Boolean).length;
     s.stars += s.got;
     s.pts += (CLEAR_PTS + s.got * STAR_PTS) * (1 + s.stage * 0.5);
-    s.coins += d.win;
     if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS + s.hearts * HEART_PTS);
-    ev(s, 'clear', 0.5, MID_Y, d.win);
+    ev(s, 'clear', 0.5, MID_Y, 0);
     if (f.lost === 0 && s.stage > 0) wow(s, '하나도 안 잃었다!', 0.5, 0.62);
   } else {
-    s.hearts--;
     s.tries++;
+    s.lost[s.stage] = (s.lost[s.stage] ?? 0) + 1;
     s.why = f.t >= FIGHT_MAX ? '시간이 다 됐어요' : '군단이 다 쓰러졌어요';
     ev(s, 'fail', 0.5, MY_Y[0]);
+  }
+}
+/** 진 뒤 다시: keep이면 싸움을 누른 순간의 군단·금화·카드 줄로(금화를 더 주지도 빼지도 않는다) */
+export function retry(s: PetState, keep: boolean) {
+  s.again = true;
+  newStage(s);
+  if (keep && s.snap) {
+    const n = s.snap;
+    s.board = n.board.map((p) => (p ? { ...p, land: s.t } : null));
+    s.coins = n.coins;
+    s.shop = n.shop.map((c) => ({ ...c, born: s.t }));
+    s.queue = n.queue.slice();
+    s.merges = n.merges;
+    s.banner = { head: `이 군단으로 다시 · ${s.stage + 1}판`, sub: '자리를 바꾸거나 더 사 보세요', t: s.t };
   }
 }
 function startFight(s: PetState) {
@@ -553,6 +577,7 @@ function startFight(s: PetState) {
   s.pt = 0;
   s.sel = -1;
   s.fightCoins = s.coins;
+  s.snap = { board: s.board.map((p) => (p ? { ...p } : null)), coins: s.coins, shop: s.shop.map((c) => ({ ...c })), queue: s.queue.slice(), merges: s.merges };
   s.fight = makeFight(s.board, s.stage, s.rots[s.stage], true);
   s.banner = null;
   ev(s, 'charge', 0.5, MID_Y);
@@ -709,13 +734,11 @@ const game: GameDef<PetState> & { wows(s: PetState): number } = {
       hearts: 3, coins: START_COINS, board: [null, null, null, null, null, null], shop: [], queue: [], sel: -1, nid: 0, rerolls: 0, buys: 0,
       fight: null, fightCoins: 0, merges: 0, mergeAll: 0, swaps: 0, sells: 0,
       stars: 0, got: 0, starOk: [false], pts: 0, won: false, dead: false, again: false, tries: 0,
-      down: false, firstTap: -1, firstBig: -1, wowN: 0, slow: 0, idle: 0,
+      down: false, firstTap: -1, firstBig: -1, wowN: 0, slow: 0, idle: 0, snap: null, lost: [],
       seen: new Set<string>(), banner: null, spot: null, events: [], pred: null, predKey: '', say: null, bigText: '', bigT: -999, bigY: MID_Y,
     } as unknown as PetState;
     s.rots = STAGES.map(() => (s.rng(), 0)); // ✏️ M1 S3: 상대 속성 돌리기 없앰(판이 정해져야 퍼즐) — 난수 흐름은 그대로 둔다
-    // ✏️ M1 S2 첫 30초(📐 CONTENT §5): 1-1엔 사자 둘이 미리 서 있다 → 첫 톡(사자 카드)이 곧 '빵!' 합체
-    s.board[0] = { id: ++s.nid, k: 'lion', star: 1, born: -999, land: -999, mergeT: -999, from: -1 };
-    s.board[1] = { id: ++s.nid, k: 'lion', star: 1, born: -999, land: -999, mergeT: -999, from: -1 };
+    // ✏️ M1 S2 첫 30초: 1-1엔 사자 둘이 미리 서 있다(M1 S4부터 STAGES[0].start) → 첫 톡(사자 카드)이 곧 '빵!' 합체
     newStage(s);
     s.banner = null;
     return s;
@@ -740,17 +763,15 @@ const game: GameDef<PetState> & { wows(s: PetState): number } = {
     } else if (s.phase === 'fight') fightTick(s);
     else {
       s.pt++;
-      const T = s.ok ? RESULT_OK : RESULT_FAIL;
-      if (s.pt >= T || (fresh && s.pt > 50)) {
-        if (s.ok) {
+      if (s.ok) {
+        if (s.pt >= RESULT_OK || (fresh && s.pt > 50)) {
           if (s.won) s.dead = true;
           else (s.again = false), s.stage++, newStage(s);
-        } else if (s.hearts <= 0) s.dead = true;
-        else {
-          s.again = true;
-          s.coins += LOSS_COINS;
-          newStage(s);
         }
+      } else if (fresh && s.pt > 30) {
+        // ✏️ M1 S4(📐 CONTENT §4): 지면 저절로 넘어가지 않는다 — '다시!'(처음부터) 또는 '군단 그대로'(싸움을 누른 순간으로)
+        const h = hitTest(s, p!.x, p!.y * A);
+        if (h && (h.t === 'fight' || h.t === 'reroll' || h.t === 'sell')) retry(s, h.t === 'fight'); // 🧪 S4: 큰 단추 = 이 군단으로 다시 · 작은 단추 = 처음부터
       }
     }
     if (s.events.length > 60) s.events = s.events.filter((e) => s.t - e.t < 120);
@@ -898,6 +919,7 @@ const tapMem = new WeakMap<object, number>();
 export const petsquadSmart: Bot<PetState> = {
   name: '조합을 다 싸워 보고 사기',
   act(s) {
+    if (s.phase === 'result' && !s.ok) return s.down || s.pt < 40 ? NO : tapFight(s); // M1 S4: 지면 '다시!'
     if (s.phase !== 'shop') return NO;
     if (s.down) return NO;
     const last = tapMem.get(s) ?? -99;
@@ -939,6 +961,7 @@ export const petsquadRandom: Bot<PetState> = {
 
 const habitMem = new WeakMap<object, number>();
 function habitTap(s: PetState, f: () => Input): Input {
+  if (s.phase === 'result' && !s.ok) return s.down || s.pt < 40 ? NO : tapFight(s); // M1 S4: 지면 '다시!'
   if (s.phase !== 'shop' || s.down) return NO;
   const last = habitMem.get(s) ?? -99;
   if (s.t - last < 4) return NO;
@@ -985,6 +1008,7 @@ const humMem = new WeakMap<object, number>();
 export const petsquadHuman: Bot<PetState> = {
   name: '사람 흉내(1.5초에 한 톡·다시 뽑기 안 함·1판은 손가락 안내대로)',
   act(s) {
+    if (s.phase === 'result' && !s.ok) return s.down || s.pt < 90 ? NO : tapFight(s);
     if (s.phase !== 'shop' || s.down) return NO;
     const last = humMem.get(s);
     if (last === undefined || s.t - last < 90) {
@@ -1006,7 +1030,9 @@ export const petsquadHuman: Bot<PetState> = {
     if (pl.buys.length) return tapCard(pl.buys[0]);
     if (pl.swap) return tapSlot(pl.swap[0]);
     if (pl.sell >= 0) return tapSlot(pl.sell);
-    return tapFight(s);
+    // M1 S4: 넘기기를 안 하는 사람이라 진영이 비었으면 살 수 있는 첫 카드부터(빈 진영으로 '싸움!'만 누르다 멈추지 않게)
+    const cs = s.board.some(Boolean) ? [] : seeCards(s);
+    return cs.length ? tapCard(cs[0].i) : tapFight(s);
   },
 };
 
@@ -3064,15 +3090,17 @@ function drawShop(ctx: C2, s: PetState, vis: Vis, X: (x: number) => number, Y: (
   if (selP) {
     const v = sellValue(selP);
     btn(REROLL_BTN, '#ffd86a', '#f0a020', '#8a5208', '팔기', `금화 +${v}`, true, 1 + 0.03 * Math.sin(t * 0.25), () => undefined);
+  } else if (s.phase === 'result' && !s.ok) {
+    btn(REROLL_BTN, '#ffd86a', '#f0a020', '#8a5208', '처음부터', '', s.pt > 30, 1, () => undefined);
   } else if (rerollOn(s)) {
     const on = shop && s.coins >= REROLL;
     const sk = lineMode();
     btn(REROLL_BTN, '#7ac8ff', '#2f86e0', '#1a4a90', sk ? '넘기기' : '다시 뽑기', sk && !canSkip(s) ? '줄 끝' : '금화 1', on && (!sk || canSkip(s)), 1, () => undefined);
   }
   const has = s.board.some(Boolean);
-  const fightOn = (shop && has) || (s.phase === 'result' && s.pt > 50);
+  const fightOn = (shop && has) || (s.phase === 'result' && s.pt > (s.ok ? 50 : 30));
   const tip = s.stage === 0 && shop && firstTip(s) === 9;
-  btn(FIGHT_BTN, '#ff8a4a', '#e0381e', '#8a1a08', shop ? '싸움!' : s.phase === 'fight' ? '싸우는 중' : s.ok ? '다음 판' : '다시', '', fightOn, fightOn ? 1 + (tip ? 0.06 : 0.025) * Math.sin(t * 0.22) : 1, (x, y) => {
+  btn(FIGHT_BTN, '#ff8a4a', '#e0381e', '#8a1a08', shop ? '싸움!' : s.phase === 'fight' ? '싸우는 중' : s.ok ? '다음 판' : '이 군단으로 다시', '', fightOn, fightOn ? 1 + (tip ? 0.06 : 0.025) * Math.sin(t * 0.22) : 1, (x, y) => {
     // 칼 두 자루
     for (const sd of [-1, 1]) {
       ctx.save();
@@ -3128,7 +3156,7 @@ function drawShop(ctx: C2, s: PetState, vis: Vis, X: (x: number) => number, Y: (
     let hint = d.hint, hx = -1, hy = -1;
     const tipI = s.stage === 0 && shop ? firstTip(s) : -1;
     if (s.phase === 'fight') hint = '싸움은 저절로! 구경해요';
-    else if (s.phase === 'result') hint = s.ok ? (s.won ? '모든 판을 이겼어요!' : '다음 판엔 새것이 나와요') : '군단을 바꿔 다시 도전!';
+    else if (s.phase === 'result') hint = s.ok ? (s.won ? '모든 판을 이겼어요!' : '다음 판엔 새것이 나와요') : '큰 단추: 이 군단으로 다시 · 작은 단추: 처음부터';
     else if (selP) hint = '다른 칸을 톡 = 자리 바꾸기 · 왼쪽 = 팔기';
     else if (tipI >= 0 && tipI < 3) {
       hint = s.board.filter((p) => p && p.k === 'lion' && p.star === 1).length === 1 && s.buys === 0 ? '사자 카드를 톡!' : '하나 더! 같은 동물 셋이면 합체';
@@ -3198,7 +3226,7 @@ function drawTop(ctx: C2, s: PetState, X: (x: number) => number, Y: (y: number) 
   ctx.strokeStyle = '#7a4a08';
   ctx.lineWidth = 1.2;
   ctx.stroke();
-  for (let j = 0; j < 3; j++) {
+  for (let j = 0; j < 0; j++) { // M1 S4: 하트 폐지 — 그리지 않는다
     const hx2 = w - R(0.03) - sw - R(0.085) - j * R(0.052);
     heartPath(ctx, hx2, cy, R(0.018));
     ctx.fillStyle = 2 - j < s.hearts ? lin(ctx, hx2, cy - R(0.02), hx2, cy + R(0.02), [0, '#ff8a95'], [1, '#e2334a']) : 'rgba(110,60,20,.15)';
@@ -3246,7 +3274,7 @@ function drawCards(ctx: C2, s: PetState, fx: ReturnType<typeof juice>, X: (x: nu
     a = Math.min(1, age / 8);
     cy = Y(s.ok ? 0.34 : 0.6);
     if (s.ok) head = s.won ? '모든 판 승리!' : `${d.who} 이겼다!`;
-    else (head = '으앗, 졌다…'), (sub = s.hearts > 0 ? `${s.why} · 하트 -1 · 같은 판 다시` : '하트가 없어요 — 끝');
+    else (head = '으앗, 졌다…'), (sub = `${s.why} · 이 군단으로 다시 해 봐요`);
   } else if (s.banner && s.phase === 'shop' && t - s.banner.t < BANNER_T) {
     age = t - s.banner.t;
     a = Math.min(1, age / 8, (BANNER_T - age) / 25);
@@ -3303,7 +3331,7 @@ function drawCards(ctx: C2, s: PetState, fx: ReturnType<typeof juice>, X: (x: nu
         ctx.stroke();
         if (ag >= 0 && s.starOk[j] && (fx.memo['st' + j] ?? -1) < s.t - ag) (fx.memo['st' + j] = s.t - ag), fx.burst(w / 2 + sx, cy + sy, '#ffd23a', 16, 3, 2.4);
       }
-      const win = d.win, ga = s.pt - (20 + nS * 14);
+      const win = 0, ga = s.pt - (20 + nS * 14); // M1 S4: 판 독립 — 이겨도 금화가 다음 판으로 넘어가지 않는다
       if (ga >= 0 && (win > 0 || s.won)) {
         const gp = ga < 8 ? 1.5 - 0.5 * (ga / 8) : 1;
         ctx.save();
@@ -3331,9 +3359,12 @@ function drawCards(ctx: C2, s: PetState, fx: ReturnType<typeof juice>, X: (x: nu
 /** 시험·스크린샷용: k판(0부터)으로 바로 — 잘하는 봇처럼 사 둔 군단으로 */
 export function jumpTo(s: PetState, k: number, board: ([Kind, number] | null)[] = [], coins = 8) {
   s.stage = k;
-  s.board = [null, null, null, null, null, null];
-  board.forEach((b, i) => b && (s.board[i] = { id: ++s.nid, k: b[0], star: b[1], born: -999, land: -999, mergeT: -999, from: -1 }));
-  s.coins = coins;
   s.again = false;
   newStage(s);
+  // M1 S4: 판마다 시작 진영·금화가 정해져 있다 — 군단을 따로 주면(스크린샷·시험) 그것으로 덮는다
+  if (board.length) {
+    s.board = [null, null, null, null, null, null];
+    board.forEach((b, i) => b && (s.board[i] = { id: ++s.nid, k: b[0], star: b[1], born: -999, land: -999, mergeT: -999, from: -1 }));
+    s.coins = coins;
+  }
 }

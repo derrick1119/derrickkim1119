@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/petsquad/core.ts';
-import { HABITS, STAGES, STAGE_COUNT, canSkip, jumpTo, lineOf, petsquad as g, petsquadHabit2, petsquadHuman, petsquadSmart, setRandomShop } from '../studio/petsquad/game.ts';
+import { HABITS, STAGES, STAGE_COUNT, canSkip, jumpTo, lineOf, petsquad as g, petsquadHabit2, petsquadHuman, petsquadSmart, retry, setRandomShop } from '../studio/petsquad/game.ts';
 import { snapshots, tryStage } from '../studio/petsquad/funqa.ts';
 
 const A = g.aspect ?? 1.5;
@@ -66,6 +66,50 @@ describe('동물 군단 합체 전투 시뮬', () => {
     expect(smart.filter((s) => s.won).length).toBeGreaterThanOrEqual(2);
     const habit = [1, 2, 3].map((sd) => runBot(g, petsquadHabit2, sd).s);
     expect(habit.every((s) => !s.won)).toBe(true);
+  });
+});
+
+describe('M1 S4 별 틀 · 하트 폐지 · 판 독립 (📐 GDD §5 · CONTENT §4)', () => {
+  it('모든 판 별이 같은 세 가지: 이기기 · 금화 N개 남기기 · 한 마리도 안 잃기(1·2판 N 0, 3판부터 3)', () => {
+    for (const d of STAGES) expect(d.stars.map((q) => q.k)).toEqual(['win', 'save', 'noloss']);
+    expect(STAGES.map((d) => d.n)).toEqual([0, 0, 3, 3, 3, 3, 3]);
+  });
+
+  it('판마다 정해진 시작 진영·금화로 시작한다(앞 판 군단·금화가 넘어오지 않는다)', () => {
+    for (let k = 0; k < STAGE_COUNT; k++) {
+      const s = g.create(1);
+      jumpTo(s, k);
+      expect([k, s.coins, s.board.filter(Boolean).length]).toEqual([k, STAGES[k].coins, STAGES[k].start?.length ?? 0]);
+    }
+  });
+
+  it('지면 저절로 넘어가지 않고, 처음부터는 정해진 시작 · 이 군단으로 다시는 싸움을 누른 순간으로(금화 그대로)', () => {
+    const s = g.create(1);
+    jumpTo(s, 6); // 곰 우두머리 판
+    tapAt(s, 0.175, 1.07); // 한 장만 사고 싸움 → 진다
+    const coins = s.coins, kinds = s.board.map((p) => p?.k ?? '-').join();
+    tapAt(s, 0.645, 1.262);
+    let t = 0;
+    while (s.phase !== 'result' && t++ < 60 * 40) g.step(s, { tap: false, dir: 0, pointer: null });
+    expect(s.ok).toBe(false);
+    expect(s.hearts).toBe(3);
+    for (let k = 0; k < 600; k++) g.step(s, { tap: false, dir: 0, pointer: null });
+    expect([s.phase, s.stage]).toEqual(['result', 6]); // 기다린다
+    retry(s, true);
+    expect([s.phase, s.coins, s.board.map((p) => p?.k ?? '-').join()]).toEqual(['shop', coins, kinds]);
+    retry(s, false);
+    expect([s.coins, s.board.filter(Boolean).length]).toEqual([STAGES[6].coins, 0]);
+  });
+
+  it('카드 줄 판별(판 독립 출발): 잘하는 봇 7판 모두 ★3 · 버릇 봇 6종 3판부터 ★3 0 · 버릇 봇도 끝까지 간다(P5)', () => {
+    for (let k = 0; k < STAGE_COUNT; k++) {
+      const r = tryStage(petsquadSmart, 1, k, null);
+      expect([k, r.ok, r.got]).toEqual([k, true, r.of]);
+    }
+    for (const h of HABITS) {
+      for (let k = 2; k < STAGE_COUNT; k++) expect([h.name, k, tryStage(h, 1, k, null).got >= 3]).toEqual([h.name, k, false]);
+      expect(runBot(g, h, 1).s.won).toBe(true);
+    }
   });
 });
 
@@ -163,9 +207,9 @@ describe('M1 S1 측정 (📋 측정 먼저)', () => {
     for (const h of HABITS) expect(tryStage(h, 1, 0, null).ok).toBe(true);
   });
 
-  it('판별 도전은 결정적이고, 잘하는 봇이 들고 온 군단으로 3판을 시작한다', () => {
+  it('판별 도전은 결정적이다 (M1 S4부터 3판은 물려받은 군단이 아니라 빈 진영에서 시작 — 판 독립)', () => {
     const sn = snapshots(1);
-    expect(sn[2]?.board.some(Boolean)).toBe(true);
+    expect(sn[2]?.board.some(Boolean)).toBe(false);
     const a = tryStage(petsquadSmart, 1, 2, sn[2]), b = tryStage(petsquadSmart, 1, 2, sn[2]);
     expect(a).toEqual(b);
   });

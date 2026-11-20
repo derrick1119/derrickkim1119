@@ -67,7 +67,8 @@ function start() {
   s = g.create(seed);
   // 시험·스크린샷용 ?stage=N (1부터) — 군단은 ?board=lion2,turtle1,-,… · 금화 ?coins=N (✏️ M1 S1: shots가 잘하는 봇이 실제로 들고 온 군단을 넘긴다)
   const st = Math.floor(Number(q.get('stage')));
-  const board = (q.get('board') ?? 'lion2,turtle1,hedge1,owl1,fox1,-').split(',').map((x) => (x === '-' ? null : ([x.slice(0, -1) as Kind, Number(x.slice(-1)) || 1] as [Kind, number])));
+  // M1 S4 판 독립: ?board가 없으면 그 판의 정해진 시작 진영·금화
+  const board = q.get('board') ? q.get('board')!.split(',').map((x) => (x === '-' ? null : ([x.slice(0, -1) as Kind, Number(x.slice(-1)) || 1] as [Kind, number]))) : [];
   if (st > 1 && st <= STAGES.length) jumpTo(s, st - 1, board, Number(q.get('coins')) || 8);
   running = true;
   overlay.hidden = true;

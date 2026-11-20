@@ -25,13 +25,18 @@ export function measure(seeds: number[], bots: Bot<PetState>[] = BOTS) {
     const big = rs.filter((r) => r.s.firstBig >= 0 && r.s.firstTap >= 0).map((r) => (r.s.firstBig - r.s.firstTap) / 60);
     out[b.name] = {
       끝까지: r2(avg(rs.map((r) => (r.s.won ? 1 : 0)))), 도달판: r2(avg(rs.map((r) => (r.s.won ? STAGE_COUNT : r.s.stage)))),
-      별: r2(avg(rs.map((r) => Math.max(0, r.s.stars)))), 남은하트: r2(avg(rs.map((r) => r.s.hearts))), 한판초: Math.round(avg(rs.map((r) => r.ticks / 60))),
+      별: r2(avg(rs.map((r) => Math.max(0, r.s.stars)))), 한판초: Math.round(avg(rs.map((r) => r.ticks / 60))),
       큰순간: r2(avg(rs.map((r) => g.wows(r.s)))), 톡: r2(avg(rs.map((r) => taps(r.s)))), 첫톡에서첫와초: big.length ? r2(avg(big)) : null,
+      // ✏️ M1 S4(📋 P5를 '판별 첫 클리어까지 시도 수'로): 판마다 진 횟수의 최댓값 · 평균(닿은 판 기준)
+      판당진횟수_최대: Math.max(0, ...rs.map((r) => Math.max(0, ...Array.from(r.s.lost, (x) => x ?? 0)))),
+      판당진횟수_평균: r2(avg(rs.map((r) => Array.from(r.s.lost, (x) => x ?? 0).reduce((a, x) => a + x, 0) / (1 + (r.s.won ? STAGE_COUNT - 1 : r.s.stage))))),
     };
   }
   return out;
 }
 
+/** M1 S3까지처럼 잘하는 봇 군단으로 출발하려면 true(비교용) */
+const USE_SNAP = false;
 type Snap = { board: ([Kind, number] | null)[]; coins: number };
 /** 잘하는 봇이 각 판에 처음 닿았을 때의 군단·금화 */
 export function snapshots(seed: number): (Snap | null)[] {
@@ -47,7 +52,8 @@ export function snapshots(seed: number): (Snap | null)[] {
 /** 한 판 한 번 도전: 결과가 나올 때까지 */
 export function tryStage(b: Bot<PetState>, seed: number, k: number, snap: Snap | null) {
   const s = g.create(seed);
-  if (k > 0 && snap) jumpTo(s, k, snap.board, snap.coins);
+  // M1 S4 판 독립: 판마다 정해진 시작 진영·금화 — 물려받은 군단은 쓰지 않는다(snap은 예전 비교용으로만)
+  if (k > 0) jumpTo(s, k, snap && USE_SNAP ? snap.board : [], snap?.coins ?? 8);
   const w0 = g.wows(s);
   let t = 0;
   const rng = mulberry32(seed * 977 + k);
@@ -61,7 +67,7 @@ export function perStage(seeds: number[], bots: Bot<PetState>[]) {
   for (const b of bots) {
     out[b.name] = [];
     for (let k = 0; k < STAGE_COUNT; k++) {
-      const rs = seeds.map((sd, j) => tryStage(b, sd, k, snaps[j][k])).filter((_, j) => k === 0 || snaps[j][k]);
+      const rs = seeds.map((sd, j) => tryStage(b, sd, k, snaps[j][k]));
       out[b.name].push({
         클리어: r2(avg(rs.map((r) => (r.ok ? 1 : 0)))), 별3: r2(avg(rs.map((r) => (r.got >= r.of ? 1 : 0)))), 별: r2(avg(rs.map((r) => r.got))),
         큰순간: r2(avg(rs.map((r) => r.wows))), 톡: r2(avg(rs.map((r) => r.taps))), 다시뽑기: r2(avg(rs.map((r) => r.rerolls))), 초: Math.round(avg(rs.map((r) => r.sec))),

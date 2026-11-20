@@ -66,6 +66,19 @@ for (const st of [4, 7]) {
   await p.screenshot({ path: join(out, `0${st === 4 ? 7 : 8}-stage${st}-fight.png`) });
   await p.close();
 }
+// ✏️ M1 S4 진 화면: 7판에서 한 장만 사고 싸움 → '다시!'(처음부터) · '군단 그대로'(싸움 직전으로)
+{
+  const p = await open(390, 'light', '?seed=1&stage=7');
+  const b = (await p.locator('canvas').boundingBox())!;
+  const t = (x: number, y: number) => p.mouse.click(b.x + x * b.width, b.y + y * b.width);
+  await p.waitForTimeout(500);
+  await t(0.175, 1.07);
+  await p.waitForTimeout(200);
+  await t(0.645, 1.262);
+  await p.waitForTimeout(9000);
+  await p.screenshot({ path: join(out, '10-lose-retry.png') });
+  await p.close();
+}
 // 340px · 다크 — 가로 스크롤 · 키보드 숫자 1
 const k = await open(340, 'dark', '?seed=1');
 await k.waitForTimeout(600);
