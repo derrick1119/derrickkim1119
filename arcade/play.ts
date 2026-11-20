@@ -19,6 +19,9 @@ const store = {
   set(k: string, v: number) { try { localStorage.setItem('arcade:' + k, String(v)); } catch { /* 저장 불가여도 동작 */ } },
 };
 
+// 소리 상태는 페이지 전체에 하나(sfx) — 한 게임에서 끄면 모든 게임 단추 글자를 같이 바꾼다(0112)
+const mutePainters = new Set<() => void>();
+
 function mount(root: HTMLElement, g: GameDef<any>) {
   const aspect = g.aspect ?? (g.controls === 'leftright' ? 1.5 : 1);
   const canvas = document.createElement('canvas');
@@ -35,7 +38,8 @@ function mount(root: HTMLElement, g: GameDef<any>) {
   const paintMute = () => { mute.textContent = sfx.muted ? '🔇 소리 꺼짐' : '🔊 소리 켜짐'; mute.setAttribute('aria-label', sfx.muted ? '소리 켜기' : '소리 끄기'); };
   sfx.muted = store.get('muted') === 1;
   paintMute();
-  mute.addEventListener('click', () => { sfx.setMuted(!sfx.muted); store.set('muted', sfx.muted ? 1 : 0); paintMute(); canvas.focus({ preventScroll: true }); });
+  mutePainters.add(paintMute);
+  mute.addEventListener('click', () => { sfx.setMuted(!sfx.muted); store.set('muted', sfx.muted ? 1 : 0); mutePainters.forEach((f) => f()); canvas.focus({ preventScroll: true }); });
   root.append(canvas, overlay, mute);
   const ctx = canvas.getContext('2d')!;
   let s: any = null, seed = 1, running = false, acc = 0, last = 0, tapQueued = false, holding = false, aim: number | undefined, pointer: { x: number; y: number } | null = null, pick: number | undefined, move: Input['move'], swipeFrom: { x: number; y: number } | null = null, cursor = { x: 0.5, y: 0.5 }, spaceDown = false, latch: { x: number; y: number } | null = null;
