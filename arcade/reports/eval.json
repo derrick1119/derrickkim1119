@@ -59,6 +59,7 @@
    "lateWow": 0.5,
    "n": 8
   },
+  "precision": 0.58,
   "habitGap": 2.2
  },
  "drawroll": {
@@ -121,6 +122,7 @@
    "lateWow": 0.36,
    "n": 8
   },
+  "precision": 0.2,
   "habitGap": 3.36
  },
  "sweepup": {
@@ -183,6 +185,7 @@
    "lateWow": 0.7,
    "n": 8
   },
+  "precision": 0.94,
   "habitGap": 2.97
  },
  "pluckfarm": {
@@ -246,6 +249,7 @@
    "n": 8,
    "tapOnly": true
   },
+  "precision": 1,
   "habitGap": 7.3
  },
  "beadlink": {
@@ -308,6 +312,7 @@
    "lateWow": 0.87,
    "n": 7
   },
+  "precision": 0.87,
   "habitGap": 2.32
  },
  "icecrack": {
@@ -371,6 +376,7 @@
    "n": 7,
    "tapOnly": true
   },
+  "precision": 0.99,
   "habitGap": 2.94
  }
 }
