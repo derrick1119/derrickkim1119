@@ -1020,6 +1020,26 @@ function decide(W: World, base: Out): typeof PICK {
   }
   return PICK;
 }
+/** 남은 계획을 그대로 따라 끝까지 세어 본다 (계획이 아직 맞는지 확인) */
+function simPlan(W0: World, acts: number[], i0: number, maxT = 1800): Out {
+  const W = cloneWorld(W0), H = W.hero, t0 = W.t;
+  let i = i0;
+  while (W.t - t0 < maxT && H.st !== H_WIN && H.st !== H_FAIL) {
+    while (i < acts.length) {
+      const th = thingOf(W, acts[i + 1]), ts = acts[i + 2];
+      if (ts >= 0) {
+        if (!th || th.st !== REW) (i += 3);
+        else if (th.tau <= ts) (tapThing(W, th, null), (i += 3));
+        else break;
+      } else if (W.t >= acts[i]) {
+        if (th && tappable(th)) tapThing(W, th, null);
+        i += 3;
+      } else break;
+    }
+    stepWorld(W, null);
+  }
+  return { win: H.st === H_WIN, fail: H.st === H_FAIL, t: W.t, x: H.x, hurt: W.hurt, used: W.used, saved: W.saved, stuck: H.st === H_WAIT };
+}
 /** 판 하나를 처음부터 끝까지 잘하는 머리로 둬 본다 → 할 일 목록 [틱, 물건 id, 멈출 τ(-1이면 되감기 시작)] */
 interface Plan { acts: number[]; used: number; win: boolean; hurt: number; saved: number; t: number }
 function planFrom(W0: World, maxT = 3600): Plan {
@@ -1399,9 +1419,13 @@ export const rewindoneSmart: Bot<RewState> = {
     const W = s.W;
     if (W.hero.st === H_WIN || W.hero.st === H_FAIL) return NO;
     if (m.again && m.plan) {
+      // 늦게 눌렀다: 남은 계획이 여전히 같은 결과를 내면 그대로, 나빠지면 다시 세운다
       m.again = false;
-      m.plan = planFrom(W);
-      m.i = 0;
+      const o = simPlan(W, m.plan.acts, m.i);
+      if (!o.win || o.hurt > m.plan.hurt || o.used > m.plan.used + 4 || o.saved < m.plan.saved) {
+        m.plan = planFrom(W);
+        m.i = 0;
+      }
     }
     if (!m.plan) {
       const key = `${s.variant}:${s.stage}:start`;
@@ -1441,8 +1465,8 @@ export const rewindoneSmart: Bot<RewState> = {
       replan();
       return NO;
     }
-    // 늦게 누르면(사람 속도) 남은 계획은 그 세계에 안 맞는다 — 누른 뒤 다시 세운다
-    if (late > 4) m.again = true;
+    // 늦게 누르면(사람 속도·느린 화면) 남은 계획이 그 세계에 안 맞을 수 있다 — 누른 뒤 확인
+    if (late > 0) m.again = true;
     m.up = true;
     return { tap: false, dir: 0, pointer: tapPoint(th) };
   },

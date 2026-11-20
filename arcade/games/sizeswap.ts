@@ -2376,6 +2376,8 @@ function visOf(s: SwapState): Vis {
   if (v.w !== s.w) {
     const n = s.w.th.length;
     v.w = s.w;
+    // 이전 판의 사건은 새 판 물건 번호와 안 맞으니 건너뛴다
+    v.ev = Math.max(v.ev, s.t - 1);
     v.sz = s.w.th.map((o) => RZ[Math.max(1, o.z)]);
     v.sv = Array(n).fill(0);
     v.land = Array(n).fill(-999);
@@ -2607,7 +2609,7 @@ function drawAll(ctx: C2, s: SwapState, w: number, h: number, th: Theme) {
   }
   v.ev = Math.max(v.ev, ...s.events.map((e) => e.t), v.ev);
   const card = s.phase === 'play' ? '' : `${s.phase}${s.stage}${s.tries}${s.replays}`;
-  if (card && s.pt >= 18 && v.card !== card) (v.card = card), (fx.popups.length = 0), (fx.particles.length = 0);
+  if (card && s.pt >= 18 && v.card !== card) (v.card = card), (fx.popups.length = 0), (fx.particles.length = 0), (fx.rings.length = 0);
   // 별 하나씩 '띵' (프레임이 틱을 건너뛰어도 한 번씩)
   if (s.phase === 'result') {
     for (let q = 0; q < s.got; q++) if (t - v.starT >= 34 + q * 14 && v.dings <= q) (v.dings = q + 1), fx.sound('ding', 1 + q * 0.18, 0.9), fx.burst(X(0.5 + (q - (s.ofStars - 1) / 2) * 0.15), Y(0.41), '#ffe14a', 14, 4, 2.6);
@@ -2979,8 +2981,8 @@ function drawAll(ctx: C2, s: SwapState, w: number, h: number, th: Theme) {
     ctx.save();
     ctx.globalAlpha = u > 0.75 ? (1 - u) / 0.25 : 1;
     font(0.068, 900);
-    const fit = Math.min(1, R(0.9) / Math.max(1, ctx.measureText(s.big.text).width * 1.15));
-    ctx.translate(X(0.5 + (clamp(s.big.x, 0.25, 0.75) - 0.5) * fit), Y(clamp(s.big.y, 0.36, 1.2)) - R(0.04) * u);
+    const tw0 = ctx.measureText(s.big.text).width, fit = Math.min(1, R(0.9) / Math.max(1, tw0 * 1.15)), half2 = (tw0 * fit * 1.15) / 2;
+    ctx.translate(clamp(X(s.big.x), R(0.03) + half2, R(0.97) - half2), Y(clamp(s.big.y, 0.36, 1.2)) - R(0.04) * u);
     ctx.scale(sc2 * fit, sc2 * fit);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -3534,11 +3536,17 @@ function drawResult(ctx: C2, s: SwapState, v: Vis, w: number, h: number, R: (v: 
   ctx.beginPath();
   ctx.rect(-R(0.18), -R(0.18), R(0.36), R(0.34));
   ctx.clip();
-  drawAnimal(ctx, nk, -R(0.02), R(0.12), R(nk === 'giraffe' ? 0.06 : 0.085), L);
+  if (s.won) {
+    // 마지막: 모두 함께 단체 사진
+    DEX.forEach((k, i) => {
+      const row = i < 5 ? 1 : 0, col = row ? i : i - 5, gx = -R(0.14) + col * R(0.07) + (row ? 0 : R(0.035)), gy = row ? R(0.13) : R(0.04);
+      drawAnimal(ctx, k, gx, gy, R(k === 'giraffe' ? 0.022 : 0.03), { ...L, ph: i, lift: Math.abs(Math.sin(t * 0.1 + i)) * R(0.008), seed: i });
+    });
+  } else drawAnimal(ctx, nk, -R(0.02), R(0.12), R(nk === 'giraffe' ? 0.06 : 0.085), L);
   ctx.restore();
   ctx.fillStyle = '#4a2a12';
   font(0.04, 900);
-  ctx.fillText(K[nk].name, 0, R(0.205));
+  ctx.fillText(s.won ? '모두 함께 찰칵!' : K[nk].name, 0, R(0.205));
   ctx.restore();
   if (isNew) {
     const k2 = t - v.starT - 80, pop = k2 >= 0 && k2 < 10 ? 1 + 0.3 * Math.sin((k2 / 10) * Math.PI) : 1;
@@ -3556,7 +3564,7 @@ function drawResult(ctx: C2, s: SwapState, v: Vis, w: number, h: number, R: (v: 
   }
   ctx.fillStyle = '#6a4a2a';
   font(0.032, 800);
-  ctx.fillText(isNew ? `특기: ${K[nk].skill}` : '또 만났어요! 도감 사진 한 장 더', R(0.5), py + R(0.515));
+  ctx.fillText(s.won ? '동물원 친구 열 마리가 모두 밖으로!' : isNew ? `특기: ${K[nk].skill}` : '또 만났어요! 도감 사진 한 장 더', R(0.5), py + R(0.515));
   // 다음 친구 실루엣
   const nx = nextNew(s);
   if (nx && !s.won) {
