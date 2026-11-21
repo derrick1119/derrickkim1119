@@ -162,7 +162,7 @@ function drawCloud(ctx, c, x, y, tint, alpha = 1) {
   ctx.translate(x, y);
   cumulus(ctx, c.a, { base: tint.mid, shadeColor: tint.shade, alpha });
   cumulus(ctx, c.b, { base: tint.lit, shadeColor: tint.mid, alpha });
-  if (c.c.length) cumulus(ctx, c.c, { base: '#ffffff', shadeColor: tint.lit, alpha: alpha * 0.75 });
+  if (c.c.length) cumulus(ctx, c.c, { base: tone(tint.lit, 0.45), shadeColor: tint.lit, alpha: alpha * 0.6 });
   ctx.restore();
 }
 
@@ -1884,19 +1884,19 @@ const LIVE = {
     if (!e.heli) return;
     // 헬리콥터와 탐조등
     const hs = k * 1.3;
-    const hx = w * 0.78 + Math.sin(t * 0.31) * w * 0.07;
+    const hx = w * 0.8 + Math.sin(t * 0.31) * w * 0.06;
     const hy = e.heli.y + Math.sin(t * 0.63) * 8 * k;
     const lx = hx - 10 * hs;
     const ly = hy + 6 * hs;
-    const ang = 0.45 + Math.sin(t * 0.55) * 0.28; // 아래 왼쪽을 훑는다
+    const ang = 0.24 + Math.sin(t * 0.55) * 0.2; // 아래 왼쪽 거리를 훑는다
     const len = (e.G - ly - e.D * 0.15) / Math.cos(ang);
     ctx.save();
     ctx.translate(lx, ly);
     ctx.rotate(ang);
     const spread = len * 0.2;
     const g = ctx.createLinearGradient(0, 0, 0, len);
-    g.addColorStop(0, 'rgba(255,250,220,0.42)');
-    g.addColorStop(1, 'rgba(255,250,220,0.04)');
+    g.addColorStop(0, 'rgba(255,250,220,0.4)');
+    g.addColorStop(1, 'rgba(255,250,220,0.06)');
     ctx.fillStyle = g;
     ctx.beginPath();
     ctx.moveTo(-1.5 * k, 0);
