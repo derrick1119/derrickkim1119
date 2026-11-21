@@ -1641,6 +1641,34 @@ const HZ = 0.415, GB = 1.31;
 // ── 캐릭터 ──
 /** 주인공(M3 오너 요청: 사무라이 '초침'). pose 0 서기 · 1 겨눔(느린 시간) · 2 벤 직후 · 3 아얏 · 4 만세 · 5 어질어질 */
 /** M3 S2 🎨 도트 주인공 '초침'(옛 여우 벡터 그림을 걷어냄) · pose 0 기본 · 1 겨눔 · 2 번쩍 · 3 맞음 · 4 이김 · 5 짐 */
+/** 👁 r3: 내릴 자리의 반투명 검객(번진 유령)이 겹침 덩어리를 키웠다 → 한 색 실루엣 테(반투명 없음) */
+const GHOST = new Map<number, HTMLCanvasElement>();
+function ghostOf(im: HTMLCanvasElement, key: number, col: string) {
+  let g = GHOST.get(key);
+  if (g) return g;
+  g = document.createElement('canvas');
+  (g.width = im.width), (g.height = im.height);
+  const x = g.getContext('2d')!;
+  x.drawImage(im, 0, 0);
+  x.globalCompositeOperation = 'source-in';
+  x.fillStyle = col;
+  x.fillRect(0, 0, g.width, g.height);
+  const d = x.getImageData(0, 0, g.width, g.height), W = g.width, H = g.height, a = (i: number, j: number) => i >= 0 && j >= 0 && i < W && j < H && d.data[(j * W + i) * 4 + 3] > 0;
+  x.clearRect(0, 0, W, H);
+  x.globalCompositeOperation = 'source-over';
+  x.fillStyle = col; // 바둑판 실루엣은 너무 시끄러웠음 → 바깥 테 한 칸만(🧪 r4 자체 점검)
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) if (a(i, j) && (!a(i - 1, j) || !a(i + 1, j) || !a(i, j - 1) || !a(i, j + 1))) x.fillRect(i, j, 1, 1);
+  GHOST.set(key, g);
+  return g;
+}
+function drawGhost(ctx: C2, x: number, y: number, face: number, pose: number) {
+  const im = ghostOf(hero(pose === 3 || pose === 5 ? 2 : pose === 4 ? 1 : 0), pose, '#7cf8dd'), w = im.width * PX, h = im.height * PX;
+  ctx.save();
+  ctx.translate(Math.round(x / PX) * PX, Math.round((y + (pose === 1 ? PX : 0)) / PX) * PX);
+  ctx.scale(face, 1);
+  ctx.drawImage(im, -Math.round(w / 2 / PX) * PX, -h + PX, w, h);
+  ctx.restore();
+}
 function drawFox(ctx: C2, x: number, y: number, _k: number, face: number, pose: number, _t: number, alpha = 1) {
   const im = hero(pose === 3 || pose === 5 ? 2 : pose === 4 ? 1 : 0), w = im.width * PX, h = im.height * PX;
   ctx.save();
@@ -1962,17 +1990,21 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     if (m && f.st === WIND) {
       const u = 1 - f.tm / (m.wind * easeOf(s)[1]);
       ctx.fillStyle = `rgba(255,70,60,${0.12 + 0.28 * u})`;
+      // 👁 r3: 매끈한 부채꼴(번진 분홍 평행사변형) → 도트 칸 부채꼴(테는 칸 하나 밝게)
+      const rx = R(m.reach) / PX, ry = rx * 0.5, cx0 = Math.round(fx0 / PX), cy0 = Math.round(fy0 / PX), edge: number[] = [];
       ctx.beginPath();
-      if (f.k === 'boss') ell(ctx, fx0, fy0, R(m.reach), R(m.reach) * 0.5);
-      else {
-        ctx.moveTo(fx0, fy0);
-        ctx.ellipse(fx0, fy0, R(m.reach), R(m.reach) * 0.5, 0, f.fa - 1.2, f.fa + 1.2);
-        ctx.closePath();
+      for (let j = -Math.ceil(ry); j <= Math.ceil(ry); j++) for (let i = -Math.ceil(rx); i <= Math.ceil(rx); i++) {
+        const q = (i / rx) ** 2 + (j / ry) ** 2;
+        if (q > 1) continue;
+        if (f.k !== 'boss') { let da = Math.atan2(j * 2, i) - f.fa; da = Math.atan2(Math.sin(da), Math.cos(da)); if (Math.abs(da) > 1.2) continue; }
+        ctx.rect((cx0 + i) * PX, (cy0 + j) * PX, PX, PX);
+        if (q > 0.7) edge.push(cx0 + i, cy0 + j);
       }
       ctx.fill();
-      ctx.strokeStyle = `rgba(255,120,100,${0.5 + 0.5 * u})`;
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      ctx.fillStyle = `rgba(255,120,100,${0.5 + 0.5 * u})`;
+      ctx.beginPath();
+      for (let e = 0; e < edge.length; e += 2) ctx.rect(edge[e] * PX, edge[e + 1] * PX, PX, PX);
+      ctx.fill();
     }
     if (f.k === 'shield') {
       ctx.strokeStyle = 'rgba(255,214,110,.75)';
@@ -2439,7 +2471,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.fill();
     }
     // 내릴 자리: 닌자 그림자
-    drawFox(ctx, X(prev.ex), Y(prev.ey), R(NIN_H) * depth(prev.ey), Math.sign(last[2] - last[0]) || s.face, 1, wt, 0.32);
+    drawGhost(ctx, X(prev.ex), Y(prev.ey), Math.sign(last[2] - last[0]) || s.face, 1);
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2;
     ring(ctx, X(prev.ex), Y(prev.ey), R(0.035), R(0.016)); // 👁 도트 고리
@@ -2760,6 +2792,9 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     if (head) {
       const cy = Y(0.165) - Math.round(((1 - a) * R(0.2)) / 3) * 3, unroll = Math.min(1, 0.3 + age / 10); // 👁 r1·r2: 옅어지는 중간 프레임이 반투명 회색 상자로 시계탑을 덮었다 → 옅어지지 않고 위로 밀려 나감
       ctx.save();
+      ctx.beginPath(); // 👁 r3: 밀려 나가는 카드가 머리 띠의 판 이름을 덮었다 → 머리 띠 아래에서만 보임
+      ctx.rect(0, R(0.09), w, h);
+      ctx.clip();
       font(0.045, 900);
       const w1 = ctx.measureText(head).width;
       font(0.036, 800);
@@ -2885,7 +2920,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.fillStyle = '#dfe6ff';
       ctx.fillText('목숨', hx0, r1 + 1); // ✏️ S002(🧪): 별 칩 '꼬리 하나도 안 잃기'와 말 맞춤 — 꼬리 아이콘은 S007
       for (let j = 0; j < HP; j++) {
-        const hx = hx0 + R(0.09) + j * R(0.04); // 🎨 F3: '목숨'과 하트 사이 틈
+        const hx = hx0 + Math.max(R(0.09), ctx.measureText('목숨').width + R(0.035)) + j * R(0.04); // 🎨 F3: '목숨'과 하트 사이 틈(👁 r3: 좁은 폰에서도)
         heartPath(ctx, hx, r1, R(0.014));
         ctx.fillStyle = j < s.hp ? '#ff6a7a' : 'rgba(255,255,255,.12)';
         ctx.fill();
@@ -2904,8 +2939,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       font(0.034, 800);
       let ws = labels.map((l) => ctx.measureText(l).width + R(0.07));
       const gap = R(0.012), fit = (v: number[]) => (w - R(0.03)) / (v.reduce((a2, b2) => a2 + b2, 0) + gap * 2);
-      const icon = fit(ws) >= 1; // 👁 r1·r2: 좁은 폰(340px)에서 칩 글을 줄여 그려 '베기'가 '비기'로 → 별 아이콘을 빼서 글 크기를 지킴
-      if (!icon) ws = labels.map((l) => ctx.measureText(l).width + R(0.03));
+      const icon = w >= 380 && fit(ws) >= 1; // 👁 r1·r2: 좁은 폰(340px)에서 칩 글을 줄여 그려 '베기'가 '비기'로 → 별 아이콘을 빼서 글 크기를 지킴
+      if (!icon) (ctx.font = '700 13px system-ui, sans-serif'), (ws = labels.map((l) => ctx.measureText(l).width + R(0.03))); // 좁은 폰: 13px(12px 500이면 '넷'→'닛')
       const tot = ws.reduce((a2, b2) => a2 + b2, 0) + gap * 2, scale = Math.min(1, fit(ws));
       let xx = (w - tot * scale) / 2;
       for (let j = 0; j < 3; j++) {
@@ -2923,7 +2958,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
         }
         ctx.textAlign = 'left';
         ctx.fillStyle = ok[j] ? '#fff6dc' : bad[j] ? 'rgba(255,255,255,.35)' : '#e6ecff';
-        font(0.034, 800);
+        if (icon) font(0.034, 800);
+        else ctx.font = '700 13px system-ui, sans-serif';
         ctx.fillText(labels[j], xx + (icon ? R(0.05) : R(0.015)) * scale, r2 + 1, pw - (icon ? R(0.058) : R(0.02)) * scale);
         xx += pw + gap * scale;
       }
