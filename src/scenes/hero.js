@@ -26,7 +26,7 @@ export class HeroScene {
       if (tapped('h' + i, x, y, w, h)) { this.sel = i; sfx('card'); }
       rr(g, x + 2, y + 4, w, h, 7, 'rgba(40,28,16,0.26)'); rr(g, x, y, w, h, 7, on ? '#fdf5d6' : PAPER, INK, 2.2);
       g.save(); g.beginPath(); g.rect(x + 4, y + 4, w - 8, 100); g.clip(); g.fillStyle = on ? '#f3e2b0' : '#ece0c2'; g.fillRect(x + 4, y + 4, w - 8, 100); g.fillStyle = 'rgba(140,160,120,0.55)'; g.fillRect(x + 4, y + 82, w - 8, 24);
-      if (locked) g.globalAlpha = 0.5; portrait(g, id, x + w / 2 - 4, y + 100, 0.86, this.t, on); g.restore();
+      if (locked) g.globalAlpha = 0.5; portrait(g, id, x + w / 2 - 4, y + 100, ART.illust ? 0.78 : 0.86, this.t, on); g.restore();
       g.fillStyle = INK; g.fillRect(x + 4, y + 104, w - 8, 1.6); g.fillStyle = HERO_COL[id]; g.fillRect(x + 4, y + 105.6, w - 8, 3);
       text(g, d.name, x + w / 2, y + 123, { size: 21, font: FONT_B, fill: locked ? SUB : INK }); text(g, locked ? `공적 ${UNLOCKS.find(u => u.id === id).cost}` : ROLE[id], x + w / 2, y + 141, { size: 14.5, fill: locked ? RED : '#5a4a3a' });
       const best = meta.heroBest && meta.heroBest[id]; if (best !== undefined && !locked) { rr(g, x + w - 62, y + 8, 54, 22, 5, '#2f6f5c', INK, 1.2); text(g, best > 0 ? `험로 ${best}` : '평정', x + w - 35, y + 19.5, { size: 13.5, fill: C.cream }); }
@@ -36,7 +36,7 @@ export class HeroScene {
     const id = HEROES[this.sel], d = UNITS[id], locked = !heroOpen(id), cards = Object.keys(CARDS).filter(k => CARDS[k].hero === id), col = HERO_COL[id];
     panel(g, 40, 248, 1200, 322);
     ell(g, 152, 408, 94, 94, '#efd9a8', INK, 2.4); ell(g, 152, 408, 87, 87, null, 'rgba(201,150,46,0.8)', 1.2);
-    g.save(); g.beginPath(); g.arc(152, 408, 92, 0, TAU); g.clip(); g.fillStyle = 'rgba(140,160,120,0.6)'; g.fillRect(50, 452, 210, 60); portrait(g, id, 148, 484, 1.75, this.t, true); g.restore();
+    g.save(); g.beginPath(); g.arc(152, 408, 92, 0, TAU); g.clip(); g.fillStyle = 'rgba(140,160,120,0.6)'; g.fillRect(50, 452, 210, 60); portrait(g, id, 148, ART.illust ? 478 : 484, ART.illust ? 1.45 : 1.75, this.t, true); g.restore();
     // 이름 옆에 붓으로 그린 영웅의 낙관 그림을 옅게 깐다
     inkGlyph(g, HERO_SEAL[id], 648, 306, 104, { col: MEOK, alpha: 0.13, halo: false, rot: -0.06 });
     text(g, d.name, 272, 298, { size: 46, font: FONT_B, align: 'left' }); g.save(); g.translate(272 + g.measureText(d.name).width + 34, 292); g.rotate(-0.06); seal(g, 0, 0, 34, HERO_SEAL[id], col); g.restore();

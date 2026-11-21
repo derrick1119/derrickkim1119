@@ -56,7 +56,7 @@ export function paperSprite(draw, o = {}) {
   if (o.grain !== false && !ART.illust) paperGrain(c, o.grain || 1);
   if (ART.illust && o.rim) {   // 달빛 테두리: 윗왼쪽 가장자리에만 서늘한 빛을 얹는다
     const d = o.rim * SS, r = makeCanvas(c.width, c.height), rg = r.getContext('2d');
-    rg.drawImage(c, 0, 0); rg.globalCompositeOperation = 'destination-out'; rg.drawImage(c, d, d);
+    rg.drawImage(c, 0, 0); rg.globalCompositeOperation = 'destination-out'; rg.drawImage(c, d * 0.45, d);
     rg.globalCompositeOperation = 'source-in'; rg.fillStyle = 'rgba(186,206,255,0.62)'; rg.fillRect(0, 0, c.width, c.height);
     g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(r, 0, 0); g.restore();
   }

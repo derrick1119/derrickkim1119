@@ -278,7 +278,7 @@ export function portrait(g, type, x, y, s, t = 0, bob = false, wpn, shut = false
   const W = wpn === 'none' ? null : getWeapon(wpn || baseWeapon(type));   // 'none' = 빈손 (인형극에서 쓴다)
   const F = L.fist, fist = (px, py, sx, a) => { if (F) drawSprite(g, F, px, py, sx, k, a); };   // 일러스트 인물: 손잡이를 감싼 주먹
   if (W) {
-    if (W.hand === 'L') drawSprite(g, W.spr, x + (h.x + 3) * k, yy + (h.y - 1) * k, -k, k, -W.a); // 활은 보는 쪽(앞)으로 내밀어 든다 — 싸움터의 인형과 같다
+    if (W.hand === 'L') { drawSprite(g, W.spr, x + (h.x + 3) * k, yy + (h.y - 1) * k, -k, k, -W.a); fist(x + (h.x + 3) * k, yy + (h.y - 1) * k, -k, -W.a); } // 활은 보는 쪽(앞)으로 내밀어 든다 — 싸움터의 인형과 같다
     else if (W.hand === 'C') { drawSprite(g, W.spr, x + h.x * 0.42 * k, yy + (h.y - 1.5) * k, k, k, W.a); fist(x + h.x * 0.42 * k, yy + (h.y - 1.5) * k, k, W.a); }
     else { drawSprite(g, W.spr, x + h.x * k, yy + h.y * k, k, k, W.a); fist(x + h.x * k, yy + h.y * k, k, W.a); if (W.hand === 'B') { drawSprite(g, W.spr, x - h.x * k, yy + h.y * k, -k, k, -W.a); fist(x - h.x * k, yy + h.y * k, -k, -W.a); } }
   } else if (L.weapon && wpn !== 'none') { drawSprite(g, L.weapon, x + h.x * k, yy + h.y * k, k, k, h.a); fist(x + h.x * k, yy + h.y * k, k, h.a); }

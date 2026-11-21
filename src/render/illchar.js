@@ -75,7 +75,7 @@ function eye(g, cx, cy, w, h, up, outerL, o) {
   g.beginPath(); white(g); g.fillStyle = o.glow ? '#fff3a0' : '#f7f3ec'; g.fill();
   g.save(); g.beginPath(); white(g); g.clip();
   const ix = cx + w * (o.look === undefined ? 0.14 : o.look), iy = cy - h * 0.12;
-  g.beginPath(); g.ellipse(ix, iy, w * 0.25, h * 0.72, 0, 0, TAU); g.fillStyle = o.iris || '#5a3426'; g.fill();
+  g.beginPath(); g.ellipse(ix, iy, w * 0.25, h * 0.72, 0, 0, TAU); g.fillStyle = o.iris || '#3a2224'; g.fill();
   g.beginPath(); g.ellipse(ix, iy - h * 0.12, w * 0.15, h * 0.48, 0, 0, TAU); g.fillStyle = o.glow ? '#b8320e' : '#140c14'; g.fill();
   g.restore();
   dot(g, ix - w * 0.07, iy - h * 0.3, Math.max(0.28, w * 0.1), '#ffffff');
@@ -85,11 +85,11 @@ function eye(g, cx, cy, w, h, up, outerL, o) {
 }
 const BROW = { stern: [0.8, -0.7], calm: [0.1, 0], soft: [-0.3, 0.2], worry: [-0.8, 0.5], fierce: [1.3, -1.1], flat: [0.3, -0.2] };
 function face(g, o, skin) {
-  const f = o.face || {}, eo = { blink: o.blink, iris: f.iris, lash: f.lash, glow: f.glow }, W = f.eyeW || 3.3, H = f.eyeH || 1.75, up = f.up === undefined ? 0.35 : f.up;
+  const f = o.face || {}, eo = { blink: o.blink, iris: f.iris, lash: f.lash, glow: f.glow }, W = f.eyeW || 3.8, H = f.eyeH || 2.0, up = f.up === undefined ? 0.35 : f.up;
   if (f.eye === 'closed') { for (const [x, w] of [[2.0, 2.4], [5.8, 1.4]]) ln(g, p => { p.moveTo(x - w / 2, -57.3); p.quadraticCurveTo(x, -56.5, x + w / 2, -57.3); }, LN, 0.75); }
-  else { eye(g, 1.9, -57.1, W, H, up, true, eo); eye(g, 6.0, -57.0, W * 0.55, H * 0.95, up, false, eo); }
+  else { eye(g, 1.6, -57.1, W, H, up, true, eo); eye(g, 6.0, -57.0, W * 0.52, H * 0.95, up, false, eo); }
   // 눈썹: 안쪽(코 쪽) 끝을 내리면 엄한 얼굴
-  const [d, a] = BROW[f.brow] || BROW.calm, bc = f.browCol || (o.hairCol || HAIR), bw = f.thick ? 1.25 : 0.85;
+  const [d, a] = BROW[f.brow] || BROW.calm, bc = f.browCol || (o.hairCol || HAIR), bw = f.thick ? 1.4 : 1.1;
   ln(g, p => { p.moveTo(0.3, -59.4 - a * 0.5); p.quadraticCurveTo(1.8, -60.3 - a * 0.3, 3.5, -59.6 + d * 0.5); }, bc, bw);
   ln(g, p => { p.moveTo(5.0, -59.7 + d * 0.45); p.quadraticCurveTo(5.9, -60.2, 6.8, -59.8 - a * 0.3); }, bc, bw * 0.85);
   // 코·입
@@ -164,8 +164,11 @@ function longHairBack(g, o) {
   cel(g, S(-6.4, -60.0, -2.4, -57.6, -3.6, -48.0, -6.2, -40.0, -8.6, -32.6, -10.6, -29.0, -13.6, -31.6, -12.6, -40.0, -10.8, -48.0, -8.8, -56.0), c, S(-14, -42, -9.4, -42, -10, -28, -14, -28), { k: 0.25, lw: 0.8 });
   ln(g, O(-7.4, -52, -8.4, -42, -10.4, -34), lt(c, 0.28), 0.6);
   // 머리끝을 묶은 붉은 댕기: 등 뒤로 길게 늘어진다
-  ribbon(g, [-11.6, -30.6, -12.8, -25.4, -14.6, -20.6, -15.4, -15.6, -17.0, -11.4], 1.6, rc, { cut: true, taper: false });
-  cel(g, EL(-11.8, -30.8, 2.2, 1.5, 0.5), rc, EL(-11.4, -30.2, 1.6, 0.9), { k: 0.25, lw: 0.7 });
+  ribbon(g, [-11.6, -30.6, -12.8, -25.4, -14.6, -20.6, -15.4, -15.6, -17.0, -11.4], 2.1, rc, { cut: true, taper: false });
+  ln(g, O(-12.2, -28.4, -13.6, -23.0, -15.2, -18.0, -16.0, -13.6), GOLD, 0.5);
+  // 댕기 매듭: 나비 모양
+  for (const s2 of [-1, 1]) cel(g, S(-11.8, -30.8, -11.8 + s2 * 3.6, -33.2, -11.8 + s2 * 4.0, -29.6, -11.8, -30.4), rc, null, { lw: 0.65 });
+  cel(g, EL(-11.8, -30.8, 1.1, 1.0), dk(rc, 0.2), null, { lw: 0.6 });
 }
 
 // ───────── 모자 ─────────
@@ -178,12 +181,12 @@ const HAT = {
   // 갓: 비치는 검은 테와 높은 대우
   gat(g) {
     // 대우(위의 통): 말총으로 짜서 속의 상투가 비친다. 위가 살짝 좁다
-    const crown = p => { p.moveTo(-3.0, -62.2); p.lineTo(-2.5, -69.4); p.quadraticCurveTo(0.7, -70.8, 3.9, -69.6); p.lineTo(4.4, -62.4); p.quadraticCurveTo(0.7, -61.2, -3.0, -62.2); p.closePath(); };
-    g.beginPath(); crown(g); g.fillStyle = 'rgba(24,20,36,0.58)'; g.fill();
-    g.save(); g.beginPath(); crown(g); g.clip(); g.fillStyle = 'rgba(10,8,18,0.45)'; g.fillRect(-3.4, -71, 2.2, 10); g.fillStyle = 'rgba(170,160,200,0.35)'; g.fillRect(2.6, -70, 0.9, 8); g.restore();
+    const crown = p => { p.moveTo(-2.7, -62.2); p.lineTo(-1.9, -72.4); p.quadraticCurveTo(0.7, -73.4, 3.3, -72.6); p.lineTo(4.0, -62.4); p.quadraticCurveTo(0.7, -61.4, -2.7, -62.2); p.closePath(); };
+    g.beginPath(); crown(g); g.fillStyle = 'rgba(20,16,30,0.5)'; g.fill();
+    g.save(); g.beginPath(); crown(g); g.clip(); g.fillStyle = 'rgba(10,8,18,0.4)'; g.fillRect(-3.4, -74, 1.9, 13); g.fillStyle = 'rgba(170,160,200,0.3)'; g.fillRect(2.4, -73, 0.8, 10); g.restore();
     g.beginPath(); crown(g); st(g, LN, 0.8);
-    g.beginPath(); g.ellipse(0.7, -69.7, 3.2, 0.85, 0, 0, TAU); g.fillStyle = 'rgba(30,26,44,0.85)'; g.fill(); st(g, LN, 0.6);
-    cel(g, p => { p.moveTo(-3.0, -63.8); p.quadraticCurveTo(0.7, -62.8, 4.4, -64.0); p.lineTo(4.4, -62.4); p.quadraticCurveTo(0.7, -61.2, -3.0, -62.2); p.closePath(); }, '#141020', null, { lw: 0.45 });
+    g.beginPath(); g.ellipse(0.7, -72.7, 2.6, 0.7, 0, 0, TAU); g.fillStyle = 'rgba(30,26,44,0.85)'; g.fill(); st(g, LN, 0.6);
+    cel(g, p => { p.moveTo(-2.7, -63.6); p.quadraticCurveTo(0.7, -62.8, 4.0, -63.8); p.lineTo(4.0, -62.4); p.quadraticCurveTo(0.7, -61.4, -2.7, -62.2); p.closePath(); }, '#141020', null, { lw: 0.45 });
     // 양태(테): 넓고 비치는 테. 가장자리만 짙다
     g.beginPath(); g.ellipse(0.6, -61.6, 12.6, 2.9, -0.05, 0, TAU); g.fillStyle = 'rgba(22,18,34,0.5)'; g.fill(); st(g, LN, 0.85);
     g.beginPath(); g.ellipse(0.6, -61.6, 11.4, 2.4, -0.05, 0, TAU); st(g, 'rgba(22,18,34,0.55)', 0.8);
@@ -269,6 +272,17 @@ function legsDraw(g, o, D = 0) {
   const shoe = (pts, sh) => { const cx = pts[0] + 2; g.save(); g.translate(cx, 0); g.scale(0.8, 0.92); g.translate(-cx, 0); cel(g, S(...pts), sc, sh, { k: 0.3, lw: 0.85 }); if (straw) for (let i = 1; i < 4; i++) ln(g, O(pts[0] + i * 2, pts[1] + 0.4, pts[0] + i * 2 + 0.6, 0.4), dk(sc, 0.3), 0.45); g.restore(); };
   const kL = (27.5 + D) / 27.5, stretch = fn => { g.save(); g.translate(0, -3); g.scale(1, kL); g.translate(0, 3); fn(); g.restore(); };
   // 뒷다리 (그늘에 든다)
+  if (o.lunge) {   // 내딛은 자세: 앞무릎을 굽히고 뒷다리를 뒤로 쭉 뻗는다
+    const hy = -30.5 - D;
+    cel(g, limb(-2.4, hy, -8.8, -16.4, -13.6, -3.4, 4.0, 3.2, 2.3), dk(pc, 0.12), limb(-3, hy + 1, -9.6, -15.6, -14.4, -3.2, 2.4, 1.8, 1.2), { k: 0.2, lw: 0.85 });
+    cel(g, limb(-11.0, -11.4, -12.4, -7.4, -13.6, -3.4, 2.5, 2.4, 2.2), dk(wc, 0.1), null, { lw: 0.75 });
+    shoe([-17.2, -3.4, -12.8, -3.8, -9.8, -1.6, -8.4, -0.4, -9.8, 0.6, -16.8, 0.6, -17.8, -1.4], S(-18, 0, -9, 0, -9, 1, -18, 1));
+    cel(g, limb(1.6, hy, 11.6, -18.6, 11.2, -3.4, 4.4, 3.6, 2.5), pc, limb(1, hy + 1.4, 10.6, -17, 10.2, -3.4, 2.4, 1.6, 1.2), { k: 0.18, lw: 0.85 });
+    cel(g, limb(11.4, -12.0, 11.3, -7.6, 11.2, -3.4, 2.5, 2.4, 2.2), wc, null, { lw: 0.75 });
+    if (o.wrapTie) for (const y of [-10.0, -6.4]) ln(g, O(8.8, y, 11.2, y - 0.7, 13.6, y + 0.2), o.wrapTie, 0.6);
+    shoe([9.4, -3.6, 13.8, -3.9, 16.8, -1.8, 18.8, -0.8, 17.8, 0.6, 9.8, 0.6, 8.8, -1.4], S(8, 0, 19, 0, 19, 1, 8, 1));
+    return;
+  }
   const st2 = o.stance || 1;   // 보폭: 1 = 보통, 클수록 앞발을 내딛은 자세
   g.save(); g.translate(-1.6 * st2, 0); g.transform(1, 0, 0.06 * st2, 1, 0, 0);
   stretch(() => {
@@ -389,7 +403,7 @@ function headDraw(g, o, skin) {
   // 귀
   if (o.hat !== 'fur') { cel(g, S(-2.6, -58.0, -4.4, -58.4, -4.8, -56.2, -3.8, -54.2, -2.6, -54.8), skin, S(-5, -58, -4, -58, -4, -54, -5, -54), { k: 0.22, lw: 0.7 }); ln(g, O(-3.0, -57.4, -3.9, -56.6, -3.4, -55.4), dk(skin, 0.38), 0.45); }
   if (o.bangs) bangs(g, o);
-  if (o.hair === 'topknot' && (!o.hat || o.hat === 'none' || o.hat === 'bald' || o.hat === 'gat')) topknot(g, o);
+  if (o.hair === 'topknot' && (!o.hat || o.hat === 'none' || o.hat === 'bald' || o.hat === 'gat')) topknot(g, o.hat === 'gat' ? Object.assign({}, o, { pin: 'rgba(0,0,0,0)' }) : o);
   if (o.hair === 'bald') { ln(g, O(-3.6, -63.2, 0.4, -64.8, 4.0, -64.0), lt(skin, 0.4), 0.8); }
   face(g, o, skin);
   beard(g, o.face && o.face.beard, o.beardCol || o.hairCol || HAIR);
@@ -438,7 +452,7 @@ export function illPerson(g, o, sel) {
   const body = sel !== 'head', head = sel !== 'body', skin = o.skin || SKIN, D = o.D || 0;
   if (o.riding && body) { g.save(); g.translate(4, 0); g.scale(1.12, 1.12); illHorse(g, o.horse || {}); g.restore(); }
   if (o.lift) { g.save(); g.translate(0, -o.lift); }
-  const up = fn => { g.save(); g.translate(0, -D); fn(); g.restore(); };   // 허리 위는 늘인 다리만큼 올라간다
+  const lean = o.lean || 0, up = fn => { g.save(); g.translate(0, -D); if (lean) { g.translate(0, -30); g.transform(1, 0, -lean, 1, 0, 0); g.translate(0, 30); } fn(); g.restore(); };   // 허리 위는 늘인 다리만큼 올라가고, 앞으로 숙일 수 있다
   if (body) {
     if (o.behind) up(() => o.behind(g, o));
     if (o.chima) chimaDraw(g, o, D); else if (o.riding) { if (o.coat) skirtDraw(g, o); ridingLeg(g, o); } else { legsDraw(g, o, D); if (o.coat) skirtDraw(g, o, D); }
@@ -715,11 +729,11 @@ function illFox(g, o = {}) {
   cel(g, S(10.6, -15.0, 12.8, -15.0, 14.2, -4.4, 15.8, -0.4, 13.0, 0.6, 12.0, -4.4), fd, null, { lw: 0.8 });
   for (const [x0, x1] of [[-10.9, -7.0], [11.6, 16.0]]) cel(g, S(x0, -4.6, x0 + 3.0, -4.8, x1, -0.2, x1 - 3.6, 0.6), sock, null, { lw: 0.7 });
   // 몸통
-  cel(g, S(-15.4, -17.0, -10.0, -22.8, 0.0, -23.2, 8.4, -23.6, 13.4, -21.4, 14.0, -16.4, 10.4, -13.4, 2.0, -14.8, -6.0, -14.2, -13.2, -13.6), fur, S(-16, -15.4, -4, -15.8, 8, -15.2, 14, -14, 14, -11, -16, -11), { k: 0.24, hi: S(-9, -22, 0, -21.4, 7.6, -23, 4, -21, -4, -20.4), hk: 0.25, lw: 0.9 });
+  cel(g, S(-15.4, -17.0, -10.0, -22.8, 0.0, -23.2, 8.4, -23.6, 13.4, -21.6, 15.6, -18.0, 13.6, -14.0, 9.6, -13.0, 2.0, -14.8, -6.0, -14.2, -13.2, -13.6), fur, S(-16, -15.4, -4, -15.8, 8, -15.2, 14, -14, 14, -11, -16, -11), { k: 0.24, hi: S(-9, -22, 0, -21.4, 7.6, -23, 4, -21, -4, -20.4), hk: 0.25, lw: 0.9 });
   cel(g, S(8.2, -20.6, 13.6, -20.4, 13.8, -14.4, 10.2, -10.8, 7.2, -14.2), belly, S(7, -14, 14, -14, 14, -10, 7, -10), { k: 0.14, lw: 0.75 });
   // 가까운 뒷다리·앞다리 (검은 발목)
   cel(g, S(-16.6, -15.6, -10.2, -19.2, -7.8, -13.6, -9.6, -9.6, -11.2, -6.8, -9.4, -0.2, -12.0, 0.6, -13.6, -6.0, -12.6, -9.6, -14.6, -11.2), fur, S(-17, -12, -8, -12, -8, 1, -17, 1), { k: 0.22, lw: 0.85 });
-  cel(g, S(7.8, -15.6, 11.0, -15.8, 10.8, -5.2, 12.8, -0.4, 9.8, 0.6, 8.8, -5.0), fur, S(6, -8, 13, -8, 13, 1, 6, 1), { k: 0.2, lw: 0.85 });
+  cel(g, S(7.6, -15.6, 11.2, -15.8, 11.6, -9.6, 10.6, -5.0, 13.0, -0.4, 9.8, 0.6, 8.6, -4.6, 9.0, -9.6), fur, S(6, -8, 13, -8, 13, 1, 6, 1), { k: 0.2, lw: 0.85 });
   for (const [x0, x1] of [[-13.4, -9.0], [8.8, 12.8]]) cel(g, S(x0, -5.2, x0 + 3.0, -5.4, x1, -0.4, x1 - 0.6, 0.6, x0 + 0.6, 0.6), sock, null, { lw: 0.7 });
   // 목과 머리: 뾰족한 주둥이, 큰 귀, 흰 뺨털
   cel(g, S(8.4, -22.6, 13.6, -28.6, 18.6, -26.4, 15.6, -18.4, 10.6, -17.6), fur, S(9, -20, 16, -20, 15, -17, 9, -17), { k: 0.2, lw: 0.85 });
@@ -755,13 +769,13 @@ export const ILL_WEAPONS = {
   },
   // 각궁: 짧은 활의 양끝이 앞으로 휘어 나간다 (시위는 가늘게)
   bow(g, o = {}) {
+    g.save(); g.translate(2.2, 0);   // 손잡이(활 한가운데)가 원점에 오게
     const wood = o.wood || '#7a3a22', c = p => { p.moveTo(7.4, -21.6); p.bezierCurveTo(4.0, -19.4, 4.2, -16.0, 0.4, -13.0); p.bezierCurveTo(-4.6, -9.0, -4.2, -3.0, -2.2, 0); p.bezierCurveTo(-4.2, 3.0, -4.6, 9.0, 0.4, 13.0); p.bezierCurveTo(4.2, 16.0, 4.0, 19.4, 7.4, 21.6); };
     ln(g, c, LN, 3.6); ln(g, c, wood, 2.1); ln(g, p => { p.moveTo(6.6, -20.6); p.bezierCurveTo(3.4, -18.6, 3.0, -15.2, -0.4, -12.0); p.bezierCurveTo(-3.6, -9, -3.6, -4, -2.0, -1); }, lt(wood, 0.4), 0.6);
     for (const y of [-12.6, 12.6]) ln(g, O(-2.4, y - (y < 0 ? 1 : -1), 0.8, y), o.wrap || '#e0b04a', 1.3);
     ln(g, O(5.6, -19.4, 5.6, 19.4), '#e8e2d2', 0.45);
-    cel(g, R0(-3.6, -3.0, 3.2, 6.0), o.grip || '#3a2a26', null, { lw: 0.6 });
-    cel(g, EL(-0.8, 0, 2.6, 2.4), SKIN, EL(0.2, 1, 2.2, 1.8), { k: 0.2, lw: 0.8 });
-    ln(g, O(-0.2, -1.2, 1.2, -0.2), dk(SKIN, 0.35), 0.45);
+    cel(g, R0(-3.5, -3.4, 2.6, 6.8), o.grip || '#3a2a26', null, { lw: 0.6 });
+    g.restore();
   },
   greatbow(g) { g.save(); g.scale(1.12, 1.12); ILL_WEAPONS.bow(g, { wood: '#4a2a1e', wrap: '#c8302a', grip: '#2a2030' }); g.restore(); },
   // 방망이: 쇠못을 박은 나무 방망이
@@ -796,7 +810,7 @@ const BOW_HAND = { x: 13.6, y: -37.0 }, BOW_ARM = { x: 16.8, y: -38.0 }, CAST_HA
 const NAVY = '#3a4462', BAJI = '#e8e2d2';
 export const ILL_LOOKS = {
   // 환도 무사: 머리띠와 붉은 띠, 상투, 짧은 수염, 검은 무릎 두루마기, 큰 칼
-  sword: P({ hair: 'topknot', hat: 'band', bandCol: '#2a2836', ribbon: '#c8302a', face: { brow: 'stern', up: 0.55, beard: 'short' }, top: NAVY, coat: { col: NAVY, lining: '#b8302a', len: 'knee' }, pants: BAJI, wrap: '#3a3546', wrapTie: '#c8302a', sash: '#b8302a', cuff: '#b8302a', sashFly: true, stance: 2.2 }, { hold: hold(0.42), h: 70 }),
+  sword: P({ hair: 'topknot', hat: 'band', bandCol: '#2a2836', ribbon: '#c8302a', face: { brow: 'stern', up: 0.55, beard: 'short' }, top: NAVY, coat: { col: NAVY, lining: '#b8302a', len: 'knee' }, pants: '#3e3a4c', wrap: '#2a2632', wrapTie: '#c8302a', sash: '#b8302a', cuff: '#b8302a', sashFly: true, lunge: true, lean: 0.12, hand: { x: 13.8, y: -32.4 } }, { hold: hold(1.0, 'slash', 14.1, -32.4), h: 70 }),   // 손 자리는 숙인 만큼(0.12 × 2.4) 앞으로
   // 등패수: 전립, 청록 군복, 등패
   shield: P({ hair: 'topknot', hat: 'jeonrip', face: { brow: 'flat', beard: 'stubble' }, skin: '#e8bc90', top: '#3f6a72', coat: { col: '#3f6a72', lining: '#c8402f', len: 'knee' }, vest: '#2a3448', pants: BAJI, wrap: WHITE, sash: '#d9a441', cuff: '#c8402f', front: ITEMS.rattan, rearHand: { x: -4.0, y: -31.0 } }, { hold: hold(0.3), h: 70 }),
   // 창병: 패랭이, 흰 바지저고리에 붉은 배자, 짚신
@@ -806,7 +820,7 @@ export const ILL_LOOKS = {
   // 도사: 잿빛 도포, 갓, 빛나는 구슬 지팡이
   wizard: P({ hair: 'topknot', hat: 'gat', face: { brow: 'stern', up: 0.2, beard: 'goatee', lines: true }, skin: '#eec6a0', top: '#7e828f', coat: { col: '#878b98', len: 'long', lining: '#4e5262' }, pants: '#d6d2ca', sash: '#2e2e3c', sleeve: 'wide', cuff: '#d6d2ca', rearItem: ITEMS.orbStaff, rearHand: { x: -11.6, y: -31.4 }, hand: CAST_HAND }, { hold: hold(0, 'cast', CAST_HAND.x, CAST_HAND.y), h: 76, glow: [{ x: -10.9, y: -70.8, r: 5.5, col: '#ffd66a' }] }),
   // 무녀: 붉은 저고리·치마, 긴 머리에 붉은 댕기, 노란 부적
-  priest: P({ fem: true, longHair: true, bangs: true, hairPin: '#c8302a', ribbon: '#c8302a', face: { brow: 'soft', eyeW: 3.5, eyeH: 2.05, up: 0.1, lash: true, lip: '#c0404a', blush: true }, skin: '#f6d6b6', top: '#c8463c', git: '#6a1a1c', collar: '#f6f0e4', goreum: '#f0c64a', sleeveCol: '#c8463c', cuff: '#f6f0e4', chima: { col: '#a3242c', trim: '#e0b04a' }, rearItem: ITEMS.talisman, rearHand: { x: -7.4, y: -31.6 }, hand: CAST_HAND }, { hold: hold(0, 'cast', CAST_HAND.x, CAST_HAND.y), h: 70, glow: [{ x: -9.6, y: -37, r: 4, col: '#ffd66a' }] }),
+  priest: P({ fem: true, longHair: true, bangs: true, hairPin: '#c8302a', ribbon: '#ff5a40', face: { brow: 'soft', eyeW: 3.5, eyeH: 2.05, up: 0.1, lash: true, lip: '#c0404a', blush: true }, skin: '#f6d6b6', top: '#c8463c', git: '#6a1a1c', collar: '#f6f0e4', goreum: '#f0c64a', sleeveCol: '#c8463c', cuff: '#f6f0e4', chima: { col: '#a3242c', trim: '#e0b04a' }, rearItem: ITEMS.talisman, rearHand: { x: -7.4, y: -31.6 }, hand: CAST_HAND }, { hold: hold(0, 'cast', CAST_HAND.x, CAST_HAND.y), h: 70, glow: [{ x: -9.6, y: -37, r: 4, col: '#ffd66a' }] }),
   // 기마 무사: 검붉은 말에 탄 무사, 붉은 군복에 투구, 긴 창
   knight: P({ riding: true, lift: 22, hair: 'topknot', hat: 'tugu', face: { brow: 'stern', thick: true, beard: 'short' }, top: '#a84a32', armor: '#2f3346', coat: { col: '#a84a32', len: 'mid', studs: true }, pants: '#3a3640', shoe: '#1e1a24', sash: '#d9a441', cuff: '#2f3346', hand: { x: 13.6, y: -33 }, rearHand: { x: 9.6, y: -34.6 } }, { hold: hold(0.18, 'thrust', 13.6, -33 - 22), h: 100, w: 150, ox: 64, scale: 0.84 }),
   berserk: P({ hair: 'topknot', hat: 'ribbon', ribbon: '#c8302a', face: { brow: 'fierce', thick: true, beard: 'short', scar: true, mouth: 'grin' }, skin: '#d9a878', bareChest: true, top: '#d9a878', bare: true, wrist: '#6a4a34', coat: { col: '#6b5a44', len: 'knee' }, pants: '#d9cdb0', wrap: '#6a5a44', sash: '#c8302a' }, { hold: hold(0.45), h: 70, wide: 1.12 }),

@@ -88,7 +88,7 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
       else if (mode === 'shoot') { rot = sg * (ha - act * (hand === 'C' ? 0.28 : 0.08)) + tilt; if (ap < 0.45) streak(hx, hy, 12, 12 + 30 * Math.min(1, ap / 0.2), 1 - ap / 0.45); }
       else { rot = sg * (ha + (ap < 1 ? swing(ap) : 0)) + tilt; if (ap > 0.28 && ap < 0.86) trail(hx, hy, sg * (ha - 0.9) + tilt, sg * (ha + (ap < 0.55 ? swing(ap) : 1.7)) + tilt, sg < 0, ap); }
       drawSprite(g, wspr, hx, hy, sg * k * Math.abs(fsx), k, rot, fl);
-      if (L.fist && hand !== 'L') drawSprite(g, L.fist, hx, hy, sg * k * Math.abs(fsx), k, rot, fl);   // 손잡이를 감싼 주먹
+      if (L.fist) drawSprite(g, L.fist, hx, hy, sg * k * Math.abs(fsx), k, rot, fl);   // 손잡이를 감싼 주먹
     };
     // 활은 쏘는 쪽(앞)으로 내밀어 든다: 활등이 과녁을 향하고 시위가 몸 쪽에 온다
     if (hand === 'L') put(hold.x + 3, hold.y - 1, -dir);
@@ -164,7 +164,7 @@ export class BattleView {
     if (opt.orders) this.drawOrders(g, b, T);
     fx.drawLayer(g, true);
     const list = [];
-    for (const u of b.units) { if (u.dead || u.hidden > 0 || u.x > W + 60) continue; list.push({ y: u.y, u }); }
+    for (const u of b.units) { if (u.dead || u.hidden > 0 || u.x > W + 60) continue; list.push({ y: u.y + (u.def && u.def.boss ? 26 : 0), u }); }   // 두목은 둘레의 졸개에 가리지 않게
     for (const p of this.props) { const x = p.wx - sc; if (x > -90 && x < W + 90) list.push({ y: p.y, spr: p.spr, x }); }
     for (const o of this.ter.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: easeOutBack(kin) }); }
     if (kout > 0) for (const o of this.oldTer.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: kout }); }
