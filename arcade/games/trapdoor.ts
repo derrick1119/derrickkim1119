@@ -40,7 +40,9 @@ const WOW_N = 5, CLEAR_PTS = 20, STAR_MUL = [1, 1, 2, 4], WIN_PTS = 100, BOSS_PT
 /** 한 번에 n번째로 쓰러진 놈의 점수 */
 const PTS = (n: number) => n * 2;
 /** 문으로 들어오는 간격(우르르) · 화면에 보이는 몬스터 상한(넘치면 문 앞에서 기다림) · 이만큼 남으면 겁먹고 스스로 사다리 구멍으로 */
-const GATE_RUSH = 8, VIS_CAP = 20, PANIC_N = 3, BAT_H = 0.25;
+const GATE_RUSH = 8, VIS_CAP = 22, PANIC_N = 3, BAT_H = 0.25;
+/** 아래층에 하나둘 들어오는 간격 · 그 층 무리가 이만큼 되면 멈춤 · 층마다 들어올 몫 */
+const LOW_EVERY = 55, LOW_CAP = 7, LOW_RES = 7;
 /** 끌리는 것: 종이 다시 울리기까지(틱) · 공 빠르기 · 빛 빠르기 · 무리가 퍼지는 폭 · 따라가는 놈 비율 */
 const RING_T = 200, BALL_V = 0.0024, WISP_V = 0.0048, CROWD = 0.085, FOLLOW = 0.82;
 
@@ -216,7 +218,7 @@ interface Keg { x: number; live: boolean }
 interface Shelf { x: number; st: number; dir: number; t: number; drop: number }
 /** 층마다 무리가 끌려가는 것: 0 땡! 종이 울리는 화덕(부엌 탑) · 1 굴러가는 공(장난감 탑) · 2 떠다니는 빛(마법사 탑) */
 interface Lure { kind: number; x: number; vx: number; tx: number; next: number; ring: number; spots: number[] }
-interface Floor { tiles: Tile[]; feat: Feat; queue: K[]; qT: number; kegs: Keg[]; shelves: Shelf[]; room: number; hot: number[]; tramp: number[]; gone: boolean; lure: Lure }
+interface Floor { tiles: Tile[]; feat: Feat; queue: K[]; qT: number; res: number; rT: number; kegs: Keg[]; shelves: Shelf[]; room: number; hot: number[]; tramp: number[]; gone: boolean; lure: Lure }
 /** 톡 한 번의 연쇄: 쓰러뜨린 수 · 깨뜨린 바닥 수 · 처음 열린 자리 · 가장 깊이 간 층 · 점수 · 그중 깔린 수(함정문으로 떨어진 놈 말고) */
 interface Drop { id: number; n: number; t: number; cracks: number; x: number; f0: number; deep: number; pts: number; vic: number }
 /** 같은 연쇄가 같은 층에 내려앉은 무리(바닥이 깨질지 셈) */
@@ -230,7 +232,7 @@ export interface TrapState {
   lv: number; perk: number[]; picked: number; dex: string[]; newDex: string[]; loot: number[];
   floors: Floor[]; nf: number; c: number; cam: number; desc: number; descTo: number; vaultT: number; tumble: number;
   mons: Mon[]; nid: number; drops: Drop[]; lands: Land[]; did: number;
-  rest: number; down: boolean; firstTap: number; firstBig: number; wowN: number; hurt: number; lost: number; best: number; bestVic: number; bestWar: number; star3: boolean;
+  rest: number; down: boolean; firstTap: number; firstBig: number; wowN: number; hurt: number; lost: number; best: number; bestVic: number; bestWar: number; warN: number; star3: boolean;
   /** 이 층의 망보기가 너구리를 알아채는 틱 */
   watchT: number;
   stT: number; safeT: number; taps: number; kills: number; gain: number; clearT: number; twin: { f: number; i0: number; wd: number; t: number; id: number }[];
@@ -356,7 +358,7 @@ function newStage(s: TrapState) {
     const fd: FDef | undefined = d.floors[k], feat = fd?.feat ?? {}, tramp = new Array(NT).fill(0);
     for (const [i, dir] of feat.tramp ?? []) tramp[i] = dir;
     s.floors.push({
-      tiles: Array.from({ length: NT }, () => ({ open: 0, crack: 0, drop: 0, patch: 0, at: -99 })), feat, queue: fd ? expand(fd.door) : [], qT: 0,
+      tiles: Array.from({ length: NT }, () => ({ open: 0, crack: 0, drop: 0, patch: 0, at: -99 })), feat, queue: fd ? expand(fd.door) : [], qT: 0, res: LOW_RES, rT: 30 + k * 17,
       kegs: (feat.keg ?? []).map((i) => ({ x: tileX(i), live: true })), shelves: (feat.shelf ?? []).map((i) => ({ x: tileX(i), st: 0, dir: 1, t: 0, drop: 0 })),
       room: fd ? fd.room : 15 + d.ch, hot: fd ? hotSpots(s, k, fd.hot) : [0.5], tramp, gone: false, lure: newLure(s, k, d.ch),
     });
@@ -385,6 +387,7 @@ function newStage(s: TrapState) {
   s.best = 0;
   s.bestVic = 0;
   s.bestWar = 0;
+  s.warN = 0;
   s.star3 = false;
   s.stT = 0;
   s.safeT = 0;
@@ -651,6 +654,7 @@ function crack(s: TrapState, f: number, x0: number, x1: number, D: Drop) {
   const F = s.floors[f], a = tileOf(x0), b = tileOf(x1);
   for (let i = a; i <= b; i++) (F.tiles[i].crack = CRACK_T), (F.tiles[i].drop = D.id), (F.tiles[i].at = s.t);
   D.cracks++;
+  if (D.cracks === 1 && D.x > WL) s.warN++;
   if (D.deep < f) D.deep = f;
   starCheck(s, D, (WL + a * TW + WL + (b + 1) * TW) / 2, FY(f));
   ev(s, 'crack', (WL + a * TW + WL + (b + 1) * TW) / 2, FY(f), D.cracks, a, b);
@@ -991,6 +995,17 @@ function playStep(s: TrapState) {
       F.qT = GATE_RUSH;
       ev(s, 'enter', WR - 0.03, FY(s.c), F.queue.length);
     }
+    // 아래층(보이는 두 층)에는 문으로 하나둘 계속 들어와 무리에 붙는다 — 깔아뭉갤 무리가 늘 있다 (층마다 남은 몫이 바닥나면 끝)
+    for (let f = s.c + 1; f <= s.c + 2 && f < s.nf - 1; f++) {
+      const G2 = s.floors[f];
+      if (!room || G2.gone || G2.res <= 0 || --G2.rT > 0) continue;
+      G2.rT = LOW_EVERY;
+      if (s.mons.reduce((a, m) => a + (m.f === f && !m.dead && counts(m) && grounded(m) ? 1 : 0), 0) >= LOW_CAP) continue;
+      G2.res--;
+      const k: K = s.rng() < 0.15 && STAGES[s.stage].floors[f].init.some(([q]) => q === 'bear') ? 'bear' : 'imp', m = add(s, k, f, WR + 0.02, 0.2 + s.rng() * 0.7, ENTER);
+      m.tx = WR - 0.06 - s.rng() * 0.12;
+      m.fol = true;
+    }
     // 대장 판 맨 아래층: 대장이 졸개를 계속 올려 보낸다
     if (!s.bossDown && s.c === s.nf - 2 && !F.queue.length && n <= 3 && (room || n <= 1) && ++s.summonT >= 46) {
       s.summonT = 0;
@@ -1094,7 +1109,7 @@ const game: GameDef<TrapState> & { wows(s: TrapState): number } = {
     const s = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'play', pt: 0, hearts: 3, pts: 0, sp: 0, stars: 0, got: 0, starOk: [false, false, false], dead: false, won: false,
       lv: 1, perk: [0, 0], picked: -1, dex: [], newDex: [], loot: [], floors: [], nf: 0, c: 0, cam: 0, desc: -1, descTo: 0, vaultT: -1, tumble: -1,
-      mons: [], nid: 0, drops: [], lands: [], did: 0, rest: 0, down: false, firstTap: -1, firstBig: -1, wowN: 0, hurt: 0, lost: 0, best: 0, bestVic: 0, bestWar: 0, star3: false,
+      mons: [], nid: 0, drops: [], lands: [], did: 0, rest: 0, down: false, firstTap: -1, firstBig: -1, wowN: 0, hurt: 0, lost: 0, best: 0, bestVic: 0, bestWar: 0, warN: 0, star3: false,
       stT: 0, watchT: 0, safeT: 0, taps: 0, kills: 0, gain: 0, clearT: 0, twin: [], gauge: 0, gaugeMax: 0, bonkT: -99, bossDown: true, collapseT: -1, summonT: 0,
       events: [], seen: new Set<string>(), banner: null, spot: null, big: null, freeze: 0, lastDrop: 0,
     } as TrapState;

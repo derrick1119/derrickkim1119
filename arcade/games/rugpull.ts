@@ -93,12 +93,12 @@ const DOOR = RG('door', 0.655, 1.175, 0.085, 0.06, 'none');
 /** 판 12개. 깔개 자리는 판마다 조금씩 다르다 — 이웃 깔개끼리 날아가 닿을 거리(0.3~0.45)에 둔다 */
 export const STAGES: StageDef[] = [
   {
-    key: 'mochi', ch: 0, name: '말랑 떡도깨비', news: '깔개를 톡! 위의 놈들이 화살표 쪽 무리로 날아가요', n: 100, star: 6, eat: 0.0002,
+    key: 'mochi', ch: 0, name: '말랑 떡도깨비', news: '깔개를 톡! 위의 놈들이 화살표 쪽 무리로 날아가요', n: 100, star: 8, eat: 0.0002,
     mix: [['mochi', 1]],
     rugs: [RG('cloth', 0.27, 0.8, 0.13, 0.1, 'tteok'), RG('mung', 0.68, 0.74, 0.15, 0.15, 'tteok'), RG('mat', 0.3, 0.42, 0.12, 0.08, 'skewer'), RG('cloth', 0.72, 0.43, 0.13, 0.095, 'jeon'), DOOR],
   },
   {
-    key: 'bear', ch: 0, name: '덩치 곰', news: '곰은 안 날아가요 — 그 자리에 쿵! 둘레가 튕겨요', n: 130, star: 9, eat: 0.00045,
+    key: 'bear', ch: 0, name: '덩치 곰', news: '곰은 안 날아가요 — 그 자리에 쿵! 둘레가 튕겨요', n: 130, star: 11, eat: 0.00045,
     mix: [['bear', 2], ['mochi', 12]],
     rugs: [RG('mung', 0.5, 0.68, 0.15, 0.15, 'tteok'), RG('cloth', 0.22, 0.43, 0.13, 0.095, 'skewer'), RG('cloth', 0.78, 0.43, 0.13, 0.095, 'jeon'), RG('mat', 0.24, 0.98, 0.12, 0.08, 'dumpling'), DOOR],
   },
@@ -1218,46 +1218,51 @@ function judge(s: RugState, set: Rug[], out?: { meter: number }): number {
   };
   const feastHit = (x: number, y: number) => !!f && !!b && !s.full && !s.pulled && (inside(f, x, y, 1.15) || dist(x, y, b.x, b.y) < b.r + 0.06);
   for (const r of set) {
-    const spin = r.t === 'spin', tg = targetOf(s, r), a = Math.atan2((tg.y - r.y) / YS, tg.x - r.x), rs = riders(s, r), slick = s.t < r.ink ? 1.9 : 1;
+    const spin = r.t === 'spin', tg = targetOf(s, r), rs = riders(s, r), slick = s.t < r.ink ? 1.6 : 1;
     if (r.t === 'feast') v += 60;
     if (underFeast(s, r)) meter += 3 + Math.min(4, rs.length);
     for (const m of rs) ride.add(m.id);
+    let fly = 0;
     for (const m of rs) {
       if (KD[m.k].boss) continue;
-      let qx: number, qy: number, c: number, sn: number;
-      if (spin) {
-        const ma = Math.atan2((m.y - r.y) / YS, m.x - r.x) + 0.25;
-        (c = Math.cos(ma)), (sn = Math.sin(ma)), (qx = m.x + c * L * 0.62), (qy = m.y + sn * L * 0.62 * YS);
-      } else {
-        qx = tg.x + (m.x - r.x) * 0.35 - Math.cos(a) * 0.03;
-        qy = tg.y + (m.y - r.y) * 0.35 - Math.sin(a) * 0.03 * YS;
-        const ma = Math.atan2((qy - m.y) / YS, qx - m.x);
-        (c = Math.cos(ma)), (sn = Math.sin(ma));
-      }
-      const first: Mon[] = [];
       if (m.k === 'bear') {
         v += 1;
+        const first: Mon[] = [];
         ring(m.x, m.y, 0.17, first);
-      } else {
-        if (m.k !== 'cat' || m.hops <= 0) v += 1;
-        if (feastHit(qx, qy)) meter += m.k === 'pig' ? 2 : 1;
-        if (m.k === 'cat' && m.hops > 0) continue;
-        capsule(qx, qy, c, sn, 0.14 * oil * slick * (m.k === 'pig' || m.k === 'squirrel' ? 0.55 : 1), m.r + 0.014 + fire, first);
-        if (m.k === 'frog') ring(qx, qy, 0.11, first);
-        if (m.k === 'squirrel') ring(qx, qy, 0.17, first);
-        if (m.k === 'pig') ring(qx, qy, 0.125, first);
-        if (m.k === 'jelly') capsule(qx + c * L * 0.48, qy + sn * L * 0.48 * YS, c, sn, 0.04, m.r + 0.02, first);
-        if (m.k === 'tanuki') capsule(m.x, m.y, c, sn, 0.9, 0.034, first);
+        v += first.length;
+        continue;
       }
-      // 두 번째 도미노: 넘어진 놈이 같은 쪽으로 조금 더
-      for (const o of first) {
-        v += 1;
-        const sec: Mon[] = [];
-        capsule(o.x, o.y, c, sn, 0.08 * oil * slick, o.r * 1.6, sec);
-        v += sec.length * 0.8;
-        if (feastHit(o.x + c * 0.06, o.y + sn * 0.06 * YS)) meter += 1;
+      if (m.k === 'cat' && m.hops > 0) continue;
+      v += 1;
+      fly++;
+      if (spin) {
+        const ma = Math.atan2((m.y - r.y) / YS, m.x - r.x) + 0.25, c = Math.cos(ma), sn = Math.sin(ma), first: Mon[] = [];
+        capsule(m.x + c * L * 0.62, m.y + sn * L * 0.62 * YS, c, sn, 0.12 * oil, m.r + 0.02 + fire, first);
+        v += first.length;
+        continue;
       }
+      const qx = tg.x + (m.x - r.x) * 0.35, qy = tg.y + (m.y - r.y) * 0.35, first: Mon[] = [];
+      if (feastHit(qx, qy)) meter += m.k === 'pig' || slick > 1 ? 2 : 1;
+      if (m.k === 'frog') ring(qx, qy, 0.11, first);
+      if (m.k === 'squirrel') ring(qx, qy, 0.17, first);
+      if (m.k === 'pig') ring(qx, qy, 0.125, first);
+      if (m.k === 'tanuki') {
+        const ma = Math.atan2((qy - m.y) / YS, qx - m.x);
+        capsule(m.x, m.y, Math.cos(ma), Math.sin(ma), 0.9, 0.034, first);
+      }
+      v += first.length;
     }
+    if (spin || !fly) continue;
+    // 화살표 끝 무리: 날아간 수에 맞춰 넘어진다 (한 놈이 둘쯤) · 둘레는 반쯤
+    let core = 0, edge = 0;
+    for (const o of ups) {
+      if (ride.has(o.id) || hit.has(o.id) || o.k === 'bear') continue;
+      const d = dist(tg.x, tg.y, o.x, o.y);
+      if (d < 0.11 * slick * oil) core++;
+      else if (d < 0.2 * slick * oil) edge++;
+    }
+    v += Math.min(core, 1 + fly * 2.2 * slick) + Math.min(edge, fly) * 0.45;
+    if (feastHit(tg.x, tg.y)) meter += Math.min(core, fly);
   }
   if (f && b && !s.full) v += meter * 0.9;
   if (out) out.meter = meter;
@@ -1302,7 +1307,7 @@ export const rugpullSmart: Bot<RugState> = {
       }
     }
     const since = s.t - (lastYank.get(s) ?? -999), d = STAGES[s.stage];
-    const want = Math.max(6, d.star * 0.7), seek = !!d.boss && !s.full && s.bestStar < d.star && s.t - s.t0 >= 540;
+    const want = Math.max(9, d.star * 0.75), seek = !!d.boss && !s.full && s.bestStar < d.star && s.t - s.t0 >= 540;
     if (bv >= 2 && (urgent || (seek ? bm >= d.star * 0.85 : bv >= want) || since > (seek ? 100 : 170) || (s.full && !s.pulled))) {
       lastYank.set(s, s.t);
       return at(bx, by);
