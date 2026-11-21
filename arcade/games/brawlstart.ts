@@ -29,16 +29,16 @@ const WALK = 0.0036, RUN = 0.0068, STOP = 0.25, CLEAR = 0.72;
 /** 톡 사이 쉼(틱) · 딱! 멈칫 · 멀리 있으면 달려가서 딱 */
 const CD = 30, HIT_T = 9, BONK_GAP = 0.03, DASH_V = 0.02;
 /** 구름: 처음 반지름 · 처음 속도 · 마찰 · 처음 수명 · 하나 삼킬 때마다 수명·속도 */
-const R0 = 0.066, V0 = 0.0102, FRIC = 0.972, LIFE0 = 50, LIFE_ADD = 24, V_ADD = 0.003, V_MAX = 0.016, AGE_MAX = 460;
+const R0 = 0.064, V0 = 0.009, FRIC = 0.972, LIFE0 = 42, LIFE_ADD = 16, V_ADD = 0.002, V_MAX = 0.015, AGE_MAX = 420;
 /** 돌진 구름(멧돼지·쌍둥이) · 폭죽으로 튄 구름 */
 const V_CHARGE = 0.021, CHARGE_T = 44, V_ROCKET = 0.019;
 /** 올빼미: 보는 원 · 호루라기 부는 데 걸리는 틱 · 다시 불기까지 */
 const OWL_R = 0.25, OWL_WIND = 28, OWL_REST = 100;
 /** 들킴: 판 처음 안전한 시간 · '!' 뒤 꿀밤까지 · 꿀밤 뒤 안전 */
 const GRACE = 600, NOTICE_T = 120, SAFE_T = 300;
-/** 숨어서 기다릴 때 들킴 게이지가 차는 틱 수 · 싸움을 본 놈(목격자) 하나가 올리는 양 · 목격자가 되는 거리 */
+/** 들킴 게이지: 숨어서 기다릴 때 차는 틱 수 · 작은 싸움(둘뿐)이 올리는 양 · 큰 소동(다섯 이상)이 내리는 양 · 목격자(흩어져 허둥대는 놈) 거리 */
 const PATIENCE = [600, 560, 540, 520];
-const WIT = [0, 0.04, 0.06, 0.07, 0.08, 0.09, 0.1], WIT_R = 0.3, PANIC_T = 330;
+const SMALL = [0, 0.05, 0.08, 0.1, 0.12, 0.13, 0.14], BIG_CALM = 0.1, WIT_R = 0.3, PANIC_T = 330, BLOOM = 8;
 const KO_T = 84, DAZE_T = 80, FLEE_T = 44, FLEE_V = 0.0125, FLEE_COOL = 70;
 const RESULT_MIN = 90, RESULT_OK = 250, RESULT_FAIL = 170, PICK_MIN = 36, PICK_AUTO = 900;
 const STAR_PTS = 200, CLEAR_PTS = 100, BOSS_PTS = 500, WIN_PTS = 1000;
@@ -473,12 +473,14 @@ function swallow(s: BrawlState, c: Cloud, m: Mon, init = false) {
   if (!s.lite && c.cols.length < 8) c.cols.push(KINDS.indexOf(m.k) * 3 + m.v);
   const slot = c.tap & 15, cnt = ++s.tc[slot];
   if (!init) {
-    c.life = Math.min(AGE_MAX, c.life + (m.k === 'chick' ? 15 : m.k === 'bear' ? 56 : LIFE_ADD));
+    c.life = Math.min(AGE_MAX, c.life + (m.k === 'chick' ? 12 : m.k === 'bear' ? 40 : LIFE_ADD));
     const sp = Math.hypot(c.vx, c.vy);
     if (c.kind !== 1 || c.age >= CHARGE_T) {
       const ns = Math.min(V_MAX, sp + V_ADD);
       if (sp > 1e-5) (c.vx *= ns / sp), (c.vy *= ns / sp);
     }
+    // 새로 낀 놈 쪽으로 구름이 쏠린다 (붐비는 데서는 그 자리를 맴돌며 다 삼킨다)
+    if (c.kind === 0 && !c.mega) (c.x += (m.x - c.x) / c.n), (c.y += (m.y - c.y) / c.n);
     c.popT = s.t;
     ev(s, 'swallow', m.x, m.y, cnt);
   }
@@ -539,19 +541,18 @@ function burst(s: BrawlState, c: Cloud) {
   });
   ev(s, 'burst', c.x, c.y, n, String(last));
   s.lastBurstT = s.t;
-  // 목격자: 싸움을 보고도 멀쩡한 놈이 둘레에 남으면 두리번거린다 → 들킴 게이지
   if (!c.mega && c.tap > 1) {
-    let wit = 0;
+    // 목격자: 싸움을 보고도 멀쩡한 놈은 놀라서 한동안 흩어져 허둥댄다 (그 무리는 당분간 안 모인다)
     for (const m of s.mons) {
       if (m.k === 'boss' || !(m.st === IDLE || m.st === ENTER) || (m.x - c.x) ** 2 + (m.y - c.y) ** 2 > WIT_R * WIT_R) continue;
-      wit++;
       m.sus = 90;
       const G = s.groups[m.g];
       if (G && G.form === 0 && G.rout > G.rin) G.panic = s.st + PANIC_T;
     }
-    const per = WIT[Math.min(s.stage, WIT.length - 1)];
-    if (wit) (s.alert = Math.min(1, s.alert + Math.min(0.45, wit * per))), ev(s, 'witness', c.x, c.y, wit);
-    else if (n >= 3) (s.alert = Math.max(0, s.alert - 0.12)), ev(s, 'clean', c.x, c.y, n);
+    // 들킴 게이지: 둘뿐인 작은 싸움은 수상하다 · 큰 소동은 누가 시작했는지 아무도 모른다
+    const add = SMALL[Math.min(s.stage, SMALL.length - 1)] * (n <= 2 ? 1 : n === 3 ? 0.5 : 0);
+    if (add > 0 && c.chain === 1 && c.kind === 0) (s.alert = Math.min(1, s.alert + add)), ev(s, 'sus', c.x, c.y, n);
+    else if (n >= 5) (s.alert = Math.max(0, s.alert - BIG_CALM)), ev(s, 'calm', c.x, c.y, n);
   }
   if (c.mega) {
     s.bossGone = true;
@@ -859,9 +860,8 @@ function clouds(s: BrawlState) {
         c.vy = ((t.y - c.y) / d) * V_CHARGE;
       } else c.tgtc = -1;
     }
-    c.x += c.vx;
-    c.y += c.vy;
-    const fr = c.mega ? 0.88 : c.kind === 1 && c.age < CHARGE_T ? 1 : FRIC;
+    if (c.kind !== 0 || c.age > BLOOM) (c.x += c.vx), (c.y += c.vy);
+    const fr = c.kind === 0 && c.age <= BLOOM ? 1 : c.mega ? 0.88 : c.kind === 1 && c.age < CHARGE_T ? 1 : FRIC;
     c.vx *= fr;
     c.vy *= fr;
     if ((c.y < MY0 && c.vy < 0) || (c.y > MY1 && c.vy > 0)) (c.vy = -c.vy), ev(s, 'wall', c.x, c.y);
@@ -981,16 +981,17 @@ function fox(s: BrawlState) {
     s.fx += s.run ? RUN : WALK;
   }
   // 들킴
-  if (s.noticer === -2) (s.noticer = -1), (s.alert = 0.15), (s.safeT = s.t + 90), ev(s, 'phew', s.fx, FOX_Y);
+  if (s.noticer === -2) (s.noticer = -1), (s.alert = 0.5), (s.safeT = s.t + 60), ev(s, 'phew', s.fx, FOX_Y);
   if (s.noticer >= 0) {
     const m = monById(s, s.noticer);
-    if (!m || m.st !== NOTICE) (s.noticer = -1), (s.alert = 0.15);
+    if (!m || m.st !== NOTICE) (s.noticer = -1), (s.alert = 0.5);
   } else if (s.st > GRACE && s.t > s.safeT) {
     if (block) {
       let busy = block.st !== IDLE;
       if (!busy) for (const c of s.clouds) if (!c.dead && (c.x - block.x) ** 2 + (c.y - block.y) ** 2 < 0.36 ** 2) busy = true;
       if (!busy) s.alert += 1 / PATIENCE[Math.min(s.stage, PATIENCE.length - 1)];
-    } else s.alert = Math.max(0, s.alert - 0.0006);
+    }
+    s.alert = Math.max(0, s.alert - 0.00035);
     if (s.alert >= 1) {
       // 여우에게 가장 가까운 놈이 알아챈다
       let nm: Mon | null = null, nd = 0.62;
@@ -1226,6 +1227,8 @@ function runSim(c: BrawlState, max: number) {
     world(c);
     if (i > 16 && quiet(c)) break;
   }
+  // 아직 굴러가는 구름은 그 자리에서 걷힌 것으로 센다
+  if (c.phase === 'play') for (const q of c.clouds) if (!q.dead) burst(c, q);
 }
 /** 결과·장 끝 화면 넘기기 (모든 봇 공통) */
 function between(s: BrawlState, side: number): Input | null {
@@ -1339,3 +1342,15 @@ function drawAll(ctx: CanvasRenderingContext2D, s: BrawlState, w: number, h: num
   void CHAPTER;
   void KNAME;
 }
+
+/** 측정·스냅샷용: k판(0부터)으로 건너뛴다 (장난 레벨·장 끝 선택도 그 판에 맞춘다) */
+export function jumpTo(s: BrawlState, k: number, perkA = 1, perkB = 1) {
+  s.stage = clamp(k, 0, STAGES.length - 1);
+  s.level = s.stage;
+  s.perkA = s.stage >= 4 ? perkA : 0;
+  s.perkB = s.stage >= 8 ? perkB : 0;
+  s.events = [];
+  newStage(s);
+}
+/** 측정용 속 들여다보기 */
+export const brawlstartDebug = { cloneSim, tapMon, runSim, openOf, tappable, world };
