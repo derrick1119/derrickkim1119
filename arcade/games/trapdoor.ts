@@ -294,7 +294,8 @@ function placeFloor(s: TrapState, f: number, list: [K, number][]) {
     let x = s.rng() < 0.6 ? hot + (s.rng() - 0.5) * 0.2 : WL + 0.06 + s.rng() * (WR - WL - 0.12);
     if (x < WL + SPOT_R + 0.04) x += 0.16;
     const m = add(s, k, f, x, 0.14 + s.rng() * 0.8, IDLE);
-    m.tm = Math.floor(60 + s.rng() * 240);
+    // 맨 위층은 곧바로 어슬렁 (첫 화면에서 세상이 움직이게)
+    m.tm = Math.floor(f === 0 ? 10 + s.rng() * 90 : 60 + s.rng() * 240);
   }
 }
 /** 너구리가 그 층에 오면 낮잠 더미가 하나둘 깬다 */
@@ -2718,7 +2719,12 @@ function drawAll(ctx: C2, s: TrapState, w: number, h: number, _th: Theme) {
     else if (m.st === ARC) rot = ((t - m.land) * 0.3) * Math.sign(m.bx - m.ax);
     else if (m.st === SKID) rot = 1.2 * Math.sign(m.vx);
     else if (m.st === WALK || m.st === ENTER || m.st === FLEE) sy2 = 1 + 0.06 * Math.sin((t + m.id * 9) * 0.35);
-    else if (m.st === IDLE && !m.nap) sy2 = 1 + 0.03 * Math.sin((t + m.id * 13) * 0.12);
+    else if (m.st === IDLE && !m.nap) {
+      // 노는 중: 1 냠냠(몸을 흔든다) · 2 베개 싸움(통통 뛴다)
+      if (m.act === 2) ctx.translate(0, -Math.abs(Math.sin((t + m.id * 11) * 0.16)) * u * 0.5), (sy2 = 1 + 0.08 * Math.sin((t + m.id * 11) * 0.32));
+      else if (m.act === 1) rot = 0.12 * Math.sin((t + m.id * 7) * 0.2);
+      else sy2 = 1 + 0.03 * Math.sin((t + m.id * 13) * 0.12);
+    } else if (m.nap) sy2 = 1 + 0.04 * Math.sin((t + m.id * 13) * 0.06);
     if (boss && t - m.hurtT < 20 && m.st !== FLAT) (sx = 1.15), (sy2 = 0.85), ctx.translate(Math.sin(t * 2) * 3, 0);
     if (m.st === LEAP) rot = -0.4;
     ctx.rotate(rot);
@@ -2981,7 +2987,7 @@ function drawAll(ctx: C2, s: TrapState, w: number, h: number, _th: Theme) {
         puff(ex, ey, P.wood, 14, 5, 3.2);
         puff(ex, ey, '#f3dfb0', 8, 3.5, 2.6);
         break;
-      case 'creak': fx.sound('tick', 0.55, 0.5); say(ex, ey - R(0.04), '삐걱', '#fff3c4', 14); break;
+      case 'creak': fx.sound('tick', 0.55, 0.5); break;
       case 'snag': fx.sound('boing', 1.6, 0.6); break;
       case 'batpop':
         fx.sound('pop', 0.6, 1.2);
