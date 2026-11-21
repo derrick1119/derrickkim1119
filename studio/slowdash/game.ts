@@ -875,6 +875,14 @@ function foeStep(s: DashState, f: Foe, dt: number, hidden: boolean) {
   if (!hidden) f.fa = turnTo(f.fa, Math.atan2(dy, dx), (f.k === 'shield' ? TUNE.shieldTurn : 0.3) * dt);
   const m = MELEE[f.k];
   if (m) {
+    // 👁 r1 [치명]: 칼 병정들이 모두 주인공 한 점으로 와서 한 덩어리로 포개졌다(대장 판은 대장·졸개·주인공이 한 몸) → 그림이 겹치면 옆으로 한 몸 비켜 선다
+    if (!hidden) for (const g of s.foes) {
+      if (g === f || !MELEE[g.k] || g.st === ENTER) continue;
+      const big = f.k === 'boss' || g.k === 'boss', sx = big ? 0.17 : 0.09, sy = big ? 0.2 : 0.11, ex = f.x - g.x, ey = f.y - g.y; // 그림 크기 상자(가로 한 몸 · 세로 키)
+      if (Math.abs(ex) >= sx || Math.abs(ey) >= sy) continue;
+      const dir = Math.abs(ex) > 1e-6 ? Math.sign(ex) : f.id > g.id ? 1 : -1; // 옆으로만 비켜 섬(깊이는 그대로)
+      f.x = clamp(f.x + dir * Math.min(0.012 * dt, (sx - Math.abs(ex)) * 0.5), 0.06, 0.94);
+    }
     if (f.st === IDLE) {
       f.cool -= dt;
       if (d > m.start) {
@@ -1557,7 +1565,28 @@ const hsh = (k: number) => {
 type C2 = CanvasRenderingContext2D;
 function ell(ctx: C2, x: number, y: number, rx: number, ry: number, rot = 0) {
   ctx.beginPath();
+  if (rot === 0 && ctx.getTransform().a < 0.9) { // 👁 r1: 세상(도트) 캔버스의 타원 그림자가 매끈하게 번졌다 → 도트 줄로(칸 = PX)
+    const cy = Math.round(y / PX), n = Math.max(1, Math.round(ry / PX));
+    for (let j = -n; j <= n; j++) {
+      const hw = Math.round((rx / PX) * Math.sqrt(Math.max(0, 1 - (j / (n + 0.5)) ** 2)));
+      if (hw > 0) ctx.rect((Math.round(x / PX) - hw) * PX, (cy + j) * PX, hw * 2 * PX, PX);
+    }
+    return;
+  }
   ctx.ellipse(x, y, Math.max(0.1, rx), Math.max(0.1, ry), rot, 0, TAU);
+}
+/** 👁 r1: 매끈한 타원 테(1px 번짐) 대신 도트 고리 — 테 위의 칸만 칠한다(색 = 지금 strokeStyle) */
+function ring(ctx: C2, x: number, y: number, rx: number, ry: number) {
+  const fs = ctx.fillStyle, cx = Math.round(x / PX), cy = Math.round(y / PX), a = Math.max(1, rx / PX), b = Math.max(1, ry / PX), m = Math.max(8, Math.round((a + b) * 3));
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.beginPath();
+  const seen = new Set<number>();
+  for (let i = 0; i < m; i++) {
+    const u = (i / m) * TAU, px = cx + Math.round(Math.cos(u) * a), py = cy + Math.round(Math.sin(u) * b), key = px * 4096 + py;
+    if (!seen.has(key)) seen.add(key), ctx.rect(px * PX, py * PX, PX, PX);
+  }
+  ctx.fill();
+  ctx.fillStyle = fs;
 }
 /** M3 F3 🎨 'AI 티' 1차(💬 오너 "AI로 제작된 티가 많이 난다"): 도트 세상 위 매끈한 그라데이션이 가장 큰 원인 → 그라데이션 대신 가운데 색 한 칸(납작한 도트 면) */
 function lin(_ctx: C2, _x0: number, _y0: number, _x1: number, _y1: number, ...st: [number, string][]) {
@@ -1577,6 +1606,7 @@ const ICON: Record<string, string[]> = {
   glass: ['#######', '.#...#.', '..#.#..', '...#...', '..#.#..', '.#...#.', '#######'],
   sand: ['.......', '..###..', '...#...', '.......', '...#...', '..###..', '.......'],
   disc: ['..###..', '.#####.', '#######', '#######', '#######', '.#####.', '..###..'],
+  disc9: ['...###...', '.#######.', '.#######.', '#########', '#########', '#########', '.#######.', '.#######.', '...###...'],
   star5: ['..#..', '#####', '.###.', '.#.#.', '#...#'],
   heart5: ['.#.#.', '#####', '#####', '.###.', '..#..'],
   heart3: ['#.#', '###', '.#.'],
@@ -1915,7 +1945,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   for (const k of s.inks) {
     const a = Math.max(0, 1 - (t - k.t) / 420) * Math.min(1, Math.max(0, t - k.t - 8) / 6);
     if (a <= 0) continue;
-    ctx.fillStyle = `rgba(20,12,40,${0.42 * a})`;
+    if (a < 0.15 || (a < 0.35 && Math.floor(t / 4) % 2)) continue; // 👁 r2: 반투명 겹침이 흐린 얼룩 → 한 색 도트 자국, 끝에 깜빡이며 사라짐
+    ctx.fillStyle = '#1b1636';
     const cx = X(k.x), cy = Y(k.y), r0 = R(k.r);
     for (let j = 0; j < 6; j++) {
       const ang = hsh(k.seed + j) * TAU, dd = r0 * (0.2 + hsh(k.seed + j + 3) * 0.7);
@@ -1975,8 +2006,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       if (locked) {
         ctx.strokeStyle = 'rgba(255,90,80,.9)';
         ctx.lineWidth = 2;
-        ell(ctx, X(f.ax), Y(f.ay), R(0.035), R(0.017));
-        ctx.stroke();
+        ring(ctx, X(f.ax), Y(f.ay), R(0.035), R(0.017)); // 👁 도트 고리
+        /* ring이 칠함 */
       }
     }
   }
@@ -2082,8 +2113,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     if (b.fall < 0) { // 베는 자리: 밑동 고리
       ctx.strokeStyle = `rgba(255,236,150,${0.55 + 0.25 * Math.sin(t * 0.2)})`;
       ctx.lineWidth = 2;
-      ell(ctx, bx, by - R(0.015), R(0.026), R(0.011));
-      ctx.stroke();
+      ring(ctx, bx, by - R(0.015), R(0.026), R(0.011)); // 👁 도트 고리
+      /* ring이 칠함 */
     }
     ctx.restore();
   } });
@@ -2101,18 +2132,17 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
         const cx = X(c.x), cy = Y(c.y), mid = cy - k * 0.42;
         if (c.boom) {
           const u = age;
+          if (u > 30 || (u > 18 && Math.floor(u / 3) % 2)) return; // 👁 r1: 돌며 옅어지던 것(번짐) → 도트 칸에 맞춰 날아가다 깜빡이며 사라짐
           ctx.save();
-          ctx.globalAlpha = Math.max(0, 1 - u / 40);
-          ctx.translate(cx + Math.cos(c.a) * u * 2.4, cy + Math.sin(c.a) * u * 1.2 - u * 3.2 + u * u * 0.09);
-          ctx.rotate(u * 0.18 * (c.face || 1));
-          ctx.scale(c.face, 1);
+          ctx.translate(Math.round((cx + Math.cos(c.a) * u * 2.4) / PX) * PX, Math.round((cy + Math.sin(c.a) * u * 1.2 - u * 3.2 + u * u * 0.09) / PX) * PX);
+          ctx.scale(c.face * (Math.floor(u / 4) % 2 ? -1 : 1), 1); // 돌기 대신 4프레임마다 뒤집기
           drawFoeBody(ctx, k, pose, wt);
           ctx.restore();
           return;
         }
         if (age < sp) {
           ctx.save();
-          if (sp > SPLIT) ctx.globalAlpha = 0.55; // 🧪 F3: 일섬으로 멈춘 벤 몸은 옅게(산 적과 헷갈리지 않게)
+          if (sp > SPLIT && Math.floor(age / 2) % 2) ctx.globalAlpha = 0; // 🧪 F3: 일섬으로 멈춘 벤 몸은 산 적과 헷갈리지 않게 · 👁 r1: 옅게(반투명 얼룩) 대신 깜빡임
           ctx.translate(cx, cy);
           ctx.fillStyle = 'rgba(4,6,18,.4)';
           ell(ctx, 0, 0, k * 0.26, k * 0.07);
@@ -2120,42 +2150,24 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
           ctx.scale(c.face, 1);
           drawFoeBody(ctx, k, pose, wt);
           ctx.restore();
-          ctx.save();
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          ctx.moveTo(cx - Math.cos(c.a) * k * 0.55, mid - Math.sin(c.a) * k * 0.55);
-          ctx.lineTo(cx + Math.cos(c.a) * k * 0.55, mid + Math.sin(c.a) * k * 0.55);
-          ctx.stroke();
-          ctx.restore();
+          pxLine(ctx, cx - Math.cos(c.a) * k * 0.55, mid - Math.sin(c.a) * k * 0.55, cx + Math.cos(c.a) * k * 0.55, mid + Math.sin(c.a) * k * 0.55, 1, '#ffffff'); // 👁 도트 벤 자국
           return;
         }
-        const u = age - sp, nx = -Math.sin(c.a), ny = Math.cos(c.a), Lc = k * 3, fall = u * u * 0.06;
+        // 👁 r1: 비스듬히 자르고 돌리고 옅게 한 반쪽이 회색 얼룩(AI 티 1순위)이었다 → 윗몸·아랫몸을 수평으로 갈라 도트 칸만큼 미끄러뜨리고, 끝에는 깜빡이며 사라진다(반투명·회전 없음)
+        const u = age - sp, snap = (v: number) => Math.round(v / PX) * PX, cutY = snap(mid), dir = Math.cos(c.a) >= 0 ? 1 : -1;
+        if (u > 36 || (u > 24 && Math.floor(u / 3) % 2)) return;
         for (const sd of [1, -1]) {
           ctx.save();
-          ctx.globalAlpha = Math.max(0, 1 - u / 45);
-          ctx.translate(nx * sd * (3 + u * 1.6) + Math.cos(c.a) * sd * u * 0.6, ny * sd * (2 + u * 0.8) + fall * (sd > 0 ? 1.3 : 0.5));
           ctx.beginPath();
-          ctx.moveTo(cx + Math.cos(c.a) * Lc, mid + Math.sin(c.a) * Lc);
-          ctx.lineTo(cx + Math.cos(c.a) * Lc + nx * sd * Lc, mid + Math.sin(c.a) * Lc + ny * sd * Lc);
-          ctx.lineTo(cx - Math.cos(c.a) * Lc + nx * sd * Lc, mid - Math.sin(c.a) * Lc + ny * sd * Lc);
-          ctx.lineTo(cx - Math.cos(c.a) * Lc, mid - Math.sin(c.a) * Lc);
-          ctx.closePath();
+          if (sd > 0) ctx.rect(cx - k * 2, cutY - k * 3, k * 4, k * 3);
+          else ctx.rect(cx - k * 2, cutY, k * 4, k * 2);
           ctx.clip();
-          ctx.translate(cx, cy);
-          ctx.rotate(sd * u * 0.03);
+          ctx.translate(snap(cx + (sd > 0 ? dir * Math.min(u, 4) * 0.75 : 0)), snap(cy + (sd > 0 ? -Math.min(u, 4) * 0.75 + Math.min(Math.max(0, u - 4) * 1.2, k * 0.45) : 0))); // 👁 r2: 옆으로 미끄러져 산 적 사이에 끼었다 → 윗몸은 거의 제자리에 떨어짐
           ctx.scale(c.face, 1);
           drawFoeBody(ctx, k, pose, wt);
           ctx.restore();
         }
-        if (u < 8) {
-          ctx.strokeStyle = `rgba(255,255,255,${1 - u / 8})`;
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(cx - Math.cos(c.a) * k * 0.7, mid - Math.sin(c.a) * k * 0.7);
-          ctx.lineTo(cx + Math.cos(c.a) * k * 0.7, mid + Math.sin(c.a) * k * 0.7);
-          ctx.stroke();
-        }
+        if (u < 6) pxLine(ctx, cx - Math.cos(c.a) * k * 0.7, mid - Math.sin(c.a) * k * 0.7, cx + Math.cos(c.a) * k * 0.7, mid + Math.sin(c.a) * k * 0.7, 1, '#ffffff');
       },
     });
   }
@@ -2166,8 +2178,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.globalAlpha = 0.35 + 0.55 * u;
     ctx.strokeStyle = '#ff4a3d';
     ctx.lineWidth = R(0.006) + R(0.008) * u;
-    ell(ctx, X(k.x), Y(k.y), rr0, rr0 * 0.45);
-    ctx.stroke();
+    ring(ctx, X(k.x), Y(k.y), rr0, rr0 * 0.45); // 👁 도트 고리
+    /* ring이 칠함 */
     ctx.fillStyle = `rgba(255,74,61,${0.12 + 0.28 * u})`;
     ell(ctx, X(k.x), Y(k.y), R(STRIKE.r), R(STRIKE.r) * 0.45);
     ctx.fill();
@@ -2178,13 +2190,13 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   const ninPose = () =>
     s.phase === 'result' ? (s.ok ? 4 : 5) : s.inv > INV_DASH && s.t - (fx.memo.hurtT ?? -99) < 40 ? 3 : s.down ? 1 : since < 26 && (s.trail?.n ?? 0) > 0 ? 2 : 0;
   const drawNinja = (alpha = 1) => {
-    const k = R(NIN_H) * depth(s.ny);
-    const blinkOff = s.inv > INV_DASH && s.phase === 'play' && Math.floor(t / 4) % 2 === 0;
+    const k = R(NIN_H) * depth(s.ny), hx = clamp(X(s.nx), k * (s.face < 0 ? 1.1 : 0.6), w - k * (s.face > 0 ? 1.1 : 0.6)); // 칼은 앞쪽으로 나옴 // 👁 r1: 화면 끝에서 칼끝·몸이 잘렸다 → 그릴 때만 안쪽으로
+    const blinkOff = s.inv > INV_DASH && s.phase === 'play' && t - (fx.memo.hurtT ?? -99) < INV_HURT && Math.floor(t / 4) % 2 === 0; // 👁 r1: 판 시작 무적에는 안 깜빡임(첫 화면 주인공이 유령처럼 보였음)
     ctx.fillStyle = 'rgba(124,248,221,.22)'; // M3 S3: 발밑 빛도 한 색(청록 = 내 힘)
-    ell(ctx, X(s.nx), Y(s.ny), k * 0.55, k * 0.2);
+    ell(ctx, hx, Y(s.ny), k * 0.55, k * 0.2);
     ctx.fill();
     ctx.save();
-    drawFox(ctx, X(s.nx), Y(s.ny), k, s.face, ninPose(), wt + t * 0.3, blinkOff ? 0.45 * alpha : alpha);
+    drawFox(ctx, hx, Y(s.ny), k, s.face, ninPose(), wt + t * 0.3, blinkOff ? 0.45 * alpha : alpha);
     ctx.restore();
     if (s.phase === 'play' && (s.hp < HP || t - (fx.memo.hurtT ?? -99) < 90)) {
       for (let j = 0; j < HP; j++) {
@@ -2204,13 +2216,12 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
         ctx.save();
         ctx.translate(X(s.nx) + R(0.05), Y(s.ny) - k * 1.15);
         ctx.scale(pulse, pulse);
-        ctx.fillStyle = '#ff4a3d';
-        ctx.beginPath();
-        ctx.arc(0, 0, R(0.022), 0, TAU);
+        ctx.fillStyle = '#ffffff'; // 👁 r1: 매끈한 원 배지 → 도트 원(흰 테 + 빨강)
+        pxMap(ctx, ICON.disc9, 0, 0, PX);
         ctx.fill();
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        ctx.fillStyle = '#ff4a3d';
+        pxMap(ctx, ICON.disc, 0, 0, PX);
+        ctx.fill();
         ctx.fillStyle = '#ffffff';
         font(0.032, 900);
         ctx.textAlign = 'center';
@@ -2296,9 +2307,9 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     const a = 1 - since / life;
     for (const lg of s.trail.legs) {
       const x0 = X(lg[0]), y0 = Y(lg[1]) - R(0.05), x1 = X(lg[2]), y1 = Y(lg[3]) - R(0.05);
-      pxLine(ctx, x0, y0, x1, y1, sw ? (a > 0.5 ? 6 : 4) : a > 0.5 ? 3 : 2, sw ? `rgba(255,211,64,${0.7 * a})` : `rgba(25,182,167,${0.7 * a})`); // M3 S8 도트 칼자국: 청록(싹쓸이는 금) 계단 + 흰 심
-      pxLine(ctx, x0, y0, x1, y1, sw ? 2 : 1, `rgba(255,255,255,${a})`); // 🧪 S8: 싹쓸이 칼자국이 큰 금 고리에 묻혔다 → 굵게(6칸) · 고리는 작게 흰색
-      if (since < 14) for (const u of big ? [0.15, 0.3, 0.45, 0.6, 0.75, 0.9] : [0.25, 0.5, 0.75]) drawFox(ctx, X(lg[0] + (lg[2] - lg[0]) * u), Y(lg[1] + (lg[3] - lg[1]) * u), R(NIN_H) * depth(lg[1] + (lg[3] - lg[1]) * u), s.face, 2, wt, 0.16 * (1 - since / 14) * (0.5 + u));
+      // 👁 r1: 반투명 선을 겹쳐 그려 칸마다 진하기가 달라 '그라데이션 빔'처럼 번졌다 · 반투명 잔상 검객은 얼룩 → 불투명 두 색 + 시간에 따라 가늘어짐(잔상 없음)
+      if (a > 0.25) pxLine(ctx, x0, y0, x1, y1, sw ? (a > 0.6 ? 6 : 4) : a > 0.6 ? 3 : 2, sw ? '#ffd340' : '#19b6a7'); // M3 S8 도트 칼자국: 청록(싹쓸이는 금) 계단 + 흰 심
+      pxLine(ctx, x0, y0, x1, y1, sw && a > 0.4 ? 2 : 1, a > 0.25 ? '#ffffff' : sw ? '#ffd340' : '#19b6a7', a > 0.25 ? undefined : [1, 1]); // 🧪 S8: 싹쓸이 칼자국이 큰 금 고리에 묻혔다 → 굵게(6칸) · 고리는 작게 흰색
     }
   }
   // 연기 (가린다)
@@ -2323,8 +2334,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       const ph = ((t * 0.012 + j / 3) % 1);
       ctx.strokeStyle = `rgba(190,235,255,${0.35 * sv * (1 - ph)})`;
       ctx.lineWidth = 1.5;
-      ell(ctx, X(s.nx), Y(s.ny), R(0.05 + ph * 0.3), R(0.025 + ph * 0.15));
-      ctx.stroke();
+      ring(ctx, X(s.nx), Y(s.ny), R(0.05 + ph * 0.3), R(0.025 + ph * 0.15)); // 👁 도트 고리
+      /* ring이 칠함 */
     }
     ctx.restore();
     { // ✏️ S009 느린 세상에서도 가시덤불은 또렷하게(길을 읽는 시간) — 걸리면 빨갛게
@@ -2349,15 +2360,15 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     const d = Math.hypot(bx - ax, by - ay) || 1, ux = (bx - ax) / d, uy = (by - ay) / d, a = 1 - since / ISSEN.streak;
     // 화면 안만(렉: 화면 밖 칸까지 칠하지 않게) — 보이는 네모(가로 0~w · 세로 -dy~h-dy)와 만나는 구간
     let t0 = since < ISSEN.wide ? -1e4 : -R(0.04), t1 = since < ISSEN.wide ? 1e4 : d + R(0.04); // 🧪 F3: 화면 끝까지는 처음 6프레임만 → 뒤엔 그은 길만(산 적을 스치지 않게)
-    for (const [p, q0, q1] of [[ax, 0, w], [ay, -dy, h - dy]] as const) {
+    for (const [p, q0, q1] of [[ax, 0, w], [ay, -dy + R(0.12), h - (w * A - Y(GB)) - dy]] as const) { // 👁 r1: 위 머리 띠까지 뚫던 것 → 판 안에서 끝남
       const v = p === ax ? ux : uy;
       if (Math.abs(v) < 1e-9) continue;
       const e0 = (q0 - p) / v, e1 = (q1 - p) / v; // 화면 네모 안으로 자름
       (t0 = Math.max(t0, Math.min(e0, e1))), (t1 = Math.min(t1, Math.max(e0, e1)));
     }
     const sx0 = ax + ux * t0, sy0 = ay + uy * t0, sx1 = ax + ux * t1, sy1 = ay + uy * t1;
-    pxLine(ctx, sx0, sy0, sx1, sy1, since < 6 ? 5 : 3, s.trail.sw ? `rgba(255,211,64,${0.55 * a})` : `rgba(124,248,221,${0.55 * a})`);
-    pxLine(ctx, sx0, sy0, sx1, sy1, since < 6 ? 2 : 1, `rgba(255,255,255,${a})`);
+    if (a > 0.3) pxLine(ctx, sx0, sy0, sx1, sy1, since < 6 ? 5 : 3, s.trail.sw ? '#ffd340' : '#7cf8dd'); // 👁 r1: 불투명 · 가늘어지며 사라짐
+    pxLine(ctx, sx0, sy0, sx1, sy1, since < 6 ? 2 : 1, a > 0.3 ? '#ffffff' : s.trail.sw ? '#ffd340' : '#7cf8dd', a > 0.3 ? undefined : [1, 1]);
   }
   // ✏️ S012 1-2 길잡이(🧪 S011 '글로는 한붓을 못 배운다'): 꺾은 획을 한 번도 안 그었으면, 가장 많이 베는 ㄱ자 길을 손가락이 그려 보인다
   {
@@ -2431,20 +2442,19 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     drawFox(ctx, X(prev.ex), Y(prev.ey), R(NIN_H) * depth(prev.ey), Math.sign(last[2] - last[0]) || s.face, 1, wt, 0.32);
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2;
-    ell(ctx, X(prev.ex), Y(prev.ey), R(0.035), R(0.016));
-    ctx.stroke();
+    ring(ctx, X(prev.ex), Y(prev.ey), R(0.035), R(0.016)); // 👁 도트 고리
+    /* ring이 칠함 */
     // 벨 차례 번호
     prev.hits.forEach((hq, i) => {
       const f = s.foes.find((q) => q.id === hq.id);
       if (!f) return;
       const k = R(FOE_H[f.k]) * depth(f.y), bx = X(f.x), by = Y(f.y) - k * 1.15;
-      ctx.fillStyle = '#ff4a3d';
-      ctx.beginPath();
-      ctx.arc(bx, by, R(0.022), 0, TAU);
+      ctx.fillStyle = '#ffffff'; // 👁 r1: 도트 원 배지
+      pxMap(ctx, ICON.disc9, bx, by, PX);
       ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      ctx.fillStyle = '#ff4a3d';
+      pxMap(ctx, ICON.disc, bx, by, PX);
+      ctx.fill();
       ctx.fillStyle = '#ffffff';
       font(0.03, 900);
       ctx.textAlign = 'center';
@@ -2498,11 +2508,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       }
     }
     // 손가락 자리
-    ctx.strokeStyle = 'rgba(255,255,255,.8)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(X(s.aim.x), Y(s.aim.y), R(0.02 + 0.006 * pulse), 0, TAU);
-    ctx.stroke();
+    ctx.strokeStyle = '#ffffff';
+    ring(ctx, X(s.aim.x), Y(s.aim.y), R(0.02 + 0.006 * pulse), R(0.02 + 0.006 * pulse)); // 👁 도트 고리
     ctx.restore();
   }
   // 첫 안내: 손가락 그림 하나 (허수아비 너머를 꾹)
@@ -2518,11 +2525,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.lineTo(tx, ty);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.strokeStyle = `rgba(255,255,255,${0.9 - press * 0.5})`;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(tx, ty, R(0.03 + press * 0.03), 0, TAU);
-    ctx.stroke();
+    ctx.strokeStyle = '#ffffff';
+    ring(ctx, tx, ty, R(0.03 + press * 0.03), R(0.03 + press * 0.03)); // 👁 도트 고리
     ctx.translate(tx, ty);
     ctx.rotate(Math.PI + 0.25);
     drawHand(ctx, 0, R(0.01), R(0.085), press);
@@ -2539,11 +2543,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.rect(-20, -20 - dy, w + 40, Y(GB) + 20 + dy); // M3 S9: 세상이 dy만큼 내려가 있다
       ctx.arc(cx, cy, r0, 0, TAU, true);
       ctx.fill();
-      ctx.strokeStyle = `rgba(255,216,74,${a})`;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r0 + Math.sin(t * 0.3) * 2, 0, TAU);
-      ctx.stroke();
+      ctx.strokeStyle = '#ffd84a';
+      ring(ctx, cx, cy, r0 + Math.sin(t * 0.3) * 2, r0 + Math.sin(t * 0.3) * 2); // 👁 도트 고리
       ctx.globalAlpha = a;
       font(0.04, 900);
       const label = `NEW  ${s.spot.label}`, tw = ctx.measureText(label).width + R(0.04), lx = clamp(cx, tw / 2 + 6, w - tw / 2 - 6), ly = cy - r0 - R(0.04) < Y(0.3) ? cy + r0 + R(0.04) : cy - r0 - R(0.04);
@@ -2655,41 +2656,23 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx = hi;
     ctx.save();
     ctx.imageSmoothingEnabled = false;
-    if (peak && since < ISSEN.zoom && !REDUCED && s.trail) { // 일섬: 벤 줄 가운데로 살짝 당겨 보기(8프레임 · 1.05 → 1)
-      const L = s.trail.legs, mx = X((L[0][0] + L[L.length - 1][2]) / 2), my = Y((L[0][1] + L[L.length - 1][3]) / 2) + dy, z = 1 + 0.05 * (1 - since / ISSEN.zoom);
-      ctx.drawImage(lo.canvas, mx - mx * z, my - my * z, w * z, h * z);
-    } else ctx.drawImage(lo.canvas, 0, 0, w, h);
+    // 👁 r1: 일섬 당겨 보기(1.05배)는 도트 칸 크기가 들쭉날쭉해졌다 → 정수 칸만큼 한 번 튕김(4프레임 · 움직임 줄이기면 없음)
+    const kick = peak && since < ISSEN.zoom / 2 && !REDUCED ? (since % 2 ? -1 : 1) * PX : 0;
+    ctx.drawImage(lo.canvas, 0, kick, w, h);
     ctx.restore();
     for (const f of later) f();
   }
   // 큰 순간 띠: 먹물 붓자국 위에 'N명 베기!'
   const swB = fx.memo.swT === fx.memo.bigT, bl = swB ? 60 : 40; // 싹쓸이 띠는 조금 더 크게·오래 · M3 S1 오너 "연출 과도": 띠를 작게·짧게, 둘만 벤 건 띠 없음
-  if (fx.memo.bigT !== undefined && t - fx.memo.bigT < bl && s.phase === 'play' && (swB || fx.memo.bigN >= 3)) { // 🧪 S10: 결과가 뜨면 띠를 걷는다(판을 끝낸 싹쓸이 띠가 결과 제목을 덮던 것)
-    const age = t - fx.memo.bigT, n = fx.memo.bigN, sc2 = age < 5 ? 1.3 - 0.3 * (age / 5) : 1, a = Math.min(1, (bl - age) / 14);
+  const bAge = t - (fx.memo.bigT ?? -999); // 👁 r2: 커지며·옅어지며(도트 칸이 들쭉날쭉) → 처음 4프레임은 깜빡, 끝 7프레임은 없음
+  if (fx.memo.bigT !== undefined && bAge < bl - 7 && !(bAge < 5 && bAge % 2) && s.phase === 'play' && (swB || fx.memo.bigN >= 3)) { // 🧪 S10: 결과가 뜨면 띠를 걷는다(판을 끝낸 싹쓸이 띠가 결과 제목을 덮던 것)
+    const n = fx.memo.bigN;
     const bx = w / 2, by = R(0.085) + R(0.075); // M3 S1 🧪 🔴: 띠가 다음에 겨눌 무리를 덮었다 → HUD 바로 아래 작은 칩(덮는 면적 ≈ 2%) · 부제는 뺌(아래 팁 줄이 같은 말)
     const [txt, size] = bannerOf(swB, n); // 🧪: '싹둑'은 '싹쓸이'와 헷갈려 뺌
     ctx.save();
-    ctx.globalAlpha = a;
     ctx.translate(bx, by);
-    ctx.scale(sc2, sc2);
     ctx.font = `900 ${size}px system-ui, sans-serif`;
-    const tw = ctx.measureText(txt).width, rx = tw / 2 + 14, ry = size * 0.72;
-    ctx.fillStyle = 'rgba(16,10,34,.88)';
-    ctx.beginPath();
-    for (let i = 0; i <= 18; i++) {
-      const an = (i / 18) * TAU, q = 0.82 + 0.3 * hsh(i * 7 + fx.memo.bigT);
-      const px = Math.cos(an) * rx * q, py = Math.sin(an) * ry * q;
-      if (i) ctx.lineTo(px, py);
-      else ctx.moveTo(px, py);
-    }
-    ctx.closePath();
-    ctx.fill();
-    for (let i = 0; i < 6; i++) {
-      const an = hsh(i + fx.memo.bigT * 3) * TAU, dd = 1.05 + hsh(i + 11) * 0.35;
-      ctx.beginPath();
-      ctx.arc(Math.cos(an) * rx * dd, Math.sin(an) * ry * dd, 2 + hsh(i + 5) * 4, 0, TAU);
-      ctx.fill();
-    }
+    // 👁 r2: '싹쓸이!' 뒤 매끈한 먹 얼룩(다각형·원)이 검은 연기 덩어리로 보였다 → 뺌(글 테가 대신 받침)
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.lineJoin = 'round';
@@ -2756,26 +2739,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.lineWidth = 1.2;
     /* 🎨 도트 아이콘은 테 없음 */
   }
-  // ✏️ M2 S3 켜자마자 1-1(GDD §7): 제목은 첫 판을 깬 뒤에 크게 한 번
-  if (s.phase === 'result' && s.ok && s.stage === 0) {
-    const a = Math.min(1, s.pt / 14);
-    ctx.save();
-    ctx.globalAlpha = a;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    font(0.095, 900);
-    ctx.lineWidth = R(0.014);
-    ctx.strokeStyle = 'rgba(10,12,30,.85)';
-    ctx.strokeText('벽력일섬', w / 2, Y(0.6));
-    ctx.fillStyle = '#fff3cf';
-    ctx.fillText('벽력일섬', w / 2, Y(0.6));
-    font(0.04, 800);
-    ctx.lineWidth = R(0.008);
-    ctx.strokeText('꾹 · 긋기 · 떼기 — 다음 판으로!', w / 2, Y(0.6) + R(0.085));
-    ctx.fillStyle = '#ffe9a8';
-    ctx.fillText('꾹 · 긋기 · 떼기 — 다음 판으로!', w / 2, Y(0.6) + R(0.085));
-    ctx.restore();
-  }
+  // ✏️ M2 S3 제목은 첫 판을 깬 뒤에 크게 한 번 → 👁 r1·r2: 받침 없이 떠 있고, 위 '성공!' 카드와 알림이 둘 겹쳐 '왜 게임 제목이 나오지?'였다 → 뺌(제목은 머리말에 늘 있음)
   // 판 카드 (하늘 띠 안 — 놀이터를 가리지 않는다)
   {
     let head = '', sub = '', age = 0, a = 1;
@@ -2794,9 +2758,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       sub = d.card ? `NEW  ${d.card}` : d.news ? `NEW  ${d.news}` : '꾹 누르면 세상이 느려져요';
     }
     if (head) {
-      const cy = Y(0.165), unroll = Math.min(1, 0.3 + age / 10);
+      const cy = Y(0.165) - Math.round(((1 - a) * R(0.2)) / 3) * 3, unroll = Math.min(1, 0.3 + age / 10); // 👁 r1·r2: 옅어지는 중간 프레임이 반투명 회색 상자로 시계탑을 덮었다 → 옅어지지 않고 위로 밀려 나감
       ctx.save();
-      ctx.globalAlpha = a;
       font(0.045, 900);
       const w1 = ctx.measureText(head).width;
       font(0.036, 800);
@@ -2939,8 +2902,11 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       const ok = s.phase === 'result' && s.ok ? s.starOk : [false, starMet(s, d.stars[0]) && d.stars[0].k !== 'nohit', starMet(s, d.stars[1]) && (d.stars[1].k !== 'nohit' || !!d.gift3)]; // 선물 별은 처음부터 켜짐(🧪 S002)
       const bad = [false, d.stars[0].k === 'nohit' && (s.hits > 0 || s.owl), d.stars[1].k === 'nohit' && (s.hits > 0 || s.owl)]; // M2 S4: 귀띔 쓰면 ★★★ 꺼짐
       font(0.034, 800);
-      const ws = labels.map((l) => ctx.measureText(l).width + R(0.07));
-      const gap = R(0.012), tot = ws.reduce((a2, b2) => a2 + b2, 0) + gap * 2, scale = Math.min(1, (w - R(0.03)) / tot);
+      let ws = labels.map((l) => ctx.measureText(l).width + R(0.07));
+      const gap = R(0.012), fit = (v: number[]) => (w - R(0.03)) / (v.reduce((a2, b2) => a2 + b2, 0) + gap * 2);
+      const icon = fit(ws) >= 1; // 👁 r1·r2: 좁은 폰(340px)에서 칩 글을 줄여 그려 '베기'가 '비기'로 → 별 아이콘을 빼서 글 크기를 지킴
+      if (!icon) ws = labels.map((l) => ctx.measureText(l).width + R(0.03));
+      const tot = ws.reduce((a2, b2) => a2 + b2, 0) + gap * 2, scale = Math.min(1, fit(ws));
       let xx = (w - tot * scale) / 2;
       for (let j = 0; j < 3; j++) {
         const pw = ws[j] * scale;
@@ -2950,13 +2916,15 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
         ctx.strokeStyle = ok[j] ? '#ffd84a' : bad[j] ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.28)';
         ctx.lineWidth = 1.4;
         ctx.stroke();
-        starPath(ctx, xx + R(0.026) * scale + 2, r2, R(0.014));
-        ctx.fillStyle = ok[j] ? '#ffd84a' : bad[j] ? 'rgba(255,255,255,.2)' : 'rgba(255,255,255,.55)';
-        ctx.fill();
+        if (icon) {
+          starPath(ctx, xx + R(0.026) * scale + 2, r2, R(0.014));
+          ctx.fillStyle = ok[j] ? '#ffd84a' : bad[j] ? 'rgba(255,255,255,.2)' : 'rgba(255,255,255,.55)';
+          ctx.fill();
+        }
         ctx.textAlign = 'left';
         ctx.fillStyle = ok[j] ? '#fff6dc' : bad[j] ? 'rgba(255,255,255,.35)' : '#e6ecff';
         font(0.034, 800);
-        ctx.fillText(labels[j], xx + R(0.05) * scale, r2 + 1, pw - R(0.058) * scale);
+        ctx.fillText(labels[j], xx + (icon ? R(0.05) : R(0.015)) * scale, r2 + 1, pw - (icon ? R(0.058) : R(0.02)) * scale);
         xx += pw + gap * scale;
       }
     }

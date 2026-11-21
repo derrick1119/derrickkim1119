@@ -4,9 +4,8 @@
   "reachW1": 1,
   "stuckAt": {
    "leafWait": 1,
-   "smoke": 1,
-   "leafShield": 1,
-   "boss2": 1,
+   "leafShuri": 2,
+   "jars": 1,
    "end": 20
   }
  },
@@ -14,10 +13,9 @@
   "reachAll": 0,
   "reachW1": 1,
   "stuckAt": {
-   "leaf": 2,
-   "leafWait": 5,
-   "leafShuri": 15,
-   "smoke": 2
+   "leaf": 3,
+   "leafWait": 13,
+   "leafShuri": 8
   }
  },
  "humanStroke": {

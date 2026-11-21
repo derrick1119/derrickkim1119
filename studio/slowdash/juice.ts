@@ -77,12 +77,12 @@ export class Juice {
     for (const r of this.rings) {
       r.life--;
       r.r += (r.max - r.r) * 0.18;
-      ctx.globalAlpha = Math.max(0, r.life / 24);
-      ctx.fillStyle = r.color; // 🎨 F3 'AI 티': 매끈한 원 고리 → 3px 칸 도트 고리(두꺼운 고리는 6px 칸)
+      ctx.fillStyle = r.color; // 🎨 F3 'AI 티': 매끈한 원 고리 → 3px 칸 도트 고리(두꺼운 고리는 6px 칸) · 👁 r1: 옅어지며 1px 선처럼 번짐 → 불투명 · 끝 8프레임은 칸을 하나 걸러 사라짐
       const z = r.width * (r.life / 24) > 2.5 ? 6 : 3, n = Math.max(12, Math.ceil((Math.PI * 2 * r.r) / z));
       for (let k = 0; k < n; k++) {
+        if (r.life < 8 && k % 2) continue;
         const a = (k / n) * Math.PI * 2;
-        ctx.fillRect(Math.round((r.x + Math.cos(a) * r.r) / 3) * 3 - z / 2, Math.round((r.y + Math.sin(a) * r.r) / 3) * 3 - z / 2, z, z);
+        ctx.fillRect(Math.round((r.x + Math.cos(a) * r.r - z / 2) / 3) * 3, Math.round((r.y + Math.sin(a) * r.r - z / 2) / 3) * 3, z, z);
       }
     }
     this.rings = this.rings.filter((r) => r.life > 0);

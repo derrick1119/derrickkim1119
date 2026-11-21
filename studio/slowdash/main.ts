@@ -6,7 +6,7 @@ import { TICK } from './core.ts';
 import { peek } from './juice.ts';
 import { STAGES, STAGE_COUNT, TRIAL, WORLD_LOCK, slowdash as g, startStage, textWarm, useOwl, warmText, worldStars, type DashState, type WarmText } from './game.ts';
 import { sfx } from './sfx.ts';
-import { pixelText, pxtFrame, pxtStat } from './pix.ts';
+import { owl, pixelText, pxtFrame, pxtStat } from './pix.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('slowdash:' + k) ?? 0); } catch { return 0; } },
@@ -46,6 +46,34 @@ function pxLabel(el: HTMLElement, parts: [string, string][], font: string, hgt: 
   let cx = 3;
   for (const [t, col] of parts) (x.strokeStyle = '#0e0f22'), x.strokeText(t, cx, hgt / 2), (x.fillStyle = col), x.fillText(t, cx, hgt / 2), (cx += x.measureText(t).width);
   el.replaceChildren(c);
+}
+/** 👁 r1: 판 고르기·부엉이 창이 매끈한 웹 글꼴이라 한 화면에 글꼴이 둘이었다 → DOM 글을 낱말마다 도트 글 캔버스로(줄 바꿈은 브라우저가 · 읽는 글은 숨긴 span에 그대로) */
+function pxDom(root: HTMLElement) {
+  if (!PXT) return;
+  const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), nodes: Text[] = [];
+  for (let n = tw.nextNode(); n; n = tw.nextNode()) if (n.textContent?.trim()) nodes.push(n as Text);
+  const d = Math.min(2, window.devicePixelRatio || 1);
+  for (const n of nodes) {
+    const el = n.parentElement!, cs = getComputedStyle(el), px = parseFloat(cs.fontSize), font = `${cs.fontWeight} ${px}px system-ui, sans-serif`, frag = document.createDocumentFragment(), sr = document.createElement('span');
+    (sr.className = 'sr'), (sr.textContent = n.textContent);
+    frag.append(sr);
+    const box = document.createElement('span'); // 낱말 캔버스를 한 덩어리로(세로 flex 단추에서 낱말마다 줄이 갈리던 것)
+    box.className = 'pt';
+    for (const word of n.textContent!.split(/\s+/)) {
+      if (!word) continue;
+      const c = document.createElement('canvas'), x = c.getContext('2d')!;
+      pixelText(x, false);
+      x.font = font;
+      const w = Math.ceil(x.measureText(word).width) + 2, h = Math.ceil(px * 1.35);
+      (c.width = w * d), (c.height = h * d), (c.style.width = `${w}px`), (c.style.height = `${h}px`), (c.className = 'pw'), c.setAttribute('aria-hidden', 'true');
+      x.scale(d, d);
+      (x.font = font), (x.textBaseline = 'middle'), (x.fillStyle = cs.color);
+      x.fillText(word, 1, h / 2);
+      box.append(c);
+    }
+    frag.append(box);
+    n.replaceWith(frag);
+  }
 }
 {
   const h1 = document.querySelector('h1');
@@ -164,7 +192,7 @@ function draw() {
   pxtFrame();
   g.draw(ctx, s, W, H, pal);
   ctx.save();
-  ctx.translate(0, H - W * aspect); // 떠오르는 글·파티클도 세상과 같이 내려간다(M3 S9)
+  ctx.translate(0, Math.round(H - W * aspect)); // 👁 r1: 소수점 밀기라 도트 고리·파티클 칸이 번졌다 · 떠오르는 글·파티클도 세상과 같이 내려간다(M3 S9)
   peek(s)?.render(ctx, W, H);
   ctx.restore();
   if (keyboard && running) {
@@ -178,6 +206,7 @@ function draw() {
 
 function show(html: string) {
   overlay.innerHTML = html;
+  pxDom(overlay);
   overlay.hidden = false;
 }
 
@@ -226,7 +255,14 @@ function end() {
 function askOwl() {
   paused = true;
   pointer = latch = null;
-  picker.innerHTML = `<b>부엉!</b><span class="msg">길을 보여 줄까요? ★★까지 받을 수 있어요</span><span>(★★★는 혼자 해야 받아요)</span><div class="row"><button type="button" data-owl="1">길 보여 줘</button><button type="button" data-owl="0">혼자 할래</button></div>`;
+  picker.innerHTML = `<div class="owlbox"><b>부엉!</b><span class="msg">길을 보여 줄까요? ★★까지 받을 수 있어요</span><span>(★★★는 혼자 해야 받아요)</span><div class="row"><button type="button" data-owl="1">길 보여 줘</button><button type="button" data-owl="0">혼자 할래</button></div></div>`;
+  { // 👁 r1: 누가 말하는지 안 보였다 → 부엉이 얼굴(도트 4배)을 패 위에
+    const im = owl(0), c = document.createElement('canvas');
+    (c.width = im.width), (c.height = im.height), c.getContext('2d')!.drawImage(im, 0, 0);
+    (c.className = 'owlface'), (c.style.width = `${im.width * 6}px`), (c.style.height = `${im.height * 6}px`), c.setAttribute('aria-hidden', 'true');
+    picker.querySelector('.owlbox')!.prepend(c);
+  }
+  pxDom(picker);
   picker.hidden = false;
   picker.querySelector('button')?.focus();
 }
@@ -248,6 +284,7 @@ function openPicker() {
       ? `<span class="msg">기와 지붕 마을</span><div class="grid">${STAGES.slice(STAGE_COUNT).map((_, j) => btn(STAGE_COUNT + j)).join('')}</div>`
       : `<span class="msg">기와 지붕 마을 — 잠김</span><span>태엽 마을 별 ${WORLD_LOCK}개면 열려요 · 지금 ${w1}개</span>`) +
     `<div class="row"><button type="button" data-close="1">닫기</button></div>`;
+  pxDom(picker);
   picker.hidden = false;
   picker.querySelector('button')?.focus();
 }

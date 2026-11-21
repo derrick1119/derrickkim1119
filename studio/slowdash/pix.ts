@@ -225,7 +225,7 @@ function glyphs(font: string, txt: string, style: string, outline: boolean, budg
   if (budget && spent > 2.5) return pxtStat.skip++, null;
   const t0 = performance.now();
   // 🧪 F3: 굵은 글을 작게 굽자 겹획(ㄹ·ㅁ·ㅆ)이 메워져 '싹▇이'·'끝▇'이 됐다 → 굽는 크기(s)가 작을수록 가늘게 · 2칸 점은 44px 이상만
-  const px = Number(/([\d.]+)px/.exec(font)?.[1] ?? 16), q = px >= 44 ? 2 : 1, sz = px / q, cap = sz < 14 ? 500 : sz < 16 ? 600 : sz < 22 ? 700 : 800;
+  const px = Number(/([\d.]+)px/.exec(font)?.[1] ?? 16), q = px >= 44 ? 2 : 1, sz = px / q, cap = sz < 18 ? 500 : sz < 22 ? 600 : 800; // 👁·🧪: 14~17.5px도 600이면 '활'·'줄'이 메워짐
   const src = font.replace(/[\d.]+px/, `${sz.toFixed(2)}px`).replace(/\b(bold|[1-9]00)\b/, (m) => String(Math.min(m === 'bold' ? 700 : Number(m), cap)));
   const x = (SCR ??= document.createElement('canvas').getContext('2d', { willReadFrequently: true })!);
   x.font = src;

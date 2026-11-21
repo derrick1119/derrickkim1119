@@ -616,7 +616,7 @@ describe('느린 시간 닌자 플레이 빌드', () => {
   it('M3 F3 \'AI 티\' ①(💬 오너 "AI로 제작된 티" → "계속 이어서 해"): 판 글은 도트 글 · 작게 굽는 글은 가늘게(🧪 겹획 메움) · 머리말 단추 글은 밝게 · 월드 2 번호는 패 · ★♥는 도트 맵', () => {
     const src = readFileSync('studio/slowdash/game.ts', 'utf8'), pix = readFileSync('studio/slowdash/pix.ts', 'utf8'), main = readFileSync('studio/slowdash/main.ts', 'utf8'), html = readFileSync('studio/slowdash/index.html', 'utf8');
     expect(main).toMatch(/pixelText\(ctx\)/); // 판 캔버스의 fillText·strokeText를 도트 글로
-    expect(pix).toMatch(/cap = sz < 14 \? 500 : sz < 16 \? 600 : sz < 22 \? 700 : 800/); // '싹▇이'·'끝▇' 막기: 작게 구울수록 가늘게
+    expect(pix).toMatch(/cap = sz < 18 \? 500 : sz < 22 \? 600 : 800/); // '싹▇이'·'끝▇' 막기: 작게 구울수록 가늘게
     expect(pix).toMatch(/q = px >= 44 \? 2 : 1/); // 37px 제목도 2칸이면 '벽'이 메워졌음
     expect(html).toMatch(/\.tg button\{[^}]*color:#dfe6ff/); // 단추 글이 검정(바탕과 1.3:1)이던 것
     expect(main).toMatch(/pxLabel\(soundBtn,/);
