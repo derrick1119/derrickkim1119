@@ -270,7 +270,7 @@ export function pixelText(ctx: CanvasRenderingContext2D, budget = true) {
       const px = Number(/([\d.]+)px/.exec(ctx.font)?.[1] ?? 16);
       g = glyphs(ctx.font.replace(/[\d.]+px/, `${Math.floor(((px * mw) / (g.w * g.q)) * 2) / 2}px`), txt, st, outline, budget) ?? g;
     }
-    if (!g) return void (outline ? stroke0 : fill0)(txt, x, y, mw as number); // 이 프레임 굽기 예산을 다 씀 → 보통 글
+    if (!g) return; // 이 프레임 굽기 예산을 다 씀 → 👁 새 눈 F6: 매끈한 보통 글로 그리면 '글꼴 섞임'으로 찍혔다 → 이 프레임만 안 그림(다음 프레임에 도트 글로 나옴)
     const tw = g.w * g.q, sx = mw && tw > mw ? mw / tw : 1, a = ctx.textAlign, b = ctx.textBaseline;
     const left = x - (a === 'center' ? tw * sx / 2 : a === 'right' || a === 'end' ? tw * sx : 0) - PAD * g.q * sx;
     const base = b === 'middle' ? y + ((g.asc - g.desc) / 2) * g.q : b === 'top' || b === 'hanging' ? y + g.asc * g.q : b === 'bottom' || b === 'ideographic' ? y - g.desc * g.q : y;
