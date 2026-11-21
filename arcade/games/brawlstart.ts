@@ -5,11 +5,13 @@
  *   어슬렁 굴러가다 걷힌다. 걷히면 안의 놈들이 전부 기절해 튕겨 나오고, 튕겨 나온 놈에 깔린 놈은 화나서 또 싸움(연쇄 ×3까지).
  *   기다릴 일이 없다: 톡은 언제든 되고(쉼 0.5초), 한 무리 안에서는 누구를 톡 해도 같은 결과(구름은 무리 가운데에 생긴다). 구름은 클수록 멀리 굴러간다(눈덩이).
  * 뒤집힘: 나는 못 싸운다. 꼬마 여우는 길 끝 꿀단지까지 저절로 살금살금 걷고(구름이 앞서 굴러가면 종종걸음으로 따라간다), 깨어 있는 몬스터 앞에선 덤불 뒤에 숨어 킥킥댄다.
- * 솜씨(정답은 없다): 구름 위 숫자 = '톡 한 번으로 휘말린 수'. 무리는 처음 건드린 톡의 몫이라, 또 톡 한 무리는 새 톡의 작은 숫자가 된다(구름끼리는 달려들어 합체하고 큰 숫자가 이어진다).
- *   그래서 톡을 아끼고 '저절로 번지게' 할수록 숫자가 커진다 — 바짝 붙은 두 무리는 한 구름이 넘어가고, 떨어진 무리는 특별한 놈이 옮겨 준다:
+ * 솜씨(정답은 없다): 구름 위 숫자 = 지금 그 구름 속 마릿수(보이는 그대로). 별과 동전은 '톡 한 번으로 휘말린 수'로 잰다 — 아래 별 딱지의 (7/14)가 그 진행이고, 최고를 넘으면 딱지가 통통 튄다.
+ *   무리는 처음 건드린 톡의 몫이라, 또 톡 한 무리는 새 톡의 몫이 된다(구름끼리는 달려들어 합체한다).
+ *   그래서 톡을 아끼고 '저절로 번지게' 할수록 한 번에 많이 휘말린다 — 바짝 붙은 두 무리는 한 구름이 넘어가고, 떨어진 무리는 특별한 놈이 옮겨 준다:
  *   덩치 곰(구름을 다음 무리까지 밀고 간다) · 토끼(앞 무리로 달아나 쿵! 거기서 또 싸움) · 멧돼지(구름이 깨우면 돌진) · 쌍둥이(짝꿍도 제 무리에서 딱!) · 폭죽 장수(세 갈래) · 병아리(멀리서 달려온다) · 마법사(회오리).
  * 동전: 한 번 톡에 k번째로 기절한 놈은 동전 k×k개. 한 번 톡에 5·8·12·16·21·27·34마리가 휘말리면 '와' 띠가 뜨고 그 톡의 동전이 2·4·8·13·19·26·35배.
- *   한 번 톡이 두 무리·세 무리·다섯 무리에 걸치면 '두 무리가 한 구름!' … '길 전체 한 구름!' 띠.
+ *   띠는 아낀다(분당 8번 이하): 그 판에서 처음일 때만 — 첫 '우당탕!'(5마리) · 별 조건('한 번에 N마리!') · '길 전체 한 구름!'(한 번 톡이 다섯 무리) · 큰 기록(21마리부터, 판에 한 번).
+ *   나머지 단계(두 무리째·세 무리째·동전 배수)는 구름 곁 작은 글자와 소리.
  * 들킴: 판 처음 10초는 아무도 여우를 못 본다. 오래 숨어만 있으면 여우 머리 위 눈금이 차고, 2장부터는 순찰 도깨비가 여우 쪽으로 걸어오며
  *   제 머리 위 눈금을 채운다. 꽉 차면 '!' — 2초 안에 그놈을 톡 못 하면 꿀밤(하트 -1, 머리에 혹, 뒤로 통통). 하트 셋을 다 잃으면 끝.
  * 판 12개(장 3 × 판 4, 장마다 마지막은 대장): 판마다 무리 아홉이 길을 따라 이어지고(대장 판은 여섯 + 대장), 판마다 새 싸움꾼 하나.
@@ -185,6 +187,8 @@ export interface BrawlState {
   /** 톡마다(16칸 돌려 쓰기): 휘말린 수 · 기절한 수 · 뜬 '와' 띠 수 · 걸친 무리 수 */
   tc: number[]; tk: number[]; tw: number[]; tl: number[];
   bestTap: number; hits: number; notices: number; kos: number; chainMax: number; wowN: number; firstTap: number; firstWow: number;
+  /** liveBest: 이 판에서 톡 한 번에 휘말린 최고(별 딱지의 진행) · bandW/bandL: 이 판에서 벌써 알린 단계(비트) · bandStar/bandRec: 별 조건 띠 · 큰 기록 띠를 띄웠나 */
+  liveBest: number; bandW: number; bandL: number; bandStar: boolean; bandRec: boolean;
   dex: Record<string, number>; seen: Set<string>; newsQ: string[]; news: { text: string; t: number } | null; spot: { k: K; t: number } | null;
   events: Ev[];
   // 연출용
@@ -259,6 +263,9 @@ function newStage(s: BrawlState) {
   s.kicks = 0;
   s.cd = 0;
   s.bestTap = 0;
+  s.liveBest = 0;
+  s.bandW = s.bandL = 0;
+  s.bandStar = s.bandRec = false;
   s.hits = 0;
   s.stageTaps = 0;
   s.phase = 'play';
@@ -588,18 +595,33 @@ function claim(s: BrawlState, c: Cloud, g: number, tap: number) {
   s.gt[g] = tap;
   const n = ++s.tl[tap & 15], lv = LINK_AT.indexOf(n);
   if (lv < 0 || tap <= 1) return;
-  s.wowN++;
+  const first = !(s.bandL & (1 << lv));
+  s.bandL |= 1 << lv;
   see(s, 'link' + lv);
-  ev(s, 'link', c.x, c.y, lv, LINK_TEXT[lv]);
+  // 띠는 아낀다: '길 전체 한 구름!'만, 그것도 그 판에서 처음 한 번 — 두 무리·세 무리는 구름 곁 작은 글자와 소리로
+  if (first && lv === 2) s.wowN++, ev(s, 'link', c.x, c.y, lv, LINK_TEXT[lv]);
+  else ev(s, 'linksm', c.x, c.y, lv);
 }
-/** 톡의 몫이 하나 늘었다: '와' 띠 */
+/**
+ * 톡의 몫이 하나 늘었다: 동전 배수 단계(톡마다) · 별 딱지 진행 · 띠.
+ * 띠는 그 판에서 처음 넘은 단계에만, 그것도 큰 것만: 첫 '우당탕!'(5마리) · 별 조건(한 번에 N마리) · 큰 기록(21마리부터, 판에 한 번). 나머지 단계는 작은 글자와 소리.
+ */
 function credit(s: BrawlState, c: Cloud, slot: number, cnt: number) {
   while (s.tw[slot] < WOW_AT.length && cnt >= WOW_AT[s.tw[slot]]) {
-    const lv = s.tw[slot]++;
-    s.wowN++;
-    if (s.firstWow < 0) s.firstWow = s.t;
+    const lv = s.tw[slot]++, first = !(s.bandW & (1 << lv));
+    s.bandW |= 1 << lv;
     if (lv >= 1) see(s, 'wow' + Math.min(lv, 3));
-    ev(s, 'wow', c.x, c.y, lv, WOW_TEXT[lv]);
+    if (first && (lv === 0 || (lv >= 4 && !s.bandRec))) {
+      if (lv >= 4) s.bandRec = true;
+      s.wowN++;
+      if (s.firstWow < 0) s.firstWow = s.t;
+      ev(s, 'wow', c.x, c.y, lv, WOW_TEXT[lv]);
+    } else ev(s, 'wowsm', c.x, c.y, lv);
+  }
+  if (cnt > s.liveBest) {
+    s.liveBest = cnt;
+    const need = STAGES[s.stage].need;
+    if (cnt >= need && !s.bandStar) (s.bandStar = true), s.wowN++, ev(s, 'star3', c.x, c.y, need);
   }
 }
 function koCount(s: BrawlState, m: Mon) {
@@ -1125,7 +1147,7 @@ function clouds(s: BrawlState) {
       big.popT = s.t;
       sm.dead = true;
       ev(s, 'merge', big.x, big.y, big.n);
-      see(s, 'merge', '팁:톡 한 번에 휘말린 수 — 저절로 번지면 커져요');
+      see(s, 'merge');
     }
   }
 }
@@ -1255,6 +1277,7 @@ function endStage(s: BrawlState, ok: boolean) {
   for (const m of s.mons) if (m.st === NOTICE) m.st = IDLE;
   if (ok) {
     const d = STAGES[s.stage];
+    s.bestTap = Math.max(s.bestTap, s.liveBest); // 아직 안 걷힌 구름의 몫도 센다(딱지에 보인 그대로)
     s.starOk = [true, s.hits === 0, s.bestTap >= d.need];
     s.got = s.starOk.filter(Boolean).length;
     s.stars += s.got;
@@ -1318,6 +1341,7 @@ function tapMon(s: BrawlState, m: Mon) {
   const slot = tap & 15;
   s.tc[slot] = s.tk[slot] = s.tw[slot] = s.tl[slot] = 0;
   ev(s, 'tap', m.x, m.y);
+  if (s.stage === 0 && s.stageTaps === 2) see(s, 'tip', '팁:덜 누를수록 한 번에 많이!');
   if (m.st === SLEEP) wake(s, m, tap, 1);
   else if (m.k === 'guard') {
     // 순찰 도깨비: 화들짝 놀라 제풀에 넘어져 혼자 구름이 된다 (남의 무리는 안 건드린다)
@@ -1349,10 +1373,10 @@ const game: GameDef<BrawlState> & { wows(s: BrawlState): number } = {
   id: 'brawlstart',
   name: '싸움 붙이기',
   genes: ['brawlstart', 'chain', 'collect'],
-  twist: "나는 못 싸운다 — 톡 한 놈이 옆 놈 뒤통수를 '딱!' 치면 싸움 구름이 되고, 구경하러 몰려온 놈들까지 굴러가며 다 삼킨다. 구름 숫자는 '톡 한 번으로 휘말린 수' — 톡을 아끼고 곰·멧돼지·토끼가 옆 무리로 옮기게 해서 톡 한 번으로 길 전체를 한 구름으로",
+  twist: "나는 못 싸운다 — 톡 한 놈이 옆 놈 뒤통수를 '딱!' 치면 싸움 구름이 되고, 구경하러 몰려온 놈들까지 굴러가며 다 삼킨다. 덜 누를수록 한 번에 많이 — 톡을 아끼고 곰·멧돼지·토끼가 옆 무리로 옮기게 해서 톡 한 번으로 길 전체를 한 구름으로",
   rules: [
     "몬스터를 톡 하면 옆 놈을 '딱!' — 싸움 구름이 되어, 구경하러 몰려온 놈들을 굴러가며 다 삼켜요.",
-    '구름 숫자 = 톡 한 번으로 휘말린 수. 덩치 곰·멧돼지 같은 특별한 놈부터 톡 하면 옆 무리까지 번져요 — 숫자가 클수록 동전이 몇 배.',
+    '덜 누를수록 한 번에 많이! 덩치 곰·멧돼지 같은 특별한 놈부터 톡 하면 옆 무리까지 번져요 — 톡 한 번에 많이 휘말릴수록 동전이 몇 배.',
     "오래 숨어 있거나 순찰에게 들키면 '!' — 그놈을 얼른 톡 못 하면 꿀밤(하트 -1).",
   ],
   controls: 'touch',
@@ -1376,6 +1400,7 @@ const game: GameDef<BrawlState> & { wows(s: BrawlState): number } = {
       mons: [], clouds: [], groups: [], gt: [], nid: 0, twinOpen: -1, guardN: 0, bossId: -1, bossNeed: 0, bossGone: false, bossT: 0, kicks: 0,
       down: false, cd: 0, taps: 0, stageTaps: 0, tapN: 1, tc: z(), tk: z(), tw: z(), tl: z(),
       bestTap: 0, hits: 0, notices: 0, kos: 0, chainMax: 0, wowN: 0, firstTap: -1, firstWow: -1,
+      liveBest: 0, bandW: 0, bandL: 0, bandStar: false, bandRec: false,
       dex: {}, seen: new Set<string>(), newsQ: [], news: null, spot: null, events: [],
       lastBurstT: -999, pickSel: -1, lvT: -999,
     } as BrawlState;
@@ -3432,13 +3457,6 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
       },
     });
   }
-  // 숫자는 톡마다 하나: 그 톡의 구름 가운데 가장 큰 구름 위에만
-  const numOn = new Map<number, Cloud>();
-  for (const c of s.clouds) {
-    if (c.dead) continue;
-    const q = numOn.get(c.tap);
-    if (!q || c.n > q.n) numOn.set(c.tap, c);
-  }
   for (const c of s.clouds) {
     if (c.dead) continue;
     const cx = X(c.x), cy = Y(c.y);
@@ -3468,9 +3486,9 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
         ctx.translate(cx, cy - r * 0.78 - Math.abs(Math.sin(c.age * 0.35)) * r * 0.08 * Math.min(1, sp * 120));
         drawBrawl(ctx, r, t, c, pop);
         ctx.restore();
-        // 휘말린 수
-        const num = s.tc[c.tap & 15];
-        if (num >= 3 && c.tap > 1 && numOn.get(c.tap) === c) {
+        // 지금 이 구름 속 마릿수 (보이는 그대로 — '톡 한 번에' 별의 진행은 아래 별 딱지에)
+        const num = c.n;
+        if (num >= 3 && c.tap > 1) {
           const k = clamp(0.05 + num * 0.0035, 0.05, 0.11) * (1 + pop * 0.3);
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -3693,6 +3711,25 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
         fx.blink('#fff6c2', 0.22 + n * 0.05);
         fx.sound(n >= 2 ? 'clear' : 'chime', 1 + n * 0.08, 1);
         puff(ex, ey - R(0.08), WOW_COL[n], 14, 5, 4);
+        break;
+      case 'linksm':
+        say(e.x, e.y - 0.3, n ? '세 무리째!' : '두 무리째!', LINK_COL[n], 17);
+        fx.kick(3 + n);
+        fx.sound('ding', 1.1 + n * 0.15, 0.8);
+        break;
+      case 'wowsm':
+        say(e.x, e.y - 0.3, `동전 ×${WOW_MUL[n]}`, WOW_COL[n], 17);
+        fx.kick(3 + n * 0.6);
+        fx.sound('chime', 1 + n * 0.08, 0.8);
+        break;
+      case 'star3':
+        band(`한 번에 ${n}마리!`, '★ 솜씨 별', '#ffd24a');
+        fx.memo.s3T = t;
+        fx.kick(7);
+        fx.blink('#fff6c2', 0.3);
+        fx.sound('clear', 1.2, 1);
+        fx.sound('coin', 1.4, 0.7);
+        puff(ex, ey - R(0.1), '#ffe45c', 14, 5, 4);
         break;
       case 'link':
         band(e.text ?? '', n >= 2 ? '와아아!' : '', LINK_COL[n]);
@@ -3928,7 +3965,7 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
     rr(ctx, w / 2 - tw / 2 + R(0.012), by - bh / 2 + R(0.012), R(0.11), bh - R(0.024), bh / 2);
     fs(ctx, tip ? '#4aa8f0' : '#ff5a3c');
     font(0.03, 900);
-    text(tip ? '숫자' : 'NEW', w / 2 - tw / 2 + R(0.067), by + 1, '#ffffff');
+    text(tip ? '팁' : 'NEW', w / 2 - tw / 2 + R(0.067), by + 1, '#ffffff');
     font(0.038, 800);
     ctx.textAlign = 'left';
     text(ntext, w / 2 - tw / 2 + R(0.135), by + 1, '#4a2e1a');
@@ -4018,18 +4055,25 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
   ctx.fillStyle = 'rgba(255,255,255,.12)';
   ctx.fillRect(0, by0, w, 2);
   const starLines = ['꿀단지까지 가기', '꿀밤 안 맞기', `톡 한 번에 ${d.need}마리`];
-  const okNow = [s.phase === 'result' && s.ok, s.hits === 0, s.bestTap >= d.need];
+  const best = Math.max(s.bestTap, s.liveBest);
+  const okNow = [s.phase === 'result' && s.ok, s.hits === 0, best >= d.need];
+  // 톡 한 번 최고를 넘을 때마다 딱지가 통통 튄다
+  if (best > (fx.memo.lb ?? 0)) fx.memo.lbT = t;
+  fx.memo.lb = best;
+  const lbAge = t - (fx.memo.lbT ?? -99), hopK = lbAge < 16 ? Math.sin((lbAge / 16) * Math.PI) : 0;
   ctx.textAlign = 'left';
   for (let i = 0; i < 3; i++) {
-    const ly = by0 + bh0 * (0.2 + i * 0.3), on = okNow[i] || (i === 1 && play);
-    starPath(ctx, R(0.05), ly, R(0.021));
+    const ly = by0 + bh0 * (0.2 + i * 0.3) - (i === 2 ? hopK * R(0.012) : 0), on = okNow[i] || (i === 1 && play);
+    starPath(ctx, R(0.05), ly, R(0.021) * (i === 2 ? 1 + hopK * 0.45 : 1));
     fs(ctx, okNow[i] ? '#ffd24a' : i === 1 && play ? 'rgba(255,210,74,.45)' : 'rgba(255,255,255,.2)', 1.2, '#2a1a10');
     font(0.036, 700);
     text(starLines[i], R(0.09), ly + 1, on ? '#fff6dc' : 'rgba(255,246,220,.72)');
-    if (i === 2 && !okNow[2] && s.bestTap > 1) {
-      ctx.fillStyle = '#ffd24a';
-      font(0.034, 800);
-      ctx.fillText(`(${s.bestTap}/${d.need})`, R(0.1) + ctx.measureText(starLines[2]).width + R(0.015), ly + 1);
+    if (i === 2 && best > 1) {
+      // 진행: (지금까지 톡 한 번 최고 / 별 조건)
+      const lx = R(0.1) + ctx.measureText(starLines[2]).width + R(0.015);
+      ctx.fillStyle = hopK > 0 ? '#fff6dc' : '#ffd24a';
+      font(0.034 * (1 + hopK * 0.4), 800);
+      ctx.fillText(`(${best}/${d.need})`, lx, ly + 1);
     }
   }
   // 장난 레벨 딱지

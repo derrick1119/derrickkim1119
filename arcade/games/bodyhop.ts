@@ -2850,6 +2850,8 @@ const LV_GIFT: Record<number, string> = { 3: '목도리를 둘렀어요', 5: '�
 /** 별 셋(쉬운 말). 대장 판의 셋째는 보호막을 깨는 동안에만 딸 수 있다 — 대장을 언제 타느냐와 무관 */
 const STAR_WORDS = (s: HopState) => (STAGES[s.stage].shield ? ['비우기', '안 쓰러지기', `보호막 깨며 한 번에 ${STAGES[s.stage].n}마리`] : ['마당 비우기', '몸 안 쓰러지기', `한 번에 ${STAGES[s.stage].n}마리`]);
 const recent = new WeakMap<object, { x: number; y: number; t: number; size: number }[]>();
+/** 화면에 쓰는 글꼴(크기·굵기) — 처음 쓰는 순간 끊기지 않게 판 초반에 하나씩 미리 불러 둔다 */
+const FONTS: [number, number][] = [[0.034, 700], [0.034, 800], [0.034, 900], [0.035, 700], [0.035, 800], [0.036, 800], [0.036, 900], [0.037, 900], [0.038, 900], [0.039, 900], [0.04, 800], [0.04, 900], [0.042, 900], [0.043, 900], [0.044, 900], [0.046, 900], [0.05, 900], [0.052, 900], [0.058, 900], [0.06, 900], [0.062, 900], [0.066, 900], [0.07, 900], [0.074, 900], [0.078, 900]];
 
 function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
   const fx = juice(s), X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w, t = s.t;
@@ -2871,6 +2873,10 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
       // 결과 화면 도감의 그림자 스티커도 판 중에 하나씩
       if (!did) for (const k of DEX) if (warmSil(k, Math.round(R(0.03) * Math.min(2, sc)))) break;
     }
+  }
+  {
+    const fi = fx.memo.wf ?? 0;
+    if (fi < FONTS.length && t % 3 === 0) font(FONTS[fi][0], FONTS[fi][1]), ctx.measureText('가나다 한 방! 0123'), (fx.memo.wf = fi + 1);
   }
   /** 가장 최근에 일어난 사건의 나이(틱) */
   const since = (k: string) => {
