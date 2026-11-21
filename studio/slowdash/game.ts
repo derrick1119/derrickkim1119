@@ -560,7 +560,7 @@ export const BAMBOO = { r: 0.03, L: 0.4 };
 /** M3 S1 벤 뒤 멈칫(틱): min(max, base + 벤 수) — 오너 "렉·연출 과도"로 8·2 → 5·1 (측정기가 예전 값과 견줄 수 있게 내보냄) */
 export const HITSTOP = { max: 5, base: 1 };
 /** M3 F3 일섬 연출: 셋 이상 한 획일 때만(💬 오너 "한번에 베기 성공하면 게임성이 흔들리지 않는 선에서 화려한 연출") — 그림만, 시뮬은 그대로 */
-export const ISSEN = { n: 3, dark: 4, streak: 20, zoom: 8, stagger: 2, hold: 5 };
+export const ISSEN = { n: 3, top: 4, dark: 4, streak: 20, wide: 6, zoom: 8, stagger: 1, hold: 2 }; // 🧪 F3: 셋 = 칼빛·갈라짐만 · 넷 이상/싹쓸이 = 어둠 컷·당겨 보기까지(특별함이 닳지 않게) · 벤 몸은 짧게
 const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches; // 움직임 줄이기: 어둠·당겨 보기 뺌
 /** 한 줄은 DMAX(.85)까지, 꺾인 한붓 획은 먹이 되는 만큼 STROKE_LEN까지(먹 값은 길이대로) */
 const reachFor = (s: DashState, pts: unknown[]) => (pts.length > 1 ? Math.min(STROKE_LEN, (s.g - GBASE) / GPER) : reachOf(s.g));
@@ -2096,6 +2096,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
         }
         if (age < sp) {
           ctx.save();
+          if (sp > SPLIT) ctx.globalAlpha = 0.55; // 🧪 F3: 일섬으로 멈춘 벤 몸은 옅게(산 적과 헷갈리지 않게)
           ctx.translate(cx, cy);
           ctx.fillStyle = 'rgba(4,6,18,.4)';
           ell(ctx, 0, 0, k * 0.26, k * 0.07);
@@ -2272,7 +2273,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   items.sort((a, b) => a.y - b.y);
   for (const it of items) it.draw();
   // ── M3 F3 일섬(셋 이상 한 획): 0.07초 어둠(만화의 임팩트 컷) 뒤 화면 끝에서 끝까지 가르는 칼빛 ──
-  const big = !!s.trail && s.trail.n >= ISSEN.n && since < ISSEN.streak;
+  const big = !!s.trail && s.trail.n >= ISSEN.n && since < ISSEN.streak, peak = big && (s.trail!.n >= ISSEN.top || !!s.trail!.sw); // 정점(넷 이상·싹쓸이)에만 어둠·당겨 보기
   // ── 돌진 자국: 칼빛 선 + 잔상 ──
   const sw = !!s.trail?.sw, life = sw ? 40 : 24;
   if (s.trail && since < life) {
@@ -2318,7 +2319,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     drawNinja(1);
   }
   // M3 F3 일섬: 0.07초 먹빛 어둠(만화의 임팩트 컷) 속에 칼빛 · 사무라이 · 벤 자국만 → 화면 끝에서 끝까지 가르는 칼빛이 0.3초 남는다
-  if (big && since < ISSEN.dark && !REDUCED) {
+  if (peak && since < ISSEN.dark && !REDUCED) {
     ctx.fillStyle = 'rgba(6,6,18,.86)';
     ctx.fillRect(-20, -20 - dy, w + 40, h + 40 + dy);
     for (const c of s.cuts) if (c.t === s.trail!.t) {
@@ -2331,11 +2332,11 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     const L = s.trail.legs, p0 = L[0], p1 = L[L.length - 1], ax = X(p0[0]), ay = Y(p0[1]) - R(0.05), bx = X(p1[2]), by = Y(p1[3]) - R(0.05);
     const d = Math.hypot(bx - ax, by - ay) || 1, ux = (bx - ax) / d, uy = (by - ay) / d, a = 1 - since / ISSEN.streak;
     // 화면 안만(렉: 화면 밖 칸까지 칠하지 않게) — 보이는 네모(가로 0~w · 세로 -dy~h-dy)와 만나는 구간
-    let t0 = -1e4, t1 = 1e4;
+    let t0 = since < ISSEN.wide ? -1e4 : -R(0.04), t1 = since < ISSEN.wide ? 1e4 : d + R(0.04); // 🧪 F3: 화면 끝까지는 처음 6프레임만 → 뒤엔 그은 길만(산 적을 스치지 않게)
     for (const [p, q0, q1] of [[ax, 0, w], [ay, -dy, h - dy]] as const) {
       const v = p === ax ? ux : uy;
       if (Math.abs(v) < 1e-9) continue;
-      const e0 = (q0 - p) / v, e1 = (q1 - p) / v;
+      const e0 = (q0 - p) / v, e1 = (q1 - p) / v; // 화면 네모 안으로 자름
       (t0 = Math.max(t0, Math.min(e0, e1))), (t1 = Math.min(t1, Math.max(e0, e1)));
     }
     const sx0 = ax + ux * t0, sy0 = ay + uy * t0, sx1 = ax + ux * t1, sy1 = ay + uy * t1;
@@ -2638,7 +2639,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx = hi;
     ctx.save();
     ctx.imageSmoothingEnabled = false;
-    if (big && since < ISSEN.zoom && !REDUCED && s.trail) { // 일섬: 벤 줄 가운데로 살짝 당겨 보기(8프레임 · 1.05 → 1)
+    if (peak && since < ISSEN.zoom && !REDUCED && s.trail) { // 일섬: 벤 줄 가운데로 살짝 당겨 보기(8프레임 · 1.05 → 1)
       const L = s.trail.legs, mx = X((L[0][0] + L[L.length - 1][2]) / 2), my = Y((L[0][1] + L[L.length - 1][3]) / 2) + dy, z = 1 + 0.05 * (1 - since / ISSEN.zoom);
       ctx.drawImage(lo.canvas, mx - mx * z, my - my * z, w * z, h * z);
     } else ctx.drawImage(lo.canvas, 0, 0, w, h);
