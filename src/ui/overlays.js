@@ -44,12 +44,12 @@ export class RewardOverlay extends Overlay {
     const r = G.run, p = this.p, t = this.t, done = this.taken !== -1;
     dim(g, 0.78);
     brushTitle(g, 640, 34, 420, 62, { battle: '전리품', elite: '강적의 전리품', boss: '두목의 전리품', treasure: '보물 상자' }[this.kind] || '전리품', this.kind === 'treasure' ? '#b8862a' : INDIGO, 36);
-    text(g, done ? '챙겼습니다' : '하나를 고르세요', 640, 94, { size: 20, fill: C.cream });
+    text(g, done ? '챙겼습니다' : '하나를 고르세요', 640, 82, { size: 20, fill: C.cream });
     panel(g, 1070, 26, 180, 40, 'tag'); icon.coin(g, 1094, 46, 12); text(g, `엽전 ${r.gold}`, 1170, 47, { size: 20, maxW: 130 });
     p.opts.forEach((o, n) => {
       const d = describeReward(o), w = 224, h = 316, x = 264 + n * 264, k = easeOutBack(clamp((t - n * 0.1) / 0.32, 0, 1)), y = 118 + (1 - k) * 50, mine = this.taken === n;
       g.save(); g.globalAlpha = clamp((t - n * 0.1) / 0.2, 0, 1) * (done && !mine ? 0.35 : 1);
-      if (d.card) { cardFace(g, d.card, x, y, w, h); packTag(g, x + w - 30, y + 62, d.n); if (o.kind !== 'card') { rr(g, x + 36, y - 14, 152, 28, 14, COL[d.col], INK, 1.6); text(g, d.title, x + 112, y + 1, { size: 17, fill: C.cream }); } } else tile(g, d, x, y, w, h, t);
+      if (d.card) { cardFace(g, d.card, x, y, w, h); packTag(g, x + w - 30, y + 62, d.n); if (o.kind !== 'card') { rr(g, x + 36, y - 25, 152, 27, 13, COL[d.col], INK, 1.6); text(g, d.title, x + 112, y - 11, { size: 17, fill: C.cream }); } } else tile(g, d, x, y, w, h, t);
       g.restore();
       if (mine) stamp(g, x + w / 2, y + 250, 40, '得', RED, -0.14);
       else if (!done && t > 0.45 && button(g, 'rw' + n, x + 12, y + h + 12, w - 24, 54, '고르기', { size: 27 })) {
@@ -59,8 +59,9 @@ export class RewardOverlay extends Overlay {
     });
     if (!done) {
       const rc = p.free > 0 ? 0 : 15 + p.rerolls * 10;
-      if (button(g, 'reroll', 264, 520, 240, 54, rc ? `다시 뽑기 · 엽전 ${rc}` : '다시 뽑기 · 무료', { style: r.gold >= rc ? 'paper' : 'grey', size: 21 })) { if (r.gold >= rc) { r.gold -= rc; if (p.free > 0) p.free--; else p.rerolls++; p.opts = rollRewards(this.kind); this.t = 0; save(); sfx('card'); } else sfx('deny'); }
-      if (button(g, 'rwdeck', 520, 520, 240, 54, `덱 살피기 · ${r.deck.length}장`, { style: 'paper', size: 21 })) this.deck({});
+      const two = this.kind === 'treasure' || this.kind === 'boss', bx = two ? 128 : 0;   // 단추가 둘뿐이면 가운데로 모은다
+      if (button(g, 'reroll', 264 + bx, 520, 240, 54, rc ? `다시 뽑기 · 엽전 ${rc}` : '다시 뽑기 · 무료', { style: r.gold >= rc ? 'paper' : 'grey', size: 21 })) { if (r.gold >= rc) { r.gold -= rc; if (p.free > 0) p.free--; else p.rerolls++; p.opts = rollRewards(this.kind); this.t = 0; save(); sfx('card'); } else sfx('deny'); }
+      if (button(g, 'rwdeck', 520 + bx, 520, 240, 54, `덱 살피기 · ${r.deck.length}장`, { style: 'paper', size: 21 })) this.deck({});
       if (this.kind !== 'treasure' && this.kind !== 'boss' && button(g, 'skip', 776, 520, 240, 54, '건너뛴다 · 엽전 +15', { style: 'paper', size: 21 })) { this.taken = -2; r.gold += 15; r.pending = null; save(); sfx('coin'); }
     } else if (!this.sub) { this.doneT += dt; if (this.doneT > 0.55) this.finish(); }
   }
@@ -79,7 +80,7 @@ export class ShopOverlay extends Overlay {
       g.save(); if (it.sold) g.globalAlpha = 0.45;
       rr(g, x + 3, y + 5, w, h, 6, 'rgba(50,36,20,0.24)'); rr(g, x, y, w, h, 6, PAPER, INK, 2.6);
       g.save(); g.beginPath(); rrPath(g, x + 2, y + 2, w - 4, 32, 5); g.clip(); g.fillStyle = col; g.fillRect(x, y, w, 34); g.restore(); text(g, d.title, x + w / 2, y + 19, { size: 20, font: FONT_B, fill: C.cream });
-      if (card) { cardFace(g, it, x + 10, y + 42, 96, 124); packTag(g, x + 88, y + 152, d.n, 0.8); }
+      if (card) { cardFace(g, it, x + 10, y + 42, 96, 124); packTag(g, x + 104, y + 172, d.n, 0.78); }
       else { rr(g, x + 10, y + 42, 96, 124, 5, '#efe4c9', INK, 1.4); const cx = x + 58, cy = y + 104; if (d.misc === 'supply') supplyArt(g, d.ids, cx, cy, 1); else if (d.relic) { relicIcon(g, d.relic, cx, cy, 1.5); if (it.kind === 'cleanse') stamp(g, cx + 26, cy + 38, 15, '淨', TEAL, -0.1); } else if (d.weapon) weaponIcon(g, d.weapon, cx, cy, 0.95); else if (d.misc === 'burn') miscIcon(g, 'burn', cx, cy, 1.5); else { g.save(); g.beginPath(); g.rect(x + 11, y + 43, 94, 122); g.clip(); portrait(g, 'spear', cx, cy + 50, 1.2, t, !it.sold); g.restore(); ell(g, cx + 30, cy - 40, 13, 13, PAPER, INK, 1.6); text(g, '↑', cx + 30, cy - 39, { size: 20, font: FONT_B, fill: TEAL }); } }
       text(g, d.name, x + 116, y + 58, { size: 19, font: FONT_B, align: 'left', maxW: w - 126 });
       textBlock(g, d.desc.split('\n').join(' · '), x + 116, y + 84, w - 128, 19.5, { size: 14, align: 'left', fill: SUB, weight: 400 });
@@ -114,7 +115,7 @@ export class ChoiceOverlay extends Overlay {
   constructor(o) { super(); Object.assign(this, { title: o.title, art: o.art, body: o.text, choices: o.choices, onDone: o.onDone, col: o.col || '#6a5a8a', tale: o.tale || null, result: null }); }
   draw(g) {
     const r = G.run, t = this.t;
-    dim(g, 0.78);
+    dim(g, 0.9);
     panel(g, 60, 70, 1160, 580);
     brushTitle(g, 330, 76, 360, 62, this.title, this.col, 34);
     ell(g, 330, 270, 112, 112, '#efe2c4', INK, 3); g.save(); g.beginPath(); g.arc(330, 270, 110, 0, TAU); g.clip(); g.fillStyle = '#a9b78f'; g.globalAlpha = 0.5; g.fillRect(210, 326, 240, 60); g.globalAlpha = 1; portrait(g, this.art, 330, 360, UNITS[this.art].hero || UNITS[this.art].boss ? 1.9 : 2.3, t, true); g.restore();
@@ -202,9 +203,9 @@ export function restChoices() {
   const r = G.run;
   return [
     { label: '쉬어 간다', desc: r.flags < 3 ? '깃발 +1' : '깃발이 가득 — 대신 엽전 +40', pick: () => ['뜨끈한 국밥 한 그릇에 기운을 차렸습니다.', act.flag(1)] },
-    r.deck.some(c => isUnit(c) && canUp(c)) ? { label: '조련한다', desc: '병력·영웅 패 한 장을 골라 Lv +1 (체력·공격력 +20%)', deck: 'up', filter: isUnit, story: '주막 마당에서 밤새 합을 맞췄습니다.' } : null,
+    r.deck.some(c => isUnit(c) && canUp(c)) ? { label: '조련한다', desc: '병력·영웅 패 한 장을 골라 +1단 (체력·공격력 +20%)', deck: 'up', filter: isUnit, story: '주막 마당에서 밤새 합을 맞췄습니다.' } : null,
     { label: '보급을 받는다', desc: '전술 패 넉 장을 얻는다 (돌팔매·화살비·약손·북·척후 가운데)', pick: () => ['주모가 싸 준 꾸러미를 풀었습니다. 떠돌이 장꾼들이 두고 간 것도 섞여 있습니다.', act.supply(4)] },
     r.deck.some(c => !isUnit(c) && canUp(c)) ? { label: '전술을 익힌다', desc: '전술 패 한 종류를 골라 익힌다 — 가진 것과 앞으로 얻는 것이 모두 강화판(+)', deck: 'up', filter: c => !isUnit(c), story: '등잔불 아래에서 밤새 병법을 가다듬었습니다.' } : null,
-    { label: '잔치를 벌인다', cost: 90, desc: '엽전 90 → 깃발 +1 그리고 무작위 병력 패 Lv +1', pick: () => { act.gold(-90); return ['고기와 술이 돌자 사기가 하늘을 찌릅니다.', act.flag(1), act.train()]; } },
+    { label: '잔치를 벌인다', cost: 90, desc: '엽전 90 → 깃발 +1 그리고 무작위 병력 패 +1단', pick: () => { act.gold(-90); return ['고기와 술이 돌자 사기가 하늘을 찌릅니다.', act.flag(1), act.train()]; } },
   ].filter(Boolean);
 }

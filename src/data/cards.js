@@ -49,7 +49,7 @@ export const isUnit = c => CARDS[c.id].kind === 'unit' || CARDS[c.id].kind === '
 export const MAX_LV = 6;
 export const cardVals = c => Object.assign({}, CARDS[c.id].v, c.up ? CARDS[c.id].up : {});
 export const cardCost = c => Math.max(0, CARDS[c.id].cost - (c.up && CARDS[c.id].upCost || 0));
-export const cardName = c => CARDS[c.id].name + (isUnit(c) ? ((c.lv || 1) > 1 ? ' Lv' + c.lv : '') : c.up ? '+' : '');
+export const cardName = c => CARDS[c.id].name + (isUnit(c) ? ((c.lv || 1) > 1 ? ' ' + c.lv + '단' : '') : c.up ? '+' : '');
 export const cardDesc = c => CARDS[c.id].desc(cardVals(c));
 // 한 묶음에 든 장수: 흔한 패는 셋, 귀한 패는 하나
 export const packN = id => CARDS[id].hero ? 2 : [3, 2, 1][CARDS[id].rare || 0];

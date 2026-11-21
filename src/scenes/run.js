@@ -112,7 +112,7 @@ export class RunScene {
   leave() {
     const r = this.r; this.over = null; this.sync();
     if (advance()) { meta.seen.talk = 3; this.phase = 'over'; nav.go('end', { win: true }); return; }
-    if (r.ch !== this.ch) { meta.seen.talk = Math.max(meta.seen.talk || 0, r.ch); this.ch = r.ch; this.fade = 1; this.sync(); this.note = { s: CHAPTERS[r.ch].name, sub: '깃발 하나를 되찾고 · 부대 한도 +1 · 모든 병력 패 Lv +1', col: INDIGO, t: 3.2 }; sfx('win'); }
+    if (r.ch !== this.ch) { meta.seen.talk = Math.max(meta.seen.talk || 0, r.ch); this.ch = r.ch; this.fade = 1; this.sync(); this.note = { s: CHAPTERS[r.ch].name, sub: '깃발 하나를 되찾고 · 부대 한도 +1 · 모든 병력 패 +1단', col: INDIGO, t: 3.2 }; sfx('win'); }
     this.march();
   }
   waveClear(e) {
@@ -181,7 +181,7 @@ export class RunScene {
     const busy = !!(this.over || this.sub || this.menu);   // 다른 화면이 떠 있으면 알림은 멈춰 기다린다
     if (this.toastT > 0) this.toastT -= dt; if (this.note) { if (!busy) { this.note.t -= dt; if (this.note.t <= 0) this.note = null; } }
     else if (!this.deedSeen) { this.deedSeen = true; this.welcome(noteDeed()); }   // 지난 원정까지 쌓인 공으로 이미 채운 인연
-    else if (this.joinQ.length && !busy && (this.phase === 'march' || this.phase === 'prep')) { const bt = this.joinQ.shift(), nm = UNITS[bt.id].name; this.note = { s: `${nm} — 영물의 인연`, sub: `${bt.lore}. ${nm} 패가 덱에 들어왔습니다`, col: TEAL, t: 4, ch: '靈' }; sfx('star'); }
+    else if (this.joinQ.length && !busy && (this.phase === 'march' || this.phase === 'prep')) { const bt = this.joinQ.shift(), nm = UNITS[bt.id].name; this.note = { s: `${nm} — 영물의 인연`, sub: `${nm} 패가 덱에 들어왔습니다 · 앞으로 전리품과 장터에도 나옵니다`, col: TEAL, t: 4.4, ch: '靈', beast: bt.id }; sfx('star'); }
     const live = !this.menu && !this.over && !this.sub && this.phase !== 'over' && this.phase !== 'stop';
     if (live) this.input(i);
     const aiming = this.aim && (this.aim.live || (this.aim.drag && i.y < BAR_Y - 8)), want = (this.order && this.order.moved) || aiming ? 0.12 : 1;
@@ -274,7 +274,7 @@ export class RunScene {
       const x = sx(k), past = k < rd.i || (k === rd.i && rd.state === 'reward'), cur = k === rd.i && this.phase !== 'march';
       g.save(); if (past) g.globalAlpha = 0.4;
       if (s.type === 'fork') { seal(g, x, cy - 11, 20, STOP[s.a.type].ch, STOP[s.a.type].col); seal(g, x, cy + 11, 20, STOP[s.b.type].ch, STOP[s.b.type].col); }
-      else { const v = STOP[s.type], sz = cur ? 36 : s.type === 'boss' ? 34 : 29; if (cur) ell(g, x, cy, 22 + Math.sin(T * 5) * 1.5, 22 + Math.sin(T * 5) * 1.5, null, OCHRE, 2.4); seal(g, x, cy, sz, v.ch, v.col); }
+      else { const v = STOP[s.type], sz = cur ? 38 : s.type === 'boss' ? 36 : 31; if (cur) ell(g, x, cy, 22 + Math.sin(T * 5) * 1.5, 22 + Math.sin(T * 5) * 1.5, null, OCHRE, 2.4); seal(g, x, cy, sz, v.ch, v.col); }
       g.restore(); if (past) icon.check(g, x, cy, 0.9, true);
     });
     icon.flag(g, mx, cy - 18 + Math.abs(Math.sin(T * 6)) * (this.phase === 'march' ? 3 : 0), 0.9, OCHRE);
@@ -291,7 +291,7 @@ export class RunScene {
       [[`잃은 병사 ${b.waveLost}/${e.starDeaths}`, b.waveLost <= e.starDeaths], [`시간 ${Math.ceil(b.waveT)}/${e.starTime}초`, b.waveT <= e.starTime]].forEach(([s, ok], k) => { const x = 16 + k * 128; g.globalAlpha = 0.95; panel(g, x, 74, 122, 28, 'tag'); g.globalAlpha = 1; if (ok) icon.check(g, x + 15, 88, 0.7, true); else text(g, '✕', x + 15, 89, { size: 15, fill: RED }); text(g, s, x + 71, 89, { size: 14, fill: ok ? INK : RED, maxW: 90 }); });
       const left = b.count(1) + b.pending; g.globalAlpha = 0.95; panel(g, 1150, 74, 114, 28, 'tag'); g.globalAlpha = 1; text(g, `요괴 ${left}`, 1207, 89, { size: 15, fill: RED });
       const boss = b.units.find(u => !u.dead && u.def.boss);
-      if (boss && !this.aim) { panel(g, 400, 74, 480, 30, 'tag'); text(g, boss.def.name, 414, 90, { size: 19, font: FONT_B, fill: RED, align: 'left', maxW: 150 }); bar(g, 572, 81, 298, 16, boss.hp / boss.maxHp, RED, { back: '#d9cdb0' }); }
+      if (boss && !this.aim) { panel(g, 388, 72, 504, 34, 'tag'); text(g, boss.def.name, 404, 90, { size: 22, font: FONT_B, fill: RED, align: 'left', maxW: 170 }); bar(g, 584, 80, 296, 18, boss.hp / boss.maxHp, RED, { back: '#d9cdb0' }); }
     }
   }
   // 왼쪽 가장자리: 전장의 영웅(기력과 다음 고유기), 합동기, 진법
@@ -301,7 +301,7 @@ export class RunScene {
       const sk = HERO_SKILLS[u.type][u.skillI], gz = clamp(u.gauge, 0, 1);
       g.globalAlpha = 0.95; panel(g, 12, y, 212, 40, 'tag'); g.globalAlpha = 1;
       ell(g, 34, y + 20, 16, 16, '#efd9a8', INK, 1.4); ell(g, 34, y + 20, 13.4, 13.4, null, 'rgba(201,150,46,0.8)', 1); g.save(); g.beginPath(); g.arc(34, y + 20, 15, 0, TAU); g.clip(); portrait(g, u.type, 34, y + 58, 0.72); g.restore();
-      text(g, u.def.name, 58, y + 12, { size: 14, align: 'left' }); text(g, sk.name, 216, y + 12, { size: 13.5, align: 'right', fill: gz > 0.9 ? RED : SUB, font: FONT_B, maxW: 110 });
+      text(g, u.def.name, 58, y + 12, { size: 14, align: 'left' }); text(g, sk.name, 216, y + 12, { size: 16, align: 'right', fill: gz > 0.9 ? RED : '#4a4034', font: FONT_B, maxW: 112 });
       bar(g, 58, y + 22, 156, 11, gz, gz > 0.9 ? '#f0d264' : OCHRE, { back: '#d9cdb0' });
       if (tapped('hc' + u.type, 12, y, 212, 40)) this.toast(u.type === this.r.hero ? `병법 '${HERO_TRAIT[u.type].name}' — ${HERO_TRAIT[u.type].desc}` : `${u.def.name}의 고유기 (기력이 차면 자동): ${HERO_SKILLS[u.type].map(s => s.name).join(' → ')}`, 5);
       y += 44;
@@ -320,14 +320,14 @@ export class RunScene {
   // 싸움터에 닿았을 때: 다가오는 요괴와 지형·하늘을 알려 준다
   drawPreview(g, b) {
     const e = this.enc, m = new Map(); for (const [t, , , o] of e.enemy) m.set(t, (m.get(t) || 0) + 1);
-    const types = [...m.keys()].slice(0, 8), rows = Math.ceil(types.length / 2), ter = TERRAINS[e.terrain] || TERRAINS.open, sky = SKY[e.sky] || SKY.day, h = 58 + rows * 46 + (ter.tip ? 50 : 26) + (e.sky !== 'day' ? 78 : 0), x = 944, y = 112;
+    const types = [...m.keys()].slice(0, 8), rows = Math.ceil(types.length / 2), ter = TERRAINS[e.terrain] || TERRAINS.open, sky = SKY[e.sky] || SKY.day, h = 58 + rows * 46 + (ter.tip ? 56 : 26) + (e.sky !== 'day' ? 90 : 0), x = 944, y = 112;
     g.globalAlpha = 0.95; panel(g, x, y, 312, h); g.globalAlpha = 1;
     text(g, '다가오는 요괴', x + 18, y + 28, { size: 21, font: FONT_B, align: 'left', fill: RED });
-    ell(g, x + 276, y + 28, 19, 19, PAPER, RED, 2.4); text(g, String(Math.max(1, Math.ceil(this.prepT))), x + 276, y + 29, { size: 22, font: FONT_B, fill: RED }); text(g, '초 뒤 개전', x + 250, y + 29, { size: 13.5, align: 'right', fill: SUB, weight: 400 });
+    ell(g, x + 262, y + 28, 19, 19, PAPER, RED, 2.4); text(g, String(Math.max(1, Math.ceil(this.prepT))), x + 262, y + 29, { size: 22, font: FONT_B, fill: RED }); text(g, '개전까지', x + 237, y + 29, { size: 14.5, align: 'right', fill: '#4a4034', weight: 400 }); text(g, '초', x + 292, y + 30, { size: 15, fill: RED });
     types.forEach((t, k) => { const px = x + 18 + (k % 2) * 146, py = y + 52 + Math.floor(k / 2) * 46, d = UNITS[t]; rr(g, px, py, 38, 40, 5, '#efd9cf', INK, 1.2); g.save(); g.beginPath(); g.rect(px + 1, py + 1, 36, 38); g.clip(); portrait(g, t, px + 19, py + 38, d.boss ? 0.3 : d.large || d.mounted ? 0.5 : 0.6); g.restore(); text(g, d.name, px + 44, py + 13, { size: 14, align: 'left', maxW: 96 }); text(g, d.boss ? '두목' : `${m.get(t)}무리`, px + 44, py + 30, { size: 13, align: 'left', fill: SUB, weight: 400 }); });
     let yy = y + 60 + rows * 46;
-    text(g, `지형 · ${ter.name}`, x + 18, yy, { size: 16, align: 'left', font: FONT_B }); if (ter.tip) { textBlock(g, ter.tip, x + 18, yy + 22, 276, 18, { size: 13.5, align: 'left', fill: SUB, weight: 400 }); yy += 50; } else yy += 26;
-    if (e.sky !== 'day') { text(g, `하늘 · ${sky.name}`, x + 18, yy, { size: 16, align: 'left', font: FONT_B, fill: e.sky === 'night' ? '#3d3560' : '#2f6f9a' }); textBlock(g, sky.desc, x + 18, yy + 21, 276, 17, { size: 12.5, align: 'left', fill: SUB, weight: 400 }); }
+    text(g, `지형 · ${ter.name}`, x + 18, yy, { size: 16, align: 'left', font: FONT_B }); if (ter.tip) { textBlock(g, ter.tip, x + 18, yy + 23, 278, 19, { size: 14.5, align: 'left', fill: '#4a4034', weight: 400 }); yy += 56; } else yy += 26;
+    if (e.sky !== 'day') { text(g, `하늘 · ${sky.name}`, x + 18, yy, { size: 16, align: 'left', font: FONT_B, fill: e.sky === 'night' ? '#3d3560' : '#2f6f9a' }); textBlock(g, sky.desc, x + 18, yy + 23, 278, 19, { size: 14.5, align: 'left', fill: '#4a4034', weight: 400 }); }
     if (this.toastT <= 0) text(g, '진형을 고칠 시간입니다 — 부대를 끌어 옮기고 패를 미리 내세요', 640, 540, { size: 18, stroke: PAPER, lw: 5, maxW: 600 });
   }
   // 손패 한 칸
@@ -368,11 +368,11 @@ export class RunScene {
     // 같은 전술 패가 주머니에 몇 장 남았는지 (이 한 장 포함)
     if (!isUnit(c) && CARDS[c.id].kind !== 'curse') { const left = this.stock[c.id] || 1; rr(g, x + 5, yy + h - 23, 30, 17, 4, left > 1 ? 'rgba(31,42,68,0.86)' : '#8a2a26'); text(g, '×' + left, x + 20, yy + h - 14, { size: 12, fill: C.cream }); }
     g.restore();
-    text(g, String(n + 1), x + w - 11, y + h - 6, { size: 13, fill: SUB });
+    text(g, String(n + 1), x + w - 11, y + h - 7, { size: 14.5, fill: '#4a4034' });
   }
   drawBar(g, b, i, live) {
     panel(g, 0, BAR_Y, W, H - BAR_Y, 'tray');
-    text(g, '사기', 16, 590, { size: 21, font: FONT_B, align: 'left', fill: C.cream }); text(g, '무리 격파 +1', 62, 592, { size: 14, fill: '#c9cfe0', align: 'left', weight: 400 }); text(g, b.morale.toFixed(0) + ' / 10', 226, 591, { size: 15, fill: C.gilt, align: 'right' });
+    text(g, '사기', 16, 590, { size: 21, font: FONT_B, align: 'left', fill: C.cream }); text(g, '무리 격파 +1', 62, 592, { size: 15, fill: C.cream, align: 'left', weight: 400 }); text(g, b.morale.toFixed(0) + ' / 10', 226, 591, { size: 15, fill: C.gilt, align: 'right' });
     for (let k = 0; k < 10; k++) { const f = clamp(b.morale - k, 0, 1), cx = 34 + (k % 5) * 42, cy = 618 + Math.floor(k / 5) * 32; icon.coin(g, cx, cy, 13, f >= 1); if (f > 0 && f < 1) { g.save(); g.beginPath(); g.rect(cx - 13, cy + 13 - 26 * f, 26, 26 * f); g.clip(); icon.coin(g, cx, cy, 13, true); g.restore(); } }
     const n = b.squadCount(), full = n >= b.cap;
     icon.people(g, 26, 690, 0.95, full ? RED : '#5f84c4'); text(g, `부대 ${n} / ${b.cap}`, 44, 691, { size: 17, align: 'left', fill: full ? '#f39a82' : C.cream });
@@ -393,9 +393,10 @@ export class RunScene {
     const nt = this.over || this.sub ? null : this.note, gr = this.grade;
     if (nt) {
       const k = clamp(Math.min(nt.t / 0.3, 1), 0, 1); if (nt.t0 === undefined) nt.t0 = nt.t;
-      g.save(); g.globalAlpha = k; g.translate(0, (1 - easeOutBack(k)) * -20); brushTitle(g, 692, 100, 430, 68, nt.s, nt.col, 37); if (nt.sub) { rr(g, 452, 140, 480, 34, 8, 'rgba(248,240,220,0.96)', INK, 1.6); text(g, nt.sub, 692, 158, { size: 17, maxW: 456 }); }
-      // 싸움을 알리는 한 자: 먹물이 떨어지고 그 위에 붓글씨가 찍힌다
-      if (nt.ch) inkMark(g, nt.ch, 404, 112, 88, { k: (nt.t0 - nt.t) / 0.5, col: nt.chCol, v: nt.ch === '頭' ? 2 : nt.ch === '強' ? 1 : 0 });
+      g.save(); g.globalAlpha = k; g.translate(0, (1 - easeOutBack(k)) * -20); // 싸움을 알리는 한 자: 먹물이 떨어지고 그 위에 붓글씨가 찍힌다 (먹물은 머리 띠 아래 전장 안에서 끝난다)
+      if (nt.ch) { g.save(); g.beginPath(); g.rect(0, HUD_H + 5, W, H); g.clip(); inkMark(g, nt.ch, 404, 116, 86, { k: (nt.t0 - nt.t) / 0.5, col: nt.chCol, v: nt.ch === '頭' ? 2 : nt.ch === '強' ? 1 : 0 }); g.restore(); }
+      brushTitle(g, 692, 100, 430, 68, nt.s, nt.col, 37); if (nt.sub) { rr(g, 452, 140, 480, 34, 8, 'rgba(248,240,220,0.97)', INK, 1.6); text(g, nt.sub, 692, 158, { size: 17, maxW: 456 }); }
+      if (nt.beast) { panel(g, 246, 106, 96, 76, 'tag'); g.save(); g.beginPath(); g.rect(249, 109, 90, 70); g.clip(); const bk = { magpie: 1.3, sapsal: 1.35, samjoko: 1.12, tiger: 0.88, haetae: 0.82 }[nt.beast] || 1, by = { magpie: 196, samjoko: 198 }[nt.beast] || 176; portrait(g, nt.beast, 294, by, bk, this.T); g.restore(); }
       g.restore();
     }
     if (gr && this.phase === 'clear') {
@@ -403,7 +404,7 @@ export class RunScene {
       // 굵은 먹 띠를 한 번에 긋고 그 위에 흰 글씨, 붓이 빠진 자리에 전공 등급을 붓글씨로 찍는다
       const bk = clamp(t / 0.16, 0, 1); g.save(); g.beginPath(); g.rect(360, 220, 40 + 620 * bk, 170); g.clip(); drawInk(g, 'bar', 668, 302, 1.12, -0.022, 1, MEOK, 0); g.restore();
       g.globalAlpha = clamp((t - 0.06) / 0.14, 0, 1); text(g, '물리쳤다!', 548, 300, { size: 64, font: FONT_B, fill: '#f6efdc' }); g.globalAlpha = 1;
-      if (t > 0.25) { if (!gr.stamped && kk >= 1) { gr.stamped = true; sfx('star'); this.view.fx.shake = 6; this.view.fx.splat(826, 300, 1.5, MEOK, 0.5); } g.save(); g.globalAlpha = kk; g.translate(826, 298); g.scale(sc, sc); ell(g, 0, 0, 52, 52, 'rgba(248,240,220,0.94)'); drawInk(g, 'enso', 0, 0, 0.74, 0.3, 1, MEOK, gr.grade % 3); inkGlyph(g, GRADE[gr.grade], 0, 2, 74, { col: JU, halo: false, rot: -0.04 }); g.restore(); }
+      if (t > 0.25) { if (!gr.stamped && kk >= 1) { gr.stamped = true; sfx('star'); this.view.fx.shake = 6; this.view.fx.splat(826, 300, 1.5, MEOK, 0.5); } g.save(); g.globalAlpha = kk; g.translate(826, 298); g.scale(sc, sc); ell(g, 0, 0, 52, 52, 'rgba(248,240,220,0.94)'); drawInk(g, 'enso', 0, 0, 0.74, 0.3, 1, MEOK, gr.grade % 3); inkGlyph(g, GRADE[gr.grade], 0, 2, 74, { col: JU, halo: false, rot: -0.04 }); g.restore(); g.globalAlpha = kk; text(g, '전공', 826, 228, { size: 18, font: FONT_B, fill: C.cream, stroke: INK, lw: 4 }); g.globalAlpha = 1; }
       if (t > 0.5) { panel(g, 540, 360, 200, 44, 'tag'); icon.coin(g, 574, 382, 14); text(g, `엽전 +${gr.gold}`, 652, 383, { size: 23, font: FONT_B }); }
     }
     if (this.phase === 'over') { const ok = clamp((1.8 - this.endT) / 1.2, 0, 1); g.fillStyle = `rgba(23,21,28,${ok * 0.66})`; g.fillRect(0, 0, W, H); drawInk(g, 'blot', 640, 300, 2.2, 0.4, ok * 0.9, MEOK, 1); inkGlyph(g, '敗', 640, 268, 210, { col: '#b8301f', halo: false, alpha: ok }); text(g, '깃발을 모두 잃었습니다', 640, 420, { size: 46, font: FONT_B, fill: C.cream, stroke: INK, lw: 8 }); }
@@ -419,8 +420,8 @@ export class RunScene {
     if (button(g, 'm3', 450, 344, 380, 56, `지닌 보물 · ${r.relics.length}`, { style: 'paper', size: 25 })) this.sub = new RelicView({ onClose: () => { this.sub = null; } });
     if (button(g, 'm4', 450, 410, 380, 56, audio.muted ? '소리 켜기' : '소리 끄기', { style: 'paper', size: 25 })) setMuted(!audio.muted);
     if (button(g, 'm5', 450, 476, 380, 56, '처음 화면으로', { style: 'paper', size: 25 })) nav.go('title');
-    text(g, '패 끌기 = 병력 세우기·전술 쓰기  ·  부대 끌기 = 이동  ·  요괴 위에 놓기 = 집중 공격', 640, 554, { size: 15.5, fill: '#4a4034', maxW: 640 });
-    text(g, '키보드: 1~5 패 고르기 · Q 전군 대기 · E 전군 돌격 · R 패 갈기 · F 빠르기 · 스페이스 멈춤', 640, 579, { size: 15, fill: SUB, maxW: 640, weight: 400 });
-    text(g, `${HERO_TRAIT[r.hero].desc}`, 640, 604, { size: 15, fill: '#8a5a2c', maxW: 640 });
+    text(g, '패 끌기 = 병력 세우기·전술 쓰기  ·  부대 끌기 = 이동  ·  요괴 위에 놓기 = 집중 공격', 640, 554, { size: 16, fill: '#4a4034', maxW: 644 });
+    text(g, '키보드  ·  1~5 패 고르기  ·  Q 전군 대기  ·  E 전군 돌격', 640, 580, { size: 16, fill: '#4a4034', weight: 400 });
+    text(g, 'R 패 갈기  ·  F 빠르기  ·  스페이스 멈춤', 640, 604, { size: 16, fill: '#4a4034', weight: 400 });
   }
 }

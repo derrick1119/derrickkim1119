@@ -41,7 +41,7 @@ export const UNLOCKS = [
   { id: 'cannon', name: '병력 · 화차', desc: '전리품과 장터에 화차 패가 나옵니다', cost: 35, unit: 'cannon' },
   { id: 'p_gold', name: '노잣돈', desc: '엽전 60을 들고 출발합니다', cost: 20 },
   { id: 'p_reroll', name: '눈썰미', desc: '전리품 다시 뽑기가 싸움마다 한 번 무료', cost: 25 },
-  { id: 'p_cap', name: '넉넉한 군량', desc: '부대 한도 +1 로 출발합니다', cost: 40 },
+  { id: 'p_cap', name: '넉넉한 군량', desc: '부대 한도 +1로 출발합니다', cost: 40 },
   { id: 'p_relic', name: '집안의 가보', desc: '무작위 보물 하나를 들고 출발합니다', cost: 50 },
 ];
 export const has = id => !!meta.unlocked[id];
@@ -159,7 +159,7 @@ export function goldFor(grade, kind) { const m = mods(); return Math.round((26 +
 export function addCard(id, o = {}) { const r = G.run, c = { uid: r.nextId++, id, up: !!o.up || mastered(id), lv: o.lv || 1 }; r.deck.push(c); save(); return c; }
 export function removeCard(uid) { const d = G.run.deck, i = d.findIndex(c => c.uid === uid); if (i < 0 || d.length <= 6 || CARDS[d[i].id].kind === 'lead') return null; const c = d.splice(i, 1)[0]; if (c.wpn) G.run.items.push(c.wpn); save(); return c; }
 export const canUp = c => isUnit(c) ? (c.lv || 1) < MAX_LV : !mastered(c.id) && CARDS[c.id].kind !== 'curse';
-// 전술 패는 익히기(그 종류가 모두 +), 병력·영웅 패는 조련(Lv +1: 체력·공격력 +20%)
+// 전술 패는 익히기(그 종류가 모두 +), 병력·영웅 패는 조련(+1단: 체력·공격력 +20%)
 export function upgradeCard(uid) { const c = cardOf(uid); if (!c || !canUp(c)) return null; if (isUnit(c)) { c.lv = (c.lv || 1) + 1; save(); } else master(c.id); return c; }
 // 영웅기 패는 덱에 그 영웅 패가 있을 때만 나온다
 export function cardPool() { const hs = G.run.deck.filter(c => CARDS[c.id].kind === 'lead').map(c => CARDS[c.id].unit); return Object.keys(CARDS).filter(id => !isUnit({ id }) && CARDS[id].kind !== 'curse' && (!CARDS[id].hero || hs.includes(CARDS[id].hero))); }
@@ -187,14 +187,14 @@ export function equip(uid, wid) {
 export function relicPool() { const r = G.run, own = r ? ownedTypes() : []; return Object.keys(RELICS).filter(id => !RELICS[id].curse && !(r && r.relics.includes(id)) && (!RELICS[id].req || own.includes(RELICS[id].req))); }
 export function describeReward(o) {
   if (o.kind === 'card') { const d = CARDS[o.id], u = isUnit(o); return { title: u ? (d.kind === 'lead' ? '영웅 합류' : '의병 모집') : '전술 패', n: o.n || 1, name: cardName(o) + (o.n > 1 ? ` ×${o.n}` : ''), desc: u ? `${d.name} 패를 덱에 넣습니다. ${UNITS[d.unit].tip}` : d.desc(Object.assign({}, d.v, o.up ? d.up : {})), col: u ? 'blue' : 'purple', card: o }; }
-  if (o.kind === 'train') { const c = cardOf(o.uid) || { id: o.id, lv: 1 }, d = CARDS[c.id], l = c.lv || 1; return { title: '조련', name: `${d.name} Lv${l} → Lv${l + 1}`, desc: `이 패의 부대 체력과 ${UNITS[d.unit].heal ? '치유량' : '공격력'} +20%`, col: 'green', card: Object.assign({}, c, { lv: l + 1 }) }; }
+  if (o.kind === 'train') { const c = cardOf(o.uid) || { id: o.id, lv: 1 }, d = CARDS[c.id], l = c.lv || 1; return { title: '조련', name: `${d.name} ${l}단 → ${l + 1}단`, desc: `이 패의 부대 체력과 ${UNITS[d.unit].heal ? '치유량' : '공격력'} +20%`, col: 'green', card: Object.assign({}, c, { lv: l + 1 }) }; }
   if (o.kind === 'upgrade') { const d = CARDS[o.id]; return { title: '전술 익히기', name: `${d.name} → ${d.name}+`, desc: `가진 것과 앞으로 얻는 [${d.name}] 이 모두 강화판이 됩니다.\n` + d.desc(Object.assign({}, d.v, d.up)), col: 'green', card: { id: o.id, up: true } }; }
   if (o.kind === 'supply') return { title: '보급', name: '기본 패 꾸러미', desc: [...new Set(o.ids)].map(id => CARDS[id].name + (o.ids.filter(q => q === id).length > 1 ? ' ×' + o.ids.filter(q => q === id).length : '')).join(' · ') + '\n흔하지만 쓸모 있는 패 넉 장', col: 'green', misc: 'supply', ids: o.ids };
   if (o.kind === 'relic') { const x = RELICS[o.id]; return { title: '보물', name: x.name, desc: x.desc, col: 'gold', relic: o.id }; }
-  if (o.kind === 'weapon') { const w = WEAPONS[o.id]; return { title: '무기', name: w.name, desc: `${w.desc}\n${CLS_NAME[w.cls]} — ${usersOf(o.id).join('·')}`, col: 'blue', weapon: o.id }; }
+  if (o.kind === 'weapon') { const w = WEAPONS[o.id]; return { title: '무기', name: w.name, desc: `${w.desc}\n${CLS_NAME[w.cls]} — ${(u => u.length > 3 ? u.slice(0, 3).join('·') + ' 외 ' + (u.length - 3) : u.join('·'))(usersOf(o.id))}`, col: 'blue', weapon: o.id }; }
   if (o.kind === 'cleanse') return { title: '부정 씻기', name: RELICS[o.id].name, desc: `부정 [${RELICS[o.id].name}] 을 씻어냅니다. (${RELICS[o.id].desc})`, col: 'gold', relic: o.id };
   if (o.kind === 'burn') return { title: '패 태우기', name: '패 한 장 없애기', desc: '덱에서 패 한 장을 골라 없앱니다. 덱이 얇을수록 좋은 패가 자주 손에 들어옵니다.', col: 'red', misc: 'burn' };
-  if (o.kind === 'trainPick') return { title: '조련장', name: '병력 패 조련', desc: '병력·영웅 패 한 장을 골라 Lv +1 (체력·공격력 +20%)', col: 'green', misc: 'train' };
+  if (o.kind === 'trainPick') return { title: '조련장', name: '병력 패 조련', desc: '병력·영웅 패 한 장을 골라 +1단 (체력·공격력 +20%)', col: 'green', misc: 'train' };
   return { title: '군량 수레', name: '부대 한도 +1', desc: `전장에 한꺼번에 세울 수 있는 부대가 ${G.run.cap} → ${G.run.cap + 1}개로 늘어납니다.`, col: 'gold', misc: 'cap' };
 }
 function makeReward(kind, keys) {
@@ -257,7 +257,7 @@ export function buyItem(it) { const r = G.run; if (!it || it.sold || r.gold < it
 export const EVENT_IDS = ['ssireum', 'axe', 'shrine', 'peddler', 'lost', 'bangmangi', 'boar', 'well', 'smith', 'sansam', 'fox', 'jangseung', 'scholar', 'tomb'];
 const EVENT_MIN = { well: 1, tomb: 1 };
 export function pickEvent() { const r = G.run, pool = EVENT_IDS.filter(e => !r.evSeen.includes(e) && (EVENT_MIN[e] || 0) <= r.ch), ev = pick(pool.length ? pool : EVENT_IDS); r.evSeen.push(ev); return ev; }
-const lvUp = c => { c.lv = (c.lv || 1) + 1; return `${CARDS[c.id].name} Lv${c.lv}`; };
+const lvUp = c => { c.lv = (c.lv || 1) + 1; return `${CARDS[c.id].name} ${c.lv}단`; };
 export const act = {
   gold(n) { const r = G.run; r.gold = Math.max(0, r.gold + n); return n >= 0 ? `엽전 +${n}` : `엽전 ${n}`; },
   flag(n) { const r = G.run; if (n > 0) { if (r.flags >= 3) { r.gold += 40; return '깃발이 가득해 엽전 +40'; } r.flags++; return '깃발 +1'; } if (r.flags > 1) { r.flags--; return '깃발 -1'; } return act.gold(-50); },

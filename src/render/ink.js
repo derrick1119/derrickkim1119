@@ -34,13 +34,14 @@ function brushStroke(g, P, o) {
   for (let j = 0; j < nb; j++) {
     const u = ((j + 0.5) / nb * 2 - 1) * 0.97 + (R() - 0.5) * 0.1, i0 = Math.round(R() * 0.05 * N), i1 = Math.round(Math.min(1, dry + (1 - dry) * (0.3 + R() * 0.8) * (1 - Math.abs(u) * 0.2)) * N);
     g.lineWidth = Math.max(0.7, (w * 2 / nb) * (0.55 + R() * 0.95)); g.globalAlpha = 0.5 + R() * 0.5;
+    const wob = o.wob || 0, wf = 3 + R() * 7, wp = R() * TAU;   // 붓털 한 올의 흔들림
     const gap = R() < 0.6; let on = true, next = dry * (0.7 + R() * 0.5), pen = false;
     g.beginPath();
     for (let i = i0; i <= i1; i++) {
       const t = i / N, p = pts[i];
       if (gap && t > next) { on = !on; next = t + (on ? 0.05 + R() * 0.15 : 0.012 + R() * 0.05); }
       if (!on) { pen = false; continue; }
-      const x = p[0] + p[2] * p[4] * u, y = p[1] + p[3] * p[4] * u;
+      const uu = u + (wob ? Math.sin(t * wf + wp) * wob * Math.min(1, t * 2) : 0), x = p[0] + p[2] * p[4] * uu, y = p[1] + p[3] * p[4] * uu;
       if (pen) g.lineTo(x, y); else { g.moveTo(x, y); pen = true; }
     }
     g.stroke();
@@ -180,7 +181,7 @@ const WIPES = [];
 function wipeStroke(v) {
   if (!WIPES[v]) {
     const w = 1900, h = 250, c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.translate(w / 2, h / 2);
-    brushStroke(g, t => [-850 + 1700 * t, 7 * Math.sin(t * 2.4 + v * 1.7) - 5 * t], { w: 96, prof: prof.band, dry: 0.72, seed: 301 + v * 53, col: MEOK, steps: 110, drops: 12, streaks: 18, n: 58 });
+    brushStroke(g, t => [-850 + 1700 * t, 15 * Math.sin(t * 2.6 + v * 1.7) + 6 * Math.sin(t * 7.3 + v) - 6 * t], { w: 92, prof: prof.band, dry: 0.7, seed: 301 + v * 53, col: MEOK, steps: 130, drops: 12, streaks: 18, n: 64, wob: 0.07 });
     WIPES[v] = c;
   }
   return WIPES[v];
@@ -190,9 +191,9 @@ export function inkWipe(g, k, dir, W, H) {
   g.save();
   for (let i = 0; i < bands; i++) {
     const q = Math.max(0, Math.min(1, k * 1.22 - hash(i, 3) * 0.22)), e = q * q * (3 - 2 * q), cy = gap * (i + 0.5) + (hash(i, 9) - 0.5) * 16, rot = (hash(i, 5) - 0.5) * 0.05 - 0.02, sp = wipeStroke(i % 3);
-    // 붓 자국의 꼬리(오른쪽, 갈라진 쪽)가 앞서 나가며 덮고, 걷힐 때는 머리(왼쪽)가 마지막으로 빠져나간다
-    const cx = dir > 0 ? -900 + 1740 * e : 840 + 1420 * (1 - e);
-    for (const [dx, sy, a] of [[dir > 0 ? 80 : -80, 1.2, 0.28], [0, 1, 1]]) { g.save(); g.translate(cx + dx, cy); g.rotate(rot); g.scale(1, sy * gap / 148); g.globalAlpha = a; g.drawImage(sp, -950, -125); g.restore(); }
+    // 덮을 때는 갈라진 꼬리가 앞서 나가고, 걷힐 때는 붓 자국을 뒤집어 갈라진 꼬리가 뒤에 남는다
+    const flip = dir > 0 ? 1 : -1, cx = dir > 0 ? -900 + 1740 * e : 440 + 1760 * (1 - e);
+    for (const [dx, sy, a] of [[130, 1.34, 0.13], [62, 1.16, 0.26], [0, 1, 1]]) { g.save(); g.translate(cx + dx * flip, cy); g.rotate(rot * flip); g.scale(flip, sy * gap / 142); g.globalAlpha = a; g.drawImage(sp, -950, -125); g.restore(); }
   }
   // 다 덮인 순간에는 빈틈없이 먹빛
   if (k > 0.86) { g.globalAlpha = (k - 0.86) / 0.14; g.fillStyle = MEOK; g.fillRect(0, 0, W, H); }

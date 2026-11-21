@@ -8,7 +8,7 @@ import { CHAPTERS } from '../data/stages.js';
 import { nav } from '../nav.js';
 import { meta, save, UNLOCKS, has, buyUnlock, HARD_DESC, BEASTS, deedCount, noteDeed } from '../state.js';
 import { dimBackdrop } from './title.js';
-import { portrait } from '../render/sprites.js';
+import { portrait, LOOKS } from '../render/sprites.js';
 import { sfx } from '../audio.js';
 
 // 영물 초상의 크기·자리 보정(칸을 고르게 채우도록)과, 아직 못 만난 영물의 먹 실루엣
@@ -16,7 +16,11 @@ const BK = { magpie: 1.42, sapsal: 1.5, samjoko: 1.22, tiger: 0.98, haetae: 0.9 
 const SHADES = new Map();
 function shade(id) {
   let c = SHADES.get(id);
-  if (!c) { c = makeCanvas(204, 134); const k = c.getContext('2d'); k.scale(2, 2); portrait(k, id, 51 + (BX[id] || 0), (BY[id] || 73) - 9, BK[id] || 1, 0); k.globalCompositeOperation = 'source-in'; k.fillStyle = '#3d3944'; k.fillRect(0, 0, 102, 67); SHADES.set(id, c); }
+  if (!c) {
+    c = makeCanvas(204, 134); const k = c.getContext('2d'), L = LOOKS[id], z = (BK[id] || 1) * (L.scale || 1) * 1.1;
+    k.scale(2, 2); k.save(); k.translate(51 + (BX[id] || 0), (BY[id] || 73) - 9); k.scale(z, z); L.body(k); k.restore();
+    k.globalCompositeOperation = 'source-in'; const gr = k.createLinearGradient(0, 0, 0, 67); gr.addColorStop(0, '#2b2832'); gr.addColorStop(1, '#55505e'); k.fillStyle = gr; k.fillRect(0, 0, 102, 67); SHADES.set(id, c);
+  }
   return c;
 }
 export class MetaScene {

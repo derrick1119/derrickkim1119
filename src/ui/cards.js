@@ -42,10 +42,10 @@ export function cardFace(g, c, x, y, w, h, o = {}) {
   g.restore();
   if (!unit) { g.setLineDash([3, 5]); g.beginPath(); g.arc(cx, cy, ss * 0.74, 0, TAU); st(g, col + '99', 1.2); g.setLineDash([]); cardIcon(g, c.id, cx, cy + (big ? 2 : 1), ss / (mini ? 36 : 40)); if (big) { g.save(); g.translate(x + w - 30, y + hh + 108); g.rotate(-0.08); seal(g, 0, 0, 27, d.ch, col); g.restore(); } }
   if (!mini) { const nx = x + w / 2 + (big ? 0 : 9), ny = y + hh / 2 + 1, no = { size: big ? 27 : Math.min(19, hh * 0.62), font: FONT_B, maxW: w - (big ? 60 : 44) }; text(g, cardName(c), nx, ny + 1.4, { ...no, fill: 'rgba(8,10,24,0.32)' }); text(g, cardName(c), nx, ny, { ...no, fill: C.cream }); }
-  else if (unit && (c.lv || 1) > 1) { rr(g, x + w - 26, y + h - 17, 23, 14, 3, NAVY); text(g, 'Lv' + c.lv, x + w - 14.5, y + h - 9.6, { size: 10, fill: '#f0d99a' }); }
+  else if (unit && (c.lv || 1) > 1) { rr(g, x + w - 26, y + h - 17, 23, 14, 3, NAVY); text(g, c.lv + '단', x + w - 14.5, y + h - 9.6, { size: 10.5, fill: '#f0d99a' }); }
   if (big) {
     rr(g, x + w / 2 - 34, y + hh + 132, 68, 24, 5, null, col, 1.4); text(g, k.name, x + w / 2, y + hh + 145, { size: 15, fill: col });
-    textBlock(g, o.text || cardText(c, o.P || 1), x + w / 2, y + hh + (unit ? 174 : 178), w - (unit ? 18 : 24), unit ? 19 : 22, { size: unit ? 14 : 16.5, fill: '#4a4034', weight: 400 });
+    textBlock(g, o.text || cardText(c, o.P || 1), x + w / 2, y + hh + (unit ? 174 : 178), w - (unit ? 16 : 24), unit ? 20 : 22, { size: unit ? 15 : 16.5, fill: '#4a4034', weight: 400 });
   } else if (!mini) { const ky = y + h - 13; text(g, k.name, x + w / 2, ky, { size: 13, fill: col }); for (const sg of [-1, 1]) { line(g, [x + w / 2 + sg * 22, ky, x + w / 2 + sg * (w / 2 - 12), ky], col + '77', 1); ell(g, x + w / 2 + sg * 22, ky, 1.3, 1.3, col + 'aa'); } }
   rr(g, x + 3.5, y + 3.5, w - 7, h - 7, r - 2, null, gilt ? '#c9962e' : 'rgba(38,42,54,0.16)', gilt ? 1.6 : 0.9);
   if (c.wpn && !mini) { ell(g, x + w - 13, y + hh + 13, 9, 9, RED, INK, 1.2); text(g, '武', x + w - 13, y + hh + 14, { size: 11, fill: C.cream }); }

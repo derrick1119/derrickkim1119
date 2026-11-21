@@ -8,9 +8,9 @@ const melee = d => !d.range && !d.heal;
 const hero = (h, c) => G.run.deck.some(q => q.id === 'h_' + h) ? Object.assign({ hero: h }, c) : null;
 export const EVENTS = {
   ssireum: { title: '도깨비 씨름', art: 'orc', text: '쫓겨 가던 도깨비 하나가 걸음을 멈추고 씨름 한 판을 청합니다. "어이 김서방! 이기면 엽전을 주마. 지면 네 것을 좀 가져가마!"\n도깨비는 왼다리가 약하다는 옛말이 있습니다.', choices: () => [
-    hero('chief', { label: '두령: "김서방 패거리냐? 한 판 붙자"', desc: '엽전 +70 과 영웅 Lv +1', pick: () => ['두령이 도깨비를 번쩍 들어 메쳤습니다. 도깨비가 낄낄대며 엽전을 내놓습니다. "역시 두령이여!"', act.gold(70), act.hero()] }),
+    hero('chief', { label: '두령: "김서방 패거리냐? 한 판 붙자"', desc: '엽전 +70, 영웅 +1단', pick: () => ['두령이 도깨비를 번쩍 들어 메쳤습니다. 도깨비가 낄낄대며 엽전을 내놓습니다. "역시 두령이여!"', act.gold(70), act.hero()] }),
     { label: '왼다리를 건다', desc: '70%: 엽전 +70  ·  30%: 엽전 -30', pick: () => chance(0.7) ? ['왼다리를 걸자 도깨비가 벌렁 나자빠졌습니다.', act.gold(70)] : ['하필 오른다리가 약한 도깨비였습니다.', act.gold(-30)] },
-    { label: '힘으로 겨룬다', desc: '영웅 Lv +1, 대신 부정이 하나 붙는다', pick: () => ['날이 샐 때까지 버틴 끝에 비겼습니다. 도깨비가 씩씩대며 사라집니다.', act.hero(), act.curse()] },
+    { label: '힘으로 겨룬다', desc: '영웅 +1단, 대신 부정이 하나 붙는다', pick: () => ['날이 샐 때까지 버틴 끝에 비겼습니다. 도깨비가 씩씩대며 사라집니다.', act.hero(), act.curse()] },
     { label: '못 본 척 지나간다', desc: '아무 일도 없다', pick: () => ['도깨비가 심심한 듯 돌멩이를 걷어찹니다.'] },
   ] },
   axe: { title: '금도끼 은도끼', art: 'archmage', text: '연못에 도끼를 빠뜨리자 물안개 속에서 산신령이 금도끼를 들고 나타납니다.\n"이 금도끼가 네 것이냐?"', choices: () => [
@@ -24,7 +24,7 @@ export const EVENTS = {
     { label: '돌 하나를 얹는다', desc: '부정이나 [잡념] 이 있으면 하나 씻긴다. 없으면 엽전 +15', pick: () => { const c = act.cleanse() || act.clearDoubt(); return c ? ['마음이 한결 가벼워졌습니다.', c] : ['돌 틈에서 누가 놓고 간 엽전을 발견했습니다.', act.gold(15)]; } },
   ] },
   peddler: { title: '떠돌이 약장수', art: 'wizard', text: '"이 약으로 말할 것 같으면, 애들은 가라!"\n약장수가 봇짐을 풀어 놓습니다. 솜씨 좋은 의병도 소개해 준다고 합니다.', choices: () => [
-    { label: '보약을 산다', cost: 50, desc: '엽전 50 → 무작위 병력 패 Lv +1', pick: () => { act.gold(-50); return ['쓴맛에 다들 얼굴을 찌푸렸지만 효험은 확실합니다.', act.train()]; } },
+    { label: '보약을 산다', cost: 50, desc: '엽전 50 → 무작위 병력 패 +1단', pick: () => { act.gold(-50); return ['쓴맛에 다들 얼굴을 찌푸렸지만 효험은 확실합니다.', act.train()]; } },
     { label: '약초를 산다', cost: 30, desc: '엽전 30 → 패 [약손] 두 장', pick: () => { act.gold(-30); return ['잘 말린 약초 한 꾸러미를 받았습니다.', act.card('heal')]; } },
     { label: '그냥 지나간다', desc: '아무 일도 없다', pick: () => ['약장수의 목소리가 등 뒤로 멀어집니다.'] },
   ] },
@@ -49,11 +49,11 @@ export const EVENTS = {
   ] },
   smith: { title: '산골 대장간', art: 'berserk', text: '산골 대장간에서 망치 소리가 울립니다. 대장장이가 땀을 훔치며 묻습니다.\n"뭘 손봐 드릴까?"', choices: () => [
     { label: '새 무기를 맞춘다', cost: 45, desc: '엽전 45 → 무작위 무기 하나', pick: () => { act.gold(-45); return ['대장장이가 갓 벼린 무기를 내밉니다. 임자를 잘 만나야 한답니다.', act.weapon()]; } },
-    { label: '무기를 벼린다', cost: 55, desc: '엽전 55 → 무작위 근접 병력 패 Lv +1', pick: () => { act.gold(-55); return ['날이 시퍼렇게 섰습니다.', act.train(melee)]; } },
+    { label: '무기를 벼린다', cost: 55, desc: '엽전 55 → 무작위 근접 병력 패 +1단', pick: () => { act.gold(-55); return ['날이 시퍼렇게 섰습니다.', act.train(melee)]; } },
     { label: '구경만 한다', desc: '아무 일도 없다', pick: () => ['불꽃 튀는 모루를 한참 구경했습니다.'] },
   ] },
   sansam: { title: '심봤다!', art: 'bishop', text: '바위틈에서 백 년 묵은 산삼을 발견했습니다!', choices: () => [
-    { label: '영웅이 먹는다', desc: '영웅 Lv +1', pick: () => ['영웅의 온몸에 기운이 솟구칩니다.', act.hero()] },
+    { label: '영웅이 먹는다', desc: '영웅 +1단', pick: () => ['영웅의 온몸에 기운이 솟구칩니다.', act.hero()] },
     { label: '달여서 나눠 마신다', desc: '보물 [산삼] — 모든 아군 체력 +10%', pick: () => ['한 사발씩 돌려 마시니 모두 얼굴에 생기가 돕니다.', act.relic('ginseng')] },
     { label: '장에 내다 판다', desc: '엽전 +90', pick: () => ['약재상이 눈이 휘둥그레져 값을 후하게 쳐 줍니다.', act.gold(90)] },
   ] },
@@ -72,7 +72,7 @@ export const EVENTS = {
     { label: '인사만 하고 지나간다', desc: '아무 일도 없다', pick: () => ['선비가 다시 혼자 장기를 둡니다.'] },
   ] },
   tomb: { title: '옛 장수의 무덤', art: 'skel', text: '풀이 무성한 무덤 앞 돌상에 녹슨 병장기가 놓여 있습니다.\n십 년 전 난리 때 이 고개를 지키던 이의 것입니다.', choices: () => [
-    hero('commander', { label: '장군: 투구를 벗고 이름을 부른다', desc: '영웅 Lv +1 과 패 [함성] 두 장', pick: () => ['장군이 무릎을 꿇고 옛 부하의 이름을 불렀습니다. 풀이 한 번 눕고, 바람이 잦아듭니다.', act.hero(), act.card('cry')] }),
+    hero('commander', { label: '장군: 투구를 벗고 이름을 부른다', desc: '영웅 +1단, 패 [함성] 두 장', pick: () => ['장군이 무릎을 꿇고 옛 부하의 이름을 불렀습니다. 풀이 한 번 눕고, 바람이 잦아듭니다.', act.hero(), act.card('cry')] }),
     { label: '병장기를 가져간다', desc: '무기 하나, 대신 덱에 [잡념] 이 섞인다', pick: () => ['녹을 벗겨 내니 제법 쓸 만합니다. 뒷덜미가 조금 서늘합니다.', act.weapon(), act.doubt()] },
     { label: '술 한 잔 올리고 절한다', desc: '패 [함성] 두 장을 얻는다', pick: () => ['바람결에 옛 장수의 호령이 들리는 듯합니다.', act.card('cry')] },
   ] },

@@ -260,14 +260,14 @@ export class BattleView {
         case 'lootFull': out.push(e); break;
         case 'gold': fx.add({ k: 'text', x: e.x + 18, y: e.y - 34, vy: -40, drag: 1.5, s: '+' + e.n, col: '#b8862a', size: 17, life: 0.8 }); break;
         case 'scavenge': sfx('card'); out.push(e); break;
-        case 'bannerDown': fx.shake = 18; fx.flash = 0.9; fx.flashCol = '#fff'; fx.ring(e.x, e.y, 220, RED, 0.8, 10); fx.splat(e.x, e.y - 40, 3, MEOK, 1.1); fx.stain(e.x, e.y + 4, 2.6, 8, 0.4); fx.glyph(Math.max(e.x + 190, 310), Math.max(e.y - 20, 300), '破', 140, JU, 1.6); fx.scraps(e.x, e.y - 50, 26, [PAPER, '#c9d6e6', '#b8342a']); sfx('boom'); out.push(e); break;
+        case 'bannerDown': fx.shake = 18; fx.flash = 0.9; fx.flashCol = '#fff'; fx.ring(e.x, e.y, 220, RED, 0.8, 10); fx.splat(e.x, e.y - 40, 3, MEOK, 1.1); fx.stain(e.x, e.y + 4, 2.6, 8, 0.4); fx.glyph(Math.max(e.x + 175, 250), e.y - 70, '破', 120, MEOK, 1.1); fx.scraps(e.x, e.y - 50, 26, [PAPER, '#c9d6e6', '#b8342a']); sfx('boom'); out.push(e); break;
         case 'waveClear': out.push(e); break;
         case 'waveStart': sfx('warn'); break;
         case 'heroSkill': {
           const col = HERO_COL[e.hero] || INDIGO, id = e.id, P2 = e.pts || [];
           fx.add({ k: 'text', x: e.x, y: e.y - 100, vy: -20, drag: 1.5, s: e.name + '!', col, size: 30, life: 1.3, big: true }); fx.ring(e.x, e.y, 64, col, 0.35, 6);
           // 영웅의 한 자를 등 뒤에 붓으로 쓰고, 발밑에 먹 고리를 긋는다
-          fx.enso(e.x, e.y, 1.15, MEOK, 0.8); if (HERO_SEAL[e.hero]) fx.glyph(e.x, Math.max(118, e.y - 152), HERO_SEAL[e.hero], 68, MEOK, 1.05);
+          fx.enso(e.x, e.y, 1.15, MEOK, 0.8); if (HERO_SEAL[e.hero]) fx.glyph(e.x, Math.max(124, e.y - 172), HERO_SEAL[e.hero], 88, MEOK, 1.1);
           if (id === 'whirl') { fx.ring(e.x, e.y, 112, INK, 0.3, 7); for (let i = 0; i < 4; i++) fx.slash(e.x + Math.cos(i * 1.57) * 52, e.y - 16 + Math.sin(i * 1.57) * 34, 34, REDD, i * 1.57 + 1.2); fx.shake = Math.max(fx.shake, 6); sfx('charge'); }
           else if (id === 'roar') { fx.ring(e.x, e.y, 190, RED, 0.6, 9); sfx('horn'); }
           else if (id === 'leap') sfx('leap');
@@ -321,7 +321,8 @@ export class BattleView {
         case 'rainTick': if (e.fire) fx.burst(e.x, e.y, 3, '#ff9a2e', 90, 3); for (let i = 0; i < 9; i++) { const a = Math.random() * TAU, r = Math.sqrt(Math.random()) * e.r, x = e.x + Math.cos(a) * r, y = e.y + Math.sin(a) * r; fx.add({ k: 'arrow', x, y, life: 0.16 + Math.random() * 0.1 }); fx.add({ k: 'stuck', ground: true, x, y, life: 0.9 }); } sfx('rain'); break;
         case 'vanish': fx.puff(e.x, e.y - 14, e.ally ? 4 : 7, e.ally ? PAPER : '#cfe6f0', 11); if (e.ally) fx.scraps(e.x, e.y - 20, 3); else sfx('leap'); break;
         case 'grow': fx.txt(e.x, e.y - 74 - e.n * 4, '커진다…', '#5a4a8a', 18, 0.8); fx.wisp(e.x, e.y - 30, 2); fx.ring(e.x, e.y, 46 + e.n * 4, '#3d3560', 0.4, 4); break;
-        case 'steal': fx.add({ k: 'text', x: e.x, y: e.y - 50, vy: -40, drag: 1.5, s: '사기 -' + e.n, col: RED, size: 17, life: 0.8 }); break;
+        // 야광귀가 훔친 사기는 한 줄로 더해서 보여 준다
+        case 'steal': { const p = fx.p.find(q => q.steal && q.t < 0.7); if (p) { p.val += e.n; p.s = '사기 -' + p.val.toFixed(1); p.t = Math.min(p.t, 0.15); } else fx.add({ k: 'text', steal: true, val: e.n, x: e.x, y: e.y - 50, vy: -30, drag: 1.5, s: '사기 -' + e.n.toFixed(1), col: RED, size: 19, life: 1 }); break; }
         case 'appear': if (e.pounce) { fx.puff(e.x, e.y - 14, 8, PAPER, 12); fx.ring(e.x, e.y, 70, OCHRE, 0.45, 7); fx.slash(e.x, e.y - 18, 36, MEOK); fx.txt(e.x, e.y - 62, '어흥!', '#c8642a', 28, 0.9); fx.shake = Math.max(fx.shake, 5); sfx('charge'); break; }
           fx.puff(e.x, e.y - 14, e.ally ? 10 : 7, e.ally ? PAPER : e.summon || e.revive ? '#cfe6f0' : '#f6f1e6', e.ally ? 13 : 11); if (e.ally) fx.ring(e.x, e.y, 60, INDIGO, 0.4, 5); if (!e.summon && !e.revive) { fx.txt(e.x, e.y - 54, '기습!', RED, 22, 0.8); sfx('warn'); } break;
         case 'fuse': fx.txt(e.x, e.y - 60, '화르륵…', '#2f7fa8', 18, 0.5); break;

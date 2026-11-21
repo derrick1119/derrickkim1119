@@ -39,16 +39,16 @@ export class HeroScene {
     text(g, d.name, 272, 298, { size: 46, font: FONT_B, align: 'left' }); g.save(); g.translate(272 + g.measureText(d.name).width + 34, 292); g.rotate(-0.06); seal(g, 0, 0, 34, HERO_SEAL[id], col); g.restore();
     text(g, d.desc, 274, 336, { size: 19, align: 'left', fill: SUB, maxW: 440 });
     const sd = starterDeck(id), nu = sd.filter(c => CARDS[c.id].kind === 'unit').length, nt = sd.filter(c => !isUnit(c)).length;
-    text(g, `체력 ${Math.round(d.hp * 2.2)}  ·  ${ROLE[id]}  ·  시작: 병력 ${nu} · 전술 패 ${nt}`, 274, 361, { size: 14.5, align: 'left', fill: SUB, weight: 400, maxW: 440 });
+    text(g, `체력 ${Math.round(d.hp * 2.2)}  ·  ${ROLE[id]}  ·  시작: 병력 ${nu} · 전술 패 ${nt}`, 274, 361, { size: 15.5, align: 'left', fill: '#4a4034', weight: 400, maxW: 444 });
     // 병법: 이 영웅이 이끌면 패를 얻고 쓰는 방식이 달라진다
     const tr = HERO_TRAIT[id]; rr(g, 270, 376, 448, 62, 6, '#fbf1cf', col, 1.8); rr(g, 270, 376, 7, 62, 3, col);
-    text(g, `병법 · ${tr.name}`, 288, 392, { size: 18, font: FONT_B, align: 'left', fill: col }); text(g, tr.play, 706, 392, { size: 13, align: 'right', fill: SUB, weight: 400, maxW: 250 });
-    textBlock(g, tr.desc, 288, 412, 420, 17, { size: 13.5, align: 'left', weight: 400 });
-    text(g, '자동 고유기', 274, 453, { size: 13.5, align: 'left', fill: col });
+    text(g, `병법 · ${tr.name}`, 288, 392, { size: 18, font: FONT_B, align: 'left', fill: col }); text(g, tr.play, 706, 392, { size: 14.5, align: 'right', fill: '#5a4a3a', weight: 400, maxW: 250 });
+    textBlock(g, tr.desc, 288, 412, 424, 17.5, { size: 14.5, align: 'left', weight: 400 });
+    text(g, '자동 고유기', 274, 453, { size: 14.5, align: 'left', fill: col });
     HERO_SKILLS[id].forEach((sk, n) => {
       const yy = 464 + n * 33; rr(g, 270, yy, 448, 29, 5, '#fbf3df', 'rgba(38,42,54,0.5)', 1.1);
       ell(g, 286, yy + 14.5, 9, 9, col, INK, 1.1); text(g, String(n + 1), 286, yy + 15.5, { size: 12, font: FONT_B, fill: C.cream });
-      text(g, sk.name, 302, yy + 15.5, { size: 16.5, font: FONT_B, align: 'left' }); text(g, sk.desc, 406, yy + 15.5, { size: 13, align: 'left', fill: SUB, weight: 400, maxW: 304 });
+      text(g, sk.name, 302, yy + 15.5, { size: 16.5, font: FONT_B, align: 'left' }); text(g, sk.desc, 404, yy + 15.5, { size: 14.5, align: 'left', fill: '#4a4034', weight: 400, maxW: 308 });
     });
     cards.forEach((k, n) => cardFace(g, { id: k }, 748 + n * 242, 262, 222, 294));
     if (locked) { const cost = UNLOCKS.find(u => u.id === id).cost; rr(g, 60, 262, 184, 30, 6, '#8a2a26', INK, 1.6); text(g, `잠김 · 공적 ${cost}`, 152, 278, { size: 16, fill: C.cream }); if (button(g, 'meta', 840, 588, 400, 96, `공적 장부에서 열기 · ${cost}`, { style: 'paper', size: 28 })) nav.go('meta'); }

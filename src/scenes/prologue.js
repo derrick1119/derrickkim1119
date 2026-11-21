@@ -33,7 +33,7 @@ export class PrologueScene {
     const rows = p.s.split('\n').length; g.globalAlpha *= k; textBlock(g, p.s, 640, y + 340 - (rows - 1) * 20, w - 120, 40, { size: 26, font: FONT_B });
     g.restore();
     for (let m = 0; m < this.pages.length; m++) ell(g, 640 + (m - (this.pages.length - 1) / 2) * 18, y + h + 34, 4.6, 4.6, m === this.i ? INK : 'rgba(38,42,54,0.25)');
-    if (this.pt > 0.6) { g.globalAlpha = 0.5 + Math.sin(t * 5) * 0.3; text(g, '화면을 누르면 넘어갑니다', 640, 650, { size: 16, fill: SUB }); g.globalAlpha = 1; }
+    if (this.pt > 0.6) { g.globalAlpha = 0.5 + Math.sin(t * 5) * 0.3; rr(g, 510, 634, 260, 32, 16, 'rgba(248,240,220,0.9)', 'rgba(38,42,54,0.4)', 1.2); text(g, '화면을 누르면 넘어갑니다', 640, 651, { size: 17, fill: '#4a4034' }); g.globalAlpha = 1; }
     if (!this.left && this.pt > 0.25 && tapped('pro', 0, 0, W, H)) this.next();
   }
   key(k) { if (k === ' ' || k === 'Enter') this.next(); else if (k === 'Escape') this.go(); }
