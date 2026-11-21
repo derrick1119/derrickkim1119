@@ -1404,11 +1404,24 @@ const tappable = (th: Thing) => th.st !== DONE && th.st !== REW && th.st !== CHN
 const DEC = 6, LATER = 12;
 /** 손이 다시 누를 수 있는 간격(틱): 톡 → 뗌 → 다음 톡은 두 칸 뒤. 잘하는 봇은 자기 손 빠르기에 맞춰 계획한다 (판 고르기는 늘 6) */
 let PACE = DEC;
+/** 앞을 세는 일을 쪼개서 할 수 있게: 앞을 한 번 셀 때마다 쉬어 간다 (막힘 힌트는 남는 프레임에 나눠 미리 센다) */
+type Gen<T> = Generator<void, T, void>;
+function runG<T>(g: Gen<T>): T {
+  for (;;) {
+    const r = g.next();
+    if (r.done) return r.value;
+  }
+}
+function* rollG(W0: World, maxT = 1300, dockId = -1, dockFrom = 0, snap: World[] | null = null): Gen<Out> {
+  const o = rollout(W0, maxT, dockId, dockFrom, snap);
+  yield;
+  return o;
+}
 /** 두 수 앞까지 본 값: 그냥 두면 막히는 세계는, 막힌 자리에서 한 번 더 톡 해서 이길 수 있는지까지 본다
  *  (되돌릴 수 없는 막다른 길 — 술통을 너무 일찍 받아 버림 — 을 '조금 더 걸어감'으로 착각하지 않게) */
-function score2(W0: World, dockId = -1, dockFrom = 0): number {
+function* score2G(W0: World, dockId: number, dockFrom: number, pace: number): Gen<number> {
   const snap: World[] = [];
-  const o = rollout(W0, 1300, dockId, dockFrom, snap);
+  const o = yield* rollG(W0, 1300, dockId, dockFrom, snap);
   let v = value(o);
   if (o.fail && dockId < 0 && W0.sand > 0) {
     // 넘어지기 조금 전에 한 번 더 톡 하면 살 수 있나 (날아오는 화살을 되감기 등)
@@ -1418,7 +1431,7 @@ function score2(W0: World, dockId = -1, dockFrom = 0): number {
       if (!tappable(th)) continue;
       const c = cloneWorld(C);
       tapThing(c, thingOf(c, th.id)!, null);
-      const v2 = value(rollout(c));
+      const v2 = value(yield* rollG(c));
       if (v2 - 1500 > v) v = v2 - 1500;
     }
     return v;
@@ -1429,62 +1442,65 @@ function score2(W0: World, dockId = -1, dockFrom = 0): number {
     if (!tappable(th)) continue;
     const c = cloneWorld(S);
     tapThing(c, thingOf(c, th.id)!, null);
-    let v2 = value(rollout(c));
+    let v2 = value(yield* rollG(c));
     if (th.dock >= 0 && th.tau > th.dock + 4) {
       const c2 = cloneWorld(S);
       tapThing(c2, thingOf(c2, th.id)!, null);
-      v2 = Math.max(v2, value(rollout(c2, 1300, th.id, c2.t + 2 * PACE)));
+      v2 = Math.max(v2, value(yield* rollG(c2, 1300, th.id, c2.t + 2 * pace)));
     }
     if (v2 - 1500 > v) v = v2 - 1500;
   }
   return v;
 }
-function tryTap(W: World, id: number, toDock: boolean): number {
+const score2 = (W0: World, dockId = -1, dockFrom = 0) => runG(score2G(W0, dockId, dockFrom, PACE));
+function* tryTapG(W: World, id: number, toDock: boolean, pace: number): Gen<number> {
   const c = cloneWorld(W);
   tapThing(c, thingOf(c, id)!, null);
-  return score2(c, toDock ? id : -1, c.t + 2 * PACE);
+  return yield* score2G(c, toDock ? id : -1, c.t + 2 * pace, pace);
 }
+const tryTap = (W: World, id: number, toDock: boolean) => runG(tryTapG(W, id, toDock, PACE));
 
-/** 잘하는 머리: 지금 무엇을(또는 멈춤을) 톡 할까 — 같은 세계로 앞을 세어 본다. 돌려주는 값: 물건 id(-1 없음) · 걸림 자리에서 멈출 생각인가 */
-const PICK = { id: -1, dock: false };
-function decide(W: World, base: Out, bv: number): typeof PICK {
-  PICK.id = -1;
-  PICK.dock = false;
+/** 잘하는 머리: 지금 무엇을(또는 멈춤을) 톡 할까 — 같은 세계로 앞을 세어 본다. 돌려주는 값: 물건 id(-1 없음) · 걸림 자리에서 멈출 생각인가 · 그 수의 값 */
+interface Pick { id: number; dock: boolean; v: number }
+function* decideG(W: World, base: Out, bv: number, pace: number): Gen<Pick> {
+  const P2: Pick = { id: -1, dock: false, v: bv };
   if (W.rew >= 0) {
     // 되감는 중: 지금 멈춰도 똑같이(또는 더) 좋으면 멈춘다
     for (const r of W.th) {
       if (r.st !== REW) continue;
       const c = cloneWorld(W);
       tapThing(c, thingOf(c, r.id)!, null);
-      if (score2(c) >= bv - 0.5) return (PICK.id = r.id), PICK;
+      const v = yield* score2G(c, -1, 0, pace);
+      if (v >= bv - 0.5) return (P2.id = r.id), (P2.v = v), P2;
     }
     // 하나씩만 되감을 수 있으면 기다린다 (둘을 함께 되감을 수 있으면 다른 것도 본다)
-    if (rewN(W) >= W.L.multi) return PICK;
+    if (rewN(W) >= W.L.multi) return P2;
   }
-  if (base.win && base.hurt === 0) return PICK;
+  if (base.win && base.hurt === 0) return P2;
   let bestV = bv + 1;
   for (const th of W.th) {
     if (!tappable(th) || W.sand <= 0) continue;
-    let vNow = tryTap(W, th.id, false), dk = false;
+    let vNow = yield* tryTapG(W, th.id, false, pace), dk = false;
     if (th.dock >= 0 && th.tau > th.dock + 4) {
-      const v2 = tryTap(W, th.id, true);
+      const v2 = yield* tryTapG(W, th.id, true, pace);
       if (v2 > vNow) (vNow = v2), (dk = true);
     }
     // 이기는 길이 안 보이는 '조금 더 걸어감'은 함부로 사지 않는다 (막다른 길일 수 있다)
     if (vNow <= bestV || (vNow < 20000 && vNow < bv + 600)) continue;
     // 조금 뒤에 해도 똑같이 좋으면 기다린다 (되감기는 늦을수록 비싸지만, 다시 벌어지는 일은 너무 일찍 하면 헛일)
     const c2 = cloneWorld(W);
-    for (let k = 0; k < Math.max(LATER, PACE); k++) stepWorld(c2, null);
+    for (let k = 0; k < Math.max(LATER, pace); k++) stepWorld(c2, null);
     const t2 = thingOf(c2, th.id);
     if (t2 && tappable(t2) && c2.hero.st !== H_FAIL) {
       tapThing(c2, t2, null);
-      if (score2(c2, dk ? th.id : -1, c2.t + 2 * PACE) >= vNow - 0.5) continue;
+      if ((yield* score2G(c2, dk ? th.id : -1, c2.t + 2 * pace, pace)) >= vNow - 0.5) continue;
     }
-    PICK.id = th.id;
-    PICK.dock = dk;
+    P2.id = th.id;
+    P2.dock = dk;
+    P2.v = vNow;
     bestV = vNow;
   }
-  return PICK;
+  return P2;
 }
 /** 남은 계획을 그대로 따라 끝까지 세어 본다 (계획이 아직 맞는지 확인) */
 function simPlan(W0: World, acts: number[], i0: number, maxT = 1800): Out {
@@ -1507,34 +1523,39 @@ function simPlan(W0: World, acts: number[], i0: number, maxT = 1800): Out {
   return { win: H.st === H_WIN, fail: H.st === H_FAIL, t: W.t, x: H.x, hurt: W.hurt, used: W.used, saved: W.saved, stuck: H.st === H_WAIT };
 }
 /** 판 하나를 처음부터 끝까지 잘하는 머리로 둬 본다 → 할 일 목록 [틱, 물건 id, 멈출 τ(-1이면 되감기 시작)] */
-interface Plan { acts: number[]; used: number; win: boolean; hurt: number; saved: number; t: number; taps: number }
-function planFrom(W0: World, maxT = 3600): Plan {
+interface Plan { acts: number[]; used: number; win: boolean; hurt: number; saved: number; t: number; taps: number; ref: number }
+/** lite: 첫 수(와 그 물건의 멈춤)까지만 — 막힘 힌트용 */
+function* planG(W0: World, maxT: number, pace: number, lite: boolean): Gen<Plan> {
   const W = cloneWorld(W0), acts: number[] = [];
-  let intent = -1;
-  let base = rollout(W), bv = base.win ? value(base) : score2(W);
-  // 결정은 봇이 실제로 손을 쓸 수 있는 틱에만 (지금부터 PACE마다, 누른 뒤엔 두 칸 쉬고)
-  const t0 = W.t, pace = PACE;
+  let intent = -1, ref = NaN;
+  let base = yield* rollG(W), bv = base.win ? value(base) : yield* score2G(W, -1, 0, pace);
+  // 결정은 봇이 실제로 손을 쓸 수 있는 틱에만 (지금부터 pace마다, 누른 뒤엔 두 칸 쉬고)
+  const t0 = W.t;
   let nextOk = t0;
   while (W.t - t0 < maxT && W.hero.st !== H_WIN && W.hero.st !== H_FAIL && !(W.hero.st === H_WAIT && W.hero.waitT > 1200)) {
     const on = (W.t - t0) % pace === 0;
     if (on && W.t >= nextOk) {
-      const p = decide(W, base, bv);
+      const p = yield* decideG(W, base, bv, pace);
       if (p.id >= 0) {
         const wasRew = thingOf(W, p.id)!.st === REW;
         acts.push(W.t, p.id, wasRew ? thingOf(W, p.id)!.tau : -1);
+        if (acts.length === 3) ref = p.v;
         tapThing(W, thingOf(W, p.id)!, null);
         nextOk = W.t + 2 * pace;
         intent = !wasRew && p.dock ? p.id : -1;
-        base = rollout(W, 1300, intent, nextOk);
-        bv = base.win ? value(base) : score2(W, intent, nextOk);
+        base = yield* rollG(W, 1300, intent, nextOk);
+        bv = base.win ? value(base) : yield* score2G(W, intent, nextOk, pace);
       }
     }
     stepWorld(W, null);
     if (intent >= 0 && thingOf(W, intent)?.st !== REW) intent = -1;
-    if ((W.t - t0) % pace === 0 && (base.t <= W.t || W.rew >= 0)) (base = rollout(W, 1300, intent, nextOk)), (bv = base.win ? value(base) : score2(W, intent, nextOk));
+    // 힌트용: 첫 물건의 되감기가 끝나거나(멈춤 포함) 둘째 수가 나오면 그만
+    if (lite && acts.length >= 3 && (acts.length >= 6 || thingOf(W, acts[1])?.st !== REW)) break;
+    if ((W.t - t0) % pace === 0 && (base.t <= W.t || W.rew >= 0)) (base = yield* rollG(W, 1300, intent, nextOk)), (bv = base.win ? value(base) : yield* score2G(W, intent, nextOk, pace));
   }
-  return { acts, used: W.used, win: W.hero.st === H_WIN, hurt: W.hurt, saved: W.saved, t: W.t - t0, taps: W.taps - W0.taps };
+  return { acts, used: W.used, win: W.hero.st === H_WIN, hurt: W.hurt, saved: W.saved, t: W.t - t0, taps: W.taps - W0.taps, ref };
 }
+const planFrom = (W0: World, maxT = 3600): Plan => runG(planG(W0, maxT, PACE, false));
 
 // ───────────────────────────── 버릇 봇의 머리 ─────────────────────────────
 /** 버릇 1: 쉬는 틈만 나면 '가장 먼저 움직이기 시작한 것'을 되감는다 (끝까지) */
@@ -1623,12 +1644,14 @@ export interface RewState {
   film: Film | null; ft: number; playT: number;
   /** 막힘 힌트: 지금 보여 주는 한 수 · 이 판에서 쓴 수 · 모두 쓴 수 · 이 판 실패 수 · 저절로 보여 줬나 · 마지막으로 나아간 틱 · 다시 하기(↺) 수 */
   hint: Hint | null; hintsHere: number; hintN: number; fails: number; autoHint: boolean; progT: number; restarts: number;
+  /** 미리 세는 힌트: 진행 중인 계산 · 다 센 계획 · 세계 판(톡으로 세계가 바뀔 때마다 +1) · 그려지는 판인가(사람이 하는 판) */
+  hjob: { g: Gen<Plan>; ver: number } | null; hplan: (Plan & { ver: number }) | null; ver: number; drawn: boolean;
 }
 /** 필름: 손 안 대면 벌어질 일을 미리 돌려 둔 세계들 (FS틱마다 한 장) · 큰일 표시 */
 interface Film { frames: World[]; evs: Ev[]; marks: { x: number; y: number; t: number; r: number; hero: boolean }[]; why: string; end: number }
 const FS = 3, FILM_FWD = 96, FILM_REW = 30;
 /** 막힘 힌트 한 수: 무엇(id)을 언제(at, 세계 틱) — 멈춤이면 stop = 멈출 τ, ghost = 그때 물건의 τ · 판을 다시 해야 하면 restart */
-interface Hint { t: number; id: number; at: number; stop: number; ghost: number; text: string; restart: boolean; none: boolean; done: number; arch: number; next: number; why2: string }
+interface Hint { t: number; id: number; at: number; stop: number; ghost: number; text: string; restart: boolean; none: boolean; done: number; arch: number; next: number; why2: string; think: boolean }
 const ev = (s: RewState, kind: string, x: number, y: number, v = 0, id = -1, text?: string) => s.events.push({ t: s.t, kind, x, y, v, id, text });
 const see = (s: RewState, key: string) => s.seen.add(key);
 
@@ -1646,6 +1669,11 @@ function newStage(s: RewState) {
   s.sel = -1;
   s.hint = null;
   s.hintsHere = s.again ? s.hintsHere : 0;
+  // 새 세계: 판을 고를 때 이미 센 계획이 있으면 그것이 첫 힌트 (손을 안 댄 동안은 그대로 맞다)
+  s.ver++;
+  s.hjob = null;
+  const pc = planCache.get(`${s.variant}:${s.stage}:${DEC}:0`);
+  s.hplan = pc ? { ...pc, ver: s.ver } : null;
   if (!s.again) (s.fails = 0), (s.autoHint = false);
   see(s, d.key);
   // 판 띠: 새 장치가 '무엇을 하는지'만 (1·2판은 답도 — 배우는 판). 다시 할 때도 답은 말하지 않는다 (막히면 전구)
@@ -1832,6 +1860,7 @@ function tapAt(s: RewState, px: number, py: number) {
     return;
   }
   const r = tapThing(W, best, sinkOf(s));
+  if (r) s.ver++;
   s.sel = best.id;
   s.lastTap = s.t;
   if (r === 1) {
@@ -1875,43 +1904,87 @@ const jong = (w: string) => {
   return c >= 0 && c < 11172 && c % 28 !== 0;
 };
 const eul = (w: string) => w + (jong(w) ? '을' : '를');
-const iga = (w: string) => w + (jong(w) ? '이' : '가');
 function thingName(th: Thing | undefined): string {
   if (!th) return '화살';
   if (th.k === 'pot') return th.n === 1 ? '물통' : th.n === 2 ? '등불' : th.cause >= 0 ? '꽃바구니' : '화분';
   return ({ bridge: '다리', barrel: th.harm ? '술통' : '빈 통', arrow: '화살', raft: '뗏목', log: '통나무', water: '물탱크', balloon: '풍선', crate: '상자', gear: '톱니', stack: '상자 탑', ferry: '나룻배', sack: '모래 자루' } as Record<string, string>)[th.k] ?? '물건';
 }
-/** 지금 상태에서 다음 한 수: 잘하는 봇의 계획을 지금 세계로 한 번 돌려 첫 수를 쓴다 (난수 없음 — 세계 복사본만) */
+/** 막힘 힌트: 전구가 깨면(한 번 졌거나 오래 막힘) 남는 프레임마다 앞을 한 번씩 세어 '다음 한 수'를 미리 구해 둔다.
+ *  누르는 순간엔 답이 이미 있다. 세계는 결정적이라 손을 안 대면 미리 센 그대로 흘러간다 (손을 대면 ver가 바뀌어 다시 센다).
+ *  난수는 안 쓴다 (세계 복사본만). 그리기가 붙은 판(사람이 하는 판)에서만 돈다 — 봇 측정엔 영향 없음 */
+function hintWork(s: RewState) {
+  if (!s.drawn || s.phase !== 'play' || s.film) return;
+  const W = s.W, think = !!s.hint && s.hint.think;
+  const warm = think || s.fails > 0 || s.t - s.progT > 540;
+  const fresh = !!s.hplan && s.hplan.ver === s.ver && (s.hplan.acts.length === 0 || s.hplan.acts[0] >= W.t - 240);
+  if (s.hjob && s.hjob.ver !== s.ver) s.hjob = null;
+  if (!s.hjob) {
+    if (!warm || (fresh && !think)) return;
+    s.hjob = { g: planG(cloneWorld(W), 2400, DEC, true), ver: s.ver };
+  }
+  // 한 프레임에 앞을 한 번 (생각 중이면 네 번)
+  for (let k = 0; k < (think ? 4 : 1); k++) {
+    const r = s.hjob.g.next();
+    if (r.done) {
+      s.hplan = { ...r.value, ver: s.hjob.ver };
+      s.hjob = null;
+      if (think) fillHint(s, s.hplan, true);
+      return;
+    }
+  }
+}
+/** 전구를 눌렀다: 미리 구한 수가 아직 맞으면 바로, 아니면 '생각 중…' 하고 남는 프레임에 마저 센다 */
 function showHint(s: RewState, auto: boolean) {
-  const W = s.W;
   s.hintsHere++;
   s.hintN++;
-  const save = PACE;
-  PACE = DEC;
-  const pl = planFrom(cloneWorld(W), 3000);
-  PACE = save;
-  const h: Hint = { t: s.t, id: -1, at: W.t, stop: -1, ghost: -1, text: '', restart: false, none: false, done: -1, arch: -1, next: -1, why2: '' };
-  s.hint = h;
-  if (s.banner && s.t - s.banner.t < 170) s.banner.t = s.t - 170;
   ev(s, 'hint', 0.5, 0.3, auto ? 1 : 0);
-  if (!pl.win) {
-    h.restart = true;
-    h.text = '이대로는 어려워요 — 처음부터 다시 해 볼까요?';
-    return;
+  if (s.banner && s.t - s.banner.t < 170) s.banner.t = s.t - 170;
+  const hp = s.hplan && s.hplan.ver === s.ver ? s.hplan : null;
+  if (hp && fillHint(s, hp, false)) return;
+  s.hint = { t: s.t, id: -1, at: s.W.t, stop: -1, ghost: -1, text: '생각 중…', restart: false, none: false, done: -1, arch: -1, next: -1, why2: '', think: true };
+  if (!s.hjob || s.hjob.ver !== s.ver) s.hjob = { g: planG(cloneWorld(s.W), 2400, DEC, true), ver: s.ver };
+  if (!s.drawn) {
+    // 그려지지 않는 판(측정): 바로 끝까지 센다
+    s.hplan = { ...runG(s.hjob.g), ver: s.ver };
+    s.hjob = null;
+    fillHint(s, s.hplan, true);
   }
+}
+/** 계획(첫 수)으로 힌트를 채운다. 첫 수의 때가 이미 지났으면 지금 둬도 되는지 한 번 확인 (안 되면 false) */
+function fillHint(s: RewState, pl: Plan & { ver: number }, force: boolean): boolean {
+  const W = s.W;
+  const h: Hint = { t: s.t, id: -1, at: W.t, stop: -1, ghost: -1, text: '', restart: false, none: false, done: -1, arch: -1, next: -1, why2: '', think: false };
   if (!pl.acts.length) {
-    h.none = true;
-    h.text = '그대로 두면 돼요 — 부엉이를 지켜봐요';
-    return;
+    if (pl.win) (h.none = true), (h.text = '그대로 두면 돼요 — 지켜봐요');
+    else (h.restart = true), (h.text = '이대로는 어려워요 — ↺ 처음부터');
+    s.hint = h;
+    return true;
   }
-  h.at = pl.acts[0];
-  h.id = pl.acts[1];
-  h.stop = pl.acts[2];
+  const acts = pl.acts.slice();
+  if (acts[0] < W.t - 2) {
+    // 때가 지났다: 지금 두면 똑같이 좋은가
+    const c = cloneWorld(W), th = thingOf(c, acts[1]);
+    if (!th) return force ? ((s.hint = null), false) : false;
+    if (acts[2] >= 0) {
+      if (th.st !== REW) return false;
+      if (th.tau <= acts[2]) tapThing(c, th, null);
+    } else {
+      if (!tappable(th)) return false;
+      tapThing(c, th, null);
+    }
+    const v = score2(c);
+    if (!(v >= (Number.isNaN(pl.ref) ? 20000 : pl.ref - 800))) return false;
+    const dt = W.t - acts[0];
+    for (let i = 0; i < acts.length; i += 3) acts[i] += dt;
+  }
+  h.at = acts[0];
+  h.id = acts[1];
+  h.stop = acts[2];
   // 계획대로 한 번 더 돌려 그 한 수가 무슨 일을 하는지 본다 (무엇을·왜)
-  const C = cloneWorld(W), acts = pl.acts, evs: Ev[] = [];
+  const C = cloneWorld(W), evs: Ev[] = [];
   const sink: Sink = (kind, x, y, v = 0, id = -1) => evs.push({ t: C.t, kind, x, y, v, id });
   let i = 0, th0: Thing | undefined;
-  for (let k = 0; k < 1500 && C.hero.st !== H_WIN && C.hero.st !== H_FAIL; k++) {
+  for (let k = 0; k < 900 && C.hero.st !== H_WIN && C.hero.st !== H_FAIL; k++) {
     while (i < acts.length) {
       const th = thingOf(C, acts[i + 1]), ts = acts[i + 2];
       if (ts >= 0) {
@@ -1921,7 +1994,6 @@ function showHint(s: RewState, auto: boolean) {
       } else if (C.t >= acts[i]) {
         if (i === 0 && th) (th0 = { ...th }), (h.ghost = th.tau);
         if (th && tappable(th)) tapThing(C, th, i === 0 ? sink : null);
-        if (i === 0 && th && tappable(th)) evs.push({ t: C.t, kind: 'go!', x: 0, y: 0, v: 0, id: th.id });
         i += 3;
       } else break;
     }
@@ -1935,36 +2007,37 @@ function showHint(s: RewState, auto: boolean) {
   if (!cur && th && th.k === 'arrow') h.arch = th.owner;
   const nm = thingName(th);
   let why = '';
-  // 다음 수를 두기 전까지 일어난 일만 이 한 수의 덕으로 친다 (물건 id가 붙은 사건은 언제든)
+  // 한 줄(22자 안팎): 무엇을 → 무슨 일. 다음 수를 두기 전까지 일어난 일만 이 한 수의 덕으로 친다
   const nextT = acts.length > 3 && acts[5] < 0 ? acts[3] : 1e9;
+  const stopMsg = th && th.k === 'stack' ? '계단 모양일 때 다시 톡!' : th && (th.k === 'log' || th.k === 'raft') ? '강을 가로지를 때 다시 톡!' : th && th.k === 'crate' ? '위층에 닿으면 다시 톡!' : '금빛 자리에 오면 다시 톡!';
   for (const e of evs) {
     const mine = e.t < nextT;
-    if (e.kind === 'catch' && e.id === h.id) why ||= `${eul(nm)} 제자리까지 — 주인이 받아요`;
-    else if (e.kind === 'arrowHome' && e.id === h.id) why ||= '화살을 되감으면 쏜 도깨비가 꽈당!';
-    else if (e.kind === 'ko' && mine && th && (th.k === 'barrel' || th.k === 'gear')) why ||= `되감은 ${iga(nm)} 도깨비를 꽈당!`;
-    else if (e.kind === 'rescue' && mine) why ||= `${eul(nm)} 되감아 태운 친구를 데려와요`;
-    else if (e.kind === 'machine' && e.id === h.id) why ||= '톱니를 기계까지 — 다리가 내려와요';
-    else if (e.kind === 'steam' && e.id === h.id) why ||= '쏟아진 물을 거꾸로 — 불을 지나 솟아요';
-    else if (e.kind === 'chain' && e.v === h.id) why ||= `${eul(nm)} 되감으면 떨어진 것도 함께 돌아와요`;
-    else if (e.kind === 'dock' && e.id === h.id) why ||= (h.stop < 0 ? `${eul(nm)} 되감다가, ` : '') + (th && th.k === 'stack' ? '계단 모양일 때 다시 톡' : '강을 가로지를 때 다시 톡 — 다리가 돼요');
-    else if (e.kind === 'stop' && e.id === h.id && th && th.k === 'crate' && h.stop < 0) why ||= '부엉이를 태운 채 상자를 되감다가, 위층에서 다시 톡';
-    else if (e.kind === 'origin' && e.id === h.id && th && th.k === 'crate') why ||= '부엉이를 태운 채 상자를 되감아요';
+    if (e.kind === 'catch' && e.id === h.id) why ||= `${nm} 되감기 — 주인이 받아요`;
+    else if (e.kind === 'arrowHome' && e.id === h.id) why ||= '화살 되감기 — 도깨비가 꽈당';
+    else if (e.kind === 'ko' && mine && th && (th.k === 'barrel' || th.k === 'gear')) why ||= `${nm} 되감기 — 도깨비가 꽈당`;
+    else if (e.kind === 'rescue' && mine) why ||= `${nm} 되감기 — 친구가 돌아와요`;
+    else if (e.kind === 'machine' && e.id === h.id) why ||= '톱니를 기계로 — 다리가 내려와요';
+    else if (e.kind === 'steam' && e.id === h.id) why ||= '물을 거꾸로 — 불을 지나 솟아요';
+    else if (e.kind === 'chain' && e.v === h.id) why ||= `${nm} 되감기 — 떨어진 것도 함께`;
+    else if (e.kind === 'dock' && e.id === h.id) why ||= h.stop >= 0 ? stopMsg : th && th.k === 'stack' ? '탑 되감다 계단 모양에서 멈춤' : `${nm} 되감다 강 위에서 멈춤`;
     else if (e.kind === 'plankMend' && e.id === h.id && e.v === 0) why ||= '다리를 되감아 다시 세워요';
   }
-  if (!why && th && h.stop < 0) {
-    if (th.k === 'crate') why = '부엉이를 태운 채 상자를 되감아요';
-    else if (th.k === 'ferry') why = '나룻배를 되감아 이쪽 나루로 데려와요';
-    else if (th.k === 'sack') why = '모래 자루를 되감아 접시에 앉혀요 — 반대쪽이 올라가요';
-    else if (th.k === 'pot' && th.n === 0) why = `${eul(nm)} 되감아 길 위에서 치워요`;
+  if (!why && th) {
+    if (th.k === 'crate') why = h.stop >= 0 ? stopMsg : h.next >= 0 ? '승강기 되감다 위층에서 멈춤' : '승강기에 탄 채 되감아요';
+    else if (h.stop >= 0) why = stopMsg;
+    else if (th.k === 'ferry') why = '나룻배 되감기 — 이쪽으로 와요';
+    else if (th.k === 'sack') why = '자루 되감기 — 접시가 올라가요';
+    else if (th.k === 'pot' && th.n === 0) why = `${nm} 되감기 — 길에서 치워요`;
   }
-  if (!why) why = h.stop >= 0 ? `${iga(nm)} 이 자리에 오면 다시 톡 — 멈춰요` : `${eul(nm)} 되감아요`;
-  h.text = why;
-  h.why2 = th && th.k === 'stack' ? '계단 모양에 오면 다시 톡!' : th && (th.k === 'log' || th.k === 'raft') ? '강을 가로지를 때 다시 톡!' : `${iga(nm)} 반투명 자리에 오면 다시 톡!`;
+  h.text = why || `${eul(nm)} 되감아요`;
+  h.why2 = stopMsg;
+  s.hint = h;
+  return true;
 }
 /** 힌트 따라가기: 그 수를 두면 '좋아요' 하고 접고, 때를 한참 놓치면 접는다 (전구는 그대로) */
 function keepHint(s: RewState) {
   const h = s.hint;
-  if (!h) return;
+  if (!h || h.think) return;
   if (h.done >= 0) {
     if (s.t - h.done > 60) s.hint = null;
     return;
@@ -2125,7 +2198,7 @@ export const rewindone: GameDef<RewState> & { wows(s: RewState): number } = {
     const s = {
       seed, variant: ((seed >>> 0) * 2654435761 >>> 0) % VARIANTS, t: 0, stage: 0, phase: 'play', pt: 0, endT: -1, hearts: 3, stars: 0, got: 0, starOk: [], pts: 0, ok: false, why: '', won: false, dead: false, again: false, tries: 0,
       gears: 0, fixed: 0, seen: new Set<string>(), events: [], banner: null, spot: null, wowN: 0, firstTap: -1, down: false, ax: 0.5, ay: 0.5, slow: 0, magnet: true, idleT: 0, lastTap: -99, sel: -1,
-      cam: { x: 0, y: 0, z: 1 }, chDone: -1, film: null, ft: 0, playT: -1, hint: null, hintsHere: 0, hintN: 0, fails: 0, autoHint: false, progT: 0, restarts: 0,
+      cam: { x: 0, y: 0, z: 1 }, chDone: -1, film: null, ft: 0, playT: -1, hint: null, hintsHere: 0, hintN: 0, fails: 0, autoHint: false, progT: 0, restarts: 0, hjob: null, hplan: null, ver: 0, drawn: false,
     } as unknown as RewState;
     newStage(s);
     return s;
@@ -2153,8 +2226,8 @@ export const rewindone: GameDef<RewState> & { wows(s: RewState): number } = {
       // 장 끝 장면: 이번 장에 되살린 것들이 마을 전경에서 차례로 '짠' → 시계탑 바늘 한 칸 → 다음 장 실루엣
       const b = s.chDone * 6;
       for (let j = 0; j < 6; j++) if (s.pt === REV0 + j * REVD) ev(s, 'revive', FIX_POS[b + j][0], FIX_POS[b + j][1], b + j);
-      if (s.pt === NOTCH_T) ev(s, 'notch', CLK[0], CLK[1], s.chDone + 1);
-      if (s.chDone < 2 && s.pt === ABIL_T) ev(s, 'ability', 0.5, 0.75, s.chDone);
+      if (s.pt === NOTCH_T) ev(s, 'notch', unz(CLK[0], VFX), unz(A - 0.15, VFY), s.chDone + 1);
+      if (s.chDone < 2 && s.pt === ABIL_T) ev(s, 'ability', unz(0.5, VFX), unz(0.62, VFY), s.chDone);
       // 능력이 생기는 장: 일찍 톡 하면 새 능력 카드로 건너뛴다
       if (s.chDone < 2 && press && s.pt > 60 && s.pt < ABIL_T - 1) return void (s.pt = ABIL_T - 1);
       if (s.pt >= (s.chDone < 2 ? CH_END_AB : CH_END) || (press && s.pt > (s.chDone < 2 ? ABIL_T + 40 : 60))) {
@@ -2194,6 +2267,7 @@ export const rewindone: GameDef<RewState> & { wows(s: RewState): number } = {
     updateCam(s, false);
     const W = s.W, H = W.hero;
     keepHint(s);
+    hintWork(s);
     if (H.st === H_WAIT && W.rew < 0) s.idleT++;
     else s.idleT = 0;
     if (s.endT < 0) {
@@ -2451,13 +2525,14 @@ function shadow(ctx: C2, x: number, y: number, rx: number, a = 0.22) {
 function clockGlyph(ctx: C2, x: number, y: number, r: number, t: number, a: number) {
   ctx.save();
   ctx.globalAlpha = a;
-  ctx.strokeStyle = '#7fe8ff';
-  ctx.lineWidth = Math.max(2, r * 0.07);
-  ctx.shadowColor = '#5fd8ff';
-  ctx.shadowBlur = r * 0.35;
+  // 빛 번짐은 굵은 반투명 테 한 번으로 (그림자 흐림은 느린 폰에서 비싸다)
+  ctx.strokeStyle = 'rgba(95,216,255,.35)';
+  ctx.lineWidth = Math.max(4, r * 0.2);
   ell(ctx, x, y, r, r);
   ctx.stroke();
-  ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#7fe8ff';
+  ctx.lineWidth = Math.max(2, r * 0.07);
+  ctx.stroke();
   ctx.lineWidth = Math.max(1.5, r * 0.04);
   for (let k = 0; k < 12; k++) {
     const an = (k / 12) * TAU2, q0 = k % 3 ? 0.86 : 0.78;
@@ -2551,17 +2626,21 @@ function softLayer(ctx: C2, w: number, h: number, fn: (o: C2) => void) {
   ctx.drawImage(softCv, 0, 0, cw, chh, 0, 0, (cw * k) / m.a, (chh * k) / m.d);
   ctx.restore();
 }
-/** 물건(τ0..τ1 동안) 둘레 상자 — 화면 px */
-function thingBox(v: View, th: Thing, t0: number, t1: number): number[] {
-  let x0 = 9e9, y0 = 9e9, x1 = -9e9, y1 = -9e9;
-  const tau = th.tau;
-  for (let k = 0; k <= 4; k++) {
-    th.tau = Math.min(th.dur, t0 + ((t1 - t0) * k) / 4);
-    const c = thingCenter(th), r = th.k === 'bridge' ? 0.3 : c.r * 1.6 + 0.04;
-    (x0 = Math.min(x0, v.X(c.x - r))), (x1 = Math.max(x1, v.X(c.x + r))), (y0 = Math.min(y0, v.Y(c.y - r))), (y1 = Math.max(y1, v.Y(c.y + r)));
+/** 작은 ⏪ 배지 */
+function rewBadge(ctx: C2, x: number, y: number, r: number) {
+  ctx.fillStyle = 'rgba(30,90,140,.85)';
+  ell(ctx, x, y, r, r);
+  ctx.fill();
+  ctx.fillStyle = '#bff6ff';
+  for (let q = 0; q < 2; q++) {
+    const cx = x + (q - 0.5) * r * 0.62;
+    ctx.beginPath();
+    ctx.moveTo(cx + r * 0.32, y - r * 0.42);
+    ctx.lineTo(cx - r * 0.3, y);
+    ctx.lineTo(cx + r * 0.32, y + r * 0.42);
+    ctx.closePath();
+    ctx.fill();
   }
-  th.tau = tau;
-  return [x0, y0, x1, y1];
 }
 /** 작은 시계 표시: 바늘이 자기 시간만큼 돌아가 있다 (쉬는 중이면 모래시계 빛) */
 function clockBadge(ctx: C2, x: number, y: number, r: number, tau: number, rest: boolean) {
@@ -4937,50 +5016,107 @@ function heroMood(s: RewState): Mood {
 const REV0 = 26, REVD = 22, NOTCH_T = 168, CH_END = 300, ABIL_T = NOTCH_T + 30, CH_END_AB = 420;
 /** 장 끝에 생기는 능력 (복원한 마을이 주는 것) */
 const ABIL = [
-  { name: '풍차 바람', text: '되감기가 1.5배 빨라져요', sub: '모래도 덜 들고, 늦게 눌러도 돼요' },
-  { name: '쌍둥이 시계', text: '두 물건을 함께 되감아요', sub: '올라가는 동안 화살도 — 한꺼번에!' },
+  { name: '풍차 바람', text: '되감기가 1.5배 빨라져요', sub: '되살린 풍차가 바람을 불어 줘요' },
+  { name: '물레방아 두 바퀴', text: '두 물건을 함께 되감아요', sub: '바퀴 둘이 따로 돌아요 — 오르며 화살도!' },
 ];
-/** 능력 그림: 0 빠른 되감기(겹화살표) · 1 쌍둥이 시계 */
+/** 능력 그림 = 그 능력을 준 건물: 0 풍차(바람 → 빠른 되감기) · 1 물레방아 두 바퀴(두 물건 함께) — 카드와 아래 띠 배지에 같은 그림 */
 function abilityIcon(ctx: C2, k: number, x: number, y: number, r: number, t: number) {
   ctx.save();
-  ctx.fillStyle = k === 0 ? '#3aa0d8' : '#8a5ad8';
+  ctx.fillStyle = k === 0 ? '#bfe6ff' : '#aee0f4';
   ell(ctx, x, y, r, r);
   ctx.fill();
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = Math.max(1.5, r * 0.12);
-  ctx.stroke();
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, TAU2);
+  ctx.clip();
+  // 풀밭
+  ctx.fillStyle = '#8ad06a';
+  ctx.fillRect(x - r, y + r * 0.55, r * 2, r * 0.5);
   if (k === 0) {
-    ctx.fillStyle = '#ffffff';
-    for (let q = 0; q < 2; q++) {
-      const cx = x + (q - 0.3) * r * 0.5 - Math.sin(t * 0.2) * r * 0.05;
-      ctx.beginPath();
-      ctx.moveTo(cx + r * 0.28, y - r * 0.36);
-      ctx.lineTo(cx - r * 0.24, y);
-      ctx.lineTo(cx + r * 0.28, y + r * 0.36);
-      ctx.closePath();
-      ctx.fill();
-    }
-    ctx.strokeStyle = 'rgba(255,255,255,.7)';
-    ctx.lineWidth = Math.max(1, r * 0.08);
-    for (let q = 0; q < 3; q++) (ctx.beginPath(), ctx.moveTo(x + r * 0.5, y + (q - 1) * r * 0.22), ctx.lineTo(x + r * 0.72, y + (q - 1) * r * 0.22), ctx.stroke());
-  } else {
-    for (let q = 0; q < 2; q++) {
-      const cx = x + (q ? 0.28 : -0.28) * r, cy = y + (q ? 0.12 : -0.12) * r, cr = r * 0.42;
+    // 풍차: 탑 · 빨간 지붕 · 날개 넷이 빨리 돈다 (바람 줄)
+    ctx.fillStyle = '#fff3dc';
+    ctx.beginPath();
+    ctx.moveTo(x - r * 0.3, y + r * 0.62);
+    ctx.lineTo(x + r * 0.3, y + r * 0.62);
+    ctx.lineTo(x + r * 0.17, y - r * 0.12);
+    ctx.lineTo(x - r * 0.17, y - r * 0.12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#e2584a';
+    ctx.beginPath();
+    ctx.moveTo(x - r * 0.24, y - r * 0.1);
+    ctx.lineTo(x, y - r * 0.38);
+    ctx.lineTo(x + r * 0.24, y - r * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#8a5a3a';
+    rr(ctx, x - r * 0.08, y + r * 0.35, r * 0.16, r * 0.27, r * 0.06);
+    ctx.fill();
+    const hx = x, hy = y - r * 0.2, a0 = t * 0.18;
+    for (let q = 0; q < 4; q++) {
+      const a = a0 + (q * Math.PI) / 2;
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(a);
       ctx.fillStyle = '#ffffff';
-      ell(ctx, cx, cy, cr, cr);
-      ctx.fill();
-      ctx.strokeStyle = '#4a2a7a';
-      ctx.lineWidth = Math.max(1, r * 0.08);
-      ctx.stroke();
-      const a = -t * (q ? 0.09 : 0.12);
+      ctx.fillRect(r * 0.06, -r * 0.08, r * 0.6, r * 0.16);
+      ctx.strokeStyle = '#a87a4a';
+      ctx.lineWidth = Math.max(1, r * 0.05);
+      ctx.strokeRect(r * 0.06, -r * 0.08, r * 0.6, r * 0.16);
+      ctx.restore();
+    }
+    ctx.fillStyle = '#6a4a2a';
+    ell(ctx, hx, hy, r * 0.07, r * 0.07);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.85)';
+    ctx.lineWidth = Math.max(1, r * 0.06);
+    ctx.lineCap = 'round';
+    for (let q = 0; q < 2; q++) {
+      const yy = y - r * (0.45 - q * 0.6), ph = (t * 0.03 + q * 0.5) % 1;
       ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(cx + Math.cos(a) * cr * 0.7, cy + Math.sin(a) * cr * 0.7);
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(cx, cy - cr * 0.5);
+      ctx.moveTo(x - r * 0.95 + ph * r * 0.3, yy);
+      ctx.quadraticCurveTo(x - r * 0.75 + ph * r * 0.3, yy - r * 0.08, x - r * 0.55 + ph * r * 0.3, yy);
       ctx.stroke();
     }
+    ctx.lineCap = 'butt';
+  } else {
+    // 물레방아 둘: 큰 바퀴 · 작은 바퀴가 따로 돈다, 위에서 물줄기
+    ctx.fillStyle = '#5ab8e8';
+    ctx.fillRect(x - r, y + r * 0.45, r * 2, r * 0.6);
+    const wheel = (cx: number, cy: number, rr0: number, dir: number) => {
+      ctx.strokeStyle = '#8a5228';
+      ctx.lineWidth = Math.max(1.2, rr0 * 0.16);
+      ell(ctx, cx, cy, rr0, rr0);
+      ctx.stroke();
+      ctx.lineWidth = Math.max(1, rr0 * 0.09);
+      for (let q = 0; q < 8; q++) {
+        const a = dir * t * 0.08 + (q * Math.PI) / 4;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(a) * rr0, cy + Math.sin(a) * rr0);
+        ctx.stroke();
+        ctx.fillStyle = '#c8884a';
+        ctx.save();
+        ctx.translate(cx + Math.cos(a) * rr0, cy + Math.sin(a) * rr0);
+        ctx.rotate(a);
+        ctx.fillRect(-rr0 * 0.05, -rr0 * 0.2, rr0 * 0.22, rr0 * 0.4);
+        ctx.restore();
+      }
+      ctx.fillStyle = '#5a3418';
+      ell(ctx, cx, cy, rr0 * 0.14, rr0 * 0.14);
+      ctx.fill();
+    };
+    wheel(x - r * 0.22, y + r * 0.08, r * 0.48, 1);
+    wheel(x + r * 0.45, y - r * 0.22, r * 0.28, -1.6);
+    ctx.fillStyle = 'rgba(120,210,255,.9)';
+    rr(ctx, x - r * 0.12, y - r * 0.95, r * 0.12, r * 0.6, r * 0.05);
+    ctx.fill();
   }
+  ctx.restore();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = Math.max(1.5, r * 0.1);
+  ell(ctx, x, y, r, r);
+  ctx.stroke();
   ctx.restore();
 }
 const FIX_NAME = ['분수', '꽃 화단', '가로등', '풍차', '깃발 줄', '열기구', '물레방아', '나룻배', '새 떼', '무지개', '연', '물고기', '숫자판', '큰 톱니', '종', '뻐꾸기', '시계추', '시계 바늘'];
@@ -4994,26 +5130,35 @@ const FIX_POS: [number, number][] = [
 ];
 /** 큰 시계 (바늘이 장마다 한 칸 = 두 시간: 6시 → 8 → 10 → 정각 12시) — 화면 너비 단위 */
 const CLK = [0.2, 1.36];
+/** 장 끝 마을 당김: 배율 · 가운데 (폭 단위) — 당긴 화면 좌표를 거꾸로 (사건 자리용) */
+const VZM = 1.3, VFX = 0.45, VFY = 0.62;
+const unz = (v: number, f: number) => f + (v - f) / VZM;
 const clockHour = (k: number) => 6 + 2 * k;
 function drawChapterScene(ctx: C2, s: RewState, w: number, h: number) {
   const fx = juice(s), t = s.t, ch = s.chDone, pt = s.pt;
   let shown = ch * 6;
   for (let j = 0; j < 6; j++) if (pt >= REV0 + j * REVD) shown++;
   const PV: View = { X: (x) => vX(x) * w, Y: (y) => vY(y) * w, R: (r) => r * 1.12 * w, t, fixed: shown };
-  const SVV: View = { X: (x) => x * w, Y: (y) => y * w, R: (r) => r * w, t, fixed: shown };
+  // 마을을 가까이 (1.3배) — 되살아난 것들이 잘 보이게. 글자·불꽃도 같은 당김으로
+  const SVV: View = { X: (x) => (VFX + (x - VFX) * VZM) * w, Y: (y) => (VFY + (y - VFY) * VZM) * w, R: (r) => r * w * VZM, t, fixed: shown };
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, sz * w)}px system-ui, sans-serif`);
   ctx.save();
   fx.begin(ctx);
   ctx.fillStyle = '#bfe6ff';
   ctx.fillRect(-10, -10, w + 20, h + 20);
+  ctx.save();
+  ctx.translate(VFX * w, VFY * w);
+  ctx.scale(VZM, VZM);
+  ctx.translate(-VFX * w, -VFY * w);
   drawSky(ctx, PV, w, 0);
   drawPanorama(ctx, PV, w, 0);
   drawVistaFront(ctx, w, h, shown, t);
-  // 꼬마 시계공: 되살아날 때마다 폴짝
+  // 꼬마 시계공 (크게): 되살아날 때마다 폴짝
   {
     const ag = Math.min(...[0, 1, 2, 3, 4, 5].map((j) => (pt >= REV0 + j * REVD ? pt - (REV0 + j * REVD) : 99)));
     const jump = ag < 16 ? Math.sin((ag / 16) * Math.PI) * w * 0.04 : 0;
-    drawOwl(ctx, w * 0.36, w * 1.05 - jump, w * 0.011, ag < 30 || pt > NOTCH_T ? 'cheer' : 'happy', t, 0);
+    shadow(ctx, w * 0.4, w * 0.99, w * 0.05, 0.2);
+    drawOwl(ctx, w * 0.4, w * 0.99 - jump, w * 0.016, ag < 30 || pt > NOTCH_T ? 'cheer' : 'happy', t, 0);
   }
   // 막 되살아난 것: 빛 기둥
   for (let j = 0; j < 6; j++) {
@@ -5023,6 +5168,7 @@ function drawChapterScene(ctx: C2, s: RewState, w: number, h: number) {
     ctx.fillStyle = rad(ctx, px * w, py * w, w * 0.12, [[0, `rgba(255,250,200,${0.7 * a})`], [1, 'rgba(255,250,200,0)']]);
     ctx.fillRect(px * w - w * 0.12, py * w - w * 0.12, w * 0.24, w * 0.24);
   }
+  ctx.restore();
   // 제목 띠
   const a0 = Math.min(1, pt / 10);
   ctx.globalAlpha = a0;
@@ -5042,12 +5188,12 @@ function drawChapterScene(ctx: C2, s: RewState, w: number, h: number) {
   ctx.fillText(`되살린 것 ${shown} / ${STAGE_COUNT}`, w / 2, w * 0.118, w * 0.8);
   ctx.globalAlpha = 1;
   // 아래 판: 큰 시계 + 다음 장
-  const py0 = h - w * 0.27;
+  const py0 = h - w * 0.3;
   ctx.fillStyle = lin(ctx, 0, py0, 0, h, [[0, '#7a5236'], [1, '#4a3020']]);
   ctx.fillRect(-10, py0, w + 20, h - py0 + 10);
   ctx.fillStyle = 'rgba(255,220,160,.25)';
   ctx.fillRect(-10, py0, w + 20, 3);
-  const cx = CLK[0] * w, cy = h - w * 0.14, cr = w * 0.1;
+  const cx = CLK[0] * w, cy = h - w * 0.15, cr = w * 0.1;
   ctx.fillStyle = '#c89a5a';
   ell(ctx, cx, cy, cr * 1.14, cr * 1.14);
   ctx.fill();
@@ -5075,7 +5221,7 @@ function drawChapterScene(ctx: C2, s: RewState, w: number, h: number) {
   brass(ctx, cx, cy, cr * 0.14, 8, t * 0.02);
   // 다음 장 실루엣 (장 끝) / 끝 축하 (마지막)
   const na = Math.max(0, Math.min(1, (pt - NOTCH_T - 6) / 14));
-  const bx = w * 0.36, bw = w * 0.6, by = py0 + w * 0.025, bh = w * 0.2;
+  const bx = w * 0.36, bw = w * 0.6, by = py0 + w * 0.022, bh = w * 0.245;
   ctx.globalAlpha = 0.7 + 0.3 * na;
   ctx.fillStyle = 'rgba(255,248,236,.96)';
   rr(ctx, bx, by, bw, bh, w * 0.03);
@@ -5091,9 +5237,9 @@ function drawChapterScene(ctx: C2, s: RewState, w: number, h: number) {
     font(0.028, 800);
     ctx.fillStyle = '#8a5a3a';
     ctx.fillText(CH_SUB[ch + 1], bx + w * 0.03, by + w * 0.12, bw - w * 0.06);
-    // 다음 장에 되살릴 것들의 실루엣 (바늘이 움직이면 하나씩 떠오른다)
+    // 다음 장에 되살릴 것들의 실루엣 (글 아래 줄 — 바늘이 움직이면 하나씩 떠오른다)
     for (let k = 0; k < 3; k++) {
-      const ix = bx + w * (0.09 + k * 0.2), iy = by + w * 0.16 - Math.max(0, 1 - Math.max(0, pt - NOTCH_T - 8 - k * 6) / 10) * w * 0.02 * na, ik = (ch + 1) * 6 + (ch === 0 ? [0, 3, 5] : [1, 2, 4])[k];
+      const ix = bx + w * (0.1 + k * 0.2), iy = by + w * 0.192 - Math.max(0, 1 - Math.max(0, pt - NOTCH_T - 8 - k * 6) / 10) * w * 0.02 * na, ik = (ch + 1) * 6 + (ch === 0 ? [0, 3, 5] : [1, 2, 4])[k];
       ctx.fillStyle = 'rgba(90,60,90,.12)';
       ell(ctx, ix, iy, w * 0.04, w * 0.04);
       ctx.fill();
@@ -5156,7 +5302,7 @@ function drawChapterScene(ctx: C2, s: RewState, w: number, h: number) {
     ctx.fillText('톡 하면 넘어가요', w * 0.66, h - w * 0.012);
   }
   ctx.restore();
-  doEvents(ctx, s, SVV, w, w * 0.16 + 30, h - w * 0.28);
+  doEvents(ctx, s, SVV, w, w * 0.16 + 30, h - w * 0.31);
 }
 /** 장 끝 전경의 광장·강 (화면 너비 단위 좌표) */
 function drawVistaFront(ctx: C2, w: number, h: number, fixed: number, t: number) {
@@ -5289,6 +5435,7 @@ function drawVistaFront(ctx: C2, w: number, h: number, fixed: number, t: number)
 }
 function drawAll(ctx: C2, s: RewState, w: number, h: number, th: Theme) {
   lastDrawn = s;
+  s.drawn = true;
   hookKeys(ctx.canvas as HTMLCanvasElement | undefined);
   if (!s.film || s.phase !== 'play') return drawScene(ctx, s, w, h, th);
   // 필름: 미리 돌려 둔 세계 한 장을 잠깐 빌려 그린다
@@ -5517,16 +5664,17 @@ function drawScene(ctx: C2, s: RewState, w: number, h: number, _th: Theme) {
       // 되감기: 지나온 길이 필름처럼 잔상 4장으로 남고, 물건은 그 길을 따라 거꾸로 빨려 든다 (시간 빛 = 푸른색, 연쇄로 끌려가는 것은 금빛)
       drawRewindPath(ctx, v, th, t);
       if (th.k !== 'bridge')
-        tinted(ctx, (o) => {
-          for (let k = 4; k >= 1; k--) {
-            o.globalAlpha = 0.16 + 0.1 * (4 - k);
-            drawThingAt(o, v, th, Math.min(th.dur, th.tau + k * 7), 1);
+        {
+          // 잔상 둘 (반투명으로 바로 그린다 — 화면 밖 캔버스 물들이기는 느린 폰에서 비싸다)
+          ctx.save();
+          for (let k = 2; k >= 1; k--) {
+            ctx.globalAlpha = k === 2 ? 0.18 : 0.32;
+            drawThingAt(ctx, v, th, Math.min(th.dur, th.tau + k * 12), 1);
           }
-          o.globalAlpha = 1;
-        }, th.st === CHN ? '#ffd86a' : '#6fdcff', 0.75, thingBox(v, th, th.tau, th.tau + 28));
+          ctx.restore();
+        }
     }
     drawThingAt(ctx, v, th, th.tau);
-    if ((th.st === REW || th.st === CHN) && th.k !== 'water') tinted(ctx, (o) => drawThingAt(o, v, th, th.tau), th.st === CHN ? '#ffe08a' : '#7fe8ff', 0.42, thingBox(v, th, th.tau, th.tau));
     // 되감을 수 있는 물건: 작은 시계 (자기 시간이 앞으로 가는 중)
     if (th.st !== REW && th.st !== WAIT && th.tau > 0 && !(th.k === 'arrow' && th.tau >= th.n && th.st === HOLD)) {
       const c = thingCenter(th);
@@ -5582,8 +5730,10 @@ function drawScene(ctx: C2, s: RewState, w: number, h: number, _th: Theme) {
   for (const rewTh of W.th) {
     if (rewTh.st !== REW) continue;
     const tc = thingCenter(rewTh), age = t - (fx.memo['rw' + rewTh.id] ?? t);
-    const big = age < 16 ? 1.5 - age / 32 : 1;
-    clockGlyph(ctx, X(tc.x), Y(tc.y), R(tc.r) * big, t, age < 16 ? 0.9 - age * 0.025 : 0.5);
+    const big = age < 12 ? 1.2 - age / 60 : 1;
+    clockGlyph(ctx, X(tc.x), Y(tc.y), R(Math.min(0.07, tc.r * 0.6)) * big, t, age < 12 ? 0.8 - age * 0.02 : 0.45);
+    // 작은 ⏪ 표시 (되감는 동안 물건 옆)
+    rewBadge(ctx, X(tc.x) + R(Math.min(0.07, tc.r * 0.6)) + R(0.012), Y(tc.y) - R(Math.min(0.07, tc.r * 0.6)), R(0.018));
     // 모래가 물건으로 흘러간다
     ctx.fillStyle = '#ffd25a';
     for (let k = 0; k < 6; k++) {
@@ -5613,7 +5763,7 @@ function drawScene(ctx: C2, s: RewState, w: number, h: number, _th: Theme) {
   // 말뚝에 걸 수 있는 동안: '지금 다시 톡!' (되감기 빛 위에)
   for (const th of W.th) {
     // 글자 안내는 말뚝을 처음 배우는 판만 (그 뒤로는 말뚝이 빛나는 것만 — 답은 전구에)
-    if (th.dock < 0 || !L.canal || th.st !== REW || !canDock(th) || L.key !== 'log') continue;
+    if (th.dock < 0 || !L.canal || th.st !== REW || !canDock(th) || L.key !== 'log' || s.hint) continue;
     font(0.04, 900);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -5649,13 +5799,8 @@ function drawFilm(ctx: C2, s: RewState, w: number, v: View, font: (sz: number, w
   ctx.fillRect(0, y0, w, w * 0.025);
   ctx.fillRect(0, y1 - w * 0.025, w, w * 0.025);
   // 필름 띠 (양옆 구멍이 흐른다: 앞으로는 천천히 위로, 되감을 땐 빠르게 아래로)
-  const bw = w * 0.045, gap = w * 0.075, off = (rew ? (ft - FILM_FWD) * w * 0.05 : -ft * w * 0.012) % gap;
-  for (const x0 of [0, w - bw]) {
-    ctx.fillStyle = 'rgba(28,18,22,.88)';
-    ctx.fillRect(x0, y0, bw, y1 - y0);
-    ctx.fillStyle = 'rgba(255,240,220,.85)';
-    for (let yy = y0 + off - gap; yy < y1; yy += gap) if (yy > y0 - w * 0.03) rr(ctx, x0 + bw * 0.28, Math.max(y0, yy), bw * 0.44, Math.min(w * 0.03, y1 - Math.max(y0, yy)), w * 0.006), ctx.fill();
-  }
+  const bw = w * 0.045, gap = w * 0.075, off = rew ? (ft - FILM_FWD) * w * 0.05 : -ft * w * 0.012;
+  for (const x0 of [0, w - bw]) filmStrip(ctx, x0, y0, bw, y1 - y0, gap, off);
   // 긁힌 자국
   ctx.strokeStyle = 'rgba(255,255,255,.18)';
   ctx.lineWidth = 1;
@@ -5732,6 +5877,28 @@ function drawFilm(ctx: C2, s: RewState, w: number, v: View, font: (sz: number, w
   }
   ctx.restore();
 }
+/** 필름 구멍 띠: 한 장 미리 그려 두고 밀어서 쓴다 (느린 폰) */
+let stripCv: HTMLCanvasElement | null = null, stripKey = '';
+function filmStrip(ctx: C2, x0: number, y0: number, bw: number, hh: number, gap: number, off: number) {
+  if (typeof document === 'undefined') return;
+  const sc = ctx.getTransform().a || 1, key = `${bw.toFixed(1)}|${hh.toFixed(1)}|${sc}`;
+  if (!stripCv || stripKey !== key) {
+    stripCv = stripCv ?? document.createElement('canvas');
+    stripCv.width = Math.ceil(bw * sc);
+    stripCv.height = Math.ceil((hh + gap) * sc);
+    const o = stripCv.getContext('2d');
+    if (!o) return;
+    o.setTransform(sc, 0, 0, sc, 0, 0);
+    o.clearRect(0, 0, bw, hh + gap);
+    o.fillStyle = 'rgba(28,18,22,.88)';
+    o.fillRect(0, 0, bw, hh + gap);
+    o.fillStyle = 'rgba(255,240,220,.85)';
+    for (let yy = gap * 0.3; yy < hh + gap; yy += gap) rr(o, bw * 0.28, yy, bw * 0.44, gap * 0.4, bw * 0.12), o.fill();
+    stripKey = key;
+  }
+  const sy = ((-off % gap) + gap) % gap;
+  ctx.drawImage(stripCv, 0, sy * sc, bw * sc, hh * sc, x0, y0, bw, hh);
+}
 /** 막힘 힌트: 손가락이 그 물건을 누르고(때가 오면 '지금!'), 그때 물건이 있을 자리를 반투명으로, 한 줄 말 */
 function drawHint(ctx: C2, s: RewState, v: View, font: (sz: number, w?: number) => void, SV: View) {
   const h = s.hint!, W = s.W, { X, Y, R, t } = v;
@@ -5741,7 +5908,7 @@ function drawHint(ctx: C2, s: RewState, v: View, font: (sz: number, w?: number) 
   ctx.globalAlpha = a;
   const th = h.id >= 0 ? thingOf(W, h.id) : undefined;
   const arch = !th && h.arch >= 0 ? actorOf(W, h.arch) : undefined;
-  if (!h.restart && !h.none && h.done < 0 && (th || arch)) {
+  if (!h.think && !h.restart && !h.none && h.done < 0 && (th || arch)) {
     const c = th ? thingCenter(th) : { x: arch!.x, y: arch!.y - 0.06, r: 0.06 };
     const waitStop = h.stop >= 0 && th && th.st === REW && th.tau > h.stop + 5;
     const wait = h.stop < 0 ? W.t < h.at - 3 : waitStop;
@@ -5750,7 +5917,6 @@ function drawHint(ctx: C2, s: RewState, v: View, font: (sz: number, w?: number) 
       const keep = th.tau;
       th.tau = Math.min(th.dur, h.ghost);
       const g = thingCenter(th);
-      tinted(ctx, (o) => drawThingAt(o, v, th, th.tau, 1), '#ffe066', 0.55, [X(g.x - g.r * 1.6) , Y(g.y - g.r * 1.6), X(g.x + g.r * 1.6), Y(g.y + g.r * 1.6)]);
       th.tau = keep;
       ctx.save();
       ctx.globalAlpha = a * 0.5;
@@ -6026,6 +6192,8 @@ function drawGuide(ctx: C2, s: RewState, v: View, font: (sz: number, w?: number)
   }
 }
 /** 사건 → 파티클·글자·흔들림·소리 (사건마다 소리, 큰 것은 낮게, 연쇄는 높아지게) */
+/** 지금 떠 있는 큰 글자 (판마다 하나) */
+const HEAD = new WeakMap<Juice, { p: Juice['popups'][number]; pri: number }>();
 /** 떠오르는 큰 글자: 화면 안으로 · 먼저 뜬 글자와 인물(머리)을 비켜서 놓는다 (위가 막히면 아래로, 둘 다 막히면 옆으로) */
 function say(ctx: C2, fx: Juice, x: number, y: number, text: string, col: string, size: number, w: number, top: number, avoid: number[][], bot = 1e9) {
   const wid = (tx: string, sz: number) => {
@@ -6071,7 +6239,25 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
     avoid.push([X(H.x), Y(H.y - HCY), R(0.06)]);
     for (const a of s.W.ac) if (!a.ko && (a.role === R_VILL || a.role === R_RIDER)) avoid.push([X(a.x), Y(a.y - 0.05), R(0.05)]);
   }
-  const pop = (x: number, y: number, text: string, col: string, size: number) => say(ctx, fx, x, y, text, col, size, w, top, avoid, bot);
+  // 입자는 묶어 둔다 (느린 폰: 큰 순간에도 한꺼번에 160개 넘지 않게, 한 번에 터지는 수도 줄여서)
+  const bst = (x: number, y: number, c: string, k = 12, sp = 3, sz = 3) => {
+    if (fx.particles.length < 160) fx.burst(x, y, c, Math.ceil(k * 0.55), sp, sz);
+  };
+  // 큰 글자는 한 번에 하나: 새 것이 오면 앞의 것은 바로 사라진다 (우선순위 3 큰 순간 > 2 안내·다침 > 1 반응 — 낮은 것은 작은 말로)
+  const small = (x: number, y: number, text: string, col: string, _size?: number) => {
+    const yy = Math.max(top + 10, Math.min(bot - 10, y)), xx = Math.max(R(0.1), Math.min(X(1) - R(0.1), x)), hd = HEAD.get(fx);
+    for (const q of fx.popups) if (q.life > 12 && Math.abs(q.x - xx) < (q === hd?.p ? 90 : 55) && Math.abs(q.y - yy) < (q === hd?.p ? 34 : 22)) return;
+    fx.pop(xx, yy, text, col, 15);
+  };
+  const hl = (x: number, y: number, text: string, col: string, size: number, pri: number) => {
+    const cur = HEAD.get(fx);
+    if (cur && cur.p.life > 12 && fx.popups.includes(cur.p)) {
+      if (cur.pri > pri) return small(x, y, text, col);
+      fx.popups.splice(fx.popups.indexOf(cur.p), 1);
+    }
+    say(ctx, fx, x, y, text, col, Math.min(32, size), w, top, avoid, bot);
+    HEAD.set(fx, { p: fx.popups[fx.popups.length - 1], pri });
+  };
   // 처음 그릴 때 밀린 옛 사건은 건너뛴다 (화면이 늦게 붙어도 글자가 한꺼번에 쏟아지지 않게)
   const seenT = fx.memo.t ?? t - 2;
   for (const e of s.events) {
@@ -6082,12 +6268,12 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
       case 'rew': {
         fx.memo['rw' + e.id] = t;
         const c = th ? thingCenter(th) : { x: e.x, y: e.y, r: 0.08 };
-        fx.ring(X(c.x), Y(c.y), '#7fe8ff', R(c.r * 1.5), 6);
-        fx.ring(X(c.x), Y(c.y), '#ffffff', R(c.r * 0.9), 3);
-        fx.burst(X(c.x), Y(c.y), '#ffd25a', 18, 4, 2.4);
-        fx.burst(X(c.x), Y(c.y), '#7fe8ff', 14, 3, 2.2);
+        fx.ring(X(c.x), Y(c.y), '#7fe8ff', R(Math.min(0.08, c.r * 0.8)), 4);
+        bst(X(c.x), Y(c.y), '#ffd25a', 10, 3.5, 2.2);
+        bst(X(c.x), Y(c.y), '#7fe8ff', 6, 3, 2);
         // 둘째로 함께 되감을 땐 '두 개 함께!'가 대신 크게 뜬다
-        if (s.W.th.filter((q) => q.st === REW).length < 2) pop(Math.max(R(0.14), Math.min(X(1) - R(0.14), X(c.x))), Math.max(R(0.16), Y(c.y) - R(c.r) - R(0.09)), '되감기!', '#bff6ff', s.firstTap === t ? 34 : 26);
+        // 큰 '되감기!'는 판의 첫 되감기에서만 — 그 뒤로는 물건 옆 작은 ⏪ 표시
+        if ((fx.memo.rewS ?? -1) !== s.stage * 1000 + s.tries) (fx.memo.rewS = s.stage * 1000 + s.tries), hl(Math.max(R(0.14), Math.min(X(1) - R(0.14), X(c.x))), Math.max(R(0.16), Y(c.y) - R(c.r) - R(0.09)), '되감기!', '#bff6ff', s.firstTap === t ? 32 : 26, 2);
         fx.blink('#bff0ff', s.firstTap === t ? 0.3 : 0.14);
         fx.kick(s.firstTap === t ? 6 : 3);
         fx.sound('rewind', 1.25 / big, 1);
@@ -6095,37 +6281,37 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
         break;
       }
       case 'stop':
-        pop(cx, y - R(0.06), '멈춤!', '#ffffff', 20);
+        small(cx, y - R(0.06), '멈춤!', '#ffffff', 20);
         fx.ring(x, y, '#ffffff', R(0.07), 3);
         fx.sound('tick', 1, 0.8);
         fx.sound('thud', 1.6, 0.4);
         break;
       case 'dock':
-        if (th?.k !== 'stack') pop(cx, y - R(0.07), '척! 걸렸다', '#fff27a', 26);
+        if (th?.k !== 'stack') hl(cx, y - R(0.07), '척! 걸렸다', '#fff27a', 26, 3);
         fx.ring(x, y, '#fff27a', R(0.12), 5);
-        fx.burst(x, y, '#ffffff', 16, 3.5, 2.2);
+        bst(x, y, '#ffffff', 16, 3.5, 2.2);
         fx.kick(4);
         fx.sound('thud', 0.9, 0.9);
         fx.sound('ding', 1.1, 0.8);
         break;
       case 'origin':
-        if (th?.k !== 'bridge') pop(cx, y - R(0.07), '착!', '#fff27a', 30);
+        if (th?.k !== 'bridge') hl(cx, y - R(0.07), '착!', '#fff27a', 28, 2);
         fx.ring(x, y, '#ffd25a', R(0.1), 5);
-        fx.burst(x, y, '#ffd25a', 16, 3.5, 2.4);
+        bst(x, y, '#ffd25a', 16, 3.5, 2.4);
         fx.sound('ding', 1, 0.9);
         break;
       case 'catch': {
-        pop(cx, y - R(0.08), '받았다! 고마워!', '#ffe0f0', 26);
-        fx.burst(x, y, '#ff8ab8', 16, 3.5, 2.6);
-        fx.burst(x, y, '#ffd25a', 12, 3, 2);
+        hl(cx, y - R(0.08), '받았다! 고마워!', '#ffe0f0', 26, 3);
+        bst(x, y, '#ff8ab8', 16, 3.5, 2.6);
+        bst(x, y, '#ffd25a', 12, 3, 2);
         fx.ring(x, y, '#ffd25a', R(0.12), 5);
         fx.kick(3);
         fx.sound('chime', 1, 1);
         break;
       }
       case 'ko':
-        pop(cx, y - R(0.13), '뿅! 꽈당!', '#fff27a', 38);
-        for (const c of ['#ffe066', '#7ad86a', '#ffffff']) fx.burst(x, y - R(0.04), c, 16, 5, 2.6);
+        hl(cx, y - R(0.13), '뿅! 꽈당!', '#fff27a', 38, 3);
+        for (const c of ['#ffe066', '#7ad86a', '#ffffff']) bst(x, y - R(0.04), c, 16, 5, 2.6);
         fx.ring(x, y - R(0.04), '#fff27a', R(0.16), 6);
         fx.blink('#fff6c8', 0.25);
         fx.kick(8);
@@ -6133,15 +6319,15 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
         fx.sound('thud', 1.2, 0.6);
         break;
       case 'rescue':
-        pop(cx, y - R(0.12), '구했다!', '#ffe0f0', 34);
-        fx.burst(x, y - R(0.04), '#ff8ab8', 20, 4, 2.6);
+        hl(cx, y - R(0.12), '구했다!', '#ffe0f0', 34, 3);
+        bst(x, y - R(0.04), '#ff8ab8', 20, 4, 2.6);
         fx.ring(x, y - R(0.04), '#ffd25a', R(0.14), 6);
         fx.kick(4);
         fx.sound('chime', 1.25, 1);
         break;
       case 'machine':
-        pop(cx, y - R(0.12), '철컥! 기계가 돌아요', '#fff27a', 26);
-        fx.burst(x, y, '#ffd25a', 26, 5, 2.8);
+        hl(cx, y - R(0.12), '철컥! 기계가 돌아요', '#fff27a', 26, 3);
+        bst(x, y, '#ffd25a', 26, 5, 2.8);
         fx.ring(x, y, '#ffd25a', R(0.18), 6);
         fx.blink('#fff6c8', 0.2);
         fx.kick(6);
@@ -6150,9 +6336,9 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
         break;
       case 'plankMend': {
         const n = th ? th.n : 4, k = n - 1 - e.v;
-        if (k === n - 1) pop(cx, y - R(0.08), '착!', '#fff27a', 40);
-        fx.burst(x, y, '#ffd25a', 10 + k * 4, 3 + k * 0.6, 2.2);
-        fx.burst(x, y + R(0.03), '#bff0ff', 8, 3, 2);
+        if (k === n - 1) hl(cx, y - R(0.08), '착!', '#fff27a', 32, 3);
+        bst(x, y, '#ffd25a', 10 + k * 4, 3 + k * 0.6, 2.2);
+        bst(x, y + R(0.03), '#bff0ff', 8, 3, 2);
         fx.ring(x, y, '#ffd25a', R(0.06 + k * 0.02), 4);
         fx.kick(2 + k);
         fx.sound('ding', 0.9 + k * 0.14, 0.8);
@@ -6161,32 +6347,32 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
       }
       case 'potMend':
       case 'barrelMend':
-        pop(cx, y - R(0.06), '착!', '#fff27a', 28);
-        fx.burst(x, y - R(0.02), '#ffd25a', 18, 3.5, 2.4);
+        hl(cx, y - R(0.06), '착!', '#fff27a', 28, 2);
+        bst(x, y - R(0.02), '#ffd25a', 18, 3.5, 2.4);
         fx.ring(x, y - R(0.02), '#ffffff', R(0.08), 4);
         fx.sound('ding', 1.3, 0.9);
         break;
       case 'logLift':
       case 'treeUp':
       case 'crateLift':
-        fx.burst(x, y, '#bff0ff', 12, 3, 2.2);
+        bst(x, y, '#bff0ff', 12, 3, 2.2);
         fx.sound('swell', 0.8 / big, 0.8);
         break;
       case 'creak':
-        pop(cx, y - R(0.06), '삐걱…', '#ffe8c8', 18);
+        small(cx, y - R(0.06), '삐걱…', '#ffe8c8', 18);
         fx.sound('crack', 0.6, 0.4);
         break;
       case 'plankLift':
         // 물속 판자가 거꾸로 솟는다 — 물방울이 판자를 따라 위로
-        fx.burst(x, y, '#bff0ff', 14, 3, 2.4);
-        fx.burst(x, y - R(0.02), '#ffffff', 8, 2, 1.8);
+        bst(x, y, '#bff0ff', 14, 3, 2.4);
+        bst(x, y - R(0.02), '#ffffff', 8, 2, 1.8);
         fx.ring(x, y, 'rgba(191,240,255,.9)', R(0.05), 3);
         fx.sound('swell', 1.2 + e.v * 0.08, 0.5);
         break;
       case 'plankSplash':
-        fx.burst(x, y, '#bff0ff', 12, 3.5, 2.4);
-        fx.burst(x, y, '#ffffff', 6, 2.5, 2);
-        if (e.v === 0) pop(cx, y - R(0.04), '풍덩!', '#e8f8ff', 22);
+        bst(x, y, '#bff0ff', 12, 3.5, 2.4);
+        bst(x, y, '#ffffff', 6, 2.5, 2);
+        if (e.v === 0) small(cx, y - R(0.04), '풍덩!', '#e8f8ff', 22);
         fx.kick(2);
         fx.sound('splash', 1.15 - e.v * 0.05, 0.6);
         break;
@@ -6195,39 +6381,39 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
         break;
       case 'potBreak':
         if (th && th.n === 1) {
-          pop(cx, y - R(0.06), '철썩!', '#bff0ff', 26);
-          fx.burst(x, y - R(0.01), '#7fd8ff', 20, 4, 2.4);
+          hl(cx, y - R(0.06), '철썩!', '#bff0ff', 26, 1);
+          bst(x, y - R(0.01), '#7fd8ff', 20, 4, 2.4);
           fx.kick(3);
           fx.sound('splash', 1, 0.9);
           break;
         }
         if (th && th.n === 2) {
-          pop(cx, y - R(0.08), '화르륵!', '#ffd0a0', 28);
-          for (const c of ['#ff8a3a', '#ffd25a']) fx.burst(x, y - R(0.02), c, 18, 4, 2.6);
+          hl(cx, y - R(0.08), '화르륵!', '#ffd0a0', 28, 1);
+          for (const c of ['#ff8a3a', '#ffd25a']) bst(x, y - R(0.02), c, 18, 4, 2.6);
           fx.kick(4);
           fx.sound('crack', 1.4, 0.8);
           fx.sound('zap', 0.6, 0.6);
           break;
         }
-        pop(cx, y - R(0.06), '쨍그랑!', '#ffd8c8', 26);
-        fx.burst(x, y - R(0.01), '#d86a3a', 18, 4, 2.4);
-        fx.burst(x, y - R(0.01), '#7a5a3a', 10, 3, 2);
+        hl(cx, y - R(0.06), '쨍그랑!', '#ffd8c8', 26, 1);
+        bst(x, y - R(0.01), '#d86a3a', 18, 4, 2.4);
+        bst(x, y - R(0.01), '#7a5a3a', 10, 3, 2);
         fx.kick(4);
         fx.sound('crack', 1.4, 0.9);
         break;
       case 'barrelSmash':
-        pop(cx, y - R(0.06), '와장창!', '#ffe0c8', 24);
-        fx.burst(x, y - R(0.02), '#b8743a', 18, 4, 2.6);
+        hl(cx, y - R(0.06), '와장창!', '#ffe0c8', 24, 1);
+        bst(x, y - R(0.02), '#b8743a', 18, 4, 2.6);
         fx.kick(4);
         fx.sound('crack', 0.8, 0.8);
         fx.sound('thud', 0.9, 0.7);
         break;
       case 'gearStop':
-        fx.burst(x, y, '#c8a080', 10, 2.5, 2);
+        bst(x, y, '#c8a080', 10, 2.5, 2);
         fx.sound('thud', 0.7, 0.8);
         break;
       case 'arrowStick':
-        fx.burst(x, y, '#c8a080', 8, 2, 1.8);
+        bst(x, y, '#c8a080', 8, 2, 1.8);
         fx.sound('thud', 1.8, 0.4);
         break;
       case 'arrowHome':
@@ -6235,18 +6421,18 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
         fx.sound('whoosh', 1.9, 0.4);
         break;
       case 'arrowPull':
-        fx.burst(x, y, '#c8a080', 6, 2, 1.6);
+        bst(x, y, '#c8a080', 6, 2, 1.6);
         fx.sound('pop', 1.6, 0.5);
         break;
       case 'gearUnstop':
-        fx.burst(x, y, '#ffd25a', 10, 2.5, 2);
+        bst(x, y, '#ffd25a', 10, 2.5, 2);
         fx.sound('swell', 0.7, 0.7);
         break;
       case 'revive': {
         const q = e.v % 6;
         // 하늘·탑 위의 것은 글자를 아래에 (제목 띠와 겹치지 않게)
-        pop(x, y < R(0.36) ? y + R(0.09) : y - R(0.06), FIX_NAME[e.v] + '!', '#fff27a', 30);
-        for (const c of ['#ffd25a', '#ffffff', ['#7fe8ff', '#ff8ab8', '#7ad86a'][q % 3]]) fx.burst(x, y, c, 16, 4.5, 2.6);
+        hl(x, y < R(0.36) ? y + R(0.09) : y - R(0.06), FIX_NAME[e.v] + '!', '#fff27a', 30, 3);
+        for (const c of ['#ffd25a', '#ffffff', ['#7fe8ff', '#ff8ab8', '#7ad86a'][q % 3]]) bst(x, y, c, 16, 4.5, 2.6);
         fx.ring(x, y, '#fff27a', R(0.14), 5);
         fx.kick(3);
         fx.sound('pop', 1 + q * 0.08, 0.7);
@@ -6254,100 +6440,100 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
         break;
       }
       case 'notch':
-        pop(x, y - R(0.15), e.v >= 3 ? '정각! 땡—' : '째깍! 한 칸', '#ffffff', 32);
+        hl(x, y - R(0.15), e.v >= 3 ? '정각! 땡—' : '째깍! 한 칸', '#ffffff', 32, 3);
         fx.ring(x, y, '#ffd25a', R(0.2), 7);
-        for (const c of ['#ffd25a', '#ffffff']) fx.burst(x, y, c, 22, 5, 2.6);
+        for (const c of ['#ffd25a', '#ffffff']) bst(x, y, c, 22, 5, 2.6);
         fx.blink('#fff6c8', 0.22);
         fx.kick(6);
         fx.sound('tick', 0.7, 1);
         fx.sound('chime', 0.75, 1.2);
         break;
       case 'stackTip':
-        pop(cx, y - R(0.1), '기우뚱…', '#ffe8c8', 20);
+        small(cx, y - R(0.1), '기우뚱…', '#ffe8c8', 20);
         fx.sound('crack', 0.7, 0.5);
         break;
       case 'stackFall':
-        pop(cx, y - R(0.1), '와르르!', '#ffe0c8', 30);
-        for (const c of ['#c8884a', '#e8d0b0']) fx.burst(x, y, c, 16, 4.5, 2.6);
+        hl(cx, y - R(0.1), '와르르!', '#ffe0c8', 30, 1);
+        for (const c of ['#c8884a', '#e8d0b0']) bst(x, y, c, 16, 4.5, 2.6);
         fx.kick(7);
         fx.sound('thud', 0.55, 1.1);
         fx.sound('crack', 0.9, 0.6);
         break;
       case 'stackStairs':
-        pop(cx, y - R(0.12), '계단이다!', '#fff27a', 28);
+        hl(cx, y - R(0.12), '계단이다!', '#fff27a', 28, 3);
         fx.ring(x, y, '#ffd25a', R(0.14), 5);
-        fx.burst(x, y, '#ffd25a', 16, 3.5, 2.4);
+        bst(x, y, '#ffd25a', 16, 3.5, 2.4);
         fx.sound('ding', 1.2, 0.9);
         fx.sound('chime', 1.4, 0.6);
         break;
       case 'ferryGo':
-        fx.burst(x, y, '#bff0ff', 10, 2.5, 2);
+        bst(x, y, '#bff0ff', 10, 2.5, 2);
         fx.sound('whoosh', 0.9, 0.4);
         fx.sound('splash', 1.4, 0.3);
         break;
       case 'ferryArrive':
-        fx.burst(x, y, '#bff0ff', 16, 3.5, 2.4);
+        bst(x, y, '#bff0ff', 16, 3.5, 2.4);
         fx.kick(3);
         fx.sound('thud', 0.8, 0.7);
         fx.sound('splash', 1.1, 0.5);
         break;
       case 'sackSlip':
-        pop(cx, y - R(0.08), '주르륵', '#ffe8c8', 20);
+        small(cx, y - R(0.08), '주르륵', '#ffe8c8', 20);
         fx.sound('whoosh', 1.2, 0.5);
         break;
       case 'sackLand':
-        fx.burst(x, y, '#e8d0a0', 16, 3.5, 2.4);
+        bst(x, y, '#e8d0a0', 16, 3.5, 2.4);
         fx.kick(4);
         fx.sound('thud', 0.7, 1);
         break;
       case 'sackBack':
-        fx.burst(x, y, '#bff0ff', 12, 3, 2.2);
+        bst(x, y, '#bff0ff', 12, 3, 2.2);
         fx.sound('swell', 0.9, 0.7);
         break;
       case 'steam':
-        pop(cx, y - R(0.12), '치이익— 불 끔!', '#ffffff', 28);
-        for (const c of ['#ffffff', '#dfe8f0', '#bff0ff']) fx.burst(x, y, c, 18, 4, 3);
+        hl(cx, y - R(0.12), '치이익— 불 끔!', '#ffffff', 28, 3);
+        for (const c of ['#ffffff', '#dfe8f0', '#bff0ff']) bst(x, y, c, 18, 4, 3);
         fx.ring(x, y, '#ffffff', R(0.14), 5);
         fx.kick(4);
         fx.sound('splash', 1.4, 0.9);
         fx.sound('shrink', 1.2, 0.7);
         break;
       case 'guard':
-        pop(cx, y - R(0.12), '어흠!', '#ffe8c8', 18);
+        small(cx, y - R(0.12), '어흠!', '#ffe8c8', 18);
         fx.sound('tick', 0.9, 0.5);
         break;
       case 'shove':
-        pop(cx, y - R(0.12), '으앗, 밀려났다!', '#ffe8c8', 22);
-        fx.burst(x, y, '#e8d0b0', 12, 3, 2.2);
+        small(cx, y - R(0.12), '으앗, 밀려났다!', '#ffe8c8', 22);
+        bst(x, y, '#e8d0b0', 12, 3, 2.2);
         fx.kick(4);
         fx.sound('boing', 1.1, 0.7);
         break;
       case 'land':
-        fx.burst(x, y, '#e8d8c0', 6, 2, 1.8);
+        bst(x, y, '#e8d8c0', 6, 2, 1.8);
         fx.sound('thud', 1.4, 0.4);
         break;
       case 'shoot':
-        pop(cx, y - R(0.04), '슝!', '#ffe0d0', 20);
+        small(cx, y - R(0.04), '슝!', '#ffe0d0', 20);
         fx.sound('zap', 1.4, 0.5);
         fx.sound('whoosh', 1.6, 0.4);
         break;
       case 'weir':
-        fx.burst(x, y, '#ffffff', 20, 4, 2.6);
+        bst(x, y, '#ffffff', 20, 4, 2.6);
         fx.sound('splash', 0.7, 0.9);
         break;
       case 'treeFall':
-        pop(cx, y - R(0.2), '쿵— 기우뚱', '#fff2d0', 20);
+        small(cx, y - R(0.2), '쿵— 기우뚱', '#fff2d0', 20);
         fx.sound('crack', 0.7, 0.7);
         break;
       case 'logLand':
-        fx.burst(x, y, '#bff0ff', 22, 4.5, 2.6);
+        bst(x, y, '#bff0ff', 22, 4.5, 2.6);
         fx.kick(5);
         fx.sound('thud', 0.6, 1);
         fx.sound('splash', 0.8, 0.8);
         break;
       case 'burst':
-        pop(cx, y - R(0.12), '콸콸!', '#bff0ff', 28);
-        fx.burst(x, y, '#7fd8ff', 22, 4.5, 2.6);
+        hl(cx, y - R(0.12), '콸콸!', '#bff0ff', 28, 1);
+        bst(x, y, '#7fd8ff', 22, 4.5, 2.6);
         fx.kick(4);
         fx.sound('crack', 0.9, 0.6);
         fx.sound('splash', 0.8, 1);
@@ -6356,31 +6542,31 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
         fx.sound('whoosh', 0.8, 0.6);
         break;
       case 'crateLand':
-        pop(cx, y - R(0.05), '쿵!', '#ffe0c8', 30);
-        fx.burst(x, y, '#e8d0b0', 20, 4, 2.6);
+        hl(cx, y - R(0.05), '쿵!', '#ffe0c8', 30, 1);
+        bst(x, y, '#e8d0b0', 20, 4, 2.6);
         fx.kick(7);
         fx.sound('thud', 0.55, 1.2);
         break;
       case 'balloonGone':
       case 'lost':
-        pop(cx, Math.max(R(0.2), y - R(0.06)), '아앗, 놓쳤다…', '#ffe0e0', 22);
+        hl(cx, Math.max(R(0.2), y - R(0.06)), '아앗, 놓쳤다…', '#ffe0e0', 22, 2);
         fx.sound('fail', 1.3, 0.5);
         break;
       case 'hurt':
-        pop(cx, y - R(0.08), '아야!', '#ffd0d0', 26);
-        fx.burst(x, y, '#ffffff', 12, 3, 2);
+        hl(cx, y - R(0.08), '아야!', '#ffd0d0', 26, 2);
+        bst(x, y, '#ffffff', 12, 3, 2);
         fx.kick(5);
         fx.sound('thud', 1.1, 0.8);
         fx.sound('fail', 1.4, 0.4);
         break;
       case 'wet':
-        pop(cx, y - R(0.08), '냐아아!', '#bff0ff', 26);
-        fx.burst(x, y, '#7fd8ff', 14, 3, 2.2);
+        hl(cx, y - R(0.08), '냐아아!', '#bff0ff', 26, 2);
+        bst(x, y, '#7fd8ff', 14, 3, 2.2);
         fx.sound('splash', 1.3, 0.7);
         break;
       case 'bonk':
-        pop(cx, y - R(0.12), s.W.hero.why || '쿵!', '#ffd0c0', 30);
-        for (const c of ['#ffffff', '#ffe066']) fx.burst(x, y, c, 16, 4.5, 2.4);
+        hl(cx, y - R(0.12), s.W.hero.why || '쿵!', '#ffd0c0', 30, 3);
+        for (const c of ['#ffffff', '#ffe066']) bst(x, y, c, 16, 4.5, 2.4);
         fx.ring(x, y, '#ffe066', R(0.1), 5);
         fx.kick(9);
         fx.blink('#ffb0a0', 0.2);
@@ -6388,9 +6574,9 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
         fx.sound('thud', 0.9, 0.9);
         break;
       case 'splash':
-        pop(cx, y - R(0.1), '풍덩!', '#bff0ff', 34);
-        fx.burst(x, y, '#bff0ff', 26, 5, 2.8);
-        fx.burst(x, y, '#ffffff', 12, 3.5, 2);
+        hl(cx, y - R(0.1), '풍덩!', '#bff0ff', 34, 3);
+        bst(x, y, '#bff0ff', 26, 5, 2.8);
+        bst(x, y, '#ffffff', 12, 3.5, 2);
         fx.kick(7);
         fx.sound('splash', 0.6, 1.2);
         break;
@@ -6398,7 +6584,7 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
         fx.sound('whoosh', 0.6, 0.7);
         break;
       case 'stuck':
-        pop(cx, y - R(0.18), '어?', '#ffffff', 22);
+        small(cx, y - R(0.18), '어?', '#ffffff', 22);
         fx.sound('tick', 0.8, 0.4);
         break;
       case 'board':
@@ -6408,8 +6594,8 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
         fx.sound('pop', 1.2, 0.5);
         break;
       case 'gearGet':
-        pop(cx, y - R(0.14), '시계 부품!', '#fff27a', 36);
-        for (const c of ['#ffd25a', '#ffffff', '#ffe066']) fx.burst(x, y - R(0.07), c, 20, 5, 2.8);
+        hl(cx, y - R(0.14), '시계 부품!', '#fff27a', 36, 3);
+        for (const c of ['#ffd25a', '#ffffff', '#ffe066']) bst(x, y - R(0.07), c, 20, 5, 2.8);
         fx.ring(x, y - R(0.07), '#ffd25a', R(0.18), 6);
         fx.blink('#fff6c8', 0.25);
         fx.kick(6);
@@ -6417,15 +6603,15 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
         fx.sound('chime', 1.2, 0.8);
         break;
       case 'notyet':
-        pop(cx, y - R(0.05), '아직 그대로예요', '#ffffff', 16);
+        small(cx, y - R(0.05), '아직 그대로예요', '#ffffff', 16);
         fx.sound('tick', 1.3, 0.4);
         break;
       case 'nosand':
-        pop(cx, y - R(0.05), '모래가 없어요', '#ffd0c0', 18);
+        small(cx, y - R(0.05), '모래가 없어요', '#ffd0c0', 18);
         fx.sound('fail', 1.6, 0.4);
         break;
       case 'empty':
-        pop(cx, y - R(0.06), '모래가 다 떨어졌다!', '#ffd0c0', 20);
+        hl(cx, y - R(0.06), '모래가 다 떨어졌다!', '#ffd0c0', 20, 2);
         fx.sound('fail', 1.4, 0.5);
         break;
       case 'miss':
@@ -6439,7 +6625,7 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
           const a = thingCenter(th), b = thingCenter(o);
           fx.ring(X(a.x), Y(a.y), '#c8a8ff', R(0.12), 5);
           fx.ring(X(b.x), Y(b.y), '#c8a8ff', R(0.12), 5);
-          pop((X(a.x) + X(b.x)) / 2, Math.min(Y(a.y), Y(b.y)) - R(0.08), '두 개 함께!', '#e8d8ff', 30);
+          hl((X(a.x) + X(b.x)) / 2, Math.min(Y(a.y), Y(b.y)) - R(0.08), '두 개 함께!', '#e8d8ff', 30, 3);
         }
         fx.blink('#e8d8ff', 0.2);
         fx.sound('chime', 1.5, 0.8);
@@ -6447,13 +6633,13 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
         break;
       }
       case 'wake':
-        pop(cx, y - R(0.04), e.v === 3 ? '저기 고양이!' : '앗, 올라온다!', '#ffd0c0', 22);
+        small(cx, y - R(0.04), e.v === 3 ? '저기 고양이!' : '앗, 올라온다!', '#ffd0c0', 22);
         fx.ring(x, y, '#ff6a5a', R(0.07), 4);
         fx.sound('zap', 0.9, 0.5);
         fx.sound('boing', 1.6, 0.4);
         break;
       case 'ability':
-        for (const c of ['#ffd25a', '#7fe8ff', '#ff8ab8', '#ffffff']) fx.burst(x, y, c, 18, 5, 2.8);
+        for (const c of ['#ffd25a', '#7fe8ff', '#ff8ab8', '#ffffff']) bst(x, y, c, 18, 5, 2.8);
         fx.ring(x, y, '#ffd25a', R(0.3), 7);
         fx.blink('#fff6c8', 0.3);
         fx.kick(6);
@@ -6478,7 +6664,7 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
         break;
       case 'hint':
         fx.ring(BULB[0] * w, BULB[1] * w, '#ffe066', w * 0.09, 5);
-        fx.burst(BULB[0] * w, BULB[1] * w, '#ffe066', 12, 3, 2);
+        bst(BULB[0] * w, BULB[1] * w, '#ffe066', 12, 3, 2);
         fx.sound('chime', 1.4, 0.7);
         fx.sound('ding', 1.8, 0.4);
         break;
@@ -6486,7 +6672,7 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
         fx.sound('ding', 1.5, 0.6);
         break;
       case 'knock':
-        pop(cx, y - R(0.06), '쿵! 흔들흔들', '#ffe8c8', 20);
+        small(cx, y - R(0.06), '쿵! 흔들흔들', '#ffe8c8', 20);
         fx.ring(x, y, '#ffffff', R(0.06), 3);
         fx.kick(2);
         fx.sound('thud', 1.2, 0.6);
@@ -6495,9 +6681,9 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
       case 'chain': {
         // 연쇄 되감기: 되감는 물건이 밀었던 것까지 끌고 온다 — 화면 번쩍·줄무늬·낮은 되감기 소리
         const tc = th ? thingCenter(th) : { x: e.x, y: e.y, r: 0.06 };
-        pop(Math.max(R(0.16), Math.min(X(1) - R(0.16), X(tc.x))), Y(tc.y) - R(0.12), '연쇄 되감기!', '#bff6ff', 32);
+        hl(Math.max(R(0.16), Math.min(X(1) - R(0.16), X(tc.x))), Y(tc.y) - R(0.12), '연쇄 되감기!', '#bff6ff', 32, 3);
         fx.ring(X(tc.x), Y(tc.y), '#7fe8ff', R(0.16), 6);
-        for (const c of ['#7fe8ff', '#ffffff', '#ffd25a']) fx.burst(X(tc.x), Y(tc.y), c, 14, 4.5, 2.6);
+        for (const c of ['#7fe8ff', '#ffffff', '#ffd25a']) bst(X(tc.x), Y(tc.y), c, 14, 4.5, 2.6);
         fx.blink('#bff0ff', 0.3);
         fx.kick(6);
         fx.sound('rewind', 0.7, 1.1);
@@ -6505,12 +6691,12 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
         break;
       }
       case 'chainHome':
-        pop(cx, y - R(0.06), '착!', '#fff27a', 26);
-        fx.burst(x, y, '#ffd25a', 14, 3.5, 2.2);
+        small(cx, y - R(0.06), '착!', '#fff27a');
+        bst(x, y, '#ffd25a', 14, 3.5, 2.2);
         fx.sound('ding', 1.4, 0.8);
         break;
       case 'clear':
-        for (const c of ['#ffe066', '#ff8ab8', '#7fe8ff', '#7ad86a', '#ffffff']) fx.burst(X(0.5), Y(0.45), c, 20, 6, 3);
+        for (const c of ['#ffe066', '#ff8ab8', '#7fe8ff', '#7ad86a', '#ffffff']) bst(X(0.5), Y(0.45), c, 20, 6, 3);
         fx.blink('#fff6c8', 0.22);
         fx.sound('clear', 1, 1);
         break;
@@ -6530,7 +6716,7 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
   }
   if (s.phase === 'result' && s.ok && s.won && t % 14 === 0) {
     const fxx = X(0.15 + hsh(t) * 0.7), fyy = Y(0.08 + hsh(t + 1) * 0.25);
-    for (const c of ['#ff5a7a', '#ffd25a', '#7fe8ff', '#7ad86a']) fx.burst(fxx, fyy, c, 10, 4, 2.4);
+    for (const c of ['#ff5a7a', '#ffd25a', '#7fe8ff', '#7ad86a']) bst(fxx, fyy, c, 10, 4, 2.4);
     fx.sound('pop', 0.7 + hsh(t + 2) * 0.6, 0.6);
   }
   fx.memo.t = t;

@@ -657,6 +657,7 @@ function pumpHint(s: SwapState) {
 const hintReady = (s: SwapState) => hintLeft(s) <= 0 || planMem.has(planKey(s.stage, s.w, hintLeft(s)));
 
 // ── 힌트 말(무엇을 왜) ──
+const jong = (w: string) => (w.charCodeAt(w.length - 1) - 0xac00) % 28 > 0;
 /** 이 바꾸기를 하면 무슨 일이? — 한 줄(한글 22자 안팎): "코끼리 ↔ 생쥐 — 작아져서 굴로 쏙" */
 const HINT_MAX = 22;
 function explain(w0: World, a: number, b: number): string {
@@ -708,7 +709,8 @@ function explain(w0: World, a: number, b: number): string {
   if (!said.length) {
     // 당장 일은 없지만 다음 수를 위한 준비(맡겨 두기)
     const big = c.th[a].z > before[a].z ? a : b;
-    said.push(`${thName(c, c.th[big])}에게 크기 맡기기`);
+    const nmB = thName(c, c.th[big]);
+    said.push(`${nmB}${jong(nmB) ? '을' : '를'} 크게 해 두기`);
   }
   // 한 줄에 맞게: 둘이 들어가면 둘, 아니면 하나
   const two = `${head} — ${said[0]}${said[1] ? ' · ' + said[1] : ''}`;
