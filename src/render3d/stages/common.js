@@ -822,7 +822,7 @@ export function rock(parent, x, y, z, s = 1, r = Math.random, col = '#b9b2c6') {
 /** 나무 울타리(x0 → x1, 깊이 z(x)). 기둥 사이 간격 gap. */
 export function fence(parent, pts, { gap = 0.62, h = 0.42, col = '#b37a45', dark = '#8a5a34', y = () => 0 } = {}) {
   const g = G(parent);
-  const post = roundBoxGeo(0.085, h, 0.085, 0.02, 2);
+  const post = roundBoxGeo(0.085, h, 0.085, 0.02, 1);
   for (let k = 0; k < pts.length - 1; k++) {
     const [ax, az] = pts[k];
     const [bx, bz] = pts[k + 1];
@@ -836,7 +836,7 @@ export function fence(parent, pts, { gap = 0.62, h = 0.42, col = '#b37a45', dark
       const z = az + (bz - az) * t;
       g.add(P(post, dark, { pos: [x, y(x, z) + h / 2 - 0.02, z], rot: [0, -ang, 0] }));
     }
-    const rail = roundBoxGeo(len + 0.05, 0.06, 0.04, 0.018, 2);
+    const rail = roundBoxGeo(len + 0.05, 0.06, 0.04, 0.018, 1);
     const mx = (ax + bx) / 2;
     const mz = (az + bz) / 2;
     const my = y(mx, mz);
@@ -848,13 +848,13 @@ export function fence(parent, pts, { gap = 0.62, h = 0.42, col = '#b37a45', dark
 /** 하얀 말뚝 울타리. */
 export function picketFence(parent, x0, x1, z, { h = 0.34, col = '#fbf6ec', y = 0, gap = 0.16 } = {}) {
   const g = G(parent);
-  const pk = roundBoxGeo(0.07, h, 0.035, 0.015, 2);
+  const pk = boxGeo(0.07, h, 0.035);
   const tip = coneGeo(0.05, 0.06, 4);
   for (let x = x0; x <= x1; x += gap) {
     g.add(P(pk, col, { pos: [x, y + h / 2, z], fin: 'soft' }));
     g.add(P(tip, col, { pos: [x, y + h + 0.03, z], rot: [0, Math.PI / 4, 0], fin: 'soft' }));
   }
-  const rail = roundBoxGeo(x1 - x0 + 0.1, 0.045, 0.03, 0.012, 2);
+  const rail = boxGeo(x1 - x0 + 0.1, 0.045, 0.03);
   for (const ry of [h * 0.3, h * 0.72]) g.add(P(rail, col, { pos: [(x0 + x1) / 2, y + ry, z - 0.03], fin: 'soft' }));
   return g;
 }
@@ -909,82 +909,102 @@ export function extrudeGeo(key, pts, d, bevel = 0) {
 }
 
 /**
- * 동화풍 집. 정면은 +z.
- * o = { w, d, h, wall, roof, trim, door, chimney, win, floors, detail(0..2), lit }
+ * 동화풍 집. 정면은 +z. side = true 면 처마 쪽(긴 지붕 비탈)이 정면을 본다.
+ * o = { w, d, h, wall, roof, trim, door, chimney, win, floors, detail(0..2), lit, side, shutters }
  */
 export function house(parent, x, y, z, ry = 0, s = 1, o = {}) {
   const g = G(parent, x, y, z, ry, s);
-  const w = o.w ?? 1.2;
-  const d = o.d ?? 1.0;
+  const side = !!o.side;
+  const inner = G(g, 0, 0, 0, side ? -Math.PI / 2 : 0);
+  const w = o.w ?? 1.2; // 박공 쪽 폭(x)
+  const d = o.d ?? 1.0; // 깊이(z)
   const h = o.h ?? 0.8;
   const wall = o.wall || '#fbeed2';
   const roof = o.roof || '#e0773b';
   const trim = o.trim || '#ffffff';
   const detail = o.detail ?? 2;
-  const pitch = o.pitch ?? 0.62; // 지붕 높이 / 반폭
-  g.add(P(detail > 0 ? roundBoxGeo(w, h, d, 0.04, 2) : boxGeo(w, h, d), wall, { pos: [0, h / 2, 0], fin: 'soft' }));
-  // 박공
+  const pitch = o.pitch ?? 0.7;
+  inner.add(P(detail > 0 ? roundBoxGeo(w, h, d, 0.04, 2) : boxGeo(w, h, d), wall, { pos: [0, h / 2, 0], fin: 'soft' }));
   const rh = (w / 2) * pitch;
-  g.add(P(gableGeo(w, rh, d * 0.98), wall, { pos: [0, h, 0], fin: 'soft' }));
-  // 지붕판 두 장 + 용마루
-  const over = o.over ?? 0.12;
+  inner.add(P(gableGeo(w, rh, d * 0.98), wall, { pos: [0, h, 0], fin: 'soft' }));
+  // 지붕판 두 장 + 용마루(두툼하게)
+  const over = o.over ?? 0.15;
   const ang = Math.atan2(rh, w / 2);
-  const len = (w / 2 + over) / Math.cos(ang) + 0.04;
-  const th = 0.09;
+  const th = detail > 0 ? 0.13 : 0.11;
+  const len = (w / 2 + over) / Math.cos(ang) + 0.05;
   const rd = d + 2 * over * 0.9;
-  const rg = detail > 0 ? roundBoxGeo(len, th, rd, 0.035, 2) : boxGeo(len, th, rd);
+  const rg = detail > 0 ? roundBoxGeo(len, th, rd, 0.05, 2) : boxGeo(len, th, rd);
   for (const sgn of [-1, 1]) {
-    const cx = sgn * ((len / 2 - 0.04) * Math.cos(ang) + (th / 2) * Math.sin(ang));
-    const cy = h + rh - (len / 2 - 0.04) * Math.sin(ang) + (th / 2) * Math.cos(ang);
-    g.add(P(rg, roof, { pos: [cx, cy, 0], rot: [0, 0, -sgn * ang], fin: 'soft' }));
+    const cx = sgn * ((len / 2 - 0.05) * Math.cos(ang) + (th / 2) * Math.sin(ang));
+    const cy = h + rh - (len / 2 - 0.05) * Math.sin(ang) + (th / 2) * Math.cos(ang);
+    inner.add(P(rg, roof, { pos: [cx, cy, 0], rot: [0, 0, -sgn * ang], fin: 'soft' }));
   }
-  g.add(P(detail > 0 ? cylGeo(0.06, 0.06, rd, 8) : boxGeo(0.1, 0.1, rd), o.ridge || roof, { pos: [0, h + rh + th * 0.75, 0], rot: [Math.PI / 2, 0, 0], fin: 'soft' }));
+  inner.add(P(detail > 0 ? cylGeo(0.075, 0.075, rd, 8) : boxGeo(0.12, 0.12, rd), o.ridge || roof, { pos: [0, h + rh + th * 0.8, 0], rot: [Math.PI / 2, 0, 0], fin: 'soft' }));
   if (o.chimney !== false && detail > 0) {
     const cx = (o.chimneyX ?? 0.25) * w;
-    g.add(P(roundBoxGeo(0.16, 0.42, 0.16, 0.025, 2), o.chimneyCol || '#c7745a', { pos: [cx, h + rh * 0.75, -d * 0.15], fin: 'soft' }));
-    g.add(P(roundBoxGeo(0.2, 0.06, 0.2, 0.02, 2), '#8a4f3e', { pos: [cx, h + rh * 0.75 + 0.22, -d * 0.15], fin: 'soft' }));
+    const cy = h + rh * (1 - Math.abs(cx) / (w / 2)) + 0.12;
+    inner.add(P(boxGeo(0.18, 0.46, 0.18), o.chimneyCol || '#c7745a', { pos: [cx, cy, -d * 0.18], fin: 'soft' }));
+    inner.add(P(boxGeo(0.23, 0.07, 0.23), '#8a4f3e', { pos: [cx, cy + 0.25, -d * 0.18], fin: 'soft' }));
   }
+  const winCol = o.lit ? '#ffd98a' : o.win || (detail > 0 ? '#9fd3ff' : '#86aede');
+  const fin = o.lit ? 'glow' : detail > 0 ? 'gloss' : 'soft';
+  // 정면(바깥 +z 쪽에서 본 면): side 면 inner 의 +x 면
+  const faceW = side ? d : w;
+  const put = (geo, col, fx, fy, out, f, rot = 0) => {
+    // fx: 정면 가로 위치, out: 벽에서 나온 거리
+    if (side) inner.add(P(geo, col, { pos: [w / 2 + out, fy, -fx], rot: [0, Math.PI / 2 + rot, 0], fin: f, cast: false }));
+    else inner.add(P(geo, col, { pos: [fx, fy, d / 2 + out], rot: [0, rot, 0], fin: f, cast: false }));
+  };
+  const floors = o.floors ?? 1;
+  const fh = h / floors;
   if (detail > 0) {
-    // 창문
-    const winCol = o.lit ? '#ffd98a' : o.win || '#9fd3ff';
-    const fin = o.lit ? 'glow' : 'gloss';
-    const floors = o.floors ?? 1;
-    const fh = h / floors;
-    const wg = roundBoxGeo(0.2, 0.22, 0.04, 0.02, 2);
-    const fr = roundBoxGeo(0.27, 0.29, 0.03, 0.02, 2);
-    const cols = Math.max(1, Math.round(w / 0.45));
+    const wg = boxGeo(0.2, 0.23, 0.04);
+    const fr = boxGeo(0.28, 0.31, 0.03);
+    const sill = boxGeo(0.32, 0.04, 0.08);
+    const mull = boxGeo(0.02, 0.23, 0.045);
+    const shut = boxGeo(0.09, 0.27, 0.03);
+    const cols = Math.max(1, Math.round(faceW / 0.5));
+    const doorX = o.doorX ?? (side ? -faceW * 0.18 : 0);
     for (let f = 0; f < floors; f++) {
-      const wy = fh * f + fh * 0.58;
+      const wy = fh * f + fh * 0.56;
       for (let c = 0; c < cols; c++) {
-        const wx = cols === 1 ? 0.25 * w : -w / 2 + (w / cols) * (c + 0.5);
-        if (f === 0 && Math.abs(wx) < 0.2 && o.door !== false) continue;
-        g.add(P(fr, trim, { pos: [wx, wy, d / 2 + 0.005], fin: 'soft', cast: false }));
-        g.add(P(wg, winCol, { pos: [wx, wy, d / 2 + 0.02], fin, cast: false }));
-      }
-      if (detail > 1) {
-        // 옆면 창
-        g.add(P(fr, trim, { pos: [w / 2 + 0.005, wy, 0], rot: [0, Math.PI / 2, 0], fin: 'soft', cast: false }));
-        g.add(P(wg, winCol, { pos: [w / 2 + 0.02, wy, 0], rot: [0, Math.PI / 2, 0], fin, cast: false }));
+        const wx = cols === 1 ? 0.25 * faceW : -faceW / 2 + (faceW / cols) * (c + 0.5);
+        if (f === 0 && Math.abs(wx - doorX) < 0.24 && o.door !== false) continue;
+        put(fr, trim, wx, wy, 0.012, 'soft');
+        put(wg, winCol, wx, wy, 0.022, fin);
+        put(mull, trim, wx, wy, 0.03, 'soft');
+        put(sill, trim, wx, wy - 0.16, 0.03, 'soft');
+        if (o.shutters) {
+          put(shut, o.shutters, wx - 0.19, wy, 0.02, 'soft');
+          put(shut, o.shutters, wx + 0.19, wy, 0.02, 'soft');
+        }
       }
     }
-    // 박공 둥근 창
-    if (detail > 1 && rh > 0.3) {
-      g.add(P(cylGeo(0.09, 0.09, 0.03, 14), trim, { pos: [0, h + rh * 0.38, d / 2 + 0.005], rot: [Math.PI / 2, 0, 0], fin: 'soft', cast: false }));
-      g.add(P(cylGeo(0.065, 0.065, 0.03, 14), winCol, { pos: [0, h + rh * 0.38, d / 2 + 0.015], rot: [Math.PI / 2, 0, 0], fin, cast: false }));
+    // 박공 둥근 창(박공이 정면일 때)
+    if (!side && detail > 1 && rh > 0.3) {
+      put(cylGeo(0.1, 0.1, 0.03, 14), trim, 0, h + rh * 0.38, 0.0, 'soft');
+      inner.add(P(cylGeo(0.072, 0.072, 0.03, 14), winCol, { pos: [0, h + rh * 0.38, d / 2 + 0.015], rot: [Math.PI / 2, 0, 0], fin, cast: false }));
+    }
+    // 처마 쪽 지붕창(side)
+    if (side && detail > 1) {
+      const dm = G(inner, w * 0.22, h + rh * 0.5, -faceW * 0.15, Math.PI / 2, 1);
+      dm.add(P(boxGeo(0.36, 0.34, 0.4), wall, { pos: [0, 0.12, 0], fin: 'soft' }));
+      dm.add(P(gableGeo(0.36, 0.18, 0.42), wall, { pos: [0, 0.29, 0], fin: 'soft' }));
+      dm.add(P(boxGeo(0.3, 0.05, 0.5), roof, { pos: [-0.1, 0.38, 0], rot: [0, 0, 0.5], fin: 'soft' }));
+      dm.add(P(boxGeo(0.3, 0.05, 0.5), roof, { pos: [0.1, 0.38, 0], rot: [0, 0, -0.5], fin: 'soft' }));
+      dm.add(P(boxGeo(0.18, 0.2, 0.04), winCol, { pos: [0, 0.14, 0.2], fin, cast: false }));
     }
     if (o.door !== false) {
-      const dx = o.doorX ?? 0;
-      g.add(P(roundBoxGeo(0.26, 0.42, 0.05, 0.03, 2), o.door || '#8f5a3a', { pos: [dx, 0.21, d / 2 + 0.01], fin: 'soft', cast: false }));
-      g.add(P(roundBoxGeo(0.36, 0.05, 0.14, 0.02, 2), trim, { pos: [dx, 0.47, d / 2 + 0.06], fin: 'soft', cast: false }));
-      g.add(P(sphereGeo(0.022, 6, 4), '#ffd23f', { pos: [dx + 0.08, 0.21, d / 2 + 0.04], fin: 'metal', cast: false }));
+      put(boxGeo(0.3, 0.46, 0.04), trim, doorX, 0.23, 0.008, 'soft');
+      put(boxGeo(0.24, 0.42, 0.05), o.door || '#8f5a3a', doorX, 0.21, 0.015, 'soft');
+      put(boxGeo(0.4, 0.05, 0.16), trim, doorX, 0.5, 0.07, 'soft');
+      put(boxGeo(0.4, 0.05, 0.2), '#d9cfc2', doorX, 0.025, 0.1, 'soft');
     }
   } else {
-    // 먼 집: 창 몇 개만 점처럼
-    const winCol = o.lit ? '#ffd98a' : o.win || '#7fa6d8';
-    const fin = o.lit ? 'glow' : 'soft';
-    const wg = boxGeo(0.16, 0.18, 0.04);
-    g.add(P(wg, winCol, { pos: [-w * 0.22, h * 0.55, d / 2 + 0.01], fin }));
-    g.add(P(wg, winCol, { pos: [w * 0.22, h * 0.55, d / 2 + 0.01], fin }));
+    // 먼 집: 창 몇 개만
+    const wg = boxGeo(0.17, 0.2, 0.04);
+    const cols = Math.max(1, Math.round(faceW / 0.55));
+    for (let f = 0; f < floors; f++) for (let c = 0; c < cols; c++) put(wg, winCol, -faceW / 2 + (faceW / cols) * (c + 0.5), fh * f + fh * 0.55, 0.01, fin);
   }
   return g;
 }

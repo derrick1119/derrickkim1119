@@ -25,7 +25,7 @@ const SHY = 0.19;
 const ARM = 0.21; // 어깨 → 손 중심
 const LEG_X = 0.072;
 const FOOT_Y = -0.155; // 다리 관절 → 신발 가운데
-const YAW = 0.7; // 평소 3/4 돌아선 각
+const YAW = 0.55; // 평소 3/4 돌아선 각
 const FACE_A = 1.7; // 얼굴 그림이 덮는 각(가로·세로 같게 해서 그림의 원이 머리에서도 원이 되게)
 const FK = 256 / FACE_A; // 얼굴 그림 px / 라디안
 const OL = 0.017; // 외곽선(머리·몸통·모자)
@@ -96,7 +96,9 @@ function merged(key, make) {
 /** 옆모습 [[r, y], ...] 을 부드러운 곡선으로 이어 돌린 도형. phi 범위를 주면 앞판(부분 껍질)이 된다. */
 function lathe(key, pts, { seg = 32, n = 26, phiStart = 0, phiLength = TAU, smoothIt = true } = {}) {
   return cg(`lathe:${key}`, () => {
-    let v = pts.map(([r, y]) => new THREE.Vector2(r, y));
+    // 옆모습은 아래 → 위 순서여야 면이 바깥을 본다
+    const src = pts[0][1] > pts[pts.length - 1][1] ? [...pts].reverse() : pts;
+    let v = src.map(([r, y]) => new THREE.Vector2(r, y));
     if (smoothIt) v = new THREE.SplineCurve(v).getPoints(n);
     for (const p of v) p.x = Math.max(0, p.x);
     return new THREE.LatheGeometry(v, seg, phiStart, phiLength);
@@ -143,12 +145,12 @@ const headGeo = () =>
     ell([-0.228, -0.02, -0.01], [0.042, 0.058, 0.036], [0, 0, 0.2]),
     ell([0.228, -0.02, -0.01], [0.042, 0.058, 0.036], [0, 0, -0.2]),
   ]);
-const armGeo = () => cg('arm', () => place(capsuleGeo(0.047, 0.235, 6, 14), [0, -0.098, 0]));
+const armGeo = () => cg('arm', () => place(capsuleGeo(0.045, 0.235, 6, 14), [0, -0.098, 0]));
 const legGeo = () => cg('leg', () => place(capsuleGeo(0.06, 0.19, 6, 14), [0, -0.075, 0]));
 const shoeGeo = () => cg('shoe', () => ell([0, 0, 0.006], [0.07, 0.05, 0.098], [0, 0, 0], [22, 14]));
 const bootGeo = () =>
   merged('boot', () => [place(capsuleGeo(0.07, 0.15, 5, 14), [0, 0.055, -0.012]), ell([0, 0, 0.012], [0.074, 0.052, 0.1], [0, 0, 0], [22, 14])]);
-const handGeo = () => sphereGeo(0.056, 18, 12);
+const handGeo = () => sphereGeo(0.058, 18, 12);
 
 // 몸통 옆모습(몸통 원점 = 엉덩이 높이). 아래가 넓은 종 모양.
 const BODY = [[0, -0.072], [0.1, -0.07], [0.148, -0.05], [0.163, -0.005], [0.159, 0.07], [0.143, 0.14], [0.118, 0.195], [0.082, 0.234], [0.038, 0.255], [0, 0.26]];
@@ -207,13 +209,13 @@ const TONGUE = '#ff7b88';
 const EYE_INK = '#22183a';
 
 function blush(ctx, x, y) {
-  const g = ctx.createRadialGradient(x, y, 2, x, y, 27);
+  const g = ctx.createRadialGradient(x, y, 2, x, y, 33);
   g.addColorStop(0, 'rgba(255,96,112,0.62)');
   g.addColorStop(0.55, 'rgba(255,112,124,0.28)');
   g.addColorStop(1, 'rgba(255,120,130,0)');
   ctx.fillStyle = g;
   ctx.beginPath();
-  ctx.ellipse(x, y, 28, 20, 0, 0, TAU);
+  ctx.ellipse(x, y, 34, 24, 0, 0, TAU);
   ctx.fill();
 }
 
@@ -244,8 +246,8 @@ function glossy(ctx, x, y, rx, ry) {
 }
 
 function eye(ctx, x, y, sx, st, ex) {
-  const rx = st.lash ? 16.5 : 15.5;
-  const ry = st.lash ? 23 : 22;
+  const rx = st.lash ? 24 : 23;
+  const ry = st.lash ? 32 : 31;
   ctx.lineCap = 'round';
   if (ex === 'h') {
     // 웃는 눈 ^ ^
@@ -331,21 +333,21 @@ function eye(ctx, x, y, sx, st, ex) {
 }
 
 function brow(ctx, x, y, sx, st, ex) {
-  const w = st.browW || 7.5;
+  const w = st.browW || 9;
   ctx.strokeStyle = st.brow;
   ctx.lineCap = 'round';
-  let yb = y - 37;
+  let yb = y - 50;
   ctx.beginPath();
   if (ex === 's') {
-    ctx.moveTo(x + sx * 16, yb - 7);
-    ctx.lineTo(x - sx * 13, yb + 10);
+    ctx.moveTo(x + sx * 22, yb - 9);
+    ctx.lineTo(x - sx * 17, yb + 14);
     ctx.lineWidth = w * 1.3;
   } else {
     const lift = ex === 'l' ? 9 : ex === 'g' ? 14 : ex === 'h' ? 5 : 0;
     const arch = ex === 'l' || ex === 'g' ? 9 : 5;
     yb -= lift;
-    ctx.moveTo(x - 14, yb + 3);
-    ctx.quadraticCurveTo(x, yb - arch, x + 14, yb + 3);
+    ctx.moveTo(x - 19, yb + 4);
+    ctx.quadraticCurveTo(x, yb - arch, x + 19, yb + 4);
     ctx.lineWidth = w;
   }
   ctx.stroke();
@@ -358,55 +360,55 @@ function mouth(ctx, y, ex) {
     // 소리치는 입: 윗니가 보이는 D 자
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(-21, y - 7);
-    ctx.quadraticCurveTo(0, y - 11, 21, y - 7);
-    ctx.quadraticCurveTo(22, y + 21, 0, y + 23);
-    ctx.quadraticCurveTo(-22, y + 21, -21, y - 7);
+    ctx.moveTo(-26, y - 8);
+    ctx.quadraticCurveTo(0, y - 13, 26, y - 8);
+    ctx.quadraticCurveTo(27, y + 26, 0, y + 28);
+    ctx.quadraticCurveTo(-27, y + 26, -26, y - 8);
     ctx.closePath();
     ctx.fillStyle = MOUTH;
     ctx.fill();
     ctx.clip();
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(-24, y - 14, 48, 10);
+    ctx.fillRect(-30, y - 16, 60, 12);
     ctx.fillStyle = TONGUE;
     ctx.beginPath();
-    ctx.ellipse(0, y + 19, 13, 8, 0, 0, TAU);
+    ctx.ellipse(0, y + 24, 16, 10, 0, 0, TAU);
     ctx.fill();
     ctx.restore();
   } else if (ex === 'h') {
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(-18, y - 5);
-    ctx.quadraticCurveTo(0, y - 1, 18, y - 5);
-    ctx.quadraticCurveTo(16, y + 17, 0, y + 18);
-    ctx.quadraticCurveTo(-16, y + 17, -18, y - 5);
+    ctx.moveTo(-22, y - 6);
+    ctx.quadraticCurveTo(0, y - 1, 22, y - 6);
+    ctx.quadraticCurveTo(20, y + 21, 0, y + 22);
+    ctx.quadraticCurveTo(-20, y + 21, -22, y - 6);
     ctx.closePath();
     ctx.fillStyle = MOUTH;
     ctx.fill();
     ctx.clip();
     ctx.fillStyle = TONGUE;
     ctx.beginPath();
-    ctx.ellipse(0, y + 15, 11, 7, 0, 0, TAU);
+    ctx.ellipse(0, y + 18, 13, 8, 0, 0, TAU);
     ctx.fill();
     ctx.restore();
   } else if (ex === 'l' || ex === 'g') {
     const k = ex === 'g' ? 1.45 : 1;
     ctx.beginPath();
-    ctx.ellipse(0, y + 3, 8 * k, 10 * k, 0, 0, TAU);
+    ctx.ellipse(0, y + 3, 9.5 * k, 12 * k, 0, 0, TAU);
     ctx.fillStyle = MOUTH;
     ctx.fill();
     ctx.save();
     ctx.clip();
     ctx.fillStyle = TONGUE;
     ctx.beginPath();
-    ctx.ellipse(0, y + 3 + 9 * k, 7 * k, 5 * k, 0, 0, TAU);
+    ctx.ellipse(0, y + 3 + 11 * k, 8 * k, 6 * k, 0, 0, TAU);
     ctx.fill();
     ctx.restore();
   } else {
     ctx.beginPath();
-    ctx.moveTo(-10, y);
-    ctx.quadraticCurveTo(0, y + 9, 10, y);
-    ctx.lineWidth = 5;
+    ctx.moveTo(-12, y);
+    ctx.quadraticCurveTo(0, y + 11, 12, y);
+    ctx.lineWidth = 6;
     ctx.strokeStyle = MOUTH;
     ctx.stroke();
   }
@@ -418,14 +420,14 @@ function paintFace(ctx, s, st, ex) {
   ctx.save();
   ctx.scale(s / 256, s / 256);
   ctx.translate(128, 128);
-  const EX = 41;
-  const EY = 4;
-  blush(ctx, -67, 38);
-  blush(ctx, 67, 38);
+  const EX = 50;
+  const EY = 14;
+  blush(ctx, -82, 58);
+  blush(ctx, 82, 58);
   if (st.freckles) {
     ctx.fillStyle = 'rgba(176,96,52,0.75)';
     for (const sx of [-1, 1]) {
-      for (const [fx, fy] of [[58, 30], [70, 26], [64, 39], [76, 36], [52, 40]]) {
+      for (const [fx, fy] of [[70, 50], [86, 46], [78, 60], [94, 57], [63, 61]]) {
         ctx.beginPath();
         ctx.arc(sx * fx, fy, 2.6, 0, TAU);
         ctx.fill();
@@ -434,7 +436,7 @@ function paintFace(ctx, s, st, ex) {
   }
   for (const sx of [-1, 1]) eye(ctx, sx * EX, EY, sx, st, ex);
   for (const sx of [-1, 1]) brow(ctx, sx * EX, EY, sx, st, ex);
-  mouth(ctx, 52 + (st.mouthDY || 0), ex);
+  mouth(ctx, 72 + (st.mouthDY || 0), ex);
   ctx.restore();
 }
 
@@ -457,10 +459,10 @@ function netMaterial() {
     128,
     (ctx, w) => {
       ctx.clearRect(0, 0, w, w);
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
       ctx.fillRect(0, 0, w, w);
       ctx.strokeStyle = 'rgba(255,255,255,1)';
-      ctx.lineWidth = 6;
+      ctx.lineWidth = 8;
       ctx.beginPath();
       for (let i = -w; i <= 2 * w; i += w / 2) {
         ctx.moveTo(i, 0);
@@ -530,7 +532,7 @@ function buildPerson(parent, L, { legs = true } = {}) {
   P.neck.add(P.head);
   P.skin = M(L.skin, { rough: 0.62 });
   P.headMesh = add(P.head, headGeo(), P.skin, { outline: OL });
-  add(P.head, sphereGeo(0.033, 16, 12), M(tone(L.skin, -0.06), { rough: 0.55 }), { pos: onFace(0, 27, HR - 0.006) });
+  add(P.head, sphereGeo(0.032, 16, 12), M(tone(L.skin, -0.06), { rough: 0.55 }), { pos: onFace(0, 44, HR - 0.006) });
   P.faces = faceSet(L.face);
   P.face = faceCap(HR, P.faces.n, { width: FACE_A, height: FACE_A });
   P.head.add(P.face);
@@ -555,9 +557,36 @@ function buildPerson(parent, L, { legs = true } = {}) {
       P.legs.push(hip);
     }
   }
+  // 가리키는 손가락(올려다볼 때)
+  P.finger = add(P.torso, cg('finger', () => place(capsuleGeo(0.021, 0.085, 4, 8), [0, -0.035, 0])), handMat);
+  P.finger.visible = false;
   P.net = makeNet();
   P.torso.add(P.net);
   return P;
+}
+
+/**
+ * 올려다볼 때 카메라 쪽 팔: 기체 쪽 하늘을 손가락으로 가리킨다(머리가 커서 팔이 이마에 닿지 않으므로
+ * 손 차양 대신 머리 옆으로 팔을 쭉 뻗는다). k = 0..1
+ */
+function pointUp(P, st, bodyYaw, k) {
+  const yr = clamp(st.aim.yaw - bodyYaw, -0.6, 0.9);
+  const el = clamp(st.aim.elev, 0.6, 1.25);
+  _c.set(-0.55 + Math.sin(yr) * 0.12, 0.6 + el * 0.2, 0.2).normalize();
+  const sh = P.arms[0].userData.base;
+  const t = [sh.x + _c.x * ARM * 1.12, sh.y + 0.02 + _c.y * ARM * 1.12, sh.z + _c.z * ARM * 1.12];
+  st.F = [lerp(st.F[0], t[0], k), lerp(st.F[1], t[1], k), lerp(st.F[2], t[2], k)];
+  st.point = k;
+}
+
+/** 손가락을 손 끝에 붙인다. */
+function placeFinger(P, st) {
+  const show = (st.point || 0) > 0.5;
+  P.finger.visible = show;
+  if (show) {
+    P.finger.position.copy(P.hands[0].position);
+    P.finger.quaternion.copy(P.arms[0].quaternion);
+  }
 }
 
 /** 팔을 손 목표점(몸통 기준)으로 뻗는다. 닿지 않으면 조금 늘이고(만화식), 그래도 모자라면 손이 그쪽으로 멈춘다. */
@@ -660,7 +689,7 @@ function updateGround(R, pose) {
 
   // 고개
   const yawRel = clamp(st.aim.yaw - bodyYaw, -0.75, 0.75) * foc;
-  const pitch = foc * elev * (shock ? 0.32 : 0.6);
+  const pitch = foc * elev * (shock ? 0.32 : R.def.lookPitch ?? 0.6);
   const idle = 1 - Math.max(walk, foc);
   P.neck.rotation.set(-pitch + Math.sin(st.ph * 2) * 0.025 * walk + Math.sin(t * 1.3) * 0.02 * idle, yawRel, Math.sin(t * 1.7) * 0.035 * idle + (shock ? Math.sin(t * 14) * 0.05 : 0));
 
@@ -669,16 +698,12 @@ function updateGround(R, pose) {
   st.B = [0.205, -0.002, 0.035 - sw * 0.11];
   for (const sh of P.arms) sh.position.copy(sh.userData.base);
   if (shock) {
-    st.F = [-0.2, 0.36, 0.11];
-    st.B = [0.22, 0.3 + Math.sin(t * 14) * 0.035, 0.07];
+    st.F = [-0.25, 0.33, 0.1];
+    st.B = [0.25, 0.28 + Math.sin(t * 14) * 0.035, 0.07];
   } else if (wave) {
-    st.F = [-0.27 + Math.sin(t * 10) * 0.06, 0.38, 0.08];
+    st.F = [-0.28 + Math.sin(t * 10) * 0.06, 0.36, 0.08];
   } else if (lk > 0) {
-    // 손 차양: 이마 앞(머리에 닿지 않을 만큼)
-    headToTorso(P, -0.13, 0.085, 0.215, _c);
-    st.F = [lerp(st.F[0], _c.x, lk), lerp(st.F[1], _c.y, lk), lerp(st.F[2], _c.z, lk)];
-    st.palm = lk;
-    P.arms[0].position.y += 0.03 * lk;
+    pointUp(P, st, bodyYaw, lk);
   }
   R.def.pose?.(P, st);
   reach(P, 0, st.F, st.maxF || 1.5);
@@ -693,6 +718,7 @@ function updateGround(R, pose) {
     hF.rotation.set(0, 0, 0);
   }
   P.hands[1].scale.setScalar(1);
+  placeFinger(P, st);
   // 잠자리채
   if (shock) swingNet(P.net, hF, t, -1);
   else P.net.visible = false;
@@ -711,14 +737,14 @@ const capHair = (s = 1, dy = 0) => ell([0, 0.04 + dy, -0.032], [0.253 * s, 0.246
 
 /** 이마 앞머리(납작한 타원체를 이마 곡면에 기울여 붙인다). */
 const fringe = (x, y, rx, ry, rz, roll = 0) => {
-  const p = onFace(x, y, HR + 0.008);
+  const p = onFace(x, y, HR - 0.004);
   return ell(p, [rx, ry, rz], faceRot(x, y, roll), [18, 12], 'YXZ');
 };
 
 const DEFS = {
   // 농부: 밀짚모자·콧수염·흰 셔츠·파란 멜빵바지·쇠스랑
   farmer: {
-    L: { skin: '#f3b998', top: '#efe6d4', sleeve: 'short', legs: '#5577c8', shoe: '#7a4a2e', face: { brow: '#3a2014', browW: 10, mouthDY: 13 } },
+    L: { skin: '#f3b998', top: '#efe6d4', sleeve: 'short', legs: '#5577c8', shoe: '#7a4a2e', face: { brow: '#3a2014', browW: 12, mouthDY: 14 } },
     build(P) {
       const shirt = M(P.L.top);
       add(P.torso, merged('farmerShirt', () => [place(bodyGeo()), ell([-SHX, SHY - 0.005, 0], [0.072, 0.066, 0.072]), ell([SHX, SHY - 0.005, 0], [0.072, 0.066, 0.072])]), shirt, { outline: OL });
@@ -731,7 +757,7 @@ const DEFS = {
         blue,
         { outline: OL },
       );
-      add(P.torso, frontPanel('bib', 0.04, 0.168, 1.0, 1.0, 0.009), blue);
+      add(P.torso, frontPanel('bib', 0.04, 0.168, 1.0, 1.0, 0.02), blue);
       add(
         P.torso,
         merged('straps', () => [rodGeo([-0.07, 0.158, 0.118], [-0.1, 0.235, 0.0], 0.016), rodGeo([0.07, 0.158, 0.118], [0.1, 0.235, 0.0], 0.016)]),
@@ -754,10 +780,10 @@ const DEFS = {
       add(
         P.head,
         merged('mustache', () => [
-          ell(onFace(-17, 39, HR + 0.004), [0.068, 0.036, 0.042], faceRot(-17, 39, 0.32), [18, 12], 'YXZ'),
-          ell(onFace(17, 39, HR + 0.004), [0.068, 0.036, 0.042], faceRot(17, 39, -0.32), [18, 12], 'YXZ'),
-          ell(onFace(-44, 50, HR - 0.004), [0.03, 0.026, 0.03], faceRot(-44, 50), [12, 8], 'YXZ'),
-          ell(onFace(44, 50, HR - 0.004), [0.03, 0.026, 0.03], faceRot(44, 50), [12, 8], 'YXZ'),
+          ell(onFace(-21, 60, HR + 0.0), [0.076, 0.038, 0.04], faceRot(-21, 60, 0.3), [18, 12], 'YXZ'),
+          ell(onFace(21, 60, HR + 0.0), [0.076, 0.038, 0.04], faceRot(21, 60, -0.3), [18, 12], 'YXZ'),
+          ell(onFace(-54, 73, HR - 0.008), [0.032, 0.028, 0.03], faceRot(-54, 73), [12, 8], 'YXZ'),
+          ell(onFace(54, 73, HR - 0.008), [0.032, 0.028, 0.03], faceRot(54, 73), [12, 8], 'YXZ'),
         ]),
         M('#4a2716', { rough: 0.7 }),
         { outline: OLS },
@@ -814,12 +840,12 @@ const DEFS = {
         red,
         { outline: OL },
       );
-      const apron = M('#f4f0ea', { rough: 0.85 });
+      const apron = M('#ebe6de', { rough: 0.85 });
       add(
         P.torso,
         cg('apron', () =>
           place(
-            lathe('apronSkirt', [[0.216, -0.086], [0.204, -0.03], [0.176, 0.03], [0.152, 0.075]], { seg: 16, phiStart: -0.72, phiLength: 1.44, n: 10 }),
+            lathe('apronSkirt', [[0.226, -0.088], [0.214, -0.03], [0.186, 0.03], [0.162, 0.075]], { seg: 16, phiStart: -0.72, phiLength: 1.44, n: 10 }),
             [0, 0, 0],
             [0, 0, 0],
             [1, 1, 0.92],
@@ -827,7 +853,7 @@ const DEFS = {
         ),
         apron,
       );
-      add(P.torso, frontPanel('apronBib', 0.06, 0.205, 0.95, 0.85, 0.012), apron);
+      add(P.torso, frontPanel('apronBib', 0.06, 0.205, 0.95, 0.85, 0.02), apron);
       // 머리카락: 보닛 밑 옆머리와 앞머리
       add(
         P.head,
@@ -835,7 +861,9 @@ const DEFS = {
           ell([-0.19, -0.08, 0.06], [0.07, 0.12, 0.08], [0, 0, 0.15]),
           ell([0.19, -0.08, 0.06], [0.07, 0.12, 0.08], [0, 0, -0.15]),
           ell([0, -0.05, -0.1], [0.22, 0.2, 0.17]),
-          fringe(0, -62, 0.16, 0.055, 0.06),
+          fringe(-36, -86, 0.08, 0.05, 0.03, 0.55),
+          fringe(0, -92, 0.085, 0.05, 0.03),
+          fringe(36, -86, 0.08, 0.05, 0.03, -0.55),
         ]),
         M('#86512f', { rough: 0.6 }),
         { outline: OL },
@@ -843,26 +871,7 @@ const DEFS = {
       // 보닛 + 얼굴 둘레 주름 장식
       const W = M('#f6f3ee', { rough: 0.85 });
       add(P.head, cg('bonnet', () => ell([0, 0.055, -0.075], [0.275, 0.272, 0.27], [0, 0, 0], [36, 26])), W, { outline: OL });
-      add(
-        P.head,
-        merged('frill', () => {
-          // 보닛과 머리가 만나는 원을 따라 작은 공을 잇는다
-          const n = new THREE.Vector3(0, 0.055, -0.075).normalize();
-          const c = n.clone().multiplyScalar(-0.03);
-          const u = new THREE.Vector3(1, 0, 0);
-          const v = new THREE.Vector3().crossVectors(n, u).normalize();
-          const parts = [];
-          for (let i = 0; i <= 14; i++) {
-            const a = lerp(-1.95, 1.95, i / 14) - Math.PI / 2;
-            const p = c.clone().addScaledVector(u, Math.cos(a) * 0.236).addScaledVector(v, Math.sin(a) * 0.236);
-            p.multiplyScalar(1.07);
-            parts.push(ell([p.x, p.y, p.z], [0.042, 0.042, 0.034], [0, 0, 0], [12, 8]));
-          }
-          return parts;
-        }),
-        W,
-        { outline: OLS },
-      );
+      add(P.head, cg('frill', () => ruffleGeo()), W, { outline: OLS });
       add(
         P.head,
         merged('ribbon', () => [
@@ -871,7 +880,7 @@ const DEFS = {
           ell([0, 0, 0.004], [0.026, 0.026, 0.024], [0, 0, 0], [10, 8]),
         ]),
         M('#e2483c', { rough: 0.55 }),
-        { pos: [-0.13, 0.205, 0.08], rot: [-0.6, -0.5, 0.4], outline: OLS },
+        { pos: [-0.15, 0.2, 0.1], rot: [-0.5, -0.6, 0.45], scale: 1.3, outline: OLS / 1.3 },
       );
       P.net2 = makeNet();
       P.torso.add(P.net2);
@@ -889,20 +898,18 @@ const DEFS = {
     L: { skin: '#d39a6c', top: '#8a6ad8', legs: '#2f3d7a', shoe: '#f2f0f8', face: { brow: '#2a1f2a', lash: true } },
     build(P, R) {
       add(P.torso, merged('hoodieW', () => [place(bodyGeo()), ell([0, 0.205, -0.11], [0.13, 0.075, 0.08])]), M(P.L.top), { outline: OL });
-      add(P.torso, merged('strings', () => [rodGeo([-0.03, 0.22, 0.118], [-0.034, 0.15, 0.135], 0.007), rodGeo([0.03, 0.22, 0.118], [0.034, 0.15, 0.135], 0.007)]), M('#ffffff'));
-      add(
+          add(
         P.head,
         merged('walkerHair', () => [
           capHair(),
-          fringe(-28, -60, 0.15, 0.06, 0.06, 0.35),
-          fringe(36, -58, 0.11, 0.05, 0.05, -0.4),
+          fringe(-28, -80, 0.15, 0.052, 0.035, 0.35),
+          fringe(38, -78, 0.11, 0.045, 0.032, -0.4),
           place(capsuleGeo(0.068, 0.27, 6, 12), [0, -0.01, -0.3], [0.64, 0, 0]),
           ell([0, 0.1, -0.22], [0.08, 0.075, 0.075]),
         ]),
         M('#33252f', { rough: 0.55 }),
         { outline: OL },
       );
-      add(P.head, torusGeo(0.05, 0.022, 8, 18), M('#ffd23f', { rough: 0.5 }), { pos: [0, 0.085, -0.245], rot: [-0.93, 0, 0] });
       buildDog(R);
     },
     after(P, st, R) {
@@ -915,10 +922,10 @@ const DEFS = {
     L: { skin: '#f6c29c', top: '#4f9e58', legs: '#8a6440', shoe: '#6b4428', boot: true, face: { brow: '#8a3f1c', freckles: true } },
     build(P) {
       add(P.torso, merged('jacket', () => [place(bodyGeo()), ell([0, 0.225, 0.03], [0.13, 0.05, 0.13])]), M(P.L.top), { outline: OL });
-      add(P.torso, merged('fur', () => [place(torusGeo(0.1, 0.035, 10, 24), [0, 0.232, 0.0], [Math.PI / 2, 0, 0], [1, 0.9, 1])]), M('#fff1d6', { rough: 0.95 }), { outline: OLS });
+      add(P.torso, merged('fur', () => [place(torusGeo(0.1, 0.035, 10, 24), [0, 0.232, 0.0], [Math.PI / 2, 0, 0], [1, 0.9, 1])]), M('#fff1d6', { rough: 0.95 }));
       add(P.torso, merged('packStraps', () => [rodGeo([-0.085, 0.235, 0.05], [-0.1, 0.05, 0.142], 0.017), rodGeo([0.085, 0.235, 0.05], [0.1, 0.05, 0.142], 0.017)]), M('#6b4428'));
       add(P.torso, merged('pack', () => [place(roundBoxGeo(0.25, 0.29, 0.14, 0.05, 3), [0, 0.1, -0.17]), place(roundBoxGeo(0.17, 0.1, 0.06, 0.025, 2), [0, 0.03, -0.25])]), M('#c98a4a'), { outline: OL });
-      add(P.torso, cg('bedroll', () => place(capsuleGeo(0.055, 0.3, 6, 14), [0, 0.28, -0.17], [0, 0, Math.PI / 2])), M('#3f6fd0'), { outline: OLS });
+      add(P.torso, cg('bedroll', () => place(capsuleGeo(0.055, 0.3, 6, 14), [0, 0.28, -0.17], [0, 0, Math.PI / 2])), M('#3f6fd0'));
       add(P.head, merged('camperHair', () => [capHair(), ell([-0.2, -0.06, 0.04], [0.05, 0.08, 0.06]), ell([0.2, -0.06, 0.04], [0.05, 0.08, 0.06])]), M('#c0602c', { rough: 0.6 }), { outline: OL });
       const hat = new THREE.Group();
       hat.rotation.set(-0.28, 0, 0.05);
@@ -928,7 +935,6 @@ const DEFS = {
       // 머그와 김
       const mug = new THREE.Group();
       add(mug, merged('mug', () => [place(cylGeo(0.042, 0.038, 0.08, 16), [0, 0.04, 0]), place(torusGeo(0.024, 0.009, 6, 12), [0.045, 0.04, 0], [0, 0, 0])]), M('#e2483c', { rough: 0.45 }));
-      add(mug, cylGeo(0.036, 0.036, 0.004, 14), M('#5a3220', { rough: 0.3 }), { pos: [0, 0.079, 0], cast: false });
       const steam = M('#ffffff', { rough: 1, opacity: 0.6, transparent: true });
       mug.userData.steam = [add(mug, sphereGeo(0.022, 10, 8), steam, { cast: false }), add(mug, sphereGeo(0.018, 10, 8), steam, { cast: false })];
       P.torso.add(mug);
@@ -952,7 +958,7 @@ const DEFS = {
 
   // 낚시꾼: 벙거지·흰 수염·노란 비옷·장화·낚싯대
   fisher: {
-    L: { skin: '#e9b08a', top: '#ffd23f', legs: '#3d4f86', shoe: '#3f9a62', boot: true, face: { brow: '#d0cadf', browW: 11, mouthDY: 9 } },
+    L: { skin: '#e9b08a', top: '#ffd23f', legs: '#3d4f86', shoe: '#3f9a62', boot: true, face: { brow: '#d0cadf', browW: 14, mouthDY: 10 } },
     build(P) {
       const coat = M('#ffd23f', { rough: 0.45 });
       add(
@@ -970,15 +976,15 @@ const DEFS = {
       add(
         P.head,
         merged('beard', () => [
-          ell(onFace(-74, 40, HR - 0.01), [0.06, 0.08, 0.06]),
-          ell(onFace(74, 40, HR - 0.01), [0.06, 0.08, 0.06]),
-          ell(onFace(-55, 80, HR - 0.02), [0.075, 0.07, 0.07]),
-          ell(onFace(55, 80, HR - 0.02), [0.075, 0.07, 0.07]),
-          ell(onFace(-22, 96, HR - 0.025), [0.075, 0.07, 0.07]),
-          ell(onFace(22, 96, HR - 0.025), [0.075, 0.07, 0.07]),
-          ell(onFace(0, 104, HR - 0.03), [0.07, 0.07, 0.07]),
-          ell(onFace(-16, 39, HR + 0.004), [0.06, 0.03, 0.038], faceRot(-16, 39, 0.25), [16, 10], 'YXZ'),
-          ell(onFace(16, 39, HR + 0.004), [0.06, 0.03, 0.038], faceRot(16, 39, -0.25), [16, 10], 'YXZ'),
+          ell(onFace(-96, 58, HR - 0.012), [0.055, 0.08, 0.06]),
+          ell(onFace(96, 58, HR - 0.012), [0.055, 0.08, 0.06]),
+          ell(onFace(-66, 104, HR - 0.02), [0.07, 0.066, 0.066]),
+          ell(onFace(66, 104, HR - 0.02), [0.07, 0.066, 0.066]),
+          ell(onFace(-28, 120, HR - 0.026), [0.072, 0.066, 0.066]),
+          ell(onFace(28, 120, HR - 0.026), [0.072, 0.066, 0.066]),
+          ell(onFace(0, 126, HR - 0.03), [0.07, 0.068, 0.068]),
+          ell(onFace(-20, 60, HR + 0.0), [0.068, 0.032, 0.036], faceRot(-20, 60, 0.25), [16, 10], 'YXZ'),
+          ell(onFace(20, 60, HR + 0.0), [0.068, 0.032, 0.036], faceRot(20, 60, -0.25), [16, 10], 'YXZ'),
         ]),
         white,
         { outline: OLS },
@@ -1033,14 +1039,14 @@ const DEFS = {
     L: { skin: '#f6c29c', top: '#4a5a9c', legs: '#3c4a86', shoe: '#5a3526', face: { brow: '#231c2c' } },
     build(P) {
       add(P.torso, bodyGeo(), M(P.L.top), { outline: OL });
-      add(P.torso, frontPanel('shirtV', 0.1, 0.25, 0.04, 1.1, 0.006), M('#f4f4fa'));
+      add(P.torso, frontPanel('shirtV', 0.1, 0.25, 0.04, 1.1, 0.02), M('#f4f4fa'));
       add(P.torso, merged('tie', () => [rodGeo([0, 0.235, 0.105], [0, 0.07, 0.152], 0.016, 0.024, 8), ell([0, 0.232, 0.103], [0.022, 0.02, 0.016])]), M('#e2483c', { rough: 0.5 }));
       add(P.torso, merged('suitBtn', () => [ell([0, 0.04, bodyR(0.04) * 0.9 + 0.006], [0.014, 0.014, 0.008]), ell([0, -0.02, bodyR(-0.02) * 0.9 + 0.006], [0.014, 0.014, 0.008])]), M('#2a3360'));
       add(
         P.head,
         merged('workerHair', () => [
           capHair(1.02, 0.008),
-          place(sphereGeo(1, 20, 14), onFace(18, -64, HR + 0.006), faceRot(18, -64, -0.3), [0.16, 0.07, 0.08], 'YXZ'),
+          place(sphereGeo(1, 20, 14), onFace(22, -84, HR + 0.004), faceRot(22, -84, -0.3), [0.16, 0.07, 0.08], 'YXZ'),
           ell([-0.2, -0.04, 0.03], [0.04, 0.07, 0.05]),
           ell([0.2, -0.04, 0.03], [0.04, 0.07, 0.05]),
         ]),
@@ -1081,7 +1087,7 @@ const DEFS = {
       );
       add(
         P.head,
-        merged('streamerHair', () => [capHair(), fringe(-26, -60, 0.15, 0.06, 0.06, 0.3), fringe(30, -60, 0.13, 0.055, 0.055, -0.3), ell([-0.15, 0.2, -0.05], [0.09, 0.09, 0.09]), ell([0.15, 0.2, -0.05], [0.09, 0.09, 0.09])]),
+        merged('streamerHair', () => [capHair(), fringe(-26, -80, 0.15, 0.05, 0.035, 0.3), fringe(32, -80, 0.13, 0.048, 0.033, -0.3), ell([-0.15, 0.2, -0.05], [0.09, 0.09, 0.09]), ell([0.15, 0.2, -0.05], [0.09, 0.09, 0.09])]),
         M('#2b2230', { rough: 0.5 }),
         { outline: OL },
       );
@@ -1122,13 +1128,13 @@ const DEFS = {
       add(
         P.torso,
         merged('labcoat', () => [
-          place(lathe('labcoat', [[0, -0.135], [0.19, -0.133], [0.205, -0.12], [0.19, -0.04], [0.172, 0.05], [0.152, 0.13], [0.124, 0.192], [0.086, 0.233], [0.04, 0.256], [0, 0.26]]), [0, 0, 0], [0, 0, 0], [1, 1, 0.9]),
+          place(lathe('labcoat', [[0, -0.105], [0.185, -0.103], [0.2, -0.09], [0.188, -0.03], [0.172, 0.05], [0.152, 0.13], [0.124, 0.192], [0.086, 0.233], [0.04, 0.256], [0, 0.26]]), [0, 0, 0], [0, 0, 0], [1, 1, 0.9]),
           place(torusGeo(0.1, 0.026, 8, 24), [0, 0.236, 0.012], [Math.PI / 2 + 0.25, 0, 0]),
         ]),
         coat,
         { outline: OL },
       );
-      add(P.torso, frontPanel('labShirt', 0.03, 0.25, 0.12, 1.05, 0.012), M('#8fb4ea'));
+      add(P.torso, frontPanel('labShirt', 0.03, 0.25, 0.12, 1.05, 0.02), M('#8fb4ea'));
       add(P.torso, merged('labTie', () => [rodGeo([0, 0.235, 0.112], [0, 0.07, 0.16], 0.014, 0.022, 8), ell([0, 0.232, 0.11], [0.02, 0.018, 0.015])]), M('#2b3a78', { rough: 0.5 }));
       add(P.torso, merged('pens', () => [rodGeo([-0.085, 0.12, 0.14], [-0.085, 0.165, 0.137], 0.007), rodGeo([-0.065, 0.12, 0.143], [-0.065, 0.16, 0.14], 0.007)]), M('#3f6fd0', { rough: 0.4 }));
       // 옆머리 곱슬과 정수리 한 가닥
@@ -1185,17 +1191,18 @@ const DEFS = {
 
   // 사진가: 빨간 베레모·곱슬 단발·청록 셔츠·카키 조끼·사진기
   photographer: {
+    lookPitch: 0.3,
     L: { skin: '#d39a6c', top: '#2fb5a6', legs: '#454b7d', shoe: '#5a3526', face: { brow: '#3a2018', lash: true } },
     build(P) {
       add(P.torso, bodyGeo(), M('#d9c08a', { rough: 0.85 }), { outline: OL });
-      add(P.torso, frontPanel('vestGap', -0.07, 0.25, 0.22, 0.9, 0.006), M(P.L.top));
+      add(P.torso, frontPanel('vestGap', -0.07, 0.25, 0.22, 0.9, 0.02), M(P.L.top));
       add(P.torso, merged('vestPockets', () => [ell([-0.085, 0.0, bodyR(0) * 0.9 + 0.002], [0.04, 0.035, 0.012]), ell([0.085, 0.0, bodyR(0) * 0.9 + 0.002], [0.04, 0.035, 0.012])]), M('#c4a86e', { rough: 0.85 }));
       add(
         P.head,
         merged('bob', () => [
           ell([0, 0.0, -0.035], [0.268, 0.262, 0.255], [0, 0, 0], [32, 22]),
-          fringe(-30, -58, 0.15, 0.065, 0.065, 0.4),
-          fringe(30, -56, 0.12, 0.06, 0.06, -0.35),
+          fringe(-30, -78, 0.16, 0.055, 0.04, 0.4),
+          fringe(32, -76, 0.12, 0.05, 0.036, -0.35),
           ...[[-0.22, -0.14, 0.02], [0.22, -0.14, 0.02], [-0.17, -0.19, -0.1], [0.17, -0.19, -0.1], [0, -0.2, -0.17]].map((p) => ell(p, [0.06, 0.06, 0.06], [0, 0, 0], [12, 10])),
         ]),
         M('#4a2c22', { rough: 0.55 }),
@@ -1222,7 +1229,7 @@ const DEFS = {
         st.F = [lerp(st.F[0], _c.x - 0.075, st.lk), lerp(st.F[1], _c.y - 0.03, st.lk), lerp(st.F[2], _c.z - 0.02, st.lk)];
         st.B = [lerp(st.B[0], _c.x + 0.075, st.lk), lerp(st.B[1], _c.y - 0.03, st.lk), lerp(st.B[2], _c.z - 0.02, st.lk)];
         st.palm = 0;
-        st.maxB = 1.6;
+        st.maxB = 1.5;
       }
     },
     after(P, st) {
@@ -1239,6 +1246,35 @@ const DEFS = {
     },
   },
 };
+
+/** 보닛 얼굴 둘레의 물결 주름(보닛 구와 머리가 만나는 원을 따라 휜 고리). */
+function ruffleGeo() {
+  const R0 = 0.236 * 1.05;
+  const arc = 3.9;
+  const g = new THREE.TorusGeometry(R0, 0.036, 8, 72, arc);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i);
+    const y = p.getY(i);
+    const z = p.getZ(i);
+    const u = Math.atan2(y, x);
+    const cx = Math.cos(u) * R0;
+    const cy = Math.sin(u) * R0;
+    const k = 1 + 0.32 * Math.sin(u * 22);
+    p.setXYZ(i, cx + (x - cx) * k * 1.25, cy + (y - cy) * k * 1.25, z * k * 0.8);
+  }
+  g.computeVertexNormals();
+  // 고리 축 = 보닛 중심 방향, 이마 위에서 양쪽 귀 아래까지
+  const n = new THREE.Vector3(0, 0.055, -0.075).normalize();
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), n);
+  const qz = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -Math.PI / 2 - arc / 2);
+  const v = new THREE.Vector3(1, 0, 0).applyQuaternion(q);
+  // setFromUnitVectors 가 x 축을 비틀 수 있으니 x 가 그대로 x 를 향하게 맞춘다
+  const twist = Math.atan2(v.y, v.x);
+  const qt = new THREE.Quaternion().setFromAxisAngle(n, -twist);
+  g.applyMatrix4(new THREE.Matrix4().compose(n.clone().multiplyScalar(-0.035), qt.multiply(q).multiply(qz), new THREE.Vector3(1, 1, 1)));
+  return g;
+}
 
 const boxGeo3 = () => cg('clasp', () => roundBoxGeo(0.074, 0.03, 0.05, 0.008, 1));
 
@@ -1261,17 +1297,17 @@ function glassesGeo() {
   const rr = HR + 0.03;
   const pts = [];
   for (const sx of [-1, 1]) {
-    const px = sx * 41;
-    const py = 4;
+    const px = sx * 50;
+    const py = 14;
     const c = onFace(px, py, rr);
     pts.push(c);
-    parts.push(place(torusGeo(0.066, 0.011, 8, 32), c, faceRot(px, py), 1, 'YXZ'));
+    parts.push(place(torusGeo(0.074, 0.013, 8, 32), c, faceRot(px, py), 1, 'YXZ'));
     // 귀걸이: 테 바깥 → 귀
-    const o = onFace(sx * 92, py - 4, HR + 0.012);
+    const o = onFace(sx * 108, py - 4, HR + 0.01);
     parts.push(rodGeo(o, [sx * 0.232, 0.03, -0.03], 0.008));
   }
-  const l = onFace(-14, -2, rr - 0.004);
-  const r = onFace(14, -2, rr - 0.004);
+  const l = onFace(-20, 8, rr - 0.006);
+  const r = onFace(20, 8, rr - 0.006);
   parts.push(rodGeo(l, r, 0.009));
   const g = mergeGeometries(parts.map((p) => (p.index ? p : p)), false);
   for (const p of parts) p.dispose();
@@ -1321,19 +1357,19 @@ function buildDog(R) {
   const fur = M(F, { rough: 0.85 });
   const white = M(W, { rough: 0.9 });
   add(D.hop, merged('dogBody', () => [ell([0, 0.155, 0], [0.1, 0.088, 0.15], [0, 0, 0], [22, 16]), ell([0, 0.17, 0.1], [0.08, 0.08, 0.07])]), fur, { outline: OLS });
-  add(D.hop, ell([0, 0.12, 0.06], [0.07, 0.05, 0.1]), white);
+  // 다리: 대각선 둘씩 한 메시(종종걸음은 대각선 다리가 같이 움직인다)
   D.legs = [];
-  for (const [x, z] of [[-0.055, 0.09], [0.055, 0.09], [-0.055, -0.09], [0.055, -0.09]]) {
+  for (const [k, pairs] of [['A', [[-0.055, 0.09], [0.055, -0.09]]], ['B', [[0.055, 0.09], [-0.055, -0.09]]]]) {
     const l = new THREE.Group();
-    l.position.set(x, 0.12, z);
+    l.position.set(0, 0.12, 0);
     D.hop.add(l);
-    add(l, cg('dogLeg', () => place(capsuleGeo(0.032, 0.13, 4, 10), [0, -0.055, 0])), fur, { outline: OLS });
+    add(l, merged(`dogLegs${k}`, () => pairs.map(([x, z]) => place(capsuleGeo(0.032, 0.13, 4, 10), [x, -0.055, z]))), fur);
     D.legs.push(l);
   }
   D.tail = new THREE.Group();
   D.tail.position.set(0, 0.2, -0.14);
   D.hop.add(D.tail);
-  add(D.tail, cg('dogTail', () => place(torusGeo(0.045, 0.024, 8, 16, Math.PI * 1.4), [0, 0.04, -0.01], [0, Math.PI / 2, -0.5])), fur, { outline: OLS });
+  add(D.tail, cg('dogTail', () => place(torusGeo(0.045, 0.024, 8, 16, Math.PI * 1.4), [0, 0.04, -0.01], [0, Math.PI / 2, -0.5])), fur);
   D.head = new THREE.Group();
   D.head.position.set(0, 0.25, 0.13);
   D.hop.add(D.head);
@@ -1369,8 +1405,7 @@ function updateDog(R, st) {
   D.hop.position.y = hop;
   D.hop.rotation.x = shock ? -0.25 - Math.sin(t * 9) * 0.15 : 0;
   D.legs.forEach((l, i) => {
-    const s = i === 0 || i === 3 ? 1 : -1;
-    l.rotation.x = shock ? (i < 2 ? -0.6 : 0.5) : Math.sin(ph) * 0.6 * walk * s;
+    l.rotation.x = shock ? (i ? 0.25 : -0.25) : Math.sin(ph) * 0.35 * walk * (i ? -1 : 1);
   });
   D.tail.rotation.z = Math.sin(t * (shock ? 26 : 10)) * 0.4;
   const barking = shock && Math.sin(t * 12) > 0;
@@ -1532,15 +1567,12 @@ function updateBalloonist(R, pose) {
   st.B = [0.22, rimY, 0.19];
   for (const sh of P.arms) sh.position.copy(sh.userData.base);
   if (shock) {
-    st.F = [-0.2, 0.36, 0.11];
-    st.B = [0.22, 0.28 + Math.sin(t * 14) * 0.035, 0.07];
+    st.F = [-0.25, 0.33, 0.1];
+    st.B = [0.22, rimY, 0.19];
   } else if (wave) {
-    st.F = [-0.27 + Math.sin(t * 10) * 0.06, 0.38, 0.08];
+    st.F = [-0.28 + Math.sin(t * 10) * 0.06, 0.36, 0.08];
   } else if (lk > 0) {
-    headToTorso(P, -0.13, 0.085, 0.215, _c);
-    st.F = [lerp(st.F[0], _c.x, lk), lerp(st.F[1], _c.y, lk), lerp(st.F[2], _c.z, lk)];
-    st.palm = lk;
-    P.arms[0].position.y += 0.03 * lk;
+    pointUp(P, st, bodyYaw + 0.35, lk);
   }
   reach(P, 0, st.F, 1.5);
   reach(P, 1, st.B, 1.4);
@@ -1552,6 +1584,7 @@ function updateBalloonist(R, pose) {
     hF.scale.setScalar(wave ? 1.12 : 1);
     hF.rotation.set(0, 0, 0);
   }
+  placeFinger(P, st);
   if (shock) swingNet(P.net, hF, t, -1);
   else P.net.visible = false;
   pickFace(P, st, R.seed);
@@ -1605,7 +1638,7 @@ function buildAstronaut() {
   const HELM = 0.285;
   const OPEN = 0.98;
   add(helm, cg('helmet', () => place(new THREE.SphereGeometry(HELM, 40, 28, 0, TAU, OPEN, Math.PI - OPEN), [0, 0.01, 0], [Math.PI / 2, 0, 0])), suit, { outline: OL });
-  add(helm, cg('helmetRim', () => place(torusGeo(HELM * Math.sin(OPEN), 0.022, 10, 40), [0, 0.01, HELM * Math.cos(OPEN)])), M(ACC, { rough: 0.5 }));
+  add(helm, cg('helmetRim', () => place(torusGeo(HELM * Math.sin(OPEN), 0.016, 10, 40), [0, 0.01, HELM * Math.cos(OPEN)])), M('#c9cde4', { rough: 0.45 }));
   const visor = add(
     helm,
     cg('visor', () => place(new THREE.SphereGeometry(HELM - 0.004, 32, 12, 0, TAU, 0, OPEN + 0.03), [0, 0.01, 0], [Math.PI / 2, 0, 0])),
@@ -1613,11 +1646,16 @@ function buildAstronaut() {
     { cast: false },
   );
   visor.renderOrder = 4;
+  // 유리 위 반짝임(왼쪽 위)
+  const glint = add(
+    helm,
+    cg('glint', () => place(torusGeo(0.2, 0.012, 6, 20, 0.9), [0, 0.01, 0.17], [0, 0, 2.0], [1, 1, 0.5])),
+    basicGlint(),
+    { cast: false },
+  );
+  glint.renderOrder = 5;
   add(helm, merged('helmetEars', () => [place(cylGeo(0.06, 0.06, 0.05, 16), [-HELM + 0.01, 0.0, -0.02], [0, 0, Math.PI / 2]), place(cylGeo(0.06, 0.06, 0.05, 16), [HELM - 0.01, 0.0, -0.02], [0, 0, Math.PI / 2])]), M('#d6d9ee', { rough: 0.5 }));
-  add(P.head, merged('astroHair', () => [capHair(1, 0.004), fringe(-20, -62, 0.16, 0.06, 0.06, 0.3)]), M('#2a2130', { rough: 0.5 }));
-  // 가리키는 손가락
-  R.finger = add(P.torso, cg('finger', () => place(capsuleGeo(0.02, 0.08, 4, 8), [0, -0.04, 0])), M(ACC, { rough: 0.6 }), { outline: OLS });
-  R.finger.visible = false;
+  add(P.head, merged('astroHair', () => [capHair(1, 0.004), fringe(-20, -80, 0.16, 0.05, 0.035, 0.3)]), M('#2a2130', { rough: 0.5 }));
   // 생명줄(등 → 아래 뒤쪽으로 길게)
   add(
     R.drift,
@@ -1627,6 +1665,7 @@ function buildAstronaut() {
     }),
     M('#e4e6f2', { rough: 0.6 }),
   );
+  P.shockFace = 'g';
   R.topY = -0.45 + HIP + NECK + HEAD_C + 0.01 + HELM;
   R.headY = -0.45 + HIP + NECK + HEAD_C;
   return R;
@@ -1643,7 +1682,7 @@ function updateAstronaut(R, pose) {
   aimAt(R.root, R.flip, pose.target, R.headY, st.aim);
   const foc = shock ? 1 : lk;
   const elev = clamp(st.aim.elev, -0.3, 1.25);
-  const bodyYaw = lerp(YAW, st.aim.yaw * 0.6 + 0.1, foc);
+  const bodyYaw = lerp(0.32, st.aim.yaw * 0.5 + 0.05, foc);
   P.body.rotation.y = bodyYaw;
   P.torso.rotation.set(-foc * elev * 0.12, 0, 0);
   for (const [i, l] of P.legs.entries()) {
@@ -1660,27 +1699,30 @@ function updateAstronaut(R, pose) {
   st.B = [0.24, 0.0 - swim * 0.04, 0.06];
   if (shock || lk > 0) {
     // 기체 쪽으로 팔을 뻗는다(들키면 손가락으로 가리킨다)
-    _c.set(0, 0, 1).applyAxisAngle(_a.set(1, 0, 0), -clamp(st.aim.elev, 0, 1.3) * 0.9);
-    _c.applyAxisAngle(UP, clamp(st.aim.yaw - bodyYaw, -0.8, 0.8));
+    // 헬멧이 커서 팔은 헬멧 옆으로 뻗는다
+    const el = clamp(st.aim.elev, 0, 1.3);
+    _c.set(-0.75 + clamp(st.aim.yaw - bodyYaw, -0.8, 0.8) * 0.2, 0.25 + el * 0.4, 0.35).normalize();
     const k = shock ? 1 : lk;
     const reachP = [-SHX + _c.x * ARM * 1.1, SHY + _c.y * ARM * 1.1, _c.z * ARM * 1.1];
     st.F = [lerp(st.F[0], reachP[0], k), lerp(st.F[1], reachP[1], k), lerp(st.F[2], reachP[2], k)];
     if (shock) st.B = [0.25, 0.25 + Math.sin(t * 12) * 0.05, 0.05];
   } else if (wave) {
-    st.F = [-0.27 + Math.sin(t * 10) * 0.06, 0.38, 0.08];
+    st.F = [-0.31 + Math.sin(t * 10) * 0.05, 0.33, 0.08];
   }
   reach(P, 0, st.F, 1.3);
   reach(P, 1, st.B, 1.3);
   P.hands[0].scale.setScalar(1.1);
   P.hands[1].scale.setScalar(1.1);
-  R.finger.visible = shock;
-  if (shock) {
-    R.finger.position.copy(P.hands[0].position);
-    R.finger.quaternion.copy(P.arms[0].quaternion);
-  }
+  st.point = shock ? 1 : 0;
+  placeFinger(P, st);
   P.net.visible = false;
-  P.shockFace = 'g';
   pickFace(P, st, R.seed);
+}
+
+let glintMat = null;
+function basicGlint() {
+  if (!glintMat) glintMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.75, depthWrite: false });
+  return glintMat;
 }
 
 // ───────── 만들기 ─────────
@@ -1713,7 +1755,7 @@ export function createWatcher(type) {
     R.P = P;
     def.build(P, R);
     // 종류별 손 목표·소품 놓기. after 에는 R 도 넘긴다(개처럼 뒤집힌 틀에 붙는 것)
-    R.def = { pose: def.pose, after: def.after ? (PP, st) => def.after(PP, st, R) : null };
+    R.def = { pose: def.pose, after: def.after ? (PP, st) => def.after(PP, st, R) : null, lookPitch: def.lookPitch };
     update = (p) => updateGround(R, p);
   }
   const pose0 = { t: 0, dir: 1, walk: 0, look: 0 };

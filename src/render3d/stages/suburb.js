@@ -103,7 +103,7 @@ export function buildSuburb({ w }) {
   const ground = terrain({ H, C: color, rows: 140, cols: 104, keep: (x, z) => z < -5.4 });
   const street = stripGround({ key: 'suburb', zNear: 9, zFar: -5.7, period: 8, draw: drawStreet });
 
-  const walls = ['#fbeed2', '#ffe4c9', '#fff7ea', '#f6dcc4', '#eae6f4', '#fde9d9', '#e9f1df'];
+  const walls = ['#fbe6c4', '#ffd9b8', '#fff1dc', '#f6d3b4', '#e6dcf2', '#fcdcd0', '#e2ecd2'];
   const roofs = ['#e0773b', '#c95a3a', '#4f6fc2', '#8f4a34', '#d8613c', '#5d6a96'];
   const leafSets = [
     ['#3f8f3a', '#56a843', '#74c24c'],
@@ -118,9 +118,12 @@ export function buildSuburb({ w }) {
   front.forEach((x, i) => {
     const z = -7.4 - r() * 0.8;
     const two = r() < 0.65;
+    const side = i % 2 === 1;
     house(props, x, 0, z, (r() - 0.5) * 0.25, 1, {
-      w: 1.5 + r() * 0.3,
-      d: 1.25,
+      side,
+      w: side ? 1.25 : 1.5 + r() * 0.3,
+      d: side ? 1.9 : 1.25,
+      shutters: r() < 0.5 ? ['#5d8fd0', '#5aa36a', '#c95a3a'][(r() * 3) | 0] : null,
       h: two ? 1.45 : 0.95,
       floors: two ? 2 : 1,
       wall: walls[(i * 3 + 1) % walls.length],
@@ -164,9 +167,11 @@ export function buildSuburb({ w }) {
         roundTree(props, x, y, z, 0.9 + r() * 0.4, r, { leaf: leafSets[(r() * 3) | 0], seg: 9 });
         continue;
       }
+      const side = r() < 0.5;
       house(props, x, y - 0.04, z, (r() - 0.5) * 0.5, row.s, {
-        w: 1.2 + r() * 0.5,
-        d: 1.0,
+        side,
+        w: side ? 1.0 : 1.2 + r() * 0.5,
+        d: side ? 1.5 + r() * 0.4 : 1.0,
         h: 0.8 + r() * 0.6,
         floors: r() < 0.5 ? 2 : 1,
         wall: walls[(r() * walls.length) | 0],
@@ -200,7 +205,7 @@ export function buildSuburb({ w }) {
     const x = -14;
     const z = -88;
     const y = H(x, z);
-    const m = G(props, x, y - 0.2, z, 0.2, 3.2);
+    const m = G(props, x, y - 0.2, z, 0.2, 1.8);
     m.add(P(latheGeo([[0.5, 0], [0.42, 1.2], [0.3, 2.0], [0, 2.0]], 12, 'farmill'), '#f1e6d2', { pos: [0, 0, 0] }));
     m.add(P(sphereGeo(1, 10, 6), '#8f4a34', { pos: [0, 2.05, 0], scale: [0.38, 0.3, 0.42] }));
     for (let i = 0; i < 4; i++) m.add(P(boxGeo(0.22, 1.3, 0.03), '#fff4dc', { pos: [Math.cos(i * 1.57 + 0.4) * 0.65, 2.05 + Math.sin(i * 1.57 + 0.4) * 0.65, 0.45], rot: [0, 0, i * 1.57 + 0.4 - Math.PI / 2] }));
