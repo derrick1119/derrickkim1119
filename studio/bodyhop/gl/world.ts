@@ -259,11 +259,11 @@ function bear(face: Face): Mesh {
   return sdfMesh(f, facePaint(base, E, face), [-1.15, -0.05, -0.85], [1.15, 2.3, 0.95], 0.065, { aoF: (x, y, z) => Math.min(f(x, y, z), y + 0.02) });
 }
 function fist(): Mesh {
-  const f: SDF = (x, y, z) => sph(x, y, z, 0, 0, 0, 0.4) + 0.06 * (vnoise(x * 5, y * 5, z * 5) - 0.5) + 0.02 * (vnoise(x * 13, y * 13, z * 13) - 0.5);
+  const f: SDF = (x, y, z) => rbox(x, y, z, [0, 0, 0], [0.42, 0.34, 0.36], 0.16) + 0.07 * (vnoise(x * 5, y * 5, z * 5) - 0.5) + 0.025 * (vnoise(x * 13, y * 13, z * 13) - 0.5);
   return sdfMesh(f, (x, y, z) => {
     const n = vnoise(x * 7, y * 7, z * 7);
-    if (y > 0.22 && n > 0.62) return [...hex('#7fbf4a'), 0.9, 0.3];
-    return [...mix3(hex('#7d8794'), hex('#c3ccd6'), n), 0.55, 0];
+    if (y > 0.3 && n > 0.72) return [...hex('#7a9a45'), 0.9, 0.2];
+    return [...mix3(hex('#857c70'), hex('#b9b0a2'), n), 0.82, 0];
   }, [-0.5, -0.5, -0.5], [0.5, 0.5, 0.5], 0.05);
 }
 /** 아직 다듬기 전의 몸: 몸통 + 귀/뿔/가시 하나로 실루엣만 다르게(👁 S5에서 전부 바꿀 자리) */
@@ -308,7 +308,7 @@ export function ghostMesh(): Mesh {
     return d;
   };
   const E: [number, number, number, number][] = [[0.25, 1.05, 0.66, 0.13], [-0.25, 1.05, 0.66, 0.13]];
-  const paint = facePaint((x, y, z) => (Math.abs(x) < 0.09 && y > 0.78 && y < 0.86 && z > 0.6 ? [...hex('#3b2a4a'), 0.3, 0] : [...mix3(hex('#7fe3f5'), hex('#d8fbff'), Math.min(1, y / 1.5)), 0.25, 1]), E, 'foe', [0.45, 0.86, 0.56, 0.12]);
+  const paint = facePaint((x, y, z) => (Math.abs(x) < 0.09 && y > 0.78 && y < 0.86 && z > 0.6 ? [...hex('#3b2a4a'), 0.3, 0] : [...mix3(hex('#5fd2ec'), hex('#b8f2ff'), Math.min(1, y / 1.6)), 0.25, 1]), E, 'foe', [0.45, 0.86, 0.56, 0.12]);
   return sdfMesh(f, paint, [-0.95, -0.4, -0.95], [0.95, 1.8, 0.95], 0.06);
 }
 

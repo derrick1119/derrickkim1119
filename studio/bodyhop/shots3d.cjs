@@ -4,7 +4,7 @@
  */
 const { chromium } = require('playwright');
 const path = require('node:path'), fs = require('node:fs');
-const KEYS = [['k1-arena', 'seed=7&t=40'], ['k2-hop', 'seed=7&t=150'], ['k3-pop', 'seed=7&t=330'], ['k4-crowd', 'seed=7&stage=4&t=900']];
+const KEYS = [['k1-arena', 'seed=7&t=40'], ['k2-hop', 'seed=7&t=150'], ['k3-pop', 'seed=7&t=330'], ['k4-crowd', 'seed=7&stage=4&t=420']];
 (async () => {
   const W = Number(process.argv[2] || 390), dsf = Number(process.argv[3] || 1), out = path.join(__dirname, 'screens');
   fs.mkdirSync(out, { recursive: true });

@@ -119,6 +119,20 @@ function xf(m: M4, x: number, y: number, z: number): V3 {
   const w = m[3] * x + m[7] * y + m[11] * z + m[15];
   return [(m[0] * x + m[4] * y + m[8] * z + m[12]) / w, (m[1] * x + m[5] * y + m[9] * z + m[13]) / w, (m[2] * x + m[6] * y + m[10] * z + m[14]) / w];
 }
+/**
+ * 🧪 M0′ 1순위: 바닥 환산만 쓰면 키 큰 몸의 머리를 눌렀을 때 그 뒤(먼 쪽) 적이 잡힌다 →
+ * 화면에서 몸 가운데(키의 절반)가 손가락에 가장 가까운 적을 먼저 고르고, 그 적의 자리를 시뮬에 넘긴다(시뮬은 가장 가까운 적을 탄다).
+ */
+function pickScreen(px: number, py: number): { x: number; y: number } | null {
+  let best: Mon | null = null, bd = 58;
+  for (const m of s.mons) {
+    if (m.dead || m.id === s.me || m.st === GEO.ENTER) continue;
+    const [X, Z] = W(m.x, m.y), h = m.r * VIS * rig(m.k).h, [sx, sy] = project(X, h * 0.5, Z), [, ty] = project(X, h, Z);
+    const rad = Math.max(18, Math.abs(sy - ty) * 1.1), d = Math.hypot(px - sx, py - sy) - rad * 0.6;
+    if (d < bd) (bd = d), (best = m);
+  }
+  return best ? { x: best.x, y: (best.y - best.r * 0.8) / A } : null;
+}
 cv.addEventListener('pointerdown', (e) => {
   e.preventDefault();
   sfx.wake();
@@ -126,7 +140,7 @@ cv.addEventListener('pointerdown', (e) => {
     manual = true;
     hud.hint.hidden = true;
   }
-  const p = s.phase === 'play' ? unproject(e.clientX, e.clientY) : { x: e.clientX / innerWidth, y: 0.86 };
+  const p = s.phase === 'play' ? pickScreen(e.clientX, e.clientY) ?? unproject(e.clientX, e.clientY) : { x: e.clientX / innerWidth, y: 0.86 };
   ptr = latch = p;
 });
 addEventListener('pointerup', () => (ptr = null));
@@ -185,7 +199,7 @@ function onEvents() {
         break;
       case 'pop': {
         const r = e.x2 || 0.15;
-        fxs.push({ k: 'flash', x: X, y: 0.06, z: Z, t: 0, T: 0.22, r: 0.05, c: [1.5, 0.8, 0.35] }, { k: 'ring', x: X, y: 0.008, z: Z, t: 0, T: 0.5, r, c: [1.1, 0.7, 0.3] }, { k: 'ring', x: X, y: 0.008, z: Z, t: -0.06, T: 0.55, r: r * 0.75, c: CYAN });
+        fxs.push({ k: 'flash', x: X, y: 0.07, z: Z, t: 0, T: 0.2, r: 0.09, c: [1.6, 0.75, 0.25] }, { k: 'ring', x: X, y: 0.008, z: Z, t: 0, T: 0.5, r, c: [1.1, 0.7, 0.3] }, { k: 'ring', x: X, y: 0.008, z: Z, t: -0.06, T: 0.55, r: r * 0.75, c: CYAN });
         burst(X, 0.05, Z, 30, kc, 1.1, 0.014, 0.6, 2.4, 0.7, 0.9);
         burst(X, 0.06, Z, 10, CYAN, 0.6, 0.012, 0.5, 1, 0.8, 1);
         chunks(X, Z, e.text, 14, 1);
@@ -254,7 +268,7 @@ function monDraws(out: Draw[], m: Mon, t: number, now: number) {
   if (hurt > 0) sy *= 1 - hurt * 0.15;
   const claim = m.st === GEO.CLAIM ? 0.6 + 0.4 * Math.sin(t * 0.8) : 0;
   const sx = 1 / Math.sqrt(sy), model = trs(X, lift, Z, ry, rx, rz, r * sx, r * sy, r * sx);
-  const fres = me ? [0.0, 0.7, 0.95] : claim ? [claim * 0.2, claim * 0.9, claim * 1.2] : undefined;
+  const fres = me ? [0.0, 0.5, 0.7] : claim ? [claim * 0.2, claim * 0.9, claim * 1.2] : undefined;
   out.push({ m: me ? R.me : R.foe, model, fres, flash: hurt * 0.35, emis: me ? [0.01, 0.05, 0.07] : undefined });
   for (const p of R.parts) {
     const side = Math.sign(p.at[0]), ext = punch * 0.5 * (side > 0 ? 1 : 0.6);
@@ -266,7 +280,7 @@ function monDraws(out: Draw[], m: Mon, t: number, now: number) {
   if (m.shield > 0) out.push({ m: BALL, model: trs(X, r * 1.1, Z, 0, 0, 0, r * 1.6), pass: 2, emis: [0.55, 0.38, 0.08], fres: [1.2, 0.8, 0.2], alpha: 0.35 + 0.08 * Math.sin(now * 0.004), shadow: false, tint: [0, 0, 0] });
 }
 function ghostDraw(out: Draw[], t: number) {
-  const gs = 0.034;
+  const gs = 0.046; // 👁 r3 [치명] '유령이 안 보임' → 키우고 진하게
   let x = 0, y = 0, z = 0, sc = gs, gw = 1;
   const [hx, hz] = W(GEO.HOME_X, GEO.HOME_Y), home: V3 = [hx, 0.27, hz + 0.02];
   const b = s.me ? s.mons.find((m) => m.id === s.me && !m.dead) : null;
@@ -280,14 +294,15 @@ function ghostDraw(out: Draw[], t: number) {
     burst(x, y + 0.02, z, 1, CYAN, 0.03, 0.012, 0.3, 0, 0.3, 0.7);
   } else if (b) {
     const [bx, bz] = W(b.x, b.y);
-    x = bx; z = bz; y = b.r * VIS * (rig(b.k).h - 0.25) + 0.02 + 0.008 * Math.sin(t * 0.1); sc = gs * 1.05; gw = 1;
+    x = bx; z = bz; y = b.r * VIS * (rig(b.k).h - 0.15) + 0.03 + 0.008 * Math.sin(t * 0.1); sc = gs * 0.85; gw = 1;
   } else if (s.home || s.phase !== 'play') {
     [x, y, z] = home; y += 0.01 * Math.sin(t * 0.06);
   } else {
     const [gx, gz] = W(s.gx, s.gy);
     x = gx + 0.005 * Math.sin(t * 0.9); z = gz; y = 0.1 + 0.02 * Math.sin(t * 0.12);
   }
-  out.push({ m: GH, model: trs(x, y, z, 0.3 * Math.sin(t * 0.03), 0, 0.08 * Math.sin(t * 0.07), sc), pass: 1, alpha: 0.92, fres: [0.05 * gw, 0.55 * gw, 0.85 * gw], emis: [0.03, 0.08, 0.1], shadow: false });
+  out.push({ m: GH, model: trs(x, y, z, 0.3 * Math.sin(t * 0.03), -0.65, 0.08 * Math.sin(t * 0.07), sc), // 내려다보는 카메라에 얼굴이 보이게 뒤로 젖힘
+    pass: 1, alpha: 0.97, fres: [0.0, 0.5 * gw, 0.8 * gw], emis: [0.02, 0.06, 0.08], shadow: false });
   // 유령 둘레 빛(가산)
   glow(x, y + sc, z, CYAN, sc * 5, 0.22 * gw);
   return [x, y, z] as V3;
