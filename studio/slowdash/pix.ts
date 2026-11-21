@@ -205,15 +205,17 @@ export const owl = (blink: number) => sprite('ow' + blink, () => grid(['..H.....
 export const hand = () => sprite('hd', () => grid(['..w', '..ww', '..ww', '..ww.w', '..wwwww.w', '.8wwwwwww', '8wwwwwwww', '.8wwwwww8', '..8wwww8', '...8888']));
 
 // ── 🎨 M3 F3 'AI 티' ① 도트 글자(💬 오너 "AI로 제작된 티가 많이 난다" → 🎨 가장 큰 원인 = 도트 세상 위 매끈한 웹 글꼴) ──
-//   캔버스 글을 화면 밖에 한 번 작게 쓰고 → 가장자리를 딱 끊고(알파 > 110만) → (테 글이면) 1칸 테를 두른 뒤 굽는다. 그다음엔 늘 drawImage(부드럽게 하기 끔).
-//   부르는 쪽(fillText·strokeText)은 그대로 — 판 캔버스의 두 함수를 갈아 끼운다. 글 크기 ≥ 22px는 2칸, ≥ 33px는 3칸이 한 글자 점.
+//   캔버스 글을 화면 밖에 한 번 작게 쓰고 → 가장자리를 딱 끊고(알파 > 128만) → (테 글이면) 1칸 테를 두른 뒤 굽는다. 그다음엔 늘 drawImage(부드럽게 하기 끔).
+//   부르는 쪽(fillText·strokeText)은 그대로 — 판 캔버스의 두 함수를 갈아 끼운다. 글 크기 ≥ 44px만 2칸이 한 글자 점, 나머지는 1칸(37px 제목도 2칸이면 '벽'의 ㅂ이 메워졌음).
 const PTC = new Map<string, { c: HTMLCanvasElement; q: number; w: number; asc: number; desc: number }>();
 const PAD = 2;
 function glyphs(font: string, txt: string, style: string, outline: boolean) {
   const key = font + '|' + style + '|' + (outline ? 1 : 0) + '|' + txt;
   let g = PTC.get(key);
   if (g) return g;
-  const px = Number(/([\d.]+)px/.exec(font)?.[1] ?? 16), q = px >= 33 ? 3 : px >= 22 ? 2 : 1, src = font.replace(/[\d.]+px/, `${(px / q).toFixed(2)}px`);
+  // 🧪 F3: 굵은 글을 작게 굽자 겹획(ㄹ·ㅁ·ㅆ)이 메워져 '싹▇이'·'끝▇'이 됐다 → 굽는 크기(s)가 작을수록 가늘게 · 2칸 점은 44px 이상만
+  const px = Number(/([\d.]+)px/.exec(font)?.[1] ?? 16), q = px >= 44 ? 2 : 1, sz = px / q, cap = sz < 14 ? 500 : sz < 16 ? 600 : sz < 22 ? 700 : 800;
+  const src = font.replace(/[\d.]+px/, `${sz.toFixed(2)}px`).replace(/\b(bold|[1-9]00)\b/, (m) => String(Math.min(m === 'bold' ? 700 : Number(m), cap)));
   const c = document.createElement('canvas'), x = c.getContext('2d', { willReadFrequently: true })!;
   x.font = src;
   const m = x.measureText(txt), asc = Math.ceil(m.fontBoundingBoxAscent || (px / q) * 0.82), desc = Math.ceil(m.fontBoundingBoxDescent || (px / q) * 0.24), w = Math.ceil(m.width);
@@ -222,7 +224,7 @@ function glyphs(font: string, txt: string, style: string, outline: boolean) {
   x.fillStyle = '#fff';
   x.fillText(txt, PAD, PAD + asc);
   const im = x.getImageData(0, 0, c.width, c.height), d = im.data, W = c.width, H = c.height, on = new Uint8Array(W * H);
-  for (let i = 0; i < W * H; i++) on[i] = d[i * 4 + 3] > 110 ? 1 : 0;
+  for (let i = 0; i < W * H; i++) on[i] = d[i * 4 + 3] > 128 ? 1 : 0;
   for (let i = 0; i < W * H; i++) {
     let v = on[i];
     if (outline && !v) { const xx = i % W, yy = (i / W) | 0; v = (xx > 0 && on[i - 1]) || (xx < W - 1 && on[i + 1]) || (yy > 0 && on[i - W]) || (yy < H - 1 && on[i + W]) ? 1 : 0; }

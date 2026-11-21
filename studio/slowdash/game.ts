@@ -1574,21 +1574,33 @@ function rr(ctx: C2, x: number, y: number, w: number, h: number, r: number) {
 const ICON: Record<string, string[]> = {
   star: ['...#...', '..###..', '#######', '.#####.', '..###..', '.##.##.', '.#...#.'],
   heart: ['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...'],
-  glass: ['#####', '.###.', '..#..', '.###.', '#####'],
+  glass: ['#######', '.#...#.', '..#.#..', '...#...', '..#.#..', '.#...#.', '#######'],
+  sand: ['.......', '..###..', '...#...', '.......', '...#...', '..###..', '.......'],
   disc: ['..###..', '.#####.', '#######', '#######', '#######', '.#####.', '..###..'],
+  star5: ['..#..', '#####', '.###.', '.#.#.', '#...#'],
+  heart5: ['.#.#.', '#####', '#####', '.###.', '..#..'],
+  heart3: ['#.#', '###', '.#.'],
 };
 /** 그림 한 장을 칸(c px) 사각형 길로 — 가운데가 (x, y) */
 function pxMap(ctx: C2, rows: string[], x: number, y: number, c: number) {
-  const h = rows.length, w = rows[0].length, x0 = Math.round(x - (w * c) / 2), y0 = Math.round(y - (h * c) / 2);
+  const h = rows.length, w = rows[0].length, g = ctx.getTransform().a < 0.9 ? c : 1, x0 = Math.round((x - (w * c) / 2) / g) * g, y0 = Math.round((y - (h * c) / 2) / g) * g; // 세상(lo)에서는 도트 격자에 맞춤
   ctx.beginPath();
   rows.forEach((r, j) => [...r].forEach((ch, i) => ch === '#' && ctx.rect(x0 + i * c, y0 + j * c, c, c)));
 }
 const cellOf = (r: number, n: number) => Math.max(2, Math.round((r * 2) / n));
+/** 🎨 F3: 큰 맵부터 — 옛 벡터 크기(지름 2r)를 15% 넘지 않는 첫 맵. 세상(lo) 캔버스에서는 한 칸 = 도트 한 칸(2px 칸은 0.67칸이라 번졌음) */
+function iconAt(ctx: C2, maps: string[][], x: number, y: number, r: number) {
+  const lo = ctx.getTransform().a < 0.9;
+  for (const m of maps) {
+    const n = m[0].length, c = lo ? PX : Math.max(2, Math.round((2 * r) / n));
+    if (n * c <= 2 * r * 1.15 || m === maps[maps.length - 1]) return pxMap(ctx, m, x, y, c);
+  }
+}
 function starPath(ctx: C2, x: number, y: number, r: number) {
-  pxMap(ctx, ICON.star, x, y, cellOf(r, 7));
+  iconAt(ctx, [ICON.star, ICON.star5], x, y, r);
 }
 function heartPath(ctx: C2, x: number, y: number, r: number) {
-  pxMap(ctx, ICON.heart, x, y, cellOf(r * 1.2, 7));
+  iconAt(ctx, [ICON.heart, ICON.heart5, ICON.heart3], x, y, r);
 }
 /** 펄럭이는 띠 (두건 끈·목도리·허리띠 꼬리) */
 const OUT = '#0b0e1c';
@@ -2697,28 +2709,39 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   ctx.fillStyle = 'rgba(255,214,110,.5)';
   ctx.fillRect(0, hb - 1.5, w, 1.5);
   {
-    const cx = R(0.055), cy = hb / 2;
-    ctx.fillStyle = lin(ctx, cx, cy - R(0.03), cx, cy + R(0.03), [0, '#ffe08a'], [1, '#c8902a']);
-    const fc = ctx.fillStyle; // 🎨 F3: 동전도 도트(검은 테 = 한 칸 큰 원을 먼저)
-    ctx.fillStyle = OUT;
-    pxMap(ctx, ICON.disc, cx, cy, cellOf(R(0.034), 7));
-    ctx.fill();
-    ctx.fillStyle = fc;
-    pxMap(ctx, ICON.disc, cx, cy, cellOf(R(0.028), 7));
-    ctx.fill();
+    let cx = R(0.055), nx = R(0.1);
+    const cy = hb / 2, w2 = s.stage >= STAGE_COUNT, lab = w2 ? `2-${s.stage - STAGE_COUNT + 1}` : String(s.stage + 1); // M2 S1 시험 판은 '2-1'
+    const fc = lin(ctx, cx, cy - R(0.03), cx, cy + R(0.03), [0, '#ffe08a'], [1, '#c8902a']); // 🎨 F3: 동전도 도트(검은 테 = 한 칸 큰 원을 먼저)
+    if (w2) { // 🧪 F3: '2-10'이 동전보다 넓어 좌우로 삐져나왔음 → 월드 2는 글 길이만큼 도트 패
+      font(0.032, 900);
+      const x0 = R(0.02), pw = Math.max(R(0.07), ctx.measureText(lab).width + R(0.03)), ph = R(0.056);
+      (cx = x0 + pw / 2), (nx = x0 + pw + R(0.025));
+      ctx.fillStyle = OUT;
+      rr(ctx, x0 - 3, cy - ph / 2 - 3, pw + 6, ph + 6, 6);
+      ctx.fill();
+      ctx.fillStyle = fc;
+      rr(ctx, x0, cy - ph / 2, pw, ph, 3);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = OUT;
+      pxMap(ctx, ICON.disc, cx, cy, cellOf(R(0.034), 7));
+      ctx.fill();
+      ctx.fillStyle = fc;
+      pxMap(ctx, ICON.disc, cx, cy, cellOf(R(0.028), 7));
+      ctx.fill();
+      font(0.036, 900);
+    }
     ctx.fillStyle = '#2a1a08';
-    font(0.036, 900);
     ctx.textAlign = 'center';
-    if (s.stage >= STAGE_COUNT) font(0.026, 900);
-    ctx.fillText(s.stage >= STAGE_COUNT ? `${2}-${s.stage - STAGE_COUNT + 1}` : String(s.stage + 1), cx, cy + 1); // M2 S1 시험 판은 '2-1'
+    ctx.fillText(lab, cx, cy + 1);
     ctx.textAlign = 'left';
     ctx.fillStyle = '#fff6e0';
     font(0.044, 900);
-    ctx.fillText(d.name, R(0.1), cy + 1);
-    const nw = ctx.measureText(d.name).width;
+    ctx.fillText(d.name, nx, cy + 1, w - nx - R(0.16));
+    const nw = Math.min(ctx.measureText(d.name).width, w - nx - R(0.16));
     font(0.036, 700);
     ctx.fillStyle = '#9aa3cc';
-    ctx.fillText(s.stage >= STAGE_COUNT ? ` / 2-${TRIAL.length}` : ` / ${STAGE_COUNT}`, R(0.1) + nw, cy + 2); // M2 S5 월드 2
+    ctx.fillText(w2 ? ` / 2-${TRIAL.length}` : ` / ${STAGE_COUNT}`, nx + nw, cy + 2); // M2 S5 월드 2
   }
   {
     const cy = hb / 2;
@@ -2727,7 +2750,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     const st = String(s.stars), sw = ctx.measureText(st).width;
     ctx.fillStyle = '#ffd84a';
     ctx.fillText(st, w - R(0.03), cy + 1);
-    starPath(ctx, w - R(0.03) - sw - R(0.025), cy, R(0.02));
+    starPath(ctx, w - R(0.03) - sw - R(0.03), cy, R(0.02));
     ctx.fill();
     ctx.strokeStyle = OUT;
     ctx.lineWidth = 1.2;
@@ -2842,8 +2865,11 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     const r1 = ty + R(0.042);
     {
       const ix = R(0.04);
-      ctx.fillStyle = '#9ff0ff'; // 🎨 F3: 모래시계도 도트
-      pxMap(ctx, ICON.glass, ix, r1, cellOf(R(0.018), 5));
+      ctx.fillStyle = '#9ff0ff'; // 🎨 F3: 모래시계도 도트 · 🧪 I자로 읽혀 유리 테 + 금빛 모래 두 색으로
+      pxMap(ctx, ICON.glass, ix, r1, 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffd36b';
+      pxMap(ctx, ICON.sand, ix, r1, 2);
       ctx.fill();
       const gx = R(0.07), gw = w - R(0.07) - R(0.24), gh = R(0.038); // 🎨 F3: 글(어두운 색)이 띠 밖으로 넘쳐 위아래가 잘려 보였음 → 띠를 키움
       ctx.fillStyle = 'rgba(255,255,255,.08)';
@@ -2896,7 +2922,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.fillStyle = '#dfe6ff';
       ctx.fillText('목숨', hx0, r1 + 1); // ✏️ S002(🧪): 별 칩 '꼬리 하나도 안 잃기'와 말 맞춤 — 꼬리 아이콘은 S007
       for (let j = 0; j < HP; j++) {
-        const hx = hx0 + R(0.085) + j * R(0.04);
+        const hx = hx0 + R(0.09) + j * R(0.04); // 🎨 F3: '목숨'과 하트 사이 틈
         heartPath(ctx, hx, r1, R(0.014));
         ctx.fillStyle = j < s.hp ? '#ff6a7a' : 'rgba(255,255,255,.12)';
         ctx.fill();
