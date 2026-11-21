@@ -157,7 +157,7 @@ export interface HopState {
   big: { text: string; t: number; n: number; hop: number; star: boolean } | null;
 }
 
-/** 빗변: Math.hypot은 브라우저마다 끝자리가 달라 같은 시드가 다르게 흘러갈 수 있어 제곱근으로 직접 */
+/** 빗변: Math.hypot은 엔진마다 끝자리가 다를 수 있어 제곱근으로 직접 (그래도 sin·cos 구현이 다른 엔진끼리는 같은 시드가 달리 흐를 수 있다 — 한 엔진 안에서는 늘 같다) */
 const hyp = (a: number, b: number) => Math.sqrt(a * a + b * b);
 const dist = (ax: number, ay: number, bx: number, by: number) => hyp(ax - bx, (ay - by) / YS);
 const angTo = (ax: number, ay: number, bx: number, by: number) => Math.atan2((by - ay) / YS, bx - ax);
@@ -3415,7 +3415,8 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
     starPath(ctx, X(q.x) + Math.cos(t * 0.15) * u, Y(q.y) - u * 2.4 + Math.sin(t * 0.15) * u * 0.3, Math.max(3, u * 0.22));
     ctx.fill();
   }
-  const order = s.mons.filter((m) => !m.dead).sort((a, c) => a.y - c.y || a.id - c.id);
+  // 멀리 있는 것부터 — 단, 내 몸은 맨 위에(큰 적 뒤에 가려 '내가 누구인지' 놓치지 않게)
+  const order = s.mons.filter((m) => !m.dead).sort((a, c) => (a.id === s.me ? 1 : 0) - (c.id === s.me ? 1 : 0) || a.y - c.y || a.id - c.id);
   for (const m of order) drawMon(m);
   if (b && popReady && inPop.size >= 2 && s.phase === 'play') {
     // 펑 범위 고리를 몸들 위로 한 번 더 (붐빌수록 몸에 가려지므로)
@@ -3613,7 +3614,10 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
       const pop = killA < 5 ? 1.3 - 0.3 * (killA / 5) : 1;
       ctx.globalAlpha = Math.min(1, (44 - killA) / 10);
       font(0.036 + Math.min(0.006, n * 0.0006), 900);
-      textK(`${n}마리`, clamp(fx.memo.popX, w * 0.14, w * 0.86), Math.max(Y(0.42), fx.memo.popY - R(0.1)), pop, '#ffffff', OUT, 3.5);
+      // (새 몸·대장 이름표와 겹치면 펑 자리 아래로)
+      const lx = clamp(fx.memo.popX, w * 0.14, w * 0.86), ly = Math.max(Y(0.42), fx.memo.popY - R(0.1));
+      const hit = spotM && Math.abs(X(spotM.x) - lx) < R(0.3) && Math.abs(Y(spotM.y) - R(spotM.r) * 2.05 - R(0.05) - ly) < R(0.07);
+      textK(`${n}마리`, lx, hit ? fx.memo.popY + R(0.03) : ly, pop, '#ffffff', OUT, 3.5);
       ctx.globalAlpha = 1;
     }
   }

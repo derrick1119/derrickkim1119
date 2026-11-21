@@ -3,12 +3,12 @@
  * 손이 하는 일은 톡 하나: 장터 몬스터를 톡 = 그놈이 무리 가운데 쪽 옆 놈 뒤통수를 '딱!' → 둘이 만화 싸움 구름이 된다.
  *   싸움이 나면 둘레 놈들이 1초 안에 구경하러 몰려와 '오오~' — 구름은 구경꾼을 '뽁 뽁 뽁' 삼키고(삼킬수록 커진다), 다 삼키면 가장 가까운 깨어 있는 놈 쪽으로
  *   어슬렁 굴러가다 걷힌다. 걷히면 안의 놈들이 전부 기절해 튕겨 나오고, 튕겨 나온 놈에 깔린 놈은 화나서 또 싸움(연쇄 ×3까지).
- *   기다릴 일이 없다: 톡은 언제든 되고(쉼 0.5초), 한 무리 안에서는 누구를 톡 해도 같은 결과(구름은 무리 가운데에 생긴다).
+ *   기다릴 일이 없다: 톡은 언제든 되고(쉼 0.5초), 한 무리 안에서는 누구를 톡 해도 같은 결과(구름은 무리 가운데에 생긴다). 구름은 클수록 멀리 굴러간다(눈덩이).
  * 뒤집힘: 나는 못 싸운다. 꼬마 여우는 길 끝 꿀단지까지 저절로 살금살금 걷고(구름이 앞서 굴러가면 종종걸음으로 따라간다), 깨어 있는 몬스터 앞에선 덤불 뒤에 숨어 킥킥댄다.
  * 솜씨(정답은 없다): 구름 위 숫자 = '톡 한 번으로 휘말린 수'. 무리는 처음 건드린 톡의 몫이라, 또 톡 한 무리는 새 톡의 작은 숫자가 된다(구름끼리는 달려들어 합체하고 큰 숫자가 이어진다).
  *   그래서 톡을 아끼고 '저절로 번지게' 할수록 숫자가 커진다 — 바짝 붙은 두 무리는 한 구름이 넘어가고, 떨어진 무리는 특별한 놈이 옮겨 준다:
  *   덩치 곰(구름을 다음 무리까지 밀고 간다) · 토끼(앞 무리로 달아나 쿵! 거기서 또 싸움) · 멧돼지(구름이 깨우면 돌진) · 쌍둥이(짝꿍도 제 무리에서 딱!) · 폭죽 장수(세 갈래) · 병아리(멀리서 달려온다) · 마법사(회오리).
- * 동전: 한 번 톡에 k번째로 기절한 놈은 동전 k×k개. 한 번 톡에 5·8·12·16·21·27·34마리가 휘말리면 '와' 띠가 뜨고 그 톡의 동전이 2·4·7·11·16·22·30배.
+ * 동전: 한 번 톡에 k번째로 기절한 놈은 동전 k×k개. 한 번 톡에 5·8·12·16·21·27·34마리가 휘말리면 '와' 띠가 뜨고 그 톡의 동전이 2·4·8·13·19·26·35배.
  *   한 번 톡이 두 무리·세 무리·다섯 무리에 걸치면 '두 무리가 한 구름!' … '길 전체 한 구름!' 띠.
  * 들킴: 판 처음 10초는 아무도 여우를 못 본다. 오래 숨어만 있으면 여우 머리 위 눈금이 차고, 2장부터는 순찰 도깨비가 여우 쪽으로 걸어오며
  *   제 머리 위 눈금을 채운다. 꽉 차면 '!' — 2초 안에 그놈을 톡 못 하면 꿀밤(하트 -1, 머리에 혹, 뒤로 통통). 하트 셋을 다 잃으면 끝.
@@ -56,7 +56,7 @@ const STAR_PTS = 500, CLEAR_PTS = 200, BOSS_PTS = 2000, WIN_PTS = 3000;
 /** '와' 띠가 뜨는 한 번 톡의 휘말린 수 */
 const WOW_AT = [5, 8, 12, 16, 21, 27, 34];
 /** 띠가 뜬 톡의 동전 배수 (큰 한 방일수록 훨씬 크게) */
-const WOW_MUL = [2, 4, 7, 11, 16, 22, 30];
+const WOW_MUL = [2, 4, 8, 13, 19, 26, 35];
 const WOW_TEXT = ['우당탕!', '대소동!', '난장판!', '온 동네 싸움!', '장터가 뒤집혔다!', '전설의 한 방!', '하늘이 놀랐다!'];
 /** 한 번 톡이 여러 무리에 걸쳤을 때의 띠 (둘 · 셋 · 다섯 이상) */
 const LINK_TEXT = ['두 무리가 한 구름!', '세 무리가 한 구름!', '길 전체 한 구름!'];
@@ -3126,11 +3126,11 @@ const WOW_COL = ['#ffd24a', '#ff9a3c', '#ff6f5e', '#ff5ab0', '#a56fe0', '#4aa8f0
 const LINK_COL = ['#5fc8a8', '#4aa8f0', '#a56fe0'];
 /** 화면 글자: 가운데 큰 띠는 한 번에 하나(새 것이 오면 앞의 것은 사라진다), 작은 반응 글자는 같은 자리에 하나만 */
 interface Small { x: number; y: number; str: string; col: string; size: number; t: number; cell: number }
-interface Texts { big: { str: string; sub: string; col: string; t: number } | null; small: Small[] }
+interface Texts { big: { str: string; sub: string; col: string; t: number } | null; next: { str: string; sub: string; col: string } | null; small: Small[] }
 const textStore = new WeakMap<object, Texts>();
 const textsOf = (s: object) => {
   let q = textStore.get(s);
-  if (!q) textStore.set(s, (q = { big: null, small: [] }));
+  if (!q) textStore.set(s, (q = { big: null, next: null, small: [] }));
   return q;
 };
 
@@ -3154,13 +3154,18 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
   const tx = textsOf(s);
   /** 작은 반응 글자 (세상 좌표) — 같은 칸에는 하나만 */
   const say = (x: number, y: number, str: string, col = '#ffffff', size = 15) => {
-    const cell = Math.round(x / 0.17) * 100 + Math.round(y / 0.13), i = tx.small.findIndex((q) => q.cell === cell), it = { x, y, str, col, size, t, cell };
+    // 가까이(가로 0.24 · 세로 0.075 안)에 이미 글자가 있으면 그 자리를 새 글자가 차지한다
+    const cell = 0, i = tx.small.findIndex((q) => Math.abs(q.x - x) < 0.24 && Math.abs(q.y - (t - q.t) * 0.0016 - y) < 0.075), it = { x, y, str, col, size, t, cell };
     if (i >= 0) tx.small[i] = it;
     else tx.small.push(it);
     if (tx.small.length > 6) tx.small.shift();
   };
-  /** 가운데 큰 띠 — 하나만 */
-  const band = (str: string, sub: string, col: string) => void (tx.big = { str, sub, col, t });
+  /** 가운데 큰 띠 — 한 번에 하나. 앞의 띠가 0.4초는 보이게, 그 사이에 온 것은 하나만 기다렸다가 뜬다 */
+  const band = (str: string, sub: string, col: string) => {
+    if (tx.big && t - tx.big.t < 26 && t >= tx.big.t) tx.next = { str, sub, col };
+    else tx.big = { str, sub, col, t };
+  };
+  if (tx.next && (!tx.big || t - tx.big.t >= 26 || t < tx.big.t)) (tx.big = { ...tx.next, t }), (tx.next = null);
 
   ctx.save();
   fx.begin(ctx);
@@ -3470,7 +3475,7 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           font(k, 900);
-          text(`${num}`, cx, cy - r * 1.95, num >= 9 ? '#ff6f5e' : num >= 5 ? '#ff9a3c' : '#ffffff', OUT, 4.5);
+          text(`${num}`, cx, Math.max(cy - r * 1.95, Y(0.525)), num >= 9 ? '#ff6f5e' : num >= 5 ? '#ff9a3c' : '#ffffff', OUT, 4.5);
         }
       },
     });
@@ -3875,7 +3880,7 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
   ctx.globalAlpha = 1;
   // 가운데 큰 띠 (하나만)
   if (tx.big && wowAge >= 0 && wowAge < 70) {
-    const b0 = tx.big, a = Math.min(1, (70 - wowAge) / 12), k = wowAge < 7 ? 1.7 - 0.7 * (wowAge / 7) : 1, by = Y(0.4);
+    const b0 = tx.big, a = Math.min(1, (70 - wowAge) / 12), k = wowAge < 7 ? 1.7 - 0.7 * (wowAge / 7) : 1, by = Y(0.375);
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate(w / 2, by);
