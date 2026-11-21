@@ -1,4 +1,5 @@
 // 공용 그리기 도구 — 한지 위 종이 인형극 그림체 (가는 먹선 + 종이 테두리)
+import { ART } from './art.js';
 export const TAU = Math.PI * 2;
 export const INK = '#262a36', PAPER = '#f8f0dc', HANJI = '#e9dec4', RED = '#c8402f', REDD = '#7a1f1c', INDIGO = '#2f4d7e', NAVY = '#1f2a44', TEAL = '#3f6b5c', OCHRE = '#d9a441', SKIN = '#f1cfa4', BROWN = '#7a5a40', SUB = '#6b5a44';
 // 글꼴은 한글 둘뿐이다. 도장·낙관·큰 붓 자국에는 글자 대신 그림 기호를 찍는다 (symbols.js)
@@ -52,9 +53,12 @@ export const SS = 3;
 export function paperSprite(draw, o = {}) {
   const w = o.w || 110, h = o.h || 124, ox = o.ox || 55, oy = o.oy || 110;
   const c = makeCanvas(w * SS, h * SS), g = c.getContext('2d'); g.scale(SS, SS); g.translate(ox, oy); draw(g);
-  if (o.grain !== false) paperGrain(c, o.grain || 1);
+  if (o.grain !== false && !ART.illust) paperGrain(c, o.grain || 1);
   let img = c; const border = o.border === undefined ? PAPER : o.border;
-  if (border) {
+  if (border && ART.illust) {   // 일러스트 그림체: 오린 종이 테두리 대신 짙은 먹선 외곽
+    const k = makeCanvas(c.width, c.height), kg = k.getContext('2d'); kg.drawImage(c, 0, 0); kg.globalCompositeOperation = 'source-in'; kg.fillStyle = '#17121f'; kg.fillRect(0, 0, c.width, c.height);
+    const out = makeCanvas(c.width, c.height), og = out.getContext('2d'), d = 1.5 * SS; for (let i = 0; i < 16; i++) og.drawImage(k, Math.cos(i / 16 * TAU) * d, Math.sin(i / 16 * TAU) * d); og.drawImage(c, 0, 0); img = out;
+  } else if (border) {
     const tint = col => { const k = makeCanvas(c.width, c.height), kg = k.getContext('2d'); kg.drawImage(c, 0, 0); kg.globalCompositeOperation = 'source-in'; kg.fillStyle = col; kg.fillRect(0, 0, c.width, c.height); return k; };
     const sil = tint(border), edge = tint('rgba(96,78,52,0.5)');
     const out = makeCanvas(c.width, c.height), og = out.getContext('2d'); const d = (o.bw || 2.4) * SS;
@@ -65,7 +69,7 @@ export function paperSprite(draw, o = {}) {
     og.drawImage(c, 0, 0); img = out;
   }
   let sh = null;
-  if (o.shadow !== false) { sh = makeCanvas(c.width, c.height); const hg = sh.getContext('2d'); hg.drawImage(img, 0, 0); hg.globalCompositeOperation = 'source-in'; hg.fillStyle = o.shadow || 'rgba(50,36,20,0.26)'; hg.fillRect(0, 0, c.width, c.height); }
+  if (o.shadow !== false) { sh = makeCanvas(c.width, c.height); const hg = sh.getContext('2d'); hg.drawImage(img, 0, 0); hg.globalCompositeOperation = 'source-in'; hg.fillStyle = o.shadow || (ART.illust ? 'rgba(14,8,32,0.4)' : 'rgba(50,36,20,0.26)'); hg.fillRect(0, 0, c.width, c.height); }
   return { img, sh, w, h, ox, oy, flash: null };
 }
 // 색종이 질감: 왼쪽 위는 밝게, 오른쪽 아래는 살짝 어둡게 + 잔 섬유 (그려진 부분에만 입힌다)

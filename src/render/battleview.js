@@ -5,6 +5,8 @@ import { getLook, getWeapon, blinking, leftover } from './sprites.js';
 import { defOf } from '../sim/battle.js';
 import { HERO_COL, HERO_SEAL } from '../data/units.js';
 import { inkTrail, inkStreak, MEOK, JU } from './ink.js';
+import { ART } from './art.js';
+import { illustFar, illustGround, ILL_FAR_H, ILL, mapleBranch, drawWisps, glowTrail, glowStreak, nightGrade } from './illust.js';
 import { CARDS } from '../data/cards.js';
 import { makeGround, makeFar, vignette, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, FAR_H, THEMES } from './terrain.js';
 import { Fx } from './fx.js';
@@ -70,9 +72,9 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
     const ct = Math.cos(tilt), sn = Math.sin(tilt), fsx = flip * sxm;
     // 휘두른 자리에 남는 먹 자국: 붓으로 그은 초승달 (hx, hy = 손, r0→r1 = 무기가 돈 각)
     const inkc = u.team === 0 ? '#191b28' : '#2c1517';
-    const trail = (hx, hy, r0, r1, back, q) => { const a = clamp((0.86 - q) / 0.3, 0, 1) * alpha; if (a <= 0.02) return; g.save(); g.globalAlpha = 1; inkTrail(g, hx, hy, 26 * k, r0 - PI / 2, r1 - PI / 2, 12.5 * k, a, inkc, u.id); g.restore(); };
+    const trail = (hx, hy, r0, r1, back, q) => { const a = clamp((0.86 - q) / 0.3, 0, 1) * alpha; if (a <= 0.02) return; g.save(); g.globalAlpha = 1; if (ART.illust) glowTrail(g, hx, hy, 28 * k, r0 - PI / 2, r1 - PI / 2, 9 * k, a, u.team === 0 ? ILL.gold : ILL.foe); else inkTrail(g, hx, hy, 26 * k, r0 - PI / 2, r1 - PI / 2, 12.5 * k, a, inkc, u.id); g.restore(); };
     // 찌르거나 쏜 방향으로 뻗는 짧은 선
-    const streak = (hx, hy, d0, d1, a) => { if (a <= 0.02) return; g.save(); g.globalAlpha = 1; inkStreak(g, hx + c * d0 * k, hy + s * d0 * k, hx + c * d1 * k, hy + s * d1 * k, 6 * k, a * alpha, inkc); g.restore(); };
+    const streak = (hx, hy, d0, d1, a) => { if (a <= 0.02) return; g.save(); g.globalAlpha = 1; if (ART.illust) glowStreak(g, hx + c * d0 * k, hy + s * d0 * k, hx + c * d1 * k, hy + s * d1 * k, 4 * k, a * alpha, u.team === 0 ? ILL.gold : ILL.foe); else inkStreak(g, hx + c * d0 * k, hy + s * d0 * k, hx + c * d1 * k, hy + s * d1 * k, 6 * k, a * alpha, inkc); g.restore(); };
     const put = (px, py, sg) => {
       const hx0 = px * k * dir * fsx, hy0 = py * k * sy; let hx = x + hx0 * ct - hy0 * sn, hy = by + hx0 * sn + hy0 * ct, rot;
       if (mode === 'thrust') {
@@ -130,7 +132,8 @@ const isNight = theme => !!(THEMES[theme] && THEMES[theme].night);
 export class BattleView {
   constructor(theme, seed) { this.fx = new Fx(); this.dust = 0; this.scroll = 0; this.props = []; this.ter = null; this.oldTer = null; this.terT = -9; this.oldT = -9; this.skyA = { night: 0, rain: 0 }; this.setTheme(theme, seed); }
   setTheme(theme, seed) {
-    this.theme = theme; this.ground = makeGround(theme, seed); this.far = makeFar(theme, seed);
+    this.theme = theme; this.ground = ART.illust ? illustGround(GW, seed) : makeGround(theme, seed); this.far = ART.illust ? illustFar(FW, seed) : makeFar(theme, seed); this.farH = ART.illust ? ILL_FAR_H : FAR_H;
+    if (ART.illust) this.wisps = Array.from({ length: 16 }, (_, i) => ({ x: Math.random() * W, y: 160 + Math.random() * 380, s: 2 + Math.random() * 2.4, ph: Math.random() * 9, col: i % 4 === 0 ? '#ffd27a' : i % 2 ? ILL.wisp : ILL.wisp2, flame: i % 4 !== 0 }));
     // 바람에 날리는 꽃잎·나뭇잎·도깨비불
     this.amb = []; for (let i = 0; i < 22; i++) this.amb.push({ x: Math.random() * W, y: 110 + Math.random() * 440, s: 2.4 + Math.random() * 2.6, v: 14 + Math.random() * 22, ph: Math.random() * 9, col: (AMB[theme] || AMB.pass)[i % 3] });
   }
@@ -140,8 +143,9 @@ export class BattleView {
     const fx = this.fx, sc = Math.max(0, this.scroll);
     g.save();
     if (fx.shake > 0) g.translate((Math.random() - 0.5) * fx.shake, (Math.random() - 0.5) * fx.shake);
-    for (let x = -((sc * 0.25) % FW); x < W; x += FW) g.drawImage(this.far, x, 0, FW, FAR_H);
+    for (let x = -((sc * 0.25) % FW); x < W; x += FW) g.drawImage(this.far, x, 0, FW, this.farH || FAR_H);
     for (let x = -(sc % GW); x < W; x += GW) g.drawImage(this.ground, x, 0, GW, H);
+    if (ART.illust) mapleBranch(g, -18, 66, 0.92, T);   // 왼쪽 위를 감싸는 단풍 가지와 청사초롱
     // 지형: 싸움터가 차려지면 종이 무대 장치처럼 일어서고, 끝나면 접힌다
     if (!this.ter) this.ter = b.terrain; else if (b.terrain !== this.ter) { this.oldTer = this.ter; this.oldT = T; this.ter = b.terrain; this.terT = T; }
     const kin = clamp((T - this.terT) / 0.38, 0, 1), kout = this.oldTer ? 1 - clamp((T - this.oldT) / 0.25, 0, 1) : 0;
@@ -163,7 +167,9 @@ export class BattleView {
     if (kout > 0) for (const o of this.oldTer.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: kout }); }
     if (opt.extra) for (const e of opt.extra) list.push(e);
     list.sort((a, c) => a.y - c.y);
+    const illGrade = ART.illust;
     for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march, b.time); else if (it.spr) { if (it.sy === undefined) drawSprite(g, it.spr, it.x, it.y); else if (it.sy > 0.02) drawSprite(g, it.spr, it.x, it.y, 1 + (1 - Math.min(1, it.sy)) * 0.15, it.sy); } }
+    if (illGrade) nightGrade(g, 0, 60, W, 512);   // 달빛 남보라로 눌러 준다 (표식과 빛은 그 위에 밝게)
     // 소품(종·여의주·업경대·명부 든 사자): 어떤 인형에도 가리지 않게 맨 위에 표식과 이름, 남은 숨을 단다
     const tag = (x, y, s, col) => { g.font = `400 17px ${FONT_B}`; const w = g.measureText(s).width + 22; rr(g, x - w / 2, y - 14, w, 28, 7, '#fbf3df', col, 2.2); text(g, s, x, y + 1, { size: 17, font: FONT_B, fill: col }); };
     for (const u of b.units) {
@@ -184,10 +190,10 @@ export class BattleView {
     if (this.dust <= 0) { this.dust = 0.09; for (const u of b.units) if (!u.dead && u.moving && u.def.charge && u.run > 60 && u.hidden <= 0) fx.puff(u.x - Math.cos(u.facing) * 12, u.y - 2, 1, '#e8dcc0', 6); if (opt.march) for (const u of b.units) if (!u.dead && u.team === 0 && Math.random() < 0.05) fx.puff(u.x - 10, u.y - 1, 1, '#e8dcc0', 5); }
     for (const p of b.proj) this.drawProj(g, p, T);
     this.drawSky(g, b, T, opt.dt || 0);
-    this.drawAmbient(g, T, opt.dt || 0, opt.march);
+    if (ART.illust) drawWisps(g, this.wisps, T, opt.dt || 0, { x0: 0, x1: W, y0: 150, y1: 545 }); else this.drawAmbient(g, T, opt.dt || 0, opt.march);
     fx.drawLayer(g, false);
     g.restore();
-    g.drawImage(vignette(isNight(this.theme)), 0, 0, W, H);
+    g.drawImage(vignette(ART.illust || isNight(this.theme)), 0, 0, W, H);
     if (fx.flash > 0) { g.globalAlpha = fx.flash * 0.45; g.fillStyle = fx.flashCol; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
   }
   // 밤과 비: 싸움터의 하늘에 따라 천천히 덮였다가 걷힌다
@@ -274,6 +280,7 @@ export class BattleView {
       if (p.kind === 'bullet') { g.globalAlpha = 0.5; line(g, [p.x - Math.cos(a) * 34, p.y - Math.sin(a) * 34, p.x, p.y], '#fbf7ec', 3); g.globalAlpha = 1; ell(g, p.x, p.y, 2.8, 2.8, '#3a3a44', INK, 1); return; }
       if (p.kind === 'spark') { const nx = -Math.sin(a), ny = Math.cos(a), pts = []; for (let i = 0; i <= 4; i++) { const d = i * 9, o = (i % 2 ? 1 : -1) * (i === 0 || i === 4 ? 0 : 5); pts.push(p.x - Math.cos(a) * d + nx * o, p.y - Math.sin(a) * d + ny * o); } line(g, pts, INK, 5); line(g, pts, '#b89cf0', 2.6); ell(g, p.x, p.y, 3.4, 3.4, '#fffbe6', INK, 1); return; }
       if (p.kind === 'firearrow') { g.globalAlpha = 0.75; ell(g, p.x - Math.cos(a) * 3, p.y - Math.sin(a) * 3, 5.5, 5.5, '#ff9a2e'); g.globalAlpha = 1; }
+      if (ART.illust) glowStreak(g, p.x - Math.cos(a) * 46, p.y - Math.sin(a) * 46, p.x, p.y, 2.6, 0.8, p.team === 1 ? ILL.foe : ILL.gold);
       line(g, [p.x - Math.cos(a) * 16, p.y - Math.sin(a) * 16, p.x, p.y], INK, 2.6);
       g.save(); g.translate(p.x, p.y); g.rotate(a); poly(g, [-18, -2.6, -12, 0, -18, 2.6], '#fbf7ec', INK, 0.8); poly(g, [0, -2.2, 5, 0, 0, 2.2], '#e4e8ea', INK, 0.8); g.restore();
     }

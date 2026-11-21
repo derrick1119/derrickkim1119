@@ -12,6 +12,7 @@ import { dimBackdrop } from './title.js';
 import { portrait } from '../render/sprites.js';
 import { cardFace } from '../ui/cards.js';
 import { sfx } from '../audio.js';
+import { ART } from '../render/art.js';
 
 const ROLE = { commander: '선봉 · 근접', blade: '자객 · 근접', hunter: '저격 · 원거리', bishop: '치유 · 지원', archmage: '도술 · 광역', sangsoe: '풍물 · 지원', chief: '버팀 · 근접' };
 export class HeroScene {
@@ -65,8 +66,8 @@ export class HeroScene {
       text(g, lv ? `험로 ${lv}단계 · ${hd.name}` : '평탄한 길', 544, 620, { size: 23, font: FONT_B, fill: lv ? RED : INK, maxW: 390 });
       text(g, lv ? `${hd.desc}${lv > 1 ? ' (아래 단계 규칙도 모두)' : ''} · 공적 +${lv * 20}%` : `험로 규칙 없이 떠납니다 · 열린 길 ${meta.hardMax}단계`, 544, 652, { size: 14.5, fill: SUB, weight: 400, maxW: 396 });
     } else {
-      text(g, '전술 패는 한 번 쓰면 사라집니다. 전장의 노획, 전리품, 장터, 주막에서 다시 채우세요.', 540, 626, { size: 15.5, fill: SUB, weight: 400, maxW: 560 });
-      text(g, '이끄는 영웅의 병법에 따라 패를 얻고 쓰는 방식이 달라집니다.', 540, 650, { size: 15.5, fill: SUB, weight: 400, maxW: 560 });
+      text(g, '전술 패는 한 번 쓰면 사라집니다. 전장의 노획, 전리품, 장터, 주막에서 다시 채우세요.', 540, 626, { size: 15.5, fill: ART.illust ? '#d8d0f0' : SUB, weight: 400, maxW: 560 });
+      text(g, '이끄는 영웅의 병법에 따라 패를 얻고 쓰는 방식이 달라집니다.', 540, 650, { size: 15.5, fill: ART.illust ? '#d8d0f0' : SUB, weight: 400, maxW: 560 });
     }
   }
 }
