@@ -10,8 +10,8 @@
      ?size=512&maskable=1 -->
 <canvas id="icon"></canvas>
 <script type="module">
-import { drawUfo, drawCloak } from '../src/render/ufo.js';
-import { C, glow, star, withAlpha } from '../src/render/draw.js';
+import { drawUfo } from '../src/render/ufo.js';
+import { P, glow, withAlpha, cumulus, tone } from '../src/render/draw.js';
 
 const q = new URLSearchParams(location.search);
 const size = Number(q.get('size')) || 512;
@@ -19,68 +19,66 @@ const maskable = q.get('maskable') === '1';
 const cv = document.getElementById('icon');
 cv.width = cv.height = size;
 const ctx = cv.getContext('2d');
-const u = size / 512; // 512 기준 설계
+ctx.scale(size / 512, size / 512); // 512 기준으로 설계한다
+const S = 512;
 
 // 모서리: 마스커블은 꽉 찬 사각형(런처가 잘라 낸다), 일반 아이콘은 둥근 사각형
 if (!maskable) {
   ctx.beginPath();
-  ctx.roundRect(0, 0, size, size, 112 * u);
+  ctx.roundRect(0, 0, S, S, 112);
   ctx.clip();
 }
-const sky = ctx.createLinearGradient(0, 0, 0, size);
-sky.addColorStop(0, '#1b1848');
-sky.addColorStop(0.55, '#4a2f7a');
-sky.addColorStop(1, '#f2936b');
+// 맑은 낮 하늘
+const sky = ctx.createLinearGradient(0, 0, 0, S);
+sky.addColorStop(0, P.skyTop);
+sky.addColorStop(0.6, P.sky);
+sky.addColorStop(1, P.skyLow);
 ctx.fillStyle = sky;
-ctx.fillRect(0, 0, size, size);
-
-// 별
-const stars = [[70, 80, 5], [440, 96, 7], [396, 300, 4], [96, 300, 4], [250, 60, 4], [150, 170, 3], [470, 210, 3]];
-for (const [x, y, r] of stars) {
-  ctx.fillStyle = withAlpha(C.white, 0.9);
-  star(ctx, x * u, y * u, r * 2.2 * u, r * 0.6 * u, 4, 0);
-  ctx.fill();
-}
+ctx.fillRect(0, 0, S, S);
+glow(ctx, 120, 90, 200, '#ffffff', 0.25);
+// 뒤 구름
+cumulus(ctx, [[60, 150, 46], [118, 132, 58], [180, 156, 40], [120, 170, 44]], { alpha: 0.9 });
+cumulus(ctx, [[400, 108, 34], [446, 96, 44], [492, 112, 34]], { alpha: 0.85 });
 // 언덕
-ctx.fillStyle = '#34245f';
-ctx.beginPath();
-ctx.moveTo(0, size);
-ctx.quadraticCurveTo(size * 0.3, size * 0.74, size * 0.62, size * 0.86);
-ctx.quadraticCurveTo(size * 0.84, size * 0.94, size, size * 0.82);
-ctx.lineTo(size, size);
-ctx.closePath();
-ctx.fill();
+const hill = (y0, amp, color, phase) => {
+  ctx.beginPath();
+  ctx.moveTo(0, S);
+  for (let x = 0; x <= S; x += 8) ctx.lineTo(x, y0 - Math.sin((x / S) * Math.PI * 1.3 + phase) * amp);
+  ctx.lineTo(S, S);
+  ctx.closePath();
+  const g = ctx.createLinearGradient(0, y0 - amp, 0, S);
+  g.addColorStop(0, tone(color, 0.18));
+  g.addColorStop(1, tone(color, -0.15));
+  ctx.fillStyle = g;
+  ctx.fill();
+};
+hill(430, 26, P.grassDark, 0.6);
+hill(468, 22, P.grass, 2.4);
 
-// 빛기둥
+// 기체와 견인 빔
 const k = maskable ? 0.8 : 1; // 마스커블은 가운데 80% 안에 그린다
-const cx = size / 2;
-const cy = size * (maskable ? 0.47 : 0.46);
-const s = 3.9 * u * k;
-const beam = ctx.createLinearGradient(0, cy, 0, size);
-beam.addColorStop(0, withAlpha(C.lemon, 0.6));
-beam.addColorStop(1, withAlpha(C.lemon, 0));
+const cx = 256;
+const cy = maskable ? 236 : 226;
+const s = 4.1 * k;
+const beam = ctx.createLinearGradient(0, cy, 0, S);
+beam.addColorStop(0, withAlpha(P.glow, 0.7));
+beam.addColorStop(1, withAlpha(P.glow, 0));
 ctx.fillStyle = beam;
 ctx.beginPath();
-ctx.moveTo(cx - 12 * s, cy + 16 * s);
-ctx.lineTo(cx + 12 * s, cy + 16 * s);
-ctx.lineTo(cx + 34 * s, size);
-ctx.lineTo(cx - 34 * s, size);
+ctx.moveTo(cx - 16 * s, cy + 24 * s);
+ctx.lineTo(cx + 16 * s, cy + 24 * s);
+ctx.lineTo(cx + 40 * s, S);
+ctx.lineTo(cx - 40 * s, S);
 ctx.closePath();
 ctx.fill();
-glow(ctx, cx, cy, 150 * u * k, C.lemon, 0.18);
-
-// 기체: 숨는 표정의 꼬마 접시와 반쯤 덮은 구름
 ctx.save();
 ctx.translate(cx, cy);
-ctx.rotate(-0.08);
+ctx.rotate(-0.07);
 ctx.scale(s, s);
 drawUfo(ctx, { form: 1, t: 0.6, mood: 'alert', lit: 1, beam: 1 });
 ctx.restore();
-ctx.save();
-ctx.translate(cx + 40 * s, cy + 9 * s);
-ctx.scale(s * 0.5, s * 0.5);
-drawCloak(ctx, 1, 0.4, 1);
-ctx.restore();
+// 앞을 살짝 가리는 구름(숨는 중)
+cumulus(ctx, [[cx + 150 * k, cy + 70 * k, 46 * k], [cx + 196 * k, cy + 52 * k, 56 * k], [cx + 244 * k, cy + 78 * k, 42 * k], [cx + 190 * k, cy + 96 * k, 44 * k]], {});
 document.body.dataset.ready = '1';
 </script>
 </body>

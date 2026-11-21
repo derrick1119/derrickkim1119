@@ -1,6 +1,6 @@
 /* 쉿! UFO — 화면 스타일
-   방향: 밤하늘 위에 붙인 스티커북. 크림색 종이 패널, 굵은 남보라 외곽선, 번지지 않는 딱딱한 그림자.
-   게임 세계가 밤이라 테마는 하나만 쓴다(라이트·다크 전환 없음). */
+   방향: 맑은 낮 하늘 위에 붙인 스티커. 크림색 종이 패널, 굵은 남색 외곽선, 번지지 않는 딱딱한 그림자.
+   게임 세계가 한 가지 색감이라 테마는 하나만 쓴다(라이트·다크 전환 없음). */
 
 @font-face {
   font-family: "Bagel Fat One";
@@ -19,8 +19,8 @@
 
 :root {
   /* 배치: 세로로 긴 한 화면. 위는 계기판, 가운데는 하늘(캔버스), 아래는 조작부. */
-  --ink: #2b1d4f;
-  --ink-soft: #6a5a92;
+  --ink: #1f2350;
+  --ink-soft: #5a6296;
   --paper: #fff6e0;
   --paper-2: #f7e6c0;
   --paper-3: #ead5a6;
@@ -30,7 +30,8 @@
   --mint: #6fdcbf;
   --lemon: #ffd84a;
   --lilac: #b79cff;
-  --night: #1b1848;
+  --night: #2a4fae; /* 화면 바깥과 로딩 화면 */
+  --sky-tile: linear-gradient(160deg, #3d6fd8, #64a2f2 55%, #c4e6ff); /* 그림 아이콘을 올리는 판 */
   --font-display: "Bagel Fat One", "Jua", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --font-body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
   --line: 2.5px;
@@ -103,9 +104,9 @@ button {
   display: grid;
   place-items: center;
   background:
-    radial-gradient(circle at 20% 15%, rgba(183, 156, 255, 0.16), transparent 42%),
-    radial-gradient(circle at 85% 80%, rgba(111, 220, 191, 0.1), transparent 40%),
-    var(--night);
+    radial-gradient(circle at 20% 12%, rgba(255, 255, 255, 0.22), transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(147, 211, 79, 0.22), transparent 42%),
+    linear-gradient(#2f5fc8, #5f9cec);
 }
 
 .stage {
@@ -127,7 +128,7 @@ button {
     border-radius: 30px;
     box-shadow:
       0 0 0 3px var(--ink),
-      0 0 0 9px #3a2f78,
+      0 0 0 9px #2b3a78,
       0 0 0 12px var(--ink),
       0 30px 80px rgba(0, 0, 0, 0.55);
   }
@@ -389,7 +390,7 @@ button {
   width: var(--p, 0%);
   height: 100%;
   background: var(--mint);
-  box-shadow: inset 0 -3px 0 rgba(43, 29, 79, 0.18);
+  box-shadow: inset 0 -3px 0 rgba(31, 35, 80, 0.18);
   transition: width 0.2s;
 }
 .sheet .bar,
@@ -848,10 +849,10 @@ button {
   border-radius: 16px;
   box-shadow: var(--shadow-sm);
 }
-/* 표본·임무 그림은 밤하늘 사진처럼 어두운 판 위에 올린다(흰 민들레가 흰 카드에 묻히지 않게) */
+/* 표본·임무 그림은 하늘색 판 위에 올린다(흰 민들레가 흰 카드에 묻히지 않게) */
 .card > .pic,
 .cell > .pic {
-  background: var(--night);
+  background: var(--sky-tile);
   border: 2px solid var(--ink);
   border-radius: 14px;
 }
@@ -1133,7 +1134,7 @@ button {
   display: grid;
   place-items: center;
   padding: calc(14px + var(--safe-top)) 14px calc(14px + var(--safe-bottom));
-  background: rgba(20, 12, 50, 0.66);
+  background: rgba(18, 24, 64, 0.6);
   animation: fade 0.18s ease-out;
 }
 .modal {
@@ -1212,7 +1213,7 @@ button {
 .modal-report {
   position: relative;
   background:
-    repeating-linear-gradient(to bottom, transparent 0 27px, rgba(43, 29, 79, 0.07) 27px 28px),
+    repeating-linear-gradient(to bottom, transparent 0 27px, rgba(31, 35, 80, 0.07) 27px 28px),
     var(--paper);
 }
 .report-head {
@@ -1264,7 +1265,7 @@ html[lang="en"] .report-head {
 }
 .report-pic,
 .cause-top .pic {
-  background: var(--night);
+  background: var(--sky-tile);
   border: var(--line) solid var(--ink);
   border-radius: 18px;
 }
@@ -1301,7 +1302,7 @@ html[lang="en"] .report-head {
   margin: 0 -16px -16px;
   padding: 10px 16px 16px;
   background: var(--paper);
-  border-top: 2px dashed rgba(43, 29, 79, 0.25);
+  border-top: 2px dashed rgba(31, 35, 80, 0.25);
 }
 .report-tip b {
   background: var(--paper-2);
@@ -1364,7 +1365,7 @@ html[lang="en"] .report-head {
   place-items: center;
   width: 100%;
   padding: 10px;
-  background: linear-gradient(#0d1040, #3d2b74);
+  background: linear-gradient(#0f1a4a, #2a3f8f 60%, #5a7fd6);
   border: var(--line) solid var(--ink);
   border-radius: 16px;
 }
@@ -1553,7 +1554,7 @@ html[lang="en"] .report-head {
   grid-template-rows: auto auto auto 1fr;
   justify-items: center;
   padding: calc(12px + var(--safe-top)) 20px calc(30px + var(--safe-bottom));
-  background: linear-gradient(to bottom, rgba(27, 24, 72, 0.5), rgba(27, 24, 72, 0) 34%, rgba(27, 24, 72, 0) 62%, rgba(27, 24, 72, 0.72));
+  background: linear-gradient(to bottom, rgba(31, 52, 140, 0.35), rgba(31, 52, 140, 0) 34%, rgba(31, 52, 140, 0) 66%, rgba(20, 30, 80, 0.55));
 }
 .title-top {
   justify-self: end;

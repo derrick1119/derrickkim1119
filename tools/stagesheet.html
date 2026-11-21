@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>쉿! UFO 무대 시트</title>
+<style>html, body { margin: 0; background: #111; } canvas { display: block; }</style>
+</head>
+<body>
+<!-- 개발용: 무대 배경 7종을 휴대폰 세로 화면 크기로 늘어놓는다. npm start 후 /tools/stagesheet.html
+     ?t=초 를 주면 그 시각으로 멈춘 한 장을 그린다(스크린샷용). ?w=390&h=844 로 칸 크기를 바꿀 수 있다.
+     칸마다: 위 150px 은 계기판, 아래 150px 은 조작부가 덮는 자리(어둡게 표시), 노란 선 = 땅(groundY).
+     흰 원 = 기체 자리, 작은 점선 원 = 표본이 떠다니는 자리, 막대 = 지구인이 서는 자리. -->
+<canvas id="sheet"></canvas>
+<script type="module">
+import { makeBackdrop } from '../src/render/backdrops.js';
+
+const q = new URLSearchParams(location.search);
+const CW = Number(q.get('w')) || 390;
+const CH = Number(q.get('h')) || 844;
+const fixedT = q.has('t') ? Number(q.get('t')) : null;
+const stages = ['farm', 'suburb', 'camp', 'city', 'observatory', 'cloudsea', 'orbit'];
+const cols = 4, gap = 12, dpr = 1;
+const W = cols * CW + (cols + 1) * gap;
+const H = 2 * CH + 3 * gap;
+const cv = document.getElementById('sheet');
+cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+const ctx = cv.getContext('2d');
+const HUD = 150, DOCK = 150;
+const groundY = Math.round(CH - DOCK - Math.min(Math.max(CH * 0.065, 30), 56));
+
+const cells = stages.map((stage) => {
+  const bd = makeBackdrop(stage, CW, CH, groundY);
+  const off = document.createElement('canvas');
+  off.width = CW; off.height = CH;
+  bd.paint(off.getContext('2d'));
+  return { stage, bd, off };
+});
+
+function frame(now) {
+  const t = fixedT ?? now / 1000;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = '#111'; ctx.fillRect(0, 0, W, H);
+  cells.forEach((c, i) => {
+    const x = gap + (i % cols) * (CW + gap);
+    const y = gap + Math.floor(i / cols) * (CH + gap);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x, y, CW, CH); ctx.clip();
+    ctx.translate(x, y);
+    ctx.drawImage(c.off, 0, 0);
+    c.bd.live(ctx, t);
+    // 자리 표시
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.fillRect(0, 0, CW, HUD); ctx.fillRect(0, CH - DOCK, CW, DOCK);
+    ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(CW, groundY); ctx.stroke();
+    ctx.setLineDash([]);
+    const ufoY = HUD + 30 + (groundY - HUD - 30) * 0.37;
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(CW / 2, ufoY, 50, 18, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([3, 3]);
+    for (const [px, py] of [[0.2, 0.3], [0.75, 0.42], [0.35, 0.62], [0.8, 0.75]]) {
+      ctx.beginPath(); ctx.arc(CW * px, HUD + (groundY - HUD) * py, 18, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    for (const px of [0.25, 0.7]) ctx.fillRect(CW * px - 7, groundY - 62, 14, 62);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 14px system-ui'; ctx.fillText(c.stage, 10, 20);
+    ctx.restore();
+  });
+  if (fixedT === null) requestAnimationFrame(frame);
+  else document.body.dataset.ready = '1';
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

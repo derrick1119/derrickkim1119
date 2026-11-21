@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>쉿! UFO 그림 시트</title>
 <style>
-  html, body { margin: 0; background: #241c52; color: #fff3d6; font: 13px/1.4 system-ui, sans-serif; }
+  html, body { margin: 0; background: #3d6fd8; color: #fff3d6; font: 13px/1.4 system-ui, sans-serif; }
   h2 { margin: 16px 16px 4px; font-size: 14px; }
   canvas { display: block; }
 </style>
@@ -28,14 +28,19 @@ const params = new URLSearchParams(location.search);
 const fixedT = params.has('t') ? Number(params.get('t')) : null;
 
 function at(x, y, s, fn) { ctx.save(); ctx.translate(x, y); ctx.scale(s, s); fn(); ctx.restore(); }
-function cap(text, x, y) { ctx.fillStyle = '#b7a8e8'; ctx.font = '11px system-ui'; ctx.textAlign = 'center'; ctx.fillText(text, x, y); }
+function cap(text, x, y) { ctx.fillStyle = '#1f2350'; ctx.font = '11px system-ui'; ctx.textAlign = 'center'; ctx.fillText(text, x, y); }
 
 function frame(now) {
   const t = fixedT ?? now / 1000;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // 낮 하늘 배경 + 지구인 줄마다 풀밭 띠(실제 게임 화면과 비슷한 대비로 본다)
   const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, '#1c1a4a'); g.addColorStop(1, '#4a2f7a');
+  g.addColorStop(0, '#3d6fd8'); g.addColorStop(0.6, '#64a2f2'); g.addColorStop(1, '#c4e6ff');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#93d34f';
+  for (const y of [520, 650, 780]) ctx.fillRect(0, y, W, 14);
+  // 밤 무대(천문대·궤도)에서 어떻게 보이는지도 오른쪽 끝 띠에서 본다
+  ctx.fillStyle = '#131a50'; ctx.fillRect(W - 70, 0, 70, H);
 
   const moods = ['idle', 'happy', 'alert', 'hide', 'shock'];
   // 형태 8종

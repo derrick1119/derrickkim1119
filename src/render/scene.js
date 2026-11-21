@@ -3,6 +3,7 @@ import { FORMS, WATCHERS, SPECIMEN_BY_ID, AIRBORNE_STAGES } from '../data/conten
 import { formatGain } from '../core/format.js';
 import {
   C,
+  P,
   TAU,
   clamp,
   lerp,
@@ -28,6 +29,13 @@ const UFO_SCREEN_W = [70, 100, 116, 150, 156, 160, 190, 232];
 /** 지상 표본의 중심이 땅에서 떠 있는 높이. */
 const GROUND_LIFT = { chicken: 15, cow: 16 };
 const MAX_DPR = 2;
+/** 견인 빔 색: 직접 쏠 때 · 수집 드론 · 들킨 순간 */
+const BEAM = P.glow;
+const BEAM_AUTO = '#8dffc8';
+const BEAM_CAUGHT = C.coral;
+/** 들킨 뒤 지구인이 잠자리채를 들고 기체 쪽으로 달려오는 거리(기체까지 거리의 비율)와 시간 */
+const CHASE_SHARE = 0.32;
+const CHASE_TIME = 1.3;
 
 export class Scene {
   /**
@@ -64,6 +72,7 @@ export class Scene {
     this.prevBackdrop = null;
     this.fadeT = 1;
     this.look = new Map(); // 지구인 id -> 고개를 든 정도(부드럽게 따라간다)
+    this.foundT = 0; // 들킨 뒤 지난 시간
     this._bind();
   }
 
@@ -73,12 +82,12 @@ export class Scene {
       if (result.report && result.gain === 0) return;
       specimen.popup = formatGain(result.gain);
       if (!auto) this.happyT = 0.55;
-      this.ring(specimen.x, this._specimenY(specimen), auto ? C.mint : C.lemon, 26);
+      this.ring(specimen.x, this._specimenY(specimen), auto ? BEAM_AUTO : BEAM, 26);
     });
     world.on('absorbed', (sp) => {
       const p = this.bellyPoint();
       if (sp.popup) this.popup(p.x + (Math.random() - 0.5) * 30, p.y + 8, sp.popup, sp.auto ? C.mint : C.lemon, sp.auto ? 13 : 16);
-      this.sparkle(p.x, p.y, sp.auto ? 3 : 6, sp.auto ? C.mint : C.lemon);
+      this.sparkle(p.x, p.y, sp.auto ? 3 : 6, sp.auto ? BEAM_AUTO : P.glowSoft);
     });
     world.on('poke', () => {
       this.wobbleT = 0.5;
@@ -88,7 +97,7 @@ export class Scene {
       this.layout();
       const { x, y } = this.ufo;
       this.ring(x, y, C.lemon, 150, 0.8);
-      this.ring(x, y, C.mint, 110, 0.6);
+      this.ring(x, y, BEAM, 110, 0.6);
       this.sparkle(x, y, 26, C.lemon, 190);
       this.flash(C.lemonSoft, 0.4);
       this.happyT = 1.6;
@@ -99,6 +108,7 @@ export class Scene {
       this.shake(9, 0.45);
       this.ufo.mode = 'caught';
       this.ufo.modeT = 0;
+      this.foundT = 0;
     });
     game.on('cloak', ({ on }) => {
       const { x, y } = this.ufo;
@@ -193,6 +203,8 @@ export class Scene {
     this.fadeT = instant ? 1 : 0;
     this.backdrop = { key, stage, canvas: cv, live: bd.live };
     this.themeColor = STAGE_THEME[stage];
+    // 휴대폰 상태 표시줄 색을 무대의 하늘색에 맞춘다
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', this.themeColor);
   }
 
   // ───────── 효과 ─────────
@@ -355,6 +367,7 @@ export class Scene {
       if (this.fadeT >= 1) this.prevBackdrop = null;
     }
     this.flashA = Math.max(0, this.flashA - dt * 2.4);
+    this.foundT = this.game.phase === 'discovered' ? this.foundT + dt : 0;
     this.shakeT = Math.max(0, this.shakeT - dt);
 
     const found = game.phase === 'discovered';
@@ -390,6 +403,13 @@ export class Scene {
 
   _specimenY(sp) {
     return sp.mode === 'ground' ? sp.y - (GROUND_LIFT[sp.kind] || 14) : sp.y;
+  }
+
+  /** 지구인을 그릴 x. 들킨 뒤에는 잠자리채를 들고 기체 쪽으로 달려온다. */
+  _humanX(h) {
+    if (this.game.phase !== 'discovered' || this.reducedMotion) return h.x;
+    const k = easeOut(clamp(this.foundT / CHASE_TIME)) * CHASE_SHARE;
+    return h.x + (this.home.x - h.x) * k;
   }
 
   _humanBase(h) {
@@ -430,7 +450,8 @@ export class Scene {
       if (hmn.state !== 'look' && !(found && hmn.spotted)) continue;
       const s = WATCHERS[hmn.type].scale || 1;
       const ho = headOffset(hmn.type, s);
-      this._cone(ho.x + hmn.x, this._humanBase(hmn) + ho.y, cloaked ? C.lilac : hmn.spotted ? C.coral : C.lemon, cloaked ? 0.16 : hmn.spotted ? 0.5 : 0.3);
+      const color = cloaked ? C.lilac : hmn.spotted ? C.coral : '#fff3a8';
+      this._cone(ho.x + this._humanX(hmn), this._humanBase(hmn) + ho.y, color, cloaked ? 0.2 : hmn.spotted ? 0.5 : 0.42);
     }
 
     // 연줄
@@ -440,7 +461,7 @@ export class Scene {
       ctx.moveTo(sp.x, sp.y + 14);
       ctx.quadraticCurveTo(sp.x + sp.dir * 30, sp.y + 90, sp.ax + sp.dir * 90, this.groundY);
       ctx.lineWidth = 1;
-      ctx.strokeStyle = withAlpha(C.white, 0.35 * (sp.state === 'fade' ? sp.fade : 1));
+      ctx.strokeStyle = withAlpha(P.ink, 0.3 * (sp.state === 'fade' ? sp.fade : 1));
       ctx.stroke();
     }
 
@@ -449,9 +470,9 @@ export class Scene {
       for (const sp of world.specimens) {
         if (sp.state === 'beam') {
           const k = easeIn(sp.bt);
-          this._beam(belly, lerp(sp.bx, belly.x, k), lerp(this._beamStartY(sp), belly.y + 6, k), sp.auto ? C.mint : C.lemon, 1 - sp.bt * 0.4);
+          this._beam(belly, lerp(sp.bx, belly.x, k), lerp(this._beamStartY(sp), belly.y + 6, k), sp.auto ? BEAM_AUTO : BEAM, 1 - sp.bt * 0.4);
         } else if (sp.state === 'caught') {
-          this._beam(belly, sp.x, this._specimenY(sp), C.coral, 0.6 + 0.3 * Math.sin(t * 40));
+          this._beam(belly, sp.x, this._specimenY(sp), BEAM_CAUGHT, 0.6 + 0.3 * Math.sin(t * 40));
         }
       }
     }
@@ -469,24 +490,25 @@ export class Scene {
       const cfg = WATCHERS[hmn.type];
       const s = cfg.scale || 1;
       const look = this.look.get(hmn.id) ?? 0;
-      const facing = look > 0.2 ? (this.home.x >= hmn.x ? 1 : -1) : hmn.dir;
+      const hx = this._humanX(hmn);
+      const facing = look > 0.2 || found ? (this.home.x >= hx ? 1 : -1) : hmn.dir;
       const base = this._humanBase(hmn);
       ctx.save();
-      ctx.translate(hmn.x, base);
+      ctx.translate(hx, base);
       ctx.scale(s, s);
       drawWatcher(ctx, hmn.type, {
         t: t + hmn.phase,
         dir: facing,
-        walk: hmn.state === 'walk' && game.playing ? 1 : 0,
+        walk: (hmn.state === 'walk' && game.playing) || (found && this.foundT < CHASE_TIME) ? 1 : 0,
         look: waving ? 1 : look,
         shock: found,
         wave: waving,
       });
       ctx.restore();
       const top = base + topOffset(hmn.type, s);
-      if (found) this._bubble(hmn.x, top, 'bang', t + hmn.phase);
-      else if (hmn.state === 'notice') this._bubble(hmn.x, top, 'ask', t);
-      else if (hmn.state === 'look') this._bubble(hmn.x, top, cloaked ? 'blind' : 'eye', t);
+      if (found) this._bubble(hx, top, 'bang', t + hmn.phase);
+      else if (hmn.state === 'notice') this._bubble(hx, top, 'ask', t);
+      else if (hmn.state === 'look') this._bubble(hx, top, cloaked ? 'blind' : 'eye', t);
     }
 
     // 효과
@@ -638,7 +660,7 @@ export class Scene {
     const bounce = kind === 'bang' ? Math.abs(Math.sin(t * 9)) * 4 : Math.sin(t * 7) * 1.5;
     const cx = clamp(x, 22, this.w - 22);
     const cy = Math.max(this.insets.top + 16, y - 16 - bounce);
-    const fill = kind === 'bang' ? C.coral : kind === 'blind' ? C.cloud : C.white;
+    const fill = kind === 'bang' ? C.coral : kind === 'blind' ? '#e6ebff' : C.white;
     poly(ctx, [[cx - 4, cy + 10], [cx + 4, cy + 10], [cx, cy + 17]]);
     paint(ctx, fill, 2.2);
     rrect(ctx, cx - 15, cy - 12, 30, 23, 9);
@@ -657,7 +679,7 @@ export class Scene {
       ctx.quadraticCurveTo(cx, cy - 9, cx + 10, cy);
       ctx.quadraticCurveTo(cx, cy + 9, cx - 10, cy);
       ctx.closePath();
-      paint(ctx, kind === 'blind' ? C.cloud : C.white, 2);
+      paint(ctx, kind === 'blind' ? '#e6ebff' : C.white, 2);
       if (kind === 'blind') {
         ctx.beginPath();
         ctx.moveTo(cx - 9, cy + 7);
