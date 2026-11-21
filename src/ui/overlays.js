@@ -66,7 +66,7 @@ export class RewardOverlay extends Overlay {
       if (d.card) { cardFace(g, d.card, x, y, w, h); packTag(g, x + w - 30, y + 62, d.n); if (o.kind !== 'card') { rr(g, x + 36, y - 25, 152, 27, 13, COL[d.col], INK, 1.6); text(g, d.title, x + 112, y - 11, { size: 17, fill: C.cream }); } } else tile(g, d, x, y, w, h, t);
       g.restore();
       if (done && !mine) rr(g, x - 3, y - (d.card && o.kind !== 'card' ? 27 : 3), w + 6, h + (d.card && o.kind !== 'card' ? 30 : 6), 9, 'rgba(24,28,44,0.62)');
-      if (mine && !d.relic) stamp(g, x + w - 44, y + 92, 38, 'get', RED, 0.14);   // 보물은 가운데 공개 연출에 얻음 표가 찍힌다
+      if (mine && !d.relic) stamp(g, x + 46, y + 150, 36, 'get', RED, -0.14);   // 보물은 가운데 공개 연출에 얻음 표가 찍힌다
       else if (!done && t > 0.45 && button(g, 'rw' + n, x + 12, y + h + 12, w - 24, 54, '고르기', { size: 27 })) {
         this.taken = n; applyReward(o); r.pending = null; save(); sfx('card');
         // 고른 것이 제자리로 날아간다: 패는 덱으로, 보물은 크게 한 번 보여 준 뒤 보물 주머니로

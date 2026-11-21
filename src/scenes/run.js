@@ -235,7 +235,7 @@ export class RunScene {
     }
     if (!cur || cur.t > 2.5) { g.save(); if (cur) g.globalAlpha = clamp((cur.t - 2.5) / 0.4, 0, 1); this.drawSide(g, b); g.restore(); }
     if (this.phase === 'prep' && (!cur || cur.t > 2.5)) this.drawPreview(g, b);
-    if (this.phase === 'fight' && this.enc && this.enc.boss && b.waveT < 7 && !this.aim) this.drawBossTip(g, this.enc, clamp((6 - b.waveT) / 1.2, 0, 1), 112);   // 싸움이 시작되면 위쪽(두목 체력 아래)으로 옮겨 부대를 가리지 않는다
+    if (this.phase === 'fight' && this.enc && this.enc.boss && b.waveT < 7 && !this.aim) this.drawBossTip(g, this.enc, clamp((4.5 - b.waveT) / 0.8, 0, 1), 112);   // 싸움이 시작되면 위쪽(두목 체력 아래)으로 옮겨 부대를 가리지 않는다
     this.drawBar(g, b, i, live);
     if (cur && open < 1) { g.fillStyle = `rgba(20,17,24,${0.5 * (1 - open)})`; g.fillRect(0, BAR_Y, W, H - BAR_Y); }
     this.drawNotes(g, b);

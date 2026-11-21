@@ -13,7 +13,8 @@ import { lvlMult } from '../data/units.js';
 const hyp = Math.hypot, TAU = Math.PI * 2;
 const cx = x => Math.max(VIEW.x0 + 50, Math.min(VIEW.x1 - 50, x)), cy = y => Math.max(VIEW.y0 + 36, Math.min(VIEW.y1 - 36, y));
 // 두목의 외침: 잇달아 외쳐도 겹치지 않게 번갈아 높이를 달리한다
-const say = (b, u, s, c = '#c8402f') => { u.sayN = ((u.sayN || 0) + 1) % 3; b.ev('text', { x: Math.max(260, Math.min(1020, u.x)), y: u.y - 96 - u.sayN * 38, s, c, big: true }); };
+// 끊기 게이지가 머리 위에 떠 있는 동안에는 외침을 발밑으로 내린다
+const say = (b, u, s, c = '#c8402f') => { u.sayN = ((u.sayN || 0) + 1) % 3; const low = u.ai && u.ai.g; b.ev('text', { x: Math.max(260, Math.min(1020, u.x)), y: low ? Math.min(520, u.y + 46) : u.y - 96 - u.sayN * 38, s, c, big: true }); };
 const tele = (b, u, x, y, r, delay, o) => { const z = Object.assign({ kind: 'tele', style: 'slam', x, y, r, t: 0, delay, hits: 0, src: u }, o); b.zones.push(z); return z; };
 const mv = o => Object.keys(o).map(id => ({ id, t: o[id] }));
 const pickN = (b, list, n) => list.map(s => [s, b.rand()]).sort((p, q) => p[1] - q[1]).slice(0, n).map(p => p[0]);
@@ -61,7 +62,7 @@ function foxfire(b, u, n) { circles(b, u, n, 62, 1.5, { style: 'fox', dmg: 38, b
 function charm(b, u, t) {
   const ss = mine(b).filter(s => !s.hero && hyp(s.cx - u.x, s.cy - u.y) < 560); if (!ss.length) return;
   const s = ss.sort((p, q) => q.alive - p.alive)[0]; for (const e of s.units) if (!e.dead) { e.charm = t; e.charmTo = u; e.target = null; }
-  say(b, u, '홀림! 부대에 명령을 내려 깨워라', '#b8559a'); b.ev('charm', { x: s.cx, y: s.cy });
+  say(b, u, '홀림!', '#b8559a'); b.ev('charm', { x: s.cx, y: s.cy });
 }
 function illusion(b, u) {
   const ss = mine(b), back = ss.length ? ss.sort((p, q) => p.cx - q.cx)[0] : null, lvl = u.lvl;
@@ -174,7 +175,7 @@ export const BOSS_AI = {
         const ss = mine(b).filter(s => !s.def.range && !s.def.heal && hyp(s.cx - u.x, s.cy - u.y) < 330); if (!ss.length) return false;
         const s = ss.sort((p, q) => hyp(p.cx - u.x, p.cy - u.y) - hyp(q.cx - u.x, q.cy - u.y))[0], m = lvlMult(u.lvl);
         tele(b, u, s.cx, s.cy, 86, 1.5, { style: 'devour', dmg: 58 * m, weaken: 6, after: n => { if (u.dead) return; if (n > 0) { if (u.grown < 8) { u.grown++; u.atk *= 1.09; u.hp = Math.min(u.maxHp, u.hp + u.maxHp * 0.05); b.ev('grow', { x: u.x, y: u.y }); } say(b, u, '무기를 먹혔다! 불가사리가 자란다'); } else open(b, u, 3.5, '헛입질! 지금이다!'); } });
-        u.cast = 1.5; say(b, u, '쇠 냄새가 난다…', '#6a6f78'); return true;
+        u.cast = 1.5; say(b, u, '덥석! 원 밖으로 빼라', '#6a6f78'); return true;
       } },
       stomp: { cd: 13, use: (b, u) => u.grown >= 2 && circles(b, u, 3, 74, 1.5, { dmg: 46 + 11 * u.grown, stun: 0.6, kb: 20 }, '쿵! 쿵!') },
     },

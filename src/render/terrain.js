@@ -11,8 +11,8 @@ export const THEMES = {
   // 고개마다의 풍경: 단풍 든 바윗길 · 눈 고개 · 안개 낀 절터 · 불탄 대장간 마을 · 비구름 낀 용소 · 저승길
   autumn: { paper: '#ead9bd', wash: ['#c9a36a', '#b98a55', '#c9884f'], path: '#f2e6cf', fiber: '#9a7a50', tuft: '#8a6a3a', mtn: ['#a08a7a', '#7a6258'], sky: '#f0e2c8', pine: '#b5562e', pineD: '#8a3d22', pineL: '#d98a4a', stone: ['#b9ad9a', '#a39682'], flower: ['#e8a03c', '#c8402f', '#f0d264'], bark: '#7a4a32' },
   snow: { paper: '#eef0ee', wash: ['#d7dfe2', '#c6d0d6', '#e3e8e8'], path: '#f7f8f6', fiber: '#a9b4ba', tuft: '#8a9aa0', mtn: ['#a9b6c0', '#7f8e9a'], sky: '#e9edf0', pine: '#4f6f6a', pineD: '#365450', pineL: '#dfe9ea', stone: ['#c3c8cc', '#a9b0b6'], flower: ['#ffffff', '#dfe8ee'], bark: '#6f5a50' },
-  mist: { paper: '#dcdccb', wash: ['#a3b09a', '#93a392', '#b3b9a3'], path: '#e9e8d8', fiber: '#8a8a72', tuft: '#5f705f', mtn: ['#8f9a98', '#6a7876'], sky: '#e2e3d6', pine: '#4a6a5c', pineD: '#324c42', pineL: '#7f9c8c', stone: ['#b3b3a6', '#9a9c90'], flower: ['#e9e6d2', '#c9d6c0'], bark: '#76604a' },
-  ember: { paper: '#e2d3bd', wash: ['#b59a80', '#a3866e', '#8f7866'], path: '#efe2cc', fiber: '#8a6f58', tuft: '#6f5a48', mtn: ['#8f7f78', '#66585a'], sky: '#ecdcc6', pine: '#5a5046', pineD: '#3d362f', pineL: '#8a7a68', stone: ['#9a938c', '#7f7872'], flower: ['#ff9a2e', '#c8402f'], bark: '#4a3a30' },
+  mist: { paper: '#dcdccb', wash: ['#a3b09a', '#93a392', '#b3b9a3'], path: '#e9e8d8', fiber: '#8a8a72', tuft: '#5f705f', mtn: ['#8f9a98', '#6a7876'], sky: '#e2e3d6', pine: '#4a6a5c', pineD: '#324c42', pineL: '#7f9c8c', stone: ['#b3b3a6', '#9a9c90'], flower: ['#e9e6d2', '#c9d6c0'], bark: '#76604a', mark: 'temple' },
+  ember: { paper: '#e2d3bd', wash: ['#b59a80', '#a3866e', '#8f7866'], path: '#efe2cc', fiber: '#8a6f58', tuft: '#6f5a48', mtn: ['#8f7f78', '#66585a'], sky: '#ecdcc6', pine: '#5a5046', pineD: '#3d362f', pineL: '#8a7a68', stone: ['#9a938c', '#7f7872'], flower: ['#ff9a2e', '#c8402f'], bark: '#4a3a30', mark: 'forge' },
   storm: { paper: '#cfd6d6', wash: ['#8fa6a8', '#7d989c', '#9fb0aa'], path: '#dde3e0', fiber: '#788a8c', tuft: '#4f6a6c', mtn: ['#6f8088', '#4a5c66'], sky: '#c3ccd0', pine: '#3f5f62', pineD: '#2c4648', pineL: '#6f8f90', stone: ['#a3acae', '#8a9496'], flower: ['#cfe3e6', '#8fd3e8'], bark: '#5f5750', noSun: true },
   under: { paper: '#cdc3d0', wash: ['#9a8aa8', '#86789a', '#a88a9a'], path: '#ddd5de', fiber: '#7a6c84', tuft: '#5a4a66', mtn: ['#6a5c7a', '#463c58'], sky: '#b9aec4', pine: '#5a4660', pineD: '#3d2f44', pineL: '#86708c', stone: ['#a59fae', '#8a8496'], flower: ['#c8402f', '#e06a5a', '#dfe8ee'], bark: '#5a4650', night: true },
 };
@@ -76,6 +76,31 @@ export function grassTuft(g, x, y, s, col, R) {
   for (let q = -3; q <= 3; q++) { const h = (8 + R() * 7) * s; g.beginPath(); g.moveTo(x + q * 1.7 * s, y); g.quadraticCurveTo(x + q * 2.4 * s, y - h * 0.6, x + q * 4 * s + (R() - 0.5) * 3 * s, y - h); st(g, q % 2 ? col : d, 1.15 * s); }
 }
 
+// 고개의 표지: 길가에 드문드문 선 것들 — 옛 절터의 석탑·석등, 불탄 대장간 마을의 그을린 기둥과 모루
+const LANDMARK = {
+  temple(g, alt) {
+    const S = '#b9b6a8', D = '#8f8c80';
+    if (alt) { // 석등
+      part(g, P(-9, 0, -6, -5, 6, -5, 9, 0), S, RC(0, -5, 9, 5), { lw: 1 }); part(g, RC(-2.6, -18, 5.2, 13), S, RC(0.4, -18, 2.2, 13), { lw: 1 });
+      part(g, RC(-6.6, -27, 13.2, 9), S, RC(1, -27, 5.6, 9), { lw: 1 }); rr(g, -2.6, -25, 5.2, 5.4, 0.8, '#3a3640'); ell(g, 0, -22.2, 1.5, 1.8, '#ffd98a');
+      part(g, P(-10.6, -27, 0, -35, 10.6, -27), D, P(0, -35, 10.6, -27, 0, -27), { lw: 1 }); ell(g, 0, -36, 1.8, 1.8, S, INK, 0.8); return;
+    }
+    // 삼층 석탑
+    part(g, RC(-13, -4, 26, 4), D, RC(0, -4, 13, 4), { lw: 1 });
+    [[11, -4, 9], [8.6, -17, 8], [6.4, -29, 7]].forEach(([w, y, h]) => { part(g, RC(-w * 0.7, y - h, w * 1.4, h), S, RC(w * 0.1, y - h, w * 0.6, h), { lw: 1 }); part(g, P(-w - 3, y - h, -w + 1, y - h - 4, w - 1, y - h - 4, w + 3, y - h), D, P(0, y - h - 4, w - 1, y - h - 4, w + 3, y - h, 0, y - h), { lw: 1 }); });
+    line(g, [0, -40, 0, -49], INK, 2.2); line(g, [0, -40, 0, -49], S, 1); ell(g, 0, -43.6, 2.2, 1.6, S, INK, 0.8);
+  },
+  forge(g, alt) {
+    const C = '#3a322e', A = '#5a5046';
+    if (alt) { // 모루와 그루터기
+      part(g, RC(-7, -9, 14, 9), '#6f5a48', RC(0, -9, 7, 9), { lw: 1 }); part(g, p => { p.moveTo(-12, -18); p.lineTo(10, -18); p.lineTo(15, -15); p.lineTo(6, -13); p.lineTo(5, -9); p.lineTo(-5, -9); p.lineTo(-6, -13); p.lineTo(-12, -14); p.closePath(); }, '#4a4a55', RC(0, -18, 15, 9), { lw: 1.1 }); return;
+    }
+    // 그을린 기둥과 무너진 들보, 남은 불씨
+    part(g, RC(-11, -36, 5, 36), C, RC(-8.6, -36, 2.6, 36), { lw: 1.1 }); part(g, RC(8, -26, 4.6, 26), C, RC(10.4, -26, 2.2, 26), { lw: 1.1 });
+    g.save(); g.translate(-9, -33); g.rotate(0.42); part(g, RC(0, -2.4, 30, 4.8), A, RC(0, 0, 30, 2.4), { lw: 1.1 }); g.restore();
+    for (const [x, y] of [[-3, -3], [4, -6], [-14, -2], [14, -4]]) { ell(g, x, y, 2.4, 1.6, '#2b2a30'); ell(g, x, y - 0.6, 1, 0.8, '#ff9a2e'); }
+  },
+};
 // 바닥: 한지 위에 번진 풀빛, 가운데로 이어지는 흙길, 위쪽 가장자리의 솔숲
 export function makeGround(themeId, seed = 7) {
   const T = THEMES[themeId] || THEMES.pass, S = 1.25, c = makeCanvas(GW * S, H * S), g = c.getContext('2d'); g.scale(S, S);
@@ -118,11 +143,11 @@ export function makeGround(themeId, seed = 7) {
   for (let x = 34; x < GW - 34; x += 56 + R() * 60) { g.globalAlpha = 0.42 + R() * 0.16; pine(g, x, 111 + R() * 5, 0.5 + R() * 0.14, T, R() < 0.5); }
   g.globalAlpha = 1;
   const mist = g.createLinearGradient(0, 88, 0, 132); mist.addColorStop(0, rgba(T.paper, 0)); mist.addColorStop(0.62, rgba(T.paper, 0.66)); mist.addColorStop(1, rgba(T.paper, 0)); g.fillStyle = mist; g.fillRect(0, 88, GW, 44);
-  const items = []; for (let x = 70; x < GW - 60; x += 105 + R() * 105) { const r = R(); items.push({ x, y: 124 + R() * 9, kind: r < 0.2 ? 'rock' : r < 0.38 ? 'bush' : 'pine', s: 0.8 + R() * 0.3, f: R() < 0.5, r: 13 + R() * 10 }); }
+  const items = []; for (let x = 70, n = 0; x < GW - 60; x += 105 + R() * 105, n++) { const r = R(); items.push({ x, y: 124 + R() * 9, kind: T.mark && n % 3 === 1 ? T.mark : r < 0.2 ? 'rock' : r < 0.38 ? 'bush' : 'pine', s: 0.8 + R() * 0.3, f: R() < 0.5, r: 13 + R() * 10 }); }
   items.sort((a, b) => a.y - b.y);
   for (const it of items) {
     g.globalAlpha = 0.15; ell(g, it.x + 5, it.y + 1.5, it.kind === 'pine' ? 24 * it.s : it.r * 1.25, it.kind === 'pine' ? 4.6 : 3.6, INK); g.globalAlpha = 1;
-    if (it.kind === 'pine') pine(g, it.x, it.y, it.s, T, it.f); else if (it.kind === 'bush') bush(g, it.x, it.y, 0.9 + it.s * 0.5, T); else boulder(g, it.x, it.y - it.r * 0.3, it.r, T);
+    if (it.kind === 'pine') pine(g, it.x, it.y, it.s, T, it.f); else if (it.kind === 'bush') bush(g, it.x, it.y, 0.9 + it.s * 0.5, T); else if (LANDMARK[it.kind]) { g.save(); g.translate(it.x, it.y + 2); g.scale(it.s * (it.f ? -1.25 : 1.25), it.s * 1.25); LANDMARK[it.kind](g, it.r > 18); g.restore(); } else boulder(g, it.x, it.y - it.r * 0.3, it.r, T);
     grassTuft(g, it.x + (it.f ? 12 : -12), it.y + 3, 0.8, T.tuft, R);
   }
   // 아래쪽 가장자리: 패 놓는 자리 위로 고개를 내민 풀과 덤불

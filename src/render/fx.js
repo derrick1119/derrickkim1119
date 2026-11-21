@@ -58,7 +58,7 @@ export class Fx {
         case 'puff': g.globalAlpha = Math.min(1, a * 1.6); ell(g, p.x, p.y, p.size * (0.6 + k * 0.7), p.size * (0.6 + k * 0.7) * 0.85, p.col, INK, 1.2); break;
         case 'star': { const s = p.size * (0.5 + k * 0.9); g.globalAlpha = a; g.save(); g.translate(p.x, p.y); g.rotate(p.rot); g.beginPath(); for (let i = 0; i < 8; i++) { const an = i / 8 * TAU, r = i % 2 ? s * 0.35 : s; g[i ? 'lineTo' : 'moveTo'](Math.cos(an) * r, Math.sin(an) * r); } g.closePath(); g.fillStyle = p.col; g.fill(); st(g, INK, 1.4); g.restore(); break; }
         case 'ring': g.globalAlpha = a; g.beginPath(); g.ellipse(p.x, p.y, p.r * (0.3 + k * 0.7), p.r * (0.3 + k * 0.7) * 0.8, 0, 0, TAU); st(g, p.col, p.lw * a + 1); break;
-        case 'text': g.globalAlpha = Math.min(1, a * 2.5);
+        case 'text': g.globalAlpha = p.big ? Math.min(1, a * p.life / 0.3) : Math.min(1, a * 2.5);
           // 두목의 외침 같은 큰 글은 한지 꼬리표 위에 쓴다 (어떤 풍경 위에서도 읽힌다)
           if (p.big) { g.font = `400 24px ${FONT_B}`; const w = g.measureText(p.s).width + 30, x = Math.max(w / 2 + 8, Math.min(1272 - w / 2, p.x)), pop = k < 0.12 ? 0.7 + k / 0.12 * 0.3 : 1; g.save(); g.translate(x, p.y); g.scale(pop, pop); rr(g, -w / 2 + 2, -17, w, 38, 8, 'rgba(30,24,20,0.3)'); rr(g, -w / 2, -20, w, 38, 8, '#fbf3df', p.col, 2.6); text(g, p.s, 0, 0, { size: 24, fill: p.col, font: FONT_B }); g.restore(); break; }
           text(g, p.s, p.x, p.y, { size: p.size * (k < 0.15 ? 0.6 + k / 0.15 * 0.5 : 1.1 - Math.min(0.1, k - 0.15)), fill: p.col, font: FONT_B, stroke: PAPER, lw: p.big ? 7 : 5 }); break;
