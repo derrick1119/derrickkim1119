@@ -111,7 +111,7 @@ function land(ctx, e, yf, stops, { bottom = e.h, depth = 0, rim = null } = {}) {
 
 /**
  * 뭉게구름 원 목록. 바닥 가운데가 (0,0), 너비 cw, 높이 ch.
- * a = 그늘진 몸통 전체, b = 볕 받는 윗층(왼쪽 위로 비켜 작게), c = 봉우리의 하이라이트.
+ * a = 그늘진 몸통 전체, b = 볕 받는 윗층(왼쪽 위로 비켜 작게 — 아래쪽에 그늘 초승달이 남는다).
  */
 function cloudShape(rng, cw, ch) {
   const base = [];
@@ -138,11 +138,7 @@ function cloudShape(rng, cw, ch) {
     crown.push([-cw / 2 + cw * kx, -ch * (0.42 + 0.58 * hump * (0.75 + rng() * 0.25)) + r, r]);
   }
   const top = [...body, ...crown];
-  return {
-    a: [...base, ...top],
-    b: top.map(([x, y, r]) => [x - r * 0.14, y - r * 0.22, r * 0.76]),
-    c: crown.map(([x, y, r]) => [x - r * 0.3, y - r * 0.34, r * 0.4]),
-  };
+  return { a: [...base, ...top], b: top.map(([x, y, r]) => [x - r * 0.14, y - r * 0.22, r * 0.76]) };
 }
 
 /** 얇게 퍼진 구름: 납작한 타원 몇 개. */
@@ -162,7 +158,6 @@ function drawCloud(ctx, c, x, y, tint, alpha = 1) {
   ctx.translate(x, y);
   cumulus(ctx, c.a, { base: tint.mid, shadeColor: tint.shade, alpha });
   cumulus(ctx, c.b, { base: tint.lit, shadeColor: tint.mid, alpha });
-  if (c.c.length) cumulus(ctx, c.c, { base: tone(tint.lit, 0.45), shadeColor: tint.lit, alpha: alpha * 0.6 });
   ctx.restore();
 }
 
@@ -201,11 +196,43 @@ function drifters(rng, e, specs) {
   });
 }
 
-function drawDrifters(ctx, e, t, tint, alpha = 1) {
+/** 흘러가는 구름을 한 번만 그려 둔다(paint 때, 매 프레임은 drawImage 만). */
+function bakeDrifters(e, dpr) {
+  for (const c of e.drift || []) {
+    let x0 = Infinity;
+    let x1 = -Infinity;
+    let y0 = Infinity;
+    let y1 = -Infinity;
+    for (const [x, y, r] of c.shape.a) {
+      x0 = Math.min(x0, x - r - 2);
+      x1 = Math.max(x1, x + r + 2);
+      y0 = Math.min(y0, y - r - 2);
+      y1 = Math.max(y1, y + r + 2);
+    }
+    const cw = Math.ceil((x1 - x0) * dpr);
+    const ch = Math.ceil((y1 - y0) * dpr);
+    let cv = null;
+    try {
+      cv = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(cw, ch) : document.createElement('canvas');
+      cv.width = cw;
+      cv.height = ch;
+    } catch {
+      cv = null;
+    }
+    const g = cv?.getContext('2d');
+    if (!g) continue;
+    g.scale(dpr, dpr);
+    drawCloud(g, c.shape, -x0, -y0, e.driftTint);
+    c.img = { cv, ox: x0, oy: y0, w: cw / dpr, h: ch / dpr };
+  }
+}
+
+function drawDrifters(ctx, e, t) {
   for (const c of e.drift || []) {
     const span = e.w + c.cw * 1.2;
     const x = ((t * c.sp + c.off) % span) - c.cw * 0.6;
-    drawCloud(ctx, c.shape, x, c.y, tint, alpha);
+    if (c.img) ctx.drawImage(c.img.cv, x + c.img.ox, c.y + c.img.oy, c.img.w, c.img.h);
+    else drawCloud(ctx, c.shape, x, c.y, e.driftTint);
   }
 }
 
@@ -316,6 +343,18 @@ function dirtPath(ctx, rng, e, col) {
     ellipse(ctx, x, y, (1.2 + rng() * 1.6) * k, (0.8 + rng()) * k);
     ctx.fillStyle = withAlpha(tone(col, rng() < 0.5 ? -0.25 : 0.3), 0.6);
     ctx.fill();
+  }
+}
+
+/** 아래 양쪽 구석의 가까운 덤불(화면을 감싸는 틀). */
+function cornerBushes(ctx, e, leaf) {
+  const { w, G, k, band } = e;
+  const y = G + band * 0.62;
+  for (const side of [-1, 1]) {
+    const x0 = side < 0 ? 0 : w;
+    for (const [dx, dy, r] of [[34, 12, 9], [20, 4, 12], [4, 8, 15], [12, -2, 10]]) {
+      ball(ctx, x0 - side * dx * k, y + dy * k, r * k, leaf, { lw: 0, light: 0.42, dark: 0.32 });
+    }
   }
 }
 
@@ -551,6 +590,7 @@ const PAINT = {
     // 발밑 길과 풀
     dirtPath(ctx, rng, e, '#dcc48a');
     meadow(ctx, rng, e, 0, w, G + 14 * k, G + 54 * k, 30, '#4f9a3a', [P.white, P.yellow, P.purple, P.pink], 0.4);
+    cornerBushes(ctx, e, '#4f9e3e');
   },
 
   // 2. 마을: 오후 햇살, 크림색 집과 주황·갈색·파란 지붕, 거리
@@ -757,6 +797,7 @@ const PAINT = {
     // 발밑 땅
     dirtPath(ctx, rng, e, '#d6b884');
     meadow(ctx, rng, e, 0, w, G + 14 * k, G + 54 * k, 26, '#4f8f3a', [P.yellow, P.white, P.orange], 0.3);
+    cornerBushes(ctx, e, '#4a8e40');
   },
 
   // 4. 도시: 노을 지는 시내, 빌딩·전광판·옥상 경고등
@@ -940,17 +981,33 @@ const PAINT = {
     observatory(ctx, ox, yR(ox) + 6 * k, k * 1.3);
     observatory(ctx, w * 0.94, yR(w * 0.94) + 4 * k, k * 0.6);
     for (const [fx, ht] of [[0.55, 42], [0.6, 30], [0.99, 48]]) pine(ctx, w * fx, yR(w * fx) + 10 * k, ht * k, '#21505a');
-    // 꼬불길과 길등
-    ctx.strokeStyle = withAlpha('#c8b8d8', 0.55);
-    ctx.lineWidth = 4 * k;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(w * 0.42, G + 4);
-    ctx.bezierCurveTo(w * 0.62, G - D * 0.12, w * 0.5, G - D * 0.32, ox - 6 * k, yR(ox) + 6 * k);
-    ctx.stroke();
-    for (const [px, py] of [[0.5, 0.1], [0.56, 0.24], [0.62, 0.38]]) {
-      const lx = w * px;
-      const ly = G - D * py;
+    // 언덕 비탈의 작은 전나무
+    for (const [fx, fy, ht] of [[0.07, 0.3, 26], [0.11, 0.27, 20], [0.33, 0.24, 22], [0.88, 0.3, 24], [0.92, 0.26, 18]]) {
+      groundShadow(ctx, w * fx + 3 * k, G - D * fy, 8 * k, 2 * k, 0.3);
+      pine(ctx, w * fx, G - D * fy, ht * k, '#245a5e');
+    }
+    // 꼬불길(가까울수록 넓다)과 길등
+    const p0 = [w * 0.4, G + 6];
+    const p1 = [w * 0.64, G - D * 0.12];
+    const p2 = [w * 0.48, G - D * 0.34];
+    const p3 = [ox - 6 * k, yR(ox) + 6 * k];
+    const bz = (u, i) => (1 - u) ** 3 * p0[i] + 3 * u * (1 - u) ** 2 * p1[i] + 3 * u * u * (1 - u) * p2[i] + u ** 3 * p3[i];
+    const left = [];
+    const right = [];
+    for (let u = 0; u <= 1.001; u += 0.05) {
+      const hw = (9 - 7 * u) * k;
+      const dx = bz(Math.min(u + 0.01, 1), 0) - bz(Math.max(u - 0.01, 0), 0);
+      const dy = bz(Math.min(u + 0.01, 1), 1) - bz(Math.max(u - 0.01, 0), 1);
+      const len = Math.hypot(dx, dy) || 1;
+      left.push([bz(u, 0) - (dy / len) * hw, bz(u, 1) + (dx / len) * hw]);
+      right.push([bz(u, 0) + (dy / len) * hw, bz(u, 1) - (dx / len) * hw]);
+    }
+    poly(ctx, [...left, ...right.reverse()]);
+    ctx.fillStyle = vgrad(ctx, p3[1], p0[1], [[0, withAlpha('#c8b0d0', 0.5)], [1, withAlpha('#b8a8d0', 0.75)]]);
+    ctx.fill();
+    for (const u of [0.22, 0.5, 0.76]) {
+      const lx = bz(u, 0) + (12 - 9 * u) * k;
+      const ly = bz(u, 1);
       ctx.fillStyle = '#2a3058';
       ctx.fillRect(lx - 0.8 * k, ly - 9 * k, 1.6 * k, 9 * k);
       glow(ctx, lx, ly - 10 * k, 10 * k, '#ffd88a', 0.55);
@@ -1011,8 +1068,8 @@ const PAINT = {
       ctx.fillStyle = vgrad(ctx, by, by + ch, [[0, tint.mid], [1, tint.shade]]);
       ctx.fillRect(0, by + ch * 0.12, w, e.h - by);
       for (let x = -w * 0.06 - rng() * ch; x < w * 1.1; ) {
-        const hh = ch * (0.6 + rng() * 0.7);
-        const cw = hh * ratio * (0.85 + rng() * 0.4);
+        const hh = ch * (0.6 + rng() * 0.7) * (rng() < 0.18 ? 1.6 : 1);
+        const cw = ch * ratio * (0.85 + rng() * 0.6);
         drawCloud(ctx, cloudShape(rng, cw, hh), x + cw / 2, by + ch * 0.2, tint);
         x += cw * (0.48 + rng() * 0.2);
       }
@@ -1092,11 +1149,16 @@ const PAINT = {
       let y = y0;
       let dir = rng() * TAU;
       for (let i = 0; i < n; i++) {
-        const r = size * (0.35 + rng() * 0.45);
+        const r = size * (0.3 + rng() * 0.5);
         pts.push([x, y, r]);
-        dir += (rng() - 0.5) * 1.8;
-        x += Math.cos(dir) * r * 0.95;
-        y += Math.sin(dir) * r * 0.95 * flat(y);
+        dir += (rng() - 0.5) * 2.6;
+        x += Math.cos(dir) * r * 0.6;
+        y += Math.sin(dir) * r * 0.6 * flat(y);
+        // 가끔 처음 자리 근처로 돌아와 덩어리지게
+        if (rng() < 0.2) {
+          x = x0 + (x - x0) * 0.5;
+          y = y0 + (y - y0) * 0.5;
+        }
       }
       const blobs = (grow, col) => {
         ctx.fillStyle = col;
@@ -1114,10 +1176,10 @@ const PAINT = {
         softBlob(ctx, px + r * (desert ? 0.25 : -0.2), py, r * 0.55, r * 0.55 * flat(py), desert ? '#ecd690' : '#2f7a3e', desert ? 0.85 : 0.5);
       }
     };
-    continent(w * 0.06, top + 26 * k, 9, 22 * k);
-    continent(w * 0.6, top + 16 * k, 10, 18 * k);
-    continent(w * 0.3, top + 100 * k, 7, 20 * k);
-    continent(w * 0.9, top + 80 * k, 8, 24 * k);
+    continent(w * 0.08, top + 28 * k, 16, 24 * k);
+    continent(w * 0.62, top + 18 * k, 14, 20 * k);
+    continent(w * 0.3, top + 104 * k, 12, 22 * k);
+    continent(w * 0.92, top + 86 * k, 12, 26 * k);
     // 구름 띠(부드러운 덩어리)
     for (let i = 0; i < 12; i++) {
       let x = rng() * w;
@@ -1132,9 +1194,9 @@ const PAINT = {
     // 소용돌이 구름
     const vx = w * 0.72;
     const vy = top + 116 * k;
-    for (let a = 0; a < TAU * 2.4; a += 0.32) {
+    for (let a = 0; a < TAU * 2.4; a += 0.18) {
       const r = 2 * k + a * 3.6 * k;
-      softBlob(ctx, vx + Math.cos(a) * r, vy + Math.sin(a) * r * flat(vy), (4 + a * 1.1) * k, (4 + a * 1.1) * k * flat(vy), '#ffffff', 0.7);
+      softBlob(ctx, vx + Math.cos(a) * r, vy + Math.sin(a) * r * flat(vy), (4 + a * 1.1) * k, (4 + a * 1.1) * k * flat(vy), '#ffffff', 0.45);
     }
     // 밤 쪽 그늘(오른쪽)과 가장자리 대기
     ctx.fillStyle = hgrad(ctx, w * 0.45, w, [[0, 'rgba(12,18,64,0)'], [1, 'rgba(12,18,64,0.38)']]);
@@ -1847,17 +1909,17 @@ function flame(ctx, x, y, hw, ht, col, sway) {
 
 const LIVE = {
   farm(ctx, e, t) {
-    drawDrifters(ctx, e, t, TINT.day);
+    drawDrifters(ctx, e, t);
     birds(ctx, e, t, '#ffffff', 3);
     if (e.boat) boat(ctx, e.boat.x + Math.sin(t * 0.09) * e.boat.span, e.boat.y, e.k, t);
     if (e.mill) sails(ctx, e.mill, t * 0.8);
   },
   suburb(ctx, e, t) {
-    drawDrifters(ctx, e, t, TINT.warm);
+    drawDrifters(ctx, e, t);
     birds(ctx, e, t, '#4a5a9a', e.birds || 2);
   },
   camp(ctx, e, t) {
-    drawDrifters(ctx, e, t, TINT.gold);
+    drawDrifters(ctx, e, t);
     for (const g of e.glints || []) {
       const a = Math.sin(t * g.sp + g.ph);
       if (a < 0.4) continue;
@@ -1887,10 +1949,16 @@ const LIVE = {
   },
   city(ctx, e, t) {
     const { w, k } = e;
-    drawDrifters(ctx, e, t, TINT.sunset);
+    drawDrifters(ctx, e, t);
     for (const [i, b] of (e.beacons || []).entries()) {
       const on = Math.sin(t * 3 + i * 1.7) > 0.2;
-      if (on) glow(ctx, b.x, b.y, 7 * b.r, '#ff6b5e', 0.65);
+      if (on) {
+        ctx.fillStyle = 'rgba(255,107,94,0.18)';
+        circle(ctx, b.x, b.y, b.r * 5);
+        ctx.fill();
+        circle(ctx, b.x, b.y, b.r * 2.6);
+        ctx.fill();
+      }
       ctx.fillStyle = on ? '#ff8a7a' : '#8a4a6a';
       circle(ctx, b.x, b.y, b.r);
       ctx.fill();
@@ -2018,15 +2086,19 @@ function twinkles(rng, n, w, y0, y1, r0 = 2.2) {
 const PREP = {
   farm(e, rng) {
     e.drift = drifters(rng, e, [[-0.18, 0.5, 70, 6], [0.24, 0.42, 52, 4.2]]);
+    e.driftTint = TINT.day;
   },
   suburb(e, rng) {
     e.drift = drifters(rng, e, [[-0.15, 0.48, 66, 5.5], [0.3, 0.36, 46, 3.8]]);
+    e.driftTint = TINT.warm;
   },
   camp(e, rng) {
     e.drift = drifters(rng, e, [[-0.12, 0.46, 60, 5], [0.46, 0.3, 34, 3.4]]);
+    e.driftTint = TINT.gold;
   },
   city(e, rng) {
     e.drift = drifters(rng, e, [[0.02, 0.44, 50, 4.6]]);
+    e.driftTint = TINT.sunset;
   },
   observatory(e, rng) {
     e.tw = twinkles(rng, 16, e.w, 0, e.hz * 0.55);
@@ -2074,6 +2146,7 @@ export function makeBackdrop(stage, w, h, groundY) {
       ctx.save();
       PAINT[stage](ctx, e, seededRng(seed));
       ctx.restore();
+      bakeDrifters(e, Math.max(1, Math.abs(ctx.getTransform?.().a || 1)));
     },
     live(ctx, t) {
       ctx.save();
