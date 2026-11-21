@@ -2674,7 +2674,17 @@ function warmUp(s: RugState, fx: ReturnType<typeof juice>, w: number, h: number,
     if (!sprites.has(`${k}:${mo}:${px}`)) sprite(k, mo, px), did++;
   }
   fx.memo[key] = i;
-  if (did || !rest) return;
+  if (did) return;
+  // 결과 화면 도감 스티커·그림자 (결과 카드 첫 프레임이 무겁지 않게)
+  let j0 = fx.memo.wdex ?? 0;
+  if (j0 < DEX.length * 2) {
+    const k = DEX[j0 >> 1], px = Math.round(U(KD[k].boss ? 0.013 : 0.016) * qual);
+    if (j0 % 2) silhouette(k, px);
+    else sprite(k, M_HAPPY, px);
+    fx.memo.wdex = ++j0;
+    return;
+  }
+  if (!rest) return;
   // 다음 판 깔개
   const j = fx.memo['wr' + ns] ?? 0;
   if (j < nd.rugs.length) {
