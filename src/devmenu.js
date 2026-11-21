@@ -69,11 +69,14 @@
     }, 140);
   }
   button(speeds, '지금 퍼즐 대신 풀기', () => { show(false); solve(); }, ';margin-left:10px').id = 'devsolve';
+  const artBtn = button(speeds, '', () => { T.setArt(T.ART === 'concept' ? 'classic' : 'concept'); paint(); }, ';margin-left:10px');
+  artBtn.id = 'devart';
   button(head, '닫기', () => show(false), ';background:#33405c;color:#fff6e4').id = 'devclose';
 
   function paint() {
     const s = T.director.cur, key = Object.keys(T.scenes).find((k) => T.scenes[k] === s);
     now.textContent = '지금: ' + (NAMES[key] || key || '') + (key === 'harbor' && T.state.cp ? ' (' + T.state.cp + ')' : '');
+    artBtn.textContent = '프롤로그 그림체: ' + (T.ART === 'concept' ? '컨셉' : '이전') + ' (바꾸기)';
     speedBtn.forEach((q) => { const on = (T.speed || 1) === q[0]; q[1].style.background = on ? '#33405c' : 'transparent'; q[1].style.color = on ? '#fff6e4' : '#33405c'; });
   }
   function show(on) {

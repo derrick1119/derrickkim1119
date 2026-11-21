@@ -392,12 +392,74 @@
     };
   };
 
+  /* ---------- the painted concept look ----------
+     The frame, blurred and laid back over itself (a soft painterly glow), a wash from lilac above to
+     peach below, warm light where the scene says it comes from, watercolour paper, and motes in the air. */
+  let bA = null, bB = null, wcTile = null, wcPat = null, wcGen = -1;
+  function makeWash() {
+    const N = 256, c = document.createElement('canvas'); c.width = c.height = N;
+    const g = c.getContext('2d'), r = T.rng(77);
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, N, N);
+    for (let i = 0; i < 70; i++) {   /* soft blooms where the wash pooled */
+      const x = r() * N, y = r() * N, rad = 10 + r() * 46, gr = g.createRadialGradient(x, y, 0, x, y, rad);
+      const a = 0.05 + r() * 0.08; gr.addColorStop(0, `rgba(196,170,200,${a})`); gr.addColorStop(1, 'rgba(196,170,200,0)');
+      for (const dx of [-N, 0, N]) for (const dy of [-N, 0, N]) { g.save(); g.translate(dx, dy); g.fillStyle = gr; g.fillRect(x - rad, y - rad, rad * 2, rad * 2); g.restore(); }
+    }
+    g.strokeStyle = 'rgba(170,150,170,0.12)'; g.lineWidth = 0.7;   /* paper fibres */
+    for (let i = 0; i < 140; i++) { const x = r() * N, y = r() * N, a = r() * 6.28, l = 3 + r() * 9; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); }
+    return c;
+  }
+  P.grade = function (g) {
+    const c = T.canvas, cw = c.width, ch = c.height, V = T.view, t = T.time;
+    if (!bA) { bA = document.createElement('canvas'); bB = document.createElement('canvas'); }
+    const aw = Math.max(2, cw >> 2), ah = Math.max(2, ch >> 2), bw = Math.max(2, cw >> 4), bh = Math.max(2, ch >> 4);
+    if (bA.width !== aw || bA.height !== ah) { bA.width = aw; bA.height = ah; bB.width = bw; bB.height = bh; }
+    const ga = bA.getContext('2d'), gb = bB.getContext('2d');
+    ga.globalCompositeOperation = 'copy'; ga.drawImage(c, 0, 0, aw, ah);
+    gb.globalCompositeOperation = 'copy'; gb.drawImage(bA, 0, 0, bw, bh);
+    const cur = T.director.cur, light = (cur && cur.light && cur.light()) || [V.W * 0.22, 210, 520];
+    const K = cur && cur.gradeK ? T.clamp(cur.gradeK()) : 1;
+    if (K < 0.02) return;
+    g.save();
+    g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = true;
+    /* softness without fog: the blurred copy deepens and glows at once (soft-light), with only a little lift (screen) */
+    g.globalCompositeOperation = 'soft-light'; g.globalAlpha = 0.5 * K; g.drawImage(bA, 0, 0, cw, ch);
+    g.globalCompositeOperation = 'screen'; g.globalAlpha = 0.12 * K; g.drawImage(bB, 0, 0, cw, ch);
+    /* the palette: plum in the shadows, rose in the middle, warm gold low down */
+    g.globalCompositeOperation = 'multiply'; g.globalAlpha = 0.22 * K;
+    const sh = g.createLinearGradient(0, 0, 0, ch); sh.addColorStop(0, '#b79ad6'); sh.addColorStop(1, '#e8b4a8');
+    g.fillStyle = sh; g.fillRect(0, 0, cw, ch);
+    g.globalCompositeOperation = 'soft-light'; g.globalAlpha = 0.6 * K;
+    const gr = g.createLinearGradient(0, 0, 0, ch);
+    gr.addColorStop(0, '#7a5fc8'); gr.addColorStop(0.5, '#f0868e'); gr.addColorStop(1, '#ffb566');
+    g.fillStyle = gr; g.fillRect(0, 0, cw, ch);
+    g.globalCompositeOperation = 'source-over'; g.globalAlpha = K;
+    g.setTransform(V.ps, 0, 0, V.ps, (V.W / 2) * V.ps, 0);
+    /* the light */
+    P.glow(g, light[0], light[1], light[2], '#ffc98c', 0.34);
+    P.glow(g, light[0], light[1], light[2] * 0.35, '#fff0d4', 0.26);
+    /* motes drifting in it */
+    const r = T.rng(31);
+    for (let i = 0; i < 26; i++) {
+      const sp = 0.3 + r() * 0.7, ph = r() * 6.28, x = -V.W / 2 + ((r() * V.W + t * 9 * sp) % V.W), y = 900 - ((r() * 900 + t * 14 * sp) % 940);
+      P.glow(g, x + Math.sin(t * 0.5 + ph) * 18, y, 4 + sp * 6, '#fff4e0', 0.35 + 0.25 * Math.sin(t * 1.3 + ph));
+    }
+    /* watercolour paper */
+    if (!wcTile) wcTile = makeWash();
+    if (wcGen !== T.gen) { const s = Math.max(1, V.ps), pc = document.createElement("canvas"); pc.width = pc.height = Math.round(256 * s); pc.getContext("2d").drawImage(wcTile, 0, 0, pc.width, pc.height); wcPat = g.createPattern(pc, "repeat"); wcGen = T.gen; }
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.globalCompositeOperation = "multiply"; g.globalAlpha = 0.42 * K; g.fillStyle = wcPat; g.fillRect(0, 0, cw, ch);
+    g.restore();
+  };
+
   P.finish = function (g) {
     const V = T.view;
-    if (P.vignette > 0.01) {
+    const art = T.artOn && T.artOn();
+    if (P.vignette > 0.01 || art) {
       const gr = g.createRadialGradient(0, 450, 300, 0, 450, Math.hypot(V.W / 2, 450) * 1.05);
-      gr.addColorStop(0, T.rgba(P.vignetteColor, 0));
-      gr.addColorStop(1, T.rgba(P.vignetteColor, P.vignette));
+      const vc = art ? '#3d2a55' : P.vignetteColor, va = art ? Math.max(0.28, Math.min(P.vignette, 0.4)) : P.vignette;
+      gr.addColorStop(0, T.rgba(vc, 0));
+      gr.addColorStop(1, T.rgba(vc, va));
       g.fillStyle = gr;
       g.fillRect(-V.W / 2, 0, V.W, V.H);
     }

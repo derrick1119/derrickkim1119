@@ -925,30 +925,49 @@
     drawCurtain(g, tod, 0, 0);
   };
   S.SPOTS = { LEO, ANA, LILY, LILY_HAND };
+  /* where the light comes from, for the painted look; and how much of it the key art already has */
+  S.light = () => [WIN.x + WIN.w * 0.55, WIN.y + WIN.h * 0.62, 620];
+  S.gradeK = () => 1 - 0.85 * (T.ART === 'concept' && T.artImage('key') ? S.title.a : 0);
 
+  /* the painted key art, drifting a little, under the title */
+  function keyArt(g, im, a) {
+    const V = T.view, W = V.W, t = T.time, [px, py] = T.par(0.4);
+    const s = Math.max(W / im.naturalWidth, 900 / im.naturalHeight) * (1.07 + Math.sin(t * 0.06) * 0.015);
+    const w = im.naturalWidth * s, h = im.naturalHeight * s;
+    g.save(); g.globalAlpha = a;
+    g.drawImage(im, -w / 2 + px - Math.sin(t * 0.04) * 14, 450 - h / 2 + py, w, h);
+    P.glow(g, 0, 250, 460, '#fff4ec', 0.5 * a, 'source-over');
+    const foot = g.createLinearGradient(0, 660, 0, 900); foot.addColorStop(0, 'rgba(255,244,236,0)'); foot.addColorStop(1, 'rgba(255,244,236,0.72)');
+    g.fillStyle = foot; g.fillRect(-W / 2, 660, W, 240);
+    g.restore();
+  }
   function drawTitle(g) {
     const V = T.view, W = V.W, a = S.title.a;
-    g.fillStyle = T.rgba('#0f1522', 0.8 * a); g.fillRect(-W / 2, 0, W, V.H);
+    const key = T.ART === 'concept' && T.artImage('key');
+    if (key) keyArt(g, key, a);
+    else { g.fillStyle = T.rgba('#0f1522', 0.8 * a); g.fillRect(-W / 2, 0, W, V.H); }
     const ta = T.clamp(a * 1.6 - 0.6);
-    P.text(g, 'TAKE YOUR TIME', 0, 318, { font: 'serif', size: 25, track: 11, color: '#e9dcc0', alpha: 0.85 * ta });
-    P.text(g, '천천히 와', 0, 470, { size: 178, color: '#f7eeda', alpha: ta, seed: 2, glow: 'rgba(255,214,150,0.35)' });
+    /* on the painting the words are dark ink on a light sky; on the night room, light on dark */
+    const C1 = key ? '#3a2d55' : '#f3ead8', C2 = key ? '#5b4a78' : '#e9dcc0', C3 = key ? '#6b5c84' : '#c9cfdb', glow = key ? 'rgba(255,246,240,0.85)' : null;
+    P.text(g, 'TAKE YOUR TIME', 0, key ? 176 : 318, { font: 'serif', size: 25, track: 11, color: key ? C2 : '#e9dcc0', alpha: 0.85 * ta, glow });
+    P.text(g, '천천히 와', 0, key ? 318 : 470, { size: 178, color: key ? C1 : '#f7eeda', alpha: ta, seed: 2, glow: key ? 'rgba(255,246,240,0.9)' : 'rgba(255,214,150,0.35)' });
     if (!S.title.leaving) {
       const p = 0.8 + 0.2 * Math.sin(T.time * 2.2);
       if (S.saved) {
-        P.text(g, T.tr('눌러서 이어하기 · ') + T.tr(NAMES[S.saved.chapter || 0]), 0, 738, { font: 'serif', size: 31, color: '#f3ead8', alpha: p * ta });
-        P.text(g, '처음부터 시작하기', 0, 784, { font: 'serif', size: 19, color: '#e9dcc0', alpha: 0.8 * ta });
-        g.fillStyle = T.rgba('#e9dcc0', 0.4 * ta); g.fillRect(-74, 794, 148, 1.2);
+        P.text(g, T.tr('눌러서 이어하기 · ') + T.tr(NAMES[S.saved.chapter || 0]), 0, 738, { font: 'serif', size: 31, color: C1, alpha: p * ta, glow });
+        P.text(g, '처음부터 시작하기', 0, 784, { font: 'serif', size: 19, color: C2, alpha: 0.8 * ta, glow });
+        g.fillStyle = T.rgba(C2, 0.4 * ta); g.fillRect(-74, 794, 148, 1.2);
       } else {
-        P.text(g, '화면을 눌러 시작', 0, 738, { font: 'serif', size: 31, color: '#f3ead8', alpha: p * ta });
-        P.text(g, '소리를 켜면 더 좋아요', 0, 782, { font: 'serif', size: 19, color: '#c9cfdb', alpha: 0.7 * ta });
+        P.text(g, '화면을 눌러 시작', 0, 738, { font: 'serif', size: 31, color: C1, alpha: p * ta, glow });
+        P.text(g, '소리를 켜면 더 좋아요', 0, 782, { font: 'serif', size: 19, color: C3, alpha: 0.7 * ta, glow });
       }
       /* a quiet way straight to any chapter */
-      if (S.seen > 0) P.text(g, '장 바로 가기', 0, 814, { font: 'serif', size: 15, track: 6, color: '#c9cfdb', alpha: 0.55 * ta });
+      if (S.seen > 0) P.text(g, '장 바로 가기', 0, 814, { font: 'serif', size: 15, track: 6, color: C3, alpha: 0.55 * ta, glow });
       CHAPTERS.forEach((c, i) => {
         if (i >= (S.seen || 0)) return;
         const x = chapterX(i), on = S.title.hover === i;
-        P.text(g, c[0], x, 850, { font: 'serif', size: 21, color: on ? '#fff3d6' : '#e9dcc0', alpha: (on ? 1 : 0.78) * ta });
-        if (on) { g.fillStyle = T.rgba('#fff3d6', 0.6 * ta); g.fillRect(x - 22, 861, 44, 1.2); }
+        P.text(g, c[0], x, 850, { font: 'serif', size: 21, color: key ? (on ? C1 : C2) : on ? '#fff3d6' : '#e9dcc0', alpha: (on ? 1 : 0.78) * ta, glow });
+        if (on) { g.fillStyle = T.rgba(key ? C1 : '#fff3d6', 0.6 * ta); g.fillRect(x - 22, 861, 44, 1.2); }
       });
     }
   }

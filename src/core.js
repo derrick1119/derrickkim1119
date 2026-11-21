@@ -385,6 +385,11 @@
     }
     requestAnimationFrame(frame);
   }
+  /* the painted concept look, tried on the prologue first ('concept' | 'classic'); the test menu flips it */
+  T.ART = (T.store.get('tyt-art') || {}).look || 'concept';
+  const PROLOGUE = ['room', 'ending', 'stew', 'walk', 'swing', 'home'];
+  T.artOn = function () { if (T.ART !== 'concept') return false; const s = D.cur; return !!s && PROLOGUE.some((n) => T.scenes[n] === s); };
+  T.setArt = function (look) { T.ART = look; T.store.set('tyt-art', { look }); T.gen++; const s = D.cur; if (s && s.build) s.build(); };
   /* change the look and paint every baked layer again */
   T.restyle = function (look) { T.P.look = look; T.gen++; const s = D.cur; if (s && s.build) s.build(); };
   T.step = function (dt) {
@@ -399,6 +404,7 @@
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.setTransform(V.ps, 0, 0, V.ps, (V.W / 2) * V.ps, 0);
     D.draw(ctx);
+    if (T.P && T.P.grade && T.artOn()) { try { T.P.grade(ctx); } catch (err) { T.report(err, 'grade'); } }
     if (T.rush > 0.02) {   /* two small arrows in the corner: the scene is being hurried */
       ctx.save(); ctx.globalAlpha = 0.7 * T.rush; ctx.fillStyle = '#fff6e4';
       for (let i = 0; i < 2; i++) { const x = -V.W / 2 + 44 + i * 20, y = 46; ctx.beginPath(); ctx.moveTo(x, y - 11); ctx.lineTo(x + 15, y); ctx.lineTo(x, y + 11); ctx.closePath(); ctx.fill(); }
