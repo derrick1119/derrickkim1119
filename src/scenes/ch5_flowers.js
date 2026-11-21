@@ -155,7 +155,7 @@
 
   T.stage('ch5', {
     chapter: 5, title: ['5장', '꽃길'], end: ['5장 끝', '6장 「다 지킨 약속」'], next: 'ch6', pad: 3,
-    plot: { stage: 4, stones: 4, board: true, table: true, tree: 0.85, swing: 1, garden: 1 },
+    plot: { stage: 3, stones: 4, board: true, table: true, tree: 0.6, swing: 1, garden: 0.4 },
     flags: { bramGone: true },
     update(dt, S) { if (S.swinging) S.ps.swingA = Math.sin(T.time * 1.5) * 0.5; },
     script: async function (X) {
@@ -167,6 +167,40 @@
       let bean = X.actor('bean', { dog: true, s: 220, x: PL.HX + 190, sit: 1, wag: 0.5 });
       X.title();
       await X.wait(4.2);
+      await X.years(15, 20, { age: 56, during: (d) => { X.tween(ps, 'tree', 0.85, d); X.tween(ps, 'garden', 1, d); } });
+
+      /* ---- the roof: the ridge beam goes up the way the frame did, on everyone's count ---- */
+      const folk = [
+        X.actor('bram', { x: C.PLOT - 560, style: F.styles.bram, s: 144, lean: 0.08 }),
+        X.actor('wife', { x: C.PLOT - 620, style: F.styles.bramWife, s: 106, lean: 0.22, face: { old: true } }),
+        X.actor('rosa', { x: C.PLOT - 680, style: F.styles.rosa, s: 138 }),
+        X.actor('son', { x: C.PLOT - 740, style: F.styles.rosaSon, s: 144, lean: 0.14, face: { old: true } }),
+        X.actor('mom', { x: C.PLOT - 800, style: F.styles.mom, s: C.MOM_S, lean: 0.1 }),
+        X.actor('kid', { x: C.PLOT - 860, style: F.styles.kidA, s: 104 }),
+      ];
+      folk.forEach((a, i) => X.walk(a, PL.HX - 180 - i * 58, 80 + i * 3));
+      await X.wait(4.4);
+      leo.flip = true; bean.sit = 0; bean.flip = true;
+      await X.TALK.say('bram', '마룻대 올린다며?\n그건 혼자 못 올려.');
+      await X.TALK.say('wife', '우리 배 띄울 때\n도와줬잖아요.');
+      await X.TALK.say('son', '어머니가 그러시더라고요.\n지붕은 동네가 같이 올리는 거라고.');
+      await X.TALK.say('kid', '이번엔 나 맨 앞!');
+      T.announce('지붕 올리기. 셋에 맞춰 눌러 다 같이 마룻대를 끌어 올린다. 이번에는 네 번.');
+      await X.play(T.puzzle.heave({ pulls: 4, crew: [F.styles.kidA, F.styles.bram, F.styles.rosaSon, F.styles.rosa, F.styles.mom] }));
+      ps.stage = 4; A.sfx('knock', 0.6); X.notes(5);
+      T.announce('지붕이 올라간다. 집이 다 지어졌다.');
+      const cheer = (o, a, t) => { o.armF = { a: 2.4 + Math.sin(t * 9 + a.x) * 0.25, b: 0.3 }; o.face.eye = 'happy'; };
+      folk.forEach((a) => { a.pose = cheer; });
+      for (let i = 0; i < 3; i++) { await X.tween(bean, 'jump', 12, 0.18, T.ease.out); await X.tween(bean, 'jump', 0, 0.18, T.ease.in); }
+      await X.wait(1.2);
+      folk.forEach((a) => { a.pose = null; });
+      await X.TALK.say('leo', '이제 지붕이 생겼어.');
+      await X.TALK.say('mom', '아나 오면\n비 맞을 일은 없겠구나.');
+      await X.TALK.say('rosa', '빈 방엔 뭘 들일 거야?');
+      await X.TALK.say('leo', '…그건 아나가 정하게 둘래요.');
+      await X.wait(1);
+      folk.forEach((a, i) => X.walk(a, C.PLOT - 600 - i * 40, 80).then(() => { a.hidden = true; }));
+      await X.wait(2.4);
       X.toll(0); await X.wait(1.5); X.toll(1);
       await X.wait(1);
       X.walk(leo, PL.HX - 440, 96);
@@ -183,7 +217,7 @@
         post = X.actor('post', { style: F.styles.post, s: 140, lean: 0.05 });
         S.b1 = X.boat({ x: -880, riders: [post], hull: '#3f6b8a' });
       });
-      X.age('아나, 61');
+      await X.years(20, 25, { age: 61 });
       const pressed = X.seaLamp({ rounds: [[3, 0, 1, 2], [0, 2, 1, 3, 3]] });
       X.sail(S.b1, -74, 62);
       await pressed;

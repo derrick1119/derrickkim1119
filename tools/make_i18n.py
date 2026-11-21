@@ -77,6 +77,98 @@ T = [
     ("저기가 네 자리야.", "That spot is yours.\nFor when your someone comes."),
     # ---- chapter 2
     ("오늘로 꼭 일 년이구나.", "A year ago today.\nCome with me, if you want to see her."),
+        # ---- chapter 2: Bram and the handcart
+    ("주춧돌 놓을 자리는 봐 뒀나?", "Picked out where the cornerstones go?"),
+    ("돌을 어디서 구해야 할지 모르겠어요.", "I don't know where to find the stones."),
+    ("바닷가에 둥근 돌이 많아.", "Plenty of round stones down by the shore.\nYou'll not get them up alone. Take my cart."),
+    ("나도 처음엔 혼자 다 하려고 했지.", "I tried to do it all alone at first, too."),
+    ("선장님은 왜 배를 지으세요?", "Captain, why do you build a boat?"),
+    ("바다에 나갔다가 못 돌아왔어.", "I went out to sea and never came back.\nThirty-two, I was."),
+    ("그 사람은 아직 저쪽에 있고.", "She's still over there.\nI'm building it to take her out when she comes."),
+    ("…육십 년이나요?", "…For sixty years?"),
+    ("기다리는 동안 손이 놀면,", "Leave your hands idle while you wait,\nand your heart gives out first."),
+    ("자네도 뭐든 지어. 천천히.", "Build something, son. Take your time."),
+    # ---- chapter 3: the saw, the storm, the rope, Rosa
+    ("기둥 될 나무는 바다에서 건져 왔네.", "Fished the timber for the posts out of the sea."),
+    ("배 짓는 거나 집 짓는 거나,", "Boat or house, sawing's the same.\nPush hard, and rest on the pull."),
+    ("손이 제법이야.", "You've got the hands for it."),
+    ("…삼 년을 지은 건데.", "…Three years of work."),
+    ("밤새 바람이 엄청났지.", "What a wind that was last night."),
+    ("줄 가져왔네.", "Brought rope.\nNo sense grunting at it on your own."),
+    ("나도 당길래!", "I want to pull too!"),
+    ("다 같이 하면 금방이야.", "All together, it won't take a minute."),
+    ("…고맙습니다.", "…Thank you."),
+    ("고마우면 나랑 호수 좀 같이 가 줘.", "If you're grateful, come to the lake with me.\nI'd rather not look on my own today."),
+    ("로사, 실바구니, 등불을 좌우로 끌어 보세요.", "Slide Rosa, the yarn basket and the lamp along the bank. Each shadow settles when it finds its place."),
+    ("로사의 아들, 72", "Rosa's son, 72"),
+    ("백일도 못 넘기고 두고 왔어.", "I left him before he was a hundred days old.\nAnd look, he's a grandfather."),
+    ("아이고, 울지 마라….", "Oh, hush now, don't cry…."),
+    ("그가 자장가를 흥얼거린다.", "He hums a lullaby. Tap Rosa to hum along."),
+    ("저 담요… 백일 때 내가 떠 준 거야.", "That blanket… I knitted it for his hundredth day."),
+    ("아직도 갖고 있었네.", "He still has it."),
+    ("그 사람도 언젠가 오겠죠.", "He'll come one day too."),
+    ("다 늙어서 오겠지.", "An old man, he'll be.\nI'll still know him in a heartbeat."),
+    ("너도 아나 보고 가렴.", "Go on, see Ana too."),
+    # ---- chapter 4: Bean, Bram's wife, Rosa's son
+    ("저건… 무지개 다리구나.", "That's… the rainbow bridge."),
+    ("짐승들은 배를 안 타고,", "Animals don't come by boat.\nThey run down that."),
+    ("빈… 너 왜 이렇게 늙었어.", "Bean… when did you get so old?"),
+    ("빈도 두고 온 사람이 있지.", "Bean left someone behind too.\nCome."),
+    ("빈, 공, 등불을 좌우로 끌어 보세요.", "Slide Bean, the ball and the lamp along the bank. Each shadow settles when it finds its place."),
+    ("릴리, 11", "Lily, 11"),
+    ("릴리가 빈을 부른다.", "Lily is calling Bean. Tap Bean on the bank to answer."),
+    ("들었지? 빈이 대답한 거야.", "Did you hear? That was Bean answering."),
+    ("닿지는 않아도,", "It never reaches them,\nbut something gets across, it seems."),
+    ("망치를 어디 뒀더라….", "Where did I put the mallet…."),
+    ("모자는 또 어디 갔지?", "And where's my cap got to?"),
+    ("…뼈다귀는 누구 거야?", "…And whose bone is that?"),
+    ("자네, 나랑 호수 좀 같이 가 주겠나.", "Would you come to the lake with me?"),
+    ("오늘이 그 사람 생일이야.", "It's her birthday today."),
+    ("브램, 배, 등불을 좌우로 끌어 보세요.", "Slide Bram, the boat and the lamp along the bank. Each shadow settles when it finds its place."),
+    ("마르타, 98", "Marta, 98"),
+    ("서른둘에 두고 왔는데,", "I left her at thirty-two,\nand she's ninety-eight."),
+    ("저 노래…", "That song…\nshe sang it every time a boat went in."),
+    ("마르타의 박자에 맞춰,", "Keep time with Marta: tap Bram to knock on the boat."),
+    ("…곧 오겠구먼.", "…She'll be along soon."),
+    ("그 사람 오면,", "When she comes,\nhelp me put the boat in, will you."),
+    ("네. 꼭요.", "I will. I promise."),
+    ("육십 년 동안", "Sixty years,\nand all you did was build a boat?"),
+    ("오늘은 꼭 그 애일 것 같아.", "I've a feeling it's him today."),
+    # ---- chapter 5: the roof
+    ("마룻대 올린다며?", "Putting up the ridge beam?\nThat's no job for one."),
+    ("우리 배 띄울 때", "You helped us\nput our boat in."),
+    ("어머니가 그러시더라고요.", "Mother says\nthe whole town raises a roof."),
+    ("이번엔 나 맨 앞!", "I'm at the front this time!"),
+    ("이제 지붕이 생겼어.", "There's a roof on it now."),
+    ("아나 오면", "Ana won't get rained on\nwhen she comes."),
+    ("빈 방엔 뭘 들일 거야?", "What'll you put in the spare room?"),
+    ("…그건 아나가 정하게 둘래요.", "…I'll leave that to Ana."),
+    # ---- chapter 6 and the last chapter
+    ("등불, 냄비, 레오를 좌우로 끌어 보세요. 이번에도", "Slide the lamp, the pot and Leo along the bank. Once more, each shadow settles when it finds its place."),
+    ("아나가 스튜를 젓는다.", "Ana stirs the stew. Tap Leo's pot to stir along with her."),
+    ("…이번엔 웃네.", "…She smiles, this time."),
+    ("어서 와라, 아가.", "Welcome, dear.\nThank you for taking your time."),
+    ("…어머님?", "…You're his mother?"),
+    ("우리 레오,", "Thank you\nfor making my Leo laugh so."),
+    ("얘기 많이 들었어요!", "We've heard all about you!"),
+    ("집 짓는 거,", "We watched him build it,\nevery beam."),
+    ("…이 사람, 혼자가 아니었네요.", "…So he wasn't on his own."),
+    # ---- the years, the dream, the jobs of work
+    ("마중 나루에 온 지", "Since he came to Welcome Harbor"), ("년", "years"), ("아나, ", "Ana, "),
+    ("꿈속에서는 아무것도 제자리에 있지 않아요.", "Nothing in a dream stays where it belongs. Tap the floating things to put them back."),
+    ("숨이 턱까지 찼어요.", "Out of breath. Rest a moment, then push."),
+    ("숨", "Breath"),
+    ("눌러서 돌을 밀어 올리세요.", "Tap to push the stone uphill. When you run out of breath, rest a moment."),
+    ("톱은 밀고 당기기예요.", "A saw goes push and pull. Tap the other side."),
+    ("왼쪽, 오른쪽을 번갈아 눌러 통나무를 켜세요", "Tap left and right in turn to saw through the log."),
+    ("혼자서는 꿈쩍도 안 해요.", "It won't budge for one. All together, on \"Three!\""),
+    ("하나", "One"), ("둘", "Two"), ("셋!", "Three!"),
+    ("「셋!」에 맞춰 눌러서,", "Tap on \"Three!\" so everyone pulls it up together."),
+    ("꼬리가 세차게 흔들려요.", "His tail is going like mad. It's right next to him."),
+    ("꼬리가 살랑거려요.", "His tail is wagging. Not far now."),
+    ("빈이 고개를 갸웃해요.", "Bean tilts his head. Not here."),
+    ("풀숲을 눌러 빈을 보내세요.", "Tap a tuft of grass to send Bean. The closer he is, the harder he wags."),
+    ("마르타", "Marta"), ("로사의 아들", "Rosa's son"), ("피피", "Pippi"), ("집배원", "Postman"),
     ("소금을 두 번 넣었네.", "She salted it twice."), ("아나가 한 대로, 레오의 냄비에도 소금을 두 번 넣어 주세요", "Do as Ana did: tap Leo's pot to salt it, twice."), ("기다리는 장면에서는 화면을 길게 누르거나 톡톡 두드리면 빨리 지나가요", "Where a scene is only passing time, hold the screen down or tap to move it along."), ("볼 수는 있어도, 닿지는 않아.", "You can look. You cannot reach them."),
     ("기둥의 등불, 냄비, 레오를 좌우로 끌어 보세요.", "Slide the lamp post, the pot and Leo along the bank. Each shadow settles when it finds its place."),
     ("올해도 호수에서 본 대로 끓였어, 빈.", "Made it the way I watched her make it, Bean. Same as every year."),
@@ -89,7 +181,7 @@ T = [
     ("릴리랑 맛있는 거 많이 먹고, 많이 웃고,", "Eat well with Lily. Laugh a lot.\nAnd tell me all of it, later."),
     ("그 말, 진짜였어.", "It was true, what I told you.\nI'm over there, building our house."), ("천천히 와.", "Take your time."),
     # ---- chapter 4
-    ("종이 울리면 누가 오는 거란다.", "When the bell rings, someone is coming.\nWho it is, we find out on the pier."),
+    
     ("저 애는 집 보러 온 게 아니라", "He didn't come to see the house.\nHe came to see you."),
     ("그 사람은 원래 뭐든 천천히 했어.", "She always did take her time."), ("우리 아기.", "My baby."), ("같이 늙자고 했는데.", "We said we would grow old together."),
     # ---- chapter 5
@@ -177,8 +269,11 @@ def main():
         ko = row[0]
         if ko not in keys:
             cand = [k for k in keys if k.startswith(ko)]
-            if len(cand) != 1:
+            if len(cand) > 1:
                 raise SystemExit(f"no single source string for {ko!r}: {cand}")
+            if not cand:
+                print(f"   (unused row, no longer in the game: {ko!r})")
+                continue
             ko = cand[0]
         out[ko] = row[1]
         used.add(ko)

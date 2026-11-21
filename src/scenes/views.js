@@ -474,9 +474,10 @@
     night(g, '#ecdcc6', '#fff8e6');
   };
   /* past eighty: the same pot, and grandchildren waiting on it the way she used to */
-  V_.grand = function (g, t) {
+  V_.grand = function (g, t, L) {
     T.blit(g, bg()); daylight(g);
-    const st = F.anaAt(81);
+    const st = F.anaAt(81), lit = (L && L.lit) || {}, b = (L && L.beat) || 0;
+    if (lit.lamp > 0.01) { g.save(); g.beginPath(); g.rect(-534, 164, 212, 252); g.clip(); P.glow(g, -428, 300, 200, '#ffc76a', 0.8 * lit.lamp); g.restore(); }
     P.fill(g, P.ellipse(24, 550, 80, 12), '#b9532f');
     for (let i = 0; i < 4; i++) { const life = (t * 0.2 + i * 0.25) % 1; P.glow(g, 24 + Math.sin(t + i * 2) * 14, 520 - life * 170, 20 + life * 34, '#fff3dc', Math.sin(life * Math.PI) * 0.28); }
     const kids = [[262, F.styles.kidB, true, 0], [150, F.styles.kidA, false, 1.4], [372, F.styles.kidC, false, 2.6]];
@@ -485,12 +486,14 @@
       if (q[2]) F.person(g, { x: q[0], y: COUNTER - 24, s: 250, style: q[1], flip: true, sit: true, lean: 0.1, legF: { a: Math.PI / 2 - 0.1, b: Math.PI / 2 - 0.3 + Math.sin(t * 6) * 0.4 }, legB: { a: Math.PI / 2 - 0.2, b: Math.PI / 2 - 0.3 + Math.sin(t * 6 + Math.PI) * 0.4 }, face: { eye: 'happy', mouth: 'open', blush: 0.3 }, armF: { a: 2.2 + Math.sin(t * 8) * 0.2, b: 0.3 } });
       else F.person(g, { x: q[0], y: FLOORY - F.hipHeight(q[1], 250) - hop, s: 250, style: q[1], flip: true, lean: 0.1, face: { eye: 'happy', mouth: 'smile', blush: 0.3 }, armF: { a: 1.9 + Math.sin(t * 7 + i) * 0.2, b: 0.3 }, armB: { a: 1.6, b: 0.4 } });
     });
-    const a = { x: -132, y: FLOORY - F.hipHeight(st, 350), s: 350, style: st, lean: 0.14, headTilt: 0.04, face: { eye: 'happy', mouth: 'smile', blush: 0.22, old: true }, skip: { armF: true } };
+    /* at the end she turns to the place on the counter he used to watch her from, and smiles at it */
+    const turn = b >= 2;
+    const a = { x: -132, y: FLOORY - F.hipHeight(st, 350), s: 350, style: st, flip: turn, lean: turn ? 0.04 : 0.14, headTilt: turn ? -0.06 : 0.04, face: { eye: 'happy', mouth: 'smile', blush: 0.22, old: true, tear: turn ? 0.5 : 0, tearY: (t * 2) % 3 }, skip: { armF: true } };
     const tip = [24 + Math.cos(t * 1.8) * 44, 552 + Math.sin(t * 1.8) * 6];
     a.armB = { hand: F.local(a, -60, 590) };
     F.person(g, a);
     P.line(g, tip[0] - 66, tip[1] - 66, tip[0], tip[1], 6, '#b98a5a');
-    F.person(g, Object.assign({}, a, { only: 'armF', skip: null, armF: { hand: F.local(a, tip[0] - 60, tip[1] - 56) } }));
+    F.person(g, Object.assign({}, a, { only: 'armF', skip: null, armF: turn ? { a: 0.5, b: 0.6 } : { hand: F.local(a, tip[0] - 60, tip[1] - 56) } }));
     night(g, '#f3e2c6', '#fff8e6');
   };
   /* the last one: the same hospital room, the other way round */

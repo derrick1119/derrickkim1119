@@ -108,6 +108,8 @@
     const boat = (x, y, s, c, a) => { g.save(); g.globalAlpha = a; g.translate(x, y); g.scale(s, s); P.fill(g, P.soft([[-34, -10], [34, -10], [42, -14], [34, 4], [-34, 4], [-42, -14]]), c); P.line(g, 0, -10, 0, -54, 2.6, '#6f4a34'); P.fill(g, P.poly([[2, -52], [26, -16], [2, -16]]), '#f3ecdf'); g.restore(); };
     boat(-330, 484, 1.2, '#8a5a3b', 1);
     if (lit.boat > 0.01) { P.glow(g, -150, 470, 60, '#ffe2a8', 0.3 * lit.boat); boat(-150, 484, 1.2, '#b07a4a', 0.85 * lit.boat); }
+    /* the visitor's chair beside hers, that nobody sits in */
+    P.fill(g, P.rr(96, FLOOR - 150, 100, 14, 5), '#a57d58'); P.line(g, 104, FLOOR - 136, 100, FLOOR, 6, '#8a6442'); P.line(g, 188, FLOOR - 136, 192, FLOOR, 6, '#8a6442'); P.line(g, 186, FLOOR - 150, 196, FLOOR - 280, 7, '#8a6442'); P.line(g, 196, FLOOR - 270, 196, FLOOR - 160, 6, '#8a6442');
     /* her chair */
     P.fill(g, P.rr(240, FLOOR - 200, 150, 200, 24), '#8f6f8a'); P.fill(g, P.rr(220, FLOOR - 110, 30, 110, 12), '#7f5f7a');
     const st = F.styles.bramWife, doze = b >= 2;

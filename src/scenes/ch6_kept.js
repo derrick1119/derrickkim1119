@@ -65,7 +65,7 @@
       await X.wait(4.4);
 
       /* ---- the table, year after year ---- */
-      X.age('아나, 66');
+      await X.years(25, 30, { age: 66 });
       T.announce('해마다 그날이면, 레오는 호수에서 본 대로 스튜를 따라 끓인다. 아나의 솜씨가 늘수록 레오의 스튜도 맛있어진다.');
       await serve({ color: '#b24c2b' });
       await X.TALK.say('leo', '올해도 호수에서 본 대로 끓였어, 빈.');
@@ -76,7 +76,7 @@
       await X.wait(0.5);
 
       await X.dip(async () => { ps.food.show = false; bean.x = PL.TABLE_X + 96; }, { out: 0.7, in: 0.9 });
-      X.age('아나, 71');
+      await X.years(30, 35, { age: 71 });
       await serve({ color: '#bd5530' });
       await X.tap(bowl);
       await bite(); ps.food.fill = 0.5;
@@ -85,7 +85,7 @@
       await X.wait(0.5);
 
       await X.dip(async () => { ps.food.show = false; bean.x = PL.TABLE_X + 118; }, { out: 0.7, in: 0.9 });
-      X.age('아나, 76');
+      await X.years(35, 40, { age: 76 });
       await serve({ color: '#bd5530' });
       await X.tap(bowl);
       await bite(); ps.food.fill = 0.75;
@@ -131,14 +131,27 @@
       /* ---- the lake ---- */
       X.walk(leo, PL.BOARD_X - 260, 84);
       await X.wait(1.2);
-      const lake = T.lake({ paint: T.vig.grand, leo: F.leoAt(3), mirror: 0.6, warm: true, leoFace: { eye: 'happy', old: true } });
+      await X.years(40, 45, { age: 81 });
+      const lake = T.lake({
+        paint: T.vig.grand, leo: F.leoAt(3), shore: true, leoFace: { eye: 'happy', old: true },
+        rhText: '등불, 냄비, 레오를 좌우로 끌어 보세요. 이번에도 물그림자가 제자리에 겹치면 머물러요',
+        things: [{ kind: 'lamp', x: 300, at: [-428, 300] }, { kind: 'pot', x: -250, at: [24, 548] }, { kind: 'leo', x: 120, at: [-330, 588], flip: false, lockFlip: false }],
+      });
       await X.view(lake, { color: '#1b2a40' });
-      T.announce('호수. 고리 넷을 맞춘다.');
-      await lake.calm({ start: [5, 2, 7, 4], couple: true });
-
       X.age('아나, 81');
-      T.announce('호수. 여든이 넘은 아나가 손주들 사이에서 스튜를 젓으며 웃는다.');
-      await X.wait(3);
+      T.announce('거울 호수. 여든한 살의 아나가 손주들에게 스튜 끓이는 법을 가르친다. 레오의 공책이 펼쳐져 있다.');
+      T.announce('물그림자 맞추기. 등불은 창에, 냄비는 아나의 냄비에, 레오는 조리대의 그 자리에.');
+      await lake.rhyme();
+      await X.wait(1.2);
+      lake.beat = 1; lake.note = '아나가 스튜를 젓는다. 레오의 냄비를 눌러 같이 저어 주세요';
+      for (let i = 0; i < 3; i++) { await X.tap(() => [lake.things[1].x, 186, 56], { screen: true }); A.sfx('bubble', i / 3); X.note({ voice: 'pluck', vel: 0.34 }); await X.wait(0.4); }
+      lake.note = null;
+      await X.wait(0.6);
+      lake.beat = 2;
+      T.announce('아나가 조리대의 그 자리를 돌아본다. 이번에는 웃는다.');
+      X.notes(3, { voice: 'felt', vel: 0.32 });
+      await X.wait(2.4);
+      await X.TALK.say('leo', '…이번엔 웃네.', { slow: true });
       await X.tap(() => [40, 560, 130], { screen: true });
       if (!lake.rip.length || T.time - lake.rip[lake.rip.length - 1].t > 0.3) lake.touch(40, 560);
       X.notes(3, { voice: 'felt', vel: 0.3 });

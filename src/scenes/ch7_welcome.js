@@ -89,6 +89,14 @@
       const bean = X.actor('bean', { dog: true, s: 220, x: 610, flip: true, wag: 0.4 });
       const ana = X.actor('ana', { style: F.anaAt(81), s: 142, lean: 0.07, face: { old: true } });
       const boat = X.boat({ x: -900, riders: [ana] });
+      /* everyone who waited with him is on the quay too */
+      const folk = [
+        X.actor('mom', { x: 300, style: F.styles.mom, s: C.MOM_S, lamp: true, lampHand: 'F', lean: 0.1, flip: true }),
+        X.actor('rosa', { x: 356, style: F.styles.rosa, s: 138, flip: true }),
+        X.actor('son', { x: 400, style: F.styles.rosaSon, s: 144, flip: true, lean: 0.12, face: { old: true } }),
+        X.actor('bram', { x: 456, style: F.styles.bram, s: 144, flip: true }),
+        X.actor('wife', { x: 496, style: F.styles.bramWife, s: 106, flip: true, lean: 0.2, face: { old: true } }),
+      ];
       X.cam(leo.x - 50, 548, 1.5); X.camSnap();
       S.track = { a: leo, dx: -50 };
       await X.view(null, { color: '#1b2a40', out: 1.6, in: 2.2 });
@@ -146,6 +154,19 @@
       A.theme({ voice: 'felt', vel: 0.36, beat: 0.74, left: true });
       await X.wait(2.5);
       await TALK.say('leo', '기다리는 동안… 당신을 위해서 참 많은 걸 했어.', { slow: true });
+      /* the ones who waited with him */
+      X.cam(200, 520, 1.2, 0.8);
+      await X.walk(folk[0], 196, 60);
+      folk[0].flip = true;
+      await TALK.say('mom', '어서 와라, 아가.\n천천히 와 줘서 고맙다.');
+      await TALK.say('ana', '…어머님?');
+      await TALK.say('mom', '우리 레오,\n많이 웃게 해 줘서 고맙다.');
+      const hello = (o, a, t) => { o.armF = { a: 2.4 + Math.sin(t * 9 + a.x) * 0.25, b: 0.3 }; o.face.eye = 'happy'; };
+      folk.slice(1).forEach((a) => { a.pose = hello; });
+      await TALK.say('rosa', '얘기 많이 들었어요!');
+      await TALK.say('bram', '집 짓는 거,\n우리가 다 봤지.');
+      await TALK.say('ana', '…이 사람, 혼자가 아니었네요.');
+      folk.forEach((a) => { a.pose = null; });
       await X.wait(0.8);
 
       /* ---- home ---- */
@@ -155,6 +176,7 @@
       X.walk(bean, 700, 96); X.walk(ana, 560, 58); X.walk(leo, 604, 58);
       await X.wait(5.2);
       await X.dip(async () => {
+        S.actors = S.actors.filter((a) => !folk.includes(a));
         leo.go = ana.go = bean.go = null; leo.moving = ana.moving = bean.moving = false;
         leo.x = PL.BOARD_X - 300; ana.x = leo.x - 44; bean.x = leo.x + 90;
         S.mem = { house: 0, table: 0, swing: 0, ps };
