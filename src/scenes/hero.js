@@ -3,7 +3,7 @@ import { W, H } from '../config.js';
 import { TAU, INK, PAPER, RED, INDIGO, SUB, FONT_B, text, textBlock, ell, rr } from '../render/draw.js';
 import { button, panel, brushTitle, seal, C, tapped } from '../ui/ui.js';
 import { nav } from '../nav.js';
-import { newRun, heroOpen, UNLOCKS, meta } from '../state.js';
+import { newRun, heroOpen, UNLOCKS, meta, HARD, save } from '../state.js';
 import { UNITS, HEROES, HERO_SKILLS, HERO_COL, HERO_SEAL, HERO_TRAIT } from '../data/units.js';
 import { inkGlyph, MEOK } from '../render/ink.js';
 import { CARDS, starterDeck, isUnit } from '../data/cards.js';
@@ -27,6 +27,7 @@ export class HeroScene {
       if (locked) g.globalAlpha = 0.5; portrait(g, id, x + w / 2 - 4, y + 100, 0.86, this.t, on); g.restore();
       g.fillStyle = INK; g.fillRect(x + 4, y + 104, w - 8, 1.6); g.fillStyle = HERO_COL[id]; g.fillRect(x + 4, y + 105.6, w - 8, 3);
       text(g, d.name, x + w / 2, y + 123, { size: 21, font: FONT_B, fill: locked ? SUB : INK }); text(g, locked ? `공적 ${UNLOCKS.find(u => u.id === id).cost}` : ROLE[id], x + w / 2, y + 141, { size: 14.5, fill: locked ? RED : '#5a4a3a' });
+      const best = meta.heroBest && meta.heroBest[id]; if (best !== undefined && !locked) { rr(g, x + w - 62, y + 8, 54, 22, 5, '#2f6f5c', INK, 1.2); text(g, best > 0 ? `험로 ${best}` : '평정', x + w - 35, y + 19.5, { size: 13.5, fill: C.cream }); }
       if (on) rr(g, x - 3, y - 3, w + 6, h + 6, 9, null, RED, 4);
     });
     // 고른 영웅
@@ -54,7 +55,17 @@ export class HeroScene {
     if (locked) { const cost = UNLOCKS.find(u => u.id === id).cost; rr(g, 60, 262, 184, 30, 6, '#8a2a26', INK, 1.6); text(g, `잠김 · 공적 ${cost}`, 152, 278, { size: 16, fill: C.cream }); if (button(g, 'meta', 840, 588, 400, 96, `공적 장부에서 열기 · ${cost}`, { style: 'paper', size: 28 })) nav.go('meta'); }
     else if (button(g, 'go', 840, 588, 400, 96, meta.hard ? `출정 · 험로 ${meta.hard}` : '출  정', { size: meta.hard ? 38 : 52 })) nav.go('prologue', { hero: id });
     if (button(g, 'back', 40, 598, 200, 76, '뒤로', { style: 'paper', size: 30 })) nav.go('title');
-    text(g, '전술 패는 한 번 쓰면 사라집니다. 전장의 노획, 전리품, 장터, 주막에서 다시 채우세요.', 540, 626, { size: 15.5, fill: SUB, weight: 400, maxW: 560 });
-    text(g, '이끄는 영웅의 병법에 따라 패를 얻고 쓰는 방식이 달라집니다.', 540, 650, { size: 15.5, fill: SUB, weight: 400, maxW: 560 });
+    // 험로를 한 번이라도 열었으면 여기서 바로 고른다 (평정할 때마다 한 단계씩 열린다). 아직이면 길잡이 글
+    if (meta.hardMax > 0) {
+      const lv = Math.min(meta.hard || 0, meta.hardMax), hd = HARD[lv];
+      rr(g, 262, 600, 556, 78, 9, '#d9cdb0', INK, 2); rr(g, 262, 596, 556, 78, 9, '#fbf3df', INK, 2); rr(g, 262, 596, 8, 78, 4, lv ? RED : '#3f6b5c');
+      if (button(g, 'h-', 282, 608, 54, 52, '◀', { style: 'paper', size: 22, disabled: lv <= 0 })) { meta.hard = Math.max(0, lv - 1); save(); sfx('card'); }
+      if (button(g, 'h+', 752, 608, 54, 52, '▶', { style: 'paper', size: 22, disabled: lv >= meta.hardMax })) { meta.hard = Math.min(meta.hardMax, lv + 1); save(); sfx('card'); }
+      text(g, lv ? `험로 ${lv}단계 · ${hd.name}` : '평탄한 길', 544, 620, { size: 23, font: FONT_B, fill: lv ? RED : INK, maxW: 390 });
+      text(g, lv ? `${hd.desc}${lv > 1 ? ' (아래 단계 규칙도 모두)' : ''} · 공적 +${lv * 20}%` : `험로 규칙 없이 떠납니다 · 열린 길 ${meta.hardMax}단계`, 544, 652, { size: 14.5, fill: SUB, weight: 400, maxW: 396 });
+    } else {
+      text(g, '전술 패는 한 번 쓰면 사라집니다. 전장의 노획, 전리품, 장터, 주막에서 다시 채우세요.', 540, 626, { size: 15.5, fill: SUB, weight: 400, maxW: 560 });
+      text(g, '이끄는 영웅의 병법에 따라 패를 얻고 쓰는 방식이 달라집니다.', 540, 650, { size: 15.5, fill: SUB, weight: 400, maxW: 560 });
+    }
   }
 }

@@ -24,25 +24,37 @@ export const AFFIX = {
 };
 const SPREAD = { 1: [2.5], 2: [1.5, 3.5], 3: [0.75, 2.5, 4.25], 4: [0.25, 1.75, 3.25, 4.75] };
 
+// 두목은 고개마다 정해져 있지만, 거느린 패거리는 원정마다 다르다 (with = 알림에 붙는 한마디)
 export const BOSSES = [
-  { name: '푸른 김서방', enemyName: '도깨비 두목 푸른 김서방', map: 'arena', lvl: 1, time: 130, starDeaths: 8, starTime: 75, key: 'warchief',
-    enemy: [['warchief', 2.5, 1], ['orc', 1, 0], ['orc', 4, 0], ['goblin', 2.5, 0, { n: 6 }], ['garcher', 0.5, 2, { n: 4 }], ['garcher', 4.5, 2, { n: 4 }]] },
-  { name: '당산 할배', enemyName: '잊힌 숲의 당산 할배', map: 'grove', lvl: 2, time: 140, starDeaths: 9, starTime: 85, key: 'elder',
-    enemy: [['elder', 2.5, 1], ['treant', 1, 0, { n: 1 }], ['treant', 4, 0, { n: 1 }], ['shaman', 2.5, 2, { n: 2 }], ['garcher', 0.5, 2, { n: 4 }], ['garcher', 4.5, 2, { n: 4 }], ['goblin', 2.5, 0, { n: 6 }]] },
-  { name: '어둑시니', enemyName: '잊힌 것들의 그림자 어둑시니', map: 'throne', lvl: 3, time: 150, starDeaths: 10, starTime: 95, key: 'skelking',
-    enemy: [['skelking', 2.5, 1], ['skel', 1, 0, { n: 4 }], ['skel', 2.5, 0, { n: 4 }], ['skel', 4, 0, { n: 4 }], ['rshield', 0, 0, { n: 2 }], ['skelarcher', 1, 2, { n: 3 }], ['skelarcher', 4, 2, { n: 3 }], ['necro', 2.5, 2], ['rassassin', 5, 2, { n: 2 }]] },
+  { name: '푸른 김서방', enemyName: '도깨비 두목 푸른 김서방', map: 'arena', lvl: 1, time: 130, starDeaths: 8, starTime: 75, key: 'warchief', packs: [
+    { with: '방망이 패를 거느렸다', enemy: [['warchief', 2.5, 1], ['orc', 1, 0], ['orc', 4, 0], ['goblin', 2.5, 0, { n: 6 }], ['garcher', 0.5, 2, { n: 4 }], ['garcher', 4.5, 2, { n: 4 }]] },
+    { with: '솥뚜껑 패를 앞세웠다', enemy: [['warchief', 2.5, 1], ['rshield', 1, 0, { n: 3 }], ['rshield', 4, 0, { n: 3 }], ['goblin', 2.5, 0, { n: 6 }], ['garcher', 0.5, 2, { n: 4 }], ['garcher', 4.5, 2, { n: 4 }]] },
+    { with: '야광귀를 풀어놓았다', enemy: [['warchief', 2.5, 1], ['orc', 1, 0], ['orc', 4, 0], ['goblin', 2.5, 0, { n: 6 }], ['garcher', 0.5, 2, { n: 4 }], ['yagwang', 4.5, 2, { n: 3 }]] },
+  ] },
+  { name: '당산 할배', enemyName: '잊힌 숲의 당산 할배', map: 'grove', lvl: 2, time: 140, starDeaths: 9, starTime: 85, key: 'elder', packs: [
+    { with: '졸개 떼가 뒤따른다', enemy: [['elder', 2.5, 1], ['treant', 1, 0, { n: 1 }], ['treant', 4, 0, { n: 1 }], ['shaman', 2.5, 2, { n: 2 }], ['garcher', 0.5, 2, { n: 4 }], ['garcher', 4.5, 2, { n: 4 }], ['goblin', 2.5, 0, { n: 6 }]] },
+    { with: '멧돼지를 몰고 왔다', enemy: [['elder', 2.5, 1], ['treant', 1, 0, { n: 1 }], ['treant', 4, 0, { n: 1 }], ['shaman', 2.5, 2, { n: 2 }], ['garcher', 0.5, 2, { n: 4 }], ['garcher', 4.5, 2, { n: 3 }], ['wolf', 2.5, 0, { n: 2 }]] },
+    { with: '도깨비불을 띄웠다', enemy: [['elder', 2.5, 1], ['treant', 1, 0, { n: 1 }], ['treant', 4, 0, { n: 1 }], ['shaman', 2.5, 2, { n: 2 }], ['garcher', 0.5, 2, { n: 4 }], ['garcher', 4.5, 2, { n: 3 }], ['bomber', 2.5, 0, { n: 3 }]] },
+  ] },
+  { name: '어둑시니', enemyName: '잊힌 것들의 그림자 어둑시니', map: 'throne', lvl: 3, time: 150, starDeaths: 10, starTime: 95, key: 'skelking', packs: [
+    { with: '저승사자가 곁에 섰다', enemy: [['skelking', 2.5, 1], ['skel', 1, 0, { n: 4 }], ['skel', 2.5, 0, { n: 4 }], ['skel', 4, 0, { n: 4 }], ['rshield', 0, 0, { n: 2 }], ['skelarcher', 1, 2, { n: 3 }], ['skelarcher', 4, 2, { n: 3 }], ['necro', 2.5, 2], ['rassassin', 5, 2, { n: 2 }]] },
+    { with: '그슨대를 거느렸다', enemy: [['skelking', 2.5, 1], ['skel', 1, 0, { n: 4 }], ['geuseun', 2.5, 0], ['skel', 4, 0, { n: 4 }], ['skelarcher', 1, 2, { n: 3 }], ['skelarcher', 4, 2, { n: 3 }], ['necro', 2.5, 2], ['rassassin', 5, 2, { n: 1 }]] },
+    { with: '바위를 날려 보낸다', enemy: [['skelking', 2.5, 1], ['skel', 1, 0, { n: 4 }], ['skel', 2.5, 0, { n: 5 }], ['skel', 4, 0, { n: 4 }], ['rshield', 0, 0, { n: 2 }], ['skelarcher', 1, 2, { n: 3 }], ['skelarcher', 4, 2, { n: 3 }], ['catapult', 2.5, 2], ['rassassin', 5, 2, { n: 2 }]] },
+  ] },
 ];
 
 // 깊이(0 = 첫 싸움) → 요괴 예산. 밸런스는 tools/campaign.mjs 로 맞춘다.
 // 전술 패가 쓰면 사라지게 된 뒤로, 뒤 고개의 요괴 수를 조금 덜었다 (고개마다 +5 → +4.5)
-export function budgetFor(ch, row, kind, hard) { return (10.5 + ch * 4.5 + row * 1.3) * (kind === 'elite' ? 1.15 : 1) * (1 + 0.05 * hard); }
+export function budgetFor(ch, row, kind, eliteMul = 1) { return (BUDGET[0] + ch * BUDGET[1] + row * BUDGET[2]) * (kind === 'elite' ? 1.28 * eliteMul : 1); }
+// [첫 싸움, 고개마다 더, 칸마다 더]
+const BUDGET = [13.2, 7.3, 1.5];
 
-export function genEncounter(ch, row, kind, R, hard = 0) {
+export function genEncounter(ch, row, kind, R, eliteMul = 1) {
   // 본대: 싸움을 너무 오래 끌면 뒤따라온 요괴 본대가 차례로 들이닥친다
   const chase = { at: 0, every: 11, types: [['goblin', 'orc'], ['orc', 'wolf', 'bomber'], ['skel', 'skelarcher', 'orc']][ch] };
-  if (kind === 'boss') { const b = BOSSES[ch]; chase.at = b.starTime + 30; return Object.assign({ ch, row, kind, boss: true, tip: UNITS[b.key].tip, foe: {}, terrain: 'arena', sky: ch === 2 ? 'night' : 'day', chase }, b); }
+  if (kind === 'boss') { const b = BOSSES[ch], pk = b.packs[(R() * b.packs.length) | 0]; chase.at = b.starTime + 30; return Object.assign({ ch, row, kind, boss: true, tip: UNITS[b.key].tip, foe: {}, terrain: 'arena', sky: ch === 2 ? 'night' : 'day', chase }, b, { packs: undefined, enemy: pk.enemy, with: pk.with }); }
   const pool = POOLS[ch];
-  let budget = budgetFor(ch, row, kind, hard);
+  let budget = budgetFor(ch, row, kind, eliteMul);
   const first = ch === 0 && row === 0;
   const avail = Object.keys(pool.w).filter(t => !(first && (t === 'rshield' || t === 'rassassin' || t === 'yagwang')));
   const picks = [], cnt = {};

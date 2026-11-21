@@ -87,11 +87,11 @@ for (let k = 0; k < runs; k++) {
       dmg[e.ch] += downs ? 1 : Math.max(0, hp0 - (b.bannerHp() - 0.06) - (hp0 > 0.94 ? hp0 - 0.94 : 0)); dmgN[e.ch]++;
       totalT += cleared.time;
       const grade = 1 + (cleared.lost <= e.starDeaths ? 1 : 0) + (cleared.time <= e.starTime ? 1 : 0); r.gold += goldFor(grade, e.kind); r.merit += grade; r.wins++; r.kills = b.kills; r.lost = b.lost; r.nextMorale = 0;
-      if (e.kind !== 'battle') grantLoot(e.kind === 'boss' ? 4 : 3); stockN += tacticCards().length; stockB++;
+      if (e.kind !== 'battle') grantLoot(e.kind === 'boss' ? 3 : 2); stockN += tacticCards().length; stockB++;
       takeReward(e.kind);
     } else if (s.type === 'event') { const cs = eventView({ id: pickEvent() }).choices.filter(c => !c.cost || r.gold >= c.cost), c = pick(cs), out = c.pick(); if (!Array.isArray(out)) throw new Error('사건 결과 형식'); }
     else if (s.type === 'shop') { const items = genShop(); for (let n = 0; n < 3; n++) { const can = items.filter(it => !it.sold && it.price <= r.gold); if (!can.length) break; const low = tacticCards().length < 8, it = (low && can.find(q => q.kind === 'supply' || (q.kind === 'card' && !isUnit(q)))) || pick(can); if (it.kind === 'trainPick') { const c = unitCards().find(canUp); if (c) upgradeCard(c.uid); } buyItem(it); } }
-    else if (s.type === 'rest') { b.repair(1); const x = Math.random(); if (r.flags < 3 && x < 0.6) act.flag(1); else if (tacticCards().length < 9) act.supply(4); else { const c = pick(r.deck.filter(canUp)); if (c) upgradeCard(c.uid); } }
+    else if (s.type === 'rest') { b.repair(1); const x = Math.random(); if (r.flags < 3 && x < 0.6) act.flag(1); else if (tacticCards().length < 6) act.supply(3); else { const c = pick(r.deck.filter(canUp)); if (c) upgradeCard(c.uid); } }
     else if (s.type === 'treasure') takeReward('treasure');
     sync(b);
     if (advance()) break;

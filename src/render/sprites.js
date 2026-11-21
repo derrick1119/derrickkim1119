@@ -227,13 +227,13 @@ export const baseWeapon = type => (ARMS[type] ? ARMS[type].base : null);
 export function preloadLooks() { for (const k of Object.keys(LOOKS)) getLook(k); for (const k of Object.keys(WDATA)) getWeapon(k); }
 
 // 인형 초상 (패·정보창용): 몸 + 머리 + 손에 든 무기
-export function portrait(g, type, x, y, s, t = 0, bob = false, wpn) {
-  const L = getLook(type), k = s * L.scale, yy = y - (bob ? Math.abs(Math.sin(t * 5)) * 3 * s : 0), h = L.hold, bl = t > 0 && blinking(t, type.length);
+export function portrait(g, type, x, y, s, t = 0, bob = false, wpn, shut = false) {
+  const L = getLook(type), k = s * L.scale, yy = y - (bob ? Math.abs(Math.sin(t * 5)) * 3 * s : 0), h = L.hold, bl = shut || (t > 0 && blinking(t, type.length));
   drawSprite(g, bl && L.frontBlink ? L.frontBlink : L.front, x, yy, k, k);
   if (L.head) drawSprite(g, bl && L.blink ? L.blink : L.head, x, yy + (bob ? Math.sin(t * 5) * 0.5 * s : 0), k, k);
   const W = getWeapon(wpn || baseWeapon(type));
   if (W) {
-    if (W.hand === 'L') drawSprite(g, W.spr, x + (-h.x - 2) * k, yy + h.y * k, k, k, W.a);
+    if (W.hand === 'L') drawSprite(g, W.spr, x + (h.x + 3) * k, yy + (h.y - 1) * k, -k, k, -W.a); // 활은 보는 쪽(앞)으로 내밀어 든다 — 싸움터의 인형과 같다
     else if (W.hand === 'C') drawSprite(g, W.spr, x + h.x * 0.42 * k, yy + (h.y - 1.5) * k, k, k, W.a);
     else { drawSprite(g, W.spr, x + h.x * k, yy + h.y * k, k, k, W.a); if (W.hand === 'B') drawSprite(g, W.spr, x - h.x * k, yy + h.y * k, -k, k, -W.a); }
   } else if (L.weapon) drawSprite(g, L.weapon, x + h.x * k, yy + h.y * k, k, k, h.a);

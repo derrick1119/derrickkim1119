@@ -22,7 +22,7 @@ export const DEFAULT_MODS = {
   // 패 관련: 영웅 패 비용 감소, 손패 보충 시간 배율, 전투마다 공짜로 쓰는 패 수, 패 위력
   heroCost: 0, drawRate: 1, freeFirst: 0, cardPow: 1, summonLife: 0, heroGauge: 1, killMorale: 0,
   // 패의 살림: 주머니 한도, 무리 몇을 물리칠 때마다 노획하는가, 그리고 이끄는 영웅의 병법
-  pouch: 12, lootEvery: 3, rally: 0, keepSupport: 0, heroLoot: 0, scavAny: 0, killGold: 0, shopCard: 1, startCard: 0, tacDisc: 0,
+  pouch: 9, lootEvery: 5, rally: 0, keepSupport: 0, heroLoot: 0, scavAny: 0, killGold: 0, shopCard: 1, startCard: 0, tacDisc: 0,
 };
 export const HAND = 5, REFILL = 3.2, MAX_CAP = 9, ROUT = 0.12;
 // 사기는 가만히 있어도 차오르는 자원이 아니다: 물결이 시작될 때 한 몫, 요괴 무리를 하나 물리칠 때마다 한 닢.
@@ -147,7 +147,7 @@ export class Battle {
     const def = sq && sq.type === type ? sq.def : defOf(type), m = lvlMult(lvl), md = this.mods;
     const um = team === 0 ? md.unit[type] : null;
     let hp = def.hp * m * PACE * (team === 0 ? md.hpAll * (um && um.hp || 1) : this.foe.hp);
-    if (team === 0) { if (def.hero) hp *= md.heroHp; else if (!def.range && !def.mounted && !def.heal) hp *= md.hpInf; }
+    if (team === 0) { if (def.hero) hp *= md.heroHp; else if (def.banner) hp *= md.cartHp || 1; else if (!def.range && !def.mounted && !def.heal) hp *= md.hpInf; }
     const u = {
       id: this.uid++, team, type, def, squad: sq, lvl, x, y, px: x, py: y, vx: 0, vy: 0, r: def.r, hp, maxHp: hp,
       atk: (def.atk || 0) * m * (team === 0 ? (um && um.atk || 1) * (def.hero ? md.heroAtk : 1) : this.foe.atk), healAmt: (def.heal || 0) * m * (team === 0 && def.hero ? md.heroAtk : 1), facing: team === 0 ? 0 : PI,

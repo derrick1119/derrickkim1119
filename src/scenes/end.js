@@ -3,11 +3,12 @@ import { W, H } from '../config.js';
 import { INK, RED, INDIGO, TEAL, SUB, FONT_B, text, textBlock, rr } from '../render/draw.js';
 import { button, panel, brushTitle, C } from '../ui/ui.js';
 import { nav } from '../nav.js';
-import { G, meta, save, settleRun, BEASTS, has, deedCount, noteDeed } from '../state.js';
+import { G, meta, save, settleRun, BEASTS, has, deedCount, noteDeed, HARD } from '../state.js';
 import { UNITS } from '../data/units.js';
 import { CHAPTERS } from '../data/stages.js';
 import { CARDS, isUnit } from '../data/cards.js';
-import { ENDING, EPILOGUE, DEFEAT } from '../data/story.js';
+import { ENDING, EPILOGUE, DEFEAT, endingPlay, defeatPlay } from '../data/story.js';
+import { Play } from '../ui/theater.js';
 import { backdrop } from './title.js';
 import { portrait } from '../render/sprites.js';
 import { relicIcon } from '../render/icons.js';
@@ -15,8 +16,11 @@ import { cardFace } from '../ui/cards.js';
 import { inkMark } from '../render/ink.js';
 
 export class EndScene {
-  constructor(a) { this.win = !!(a && a.win); this.t = 0; this.r = G.run; this.gain = settleRun(this.win); this.fresh = noteDeed(); this.conf = Array.from({ length: 70 }, () => ({ x: Math.random() * W, y: -Math.random() * H, v: 90 + Math.random() * 140, c: [RED, INDIGO, '#d9a441', '#3f6b5c', '#fbf7ec'][(Math.random() * 5) | 0], p: Math.random() * 6 })); }
+  constructor(a) { this.win = !!(a && a.win); this.t = 0; this.r = G.run; this.gain = settleRun(this.win); this.fresh = noteDeed();
+    // 끝 이야기: 이긴 밤에는 그 영웅만의 끝, 진 밤에는 장승 앞에서 깨어나는 장면을 인형극으로 먼저 보여 준다
+    const hero = this.r ? this.r.hero : 'commander'; this.play = new Play({ beats: this.win ? endingPlay(hero) : defeatPlay(hero), title: this.win ? `${UNITS[hero].name} 이야기 · 끝` : '홀린 밤', onDone: () => { this.play = null; this.t = 0; } }); this.conf = Array.from({ length: 70 }, () => ({ x: Math.random() * W, y: -Math.random() * H, v: 90 + Math.random() * 140, c: [RED, INDIGO, '#d9a441', '#3f6b5c', '#fbf7ec'][(Math.random() * 5) | 0], p: Math.random() * 6 })); }
   frame(g, dt) {
+    if (this.play) { this.play.frame(g, dt); return; }
     this.t += dt; const t = this.t, r = this.r, win = this.win;
     g.drawImage(backdrop(), 0, 0, W, H);
     if (!win) { g.fillStyle = 'rgba(31,42,68,0.42)'; g.fillRect(0, 0, W, H); }
@@ -37,6 +41,8 @@ export class EndScene {
       const cw = Math.min(58, 680 / r.deck.length - 4); r.deck.slice().sort((a, b) => (isUnit(b) ? 1 : 0) - (isUnit(a) ? 1 : 0)).forEach((c, n) => cardFace(g, c, 544 + n * (cw + 4), 312, cw, cw * 1.32));
       text(g, r.relics.length ? `지닌 보물 ${r.relics.length}` : '지닌 보물 없음', 544, 424, { size: 20, font: FONT_B, align: 'left' });
       const rp = Math.min(46, 660 / Math.max(1, r.relics.length)); r.relics.forEach((id, n) => relicIcon(g, id, 568 + n * rp, 476, Math.min(0.8, rp / 44)));
+      // 평정해서 새 험로가 열렸으면 알린다: 다음 원정은 한 단계 더 험한 길로 갈 수 있다
+      if (r.newHard) { const k = Math.min(1, Math.max(0, (t - 0.9) / 0.35)), hd = HARD[r.newHard]; g.save(); g.globalAlpha = k; rr(g, 846, 404, 376, 38, 7, '#8a2a26', INK, 1.8); text(g, `새 험로가 열렸다 · ${r.newHard}단계 ${hd.name}`, 1034, 424, { size: 17.5, font: FONT_B, fill: C.cream, maxW: 356 }); g.restore(); }
     }
     // 다음에 맺을 영물의 인연 하나: 가장 가까운 것을 짚어 준다
     const nb = BEASTS.filter(b => !has(b.id)).sort((a, b) => deedCount(b) / b.need - deedCount(a) / a.need)[0];

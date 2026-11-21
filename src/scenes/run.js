@@ -5,7 +5,9 @@ import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, tex
 import { BattleView, ghostUnits } from '../render/battleview.js';
 import { Battle, formation, defOf, HAND, REFILL } from '../sim/battle.js';
 import { G, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP } from '../state.js';
-import { MARCH as MARCH_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines } from '../data/story.js';
+import { MARCH as MARCH_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines, bossPlay } from '../data/story.js';
+import { Play, drawFrame } from '../ui/theater.js';
+import { juice, SPOT } from '../ui/juice.js';
 import { CHAPTERS } from '../data/stages.js';
 import { AFFIX } from '../data/encounters.js';
 import { CARDS, KIND, cardName, isUnit } from '../data/cards.js';
@@ -24,6 +26,8 @@ import { drawInk, inkGlyph, inkMark, MEOK, JU } from '../render/ink.js';
 
 const NUM = ['', '하나', '둘', '셋', '넷', '다섯'];
 export const GRADE = ['', '丙', '乙', '甲'];
+// 고개 하나가 인형극의 한 마당이다
+const MADANG = ['첫째 마당', '둘째 마당', '셋째 마당'];
 const MARCH = 520, MARCH_V = 300;
 const FIGHT = t => t === 'battle' || t === 'elite' || t === 'boss';
 const talkTime = s => clamp(1.3 + s.length * 0.07, 2, 3.6);
@@ -37,7 +41,8 @@ export class RunScene {
     this.order = null; this.aim = null; this.slotAnim = []; this.toastS = ''; this.toastT = 0; this.note = null; this.grade = null; this.enc = null; this.fade = 0; this.endT = 0; this.joinQ = [];
     this.first = (meta.runs || 0) <= 1 && r.wins === 0; this.hints = 0; this.talk = null; if (!r.seen) r.seen = {}; this.stock = {}; this.lootT = 0;
     const rd = r.road;
-    if (rd.i === 0 && rd.state !== 'reward') this.note = { s: CHAPTERS[r.ch].name, sub: CHAPTERS[r.ch].sub, col: INDIGO, t: 2.6 };
+    juice.clear();
+    if (rd.i === 0 && rd.state !== 'reward') { this.note = { s: CHAPTERS[r.ch].name, sub: CHAPTERS[r.ch].sub, col: INDIGO, t: 4.2 }; this.curtain = { t: 0, s: MADANG[r.ch] }; }
     if (rd.state === 'reward') { this.phase = 'stop'; this.reward(curStop().type); }
     else if (rd.state === 'at') { this.phase = 'march'; this.arrive(); }
     else this.march(r.wins === 0 && rd.i === 0 ? 300 : MARCH, true);
@@ -61,7 +66,7 @@ export class RunScene {
     else if (st.type === 'battle' || st.type === 'elite' || st.type === 'boss') {
       // 싸움터를 먼저 차린다(지형·하늘). 요괴가 닿기 전 잠깐이 진형을 고칠 시간이다
       const e = this.enc = encounterHere(); b.prepWave(waveSetup(e)); this.phase = 'prep'; this.prepT = this.first ? 5.5 : 4; this.grade = null;
-      this.note = { s: e.name, sub: e.boss ? (BOSS[e.key] ? BOSS[e.key].sub : '두목과의 싸움') : e.affix ? `강적 — ${AFFIX[e.affix].name}: ${AFFIX[e.affix].desc}` : iga(e.enemyName) + ' 몰려옵니다', col: e.boss || e.affix ? RED : INDIGO, t: 2.2, ch: e.boss ? '頭' : st.type === 'elite' ? '強' : '戰', chCol: e.boss ? '#f3b9a6' : undefined };
+      this.note = { s: e.name, sub: e.boss ? (BOSS[e.key] ? BOSS[e.key].sub : '두목과의 싸움') + (e.with ? ' · ' + e.with : '') : e.affix ? `강적 — ${AFFIX[e.affix].name}: ${AFFIX[e.affix].desc}` : iga(e.enemyName) + ' 몰려옵니다', col: e.boss || e.affix ? RED : INDIGO, t: 2.2, ch: e.boss ? '頭' : st.type === 'elite' ? '強' : '戰', chCol: e.boss ? '#f3b9a6' : undefined };
       if (e.boss) sfx('boss');
     }
     else if (st.type === 'event') { this.phase = 'stop'; const id = r.pending && r.pending.kind === 'event' ? r.pending.id : pickEvent(); r.pending = { kind: 'event', id }; const v = eventView({ id }); this.over = new ChoiceOverlay({ title: v.title, art: v.art, text: v.text, choices: v.choices, onDone: done }); }
@@ -78,7 +83,7 @@ export class RunScene {
   // 싸움이 끝나면: 두목이었다면 사연을 듣고 나서 전리품을 고른다
   afterWave() {
     const e = this.enc, st = e.boss && BOSS[e.key];
-    if (st && !this.storyDone) { this.storyDone = true; this.phase = 'stop'; this.talk = null; this.over = new StoryOverlay({ lines: st.after, col: '#7a1f1c', onDone: () => this.reward(e.kind) }); } else this.reward(e.kind);
+    if (st && !this.storyDone) { this.storyDone = true; this.phase = 'stop'; this.talk = null; this.over = new Play({ beats: bossPlay(e.key, this.r.hero), title: e.name, onDone: () => { this.over = null; this.reward(e.kind); } }); } else this.reward(e.kind);
   }
 
   // ───────── 한 줄 대사: 걷거나 싸우는 인형 머리 위에 뜬다 ─────────
@@ -112,14 +117,16 @@ export class RunScene {
   leave() {
     const r = this.r; this.over = null; this.sync();
     if (advance()) { meta.seen.talk = 3; this.phase = 'over'; nav.go('end', { win: true }); return; }
-    if (r.ch !== this.ch) { meta.seen.talk = Math.max(meta.seen.talk || 0, r.ch); this.ch = r.ch; this.fade = 1; this.sync(); this.note = { s: CHAPTERS[r.ch].name, sub: '깃발 하나를 되찾고 · 부대 한도 +1 · 모든 병력 패 +1단', col: INDIGO, t: 3.2 }; sfx('win'); }
+    if (r.ch !== this.ch) { meta.seen.talk = Math.max(meta.seen.talk || 0, r.ch); this.ch = r.ch; this.fade = 1; this.curtain = { t: 0, s: MADANG[Math.min(2, r.ch)] }; this.sync(); this.note = { s: CHAPTERS[r.ch].name, sub: '깃발 하나를 되찾고 · 부대 한도 +1 · 모든 병력 패 +1단', col: INDIGO, t: 3.2 }; sfx('win'); }
     this.march();
   }
   waveClear(e) {
     const r = this.r, b = this.b, enc = this.enc, c1 = e.lost <= enc.starDeaths, c2 = e.time <= enc.starTime, grade = 1 + (c1 ? 1 : 0) + (c2 ? 1 : 0), gold = goldFor(grade, enc.kind);
     r.gold += gold; r.merit = (r.merit || 0) + grade; r.wins++; r.kills = b.kills; r.lost = b.lost; r.nextMorale = 0; r.road.state = 'reward';
-    settleBattle(b); if (enc.kind !== 'battle') { const got = grantLoot(enc.kind === 'boss' ? 4 : 3); this.toast(`${enc.kind === 'boss' ? '두목' : '강적'}의 짐에서 패 ${got.length}장을 노획 — ${got.join(', ')}`, 4.5); this.sync(); }
+    settleBattle(b); if (enc.kind !== 'battle') { const got = grantLoot(enc.kind === 'boss' ? 3 : 2); this.toast(`${enc.kind === 'boss' ? '두목' : '강적'}의 짐에서 패 ${got.length}장을 노획 — ${got.join(', ')}`, 4.5); this.sync(); }
     this.grade = { grade, gold, t: 0, stamped: false }; this.phase = 'clear'; this.order = null; this.aim = null; sfx('win'); save();
+    // 번 엽전이 주머니로 날아간다
+    for (let q = 0; q < Math.min(8, 3 + Math.round(gold / 15)); q++) juice.fly({ draw: (gg, x, y, s) => icon.coin(gg, x, y, 13 * s, true), x0: 590 + q * 14, y0: 382, x1: SPOT.gold[0], y1: SPOT.gold[1], s0: 1, s1: 0.8, arc: 60 + q * 8, delay: 0.75 + q * 0.07, dur: 0.55, col: '#f0d264' });
     // 영물의 인연: 밤 싸움·강적·두목을 이긴 공, 깃발을 지켜 낸 공을 적는다
     this.welcome([].concat(enc.sky === 'night' ? noteDeed('night') : [], enc.kind === 'elite' ? noteDeed('elite') : [], enc.kind === 'boss' ? noteDeed('boss') : [], enc.kind === 'boss' && r.flags >= 3 ? noteDeed('safe') : []));
   }
@@ -195,7 +202,7 @@ export class RunScene {
         this.talkTick(dt * ts);
         if (this.phase === 'fight' && this.enc.boss && !this.bossSaid && BOSS[this.enc.key] && this.speaker('B')) { this.bossSaid = true; this.say([['B', BOSS[this.enc.key].enter]]); }
         settleBattle(b);
-        for (const e of view.handle(b, sfx)) { if (e.type === 'waveClear' && this.phase === 'fight') this.waveClear(e); else if (e.type === 'bannerDown' && this.phase !== 'over') this.bannerDown(); else if (e.type === 'synergy') this.toast(`진법 발동 — ${e.name}: ${e.desc}`, 2.8); else if (e.type === 'chase') this.note = { s: '뒤에서 어둠이 밀려온다!', sub: '쫓기던 요괴들이 더 몰려옵니다 — 서둘러 물리치세요', col: RED, t: 2.2 }; else if (e.type === 'death') this.onDeath(e); else if (e.type === 'loot') { this.lootT = 1; if (!r.seen.loot && !this.talk) { r.seen.loot = 1; this.toast(`요괴 무리를 ${NUM[b.mods.lootEvery] || b.mods.lootEvery} 물리칠 때마다 패를 한 장 노획합니다 (주머니 ${b.mods.pouch}장까지)`, 4.5); } } else if (e.type === 'lootFull') this.toast(`주머니가 가득 차 패를 줍지 못했습니다 (${b.mods.pouch}장) — 아끼지 말고 쓰세요`, 3.6); else if (e.type === 'squadLost' && !e.again && !r.seen.bench) { r.seen.bench = 1; this.toast('전멸한 부대는 이 싸움이 끝나야 다시 세울 수 있습니다', 4); } else if (e.type === 'combo') this.note = { s: '합동기 — ' + e.name, sub: '', col: '#b8742a', t: 1.8 }; }
+        for (const e of view.handle(b, sfx)) { if (e.type === 'waveClear' && this.phase === 'fight') this.waveClear(e); else if (e.type === 'bannerDown' && this.phase !== 'over') this.bannerDown(); else if (e.type === 'synergy') this.toast(`진법 발동 — ${e.name}: ${e.desc}`, 2.8); else if (e.type === 'chase') this.note = { s: '뒤에서 어둠이 밀려온다!', sub: '쫓기던 요괴들이 더 몰려옵니다 — 서둘러 물리치세요', col: RED, t: 2.2 }; else if (e.type === 'death') this.onDeath(e); else if (e.type === 'loot') { this.lootT = 1; if (e.x !== undefined) juice.fly({ draw: (gg, x, y, s) => cardBack(gg, x - 34 * s, y - 45 * s, 68 * s, 90 * s), x0: clamp(e.x, 40, 1240), y0: e.y - 30, x1: SPOT.pouch[0], y1: SPOT.pouch[1], s0: 0.9, s1: 0.3, arc: 120, dur: 0.7 }); if (!r.seen.loot && !this.talk) { r.seen.loot = 1; this.toast(`요괴 무리를 ${NUM[b.mods.lootEvery] || b.mods.lootEvery} 물리칠 때마다 패를 한 장 노획합니다 (주머니 ${b.mods.pouch}장까지)`, 4.5); } } else if (e.type === 'lootFull') this.toast(`주머니가 가득 차 패를 줍지 못했습니다 (${b.mods.pouch}장) — 아끼지 말고 쓰세요`, 3.6); else if (e.type === 'squadLost' && !e.again && !r.seen.bench) { r.seen.bench = 1; this.toast('전멸한 부대는 이 싸움이 끝나야 다시 세울 수 있습니다', 4); } else if (e.type === 'combo') this.note = { s: '합동기 — ' + e.name, sub: '', col: '#b8742a', t: 1.8 }; }
       }
       view.fx.update(dt * Math.max(0.35, ts));
       if (this.phase === 'clear') { this.grade.t += dt; if (this.grade.t > 1.5) this.afterWave(); }
@@ -219,12 +226,20 @@ export class RunScene {
     }
     this.drawHud(g, b);
     this.drawSide(g, b);
+    // 마당이 바뀔 때: 싸움터가 곧 인형극 무대다. 막이 닫힌 채 마당 이름이 걸리고, 곧 막이 열린다
+    if (this.curtain) {
+      const c = this.curtain; c.t += dt; const open = clamp((c.t - 1.1) / 1.0, 0, 1), fadeOut = clamp((3.1 - c.t) / 0.6, 0, 1);
+      g.save(); g.globalAlpha = fadeOut; drawFrame(g, 20, HUD_H + 14, W - 40, BAR_Y - HUD_H - 34, open, this.T);
+      const k = clamp(c.t / 0.3, 0, 1) * clamp((1.9 - c.t) / 0.4, 0, 1); if (k > 0) { g.globalAlpha = k; rr(g, 440, 250, 400, 96, 10, '#2b3b60', INK, 3); rr(g, 448, 258, 384, 80, 7, null, 'rgba(226,184,90,0.85)', 1.6); text(g, c.s, 640, 300, { size: 46, font: FONT_B, fill: '#f6efdc' }); }
+      g.restore(); if (c.t > 3.1) this.curtain = null;
+    }
     if (this.phase === 'prep') this.drawPreview(g, b);
     this.drawBar(g, b, i, live);
     this.drawNotes(g, b);
     if (this.over) this.over.frame(g, dt);
     if (this.menu && !this.sub) this.drawMenu(g);
     if (this.sub) this.sub.frame(g, dt);
+    juice.frame(g, dt);
   }
   drawOrder(g, i) {
     const o = this.order, a = this.aim, T = this.T, b = this.b;

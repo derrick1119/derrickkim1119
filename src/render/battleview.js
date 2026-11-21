@@ -85,7 +85,8 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
       else { rot = sg * (ha + (ap < 1 ? swing(ap) : 0)) + tilt; if (ap > 0.28 && ap < 0.86) trail(hx, hy, sg * (ha - 0.9) + tilt, sg * (ha + (ap < 0.55 ? swing(ap) : 1.7)) + tilt, sg < 0, ap); }
       drawSprite(g, wspr, hx, hy, sg * k * Math.abs(fsx), k, rot, fl);
     };
-    if (hand === 'L') put(-hold.x - 2, hold.y, dir);
+    // 활은 쏘는 쪽(앞)으로 내밀어 든다: 활등이 과녁을 향하고 시위가 몸 쪽에 온다
+    if (hand === 'L') put(hold.x + 3, hold.y - 1, -dir);
     else if (hand === 'C') put(hold.x * 0.42, hold.y - 1.5, dir);
     else { put(hold.x, hold.y, dir); if (hand === 'B') { const hx0 = -hold.x * k * dir * fsx, hy0 = hold.y * k * sy; const q = clamp(ap * 1.25 - 0.25, 0, 1), rot = -dir * (ha + (mode === 'cast' ? -act * 0.95 : ap < 1 ? swing(q) : 0)) + tilt, bx = x + hx0 * ct - hy0 * sn, byy = by + hx0 * sn + hy0 * ct; drawSprite(g, wspr, bx, byy, -dir * k * Math.abs(fsx), k, rot, fl); if (mode !== 'cast' && ap < 1 && q > 0.28 && q < 0.86) trail(bx, byy, -dir * (ha - 0.9) + tilt, -dir * (ha + (q < 0.55 ? swing(q) : 1.7)) + tilt, dir > 0, q); } }
   }

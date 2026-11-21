@@ -1,12 +1,13 @@
 // 공적 장부: 원정에서 쌓은 공적으로 영웅·병력·출발 혜택을 연다 (가로)
 import { W, H } from '../config.js';
-import { INK, PAPER, RED, INDIGO, TEAL, OCHRE, SUB, FONT_B, text, textBlock, rr, makeCanvas } from '../render/draw.js';
+import { INK, PAPER, RED, INDIGO, TEAL, OCHRE, SUB, FONT_B, text, textBlock, rr, makeCanvas, clamp } from '../render/draw.js';
 import { button, panel, brushTitle, stamp, bar, tapped, C } from '../ui/ui.js';
 import { UNITS } from '../data/units.js';
 import { TALES } from '../data/story.js';
 import { CHAPTERS } from '../data/stages.js';
 import { nav } from '../nav.js';
-import { meta, save, UNLOCKS, has, buyUnlock, HARD_DESC, BEASTS, deedCount, noteDeed } from '../state.js';
+import { meta, save, UNLOCKS, has, buyUnlock, HARD, HARD_MAX, BEASTS, deedCount, noteDeed } from '../state.js';
+import { miniStage } from '../ui/theater.js';
 import { dimBackdrop } from './title.js';
 import { portrait, LOOKS } from '../render/sprites.js';
 import { sfx } from '../audio.js';
@@ -59,8 +60,11 @@ export class MetaScene {
     });
     const t = TALES[this.sel], has = got.includes(t.id);
     if (has) {
-      text(g, t.title, 860, 190, { size: 40, font: FONT_B }); g.fillStyle = 'rgba(201,150,46,0.8)'; g.fillRect(700, 226, 320, 1.6);
-      textBlock(g, t.s, 860, 290, 700, 44, { size: 23 });
+      // 들은 이야기는 작은 무대에서 인형 둘이 다시 들려준다
+      const li = Math.floor(this.t / 3.4) % t.lines.length;
+      text(g, t.title, 860, 152, { size: 34, font: FONT_B });
+      miniStage(g, 610, 184, 500, 236, { t: this.t, bg: ['village', 'grove', 'night'][t.ch], actors: [[t.cast[0], 0.3, li === 0 ? 'hop' : 'idle', 1], [t.cast[1], 0.7, li === 1 ? 'talk' : 'idle', -1]], zoom: 1.5 });
+      g.globalAlpha = clamp((this.t % 3.4) / 0.3, 0, 1); textBlock(g, t.lines[li], 860, 474, 700, 34, { size: 24, font: FONT_B }); g.globalAlpha = 1;
       text(g, `— ${CHAPTERS[t.ch].name}의 주막에서`, 1210, 530, { size: 15, align: 'right', fill: SUB, weight: 400 });
     } else { stamp(g, 860, 300, 46, '?', '#a9a394', -0.1); text(g, '아직 듣지 못한 이야기입니다', 860, 384, { size: 24, font: FONT_B, fill: SUB }); text(g, `${CHAPTERS[t.ch].name}의 주막에 들러 보세요`, 860, 420, { size: 17, fill: SUB, weight: 400 }); }
     if (button(g, 'bookback', 960, 584, 290, 86, '장부로', { style: 'paper', size: 32 })) this.book = false;
@@ -84,7 +88,10 @@ export class MetaScene {
     });
     const y = 572; panel(g, 30, y, 900, 110);
     if ((meta.hardMax || 0) > 0) {
-      text(g, `험로 ${meta.hard || 0}단계`, 64, y + 40, { size: 28, font: FONT_B, align: 'left' }); text(g, (meta.hard ? HARD_DESC[meta.hard] + ' · 공적 +' + meta.hard * 25 + '%' : '보통 길'), 64, y + 76, { size: 17, align: 'left', fill: SUB, weight: 400, maxW: 500 });
+      // 험로: 단계마다 규칙이 하나씩 붙는다 (아래 단계의 규칙도 모두 따라온다)
+      const hv = meta.hard || 0, hd = HARD[hv];
+      text(g, hv ? `험로 ${hv}단계 · ${hd.name}` : '보통 길', 64, y + 36, { size: 27, font: FONT_B, align: 'left', maxW: 380 }); text(g, `열린 길 ${meta.hardMax} / ${HARD_MAX}`, 640, y + 36, { size: 15, align: 'right', fill: SUB, weight: 400 });
+      text(g, hv ? `${hd.desc}${hv > 1 ? ' (아래 단계의 규칙도 모두 적용)' : ''} · 공적 +${hv * 20}%` : '세 고개를 평정할 때마다 더 험한 길이 한 단계씩 열립니다', 64, y + 72, { size: 16.5, align: 'left', fill: '#4a4034', weight: 400, maxW: 580 });
       if (button(g, 'h-', 660, y + 26, 120, 58, '쉽게', { style: 'paper', size: 23 })) { meta.hard = Math.max(0, (meta.hard || 0) - 1); save(); }
       if (button(g, 'h+', 794, y + 26, 120, 58, '험하게', { style: 'paper', size: 23 })) { meta.hard = Math.min(meta.hardMax, (meta.hard || 0) + 1); save(); }
     } else { text(g, '험로', 64, y + 40, { size: 28, font: FONT_B, align: 'left', fill: SUB }); text(g, '세 고개를 모두 넘으면 더 험한 길이 열립니다', 64, y + 76, { size: 17, align: 'left', fill: SUB, weight: 400 }); }

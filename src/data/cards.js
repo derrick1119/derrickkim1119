@@ -51,17 +51,17 @@ export const cardVals = c => Object.assign({}, CARDS[c.id].v, c.up ? CARDS[c.id]
 export const cardCost = c => Math.max(0, CARDS[c.id].cost - (c.up && CARDS[c.id].upCost || 0));
 export const cardName = c => CARDS[c.id].name + (isUnit(c) ? ((c.lv || 1) > 1 ? ' ' + c.lv + '단' : '') : c.up ? '+' : '');
 export const cardDesc = c => CARDS[c.id].desc(cardVals(c));
-// 한 묶음에 든 장수: 흔한 패는 셋, 귀한 패는 하나
-export const packN = id => CARDS[id].hero ? 2 : [3, 2, 1][CARDS[id].rare || 0];
+// 한 묶음에 든 장수: 흔한 패만 두 장, 나머지는 한 장 (패는 귀하다)
+export const packN = id => CARDS[id].hero ? 1 : [2, 1, 1][CARDS[id].rare || 0];
 // 시작 덱은 영웅마다 다르다: 이끄는 영웅의 병법(HERO_TRAIT)에 맞춘 병력과 전술 패. 전술 패는 쓰면 사라진다
 const START = {
-  commander: { units: ['sword', 'shield', 'xbow', 'sword', 'xbow', 'spear'], cards: ['sling', 'sling', 'rain', 'heal', 'horn', 'cry', 'strike', 'order'] },
-  blade: { units: ['sword', 'xbow', 'shield', 'xbow'], cards: ['sling', 'sling', 'rain', 'heal', 'scout', 'flash', 'flash', 'veil', 'veil'] },
-  hunter: { units: ['shield', 'xbow', 'shield', 'xbow', 'spear'], cards: ['sling', 'sling', 'rain', 'rain', 'heal', 'scout', 'mark', 'mark', 'snare'] },
-  bishop: { units: ['sword', 'shield', 'xbow', 'spear', 'priest'], cards: ['sling', 'sling', 'rain', 'heal', 'heal', 'wall', 'horn', 'sanctuary', 'sutra'] },
-  archmage: { units: ['shield', 'xbow', 'shield', 'xbow'], cards: ['sling', 'sling', 'rain', 'rain', 'thunder', 'caltrop', 'heal', 'meteor', 'blink'] },
-  sangsoe: { units: ['sword', 'shield', 'xbow', 'xbow', 'spear'], cards: ['sling', 'sling', 'rain', 'heal', 'horn', 'horn', 'cry', 'pangut', 'deong'] },
-  chief: { units: ['sword', 'shield', 'xbow', 'sword', 'xbow'], cards: ['sling', 'sling', 'sling', 'rain', 'heal', 'decoy', 'bulwark', 'raid'] },
+  commander: { units: ['sword', 'shield', 'xbow', 'sword', 'xbow', 'spear'], cards: ['sling', 'rain', 'heal', 'horn', 'strike', 'order'] },
+  blade: { units: ['sword', 'xbow', 'shield', 'xbow'], cards: ['sling', 'rain', 'heal', 'flash', 'flash', 'veil'] },
+  hunter: { units: ['shield', 'xbow', 'shield', 'xbow', 'spear'], cards: ['sling', 'rain', 'heal', 'mark', 'mark', 'snare'] },
+  bishop: { units: ['sword', 'shield', 'xbow', 'spear', 'priest'], cards: ['sling', 'rain', 'heal', 'wall', 'sanctuary', 'sutra'] },
+  archmage: { units: ['shield', 'xbow', 'shield', 'xbow'], cards: ['sling', 'rain', 'rain', 'thunder', 'thunder', 'caltrop', 'meteor', 'blink'] },
+  sangsoe: { units: ['sword', 'shield', 'xbow', 'xbow', 'spear'], cards: ['sling', 'rain', 'heal', 'horn', 'pangut', 'deong'] },
+  chief: { units: ['sword', 'shield', 'xbow', 'sword', 'xbow'], cards: ['sling', 'sling', 'heal', 'decoy', 'bulwark', 'raid'] },
 };
 export function starterDeck(hero) {
   const st = START[hero] || START.commander, ids = ['h_' + hero].concat(st.units.map(u => 'u_' + u), st.cards);

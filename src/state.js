@@ -67,11 +67,27 @@ export function noteDeed(kind, n = 1) {
   const fresh = BEASTS.filter(b => !has(b.id) && deedCount(b) >= b.need); for (const b of fresh) meta.unlocked[b.id] = true;
   if (kind || fresh.length) save(); return fresh;
 }
-export const HARD_DESC = ['', '요괴 체력 +8%', '요괴 체력 +16%, 수 +5%', '요괴 체력 +24%, 수 +10%', '요괴 체력 +32%, 수 +15%', '요괴 체력 +40%, 수 +20%'];
+// 험로: 세 고개를 평정할 때마다 한 단계씩 열리는 더 험한 길. 단계마다 규칙이 하나씩 붙고, 아래 단계의 규칙도 모두 따라온다
+export const HARD = [
+  null,
+  { name: '거센 요괴', desc: '요괴 체력 +12%' },
+  { name: '사나운 강적', desc: '강적이 더 큰 무리를 이끈다' },
+  { name: '빈 주머니', desc: '전술 패 주머니 한도 -2' },
+  { name: '독한 두목', desc: '두목 체력 +20%' },
+  { name: '주린 길', desc: '엽전 수입 -20%' },
+  { name: '날랜 발', desc: '요괴 이동 속도 +12%' },
+  { name: '낡은 수레', desc: '군기 수레 체력 -20%' },
+  { name: '매운 손', desc: '요괴 공격력 +12%' },
+  { name: '성난 본대', desc: '본대가 15초 일찍 따라붙는다' },
+  { name: '외줄 깃발', desc: '깃발 둘로 출발한다' },
+];
+export const HARD_MAX = HARD.length - 1;
+const BOSS_HP = 1.1;   // 두목의 기본 체력 배율 (밸런스는 tools/campaign.mjs 로 맞춘다)
+export const hardOf = lv => ({ hp: lv >= 1 ? 1.12 : 1, elite: lv >= 2 ? 1.2 : 1, pouch: lv >= 3 ? -2 : 0, boss: lv >= 4 ? 1.2 : 1, gold: lv >= 5 ? 0.8 : 1, spd: lv >= 6 ? 1.12 : 1, cart: lv >= 7 ? 0.8 : 1, atk: lv >= 8 ? 1.12 : 1, chase: lv >= 9 ? -15 : 0, flags: lv >= 10 ? 2 : 3 });
 
 // ───────── 원정 시작 ─────────
 export function newRun(hero) {
-  const r = G.run = { hero, ch: 0, flags: 3, gold: has('p_gold') ? 60 : 0, deck: [], nextId: 1, items: [], relics: [], cap: 5 + (has('p_cap') ? 1 : 0) + (hero === 'commander' ? 1 : hero === 'blade' || hero === 'archmage' ? -1 : 0), wins: 0, merit: 0, kills: 0, lost: 0, bosses: 0, hard: Math.min(meta.hard || 0, meta.hardMax || 0), road: null, pending: null, evSeen: [], burns: 0, nextMorale: 0, seen: {}, mastery: {} };
+  const r = G.run = { hero, ch: 0, flags: hardOf(Math.min(meta.hard || 0, meta.hardMax || 0)).flags, gold: has('p_gold') ? 60 : 0, deck: [], nextId: 1, items: [], relics: [], cap: 5 + (has('p_cap') ? 1 : 0) + (hero === 'commander' ? 1 : hero === 'blade' || hero === 'archmage' ? -1 : 0), wins: 0, merit: 0, kills: 0, lost: 0, bosses: 0, hard: Math.min(meta.hard || 0, meta.hardMax || 0), road: null, pending: null, evSeen: [], burns: 0, nextMorale: 0, seen: {}, mastery: {} };
   for (const c of starterDeck(hero)) r.deck.push(Object.assign({ uid: r.nextId++ }, c));
   if (has('p_relic')) { const id = pick(relicPool()); if (id) r.relics.push(id); }
   r.road = genRoad(0); meta.runs++;
@@ -82,10 +98,10 @@ export const unitCards = () => G.run.deck.filter(isUnit);
 export const ownedTypes = () => [...new Set(unitCards().filter(c => CARDS[c.id].kind === 'unit').map(c => CARDS[c.id].unit))];
 // 이끄는 영웅의 병법이 원정의 규칙을 바꾼다 (설명은 data/units.js 의 HERO_TRAIT)
 const TRAIT = {
-  commander: m => { m.rally = 1; }, blade: m => { m.heroLoot = 1; m.heroAtk *= 1.3; m.heroHp *= 1.3; }, hunter: m => { m.lootEvery = 2; }, bishop: m => { m.keepSupport = 1; },
-  archmage: m => { m.cardPow *= 1.3; m.pouch += 4; m.startCard = 1; m.tacDisc = 1; }, sangsoe: m => { m.scavAny = 1; }, chief: m => { m.killGold = 5; m.shopCard = 0.5; },
+  commander: m => { m.rally = 1; }, blade: m => { m.heroLoot = 1; m.heroAtk *= 1.4; m.heroHp *= 1.4; }, hunter: m => { m.lootEvery = 3; }, bishop: m => { m.keepSupport = 1; },
+  archmage: m => { m.cardPow *= 1.3; m.pouch += 3; m.startCard = 1; m.tacDisc = 1; }, sangsoe: m => { m.scavAny = 1; }, chief: m => { m.killGold = 5; m.shopCard = 0.5; },
 };
-export function mods() { const r = G.run, m = Object.assign({}, DEFAULT_MODS); m.unit = {}; for (const id of r.relics) RELICS[id].mod(m); if (TRAIT[r.hero]) TRAIT[r.hero](m); return m; }
+export function mods() { const r = G.run, m = Object.assign({}, DEFAULT_MODS), h = hardOf(r.hard || 0); m.unit = {}; for (const id of r.relics) RELICS[id].mod(m); if (TRAIT[r.hero]) TRAIT[r.hero](m); m.pouch = Math.max(4, m.pouch + h.pouch); m.cartHp = h.cart; return m; }
 // ───────── 패의 살림: 전술 패는 쓰면 사라지고, 길 위에서 새로 얻는다 ─────────
 export const tacticCards = () => G.run.deck.filter(c => !isUnit(c) && CARDS[c.id].kind !== 'curse');
 export const pouchCap = () => mods().pouch;
@@ -116,15 +132,15 @@ export const STOP = {
 const FORK_DESC = { battle: '요괴 무리가 지키는 길', elite: '강적이 버티는 험한 길 — 보물을 지키고 있다', event: '무언가 기다리는 샛길', shop: '장이 서는 길', treasure: '옛 보물이 묻혔다는 길' };
 export function genRoad(ch) {
   const side = () => pick(['event', 'event', 'shop', 'treasure']), two = () => { const a = side(); let b = side(); for (let g = 0; b === a && g < 9; g++) b = pick(['event', 'shop', 'battle']); return [a, b]; };
-  const [a, b] = two(), safe = pick(['event', 'shop', 'treasure']);
-  const stops = [{ type: 'battle' }, { type: 'fork', a: { type: a }, b: { type: b } }, { type: 'battle' }, { type: 'fork', a: { type: 'elite' }, b: { type: safe } }, { type: 'battle' }, { type: 'rest' }, { type: 'boss' }];
+  const [a, b] = two(), [c, d] = two(), safe = pick(['event', 'shop', 'treasure']);
+  const stops = [{ type: 'battle' }, { type: 'fork', a: { type: a }, b: { type: b } }, { type: 'battle' }, { type: 'fork', a: { type: 'elite' }, b: { type: safe } }, { type: 'battle' }, { type: 'fork', a: { type: c }, b: { type: d } }, { type: 'battle' }, { type: 'rest' }, { type: 'boss' }];
   return { ch, stops, i: 0, state: 'march' };
 }
 export const forkDesc = t => FORK_DESC[t] || '';
 export const curStop = () => { const rd = G.run.road; return rd.stops[rd.i]; };
 // 싸움 칸에 닿았을 때 편성을 정한다 (다시 불러와도 같은 편성)
 export function encounterHere() {
-  const r = G.run, st = curStop(); if (!st.enc) { st.enc = genEncounter(r.ch, Math.min(4, r.road.i), st.type, rnd, r.hard); save(); }
+  const r = G.run, st = curStop(); if (!st.enc) { st.enc = genEncounter(r.ch, Math.min(5, r.road.i), st.type, rnd, hardOf(r.hard || 0).elite); save(); }
   return st.enc;
 }
 export function chooseFork(which) { const rd = G.run.road, st = rd.stops[rd.i]; if (st.type !== 'fork') return; rd.stops[rd.i] = which === 'a' ? st.a : st.b; save(); }
@@ -152,8 +168,12 @@ export function startDeploy() {
   return out;
 }
 export function battleSetup(seed) { const r = G.run; return { mods: mods(), seed: seed || ((rnd() * 1e9) | 0), power: powerNow(), deck: r.deck, cap: r.cap, start: startDeploy(), morale: r.nextMorale || 0, loot: lootTable(), mastery: r.mastery || {}, lead: r.hero }; }
-export function waveSetup(enc) { const r = G.run, foe = Object.assign({}, enc.foe || {}); foe.hp = (foe.hp || 1) * (1 + 0.08 * r.hard); return { foe, lvl: enc.lvl, terrain: enc.terrain, sky: enc.sky, chase: enc.chase }; }
-export function goldFor(grade, kind) { const m = mods(); return Math.round((26 + grade * 8 + (kind === 'boss' ? 40 : kind === 'elite' ? 18 : 0)) * m.gold * (1 - 0.05 * G.run.hard) + m.goldFlat); }
+export function waveSetup(enc) {
+  const r = G.run, h = hardOf(r.hard || 0), foe = Object.assign({}, enc.foe || {});
+  foe.hp = (foe.hp || 1) * h.hp * (enc.boss ? h.boss * BOSS_HP : 1); foe.spd = (foe.spd || 1) * h.spd; foe.atk = (foe.atk || 1) * h.atk;
+  return { foe, lvl: enc.lvl, terrain: enc.terrain, sky: enc.sky, chase: enc.chase && h.chase ? Object.assign({}, enc.chase, { at: Math.max(20, enc.chase.at + h.chase) }) : enc.chase };
+}
+export function goldFor(grade, kind) { const m = mods(); return Math.round((26 + grade * 8 + (kind === 'boss' ? 40 : kind === 'elite' ? 18 : 0)) * m.gold * hardOf(G.run.hard || 0).gold + m.goldFlat); }
 
 // ───────── 패 다루기 ─────────
 export function addCard(id, o = {}) { const r = G.run, c = { uid: r.nextId++, id, up: !!o.up || mastered(id), lv: o.lv || 1 }; r.deck.push(c); save(); return c; }
@@ -189,7 +209,7 @@ export function describeReward(o) {
   if (o.kind === 'card') { const d = CARDS[o.id], u = isUnit(o); return { title: u ? (d.kind === 'lead' ? '영웅 합류' : '의병 모집') : '전술 패', n: o.n || 1, name: cardName(o) + (o.n > 1 ? ` ×${o.n}` : ''), desc: u ? `${d.name} 패를 덱에 넣습니다. ${UNITS[d.unit].tip}` : d.desc(Object.assign({}, d.v, o.up ? d.up : {})), col: u ? 'blue' : 'purple', card: o }; }
   if (o.kind === 'train') { const c = cardOf(o.uid) || { id: o.id, lv: 1 }, d = CARDS[c.id], l = c.lv || 1; return { title: '조련', name: `${d.name} ${l}단 → ${l + 1}단`, desc: `이 패의 부대 체력과 ${UNITS[d.unit].heal ? '치유량' : '공격력'} +20%`, col: 'green', card: Object.assign({}, c, { lv: l + 1 }) }; }
   if (o.kind === 'upgrade') { const d = CARDS[o.id]; return { title: '전술 익히기', name: `${d.name} → ${d.name}+`, desc: `가진 것과 앞으로 얻는 [${d.name}] 이 모두 강화판이 됩니다.\n` + d.desc(Object.assign({}, d.v, d.up)), col: 'green', card: { id: o.id, up: true } }; }
-  if (o.kind === 'supply') return { title: '보급', name: '기본 패 꾸러미', desc: [...new Set(o.ids)].map(id => CARDS[id].name + (o.ids.filter(q => q === id).length > 1 ? ' ×' + o.ids.filter(q => q === id).length : '')).join(' · ') + '\n흔하지만 쓸모 있는 패 넉 장', col: 'green', misc: 'supply', ids: o.ids };
+  if (o.kind === 'supply') return { title: '보급', name: '기본 패 꾸러미', desc: [...new Set(o.ids)].map(id => CARDS[id].name + (o.ids.filter(q => q === id).length > 1 ? ' ×' + o.ids.filter(q => q === id).length : '')).join(' · ') + '\n흔하지만 쓸모 있는 패 석 장', col: 'green', misc: 'supply', ids: o.ids };
   if (o.kind === 'relic') { const x = RELICS[o.id]; return { title: '보물', name: x.name, desc: x.desc, col: 'gold', relic: o.id }; }
   if (o.kind === 'weapon') { const w = WEAPONS[o.id]; return { title: '무기', name: w.name, desc: `${w.desc}\n${CLS_NAME[w.cls]} — ${(u => u.length > 3 ? u.slice(0, 3).join('·') + ' 외 ' + (u.length - 3) : u.join('·'))(usersOf(o.id))}`, col: 'blue', weapon: o.id }; }
   if (o.kind === 'cleanse') return { title: '부정 씻기', name: RELICS[o.id].name, desc: `부정 [${RELICS[o.id].name}] 을 씻어냅니다. (${RELICS[o.id].desc})`, col: 'gold', relic: o.id };
@@ -202,7 +222,7 @@ function makeReward(kind, keys) {
   if (kind === 'unit') { const fresh = types.filter(t => !owned.includes(t)); const t = fresh.length && rnd() < 0.6 ? pick(fresh) : pick(types); return { kind: 'card', id: 'u_' + t, lv: 1, key: 'cd' + 'u_' + t }; }
   if (kind === 'lead') { const hs = HEROES.filter(h => !r.deck.some(c => c.id === 'h_' + h)); if (!hs.length) return null; const h = pick(hs); return { kind: 'card', id: 'h_' + h, lv: 1, key: 'cd' + 'h_' + h }; }
   if (kind === 'tactic') { const o = rollCards(keys.kind || 'battle', 1, keys)[0]; return o ? { kind: 'card', id: o.id, up: o.up, n: packN(o.id), key: 'cd' + o.id } : null; }
-  if (kind === 'supply') return { kind: 'supply', ids: ['sling', 'sling', 'rain', pick(['heal', 'heal', 'horn', 'scout'])], key: 'supply' };
+  if (kind === 'supply') return { kind: 'supply', ids: ['sling', 'rain', pick(['heal', 'heal', 'horn', 'scout'])], key: 'supply' };
   if (kind === 'train') { const c = unitCards().filter(c => (c.lv || 1) < MAX_LV && !keys.has('tr' + c.uid)); if (!c.length) return null; const x = pick(c); return { kind, uid: x.uid, id: x.id, key: 'tr' + x.uid }; }
   if (kind === 'upgrade') { const c = r.deck.filter(c => !isUnit(c) && canUp(c) && !keys.has('up' + c.id)); if (!c.length) return null; const x = pick(c); return { kind, id: x.id, key: 'up' + x.id }; }
   if (kind === 'relic') { const pool = relicPool().filter(id => !keys.has('rl' + id)); if (!pool.length) return null; const id = pick(pool); return { kind, id, key: 'rl' + id }; }
@@ -244,7 +264,7 @@ export function openReward(kind) { const r = G.run; if (!r.pending || r.pending.
 export function genShop() {
   const r = G.run, items = [], keys = new Set(); keys.kind = 'shop';
   const add = (kind, price) => { for (let g = 0; g < 20; g++) { const o = makeReward(kind, keys); if (o && !keys.has(o.key)) { keys.add(o.key); items.push(Object.assign(o, { price, sold: false })); return; } } };
-  add('unit', 0); add('tactic', 0); add('tactic', 0); add('tactic', 0); add('supply', 34); add('relic', 90 + r.ch * 10); add('weapon', 56 + r.ch * 6);
+  add('unit', 0); add('tactic', 0); add('tactic', 0); add('tactic', 0); add('supply', 30); add('relic', 90 + r.ch * 10); add('weapon', 56 + r.ch * 6);
   const curse = r.relics.find(id => RELICS[id].curse);
   if (curse) items.push({ kind: 'cleanse', id: curse, key: 'cl', price: 45, sold: false }); else items.push({ kind: 'trainPick', key: 'tp', price: 56 + r.ch * 8, sold: false });
   const k = mods().shopCard;
@@ -280,8 +300,9 @@ export const act = {
 // ───────── 원정 끝: 공적 정산 ─────────
 export function settleRun(win) {
   const r = G.run; if (!r || r.settled) return r ? r.gain || 0 : 0;
-  const gain = Math.round((r.merit + r.bosses * 6 + (win ? 15 : 0)) * (1 + 0.25 * r.hard));
+  const gain = Math.round((r.merit + r.bosses * 6 + (win ? 15 : 0)) * (1 + 0.2 * r.hard));
   meta.merit += gain; r.settled = true; r.gain = gain;
-  if (win) { meta.clears++; meta.hardMax = Math.min(5, Math.max(meta.hardMax || 0, r.hard + 1)); }
+  // 평정하면 다음 험로가 열리고, 그 영웅이 넘은 가장 험한 길이 기록된다
+  if (win) { meta.clears++; const was = meta.hardMax || 0; meta.hardMax = Math.min(HARD_MAX, Math.max(was, r.hard + 1)); r.newHard = meta.hardMax > was ? meta.hardMax : 0; if (!meta.heroBest) meta.heroBest = {}; meta.heroBest[r.hero] = Math.max(meta.heroBest[r.hero] === undefined ? -1 : meta.heroBest[r.hero], r.hard); }
   save(); return gain;
 }

@@ -23,7 +23,7 @@ export function debugBoot(q) {
   if (q.get('state')) r.road.state = q.get('state');
   if (q.get('merit')) meta.merit = Number(q.get('merit'));
   save();
-  nav.now(scene, scene === 'end' ? { win: q.get('win') === '1' } : undefined);
+  nav.now(scene, scene === 'end' ? { win: q.get('win') === '1' } : scene === 'prologue' ? { hero: q.get('hero') || 'commander' } : undefined);
   if (q.get('speed')) setTimeout(() => { if (nav.cur) nav.cur.speed = Number(q.get('speed')); }, 200);
   window.__game.G = G; window.__game.UNITS = UNITS; window.__game.save = save;
 }
