@@ -485,6 +485,7 @@
       T.cursor('pointer');
       const ci = overChapter(x, y);
       S.title.hover = ci;
+      if (Math.abs(x) < 210 && Math.abs(y - 80) < 34) { if (type === 'down') T.restyle(P.look === 'crayon' ? 'plain' : 'crayon'); return; }
       if (type === 'down' && ci >= 0) S.skipToChapter(ci);
       else if (type === 'up' || type === 'down') S.begin();
     } else if (S.mode === 'hub') {
@@ -504,7 +505,7 @@
   };
   S.key = function (key) {
     const act = key === ' ' || key === 'Enter';
-    if (S.mode === 'title') { if (act) S.begin(); else if (key >= '1' && key <= '7') S.skipToChapter(+key - 1); else return false; }
+    if (S.mode === 'title') { if (act) S.begin(); else if (key >= '1' && key <= '7') S.skipToChapter(+key - 1); else if (key === 'g' || key === 'G') T.restyle(P.look === 'crayon' ? 'plain' : 'crayon'); else return false; }
     else if (S.mode === 'hub') {
       const open = openSpots();
       if (!open.length) return false;
@@ -907,6 +908,8 @@
       const p = 0.55 + 0.45 * Math.sin(T.time * 2.2);
       P.text(g, '화면을 눌러 시작', 0, 742, { font: 'serif', size: 26, color: '#f3ead8', alpha: p * ta });
       P.text(g, '소리를 켜면 더 좋아요', 0, 782, { font: 'serif', size: 19, color: '#c9cfdb', alpha: 0.7 * ta });
+      /* a trial: Welcome Harbor drawn in crayon */
+      P.text(g, P.look === 'crayon' ? '그림체 시안: 크레용 (눌러서 끄기)' : '그림체 시안: 꺼짐 (눌러서 크레용으로)', 0, 86, { font: 'serif', size: 19, color: '#e9dcc0', alpha: 0.7 * ta });
       /* a quiet way straight to any chapter */
       P.text(g, '장 바로 가기', 0, 814, { font: 'serif', size: 15, track: 6, color: '#c9cfdb', alpha: 0.55 * ta });
       CHAPTERS.forEach((c, i) => {

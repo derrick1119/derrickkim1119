@@ -7,6 +7,7 @@
   function jump(name) {
     const st = T.state;
     const mark = (n) => { ['drawing', 'book', 'leash', 'photo'].slice(0, n).forEach((id) => { st.done[id] = true; }); st.count = n; };
+    if (name === 'crayon') { T.P.look = 'crayon'; return null; }
     if (name === 'hub') return ['room', {}];
     if (name === 'night') { mark(2); return ['room', {}]; }
     if (name === 'dawn') { mark(4); return ['room', {}]; }

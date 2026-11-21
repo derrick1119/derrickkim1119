@@ -214,4 +214,6 @@
     });
     g.restore();
   };
+  const build0 = PL.build;
+  PL.build = function () { const was = P.cray; P.cray = P.look === 'crayon'; try { build0(); } finally { P.cray = was; } };
 })();

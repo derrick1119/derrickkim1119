@@ -597,6 +597,15 @@
     return [c.x * d - W / 2 / zd - 60, c.x * d + W / 2 / zd + 60, 450 + (c.y - 450) * d - 450 / zd - 60, 450 + (c.y - 450) * d + 450 / zd + 60];
   }
   function bankFill(g, list, ox, bob, top, bot, y0, xa, xb) {
+    if (P.cray) {   /* cloud banks: the white of the paper, shaded with the flat of a pink crayon */
+      const path = K.bankPath(list, ox, bob, xa, xb, 1600);
+      /* the line first, then the colour over its inner half: only the outline of the whole bank is left */
+      g.save(); g.globalAlpha = 0.55; g.strokeStyle = '#c79aae'; g.lineWidth = 5; g.lineJoin = 'round'; g.stroke(path); g.restore();
+      P.noEdge = true; g.fillStyle = top; g.fill(path); P.noEdge = false;
+      g.save(); g.clip(path); g.globalAlpha = 0.5; g.fillStyle = P.crayonPat(bot).pat; g.fillRect(xa - 60, y0 + 40, xb - xa + 120, 1700);
+      g.restore();
+      return;
+    }
     const gr = g.createLinearGradient(0, y0 - 150, 0, y0 + 220);
     gr.addColorStop(0, top); gr.addColorStop(1, bot);
     g.fillStyle = gr; g.fill(K.bankPath(list, ox, bob, xa, xb, 1600));
@@ -641,6 +650,18 @@
   }
   function hill(g, fn, xa, xb, color, shade, y0, from) {
     hillPath(g, fn, xa, xb, from);
+    if (P.cray) {   /* one crayon, pressed harder lower down, and a drawn line along the ridge */
+      g.fillStyle = color; g.fill();
+      g.save(); g.clip();
+      const sh = g.createLinearGradient(0, y0 + 60, 0, y0 + 620); sh.addColorStop(0, T.rgba(shade, 0)); sh.addColorStop(1, T.rgba(shade, 0.6));
+      g.fillStyle = sh; g.fillRect(xa - 40, y0, xb - xa + 80, 1700); g.restore();
+      g.strokeStyle = P.crayonPat(shade).edge; g.lineWidth = 3; g.lineCap = 'round'; g.globalAlpha = 0.6;
+      g.beginPath();
+      const a0 = from == null ? xa : Math.max(xa, from);
+      for (let x = a0; x <= xb; x += 18) { const y = fn(x) + 1 + T.noise(x * 0.05, 3) * 1.6; if (x === a0) g.moveTo(x, y); else g.lineTo(x, y); }
+      g.stroke(); g.globalAlpha = 1;
+      return;
+    }
     const gr = g.createLinearGradient(0, y0, 0, y0 + 560);
     gr.addColorStop(0, color); gr.addColorStop(1, shade);
     g.fillStyle = gr; g.fill();
@@ -992,6 +1013,14 @@
     const a = Math.floor(xa / 58) * 58;
     for (let x = a; x <= xb + 58; x += 58) { const y = surf(x) + 20, rr = 44 + T.noise(x * 0.01, 3) * 8; p.moveTo(x + rr, y); p.arc(x, y, rr, 0, TAU); }
     p.rect(xa - 20, SEA + 30, xb - xa + 40, 1700);
+    if (P.cray) {   /* chalk-white cloud, each puff with its own drawn curl */
+      P.noEdge = true; g.fillStyle = '#fff8ee'; g.fill(p); P.noEdge = false;
+      g.save(); g.globalAlpha = 0.4; g.fillStyle = P.crayonPat('#e6b0c0').pat; g.fillRect(xa - 20, SEA + 70, xb - xa + 40, 900); g.restore();
+      g.strokeStyle = '#c79aae'; g.lineWidth = 2.2; g.lineCap = 'round'; g.globalAlpha = 0.55;
+      for (let x = a; x <= xb + 58; x += 58) { const y = surf(x) + 20, rr = 44 + T.noise(x * 0.01, 3) * 8; g.beginPath(); g.arc(x, y, rr, Math.PI * 1.12, Math.PI * 1.88); g.stroke(); }
+      g.globalAlpha = 1;
+      return;
+    }
     const gr = g.createLinearGradient(0, SEA - 190, 0, SEA + 260);
     gr.addColorStop(0, '#fffaf0'); gr.addColorStop(0.5, '#fbe9da'); gr.addColorStop(1, '#e0aebb');
     g.fillStyle = gr; g.fill(p);
@@ -1039,7 +1068,16 @@
   S.draw = function (g) {
     const V = T.view, W = V.W, t = T.time;
     const who = S.hook ? S.hook.people : people;
+    P.cray = P.look === 'crayon';
+    if (P.cray) P.crayonize(g);
     backdrop(g);
+    if (P.cray) {   /* the sky is the paper, coloured in with the side of the crayon */
+      g.save();
+      g.globalCompositeOperation = 'multiply'; g.fillStyle = P.paper(); g.fillRect(-W / 2, 0, W, 900);
+      g.globalCompositeOperation = 'source-over'; g.globalAlpha = 0.2; g.fillStyle = P.crayonPat('#fff8e8').pat;
+      g.scale(4.2, 1.5); g.fillRect(-W / 8.4, 0, W / 4.2, 600);
+      g.restore();
+    }
     /* cloud between here and the horizon */
     let r = layer(g, 0.55);
     bankFill(g, S.banks.mid, -((t * 6) % 118), Math.sin(t * 0.36 + 1) * 4, '#fff8ea', '#e6b6bc', 676, r[0], r[1]);
@@ -1091,6 +1129,10 @@
     g.fillStyle = warm; g.fillRect(-W / 2, 0, W, 900);
     g.restore();
 
+    if (P.cray) {   /* everything sits on the same sheet */
+      P.cray = false;
+      g.save(); g.globalCompositeOperation = 'multiply'; g.globalAlpha = 0.55; g.fillStyle = P.paper(); g.fillRect(-W / 2, 0, W, 900); g.restore();
+    }
     if (S.hook) { if (S.hook.screen) S.hook.screen(g); } else overlay(g);
   };
 
@@ -1120,6 +1162,10 @@
   /* ---------- the town on loan ----------
      Later chapters play on this same hill. They borrow the world with their own cast and camera;
      nothing of chapter 1's own business (boat, embrace, the walk) is drawn while a hook is set. */
+  /* layers baked for the world are baked in whichever look is chosen */
+  const build0 = S.build;
+  S.build = function () { P.cray = P.look === 'crayon'; try { build0(); } finally { P.cray = false; } };
+
   T.world = {
     S, K1, K2, K3,
     C: { SEA, PIER_Y, QUAY, J1, J2, HOUSE, DOOR, STOP, PLOT, LEO_S, NANA_S, SEA_LAMP },

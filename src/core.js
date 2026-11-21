@@ -110,6 +110,7 @@
     c.width = Math.max(1, Math.ceil(w * ps));
     c.height = Math.max(1, Math.ceil(h * ps));
     const g = c.getContext('2d');
+    if (T.P && T.P.cray) T.P.crayonize(g);
     g.scale(ps, ps);
     g.translate(-x0, -y0);
     fn(g);
@@ -339,7 +340,10 @@
     }
     requestAnimationFrame(frame);
   }
+  /* change the look and paint every baked layer again */
+  T.restyle = function (look) { T.P.look = look; T.gen++; const s = D.cur; if (s && s.build) s.build(); };
   T.step = function (dt) {
+    T.P.cray = false;
     T.time += dt;
     updateCam(dt);
     D.update(dt);

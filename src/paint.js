@@ -309,6 +309,85 @@
   P.grainAmt = 0.16;
   P.vignette = 0.5;
   P.vignetteColor = '#0e1420';
+  /* ---------- a trial look for Welcome Harbor: wax crayon on warm paper ---------- */
+  /* P.look says which look is chosen; P.cray is true only while the harbour's world is being painted.
+     A context that has been "crayonized" then lays every flat fill down as crayon: streaky, the layer
+     beneath showing through the tooth of the paper, with a soft drawn line round each shape. */
+  P.look = 'plain';
+  P.cray = false;
+  let toothTile = null, paperPat = null, helper = null;
+  const pats = new Map();
+  const N = 128;
+  const hctx = () => helper || (helper = document.createElement('canvas').getContext('2d'));
+  function tooth() {
+    if (toothTile) return toothTile;
+    const c = document.createElement('canvas'); c.width = c.height = N;
+    const g = c.getContext('2d'), r = T.rng(77);
+    g.lineCap = 'round';
+    for (let i = 0; i < 150; i++) {
+      const x = r() * N, y = r() * N, a = -0.62 + (r() - 0.5) * 0.5, len = 10 + r() * 46, w = 0.6 + r() * 1.7;
+      g.strokeStyle = 'rgba(0,0,0,' + (0.16 + r() * 0.5) + ')'; g.lineWidth = w;
+      for (let ox = -N; ox <= N; ox += N) for (let oy = -N; oy <= N; oy += N) { g.beginPath(); g.moveTo(x + ox, y + oy); g.lineTo(x + ox + Math.cos(a) * len, y + oy + Math.sin(a) * len); g.stroke(); }
+    }
+    for (let i = 0; i < 260; i++) { g.fillStyle = 'rgba(0,0,0,' + (0.2 + r() * 0.5) + ')'; g.fillRect(r() * N, r() * N, 1 + r() * 1.4, 1 + r() * 1.4); }
+    return (toothTile = c);
+  }
+  /* '#rrggbb' or 'rgb(a)(…)' -> { pat, a, edge }, or null for anything else */
+  P.crayonPat = function (color) {
+    let R, G, B, A = 1, m;
+    if (color[0] === '#' && color.length === 7) { const v = parseInt(color.slice(1), 16); R = v >> 16; G = (v >> 8) & 255; B = v & 255; }
+    else if ((m = /^rgba?\(([^)]+)\)/.exec(color))) { const q = m[1].split(',').map(Number); R = q[0]; G = q[1]; B = q[2]; A = q[3] == null ? 1 : q[3]; }
+    else return null;
+    R &= 248; G &= 248; B &= 248;   /* near colours share a stick of crayon */
+    const key = (R << 16) | (G << 8) | B;
+    let p = pats.get(key);
+    if (!p) {
+      if (pats.size > 320) pats.clear();
+      const c = document.createElement('canvas'); c.width = c.height = N;
+      const g = c.getContext('2d');
+      g.fillStyle = 'rgb(' + R + ',' + G + ',' + B + ')'; g.fillRect(0, 0, N, N);
+      g.globalCompositeOperation = 'destination-out';
+      const v = (R * 7 + G * 3 + B) >> 3 & 3;   /* each crayon is held at its own angle */
+      g.translate(N / 2, N / 2); if (v & 1) g.scale(-1, 1); if (v & 2) g.rotate(Math.PI / 2); g.translate(-N / 2, -N / 2);
+      g.drawImage(tooth(), 0, 0);
+      /* under: the same colour rubbed thin, so a shape stays solid where the crayon skipped */
+      p = { pat: hctx().createPattern(c, 'repeat'), edge: 'rgb(' + Math.round(R * 0.66) + ',' + Math.round(G * 0.62) + ',' + Math.round(B * 0.68) + ')', under: 'rgb(' + Math.round(R * 0.58 + 104) + ',' + Math.round(G * 0.58 + 100) + ',' + Math.round(B * 0.58 + 92) + ')' };
+      pats.set(key, p);
+    }
+    return { pat: p.pat, edge: p.edge, under: p.under, a: A };
+  };
+  P.paper = function () {
+    if (paperPat) return paperPat;
+    const c = document.createElement('canvas'); c.width = c.height = N;
+    const g = c.getContext('2d'), r = T.rng(31);
+    g.fillStyle = '#f7eddb'; g.fillRect(0, 0, N, N);
+    for (let i = 0; i < 900; i++) { g.fillStyle = r() < 0.5 ? 'rgba(120,96,70,' + (0.03 + r() * 0.07) + ')' : 'rgba(255,255,255,' + (0.1 + r() * 0.3) + ')'; g.fillRect(r() * N, r() * N, 1 + r() * 2, 1 + r() * 2); }
+    g.strokeStyle = 'rgba(150,120,90,0.1)'; g.lineWidth = 0.7;
+    for (let i = 0; i < 26; i++) { const x = r() * N, y = r() * N, a = r() * 6.3; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * 14, y + Math.sin(a) * 14); g.stroke(); }
+    return (paperPat = hctx().createPattern(c, 'repeat'));
+  };
+  P.crayonize = function (g) {
+    if (g._cray) return;
+    g._cray = true;
+    const fill = g.fill, stroke = g.stroke;
+    g.fill = function (a) {
+      const fs = this.fillStyle;
+      const q = P.cray && typeof fs === 'string' ? P.crayonPat(fs) : null;
+      if (!q) return fill.apply(this, arguments);
+      const ga = this.globalAlpha;
+      this.globalAlpha = ga * q.a;
+      this.fillStyle = q.under; fill.apply(this, arguments);
+      this.fillStyle = q.pat; fill.apply(this, arguments);
+      if (!P.noEdge) {
+        const ss = this.strokeStyle, lw = this.lineWidth, lj = this.lineJoin;
+        this.strokeStyle = q.edge; this.lineWidth = 1.5; this.lineJoin = 'round'; this.globalAlpha = ga * q.a * 0.5;
+        if (a && typeof a === 'object') stroke.call(this, a); else stroke.call(this);
+        this.strokeStyle = ss; this.lineWidth = lw; this.lineJoin = lj;
+      }
+      this.globalAlpha = ga; this.fillStyle = fs;
+    };
+  };
+
   P.finish = function (g) {
     const V = T.view;
     if (P.vignette > 0.01) {
