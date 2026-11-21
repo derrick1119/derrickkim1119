@@ -2330,11 +2330,14 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   items.sort((a, b) => a.y - b.y);
   for (const it of items) it.draw();
   if (s.phase === 'play') drawNinja();
-  for (const [col, edge] of warns) {
-    ctx.fillStyle = col;
-    ctx.beginPath();
-    for (let e = 0; e < edge.length; e += 2) ctx.rect(edge[e] * PX, edge[e + 1] * PX, PX, PX);
-    ctx.fill();
+  { // 👁 r6: 주인공 하반신을 가로지른 빨간 칸이 '피 흘림'으로 읽혔다 → 주인공 몸 상자 안의 칸은 뺌
+    const kN = R(NIN_H) * depth(s.ny), bx0 = (X(s.nx) - kN * 0.45) / PX, bx1 = (X(s.nx) + kN * 0.45) / PX, by0 = (Y(s.ny) - kN) / PX, by1 = (Y(s.ny) + PX) / PX;
+    for (const [col, edge] of warns) {
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      for (let e = 0; e < edge.length; e += 2) if (!(edge[e] >= bx0 && edge[e] <= bx1 && edge[e + 1] >= by0 && edge[e + 1] <= by1)) ctx.rect(edge[e] * PX, edge[e + 1] * PX, PX, PX);
+      ctx.fill();
+    }
   }
   // ── M3 F3 일섬(셋 이상 한 획): 0.07초 어둠(만화의 임팩트 컷) 뒤 화면 끝에서 끝까지 가르는 칼빛 ──
   const big = !!s.trail && s.trail.n >= ISSEN.n && since < ISSEN.streak, peak = big && (s.trail!.n >= ISSEN.top || !!s.trail!.sw); // 정점(넷 이상·싹쓸이)에만 어둠·당겨 보기
@@ -2369,8 +2372,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     // 시간이 늘어지는 물결
     for (let j = 0; j < 3; j++) {
       const ph = ((t * 0.012 + j / 3) % 1);
-      ctx.strokeStyle = `rgba(190,235,255,${0.35 * sv * (1 - ph)})`;
-      ctx.lineWidth = 1.5;
+      if (sv < 0.5 || ph > 0.7) continue; // 👁 r6: 옅어지는 반투명 고리가 주인공 둘레의 흐린 회색 타원으로 보였다 → 불투명 한 색, 바깥쪽은 안 그림
+      ctx.strokeStyle = '#5d6fa8';
       ring(ctx, X(s.nx), Y(s.ny), R(0.05 + ph * 0.3), R(0.025 + ph * 0.15)); // 👁 도트 고리
       /* ring이 칠함 */
     }
