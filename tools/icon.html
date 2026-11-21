@@ -4,81 +4,50 @@
 <meta charset="utf-8">
 <title>쉿! UFO 아이콘</title>
 <style>html, body { margin: 0; background: #111; } canvas { display: block; }</style>
+<script type="importmap">{ "imports": { "three": "../node_modules/three/build/three.module.js", "three/addons/": "../node_modules/three/examples/jsm/" } }</script>
 </head>
 <body>
-<!-- 개발용: 앱 아이콘을 캔버스에 그린다. tools/gen-icons.mjs 가 이 페이지를 열어 PNG 로 저장한다.
+<!-- 개발용: 앱 아이콘을 3D 로 찍는다. tools/gen-icons.mjs 가 이 페이지를 열어 #icon 을 PNG 로 저장한다.
      ?size=512&maskable=1 -->
 <canvas id="icon"></canvas>
 <script type="module">
-import { drawUfo } from '../src/render/ufo.js';
-import { P, glow, withAlpha, cumulus, tone } from '../src/render/draw.js';
+import { Engine } from '../src/render3d/engine.js';
+import { buildStage } from '../src/render3d/stages.js';
+import { createUfo, UFO_TILT } from '../src/render3d/ufo3d.js';
 
 const q = new URLSearchParams(location.search);
 const size = Number(q.get('size')) || 512;
 const maskable = q.get('maskable') === '1';
-const cv = document.getElementById('icon');
-cv.width = cv.height = size;
-const ctx = cv.getContext('2d');
-ctx.scale(size / 512, size / 512); // 512 기준으로 설계한다
-const S = 512;
+const S = 512; // 이 크기로 장면을 짜고, 찍은 뒤 줄인다
 
-// 모서리: 마스커블은 꽉 찬 사각형(런처가 잘라 낸다), 일반 아이콘은 둥근 사각형
+// 농장 무대 위로 기체를 크게 띄운다(아래 3분의 1에 들판·헛간이 보이게)
+const gl = document.createElement('canvas');
+const engine = new Engine(gl);
+engine.layout({ w: S, h: S, dpr: 2, groundY: 600, insetTop: 0 });
+const stage = buildStage('farm', { w: S, h: S });
+engine.setStage(stage);
+stage.update(2, 1 / 60);
+const ufo = createUfo(1);
+ufo.update({ t: 0.6, mood: 'alert', lit: 1, beam: 0 });
+ufo.root.rotation.x = UFO_TILT;
+ufo.root.rotation.z = 0.08;
+// 마스커블 아이콘은 런처가 가장자리를 잘라 내므로 가운데 80% 안에 들게 조금 작게
+const widthPx = maskable ? 300 : 340;
+ufo.root.scale.setScalar(widthPx / 64 / (2 * ufo.halfWidth));
+ufo.root.position.copy(engine.toWorld(S / 2, maskable ? S * 0.44 : S * 0.42));
+engine.actors.add(ufo.root);
+engine.render();
+
+const out = document.getElementById('icon');
+out.width = out.height = size;
+const ctx = out.getContext('2d');
 if (!maskable) {
   ctx.beginPath();
-  ctx.roundRect(0, 0, S, S, 112);
+  ctx.roundRect(0, 0, size, size, (112 / 512) * size);
   ctx.clip();
 }
-// 맑은 낮 하늘
-const sky = ctx.createLinearGradient(0, 0, 0, S);
-sky.addColorStop(0, P.skyTop);
-sky.addColorStop(0.6, P.sky);
-sky.addColorStop(1, P.skyLow);
-ctx.fillStyle = sky;
-ctx.fillRect(0, 0, S, S);
-glow(ctx, 120, 90, 200, '#ffffff', 0.25);
-// 뒤 구름
-cumulus(ctx, [[60, 150, 46], [118, 132, 58], [180, 156, 40], [120, 170, 44]], { alpha: 0.9 });
-cumulus(ctx, [[400, 108, 34], [446, 96, 44], [492, 112, 34]], { alpha: 0.85 });
-// 언덕
-const hill = (y0, amp, color, phase) => {
-  ctx.beginPath();
-  ctx.moveTo(0, S);
-  for (let x = 0; x <= S; x += 8) ctx.lineTo(x, y0 - Math.sin((x / S) * Math.PI * 1.3 + phase) * amp);
-  ctx.lineTo(S, S);
-  ctx.closePath();
-  const g = ctx.createLinearGradient(0, y0 - amp, 0, S);
-  g.addColorStop(0, tone(color, 0.18));
-  g.addColorStop(1, tone(color, -0.15));
-  ctx.fillStyle = g;
-  ctx.fill();
-};
-hill(430, 26, P.grassDark, 0.6);
-hill(468, 22, P.grass, 2.4);
-
-// 기체와 견인 빔
-const k = maskable ? 0.8 : 1; // 마스커블은 가운데 80% 안에 그린다
-const cx = 256;
-const cy = maskable ? 236 : 226;
-const s = 4.1 * k;
-const beam = ctx.createLinearGradient(0, cy, 0, S);
-beam.addColorStop(0, withAlpha(P.glow, 0.7));
-beam.addColorStop(1, withAlpha(P.glow, 0));
-ctx.fillStyle = beam;
-ctx.beginPath();
-ctx.moveTo(cx - 16 * s, cy + 24 * s);
-ctx.lineTo(cx + 16 * s, cy + 24 * s);
-ctx.lineTo(cx + 40 * s, S);
-ctx.lineTo(cx - 40 * s, S);
-ctx.closePath();
-ctx.fill();
-ctx.save();
-ctx.translate(cx, cy);
-ctx.rotate(-0.07);
-ctx.scale(s, s);
-drawUfo(ctx, { form: 1, t: 0.6, mood: 'alert', lit: 1, beam: 1 });
-ctx.restore();
-// 앞을 살짝 가리는 구름(숨는 중)
-cumulus(ctx, [[cx + 150 * k, cy + 70 * k, 46 * k], [cx + 196 * k, cy + 52 * k, 56 * k], [cx + 244 * k, cy + 78 * k, 42 * k], [cx + 190 * k, cy + 96 * k, 44 * k]], {});
+ctx.imageSmoothingQuality = 'high';
+ctx.drawImage(gl, 0, 0, size, size);
 document.body.dataset.ready = '1';
 </script>
 </body>

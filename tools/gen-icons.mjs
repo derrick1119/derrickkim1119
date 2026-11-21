@@ -1,4 +1,4 @@
-// 앱 아이콘 PNG 를 만든다. tools/icon.html 이 캔버스에 그린 것을 Playwright 로 받아 저장한다.
+// 앱 아이콘 PNG 를 만든다. tools/icon.html 이 3D 로 찍은 것을 Playwright 로 받아 저장한다.
 //   node tools/gen-icons.mjs
 // Playwright 가 필요하다: npm i -D playwright && npx playwright install chromium
 import { createRequire } from 'node:module';
@@ -27,7 +27,8 @@ try {
 
 const port = 5187;
 const server = await startServer({ port, root: ROOT });
-const browser = await chromium.launch();
+// 아이콘은 3D 로 찍으므로 헤드리스에서도 WebGL(소프트웨어 렌더러)을 켠다
+const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 try {
   await mkdir(OUT, { recursive: true });
   const page = await browser.newPage();

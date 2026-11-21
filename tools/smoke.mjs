@@ -2,6 +2,7 @@
 //   node tools/smoke.mjs            소스 그대로(index.html)
 //   node tools/smoke.mjs --dist     빌드 결과(dist/index.html)
 //   node tools/smoke.mjs --single   파일 하나짜리 판(dist/shh-ufo.html)
+//   --2d 를 덧붙이면 3D 대신 2D 그림(WebGL 이 없는 기기용 대체 경로)으로 점검한다
 // Playwright 가 필요하다: npm i -D playwright && npx playwright install chromium
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
@@ -11,6 +12,9 @@ import { startServer } from './serve.mjs';
 const ROOT = resolve(fileURLToPath(import.meta.url), '../..');
 const args = process.argv.slice(2);
 const mode = args.includes('--single') ? 'single' : args.includes('--dist') ? 'dist' : 'src';
+const force2d = args.includes('--2d');
+// 헤드리스의 소프트웨어 WebGL 은 느리다. 3D 로 점검할 때는 기다리는 시간을 넉넉히 준다.
+const SLOW = force2d ? 1 : 3;
 const root = mode === 'src' ? ROOT : resolve(ROOT, 'dist');
 const entry = mode === 'single' ? '/shh-ufo.html' : '/index.html';
 const PORT = 5186;
@@ -30,7 +34,8 @@ function check(name, ok, detail = '') {
 }
 
 const server = await startServer({ port: PORT, root });
-const browser = await chromium.launch();
+// 헤드리스에서도 WebGL(소프트웨어 렌더러)을 켜서 3D 경로를 점검한다
+const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const problems = [];
 
 async function open(viewport, locale) {
@@ -38,10 +43,12 @@ async function open(viewport, locale) {
   const page = await ctx.newPage();
   page.on('console', (m) => {
     if (m.type() === 'error') problems.push(`console.error: ${m.text()}`);
+    // three.js 경고(셰이더 문제 등)도 문제로 센다. 소프트웨어 렌더러의 성능 안내는 제외.
+    else if (m.type() === 'warning' && /THREE/.test(m.text())) problems.push(`three warning: ${m.text()}`);
   });
   page.on('pageerror', (e) => problems.push(`pageerror: ${e.message}`));
   page.on('requestfailed', (r) => problems.push(`requestfailed: ${r.url()}`));
-  await page.goto(`http://127.0.0.1:${PORT}${entry}?debug`);
+  await page.goto(`http://127.0.0.1:${PORT}${entry}?debug${force2d ? '&2d' : ''}`);
   await page.waitForSelector('.title .start');
   return page;
 }
@@ -63,11 +70,11 @@ async function enter(page) {
     await click(page, '.modal-intro .btn.primary');
     await page.waitForTimeout(80);
   }
-  await page.waitForFunction(() => window.__ufo.scene.ufo.mode === 'hover', null, { timeout: 5000 });
+  await page.waitForFunction(() => window.__ufo.scene.ufo.mode === 'hover', null, { timeout: 5000 * SLOW });
 }
 
 async function tapSpecimen(page) {
-  await page.waitForFunction(() => window.__ufo.world.specimens.some((s) => s.state === 'live' && s.age > 0.3), null, { timeout: 5000 });
+  await page.waitForFunction(() => window.__ufo.world.specimens.some((s) => s.state === 'live' && s.age > 0.3), null, { timeout: 5000 * SLOW });
   const pos = await page.evaluate(() => {
     const { world } = window.__ufo;
     const sp = world.specimens.find((s) => s.state === 'live' && s.age > 0.3);
@@ -97,11 +104,13 @@ async function modalFits(page) {
 
 let page = null;
 try {
-  console.log(`대상: ${mode} (${entry})`);
+  console.log(`대상: ${mode} (${entry})${force2d ? ' · 2D' : ''}`);
 
   // ── 한국어, 보통 크기 휴대폰 ──
   page = await open({ width: 390, height: 844 }, 'ko-KR');
   check('첫 화면이 뜬다', (await page.textContent('.logo')).includes('UFO'));
+  const is3d = await page.evaluate(() => !!window.__ufo.scene.engine);
+  check(force2d ? '2D 그림으로 그린다' : '3D 로 그린다', force2d ? !is3d : is3d);
   check('한국어로 시작한다', (await page.textContent('.title .start')).includes('출동'));
   await enter(page);
   check('본부 교신 뒤 플레이 화면', (await page.textContent('.hud-size')).includes('30.0'));
@@ -110,7 +119,7 @@ try {
     window.__ufo.game.rng = () => 0.999;
   });
   await tapSpecimen(page);
-  await page.waitForFunction(() => window.__ufo.game.run.size > 30, null, { timeout: 3000 });
+  await page.waitForFunction(() => window.__ufo.game.run.size > 30, null, { timeout: 3000 * SLOW });
   check('표본을 누르면 자란다', (await state(page)).run.size > 30);
 
   await click(page, '.action.cloak');
@@ -123,11 +132,11 @@ try {
   await click(page, '.action.mission');
   await settle(page);
   await click(page, '.sheet.open .btn.go');
-  await page.waitForSelector('.mission.success', { timeout: 6000 });
+  await page.waitForSelector('.mission.success', { timeout: 6000 * SLOW });
   check('임무 성공 화면', (await state(page)).stats.missionsOk === 1);
   check('임무 화면이 넘치지 않는다', await modalFits(page));
   await click(page, '.mission.success .btn');
-  await page.waitForFunction(() => !window.__ufo.game.busy && window.__ufo.scene.ufo.mode === 'hover', null, { timeout: 4000 });
+  await page.waitForFunction(() => !window.__ufo.game.busy && window.__ufo.scene.ufo.mode === 'hover', null, { timeout: 4000 * SLOW });
 
   // 구매
   await page.evaluate(() => {
@@ -162,7 +171,7 @@ try {
     game.rng = () => 0;
   });
   await tapSpecimen(page);
-  await page.waitForSelector('.modal-report', { timeout: 6000 });
+  await page.waitForSelector('.modal-report', { timeout: 6000 * SLOW });
   let s = await state(page);
   check('시선 중에 빔을 쏘면 들킨다', s.phase === 'discovered' && s.seen.gaze_farmer === 1);
   check('보고서에 사건 이름이 나온다', (await page.textContent('.modal-report h2')).includes('농부'));
@@ -173,15 +182,16 @@ try {
   await page.waitForSelector('.title .start');
   check('이어 하기 버튼', (await page.textContent('.title .start')).includes('이어서'));
   await click(page, '.title .start');
-  await page.waitForSelector('.modal-report', { timeout: 4000 });
+  await page.waitForSelector('.modal-report', { timeout: 4000 * SLOW });
+  await page.waitForTimeout(500); // 보고서가 다 펼쳐진 뒤에 누른다
   check('새로 고침 뒤에도 보고서가 남아 있다', true);
   await click(page, '.modal-report .btn.primary');
-  await page.waitForFunction(() => window.__ufo.game.state.gen === 2 && window.__ufo.game.phase === 'play', null, { timeout: 5000 });
+  await page.waitForFunction(() => window.__ufo.game.state.gen === 2 && window.__ufo.game.phase === 'play', null, { timeout: 5000 * SLOW });
   s = await state(page);
   check('다음 대원이 더 큰 기체로 시작한다', s.gen === 2 && s.run.size > 30);
 
   // 보고서부터 다시 시작한 경우에도, 다음 대원이 도착하면 출석 보급품을 받는다
-  await page.waitForSelector('.modal-gift', { timeout: 4000 });
+  await page.waitForSelector('.modal-gift', { timeout: 4000 * SLOW });
   check('출석 보급품', (await state(page)).daily.streak === 1);
   await click(page, '.modal-gift .btn');
   await page.waitForFunction(() => !window.__ufo.ui.modals.active);
@@ -202,13 +212,13 @@ try {
   check('엉터리 저장 코드는 거절한다', (await page.locator('.modal-settings').count()) === 1);
   await page.fill('#save-import', code);
   await page.locator('.modal-settings .save-box:not([hidden]) .btn').click({ force: true });
-  await page.waitForFunction(() => document.documentElement.lang === 'ko', null, { timeout: 4000 });
+  await page.waitForFunction(() => document.documentElement.lang === 'ko', null, { timeout: 4000 * SLOW });
   s = await state(page);
   check('저장 코드를 불러오면 그 상태로 돌아간다', s.gen === 2 && s.lang === null && s.unlocked.specimens.firefly === true);
 
 
   // 엔딩
-  await page.waitForFunction(() => window.__ufo.scene.ufo.mode === 'hover' && window.__ufo.game.playing, null, { timeout: 5000 });
+  await page.waitForFunction(() => window.__ufo.scene.ufo.mode === 'hover' && window.__ufo.game.playing, null, { timeout: 5000 * SLOW });
   await page.evaluate(() => {
     const { game, world, scene } = window.__ufo;
     game.rng = () => 0.999;
@@ -218,12 +228,12 @@ try {
     scene.layout();
   });
   await tapSpecimen(page);
-  await page.waitForSelector('.modal-ending', { timeout: 6000 });
+  await page.waitForSelector('.modal-ending', { timeout: 6000 * SLOW });
   for (let i = 0; i < 4; i++) {
     await click(page, '.modal-ending .btn');
     await page.waitForTimeout(80);
   }
-  await page.waitForFunction(() => window.__ufo.game.phase === 'play', null, { timeout: 4000 });
+  await page.waitForFunction(() => window.__ufo.game.phase === 'play', null, { timeout: 4000 * SLOW });
   s = await state(page);
   check('엔딩 뒤에 관측을 이어 간다', s.clears === 1 && s.flags.ending === true && s.gen === 3);
   await page.close();
@@ -247,7 +257,7 @@ try {
     game.run.fuel = 100;
     ui.launchMission('crop');
   });
-  await page.waitForSelector('.modal-report', { timeout: 8000 });
+  await page.waitForSelector('.modal-report', { timeout: 8000 * SLOW });
   check('작은 화면에서 영어 보고서가 넘치지 않는다', await modalFits(page));
   await page.close();
 

@@ -4,7 +4,7 @@
 들키면 그 대원은 귀환하고, 남긴 사건 보고서 덕분에 다음 대원은 같은 실수에 덜 들킵니다.
 지름 30 cm 탐사정으로 시작해 지름 15 km 은하 모선을 완성하면 관측 완료입니다.
 
-![첫 화면, 들켜서 지구인들이 잠자리채를 들고 달려오는 순간, 사건 보고서, 노을 진 도심](docs/screens.jpg)
+![첫 화면, 농부가 하늘을 올려다보는 순간, 노을 진 도심, 지구 궤도](docs/screens.jpg)
 
 ## 게임 방법
 
@@ -29,8 +29,10 @@
 | 장비 · 업적 | 장비 8종, 업적 27개 |
 | 그 밖 | 출석 보급품, 자리 비움 성장, 저장 코드 내보내기/불러오기, 한국어·영어, 효과음·배경 음악·진동, 설치형 웹 앱(오프라인 실행) |
 
-그림은 전부 캔버스 코드로 그리고, 소리는 Web Audio 로 합성합니다. 이미지·음원 파일이 없고 외부 서버에 접속하지 않습니다.
-그림체는 맑은 낮의 3D 카툰 풍입니다. 빛은 왼쪽 위에서 오고, 외곽선은 검정 대신 같은 색 계열의 가는 선을 씁니다. 공통 색과 음영 도구는 `src/render/draw.js` 의 `P`, `shade`, `ball`, `gloss`, `cumulus` 에 있습니다.
+게임 세계는 [three.js](https://threejs.org/)(WebGL)로 그리는 실시간 3D입니다. 기체·지구인·표본·무대는 모두 코드로 만든 3D 모델입니다.
+햇빛과 부드러운 그림자, 공기 원근, 그리고 얼굴을 그려 붙인 SD 캐릭터로 컨셉 아트의 3D 카툰 렌더를 따랐습니다.
+모델·이미지·음원 파일은 없습니다. 소리는 Web Audio 로 합성하고, 외부 서버에는 접속하지 않습니다.
+느린 기기에서는 3D 해상도를 한 단계씩 낮추고 그래도 느리면 그림자를 끕니다. WebGL 을 쓸 수 없는 기기에서는 2D 그림(`src/render/`)으로 대신 그립니다.
 진행 상황은 기기에만 저장됩니다(localStorage).
 
 ## 실행
@@ -38,11 +40,12 @@
 Node.js 20 이상이 필요합니다.
 
 ```bash
-npm install          # 빌드 도구(esbuild) 설치
+npm install          # three.js 와 빌드 도구(esbuild) 설치(개발 서버에서도 three.js 를 node_modules 에서 읽는다)
 npm start            # 개발 서버 http://localhost:5173
 ```
 
-모듈을 그대로 불러오므로 `npm start` 없이도 아무 정적 서버로 이 폴더를 열면 됩니다.
+모듈을 묶지 않고 그대로 불러옵니다(`index.html` 의 import map 이 three.js 를 `node_modules` 에서 찾습니다). `npm install` 한 뒤라면 아무 정적 서버로 이 폴더를 열어도 됩니다.
+`index.html?2d` 로 열면 2D 대체 그림으로 볼 수 있습니다.
 `index.html?debug` 로 열면 브라우저 콘솔에서 `window.__ufo` 로 게임 상태를 볼 수 있습니다.
 
 ## 배포
@@ -62,9 +65,10 @@ npm run build
 npm test                     # 규칙·저장·문구 단위 시험(node:test)
 npm run sim                  # 밸런스 시뮬레이션(가상 플레이어 200명)
 npm run sim -- 200 --careful # 위험을 피하는 플레이어 유형
-npm run smoke                # 실제 브라우저로 주요 흐름 30개 점검(Playwright 필요)
+npm run smoke                # 실제 브라우저(3D)로 주요 흐름 31개 점검(Playwright 필요)
 npm run smoke -- --dist      # 빌드 결과 점검
 npm run smoke -- --single    # 파일 하나짜리 판 점검
+npm run smoke -- --2d        # WebGL 이 없는 기기용 2D 대체 경로 점검
 ```
 
 `npm run smoke` 와 `npm run icons` 는 Playwright 가 필요합니다: `npm i -D playwright && npx playwright install chromium`.
@@ -90,13 +94,19 @@ src/core/                     게임 규칙(DOM 없음, node 에서 그대로 �
   balance.js, state.js        밸런스 공식, 저장 형식과 검증
 src/data/content.js           형태·표본·임무·사건·장비·업적 표
 src/i18n/                     한국어·영어 문구(조사 자동 선택 포함)
-src/render/                   캔버스 그림: 기체, 지구인, 표본, 엠블럼, 배경, 장면 합성
+src/render3d/                 3D 그림(three.js)
+  engine.js                   렌더러·카메라·빛·환경. 화면 좌표와 3D 좌표를 1:1(64px = 1)로 잇는다
+  kit.js                      공통 재질·도형·외곽선·얼굴 텍스처·구름·하늘
+  scene3d.js                  장면 합성(기체·지구인·표본·빔·시선), 자동 화질 조절
+  ufo3d.js, people3d.js, specimens3d.js, stages/   기체 8형태, 지구인 11종, 표본 10종, 무대 7곳
+  studio.js                   UI 카드·보고서에 쓰는 3D 아이콘 촬영
+src/render/                   2D 그림(WebGL 이 없을 때의 대체 경로)과 사건 엠블럼, 화면 위 효과 도구
 src/ui/                       계기판, 패널, 모달, 연출 순서
 src/audio/audio.js            효과음과 배경 음악 합성
 src/platform/                 저장, 진동, 공유, 서비스 워커 등록
 sw.js, manifest.webmanifest   설치형 웹 앱
 tools/                        개발 서버, 빌드, 시뮬레이터, 브라우저 점검, 아이콘·글꼴 생성,
-                              그림 미리보기(artsheet.html: 기체·지구인·표본·엠블럼, stagesheet.html: 무대 배경)
+                              그림 미리보기(view3d.html: 3D 무대·기체·지구인·표본, artsheet.html·stagesheet.html: 2D 그림)
 tests/                        단위 시험
 ```
 
@@ -117,4 +127,5 @@ python3 tools/subset-fonts.py BagelFatOne-Regular.ttf GowunDodum-Regular.ttf
 ## 라이선스 참고
 
 - 글꼴: [Bagel Fat One](https://github.com/JAMO-TYPEFACE/BagelFat), [Gowun Dodum](https://github.com/yangheeryu/Gowun-Dodum) — 둘 다 SIL Open Font License 1.1. 전문은 `assets/fonts/*-OFL.txt`.
+- [three.js](https://github.com/mrdoob/three.js) — MIT License. 빌드할 때 묶음에 함께 들어갑니다.
 - 그 밖의 코드·그림·소리는 이 저장소에서 만든 것입니다.
