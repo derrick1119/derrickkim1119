@@ -399,7 +399,7 @@ function nearestFighter(s: BrawlState, a: Mon): Mon | null {
 }
 
 /** a와 한 무리로 치는 놈인가: 같은 무리의 가까운 놈(무리가 없으면 둘레 CROWD_R 안) */
-function crowdOf(s: BrawlState, a: Mon, m: Mon) {
+function crowdOf(a: Mon, m: Mon) {
   if (m === a || !canFight(m)) return false;
   const d2 = (m.x - a.x) ** 2 + (m.y - a.y) ** 2;
   return a.g >= 0 && m.g === a.g ? d2 < 0.3 * 0.3 : d2 < CROWD_R * CROWD_R;
@@ -415,7 +415,7 @@ function provoke(s: BrawlState, a: Mon, tap: number, chain: number, dx: number, 
   a.gk = -1;
   let cx = a.x, cy = a.y, n = 1;
   for (const m of s.mons) {
-    if (!crowdOf(s, a, m)) continue;
+    if (!crowdOf(a, m)) continue;
     cx += m.x;
     cy += m.y;
     n++;
@@ -425,7 +425,7 @@ function provoke(s: BrawlState, a: Mon, tap: number, chain: number, dx: number, 
     cy /= n;
     let b: Mon | null = null, bd = 1e9;
     for (const m of s.mons) {
-      if (!crowdOf(s, a, m)) continue;
+      if (!crowdOf(a, m)) continue;
       const d = (m.x - cx) ** 2 + (m.y - cy) ** 2;
       if (d < bd) (bd = d), (b = m);
     }
