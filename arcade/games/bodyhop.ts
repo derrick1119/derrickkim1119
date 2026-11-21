@@ -157,7 +157,9 @@ export interface HopState {
   big: { text: string; t: number; n: number; hop: number; star: boolean } | null;
 }
 
-const dist = (ax: number, ay: number, bx: number, by: number) => Math.hypot(ax - bx, (ay - by) / YS);
+/** 빗변: Math.hypot은 브라우저마다 끝자리가 달라 같은 시드가 다르게 흘러갈 수 있어 제곱근으로 직접 */
+const hyp = (a: number, b: number) => Math.sqrt(a * a + b * b);
+const dist = (ax: number, ay: number, bx: number, by: number) => hyp(ax - bx, (ay - by) / YS);
 const angTo = (ax: number, ay: number, bx: number, by: number) => Math.atan2((by - ay) / YS, bx - ax);
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const ev = (s: HopState, k: string, x: number, y: number, n = 0, x2 = 0, y2 = 0, text = '') => s.events.push({ t: s.t, k, x, y, n, x2, y2, text });
@@ -429,7 +431,7 @@ export function pick(s: HopState, x: number, y: number): Mon | null {
   let best: Mon | null = null, bv = 1e9;
   for (const m of s.mons) {
     if (!ridable(s, m)) continue;
-    const v = Math.hypot(m.x - x, m.y - m.r * 0.8 - y) - m.r * 1.6;
+    const v = hyp(m.x - x, m.y - m.r * 0.8 - y) - m.r * 1.6;
     if (v < bv) (bv = v), (best = m);
   }
   return best;
@@ -474,11 +476,11 @@ function hopTo(s: HopState, m: Mon) {
   s.me = 0;
   if (s.perk[1] === 2) {
     // 번개 깃발: 날아가는 길의 적이 찌릿
-    const dx = m.x - x0, dy = (m.y - m.r - y0) / YS, L = Math.hypot(dx, dy) || 1e-6;
+    const dx = m.x - x0, dy = (m.y - m.r - y0) / YS, L = hyp(dx, dy) || 1e-6;
     for (const o of s.mons) {
       if (!hittable(s, o)) continue;
       const u = clamp(((o.x - x0) * dx + ((o.y - o.r - y0) / YS) * dy) / (L * L), 0, 1);
-      if (Math.hypot(o.x - (x0 + dx * u), (o.y - o.r - y0) / YS - dy * u) < 0.075 + o.r * 0.5) {
+      if (hyp(o.x - (x0 + dx * u), (o.y - o.r - y0) / YS - dy * u) < 0.075 + o.r * 0.5) {
         o.stun = Math.max(o.stun, 45);
         hurt(s, o, 18 * skillMul(s), s.hop.id);
         ev(s, 'zap', o.x, o.y - o.r);
@@ -1090,11 +1092,11 @@ function physics(s: HopState) {
     for (let j = i + 1; j < L.length; j++) {
       const b = L[j];
       if (b.dead || b.st === ENTER) continue;
-      const dx = b.x - a.x, dy = (b.y - a.y) / YS, d = Math.hypot(dx, dy), min = (a.r + b.r) * 0.86;
+      const dx = b.x - a.x, dy = (b.y - a.y) / YS, d = hyp(dx, dy), min = (a.r + b.r) * 0.86;
       if (d >= min) continue;
       // 도미노: 세게 밀려난 적이 다른 적에 부딪히면 그 적도 다치고 밀린다
       for (const [p, q] of [[a, b], [b, a]] as [Mon, Mon][]) {
-        const sp = Math.hypot(p.vx, p.vy);
+        const sp = hyp(p.vx, p.vy);
         if (sp > 0.012 && p.dom === 0 && p.id !== s.me && q.id !== s.me && hittable(s, q)) {
           p.dom = 14;
           q.dom = 14;
@@ -2853,7 +2855,8 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
   const fx = juice(s), X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w, t = s.t;
   const sc = typeof ctx.getTransform === 'function' ? Math.min(3, Math.max(1, Math.round(ctx.getTransform().a || 1))) : 1;
   const d = STAGES[s.stage], ch = d.ch, P = PALS[ch], b = body(s), seenT = fx.memo.t ?? -1;
-  const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, R(sz))}px system-ui, sans-serif`);
+  // 글꼴 크기는 정수 px로만 (커졌다 줄어드는 글자가 프레임마다 새 글꼴을 찾느라 끊기지 않게)
+  const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`);
   // 스티커 해상도는 2배까지만(느린 폰에서 첫 프레임이 무겁지 않게)
   const baseQ = (k: K) => Math.round(R(KD[k].r) * 1.12 * Math.min(2, sc));
   // 미리 굽기(끊김 줄이기): 결과·선물 화면에서는 다음 판의 배경(한 걸음씩)과 스티커를, 판 중에는 이 판에 나올 스티커를 프레임마다 조금씩
@@ -2881,6 +2884,14 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
     if (lw > 0) (ctx.lineWidth = lw), (ctx.strokeStyle = stroke), ctx.strokeText(str, x, y);
     ctx.fillStyle = fill;
     ctx.fillText(str, x, y);
+  };
+  /** 커졌다 줄어드는 글자: 글꼴 크기는 그대로 두고 그림만 k배 (새 글꼴 크기를 만들지 않는다) */
+  const textK = (str: string, x: number, y: number, k: number, fill: string, stroke?: string, lw?: number) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(k, k);
+    text(str, 0, 0, fill, stroke, lw);
+    ctx.restore();
   };
   const puff = (x: number, y: number, col: string, n: number, spd = 3, size = 3) => {
     if (fx.particles.length < 150) fx.burst(x, y, col, Math.min(n, 150 - fx.particles.length), spd, size);
@@ -3366,8 +3377,8 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2.5;
       ctx.stroke();
-      font(0.062 * pop, 900);
-      text('!', ax0, ay0 + 1, '#ffffff', '', 0);
+      font(0.062, 900);
+      textK('!', ax0, ay0 + 1, pop, '#ffffff', '', 0);
       ctx.globalAlpha = 1;
     }
     if (spotM === m) {
@@ -3542,17 +3553,17 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
     } else if ((e.k === 'shout' || (e.k === 'pop' && !e.n && s.hop.n < 2) || (e.k === 'boom' && e.n)) && age < 36) {
       // 외침: 기술 이름 · 펑! — 큰 띠가 떠 있는 동안은 작게 (큰 글자는 한 번에 하나)
       const k = e.text as K, boss = e.k === 'shout' && KD[k].boss, str = e.k === 'shout' ? KD[k].skill : e.k === 'pop' ? '펑!' : '자폭!';
-      const pop = age < 6 ? 1.5 - 0.5 * (age / 6) : 1, sz = (bandOn ? 0.036 : e.k === 'pop' ? 0.042 : boss ? 0.07 : k === 'bean' ? 0.038 : 0.05) * pop;
+      const pop = age < 6 ? 1.5 - 0.5 * (age / 6) : 1, sz = bandOn ? 0.036 : e.k === 'pop' ? 0.042 : boss ? 0.07 : k === 'bean' ? 0.038 : 0.05;
       ctx.globalAlpha = Math.min(1, (36 - age) / 10) * (bandOn ? 0.8 : 1);
       font(sz, 900);
       const yy = ey - R(e.k === 'pop' ? 0.11 : 0.1) - (age / 36) * R(0.04);
-      text(str, clamp(ex, w * 0.2, w * 0.8), Math.max(Y(0.42), yy), e.k === 'pop' ? '#ffffff' : '#ffe36b', OUT, Math.max(3.5, R(0.011)));
+      textK(str, clamp(ex, w * 0.2, w * 0.8), Math.max(Y(0.42), yy), pop, e.k === 'pop' ? '#ffffff' : '#ffe36b', OUT, Math.max(3.5, R(0.011)));
       ctx.globalAlpha = 1;
     } else if (e.k === 'wave' && age < 40 && !bandOn) {
       // 문으로 우르르
       ctx.globalAlpha = Math.min(1, (40 - age) / 10);
-      font(0.042 * (age < 6 ? 1.4 - 0.4 * (age / 6) : 1), 900);
-      text(e.n === 9 ? '졸개 총출동!' : '우르르!', ex, ey - R(0.04) - (age / 40) * R(0.02), '#fff3c4', OUT, 3.5);
+      font(0.042, 900);
+      textK(e.n === 9 ? '졸개 총출동!' : '우르르!', ex, ey - R(0.04) - (age / 40) * R(0.02), age < 6 ? 1.4 - 0.4 * (age / 6) : 1, '#fff3c4', OUT, 3.5);
       ctx.globalAlpha = 1;
     } else if (e.k === 'punch' && age < 11) {
       // 퍽! (곰 주먹이 닿은 자리)
@@ -3601,8 +3612,8 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
     if (n >= 2 && killA < 44 && fx.memo.popId === s.hop.id && s.phase === 'play' && !(s.big && s.big.hop === s.hop.id && s.big.n > 0 && bandOn)) {
       const pop = killA < 5 ? 1.3 - 0.3 * (killA / 5) : 1;
       ctx.globalAlpha = Math.min(1, (44 - killA) / 10);
-      font((0.036 + Math.min(0.006, n * 0.0006)) * pop, 900);
-      text(`${n}마리`, clamp(fx.memo.popX, w * 0.14, w * 0.86), Math.max(Y(0.42), fx.memo.popY - R(0.1)), '#ffffff', OUT, 3.5);
+      font(0.036 + Math.min(0.006, n * 0.0006), 900);
+      textK(`${n}마리`, clamp(fx.memo.popX, w * 0.14, w * 0.86), Math.max(Y(0.42), fx.memo.popY - R(0.1)), pop, '#ffffff', OUT, 3.5);
       ctx.globalAlpha = 1;
     }
   }
@@ -3814,7 +3825,7 @@ function drawHud(ctx: C2, s: HopState, w: number, h: number) {
   const fx = juice(s), X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w, t = s.t;
   const sc = typeof ctx.getTransform === 'function' ? Math.min(3, Math.max(1, Math.round(ctx.getTransform().a || 1))) : 1;
   const d = STAGES[s.stage], b = body(s);
-  const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, R(sz))}px system-ui, sans-serif`);
+  const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`);
   const text = (str: string, x: number, y: number, fill: string, stroke = '', lw = 0) => {
     ctx.lineJoin = 'round';
     if (lw > 0) (ctx.lineWidth = lw), (ctx.strokeStyle = stroke), ctx.strokeText(str, x, y);
@@ -3983,7 +3994,7 @@ function drawHud(ctx: C2, s: HopState, w: number, h: number) {
   // ── 큰 순간 띠 ──
   if (s.big && t - s.big.t < 62 && s.phase !== 'end') {
     const age = t - s.big.t, pop = age < 7 ? 1.4 - 0.4 * (age / 7) : 1 + 0.03 * Math.sin(age * 0.5), a = Math.min(1, (62 - age) / 14), n = s.big.n;
-    const by = Y(0.275), size = (0.058 + Math.min(0.02, n * 0.002)) * pop;
+    const by = Y(0.275), size = 0.058 + Math.min(0.02, n * 0.002);
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate(w / 2, by);
@@ -3997,7 +4008,10 @@ function drawHud(ctx: C2, s: HopState, w: number, h: number) {
     ctx.stroke();
     ctx.scale(1, 1 / 0.5);
     font(size, 900);
+    ctx.save();
+    ctx.scale(pop, pop);
     text(s.big.text, 0, s.big.star ? -R(0.022) : 0, '#ff5a2e', '#ffffff', 6);
+    ctx.restore();
     if (s.big.star) {
       // 별 셋째를 땄다
       font(0.04, 900);

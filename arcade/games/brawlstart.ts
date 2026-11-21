@@ -8,7 +8,7 @@
  * 솜씨(정답은 없다): 구름 위 숫자 = '톡 한 번으로 휘말린 수'. 무리는 처음 건드린 톡의 몫이라, 또 톡 한 무리는 새 톡의 작은 숫자가 된다(구름끼리는 달려들어 합체하고 큰 숫자가 이어진다).
  *   그래서 톡을 아끼고 '저절로 번지게' 할수록 숫자가 커진다 — 바짝 붙은 두 무리는 한 구름이 넘어가고, 떨어진 무리는 특별한 놈이 옮겨 준다:
  *   덩치 곰(구름을 다음 무리까지 밀고 간다) · 토끼(앞 무리로 달아나 쿵! 거기서 또 싸움) · 멧돼지(구름이 깨우면 돌진) · 쌍둥이(짝꿍도 제 무리에서 딱!) · 폭죽 장수(세 갈래) · 병아리(멀리서 달려온다) · 마법사(회오리).
- * 동전: 한 번 톡에 k번째로 기절한 놈은 동전 k×k개. 한 번 톡에 5·7·9·12·16·20·24마리가 휘말리면 '와' 띠가 뜨고 그 톡의 동전이 2·3·5·8·12·18·25배.
+ * 동전: 한 번 톡에 k번째로 기절한 놈은 동전 k×k개. 한 번 톡에 5·8·12·16·21·27·34마리가 휘말리면 '와' 띠가 뜨고 그 톡의 동전이 2·4·7·11·16·22·30배.
  *   한 번 톡이 두 무리·세 무리·다섯 무리에 걸치면 '두 무리가 한 구름!' … '길 전체 한 구름!' 띠.
  * 들킴: 판 처음 10초는 아무도 여우를 못 본다. 오래 숨어만 있으면 여우 머리 위 눈금이 차고, 2장부터는 순찰 도깨비가 여우 쪽으로 걸어오며
  *   제 머리 위 눈금을 채운다. 꽉 차면 '!' — 2초 안에 그놈을 톡 못 하면 꿀밤(하트 -1, 머리에 혹, 뒤로 통통). 하트 셋을 다 잃으면 끝.
@@ -36,7 +36,7 @@ const CD = 30, HIT_T = 12, BONK_GAP = 0.03, DASH_V = 0.02, CROWD_R = 0.2;
 /** 구름: 처음 반지름 · 처음 수명 · 하나 삼킬 때마다 수명이 이만큼으로 다시 찬다(= 마지막으로 삼킨 뒤 버티는 시간 — 그동안 다음 무리를 톡 하면 합체) · 삼키는 박자(틱) · 생기고 제자리에서 부푸는 틱 */
 const R0 = 0.066, LIFE0 = 60, LINGER = 100, BEAR_BOOST = 60, EAT_T = 5, BLOOM = 8, AGE_MAX = 1500;
 /** 구름: 구경 온 놈·달아나는 놈을 쫓는 빠르기 · 코앞의 놈을 덮치는 빠르기 · 다음 무리 쪽으로 어슬렁 굴러가는 빠르기(닿을지는 남은 수명에 달렸다) · 다음 놈을 찾는 거리 */
-const SEEK_V = 0.0052, POUNCE_V = 0.009, DRIFT_V = 0.0012, SENSE_R = 0.8;
+const SEEK_V = 0.0052, POUNCE_V = 0.009, DRIFT_V = 0.0018, SENSE_R = 0.8;
 /** 구경꾼: 이 안의 놈들이 구경하러 온다(병아리는 훨씬 멀리서) · 달려오는 빠르기 · 구름 바깥에 서는 틈 */
 const GAWK_R = 0.14, GAWK_V = 0.0075, GAWK_GAP = 0.02, GAWK_CHICK = 2.8;
 /** 합체: 이 안의 두 구름은 서로 달려든다 · 빠르기 · 달려드는 동안은 수명이 안 준다(최대 틱) */
@@ -54,9 +54,9 @@ const KO_T = 84, FLEE_T = 64, FLEE_V = 0.0125, FLEE_COOL = 70;
 const RESULT_MIN = 90, RESULT_OK = 250, RESULT_FAIL = 170, PICK_MIN = 36, PICK_AUTO = 900;
 const STAR_PTS = 500, CLEAR_PTS = 200, BOSS_PTS = 2000, WIN_PTS = 3000;
 /** '와' 띠가 뜨는 한 번 톡의 휘말린 수 */
-const WOW_AT = [5, 7, 9, 12, 16, 20, 24];
+const WOW_AT = [5, 8, 12, 16, 21, 27, 34];
 /** 띠가 뜬 톡의 동전 배수 (큰 한 방일수록 훨씬 크게) */
-const WOW_MUL = [2, 3, 5, 8, 12, 18, 25];
+const WOW_MUL = [2, 4, 7, 11, 16, 22, 30];
 const WOW_TEXT = ['우당탕!', '대소동!', '난장판!', '온 동네 싸움!', '장터가 뒤집혔다!', '전설의 한 방!', '하늘이 놀랐다!'];
 /** 한 번 톡이 여러 무리에 걸쳤을 때의 띠 (둘 · 셋 · 다섯 이상) */
 const LINK_TEXT = ['두 무리가 한 구름!', '세 무리가 한 구름!', '길 전체 한 구름!'];
@@ -92,8 +92,8 @@ const ST = (x: number, y: number, m: string, ang = 0): GroupDef => ({ f: 2, x, y
  */
 export const STAGES: StageDef[] = [
   {
-    key: 'gob', ch: 0, name: '장터 입구', news: '', len: 3.4, need: 8,
-    g: [G(0.56, 0.93, 'ggggg', 0.07), ST(0.84, 0.765, 'gg'), G(1.08, 0.88, 'gggg'), G(1.58, 1.0, 'gggg'), G(1.9, 0.86, 'gggg'), G(2.4, 1.0, 'gggg'), G(2.74, 0.9, 'gggggg', 0.11)],
+    key: 'gob', ch: 0, name: '장터 입구', news: '', len: 3.4, need: 10,
+    g: [G(0.56, 0.93, 'ggggg', 0.07), ST(0.84, 0.765, 'gg'), G(1.08, 0.88, 'ggggg', 0.08), G(1.58, 1.0, 'ggggg', 0.08), G(1.9, 0.86, 'ggggg', 0.08), G(2.4, 1.0, 'ggggg', 0.08), G(2.74, 0.9, 'gggggg', 0.11)],
   },
   {
     key: 'bear', ch: 0, name: '떡집 골목', news: '덩치 곰 — 구름을 옆 무리까지 밀고 가요', len: 4.7, need: 14,
@@ -126,7 +126,7 @@ export const STAGES: StageDef[] = [
     boss: { need: 7, pool: 'ggggrBgc', name: '두꺼비 장군' },
   },
   {
-    key: 'owl', ch: 2, name: '바닷가 산책길', news: '올빼미 — 삐익! 구름을 걷어요. 올빼미부터 톡!', len: 4.7, need: 16, guards: [1.4, 3.4],
+    key: 'owl', ch: 2, name: '바닷가 산책길', news: '올빼미 — 삐익! 구름을 걷어요. 올빼미부터 톡!', len: 4.7, need: 18, guards: [1.4, 3.4],
     g: [G(0.56, 0.92, 'oggg'), G(0.88, 0.84, 'gggg'), G(1.38, 1.0, 'gggg'), G(1.88, 0.88, 'oBgg'), G(2.2, 1.02, 'cggg'), G(2.7, 0.86, 'gggg'), G(3.2, 1.0, 'ogggr'), G(3.52, 0.86, 'gggg'), G(4.02, 0.94, 'gggggg', 0.11)],
   },
   {
@@ -134,7 +134,7 @@ export const STAGES: StageDef[] = [
     g: [G(0.56, 0.92, 'gggk'), G(0.88, 0.84, 'kkkk'), G(1.38, 1.0, 'oggk'), G(1.88, 0.88, 'kkgg'), G(2.2, 1.02, 'cggk'), G(2.7, 0.86, 'gggk'), G(3.2, 1.0, 'kkkk'), G(3.52, 0.86, 'oggk'), G(4.02, 0.94, 'gggkkk', 0.11)],
   },
   {
-    key: 'wiz', ch: 2, name: '등대 광장', news: '마법사 — 휘말리면 구름이 회오리가 돼요', len: 4.7, need: 18, guards: [1.4, 3.4],
+    key: 'wiz', ch: 2, name: '등대 광장', news: '마법사 — 휘말리면 구름이 회오리가 돼요', len: 4.7, need: 16, guards: [1.4, 3.4],
     g: [G(0.56, 0.92, 'wggg'), G(0.88, 0.84, 'ggrr'), G(1.38, 1.0, 'woggk'), G(1.88, 0.88, 'tggg'), G(2.2, 1.02, 'tggk'), G(2.7, 0.86, 'gggk'), G(3.2, 1.0, 'wggg'), G(3.52, 0.86, 'Bggk'), G(4.02, 0.94, 'wgkkkk', 0.11)],
   },
   {
@@ -210,8 +210,8 @@ const blocks = (m: Mon) => m.st === IDLE || m.st === NOTICE || m.st === DAZE || 
 const tappable = (m: Mon) => (m.st === IDLE || m.st === NOTICE || m.st === SLEEP || m.st === DAZE) && m.k !== 'boss';
 /** 싸움 상대가 될 수 있는 놈 */
 const canFight = (m: Mon) => (m.st === IDLE || m.st === NOTICE || m.st === DAZE || m.st === ENTER) && m.k !== 'boss';
-/** 구름이 삼킬 수 있는 놈 */
-const edible = (m: Mon) => m.st === IDLE || m.st === NOTICE || m.st === DAZE || m.st === ENTER || m.st === DASH || m.st === FLEE || m.st === SLEEP;
+/** 구름이 삼킬 수 있는 놈 (올빼미는 버티고 서서 호루라기를 분다 — 톡 해서 싸움에 끼워야 한다) */
+const edible = (m: Mon) => (m.st === IDLE && m.k !== 'owl') || m.st === NOTICE || m.st === DAZE || m.st === ENTER || m.st === DASH || m.st === FLEE || m.st === SLEEP;
 
 function mk(s: BrawlState, k: K, x: number, y: number, g: number): Mon {
   const m: Mon = {
@@ -518,6 +518,8 @@ function spawnCloud(s: BrawlState, mem: Mon[], x: number, y: number, dx: number,
   if (from) c.taps = from.taps.slice();
   for (const m of mem) swallow(s, c, m, from ? 2 : 1);
   if (s.perkA === 1 && chain === 1 && kind === 0 && !from && mem.length >= 2) c.w += 2; // 뿅망치: 처음부터 큰 구름
+  if (kind === 0 && !from) c.eat = 9; // 구경꾼이 둘레에 모여 '오오~' 할 틈
+  if (tap <= 1) c.life = 170; // 첫 화면의 구경용 싸움은 3초쯤 이어진다
   c.r = radiusOf(s, c);
   if (chain > s.chainMax) s.chainMax = chain;
   if (chain >= 2) see(s, 'chain');
@@ -559,7 +561,7 @@ function swallow(s: BrawlState, c: Cloud, m: Mon, mode = 0) {
       provoke(s, p, tap, c.chain + 1, c.x - p.x, c.y - p.y, false);
     }
   }
-  if (mode !== 2) credit(s, c, slot, cnt);
+  if (mode !== 2 && tap > 1) credit(s, c, slot, cnt);
   c.r = radiusOf(s, c);
 }
 /** 이 톡의 싸움이 아직 이어지고 있나 (구름이 살아 있거나, 딱! 치는 중이거나, 달아나거나 날아가는 놈이 있다) */
@@ -738,6 +740,7 @@ function monsters(s: BrawlState) {
     switch (m.st) {
       case IDLE: {
         if (m.cool > 0) m.cool--;
+        const was = m.gk;
         m.gk = -1;
         if (m.k === 'guard') {
           // 순찰: 여우 쪽으로 걸어오며 눈금을 채운다 (싸움 구경은 안 한다)
@@ -819,13 +822,17 @@ function monsters(s: BrawlState) {
               see(s, 'flee');
               break;
             }
-          } else if (d < gawkOf(s, m, bc)) m.gk = bc.id;
+          } else if (d < gawkOf(s, m, bc)) {
+            m.gk = bc.id;
+            if (was < 0) ev(s, 'gawk', m.x, m.y, m.id);
+          }
         }
         if (m.still) break;
         let sp = KSPD[m.k];
         if (m.gk >= 0 && bc) {
           // 구경: 구름 바깥 둘레로 달려가 선다 ('오오~')
-          const d = Math.sqrt(bd) || 0.001, ring = bc.r + m.r + GAWK_GAP;
+          // (다가가기만 한다 — 구름이 덮치러 와도 물러서지 않는다)
+          const d = Math.sqrt(bd) || 0.001, ring = Math.min(d, bc.r + m.r + GAWK_GAP);
           GX = bc.x + ((m.x - bc.x) / d) * ring;
           GY = bc.y + ((m.y - bc.y) / d) * ring;
           sp = m.k === 'chick' ? 0.0095 : GAWK_V;
@@ -975,6 +982,8 @@ function clouds(s: BrawlState) {
     if (c.mega) (c.vx *= 0.88), (c.vy *= 0.88);
     else if (flying) {
       if (c.kind === 2) (c.vx *= 0.955), (c.vy *= 0.955);
+    } else if (c.tap <= 1) {
+      // 1판 첫 화면의 구경용 싸움: 제자리에서 구경꾼만 모은다 (남의 무리를 삼키지 않는다)
     } else if (c.age > BLOOM) {
       // 굴러가기: 가까운 다른 구름이 있으면 서로 달려들어 합체, 아니면 가장 가까운 깨어 있는 놈 쪽으로.
       // 구경 온 놈은 얼른 덮치고, 아직 구경 안 하는 다음 무리 쪽으로는 어슬렁 굴러간다(그동안 그 무리를 톡 하면 두 구름이 합체)
@@ -1033,6 +1042,10 @@ function clouds(s: BrawlState) {
     }
     // 닿은 놈을 삼킨다 — 보통 구름은 '뽁 뽁 뽁' 박자로 하나씩 (가까운 놈부터)
     if (c.eat > 0) c.eat--;
+    if (c.tap <= 1) {
+      if (c.life <= 0) burst(s, c);
+      continue;
+    }
     let pick: Mon | null = null, pd = 1e9;
     for (let i = 0; i < ms.length; i++) {
       const m = ms[i];
@@ -1090,7 +1103,9 @@ function clouds(s: BrawlState) {
       const lim = (a.r + b.r) * 0.85;
       if ((a.x - b.x) ** 2 + (a.y - b.y) ** 2 > lim * lim) continue;
       const ca = s.tc[a.tap & 15], cb = s.tc[b.tap & 15];
-      const [big, sm] = a.mega || (!b.mega && (ca > cb || (ca === cb && a.n >= b.n))) ? [a, b] : [b, a];
+      // 큰 쪽이 이어진다 (첫 화면의 구경용 싸움은 늘 작은 쪽)
+      const aBig = b.tap <= 1 ? true : a.tap <= 1 ? false : a.mega || (!b.mega && (ca > cb || (ca === cb && a.n >= b.n)));
+      const [big, sm] = aBig ? [a, b] : [b, a];
       // 합체: 숫자는 큰 쪽 톡의 것이 이어진다 (작은 구름이 삼킨 놈들은 그대로 작은 쪽 톡의 몫)
       for (const m of ms) if (m.cid === sm.id && m.st === INC) m.cid = big.id;
       for (const t of sm.taps) if (big.taps.indexOf(t) < 0) big.taps.push(t);
@@ -3644,6 +3659,11 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
         fx.kick(3);
         fx.sound('crack', 1 + Math.min(0.5, (n - 1) * 0.12), 1);
         fx.sound('boing', 1.5, 0.35);
+        break;
+      case 'gawk':
+        // 구경꾼 소리는 드문드문 (글자가 겹치지 않게)
+        if (t - (fx.memo.gkT ?? -99) > 18) (fx.memo.gkT = t), say(e.x, e.y - 0.125, n % 3 ? '오오~' : '싸움이다!', '#ffffff', 13);
+        fx.sound('tick', 1.7 + (n % 4) * 0.1, 0.22);
         break;
       case 'solo':
         say(e.x, e.y - 0.12, '에잇!');
