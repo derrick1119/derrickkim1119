@@ -5,17 +5,24 @@
  *   옮겨 타는 순간 ① 버린 몸이 펑(둘레의 적이 함께 터짐) ② 새 몸은 체력 가득·잠깐 무적·등장 기술 한 방.
  *   유령 기운 고리가 다 차야(약 1초) 다시 갈아탄다 — 연타는 소용없다. 정답 있는 판·수 제한·되돌리기·힌트 없음: 어떻게 타도 판은 깨진다.
  * 뒤집힘: 센 적이 나올수록 반갑다(다음에 탈 몸). 적은 '쓰러뜨릴 것'이 아니라 '탈 것'이고, 가장 쉬운 처치는 타고 나서 버리는 것.
- * 0.5초짜리 판단 셋: 누가 세 보이나(큰 놈) · 지금 버리면 몇 마리가 터지나(몸 옆 숫자 딱지 — 한 몸에 오래 버틸수록 적이 멀리서도 몰려와 커진다)
+ * 타고 있는 동안이 구경거리: 몸마다 저절로 하는 짓이 다르다 — 곰은 느리지만 주먹 한 방이 크고, 고슴도치는 멈추지 않고 데굴데굴 핀볼처럼 튕기고,
+ *   개구리는 2초마다 혀로 하나씩 끌어와 꿀꺽, 염소는 마당을 가로질러 왔다 갔다 박고, 거북은 등껍질로 빙글빙글 튕겨 내고, 구름은 찌릿찌릿,
+ *   버섯은 포자를 퐁퐁, 너구리는 분신과 나뭇잎을 던진다(이렇게 쓰러뜨린 적은 '한 번에' 수에 들지 않는다).
+ * 0.5초짜리 판단 셋: 누가 세 보이나(큰 놈) · 지금 버리면 몇 마리가 터지나(내 몸 둘레의 펑 범위 고리 — 안에 든 적이 반짝이고, 많이 들수록
+ *   고리가 굵고 밝아지며 다섯부터 두근두근. 한 몸에 오래 버틸수록 적이 멀리서도 먼지를 일으키며 몰려온다: 내 몸 위에 '!' 한 번)
  *   · 지금 몸이 위험한가(체력 띠가 빨갛게 깜박 — 쓰러지면 펑도 못 하고 유령이 튀어나온다). 갈아타면 멀리 있던 적은 나를 놓친다(?).
- * 몸이 쓰러지면 유령이 튀어나와 3초 떠다닌다 — 아무 적이나 톡 하면 복귀. 3초가 지나면 하트 -1 뒤 가장 가까운 적에게 저절로 들어간다.
- *   판 시작엔 유령이 등불 위에 안전하게 앉아 있다(첫 톡 전에는 적들끼리 투닥거릴 뿐 아무도 다치지 않는다). 1판은 하트를 잃지 않는다.
- * 판 12개(장 3 × 4판, 장 끝은 대장): 1 돌주먹 곰(쿵 — 둘레) → 2 가시 고슴도치(데굴데굴 — 줄) → 3 긴 혀 개구리(쭈욱 — 끌어모으기) → 4 대장 멧돼지
- *   → 5 폭탄 두더지(타자마자 대폭발, 유령은 튀어나옴) → 6 박치기 염소(돌진 — 밀려난 적이 도미노) → 7 방패 거북(빙글 — 튼튼, 모으기) → 8 대장 집게
- *   → 9 번개 구름(연쇄 번개) → 10 포자 버섯(묻은 적은 터질 때 옆도 터뜨림) → 11 분신 너구리(분신 둘 — 펑이 세 번) → 12 대장 천둥 용.
- * 대장: 왕관 보호막 때문에 못 탄다 → 졸개 몸의 펑·기술로 보호막을 깨면 졸개들이 대장을 지키러 뛰어든다 → 마당이 찼을 때 '대장 몸에 타기!' → 온 마당 싹쓸이.
+ * 몸이 쓰러지면 유령이 튀어나와 4초 떠다닌다(그동안 세상이 살짝 느려지고 탈 수 있는 적에 손가락) — 아무 적이나 톡 하면 복귀.
+ *   4초가 지나면 하트 -1 뒤 가장 가까운 적에게 저절로 들어간다(막힘 없음). 판 시작엔 유령이 등불 위에 안전하게 앉아 있다
+ *   (첫 톡 전에는 적들끼리 투닥거릴 뿐 아무도 다치지 않는다). 1판은 하트를 잃지 않는다.
+ * 판 12개(장 3 × 4판, 장 끝은 대장): 1 돌주먹 곰 → 2 가시 고슴도치 → 3 긴 혀 개구리 → 4 대장 멧돼지 → 5 폭탄 두더지(타자마자 대폭발, 유령은 튀어나옴)
+ *   → 6 박치기 염소 → 7 방패 거북 → 8 대장 집게 → 9 번개 구름(연쇄 번개) → 10 포자 버섯(묻은 적은 터질 때 옆도 터뜨림) → 11 분신 너구리(펑이 세 번) → 12 대장 천둥 용.
+ *   한 판은 사람 기준 30~45초: 첫 떼는 마당에 서 있고, 뒤 물결은 마당이 비는 대로 쉴 틈 없이 문에서 우르르 뛰어 들어온다.
+ * 대장(순수한 보상): 왕관 보호막 때문에 못 탄다 → 졸개 몸의 펑·기술로 보호막을 깨면 그 뒤로는 언제 타도 온 마당을 쓰는 큰 기술(때 맞추기 없음).
+ *   대장 판의 별 셋째는 '보호막을 깨는 동안 한 번에 N마리'(대장을 타는 순간과 무관).
  * 성장: 판을 깨면 유령 레벨 +1(펑 크기·기술 세기·유령 모습: 목도리 → 고깔 → 망토 → 왕관) · 장 끝에 마당의 큰 물건 둘 중 하나를 톡
  *   (쌍둥이 북 / 얼음 종 · 큰 자석 / 번개 깃발) · 도감 = 타 본 몸 13가지.
- * 별(쉬운 말 셋): 마당 비우기 · 몸 안 쓰러지기 · 한 번에 N마리. 점수: 한 번에 n번째로 터진 적은 4·n², 판 점수는 별 수로 곱해진다(×1·×2·×4).
+ * 별(쉬운 말 셋): 마당 비우기 · 몸 안 쓰러지기 · 한 번에 N마리. 점수(판당 수백~수천): 한 번에 n번째로 터진 적은 ⌈n²/4⌉점, 판 점수는 별 수로 곱해진다(×1·×2·×4).
+ * 큰 띠('N마리 한 방!')는 그 판의 최고 기록을 넘을 때·별 셋째를 딸 때·대장 보호막/타기에만 — 나머지는 펑 자리에 작은 숫자. 큰 글자는 한 번에 하나.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -29,13 +36,13 @@ const HOME_X = 0.5, HOME_Y = 0.345;
 /** 한 화면의 적 상한(내 몸까지 24) · 유령 기운이 차는 틱 · 날아가는 틱 · 새 몸 무적 · 쓰러진 뒤 어질 · 몸 밖에서 버티는 틱(4초) */
 const CAP = 23, CHARGE_T = 62, FLY_T = 9, INV_T = 50, DIZZY_T = 30, OUT_T = 240;
 /** 문(울타리 가운데): 새 떼가 우르르 들어오는 곳 · 한 마리씩 들어오는 간격(틱) · 유령이 떠다니는 동안 세상이 흐르는 빠르기 */
-const GATE_X = 0.5, GATE_Y = 0.395, GATE_EVERY = 4, FLOAT_SLOW = 0.55;
+const GATE_X = 0.5, GATE_Y = 0.395, GATE_EVERY = 8, FLOAT_SLOW = 0.55;
 /** 결과 화면: 톡 받기 시작 · 저절로 넘어감 / 둘 중 하나: 톡 받기 시작 · 저절로 고름 · 고른 뒤 */
 const RES_MIN = 90, RES_AUTO = 420, PICK_MIN = 40, PICK_AUTO = 900, PICK_AFTER = 64, END_T = 210;
 /** 점수(판당 수백~수천): 한 번에 n번째로 터진 적은 ⌈n²/4⌉점, 저절로 쓰러뜨린 적은 1점 · 판 점수는 별 수만큼 곱해진다(별 하나 ×1 · 둘 ×2 · 셋 ×4) */
 const WOW_N = 4, CLEAR_PTS = 20, STAR_MUL = [1, 1, 2, 4], WIN_PTS = 100;
 /** 내 몸 둘레 이만큼 안의 적이 화를 내고 덤빈다 — 한 몸에 오래 있을수록(AGGRO_WAIT틱 뒤부터 틱마다 AGGRO_UP) 멀리서도 몰려온다. 갈아타면 멀리 있던 적은 나를 놓친다 */
-const AGGRO_R = 0.17, AGGRO_WAIT = 45, AGGRO_UP = 0.005, AGGRO_MAX = 0.8, MAD_SPD = 1.4;
+const AGGRO_R = 0.17, AGGRO_WAIT = 45, AGGRO_UP = 0.003, AGGRO_MAX = 0.8, MAD_SPD = 1.2;
 
 type K = 'bean' | 'bear' | 'hedge' | 'frog' | 'mole' | 'goat' | 'turtle' | 'cloud' | 'shroom' | 'tanuki' | 'boar' | 'crab' | 'dragon';
 /** 적일 때 공격 — 모양: 0 제자리 원 · 1 겨눈 곳 원 · 2 줄 돌진 · 3 줄(혀·숨결, 제자리) */
@@ -47,12 +54,12 @@ const F = (shape: 0 | 1 | 2 | 3, range: number, r: number, len: number, wind: nu
 const M = (range: number, r: number, per: number, dmg: number): MyAtk => ({ range, r, per, dmg });
 export const KD: Record<K, KDef> = {
   bean: { name: '콩알이', skill: '콩!', line: '작고 약해요. 급할 때만 타요', r: 0.034, hp: 12, spd: 0.003, foe: F(1, 0.075, 0.05, 0, 22, 62, 3), me: M(0.07, 0.045, 40, 7), pop: 0.1 },
-  bear: { name: '돌주먹 곰', skill: '쿵!', line: '타면 쿵! 둘레를 한 번에', r: 0.066, hp: 64, spd: 0.0021, foe: F(0, 0.115, 0.15, 0, 54, 90, 15), me: M(0.1, 0.07, 50, 10), pop: 0.17 },
-  hedge: { name: '가시 고슴도치', skill: '데굴데굴!', line: '타면 데굴데굴 줄지어 꿰뚫어요', r: 0.046, hp: 38, spd: 0.0034, foe: F(2, 0.34, 0.05, 0.5, 40, 84, 9), me: M(0.08, 0.045, 32, 7), pop: 0.145 },
-  frog: { name: '긴 혀 개구리', skill: '쭈욱!', line: '타면 쭈욱! 멀리 있는 적을 끌어모아요', r: 0.05, hp: 34, spd: 0.0026, foe: F(3, 0.36, 0.04, 0.42, 36, 92, 6), me: M(0.28, 0.04, 46, 8), pop: 0.15 },
+  bear: { name: '돌주먹 곰', skill: '쿵!', line: '타면 쿵! 느리지만 주먹 한 방이 커요', r: 0.066, hp: 64, spd: 0.0021, foe: F(0, 0.115, 0.15, 0, 54, 90, 15), me: M(0.1, 0.07, 50, 10), pop: 0.17 },
+  hedge: { name: '가시 고슴도치', skill: '데굴데굴!', line: '타면 데굴데굴! 핀볼처럼 통통 튕겨요', r: 0.046, hp: 38, spd: 0.0034, foe: F(2, 0.34, 0.05, 0.5, 40, 84, 9), me: M(0.08, 0.045, 32, 7), pop: 0.145 },
+  frog: { name: '긴 혀 개구리', skill: '쭈욱!', line: '타면 쭈욱 끌어모으고 하나씩 꿀꺽', r: 0.05, hp: 34, spd: 0.0026, foe: F(3, 0.36, 0.04, 0.42, 36, 92, 6), me: M(0.28, 0.04, 46, 8), pop: 0.15 },
   mole: { name: '폭탄 두더지', skill: '대폭발!', line: '타자마자 대폭발! 유령은 튀어나와요', r: 0.043, hp: 26, spd: 0.004, foe: F(0, 0.08, 0.16, 0, 56, 0, 24), me: M(0.07, 0.045, 40, 7), pop: 0.14 },
-  goat: { name: '박치기 염소', skill: '돌진!', line: '타면 돌진! 밀려난 적이 도미노처럼', r: 0.052, hp: 48, spd: 0.0028, foe: F(2, 0.5, 0.06, 0.75, 48, 100, 14), me: M(0.09, 0.05, 44, 10), pop: 0.15 },
-  turtle: { name: '방패 거북', skill: '빙글빙글!', line: '튼튼해요. 타면 빙글 돌며 적을 끌어모아요', r: 0.064, hp: 130, spd: 0.0014, foe: F(0, 0.1, 0.11, 0, 40, 84, 7), me: M(0.09, 0.07, 52, 8), pop: 0.2 },
+  goat: { name: '박치기 염소', skill: '돌진!', line: '타면 왔다 갔다 쿵! 적이 도미노처럼', r: 0.052, hp: 48, spd: 0.0028, foe: F(2, 0.5, 0.06, 0.75, 48, 100, 14), me: M(0.09, 0.05, 44, 10), pop: 0.15 },
+  turtle: { name: '방패 거북', skill: '빙글빙글!', line: '튼튼해요. 빙글빙글 모았다가 통통 튕겨 내요', r: 0.064, hp: 130, spd: 0.0014, foe: F(0, 0.1, 0.11, 0, 40, 84, 7), me: M(0.09, 0.07, 52, 8), pop: 0.2 },
   cloud: { name: '번개 구름', skill: '찌릿찌릿!', line: '타면 번개가 적에서 적으로 줄줄이', r: 0.052, hp: 32, spd: 0.0024, foe: F(1, 0.4, 0.075, 0, 46, 84, 9), me: M(0.3, 0.04, 38, 8), pop: 0.145 },
   shroom: { name: '포자 버섯', skill: '포자 퐁!', line: '포자 묻은 적은 터질 때 옆도 터뜨려요', r: 0.048, hp: 42, spd: 0.0018, foe: F(0, 0.1, 0.14, 0, 50, 100, 7), me: M(0.09, 0.06, 50, 8), pop: 0.15 },
   tanuki: { name: '분신 너구리', skill: '분신 뿅!', line: '분신 둘이 생겨 펑이 세 번 터져요', r: 0.05, hp: 42, spd: 0.003, foe: F(1, 0.09, 0.06, 0, 30, 72, 8), me: M(0.08, 0.045, 38, 8), pop: 0.145 },
@@ -73,21 +80,22 @@ export const CHAPTERS = ['풀밭 씨름 마당', '바닷가 모래 마당', '구
 const W = (need: number, wait: number, ...mons: [K, number][]): Wave => ({ need, wait, mons });
 /**
  * 판 12개. 첫 떼는 마당에 미리 흩어져 서로 투닥거리고(구경거리), 다음 물결은 마당의 적이 need 아래로 줄면 쉴 틈 없이 문으로 우르르 들어온다.
- * 사람 기준 한 판 30~45초 · 갈아타기 8~14번이 되게 물결 2~3개(대장 판은 졸개를 계속 부른다).
+ * 사람 기준 한 판 30~45초 · 갈아타기 8~14번이 되게 문으로 들어오는 물결 4~5개(대장 판은 졸개를 계속 부른다).
+ * 물결을 둘셋으로 크게 묶으면 마당이 늘 꽉 차서 아무 때나 갈아타도 별 셋이 나온다(버릇 봇 71%) — 한 물결 17마리쯤이 '붐빌 때를 고르는 맛'을 지킨다.
  */
 export const STAGES: StageDef[] = [
-  { key: 'bear', ch: 0, name: '돌주먹 곰', news: '타면 쿵! 둘레를 한 번에', n: 5, waves: [W(0, 0, ['bear', 2], ['bean', 12]), W(6, 420, ['bear', 2], ['bean', 14]), W(7, 480, ['bear', 2], ['bean', 15]), W(7, 480, ['bear', 1], ['bean', 10])] },
-  { key: 'hedge', ch: 0, name: '가시 고슴도치', news: '타면 데굴데굴 핀볼처럼 튕겨요', n: 8, waves: [W(0, 0, ['hedge', 2], ['bear', 1], ['bean', 14]), W(8, 480, ['hedge', 2], ['bear', 1], ['bean', 14]), W(8, 480, ['hedge', 2], ['bear', 1], ['bean', 14]), W(8, 480, ['hedge', 1], ['bear', 1], ['bean', 12])] },
-  { key: 'frog', ch: 0, name: '긴 혀 개구리', news: '타면 쭈욱! 끌어모아 하나씩 꿀꺽', n: 11, waves: [W(0, 0, ['frog', 1], ['bear', 2], ['hedge', 1], ['bean', 14]), W(8, 480, ['frog', 1], ['bear', 2], ['bean', 14]), W(8, 480, ['frog', 1], ['bear', 1], ['hedge', 1], ['bean', 14]), W(8, 480, ['frog', 1], ['bear', 2], ['bean', 12])] },
-  { key: 'boar', ch: 0, name: '대장 멧돼지', news: '왕관 보호막을 깨면 탈 수 있어요', n: 9, shield: 260, summon: [['bear', 1], ['hedge', 1], ['bean', 8]], swarm: [['hedge', 2], ['bear', 2], ['frog', 1], ['bean', 16]], waves: [W(0, 0, ['boar', 1], ['bear', 1], ['frog', 1], ['hedge', 1], ['bean', 11])] },
-  { key: 'mole', ch: 1, name: '폭탄 두더지', news: '타자마자 대폭발! 유령은 튀어나와요', n: 11, waves: [W(0, 0, ['mole', 2], ['bear', 1], ['hedge', 1], ['bean', 14]), W(8, 480, ['mole', 2], ['frog', 1], ['bean', 14]), W(8, 480, ['mole', 2], ['bear', 1], ['bean', 14]), W(8, 480, ['mole', 1], ['hedge', 2], ['bean', 13])] },
-  { key: 'goat', ch: 1, name: '박치기 염소', news: '타면 마당을 가로질러 왔다 갔다 쿵', n: 11, waves: [W(0, 0, ['goat', 2], ['mole', 1], ['bear', 1], ['bean', 14]), W(8, 480, ['goat', 2], ['frog', 1], ['bean', 14]), W(8, 480, ['goat', 1], ['mole', 2], ['bean', 14]), W(8, 480, ['goat', 1], ['hedge', 1], ['bear', 1], ['bean', 13])] },
-  { key: 'turtle', ch: 1, name: '방패 거북', news: '튼튼해요. 빙글빙글 돌며 통통 튕겨 내요', n: 12, waves: [W(0, 0, ['turtle', 1], ['goat', 1], ['mole', 2], ['bean', 14]), W(8, 480, ['turtle', 1], ['hedge', 2], ['bean', 14]), W(8, 480, ['turtle', 1], ['goat', 1], ['mole', 1], ['bean', 14]), W(8, 480, ['bear', 1], ['frog', 1], ['mole', 1], ['bean', 13])] },
-  { key: 'crab', ch: 1, name: '대장 집게', news: '두 집게로 쿵쿵. 보호막을 깨고 타요', n: 9, shield: 380, summon: [['mole', 1], ['goat', 1], ['bean', 8]], swarm: [['turtle', 1], ['mole', 2], ['goat', 2], ['bean', 16]], waves: [W(0, 0, ['crab', 1], ['turtle', 1], ['goat', 1], ['mole', 1], ['bean', 11])] },
-  { key: 'cloud', ch: 2, name: '번개 구름', news: '타면 번개가 적에서 적으로 줄줄이', n: 12, waves: [W(0, 0, ['cloud', 2], ['goat', 1], ['turtle', 1], ['bean', 14]), W(8, 480, ['cloud', 2], ['mole', 1], ['bean', 14]), W(8, 480, ['cloud', 1], ['bear', 1], ['frog', 1], ['bean', 14]), W(8, 480, ['cloud', 1], ['goat', 1], ['mole', 1], ['bean', 13])] },
-  { key: 'shroom', ch: 2, name: '포자 버섯', news: '포자 묻은 적은 터질 때 옆도 터뜨려요', n: 15, waves: [W(0, 0, ['shroom', 2], ['cloud', 1], ['goat', 1], ['bean', 14]), W(8, 480, ['shroom', 1], ['frog', 1], ['mole', 1], ['bean', 14]), W(8, 480, ['shroom', 2], ['bear', 1], ['bean', 14]), W(8, 480, ['shroom', 1], ['cloud', 1], ['hedge', 1], ['bean', 13])] },
-  { key: 'tanuki', ch: 2, name: '분신 너구리', news: '분신 둘이 생겨 펑이 세 번 터져요', n: 15, waves: [W(0, 0, ['tanuki', 2], ['shroom', 1], ['cloud', 1], ['bean', 14]), W(8, 480, ['tanuki', 1], ['turtle', 1], ['mole', 1], ['bean', 14]), W(8, 480, ['tanuki', 2], ['goat', 1], ['bean', 14]), W(8, 480, ['tanuki', 1], ['shroom', 1], ['cloud', 1], ['bean', 13])] },
-  { key: 'dragon', ch: 2, name: '대장 천둥 용', news: '마지막 대장. 타면 온 마당에 벼락', n: 10, shield: 500, summon: [['cloud', 1], ['tanuki', 1], ['bean', 8]], swarm: [['shroom', 1], ['tanuki', 1], ['goat', 2], ['cloud', 1], ['bean', 16]], waves: [W(0, 0, ['dragon', 1], ['tanuki', 1], ['shroom', 1], ['cloud', 1], ['bean', 11])] },
+  { key: 'bear', ch: 0, name: '돌주먹 곰', news: '타면 쿵! 둘레를 한 번에', n: 5, waves: [W(0, 0, ['bear', 2], ['bean', 12]), W(6, 420, ['bear', 2], ['bean', 14]), W(7, 480, ['bear', 2], ['bean', 15]), W(7, 480, ['bear', 2], ['bean', 14]), W(7, 480, ['bear', 1], ['bean', 10])] },
+  { key: 'hedge', ch: 0, name: '가시 고슴도치', news: '타면 데굴데굴 핀볼처럼 튕겨요', n: 8, waves: [W(0, 0, ['hedge', 2], ['bear', 1], ['bean', 14]), W(8, 480, ['hedge', 2], ['bear', 1], ['bean', 14]), W(8, 480, ['hedge', 2], ['bear', 1], ['bean', 14]), W(8, 480, ['hedge', 2], ['bear', 1], ['bean', 14]), W(8, 480, ['hedge', 1], ['bear', 1], ['bean', 12])] },
+  { key: 'frog', ch: 0, name: '긴 혀 개구리', news: '타면 쭈욱! 끌어모아 하나씩 꿀꺽', n: 11, waves: [W(0, 0, ['frog', 1], ['bear', 2], ['hedge', 1], ['bean', 14]), W(8, 480, ['frog', 1], ['bear', 2], ['bean', 14]), W(8, 480, ['frog', 1], ['bear', 1], ['hedge', 1], ['bean', 14]), W(8, 480, ['frog', 1], ['bear', 2], ['bean', 14]), W(8, 480, ['frog', 1], ['bear', 2], ['bean', 12])] },
+  { key: 'boar', ch: 0, name: '대장 멧돼지', news: '왕관 보호막을 깨면 탈 수 있어요', n: 8, shield: 260, summon: [['bear', 1], ['hedge', 1], ['bean', 8]], swarm: [['hedge', 2], ['bear', 2], ['frog', 1], ['bean', 16]], waves: [W(0, 0, ['boar', 1], ['bear', 1], ['frog', 1], ['hedge', 1], ['bean', 11])] },
+  { key: 'mole', ch: 1, name: '폭탄 두더지', news: '타자마자 대폭발! 유령은 튀어나와요', n: 11, waves: [W(0, 0, ['mole', 2], ['bear', 1], ['hedge', 1], ['bean', 14]), W(8, 480, ['mole', 2], ['frog', 1], ['bean', 14]), W(8, 480, ['mole', 2], ['bear', 1], ['bean', 14]), W(8, 480, ['mole', 2], ['frog', 1], ['bean', 14]), W(8, 480, ['mole', 1], ['hedge', 2], ['bean', 13])] },
+  { key: 'goat', ch: 1, name: '박치기 염소', news: '타면 마당을 가로질러 왔다 갔다 쿵', n: 10, waves: [W(0, 0, ['goat', 2], ['mole', 1], ['bear', 1], ['bean', 14]), W(8, 480, ['goat', 2], ['frog', 1], ['bean', 14]), W(8, 480, ['goat', 1], ['mole', 2], ['bean', 14]), W(8, 480, ['goat', 2], ['bear', 1], ['bean', 14]), W(8, 480, ['goat', 1], ['hedge', 1], ['bear', 1], ['bean', 13])] },
+  { key: 'turtle', ch: 1, name: '방패 거북', news: '튼튼해요. 빙글빙글 돌며 통통 튕겨 내요', n: 12, waves: [W(0, 0, ['turtle', 1], ['goat', 1], ['mole', 2], ['bean', 14]), W(8, 480, ['turtle', 1], ['hedge', 2], ['bean', 14]), W(8, 480, ['turtle', 1], ['goat', 1], ['mole', 1], ['bean', 14]), W(8, 480, ['turtle', 1], ['goat', 1], ['hedge', 1], ['bean', 14]), W(8, 480, ['bear', 1], ['frog', 1], ['mole', 1], ['bean', 13])] },
+  { key: 'crab', ch: 1, name: '대장 집게', news: '두 집게로 쿵쿵. 보호막을 깨고 타요', n: 8, shield: 380, summon: [['mole', 1], ['goat', 1], ['bean', 8]], swarm: [['turtle', 1], ['mole', 2], ['goat', 2], ['bean', 16]], waves: [W(0, 0, ['crab', 1], ['turtle', 1], ['goat', 1], ['mole', 1], ['bean', 11])] },
+  { key: 'cloud', ch: 2, name: '번개 구름', news: '타면 번개가 적에서 적으로 줄줄이', n: 12, waves: [W(0, 0, ['cloud', 2], ['goat', 1], ['turtle', 1], ['bean', 14]), W(8, 480, ['cloud', 2], ['mole', 1], ['bean', 14]), W(8, 480, ['cloud', 1], ['bear', 1], ['frog', 1], ['bean', 14]), W(8, 480, ['cloud', 2], ['turtle', 1], ['bean', 14]), W(8, 480, ['cloud', 1], ['hedge', 1], ['bear', 1], ['bean', 14]), W(8, 480, ['cloud', 1], ['goat', 1], ['mole', 1], ['bean', 13])] },
+  { key: 'shroom', ch: 2, name: '포자 버섯', news: '포자 묻은 적은 터질 때 옆도 터뜨려요', n: 15, waves: [W(0, 0, ['shroom', 2], ['cloud', 1], ['goat', 1], ['bean', 14]), W(8, 480, ['shroom', 1], ['frog', 1], ['mole', 1], ['bean', 14]), W(8, 480, ['shroom', 2], ['bear', 1], ['bean', 14]), W(8, 480, ['shroom', 2], ['goat', 1], ['bean', 14]), W(8, 480, ['shroom', 1], ['turtle', 1], ['bean', 14]), W(8, 480, ['shroom', 1], ['cloud', 1], ['hedge', 1], ['bean', 13])] },
+  { key: 'tanuki', ch: 2, name: '분신 너구리', news: '분신 둘이 생겨 펑이 세 번 터져요', n: 15, waves: [W(0, 0, ['tanuki', 2], ['shroom', 1], ['cloud', 1], ['bean', 14]), W(8, 480, ['tanuki', 1], ['turtle', 1], ['mole', 1], ['bean', 14]), W(8, 480, ['tanuki', 2], ['goat', 1], ['bean', 14]), W(8, 480, ['tanuki', 2], ['cloud', 1], ['bean', 14]), W(8, 480, ['tanuki', 1], ['frog', 1], ['bear', 1], ['bean', 14]), W(8, 480, ['tanuki', 1], ['shroom', 1], ['cloud', 1], ['bean', 13])] },
+  { key: 'dragon', ch: 2, name: '대장 천둥 용', news: '마지막 대장. 타면 온 마당에 벼락', n: 9, shield: 500, summon: [['cloud', 1], ['tanuki', 1], ['bean', 8]], swarm: [['shroom', 1], ['tanuki', 1], ['goat', 2], ['cloud', 1], ['bean', 16]], waves: [W(0, 0, ['dragon', 1], ['tanuki', 1], ['shroom', 1], ['cloud', 1], ['bean', 11])] },
 ];
 export const STAGE_COUNT = STAGES.length;
 /** 장 끝 둘 중 하나(마당의 큰 물건) */
@@ -1234,7 +1242,7 @@ const game: GameDef<HopState> & { wows(s: HopState): number } = {
   rules: [
     '적을 톡 하면 유령이 그 몸으로 옮겨 타요. 싸움은 몸이 저절로 해요.',
     '버린 몸은 펑! 둘레의 적이 함께 터지고, 새 몸은 타자마자 큰 기술 한 방.',
-    '몸이 쓰러지면 3초 안에 아무 적이나 톡. 마당을 비우면 다음 판!',
+    '몸이 쓰러지면 4초 안에 아무 적이나 톡. 마당을 비우면 다음 판!',
   ],
   controls: 'touch',
   hint: '적을 톡 — 유령이 그 몸으로 옮겨 타요 / 화살표로 고르고 스페이스',
@@ -1390,7 +1398,7 @@ export const bodyhopSmart: Bot<HopState> = {
     if (!canHop(s)) return NO;
     const b = body(s), d = STAGES[s.stage];
     // 별 셋째는 (대장 판에서는 보호막이 깨지기 전까지) 한 번에 N마리 — 아직이면 붐빌 때까지 버틴다
-    const seek = s.best < d.n && !s.sealed, n = others(s), want = Math.min(Math.max(1, n - 1), seek ? d.n : 5);
+    const seek = s.best < d.n && !s.sealed, n = others(s), want = Math.min(Math.max(1, n - 1), seek ? d.n : Math.max(6, d.n - 3));
     let best: Mon | null = null, bv = -1e9, bk = 0, setup: Mon | null = null, sn = 0, popNow = 0;
     for (const m of s.mons) {
       if (!ridable(s, m)) continue;
@@ -1413,7 +1421,7 @@ export const bodyhopSmart: Bot<HopState> = {
     if (urgent || bk >= want) return tapOn(best);
     // 모으는 수: 끌어모으는 몸(개구리·거북·버섯·너구리) 둘레가 붐비고 지금 펑이 작으면, 먼저 타서 모은 뒤 다음에 터뜨린다
     if (seek && setup && sn >= 7 && popNow < 4 && setup.k !== b.k) return tapOn(setup);
-    if (waited > (seek ? 200 : 60)) return tapOn(best);
+    if (waited > (seek ? 200 : 140)) return tapOn(best);
     return NO;
   },
 };
@@ -1546,12 +1554,12 @@ function ink(g: C2, fill: string | CanvasGradient, lw = LW, stroke = OUT) {
 // ───────────────────────────── 그리기: 몬스터 스티커 ─────────────────────────────
 /** 단위 좌표: 몸 반지름 = 1, 발 가운데 = (0,0), 위쪽이 -y. 테두리 굵기 */
 const LW = 0.1;
-/** 표정: 평소 · 화남 · 뜸(으르렁) · 아야 · 어질 · 유령이 탐 · 유령이 탄 채 아야 · 신남 */
-const M_IDLE = 0, M_ANGRY = 1, M_WIND = 2, M_HURT = 3, M_DIZZY = 4, M_MINE = 5, M_MINEHIT = 6, M_HAPPY = 7;
+/** 표정: 평소 · 화남 · 뜸(으르렁) · 아야 · 어질 · 유령이 탐 · 유령이 탄 채 아야 · 신남 · 유령이 탄 채 으랏차 */
+const M_IDLE = 0, M_ANGRY = 1, M_WIND = 2, M_HURT = 3, M_DIZZY = 4, M_MINE = 5, M_MINEHIT = 6, M_HAPPY = 7, M_MINEATK = 8;
 
 /** 얼굴: (cx,cy) = 두 눈 사이, e = 눈 간격의 절반, s = 눈 크기, my = 입까지 거리(0이면 입 없음), mw = 입 너비 배수 */
 function face(g: C2, cx: number, cy: number, e: number, s: number, mood: number, my: number, mw = 1) {
-  const mine = mood === M_MINE || mood === M_MINEHIT;
+  const mine = mood === M_MINE || mood === M_MINEHIT || mood === M_MINEATK, roar = mood === M_WIND || mood === M_MINEATK;
   g.lineCap = 'round';
   for (const sd of [-1, 1]) {
     const x = cx + sd * e, y = cy;
@@ -1580,7 +1588,7 @@ function face(g: C2, cx: number, cy: number, e: number, s: number, mood: number,
       g.arc(x, y + s * 0.3, s * 0.7, Math.PI * 1.12, Math.PI * 1.88);
       g.stroke();
     } else {
-      const wide = mood === M_WIND ? 1.12 : 1;
+      const wide = roar ? 1.12 : 1;
       ell(g, x, y, s * 0.86 * wide, s * 1.0 * wide);
       ink(g, mine ? '#e9ffff' : '#ffffff', s * 0.2);
       if (mine) {
@@ -1591,14 +1599,14 @@ function face(g: C2, cx: number, cy: number, e: number, s: number, mood: number,
         g.fillStyle = '#ffffff';
         g.fill();
       } else {
-        ell(g, x + s * 0.1, y + s * (mood === M_WIND ? 0 : 0.1), s * (mood === M_WIND ? 0.34 : 0.46), s * (mood === M_WIND ? 0.4 : 0.56));
+        ell(g, x + s * 0.1, y + s * (roar ? 0 : 0.1), s * (roar ? 0.34 : 0.46), s * (roar ? 0.4 : 0.56));
         g.fillStyle = '#2a1a12';
         g.fill();
         ell(g, x - s * 0.06, y - s * 0.16, s * 0.17, s * 0.2);
         g.fillStyle = '#ffffff';
         g.fill();
       }
-      if (mood === M_ANGRY || mood === M_WIND) {
+      if (mood === M_ANGRY || roar) {
         g.strokeStyle = OUT;
         g.lineWidth = s * 0.42;
         g.beginPath();
@@ -1612,7 +1620,7 @@ function face(g: C2, cx: number, cy: number, e: number, s: number, mood: number,
   const y = cy + my, w = s * 1.25 * mw;
   g.strokeStyle = OUT;
   g.lineWidth = s * 0.3;
-  if (mood === M_WIND) {
+  if (roar) {
     ell(g, cx, y + s * 0.2, w * 0.75, s * 0.8);
     ink(g, '#8c2f2f', s * 0.26);
     ell(g, cx, y + s * 0.55, w * 0.42, s * 0.34);
@@ -1723,7 +1731,7 @@ const PAINT: Record<K, (g: C2, mood: number, v: number) => void> = {
     ell(g, 0, -1.1, 0.15, 0.1);
     g.fillStyle = '#3a2418';
     g.fill();
-    face(g, 0, -1.36, 0.42, 0.2, mood === M_IDLE ? M_ANGRY : mood, mood === M_WIND || mood === M_HURT || mood === M_MINEHIT ? 0.52 : 0.46, 0.8);
+    face(g, 0, -1.36, 0.42, 0.2, mood === M_IDLE ? M_ANGRY : mood, mood === M_WIND || mood === M_MINEATK || mood === M_HURT || mood === M_MINEHIT ? 0.52 : 0.46, 0.8);
     // 돌주먹
     for (const sd of [-1, 1]) {
       ell(g, sd * 1.12, -0.6, 0.47, 0.44);
@@ -2039,7 +2047,7 @@ const PAINT: Record<K, (g: C2, mood: number, v: number) => void> = {
     shine(g, -0.55, -1.36, 0.3, 0.11);
     face(g, 0, -2.02, 0.42, 0.24, mood === M_IDLE ? M_ANGRY : mood, 0);
     // 입
-    const mm = mood === M_WIND ? 0.26 : 0.1;
+    const mm = mood === M_WIND || mood === M_MINEATK ? 0.26 : 0.1;
     ell(g, 0, -0.98, 0.36, mm);
     ink(g, '#7a2a1c', LW * 0.7);
     blush(g, 0, -0.98, 0.72, 0.14);
@@ -2092,15 +2100,16 @@ const PAINT: Record<K, (g: C2, mood: number, v: number) => void> = {
     ink(g, '#a8bcff', LW * 0.8);
     g.fillStyle = '#34449a';
     for (const sd of [-1, 1]) ell(g, sd * 0.2, -1.08, 0.06, 0.08), g.fill();
-    face(g, 0, -1.45, 0.44, 0.19, mood === M_IDLE ? M_ANGRY : mood, mood === M_WIND ? 0.62 : 0.58, 0.9);
+    face(g, 0, -1.45, 0.44, 0.19, mood === M_IDLE ? M_ANGRY : mood, mood === M_WIND || mood === M_MINEATK ? 0.62 : 0.58, 0.9);
     crown(g, 0, -2.02, 0.36);
   },
 };
 /** 타일 조각처럼 미리 그려 둔 스티커 (종류·표정마다 한 장) */
 const SW = 4.4, SH = 3.7, SOX = 2.2, SOY = 3.1;
 const SPR = new Map<string, HTMLCanvasElement>();
+const spriteKey = (k: K, mood: number, v: number, px: number) => `${k}:${mood}:${k === 'bean' ? v % 3 : 0}:${Math.max(6, Math.round(px))}`;
 function sprite(k: K, mood: number, v: number, px: number): HTMLCanvasElement {
-  const q = Math.max(6, Math.round(px)), key = `${k}:${mood}:${v}:${q}`;
+  const q = Math.max(6, Math.round(px)), key = spriteKey(k, mood, v, px);
   let c = SPR.get(key);
   if (!c) {
     if (SPR.size > 300) SPR.clear();
@@ -2114,6 +2123,12 @@ function sprite(k: K, mood: number, v: number, px: number): HTMLCanvasElement {
     SPR.set(key, c);
   }
   return c;
+}
+/** 아직 안 구운 스티커면 굽고 true (남는 프레임에 조금씩 미리 굽기) */
+function warmSprite(k: K, mood: number, v: number, px: number) {
+  if (SPR.has(spriteKey(k, mood, v, px))) return false;
+  sprite(k, mood, v, px);
+  return true;
 }
 /** 아직 못 타 본 몸: 그림자 스티커 */
 function silhouette(k: K, px: number): HTMLCanvasElement {
@@ -2134,6 +2149,12 @@ function silhouette(k: K, px: number): HTMLCanvasElement {
     SPR.set(key, c);
   }
   return c;
+}
+/** 아직 안 구운 그림자 스티커면 굽고 true */
+function warmSil(k: K, px: number) {
+  if (SPR.has(`${k}:sil:${Math.max(6, Math.round(px))}`)) return false;
+  silhouette(k, px);
+  return true;
 }
 /** 스티커 찍기: (x,y) = 발 가운데, u = 화면에서 몸 반지름 px */
 function stamp(ctx: C2, c: HTMLCanvasElement, u: number) {
@@ -2474,22 +2495,30 @@ const PALS: Pal[] = [
   { sky: ['#4fc3ee', '#c9f3ff'], sun: '#fffbe0', far: ['#3fb9d6', '#7fdcec'], ground: ['#fbe6ac', '#f1cf85'], ring: ['#f6d79a', '#eebf74', '#dba55a'], rope: ['#ffffff', '#b9d9e8'], rim: '#d2a860', post: ['#f3ead6', '#c9b48a'], flag: ['#ff7a5c', '#ffffff', '#4fc3f7', '#ffd23f', '#58d6b0'], tuft: '#e0b868', ink: '#c99a4e' },
   { sky: ['#ffc9b8', '#d6ecff'], sun: '#fff3d0', far: ['#fff4fb', '#e6dcff'], ground: ['#f7f1ff', '#dcd2fb'], ring: ['#fff7ff', '#f1dcfb', '#dcbff2'], rope: ['#fff3b8', '#f0bc3c'], rim: '#b8a4e8', post: ['#ffe9a8', '#e0a93c'], flag: ['#ff9ecb', '#ffe36b', '#9fd8ff', '#c6a4ff', '#9ff0c4'], tuft: '#c9bdf2', ink: '#a892e0' },
 ];
-const BGS = new Map<string, HTMLCanvasElement>();
+interface BgJob { c: HTMLCanvasElement; steps: (() => void)[] }
+const BGS = new Map<string, BgJob>();
 function cloudShape(g: C2, x: number, y: number, k: number, col: string) {
   g.fillStyle = col;
   for (const [dx, dy, r] of [[-0.9, 0.1, 0.5], [-0.3, -0.25, 0.7], [0.45, -0.1, 0.6], [1.0, 0.15, 0.42], [0.1, 0.2, 0.75]]) ell(g, x + dx * k, y + dy * k, r * k, r * k * 0.8), g.fill();
 }
-/** 배경 한 장: 하늘 · 먼 풍경 · 울타리 · 바닥 · 씨름 마당 (가로 폭 w px) */
-function getBg(ch: number, w: number, h: number, sc: number): HTMLCanvasElement {
+/**
+ * 배경 한 장: 하늘 · 먼 풍경 · 바닥 · 울타리 · 씨름 마당 (가로 폭 w px). 다섯 걸음으로 나눠 굽는다 —
+ * all = false면 한 걸음만(결과 화면 동안 남는 프레임에 다음 마당을 미리 구워, 판 첫 프레임이 끊기지 않게).
+ */
+function bakeBg(ch: number, w: number, h: number, sc: number, all: boolean): BgJob {
   const key = `${ch}:${w}:${h}:${sc}`;
-  let c = BGS.get(key);
-  if (c) return c;
-  if (BGS.size > 6) BGS.clear();
-  const P = PALS[ch], R = (v: number) => v * w;
-  c = layer(w, h, sc, (g) => {
-    const HZ = R(0.33);
+  let job = BGS.get(key);
+  if (!job) {
+    if (BGS.size > 6) BGS.clear();
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.ceil(w * sc));
+    c.height = Math.max(1, Math.ceil(h * sc));
+    const g = c.getContext('2d')!;
+    g.scale(sc, sc);
     g.lineJoin = 'round';
     g.lineCap = 'round';
+    const P = PALS[ch], R = (v: number) => v * w, HZ = R(0.33);
+    job = { c, steps: [() => {
     // 하늘
     g.fillStyle = lin(g, 0, 0, 0, HZ, [0, P.sky[0]], [1, P.sky[1]]);
     g.fillRect(0, 0, w, HZ + 2);
@@ -2514,6 +2543,7 @@ function getBg(ch: number, w: number, h: number, sc: number): HTMLCanvasElement 
     cloudShape(g, R(0.18), R(0.16), R(0.05), 'rgba(255,255,255,.9)');
     cloudShape(g, R(0.62), R(0.2), R(0.035), 'rgba(255,255,255,.8)');
     cloudShape(g, R(0.4), R(0.135), R(0.025), 'rgba(255,255,255,.7)');
+  }, () => {
     // 먼 풍경
     if (ch === 0) {
       g.fillStyle = P.far[0];
@@ -2585,6 +2615,7 @@ function getBg(ch: number, w: number, h: number, sc: number): HTMLCanvasElement 
       }
       for (let i = 0; i < 7; i++) cloudShape(g, R(i * 0.17 - 0.02), HZ - R(0.01), R(0.05), i % 2 ? P.far[0] : P.far[1]);
     }
+  }, () => {
     // 바닥
     g.fillStyle = lin(g, 0, HZ, 0, h, [0, P.ground[0]], [1, P.ground[1]]);
     g.fillRect(0, HZ, w, h - HZ);
@@ -2625,6 +2656,7 @@ function getBg(ch: number, w: number, h: number, sc: number): HTMLCanvasElement 
         g.fill();
       }
     }
+  }, () => {
     // 울타리 (뒤쪽)
     const FY = R(0.378);
     if (ch !== 2) {
@@ -2678,6 +2710,7 @@ function getBg(ch: number, w: number, h: number, sc: number): HTMLCanvasElement 
     g.fill();
     g.lineWidth = R(0.005);
     g.stroke();
+  }, () => {
     // 씨름 마당
     const rx = R(AR + 0.034), ry = R((AR + 0.034) * YS), cx = R(CX), cy = R(CY);
     // 두께가 있는 단(아래로 살짝 내려 그린 옆면) + 바닥 그림자
@@ -2732,9 +2765,36 @@ function getBg(ch: number, w: number, h: number, sc: number): HTMLCanvasElement 
     g.setLineDash([R(0.008), R(0.02)]);
     g.stroke();
     g.setLineDash([]);
-  });
-  BGS.set(key, c);
-  return c;
+  }] };
+    BGS.set(key, job);
+  }
+  while (job.steps.length) {
+    job.steps.shift()!();
+    if (!all) break;
+  }
+  return job;
+}
+const getBg = (ch: number, w: number, h: number, sc: number) => bakeBg(ch, w, h, sc, true).c;
+/** 배경을 한 걸음 미리 굽는다 — 구울 것이 남아 있었으면 true */
+function warmBg(ch: number, w: number, h: number, sc: number) {
+  const job = BGS.get(`${ch}:${w}:${h}:${sc}`);
+  if (job && !job.steps.length) return false;
+  bakeBg(ch, w, h, sc, false);
+  return true;
+}
+/** 판마다 미리 구워 둘 스티커 목록: 그 판에 나오는 몸 × 표정 (콩알이는 세 빛깔) */
+const WARM = new Map<number, [K, number, number][]>();
+function warmList(stage: number): [K, number, number][] {
+  let list = WARM.get(stage);
+  if (!list) {
+    const d = STAGES[stage], kinds = new Set<K>(['bean']);
+    for (const w of d.waves) for (const [k] of w.mons) kinds.add(k);
+    for (const [k] of [...(d.summon ?? []), ...(d.swarm ?? [])]) kinds.add(k);
+    list = [];
+    for (const k of kinds) for (let mood = 0; mood <= M_MINEATK; mood++) for (let v = 0; v < (k === 'bean' ? 3 : 1); v++) list.push([k, mood, v]);
+    WARM.set(stage, list);
+  }
+  return list;
 }
 /** 구경꾼 새 (울타리 위): 0 가만히 · 1 환호 */
 const CROWD = new Map<string, HTMLCanvasElement>();
@@ -2785,7 +2845,8 @@ const KCOL: Record<K, string> = { bean: '#b8ee6a', bear: '#d9a066', hedge: '#b98
 const FOOT: Record<K, string> = { bean: '#5fa53a', bear: '#7a4a22', hedge: '#5e3c54', frog: '#3a8f36', mole: '#f6b9c0', goat: '#8a7a66', turtle: '#93c955', cloud: '#51607e', shroom: '#d9c29a', tanuki: '#6b4630', boar: '#4a2a22', crab: '#b83a22', dragon: '#34449a' };
 /** 유령 레벨이 오르면 달라지는 모습 */
 const LV_GIFT: Record<number, string> = { 3: '목도리를 둘렀어요', 5: '고깔모자를 썼어요', 7: '망토가 생겼어요', 9: '왕관을 썼어요', 11: '금빛으로 빛나요' };
-const STAR_WORDS = (s: HopState) => ['마당 비우기', '몸 안 쓰러지기', `한 번에 ${STAGES[s.stage].n}마리`];
+/** 별 셋(쉬운 말). 대장 판의 셋째는 보호막을 깨는 동안에만 딸 수 있다 — 대장을 언제 타느냐와 무관 */
+const STAR_WORDS = (s: HopState) => (STAGES[s.stage].shield ? ['비우기', '안 쓰러지기', `보호막 깨며 한 번에 ${STAGES[s.stage].n}마리`] : ['마당 비우기', '몸 안 쓰러지기', `한 번에 ${STAGES[s.stage].n}마리`]);
 const recent = new WeakMap<object, { x: number; y: number; t: number; size: number }[]>();
 
 function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
@@ -2795,6 +2856,26 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, R(sz))}px system-ui, sans-serif`);
   // 스티커 해상도는 2배까지만(느린 폰에서 첫 프레임이 무겁지 않게)
   const baseQ = (k: K) => Math.round(R(KD[k].r) * 1.12 * Math.min(2, sc));
+  // 미리 굽기(끊김 줄이기): 결과·선물 화면에서는 다음 판의 배경(한 걸음씩)과 스티커를, 판 중에는 이 판에 나올 스티커를 프레임마다 조금씩
+  {
+    const rest = s.phase === 'result' || s.phase === 'pick', ws = rest && s.stage + 1 < STAGES.length ? s.stage + 1 : s.stage;
+    // (결과 카드가 미끄러져 들어오는 첫 몇 프레임은 쉰다)
+    if (!(rest && s.pt < 12) && !(rest && warmBg(STAGES[ws].ch, Math.round(w), Math.round(h), Math.min(2, sc)))) {
+      const list = warmList(ws);
+      let i = fx.memo['wm' + ws] ?? 0, did = 0;
+      for (; i < list.length && did < (rest ? 2 : 1); i++) if (warmSprite(list[i][0], list[i][1], list[i][2], baseQ(list[i][0]))) did++;
+      fx.memo['wm' + ws] = i;
+      // 결과 화면 도감의 그림자 스티커도 판 중에 하나씩
+      if (!did) for (const k of DEX) if (warmSil(k, Math.round(R(0.03) * Math.min(2, sc)))) break;
+    }
+  }
+  /** 가장 최근에 일어난 사건의 나이(틱) */
+  const since = (k: string) => {
+    for (let i = s.events.length - 1; i >= 0; i--) if (s.events[i].k === k) return t - s.events[i].t;
+    return 999;
+  };
+  const bandOn = !!s.big && t - s.big.t < 62;
+  const floating = !b && !s.fly && !s.home && s.phase === 'play';
   const text = (str: string, x: number, y: number, fill: string, stroke = 'rgba(75,48,32,.9)', lw = 3) => {
     ctx.lineJoin = 'round';
     if (lw > 0) (ctx.lineWidth = lw), (ctx.strokeStyle = stroke), ctx.strokeText(str, x, y);
@@ -2815,6 +2896,7 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
     fx.pop(x, y, str, col, size);
   };
   const cheer = (s.big && t - s.big.t < 80) || s.phase === 'result' || (s.phase === 'end' && s.won);
+  const gulpA = since('gulp'), alertA = s.alerted ? since('alert') : 999, waveA = since('wave');
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -2852,6 +2934,31 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
     ctx.drawImage(c, X(bx) - k * 1.5, Y(0.316) - k * 2.6 - hop, k * 3, k * 3.2);
   });
 
+  // ── 문으로 우르르: 줄 선 떼가 남아 있는 동안 문에서 먼지가 인다 ──
+  if (s.phase === 'play' && (s.inbox.length > 0 || waveA < 30)) {
+    for (let i = 0; i < 5; i++) {
+      const f = (t * 0.045 + i * 0.2) % 1, sd = i % 2 ? 1 : -1;
+      ctx.fillStyle = `rgba(255,250,235,${0.7 * (1 - f)})`;
+      ell(ctx, X(GATE_X + sd * (0.03 + 0.09 * f) + 0.012 * Math.sin(i * 2.3)), Y(GATE_Y + 0.012 - 0.03 * f), R(0.016 + 0.026 * f), R(0.013 + 0.02 * f));
+      ctx.fill();
+    }
+  }
+  // ── 유령이 떠다니는 동안: 세상이 살짝 느려지고(푸른 기운) 탈 수 있는 적 발밑에 고리 ──
+  if (floating) {
+    ctx.fillStyle = 'rgba(40,70,150,.15)';
+    ctx.fillRect(0, Y(0.1), w, Y(1.205));
+    if (s.dizzy === 0)
+      for (const m of s.mons) {
+        if (!ridable(s, m)) continue;
+        const u = R(m.r) * depth(m.y), pul = 0.5 + 0.5 * Math.sin(t * 0.22 + m.id);
+        ell(ctx, X(m.x), Y(m.y), u * (1.45 + 0.2 * pul), u * (1.45 + 0.2 * pul) * YS * 0.7);
+        ctx.fillStyle = `rgba(190,245,255,${0.22 + 0.14 * pul})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(255,255,255,${0.75 + 0.25 * pul})`;
+        ctx.lineWidth = m.k === 'bean' ? 1.6 : 2.6;
+        ctx.stroke();
+      }
+  }
   // ── 바닥 표시: 새 몸 스포트라이트 · 위험(빨강) · 내 몸 고리 ──
   const spotM = s.spot && s.phase === 'play' ? s.mons.find((m) => m.id === s.spot!.id && m.id !== s.me) : undefined;
   if (spotM) {
@@ -2899,20 +3006,39 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
       ctx.fill();
     }
   }
-  let popN = 0;
+  // ── 지금 버리면 몇 마리? 숫자 대신 그림: 펑 범위 고리(많이 들수록 굵고 밝게, 다섯부터 두근두근) + 그 안의 적이 반짝 ──
+  const inPop = new Set<number>();
+  let beat = 0, popReady = false, hb = false, ringR = 0;
   if (b && s.phase === 'play') {
     const u = R(b.r) * depth(b.y), pr = popR(s, b.k), ready = s.charge >= 1, bx = X(b.x), by = Y(b.y);
-    for (const m of s.mons) if (hittable(s, m) && dist(b.x, b.y, m.x, m.y) <= pr + m.r * 0.5) popN++;
-    // 펑 범위
-    ell(ctx, bx, by, R(pr), R(pr * YS));
-    ctx.fillStyle = ready ? `rgba(120,225,255,${0.13 + 0.05 * Math.sin(t * 0.25)})` : 'rgba(120,225,255,.06)';
-    ctx.fill();
-    ctx.strokeStyle = ready ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.4)';
-    ctx.lineWidth = ready ? 2.4 : 1.4;
-    ctx.setLineDash([7, 6]);
-    ctx.lineDashOffset = ready ? -t * 0.6 : 0;
-    ctx.stroke();
-    ctx.setLineDash([]);
+    for (const m of s.mons) if (hittable(s, m) && dist(b.x, b.y, m.x, m.y) <= pr + m.r * 0.5) inPop.add(m.id);
+    const n = inPop.size, heat = Math.min(1, n / 8), ph2 = (t % 44) / 44;
+    popReady = ready;
+    hb = n >= 5 && ready;
+    // 두근두근: 쿵-쿵 두 번 뛰고 쉰다
+    beat = hb && ph2 < 0.5 ? Math.abs(Math.sin(ph2 * TAU * 2)) : 0;
+    const pr1 = R(pr) * (1 + 0.04 * beat);
+    ringR = pr1;
+    ctx.save();
+    ctx.translate(bx, by);
+    ctx.scale(1, YS);
+    ctx.beginPath();
+    ctx.arc(0, 0, pr1, 0, TAU);
+    if (ready) {
+      const col = n >= 5 ? '255,226,120' : '150,232,255';
+      ctx.fillStyle = radg(ctx, 0, 0, pr1 * 0.35, pr1, [0, `rgba(${col},0)`], [1, `rgba(${col},${0.1 + 0.22 * heat + 0.14 * beat})`]);
+      ctx.fill();
+      ctx.strokeStyle = n >= 5 ? `rgba(255,${236 + 19 * beat},${150 + 80 * beat},${0.8 + 0.2 * beat})` : `rgba(255,255,255,${0.4 + 0.5 * heat})`;
+      ctx.lineWidth = 1.5 + Math.min(8, n) * 0.8 + beat * 3;
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = 'rgba(255,255,255,.3)';
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([5, 7]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
     // 유령 기운 고리
     ell(ctx, bx, by, u * 1.45, u * 1.45 * YS * 0.62);
     ctx.strokeStyle = 'rgba(30,90,150,.35)';
@@ -2923,6 +3049,16 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
     ctx.strokeStyle = ready ? (Math.sin(t * 0.3) > 0 ? '#ffffff' : '#8ff0ff') : '#49d3ff';
     ctx.lineWidth = R(0.011);
     ctx.stroke();
+    if (b.k === 'turtle' && b.st !== SKILL) {
+      // 거북: 등껍질이 일으키는 바람
+      ell(ctx, bx, by, R(b.r + 0.03), R(b.r + 0.03) * YS);
+      ctx.strokeStyle = 'rgba(255,255,255,.55)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([R(0.04), R(0.035)]);
+      ctx.lineDashOffset = t * 4;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
     if (b.hp / b.max < 0.36) {
       ell(ctx, bx, by, u * 1.8, u * 1.8 * YS * 0.62);
       ctx.strokeStyle = `rgba(255,50,40,${0.4 + 0.5 * Math.abs(Math.sin(t * 0.3))})`;
@@ -2962,15 +3098,15 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
         ctx.lineTo(ex + Math.cos(a) * r1, ey + Math.sin(a) * r1 * YS);
       }
       ctx.stroke();
-    } else if ((e.k === 'spin' || e.k === 'frost' || e.k === 'spore' || e.k === 'burst' || e.k === 'decoy' || e.k === 'fstrike') && age < 20) {
-      const q = age / 20, r = R(e.x2) * Math.min(1, 0.35 + q * 1.5);
-      const col = e.k === 'frost' ? '150,225,255' : e.k === 'spore' || e.k === 'burst' ? '190,130,245' : e.k === 'fstrike' ? '255,80,60' : '255,255,255';
+    } else if ((e.k === 'spin' || e.k === 'frost' || e.k === 'spore' || e.k === 'burst' || e.k === 'decoy' || e.k === 'fstrike' || e.k === 'whirl' || e.k === 'puff') && age < 20) {
+      const q = age / 20, r = R(e.x2) * Math.min(1, 0.35 + q * 1.5), wind = e.k === 'spin' || e.k === 'whirl';
+      const col = e.k === 'frost' ? '150,225,255' : e.k === 'spore' || e.k === 'burst' || e.k === 'puff' ? '190,130,245' : e.k === 'fstrike' ? '255,80,60' : '255,255,255';
       ell(ctx, ex, ey, r, r * YS);
-      ctx.fillStyle = `rgba(${col},${(e.k === 'spin' ? 0.12 : 0.3) * (1 - q)})`;
+      ctx.fillStyle = `rgba(${col},${(wind ? 0.12 : 0.3) * (1 - q)})`;
       ctx.fill();
       ctx.strokeStyle = `rgba(${col},${0.9 * (1 - q)})`;
       ctx.lineWidth = 4 * (1 - q) + 1;
-      if (e.k === 'spin') ctx.setLineDash([R(0.05), R(0.04)]), (ctx.lineDashOffset = t * 6);
+      if (wind) ctx.setLineDash([R(0.05), R(0.04)]), (ctx.lineDashOffset = t * 6);
       ctx.stroke();
       ctx.setLineDash([]);
     }
@@ -2981,13 +3117,19 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
     const kd = KD[m.k], mine = m.id === s.me, u = R(m.r) * depth(m.y), ph = m.seed % 97;
     let x = X(m.x), y = Y(m.y), z = 0, sx = 1, sy = 1, rot = 0;
     if (m.st === ENTER) {
-      const q = clamp(1 - m.tm / m.et, 0, 1);
-      z = Math.sin(q * Math.PI) * R(0.17);
-      rot = (1 - q) * 0.7 * (m.fx0 < m.ax ? 1 : -1);
+      // 문에서 폴짝폴짝 뛰어 들어온다
+      const q = clamp(1 - m.tm / m.et, 0, 1), hops = Math.max(2, Math.round(m.et / 12));
+      z = Math.abs(Math.sin(q * Math.PI * hops)) * (R(0.03) + u * 0.5);
+      rot = Math.sin(q * Math.PI * hops * 2) * 0.1 * (m.fx0 < m.ax ? 1 : -1);
     } else if (m.air > 0) z = Math.sin(Math.min(1, m.air / 12) * Math.PI) * R(0.04);
     if (m.k === 'cloud') z += R(0.035) + Math.sin(t * 0.08 + ph) * R(0.008);
     const walking = t - m.walkT < 3 && m.frozen <= 0, hurtA = t - m.hurtT, atkA = t - m.atkT, bumpA = t - m.bumpT;
-    const rolling = m.st === SKILL && m.legs > 0, spin = m.st === SKILL && (m.k === 'turtle' || m.k === 'crab');
+    // 타고 있는 동안 저절로 하는 짓: 고슴도치는 늘 데굴데굴 · 염소는 돌진 · 거북은 빙글빙글 · 곰은 주먹 번쩍
+    const riding = mine && m.st !== SKILL && s.phase === 'play';
+    const rolling = m.legs > 0 && (m.st === SKILL || riding), ball = rolling && m.k === 'hedge';
+    const spin = (m.st === SKILL && (m.k === 'turtle' || m.k === 'crab')) || (riding && m.k === 'turtle');
+    const windup = riding && m.k === 'bear' && m.tm > 0, dazed = riding && m.k === 'goat' && m.tm > 0;
+    const lit = popReady && inPop.has(m.id), ca = Math.cos(m.wa), sa = Math.sin(m.wa);
     if (m.frozen <= 0) (sy *= 1 + Math.sin(t * 0.11 + ph) * 0.035), (sx *= 1 - Math.sin(t * 0.11 + ph) * 0.02);
     if (walking && !rolling) (z += Math.abs(Math.sin(t * 0.3 + ph)) * u * 0.18), (rot += Math.sin(t * 0.3 + ph) * 0.08);
     if (hurtA < 10) (sx *= 1 + 0.22 * (1 - hurtA / 10)), (sy *= 1 - 0.18 * (1 - hurtA / 10));
@@ -3006,8 +3148,22 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
     }
     if (m.st === SKILL && !rolling && !spin && m.sk < 12) (sy *= 1 + 0.25 * Math.sin((m.sk / 12) * Math.PI)), (z += Math.sin((m.sk / 12) * Math.PI) * u * 0.5);
     if (m.st === CLAIM) (sy *= 1.1), (sx *= 0.94);
+    if (windup) {
+      const q = 1 - m.tm / 18;
+      sy *= 1 + 0.16 * q;
+      sx *= 1 - 0.06 * q;
+      rot -= 0.2 * q * m.face;
+    }
+    if (dazed) (rot += Math.sin(t * 0.55) * 0.09), (sy *= 0.94), (sx *= 1.05);
+    if (mine && m.k === 'frog' && gulpA < 14) {
+      // 꿀꺽: 배가 볼록
+      const q = Math.sin((gulpA / 14) * Math.PI);
+      sx *= 1 + 0.24 * q;
+      sy *= 1 - 0.08 * q;
+    }
+    if (riding && m.k === 'shroom' && atkA < 10) (sy *= 1 - 0.2 * Math.sin((atkA / 10) * Math.PI)), (sx *= 1 + 0.16 * Math.sin((atkA / 10) * Math.PI));
     let mood = M_IDLE;
-    if (mine) mood = hurtA < 12 ? M_MINEHIT : M_MINE;
+    if (mine) mood = hurtA < 12 || dazed ? M_MINEHIT : atkA < 14 || windup || (rolling && (!ball || m.sk > 30)) || (m.k === 'frog' && gulpA < 14) ? M_MINEATK : M_MINE;
     else if (hurtA < 10 || m.st === CLAIM) mood = M_HURT;
     else if (m.stun > 0 && m.frozen <= 0) mood = M_DIZZY;
     else if (m.st === WIND) mood = M_WIND;
@@ -3018,13 +3174,58 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
     ctx.fillStyle = 'rgba(50,35,10,.2)';
     ell(ctx, X(m.x), Y(m.y) + u * 0.08, u * 1.05 * sh, u * 0.36 * sh);
     ctx.fill();
+    if (lit) {
+      // 지금 버리면 함께 터질 적: 발밑이 환하다
+      ell(ctx, X(m.x), Y(m.y) + u * 0.06, u * 1.3, u * 0.52);
+      ctx.fillStyle = `rgba(255,${beat > 0 ? 238 : 255},${beat > 0 ? 150 : 255},${0.5 + 0.3 * Math.sin(t * 0.3 + ph)})`;
+      ctx.fill();
+    }
+    if (m.st !== ENTER && m.k !== 'cloud' && ((!mine && m.mad && walking) || (riding && rolling))) {
+      // 달려오는 놈들 발밑의 먼지
+      for (let i = 0, n = m.k === 'bean' ? 2 : 3; i < n; i++) {
+        const f = (t * 0.07 + ph * 0.37 + i / n) % 1;
+        ctx.fillStyle = `rgba(255,252,240,${0.95 * (1 - f)})`;
+        ell(ctx, X(m.x) - ca * u * (0.7 + 1.4 * f), Y(m.y) - sa * u * (0.7 + 1.4 * f) * YS - f * u * 0.5, Math.max(2.5, u * (0.2 + 0.34 * f)), Math.max(2, u * (0.16 + 0.27 * f)));
+        ctx.fill();
+        ctx.strokeStyle = `rgba(170,125,70,${0.5 * (1 - f)})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
     if (mine) {
       ctx.fillStyle = radg(ctx, x, y - z - u, u * 0.6, u * 2.1, [0, 'rgba(140,235,255,.55)'], [1, 'rgba(140,235,255,0)']);
       ell(ctx, x, y - z - u, u * 2.1, u * 2.1);
       ctx.fill();
     }
-    if (m.k !== 'cloud' && m.st !== ENTER && !rolling && z < u * 0.6) {
-      const st = walking ? Math.sin(t * 0.3 + ph) : 0;
+    if (riding && rolling) {
+      if (ball) {
+        // 데굴데굴: 잔상
+        for (let i = 2; i >= 1; i--) {
+          ctx.save();
+          ctx.globalAlpha = 0.3 / i;
+          ctx.translate(x - ca * u * 0.85 * i, y - z - sa * u * 0.85 * i * YS - u);
+          ctx.rotate((t - i * 2) * 0.75 * m.face);
+          ctx.translate(0, u);
+          ctx.scale(m.face, 1);
+          stamp(ctx, sprite(m.k, M_MINE, 0, baseQ(m.k)), u);
+          ctx.restore();
+        }
+      } else {
+        // 돌진: 뒤로 흐르는 바람 줄
+        ctx.strokeStyle = 'rgba(255,255,255,.85)';
+        ctx.lineWidth = Math.max(2, u * 0.1);
+        ctx.lineCap = 'round';
+        for (let i = 0; i < 3; i++) {
+          const o = 1.2 + ((t * 0.31 + i * 0.37) % 1) * 0.9, yy = y - z - u * (0.45 + i * 0.6);
+          ctx.beginPath();
+          ctx.moveTo(x - ca * u * o, yy - sa * u * o * YS);
+          ctx.lineTo(x - ca * u * (o + 0.9), yy - sa * u * (o + 0.9) * YS);
+          ctx.stroke();
+        }
+      }
+    }
+    if (m.k !== 'cloud' && m.st !== ENTER && !ball && z < u * 0.6) {
+      const st = walking ? Math.sin(t * (rolling ? 0.95 : 0.3) + ph) : 0;
       ctx.fillStyle = FOOT[m.k];
       ctx.strokeStyle = OUT;
       ctx.lineWidth = Math.max(1, u * 0.08);
@@ -3036,13 +3237,49 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
     }
     ctx.save();
     ctx.translate(x, y - z);
-    if (rolling && m.k === 'hedge') (ctx.translate(0, -u), ctx.rotate(t * 0.75 * m.face), ctx.translate(0, u));
+    if (ball) (ctx.translate(0, -u), ctx.rotate(t * 0.75 * m.face), ctx.translate(0, u));
     else ctx.rotate(rot + (rolling ? 0.32 * m.face : 0));
     if (spin) sx *= (Math.cos(t * 0.7) < 0 ? -1 : 1) * Math.max(0.4, Math.abs(Math.cos(t * 0.7)));
     ctx.scale(m.face * sx, sy);
     stamp(ctx, sprite(m.k, mood, m.seed % 3, baseQ(m.k)), u);
     ctx.restore();
     const top = y - z - u * 2.05 * sy;
+    if (lit) {
+      // 반짝반짝: 몸이 환해지고 별빛이 깜박
+      ctx.save();
+      ctx.translate(x, y - z);
+      ctx.scale(m.face * sx, sy);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.16 + 0.2 * Math.abs(Math.sin(t * 0.17 + ph)) + 0.2 * beat;
+      stamp(ctx, sprite(m.k, mood, m.seed % 3, baseQ(m.k)), u);
+      ctx.restore();
+      for (let i = 0; i < 2; i++) {
+        const tw = Math.abs(Math.sin(t * 0.17 + ph + i * 1.9));
+        burstPath(ctx, x + (i ? -0.8 : 0.85) * u, y - z - u * (i ? 0.75 : 1.8), Math.max(3.5, u * 0.36) * (0.45 + 0.75 * tw), 4, 0.3, 0);
+        ctx.fillStyle = `rgba(255,255,255,${0.4 + 0.6 * tw})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(255,190,60,${0.5 * tw})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+    if (windup || (riding && m.k === 'bear' && atkA < 9)) {
+      // 곰: 주먹을 번쩍 들었다가 퍽!
+      const q = windup ? 1 - m.tm / 18 : 1, sw = windup ? 0 : Math.sin((atkA / 9) * Math.PI);
+      const fpx = windup ? x + m.face * u * (0.95 - 0.45 * q) + Math.sin(t * 1.5) * q * 1.4 : x + Math.cos(m.ang) * u * (0.9 + 1.1 * sw);
+      const fpy = windup ? y - z - u * (1.3 + 1.35 * q) : y - z - u * 0.95 + Math.sin(m.ang) * u * 1.1 * sw * YS;
+      ell(ctx, fpx, fpy, u * (0.4 + 0.12 * q), u * (0.38 + 0.12 * q));
+      ctx.fillStyle = '#c98a4e';
+      ctx.fill();
+      ctx.strokeStyle = OUT;
+      ctx.lineWidth = Math.max(1.5, u * 0.09);
+      ctx.stroke();
+      if (windup && q > 0.55) {
+        burstPath(ctx, fpx + u * 0.3, fpy - u * 0.35, u * 0.42 * (0.6 + 0.4 * Math.sin(t * 0.9)), 4, 0.3, 0);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+      }
+    }
     // 폭탄 두더지: 심지 불꽃 · 터지기 직전 빨갛게
     if (m.k === 'mole') {
       const fxp = x - m.face * u * 1.22, fyp = y - z - u * 2.36 * sy, hot = m.st === WIND && !mine;
@@ -3066,7 +3303,7 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
       ctx.moveTo(x - u * 0.7, y - z - u * 1.9);
       ctx.lineTo(x - u * 0.2, y - z - u * 1.3);
       ctx.stroke();
-    } else if (m.stun > 0 && !mine) {
+    } else if ((m.stun > 0 && !mine) || dazed) {
       ctx.fillStyle = '#ffe36b';
       for (let i = 0; i < 2; i++) starPath(ctx, x + Math.cos(t * 0.2 + i * Math.PI) * u * 0.8, top + u * 0.1 + Math.sin(t * 0.2 + i * Math.PI) * u * 0.2, Math.max(3, u * 0.22)), ctx.fill();
     }
@@ -3110,18 +3347,6 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
         font(0.036, 900);
         text('위험!', x, by0 - R(0.03), (t >> 2) % 2 ? '#ff3b30' : '#ffffff');
       }
-      if (popN >= 2 && s.charge >= 1 && !low) {
-        // 지금 갈아타면 몇 마리가 터질까
-        const bxp = x + bw / 2 + R(0.035), byp = by0 + bh / 2, kk = R(0.034) * (1 + 0.08 * Math.sin(t * 0.3));
-        burstPath(ctx, bxp, byp, kk, 9, 0.72, t * 0.03);
-        ctx.fillStyle = popN >= STAGES[s.stage].n ? '#ff8a3d' : '#ffd23f';
-        ctx.fill();
-        ctx.strokeStyle = OUT;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        font(0.036, 900);
-        text(String(popN), bxp, byp + 0.5, '#ffffff', OUT, 2.5);
-      }
     } else if (!mine && m.k !== 'bean' && m.hp < m.max && m.shield <= 0 && m.st !== ENTER) {
       const q = clamp(m.hp / m.max, 0, 1), bw = u * 1.6, bh = Math.max(3, R(0.009));
       rr(ctx, x - bw / 2 - 1, top - bh - 1, bw + 2, bh + 2, bh);
@@ -3131,19 +3356,19 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
       ctx.fillStyle = '#ff7a5c';
       ctx.fill();
     }
-    if (kd.boss && !mine && m.shield <= 0 && !s.rode && s.phase === 'play') {
-      // 지금 대장 몸에 타면 몇 마리가 휩쓸릴까 (졸개가 몰려들수록 커진다)
-      let nn = 0;
-      for (const o of s.mons) if (o !== m && hittable(s, o)) nn++;
-      const bxp = x - u * 1.3, byp = top + u * 0.55, kk = R(0.05) * (1 + 0.08 * Math.sin(t * 0.3));
-      burstPath(ctx, bxp, byp, kk, 10, 0.74, t * 0.03);
-      ctx.fillStyle = nn >= STAGES[s.stage].n ? '#ff8a3d' : '#ffd23f';
+    if (mine && alertA < 46 && s.phase === 'play') {
+      // 몰려온다! (한 몸에 오래 있어 멀리서도 달려오기 시작하는 순간 한 번)
+      const pop = alertA < 6 ? 0.5 + (alertA / 6) * 0.75 : 1.25 - Math.min(0.25, (alertA - 6) / 16), ax0 = x + Math.max(u * 1.35, R(0.07)), ay0 = top + u * 0.15;
+      ctx.globalAlpha = Math.min(1, (46 - alertA) / 8);
+      burstPath(ctx, ax0, ay0, R(0.05) * pop, 9, 0.74, 0.2);
+      ctx.fillStyle = '#ff4a3e';
       ctx.fill();
-      ctx.strokeStyle = OUT;
-      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.5;
       ctx.stroke();
-      font(0.046, 900);
-      text(String(nn), bxp, byp + 0.5, '#ffffff', OUT, 3);
+      font(0.062 * pop, 900);
+      text('!', ax0, ay0 + 1, '#ffffff', '', 0);
+      ctx.globalAlpha = 1;
     }
     if (spotM === m) {
       const ly = top - R(0.05) - Math.abs(Math.sin(t * 0.15)) * R(0.012);
@@ -3181,6 +3406,14 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
   }
   const order = s.mons.filter((m) => !m.dead).sort((a, c) => a.y - c.y || a.id - c.id);
   for (const m of order) drawMon(m);
+  if (b && popReady && inPop.size >= 2 && s.phase === 'play') {
+    // 펑 범위 고리를 몸들 위로 한 번 더 (붐빌수록 몸에 가려지므로)
+    const n = inPop.size;
+    ell(ctx, X(b.x), Y(b.y), ringR, ringR * YS);
+    ctx.strokeStyle = n >= 5 ? `rgba(255,${226 + 29 * beat},${110 + 110 * beat},${0.5 + 0.4 * beat})` : `rgba(255,255,255,${0.22 + 0.06 * n})`;
+    ctx.lineWidth = 1.5 + Math.min(8, n) * 0.55 + beat * 3;
+    ctx.stroke();
+  }
   // 사라지는 몸
   for (const c of s.corpses) {
     const age = t - c.t, u = R(KD[c.k].r) * depth(c.y);
@@ -3194,6 +3427,16 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
       ctx.restore();
       ctx.fillStyle = '#ffe36b';
       for (let i = 0; i < 3; i++) starPath(ctx, X(c.x) + Math.cos(t * 0.2 + i * 2.1) * u, Y(c.y) - u * 1.4 + Math.sin(t * 0.2 + i * 2.1) * u * 0.3, Math.max(3, u * 0.2)), ctx.fill();
+    } else if (c.how === 4) {
+      // 개구리가 꿀꺽: 입으로 빨려 들어가며 작아진다
+      if (age < 9 && b) {
+        const q = age / 9;
+        ctx.save();
+        ctx.translate(X(c.x + (b.x - c.x) * q), Y(c.y + (b.y - b.r - c.y) * q));
+        ctx.scale(1 - q * 0.85, 1 - q * 0.85);
+        stamp(ctx, sprite(c.k, M_HURT, c.seed % 3, baseQ(c.k)), u);
+        ctx.restore();
+      }
     } else if (age < 15) {
       // 펑: 바깥으로 튕겨 오르며 빙글, 부풀다 사라진다
       const q = age / 15, sp = Math.hypot(c.vx, c.vy), fl = sp > 1e-4 ? Math.min(3.2, 0.03 / sp) : 0;
@@ -3296,15 +3539,39 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
         ctx.lineTo(px - R(0.014), py + R(0.01));
         ctx.fill();
       }
-    } else if ((e.k === 'shout' || (e.k === 'pop' && !e.n) || (e.k === 'boom' && e.n) || (e.k === 'wave' && e.n >= 8)) && age < 42) {
-      // 외침: 기술 이름 · 펑! (굵은 테두리 글자, 잠깐 떴다 사라진다)
-      const k = e.text as K, boss = e.k === 'shout' && KD[k].boss, str = e.k === 'shout' ? KD[k].skill : e.k === 'pop' ? '펑!' : e.k === 'boom' ? '자폭!' : e.n === 8 ? '대장을 지켜라!' : '졸개 총출동!';
-      const pop = age < 6 ? 1.6 - 0.6 * (age / 6) : 1, sz = (e.k === 'pop' ? 0.05 + e.x2 * 0.12 : boss ? 0.085 : k === 'bean' ? 0.042 : 0.064) * pop;
-      ctx.globalAlpha = Math.min(1, (42 - age) / 10);
+    } else if ((e.k === 'shout' || (e.k === 'pop' && !e.n && s.hop.n < 2) || (e.k === 'boom' && e.n)) && age < 36) {
+      // 외침: 기술 이름 · 펑! — 큰 띠가 떠 있는 동안은 작게 (큰 글자는 한 번에 하나)
+      const k = e.text as K, boss = e.k === 'shout' && KD[k].boss, str = e.k === 'shout' ? KD[k].skill : e.k === 'pop' ? '펑!' : '자폭!';
+      const pop = age < 6 ? 1.5 - 0.5 * (age / 6) : 1, sz = (bandOn ? 0.036 : e.k === 'pop' ? 0.042 : boss ? 0.07 : k === 'bean' ? 0.038 : 0.05) * pop;
+      ctx.globalAlpha = Math.min(1, (36 - age) / 10) * (bandOn ? 0.8 : 1);
       font(sz, 900);
-      const yy = e.k === 'wave' ? Y(0.47) : ey - R(e.k === 'pop' ? 0.11 : 0.1) - (age / 42) * R(0.04);
-      text(str, clamp(ex, w * 0.2, w * 0.8), Math.max(Y(0.42), yy), e.k === 'pop' ? '#ffffff' : '#ffe36b', OUT, Math.max(4, R(0.014)));
+      const yy = ey - R(e.k === 'pop' ? 0.11 : 0.1) - (age / 36) * R(0.04);
+      text(str, clamp(ex, w * 0.2, w * 0.8), Math.max(Y(0.42), yy), e.k === 'pop' ? '#ffffff' : '#ffe36b', OUT, Math.max(3.5, R(0.011)));
       ctx.globalAlpha = 1;
+    } else if (e.k === 'wave' && age < 40 && !bandOn) {
+      // 문으로 우르르
+      ctx.globalAlpha = Math.min(1, (40 - age) / 10);
+      font(0.042 * (age < 6 ? 1.4 - 0.4 * (age / 6) : 1), 900);
+      text(e.n === 9 ? '졸개 총출동!' : '우르르!', ex, ey - R(0.04) - (age / 40) * R(0.02), '#fff3c4', OUT, 3.5);
+      ctx.globalAlpha = 1;
+    } else if (e.k === 'punch' && age < 11) {
+      // 퍽! (곰 주먹이 닿은 자리)
+      const q = age / 11;
+      burstPath(ctx, ex, ey, R(0.04 + 0.07 * q), 9, 0.5, e.t);
+      ctx.fillStyle = `rgba(255,250,210,${1 - q})`;
+      ctx.fill();
+      ctx.strokeStyle = `rgba(255,140,50,${1 - q})`;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    } else if ((e.k === 'ping' || e.k === 'bump2' || e.k === 'leaf' || e.k === 'thud') && age < 9) {
+      // 통! (튕긴 자리의 별)
+      const q = age / 9, big = e.k === 'thud' ? 1.8 : e.k === 'ping' ? 1 + Math.min(1, e.n * 0.12) : 1;
+      burstPath(ctx, ex, ey, R(0.014 + 0.028 * q) * big, e.k === 'leaf' ? 5 : 4, 0.35, 0.4);
+      ctx.fillStyle = e.k === 'leaf' ? `rgba(150,235,110,${1 - q})` : `rgba(255,255,255,${1 - q})`;
+      ctx.fill();
+      ctx.strokeStyle = e.k === 'leaf' ? `rgba(60,150,50,${1 - q})` : `rgba(255,190,60,${1 - q})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
     } else if (e.k === 'bump' && age < 9) {
       // 툭! (서로 부딪친 자리의 별)
       burstPath(ctx, ex, ey, R(0.012 + 0.02 * (age / 9)), 4, 0.35, 0.4);
@@ -3328,6 +3595,18 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
     }
   }
 
+  // ── 펑 자리의 작은 숫자: 이번 갈아타기로 몇 마리 (판 최고 기록·별 셋일 때만 큰 띠가 대신한다) ──
+  {
+    const killA = t - (fx.memo.killT ?? -99), n = s.hop.n;
+    if (n >= 2 && killA < 44 && fx.memo.popId === s.hop.id && s.phase === 'play' && !(s.big && s.big.hop === s.hop.id && s.big.n > 0 && bandOn)) {
+      const pop = killA < 5 ? 1.3 - 0.3 * (killA / 5) : 1;
+      ctx.globalAlpha = Math.min(1, (44 - killA) / 10);
+      font((0.036 + Math.min(0.006, n * 0.0006)) * pop, 900);
+      text(`${n}마리`, clamp(fx.memo.popX, w * 0.14, w * 0.86), Math.max(Y(0.42), fx.memo.popY - R(0.1)), '#ffffff', OUT, 3.5);
+      ctx.globalAlpha = 1;
+    }
+  }
+
   // ── 유령 (몸 밖 · 날아가는 중) ──
   const gk = R(0.05) * (1 + 0.025 * Math.min(11, s.lv - 1));
   if (s.fly) {
@@ -3346,15 +3625,30 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
   } else if (!b && s.phase !== 'end') {
     const bob = Math.sin(t * 0.1) * R(0.008), gx = X(s.gx), gy = Y(s.gy) - (s.home ? gk * 0.75 : R(0.02)) + bob;
     if (!s.home && s.phase === 'play' && s.stage > 0 && s.dizzy === 0 && s.out > 0) {
+      // 남은 시간 고리 (4초)
       const q = clamp(1 - s.out / OUT_T, 0, 1);
       ctx.beginPath();
+      ctx.arc(gx, gy, gk * 1.75, 0, TAU);
+      ctx.strokeStyle = 'rgba(30,60,120,.35)';
+      ctx.lineWidth = R(0.018);
+      ctx.stroke();
+      ctx.beginPath();
       ctx.arc(gx, gy, gk * 1.75, -Math.PI / 2, -Math.PI / 2 + TAU * q);
-      ctx.strokeStyle = q < 0.34 ? ((t >> 2) % 2 ? '#ff3b30' : '#ffffff') : '#ffffff';
+      ctx.strokeStyle = q < 0.3 ? ((t >> 2) % 2 ? '#ff3b30' : '#ffffff') : '#ffffff';
       ctx.lineWidth = R(0.014);
       ctx.lineCap = 'round';
       ctx.stroke();
     }
     drawGhost(ctx, gx, gy, gk, s.lv, t, s.dizzy > 0 ? 2 : s.home ? 0 : 4, spotM && spotM.x < s.gx ? -1 : 1);
+    if (floating && s.dizzy === 0) {
+      // 탈 수 있는 적에 큰 손가락 (큰 몸 먼저, 가까운 순으로 셋)
+      const val = (m: Mon) => dist(s.gx, s.gy, m.x, m.y) - (m.k === 'bean' ? 0 : 0.5);
+      const cand = s.mons.filter((m) => ridable(s, m)).sort((a, c) => val(a) - val(c) || a.id - c.id);
+      for (let i = Math.min(3, cand.length) - 1; i >= 0; i--) {
+        const m = cand[i], u = R(m.r), press = Math.max(0, Math.sin(t * 0.16 + i * 2.1));
+        drawHand(ctx, X(m.x) + u * 0.6 + R(0.02), Y(m.y) - u * 0.5, R(i ? 0.075 : 0.095), press);
+      }
+    }
     if (s.home && s.stage === 0 && s.phase === 'play') {
       // 처음 보는 사람에게: 이 유령이 나
       const lx = gx + gk * 2.6, ly = gy - gk * 0.2;
@@ -3413,6 +3707,7 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
       case 'hop': fx.sound('whoosh', 1.35, 0.9); break;
       case 'pop': {
         const big = e.x2;
+        if (!e.n) (fx.memo.popX = ex), (fx.memo.popY = ey), (fx.memo.popId = s.hop.id);
         fx.sound('pop', e.n ? 0.95 : Math.max(0.45, 0.9 - big * 1.6), 1.2);
         if (!e.n) fx.sound('thud', Math.max(0.6, 1.5 - big * 3), 0.5 + big * 2.2);
         puff(ex, ey - R(0.05), KCOL[k] ?? '#ffffff', e.n ? 6 : 12, 4.5, 3.4);
@@ -3430,8 +3725,7 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
         fx.sound('pop', 1 + Math.min(14, n) * 0.085, 0.75);
         puff(ex, ey, KCOL[k] ?? '#ffffff', 6, 3.6, 3.6);
         puff(ex, ey, '#ffffff', 2, 2.4, 2.4);
-        if (n >= 2 && n < WOW_N) say(ex, ey - R(0.03), String(n), '#ffffff', 14 + n * 2);
-        if (n > 0) fx.kick(Math.min(9, 1.5 + n * 0.6));
+        if (n > 0) (fx.memo.killT = e.t), fx.kick(Math.min(9, 1.5 + n * 0.6));
         break;
       }
       case 'slam': {
@@ -3444,7 +3738,21 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
       }
       case 'roll': fx.sound('whoosh', k === 'boar' ? 0.6 : 0.9, 1); break;
       case 'bonk': fx.sound('crack', 1.4, 0.6); puff(ex, ey, '#ffffff', 4, 3, 2.2); break;
-      case 'wall': fx.sound('boing', 0.85, 0.7); fx.kick(3); puff(ex, ey, '#f3dfb0', 5, 3, 2.6); break;
+      case 'wall': fx.sound('boing', 0.85, 0.7); fx.kick(2); puff(ex, ey, '#f3dfb0', 5, 3, 2.6); break;
+      // 타고 있는 동안 저절로 하는 짓
+      case 'windup': fx.sound('swell', 1.5, 0.45); break;
+      case 'punch': fx.sound('thud', 0.8, 1.2); fx.sound('crack', 1.2, 0.7); fx.kick(7); puff(ex, ey, '#fff3c4', 8, 4.5, 3); break;
+      case 'ping': fx.sound('ding', 0.9 + e.n * 0.09, 0.55); fx.sound('boing', 1.2 + e.n * 0.06, 0.4); puff(ex, ey, '#fff07a', 4, 3.2, 2.2); if (e.n >= 3) fx.kick(2); break;
+      case 'charge': fx.sound('whoosh', 1.05, 0.8); puff(ex, ey, '#f3dfb0', 5, 2.6, 2.6); break;
+      case 'thud': fx.sound('thud', 0.9, 0.9); fx.sound('boing', 0.7, 0.5); fx.kick(5); puff(ex, ey, '#f3dfb0', 7, 3.4, 2.8); break;
+      case 'lick': fx.sound('boing', 1.8, 0.7); fx.sound('whoosh', 1.7, 0.5); break;
+      case 'gulp': fx.sound('pop', 0.55, 0.9); fx.sound('boing', 0.75, 0.6); puff(ex, ey, '#bff0a0', 5, 2.4, 2.4); say(ex, ey - R(0.09), '꿀꺽!', '#d8ffc0', 14); break;
+      case 'whirl': fx.sound('whoosh', 1.3, 0.35); break;
+      case 'bump2': fx.sound('boing', 1.3 + hsh(e.t) * 0.4, 0.5); puff(ex, ey, '#d6fff0', 3, 3, 2.2); break;
+      case 'puff': fx.sound('splash', 1.5, 0.55); puff(ex, ey - R(0.05), '#c39af5', 8, 3.2, 2.8); break;
+      case 'leaf': fx.sound('tick', 1.6, 0.45); puff(ex, ey, '#7fe36a', 3, 2.6, 2.2); break;
+      case 'alert': fx.sound('boing', 1.9, 0.55); fx.sound('tick', 2.2, 0.5); break;
+      case 'star3': fx.sound('coin', 1.2, 1); puff(ex, ey, '#ffd84a', 14, 5.5, 3.2); fx.ring(ex, ey, '#ffd84a', R(0.2), 5); break;
       case 'tongue': fx.sound('boing', 1.7, 0.9); fx.sound('whoosh', 1.6, 0.7); break;
       case 'boom':
         fx.sound('crack', 0.7, 1.2);
@@ -3471,8 +3779,7 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
       case 'ko': fx.sound('fail', 1.15, 0.9); fx.sound('shrink', 0.8, 0.8); fx.kick(8); say(ex, ey - R(0.12), '꽥! 쓰러졌다', '#ffd0c8', 17); break;
       case 'heart': fx.sound('fail', 0.8, 1); fx.blink('#ff3b30', 0.3); say(ex, ey - R(0.1), '하트 -1', '#ff8a7a', 18); break;
       case 'ready': fx.sound('tick', 2.2, 0.45); fx.ring(ex, ey, '#bff3ff', R(0.1), 2); break;
-      case 'mad': if (marks++ < 3 && t - (fx.memo.madT ?? -99) > 5) (fx.memo.madT = t), say(ex, ey, '!', '#ff5a4e', 16); break;
-      case 'huh': if (marks++ < 3 && t - (fx.memo.huhT ?? -99) > 5) (fx.memo.huhT = t), say(ex, ey, '?', '#ffffff', 15); break;
+      case 'huh': if (marks++ < 2 && t - (fx.memo.huhT ?? -99) > 5) (fx.memo.huhT = t), say(ex, ey, '?', '#ffffff', 14); break;
       case 'bump': fx.sound('tick', 0.55 + hsh(e.t) * 0.3, 0.3); puff(ex, ey, '#ffffff', 2, 2, 2); break;
       case 'land': fx.sound('thud', 2, 0.3); puff(ex, ey, '#f3dfb0', 3, 2, 2.4); break;
       case 'fstrike': fx.sound('thud', 1.5, 0.45); break;
@@ -3480,7 +3787,7 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
       case 'fray': fx.sound('whoosh', 1.7, 0.5); break;
       case 'myhit': fx.sound('tick', 1.05, 0.5); puff(ex, ey, '#ffffff', 3, 2.6, 2); break;
       case 'domino': fx.sound('crack', 1.7, 0.55); puff(ex, ey, '#fff3c4', 4, 3, 2.2); if (t - (fx.memo.domT ?? -99) > 30) (fx.memo.domT = t), say(ex, ey - R(0.06), '도미노!', '#fff3c4', 16); break;
-      case 'wave': fx.sound('whoosh', 0.7, 0.9); break;
+      case 'wave': fx.sound('whoosh', 0.7, 0.9); fx.sound('thud', 1.7, 0.4); puff(ex, ey, '#fff6dc', 8, 3, 3); break;
       case 'summon': fx.sound('swell', 1, 0.8); say(ex, ey - R(0.1), '졸개들아!', '#ffd0c8', 17); break;
       case 'stage': fx.sound('ding', 1, 0.6); break;
       case 'clear':
@@ -3494,6 +3801,8 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
       case 'end': fx.sound(e.n ? 'clear' : 'fail', 0.9, 1); break;
     }
   }
+  // 두근두근 (다섯 마리 넘게 펑 범위에 들었다)
+  if (hb && (t % 44 === 0 || t % 44 === 11)) fx.sound('thud', t % 44 ? 1.25 : 1.05, t % 44 ? 0.2 : 0.3);
   if (s.big && (fx.memo.bigT ?? -1) !== s.big.t && s.big.t > seenT) (fx.memo.bigT = s.big.t), fx.sound('chime', 1 + Math.min(8, s.big.n) * 0.04, 1), fx.blink('#fff6c8', 0.22), fx.kick(7);
   fx.memo.t = t;
   ctx.restore();
@@ -3560,11 +3869,13 @@ function drawHud(ctx: C2, s: HopState, w: number, h: number) {
   ctx.fillStyle = '#e3c48c';
   ctx.fillRect(0, Y(1.305), w, 2);
   const words = STAR_WORDS(s), res = s.phase === 'result';
-  const state = [res ? 1 : 0, s.kos > 0 ? -1 : res ? 1 : 0, s.best >= d.n ? 1 : res ? -1 : 0];
+  // 셋째 별: 대장 판은 보호막이 깨지는 순간 정해진다(그 뒤로는 못 딴다)
+  const state = [res ? 1 : 0, s.kos > 0 ? -1 : res ? 1 : 0, s.best >= d.n ? 1 : res || s.sealed ? -1 : 0];
   font(0.035, 800);
-  const prog = s.best > 0 && s.best < d.n && !res ? ` ${s.best}/${d.n}` : '';
+  const prog = s.best > 0 && s.best < d.n && !res && !s.sealed ? ` ${s.best}/${d.n}` : '';
   const labels = words.map((q, i) => q + (i === 2 ? prog : ''));
-  const ws = labels.map((q) => ctx.measureText(q).width + R(0.07)), gap = R(0.014), total = ws.reduce((a, c) => a + c, 0) + gap * 2;
+  const gap = R(0.012), pad = Math.min(R(0.07), (w - R(0.03) - gap * 2 - labels.reduce((a, q) => a + ctx.measureText(q).width, 0)) / 3);
+  const ws = labels.map((q) => ctx.measureText(q).width + pad), total = ws.reduce((a, c) => a + c, 0) + gap * 2;
   let cx = (w - total) / 2;
   labels.forEach((q, i) => {
     const cw = ws[i], cy = Y(1.348), on = state[i] > 0, off = state[i] < 0;
@@ -3574,13 +3885,13 @@ function drawHud(ctx: C2, s: HopState, w: number, h: number) {
     ctx.strokeStyle = on ? '#e0a020' : off ? '#d6c6a8' : '#c9a878';
     ctx.lineWidth = on ? 2 : 1.4;
     ctx.stroke();
-    starPath(ctx, cx + R(0.03), cy - 0.5, R(0.017));
+    starPath(ctx, cx + pad * 0.42, cy - 0.5, R(0.017));
     ctx.fillStyle = on ? '#ffb800' : off ? '#d6c6a8' : '#e9d9b8';
     ctx.fill();
     ctx.textAlign = 'left';
     font(0.035, 800);
-    text(q, cx + R(0.052), cy + 0.5, off ? '#b8a688' : INK);
-    if (off) (ctx.fillStyle = '#b8a688'), ctx.fillRect(cx + R(0.05), cy, cw - R(0.07), 1.5);
+    text(q, cx + pad * 0.76, cy + 0.5, off ? '#b8a688' : INK);
+    if (off) (ctx.fillStyle = '#b8a688'), ctx.fillRect(cx + pad * 0.72, cy, cw - pad, 1.5);
     cx += cw + gap;
   });
   ctx.textAlign = 'center';
@@ -3590,12 +3901,12 @@ function drawHud(ctx: C2, s: HopState, w: number, h: number) {
   else if (s.phase === 'result') tip = s.newDex.length ? `새 몸 ${KD[s.newDex[s.newDex.length - 1]].name}: ${KD[s.newDex[s.newDex.length - 1]].line}` : s.got === 3 ? '별 셋! 판 점수가 네 배' : '별이 많을수록 판 점수가 곱해져요';
   else if (s.phase === 'end') tip = s.won ? '모든 마당을 비웠어요!' : '누르면 다시 해요';
   else if (!s.hopped && s.stage === 0) tip = '적을 톡! 유령이 그 몸으로 옮겨 타요';
-  else if (!b && !s.fly && !s.home) tip = '유령이 몸 밖에 있어요 — 아무 적이나 톡!';
+  else if (!b && !s.fly && !s.home) tip = s.stage ? '유령이 몸 밖에 있어요 — 4초 안에 아무 적이나 톡!' : '유령이 몸 밖에 있어요 — 아무 적이나 톡!';
   else if (b && b.hp / b.max < 0.36) tip = '몸이 위험해요! 다른 몸으로 톡';
-  else if (boss && boss.shield > 0) tip = '대장은 보호막 때문에 못 타요 — 곁에서 펑!';
-  else if (boss && !s.rode) tip = '보호막이 깨졌다! 대장을 톡';
+  else if (boss && boss.shield > 0) tip = '대장은 보호막 때문에 못 타요 — 곁에서 펑! 펑!';
+  else if (boss && !s.rode) tip = '보호막이 깨졌다! 언제든 대장을 톡 — 온 마당 싹쓸이';
   else if (s.stage === 0 && s.hops < 3) tip = '고리가 차면 다른 적을 톡 — 버린 몸은 펑!';
-  else if (s.stage < 3 && s.best < d.n && s.hopped) tip = '버티면 적이 몰려와요 — 붐빌 때 갈아타면 크게 펑';
+  else if (s.stage < 3 && s.best < d.n && s.hopped) tip = '버티면 적이 몰려와요 — 고리가 두근거릴 때 갈아타면 크게 펑';
   font(0.036, 800);
   text(tip, w / 2, Y(1.402), INK);
   font(0.034, 700);
@@ -3617,11 +3928,11 @@ function drawHud(ctx: C2, s: HopState, w: number, h: number) {
       ctx.fill();
     }
     font(0.034, 900);
-    text(q > 0 ? '왕관 보호막' : '보호막 깨짐 — 대장을 톡!', w / 2, by + bh / 2 + 0.5, q > 0 ? INK : (t >> 3) % 2 ? '#ffe36b' : '#ffffff', q > 0 ? 'rgba(255,255,255,.7)' : INK, 3);
+    if (!(s.big && t - s.big.t < 62)) text(q > 0 ? '왕관 보호막' : '보호막 깨짐 — 대장을 톡!', w / 2, by + bh / 2 + 0.5, q > 0 ? INK : (t >> 3) % 2 ? '#ffe36b' : '#ffffff', q > 0 ? 'rgba(255,255,255,.7)' : INK, 3);
   }
 
   // ── 판 시작 띠 (NEW 한 줄) ──
-  if (s.banner && s.phase === 'play' && !(s.big && t - s.big.t < 62)) {
+  if (s.banner && s.phase === 'play' && !(s.big && s.big.t >= s.banner.t)) {
     const age = t - s.banner.t, T = 190;
     if (age < T) {
       const a = Math.min(1, age / 10, (T - age) / 14), slide = (1 - Math.min(1, age / 10)) * R(0.05), by = Y(boss ? 0.185 : 0.14) - slide;
@@ -3672,21 +3983,33 @@ function drawHud(ctx: C2, s: HopState, w: number, h: number) {
   // ── 큰 순간 띠 ──
   if (s.big && t - s.big.t < 62 && s.phase !== 'end') {
     const age = t - s.big.t, pop = age < 7 ? 1.4 - 0.4 * (age / 7) : 1 + 0.03 * Math.sin(age * 0.5), a = Math.min(1, (62 - age) / 14), n = s.big.n;
-    const by = Y(0.27), size = (0.058 + Math.min(0.02, n * 0.002)) * pop;
+    const by = Y(0.275), size = (0.058 + Math.min(0.02, n * 0.002)) * pop;
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate(w / 2, by);
     ctx.rotate(-0.05);
-    ctx.scale(1, 0.56);
-    burstPath(ctx, 0, 0, R(0.31) * pop, 18, 0.8, age * 0.02);
+    ctx.scale(1, 0.5);
+    burstPath(ctx, 0, 0, R(0.3) * Math.min(1.15, pop), 18, 0.8, age * 0.02);
     ctx.fillStyle = 'rgba(255,244,170,.9)';
     ctx.fill();
     ctx.strokeStyle = '#ff8a3d';
     ctx.lineWidth = 3;
     ctx.stroke();
-    ctx.scale(1, 1 / 0.56);
+    ctx.scale(1, 1 / 0.5);
     font(size, 900);
-    text(s.big.text, 0, 0, '#ff5a2e', '#ffffff', 6);
+    text(s.big.text, 0, s.big.star ? -R(0.022) : 0, '#ff5a2e', '#ffffff', 6);
+    if (s.big.star) {
+      // 별 셋째를 땄다
+      font(0.04, 900);
+      const sw = ctx.measureText('별 셋째!').width, k = R(0.024) * (1 + 0.15 * Math.sin(age * 0.5));
+      text('별 셋째!', k * 0.9, R(0.04), '#b06a00', '#ffffff', 4);
+      starPath(ctx, -sw / 2 - k * 0.4, R(0.038), k);
+      ctx.fillStyle = '#ffc93c';
+      ctx.fill();
+      ctx.strokeStyle = '#a06a12';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
     ctx.restore();
   }
 
@@ -3712,7 +4035,7 @@ function drawHud(ctx: C2, s: HopState, w: number, h: number) {
     text(s.won ? '모든 판을 깼다!' : `${s.stage + 1}판 깼다!`, w / 2, cy0 + R(0.025), '#ffffff');
     // 별 셋
     for (let i = 0; i < 3; i++) {
-      const at = 12 + i * 12, sx0 = X(0.23 + i * 0.27), sy0 = cy0 + R(0.135), on = s.starOk[i] && pt >= at, pop = on ? 1 + Math.max(0, 1 - (pt - at) / 8) * 0.6 : 1;
+      const at = 12 + i * 12, sx0 = X(0.23 + i * 0.27), sy0 = cy0 + R(0.125), on = s.starOk[i] && pt >= at, pop = on ? 1 + Math.max(0, 1 - (pt - at) / 8) * 0.6 : 1;
       starPath(ctx, sx0, sy0, R(0.052) * pop);
       ctx.fillStyle = on ? '#ffc93c' : '#eadfc8';
       ctx.fill();
@@ -3721,7 +4044,9 @@ function drawHud(ctx: C2, s: HopState, w: number, h: number) {
       ctx.stroke();
       if (on && (fx.memo['st' + i] ?? -1) !== s.stage) (fx.memo['st' + i] = s.stage), fx.sound('ding', 1 + i * 0.18, 0.9), fx.burst(sx0, sy0, '#ffd84a', 10, 3, 2.4);
       font(0.034, 800);
-      text(STAR_WORDS(s)[i], sx0, sy0 + R(0.075), s.starOk[i] ? INK : '#b8a688');
+      const lab = STAR_WORDS(s)[i], cut = ctx.measureText(lab).width > R(0.27) ? lab.indexOf(' ', Math.floor(lab.length / 2) - 2) : -1;
+      if (cut > 0) text(lab.slice(0, cut), sx0, sy0 + R(0.066), s.starOk[i] ? INK : '#b8a688'), text(lab.slice(cut + 1), sx0, sy0 + R(0.099), s.starOk[i] ? INK : '#b8a688');
+      else text(lab, sx0, sy0 + R(0.078), s.starOk[i] ? INK : '#b8a688');
     }
     // 점수 (별이 곱한다)
     rr(ctx, X(0.12), cy0 + R(0.243), R(0.76), R(0.058), R(0.02));
