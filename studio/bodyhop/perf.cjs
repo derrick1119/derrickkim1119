@@ -15,7 +15,7 @@ const path = require('node:path');
   await p.waitForFunction(() => window.__look && window.__look.js.length > 2, null, { timeout: 60000 });
   const first = Date.now() - t0;
   await p.waitForTimeout(8000);
-  const r = await p.evaluate(() => { const l = window.__look, js = l.js.slice(5).sort((a, c) => a - c); return { frames: js.length, med: +js[js.length >> 1].toFixed(2), p95: +js[Math.floor(js.length * 0.95)].toFixed(2), draws: l.draws, bakeMs: Math.round(l.bakeMs) }; });
+  const r = await p.evaluate(() => { const l = window.__look, js = l.js.slice(5).sort((a, c) => a - c); return { frames: js.length, med: +js[js.length >> 1].toFixed(2), p95: +js[Math.floor(js.length * 0.95)].toFixed(2), draws: l.draws, tris: Math.round(l.tris), bakeMs: Math.round(l.bakeMs) }; });
   console.log(JSON.stringify({ cpu: rate, firstFrameMs: first, ...r }));
   await b.close();
 })();

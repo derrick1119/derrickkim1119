@@ -6,7 +6,7 @@
  */
 import { Gfx, type Draw, type GMesh, type Light } from './gl/gfx.ts';
 import { invert, mul, trs, type M4, type V3 } from './gl/m4.ts';
-import { buildStage, ballMesh, ghostMesh, rigOf, ringMesh, type Rig } from './gl/world.ts';
+import { buildStage, ballLo, ballMesh, ghostMesh, rigOf, ringMesh, type Rig } from './gl/world.ts';
 import { bodyhop as g, bodyhopSmart, GEO, KD, popR, STAGES, __jump, type HopState } from './game.ts';
 import { mulberry32 } from './rng.ts';
 import { sfx } from './sfx.ts';
@@ -21,7 +21,7 @@ const Q = new URLSearchParams(location.search);
 const { A, CX, CY, YS } = GEO;
 const W = (x: number, y: number): [number, number] => [x - CX, (y - CY) / YS];
 const cv = document.getElementById('gl') as HTMLCanvasElement, ov = document.getElementById('ov') as HTMLCanvasElement, o2 = ov.getContext('2d')!;
-const hud = { stage: document.getElementById('hs')!, hearts: document.getElementById('hh')!, score: document.getElementById('hp')!, hint: document.getElementById('hint')! };
+const hud = { stage: document.getElementById('hs')!, hearts: document.getElementById('hh')!, score: document.getElementById('hp')!, hint: document.getElementById('hint')!, goals: document.getElementById('hg')!, able: document.getElementById('able')! };
 
 let gfx: Gfx;
 try {
@@ -37,7 +37,7 @@ const t0 = performance.now();
 const stage = buildStage();
 const up = (m: Parameters<Gfx['upload']>[0]) => gfx.upload(m);
 const S = { ground: up(stage.ground), arena: up(stage.arena), props: up(stage.props), crowd: up(stage.crowd), foliage: up(stage.foliage), lamp: up(stage.lamp), clouds: up(stage.clouds) };
-const GH = up(ghostMesh()), BALL = up(ballMesh()), RING = up(ringMesh());
+const GH = up(ghostMesh()), BALL = up(ballMesh()), BLO = up(ballLo()), RING = up(ringMesh());
 const rigs = new Map<string, { foe: GMesh; me: GMesh; parts: { m: GMesh; at: V3 }[]; h: number }>();
 function rig(k: string) {
   let r = rigs.get(k);
@@ -313,7 +313,7 @@ function ghostDraw(out: Draw[], t: number) {
 }
 
 // ── 그리기 루프 ──
-let lastScore = 0, acc = 0, last = performance.now(), frames = 0, jsMs: number[] = [];
+let lastScore = -1, acc = 0, last = performance.now(), frames = 0, jsMs: number[] = [];
 const [lx, lz] = W(GEO.HOME_X, GEO.HOME_Y);
 function frame(now: number) {
   const j0 = performance.now();
@@ -330,8 +330,8 @@ function frame(now: number) {
   glows = 0;
   glow(lx, 0.17, lz + 0.03, [1.4, 0.7, 0.25], 0.05, 0.5);
   const list: Draw[] = [
-    { m: S.ground, model: ID, shadow: false }, { m: S.arena, model: ID, shadow: false }, { m: S.props, model: ID }, { m: S.crowd, model: ID },
-    { m: S.foliage, model: ID }, { m: S.clouds, model: trs((sec * 0.01) % 2, 0, 0), shadow: false, emis: [0.25, 0.27, 0.3] },
+    { m: S.ground, model: ID, shadow: false }, { m: S.arena, model: ID, shadow: false }, { m: S.props, model: ID, shadow: false }, { m: S.crowd, model: ID, shadow: false },
+    { m: S.foliage, model: ID, shadow: false }, { m: S.clouds, model: trs((sec * 0.01) % 2, 0, 0), shadow: false, emis: [0.25, 0.27, 0.3] },
     { m: S.lamp, model: trs(lx, 0.17, lz + 0.03, 0, 0, 0, 0.016), emis: [0.9, 0.45, 0.12], tint: [1, 0.6, 0.3], shadow: false },
   ];
   for (const m of s.mons) if (!m.dead) monDraws(list, m, t, now);
@@ -379,7 +379,7 @@ function frame(now: number) {
     if (p.life > p.max) { pfs[i] = pfs[pfs.length - 1]; pfs.pop(); continue; }
     const u = p.life / p.max, e = 1 - Math.pow(1 - u, 2);
     const rr2 = p.r * (1 + 2.2 * e);
-    list.push({ m: BALL, model: trs(p.x + p.vx * e * 0.35, p.y + rr2 * 0.6 + e * 0.03, p.z + p.vz * e * 0.35, 0, 0, 0, rr2), tint: p.c.map((v) => v * 0.62), pass: 1, alpha: 0.55 * (1 - u * u), shadow: false });
+    list.push({ m: BLO, model: trs(p.x + p.vx * e * 0.35, p.y + rr2 * 0.6 + e * 0.03, p.z + p.vz * e * 0.35, 0, 0, 0, rr2), tint: p.c.map((v) => v * 0.62), pass: 1, alpha: 0.55 * (1 - u * u), shadow: false });
   }
   for (let i = chs.length - 1; i >= 0; i--) {
     const c = chs[i];
@@ -388,9 +388,10 @@ function frame(now: number) {
     c.vy -= 3 * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.z += c.vz * dt; c.rot += dt * 8;
     if (c.y < c.sz) (c.y = c.sz), (c.vy = Math.abs(c.vy) * 0.35), (c.vx *= 0.6), (c.vz *= 0.6);
     const k = Math.max(0.05, Math.min(1, (1.1 - c.life) * 4)); // 크기 0 행렬은 법선이 0 → 폰 GPU NaN
-    list.push({ m: BALL, model: trs(c.x, c.y, c.z, c.rot, c.rot * 0.7, 0, c.sz * k, c.sz * k * 0.75, c.sz * k), tint: c.c, shadow: false });
+    list.push({ m: BLO, model: trs(c.x, c.y, c.z, c.rot, c.rot * 0.7, 0, c.sz * k, c.sz * k * 0.75, c.sz * k), tint: c.c, shadow: false });
   }
   const sc = g.score(s);
+  if (lastScore < 0) lastScore = sc; // 첫 프레임(키 프레임 건너뛰기)엔 숫자를 띄우지 않음
   if (sc > lastScore && s.phase === 'play') {
     const b2 = s.me ? s.mons.find((m) => m.id === s.me) : null, [px, pz] = b2 ? W(b2.x, b2.y) : [0, 0];
     if (sc - lastScore >= 3) pops.push({ x: px, y: 0.16, z: pz, text: '+' + (sc - lastScore), t: now, big: sc - lastScore >= 20 });
@@ -471,7 +472,22 @@ function hudUpdate() {
   hud.stage.textContent = `${Math.floor(s.stage / 4) + 1}-${(s.stage % 4) + 1}  ${st.name}`;
   hud.hearts.innerHTML = Array.from({ length: 3 }, (_, i) => `<i class="${i < s.hearts ? 'on' : ''}"></i>`).join('');
   hud.score.textContent = String(g.score(s));
+  // 별 셋: 마당 비우기(끝에) · 몸 안 쓰러지기(쓰러지면 줄) · 한 번에 N마리(지금 최고/N)
+  const n = st.n, done = s.phase !== 'play', w3 = st.shield ? `보호막 깨며 ${n}마리` : `한 번에 ${n}마리`;
+  const chips: [string, string][] = [
+    ['마당 비우기', done && s.starOk[0] ? 'on' : ''],
+    ['안 쓰러지기', s.kos > 0 ? 'off' : done && s.starOk[1] ? 'on' : ''],
+    [s.best >= n ? w3 : `${w3} ${Math.min(s.best, n)}/${n}`, s.best >= n ? 'on' : ''],
+  ];
+  const html = chips.map(([t, c]) => `<span class="${c}"><b>★</b>${t}</span>`).join('');
+  if (hud.goals.innerHTML !== html) hud.goals.innerHTML = html;
+  const b = s.me ? s.mons.find((m) => m.id === s.me && !m.dead) : null;
+  hud.able.hidden = !manual || !b;
+  if (b && manual) {
+    const t = `<b>${KD[b.k].name}</b> ${KD[b.k].line}`;
+    if (hud.able.innerHTML !== t) hud.able.innerHTML = t;
+  }
 }
-(window as unknown as { __look: unknown }).__look = { bakeMs, get draws() { return gfx.draws; }, get js() { return jsMs; }, get hdr() { return gfx.hdr; }, get t() { return s.t; } };
+(window as unknown as { __look: unknown }).__look = { bakeMs, get draws() { return gfx.draws; }, get tris() { return gfx.tris; }, get js() { return jsMs; }, get hdr() { return gfx.hdr; }, get t() { return s.t; } };
 hudUpdate();
 requestAnimationFrame(frame);

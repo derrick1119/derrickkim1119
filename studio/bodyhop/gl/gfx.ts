@@ -138,6 +138,8 @@ export class Gfx {
   /** false면 블룸 단계를 건너뜀(?safe=1 — 폰 GPU 비교용) */
   bloomOn = true;
   draws = 0;
+  /** 이번 프레임 삼각형 수(그림자 패스 포함) — 폰 GPU 예산 계수기 */
+  tris = 0;
   private lit: Prog; private dep: Prog; private sky: Prog; private pt: Prog; private pre: Prog; private down: Prog; private up: Prog; private fin: Prog;
   private shFb: WebGLFramebuffer; private shTex: WebGLTexture; private SH = 2048;
   private msFb!: WebGLFramebuffer; private msCol!: WebGLRenderbuffer; private msDep!: WebGLRenderbuffer;
@@ -274,6 +276,7 @@ export class Gfx {
   frame(c: Cam, L: Light, list: Draw[], t: number, shadowBox = 1.3) {
     const gl = this.gl, { vp } = this.camera(c);
     this.draws = 0;
+    this.tris = 0;
     // 1) 그림자
     const lv = lookAt([L.sun[0] * 4, L.sun[1] * 4, L.sun[2] * 4], [0, 0, 0], [0, 1, 0]), lvp = mul(ortho(-shadowBox, shadowBox, -shadowBox, shadowBox, 0.5, 9), lv);
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.shFb);
@@ -289,6 +292,7 @@ export class Gfx {
       gl.bindVertexArray(d.m.vao);
       gl.drawElements(gl.TRIANGLES, d.m.n, gl.UNSIGNED_INT, 0);
       this.draws++;
+      this.tris += d.m.n / 3;
     }
     gl.disable(gl.POLYGON_OFFSET_FILL);
     // 2) 장면
@@ -321,6 +325,7 @@ export class Gfx {
         gl.bindVertexArray(d.m.vao);
         gl.drawElements(gl.TRIANGLES, d.m.n, gl.UNSIGNED_INT, 0);
         this.draws++;
+        this.tris += d.m.n / 3;
       }
     }
     if (this.ptN) {

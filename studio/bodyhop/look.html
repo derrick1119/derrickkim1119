@@ -23,6 +23,14 @@ body{font-family:ui-rounded,"SF Pro Rounded","Arial Rounded MT Bold","Apple SD G
 #hp{min-width:64px;justify-content:center;color:#ffe27a}
 #hint{position:fixed;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translateX(-50%);padding:12px 22px;border-radius:24px;background:linear-gradient(#ffd94ae6,#ffb21ee6);color:#3a2000;font-weight:900;font-size:17px;box-shadow:0 4px 0 #a8640c,0 8px 20px #0005;pointer-events:none;animation:bob 1.6s ease-in-out infinite;white-space:nowrap}
 @keyframes bob{50%{transform:translate(-50%,-5px)}}
+/* 🧪 M0′: 2D에서 잃은 정보 복구 — 별 목표 칩 · 지금 몸이 하는 일(스킨은 M1 S8) */
+.goals{position:fixed;left:0;right:0;top:calc(max(10px,env(safe-area-inset-top)) + 46px);display:flex;justify-content:center;gap:6px;pointer-events:none}
+.goals span{display:flex;align-items:center;gap:4px;height:26px;padding:0 10px;border-radius:13px;background:#1d1440b3;font-weight:800;font-size:13px;text-shadow:0 1px 0 #0008;color:#e9e4ff;white-space:nowrap}
+.goals span b{color:#7d76a8;font-size:14px}
+.goals span.on{background:#3a2a10cc;color:#fff3c4}.goals span.on b{color:#ffd23f}
+.goals span.off{opacity:.55;text-decoration:line-through}
+#able{position:fixed;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translateX(-50%);max-width:92vw;padding:10px 16px;border-radius:20px;background:#1d1440d9;color:#fff;font-weight:800;font-size:14px;box-shadow:0 3px 0 #0b0720;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#able b{color:#5ff0ff}
 #nogl{position:fixed;inset:0;display:grid;place-content:center;text-align:center;padding:24px;background:#2a1f4a;font-size:18px;font-weight:800;line-height:1.5}
 </style>
 </head>
@@ -30,7 +38,9 @@ body{font-family:ui-rounded,"SF Pro Rounded","Arial Rounded MT Bold","Apple SD G
 <canvas id="gl" aria-label="몸 갈아타기 게임 화면. 적을 톡 하면 유령이 그 몸으로 옮겨 타요"></canvas>
 <canvas id="ov" aria-hidden="true"></canvas>
 <div class="hud"><div class="pill" id="hs">1-1</div><div class="sp"></div><div class="pill" id="hh"></div><div class="pill" id="hp">0</div></div>
+<div class="goals" id="hg"></div>
 <div id="hint">톡해서 직접 해 보기</div>
+<div id="able" hidden></div>
 <div id="nogl" hidden>이 기기에서는 3D 화면(WebGL2)을 켤 수 없어요.<br>다른 브라우저로 열어 주세요.</div>
 <script>/*BUNDLE*/</script>
 </body>

@@ -30,7 +30,7 @@ export function buildStage(): Stage {
     const back = Math.max(0, -z - 1.6) * 0.32;
     return -0.05 + far * far * 0.02 * (0.5 + vnoise(x * 0.8, 3, z * 0.8)) + back * (0.6 + 0.8 * vnoise(x * 0.6, 5, z * 0.4)) + 0.015 * vnoise(x * 4, 7, z * 4);
   };
-  const ground = terrain(7, 160, hf, grass, (x, z) => {
+  const ground = terrain(7, 110, hf, grass, (x, z) => {
     const d = Math.hypot(x, z);
     return d < R + 0.1 ? 0.55 + 0.45 * Math.min(1, (d - R - 0.03) / 0.07) : 1;
   });
@@ -52,8 +52,8 @@ export function buildStage(): Stage {
   // 소품: 관중석(뒤쪽 반원 3단) · 문 · 깃발 줄 · 짚단 · 울타리
   const props = new Batch(), crowd = new Batch(), foliage = new Batch();
   const wood: Paint = (x, y, z) => [...mix3(hex('#b77b45'), hex('#d9a066'), vnoise(x * 40, y * 8, z * 40)), 0.75, 0.05];
-  const plank = sdfMesh((x, y, z) => rbox(x, y, z, [0, 0, 0], [0.5, 0.06, 0.18], 0.05), wood, [-0.56, -0.1, -0.22], [0.56, 0.1, 0.22], 0.03);
-  const post = sdfMesh((x, y, z) => rbox(x, y, z, [0, 0.5, 0], [0.09, 0.5, 0.09], 0.05), P('#8a5a36', 0.85), [-0.13, -0.04, -0.13], [0.13, 1.04, 0.13], 0.03);
+  const plank = sdfMesh((x, y, z) => rbox(x, y, z, [0, 0, 0], [0.5, 0.06, 0.18], 0.05), wood, [-0.56, -0.1, -0.22], [0.56, 0.1, 0.22], 0.06);
+  const post = sdfMesh((x, y, z) => rbox(x, y, z, [0, 0.5, 0], [0.09, 0.5, 0.09], 0.05), P('#8a5a36', 0.85), [-0.13, -0.04, -0.13], [0.13, 1.04, 0.13], 0.06);
   const bird = birdMesh();
   const tints = ['#ff7a6b', '#ffd25a', '#6fb7ff', '#ffffff', '#b98aff', '#7ee08a'].map(hex);
   let bi = 0;
@@ -74,16 +74,16 @@ export function buildStage(): Stage {
   }
   // 문: 나무 기둥 둘 + 휜 들보 + 천 현수막(대장 판에선 색이 바뀐다)
   const gz = -(R + 0.075);
-  const pillar = sdfMesh((x, y, z) => smin(rbox(x, y, z, [0, 0.13, 0], [0.018, 0.13, 0.018], 0.008), rbox(x, y, z, [0, 0.01, 0], [0.03, 0.012, 0.03], 0.008), 0.01), P('#9b2f2a', 0.55, 0.05), [-0.05, -0.02, -0.05], [0.05, 0.3, 0.05], 0.006);
+  const pillar = sdfMesh((x, y, z) => smin(rbox(x, y, z, [0, 0.13, 0], [0.018, 0.13, 0.018], 0.008), rbox(x, y, z, [0, 0.01, 0], [0.03, 0.012, 0.03], 0.008), 0.01), P('#9b2f2a', 0.55, 0.05), [-0.05, -0.02, -0.05], [0.05, 0.3, 0.05], 0.009);
   props.add(pillar, trs(-0.13, -0.05, gz, 0, 0, 0, 1, 1.15, 1));
   props.add(pillar, trs(0.13, -0.05, gz, 0, 0, 0, 1, 1.15, 1));
   const beam = sdfMesh((x, y, z) => {
     const yb = 0.27 + 0.01 * (x / 0.19) ** 2;
     return Math.min(rbox(x, y - yb, z, [0, 0, 0], [0.19, 0.016, 0.026], 0.012), rbox(x, y, z, [0, 0.225, 0], [0.15, 0.009, 0.016], 0.006));
-  }, (_x, y) => [...(y > 0.25 ? hex('#3b2a26') : hex('#b23a30')), 0.5, 0.05], [-0.22, 0.2, -0.04], [0.22, 0.31, 0.04], 0.006);
+  }, (_x, y) => [...(y > 0.25 ? hex('#3b2a26') : hex('#b23a30')), 0.5, 0.05], [-0.22, 0.2, -0.04], [0.22, 0.31, 0.04], 0.009);
   props.add(beam, trs(0, -0.03, gz));
   // 짚단 넷
-  const bale = sdfMesh((x, y, z) => rbox(x, y, z, [0, 0.03, 0], [0.05, 0.03, 0.03], 0.014), (x, y, z) => [...mix3(hex('#d6a94c'), hex('#f3d886'), vnoise(x * 120, y * 300, z * 120)), 0.9, 0.1], [-0.07, -0.01, -0.05], [0.07, 0.07, 0.05], 0.006);
+  const bale = sdfMesh((x, y, z) => rbox(x, y, z, [0, 0.03, 0], [0.05, 0.03, 0.03], 0.014), (x, y, z) => [...mix3(hex('#d6a94c'), hex('#f3d886'), vnoise(x * 120, y * 300, z * 120)), 0.9, 0.1], [-0.07, -0.01, -0.05], [0.07, 0.07, 0.05], 0.01);
   for (const a of [0.2, 0.8, 1.25, 1.75].map((q) => q * Math.PI)) props.add(bale, trs(Math.cos(a) * (R + 0.09), -0.045, Math.sin(a) * (R + 0.09) + (a > Math.PI ? 0 : 0.02), -a));
   // 깃발 줄: 관중석 꼭대기를 잇는 삼각 깃발
   const flag = flagMesh();
@@ -95,18 +95,19 @@ export function buildStage(): Stage {
   const pole = sdfMesh((x, y, z) => cap(x, y, z, [0, 0, 0], [0, 0.3, 0], 0.008), P('#e8e0d0', 0.4), [-0.02, -0.02, -0.02], [0.02, 0.32, 0.02], 0.005);
   for (const a of [1.02, 1.26, 1.5, 1.74, 1.98].map((q) => q * Math.PI)) props.add(pole, trs(Math.cos(a) * (R + 0.34), -0.05, Math.sin(a) * (R + 0.34)));
   // 나무: 뒤쪽과 옆을 둘러싼 둥근 숲(바람에 흔들림)
-  const trees = [treeMesh(1), treeMesh(2), treeMesh(3)];
+  // 📱 삼각형 예산: 가까운 나무 3종은 보통, 먼 나무 3종은 거칠게(화면에서 작다)
+  const trees = [treeMesh(1, 0.15), treeMesh(2, 0.15), treeMesh(3, 0.15)], farT = [treeMesh(1, 0.26), treeMesh(2, 0.26), treeMesh(3, 0.26)];
   let ti = 0;
   for (let k = 0; k < 150; k++) {
     const near = k < 60, a = Math.PI * (0.9 + 1.2 * ((k * 0.618) % 1)), d = near ? 0.98 + ((k * 0.37) % 1) * 0.5 : 1.5 + ((k * 0.37) % 1) * 3 + (k % 3) * 0.25;
     const x = Math.cos(a) * d, z = Math.sin(a) * d - 0.1;
     if (z > 0.25 && Math.abs(x) < 1.2) continue;
     const sc = near ? 0.1 + 0.07 * ((k * 0.73) % 1) : 0.13 + 0.08 * ((k * 0.73) % 1) + d * 0.045;
-    foliage.add(trees[ti++ % 3], trs(x, hf(x, z) - 0.01, z, k, 0, 0, sc), { sway: 0.05, wob: [0, k * 1.9] });
+    foliage.add((near ? trees : farT)[ti++ % 3], trs(x, hf(x, z) - 0.01, z, k, 0, 0, sc), { sway: 0.05, wob: [0, k * 1.9] });
   }
   // 앞쪽 가장자리 풀포기·꽃(전경)
   const tuft = tuftMesh(), flower = flowerMesh();
-  for (let k = 0; k < 260; k++) {
+  for (let k = 0; k < 180; k++) {
     const a = ((k * 0.618) % 1) * Math.PI * 2, d = R + 0.09 + ((k * 0.414) % 1) * 0.75, x = Math.cos(a) * d, z = Math.sin(a) * d;
     if ((z < -R - 0.05 && Math.abs(x) < 0.9) || z > 0.75) continue;
     foliage.add(k % 4 === 0 ? flower : tuft, trs(x, hf(x, z), z, k * 2.1, 0, 0, 0.03 + 0.02 * ((k * 0.31) % 1)), { sway: 0.4, wob: [0, k * 0.9], tint: k % 4 === 0 ? [hex('#ff8fb1'), hex('#fff1a8'), hex('#ffffff')][k % 3] : undefined });
@@ -115,7 +116,7 @@ export function buildStage(): Stage {
   const lamp = sdfMesh((x, y, z) => ell(x, y, z, 0, 0, 0, 1, 0.8, 1), P('#fff1c4', 0.3, 1), [-1.1, -0.9, -1.1], [1.1, 0.9, 1.1], 0.12);
   // 구름(멀리, 하늘 띠에)
   const cl = new Batch();
-  const cloud = sdfMesh((x, y, z) => smax(smin(smin(sph(x, y, z, 0, 0, 0, 0.5), sph(x, y, z, 0.55, -0.1, 0, 0.38), 0.3), smin(sph(x, y, z, -0.55, -0.12, 0, 0.36), sph(x, y, z, 0.15, 0.25, 0.05, 0.36), 0.3), 0.3), -0.2 - y, 0.1), P('#ffffff', 0.95, 0.8), [-1, -0.45, -0.6], [1, 0.7, 0.6], 0.06);
+  const cloud = sdfMesh((x, y, z) => smax(smin(smin(sph(x, y, z, 0, 0, 0, 0.5), sph(x, y, z, 0.55, -0.1, 0, 0.38), 0.3), smin(sph(x, y, z, -0.55, -0.12, 0, 0.36), sph(x, y, z, 0.15, 0.25, 0.05, 0.36), 0.3), 0.3), -0.2 - y, 0.1), P('#ffffff', 0.95, 0.8), [-1, -0.45, -0.6], [1, 0.7, 0.6], 0.1);
   for (const [x, y, z, s] of [[-2.2, 1.6, -5.6, 0.8], [1.6, 1.9, -6, 1], [3.5, 1.4, -5, 0.7], [-4.2, 1.2, -4.6, 0.6]]) cl.add(cloud, trs(x, y, z, 0, 0, 0, s, s * 0.7, s));
   return { ground, arena: arena.done(), props: props.done(), crowd: crowd.done(), foliage: foliage.done(), lamp, clouds: cl.done() };
 }
@@ -128,7 +129,7 @@ function birdMesh(): Mesh {
     if (Math.abs(Math.abs(x) - 0.15) < 0.07 && Math.abs(y - 1.24) < 0.08 && z > 0.25) return [0.08, 0.07, 0.1, 0.2, 0];
     if (z > 0.2 && y < 0.8) return [1, 0.96, 0.9, 0.9, 0.2];
     return [0.92, 0.92, 0.92, 0.85, 0.2];
-  }, [-0.6, -0.05, -0.6], [0.6, 1.55, 0.7], 0.07, { aoF: (x, y, z) => Math.min(g(x, y, z), y) });
+  }, [-0.6, -0.05, -0.6], [0.6, 1.55, 0.7], 0.2, { aoF: (x, y, z) => Math.min(g(x, y, z), y) });
 }
 function flagMesh(): Mesh {
   // 얇은 삼각 천(양면)
@@ -139,7 +140,7 @@ function flagMesh(): Mesh {
   }
   return { v, i: new Uint32Array([0, 1, 2, 3, 5, 4]) };
 }
-function treeMesh(seed: number): Mesh {
+function treeMesh(seed: number, h: number): Mesh {
   const blobs: [number, number, number, number][] = [];
   for (let k = 0; k < 7; k++) {
     const a = k * 2.4 + seed, h = 1.0 + 0.35 * Math.sin(k * 1.7 + seed);
@@ -157,7 +158,7 @@ function treeMesh(seed: number): Mesh {
     if (trunk(x, y, z) < canopy(x, y, z)) return [...hex('#7a5232'), 0.9, 0];
     const n = vnoise(x * 5 + seed, y * 5, z * 5), up = Math.min(1, Math.max(0, (y - 0.8) / 0.9));
     return [...mix3(mix3(g[0], g[1], n), g[2], up * 0.5), 0.9, 0.25];
-  }, [-0.95, -0.02, -0.95], [0.95, 1.95, 0.95], 0.07, { aoF: (x, y, z) => Math.min(f(x, y, z), y), aoD: 0.4 });
+  }, [-0.95, -0.02, -0.95], [0.95, 1.95, 0.95], h, { aoF: (x, y, z) => Math.min(f(x, y, z), y), aoD: 0.4 });
 }
 function tuftMesh(): Mesh {
   const f: SDF = (x, y, z) => {
@@ -168,7 +169,7 @@ function tuftMesh(): Mesh {
     }
     return d;
   };
-  return sdfMesh(f, (_x, y) => [...mix3(hex('#4f9a35'), hex('#b5e86e'), Math.min(1, y)), 0.8, 0.5], [-0.5, -0.05, -0.5], [0.5, 1.15, 0.5], 0.06);
+  return sdfMesh(f, (_x, y) => [...mix3(hex('#4f9a35'), hex('#b5e86e'), Math.min(1, y)), 0.8, 0.5], [-0.5, -0.05, -0.5], [0.5, 1.15, 0.5], 0.15);
 }
 function flowerMesh(): Mesh {
   const f: SDF = (x, y, z) => {
@@ -176,7 +177,7 @@ function flowerMesh(): Mesh {
     for (let k = 0; k < 5; k++) d = smin(d, ell(x, y, z, Math.cos(k * 1.257) * 0.2, 0.8, Math.sin(k * 1.257) * 0.2, 0.16, 0.06, 0.16), 0.05);
     return smin(d, sph(x, y, z, 0, 0.83, 0, 0.1), 0.04);
   };
-  return sdfMesh(f, (x, y, z) => (y < 0.7 ? [...hex('#4f9a35'), 0.8, 0.3] : Math.hypot(x, z) < 0.11 ? [...hex('#ffcf3a'), 0.6, 0.2] : [1, 1, 1, 0.6, 0.6]), [-0.45, -0.05, -0.45], [0.45, 1, 0.45], 0.045);
+  return sdfMesh(f, (x, y, z) => (y < 0.7 ? [...hex('#4f9a35'), 0.8, 0.3] : Math.hypot(x, z) < 0.11 ? [...hex('#ffcf3a'), 0.6, 0.2] : [1, 1, 1, 0.6, 0.6]), [-0.45, -0.05, -0.45], [0.45, 1, 0.45], 0.11);
 }
 
 // ───────────────────────── 몸 ─────────────────────────
@@ -229,7 +230,7 @@ function bean(face: Face): Mesh {
     return [...mix3(hex('#4f9e2e'), hex('#a6ea64'), t), 0.32, 0.75];
   };
   const paint = facePaint((x, y, z) => (brow(x, y, z, 0.36, 1.05, 0.86, 0.17, face) < 0.02 ? [...hex('#2c5a1c'), 0.5, 0] : (y < 0.75 && y > 0.6 && Math.abs(x) < 0.14 && z > 0.8 ? [...hex('#2a1f2a'), 0.4, 0] : base(x, y, z))), E, face, [0.58, 0.82, 0.72, 0.13]);
-  return sdfMesh(f, paint, [-1.1, -0.05, -1.05], [1.1, 2.45, 1.1], 0.07, { aoF: (x, y, z) => Math.min(f(x, y, z), y + 0.02) });
+  return sdfMesh(f, paint, [-1.1, -0.05, -1.05], [1.1, 2.45, 1.1], 0.1, { aoF: (x, y, z) => Math.min(f(x, y, z), y + 0.02) });
 }
 function bear(face: Face): Mesh {
   const E: [number, number, number, number][] = [[0.24, 1.68, 0.54, 0.09], [-0.24, 1.68, 0.54, 0.09]];
@@ -256,7 +257,7 @@ function bear(face: Face): Mesh {
     if (Math.hypot(Math.abs(x) - 0.44, y - 2.04) < 0.11 && z > 0.05) return [...hex('#e59a8c'), 0.8, 0.2];
     return [...mix3(hex('#7a4a2c'), hex('#a8693e'), n * 0.7 + Math.min(1, y / 2.2) * 0.3), 0.9, 0.12];
   };
-  return sdfMesh(f, facePaint(base, E, face), [-1.15, -0.05, -0.85], [1.15, 2.3, 0.95], 0.065, { aoF: (x, y, z) => Math.min(f(x, y, z), y + 0.02) });
+  return sdfMesh(f, facePaint(base, E, face), [-1.15, -0.05, -0.85], [1.15, 2.3, 0.95], 0.09, { aoF: (x, y, z) => Math.min(f(x, y, z), y + 0.02) });
 }
 function fist(): Mesh {
   const f: SDF = (x, y, z) => rbox(x, y, z, [0, 0, 0], [0.42, 0.34, 0.36], 0.16) + 0.07 * (vnoise(x * 5, y * 5, z * 5) - 0.5) + 0.025 * (vnoise(x * 13, y * 13, z * 13) - 0.5);
@@ -264,7 +265,7 @@ function fist(): Mesh {
     const n = vnoise(x * 7, y * 7, z * 7);
     if (y > 0.3 && n > 0.72) return [...hex('#7a9a45'), 0.9, 0.2];
     return [...mix3(hex('#857c70'), hex('#b9b0a2'), n), 0.82, 0];
-  }, [-0.5, -0.5, -0.5], [0.5, 0.5, 0.5], 0.05);
+  }, [-0.5, -0.5, -0.5], [0.5, 0.5, 0.5], 0.08);
 }
 /** 아직 다듬기 전의 몸: 몸통 + 귀/뿔/가시 하나로 실루엣만 다르게(👁 S5에서 전부 바꿀 자리) */
 function critter(face: Face, col: string, feat: 'spike' | 'eyesTop' | 'horn' | 'tusk' | 'none'): Mesh {
@@ -295,7 +296,7 @@ function critter(face: Face, col: string, feat: 'spike' | 'eyesTop' | 'horn' | '
     if (extra(x, y, z) < body(x, y, z) - 0.02) return [...(feat === 'tusk' || feat === 'horn' ? hex('#f3ead8') : mix3(c, [0, 0, 0], 0.35)), 0.5, 0];
     return [...mix3(mix3(c, [0, 0, 0], 0.25), c, Math.min(1, y / 1.6)), 0.75, 0.2];
   };
-  return sdfMesh(f, facePaint(base, E, face), [-1.25, -0.05, -1.2], [1.25, 2.2, 1.25], 0.075, { aoF: (x, y, z) => Math.min(f(x, y, z), y + 0.02) });
+  return sdfMesh(f, facePaint(base, E, face), [-1.25, -0.05, -1.2], [1.25, 2.2, 1.25], 0.1, { aoF: (x, y, z) => Math.min(f(x, y, z), y + 0.02) });
 }
 const torus2 = (x: number, y: number, z: number, R: number, r: number) => Math.hypot(Math.hypot(x, y) - R, z) - r;
 
@@ -309,7 +310,7 @@ export function ghostMesh(): Mesh {
   };
   const E: [number, number, number, number][] = [[0.25, 1.05, 0.66, 0.13], [-0.25, 1.05, 0.66, 0.13]];
   const paint = facePaint((x, y, z) => (Math.abs(x) < 0.09 && y > 0.78 && y < 0.86 && z > 0.6 ? [...hex('#3b2a4a'), 0.3, 0] : [...mix3(hex('#5fd2ec'), hex('#b8f2ff'), Math.min(1, y / 1.6)), 0.25, 1]), E, 'foe', [0.45, 0.86, 0.56, 0.12]);
-  return sdfMesh(f, paint, [-0.95, -0.4, -0.95], [0.95, 1.8, 0.95], 0.06);
+  return sdfMesh(f, paint, [-0.95, -0.4, -0.95], [0.95, 1.8, 0.95], 0.08);
 }
 
 const RIGS: Partial<Record<string, () => Rig>> = {
@@ -328,5 +329,7 @@ export function rigOf(k: string): Rig {
 }
 /** 펑 섬광·충격파·바닥 고리용 기본 형상 */
 export const ballMesh = () => sdfMesh((x, y, z) => sph(x, y, z, 0, 0, 0, 1), () => [1, 1, 1, 0.5, 0], [-1.1, -1.1, -1.1], [1.1, 1.1, 1.1], 0.2);
+/** 파편·먼지용 거친 공(삼각형 예산) */
+export const ballLo = () => sdfMesh((x, y, z) => sph(x, y, z, 0, 0, 0, 1), () => [1, 1, 1, 0.5, 0], [-1.2, -1.2, -1.2], [1.2, 1.2, 1.2], 0.42);
 export const ringMesh = () => torus(1, 0.035, 96, 6, () => [1, 1, 1, 0.5, 0]);
 export const discMesh = () => lathe([[0, 0], [1, 0]], 64, () => [1, 1, 1, 0.5, 0]);
