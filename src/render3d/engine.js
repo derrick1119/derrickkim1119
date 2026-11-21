@@ -156,6 +156,12 @@ export class Engine {
     cam.updateProjectionMatrix();
   }
 
+  /** 그림자를 켜고 끈다(느린 기기에서 끈다). */
+  setShadows(on) {
+    if (this.sun.castShadow === on) return;
+    this.sun.castShadow = on;
+  }
+
   /** 화면 흔들림(px). */
   setShake(x, y) {
     if (x === this.shake.x && y === this.shake.y) return;

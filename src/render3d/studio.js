@@ -43,8 +43,12 @@ function shoot(object, px, { fill = 0.86, lift = 0.18 } = {}) {
   holder.add(object);
   object.updateMatrixWorld(true);
   box.makeEmpty();
+  // 크기는 몸체(메시)로만 잰다. 빛 번짐 스프라이트·반투명 꼬리까지 넣으면 그림이 작게 찍힌다.
   object.traverse((o) => {
-    if ((o.isMesh || o.isSprite) && o.visible && o.name !== 'outline') box.expandByObject(o);
+    if (!o.isMesh || !o.visible || o.name === 'outline') return;
+    const m = o.material;
+    if (m && (m.blending === THREE.AdditiveBlending || (m.transparent && m.opacity < 0.5))) return;
+    box.expandByObject(o);
   });
   box.getBoundingSphere(sphere);
   const r = Math.max(sphere.radius, 1e-3);

@@ -26,10 +26,10 @@ function windowTextures() {
         ctx.fillStyle = '#e8e2ee';
         ctx.fillRect(x, y + S - 8, S, 8);
         const L = lit[j * CELLS + i];
-        const gx = x + 12;
-        const gy = y + 10;
-        const gw = S - 24;
-        const gh = S - 24;
+        const gx = x + 15;
+        const gy = y + 12;
+        const gw = S - 30;
+        const gh = S - 28;
         if (L) {
           const g = ctx.createLinearGradient(0, gy, 0, gy + gh);
           g.addColorStop(0, ['#ffe7a8', '#ffd58a', '#ffc6a0'][L - 1]);
@@ -66,7 +66,7 @@ function windowTextures() {
         const L = lit[j * CELLS + i];
         if (!L) continue;
         ctx.fillStyle = ['#ffd27a', '#ffb860', '#ff9a7a'][L - 1];
-        ctx.fillRect(i * S + 12, j * S + 10, S - 24, S - 24);
+        ctx.fillRect(i * S + 15, j * S + 12, S - 30, S - 28);
       }
     }
   });
@@ -104,7 +104,7 @@ function towerGeo(w, h, d, colW, floorH, ou, ov) {
   return g;
 }
 
-function tower(parent, x, z, w, h, d, tint, r, { colW = 0.42, floorH = 0.46, ry = 0 } = {}) {
+function tower(parent, x, z, w, h, d, tint, r, { colW = 0.56, floorH = 0.6, ry = 0 } = {}) {
   const m = new THREE.Mesh(towerGeo(w, h, d, colW, floorH, (r() * CELLS) | 0, (r() * CELLS) | 0), towerMat(tint));
   m.position.set(x, h / 2, z);
   m.rotation.y = ry;
@@ -273,7 +273,7 @@ function drawStreet(ctx, W, Hh, row) {
     ctx.fillStyle = col;
     ctx.fillRect(0, row(z0), W, row(z1) - row(z0) + 1);
   };
-  fill(9, -0.85, '#d9cfd6');
+  fill(9, -0.85, '#e8dccd');
   ctx.strokeStyle = 'rgba(110,90,120,0.3)';
   ctx.lineWidth = 2;
   for (let x = 0; x <= W; x += px * 0.5) {
@@ -334,7 +334,7 @@ export function buildCity({ w }) {
 
   const lamps = [];
   // 앞줄 가게
-  const tints = ['#ffd9c8', '#f6c3b0', '#c9d6f2', '#f2e4c8'];
+  const tints = ['#f4dccb', '#c3d0f2', '#b6a4dc', '#e9b49c', '#9aa4d8', '#f2e6c8'];
   const shopWalls = ['#f08a6a', '#8fb4e6', '#f6d27a', '#b99ae0', '#7fcf9f', '#f5a3b8'];
   const awnings = ['#e2483c', '#2fb5a6', '#4f6fc2', '#ff9a3c', '#8a6ad8'];
   const spanF = halfW(w, -7.6) + 1.5;
@@ -346,46 +346,47 @@ export function buildCity({ w }) {
     sx += sw + 0.04;
     si++;
   }
-  // 가운데 빌딩(창 격자)
-  const midRows = [
-    { z: -12, n: 7, hMin: 3, hMax: 6 },
-    { z: -18, n: 8, hMin: 5, hMax: 9 },
-    { z: -27, n: 9, hMin: 7, hMax: 13 },
-  ];
+  // 빌딩: 화면에서 지붕이 닿는 높이를 정해 두고(가운데는 낮게 = 기체 자리, 양옆은 높게) 거기서 높이를 거꾸로 구한다
+  const topAt = (x, z, yScreen) => 3.23 + ((432 - yScreen) * (14 - z)) / 896;
+  const sideK = (x, z) => smooth(0.35, 0.95, Math.abs(x) / halfW(w, z));
   const roofs = [];
-  for (const row of midRows) {
-    const span = halfW(w, row.z) + 2;
+  const midRows = [
+    { z: -12.5, n: 6, d: 1.8 },
+    { z: -19, n: 7, d: 2.2 },
+    { z: -28, n: 8, d: 2.6 },
+    { z: -40, n: 9, d: 3 },
+  ];
+  midRows.forEach((row, ri) => {
+    const span = halfW(w, row.z) + 2.5;
     for (let i = 0; i < row.n; i++) {
-      const bw = 1.6 + r() * 1.4;
-      const x = -span + ((i + 0.5 + (r() - 0.5) * 0.5) / row.n) * 2 * span;
+      const x = -span + ((i + 0.5 + (r() - 0.5) * 0.6) / row.n) * 2 * span;
       const z = row.z + (r() - 0.5) * 2;
-      // 가운데는 낮게(기체 자리), 양옆은 높게
-      const side = smooth(1.5, 6, Math.abs(x) * (14 / (14 - z)));
-      const hh = row.hMin + (row.hMax - row.hMin) * (0.35 + 0.65 * side) * (0.7 + 0.3 * r());
-      tower(props, x, z, bw, hh, 1.6 + r(), tints[(r() * tints.length) | 0], r);
+      const bw = (2 * span) / row.n * (0.75 + r() * 0.3);
+      const yS = 395 - 120 * sideK(x, z) - ri * 6 - r() * 26;
+      const hh = Math.max(2.5, topAt(x, z, yS));
+      tower(props, x, z, bw, hh, row.d + r(), tints[(i * 3 + ri) % tints.length], r);
       roofs.push([x, hh, z, bw]);
     }
-  }
-  // 먼 빌딩 숲
-  for (let i = 0; i < 46; i++) {
-    const z = -45 - r() * 70;
-    const span = halfW(w, z) * 1.2;
+  });
+  // 먼 빌딩 숲(옅은 실루엣)
+  for (let i = 0; i < 34; i++) {
+    const z = -60 - r() * 60;
+    const span = halfW(w, z) * 1.15;
     const x = (r() * 2 - 1) * span;
-    const side = smooth(4, 20, Math.abs(x) * (14 / (14 - z)) * 3);
-    const hh = 8 + r() * 10 + side * 16;
-    tower(props, x, z, 3 + r() * 3, hh, 3 + r() * 2, ['#d8b8d8', '#c8b4e0', '#e6c0c0'][(r() * 3) | 0], r, { colW: 0.7, floorH: 0.8 });
-    if (r() < 0.4) roofs.push([x, hh, z, 3]);
+    const hh = Math.max(4, topAt(x, z, 400 - 150 * sideK(x, z) - r() * 30));
+    tower(props, x, z, 3 + r() * 3, hh, 3 + r() * 2, ['#c9b2d6', '#b9b0dc', '#d8b6c6'][(r() * 3) | 0], r, { colW: 0.8, floorH: 0.9 });
   }
   // 랜드마크 탑(오른쪽 뒤)
   {
-    const x = 9;
-    const z = -42;
-    tower(props, x, z, 3.2, 20, 3.2, '#c9d6f2', r);
-    const tp = G(props, x, 20, z, 0, 1);
+    const x = halfW(w, -44) * 0.72;
+    const z = -44;
+    const th = topAt(x, z, 250);
+    tower(props, x, z, 3.2, th, 3.2, '#c7d3f0', r);
+    const tp = G(props, x, th, z, 0, 1);
     tp.add(P(boxGeo(2.6, 1.2, 2.6), '#b9c4e6', { pos: [0, 0.6, 0], fin: 'soft' }));
     tp.add(P(boxGeo(1.8, 1.0, 1.8), '#a9b4dc', { pos: [0, 1.7, 0], fin: 'soft' }));
     tp.add(P(cylGeo(0.06, 0.12, 3.2, 6), '#8890b8', { pos: [0, 3.8, 0] }));
-    lamps.push([x, 25.5, z, '#ff4a5a']);
+    lamps.push([x, th + 5.5, z, '#ff4a5a']);
   }
   // 옥상 소품
   for (const [x, hh, z, bw] of roofs) {
@@ -401,7 +402,8 @@ export function buildCity({ w }) {
   }
   // 광고판(옥상)
   const ad = adTexture();
-  billboard(props, -2.6, roofs[1] ? roofs[1][1] : 5, roofs[1] ? roofs[1][2] : -12, 0.15, 1.3, ad);
+  const bb = roofs.slice(0, 6).reduce((a, b) => (Math.abs(b[0] + 2.2) < Math.abs(a[0] + 2.2) ? b : a));
+  billboard(props, bb[0], bb[1], bb[2] + 0.3, 0.12, 1.25, ad);
 
   // 가로수·가로등·차
   for (let x = -hw0 * 1.8; x <= hw0 * 1.8; x += 2.8) {
@@ -434,7 +436,7 @@ export function buildCity({ w }) {
 
   // 헬기 + 탐조등
   const heli = helicopter(root);
-  heli.root.scale.setScalar(0.95);
+  heli.root.scale.setScalar(1.2);
   const beam = beamCone();
   root.add(beam);
   const pool = new THREE.Mesh(new THREE.CircleGeometry(1, 32), new THREE.MeshBasicMaterial({ map: glowTexture(), color: '#fff0c0', transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }));
@@ -456,9 +458,9 @@ export function buildCity({ w }) {
 
   const env = {
     sky: { top: '#36389a', mid: '#c46aa4', horizon: '#ffae72', sunDir: [-0.1, 0.03, -1], sunColor: '#ffb070', sunStrength: 0.8, sunSize: 0.0015 },
-    fog: { color: '#f2a08c', near: 24, far: 230 },
-    sun: { color: '#ffb68a', intensity: 2.2, dir: [-0.85, 0.6, 0.4] },
-    hemi: { sky: '#9a94e6', ground: '#8a6a8a', intensity: 0.95 },
+    fog: { color: '#f6b49a', near: 40, far: 320 },
+    sun: { color: '#ffc49a', intensity: 2.3, dir: [-0.85, 0.65, 0.45] },
+    hemi: { sky: '#b2abe2', ground: '#a88c7c', intensity: 0.9 },
     exposure: 1.0,
   };
 
@@ -470,12 +472,12 @@ export function buildCity({ w }) {
     update(t) {
       // 헬기: 화면 뒤쪽을 천천히 8자로 돈다
       const a = t * 0.22;
-      const hx = Math.sin(a) * 5.5;
-      const hz = -22 + Math.sin(a * 2) * 3;
-      const hy = 6.4 + Math.sin(t * 0.9) * 0.25;
+      const hx = Math.sin(a) * 4.2;
+      const hz = -10 + Math.sin(a * 2) * 0.8;
+      const hy = 4.5 + Math.sin(t * 0.9) * 0.15;
       heli.root.position.set(hx, hy, hz);
-      const vx = Math.cos(a) * 5.5;
-      const vz = Math.cos(a * 2) * 6;
+      const vx = Math.cos(a) * 4.5;
+      const vz = Math.cos(a * 2) * 1.6;
       heli.root.rotation.set(0, Math.atan2(-vz, vx), -Math.cos(a) * 0.12);
       heli.rotor.rotation.y = t * 22;
       heli.tail.rotation.z = t * 30;

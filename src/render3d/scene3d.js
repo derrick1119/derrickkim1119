@@ -28,6 +28,18 @@ const CONE = '#fff3a8';
 const CONE_SPOTTED = '#ff6b5e';
 const CONE_CLOAKED = '#b79cff';
 const MAX_DPR = 2;
+/**
+ * 자동 화질 단계: 프레임이 계속 밀리면 한 단계씩 내린다(올리지는 않는다).
+ * dpr = 3D 캔버스 해상도 상한, shadows = 그림자
+ */
+const QUALITY = [
+  { dpr: 2, shadows: true },
+  { dpr: 1.5, shadows: true },
+  { dpr: 1.2, shadows: true },
+  { dpr: 1, shadows: false },
+];
+const SLOW_FRAME = 1 / 42; // 이보다 평균이 느리면 화질을 내린다
+const QUALITY_WINDOW = 2.5; // 초
 
 const tmpV = new THREE.Vector3();
 const tmpV2 = new THREE.Vector3();
@@ -115,6 +127,9 @@ export class Scene3D extends Scene {
     this.cloak3d.visible = false;
     this.engine.actors.add(this.cloak3d);
     this.t3 = 0;
+    // 화면이 아주 촘촘한 기기(3배 등)는 1.75 배에서 시작한다
+    this.quality = (window.devicePixelRatio || 1) > 2.5 ? 1 : 0;
+    this.perf = { time: 0, frames: 0, skip: 1 };
     // UI 카드·보고서의 그림도 같은 3D 모델로 찍는다
     setIconRenderer(renderIcon3d);
   }
@@ -149,9 +164,38 @@ export class Scene3D extends Scene {
     this.groundY = groundY;
     this.home = { x: ufoX, y: ufoY, r: ufoR };
     this.world.setLayout({ w, h, top: insets.top, groundY, ufoX, ufoY, ufoR });
-    this.engine.layout({ w, h, dpr: this.dpr, groundY, insetTop: insets.top });
+    this.engine.layout({ w, h, dpr: this._glDpr(), groundY, insetTop: insets.top });
     this._ensureUfo();
     this._swapBackdrop(!this.stageId);
+  }
+
+  /** 3D 캔버스 해상도: 화면 배율과 화질 단계 중 작은 쪽. */
+  _glDpr() {
+    return Math.min(this.dpr, QUALITY[this.quality].dpr);
+  }
+
+  /** 프레임 시간을 재다가 계속 느리면 화질을 한 단계 내린다. */
+  _watchPerf(dt) {
+    const p = this.perf;
+    // 첫 몇 초(무대 준비·셰이더 컴파일)와 큰 끊김(탭 전환 등)은 세지 않는다
+    if (p.skip > 0) {
+      p.skip -= dt;
+      return;
+    }
+    if (dt > 0.09) return;
+    p.time += dt;
+    p.frames++;
+    if (p.time < QUALITY_WINDOW) return;
+    const avg = p.time / p.frames;
+    p.time = 0;
+    p.frames = 0;
+    if (avg > SLOW_FRAME && this.quality < QUALITY.length - 1) {
+      this.quality++;
+      const q = QUALITY[this.quality];
+      this.engine.setShadows(q.shadows);
+      this.engine.layout({ w: this.w, h: this.h, dpr: this._glDpr(), groundY: this.groundY, insetTop: this.insets.top });
+      p.skip = 1;
+    }
   }
 
   _ensureUfo() {
@@ -196,6 +240,7 @@ export class Scene3D extends Scene {
   update(dt) {
     super.update(dt);
     this.t3 += dt;
+    this._watchPerf(dt);
     if (this.stageFade > 0) this.stageFade = Math.max(0, this.stageFade - dt / 0.8);
     this.engine.stage?.update?.(this.t, dt);
   }
@@ -372,10 +417,10 @@ export class Scene3D extends Scene {
       ci++;
       cone.visible = true;
       // 넓은 끝이 기체를 감싸도록
-      placeCone(cone, head, ufoW, Math.min(this.home.r / PX, 0.8));
+      placeCone(cone, head, ufoW, Math.min((this.home.r / PX) * 0.6, 0.55));
       const color = cloaked ? CONE_CLOAKED : hmn.spotted ? CONE_SPOTTED : CONE;
       cone.material.color.set(color);
-      cone.material.opacity = cloaked ? 0.16 : hmn.spotted ? 0.45 : 0.32;
+      cone.material.opacity = cloaked ? 0.12 : hmn.spotted ? 0.36 : 0.22;
     }
     for (; ci < this.cones.length; ci++) this.cones[ci].visible = false;
 
