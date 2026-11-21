@@ -591,7 +591,7 @@ describe('느린 시간 닌자 플레이 빌드', () => {
     expect(has('800 18px system-ui, sans-serif', '아얏!', 3)).toBe(true); // 떠오르는 글(juice: 800 · 선 3)
     expect(has(`900 ${0.036 * 390}px system-ui, sans-serif`, '부엉!', 3)).toBe(true); // 부엉이(🧪 첫 떼기 4.2ms)
     expect(wm.some((q) => q.t === '싹쓸이!' && q.f.startsWith('900 24px') && q.lw === 6 && q.lj === 'round')).toBe(true); // 큰 순간 띠
-    expect(wm.some((q) => q.t === '싹쓸이! 다음 한 획은 먹이 안 들어요' && q.mw)).toBe(true); // 알림 글(🧪 첫 떼기 9.1ms)
+    expect(wm.some((q) => q.t === '싹쓸이! 다음 한 획은 느린 시간이 안 줄어요' && q.mw)).toBe(true); // 알림 글(🧪 첫 떼기 9.1ms)
     expect(main).toMatch(/warmText\(warmC, /); // 화면 밖 캔버스에(판 캔버스엔 안 그림)
     expect(main).toMatch(/dt > Math\.max\(20, frameAvg \* 1\.1\)\) return/); // 그 기기의 평소 프레임보다 늦지 않은 프레임에만 · 한 조각씩(🧪 S11 1차: 켠 뒤 프레임이 길어짐)
     expect(main).toMatch(/if \(s\.down\) warmRest = 60;/); // 꾹·뗀 뒤 1초는 쉰다(🧪 S11: 켜자마자 떼기 켬 1/10 · 끔 6/10)
