@@ -25,3 +25,6 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# 개발 중 잠깐 만드는 미리보기 페이지
+tools/_*_tmp.*
