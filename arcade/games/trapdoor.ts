@@ -42,11 +42,11 @@ const PTS = (n: number) => Math.ceil((n * n) / 4);
 /** 문으로 들어오는 간격(우르르) · 화면에 보이는 몬스터 상한(넘치면 문 앞에서 기다림) · 이만큼 남으면 겁먹고 스스로 사다리 구멍으로 */
 const GATE_RUSH = 5, VIS_CAP = 22, PANIC_N = 3, BAT_H = 0.25;
 /** 아래층에 하나둘 들어오는 간격 · 그 층 무리가 이만큼 되면 멈춤 · 층마다 들어올 몫 */
-const LOW_EVERY = 55, LOW_CAP = 7, LOW_RES = 7, ROPE_V = 0.014;
+const LOW_EVERY = 40, LOW_CAP = 7, LOW_RES = 7, ROPE_V = 0.014;
 /** 곁에 쿵: 이만큼 안의 무리가 놀라 흩어진다 · 흩어져 있는 틱 */
 const SPOOK_R = 0.3, SPOOK_T = 100;
 /** 끌리는 것: 종이 다시 울리기까지(틱) · 공 빠르기 · 빛 빠르기 · 무리가 퍼지는 폭 · 따라가는 놈 비율 */
-const RING_T = 200, BALL_V = 0.0024, WISP_V = 0.0048, CROWD = 0.085, FOLLOW = 0.82;
+const RING_T = 140, BALL_V = 0.0024, WISP_V = 0.0048, CROWD = 0.085, FOLLOW = 0.82;
 
 type K = 'imp' | 'bear' | 'bat' | 'mole' | 'octo' | 'owl';
 interface KDef { name: string; line: string; r: number; w: number; spd: number; boss?: boolean }
@@ -348,7 +348,7 @@ function ropeIn(s: TrapState, k: K, f: number, cl = f === s.c && clumps(s)): Mon
   m.fol = true;
   if (cl) {
     const sp = F.lure.spots, li = sp.reduce((b, v, j) => (Math.abs(v - F.lure.x) < Math.abs(sp[b] - F.lure.x) ? j : b), 0), o = [0, 1, 2].filter((j) => j !== li);
-    m.g = o[s.nid % 2];
+    m.g = o[[0, 0, 1][s.nid % 3]];
   }
   m.x = cl ? clumpX(F, m) : f === s.c ? clamp(WL + 0.08 + s.rng() * (WR - WL - 0.14), WL + m.r, WR - m.r) : clamp(F.lure.x + m.ox, WL + m.r, WR - m.r);
   m.tx = m.x;
@@ -392,15 +392,14 @@ function lureStep(s: TrapState) {
     if (L.kind === 0) {
       if (s.t >= L.next) {
         let others = L.spots.filter((x) => Math.abs(x - L.x) > 0.05);
-        if (f <= s.c + 2 && clumps(s)) {
-          // 아래 두 층은 '가장 붐비는 무리' 밑으로는 안 간다
-          const big = bigSpots(s), o2 = others.filter((x) => !nearAny(x, big, 0.12));
-          if (o2.length) others = o2;
-        }
-        L.x = others[Math.floor(s.rng() * others.length)];
-        L.ring = s.t;
+        // 아래 두 층은 '가장 붐비는 무리' 밑으로는 안 간다 (갈 데가 없으면 그대로)
+        if (f <= s.c + 2 && clumps(s)) others = others.filter((x) => !nearAny(x, bigSpots(s), 0.12));
         L.next = s.t + RING_T + Math.floor(s.rng() * 60);
-        if (seen) ev(s, 'ring', L.x, FY(f), f);
+        if (others.length) {
+          L.x = others[Math.floor(s.rng() * others.length)];
+          L.ring = s.t;
+          if (seen) ev(s, 'ring', L.x, FY(f), f);
+        }
       }
     } else if (L.kind === 1) {
       L.x += L.vx;
