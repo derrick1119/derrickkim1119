@@ -91,11 +91,10 @@
       const boat = X.boat({ x: -900, riders: [ana] });
       /* everyone who waited with him is on the quay too */
       const folk = [
-        X.actor('mom', { x: 300, style: F.styles.mom, s: C.MOM_S, lamp: true, lampHand: 'F', lean: 0.1, flip: true }),
-        X.actor('rosa', { x: 356, style: F.styles.rosa, s: 138, flip: true }),
-        X.actor('son', { x: 400, style: F.styles.rosaSon, s: 144, flip: true, lean: 0.12, face: { old: true } }),
-        X.actor('bram', { x: 456, style: F.styles.bram, s: 144, flip: true }),
-        X.actor('wife', { x: 496, style: F.styles.bramWife, s: 106, flip: true, lean: 0.2, face: { old: true } }),
+        X.actor('v1', { x: 300, style: F.styles.villagerA, s: 142, lamp: true, lampHand: 'F', flip: true }),
+        X.actor('v2', { x: 356, style: F.styles.villagerB, s: 134, flip: true }),
+        X.actor('kid2', { x: 400, style: F.styles.kidB, s: 100, flip: true }),
+        X.actor('v3', { x: 456, style: F.styles.villagerC, s: 142, flip: true }),
       ];
       X.cam(leo.x - 50, 548, 1.5); X.camSnap();
       S.track = { a: leo, dx: -50 };
@@ -158,13 +157,12 @@
       X.cam(200, 520, 1.2, 0.8);
       await X.walk(folk[0], 196, 60);
       folk[0].flip = true;
-      await TALK.say('mom', '어서 와라, 아가.\n천천히 와 줘서 고맙다.');
-      await TALK.say('ana', '…어머님?');
-      await TALK.say('mom', '우리 레오,\n많이 웃게 해 줘서 고맙다.');
+      await TALK.say('v1', '어서 와요.\n천천히 오셨네.');
+      await TALK.say('ana', '…다들 이 사람을 아세요?');
       const hello = (o, a, t) => { o.armF = { a: 2.4 + Math.sin(t * 9 + a.x) * 0.25, b: 0.3 }; o.face.eye = 'happy'; };
       folk.slice(1).forEach((a) => { a.pose = hello; });
-      await TALK.say('rosa', '얘기 많이 들었어요!');
-      await TALK.say('bram', '집 짓는 거,\n우리가 다 봤지.');
+      await TALK.say('v2', '얘기 많이 들었어요!');
+      await TALK.say('v3', '집 짓는 거,\n우리가 다 봤지.');
       await TALK.say('ana', '…이 사람, 혼자가 아니었네요.');
       folk.forEach((a) => { a.pose = null; });
       await X.wait(0.8);

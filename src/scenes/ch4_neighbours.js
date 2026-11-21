@@ -158,14 +158,20 @@
       await X.view(null, { color: '#1b2a40' });
       X.bed(3, 0.13, 'walk');
       leo.pose = (o, a, t) => { o.headTilt = 0.2 + Math.sin(t * 1.4) * 0.1; o.armF = { a: 0.6, b: 1.2 }; };
+      const pipi = X.actor('kid', { x: PL.HX - 250, style: F.styles.kidA, s: 100 });
+      pipi.pose = (o, a, t) => { o.lean = 0.2; o.face.eye = 'happy'; o.armF = { a: 2.6, b: 2.4 }; o.y += Math.sin(t * 9) * 1.5; };
       await TALK.say('leo', '망치를 어디 뒀더라….');
       await TALK.say('leo', '모자는 또 어디 갔지?');
+      await TALK.say('kid', '히히. 찾아봐!\n풀숲 어딘가에 숨겼지롱.');
       bean.sit = 0; A.sfx('bark');
       T.announce('빈의 냄새 찾기. 풀숲을 눌러 빈을 보낸다. 가까울수록 꼬리를 세게 흔든다.');
       await X.play(T.puzzle.sniff({ finds: [5, 1, 4] }));
       leo.pose = null;
       T.announce('빈이 망치와 모자를 물어 온다. 뼈다귀도 하나.');
-      await TALK.say('leo', '…뼈다귀는 누구 거야?');
+      await TALK.say('kid', '빈 반칙이야!\n코로 찾는 건 반칙이라고!');
+      await TALK.say('leo', '…그럼 뼈다귀는 누구 거야?');
+      await TALK.say('kid', '그건 빈 선물.\n오늘 우리 편 해 줬으니까.');
+      pipi.pose = (o, a, t) => { o.armF = { hand: F.local(o, bean.x, W.groundAt(bean.x) - 30) }; o.lean = 0.3; o.face.eye = 'happy'; };
       bean.sit = 1; bean.wag = 1; bean.wagRate = 16;
       await X.wait(1.4);
       /* walls, year after year, with a dog under his feet */
@@ -253,11 +259,12 @@
         S.rope = { boat: big }; S.big = big; W.S.hook.flags.clearPier = true;
         X.cam(60, 452, 1);
       }, { out: 0.8, in: 1 });
-      T.announce('브램 선장의 배가 처음으로 물에 떴다. 아흔아홉 살 아내가 타고 있다.');
+      T.announce('브램 선장의 배가 처음으로 물에 떴다. 아흔아홉 살 아내가 타고 있다. 둘은 구름바다 너머로 건너간다.');
       await X.tap(() => [16, PIER - 30, 50]);
       T.announce('밧줄 풀기. 말뚝 셋에 감긴 밧줄을, 감긴 차례의 거꾸로 푼다.');
       await X.play(T.puzzle.rope({ order: [0, 2, 1, 0, 2] }));
       S.rope = null;
+      await TALK.say('bram', '이제 건너가세.\n기다릴 사람이 더는 없으니.');
       A.sfx('whoosh'); X.bed(3, 0.14, 'walk'); A.theme({ voice: 'box', vel: 0.3, beat: 0.62, left: false });
       X.sail(S.big, -1500, 54);
       [leo, mom].concat(crowd).forEach((a) => { a.pose = wave; });

@@ -185,9 +185,10 @@
     P.fill(g, P.rr(46, -196, 10, 5, 2), '#c9573f'); P.fill(g, P.rr(60, -196, 10, 5, 2), '#c9573f');
     /* toy chest */
     P.fill(g, P.box(-20, -212, 36, 18, 0.5, 21), '#3f7f86'); P.fill(g, P.box(-22, -216, 40, 6, 0.4, 22), '#2f6067');
-    /* ladder */
-    P.line(g, -132, -2, -126, -200, 4, '#a98660'); P.line(g, -104, -2, -100, -200, 4, '#a98660');
-    for (let i = 1; i < 9; i++) P.line(g, -131 + i * 0.6, -2 - i * 22, -103.6 + i * 0.4, -2 - i * 22, 3.2, '#a98660');
+    /* steep attic stairs along the left wall, and a handrail */
+    P.fill(g, P.poly([[-6, 0], [-20, 0], [-146, -188], [-128, -188]]), '#8a6644');
+    for (let i = 0; i < 9; i++) { const x = -20 - (i + 1) * 13.4, y = -(i + 1) * 20.8; P.fill(g, P.rr(x - 2, y - 2, 18, 6, 2), '#b99168'); P.fill(g, P.rr(x, y + 4, 14, 14.8, 1), '#9d7752'); }
+    P.line(g, 4, -40, -122, -228, 3.4, '#7a5a3c'); P.line(g, 4, -40, 4, 0, 3, '#7a5a3c');
   }
 
   /* ---------- lifecycle ---------- */
@@ -440,10 +441,11 @@
     await tap('stairs');
     /* up the ladder */
     S.st = 'up'; S.sitting = false; k.tween(S.eat, 'k', 0, 0.4);
-    S.inWalk = { l: HOUSE - 116, n: HOUSE + 118 };
+    S.inWalk = { l: HOUSE - 16, n: HOUSE + 118 };
     await k.wait(1.5);
-    S.climbing = true; L.x = HOUSE - 112;
-    await k.tween(L, 'y', UF(), 3.0, T.ease.lin);
+    S.inWalk = null; S.climbing = true; L.x = HOUSE - 16; L.flip = true;
+    k.tween(L, 'x', HOUSE - 136, 3.4, T.ease.lin);
+    await k.tween(L, 'y', UF(), 3.4, T.ease.lin);
     S.climbing = false;
     S.inWalk = { l: HOUSE - 4, n: HOUSE + 118 };
     T.announce('다락에는 어릴 적 방이 그대로 있다.');
@@ -451,11 +453,12 @@
     await tap('beam');
     /* the post where she kept guessing how tall he had grown */
     S.st = 'marks';
-    S.inWalk = { l: HOUSE - 32, n: HOUSE - 116 };
-    await k.wait(1.1);
+    S.inWalk = { l: HOUSE - 32, n: HOUSE - 16 };
+    await k.wait(1.6);
     L.flip = false;
-    S.nClimb = true; N.x = HOUSE - 112;
-    await k.tween(N, 'y', UF(), 3.2, T.ease.lin);
+    S.inWalk = { l: HOUSE - 32, n: null }; S.nClimb = true; N.x = HOUSE - 16; N.flip = true;
+    k.tween(N, 'x', HOUSE - 136, 3.6, T.ease.lin);
+    await k.tween(N, 'y', UF(), 3.6, T.ease.lin);
     S.nClimb = false;
     S.inWalk = { l: HOUSE - 32, n: HOUSE - 78 };
     for (let i = 0; i < 19; i++) {
@@ -510,7 +513,7 @@
       return true;
     };
     S.moving = go(L, w.l, 66, 'wph');
-    S.nmoving = go(N, w.n, 60, 'nph');
+    S.nmoving = w.n == null ? false : go(N, w.n, 60, 'nph');
   }
 
   /* ---------- the top of the hill ---------- */
@@ -522,6 +525,9 @@
     await k.tween(S.point, 'k', 1, 0.9, T.ease.out);
     await k.wait(0.6);
     await TALK.say('mom', '저기가 네 자리야.\n네 사람 오면 같이 살 데.', { slow: true });
+    await TALK.say('leo', '…아빠는요?');
+    await TALK.say('mom', '네 아빠는 먼저 건너갔지.\n구름바다 너머로. 거기서 집 짓고 기다린다더라.');
+    await TALK.say('mom', '여긴 기다릴 사람이 있는 동안만 머무는 데란다.\n다 맞이하고 나면, 건너가는 거야.');
     S.ph = 'plot'; S.idle = 0;
     k.tween(S.point, 'k', 0, 1.2, T.ease.io);
   }
@@ -557,7 +563,7 @@
 
   /* ---------- input ---------- */
   const SPOT = {
-    table: () => [HOUSE + 4, HG() - 70, 60], stairs: () => [HOUSE - 116, HG() - 110, 56],
+    table: () => [HOUSE + 4, HG() - 70, 60], stairs: () => [HOUSE - 76, HG() - 110, 56],
     beam: () => [HOUSE - 50, UF() - 100, 56], sweater: () => [HOUSE + 78, UF() - 44, 44],
   };
   function spot() {
@@ -913,15 +919,15 @@
       g.restore();
     }
   }
-  /* on the ladder: facing it, close in, a hand and the other foot going up a rung at a time */
+  /* up the stairs: a step at a time, leaning into it, a hand on the rail */
   function ladderPose(o, footY, hg, s) {
-    const rung = (hg - footY) / 22, ph = rung * Math.PI, a = Math.sin(ph), u = 2200 / s;
-    o.x = HOUSE - 112; o.flip = true; o.lean = 0.16; o.walk = null; o.headTilt = -0.2;
-    o.y -= Math.abs(a) * 3;
-    o.armF = { hand: F.local(o, HOUSE - 124, o.y - 46 * (s / 150) - 13 * a) };
-    o.armB = { hand: F.local(o, HOUSE - 121, o.y - 46 * (s / 150) + 13 * a) };
-    o.legF = { foot: [5, 49 - u * 0.62 * Math.max(0, -a)] };
-    o.legB = { foot: [3, 49 - u * 0.62 * Math.max(0, a)] };
+    const step = (hg - footY) / 20.8, ph = step * Math.PI, a = Math.sin(ph), u = 2000 / s;
+    o.flip = true; o.lean = 0.2; o.walk = null; o.headTilt = -0.12;
+    o.y -= Math.abs(a) * 2;
+    o.legF = { foot: [-4 - 6 * Math.max(0, a), 49 - u * 0.6 * Math.max(0, a)] };
+    o.legB = { foot: [2 - 6 * Math.max(0, -a), 49 - u * 0.6 * Math.max(0, -a)] };
+    o.armF = { hand: F.local(o, o.x - 18, o.y - 34 * (s / 150)) };
+    o.armB = { a: 0.5 + a * 0.25, b: 0.5 };
   }
 
   /* ---------- drawing: people on the road ---------- */

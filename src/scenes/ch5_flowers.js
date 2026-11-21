@@ -29,7 +29,7 @@
       }
       for (const q of V.petals) { q.y += q.v * dt; q.ph += dt; if (q.y > SHORE) { q.y = -10; } }
     };
-    const guests = [[260, F.styles.mom, 132], [330, F.styles.villagerC, 138], [640, F.styles.rosa, 138], [700, F.styles.rosaSon, 142], [1030, F.styles.villagerA, 140], [1100, F.styles.villagerB, 132], [1420, F.styles.villagerC, 142], [1500, F.styles.post, 140]];
+    const guests = [[260, F.styles.villagerB, 132], [330, F.styles.villagerC, 138], [640, F.styles.rosa, 138], [700, F.styles.rosaSon, 142], [1030, F.styles.villagerA, 140], [1100, F.styles.villagerB, 132], [1420, F.styles.villagerC, 142], [1500, F.styles.post, 140]];
     V.draw = function (g, t, S) {
       const W = T.view.W, wx = V.p * LEN, hint = T.clamp((S.idle - 2) / 1.2);
       P.cray = P.look === 'crayon'; if (P.cray) P.crayonize(g);   /* the road is the harbour's; the hall below it is not */
@@ -158,6 +158,21 @@
     plot: { stage: 3, stones: 4, board: true, table: true, tree: 0.6, swing: 1, garden: 0.4 },
     flags: { bramGone: true },
     update(dt, S) { if (S.swinging) S.ps.swingA = Math.sin(T.time * 1.5) * 0.5; },
+    onHill(g, h, S) {
+      const m = S.pie;
+      if (!m || h !== T.world.hillOf(T.plot.BOARD_X)) return;
+      const t = T.time, flap = m.land ? 0 : Math.sin(t * 16), dir = m.dx == null ? 1 : m.dx;
+      g.save(); g.translate(m.x, m.y + (m.land ? 0 : Math.sin(t * 3) * 6)); g.scale(m.x > T.plot.BOARD_X + 100 ? 1 : -1, 1); void dir;
+      /* tail, body, white belly and shoulder, the wing going */
+      P.fill(g, P.poly([[-10, -2], [-46, -14], [-48, -6], [-12, 6]]), '#1f2c3f'); P.line(g, -44, -10, -46, -9, 2, '#3a6aa0');
+      P.fill(g, P.ellipse(0, 0, 16, 10, -0.15), '#1c2232'); P.fill(g, P.ellipse(2, 4, 10, 6, -0.1), '#f4f1ea');
+      P.fill(g, P.circle(13, -7, 7), '#1c2232'); P.fill(g, P.poly([[19, -8], [27, -6], [19, -4]]), '#2a2a30');
+      P.fill(g, P.circle(15, -9, 1.4), '#fff');
+      g.save(); g.translate(-2, -4); g.rotate(-0.4 - flap * 0.7); P.fill(g, P.ellipse(-8, -6, 16, 6, -0.3), '#24304a'); P.fill(g, P.ellipse(-4, -4, 7, 3, -0.3), '#f4f1ea'); g.restore();
+      if (m.land) { P.line(g, -2, 9, -4, 16, 1.6, '#2a2a30'); P.line(g, 4, 9, 4, 16, 1.6, '#2a2a30'); }
+      if (m.letter !== false) { g.save(); g.translate(26, -2); g.rotate(0.3); P.fill(g, P.rr(-2, -6, 20, 13, 2), '#fbf4e2'); P.fill(g, P.circle(8, 0, 2.4), '#c9573f'); g.restore(); }
+      g.restore();
+    },
     script: async function (X) {
       const W = T.world, C = W.C, PL = T.plot, S = X.S, ps = S.ps, A = X.A, PIER = C.PIER_Y;
       const [px, py] = X.place.plot();
@@ -171,8 +186,8 @@
 
       /* ---- the roof: the ridge beam goes up the way the frame did, on everyone's count ---- */
       const folk = [
-        X.actor('bram', { x: C.PLOT - 560, style: F.styles.bram, s: 144, lean: 0.08 }),
-        X.actor('wife', { x: C.PLOT - 620, style: F.styles.bramWife, s: 106, lean: 0.22, face: { old: true } }),
+        X.actor('v3', { x: C.PLOT - 560, style: F.styles.villagerC, s: 142, lean: 0.08 }),
+        X.actor('v1', { x: C.PLOT - 620, style: F.styles.villagerA, s: 142, lean: 0.12 }),
         X.actor('rosa', { x: C.PLOT - 680, style: F.styles.rosa, s: 138 }),
         X.actor('son', { x: C.PLOT - 740, style: F.styles.rosaSon, s: 144, lean: 0.14, face: { old: true } }),
         X.actor('mom', { x: C.PLOT - 800, style: F.styles.mom, s: C.MOM_S, lean: 0.1 }),
@@ -181,12 +196,12 @@
       folk.forEach((a, i) => X.walk(a, PL.HX - 180 - i * 58, 80 + i * 3));
       await X.wait(4.4);
       leo.flip = true; bean.sit = 0; bean.flip = true;
-      await X.TALK.say('bram', '마룻대 올린다며?\n그건 혼자 못 올려.');
-      await X.TALK.say('wife', '우리 배 띄울 때\n도와줬잖아요.');
+      await X.TALK.say('v3', '마룻대 올린다며?\n그건 혼자 못 올려.');
       await X.TALK.say('son', '어머니가 그러시더라고요.\n지붕은 동네가 같이 올리는 거라고.');
+      await X.TALK.say('son', '저도 집사람 기다리는 중이라,\n손은 남아돌아요.');
       await X.TALK.say('kid', '이번엔 나 맨 앞!');
       T.announce('지붕 올리기. 셋에 맞춰 눌러 다 같이 마룻대를 끌어 올린다. 이번에는 네 번.');
-      await X.play(T.puzzle.heave({ pulls: 4, crew: [F.styles.kidA, F.styles.bram, F.styles.rosaSon, F.styles.rosa, F.styles.mom] }));
+      await X.play(T.puzzle.heave({ pulls: 4, crew: [F.styles.kidA, F.styles.villagerC, F.styles.rosaSon, F.styles.rosa, F.styles.mom] }));
       ps.stage = 4; A.sfx('knock', 0.6); X.notes(5);
       T.announce('지붕이 올라간다. 집이 다 지어졌다.');
       const cheer = (o, a, t) => { o.armF = { a: 2.4 + Math.sin(t * 9 + a.x) * 0.25, b: 0.3 }; o.face.eye = 'happy'; };
@@ -206,40 +221,68 @@
       X.walk(leo, PL.HX - 440, 96);
       await X.wait(1.6);
 
-      /* ---- the bell is not only for people: a letter comes in on the mail boat ---- */
-      let mom, post;
+      /* ---- his mother crosses ---- */
+      let mom2, far;
       await X.dip(async () => {
         S.actors = []; S.boats = [];
         const [qx, qy] = X.place.quay(); X.cam(qx, qy, 1.05); X.camSnap();
-        mom = X.actor('mom', { x: 150, style: F.styles.mom, s: C.MOM_S, lamp: true, lampHand: 'F', lean: 0.1, flip: true });
-        leo = X.actor('leo', { x: 214, style: F.leoAt(2), flip: true, lean: 0.06 });
-        bean = X.actor('bean', { dog: true, s: 220, x: 268, sit: 1, flip: true, wag: 0.6 });
-        post = X.actor('post', { style: F.styles.post, s: 140, lean: 0.05 });
-        S.b1 = X.boat({ x: -880, riders: [post], hull: '#3f6b8a' });
+        mom2 = X.actor('mom', { x: 180, style: F.styles.mom, s: C.MOM_S, lean: 0.1, flip: true });
+        leo = X.actor('leo', { x: 250, style: F.leoAt(2), flip: true, lean: 0.06 });
+        bean = X.actor('bean', { dog: true, s: 220, x: 300, sit: 1, flip: true, wag: 0.4 });
+        far = X.boat({ x: -236, hull: '#e9e2d6', lamp: false, riders: [] });
       });
-      await X.years(20, 25, { age: 61 });
-      const pressed = X.seaLamp({ rounds: [[3, 0, 1, 2], [0, 2, 1, 3, 3]] });
-      X.sail(S.b1, -74, 62);
-      await pressed;
-      X.TALK.say('mom', '종이 사람 때문에만 울리는 건 아니란다.\n꼭 전하고 싶은 말도, 배를 타고 와.', { auto: 3 });
-      await new Promise((res) => { const iv = () => (S.b1.x >= -74.5 ? res() : X.wait(0.2).then(iv)); iv(); });
-      A.sfx('door');
-      await X.land(post, 44);
-      /* he holds it out: one letter, addressed in a hand Leo knows */
-      post.pose = (o, a, t) => { o.armF = { hand: F.local(o, post.x + 34, PIER - 74 + Math.sin(t * 2) * 2) }; };
-      post.prop = (g, j) => { g.save(); g.translate(j.handF[0] + 6, j.handF[1] - 4); g.rotate(-0.2); P.fill(g, P.rr(-13, -9, 26, 18, 2), '#fbf4e2'); P.line(g, -13, -9, 0, 1, 1.4, '#c9b79a'); P.line(g, 13, -9, 0, 1, 1.4, '#c9b79a'); P.fill(g, P.circle(0, 1, 2.6), '#c9573f'); g.restore(); };
-      T.announce('우편배가 닿는다. 집배원이 레오에게 편지 한 통을 내민다.');
-      await X.wait(0.5);
-      X.walk(leo, post.x + 70, 90);
-      await X.tap(() => [post.x + 36, PIER - 76, 60]);
-      await X.card(invitation, { run: async (c) => { T.announce('릴리의 편지. 아빠, 나 결혼해. 보러 와 줄 거지? 릴리.'); await X.tween(c, 'w', 1, 4.4, T.ease.lin); }, max: 16 });
-      post.prop = null; post.pose = null;
+      X.bed(1, 0.12, 'sea');
+      T.announce('저녁, 부두. 등불 없는 하얀 배 한 척이 매여 있다.');
+      await X.TALK.say('mom', '이제 나도 건너가야겠다.');
+      await X.TALK.say('leo', '…벌써요?');
+      await X.TALK.say('mom', '넌 이제 혼자서도 기다릴 수 있잖니.\nRosa도, 빈도, 그 집도 있고.'.replace('Rosa', '로사'));
+      await X.TALK.say('leo', '조금만 더 있다 가면 안 돼요?');
+      await X.TALK.say('mom', '네 아빠도 그렇게 말하더라.\n그래도 먼저 갔어. 가서 집 짓고 기다린다고.');
+      await X.walk(mom2, 60, 50);
+      await X.board(mom2, far, -10);
+      mom2.flip = true;
+      /* the bell asks one last time; to send someone off, the lamps answer it backwards */
+      X.toll(3); await X.wait(0.8);
+      T.announce('배웅. 종이 울린 차례를 거꾸로, 마지막 등불부터 눌러 대답한다.');
+      await X.play(T.puzzle.bell({ rounds: [[0, 1, 2], [0, 2, 1, 3]], reverse: true }));
+      await X.TALK.say('leo', '…천천히 가요.', { slow: true });
+      await X.TALK.say('mom', '그래. 넌 천천히 와.', { slow: true });
+      A.theme({ voice: 'felt', vel: 0.32, beat: 0.8, left: true });
+      mom2.pose = (o, a2, t) => { o.armF = { a: 2.2 + Math.sin(t * 4) * 0.2, b: 0.3 }; };
+      leo.pose = (o, a2, t) => { o.armF = { a: 2.3 + Math.sin(t * 4 + 1) * 0.2, b: 0.3 }; };
+      X.sail(far, -1500, 34);
+      T.announce('하얀 배가 구름바다 너머로 멀어진다.');
+      X.cam(-260, 452, 1, 0.4);
+      await X.wait(7);
+      leo.pose = null;
+
+      /* ---- years on: a magpie with a letter in its beak ---- */
+      let pie;
       await X.dip(async () => {
         S.actors = []; S.boats = [];
         X.cam(px, py, 1); X.camSnap();
         leo = X.actor('leo', { x: PL.HX + 160, style: F.leoAt(2), flip: true, lean: 0.06 });
         bean = X.actor('bean', { dog: true, s: 220, x: PL.HX + 200, sit: 1, wag: 0.5 });
+        pie = { x: PL.HX - 700, y: W.y3(PL.HX) - 420, k: 0, land: 0 };
+        S.pie = pie;
       });
+      X.bed(4, 0.13, 'walk');
+      await X.years(20, 25, { age: 61 });
+      A.sfx('star', 0.8);
+      T.announce('까치 한 마리가 편지를 물고 언덕으로 날아온다.');
+      const perch = [PL.BOARD_X + 6, W.y3(PL.BOARD_X) - 98];
+      X.tween(pie, 'x', perch[0], 3.2, T.ease.out); await X.tween(pie, 'y', perch[1], 3.2, T.ease.io);
+      pie.land = 1; A.sfx('step');
+      bean.sit = 0; A.sfx('bark'); bean.flip = true;
+      leo.flip = true;
+      await X.walk(leo, PL.BOARD_X + 60, 90);
+      await X.tap(() => [perch[0], perch[1] - 8, 50]);
+      pie.letter = false;
+      await X.card(invitation, { run: async (c) => { T.announce('릴리의 편지. 아빠, 나 결혼해. 보러 와 줄 거지? 릴리.'); await X.tween(c, 'w', 1, 4.4, T.ease.lin); }, max: 16 });
+      await X.TALK.say('leo', '…꿈에서 한 말을,\n릴리가 기억하고 있었나 봐.');
+      pie.land = 0; A.sfx('whoosh');
+      X.tween(pie, 'x', PL.HX + 900, 3, T.ease.in); X.tween(pie, 'y', perch[1] - 380, 3, T.ease.in).then(() => { S.pie = null; });
+      await X.wait(1.2);
       /* the whole town weaves the road she will not walk on */
       T.announce('꽃길에 걸 화환을 엮는다. 꽃이 되풀이되는 차례를 보고 빈자리를 채운다.');
       await X.play(T.puzzle.garland({ pattern: [0, 1, 0, 2], len: 13, gaps: [5, 7, 10, 11, 12] }));

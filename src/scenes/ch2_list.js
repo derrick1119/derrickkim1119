@@ -68,6 +68,20 @@
       await X.TALK.say('leo', '…육십 년이나요?');
       await X.TALK.say('bram', '기다리는 동안 손이 놀면,\n마음이 먼저 지치거든.');
       await X.TALK.say('bram', '자네도 뭐든 지어. 천천히.', { slow: true });
+      /* someone has been watching from behind the stakes the whole time */
+      const pipi = X.actor('kid', { x: PL.HX + 260, style: F.styles.kidA, s: 100, flip: true });
+      pipi.pose = (o, a, t) => { o.headTilt = -0.2 + Math.sin(t * 2) * 0.05; o.armF = { a: 0.3, b: 1.6 }; };
+      A.sfx('step');
+      await X.wait(0.8);
+      leo.flip = false;
+      await X.TALK.say('kid', '아저씨 집 지어?\n나 그거 봐도 돼?');
+      await X.TALK.say('leo', '…넌 누구니?');
+      await X.TALK.say('kid', '피피. 일곱 살 때 왔어.\n엄마 아빠 기다려.');
+      await X.TALK.say('bram', '피피는 여기 꽤 오래 있었지.\n삼십 년쯤 됐나.');
+      await X.TALK.say('kid', '아저씨는 누구 기다려?');
+      await X.TALK.say('leo', '아나. 내 아내.');
+      await X.TALK.say('kid', '그럼 나랑 같이 기다리면 되겠다.\n심심하지 않게.');
+      pipi.pose = (o, a, t) => { o.y -= Math.abs(Math.sin(t * 5)) * 4; o.face.eye = 'happy'; };
       X.tween(bram, 'sit', 0, 0.6); X.tween(leo, 'sit', 0, 0.6);
       await X.wait(0.6);
       X.walk(bram, C.PLOT - 600, 70).then(() => { bram.hidden = true; });
