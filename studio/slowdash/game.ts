@@ -419,7 +419,7 @@ const ev = (s: DashState, kind: string, x: number, y: number, n?: number, text?:
 const TIP: Record<string, string> = {
   bellCut: '쩍!', bambooFall: '쓰러진 대나무가 줄을 베어요!', bamboo: '대나무는 곧은 칼엔 툭! 꺾어 들어가요', bell: '종은 두 번 지나야 깨져요',
   leaf: '잎 병정은 곧은 칼을 휙! 꺾어 들어가 베요', leafDemo: '손가락을 따라 옆에서 꺾어 그어 보세요', shotcut: '날아오는 화살·수리검도 돌진 선에 끊겨요!',
-  thorn: '덤불도 한 대! ★★★ 놓침 — 꺾어 돌아가요', chain: '연쇄 — 쉬지 않고 이어 베면 점수가 불어나요', sweep: '싹쓸이! 다음 한 획은 먹이 안 들어요',
+  thorn: '덤불도 한 대! ★★★ 놓침 — 꺾어 돌아가요', chain: '연쇄 — 쉬지 않고 이어 베면 점수가 불어나요', sweep: '싹쓸이! 다음 한 획은 느린 시간이 안 줄어요', // 👁 r4: '먹'은 어디서도 설명 안 된 옛 말
   shield2: '방패가 깨졌어요 — 한 번 더 베면 쓰러져요',
   thornRed: '빨간 덤불은 한 대! 손가락을 사무라이 위에 잠깐 두면 지워져요',
 };
@@ -1647,26 +1647,29 @@ function ghostOf(im: HTMLCanvasElement, key: number, col: string) {
   let g = GHOST.get(key);
   if (g) return g;
   g = document.createElement('canvas');
-  (g.width = im.width), (g.height = im.height);
+  (g.width = im.width + 2), (g.height = im.height + 2);
   const x = g.getContext('2d')!;
   x.drawImage(im, 0, 0);
   x.globalCompositeOperation = 'source-in';
   x.fillStyle = col;
   x.fillRect(0, 0, g.width, g.height);
-  const d = x.getImageData(0, 0, g.width, g.height), W = g.width, H = g.height, a = (i: number, j: number) => i >= 0 && j >= 0 && i < W && j < H && d.data[(j * W + i) * 4 + 3] > 0;
-  x.clearRect(0, 0, W, H);
+  const d = x.getImageData(0, 0, im.width, im.height), W = im.width, H = im.height, a = (i: number, j: number) => i >= 0 && j >= 0 && i < W && j < H && d.data[(j * W + i) * 4 + 3] > 0;
+  x.clearRect(0, 0, g.width, g.height);
   x.globalCompositeOperation = 'source-over';
   x.fillStyle = col; // 바둑판 실루엣은 너무 시끄러웠음 → 바깥 테 한 칸만(🧪 r4 자체 점검)
-  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) if (a(i, j) && (!a(i - 1, j) || !a(i + 1, j) || !a(i, j - 1) || !a(i, j + 1))) x.fillRect(i, j, 1, 1);
+  for (let j = -1; j <= H; j++) for (let i = -1; i <= W; i++) { // 👁 r4: 1칸 테가 국수·낙서처럼 보였다 → 바깥 테 + 안쪽 테 두 칸
+    const n = a(i - 1, j) || a(i + 1, j) || a(i, j - 1) || a(i, j + 1);
+    if ((a(i, j) && (!a(i - 1, j) || !a(i + 1, j) || !a(i, j - 1) || !a(i, j + 1))) || (!a(i, j) && n)) x.fillRect(i + 1, j + 1, 1, 1);
+  }
   GHOST.set(key, g);
   return g;
 }
-function drawGhost(ctx: C2, x: number, y: number, face: number, pose: number) {
-  const im = ghostOf(hero(pose === 3 || pose === 5 ? 2 : pose === 4 ? 1 : 0), pose, '#7cf8dd'), w = im.width * PX, h = im.height * PX;
+function drawGhost(ctx: C2, x: number, y: number, face: number, pose: number, col = '#7cf8dd') {
+  const im = ghostOf(hero(pose === 3 || pose === 5 ? 2 : pose === 4 ? 1 : 0), pose * 2 + (col === '#ffffff' ? 1 : 0), col), w = im.width * PX, h = im.height * PX;
   ctx.save();
-  ctx.translate(Math.round(x / PX) * PX, Math.round((y + (pose === 1 ? PX : 0)) / PX) * PX);
+  ctx.translate(Math.round(clamp(x, w / 2, ctx.canvas.width / Math.abs(ctx.getTransform().a) - w / 2) / PX) * PX, Math.round((y + (pose === 1 ? PX : 0)) / PX) * PX); // 화면 안으로
   ctx.scale(face, 1);
-  ctx.drawImage(im, -Math.round(w / 2 / PX) * PX, -h + PX, w, h);
+  ctx.drawImage(im, -Math.round(w / 2 / PX) * PX, -h + 2 * PX, w, h);
   ctx.restore();
 }
 function drawFox(ctx: C2, x: number, y: number, _k: number, face: number, pose: number, _t: number, alpha = 1) {
@@ -1997,14 +2000,14 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
         const q = (i / rx) ** 2 + (j / ry) ** 2;
         if (q > 1) continue;
         if (f.k !== 'boss') { let da = Math.atan2(j * 2, i) - f.fa; da = Math.atan2(Math.sin(da), Math.cos(da)); if (Math.abs(da) > 1.2) continue; }
-        ctx.rect((cx0 + i) * PX, (cy0 + j) * PX, PX, PX);
-        if (q > 0.7) edge.push(cx0 + i, cy0 + j);
+        if (q > 0.62 || (f.k !== 'boss' && (i * i + j * j < 2))) edge.push(cx0 + i, cy0 + j);
       }
-      ctx.fill();
-      ctx.fillStyle = `rgba(255,120,100,${0.5 + 0.5 * u})`;
-      ctx.beginPath();
-      for (let e = 0; e < edge.length; e += 2) ctx.rect(edge[e] * PX, edge[e + 1] * PX, PX, PX);
-      ctx.fill();
+      if (!(u > 0.6 && Math.floor(t / 3) % 2)) { // 👁 r4: 반투명 면이 피·그림자 얼룩처럼 읽혔다 → 또렷한 빨강 테만, 칼 내리기 직전엔 깜빡
+        ctx.fillStyle = u > 0.6 ? '#ff4a3d' : '#d8323a';
+        ctx.beginPath();
+        for (let e = 0; e < edge.length; e += 2) ctx.rect(edge[e] * PX, edge[e + 1] * PX, PX, PX);
+        ctx.fill();
+      }
     }
     if (f.k === 'shield') {
       ctx.strokeStyle = 'rgba(255,214,110,.75)';
@@ -2228,7 +2231,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ell(ctx, hx, Y(s.ny), k * 0.55, k * 0.2);
     ctx.fill();
     ctx.save();
-    drawFox(ctx, hx, Y(s.ny), k, s.face, ninPose(), wt + t * 0.3, blinkOff ? 0.45 * alpha : alpha);
+    drawFox(ctx, hx, Y(s.ny), k, s.face, ninPose(), wt + t * 0.3, alpha);
+    if (blinkOff) drawGhost(ctx, hx, Y(s.ny), s.face, ninPose(), '#ffffff'); // 👁 r4: 맞은 뒤 반투명 깜빡임(적 뒤로 묻힘) → 불투명 + 흰 테 깜빡임
     ctx.restore();
     if (s.phase === 'play' && (s.hp < HP || t - (fx.memo.hurtT ?? -99) < 90)) {
       for (let j = 0; j < HP; j++) {
@@ -2263,7 +2267,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       }
     }
   };
-  items.push({ y: s.ny + 0.0001, draw: () => drawNinja() });
+  if (s.phase !== 'play') items.push({ y: s.ny + 0.0001, draw: () => drawNinja() }); // 👁 r4: 혼전에서 주인공이 적 몸 뒤로 묻혔다 → 판 중에는 늘 맨 위(아래 items 다음)
   // 날아오는 것
   for (const sh of s.shots) {
     items.push({
@@ -2331,6 +2335,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   }
   items.sort((a, b) => a.y - b.y);
   for (const it of items) it.draw();
+  if (s.phase === 'play') drawNinja();
   // ── M3 F3 일섬(셋 이상 한 획): 0.07초 어둠(만화의 임팩트 컷) 뒤 화면 끝에서 끝까지 가르는 칼빛 ──
   const big = !!s.trail && s.trail.n >= ISSEN.n && since < ISSEN.streak, peak = big && (s.trail!.n >= ISSEN.top || !!s.trail!.sw); // 정점(넷 이상·싹쓸이)에만 어둠·당겨 보기
   // ── 돌진 자국: 칼빛 선 + 잔상 ──
@@ -2546,7 +2551,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   }
   // 첫 안내: 손가락 그림 하나 (허수아비 너머를 꾹)
   if (s.stage === 0 && !s.firstDash && s.phase === 'play' && !s.down) {
-    const tx = X(0.5), ty = Y(0.5), cyc = (t % 90) / 90, press = cyc < 0.5 ? cyc * 2 : 1 - (cyc - 0.5) * 2;
+    const tx = X(0.5), ty = Y(0.42), cyc = (t % 90) / 90, press = cyc < 0.5 ? cyc * 2 : 1 - (cyc - 0.5) * 2;
     ctx.save();
     ctx.strokeStyle = 'rgba(255,255,255,.55)';
     ctx.lineWidth = 2.5;
@@ -2559,9 +2564,9 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.setLineDash([]);
     ctx.strokeStyle = '#ffffff';
     ring(ctx, tx, ty, R(0.03 + press * 0.03), R(0.03 + press * 0.03)); // 👁 도트 고리
-    ctx.translate(tx, ty);
-    ctx.rotate(Math.PI + 0.25);
-    drawHand(ctx, 0, R(0.01), R(0.085), press);
+    ctx.translate(Math.round(tx / PX) * PX + R(0.03), Math.round(ty / PX) * PX); // 👁 r4: 손이 맨 앞 병정 머리를 덮었고(01) 비스듬히 돌려 번졌다 → 병정 줄 위 빈 자리를, 오른쪽에서 직각으로 가리킴
+    ctx.rotate(-Math.PI / 2);
+    drawHand(ctx, 0, 0, R(0.085), press);
     ctx.restore();
   }
   // 새 적 스포트라이트
