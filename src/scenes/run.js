@@ -4,14 +4,14 @@ import { W, H, VIEW, HUD_H, BAR_Y } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, poly, line, st as inkStroke, clamp, easeOutBack } from '../render/draw.js';
 import { BattleView, ghostUnits } from '../render/battleview.js';
 import { Battle, formation, defOf, HAND, REFILL } from '../sim/battle.js';
-import { G, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, STOP } from '../state.js';
+import { G, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, STOP } from '../state.js';
 import { MARCH as MARCH_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines } from '../data/story.js';
 import { CHAPTERS } from '../data/stages.js';
 import { AFFIX } from '../data/encounters.js';
 import { CARDS, KIND, cardName, isUnit } from '../data/cards.js';
 import { eventView } from '../data/events.js';
 import { RELICS } from '../data/relics.js';
-import { UNITS, HERO_SKILLS, COMBOS, SYNERGIES } from '../data/units.js';
+import { UNITS, HERO_SKILLS, HERO_TRAIT, COMBOS, SYNERGIES } from '../data/units.js';
 import { TERRAINS, SKY } from '../data/terrain.js';
 import { portrait, getLook } from '../render/sprites.js';
 import { ui, button, iconBtn, panel, bar, icon, seal, stamp, brushTitle, bubble, C, inRect, tapped } from '../ui/ui.js';
@@ -21,6 +21,7 @@ import { cardIcon, relicIcon } from '../render/icons.js';
 import { sfx, audio, setMuted } from '../audio.js';
 import { nav } from '../nav.js';
 
+const NUM = ['', '하나', '둘', '셋', '넷', '다섯'];
 export const GRADE = ['', '丙', '乙', '甲'];
 const MARCH = 520, MARCH_V = 300;
 const FIGHT = t => t === 'battle' || t === 'elite' || t === 'boss';
@@ -33,7 +34,7 @@ export class RunScene {
     this.b = new Battle(battleSetup()); this.view = new BattleView(CHAPTERS[Math.min(2, r.ch)].theme, r.ch * 31 + 7);
     this.T = 0; this.dt = 0; this.speed = 1; this.slow = 1; this.menu = false; this.over = null; this.sub = null;
     this.order = null; this.aim = null; this.slotAnim = []; this.toastS = ''; this.toastT = 0; this.note = null; this.grade = null; this.enc = null; this.fade = 0; this.endT = 0;
-    this.first = (meta.runs || 0) <= 1 && r.wins === 0; this.hints = 0; this.talk = null; if (!r.seen) r.seen = {};
+    this.first = (meta.runs || 0) <= 1 && r.wins === 0; this.hints = 0; this.talk = null; if (!r.seen) r.seen = {}; this.stock = {}; this.lootT = 0;
     const rd = r.road;
     if (rd.i === 0 && rd.state !== 'reward') this.note = { s: CHAPTERS[r.ch].name, sub: CHAPTERS[r.ch].sub, col: INDIGO, t: 2.6 };
     if (rd.state === 'reward') { this.phase = 'stop'; this.reward(curStop().type); }
@@ -41,7 +42,7 @@ export class RunScene {
     else this.march(r.wins === 0 && rd.i === 0 ? 300 : MARCH, true);
   }
   toast(s, t = 2.4) { this.toastS = s; this.toastT = t; }
-  sync() { const b = this.b, r = this.r; b.mods = mods(); b.cap = r.cap; b.power = powerNow(); b.syncDeck(r.deck); }
+  sync() { const b = this.b, r = this.r; settleBattle(b); b.mods = mods(); b.cap = r.cap; b.power = powerNow(); b.lootTable = lootTable(); b.mastery = r.mastery || {}; b.syncDeck(r.deck); }
 
   // ───────── 흐름 ─────────
   march(dist = MARCH, quiet) {
@@ -116,6 +117,7 @@ export class RunScene {
   waveClear(e) {
     const r = this.r, b = this.b, enc = this.enc, c1 = e.lost <= enc.starDeaths, c2 = e.time <= enc.starTime, grade = 1 + (c1 ? 1 : 0) + (c2 ? 1 : 0), gold = goldFor(grade, enc.kind);
     r.gold += gold; r.merit = (r.merit || 0) + grade; r.wins++; r.kills = b.kills; r.lost = b.lost; r.nextMorale = 0; r.road.state = 'reward';
+    settleBattle(b); if (enc.kind !== 'battle') { const got = grantLoot(enc.kind === 'boss' ? 4 : 3); this.toast(`${enc.kind === 'boss' ? '두목' : '강적'}의 짐에서 패 ${got.length}장을 노획 — ${got.join(', ')}`, 4.5); this.sync(); }
     this.grade = { grade, gold, t: 0, stamped: false }; this.phase = 'clear'; this.order = null; this.aim = null; sfx('win'); save();
   }
   // 요괴가 쓰러질 때: 두목의 마지막 한마디, 처음 보는 것에 놀란 병사의 한마디
@@ -184,12 +186,13 @@ export class RunScene {
         if (this.phase === 'prep') { this.prepT -= dt * ts; if (this.prepT <= 0) { b.startWave(this.enc.enemy, waveSetup(this.enc)); this.phase = 'fight'; } }
         this.talkTick(dt * ts);
         if (this.phase === 'fight' && this.enc.boss && !this.bossSaid && BOSS[this.enc.key] && this.speaker('B')) { this.bossSaid = true; this.say([['B', BOSS[this.enc.key].enter]]); }
-        for (const e of view.handle(b, sfx)) { if (e.type === 'waveClear' && this.phase === 'fight') this.waveClear(e); else if (e.type === 'bannerDown' && this.phase !== 'over') this.bannerDown(); else if (e.type === 'synergy') this.toast(`진법 발동 — ${e.name}: ${e.desc}`, 2.8); else if (e.type === 'chase') this.note = { s: '뒤에서 어둠이 밀려온다!', sub: '쫓기던 요괴들이 더 몰려옵니다 — 서둘러 물리치세요', col: RED, t: 2.2 }; else if (e.type === 'death') this.onDeath(e); else if (e.type === 'combo') this.note = { s: '합동기 — ' + e.name, sub: '', col: '#b8742a', t: 1.8 }; }
+        settleBattle(b);
+        for (const e of view.handle(b, sfx)) { if (e.type === 'waveClear' && this.phase === 'fight') this.waveClear(e); else if (e.type === 'bannerDown' && this.phase !== 'over') this.bannerDown(); else if (e.type === 'synergy') this.toast(`진법 발동 — ${e.name}: ${e.desc}`, 2.8); else if (e.type === 'chase') this.note = { s: '뒤에서 어둠이 밀려온다!', sub: '쫓기던 요괴들이 더 몰려옵니다 — 서둘러 물리치세요', col: RED, t: 2.2 }; else if (e.type === 'death') this.onDeath(e); else if (e.type === 'loot') { this.lootT = 1; if (!r.seen.loot && !this.talk) { r.seen.loot = 1; this.toast(`요괴 무리를 ${NUM[b.mods.lootEvery] || b.mods.lootEvery} 물리칠 때마다 패를 한 장 노획합니다 (주머니 ${b.mods.pouch}장까지)`, 4.5); } } else if (e.type === 'lootFull') this.toast(`주머니가 가득 차 패를 줍지 못했습니다 (${b.mods.pouch}장) — 아끼지 말고 쓰세요`, 3.6); else if (e.type === 'squadLost' && !e.again && !r.seen.bench) { r.seen.bench = 1; this.toast('전멸한 부대는 이 싸움이 끝나야 다시 세울 수 있습니다', 4); } else if (e.type === 'combo') this.note = { s: '합동기 — ' + e.name, sub: '', col: '#b8742a', t: 1.8 }; }
       }
       view.fx.update(dt * Math.max(0.35, ts));
       if (this.phase === 'clear') { this.grade.t += dt; if (this.grade.t > 1.5) this.afterWave(); }
       if (this.phase === 'over') { this.endT -= dt; if (this.endT <= 0 && !this.gone) { this.gone = true; nav.go('end', { win: false }); } }
-      if (this.first && this.phase === 'fight' && this.toastT <= 0) { if (this.hints === 0 && b.waveT > 1.5) { this.toast('아래 병력 패를 전장으로 끌어다 놓으면 부대가 섭니다 (사기를 냅니다)', 5); this.hints = 1; } else if (this.hints === 1 && b.waveT > 9) { this.toast('사기는 저절로 차지 않습니다 — 요괴 무리를 물리칠 때마다 오릅니다. 아껴 쓰세요', 5.5); this.hints = 2; } else if (this.hints === 2 && b.waveT > 18) { this.toast('부대를 끌면 이동, 요괴 위에 놓으면 집중 공격 · 끄는 동안 시간이 느려집니다', 5); this.hints = 3; } }
+      if (this.first && this.phase === 'fight' && this.toastT <= 0) { if (this.hints === 0 && b.waveT > 1.5) { this.toast('아래 병력 패를 전장으로 끌어다 놓으면 부대가 섭니다 (사기를 냅니다)', 5); this.hints = 1; } else if (this.hints === 1 && b.waveT > 9) { this.toast('전술 패는 한 번 쓰면 사라집니다 — 전장의 노획과 전리품·장터·주막에서 다시 채웁니다', 6); this.hints = 2; } else if (this.hints === 2 && b.waveT > 18) { this.toast('부대를 끌면 이동, 요괴 위에 놓으면 집중 공격 · 끄는 동안 시간이 느려집니다', 5); this.hints = 3; } }
     } else view.fx.update(0);
     // 그리기
     const opt = { dt, orders: true, march: this.phase === 'march', rings: [] }, o = this.order, a = this.aim;
@@ -292,7 +295,7 @@ export class RunScene {
       ell(g, 34, y + 20, 16, 16, '#efd9a8', INK, 1.4); ell(g, 34, y + 20, 13.4, 13.4, null, 'rgba(201,150,46,0.8)', 1); g.save(); g.beginPath(); g.arc(34, y + 20, 15, 0, TAU); g.clip(); portrait(g, u.type, 34, y + 58, 0.72); g.restore();
       text(g, u.def.name, 58, y + 12, { size: 14, align: 'left' }); text(g, sk.name, 216, y + 12, { size: 13.5, align: 'right', fill: gz > 0.9 ? RED : SUB, font: FONT_B, maxW: 110 });
       bar(g, 58, y + 22, 156, 11, gz, gz > 0.9 ? '#f0d264' : OCHRE, { back: '#d9cdb0' });
-      if (tapped('hc' + u.type, 12, y, 212, 40)) this.toast(`${u.def.name}의 고유기 (기력이 차면 자동): ${HERO_SKILLS[u.type].map(s => s.name).join(' → ')}`, 4);
+      if (tapped('hc' + u.type, 12, y, 212, 40)) this.toast(u.type === this.r.hero ? `병법 '${HERO_TRAIT[u.type].name}' — ${HERO_TRAIT[u.type].desc}` : `${u.def.name}의 고유기 (기력이 차면 자동): ${HERO_SKILLS[u.type].map(s => s.name).join(' → ')}`, 5);
       y += 44;
     }
     const pair = b.heroPair(), combo = pair && COMBOS[pair.key];
@@ -321,12 +324,30 @@ export class RunScene {
   }
   // 손패 한 칸
   handCard(g, n, x, y, w, h, b, i, live) {
-    const c = b.hand[n], an = this.slotAnim[n] || (this.slotAnim[n] = { c: null, t: 9 });
-    if (an.c !== c) { an.c = c; an.t = 0; if (c && this.T > 0.5) sfx('card'); } an.t += this.dt;
+    const c = b.hand[n], an = this.slotAnim[n] || (this.slotAnim[n] = { c: null, t: 9, last: null, burn: 9 });
+    // 전술 패를 쓰면 그 자리에서 타서 사라진다 (병력 패는 전장으로 나간다)
+    if (an.c !== c) { if (!c && an.c && !isUnit(an.c) && !b.drawPile.includes(an.c)) { an.last = an.c; an.burn = 0; } an.c = c; an.t = 0; if (c && this.T > 0.5) sfx('card'); } an.t += this.dt; an.burn += this.dt;
     if (!c) {
       rr(g, x + 3, y + 3, w - 6, h - 6, 8, 'rgba(6,10,22,0.3)'); g.setLineDash([7, 6]); rr(g, x + 3, y + 3, w - 6, h - 6, 8, null, 'rgba(164,175,204,0.55)', 1.4); g.setLineDash([]);
-      if (b.drawPile.length + b.discard.length > 0) { const f = clamp(1 - b.slotT[n] / (REFILL * b.mods.drawRate), 0, 1); g.beginPath(); g.arc(x + w / 2, y + h / 2 - 6, 22, -Math.PI / 2, -Math.PI / 2 + TAU * f); inkStroke(g, C.gilt, 4.4); text(g, '뽑는 중', x + w / 2, y + h - 24, { size: 14, fill: C.dim }); }
-      else text(g, '패 없음', x + w / 2, y + h / 2, { size: 14, fill: C.dim });
+      if (an.burn < 0.5 && an.last) {
+        const q = an.burn / 0.5, cut = y + h * (1 - q);
+        g.save(); g.beginPath(); g.rect(x - 4, y - 4, w + 8, cut - y + 4); g.clip(); g.globalAlpha = 1 - q * 0.5; cardFace(g, an.last, x, y - q * 10, w, h, {}); g.restore();
+        g.fillStyle = `rgba(255,150,50,${0.9 * (1 - q)})`; g.fillRect(x + 4, cut - 3, w - 8, 4); g.fillStyle = `rgba(40,30,30,${0.5 * (1 - q)})`; g.fillRect(x + 4, cut + 1, w - 8, 3);
+        for (let k = 0; k < 7; k++) { const px = x + 10 + ((k * 37 + n * 13) % (w - 20)), py = cut - ((an.burn * 90 + k * 23) % 46); ell(g, px, py, 1.8, 1.8, k % 2 ? '#ffb03a' : '#5a4a44'); }
+        return;
+      }
+      if (b.drawPile.length > 0) {
+        const f = clamp(1 - b.slotT[n] / (REFILL * b.mods.drawRate), 0, 1); g.beginPath(); g.arc(x + w / 2, y + h / 2 - 6, 22, -Math.PI / 2, -Math.PI / 2 + TAU * f); inkStroke(g, C.gilt, 4.4);
+        // 상쇠는 뽑기를 기다리지 않고 빈 자리에서 바로 신명풀이를 할 수 있다
+        if (b.mods.scavAny) { const ok = b.canScavenge(n); text(g, '신명풀이', x + w / 2, y + h - 40, { size: 14.5, font: FONT_B, fill: ok ? C.cream : C.dim }); text(g, `눌러서 사기 ${b.scavCost()}`, x + w / 2, y + h - 21, { size: 12.5, fill: ok ? C.gilt : C.dim }); if (live && tapped('scav' + n, x, y, w, h)) { if (b.scavenge(n)) this.aim = null; else { sfx('deny'); this.toast(`사기가 ${b.scavCost()} 있어야 패를 얻습니다`, 1.6); } } }
+        else text(g, '뽑는 중', x + w / 2, y + h - 24, { size: 14, fill: C.dim });
+        return;
+      }
+      // 패가 떨어졌다: 사기를 내고 돌이라도 줍는다 (상쇠는 아무 전술 패나)
+      const cost = b.scavCost(), any = b.mods.scavAny, ok = b.canScavenge(n);
+      g.globalAlpha = ok ? 1 : 0.5; cardIcon(g, any ? 'pangut' : 'sling', x + w / 2, y + 46, 1.05); g.globalAlpha = 1;
+      text(g, any ? '신명풀이' : '돌 줍기', x + w / 2, y + 88, { size: 17, font: FONT_B, fill: ok ? C.cream : C.dim }); text(g, `사기 ${cost}`, x + w / 2, y + 110, { size: 14, fill: ok ? C.gilt : C.dim });
+      if (live && tapped('scav' + n, x, y, w, h)) { if (b.scavenge(n)) this.aim = null; else { sfx('deny'); this.toast(`사기가 ${cost} 있어야 ${any ? '패를 얻습니다' : '돌을 줍습니다'}`, 1.6); } }
       return;
     }
     const why = b.whyNot(n), can = why === '', a = this.aim, armed = a && a.slot === n;
@@ -336,6 +357,8 @@ export class RunScene {
     if (armed) rr(g, x - 4, yy - 4, w + 8, h + 8, 12, null, OCHRE, 4);
     cardFace(g, c, x, yy, w, h, { cost: b.free > 0 ? 0 : b.costOf(c), dim: !can, free: b.free > 0 });
     if (why === 'cap' || why === 'hero') { rr(g, x + 10, yy + h / 2 - 14, w - 20, 28, 6, 'rgba(31,42,68,0.86)'); text(g, why === 'cap' ? '부대 가득' : CARDS[c.id].kind === 'lead' ? '출전 중' : '영웅 없음', x + w / 2, yy + h / 2 + 1, { size: 17, font: FONT_B, fill: C.cream }); }
+    // 같은 전술 패가 주머니에 몇 장 남았는지 (이 한 장 포함)
+    if (!isUnit(c) && CARDS[c.id].kind !== 'curse') { const left = this.stock[c.id] || 1; rr(g, x + 5, yy + h - 23, 30, 17, 4, left > 1 ? 'rgba(31,42,68,0.86)' : '#8a2a26'); text(g, '×' + left, x + 20, yy + h - 14, { size: 12, fill: C.cream }); }
     g.restore();
     text(g, String(n + 1), x + w - 10, y + h - 4, { size: 11, fill: SUB });
   }
@@ -345,11 +368,17 @@ export class RunScene {
     for (let k = 0; k < 10; k++) { const f = clamp(b.morale - k, 0, 1), cx = 34 + (k % 5) * 42, cy = 618 + Math.floor(k / 5) * 32; icon.coin(g, cx, cy, 13, f >= 1); if (f > 0 && f < 1) { g.save(); g.beginPath(); g.rect(cx - 13, cy + 13 - 26 * f, 26, 26 * f); g.clip(); icon.coin(g, cx, cy, 13, true); g.restore(); } }
     const n = b.squadCount(), full = n >= b.cap;
     icon.people(g, 26, 690, 0.95, full ? RED : '#5f84c4'); text(g, `부대 ${n} / ${b.cap}`, 44, 691, { size: 17, align: 'left', fill: full ? '#f39a82' : C.cream });
-    cardBack(g, 150, 677, 18, 26); text(g, String(b.drawPile.length), 176, 691, { size: 17, font: FONT_B, align: 'left', fill: C.cream }); g.globalAlpha = 0.55; cardBack(g, 198, 677, 18, 26); g.globalAlpha = 1; text(g, String(b.discard.length), 224, 691, { size: 17, font: FONT_B, align: 'left', fill: C.dim });
+    // 주머니: 남은 전술 패 / 한도. 그 옆의 점은 노획까지 물리칠 무리
+    const stock = this.stock = {}; let pn = 0; for (const c of this.r.deck) if (!isUnit(c) && CARDS[c.id].kind !== 'curse') { stock[c.id] = (stock[c.id] || 0) + 1; pn++; }
+    const cap = b.mods.pouch, lf = this.lootT > 0 ? (this.lootT = Math.max(0, this.lootT - this.dt * 1.6)) : 0;
+    g.save(); g.translate(150, 690); g.scale(1 + lf * 0.35, 1 + lf * 0.35); icon.sack(g, 0, 0, 0.86); g.restore();
+    text(g, `${pn}/${cap}`, 164, 691, { size: 16, font: FONT_B, align: 'left', fill: pn === 0 ? '#f39a82' : pn >= cap ? C.gilt : C.cream });
+    for (let k = 0; k < b.mods.lootEvery; k++) ell(g, 213 + k * 10, 691, 3.6, 3.6, k < b.lootN ? C.gilt : 'rgba(6,10,22,0.45)', 'rgba(154,166,196,0.6)', 1);
+    if (tapped('pouch', 140, 676, 100, 30)) this.toast(`주머니 — 전술 패 ${pn}장 (전장에서는 ${cap}장까지 줍습니다). 요괴 무리를 ${NUM[b.mods.lootEvery] || b.mods.lootEvery} 물리칠 때마다 한 장 노획`, 4.5);
     for (let k = 0; k < HAND; k++) this.handCard(g, k, 248 + k * 136, 574, 128, 138, b, i, live);
     if (button(g, 'allhold', 936, 574, 162, 62, '전군 대기', { style: 'indigo', size: 24, r: 10 }) && live) this.allOrder(true);
     if (button(g, 'allgo', 1106, 574, 162, 62, '전군 돌격', { style: 'red', size: 24, r: 10 }) && live) this.allOrder(false);
-    if (button(g, 'redraw', 936, 646, 162, 62, '패 갈기 · 사기 1', { style: b.canRedraw() ? 'paper' : 'grey', size: 19, r: 10 }) && live) { if (b.redraw()) this.aim = null; else sfx('deny'); }
+    if (button(g, 'redraw', 936, 646, 162, 62, '패 갈기 · 사기 1', { style: b.canRedraw() ? 'paper' : 'grey', size: 19, r: 10 }) && live) { if (b.redraw()) this.aim = null; else { sfx('deny'); if (!b.drawPile.length) this.toast('더미에 남은 패가 없습니다 — 손에 든 것이 전부입니다', 2); } }
     if (button(g, 'deck', 1106, 646, 162, 62, `덱 ${this.r.deck.length}장`, { style: this.r.items.length ? 'teal' : 'paper', size: 22, r: 10 }) && !this.over) this.sub = new DeckView({ P: b.power * b.mods.cardPow, onChange: () => this.sync(), onClose: () => { this.sub = null; this.sync(); } });
   }
   drawNotes(g, b) {
@@ -368,7 +397,7 @@ export class RunScene {
     const r = this.r;
     g.fillStyle = 'rgba(31,42,68,0.55)'; g.fillRect(0, 0, W, H);
     panel(g, 380, 96, 520, 530); brushTitle(g, 640, 102, 280, 62, '잠시 멈춤', INDIGO, 34);
-    text(g, `${CHAPTERS[Math.min(2, r.ch)].name}  ·  이긴 싸움 ${r.wins}`, 640, 172, { size: 19, fill: SUB, maxW: 460 });
+    text(g, `${CHAPTERS[Math.min(2, r.ch)].name}  ·  이긴 싸움 ${r.wins}  ·  ${UNITS[r.hero].name}의 병법 '${HERO_TRAIT[r.hero].name}'`, 640, 172, { size: 18, fill: SUB, maxW: 470 });
     if (button(g, 'm1', 450, 200, 380, 66, '계속하기', { size: 32 })) this.menu = false;
     if (button(g, 'm2', 450, 278, 380, 56, `덱 살피기 · ${r.deck.length}장`, { style: 'paper', size: 25 })) this.sub = new DeckView({ P: this.b.power * this.b.mods.cardPow, onChange: () => this.sync(), onClose: () => { this.sub = null; this.sync(); } });
     if (button(g, 'm3', 450, 344, 380, 56, `지닌 보물 · ${r.relics.length}`, { style: 'paper', size: 25 })) this.sub = new RelicView({ onClose: () => { this.sub = null; } });
@@ -376,6 +405,6 @@ export class RunScene {
     if (button(g, 'm5', 450, 476, 380, 56, '처음 화면으로', { style: 'paper', size: 25 })) nav.go('title');
     text(g, '패 끌기 = 병력 세우기·전술 쓰기  ·  부대 끌기 = 이동  ·  요괴 위에 놓기 = 집중 공격', 640, 560, { size: 14.5, fill: SUB, maxW: 480, weight: 400 });
     text(g, '키보드: 1~5 패 고르기 · Q 전군 대기 · E 전군 돌격 · R 패 갈기 · F 빠르기 · 스페이스 멈춤', 640, 584, { size: 14.5, fill: SUB, maxW: 480, weight: 400 });
-    text(g, '진행은 칸마다 저장됩니다 (싸움 도중에 나가면 그 싸움부터 다시)', 640, 606, { size: 13.5, fill: SUB, maxW: 480, weight: 400 });
+    text(g, `${HERO_TRAIT[r.hero].desc}`, 640, 606, { size: 13.5, fill: '#8a5a2c', maxW: 480 });
   }
 }

@@ -1,11 +1,11 @@
 // 영웅 고르기 (가로): 위에는 영웅 일곱의 얼굴, 아래에는 고른 영웅의 고유기와 전용 패
 import { W, H } from '../config.js';
-import { TAU, INK, PAPER, RED, INDIGO, SUB, FONT_B, text, ell, rr } from '../render/draw.js';
+import { TAU, INK, PAPER, RED, INDIGO, SUB, FONT_B, text, textBlock, ell, rr } from '../render/draw.js';
 import { button, panel, brushTitle, seal, C, tapped } from '../ui/ui.js';
 import { nav } from '../nav.js';
 import { newRun, heroOpen, UNLOCKS, meta } from '../state.js';
-import { UNITS, HEROES, HERO_SKILLS, HERO_COL, HERO_SEAL } from '../data/units.js';
-import { CARDS } from '../data/cards.js';
+import { UNITS, HEROES, HERO_SKILLS, HERO_COL, HERO_SEAL, HERO_TRAIT } from '../data/units.js';
+import { CARDS, starterDeck, isUnit } from '../data/cards.js';
 import { dimBackdrop } from './title.js';
 import { portrait } from '../render/sprites.js';
 import { cardFace } from '../ui/cards.js';
@@ -34,19 +34,24 @@ export class HeroScene {
     ell(g, 152, 408, 94, 94, '#efd9a8', INK, 2.4); ell(g, 152, 408, 87, 87, null, 'rgba(201,150,46,0.8)', 1.2);
     g.save(); g.beginPath(); g.arc(152, 408, 92, 0, TAU); g.clip(); g.fillStyle = 'rgba(140,160,120,0.6)'; g.fillRect(50, 452, 210, 60); portrait(g, id, 148, 484, 1.75, this.t, true); g.restore();
     text(g, d.name, 272, 298, { size: 46, font: FONT_B, align: 'left' }); g.save(); g.translate(272 + g.measureText(d.name).width + 34, 292); g.rotate(-0.06); seal(g, 0, 0, 34, HERO_SEAL[id], col); g.restore();
-    text(g, d.desc, 274, 340, { size: 19, align: 'left', fill: SUB, maxW: 440 });
-    text(g, `체력 ${Math.round(d.hp * 2.2)}  ·  ${ROLE[id]}  ·  패 비용 4`, 274, 368, { size: 15, align: 'left', fill: SUB, weight: 400, maxW: 440 });
-    text(g, '자동 고유기 — 기력이 찰 때마다 차례로 스스로 씁니다', 274, 402, { size: 14.5, align: 'left', fill: col, maxW: 440 });
+    text(g, d.desc, 274, 336, { size: 19, align: 'left', fill: SUB, maxW: 440 });
+    const sd = starterDeck(id), nu = sd.filter(c => CARDS[c.id].kind === 'unit').length, nt = sd.filter(c => !isUnit(c)).length;
+    text(g, `체력 ${Math.round(d.hp * 2.2)}  ·  ${ROLE[id]}  ·  시작: 병력 ${nu} · 전술 패 ${nt}`, 274, 361, { size: 14.5, align: 'left', fill: SUB, weight: 400, maxW: 440 });
+    // 병법: 이 영웅이 이끌면 패를 얻고 쓰는 방식이 달라진다
+    const tr = HERO_TRAIT[id]; rr(g, 270, 376, 448, 62, 6, '#fbf1cf', col, 1.8); rr(g, 270, 376, 7, 62, 3, col);
+    text(g, `병법 · ${tr.name}`, 288, 392, { size: 18, font: FONT_B, align: 'left', fill: col }); text(g, tr.play, 706, 392, { size: 13, align: 'right', fill: SUB, weight: 400, maxW: 250 });
+    textBlock(g, tr.desc, 288, 412, 420, 17, { size: 13.5, align: 'left', weight: 400 });
+    text(g, '자동 고유기', 274, 453, { size: 13.5, align: 'left', fill: col });
     HERO_SKILLS[id].forEach((sk, n) => {
-      const yy = 420 + n * 46; rr(g, 270, yy, 448, 40, 6, '#fbf3df', 'rgba(38,42,54,0.5)', 1.2);
-      ell(g, 290, yy + 20, 11, 11, col, INK, 1.2); text(g, String(n + 1), 290, yy + 21, { size: 14, font: FONT_B, fill: C.cream });
-      text(g, sk.name, 310, yy + 21, { size: 19, font: FONT_B, align: 'left' }); text(g, sk.desc, 420, yy + 21, { size: 14, align: 'left', fill: SUB, weight: 400, maxW: 290 });
+      const yy = 464 + n * 33; rr(g, 270, yy, 448, 29, 5, '#fbf3df', 'rgba(38,42,54,0.5)', 1.1);
+      ell(g, 286, yy + 14.5, 9, 9, col, INK, 1.1); text(g, String(n + 1), 286, yy + 15.5, { size: 12, font: FONT_B, fill: C.cream });
+      text(g, sk.name, 302, yy + 15.5, { size: 16.5, font: FONT_B, align: 'left' }); text(g, sk.desc, 406, yy + 15.5, { size: 13, align: 'left', fill: SUB, weight: 400, maxW: 304 });
     });
     cards.forEach((k, n) => cardFace(g, { id: k }, 748 + n * 242, 262, 222, 294));
     if (locked) { const cost = UNLOCKS.find(u => u.id === id).cost; rr(g, 60, 262, 184, 30, 6, '#8a2a26', INK, 1.6); text(g, `잠김 · 공적 ${cost}`, 152, 278, { size: 16, fill: C.cream }); if (button(g, 'meta', 840, 588, 400, 96, `공적 장부에서 열기 · ${cost}`, { style: 'paper', size: 28 })) nav.go('meta'); }
     else if (button(g, 'go', 840, 588, 400, 96, meta.hard ? `출정 · 험로 ${meta.hard}` : '출  정', { size: meta.hard ? 38 : 52 })) nav.go('prologue', { hero: id });
     if (button(g, 'back', 40, 598, 200, 76, '뒤로', { style: 'paper', size: 30 })) nav.go('title');
-    text(g, '영웅 패 한 장과 전용 영웅기 패 두 장을 들고 떠납니다. 원정 중에 다른 영웅이 합류하면 합동기가 열립니다.', 540, 626, { size: 15.5, fill: SUB, weight: 400, maxW: 560 });
-    text(g, '부대가 전멸하면 패는 덱으로 돌아오지만 군기 수레가 깎입니다.', 540, 650, { size: 15.5, fill: SUB, weight: 400, maxW: 560 });
+    text(g, '전술 패는 한 번 쓰면 사라집니다. 전장의 노획, 전리품, 장터, 주막에서 다시 채우세요.', 540, 626, { size: 15.5, fill: SUB, weight: 400, maxW: 560 });
+    text(g, '이끄는 영웅의 병법에 따라 패를 얻고 쓰는 방식이 달라집니다.', 540, 650, { size: 15.5, fill: SUB, weight: 400, maxW: 560 });
   }
 }

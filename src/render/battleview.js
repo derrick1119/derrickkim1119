@@ -4,6 +4,7 @@ import { TAU, INK, PAPER, RED, REDD, INDIGO, OCHRE, TEAL, FONT_B, text, ell, rr,
 import { getLook, getWeapon, blinking, leftover } from './sprites.js';
 import { defOf } from '../sim/battle.js';
 import { HERO_COL } from '../data/units.js';
+import { CARDS } from '../data/cards.js';
 import { makeGround, makeFar, vignette, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, FAR_H } from './terrain.js';
 import { Fx } from './fx.js';
 import { icon } from '../ui/ui.js';
@@ -249,7 +250,12 @@ export class BattleView {
           if (e.big && e.amt >= 60) fx.txt(e.x, e.y - 42, String(Math.round(e.amt)), e.team === 0 ? RED : INK, 20, 0.7);
           break;
         case 'melee': fx.star(e.x, e.y, e.big ? 15 : 10); break;
-        case 'squadLost': fx.txt(e.x, e.y - 66, '전멸!', RED, 26, 1.1); break;
+        case 'squadLost': fx.txt(e.x, e.y - 66, e.again ? '전멸! — 다시 모인다' : '전멸!', RED, 26, 1.1); out.push(e); break;
+        // 패의 살림: 전장에서 주운 패, 가득 찬 주머니, 턴 엽전, 주운 돌
+        case 'loot': if (e.x !== undefined) { fx.star(e.x, e.y - 20, 16, '#fffbe6'); fx.add({ k: 'text', x: Math.min(Math.max(e.x, 150), 1130), y: e.y - 62, vy: -34, drag: 1.5, s: (e.why === 'hero' ? '되찾은 패 — ' : '노획 — ') + CARDS[e.id].name + (e.up ? '+' : ''), col: '#2f6f5c', size: 20, life: 1.3 }); } sfx('card'); out.push(e); break;
+        case 'lootFull': out.push(e); break;
+        case 'gold': fx.add({ k: 'text', x: e.x + 18, y: e.y - 34, vy: -40, drag: 1.5, s: '+' + e.n, col: '#b8862a', size: 17, life: 0.8 }); break;
+        case 'scavenge': sfx('card'); out.push(e); break;
         case 'bannerDown': fx.shake = 18; fx.flash = 0.9; fx.flashCol = '#fff'; fx.ring(e.x, e.y, 220, RED, 0.8, 10); fx.scraps(e.x, e.y - 50, 26, [PAPER, '#c9d6e6', '#b8342a']); sfx('boom'); out.push(e); break;
         case 'waveClear': out.push(e); break;
         case 'waveStart': sfx('warn'); break;

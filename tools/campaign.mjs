@@ -1,7 +1,7 @@
 // 원정 전체 시뮬레이션: 행군하며 물결·갈림길·사건·장터·주막을 차례로 지나 세 고개를 넘는다
 // node tools/campaign.mjs [runs] [mode: casual|bot|auto] [all]   ("all" = 공적 해금을 모두 연 상태)
 import { Battle, HAND } from '../src/sim/battle.js';
-import { G, meta, UNLOCKS, heroOpen, newRun, battleSetup, waveSetup, mods, powerNow, curStop, chooseFork, encounterHere, advance, rollRewards, applyReward, upgradeCard, canUp, removeCard, equip, goldFor, genShop, buyItem, pickEvent, unitCards, act } from '../src/state.js';
+import { G, meta, UNLOCKS, heroOpen, settleBattle, lootTable, grantLoot, tacticCards, newRun, battleSetup, waveSetup, mods, powerNow, curStop, chooseFork, encounterHere, advance, rollRewards, applyReward, upgradeCard, canUp, removeCard, equip, goldFor, genShop, buyItem, pickEvent, unitCards, act } from '../src/state.js';
 import { eventView } from '../src/data/events.js';
 import { CARDS, isUnit } from '../src/data/cards.js';
 import { UNITS, HEROES } from '../src/data/units.js';
@@ -53,19 +53,21 @@ function command(b) {
     const t = spotFor(b, c, foes, mine, sharp); if (!t) continue;
     if (b.play(i, t.x, t.y)) { used_[c.id] = (used_[c.id] || 0) + 1; return; }
   }
-  // 손이 막혔으면 갈아 본다
+  // 패가 떨어졌으면 사기가 넉넉할 때 줍는다. 손이 막혔으면 갈아 본다
+  if (foes.length && b.morale >= (b.mods.scavAny ? 4.5 : sharp ? 5 : 7)) for (let i = 0; i < HAND; i++) if (b.canScavenge(i)) { b.scavenge(i); return; }
   if (sharp && b.morale >= 9.5 && b.canRedraw()) b.redraw();
 }
 function autoEquip() { const r = G.run; for (const wid of [...r.items]) { const c = unitCards().find(q => canEquip(CARDS[q.id].unit, wid) && !q.wpn); if (c) equip(c.uid, wid); } }
-function sync(b) { const r = G.run; autoEquip(); b.mods = mods(); b.cap = r.cap; b.power = powerNow(); b.syncDeck(r.deck); }
-function takeReward(kind) { const opts = rollRewards(kind), r = G.run; let o = pick(opts); if (r.deck.length >= 24 && o.kind === 'card' && Math.random() < 0.6) { r.gold += 15; return; } applyReward(o); }
+function sync(b) { const r = G.run; settleBattle(b); autoEquip(); b.mods = mods(); b.cap = r.cap; b.power = powerNow(); b.lootTable = lootTable(); b.mastery = r.mastery || {}; b.syncDeck(r.deck); }
+// 전리품: 전술 패가 모자라면 패 묶음·보급을 먼저 집는다
+function takeReward(kind) { const opts = rollRewards(kind), low = tacticCards().length < 7; let o = (low && opts.find(q => q.kind === 'supply' || (q.kind === 'card' && !isUnit(q)))) || pick(opts); applyReward(o); }
 const dmg = [0, 0, 0], dmgN = [0, 0, 0];
 const st = {}, bump = (k, fails) => { const s = st[k] || (st[k] = [0, 0]); s[0]++; s[1] += fails; };
-let chaseN = 0, clears = 0, totalT = 0, nB = 0, deckN = 0, unitN = 0, lvN = 0; const reach = [0, 0, 0, 0];
+let stockN = 0, stockB = 0, chaseN = 0, clears = 0, totalT = 0, nB = 0, deckN = 0, unitN = 0, lvN = 0; const reach = [0, 0, 0, 0];
 for (let k = 0; k < runs; k++) {
   const HS = (process.env.HERO ? [process.env.HERO] : HEROES).filter(h => process.env.HERO || heroOpen(h)), r = newRun(HS[k % HS.length]);
   const b = new Battle(battleSetup((Math.random() * 1e9) | 0));
-  const tick = n => { for (let j = 0; j < n; j++) { b.step(1 / 30); if (j % (mode === 'casual' ? 45 : 10) === 0) command(b); } b.events.length = 0; };
+  const tick = n => { for (let j = 0; j < n; j++) { b.step(1 / 30); if (j % (mode === 'casual' ? 45 : 10) === 0) command(b); } b.events.length = 0; settleBattle(b); };
   for (let guard = 0; r.flags > 0 && !r.done && guard < 200; guard++) {
     b.beginMarch(); for (let j = 0; j < 8; j++) { b.march(90, 0.3); tick(9); }
     let s = curStop(); if (s.type === 'fork') { const a = s.a.type, w = a === 'elite' ? (r.flags <= 1 ? 0.25 : 0.55) : 0.5; chooseFork(Math.random() < w ? 'a' : 'b'); s = curStop(); }
@@ -74,6 +76,7 @@ for (let k = 0; k < runs; k++) {
       let steps = 0, cleared = false, downs = 0;
       while (!cleared && r.flags > 0 && steps++ < 30 * 260) {
         b.step(1 / 30); if (steps % (mode === 'casual' ? 45 : 10) === 0) command(b);
+        settleBattle(b);
         for (const ev of b.events) { if (ev.type === 'waveClear') cleared = ev; else if (ev.type === 'bannerDown') { r.flags--; downs++; if (r.flags > 0) b.raiseBanner(); } }
         b.events.length = 0;
       }
@@ -84,19 +87,21 @@ for (let k = 0; k < runs; k++) {
       dmg[e.ch] += downs ? 1 : Math.max(0, hp0 - (b.bannerHp() - 0.06) - (hp0 > 0.94 ? hp0 - 0.94 : 0)); dmgN[e.ch]++;
       totalT += cleared.time;
       const grade = 1 + (cleared.lost <= e.starDeaths ? 1 : 0) + (cleared.time <= e.starTime ? 1 : 0); r.gold += goldFor(grade, e.kind); r.merit += grade; r.wins++; r.kills = b.kills; r.lost = b.lost; r.nextMorale = 0;
+      if (e.kind !== 'battle') grantLoot(e.kind === 'boss' ? 4 : 3); stockN += tacticCards().length; stockB++;
       takeReward(e.kind);
     } else if (s.type === 'event') { const cs = eventView({ id: pickEvent() }).choices.filter(c => !c.cost || r.gold >= c.cost), c = pick(cs), out = c.pick(); if (!Array.isArray(out)) throw new Error('사건 결과 형식'); }
-    else if (s.type === 'shop') { const items = genShop(); for (let n = 0; n < 3; n++) { const can = items.filter(it => !it.sold && it.price <= r.gold); if (!can.length) break; const it = pick(can); if (it.kind === 'burn') { const c = r.deck.find(c => c.id === 'doubt') || r.deck.find(c => c.id === 'sling'); if (c) removeCard(c.uid); } else if (it.kind === 'trainPick') { const c = unitCards().find(canUp); if (c) upgradeCard(c.uid); } buyItem(it); } }
-    else if (s.type === 'rest') { b.repair(1); const x = Math.random(); if (r.flags < 3 && x < 0.6) act.flag(1); else { const c = pick(r.deck.filter(canUp)); if (c) upgradeCard(c.uid); } }
+    else if (s.type === 'shop') { const items = genShop(); for (let n = 0; n < 3; n++) { const can = items.filter(it => !it.sold && it.price <= r.gold); if (!can.length) break; const low = tacticCards().length < 8, it = (low && can.find(q => q.kind === 'supply' || (q.kind === 'card' && !isUnit(q)))) || pick(can); if (it.kind === 'trainPick') { const c = unitCards().find(canUp); if (c) upgradeCard(c.uid); } buyItem(it); } }
+    else if (s.type === 'rest') { b.repair(1); const x = Math.random(); if (r.flags < 3 && x < 0.6) act.flag(1); else if (tacticCards().length < 9) act.supply(4); else { const c = pick(r.deck.filter(canUp)); if (c) upgradeCard(c.uid); } }
     else if (s.type === 'treasure') takeReward('treasure');
     sync(b);
     if (advance()) break;
   }
+  if (process.env.TRACE) console.log(`#${k + 1} ${r.hero} ${r.done ? '평정' : r.ch + 1 + '고개'}  이긴 싸움 ${r.wins}  한도 ${r.cap}  덱 ${r.deck.length}  엽전 ${r.gold}  보물 ${r.relics.join(',')}  무기 ${r.deck.filter(c => c.wpn).map(c => c.wpn).join(',')}  사건 ${(r.evSeen || []).join(',')}`);
   reach[Math.min(3, r.ch)]++; if (r.done) clears++; deckN += r.deck.length; unitN += unitCards().length; lvN += unitCards().reduce((a, c) => a + (c.lv || 1), 0) / unitCards().length;
 }
 console.log(`mode=${mode} runs=${runs}  평정률 ${(clears / runs * 100).toFixed(0)}%  원정당 싸움 ${(nB / runs).toFixed(1)}회  이긴 싸움 평균 ${(totalT / Math.max(1, nB)).toFixed(0)}초  끝날 때 덱 ${(deckN / runs).toFixed(1)}장 (병력 ${(unitN / runs).toFixed(1)}장, 평균 Lv ${(lvN / runs).toFixed(1)})`);
 console.log('깃발 잃은 횟수/싸움:', Object.keys(st).sort().map(k => `${k} ${(st[k][1] / st[k][0]).toFixed(2)}(${st[k][0]})`).join('  '));
 console.log('싸움당 군기 수레 피해:', dmg.map((d, i) => `${i + 1}고개 ${(d / Math.max(1, dmgN[i]) * 100).toFixed(0)}%`).join('  '));
-console.log('본대가 따라붙은 횟수/싸움', (chaseN / nB).toFixed(2));
+console.log('본대가 따라붙은 횟수/싸움', (chaseN / nB).toFixed(2), ' 싸움 뒤 남은 전술 패 평균', (stockN / Math.max(1, stockB)).toFixed(1));
 console.log('도달:', ['첫째 고개', '둘째 고개', '셋째 고개', '평정'].map((n, i) => `${n}×${reach[i]}`).join('  '));
 console.log('싸움당 쓴 패:', Object.keys(used_).sort((a, b) => used_[b] - used_[a]).slice(0, 16).map(k => `${CARDS[k].name} ${(used_[k] / nB).toFixed(2)}`).join('  '));

@@ -6,7 +6,7 @@ import { CARDS, KIND, cardVals, cardCost, cardName, isUnit } from '../data/cards
 import { WEAPONS, ARMS, CLS_NAME, canEquip } from '../data/weapons.js';
 import { UNITS } from '../data/units.js';
 import { RELICS } from '../data/relics.js';
-import { G, unitStats, equip, canUp, weaponOf } from '../state.js';
+import { G, unitStats, equip, canUp, weaponOf, pouchCap, tacticCards } from '../state.js';
 import { portrait, weaponIcon } from '../render/sprites.js';
 import { cardIcon, relicIcon } from '../render/icons.js';
 import { sfx } from '../audio.js';
@@ -84,14 +84,17 @@ export class DeckView {
     g.fillStyle = 'rgba(31,42,68,0.62)'; g.fillRect(0, 0, W, H);
     panel(g, 30, 24, 1220, 672);
     brushTitle(g, 300, 30, 300, 60, this.title || (mode === 'up' ? '패 다듬기' : mode === 'burn' ? '패 태우기' : '덱 살피기'), mode === 'burn' ? '#7a1f1c' : INDIGO, 32);
-    text(g, mode === 'up' ? '강화(전술)·조련(병력)할 패를 고르세요' : mode === 'burn' ? '덱에서 없앨 패를 고르세요' : `모두 ${deck.length}장 · 병력 패를 고르면 무기를 바꿔 끼울 수 있습니다`, 480, 62, { size: 17, fill: SUB, weight: 400, align: 'left', maxW: 400 });
-    const list = deck.slice().sort((a, b) => ORDER[CARDS[a.id].kind] - ORDER[CARDS[b.id].kind] || cardCost(a) - cardCost(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-    if (!this.sel || !deck.some(c => c.uid === this.sel)) this.sel = (list.find(c => this.can(c)) || list[0]).uid;
-    const small = deck.length > 28, cols = small ? 9 : 7, cw = small ? 80 : 104, chh = small ? 104 : 136, gap = 8, x0 = 56, y0 = 100;
-    list.forEach((c, k) => {
-      const x = x0 + (k % cols) * (cw + gap), y = y0 + Math.floor(k / cols) * (chh + gap), ok = this.can(c), on = c.uid === this.sel;
+    text(g, mode === 'up' ? '익힐 전술 패(그 종류가 모두 +)나 조련할 병력 패를 고르세요' : mode === 'burn' ? '덱에서 없앨 패를 고르세요' : `병력 ${deck.filter(isUnit).length}장 · 전술 패 ${tacticCards().length}/${pouchCap()}장 — 전술 패는 한 번 쓰면 사라집니다`, 480, 62, { size: 17, fill: SUB, weight: 400, align: 'left', maxW: 400 });
+    // 같은 전술 패는 한 칸에 모은다 (병력·영웅 패는 한 장씩)
+    const count = new Map(), list = [];
+    for (const c of deck.slice().sort((a, b) => ORDER[CARDS[a.id].kind] - ORDER[CARDS[b.id].kind] || cardCost(a) - cardCost(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0) || a.uid - b.uid)) { const key = isUnit(c) ? 'u' + c.uid : c.id + (c.up ? '+' : ''); if (count.has(key)) { count.set(key, count.get(key) + 1); if (c.uid === this.sel) this.sel = list.find(q => q.key === key).c.uid; } else { count.set(key, 1); list.push({ key, c }); } }
+    if (!this.sel || !list.some(q => q.c.uid === this.sel)) this.sel = (list.find(q => this.can(q.c)) || list[0]).c.uid;
+    const small = list.length > 28, cols = small ? 9 : 7, cw = small ? 80 : 104, chh = small ? 104 : 136, gap = 8, x0 = 56, y0 = 100;
+    list.forEach(({ key, c }, k) => {
+      const x = x0 + (k % cols) * (cw + gap), y = y0 + Math.floor(k / cols) * (chh + gap), ok = this.can(c), on = c.uid === this.sel, n = count.get(key);
       if (on) rr(g, x - 4, y - 4, cw + 8, chh + 8, 10, null, RED, 4);
       cardFace(g, c, x, y, cw, chh, { dim: !ok });
+      if (n > 1) { rr(g, x + cw - 38, y + chh - 44, 36, 22, 6, RED, INK, 1.5); text(g, '×' + n, x + cw - 20, y + chh - 32.4, { size: 16, font: FONT_B, fill: C.cream }); }
       if (tapped('dk' + c.uid, x, y, cw, chh)) { this.sel = c.uid; sfx('click'); }
     });
     // 오른쪽: 고른 패 크게 + 할 수 있는 일
@@ -99,16 +102,16 @@ export class DeckView {
     rr(g, px, 96, 364, 520, 6, '#f3ead2', INK, 1.8);
     const after = mode === 'up' && ok ? (isUnit(c) ? Object.assign({}, c, { lv: (c.lv || 1) + 1 }) : { id: c.id, up: true }) : null;
     cardFace(g, after || c, px + 80, 108, 204, 300, { P: this.P });
-    if (after) { rr(g, px + 100, 392, 164, 26, 13, INDIGO, INK, 1.4); text(g, isUnit(c) ? '조련 후' : '강화 후', px + 182, 406, { size: 15, fill: C.cream }); }
+    if (after) { rr(g, px + 100, 392, 164, 26, 6, INDIGO, INK, 1.4); text(g, isUnit(c) ? '조련 후' : '익힌 뒤', px + 182, 406, { size: 15, fill: C.cream }); }
     if (mode === 'view') {
       if (isUnit(c)) this.weapons(g, r, c, px);
       else { text(g, '무기 보관함', px + 16, 438, { size: 19, font: FONT_B, align: 'left' }); if (!r.items.length) text(g, '무기는 전리품·장터·대장간에서 얻습니다', px + 16, 470, { size: 15, align: 'left', fill: SUB, weight: 400 }); r.items.slice(0, 8).forEach((wid, k) => weaponTile(g, 'wi' + k, wid, px + 14 + (k % 4) * 85, 456 + Math.floor(k / 4) * 78, 80, 72, { dim: true })); }
       if (button(g, 'dkclose', px + 62, 628, 240, 54, '닫기', { size: 26 })) { if (this.onClose) this.onClose(); }
       return;
     }
-    const act = mode === 'up' ? (isUnit(c) ? '조련한다' : '강화한다') : '태운다';
+    const act = mode === 'up' ? (isUnit(c) ? '조련한다' : '익힌다') : '태운다';
     if (!ok) text(g, mode === 'up' ? '더 다듬을 수 없는 패입니다' : CARDS[c.id].kind === 'lead' ? '영웅 패는 태울 수 없습니다' : '덱은 6장보다 적어질 수 없습니다', px + 182, 470, { size: 18, fill: RED, maxW: 330 });
-    else { textBlock(g, mode === 'up' ? (isUnit(c) ? '이 패의 부대 체력과 공격력이 20% 오릅니다.' : '수치가 오른 강화판(+)으로 바뀝니다.') : '이 패가 덱에서 사라집니다. 끼운 무기는 보관함으로 돌아갑니다.', px + 182, 452, 320, 24, { size: 16, fill: SUB, weight: 400 }); if (button(g, 'dkok', px + 62, 520, 240, 64, act, { style: mode === 'up' ? 'indigo' : 'red', size: 30 })) { sfx('card'); if (this.onPick) this.onPick(c.uid); return; } }
+    else { textBlock(g, mode === 'up' ? (isUnit(c) ? '이 패의 부대 체력과 공격력이 20% 오릅니다.' : '지금 가진 것과 앞으로 얻는 이 패가 모두 강화판(+)이 됩니다.') : '이 패가 덱에서 사라집니다. 끼운 무기는 보관함으로 돌아갑니다.', px + 182, 452, 320, 24, { size: 16, fill: SUB, weight: 400 }); if (button(g, 'dkok', px + 62, 520, 240, 64, act, { style: mode === 'up' ? 'indigo' : 'red', size: 30 })) { sfx('card'); if (this.onPick) this.onPick(c.uid); return; } }
     if (button(g, 'dkno', px + 62, 628, 240, 54, '그만두기', { style: 'paper', size: 24 })) { if (this.onClose) this.onClose(); }
   }
   weapons(g, r, c, px) {

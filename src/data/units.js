@@ -36,7 +36,7 @@ export const UNITS = {
     desc: '쌍검을 든 떠돌이 검객', tip: '빠르게 베며 적 후방을 노리고, 공격 열 중 셋을 흘려 냅니다. 기력이 차면 질풍 베기 → 검무 → 그림자 베기를 차례로 씁니다.' },
   hunter: { name: '명궁', role: '영웅', side: 0, hero: true, cost: 0, n: 1, hp: 560, atk: 60, as: 1.3, range: 300, spd: 60, r: 13, proj: 'bolt', soft: true, pierce: true,
     desc: '범을 잡던 대궁의 명수', tip: '멀리서 쏘는 한 발 한 발이 묵직하고 방패를 꿰뚫습니다. 기력이 차면 관통시 → 연발 → 급소 저격을 차례로 씁니다.' },
-  sangsoe: { name: '상쇠', role: '영웅', side: 0, hero: true, cost: 0, n: 1, hp: 780, atk: 24, as: 1.2, range: 200, spd: 62, r: 13, proj: 'note', soft: true, aura: { haste: 0.2, r: 160 },
+  sangsoe: { name: '상쇠', role: '영웅', side: 0, hero: true, cost: 0, n: 1, hp: 860, atk: 26, as: 1.2, range: 200, spd: 62, r: 13, proj: 'note', soft: true, aura: { haste: 0.3, r: 170 },
     desc: '꽹과리로 판을 이끄는 풍물패 상쇠', tip: '주변 아군 공격 속도 +20%. 기력이 차면 자진모리 → 신명(사기 +1) → 휘모리를 차례로 씁니다.' },
   chief: { name: '두령', role: '영웅', side: 0, hero: true, cost: 0, n: 1, hp: 1300, atk: 30, as: 1.1, range: 0, spd: 66, r: 15, armor: 0.2, taunt: 80,
     desc: '쌍도끼를 든 녹림의 두령', tip: '가까운 적이 두령에게 몰리고, 근접 피해를 덜 받습니다. 기력이 차면 땅울림 → 도발 → 메치기를 차례로 씁니다.' },
@@ -94,8 +94,18 @@ export const HERO_SKILLS = {
   archmage: [{ id: 'chain', name: '연쇄 번개', desc: '적 다섯을 잇달아 꿰는 번개' }, { id: 'frost', name: '서리 안개', desc: '적 무리를 느리게 하는 안개' }, { id: 'fire', name: '삼매진화', desc: '적이 가장 몰린 곳에 큰 불덩이' }],
   blade: [{ id: 'dash', name: '질풍 베기', desc: '적 무리를 꿰뚫고 지나가며 벤다' }, { id: 'flurry', name: '검무', desc: '주변의 적을 여섯 번 벤다' }, { id: 'shadow', name: '그림자 베기', desc: '적 후방의 뒤로 나타나 크게 베고 기절' }],
   hunter: [{ id: 'pierce', name: '관통시', desc: '한 줄로 선 적을 모두 꿰뚫는 화살' }, { id: 'burst', name: '연발', desc: '가까운 적 여섯에게 잇달아 쏜다' }, { id: 'snipe', name: '급소 저격', desc: '가장 큰 적에게 큰 피해와 기절' }],
-  sangsoe: [{ id: 'jajin', name: '자진모리', desc: '주변 아군 공격 속도 +30%' }, { id: 'sinmyeong', name: '신명', desc: '사기 +1, 주변 아군 회복' }, { id: 'hwimori', name: '휘모리', desc: '주변 적의 넋을 빼 기절시킨다' }],
+  sangsoe: [{ id: 'jajin', name: '자진모리', desc: '주변 아군 공격 속도 +30%' }, { id: 'sinmyeong', name: '신명', desc: '사기 +1.5, 주변 아군 회복' }, { id: 'hwimori', name: '휘모리', desc: '주변 적의 넋을 빼 기절시킨다' }],
   chief: [{ id: 'quake', name: '땅울림', desc: '땅을 내리쳐 주변 적에게 피해와 감속' }, { id: 'provoke', name: '도발', desc: '적을 끌어모으고 받는 피해 -50%' }, { id: 'throw', name: '메치기', desc: '눈앞의 적을 집어 던져 기절' }],
+};
+// 이끄는 영웅의 병법: 패를 얻고 쓰는 방식이 영웅마다 다르다 (원정을 시작한 영웅의 것만 적용된다)
+export const HERO_TRAIT = {
+  commander: { name: '군세', desc: '부대 한도 +1. 전멸한 부대를 싸움마다 한 번은 바로 다시 세울 수 있다.', play: '많은 병력으로 밀어붙인다' },
+  blade: { name: '단기필마', desc: '부대 한도 -1. 대신 영웅의 공격력·체력 +30%. 검객이 요괴 무리를 직접 끝낼 때마다 영웅기 패 한 장을 되찾는다 (싸움마다 3장까지).', play: '영웅 혼자 베고 다니며 패를 번다' },
+  hunter: { name: '사냥꾼의 눈', desc: '요괴 무리 둘을 물리칠 때마다 패를 노획한다 (다른 영웅은 셋마다).', play: '전장에서 패를 가장 빨리 줍는다' },
+  bishop: { name: '공양', desc: '지원 패는 써도 사라지지 않고 다음 싸움에 돌아온다.', play: '지원 패를 되풀이해 쓰며 버틴다' },
+  archmage: { name: '도술', desc: '전술 패 위력 +30%·사기 1 덜 냄(최소 1), 주머니 +4. 싸움이 시작될 때마다 공격 패 한 장을 빚는다. 대신 부대 한도 -1.', play: '적은 병력, 강한 패' },
+  sangsoe: { name: '신명', desc: '손에 빈 자리가 있으면 언제든 사기 2로 아무 전술 패나 강화판(+)으로 한 장 얻어 값 없이 낸다 (다른 영웅은 패가 다 떨어졌을 때만 돌팔매).', play: '사기를 패로 바꿔 쓴다' },
+  chief: { name: '약탈', desc: '요괴 무리를 물리칠 때마다 엽전 +5. 장터의 전술 패가 반값.', play: '엽전으로 패를 사 모은다' },
 };
 // 영웅의 낙관: 將(장군) 劍(검객) 弓(명궁) 僧(고승) 仙(신선) 樂(상쇠) 頭(두령)
 export const HERO_SEAL = { commander: '將', blade: '劍', hunter: '弓', bishop: '僧', archmage: '仙', sangsoe: '樂', chief: '頭' };

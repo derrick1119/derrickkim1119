@@ -21,8 +21,10 @@ export const DEFAULT_MODS = {
   unit: {}, hpAll: 1, heroAtk: 1, openGuard: 0, teleResist: 0, holdGuard: 0, debuff: 1, refund: 0, goldFlat: 0,
   // 패 관련: 영웅 패 비용 감소, 손패 보충 시간 배율, 전투마다 공짜로 쓰는 패 수, 패 위력
   heroCost: 0, drawRate: 1, freeFirst: 0, cardPow: 1, summonLife: 0, heroGauge: 1, killMorale: 0,
+  // 패의 살림: 주머니 한도, 무리 몇을 물리칠 때마다 노획하는가, 그리고 이끄는 영웅의 병법
+  pouch: 12, lootEvery: 3, rally: 0, keepSupport: 0, heroLoot: 0, scavAny: 0, killGold: 0, shopCard: 1, startCard: 0, tacDisc: 0,
 };
-export const HAND = 5, REFILL = 3.2, MAX_CAP = 9, ROUT = 0.15;
+export const HAND = 5, REFILL = 3.2, MAX_CAP = 9, ROUT = 0.12;
 // 사기는 가만히 있어도 차오르는 자원이 아니다: 물결이 시작될 때 한 몫, 요괴 무리를 하나 물리칠 때마다 한 닢.
 // 싸우는 동안에는 아주 천천히, 행군하며 숨을 고를 때는 조금 더 빨리 돌아온다. 아낀 사기는 다음 싸움으로 넘어간다
 export const MORALE_RATE = 0.03, MARCH_RATE = 0.16, WAVE_MORALE = 2, SQUAD_MORALE = 1, BOSS_MORALE = 3;
@@ -75,22 +77,24 @@ export class Battle {
     this.syn = {}; this.synN = { inf: 0, rng: 0, cav: 0, heal: 0 }; this.combo = 0;
     this.buildNav({});
     this.raiseBanner(true);
-    // 패: 뽑을 더미 → 손패 → (전술은 버린 더미, 병력은 전장) → 더미가 비면 섞어서 다시 쓴다
-    this.hand = new Array(HAND).fill(null); this.slotT = new Array(HAND).fill(0); this.drawPile = []; this.discard = []; this.played = 0; this.free = 0;
+    // 패: 더미 → 손패. 전술 패는 한 번 쓰면 원정에서 사라지고(spent), 병력 패는 전장의 부대가 된다.
+    // 전멸한 부대의 패는 싸움이 끝날 때까지 쉬고(bench), 새로 얻은 패(gained)는 원정 덱에 더해진다
+    this.hand = new Array(HAND).fill(null); this.slotT = new Array(HAND).fill(0); this.drawPile = []; this.bench = []; this.rest = []; this.spent = []; this.gone = new Set(); this.gained = []; this.newN = 0; this.played = 0; this.free = 0;
+    this.lootTable = o.loot || []; this.mastery = o.mastery || {}; this.lead = o.lead || null; this.lootN = 0; this.rallied = 0; this.heroLootN = 0; this.goldGain = 0; this.fullSaid = false;
     const deck = (o.deck || []).map(c => this.copyCard(c)), out = new Set();
     for (const [uid, x, y] of o.start || []) { const c = deck.find(q => q.uid === uid); if (c) { out.add(uid); this.deploy(c, x, y, true); } }
     this.drawPile = this.shuffle(deck.filter(c => !out.has(c.uid))); for (let i = 0; i < HAND; i++) this.hand[i] = this.drawCard();
     this.centroids();
   }
-  copyCard(c) { return { uid: c.uid, id: c.id, up: !!c.up, lv: c.lv || 1, wpn: c.wpn }; }
-  // 원정 덱이 바뀌면(새 패·강화·무기·태우기) 전장의 패에 반영한다
+  copyCard(c) { const o = { uid: c.uid, id: c.id, up: !!c.up, lv: c.lv || 1, wpn: c.wpn }; if (c.free) o.free = 1; return o; }
+  // 원정 덱이 바뀌면(새 패·익히기·무기·조련) 전장의 패에 반영한다
   syncDeck(deck) {
     const by = new Map(deck.map(c => [c.uid, c])), seen = new Set();
     const fix = c => { if (!c) return c; const r = by.get(c.uid); if (!r) return null; seen.add(c.uid); c.up = !!r.up; c.lv = r.lv || 1; c.wpn = r.wpn; return c; };
-    this.drawPile = this.drawPile.map(fix).filter(Boolean); this.discard = this.discard.map(fix).filter(Boolean);
+    this.drawPile = this.drawPile.map(fix).filter(Boolean); this.bench = this.bench.map(fix).filter(Boolean); this.rest = this.rest.map(fix).filter(Boolean);
     for (let i = 0; i < HAND; i++) if (this.hand[i]) { this.hand[i] = fix(this.hand[i]); if (!this.hand[i]) this.slotT[i] = 0.3; }
     for (const sq of this.squads) { if (!sq.card) continue; const c = fix(sq.card); sq.card = c; if (c && sq.alive > 0) this.refit(sq, c); }
-    for (const c of deck) if (!seen.has(c.uid)) this.drawPile.splice((this.rand() * (this.drawPile.length + 1)) | 0, 0, this.copyCard(c));
+    for (const c of deck) if (!seen.has(c.uid) && !this.gone.has(c.uid)) this.drawPile.splice((this.rand() * (this.drawPile.length + 1)) | 0, 0, this.copyCard(c));
   }
   // 전장에 선 부대의 조련 단계·무기를 바꾼다
   refit(sq, c) {
@@ -100,10 +104,30 @@ export class Battle {
     sq.def = nd; sq.lvl = c.lv;
   }
   shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = (this.rand() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
-  drawCard() {
-    if (!this.drawPile.length) { if (!this.discard.length) return null; this.drawPile = this.shuffle(this.discard); this.discard = []; this.ev('shuffle'); }
-    return this.drawPile.pop();
+  // 더미가 비면 더는 뽑을 패가 없다 (쓴 패는 돌아오지 않는다)
+  drawCard() { return this.drawPile.length ? this.drawPile.pop() : null; }
+  // 주머니에 든 전술 패 수
+  pouchCount() { let n = 0; const f = c => { if (c && !isUnit(c) && CARDS[c.id].kind !== 'curse') n++; }; this.hand.forEach(f); this.drawPile.forEach(f); this.rest.forEach(f); return n; }
+  lootPick() { const t = this.lootTable; if (!t.length) return 'sling'; let w = this.rand() * t.reduce((a, q) => a + q[1], 0); for (const q of t) if ((w -= q[1]) < 0) return q[0]; return t[0][0]; }
+  // 새 패를 얻는다: 손에 빈 자리가 있고 더미가 비었으면 바로 손으로, 아니면 더미에 섞인다
+  gainCard(id, x, y, why) {
+    const c = { uid: 'n' + (++this.newN), id, up: !!this.mastery[id], lv: 1 }; this.gained.push(c);
+    const slot = this.drawPile.length ? -1 : this.hand.findIndex(h => !h);
+    if (slot >= 0) { this.hand[slot] = c; this.ev('draw', { slot }); } else this.drawPile.splice((this.rand() * (this.drawPile.length + 1)) | 0, 0, c);
+    this.ev('loot', { id, x, y, why, up: c.up }); return c;
   }
+  // 전장의 노획: 주머니가 가득하면 줍지 못한다
+  loot(x, y) { if (this.pouchCount() >= this.mods.pouch) { if (!this.fullSaid) { this.fullSaid = true; this.ev('lootFull', { x, y }); } return null; } return this.gainCard(this.lootPick(), x, y, 'loot'); }
+  // 패가 떨어졌을 때: 사기를 내고 돌을 줍는다 (상쇠는 언제든 아무 전술 패나 얻는다). 그렇게 얻은 패는 값 없이 낸다
+  scavCost() { return 2; }
+  canScavenge(i) { return !this.over && !this.hand[i] && (this.mods.scavAny ? this.pouchCount() < this.mods.pouch : !this.drawPile.length) && this.morale >= this.scavCost(); }
+  scavenge(i) {
+    if (!this.canScavenge(i)) return false; this.morale -= this.scavCost();
+    const id = this.mods.scavAny ? this.lootPick() : 'sling', c = { uid: 'n' + (++this.newN), id, up: !!this.mods.scavAny || !!this.mastery[id], lv: 1, free: 1 }; this.gained.push(c); this.hand[i] = c;
+    this.ev('scavenge', { slot: i, id }); return true;
+  }
+  // 싸움이 끝나면 쉬던 패가 돌아온다: 전멸했던 부대, (고승의) 지원 패
+  regroup() { const back = this.bench.concat(this.rest); this.bench = []; this.rest = []; for (const c of back) this.drawPile.splice((this.rand() * (this.drawPile.length + 1)) | 0, 0, c); this.rallied = 0; this.heroLootN = 0; this.fullSaid = false; return back.length; }
   ev(type, o) { const e = o || {}; e.type = type; this.events.push(e); }
   count(team) { let n = 0; for (const u of this.units) if (!u.dead && u.team === team) n++; return n; }
   hpSum(team) { let n = 0; for (const u of this.units) if (!u.dead && u.team === team) n += u.hp; return n; }
@@ -236,7 +260,7 @@ export class Battle {
     if (this.units.length > 180) this.units = this.units.filter(u => !u.dead || this.time - u.deadT < 2);
     // 물결을 다 물리치면 다음 행군으로 (군기 수레는 그때마다 조금 수리된다 — 제대로 고치려면 주막에 들러야 한다)
     if (this.waveOn && this.count(1) + this.pending === 0) {
-      this.waveOn = false; this.repair(0.06); this.setTerrain('open'); this.chase = null;
+      this.waveOn = false; this.repair(0.06); this.setTerrain('open'); this.chase = null; this.regroup();
       this.ev('waveClear', { time: this.waveT, lost: this.waveLost });
     }
   }
@@ -259,6 +283,8 @@ export class Battle {
     // 척후를 미리 보냈다면: 사기를 더 얻고, 요괴는 허를 찔린 채 들어온다
     if (this.scout) { this.gain(this.scout.gain); this.expose = this.scout.expose / 100; this.scout = null; this.ev('text', { x: 640, y: 300, s: '척후의 보고 — 허를 찔렀다!', c: '#2f4d7e', big: true }); } else this.expose = 0;
     if (md.startShield) for (const u of this.units) if (u.team === 0 && !u.dead && !u.def.structure) { u.barrier = Math.max(u.barrier, md.startShield); u.barrierT = 30; }
+    // 신선의 도술: 싸움마다 공격 패 한 장을 빚는다
+    if (md.startCard) { const at = this.lootTable.filter(q => CARDS[q[0]].kind === 'attack'); if (at.length) this.gainCard(at[(this.rand() * at.length) | 0][0], undefined, undefined, 'craft'); }
     this.ev('waveStart');
   }
   // 본대: 정해진 때가 지나면 요괴 무리가 뒤에서 차례로 따라붙는다
@@ -347,7 +373,11 @@ export class Battle {
   // 병력 패를 놓을 수 있는 오른쪽 한계 (요괴 전열 바로 앞까지)
   deployMaxX() { let m = 860; for (const e of this.units) if (!e.dead && e.team === 1 && e.hidden <= 0) m = Math.min(m, e.x - 150); return Math.max(260, m); }
   // ───────── 전술 패 ─────────
-  costOf(c) { if (!c) return 99; const d = CARDS[c.id]; return Math.max(0, cardCost(c) - (c.id === 'horn' ? this.mods.hornCost : 0) - (d.hero ? this.mods.heroCost : 0)); }
+  costOf(c) {
+    if (!c) return 99; if (c.free) return 0; const d = CARDS[c.id], k = Math.max(0, cardCost(c) - (c.id === 'horn' ? this.mods.hornCost : 0) - (d.hero ? this.mods.heroCost : 0));
+    // 신선의 도술: 전술 패를 사기 1 덜 내고 쓴다 (1 아래로는 내려가지 않는다)
+    return this.mods.tacDisc && !isUnit(c) && k > 1 ? Math.max(1, k - this.mods.tacDisc) : k;
+  }
   // 못 쓰는 까닭: cap(부대 한도) / hero(영웅 없음) / morale(사기 부족)
   whyNot(i) {
     const c = this.hand[i]; if (!c || this.over) return 'none';
@@ -358,7 +388,7 @@ export class Battle {
     return this.free > 0 || this.morale >= this.costOf(c) ? '' : 'morale';
   }
   canPlay(i) { return this.whyNot(i) === ''; }
-  // 병력·영웅 패를 내면 그 자리에 부대가 선다. 패는 부대가 전멸할 때 버린 더미로 돌아간다
+  // 병력·영웅 패를 내면 그 자리에 부대가 선다. 전술 패는 쓰면 원정에서 사라진다
   deploy(c, x, y, quiet) {
     x = clamp(x, VIEW.x0 + 44, VIEW.x1 - 60); y = clamp(y, VIEW.y0 + 26, VIEW.y1 - 26);
     const sq = this.addSquad(0, { type: CARDS[c.id].unit, x, y, lvl: c.lv || 1, wpn: c.wpn }); sq.card = c;
@@ -366,11 +396,11 @@ export class Battle {
     return sq;
   }
   // 손패를 모두 버리고 새로 뽑는다 (사기 1)
-  canRedraw() { return !this.over && this.morale >= 1 && this.hand.some(c => c) && this.drawPile.length + this.discard.length > 0; }
+  canRedraw() { return !this.over && this.morale >= 1 && this.hand.some(c => c) && this.drawPile.length > 0; }
   redraw() {
     if (!this.canRedraw()) return false; this.morale -= 1;
-    for (let i = 0; i < HAND; i++) { if (this.hand[i]) this.discard.push(this.hand[i]); this.hand[i] = null; this.slotT[i] = 0.5 + i * 0.12; }
-    this.ev('redraw'); return true;
+    for (let i = 0; i < HAND; i++) { if (this.hand[i]) this.drawPile.push(this.hand[i]); this.hand[i] = null; this.slotT[i] = 0.5 + i * 0.12; }
+    this.shuffle(this.drawPile); this.ev('redraw'); return true;
   }
   spot(x, y) { if (this.isBlocked(x, y)) { const c = this.freeCell((x / CELL) | 0, (y / CELL) | 0); if (c >= 0) return [(c % NC + 0.5) * CELL, (((c / NC) | 0) + 0.5) * CELL]; } return [x, y]; }
   allies(x, y, r, fn) { for (const u of this.units) if (!u.dead && u.team === 0 && !u.def.structure && hyp(u.x - x, u.y - y) <= r + u.r) fn(u); }
@@ -389,7 +419,8 @@ export class Battle {
     else { this.morale -= cost; if (cost > 0 && md.refund && this.rand() < md.refund) { this.morale = Math.min(this.moraleMax, this.morale + cost); this.ev('text', { x: 640, y: 520, s: '사기 환급!', c: '#b8862a' }); } }
     this.hand[i] = null; this.slotT[i] = REFILL * md.drawRate; this.played++;
     if (isUnit(c)) { x = Math.min(x, this.deployMaxX()); this.deploy(c, x, y); this.ev('cast', { id, x, y, r: 46, unit: true, slot: i }); return true; }
-    if (id !== 'doubt') this.discard.push(c);
+    // 전술 패는 쓰면 사라진다. 고승이 이끌면 지원 패만은 싸움이 끝난 뒤 돌아온다
+    if (md.keepSupport && s.kind === 'support') this.rest.push(c); else { this.spent.push(c.uid); this.gone.add(c.uid); }
     const h = s.hero ? this.heroUnit(s.hero) : this.hero(), hm = h ? lvlMult(h.lvl) : 1;
     let r = s.r || 0;
     const wet = this.sky === 'rain'; let ex = null;
@@ -428,7 +459,7 @@ export class Battle {
     else if (id === 'veil') { h.guard = Math.max(h.guard, v.dur); h.guardAmt = 1; h.haste = Math.max(h.haste, v.dur); x = h.x; y = h.y; r = 44; }
     else if (id === 'mark') { for (const e of this.foesIn(x, y, r)) { e.mark = Math.max(e.mark, v.dur); e.markAmt = Math.max(e.markAmt, v.amt / 100); } }
     else if (id === 'snare') this.aoe(x, y, r, v.dmg * hm, 1, h, { root: v.root, slow: 0.3, slowT: v.root });
-    else if (id === 'pangut') { for (let k = 0; k < HAND; k++) { if (this.hand[k]) this.discard.push(this.hand[k]); this.hand[k] = null; this.slotT[k] = 0.4 + k * 0.1; } this.free += v.free; x = h.x; y = h.y; r = 120; }
+    else if (id === 'pangut') { for (let k = 0; k < HAND; k++) { if (this.hand[k]) this.drawPile.push(this.hand[k]); this.hand[k] = null; this.slotT[k] = 0.4 + k * 0.1; } this.shuffle(this.drawPile); this.free += v.free; x = h.x; y = h.y; r = 120; }
     else if (id === 'deong') { for (const e of this.units) { if (e.dead || e.team !== 1 || e.x > VIEW.x1 + 6) continue; if (e.def.boss) { e.slow = Math.max(e.slow, v.stun + 1.5); e.slowAmt = 0.3; } else e.stun = Math.max(e.stun, v.stun); } for (const a of this.units) if (!a.dead && a.team === 0 && !a.def.structure) a.haste = Math.max(a.haste, v.dur); x = h.x; y = h.y; r = 300; }
     else if (id === 'bulwark') { h.guard = Math.max(h.guard, v.dur); h.guardAmt = v.guard / 100; h.taunt = 260; h.tauntT = v.dur; x = h.x; y = h.y; r = 130; }
     else if (id === 'raid') this.summon('berserk', x, y, v.n, v.life, P);
@@ -462,7 +493,7 @@ export class Battle {
     else if (id === 'burst') { const fs = this.foesIn(u.x, u.y, 440).sort((a, b) => hyp(a.x - u.x, a.y - u.y) - hyp(b.x - u.x, b.y - u.y)).slice(0, 6); if (!fs.length) return false; pts = []; for (const e of fs) { pts.push(e.x, e.y); this.damage(e, 64 * hm, u, 'aoe'); } }
     else if (id === 'snipe') { let t = null, bs = -1; for (const e of this.foesIn(u.x, u.y, 600)) { const sc = e.def.boss ? 1e7 : e.maxHp; if (sc > bs) { bs = sc; t = e; } } if (!t) return false; tx = t.x; ty = t.y; pts = [u.x, u.y - 30, t.x, t.y - 16]; this.damage(t, 320 * hm, u, 'aoe'); if (!t.dead && !t.def.boss) t.stun = Math.max(t.stun, 1.5); }
     else if (id === 'jajin') { if (!this.foesIn(u.x, u.y, 460).length) return false; this.allies(u.x, u.y, 240, a => { a.haste = Math.max(a.haste, 7); }); }
-    else if (id === 'sinmyeong') { this.gain(1, u.x, u.y - 40); this.allies(u.x, u.y, 240, a => { const h = Math.min(a.maxHp - a.hp, a.maxHp * 0.1 * hm); if (h > 0.5) { a.hp += h; this.ev('heal', { x: a.x, y: a.y, amt: h, team: 0, quiet: true }); } }); }
+    else if (id === 'sinmyeong') { this.gain(1.5, u.x, u.y - 40); this.allies(u.x, u.y, 240, a => { const h = Math.min(a.maxHp - a.hp, a.maxHp * 0.1 * hm); if (h > 0.5) { a.hp += h; this.ev('heal', { x: a.x, y: a.y, amt: h, team: 0, quiet: true }); } }); }
     else if (id === 'hwimori') { const fs = this.foesIn(u.x, u.y, 215); if (!fs.length) return false; for (const e of fs) { this.damage(e, 34 * hm, u, 'aoe'); if (e.dead) continue; if (e.def.boss) { e.slow = Math.max(e.slow, 2.5); e.slowAmt = 0.25; } else e.stun = Math.max(e.stun, 1.8); } }
     else if (id === 'quake') { if (!this.foesIn(u.x, u.y, 100).length) return false; this.aoe(u.x, u.y, 104, 118 * hm, 1, u, { slow: 0.45, slowT: 3, kb: 10 }); }
     else if (id === 'provoke') { if (!this.foesIn(u.x, u.y, 240).length) return false; u.taunt = 240; u.tauntT = 5; u.guard = Math.max(u.guard, 5); u.guardAmt = Math.max(u.guardAmt, 0.5); }
@@ -734,11 +765,16 @@ export class Battle {
     this.ev('death', { x: t.x, y: t.y, team: t.team, utype: t.type, boss: !!t.def.boss, r: t.r, last: !(t.def.revive && !t.revived) });
     if (t.team === 0) {
       if (t.def.banner) this.ev('bannerDown', { x: t.x, y: t.y }); else if (!t.temp) { this.lost++; this.waveLost++; }
-      // 부대가 전멸하면 패는 버린 더미로 돌아가지만, 군기가 흔들린다 (군기 수레 체력을 잃는다)
-      const sq = t.squad; if (sq.alive <= 0 && sq.card) { this.discard.push(sq.card); this.ev('squadLost', { x: t.x, y: t.y, id: sq.card.id }); sq.card = null; const bu = this.banner.units[0]; if (bu && !bu.dead) this.damage(bu, bu.maxHp * (sq.hero ? ROUT * 2 : ROUT), null, 'rout'); }
+      // 부대가 전멸하면 그 싸움에서는 다시 세울 수 없고, 군기가 흔들린다 (군기 수레 체력을 잃는다)
+      const sq = t.squad; if (sq.alive <= 0 && sq.card) { const again = this.waveOn && this.mods.rally > this.rallied; if (again) { this.rallied++; this.drawPile.splice((this.rand() * (this.drawPile.length + 1)) | 0, 0, sq.card); } else if (this.waveOn) this.bench.push(sq.card); else this.drawPile.push(sq.card); this.ev('squadLost', { x: t.x, y: t.y, id: sq.card.id, again }); sq.card = null; const bu = this.banner.units[0]; if (bu && !bu.dead) this.damage(bu, bu.maxHp * (sq.hero ? ROUT * 2 : ROUT), null, 'rout'); }
     } else {
       // 요괴 무리 하나를 다 물리치면 사기가 오른다 (불러낸 무리·되살아난 무리는 한 번만 친다)
-      this.kills++; const sq = t.squad; if (sq.alive <= 0 && !sq.paid && !sq.summonPool) { sq.paid = true; this.gain(t.def.boss ? BOSS_MORALE : (sq.chaser ? SQUAD_MORALE * 0.5 : SQUAD_MORALE) + this.mods.killMorale, t.x, t.y); }
+      this.kills++; const sq = t.squad;
+      if (sq.alive <= 0 && !sq.paid && !sq.summonPool) {
+        sq.paid = true; const md = this.mods; this.gain(t.def.boss ? BOSS_MORALE : (sq.chaser ? SQUAD_MORALE * 0.5 : SQUAD_MORALE) + md.killMorale, t.x, t.y);
+        if (!sq.chaser) { if (++this.lootN >= md.lootEvery) { this.lootN = 0; this.loot(t.x, t.y); } if (md.killGold) { this.goldGain += md.killGold; this.ev('gold', { x: t.x, y: t.y, n: md.killGold }); } }
+        if (md.heroLoot && src && src.def.hero && src.type === this.lead && this.heroLootN < 3 && this.pouchCount() < md.pouch + 2) { const hc = Object.keys(CARDS).filter(k => CARDS[k].hero === this.lead); if (hc.length) { this.heroLootN++; this.gainCard(hc[(this.rand() * hc.length) | 0], t.x, t.y, 'hero'); } }
+      }
     }
     if (t.def.bomber && !t.exploded) this.zones.push({ kind: 'tele', style: 'bomb', x: t.x, y: t.y, r: t.def.bomber.r, t: 0, delay: 0.7, hits: 2, dmg: t.def.bomber.dmg * lvlMult(t.lvl), kb: 22 });
     else if (t.def.revive && !t.revived && !this.inGrail(t.x, t.y)) { this.corpses.push({ x: t.x, y: t.y, t: 3, revive: true, u: t }); this.pending++; }
