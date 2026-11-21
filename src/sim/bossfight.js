@@ -14,7 +14,13 @@ const hyp = Math.hypot, TAU = Math.PI * 2;
 const cx = x => Math.max(VIEW.x0 + 50, Math.min(VIEW.x1 - 50, x)), cy = y => Math.max(VIEW.y0 + 36, Math.min(VIEW.y1 - 36, y));
 // 두목의 외침: 잇달아 외쳐도 겹치지 않게 번갈아 높이를 달리한다
 // 끊기 게이지가 머리 위에 떠 있는 동안에는 외침을 발밑으로 내린다
-const say = (b, u, s, c = '#c8402f') => { u.sayN = ((u.sayN || 0) + 1) % 3; const low = u.ai && u.ai.g; b.ev('text', { x: Math.max(260, Math.min(1020, u.x)), y: low ? Math.min(520, u.y + 46) : u.y - 96 - u.sayN * 38, s, c, big: true }); };
+const TALL = { gumiho: 104, foxfake: 96, dueokboss: 150, warchief: 146, tigerboss: 104, serpent: 132, elder: 166, bulgaboss: 124, plague: 140, imugi: 168, skelking: 146, reaper: 134, yeomra: 168 };
+export const bossSay = (b, u, s, c) => say(b, u, s, c);
+const say = (b, u, s, c = '#c8402f') => {
+  u.sayN = ((u.sayN || 0) + 1) % 2; let y = u.y - (TALL[u.type] || 140) - 24 - u.sayN * 40;
+  if ((u.ai && u.ai.g) || y < VIEW.y0 + 18) y = Math.min(VIEW.y1 - 14, u.y + 40 + u.sayN * 40);   // 끊기 게이지가 떠 있거나 머리 위에 자리가 없으면 발밑에
+  b.ev('text', { x: Math.max(260, Math.min(1020, u.x)), y, s, c, big: true });
+};
 const tele = (b, u, x, y, r, delay, o) => { const z = Object.assign({ kind: 'tele', style: 'slam', x, y, r, t: 0, delay, hits: 0, src: u }, o); b.zones.push(z); return z; };
 const mv = o => Object.keys(o).map(id => ({ id, t: o[id] }));
 const pickN = (b, list, n) => list.map(s => [s, b.rand()]).sort((p, q) => p[1] - q[1]).slice(0, n).map(p => p[0]);

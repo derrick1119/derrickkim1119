@@ -326,7 +326,7 @@ export { HATS };
 
 // ───────── 도깨비 ─────────
 export function dokkaebi(g, o, sel) {
-  const body = sel !== 'head', head = sel !== 'body', sk = o.skin, cloth = o.cloth || '#e6aa3e', bell = lt(sk, 0.3);
+  const body = sel !== 'head', head = sel !== 'body', sk = o.skin, cloth = o.cloth || '#d8c9a3', bell = lt(sk, 0.3);   // 기본은 물들이지 않은 삼베
   if (body) {
     for (const s of [-1, 1]) {
       part(g, p => { p.moveTo(s * 1, -13); p.quadraticCurveTo(s * 11.4, -13.6, s * 10, -4.6); p.lineTo(s * 2.6, -4.2); p.closePath(); }, sk, s > 0 ? R(6.4, -14, 6, 11) : R(-4.4, -14, 3, 11), { lw: 1.1 });
@@ -335,8 +335,9 @@ export function dokkaebi(g, o, sel) {
     }
     part(g, p => { p.moveTo(-9.6, -27.6); p.quadraticCurveTo(-13, -18, -10.6, -10.6); p.quadraticCurveTo(0, -7, 10.6, -10.6); p.quadraticCurveTo(13, -18, 9.6, -27.6); p.closePath(); }, sk, P(4.6, -29, 14, -29, 14, -6, 6, -6), { hi: E(-1.4, -17.4, 5.2, 5.6), hic: bell });
     ell(g, -0.6, -13.6, 0.7, 0.9, dk(sk, 0.4));
-    part(g, p => { p.moveTo(-11.2, -15.4); p.quadraticCurveTo(0, -12.6, 11.2, -15.4); p.lineTo(12.6, -8.4); p.lineTo(8.6, -4.6); p.lineTo(4.6, -8); p.lineTo(0, -3.6); p.lineTo(-4.6, -8); p.lineTo(-8.6, -4.6); p.lineTo(-12.6, -8.4); p.closePath(); }, cloth, P(4.6, -17, 14, -17, 14, -3, 6, -3));
-    for (const x of [-8.6, -4.2, 1, 5.6, 9.6]) poly(g, [x - 1.5, -13.6 + Math.abs(x) * 0.1, x + 1.5, -13.4 + Math.abs(x) * 0.1, x + 0.3, -8.2], '#2b2a30');
+    // 삼베 잠방이: 무릎 위에서 끊긴 짧은 바지 (올이 보이게 세로줄을 긋는다)
+    part(g, p => { p.moveTo(-11.2, -15.4); p.quadraticCurveTo(0, -12.6, 11.2, -15.4); p.lineTo(12.4, -5.6); p.lineTo(1.6, -4.8); p.lineTo(0, -8.4); p.lineTo(-1.6, -4.8); p.lineTo(-12.4, -5.6); p.closePath(); }, cloth, P(4.6, -17, 14, -17, 14, -3, 6, -3));
+    for (const x of [-8.8, -5.4, 5.4, 8.8]) line(g, [x, -12.6, x + (x < 0 ? -0.4 : 0.4), -6.6], dk(cloth, 0.28), 0.6);
     rope(g, p => { p.moveTo(-11.2, -15.4); p.quadraticCurveTo(0, -12.6, 11.2, -15.4); }, '#d9c39a', 1.4);
     // 팔: 왼팔은 내리고 오른팔은 방망이를 쥐어 들었다
     part(g, p => { p.moveTo(-8.6, -27.4); p.quadraticCurveTo(-18.4, -28, -19.6, -20); p.lineTo(-13.6, -17.4); p.quadraticCurveTo(-12.6, -22, -9.6, -22.6); p.closePath(); }, sk, E(-12.4, -19.6, 3, 4));
@@ -353,7 +354,9 @@ export function dokkaebi(g, o, sel) {
     // 삐죽삐죽한 머리털과 뿔
     part(g, p => { p.moveTo(-12.8, -41); p.lineTo(-16.4, -50.6); p.lineTo(-10.4, -48); p.lineTo(-11, -57); p.lineTo(-5.2, -52); p.lineTo(-2.8, -58.6); p.lineTo(1.6, -52); p.lineTo(5.6, -58); p.lineTo(8.2, -50.6); p.lineTo(14.6, -53.4); p.lineTo(12.8, -41); p.quadraticCurveTo(7, -47.4, 0, -46.2); p.quadraticCurveTo(-7, -47.4, -12.8, -41); p.closePath(); }, o.hair || BLACK, P(4, -60, 16, -60, 16, -40, 8, -44), { hi: P(-10.4, -55, -9, -50, -7.4, -51.4), hic: '#5a5866', lw: 1.1 });
     const horn = (x, a) => { g.save(); g.translate(x, -51.4); g.rotate(a); part(g, p => { p.moveTo(-2.8, 1); p.quadraticCurveTo(-2.6, -8, 0.6, -13.4); p.quadraticCurveTo(3.4, -7, 2.8, 1); p.closePath(); }, '#f3e7c8', P(0.6, -14, 4, -14, 4, 2, 1.2, 2), { k: 0.18, lw: 1 }); for (const y of [-3, -6.6]) line(g, [-2.2, y, 2.4, y - 0.8], '#c9b98a', 0.7); g.restore(); };
-    if (o.horns === 2) { horn(-6, -0.34); horn(6, 0.34); } else horn(0.4, 0.06);
+    // 뿔은 달지 않는다. 대신 씨름꾼 두목은 상투를 틀고 머리띠를 맸다
+    if (o.horns === 2) { horn(-6, -0.34); horn(6, 0.34); } else if (o.horns === 1) horn(0.4, 0.06);
+    if (o.knot) { part(g, E(0.4, -58.6, 3.4, 4), o.hair || BLACK, E(2, -57.6, 2.6, 3.2), { lw: 1 }); rr(g, -2.6, -55.6, 6, 2.2, 1, RED, INK, 0.6); part(g, p => { p.moveTo(-12.6, -45.6); p.quadraticCurveTo(0, -49.6, 12.6, -45.6); p.lineTo(12.4, -42.6); p.quadraticCurveTo(0, -46.6, -12.4, -42.6); p.closePath(); }, '#f3ecdd', null, { lw: 0.9 }); part(g, P(11.6, -45, 17.6, -43, 16.6, -39.6, 12, -42.6), '#f3ecdd', null, { lw: 0.8 }); }
     // 부리부리한 눈과 굵은 눈썹
     if (o.blink) for (const s of [-1, 1]) curve(g, p => { p.moveTo(s * 1.6, -38.6); p.quadraticCurveTo(s * 5.4, -36, s * 9.2, -39.4); }, INK, 1.7);
     else for (const s of [-1, 1]) { g.save(); g.beginPath(); g.moveTo(s * 1.4, -39.6); g.quadraticCurveTo(s * 5.6, -44.4, s * 10, -41.6); g.quadraticCurveTo(s * 6, -34.6, s * 1.4, -39.6); g.closePath(); g.fillStyle = '#fff3b8'; g.fill(); g.clip(); ell(g, s * 5.2, -39.6, 1.7, 2, '#8a2a1c'); ell(g, s * 5.2, -39.5, 0.8, 1.1, '#15121a'); g.restore(); curve(g, p => { p.moveTo(s * 1.4, -39.6); p.quadraticCurveTo(s * 5.6, -44.4, s * 10, -41.6); p.quadraticCurveTo(s * 6, -34.6, s * 1.4, -39.6); }, INK, 1.1); }

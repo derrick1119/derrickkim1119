@@ -66,12 +66,12 @@ export class RunScene {
     else if (st.type === 'battle' || st.type === 'elite' || st.type === 'boss') {
       // 싸움터를 먼저 차린다(지형·하늘). 요괴가 닿기 전 잠깐이 진형을 고칠 시간이다
       const e = this.enc = encounterHere(); b.prepWave(waveSetup(e)); this.phase = 'prep'; this.prepT = e.boss ? 8 : this.first ? 5.5 : 4; this.grade = null;   // 두목 앞에서는 두목의 수를 읽을 틈을 준다
-      this.note = { s: e.name, sub: e.boss ? (BOSS[e.key] ? BOSS[e.key].sub : '두목과의 싸움') + (e.with ? ' · ' + e.with : '') : e.affix ? `강적 — ${AFFIX[e.affix].name}: ${AFFIX[e.affix].desc}` : iga(e.enemyName) + ' 몰려옵니다', col: e.boss || e.affix ? RED : INDIGO, t: 2.2, ch: e.boss ? 'boss' : st.type === 'elite' ? 'elite' : 'battle', chCol: e.boss ? '#f3b9a6' : undefined };
+      this.note = { s: e.name, sub: e.boss ? (BOSS[e.key] ? BOSS[e.key].sub : '두목과의 싸움') + (e.with ? ' · ' + e.with : '') : e.affix ? `강적 — ${AFFIX[e.affix].name}: ${AFFIX[e.affix].desc}` : iga(e.enemyName) + ' 몰려옵니다', col: e.boss || e.affix ? RED : INDIGO, t: 2.2, ch: e.boss ? 'boss' : st.type === 'elite' ? 'elite' : 'battle', chCol: e.boss ? '#f1e2c0' : undefined };
       if (e.boss) sfx('boss');
     }
-    else if (st.type === 'event') { this.phase = 'stop'; const id = r.pending && r.pending.kind === 'event' ? r.pending.id : pickEvent(); r.pending = { kind: 'event', id }; const v = eventView({ id }); this.over = new ChoiceOverlay({ title: v.title, art: v.art, text: v.text, choices: v.choices, onDone: done }); }
+    else if (st.type === 'event') { this.phase = 'stop'; const id = r.pending && r.pending.kind === 'event' ? r.pending.id : pickEvent(); r.pending = { kind: 'event', id }; const v = eventView({ id }); this.over = new ChoiceOverlay({ title: v.title, art: v.art, after: v.after, text: v.text, choices: v.choices, onDone: done }); }
     else if (st.type === 'shop') { this.phase = 'stop'; const items = r.pending && r.pending.kind === 'shop' ? r.pending.items : genShop(); r.pending = { kind: 'shop', items }; this.over = new ShopOverlay({ items, onDone: done }); }
-    else if (st.type === 'rest') { this.phase = 'stop'; b.repair(1); const tl = r.pending && r.pending.kind === 'rest' ? r.pending : Object.assign({ kind: 'rest' }, hearTale(r.ch)); r.pending = tl; this.welcome(noteDeed()); this.over = new ChoiceOverlay({ title: '주막', art: 'priest', col: '#2f6f5c', text: '고갯마루 주막에서 수레를 고칩니다.\n주모가 옛이야기 한 토막을 들려줍니다.', tale: taleView(tl), choices: restChoices(), onDone: done }); }
+    else if (st.type === 'rest') { this.phase = 'stop'; b.repair(1); const tl = r.pending && r.pending.kind === 'rest' ? r.pending : Object.assign({ kind: 'rest' }, hearTale(r.ch)); r.pending = tl; this.welcome(noteDeed()); this.over = new ChoiceOverlay({ title: '주막', art: 'jumo', col: '#2f6f5c', text: '고갯마루 주막에서 수레를 고칩니다.\n주모가 옛이야기 한 토막을 들려줍니다.', tale: taleView(tl), choices: restChoices(), onDone: done }); }
     else { this.phase = 'stop'; this.reward('treasure'); }
     save();
   }
@@ -126,7 +126,7 @@ export class RunScene {
     settleBattle(b); if (enc.kind !== 'battle') { const got = grantLoot(enc.kind === 'boss' ? 3 : 2); this.toast(`${enc.kind === 'boss' ? '두목' : '강적'}의 짐에서 패 ${got.length}장을 노획 — ${got.join(', ')}`, 4.5); this.sync(); }
     this.grade = { grade, gold, t: 0, stamped: false }; this.phase = 'clear'; this.order = null; this.aim = null; sfx('win'); save();
     // 번 엽전이 주머니로 날아간다
-    for (let q = 0; q < Math.min(8, 3 + Math.round(gold / 15)); q++) juice.fly({ draw: (gg, x, y, s) => icon.coin(gg, x, y, 13 * s, true), x0: 590 + q * 14, y0: 382, x1: SPOT.gold[0], y1: SPOT.gold[1], s0: 1, s1: 0.8, arc: 60 + q * 8, delay: 0.75 + q * 0.07, dur: 0.55, col: '#f0d264' });
+    for (let q = 0; q < Math.min(8, 3 + Math.round(gold / 15)); q++) juice.fly({ draw: (gg, x, y, s) => icon.coin(gg, x, y, 13 * s, true), x0: 590 + q * 14, y0: 382, x1: SPOT.gold[0], y1: SPOT.gold[1], s0: 1, s1: 0.8, arc: 60 + q * 8, delay: 0.35 + q * 0.05, dur: 0.5, col: '#f0d264' });   // 전리품 화면이 뜨기 전에 다 닿는다
     // 영물의 인연: 밤 싸움·강적·두목을 이긴 공, 깃발을 지켜 낸 공을 적는다
     this.welcome([].concat(enc.sky === 'night' ? noteDeed('night') : [], enc.kind === 'elite' ? noteDeed('elite') : [], enc.kind === 'boss' ? noteDeed('boss') : [], enc.kind === 'boss' && r.flags >= 3 ? noteDeed('safe') : []));
   }
@@ -291,7 +291,7 @@ export class RunScene {
     rd.stops.forEach((s, k) => {
       const x = sx(k), past = k < rd.i || (k === rd.i && rd.state === 'reward'), cur = k === rd.i && this.phase !== 'march';
       g.save(); if (past) g.globalAlpha = 0.4;
-      if (s.type === 'fork') { seal(g, x, cy - 11, 20, STOP[s.a.type].ch, STOP[s.a.type].col); seal(g, x, cy + 11, 20, STOP[s.b.type].ch, STOP[s.b.type].col); }
+      if (s.type === 'fork') { seal(g, x, cy - 12.5, 24, STOP[s.a.type].ch, STOP[s.a.type].col); seal(g, x, cy + 12.5, 24, STOP[s.b.type].ch, STOP[s.b.type].col); }
       else { const v = STOP[s.type], sz = cur ? 38 : s.type === 'boss' ? 36 : 31; if (cur) ell(g, x, cy, 22 + Math.sin(T * 5) * 1.5, 22 + Math.sin(T * 5) * 1.5, null, OCHRE, 2.4); seal(g, x, cy, sz, v.ch, v.col); }
       g.restore(); if (past) icon.check(g, x, cy, 0.9, true);
     });
@@ -428,7 +428,7 @@ export class RunScene {
       // 굵은 먹 띠를 한 번에 긋고 그 위에 흰 글씨, 붓이 빠진 자리에 전공 등급을 붓글씨로 찍는다
       const bk = clamp(t / 0.16, 0, 1); g.save(); g.beginPath(); g.rect(360, 220, 40 + 620 * bk, 170); g.clip(); drawInk(g, 'bar', 668, 302, 1.12, -0.022, 1, MEOK, 0); g.restore();
       g.globalAlpha = clamp((t - 0.06) / 0.14, 0, 1); text(g, '물리쳤다!', 548, 300, { size: 64, font: FONT_B, fill: '#f6efdc' }); g.globalAlpha = 1;
-      if (t > 0.25) { if (!gr.stamped && kk >= 1) { gr.stamped = true; sfx('star'); this.view.fx.shake = 6; this.view.fx.splat(826, 300, 1.5, MEOK, 0.5); } g.save(); g.globalAlpha = kk; g.translate(826, 298); g.scale(sc, sc); ell(g, 0, 0, 52, 52, 'rgba(248,240,220,0.94)'); drawInk(g, 'enso', 0, 0, 0.74, 0.3, 1, MEOK, gr.grade % 3); inkGlyph(g, GRADE[gr.grade], 0, 2, 74, { col: JU, halo: false, rot: -0.04 }); g.restore(); g.globalAlpha = kk; text(g, '전공', 826, 228, { size: 18, font: FONT_B, fill: C.cream, stroke: INK, lw: 4 }); g.globalAlpha = 1; }
+      if (t > 0.25) { if (!gr.stamped && kk >= 1) { gr.stamped = true; sfx('star'); this.view.fx.shake = 6; this.view.fx.splat(826, 300, 1.5, MEOK, 0.5); } g.save(); g.globalAlpha = kk; g.translate(826, 298); g.scale(sc, sc); ell(g, 0, 0, 56, 56, '#f8f0dc', 'rgba(38,42,54,0.5)', 1.6); drawInk(g, 'enso', 0, 0, 0.74, 0.3, 1, MEOK, gr.grade % 3); inkGlyph(g, GRADE[gr.grade], 0, 2, 74, { col: JU, halo: false, rot: -0.04 }); g.restore(); g.globalAlpha = kk; rr(g, 798, 214, 56, 26, 6, '#fbf3df', INK, 1.6); text(g, '전공', 826, 228, { size: 17, font: FONT_B, fill: INK }); g.globalAlpha = 1; }
       if (t > 0.5) { panel(g, 540, 360, 200, 44, 'tag'); icon.coin(g, 574, 382, 14); text(g, `엽전 +${gr.gold}`, 652, 383, { size: 23, font: FONT_B }); }
     }
     if (this.phase === 'over') { const ok = clamp((1.8 - this.endT) / 1.2, 0, 1); g.fillStyle = `rgba(23,21,28,${ok * 0.66})`; g.fillRect(0, 0, W, H); drawInk(g, 'blot', 640, 300, 2.2, 0.4, ok * 0.9, MEOK, 1); inkGlyph(g, 'lose', 640, 268, 210, { col: '#b8301f', halo: false, alpha: ok }); text(g, '깃발을 모두 잃었습니다', 640, 420, { size: 46, font: FONT_B, fill: C.cream, stroke: INK, lw: 8 }); }

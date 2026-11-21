@@ -107,6 +107,7 @@ export function puppet(g, type, x, y, s, t, o = {}) {
   else if (act === 'dance') { dy = -Math.abs(Math.sin(t * 7.5)) * 12 * s; rot = Math.sin(t * 7.5) * 0.2; dx = Math.sin(t * 3.75) * 8 * s; }
   else if (act === 'wave') rot = Math.sin(t * 7) * 0.12;
   if (type[0] === '*') { prop(g, type.slice(1), x + dx, y + dy, s, t); return; }
+  if ((act === 'sleep' || (lie && act === 'bow')) && LOOKS[type + '_calm']) type = type + '_calm';   // 엎드리거나 잠든 범은 입을 다문다
   const L = getLook(type), sc = (o.scale || 1), ps = s * (L.boss ? 0.62 : 1) * sc / (L.scale / 1.1);
   // 인형을 받친 막대: 무대 아래 판 뒤로 내려간다. 누운 인형은 몸 가운데를 받쳐 막대도 함께 기운다
   if (!o.noStick) { const hh = 34 * s * sc, cx = x + dx + (down || act === 'rise' ? Math.sin(rot) * hh : 0), cy = y + dy - (down || act === 'rise' ? Math.cos(rot) * hh + 4 * s : 8 * s), bx = x + dx * 0.3 + (down ? Math.sin(rot) * hh * 0.45 : 0); line(g, [cx, cy, bx, y + 96 * s], INK, 4.4 * s); line(g, [cx, cy, bx, y + 96 * s], '#9a7440', 2.4 * s); }

@@ -1,7 +1,7 @@
 // 고개마다의 두목과 소품 그림: 구미호의 꼬리, 구렁이·이무기, 역신, 염라대왕의 면류관, 종·여의주·업경대
 // (인형 좌표: 발밑이 y = 0, 머리가 y ≈ -45. 다른 인형 그림과 같은 종이 오림 방식)
 import { TAU, INK, RED, OCHRE, ell, rr, line, path, poly } from './draw.js';
-import { part, curve, rope, E, R, P, dk, lt, fox, HATS, WHITE, WOOD, WOODD } from './figures.js';
+import { part, curve, rope, E, R, P, dk, lt, fox, HATS, WHITE, BLACK, WOOD, WOODD } from './figures.js';
 
 const BRASS = '#c9962e', BRONZE = '#6f8a78', BRONZED = '#4f6a5c';
 
@@ -30,6 +30,7 @@ export function serpent(g, o = {}) {
   };
   // 꼬리 끝
   rope(g, p => { p.moveTo(17, -4); p.quadraticCurveTo(29, -6, 27, -17); }, C, 3.4);
+  if (o.imugi) { const loop = p => { p.moveTo(-14, -14); p.bezierCurveTo(-34, -30, -30, -58, -13, -58); p.bezierCurveTo(-4, -58, -2, -46, -6, -36); }; curve(g, loop, INK, 11.6); curve(g, loop, dk(C, 0.12), 9); for (const [x, y, a2] of [[-27, -36, -1.3], [-26, -47, -0.9], [-19, -57, -0.3]]) { g.save(); g.translate(x, y); g.rotate(a2); poly(g, [-2.2, 0, 0, -6, 2.2, 0], '#8fd3e8', INK, 0.9); g.restore(); } }
   ring(0, -6.5, 21, 8.6); ring(-1, -17, 16.6, 7.4); ring(1, -26.4, 12, 6);
   // 세운 목
   const neck = p => { p.moveTo(3, -29); p.bezierCurveTo(13, -38, 9, -50, -3, -52); };
@@ -104,4 +105,23 @@ export function mirror(g) {
   for (let i = 0; i < 9; i++) { const a = -2.2 + i / 8 * 4.4; g.save(); g.translate(Math.sin(a) * 17, -38 - Math.cos(a) * 17); g.rotate(a); poly(g, [-3.2, 0, 0, -8, 3.2, 0], i % 2 ? '#ff9a2e' : '#c8402f', INK, 0.9); g.restore(); }
   part(g, E(0, -38, 17.6, 17.6), '#7a1f1c', E(4, -34, 16, 16), { lw: 1.4 }); ell(g, 0, -38, 14.6, 14.6, BRASS, INK, 1);
   part(g, E(0, -38, 12.4, 12.4), '#dfe8ea', E(4, -34, 11, 11), { k: 0.14, hi: P(-9, -44, -4, -48, 4, -32, -1, -29), hic: '#ffffff', lw: 1 });
+}
+
+// ── 주모와 고운 여인 ──
+// 쪽머리: 가르마를 타 뒤로 쪽을 찌고 비녀를 꽂았다 (인형의 모자로 쓴다)
+HATS.jjok = g => {
+  // 이마 위로 빗어 넘긴 머리 (가운데 가르마)
+  part(g, p => { p.moveTo(-10.4, -40.6); p.quadraticCurveTo(-11.4, -55.4, 0, -55.4); p.quadraticCurveTo(11.4, -55.4, 10.4, -40.6); p.quadraticCurveTo(6, -48.6, 0, -49.4); p.quadraticCurveTo(-6, -48.6, -10.4, -40.6); p.closePath(); }, BLACK, P(2, -56, 12, -56, 12, -40, 6, -46), { k: 0.2, lw: 1.1 });
+  line(g, [0, -55, 0, -49.6], '#55535e', 0.7);
+  part(g, E(-10.6, -39.4, 4.4, 3.6), BLACK, E(-9.4, -38.4, 3.6, 2.8), { lw: 1 });
+  line(g, [-16.6, -40.4, -5.4, -38.6], INK, 2.2); line(g, [-16.6, -40.4, -5.4, -38.6], BRASS, 1.1); ell(g, -17, -40.5, 1.3, 1.3, '#c8402f', INK, 0.5);
+};
+// 손에 든 술병
+export function bottleItem(g) {
+  part(g, p => { p.moveTo(14, -30); p.lineTo(17, -30); p.lineTo(17, -26.6); p.quadraticCurveTo(21.6, -24, 21, -18.6); p.quadraticCurveTo(20.4, -15.6, 15.5, -15.6); p.quadraticCurveTo(10.6, -15.6, 10, -18.6); p.quadraticCurveTo(9.4, -24, 14, -26.6); p.closePath(); }, WHITE, R(16, -31, 6, 16), { k: 0.12, lw: 1 });
+  rr(g, 13.4, -31.6, 4.2, 2, 0.6, '#8a2a26', INK, 0.6); line(g, [11.6, -20.6, 19.4, -20.6], '#2f4d7e', 0.9);
+}
+// 치마 밑으로 삐져나온 꼬리 셋
+export function foxTails(g) {
+  for (const [a, x] of [[-1.25, -6], [-0.95, -5], [1.15, 6]]) { g.save(); g.translate(x, -3); g.rotate(a); part(g, p => { p.moveTo(-2.4, 0); p.bezierCurveTo(-7, -8, -6, -17, 0, -23); p.bezierCurveTo(6, -17, 7, -8, 2.4, 0); p.closePath(); }, '#e0b060', null, { lw: 1 }); part(g, p => { p.moveTo(-3.2, -16); p.quadraticCurveTo(0, -18.6, 0, -23); p.quadraticCurveTo(0, -18.6, 3.2, -16); p.quadraticCurveTo(0, -17.6, -3.2, -16); p.closePath(); }, '#fbf7ec', null, { lw: 0.7 }); g.restore(); }
 }

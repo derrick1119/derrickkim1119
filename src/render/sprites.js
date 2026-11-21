@@ -3,7 +3,7 @@ import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, SKIN, st, fs, ell, rr, poly,
 import { WEAPONS as WDATA, ARMS } from '../data/weapons.js';
 import { doll, dokkaebi, ITEM, DITEM, fox, jangseung, wisp, cart, horse, LEFTOVER, boar, catapult, mokshin, eoduksini, scarecrow, stakeLog, bannerCart, part, dk, lt, E, R, P, curve, rope, WHITE, BLACK, STEEL, IRON, WOOD, WOODD, HX, HY } from './figures.js';
 import { tiger, haetae, sapsal, magpie, samjoko, bulgasari, geuseundae, strawShoes } from './beasts.js';
-import { gumiho, serpent, plagueSpirit, bell, pearl, mirror } from './bossart.js';
+import { gumiho, serpent, plagueSpirit, bell, pearl, mirror, bottleItem, foxTails } from './bossart.js';
 
 // ───────────── 무기 (원점 = 손잡이, 위쪽을 향함) ─────────────
 const STEELD = '#aab4ba', BRASS = '#c9962e';
@@ -40,14 +40,18 @@ const WEAPONS = {
   },
   club(g) {
     part(g, p => { p.moveTo(-1.7, 4.6); p.quadraticCurveTo(-2.4, -10, -5.2, -24); p.quadraticCurveTo(-4.6, -31, 0.6, -31); p.quadraticCurveTo(5.6, -30, 5, -23); p.quadraticCurveTo(2.6, -10, 1.7, 4.6); p.closePath(); }, WOOD, p => { p.moveTo(1, -32); p.lineTo(7, -32); p.lineTo(3, 5); p.lineTo(0.4, 5); p.closePath(); }, { hi: P(-3.6, -26, -2.4, -26, -1.2, -6, -1.8, -6), hk: 0.22 });
-    for (const [x, y] of [[-1.4, -22], [1.9, -18], [-0.9, -13], [2.2, -26], [-2.6, -27]]) { ell(g, x, y, 1.3, 1.3, '#3a2a22', INK, 0.4); ell(g, x - 0.4, y - 0.4, 0.4, 0.4, '#8a6a4a'); }
+    for (const [x, y, sg] of [[-3.6, -22, -1], [3.8, -15, 1]]) part(g, P(x, y - 1.4, x + sg * 3.4, y - 3.6, x + sg * 3.2, y - 1.6, x, y + 1), WOOD, null, { lw: 0.8 });   // 잘린 곁가지
+    for (const [x, y] of [[0.8, -26], [-0.6, -16]]) { ell(g, x, y, 1.7, 1.1, null, '#5a3a26', 0.8); ell(g, x, y, 0.5, 0.4, '#5a3a26'); }   // 옹이
     for (const y of [-2, 1]) line(g, [-1.7, y, 1.7, y + 0.6], '#d9c39a', 1);
   },
-  ironclub(g) {
-    part(g, p => { p.moveTo(-1.8, 5.6); p.quadraticCurveTo(-2.6, -12, -5.4, -27); p.quadraticCurveTo(-4.6, -34, 0, -34); p.quadraticCurveTo(4.6, -34, 5.4, -27); p.quadraticCurveTo(2.6, -12, 1.8, 5.6); p.closePath(); }, IRON, P(1, -35, 7, -35, 3, 6, 0.4, 6), { hi: P(-3.8, -29, -2.6, -29, -1.2, -6, -1.8, -6), hic: '#7a7a88' });
-    for (const [x, y, sg] of [[-5, -24, -1], [5, -24, 1], [-4.2, -15, -1], [4.2, -15, 1], [-3.2, -7, -1], [3.2, -7, 1]]) part(g, P(x, y - 2.2, x + sg * 4.8, y, x, y + 2.2), '#c9cdd2', null, { lw: 0.7 }); part(g, P(-2.2, -33, 0, -38.4, 2.2, -33), '#c9cdd2', null, { lw: 0.7 });
-    for (const y of [-1, 2.2]) line(g, [-1.8, y, 1.8, y + 0.5], BRASS, 1.1);
+  ironclub(g) { // 두목의 큰 방망이: 옹이가 박힌 나무 방망이 (쇠 가시는 달지 않는다)
+    const W2 = '#8a5a34';
+    for (const [x, y, sg] of [[-4.6, -24, -1], [4, -15, 1]]) part(g, P(x, y - 1.8, x + sg * 4.6, y - 4.6, x + sg * 4.2, y - 1.8, x, y + 1.4), W2, null, { lw: 0.9 });   // 잘린 곁가지
+    part(g, p => { p.moveTo(-1.8, 5.6); p.quadraticCurveTo(-2.6, -12, -5.4, -27); p.quadraticCurveTo(-4.6, -34, 0, -34); p.quadraticCurveTo(4.6, -34, 5.4, -27); p.quadraticCurveTo(2.6, -12, 1.8, 5.6); p.closePath(); }, W2, P(1, -35, 7, -35, 3, 6, 0.4, 6), { hi: P(-3.8, -29, -2.6, -29, -1.2, -6, -1.8, -6), hk: 0.22 });
+    for (const [x, y] of [[1.4, -27], [-1.2, -19], [1.2, -11]]) { ell(g, x, y, 2, 1.3, null, '#4a2e1c', 0.9); ell(g, x, y, 0.6, 0.45, '#4a2e1c'); }   // 옹이
+    for (const y of [-1, 2.2]) line(g, [-1.8, y, 1.8, y + 0.5], '#d9c39a', 1.1);
   },
+
   mace(g) {
     shaft(g, 6, -14, '#5a3a26', 2.1); band(g, 3, 4.4, 2, BRASS); rope(g, p => { p.moveTo(0, 6); p.quadraticCurveTo(-4.6, 10, -1.6, 12.6); }, RED, 0.9);
     for (let i = 0; i < 8; i++) { const a = i / 8 * TAU; part(g, P(Math.cos(a - 0.32) * 5.2, -19.5 + Math.sin(a - 0.32) * 5.2, Math.cos(a) * 9.6, -19.5 + Math.sin(a) * 9.6, Math.cos(a + 0.32) * 5.2, -19.5 + Math.sin(a + 0.32) * 5.2), '#9a9aa6', null, { lw: 0.7 }); }
@@ -153,7 +157,7 @@ export const LOOKS = {
   bishop: { doll: { robe: '#9a9a92', top: '#a8a8a0', git: '#7a7a72', kasaya: '#a8442f', beads: true, hem: '#7a7a72', hat: 'bald', jaw: 'round', brow: 'old', browCol: '#7a7a72', eyes: 'closed', lines: true, mouth: 'smile' }, hold: hold(0, 'cast'), scale: 1.3, hero: true, h: 58 },
   archmage: { doll: { robe: WHITE, top: '#fffaf0', git: '#8fb6c8', sash: '#8fb6c8', hem: '#8fb6c8', hat: 'sage', beard: 'long', jaw: 'long', brow: 'old', old: true, eyes: 'narrow', lines: true, mouth: 'smile', item: ITEM.gourd, under: ITEM.cloud, lift: 3 }, hold: hold(0, 'cast', HX, HY - 3), scale: 1.3, hero: true, h: 64, float: true },
   blade: { doll: { robe: '#3a3f58', top: '#2f3348', git: '#1f2130', collar: '#b8342a', cuff: '#b8342a', legs: '#2a2c38', sash: '#b8342a', hem: '#b8342a', hat: 'satgat', skin: '#f3d6b2', jaw: 'slim', brow: 'thin', eyes: 'sharp', lash: true, lip: '#a8443a', mouth: 'flat', item: ITEM.braid }, hold: hold(0.3), scale: 1.3, hero: true, h: 66 },
-  hunter: { doll: { robe: '#6b5a3c', top: '#7a6844', vest: '#d9963f', pelt: true, git: '#4a3d2e', legs: '#d9cdb0', shoe: '#5a4030', sash: '#4a3d2e', hem: '#4a3d2e', hat: 'fur', skin: '#e4bb8e', jaw: 'square', brow: 'flat', eyes: 'round', beard: 'stubble', mouth: 'smirk', back: ITEM.quiver }, hold: hold(0, 'shoot'), scale: 1.3, hero: true, h: 64 },
+  hunter: { doll: { robe: '#6b5a3c', top: '#7a6844', vest: '#d9963f', pelt: true, git: '#4a3d2e', legs: '#d9cdb0', shoe: '#5a4030', sash: '#4a3d2e', hem: '#4a3d2e', hat: 'fur', skin: '#e4bb8e', jaw: 'square', brow: 'thick', eyes: 'calm', beard: 'stubble', mouth: 'flat', back: ITEM.quiver }, hold: hold(0, 'shoot'), scale: 1.3, hero: true, h: 64 },
   sangsoe: { doll: { robe: '#f6efdc', top: '#fffaf0', vest: INDIGO, git: '#22385c', legs: CREAM, sash: OCHRE, hem: '#22385c', cross: [RED, OCHRE], hat: 'sangmo', skin: '#e8c093', jaw: 'round', brow: 'arch', eyes: 'smile', mouth: 'grin', item: ITEM.gong }, hold: hold(0.4, 'cast'), scale: 1.3, hero: true, h: 68 },
   chief: { doll: { robe: '#5a4a3a', top: '#6b4a3a', vest: '#8a6a4a', fur: true, bare: true, git: '#3a2a22', legs: '#3a3640', sash: '#8a2a26', hem: '#3a2a22', wrist: '#3a2a22', hat: 'wild', hair: '#3a2a26', skin: '#d9a878', jaw: 'square', brow: 'bushy', eyes: 'glare', nose: 'broad', beard: 'wild', scar: true }, hold: hold(0.4), wide: 1.16, scale: 1.3, hero: true, h: 62 },
   // 영물
@@ -180,19 +184,19 @@ export const LOOKS = {
   skelarcher: { doll: Object.assign({}, GHOST, { hat: 'band', bandCol: '#c5d9df', item: ITEM.bow }), weapon: 'none', hold: hold(0, 'shoot'), float: true, border: '#e6f3f7', h: 60 },
   catapult: { body: catapult, weapon: 'arm', hold: hold(-0.9, 'lob', 0, -17), h: 50, scale: 1.15, still: true },
   necro: { doll: { robe: '#2b2a31', top: '#35343c', git: '#6b6470', collar: '#c9c2d0', cuff: '#c9c2d0', sash: '#6b6470', skin: '#e6e3d8', pale: true, hat: 'gat', brow: 'stern', eyes: 'sharp', mouth: 'frown', iris: '#7a1f1c', item: ITEM.scroll }, weapon: 'none', hold: hold(0, 'cast'), scale: 1.12, h: 66 },
-  dueok: DK({ skin: '#8a8294', cloth: '#3a2a2e', horns: 2, warts: true, beads: true, hair: '#8a2f24' }, { weapon: 'ironclub', scale: 1.28 }),
+  dueok: DK({ skin: '#8a8294', cloth: '#3a2a2e', warts: true, beads: true, hair: '#8a2f24' }, { weapon: 'ironclub', scale: 1.28 }),
   yagwang: DK({ skin: '#cfd98a', cloth: '#3a3550', item: strawShoes, hair: '#4a4a66' }, { weapon: 'none', hold: hold(0, 'bite'), scale: 0.72 }),
   bulga: { body: bulgasari, blinkBody: g => bulgasari(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 54, w: 136, ox: 64, scale: 1.3 },
   jangsan: { body: g => tiger(g, JANGSAN), blinkBody: g => tiger(g, Object.assign({ blink: true }, JANGSAN)), weapon: 'none', hold: hold(0, 'bite'), h: 50, w: 130, ox: 62, scale: 1.16 },
   geuseun: { body: geuseundae, weapon: 'none', hold: hold(0, 'bite'), h: 72, scale: 1.2, float: true, border: '#dcd6f2' },
   // 두목
-  warchief: DK({ skin: '#3f6f9f', horns: 2, beads: true, warts: true }, { weapon: 'ironclub', scale: 2.0, boss: true, h: 66 }),
+  warchief: DK({ skin: '#3f6f9f', knot: true, beads: true, warts: true }, { weapon: 'ironclub', scale: 2.0, boss: true, h: 66 }),
   elder: { body: mokshin, weapon: 'none', hold: hold(0, 'bite'), h: 72, scale: 2.2, boss: true, still: true },
   skelking: { body: eoduksini, weapon: 'none', hold: hold(0, 'bite'), h: 62, scale: 2.1, boss: true, float: true },
   // 고개마다의 두목 (그림은 bossart.js). 구미호는 남은 꼬리 수마다 그림이 따로 있다: gumiho(아홉) · gumiho8 … gumiho1
   gumiho: { body: g => gumiho(g), blinkBody: g => gumiho(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 46, scale: 2.0, boss: true },
   foxfake: { body: g => gumiho(g, { tails: 0 }), weapon: 'none', hold: hold(0, 'bite'), h: 46, scale: 2.0 },
-  dueokboss: DK({ skin: '#7a7488', cloth: '#3a2a2e', horns: 2, warts: true, beads: true, hair: '#8a2f24' }, { weapon: 'ironclub', scale: 2.1, boss: true, h: 66 }),
+  dueokboss: DK({ skin: '#7a7488', cloth: '#3a2a2e', warts: true, beads: true, hair: '#8a2f24' }, { weapon: 'ironclub', scale: 2.1, boss: true, h: 66 }),
   tigerboss: { body: g => tiger(g, TTEOK), blinkBody: g => tiger(g, Object.assign({ blink: true }, TTEOK)), weapon: 'none', hold: hold(0, 'bite'), h: 50, w: 130, ox: 62, scale: 1.9, boss: true },
   serpent: { body: g => serpent(g), blinkBody: g => serpent(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 62, scale: 2.0, boss: true },
   imugi: { body: g => serpent(g, { imugi: true }), blinkBody: g => serpent(g, { imugi: true, blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 68, scale: 2.3, boss: true },
@@ -201,6 +205,9 @@ export const LOOKS = {
   reaper: { doll: { robe: '#24232a', top: '#2e2d35', git: '#8a2a26', collar: '#c9c2d0', cuff: '#c9c2d0', sash: '#8a2a26', hem: '#8a2a26', skin: '#e6e3d8', pale: true, hat: 'gat', brow: 'stern', eyes: 'sharp', mouth: 'frown', iris: '#7a1f1c', item: ITEM.scroll }, weapon: 'none', hold: hold(0, 'cast'), scale: 1.9, boss: true, h: 66 },
   scribe: { doll: { robe: '#2b2a31', top: '#35343c', git: '#6b6470', collar: '#c9c2d0', cuff: '#c9c2d0', sash: '#6b6470', skin: '#e6e3d8', pale: true, hat: 'gat', brow: 'stern', eyes: 'sharp', mouth: 'frown', iris: '#7a1f1c', item: ITEM.scroll }, weapon: 'none', hold: hold(0, 'cast'), scale: 1.25, h: 66, still: true },
   yeomra: { doll: { robe: '#7a1f1c', top: '#8a2a26', git: '#d9b24a', collar: '#f3ecdd', cuff: '#d9b24a', sash: OCHRE, hem: '#d9b24a', studs: true, skin: '#e9d2b0', hat: 'myeonryu', beard: 'full', jaw: 'square', brow: 'bushy', eyes: 'glare', mouth: 'frown', item: ITEM.scroll }, weapon: 'none', hold: hold(0, 'cast'), scale: 2.25, boss: true, h: 70 },
+  // 주막의 주모, 여우 고개의 고운 여인 (치마 밑으로 꼬리가 보인다)
+  jumo: { doll: { robe: '#4f6a8a', top: '#f3ecdd', git: '#8a2a26', goreum: '#8a2a26', hem: '#3a5270', hat: 'jjok', skin: '#f3d6b2', jaw: 'round', brow: 'thin', eyes: 'soft', lash: true, lip: '#b8443a', mouth: 'flat', item: bottleItem }, weapon: 'none', hold: hold(0, 'cast'), h: 62 },
+  foxlady: { doll: { robe: '#b8342a', top: '#e8c86a', git: '#7a1f1c', goreum: '#7a1f1c', hem: '#8a2a26', hat: 'jjok', skin: '#f6dcc0', jaw: 'slim', brow: 'thin', eyes: 'sharp', lash: true, lip: '#b8443a', mouth: 'flat', under: foxTails }, weapon: 'none', hold: hold(0, 'cast'), h: 62 },
   bell: { body: bell, weapon: 'none', hold: hold(0, 'bite'), h: 76, scale: 1.25, still: true },
   pearl: { body: pearl, weapon: 'none', hold: hold(0, 'bite'), h: 46, scale: 1.5, still: true, float: true },
   mirror: { body: mirror, weapon: 'none', hold: hold(0, 'bite'), h: 58, scale: 1.4, still: true },
@@ -210,6 +217,9 @@ export const UNIT_SCALE = 1.1;
 const cache = new Map();
 // 머리는 작은 종이에 따로 굽는다 (고개 까딱임·눈 깜빡임)
 const HEAD = { w: 74, h: 68, ox: 37, oy: 80, bw: 1.7 };
+// 인형극에서 엎드리거나 잠든 범은 이빨을 드러내지 않는다
+LOOKS.tigerboss_calm = Object.assign({}, LOOKS.tigerboss, { body: g => tiger(g, Object.assign({}, TTEOK, { roar: false, blink: true, calm: true })), blinkBody: null });
+LOOKS.jangsan_calm = Object.assign({}, LOOKS.jangsan, { body: g => tiger(g, Object.assign({}, JANGSAN, { roar: false, blink: true, calm: true })), blinkBody: null });
 for (let n = 1; n < 9; n++) LOOKS['gumiho' + n] = Object.assign({}, LOOKS.gumiho, { body: g => gumiho(g, { tails: n }), blinkBody: g => gumiho(g, { tails: n, blink: true }) });
 export function getLook(type) {
   let L = cache.get(type); if (L) return L;

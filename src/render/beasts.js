@@ -34,7 +34,7 @@ export function tiger(g, o = {}) {
   for (const s of [-1, 1]) { part(g, p => { p.moveTo(24 + s * 4.6, -40.4); p.quadraticCurveTo(24 + s * 9.6, -48.4, 24 + s * 11.4, -38.4); p.closePath(); }, C, null, { lw: 1.1 }); path(g, p => { p.moveTo(24 + s * 6.4, -40.6); p.quadraticCurveTo(24 + s * 9.2, -45, 24 + s * 9.8, -39.6); p.closePath(); }, o.shag ? '#e8b4a8' : S); }
   // 머리: 볼털이 삐죽한 둥근 얼굴
   part(g, p => { p.moveTo(13, -31); p.quadraticCurveTo(12.6, -41.6, 24, -41.8); p.quadraticCurveTo(35.4, -41.6, 35, -31); p.lineTo(37.4, -27.4); p.lineTo(33.6, -26.4); p.lineTo(34.8, -22.4); p.lineTo(30, -22.2); p.quadraticCurveTo(24, -18, 18, -22.2); p.lineTo(13.2, -22.4); p.lineTo(14.4, -26.4); p.lineTo(10.6, -27.4); p.closePath(); }, C, P(27.6, -43, 39, -43, 39, -17, 24, -17, 30, -28), { k: 0.14, lw: 1.3 });
-  if (o.shag) for (const x of [15, 19, 23, 27, 31]) part(g, P(x - 1.6, -22.6, x + 0.4, -13.4 - ((x * 3) % 4), x + 2, -22.6), C, null, { lw: 0.9 });
+  if (o.shag && !o.calm) for (const x of [15, 19, 23, 27, 31]) part(g, P(x - 1.6, -22.6, x + 0.4, -13.4 - ((x * 3) % 4), x + 2, -22.6), C, null, { lw: 0.9 });
   // 이마의 석 줄 무늬와 볼의 줄무늬
   if (!o.plain) { for (const [y, h] of [[-40.2, 1.5], [-38.5, 2], [-36.8, 1.4]]) curve(g, p => { p.moveTo(24 - h, y - 0.3); p.quadraticCurveTo(24, y + 0.7, 24 + h, y - 0.3); }, S, 0.95); for (const s of [-1, 1]) for (const y of [-30.4, -27.6]) line(g, [24 + s * 10.4, y, 24 + s * 7, y + 0.8], S, 1.1); }
   // 흰 주둥이
@@ -48,7 +48,7 @@ export function tiger(g, o = {}) {
   }
   path(g, P(22.5, -28.6, 25.5, -28.6, 24, -26.4), '#c9584a', INK, 0.7);
   if (o.roar) { part(g, p => { p.moveTo(20, -25.4); p.quadraticCurveTo(24, -27, 28, -25.4); p.quadraticCurveTo(27.4, -20.4, 24, -20.4); p.quadraticCurveTo(20.6, -20.4, 20, -25.4); p.closePath(); }, '#7a1f1c', null, { lw: 0.9 }); for (const s of [-1, 1]) poly(g, [24 + s * 3, -25.4, 24 + s * 2.2, -22.4, 24 + s * 1.4, -25.6], WHITE, INK, 0.5); }
-  else { line(g, [24, -26.4, 24, -25], INK, 0.8); curve(g, p => { p.moveTo(19.8, -23.2); p.quadraticCurveTo(22, -25.4, 24, -25); p.quadraticCurveTo(26, -25.4, 28.2, -23.2); }, INK, 1); for (const s of [-1, 1]) poly(g, [24 + s * 3.2, -24.6, 24 + s * 2.5, -21.8, 24 + s * 1.7, -24.8], WHITE, INK, 0.5); }
+  else { line(g, [24, -26.4, 24, -25], INK, 0.8); curve(g, p => { p.moveTo(19.8, -23.2); p.quadraticCurveTo(22, -25.4, 24, -25); p.quadraticCurveTo(26, -25.4, 28.2, -23.2); }, INK, 1); if (!o.calm) for (const s of [-1, 1]) poly(g, [24 + s * 3.2, -24.6, 24 + s * 2.5, -21.8, 24 + s * 1.7, -24.8], WHITE, INK, 0.5); }
   for (const s of [-1, 1]) for (const dy of [-0.6, 1.4]) line(g, [24 + s * 5.6, -25 + dy, 24 + s * 12.4, -25.6 + dy * 2.2], INK, 0.5);
 }
 

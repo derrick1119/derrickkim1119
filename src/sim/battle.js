@@ -6,7 +6,7 @@ import { UNITS, lvlMult, HERO_SKILLS, COMBOS, SYNERGIES, SYN_CLASS } from '../da
 import { TERRAINS } from '../data/terrain.js';
 import { CARDS, cardVals, cardCost, isUnit } from '../data/cards.js';
 import { WEAPONS, ARMS } from '../data/weapons.js';
-import { BOSS_AI, bossInit, bossTick, bossHit, bossDeath } from './bossfight.js';
+import { BOSS_AI, bossInit, bossTick, bossHit, bossDeath, bossSay } from './bossfight.js';
 
 const NC = Math.ceil((FIELD.x1 + 30) / CELL), NR = Math.ceil(H / CELL);
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
@@ -890,30 +890,30 @@ export class Battle {
       let best = null, bs = -1; for (const e of this.units) { if (e.dead || e.team === u.team || e.hidden > 0) continue; const d = hyp(e.x - u.x, e.y - u.y); if (d > 300) continue; const s = this.clusterScore(e, 80) - d * 0.004; if (s > bs) { bs = s; best = e; } }
       if (!best) return false;
       this.zones.push({ kind: 'tele', style: 'slam', x: best.x, y: best.y, r: 95, t: 0, delay: 1.6, hits: 1 - u.team, dmg: 112 * m, stun: 0.9, kb: 30, src: u });
-      u.cast = 1.0; u.atkT = this.time + 0.7; this.ev('text', { x: u.x, y: u.y - 90, s: '땅 가르기!', c: '#c8402f', big: true }); return true;
+      u.cast = 1.0; u.atkT = this.time + 0.7; bossSay(this, u, '땅 가르기!', '#c8402f'); return true;
     }
     if (id === 'warcry') {
       if (u.hp > u.maxHp * 0.5 || u.cried) return false; u.cried = true;
       for (const e of this.units) if (!e.dead && e.team === u.team) { e.haste = 10; e.rage = 10; }
-      u.cast = 0.8; this.ev('warcry', { x: u.x, y: u.y }); this.ev('text', { x: u.x, y: u.y - 90, s: '도깨비 함성!', c: '#c8402f', big: true }); u.abils = u.abils.filter(a => a.id !== 'warcry'); return true;
+      u.cast = 0.8; this.ev('warcry', { x: u.x, y: u.y }); bossSay(this, u, '도깨비 함성!', '#c8402f'); u.abils = u.abils.filter(a => a.id !== 'warcry'); return true;
     }
     if (id === 'roots' || id === 'brand') {
       const sqs = this.playerSquads().sort((a, b) => b.alive - a.alive + (this.rand() - 0.5) * 3).slice(0, id === 'roots' ? 2 : 3); if (!sqs.length) return false;
       for (const s of sqs) this.zones.push(id === 'roots'
         ? { kind: 'tele', style: 'root', x: s.cx, y: s.cy, r: 72, t: 0, delay: 1.6, hits: 0, dmg: 40 * m, root: 3, src: u }
         : { kind: 'tele', style: 'dark', x: s.cx, y: s.cy, r: 60, t: 0, delay: 1.9, hits: 0, dmg: 36 * m, weaken: 4, src: u });
-      u.cast = 0.7; this.ev('text', { x: u.x, y: u.y - 100, s: id === 'roots' ? '뿌리 감옥!' : '어둠의 낙인!', c: id === 'roots' ? '#3f7a3a' : '#5a4a8a', big: true }); return true;
+      u.cast = 0.7; bossSay(this, u, id === 'roots' ? '뿌리 감옥!' : '어둠의 낙인!', id === 'roots' ? '#3f7a3a' : '#5a4a8a'); return true;
     }
     if (id === 'saplings') {
       let n = 0; for (const e of this.units) if (!e.dead && e.type === 'sapling') n++; if (n >= 9) return false;
       for (let i = 0; i < 3; i++) { const a = this.rand() * TAU; this.zones.push({ kind: 'spawn', x: u.x + Math.cos(a) * 62, y: u.y + Math.sin(a) * 50 + 20, r: 14, t: 0, delay: 0.8 + i * 0.15, utype: 'sapling', n: 1, lvl: u.lvl, team: u.team }); }
-      u.cast = 0.6; this.ev('text', { x: u.x, y: u.y - 100, s: '숲이여, 깨어나라!', c: '#3f7a3a', big: true }); return true;
+      u.cast = 0.6; bossSay(this, u, '숲이여, 깨어나라!', '#3f7a3a'); return true;
     }
     if (id === 'summon') {
       const sqs = this.playerSquads(); if (!sqs.length) return false;
       const soft = sqs.filter(s => s.def.soft); const s = (soft.length ? soft : sqs)[(this.rand() * (soft.length || sqs.length)) | 0];
       for (let i = 0; i < 3; i++) { const a = i / 3 * TAU + this.rand(); let x = s.cx + Math.cos(a) * 58, y = s.cy + Math.sin(a) * 48; x = Math.max(FIELD.x0 + 20, Math.min(FIELD.x1 - 20, x)); y = Math.max(FIELD.y0 + 20, Math.min(FIELD.y1 - 20, y)); this.zones.push({ kind: 'spawn', x, y, r: 16, t: 0, delay: 1.5, utype: 'skel', n: 1, lvl: u.lvl, team: u.team, warn: true }); }
-      u.cast = 0.7; this.ev('text', { x: u.x, y: u.y - 100, s: '일어나라, 망령들아!', c: '#2f6f9a', big: true }); return true;
+      u.cast = 0.7; bossSay(this, u, '일어나라, 망령들아!', '#2f6f9a'); return true;
     }
     return false;
   }

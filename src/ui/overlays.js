@@ -62,7 +62,7 @@ export class RewardOverlay extends Overlay {
     panel(g, 1070, 26, 180, 40, 'tag'); icon.coin(g, 1094, 46, 12); text(g, `엽전 ${r.gold}`, 1170, 47, { size: 20, maxW: 130 });
     p.opts.forEach((o, n) => {
       const d = describeReward(o), w = 224, h = 316, x = 264 + n * 264, k = easeOutBack(clamp((t - n * 0.1) / 0.32, 0, 1)), y = 118 + (1 - k) * 50, mine = this.taken === n;
-      g.save(); g.globalAlpha = clamp((t - n * 0.1) / 0.2, 0, 1);
+      g.save(); g.globalAlpha = t - n * 0.1 > 0 ? 1 : 0;   // 비치지 않게, 불투명한 채로 미끄러져 들어온다
       if (d.card) { cardFace(g, d.card, x, y, w, h); packTag(g, x + w - 30, y + 62, d.n); if (o.kind !== 'card') { rr(g, x + 36, y - 25, 152, 27, 13, COL[d.col], INK, 1.6); text(g, d.title, x + 112, y - 11, { size: 17, fill: C.cream }); } } else tile(g, d, x, y, w, h, t);
       g.restore();
       if (done && !mine) rr(g, x - 3, y - (d.card && o.kind !== 'card' ? 27 : 3), w + 6, h + (d.card && o.kind !== 'card' ? 30 : 6), 9, 'rgba(24,28,44,0.62)');
@@ -146,7 +146,7 @@ function resultIcon(s) {
 const STAGE_BG = { pass: 'pass', autumn: 'pass', snow: 'pass', ember: 'pass', grove: 'grove', mist: 'grove', storm: 'eve', dusk: 'dark', under: 'dark' };
 const BAD = /-\d|부정 \[|잡념/, GOOD = /씻겨|사라졌|^(무기|보물|패|병력 패|조련|패 강화)/;
 export class ChoiceOverlay extends Overlay {
-  constructor(o) { super(); Object.assign(this, { title: o.title, art: o.art, body: o.text, choices: o.choices, onDone: o.onDone, col: o.col || '#6a5a8a', tale: o.tale || null, result: null }); }
+  constructor(o) { super(); Object.assign(this, { title: o.title, art: o.art, after: o.after, body: o.text, choices: o.choices, onDone: o.onDone, col: o.col || '#6a5a8a', tale: o.tale || null, result: null }); }
   draw(g, dt) {
     const r = G.run, t = this.t;
     dim(g, 0.9);
@@ -157,15 +157,18 @@ export class ChoiceOverlay extends Overlay {
     const li = tl ? Math.floor(t / 3.4) % tl.lines.length : 0;
     const actors = tl && !this.result
       ? [[this.art, 0.17, li === 0 ? 'talk' : 'idle', 1], [tl.cast[0], 0.56, li === 0 ? 'hop' : 'idle', 1], [tl.cast[1], 0.82, li === 1 ? 'talk' : 'idle', -1]]
-      : [[r.hero, 0.27, this.result ? (rt < 0.4 ? 'tremble' : bad ? 'shake' : 'hop') : 'idle', 1], [this.art, 0.7, this.result ? (rt < 0.4 ? 'shake' : 'wave') : 'talk', -1]];
-    miniStage(g, 98, 138, 464, 232, { t, bg: tl ? 'village' : STAGE_BG[chapterOf(r.ch).theme] || 'pass', actors, zoom: 1.5, open: clamp(t / 0.6, 0, 1) });
-    textBlock(g, this.result ? this.result[0] : this.body, 330, tl && !this.result ? 420 : 440, 480, 26, { size: 18.5, weight: 400 });
+      : [[r.hero, 0.27, this.result ? (rt < 0.4 ? 'tremble' : bad ? 'shake' : 'hop') : 'idle', 1], [this.result && this.after ? this.after : this.art, this.result && this.after ? 0.7 + Math.min(0.2, Math.max(0, rt - 0.6) * 0.25) : 0.7, this.result ? (rt < 0.4 ? 'shake' : 'wave') : 'talk', -1]];
+    // 주막에는 아래에 옛이야기 칸이 있고, 길 위의 사건은 무대와 글을 칸 가운데로 내려 빈자리를 줄인다
+    const sy = tl ? 138 : 140, sh = tl ? 232 : 290;
+    miniStage(g, 98, sy, 464, sh, { t, bg: tl ? 'village' : STAGE_BG[chapterOf(r.ch).theme] || 'pass', actors, zoom: 1.5, open: clamp(t / 0.6, 0, 1) });
+    textBlock(g, this.result ? this.result[0] : this.body, 330, tl ? (this.result ? 440 : 420) : sy + sh + 50, 480, 28, { size: 19.5, weight: 400 });
     // 주막에서 듣는 옛이야기 한 토막: 무대의 인형들이 두 마디로 들려준다
     if (tl && !this.result) {
       rr(g, 84, 492, 492, 140, 7, '#fbf3df', 'rgba(38,42,54,0.5)', 1.3); rr(g, 84, 492, 6, 140, 3, this.col);
       text(g, `옛이야기 「${tl.title}」`, 104, 514, { size: 20, font: FONT_B, align: 'left', maxW: 300 }); if (this.tale.fresh) { rr(g, 430, 501, 134, 25, 5, this.col); text(g, `이야기책 ${this.tale.n} / ${this.tale.of}`, 497, 514, { size: 13.5, fill: C.cream }); }
       g.globalAlpha = clamp((t % 3.4) / 0.3, 0, 1); textBlock(g, tl.lines[li], 330, 566, 452, 27, { size: 19.5, font: FONT_B }); g.globalAlpha = 1;
-      for (let m = 0; m < tl.lines.length; m++) ell(g, 330 + (m - (tl.lines.length - 1) / 2) * 16, 620, 4, 4, m === li ? this.col : 'rgba(38,42,54,0.22)');
+      rr(g, 104, 627, 452, 3, 1.5, 'rgba(38,42,54,0.12)'); rr(g, 104, 627, 452 * ((t % 3.4) / 3.4), 3, 1.5, this.col);   // 다음 마디로 넘어가기까지
+      for (let m = 0; m < tl.lines.length; m++) ell(g, 330 + (m - (tl.lines.length - 1) / 2) * 16, 617, 4, 4, m === li ? this.col : 'rgba(38,42,54,0.22)');
     }
     panel(g, 1040, 84, 164, 38, 'tag'); icon.coin(g, 1062, 103, 11); text(g, `엽전 ${r.gold}`, 1132, 104, { size: 18, maxW: 110 });
     if (!this.result) {

@@ -278,7 +278,7 @@ const FINALE = {
     B('dawn', '그 뒤로 고개에서는 밤마다 신나는 씨름판이 벌어졌답니다.', ['chief', 0.4, 'hop'], ['warchief', 0.6, 'hop']),
   ],
 };
-export const endingPlay = hero => [B('dark', '「긴 밤을 거두어 주마. 돌아가거라.」 염라대왕이 손을 들자, 동쪽 하늘이 밝아 왔어요.', ['yeomra', 0.66, 'wave'], [hero, 0.3]), ...(FINALE[hero] || FINALE.commander),
+export const endingPlay = hero => [B('dark', '「긴 밤을 거두어 주마. 돌아가거라.」 염라대왕이 고개를 끄덕이자, 동쪽 하늘이 밝아 왔어요.', ['yeomra', 0.66, 'bow', -1], [hero, 0.3]), ...(FINALE[hero] || FINALE.commander),
   B('village', '마을에는 다시 아침이 왔어요. 사람들은 열두 고개 이야기를 오래오래 전했답니다. 끝!', ['priest', 0.4, 'wave'], ['spear', 0.6, 'hop'], ['banner', 0.82])];
 export const DEFEAT_PLAY = [
   B('night', '눈을 떠 보니 마을 어귀 장승 앞이었어요. 요괴에게 홀려 밤새 제자리를 맴돈 거예요.', ['H', 0.4, 'rise'], ['treant', 0.7]),

@@ -363,7 +363,7 @@ export class BattleView {
         // 야광귀가 훔친 사기는 한 줄로 더해서 보여 준다
         case 'steal': { const p = fx.p.find(q => q.steal && q.t < 0.7); if (p) { p.val += e.n; p.s = '사기 -' + p.val.toFixed(1); p.t = Math.min(p.t, 0.15); } else fx.add({ k: 'text', steal: true, val: e.n, x: e.x, y: e.y - 50, vy: -30, drag: 1.5, s: '사기 -' + e.n.toFixed(1), col: RED, size: 19, life: 1 }); break; }
         case 'appear': if (e.pounce) { fx.puff(e.x, e.y - 14, 8, PAPER, 12); fx.ring(e.x, e.y, 70, OCHRE, 0.45, 7); fx.slash(e.x, e.y - 18, 36, MEOK); fx.txt(e.x, e.y - 62, '어흥!', '#c8642a', 28, 0.9); fx.shake = Math.max(fx.shake, 5); sfx('charge'); break; }
-          fx.puff(e.x, e.y - 14, e.ally ? 10 : 7, e.ally ? PAPER : e.summon || e.revive ? '#cfe6f0' : '#f6f1e6', e.ally ? 13 : 11); if (e.ally) fx.ring(e.x, e.y, 60, INDIGO, 0.4, 5); if (!e.summon && !e.revive) { fx.txt(e.x, e.y - 54, '기습!', RED, 22, 0.8); sfx('warn'); } break;
+          fx.puff(e.x, e.y - 14, e.ally ? 10 : 7, e.ally ? PAPER : e.summon || e.revive ? '#cfe6f0' : '#f6f1e6', e.ally ? 13 : 11); if (e.ally) fx.ring(e.x, e.y, 60, INDIGO, 0.4, 5); if (!e.summon && !e.revive) { if (!fx.p.some(q => q.amb && q.t < 0.6 && Math.hypot(q.x - e.x, q.y - e.y) < 150)) { fx.txt(e.x, e.y - 54, '기습!', RED, 22, 0.8); fx.p[fx.p.length - 1].amb = true; sfx('warn'); } } break;
         case 'fuse': fx.txt(e.x, e.y - 60, '화르륵…', '#2f7fa8', 18, 0.5); break;
         case 'lob': fx.add({ k: 'arc', x: e.x, y: e.y - 34, x1: e.tx, y1: e.ty, h: 230, life: e.dur, size: 9, col: '#a59f8f' }); sfx('charge'); break;
         case 'raise': fx.beam(e.fx, e.fy - 40, e.x, e.y, '#8fd3e8', 0.5, 3); sfx('magic'); break;
