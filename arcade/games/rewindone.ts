@@ -5134,6 +5134,7 @@ const CLK = [0.2, 1.36];
 const VZM = 1.3, VFX = 0.45, VFY = 0.62;
 const unz = (v: number, f: number) => f + (v - f) / VZM;
 const clockHour = (k: number) => 6 + 2 * k;
+let vistaCv: HTMLCanvasElement | null = null, vistaKey = '';
 function drawChapterScene(ctx: C2, s: RewState, w: number, h: number) {
   const fx = juice(s), t = s.t, ch = s.chDone, pt = s.pt;
   let shown = ch * 6;
@@ -5144,15 +5145,37 @@ function drawChapterScene(ctx: C2, s: RewState, w: number, h: number) {
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, sz * w)}px system-ui, sans-serif`);
   ctx.save();
   fx.begin(ctx);
-  ctx.fillStyle = '#bfe6ff';
-  ctx.fillRect(-10, -10, w + 20, h + 20);
+  // 마을 전경(하늘·먼 마을·광장): 세 프레임에 한 번만 새로 그려 두고 붙인다 (느린 폰 — 장 끝 장면이 가장 무거웠다)
+  const paintVista = (o: C2) => {
+    o.fillStyle = '#bfe6ff';
+    o.fillRect(-10, -10, w + 20, h + 20);
+    o.save();
+    o.translate(VFX * w, VFY * w);
+    o.scale(VZM, VZM);
+    o.translate(-VFX * w, -VFY * w);
+    drawSky(o, PV, w, 0);
+    drawPanorama(o, PV, w, 0);
+    drawVistaFront(o, w, h, shown, t);
+    o.restore();
+  };
+  if (typeof document === 'undefined') paintVista(ctx);
+  else {
+    const sc = ctx.getTransform().a || 1, key = `${w}|${h}|${sc}|${shown}`;
+    if (!vistaCv) vistaCv = document.createElement('canvas');
+    const o = vistaCv.getContext('2d');
+    if (o && (vistaKey !== key || t % 3 === 0)) {
+      if (vistaCv.width !== Math.ceil(w * sc) || vistaCv.height !== Math.ceil(h * sc)) (vistaCv.width = Math.ceil(w * sc)), (vistaCv.height = Math.ceil(h * sc));
+      o.setTransform(sc, 0, 0, sc, 0, 0);
+      paintVista(o);
+      vistaKey = key;
+    }
+    if (o) ctx.drawImage(vistaCv, 0, 0, w, h);
+    else paintVista(ctx);
+  }
   ctx.save();
   ctx.translate(VFX * w, VFY * w);
   ctx.scale(VZM, VZM);
   ctx.translate(-VFX * w, -VFY * w);
-  drawSky(ctx, PV, w, 0);
-  drawPanorama(ctx, PV, w, 0);
-  drawVistaFront(ctx, w, h, shown, t);
   // 꼬마 시계공 (크게): 되살아날 때마다 폴짝
   {
     const ag = Math.min(...[0, 1, 2, 3, 4, 5].map((j) => (pt >= REV0 + j * REVD ? pt - (REV0 + j * REVD) : 99)));
