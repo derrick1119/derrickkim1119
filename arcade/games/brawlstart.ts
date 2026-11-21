@@ -1371,7 +1371,7 @@ function cosmetic(s: BrawlState) {
 
 const game: GameDef<BrawlState> & { wows(s: BrawlState): number } = {
   id: 'brawlstart',
-  name: '싸움 붙이기',
+  name: '🥊 싸움 붙이기',
   genes: ['brawlstart', 'chain', 'collect'],
   twist: "나는 못 싸운다 — 톡 한 놈이 옆 놈 뒤통수를 '딱!' 치면 싸움 구름이 되고, 구경하러 몰려온 놈들까지 굴러가며 다 삼킨다. 덜 누를수록 한 번에 많이 — 톡을 아끼고 곰·멧돼지·토끼가 옆 무리로 옮기게 해서 톡 한 번으로 길 전체를 한 구름으로",
   rules: [

@@ -1,194 +1,194 @@
 {
- "weightsteal": {
-  "id": "weightsteal",
-  "name": "🪶 무게 훔치기",
+ "bodyhop": {
+  "id": "bodyhop",
+  "name": "👻 몸 갈아타기",
   "n": 24,
   "dumb": {
-   "score": 600,
-   "sec": 62.5
+   "score": 2483.5,
+   "sec": 180
   },
   "smart": {
-   "score": 7500,
-   "sec": 104.7,
-   "capped": 0
+   "score": 12810.5,
+   "sec": 180,
+   "capped": 1
   },
-  "skillGap": 12.48,
+  "skillGap": 5.16,
   "reveals": [
+   12,
    16,
-   24,
-   34
+   29.4
   ],
   "dumbReveals": [
-   7.3,
-   8.3
+   9,
+   19.9
   ],
   "parts": {
-   "skill": 1,
+   "skill": 0.789,
    "onboarding": 1,
-   "session": 1,
-   "simplicity": 1,
-   "unfold": 1
-  },
-  "fun": 1,
-  "firstLoss": {
-   "idle": 0,
-   "late": 0
-  },
-  "presses": {
-   "perMin": 40,
-   "maxSame": 3
-  },
-  "habitStar3": {
-   "rate": 0,
-   "stage": 0,
-   "bot": "버릇: 가까운 것 → 가까운 적"
-  },
-  "human": {
-   "sec": 115.2,
-   "capped": 0,
-   "scoreRatio": 1
-  },
-  "wow": {
-   "firstSec": 0,
-   "seen": 1,
-   "dumbPerMin": 13.9,
-   "smartPerMin": 33.8
-  },
-  "stages": {
-   "change": 0.15,
-   "lateWow": 0.46,
-   "n": 18,
-   "tapOnly": true
-  },
-  "precision": 0.99,
-  "habitGap": 4.66
- },
- "rewindone": {
-  "id": "rewindone",
-  "name": "⏪ 한 물건만 되감기",
-  "n": 24,
-  "dumb": {
-   "score": 607,
-   "sec": 42.7
-  },
-  "smart": {
-   "score": 20565,
-   "sec": 142.9,
-   "capped": 0
-  },
-  "skillGap": 33.83,
-  "reveals": [
-   15,
-   25,
-   40
-  ],
-  "dumbReveals": [
-   7.8,
-   8.5
-  ],
-  "parts": {
-   "skill": 1,
-   "onboarding": 1,
-   "session": 1,
-   "simplicity": 1,
-   "unfold": 1
-  },
-  "fun": 1,
-  "firstLoss": {
-   "idle": 0,
-   "late": 0
-  },
-  "presses": {
-   "perMin": 39,
-   "maxSame": 3
-  },
-  "habitStar3": {
-   "rate": 0,
-   "stage": 0,
-   "bot": "버릇: 먼저 움직인 것부터"
-  },
-  "human": {
-   "sec": 161.7,
-   "capped": 0,
-   "scoreRatio": 0.84
-  },
-  "wow": {
-   "firstSec": 0.2,
-   "seen": 1,
-   "dumbPerMin": 8.2,
-   "smartPerMin": 17.6
-  },
-  "stages": {
-   "change": 0.19,
-   "lateWow": 1.57,
-   "n": 18,
-   "tapOnly": true
-  },
-  "precision": 0.99,
-  "habitGap": 6.32
- },
- "sizeswap": {
-  "id": "sizeswap",
-  "name": "↔️ 크기 바꾸기",
-  "n": 24,
-  "dumb": {
-   "score": 600,
-   "sec": 72.3
-  },
-  "smart": {
-   "score": 6400,
-   "sec": 124.4,
-   "capped": 0
-  },
-  "skillGap": 10.65,
-  "reveals": [
-   21,
-   35,
-   64
-  ],
-  "dumbReveals": [
-   11.8,
-   17.1
-  ],
-  "parts": {
-   "skill": 1,
-   "onboarding": 1,
-   "session": 1,
+   "session": 0,
    "simplicity": 0.85,
    "unfold": 1
   },
-  "fun": 0.978,
+  "fun": 0.594,
   "firstLoss": {
    "idle": 0,
    "late": 0
   },
   "presses": {
-   "perMin": 41,
-   "maxSame": 3
+   "perMin": 27,
+   "maxSame": 2
   },
   "habitStar3": {
-   "rate": 0,
-   "stage": 0,
-   "bot": "늘 주인공과 가장 큰 것 바꾸기"
+   "rate": 0.21,
+   "stage": 5,
+   "bot": "버릇: 늘 가장 큰 적"
   },
   "human": {
-   "sec": 146.1,
+   "sec": 314.9,
    "capped": 0,
-   "scoreRatio": 1
+   "scoreRatio": 2.52
   },
   "wow": {
-   "firstSec": 0.28,
+   "firstSec": 0.35,
    "seen": 1,
-   "dumbPerMin": 8.7,
-   "smartPerMin": 31.3
+   "dumbPerMin": 3.7,
+   "smartPerMin": 6.3
   },
   "stages": {
-   "change": 0.19,
-   "lateWow": 2.45,
-   "n": 16,
+   "change": 0.27,
+   "lateWow": 1.6,
+   "n": 8,
+   "tapOnly": true
+  },
+  "precision": 0.99,
+  "habitGap": 3.05
+ },
+ "bulletsteal": {
+  "id": "bulletsteal",
+  "name": "🌂 탄막 훔치기",
+  "n": 24,
+  "dumb": {
+   "score": 6964.5,
+   "sec": 180
+  },
+  "smart": {
+   "score": 35022,
+   "sec": 180,
+   "capped": 1
+  },
+  "skillGap": 5.03,
+  "reveals": [
+   9,
+   12.3,
+   17
+  ],
+  "dumbReveals": [
+   3.4,
+   10.5
+  ],
+  "parts": {
+   "skill": 0.777,
+   "onboarding": 1,
+   "session": 0,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.591,
+  "firstLoss": {
+   "idle": 0,
+   "late": 0
+  },
+  "presses": {
+   "perMin": 32,
+   "maxSame": 2
+  },
+  "habitStar3": {
+   "rate": 0.17,
+   "stage": 3,
+   "bot": "버릇: 늘 화면 가운데"
+  },
+  "human": {
+   "sec": 496.7,
+   "capped": 0,
+   "scoreRatio": 3.22
+  },
+  "wow": {
+   "firstSec": 0.08,
+   "seen": 1,
+   "dumbPerMin": 19.3,
+   "smartPerMin": 29.7
+  },
+  "stages": {
+   "change": 0.11,
+   "lateWow": 0.52,
+   "n": 6,
    "tapOnly": true
   },
   "precision": 1,
-  "habitGap": 3.15
+  "habitGap": 3.89
+ },
+ "brawlstart": {
+  "id": "brawlstart",
+  "name": "🥊 싸움 붙이기",
+  "n": 24,
+  "dumb": {
+   "score": 82746,
+   "sec": 180
+  },
+  "smart": {
+   "score": 426418.5,
+   "sec": 180,
+   "capped": 1
+  },
+  "skillGap": 5.15,
+  "reveals": [
+   10.6,
+   16.3,
+   25.4
+  ],
+  "dumbReveals": [
+   9.6,
+   26
+  ],
+  "parts": {
+   "skill": 0.788,
+   "onboarding": 1,
+   "session": 0,
+   "simplicity": 0.85,
+   "unfold": 1
+  },
+  "fun": 0.594,
+  "firstLoss": {
+   "idle": 0,
+   "late": 0
+  },
+  "presses": {
+   "perMin": 14,
+   "maxSame": 2
+  },
+  "habitStar3": {
+   "rate": 0.04,
+   "stage": 5,
+   "bot": "늘 가장 큰 놈"
+  },
+  "human": {
+   "sec": 273.9,
+   "capped": 0,
+   "scoreRatio": 2.5
+  },
+  "wow": {
+   "firstSec": 0.48,
+   "seen": 1,
+   "dumbPerMin": 4.3,
+   "smartPerMin": 7.3
+  },
+  "stages": {
+   "change": 0.14,
+   "lateWow": 1.03,
+   "n": 8,
+   "tapOnly": true
+  },
+  "precision": 1,
+  "habitGap": 10.36
  }
 }

@@ -563,6 +563,21 @@
       "machinePick": "rewindone",
       "machinePick2": "rewindone",
       "decidedAt": "2026-11-21"
+    },
+    {
+      "round": 40,
+      "openedAt": "2026-11-21",
+      "A": null,
+      "B": null,
+      "games": [
+        "bodyhop",
+        "bulletsteal",
+        "brawlstart"
+      ],
+      "winner": null,
+      "note": "39라운드 전체 폐기(이유: 다듬어도 재미가 없음 · 퍼즐이 피곤함, 방식: 공장이 알아서) 뒤 방향 전환 — 정답 있는 판 풀이를 그만두고 생각 부담 없는 실시간 전투·성장·구경. 공장이 고른 셋(서로 다른 뼈대, 기지 지키기 없음): 몸 갈아타기(톡 한 적의 몸으로 옮겨 타고 버린 몸은 펑, 마당 난투) · 탄막 훔치기(톡한 곳으로 날아가 적 탄을 한입에 훔쳐 되쏘기, 위로 나는 슈팅) · 싸움 붙이기(톡 한 놈이 옆 놈을 딱! 싸움 구름이 굴러가며 삼킴, 옆으로 걷는 길). 수 제한·되돌리기·힌트 없음, 성장은 저절로 + 장 끝 둘 중 하나. 오너가 고른다",
+      "machinePick": "bodyhop",
+      "machinePick2": "brawlstart"
     }
   ],
   "graduated": [
