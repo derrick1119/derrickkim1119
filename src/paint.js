@@ -313,7 +313,7 @@
   /* P.look says which look is chosen; P.cray is true only while the harbour's world is being painted.
      A context that has been "crayonized" then lays every flat fill down as crayon: streaky, the layer
      beneath showing through the tooth of the paper, with a soft drawn line round each shape. */
-  P.look = 'plain';
+  P.look = 'crayon';
   P.cray = false;
   let toothTile = null, paperPat = null, helper = null;
   const pats = new Map();

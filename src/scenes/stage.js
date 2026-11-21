@@ -256,6 +256,7 @@
         const st = T.state;
         Object.keys(st.done).forEach((id) => { st.done[id] = false; });
         st.count = 0; st.order = []; st.together = false; st.chapter = 0; st.cp = null;
+        T.clearGame();   /* the story has been told: next time it starts from the beginning */
         T.director.go('room', { style: 'fade', color: '#161d2a', out: 1.8, in: 1.6, args: { title: true } });
       }
     };
@@ -400,7 +401,7 @@
         g.fillStyle = T.rgba(dark ? '#f1e8d6' : '#3d3a5c', 0.5 * a); g.fillRect(x + 2, 812, 150 * T.ease.out(a), 1.4);
       }
       if (S.cardO) { S.cardO.draw(g, S.cardO.c); if (S.cardO.c.ready) T.continueDot(g, 0, 866, '#f3ead8'); }
-      if (S.game) S.game.draw(g, t);
+      if (S.game) { P.cray = P.look === 'crayon'; if (P.cray) P.crayonize(g); S.game.draw(g, t); P.cray = false; }
       TALK.draw(g);
       if (S.cards.end.a > 0.01) {
         const a = S.cards.end.a;

@@ -219,6 +219,7 @@
     if (S.mode === 'wait') P.beacon(g, BOOK[0] + bx * 0.5, BOOK[1] + by * 0.5, 50, t, 1);
     if (S.hint.a > 0.01) P.text(g, '공책을 펼쳐 보세요', 0, 850, { font: 'serif', size: 26, color: '#f3ead8', alpha: 0.9 * S.hint.a });
     if (S.cap.a > 0.01) {
+      P.text(g, '장례를 마친 밤', -W / 2 + 98, 846, { font: 'serif', size: 22, color: '#d9d2e4', alpha: 0.9 * S.cap.a, align: 'left' });
       P.text(g, '아나, 36', -W / 2 + 96, 792, { font: 'serif', size: 40, track: 3, color: '#f1e8d6', alpha: S.cap.a, align: 'left' });
       g.fillStyle = T.rgba('#f1e8d6', 0.5 * S.cap.a); g.fillRect(-W / 2 + 98, 812, 150 * T.ease.out(S.cap.a), 1.4);
     }

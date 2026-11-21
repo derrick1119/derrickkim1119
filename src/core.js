@@ -234,6 +234,23 @@
   const live = document.getElementById('live');
   T.announce = function (text) { if (live && live.textContent !== text) live.textContent = text; };
 
+  /* ---------- keeping the player's place ---------- */
+  T.store = {
+    get(k) { try { return JSON.parse(window.localStorage.getItem(k)); } catch (_) { return null; } },
+    set(k, v) { try { window.localStorage.setItem(k, JSON.stringify(v)); } catch (_) { /* a private window, or a viewer with no storage */ } },
+    del(k) { try { window.localStorage.removeItem(k); } catch (_) { /* same */ } },
+  };
+  let savedAs = '', saveTick = 0;
+  T.loadGame = function () { const s = T.store.get('tyt-save'); return s && (s.chapter > 0 || s.count > 0) ? s : null; };
+  T.clearGame = function () { savedAs = ''; T.store.del('tyt-save'); };
+  /* written whenever the chapter, the checkpoint or the memories seen have changed */
+  function autosave() {
+    const s = T.state;
+    if (!(s.chapter > 0 || s.count > 0)) return;
+    const snap = { chapter: s.chapter, cp: s.cp, done: s.done, count: s.count, together: s.together }, j = JSON.stringify(snap);
+    if (j !== savedAs) { savedAs = j; T.store.set('tyt-save', snap); }
+  }
+
   /* ---------- when something goes wrong ---------- */
   /* Keep going, say so quietly, and put the real message where it can be read: some viewers only show "Script error." */
   T.errors = [];
@@ -332,7 +349,8 @@
   let last = 0;
   T.speed = 1; /* test hook */
   function frame(now) {
-    const dt = Math.min(0.05, (now - last) / 1000 || 0) * T.speed;
+    const dt = T.paused ? 0 : Math.min(0.05, (now - last) / 1000 || 0) * T.speed;
+    if (++saveTick % 90 === 0) autosave();
     last = now;
     try { T.step(dt); } catch (err) {
       T.report(err, 'frame');

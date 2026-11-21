@@ -1142,7 +1142,7 @@
     const V = T.view, W = V.W, t = T.time;
     const sp = spot();
     if (sp && !TALK.cur) { const [sx, sy] = toScreen(sp[0], sp[1]); P.beacon(g, sx, sy, sp[2] * S.cam.z * 0.8, t, 1, '#fff0c8'); }
-    if (S.game) S.game.draw(g, t);
+    if (S.game) { P.cray = P.look === 'crayon'; if (P.cray) P.crayonize(g); S.game.draw(g, t); P.cray = false; }
     if (S.title.a > 0.01) {
       P.text(g, '1장', 0, 300, { font: 'serif', size: 26, track: 12, color: '#4a4468', alpha: 0.8 * S.title.a });
       P.text(g, '항구', 0, 430, { size: 150, color: '#3d3a5c', alpha: S.title.a, seed: 4 });

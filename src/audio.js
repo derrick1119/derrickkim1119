@@ -6,6 +6,8 @@
   'use strict';
   const T = window.TYT;
   const A = (T.audio = { ctx: null, muted: false, failed: false });
+  A.vol = { music: 1, fx: 1 };   /* the player's own levels, from the settings */
+  let ambLevel = 0;
   const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
   /* melody: [midi, beats]; one bar per row */
@@ -59,8 +61,8 @@
     verb.connect(wet); wet.connect(master);
     A.send = ctx.createGain(); A.send.gain.value = 1; A.send.connect(verb);
 
-    A.music = ctx.createGain(); A.music.gain.value = 0.34; A.music.connect(master);
-    A.fx = ctx.createGain(); A.fx.gain.value = 0.3; A.fx.connect(master);
+    A.music = ctx.createGain(); A.music.gain.value = 0.34 * A.vol.music; A.music.connect(master);
+    A.fx = ctx.createGain(); A.fx.gain.value = 0.3 * A.vol.fx; A.fx.connect(master);
     A.amb = ctx.createGain(); A.amb.gain.value = 0; A.amb.connect(master);
 
     /* looping noise, shaped into room hush and wind */
@@ -123,6 +125,12 @@
     if (btn) { btn.setAttribute('aria-pressed', m ? 'true' : 'false'); btn.setAttribute('aria-label', m ? '소리 켜기' : '소리 끄기'); }
   };
   A.toggleMute = function () { A.setMuted(!A.muted); };
+  A.setVolume = function (kind, v) {
+    A.vol[kind] = Math.max(0, Math.min(1, v));
+    if (!ok()) return;
+    const t = now();
+    A.music.gain.setTargetAtTime(0.34 * A.vol.music, t, 0.05); A.fx.gain.setTargetAtTime(0.3 * A.vol.fx, t, 0.05); A.amb.gain.setTargetAtTime(ambLevel * A.vol.fx, t, 0.2);
+  };
 
   /* ---------- voices ---------- */
   function env(g, t, peak, a, hold, d) {
@@ -397,7 +405,8 @@
   A.ambience = function (level, wind, sea) {
     wantAmb = [level, wind, sea];
     if (!ok()) return;
-    A.amb.gain.setTargetAtTime(level, now(), 1.2);
+    ambLevel = level;
+    A.amb.gain.setTargetAtTime(level * A.vol.fx, now(), 1.2);
     if (wind != null) A.windGain.gain.setTargetAtTime(wind, now(), 1.5);
     A.seaGain.gain.setTargetAtTime(sea || 0, now(), 2);
   };

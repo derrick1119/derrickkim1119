@@ -319,6 +319,7 @@
     T.state.chapter = 0;
     if (args.title) {
       S.mode = 'title'; S.title.a = 1; S.tod = 0; S.fam.a = 0; S.zoom.k = 0;
+      S.saved = T.loadGame();
     } else if (args.final) {
       S.mode = 'final'; S.tod = 5; S.fam.a = 1; S.zoom.k = 0;
       S.runFinal();
@@ -355,6 +356,19 @@
     T.audio.unlock();
     T.director.go(c[1], { style: 'fade', color: '#0f1522', out: 1.4, in: 1.6 });
   };
+  const NAMES = ['프롤로그', '1장 「항구」', '2장 「약속 목록」', '3장 「꿈」', '4장 「이웃들」', '5장 「꽃길」', '6장 「다 지킨 약속」', '마지막 장 「마중」'];
+  /* pick up where the last visit stopped */
+  S.resume = function () {
+    const sv = S.saved, st = T.state;
+    if (S.mode !== 'title' || S.title.leaving || T.director.busy() || !sv) return;
+    S.title.leaving = true;
+    T.audio.unlock();
+    let to;
+    if (sv.chapter >= 2 && T.scenes['ch' + sv.chapter]) to = ['ch' + sv.chapter, {}];
+    else if (sv.chapter === 1) to = sv.cp ? ['harbor', { cp: sv.cp }] : ['kitchen', {}];
+    else { Object.assign(st.done, sv.done); st.count = sv.count; st.together = !!sv.together; to = ['room', st.together ? { final: true } : {}]; }
+    T.director.go(to[0], { style: 'fade', color: '#0f1522', out: 1.2, in: 1.6, args: to[1] });
+  };
   S.begin = function () {
     if (S.mode !== 'title' || S.title.leaving) return;
     const k = S.clock;
@@ -364,6 +378,9 @@
     k.wait(0.5).then(() => T.audio.motif({ voice: 'felt', vel: 0.36, beat: 0.9 }));
     k.tween(S.title, 'a', 0, 2.2, T.ease.io).then(() => { S.mode = 'hub'; S.title.leaving = false; S.frag = 9; });
     k.wait(4.2).then(() => { if (T.state.count === 0 && !S.sel) k.tween(S, 'hintA', 1, 1.2); });
+    /* where we are, and what he is doing, for someone who has just arrived */
+    S.intro = { a: 0 };
+    if (T.state.count === 0) k.wait(2.4).then(() => k.tween(S.intro, 'a', 1, 1.4)).then(() => k.wait(5.5)).then(() => k.tween(S.intro, 'a', 0, 1.6));
   };
   S.exit = function () { T.cursor('default'); };
 
@@ -485,9 +502,9 @@
       T.cursor('pointer');
       const ci = overChapter(x, y);
       S.title.hover = ci;
-      if (Math.abs(x) < 210 && Math.abs(y - 80) < 34) { if (type === 'down') T.restyle(P.look === 'crayon' ? 'plain' : 'crayon'); return; }
+      if (S.saved && Math.abs(x) < 170 && Math.abs(y - 778) < 22) { if (type === 'down') { T.clearGame(); S.saved = null; } return; }   /* 'from the beginning' */
       if (type === 'down' && ci >= 0) S.skipToChapter(ci);
-      else if (type === 'up' || type === 'down') S.begin();
+      else if (type === 'up' || type === 'down') { if (S.saved) S.resume(); else S.begin(); }
     } else if (S.mode === 'hub') {
       const id = spotAt(x, y);
       T.cursor(id && !S.sel ? 'pointer' : 'default');
@@ -505,7 +522,7 @@
   };
   S.key = function (key) {
     const act = key === ' ' || key === 'Enter';
-    if (S.mode === 'title') { if (act) S.begin(); else if (key >= '1' && key <= '7') S.skipToChapter(+key - 1); else if (key === 'g' || key === 'G') T.restyle(P.look === 'crayon' ? 'plain' : 'crayon'); else return false; }
+    if (S.mode === 'title') { if (act) { if (S.saved) S.resume(); else S.begin(); } else if (key >= '1' && key <= '7') S.skipToChapter(+key - 1); else if (key === 'g' || key === 'G') T.restyle(P.look === 'crayon' ? 'plain' : 'crayon'); else return false; }
     else if (S.mode === 'hub') {
       const open = openSpots();
       if (!open.length) return false;
@@ -906,10 +923,14 @@
     P.text(g, '천천히 와', 0, 470, { size: 178, color: '#f7eeda', alpha: ta, seed: 2, glow: 'rgba(255,214,150,0.35)' });
     if (!S.title.leaving) {
       const p = 0.55 + 0.45 * Math.sin(T.time * 2.2);
-      P.text(g, '화면을 눌러 시작', 0, 742, { font: 'serif', size: 26, color: '#f3ead8', alpha: p * ta });
-      P.text(g, '소리를 켜면 더 좋아요', 0, 782, { font: 'serif', size: 19, color: '#c9cfdb', alpha: 0.7 * ta });
-      /* a trial: Welcome Harbor drawn in crayon */
-      P.text(g, P.look === 'crayon' ? '그림체 시안: 크레용 (눌러서 끄기)' : '그림체 시안: 꺼짐 (눌러서 크레용으로)', 0, 86, { font: 'serif', size: 19, color: '#e9dcc0', alpha: 0.7 * ta });
+      if (S.saved) {
+        P.text(g, '눌러서 이어하기 · ' + NAMES[S.saved.chapter || 0], 0, 742, { font: 'serif', size: 26, color: '#f3ead8', alpha: p * ta });
+        P.text(g, '처음부터 시작하기', 0, 784, { font: 'serif', size: 19, color: '#e9dcc0', alpha: 0.8 * ta });
+        g.fillStyle = T.rgba('#e9dcc0', 0.4 * ta); g.fillRect(-74, 794, 148, 1.2);
+      } else {
+        P.text(g, '화면을 눌러 시작', 0, 742, { font: 'serif', size: 26, color: '#f3ead8', alpha: p * ta });
+        P.text(g, '소리를 켜면 더 좋아요', 0, 782, { font: 'serif', size: 19, color: '#c9cfdb', alpha: 0.7 * ta });
+      }
       /* a quiet way straight to any chapter */
       P.text(g, '장 바로 가기', 0, 814, { font: 'serif', size: 15, track: 6, color: '#c9cfdb', alpha: 0.55 * ta });
       CHAPTERS.forEach((c, i) => {
@@ -985,6 +1006,12 @@
     }
     TALK.draw(g);
     drawCard(g);
+    if (S.intro && S.intro.a > 0.01) {
+      const x = -T.view.W / 2 + 96, a = S.intro.a;
+      P.text(g, '늦가을, 병실', x, 762, { font: 'serif', size: 40, track: 3, color: '#f1e8d6', alpha: a, align: 'left' });
+      P.text(g, '레오는 아나 몰래, 남기고 갈 레시피를 적고 있다', x, 814, { font: 'serif', size: 23, color: '#d9d2e4', alpha: 0.92 * a, align: 'left' });
+      P.text(g, '빛나는 물건을 누르면 기억이 열린다', x, 852, { font: 'serif', size: 19, color: '#c9cfdb', alpha: 0.75 * a, align: 'left' });
+    }
     if (S.title.a > 0.003) drawTitle(g);
     if (S.dip.a > 0.003) { g.fillStyle = T.rgba('#fff6e2', S.dip.a); g.fillRect(-W / 2, 0, W, V.H); }
   };
