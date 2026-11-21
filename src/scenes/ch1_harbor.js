@@ -338,11 +338,12 @@
     /* she holds his face to look at him; he looks past her, at the lamps and the town */
     k.tween(S.hug, 'k', 0, 1, T.ease.io);
     await k.tween(S.cup, 'k', 1, 1.1, T.ease.io);
-    await TALK.say('leo', '엄마… 여긴 어디야?');
+    /* what she told a seven-year-old so that he would not cry: she had not known either */
+    await TALK.say('leo', '엄마… 그 말, 진짜였어?\n나 울지 말라고 한 말인 줄 알았는데.');
+    await TALK.say('mom', '나도 그런 줄 알았지.\n와 보니 정말 있더구나.');
     await TALK.say('mom', '여긴 마중 나루란다.\n먼저 온 사람이, 올 사람을 기다리는 곳이지.');
-    /* it was only something he said so that she would not cry */
-    await TALK.say('leo', '…그런 데가 진짜 있었어?\n아나 울지 말라고 지어낸 얘기였는데.');
-    await TALK.say('mom', '그럼 이제 참말로 만들면 되지.');
+    await TALK.say('leo', '…아나한테도 똑같이 말하고 왔는데.');
+    await TALK.say('mom', '그럼 이제 지키면 되지.');
     await k.wait(0.9);
     await k.tween(S.cup, 'k', 0, 0.9, T.ease.io);
     S.lampDown = false; n.flip = false;

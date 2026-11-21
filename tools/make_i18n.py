@@ -17,7 +17,7 @@ HAN = re.compile(r"[가-힣]")
 def source_strings():
     seen = []
     for f in sorted((ROOT / "src").rglob("*.js")):
-        if f.name == "i18n.js":
+        if f.name in ("i18n.js", "devmenu.js"):   # the test menu is not shipped, and stays in Korean
             continue
         for ln in f.read_text(encoding="utf-8").split("\n"):
             if "T.announce(" in ln or ln.strip().startswith("/*") or ln.strip().startswith("*"):
@@ -57,11 +57,12 @@ T = [
     ("아빠가 그네 만들어줄게.", "Daddy will build you a swing.", 0.86), ("오로라, 꼭 같이 보러 가자.", "Let's go and see the northern lights, together.", 0.64),
     ("넓은 부엌", "a big kitchen", 0.8), ("마당", "a yard"), ("더 높이!", "Higher!"),
     ("우리,\n같이 늙자.", "Let's grow old\ntogether.", 0.74),
-    ("릴리가 자꾸 물어.", "Lily keeps asking\nwhere Daddy is going."), ("…먼저 가서 집 짓고 있다고 해 줘.", "…Tell her I've gone on ahead to build us a house."),
-    ("마당 있는 넓은 집.", "A big one, with a yard.\nAnd good things cooking, plenty of them."), ("그런 데가 어딨어.", "There's no such place."), ("있다고 치자.", "Let's say there is."),
-    ("먼저 가서 기다릴게.", "I'll go on ahead and wait.\nSo we can be happy there, when you come."), ("…그런 데가, 정말 있으면 좋겠다.", "…I hope there really is a place like that."),
-    ("…여긴 어디지?", "…Where is this?"), ("…설마.", "…It can't be."), ("…엄마?", "…Mom?"), ("엄마… 여긴 어디야?", "Mom… where are we?"),
-    ("…그런 데가 진짜 있었어?", "…There really is a place like this?\nI made it up so Ana wouldn't cry."), ("그럼 이제 참말로 만들면 되지.", "Then now you get to make it true."),
+    ("내가 어릴 적, 엄마가 돌아가실 때", "When I was little, and my mom was dying,\nshe told me something."),
+    ("먼저 가서 넓은 집도 짓고,", "That she'd go on ahead and build a big house,\nand have plenty of good things cooking."), ("그러니까 천천히 오라고.", "So I should take my time."),
+    ("어린 내가 울까 봐 한 말이었겠지.", "I suppose she only said it so I wouldn't cry.\nBut I was less afraid because of it."),
+    ("나도 먼저 가서 그렇게 해놓을게.", "I'll go on ahead and do the same.\nSo we can be happy there, when you come."), ("…엄마 말이, 정말이면 좋겠다.", "…I hope what Mom said is true."),
+    ("…여긴 어디지?", "…Where is this?"), ("…설마.", "…It can't be."), ("…엄마?", "…Mom?"), ("엄마… 그 말, 진짜였어?", "Mom… what you told me. It was true?\nI thought you only said it so I wouldn't cry."), ("나도 그런 줄 알았지.", "So did I.\nThen I got here, and here it was."),
+    ("…아나한테도 똑같이 말하고 왔는데.", "…I told Ana the very same thing."), ("그럼 이제 지키면 되지.", "Then now you keep it."),
     ("그러니까…", "So…  take your time."),
     ("약속했다.", "That's a promise, then.\nA big house. Good food."), ("응, 약속.", "A promise."),
     ("마당 있는 넓은 집", "A big house with a yard", 0.74), ("평생 밥해주기", "Always cook for you", 0.8), ("오로라 보러 가기", "See the northern lights", 0.74),
@@ -86,7 +87,7 @@ T = [
     ("꿈으로 한 번은 다녀올 수 있단다.", "You may visit her once, in a dream.\nOnly once. Keep it for the day it is needed."),
     ("혼자서는 못 하겠어.", "I can't do this alone."), ("할 수 있어.", "You can."),
     ("릴리랑 맛있는 거 많이 먹고, 많이 웃고,", "Eat well with Lily. Laugh a lot.\nAnd tell me all of it, later."),
-    ("지어낸 얘기가 아니었어.", "I didn't make it up after all.\nI'm over there, building our house."), ("천천히 와.", "Take your time."),
+    ("그 말, 진짜였어.", "It was true, what I told you.\nI'm over there, building our house."), ("천천히 와.", "Take your time."),
     # ---- chapter 4
     ("종이 울리면 누가 오는 거란다.", "When the bell rings, someone is coming.\nWho it is, we find out on the pier."),
     ("저 애는 집 보러 온 게 아니라", "He didn't come to see the house.\nHe came to see you."),

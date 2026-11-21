@@ -446,18 +446,14 @@
     await k.wait(2.6);
     k.tween(S.leo, 'look', 1, 1.4);
     await k.wait(1.5);
-    /* what do they tell the child? He makes it up as he goes. Neither of them thinks there is such a place */
-    await TALK.say('ana', '릴리가 자꾸 물어.\n아빠는 어디 가는 거냐고.');
-    await k.wait(0.9);
+    /* he hands on what his own mother said to him when she was dying. He takes it for a kindness, not for the truth */
     S.leo.speak = 1;
-    await TALK.say('leo', '…먼저 가서 집 짓고 있다고 해 줘.');
-    await TALK.say('leo', '마당 있는 넓은 집.\n맛있는 것도 잔뜩 해놓는다고.');
-    S.leo.speak = 0;
-    await TALK.say('ana', '그런 데가 어딨어.');
+    await TALK.say('leo', '내가 어릴 적, 엄마가 돌아가실 때\n해 준 말이 있어.');
+    await TALK.say('leo', '먼저 가서 넓은 집도 짓고,\n맛있는 것도 많이 해놓겠다고.');
+    await TALK.say('leo', '그러니까 천천히 오라고.');
     await k.wait(0.5);
-    S.leo.speak = 1;
-    await TALK.say('leo', '있다고 치자.');
-    await TALK.say('leo', '먼저 가서 기다릴게.\n당신 왔을 때, 같이 행복할 수 있게.');
+    await TALK.say('leo', '어린 내가 울까 봐 한 말이었겠지.\n그래도 그 말 덕분에 덜 무서웠어.');
+    await TALK.say('leo', '나도 먼저 가서 그렇게 해놓을게.\n당신 왔을 때, 같이 행복할 수 있게.');
     A.pad(3, 0.14);
     const p = TALK.say('leo', '그러니까…  천천히 와.', { slow: true });
     k.wait(1.5).then(() => A.motif({ voice: 'felt', vel: 0.42, beat: 0.8 }));
@@ -487,7 +483,7 @@
     T.announce('레오가 잠든 릴리의 손을 쥔다.');
     /* the last thing he says, to a child who is asleep: he does not know either */
     S.leo.speak = 1;
-    await TALK.say('leo', '…그런 데가, 정말 있으면 좋겠다.', { slow: true, auto: 2.4 });
+    await TALK.say('leo', '…엄마 말이, 정말이면 좋겠다.', { slow: true, auto: 2.4 });
     S.leo.speak = 0;
     A.pad(7, 0.2);
     A.theme({ beat: 0.92, vel: 0.5 });
