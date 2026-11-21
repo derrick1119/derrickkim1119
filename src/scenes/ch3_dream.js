@@ -62,7 +62,7 @@
       await X.TALK.say('leo', '릴리랑 맛있는 거 많이 먹고, 많이 웃고,\n그 얘기 나중에 다 들려줘.');
       X.tween(D.chalk, 'k', 1, 6, T.ease.lin);
       for (let i = 0; i < 6; i++) X.wait(i * 0.9).then(() => A.sfx('chalk', i / 6));
-      await X.TALK.say('leo', '나 거기서 집 짓고 있어.');
+      await X.TALK.say('leo', '지어낸 얘기가 아니었어.\n나 거기서 집 짓고 있어.');
       A.motif({ voice: 'felt', vel: 0.42, beat: 0.8 });
       await X.TALK.say('leo', '천천히 와.', { slow: true });
       await X.tween(D.lean, 'k', 1, 1.6);

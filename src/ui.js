@@ -24,7 +24,7 @@
     K.say = function (who, text, o = {}) {
       const k = S.clock;
       const n = P.count(text);
-      const tk = (K.cur = { who, text, k: 0, done: false, a: 1 });
+      const tk = (K.cur = { who, text, k: 0, done: false, a: 1, pass: !!o.pass });   /* pass: said in passing; a tap goes through to the scene */
       T.announce(T.tr(WHO[who][0]) + ': ' + T.tr(text).replace(/\n/g, ' '));
       const dur = Math.max(0.6, n * (o.slow ? 0.11 : 0.062));
       k.tween(tk, 'k', 1, dur, T.ease.lin).then(() => { tk.done = true; });
@@ -37,7 +37,7 @@
         };
       }).then(() => k.tween(tk, 'a', 0, 0.35)).then(() => { if (K.cur === tk) K.cur = null; });
     };
-    K.tap = function () { const tk = K.cur; if (tk && tk.next) { tk.next(); return true; } return false; };
+    K.tap = function () { const tk = K.cur; if (tk && tk.next && !tk.pass) { tk.next(); return true; } return false; };
     K.draw = function (g) {
       const tk = K.cur;
       if (!tk) return;

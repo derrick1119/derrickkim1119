@@ -198,7 +198,7 @@
     s.d2 = s.a2; s.a3 = y2(J2) - interp(K3, J2); s.d3 = s.a3;   /* the three hills are one road */
     s.join1 = false; s.join2 = false; s.snap.k = 0; s.gate[1].k = 0; s.gate[2].k = 0; s.r2 = 0; s.r3 = 0;
     s.boat.x = -1500; s.lamps = [{ x: -1020, k: 0, ok: false, mist: 1 }, { x: SEA_LAMP, k: 0, ok: false, mist: 1 }]; s.game = null; s.tolls = 0; s.bell.k = 0;
-    s.leo = { x: 0, y: PIER_Y, stand: 0, hop: 0, style: F.styles.leoBed, flip: false, lamp: false };
+    s.leo = { x: 0, y: PIER_Y, stand: 0, hop: 0, rise: 0, style: F.styles.leoBed, flip: false, lamp: false };
     s.mom = { x: 300, y: PIER_Y, flip: true, wave: 0 };
     s.wx = 60; s.nx = 130; s.wph = 0; s.nph = 0; s.moving = false; s.nmoving = false;
     s.hug.k = 0; s.cup.k = 0; s.arms.k = 0; s.lampDown = false; s.drag = null; s.idle = 0; s.noteI = 0;
@@ -226,7 +226,8 @@
     if (cp === 'sea') {
       S.ph = 'sail';
       k.wait(1.2).then(() => k.tween(S.title, 'a', 1, 1.6)).then(() => k.wait(3.2)).then(() => k.tween(S.title, 'a', 0, 1.8));
-      T.announce('1장, 항구. 작은 배가 구름바다를 건넌다.');
+      T.announce('1장, 항구. 작은 배가 구름바다를 건넌다. 병원 옷을 입은 레오가 배 안에서 두리번거린다.');
+      k.wait(2.2).then(() => { if (S.ph === 'sail') TALK.say('leo', '…여긴 어디지?', { auto: 2.2, pass: true }); });
     } else if (cp === 'quay') {
       seaLit();
       S.boat.x = -560; S.tolls = 2; S.ph = 'sail';
@@ -292,7 +293,12 @@
     if (b.x < stop) b.x = Math.min(stop, b.x + 60 * dt);
     const th = [-900, -640, -330, -130];
     if (S.tolls < 4 && b.x > th[S.tolls]) { A.toll(S.tolls, 0.3 + S.tolls * 0.03); S.tolls++; S.bell.k = 1; k.tween(S.bell, 'k', 0, 3.2, T.ease.out); }
-    if (!S.placed && b.x > -420) { S.placed = true; T.announce('마중 나루. 종이 울리고, 부두에 누군가 등불을 들고 서 있다.'); k.tween(S.place, 'a', 1, 1.6).then(() => k.wait(3)).then(() => k.tween(S.place, 'a', 0, 1.8)); }
+    if (!S.placed && b.x > -420) {
+      S.placed = true;
+      /* lamps, a pier, someone waiting: the story he made up */
+      T.announce('마중 나루. 종이 울리고, 부두에 누군가 등불을 들고 서 있다. 레오가 배에서 엉거주춤 일어선다.');
+      TALK.say('leo', '…설마.', { slow: true, auto: 2, pass: true });
+      k.tween(S.leo, 'rise', 1, 0.6, T.ease.out).then(() => k.wait(1.5)).then(() => k.tween(S.leo, 'rise', 0, 0.7, T.ease.io)); k.tween(S.place, 'a', 1, 1.6).then(() => k.wait(3)).then(() => k.tween(S.place, 'a', 0, 1.8)); }
     if (b.x > -640) { const n = S.mom; if (n.x > 132) { n.x = Math.max(132, n.x - 52 * dt); S.nph += dt * 5.6; S.nmoving = true; } else { S.nmoving = false; n.wave = Math.min(1, n.wave + dt * 1.5); } }
     if (!next && b.x >= -74.5 && S.ph === 'sail') dock();
   }
@@ -308,6 +314,7 @@
     S.wx = 52; L.x = 52;
     await k.wait(0.4);
     S.ph = 'meet'; S.idle = 0;
+    TALK.say('leo', '…엄마?', { slow: true, auto: 2.6, pass: true });
   }
 
   /* ---------- the first embrace ---------- */
@@ -328,11 +335,15 @@
     await k.wait(2.2);
     await TALK.say('mom', '왜 이렇게 빨리 왔니.', { slow: true });
     await TALK.say('mom', '천천히 오라고 했는데.');
-    await TALK.say('mom', '여긴 마중 나루란다.\n먼저 온 사람이, 올 사람을 기다리는 곳이지.');
-    await k.wait(0.8);
+    /* she holds his face to look at him; he looks past her, at the lamps and the town */
     k.tween(S.hug, 'k', 0, 1, T.ease.io);
     await k.tween(S.cup, 'k', 1, 1.1, T.ease.io);
-    await k.wait(2.2);
+    await TALK.say('leo', '엄마… 여긴 어디야?');
+    await TALK.say('mom', '여긴 마중 나루란다.\n먼저 온 사람이, 올 사람을 기다리는 곳이지.');
+    /* it was only something he said so that she would not cry */
+    await TALK.say('leo', '…그런 데가 진짜 있었어?\n아나 울지 말라고 지어낸 얘기였는데.');
+    await TALK.say('mom', '그럼 이제 참말로 만들면 되지.');
+    await k.wait(0.9);
     await k.tween(S.cup, 'k', 0, 0.9, T.ease.io);
     S.lampDown = false; n.flip = false;
     A.bed(0, 0.13, 'walk'); A.ambience(0.3, 0.3, 0.25);
@@ -971,11 +982,13 @@
   function boatLeo(g, hop) {
     /* seated in the boat, then up and over onto the planks */
     const b = S.boat, L = S.leo, by = surf(b.x) - 34, ls = L.style, t = T.time;
-    const stand = T.ease.io(L.stand), hp = hop ? T.ease.io(L.hop) : 0;
+    const stand = Math.max(T.ease.io(L.stand), 0.62 * (L.rise || 0)), hp = hop ? T.ease.io(L.hop) : 0;
     const lh = F.hipHeight(ls, LEO_S);
     const x0 = b.x - 10, y0 = by - 20 - stand * (lh - 30);
     const x = T.lerp(x0, 52, hp), y = T.lerp(y0, PIER_Y - lh, hp) - Math.sin(hp * Math.PI) * 30;
-    const o = { x, y, s: LEO_S, style: ls, noLegs: stand < 0.3, lean: 0.05, headTilt: -0.1, face: { blush: 0.14 }, armF: { a: 0.9 - stand * 0.5, b: 0.9 - stand * 0.5 }, armB: { a: 0.6, b: 0.7 } };
+    /* at sea he does not know where he is: he keeps looking about, a hand on the gunwale */
+    const lost = S.ph === 'sail' ? 1 - (L.rise || 0) : 0, look = Math.sin(t * 0.8) * 0.5 + Math.sin(t * 1.9) * 0.2;
+    const o = { x, y, s: LEO_S, style: ls, noLegs: stand < 0.3, lean: 0.05 + 0.05 * (L.rise || 0), headTilt: -0.1 + lost * look * 0.34 - 0.16 * (L.rise || 0), flip: lost > 0.5 && Math.sin(t * 0.45) < -0.55, face: { blush: 0.14, mouth: S.ph === 'sail' ? ((L.rise || 0) > 0.3 ? 'open' : 'line') : undefined }, armF: { a: 0.9 - stand * 0.5, b: 0.9 - stand * 0.5 }, armB: { a: 0.6, b: 0.7 } };
     if (hp > 0.02 && hp < 0.98) o.walk = hp * 6;
     const j = F.person(g, o);
     if (L.lamp) handLamp(g, j.handB, 1);

@@ -446,9 +446,18 @@
     await k.wait(2.6);
     k.tween(S.leo, 'look', 1, 1.4);
     await k.wait(1.5);
+    /* what do they tell the child? He makes it up as he goes. Neither of them thinks there is such a place */
+    await TALK.say('ana', '릴리가 자꾸 물어.\n아빠는 어디 가는 거냐고.');
+    await k.wait(0.9);
     S.leo.speak = 1;
-    await TALK.say('leo', '먼저 가서 넓은 집도 짓고,\n맛있는 것도 많이 해놓을게.');
-    await TALK.say('leo', '당신 왔을 때\n같이 행복할 수 있게.');
+    await TALK.say('leo', '…먼저 가서 집 짓고 있다고 해 줘.');
+    await TALK.say('leo', '마당 있는 넓은 집.\n맛있는 것도 잔뜩 해놓는다고.');
+    S.leo.speak = 0;
+    await TALK.say('ana', '그런 데가 어딨어.');
+    await k.wait(0.5);
+    S.leo.speak = 1;
+    await TALK.say('leo', '있다고 치자.');
+    await TALK.say('leo', '먼저 가서 기다릴게.\n당신 왔을 때, 같이 행복할 수 있게.');
     A.pad(3, 0.14);
     const p = TALK.say('leo', '그러니까…  천천히 와.', { slow: true });
     k.wait(1.5).then(() => A.motif({ voice: 'felt', vel: 0.42, beat: 0.8 }));
@@ -476,6 +485,10 @@
     A.sfx('touch');
     await k.tween(S.leo, 'reach', 1, 1.5, T.ease.io);
     T.announce('레오가 잠든 릴리의 손을 쥔다.');
+    /* the last thing he says, to a child who is asleep: he does not know either */
+    S.leo.speak = 1;
+    await TALK.say('leo', '…그런 데가, 정말 있으면 좋겠다.', { slow: true, auto: 2.4 });
+    S.leo.speak = 0;
     A.pad(7, 0.2);
     A.theme({ beat: 0.92, vel: 0.5 });
     k.tween(S.hold, 'k', 1, 6.5, T.ease.in);
@@ -515,6 +528,7 @@
     } else if (S.mode === 'final') {
       if (type === 'down') TALK.tap();
     } else if (S.mode === 'hold') {
+      if (S.hold.on) { if (type === 'down') TALK.tap(); return; }
       const [dx, dy] = T.par(0.2);
       const near = Math.hypot(x - LILY_HAND[0] - dx, y - LILY_HAND[1] - dy) < 120;
       T.cursor(near && !S.hold.on ? 'pointer' : 'default');
@@ -534,7 +548,7 @@
       S.kbShow = true;
     } else if (S.mode === 'card') { if (act && S.card.tap) S.card.tap(); else return false; }
     else if (S.mode === 'final') { if (act) TALK.tap(); else return false; }
-    else if (S.mode === 'hold') { if (act) S.takeHand(); else return false; }
+    else if (S.mode === 'hold') { if (!act) return false; if (S.hold.on) TALK.tap(); else S.takeHand(); }
   };
 
   S.update = function (dt) {
