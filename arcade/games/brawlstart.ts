@@ -33,7 +33,7 @@ const WALK = 0.004, RUN = 0.0085, STOP = 0.22, CLEAR = 0.7, FOX_SX = 0.1;
 /** 톡 사이 쉼(틱) · 딱! 멈칫 · 멀리 있으면 달려가서 딱 · 이 안에 있는 놈들이 '한 무리'(구름은 그 가운데에 생긴다) */
 const CD = 30, HIT_T = 15, BONK_GAP = 0.03, DASH_V = 0.02, CROWD_R = 0.2;
 /** 구름: 처음 반지름 · 처음 수명 · 하나 삼킬 때마다 수명 · 삼키는 박자(틱) · 생기고 제자리에서 부푸는 틱 */
-const R0 = 0.066, LIFE0 = 46, LIFE_ADD = 12, EAT_T = 6, BLOOM = 8, AGE_MAX = 900;
+const R0 = 0.066, LIFE0 = 40, LIFE_ADD = 7, EAT_T = 6, BLOOM = 8, AGE_MAX = 900;
 /** 구름이 굴러가는 빠르기 · 코앞의 놈을 덮치는 빠르기 · 다음 놈을 찾는 거리 */
 const SEEK_V = 0.0052, POUNCE_V = 0.009, SENSE_R = 0.6;
 /** 구경꾼: 이 안의 놈들이 구경하러 온다 · 달려오는 빠르기 · 구름 바깥에 서는 틈 */
@@ -152,6 +152,8 @@ interface Mon {
   cid: number; tap: number; chain: number; tgt: number; tgt2: number; pair: number; dx: number; dy: number; px: number; py: number;
   /** cool: 토끼가 다시 달아나기까지 · wind: 올빼미 호루라기/순찰 눈금 · gk: 구경하는 구름 id(-1 = 구경 안 함) */
   cool: number; wind: number; gk: number;
+  /** own: 싸움을 건 그 둘(톡마다 따로 세는 몫) */
+  own: boolean;
   // 연출 (결과와 무관)
   v: number; seed: number; hitT: number; walk: boolean; sky: boolean;
 }
@@ -193,7 +195,7 @@ const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const jit = (r: Rng, a: number) => (r() - 0.5) * 2 * a;
 
 // ───────────────────────────── 시뮬레이션 ─────────────────────────────
-const isStill = (k: K) => k === 'bear' || k === 'boar' || k === 'owl' || k === 'wiz' || k === 'boss';
+const isStill = (k: K) => k === 'bear' || k === 'boar' || k === 'owl' || k === 'wiz' || k === 'cracker' || k === 'boss';
 /** 깨어서 길 위에 있는 놈(여우 길을 막는다) */
 const blocks = (m: Mon) => m.st === IDLE || m.st === NOTICE || m.st === DAZE || m.st === ENTER || m.st === DASH || m.st === FLEE || m.st === HIT;
 /** 톡 할 수 있는 놈 */
@@ -201,13 +203,13 @@ const tappable = (m: Mon) => (m.st === IDLE || m.st === NOTICE || m.st === SLEEP
 /** 싸움 상대가 될 수 있는 놈 */
 const canFight = (m: Mon) => (m.st === IDLE || m.st === NOTICE || m.st === DAZE || m.st === ENTER) && m.k !== 'boss';
 /** 구름이 삼킬 수 있는 놈 */
-const edible = (m: Mon) => m.st === IDLE || m.st === NOTICE || m.st === DAZE || m.st === ENTER || m.st === DASH || m.st === FLEE || m.st === SLEEP || (m.st === HIT && m.tgt !== T_BOAR);
+const edible = (m: Mon) => m.st === IDLE || m.st === NOTICE || m.st === DAZE || m.st === ENTER || m.st === DASH || m.st === FLEE || m.st === SLEEP;
 
 function mk(s: BrawlState, k: K, x: number, y: number, g: number): Mon {
   const m: Mon = {
     id: ++s.nid, k, x, y, r: KR[k], st: k === 'boar' ? SLEEP : IDLE, tm: 0, g, a: 0, f: 1, dir: 1, still: isStill(k), hx: x, hy: y,
     vx: 0, vy: 0, z: 0, vz: 0, face: -1, ang: 0, cid: -1, tap: 0, chain: 0, tgt: -1, tgt2: -1, pair: -1, dx: 1, dy: 0, px: x, py: y,
-    cool: 0, wind: 0, gk: -1, v: Math.floor(s.rng() * 3), seed: Math.floor(s.rng() * 1000), hitT: -999, walk: false, sky: false,
+    cool: 0, wind: 0, gk: -1, own: false, v: Math.floor(s.rng() * 3), seed: Math.floor(s.rng() * 1000), hitT: -999, walk: false, sky: false,
   };
   s.mons.push(m);
   return m;
@@ -472,7 +474,7 @@ function spawnCloud(s: BrawlState, mem: Mon[], x: number, y: number, dx: number,
     tap, chain, kind, kick: 0, tor: 0, split: 0, nomerge: kind === 2 ? 36 : 0, mega: 0, tgtc: -1, eat: 0, rush: 0, dead: false, seed: s.nid * 7, popT: s.t, cols: [],
   };
   s.clouds.push(c);
-  for (const m of mem) swallow(s, c, m, true);
+  for (const m of mem) swallow(s, c, m, true), (m.own = true);
   c.r = radiusOf(s, c);
   if (chain > s.chainMax) s.chainMax = chain;
   if (chain >= 2) see(s, 'chain');
@@ -490,7 +492,7 @@ function swallow(s: BrawlState, c: Cloud, m: Mon, init = false) {
   if (!s.lite && c.cols.length < 8) c.cols.push(KINDS.indexOf(m.k) * 3 + m.v);
   const slot = c.tap & 15, cnt = ++s.tc[slot];
   if (!init) {
-    c.life = Math.min(AGE_MAX, c.life + (m.k === 'chick' ? 8 : m.k === 'bear' ? 44 : LIFE_ADD));
+    c.life = Math.min(AGE_MAX, c.life + (m.k === 'chick' ? 5 : m.k === 'bear' ? 50 : LIFE_ADD));
     // 새로 낀 놈 쪽으로 구름이 쏠린다
     if (c.kind === 0 && !c.mega) (c.x += (m.x - c.x) / (c.n + 1)), (c.y += (m.y - c.y) / (c.n + 1));
     c.popT = s.t;
@@ -510,7 +512,11 @@ function swallow(s: BrawlState, c: Cloud, m: Mon, init = false) {
       see(s, 'rush');
     }
   }
-  // 한 톡이 여러 무리에 걸쳤다
+  credit(s, c, m, slot, cnt);
+  c.r = radiusOf(s, c);
+}
+/** 톡의 몫이 하나 늘었다: 걸친 무리 수 · '와' 띠 */
+function credit(s: BrawlState, c: Cloud, m: Mon, slot: number, cnt: number) {
   if (m.g >= 0 && s.groups[m.g] && s.groups[m.g].form === 0 && !(s.tg[slot] & (1 << m.g))) {
     s.tg[slot] |= 1 << m.g;
     const n = ++s.tl[slot];
@@ -520,7 +526,6 @@ function swallow(s: BrawlState, c: Cloud, m: Mon, init = false) {
       ev(s, 'link', c.x, c.y, Math.min(n, 4) - 2, LINK_TEXT[Math.min(n, 4) - 2]);
     }
   }
-  // '와' 띠: 한 번 톡에 휘말린 수
   while (s.tw[slot] < WOW_AT.length && cnt >= WOW_AT[s.tw[slot]]) {
     const lv = s.tw[slot]++;
     s.wowN++;
@@ -528,7 +533,6 @@ function swallow(s: BrawlState, c: Cloud, m: Mon, init = false) {
     if (lv >= 1) see(s, 'wow' + Math.min(lv, 3));
     ev(s, 'wow', c.x, c.y, lv, WOW_TEXT[lv]);
   }
-  c.r = radiusOf(s, c);
 }
 function koCount(s: BrawlState, m: Mon) {
   const slot = m.tap & 15, k = ++s.tk[slot];
@@ -562,6 +566,7 @@ function burst(s: BrawlState, c: Cloud) {
     fling(s, m, base + (TAU * i) / Math.max(1, n) + jit(s.rng, 0.25), d0 * (0.75 + s.rng() * 0.6), c.chain);
     if (m.k === 'boss') (m.sky = true), (m.tm = 70), (m.vx = 0.004), (m.vy = -0.002), (m.vz = 0.02), (s.pts += BOSS_PTS);
     koCount(s, m);
+    m.own = false;
   });
   ev(s, 'burst', c.x, c.y, n, String(s.pts - p0));
   s.lastBurstT = s.t;
@@ -925,7 +930,8 @@ function clouds(s: BrawlState) {
       let tx = 0, ty = 0, sp = 0, md = 1e9;
       for (let i = 0; i < ms.length; i++) {
         const m = ms[i];
-        if (!edible(m) || (m.k === 'boss' && s.tc[c.tap & 15] < s.bossNeed)) continue;
+        // 제자리에 버티고 선 특별한 놈은 쫓지 않는다(그놈부터 톡 해야 낀다) · 대장은 숫자가 될 때만
+        if (!edible(m) || (m.still && m.k !== 'boss') || (m.k === 'boss' && s.tc[c.tap & 15] < s.bossNeed)) continue;
         const d = (m.x - c.x) ** 2 + (m.y - c.y) ** 2;
         if (d < md) (md = d), (tx = m.x), (ty = m.y);
       }
@@ -1023,7 +1029,13 @@ function clouds(s: BrawlState) {
       if ((a.x - b.x) ** 2 + (a.y - b.y) ** 2 > lim * lim) continue;
       const ca = s.tc[a.tap & 15], cb = s.tc[b.tap & 15];
       const [big, sm] = a.mega || (!b.mega && (ca > cb || (ca === cb && a.n >= b.n))) ? [a, b] : [b, a];
-      for (const m of ms) if (m.cid === sm.id && m.st === INC) m.cid = big.id;
+      // 합체: 작은 구름이 삼킨 놈들은 큰 구름 톡의 몫이 된다 — 싸움을 건 그 둘만 따로 센다
+      const bs = big.tap & 15, ss = sm.tap & 15;
+      for (const m of ms) {
+        if (m.cid !== sm.id || m.st !== INC) continue;
+        m.cid = big.id;
+        if (bs !== ss && !m.own) (m.tap = big.tap), s.tc[ss]--, credit(s, big, m, bs, ++s.tc[bs]);
+      }
       const wa = big.n, wb = sm.n;
       if (!big.mega) (big.vx = (big.vx * wa + sm.vx * wb) / (wa + wb)), (big.vy = (big.vy * wa + sm.vy * wb) / (wa + wb)), (big.x = (big.x * wa + sm.x * wb) / (wa + wb)), (big.y = (big.y * wa + sm.y * wb) / (wa + wb));
       big.n += sm.n;
@@ -3020,6 +3032,16 @@ function drawPerk(ctx: C2, id: number, k: number, t: number) {
 const DEX: { key: string; k: K; ch: number }[] = STAGES.map((d) => ({ key: d.key === 'boss' ? 'boss' + d.ch : d.key, k: d.key, ch: d.ch }));
 const depth = (y: number) => 0.9 + 0.2 * clamp((y - MY0) / (MY1 - MY0), -0.3, 1.2);
 const WOW_COL = ['#ffd24a', '#ff9a3c', '#ff6f5e', '#ff5ab0', '#a56fe0'];
+const LINK_COL = ['#5fc8a8', '#4aa8f0', '#a56fe0'];
+/** 화면 글자: 가운데 큰 띠는 한 번에 하나(새 것이 오면 앞의 것은 사라진다), 작은 반응 글자는 같은 자리에 하나만 */
+interface Small { x: number; y: number; str: string; col: string; size: number; t: number; cell: number }
+interface Texts { big: { str: string; sub: string; col: string; t: number } | null; small: Small[] }
+const textStore = new WeakMap<object, Texts>();
+const textsOf = (s: object) => {
+  let q = textStore.get(s);
+  if (!q) textStore.set(s, (q = { big: null, small: [] }));
+  return q;
+};
 
 function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
   const fx = juice(s), t = s.t, d = STAGES[s.stage], P = PAL[d.ch], cam = s.cam;
@@ -3038,6 +3060,16 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
     if (room > 0) fx.burst(x, y, col, Math.min(n, room), sp, sz);
   };
   const play = s.phase === 'play';
+  const tx = textsOf(s);
+  /** 작은 반응 글자 (세상 좌표) — 같은 칸에는 하나만 */
+  const say = (x: number, y: number, str: string, col = '#ffffff', size = 15) => {
+    const cell = Math.round(x / 0.17) * 100 + Math.round(y / 0.13), i = tx.small.findIndex((q) => q.cell === cell), it = { x, y, str, col, size, t, cell };
+    if (i >= 0) tx.small[i] = it;
+    else tx.small.push(it);
+    if (tx.small.length > 6) tx.small.shift();
+  };
+  /** 가운데 큰 띠 — 하나만 */
+  const band = (str: string, sub: string, col: string) => void (tx.big = { str, sub, col, t });
 
   ctx.save();
   fx.begin(ctx);
@@ -3049,7 +3081,7 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
   tile(ctx, bg.ground, cam * w, R(GR0), w, R(GR1 - GR0), w);
   tile(ctx, bg.mid, cam * w * 0.55, R(0.648 - MID_H + 0.02), w * 2, R(MID_H), w);
   // 가게 지붕 위 구경꾼 참새 (큰 순간에 폴짝)
-  const wowAge = t - (fx.memo.bigT ?? -999);
+  const wowAge = t - (tx.big?.t ?? -999);
   for (let i = 0; i < 3; i++) {
     const bx = ((((i * 0.37 + 0.15) * w * 2 - cam * w * 0.55) % (w * 2)) + w * 2) % (w * 2) - w * 0.2;
     if (bx < -20 || bx > w + 20) continue;
@@ -3530,14 +3562,14 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
         fx.sound('boing', 1.5, 0.35);
         break;
       case 'solo':
-        fx.pop(ex, ey - R(0.12), '에잇!', '#ffffff', 15);
+        say(e.x, e.y - 0.12, '에잇!');
         fx.sound('boing', 1.3, 0.5);
         break;
       case 'cloud':
         puff(ex, ey - R(0.04), '#fff6e6', 10, 3, 4);
         fx.sound('thud', 1.3, 0.7);
         if (n >= 2) {
-          fx.pop(ex + R(0.07), ey - R(0.29), `연쇄 ×${n}!`, '#ffe45c', 19 + Math.min(8, n * 2));
+          say(e.x, e.y - 0.22, `연쇄 ×${n}!`, '#ffe45c', 17);
           fx.sound('zap', 0.9 + n * 0.12, 0.7);
           fx.ring(ex, ey - R(0.04), '#ffe45c', R(0.16), 5);
         }
@@ -3547,12 +3579,19 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
         fx.sound('pop', 0.9 + Math.min(1.4, n * 0.07), 0.8);
         break;
       case 'wow':
-        fx.memo.bigT = t;
-        fx.memo.bigLv = n;
+        band(e.text ?? '', `동전 ×${n + 2}`, WOW_COL[n]);
         fx.kick(5 + n * 2);
         fx.blink('#fff6c2', 0.22 + n * 0.05);
         fx.sound(n >= 2 ? 'clear' : 'chime', 1 + n * 0.08, 1);
         puff(ex, ey - R(0.08), WOW_COL[n], 14, 5, 4);
+        break;
+      case 'link':
+        band(e.text ?? '', n >= 2 ? '와아아!' : '', LINK_COL[n]);
+        fx.kick(7 + n * 3);
+        fx.blink('#eafff6', 0.25 + n * 0.08);
+        fx.sound('clear', 1.15 + n * 0.12, 1.1);
+        fx.sound('swell', 1 + n * 0.15, 0.7);
+        for (const col of ['#ffffff', LINK_COL[n], '#ffe45c']) puff(ex, ey - R(0.1), col, 10, 6, 4);
         break;
       case 'burst': {
         const big = Math.min(12, n);
@@ -3563,8 +3602,7 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
         fx.sound('thud', Math.max(0.55, 1.25 - big * 0.06), 0.9 + big * 0.04);
         fx.sound('splash', 1.1, 0.5);
         fx.sound('coin', 1 + Math.min(0.8, big * 0.06), 0.7);
-        if (n >= 2) fx.pop(ex, ey - R(0.24), n >= 5 ? `${n}마리 펑!` : '펑!', '#ffffff', 16 + big);
-        if (e.text && e.text !== '0') fx.pop(ex + R(0.02), ey - R(0.13), `+${e.text}`, '#ffe45c', 15 + big);
+        if (e.text && e.text !== '0') say(e.x, e.y - 0.15, `+${e.text}`, '#ffe45c', 15 + big);
         break;
       }
       case 'land':
@@ -3572,27 +3610,27 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
         fx.sound(n ? 'boing' : 'thud', n ? 1.2 : 1.7, n ? 0.8 : 0.3);
         break;
       case 'angry':
-        fx.pop(ex, ey - R(0.14), '어쭈?!', '#ff6f5e', 17);
+        say(e.x, e.y - 0.14, '어쭈?!', '#ff6f5e', 16);
         fx.sound('zap', 1.2, 0.5);
         break;
       case 'wake':
-        fx.pop(ex, ey - R(0.13), '응?!', '#ffffff', 17);
+        say(e.x, e.y - 0.13, '응?!', '#ffffff', 16);
         fx.sound('boing', 0.7, 0.8);
         break;
       case 'charge':
-        fx.pop(ex, ey - R(0.15), '돌진!', '#ff6f5e', 20);
+        say(e.x, e.y - 0.15, '돌진!', '#ff6f5e', 19);
         puff(ex, ey, '#f1dfba', 10, 4, 4);
         fx.kick(4);
         fx.sound('whoosh', 0.7, 1);
         fx.sound('thud', 0.8, 0.8);
         break;
       case 'twin':
-        fx.pop(ex, ey - R(0.14), '내 짝꿍을?!', '#ffe45c', 16);
+        say(e.x, e.y - 0.14, '내 짝꿍을?!', '#ffe45c', 15);
         fx.sound('whoosh', 1.1, 0.8);
         break;
       case 'cracker':
         for (const [i, col] of ['#ff6f5e', '#ffd24a', '#7be0c3', '#7bb7ff'].entries()) puff(ex + Math.cos(i * 1.6) * R(0.06), ey - R(0.1) + Math.sin(i * 1.6) * R(0.05), col, 9, 5, 3.5);
-        fx.pop(ex, ey - R(0.24), '피융~ 펑!', '#ffffff', 22);
+        say(e.x, e.y - 0.24, '피융~ 펑!', '#ffffff', 20);
         fx.ring(ex, ey - R(0.08), '#ffd24a', R(0.2), 6);
         fx.kick(7);
         fx.blink('#fff2c9', 0.25);
@@ -3600,7 +3638,7 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
         fx.sound('ding', 0.9, 0.7);
         break;
       case 'tornado':
-        fx.pop(ex, ey - R(0.24), '회오리!', '#c9d0ff', 22);
+        say(e.x, e.y - 0.24, '회오리!', '#c9d0ff', 20);
         fx.ring(ex, ey, '#9fb0ff', R(0.3), 5);
         fx.sound('swell', 0.8, 1);
         break;
@@ -3608,7 +3646,7 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
         fx.sound('tick', 0.9, 0.7);
         break;
       case 'whistle':
-        fx.pop(ex, ey - R(0.18), '삐익!', '#ffffff', 24);
+        say(e.x, e.y - 0.18, '삐익!', '#ffffff', 22);
         fx.ring(ex, ey - R(0.05), '#e8402f', R(OWL_R), 5);
         fx.kick(4);
         fx.sound('zap', 2.2, 0.9);
@@ -3616,27 +3654,25 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
         break;
       case 'disperse':
         puff(ex, ey - R(0.05), '#e6dccb', 12, 3, 4);
-        fx.pop(ex, ey - R(0.12), '흩어져!', '#ffffff', 15);
         fx.sound('shrink', 1, 0.8);
         break;
       case 'flee':
-        fx.pop(ex, ey - R(0.13), '꺅!', '#ffffff', 16);
+        say(e.x, e.y - 0.13, '꺅!', '#ffffff', 15);
         fx.sound('boing', 1.9, 0.5);
         break;
       case 'bump':
         puff(ex, ey - R(0.05), '#ffe45c', 6, 3, 3);
-        fx.pop(ex, ey - R(0.13), '쿵!', '#ffffff', 17);
+        say(e.x, e.y - 0.13, '쿵!', '#ffffff', 16);
         break;
       case 'kick':
-        fx.pop(ex, ey - R(0.3), '뻥!', '#ffffff', 28);
-        fx.pop(ex, ey - R(0.42), `이제 ${n}마리면 돼요`, '#ffe45c', 14);
+        band('뻥!', `이제 한 방 ${n}마리면 돼요`, '#ff9a3c');
         fx.ring(ex, ey - R(0.1), '#ffffff', R(0.2), 6);
         fx.kick(7);
         fx.sound('boing', 0.6, 1.1);
         fx.sound('thud', 0.9, 0.7);
         break;
       case 'bossin':
-        fx.pop(ex, ey - R(0.3), '꿀꺽!', '#ffe45c', 30);
+        band('꿀꺽!', '대장까지 한 구름', '#ffb52e');
         fx.kick(9);
         fx.blink('#fff2c9', 0.35);
         fx.sound('swell', 0.6, 1.2);
@@ -3653,44 +3689,41 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
       case 'wave':
         fx.sound('whoosh', 0.9, 0.35);
         break;
+      case 'guard':
+        fx.sound('whoosh', 0.8, 0.5);
+        fx.sound('tick', 0.7, 0.8);
+        break;
+      case 'spot':
+        say(e.x, e.y - 0.17, '킁킁…', '#ffd9a0', 14);
+        fx.sound('tick', 0.7, 0.9);
+        break;
       case 'notice':
-        fx.pop(ex, ey - R(0.2), '거기 누구야!', '#ff6f5e', 17);
+        say(e.x, e.y - 0.2, '거기 누구야!', '#ff6f5e', 16);
         fx.sound('zap', 0.6, 0.9);
         fx.sound('tick', 0.8, 0.8);
         fx.kick(3);
         break;
       case 'phew':
-        fx.pop(ex, ey - R(0.26), '휴~', '#ffffff', 18);
+        say(e.x + 0.04, FOX_Y - 0.27, '휴~', '#ffffff', 17);
         fx.sound('ding', 0.8, 0.5);
         break;
       case 'bonkfox':
-        fx.pop(ex, ey - R(0.26), '꿀밤!', '#ff6f5e', 28);
+        say(e.x + 0.04, FOX_Y - 0.27, '꿀밤!', '#ff6f5e', 24);
         puff(ex, ey - R(0.18), '#ffe45c', 12, 4, 4);
         fx.kick(10);
         fx.blink('#ff8f7a', 0.35);
         fx.sound('thud', 1, 1.1);
         fx.sound('fail', 1.1, 0.8);
         break;
-      case 'sus':
-        fx.pop(X(s.fx), Y(FOX_Y) - R(0.3), '작은 싸움은 수상해…', '#ffd24a', 13);
-        fx.sound('tick', 0.5, 0.7);
-        break;
-      case 'calm':
-        fx.sound('ding', 1.2, 0.3);
-        break;
       case 'merge':
-        fx.pop(ex - R(0.09), ey - R(0.17), '합체!', '#ffe45c', 18);
+        say(e.x, e.y - 0.26, '합체!', '#ffe45c', 19);
         fx.ring(ex, ey - R(0.05), '#ffffff', R(0.18), 5);
+        fx.kick(4);
         fx.sound('swell', 1.2, 0.8);
-        break;
-      case 'horn':
-        fx.ring(ex, ey - R(0.04), '#7bb7ff', R(0.34), 4);
-        fx.pop(ex, ey - R(0.2), '싸움이다~!', '#cfe6ff', 15);
-        fx.sound('whoosh', 1.6, 0.6);
         break;
       case 'bee':
         puff(ex, ey - R(0.06), '#ffd24a', 6, 3, 2.5);
-        fx.pop(ex, ey - R(0.14), '따끔!', '#ffe45c', 15);
+        say(e.x, e.y - 0.14, '따끔!', '#ffe45c', 15);
         fx.sound('zap', 1.8, 0.5);
         break;
       case 'wall':
@@ -3699,7 +3732,6 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
       case 'clear':
         for (const col of ['#ffd24a', '#ff9a3c', '#ffffff']) puff(ex, ey - R(0.2), col, 12, 5, 4);
         fx.sound('clear', 1, 1);
-        fx.memo.clearT = t;
         break;
       case 'fail':
         fx.sound('fail', 0.8, 1);
@@ -3715,27 +3747,39 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
         break;
     }
   }
+  // 여우의 킥킥 — 싸움을 구경하는 동안
+  if (play && t !== seenT && pose === 3 && t % 44 === 0) say(s.fx + 0.05, FOX_Y - 0.26, '킥킥', '#ffffff', 13), fx.sound('tick', 1.6, 0.3);
   fx.memo.t = t;
-  // 싸움 소리(퍽 퍽 팍)와 여우의 킥킥 — 구름이 굴러가는 동안
-  if (play && t !== seenT) {
-    let big = 0;
-    for (const c of s.clouds) if (!c.dead && X(c.x) > -R(0.2) && X(c.x) < w + R(0.2)) big = Math.max(big, c.n);
-    if (big > 0 && t % 7 === 0) fx.sound(t % 21 === 0 ? 'crack' : 'pop', (t % 14 === 0 ? 0.6 : 0.75) - Math.min(0.2, big * 0.012), 0.22 + Math.min(0.25, big * 0.02));
-    if (big > 0 && t % 9 === 0) fx.kick(Math.min(2.2, 0.5 + big * 0.14));
-    if (pose === 3 && t % 34 === 0) fx.pop(fX + R(0.06), fY - foxH * 1.05, '킥킥', '#ffffff', 13), fx.sound('tick', 1.6, 0.35);
+  // 도감 그림자 그림은 판 도중 한가한 프레임에 하나씩 미리 만들어 둔다 (결과 화면이 끊기지 않게)
+  if (play && s.clouds.length === 0 && t % 4 === 0) {
+    for (const e of DEX) {
+      const r0 = Math.round(R(e.k === 'boss' || e.k === 'bear' ? 0.03 : e.k === 'boar' ? 0.028 : 0.026));
+      if (shadeCache.has(`${e.k}|${e.ch}|${r0}`)) continue;
+      shade(e.k, e.ch, r0);
+      break;
+    }
   }
 
   // ───────── 화면 위 글자 ─────────
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  // 큰 순간 띠
-  if (wowAge >= 0 && wowAge < 64 && fx.memo.bigT !== undefined) {
-    const lv = fx.memo.bigLv ?? 0, a = Math.min(1, (64 - wowAge) / 12), k = wowAge < 7 ? 1.7 - 0.7 * (wowAge / 7) : 1, by = Y(0.4);
+  // 작은 반응 글자 (같은 자리에 하나만)
+  tx.small = tx.small.filter((q) => t - q.t < 46);
+  for (const q of tx.small) {
+    const age = t - q.t, k = age < 5 ? 0.6 + age * 0.08 : 1;
+    ctx.globalAlpha = Math.min(1, (46 - age) / 12);
+    ctx.font = `800 ${Math.max(12, (q.size * w) / 380) * k}px system-ui, sans-serif`;
+    text(q.str, clamp(X(q.x), R(0.08), w - R(0.08)), Y(q.y) - age * R(0.0016), q.col, 'rgba(60,36,16,.75)', 3.5);
+  }
+  ctx.globalAlpha = 1;
+  // 가운데 큰 띠 (하나만)
+  if (tx.big && wowAge >= 0 && wowAge < 70) {
+    const b0 = tx.big, a = Math.min(1, (70 - wowAge) / 12), k = wowAge < 7 ? 1.7 - 0.7 * (wowAge / 7) : 1, by = Y(0.4);
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate(w / 2, by);
     ctx.rotate(-0.04);
-    ctx.fillStyle = WOW_COL[lv];
+    ctx.fillStyle = b0.col;
     ctx.beginPath();
     ctx.moveTo(-w * 0.6, -R(0.07));
     ctx.lineTo(w * 0.6, -R(0.085));
@@ -3746,10 +3790,16 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
     ctx.fillRect(-w * 0.6, -R(0.085), w * 1.2, R(0.014));
     ctx.fillRect(-w * 0.6, R(0.064), w * 1.2, R(0.014));
     ctx.scale(k, k);
-    font(0.078, 900);
-    text(WOW_TEXT[lv], -R(0.1), 0, '#ffffff', OUT, 5);
-    font(0.044, 900);
-    text(`동전 ×${lv + 2}`, R(0.3), R(0.004), '#fff6c2', OUT, 4);
+    font(b0.str.length > 8 ? 0.062 : 0.078, 900);
+    const tw0 = ctx.measureText(b0.str).width;
+    font(0.04, 900);
+    const tw1 = b0.sub ? ctx.measureText(b0.sub).width + R(0.03) : 0, x0 = -(tw0 + tw1) / 2;
+    font(b0.str.length > 8 ? 0.062 : 0.078, 900);
+    text(b0.str, x0 + tw0 / 2, 0, '#ffffff', OUT, 5);
+    if (b0.sub) {
+      font(0.04, 900);
+      text(b0.sub, x0 + tw0 + tw1 / 2 + R(0.01), R(0.006), '#fff6c2', OUT, 4);
+    }
     ctx.restore();
   }
   // 첫 판 안내 한 줄
@@ -4040,4 +4090,4 @@ export function jumpTo(s: BrawlState, k: number, perkA = 1, perkB = 1) {
   newStage(s);
 }
 /** 측정용 속 들여다보기 */
-export const brawlstartDebug = { cloneSim, tapMon, runSim, openOf, beatOf, tappable, world };
+export const brawlstartDebug = { cloneSim, tapMon, runSim, tappable, world };

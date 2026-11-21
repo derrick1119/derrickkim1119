@@ -26,12 +26,14 @@ const A = 1.5, TAU = Math.PI * 2;
 const CX = 0.5, CY = 0.805, AR = 0.452, YS = 0.84;
 /** 유령이 판 시작에 앉아 있는 등불 */
 const HOME_X = 0.5, HOME_Y = 0.345;
-/** 한 화면의 적 상한(내 몸까지 24) · 유령 기운이 차는 틱 · 날아가는 틱 · 새 몸 무적 · 쓰러진 뒤 어질 · 몸 밖에서 버티는 틱 */
-const CAP = 23, CHARGE_T = 62, FLY_T = 9, INV_T = 50, DIZZY_T = 34, OUT_T = 180;
+/** 한 화면의 적 상한(내 몸까지 24) · 유령 기운이 차는 틱 · 날아가는 틱 · 새 몸 무적 · 쓰러진 뒤 어질 · 몸 밖에서 버티는 틱(4초) */
+const CAP = 23, CHARGE_T = 62, FLY_T = 9, INV_T = 50, DIZZY_T = 30, OUT_T = 240;
+/** 문(울타리 가운데): 새 떼가 우르르 들어오는 곳 · 한 마리씩 들어오는 간격(틱) · 유령이 떠다니는 동안 세상이 흐르는 빠르기 */
+const GATE_X = 0.5, GATE_Y = 0.395, GATE_EVERY = 4, FLOAT_SLOW = 0.55;
 /** 결과 화면: 톡 받기 시작 · 저절로 넘어감 / 둘 중 하나: 톡 받기 시작 · 저절로 고름 · 고른 뒤 */
 const RES_MIN = 90, RES_AUTO = 420, PICK_MIN = 40, PICK_AUTO = 900, PICK_AFTER = 64, END_T = 210;
-/** 점수: 한 번에 n번째로 터진 적은 4·n² · 판 점수는 별 수만큼 곱해진다(별 하나 ×1 · 둘 ×2 · 셋 ×4) */
-const WOW_N = 4, CLEAR_PTS = 100, STAR_MUL = [1, 1, 2, 4], WIN_PTS = 1000;
+/** 점수(판당 수백~수천): 한 번에 n번째로 터진 적은 ⌈n²/4⌉점, 저절로 쓰러뜨린 적은 1점 · 판 점수는 별 수만큼 곱해진다(별 하나 ×1 · 둘 ×2 · 셋 ×4) */
+const WOW_N = 4, CLEAR_PTS = 20, STAR_MUL = [1, 1, 2, 4], WIN_PTS = 100;
 /** 내 몸 둘레 이만큼 안의 적이 화를 내고 덤빈다 — 한 몸에 오래 있을수록(AGGRO_WAIT틱 뒤부터 틱마다 AGGRO_UP) 멀리서도 몰려온다. 갈아타면 멀리 있던 적은 나를 놓친다 */
 const AGGRO_R = 0.17, AGGRO_WAIT = 45, AGGRO_UP = 0.005, AGGRO_MAX = 0.8, MAD_SPD = 1.4;
 
@@ -69,20 +71,23 @@ interface StageDef {
 }
 export const CHAPTERS = ['풀밭 씨름 마당', '바닷가 모래 마당', '구름 위 하늘 마당'];
 const W = (need: number, wait: number, ...mons: [K, number][]): Wave => ({ need, wait, mons });
-/** 판 12개. 첫 떼는 마당에 미리 흩어져 서로 투닥거리고(구경거리), 다음 떼는 적이 줄거나 시간이 지나면 울타리를 넘어 사방에서 뛰어든다 */
+/**
+ * 판 12개. 첫 떼는 마당에 미리 흩어져 서로 투닥거리고(구경거리), 다음 물결은 마당의 적이 need 아래로 줄면 쉴 틈 없이 문으로 우르르 들어온다.
+ * 사람 기준 한 판 30~45초 · 갈아타기 8~14번이 되게 물결 2~3개(대장 판은 졸개를 계속 부른다).
+ */
 export const STAGES: StageDef[] = [
-  { key: 'bear', ch: 0, name: '돌주먹 곰', news: '타면 쿵! 둘레를 한 번에', n: 5, waves: [W(0, 0, ['bear', 2], ['bean', 12]), W(6, 300, ['bear', 1], ['bean', 7]), W(6, 360, ['bear', 1], ['bean', 7])] },
-  { key: 'hedge', ch: 0, name: '가시 고슴도치', news: '타면 데굴데굴 줄지어 꿰뚫어요', n: 7, waves: [W(0, 0, ['hedge', 2], ['bear', 1], ['bean', 13]), W(8, 300, ['hedge', 1], ['bear', 1], ['bean', 7]), W(8, 360, ['hedge', 2], ['bean', 7])] },
-  { key: 'frog', ch: 0, name: '긴 혀 개구리', news: '타면 쭈욱! 멀리 있는 적을 끌어모아요', n: 11, waves: [W(0, 0, ['frog', 2], ['bear', 1], ['hedge', 1], ['bean', 13]), W(8, 300, ['frog', 1], ['bear', 1], ['bean', 8]), W(8, 360, ['frog', 1], ['hedge', 1], ['bean', 8])] },
-  { key: 'boar', ch: 0, name: '대장 멧돼지', news: '왕관 보호막을 깨면 탈 수 있어요', n: 12, shield: 140, summon: [['bear', 1], ['bean', 6]], swarm: [['hedge', 2], ['bear', 1], ['bean', 15]], waves: [W(0, 0, ['boar', 1], ['bear', 1], ['frog', 1], ['hedge', 1], ['bean', 11])] },
-  { key: 'mole', ch: 1, name: '폭탄 두더지', news: '타자마자 대폭발! 유령은 튀어나와요', n: 9, waves: [W(0, 0, ['mole', 2], ['bear', 1], ['hedge', 1], ['bean', 14]), W(9, 300, ['mole', 2], ['frog', 1], ['bean', 7]), W(9, 360, ['mole', 1], ['bear', 1], ['bean', 7])] },
-  { key: 'goat', ch: 1, name: '박치기 염소', news: '타면 돌진! 밀려난 적이 도미노처럼', n: 10, waves: [W(0, 0, ['goat', 2], ['mole', 1], ['bear', 1], ['bean', 14]), W(9, 300, ['goat', 1], ['frog', 1], ['bean', 8]), W(9, 360, ['goat', 1], ['mole', 1], ['hedge', 1], ['bean', 7])] },
-  { key: 'turtle', ch: 1, name: '방패 거북', news: '튼튼해요. 타면 빙글 돌며 적을 끌어모아요', n: 10, waves: [W(0, 0, ['turtle', 1], ['goat', 1], ['mole', 2], ['bean', 14]), W(9, 300, ['turtle', 1], ['hedge', 1], ['bean', 8]), W(9, 360, ['bear', 1], ['goat', 1], ['mole', 1], ['bean', 7])] },
-  { key: 'crab', ch: 1, name: '대장 집게', news: '두 집게로 쿵쿵. 보호막을 깨고 타요', n: 13, shield: 200, summon: [['mole', 1], ['goat', 1], ['bean', 6]], swarm: [['turtle', 1], ['mole', 2], ['goat', 1], ['bean', 14]], waves: [W(0, 0, ['crab', 1], ['turtle', 1], ['goat', 1], ['mole', 1], ['bean', 11])] },
-  { key: 'cloud', ch: 2, name: '번개 구름', news: '타면 번개가 적에서 적으로 줄줄이', n: 10, waves: [W(0, 0, ['cloud', 2], ['goat', 1], ['turtle', 1], ['bean', 14]), W(9, 300, ['cloud', 1], ['mole', 1], ['bear', 1], ['bean', 8]), W(9, 360, ['cloud', 1], ['frog', 1], ['bean', 8])] },
-  { key: 'shroom', ch: 2, name: '포자 버섯', news: '포자 묻은 적은 터질 때 옆도 터뜨려요', n: 12, waves: [W(0, 0, ['shroom', 2], ['cloud', 1], ['goat', 1], ['bean', 14]), W(9, 300, ['shroom', 1], ['frog', 1], ['mole', 1], ['bean', 8]), W(9, 360, ['shroom', 1], ['bear', 1], ['bean', 8])] },
-  { key: 'tanuki', ch: 2, name: '분신 너구리', news: '분신 둘이 생겨 펑이 세 번 터져요', n: 14, waves: [W(0, 0, ['tanuki', 2], ['shroom', 1], ['cloud', 1], ['bean', 14]), W(9, 300, ['tanuki', 1], ['turtle', 1], ['mole', 1], ['bean', 8]), W(9, 360, ['tanuki', 1], ['goat', 1], ['bean', 8])] },
-  { key: 'dragon', ch: 2, name: '대장 천둥 용', news: '마지막 대장. 타면 온 마당에 벼락', n: 15, shield: 270, summon: [['cloud', 1], ['tanuki', 1], ['bean', 6]], swarm: [['shroom', 1], ['tanuki', 1], ['goat', 2], ['bean', 14]], waves: [W(0, 0, ['dragon', 1], ['tanuki', 1], ['shroom', 1], ['cloud', 1], ['bean', 11])] },
+  { key: 'bear', ch: 0, name: '돌주먹 곰', news: '타면 쿵! 둘레를 한 번에', n: 5, waves: [W(0, 0, ['bear', 2], ['bean', 12]), W(6, 420, ['bear', 2], ['bean', 14]), W(7, 480, ['bear', 2], ['bean', 15]), W(7, 480, ['bear', 1], ['bean', 10])] },
+  { key: 'hedge', ch: 0, name: '가시 고슴도치', news: '타면 데굴데굴 핀볼처럼 튕겨요', n: 8, waves: [W(0, 0, ['hedge', 2], ['bear', 1], ['bean', 14]), W(8, 480, ['hedge', 2], ['bear', 1], ['bean', 14]), W(8, 480, ['hedge', 2], ['bear', 1], ['bean', 14]), W(8, 480, ['hedge', 1], ['bear', 1], ['bean', 12])] },
+  { key: 'frog', ch: 0, name: '긴 혀 개구리', news: '타면 쭈욱! 끌어모아 하나씩 꿀꺽', n: 10, waves: [W(0, 0, ['frog', 2], ['hedge', 1], ['bean', 15]), W(8, 480, ['frog', 1], ['hedge', 2], ['bean', 14]), W(8, 480, ['frog', 2], ['bear', 1], ['bean', 14]), W(8, 480, ['frog', 1], ['hedge', 1], ['bean', 13])] },
+  { key: 'boar', ch: 0, name: '대장 멧돼지', news: '왕관 보호막을 깨면 탈 수 있어요', n: 9, shield: 260, summon: [['bear', 1], ['hedge', 1], ['bean', 8]], swarm: [['hedge', 2], ['bear', 2], ['frog', 1], ['bean', 16]], waves: [W(0, 0, ['boar', 1], ['bear', 1], ['frog', 1], ['hedge', 1], ['bean', 11])] },
+  { key: 'mole', ch: 1, name: '폭탄 두더지', news: '타자마자 대폭발! 유령은 튀어나와요', n: 11, waves: [W(0, 0, ['mole', 2], ['bear', 1], ['hedge', 1], ['bean', 14]), W(8, 480, ['mole', 2], ['frog', 1], ['bean', 14]), W(8, 480, ['mole', 2], ['bear', 1], ['bean', 14]), W(8, 480, ['mole', 1], ['hedge', 2], ['bean', 13])] },
+  { key: 'goat', ch: 1, name: '박치기 염소', news: '타면 마당을 가로질러 왔다 갔다 쿵', n: 11, waves: [W(0, 0, ['goat', 2], ['mole', 1], ['bear', 1], ['bean', 14]), W(8, 480, ['goat', 2], ['frog', 1], ['bean', 14]), W(8, 480, ['goat', 1], ['mole', 2], ['bean', 14]), W(8, 480, ['goat', 1], ['hedge', 1], ['bear', 1], ['bean', 13])] },
+  { key: 'turtle', ch: 1, name: '방패 거북', news: '튼튼해요. 빙글빙글 돌며 통통 튕겨 내요', n: 12, waves: [W(0, 0, ['turtle', 1], ['goat', 1], ['mole', 2], ['bean', 14]), W(8, 480, ['turtle', 1], ['hedge', 2], ['bean', 14]), W(8, 480, ['turtle', 1], ['goat', 1], ['mole', 1], ['bean', 14]), W(8, 480, ['bear', 1], ['frog', 1], ['mole', 1], ['bean', 13])] },
+  { key: 'crab', ch: 1, name: '대장 집게', news: '두 집게로 쿵쿵. 보호막을 깨고 타요', n: 9, shield: 380, summon: [['mole', 1], ['goat', 1], ['bean', 8]], swarm: [['turtle', 1], ['mole', 2], ['goat', 2], ['bean', 16]], waves: [W(0, 0, ['crab', 1], ['turtle', 1], ['goat', 1], ['mole', 1], ['bean', 11])] },
+  { key: 'cloud', ch: 2, name: '번개 구름', news: '타면 번개가 적에서 적으로 줄줄이', n: 12, waves: [W(0, 0, ['cloud', 2], ['goat', 1], ['turtle', 1], ['bean', 14]), W(8, 480, ['cloud', 2], ['mole', 1], ['bean', 14]), W(8, 480, ['cloud', 1], ['bear', 1], ['frog', 1], ['bean', 14]), W(8, 480, ['cloud', 1], ['goat', 1], ['mole', 1], ['bean', 13])] },
+  { key: 'shroom', ch: 2, name: '포자 버섯', news: '포자 묻은 적은 터질 때 옆도 터뜨려요', n: 15, waves: [W(0, 0, ['shroom', 2], ['cloud', 1], ['goat', 1], ['bean', 14]), W(8, 480, ['shroom', 1], ['frog', 1], ['mole', 1], ['bean', 14]), W(8, 480, ['shroom', 2], ['bear', 1], ['bean', 14]), W(8, 480, ['shroom', 1], ['cloud', 1], ['hedge', 1], ['bean', 13])] },
+  { key: 'tanuki', ch: 2, name: '분신 너구리', news: '분신 둘이 생겨 펑이 세 번 터져요', n: 15, waves: [W(0, 0, ['tanuki', 2], ['shroom', 1], ['cloud', 1], ['bean', 14]), W(8, 480, ['tanuki', 1], ['turtle', 1], ['mole', 1], ['bean', 14]), W(8, 480, ['tanuki', 2], ['goat', 1], ['bean', 14]), W(8, 480, ['tanuki', 1], ['shroom', 1], ['cloud', 1], ['bean', 13])] },
+  { key: 'dragon', ch: 2, name: '대장 천둥 용', news: '마지막 대장. 타면 온 마당에 벼락', n: 10, shield: 500, summon: [['cloud', 1], ['tanuki', 1], ['bean', 8]], swarm: [['shroom', 1], ['tanuki', 1], ['goat', 2], ['cloud', 1], ['bean', 16]], waves: [W(0, 0, ['dragon', 1], ['tanuki', 1], ['shroom', 1], ['cloud', 1], ['bean', 11])] },
 ];
 export const STAGE_COUNT = STAGES.length;
 /** 장 끝 둘 중 하나(마당의 큰 물건) */
@@ -96,10 +101,10 @@ const EZ = [0.3, 0.55, 0.8, 0.9, 1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35];
 // ───────────────────────────── 상태 ─────────────────────────────
 /** 적 상태: 뛰어드는 중 · 어슬렁/쫓기 · 뜸 들이기 · 돌진 · 쉼 · (내 몸) 등장 기술 · 유령이 날아오는 중 */
 const ENTER = 0, IDLE = 1, WIND = 2, DASH = 3, REST = 4, SKILL = 5, CLAIM = 6;
-const ENTER_T = 34;
 interface Mon {
   id: number; k: K; x: number; y: number; r: number; hp: number; max: number; shield: number; shieldMax: number;
-  st: number; tm: number; cool: number; ang: number; ax: number; ay: number;
+  /** 상태 · 상태 틱 · 쉼 · 향한 각 · 겨눈 곳 · 문에서 들어오는 데 걸리는 틱 · 마지막으로 걸은 쪽 · 삼켜지기까지 */
+  st: number; tm: number; cool: number; ang: number; ax: number; ay: number; et: number; wa: number; gulp: number;
   vx: number; vy: number; air: number; stun: number; frozen: number; spore: number; inv: number;
   /** 등장 기술·돌진 진행: 남은 구간 · 이번 구간에 친 적 · 기술 틱 · 기술 피해의 출처(갈아탄 번호, 0 = 자동) */
   legs: number; hits: number[]; sk: number; sksrc: number; ult: number;
@@ -112,9 +117,9 @@ interface Mon {
   seed: number; born: number; hurtT: number; face: number; bumpT: number; spar: number; atkT: number; walkT: number;
 }
 interface Decoy { x: number; y: number; hp: number; born: number }
-/** 뒤에 일어날 일: 포자 터짐 · 두 번째 펑 · 번개 한 칸 · 마지막 떼 · 보호막이 깨지면 달려오는 졸개 */
-interface Q { t: number; k: 'burst' | 'pop2' | 'bolt' | 'swarm' | 'guard'; x: number; y: number; r: number; dmg: number; src: number; left: number; hit: number[] }
-/** 사라진 몸 (연출): 0 터짐 · 1 내 몸 쓰러짐 · 2 대폭발 · 3 버린 몸 펑 */
+/** 뒤에 일어날 일: 포자 터짐 · 두 번째 펑 · 번개 한 칸 · 마지막 떼 */
+interface Q { t: number; k: 'burst' | 'pop2' | 'bolt' | 'swarm'; x: number; y: number; r: number; dmg: number; src: number; left: number; hit: number[] }
+/** 사라진 몸 (연출): 0 터짐 · 1 내 몸 쓰러짐 · 2 대폭발 · 3 버린 몸 펑 · 4 개구리가 꿀꺽 */
 interface Corpse { k: K; x: number; y: number; t: number; how: number; vx: number; vy: number; seed: number; n: number }
 interface Ev { t: number; k: string; x: number; y: number; n: number; x2: number; y2: number; text: string }
 interface Line { k: number; x0: number; y0: number; x1: number; y1: number; t: number; id: number }
@@ -132,13 +137,16 @@ export interface HopState {
   hop: { id: number; t: number; n: number };
   best: number; kos: number; kills: number; gain: number;
   wave: number; waveT: number; summonT: number; swarmed: boolean; rode: boolean; clearT: number;
+  /** 문 밖에 줄 선 떼 · 다음 한 마리가 들어올 틱 · (대장 판) 보호막이 깨져 별 셋째가 정해짐 · 떠다니는 동안 느린 시간 모음 · 이번 몸에서 '!'를 띄웠나 */
+  inbox: K[]; gateT: number; sealed: boolean; slow: number; alerted: boolean;
   decoys: Decoy[]; q: Q[]; corpses: Corpse[]; events: Ev[]; lines: Line[];
   /** 멈칫: 큰 순간에 세상이 몇 틱 멈춘다(손맛) */
   freeze: number;
   down: boolean; wowN: number; firstTap: number; firstBig: number; denyT: number; readyT: number;
   seen: Set<string>;
   banner: { head: string; sub: string; t: number } | null; spot: { id: number; t: number; label: string } | null;
-  big: { text: string; t: number; n: number } | null;
+  /** 큰 띠(한 번에 하나): 이 판 최고 기록을 넘을 때 · 별 셋째를 딸 때 · 보호막 깨짐 · 대장 타기 */
+  big: { text: string; t: number; n: number; hop: number; star: boolean } | null;
 }
 
 const dist = (ax: number, ay: number, bx: number, by: number) => Math.hypot(ax - bx, (ay - by) / YS);
@@ -161,7 +169,7 @@ export const aggroR = (s: HopState) => Math.min(AGGRO_MAX, AGGRO_R + Math.max(0,
 function wow(s: HopState, text: string, n = 0) {
   s.wowN++;
   if (s.firstBig < 0 && s.firstTap >= 0) s.firstBig = s.t;
-  s.big = { text, t: s.t, n };
+  s.big = { text, t: s.t, n, hop: s.hop.id, star: false };
   s.freeze = Math.max(s.freeze, 4);
   see(s, 'wow');
 }
@@ -177,6 +185,7 @@ function walk(s: HopState, m: Mon, a: number, spd: number) {
   m.y += Math.sin(a) * spd * YS;
   if (Math.abs(Math.cos(a)) > 0.25) m.face = Math.cos(a) > 0 ? 1 : -1;
   m.walkT = s.t;
+  m.wa = a;
 }
 function corpse(s: HopState, m: Mon, how: number, n = 0) {
   s.corpses.push({ k: m.k, x: m.x, y: m.y, t: s.t, how, vx: m.vx, vy: m.vy, seed: m.seed, n });
@@ -184,21 +193,23 @@ function corpse(s: HopState, m: Mon, how: number, n = 0) {
 }
 
 // ───────────────────────────── 떼 ─────────────────────────────
-function add(s: HopState, k: K, x: number, y: number, from: number | null): Mon {
+function add(s: HopState, k: K, x: number, y: number, gate: boolean): Mon {
   const d = KD[k], hp = Math.round(d.hp * (1 + 0.1 * s.stage));
   const m: Mon = {
-    id: ++s.nid, k, x, y, r: d.r, hp, max: hp, shield: 0, shieldMax: 0, st: from === null ? IDLE : ENTER, tm: from === null ? 0 : ENTER_T,
+    id: ++s.nid, k, x, y, r: d.r, hp, max: hp, shield: 0, shieldMax: 0, st: gate ? ENTER : IDLE, tm: 0, et: 1, wa: 0, gulp: 0,
     cool: 24 + Math.floor(s.rng() * 70), ang: 0, ax: x, ay: y, vx: 0, vy: 0, air: 0, stun: 0, frozen: 0, spore: 0, inv: 0,
     legs: 0, hits: [], sk: 0, sksrc: 0, ult: 0, src: 0, dom: 0, mad: !!d.boss, hx: x, hy: y, fx0: x, fy0: y, dead: false,
     seed: Math.floor(s.rng() * 1e6), born: s.t, hurtT: -99, face: x < CX ? 1 : -1, bumpT: -99, spar: 0, atkT: -99, walkT: -99,
   };
-  if (from !== null) {
-    m.fx0 = CX + Math.cos(from) * (AR + 0.17);
-    m.fy0 = CY + Math.sin(from) * (AR + 0.17) * YS;
+  if (gate) {
+    // 문에서 제자리까지 폴짝폴짝 뛰어 들어온다 (멀수록 오래)
+    m.fx0 = GATE_X + (s.rng() - 0.5) * 0.1;
+    m.fy0 = GATE_Y;
     m.x = m.fx0;
     m.y = m.fy0;
+    m.et = m.tm = 20 + Math.round(dist(m.fx0, m.fy0, x, y) * 34);
   }
-  if (d.boss) m.shield = m.shieldMax = Math.round((STAGES[s.stage].shield ?? 100) * 1);
+  if (d.boss) m.shield = m.shieldMax = STAGES[s.stage].shield ?? 100;
   if (!s.seen.has('k:' + k)) see(s, 'k:' + k);
   s.mons.push(m);
   return m;
@@ -216,33 +227,36 @@ function freeSpot(s: HopState, r: number, rmax: number, gap: number): [number, n
   }
   return [bx, by];
 }
-function spawn(s: HopState, mons: [K, number][], pre: boolean) {
-  let i = 0;
+/** 미리 서 있는 떼: 대장은 뒤쪽 가운데, 큰 놈부터 자리를 잡고 콩알이는 빈 데를 채운다 */
+function place(s: HopState, mons: [K, number][]) {
   for (const [k, n] of mons)
-    for (let j = 0; j < n; j++, i++) {
-      if (others(s) >= CAP) return;
-      const d = KD[k];
-      // 큰 놈부터 자리를 잡고, 콩알이는 빈 데를 채운다. 대장은 뒤쪽 가운데
-      const [x, y] = d.boss ? [CX, CY - 0.14] : freeSpot(s, d.r, AR - 0.05 - d.r, 0.04);
-      if (pre) add(s, k, x, y, null);
-      else {
-        const m = add(s, k, x, y, angTo(CX, CY, x, y) + (s.rng() - 0.5) * 0.5);
-        m.ax = x;
-        m.ay = y;
-        m.tm = ENTER_T + ((i * 5) % 16);
-      }
+    for (let j = 0; j < n; j++) {
+      const d = KD[k], [x, y] = d.boss ? [CX, CY - 0.14] : freeSpot(s, d.r, AR - 0.05 - d.r, 0.04);
+      add(s, k, x, y, false);
     }
+}
+/** 문 밖에 줄을 세운다 (큰 놈이 콩알이 사이사이 섞이게) — 마당에 자리가 나는 대로 한 마리씩 우르르 들어온다 */
+function enqueue(s: HopState, mons: [K, number][]) {
+  const bigs: K[] = [], beans: K[] = [];
+  for (const [k, n] of mons) for (let j = 0; j < n; j++) (k === 'bean' ? beans : bigs).push(k);
+  const every = bigs.length ? Math.max(1, Math.floor(beans.length / bigs.length)) : 0;
+  let bi = 0;
+  beans.forEach((k, i) => {
+    if (every && i % every === 0 && bi < bigs.length) s.inbox.push(bigs[bi++]);
+    s.inbox.push(k);
+  });
+  while (bi < bigs.length) s.inbox.push(bigs[bi++]);
 }
 function spawnWave(s: HopState) {
   const d = STAGES[s.stage], w = d.waves[s.wave];
   if (s.stage === 0 && s.wave === 0) {
     // 1판 첫 장면: 곰 둘레에 콩알이 여섯 — 첫 톡이 '쿵! 6마리 한 방'
-    add(s, 'bear', CX, CY + 0.01, null);
-    for (let i = 0; i < 6; i++) add(s, 'bean', CX + Math.cos(0.5 + (i * TAU) / 6) * 0.135, CY + 0.01 + Math.sin(0.5 + (i * TAU) / 6) * 0.135 * YS, null);
-    add(s, 'bear', CX + 0.27, CY + 0.17, null);
-    spawn(s, [['bean', 6]], true);
-  } else spawn(s, w.mons, s.wave === 0);
-  if (s.wave > 0) ev(s, 'wave', CX, CY, s.wave);
+    add(s, 'bear', CX, CY + 0.01, false);
+    for (let i = 0; i < 6; i++) add(s, 'bean', CX + Math.cos(0.5 + (i * TAU) / 6) * 0.135, CY + 0.01 + Math.sin(0.5 + (i * TAU) / 6) * 0.135 * YS, false);
+    add(s, 'bear', CX + 0.27, CY + 0.17, false);
+    place(s, [['bean', 6]]);
+  } else if (s.wave === 0) place(s, w.mons);
+  else enqueue(s, w.mons), ev(s, 'wave', GATE_X, GATE_Y, s.wave);
   s.wave++;
   s.waveT = 0;
 }
@@ -277,6 +291,11 @@ function newStage(s: HopState) {
   s.swarmed = false;
   s.rode = false;
   s.clearT = 0;
+  s.inbox = [];
+  s.gateT = 0;
+  s.sealed = false;
+  s.slow = 0;
+  s.alerted = false;
   s.phase = 'play';
   s.pt = 0;
   s.starOk = [false, false, false];
@@ -293,19 +312,26 @@ function newStage(s: HopState) {
 }
 
 // ───────────────────────────── 때리기 ─────────────────────────────
-function kill(s: HopState, m: Mon, src: number) {
+function kill(s: HopState, m: Mon, src: number, how = 0) {
   if (m.dead) return;
   m.dead = true;
   s.kills++;
   let n = 0;
   if (src > 0 && src === s.hop.id) {
     n = ++s.hop.n;
-    s.best = Math.max(s.best, n);
-    s.sp += 4 * n * n; // n번째는 4·n² — 한 번에 많이 터뜨릴수록 훨씬 크다
-    if (n === WOW_N) wow(s, `${n}마리 한 방!`, n);
-    else if (n > WOW_N && s.big) (s.big.text = `${n}마리 한 방!`), (s.big.n = n), (s.big.t = Math.max(s.big.t, s.t - 8));
-  } else s.sp += 5;
-  corpse(s, m, 0, n);
+    s.sp += Math.ceil((n * n) / 4); // n번째는 ⌈n²/4⌉점 — 한 번에 많이 터뜨릴수록 훨씬 크다
+    if (!s.sealed && n > s.best) {
+      // 이 판 최고 기록을 넘는 중 — 큰 띠는 이때(넷부터)와 별 셋째를 딸 때만
+      const star = s.best < STAGES[s.stage].n && n >= STAGES[s.stage].n;
+      s.best = n;
+      if (n >= WOW_N || star) {
+        if (s.big && s.big.hop === s.hop.id && s.big.n > 0) (s.big.text = `${n}마리 한 방!`), (s.big.n = n), (s.big.t = Math.max(s.big.t, s.t - 8));
+        else wow(s, `${n}마리 한 방!`, n);
+        if (star) (s.big!.star = true), ev(s, 'star3', m.x, m.y - m.r);
+      }
+    }
+  } else s.sp += 1;
+  corpse(s, m, how, n);
   ev(s, 'kill', m.x, m.y - m.r, n, 0, 0, m.k);
   if (m.spore > 0) s.q.push({ t: s.t + 6, k: 'burst', x: m.x, y: m.y, r: 0.115, dmg: 18 * skillMul(s), src, left: 0, hit: [] });
 }
@@ -320,16 +346,15 @@ function hurt(s: HopState, m: Mon, amt: number, src: number, kx = 0, ky = 0) {
     ev(s, 'shield', m.x, m.y - m.r * 1.6, Math.round(amt));
     if (m.shield <= 0) {
       m.shield = 0;
-      m.stun = 270;
+      m.stun = 420;
       m.st = IDLE;
       m.tm = 0;
+      // 별 셋째('보호막을 깨는 동안 한 번에 N마리')는 여기서 정해진다 — 이제 대장 몸은 언제 타도 되는 순수한 보상
+      s.sealed = true;
       wow(s, '보호막 와장창!');
       ev(s, 'break', m.x, m.y - m.r);
       see(s, 'break');
       s.spot = { id: m.id, t: s.t, label: '대장 몸에 타기!' };
-      // 졸개들이 대장을 지키러 뛰어든다 — 마당이 찼을 때 대장 몸에 타면 싹쓸이
-      s.summonT = -260;
-      s.q.push({ t: s.t + 70, k: 'guard', x: m.x, y: m.y, r: 0, dmg: 0, src: 0, left: 0, hit: [] });
     }
     return;
   }
@@ -406,7 +431,7 @@ function abandon(s: HopState, b: Mon) {
   const r = popR(s, b.k), dmg = popDmg(s), src = s.hop.id;
   b.dead = true;
   s.kills++;
-  s.sp += 5;
+  s.sp += 1;
   corpse(s, b, 3);
   ev(s, 'pop', b.x, b.y, 0, r, 0, b.k);
   see(s, 'pop');
@@ -466,6 +491,11 @@ function arrive(s: HopState) {
   m.ult = 0;
   m.spore = 0;
   m.cool = 20;
+  m.tm = 0;
+  m.legs = 0;
+  m.hits = [];
+  m.gulp = 0;
+  s.alerted = false;
   s.gx = m.x;
   s.gy = m.y - m.r;
   s.inT = s.t;
@@ -580,7 +610,7 @@ function skillStep(s: HopState, m: Mon) {
       break;
     case 'frog':
       if (t === 7) {
-        const list = s.mons.filter((o) => hittable(s, o) && !KD[o.k].boss && dist(m.x, m.y, o.x, o.y) < FROG_R).sort((a, b) => dist(m.x, m.y, a.x, a.y) - dist(m.x, m.y, b.x, b.y)).slice(0, 12);
+        const list = s.mons.filter((o) => hittable(s, o) && !KD[o.k].boss && dist(m.x, m.y, o.x, o.y) < FROG_R).sort((a, b) => dist(m.x, m.y, a.x, a.y) - dist(m.x, m.y, b.x, b.y)).slice(0, 6);
         ev(s, 'tongue', m.x, m.y - m.r, list.length);
         list.forEach((o, i) => {
           const d = dist(m.x, m.y, o.x, o.y), go = Math.max(0, d - (m.r + o.r + 0.008 + (i % 3) * 0.02)), a = angTo(o.x, o.y, m.x, m.y);
@@ -601,7 +631,7 @@ function skillStep(s: HopState, m: Mon) {
         blast(s, m.x, m.y, MOLE_R, 70 * mul, src, 0.03);
         m.dead = true;
         s.kills++;
-        s.sp += 5;
+        s.sp += 1;
         corpse(s, m, 2);
         s.me = 0;
         s.gx = m.x;
@@ -705,7 +735,7 @@ function strike(s: HopState, m: Mon) {
       const src = s.t - s.hop.t < 150 ? s.hop.id : 0;
       m.dead = true;
       s.kills++;
-      s.sp += 5;
+      s.sp += 1;
       corpse(s, m, 2);
       ev(s, 'boom', m.x, m.y, 1, f.r, 0, m.k);
       blast(s, m.x, m.y, f.r, 30, src, 0.02);
@@ -764,13 +794,21 @@ function spar(s: HopState, m: Mon) {
 function foeStep(s: HopState, m: Mon) {
   const d = KD[m.k], f = d.foe;
   if (m.st === ENTER) {
-    const u = clamp(1 - --m.tm / ENTER_T, 0, 1);
+    const u = clamp(1 - --m.tm / m.et, 0, 1);
     m.x = m.fx0 + (m.ax - m.fx0) * u;
     m.y = m.fy0 + (m.ay - m.fy0) * u;
     if (m.tm <= 0) (m.st = IDLE), (m.x = m.ax), (m.y = m.ay), ev(s, 'land', m.x, m.y, 0, 0, 0, m.k);
     return;
   }
   if (m.st === CLAIM) return;
+  if (m.gulp > 0) {
+    // 개구리 혀에 끌려가는 중 → 꿀꺽
+    if (--m.gulp === 0) {
+      const b = body(s);
+      if (b && b.k === 'frog' && dist(m.x, m.y, b.x, b.y) < 0.16) (b.hp = Math.min(b.max, b.hp + 4)), (b.atkT = s.t), ev(s, 'gulp', b.x, b.y - b.r, 0, 0, 0, m.k), kill(s, m, 0, 4);
+    }
+    return;
+  }
   if (m.dom > 0) m.dom--;
   if (m.frozen > 0) return void m.frozen--;
   if (m.stun > 0) return void m.stun--;
@@ -830,34 +868,199 @@ function foeStep(s: HopState, m: Mon) {
   else if (dd > reach * 0.92) walk(s, m, a, d.spd * MAD_SPD);
   else if (Math.abs(Math.cos(a)) > 0.25) m.face = Math.cos(a) > 0 ? 1 : -1;
 }
-/** 내 몸: 가장 가까운 적에게 걸어가 저절로 싸운다 */
+/** 내 몸: 몸마다 다른 짓을 저절로 한다 — 타고 있는 동안이 구경거리 (이렇게 쓰러뜨린 적은 '한 번에' 수에 안 든다) */
 function myStep(s: HopState, m: Mon) {
   if (m.inv > 0) m.inv--;
   if (m.st === SKILL) return skillStep(s, m);
-  if (m.air > 0) return;
   if (m.cool > 0) m.cool--;
-  const d = KD[m.k];
+  const d = KD[m.k], mul = skillMul(s);
   let o: Mon | null = null, od = 1e9;
   for (const q of s.mons) {
     if (!hittable(s, q)) continue;
     const dq = dist(m.x, m.y, q.x, q.y) - q.r * 0.6;
     if (dq < od) (od = dq), (o = q);
   }
-  if (!o) return;
-  // 대장 몸: 큰 기술을 저절로 되풀이한다 (싹쓸이)
-  if (d.boss && ++m.ult >= 150 && others(s) >= 3) return void ((m.st = SKILL), (m.sk = 0), (m.sksrc = 0), (m.ult = 0));
-  const a = angTo(m.x, m.y, o.x, o.y);
-  if (od > d.me.range) walk(s, m, a, d.spd * 1.2);
-  else {
-    if (Math.abs(Math.cos(a)) > 0.25) m.face = Math.cos(a) > 0 ? 1 : -1;
-    if (m.cool <= 0) {
-      m.cool = d.me.per;
-      m.atkT = s.t;
-      m.ang = a;
-      ev(s, 'myhit', o.x, o.y - o.r, 0, 0, 0, m.k);
-      if (d.me.range > 0.2) s.lines.push({ k: m.k === 'frog' ? 0 : 2, x0: m.x, y0: m.y - m.r, x1: o.x, y1: o.y - o.r, t: s.t, id: 0 });
-      blast(s, o.x, o.y, d.me.r, d.me.dmg * skillMul(s), 0, 0.008);
+  const a = o ? angTo(m.x, m.y, o.x, o.y) : m.ang;
+  const turn = () => void (Math.abs(Math.cos(a)) > 0.25 && (m.face = Math.cos(a) > 0 ? 1 : -1));
+  switch (m.k) {
+    case 'bear':
+      // 느리지만 한 방이 크다: 주먹을 번쩍 들었다가 퍽! 맞은 놈이 날아가며 줄줄이 넘어뜨린다
+      if (m.tm > 0) {
+        if (--m.tm === 0) {
+          const t = s.mons.find((q) => q.id === m.spar && hittable(s, q));
+          m.atkT = s.t;
+          m.cool = 56;
+          if (t && dist(m.x, m.y, t.x, t.y) < 0.2) {
+            const pa = angTo(m.x, m.y, t.x, t.y);
+            m.ang = pa;
+            ev(s, 'punch', t.x, t.y - t.r, 0, 0, 0, m.k);
+            hurt(s, t, 44 * mul, 0, Math.cos(pa) * 0.06, Math.sin(pa) * 0.06);
+          }
+        }
+        break;
+      }
+      if (!o) break;
+      if (od > 0.095) walk(s, m, a, d.spd * 1.3);
+      else if (m.cool <= 0) (m.tm = 18), (m.spar = o.id), (m.ang = a), turn(), ev(s, 'windup', m.x, m.y - m.r * 2);
+      else turn();
+      break;
+    case 'hedge': {
+      // 데굴데굴 핀볼: 멈추지 않고 굴러다니며 벽과 적에 통통 튕긴다
+      if (!m.legs) (m.legs = 9), (m.ang = o ? a : m.seed), (m.ult = 0);
+      const c = Math.cos(m.ang), sn = Math.sin(m.ang);
+      m.x += c * 0.0125;
+      m.y += sn * 0.0125 * YS;
+      m.walkT = s.t;
+      m.wa = m.ang;
+      if (Math.abs(c) > 0.2) m.face = c > 0 ? 1 : -1;
+      if (m.sk > 0) m.sk--;
+      else m.ult = 0;
+      let hit = false;
+      for (const q of s.mons) {
+        if (!hittable(s, q) || q.dom > 0) continue;
+        const dq = dist(m.x, m.y, q.x, q.y);
+        if (dq > (m.r + q.r) * 0.85) continue;
+        // 범퍼: 적은 밀려나고 나는 반대로 튕긴다 (이어 튕길수록 소리가 올라간다)
+        const nx = dq > 1e-5 ? (m.x - q.x) / dq : 1, ny = dq > 1e-5 ? (m.y - q.y) / YS / dq : 0, dot = c * nx + sn * ny;
+        q.dom = 20;
+        m.ult = Math.min(12, m.ult + 1);
+        m.sk = 50;
+        ev(s, 'ping', q.x, q.y - q.r, m.ult);
+        hurt(s, q, 7 * mul, 0, -nx * 0.018, -ny * 0.018);
+        if (dot < 0) m.ang = Math.atan2(sn - 2 * dot * ny, c - 2 * dot * nx);
+        hit = true;
+        break;
+      }
+      const dc = dist(m.x, m.y, CX, CY);
+      if (!hit && dc >= AR - m.r * 0.6) {
+        const nx = (m.x - CX) / dc, ny = (m.y - CY) / YS / dc, dot = c * nx + sn * ny;
+        keepIn(m);
+        let na = Math.atan2(sn - 2 * dot * ny, c - 2 * dot * nx);
+        if (o) {
+          // 벽에서는 적이 많은 쪽으로 반쯤 꺾는다
+          const df = bestDir(s, m.x, m.y, 0.06, 7 * mul, true) - na;
+          na += Math.atan2(Math.sin(df), Math.cos(df)) * 0.5;
+        }
+        m.ang = na;
+        ev(s, 'wall', m.x, m.y);
+      }
+      break;
     }
+    case 'goat': {
+      // 마당을 가로질러 박고, 벽에 쿵 하고는 돌아서 또 박는다
+      if (m.tm > 0) {
+        m.tm--;
+        break;
+      }
+      if (!o) break;
+      if (!m.legs) (m.legs = 1), (m.hits = []), (m.ang = bestDir(s, m.x, m.y, GOAT_W, 9 * mul, dist(m.x, m.y, CX, CY) > AR * 0.55)), ev(s, 'charge', m.x, m.y, 0, 0, 0, m.k);
+      const c = Math.cos(m.ang), sn = Math.sin(m.ang);
+      m.x += c * 0.019;
+      m.y += sn * 0.019 * YS;
+      m.walkT = s.t;
+      m.wa = m.ang;
+      if (Math.abs(c) > 0.2) m.face = c > 0 ? 1 : -1;
+      for (const q of s.mons) {
+        if (!hittable(s, q) || m.hits.includes(q.id)) continue;
+        if (dist(m.x, m.y, q.x, q.y) > GOAT_W + q.r * 0.6) continue;
+        m.hits.push(q.id);
+        const side = Math.sign(-(q.x - m.x) * sn + ((q.y - m.y) / YS) * c) || 1;
+        ev(s, 'bonk', q.x, q.y - q.r, 0, 0, 0, m.k);
+        hurt(s, q, 9 * mul, 0, c * 0.03 - sn * side * 0.014, sn * 0.03 + c * side * 0.014);
+      }
+      if (dist(m.x, m.y, CX, CY) >= AR - m.r * 0.6) keepIn(m), (m.legs = 0), (m.tm = 18), ev(s, 'thud', m.x, m.y);
+      break;
+    }
+    case 'frog':
+      // 2초마다 혀로 하나를 끌어와 꿀꺽 (큰 놈은 못 삼키고 찰싹 끌어오기만)
+      turn();
+      if (m.cool <= 0 && o) {
+        let t: Mon | null = null, tv = 0.47;
+        for (const q of s.mons) {
+          if (!hittable(s, q) || KD[q.k].boss || q.gulp > 0) continue;
+          const v = dist(m.x, m.y, q.x, q.y) + (q.hp > 34 * mul ? 0.25 : 0);
+          if (v < tv) (tv = v), (t = q);
+        }
+        if (t) {
+          const dq = dist(m.x, m.y, t.x, t.y), ta = angTo(t.x, t.y, m.x, m.y), go = Math.max(0, dq - m.r * 0.5);
+          m.cool = 104;
+          m.atkT = s.t;
+          m.ang = ta + Math.PI;
+          m.face = t.x > m.x ? 1 : -1;
+          s.lines.push({ k: 0, x0: m.x, y0: m.y - m.r, x1: t.x, y1: t.y - t.r, t: s.t, id: t.id });
+          ev(s, 'lick', m.x, m.y - m.r);
+          t.vx = Math.cos(ta) * go * 0.15;
+          t.vy = Math.sin(ta) * go * 0.15;
+          t.air = 14;
+          t.stun = Math.max(t.stun, 30);
+          if (t.st === WIND || t.st === DASH) (t.st = REST), (t.tm = 30);
+          if (t.hp <= 34 * mul && t.shield <= 0) t.gulp = 12;
+          else hurt(s, t, 14 * mul, 0);
+        }
+      }
+      if (o && od > 0.32) walk(s, m, a, d.spd);
+      break;
+    case 'turtle':
+      // 빙글빙글: 다가오는 적을 등껍질로 통통 튕겨 낸다
+      if (o && od > 0.03) walk(s, m, a, d.spd * 1.7);
+      if ((s.t + m.seed) % 22 === 0 && o && od < 0.22) ev(s, 'whirl', m.x, m.y, 0, 0.13);
+      for (const q of s.mons) {
+        if (!hittable(s, q) || q.dom > 0) continue;
+        const dq = dist(m.x, m.y, q.x, q.y);
+        if (dq > m.r + q.r + 0.014) continue;
+        const qa = dq > 1e-5 ? angTo(m.x, m.y, q.x, q.y) : q.seed;
+        q.dom = 22;
+        ev(s, 'bump2', q.x, q.y - q.r);
+        hurt(s, q, 5 * mul, 0, Math.cos(qa) * 0.024, Math.sin(qa) * 0.024);
+      }
+      break;
+    case 'cloud':
+      // 둥실 떠다니며 가까운 적부터 셋에게 찌릿찌릿
+      if (o && od > 0.12) walk(s, m, a, d.spd * 1.3);
+      if (m.cool <= 0 && o && od < 0.36) (m.cool = 64), (m.atkT = s.t), s.q.push({ t: s.t, k: 'bolt', x: m.x, y: m.y, r: 0.4, dmg: 9 * mul, src: 0, left: 3, hit: [] });
+      break;
+    case 'shroom':
+      // 뒤뚱뒤뚱 걸으며 포자를 퐁퐁: 묻은 적은 터질 때 옆도 터뜨린다
+      if (o && od > 0.08) walk(s, m, a, d.spd * 1.3);
+      if (m.cool <= 0 && o && od < 0.19) {
+        m.cool = 80;
+        m.atkT = s.t;
+        ev(s, 'puff', m.x, m.y, 0, 0.18);
+        for (const q of s.mons) if (hittable(s, q) && dist(m.x, m.y, q.x, q.y) < 0.18) (q.spore = 900), hurt(s, q, 4 * mul, 0);
+      }
+      break;
+    case 'tanuki':
+      // 분신 둘과 함께 나뭇잎을 휙휙 던진다
+      if (o && od > 0.22) walk(s, m, a, d.spd);
+      else turn();
+      if (m.cool <= 0 && o && od < 0.36) {
+        m.cool = 50;
+        m.atkT = s.t;
+        for (const [tx, ty] of [[m.x, m.y], ...s.decoys.map((q) => [q.x, q.y])]) {
+          let t: Mon | null = null, td = 0.36;
+          for (const q of s.mons) if (hittable(s, q) && dist(tx, ty, q.x, q.y) < td) (td = dist(tx, ty, q.x, q.y)), (t = q);
+          if (!t) continue;
+          s.lines.push({ k: 1, x0: tx, y0: ty - 0.05, x1: t.x, y1: t.y - t.r, t: s.t, id: 0 });
+          ev(s, 'leaf', t.x, t.y - t.r);
+          hurt(s, t, 6 * mul, 0);
+        }
+      }
+      break;
+    default:
+      // 콩알이는 폴짝 깨물고, 대장 몸은 쿵쿵 걸으며 큰 기술을 저절로 되풀이한다 (싹쓸이)
+      if (!o) break;
+      if (d.boss && ++m.ult >= 150 && others(s) >= 3) return void ((m.st = SKILL), (m.sk = 0), (m.sksrc = 0), (m.ult = 0));
+      if (od > d.me.range) walk(s, m, a, d.spd * 1.2);
+      else {
+        turn();
+        if (m.cool <= 0) {
+          m.cool = d.me.per;
+          m.atkT = s.t;
+          m.ang = a;
+          ev(s, 'myhit', o.x, o.y - o.r, 0, 0, 0, m.k);
+          blast(s, o.x, o.y, d.me.r, d.me.dmg * mul, 0, 0.008);
+        }
+      }
   }
 }
 function physics(s: HopState) {
@@ -911,12 +1114,10 @@ function queueStep(s: HopState) {
   for (const q of due) {
     if (q.k === 'burst') ev(s, 'burst', q.x, q.y, 0, q.r), blast(s, q.x, q.y, q.r, q.dmg, q.src, 0.012);
     else if (q.k === 'pop2') ev(s, 'pop', q.x, q.y, q.left ? 2 : 1, q.r), blast(s, q.x, q.y, q.r, q.dmg, q.src, 0.018);
-    else if (q.k === 'guard') {
-      if (!s.rode && s.mons.some((m) => KD[m.k].boss && !m.dead)) spawn(s, [...(STAGES[s.stage].summon ?? []), ['bean', 4]], false), ev(s, 'wave', CX, CY, 8);
-    } else if (q.k === 'swarm') {
+    else if (q.k === 'swarm') {
       s.swarmed = true;
-      spawn(s, STAGES[s.stage].swarm ?? [], false);
-      ev(s, 'wave', CX, CY, 9);
+      enqueue(s, STAGES[s.stage].swarm ?? []);
+      ev(s, 'wave', GATE_X, GATE_Y, 9);
     } else {
       // 번개 한 칸: 가장 가까운, 아직 안 맞은 적으로
       let o: Mon | null = null, od = q.r;
@@ -950,7 +1151,7 @@ function clearStage(s: HopState) {
   s.lv++;
   see(s, 'lv' + s.lv);
   s.spot = null;
-  if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS + s.hearts * 300);
+  if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS + s.hearts * 30);
   ev(s, 'clear', CX, CY, s.got);
 }
 function advance(s: HopState) {
@@ -971,8 +1172,9 @@ function playStep(s: HopState) {
     if (s.charge >= 1) (s.readyT = s.t), ev(s, 'ready', b.x, b.y);
   }
   if (b) (s.gx = b.x), (s.gy = b.y - b.r);
-  // 몸 밖의 유령: 3초(1판은 얼마든지) 안에 아무 적이나 톡 — 지나면 하트 -1 뒤 가장 가까운 적에게 저절로
-  if (!b && !s.fly && !s.home && s.dizzy === 0 && s.stage > 0 && s.mons.some((m) => ridable(s, m))) {
+  const floating = !b && !s.fly && !s.home;
+  // 몸 밖의 유령: 4초(1판은 얼마든지) 안에 아무 적이나 톡 — 지나면 하트 -1 뒤 가장 가까운 적에게 저절로(막힘 없음)
+  if (floating && s.dizzy === 0 && s.stage > 0 && s.mons.some((m) => ridable(s, m))) {
     if (++s.out >= OUT_T) {
       s.hearts--;
       ev(s, 'heart', s.gx, s.gy);
@@ -983,6 +1185,14 @@ function playStep(s: HopState) {
       if (o) hopTo(s, o);
     }
   }
+  // 유령이 떠다니는 동안 세상은 살짝 느리게 흐른다 (다음 몸을 고를 틈)
+  if (floating) {
+    s.slow += FLOAT_SLOW;
+    if (s.slow < 1) return;
+    s.slow -= 1;
+  }
+  // 한 몸에 오래 있어 멀리서도 몰려오기 시작하는 순간: 내 몸 위에 '!' 한 번
+  if (b && !s.alerted && s.t - s.inT > AGGRO_WAIT && s.mons.some((m) => !m.mad && hittable(s, m))) (s.alerted = true), ev(s, 'alert', b.x, b.y - b.r * 2);
   for (const m of s.mons) {
     if (m.dead) continue;
     if (m.id === s.me) myStep(s, m);
@@ -995,17 +1205,20 @@ function playStep(s: HopState) {
     s.decoys = s.decoys.filter((q) => q.hp > 0);
   }
   if (s.mons.some((m) => m.dead)) s.mons = s.mons.filter((m) => !m.dead);
-  // 다음 떼 · 대장의 졸개 부르기
-  const n = others(s);
-  if (s.hopped) s.waveT++;
-  if (s.hopped && s.wave < d.waves.length) {
-    const w = d.waves[s.wave], size = w.mons.reduce((a, q) => a + q[1], 0);
-    if (n <= w.need || (s.waveT >= w.wait && n + size <= CAP)) spawnWave(s);
+  // 문으로 우르르: 줄 선 떼가 자리가 나는 대로 한 마리씩 들어온다
+  if (s.inbox.length && --s.gateT <= 0 && others(s) < CAP) {
+    const k = s.inbox.shift()!, kd = KD[k], [x, y] = freeSpot(s, kd.r, AR - 0.05 - kd.r, 0.04);
+    add(s, k, x, y, true);
+    s.gateT = GATE_EVERY;
   }
+  // 다음 물결(마당의 적이 줄면 쉴 틈 없이) · 대장의 졸개 부르기
+  const n = others(s) + s.inbox.length;
+  if (s.hopped) s.waveT++;
+  if (s.hopped && s.wave < d.waves.length && (n <= d.waves[s.wave].need || s.waveT >= d.waves[s.wave].wait)) spawnWave(s);
   const boss = d.shield ? s.mons.find((m) => KD[m.k].boss && m.id !== s.me) : undefined;
-  if (boss && s.hopped && d.summon) {
+  if (boss && s.hopped && d.summon && !s.inbox.length) {
     const minions = n - 1;
-    if (++s.summonT >= 260 || (minions <= 2 && s.summonT >= 40)) (s.summonT = 0), minions <= 6 && (spawn(s, d.summon, false), ev(s, 'summon', boss.x, boss.y - boss.r));
+    if (++s.summonT >= 150 || (minions <= 4 && s.summonT >= 30)) (s.summonT = 0), minions <= 9 && (enqueue(s, d.summon), ev(s, 'summon', boss.x, boss.y - boss.r));
   }
   const pending = s.q.some((q) => q.k === 'swarm') || (!!d.swarm && s.rode && !s.swarmed);
   if (s.hopped && s.wave >= d.waves.length && n === 0 && !s.fly && !pending) {
@@ -1040,7 +1253,7 @@ const game: GameDef<HopState> & { wows(s: HopState): number } = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'play', pt: 0, hearts: 3, pts: 0, sp: 0, stars: 0, got: 0, starOk: [false, false, false], dead: false, won: false,
       lv: 1, perk: [0, 0], picked: -1, dex: [], newDex: [], mons: [], nid: 0, me: 0, gx: HOME_X, gy: HOME_Y, home: true, fly: null,
       charge: 1, dizzy: 0, out: 0, hopped: false, hops: 0, inT: 0, hop: { id: 0, t: -999, n: 0 }, best: 0, kos: 0, kills: 0, gain: 0,
-      wave: 0, waveT: 0, summonT: 0, swarmed: false, rode: false, clearT: 0, decoys: [], q: [], corpses: [], events: [], lines: [],
+      wave: 0, waveT: 0, summonT: 0, swarmed: false, rode: false, clearT: 0, inbox: [], gateT: 0, sealed: false, slow: 0, alerted: false, decoys: [], q: [], corpses: [], events: [], lines: [],
       freeze: 0, down: false, wowN: 0, firstTap: -1, firstBig: -1, denyT: -99, readyT: -99, seen: new Set<string>(), banner: null, spot: null, big: null,
     } as HopState;
     newStage(s);
@@ -1176,25 +1389,21 @@ export const bodyhopSmart: Bot<HopState> = {
     if (mid) return mid;
     if (!canHop(s)) return NO;
     const b = body(s), d = STAGES[s.stage];
-    // 대장 판: 보호막이 있는 동안은 별을 노리지 않고(졸개 몸으로는 모자란다) 대장 곁에서 부지런히 펑 — 별은 대장 몸에 탈 때 딴다
-    const shielded = s.mons.some((m) => KD[m.k].boss && m.shield > 0 && !m.dead);
-    const seek = s.best < d.n && !shielded, n = others(s), want = Math.min(Math.max(1, n - 1), seek ? d.n : shielded ? 3 : 5);
+    // 별 셋째는 (대장 판에서는 보호막이 깨지기 전까지) 한 번에 N마리 — 아직이면 붐빌 때까지 버틴다
+    const seek = s.best < d.n && !s.sealed, n = others(s), want = Math.min(Math.max(1, n - 1), seek ? d.n : 5);
     let best: Mon | null = null, bv = -1e9, bk = 0, setup: Mon | null = null, sn = 0, popNow = 0;
     for (const m of s.mons) {
       if (!ridable(s, m)) continue;
       const j = judge(s, m);
       let v = j.kills + j.soft + KD[m.k].hp * 0.012 + KD[m.k].pop * 6;
-      // 대장 몸은 아낀다: 별이 아직이면 마당이 찼을 때만 탄다
-      if (KD[m.k].boss) v += seek && j.kills < want && n > 1 ? -50 : 4;
+      // 보호막이 깨진 대장 몸은 바로 탄다 (순수한 보상)
+      if (KD[m.k].boss) v += 50;
       if (!s.dex.includes(m.k)) v += 1.5;
       if (v > bv) (bv = v), (best = m), (bk = j.kills);
       if (j.near > sn) (sn = j.near), (setup = m);
       popNow = j.pop;
     }
     if (!best) return NO;
-    // 보호막이 깨진 대장: 지키러 오는 졸개가 다 내려앉으면 탄다 (마당이 가장 찼을 때 싹쓸이)
-    const open = s.best < d.n ? s.mons.find((m) => KD[m.k].boss && ridable(s, m)) : undefined;
-    if (open && b && b.hp / b.max >= 0.3) return s.q.some((q) => q.k === 'guard') || s.mons.some((m) => m.st === ENTER) ? NO : tapOn(open);
     if (!b) return tapOn(setup && seek && sn >= 7 && bk < want ? setup : best);
     const key = `${s.stage}:${s.hop.id}`;
     let w = waitMem.get(s);
@@ -2772,7 +2981,7 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
     const kd = KD[m.k], mine = m.id === s.me, u = R(m.r) * depth(m.y), ph = m.seed % 97;
     let x = X(m.x), y = Y(m.y), z = 0, sx = 1, sy = 1, rot = 0;
     if (m.st === ENTER) {
-      const q = clamp(1 - m.tm / ENTER_T, 0, 1);
+      const q = clamp(1 - m.tm / m.et, 0, 1);
       z = Math.sin(q * Math.PI) * R(0.17);
       rot = (1 - q) * 0.7 * (m.fx0 < m.ax ? 1 : -1);
     } else if (m.air > 0) z = Math.sin(Math.min(1, m.air / 12) * Math.PI) * R(0.04);
