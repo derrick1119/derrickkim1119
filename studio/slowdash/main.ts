@@ -6,7 +6,7 @@ import { TICK } from './core.ts';
 import { peek } from './juice.ts';
 import { STAGES, STAGE_COUNT, TRIAL, WORLD_LOCK, slowdash as g, startStage, textWarm, useOwl, warmText, worldStars, type DashState, type WarmText } from './game.ts';
 import { sfx } from './sfx.ts';
-import { pixelText } from './pix.ts';
+import { pixelText, pxtFrame, pxtStat } from './pix.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('slowdash:' + k) ?? 0); } catch { return 0; } },
@@ -29,13 +29,14 @@ picker.hidden = true;
 root.append(canvas, overlay, picker);
 const ctx = canvas.getContext('2d', { alpha: false })!;
 if (new URLSearchParams(location.search).get('pxt') !== '0') pixelText(ctx); // 🎨 M3 F3 'AI 티' ①: 판 캔버스의 글을 도트 글로(?pxt=0 이면 끔 · 비교용)
+(window as unknown as { __slowdashPxt?: typeof pxtStat }).__slowdashPxt = pxtStat; // 측정용: 구운 글 수·시간·예산 넘김
 const PXT = new URLSearchParams(location.search).get('pxt') !== '0';
 /** 🎨 F3: 머리말 DOM 글을 도트 글 캔버스 한 장으로(웹 글꼴 → 도트 · 읽는 글은 aria-label로 남김) */
 function pxLabel(el: HTMLElement, parts: [string, string][], font: string, hgt: number) {
   if (!PXT) return void (el.textContent = parts.map(([t]) => t).join(''));
   if (!el.hasAttribute('aria-label')) el.setAttribute('aria-label', parts.map(([t]) => t).join(''));
   const c = document.createElement('canvas'), x = c.getContext('2d')!, d = Math.min(2, window.devicePixelRatio || 1);
-  pixelText(x);
+  pixelText(x, false); // 머리말은 한 번만 그림 → 예산 없이 바로 굽기
   x.font = font;
   const w = Math.ceil(parts.reduce((a, [t]) => a + x.measureText(t).width, 0)) + 6;
   (c.width = w * d), (c.height = hgt * d), (c.style.width = `${w}px`), (c.style.height = `${hgt}px`), (c.style.imageRendering = 'pixelated'), (c.style.display = 'block'), (c.style.margin = '0 auto');
@@ -160,6 +161,7 @@ function warmTick(dt: number) {
   (window as unknown as { __slowdashWarm?: number }).__slowdashWarm = warmQ.length; // 측정용: 남은 글 수
 }
 function draw() {
+  pxtFrame();
   g.draw(ctx, s, W, H, pal);
   ctx.save();
   ctx.translate(0, H - W * aspect); // 떠오르는 글·파티클도 세상과 같이 내려간다(M3 S9)

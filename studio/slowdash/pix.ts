@@ -207,23 +207,36 @@ export const hand = () => sprite('hd', () => grid(['..w', '..ww', '..ww', '..ww.
 // ── 🎨 M3 F3 'AI 티' ① 도트 글자(💬 오너 "AI로 제작된 티가 많이 난다" → 🎨 가장 큰 원인 = 도트 세상 위 매끈한 웹 글꼴) ──
 //   캔버스 글을 화면 밖에 한 번 작게 쓰고 → 가장자리를 딱 끊고(알파 > 128만) → (테 글이면) 1칸 테를 두른 뒤 굽는다. 그다음엔 늘 drawImage(부드럽게 하기 끔).
 //   부르는 쪽(fillText·strokeText)은 그대로 — 판 캔버스의 두 함수를 갈아 끼운다. 글 크기 ≥ 44px만 2칸이 한 글자 점, 나머지는 1칸(37px 제목도 2칸이면 '벽'의 ㅂ이 메워졌음).
-const PTC = new Map<string, { c: HTMLCanvasElement; q: number; w: number; asc: number; desc: number }>();
+type Glyph = { c: HTMLCanvasElement; q: number; w: number; asc: number; desc: number };
+const PTC = new Map<string, Glyph>();
 const PAD = 2;
-function glyphs(font: string, txt: string, style: string, outline: boolean) {
+// 렉(5ce7c59 perf: 켠 뒤 3초 ≤50ms 27·29 → 9/30): 새 글이 한 프레임에 몰려 처음 굽기가 쌓였다 → 한 프레임에 굽는 시간을 2.5ms로 묶고,
+//   넘친 글은 그 프레임만 보통 글로 그린다(다음 프레임에 굽힘) · 굽는 판은 한 장을 돌려 쓰고, 다 구운 글은 보통 캔버스에 옮긴다(읽기용 캔버스는 그리기가 느림)
+export const pxtStat = { n: 0, ms: 0, max: 0, skip: 0 };
+let SCR: CanvasRenderingContext2D | null = null, spent = 0;
+/** 프레임마다 한 번(굽기 예산을 새로) */
+export function pxtFrame() {
+  spent = 0;
+}
+function glyphs(font: string, txt: string, style: string, outline: boolean, budget: boolean): Glyph | null {
   const key = font + '|' + style + '|' + (outline ? 1 : 0) + '|' + txt;
   let g = PTC.get(key);
   if (g) return g;
+  if (budget && spent > 2.5) return pxtStat.skip++, null;
+  const t0 = performance.now();
   // 🧪 F3: 굵은 글을 작게 굽자 겹획(ㄹ·ㅁ·ㅆ)이 메워져 '싹▇이'·'끝▇'이 됐다 → 굽는 크기(s)가 작을수록 가늘게 · 2칸 점은 44px 이상만
   const px = Number(/([\d.]+)px/.exec(font)?.[1] ?? 16), q = px >= 44 ? 2 : 1, sz = px / q, cap = sz < 14 ? 500 : sz < 16 ? 600 : sz < 22 ? 700 : 800;
   const src = font.replace(/[\d.]+px/, `${sz.toFixed(2)}px`).replace(/\b(bold|[1-9]00)\b/, (m) => String(Math.min(m === 'bold' ? 700 : Number(m), cap)));
-  const c = document.createElement('canvas'), x = c.getContext('2d', { willReadFrequently: true })!;
+  const x = (SCR ??= document.createElement('canvas').getContext('2d', { willReadFrequently: true })!);
   x.font = src;
-  const m = x.measureText(txt), asc = Math.ceil(m.fontBoundingBoxAscent || (px / q) * 0.82), desc = Math.ceil(m.fontBoundingBoxDescent || (px / q) * 0.24), w = Math.ceil(m.width);
-  (c.width = w + PAD * 2), (c.height = asc + desc + PAD * 2);
+  const m = x.measureText(txt), asc = Math.ceil(m.fontBoundingBoxAscent || sz * 0.82), desc = Math.ceil(m.fontBoundingBoxDescent || sz * 0.24), w = Math.ceil(m.width);
+  const W = w + PAD * 2, H = asc + desc + PAD * 2;
+  if (x.canvas.width < W || x.canvas.height < H) (x.canvas.width = Math.max(W, x.canvas.width)), (x.canvas.height = Math.max(H, x.canvas.height));
+  x.clearRect(0, 0, W, H);
   x.font = src;
   x.fillStyle = '#fff';
   x.fillText(txt, PAD, PAD + asc);
-  const im = x.getImageData(0, 0, c.width, c.height), d = im.data, W = c.width, H = c.height, on = new Uint8Array(W * H);
+  const im = x.getImageData(0, 0, W, H), d = im.data, on = new Uint8Array(W * H);
   for (let i = 0; i < W * H; i++) on[i] = d[i * 4 + 3] > 128 ? 1 : 0;
   for (let i = 0; i < W * H; i++) {
     let v = on[i];
@@ -231,22 +244,32 @@ function glyphs(font: string, txt: string, style: string, outline: boolean) {
     d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = 255;
     d[i * 4 + 3] = v ? 255 : 0;
   }
-  x.putImageData(im, 0, 0);
-  x.globalCompositeOperation = 'source-in';
-  x.fillStyle = style;
-  x.fillRect(0, 0, W, H);
+  const c = document.createElement('canvas'), o = c.getContext('2d')!;
+  (c.width = W), (c.height = H);
+  o.putImageData(im, 0, 0);
+  o.globalCompositeOperation = 'source-in';
+  o.fillStyle = style;
+  o.fillRect(0, 0, W, H);
   g = { c, q, w, asc, desc };
   if (PTC.size > 240) PTC.delete(PTC.keys().next().value!);
   PTC.set(key, g);
+  const dt = performance.now() - t0;
+  (spent += dt), pxtStat.n++, (pxtStat.ms += dt), (pxtStat.max = Math.max(pxtStat.max, dt));
   return g;
 }
 /** 판 캔버스의 fillText·strokeText를 도트 글로 갈아 끼운다(measureText·글꼴·정렬·maxWidth는 그대로 따름) */
-export function pixelText(ctx: CanvasRenderingContext2D) {
+export function pixelText(ctx: CanvasRenderingContext2D, budget = true) {
   const fill0 = ctx.fillText.bind(ctx), stroke0 = ctx.strokeText.bind(ctx);
   const draw = (txt: string, x: number, y: number, mw: number | undefined, outline: boolean) => {
     const st = outline ? ctx.strokeStyle : ctx.fillStyle;
     if (typeof st !== 'string' || !txt) return void (outline ? stroke0 : fill0)(txt, x, y, mw as number);
-    const g = glyphs(ctx.font, txt, st, outline), tw = g.w * g.q, sx = mw && tw > mw ? mw / tw : 1, a = ctx.textAlign, b = ctx.textBaseline;
+    let g = glyphs(ctx.font, txt, st, outline, budget);
+    if (g && mw && g.w * g.q > mw) { // 🧪 F3: 좁은 화면(340px)에서 그림을 옆으로 눌러 1칸 획이 빠졌다('넷'→'닛') → 작은 글로 다시 굽는다
+      const px = Number(/([\d.]+)px/.exec(ctx.font)?.[1] ?? 16);
+      g = glyphs(ctx.font.replace(/[\d.]+px/, `${Math.floor(((px * mw) / (g.w * g.q)) * 2) / 2}px`), txt, st, outline, budget) ?? g;
+    }
+    if (!g) return void (outline ? stroke0 : fill0)(txt, x, y, mw as number); // 이 프레임 굽기 예산을 다 씀 → 보통 글
+    const tw = g.w * g.q, sx = mw && tw > mw ? mw / tw : 1, a = ctx.textAlign, b = ctx.textBaseline;
     const left = x - (a === 'center' ? tw * sx / 2 : a === 'right' || a === 'end' ? tw * sx : 0) - PAD * g.q * sx;
     const base = b === 'middle' ? y + ((g.asc - g.desc) / 2) * g.q : b === 'top' || b === 'hanging' ? y + g.asc * g.q : b === 'bottom' || b === 'ideographic' ? y - g.desc * g.q : y;
     const sm = ctx.imageSmoothingEnabled;
