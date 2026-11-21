@@ -251,10 +251,12 @@
           g.globalAlpha = 1; for (let k = 0; k < 2; k++) { const life = (t * 0.3 + k * 0.5) % 1; P.glow(g, q.x + Math.sin(t + k * 2) * 10, dy - 20 - life * 90, 16 + life * 22, '#fff3dc', Math.sin(life * Math.PI) * (0.1 + 0.16 * near + 0.14 * lit)); }
         } else {
           const fo = { x: q.x, y: dy, s: 372 * SC, flip: true, sit: true, lean: 0.14 + T.ease.io(L.reach.k) * 0.1, headTilt: 0.12, legF: { foot: [16, 6] }, legB: { foot: [12, 8] }, armF: { a: 0.7, b: 0.8 }, armB: { a: 0.55, b: 0.7 }, face: Object.assign({ blush: 0.14 }, L.leoFace) };
+          const sipK = T.ease.io(L.sip.k);
+          if (sipK > 0.02) fo.armF = { hand: F.local(fo, T.lerp(q.x - 66, q.x - 34, sipK), T.lerp(dy - 22, dy - 116, sipK)) };
           if (lit < 0.97) { g.globalAlpha = (0.3 + 0.26 * near) * (1 - lit); F.person(g, Object.assign({}, fo, { style: flat(ls, '#101c33'), face: {} })); }
           const part = T.ease.io(L.part.k), gone = T.ease.io(L.gone.k);
           if (lit > 0.5 && part > 0.02) { g.globalAlpha = 0.36 * part * (1 - gone); F.person(g, Object.assign({}, fo, { style: flat(ls, '#101c33'), face: {} })); }   /* what she sees there: nothing */
-          if (lit > 0.02) { const here = lit * (1 - part); g.globalAlpha = 0.74 * here; P.glow(g, q.x - 10, dy - 90, 150, '#ffe2a8', 0.18 * here); F.person(g, Object.assign({}, fo, { style: ls })); }
+          if (lit > 0.02) { const here = lit * (1 - part); g.globalAlpha = 0.74 * here; P.glow(g, q.x - 10, dy - 90, 150, '#ffe2a8', 0.18 * here); const jk = F.person(g, Object.assign({}, fo, { style: ls })); if (sipK > 0.02 && jk && jk.handF) { P.line(g, jk.handF[0], jk.handF[1], jk.handF[0] - 26, jk.handF[1] + 9, 5, '#b98a5a'); P.fill(g, P.ellipse(jk.handF[0] - 32, jk.handF[1] + 11, 10, 6), '#b98a5a'); } }
         }
         g.restore();
       }
@@ -374,13 +376,17 @@
     /* the spoon hand: round the pot, over it with salt, or up to her mouth */
     let hx, hy, spoon = true;
     let shaker = false;
-    if (b === 1 && salt > 0.02 && salt < 0.98) { hx = 10 + Math.sin(t * 9) * 5; hy = 428 + Math.abs(Math.sin(t * 9)) * 12; spoon = false; shaker = true; g.fillStyle = '#ffffff'; for (let k = 0; k < 8; k++) g.fillRect(2 + k * 5, 466 + ((t * 170 + k * 19) % 76), 6, 6); }
+    if (b === 1 && salt > 0.02 && salt < 0.98) { hx = 4 + Math.sin(t * 9) * 5; hy = 436 + Math.abs(Math.sin(t * 9)) * 12; spoon = false; shaker = true; }
     else if (b >= 2 && !still) { hx = T.lerp(-30, j.head[0] + 50, sip); hy = T.lerp(498, j.head[1] + 38, sip); }
     else if (still) { hx = a.x + 36; hy = a.y + 30; spoon = false; }
     else { const tip = [24 + Math.cos(t * 2.2) * 44, 552 + Math.sin(t * 2.2) * 6]; hx = tip[0] - 60; hy = tip[1] - 56; P.line(g, hx - 6, hy - 10, tip[0], tip[1], 6, '#b98a5a'); spoon = false; }
     if (spoon) { P.line(g, hx, hy, hx - 34, hy + 12, 6, '#b98a5a'); P.fill(g, P.ellipse(hx - 40, hy + 14, 13, 7, 0.2), '#b98a5a'); }
-    F.person(g, Object.assign({}, a, { only: 'armF', skip: null, armF: { hand: F.local(a, hx, hy) } }));
-    if (shaker) { g.save(); g.translate(hx + 6, hy + 22); g.rotate(2.75); P.fill(g, P.rr(-13, -22, 26, 40, 6), '#f6f2ea'); P.fill(g, P.rr(-13, -28, 26, 12, 4), '#8f96a0'); g.restore(); }
+    const ja = F.person(g, Object.assign({}, a, { only: 'armF', skip: null, armF: { hand: F.local(a, hx, hy) } }));
+    if (shaker && ja && ja.handF) {
+      const sx = ja.handF[0] + 10, sy = ja.handF[1] + 16, fall = Math.max(24, 540 - sy - 36);
+      g.save(); g.translate(sx, sy); g.rotate(2.8); P.fill(g, P.rr(-17, -28, 34, 50, 8), '#f6f2ea'); P.fill(g, P.rr(-17, -36, 34, 15, 5), '#8f96a0'); g.restore();
+      g.fillStyle = '#ffffff'; for (let k = 0; k < 8; k++) g.fillRect(sx - 6 + k * 4.4, sy + 36 + ((t * 170 + k * 19) % fall), 6, 6);
+    }
     night(g, T.mix('#5d6a92', '#7d7890', (lit.lamp || 0) * 0.6 + (lit.leo || 0) * 0.25), T.mix('#e9dcc2', '#ffe9c2', lit.lamp || 0));
   };
   /* three years on: work, the child, the nights. i picks one of three evenings. */
