@@ -38,7 +38,9 @@ export function text(g, str, x, y, o = {}) {
 export function textBlock(g, str, x, y, maxW, lh, o = {}) {
   const font = o.font || FONT; g.font = `${o.weight || (font === FONT ? 700 : 400)} ${o.size || 20}px ${font}`;
   const lines = [];
-  for (const para of String(str).split('\n')) { let cur = ''; for (const word of para.split(' ')) { const t = cur ? cur + ' ' + word : word; if (g.measureText(t).width > maxW && cur) { lines.push(cur); cur = word; } else cur = t; } lines.push(cur); }
+  // 괄호 안의 낱말은 한 덩이로 묶어 줄바꿈에서 갈라지지 않게 한다
+  const chunks = para => { const out = []; let depth = 0; for (const w of para.split(' ')) { if (depth > 0 && out.length) out[out.length - 1] += ' ' + w; else out.push(w); for (const c of w) { if (c === '(') depth++; else if (c === ')') depth = Math.max(0, depth - 1); } } return out; };
+  for (const para of String(str).split('\n')) { let cur = ''; for (const word of chunks(para)) { const t = cur ? cur + ' ' + word : word; if (g.measureText(t).width > maxW && cur) { lines.push(cur); cur = word; } else cur = t; } lines.push(cur); }
   let yy = y; for (const l of lines) { text(g, l, x, yy, o); yy += lh; }
   return lines.length;
 }

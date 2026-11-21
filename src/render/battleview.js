@@ -92,14 +92,14 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   }
   const top = by - L.h * k;
   // ── 두목 싸움의 표시들 (sim/bossfight.js) ──
-  if (u.open > 0) { const p = 0.55 + 0.45 * Math.sin(T * 11); g.globalAlpha = alpha * p; g.beginPath(); g.ellipse(u.x, u.y, u.r * 1.7, u.r * 0.8, 0, 0, TAU); st(g, '#f0d264', 5); g.globalAlpha = alpha; text(g, '빈틈! 몰아쳐라', u.x, u.y + 30, { size: 28, font: FONT_B, fill: '#f0d264', stroke: INK, lw: 7 }); }
+  if (u.open > 0) { const p = 0.55 + 0.45 * Math.sin(T * 11); g.globalAlpha = alpha * p; g.beginPath(); g.ellipse(u.x, u.y, u.r * 1.7, u.r * 0.8, 0, 0, TAU); st(g, '#f0d264', 5); g.globalAlpha = alpha; }   // '빈틈' 글은 두목 체력 칸 아래에 쓴다
   if (u.charm > 0) { for (let i = 0; i < 2; i++) { g.beginPath(); g.arc(x, top - 10, 5 + i * 4, T * 7 + i * 2, T * 7 + i * 2 + 3.6); st(g, INK, 4); g.beginPath(); g.arc(x, top - 10, 5 + i * 4, T * 7 + i * 2, T * 7 + i * 2 + 3.6); st(g, '#e07ac0', 2.2); } }
   if (u.plague > 0) for (let i = 0; i < 3; i++) { const q = (T * 0.9 + i / 3 + u.id * 0.37) % 1; g.globalAlpha = alpha * (1 - q) * 0.9; ell(g, x + Math.sin(q * 6 + i * 2) * 7, by - 8 - q * (L.h * k), 3.4 - q * 1.6, 3.4 - q * 1.6, '#8ac04a', INK, 0.8); g.globalAlpha = alpha; }
   // (소품의 표식과 남은 숨은 BattleView.draw 에서 모든 인형 위에 그린다)
   if (u.ai) {
     const a = u.ai, gg = a.g;
     // 끊기 게이지: 시간이 다 가기 전에 피해를 채우면 두목의 수가 끊긴다
-    if (gg) { const w = 190, bx = x - w / 2, yy = top - 44; rr(g, bx - 8, yy - 34, w + 16, 86, 9, '#fbf3df', RED, 2.4); text(g, gg.label, x, yy - 16, { size: 20, font: FONT_B, fill: RED }); rr(g, bx - 2, yy - 2, w + 4, 20, 4, '#e3d8bd', INK, 1.6); g.fillStyle = '#d9a41e'; g.fillRect(bx, yy, w * clamp(gg.acc / gg.need, 0, 1), 16); g.fillStyle = RED; g.fillRect(bx, yy + 20, w * clamp(gg.t / gg.t0, 0, 1), 4); text(g, '두목을 몰아쳐 금빛을 채운다', x, yy + 38, { size: 15, font: FONT_B, fill: '#4a4034' }); }
+    if (gg) { const w = 190, bx = x - w / 2, yy = top - 44; rr(g, bx - 8, yy - 34, w + 16, 86, 9, '#fbf3df', RED, 2.4); text(g, gg.label, x, yy - 16, { size: 20, font: FONT_B, fill: RED }); rr(g, bx - 2, yy - 2, w + 4, 20, 4, '#e3d8bd', INK, 1.6); g.fillStyle = '#d9a41e'; g.fillRect(bx, yy, w * clamp(gg.acc / gg.need, 0, 1), 16); g.fillStyle = RED; g.fillRect(bx + 30, yy + 20, (w - 30) * clamp(gg.t / gg.t0, 0, 1), 4); text(g, '시간', bx + 13, yy + 22, { size: 11, font: FONT_B, fill: RED }); text(g, '두목을 몰아쳐 금빛을 채운다', x, yy + 38, { size: 15, font: FONT_B, fill: '#4a4034' }); }
     // 붙잡힌 영웅 / 조인 부대 / 업경대의 되비침
     if (a.grab && !a.grab.dead) { const t2 = a.grab; line(g, [u.x - dir * 18, u.y - 34, t2.x, t2.y - 22], INK, 7); line(g, [u.x - dir * 18, u.y - 34, t2.x, t2.y - 22], '#e9dfc4', 3.6); }
     if (a.coil) for (const e of a.coil.units) if (!e.dead) { for (const dy of [-6, -16]) { g.beginPath(); g.ellipse(e.x, e.y + dy, e.r * 1.25, e.r * 0.5, 0, 0, TAU); st(g, INK, 4.6); g.beginPath(); g.ellipse(e.x, e.y + dy, e.r * 1.25, e.r * 0.5, 0, 0, TAU); st(g, '#7d6a3a', 2.6); } }
@@ -375,7 +375,8 @@ export class BattleView {
         case 'plague': fx.ring(e.x, e.y, 70, '#8ac04a', 0.6, 6); fx.wisp(e.x, e.y - 20, 3); sfx('warn'); break;
         case 'bossOpen': fx.ring(e.x, e.y, 120, '#f0d264', 0.6, 8); fx.flash = Math.max(fx.flash, 0.35); fx.flashCol = '#fff3b0'; sfx('star'); break;
         case 'pounce': fx.puff(e.x, e.y - 14, 8, PAPER, 12); fx.ring(e.x, e.y, 80, OCHRE, 0.45, 7); fx.shake = Math.max(fx.shake, 7); sfx('charge'); break;
-        case 'text': { fx.add({ k: 'text', x: e.x, y: e.y, vy: e.big ? -14 : -30, drag: 1.5, s: e.s, col: e.c || INK, size: e.big ? 30 : 20, life: e.big ? 2 : 0.8, big: e.big }); if (e.big) sfx('warn'); break; }
+        case 'text': { let ty = e.y; if (e.big) for (let k = 0; k < 3; k++) { const hit = fx.p.find(q => q.big && q.t < q.life * 0.9 && Math.abs(q.x - e.x) < 230 && Math.abs(q.y - ty) < 42); if (!hit) break; ty = e.tail < 0 ? hit.y + 44 : hit.y - 44; }   // 큰 글이 겹치면 비켜 쌓는다
+          fx.add({ k: 'text', x: e.x, y: ty, vy: e.big ? -6 : -30, drag: 1.5, s: e.s, col: e.c || INK, size: e.big ? 30 : 20, life: e.big ? 2 : 0.8, big: e.big, tail: e.tail }); if (e.big) sfx('warn'); break; }
         case 'blink': fx.puff(e.x, e.y - 14, 3, '#eef3f4', 9); fx.puff(e.tx, e.ty - 14, 3, '#eef3f4', 9); break;
         case 'redraw': case 'shuffle': sfx('card'); break;
         case 'cast': {

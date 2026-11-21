@@ -143,9 +143,10 @@ const HATS = {
     path(g, p => { p.moveTo(0, -65.4); p.quadraticCurveTo(-8.4, -69, -7.2, -60.6); p.quadraticCurveTo(-2.6, -64.2, 0, -62); p.quadraticCurveTo(2.6, -64.2, 7.2, -60.6); p.quadraticCurveTo(8.4, -69, 0, -65.4); }, RED, INK, 0.9);
   },
   // 고깔
-  gokkal(g) {
-    part(g, p => { p.moveTo(-10.2, -47.4); p.lineTo(0, -65.4); p.lineTo(10.2, -47.4); p.quadraticCurveTo(0, -50.6, -10.2, -47.4); p.closePath(); }, WHITE, P(0.6, -66, 11, -66, 11, -46, 2.6, -47), { k: 0.13 });
-    line(g, [0, -65.4, 0.6, -49.4], '#b9b3a2', 0.9); curve(g, p => { p.moveTo(-10.2, -47.4); p.quadraticCurveTo(0, -50.6, 10.2, -47.4); }, RED, 1.3);
+  gokkal(g) { // 무녀의 고깔: 낮고 둥근 종이 고깔에 오방색 띠를 두르고 종이꽃을 꽂았다
+    part(g, p => { p.moveTo(-10.6, -47.4); p.quadraticCurveTo(-10.4, -58.6, 0, -60.4); p.quadraticCurveTo(10.4, -58.6, 10.6, -47.4); p.quadraticCurveTo(0, -50.6, -10.6, -47.4); p.closePath(); }, WHITE, P(0.6, -61, 11, -61, 11, -46, 2.6, -47), { k: 0.13 });
+    for (const [c, dy] of [[RED, 0], ['#e0b23c', 2], ['#2f4d7e', 4]]) curve(g, p => { p.moveTo(-10.4, -47.6 - dy); p.quadraticCurveTo(0, -50.8 - dy, 10.4, -47.6 - dy); }, c, 1.5);
+    for (const [x, y, c] of [[6.6, -55.6, RED], [3.4, -57.8, '#e0b23c'], [8.4, -52.6, '#d98aa0']]) { ell(g, x, y, 2.3, 2.3, c, INK, 0.6); ell(g, x, y, 0.7, 0.7, WHITE); }
     for (const s of [-1, 1]) { path(g, p => { p.moveTo(s * 9.4, -47.6); p.quadraticCurveTo(s * 13.6, -44, s * 11.6, -38.6); p.quadraticCurveTo(s * 9.6, -43, s * 8.2, -46.4); p.closePath(); }, WHITE, INK, 0.8); }
   },
   // 상투와 머리띠
@@ -361,8 +362,10 @@ export function dokkaebi(g, o, sel) {
     if (o.blink) for (const s of [-1, 1]) curve(g, p => { p.moveTo(s * 1.6, -38.6); p.quadraticCurveTo(s * 5.4, -36, s * 9.2, -39.4); }, INK, 1.7);
     else for (const s of [-1, 1]) { g.save(); g.beginPath(); g.moveTo(s * 1.4, -39.6); g.quadraticCurveTo(s * 5.6, -44.4, s * 10, -41.6); g.quadraticCurveTo(s * 6, -34.6, s * 1.4, -39.6); g.closePath(); g.fillStyle = '#fff3b8'; g.fill(); g.clip(); ell(g, s * 5.2, -39.6, 1.7, 2, '#8a2a1c'); ell(g, s * 5.2, -39.5, 0.8, 1.1, '#15121a'); g.restore(); curve(g, p => { p.moveTo(s * 1.4, -39.6); p.quadraticCurveTo(s * 5.6, -44.4, s * 10, -41.6); p.quadraticCurveTo(s * 6, -34.6, s * 1.4, -39.6); }, INK, 1.1); }
     for (const s of [-1, 1]) path(g, P(s * 10.6, -45.4, s * 1.2, -42, s * 1.6, -39.8, s * 10.8, -42.6), o.hair || BLACK, INK, 0.7);
-    part(g, E(0, -34.4, 2.9, 2.1), dk(sk, 0.24), null, { lw: 0.9 }); for (const s of [-1, 1]) ell(g, s * 1.2, -34.2, 0.55, 0.75, INK);
-    g.globalAlpha = 0.35; for (const s of [-1, 1]) ell(g, s * 9.6, -34, 2.4, 1.5, '#ffd9c0'); g.globalAlpha = 1;
+    // 넓적한 매부리코 (콧대와 콧방울)
+    curve(g, p => { p.moveTo(0.8, -40.4); p.quadraticCurveTo(-0.6, -37, -2.2, -35); }, dk(sk, 0.42), 1);
+    part(g, p => { p.moveTo(-4.2, -33.6); p.quadraticCurveTo(-4.2, -36.4, -1.8, -35.8); p.quadraticCurveTo(0, -37.6, 1.8, -35.8); p.quadraticCurveTo(4.2, -36.4, 4.2, -33.6); p.quadraticCurveTo(0, -32, -4.2, -33.6); p.closePath(); }, lt(sk, 0.06), null, { lw: 0.9 });
+    for (const s of [-1, 1]) curve(g, p => { p.moveTo(s * 1, -33.4); p.quadraticCurveTo(s * 2.4, -34.6, s * 3.4, -33.6); }, dk(sk, 0.5), 0.8);
     // 씩 웃는 입과 엄니
     part(g, p => { p.moveTo(-8.4, -31.6); p.quadraticCurveTo(0, -29, 8.4, -31.6); p.quadraticCurveTo(6.4, -25.6, 0, -25.6); p.quadraticCurveTo(-6.4, -25.6, -8.4, -31.6); p.closePath(); }, '#7a1f1c', R(-9, -28, 18, 4), { shc: '#4a1216', lw: 1.1 });
     path(g, p => { p.moveTo(-6.4, -30.9); p.quadraticCurveTo(0, -28.6, 6.4, -30.9); p.lineTo(5.6, -29); p.quadraticCurveTo(0, -27, -5.6, -29); p.closePath(); }, WHITE, INK, 0.6); for (const x of [-3, 0, 3]) line(g, [x, -29.8 + Math.abs(x) * 0.1, x, -27.6 + Math.abs(x) * 0.12], INK, 0.5);
@@ -378,7 +381,7 @@ export const DITEM = {
 
 // ───────── 불여우 ─────────
 export function fox(g, o = {}) {
-  const fur = o.fur || '#f8f3ea', tip = o.tip || '#8fd3e8', inner = o.fur ? '#8a5a34' : '#b9c4c8';
+  const fur = o.fur || '#ecd3a8', tip = o.tip || '#fbf7ec', inner = '#8a5a34';   // 누런 여우, 꼬리 끝은 흰빛
   for (let i = -2; i <= 2 && !o.noTail; i++) { g.save(); g.translate(0, -9); g.rotate(i * 0.44); part(g, p => { p.moveTo(-2.6, 0); p.quadraticCurveTo(-8, -18, 0, -32); p.quadraticCurveTo(8, -18, 2.6, 0); p.closePath(); }, fur, P(0.4, -34, 9, -34, 9, 1, 1.2, 1), { k: 0.1, lw: 1.1 }); part(g, p => { p.moveTo(-3.4, -22); p.quadraticCurveTo(-1, -25.6, 0, -32); p.quadraticCurveTo(1, -25.6, 3.4, -22); p.quadraticCurveTo(0, -24.6, -3.4, -22); p.closePath(); }, tip, null, { lw: 0.8 }); g.restore(); }
   part(g, p => { p.moveTo(-8.6, -3); p.quadraticCurveTo(-10.6, -16, -5, -21); p.lineTo(5, -21); p.quadraticCurveTo(10.6, -16, 8.6, -3); p.quadraticCurveTo(0, 0.6, -8.6, -3); p.closePath(); }, fur, P(2.6, -22, 11, -22, 11, 1, 4, 1), { k: 0.1 });
   for (const s of [-1, 1]) { part(g, E(s * 4.6, -1.4, 3.4, 2.4), fur, E(s * 4.6 + 1, -0.6, 3, 1.8), { k: 0.1, lw: 1 }); line(g, [s * 4.6, -0.4, s * 4.6, 0.8], '#b9b3a2', 0.6); }

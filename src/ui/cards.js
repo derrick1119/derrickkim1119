@@ -41,7 +41,7 @@ export function cardFace(g, c, x, y, w, h, o = {}) {
     const L = CARD_K[d.unit] || 1; portrait(g, d.unit, cx, cy + ss * (CARD_Y[d.unit] || 0.62), ss / (d.kind === 'lead' ? 66 : 54) * L, 0, false, c.wpn);
   }
   g.restore();
-  if (!unit) { g.setLineDash([3, 5]); g.beginPath(); g.arc(cx, cy, ss * 0.74, 0, TAU); st(g, col + '99', 1.2); g.setLineDash([]); cardIcon(g, c.id, cx, cy + (big ? 2 : 1), ss / (mini ? 36 : 40)); if (big) seal(g, x + w - 24, y + hh + 24, 25, d.sym || k.sym, col); }   // 패의 종류 표식은 그림 칸의 오른쪽 위 모서리에
+  if (!unit) { g.setLineDash([3, 5]); g.beginPath(); g.arc(cx, cy, ss * 0.74, 0, TAU); st(g, col + '99', 1.2); g.setLineDash([]); cardIcon(g, c.id, cx, cy + (big ? 2 : 1), ss / (mini ? 36 : 40)); if (big) seal(g, x + 24, y + hh + 24, 25, d.sym || k.sym, col); }   // 패의 종류 표식은 그림 칸의 오른쪽 위 모서리에
   if (!mini) { const nx = x + w / 2 + (big ? 0 : 9), ny = y + hh / 2 + 1, no = { size: big ? 27 : Math.min(19, hh * 0.62), font: FONT_B, maxW: w - (big ? 60 : 44) }; text(g, cardName(c), nx, ny + 1.4, { ...no, fill: 'rgba(8,10,24,0.32)' }); text(g, cardName(c), nx, ny, { ...no, fill: C.cream }); }
   else if (unit && (c.lv || 1) > 1) { rr(g, x + w - 26, y + h - 17, 23, 14, 3, NAVY); text(g, c.lv + '단', x + w - 14.5, y + h - 9.6, { size: 10.5, fill: '#f0d99a' }); }
   if (big) {

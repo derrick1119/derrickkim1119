@@ -17,9 +17,9 @@ const cx = x => Math.max(VIEW.x0 + 50, Math.min(VIEW.x1 - 50, x)), cy = y => Mat
 const TALL = { gumiho: 104, foxfake: 96, dueokboss: 150, warchief: 146, tigerboss: 104, serpent: 132, elder: 166, bulgaboss: 124, plague: 140, imugi: 168, skelking: 146, reaper: 134, yeomra: 168 };
 export const bossSay = (b, u, s, c) => say(b, u, s, c);
 const say = (b, u, s, c = '#c8402f') => {
-  u.sayN = ((u.sayN || 0) + 1) % 2; let y = u.y - (TALL[u.type] || 140) - 24 - u.sayN * 40;
-  if ((u.ai && u.ai.g) || y < VIEW.y0 + 18) y = Math.min(VIEW.y1 - 14, u.y + 40 + u.sayN * 40);   // 끊기 게이지가 떠 있거나 머리 위에 자리가 없으면 발밑에
-  b.ev('text', { x: Math.max(260, Math.min(1020, u.x)), y, s, c, big: true });
+  u.sayN = ((u.sayN || 0) + 1) % 2; const x = Math.max(260, Math.min(1020, u.x)), top = x > 900 || x < 380 ? 112 : VIEW.y0 + 18; let y = u.y - (TALL[u.type] || 140) - 22 - u.sayN * 40, under = false;
+  if ((u.ai && u.ai.g) || y < top) { y = Math.min(VIEW.y1 - 14, u.y + 34 + u.sayN * 40); under = true; }   // 끊기 게이지가 떠 있거나 머리 위에 자리가 없으면 발밑에
+  b.ev('text', { x, y, s, c, big: true, tail: under ? -1 : 1 });
 };
 const tele = (b, u, x, y, r, delay, o) => { const z = Object.assign({ kind: 'tele', style: 'slam', x, y, r, t: 0, delay, hits: 0, src: u }, o); b.zones.push(z); return z; };
 const mv = o => Object.keys(o).map(id => ({ id, t: o[id] }));
@@ -87,7 +87,7 @@ export const BOSS_AI = {
       const want = Math.max(1, Math.ceil(u.hp / u.maxHp * 9 - 1e-6));
       if (u.tails > want) {
         u.tails--; a.inv = 0.45; u.atk *= 1.05; if (u.tails <= 3) u.haste = 999; if (u.tails <= 1) u.rage = 999;
-        b.ev('tail', { x: u.x, y: u.y, n: u.tails }); b.ev('text', { x: cx(u.x), y: u.y - 130, s: `꼬리가 떨어졌다 — 남은 꼬리 ${u.tails}`, c: '#7a1f1c' });
+        b.ev('tail', { x: u.x, y: u.y, n: u.tails });   // 남은 꼬리는 두목 체력 칸 옆에 크게 알린다
         const k = u.tails % 3; if (k === 2) foxfire(b, u, 3); else if (k === 1) illusion(b, u); else charm(b, u, 4.5);
       }
       a.fire -= dt; if (a.fire <= 0 && u.stun <= 0 && u.x < VIEW.x1 - 30) { a.fire = 8.5; foxfire(b, u, u.tails <= 4 ? 2 : 1); }

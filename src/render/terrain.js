@@ -163,7 +163,7 @@ export function makeFar(themeId, seed = 7) {
   if (T.night) {
     for (let i = 0; i < 90; i++) { g.globalAlpha = 0.4 + R() * 0.5; ell(g, R() * FW, 60 + R() * 50, 0.8 + R() * 1.2, 0.8 + R() * 1.2, '#f4efdc'); } g.globalAlpha = 1;
     glow(1300, 86, 76, '#f4efdc', 0.42); part(g, E(1300, 86, 21, 21), '#f4efdc', E(1309, 93, 21, 21), { shc: '#dcd8c6', line: rgba(INK, 0.55), lw: 1.2 }); g.globalAlpha = 0.22; for (const [x, y, r] of [[1292, 80, 4], [1304, 90, 3], [1296, 94, 2.2]]) ell(g, x, y, r, r * 0.8, '#b9b6a8'); g.globalAlpha = 1;
-  } else if (!T.noSun) { glow(1340, 88, 70, '#d9553f', 0.32); ell(g, 1340, 88, 23, 23, '#d9553f'); g.globalAlpha = 0.35; ell(g, 1333, 81, 13, 10, '#f08a6a', null, 0, -0.5); g.globalAlpha = 1; }
+  } else if (!T.noSun) { glow(1340, 88, 70, '#e8b04a', 0.3); ell(g, 1340, 88, 21, 21, '#efc46a'); g.globalAlpha = 0.45; ell(g, 1334, 82, 12, 9, '#fbe6b0', null, 0, -0.5); g.globalAlpha = 1; }
   // 구름
   const cloud = (x, y, w) => { const h = w * 0.16; path(g, p => { p.moveTo(x - w / 2, y); p.quadraticCurveTo(x - w * 0.5, y - h * 0.9, x - w * 0.28, y - h * 0.8); p.quadraticCurveTo(x - w * 0.2, y - h * 1.9, x + w * 0.02, y - h * 1.3); p.quadraticCurveTo(x + w * 0.16, y - h * 1.8, x + w * 0.26, y - h * 0.9); p.quadraticCurveTo(x + w * 0.5, y - h, x + w / 2, y); p.closePath(); }, T.night ? 'rgba(214,220,236,0.42)' : 'rgba(255,252,242,0.82)', rgba(INK, 0.16), 1); line(g, [x - w * 0.3, y - h * 0.36, x + w * 0.2, y - h * 0.36], rgba(INK, 0.1), 0.8); };
   for (let i = 0; i < 7; i++) { const x = R() * FW, y = 78 + R() * 14, w = 70 + R() * 80; for (const xx of [x, x - FW, x + FW]) cloud(xx, y, w); }
@@ -267,10 +267,7 @@ const STOPS = {
     const col = '#8a2420';
     part(g, P(0, -94, 46, -90, 38, -78, 48, -66, 36, -56, 44, -44, 0, -40), col, P(0, -60, 50, -58, 50, -38, 0, -38), { k: 0.3, hi: P(0, -94, 46, -90, 44, -87, 0, -90.4), hk: 0.22, lw: 1.5 });
     for (const x of [13, 31]) curve(g, p => { p.moveTo(x, -91.6); p.quadraticCurveTo(x - 3, -66, x + 1, -42.6); }, dk(col, 0.42), 0.8);
-    for (const s of [-1, 1]) part(g, P(19 + s * 5, -77, 19 + s * 9.6, -86.4, 19 + s * 9.8, -75), BONE, null, { lw: 0.9 });
-    part(g, E(19, -67, 11, 12), BONE, E(23.4, -61.6, 11, 12), { k: 0.16, lw: 1.2 });
-    for (const s of [-1, 1]) poly(g, [19 + s * 1.6, -69.6, 19 + s * 7.8, -72.8, 19 + s * 6.8, -67, 19 + s * 2.2, -66.8], INK);
-    rr(g, 13.4, -62.4, 11.2, 4.6, 1, INK); for (const x of [15.6, 18.4, 21.2]) line(g, [x + 0.6, -62.4, x + 0.6, -57.8], BONE, 0.8);
+    symbol(g, 'boss', 22, -67, 24, BONE);   // 깃발의 귀면
     part(g, p => { p.moveTo(-3, -97); p.quadraticCurveTo(-9, -92, -6.4, -84); p.lineTo(-1, -85.4); p.quadraticCurveTo(-0.4, -92, 0, -97); p.closePath(); }, RED, null, { lw: 0.9 });
     stone(g, -16, -4, 14, 6, '#8e939e', 1.2); stone(g, 12, -3, 12, 5, '#a9adb6', 1.2); stone(g, -4, -10, 9, 5, '#8e939e', 1.2);
   },
@@ -279,8 +276,7 @@ const STOPS = {
     const col = elite ? '#b8322a' : '#d98a3e';
     part(g, P(0, -63, 31, -59, 23, -51, 32, -43, 0, -39), col, P(0, -50, 34, -50, 34, -38, 0, -38), { k: 0.26, hi: P(0, -63, 31, -59, 29.4, -57, 0, -60.4), hk: 0.24, lw: 1.3 });
     curve(g, p => { p.moveTo(12, -60.6); p.quadraticCurveTo(10, -50, 13, -41.2); }, dk(col, 0.42), 0.7);
-    if (elite) for (const s of [-1, 1]) part(g, P(11 + s * 2, -54.6, 11 + s * 4.6, -59.4, 11 + s * 4.4, -53.4), BONE, null, { lw: 0.7 });
-    part(g, E(11, -51, 4.6, 4.6), BONE, E(12.8, -49.2, 4.4, 4.4), { lw: 0.9 }); for (const s of [-1, 1]) ell(g, 11 + s * 1.7, -51.6, 0.9, 1.1, INK); line(g, [9.4, -48.6, 12.6, -48.6], INK, 0.8);
+    symbol(g, elite ? 'elite' : 'battle', 13, -51, 15, BONE);   // 깃발의 표
     stone(g, -10, -3, 10, 4.6, GREY[1], 1.1); stone(g, 9, -2.6, 8, 4.2, GREY[0], 1.1);
   },
   elite(g) { STOPS.battle(g, true); },

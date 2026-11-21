@@ -18,8 +18,8 @@ export function backdrop() {
   const S = 1.5, c = makeCanvas(W * S, H * S), g = c.getContext('2d'); g.scale(S, S); const R = rng(77), T = THEMES.pass, SKY = '#ecdfc2';
   const sk = g.createLinearGradient(0, 0, 0, 520); sk.addColorStop(0, '#e6d6b4'); sk.addColorStop(0.5, SKY); sk.addColorStop(1, '#f3ead2'); g.fillStyle = sk; g.fillRect(0, 0, W, H);
   // 해와 해무리
-  const halo = g.createRadialGradient(900, 250, 60, 900, 250, 210); halo.addColorStop(0, 'rgba(217,85,63,0.3)'); halo.addColorStop(1, 'rgba(217,85,63,0)'); g.fillStyle = halo; g.fillRect(690, 40, 420, 420);
-  ell(g, 900, 250, 78, 78, '#d5503b'); g.globalAlpha = 0.3; ell(g, 878, 226, 44, 34, '#f08a6a', null, 0, -0.6); g.globalAlpha = 1;
+  const halo = g.createRadialGradient(900, 250, 60, 900, 250, 210); halo.addColorStop(0, 'rgba(232,176,74,0.32)'); halo.addColorStop(1, 'rgba(232,176,74,0)'); g.fillStyle = halo; g.fillRect(690, 40, 420, 420);
+  ell(g, 900, 250, 74, 74, '#efc46a'); g.globalAlpha = 0.45; ell(g, 878, 226, 40, 30, '#fbe6b0', null, 0, -0.6); g.globalAlpha = 1;   // 옅은 금빛 해 (붉은 원판 하나는 남의 나라 깃발처럼 읽힌다)
   // 구름
   const cloud = (x, y, w) => { const h = w * 0.15; path(g, p => { p.moveTo(x - w / 2, y); p.quadraticCurveTo(x - w * 0.5, y - h * 0.9, x - w * 0.28, y - h * 0.8); p.quadraticCurveTo(x - w * 0.2, y - h * 1.9, x + w * 0.02, y - h * 1.3); p.quadraticCurveTo(x + w * 0.16, y - h * 1.8, x + w * 0.26, y - h * 0.9); p.quadraticCurveTo(x + w * 0.5, y - h, x + w / 2, y); p.closePath(); }, 'rgba(255,252,242,0.8)', rgba(INK, 0.16), 1.2); line(g, [x - w * 0.3, y - h * 0.36, x + w * 0.22, y - h * 0.36], rgba(INK, 0.1), 1); };
   cloud(1010, 300, 210); cloud(730, 196, 150); cloud(1180, 150, 170); cloud(610, 330, 120);

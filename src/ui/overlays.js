@@ -59,7 +59,7 @@ export class RewardOverlay extends Overlay {
     }
     if (this.t < lead) { brushTitle(g, 640, 34, 420, 62, '보물 상자', '#b8862a', 36); text(g, '무엇이 들었을까…', 640, 82, { size: 20, fill: C.cream }); return; }
     text(g, done ? '챙겼습니다' : lead && t <= 0 ? '무엇이 들었을까…' : '하나를 고르세요', 640, 82, { size: 20, fill: C.cream });
-    panel(g, 1070, 26, 180, 40, 'tag'); icon.coin(g, 1094, 46, 12); text(g, `엽전 ${r.gold}`, 1170, 47, { size: 20, maxW: 130 });
+    panel(g, 1070, 76, 180, 40, 'tag'); icon.coin(g, 1094, 96, 12); text(g, `엽전 ${r.gold}`, 1170, 97, { size: 20, maxW: 130 });
     p.opts.forEach((o, n) => {
       const d = describeReward(o), w = 224, h = 316, x = 264 + n * 264, k = easeOutBack(clamp((t - n * 0.1) / 0.32, 0, 1)), y = 118 + (1 - k) * 50, mine = this.taken === n;
       g.save(); g.globalAlpha = t - n * 0.1 > 0 ? 1 : 0;   // 비치지 않게, 불투명한 채로 미끄러져 들어온다
@@ -95,7 +95,7 @@ export class ShopOverlay extends Overlay {
     const r = G.run, t = this.t; if (this.msgT > 0) this.msgT -= dt;
     dim(g, 0.8);
     brushTitle(g, 640, 34, 300, 62, '장터', '#b8742a', 38);
-    panel(g, 1070, 26, 180, 40, 'tag'); icon.coin(g, 1094, 46, 12); text(g, `엽전 ${r.gold}`, 1170, 47, { size: 20, maxW: 130 });
+    panel(g, 1070, 76, 180, 40, 'tag'); icon.coin(g, 1094, 96, 12); text(g, `엽전 ${r.gold}`, 1170, 97, { size: 20, maxW: 130 });
     this.items.forEach((it, n) => {
       const d = describeReward(it), card = it.kind === 'card', col = card ? KIND[CARDS[it.id].kind].col : COL[d.col] || INDIGO, w = 286, h = 232, x = 50 + (n % 4) * 298, y = 86 + Math.floor(n / 4) * 244, afford = r.gold >= it.price;
       g.save(); if (it.sold) g.globalAlpha = 0.45;
@@ -157,15 +157,15 @@ export class ChoiceOverlay extends Overlay {
     const li = tl ? Math.floor(t / 3.4) % tl.lines.length : 0;
     const actors = tl && !this.result
       ? [[this.art, 0.17, li === 0 ? 'talk' : 'idle', 1], [tl.cast[0], 0.56, li === 0 ? 'hop' : 'idle', 1], [tl.cast[1], 0.82, li === 1 ? 'talk' : 'idle', -1]]
-      : [[r.hero, 0.27, this.result ? (rt < 0.4 ? 'tremble' : bad ? 'shake' : 'hop') : 'idle', 1], [this.result && this.after ? this.after : this.art, this.result && this.after ? 0.7 + Math.min(0.2, Math.max(0, rt - 0.6) * 0.25) : 0.7, this.result ? (rt < 0.4 ? 'shake' : 'wave') : 'talk', -1]];
+      : [[r.hero, 0.27, this.result ? (rt < 0.4 ? 'tremble' : bad ? 'shake' : 'hop') : 'idle', 1], [this.result && this.after ? this.after : this.art, this.result && this.after ? 0.66 + Math.min(0.14, Math.max(0, rt - 0.6) * 0.2) : 0.7, this.result ? (this.after ? 'hop' : rt < 0.4 ? 'shake' : 'wave') : 'talk', this.result && this.after ? 1 : -1]];
     // 주막에는 아래에 옛이야기 칸이 있고, 길 위의 사건은 무대와 글을 칸 가운데로 내려 빈자리를 줄인다
-    const sy = tl ? 138 : 140, sh = tl ? 232 : 290;
+    const sy = tl ? 138 : 146, sh = tl ? 232 : 286;
     miniStage(g, 98, sy, 464, sh, { t, bg: tl ? 'village' : STAGE_BG[chapterOf(r.ch).theme] || 'pass', actors, zoom: 1.5, open: clamp(t / 0.6, 0, 1) });
     textBlock(g, this.result ? this.result[0] : this.body, 330, tl ? (this.result ? 440 : 420) : sy + sh + 50, 480, 28, { size: 19.5, weight: 400 });
     // 주막에서 듣는 옛이야기 한 토막: 무대의 인형들이 두 마디로 들려준다
     if (tl && !this.result) {
       rr(g, 84, 492, 492, 140, 7, '#fbf3df', 'rgba(38,42,54,0.5)', 1.3); rr(g, 84, 492, 6, 140, 3, this.col);
-      text(g, `옛이야기 「${tl.title}」`, 104, 514, { size: 20, font: FONT_B, align: 'left', maxW: 300 }); if (this.tale.fresh) { rr(g, 430, 501, 134, 25, 5, this.col); text(g, `이야기책 ${this.tale.n} / ${this.tale.of}`, 497, 514, { size: 13.5, fill: C.cream }); }
+      text(g, `옛이야기 〈${tl.title}〉`, 104, 514, { size: 20, font: FONT_B, align: 'left', maxW: 300 }); if (this.tale.fresh) { rr(g, 430, 501, 134, 25, 5, this.col); text(g, `이야기책 ${this.tale.n} / ${this.tale.of}`, 497, 514, { size: 13.5, fill: C.cream }); }
       g.globalAlpha = clamp((t % 3.4) / 0.3, 0, 1); textBlock(g, tl.lines[li], 330, 566, 452, 27, { size: 19.5, font: FONT_B }); g.globalAlpha = 1;
       rr(g, 104, 627, 452, 3, 1.5, 'rgba(38,42,54,0.12)'); rr(g, 104, 627, 452 * ((t % 3.4) / 3.4), 3, 1.5, this.col);   // 다음 마디로 넘어가기까지
       for (let m = 0; m < tl.lines.length; m++) ell(g, 330 + (m - (tl.lines.length - 1) / 2) * 16, 617, 4, 4, m === li ? this.col : 'rgba(38,42,54,0.22)');

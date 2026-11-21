@@ -9,7 +9,7 @@ const BRASS = '#c9962e', BRONZE = '#6f8a78', BRONZED = '#4f6a5c';
 export function gumiho(g, o = {}) {
   const n = o.tails === undefined ? 9 : o.tails, fur = '#e0b060';   // 누런 털의 여우 (흰 여우에 붉은 무늬는 쓰지 않는다)
   for (let i = 0; i < n; i++) {
-    const a = (i - (n - 1) / 2) * (n > 6 ? 0.34 : 0.4), far = Math.abs(i - (n - 1) / 2) > 2;
+    const a = (i - (n - 1) / 2) * (n > 6 ? 0.21 : 0.28), far = Math.abs(i - (n - 1) / 2) > 2;
     g.save(); g.translate(0, -9); g.rotate(a);
     part(g, p => { p.moveTo(-3, 0); p.bezierCurveTo(-10, -14, -8.4, -30, 0, -40); p.bezierCurveTo(8.4, -30, 10, -14, 3, 0); p.closePath(); }, far ? dk(fur, 0.08) : fur, P(0.6, -42, 11, -42, 11, 1, 1.6, 1), { k: 0.1, lw: 1.1 });
     part(g, p => { p.moveTo(-4.6, -27); p.quadraticCurveTo(-1.6, -32, 0, -40); p.quadraticCurveTo(1.6, -32, 4.6, -27); p.quadraticCurveTo(0, -30.6, -4.6, -27); p.closePath(); }, '#fbf7ec', null, { lw: 0.8 });
@@ -44,10 +44,6 @@ export function serpent(g, o = {}) {
   line(g, [-15.4, -56.6, -7, -55.6], S, 1.5); ell(g, -19.4, -53.6, 0.7, 0.5, INK);
   // 갈라진 혀
   curve(g, p => { p.moveTo(-21, -50.4); p.lineTo(-26.4, -49.4); p.lineTo(-29.6, -51.6); }, RED, 1.2); curve(g, p => { p.moveTo(-26.4, -49.4); p.lineTo(-29.6, -47.6); }, RED, 1.2);
-  if (o.imugi) {
-    for (const s of [0, 1]) { rope(g, p => { p.moveTo(-6 + s * 4, -58.4); p.quadraticCurveTo(-3 + s * 5, -66, 2 + s * 5, -67.6); }, '#e9dfc4', 1.8); rope(g, p => { p.moveTo(-2.4 + s * 4.4, -63.6); p.lineTo(-5 + s * 4, -67); }, '#e9dfc4', 1.2); }
-    curve(g, p => { p.moveTo(-19.6, -50); p.quadraticCurveTo(-25, -42, -21, -37); }, '#e9dfc4', 1.1); curve(g, p => { p.moveTo(-16.6, -48.6); p.quadraticCurveTo(-18, -41, -13, -38.6); }, '#e9dfc4', 1.1);
-  }
 }
 
 // ── 역신: 얽은 자국이 난 탈 같은 얼굴에 긴 소매를 늘어뜨린 병 귀신 ──
@@ -113,8 +109,9 @@ HATS.jjok = g => {
   // 이마 위로 빗어 넘긴 머리 (가운데 가르마)
   part(g, p => { p.moveTo(-10.4, -40.6); p.quadraticCurveTo(-11.4, -55.4, 0, -55.4); p.quadraticCurveTo(11.4, -55.4, 10.4, -40.6); p.quadraticCurveTo(6, -48.6, 0, -49.4); p.quadraticCurveTo(-6, -48.6, -10.4, -40.6); p.closePath(); }, BLACK, P(2, -56, 12, -56, 12, -40, 6, -46), { k: 0.2, lw: 1.1 });
   line(g, [0, -55, 0, -49.6], '#55535e', 0.7);
-  part(g, E(-10.6, -39.4, 4.4, 3.6), BLACK, E(-9.4, -38.4, 3.6, 2.8), { lw: 1 });
-  line(g, [-16.6, -40.4, -5.4, -38.6], INK, 2.2); line(g, [-16.6, -40.4, -5.4, -38.6], BRASS, 1.1); ell(g, -17, -40.5, 1.3, 1.3, '#c8402f', INK, 0.5);
+  // 쪽은 목덜미 뒤에 쪘다: 앞에서는 턱 아래로 살짝 보이고, 비녀 양끝만 머리 밖으로 나온다
+  line(g, [-17.6, -28.4, -11.6, -29.4], INK, 2.2); line(g, [-17.6, -28.4, -11.6, -29.4], BRASS, 1.1); ell(g, -18, -28.3, 1.4, 1.4, '#c8402f', INK, 0.5);
+  line(g, [11.6, -29.4, 15.6, -28.8], INK, 2.2); line(g, [11.6, -29.4, 15.6, -28.8], BRASS, 1.1);
 };
 // 손에 든 술병
 export function bottleItem(g) {

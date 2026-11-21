@@ -48,7 +48,8 @@ const WEAPONS = {
     const W2 = '#8a5a34';
     for (const [x, y, sg] of [[-4.6, -24, -1], [4, -15, 1]]) part(g, P(x, y - 1.8, x + sg * 4.6, y - 4.6, x + sg * 4.2, y - 1.8, x, y + 1.4), W2, null, { lw: 0.9 });   // 잘린 곁가지
     part(g, p => { p.moveTo(-1.8, 5.6); p.quadraticCurveTo(-2.6, -12, -5.4, -27); p.quadraticCurveTo(-4.6, -34, 0, -34); p.quadraticCurveTo(4.6, -34, 5.4, -27); p.quadraticCurveTo(2.6, -12, 1.8, 5.6); p.closePath(); }, W2, P(1, -35, 7, -35, 3, 6, 0.4, 6), { hi: P(-3.8, -29, -2.6, -29, -1.2, -6, -1.8, -6), hk: 0.22 });
-    for (const [x, y] of [[1.4, -27], [-1.2, -19], [1.2, -11]]) { ell(g, x, y, 2, 1.3, null, '#4a2e1c', 0.9); ell(g, x, y, 0.6, 0.45, '#4a2e1c'); }   // 옹이
+    for (const [x, y, rx, ry] of [[1.8, -28, 1.5, 2.6], [-1.6, -18.6, 1, 1.7]]) { ell(g, x, y, rx, ry, null, '#4a2e1c', 0.9); ell(g, x, y, rx * 0.35, ry * 0.35, '#4a2e1c'); }   // 결을 따라 길쭉한 옹이
+    for (const dx of [-0.6, 2.6]) curve(g, p => { p.moveTo(dx, -32); p.quadraticCurveTo(dx - 1.6, -18, dx * 0.4, -4); }, '#6a4428', 0.6);   // 나뭇결
     for (const y of [-1, 2.2]) line(g, [-1.8, y, 1.8, y + 0.5], '#d9c39a', 1.1);
   },
 
@@ -170,27 +171,27 @@ export const LOOKS = {
   stake: { body: stakeLog, weapon: 'none', hold: hold(0, 'none'), h: 40, still: true },
   banner: { body: bannerCart, weapon: 'none', hold: hold(0, 'none'), h: 104, still: true, scale: 1.1 },
   // 요괴
-  goblin: DK({ skin: '#d9603f' }, { scale: 0.78 }),
-  orc: DK({ skin: '#4f9a8a', cloth: '#d98a3e', warts: true }, { scale: 1.04 }),
-  garcher: DK({ skin: '#d9963f', cloth: '#8a4f3a', item: DITEM.sling }, { weapon: 'none', hold: hold(0, 'shoot'), scale: 0.8 }),
-  rshield: DK({ skin: '#8a64a8', cloth: '#d9c39a', item: DITEM.lid, warts: true }, { scale: 1.0 }),
+  goblin: DK({ skin: '#b8704f' }, { scale: 0.78 }),
+  orc: DK({ skin: '#6a8a7a', cloth: '#b98a55', warts: true }, { scale: 1.04 }),
+  garcher: DK({ skin: '#b88a52', cloth: '#7a4f3a', item: DITEM.sling }, { weapon: 'none', hold: hold(0, 'shoot'), scale: 0.8 }),
+  rshield: DK({ skin: '#7a6a8a', cloth: '#d9c39a', item: DITEM.lid, warts: true }, { scale: 1.0 }),
   rassassin: { body: fox, blinkBody: g => fox(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 46 },
   treant: { body: jangseung, weapon: 'none', hold: hold(0, 'bite'), h: 68, scale: 1.2, still: true },
   sapling: { body: jangseung, weapon: 'none', hold: hold(0, 'bite'), h: 68, scale: 0.66 },
   bomber: { body: wisp, blinkBody: g => wisp(g, { blink: true }), weapon: 'none', hold: hold(0, 'none'), h: 46, float: true, border: '#e8f8fd' },
   wolf: { body: boar, blinkBody: g => boar(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 42, w: 130, ox: 62, scale: 1.05 },
-  shaman: DK({ skin: '#d0688a', cloth: '#3f6b5c', item: DITEM.drum }, { weapon: 'stick', hold: hold(0.5, 'cast', 16.4, -21) }),
+  shaman: DK({ skin: '#a8707a', cloth: '#3f6b5c', item: DITEM.drum }, { weapon: 'stick', hold: hold(0.5, 'cast', 16.4, -21) }),
   skel: { doll: Object.assign({}, GHOST, { hat: 'jeonrip', plain: true }), weapon: 'rusty', hold: hold(0.3), float: true, border: '#e6f3f7', h: 63 },
   skelarcher: { doll: Object.assign({}, GHOST, { hat: 'band', bandCol: '#c5d9df', item: ITEM.bow }), weapon: 'none', hold: hold(0, 'shoot'), float: true, border: '#e6f3f7', h: 60 },
   catapult: { body: catapult, weapon: 'arm', hold: hold(-0.9, 'lob', 0, -17), h: 50, scale: 1.15, still: true },
   necro: { doll: { robe: '#2b2a31', top: '#35343c', git: '#6b6470', collar: '#c9c2d0', cuff: '#c9c2d0', sash: '#6b6470', skin: '#e6e3d8', pale: true, hat: 'gat', brow: 'stern', eyes: 'sharp', mouth: 'frown', iris: '#7a1f1c', item: ITEM.scroll }, weapon: 'none', hold: hold(0, 'cast'), scale: 1.12, h: 66 },
   dueok: DK({ skin: '#8a8294', cloth: '#3a2a2e', warts: true, beads: true, hair: '#8a2f24' }, { weapon: 'ironclub', scale: 1.28 }),
-  yagwang: DK({ skin: '#cfd98a', cloth: '#3a3550', item: strawShoes, hair: '#4a4a66' }, { weapon: 'none', hold: hold(0, 'bite'), scale: 0.72 }),
+  yagwang: DK({ skin: '#b8b88a', cloth: '#3a3550', item: strawShoes, hair: '#4a4a66' }, { weapon: 'none', hold: hold(0, 'bite'), scale: 0.72 }),
   bulga: { body: bulgasari, blinkBody: g => bulgasari(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 54, w: 136, ox: 64, scale: 1.3 },
   jangsan: { body: g => tiger(g, JANGSAN), blinkBody: g => tiger(g, Object.assign({ blink: true }, JANGSAN)), weapon: 'none', hold: hold(0, 'bite'), h: 50, w: 130, ox: 62, scale: 1.16 },
   geuseun: { body: geuseundae, weapon: 'none', hold: hold(0, 'bite'), h: 72, scale: 1.2, float: true, border: '#dcd6f2' },
   // 두목
-  warchief: DK({ skin: '#3f6f9f', knot: true, beads: true, warts: true }, { weapon: 'ironclub', scale: 2.0, boss: true, h: 66 }),
+  warchief: DK({ skin: '#4f6a8a', knot: true, beads: true, warts: true }, { weapon: 'ironclub', scale: 2.0, boss: true, h: 66 }),
   elder: { body: mokshin, weapon: 'none', hold: hold(0, 'bite'), h: 72, scale: 2.2, boss: true, still: true },
   skelking: { body: eoduksini, weapon: 'none', hold: hold(0, 'bite'), h: 62, scale: 2.1, boss: true, float: true },
   // 고개마다의 두목 (그림은 bossart.js). 구미호는 남은 꼬리 수마다 그림이 따로 있다: gumiho(아홉) · gumiho8 … gumiho1
