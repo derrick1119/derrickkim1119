@@ -1,0 +1,20 @@
+{
+  "name": "쉿! UFO",
+  "short_name": "쉿! UFO",
+  "description": "지구인에게 들키지 않고 지구를 관측하는 UFO 키우기 게임",
+  "lang": "ko",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1b1848",
+  "theme_color": "#1b1848",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    { "src": "./assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./assets/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

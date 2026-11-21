@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>쉿! UFO 아이콘</title>
+<style>html, body { margin: 0; background: #111; } canvas { display: block; }</style>
+</head>
+<body>
+<!-- 개발용: 앱 아이콘을 캔버스에 그린다. tools/gen-icons.mjs 가 이 페이지를 열어 PNG 로 저장한다.
+     ?size=512&maskable=1 -->
+<canvas id="icon"></canvas>
+<script type="module">
+import { drawUfo, drawCloak } from '../src/render/ufo.js';
+import { C, glow, star, withAlpha } from '../src/render/draw.js';
+
+const q = new URLSearchParams(location.search);
+const size = Number(q.get('size')) || 512;
+const maskable = q.get('maskable') === '1';
+const cv = document.getElementById('icon');
+cv.width = cv.height = size;
+const ctx = cv.getContext('2d');
+const u = size / 512; // 512 기준 설계
+
+// 모서리: 마스커블은 꽉 찬 사각형(런처가 잘라 낸다), 일반 아이콘은 둥근 사각형
+if (!maskable) {
+  ctx.beginPath();
+  ctx.roundRect(0, 0, size, size, 112 * u);
+  ctx.clip();
+}
+const sky = ctx.createLinearGradient(0, 0, 0, size);
+sky.addColorStop(0, '#1b1848');
+sky.addColorStop(0.55, '#4a2f7a');
+sky.addColorStop(1, '#f2936b');
+ctx.fillStyle = sky;
+ctx.fillRect(0, 0, size, size);
+
+// 별
+const stars = [[70, 80, 5], [440, 96, 7], [396, 300, 4], [96, 300, 4], [250, 60, 4], [150, 170, 3], [470, 210, 3]];
+for (const [x, y, r] of stars) {
+  ctx.fillStyle = withAlpha(C.white, 0.9);
+  star(ctx, x * u, y * u, r * 2.2 * u, r * 0.6 * u, 4, 0);
+  ctx.fill();
+}
+// 언덕
+ctx.fillStyle = '#34245f';
+ctx.beginPath();
+ctx.moveTo(0, size);
+ctx.quadraticCurveTo(size * 0.3, size * 0.74, size * 0.62, size * 0.86);
+ctx.quadraticCurveTo(size * 0.84, size * 0.94, size, size * 0.82);
+ctx.lineTo(size, size);
+ctx.closePath();
+ctx.fill();
+
+// 빛기둥
+const k = maskable ? 0.8 : 1; // 마스커블은 가운데 80% 안에 그린다
+const cx = size / 2;
+const cy = size * (maskable ? 0.47 : 0.46);
+const s = 3.9 * u * k;
+const beam = ctx.createLinearGradient(0, cy, 0, size);
+beam.addColorStop(0, withAlpha(C.lemon, 0.6));
+beam.addColorStop(1, withAlpha(C.lemon, 0));
+ctx.fillStyle = beam;
+ctx.beginPath();
+ctx.moveTo(cx - 12 * s, cy + 16 * s);
+ctx.lineTo(cx + 12 * s, cy + 16 * s);
+ctx.lineTo(cx + 34 * s, size);
+ctx.lineTo(cx - 34 * s, size);
+ctx.closePath();
+ctx.fill();
+glow(ctx, cx, cy, 150 * u * k, C.lemon, 0.18);
+
+// 기체: 숨는 표정의 꼬마 접시와 반쯤 덮은 구름
+ctx.save();
+ctx.translate(cx, cy);
+ctx.rotate(-0.08);
+ctx.scale(s, s);
+drawUfo(ctx, { form: 1, t: 0.6, mood: 'alert', lit: 1, beam: 1 });
+ctx.restore();
+ctx.save();
+ctx.translate(cx + 40 * s, cy + 9 * s);
+ctx.scale(s * 0.5, s * 0.5);
+drawCloak(ctx, 1, 0.4, 1);
+ctx.restore();
+document.body.dataset.ready = '1';
+</script>
+</body>
+</html>

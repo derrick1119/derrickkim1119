@@ -49,8 +49,9 @@ export default {
   action: {
     cloak: 'Cloud Cloak',
     cloakOn: 'Cloaked',
+    cloakReady: 'Ready',
     cloakWait: '{s}s',
-    mission: 'Launch Mission',
+    mission: 'Mission',
     fuel: 'Fuel',
     fuelNeed: 'Need {n} more',
     fuelFull: 'Ready',
@@ -558,6 +559,7 @@ export default {
     reward: 'HQ commendation grant {n}',
     bonus: 'Completion bonus: +10% growth from now on',
     again: 'Keep Observing',
+    archiveLeft: 'Incidents still unrecorded: {n}. Complete the Incident Archive to unlock the postscript.',
     next: 'Next',
   },
 
@@ -618,6 +620,9 @@ export default {
     needGrant: 'Not enough grant money',
     cloakReady: 'Cloud Cloak ready',
     safe: 'Phew, they missed it',
+    lockedHint: 'Clue · {hint}',
+    missionBusy: 'Cannot launch right now',
+    fuelShort: 'Not enough fuel. Collect more specimens',
     update: 'A new version is ready. Reopen the game to apply it.',
   },
 

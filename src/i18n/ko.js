@@ -50,6 +50,7 @@ export default {
   action: {
     cloak: '구름 은폐',
     cloakOn: '은폐 중',
+    cloakReady: '준비 완료',
     cloakWait: '{s}초',
     mission: '임무 출동',
     fuel: '연료',
@@ -559,6 +560,7 @@ export default {
     reward: '본부 포상 연구비 {n}',
     bonus: '관측 완료 보너스: 앞으로 성장량 +10%',
     again: '관측 이어 가기',
+    archiveLeft: '아직 기록하지 못한 사건이 {n}종 남았습니다. 도감을 다 채우면 보고서의 추신이 열립니다.',
     next: '다음',
   },
 
@@ -619,6 +621,9 @@ export default {
     needGrant: '연구비가 부족해요',
     cloakReady: '구름 은폐 준비 완료',
     safe: '휴, 못 봤다',
+    lockedHint: '단서 · {hint}',
+    missionBusy: '지금은 출동할 수 없어요',
+    fuelShort: '연료가 부족해요. 표본을 더 모으세요',
     update: '새 버전이 준비됐어요. 다시 열면 적용됩니다.',
   },
 
