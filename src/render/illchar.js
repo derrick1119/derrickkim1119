@@ -246,8 +246,12 @@ const HAT = {
   },
   // 신선: 흰 상투와 작은 금관
   sage(g, o) {
-    topknot(g, Object.assign({}, o, { hairCol: '#eae6f0', pin: GOLD }));
-    cel(g, PG(-3.6, -66.4, -3.0, -70.2, -1.0, -68.4, 0.8, -71.0, 2.6, -68.4, 4.6, -70.2, 5.0, -66.2), GOLD, null, { hi: PG(-3, -66.6, 4.4, -66.6, 4.4, -67.6, -3, -67.6), lw: 0.65 });
+    topknot(g, Object.assign({}, o, { hairCol: '#eae6f0', pin: '#00000000' }));
+    // 상투관: 상투를 덮는 작고 둥근 관, 비녀를 가로로 꽂는다
+    cel(g, p => { p.moveTo(-3.6, -65.0); p.quadraticCurveTo(-3.8, -70.4, -0.8, -70.6); p.quadraticCurveTo(2.4, -70.6, 2.2, -65.2); p.quadraticCurveTo(-0.8, -64.0, -3.6, -65.0); p.closePath(); }, '#2a2436', S(-4, -66, -2, -70, -1.6, -65), { hi: S(0.6, -69.6, 1.8, -67, 1.2, -66, 0.4, -68), hc: '#5a5070', lw: 0.75 });
+    for (const x of [-2.2, -0.8, 0.6]) ln(g, O(x, -65.4, x + 0.2, -69.4), '#4a4060', 0.4);
+    ln(g, O(-6.2, -66.6, -0.8, -67.6, 4.8, -68.2), GOLD, 1.0);
+    cel(g, EL(4.9, -68.2, 0.8, 0.8), '#c8402f', null, { lw: 0.45 });
   },
   bald() {},
   none() {},
@@ -262,13 +266,14 @@ function legsDraw(g, o) {
   const pc = o.pants || '#e8e2d2', wc = o.wrap || pc, sc = o.shoe || '#2a2430', straw = o.straw;
   const shoe = (pts, sh) => { cel(g, S(...pts), sc, sh, { k: 0.3, lw: 0.8 }); if (straw) for (let i = 1; i < 4; i++) ln(g, O(pts[0] + i * 2, pts[1] + 0.4, pts[0] + i * 2 + 0.6, 0.4), dk(sc, 0.3), 0.45); };
   // 뒷다리 (그늘에 든다)
-  g.save(); g.translate(-1.6, 0); g.transform(1, 0, 0.06, 1, 0, 0);
+  const st2 = o.stance || 1;   // 보폭: 1 = 보통, 클수록 앞발을 내딛은 자세
+  g.save(); g.translate(-1.6 * st2, 0); g.transform(1, 0, 0.06 * st2, 1, 0, 0);
   cel(g, S(-6.4, -30.5, 0.4, -30.5, -0.6, -20.0, -2.6, -12.6, -4.2, -10.4, -8.8, -10.8, -9.2, -18.0, -8.0, -25.0), dk(pc, 0.12), S(-10, -30, -4, -30, -6, -10, -10, -10), { k: 0.2, lw: 0.85 });
   cel(g, S(-8.6, -11.6, -3.6, -11.4, -4.2, -6.0, -4.4, -3.0, -8.4, -3.0, -8.8, -7.0), dk(wc, 0.1), S(-9, -12, -6.6, -12, -6.6, -3, -9, -3), { k: 0.18, lw: 0.75 });
   shoe([-9.8, -3.4, -5.4, -3.8, -2.4, -1.6, -1.0, -0.4, -2.4, 0.6, -9.4, 0.6, -10.4, -1.4], S(-11, 0, -2, 0, -2, 1, -11, 1));
   g.restore();
   // 앞다리
-  g.save(); g.translate(1.4, 0); g.transform(1, 0, -0.05, 1, 0, 0);
+  g.save(); g.translate(1.4 * st2, 0); g.transform(1, 0, -0.05 * st2, 1, 0, 0);
   cel(g, S(-1.0, -30.5, 6.0, -30.5, 8.6, -24.0, 9.6, -16.0, 9.2, -11.0, 4.4, -10.6, 2.6, -14.0, 1.0, -22.0), pc, S(-1.5, -31, 3, -31, 3.6, -11, 1, -15), { k: 0.18, lw: 0.85 });
   ln(g, O(4.2, -27, 6.4, -20, 7.0, -14), dk(pc, 0.22), 0.5);
   cel(g, S(4.0, -11.8, 9.2, -11.6, 8.6, -6.6, 8.2, -3.4, 4.2, -3.4, 3.8, -7.2), wc, S(3.6, -12, 5.8, -12, 5.6, -3, 3.6, -3), { k: 0.18, lw: 0.75 });
@@ -492,8 +497,11 @@ const ITEMS = {
   beads(g) { for (let i = 0; i <= 10; i++) { const t = i / 10, x = -3.0 + t * 8.6, y = -46.6 + Math.sin(t * PI) * 7.0; cel(g, EL(x, y, 0.85, 0.85), i % 5 === 0 ? GOLD : '#6a3a26', null, { lw: 0.45 }); } },
   // 신선이 딛고 선 구름
   cloud(g) {
-    for (const [x, y, r] of [[-14, 1.6, 5.4], [-6.4, -0.6, 6.8], [3.2, -0.4, 7.0], [12.4, 1.4, 5.8], [-1.6, 3.4, 6.0]]) cel(g, EL(x, y, r, r * 0.62), '#eceef8', EL(x + 1.4, y + 1.8, r * 0.9, r * 0.4), { sc: '#b8bcd8', lw: 0.85 });
-    for (const [x, y] of [[-10, 0.6], [6, 1.0]]) ln(g, p => p.arc(x, y, 2.2, PI * 0.9, PI * 2.1), '#9aa0c4', 0.6);
+    // 운문(구름무늬): 둥근 덩이가 겹친 한 덩어리 구름, 끝이 말려 올라간다
+    const blob = S(-19.0, 2.6, -20.4, -0.8, -17.2, -3.6, -13.4, -3.2, -11.0, -6.8, -5.6, -7.6, -2.2, -5.0, 1.4, -8.0, 6.8, -7.4, 9.4, -4.0, 13.6, -4.8, 17.8, -2.4, 18.6, 1.2, 15.4, 3.6, 6.0, 4.0, -4.0, 4.4, -13.0, 4.2);
+    cel(g, blob, '#eef0fa', S(-20, 1, -8, 1.4, 4, 0.6, 19, 0.4, 18, 5, -20, 5), { sc: '#b4b8d8', hi: S(-10, -6.4, -5.6, -7.2, -2.6, -5.2, -6, -5.2), hc: '#ffffff', lw: 0.9 });
+    for (const [x, y, r, a0, a1] of [[-13.6, -1.0, 2.6, PI * 0.8, PI * 2.2], [3.0, -2.6, 3.0, PI * 0.9, PI * 2.3], [13.0, -0.6, 2.2, PI * 0.8, PI * 2.1]]) ln(g, p => p.arc(x, y, r, a0, a1), '#8f95c0', 0.6);
+    ribbon(g, [18.0, -1.2, 21.6, -3.2, 23.4, -6.6, 21.6, -8.4], 1.0, '#eef0fa', { lw: 0.6 });
   },
   // 사냥꾼의 털 조끼 (몸판 위에 두른 짐승 털)
   pelt(g) {
@@ -622,6 +630,8 @@ const HAT_DOK = {
     cel(g, p => { p.moveTo(-10.4, -34.6); p.quadraticCurveTo(-2.0, -43.6, 2.6, -45.2); p.quadraticCurveTo(7.4, -43.6, 15.2, -35.0); p.quadraticCurveTo(2.6, -31.8, -10.4, -34.6); p.closePath(); }, '#d7b46c', PG(-11, -35, 2.6, -45.4, 0, -32), { k: 0.22, hi: PG(3.6, -44.8, 15, -35.2, 10, -34.6), hk: 0.25, lw: 0.85 });
     for (let i = 0; i < 8; i++) { const t = i / 7; ln(g, O(2.6, -44.8, -10.0 + t * 25, -34.8 + Math.sin(t * PI) * 1.8), '#a0803e', 0.4); }
     ln(g, O(-4.0, -37.4, 2.6, -38.6, 9.6, -37.4), '#7a4a2c', 0.8);
+    // 삿갓을 뚫고 나온 작은 뿔 둘
+    for (const [bx, tx] of [[-0.8, -2.8], [6.4, 8.6]]) { cel(g, S(bx - 1.1, -40.6, (bx + tx) / 2, -44.0, tx, -46.4, tx, -46.4, bx + 1.2, -41.0), '#efe2c0', S(bx, -40, tx, -46.4, bx + 1.4, -40), { k: 0.24, lw: 0.7 }); ln(g, O(bx - 0.9, -42.4, bx + 1.0, -42.8), '#a89878', 0.4); }
   },
   // 머리 수건 (돌팔매)
   wrap(g, o) {
@@ -735,7 +745,7 @@ const BOW_HAND = { x: 13.6, y: -37.0 }, CAST_HAND = { x: 13.0, y: -34.6 };
 const NAVY = '#2b3044', BAJI = '#e8e2d2';
 export const ILL_LOOKS = {
   // 환도 무사: 머리띠와 붉은 띠, 상투, 짧은 수염, 검은 무릎 두루마기, 큰 칼
-  sword: P({ hair: 'topknot', hat: 'band', bandCol: '#2a2836', ribbon: '#c8302a', face: { brow: 'stern', up: 0.55, beard: 'short' }, top: NAVY, coat: { col: NAVY, lining: '#b8302a', len: 'knee' }, pants: BAJI, wrap: '#3a3546', wrapTie: '#c8302a', sash: '#b8302a', cuff: '#b8302a', sashFly: true }, { hold: hold(0.42), h: 70 }),
+  sword: P({ hair: 'topknot', hat: 'band', bandCol: '#2a2836', ribbon: '#c8302a', face: { brow: 'stern', up: 0.55, beard: 'short' }, top: NAVY, coat: { col: NAVY, lining: '#b8302a', len: 'knee' }, pants: BAJI, wrap: '#3a3546', wrapTie: '#c8302a', sash: '#b8302a', cuff: '#b8302a', sashFly: true, stance: 2.2 }, { hold: hold(0.42), h: 70 }),
   // 등패수: 전립, 청록 군복, 등패
   shield: P({ hair: 'topknot', hat: 'jeonrip', face: { brow: 'flat', beard: 'stubble' }, skin: '#e8bc90', top: '#3f6a72', coat: { col: '#3f6a72', lining: '#c8402f', len: 'knee' }, vest: '#2a3448', pants: BAJI, wrap: WHITE, sash: '#d9a441', cuff: '#c8402f', front: ITEMS.rattan, rearHand: { x: -4.0, y: -31.0 } }, { hold: hold(0.3), h: 70 }),
   // 창병: 패랭이, 흰 바지저고리에 붉은 배자, 짚신
@@ -757,7 +767,7 @@ export const ILL_LOOKS = {
   // 신선: 흰 도포, 흰 상투와 금관, 긴 흰 수염, 구름
   archmage: P({ hair: 'topknot', hairCol: '#e6e2ec', hat: 'sage', face: { brow: 'soft', browCol: '#e6e2ec', eye: 'closed', beard: 'long', lines: true }, beardCol: '#ece8f2', skin: '#f0cfae', top: '#f4f1ea', coat: { col: '#f4f1ea', len: 'long', lining: '#8fb6c8' }, pants: '#f4f1ea', sash: '#8fb6c8', sleeve: 'wide', cuff: '#8fb6c8', lift: 4, under: ITEMS.cloud, hand: CAST_HAND }, { hold: hold(0, 'cast', CAST_HAND.x, CAST_HAND.y - 4), scale: 1.2, hero: true, h: 72, float: true }),
   // 검객: 높이 묶은 머리, 붉은 머리띠, 남빛 무복, 바람에 날리는 붉은 허리띠
-  blade: P({ hair: 'topknot', ponytail: true, bangs: true, hat: 'ribbon', ribbon: '#c8302a', face: { brow: 'stern', up: 0.6, lash: true, lip: '#a8443a' }, skin: '#f4d4b4', top: '#262c44', coat: { col: '#262c44', lining: '#c8302a', len: 'knee' }, pants: '#1f2232', wrap: '#1f2232', wrapTie: '#c8302a', shoe: '#1a1620', sash: '#c8302a', sashFly: true, cuff: '#c8302a' }, { hold: hold(0.42), scale: 1.2, hero: true, h: 72 }),
+  blade: P({ hair: 'topknot', ponytail: true, bangs: true, hat: 'ribbon', ribbon: '#c8302a', face: { brow: 'stern', up: 0.6, lash: true, lip: '#a8443a' }, skin: '#f4d4b4', top: '#262c44', coat: { col: '#262c44', lining: '#c8302a', len: 'knee' }, pants: '#1f2232', wrap: '#1f2232', wrapTie: '#c8302a', shoe: '#1a1620', sash: '#c8302a', sashFly: true, cuff: '#c8302a', stance: 1.8 }, { hold: hold(0.42), scale: 1.2, hero: true, h: 72 }),
   // 명궁: 털모자, 가죽옷에 짐승 털, 큰 활
   hunter: P({ hair: 'topknot', hat: 'fur', face: { brow: 'flat', thick: true, beard: 'stubble' }, skin: '#e2b48a', top: '#6b5a3c', coat: { col: '#6b5a3c', len: 'knee', lining: '#3a2e22' }, pants: '#d9cdb0', wrap: '#5a4030', shoe: '#4a3428', sash: '#4a3d2e', cuff: '#4a3d2e', behind: ITEMS.quiver, front: ITEMS.pelt, hand: BOW_HAND, rearHand: { x: 2.4, y: -40.4 } }, { hold: hold(0, 'shoot', BOW_HAND.x, BOW_HAND.y), scale: 1.2, hero: true, h: 72 }),
   // 상쇠: 흰 옷, 남빛 쾌자, 엇갈린 삼색 띠, 상모
