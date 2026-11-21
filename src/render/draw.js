@@ -54,6 +54,12 @@ export function paperSprite(draw, o = {}) {
   const w = o.w || 110, h = o.h || 124, ox = o.ox || 55, oy = o.oy || 110;
   const c = makeCanvas(w * SS, h * SS), g = c.getContext('2d'); g.scale(SS, SS); g.translate(ox, oy); draw(g);
   if (o.grain !== false && !ART.illust) paperGrain(c, o.grain || 1);
+  if (ART.illust && o.rim) {   // 달빛 테두리: 윗왼쪽 가장자리에만 서늘한 빛을 얹는다
+    const d = o.rim * SS, r = makeCanvas(c.width, c.height), rg = r.getContext('2d');
+    rg.drawImage(c, 0, 0); rg.globalCompositeOperation = 'destination-out'; rg.drawImage(c, d, d);
+    rg.globalCompositeOperation = 'source-in'; rg.fillStyle = 'rgba(186,206,255,0.62)'; rg.fillRect(0, 0, c.width, c.height);
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(r, 0, 0); g.restore();
+  }
   let img = c; const border = o.border === undefined ? PAPER : o.border;
   if (border && ART.illust) {   // 일러스트 그림체: 오린 종이 테두리 대신 짙은 먹선 외곽
     const k = makeCanvas(c.width, c.height), kg = k.getContext('2d'); kg.drawImage(c, 0, 0); kg.globalCompositeOperation = 'source-in'; kg.fillStyle = '#17121f'; kg.fillRect(0, 0, c.width, c.height);
@@ -86,12 +92,12 @@ export function flashOf(spr) {
   if (!spr.flash) { const f = makeCanvas(spr.img.width, spr.img.height), fg = f.getContext('2d'); fg.drawImage(spr.img, 0, 0); fg.globalCompositeOperation = 'source-in'; fg.fillStyle = '#ffffff'; fg.fillRect(0, 0, f.width, f.height); spr.flash = f; }
   return spr.flash;
 }
-// 그림자는 뒤집힘·회전과 상관없이 늘 오른쪽 아래로 떨어진다
+// 그림자는 뒤집힘·회전과 상관없이 늘 오른쪽 아래로 떨어진다. 일러스트 그림체에서는 번쩍임을 옅게 해 얼굴·선이 비쳐 보이게 한다
 export function drawSprite(g, spr, x, y, sx = 1, sy = 1, rot = 0, flash = 0, noShadow = false) {
   if (spr.sh && !noShadow) { const k = Math.abs(sy); g.save(); g.translate(x + 2.2 * k, y + 3.4 * k); if (rot) g.rotate(rot); g.scale(sx, sy); g.drawImage(spr.sh, -spr.ox, -spr.oy, spr.w, spr.h); g.restore(); }
   g.save(); g.translate(x, y); if (rot) g.rotate(rot); if (sx !== 1 || sy !== 1) g.scale(sx, sy);
   g.drawImage(spr.img, -spr.ox, -spr.oy, spr.w, spr.h);
-  if (flash > 0) { g.globalAlpha *= Math.min(1, flash); g.drawImage(flashOf(spr), -spr.ox, -spr.oy, spr.w, spr.h); }
+  if (flash > 0) { g.globalAlpha *= Math.min(ART.illust ? 0.5 : 1, flash); g.drawImage(flashOf(spr), -spr.ox, -spr.oy, spr.w, spr.h); }
   g.restore();
 }
 

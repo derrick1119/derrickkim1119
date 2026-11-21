@@ -97,7 +97,7 @@ function face(g, o, skin) {
   const mc = f.lip || dk(skin, 0.5);
   if (f.mouth === 'grin') { cel(g, S(4.0, -52.6, 6.2, -52.8, 5.8, -51.6, 4.6, -51.6), '#7a2a2a', null, { lw: 0.5 }); ln(g, p => { p.moveTo(4.1, -52.5); p.lineTo(6.0, -52.7); }, '#ffffff', 0.4); }
   else if (f.mouth === 'open') cel(g, EL(5.2, -52.2, 0.9, 0.7), '#6a2228', null, { lw: 0.5 });
-  else ln(g, p => { p.moveTo(4.1, -52.4); p.quadraticCurveTo(5.0, -52.2 + (f.mouth === 'frown' ? -0.4 : 0.15), 5.9, -52.6); }, mc, f.lip ? 0.85 : 0.6);
+  else ln(g, p => { p.moveTo(3.7, -52.5); p.quadraticCurveTo(4.5, -52.3 + (f.mouth === 'frown' ? -0.4 : 0.15), 5.3, -52.6); }, mc, f.lip ? 0.8 : 0.6);
   if (f.blush) { g.globalAlpha = 0.35; dot(g, 1.6, -54.6, 1.3, '#e0707a'); g.globalAlpha = 1; }
   if (f.lines) { ln(g, p => { p.moveTo(3.2, -54.4); p.quadraticCurveTo(3.6, -53, 3.2, -52); }, dk(skin, 0.35), 0.45); ln(g, p => { p.moveTo(-0.4, -58.0); p.lineTo(0.6, -57.4); }, dk(skin, 0.35), 0.4); }
   if (f.scar) ln(g, p => { p.moveTo(0.4, -60.4); p.lineTo(3.2, -54.6); }, '#a8443a', 0.7);
@@ -160,11 +160,12 @@ function ponytail(g, o) {
 }
 // 등 뒤로 늘어뜨린 긴 머리와 끝의 붉은 댕기 (몸 그림 쪽에 그린다)
 function longHairBack(g, o) {
-  const c = o.hairCol || HAIR;
-  cel(g, S(-6.4, -60.0, -2.0, -58.0, -2.6, -48.0, -4.4, -38.0, -6.6, -28.6, -9.0, -24.4, -11.4, -27.2, -11.2, -38.0, -10.0, -48.0, -8.6, -56.0), c, S(-12, -40, -8, -40, -8, -26, -12, -26), { k: 0.25, lw: 0.8 });
-  ln(g, O(-7.2, -52, -7.6, -42, -8.8, -32), lt(c, 0.25), 0.6);
-  ribbon(g, [-8.4, -27.0, -9.6, -22.4, -11.4, -17.6, -12.2, -13.0], 1.5, o.ribbon || RED, { cut: true, taper: false });
-  cel(g, EL(-8.6, -27.6, 2.4, 1.4, 0.3), o.ribbon || RED, null, { lw: 0.7 });
+  const c = o.hairCol || HAIR, rc = o.ribbon || RED;
+  cel(g, S(-6.4, -60.0, -2.4, -57.6, -3.6, -48.0, -6.2, -40.0, -8.6, -32.6, -10.6, -29.0, -13.6, -31.6, -12.6, -40.0, -10.8, -48.0, -8.8, -56.0), c, S(-14, -42, -9.4, -42, -10, -28, -14, -28), { k: 0.25, lw: 0.8 });
+  ln(g, O(-7.4, -52, -8.4, -42, -10.4, -34), lt(c, 0.28), 0.6);
+  // 머리끝을 묶은 붉은 댕기: 등 뒤로 길게 늘어진다
+  ribbon(g, [-11.6, -30.6, -12.8, -25.4, -14.6, -20.6, -15.4, -15.6, -17.0, -11.4], 1.6, rc, { cut: true, taper: false });
+  cel(g, EL(-11.8, -30.8, 2.2, 1.5, 0.5), rc, EL(-11.4, -30.2, 1.6, 0.9), { k: 0.25, lw: 0.7 });
 }
 
 // ───────── 모자 ─────────
@@ -262,28 +263,35 @@ const R0 = (x, y, w, h) => p => p.rect(x, y, w, h);
 // 손 자리: 무기의 손잡이가 오는 곳 (sprites.js 의 hold 와 같다)
 export const ILL_HAND = { x: 13.6, y: -31 };
 const SHL = [6.0, -45.0], SHR = [-5.4, -44.8];   // 앞(오른쪽)·뒤(왼쪽) 어깨
-function legsDraw(g, o) {
+function legsDraw(g, o, D = 0) {
   const pc = o.pants || '#e8e2d2', wc = o.wrap || pc, sc = o.shoe || '#2a2430', straw = o.straw;
-  const shoe = (pts, sh) => { cel(g, S(...pts), sc, sh, { k: 0.3, lw: 0.8 }); if (straw) for (let i = 1; i < 4; i++) ln(g, O(pts[0] + i * 2, pts[1] + 0.4, pts[0] + i * 2 + 0.6, 0.4), dk(sc, 0.3), 0.45); };
+  // 신은 가늘게(발뒤꿈치 쪽으로 줄인다), 다리는 발목 위로 D 만큼 늘인다
+  const shoe = (pts, sh) => { const cx = pts[0] + 2; g.save(); g.translate(cx, 0); g.scale(0.8, 0.92); g.translate(-cx, 0); cel(g, S(...pts), sc, sh, { k: 0.3, lw: 0.85 }); if (straw) for (let i = 1; i < 4; i++) ln(g, O(pts[0] + i * 2, pts[1] + 0.4, pts[0] + i * 2 + 0.6, 0.4), dk(sc, 0.3), 0.45); g.restore(); };
+  const kL = (27.5 + D) / 27.5, stretch = fn => { g.save(); g.translate(0, -3); g.scale(1, kL); g.translate(0, 3); fn(); g.restore(); };
   // 뒷다리 (그늘에 든다)
   const st2 = o.stance || 1;   // 보폭: 1 = 보통, 클수록 앞발을 내딛은 자세
   g.save(); g.translate(-1.6 * st2, 0); g.transform(1, 0, 0.06 * st2, 1, 0, 0);
-  cel(g, S(-6.4, -30.5, 0.4, -30.5, -0.6, -20.0, -2.6, -12.6, -4.2, -10.4, -8.8, -10.8, -9.2, -18.0, -8.0, -25.0), dk(pc, 0.12), S(-10, -30, -4, -30, -6, -10, -10, -10), { k: 0.2, lw: 0.85 });
-  cel(g, S(-8.6, -11.6, -3.6, -11.4, -4.2, -6.0, -4.4, -3.0, -8.4, -3.0, -8.8, -7.0), dk(wc, 0.1), S(-9, -12, -6.6, -12, -6.6, -3, -9, -3), { k: 0.18, lw: 0.75 });
+  stretch(() => {
+    cel(g, S(-6.4, -30.5, 0.4, -30.5, -0.6, -20.0, -2.6, -12.6, -4.2, -10.4, -8.8, -10.8, -9.2, -18.0, -8.0, -25.0), dk(pc, 0.12), S(-10, -30, -4, -30, -6, -10, -10, -10), { k: 0.2, lw: 0.85 });
+    cel(g, S(-8.4, -11.6, -3.8, -11.4, -4.4, -6.0, -4.6, -3.0, -8.0, -3.0, -8.6, -7.0), dk(wc, 0.1), S(-9, -12, -6.6, -12, -6.6, -3, -9, -3), { k: 0.18, lw: 0.75 });
+  });
   shoe([-9.8, -3.4, -5.4, -3.8, -2.4, -1.6, -1.0, -0.4, -2.4, 0.6, -9.4, 0.6, -10.4, -1.4], S(-11, 0, -2, 0, -2, 1, -11, 1));
   g.restore();
   // 앞다리
   g.save(); g.translate(1.4 * st2, 0); g.transform(1, 0, -0.05 * st2, 1, 0, 0);
-  cel(g, S(-1.0, -30.5, 6.0, -30.5, 8.6, -24.0, 9.6, -16.0, 9.2, -11.0, 4.4, -10.6, 2.6, -14.0, 1.0, -22.0), pc, S(-1.5, -31, 3, -31, 3.6, -11, 1, -15), { k: 0.18, lw: 0.85 });
-  ln(g, O(4.2, -27, 6.4, -20, 7.0, -14), dk(pc, 0.22), 0.5);
-  cel(g, S(4.0, -11.8, 9.2, -11.6, 8.6, -6.6, 8.2, -3.4, 4.2, -3.4, 3.8, -7.2), wc, S(3.6, -12, 5.8, -12, 5.6, -3, 3.6, -3), { k: 0.18, lw: 0.75 });
-  if (o.wrapTie) for (const y of [-9.6, -6.0]) ln(g, O(4.0, y, 6.4, y - 0.7, 8.9, y + 0.2), o.wrapTie, 0.6);
+  stretch(() => {
+    cel(g, S(-1.0, -30.5, 6.0, -30.5, 8.6, -24.0, 9.6, -16.0, 9.0, -11.0, 4.6, -10.6, 2.6, -14.0, 1.0, -22.0), pc, S(-1.5, -31, 3, -31, 3.6, -11, 1, -15), { k: 0.18, lw: 0.85 });
+    ln(g, O(4.2, -27, 6.4, -20, 7.0, -14), dk(pc, 0.22), 0.5);
+    cel(g, S(4.2, -11.8, 8.8, -11.6, 8.4, -6.6, 8.0, -3.4, 4.4, -3.4, 4.0, -7.2), wc, S(3.6, -12, 5.8, -12, 5.6, -3, 3.6, -3), { k: 0.18, lw: 0.75 });
+    if (o.wrapTie) for (const y of [-9.6, -6.0]) ln(g, O(4.2, y, 6.4, y - 0.7, 8.6, y + 0.2), o.wrapTie, 0.6);
+  });
   shoe([3.0, -3.6, 7.4, -3.9, 10.4, -1.8, 12.4, -0.8, 11.4, 0.6, 3.4, 0.6, 2.4, -1.4], S(2, 0, 12, 0, 12, 1, 2, 1));
   g.restore();
 }
 // 두루마기·도포 자락 (무릎 또는 발목까지). 뒤쪽 자락이 바람에 살짝 날린다
-function skirtDraw(g, o) {
+function skirtDraw(g, o, D = 0) {
   const c = o.coat, col = c.col, hem = c.len === 'long' ? -4.6 : c.len === 'mid' ? -8 : -12.6, fl = c.len === 'long' ? 1.25 : 1;
+  g.save(); const ks = (-34 - D - hem) / (-34 - hem); g.translate(0, hem); g.scale(1, ks); g.translate(0, -hem);
   const pts = [-6.9, -34.0, 6.7, -34.0, 9.0, -25.0, 10.6 * fl, hem + 0.6, 6.0, hem + 1.8, 0.4, hem + 0.8, -5.2, hem + 2.0, -10.8 * fl, hem + 0.4, -14.6 * fl, hem - 1.4, -10.8, -22.0];
   cel(g, S(...pts), col, S(-16 * fl, hem - 2, -9, -30, -2, -33, -4, hem + 4, -16 * fl, hem + 4), { k: 0.24, lw: 0.9 });
   // 앞섶이 갈라진 자리로 안감이 보인다
@@ -293,14 +301,17 @@ function skirtDraw(g, o) {
   ln(g, O(-7.8, -28, -11.4, hem + 0.4), dk(col, 0.3), 0.55);
   if (c.studs) for (let r = 0; r < 3; r++) for (let i = 0; i < 6; i++) { const t = (i + 0.5) / 6, y = -29 + r * ((hem + 1 - -29) / 3), x = -9 + t * 18 - r * (t < 0.5 ? 1 : -0.4); dot(g, x, y, 0.55, GOLD); }
   if (c.trim) ln(g, O(10.6 * fl, hem + 0.6, 6.0, hem + 1.8, 0.4, hem + 0.8, -5.2, hem + 2.0, -10.8 * fl, hem + 0.4, -14.6 * fl, hem - 1.4), c.trim, 1.4);
+  g.restore();
 }
 // 치마 (가슴께부터 땅까지 퍼진다)
-function chimaDraw(g, o) {
+function chimaDraw(g, o, D = 0) {
   const c = o.chima;
   cel(g, EL(9.2, -0.4, 2.8, 1.3), '#f3efe6', null, { lw: 0.6 });   // 버선코
+  g.save(); g.scale(1, (40.6 + D) / 40.6);
   cel(g, S(-5.8, -40.6, 6.0, -40.6, 9.6, -28.0, 12.6, -10.0, 14.2, -1.6, 6.0, 0.8, -4.0, 0.4, -12.6, -0.6, -16.4, -3.6, -11.8, -20.0, -8.8, -32.0), c.col, S(-18, -4, -10, -30, -4, -41, -2, -30, -3, 1, -18, 1), { k: 0.26, hi: S(6.4, -36, 9.4, -24, 11.4, -8, 9.4, -8, 7.6, -24), hk: 0.18, lw: 0.9 });
   for (const [x0, x1] of [[2.0, 4.6], [-2.4, -4.2], [5.4, 9.8], [-6.0, -10.6]]) ln(g, O(x0, -36, (x0 + x1) / 2, -18, x1, -0.4), dk(c.col, 0.3), 0.55);
   if (c.trim) { cel(g, p => { p.moveTo(14.2, -1.6); p.lineTo(13.6, -4.8); p.quadraticCurveTo(0, -2.4, -15.6, -6.6); p.lineTo(-16.4, -3.6); p.quadraticCurveTo(0, 1.4, 14.2, -1.6); p.closePath(); }, c.trim, null, { lw: 0.6 }); for (let i = 0; i < 7; i++) dot(g, -12 + i * 4, -3.0 + Math.abs(i - 3) * -0.3 + (i < 3 ? -0.6 : 0), 0.5, lt(c.trim, 0.5)); }
+  g.restore();
 }
 // 저고리·몸통
 function torsoDraw(g, o) {
@@ -424,23 +435,32 @@ export function illHorse(g, o = {}) {
   cel(g, S(-6.0, -47.8, 0.0, -46.2, 7.4, -48.6, 7.0, -45.2, -5.6, -44.8), '#3a2420', null, { lw: 0.75 });
 }
 export function illPerson(g, o, sel) {
-  const body = sel !== 'head', head = sel !== 'body', skin = o.skin || SKIN;
-  if (o.riding && body) illHorse(g, o.horse || {});
+  const body = sel !== 'head', head = sel !== 'body', skin = o.skin || SKIN, D = o.D || 0;
+  if (o.riding && body) { g.save(); g.translate(4, 0); g.scale(1.12, 1.12); illHorse(g, o.horse || {}); g.restore(); }
   if (o.lift) { g.save(); g.translate(0, -o.lift); }
+  const up = fn => { g.save(); g.translate(0, -D); fn(); g.restore(); };   // 허리 위는 늘인 다리만큼 올라간다
   if (body) {
-    if (o.behind) o.behind(g, o);
-    if (o.longHair) longHairBack(g, o);
-    if (o.chima) chimaDraw(g, o); else if (o.riding) { if (o.coat) skirtDraw(g, o); ridingLeg(g, o); } else { legsDraw(g, o); if (o.coat) skirtDraw(g, o); }
-    torsoDraw(g, o);
-    sashDraw(g, o);
-    if (o.rearItem) o.rearItem(g, o);
-    armDraw(g, o, 'rear', skin);
-    if (o.rearFront) o.rearFront(g, o);
-    armDraw(g, o, 'lead', skin);
-    if (o.front) o.front(g, o);
+    if (o.behind) up(() => o.behind(g, o));
+    if (o.chima) chimaDraw(g, o, D); else if (o.riding) { if (o.coat) skirtDraw(g, o); ridingLeg(g, o); } else { legsDraw(g, o, D); if (o.coat) skirtDraw(g, o, D); }
+    up(() => {
+      if (o.longHair) longHairBack(g, o);
+      torsoDraw(g, o);
+      sashDraw(g, o);
+      if (o.rearItem) o.rearItem(g, o);
+      armDraw(g, o, 'rear', skin);
+      if (o.rearFront) o.rearFront(g, o);
+      armDraw(g, o, 'lead', skin);
+      if (o.front) o.front(g, o);
+    });
   }
-  if (head) headDraw(g, o, skin);
+  if (head) up(() => headDraw(g, o, skin));
   if (o.lift) g.restore();
+}
+// 무기 손잡이를 감싸 쥔 주먹 (무기 그림 위에 따로 얹는다)
+export function illFist(g, skin, r = 2.1) {
+  cel(g, EL(0, 0.2, r * 1.05, r, 0), skin, EL(-r * 0.35, r * 0.55, r * 0.95, r * 0.6), { k: 0.24, lw: 0.8 });
+  for (const t of [-0.42, 0.02, 0.46]) ln(g, O(r * 0.15, t * r * 1.4 + 0.1, r * 0.98, t * r * 1.4), dk(skin, 0.4), 0.42);
+  ln(g, O(-r * 0.7, -r * 0.6, -r * 0.1, -r * 0.95), dk(skin, 0.35), 0.4);
 }
 
 // ───────── 소품 ─────────
@@ -461,9 +481,9 @@ const ITEMS = {
     cel(g, S(-13.6, -4.0, -21.6, -7.6, -18.4, -13.0, -16.8, -9.0), o.capeLining || '#a8322a', null, { lw: 0.7 });
   },
   // 도사의 지팡이: 끝에 빛나는 구슬
-  orbStaff(g) {
-    const x0 = -12.6, x1 = -11.0, top = -66.0, oy = top - 4.8;
-    cel(g, PG(x0 - 0.9, 0.4, x0 + 0.9, 0.4, x1 + 0.9, top, x1 - 0.9, top), '#5a3a26', PG(x0 + 0.1, 1, x0 + 1, 1, x1 + 1, top, x1, top), { k: 0.3, lw: 0.75 });
+  orbStaff(g, o) {
+    const x0 = -12.6, x1 = -11.0, top = -66.0, oy = top - 4.8, y0 = 0.4 + (o && o.D || 0);   // 몸이 올라간 만큼 지팡이 끝이 땅에 닿게
+    cel(g, PG(x0 - 0.9, y0, x0 + 0.9, y0, x1 + 0.9, top, x1 - 0.9, top), '#5a3a26', PG(x0 + 0.1, y0 + 0.6, x0 + 1, y0 + 0.6, x1 + 1, top, x1, top), { k: 0.3, lw: 0.75 });
     ln(g, O(x1, top, x1 - 3.0, top - 3.0, x1 - 2.0, top - 7.4, x1 + 0.8, top - 9.6), '#5a3a26', 1.6); ln(g, O(x1, top, x1 + 3.0, top - 2.6, x1 + 2.6, top - 7.0, x1 + 0.8, top - 9.6), '#5a3a26', 1.6);
     cel(g, EL(x1 + 0.1, oy, 3.2, 3.2), '#ffe7a0', EL(x1 + 1.4, oy + 1, 2.4, 2.4), { sc: '#f0b84a', hi: EL(x1 - 1.0, oy - 1.2, 1.1, 0.8), hc: '#ffffff', lw: 0.8 });
     ribbon(g, [x1 - 0.4, top + 1.4, x1 - 2.4, top + 6.0, x1 - 2.0, top + 10.4], 0.8, '#c8402f', { lw: 0.55 });
@@ -545,13 +565,14 @@ function bigDokBody(g, o) {
     cel(g, PG(-11.4, -41.4, -7.0, -43.2, 11.6, -26.6, 9.6, -24.0, 7.4, -25.6, 5.0, -26.8, 2.6, -28.0, 0.4, -30.0, -2.2, -31.2), cl, PG(-12, -42, -8, -44, -2, -30, -6, -30), { k: 0.2, lw: 0.8 });
     for (const [x, y] of [[0, -35.6], [5.0, -31.0]]) ln(g, O(x, y, x + 2, y - 1.6), dk(cl, 0.2), 0.5);
   }
-  // 굵은 염주
-  if (o.beads) for (let i = 0; i <= 12; i++) { const t = i / 12, x = -8.2 + t * 17.4, y = -42.6 + Math.sin(t * PI) * 9.4; cel(g, EL(x, y, 1.6, 1.6), i === 6 ? '#c8402f' : '#3e2a24', EL(x + 0.6, y + 0.6, 1.2, 1.2), { k: 0.3, hi: EL(x - 0.5, y - 0.6, 0.5, 0.4), hk: 0.5, lw: 0.6 }); }
   // 앞팔: 굵은 어깨와 팔뚝, 팔찌
   const [ex, ey] = elbow(9.6, -40.4, DH.x, DH.y, 10.0, 9.6, 1);
   cel(g, limb(9.6, -40.4, ex, ey, DH.x, DH.y, 5.2, 4.2, 3.4), sk, limb(8.6, -38.4, ex - 1.4, ey + 0.6, DH.x - 1, DH.y + 0.6, 3.0, 2.2, 1.6), { k: 0.24, hi: limb(10.6, -42, ex + 1.2, ey - 1.4, DH.x + 0.8, DH.y - 1.2, 1.2, 1.0, 0.6), hk: 0.22, lw: 0.95 });
   cel(g, limb(ex + (DH.x - ex) * 0.5, ey + (DH.y - ey) * 0.5, ex + (DH.x - ex) * 0.62, ey + (DH.y - ey) * 0.62, ex + (DH.x - ex) * 0.74, ey + (DH.y - ey) * 0.74, 3.8, 3.8, 3.7), '#b8862a', null, { lw: 0.7 });
   cel(g, EL(DH.x, DH.y, 3.4, 3.0, 0.3), sk, EL(DH.x - 1, DH.y + 1, 2.8, 2), { k: 0.24, lw: 0.85 });
+  // 굵은 염주: 목에 걸어 배까지 늘어뜨린 큰 나무 구슬 (팔보다 앞에)
+  if (o.beads) for (let i = 0; i <= 8; i++) { const t = i / 8, x = -7.2 + t * 13.6, y = -42.4 + Math.sin(t * PI) * 11.0, r = i === 4 ? 2.6 : 2.1; cel(g, EL(x, y, r, r), i === 4 ? '#c8402f' : '#4a2e22', EL(x + 0.7, y + 0.7, r * 0.8, r * 0.8), { k: 0.32, hi: EL(x - 0.6, y - 0.8, r * 0.36, r * 0.26), hc: '#e8c8a8', lw: 0.7 }); }
+  if (o.beads) ribbon(g, [-0.6, -28.4, -1.2, -25.0, -0.4, -21.6], 0.9, '#c8402f', { lw: 0.5 });
   if (o.item) o.item(g);
 }
 function bigDokHead(g, o) {
@@ -668,29 +689,38 @@ function flame(g, o) {
 // 여우 (불여우·구미호): 오른쪽을 보고 몸을 낮춘 옆모습. 꼬리는 엉덩이에서 부채처럼 펼친다
 function illFox(g, o = {}) {
   const fur = o.fur || '#d8662e', belly = o.belly || '#f6efe2', sock = o.sock || '#3a2428', tip = o.tip || '#f8f4ec', n = o.tails === undefined ? 1 : o.tails, fd = dk(fur, 0.2);
-  // 꼬리: 밑동(-12,-15)에서 뒤·위로 휘는 붓 모양, 끝은 희다
-  const tail = (a, len, w, col) => {
-    g.save(); g.translate(-12.4, -16.4); g.rotate(a);
-    const shape = S(0, -w * 0.35, -len * 0.3, -w * 0.95, -len * 0.7, -w * 0.9, -len * 0.98, -w * 0.25, -len, w * 0.1, -len * 0.82, w * 0.62, -len * 0.42, w * 0.66, 0, w * 0.35);
-    cel(g, shape, col, S(-len * 1.1, w * 0.05, -len * 0.4, w * 0.15, 0, w * 0.1, 0, w, -len * 1.1, w), { k: 0.24, lw: 0.85 });
-    g.save(); g.beginPath(); shape(g); g.clip(); cel(g, S(-len * 0.8, -w * 1.2, -len * 1.1, -w, -len * 1.1, w, -len * 0.84, w * 1.1, -len * 0.76, 0), tip, null, { lw: 0 }); g.restore();
+  // 꼬리: 밑동에서 뒤·위로 S자로 휘는 탐스러운 붓 모양. 끝은 희다
+  const tail = (a, len, w, col, bend) => {
+    g.save(); g.translate(-12.4, -17.0); g.rotate(a);
+    const N = 10, top = [], bot = [], mid = [], cy = t => bend * len * 0.16 * Math.sin(t * PI * 1.25);
+    for (let i = 0; i <= N; i++) {
+      const t = i / N, x = -len * t, y = cy(t), dx = -len, dy = bend * len * 0.16 * PI * 1.25 * Math.cos(t * PI * 1.25), l = Math.hypot(dx, dy), nx = -dy / l, ny = dx / l;
+      const ww = w * 0.85 * Math.sin(Math.pow(t, 0.7) * PI) + w * (0.32 + 0.12 * t);
+      top.push(x + nx * ww, y + ny * ww); bot.push(x - nx * ww, y - ny * ww); mid.push(x, y);
+    }
+    const tip = [-len * 1.1, cy(1.1)], pts = top.concat(tip);   // 끝은 둥글게 모은다
+    for (let i = N; i >= 0; i--) pts.push(bot[i * 2], bot[i * 2 + 1]);
+    const shape = S(...pts), shade = []; for (let i = 0; i <= N; i++) shade.push(mid[i * 2], mid[i * 2 + 1]); for (let i = N; i >= 0; i--) shade.push(bot[i * 2] - 2, bot[i * 2 + 1] + 3);
+    g.beginPath(); shape(g); g.fillStyle = col; g.fill();
+    g.save(); g.beginPath(); shape(g); g.clip(); g.beginPath(); PG(...shade)(g); g.fillStyle = dk(col, 0.22); g.fill();
+    g.fillStyle = o.tip || '#f8f4ec'; g.fillRect(-len * 1.4, -w * 3, len * 0.6, w * 6); g.restore();
     g.beginPath(); shape(g); st(g, LN, 0.85);
-    for (const t of [0.35, 0.55]) ln(g, O(-len * t, -w * 0.2, -len * (t + 0.12), w * 0.15), dk(col, 0.25), 0.5);
+    for (const t of [0.3, 0.5]) { const i = Math.round(t * N); ln(g, O(mid[i * 2], mid[i * 2 + 1] - w * 0.3, mid[i * 2] - len * 0.1, mid[i * 2 + 1] + w * 0.1), dk(col, 0.28), 0.5); }
     g.restore();
   };
-  if (n <= 1) { if (n === 1) tail(0.55, 22, 6.4, fur); }
-  else for (let i = n - 1; i >= 0; i--) { const t = i / (n - 1); tail(0.0 + t * 1.75, 25 + Math.sin(t * PI) * 9, 6.2, i % 2 ? fur : dk(fur, 0.1)); }
+  if (n <= 1) { if (n === 1) tail(0.5, 22, 5.6, fur, 1); }
+  else for (let i = n - 1; i >= 0; i--) { const t = i / (n - 1); tail(-0.05 + t * 1.8, 24 + ((i * 7) % 4) * 2.4 + Math.sin(t * PI) * 6, 5.0, i % 2 ? fur : dk(fur, 0.08), i % 2 ? 1 : -0.8); }
   // 먼 쪽 다리 (그늘)
   cel(g, S(-11.0, -14.0, -8.6, -14.0, -8.0, -4.0, -7.0, -0.2, -9.8, 0.6, -10.4, -5.0), fd, null, { lw: 0.8 });
   cel(g, S(10.6, -15.0, 12.8, -15.0, 14.2, -4.4, 15.8, -0.4, 13.0, 0.6, 12.0, -4.4), fd, null, { lw: 0.8 });
   for (const [x0, x1] of [[-10.9, -7.0], [11.6, 16.0]]) cel(g, S(x0, -4.6, x0 + 3.0, -4.8, x1, -0.2, x1 - 3.6, 0.6), sock, null, { lw: 0.7 });
   // 몸통
-  cel(g, S(-15.4, -17.0, -10.0, -22.4, 0.0, -21.4, 8.4, -23.4, 13.4, -21.4, 14.0, -16.4, 10.4, -13.4, 2.0, -14.4, -6.0, -13.8, -13.2, -13.6), fur, S(-16, -15.4, -4, -15.8, 8, -15.2, 14, -14, 14, -11, -16, -11), { k: 0.24, hi: S(-9, -22, 0, -21.4, 7.6, -23, 4, -21, -4, -20.4), hk: 0.25, lw: 0.9 });
+  cel(g, S(-15.4, -17.0, -10.0, -22.8, 0.0, -23.2, 8.4, -23.6, 13.4, -21.4, 14.0, -16.4, 10.4, -13.4, 2.0, -14.8, -6.0, -14.2, -13.2, -13.6), fur, S(-16, -15.4, -4, -15.8, 8, -15.2, 14, -14, 14, -11, -16, -11), { k: 0.24, hi: S(-9, -22, 0, -21.4, 7.6, -23, 4, -21, -4, -20.4), hk: 0.25, lw: 0.9 });
   cel(g, S(8.2, -20.6, 13.6, -20.4, 13.8, -14.4, 10.2, -10.8, 7.2, -14.2), belly, S(7, -14, 14, -14, 14, -10, 7, -10), { k: 0.14, lw: 0.75 });
   // 가까운 뒷다리·앞다리 (검은 발목)
-  cel(g, S(-16.0, -16.0, -10.4, -18.4, -9.2, -12.6, -10.0, -6.0, -8.8, -0.2, -11.6, 0.6, -12.4, -5.0, -14.0, -10.4), fur, S(-17, -12, -8, -12, -8, 1, -17, 1), { k: 0.22, lw: 0.85 });
+  cel(g, S(-16.6, -15.6, -10.2, -19.2, -7.8, -13.6, -9.6, -9.6, -11.2, -6.8, -9.4, -0.2, -12.0, 0.6, -13.6, -6.0, -12.6, -9.6, -14.6, -11.2), fur, S(-17, -12, -8, -12, -8, 1, -17, 1), { k: 0.22, lw: 0.85 });
   cel(g, S(7.8, -15.6, 11.0, -15.8, 10.8, -5.2, 12.8, -0.4, 9.8, 0.6, 8.8, -5.0), fur, S(6, -8, 13, -8, 13, 1, 6, 1), { k: 0.2, lw: 0.85 });
-  for (const [x0, x1] of [[-12.6, -8.6], [8.8, 12.8]]) cel(g, S(x0, -5.2, x0 + 3.0, -5.4, x1, -0.4, x1 - 0.6, 0.6, x0 + 0.6, 0.6), sock, null, { lw: 0.7 });
+  for (const [x0, x1] of [[-13.4, -9.0], [8.8, 12.8]]) cel(g, S(x0, -5.2, x0 + 3.0, -5.4, x1, -0.4, x1 - 0.6, 0.6, x0 + 0.6, 0.6), sock, null, { lw: 0.7 });
   // 목과 머리: 뾰족한 주둥이, 큰 귀, 흰 뺨털
   cel(g, S(8.4, -22.6, 13.6, -28.6, 18.6, -26.4, 15.6, -18.4, 10.6, -17.6), fur, S(9, -20, 16, -20, 15, -17, 9, -17), { k: 0.2, lw: 0.85 });
   cel(g, PG(14.8, -30.2, 17.2, -38.6, 19.4, -30.6), fd, null, { lw: 0.75 });
@@ -713,18 +743,31 @@ const STEEL = '#e4e8ee', STEELD = '#9aa6b4';
 export const ILL_WEAPONS = {
   // 환도: 넓고 긴 칼날
   hwando(g) {
-    cel(g, p => { p.moveTo(-1.9, -4.6); p.quadraticCurveTo(-1.4, -22, 3.6, -41.0); p.quadraticCurveTo(4.6, -36, 2.6, -4.6); p.closePath(); }, STEEL, p => { p.moveTo(-2.4, -4); p.quadraticCurveTo(-1.8, -22, 3.6, -41.6); p.quadraticCurveTo(0.4, -24, 0.2, -4); p.closePath(); }, { sc: STEELD, hi: p => { p.moveTo(1.9, -5); p.quadraticCurveTo(3.6, -22, 4.0, -37.6); p.quadraticCurveTo(2.8, -22, 1.2, -5); p.closePath(); }, hc: '#ffffff', lw: 0.85 });
-    ln(g, O(0.2, -7, 0.8, -20, 2.6, -32), '#7a8696', 0.5);
-    cel(g, EL(0, -4.8, 4.2, 1.6), GOLD, EL(1, -4.2, 3.6, 1.1), { k: 0.3, lw: 0.7 });
-    cel(g, PG(-1.6, -3.8, 1.6, -3.8, 1.5, 5.0, -1.5, 5.0), '#2a2030', null, { lw: 0.7 });
-    for (let y = -2.6; y < 4.4; y += 1.8) ln(g, O(-1.4, y, 1.4, y + 0.9), '#8a3a34', 0.5);
-    cel(g, EL(0, 5.6, 1.7, 1.2), GOLD, null, { lw: 0.6 });
-    ribbon(g, [0, 6.2, 0.8, 9.4, 1.6, 12.0], 0.9, RED, { cut: true, lw: 0.5 });
+    // 큰 칼: 넓은 날이 몸 길이만큼 뻗고 끝이 살짝 휜다
+    const blade = p => { p.moveTo(-2.6, -4.8); p.quadraticCurveTo(-2.2, -26, 3.0, -48.0); p.quadraticCurveTo(5.8, -42, 3.2, -4.8); p.closePath(); };
+    cel(g, blade, STEEL, p => { p.moveTo(-3, -4); p.quadraticCurveTo(-2.6, -26, 3.0, -48.6); p.quadraticCurveTo(0.2, -28, 0.2, -4); p.closePath(); }, { sc: STEELD, hi: p => { p.moveTo(2.4, -5); p.quadraticCurveTo(4.8, -26, 4.6, -44); p.quadraticCurveTo(3.4, -26, 1.6, -5); p.closePath(); }, hc: '#ffffff', lw: 0.9 });
+    ln(g, O(0.2, -7, 0.8, -24, 2.8, -38), '#7a8696', 0.55);
+    cel(g, EL(0.2, -5.0, 5.0, 1.8), GOLD, EL(1.2, -4.4, 4.4, 1.2), { k: 0.3, lw: 0.75 });
+    cel(g, PG(-1.7, -3.8, 1.7, -3.8, 1.6, 6.0, -1.6, 6.0), '#2a2030', null, { lw: 0.7 });
+    for (let y = -2.6; y < 5.4; y += 1.8) ln(g, O(-1.5, y, 1.5, y + 0.9), '#8a3a34', 0.5);
+    cel(g, EL(0, 6.6, 1.8, 1.3), GOLD, null, { lw: 0.6 });
+    ribbon(g, [0, 7.2, 0.8, 10.4, 1.6, 13.0], 0.9, RED, { cut: true, lw: 0.5 });
   },
+  // 각궁: 짧은 활의 양끝이 앞으로 휘어 나간다 (시위는 가늘게)
+  bow(g, o = {}) {
+    const wood = o.wood || '#7a3a22', c = p => { p.moveTo(7.4, -21.6); p.bezierCurveTo(4.0, -19.4, 4.2, -16.0, 0.4, -13.0); p.bezierCurveTo(-4.6, -9.0, -4.2, -3.0, -2.2, 0); p.bezierCurveTo(-4.2, 3.0, -4.6, 9.0, 0.4, 13.0); p.bezierCurveTo(4.2, 16.0, 4.0, 19.4, 7.4, 21.6); };
+    ln(g, c, LN, 3.6); ln(g, c, wood, 2.1); ln(g, p => { p.moveTo(6.6, -20.6); p.bezierCurveTo(3.4, -18.6, 3.0, -15.2, -0.4, -12.0); p.bezierCurveTo(-3.6, -9, -3.6, -4, -2.0, -1); }, lt(wood, 0.4), 0.6);
+    for (const y of [-12.6, 12.6]) ln(g, O(-2.4, y - (y < 0 ? 1 : -1), 0.8, y), o.wrap || '#e0b04a', 1.3);
+    ln(g, O(5.6, -19.4, 5.6, 19.4), '#e8e2d2', 0.45);
+    cel(g, R0(-3.6, -3.0, 3.2, 6.0), o.grip || '#3a2a26', null, { lw: 0.6 });
+    cel(g, EL(-0.8, 0, 2.6, 2.4), SKIN, EL(0.2, 1, 2.2, 1.8), { k: 0.2, lw: 0.8 });
+    ln(g, O(-0.2, -1.2, 1.2, -0.2), dk(SKIN, 0.35), 0.45);
+  },
+  greatbow(g) { g.save(); g.scale(1.12, 1.12); ILL_WEAPONS.bow(g, { wood: '#4a2a1e', wrap: '#c8302a', grip: '#2a2030' }); g.restore(); },
   // 방망이: 쇠못을 박은 나무 방망이
   club(g) {
     cel(g, p => { p.moveTo(-1.6, 5.0); p.quadraticCurveTo(-2.4, -10, -5.0, -24); p.quadraticCurveTo(-4.8, -31.4, 0.2, -31.6); p.quadraticCurveTo(5.2, -31.0, 5.0, -23.4); p.quadraticCurveTo(2.6, -10, 1.6, 5.0); p.closePath(); }, '#8a5a34', p => { p.moveTo(1.2, -33); p.lineTo(7, -33); p.lineTo(3, 6); p.lineTo(0.4, 6); p.closePath(); }, { k: 0.3, hi: PG(-3.6, -26, -2.4, -26, -1.2, -6, -1.8, -6), hk: 0.25, lw: 0.9 });
-    for (const [x, y, a] of [[-4.6, -26, -1], [4.6, -26, 1], [-3.6, -18, -1], [3.6, -18.6, 1], [0.2, -31.4, 0], [-2.6, -11.6, -1], [2.4, -12, 1]]) cel(g, PG(x - (a ? 0 : 1), y - (a ? 1 : 0), x + a * 2.6 + (a ? 0 : 0), y - (a ? 0 : 2.6), x + (a ? 0 : 1), y + (a ? 1 : 0)), '#c9ccd4', null, { lw: 0.5 });
+    for (const [x, y, a] of [[-4.8, -27, -1], [4.8, -26.4, 1], [-4.0, -19.4, -1], [4.0, -19.0, 1], [0.2, -31.4, 0], [-2.8, -12.4, -1], [2.6, -12.0, 1], [-1.6, -24.0, -1], [1.8, -23.0, 1]]) cel(g, PG(x - (a ? 0 : 1.1), y - (a ? 1.1 : 0), x + a * 4.0, y - (a ? 0.4 : 4.0), x + (a ? 0 : 1.1), y + (a ? 1.1 : 0)), '#8a909c', PG(x, y, x + a * 4.4, y + (a ? 0 : -4.4), x + (a ? 0 : 1.2), y + (a ? 1.2 : 0)), { sc: '#5a5f6a', lw: 0.55 });
     for (const y of [-1.4, 1.8]) ln(g, O(-1.7, y, 1.7, y + 0.6), '#d9c39a', 0.9);
   },
   // 두목의 큰 방망이
@@ -738,11 +781,19 @@ export const ILL_WEAPON_HAND = { fans: 'R' };
 
 // ───────── 일러스트 그림체의 병종 외형 ─────────
 const hold = (a, mode, x = ILL_HAND.x, y = ILL_HAND.y) => ({ x, y, a, mode });
-const P = (o, extra) => Object.assign({ ill: o }, extra);
-const DOKB = (o, extra) => Object.assign({ fig: (g, sel, b) => sel === 'body' ? bigDokBody(g, o) : bigDokHead(g, Object.assign({}, o, b)), weapon: 'club', hold: hold(0.4, 'slash', DH.x, DH.y), neck: 40, h: 64 }, extra);
-const DOKS = (o, extra) => Object.assign({ fig: (g, sel, b) => sel === 'body' ? smallDokBody(g, o) : smallDokHead(g, Object.assign({}, o, b)), weapon: 'club', hold: hold(0.4, 'slash', SDH.x, SDH.y), neck: 24, h: 44 }, extra);
-const BOW_HAND = { x: 13.6, y: -37.0 }, CAST_HAND = { x: 13.0, y: -34.6 };
-const NAVY = '#2b3044', BAJI = '#e8e2d2';
+const LEG = 4.5;   // 종이 인형보다 다리를 이만큼 늘인다 (허리 위가 같이 올라간다)
+const P = (o, extra = {}) => {
+  const D = o.riding ? 0 : (o.legLen === undefined ? LEG : o.legLen); o.D = D;
+  const e = Object.assign({ ill: o, neck: 47.5 + D, fist: { skin: o.skin || SKIN, r: 2.1 } }, extra);
+  if (e.hold) e.hold = Object.assign({}, e.hold, { y: e.hold.y - D });
+  if (e.glow) e.glow = e.glow.map(q => Object.assign({}, q, { y: q.y - D }));
+  if (e.h) e.h += D;
+  return e;
+};
+const DOKB = (o, extra) => Object.assign({ fist: { skin: o.skin, r: 3.3 }, fig: (g, sel, b) => sel === 'body' ? bigDokBody(g, o) : bigDokHead(g, Object.assign({}, o, b)), weapon: 'club', hold: hold(0.4, 'slash', DH.x, DH.y), neck: 40, h: 64 }, extra);
+const DOKS = (o, extra) => Object.assign({ fist: { skin: o.skin, r: 1.9 }, fig: (g, sel, b) => sel === 'body' ? smallDokBody(g, o) : smallDokHead(g, Object.assign({}, o, b)), weapon: 'club', hold: hold(0.4, 'slash', SDH.x, SDH.y), neck: 24, h: 44 }, extra);
+const BOW_HAND = { x: 13.6, y: -37.0 }, BOW_ARM = { x: 16.8, y: -38.0 }, CAST_HAND = { x: 13.0, y: -34.6 };   // 활은 손 자리보다 앞(+3)에 그려지므로 팔을 거기까지 뻗는다
+const NAVY = '#3a4462', BAJI = '#e8e2d2';
 export const ILL_LOOKS = {
   // 환도 무사: 머리띠와 붉은 띠, 상투, 짧은 수염, 검은 무릎 두루마기, 큰 칼
   sword: P({ hair: 'topknot', hat: 'band', bandCol: '#2a2836', ribbon: '#c8302a', face: { brow: 'stern', up: 0.55, beard: 'short' }, top: NAVY, coat: { col: NAVY, lining: '#b8302a', len: 'knee' }, pants: BAJI, wrap: '#3a3546', wrapTie: '#c8302a', sash: '#b8302a', cuff: '#b8302a', sashFly: true, stance: 2.2 }, { hold: hold(0.42), h: 70 }),
@@ -751,13 +802,13 @@ export const ILL_LOOKS = {
   // 창병: 패랭이, 흰 바지저고리에 붉은 배자, 짚신
   spear: P({ hair: 'topknot', hat: 'paeraeng', face: { brow: 'worry', beard: 'stubble' }, skin: '#e8bc90', top: '#ece6d6', vest: '#9a4a32', pants: '#e3dcc8', wrap: '#e3dcc8', wrapTie: '#6a4a34', shoe: '#c9a86a', straw: true, sash: INDIGO, cuff: '#ece6d6' }, { hold: hold(0.1, 'thrust'), h: 70 }),
   // 궁수: 흰 도포에 갓, 등에 전통
-  xbow: P({ hair: 'topknot', hat: 'gat', face: { brow: 'calm', up: 0.4 }, top: '#efebe2', coat: { col: '#f2eee6', len: 'long' }, pants: '#e9e4d8', wrap: '#e9e4d8', sash: '#3d5a8a', cuff: '#efebe2', behind: ITEMS.quiver, hand: BOW_HAND, rearHand: { x: 2.4, y: -40.4 } }, { hold: hold(0, 'shoot', BOW_HAND.x, BOW_HAND.y), h: 76 }),
+  xbow: P({ hair: 'topknot', hat: 'gat', face: { brow: 'calm', up: 0.4 }, top: '#efebe2', coat: { col: '#f2eee6', len: 'long' }, pants: '#e9e4d8', wrap: '#e9e4d8', sash: '#3d5a8a', cuff: '#efebe2', behind: ITEMS.quiver, hand: BOW_ARM, rearHand: { x: 2.4, y: -40.4 } }, { hold: hold(0, 'shoot', BOW_HAND.x, BOW_HAND.y), h: 76 }),
   // 도사: 잿빛 도포, 갓, 빛나는 구슬 지팡이
   wizard: P({ hair: 'topknot', hat: 'gat', face: { brow: 'stern', up: 0.2, beard: 'goatee', lines: true }, skin: '#eec6a0', top: '#7e828f', coat: { col: '#878b98', len: 'long', lining: '#4e5262' }, pants: '#d6d2ca', sash: '#2e2e3c', sleeve: 'wide', cuff: '#d6d2ca', rearItem: ITEMS.orbStaff, rearHand: { x: -11.6, y: -31.4 }, hand: CAST_HAND }, { hold: hold(0, 'cast', CAST_HAND.x, CAST_HAND.y), h: 76, glow: [{ x: -10.9, y: -70.8, r: 5.5, col: '#ffd66a' }] }),
   // 무녀: 붉은 저고리·치마, 긴 머리에 붉은 댕기, 노란 부적
   priest: P({ fem: true, longHair: true, bangs: true, hairPin: '#c8302a', ribbon: '#c8302a', face: { brow: 'soft', eyeW: 3.5, eyeH: 2.05, up: 0.1, lash: true, lip: '#c0404a', blush: true }, skin: '#f6d6b6', top: '#c8463c', git: '#6a1a1c', collar: '#f6f0e4', goreum: '#f0c64a', sleeveCol: '#c8463c', cuff: '#f6f0e4', chima: { col: '#a3242c', trim: '#e0b04a' }, rearItem: ITEMS.talisman, rearHand: { x: -7.4, y: -31.6 }, hand: CAST_HAND }, { hold: hold(0, 'cast', CAST_HAND.x, CAST_HAND.y), h: 70, glow: [{ x: -9.6, y: -37, r: 4, col: '#ffd66a' }] }),
   // 기마 무사: 검붉은 말에 탄 무사, 붉은 군복에 투구, 긴 창
-  knight: P({ riding: true, lift: 17, hair: 'topknot', hat: 'tugu', face: { brow: 'stern', thick: true, beard: 'short' }, top: '#a84a32', armor: '#2f3346', coat: { col: '#a84a32', len: 'mid', studs: true }, pants: '#3a3640', shoe: '#1e1a24', sash: '#d9a441', cuff: '#2f3346', hand: { x: 13.6, y: -33 }, rearHand: { x: 9.6, y: -34.6 } }, { hold: hold(0.18, 'thrust', 13.6, -33 - 17), h: 96, w: 150, ox: 64, scale: 0.86 }),
+  knight: P({ riding: true, lift: 22, hair: 'topknot', hat: 'tugu', face: { brow: 'stern', thick: true, beard: 'short' }, top: '#a84a32', armor: '#2f3346', coat: { col: '#a84a32', len: 'mid', studs: true }, pants: '#3a3640', shoe: '#1e1a24', sash: '#d9a441', cuff: '#2f3346', hand: { x: 13.6, y: -33 }, rearHand: { x: 9.6, y: -34.6 } }, { hold: hold(0.18, 'thrust', 13.6, -33 - 22), h: 100, w: 150, ox: 64, scale: 0.84 }),
   berserk: P({ hair: 'topknot', hat: 'ribbon', ribbon: '#c8302a', face: { brow: 'fierce', thick: true, beard: 'short', scar: true, mouth: 'grin' }, skin: '#d9a878', bareChest: true, top: '#d9a878', bare: true, wrist: '#6a4a34', coat: { col: '#6b5a44', len: 'knee' }, pants: '#d9cdb0', wrap: '#6a5a44', sash: '#c8302a' }, { hold: hold(0.45), h: 70, wide: 1.12 }),
   // ── 영웅 ──
   // 장군: 두정갑, 투구, 남빛 망토, 짙은 수염
@@ -769,7 +820,7 @@ export const ILL_LOOKS = {
   // 검객: 높이 묶은 머리, 붉은 머리띠, 남빛 무복, 바람에 날리는 붉은 허리띠
   blade: P({ hair: 'topknot', ponytail: true, bangs: true, hat: 'ribbon', ribbon: '#c8302a', face: { brow: 'stern', up: 0.6, lash: true, lip: '#a8443a' }, skin: '#f4d4b4', top: '#262c44', coat: { col: '#262c44', lining: '#c8302a', len: 'knee' }, pants: '#1f2232', wrap: '#1f2232', wrapTie: '#c8302a', shoe: '#1a1620', sash: '#c8302a', sashFly: true, cuff: '#c8302a', stance: 1.8 }, { hold: hold(0.42), scale: 1.2, hero: true, h: 72 }),
   // 명궁: 털모자, 가죽옷에 짐승 털, 큰 활
-  hunter: P({ hair: 'topknot', hat: 'fur', face: { brow: 'flat', thick: true, beard: 'stubble' }, skin: '#e2b48a', top: '#6b5a3c', coat: { col: '#6b5a3c', len: 'knee', lining: '#3a2e22' }, pants: '#d9cdb0', wrap: '#5a4030', shoe: '#4a3428', sash: '#4a3d2e', cuff: '#4a3d2e', behind: ITEMS.quiver, front: ITEMS.pelt, hand: BOW_HAND, rearHand: { x: 2.4, y: -40.4 } }, { hold: hold(0, 'shoot', BOW_HAND.x, BOW_HAND.y), scale: 1.2, hero: true, h: 72 }),
+  hunter: P({ hair: 'topknot', hat: 'fur', face: { brow: 'flat', thick: true, beard: 'stubble' }, skin: '#e2b48a', top: '#6b5a3c', coat: { col: '#6b5a3c', len: 'knee', lining: '#3a2e22' }, pants: '#d9cdb0', wrap: '#5a4030', shoe: '#4a3428', sash: '#4a3d2e', cuff: '#4a3d2e', behind: ITEMS.quiver, front: ITEMS.pelt, hand: BOW_ARM, rearHand: { x: 2.4, y: -40.4 } }, { hold: hold(0, 'shoot', BOW_HAND.x, BOW_HAND.y), scale: 1.2, hero: true, h: 72 }),
   // 상쇠: 흰 옷, 남빛 쾌자, 엇갈린 삼색 띠, 상모
   sangsoe: P({ hair: 'topknot', hat: 'sangmo', face: { brow: 'calm', mouth: 'grin', up: 0.1 }, skin: '#ecc096', top: '#f3efe4', vest: '#2f4d7e', cross: ['#c8402f', '#e0b04a'], pants: '#f3efe4', wrap: '#f3efe4', sash: '#e0b04a', cuff: '#f3efe4', rearItem: ITEMS.gong, rearHand: { x: -8.4, y: -31.0 }, hand: CAST_HAND }, { hold: hold(0.4, 'cast', CAST_HAND.x, CAST_HAND.y), scale: 1.2, hero: true, h: 80 }),
   // 두령: 거친 머리, 붉은 띠, 털 두른 갈옷, 맨팔
@@ -782,10 +833,10 @@ export const ILL_LOOKS = {
   // 야광귀: 검푸른 꼬마
   yagwang: DOKS({ skin: '#56658e', hair: '#1a1a30', cloth: '#3a3550', back: DPROP.sack }, { weapon: 'none', hold: hold(0, 'bite', SDH.x, SDH.y), scale: 0.84 }),
   // 방망이 도깨비: 붉은 큰 도깨비, 뿔 둘, 굵은 염주, 해진 흰 천, 쇠못 방망이
-  orc: DOKB({ skin: '#c8442e', beads: true }, { scale: 0.92 }),
-  rshield: DOKB({ skin: '#6f8a5a', noSash: true, item: DPROP.lid }, { scale: 0.9 }),
-  shaman: DOKB({ skin: '#8a5a8a', cloth: '#3f6b5c', noSash: true, beads: true, item: DPROP.drum }, { weapon: 'none', hold: hold(0.4, 'cast', DH.x, DH.y), scale: 0.86 }),
-  dueok: DOKB({ skin: '#7a7488', beads: true, hair: '#5a1f1a' }, { weapon: 'ironclub', scale: 1.12 }),
+  orc: DOKB({ skin: '#c8442e', beads: true }, { scale: 1.16 }),
+  rshield: DOKB({ skin: '#6f8a5a', noSash: true, item: DPROP.lid }, { scale: 1.06 }),
+  shaman: DOKB({ skin: '#8a5a8a', cloth: '#3f6b5c', noSash: true, beads: true, item: DPROP.drum }, { weapon: 'none', hold: hold(0.4, 'cast', DH.x, DH.y), scale: 0.98 }),
+  dueok: DOKB({ skin: '#7a7488', beads: true, hair: '#5a1f1a' }, { weapon: 'ironclub', scale: 1.32 }),
   // 도깨비불: 얼굴 있는 푸른 불꽃
   bomber: { fig: (g, sel, b) => flame(g, b || {}), body: true, weapon: 'none', hold: hold(0, 'none'), h: 50, float: true, glow: [{ x: 0, y: -26, r: 13, col: '#4a8cff' }] },
   // 불여우·구미호 (꼬리 수마다 그림이 따로 있다)

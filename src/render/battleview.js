@@ -53,6 +53,7 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   if (u.stun > 0) x += Math.sin(T * 40 + u.id) * 0.9;
   if (u.temp) alpha *= u.life < 3 ? 0.55 + 0.35 * Math.abs(Math.sin(T * 9)) : 0.92;
   g.save(); if (alpha < 1) g.globalAlpha = alpha;
+  if (L.ill && !L.float && !u.jumpH) { g.fillStyle = 'rgba(10,6,24,0.38)'; g.beginPath(); g.ellipse(u.x + 1, u.y + 1, u.r * 1.05 * Math.min(1.8, k), u.r * 0.36 * Math.min(1.8, k), 0, 0, TAU); g.fill(); }   // 일러스트 인물은 발밑 그림자
   if (L.float || u.jumpH) { g.fillStyle = 'rgba(50,36,20,0.16)'; g.beginPath(); g.ellipse(u.x, u.y + 1, u.r * 0.9, u.r * 0.36, 0, 0, TAU); g.fill(); }
   if (u.guard > 0) { g.beginPath(); g.ellipse(u.x, u.y, u.r * 1.3, u.r * 0.62, 0, 0, TAU); st(g, INK, 3.4); g.beginPath(); g.ellipse(u.x, u.y, u.r * 1.3, u.r * 0.62, 0, 0, TAU); st(g, '#8fb6e6', 1.8); }
   if (u.mark > 0) { const mr = u.r * 1.2, my = u.y + 1; g.beginPath(); g.ellipse(u.x, my, mr, mr * 0.46, 0, 0, TAU); st(g, RED, 1.8); for (const a of [0, PI / 2, PI, PI * 1.5]) line(g, [u.x + Math.cos(a) * mr * 0.7, my + Math.sin(a) * mr * 0.32, u.x + Math.cos(a) * mr * 1.25, my + Math.sin(a) * mr * 0.58], RED, 1.8); }
@@ -87,11 +88,12 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
       else if (mode === 'shoot') { rot = sg * (ha - act * (hand === 'C' ? 0.28 : 0.08)) + tilt; if (ap < 0.45) streak(hx, hy, 12, 12 + 30 * Math.min(1, ap / 0.2), 1 - ap / 0.45); }
       else { rot = sg * (ha + (ap < 1 ? swing(ap) : 0)) + tilt; if (ap > 0.28 && ap < 0.86) trail(hx, hy, sg * (ha - 0.9) + tilt, sg * (ha + (ap < 0.55 ? swing(ap) : 1.7)) + tilt, sg < 0, ap); }
       drawSprite(g, wspr, hx, hy, sg * k * Math.abs(fsx), k, rot, fl);
+      if (L.fist && hand !== 'L') drawSprite(g, L.fist, hx, hy, sg * k * Math.abs(fsx), k, rot, fl);   // 손잡이를 감싼 주먹
     };
     // 활은 쏘는 쪽(앞)으로 내밀어 든다: 활등이 과녁을 향하고 시위가 몸 쪽에 온다
     if (hand === 'L') put(hold.x + 3, hold.y - 1, -dir);
     else if (hand === 'C') put(hold.x * 0.42, hold.y - 1.5, dir);
-    else { put(hold.x, hold.y, dir); if (hand === 'B') { const hx0 = -hold.x * k * dir * fsx, hy0 = hold.y * k * sy; const q = clamp(ap * 1.25 - 0.25, 0, 1), rot = -dir * (ha + (mode === 'cast' ? -act * 0.95 : ap < 1 ? swing(q) : 0)) + tilt, bx = x + hx0 * ct - hy0 * sn, byy = by + hx0 * sn + hy0 * ct; drawSprite(g, wspr, bx, byy, -dir * k * Math.abs(fsx), k, rot, fl); if (mode !== 'cast' && ap < 1 && q > 0.28 && q < 0.86) trail(bx, byy, -dir * (ha - 0.9) + tilt, -dir * (ha + (q < 0.55 ? swing(q) : 1.7)) + tilt, dir > 0, q); } }
+    else { put(hold.x, hold.y, dir); if (hand === 'B') { const hx0 = -hold.x * k * dir * fsx, hy0 = hold.y * k * sy; const q = clamp(ap * 1.25 - 0.25, 0, 1), rot = -dir * (ha + (mode === 'cast' ? -act * 0.95 : ap < 1 ? swing(q) : 0)) + tilt, bx = x + hx0 * ct - hy0 * sn, byy = by + hx0 * sn + hy0 * ct; drawSprite(g, wspr, bx, byy, -dir * k * Math.abs(fsx), k, rot, fl); if (L.fist) drawSprite(g, L.fist, bx, byy, -dir * k * Math.abs(fsx), k, rot, fl); if (mode !== 'cast' && ap < 1 && q > 0.28 && q < 0.86) trail(bx, byy, -dir * (ha - 0.9) + tilt, -dir * (ha + (q < 0.55 ? swing(q) : 1.7)) + tilt, dir > 0, q); } }
   }
   const top = by - L.h * k;
   // ── 두목 싸움의 표시들 (sim/bossfight.js) ──
