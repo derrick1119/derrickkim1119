@@ -9,6 +9,7 @@
 | `eval.TEMPLATE.ts` | 게임 하나 24판 측정(계기판과 같은 `evaluateGame`). GAMEID·GAMEVAR·DUMBVAR·SMARTVAR를 바꿔 `npx tsx`. |
 | `snap-entry.TEMPLATE.ts` · `snap.html` · `snap.TEMPLATE.cjs` | 잘하는 봇으로 지정한 초마다 캔버스를 그려 `snap.png` 한 장으로. `npx esbuild <폴더>/snap-entry.ts --bundle --outfile=<폴더>/snap.js` 뒤 `node <폴더>/snap.cjs 1,3,30,90`. |
 | `browser-check.cjs` | 실제 계기판(390px)에서 게임마다 9초 기다림 → 긋기 3번 → 톡 5번, 스크린샷·콘솔 에러·가로 스크롤 확인. 0112부터 소리도 셈: `sound <id> idle N touched M ctx running`(만지는 동안 M > 0이어야 함), 끝에 `muted: new sounds 0`·단추 글자 모두 '꺼짐'. |
+| `frame-check.cjs` | (0118) 느린 폰 흉내: CPU 4배 느리게 하고 게임마다 기다림 3초 + 톡·긋기 5초 동안 프레임 간격과 **게임 코드 시간**(rAF 콜백). 볼 숫자는 게임 코드 — 중앙 ≤ 8ms · p95 ≤ 16ms 권장. 간격은 헤드리스가 GPU 없이 칠해서 과장됨. `node arcade/kit/frame-check.cjs id1,id2 [4] [3]` |
 | `snapshot.sh` | 에이전트가 만드는 중인 `arcade/games/` 파일을 '작업 중 사본'으로 커밋 → `pull --no-rebase` → verify(두 번까지) → 통과할 때만 push. 오래된 `index.lock`(60초 넘음·git 프로세스 없음)은 지우고, 커밋 실패는 "COMMIT FAILED"로 알린다. 절대 stash·checkout·reset 하지 않는다(에이전트 파일 보호). |
 
 `<작업 폴더>`는 세션의 임시 폴더(예: 세션 scratchpad)로 바꿔 쓴다. 에이전트마다 `<작업 폴더>/diorama/<id>/`에 임시 파일을 둔다.
