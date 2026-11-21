@@ -4,7 +4,7 @@ import { TAU, INK, PAPER, RED, INDIGO, OCHRE, SUB, FONT_B, text, ell, rr, poly, 
 import { button, iconBtn, icon, panel, seal, C } from '../ui/ui.js';
 import { nav } from '../nav.js';
 import { G, meta, save } from '../state.js';
-import { CHAPTERS } from '../data/stages.js';
+import { chapterOf } from '../data/stages.js';
 import { audio, setMuted, sfx } from '../audio.js';
 import { portrait } from '../render/sprites.js';
 import { THEMES, pine, bush, boulder, grassTuft } from '../render/terrain.js';
@@ -73,8 +73,8 @@ export class TitleScene {
     const ty = 150 + Math.sin(t * 1.3) * 3;
     text(g, '도깨비', 250, ty, { size: 132, font: FONT_B, fill: INK, stroke: '#ecdfc2', lw: 10 });
     text(g, '고개', 400, ty + 128, { size: 132, font: FONT_B, fill: INK, stroke: '#ecdfc2', lw: 10 });
-    g.save(); g.translate(520, ty - 34); g.rotate(0.06); seal(g, 0, 0, 78, '陣'); g.restore();
-    text(g, '서낭대를 모시고, 백중 새벽까지 세 고개를 넘어라', 372, ty + 232, { size: 22, fill: SUB, stroke: '#ecdfc2', lw: 5 });
+    g.save(); g.translate(520, ty - 34); g.rotate(0.06); seal(g, 0, 0, 78, 'boss'); g.restore();   // 제목 옆의 낙관: 도깨비 얼굴
+    text(g, '열두 고개, 열두 옛이야기 — 긴 밤을 걷으러 가는 길', 372, ty + 232, { size: 22, fill: SUB, stroke: '#ecdfc2', lw: 5 });
     const r = G.run;
     if (this.confirm) {
       g.fillStyle = 'rgba(31,42,68,0.55)'; g.fillRect(0, 0, W, H);
@@ -86,7 +86,7 @@ export class TitleScene {
       return;
     }
     if (r) {
-      if (button(g, 'cont', 120, 458, 400, 92, `이어하기 · ${CHAPTERS[Math.min(2, r.ch)].short}`, { size: 38 })) nav.go('run');
+      if (button(g, 'cont', 120, 458, 400, 92, `이어하기 · ${chapterOf(r.ch).short}`, { size: 38 })) nav.go('run');
       if (button(g, 'new', 120, 572, 192, 60, '새 원정', { style: 'paper', size: 26 })) this.confirm = true;
       if (button(g, 'meta', 328, 572, 192, 60, '공적 장부', { style: 'paper', size: 26 })) nav.go('meta');
     } else {
@@ -97,6 +97,6 @@ export class TitleScene {
       if (button(g, 'meta', 190, 576, 260, 58, `공적 장부${meta.merit ? ' · ' + meta.merit : ''}`, { style: 'paper', size: 25 })) nav.go('meta');
     }
     if (iconBtn(g, 'snd', 1204, 648, 60, 56, (gg, x, y) => icon.sound(gg, x - 3, y, !audio.muted))) { setMuted(!audio.muted); sfx('click'); }
-    if (meta.best > 0) { panel(g, 16, 16, 230, 40, 'tag'); text(g, meta.clears ? `평정 ${meta.clears}회` : `최고 기록 · ${CHAPTERS[Math.min(2, Math.floor((meta.best - 1) / 7))].short}`, 131, 37, { size: 17, maxW: 210 }); }
+    if (meta.best > 0) { panel(g, 16, 16, 230, 40, 'tag'); text(g, meta.clears ? `평정 ${meta.clears}회` : `최고 기록 · ${chapterOf(Math.floor((meta.best - 1) / 6)).short}`, 131, 37, { size: 17, maxW: 210 }); }
   }
 }

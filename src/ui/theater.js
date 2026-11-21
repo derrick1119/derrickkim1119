@@ -50,7 +50,7 @@ export function drawStage(g, x, y, w, h, o = {}) {
   g.restore();
   return floor;
 }
-// 무대의 나무틀과 막(幕). open = 0(닫힘) → 1(활짝 열림)
+// 무대의 나무틀과 막. open = 0(닫힘) → 1(활짝 열림)
 export function drawFrame(g, x, y, w, h, open = 1, t = 0) {
   const k = w / 1040, e = open * open * (3 - 2 * open), cw = (w / 2 + 6) + (58 * k - (w / 2 + 6)) * e;
   g.save(); g.beginPath(); g.rect(x - 2, y - 2, w + 4, h + 4); g.clip();

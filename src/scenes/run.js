@@ -5,10 +5,10 @@ import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, tex
 import { BattleView, ghostUnits } from '../render/battleview.js';
 import { Battle, formation, defOf, HAND, REFILL } from '../sim/battle.js';
 import { G, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP } from '../state.js';
-import { MARCH as MARCH_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines, bossPlay } from '../data/story.js';
+import { MARCH as MARCH_TALK, HERO_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines, bossPlay } from '../data/story.js';
 import { Play, drawFrame } from '../ui/theater.js';
 import { juice, SPOT } from '../ui/juice.js';
-import { CHAPTERS } from '../data/stages.js';
+import { CHAPTERS, ORD, chapterOf } from '../data/stages.js';
 import { AFFIX } from '../data/encounters.js';
 import { CARDS, KIND, cardName, isUnit } from '../data/cards.js';
 import { eventView } from '../data/events.js';
@@ -22,12 +22,12 @@ import { RewardOverlay, ShopOverlay, ChoiceOverlay, ForkOverlay, StoryOverlay, r
 import { cardIcon, relicIcon } from '../render/icons.js';
 import { sfx, audio, setMuted } from '../audio.js';
 import { nav } from '../nav.js';
-import { drawInk, inkGlyph, inkMark, MEOK, JU } from '../render/ink.js';
+import { drawInk, MEOK, JU } from '../render/ink.js';
+import { symbol, inkGlyph, inkMark } from '../render/symbols.js';
 
 const NUM = ['', '하나', '둘', '셋', '넷', '다섯'];
-export const GRADE = ['', '丙', '乙', '甲'];
+export const GRADE = ['', 'star1', 'star2', 'star3'];   // 전공 등급: 붓으로 찍는 별 하나·둘·셋
 // 고개 하나가 인형극의 한 마당이다
-const MADANG = ['첫째 마당', '둘째 마당', '셋째 마당'];
 const MARCH = 520, MARCH_V = 300;
 const FIGHT = t => t === 'battle' || t === 'elite' || t === 'boss';
 const talkTime = s => clamp(1.3 + s.length * 0.07, 2, 3.6);
@@ -36,13 +36,13 @@ const DOK = ['goblin', 'orc', 'garcher', 'rshield', 'shaman', 'dueok', 'yagwang'
 export class RunScene {
   constructor() {
     const r = this.r = G.run; this.ch = r.ch;
-    this.b = new Battle(battleSetup()); for (const u of this.b.units) u.born = -9; this.view = new BattleView(CHAPTERS[Math.min(2, r.ch)].theme, r.ch * 31 + 7);
+    this.b = new Battle(battleSetup()); for (const u of this.b.units) u.born = -9; this.view = new BattleView(chapterOf(r.ch).theme, r.ch * 31 + 7);
     this.T = 0; this.dt = 0; this.speed = 1; this.slow = 1; this.menu = false; this.over = null; this.sub = null;
     this.order = null; this.aim = null; this.slotAnim = []; this.toastS = ''; this.toastT = 0; this.note = null; this.grade = null; this.enc = null; this.fade = 0; this.endT = 0; this.joinQ = [];
     this.first = (meta.runs || 0) <= 1 && r.wins === 0; this.hints = 0; this.talk = null; if (!r.seen) r.seen = {}; this.stock = {}; this.lootT = 0;
     const rd = r.road;
     juice.clear();
-    if (rd.i === 0 && rd.state !== 'reward') { this.note = { s: CHAPTERS[r.ch].name, sub: CHAPTERS[r.ch].sub, col: INDIGO, t: 4.2 }; this.curtain = { t: 0, s: MADANG[r.ch] }; }
+    if (rd.i === 0 && rd.state !== 'reward') { this.note = { s: chapterOf(r.ch).name, sub: chapterOf(r.ch).sub, col: INDIGO, t: 4.2 }; this.curtain = { t: 0, s: chapterOf(r.ch).tale, n: ORD[chapterOf(r.ch).n] + ' 마당' }; }
     if (rd.state === 'reward') { this.phase = 'stop'; this.reward(curStop().type); }
     else if (rd.state === 'at') { this.phase = 'march'; this.arrive(); }
     else this.march(r.wins === 0 && rd.i === 0 ? 300 : MARCH, true);
@@ -65,8 +65,8 @@ export class RunScene {
     if (st.type === 'fork') { this.phase = 'stop'; this.over = new ForkOverlay({ a: st.a, b: st.b, onPick: k => { chooseFork(k); this.over = null; this.arrive(); } }); }
     else if (st.type === 'battle' || st.type === 'elite' || st.type === 'boss') {
       // 싸움터를 먼저 차린다(지형·하늘). 요괴가 닿기 전 잠깐이 진형을 고칠 시간이다
-      const e = this.enc = encounterHere(); b.prepWave(waveSetup(e)); this.phase = 'prep'; this.prepT = this.first ? 5.5 : 4; this.grade = null;
-      this.note = { s: e.name, sub: e.boss ? (BOSS[e.key] ? BOSS[e.key].sub : '두목과의 싸움') + (e.with ? ' · ' + e.with : '') : e.affix ? `강적 — ${AFFIX[e.affix].name}: ${AFFIX[e.affix].desc}` : iga(e.enemyName) + ' 몰려옵니다', col: e.boss || e.affix ? RED : INDIGO, t: 2.2, ch: e.boss ? '頭' : st.type === 'elite' ? '強' : '戰', chCol: e.boss ? '#f3b9a6' : undefined };
+      const e = this.enc = encounterHere(); b.prepWave(waveSetup(e)); this.phase = 'prep'; this.prepT = e.boss ? 8 : this.first ? 5.5 : 4; this.grade = null;   // 두목 앞에서는 두목의 수를 읽을 틈을 준다
+      this.note = { s: e.name, sub: e.boss ? (BOSS[e.key] ? BOSS[e.key].sub : '두목과의 싸움') + (e.with ? ' · ' + e.with : '') : e.affix ? `강적 — ${AFFIX[e.affix].name}: ${AFFIX[e.affix].desc}` : iga(e.enemyName) + ' 몰려옵니다', col: e.boss || e.affix ? RED : INDIGO, t: 2.2, ch: e.boss ? 'boss' : st.type === 'elite' ? 'elite' : 'battle', chCol: e.boss ? '#f3b9a6' : undefined };
       if (e.boss) sfx('boss');
     }
     else if (st.type === 'event') { this.phase = 'stop'; const id = r.pending && r.pending.kind === 'event' ? r.pending.id : pickEvent(); r.pending = { kind: 'event', id }; const v = eventView({ id }); this.over = new ChoiceOverlay({ title: v.title, art: v.art, text: v.text, choices: v.choices, onDone: done }); }
@@ -98,8 +98,8 @@ export class RunScene {
     const from = other.length ? other : pool; return from.length ? from[(Math.random() * from.length) | 0] : null;
   }
   marchLines(st) {
-    if (!st) return null; const r = this.r, M = MARCH_TALK[Math.min(2, r.ch)], i = r.road.i;
-    const ls = st.type === 'boss' ? M.boss : [M.seq[0], M.seq[1], [['H', M.hero[r.hero]]], M.seq[2], M.seq[3], M.seq[4]][i] || CHATTER[(i + r.ch) % CHATTER.length];
+    if (!st) return null; const r = this.r, M = MARCH_TALK[Math.min(MARCH_TALK.length - 1, r.ch)], i = r.road.i;
+    const ls = st.type === 'boss' ? M.boss : [M.seq[0], M.seq[1], [['H', HERO_TALK[Math.min(2, Math.floor(r.ch / 4))][r.hero]]], M.seq[2]][i] || CHATTER[(i + r.ch) % CHATTER.length];
     const heard = (meta.seen.talk || 0) > r.ch, live = (heard && st.type !== 'boss' ? ls.slice(0, 1) : ls).filter(l => this.speaker(l[0])); return live.length ? live : null;
   }
   talkTick(dt) {
@@ -117,7 +117,7 @@ export class RunScene {
   leave() {
     const r = this.r; this.over = null; this.sync();
     if (advance()) { meta.seen.talk = 3; this.phase = 'over'; nav.go('end', { win: true }); return; }
-    if (r.ch !== this.ch) { meta.seen.talk = Math.max(meta.seen.talk || 0, r.ch); this.ch = r.ch; this.fade = 1; this.curtain = { t: 0, s: MADANG[Math.min(2, r.ch)] }; this.sync(); this.note = { s: CHAPTERS[r.ch].name, sub: '깃발 하나를 되찾고 · 부대 한도 +1 · 모든 병력 패 +1단', col: INDIGO, t: 3.2 }; sfx('win'); }
+    if (r.ch !== this.ch) { meta.seen.talk = Math.max(meta.seen.talk || 0, r.ch); this.ch = r.ch; this.fade = 1; this.curtain = { t: 0, s: chapterOf(r.ch).tale, n: ORD[chapterOf(r.ch).n] + ' 마당' }; this.sync(); this.note = { s: chapterOf(r.ch).name, sub: '깃발 하나를 되찾고 · 부대 한도 +1 · 모든 병력 패 +1단', col: INDIGO, t: 3.2 }; sfx('win'); }
     this.march();
   }
   waveClear(e) {
@@ -188,7 +188,7 @@ export class RunScene {
     const busy = !!(this.over || this.sub || this.menu);   // 다른 화면이 떠 있으면 알림은 멈춰 기다린다
     if (this.toastT > 0) this.toastT -= dt; if (this.note) { if (!busy) { this.note.t -= dt; if (this.note.t <= 0) this.note = null; } }
     else if (!this.deedSeen) { this.deedSeen = true; this.welcome(noteDeed()); }   // 지난 원정까지 쌓인 공으로 이미 채운 인연
-    else if (this.joinQ.length && !busy && (this.phase === 'march' || this.phase === 'prep')) { const bt = this.joinQ.shift(), nm = UNITS[bt.id].name; this.note = { s: `${nm} — 영물의 인연`, sub: `${nm} 패가 덱에 들어왔습니다 · 앞으로 전리품과 장터에도 나옵니다`, col: TEAL, t: 4.4, ch: '靈', beast: bt.id }; sfx('star'); }
+    else if (this.joinQ.length && !busy && (this.phase === 'march' || this.phase === 'prep')) { const bt = this.joinQ.shift(), nm = UNITS[bt.id].name; this.note = { s: `${nm} — 영물의 인연`, sub: `${nm} 패가 덱에 들어왔습니다 · 앞으로 전리품과 장터에도 나옵니다`, col: TEAL, t: 4.4, ch: 'bond', beast: bt.id }; sfx('star'); }
     const live = !this.menu && !this.over && !this.sub && this.phase !== 'over' && this.phase !== 'stop';
     if (live) this.input(i);
     const aiming = this.aim && (this.aim.live || (this.aim.drag && i.y < BAR_Y - 8)), want = (this.order && this.order.moved) || aiming ? 0.12 : 1;
@@ -221,7 +221,7 @@ export class RunScene {
     if (!this.over && !this.menu && !this.sub && !juice.show) this.drawTalk(g);
     if (this.slow < 0.9) { g.globalAlpha = (1 - this.slow) * 0.2; g.fillStyle = NAVY; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
     if (this.fade > 0) { // 고개가 바뀔 때: 종이가 하얗게 바랬다가 새 풍경으로
-      const f0 = this.fade; this.fade = Math.max(0, this.fade - dt * 1.4); if (f0 > 0.5 && this.fade <= 0.5) view.setTheme(CHAPTERS[r.ch].theme, r.ch * 31 + 7);
+      const f0 = this.fade; this.fade = Math.max(0, this.fade - dt * 1.4); if (f0 > 0.5 && this.fade <= 0.5) view.setTheme(chapterOf(r.ch).theme, r.ch * 31 + 7);
       g.globalAlpha = 1 - Math.abs(this.fade - 0.5) * 2; g.fillStyle = '#f8f0dc'; g.fillRect(0, HUD_H, W, BAR_Y - HUD_H); g.globalAlpha = 1;
     }
     this.drawHud(g, b);
@@ -230,11 +230,12 @@ export class RunScene {
     if (cur) {
       cur.t += dt; const fadeOut = clamp((3.0 - cur.t) / 0.5, 0, 1);
       g.save(); g.globalAlpha = fadeOut; drawFrame(g, 20, HUD_H + 14, W - 40, BAR_Y - HUD_H - 34, open, this.T);
-      const k = clamp(cur.t / 0.3, 0, 1) * clamp((1.9 - cur.t) / 0.4, 0, 1); if (k > 0) { g.globalAlpha = k; rr(g, 444, 256, 400, 96, 8, 'rgba(8,6,10,0.4)'); rr(g, 440, 250, 400, 96, 8, '#f3e7c8', INK, 3); rr(g, 448, 258, 384, 80, 5, null, 'rgba(122,74,44,0.75)', 1.6); text(g, cur.s, 640, 300, { size: 46, font: FONT_B, fill: INK }); }
+      const k = clamp(cur.t / 0.3, 0, 1) * clamp((1.9 - cur.t) / 0.4, 0, 1); if (k > 0) { g.globalAlpha = k; rr(g, 444, 256, 400, 96, 8, 'rgba(8,6,10,0.4)'); rr(g, 440, 250, 400, 96, 8, '#f3e7c8', INK, 3); rr(g, 448, 258, 384, 80, 5, null, 'rgba(122,74,44,0.75)', 1.6); text(g, cur.n || '', 640, 276, { size: 20, font: FONT_B, fill: '#7a4a2c' }); text(g, cur.s, 640, 312, { size: 40, font: FONT_B, fill: INK, maxW: 360 }); }
       g.restore(); if (cur.t > 3.0) this.curtain = null;
     }
     if (!cur || cur.t > 2.5) { g.save(); if (cur) g.globalAlpha = clamp((cur.t - 2.5) / 0.4, 0, 1); this.drawSide(g, b); g.restore(); }
     if (this.phase === 'prep' && (!cur || cur.t > 2.5)) this.drawPreview(g, b);
+    if (this.phase === 'fight' && this.enc && this.enc.boss && b.waveT < 7 && !this.aim) this.drawBossTip(g, this.enc, clamp((7 - b.waveT) / 1.2, 0, 1));
     this.drawBar(g, b, i, live);
     if (cur && open < 1) { g.fillStyle = `rgba(20,17,24,${0.5 * (1 - open)})`; g.fillRect(0, BAR_Y, W, H - BAR_Y); }
     this.drawNotes(g, b);
@@ -283,7 +284,7 @@ export class RunScene {
     const hp = b.bannerHp(); text(g, '군기', 104, 21, { size: 14, fill: '#8fb6e6', align: 'left' }); bar(g, 104, 32, 120, 14, hp, hp < 0.35 ? '#e4826a' : '#8fb6e6');
     // 노정: 이번 고개에서 만날 것들
     const n = rd.stops.length, x0 = 330, x1 = 900, sx = k => x0 + k * (x1 - x0) / (n - 1), cy = 34;
-    text(g, CHAPTERS[Math.min(2, r.ch)].short, 300, cy, { size: 18, font: FONT_B, fill: C.cream, align: 'right' });
+    text(g, chapterOf(r.ch).short, 300, cy, { size: 18, font: FONT_B, fill: C.cream, align: 'right' });
     line(g, [x0, cy, x1, cy], 'rgba(8,12,26,0.55)', 6); line(g, [x0, cy, x1, cy], '#56648a', 2.4);
     const prog = this.phase === 'march' ? clamp(1 - this.left / MARCH, 0, 1) : 1, mx = rd.i === 0 ? sx(0) - 26 * (1 - prog) : sx(rd.i - 1) + (sx(rd.i) - sx(rd.i - 1)) * prog;
     line(g, [x0, cy, Math.max(x0, mx), cy], C.gilt, 2.8);
@@ -297,7 +298,7 @@ export class RunScene {
     icon.flag(g, mx, cy - 18 + Math.abs(Math.sin(T * 6)) * (this.phase === 'march' ? 3 : 0), 0.9, OCHRE);
     // 오른쪽: 엽전, 보물, 빠르기, 멈춤
     panel(g, 928, 14, 128, 36, 'tag'); icon.coin(g, 948, 32, 11); text(g, String(r.gold), 1004, 33, { size: 20, font: FONT_B, maxW: 80 });
-    if (iconBtn(g, 'relics', 1066, 13, 62, 38, (gg, x, y) => { if (r.relics.length) relicIcon(gg, r.relics[r.relics.length - 1], x - 12, y, 0.52); else text(gg, '寶', x - 12, y + 1, { size: 18, font: FONT_B, fill: SUB }); text(gg, String(r.relics.length), x + 15, y + 1, { size: 19, font: FONT_B }); })) this.sub = new RelicView({ onClose: () => { this.sub = null; } });
+    if (iconBtn(g, 'relics', 1066, 13, 62, 38, (gg, x, y) => { if (r.relics.length) relicIcon(gg, r.relics[r.relics.length - 1], x - 12, y, 0.52); else symbol(gg, 'treasure', x - 12, y, 22, SUB); text(gg, String(r.relics.length), x + 15, y + 1, { size: 19, font: FONT_B }); })) this.sub = new RelicView({ onClose: () => { this.sub = null; } });
     if (iconBtn(g, 'speed', 1138, 13, 58, 38, (gg, x, y) => text(gg, '×' + this.speed, x, y + 1, { size: 22, font: FONT_B, fill: this.speed > 1 ? RED : INK }), { on: this.speed > 1 })) this.speed = this.speed === 1 ? 2 : 1;
     if (iconBtn(g, 'menu', 1206, 13, 60, 38, icon.menu)) this.menu = true;
     // 싸움 중: 전공 조건과 두목 체력
@@ -308,7 +309,7 @@ export class RunScene {
       [[`잃은 병사 ${b.waveLost}/${e.starDeaths}`, b.waveLost <= e.starDeaths], [`시간 ${Math.ceil(b.waveT)}/${e.starTime}초`, b.waveT <= e.starTime]].forEach(([s, ok], k) => { const x = 16 + k * 128; g.globalAlpha = 0.95; panel(g, x, 74, 122, 28, 'tag'); g.globalAlpha = 1; if (ok) icon.check(g, x + 15, 88, 0.7, true); else text(g, '✕', x + 15, 89, { size: 15, fill: RED }); text(g, s, x + 71, 89, { size: 14, fill: ok ? INK : RED, maxW: 90 }); });
       const left = b.count(1) + b.pending; g.globalAlpha = 0.95; panel(g, 1150, 74, 114, 28, 'tag'); g.globalAlpha = 1; text(g, `요괴 ${left}`, 1207, 89, { size: 15, fill: RED });
       const boss = b.units.find(u => !u.dead && u.def.boss);
-      if (boss && !this.aim) { panel(g, 388, 72, 504, 34, 'tag'); text(g, boss.def.name, 404, 90, { size: 22, font: FONT_B, fill: RED, align: 'left', maxW: 170 }); bar(g, 584, 80, 296, 18, boss.hp / boss.maxHp, RED, { back: '#d9cdb0' }); }
+      if (boss && !this.aim) { panel(g, 388, 72, 504, 34, 'tag'); text(g, boss.def.name, 404, 90, { size: 22, font: FONT_B, fill: RED, align: 'left', maxW: 170 }); bar(g, 584, 80, 296, 18, boss.hp / boss.maxHp, boss.open > 0 ? '#d9a41e' : RED, { back: '#d9cdb0' }); if (boss.tails !== undefined) for (let n = 1; n < 9; n++) { const tx = 584 + 296 * n / 9; line(g, [tx, 79, tx, 99], INK, 2); } if (boss.tails !== undefined) { panel(g, 896, 72, 96, 34, 'tag'); text(g, `꼬리 ${boss.tails}`, 944, 90, { size: 19, font: FONT_B, fill: RED }); } }
     }
   }
   // 왼쪽 가장자리: 전장의 영웅(기력과 다음 고유기), 합동기, 진법
@@ -345,7 +346,13 @@ export class RunScene {
     let yy = y + 60 + rows * 46;
     text(g, `지형 · ${ter.name}`, x + 18, yy, { size: 16, align: 'left', font: FONT_B }); if (ter.tip) { textBlock(g, ter.tip, x + 18, yy + 23, 278, 19, { size: 14.5, align: 'left', fill: '#4a4034', weight: 400 }); yy += 56; } else yy += 26;
     if (e.sky !== 'day') { text(g, `하늘 · ${sky.name}`, x + 18, yy, { size: 16, align: 'left', font: FONT_B, fill: e.sky === 'night' ? '#3d3560' : '#2f6f9a' }); textBlock(g, sky.desc, x + 18, yy + 23, 278, 19, { size: 14.5, align: 'left', fill: '#4a4034', weight: 400 }); }
-    if (this.toastT <= 0) text(g, '진형을 고칠 시간입니다 — 부대를 끌어 옮기고 패를 미리 내세요', 640, 540, { size: 18, stroke: PAPER, lw: 5, maxW: 600 });
+    if (e.boss) this.drawBossTip(g, e, 1); else if (this.toastT <= 0) text(g, '진형을 고칠 시간입니다 — 부대를 끌어 옮기고 패를 미리 내세요', 640, 540, { size: 18, stroke: PAPER, lw: 5, maxW: 600 });
+  }
+  // 두목의 수: 이 두목과 어떻게 싸워야 하는지 (싸움이 시작된 뒤에도 잠시 남는다)
+  drawBossTip(g, e, a) {
+    const d = UNITS[e.key]; if (!d || !d.tip || a <= 0) return;
+    g.save(); g.globalAlpha = a * 0.95; panel(g, 300, 440, 640, 112); g.globalAlpha = a; rr(g, 300, 440, 8, 112, 4, RED);
+    text(g, `${d.name}의 수`, 324, 462, { size: 19, font: FONT_B, align: 'left', fill: RED }); textBlock(g, d.tip, 324, 487, 598, 21, { size: 15.5, align: 'left', weight: 400 }); g.restore();
   }
   // 손패 한 칸
   handCard(g, n, x, y, w, h, b, i, live) {
@@ -410,8 +417,8 @@ export class RunScene {
     const nt = this.over || this.sub ? null : this.note, gr = this.grade;
     if (nt) {
       const k = clamp(Math.min(nt.t / 0.3, 1), 0, 1); if (nt.t0 === undefined) nt.t0 = nt.t;
-      g.save(); g.globalAlpha = k; g.translate(0, (1 - easeOutBack(k)) * -20); // 싸움을 알리는 한 자: 먹물이 떨어지고 그 위에 붓글씨가 찍힌다 (먹물은 머리 띠 아래 전장 안에서 끝난다)
-      if (nt.ch) { g.save(); g.beginPath(); g.rect(0, HUD_H + 5, W, H); g.clip(); inkMark(g, nt.ch, 404, 116, 86, { k: (nt.t0 - nt.t) / 0.5, col: nt.chCol, v: nt.ch === '頭' ? 2 : nt.ch === '強' ? 1 : 0 }); g.restore(); }
+      g.save(); g.globalAlpha = k; g.translate(0, (1 - easeOutBack(k)) * -20); // 싸움을 알리는 그림: 먹물이 떨어지고 그 위에 붓으로 그린 기호가 찍힌다 (먹물은 머리 띠 아래 전장 안에서 끝난다)
+      if (nt.ch) { g.save(); g.beginPath(); g.rect(0, HUD_H + 5, W, H); g.clip(); inkMark(g, nt.ch, 404, 116, 86, { k: (nt.t0 - nt.t) / 0.5, col: nt.chCol, v: nt.ch === 'boss' ? 2 : nt.ch === 'elite' ? 1 : 0 }); g.restore(); }
       brushTitle(g, 692, 100, 430, 68, nt.s, nt.col, 37); if (nt.sub) { rr(g, 452, 140, 480, 34, 8, 'rgba(248,240,220,0.97)', INK, 1.6); text(g, nt.sub, 692, 158, { size: 17, maxW: 456 }); }
       if (nt.beast) { panel(g, 246, 106, 96, 76, 'tag'); g.save(); g.beginPath(); g.rect(249, 109, 90, 70); g.clip(); const bk = { magpie: 1.3, sapsal: 1.35, samjoko: 1.12, tiger: 0.88, haetae: 0.82 }[nt.beast] || 1, by = { magpie: 196, samjoko: 198 }[nt.beast] || 176; portrait(g, nt.beast, 294, by, bk, this.T); g.restore(); }
       g.restore();
@@ -424,14 +431,14 @@ export class RunScene {
       if (t > 0.25) { if (!gr.stamped && kk >= 1) { gr.stamped = true; sfx('star'); this.view.fx.shake = 6; this.view.fx.splat(826, 300, 1.5, MEOK, 0.5); } g.save(); g.globalAlpha = kk; g.translate(826, 298); g.scale(sc, sc); ell(g, 0, 0, 52, 52, 'rgba(248,240,220,0.94)'); drawInk(g, 'enso', 0, 0, 0.74, 0.3, 1, MEOK, gr.grade % 3); inkGlyph(g, GRADE[gr.grade], 0, 2, 74, { col: JU, halo: false, rot: -0.04 }); g.restore(); g.globalAlpha = kk; text(g, '전공', 826, 228, { size: 18, font: FONT_B, fill: C.cream, stroke: INK, lw: 4 }); g.globalAlpha = 1; }
       if (t > 0.5) { panel(g, 540, 360, 200, 44, 'tag'); icon.coin(g, 574, 382, 14); text(g, `엽전 +${gr.gold}`, 652, 383, { size: 23, font: FONT_B }); }
     }
-    if (this.phase === 'over') { const ok = clamp((1.8 - this.endT) / 1.2, 0, 1); g.fillStyle = `rgba(23,21,28,${ok * 0.66})`; g.fillRect(0, 0, W, H); drawInk(g, 'blot', 640, 300, 2.2, 0.4, ok * 0.9, MEOK, 1); inkGlyph(g, '敗', 640, 268, 210, { col: '#b8301f', halo: false, alpha: ok }); text(g, '깃발을 모두 잃었습니다', 640, 420, { size: 46, font: FONT_B, fill: C.cream, stroke: INK, lw: 8 }); }
+    if (this.phase === 'over') { const ok = clamp((1.8 - this.endT) / 1.2, 0, 1); g.fillStyle = `rgba(23,21,28,${ok * 0.66})`; g.fillRect(0, 0, W, H); drawInk(g, 'blot', 640, 300, 2.2, 0.4, ok * 0.9, MEOK, 1); inkGlyph(g, 'lose', 640, 268, 210, { col: '#b8301f', halo: false, alpha: ok }); text(g, '깃발을 모두 잃었습니다', 640, 420, { size: 46, font: FONT_B, fill: C.cream, stroke: INK, lw: 8 }); }
     if (this.toastT > 0 && !this.over && !this.sub && !this.menu) { g.globalAlpha = clamp(this.toastT / 0.3, 0, 1); rr(g, 290, 502, 700, 46, 9, 'rgba(31,42,68,0.2)'); rr(g, 290, 499, 700, 46, 9, PAPER, INK, 2.2); rr(g, 293.4, 502.4, 693.2, 39.2, 6, null, 'rgba(201,150,46,0.7)', 0.9); text(g, this.toastS, 640, 523, { size: 19, maxW: 670 }); g.globalAlpha = 1; }
   }
   drawMenu(g) {
     const r = this.r;
     g.fillStyle = 'rgba(24,32,54,0.8)'; g.fillRect(0, 0, W, H);
     panel(g, 300, 96, 680, 536); brushTitle(g, 640, 102, 280, 62, '잠시 멈춤', INDIGO, 34);
-    text(g, `${CHAPTERS[Math.min(2, r.ch)].name}  ·  이긴 싸움 ${r.wins}  ·  ${UNITS[r.hero].name}의 병법 '${HERO_TRAIT[r.hero].name}'`, 640, 172, { size: 18, fill: SUB, maxW: 470 });
+    text(g, `${chapterOf(r.ch).name}  ·  이긴 싸움 ${r.wins}  ·  ${UNITS[r.hero].name}의 병법 '${HERO_TRAIT[r.hero].name}'`, 640, 172, { size: 18, fill: SUB, maxW: 470 });
     if (button(g, 'm1', 450, 200, 380, 66, '계속하기', { size: 32 })) this.menu = false;
     if (button(g, 'm2', 450, 278, 380, 56, `덱 살피기 · ${r.deck.length}장`, { style: 'paper', size: 25 })) this.sub = new DeckView({ P: this.b.power * this.b.mods.cardPow, onChange: () => this.sync(), onClose: () => { this.sub = null; this.sync(); } });
     if (button(g, 'm3', 450, 344, 380, 56, `지닌 보물 · ${r.relics.length}`, { style: 'paper', size: 25 })) this.sub = new RelicView({ onClose: () => { this.sub = null; } });

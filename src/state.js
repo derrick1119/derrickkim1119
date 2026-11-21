@@ -7,6 +7,7 @@ import { CARDS, MAX_LV, starterDeck, cardName, isUnit, packN } from './data/card
 import { WEAPONS, ARMS, LOOT_WEAPONS, CLS_NAME, canEquip } from './data/weapons.js';
 import { VIEW, MID_Y } from './config.js';
 import { TALES, TALE_BY_ID } from './data/story.js';
+import { N_CH } from './data/stages.js';
 
 const KEY = 'gogae.save.v4';
 export const meta = { best: 0, clears: 0, runs: 0, merit: 0, unlocked: {}, hard: 0, hardMax: 0, seen: {}, tales: [], deeds: {} };
@@ -25,7 +26,8 @@ export function save() { try { localStorage.setItem(KEY, JSON.stringify({ meta, 
 
 // ───────── 주막의 옛이야기: 아직 못 들은 것부터, 지금 고개의 이야기를 먼저 ─────────
 export function hearTale(ch) {
-  const got = meta.tales || (meta.tales = []), left = TALES.filter(t => !got.includes(t.id)), t = left.find(x => x.ch === ch) || left[0];
+  // 주막에서는 그 고개의 옛이야기를 듣는다 (두목의 수를 귀띔해 준다)
+  const got = meta.tales || (meta.tales = []), t = TALES.find(x => x.ch === ch && !got.includes(x.id));
   if (t) { got.push(t.id); save(); return { id: t.id, fresh: true }; }
   const pool = TALES.filter(x => x.ch === ch); return { id: (pool[(rnd() * pool.length) | 0] || TALES[0]).id, fresh: false };
 }
@@ -55,9 +57,9 @@ export const unitPool = () => BASE_TYPES.concat(['berserk', 'cannon'].filter(has
 // deed = 세는 공(tales 는 들은 옛이야기 수, 나머지는 meta.deeds 에 쌓인다), need = 채워야 하는 수
 export const BEASTS = [
   { id: 'magpie', deed: 'tales', need: 3, how: '주막에서 옛이야기 세 편을 듣는다', lore: '반가운 이야기가 모이는 곳에 까치가 든다' },
-  { id: 'sapsal', deed: 'boss', need: 2, how: '두목을 두 번 물리친다', lore: '귀신을 쫓아낸 군대를 삽살개가 따른다' },
-  { id: 'samjoko', deed: 'night', need: 5, how: '밤 싸움을 다섯 번 이긴다', lore: '어둠을 견딘 군대에 해의 새가 내려앉는다' },
-  { id: 'tiger', deed: 'elite', need: 4, how: '강적을 네 번 물리친다', lore: '센 놈을 꺾은 군대를 산군이 알아본다' },
+  { id: 'sapsal', deed: 'boss', need: 5, how: '두목을 다섯 번 물리친다', lore: '귀신을 쫓아낸 군대를 삽살개가 따른다' },
+  { id: 'samjoko', deed: 'night', need: 8, how: '밤 싸움을 여덟 번 이긴다', lore: '어둠을 견딘 군대에 해의 새가 내려앉는다' },
+  { id: 'tiger', deed: 'elite', need: 6, how: '강적을 여섯 번 물리친다', lore: '센 놈을 꺾은 군대를 산군이 알아본다' },
   { id: 'haetae', deed: 'safe', need: 1, how: '깃발 셋을 모두 지닌 채 두목을 물리친다', lore: '지킬 줄 아는 군대 앞에 해태가 선다' },
 ];
 export const deedCount = b => b.deed === 'tales' ? (meta.tales || []).length : (meta.deeds && meta.deeds[b.deed]) || 0;
@@ -67,7 +69,7 @@ export function noteDeed(kind, n = 1) {
   const fresh = BEASTS.filter(b => !has(b.id) && deedCount(b) >= b.need); for (const b of fresh) meta.unlocked[b.id] = true;
   if (kind || fresh.length) save(); return fresh;
 }
-// 험로: 세 고개를 평정할 때마다 한 단계씩 열리는 더 험한 길. 단계마다 규칙이 하나씩 붙고, 아래 단계의 규칙도 모두 따라온다
+// 험로: 열두 고개를 평정할 때마다 한 단계씩 열리는 더 험한 길. 단계마다 규칙이 하나씩 붙고, 아래 단계의 규칙도 모두 따라온다
 export const HARD = [
   null,
   { name: '거센 요괴', desc: '요괴 체력 +12%' },
@@ -82,7 +84,9 @@ export const HARD = [
   { name: '외줄 깃발', desc: '깃발 둘로 출발한다' },
 ];
 export const HARD_MAX = HARD.length - 1;
-const BOSS_HP = [1, 1.1, 1.16];   // 두목의 기본 체력 배율 (밸런스는 tools/campaign.mjs 로 맞춘다)
+// 고개마다의 세기 (밸런스는 tools/campaign.mjs 로 맞춘다): 요괴 체력·공격력 배율, 두목의 체력 배율
+export const CH_HP = [1, 1, 1, 1.05, 1.1, 1.14, 1.18, 1.26, 1.33, 1.4, 1.47, 1.55], CH_ATK = [1, 1, 1, 1.03, 1.06, 1.09, 1.12, 1.16, 1.2, 1.23, 1.27, 1.3], BOSS_HP = [1, 1, 1.12, 1.25, 1.15, 1.15, 1.25, 1.45, 1.3, 1.25, 1.6, 1.55];
+const chN = ch => Math.max(0, Math.min(N_CH - 1, ch | 0));
 export const hardOf = lv => ({ hp: lv >= 1 ? 1.12 : 1, elite: lv >= 2 ? 1.2 : 1, pouch: lv >= 3 ? -2 : 0, boss: lv >= 4 ? 1.2 : 1, gold: lv >= 5 ? 0.8 : 1, spd: lv >= 6 ? 1.12 : 1, cart: lv >= 7 ? 0.8 : 1, atk: lv >= 8 ? 1.12 : 1, chase: lv >= 9 ? -15 : 0, flags: lv >= 10 ? 2 : 3 });
 
 // ───────── 원정 시작 ─────────
@@ -121,19 +125,22 @@ export function master(id) { const r = G.run; if (!r.mastery) r.mastery = {}; r.
 export const mastered = id => !!(G.run.mastery && G.run.mastery[id]);
 export function unitStats(type, lvl, wpn) { const d = defOf(type, wpn), m = lvlMult(lvl || 1); return { hp: Math.round(d.hp * m * PACE), atk: Math.round((d.atk || d.heal || 0) * m), as: d.as, n: d.n }; }
 export const depth = () => { const r = G.run; return r.ch * 6 + Math.min(5, r.road ? r.road.i : 0); };
-export const powerNow = () => 1 + 0.085 * depth();
+// 전술 패의 위력: 고개마다 요괴가 한 단계씩 세지는 만큼 따라 오른다 (고개 안에서도 조금씩)
+export const powerNow = () => { const r = G.run; return (1 + 0.2 * r.ch) * (1 + 0.025 * Math.min(5, r.road ? r.road.i : 0)); };
 
 // ───────── 노정: 한 고개에서 차례로 만나는 것들 ─────────
 // 지도를 펼쳐 고르지 않는다. 길을 걷다 보면 차례로 만나고, 갈림길에서는 길가 푯말 둘 중 하나를 고른다
 export const STOP = {
-  battle: { ch: '戰', name: '싸움', col: '#2f4d7e' }, elite: { ch: '强', name: '강적', col: '#c8402f' }, event: { ch: '?', name: '사건', col: '#6a5a8a' },
-  shop: { ch: '場', name: '장터', col: '#b8742a' }, rest: { ch: '酒', name: '주막', col: '#2f6f5c' }, treasure: { ch: '寶', name: '보물', col: '#b8862a' }, boss: { ch: '頭', name: '두목', col: '#7a1f1c' }, fork: { ch: '岐', name: '갈림길', col: '#5a5346' },
+  // ch = 도장에 찍는 그림 기호 (render/symbols.js 의 이름. 사건만 물음표 그대로)
+  battle: { ch: 'battle', name: '싸움', col: '#2f4d7e' }, elite: { ch: 'elite', name: '강적', col: '#c8402f' }, event: { ch: '?', name: '사건', col: '#6a5a8a' },
+  shop: { ch: 'shop', name: '장터', col: '#b8742a' }, rest: { ch: 'rest', name: '주막', col: '#2f6f5c' }, treasure: { ch: 'treasure', name: '보물', col: '#b8862a' }, boss: { ch: 'boss', name: '두목', col: '#7a1f1c' }, fork: { ch: 'fork', name: '갈림길', col: '#5a5346' },
 };
 const FORK_DESC = { battle: '요괴 무리가 지키는 길', elite: '강적이 버티는 험한 길 — 보물을 지키고 있다', event: '무언가 기다리는 샛길', shop: '장이 서는 길', treasure: '옛 보물이 묻혔다는 길' };
 export function genRoad(ch) {
   const side = () => pick(['event', 'event', 'shop', 'treasure']), two = () => { const a = side(); let b = side(); for (let g = 0; b === a && g < 9; g++) b = pick(['event', 'shop', 'battle']); return [a, b]; };
   const [a, b] = two(), [c, d] = two(), safe = pick(['event', 'shop', 'treasure']);
-  const stops = [{ type: 'battle' }, { type: 'fork', a: { type: a }, b: { type: b } }, { type: 'battle' }, { type: 'fork', a: { type: 'elite' }, b: { type: safe } }, { type: 'battle' }, { type: 'fork', a: { type: c }, b: { type: d } }, { type: 'battle' }, { type: 'rest' }, { type: 'boss' }];
+  // 고개 하나는 여섯 칸: 싸움 · 갈림길 · 싸움 · 갈림길(강적이냐 쉬운 길이냐) · 주막(그 고개의 옛이야기를 듣는다) · 두목
+  const stops = [{ type: 'battle' }, { type: 'fork', a: { type: a }, b: { type: b } }, { type: 'battle' }, { type: 'fork', a: { type: 'elite' }, b: { type: safe } }, { type: 'rest' }, { type: 'boss' }];
   return { ch, stops, i: 0, state: 'march' };
 }
 export const forkDesc = t => FORK_DESC[t] || '';
@@ -147,9 +154,9 @@ export function chooseFork(which) { const rd = G.run.road, st = rd.stops[rd.i]; 
 // 지금 칸을 끝내고 다음 칸으로. 두목을 물리쳤으면 다음 고개로 넘어간다. 원정이 끝났으면 true
 export function advance() {
   const r = G.run, rd = r.road, st = rd.stops[rd.i]; r.pending = null;
-  meta.best = Math.max(meta.best, r.ch * 7 + rd.i + 1);
+  meta.best = Math.max(meta.best, r.ch * 6 + rd.i + 1); meta.bestCh = Math.max(meta.bestCh || 0, r.ch + (st.type === 'boss' ? 1 : 0));
   if (st.type === 'boss') {
-    r.bosses++; r.ch++; if (r.ch >= 3) { r.done = true; save(); return true; }
+    r.bosses++; r.ch++; if (r.ch >= N_CH) { r.done = true; save(); return true; }
     // 고개를 넘으면: 깃발 하나를 되찾고, 부대 한도가 늘고, 모든 병력·영웅 패가 한 단계 단련된다
     r.flags = Math.min(3, r.flags + 1); r.cap = Math.min(MAX_CAP, r.cap + 1); for (const c of r.deck) if (isUnit(c) && (c.lv || 1) < MAX_LV) c.lv = (c.lv || 1) + 1;
     r.road = genRoad(r.ch);
@@ -170,7 +177,7 @@ export function startDeploy() {
 export function battleSetup(seed) { const r = G.run; return { mods: mods(), seed: seed || ((rnd() * 1e9) | 0), power: powerNow(), deck: r.deck, cap: r.cap, start: startDeploy(), morale: r.nextMorale || 0, loot: lootTable(), mastery: r.mastery || {}, lead: r.hero }; }
 export function waveSetup(enc) {
   const r = G.run, h = hardOf(r.hard || 0), foe = Object.assign({}, enc.foe || {});
-  foe.hp = (foe.hp || 1) * h.hp * (enc.boss ? h.boss * BOSS_HP[Math.min(2, enc.ch || 0)] : 1); foe.spd = (foe.spd || 1) * h.spd; foe.atk = (foe.atk || 1) * h.atk;
+  foe.hp = (foe.hp || 1) * h.hp * CH_HP[chN(enc.ch)] * (enc.boss ? h.boss * BOSS_HP[chN(enc.ch)] : 1); foe.spd = (foe.spd || 1) * h.spd; foe.atk = (foe.atk || 1) * h.atk * CH_ATK[chN(enc.ch)];
   return { foe, lvl: enc.lvl, terrain: enc.terrain, sky: enc.sky, chase: enc.chase && h.chase ? Object.assign({}, enc.chase, { at: Math.max(20, enc.chase.at + h.chase) }) : enc.chase };
 }
 export function goldFor(grade, kind) { const m = mods(); return Math.round((26 + grade * 8 + (kind === 'boss' ? 40 : kind === 'elite' ? 18 : 0)) * m.gold * hardOf(G.run.hard || 0).gold + m.goldFlat); }
@@ -264,9 +271,9 @@ export function openReward(kind) { const r = G.run; if (!r.pending || r.pending.
 export function genShop() {
   const r = G.run, items = [], keys = new Set(); keys.kind = 'shop';
   const add = (kind, price) => { for (let g = 0; g < 20; g++) { const o = makeReward(kind, keys); if (o && !keys.has(o.key)) { keys.add(o.key); items.push(Object.assign(o, { price, sold: false })); return; } } };
-  add('unit', 0); add('tactic', 0); add('tactic', 0); add('tactic', 0); add('supply', 30); add('relic', 90 + r.ch * 10); add('weapon', 56 + r.ch * 6);
+  add('unit', 0); add('tactic', 0); add('tactic', 0); add('tactic', 0); add('supply', 30); add('relic', 90 + Math.min(4, r.ch) * 10); add('weapon', 56 + Math.min(4, r.ch) * 6);
   const curse = r.relics.find(id => RELICS[id].curse);
-  if (curse) items.push({ kind: 'cleanse', id: curse, key: 'cl', price: 45, sold: false }); else items.push({ kind: 'trainPick', key: 'tp', price: 56 + r.ch * 8, sold: false });
+  if (curse) items.push({ kind: 'cleanse', id: curse, key: 'cl', price: 45, sold: false }); else items.push({ kind: 'trainPick', key: 'tp', price: 56 + Math.min(4, r.ch) * 8, sold: false });
   const k = mods().shopCard;
   for (const it of items) { if (it.kind === 'card') { const d = CARDS[it.id]; it.price = isUnit(it) ? 34 + d.cost * 10 : Math.round(((d.hero ? 44 : [30, 38, 46][d.rare || 0]) + (it.up ? 14 : 0)) * k); } else if (it.kind === 'supply') it.price = Math.round(it.price * k); }
   return items;
@@ -300,7 +307,7 @@ export const act = {
 // ───────── 원정 끝: 공적 정산 ─────────
 export function settleRun(win) {
   const r = G.run; if (!r || r.settled) return r ? r.gain || 0 : 0;
-  const gain = Math.round((r.merit + r.bosses * 6 + (win ? 15 : 0)) * (1 + 0.2 * r.hard));
+  const gain = Math.round((r.merit * 0.6 + r.bosses * 4 + (win ? 40 : 0)) * (1 + 0.2 * r.hard));
   meta.merit += gain; r.settled = true; r.gain = gain;
   // 평정하면 다음 험로가 열리고, 그 영웅이 넘은 가장 험한 길이 기록된다
   if (win) { meta.clears++; const was = meta.hardMax || 0; meta.hardMax = Math.min(HARD_MAX, Math.max(was, r.hard + 1)); r.newHard = meta.hardMax > was ? meta.hardMax : 0; if (!meta.heroBest) meta.heroBest = {}; meta.heroBest[r.hero] = Math.max(meta.heroBest[r.hero] === undefined ? -1 : meta.heroBest[r.hero], r.hard); }

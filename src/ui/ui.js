@@ -1,6 +1,7 @@
 // 즉시 모드 UI — 한지 판과 놋쇠 귀장식, 쪽빛 옻칠에 금선, 붉은 낙관
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT, FONT_B, st, fs, ell, rr, rrPath, poly, line, path, text, clamp, makeCanvas } from '../render/draw.js';
 import { drawInk, MEOK } from '../render/ink.js';
+import { symbol, hasSymbol } from '../render/symbols.js';
 
 export const C = { paper: PAPER, tray: '#1f2a47', ink: INK, sub: SUB, navy: NAVY, indigo: INDIGO, red: RED, redD: REDD, gold: OCHRE, teal: TEAL, grey: '#a9a394', cream: '#fbf7ec', dim: '#a4afcc', gilt: '#e2b85a' };
 
@@ -112,15 +113,16 @@ export function bar(g, x, y, w, h, t, col, o = {}) {
     g.restore();
   }
 }
-// 붉은 도장: 테두리를 한 번 더 새긴 낙관
+// 붉은 도장: 테두리를 한 번 더 새긴 낙관. ch = 가운데에 새기는 그림 기호의 이름 (symbols.js. 기호가 아니면 글자로 찍는다 — 물음표)
 export function seal(g, x, y, s, ch, col = RED, o = {}) {
   const dk = o.dark || 'rgba(30,20,20,0.55)', r = s * 0.14, x0 = x - s / 2, y0 = y - s / 2;
   rr(g, x0, y0, s, s, r, col, dk, Math.max(1.6, s * 0.03));
   if (s >= 22) { g.save(); g.beginPath(); rrPath(g, x0, y0, s, s, r); g.clip(); g.fillStyle = 'rgba(255,255,255,0.13)'; g.fillRect(x0, y0, s, s * 0.4); g.fillStyle = 'rgba(0,0,0,0.13)'; g.fillRect(x0, y0 + s * 0.84, s, s); g.restore(); }
   g.save(); g.globalAlpha *= 0.5; rr(g, x0 + s * 0.085, y0 + s * 0.085, s * 0.83, s * 0.83, s * 0.07, null, C.cream, Math.max(0.8, s * 0.026)); g.restore();
-  text(g, ch, x, y + s * 0.04 + (o.dy || 0), { size: s * (o.k || 0.6), font: FONT_B, fill: C.cream });
+  if (hasSymbol(ch)) symbol(g, ch, x, y + (o.dy || 0), s * (o.k || 0.76), C.cream); else text(g, ch, x, y + s * 0.04 + (o.dy || 0), { size: s * (o.k || 0.6), font: FONT_B, fill: C.cream });
 }
-export function stamp(g, x, y, r, ch, col = RED, rot = -0.12) { g.save(); g.translate(x, y); g.rotate(rot); ell(g, 0, 0, r, r, 'rgba(251,247,236,0.82)', col, r * 0.1); ell(g, 0, 0, r * 0.82, r * 0.82, null, col, r * 0.04); text(g, ch, 0, r * 0.08, { size: r * 1.15, font: FONT_B, fill: col }); g.restore(); }
+// 둥근 도장 자국: 두 겹 테 안에 그림 기호 하나
+export function stamp(g, x, y, r, ch, col = RED, rot = -0.12) { g.save(); g.translate(x, y); g.rotate(rot); ell(g, 0, 0, r, r, 'rgba(251,247,236,0.82)', col, r * 0.1); ell(g, 0, 0, r * 0.82, r * 0.82, null, col, r * 0.04); if (hasSymbol(ch)) symbol(g, ch, 0, 0, r * 1.28, col); else text(g, ch, 0, r * 0.08, { size: r * 1.15, font: FONT_B, fill: col }); g.restore(); }
 // 붓으로 한 번에 그은 제목 띠: 붓끝이 갈라지고 마른 붓 자국(비백)이 남는다
 export function brushTitle(g, x, y, w, h, label, col = INDIGO, size = 40) {
   const L = x - w / 2 - 20, Rt = x + w / 2 + 20, t = y - h / 2, b = y + h / 2;

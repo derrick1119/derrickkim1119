@@ -5,6 +5,7 @@
 //  charge   : 일정 거리 이상 달린 뒤 첫 타격이 강력 + 넉백
 //  soft     : 후방 지원 병종 (돌격·침투 병종이 우선 노림)
 //  aoe      : 범위 피해 (방패 무시)
+import { BOSS_UNITS } from './bosses.js';
 export const UNITS = {
   // ───── 아군 ─────
   sword: { name: '환도 무사', role: '보병', side: 0, cost: 2, n: 6, hp: 112, atk: 14, as: 0.95, range: 0, spd: 64, r: 11,
@@ -100,12 +101,14 @@ export const UNITS = {
     desc: '올려다볼수록 커지는 그림자', tip: '살려 둘수록 점점 커지고 세집니다. 보이는 대로 화력을 모아 먼저 쓰러뜨리세요.' },
   // ───── 보스 ─────
   warchief: { name: '푸른 김서방', role: '보스', side: 1, boss: true, n: 1, hp: 1900, atk: 44, as: 1.6, range: 0, reach: 14, spd: 52, r: 26, large: true, splash: 46, abil: ['slam', 'warcry'],
-    desc: '터를 잃고 쫓겨 온 도깨비 두목', tip: '붉은 원이 보이면 부대를 빼세요. 체력이 절반이 되면 무리 전체가 광분합니다.' },
-  elder: { name: '당산 할배', role: '보스', side: 1, boss: true, n: 1, hp: 2600, atk: 48, as: 2.0, range: 0, reach: 18, spd: 30, r: 30, large: true, splash: 44, abil: ['roots', 'saplings'],
-    desc: '베어진 숲의 그루터기에서 깨어난 신령', tip: '뿌리 감옥(초록 원)을 피하고, 아기 장승이 쌓이기 전에 본체에 화력을 집중하세요.' },
+    desc: '터를 잃고 쫓겨 온 도깨비 두목', tip: '영웅을 붙잡고 씨름을 겁니다 — 그동안 김서방을 몰아쳐 왼다리를 걸면 넘어집니다(못 걸면 메다꽂힙니다). 붉은 원은 피하세요. 체력이 절반이 되면 무리 전체가 광분합니다.' },
+  elder: { name: '당산 할배', role: '보스', side: 1, boss: true, n: 1, hp: 2300, atk: 48, as: 2.0, range: 0, reach: 18, spd: 30, r: 30, large: true, splash: 44, abil: ['roots', 'saplings'],
+    desc: '베어진 숲의 그루터기에서 깨어난 신령', tip: '뿌리 감옥(초록 원)을 피하세요. 아기 장승은 오래 두면 다 자라 장승이 됩니다 — 불려 나오는 대로 먼저 치우세요.' },
   skelking: { name: '어둑시니', role: '보스', side: 1, boss: true, n: 1, hp: 2800, atk: 44, as: 1.7, range: 0, reach: 18, spd: 50, r: 26, large: true, splash: 40, abil: ['brand', 'summon'],
-    desc: '올려다볼수록 커지는 어둠', tip: '어둠의 낙인(보라 원)을 피하고, 후방에 불려 나오는 망령에 대비해 예비대를 남겨두세요.' },
+    desc: '올려다볼수록 커지는 어둠', tip: '어둠 속에서는 점점 커집니다 — 횃불 패·삼족오·불로 줄이세요. 어둠의 낙인(보라 원)을 피하고, 후방에 불려 나오는 망령에 대비해 예비대를 남겨두세요.' },
 };
+// 고개마다의 두목과 소품 (data/bosses.js)
+Object.assign(UNITS, BOSS_UNITS);
 for (const k of Object.keys(UNITS)) UNITS[k].id = k;
 
 // ───── 영웅의 고유기: 기력이 찰 때마다 차례로 자동 발동한다 ─────
@@ -128,8 +131,8 @@ export const HERO_TRAIT = {
   sangsoe: { name: '신명', desc: '손에 빈 자리가 있으면 언제든 사기 2로 아무 전술 패나 강화판(+)으로 한 장 얻어 값 없이 낸다 (다른 영웅은 패가 다 떨어졌을 때만 돌팔매).', play: '사기를 패로 바꿔 쓴다' },
   chief: { name: '약탈', desc: '요괴 무리를 물리칠 때마다 엽전 +6. 장터의 전술 패가 반값.', play: '엽전으로 패를 사 모은다' },
 };
-// 영웅의 낙관: 將(장군) 劍(검객) 弓(명궁) 僧(고승) 仙(신선) 樂(상쇠) 頭(두령)
-export const HERO_SEAL = { commander: '將', blade: '劍', hunter: '弓', bishop: '僧', archmage: '仙', sangsoe: '樂', chief: '頭' };
+// 영웅의 낙관: 저마다 손에 든 것을 그린 그림 기호 (render/symbols.js) — 언월도·쌍검·활·염주·깃털 부채·꽹과리·쌍도끼
+export const HERO_SEAL = { commander: 'glaive', blade: 'twin', hunter: 'bow', bishop: 'beads', archmage: 'fan', sangsoe: 'gong', chief: 'axes' };
 // 영웅마다 두르는 빛깔 (고유기 이름·이펙트)
 export const HERO_COL = { commander: '#c8402f', bishop: '#b8862a', archmage: '#2f4d7e', blade: '#5a4a8a', hunter: '#8a5a2c', sangsoe: '#2f6f5c', chief: '#8a2a26' };
 // 영웅 둘이 함께 전장에 있으면 합동기 기력이 따로 찬다. 합동기는 두 영웅이 저마다 한 몫씩 보탠다

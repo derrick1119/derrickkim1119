@@ -1,12 +1,20 @@
 // 한지 전장(가로): 멀리 겹친 산, 끝없이 이어지는 고갯길, 길가에서 만나는 것들
-import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, st, fs, ell, rr, rrPath, poly, line, path, text, FONT_B, makeCanvas, paperSprite, rng } from './draw.js';
+import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, st, fs, ell, rr, rrPath, poly, line, path, makeCanvas, paperSprite, rng } from './draw.js';
 import { part, dk, lt, E, R as RC, P, curve, rope } from './figures.js';
+import { symbol } from './symbols.js';
 import { W, H } from '../config.js';
 
 export const THEMES = {
   pass: { paper: '#e9dec4', wash: ['#a9b78f', '#93a57f'], path: '#f1e8d2', fiber: '#9a8660', tuft: '#5f7a5a', mtn: ['#8a98a0', '#5f6f7a'], sky: '#efe6cf', pine: '#3f6b5c', pineD: '#2c4f44', pineL: '#6f9a86', stone: ['#b9b3a2', '#a59f8f'], flower: ['#f3c4c9', '#fbf7ec', '#f0d264'], bark: '#a0623f' },
   grove: { paper: '#dfd9bb', wash: ['#8fa87a', '#7a9670', '#9aae7a'], path: '#ece5c9', fiber: '#8a8658', tuft: '#4a6a4a', mtn: ['#7a9088', '#4f6a62'], sky: '#e6e3c8', pine: '#2f5f4c', pineD: '#1f4436', pineL: '#5f8f78', stone: ['#aeb0a0', '#959a8a'], flower: ['#f0d264', '#fbf7ec'], bark: '#8a5a3c' },
   dusk: { paper: '#c9cfd8', wash: ['#9aa6ba', '#8794ac', '#a8a2bc'], path: '#dadee4', fiber: '#7a8494', tuft: '#56607a', mtn: ['#6a7488', '#454f66'], sky: '#b9c0d0', pine: '#4a5a6c', pineD: '#333f4e', pineL: '#72849a', stone: ['#a9adb6', '#8e939e'], flower: ['#dfe8ee', '#b8a0e0'], bark: '#6f5a60', night: true },
+  // 고개마다의 풍경: 단풍 든 바윗길 · 눈 고개 · 안개 낀 절터 · 불탄 대장간 마을 · 비구름 낀 용소 · 저승길
+  autumn: { paper: '#ead9bd', wash: ['#c9a36a', '#b98a55', '#c9884f'], path: '#f2e6cf', fiber: '#9a7a50', tuft: '#8a6a3a', mtn: ['#a08a7a', '#7a6258'], sky: '#f0e2c8', pine: '#b5562e', pineD: '#8a3d22', pineL: '#d98a4a', stone: ['#b9ad9a', '#a39682'], flower: ['#e8a03c', '#c8402f', '#f0d264'], bark: '#7a4a32' },
+  snow: { paper: '#eef0ee', wash: ['#d7dfe2', '#c6d0d6', '#e3e8e8'], path: '#f7f8f6', fiber: '#a9b4ba', tuft: '#8a9aa0', mtn: ['#a9b6c0', '#7f8e9a'], sky: '#e9edf0', pine: '#4f6f6a', pineD: '#365450', pineL: '#dfe9ea', stone: ['#c3c8cc', '#a9b0b6'], flower: ['#ffffff', '#dfe8ee'], bark: '#6f5a50' },
+  mist: { paper: '#dcdccb', wash: ['#a3b09a', '#93a392', '#b3b9a3'], path: '#e9e8d8', fiber: '#8a8a72', tuft: '#5f705f', mtn: ['#8f9a98', '#6a7876'], sky: '#e2e3d6', pine: '#4a6a5c', pineD: '#324c42', pineL: '#7f9c8c', stone: ['#b3b3a6', '#9a9c90'], flower: ['#e9e6d2', '#c9d6c0'], bark: '#76604a' },
+  ember: { paper: '#e2d3bd', wash: ['#b59a80', '#a3866e', '#8f7866'], path: '#efe2cc', fiber: '#8a6f58', tuft: '#6f5a48', mtn: ['#8f7f78', '#66585a'], sky: '#ecdcc6', pine: '#5a5046', pineD: '#3d362f', pineL: '#8a7a68', stone: ['#9a938c', '#7f7872'], flower: ['#ff9a2e', '#c8402f'], bark: '#4a3a30' },
+  storm: { paper: '#cfd6d6', wash: ['#8fa6a8', '#7d989c', '#9fb0aa'], path: '#dde3e0', fiber: '#788a8c', tuft: '#4f6a6c', mtn: ['#6f8088', '#4a5c66'], sky: '#c3ccd0', pine: '#3f5f62', pineD: '#2c4648', pineL: '#6f8f90', stone: ['#a3acae', '#8a9496'], flower: ['#cfe3e6', '#8fd3e8'], bark: '#5f5750' },
+  under: { paper: '#cdc3d0', wash: ['#9a8aa8', '#86789a', '#a88a9a'], path: '#ddd5de', fiber: '#7a6c84', tuft: '#5a4a66', mtn: ['#6a5c7a', '#463c58'], sky: '#b9aec4', pine: '#5a4660', pineD: '#3d2f44', pineL: '#86708c', stone: ['#a59fae', '#8a8496'], flower: ['#c8402f', '#e06a5a', '#dfe8ee'], bark: '#5a4650', night: true },
 };
 export const GW = 2560, FW = 1920, FAR_H = 150; // 바닥 한 장과 먼 산 한 장의 너비 (이어 붙여 끝없이 흐른다)
 const TOP = 104; // 이 위는 먼 산이 비친다
@@ -181,7 +189,7 @@ const STOPS = {
     post(g, 56, 62, 2.6); line(g, [56, -60, 71, -60], INK, 2.6); line(g, [56, -60, 71, -60], WOODD, 1.2);
     g.globalAlpha = 0.28; ell(g, 70, -47, 15, 15, '#ffd27a'); g.globalAlpha = 1;
     part(g, p => rrPath(p, 63, -58, 14, 20, 5.4), RED, RC(70.6, -58, 7, 20), { hi: E(66.4, -49, 1.5, 5), lw: 1.2 }); rr(g, 65.4, -60, 9.2, 3, 1, '#2b2a30'); rr(g, 65.4, -39, 9.2, 2.6, 1, '#2b2a30'); line(g, [70, -36.4, 70, -31], OCHRE, 1.2);
-    text(g, '酒', 70, -47.4, { size: 12, font: FONT_B, fill: WHITE });
+    symbol(g, 'rest', 70, -47.6, 15, WHITE);   // 주막 등에 그린 호리병
     jar(g, -52, 0, 1, '#6b4a3a'); jar(g, -41.4, 1, 0.76, '#8a6248'); grassTuft(g, 44, 1, 0.7, TEAL, SR());
   },
   shop(g) { // 장터 좌판: 줄무늬 차일 아래 늘어놓은 물건

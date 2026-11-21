@@ -5,7 +5,7 @@ import { button, panel, brushTitle, C } from '../ui/ui.js';
 import { nav } from '../nav.js';
 import { G, meta, save, settleRun, BEASTS, has, deedCount, noteDeed, HARD } from '../state.js';
 import { UNITS } from '../data/units.js';
-import { CHAPTERS } from '../data/stages.js';
+import { chapterOf } from '../data/stages.js';
 import { CARDS, isUnit } from '../data/cards.js';
 import { ENDING, EPILOGUE, DEFEAT, endingPlay, defeatPlay } from '../data/story.js';
 import { Play } from '../ui/theater.js';
@@ -13,7 +13,7 @@ import { backdrop } from './title.js';
 import { portrait } from '../render/sprites.js';
 import { relicIcon } from '../render/icons.js';
 import { cardFace } from '../ui/cards.js';
-import { inkMark } from '../render/ink.js';
+import { inkMark } from '../render/symbols.js';
 
 export class EndScene {
   constructor(a) { this.win = !!(a && a.win); this.t = 0; this.r = G.run; this.gain = settleRun(this.win); this.fresh = noteDeed();
@@ -27,10 +27,10 @@ export class EndScene {
     if (win) for (const c of this.conf) { c.y += c.v * dt; if (c.y > H) { c.y = -20; c.x = Math.random() * W; } if (c.y > 92 && c.y < 190 && c.x > 300 && c.x < 980) continue;   // 이야기 글 위로는 지나가지 않는다
       g.save(); g.translate(c.x + Math.sin(t * 2 + c.p) * 20, c.y); g.rotate(t * 3 + c.p); rr(g, -7, -4, 14, 8, 1, c.c, INK, 1); g.restore(); }
     brushTitle(g, 640, 54, 520, 76, win ? '고개를 넘었다' : '도깨비에 홀린 밤', win ? INDIGO : '#5a5346', 44);
-    // 원정의 끝을 알리는 한 자: 이기면 勝, 지면 敗
-    inkMark(g, win ? '勝' : '敗', 310, 64, 86, { k: (t - 0.25) / 0.5, col: win ? '#f6efdc' : '#f3b9a6', v: win ? 0 : 2 });
+    // 원정의 끝을 알리는 그림: 이기면 높이 세운 깃발, 지면 부러진 깃발
+    inkMark(g, win ? 'win' : 'lose', 310, 64, 86, { k: (t - 0.25) / 0.5, col: win ? '#f6efdc' : '#f3b9a6', v: win ? 0 : 2 });
     // 이긴 밤에는 영웅의 후일담, 진 밤에는 장승 앞에서 깨어난다
-    const tale = win ? ENDING + '\n' + (r && EPILOGUE[r.hero] || '') : (r ? `${CHAPTERS[Math.min(2, r.ch)].name}에서 길을 잃었습니다.\n` : '') + DEFEAT;
+    const tale = win ? ENDING + '\n' + (r && EPILOGUE[r.hero] || '') : (r ? `${chapterOf(r.ch).name}에서 길을 잃었습니다.\n` : '') + DEFEAT;
     textBlock(g, tale, 640, 112, 1100, 25, { size: 18.5, stroke: win ? '#ecdfc2' : 'rgba(31,42,68,0.7)', lw: 5, fill: win ? INK : C.cream });
     if (r) { portrait(g, r.hero, 250, 590 - (win ? Math.abs(Math.sin(t * 4)) * 10 : 0), 3.2, t); if (win) { portrait(g, 'sword', 110, 620, 1.9, t, true); portrait(g, 'priest', 410, 620, 1.9, t, true); } else portrait(g, 'treant', 420, 620, 1.5, 0); }
     panel(g, 520, 198, 720, 364);

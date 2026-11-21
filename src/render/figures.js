@@ -1,6 +1,7 @@
 // 인형 그림: 사람과 도깨비는 몸과 머리를 따로 오린 관절 종이 인형, 그 밖의 요괴·탈것은 한 장
 // 모든 그림은 발이 원점(0,0), 위쪽이 -y. 셀 음영(오른쪽 아래 그늘 + 왼쪽 위 빛)과 먹선으로 그린다
 import { TAU, INK, RED, INDIGO, TEAL, OCHRE, SKIN, st, ell, rr, poly, line, path } from './draw.js';
+import { taegeuk } from './symbols.js';
 
 export const WHITE = '#fbf7ec', BLACK = '#2b2a30', STEEL = '#e4e8ea', IRON = '#4a4a55', WOOD = '#a9753f', WOODD = '#7a4a2c';
 export const HX = 15.5, HY = -18.4; // 인형의 손 위치 (무기를 쥐는 자리)
@@ -375,7 +376,7 @@ export const DITEM = {
 // ───────── 불여우 ─────────
 export function fox(g, o = {}) {
   const fur = '#f8f3ea', tip = '#8fd3e8';
-  for (let i = -2; i <= 2; i++) { g.save(); g.translate(0, -9); g.rotate(i * 0.44); part(g, p => { p.moveTo(-2.6, 0); p.quadraticCurveTo(-8, -18, 0, -32); p.quadraticCurveTo(8, -18, 2.6, 0); p.closePath(); }, fur, P(0.4, -34, 9, -34, 9, 1, 1.2, 1), { k: 0.1, lw: 1.1 }); part(g, p => { p.moveTo(-3.4, -22); p.quadraticCurveTo(-1, -25.6, 0, -32); p.quadraticCurveTo(1, -25.6, 3.4, -22); p.quadraticCurveTo(0, -24.6, -3.4, -22); p.closePath(); }, tip, null, { lw: 0.8 }); g.restore(); }
+  for (let i = -2; i <= 2 && !o.noTail; i++) { g.save(); g.translate(0, -9); g.rotate(i * 0.44); part(g, p => { p.moveTo(-2.6, 0); p.quadraticCurveTo(-8, -18, 0, -32); p.quadraticCurveTo(8, -18, 2.6, 0); p.closePath(); }, fur, P(0.4, -34, 9, -34, 9, 1, 1.2, 1), { k: 0.1, lw: 1.1 }); part(g, p => { p.moveTo(-3.4, -22); p.quadraticCurveTo(-1, -25.6, 0, -32); p.quadraticCurveTo(1, -25.6, 3.4, -22); p.quadraticCurveTo(0, -24.6, -3.4, -22); p.closePath(); }, tip, null, { lw: 0.8 }); g.restore(); }
   part(g, p => { p.moveTo(-8.6, -3); p.quadraticCurveTo(-10.6, -16, -5, -21); p.lineTo(5, -21); p.quadraticCurveTo(10.6, -16, 8.6, -3); p.quadraticCurveTo(0, 0.6, -8.6, -3); p.closePath(); }, fur, P(2.6, -22, 11, -22, 11, 1, 4, 1), { k: 0.1 });
   for (const s of [-1, 1]) { part(g, E(s * 4.6, -1.4, 3.4, 2.4), fur, E(s * 4.6 + 1, -0.6, 3, 1.8), { k: 0.1, lw: 1 }); line(g, [s * 4.6, -0.4, s * 4.6, 0.8], '#b9b3a2', 0.6); }
   for (const y of [-9, -13]) curve(g, p => { p.moveTo(-2, y); p.quadraticCurveTo(0, y + 1.6, 2, y); }, '#d9d2c2', 0.8);
@@ -544,7 +545,7 @@ export function bannerCart(g) {
   part(g, p => { p.moveTo(-6, -98); p.lineTo(34, -95); p.quadraticCurveTo(29, -80, 34, -64); p.lineTo(-6, -61); p.closePath(); }, INDIGO, p => { p.moveTo(14, -100); p.quadraticCurveTo(20, -80, 16, -60); p.lineTo(36, -60); p.lineTo(36, -100); p.closePath(); }, { hi: P(-5, -96, 2, -95.6, 3, -64, -5, -63), hk: 0.14, lw: 1.4 });
   path(g, P(-6, -98, 34, -95, 33.2, -91.4, -6, -94.4), RED); path(g, P(-6, -61, 34, -64, 33.2, -67.6, -6, -64.6), RED);
   curve(g, p => { p.moveTo(-6, -98); p.lineTo(34, -95); p.quadraticCurveTo(29, -80, 34, -64); p.lineTo(-6, -61); }, INK, 1.4);
-  part(g, E(13, -79.6, 9.4, 9.4), WHITE, E(15, -77.6, 8, 8), { k: 0.1, lw: 1 }); g.fillStyle = RED; g.font = "900 12.5px 'Hanja Seal', 'Yeon Sung', serif"; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('軍', 13, -79.2);
+  part(g, E(13, -79.6, 9.4, 9.4), WHITE, E(15, -77.6, 8, 8), { k: 0.1, lw: 1 }); taegeuk(g, 13, -79.6, 6.9, -0.5, [RED, INDIGO, OCHRE], 0.8);   // 군기 가운데의 삼태극
   for (const y of [-58, -50]) line(g, [-6, y, -12, y + 6], OCHRE, 1.3);
   part(g, p => p.rect(-24, -20, 48, 10), '#9a6a3c', R(-24, -14.6, 48, 5), { hi: R(-23, -19.4, 46, 1.4), lw: 1.3 }); for (const x of [-18, -8, 2, 12]) line(g, [x, -19, x, -11], WOODD, 0.9);
   part(g, p => p.rect(4, -36, 18, 16), '#a8322a', R(15, -37, 8, 18)); part(g, E(13, -36, 9, 3.4), '#f3e7c8', E(15, -35, 7.6, 2.6), { k: 0.12, lw: 1.1 }); for (const x of [8, 13, 18]) line(g, [x, -32, x, -21], OCHRE, 1);

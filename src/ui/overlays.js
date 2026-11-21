@@ -4,6 +4,7 @@ import { TAU, INK, PAPER, RED, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, tex
 import { ui, tapped, isDown, button, panel, brushTitle, seal, stamp, icon, C } from './ui.js';
 import { cardFace, DeckView } from './cards.js';
 import { G, save, STOP, forkDesc, openReward, rollRewards, describeReward, applyReward, buyItem, upgradeCard, removeCard, canUp, act } from '../state.js';
+import { chapterOf } from '../data/stages.js';
 import { CARDS, KIND, cardName, isUnit } from '../data/cards.js';
 import { RELICS } from '../data/relics.js';
 import { WEAPONS } from '../data/weapons.js';
@@ -65,7 +66,7 @@ export class RewardOverlay extends Overlay {
       if (d.card) { cardFace(g, d.card, x, y, w, h); packTag(g, x + w - 30, y + 62, d.n); if (o.kind !== 'card') { rr(g, x + 36, y - 25, 152, 27, 13, COL[d.col], INK, 1.6); text(g, d.title, x + 112, y - 11, { size: 17, fill: C.cream }); } } else tile(g, d, x, y, w, h, t);
       g.restore();
       if (done && !mine) rr(g, x - 3, y - (d.card && o.kind !== 'card' ? 27 : 3), w + 6, h + (d.card && o.kind !== 'card' ? 30 : 6), 9, 'rgba(24,28,44,0.62)');
-      if (mine && !d.relic) stamp(g, x + w - 44, y + 92, 38, '得', RED, 0.14);   // 보물은 가운데 공개 연출에 得 이 찍힌다
+      if (mine && !d.relic) stamp(g, x + w - 44, y + 92, 38, 'get', RED, 0.14);   // 보물은 가운데 공개 연출에 얻음 표가 찍힌다
       else if (!done && t > 0.45 && button(g, 'rw' + n, x + 12, y + h + 12, w - 24, 54, '고르기', { size: 27 })) {
         this.taken = n; applyReward(o); r.pending = null; save(); sfx('card');
         // 고른 것이 제자리로 날아간다: 패는 덱으로, 보물은 크게 한 번 보여 준 뒤 보물 주머니로
@@ -101,11 +102,11 @@ export class ShopOverlay extends Overlay {
       rr(g, x + 3, y + 5, w, h, 6, 'rgba(50,36,20,0.24)'); rr(g, x, y, w, h, 6, PAPER, INK, 2.6);
       g.save(); g.beginPath(); rrPath(g, x + 2, y + 2, w - 4, 32, 5); g.clip(); g.fillStyle = col; g.fillRect(x, y, w, 34); g.restore(); text(g, d.title, x + w / 2, y + 19, { size: 20, font: FONT_B, fill: C.cream });
       if (card) cardFace(g, it, x + 10, y + 42, 96, 124);
-      else { rr(g, x + 10, y + 42, 96, 124, 5, '#efe4c9', INK, 1.4); const cx = x + 58, cy = y + 104; if (d.misc === 'supply') supplyArt(g, d.ids, cx, cy, 1); else if (d.relic) { relicIcon(g, d.relic, cx, cy, 1.5); if (it.kind === 'cleanse') stamp(g, cx + 26, cy + 38, 15, '淨', TEAL, -0.1); } else if (d.weapon) weaponIcon(g, d.weapon, cx, cy, 0.95); else if (d.misc === 'burn') miscIcon(g, 'burn', cx, cy, 1.5); else { g.save(); g.beginPath(); g.rect(x + 11, y + 43, 94, 122); g.clip(); portrait(g, 'spear', cx, cy + 50, 1.2, t, !it.sold); g.restore(); ell(g, cx + 30, cy - 40, 13, 13, PAPER, INK, 1.6); text(g, '↑', cx + 30, cy - 39, { size: 20, font: FONT_B, fill: TEAL }); } }
+      else { rr(g, x + 10, y + 42, 96, 124, 5, '#efe4c9', INK, 1.4); const cx = x + 58, cy = y + 104; if (d.misc === 'supply') supplyArt(g, d.ids, cx, cy, 1); else if (d.relic) { relicIcon(g, d.relic, cx, cy, 1.5); if (it.kind === 'cleanse') stamp(g, cx + 26, cy + 38, 15, 'cleanse', TEAL, -0.1); } else if (d.weapon) weaponIcon(g, d.weapon, cx, cy, 0.95); else if (d.misc === 'burn') miscIcon(g, 'burn', cx, cy, 1.5); else { g.save(); g.beginPath(); g.rect(x + 11, y + 43, 94, 122); g.clip(); portrait(g, 'spear', cx, cy + 50, 1.2, t, !it.sold); g.restore(); ell(g, cx + 30, cy - 40, 13, 13, PAPER, INK, 1.6); text(g, '↑', cx + 30, cy - 39, { size: 20, font: FONT_B, fill: TEAL }); } }
       text(g, d.name, x + 116, y + 58, { size: 19, font: FONT_B, align: 'left', maxW: w - 126 });
       textBlock(g, d.desc.split('\n').join(' · '), x + 116, y + 84, w - 126, 20, { size: 15, align: 'left', fill: '#4a4034', weight: 400 });
       g.restore();
-      if (it.sold) stamp(g, x + w - 52, y + h - 30, 22, '得', RED, -0.14);
+      if (it.sold) stamp(g, x + w - 52, y + h - 30, 22, 'get', RED, -0.14);
       else if (button(g, 'buy' + n, x + 10, y + h - 54, w - 20, 44, `엽전 ${it.price}`, { style: afford ? 'indigo' : 'grey', size: 22 })) this.buy(it, x + 58, y + 104, d);
     });
     if (button(g, 'shdeck', 50, 590, 280, 62, `덱 살피기 · ${r.deck.length}장`, { style: 'paper', size: 24 })) this.deck({});
@@ -141,6 +142,8 @@ function resultIcon(s) {
 }
 // 결과 한 줄이 손해인지 가리는 낱말
 // 얻은 물건(무기·보물·패)은 설명에 '-30%' 같은 글이 섞여 있어도 얻은 것이다
+// 고개의 풍경 → 작은 무대의 걸개그림
+const STAGE_BG = { pass: 'pass', autumn: 'pass', snow: 'pass', ember: 'pass', grove: 'grove', mist: 'grove', storm: 'eve', dusk: 'dark', under: 'dark' };
 const BAD = /-\d|부정 \[|잡념/, GOOD = /씻겨|사라졌|^(무기|보물|패|병력 패|조련|패 강화)/;
 export class ChoiceOverlay extends Overlay {
   constructor(o) { super(); Object.assign(this, { title: o.title, art: o.art, body: o.text, choices: o.choices, onDone: o.onDone, col: o.col || '#6a5a8a', tale: o.tale || null, result: null }); }
@@ -155,14 +158,14 @@ export class ChoiceOverlay extends Overlay {
     const actors = tl && !this.result
       ? [[this.art, 0.17, li === 0 ? 'talk' : 'idle', 1], [tl.cast[0], 0.56, li === 0 ? 'hop' : 'idle', 1], [tl.cast[1], 0.82, li === 1 ? 'talk' : 'idle', -1]]
       : [[r.hero, 0.27, this.result ? (rt < 0.4 ? 'tremble' : bad ? 'shake' : 'hop') : 'idle', 1], [this.art, 0.7, this.result ? (rt < 0.4 ? 'shake' : 'wave') : 'talk', -1]];
-    miniStage(g, 98, 138, 464, 232, { t, bg: tl ? 'village' : ['pass', 'grove', 'dark'][Math.min(2, r.ch)], actors, zoom: 1.5, open: clamp(t / 0.6, 0, 1) });
+    miniStage(g, 98, 138, 464, 232, { t, bg: tl ? 'village' : STAGE_BG[chapterOf(r.ch).theme] || 'pass', actors, zoom: 1.5, open: clamp(t / 0.6, 0, 1) });
     textBlock(g, this.result ? this.result[0] : this.body, 330, tl && !this.result ? 420 : 440, 480, 26, { size: 18.5, weight: 400 });
     // 주막에서 듣는 옛이야기 한 토막: 무대의 인형들이 두 마디로 들려준다
     if (tl && !this.result) {
       rr(g, 84, 492, 492, 140, 7, '#fbf3df', 'rgba(38,42,54,0.5)', 1.3); rr(g, 84, 492, 6, 140, 3, this.col);
       text(g, `옛이야기 「${tl.title}」`, 104, 514, { size: 20, font: FONT_B, align: 'left', maxW: 300 }); if (this.tale.fresh) { rr(g, 430, 501, 134, 25, 5, this.col); text(g, `이야기책 ${this.tale.n} / ${this.tale.of}`, 497, 514, { size: 13.5, fill: C.cream }); }
-      g.globalAlpha = clamp((t % 3.4) / 0.3, 0, 1); textBlock(g, tl.lines[li], 330, 572, 452, 28, { size: 20, font: FONT_B }); g.globalAlpha = 1;
-      for (let m = 0; m < tl.lines.length; m++) ell(g, 330 + (m - (tl.lines.length - 1) / 2) * 16, 616, 4, 4, m === li ? this.col : 'rgba(38,42,54,0.22)');
+      g.globalAlpha = clamp((t % 3.4) / 0.3, 0, 1); textBlock(g, tl.lines[li], 330, 566, 452, 27, { size: 19.5, font: FONT_B }); g.globalAlpha = 1;
+      for (let m = 0; m < tl.lines.length; m++) ell(g, 330 + (m - (tl.lines.length - 1) / 2) * 16, 620, 4, 4, m === li ? this.col : 'rgba(38,42,54,0.22)');
     }
     panel(g, 1040, 84, 164, 38, 'tag'); icon.coin(g, 1062, 103, 11); text(g, `엽전 ${r.gold}`, 1132, 104, { size: 18, maxW: 110 });
     if (!this.result) {
@@ -192,7 +195,7 @@ export class ChoiceOverlay extends Overlay {
         if (ic) { ic(g, 662, y); text(g, s, 936, y + 1, { size: 21, fill: no ? RED : TEAL, maxW: 490 }); } else text(g, s, 914, y + 1, { size: 21, fill: no ? RED : TEAL, maxW: 540 });
         g.restore(); if (k < 1) for (let q = 0; q < 6; q++) { const a = q / 6 * TAU + i, d = 30 + 60 * k; ell(g, 910 + Math.cos(a) * d * 2.6, y + Math.sin(a) * d * 0.5, 3.2 * (1 - k), 3.2 * (1 - k), no ? '#c8402f' : '#d9a441'); }
       });
-      if (n && !bad) { const k = clamp((rt - 0.55 - n * 0.2) / 0.22, 0, 1); if (k > 0) { g.save(); g.globalAlpha = k; stamp(g, 1158, 306 - (n - 1) * 42 - 74, 30 * (1.5 - 0.5 * k), '得', RED, 0.16); g.restore(); } }
+      if (n && !bad) { const k = clamp((rt - 0.55 - n * 0.2) / 0.22, 0, 1); if (k > 0) { g.save(); g.globalAlpha = k; stamp(g, 1158, 306 - (n - 1) * 42 - 74, 30 * (1.5 - 0.5 * k), 'get', RED, 0.16); g.restore(); } }
       if (this.result.length < 2) text(g, '별일 없이 지나갑니다', 910, 300, { size: 22, fill: SUB });
       if (!this.left && rt > 0.5 + this.result.length * 0.18 && button(g, 'go', 740, n ? 306 + (n - 1) * 42 + 76 : 356, 340, 76, '길을 떠난다', { size: 34 })) { this.left = true; this.onDone(); }
     }

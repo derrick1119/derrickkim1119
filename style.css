@@ -4,8 +4,6 @@
 @font-face { font-family: 'Gowun Batang'; font-weight: 400; src: url('assets/fonts/gowun-batang-korean-400-normal.woff2') format('woff2'); font-display: block; unicode-range: U+1100-11FF, U+3000-303F, U+3130-318F, U+AC00-D7AF, U+FF00-FFEF; }
 @font-face { font-family: 'Gowun Batang'; font-weight: 700; src: url('assets/fonts/gowun-batang-latin-700-normal.woff2') format('woff2'); font-display: block; unicode-range: U+0000-024F, U+2000-206F, U+20AC, U+2122, U+2190-21FF, U+2212; }
 @font-face { font-family: 'Gowun Batang'; font-weight: 700; src: url('assets/fonts/gowun-batang-korean-700-normal.woff2') format('woff2'); font-display: block; unicode-range: U+1100-11FF, U+3000-303F, U+3130-318F, U+AC00-D7AF, U+FF00-FFEF; }
-@font-face { font-family: 'Hanja Seal'; font-weight: 100 900; src: url('assets/fonts/noto-serif-kr-hanja-900-subset.woff2') format('woff2'); font-display: block; unicode-range: U+4E00-9FFF; }
-@font-face { font-family: 'Hanja Brush'; font-weight: 100 900; src: url('assets/fonts/yuji-boku-hanja-subset.woff2') format('woff2'); font-display: block; unicode-range: U+4E00-9FFF; }
 html, body { margin: 0; height: 100%; background: #17151a; overflow: hidden; overscroll-behavior: none; }
 body { position: relative; font-family: 'Gowun Batang', serif; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 #game { display: block; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); touch-action: none; background: #e9dec4; box-shadow: 0 0 60px rgba(0,0,0,.6); outline: none; }

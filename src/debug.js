@@ -11,8 +11,8 @@ export function debugBoot(q) {
   const ch = Number(q.get('ch') || 0), i = Number(q.get('i') || 0), scene = q.get('scene') || 'run';
   const r = newRun(q.get('hero') || 'commander'); r.ch = ch; r.road = genRoad(ch); r.road.i = i; r.cap = Math.min(9, r.cap + ch);
   const n = Math.round((ch * 6 + i) * 0.7);
-  for (let k = 0; k < n; k++) { r.wins++; addCard(PLAN[k % PLAN.length]); if (k % 3 === 2) { const c = unitCards()[k % unitCards().length]; c.lv = Math.min(6, (c.lv || 1) + 1); } }
-  for (const c of r.deck) if (isUnit(c)) c.lv = Math.min(6, (c.lv || 1) + ch);
+  for (let k = 0; k < n; k++) { r.wins++; addCard(PLAN[k % PLAN.length]); if (k % 3 === 2) { const c = unitCards()[k % unitCards().length]; c.lv = Math.min(14, (c.lv || 1) + 1); } }
+  for (const c of r.deck) if (isUnit(c)) c.lv = Math.min(14, (c.lv || 1) + ch);
   r.gold = Number(q.get('gold') || 150);
   if (q.get('relics')) r.relics = q.get('relics').split(',');
   if (q.get('items')) r.items = q.get('items').split(',');

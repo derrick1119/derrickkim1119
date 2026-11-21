@@ -1,6 +1,7 @@
 // 파티클과 화면 효과 (먹·종이 느낌)
 import { TAU, INK, PAPER, FONT_B, text, poly, ell, st, drawSprite } from './draw.js';
-import { drawInk, inkGlyph, MEOK } from './ink.js';
+import { drawInk, MEOK } from './ink.js';
+import { inkGlyph } from './symbols.js';
 
 export class Fx {
   constructor() { this.p = []; this.shake = 0; this.flash = 0; this.flashCol = '#fff'; }
@@ -43,7 +44,7 @@ export class Fx {
   enso(x, y, s = 1, col = MEOK, life = 0.7) { this.ink('enso', x, y, { ground: true, s: s * 0.34, s1: s * 0.62, sx: 1.6, rot: 0, col, life, peak: 0.85, in: 0.1, fast: true }); }
   // 피어오르는 먹 연기
   wisp(x, y, n = 2) { for (let i = 0; i < n; i++) this.ink('wash', x + (Math.random() - 0.5) * 22, y + (Math.random() - 0.5) * 12, { vx: (Math.random() - 0.5) * 26, vy: -26 - Math.random() * 34, drag: 0.8, s: 0.07 + Math.random() * 0.04, s1: 0.17 + Math.random() * 0.09, life: 0.6 + Math.random() * 0.4, in: 0.15, peak: 0.6 }); }
-  // 붓글씨 한 자: 크게 찍혔다가 자리를 잡고 스러진다
+  // 붓으로 그린 그림 기호 하나 (ch = symbols.js 의 이름): 크게 찍혔다가 자리를 잡고 스러진다
   glyph(x, y, ch, size = 96, col = MEOK, life = 1.1, o = {}) { this.add(Object.assign({ k: 'glyph', x, y, ch, size, col, life }, o)); }
   // 하늘에서 내리꽂는 벼락
   bolt(x, y, col = '#f0d264') { const pts = []; let px = x + (Math.random() - 0.5) * 60; for (let yy = y - 560; yy < y; yy += 56) { pts.push(px, yy); px += (x - px) * 0.35 + (Math.random() - 0.5) * 46; } pts.push(x, y); this.add({ k: 'bolt', x, y, pts, col, life: 0.32 }); }

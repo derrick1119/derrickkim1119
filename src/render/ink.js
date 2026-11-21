@@ -1,6 +1,6 @@
-// 먹과 붓: 붓으로 그은 획, 튄 먹물, 먹 번짐, 붓글씨 한자.
+// 먹과 붓: 붓으로 그은 획, 튄 먹물, 먹 번짐. (붓으로 그린 그림 기호는 symbols.js 가 이 붓 획으로 그린다)
 // 획의 모양은 씨앗(seed)으로 정해지고, 한 번 구운 그림을 돌려 쓴다 (전투 중에 매 프레임 다시 그리지 않는다)
-import { TAU, FONT_BRUSH } from './draw.js';
+import { TAU } from './draw.js';
 
 export const MEOK = '#17151c';   // 진한 먹
 export const JU = '#b8301f';     // 주묵(붉은 먹)
@@ -11,7 +11,7 @@ const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${
 
 // ── 붓 한 획: 중심선 P(t) 를 따라 굵기 prof(t)·w 로 긋는다 ──
 // 먹이 넉넉한 앞쪽은 면으로, 뒤로 갈수록 붓털이 갈라져 마른 자국(비백)이 남고, 붓을 뗀 자리에 먹물이 튄다
-function brushStroke(g, P, o) {
+export function brushStroke(g, P, o) {
   const R = rng(o.seed || 1), w = o.w, prof = o.prof, N = o.steps || 48, dry = o.dry === undefined ? 0.5 : o.dry;
   const pts = [];
   for (let i = 0; i <= N; i++) {
@@ -132,20 +132,6 @@ export function drawInk(g, kind, x, y, s = 1, rot = 0, alpha = 1, col = MEOK, v 
   if (alpha <= 0.01) return; const sp = sprite(kind, col, v);
   g.save(); g.translate(x, y); if (rot) g.rotate(rot); g.scale(s * sx, s); g.globalAlpha *= alpha; g.drawImage(sp.c, -sp.w / 2, -sp.h / 2, sp.w, sp.h); g.restore();
 }
-// 붓글씨 한 자. halo = 글자 둘레의 종이 빛 번짐 (false 면 없음)
-export function inkGlyph(g, ch, x, y, size, o = {}) {
-  g.save(); g.translate(x, y); if (o.rot) g.rotate(o.rot); if (o.alpha !== undefined) g.globalAlpha *= o.alpha;
-  g.font = `${size}px ${FONT_BRUSH}`; g.textAlign = 'center'; g.textBaseline = 'middle';
-  if (o.halo !== false) { g.lineJoin = 'round'; g.strokeStyle = o.halo || 'rgba(248,240,220,0.92)'; g.lineWidth = size * (o.lw || 0.1); g.strokeText(ch, 0, size * 0.03); }
-  g.fillStyle = o.col || MEOK; g.fillText(ch, 0, size * 0.03); g.restore();
-}
-// 먹물 얼룩 위에 흰 붓글씨 한 자: 싸움의 시작, 두목의 등장처럼 힘을 줘야 하는 자리
-export function inkMark(g, ch, x, y, size, o = {}) {
-  const k = o.k === undefined ? 1 : o.k;   // 0→1: 얼룩이 먼저 떨어지고 글자가 찍힌다
-  drawInk(g, 'blot', x, y, size / 118 * (0.7 + 0.3 * Math.min(1, k * 2.4)), o.rot || -0.2, Math.min(1, k * 3), o.ink || MEOK, o.v || 0);
-  if (k > 0.2) { const q = Math.min(1, (k - 0.2) / 0.3), sc = 1.7 - 0.7 * q; inkGlyph(g, ch, x, y, size * sc, { col: o.col || '#f6efdc', halo: false, alpha: q, rot: -0.05 }); }
-}
-
 // ── 전투 중에 바로 그리는 것들 (구울 수 없는 모양) ──
 // 무기가 지나간 자리에 남는 먹 자국: (cx, cy) 를 중심으로 a0 → a1 로 휘두른 호. 무기 쪽(a1)이 굵고 꼬리는 마른 붓 자국
 export function inkTrail(g, cx, cy, R, a0, a1, w, alpha, col = MEOK, seed = 0) {

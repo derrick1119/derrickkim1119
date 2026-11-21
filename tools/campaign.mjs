@@ -7,6 +7,7 @@ import { CARDS, isUnit } from '../src/data/cards.js';
 import { UNITS, HEROES } from '../src/data/units.js';
 import { canEquip } from '../src/data/weapons.js';
 import { VIEW, MID_Y } from '../src/config.js';
+import { N_CH } from '../src/data/stages.js';
 
 const runs = Number(process.argv[2] || 20), mode = process.argv[3] || 'casual';
 if (process.argv[4] === 'all') { for (const u of UNLOCKS) meta.unlocked[u.id] = true; for (const b of BEASTS) meta.unlocked[b.id] = true; }
@@ -44,6 +45,8 @@ function command(b) {
   const foes = b.units.filter(u => !u.dead && u.team === 1 && u.hidden <= 0 && u.x < VIEW.x1), mine = b.units.filter(u => !u.dead && u.team === 0 && !u.temp && !u.def.structure);
   const sharp = mode !== 'casual';
   if (!sharp && b.rand() < 0.4) return;
+  // 두목의 수에 맞서기: 소품(종·여의주·업경대·명부 든 사자)이 서면 원거리 부대를 붙이고, 홀린 부대는 깨운다. 서툰 봇은 셋에 한 번만 알아챈다
+  if (sharp || b.rand() < 0.34) { const p = b.squads.find(q => q.team === 1 && q.alive > 0 && q.def.prop && !(q.units[0].ai && q.units[0].ai.rest > b.time)); for (const q of b.playerSquads()) { if (q.units.some(u => u.charm > 0)) b.orderAuto(q); if ((q.def.range && !q.def.heal) || (p && sharp && !q.hero && p.type !== 'bell' && Math.hypot(q.cx - p.cx, q.cy - p.cy) < 260)) { if (p) { if (q.order.target !== p) b.orderFocus(q, p); } else if (q.order.kind === 'focus' && q.order.target && q.order.target.def.prop) b.orderAuto(q); } } }
   // 병력을 먼저 세운다. 전술은 병력 낼 사기를 남겨 두고 쓴다 (부대가 한도까지 찼으면 마음껏)
   for (let i = 0; i < HAND; i++) { const c = b.hand[i]; if (c && isUnit(c) && b.canPlay(i)) { const t = spotFor(b, c, foes, mine, sharp); if (b.play(i, t.x, t.y)) { used_[c.id] = (used_[c.id] || 0) + 1; return; } } }
   const keep = b.squadCount() >= b.cap ? 0 : sharp ? 2 : 2.5;
@@ -61,14 +64,14 @@ function autoEquip() { const r = G.run; for (const wid of [...r.items]) { const 
 function sync(b) { const r = G.run; settleBattle(b); autoEquip(); b.mods = mods(); b.cap = r.cap; b.power = powerNow(); b.lootTable = lootTable(); b.mastery = r.mastery || {}; b.syncDeck(r.deck); }
 // 전리품: 전술 패가 모자라면 패 묶음·보급을 먼저 집는다
 function takeReward(kind) { const opts = rollRewards(kind), low = tacticCards().length < 7; let o = (low && opts.find(q => q.kind === 'supply' || (q.kind === 'card' && !isUnit(q)))) || pick(opts); applyReward(o); }
-const dmg = [0, 0, 0], dmgN = [0, 0, 0];
+const dmg = new Array(N_CH).fill(0), dmgN = new Array(N_CH).fill(0), lossCh = Array.from({ length: N_CH }, () => ({ battle: [0, 0], elite: [0, 0], boss: [0, 0] }));
 const st = {}, bump = (k, fails) => { const s = st[k] || (st[k] = [0, 0]); s[0]++; s[1] += fails; };
-let stockN = 0, stockB = 0, chaseN = 0, clears = 0, totalT = 0, nB = 0, deckN = 0, unitN = 0, lvN = 0; const reach = [0, 0, 0, 0];
+let stockN = 0, stockB = 0, chaseN = 0, clears = 0, totalT = 0, nB = 0, deckN = 0, unitN = 0, lvN = 0; const reach = new Array(N_CH + 1).fill(0);
 for (let k = 0; k < runs; k++) {
   const HS = (process.env.HERO ? [process.env.HERO] : HEROES).filter(h => process.env.HERO || heroOpen(h)), r = newRun(HS[k % HS.length]);
   const b = new Battle(battleSetup((Math.random() * 1e9) | 0));
   const tick = n => { for (let j = 0; j < n; j++) { b.step(1 / 30); if (j % (mode === 'casual' ? 45 : 10) === 0) command(b); } b.events.length = 0; settleBattle(b); };
-  for (let guard = 0; r.flags > 0 && !r.done && guard < 200; guard++) {
+  for (let guard = 0; r.flags > 0 && !r.done && guard < 400; guard++) {
     b.beginMarch(); for (let j = 0; j < 8; j++) { b.march(90, 0.3); tick(9); }
     let s = curStop(); if (s.type === 'fork') { const a = s.a.type, w = a === 'elite' ? (r.flags <= 1 ? 0.25 : 0.55) : 0.5; chooseFork(Math.random() < w ? 'a' : 'b'); s = curStop(); }
     if (s.type === 'battle' || s.type === 'elite' || s.type === 'boss') {
@@ -82,6 +85,7 @@ for (let k = 0; k < runs; k++) {
       }
       if (!cleared && r.flags > 0) { r.flags = 0; downs++; } // 끝나지 않는 싸움은 패배로 친다
       if (!cleared && steps >= 30 * 260) bump('끝나지 않음', 1); bump('지형 ' + e.terrain, downs); bump('하늘 ' + e.sky, downs); chaseN += b.chaseN;
+      { const q = lossCh[e.ch][e.kind]; q[0]++; q[1] += downs; }
       nB++; bump(`${e.ch + 1}고개 ${e.kind === 'boss' ? '두목' : e.kind === 'elite' ? '강적' : '싸움' + (r.road.i + 1)}`, downs);
       if (!cleared) break;
       dmg[e.ch] += downs ? 1 : Math.max(0, hp0 - (b.bannerHp() - 0.06) - (hp0 > 0.94 ? hp0 - 0.94 : 0)); dmgN[e.ch]++;
@@ -97,11 +101,12 @@ for (let k = 0; k < runs; k++) {
     if (advance()) break;
   }
   if (process.env.TRACE) console.log(`#${k + 1} ${r.hero} ${r.done ? '평정' : r.ch + 1 + '고개'}  이긴 싸움 ${r.wins}  한도 ${r.cap}  덱 ${r.deck.length}  엽전 ${r.gold}  보물 ${r.relics.join(',')}  무기 ${r.deck.filter(c => c.wpn).map(c => c.wpn).join(',')}  사건 ${(r.evSeen || []).join(',')}`);
-  reach[Math.min(3, r.ch)]++; if (r.done) clears++; deckN += r.deck.length; unitN += unitCards().length; lvN += unitCards().reduce((a, c) => a + (c.lv || 1), 0) / unitCards().length;
+  reach[Math.min(N_CH, r.ch)]++; if (r.done) clears++; deckN += r.deck.length; unitN += unitCards().length; lvN += unitCards().reduce((a, c) => a + (c.lv || 1), 0) / unitCards().length;
 }
 console.log(`mode=${mode} runs=${runs}  평정률 ${(clears / runs * 100).toFixed(0)}%  원정당 싸움 ${(nB / runs).toFixed(1)}회  이긴 싸움 평균 ${(totalT / Math.max(1, nB)).toFixed(0)}초  끝날 때 덱 ${(deckN / runs).toFixed(1)}장 (병력 ${(unitN / runs).toFixed(1)}장, 평균 Lv ${(lvN / runs).toFixed(1)})`);
-console.log('깃발 잃은 횟수/싸움:', Object.keys(st).sort().map(k => `${k} ${(st[k][1] / st[k][0]).toFixed(2)}(${st[k][0]})`).join('  '));
+console.log('깃발 잃은 횟수/싸움:', Object.keys(st).filter(k => !/고개/.test(k)).sort().map(k => `${k} ${(st[k][1] / st[k][0]).toFixed(2)}(${st[k][0]})`).join('  '));
 console.log('싸움당 군기 수레 피해:', dmg.map((d, i) => `${i + 1}고개 ${(d / Math.max(1, dmgN[i]) * 100).toFixed(0)}%`).join('  '));
 console.log('본대가 따라붙은 횟수/싸움', (chaseN / nB).toFixed(2), ' 싸움 뒤 남은 전술 패 평균', (stockN / Math.max(1, stockB)).toFixed(1));
-console.log('도달:', ['첫째 고개', '둘째 고개', '셋째 고개', '평정'].map((n, i) => `${n}×${reach[i]}`).join('  '));
+console.log('도달:', reach.map((n, i) => `${i < N_CH ? i + 1 : '평정'}×${n}`).join(' '));
+console.log('고개별 깃발 손실 [싸움/강적/두목]:', lossCh.map((c, i) => `${i + 1}[${['battle', 'elite', 'boss'].map(k => c[k][0] ? (c[k][1] / c[k][0]).toFixed(2) : '-').join('/')}]`).join(' '));
 console.log('싸움당 쓴 패:', Object.keys(used_).sort((a, b) => used_[b] - used_[a]).slice(0, 16).map(k => `${CARDS[k].name} ${(used_[k] / nB).toFixed(2)}`).join('  '));

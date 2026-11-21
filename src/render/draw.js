@@ -1,11 +1,9 @@
 // 공용 그리기 도구 — 한지 위 종이 인형극 그림체 (가는 먹선 + 종이 테두리)
 export const TAU = Math.PI * 2;
 export const INK = '#262a36', PAPER = '#f8f0dc', HANJI = '#e9dec4', RED = '#c8402f', REDD = '#7a1f1c', INDIGO = '#2f4d7e', NAVY = '#1f2a44', TEAL = '#3f6b5c', OCHRE = '#d9a441', SKIN = '#f1cfa4', BROWN = '#7a5a40', SUB = '#6b5a44';
-// 도장에 찍는 한자는 'Hanja Seal'(Noto Serif KR 부분집합)이 맡는다
-export const FONT = "'Gowun Batang', 'Hanja Seal', 'Apple SD Gothic Neo', 'Malgun Gothic', serif";
-export const FONT_B = "'Yeon Sung', 'Hanja Seal', 'Gowun Batang', 'Apple SD Gothic Neo', serif";
-// 큰 연출에 쓰는 붓글씨 한자 ('Hanja Brush' = Yuji Boku 부분집합). 없는 글자는 도장 글꼴로 넘어간다
-export const FONT_BRUSH = "'Hanja Brush', 'Hanja Seal', 'Yeon Sung', serif";
+// 글꼴은 한글 둘뿐이다. 도장·낙관·큰 붓 자국에는 글자 대신 그림 기호를 찍는다 (symbols.js)
+export const FONT = "'Gowun Batang', 'Apple SD Gothic Neo', 'Malgun Gothic', serif";
+export const FONT_B = "'Yeon Sung', 'Gowun Batang', 'Apple SD Gothic Neo', serif";
 
 // 받침에 따라 조사를 고른다: iga('장승 행렬') → '장승 행렬이', iga('방망이 패') → '방망이 패가'
 export const josa = (w, a, b) => { const c = String(w).charCodeAt(String(w).length - 1); return w + (c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? a : b); };

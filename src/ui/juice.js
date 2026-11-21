@@ -2,7 +2,8 @@
 // 장면 맨 위에 그린다 (RunScene.frame 의 끝에서 juice.frame 을 부른다)
 import { W, H } from '../config.js';
 import { TAU, INK, FONT_B, text, ell, rr, poly, clamp, easeOutBack } from '../render/draw.js';
-import { drawInk, inkGlyph, MEOK, JU } from '../render/ink.js';
+import { drawInk, MEOK, JU } from '../render/ink.js';
+import { inkGlyph } from '../render/symbols.js';
 
 // 날아가 닿는 자리
 export const SPOT = { deck: [1186, 678], relic: [1096, 32], gold: [948, 32], pouch: [156, 690], morale: [118, 618] };
@@ -35,7 +36,7 @@ export const juice = {
       goldRays(g, 640, 300, t, e, 178);
       ell(g, 640, 300, 86 * e, 86 * e, '#f6efdc', INK, 3); ell(g, 640, 300, 76 * e, 76 * e, null, 'rgba(201,150,46,0.9)', 1.6);
       sh.icon(g, 640, 300 - Math.sin(t * 4) * 4, 2.3 * e);
-      inkGlyph(g, '得', 768, 222, 76 * e, { col: JU, rot: 0.12, halo: 'rgba(248,240,220,0.95)' });
+      inkGlyph(g, 'get', 768, 222, 76 * e, { col: JU, rot: 0.12, halo: 'rgba(248,240,220,0.95)' });
       text(g, sh.title || '보물을 얻었다', 640, 176, { size: 26, font: FONT_B, fill: '#f0d99a', stroke: '#14121a', lw: 6 });
       text(g, sh.name, 640, 424, { size: 40, font: FONT_B, fill: '#f6efdc', stroke: INK, lw: 7 });
       if (sh.desc) { rr(g, 340, 452, 600, 40, 9, 'rgba(248,240,220,0.96)', INK, 1.8); text(g, sh.desc, 640, 473, { size: 18, maxW: 570 }); }

@@ -35,8 +35,8 @@ export function tiger(g, o = {}) {
   // 머리: 볼털이 삐죽한 둥근 얼굴
   part(g, p => { p.moveTo(13, -31); p.quadraticCurveTo(12.6, -41.6, 24, -41.8); p.quadraticCurveTo(35.4, -41.6, 35, -31); p.lineTo(37.4, -27.4); p.lineTo(33.6, -26.4); p.lineTo(34.8, -22.4); p.lineTo(30, -22.2); p.quadraticCurveTo(24, -18, 18, -22.2); p.lineTo(13.2, -22.4); p.lineTo(14.4, -26.4); p.lineTo(10.6, -27.4); p.closePath(); }, C, P(27.6, -43, 39, -43, 39, -17, 24, -17, 30, -28), { k: 0.14, lw: 1.3 });
   if (o.shag) for (const x of [15, 19, 23, 27, 31]) part(g, P(x - 1.6, -22.6, x + 0.4, -13.4 - ((x * 3) % 4), x + 2, -22.6), C, null, { lw: 0.9 });
-  // 이마의 임금 왕(王) 자와 볼의 줄무늬
-  if (!o.plain) { for (const y of [-40.2, -38.6, -37]) line(g, [22.3, y, 25.7, y], S, 0.95); line(g, [24, -40.4, 24, -36.6], S, 0.95); for (const s of [-1, 1]) for (const y of [-30.4, -27.6]) line(g, [24 + s * 10.4, y, 24 + s * 7, y + 0.8], S, 1.1); }
+  // 이마의 석 줄 무늬와 볼의 줄무늬
+  if (!o.plain) { for (const [y, h] of [[-40.2, 1.5], [-38.5, 2], [-36.8, 1.4]]) curve(g, p => { p.moveTo(24 - h, y - 0.3); p.quadraticCurveTo(24, y + 0.7, 24 + h, y - 0.3); }, S, 0.95); for (const s of [-1, 1]) for (const y of [-30.4, -27.6]) line(g, [24 + s * 10.4, y, 24 + s * 7, y + 0.8], S, 1.1); }
   // 흰 주둥이
   part(g, p => { p.moveTo(18, -27.6); p.quadraticCurveTo(24, -31.8, 30, -27.6); p.quadraticCurveTo(31, -21.6, 24, -20.4); p.quadraticCurveTo(17, -21.6, 18, -27.6); p.closePath(); }, B, null, { lw: 0.8 });
   // 치켜 올라간 눈

@@ -1,5 +1,6 @@
 // 전술 패와 보물의 아이콘 — 인형과 같은 종이 오림 그림체 (가운데가 원점, 대략 ±22 안에 그린다)
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SKIN, FONT_B, st, fs, ell, rr, poly, line, path, text, paperSprite, drawSprite } from './draw.js';
+import { symbol } from './symbols.js';
 
 const WHITE = '#fbf7ec', BLACK = '#2b2a30', STEEL = '#e4e8ea', IRON = '#4a4a55', GREY = '#8a8a96', WOOD = '#a9753f', WOODD = '#7a4a2c', GOLD = '#e6b93e', BRASS = '#c9962e', FLAME = '#ff9a2e', GLOW = '#ffe9a0', STONE = '#a59f8f', STRAW = '#d9b24a', LEAF = '#5f9a6a', LEAFD = '#3f6b5c', PURPLE = '#6a4a9a', ICE = '#8fd3e8', WATER = '#bfe3ee';
 const PI = Math.PI;
@@ -193,7 +194,7 @@ export const CARD_ART = {
     g.save(); g.rotate(-0.16); line(g, [-11, 22, -11, -19], INK, 3.4); line(g, [-11, 22, -11, -19], '#7a3a2a', 1.8); poly(g, [-13.4, -19, -11, -24.6, -8.6, -19], GOLD, INK, 0.9);
     path(g, p => { p.moveTo(-11, -18); p.lineTo(17, -15); p.quadraticCurveTo(13, -7, 17, 2); p.lineTo(-11, 4); p.closePath(); }, INDIGO, INK, 1.3);
     path(g, p => { p.moveTo(-11, -18); p.lineTo(17, -15); p.lineTo(16.4, -12.2); p.lineTo(-11, -15); p.closePath(); }, RED); path(g, p => { p.moveTo(-11, 4); p.lineTo(17, 2); p.lineTo(16.2, -0.8); p.lineTo(-11, 1); p.closePath(); }, RED); g.beginPath(); g.moveTo(-11, -18); g.lineTo(17, -15); g.quadraticCurveTo(13, -7, 17, 2); g.lineTo(-11, 4); st(g, INK, 1.3);
-    ell(g, 2, -6.8, 6.4, 6.4, WHITE, INK, 1); text(g, '令', 2, -6.2, { size: 10, font: FONT_B, fill: RED });
+    ell(g, 2, -6.8, 6.4, 6.4, WHITE, INK, 1); taegeuk(g, 2, -6.8, 4.6);
     tassel(g, -11, 7, 9); g.restore();
   },
   sanctuary(g) { // 법력 결계
@@ -294,7 +295,7 @@ export const RELIC_ART = {
     line(g, [11, -1, 23, -7], INK, 4.4); line(g, [11, -1, 23, -7], WOODD, 2.6);
     path(g, p => { p.moveTo(-15, 2); p.quadraticCurveTo(-16, 18, 0, 18); p.quadraticCurveTo(16, 18, 15, 2); p.quadraticCurveTo(15, -6, 0, -6); p.quadraticCurveTo(-15, -6, -15, 2); p.closePath(); }, '#6b4a3a', INK, 1.4);
     rr(g, -12, -9.4, 24, 4.4, 1.6, '#8a6248', INK, 1.1); ell(g, 0, -11, 2.6, 2, '#8a6248', INK, 1); path(g, p => { p.moveTo(-15.4, 2); p.lineTo(-20.6, -1.6); p.lineTo(-19.6, 3.6); p.closePath(); }, '#6b4a3a', INK, 1.1);
-    rr(g, -6.4, 2, 12.8, 9.4, 1, WHITE, INK, 0.9); text(g, '藥', 0, 7, { size: 8.6, font: FONT_B, fill: REDD }); g.globalAlpha = 0.3; ell(g, -8.6, -1, 2, 4, '#fff', null, 0, 0.4); g.globalAlpha = 1;
+    rr(g, -6.4, 2, 12.8, 9.4, 1, WHITE, INK, 0.9); line(g, [0, 10.2, 0, 4.6], LEAFD, 0.9); for (const [x, y, r] of [[-2.3, 7.6, 0.75], [2.3, 7.6, -0.75], [-2, 5.2, 0.6], [2, 5.2, -0.6], [0, 3.9, 0]]) ell(g, x, y, 1, 2, LEAFD, null, 0, r);   // 약초 한 줄기 g.globalAlpha = 0.3; ell(g, -8.6, -1, 2, 4, '#fff', null, 0, 0.4); g.globalAlpha = 1;
   },
   crest(g) { // 호랑이 가죽
     path(g, p => { p.moveTo(-5, -20); p.lineTo(5, -20); p.lineTo(7, -12); p.lineTo(20, -17); p.lineTo(18, -7); p.lineTo(10, -3); p.lineTo(11, 7); p.lineTo(20, 13); p.lineTo(17, 20); p.lineTo(6, 15); p.lineTo(3, 23); p.lineTo(-3, 23); p.lineTo(-6, 15); p.lineTo(-17, 20); p.lineTo(-20, 13); p.lineTo(-11, 7); p.lineTo(-10, -3); p.lineTo(-18, -7); p.lineTo(-20, -17); p.lineTo(-7, -12); p.closePath(); }, '#e69a3c', INK, 1.4);
@@ -321,7 +322,7 @@ export const RELIC_ART = {
   powder(g) { // 화약 비법
     cord(g, p => { p.moveTo(4, -15); p.quadraticCurveTo(12, -22, 17, -16); }, '#d9b77a', 1.2); spark(g, 18, -15.6, 4.4, FLAME); ell(g, 18, -15.6, 1.4, 1.4, GLOW);
     path(g, p => { p.moveTo(-6, -10); p.quadraticCurveTo(-18, -6, -17, 7); p.quadraticCurveTo(-16, 20, -2, 20); p.quadraticCurveTo(13, 20, 13, 7); p.quadraticCurveTo(13, -6, 2, -10); p.closePath(); }, '#3a3238', INK, 1.4);
-    rr(g, -6, -14.6, 9, 5.6, 1.6, WOODD, INK, 1.1); rr(g, -10, 0, 16, 11.6, 1, RED, INK, 1); text(g, '火', -2, 6.2, { size: 9.6, font: FONT_B, fill: GLOW });
+    rr(g, -6, -14.6, 9, 5.6, 1.6, WOODD, INK, 1.1); rr(g, -10, 0, 16, 11.6, 1, RED, INK, 1); symbol(g, 'flame', -2, 5.6, 10.5, GLOW);
     g.globalAlpha = 0.3; ell(g, -10.6, -2, 2.4, 4.6, '#fff', null, 0, 0.5); g.globalAlpha = 1; cord(g, p => { p.moveTo(-15, 14); p.quadraticCurveTo(-21, 18, -17, 22); }, RED, 1.1);
   },
   amulet(g) { // 수호 부적
@@ -354,7 +355,7 @@ export const RELIC_ART = {
   },
   pill(g) { // 청심환
     path(g, p => { p.moveTo(-19, 9); p.lineTo(-11, -5); p.lineTo(13, -7); p.lineTo(20, 8); p.lineTo(10, 19); p.lineTo(-10, 20); p.closePath(); }, PAPER, INK, 1.3); line(g, [-11, -5, -5, 8, -10, 20], 'rgba(38,42,54,0.3)', 0.9); line(g, [13, -7, 7, 8, 10, 19], 'rgba(38,42,54,0.3)', 0.9); line(g, [-5, 8, 7, 8], 'rgba(38,42,54,0.3)', 0.9);
-    ell(g, 0, 1, 10.6, 10.6, GOLD, INK, 1.4); g.beginPath(); g.arc(0, 1, 7.6, 0, TAU); st(g, '#b8862a', 0.9); text(g, '淸', 0, 1.8, { size: 9, font: FONT_B, fill: REDD });
+    ell(g, 0, 1, 10.6, 10.6, GOLD, INK, 1.4); g.beginPath(); g.arc(0, 1, 7.6, 0, TAU); st(g, '#b8862a', 0.9); symbol(g, 'cleanse', 0, 1, 10.5, REDD);
     g.globalAlpha = 0.6; ell(g, -4.6, -4.6, 3, 1.5, '#fff', null, 0, -0.6); g.globalAlpha = 1; spark(g, 14, -15, 3.4, '#fffbe6'); spark(g, -15, -12, 2.4, '#fffbe6');
   },
   gong(g) { // 놋쇠 징
@@ -391,7 +392,7 @@ export const RELIC_ART = {
     path(g, p => { p.moveTo(-8, -9); p.quadraticCurveTo(-21, 1, -15, 14); p.quadraticCurveTo(-10, 21, 0, 21); p.quadraticCurveTo(10, 21, 15, 14); p.quadraticCurveTo(21, 1, 8, -9); p.closePath(); }, '#c8402f', INK, 1.4);
     path(g, p => { p.moveTo(-9, -9); p.lineTo(-12, -17); p.lineTo(-5, -14.6); p.lineTo(0, -19); p.lineTo(5, -14.6); p.lineTo(12, -17); p.lineTo(9, -9); p.quadraticCurveTo(0, -5.6, -9, -9); p.closePath(); }, '#d9553f', INK, 1.2);
     cord(g, p => { p.moveTo(-9, -9.6); p.quadraticCurveTo(0, -6.4, 9, -9.6); }, GOLD, 1.5); for (const s of [-1, 1]) { cord(g, p => { p.moveTo(s * 5, -8.6); p.quadraticCurveTo(s * 13, -8, s * 14.6, -1); }, GOLD, 1.1); tassel(g, s * 14.6, -0.6, 6, s < 0 ? INDIGO : TEAL); }
-    ell(g, 0, 7, 7.4, 7.4, GOLD, INK, 1); text(g, '福', 0, 7.8, { size: 9.6, font: FONT_B, fill: REDD }); g.globalAlpha = 0.3; ell(g, -10.6, 3, 2, 5, '#fff', null, 0, 0.4); g.globalAlpha = 1;
+    ell(g, 0, 7, 7.4, 7.4, GOLD, INK, 1); for (let i = 0; i < 5; i++) { const a = -PI / 2 + i * TAU / 5; ell(g, Math.cos(a) * 3.3, 7 + Math.sin(a) * 3.3, 2.1, 2.1, REDD); } ell(g, 0, 7, 1.3, 1.3, GLOW);   // 매화 한 송이 g.globalAlpha = 0.3; ell(g, -10.6, 3, 2, 5, '#fff', null, 0, 0.4); g.globalAlpha = 1;
   },
   twin(g) { // 쌍검술 비급
     book(g, 0, 1, 30, 36, '#7a2f2a');

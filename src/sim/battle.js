@@ -6,6 +6,7 @@ import { UNITS, lvlMult, HERO_SKILLS, COMBOS, SYNERGIES, SYN_CLASS } from '../da
 import { TERRAINS } from '../data/terrain.js';
 import { CARDS, cardVals, cardCost, isUnit } from '../data/cards.js';
 import { WEAPONS, ARMS } from '../data/weapons.js';
+import { BOSS_AI, bossInit, bossTick, bossHit, bossDeath } from './bossfight.js';
 
 const NC = Math.ceil((FIELD.x1 + 30) / CELL), NR = Math.ceil(H / CELL);
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
@@ -162,6 +163,7 @@ export class Battle {
     if (def.lob) u.cd = 2.2 + this.rand() * 2.2;
     sq.units.push(u); sq.alive++;
     this.units.push(u);
+    if (BOSS_AI[type]) bossInit(this, u);   // 두목과 소품은 저마다의 수를 지닌다 (sim/bossfight.js)
     return u;
   }
 
@@ -356,14 +358,17 @@ export class Battle {
   }
 
   // ───────── 플레이어 명령 ─────────
+  // 명령을 받으면 홀림에서 깨어난다
+  uncharm(sq) { let n = 0; for (const u of sq.units) if (u.charm > 0) { u.charm = 0; n++; } if (n) this.ev('text', { x: sq.cx, y: sq.cy - 60, s: '정신을 차렸다!', c: '#2f6f5c' }); }
   orderMove(sq, x, y) {
+    this.uncharm(sq);
     x = clamp(x, VIEW.x0 + 30, VIEW.x1 - 30); y = clamp(y, VIEW.y0 + 20, VIEW.y1 - 20); sq.home = { x, y };
     if (this.isBlocked(x, y)) { const c = this.freeCell((x / CELL) | 0, (y / CELL) | 0); if (c >= 0) { x = (c % NC + 0.5) * CELL; y = (((c / NC) | 0) + 0.5) * CELL; } }
     sq.order = { kind: 'move', x, y, t0: this.time }; for (const u of sq.units) { u.target = null; u.path = null; }
   }
-  orderFocus(sq, target) { sq.order = { kind: 'focus', target }; for (const u of sq.units) { u.retarget = 0; u.path = null; } }
-  orderAuto(sq) { sq.order = { kind: 'auto' }; for (const u of sq.units) u.retarget = 0; }
-  orderHold(sq) { sq.home = { x: sq.cx, y: sq.cy }; sq.order = { kind: 'hold', x: sq.cx, y: sq.cy }; for (const u of sq.units) if (!u.dead) { u.slot.dx = u.x - sq.cx; u.slot.dy = u.y - sq.cy; u.target = null; } }
+  orderFocus(sq, target) { this.uncharm(sq); sq.order = { kind: 'focus', target }; for (const u of sq.units) { u.retarget = 0; u.path = null; } }
+  orderAuto(sq) { this.uncharm(sq); sq.order = { kind: 'auto' }; for (const u of sq.units) u.retarget = 0; }
+  orderHold(sq) { this.uncharm(sq); sq.home = { x: sq.cx, y: sq.cy }; sq.order = { kind: 'hold', x: sq.cx, y: sq.cy }; for (const u of sq.units) if (!u.dead) { u.slot.dx = u.x - sq.cx; u.slot.dy = u.y - sq.cy; u.target = null; } }
   squadNear(x, y, team, maxD) {
     let best = null, bd = maxD;
     for (const u of this.units) { if (u.dead || u.team !== team || u.hidden > 0) continue; const d = hyp(u.x - x, u.y - 14 - y) - u.r * 0.5; if (d < bd) { bd = d; best = u.squad; } }
@@ -419,7 +424,7 @@ export class Battle {
     x = clamp(x || 0, VIEW.x0, VIEW.x1); y = clamp(y || 0, VIEW.y0, VIEW.y1);
     if (this.free > 0) { this.free--; this.ev('text', { x: 640, y: 520, s: '공짜 패!', c: '#b8862a' }); }
     else { this.morale -= cost; if (cost > 0 && md.refund && this.rand() < md.refund) { this.morale = Math.min(this.moraleMax, this.morale + cost); this.ev('text', { x: 640, y: 520, s: '사기 환급!', c: '#b8862a' }); } }
-    this.hand[i] = null; this.slotT[i] = REFILL * md.drawRate; this.played++;
+    this.hand[i] = null; this.slotT[i] = REFILL * md.drawRate; this.played++; this.lastCard = { id, t: this.time };
     if (isUnit(c)) { x = Math.min(x, this.deployMaxX()); this.deploy(c, x, y); this.ev('cast', { id, x, y, r: 46, unit: true, slot: i }); return true; }
     // 전술 패는 쓰면 사라진다. 고승이 이끌면 지원 패만은 싸움이 끝난 뒤 돌아온다
     if (md.keepSupport && s.kind === 'support' && (this.keptN = (this.keptN || 0) + 1) <= md.keepSupport) this.rest.push(c); else { this.spent.push(c.uid); this.gone.add(c.uid); }   // 고승의 공양: 싸움마다 몇 장까지만 돌아온다
@@ -539,6 +544,7 @@ export class Battle {
     // 그슨대: 살려 둘수록 커지고 세진다
     if (def.grow && this.waveOn && u.x < VIEW.x1 && (u.grown || 0) < def.grow.max) { u.growT = (u.growT || 0) + dt; if (u.growT >= def.grow.every) { u.growT = 0; u.grown = (u.grown || 0) + 1; u.atk *= 1 + def.grow.atk; const add = u.maxHp * def.grow.hp; u.maxHp += add; u.hp += add; this.ev('grow', { x: u.x, y: u.y, n: u.grown }); } }
     if (u.burn > 0) { u.burn -= dt; u.burnAcc += dt; if (u.burnAcc >= 0.5) { u.burnAcc -= 0.5; this.damage(u, u.burnDmg * 0.5, null, 'burn'); if (u.dead) return; } }
+    if (u.ai) { bossTick(this, u, dt); if (u.dead) return; }
     if (u.jump) { this.doJump(u, dt); return; }
     if (u.hidden > 0) { u.hidden -= dt; if (u.hidden <= 0) this.finishLeap(u); return; }
     if (u.stun > 0) { u.stun -= dt; u.moving = false; u.run = 0; return; }
@@ -546,6 +552,8 @@ export class Battle {
     const as = this.atkSpeed(u);
     u.cd -= dt * as;
     if (u.cast > 0) { u.cast -= dt; u.moving = false; return; }
+    // 홀림: 싸우지 않고 홀린 것에게 걸어간다 (그 부대에 명령을 내리면 풀린다)
+    if (u.charm > 0) { u.charm -= dt; const c = u.charmTo; if (!c || c.dead) u.charm = 0; else { u.target = null; this.moveTo(u, c.x - 34, c.y, dt); return; } }
     if (u.swing > 0) { u.swing -= dt * as; u.moving = false; if (u.swing <= 0) this.resolveAttack(u); return; }
     if (u.abils) this.bossAbilities(u, dt);
     if (def.raise) this.necroRaise(u, dt);
@@ -601,6 +609,7 @@ export class Battle {
     const hold = o.kind === 'hold'; const sx = hold ? o.x + u.slot.dx : 0, sy = hold ? o.y + u.slot.dy : 0;
     for (let i = 0; i < pool.length; i++) {
       const e = pool[i]; if (e.dead || e.team === u.team || e.hidden > 0 || e.jump) continue;
+      if (e.def.prop && !(o.kind === 'focus' && o.target === e.squad)) continue;   // 소품은 스스로 노리지 않는다 — 끌어다 놓아 집중 공격해야 한다
       if (e.team === 1 && e.x > VIEW.x1 + 6) continue;
       const d = hyp(e.x - u.x, e.y - u.y) - e.r - u.r;
       if (hold) { if (melee) { if (hyp(e.x - sx, e.y - sy) > 105 + e.r) continue; } else if (d > rng) continue; }
@@ -762,6 +771,7 @@ export class Battle {
     if (t.team === 0 && this.syn.phalanx && SYN_CLASS(t.type) === 'inf') d *= 0.85;
     if (t.team === 1 && this.expose && this.waveT < 8) d *= 1 + this.expose;
     if (t.team === 0) { const md = this.mods; if (md.openGuard && this.waveOn && this.waveT < 6) d *= 1 - md.openGuard; if (md.holdGuard && t.squad.order.kind === 'hold') d *= 1 - md.holdGuard; }
+    if (t.ai) { d = bossHit(this, t, d, src, kind); if (d <= 0) { this.ev('hit', { x: t.x, y: t.y, amt: 0, block: true, team: t.team, kind }); return 0; } }
     if (t.barrier > 0) { const a = Math.min(t.barrier, d); t.barrier -= a; d -= a; if (d <= 0) { this.ev('hit', { x: t.x, y: t.y, amt: 0, block: true, team: t.team, kind }); return 0; } }
     t.hp -= d; t.flash = 1;
     // 맞은 순간의 움찔: 그림만 맞은 방향으로 아주 살짝 밀렸다가 제자리로 돌아온다 (실제 자리와 진형은 그대로).
@@ -781,6 +791,7 @@ export class Battle {
     if (t.dead) return;
     t.dead = true; t.hp = 0; t.deadT = this.time; t.squad.alive--; t.moving = false;
     this.ev('death', { x: t.x, y: t.y, team: t.team, utype: t.type, boss: !!t.def.boss, r: t.r, last: !(t.def.revive && !t.revived) });
+    if (t.ai) bossDeath(this, t, silent);
     if (t.team === 0) {
       if (t.def.banner) this.ev('bannerDown', { x: t.x, y: t.y }); else if (!t.temp) { this.lost++; this.waveLost++; }
       // 부대가 전멸하면 그 싸움에서는 다시 세울 수 없고, 군기가 흔들린다 (군기 수레 체력을 잃는다)
@@ -952,7 +963,7 @@ export class Battle {
     for (const z of this.zones) {
       z.t += dt;
       if (z.kind === 'tele') {
-        if (z.t >= z.delay) { z.done = true; this.aoe(z.x, z.y, z.r, z.hits !== 1 ? z.dmg * (1 - this.mods.teleResist) : z.dmg, z.hits, z.src && !z.src.dead ? z.src : null, z); this.ev('impact', { x: z.x, y: z.y, r: z.r, style: z.style }); }
+        if (z.t >= z.delay) { z.done = true; const n = this.aoe(z.x, z.y, z.r, z.hits !== 1 ? z.dmg * (1 - this.mods.teleResist) : z.dmg, z.hits, z.src && !z.src.dead ? z.src : null, z); this.ev('impact', { x: z.x, y: z.y, r: z.r, style: z.style }); if (z.after) z.after(n); }
       } else if (z.kind === 'mark') { if (z.t >= z.delay) z.done = true; }
       else if (z.kind === 'spawn') {
         if (z.t >= z.delay) {

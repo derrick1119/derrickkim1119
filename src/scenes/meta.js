@@ -40,7 +40,7 @@ export class MetaScene {
       g.restore();
       text(g, u.name, x + 130, y + 29, { size: 26, font: FONT_B, align: 'left' }); text(g, `${u.role} · ${u.desc}`, x + 132, y + 60, { size: 15.5, align: 'left', fill: SUB, weight: 400, maxW: 330 });
       text(g, b.how, x + 480, y + 28, { size: 19, font: FONT_B, align: 'left', fill: open ? TEAL : INK, maxW: 470 }); text(g, b.lore, x + 482, y + 58, { size: 15, align: 'left', fill: SUB, weight: 400, maxW: 470 });
-      if (open) stamp(g, x + w - 76, y + 42, 28, '緣', TEAL, -0.12);
+      if (open) stamp(g, x + w - 76, y + 42, 28, 'bond', TEAL, -0.12);
       else { bar(g, x + w - 250, y + 34, 150, 16, cnt / b.need, TEAL); text(g, `${cnt} / ${b.need}`, x + w - 54, y + 43, { size: 21, font: FONT_B }); }
     });
     if (button(g, 'beastback', 960, 584, 290, 86, '장부로', { style: 'paper', size: 32 })) this.beasts = false;
@@ -50,13 +50,13 @@ export class MetaScene {
     const got = meta.tales || [];
     brushTitle(g, 250, 48, 360, 66, '이야기책', '#2f6f5c', 38);
     text(g, `들은 이야기 ${got.length} / ${TALES.length}`, 520, 44, { size: 30, font: FONT_B, align: 'left' });
-    text(g, '원정 중 주막에 들를 때마다 주모가 한 토막씩 들려줍니다', 520, 78, { size: 16, fill: SUB, weight: 400, align: 'left' });
+    text(g, '고개마다 주막에서 그 고개의 옛이야기를 들려줍니다 — 두목을 이기는 귀띔이 들어 있습니다', 520, 78, { size: 16, fill: SUB, weight: 400, align: 'left' });
     panel(g, 30, 108, 420, 574); panel(g, 470, 108, 780, 464);
     TALES.forEach((t, n) => {
-      const y = 126 + n * 35 + Math.floor(n / 5) * 9, has = got.includes(t.id), on = this.sel === n;
-      if (tapped('tale' + n, 46, y, 388, 32)) this.sel = n;
-      rr(g, 46, y, 388, 32, 5, on ? '#f6e3a8' : has ? '#fbf3df' : '#ebe2cc', on ? '#c9962e' : 'rgba(38,42,54,0.35)', on ? 2 : 1);
-      text(g, has ? t.title : '· · ·', 66, y + 17, { size: 18, font: FONT_B, align: 'left', fill: has ? INK : '#a9a394' }); text(g, CHAPTERS[t.ch].short, 420, y + 17, { size: 12.5, align: 'right', fill: SUB, weight: 400 });
+      const y = 124 + n * 46, has = got.includes(t.id), on = this.sel === n;
+      if (tapped('tale' + n, 46, y, 388, 41)) this.sel = n;
+      rr(g, 46, y, 388, 41, 6, on ? '#f6e3a8' : has ? '#fbf3df' : '#ebe2cc', on ? '#c9962e' : 'rgba(38,42,54,0.35)', on ? 2 : 1);
+      text(g, has ? t.title : '· · ·', 66, y + 21.5, { size: 20, font: FONT_B, align: 'left', fill: has ? INK : '#a9a394' }); text(g, CHAPTERS[t.ch].short, 420, y + 21.5, { size: 13.5, align: 'right', fill: SUB, weight: 400 });
     });
     const t = TALES[this.sel], has = got.includes(t.id);
     if (has) {
@@ -81,9 +81,9 @@ export class MetaScene {
     UNLOCKS.forEach((u, n) => {
       const x = 30 + (n % 2) * 620, y = 108 + Math.floor(n / 2) * 90, w = 600, h = 82, open = has(u.id), afford = meta.merit >= u.cost;
       rr(g, x, y + 4, w, h, 6, 'rgba(50,36,20,0.2)'); rr(g, x, y, w, h, 6, open ? '#e6efdc' : PAPER, INK, 2.4);
-      if (u.unit) { rr(g, x + 9, y + 8, 78, 66, 5, '#efe4c9', INK, 1.2); g.save(); g.beginPath(); g.rect(x + 10, y + 9, 76, 64); g.clip(); portrait(g, u.unit, x + 47, y + 72, 0.8, this.t); g.restore(); } else stamp(g, x + 48, y + 41, 25, '惠', '#b8742a', -0.1);
+      if (u.unit) { rr(g, x + 9, y + 8, 78, 66, 5, '#efe4c9', INK, 1.2); g.save(); g.beginPath(); g.rect(x + 10, y + 9, 76, 64); g.clip(); portrait(g, u.unit, x + 47, y + 72, 0.8, this.t); g.restore(); } else stamp(g, x + 48, y + 41, 25, 'perk', '#b8742a', -0.1);
       text(g, u.name, x + 102, y + 30, { size: 23, font: FONT_B, align: 'left' }); text(g, u.desc, x + 104, y + 58, { size: 15.5, align: 'left', fill: SUB, weight: 400, maxW: 320 });
-      if (open) stamp(g, x + w - 70, y + 41, 27, '開', TEAL, -0.12);
+      if (open) stamp(g, x + w - 70, y + 41, 27, 'open', TEAL, -0.12);
       else if (button(g, 'u' + n, x + w - 164, y + 15, 150, 50, `공적 ${u.cost}`, { style: afford ? 'indigo' : 'grey', size: 23 })) { if (buyUnlock(u.id)) sfx('star'); else sfx('deny'); }
     });
     const y = 572; panel(g, 30, y, 900, 110);
@@ -103,7 +103,7 @@ export class MetaScene {
         g.restore();
       }
       text(g, `붉은 점 = 평정한 길 · 칸을 눌러 떠날 길을 고릅니다 (열린 길 ${meta.hardMax} / ${HARD_MAX})`, 634, y + 90, { size: 15, fill: '#4a4034', weight: 400, maxW: 560 });
-    } else { text(g, '험로', 64, y + 40, { size: 28, font: FONT_B, align: 'left', fill: SUB }); text(g, '세 고개를 모두 넘으면 더 험한 길이 열립니다', 64, y + 76, { size: 17, align: 'left', fill: SUB, weight: 400 }); }
+    } else { text(g, '험로', 64, y + 40, { size: 28, font: FONT_B, align: 'left', fill: SUB }); text(g, '열두 고개를 모두 넘으면 더 험한 길이 열립니다', 64, y + 76, { size: 17, align: 'left', fill: SUB, weight: 400 }); }
     if (button(g, 'back', 960, y + 12, 290, 86, '돌아가기', { style: 'paper', size: 32 })) nav.go('title');
   }
 }

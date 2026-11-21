@@ -1,6 +1,34 @@
-// 고개(장) 정의
+// 고개(장) 정의: 고개마다 옛이야기 하나. 열두 고개를 차례로 넘는다
+// pool = 그 고개에 나오는 요괴와 무게 · chase = 싸움을 오래 끌면 따라붙는 본대 · terr = 싸움터 지형 · sky = [낮, 밤] 확률(나머지는 비)
+export const ORD = ['첫째', '둘째', '셋째', '넷째', '다섯째', '여섯째', '일곱째', '여덟째', '아홉째', '열째', '열한째', '열두째'];
+const C = (id, tale, place, theme, boss, sub, pool, chase, terr, sky, bossSky = 'day') => ({ id, tale, place, theme, boss, sub, pool, chase, terr, sky, bossSky });
 export const CHAPTERS = [
-  { name: '첫째 고개 · 솔숲길', short: '첫째 고개', theme: 'pass', sub: '씨름재 — 도깨비들이 쫓기듯 넘어오는 산길' },
-  { name: '둘째 고개 · 당산 숲', short: '둘째 고개', theme: 'grove', sub: '장승배기 — 베어진 숲에서 신령이 깨어났다' },
-  { name: '셋째 고개 · 저승길', short: '셋째 고개', theme: 'dusk', sub: '어스름재 — 해가 지면 다시 뜨지 않는 길' },
+  C('fox', '여우 누이', '여우 고개', 'pass', 'gumiho', '꼬리 아홉 달린 여우가 사람 흉내를 내는 고개',
+    { goblin: 5, orc: 3, garcher: 4, rassassin: 3, yagwang: 2 }, ['goblin', 'rassassin'], ['open', 'open', 'rocks', 'gate', 'palisade'], [0.75, 0.15]),
+  C('dueok', '두억시니', '바위 고개', 'autumn', 'dueokboss', '머리를 내리찍는 귀신이 지키는 단풍 든 바윗길',
+    { goblin: 3, orc: 4, garcher: 3, rshield: 3, dueok: 2.5, yagwang: 2 }, ['goblin', 'orc'], ['rocks', 'rocks', 'gate', 'open', 'palisade'], [0.7, 0.15]),
+  C('ssireum', '도깨비 씨름', '씨름재', 'grove', 'warchief', '도깨비들이 밤마다 씨름판을 벌이는 고개',
+    { goblin: 4, orc: 5, garcher: 3, rshield: 3, shaman: 2.5, bomber: 2 }, ['goblin', 'orc'], ['open', 'grove', 'gate', 'palisade', 'rocks'], [0.55, 0.3]),
+  C('tiger', '해와 달이 된 오누이', '호랑이 고개', 'snow', 'tigerboss', '"떡 하나 주면 안 잡아먹지" 하는 호랑이가 사는 눈 고개',
+    { wolf: 4, rassassin: 3, garcher: 3, orc: 3, goblin: 2, jangsan: 1.5, yagwang: 1.5 }, ['wolf', 'rassassin'], ['open', 'rocks', 'grove', 'gate', 'bridge'], [0.6, 0.3]),
+  C('magpie', '은혜 갚은 까치', '옛 절터', 'mist', 'serpent', '종소리가 끊긴 절터에 큰 구렁이가 똬리를 틀었다',
+    { treant: 3, shaman: 3, garcher: 3, rshield: 3, bomber: 3, wolf: 2, orc: 3 }, ['orc', 'bomber'], ['grove', 'bridge', 'rocks', 'gate', 'open'], [0.5, 0.2]),
+  C('dangsan', '장승과 당산나무', '장승배기', 'grove', 'elder', '베어진 숲에서 나무 신령이 깨어났다',
+    { treant: 5, shaman: 3, garcher: 3, wolf: 3, bomber: 2, dueok: 2, jangsan: 1.5 }, ['orc', 'wolf', 'bomber'], ['grove', 'grove', 'bridge', 'rocks', 'gate'], [0.5, 0.2]),
+  C('bulga', '불가사리', '쇠 고개', 'ember', 'bulgaboss', '쇠란 쇠는 다 먹어 치우는 짐승이 대장간 마을을 차지했다',
+    { orc: 4, rshield: 3, bomber: 3, catapult: 1.5, bulga: 1.5, dueok: 2, garcher: 3, goblin: 2 }, ['orc', 'bomber'], ['gate', 'palisade', 'rocks', 'open', 'bridge'], [0.6, 0.25]),
+  C('cheoyong', '처용과 역신', '앓는 마을', 'mist', 'plague', '집집마다 앓는 소리가 나는 마을, 대문에는 탈이 걸려 있다',
+    { skel: 3, yagwang: 3, shaman: 3, rassassin: 2, bomber: 3, geuseun: 1.5, garcher: 3, orc: 2 }, ['yagwang', 'bomber', 'orc'], ['gate', 'palisade', 'open', 'rocks', 'bridge'], [0.3, 0.5]),
+  C('imugi', '이무기', '용소', 'storm', 'imugi', '천 년을 기다린 이무기가 비구름을 부르는 깊은 소',
+    { wolf: 3, rshield: 3, shaman: 3, garcher: 3, bulga: 1.5, jangsan: 2, treant: 3, catapult: 1.5 }, ['wolf', 'orc', 'bomber'], ['bridge', 'bridge', 'rocks', 'gate', 'open'], [0.15, 0.15], 'rain'),
+  C('eoduk', '어둑시니', '어스름재', 'dusk', 'skelking', '올려다볼수록 커지는 어둠이 덮은 고개',
+    { skel: 5, skelarcher: 4, geuseun: 2.5, bomber: 3, yagwang: 2, rassassin: 2, necro: 1.5 }, ['skel', 'skelarcher', 'bomber'], ['gate', 'bridge', 'palisade', 'rocks', 'open'], [0.15, 0.7], 'night'),
+  C('chasa', '저승 차사', '황천길', 'under', 'reaper', '명부를 든 차사가 길목을 지키는 저승 가는 길',
+    { skel: 5, skelarcher: 4, necro: 3, catapult: 2, rshield: 2, geuseun: 2, dueok: 1.5 }, ['skel', 'skelarcher', 'orc'], ['gate', 'bridge', 'palisade', 'rocks', 'open'], [0.1, 0.75], 'night'),
+  C('yeomra', '염라대왕', '저승 문', 'under', 'yeomra', '저승의 임금이 산 자의 죄를 묻는 마지막 고개',
+    { skel: 4, skelarcher: 4, necro: 3, geuseun: 2, dueok: 2, bulga: 1.5, jangsan: 1.5, catapult: 2, rassassin: 2 }, ['skel', 'skelarcher', 'orc'], ['gate', 'bridge', 'palisade', 'rocks', 'open'], [0.1, 0.75], 'night'),
 ];
+export const N_CH = CHAPTERS.length;
+CHAPTERS.forEach((c, i) => { c.n = i; c.short = ORD[i] + ' 고개'; c.name = `${ORD[i]} 고개 · ${c.place}`; });
+// 고개 번호가 범위를 벗어나도(원정을 다 마친 뒤) 마지막 고개를 돌려준다
+export const chapterOf = ch => CHAPTERS[Math.max(0, Math.min(N_CH - 1, ch | 0))];

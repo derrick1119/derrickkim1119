@@ -1,0 +1,34 @@
+<!doctype html>
+<!-- 그림 기호 한눈에 보기: node tools/serve.mjs 8090 → http://localhost:8090/tools/symbols.html  (?only=battle,elite 고른 것만) -->
+<meta charset="utf-8"><title>그림 기호</title>
+<link rel="stylesheet" href="../style.css">
+<style>html, body { height: auto; overflow: auto; background: #e9dec4; } canvas { display: block; }</style>
+<canvas id="c" width="1440" height="100"></canvas>
+<script type="module">
+// 기호마다 한 칸: 윗줄은 또렷한 그림(도장), 아랫줄은 붓 그림 — 24·48·120 크기. 맨 아래에는 실제로 쓰이는 모습(도장·낙관·먹물 위)
+import { SYMBOLS, symbol, inkGlyph, inkMark, taegeuk } from '../src/render/symbols.js';
+import { MEOK, JU } from '../src/render/ink.js';
+import { text, rr, INK, RED, INDIGO, TEAL, SUB } from '../src/render/draw.js';
+import { seal, stamp } from '../src/ui/ui.js';
+await Promise.all([document.fonts.load("700 20px 'Gowun Batang'", '가A'), document.fonts.load("20px 'Yeon Sung'", '가A')]);
+const q = new URLSearchParams(location.search), ids = q.get('only') ? q.get('only').split(',') : SYMBOLS;
+const PER = 6, CW = 240, CH = 316, rows = Math.ceil(ids.length / PER), y1 = 20 + rows * CH, c = document.getElementById('c'); c.height = y1 + 560;
+const g = c.getContext('2d'); g.fillStyle = '#efe5cc'; g.fillRect(0, 0, c.width, c.height);
+ids.forEach((id, i) => {
+  const x = (i % PER) * CW, y = 20 + Math.floor(i / PER) * CH;
+  rr(g, x + 6, y, CW - 12, CH - 12, 6, null, 'rgba(107,90,68,0.25)', 1);
+  [24, 48, 120].forEach((s, k) => { const cx = x + [28, 72, 166][k]; symbol(g, id, cx, y + 70, s, INK); symbol(g, id, cx, y + 200, s, k === 1 ? JU : MEOK, { brush: true }); });
+  text(g, id, x + CW / 2, y + CH - 28, { size: 17, fill: SUB });
+});
+// 쓰임새: 길 도장(작게·크게), 둥근 도장, 먹물 위의 붓 그림
+const lab = (s, y) => text(g, s, 16, y, { size: 15, align: 'left', fill: SUB });
+lab('도장 20 · 27 · 36 (쪽빛 머리 띠 위)', y1 + 6); g.fillStyle = '#22304f'; g.fillRect(0, y1 + 20, 1440, 62);
+const COL = [INDIGO, RED, '#7a1f1c', '#b8862a', '#b8742a', '#2f6f5c', '#5a5346'];
+ids.forEach((id, i) => { const x = 24 + i * 37.4; seal(g, x, y1 + 36, 20, id, COL[i % 7]); seal(g, x, y1 + 64, 27, id, COL[i % 7]); });
+lab('도장 36 · 둥근 도장 22', y1 + 104);
+ids.forEach((id, i) => { const x = 28 + i * 37.4; seal(g, x, y1 + 136, 36, id, COL[i % 7]); stamp(g, x, y1 + 186, 17, id, i % 2 ? TEAL : RED); });
+lab('먹물 위의 붓 그림 86 · 번짐을 두른 붓 그림 88', y1 + 232);
+ids.forEach((id, i) => { const x = 60 + (i % 19) * 73, y = y1 + 290 + Math.floor(i / 19) * 130; if (i % 2) inkMark(g, id, x, y, 62, { v: i % 3 }); else inkGlyph(g, id, x, y, 66, { col: i % 4 ? MEOK : JU }); });
+taegeuk(g, 1400, y1 + 520, 18);
+document.title = 'ready'; window.done = true;
+</script>
