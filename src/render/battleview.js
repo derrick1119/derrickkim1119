@@ -92,17 +92,17 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   }
   const top = by - L.h * k;
   // ── 두목 싸움의 표시들 (sim/bossfight.js) ──
-  if (u.open > 0) { const p = 0.55 + 0.45 * Math.sin(T * 11); g.globalAlpha = alpha * p; g.beginPath(); g.ellipse(u.x, u.y, u.r * 1.7, u.r * 0.8, 0, 0, TAU); st(g, '#f0d264', 5); g.globalAlpha = alpha; text(g, '빈틈!', x, top - 30, { size: 24, font: FONT_B, fill: '#f0d264', stroke: INK, lw: 6 }); }
+  if (u.open > 0) { const p = 0.55 + 0.45 * Math.sin(T * 11); g.globalAlpha = alpha * p; g.beginPath(); g.ellipse(u.x, u.y, u.r * 1.7, u.r * 0.8, 0, 0, TAU); st(g, '#f0d264', 5); g.globalAlpha = alpha; text(g, '빈틈! 몰아쳐라', x, top - 34, { size: 30, font: FONT_B, fill: '#f0d264', stroke: INK, lw: 7 }); }
   if (u.charm > 0) { for (let i = 0; i < 2; i++) { g.beginPath(); g.arc(x, top - 10, 5 + i * 4, T * 7 + i * 2, T * 7 + i * 2 + 3.6); st(g, INK, 4); g.beginPath(); g.arc(x, top - 10, 5 + i * 4, T * 7 + i * 2, T * 7 + i * 2 + 3.6); st(g, '#e07ac0', 2.2); } }
   if (u.plague > 0) for (let i = 0; i < 3; i++) { const q = (T * 0.9 + i / 3 + u.id * 0.37) % 1; g.globalAlpha = alpha * (1 - q) * 0.9; ell(g, x + Math.sin(q * 6 + i * 2) * 7, by - 8 - q * (L.h * k), 3.4 - q * 1.6, 3.4 - q * 1.6, '#8ac04a', INK, 0.8); g.globalAlpha = alpha; }
-  if (u.def && u.def.prop && !(u.ai && u.ai.rest > ST)) { const yy = top - 16 + Math.sin(T * 6) * 4; poly(g, [x - 10, yy - 12, x + 10, yy - 12, x, yy], '#f0d264', INK, 2); if (u.ai && u.ai.count > 0) text(g, String(Math.ceil(u.ai.count)), x, yy - 30, { size: 26, font: FONT_B, fill: u.ai.count < 5 ? RED : PAPER, stroke: INK, lw: 6 }); }
+  // (소품의 표식과 남은 숨은 BattleView.draw 에서 모든 인형 위에 그린다)
   if (u.ai) {
     const a = u.ai, gg = a.g;
     // 끊기 게이지: 시간이 다 가기 전에 피해를 채우면 두목의 수가 끊긴다
-    if (gg) { const w = 168, bx = x - w / 2, yy = top - 34; rr(g, bx - 3, yy - 3, w + 6, 20, 5, 'rgba(24,22,30,0.85)', INK, 2); g.fillStyle = '#f0d264'; g.fillRect(bx, yy, w * clamp(gg.acc / gg.need, 0, 1), 14); g.fillStyle = RED; g.fillRect(bx, yy + 15, w * clamp(gg.t / gg.t0, 0, 1), 3); text(g, gg.label, x, yy - 16, { size: 20, font: FONT_B, fill: '#f6efdc', stroke: INK, lw: 6 }); }
+    if (gg) { const w = 168, bx = x - w / 2, yy = top - 34; rr(g, bx - 3, yy - 3, w + 6, 20, 5, 'rgba(24,22,30,0.85)', INK, 2); g.fillStyle = '#f0d264'; g.fillRect(bx, yy, w * clamp(gg.acc / gg.need, 0, 1), 14); g.fillStyle = RED; g.fillRect(bx, yy + 15, w * clamp(gg.t / gg.t0, 0, 1), 3); text(g, gg.label, x, yy - 18, { size: 22, font: FONT_B, fill: '#f6efdc', stroke: INK, lw: 6 }); text(g, '두목을 몰아쳐 채운다', x, yy + 30, { size: 14.5, font: FONT_B, fill: '#f0d264', stroke: INK, lw: 5 }); }
     // 붙잡힌 영웅 / 조인 부대 / 업경대의 되비침
     if (a.grab && !a.grab.dead) { const t2 = a.grab; line(g, [u.x - dir * 18, u.y - 34, t2.x, t2.y - 22], INK, 7); line(g, [u.x - dir * 18, u.y - 34, t2.x, t2.y - 22], '#e9dfc4', 3.6); }
-    if (a.coil) for (const e of a.coil.units) if (!e.dead) { for (const dy of [-6, -16]) { g.beginPath(); g.ellipse(e.x, e.y + dy, e.r * 1.25, e.r * 0.5, 0, 0, TAU); st(g, INK, 4.6); g.beginPath(); g.ellipse(e.x, e.y + dy, e.r * 1.25, e.r * 0.5, 0, 0, TAU); st(g, '#6e7f3c', 2.6); } }
+    if (a.coil) for (const e of a.coil.units) if (!e.dead) { for (const dy of [-6, -16]) { g.beginPath(); g.ellipse(e.x, e.y + dy, e.r * 1.25, e.r * 0.5, 0, 0, TAU); st(g, INK, 4.6); g.beginPath(); g.ellipse(e.x, e.y + dy, e.r * 1.25, e.r * 0.5, 0, 0, TAU); st(g, '#7d6a3a', 2.6); } }
     if (a.mirror && !a.mirror.dead) { g.globalAlpha = alpha * (0.35 + 0.25 * Math.sin(T * 9)); line(g, [a.mirror.x, a.mirror.y - 54, u.x, u.y - 40], '#fff3c0', 6); g.globalAlpha = alpha; }
   }
   if (u.barrier > 0) { g.globalAlpha = alpha * 0.5; ell(g, x, by - L.h * k * 0.45, u.r * 1.55, L.h * k * 0.62, 'rgba(160,205,235,0.3)', '#5f8fb8', 2); g.globalAlpha = alpha; }
@@ -123,6 +123,8 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
 
 const TELE = { boulder: RED, slam: RED, bomb: '#d9702a', root: '#4f8a4a', dark: '#5a4a8a', meteor: '#d9702a', volley: INDIGO, fox: '#3f9fd0', pounce: '#c8642a', poison: '#6a9a3a', devour: '#6a6f78', bolt: '#d9a41e', flood: '#3f7fb8' };
 const AMB = { pass: ['#f3c4c9', '#f8dcdc', '#fbf7ec'], grove: ['#9bbf6a', '#d9c25a', '#7aa65a'], dusk: ['#8fd3e8', '#b8a0e0', '#dfe8ee'], autumn: ['#e8a03c', '#c8402f', '#d9702a'], snow: ['#ffffff', '#eef2f4', '#dfe8ee'], mist: ['#c9d6c0', '#e9e6d2', '#a9b8a0'], ember: ['#ff9a2e', '#8a8078', '#5a5046'], storm: ['#cfe3e6', '#9fc0cc', '#dfe8ee'], under: ['#e06a5a', '#b8a0e0', '#dfe8ee'] };
+// 붉지 않은 원에는 무엇인지 이름을 붙인다
+const ZLABEL = { fox: '여우불', poison: '독', devour: '무는 입', bolt: '벼락', flood: '물벼락', pounce: '덮치기', root: '뿌리 감옥', dark: '낙인' };
 const isNight = theme => !!(THEMES[theme] && THEMES[theme].night);
 
 export class BattleView {
@@ -162,8 +164,20 @@ export class BattleView {
     if (opt.extra) for (const e of opt.extra) list.push(e);
     list.sort((a, c) => a.y - c.y);
     for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march, b.time); else if (it.spr) { if (it.sy === undefined) drawSprite(g, it.spr, it.x, it.y); else if (it.sy > 0.02) drawSprite(g, it.spr, it.x, it.y, 1 + (1 - Math.min(1, it.sy)) * 0.15, it.sy); } }
+    // 소품(종·여의주·업경대·명부 든 사자): 어떤 인형에도 가리지 않게 맨 위에 표식과 이름, 남은 숨을 단다
+    const tag = (x, y, s, col) => { g.font = `400 17px ${FONT_B}`; const w = g.measureText(s).width + 22; rr(g, x - w / 2, y - 14, w, 28, 7, '#fbf3df', col, 2.2); text(g, s, x, y + 1, { size: 17, font: FONT_B, fill: col }); };
+    for (const u of b.units) {
+      if (u.dead || !u.def.prop) continue; const a = u.ai || {}, L = getLook(u.type), top = u.y - L.h * L.scale, rest = a.rest > b.time, yy = top - 18 + Math.sin(T * 6) * 4;
+      if (!rest) poly(g, [u.x - 11, yy - 13, u.x + 11, yy - 13, u.x, yy], '#f0d264', INK, 2);
+      const own = a.owner && a.owner.ai, s = u.type === 'bell' ? (rest ? '종 · 쉬는 중' : '종을 쳐라 ' + '●'.repeat(own ? own.rings : 0) + '○'.repeat(3 - (own ? own.rings : 0))) : `${u.def.name}${a.count > 0 ? ' ' + Math.ceil(a.count) : ''}`;
+      tag(u.x, yy - 32, s, rest ? '#8a8474' : a.count > 0 && a.count < 5 ? RED : '#7a4a2c');
+    }
+    // 홀린 부대: 무엇을 해야 하는지 알려 준다
+    for (const q of b.squads) if (q.team === 0 && q.alive > 0 && q.units.some(e => !e.dead && e.charm > 0)) tag(q.cx, q.cy - 78, '홀림 — 끌어서 깨운다', '#b8559a');
+    // 명부: 이름이 적힌 부대와 명부 든 사자를 먹줄로 잇는다
+    { const boss = b.units.find(e => !e.dead && e.ai && e.ai.doomSq); if (boss && boss.ai.scribe && !boss.ai.scribe.dead) { const q = boss.ai.doomSq, sc = boss.ai.scribe; g.save(); g.globalAlpha = 0.75; g.setLineDash([10, 8]); g.lineDashOffset = -T * 26; line(g, [q.cx, q.cy - 60, sc.x, sc.y - 50], '#3d3560', 3.4); g.setLineDash([]); g.restore(); } }
     // 명부에 이름이 적힌 부대: 머리 위에 남은 숨을 센다
-    for (const q of b.squads) if (q.doom > 0 && q.alive > 0) { const yy = q.cy - 92 + Math.sin(T * 6) * 3; ell(g, q.cx, yy, 24, 24, 'rgba(36,30,48,0.9)', q.doom < 3 ? RED : '#8a7ab8', 3); text(g, String(Math.ceil(q.doom)), q.cx, yy + 1, { size: 28, font: FONT_B, fill: q.doom < 3 ? '#ff8a70' : '#f6efdc' }); text(g, '명부', q.cx, yy - 34, { size: 16, font: FONT_B, fill: '#f6efdc', stroke: INK, lw: 5 }); }
+    for (const q of b.squads) if (q.doom > 0 && q.alive > 0) { const yy = q.cy - 92 + Math.sin(T * 6) * 3; ell(g, q.cx, yy, 24, 24, 'rgba(36,30,48,0.9)', q.doom < 3 ? RED : '#8a7ab8', 3); text(g, String(Math.ceil(q.doom)), q.cx, yy + 1, { size: 28, font: FONT_B, fill: q.doom < 3 ? '#ff8a70' : '#f6efdc' }); text(g, '명부에 적혔다', q.cx, yy - 36, { size: 18, font: FONT_B, fill: '#f6efdc', stroke: INK, lw: 5 }); }
     this.dust -= opt.dt || 0;
     if (this.dust <= 0) { this.dust = 0.09; for (const u of b.units) if (!u.dead && u.moving && u.def.charge && u.run > 60 && u.hidden <= 0) fx.puff(u.x - Math.cos(u.facing) * 12, u.y - 2, 1, '#e8dcc0', 6); if (opt.march) for (const u of b.units) if (!u.dead && u.team === 0 && Math.random() < 0.05) fx.puff(u.x - 10, u.y - 1, 1, '#e8dcc0', 5); }
     for (const p of b.proj) this.drawProj(g, p, T);
@@ -204,7 +218,7 @@ export class BattleView {
       g.globalAlpha = 0.18; ell(g, z.x, z.y, z.r, z.r, col); g.globalAlpha = 0.3; ell(g, z.x, z.y, z.r * k, z.r * k, col);
       g.globalAlpha = 0.95; g.setLineDash([14, 10]); g.lineDashOffset = -T * 40; g.beginPath(); g.arc(z.x, z.y, z.r, 0, TAU); st(g, col, 4); g.setLineDash([]);
       if (z.ally) { for (let i = 0; i < 4; i++) { const a = i / 4 * TAU + T * 1.5; line(g, [z.x + Math.cos(a) * z.r * 0.25, z.y + Math.sin(a) * z.r * 0.25, z.x + Math.cos(a) * z.r * 0.55, z.y + Math.sin(a) * z.r * 0.55], col, 3.4); } ell(g, z.x, z.y, 5, 5, col); }
-      else text(g, '!', z.x, z.y, { size: 40 + Math.sin(T * 14) * 4, font: FONT_B, fill: col, stroke: PAPER, lw: 7 });
+      else { text(g, z.n ? String(z.n) : '!', z.x, z.y, { size: 40 + Math.sin(T * 14) * 4, font: FONT_B, fill: col, stroke: PAPER, lw: 7 }); const lb = ZLABEL[z.style]; if (lb) text(g, lb, z.x, z.y + 32, { size: 17, font: FONT_B, fill: col, stroke: PAPER, lw: 5 }); }
       g.globalAlpha = 1;
     } else if (z.kind === 'mark') {
       text(g, '!', z.x, z.y - 32, { size: 34 + Math.sin(T * 18) * 4, font: FONT_B, fill: RED, stroke: PAPER, lw: 6 });
@@ -359,7 +373,7 @@ export class BattleView {
         case 'plague': fx.ring(e.x, e.y, 70, '#8ac04a', 0.6, 6); fx.wisp(e.x, e.y - 20, 3); sfx('warn'); break;
         case 'bossOpen': fx.ring(e.x, e.y, 120, '#f0d264', 0.6, 8); fx.flash = Math.max(fx.flash, 0.35); fx.flashCol = '#fff3b0'; sfx('star'); break;
         case 'pounce': fx.puff(e.x, e.y - 14, 8, PAPER, 12); fx.ring(e.x, e.y, 80, OCHRE, 0.45, 7); fx.shake = Math.max(fx.shake, 7); sfx('charge'); break;
-        case 'text': { fx.add({ k: 'text', x: e.x, y: e.y, vy: -30, drag: 1.5, s: e.s, col: e.c || INK, size: e.big ? 30 : 20, life: e.big ? 1.3 : 0.8, big: e.big }); if (e.big) sfx('warn'); break; }
+        case 'text': { fx.add({ k: 'text', x: e.x, y: e.y, vy: e.big ? -14 : -30, drag: 1.5, s: e.s, col: e.c || INK, size: e.big ? 30 : 20, life: e.big ? 2 : 0.8, big: e.big }); if (e.big) sfx('warn'); break; }
         case 'blink': fx.puff(e.x, e.y - 14, 3, '#eef3f4', 9); fx.puff(e.tx, e.ty - 14, 3, '#eef3f4', 9); break;
         case 'redraw': case 'shuffle': sfx('card'); break;
         case 'cast': {

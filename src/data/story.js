@@ -11,38 +11,38 @@ const B = (bg, s, ...a) => ({ bg, s, a });
 const OPENING = [
   B('night', '옛날 옛적, 고개 아래 마을에 해가 뜨지 않는 긴 밤이 찾아왔어요.', ['spear', 0.36, 'tremble'], ['priest', 0.54, 'tremble'], ['sword', 0.72, 'tremble']),
   B('night', '옛이야기 속 요괴들이 고개마다 깨어났기 때문이에요. 여우도, 호랑이도, 도깨비도요.', ['gumiho', 0.3, 'hop'], ['tigerboss', 0.54, 'hop'], ['orc', 0.8, 'hop']),
-  B('village', '무녀가 말했어요. 「서낭님을 모신 이 수레를 끌고 열두 고개를 넘어가거라. 마지막 고개에 염라대왕이 계신다.」', ['priest', 0.4, 'talk'], ['banner', 0.68]),
-  B('village', '「염라대왕께 청하면, 긴 밤을 거두어 주실 거야.」', ['priest', 0.4, 'talk'], ['banner', 0.68], ['spear', 0.86, 'hop']),
+  B('night', '무녀가 말했어요. 「서낭님을 모신 이 수레를 끌고 열두 고개를 넘어가거라. 마지막 고개에 염라대왕이 계신다.」', ['priest', 0.4, 'talk'], ['banner', 0.68]),
+  B('night', '「염라대왕께 청하면, 긴 밤을 거두어 주실 거야.」', ['priest', 0.4, 'talk'], ['banner', 0.68], ['spear', 0.86, 'hop']),
 ];
 const WHY = {
   commander: [
     B('night', '장군은 십 년 전, 이 고개에서 부하들을 잃었어요.', ['commander', 0.34, 'bow'], ['skel', 0.66], ['skel#2', 0.8]),
-    B('village', '「이번에는 내가 앞장서겠다. 고갯마루에서 부하들 이름을 불러 주고 싶구나.」', ['commander', 0.4, 'talk'], ['banner', 0.7]),
+    B('night', '「이번에는 내가 앞장서겠다. 고갯마루에서 부하들 이름을 불러 주고 싶구나.」', ['commander', 0.4, 'talk'], ['banner', 0.7]),
   ],
   blade: [
     B('night', '검객은 어릴 적, 도깨비와 씨름을 하다 아버지의 칼을 빼앗겼어요.', ['blade~', 0.5, 'fall', 1, 0.78], ['*sword', 0.66], ['orc', 0.8, 'hop']),
-    B('village', '「그 칼을 찾으러 간다.」 검객이 삿갓을 꾹 눌러썼어요.', ['blade', 0.42, 'talk'], ['banner', 0.72]),
+    B('night', '「그 칼을 찾으러 간다.」 검객이 삿갓을 꾹 눌러썼어요.', ['blade', 0.42, 'talk'], ['banner', 0.72]),
   ],
   hunter: [
     B('night', '명궁의 동생은 밤 고개에서 흰 범의 목소리에 홀려 사라졌어요.', ['hunter', 0.42, 'tremble'], ['jangsan', 0.76, 'wave']),
-    B('village', '「동생을 찾을 때까지 활을 놓지 않겠다.」 명궁이 활을 메고 나섰어요.', ['hunter', 0.42, 'talk'], ['banner', 0.72]),
+    B('night', '「동생을 찾을 때까지 활을 놓지 않겠다.」 명궁이 활을 메고 나섰어요.', ['hunter', 0.42, 'talk'], ['banner', 0.72]),
   ],
   bishop: [
     B('night', '고승은 고개를 떠도는 넋들이 가여웠어요. 집에 가는 길을 잃은 넋들이었지요.', ['bishop', 0.4], ['skel', 0.64, 'wave'], ['skelarcher', 0.8, 'wave']),
-    B('village', '「내가 가서 길을 밝혀 주마.」 고승이 목탁을 들었어요.', ['bishop', 0.42, 'talk'], ['banner', 0.72]),
+    B('night', '「내가 가서 길을 밝혀 주마.」 고승이 목탁을 들었어요.', ['bishop', 0.42, 'talk'], ['banner', 0.72]),
   ],
   archmage: [
     B('pass', '삼백 년 전, 신선은 장난삼아 헌 빗자루에 술을 한 잔 부었어요.', ['archmage', 0.34, 'wave'], ['*jar', 0.5], ['*broom', 0.66]),
     B('pass', '그랬더니 빗자루가 벌떡 일어나 첫 도깨비가 됐지 뭐예요!', ['archmage', 0.34, 'tremble'], ['goblin', 0.62, 'hop']),
-    B('village', '「허허, 내가 벌인 일이니 내가 거두어야지.」 신선이 구름을 타고 내려왔어요.', ['archmage', 0.42, 'talk'], ['banner', 0.72]),
+    B('night', '「허허, 내가 벌인 일이니 내가 거두어야지.」 신선이 구름을 타고 내려왔어요.', ['archmage', 0.42, 'talk'], ['banner', 0.72]),
   ],
   sangsoe: [
     B('night', '도깨비는 흥겨운 가락을 아주 좋아한대요. 상쇠가 꽹과리를 치면 도깨비도 어깨춤을 췄지요.', ['sangsoe', 0.36, 'dance'], ['goblin', 0.6, 'dance'], ['orc', 0.78, 'dance']),
-    B('village', '「싸우지만 말고, 한 판 신나게 놀아서 달래 보세!」', ['sangsoe', 0.42, 'talk'], ['banner', 0.72]),
+    B('night', '「싸우지만 말고, 한 판 신나게 놀아서 달래 보세!」', ['sangsoe', 0.42, 'talk'], ['banner', 0.72]),
   ],
   chief: [
     B('night', '산적 두령은 도깨비들에게 산채를 빼앗기고 쫓겨났어요.', ['chief', 0.4, 'shake', -1], ['warchief', 0.72, 'hop']),
-    B('village', '「내 집은 내가 찾는다. 김서방인지 뭔지, 씨름으로 결판내자!」', ['chief', 0.42, 'talk'], ['banner', 0.72]),
+    B('night', '「내 집은 내가 찾는다. 김서방인지 뭔지, 씨름으로 결판내자!」', ['chief', 0.42, 'talk'], ['banner', 0.72]),
   ],
 };
 export const prologuePlay = hero => [...OPENING, ...(WHY[hero] || WHY.commander),
@@ -278,11 +278,11 @@ const FINALE = {
     B('dawn', '그 뒤로 고개에서는 밤마다 신나는 씨름판이 벌어졌답니다.', ['chief', 0.4, 'hop'], ['warchief', 0.6, 'hop']),
   ],
 };
-export const endingPlay = hero => [B('dawn', '「긴 밤을 거두어 주마. 돌아가거라.」 염라대왕이 손을 들자, 동쪽 하늘이 밝아 왔어요.', ['yeomra', 0.7, 'wave'], [hero, 0.3, 'bow']), ...(FINALE[hero] || FINALE.commander),
+export const endingPlay = hero => [B('dark', '「긴 밤을 거두어 주마. 돌아가거라.」 염라대왕이 손을 들자, 동쪽 하늘이 밝아 왔어요.', ['yeomra', 0.66, 'wave'], [hero, 0.3]), ...(FINALE[hero] || FINALE.commander),
   B('village', '마을에는 다시 아침이 왔어요. 사람들은 열두 고개 이야기를 오래오래 전했답니다. 끝!', ['priest', 0.4, 'wave'], ['spear', 0.6, 'hop'], ['banner', 0.82])];
 export const DEFEAT_PLAY = [
   B('night', '눈을 떠 보니 마을 어귀 장승 앞이었어요. 요괴에게 홀려 밤새 제자리를 맴돈 거예요.', ['H', 0.4, 'rise'], ['treant', 0.7]),
-  B('village', '「괜찮아. 내일 밤 다시 가 보자.」', ['H', 0.4, 'hop'], ['banner', 0.68]),
+  B('night', '「괜찮아. 내일 밤 다시 가 보자.」', ['H', 0.4, 'hop'], ['banner', 0.68]),
 ];
 export const defeatPlay = hero => DEFEAT_PLAY.map(b => ({ bg: b.bg, s: b.s, a: b.a.map(a => (a[0] === 'H' ? [hero, ...a.slice(1)] : a)) }));
 // 끝 화면에 한 줄로 남는 글

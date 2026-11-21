@@ -53,7 +53,7 @@ export class RewardOverlay extends Overlay {
     if (lead && this.t < lead + 0.3) {
       const q = this.t / lead, pop = clamp((this.t - lead * 0.72) / 0.3, 0, 1), fade = 1 - clamp((this.t - lead) / 0.28, 0, 1);
       g.save(); g.globalAlpha = fade; g.translate(640, 372);
-      if (pop > 0) { const gl = g.createRadialGradient(0, -34, 10, 0, -34, 170 * pop + 1); gl.addColorStop(0, 'rgba(255,236,170,0.75)'); gl.addColorStop(0.55, 'rgba(240,210,100,0.28)'); gl.addColorStop(1, 'rgba(240,210,100,0)'); g.fillStyle = gl; g.fillRect(-190, -224, 380, 380); goldRays(g, 0, -34, this.t, pop, 190); }
+      if (pop > 0) { const gl = g.createRadialGradient(0, -34, 2, 0, -34, Math.max(14, 170 * pop)); gl.addColorStop(0, 'rgba(255,236,170,0.75)'); gl.addColorStop(0.55, 'rgba(240,210,100,0.28)'); gl.addColorStop(1, 'rgba(240,210,100,0)'); g.fillStyle = gl; g.fillRect(-190, -224, 380, 380); goldRays(g, 0, -34, this.t, pop, 190); }
       const sh = q < 0.72 ? Math.sin(this.t * 38) * 0.05 * (0.3 + q) : 0; g.rotate(sh); const sc = 2.5 + 0.5 * easeOutBack(pop); drawSprite(g, stopSprite('treasure'), 0, 40, sc, sc * (1 + 0.06 * Math.sin(this.t * 38) * (q < 0.72 ? 1 : 0)));
       g.restore(); if (!this.popped && pop > 0) { this.popped = true; sfx('star'); juice.burst(640, 330, '#f0d264', 16); }
     }

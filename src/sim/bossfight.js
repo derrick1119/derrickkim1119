@@ -30,7 +30,7 @@ const mine = b => b.playerSquads();
 function chain(b, u, o) {
   const t = cluster(b, u, 440, 80); if (!t) return false;
   const dx = t.x - u.x, dy = t.y - u.y, L = hyp(dx, dy) || 1, m = lvlMult(u.lvl), hit = { n: 0, left: 3 };
-  for (let i = 0; i < 3; i++) tele(b, u, cx(u.x + dx / L * (96 + i * 98)), cy(u.y + dy / L * (96 + i * 98)), 72, 1.5 + i * 0.45, { style: o.style || 'slam', dmg: o.dmg * m, stun: 0.9, kb: 26, after: n => { hit.n += n; if (--hit.left === 0 && hit.n <= 2 && !u.dead) { u.stun = Math.max(u.stun, 2.4); open(b, u, 4.5, o.whiff); } } });
+  for (let i = 0; i < 3; i++) tele(b, u, cx(u.x + dx / L * (96 + i * 98)), cy(u.y + dy / L * (96 + i * 98)), 72, 1.5 + i * 0.45, { style: o.style || 'slam', n: i + 1, dmg: o.dmg * m, stun: 0.9, kb: 26, after: n => { hit.n += n; if (--hit.left === 0 && hit.n <= 2 && !u.dead) { u.stun = Math.max(u.stun, 2.4); open(b, u, 4.5, o.whiff); } } });
   u.cast = 2.5; say(b, u, o.say); return true;
 }
 // 여러 부대의 발밑에 원을 하나씩
@@ -44,7 +44,7 @@ function doom(b, u, a) {
   if (a.scribe && !a.scribe.dead) return false;
   const ss = mine(b).filter(s => !s.hero); if (!ss.length) return false;
   const s = ss.sort((p, q) => q.alive - p.alive + (b.rand() - 0.5))[0];
-  a.doomSq = s; s.doom = 8; a.scribe = prop(b, u, 'scribe', VIEW.x1 - 120, s.cy < MID_Y ? VIEW.y1 - 84 : VIEW.y0 + 84);
+  a.doomSq = s; s.doom = 8; a.scribe = prop(b, u, 'scribe', VIEW.x1 - 250, s.cy < MID_Y ? VIEW.y1 - 84 : VIEW.y0 + 84);
   say(b, u, '명부에 이름을 적는다…', '#5a4a8a'); return true;
 }
 function doomTick(b, u, a, dt) {
@@ -105,12 +105,12 @@ export const BOSS_AI = {
     moves: { wrestle: { cd: 17, use(b, u, a) {
       const near = b.units.filter(e => !e.dead && e.team === 0 && !e.def.banner && !e.def.structure && hyp(e.x - u.x, e.y - u.y) < 250); if (!near.length) return false;
       const t = near.find(e => e.def.hero) || near.sort((p, q) => q.hp - p.hp)[0];
-      a.grab = t; t.stun = Math.max(t.stun, 3.7); u.cast = 3.7; gauge(u, a, 'wrestle', 3.7, 0.085, '왼다리를 걸어라!'); say(b, u, '어이, 씨름 한 판 하자!'); return true;
+      a.grab = t; t.stun = Math.max(t.stun, 3.7); u.cast = 3.7; gauge(u, a, 'wrestle', 3.7, 0.07, '왼다리를 걸어라!'); say(b, u, '어이, 씨름 한 판 하자!'); return true;
     } } },
     gaugeEnd(b, u, a, won) {
       const t = a.grab; a.grab = null;
       if (won) { u.cast = 0; u.stun = Math.max(u.stun, 3); if (t && !t.dead) t.stun = 0; open(b, u, 5, '왼다리 걸기! 김서방이 넘어졌다'); }
-      else if (t && !t.dead) { b.damage(t, (t.def.hero ? 0.22 : 0.6) * t.maxHp, u, 'aoe'); if (!t.dead) { t.stun = 1.4; t.x = cx(t.x - 90); } say(b, u, '메다꽂기!'); b.ev('impact', { x: t.x, y: t.y, r: 70, style: 'slam' }); }
+      else if (t && !t.dead) { b.damage(t, (t.def.hero ? 0.16 : 0.5) * t.maxHp, u, 'aoe'); if (!t.dead) { t.stun = 1.4; t.x = cx(t.x - 90); } say(b, u, '메다꽂기!'); b.ev('impact', { x: t.x, y: t.y, r: 70, style: 'slam' }); }
     },
   },
   // ④ 해와 달이 된 오누이 — 호랑이: 후방을 덮치고, 떡을 내놓으라고 으른다(으르는 동안 세게 치면 물러난다)
@@ -131,7 +131,7 @@ export const BOSS_AI = {
   },
   // ⑤ 은혜 갚은 까치 — 구렁이: 비늘이 단단해 피해가 덜 든다. 종을 세 번 울리면 몸부림치며 빈틈을 보인다. 부대를 조여 묶는다
   serpent: {
-    init(b, u, a) { a.armor = 0.3; a.rings = 0; a.moves = mv({ coil: 8, spit: 4 }); a.bell = prop(b, u, 'bell', VIEW.x1 - 330, VIEW.y0 + 118); },
+    init(b, u, a) { a.armor = 0.3; a.rings = 0; a.moves = mv({ coil: 8, spit: 4 }); a.bell = prop(b, u, 'bell', VIEW.x1 - 330, VIEW.y0 + 176); },
     tick(b, u, a, dt) { const s = a.coil; if (!s) return; a.ct = (a.ct || 0) - dt; if (a.ct <= 0) { a.ct = 0.5; const m = lvlMult(u.lvl); for (const e of s.units) if (!e.dead) b.damage(e, 7 * m, null, 'burn'); } },
     moves: {
       coil: { cd: 14, use(b, u, a) {

@@ -7,22 +7,22 @@ const BRASS = '#c9962e', BRONZE = '#6f8a78', BRONZED = '#4f6a5c';
 
 // ── 구미호: 여우 몸에 꼬리 n 개 (끝이 붉다). 꼬리 수마다 그림을 따로 굽는다 ──
 export function gumiho(g, o = {}) {
-  const n = o.tails === undefined ? 9 : o.tails, fur = '#f8f3ea';
+  const n = o.tails === undefined ? 9 : o.tails, fur = '#e0b060';   // 누런 털의 여우 (흰 여우에 붉은 무늬는 쓰지 않는다)
   for (let i = 0; i < n; i++) {
     const a = (i - (n - 1) / 2) * (n > 6 ? 0.34 : 0.4), far = Math.abs(i - (n - 1) / 2) > 2;
     g.save(); g.translate(0, -9); g.rotate(a);
     part(g, p => { p.moveTo(-3, 0); p.bezierCurveTo(-10, -14, -8.4, -30, 0, -40); p.bezierCurveTo(8.4, -30, 10, -14, 3, 0); p.closePath(); }, far ? dk(fur, 0.08) : fur, P(0.6, -42, 11, -42, 11, 1, 1.6, 1), { k: 0.1, lw: 1.1 });
-    part(g, p => { p.moveTo(-4.6, -27); p.quadraticCurveTo(-1.6, -32, 0, -40); p.quadraticCurveTo(1.6, -32, 4.6, -27); p.quadraticCurveTo(0, -30.6, -4.6, -27); p.closePath(); }, '#c8402f', null, { lw: 0.8 });
+    part(g, p => { p.moveTo(-4.6, -27); p.quadraticCurveTo(-1.6, -32, 0, -40); p.quadraticCurveTo(1.6, -32, 4.6, -27); p.quadraticCurveTo(0, -30.6, -4.6, -27); p.closePath(); }, '#fbf7ec', null, { lw: 0.8 });
     g.restore();
   }
-  fox(g, Object.assign({ noTail: true }, o));
+  fox(g, Object.assign({ noTail: true, fur, tip: '#fbf7ec' }, o));
   // 이마의 붉은 점과 목의 구슬 (여우 구슬)
   ell(g, 0, -18.2, 2.3, 2.3, '#8fd3e8', INK, 0.8); ell(g, -0.7, -18.9, 0.8, 0.8, '#eef9ff');
 }
 
 // ── 구렁이 / 이무기: 똬리 튼 몸 위로 목을 세웠다. imugi 는 뿔과 수염, 등지느러미가 돋았다 ──
 export function serpent(g, o = {}) {
-  const C = o.imugi ? '#3f6f8a' : '#6e7f3c', B = o.imugi ? '#cfe3e6' : '#dcc98a', S = o.imugi ? '#27485c' : '#3d4a22';
+  const C = o.imugi ? '#3f6f8a' : '#7d6a3a', B = o.imugi ? '#cfe3e6' : '#dcc98a', S = o.imugi ? '#27485c' : '#3a2e1a';
   const ring = (x, y, rx, ry) => {
     part(g, E(x, y, rx, ry), C, E(x + rx * 0.3, y + ry * 0.5, rx, ry), { k: 0.24, lw: 1.3 });
     part(g, p => { p.ellipse(x, y + ry * 0.42, rx * 0.82, ry * 0.46, 0, 0, Math.PI); }, B, null, { lw: 0.8 });
@@ -72,6 +72,8 @@ HATS.myeonryu = g => {
   part(g, R(-7.4, -57, 14.8, 7.6), '#24232a', R(1.6, -57, 6, 7.6), { lw: 1.1 }); rr(g, -7.8, -51.4, 15.6, 2.6, 1, BRASS, INK, 0.8);
   g.save(); g.translate(0, -58.6); g.rotate(-0.06);
   part(g, R(-17.6, -2.6, 35.2, 4.2), '#1f1e25', R(-17.6, -0.2, 35.2, 2), { lw: 1.2 }); rr(g, -17.6, -2.6, 35.2, 1.2, 0.5, BRASS);
+  // 관 위에 얹은 경책 (시왕도의 염라대왕)
+  part(g, R(-7, -8.6, 14, 6), '#f3ecdd', R(0, -8.6, 7, 6), { k: 0.14, lw: 1 }); rr(g, -7, -8.6, 2.6, 6, 0.5, '#2f4d7e', INK, 0.6); for (const y of [-6.6, -4.6]) line(g, [-2.6, y, 5, y], '#8a8474', 0.6);
   for (const x of [-15, -11, -7, 7, 11, 15]) { line(g, [x, 1.6, x, 11], '#3a3640', 0.6); for (let k = 0; k < 3; k++) ell(g, x, 4 + k * 3, 1.05, 1.05, [RED, '#f6efdc', '#3f8a6a'][k], INK, 0.4); }
   g.restore();
   for (const s of [-1, 1]) line(g, [s * 7.6, -49.6, s * 6, -37], '#8a2a26', 1);

@@ -375,15 +375,15 @@ export const DITEM = {
 
 // ───────── 불여우 ─────────
 export function fox(g, o = {}) {
-  const fur = '#f8f3ea', tip = '#8fd3e8';
+  const fur = o.fur || '#f8f3ea', tip = o.tip || '#8fd3e8', inner = o.fur ? '#8a5a34' : '#b9c4c8';
   for (let i = -2; i <= 2 && !o.noTail; i++) { g.save(); g.translate(0, -9); g.rotate(i * 0.44); part(g, p => { p.moveTo(-2.6, 0); p.quadraticCurveTo(-8, -18, 0, -32); p.quadraticCurveTo(8, -18, 2.6, 0); p.closePath(); }, fur, P(0.4, -34, 9, -34, 9, 1, 1.2, 1), { k: 0.1, lw: 1.1 }); part(g, p => { p.moveTo(-3.4, -22); p.quadraticCurveTo(-1, -25.6, 0, -32); p.quadraticCurveTo(1, -25.6, 3.4, -22); p.quadraticCurveTo(0, -24.6, -3.4, -22); p.closePath(); }, tip, null, { lw: 0.8 }); g.restore(); }
   part(g, p => { p.moveTo(-8.6, -3); p.quadraticCurveTo(-10.6, -16, -5, -21); p.lineTo(5, -21); p.quadraticCurveTo(10.6, -16, 8.6, -3); p.quadraticCurveTo(0, 0.6, -8.6, -3); p.closePath(); }, fur, P(2.6, -22, 11, -22, 11, 1, 4, 1), { k: 0.1 });
   for (const s of [-1, 1]) { part(g, E(s * 4.6, -1.4, 3.4, 2.4), fur, E(s * 4.6 + 1, -0.6, 3, 1.8), { k: 0.1, lw: 1 }); line(g, [s * 4.6, -0.4, s * 4.6, 0.8], '#b9b3a2', 0.6); }
   for (const y of [-9, -13]) curve(g, p => { p.moveTo(-2, y); p.quadraticCurveTo(0, y + 1.6, 2, y); }, '#d9d2c2', 0.8);
-  for (const s of [-1, 1]) { part(g, P(s * 3.4, -33, s * 10.4, -43.6, s * 10.6, -29.6), fur, s > 0 ? P(7.6, -44, 11, -44, 11, -29, 8.6, -30) : null, { k: 0.1, lw: 1.1 }); path(g, P(s * 5.6, -33.4, s * 9.2, -39.6, s * 9.2, -31.6), '#e98a7a'); }
+  for (const s of [-1, 1]) { part(g, P(s * 3.4, -33, s * 10.4, -43.6, s * 10.6, -29.6), fur, s > 0 ? P(7.6, -44, 11, -44, 11, -29, 8.6, -30) : null, { k: 0.1, lw: 1.1 }); path(g, P(s * 5.6, -33.4, s * 9.2, -39.6, s * 9.2, -31.6), inner); }
   part(g, p => { p.moveTo(-10.4, -29); p.quadraticCurveTo(-9.6, -36.6, 0, -36.6); p.quadraticCurveTo(9.6, -36.6, 10.4, -29); p.quadraticCurveTo(6.6, -20.6, 0, -18.4); p.quadraticCurveTo(-6.6, -20.6, -10.4, -29); p.closePath(); }, fur, P(3, -38, 12, -38, 12, -17, 0.6, -17, 6, -24), { k: 0.1 });
-  for (const s of [-1, 1]) { curve(g, p => { p.moveTo(s * 10.2, -28.4); p.lineTo(s * 12.6, -26.4); }, INK, 0.9); if (o.blink) curve(g, p => { p.moveTo(s * 7, -29); p.quadraticCurveTo(s * 4.6, -27.4, s * 2.4, -28); }, INK, 1.4); else { path(g, p => { p.moveTo(s * 7.2, -29.6); p.quadraticCurveTo(s * 4.6, -31.6, s * 2.2, -27.6); p.quadraticCurveTo(s * 4.8, -26.4, s * 7.2, -29.6); p.closePath(); }, '#f6c84a', INK, 0.9); ell(g, s * 4.5, -28.8, 0.7, 1.6, INK); } line(g, [s * 7.8, -30.8, s * 5.2, -31.6], RED, 1.3); }
-  path(g, P(-1.8, -34.4, 0, -31.4, 1.8, -34.4), RED); ell(g, 0, -21, 1.5, 1.1, INK); curve(g, p => { p.moveTo(-2.4, -19.6); p.quadraticCurveTo(0, -18.4, 2.4, -19.6); }, INK, 0.8);
+  for (const s of [-1, 1]) { curve(g, p => { p.moveTo(s * 10.2, -28.4); p.lineTo(s * 12.6, -26.4); }, INK, 0.9); if (o.blink) curve(g, p => { p.moveTo(s * 7, -29); p.quadraticCurveTo(s * 4.6, -27.4, s * 2.4, -28); }, INK, 1.4); else { path(g, p => { p.moveTo(s * 7.2, -29.6); p.quadraticCurveTo(s * 4.6, -31.6, s * 2.2, -27.6); p.quadraticCurveTo(s * 4.8, -26.4, s * 7.2, -29.6); p.closePath(); }, '#f6c84a', INK, 0.9); ell(g, s * 4.5, -28.8, 0.7, 1.6, INK); } line(g, [s * 7.8, -30.8, s * 5.2, -31.6], '#3a3640', 1.1); }
+  ell(g, 0, -21, 1.5, 1.1, INK); curve(g, p => { p.moveTo(-2.4, -19.6); p.quadraticCurveTo(0, -18.4, 2.4, -19.6); }, INK, 0.8);
 }
 // ───────── 장승 ─────────
 export function jangseung(g) {

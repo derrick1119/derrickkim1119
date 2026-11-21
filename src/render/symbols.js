@@ -110,7 +110,8 @@ function sword(p, ax, ay, bx, by, w = 9) {
 }
 const FLAME = 'M2,-46 C4,-30 24,-18 24,6 C24,24 13,36 0,36 C-13,36 -24,25 -24,9 C-24,0 -20,-9 -14,-15 C-13,-8 -10,-3 -6,-2 C-9,-16 -6,-32 2,-46 Z', FLAME_IN = 'M1,5 C7,12 10,18 10,23 C10,29 5,32 0,32 C-5,32 -10,29 -10,23 C-10,17 -4,13 1,5 Z';
 function flame(p, x, y, s) { p.at(x, y, 0, s, () => { p.f(FLAME); if (p.fine) p.k(() => p.f(FLAME_IN)); }); }
-function star(p, x, y, r, rot = 0) { let d = ''; for (let i = 0; i < 10; i++) { const a = -PI / 2 + rot + i * PI / 5, q = i % 2 ? r * 0.48 : r; d += `${i ? 'L' : 'M'}${(x + Math.cos(a) * q).toFixed(2)},${(y + Math.sin(a) * q).toFixed(2)} `; } p.f(d + 'Z'); }
+// 전공 등급은 매화 한 송이·두 송이·세 송이로 센다 (다섯 꽃잎에 가운데 꽃술)
+function star(p, x, y, r, rot = 0) { for (let i = 0; i < 5; i++) { const a = -PI / 2 + rot + i * TAU / 5; p.d(x + Math.cos(a) * r * 0.58, y + Math.sin(a) * r * 0.58, r * 0.45); } p.d(x, y, r * 0.34); p.k(() => { p.d(x, y, r * 0.17); for (let i = 0; i < 5; i++) { const a = -PI / 2 + rot + i * TAU / 5; p.d(x + Math.cos(a) * r * 0.5, y + Math.sin(a) * r * 0.5, r * 0.07); } }); }
 function coin(p, x, y, r) { const h = r * 0.27; p.d(x, y, r); p.k(() => p.f(`M${x - h},${y - h} L${x + h},${y - h} L${x + h},${y + h} L${x - h},${y + h} Z`)); if (p.fine && !p.ko) p.k(() => p.o(x, y, r * 0.72, r * 0.07)); }
 function axe(p) { p.s('M0,48 L0,-42', 6.5); p.f('M2,-36 C12,-36 22,-40 29,-49 C41,-36 41,-12 29,1 C22,-8 12,-12 2,-12 Z'); }
 // 부챗살처럼 펼친 잎: (x, y) 에서 여러 각도로 뻗는다 (연꽃잎·깃털)
@@ -177,7 +178,8 @@ const DEF = {
   // 합: 맞물린 두 고리 (두 영웅의 합격)
   combo(p) { p.o(-15, 0, 24, 9); p.over(() => p.o(15, 0, 24, 9), 3.2); if (p.fine && !p.b) { p.k(() => p.o(-15, 0, 24, 15.4, 0.5, 1.3, { cap: 'butt' })); p.o(-15, 0, 24, 9, 0.38, 1.42, { cap: 'butt' }); } },
   // 얻음: 붓으로 그은 맞음 표
-  get(p) { p.s('M-39,-4 L-13,27 L40,-37', 15, 'tail', { drops: 5 }); },
+  // 얻음: 네 고리를 엮은 매듭에 술 하나
+  get(p) { for (const [x, y] of [[0, -21], [21, -2], [0, 17], [-21, -2]]) p.o(x, y, 15, 7.5); p.d(0, -2, 8.5); p.s('M0,24 L0,46', 7, 'tail'); p.s('M-7,30 L-9,45', 3.4, 'tail'); p.s('M7,30 L9,45', 3.4, 'tail'); },
   // 열림: 고리가 풀린 자물쇠
   open(p) {
     p.f('M-20,2 L20,2 Q26,2 26,8 L26,37 Q26,43 20,43 L-20,43 Q-26,43 -26,37 L-26,8 Q-26,2 -20,2 Z'); p.s('M-14,4 L-14,-22 C-14,-47 21,-47 21,-22 L21,-14', 8);

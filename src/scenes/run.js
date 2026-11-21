@@ -218,7 +218,7 @@ export class RunScene {
     }
     view.draw(g, b, this.T, opt);
     this.drawOrder(g, i);
-    if (!this.over && !this.menu && !this.sub && !juice.show) this.drawTalk(g);
+    if (!this.over && !this.menu && !this.sub && !juice.show && !(this.enc && this.enc.boss && this.phase === 'fight') && this.phase !== 'clear') this.drawTalk(g);
     if (this.slow < 0.9) { g.globalAlpha = (1 - this.slow) * 0.2; g.fillStyle = NAVY; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
     if (this.fade > 0) { // 고개가 바뀔 때: 종이가 하얗게 바랬다가 새 풍경으로
       const f0 = this.fade; this.fade = Math.max(0, this.fade - dt * 1.4); if (f0 > 0.5 && this.fade <= 0.5) view.setTheme(chapterOf(r.ch).theme, r.ch * 31 + 7);
@@ -235,7 +235,7 @@ export class RunScene {
     }
     if (!cur || cur.t > 2.5) { g.save(); if (cur) g.globalAlpha = clamp((cur.t - 2.5) / 0.4, 0, 1); this.drawSide(g, b); g.restore(); }
     if (this.phase === 'prep' && (!cur || cur.t > 2.5)) this.drawPreview(g, b);
-    if (this.phase === 'fight' && this.enc && this.enc.boss && b.waveT < 7 && !this.aim) this.drawBossTip(g, this.enc, clamp((7 - b.waveT) / 1.2, 0, 1));
+    if (this.phase === 'fight' && this.enc && this.enc.boss && b.waveT < 7 && !this.aim) this.drawBossTip(g, this.enc, clamp((6 - b.waveT) / 1.2, 0, 1), 112);   // 싸움이 시작되면 위쪽(두목 체력 아래)으로 옮겨 부대를 가리지 않는다
     this.drawBar(g, b, i, live);
     if (cur && open < 1) { g.fillStyle = `rgba(20,17,24,${0.5 * (1 - open)})`; g.fillRect(0, BAR_Y, W, H - BAR_Y); }
     this.drawNotes(g, b);
@@ -349,10 +349,10 @@ export class RunScene {
     if (e.boss) this.drawBossTip(g, e, 1); else if (this.toastT <= 0) text(g, '진형을 고칠 시간입니다 — 부대를 끌어 옮기고 패를 미리 내세요', 640, 540, { size: 18, stroke: PAPER, lw: 5, maxW: 600 });
   }
   // 두목의 수: 이 두목과 어떻게 싸워야 하는지 (싸움이 시작된 뒤에도 잠시 남는다)
-  drawBossTip(g, e, a) {
+  drawBossTip(g, e, a, y = 440) {
     const d = UNITS[e.key]; if (!d || !d.tip || a <= 0) return;
-    g.save(); g.globalAlpha = a * 0.95; panel(g, 300, 440, 640, 112); g.globalAlpha = a; rr(g, 300, 440, 8, 112, 4, RED);
-    text(g, `${d.name}의 수`, 324, 462, { size: 19, font: FONT_B, align: 'left', fill: RED }); textBlock(g, d.tip, 324, 487, 598, 21, { size: 15.5, align: 'left', weight: 400 }); g.restore();
+    g.save(); g.globalAlpha = a * 0.95; panel(g, 300, y, 640, 112); g.globalAlpha = a; rr(g, 300, y, 8, 112, 4, RED);
+    text(g, `${d.name} — 이렇게 싸운다`, 324, y + 22, { size: 19, font: FONT_B, align: 'left', fill: RED }); textBlock(g, d.tip, 324, y + 47, 598, 21, { size: 15.5, align: 'left', weight: 400 }); g.restore();
   }
   // 손패 한 칸
   handCard(g, n, x, y, w, h, b, i, live) {

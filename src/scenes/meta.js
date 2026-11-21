@@ -53,7 +53,7 @@ export class MetaScene {
     text(g, '고개마다 주막에서 그 고개의 옛이야기를 들려줍니다 — 두목을 이기는 귀띔이 들어 있습니다', 520, 78, { size: 16, fill: SUB, weight: 400, align: 'left' });
     panel(g, 30, 108, 420, 574); panel(g, 470, 108, 780, 464);
     TALES.forEach((t, n) => {
-      const y = 124 + n * 46, has = got.includes(t.id), on = this.sel === n;
+      const y = 122 + n * 45, has = got.includes(t.id), on = this.sel === n;
       if (tapped('tale' + n, 46, y, 388, 41)) this.sel = n;
       rr(g, 46, y, 388, 41, 6, on ? '#f6e3a8' : has ? '#fbf3df' : '#ebe2cc', on ? '#c9962e' : 'rgba(38,42,54,0.35)', on ? 2 : 1);
       text(g, has ? t.title : '· · ·', 66, y + 21.5, { size: 20, font: FONT_B, align: 'left', fill: has ? INK : '#a9a394' }); text(g, CHAPTERS[t.ch].short, 420, y + 21.5, { size: 13.5, align: 'right', fill: SUB, weight: 400 });
