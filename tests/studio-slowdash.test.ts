@@ -604,6 +604,15 @@ describe('느린 시간 닌자 플레이 빌드', () => {
     expect(src).toMatch(/cy = Math\.max\(R\(0\.26\), s\.stage === 0 \? dy \+ Y\(HZ\) - R\(0\.13\) : dy \* 0\.75\) - dy/); // HUD·싹쓸이 칩 아래, 판 위 하늘(1-1은 지평선 바로 위)
     expect(readFileSync('studio/slowdash/index.html', 'utf8')).not.toMatch(/font-size:(\d|1[01])px/); // QC 4: 글자 12px 이상(🧪 S12: 판 고르기 별 이유 11px)
   });
+  it('M3 F3 일섬(💬 오너 "한번에 베기 성공하면 … 화려한 연출"): 셋 이상 한 획만 · 시뮬은 안 건드림 · 움직임 줄이기를 따름 · 어둠·덮기는 늘어난 하늘까지', () => {
+    const src = readFileSync('studio/slowdash/game.ts', 'utf8'), juice = readFileSync('studio/slowdash/juice.ts', 'utf8');
+    expect(src).toMatch(/ISSEN = \{ n: 3,/); // 셋 이상만
+    expect(src).toMatch(/prefers-reduced-motion: reduce/);
+    expect(src).toMatch(/since < ISSEN\.dark && !REDUCED/); // 어둠 컷은 움직임 줄이기면 안 함
+    expect(src.match(/fillRect\(-20, -20 - dy, w \+ 40, h \+ 40 \+ dy\)/g)?.length).toBeGreaterThanOrEqual(3); // 느린 시간 덮기 둘 + 일섬 어둠
+    expect(src).not.toMatch(/fillRect\(-20, -20, w \+ 40, h \+ 40\)/); // 하늘에 경계선 남던 덮기 없음
+    expect(juice).toMatch(/fillRect\(-w, -h, w \* 3, h \* 3\)/); // 번쩍도 화면 전체
+  });
   it('M3 S1 시안 모음: 스타일 넷(도트·3D·2.5D·2D)과 캐릭터 셋 그림이 있고, 모음 페이지가 일곱 장을 모두 가리킨다', () => {
     const dir = 'web/public/studio/slowdash/concepts/', page = readFileSync(dir + 'index.html', 'utf8');
     for (const img of ['a-pixel.png', 'b-3d.webp', 'c-2_5d.webp', 'd-2d.webp', 'cast1.webp', 'cast2.webp', 'cast3.webp']) {

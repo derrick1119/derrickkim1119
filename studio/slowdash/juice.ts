@@ -92,10 +92,9 @@ export class Juice {
       p.vy = p.vy * 0.94 + 0.05;
       p.life--;
       ctx.globalAlpha = Math.max(0, p.life / p.max);
-      ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size * (0.5 + 0.5 * (p.life / p.max)), 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillStyle = p.color; // 🎨 F3 'AI 티': 동그란 매끈한 파티클 → 3px 격자에 맞춘 네모 도트
+      const z = p.size * (0.5 + 0.5 * (p.life / p.max)) > 2.2 ? 6 : 3;
+      ctx.fillRect(Math.round(p.x / 3) * 3 - z / 2, Math.round(p.y / 3) * 3 - z / 2, z, z);
     }
     this.particles = this.particles.filter((p) => p.life > 0);
     ctx.textAlign = 'center';
@@ -115,7 +114,7 @@ export class Juice {
     if (this.flash > 0.01) {
       ctx.globalAlpha = this.flash;
       ctx.fillStyle = this.flashColor;
-      ctx.fillRect(0, 0, w, h);
+      ctx.fillRect(-w, -h, w * 3, h * 3); // M3 F3: 늘어난 위 하늘까지(그리는 쪽이 판을 아래로 옮겨도 화면 전체)
       this.flash *= 0.82;
     }
     ctx.globalAlpha = 1;

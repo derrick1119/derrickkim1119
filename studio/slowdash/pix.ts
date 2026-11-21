@@ -123,7 +123,6 @@ export const soldierGrid = (k: string) => grid(BODY.map((r, i) => (i >= 11 && CO
 export const soldier = (k: string) => sprite('so' + k, () => soldierGrid(k));
 
 // ── 배경(M3 S3 · 🧪 🔴1: 대숲 벡터를 줄인 '모자이크' → 32색 도트 · 후광·그라데이션 0) ──
-const BAY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
 const hs = (n: number) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 /**
  * 판 배경 한 장(lw×lh 도트)을 굽는다. place 0 태엽 마을 골목(돌길) · 1 지붕(기와) · 2 시계탑 광장(타일).
@@ -137,13 +136,15 @@ export function bgGrid(lw: number, lh: number, place: number, hz: number, gb: nu
     const put = (x: number, y: number, c: string) => { x |= 0; y |= 0; if (x >= 0 && y >= 0 && x < lw && y < lh) g[y][x] = c; };
     const rect = (x: number, y: number, w: number, h: number, c: string) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) put(x + i, y + j, c); };
     // 하늘: 0 → 1 → 2 디더링 띠 · 별
-    for (let y = 0; y < hz; y++) for (let x = 0; x < lw; x++) { const v = (y / hz) * 2.2; g[y][x] = String(Math.min(2, Math.floor(v) + ((v % 1) * 16 > BAY[(y & 3) * 4 + (x & 3)] ? 1 : 0))); }
-    for (let k = 0; k < 26; k++) put(hs(k) * lw, hs(k + 50) * hz * 0.7, k % 5 ? '7' : '9');
+    // 🎨 F3 'AI 티': 필터 같은 4×4 규칙 디더 띠 → 단색 띠 + 경계 위 두 줄만 반반 체커(손으로 찍은 디더) · 별 26 → 14(둘만 십자 반짝)
+    const band = (y: number) => Math.min(2, Math.floor((y / hz) * 2.2));
+    for (let y = 0; y < hz; y++) for (let x = 0; x < lw; x++) { const b = band(y); g[y][x] = String(b + (band(y + 2) > b && (x + y) & 1 ? 1 : 0)); }
+    for (let k = 0; k < 14; k++) { const sx = hs(k) * lw, sy = hs(k + 50) * hz * 0.7; put(sx, sy, k % 5 ? '7' : '9'); if (k % 7 === 3) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) put(sx + dx, sy + dy, '6'); }
     // 달(왼쪽 위 · 초승달)
     const mx = lw * 0.2, my = Math.max(hz * 0.28, 21), mr = 7; // 🧪 S3: 위 판 띠(HUD ≈ 11칸)에 가리지 않게
     for (let y = -mr; y <= mr; y++) for (let x = -mr; x <= mr; x++) if (x * x + y * y <= mr * mr && (x + 3) ** 2 + (y - 2) ** 2 > (mr - 1) ** 2) put(mx + x, my + y, x * x + y * y > (mr - 1) ** 2 ? '8' : '9');
     // 먼 집들(실루엣 + 불 켜진 창)
-    const roofC = place === 1 ? '3' : '2';
+    const roofC = '3'; // 🎨 F3: 골목·광장의 집이 하늘 띠('2')와 같은 색이라 안 보이고 창만 허공에 떠 있던 것
     for (let k = 0, x = -4; x < lw; k++) {
       const bw = 10 + Math.floor(hs(k + 9) * 9), bh = 8 + Math.floor(hs(k + 19) * (place === 1 ? 8 : 12)), top = hz - bh;
       rect(x, top, bw, bh, roofC);
