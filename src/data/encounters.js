@@ -45,9 +45,9 @@ export const BOSSES = [
 
 // 깊이(0 = 첫 싸움) → 요괴 예산. 밸런스는 tools/campaign.mjs 로 맞춘다.
 // 전술 패가 쓰면 사라지게 된 뒤로, 뒤 고개의 요괴 수를 조금 덜었다 (고개마다 +5 → +4.5)
-export function budgetFor(ch, row, kind, eliteMul = 1) { return (BUDGET[0] + ch * BUDGET[1] + row * BUDGET[2]) * (kind === 'elite' ? 1.28 * eliteMul : 1); }
-// [첫 싸움, 고개마다 더, 칸마다 더]
-const BUDGET = [13.2, 7.3, 1.5];
+export function budgetFor(ch, row, kind, eliteMul = 1) { return (BUDGET[0] + ch * BUDGET[1] + row * (ch ? BUDGET[2] : BUDGET[3])) * (kind === 'elite' ? 1.28 * eliteMul : 1); }
+// [첫 싸움, 고개마다 더, 칸마다 더, 첫째 고개에서 칸마다 더] — 첫째 고개는 배우는 고개라 천천히 불어난다
+const BUDGET = [13.2, 7.3, 1.5, 1.15];
 
 export function genEncounter(ch, row, kind, R, eliteMul = 1) {
   // 본대: 싸움을 너무 오래 끌면 뒤따라온 요괴 본대가 차례로 들이닥친다

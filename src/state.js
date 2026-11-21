@@ -82,7 +82,7 @@ export const HARD = [
   { name: '외줄 깃발', desc: '깃발 둘로 출발한다' },
 ];
 export const HARD_MAX = HARD.length - 1;
-const BOSS_HP = 1.1;   // 두목의 기본 체력 배율 (밸런스는 tools/campaign.mjs 로 맞춘다)
+const BOSS_HP = [1, 1.1, 1.16];   // 두목의 기본 체력 배율 (밸런스는 tools/campaign.mjs 로 맞춘다)
 export const hardOf = lv => ({ hp: lv >= 1 ? 1.12 : 1, elite: lv >= 2 ? 1.2 : 1, pouch: lv >= 3 ? -2 : 0, boss: lv >= 4 ? 1.2 : 1, gold: lv >= 5 ? 0.8 : 1, spd: lv >= 6 ? 1.12 : 1, cart: lv >= 7 ? 0.8 : 1, atk: lv >= 8 ? 1.12 : 1, chase: lv >= 9 ? -15 : 0, flags: lv >= 10 ? 2 : 3 });
 
 // ───────── 원정 시작 ─────────
@@ -98,8 +98,8 @@ export const unitCards = () => G.run.deck.filter(isUnit);
 export const ownedTypes = () => [...new Set(unitCards().filter(c => CARDS[c.id].kind === 'unit').map(c => CARDS[c.id].unit))];
 // 이끄는 영웅의 병법이 원정의 규칙을 바꾼다 (설명은 data/units.js 의 HERO_TRAIT)
 const TRAIT = {
-  commander: m => { m.rally = 1; }, blade: m => { m.heroLoot = 1; m.heroAtk *= 1.4; m.heroHp *= 1.4; }, hunter: m => { m.lootEvery = 3; }, bishop: m => { m.keepSupport = 1; },
-  archmage: m => { m.cardPow *= 1.3; m.pouch += 3; m.startCard = 1; m.tacDisc = 1; }, sangsoe: m => { m.scavAny = 1; }, chief: m => { m.killGold = 5; m.shopCard = 0.5; },
+  commander: m => { m.rally = 1; }, blade: m => { m.heroLoot = 1; m.heroAtk *= 1.4; m.heroHp *= 1.4; }, hunter: m => { m.lootEvery = 3; }, bishop: m => { m.keepSupport = 3; },
+  archmage: m => { m.cardPow *= 1.3; m.pouch += 3; m.startCard = 1; m.tacDisc = 1; }, sangsoe: m => { m.scavAny = 1; }, chief: m => { m.killGold = 6; m.shopCard = 0.5; },
 };
 export function mods() { const r = G.run, m = Object.assign({}, DEFAULT_MODS), h = hardOf(r.hard || 0); m.unit = {}; for (const id of r.relics) RELICS[id].mod(m); if (TRAIT[r.hero]) TRAIT[r.hero](m); m.pouch = Math.max(4, m.pouch + h.pouch); m.cartHp = h.cart; return m; }
 // ───────── 패의 살림: 전술 패는 쓰면 사라지고, 길 위에서 새로 얻는다 ─────────
@@ -170,7 +170,7 @@ export function startDeploy() {
 export function battleSetup(seed) { const r = G.run; return { mods: mods(), seed: seed || ((rnd() * 1e9) | 0), power: powerNow(), deck: r.deck, cap: r.cap, start: startDeploy(), morale: r.nextMorale || 0, loot: lootTable(), mastery: r.mastery || {}, lead: r.hero }; }
 export function waveSetup(enc) {
   const r = G.run, h = hardOf(r.hard || 0), foe = Object.assign({}, enc.foe || {});
-  foe.hp = (foe.hp || 1) * h.hp * (enc.boss ? h.boss * BOSS_HP : 1); foe.spd = (foe.spd || 1) * h.spd; foe.atk = (foe.atk || 1) * h.atk;
+  foe.hp = (foe.hp || 1) * h.hp * (enc.boss ? h.boss * BOSS_HP[Math.min(2, enc.ch || 0)] : 1); foe.spd = (foe.spd || 1) * h.spd; foe.atk = (foe.atk || 1) * h.atk;
   return { foe, lvl: enc.lvl, terrain: enc.terrain, sky: enc.sky, chase: enc.chase && h.chase ? Object.assign({}, enc.chase, { at: Math.max(20, enc.chase.at + h.chase) }) : enc.chase };
 }
 export function goldFor(grade, kind) { const m = mods(); return Math.round((26 + grade * 8 + (kind === 'boss' ? 40 : kind === 'elite' ? 18 : 0)) * m.gold * hardOf(G.run.hard || 0).gold + m.goldFlat); }

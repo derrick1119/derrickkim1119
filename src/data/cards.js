@@ -61,7 +61,7 @@ const START = {
   bishop: { units: ['sword', 'shield', 'xbow', 'spear', 'priest'], cards: ['sling', 'rain', 'heal', 'wall', 'sanctuary', 'sutra'] },
   archmage: { units: ['shield', 'xbow', 'shield', 'xbow'], cards: ['sling', 'rain', 'rain', 'thunder', 'thunder', 'caltrop', 'meteor', 'blink'] },
   sangsoe: { units: ['sword', 'shield', 'xbow', 'xbow', 'spear'], cards: ['sling', 'rain', 'heal', 'horn', 'pangut', 'deong'] },
-  chief: { units: ['sword', 'shield', 'xbow', 'sword', 'xbow'], cards: ['sling', 'sling', 'heal', 'decoy', 'bulwark', 'raid'] },
+  chief: { units: ['sword', 'shield', 'xbow', 'sword', 'xbow'], cards: ['sling', 'sling', 'rain', 'heal', 'decoy', 'bulwark', 'raid'] },
 };
 export function starterDeck(hero) {
   const st = START[hero] || START.commander, ids = ['h_' + hero].concat(st.units.map(u => 'u_' + u), st.cards);

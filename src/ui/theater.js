@@ -9,17 +9,20 @@
 //        앞 토막에 있던 인형은 새 자리로 걸어가고, 새로 나온 인형은 가까운 쪽 날개에서 들어오고, 빠진 인형은 퇴장한다.
 import { W, H } from '../config.js';
 import { TAU, INK, PAPER, RED, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, poly, line, path, clamp, easeOutBack, drawSprite } from '../render/draw.js';
-import { portrait, getLook, leftover, LOOKS } from '../render/sprites.js';
+import { portrait, getLook, getWeapon, leftover, LOOKS } from '../render/sprites.js';
 import { stopSprite, pine, THEMES } from '../render/terrain.js';
 import { backdrop } from '../scenes/title.js';
 import { button, tapped, ui } from './ui.js';
 import { sfx } from '../audio.js';
 
-const WOOD = '#7a4a2c', WOODL = '#a9753f', CLOTH = '#8a2a26', CLOTHD = '#5e1512', GOLD = '#d6a640';
+const WOOD = '#7a4a2c', WOODL = '#a9753f', CLOTH = '#2f426b', CLOTHD = '#1c2948', GOLD = '#d6a640';
+// 오방색: 술과 색동 단에 쓴다
+const OBANG = ['#c8402f', '#2f4d7e', '#e0b23c', '#f6efdc', '#2b2a30'], SAEK = ['#c8402f', '#e0b23c', '#3f6b5c', '#f6efdc', '#2f4d7e', '#d98aa0'];
 const BG = {
   village: { set: 'village' },
   night: { tint: 'rgba(22,28,70,0.58)', moon: 1, set: 'village' },
   pass: { set: 'pass' },
+  eve: { tint: 'rgba(22,28,70,0.4)', moon: 1, set: 'pass' },
   grove: { tint: 'rgba(46,96,66,0.2)', set: 'grove' },
   dark: { tint: 'rgba(14,12,36,0.72)', set: 'pass' },
   shrine: { tint: 'rgba(22,28,70,0.36)', moon: 1, set: 'shrine' },
@@ -51,57 +54,66 @@ export function drawStage(g, x, y, w, h, o = {}) {
 export function drawFrame(g, x, y, w, h, open = 1, t = 0) {
   const k = w / 1040, e = open * open * (3 - 2 * open), cw = (w / 2 + 6) + (58 * k - (w / 2 + 6)) * e;
   g.save(); g.beginPath(); g.rect(x - 2, y - 2, w + 4, h + 4); g.clip();
-  // 양옆의 막: 주름이 진 붉은 천, 걷히면 금실 끈으로 묶인다
+  // 양옆의 포장: 쪽물 들인 무명 휘장. 걷히면 오방색 끈으로 묶인다
   for (const s of [-1, 1]) {
     const ex = s < 0 ? x : x + w, n = 7;
     path(g, p => { p.moveTo(ex, y); p.lineTo(ex - s * cw, y); for (let i = 0; i <= n; i++) { const yy = y + h * i / n, wob = Math.sin(i * 1.7 + t * 1.3 + s) * 5 * k * (0.4 + 0.6 * e), pin = e * Math.sin(i / n * Math.PI) * 16 * k; p.lineTo(ex - s * (cw - pin) + wob, yy); } p.lineTo(ex, y + h); p.closePath(); }, CLOTH, INK, 2);
-    for (let j = 1; j < 5; j++) { const fx = ex - s * cw * j / 5; g.globalAlpha = 0.5; line(g, [fx, y + 4, fx + Math.sin(j + t) * 3 * k, y + h - 4], CLOTHD, 3 * k); g.globalAlpha = 0.18; line(g, [fx + 5 * k * s, y + 4, fx + 5 * k * s, y + h - 4], '#ffd9c0', 2 * k); g.globalAlpha = 1; }
-    if (e > 0.6) { const ty = y + h * 0.56, tx = ex - s * (cw - 14 * k); line(g, [ex, ty - 6 * k, tx, ty], GOLD, 3.4 * k); ell(g, tx, ty + 9 * k, 5.6 * k, 9 * k, GOLD, INK, 1.2); }
+    for (let j = 1; j < 5; j++) { const fx = ex - s * cw * j / 5; g.globalAlpha = 0.55; line(g, [fx, y + 4, fx + Math.sin(j + t) * 3 * k, y + h - 4], CLOTHD, 3 * k); g.globalAlpha = 0.16; line(g, [fx + 5 * k * s, y + 4, fx + 5 * k * s, y + h - 4], '#c9d6f0', 2 * k); g.globalAlpha = 1; }
+    if (e > 0.6) { const ty = y + h * 0.56, tx = ex - s * (cw - 14 * k); line(g, [ex, ty - 6 * k, tx, ty], INK, 5 * k); line(g, [ex, ty - 6 * k, tx, ty], OBANG[0], 3 * k); for (let j = 0; j < 3; j++) { line(g, [tx, ty, tx + (j - 1) * 3.4 * k, ty + 20 * k], INK, 3.4 * k); line(g, [tx, ty, tx + (j - 1) * 3.4 * k, ty + 20 * k], OBANG[[2, 0, 1][j]], 2 * k); } ell(g, tx, ty, 4.2 * k, 4.2 * k, OBANG[2], INK, 1.2); }
   }
   g.restore();
-  // 위의 가림막: 물결 진 단에 금술
-  const vh = 34 * k, n = Math.round(w / (52 * k));
-  path(g, p => { p.moveTo(x - 8 * k, y - 8 * k); p.lineTo(x + w + 8 * k, y - 8 * k); p.lineTo(x + w + 8 * k, y + vh); for (let i = n; i > 0; i--) { const x1 = x + w * (i - 0.5) / n, x0 = x + w * (i - 1) / n; p.quadraticCurveTo(x1, y + vh + 16 * k, x0, y + vh); } p.closePath(); }, CLOTH, INK, 2);
-  g.fillStyle = 'rgba(255,217,160,0.16)'; g.fillRect(x - 6 * k, y - 6 * k, w + 12 * k, 6 * k);
-  for (let i = 0; i < n; i++) { const cx = x + w * (i + 0.5) / n; ell(g, cx, y + vh + 9 * k, 3 * k, 3 * k, GOLD, INK, 1); }
-  line(g, [x - 8 * k, y + 8 * k, x + w + 8 * k, y + 8 * k], GOLD, 2.2 * k);
+  // 위의 가림막: 곧은 단에 색동 띠를 두르고 오방색 술을 달았다
+  const vh = 30 * k, n = Math.round(w / (86 * k));
+  rr(g, x - 8 * k, y - 8 * k, w + 16 * k, vh + 8 * k, 2 * k, CLOTH, INK, 2);
+  g.fillStyle = 'rgba(201,214,240,0.14)'; g.fillRect(x - 6 * k, y - 6 * k, w + 12 * k, 5 * k);
+  { const bw = 22 * k, by = y + vh - 9 * k, m = Math.ceil((w + 16 * k) / bw); g.save(); g.beginPath(); g.rect(x - 8 * k, by, w + 16 * k, 9 * k); g.clip(); for (let i = 0; i < m; i++) { g.fillStyle = SAEK[i % SAEK.length]; g.fillRect(x - 8 * k + i * bw, by, bw + 1, 9 * k); } g.restore(); line(g, [x - 8 * k, by, x + w + 8 * k, by], INK, 1.4); line(g, [x - 8 * k, by + 9 * k, x + w + 8 * k, by + 9 * k], INK, 2); }
+  for (let i = 0; i < n; i++) { const cx = x + w * (i + 0.5) / n, cy = y + vh + 2 * k, col = OBANG[i % 3]; line(g, [cx, cy, cx, cy + 6 * k], INK, 2.4 * k); ell(g, cx, cy + 8 * k, 3.4 * k, 3.4 * k, col, INK, 1.1); path(g, p => { p.moveTo(cx - 3 * k, cy + 10 * k); p.lineTo(cx + 3 * k, cy + 10 * k); p.lineTo(cx + 4.4 * k, cy + 24 * k); p.lineTo(cx - 4.4 * k, cy + 24 * k); p.closePath(); }, col, INK, 1.1); line(g, [cx, cy + 12 * k, cx, cy + 23 * k], 'rgba(20,16,10,0.3)', 0.9 * k); }
   // 나무틀: 양 기둥과 아래 판 (막대 인형의 손잡이를 가린다)
   for (const ex of [x - 16 * k, x + w - 2 * k]) { rr(g, ex, y - 12 * k, 18 * k, h + 30 * k, 4 * k, WOOD, INK, 2); g.fillStyle = 'rgba(255,230,190,0.22)'; g.fillRect(ex + 3 * k, y - 8 * k, 3.4 * k, h + 22 * k); }
   const ay = y + h - 22 * k; rr(g, x - 20 * k, ay, w + 40 * k, 40 * k, 5 * k, WOOD, INK, 2.2); g.fillStyle = WOODL; g.fillRect(x - 16 * k, ay + 4 * k, w + 32 * k, 5 * k);
-  for (let i = 0; i < 12; i++) { const cx = x + w * (i + 0.5) / 12; poly(g, [cx - 10 * k, ay + 26 * k, cx, ay + 15 * k, cx + 10 * k, ay + 26 * k, cx, ay + 37 * k], i % 2 ? '#3f6b5c' : CLOTH, 'rgba(30,20,10,0.5)', 1); ell(g, cx, ay + 26 * k, 2.6 * k, 2.6 * k, GOLD); }
+  for (let i = 0; i < 12; i++) { const cx = x + w * (i + 0.5) / 12; poly(g, [cx - 10 * k, ay + 26 * k, cx, ay + 15 * k, cx + 10 * k, ay + 26 * k, cx, ay + 37 * k], i % 2 ? '#3f6b5c' : '#8a2a26', 'rgba(30,20,10,0.5)', 1); ell(g, cx, ay + 26 * k, 2.6 * k, 2.6 * k, GOLD); }
 }
-// 소품: 헌 물건들과 길가의 것들 (* 로 시작하는 이름)
+// 소품: 헌 물건들과 길가의 것들 (* 로 시작하는 이름). 손에 드는 것들은 인형처럼 막대에 꿰어 세운다
 const PROP = { broom: 'broom', bat: 'bat', sandal: 'sandal', lid: 'lid', poker: 'poker', hopae: 'hopae' };
+const rod = (g, x, y, s) => { line(g, [x, y - 6 * s, x, y + 96 * s], INK, 4.4 * s); line(g, [x, y - 6 * s, x, y + 96 * s], '#c9a86a', 2.4 * s); };
 function prop(g, id, x, y, s, t) {
-  if (PROP[id]) { drawSprite(g, leftover(PROP[id]), x, y - 14 * s, 2.3 * s, 2.3 * s, Math.sin(t * 2 + x) * 0.06); return; }
+  if (PROP[id]) { rod(g, x, y - 8 * s, s); drawSprite(g, leftover(PROP[id]), x, y - 26 * s, 2.3 * s, 2.3 * s, Math.sin(t * 2 + x) * 0.06); return; }
+  if (id === 'sword') { rod(g, x, y - 8 * s, s); const w = getWeapon('hwando'); if (w) drawSprite(g, w.spr, x, y - 22 * s, 1.5 * s, 1.5 * s, 0.5 + Math.sin(t * 2 + x) * 0.05); return; }
+  if (id === 'bow') { const w = getWeapon('bow'); if (w) drawSprite(g, w.spr, x, y - 66 * s, 1.25 * s, 1.25 * s, 0.35); return; }   // 나뭇가지에 걸어 둔 활
   if (id === 'chest') { drawSprite(g, stopSprite('treasure'), x, y + 4, 0.95 * s, 0.95 * s); return; }
   if (id === 'tavern') { drawSprite(g, stopSprite('rest'), x, y + 4, 1.1 * s, 1.1 * s); return; }
   if (id === 'shrine') { drawSprite(g, stopSprite('event'), x, y + 4, 1.1 * s, 1.1 * s); return; }
   if (id === 'sprout') { for (const dx of [-26, 0, 26]) { rr(g, x + dx * s - 9 * s, y - 12 * s, 18 * s, 14 * s, 3 * s, '#a0764a', INK, 1.4); line(g, [x + dx * s, y - 12 * s, x + dx * s, y - 26 * s], '#4f8a4a', 2.4 * s); ell(g, x + dx * s - 5 * s, y - 27 * s, 5.4 * s, 3 * s, '#7fbf6a', INK, 1, -0.5); ell(g, x + dx * s + 5 * s, y - 29 * s, 5.4 * s, 3 * s, '#7fbf6a', INK, 1, 0.5); } return; }
   if (id === 'lamp') { line(g, [x, y, x, y - 40 * s], INK, 3); g.globalAlpha = 0.3; ell(g, x, y - 48 * s, 24 * s, 24 * s, '#ffd98a'); g.globalAlpha = 1; rr(g, x - 8 * s, y - 58 * s, 16 * s, 20 * s, 4 * s, '#ffe9a8', INK, 1.4); }
 }
-// 막대 인형 하나. act = idle·talk·hop·shake·bow·fall·sleep·dance·tremble·wave
+// 막대 인형 하나. act = idle·talk·hop·shake·bow·fall·sleep·rise·dance·tremble·wave
+// 이름 끝에 ~ 를 붙이면('hunter~') 손에 든 것 없이 빈손으로 나온다
 export function puppet(g, type, x, y, s, t, o = {}) {
+  const bare = type.endsWith('~'); if (bare) type = type.slice(0, -1);
   const act = o.act || 'idle', f = o.face || 1, ph = t * 1 + x * 0.013; let dx = 0, dy = 0, rot = Math.sin(ph * 1.7) * 0.025;
-  // 네 발 짐승(범·해태)은 옆으로 길어서, 쓰러지거나 잘 때 세우지 않고 납작 엎드린다
-  const wide = type[0] !== '*' && LOOKS[type] && LOOKS[type].w > 110, lie = wide && (act === 'sleep' || act === 'fall');
+  // 네 발 짐승(범·해태)은 옆으로 길어서, 쓰러지거나 자거나 엎드릴 때 세우지 않고 납작 엎드린다
+  const wide = type[0] !== '*' && LOOKS[type] && LOOKS[type].w > 110, lie = wide && (act === 'sleep' || act === 'fall' || act === 'bow'), down = !lie && (act === 'fall' || act === 'sleep');
   if (act === 'talk') dy = -Math.abs(Math.sin(t * 8.5)) * 7 * s;
   else if (act === 'hop') dy = -Math.abs(Math.sin(t * 6.5)) * 15 * s;
   else if (act === 'shake') { dx = Math.sin(t * 36) * 3.4 * s; rot = Math.sin(t * 36) * 0.05; }
   else if (act === 'tremble') dx = Math.sin(t * 52) * 1.6 * s;
+  else if (lie) { rot = (act === 'fall' ? -f : f) * 0.07; dy = act === 'sleep' ? Math.sin(t * 2) * 1.2 : 0; }
   else if (act === 'bow') rot = f * 0.4 * (0.6 + 0.4 * Math.sin(t * 3));
-  else if (act === 'fall') { rot = lie ? -f * 0.1 : -f * 1.4; dy = lie ? 0 : -8 * s; }
-  else if (act === 'sleep') { rot = lie ? f * 0.06 : f * 1.5; dy = lie ? Math.sin(t * 2) * 1.2 : -6 * s + Math.sin(t * 2) * 1.5; }
+  else if (act === 'fall') { rot = -f * 1.4; dy = -22 * s; }
+  else if (act === 'sleep') { rot = f * 1.5; dy = -22 * s + Math.sin(t * 2) * 1.5; }
+  else if (act === 'rise') { rot = f * (0.62 + 0.1 * Math.sin(t * 2.4)); dy = -8 * s; }
   else if (act === 'dance') { dy = -Math.abs(Math.sin(t * 7.5)) * 12 * s; rot = Math.sin(t * 7.5) * 0.2; dx = Math.sin(t * 3.75) * 8 * s; }
   else if (act === 'wave') rot = Math.sin(t * 7) * 0.12;
   if (type[0] === '*') { prop(g, type.slice(1), x + dx, y + dy, s, t); return; }
-  const L = getLook(type), ps = s * (L.boss ? 0.62 : 1) * (o.scale || 1) / (L.scale / 1.1);
-  // 인형을 받친 막대: 무대 아래 판 뒤로 내려간다
-  if (!o.noStick) { line(g, [x + dx, y + dy - 8 * s, x + dx * 0.3, y + 96 * s], INK, 4.4 * s); line(g, [x + dx, y + dy - 8 * s, x + dx * 0.3, y + 96 * s], '#c9a86a', 2.4 * s); }
+  const L = getLook(type), sc = (o.scale || 1), ps = s * (L.boss ? 0.62 : 1) * sc / (L.scale / 1.1);
+  // 인형을 받친 막대: 무대 아래 판 뒤로 내려간다. 누운 인형은 몸 가운데를 받쳐 막대도 함께 기운다
+  if (!o.noStick) { const hh = 34 * s * sc, cx = x + dx + (down || act === 'rise' ? Math.sin(rot) * hh : 0), cy = y + dy - (down || act === 'rise' ? Math.cos(rot) * hh + 4 * s : 8 * s), bx = x + dx * 0.3 + (down ? Math.sin(rot) * hh * 0.45 : 0); line(g, [cx, cy, bx, y + 96 * s], INK, 4.4 * s); line(g, [cx, cy, bx, y + 96 * s], '#c9a86a', 2.4 * s); }
+  const shut = act === 'sleep' || (lie && act === 'bow');
   g.save(); g.translate(x + dx, y + dy); g.rotate(rot); if (f < 0) g.scale(-1, 1); if (lie) g.scale(1.06, 0.7); if (o.alpha !== undefined) g.globalAlpha *= o.alpha;
-  portrait(g, type, 0, 0, ps * (L.scale / 1.1), act === 'sleep' ? 0 : t, false, undefined, act === 'sleep');
+  portrait(g, type, 0, 0, ps * (L.scale / 1.1), shut ? 0 : t, false, bare ? 'none' : undefined, shut);
   g.restore();
-  if (act === 'sleep') text(g, 'z z', x + 26 * s, y - 60 * s - Math.sin(t * 2) * 4, { size: 18 * s, font: FONT_B, fill: SUB });
+  // 잠든 인형 위로 붓글씨 '쿨쿨' 이 번갈아 떠오른다
+  if (act === 'sleep') { const q = (t * 0.6) % 1, zx = x + (lie ? 30 : 34) * s, zy = y - (lie ? 58 : 44) * s; g.save(); g.globalAlpha = 0.25 + 0.6 * Math.sin(q * Math.PI); text(g, '쿨', zx + q * 8 * s, zy - q * 14 * s, { size: 17 * s, font: FONT_B, fill: '#4a4034' }); g.globalAlpha = 0.25 + 0.6 * Math.sin(((q + 0.5) % 1) * Math.PI); text(g, '쿨', zx + 16 * s + ((q + 0.5) % 1) * 8 * s, zy - 12 * s - ((q + 0.5) % 1) * 14 * s, { size: 13 * s, font: FONT_B, fill: '#4a4034' }); g.restore(); }
 }
 
 // 화면 가득한 인형극 한 편
@@ -113,9 +125,9 @@ export class Play {
   go(i) {
     this.i = i; this.bt = 0; const b = this.beats[i], seen = new Set(); if (b.bg) this.bg = b.bg;
     for (const a of b.a || []) {
-      const key = a[0]; seen.add(key); let c = this.cast.get(key);
-      if (!c) { c = { key, type: key.split('#')[0], x: a[1] < 0.5 ? -0.16 : 1.16 }; this.cast.set(key, c); }
-      c.tx = a[1]; c.act = a[2] || 'idle'; c.face = a[3] || (a[1] <= 0.5 ? 1 : -1); c.scale = a[4] || 1; c.out = false;
+      const key = a[0].replace('~', ''); seen.add(key); let c = this.cast.get(key);   // 빈손(~)이 되어도 같은 인형이다
+      if (!c) { c = { key, x: a[1] < 0.5 ? -0.16 : 1.16 }; this.cast.set(key, c); }
+      c.type = a[0].split('#')[0]; c.tx = a[1]; c.act = a[2] || 'idle'; c.face = a[3] || (a[1] <= 0.5 ? 1 : -1); c.scale = a[4] || 1; c.out = false;
     }
     for (const c of this.cast.values()) if (!seen.has(c.key)) { c.out = true; c.tx = c.x < 0.5 ? -0.22 : 1.22; c.face = c.tx < 0 ? -1 : 1; c.act = 'idle'; }
   }
@@ -137,13 +149,13 @@ export class Play {
       g.restore();
       drawFrame(g, X, Y, Wd, Hd, clamp(t / 0.8, 0, 1), t);
       // 무대 위 현판: 어느 이야기인지
-      if (this.name) { rr(g, 640 - 170, 22, 340, 44, 8, '#2b3b60', INK, 2.2); rr(g, 640 - 165, 26, 330, 36, 6, null, 'rgba(226,184,90,0.8)', 1.2); text(g, this.name, 640, 45, { size: 23, font: FONT_B, fill: '#f6efdc', maxW: 310 }); }
+      if (this.name) { rr(g, 640 - 168, 25, 336, 44, 6, 'rgba(8,6,10,0.45)'); rr(g, 640 - 170, 20, 340, 44, 6, '#f3e7c8', INK, 2.2); rr(g, 640 - 165, 24, 330, 36, 4, null, 'rgba(122,74,44,0.7)', 1.2); text(g, this.name, 640, 43, { size: 23, font: FONT_B, fill: INK, maxW: 310 }); }
       // 이야기꾼의 한마디
       const k = clamp(this.bt / 0.3, 0, 1);
       rr(g, 150, 546, 980, 96, 10, 'rgba(8,6,10,0.4)'); rr(g, 146, 540, 988, 96, 10, PAPER, INK, 2.4); rr(g, 152, 546, 976, 84, 7, null, 'rgba(201,150,46,0.7)', 1);
       g.globalAlpha = k; const rows = this.rows(g, b.s); textBlock(g, b.s, 640, 588 - (rows - 1) * 19 + (1 - k) * 6, 920, 38, { size: 29, font: FONT_B }); g.globalAlpha = 1;
       for (let m = 0; m < this.beats.length; m++) ell(g, 640 + (m - (this.beats.length - 1) / 2) * 17, 660, 4.4, 4.4, m === this.i ? '#f6efdc' : 'rgba(246,239,220,0.28)');
-      if (this.bt > 0.7) { g.globalAlpha = 0.6 + Math.sin(t * 5) * 0.3; text(g, this.i < this.beats.length - 1 ? '눌러서 다음 ▶' : '눌러서 마침 ▶', 1046, 622, { size: 15, fill: SUB }); g.globalAlpha = 1; }
+      if (this.bt > 0.7) { g.globalAlpha = 0.8 + Math.sin(t * 5) * 0.2; text(g, this.i < this.beats.length - 1 ? '눌러서 다음 ▶' : '눌러서 마침 ▶', 1040, 620, { size: 17.5, font: FONT_B, fill: '#6a4a2c' }); g.globalAlpha = 1; }
       if (!this.left && this.bt > 0.28 && tapped('play', 0, 0, W, H)) this.next();
     } finally { ui.layer = Lr; }
   }

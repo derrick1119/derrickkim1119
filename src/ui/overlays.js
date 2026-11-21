@@ -12,7 +12,7 @@ import { portrait, weaponIcon, getLook } from '../render/sprites.js';
 import { cardIcon, relicIcon, miscIcon } from '../render/icons.js';
 import { sfx } from '../audio.js';
 import { miniStage } from './theater.js';
-import { juice, SPOT } from './juice.js';
+import { juice, SPOT, goldRays } from './juice.js';
 import { stopSprite } from '../render/terrain.js';
 import { drawSprite, poly } from '../render/draw.js';
 
@@ -32,7 +32,7 @@ class Overlay {
 function tile(g, d, x, y, w, h, t) {
   const col = COL[d.col] || INDIGO;
   rr(g, x + 2, y + 4, w, h, 8, 'rgba(50,36,20,0.28)'); rr(g, x, y, w, h, 8, PAPER, INK, 2.4);
-  g.save(); g.beginPath(); rrPath(g, x + 1.5, y + 1.5, w - 3, h - 3, 7); g.clip(); g.fillStyle = col; g.fillRect(x, y, w, 46); g.fillStyle = INK; g.fillRect(x, y + 46, w, 2); g.globalAlpha = 0.14; ell(g, x + w / 2, y + 112, 80, 58, col); g.restore();
+  g.save(); g.beginPath(); rrPath(g, x + 1.5, y + 1.5, w - 3, h - 3, 7); g.clip(); g.fillStyle = col; g.fillRect(x, y, w, 46); g.fillStyle = INK; g.fillRect(x, y + 46, w, 2); g.globalAlpha *= 0.14; ell(g, x + w / 2, y + 112, 80, 58, col); g.restore();
   text(g, d.title, x + w / 2, y + 24, { size: 26, font: FONT_B, fill: C.cream });
   const cx = x + w / 2, cy = y + 112;
   if (d.misc === 'supply') supplyArt(g, d.ids, cx, cy, 1.45); else if (d.relic) relicIcon(g, d.relic, cx, cy, 1.9, Math.sin(t * 2 + x) * 0.04); else if (d.weapon) weaponIcon(g, d.weapon, cx, cy, 1.35); else if (d.misc === 'burn') miscIcon(g, 'burn', cx, cy, 1.8); else if (d.misc === 'train') { portrait(g, 'sword', cx, cy + 44, 1.35, t, true); ell(g, cx + 50, cy - 30, 17, 17, PAPER, INK, 2); text(g, '↑', cx + 50, cy - 29, { size: 26, font: FONT_B, fill: TEAL }); } else { icon.people(g, cx - 22, cy + 4, 2.6); icon.people(g, cx + 22, cy + 4, 2.6, RED); text(g, '+1', cx, cy - 34, { size: 28, font: FONT_B, fill: TEAL }); }
@@ -52,7 +52,7 @@ export class RewardOverlay extends Overlay {
     if (lead && this.t < lead + 0.3) {
       const q = this.t / lead, pop = clamp((this.t - lead * 0.72) / 0.3, 0, 1), fade = 1 - clamp((this.t - lead) / 0.28, 0, 1);
       g.save(); g.globalAlpha = fade; g.translate(640, 372);
-      if (pop > 0) { g.save(); g.rotate(this.t * 0.8); for (let i = 0; i < 12; i++) { g.rotate(TAU / 12); poly(g, [-10, -70, 0, -150 - (i % 2) * 40 - pop * 60, 10, -70], i % 2 ? 'rgba(240,210,100,0.55)' : 'rgba(255,246,216,0.6)'); } g.restore(); ell(g, 0, -30, 70 * pop, 70 * pop, 'rgba(255,240,190,0.7)'); }
+      if (pop > 0) { g.save(); g.globalAlpha = fade * 0.5 * pop; ell(g, 0, -34, 150 * pop, 110 * pop, '#fff3cf'); g.restore(); goldRays(g, 0, -34, this.t, pop, 190); }
       const sh = q < 0.72 ? Math.sin(this.t * 38) * 0.05 * (0.3 + q) : 0; g.rotate(sh); const sc = 2.5 + 0.5 * easeOutBack(pop); drawSprite(g, stopSprite('treasure'), 0, 40, sc, sc * (1 + 0.06 * Math.sin(this.t * 38) * (q < 0.72 ? 1 : 0)));
       g.restore(); if (!this.popped && pop > 0) { this.popped = true; sfx('star'); juice.burst(640, 330, '#f0d264', 16); }
     }
@@ -61,10 +61,11 @@ export class RewardOverlay extends Overlay {
     panel(g, 1070, 26, 180, 40, 'tag'); icon.coin(g, 1094, 46, 12); text(g, `엽전 ${r.gold}`, 1170, 47, { size: 20, maxW: 130 });
     p.opts.forEach((o, n) => {
       const d = describeReward(o), w = 224, h = 316, x = 264 + n * 264, k = easeOutBack(clamp((t - n * 0.1) / 0.32, 0, 1)), y = 118 + (1 - k) * 50, mine = this.taken === n;
-      g.save(); g.globalAlpha = clamp((t - n * 0.1) / 0.2, 0, 1) * (done && !mine ? 0.35 : 1);
+      g.save(); g.globalAlpha = clamp((t - n * 0.1) / 0.2, 0, 1);
       if (d.card) { cardFace(g, d.card, x, y, w, h); packTag(g, x + w - 30, y + 62, d.n); if (o.kind !== 'card') { rr(g, x + 36, y - 25, 152, 27, 13, COL[d.col], INK, 1.6); text(g, d.title, x + 112, y - 11, { size: 17, fill: C.cream }); } } else tile(g, d, x, y, w, h, t);
       g.restore();
-      if (mine) stamp(g, x + w / 2, y + 250, 40, '得', RED, -0.14);
+      if (done && !mine) rr(g, x - 3, y - (d.card && o.kind !== 'card' ? 27 : 3), w + 6, h + (d.card && o.kind !== 'card' ? 30 : 6), 9, 'rgba(24,28,44,0.62)');
+      if (mine) stamp(g, x + w - 44, y + 92, 38, '得', RED, 0.14);
       else if (!done && t > 0.45 && button(g, 'rw' + n, x + 12, y + h + 12, w - 24, 54, '고르기', { size: 27 })) {
         this.taken = n; applyReward(o); r.pending = null; save(); sfx('card');
         // 고른 것이 제자리로 날아간다: 패는 덱으로, 보물은 크게 한 번 보여 준 뒤 보물 주머니로
@@ -76,13 +77,13 @@ export class RewardOverlay extends Overlay {
         if (o.kind === 'weapon') this.deck({ weapon: o.id, onClose: () => { this.sub = null; this.finish(); } });
       }
     });
-    if (!done) {
+    if (!done && t > 0.5) {   // 고를 것들이 다 놓인 뒤에 단추가 뜬다
       const rc = p.free > 0 ? 0 : 15 + p.rerolls * 10;
       const two = this.kind === 'treasure' || this.kind === 'boss', bx = two ? 128 : 0;   // 단추가 둘뿐이면 가운데로 모은다
       if (button(g, 'reroll', 264 + bx, 520, 240, 54, rc ? `다시 뽑기 · 엽전 ${rc}` : '다시 뽑기 · 무료', { style: r.gold >= rc ? 'paper' : 'grey', size: 21 })) { if (r.gold >= rc) { r.gold -= rc; if (p.free > 0) p.free--; else p.rerolls++; p.opts = rollRewards(this.kind); this.t = 0; save(); sfx('card'); } else sfx('deny'); }
       if (button(g, 'rwdeck', 520 + bx, 520, 240, 54, `덱 살피기 · ${r.deck.length}장`, { style: 'paper', size: 21 })) this.deck({});
       if (this.kind !== 'treasure' && this.kind !== 'boss' && button(g, 'skip', 776, 520, 240, 54, '건너뛴다 · 엽전 +15', { style: 'paper', size: 21 })) { this.taken = -2; r.gold += 15; r.pending = null; save(); sfx('coin'); }
-    } else if (!this.sub) { this.doneT += dt; if (this.doneT > 0.55) this.finish(); }
+    } else if (done && !this.sub) { this.doneT += dt; if (this.doneT > 0.7) this.finish(); }
   }
 }
 
@@ -139,7 +140,8 @@ function resultIcon(s) {
   const id = Object.keys(CARDS).find(k => !isUnit({ id: k }) && CARDS[k].name === name); return id ? (g, x, y) => cardIcon(g, id, x, y, 0.74) : null;
 }
 // 결과 한 줄이 손해인지 가리는 낱말
-const BAD = /-\d|부정 \[|잡념/, GOOD = /씻겨|사라졌/;
+// 얻은 물건(무기·보물·패)은 설명에 '-30%' 같은 글이 섞여 있어도 얻은 것이다
+const BAD = /-\d|부정 \[|잡념/, GOOD = /씻겨|사라졌|^(무기|보물|패|병력 패|조련|패 강화)/;
 export class ChoiceOverlay extends Overlay {
   constructor(o) { super(); Object.assign(this, { title: o.title, art: o.art, body: o.text, choices: o.choices, onDone: o.onDone, col: o.col || '#6a5a8a', tale: o.tale || null, result: null }); }
   draw(g, dt) {
@@ -178,7 +180,9 @@ export class ChoiceOverlay extends Overlay {
         g.restore();
       });
     } else {
-      if (!this.said) { this.said = true; sfx(bad ? 'deny' : 'star'); }
+      if (!this.said) { this.said = true; sfx(bad ? 'deny' : 'star');
+        // 엽전을 얻었으면 무대에서 엽전 칸으로 엽전이 날아간다
+        if (this.result.slice(1).some(q => /엽전 \+\d/.test(q))) for (let q = 0; q < 6; q++) juice.fly({ draw: (gg, x, y, s) => icon.coin(gg, x, y, 13 * s), x0: 330 + (q - 2.5) * 18, y0: 290, x1: 1062, y1: 103, s0: 1.2, s1: 0.85, delay: 0.45 + q * 0.07, arc: 60, dur: 0.55, onArrive: q === 5 ? () => sfx('coin') : null }); }
       // 결과: 오른쪽 칸 가운데에 큼직하게 하나씩 찍힌다. 좋은 일이면 끝에 붉은 도장이 찍힌다
       const rows = this.result.slice(1), n = rows.length;
       rows.forEach((s, i) => {

@@ -207,15 +207,23 @@ const STOPS = {
     [[-24, -5, 21, 7.6, 0], [-6, -4, 15, 6.6, 1], [-27, -15, 15, 6.6, 1], [-12, -14, 13, 6, 0], [-21, -24, 11, 5.6, 1], [-20, -32, 7.4, 4.6, 0], [-20, -39, 4.6, 3.4, 1]].forEach(([x, y, rx, ry, n]) => stone(g, x, y, rx, ry, GREY[n]));
     grassTuft(g, 42, 1, 0.8, TEAL, SR());
   },
-  treasure(g) { // 보물 궤: 놋쇠 장석을 두른 나무 궤
-    const lid = p => { p.moveTo(-27, -22); p.quadraticCurveTo(-27, -43, 0, -43); p.quadraticCurveTo(27, -43, 27, -22); p.closePath(); };
-    part(g, RC(-25, -22, 50, 22), WOODD, RC(0, -22, 25, 22), { k: 0.2, hi: RC(-25, -22, 50, 2), lw: 1.5 });
-    part(g, lid, WOOD, p => { p.moveTo(2, -44); p.lineTo(30, -44); p.lineTo(30, -20); p.lineTo(8, -20); p.quadraticCurveTo(12, -34, 2, -44); p.closePath(); }, { hi: p => { p.moveTo(-20, -36); p.quadraticCurveTo(-12, -41.6, 0, -41.6); p.quadraticCurveTo(-12, -39, -19, -33); p.closePath(); }, lw: 1.5 });
-    for (const y of [-33, -27]) curve(g, p => { p.moveTo(-25.6, y + 2); p.quadraticCurveTo(0, y - 3, 25.6, y + 2); }, dk(WOOD, 0.3), 0.7);
-    g.save(); g.beginPath(); lid(g); g.rect(-25, -22, 50, 22); g.clip(); for (const x of [-17, 17]) { part(g, RC(x - 3, -46, 6, 46), BRASS, RC(x, -46, 3, 46), { lw: 1 }); for (const y of [-35, -15, -5]) ell(g, x, y, 1, 1, dk(BRASS, 0.45)); } g.restore(); g.beginPath(); lid(g); st(g, INK, 1.5);
-    part(g, RC(-27, -25.4, 54, 5), BRASS, RC(-27, -23, 54, 2.6), { lw: 1 });
-    part(g, p => rrPath(p, -5.4, -28, 10.8, 12, 2.4), '#e6b93e', RC(0.4, -28, 6, 12), { lw: 1.1 }); ell(g, 0, -22.8, 1.6, 1.6, INK); line(g, [0, -22, 0, -19.4], INK, 1.3);
-    glint(g, -35, -50, 4.4); glint(g, 34, -56, 3.6); glint(g, 3, -61, 5);
+  treasure(g) { // 보물 함: 놋쇠 장석을 댄 반닫이. 물고기 자물쇠를 채우고 붉은 보자기 끈으로 묶었다
+    const gem = (x, y, r) => part(g, P(x, y - r, x + r * 0.62, y, x, y + r, x - r * 0.62, y), '#f0d264', null, { lw: 0.8 });
+    for (const x of [-22, 22]) part(g, RC(x - 4.4, -3.4, 8.8, 3.4), dk(WOODD, 0.25), null, { lw: 1 });
+    part(g, RC(-28, -30, 56, 27), WOODD, RC(0, -30, 28, 27), { k: 0.18, lw: 1.5 });
+    for (const y of [-21, -12.4]) line(g, [-27, y, 27, y + 0.5], dk(WOODD, 0.28), 0.6);
+    part(g, RC(-30.4, -37.4, 60.8, 8.4), WOOD, RC(0, -37.4, 30.4, 8.4), { k: 0.2, hi: RC(-30.4, -37.4, 60.8, 1.8), lw: 1.5 });
+    // 귀장식과 경첩
+    for (const s of [-1, 1]) { part(g, P(s * 28, -29, s * 17.6, -29, s * 28, -19.6), BRASS, null, { lw: 0.9 }); part(g, P(s * 28, -3, s * 17.6, -3, s * 28, -12.4), BRASS, null, { lw: 0.9 }); ell(g, s * 25, -26.4, 0.9, 0.9, dk(BRASS, 0.45)); ell(g, s * 25, -5.6, 0.9, 0.9, dk(BRASS, 0.45)); }
+    for (const x of [-15, 15]) { part(g, RC(x - 2.5, -36.6, 5, 14), BRASS, RC(x, -36.6, 2.5, 14), { lw: 0.9 }); for (const y of [-33.6, -26]) ell(g, x, y, 0.85, 0.85, dk(BRASS, 0.45)); }
+    // 앞바탕과 물고기 자물쇠
+    part(g, E(0, -20, 7.8, 7.8), BRASS, E(1.8, -18.8, 5.8, 5.8), { lw: 1.1 });
+    part(g, p => { p.moveTo(-5.4, -20); p.quadraticCurveTo(-1.2, -24.6, 3, -20); p.quadraticCurveTo(-1.2, -15.4, -5.4, -20); p.closePath(); }, '#e6b93e', null, { lw: 0.9 }); part(g, P(2.6, -20, 6.2, -23.2, 6.2, -16.8), '#e6b93e', null, { lw: 0.9 }); ell(g, -2.8, -20.7, 0.65, 0.65, INK);
+    // 보자기 끈: 뚜껑을 가로질러 묶은 매듭
+    part(g, RC(-3, -37.4, 6, 8.4), RED, RC(0, -37.4, 3, 8.4), { lw: 0.9 });
+    for (const s of [-1, 1]) part(g, p => { p.moveTo(s * 1, -38.6); p.quadraticCurveTo(s * 12.6, -51, s * 11.6, -39.6); p.quadraticCurveTo(s * 6, -37.6, s * 1, -38.6); p.closePath(); }, RED, p => { p.moveTo(s * 1, -38.6); p.quadraticCurveTo(s * 9, -41, s * 11.6, -39.6); p.quadraticCurveTo(s * 6, -37.6, s * 1, -38.6); p.closePath(); }, { lw: 1 });
+    part(g, E(0, -39, 3, 2.5), RED, E(0.8, -38.4, 2, 1.6), { lw: 1 });
+    gem(-37, -46, 3.6); gem(36, -52, 3); gem(20, -60, 2.4);
   },
   fork(g) { // 갈림길 푯말
     post(g, 0, 72, 3.4); part(g, P(-3.6, -72, 0, -78.4, 3.6, -72), WOODD, null, { lw: 1 });

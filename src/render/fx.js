@@ -20,6 +20,7 @@ export class Fx {
   ring(x, y, r, col = INK, life = 0.4, lw = 5) { this.add({ k: 'ring', ground: true, x, y, r, col, life, lw }); }
   // 피해 숫자: 같은 자리에 잇달아 뜨면 겹쳐 쌓지 않고 한 숫자로 더한다
   num(x, y, amt, col = INK) {
+    if (x < -20 || x > 1300) return; x = Math.min(1252, Math.max(28, x));   // 화면 밖에서 맞은 것은 적지 않고, 가장자리에서는 안쪽으로 민다
     for (const p of this.p) if (p.num && p.col === col && p.t < 0.4 && Math.abs(p.x - x) < 54 && Math.abs(p.y - y) < 44) { p.val += amt; p.s = String(Math.round(p.val)); p.size = Math.min(30, 20 + Math.sqrt(p.val) * 0.25); p.t = Math.min(p.t, 0.12); return; }
     this.add({ k: 'text', num: true, val: amt, x: x + (Math.random() - 0.5) * 10, y, vy: -46, drag: 1.5, s: String(Math.round(amt)), col, size: 20, life: 0.8 });
   }

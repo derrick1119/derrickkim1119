@@ -9,9 +9,9 @@ const B = (bg, s, ...a) => ({ bg, s, a });
 // ───── 여는 이야기: 모두 같은 앞부분 + 영웅마다 다른 까닭 ─────
 const OPENING = [
   B('night', '옛날 옛적, 고개 아래 마을에 밤마다 도깨비들이 내려왔어요.', ['goblin', 0.36, 'hop'], ['goblin#2', 0.52, 'hop'], ['garcher', 0.7, 'hop']),
-  B('night', '도깨비는 사람들이 쓰다 버린 헌 물건이었어요. 빗자루, 솥뚜껑, 짚신 같은 것들이요.', ['*broom', 0.3], ['*lid', 0.44], ['*sandal', 0.58], ['goblin', 0.76, 'wave']),
+  B('night', '도깨비는 사람들이 쓰다 버린 헌 물건이었어요. 빗자루, 솥뚜껑, 짚신 같은 것들이요.', ['*broom', 0.38], ['*lid', 0.5], ['*sandal', 0.62], ['goblin', 0.8, 'wave']),
   B('night', '버려진 게 서러워서, 밤마다 마을에 와 심술을 부린 거예요.', ['goblin', 0.4, 'shake'], ['goblin#2', 0.6, 'shake'], ['spear', 0.85, 'tremble']),
-  B('village', '무녀가 말했어요. 「서낭님을 고갯마루 서낭당에 모셔다 드리면, 도깨비들도 다시 잠들 거야.」', ['priest', 0.36, 'talk'], ['banner', 0.66]),
+  B('village', '무녀가 말했어요. 「서낭님을 모신 이 수레를 고갯마루 서낭당까지 끌고 가면, 도깨비들도 다시 잠들 거야.」', ['priest', 0.4, 'talk'], ['banner', 0.68]),
 ];
 const WHY = {
   commander: [
@@ -19,7 +19,7 @@ const WHY = {
     B('village', '「이번에는 내가 앞장서겠다. 고갯마루에서 부하들 이름을 불러 주고 싶구나.」', ['commander', 0.4, 'talk'], ['banner', 0.7]),
   ],
   blade: [
-    B('night', '검객은 어릴 적, 도깨비와 씨름을 하다 아버지의 칼을 빼앗겼어요.', ['blade', 0.34, 'fall'], ['orc', 0.64, 'hop']),
+    B('night', '검객은 어릴 적, 도깨비와 씨름을 하다 아버지의 칼을 빼앗겼어요.', ['blade~', 0.5, 'fall', 1, 0.78], ['*sword', 0.66], ['orc', 0.8, 'hop']),
     B('village', '「그 칼을 찾으러 간다.」 검객이 삿갓을 꾹 눌러썼어요.', ['blade', 0.42, 'talk'], ['banner', 0.72]),
   ],
   hunter: [
@@ -45,7 +45,7 @@ const WHY = {
   ],
 };
 export const prologuePlay = hero => [...OPENING, ...(WHY[hero] || WHY.commander),
-  B('pass', '고개는 셋. 보름달이 지기 전에 넘어야 해요. 자, 길을 떠납니다!', ['sword', 0.2, 'hop'], [hero, 0.4, 'hop'], ['banner', 0.62], ['xbow', 0.84, 'hop'])];
+  B('eve', '고개는 셋. 보름달이 지기 전에 넘어야 해요. 자, 길을 떠납니다!', ['sword', 0.2, 'hop'], [hero, 0.4, 'hop'], ['banner', 0.62], ['xbow', 0.84, 'hop'])];
 
 // ───── 행군 중 한 줄 대사 ─────
 // seq: 고개마다 차례로 한 토막씩 (두 번째 자리에 영웅의 한마디가 끼어든다) · boss: 두목을 앞둔 길
@@ -118,7 +118,7 @@ export const BOSS = {
       bishop: B('pass', '고승은 김서방 머리에 손을 얹고 염불을 외워 주었어요.', ['bishop', 0.44, 'talk'], ['warchief', 0.62, 'bow']),
       archmage: B('pass', '「자네, 내가 술 부어 준 그 빗자루로구먼!」 「아이고, 신선 어르신!」', ['archmage', 0.4, 'talk'], ['warchief', 0.62, 'bow']),
       sangsoe: B('pass', '상쇠가 꽹과리를 치자, 김서방이 벌떡 일어나 덩실덩실 춤을 췄어요.', ['sangsoe', 0.38, 'dance'], ['warchief', 0.62, 'dance']),
-      chief: B('pass', '두령과 김서방은 씨름 한 판을 더 하고, 껄껄 웃으며 친구가 됐어요.', ['chief', 0.42, 'hop'], ['warchief', 0.6, 'hop']),
+      chief: B('pass', '두령과 김서방은 씨름 한 판을 더 하고, 껄껄 웃으며 친구가 됐어요.', ['chief', 0.36, 'hop'], ['warchief', 0.66, 'hop']),
     },
   },
   elder: {
@@ -206,12 +206,12 @@ const FINALE = {
     B('dawn', '넋들이 고개를 끄덕이며 집으로 돌아갔어요. 십 년 만에 지낸 제사였답니다.', ['commander', 0.3, 'bow'], ['skel', 0.6, 'wave'], ['skel#2', 0.74, 'wave']),
   ],
   blade: [
-    B('shrine', '검객은 돌무더기에서 녹슨 칼 한 자루를 찾았어요. 아버지의 칼이었지요.', ['blade', 0.4, 'bow'], ['*poker', 0.58]),
-    B('dawn', '검객은 그 칼을 서낭당에 고이 올려놓고, 처음으로 삿갓을 벗었답니다.', ['blade', 0.42, 'wave'], ['goblin', 0.66, 'sleep']),
+    B('shrine', '검객은 돌무더기에서 녹슨 칼 한 자루를 찾았어요. 아버지의 칼이었지요.', ['blade~', 0.4, 'bow'], ['*sword', 0.58]),
+    B('dawn', '검객은 그 칼을 서낭당에 고이 올려놓고, 처음으로 삿갓을 벗었답니다.', ['blade~', 0.4, 'wave'], ['*sword', 0.72], ['goblin', 0.58, 'sleep']),
   ],
   hunter: [
     B('shrine', '흰 범이 명궁 앞에 엎드렸어요. 범이 삼켰던 목소리들이 하나씩 풀려났지요.', ['hunter', 0.3], ['jangsan', 0.6, 'bow']),
-    B('dawn', '동생 목소리가 말했어요. 「형, 이제 활을 내려놔.」 명궁은 활을 숲에 걸어 두었답니다.', ['hunter', 0.34, 'bow'], ['jangsan', 0.66, 'sleep']),
+    B('dawn', '동생 목소리가 말했어요. 「형, 이제 활을 내려놔.」 명궁은 활을 나무에 걸어 두었답니다.', ['hunter~', 0.34, 'bow'], ['jangsan', 0.58, 'sleep'], ['*bow', 0.875]),
   ],
   bishop: [
     B('shrine', '고승은 사흘 밤낮 목탁을 쳤어요. 길 잃은 넋들이 등불을 따라 하나둘 떠났지요.', ['bishop', 0.3, 'talk'], ['*lamp', 0.46], ['skel', 0.64, 'wave'], ['skelarcher', 0.8, 'wave']),
@@ -231,9 +231,9 @@ const FINALE = {
   ],
 };
 export const endingPlay = hero => [...(FINALE[hero] || FINALE.commander),
-  B('village', '그 뒤로 마을 사람들은 헌 물건을 함부로 버리지 않았대요. 끝!', ['priest', 0.3, 'wave'], ['*broom', 0.5], ['spear', 0.7, 'hop'])];
+  B('village', '그 뒤로 마을 사람들은 헌 물건을 함부로 버리지 않았대요. 끝!', ['priest', 0.4, 'wave'], ['*broom', 0.58], ['spear', 0.76, 'hop'])];
 export const DEFEAT_PLAY = [
-  B('night', '눈을 떠 보니 마을 어귀 장승 앞이었어요. 도깨비에게 홀려 밤새 제자리를 맴돈 거예요.', ['H', 0.36, 'sleep'], ['treant', 0.66]),
+  B('night', '눈을 떠 보니 마을 어귀 장승 앞이었어요. 도깨비에게 홀려 밤새 제자리를 맴돈 거예요.', ['H', 0.4, 'rise'], ['treant', 0.7]),
   B('village', '「괜찮아. 내일 밤 다시 가 보자.」', ['H', 0.4, 'hop'], ['banner', 0.68]),
 ];
 export const defeatPlay = hero => DEFEAT_PLAY.map(b => ({ bg: b.bg, s: b.s, a: b.a.map(a => (a[0] === 'H' ? [hero, ...a.slice(1)] : a)) }));

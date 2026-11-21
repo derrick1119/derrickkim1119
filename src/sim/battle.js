@@ -127,7 +127,7 @@ export class Battle {
     this.ev('scavenge', { slot: i, id }); return true;
   }
   // 싸움이 끝나면 쉬던 패가 돌아온다: 전멸했던 부대, (고승의) 지원 패
-  regroup() { const back = this.bench.concat(this.rest); this.bench = []; this.rest = []; for (const c of back) this.drawPile.splice((this.rand() * (this.drawPile.length + 1)) | 0, 0, c); this.rallied = 0; this.heroLootN = 0; this.fullSaid = false; return back.length; }
+  regroup() { const back = this.bench.concat(this.rest); this.bench = []; this.rest = []; this.keptN = 0; for (const c of back) this.drawPile.splice((this.rand() * (this.drawPile.length + 1)) | 0, 0, c); this.rallied = 0; this.heroLootN = 0; this.fullSaid = false; return back.length; }
   ev(type, o) { const e = o || {}; e.type = type; this.events.push(e); }
   count(team) { let n = 0; for (const u of this.units) if (!u.dead && u.team === team) n++; return n; }
   hpSum(team) { let n = 0; for (const u of this.units) if (!u.dead && u.team === team) n += u.hp; return n; }
@@ -422,7 +422,7 @@ export class Battle {
     this.hand[i] = null; this.slotT[i] = REFILL * md.drawRate; this.played++;
     if (isUnit(c)) { x = Math.min(x, this.deployMaxX()); this.deploy(c, x, y); this.ev('cast', { id, x, y, r: 46, unit: true, slot: i }); return true; }
     // 전술 패는 쓰면 사라진다. 고승이 이끌면 지원 패만은 싸움이 끝난 뒤 돌아온다
-    if (md.keepSupport && s.kind === 'support') this.rest.push(c); else { this.spent.push(c.uid); this.gone.add(c.uid); }
+    if (md.keepSupport && s.kind === 'support' && (this.keptN = (this.keptN || 0) + 1) <= md.keepSupport) this.rest.push(c); else { this.spent.push(c.uid); this.gone.add(c.uid); }   // 고승의 공양: 싸움마다 몇 장까지만 돌아온다
     const h = s.hero ? this.heroUnit(s.hero) : this.hero(), hm = h ? lvlMult(h.lvl) : 1;
     let r = s.r || 0;
     const wet = this.sky === 'rain'; let ex = null;

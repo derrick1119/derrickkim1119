@@ -202,7 +202,7 @@ export class RunScene {
         this.talkTick(dt * ts);
         if (this.phase === 'fight' && this.enc.boss && !this.bossSaid && BOSS[this.enc.key] && this.speaker('B')) { this.bossSaid = true; this.say([['B', BOSS[this.enc.key].enter]]); }
         settleBattle(b);
-        for (const e of view.handle(b, sfx)) { if (e.type === 'waveClear' && this.phase === 'fight') this.waveClear(e); else if (e.type === 'bannerDown' && this.phase !== 'over') this.bannerDown(); else if (e.type === 'synergy') this.toast(`진법 발동 — ${e.name}: ${e.desc}`, 2.8); else if (e.type === 'chase') this.note = { s: '뒤에서 어둠이 밀려온다!', sub: '쫓기던 요괴들이 더 몰려옵니다 — 서둘러 물리치세요', col: RED, t: 2.2 }; else if (e.type === 'death') this.onDeath(e); else if (e.type === 'loot') { this.lootT = 1; if (e.x !== undefined) juice.fly({ draw: (gg, x, y, s) => cardBack(gg, x - 34 * s, y - 45 * s, 68 * s, 90 * s), x0: clamp(e.x, 40, 1240), y0: e.y - 30, x1: SPOT.pouch[0], y1: SPOT.pouch[1], s0: 0.9, s1: 0.3, arc: 120, dur: 0.7 }); if (!r.seen.loot && !this.talk) { r.seen.loot = 1; this.toast(`요괴 무리를 ${NUM[b.mods.lootEvery] || b.mods.lootEvery} 물리칠 때마다 패를 한 장 노획합니다 (주머니 ${b.mods.pouch}장까지)`, 4.5); } } else if (e.type === 'lootFull') this.toast(`주머니가 가득 차 패를 줍지 못했습니다 (${b.mods.pouch}장) — 아끼지 말고 쓰세요`, 3.6); else if (e.type === 'squadLost' && !e.again && !r.seen.bench) { r.seen.bench = 1; this.toast('전멸한 부대는 이 싸움이 끝나야 다시 세울 수 있습니다', 4); } else if (e.type === 'combo') this.note = { s: '합동기 — ' + e.name, sub: '', col: '#b8742a', t: 1.8 }; }
+        for (const e of view.handle(b, sfx)) { if (e.type === 'waveClear' && this.phase === 'fight') this.waveClear(e); else if (e.type === 'bannerDown' && this.phase !== 'over') this.bannerDown(); else if (e.type === 'synergy') this.toast(`진법 발동 — ${e.name}: ${e.desc}`, 2.8); else if (e.type === 'chase') this.note = { s: '뒤에서 어둠이 밀려온다!', sub: '쫓기던 요괴들이 더 몰려옵니다 — 서둘러 물리치세요', col: RED, t: 2.2 }; else if (e.type === 'death') this.onDeath(e); else if (e.type === 'loot') { if (e.x !== undefined) juice.fly({ draw: (gg, x, y, s) => cardFace(gg, { id: e.id, up: e.up }, x - 46 * s, y - 62 * s, 92 * s, 124 * s), x0: clamp(e.x, 150, 1130), y0: clamp(e.y - 56, HUD_H + 90, BAR_Y - 80), x1: SPOT.pouch[0], y1: SPOT.pouch[1], s0: 1, s1: 0.22, arc: 90, dur: 0.6, hold: 0.55, onArrive: () => { this.lootT = 1; } }); else this.lootT = 1; if (!r.seen.loot && !this.talk) { r.seen.loot = 1; this.toast(`요괴 무리를 ${NUM[b.mods.lootEvery] || b.mods.lootEvery} 물리칠 때마다 패를 한 장 노획합니다 (주머니 ${b.mods.pouch}장까지)`, 4.5); } } else if (e.type === 'lootFull') this.toast(`주머니가 가득 차 패를 줍지 못했습니다 (${b.mods.pouch}장) — 아끼지 말고 쓰세요`, 3.6); else if (e.type === 'squadLost' && !e.again && !r.seen.bench) { r.seen.bench = 1; this.toast('전멸한 부대는 이 싸움이 끝나야 다시 세울 수 있습니다', 4); } else if (e.type === 'combo') this.note = { s: '합동기 — ' + e.name, sub: '', col: '#b8742a', t: 1.8 }; }
       }
       view.fx.update(dt * Math.max(0.35, ts));
       if (this.phase === 'clear') { this.grade.t += dt; if (this.grade.t > 1.5) this.afterWave(); }
@@ -218,23 +218,25 @@ export class RunScene {
     }
     view.draw(g, b, this.T, opt);
     this.drawOrder(g, i);
-    if (!this.over && !this.menu && !this.sub) this.drawTalk(g);
+    if (!this.over && !this.menu && !this.sub && !juice.show) this.drawTalk(g);
     if (this.slow < 0.9) { g.globalAlpha = (1 - this.slow) * 0.2; g.fillStyle = NAVY; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
     if (this.fade > 0) { // 고개가 바뀔 때: 종이가 하얗게 바랬다가 새 풍경으로
       const f0 = this.fade; this.fade = Math.max(0, this.fade - dt * 1.4); if (f0 > 0.5 && this.fade <= 0.5) view.setTheme(CHAPTERS[r.ch].theme, r.ch * 31 + 7);
       g.globalAlpha = 1 - Math.abs(this.fade - 0.5) * 2; g.fillStyle = '#f8f0dc'; g.fillRect(0, HUD_H, W, BAR_Y - HUD_H); g.globalAlpha = 1;
     }
     this.drawHud(g, b);
-    this.drawSide(g, b);
-    // 마당이 바뀔 때: 싸움터가 곧 인형극 무대다. 막이 닫힌 채 마당 이름이 걸리고, 곧 막이 열린다
-    if (this.curtain) {
-      const c = this.curtain; c.t += dt; const open = clamp((c.t - 1.1) / 1.0, 0, 1), fadeOut = clamp((3.1 - c.t) / 0.6, 0, 1);
+    // 마당이 바뀔 때: 싸움터가 곧 인형극 무대다. 막이 닫힌 채 마당 이름이 걸리고, 곧 막이 열린다 (그동안 곁의 표시는 숨긴다)
+    const cur = this.curtain, open = cur ? clamp((cur.t - 1.1) / 1.0, 0, 1) : 1;
+    if (cur) {
+      cur.t += dt; const fadeOut = clamp((3.0 - cur.t) / 0.5, 0, 1);
       g.save(); g.globalAlpha = fadeOut; drawFrame(g, 20, HUD_H + 14, W - 40, BAR_Y - HUD_H - 34, open, this.T);
-      const k = clamp(c.t / 0.3, 0, 1) * clamp((1.9 - c.t) / 0.4, 0, 1); if (k > 0) { g.globalAlpha = k; rr(g, 440, 250, 400, 96, 10, '#2b3b60', INK, 3); rr(g, 448, 258, 384, 80, 7, null, 'rgba(226,184,90,0.85)', 1.6); text(g, c.s, 640, 300, { size: 46, font: FONT_B, fill: '#f6efdc' }); }
-      g.restore(); if (c.t > 3.1) this.curtain = null;
+      const k = clamp(cur.t / 0.3, 0, 1) * clamp((1.9 - cur.t) / 0.4, 0, 1); if (k > 0) { g.globalAlpha = k; rr(g, 444, 256, 400, 96, 8, 'rgba(8,6,10,0.4)'); rr(g, 440, 250, 400, 96, 8, '#f3e7c8', INK, 3); rr(g, 448, 258, 384, 80, 5, null, 'rgba(122,74,44,0.75)', 1.6); text(g, cur.s, 640, 300, { size: 46, font: FONT_B, fill: INK }); }
+      g.restore(); if (cur.t > 3.0) this.curtain = null;
     }
-    if (this.phase === 'prep') this.drawPreview(g, b);
+    if (!cur || cur.t > 2.5) { g.save(); if (cur) g.globalAlpha = clamp((cur.t - 2.5) / 0.4, 0, 1); this.drawSide(g, b); g.restore(); }
+    if (this.phase === 'prep' && (!cur || cur.t > 2.5)) this.drawPreview(g, b);
     this.drawBar(g, b, i, live);
+    if (cur && open < 1) { g.fillStyle = `rgba(20,17,24,${0.5 * (1 - open)})`; g.fillRect(0, BAR_Y, W, H - BAR_Y); }
     this.drawNotes(g, b);
     if (this.over) this.over.frame(g, dt);
     if (this.menu && !this.sub) this.drawMenu(g);
