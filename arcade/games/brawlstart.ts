@@ -1,22 +1,23 @@
 /**
  * 싸움 붙이기 (40라운드: 생각 부담 없는 실시간 전투 · 성장 · 구경) — 싸움 붙이기 × 연쇄 × 도감.
  * 손이 하는 일은 톡 하나: 장터 몬스터를 톡 = 그놈이 무리 가운데 쪽 옆 놈 뒤통수를 '딱!' → 둘이 만화 싸움 구름이 된다.
- *   싸움이 나면 둘레 놈들이 1초 안에 구경하러 몰려와 '오오~' — 구름은 저절로 가장 가까운 깨어 있는 놈 쪽으로 굴러가며
- *   구경꾼을 '뽁 뽁 뽁' 삼키고(삼킬수록 커지고 오래간다), 걷히면 안의 놈들이 전부 기절해 튕겨 나온다. 튕겨 나온 놈에 깔린 놈은 화나서 또 싸움(연쇄).
- *   기다릴 일이 없다: 흩어져 있어도 '작은 싸움 → 구경꾼 → 큰 싸움'. 구름이 살아 있을 때 다음 무리의 아무나 또 톡 하면 두 구름이 서로 달려들어 합체.
- * 뒤집힘: 나는 못 싸운다. 꼬마 여우는 길 끝 꿀단지까지 저절로 살금살금 걷고, 깨어 있는 몬스터 앞에선 덤불 뒤에 숨어 킥킥댄다.
- * 솜씨(정답은 없다): 구름 위 숫자 = '이 톡 한 번으로 휘말린 수'. 다리 놓는 톡(다음 무리 톡)은 그 둘만 따로 세고 나머지는 큰 구름 몫 —
- *   그래서 적은 톡으로 길게 이어 갈수록 숫자가 커진다. 덩치 곰·멧돼지·폭죽 장수·토끼·쌍둥이는 톡 없이 싸움을 옆 무리로 옮겨 주니 그놈부터.
- * 동전: 한 번 톡에 k번째로 기절한 놈은 동전 k×k개. 한 번 톡에 5·7·9·12·16·20·24마리가 휘말리면 '와' 띠가 뜨고 그 톡의 동전이 2~8배.
- *   한 톡이 두 무리·세 무리·네 무리에 걸치면 '두 무리가 한 구름!' … '길 전체 한 구름!' 띠.
+ *   싸움이 나면 둘레 놈들이 1초 안에 구경하러 몰려와 '오오~' — 구름은 구경꾼을 '뽁 뽁 뽁' 삼키고(삼킬수록 커진다), 다 삼키면 가장 가까운 깨어 있는 놈 쪽으로
+ *   어슬렁 굴러가다 걷힌다. 걷히면 안의 놈들이 전부 기절해 튕겨 나오고, 튕겨 나온 놈에 깔린 놈은 화나서 또 싸움(연쇄 ×3까지).
+ *   기다릴 일이 없다: 톡은 언제든 되고(쉼 0.5초), 한 무리 안에서는 누구를 톡 해도 같은 결과(구름은 무리 가운데에 생긴다).
+ * 뒤집힘: 나는 못 싸운다. 꼬마 여우는 길 끝 꿀단지까지 저절로 살금살금 걷고(구름이 앞서 굴러가면 종종걸음으로 따라간다), 깨어 있는 몬스터 앞에선 덤불 뒤에 숨어 킥킥댄다.
+ * 솜씨(정답은 없다): 구름 위 숫자 = '톡 한 번으로 휘말린 수'. 무리는 처음 건드린 톡의 몫이라, 또 톡 한 무리는 새 톡의 작은 숫자가 된다(구름끼리는 달려들어 합체하고 큰 숫자가 이어진다).
+ *   그래서 톡을 아끼고 '저절로 번지게' 할수록 숫자가 커진다 — 바짝 붙은 두 무리는 한 구름이 넘어가고, 떨어진 무리는 특별한 놈이 옮겨 준다:
+ *   덩치 곰(구름을 다음 무리까지 밀고 간다) · 토끼(앞 무리로 달아나 쿵! 거기서 또 싸움) · 멧돼지(구름이 깨우면 돌진) · 쌍둥이(짝꿍도 제 무리에서 딱!) · 폭죽 장수(세 갈래) · 병아리(멀리서 달려온다) · 마법사(회오리).
+ * 동전: 한 번 톡에 k번째로 기절한 놈은 동전 k×k개. 한 번 톡에 5·7·9·12·16·20·24마리가 휘말리면 '와' 띠가 뜨고 그 톡의 동전이 2·3·5·8·12·18·25배.
+ *   한 번 톡이 두 무리·세 무리·다섯 무리에 걸치면 '두 무리가 한 구름!' … '길 전체 한 구름!' 띠.
  * 들킴: 판 처음 10초는 아무도 여우를 못 본다. 오래 숨어만 있으면 여우 머리 위 눈금이 차고, 2장부터는 순찰 도깨비가 여우 쪽으로 걸어오며
- *   제 머리 위 눈금을 채운다. 꽉 차면 '!' — 2초 안에 그놈을 싸움에 휘말리게(톡) 못 하면 꿀밤(하트 -1, 머리에 혹, 뒤로 통통). 하트 셋을 다 잃으면 끝.
- * 판 12개(장 3 × 판 4, 장마다 마지막은 대장): 판마다 무리 넷다섯이 길을 따라 이어지고, 판마다 새 싸움꾼 하나.
- *   1 꼬마 도깨비 → 2 덩치 곰(휘말리면 구름이 커지고 오래간다) → 3 겁쟁이 토끼(구름을 보면 달아나다 부딪힌 놈과 또 싸움) → 4 대장 왕도깨비(한 방 다섯은 돼야 꿀꺽 — 작은 구름은 걷어찬다)
- *   → 5 낮잠 멧돼지(깨우면 보는 쪽으로 돌진 구름) + 순찰 도깨비 → 6 쌍둥이(짝꿍이 휘말리면 제 둘레를 휩쓸며 달려와 합친다) → 7 폭죽 장수(구름이 셋으로 튄다) → 8 대장 두꺼비 장군(일곱)
- *   → 9 호루라기 올빼미(보는 원 안의 구름을 걷어 버린다 — 올빼미부터 톡) → 10 구경꾼 병아리(멀리서도 달려온다) → 11 회오리 마법사(구름이 회오리가 되어 빨아들인다) → 12 대장 용 임금(아홉).
- * 성장: 판을 깨면 장난 레벨이 저절로 오른다(구름 처음 크기·굴러가는 빠르기·여우 차림: 목도리 → 복면 → 왕관). 장 끝에는 세상 속 큰 물건 둘 중 하나를 톡
- *   (뿅망치 = 딱! 이 옆의 둘에게 / 고춧가루 = 구름이 더 빨리 더 멀리 · 벌집 = 걷힐 때 벌이 둘을 더 쏜다 / 확성기 = 더 멀리서도 구경하러 온다). 도감 = 싸움 붙여 본 몬스터.
+ *   제 머리 위 눈금을 채운다. 꽉 차면 '!' — 2초 안에 그놈을 톡 못 하면 꿀밤(하트 -1, 머리에 혹, 뒤로 통통). 하트 셋을 다 잃으면 끝.
+ * 판 12개(장 3 × 판 4, 장마다 마지막은 대장): 판마다 무리 아홉이 길을 따라 이어지고(대장 판은 여섯 + 대장), 판마다 새 싸움꾼 하나.
+ *   1 꼬마 도깨비 → 2 덩치 곰 → 3 겁쟁이 토끼 → 4 대장 왕도깨비(한 방 다섯은 돼야 꿀꺽 — 작은 구름은 걷어찬다)
+ *   → 5 낮잠 멧돼지 + 순찰 도깨비 → 6 쌍둥이 → 7 폭죽 장수 → 8 대장 두꺼비 장군(일곱)
+ *   → 9 호루라기 올빼미(보는 원 안의 구름을 '삐익!' 걷어 버린다 — 올빼미부터 톡) → 10 구경꾼 병아리 → 11 회오리 마법사 → 12 대장 용 임금(아홉).
+ * 성장: 판을 깨면 장난 레벨이 저절로 오른다(구름 처음 크기 · 굴러가는 거리 · 여우 차림: 목도리 → 복면 → 왕관). 장 끝에는 세상 속 큰 물건 둘 중 하나를 톡
+ *   (뿅망치 = 딱! 옆의 둘에게, 처음부터 큰 구름 / 고춧가루 = 구름이 더 멀리 굴러간다 · 벌집 = 걷힐 때 벌이 한 놈을 쏜다 / 확성기 = 더 멀리서도 구경하러 온다). 도감 = 싸움 붙여 본 몬스터.
  * 별(쉬운 말 셋): 꿀단지까지 가기 · 꿀밤 안 맞기 · 톡 한 번에 N마리.
  * 웃음: 맞은 놈의 '어쭈?' 얼굴, '오오~' 구경하다 휘말리는 구경꾼, 구름 밖으로 튀어나오는 주먹·발·별과 뱅글 눈 얼굴, 빙글빙글 날아가는 기절, 덤불 뒤에서 킥킥대는 여우.
  */
@@ -95,11 +96,11 @@ export const STAGES: StageDef[] = [
     g: [G(0.56, 0.93, 'ggggg', 0.07), ST(0.84, 0.765, 'gg'), G(1.08, 0.88, 'gggg'), G(1.58, 1.0, 'gggg'), G(1.9, 0.86, 'gggg'), G(2.4, 1.0, 'gggg'), G(2.74, 0.9, 'gggggg', 0.11)],
   },
   {
-    key: 'bear', ch: 0, name: '떡집 골목', news: '덩치 곰 — 톡 하면 구름이 커지고 오래가요', len: 4.7, need: 14,
+    key: 'bear', ch: 0, name: '떡집 골목', news: '덩치 곰 — 구름을 옆 무리까지 밀고 가요', len: 4.7, need: 14,
     g: [G(0.56, 0.92, 'Bggg'), G(0.88, 0.84, 'gggg'), G(1.38, 1.0, 'gggg'), G(1.88, 0.88, 'Bggg'), G(2.2, 1.02, 'gggg'), G(2.7, 0.86, 'gggg'), G(3.2, 1.0, 'gggg'), G(3.52, 0.86, 'Bggg'), G(4.02, 0.94, 'gggggg', 0.11)],
   },
   {
-    key: 'rabbit', ch: 0, name: '당근 가게 앞', news: '겁쟁이 토끼 — 달아나다 쿵! 거기서 또 싸움', len: 4.7, need: 14,
+    key: 'rabbit', ch: 0, name: '당근 가게 앞', news: '겁쟁이 토끼 — 앞 무리로 달아나다 쿵! 또 싸움', len: 4.7, need: 14,
     g: [G(0.56, 0.92, 'gggr'), G(0.88, 0.84, 'gggg'), G(1.38, 1.0, 'Bggr'), G(1.88, 0.88, 'gggg'), G(2.2, 1.02, 'ggrr'), G(2.7, 0.86, 'gggg'), G(3.2, 1.0, 'gggr'), G(3.52, 0.86, 'gggg'), G(4.02, 0.94, 'gggggrr', 0.11)],
   },
   {
@@ -108,15 +109,15 @@ export const STAGES: StageDef[] = [
     boss: { need: 5, pool: 'gggrgB', name: '왕도깨비' },
   },
   {
-    key: 'boar', ch: 1, name: '숲길 들머리', news: '낮잠 멧돼지 — 톡 하면 앞으로 돌진!', len: 5.25, need: 16, guards: [1.4, 3.4],
+    key: 'boar', ch: 1, name: '숲길 들머리', news: '낮잠 멧돼지 — 깨우면 앞으로 돌진!', len: 5.25, need: 16, guards: [1.4, 3.4],
     g: [ST(0.5, 0.92, 'b', 0), G(0.86, 0.92, 'gggg'), G(1.18, 0.84, 'gggg'), G(1.68, 1.0, 'gggg'), ST(1.86, 1.0, 'b', 0), G(2.24, 1.0, 'gggg'), G(2.56, 0.86, 'Bggg'), G(3.06, 1.0, 'gggg'), G(3.56, 0.86, 'gggg'), ST(3.74, 0.86, 'b', 0), G(4.12, 0.9, 'gggg'), G(4.6, 0.94, 'gggggg', 0.11)],
   },
   {
-    key: 'twin', ch: 1, name: '버섯 다리', news: '쌍둥이 — 짝꿍이 휘말리면 달려와요', len: 4.7, need: 14, guards: [1.4, 3.4],
+    key: 'twin', ch: 1, name: '버섯 다리', news: '쌍둥이 — 짝꿍이 휘말리면 저도 옆 놈을 딱!', len: 4.7, need: 14, guards: [1.4, 3.4],
     g: [G(0.56, 0.92, 'tggg'), G(0.88, 0.84, 'gggg'), G(1.38, 1.0, 'tggg'), G(1.88, 0.88, 'gggr'), G(2.2, 1.02, 'tggg'), G(2.7, 0.86, 'tggg'), G(3.2, 1.0, 'Bggg'), G(3.52, 0.86, 'tggg'), G(4.02, 0.94, 'tggggg', 0.11)],
   },
   {
-    key: 'cracker', ch: 1, name: '불꽃놀이 공터', news: '폭죽 장수 — 톡 하면 구름이 세 갈래로 펑!', len: 4.7, need: 14, guards: [1.4, 3.4],
+    key: 'cracker', ch: 1, name: '불꽃놀이 공터', news: '폭죽 장수 — 휘말리면 구름이 세 갈래로 펑!', len: 4.7, need: 14, guards: [1.4, 3.4],
     g: [G(0.56, 0.92, 'cggg'), G(0.88, 0.84, 'gggg'), G(1.38, 1.0, 'gggg'), G(1.88, 0.88, 'cggg'), G(2.2, 1.02, 'tggg'), G(2.7, 0.86, 'tBgg'), G(3.2, 1.0, 'gggg'), G(3.52, 0.86, 'cggg'), G(4.02, 0.94, 'gggggg', 0.11)],
   },
   {
@@ -133,7 +134,7 @@ export const STAGES: StageDef[] = [
     g: [G(0.56, 0.92, 'gggk'), G(0.88, 0.84, 'kkkk'), G(1.38, 1.0, 'oggk'), G(1.88, 0.88, 'kkgg'), G(2.2, 1.02, 'cggk'), G(2.7, 0.86, 'gggk'), G(3.2, 1.0, 'kkkk'), G(3.52, 0.86, 'oggk'), G(4.02, 0.94, 'gggkkk', 0.11)],
   },
   {
-    key: 'wiz', ch: 2, name: '등대 광장', news: '마법사 — 톡 하면 구름이 회오리가 돼요', len: 4.7, need: 18, guards: [1.4, 3.4],
+    key: 'wiz', ch: 2, name: '등대 광장', news: '마법사 — 휘말리면 구름이 회오리가 돼요', len: 4.7, need: 18, guards: [1.4, 3.4],
     g: [G(0.56, 0.92, 'wggg'), G(0.88, 0.84, 'ggrr'), G(1.38, 1.0, 'woggk'), G(1.88, 0.88, 'tggg'), G(2.2, 1.02, 'tggk'), G(2.7, 0.86, 'gggk'), G(3.2, 1.0, 'wggg'), G(3.52, 0.86, 'Bggk'), G(4.02, 0.94, 'wgkkkk', 0.11)],
   },
   {
@@ -146,7 +147,7 @@ export const STAGE_COUNT = STAGES.length;
 const CHAPTER = ['도깨비 장터', '버섯 숲길', '바닷가 축제'];
 /** 장 끝 둘 중 하나: [왼쪽, 오른쪽] */
 const PICKS = [
-  [{ key: 'hammer', name: '뿅망치', line: "딱! 이 옆의 둘에게" }, { key: 'pepper', name: '고춧가루', line: '구름이 더 빨리, 더 오래' }],
+  [{ key: 'hammer', name: '뿅망치', line: '처음부터 큰 구름으로 딱!' }, { key: 'pepper', name: '고춧가루', line: '구름이 더 멀리 굴러가요' }],
   [{ key: 'hive', name: '벌집', line: '걷힐 때 벌이 한 놈을 쏴요' }, { key: 'horn', name: '확성기', line: '멀리서도 구경 와요' }],
 ];
 
@@ -501,8 +502,8 @@ function wake(s: BrawlState, m: Mon, tap: number, chain: number) {
   ev(s, 'wake', m.x, m.y);
 }
 
-/** 마지막으로 삼킨 뒤 구름이 버티는 틱 (장난 레벨 · 고춧가루로 길어진다) */
-const lingerOf = (s: BrawlState) => LINGER * (s.perkA === 2 ? 1.4 : 1);
+/** 마지막으로 삼킨 뒤 구름이 버티는 틱 = 다음 무리 쪽으로 굴러가는 거리 (장난 레벨 · 고춧가루로 길어진다) */
+const lingerOf = (s: BrawlState) => LINGER * (1 + 0.02 * s.level) * (s.perkA === 2 ? 1.35 : 1);
 function radiusOf(s: BrawlState, c: Cloud) {
   const base = R0 * (1 + 0.012 * s.level) + 0.02 * Math.sqrt(Math.max(0, c.n + c.w - 2));
   return c.mega ? Math.min(0.27, base + 0.06) : Math.min(0.2, base) * (c.tor > 0 ? 1.12 : 1);
@@ -516,6 +517,7 @@ function spawnCloud(s: BrawlState, mem: Mon[], x: number, y: number, dx: number,
   s.clouds.push(c);
   if (from) c.taps = from.taps.slice();
   for (const m of mem) swallow(s, c, m, from ? 2 : 1);
+  if (s.perkA === 1 && chain === 1 && kind === 0 && !from && mem.length >= 2) c.w += 2; // 뿅망치: 처음부터 큰 구름
   c.r = radiusOf(s, c);
   if (chain > s.chainMax) s.chainMax = chain;
   if (chain >= 2) see(s, 'chain');
@@ -1108,7 +1110,7 @@ function clouds(s: BrawlState) {
       big.popT = s.t;
       sm.dead = true;
       ev(s, 'merge', big.x, big.y, big.n);
-      see(s, 'merge');
+      see(s, 'merge', '팁:톡 한 번에 휘말린 수 — 저절로 번지면 커져요');
     }
   }
 }
@@ -1332,10 +1334,10 @@ const game: GameDef<BrawlState> & { wows(s: BrawlState): number } = {
   id: 'brawlstart',
   name: '싸움 붙이기',
   genes: ['brawlstart', 'chain', 'collect'],
-  twist: "나는 못 싸운다 — 톡 한 놈이 옆 놈 뒤통수를 '딱!' 치면 싸움 구름이 되고, 구경하러 몰려온 놈들까지 굴러가며 다 삼킨다. 구름이 살아 있을 때 다음 무리를 톡 하면 두 구름이 합체 — 적은 톡으로 길 전체를 한 구름으로",
+  twist: "나는 못 싸운다 — 톡 한 놈이 옆 놈 뒤통수를 '딱!' 치면 싸움 구름이 되고, 구경하러 몰려온 놈들까지 굴러가며 다 삼킨다. 구름 숫자는 '톡 한 번으로 휘말린 수' — 톡을 아끼고 곰·멧돼지·토끼가 옆 무리로 옮기게 해서 톡 한 번으로 길 전체를 한 구름으로",
   rules: [
     "몬스터를 톡 하면 옆 놈을 '딱!' — 싸움 구름이 되어, 구경하러 몰려온 놈들을 굴러가며 다 삼켜요.",
-    '구름이 살아 있을 때 다음 무리를 톡 하면 두 구름이 합체! 적은 톡으로 길게 이을수록 동전이 몇 배.',
+    '구름 숫자 = 톡 한 번으로 휘말린 수. 덩치 곰·멧돼지 같은 특별한 놈부터 톡 하면 옆 무리까지 번져요 — 숫자가 클수록 동전이 몇 배.',
     "오래 숨어 있거나 순찰에게 들키면 '!' — 그놈을 얼른 톡 못 하면 꿀밤(하트 -1).",
   ],
   controls: 'touch',
@@ -3100,6 +3102,8 @@ function drawPerk(ctx: C2, id: number, k: number, t: number) {
   }
 }
 
+/** 큰 동전 수는 '만'으로 줄여 쓴다 (12.3만 · 158만) */
+const coins = (n: number) => (n < 100000 ? String(n) : (n / 10000).toFixed(n < 1000000 ? 1 : 0) + '만');
 /** 도감 순서 = 판 순서 */
 const DEX: { key: string; k: K; ch: number }[] = STAGES.map((d) => ({ key: d.key === 'boss' ? 'boss' + d.ch : d.key, k: d.key, ch: d.ch }));
 const depth = (y: number) => 0.9 + 0.2 * clamp((y - MY0) / (MY1 - MY0), -0.3, 1.2);
@@ -3408,6 +3412,13 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
       },
     });
   }
+  // 숫자는 톡마다 하나: 그 톡의 구름 가운데 가장 큰 구름 위에만
+  const numOn = new Map<number, Cloud>();
+  for (const c of s.clouds) {
+    if (c.dead) continue;
+    const q = numOn.get(c.tap);
+    if (!q || c.n > q.n) numOn.set(c.tap, c);
+  }
   for (const c of s.clouds) {
     if (c.dead) continue;
     const cx = X(c.x), cy = Y(c.y);
@@ -3439,7 +3450,7 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
         ctx.restore();
         // 휘말린 수
         const num = s.tc[c.tap & 15];
-        if (num >= 3 && c.tap > 1) {
+        if (num >= 3 && c.tap > 1 && numOn.get(c.tap) === c) {
           const k = clamp(0.05 + num * 0.0035, 0.05, 0.11) * (1 + pop * 0.3);
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -3616,6 +3627,7 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
         fx.sound('tick', 1.2, 0.8);
         break;
       case 'cool':
+      case 'none':
         fx.ring(ex, ey, 'rgba(255,255,255,.7)', R(0.03), 2);
         fx.sound('tick', 0.6, 0.4);
         break;
@@ -3674,7 +3686,7 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
         fx.sound('thud', Math.max(0.55, 1.25 - big * 0.06), 0.9 + big * 0.04);
         fx.sound('splash', 1.1, 0.5);
         fx.sound('coin', 1 + Math.min(0.8, big * 0.06), 0.7);
-        if (e.text && e.text !== '0') say(e.x, e.y - 0.15, `+${e.text}`, '#ffe45c', 15 + big);
+        if (e.text && e.text !== '0') say(e.x, e.y - 0.15, `+${coins(Number(e.text))}`, '#ffe45c', 15 + big);
         break;
       }
       case 'land':
@@ -3837,7 +3849,8 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
     const age = t - q.t, k = age < 5 ? 0.6 + age * 0.08 : 1;
     ctx.globalAlpha = Math.min(1, (46 - age) / 12);
     ctx.font = `800 ${Math.max(12, (q.size * w) / 380) * k}px system-ui, sans-serif`;
-    text(q.str, clamp(X(q.x), R(0.08), w - R(0.08)), Y(q.y) - age * R(0.0016), q.col, 'rgba(60,36,16,.75)', 3.5);
+    const half = ctx.measureText(q.str).width / 2 + 5;
+    text(q.str, clamp(X(q.x), half, Math.max(half, w - half)), Y(q.y) - age * R(0.0016), q.col, 'rgba(60,36,16,.75)', 3.5);
   }
   ctx.globalAlpha = 1;
   // 가운데 큰 띠 (하나만)
@@ -3883,16 +3896,17 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
     const age = t - s.news.t, a = clamp(Math.min(age / 10, (210 - age) / 14), 0, 1), by = Y(0.2) - (1 - a) * R(0.05);
     ctx.globalAlpha = a;
     font(0.038, 800);
-    const tw = Math.min(w * 0.96, ctx.measureText(s.news.text).width + R(0.19)), bh = R(0.08);
+    const tip = s.news.text.startsWith('팁:'), ntext = tip ? s.news.text.slice(2) : s.news.text;
+    const tw = Math.min(w * 0.96, ctx.measureText(ntext).width + R(0.19)), bh = R(0.08);
     rr(ctx, w / 2 - tw / 2, by - bh / 2, tw, bh, bh / 2);
     fs(ctx, 'rgba(255,246,220,.96)', 2.5);
     rr(ctx, w / 2 - tw / 2 + R(0.012), by - bh / 2 + R(0.012), R(0.11), bh - R(0.024), bh / 2);
-    fs(ctx, '#ff5a3c');
+    fs(ctx, tip ? '#4aa8f0' : '#ff5a3c');
     font(0.03, 900);
-    text('NEW', w / 2 - tw / 2 + R(0.067), by + 1, '#ffffff');
+    text(tip ? '숫자' : 'NEW', w / 2 - tw / 2 + R(0.067), by + 1, '#ffffff');
     font(0.038, 800);
     ctx.textAlign = 'left';
-    text(s.news.text, w / 2 - tw / 2 + R(0.135), by + 1, '#4a2e1a');
+    text(ntext, w / 2 - tw / 2 + R(0.135), by + 1, '#4a2e1a');
     ctx.textAlign = 'center';
     ctx.globalAlpha = 1;
   }
@@ -3943,7 +3957,7 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
   fs(ctx, '#ffd24a', 1.6, '#2a1a10');
   font(0.036, 900);
   const shown = Math.round((fx.memo.pts = (fx.memo.pts ?? s.pts) + (s.pts - (fx.memo.pts ?? s.pts)) * 0.2));
-  text(String(Math.abs(shown - s.pts) < 2 ? s.pts : shown), w - R(0.285), R(0.038), '#fff6dc');
+  text(coins(Math.abs(shown - s.pts) < 2 ? s.pts : shown), w - R(0.285), R(0.038), '#fff6dc');
   // 길 진행 막대: 여우 → 꿀단지
   const px0 = R(0.05), px1 = w - R(0.07), py = R(0.088), prog = clamp((s.fx - 0.13) / (s.potX - 0.23), 0, 1);
   rr(ctx, px0, py - R(0.008), px1 - px0, R(0.016), R(0.008));
@@ -4049,7 +4063,7 @@ function drawResult(ctx: C2, s: BrawlState, w: number, h: number, fx: ReturnType
   if (!s.ok) {
     text('들켰다…!', w / 2, py + R(0.068), '#ffffff', OUT, 5);
     font(0.042, 800);
-    text(`${s.stage + 1}판까지 · 동전 ${s.pts}`, w / 2, py + R(0.23), '#4a2e1a');
+    text(`${s.stage + 1}판까지 · 동전 ${coins(s.pts)}`, w / 2, py + R(0.23), '#4a2e1a');
     font(0.036, 700);
     text(`싸움 붙인 몬스터 ${s.kos}마리`, w / 2, py + R(0.32), '#7a5a3a');
     text('붐빌 때 한 방에! 다시 해 봐요', w / 2, py + R(0.4), '#7a5a3a');

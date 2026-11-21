@@ -63,7 +63,7 @@ export const multOf = (n: number) => Math.min(6, 1 + Math.floor(n / 10));
 /** 이만큼 한입이면 '큰 순간' 띠 */
 const WOW_N = 10;
 /** 판마다 적 체력 배수(대장은 그대로) — 모자도 판마다 세진다 */
-const HP_MUL = [0.45, 0.6, 0.8, 1, 1, 1.15, 1.3, 1.4, 1.5, 1, 1.6, 1.7, 1.8, 1.9, 1];
+const HP_MUL = [0.38, 0.6, 0.8, 1, 1, 1.15, 1.3, 1.4, 1.5, 1, 1.6, 1.7, 1.8, 1.9, 1];
 
 type FK = 'cloud' | 'octo' | 'bird' | 'crab' | 'king' | 'puff' | 'bat' | 'jelly' | 'corn' | 'whale' | 'urchin' | 'snail' | 'fish' | 'pie' | 'owl';
 const FKS: FK[] = ['cloud', 'octo', 'bird', 'crab', 'king', 'puff', 'bat', 'jelly', 'corn', 'whale', 'urchin', 'snail', 'fish', 'pie', 'owl'];
@@ -243,6 +243,8 @@ export interface StealState {
   foes: Foe[]; buls: Bul[]; shots: Shot[]; nid: number; wave: number; waveT: number; clearT: number; freeze: number;
   gulp: Gulp | null; echo: { t: number; n: number; mult: number } | null; relId: number; relKills: number; relT: number; relN: number;
   best: number; hits: number; gulps: number; taps: number; kills: number; chainBest: number;
+  /** 이 판의 '한입에 N발' 별을 땄나 — 적이 화나기 전의 한입만 친다(화난 뒤엔 한입이 저절로 커지니까) */
+  gotN: boolean;
   dex: Set<number>; dexNew: number[]; seen: Set<string>; wowN: number; firstTap: number; firstWow: number;
   events: Ev[]; banner: { text: string; t: number } | null; spot: { id: number; t: number; label: string } | null;
   pick: number; pickT: number; sweep: number[]; sweepT: number; bubT: number; keepPh: number; hold: number; scat: number[]; scatT: number;
@@ -256,14 +258,29 @@ const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 /** 모자가 훔치는 둘레 · 되쏘는 세기 */
 export const hatMax = (s: StealState) => (R0 + R_LVL * s.lvl) * (s.perk[1] === 0 ? 1.2 : 1);
 /** 지금 입 크기(0~1): 0 = 방금 먹음 · 1 = 다 커짐 */
-export const hunger = (s: StealState) => clamp((s.hung - CD) / RECH, 0, 1);
-export const hatR = (s: StealState) => hatMax(s) * (R_MIN + (1 - R_MIN) * hunger(s));
+/**
+ * 판이 길어지면 저절로 풀린다(막 누르는 사람도 지루하지 않게): 보통 판 40초·대장 판 50초를 넘기면 적이 화난다 —
+ * 더 자주 쏘고(먹이가 는다), 모자는 신이 나서 입이 줄지 않고(연타해도 한입이 크다), 그때부터 10초마다 적 체력·대장 갑옷이 15%씩 무뎌진다.
+ */
+const RAGE_T = 2400, RAGE_BOSS_T = 3000, RAGE_STEP = 600, RAGE_SOFT = 0.85, RAGE_FIRE = 0.6, BUL_RAGE = 120, RAGE_REACH = 1.15;
+/** 화난 단계: 0 = 아직 · 1 = 화났다 · 그 뒤 10초마다 +1 */
+export const rage = (s: StealState) => {
+  if (s.phase !== 'play') return 0;
+  const t0 = FOE[STAGES[s.stage].key].boss ? RAGE_BOSS_T : RAGE_T;
+  return s.pt >= t0 ? Math.min(10, 1 + Math.floor((s.pt - t0) / RAGE_STEP)) : 0;
+};
+/** 작은 한입도 별 하나는 제대로 날아간다: 0발이 아닌 한입의 최소 피해(발 수 몫) */
+const MIN_BITE = 4;
+/** 화면의 탄 상한: 평소 96발 · 화난 뒤 120발(먹이가 는다) */
+const bulCap = (s: StealState) => (rage(s) > 0 ? BUL_RAGE : BUL_MAX);
+export const hunger = (s: StealState) => (rage(s) > 0 ? 1 : clamp((s.hung - CD) / RECH, 0, 1));
+export const hatR = (s: StealState) => hatMax(s) * (rage(s) > 0 ? RAGE_REACH : R_MIN + (1 - R_MIN) * hunger(s));
 export const hatPow = (s: StealState) => 1 + 0.07 * s.lvl;
 const starDefs = (i: number): string[] => (i === 0 ? ['하늘 지나가기'] : i === 1 ? ['하늘 지나가기', `한입에 ${STAGES[1].starN}발`] : ['하늘 지나가기', '하트 안 잃기', `한입에 ${STAGES[i].starN}발`]);
 
 // ───────────────────────────── 시뮬레이션 ─────────────────────────────
 function shoot(s: StealState, k: number, x: number, y: number, vx: number, vy: number, life: number, m = 0, val = 1, own = 0, a = 0): Bul | null {
-  if (s.buls.length >= BUL_MAX) return null;
+  if (s.buls.length >= bulCap(s)) return null;
   const b: Bul = { k, x, y, vx, vy, r: BR[k], life, age: 0, val, m, own, a, tk: 0 };
   s.buls.push(b);
   return b;
@@ -411,6 +428,7 @@ function newStage(s: StealState) {
   s.hold = 0;
   s.scat = [];
   s.best = 0;
+  s.gotN = false;
   s.hits = 0;
   s.spts = 0;
   s.relKills = 0;
@@ -476,12 +494,14 @@ function steal(s: StealState) {
   }
   const mult = multOf(n);
   if (cnt > 0) s.hung = 0; // 빈 입은 배가 안 찬다(빈자리로 비키기는 공짜)
-  const N = STAGES[s.stage].starN;
-  s.gulp = { x, y, t: s.t, n, cnt, mult, r: R, vis, links, reds, rec: n > s.best && n >= WOW_N && (s.best >= WOW_N || s.stage === 0 || n >= 30), star: s.stage >= 1 && s.best < N && n >= N };
+  // 화난 뒤(판이 길어져 저절로 풀리는 중)의 한입은 별·점수 배수로 치지 않는다 — 빨리 깨지기만 한다
+  const N = STAGES[s.stage].starN, calm = rage(s) === 0;
+  s.gulp = { x, y, t: s.t, n, cnt, mult, r: R, vis, links, reds, rec: n > s.best && n >= WOW_N && (s.best >= WOW_N || s.stage === 0 || n >= 30), star: s.stage >= 1 && calm && !s.gotN && n >= N };
   s.gulps++;
   if (n > s.best) s.best = n;
+  if (s.gulp.star) s.gotN = true;
   if (chain > s.chainBest) s.chainBest = chain;
-  s.spts += n * (mult * mult - 1); // 점수: 큰 한입일수록 훨씬 크게(작은 한입 여러 번은 거의 0)
+  if (calm) s.spts += n * (mult * mult - 1); // 점수: 큰 한입일수록 훨씬 크게(작은 한입 여러 번은 거의 0)
   let wow = n >= WOW_N;
   if (chain >= 3) (wow = true), see(s, 'chain');
   if (n >= WOW_N) see(s, 'gulp12');
@@ -510,7 +530,8 @@ const nearestFoe = (s: StealState, x: number, y: number, not: Foe | null = null)
 function release(s: StealState, n: number, mult: number, echo: boolean) {
   if (n <= 0) return;
   // 화면의 별은 SHOT_MAX개까지(느린 폰) — 많이 훔치면 별 하나하나가 크고 세진다
-  const K = Math.max(1, Math.min(n, SHOT_MAX - s.shots.length)), dmg = (n * mult * hatPow(s)) / K;
+  // 작은 한입도 최소 피해(MIN_BITE발 몫) · 화난 적은 10초마다 15%씩 무뎌진다(같은 피해가 그만큼 더 아프다)
+  const K = Math.max(1, Math.min(n, SHOT_MAX - s.shots.length)), dmg = (Math.max(n * mult, MIN_BITE) * hatPow(s) * Math.pow(1 / RAGE_SOFT, rage(s))) / K;
   if (!echo) (s.relId++, (s.relKills = 0), (s.relT = s.t), (s.relN = n));
   const hx = s.wx, hy = s.wy - 0.07;
   const list = s.foes.filter((f) => !f.dead && f.y > 0.02).sort((a, b) => (a.x - hx) ** 2 + (a.y - hy) ** 2 - ((b.x - hx) ** 2 + (b.y - hy) ** 2));
@@ -537,7 +558,7 @@ function dealDmg(s: StealState, f: Foe, dmg: number, sh: Shot) {
       f.phase = ph;
       f.cool += 50;
       s.wowN++;
-      s.spts += 100 * sh.mult;
+      s.spts += 100 * (rage(s) > 0 ? 1 : sh.mult);
       s.freeze = Math.max(s.freeze, 8);
       see(s, 'armor');
       ev(s, 'armor', f.x, f.y, ph);
@@ -546,7 +567,7 @@ function dealDmg(s: StealState, f: Foe, dmg: number, sh: Shot) {
   if (f.hp > 0) return;
   f.dead = true;
   s.kills++;
-  s.spts += d.pts * sh.mult;
+  s.spts += d.pts * (rage(s) > 0 ? 1 : sh.mult);
   let multi = 0;
   if (sh.rel === s.relId) {
     multi = ++s.relKills;
@@ -554,7 +575,7 @@ function dealDmg(s: StealState, f: Foe, dmg: number, sh: Shot) {
   }
   if (f.k === 'snail') for (const b of s.buls) if (b.m === 3 && b.own === f.id) (b.m = 0), (b.own = 0), (b.vx = Math.cos(b.a) * 0.0012), (b.vy = Math.sin(b.a) * 0.0012), (b.life = b.age + 500);
   if (d.boss) s.freeze = Math.max(s.freeze, 14);
-  ev(s, 'kill', f.x, f.y, FKS.indexOf(f.k), sh.mult, multi >= 3 ? String(multi) : '');
+  ev(s, 'kill', f.x, f.y, FKS.indexOf(f.k), sh.mult, multi >= 4 ? String(multi) : '');
 }
 
 function hitFoe(s: StealState, f: Foe, sh: Shot) {
@@ -643,7 +664,7 @@ function shotsStep(s: StealState) {
 }
 
 function foesStep(s: StealState) {
-  const t = s.t;
+  const t = s.t, angry = rage(s) > 0, cap = bulCap(s);
   for (const f of s.foes) {
     f.tm++;
     if (f.hurtT > 0) f.hurtT--;
@@ -664,7 +685,7 @@ function foesStep(s: StealState) {
     }
     f.x += (tx - f.x) * 0.08;
     f.y += (ty - f.y) * 0.08;
-    const full = s.buls.length >= BUL_MAX;
+    const full = s.buls.length >= cap;
     if (f.k === 'bird' && f.burst > 0 && t % 6 === 0) {
       f.a += 0.52;
       const fv = s.stage < 5 ? 0.0014 : 0.0017;
@@ -683,8 +704,8 @@ function foesStep(s: StealState) {
       shoot(s, COMET, f.x, f.y, Math.cos(f.a) * 0.0018, Math.sin(f.a) * 0.0018, 700);
     }
     if (--f.cool <= 0) {
-      if (s.buls.length > BUL_MAX - 3 && f.k !== 'snail') f.cool = 20;
-      else (fire(s, f), (f.brave = false), (f.cool = FOE[f.k].every + Math.floor(s.rng() * 16)));
+      if (s.buls.length > cap - 3 && f.k !== 'snail') f.cool = 20;
+      else (fire(s, f), (f.brave = false), (f.cool = Math.round((FOE[f.k].every + Math.floor(s.rng() * 16)) * (angry ? RAGE_FIRE : 1))));
     }
     f.wind = f.cool < WIND ? 1 - f.cool / WIND : 0;
   }
@@ -787,7 +808,7 @@ function endStage(s: StealState, ok: boolean) {
   s.spts += s.buls.length * 2;
   s.buls = [];
   s.shots = [];
-  s.starOk = s.stage === 0 ? [true] : s.stage === 1 ? [true, s.best >= d.starN] : [true, s.hits === 0, s.best >= d.starN];
+  s.starOk = s.stage === 0 ? [true] : s.stage === 1 ? [true, s.gotN] : [true, s.hits === 0, s.gotN];
   s.got = s.starOk.filter(Boolean).length;
   s.stars += s.got;
   s.pts += s.spts + CLEAR_PTS + s.got * STAR_PTS;
@@ -859,6 +880,11 @@ function play(s: StealState, tap: { x: number; y: number } | null) {
     return;
   }
   const W = STAGES[s.stage].waves, alive = s.foes.length;
+  // 화났다!(1) · 그 뒤 10초마다 한 단계씩 무뎌진다(2~)
+  if (alive > 0) {
+    const t0 = FOE[STAGES[s.stage].key].boss ? RAGE_BOSS_T : RAGE_T;
+    if (s.pt >= t0 && (s.pt - t0) % RAGE_STEP === 0 && rage(s) <= 10 && (s.pt - t0) / RAGE_STEP < 10) ev(s, 'rage', 0.5, 0.5, rage(s));
+  }
   s.waveT++;
   if (s.wave < W.length) {
     if ((alive === 0 && s.waveT > 24) || (s.waveT > 900 && alive <= 5)) spawnWave(s);
@@ -917,7 +943,7 @@ const game: GameDef<StealState> = {
       hearts: 3, stars: 0, got: 0, starOk: [], pts: 0, spts: 0, dead: false, won: false, again: false, tries: 0, fails: 0, lvl: 0, perk: [-1, -1],
       wx: HOME_X, wy: HOME_Y, zx: HOME_X, zy: HOME_Y, tx: HOME_X, ty: HOME_Y, zt: -1, sw: -1, cd: 0, inv: 0, face: 1, hung: 999, buf: null, down: false,
       foes: [], buls: [], shots: [], nid: 0, wave: 0, waveT: 0, clearT: 0, freeze: 0, gulp: null, echo: null, relId: 0, relKills: 0, relT: -999, relN: 0,
-      best: 0, hits: 0, gulps: 0, taps: 0, kills: 0, chainBest: 0,
+      best: 0, gotN: false, hits: 0, gulps: 0, taps: 0, kills: 0, chainBest: 0,
       dex: new Set<number>(), dexNew: [], seen: new Set<string>(), wowN: 0, firstTap: -1, firstWow: -1,
       events: [], banner: null, spot: null, pick: -1, pickT: -999, sweep: [], sweepT: -999, bubT: -999, keepPh: 0, hold: 0, scat: [], scatT: -999,
     };
@@ -1066,12 +1092,12 @@ export const bulletstealSmart: Bot<StealState> = {
     // 급하지 않으면 9틱에 한 번만 살핀다(가볍게). 입이 덜 커졌으면 기다린다
     if (hitIn >= 1e9 && (s.t % 9 >= 3 || (!big && s.foes.length > 3))) return NO;
     const c = densest(s, 3);
-    const need = s.stage >= 1 && s.best < d.starN ? d.starN : 0;
+    const need = s.stage >= 1 && !s.gotN && rage(s) === 0 ? d.starN : 0;
     const goal = Math.max(need, boss ? 30 : 22);
     const hp = s.foes.reduce((a, f) => a + Math.max(0, f.hp) + f.mir * 2, 0);
     const kills = c.n >= 2 && c.n * multOf(c.n) * hatPow(s) * (s.perk[1] === 1 ? 1.4 : 1) >= hp * 1.05 && s.foes.length > 0;
     const over = s.hung - CD - RECH;
-    const full = s.buls.length >= BUL_MAX - 10;
+    const full = s.buls.length >= bulCap(s) - 10;
     if (s.foes.length > 0 && ((big && (c.n >= goal || (c.n >= 1 && (over > (need ? (s.stage < 5 ? 420 : 220) : 70) || full)))) || kills)) return at(c.x, c.y);
     if (hitIn < 1e9) {
       // 맞기 전에: 입이 덜 커졌으면 빈자리로 비키고(빈 입은 배가 안 찬다), 없으면 그냥 한입
@@ -3566,9 +3592,11 @@ function drawHud(ctx: C2, s: StealState, w: number, h: number, fx: ReturnType<ty
     ctx.fillStyle = OUT;
     ctx.fillRect(0, ty, w, 2 * u1);
     const r1 = ty + R(0.048), r2 = ty + R(0.122);
-    const ok = s.phase === 'result' ? s.starOk : defs.map((_, j) => (defs.length === 3 && j === 1 ? false : j === defs.length - 1 && defs.length > 1 ? s.best >= d.starN : false));
-    const bad = defs.map((_, j) => defs.length === 3 && j === 1 && s.hits > 0 && s.phase !== 'result');
-    const labels = defs.map((l, j) => (j === defs.length - 1 && defs.length > 1 && playing && s.best > 0 && s.best < d.starN ? `${l} (${s.best})` : l));
+    const ok = s.phase === 'result' ? s.starOk : defs.map((_, j) => (defs.length === 3 && j === 1 ? false : j === defs.length - 1 && defs.length > 1 ? s.gotN : false));
+    // 놓친 별은 줄을 긋는다: 맞았을 때(하트 안 잃기) · 적이 화난 뒤(한입에 N발 — 화나기 전의 한입만 친다)
+    const late = playing && rage(s) > 0 && !s.gotN;
+    const bad = defs.map((_, j) => s.phase !== 'result' && ((defs.length === 3 && j === 1 && s.hits > 0) || (j === defs.length - 1 && defs.length > 1 && late)));
+    const labels = defs.map((l, j) => (j === defs.length - 1 && defs.length > 1 && playing && !late && !s.gotN && s.best > 0 ? `${l} (${Math.min(s.best, d.starN - 1)})` : l));
     font(12, 800);
     const ws = labels.map((l) => ctx.measureText(l).width + R(0.075));
     const gap = R(0.014), tot = ws.reduce((a, b) => a + b, 0) + gap * (ws.length - 1), scl = Math.min(1, (w - R(0.03)) / tot);
