@@ -1248,6 +1248,10 @@ function rawLevel(si: number, r: Rng): Level {
       const gx = rnd(r, 0.84, 0.9);
       L.actors.push(Ac('goblin', R_ARCH, gx, UP3, { next: 0, per: 80, alt: 2 }));
       L.actors.push(Ac('cat', R_VILL, 0.06, lane));
+      // 비계의 페인트 통이 고양이 위로 (부엉이가 떠난 뒤)
+      const pt = Ac('beaver', R_DECO, 0.12, 0.46);
+      L.actors.push(pt);
+      L.things.push(potT(0.06, 0.48, Math.round(rnd(r, 50, 70)), pt.id, lane));
       L.deco.roof = gx;
       L.sand = 260;
       break;
@@ -1624,7 +1628,7 @@ export interface RewState {
 interface Film { frames: World[]; evs: Ev[]; marks: { x: number; y: number; t: number; r: number; hero: boolean }[]; why: string; end: number }
 const FS = 3, FILM_FWD = 96, FILM_REW = 30;
 /** 막힘 힌트 한 수: 무엇(id)을 언제(at, 세계 틱) — 멈춤이면 stop = 멈출 τ, ghost = 그때 물건의 τ · 판을 다시 해야 하면 restart */
-interface Hint { t: number; id: number; at: number; stop: number; ghost: number; text: string; restart: boolean; none: boolean; done: number; arch: number }
+interface Hint { t: number; id: number; at: number; stop: number; ghost: number; text: string; restart: boolean; none: boolean; done: number; arch: number; next: number; why2: string }
 const ev = (s: RewState, kind: string, x: number, y: number, v = 0, id = -1, text?: string) => s.events.push({ t: s.t, kind, x, y, v, id, text });
 const see = (s: RewState, key: string) => s.seen.add(key);
 
@@ -1661,12 +1665,20 @@ function newStage(s: RewState) {
     if (d.key === 'log') (sx = (th.x + th.x2) / 2), (sy = th.y);
     s.spot = { x: sx, y: sy, r: 0.11, label: d.spot, t: s.t + 150 };
   }
+  // 곧 벌어질 일: 손 안 대고 앞으로 돌려 본 필름 (2초) — 다 보면 '지이익' 되감겨 지금으로. 다시 할 땐 바로 시작 (이미 봤다)
+  const again = s.again;
   s.again = false;
-  // 곧 벌어질 일: 손 안 대고 앞으로 돌려 본 필름 (2초) — 다 보면 '지이익' 되감겨 지금으로
-  s.film = makeFilm(s.W);
   s.ft = 0;
   s.playT = -1;
   s.progT = s.t;
+  if (again) {
+    s.film = null;
+    updateCam(s, true);
+    s.playT = s.t;
+    if (s.fails >= 2 && !s.autoHint) (s.autoHint = true), showHint(s, true);
+    return;
+  }
+  s.film = makeFilm(s.W);
   s.cam.x = 0;
   s.cam.y = 0;
   s.cam.z = 1;
@@ -1878,7 +1890,7 @@ function showHint(s: RewState, auto: boolean) {
   PACE = DEC;
   const pl = planFrom(cloneWorld(W), 3000);
   PACE = save;
-  const h: Hint = { t: s.t, id: -1, at: W.t, stop: -1, ghost: -1, text: '', restart: false, none: false, done: -1, arch: -1 };
+  const h: Hint = { t: s.t, id: -1, at: W.t, stop: -1, ghost: -1, text: '', restart: false, none: false, done: -1, arch: -1, next: -1, why2: '' };
   s.hint = h;
   if (s.banner && s.t - s.banner.t < 170) s.banner.t = s.t - 170;
   ev(s, 'hint', 0.5, 0.3, auto ? 1 : 0);
@@ -1917,6 +1929,8 @@ function showHint(s: RewState, auto: boolean) {
     if (i >= 3 && C.t - h.at > 420) break;
   }
   if (h.stop >= 0) h.ghost = h.stop;
+  // 되감기 시작 다음 수가 같은 물건 멈춤이면, 시작을 누른 뒤 이어서 멈출 자리도 보여 준다
+  if (h.stop < 0 && acts.length > 3 && acts[4] === h.id && acts[5] >= 0) h.next = acts[5];
   const cur = thingOf(W, h.id), th = cur ?? th0;
   if (!cur && th && th.k === 'arrow') h.arch = th.owner;
   const nm = thingName(th);
@@ -1945,6 +1959,7 @@ function showHint(s: RewState, auto: boolean) {
   }
   if (!why) why = h.stop >= 0 ? `${iga(nm)} 이 자리에 오면 다시 톡 — 멈춰요` : `${eul(nm)} 되감아요`;
   h.text = why;
+  h.why2 = th && th.k === 'stack' ? '계단 모양에 오면 다시 톡!' : th && (th.k === 'log' || th.k === 'raft') ? '강을 가로지를 때 다시 톡!' : `${iga(nm)} 반투명 자리에 오면 다시 톡!`;
 }
 /** 힌트 따라가기: 그 수를 두면 '좋아요' 하고 접고, 때를 한참 놓치면 접는다 (전구는 그대로) */
 function keepHint(s: RewState) {
@@ -1960,7 +1975,14 @@ function keepHint(s: RewState) {
   }
   const th = thingOf(s.W, h.id);
   const did = h.stop >= 0 ? !th || th.st !== REW : !!th && th.st === REW;
-  if (did) (h.done = s.t), ev(s, 'hintOk', 0.5, 0.3);
+  if (did && h.next >= 0 && th && th.st === REW) {
+    // 이어서: 멈출 자리
+    h.stop = h.ghost = h.next;
+    h.next = -1;
+    h.text = h.why2;
+    h.t = s.t;
+    ev(s, 'hintOk', 0.5, 0.3);
+  } else if (did) (h.done = s.t), ev(s, 'hintOk', 0.5, 0.3);
   else if (s.W.t > h.at + 100 || s.t - h.t > 1500) s.hint = null;
 }
 /** 톡 한 자리와 물건 사이 거리(물건마다 잡히는 모양이 다르다 — 넉넉히) */
@@ -6064,7 +6086,8 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
         fx.ring(X(c.x), Y(c.y), '#ffffff', R(c.r * 0.9), 3);
         fx.burst(X(c.x), Y(c.y), '#ffd25a', 18, 4, 2.4);
         fx.burst(X(c.x), Y(c.y), '#7fe8ff', 14, 3, 2.2);
-        pop(Math.max(R(0.14), Math.min(X(1) - R(0.14), X(c.x))), Math.max(R(0.16), Y(c.y) - R(c.r) - R(0.09)), '되감기!', '#bff6ff', s.firstTap === t ? 34 : 26);
+        // 둘째로 함께 되감을 땐 '두 개 함께!'가 대신 크게 뜬다
+        if (s.W.th.filter((q) => q.st === REW).length < 2) pop(Math.max(R(0.14), Math.min(X(1) - R(0.14), X(c.x))), Math.max(R(0.16), Y(c.y) - R(c.r) - R(0.09)), '되감기!', '#bff6ff', s.firstTap === t ? 34 : 26);
         fx.blink('#bff0ff', s.firstTap === t ? 0.3 : 0.14);
         fx.kick(s.firstTap === t ? 6 : 3);
         fx.sound('rewind', 1.25 / big, 1);
