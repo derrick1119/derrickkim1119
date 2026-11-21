@@ -167,7 +167,7 @@
     const y3 = T.world.y3, n = ps.night;
     if (n < 0.02) return;
     if (ps.lantern > 0.01) P.glow(g, LAMP_X, y3(LAMP_X) - 80, 150, '#ffd98a', 0.5 * n);
-    if (ps.spot) P.glow(g, ps.spot[0], y3(ps.spot[0]) - 78, 150, '#ffdca0', 0.42 * n);
+    if (ps.spot) P.glow(g, ps.spot[0], y3(ps.spot[0]) - 104, 96, '#ffcf8a', 0.34 * n);   /* on faces and shoulders, not down the legs */
     if (ps.room2 > 0.5) P.glow(g, ROOM_X, y3(ROOM_X) - 8, 54, '#ffe9b8', 0.42 * n * (0.85 + 0.15 * Math.sin(T.time * 1.6)));
     if (ps.stage >= 4) { const gy = y3(HX); [[-71, -86], [-1, -86]].forEach((q) => { P.glow(g, HX + q[0], gy + q[1], 70, '#ffd98a', 0.55 * n); P.fill(g, P.rr(HX + q[0] - 25, gy + q[1] - 30, 50, 60, 2), T.rgba('#ffe2a0', 0.5 * n)); }); }
   };
