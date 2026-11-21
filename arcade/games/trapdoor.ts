@@ -2479,12 +2479,18 @@ function drawAll(ctx: C2, s: TrapState, w: number, h: number, _th: Theme) {
   {
     const fi = fx.memo.wf ?? 0;
     if (fi < FONTS.length && t % 2 === 0) font(FONTS[fi][0], FONTS[fi][1]), ctx.measureText('가나다 한 방! 0123'), (fx.memo.wf = fi + 1);
-    const wi = fx.memo.ws ?? 0, list: [K, number][] = [['imp', M_IDLE], ['imp', M_FALL], ['imp', M_DIZZY], ['imp', M_OUCH], ['imp', M_SLEEP], ['imp', M_MAD], ['bear', M_IDLE], ['bear', M_FALL], ['bear', M_DIZZY]];
-    if (wi < list.length * 3) {
-      const [k, mood] = list[wi % list.length];
-      warmSprite(k, mood, ch, Math.floor(wi / list.length), Math.round(R(KD[k].r) * sc));
-      fx.memo.ws = wi + 1;
+    // 이 탑에 나올 스티커를 프레임마다 하나씩 미리 굽는다 (처음 보는 표정에서 끊기지 않게)
+    const wi = fx.memo.ws ?? 0, list: [K, number, number][] = [];
+    for (const mood of [M_IDLE, M_FALL, M_DIZZY, M_OUCH, M_SLEEP, M_MAD, M_HAPPY]) for (let c = 0; c < 3; c++) list.push(['imp', mood, c]);
+    for (const mood of [M_IDLE, M_FALL, M_DIZZY, M_OUCH, M_SLEEP, M_MAD, M_HAPPY]) list.push(['bear', mood, 0]);
+    for (const mood of [M_IDLE, M_FALL]) list.push(['bat', mood, 0]);
+    if (d.boss) for (const mood of [M_IDLE, M_OUCH, M_FALL]) list.push([d.boss, mood, 0]);
+    for (let n = 0; n < 2 && (fx.memo.ws ?? 0) < list.length; n++) {
+      const [k, mood, c] = list[fx.memo.ws ?? 0];
+      warmSprite(k, mood, ch, c, Math.round(R(KD[k].r) * (KD[k].boss ? 1.05 : VIS) * sc));
+      fx.memo.ws = (fx.memo.ws ?? 0) + 1;
     }
+    void wi;
   }
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -2729,7 +2735,8 @@ function drawAll(ctx: C2, s: TrapState, w: number, h: number, _th: Theme) {
     if (m.st === LEAP) rot = -0.4;
     ctx.rotate(rot);
     ctx.scale(sx * (m.face < 0 ? -1 : 1), sy2);
-    stamp(ctx, sprite(m.k, mood, m.v, m.id, Math.round(u * sc)), u);
+    // 스티커는 종류마다 한 크기로만 굽고(깊이에 따른 크기는 찍을 때 늘린다) — 크기마다 새로 굽느라 끊기지 않게
+    stamp(ctx, sprite(m.k, mood, m.v, m.id, Math.round(R(KD[m.k].r) * (boss ? 1.05 : VIS) * sc)), u);
     ctx.restore();
     // 머리 위: 낮잠 zZ · 기절 별 · '!' · 땀
     const top = my - u * (boss ? 2.6 : 2.4);
