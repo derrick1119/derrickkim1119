@@ -1500,7 +1500,7 @@ const TWIN = [['#6fb9ff', '#d9eeff', '#ffd24a'], ['#ff93b6', '#ffe1ea', '#7be0c3
 const KCOL: Record<K, string[]> = {
   gob: GOB[0], twin: TWIN[0], bear: ['#b98352', '#ecd0a8', '#8a5a34'], rabbit: ['#fff4ef', '#ffffff', '#ffb0bd'], boar: ['#9c6c52', '#c79a82', '#6e4634'],
   cracker: ['#ff6f5e', '#ffd9c9', '#ffd24a'], owl: ['#8fa5cc', '#f4f6ff', '#5c6f9c'], chick: ['#ffe166', '#fff5bf', '#ff9a3c'], wiz: ['#6272dc', '#c9d0ff', '#ffd24a'],
-  boss: ['#ef5a4c', '#ffc9b0', '#ffd24a'],
+  boss: ['#ef5a4c', '#ffc9b0', '#ffd24a'], guard: ['#6f8fd8', '#dbe6ff', '#34478a'],
 };
 const BOSSCOL = [['#ef5a4c', '#ffc9b0', '#ffd24a'], ['#6fbf5f', '#e2f5b8', '#8b97a8'], ['#a56fe0', '#ead8ff', '#ffd24a']];
 const colOf = (k: K, v: number, ch = 0) => (k === 'gob' ? GOB[v % 3] : k === 'twin' ? TWIN[v % 3] : k === 'boss' ? BOSSCOL[ch % 3] : KCOL[k]);
@@ -1704,7 +1704,7 @@ function drawMon(ctx: C2, k: K, v: number, R: number, p: Pose) {
     }
     ell(ctx, -R * 0.95, cy + R * 0.35, R * 0.22, R * 0.22);
     fs(ctx, '#ffffff', lw);
-  } else if (k === 'gob' || k === 'twin') {
+  } else if (k === 'gob' || k === 'twin' || k === 'guard') {
     // 뾰족 귀
     for (const sx of [-1, 1]) {
       ctx.beginPath();
@@ -1839,7 +1839,7 @@ function drawMon(ctx: C2, k: K, v: number, R: number, p: Pose) {
     ell(ctx, 0, cy + R * 0.34, rx * 0.62, ry * 0.52);
     fs(ctx, c1);
   }
-  if (k === 'gob' || k === 'twin') {
+  if (k === 'gob' || k === 'twin' || k === 'guard') {
     // 줄무늬 바지
     ctx.save();
     ell(ctx, 0, cy, rx, ry);
@@ -1898,6 +1898,28 @@ function drawMon(ctx: C2, k: K, v: number, R: number, p: Pose) {
       ctx.lineTo(R * 0.42, fy + R * 0.36);
       fs(ctx, '#ffffff', lw * 0.6);
     }
+  } else if (k === 'guard') {
+    // 순찰 모자 · 등불
+    ctx.beginPath();
+    ctx.moveTo(-R * 0.82, cy - R * 0.62);
+    ctx.quadraticCurveTo(-R * 0.7, cy - R * 1.42, 0, cy - R * 1.4);
+    ctx.quadraticCurveTo(R * 0.7, cy - R * 1.42, R * 0.82, cy - R * 0.62);
+    ctx.quadraticCurveTo(0, cy - R * 0.86, -R * 0.82, cy - R * 0.62);
+    fs(ctx, c2, lw);
+    ctx.beginPath();
+    ctx.moveTo(R * 0.1, cy - R * 0.74);
+    ctx.quadraticCurveTo(R * 0.8, cy - R * 0.86, R * 1.2, cy - R * 0.5);
+    ctx.quadraticCurveTo(R * 0.7, cy - R * 0.56, R * 0.1, cy - R * 0.56);
+    ctx.closePath();
+    fs(ctx, '#232f63', lw * 0.8);
+    starPath(ctx, R * 0.05, cy - R * 1.05, R * 0.2, 0);
+    fs(ctx, '#ffd24a', lw * 0.6);
+    line(ctx, R * 1.12, cy + R * 0.02, R * 1.12, cy + R * 0.3, OUT, lw * 0.9);
+    ctx.fillStyle = `rgba(255,236,150,${0.28 + 0.12 * Math.sin(t * 0.2)})`;
+    ell(ctx, R * 1.12, cy + R * 0.5, R * 0.5, R * 0.5);
+    ctx.fill();
+    rr(ctx, R * 0.95, cy + R * 0.3, R * 0.34, R * 0.4, R * 0.08);
+    fs(ctx, '#ffe680', lw * 0.8);
   } else if (k === 'twin') {
     // 별 머리띠
     ctx.strokeStyle = c2;
@@ -3046,24 +3068,7 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
     fs(ctx, '#ffb03c');
   }
 
-  // ── 땅 위 표시: 모이는 자리 · 올빼미 원 · 멧돼지 돌진 길 ──
-  const beat = s.st < s.beat0 ? BEAT - 1 : beatOf(s.st, s.beat0);
-  for (let gi = 0; gi < s.groups.length; gi++) {
-    const G = s.groups[gi];
-    if (G.form !== 0 || G.rout <= G.rin) continue;
-    const gx = X(G.x), gy = Y(G.y);
-    if (gx < -R(0.2) || gx > w + R(0.2)) continue;
-    const on = play && openOf(G, s.st, s.fx, s.beat0) === 0, rx = R(G.rin + 0.055), ry = rx * 0.6;
-    ell(ctx, gx, gy, rx, ry);
-    ctx.fillStyle = on ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.22)';
-    ctx.fill();
-    ctx.setLineDash([R(0.016), R(0.012)]);
-    ctx.lineDashOffset = -t * 0.3;
-    ctx.lineWidth = on ? 2.4 : 1.6;
-    ctx.strokeStyle = on ? '#ff9a3c' : 'rgba(140,100,60,.45)';
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
+  // ── 땅 위 표시: 올빼미 원 · 멧돼지 돌진 길 · 순찰의 눈길 ──
   for (const m of s.mons) {
     const mx = X(m.x), my = Y(m.y);
     if (mx < -R(0.3) || mx > w + R(0.3)) continue;
@@ -3076,6 +3081,18 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
       ctx.lineDashOffset = t * 0.4;
       ctx.lineWidth = 2 + hot * 2;
       ctx.strokeStyle = `rgba(232,64,47,${0.55 + hot * 0.45})`;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    if (m.k === 'guard' && m.st === IDLE && m.wind > 0) {
+      // 순찰이 여우를 보는 눈길
+      ctx.setLineDash([R(0.012), R(0.012)]);
+      ctx.lineDashOffset = -t * 0.6;
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = `rgba(232,64,47,${0.35 + 0.5 * (m.wind / WATCH_T)})`;
+      ctx.beginPath();
+      ctx.moveTo(mx, my - R(0.07));
+      ctx.lineTo(X(s.fx) + R(0.03), Y(FOX_Y) - R(0.13));
       ctx.stroke();
       ctx.setLineDash([]);
     }
@@ -3139,10 +3156,13 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
       draw: () => {
         const ds = depth(m.y) * (m.k === 'boss' ? 1 : 1), RR = R(m.r) * 1.18 * ds;
         let ex = 0, arm = 0, lx = 0, ly = 0, ox = 0, oy = 0, rot = 0, alpha = 1, walk = m.walk, sq = 1;
-        const G = s.groups[m.g];
-        const huddle = !!G && G.form === 0 && G.rout > G.rin && play && openOf(G, s.st, s.fx, s.beat0) === 0;
-        // 눈길: 가장 가까운 옆 놈(= 톡 하면 때릴 놈)을 흘끔
-        if (m.st === IDLE || m.st === NOTICE) {
+        const gc = m.st === IDLE && m.gk >= 0 ? cloudById(s, m.gk) : null;
+        // 눈길: 구경 중이면 구름을, 아니면 가장 가까운 옆 놈을 흘끔
+        if (gc) {
+          const l = Math.hypot(gc.x - m.x, gc.y - m.y) || 1;
+          lx = Math.abs(gc.x - m.x) / l;
+          ly = (gc.y - m.y) / l - 0.3;
+        } else if (m.st === IDLE || m.st === NOTICE) {
           let bd = 0.3 ** 2, bx = 0, by = 0;
           for (const o of s.mons) {
             if (o === m || !canFight(o)) continue;
@@ -3154,9 +3174,11 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
         }
         switch (m.st) {
           case IDLE:
-            ex = m.sus > 0 ? 7 : m.k === 'owl' && m.wind > 0 ? 9 : m.k === 'rabbit' && anyCloud ? 3 : m.k === 'chick' && anyCloud ? 6 : huddle && beat > 30 && (Math.floor(t / 22) + m.id) % 3 === 0 ? 6 : 0;
+            ex = m.k === 'owl' && m.wind > 0 ? 9 : m.k === 'guard' ? (m.wind > 0 ? 8 : 7) : m.k === 'rabbit' && anyCloud ? 3 : gc ? ((Math.floor(t / 16) + m.id) % 4 === 0 ? 0 : 6) : 0;
             if (m.k === 'boss') ex = t - m.hitT < 40 ? 2 : anyCloud ? 8 : 0;
-            if (huddle && !m.still) oy = -Math.abs(Math.sin(t * 0.2 + m.id)) * R(0.006);
+            // 구경꾼: 만세 하며 폴짝폴짝 '오오~'
+            if (gc && !m.walk) (arm = 2), (oy = -Math.abs(Math.sin(t * 0.3 + m.id * 1.7)) * R(0.014));
+            if (gc && !m.walk && (t + m.id * 13) % 70 === 0) say(m.x, m.y - m.r * 3.2, (m.id + Math.floor(t / 70)) % 3 ? '오오~' : '싸움이다!', '#ffffff', 13);
             break;
           case ENTER:
             walk = true;
@@ -3252,9 +3274,23 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
           ctx.beginPath();
           ctx.arc(mx, top, R(0.04), -Math.PI / 2, -Math.PI / 2 + TAU * (m.tm / NOTICE_T));
           ctx.stroke();
-        } else if (m.st === IDLE && m.sus > 0) {
-          font(0.04, 900);
-          text('?', mx + RR * 0.6, top + RR * 0.3 + Math.sin(t * 0.3) * 2, '#ffffff', OUT, 3.5);
+        } else if (m.k === 'guard' && m.st === IDLE) {
+          // 순찰: 머리 위 눈금 (차면 '!')
+          const a = clamp(m.wind / WATCH_T, 0, 1), gw = R(0.13), gh = R(0.028), hot = a > 0.6, pulse = hot ? 1 + 0.1 * Math.sin(t * 0.5) : 1;
+          ctx.save();
+          ctx.translate(mx + R(0.01), top + R(0.012));
+          ctx.scale(pulse, pulse);
+          rr(ctx, -gw / 2, -gh / 2, gw, gh, gh / 2);
+          fs(ctx, '#fff6dc', 2.2);
+          if (a > 0.02) {
+            rr(ctx, -gw / 2 + 2, -gh / 2 + 2, Math.max(gh - 4, (gw - 4) * a), gh - 4, gh / 2);
+            fs(ctx, hot ? '#e8402f' : '#ff9a3c');
+          }
+          ell(ctx, -gw / 2 - R(0.004), 0, R(0.024), R(0.016 + a * 0.008));
+          fs(ctx, '#ffffff', 2.2);
+          ell(ctx, -gw / 2 - R(0.008), 0, R(0.009), R(0.011));
+          fs(ctx, hot ? '#e8402f' : '#2a1a10');
+          ctx.restore();
         } else if (m.k === 'boss' && m.st === IDLE) {
           // 대장: 구름에 몇 마리가 있어야 삼켜지나
           const bw = R(0.16), bh = R(0.058);
@@ -3298,12 +3334,13 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
         drawBrawl(ctx, r, t, c, pop);
         ctx.restore();
         // 휘말린 수
-        if (c.n >= 3) {
-          const k = clamp(0.05 + c.n * 0.004, 0.05, 0.1) * (1 + pop * 0.3);
+        const num = s.tc[c.tap & 15];
+        if (num >= 3 && c.tap > 1) {
+          const k = clamp(0.05 + num * 0.0035, 0.05, 0.11) * (1 + pop * 0.3);
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           font(k, 900);
-          text(`${c.n}`, cx, cy - r * 1.95, c.n >= 9 ? '#ff6f5e' : c.n >= 5 ? '#ff9a3c' : '#ffffff', OUT, 4.5);
+          text(`${num}`, cx, cy - r * 1.95, num >= 9 ? '#ff6f5e' : num >= 5 ? '#ff9a3c' : '#ffffff', OUT, 4.5);
         }
       },
     });
@@ -3356,43 +3393,6 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
     ell(ctx, -gw / 2 - R(0.004) + Math.sin(t * 0.1) * R(0.006), 0, R(0.009), R(0.011));
     fs(ctx, hot ? '#e8402f' : '#2a1a10');
     ctx.restore();
-  }
-
-  // ── 무리 말풍선: 수군수군 ──
-  if (play) {
-    for (let gi = 0; gi < s.groups.length; gi++) {
-      const G = s.groups[gi];
-      if (G.form !== 0 || G.rout <= G.rin || openOf(G, s.st, s.fx, s.beat0) !== 0 || beat < 26) continue;
-      let n = 0;
-      for (const m of s.mons) if (m.g === gi && canFight(m) && !m.still) n++;
-      if (n < 3) continue;
-      const gx = X(G.x), gy = Y(G.y) - R(0.2), left = (HUDDLE - beat) / (HUDDLE - 26);
-      if (gx < 0 || gx > w) continue;
-      const bw = R(0.2), bh = R(0.062), pop2 = backOut(clamp((beat - 26) / 8, 0, 1));
-      ctx.save();
-      ctx.translate(gx, gy);
-      ctx.scale(pop2, pop2);
-      ctx.beginPath();
-      ctx.roundRect(-bw / 2, -bh / 2, bw, bh, bh / 2);
-      ctx.moveTo(-R(0.014), bh / 2 - 1);
-      ctx.lineTo(0, bh / 2 + R(0.022));
-      ctx.lineTo(R(0.014), bh / 2 - 1);
-      fs(ctx, '#ffffff', 2.2);
-      rr(ctx, -bw / 2 + 2, -bh / 2 + 2, bw - 4, bh - 4, bh / 2);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-      font(0.036, 800);
-      text('수군수군', 0, 1, left < 0.3 ? '#c9a27a' : '#6b4a2a');
-      // 흩어지기까지 남은 시간
-      ctx.strokeStyle = '#ff9a3c';
-      ctx.lineWidth = 3;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(-bw * 0.36, bh / 2 - 4);
-      ctx.lineTo(-bw * 0.36 + bw * 0.72 * clamp(left, 0, 1), bh / 2 - 4);
-      ctx.stroke();
-      ctx.restore();
-    }
   }
 
   // ── 딱! (만화 칸 터짐) ──
