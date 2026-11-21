@@ -87,9 +87,11 @@ const done = ab.rounds.filter((r) => r.winner);
 const curPicks = cur.games && !cur.winner ? machinePicks(cur.games.filter((id) => evals[id]).map((id) => evals[id])) : {};
 const picksLine = curPicks.pick1 ? `<p class="muted">기계 추천(참고만 — 고르기는 오너 몫, 0101): 봇 재미 1위 <b>${esc(nameOf(curPicks.pick1))}</b>${curPicks.pick2 ? ` · 버릇대로 하면 ★3이 가장 어려운 것 <b>${esc(nameOf(curPicks.pick2))}</b>` : ''}</p>` : '';
 // 0111: 기계 추천 1(재미 1위)·2(버릇 ★3 최저)가 오너 선택을 맞혔나 — 고른 라운드만 센다(전체 폐기는 맞힘 판정 없음)
-const picked = done.filter((r) => r.winner !== 'none' && r.machinePick2);
+// 0122: 오너가 모두 고른 라운드(38: 셋 다 이어 다듬기)는 '무엇을 고르나'를 가르지 않으니 맞힘에서 뺀다
+const allKept = (r: (typeof done)[number]) => !!r.games && r.games.every((g) => r.winner!.split(',').includes(g));
+const picked = done.filter((r) => r.winner !== 'none' && r.machinePick2 && !allKept(r));
 const hit = (k: 'machinePick' | 'machinePick2') => picked.filter((r) => r.winner!.split(',').includes(r[k]!)).length;
-const pickLine = `<li><b>기계 추천 맞힘</b> — 32라운드부터 오너가 하나라도 고른 라운드 ${picked.length}개 중 추천 1(재미 1위) ${hit('machinePick')}번 · 추천 2(버릇대로 하면 ★3이 가장 어려운 것) ${hit('machinePick2')}번. 전체 폐기 라운드 ${done.filter((r) => r.winner === 'none' && r.machinePick2).length}개는 판정 없음. 계기판은 고르기를 돕는 참고일 뿐(0101).</li>`;
+const pickLine = `<li><b>기계 추천 맞힘</b> — 32라운드부터 오너가 하나라도 고른 라운드 ${picked.length}개 중 추천 1(재미 1위) ${hit('machinePick')}번 · 추천 2(버릇대로 하면 ★3이 가장 어려운 것) ${hit('machinePick2')}번. 전체 폐기 라운드 ${done.filter((r) => r.winner === 'none' && r.machinePick2).length}개·모두 고른 라운드 ${done.filter((r) => r.winner !== 'none' && r.machinePick2 && allKept(r)).length}개는 판정 없음. 계기판은 고르기를 돕는 참고일 뿐(0101).</li>`;
 
 const html = `<!DOCTYPE html>
 <html lang="ko">
