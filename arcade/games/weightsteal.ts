@@ -11,8 +11,8 @@
  * 고양이는 저절로 보물 쪽으로 살금살금 걷다가 막히면 기다린다(아무것도 안 해도 잃는 것 없음).
  * 판 목표 = 고양이가 보물까지. 별 = 보물 · 톡 N번 안에 · 그 판의 도전(주머니 비우기·모두 납작·보석·꽃병 지키기 …).
  * 실패(납작 · 풍덩 · 톡을 다 씀) = 하트 -1, 같은 판 다시. 판을 깨면 보물이 '고양이의 비밀 창고'에 쌓인다.
- * 3장 14판: 1장 정원(바위·깃털 → 경비견 둥실 → 투구 → 시소 → 흔들다리) · 2장 성벽(도개교 → 바람 → 저울문 → 함정문 → 대포알)
- *   · 3장 보물 탑(샹들리에 → 주머니 둘 → 둥실 고양이 → 왕관).
+ * 3장 18판: 1장 정원(바위·깃털 → 경비견 둥실 → 투구 → 양팔 저울 → 시소 → 곰 징검다리) · 2장 성벽(도개교 → 와르르 선반 → 바람 타기 → 바람 다리 → 바람 둘 → 저울문 → 해자)
+ *   · 3장 보물 탑(샹들리에 → 쿵 고양이 → 주머니 둘 → 둥실 고양이 → 왕관). 39라운드: 막힘 힌트(전구) · 막힌 것 표시 · 버팀 무게 표.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -84,7 +84,7 @@ const bd = (k: Kind, x: number, y = 0, o: Partial<BodyDef> = {}): BodyDef => ({ 
 const CH_NAME = ['정원', '성벽', '보물 탑'];
 const XW = 0.714;
 
-// ───────────────────────────── 판 (3장 14판) ─────────────────────────────
+// ───────────────────────────── 판 (3장 18판) ─────────────────────────────
 export const STAGES: StageDef[] = [
   // ── 1장 정원 ── (세상 폭 XW = 1/ZOOM)
   {
@@ -104,7 +104,7 @@ export const STAGES: StageDef[] = [
     par: 2, budget: 7, stars: [ST('clear', 0, '보석 훔치기'), ST('taps', 2, '톡 2번 안에')], next: '',
   },
   {
-    ch: 0, name: '쇠 투구', news: '투구가 누르면 못 떠요 — 투구가 무거워지면?', spot: [0.42, 0.1, 0.07],
+    ch: 0, name: '쇠 투구', news: '투구가 누르고 있으면 훔쳐도 못 떠요 · 경비견은 위에서 4가 누르면 납작', spot: [0.42, 0.1, 0.07],
     hints: [],
     solids: [gnd(0, XW), sol('twig', 0.5, 0.66, 0.42, 0.435, { cap: 3 }), sol('ped', 0.6, 0.7, 0, 0.04)],
     bodies: [bd('rock', 0.22), bd('dog', 0.42), bd('helmet', 0.42, 0.084), bd('apple', 0.6, 0.435)],
@@ -112,7 +112,7 @@ export const STAGES: StageDef[] = [
     par: 2, budget: 5, stars: [ST('clear', 0, '황금알 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('empty', 0, '주머니 비우고 끝내기')], next: '',
   },
   {
-    ch: 0, name: '양팔 저울', news: '두 접시 무게가 똑같으면 문이 열려요', spot: [0.25, 0.3, 0.17],
+    ch: 0, name: '양팔 저울', news: '양팔 저울 — 두 접시 무게가 똑같으면 문이 열려요', spot: [0.25, 0.3, 0.17],
     hints: [],
     solids: [gnd(0, XW), sol('plate', 0.08, 0.2, 0.28, 0.292, { pair: 2 }), sol('plate', 0.3, 0.42, 0.28, 0.292, { pair: 1 }), sol('gate', 0.48, 0.52, 0, 0.27, { gate: 1 }), sol('hedge', 0.46, 0.54, 0.27, 0.36), sol('ped', 0.6, 0.7, 0, 0.04)],
     bodies: [bd('rock', 0.36, 0.292), bd('apple', 0.11, 0.292), bd('pot', 0.17, 0.292), bd('crate', 0.24)],
@@ -120,7 +120,7 @@ export const STAGES: StageDef[] = [
     par: 2, budget: 6, stars: [ST('clear', 0, '황금잔 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('empty', 0, '주머니 비우고 끝내기')], next: '',
   },
   {
-    ch: 0, name: '시소 날기', news: '시소 — 무거운 쪽이 쾅! 반대쪽을 하늘로', spot: [0.25, 0.06, 0.15],
+    ch: 0, name: '시소 날기', news: '시소 — 한쪽이 무거워지면 쾅! 반대쪽을 하늘로', spot: [0.25, 0.06, 0.15],
     hints: [],
     solids: [sol('hedge', 0, 0.115, -0.3, 0.12), gnd(0.115, 0.39), sol('hedge', 0.39, XW, -0.3, 0.2), sol('ped', 0.61, 0.7, 0.2, 0.24), sol('twig', 0.0, 0.12, 0.42, 0.435, { cap: 6 })],
     bodies: [bd('apple', 0.14, 0.05), bd('pumpkin', 0.06, 0.435), bd('dog', 0.5, 0.2)],
@@ -138,7 +138,7 @@ export const STAGES: StageDef[] = [
   },
   // ── 2장 성벽 ──
   {
-    ch: 1, name: '도개교', news: '도개교 — 균형추가 무거우면 다리가 올라가요', spot: [0.51, 0.06, 0.08],
+    ch: 1, name: '도개교', news: '도개교 — 균형추가 다리보다 무거우면 다리가 올라가요', spot: [0.51, 0.06, 0.08],
     hints: [],
     solids: [gnd(0, 0.26), sol('water', 0.26, 0.47, -0.4, -0.24), gnd(0.47, XW), sol('shelf', 0.55, 0.66, 0.36, 0.375, { cap: 9 }), sol('ped', 0.655, XW, 0, 0.04), sol('twig', 0.04, 0.18, 0.42, 0.435, { cap: 3 })],
     bodies: [bd('dog', 0.6), bd('barrel', 0.605, 0.375), bd('apple', 0.11, 0.435)],
@@ -147,22 +147,39 @@ export const STAGES: StageDef[] = [
     par: 2, budget: 5, stars: [ST('clear', 0, '왕관 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('flat', 0, '경비견 납작하게')], next: '',
   },
   {
-    ch: 1, name: '바람 부는 성벽', news: '바람 — 떠오른 것은 바람에 밀려 가요', spot: [0.35, 0.45, 0.12],
+    ch: 1, name: '와르르 선반', news: '선반도 버티는 무게가 있어요 · 곰은 위에서 8이 누르면 납작', spot: [0.32, 0.4, 0.13],
     hints: [],
-    solids: [gnd(0, XW), sol('wall', 0.58, XW, 0.2, 1.2), sol('ped', 0.61, XW, 0, 0.04)],
-    bodies: [bd('barrel', 0.2), bd('dog', 0.35), bd('bear', 0.5)],
-    wind: [{ x0: 0, x1: XW, y0: 0.32, y1: 1.2, vx: 0.0045 }],
-    cat: [0.04, 0], prize: { x: 0.66, y: 0.04, k: 'cup' },
-    par: 4, budget: 7, stars: [ST('clear', 0, '황금잔 훔치기'), ST('taps', 4, '톡 4번 안에'), ST('flat', 0, '둘 다 납작하게')], next: '',
+    solids: [gnd(0, XW), sol('shelf', 0.25, 0.39, 0.5, 0.515, { cap: 5 }), sol('shelf', 0.25, 0.39, 0.3, 0.315, { cap: 10 }), sol('wall', 0.2, 0.25, 0.28, 1.2), sol('ped', 0.6, 0.7, 0, 0.04)],
+    bodies: [bd('crate', 0.12), bd('bear', 0.32), bd('barrel', 0.32, 0.315), bd('sack', 0.32, 0.515)],
+    cat: [0.03, 0], prize: { x: 0.65, y: 0.04, k: 'egg' },
+    par: 2, budget: 6, stars: [ST('clear', 0, '황금알 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('flat', 0, '곰 납작하게')], next: '',
   },
   {
-    ch: 1, name: '바람 다리', news: '바람에 실린 상자, 해자 위에서 무게를 돌려주면?', spot: [0.36, 0.0, 0.11],
+    ch: 1, name: '바람 타기', news: '바람 — 둥실 뜬 것은 바람에 밀려 가요', spot: [0.3, 0.44, 0.13],
+    hints: [],
+    solids: [gnd(0, XW), sol('stone', 0, 0.12, 0.3, 0.33), sol('wall', 0.5, XW, 0.24, 1.2), sol('ped', 0.59, 0.69, 0, 0.04)],
+    bodies: [bd('pumpkin', 0.06, 0.33), bd('barrel', 0.2), bd('dog', 0.44)],
+    wind: [{ x0: 0, x1: XW, y0: 0.3, y1: 1.2, vx: 0.0045 }],
+    cat: [0.04, 0], prize: { x: 0.64, y: 0.04, k: 'map' },
+    par: 2, budget: 6, stars: [ST('clear', 0, '보물 지도 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('flat', 0, '경비견 납작하게')], next: '',
+  },
+  {
+    ch: 1, name: '바람 다리', news: '해자 — 무거운 것이 빠지면 디딤돌이 돼요', spot: [0.36, 0.0, 0.11],
     hints: [],
     solids: [gnd(0, 0.26), sol('water', 0.26, 0.46, -0.3, -0.1), gnd(0.46, XW), sol('wall', 0.46, XW, 0.2, 1.2), sol('ped', 0.62, 0.7, 0, 0.04)],
     bodies: [bd('crate', 0.15), bd('dog', 0.56)],
     wind: [{ x0: 0, x1: XW, y0: 0.3, y1: 1.2, vx: 0.0045 }],
     cat: [0.04, 0], prize: { x: 0.66, y: 0.04, k: 'harp' },
     par: 4, budget: 7, stars: [ST('clear', 0, '황금 하프 훔치기'), ST('taps', 4, '톡 4번 안에'), ST('empty', 0, '주머니 비우고 끝내기')], next: '',
+  },
+  {
+    ch: 1, name: '바람 부는 성벽', news: '바람은 그대로 — 이번엔 경비병이 둘!', spot: [0.35, 0.45, 0.12],
+    hints: [],
+    solids: [gnd(0, XW), sol('wall', 0.58, XW, 0.2, 1.2), sol('ped', 0.61, XW, 0, 0.04)],
+    bodies: [bd('barrel', 0.2), bd('dog', 0.35), bd('bear', 0.5)],
+    wind: [{ x0: 0, x1: XW, y0: 0.32, y1: 1.2, vx: 0.0045 }],
+    cat: [0.04, 0], prize: { x: 0.66, y: 0.04, k: 'cup' },
+    par: 4, budget: 7, stars: [ST('clear', 0, '황금잔 훔치기'), ST('taps', 4, '톡 4번 안에'), ST('flat', 0, '둘 다 납작하게')], next: '',
   },
   {
     ch: 1, name: '저울문', news: '저울문 — 발판에 무게 12가 실리면 문이 열려요', spot: [0.155, 0.32, 0.08],
@@ -173,15 +190,7 @@ export const STAGES: StageDef[] = [
     par: 4, budget: 7, stars: [ST('clear', 0, '황금 하프 훔치기'), ST('taps', 4, '톡 4번 안에'), ST('flat', 0, '곰 납작하게')], next: '',
   },
   {
-    ch: 1, name: '와르르 선반', news: '한 번 주면 줄줄이 — 선반이 차례로 와르르!', spot: [0.32, 0.4, 0.13],
-    hints: [],
-    solids: [gnd(0, XW), sol('shelf', 0.25, 0.39, 0.5, 0.515, { cap: 5 }), sol('shelf', 0.25, 0.39, 0.3, 0.315, { cap: 10 }), sol('wall', 0.2, 0.25, 0.28, 1.2), sol('ped', 0.6, 0.7, 0, 0.04)],
-    bodies: [bd('crate', 0.12), bd('bear', 0.32), bd('barrel', 0.32, 0.315), bd('sack', 0.32, 0.515)],
-    cat: [0.03, 0], prize: { x: 0.65, y: 0.04, k: 'egg' },
-    par: 2, budget: 6, stars: [ST('clear', 0, '황금알 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('flat', 0, '곰 납작하게')], next: '',
-  },
-  {
-    ch: 1, name: '해자 건너기', news: '시소로 해자를 훌쩍 — 모자라면 풍덩!', spot: [0.22, 0.06, 0.15],
+    ch: 1, name: '해자 건너기', news: '시소로 해자를 훌쩍 — 무거울수록 높이, 모자라면 풍덩!', spot: [0.22, 0.06, 0.15],
     hints: [],
     solids: [gnd(0, 0.36), sol('water', 0.36, 0.53, -0.4, -0.24), gnd(0.53, XW), sol('ped', 0.62, XW, 0, 0.04), sol('stone', 0.0, 0.1, 0.36, 0.38)],
     bodies: [bd('crate', 0.09), bd('ball', 0.04, 0.38), bd('dog', 0.58)],
@@ -199,7 +208,7 @@ export const STAGES: StageDef[] = [
     par: 2, budget: 5, stars: [ST('clear', 0, '보석 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('flat', 0, '곰 납작하게')], next: '',
   },
   {
-    ch: 2, name: '쿵 고양이', news: '고양이도 톡! 무거워진 고양이는 마루를 뚫어요', spot: [0.44, 0.33, 0.07],
+    ch: 2, name: '쿵 고양이', news: '이제 고양이도 톡! 마루 바닥은 8까지 버텨요', spot: [0.44, 0.33, 0.07],
     hints: [],
     solids: [gnd(0, XW), sol('stone', 0, 0.25, 0.3, 0.33), sol('trap', 0.25, 0.5, 0.315, 0.33, { cap: 8 }), sol('wall', 0.5, 0.54, 0.33, 1.2), sol('shelf', 0.04, 0.16, 0.47, 0.485), sol('ped', 0.6, 0.7, 0, 0.04)],
     bodies: [bd('anvil', 0.1, 0.485), bd('bear', 0.43), bd('apple', 0.2, 0.33)],
@@ -217,7 +226,7 @@ export const STAGES: StageDef[] = [
     par: 3, budget: 6, stars: [ST('clear', 0, '황금잔 훔치기'), ST('taps', 3, '톡 3번 안에'), ST('flat', 0, '곰 납작하게')], next: '',
   },
   {
-    ch: 2, name: '둥실 고양이', news: '고양이 무게를 훔치면 둥실 — 위층으로 헤엄쳐 가요', spot: [0.39, 0.05, 0.07],
+    ch: 2, name: '둥실 고양이', news: '둥실 뜬 고양이는 보물 쪽으로 헤엄쳐 가요', spot: [0.39, 0.05, 0.07],
     hints: [],
     solids: [gnd(0, XW), sol('stone', 0, 0.36, 0.3, 0.33), sol('stone', 0.47, XW, 0.3, 0.33), sol('wall', 0.44, 0.47, 0, 0.3), sol('ped', 0.63, 0.7, 0.33, 0.37)],
     bodies: [bd('pumpkin', 0.16), bd('dog', 0.555, 0.33), bd('chand', 0.665, 0.47, { rope: 6, ay: 0.58 })],
@@ -226,7 +235,7 @@ export const STAGES: StageDef[] = [
     par: 3, budget: 6, stars: [ST('clear', 0, '보물 지도 훔치기'), ST('taps', 3, '톡 3번 안에'), ST('flat', 0, '경비견 납작하게')], next: '',
   },
   {
-    ch: 2, name: '왕관의 방', news: '마지막 방 — 지금까지 배운 것을 모두', spot: null,
+    ch: 2, name: '왕관의 방', news: '마지막 방 — 저울문은 9 · 사슬은 6까지 · 주머니 둘', spot: null,
     hints: [],
     solids: [gnd(0, XW), sol('stone', 0, 0.27, 0.3, 0.33), sol('stone', 0.4, XW, 0.3, 0.33), sol('wall', 0.4, 0.43, 0, 0.3), sol('plate', 0.45, 0.55, 0.33, 0.342, { need: 9 }),
       sol('gate', 0.6, 0.63, 0.33, 0.52, { gate: 4 }), sol('wall', 0.6, 0.63, 0.52, 1.2), sol('ped', 0.65, XW, 0.33, 0.37)],
@@ -255,6 +264,8 @@ export interface World {
   cat: number; cs: string; prize: { x: number; y: number; k: PrizeK }; gems: Gem[];
   pouch: number[]; slots: number; taps: number; budget: number; catTap: boolean;
   done: number; why: string; calm: number; flats: number; floats: number; breaks: number; frags: number; ev: WEv[] | null;
+  /** 고양이를 막은 것 (그림·힌트용 기록일 뿐 — 시뮬레이션에 쓰지 않는다): -1 없음 · 0~999 단단한 것 · BODY+j 몸 · PLANK 시소 · -2 구덩이(blkX) · -3 머리 위 */
+  blk: number; blkX: number;
 }
 
 const addEv = (W: World, k: string, i: number, x: number, y: number, v = 0) => W.ev && W.ev.push({ t: W.t, k, i, x, y, v });
@@ -276,6 +287,7 @@ export function makeWorld(d: StageDef): World {
   const W: World = {
     t: 0, b, s, saw: null, br: null, wind: d.wind ?? [], ceil: d.ceil ?? 0.58, xw: 1 / (d.z ?? ZOOM), z: d.z ?? ZOOM, cat, cs: 'walk', prize: { ...d.prize }, gems: (d.gems ?? []).map(([x, y]) => ({ x, y, got: -1 })),
     pouch: [], slots: d.slots ?? 1, taps: 0, budget: d.budget, catTap: !!d.catTap, done: 0, why: '', calm: 0, flats: 0, floats: 0, breaks: 0, frags: 0, ev: null,
+    blk: -1, blkX: 0,
   };
   if (d.saw) W.saw = { px: d.saw.px, py: d.saw.py, hl: d.saw.hl, th: d.saw.th, om: 0, lim: d.saw.lim, slamT: -999, thick: 0.018 };
   if (d.bridge) {
@@ -658,6 +670,7 @@ function catAI(W: World) {
   }
   const dir = W.prize.x > c.x ? 1 : -1;
   c.face = dir;
+  W.blk = -1;
   if (c.w === 0 && c.load === 0) {
     W.cs = 'float';
     if (c.mode === RISE && c.vy === 0) c.vx = dir * 0.0022;
@@ -680,23 +693,23 @@ function catAI(W: World) {
     if (!q.on || g1 <= q.x0 || g0 >= q.x1 || q.y1 <= yb || q.y0 >= yt) continue;
     if (q.y1 - c.y <= STEP) {
       if (Math.min(f1, q.x1) - Math.max(f0, q.x0) > OVL) lift = Math.max(lift, q.y1 - c.y);
-    } else blocked = true;
+    } else (blocked = true), W.blk < 0 && (W.blk = q.id);
   }
   for (const o of W.b) {
     if (o === c || !live(o) || o.k === 'bridge' || o.sup === BODY + c.id) continue;
     if (g1 <= o.x - o.hw || g0 >= o.x + o.hw || o.y + o.h <= yb || o.y >= yt) continue;
     const climb = o.y + o.h - Math.max(c.y, o.y) <= STEP && o.y <= c.y + STEP;
-    if (!climb) blocked = true;
+    if (!climb) (blocked = true), W.blk < 0 && (W.blk = BODY + o.id);
     else if (Math.min(f1, o.x + o.hw) - Math.max(f0, o.x - o.hw) > OVL && o.y + o.h - c.y <= STEP) lift = Math.max(lift, o.y + o.h - c.y);
   }
   if (W.saw && c.sup !== PLANK) {
     const pt = plankTop(W.saw, nx + dir * c.hw * 0.5);
     if (pt !== null && pt > c.y + 0.003) {
       if (pt - c.y <= STEP) lift = Math.max(lift, pt - c.y);
-      else blocked = true;
+      else (blocked = true), W.blk < 0 && (W.blk = PLANK);
     }
   }
-  if (!blocked && lift > 0 && !stripFree(W, c, x0, x1, c.y + lift + 0.001)) blocked = true;
+  if (!blocked && lift > 0 && !stripFree(W, c, x0, x1, c.y + lift + 0.001)) (blocked = true), (W.blk = -3);
   if (blocked) {
     W.cs = 'wait';
     return;
@@ -720,7 +733,7 @@ function catAI(W: World) {
       c.sup = NONE;
       W.cs = 'hop';
       addEv(W, 'hop', c.id, c.x, c.y);
-    } else W.cs = 'wait';
+    } else (W.cs = 'wait'), (W.blk = -2), (W.blkX = lead);
     return;
   }
   // 삐걱: 올라서면 부서질 다리·판자 앞에서는 멈춘다
@@ -729,6 +742,7 @@ function catAI(W: World) {
       if (!q.on || q.cap <= 0 || c.sup === q.id || lead <= q.x0 || lead >= q.x1 || Math.abs(q.y1 - c.y) > 0.02) continue;
       if (q.load + c.load > q.cap) {
         W.cs = 'creak';
+        W.blk = q.id;
         return;
       }
     }
@@ -830,6 +844,10 @@ export interface WSState {
   down: boolean; ax: number; ay: number; firstTap: number; firstBig: number; wowN: number; lastWow: number; lastTap: number; stageT: number;
   seen: Set<string>; banner: { head: string; sub: string; t: number } | null; events: Ev[];
   stash: PrizeK[]; gemN: number; best: number[];
+  /** 막힘 힌트(39라운드): hintAt = 전구를 켠 틱(-1 꺼짐) · hintTaps = 그때까지 톡 수 · 힌트 횟수(모두·이 판) · 이번 시도의 톡 기록(몸 번호) */
+  hintAt: number; hintTaps: number; hintAuto: boolean; hintN: number; hintSt: number; hintFor: number; tapLog: number[];
+  /** 마지막으로 '진전'이 있었던 틱 (고양이가 보물에 가까워짐 · 납작·뚝·문 열림 같은 큰 일) — 15초 넘게 없으면 전구가 반짝 */
+  prog: number; bestD: number;
 }
 const GY = 1.03;
 /** 화면(너비 단위) ↔ 세상 (카메라 배율 W.z) */
@@ -848,6 +866,7 @@ function pull(s: WSState) {
   for (const e of W.ev) {
     s.events.push({ t: s.t, k: e.k, i: e.i, x: e.x, y: e.y, v: e.v });
     const big = BIG.has(e.k) || (e.k === 'launch' && e.v > 0.012 && W.b[e.i]?.k === 'cat') || (e.k === 'steal' && e.v >= 5) || (e.k === 'gate' && e.v === 1) || (e.k === 'sawslam' && e.v > 0.07);
+    if (big && e.k !== 'steal') s.prog = s.t;
     if (big && s.t - s.lastWow > 20) {
       s.wowN++;
       s.lastWow = s.t;
@@ -871,6 +890,13 @@ function newStage(s: WSState, again = false) {
   s.got = 0;
   s.starOk = s.d.stars.map(() => false);
   s.stageT = s.t;
+  s.tapLog = [];
+  s.hintAt = -1;
+  s.prog = s.t;
+  s.bestD = 9;
+  if (s.hintFor !== s.stage) (s.hintFor = s.stage), (s.hintSt = 0);
+  // 두 번 실패하면 판 시작 때 힌트를 한 번 저절로 (시작 카드가 지나간 뒤)
+  if (!again && s.tries === 2) (s.hintAt = s.t + 100), (s.hintTaps = 0), (s.hintAuto = true), s.hintN++, s.hintSt++;
   const fresh = see(s, 'stage' + s.stage);
   if ((s.d.slots ?? 1) > 1) see(s, 'pouch2');
   if (s.d.wind) see(s, 'wind');
@@ -902,6 +928,18 @@ function finish(s: WSState, ok: boolean) {
 /** 왼쪽 위 ↺ 다시 단추 (화면 너비 단위) */
 export const RESTART = { x: 0.055, y: 0.0425, r: 0.05 };
 const isRestart = (sx: number, sy: number) => Math.hypot(sx - RESTART.x, sy - RESTART.y) < RESTART.r + 0.012;
+/** 오른쪽 위 전구 = 막힘 힌트 (톡 영역 지름 ≈ 화면 폭 12%) */
+export const BULB = { x: 0.943, y: 0.0425, r: 0.05 };
+const isBulb = (sx: number, sy: number) => Math.hypot(sx - BULB.x, sy - BULB.y) < BULB.r + 0.012;
+/** 힌트 켜기: 상태만 적는다 — 계산(지금 상태에서 다음 수)은 그리기 쪽에서 한 번만 (봇·시뮬레이션 무관) */
+function askHint(s: WSState) {
+  s.hintAt = s.t;
+  s.hintTaps = s.tapLog.length;
+  s.hintAuto = false;
+  s.hintN++;
+  s.hintSt++;
+  s.events.push({ t: s.t, k: 'hint', i: -1, x: 0.5, y: 0.5, v: 0 });
+}
 /** 손가락 자리에서 가장 가까운 만질 수 있는 물건 (없으면 -1) */
 export function pickBody(W: World, sx: number, sy: number): number {
   const p = toWorld(W, sx, sy);
@@ -942,7 +980,7 @@ const game: GameDef<WSState> & { wows(s: WSState): number } = {
     '도둑 고양이가 보물까지 가는 길을 만들어요. 톡이 적을수록 별!',
   ],
   controls: 'touch',
-  hint: '물건을 톡 = 무게 훔치기 · 다시 톡 = 무게 주기 / 화살표로 고르고 스페이스',
+  hint: '물건을 톡 = 무게 훔치기 · 다시 톡 = 무게 주기 · 막히면 전구 / 화살표로 고르고 스페이스 · 숫자 1 = 힌트',
   aspect: A,
   art: {
     concept: '도둑 고양이의 동화 성 털기 — 햇살 정원 · 깃발 날리는 성벽 · 촛불 보물 탑을 3/4 시점 디오라마로',
@@ -959,6 +997,7 @@ const game: GameDef<WSState> & { wows(s: WSState): number } = {
       hearts: 3, stars: 0, got: 0, starOk: [], pts: 0, won: false, dead: false, tries: 0, why: '',
       down: false, ax: 0.5, ay: 0.5, firstTap: -1, firstBig: -1, wowN: 0, lastWow: -99, lastTap: -99, stageT: 0, restarts: 0, vaultFrom: 0,
       seen: new Set<string>(), banner: null, events: [], stash: [], gemN: 0, best: STAGES.map(() => 0),
+      hintAt: -1, hintTaps: 0, hintAuto: false, hintN: 0, hintSt: 0, hintFor: -1, tapLog: [], prog: 0, bestD: 9,
     } as unknown as WSState;
     newStage(s);
     return s;
@@ -976,18 +1015,24 @@ const game: GameDef<WSState> & { wows(s: WSState): number } = {
       return;
     }
     if (s.phase === 'play') {
-      if (fresh) {
+      if (inp.pick !== undefined && !s.W.done) askHint(s); // 키보드 1·2·3 = 힌트 (H 키는 판이 받지 못한다)
+      if (fresh && isBulb(p!.x, p!.y * A)) {
+        if (!s.W.done) askHint(s);
+      } else if (fresh) {
         const i = pickBody(s.W, p!.x, p!.y * A);
         if (i >= 0) {
           const r = tapBody(s.W, i);
           if (r) {
             if (s.firstTap < 0) s.firstTap = s.t;
             s.lastTap = s.t;
+            s.tapLog.push(i);
           }
         } else s.events.push({ t: s.t, k: 'miss', i: -1, x: p!.x / s.W.z, y: (GY - p!.y * A) / s.W.z, v: 0 });
       }
       tick(s.W);
       pull(s);
+      const c = s.W.b[s.W.cat], dd = Math.hypot(c.x - s.W.prize.x, c.y - s.W.prize.y);
+      if (dd < s.bestD - 0.02) (s.bestD = dd), (s.prog = s.t);
       if (s.W.done === 1) finish(s, true);
       else if (s.W.done === -1) finish(s, false);
     } else {
@@ -2936,6 +2981,380 @@ const sackPos = (W: World) => {
   return { x: c.x - c.face * 0.03, y: c.y + c.h + 0.02 };
 };
 
+// ───────────────────────────── 막힘 힌트 (39라운드) ─────────────────────────────
+// 전구를 누르면 '지금 상태에서' 잘하는 봇의 계획(planTaps)을 한 번 돌려 첫 손길을 보여 준다.
+// 계산은 그리기 쪽에서만, 전구를 누를 때(그리고 가리킨 대로 한 수 둘 때) 한 번 — 시뮬레이션·봇 측정·s.rng 와 무관.
+interface HStep { id: number; give: boolean; val: number; k: Kind; fx: number; fy: number; tx: number; ty: number; hw: number; h: number; flats: number[]; broke: [number, number][]; eff: string[]; win: boolean; rose: boolean; fell: boolean; on: Kind | null }
+interface HInfo { kind: 'plan' | 'stuck' | 'done'; steps: HStep[]; text: string }
+interface HRec { at: number; k: number; kT: number; left: number; shown: number[]; info: HInfo | null; ended: boolean }
+const HINT = new WeakMap<object, HRec>();
+/** 말에 쓰는 짧은 이름 */
+const nm = (k: Kind) => (k === 'bear' ? '곰' : KD[k].name);
+const ege = (k: Kind) => nm(k) + (GUARD(k) || k === 'cat' ? '에게' : '에');
+/** 한 손길 뒤에 일어난 큰 일 (말 한 줄용) */
+function effects(C: World, ev: WEv[]): string[] {
+  const out: string[] = [];
+  const add = (x: string) => out.includes(x) || out.push(x);
+  for (const e of ev) {
+    const b = ['squash', 'rope', 'shatter', 'launch', 'splash'].includes(e.k) ? C.b[e.i] : null;
+    if (e.k === 'squash' && b) add(`${nm(b.k)} 납작`);
+    else if (e.k === 'snap') add('가지가 뚝');
+    else if (e.k === 'break') add(C.s[e.i].k === 'plank' ? '다리가 와르르' : C.s[e.i].k === 'trap' ? '마루가 와르르' : '선반이 와르르');
+    else if (e.k === 'rope') add('사슬이 뚝');
+    else if (e.k === 'shatter' && b && b.k !== 'pot') add(`${nm(b.k)} 와장창`);
+    else if (e.k === 'gate' && e.v === 1) add('문이 열려요');
+    else if (e.k === 'slam') add('도개교가 쾅 내려와요');
+    else if (e.k === 'launch' && b?.k === 'cat' && e.v > 0.012) add('고양이가 휙 날아가요');
+    else if (e.k === 'splash' && b && b.k !== 'cat') add(`${nm(b.k)} 풍덩 — 디딤돌`);
+  }
+  return out;
+}
+/** '왜'까지 말하는 한 줄: 훔치면 둥실 → 주면 쿵! 무엇이 납작 … (주고 다시 훔치는 이어 주기는 짧게) */
+const EFF_RANK = (e: string) => (e.endsWith('납작') ? 0 : e.startsWith('문이') || e.startsWith('고양이가') ? 1 : 2);
+function hintText(st: HStep[]): string {
+  const parts = st.map((q, j) => {
+    const n = nm(q.k), pv = j > 0 ? st[j - 1] : null, more = j < st.length - 1;
+    const pick = q.eff.slice().sort((a, b) => EFF_RANK(a) - EFF_RANK(b)).slice(0, 2), eff = q.eff.filter((e) => pick.includes(e)); // 중요한 둘을 일어난 차례대로
+    let t: string;
+    if (!q.give) {
+      if (pv && pv.give && pv.id === q.id) t = `다시 훔치면${q.rose ? ` ${n} 둥실` : ''}`;
+      else if (j > 0) t = q.rose ? `${n}도 훔치면 둥실` : `${n}도 훔쳐서`;
+      else t = q.rose || q.eff.length ? `${n} 무게를 훔치면${q.rose ? ' 둥실' : ''}` : `${n} 무게를 훔쳐서`;
+      if (eff.length) t += (q.rose ? ', ' : ' ') + eff.join(', ');
+    } else {
+      const two = j >= 2 && !pv!.give && !st[j - 2].give;
+      t = !pv ? `훔친 무게를 ${ege(q.k)} 주면` : two ? `합쳐서 ${ege(q.k)} 주면` : pv.id === q.id ? '다시 돌려주면' : `그 무게를 ${ege(q.k)} 주면`;
+      if (!eff.length && !q.win && more && !q.fell) t = t.replace('그 무게를 ', '').replace(/ 주면$/, ' 주고').replace(/ 돌려주면$/, ' 돌려주고');
+      else if (q.fell) t += q.on && !eff.some((e) => e.startsWith(nm(q.on!))) ? ` ${nm(q.on)} 위에 쿵!` : ' 쿵!';
+      if (eff.length) t += ' ' + eff.join(', ');
+    }
+    if (q.win && !eff.length) t += ' — 길이 열려요!';
+    return t;
+  });
+  return parts.join(' → ');
+}
+/** 지금 상태에서 다음 수 (가라앉힌 복사본으로 계산). 보여 줄 손길 = 무언가 일어나는(납작·뚝·문·이김) '주기'까지, 많아야 넷 */
+export function computeHint(s: WSState): HInfo {
+  const V0 = cloneWorld(s.W);
+  settle(V0);
+  if (V0.done === 1) return { kind: 'done', steps: [], text: '길이 열렸어요 — 고양이를 지켜봐요!' };
+  const p = V0.done ? [] : planTaps(V0, s.stage), T = cloneWorld(V0);
+  for (const i of p) {
+    if (!tapBody(T, i)) break;
+    settle(T);
+  }
+  if (!p.length || T.done !== 1) return { kind: 'stuck', steps: [], text: '이대로는 못 깨요 — 처음부터 다시 해 볼까요? (하트는 그대로)' };
+  const steps: HStep[] = [], C = cloneWorld(V0);
+  for (let j = 0; j < p.length && j < 4; j++) {
+    const id = p[j], b = C.b[id], fx = b.x, fy = b.y, st0 = C.b.map((o) => o.st), on0 = C.s.map((q) => q.on);
+    C.ev = [];
+    const r = tapBody(C, id), val = C.ev.find((e) => e.k === 'steal' || e.k === 'give')?.v ?? 0;
+    settle(C);
+    const ev = C.ev, eff = effects(C, ev);
+    C.ev = null;
+    const sup = live(b) && b.sup >= BODY && b.sup < PLANK ? C.b[b.sup - BODY] : null;
+    steps.push({
+      id, give: r === 2, val, k: b.k, fx, fy, tx: b.x, ty: b.y, hw: b.hw, h: KD[b.k].h,
+      flats: C.b.filter((o) => st0[o.id] === 0 && o.st === 1 && GUARD(o.k)).map((o) => o.id),
+      broke: ev.filter((e) => (e.k === 'snap' || e.k === 'break') && on0[e.i]).map((e) => [e.i, e.v] as [number, number]),
+      eff, win: C.done === 1, rose: !b.kin && b.y - fy > 0.04, fell: !b.kin && (fy - b.y > 0.03 || ev.some((e) => e.i === id && (e.k === 'land' || e.k === 'splash'))), on: sup ? sup.k : null,
+    });
+    if (C.done || (r === 2 && (eff.length || j >= 2))) break;
+  }
+  return { kind: 'plan', steps, text: hintText(steps) };
+}
+/** 지금 보여 줄 힌트 (없으면 null). 가리킨 물건을 톡하면 다음 손길로 넘어가고, 다른 걸 톡하면 꺼진다 */
+function hintRec(s: WSState): HRec | null {
+  if (s.hintAt < 0 || s.t < s.hintAt || s.phase !== 'play' || s.W.done) return null;
+  let r = HINT.get(s);
+  if (!r || r.at !== s.hintAt) HINT.set(s, (r = { at: s.hintAt, k: -1, kT: s.t, left: 0, shown: [], info: null, ended: false }));
+  if (r.ended) return null;
+  const k = s.tapLog.length - s.hintTaps;
+  if (k !== r.k) {
+    if (k > 0 && (s.tapLog[s.hintTaps + k - 1] !== r.shown[k - 1] || r.left - 1 <= 0)) return (r.ended = true), null;
+    const info = computeHint(s);
+    if (k === 0) r.left = info.steps.length;
+    else r.left--;
+    r.k = k;
+    r.kT = s.t;
+    r.info = info;
+    if (info.steps.length) r.shown[k] = info.steps[0].id;
+  }
+  return r;
+}
+function wrapText(ctx: C2, text: string, size: number, maxW: number): string[] {
+  ctx.font = `900 ${size}px system-ui, sans-serif`;
+  const words = text.split(' '), lines: string[] = [];
+  let cur = '';
+  for (const wd of words) {
+    const nx = cur ? cur + ' ' + wd : wd;
+    if (cur && ctx.measureText(nx).width > maxW) (lines.push(cur), (cur = wd));
+    else cur = nx;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+function arrowV(ctx: C2, x: number, y: number, len: number, up: boolean, col: string, wd: number) {
+  // 굵은 위/아래 화살표 (끝이 y)
+  const d = up ? -1 : 1, hy = y, by = y - d * len;
+  ctx.beginPath();
+  ctx.moveTo(x - wd * 0.32, by);
+  ctx.lineTo(x - wd * 0.32, hy - d * wd * 0.75);
+  ctx.lineTo(x - wd * 0.75, hy - d * wd * 0.75);
+  ctx.lineTo(x, hy);
+  ctx.lineTo(x + wd * 0.75, hy - d * wd * 0.75);
+  ctx.lineTo(x + wd * 0.32, hy - d * wd * 0.75);
+  ctx.lineTo(x + wd * 0.32, by);
+  ctx.closePath();
+  ctx.fillStyle = col;
+  ctx.fill();
+  stroke(ctx, OUT, 1.6);
+}
+function numTag(ctx: C2, x: number, y: number, text: string, size: number, bg: string, fg: string) {
+  ctx.font = `900 ${size}px system-ui, sans-serif`;
+  const tw = ctx.measureText(text).width + size * 0.7;
+  ctx.fillStyle = bg;
+  rr(ctx, x - tw / 2, y - size * 0.62, tw, size * 1.24, size * 0.5);
+  ctx.fill();
+  stroke(ctx, OUT, 1.6);
+  txt(ctx, text, x, y + 1, size, fg, 900, 'center', '');
+}
+/** 한 손길 미리 보기: 위/아래 화살표와 ±무게 · 갈 자리(점선) · 납작될 것 · 부서질 것 */
+function drawStep(ctx: C2, s: WSState, vw: V, q: HStep, main: boolean) {
+  const W = s.W, lb = W.b[q.id], R = vw.R, t = vw.t;
+  if (!lb || !live(lb)) return;
+  // 지금 할 손길은 실제 물건 자리, 그다음 손길은 앞 손길 뒤에 있을 자리(시뮬레이션)에
+  const b = main ? lb : { ...lb, x: q.fx, y: q.fy, h: q.h, st: 0 };
+  const col = q.give ? '#ff8a3a' : '#8fdcff', x = vw.X(b.x), top = baseY(vw, b.y + (b.st === 1 ? FLAT_H : b.h));
+  ctx.save();
+  ctx.globalAlpha *= main ? 1 : 0.62;
+  // 갈 자리: 점선 그림자 + 점선 길
+  if (Math.hypot(q.tx - b.x, q.ty - b.y) > 0.03) {
+    const gx = vw.X(q.tx), gb = baseY(vw, q.ty), gh = R(q.h), gw = R(q.hw * 2);
+    ctx.setLineDash([R(0.012), R(0.009)]);
+    ctx.lineDashOffset = -t * 0.6;
+    ctx.fillStyle = q.give ? 'rgba(255,140,60,.16)' : 'rgba(150,220,255,.2)';
+    rr(ctx, gx - gw / 2, gb - gh, gw, gh, R(0.012));
+    ctx.fill();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2.4;
+    ctx.stroke();
+    const y0 = baseY(vw, b.y + b.h / 2), y1 = gb - gh / 2;
+    ctx.strokeStyle = q.give ? 'rgba(200,80,20,.8)' : 'rgba(60,140,210,.8)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y0);
+    ctx.quadraticCurveTo((x + gx) / 2, Math.min(y0, y1) - R(0.04), gx, y1);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  // 위(훔치기) · 아래(주기) 화살표와 숫자
+  const ax = clamp(x + R(q.hw) + R(0.035), R(0.03), vw.w - R(0.06)), ay = Math.max(top - R(0.02), vw.w * 0.085 + R(0.11));
+  const bob = Math.sin(t * 0.2) * R(0.006) * (q.give ? 1 : -1);
+  if (q.give) arrowV(ctx, ax, ay + bob, R(0.06), false, col, R(0.032));
+  else arrowV(ctx, ax, ay - R(0.06) + bob, R(0.06), true, col, R(0.032));
+  numTag(ctx, ax, ay - R(0.085) + bob, `${q.give ? '+' : '−'}${q.val}`, R(0.03), q.give ? '#ffe0c8' : '#e4f6ff', q.give ? '#c84a10' : '#2a6ab8');
+  // 납작될 경비병 · 부서질 판
+  for (const fi of q.flats) {
+    const g = W.b[fi];
+    if (!g || g.st !== 0) continue;
+    const gx = vw.X(g.x), gy = baseY(vw, g.y) - R(g.h / 2);
+    ctx.setLineDash([R(0.01), R(0.008)]);
+    ctx.strokeStyle = '#e8453a';
+    ctx.lineWidth = 2.6;
+    ell(ctx, gx, gy, R(g.hw + 0.025), R(g.h / 2 + 0.022));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    txt(ctx, '납작!', gx, gy + R(g.h / 2 + 0.032), R(0.034), '#ffe14a', 900, 'center', 'rgba(140,30,20,.9)');
+  }
+  for (const [si, ld] of q.broke) {
+    const p = W.s[si];
+    if (!p || !p.on) continue;
+    const y = vw.Y(p.y1), x0 = vw.X(p.x0), x1 = vw.X(p.x1), mx = (x0 + x1) / 2;
+    ctx.strokeStyle = '#e8453a';
+    ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    ctx.moveTo(mx - R(0.012), y - R(0.026));
+    ctx.lineTo(mx + R(0.004), y - R(0.006));
+    ctx.lineTo(mx - R(0.006), y + R(0.004));
+    ctx.lineTo(mx + R(0.012), y + R(0.024));
+    ctx.stroke();
+    capSign(ctx, clamp(mx, R(0.05), vw.w - R(0.05)), y + R(p.k === 'plank' ? 0.05 : p.k === 'twig' ? 0.03 : 0.04), R, p.cap, true, ld);
+  }
+  ctx.restore();
+}
+function drawHint(ctx: C2, s: WSState, v: V, vw: V) {
+  const r = hintRec(s);
+  if (!r || !r.info) return;
+  const R = v.R, w = v.w, t = v.t, info = r.info, age = s.t - r.kT, press = Math.max(0, Math.sin(t * 0.16));
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, age / 8);
+  let fx = -1, fy = -1;
+  if (info.kind === 'stuck') (fx = R(RESTART.x)), (fy = R(RESTART.y));
+  else if (info.kind === 'plan') {
+    const st = info.steps.slice(0, Math.min(2, r.left));
+    for (let j = st.length - 1; j >= 0; j--) drawStep(ctx, s, vw, st[j], j === 0);
+    if (st.length && live(s.W.b[st[0].id])) {
+      const q = bodyScreen(s.W, st[0].id);
+      (fx = q.x * w), (fy = q.y * w);
+    }
+  }
+  if (fx >= 0) {
+    ctx.strokeStyle = `rgba(255,230,90,${0.5 + press * 0.5})`;
+    ctx.lineWidth = 3;
+    ell(ctx, fx, fy, R(0.055 + press * 0.016), R(0.055 + press * 0.016));
+    ctx.stroke();
+    drawHand(ctx, fx + R(0.018), fy + R(0.018), R(0.09), press);
+  }
+  // 말 한 줄 (무엇을 왜)
+  const size = R(0.035), lines = wrapText(ctx, info.text, size, w - R(0.17)).slice(0, 3);
+  const lh = size * 1.3, ch = lines.length * lh + R(0.024), cy = R(PANEL) - R(0.012) - ch;
+  ctx.fillStyle = 'rgba(60,30,10,.3)';
+  rr(ctx, R(0.02) + 2, cy + 3, w - R(0.04), ch, R(0.025));
+  ctx.fill();
+  ctx.fillStyle = lin(ctx, 0, cy, 0, cy + ch, [0, '#fffbe6'], [1, '#ffeeb8']);
+  rr(ctx, R(0.02), cy, w - R(0.04), ch, R(0.025));
+  ctx.fill();
+  stroke(ctx, '#c89a20', 2);
+  bulbIcon(ctx, R(0.065), cy + ch / 2, R(0.022), true, t);
+  lines.forEach((ln, j) => txt(ctx, ln, R(0.11), cy + R(0.012) + lh * (j + 0.5) + 1, size, '#4a2a10', 900, 'left', '', w - R(0.15)));
+  ctx.restore();
+}
+/** 직접 그린 전구 (유리 · 필라멘트 · 나사 받침) */
+function bulbIcon(ctx: C2, x: number, y: number, r: number, lit: boolean, t: number) {
+  if (lit) {
+    ctx.fillStyle = radg(ctx, x, y - r * 0.2, 0, r * 2.4, [0, 'rgba(255,240,140,.85)'], [1, 'rgba(255,220,80,0)']);
+    ell(ctx, x, y - r * 0.2, r * 2.4, r * 2.4);
+    ctx.fill();
+  }
+  // 나사 받침
+  ctx.fillStyle = lin(ctx, x - r * 0.5, 0, x + r * 0.5, 0, [0, '#8a8f9a'], [0.5, '#e4e6ea'], [1, '#7a7f8a']);
+  rr(ctx, x - r * 0.48, y + r * 0.62, r * 0.96, r * 0.62, r * 0.14);
+  ctx.fill();
+  stroke(ctx, OUT, 1.2);
+  ctx.strokeStyle = 'rgba(60,60,70,.6)';
+  ctx.lineWidth = 1;
+  for (const k of [0.82, 1.02]) {
+    ctx.beginPath();
+    ctx.moveTo(x - r * 0.46, y + r * k);
+    ctx.lineTo(x + r * 0.46, y + r * k - r * 0.06);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#4a4e58';
+  ell(ctx, x, y + r * 1.3, r * 0.2, r * 0.12);
+  ctx.fill();
+  // 유리
+  ctx.fillStyle = lit ? radg(ctx, x - r * 0.25, y - r * 0.35, r * 0.1, r * 1.2, [0, '#fffef0'], [0.55, '#ffe86a'], [1, '#ffc21a']) : radg(ctx, x - r * 0.25, y - r * 0.35, r * 0.1, r * 1.2, [0, '#ffffff'], [1, '#e6e0cc']);
+  ctx.beginPath();
+  ctx.moveTo(x - r * 0.44, y + r * 0.64);
+  ctx.quadraticCurveTo(x - r * 0.5, y + r * 0.25, x - r * 0.82, y - r * 0.1);
+  ctx.arc(x, y - r * 0.3, r * 0.86, Math.PI * 0.86, Math.PI * 0.14);
+  ctx.quadraticCurveTo(x + r * 0.5, y + r * 0.25, x + r * 0.44, y + r * 0.64);
+  ctx.closePath();
+  ctx.fill();
+  stroke(ctx, OUT, 1.5);
+  // 필라멘트
+  ctx.strokeStyle = lit ? '#ff7a1a' : '#9a8a6a';
+  ctx.lineWidth = Math.max(1, r * 0.1);
+  ctx.beginPath();
+  ctx.moveTo(x - r * 0.22, y + r * 0.6);
+  ctx.lineTo(x - r * 0.22, y - r * 0.12);
+  for (let k = 0; k <= 4; k++) ctx.lineTo(x - r * 0.22 + (k * r * 0.44) / 4, y - r * 0.12 - (k % 2 ? r * 0.16 : 0));
+  ctx.lineTo(x + r * 0.22, y + r * 0.6);
+  ctx.stroke();
+  // 반짝
+  ctx.fillStyle = 'rgba(255,255,255,.85)';
+  ell(ctx, x - r * 0.42, y - r * 0.55, r * 0.14, r * 0.24, -0.5);
+  ctx.fill();
+  void t;
+}
+/** 고양이가 왜 멈췄나: 막은 것에 빨간 점선과 ! (그림만 — 시뮬레이션은 W.blk 를 적을 뿐) */
+function drawBlock(ctx: C2, s: WSState, v: V) {
+  const W = s.W, c = W.b[W.cat];
+  if (s.phase !== 'play' || W.done || c.st !== 0 || (W.cs !== 'wait' && W.cs !== 'creak') || W.calm < 40 || W.blk === -1 || W.blk === -3 || W.blk === PLANK || isStuck(s)) return;
+  const R = v.R, t = v.t, a = 0.55 + 0.45 * Math.sin(t * 0.15);
+  let x0: number, x1: number, y0: number, y1: number;
+  ctx.save();
+  ctx.setLineDash([R(0.012), R(0.008)]);
+  ctx.lineDashOffset = -t * 0.5;
+  ctx.strokeStyle = `rgba(232,60,40,${a})`;
+  ctx.lineWidth = 2.6;
+  if (W.blk === -2) {
+    // 구덩이: 고양이가 뛸 수 있는 데까지 점선 호 + ✕
+    const d = c.face, sx = v.X(c.x + d * c.hw), ex = v.X(W.blkX + d * HOP), gy = baseY(v, c.y);
+    ctx.beginPath();
+    ctx.moveTo(sx, gy - R(0.01));
+    ctx.quadraticCurveTo((sx + ex) / 2, gy - R(0.12), ex, gy + R(0.02));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineWidth = 3;
+    for (const sd of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(ex - R(0.014), gy + R(0.02) - sd * R(0.014));
+      ctx.lineTo(ex + R(0.014), gy + R(0.02) + sd * R(0.014));
+      ctx.stroke();
+    }
+    (x1 = (sx + ex) / 2 + R(0.02)), (y0 = gy - R(0.1));
+  } else {
+    if (W.blk >= BODY) {
+      const o = W.b[W.blk - BODY];
+      if (!o || !live(o)) return ctx.restore();
+      (x0 = v.X(o.x - o.hw) - R(0.012)), (x1 = v.X(o.x + o.hw) + R(0.012)), (y1 = baseY(v, o.y) + R(0.01)), (y0 = baseY(v, o.y + (o.st === 1 ? FLAT_H : o.h)) - R(0.012));
+    } else {
+      const q = W.s[W.blk];
+      const qx0 = Math.max(q.x0, c.x - 0.22), qx1 = Math.min(q.x1, c.x + 0.22), qy0 = Math.max(q.y0, c.y - 0.03), qy1 = Math.min(q.y1, c.y + c.h + 0.12);
+      (x0 = v.X(qx0) - R(0.006)), (x1 = v.X(qx1) + R(0.006)), (y0 = baseY(v, qy1) - R(q.k === 'plank' || q.k === 'twig' ? 0.03 : 0.006)), (y1 = baseY(v, qy0) + R(0.01));
+    }
+    rr(ctx, x0, y0, x1 - x0, y1 - y0, R(0.016));
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  // ! 표
+  const bx = clamp(x1, R(0.03), v.w - R(0.03)), by = Math.max(R(0.13), y0);
+  ctx.fillStyle = '#e8453a';
+  ell(ctx, bx, by, R(0.019), R(0.019));
+  ctx.fill();
+  stroke(ctx, '#ffffff', 1.6);
+  txt(ctx, '!', bx, by + 1, R(0.028), '#ffffff', 900, 'center', '');
+  ctx.restore();
+}
+/** 버티는 무게 표: 가지·판자·선반·마루·사슬 — 'N까지' (넘으면 뚝). 힌트 미리 보기에서는 실릴 무게를 빨갛게 */
+function capSign(ctx: C2, x: number, y: number, R: (r: number) => number, cap: number, hot: boolean, over = -1) {
+  const str = over >= 0 ? `${over} > ${cap}` : `${cap}까지`;
+  ctx.font = `900 ${R(0.025)}px system-ui, sans-serif`;
+  const tw = ctx.measureText(str).width + R(0.036), hh = R(0.03);
+  ctx.fillStyle = hot ? '#ffd9cf' : '#fff2d2';
+  rr(ctx, x - tw / 2, y - hh / 2, tw, hh, R(0.01));
+  ctx.fill();
+  stroke(ctx, hot ? '#c0392b' : '#7a4c2a', 1.3);
+  // 금 간 판 그림
+  ctx.strokeStyle = hot ? '#c0392b' : '#a8763e';
+  ctx.lineWidth = 1.3;
+  const ix = x - tw / 2 + R(0.012);
+  ctx.beginPath();
+  ctx.moveTo(ix - R(0.006), y - R(0.007));
+  ctx.lineTo(ix + R(0.002), y - R(0.001));
+  ctx.lineTo(ix - R(0.003), y + R(0.003));
+  ctx.lineTo(ix + R(0.006), y + R(0.008));
+  ctx.stroke();
+  txt(ctx, str, x + R(0.006), y + 1, R(0.025), hot ? '#c0392b' : '#5a3a1a', 900, 'center', '');
+}
+function drawCaps(ctx: C2, s: WSState, v: V) {
+  const W = s.W, R = v.R, c = W.b[W.cat];
+  for (const q of W.s) {
+    if (!q.on || q.cap <= 0) continue;
+    const creak = W.blk === q.id && W.cs === 'creak', ld = q.load + (creak ? c.load : 0);
+    const x = clamp(v.X((q.x0 + q.x1) / 2), R(0.05), v.w - R(0.05)), y = v.Y(q.y1) + R(q.k === 'plank' ? 0.05 : q.k === 'twig' ? 0.03 : 0.04);
+    capSign(ctx, x, y, R, q.cap, creak, creak ? ld : -1);
+  }
+  for (const b of W.b) {
+    if (!live(b) || b.rope < 0) continue;
+    // 사슬 왼쪽에 (물건 무게 표와 겹치지 않게)
+    const x = (v.X(b.ax) + v.X(b.x)) / 2 - R(0.055), y = (baseY(v, b.ay) + baseY(v, b.y + b.h)) / 2 + R(0.01);
+    capSign(ctx, x, y, R, b.rope, false);
+  }
+}
+
 function drawSaw(ctx: C2, s: WSState, v: V) {
   const S = s.W.saw;
   if (!S) return;
@@ -3517,6 +3936,11 @@ function playEvents(s: WSState, v: V) {
         fx.sound('rewind', 1, 1);
         fx.blink('#fff6dc', 0.3);
         break;
+      case 'hint':
+        fx.sound('chime', 1.35, 0.8);
+        fx.sound('ding', 1.8, 0.5);
+        fx.burst(v.w * BULB.x, v.w * BULB.y, '#ffe14a', 14, 2.6, 2.2);
+        break;
       case 'vault':
         fx.sound('chime', 0.8, 1.1);
         break;
@@ -3626,21 +4050,69 @@ function drawHud(ctx: C2, s: WSState, v: V) {
   ctx.fill();
   const inCh = STAGES.slice(0, s.stage).filter((q) => q.ch === d.ch).length + 1;
   txt(ctx, `${d.ch + 1}-${inCh} ${d.name}`, R(0.105), cy + 1, R(0.042), '#4a2a10', 900, 'left', '', R(0.44));
-  // 별 · 하트
-  const st = String(s.stars);
+  // 별 · 하트 (오른쪽 끝은 전구 자리)
+  const st = String(s.stars), rx = w - R(0.105);
   ctx.font = `900 ${R(0.04)}px system-ui, sans-serif`;
   const sw = ctx.measureText(st).width;
-  txt(ctx, st, w - R(0.03), cy + 1, R(0.04), '#c87a08', 900, 'right', '');
-  starPath(ctx, w - R(0.03) - sw - R(0.026), cy, R(0.021));
+  txt(ctx, st, rx, cy + 1, R(0.04), '#c87a08', 900, 'right', '');
+  starPath(ctx, rx - sw - R(0.026), cy, R(0.021));
   ctx.fillStyle = '#ffd23a';
   ctx.fill();
   stroke(ctx, OUT, 1.2);
+  drawBulb(ctx, s, v);
   for (let j = 0; j < 3; j++) {
-    const hx = w - R(0.03) - sw - R(0.085) - j * R(0.05);
+    const hx = rx - sw - R(0.085) - j * R(0.05);
     heartPath(ctx, hx, cy, R(0.017));
     ctx.fillStyle = 2 - j < s.hearts ? lin(ctx, hx, cy - R(0.02), hx, cy + R(0.02), [0, '#ff8a95'], [1, '#e2334a']) : 'rgba(110,60,20,.15)';
     ctx.fill();
     stroke(ctx, 2 - j < s.hearts ? '#8a1a2a' : 'rgba(110,60,20,.3)', 1.3);
+  }
+}
+
+/** 오른쪽 위 전구 단추: 한 번 실패하면 살랑살랑 · 15초 넘게 진전이 없거나 막히면 반짝반짝 · 힌트를 보여 주는 동안 켜짐 */
+function drawBulb(ctx: C2, s: WSState, v: V) {
+  const R = v.R, t = s.t, W = s.W, fx = juice(s), bx = R(BULB.x), by = R(BULB.y);
+  const play = s.phase === 'play' && !W.done, on = play && hintRec(s) !== null;
+  const idle = play && !on && s.t - Math.max(s.prog, s.stageT) > 900 && W.calm > 60, stuck = play && !on && isStuck(s), spark = idle || stuck;
+  if (spark && !fx.memo.bulbSpark) fx.sound('ding', 1.7, 0.45);
+  fx.memo.bulbSpark = spark ? 1 : 0;
+  const wob = spark ? Math.sin(t * 0.16) * 0.22 : play && !on && s.tries >= 1 ? Math.sin(t * 0.09) * 0.13 : 0;
+  // 누를 수 있는 동그란 자리
+  ctx.fillStyle = on ? 'rgba(255,214,60,.55)' : spark ? `rgba(255,214,60,${0.3 + 0.25 * Math.sin(t * 0.2)})` : 'rgba(255,236,180,.85)';
+  ell(ctx, bx, by, R(0.036), R(0.036));
+  ctx.fill();
+  stroke(ctx, play ? '#c89a20' : 'rgba(150,110,40,.4)', 1.4);
+  if (spark) {
+    for (let k = 0; k < 8; k++) {
+      const a = (k * TAU) / 8 + t * 0.03, r0 = R(0.04), r1 = R(0.052 + 0.006 * Math.sin(t * 0.25 + k));
+      ctx.strokeStyle = 'rgba(255,190,30,.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(bx + Math.cos(a) * r0, by + Math.sin(a) * r0);
+      ctx.lineTo(bx + Math.cos(a) * r1, by + Math.sin(a) * r1);
+      ctx.stroke();
+    }
+  }
+  ctx.save();
+  ctx.translate(bx, by + R(0.02));
+  ctx.rotate(wob);
+  ctx.globalAlpha = play ? 1 : 0.5;
+  bulbIcon(ctx, 0, -R(0.022), R(0.02), on || spark, t);
+  ctx.restore();
+  if (spark) {
+    // '힌트' 말풍선 (답은 말하지 않는다)
+    const ly = R(0.112), lx = bx - R(0.02);
+    ctx.fillStyle = '#fffbe6';
+    rr(ctx, lx - R(0.05), ly - R(0.018), R(0.1), R(0.036), R(0.018));
+    ctx.fill();
+    stroke(ctx, '#c89a20', 1.4);
+    ctx.fillStyle = '#fffbe6';
+    ctx.beginPath();
+    ctx.moveTo(bx - R(0.004), ly - R(0.018));
+    ctx.lineTo(bx + R(0.006), ly - R(0.036));
+    ctx.lineTo(bx + R(0.014), ly - R(0.018));
+    ctx.fill();
+    txt(ctx, '힌트', lx, ly + 1, R(0.028), '#8a5a08', 900, 'center', '');
   }
 }
 
@@ -3740,10 +4212,11 @@ function drawPanel(ctx: C2, s: WSState, v: V) {
 
 function drawOverlays(ctx: C2, s: WSState, v: V, vw: V) {
   const R = v.R, w = v.w, W = s.W, d = s.d, t = v.t, fx = juice(s);
-  // 시작 카드 + 새것 스포트라이트
-  const bn = s.banner, age = bn ? t - bn.t : 999;
-  if (bn && s.phase === 'play' && age < BANNER_T) {
-    const a = Math.min(1, age / 8, (BANNER_T - age) / 25);
+  // 시작 카드 + 새것 스포트라이트 (새 장치 한 줄은 숫자까지 — 두 줄까지, 조금 더 오래)
+  const bn = s.banner, age = bn ? t - bn.t : 999, isNew = !!bn && d.spot !== null && s.tries === 0 && s.stage > 0 && bn.sub === d.news;
+  const BT = isNew ? BANNER_T + 80 : BANNER_T;
+  if (bn && s.phase === 'play' && age < BT) {
+    const a = Math.min(1, age / 8, (BT - age) / 25);
     if (d.spot && s.tries === 0) {
       const [sx, sy, sr] = d.spot, pul = 1 + 0.05 * Math.sin(t * 0.2);
       ctx.save();
@@ -3758,14 +4231,15 @@ function drawOverlays(ctx: C2, s: WSState, v: V, vw: V) {
     }
     ctx.save();
     ctx.globalAlpha = a;
-    const cy = R(0.14), pop = Math.min(1, 0.6 + age / 10);
-    ctx.translate(w / 2, cy);
-    ctx.scale(pop, pop);
+    const pop = Math.min(1, 0.6 + age / 10), fs = R(0.036), nw = 0;
+    const lines = bn.sub ? wrapText(ctx, bn.sub, fs, w - R(0.18) - nw).slice(0, 2) : [];
     ctx.font = `900 ${R(0.05)}px system-ui, sans-serif`;
     const w1 = ctx.measureText(bn.head).width;
-    ctx.font = `800 ${R(0.036)}px system-ui, sans-serif`;
-    const w2 = bn.sub ? ctx.measureText(bn.sub).width + R(0.08) : 0;
-    const cw = Math.min(w - R(0.06), Math.max(w1, w2) + R(0.1)), ch = bn.sub ? R(0.13) : R(0.08);
+    ctx.font = `900 ${fs}px system-ui, sans-serif`;
+    const w2 = lines.length ? Math.max(...lines.map((l) => ctx.measureText(l).width)) + R(0.06) + nw : 0;
+    const cw = Math.min(w - R(0.06), Math.max(w1, w2) + R(0.08)), ch = R(0.08) + lines.length * fs * 1.3, cy = R(0.1) + ch / 2;
+    ctx.translate(w / 2, cy);
+    ctx.scale(pop, pop);
     ctx.fillStyle = 'rgba(60,30,10,.3)';
     rr(ctx, -cw / 2 + 3, -ch / 2 + 4, cw, ch, R(0.03));
     ctx.fill();
@@ -3773,29 +4247,35 @@ function drawOverlays(ctx: C2, s: WSState, v: V, vw: V) {
     rr(ctx, -cw / 2, -ch / 2, cw, ch, R(0.03));
     ctx.fill();
     stroke(ctx, '#8a5a20', 2.2);
-    txt(ctx, bn.head, 0, bn.sub ? -R(0.025) : 0, R(0.05), '#2a5a9a', 900, 'center', '', cw - R(0.04));
-    if (bn.sub) {
-      const isNew = d.spot !== null && s.tries === 0 && s.stage > 0 && bn.sub === d.news;
-      if (isNew) {
-        ctx.fillStyle = '#ff5a3a';
-        rr(ctx, -cw / 2 + R(0.02), R(0.012), R(0.07), R(0.036), R(0.018));
-        ctx.fill();
-        txt(ctx, 'NEW', -cw / 2 + R(0.055), R(0.031), R(0.03), '#ffffff', 900, 'center', '');
-      }
-      txt(ctx, bn.sub, isNew ? R(0.035) : 0, R(0.03), R(0.036), '#7a3a10', 800, 'center', '', cw - R(0.12));
+    txt(ctx, bn.head, 0, -ch / 2 + R(0.042), R(0.05), '#2a5a9a', 900, 'center', '', cw - R(0.04));
+    if (isNew) {
+      // 왼쪽 위 모서리 딱지
+      ctx.save();
+      ctx.translate(-cw / 2 + R(0.035), -ch / 2 + R(0.004));
+      ctx.rotate(-0.18);
+      ctx.fillStyle = '#ff5a3a';
+      rr(ctx, -R(0.04), -R(0.019), R(0.08), R(0.038), R(0.019));
+      ctx.fill();
+      stroke(ctx, '#ffffff', 1.6);
+      txt(ctx, 'NEW', 0, 1, R(0.03), '#ffffff', 900, 'center', '');
+      ctx.restore();
+    }
+    if (lines.length) {
+      const ly0 = -ch / 2 + R(0.08) + fs * 0.62;
+      lines.forEach((ln, j) => txt(ctx, ln, nw / 2, ly0 + j * fs * 1.3, fs, '#7a3a10', 900, 'center', '', cw - R(0.06) - nw));
     }
     ctx.restore();
   }
-  // 손가락 안내 (첫 판의 안내 · 오래 가만히 있을 때)
-  if (s.phase === 'play' && !W.done) {
+  // 손가락 안내 (첫 두 판의 안내) — 막힘 힌트(전구)를 보여 주는 동안은 그것만
+  if (hintRec(s)) drawHint(ctx, s, v, vw);
+  else if (s.phase === 'play' && !W.done) {
     let tip = '', target = -1;
     const hint = d.hints[W.taps];
-    if (isStuck(s)) tip = '막혔어요 — 왼쪽 위 ↺ 다시 (하트는 그대로)';
+    if (isStuck(s)) tip = '막혔어요 — 왼쪽 위 ↺ 다시 · 전구 = 힌트';
     else if (hint && s.tries < 2) {
       tip = hint[1];
       target = W.b.findIndex((b) => b.k === hint[0] && live(b));
     } else if (W.pouch.length) tip = W.pouch.length < W.slots ? `하나 더 훔치거나 · 무게 0인 것을 톡 = 주기` : `훔친 무게 ${W.pouch.reduce((a, c) => a + c, 0)} — 줄 물건을 톡!`;
-    else if (s.t - s.stageT > 60 * 7 && W.calm > 200) tip = '무게를 훔칠 물건을 톡 — 무엇을 띄우고 무엇을 떨굴까?';
     if (tip) {
       const ty = R(PANEL - 0.04);
       ctx.font = `900 ${R(0.037)}px system-ui, sans-serif`;
@@ -3834,6 +4314,13 @@ function drawOverlays(ctx: C2, s: WSState, v: V, vw: V) {
     stroke(ctx, '#8a5a20', 2.6);
     if (ok) {
       txt(ctx, `${LOOT_NAME[d.prize.k]} 훔쳤다!`, 0, -ch / 2 + R(0.05), R(0.054), '#d0500a', 900, 'center', '', cw - R(0.06));
+      if (s.hintSt > 0) {
+        // 힌트를 써도 별은 그대로 — 몇 번 썼는지만 작게
+        ctx.font = `800 ${R(0.028)}px system-ui, sans-serif`;
+        const hw2 = ctx.measureText(`힌트 ${s.hintSt}번`).width;
+        bulbIcon(ctx, cw / 2 - R(0.045) - hw2, -ch / 2 + R(0.103), R(0.011), false, s.t);
+        txt(ctx, `힌트 ${s.hintSt}번`, cw / 2 - R(0.03), -ch / 2 + R(0.107), R(0.028), '#a08060', 800, 'right', '');
+      }
       // 별
       const nS = d.stars.length;
       for (let j = 0; j < 3; j++) {
@@ -4107,6 +4594,8 @@ function drawAll(ctx: CanvasRenderingContext2D, s: WSState, w: number, h: number
   drawBodies(ctx, s, v);
   drawWater(ctx, s, v, true);
   drawAmbient(ctx, s, v, true);
+  drawCaps(ctx, s, v);
+  drawBlock(ctx, s, v);
   drawTags(ctx, s, v);
   drawOrbs(ctx, s, v);
   playEvents(s, v);
