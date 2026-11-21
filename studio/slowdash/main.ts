@@ -56,7 +56,7 @@ function cues() {
   for (let i = s.events.length - 1; i >= 0 && s.events[i].t === s.t; i--) {
     const e = s.events[i];
     if (e.kind === 'dash') (sfx.play('dash'), (e.n ?? 0) > 0 && sfx.play('slash', e.n));
-    else if (e.kind === 'bounce') sfx.play('clink');
+    else if (e.kind === 'shieldbreak') sfx.play('clink'); // M3 F2: 방패 깨짐(예전 튕김 소리)
     else if (e.kind === 'ding' || e.kind === 'tok') sfx.play('clink');
     else if (e.kind === 'sweep') sfx.play('wave'), sfx.play('slash', 8); // 오너 피드백: 한 획 싹쓸이(🧪: 별 소리와 헷갈려 북 + 가장 높은 챙) // M2 S6 🔔 댕 · S7 🎋 툭
     else if (e.kind === 'shotcut') sfx.play('shotcut');

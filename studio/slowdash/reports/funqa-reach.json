@@ -1,27 +1,22 @@
 {
  "newbieLow": {
-  "reachAll": 0.67,
-  "reachW1": 0.83,
+  "reachAll": 0.83,
+  "reachW1": 1,
   "stuckAt": {
-   "barrel": 2,
-   "mix": 2,
    "leafWait": 1,
    "smoke": 1,
    "leafShield": 1,
    "boss2": 1,
-   "end": 16
+   "end": 20
   }
  },
  "newbieNever": {
   "reachAll": 0,
-  "reachW1": 0.58,
+  "reachW1": 1,
   "stuckAt": {
-   "shield": 2,
-   "barrel": 1,
-   "mix": 5,
-   "shuri": 2,
+   "leaf": 2,
    "leafWait": 5,
-   "leafShuri": 7,
+   "leafShuri": 15,
    "smoke": 2
   }
  },
