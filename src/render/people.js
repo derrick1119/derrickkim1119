@@ -46,15 +46,15 @@ const LOOKS = {
 
 /** 머리 꼭대기(모자 포함) 높이, 발밑 기준. */
 const TOPS = {
-  farmer: -67,
+  farmer: -66,
   kid: -63,
   walker: -60,
   camper: -66,
   fisher: -65,
-  worker: -61,
+  worker: -60,
   streamer: -64,
-  astronomer: -60,
-  photographer: -64,
+  astronomer: -62,
+  photographer: -65,
 };
 
 // ───────── 칠하기 도구 ─────────

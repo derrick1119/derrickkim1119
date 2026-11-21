@@ -899,9 +899,23 @@ const PAINT = {
     for (const [fx, fy, cw, ch] of [[0.15, 0.68, 0.55, 14], [0.75, 0.6, 0.6, 18], [0.45, 0.8, 0.5, 11]]) {
       drawWisp(ctx, wispShape(rng, w * cw, ch * k), w * fx, HUD + pf * fy, '#7a6cc0', '#f8a8a8', 0.85);
     }
-    // 먼 산
+    // 노을이 비친 먼 호수와 산
     const farCol = mixHex('#5a4c9c', '#d08aa8', 0.35);
-    for (const [fx, ht, wd] of [[0.12, 46, 0.3], [0.48, 64, 0.36], [0.86, 40, 0.3]]) mountain(ctx, w * fx, hz + 2, ht * k, w * wd, farCol, null, 0.12);
+    const peaks = [[0.12, 46, 0.3], [0.48, 64, 0.36], [0.86, 40, 0.3]];
+    ctx.fillStyle = vgrad(ctx, hz, hz + D * 0.16, [[0, '#ffb894'], [0.5, '#d890b0'], [1, '#8a74c0']]);
+    ctx.fillRect(0, hz, w, D * 0.18);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, hz + 1, w, D * 0.18);
+    ctx.clip();
+    ctx.globalAlpha = 0.35;
+    ctx.translate(0, 2 * hz + 4);
+    ctx.scale(1, -1);
+    for (const [fx, ht, wd] of peaks) mountain(ctx, w * fx, hz + 2, ht * e.kv, w * wd, farCol, null);
+    ctx.restore();
+    ctx.fillStyle = withAlpha('#ffe0c8', 0.5);
+    for (let i = 0; i < 10; i++) ctx.fillRect(rng() * w, hz + 3 + rng() * D * 0.1, (6 + rng() * 16) * k, 1);
+    for (const [fx, ht, wd] of peaks) mountain(ctx, w * fx, hz + 2, ht * e.kv, w * wd, farCol, null);
     // 골짜기 마을 불빛
     const wv0 = waves(rng, w, 3 * k);
     const yV = (x) => hz + D * 0.1 + wv0(x);
