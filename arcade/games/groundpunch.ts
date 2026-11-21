@@ -1,68 +1,68 @@
 /**
  * 👊 땅 주먹 저글링 (41라운드: 실시간 전투 · 새 뼈대) — 땅 주먹 × 연쇄 × 도감.
- * 규칙 한 줄: 톡 한 땅에서 거대한 흙 주먹이 '쾅!' 솟아 둘레 놈들을 하늘로 날린다 — 떨어지는 놈 아래를 또 치면 더 높이(공중 연속),
- *   떨어지는 놈은 아래 놈들을 깔아 함께 기절시킨다. 기절한 놈은 동전으로 펑.
- * 뒤집힘: 나는 땅 그 자체(꼬마 흙 정령)다. 적을 때리지 않는다 — 땅을 쳐서 띄우고, 띄운 놈을 무기로 떨어뜨린다.
- * 무대: 밝은 낮의 들판 → 숲 → 사막 길을 옆에서 보며 오른쪽으로 나아간다(카메라가 천천히 흐르고, 길이 비면 휙 앞으로 — 꽃길 가까이에 놈이 있으면 기다려 준다).
- *   지킬 기지는 없다: 길에서 어슬렁대는 작은 무리(3~6)가 화면 왼쪽 끝(지나온 꽃길)까지 걸어오면 꽃을 밟는다(하트 -1). '지키기'가 아니라 '길을 쓸며 나아가기'.
- * 조작은 톡 하나(주먹 사이 쉼 0.5초): 어디를 쳐도 주먹은 솟는다(길 위 놈은 화면 폭 14% 안, 떨어지는 놈은 17% 안 — 그림자 근처 아무 데나, 떨어지는 1.5초 내내).
- *   주먹 가운데에서 먼 놈일수록 바깥쪽으로 날아간다 → 무리의 가장자리를 치면 날아간 놈들이 옆 무리 위로 떨어진다(떨어질 자리 고리: 아래에 깔릴 놈이 있으면 금빛).
- * 솜씨 = 눈덩이: 떨어지는 무리가 다음 무리 위에 올 때 그 자리를 치면 한 주먹에 둘 다 뜨고, 그것을 또 앞 무리 위로 — '한 주먹에 N마리'(별 셋째).
- *   한 놈은 공중에서 세 번까지 맞는다 — 세 번째에 별똥별(불꼬리)이 되어 더는 안 맞고, 높이서 떨어지는 놈(공중 둘 이상·무거운 놈)은 쿵! 둘레를 들썩 띄운다.
- *   정답은 없다: 아무 데나 쳐도 누군가는 뜬다. 기다릴 것도 없다: 무리는 처음부터 뭉쳐 있고, 쉼만 끝나면 늘 칠 것이 있다.
+ * 규칙 한 줄: 톡 한 땅에서 거대한 흙 주먹이 '쾅!' 솟아 둘레 놈들을 하늘로 날린다 — 뜬 놈들은 늘 앞쪽(오른쪽) 가장 가까운 무리 위로 떨어져
+ *   그 무리를 깔아 함께 기절시킨다(떨어질 자리엔 늘 그림자 동그라미). 떨어지는 놈 아래를 또 치면 그놈 + 그 아래 무리가 함께 더 높이(공중 연속).
+ * 뒤집힘: 나는 땅 그 자체(꼬마 흙 정령)다. 적을 때리지 않는다 — 땅을 쳐서 띄우고, 띄운 놈을 무기로 다음 무리에 떨어뜨린다.
+ * 판단은 둘뿐: 어느 무리를 칠까 / 떨어지는 놈을 또 칠까(그러면 아래 무리까지 한 주먹에 — 눈덩이). 날아가는 방향은 생각하지 않는다.
+ * 공중 연속: 한 놈이 공중에서 맞은 횟수(최대 3). 연속이 높을수록 더 높이 뜨고(카메라가 따라 올라감), 떨어질 때 별똥별 — 쿵이 ×1.4 · ×2 · ×3로 커지고
+ *   둘레까지 들썩 띄운다. 기절한 놈의 점수 = (1 + 공중 연속)² — 솜씨는 주먹 크기가 아니라 공중 연속에서 나온다.
+ * 조작은 톡 하나(주먹 사이 쉼 0.7초): 어디를 쳐도 주먹은 솟는다(반지름 = 화면 폭 20% — 무리 하나를 거의 다 덮는다). 정답은 없다: 아무 데나 쳐도 누군가는 뜨고 앞 무리를 깐다.
+ * 무대: 카메라를 가까이(땅이 화면 아래 40%) — 하늘이 저글링 무대(구름·새·높이 눈금). 밝은 낮의 들판 → 숲 → 사막 길을 옆에서 보며 오른쪽으로 나아간다
+ *   (카메라가 천천히 흐르고, 길이 비면 휙 앞으로 — 꽃길 가까이에 놈이 있으면 기다려 준다). 지킬 기지는 없다: 무리가 화면 왼쪽 끝 꽃길까지 걸어오면 꽃을 밟는다(하트 -1).
  * 판 12개(장 3 × 4판, 장 끝은 대장): 들판 1 말랑이 → 2 덩치 곰(낮게 뜨고 쿵! 넓게) → 3 우산 두더지(둥실둥실 — 또 치기 쉬움) → 4 대장 거인 멧돼지
- *   → 숲 5 고무공 거북(떨어지면 통통 두 번 더) → 6 바위 골렘(두 번째 주먹에 와장창 — 파편이 둘레를 띄움) → 7 구름 밭(구름에 걸린 놈은 오래 떠 있다) → 8 대장 버섯 왕
- *   → 사막 9 선인장 밭(선인장에 떨어지면 '앗!' 또 튐) → 10 폭탄 풍뎅이(떨어지면 펑 — 둘레가 다 뜸) → 11 모래 회오리(치면 회오리가 둘레를 빨아올림) → 12 대장 거인 전갈.
- * 대장: 너무 무거워 주먹으로 안 뜬다(끄떡없다!) → 곁에서 솟아나는 졸개를 띄워 머리 위로 떨어뜨리면 휘청(높이 떠 있던 놈·무거운 놈일수록 크게) → 휘청 눈금이 차면
+ *   → 숲 5 고무공 거북(떨어지면 통통 앞으로 두 번 더) → 6 바위 골렘(두 번째 주먹에 와장창 — 파편이 둘레를 띄움) → 7 구름 밭(구름에 걸린 놈은 오래 떠 있다) → 8 대장 버섯 왕
+ *   → 사막 9 선인장 밭(선인장에 떨어지면 '앗!' 앞으로 또 튐) → 10 폭탄 풍뎅이(떨어지면 펑 — 둘레가 다 뜸) → 11 모래 회오리(치면 회오리가 둘레를 빨아올림) → 12 대장 거인 전갈.
+ * 대장: 너무 무거워 주먹으로 안 뜬다(끄떡없다!) — 대장이 앞에 있으면 뜬 졸개는 대장 머리 위로 떨어진다 → 휘청(공중 연속·무거운 놈일수록 크게) → 휘청 눈금이 차면
  *   '땅이 통째로 솟는다!' — 땅 기둥이 대장을 들어 올려 하늘 끝으로 날리고, 길 위의 졸개도 모두 뜬다.
  * 성장(저절로): 판을 깨면 흙 정령 레벨 +1(주먹 크기·띄우는 높이·모습: 풀 머리 → 꽃 → 꽃 둘 → 나무 왕관 → 금빛) · 장 끝에 길 위의 큰 돌상 둘 중 하나를 톡
  *   (용암 주먹 / 쌍둥이 주먹 · 천둥 착지 / 회오리 주먹 — 쌍둥이 주먹이 띄운 놈은 '한 주먹' 수에 안 든다) · 도감 = 띄워 본 몬스터 10.
- * 별(쉬운 말 셋): 길 끝까지 · 꽃길 안 밟히기 · 한 주먹에 N마리(주먹이 바로 띄운 수 — 쾅! 하는 순간에 정해진다).
- * 점수: 기절한 놈 하나 = ⌈마지막으로 친 주먹이 바로 띄운 수 × (1 + 공중에서 맞은 횟수) ÷ 2⌉ — 큰 한 주먹과 오래 띄우기가 곧 점수, 판 점수는 별 수로 곱(×1·×2·×4).
- * 큰 띠는 아낀다: 그 판 최고 한 주먹을 둘 이상 넘을 때 · 별 셋째 · 대장이 솟을 때만. 나머지는 사건 자리의 작은 숫자와 소리.
+ * 별(쉬운 말 셋): 길 끝까지 · 꽃길 안 밟히기 · 한 주먹에 N마리(주먹이 바로 띄운 수 — 떨어지는 무리 + 아래 무리를 한 번에). 판 점수는 별 수로 곱(×1·×2·×4).
+ * 큰 띠는 아낀다(0.8초): 그 판 최고 한 주먹을 둘 이상 넘을 때 · 별 셋째 · 대장이 솟을 때만. 큰 글자는 한 번에 하나, 나머지는 사건 자리의 작은 숫자와 소리.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
 import { juice } from '../juice.ts';
 
 const A = 1.5, TAU = Math.PI * 2, DT = 1 / 60;
-/** 길(옆에서 본 띠, 화면 폭 = 1): 발이 닿는 뒤 가장자리 y · 길의 깊이 · 흙 단면 위 · 아래 띠 */
-const GY = 0.985, DZ = 0.15, SOIL = 1.19, HUD_B = 1.305;
-/** 주먹: 반지름(화면 폭 비) · 공중 놈은 이만큼 더 넉넉히 · 주먹 사이 쉼(틱) · 떨어지는 중으로 치는 빠르기(이보다 느리게 오르면 이미 '떨어지는 중') */
-const RF = 0.14, AIR_K = 1.2, CD = 30, FALLING = 0.35;
-/** 뜨기: 오를 때 중력(화면 폭/초²) · 가장 높이 · 옆으로 밀리는 빠르기 · 공중 연속 한 번마다 높이 */
-const G_UP = 3.3, H_MAX = 0.8, VX = 0.4, UP_PER = 0.18;
+/** 길(옆에서 본 띠, 화면 폭 = 1 — 카메라 가까이: 땅이 화면 아래 40%): 발이 닿는 뒤 가장자리 y · 길의 깊이 · 흙 단면 위 · 아래 띠 */
+const GY = 0.87, DZ = 0.19, SOIL = 1.105, HUD_B = 1.305;
+/** 주먹: 반지름(화면 폭 20% — 무리 하나를 거의 다 덮는다) · 공중 놈은 이만큼 더 넉넉히 · 주먹 사이 쉼(0.7초) · 떨어지는 중으로 치는 빠르기 */
+const RF = 0.2, AIR_K = 1.12, CD = 42, FALLING = 0.35;
+/** 뜨기: 오를 때 중력(화면 폭/초²) · 가장 높이 · 공중 연속 한 번마다 높이 · 앞에 무리가 없을 때 앞으로 날아가는 거리 */
+const G_UP = 3.3, H_MAX = 0.85, UP_PER = 0.15, FWD = 0.3;
 /** 한 놈을 공중에서 칠 수 있는 횟수 — 세 번째로 맞으면 별똥별: 더는 안 맞고 쿵! 크게 떨어진다 */
 const C_MAX = 3;
+/** 공중 연속별 착지 크기(쿵 ×1 · ×1.4 · ×2 · ×3) */
+const CRASH = [1, 1.4, 2, 3];
 /** 카메라: 길이 비었을 때 · 판 시작 뒤 저절로 움직이기까지(1판은 첫 톡까지) */
-const CAM_FAST = 0.24, CAM_WAIT = 90;
+const CAM_FAST = 0.36, CAM_WAIT = 90;
 /** 꽃길(화면 왼쪽 끝) · 한 번 밟힌 뒤 하트를 또 잃지 않는 틱 · 화면의 적 상한 */
-const EDGE = 0.035, SAFE_T = 150, CAP = 24;
+const EDGE = 0.05, SAFE_T = 150, CAP = 24;
 /** 구름에 걸려 있는 틱 · 기절한 놈이 동전이 되기까지 · 회오리가 도는 틱 · 용암이 남는 틱 */
 const CATCH_T = 200, KO_T = 34, TWIST_T = 110, LAVA_T = 72, UP_LIFT = 26;
 /** 결과 화면: 톡 받기 시작 · 저절로 넘어감 / 둘 중 하나: 톡 받기 시작 · 저절로 고름 · 고른 뒤 */
 const RES_MIN = 90, RES_AUTO = 420, PICK_MIN = 40, PICK_AUTO = 900, PICK_AFTER = 64, END_T = 210;
 /** 점수: 큰 띠가 뜨는 한 주먹 수 · 판 점수 배수(별 0~3) · 판 깸 · 다 깸 */
-const WOW_N = 4, STAR_MUL = [1, 1, 2, 4], CLEAR_PTS = 20, WIN_PTS = 100;
+const WOW_N = 6, STAR_MUL = [1, 1, 2, 4], CLEAR_PTS = 20, WIN_PTS = 100;
 
 type K = 'blob' | 'bear' | 'mole' | 'boar' | 'turtle' | 'golem' | 'shroom' | 'bomb' | 'twister' | 'scorp';
 interface KDef {
   name: string; line: string; r: number;
-  /** 첫 주먹에 뜨는 높이 · 깔아뭉개는 반지름 · 내려올 때 중력 · 내려오는 가장 빠른 속도 · 옆 끌림(틱마다 곱) */
-  H: number; sq: number; gdn: number; vt: number; drag: number;
+  /** 첫 주먹에 뜨는 높이 · 깔아뭉개는 반지름 · 내려올 때 중력 · 내려오는 가장 빠른 속도 */
+  H: number; sq: number; gdn: number; vt: number;
   heavy?: boolean; boss?: boolean;
 }
 export const KD: Record<K, KDef> = {
-  blob: { name: '말랑이', line: '가볍게 붕! 높이 떠요', r: 0.037, H: 0.5, sq: 0.06, gdn: 0.7, vt: 0.42, drag: 0.975 },
-  bear: { name: '덩치 곰', line: '낮게 뜨지만 떨어지면 쿵! 둘레가 들썩', r: 0.06, H: 0.27, sq: 0.11, gdn: 2.2, vt: 1.0, drag: 0.965, heavy: true },
-  mole: { name: '우산 두더지', line: '우산 펴고 둥실둥실 — 또 치기 쉬워요', r: 0.039, H: 0.5, sq: 0.06, gdn: 0.45, vt: 0.15, drag: 0.99 },
-  boar: { name: '거인 멧돼지', line: '안 떠요 — 졸개를 머리 위로 떨어뜨려요', r: 0.14, H: 0, sq: 0, gdn: 1, vt: 1, drag: 1, boss: true },
-  turtle: { name: '고무공 거북', line: '떨어지면 통통! 두 번 더 튀며 깔아요', r: 0.045, H: 0.44, sq: 0.066, gdn: 0.9, vt: 0.55, drag: 0.982 },
-  golem: { name: '바위 골렘', line: '첫 주먹엔 쩍! 두 번째엔 와장창 파편', r: 0.054, H: 0.3, sq: 0.08, gdn: 1.6, vt: 0.85, drag: 0.97, heavy: true },
-  shroom: { name: '버섯 왕', line: '포자 방패 — 머리 위로 떨어뜨려요', r: 0.14, H: 0, sq: 0, gdn: 1, vt: 1, drag: 1, boss: true },
-  bomb: { name: '폭탄 풍뎅이', line: '떨어지면 펑! 둘레가 다 떠요', r: 0.04, H: 0.46, sq: 0.06, gdn: 0.8, vt: 0.5, drag: 0.975 },
-  twister: { name: '모래 회오리', line: '치면 회오리 — 둘레 놈들을 빨아올려요', r: 0.043, H: 0.52, sq: 0.06, gdn: 0.7, vt: 0.42, drag: 0.975 },
-  scorp: { name: '거인 전갈', line: '마지막 대장 — 머리 위로 우르르', r: 0.145, H: 0, sq: 0, gdn: 1, vt: 1, drag: 1, boss: true },
+  blob: { name: '말랑이', line: '가볍게 붕! 높이 떠요', r: 0.055, H: 0.55, sq: 0.085, gdn: 0.7, vt: 0.45 },
+  bear: { name: '덩치 곰', line: '낮게 뜨지만 떨어지면 쿵! 둘레가 들썩', r: 0.088, H: 0.32, sq: 0.15, gdn: 2.0, vt: 1.0, heavy: true },
+  mole: { name: '우산 두더지', line: '우산 펴고 둥실둥실 — 또 치기 쉬워요', r: 0.058, H: 0.55, sq: 0.085, gdn: 0.45, vt: 0.17 },
+  boar: { name: '거인 멧돼지', line: '안 떠요 — 졸개를 머리 위로 떨어뜨려요', r: 0.2, H: 0, sq: 0, gdn: 1, vt: 1, boss: true },
+  turtle: { name: '고무공 거북', line: '떨어지면 통통! 앞으로 두 번 더 튀어요', r: 0.066, H: 0.48, sq: 0.095, gdn: 0.9, vt: 0.55 },
+  golem: { name: '바위 골렘', line: '첫 주먹엔 쩍! 두 번째엔 와장창 파편', r: 0.08, H: 0.36, sq: 0.11, gdn: 1.6, vt: 0.85, heavy: true },
+  shroom: { name: '버섯 왕', line: '포자 방패 — 머리 위로 떨어뜨려요', r: 0.2, H: 0, sq: 0, gdn: 1, vt: 1, boss: true },
+  bomb: { name: '폭탄 풍뎅이', line: '떨어지면 펑! 둘레가 다 떠요', r: 0.06, H: 0.5, sq: 0.085, gdn: 0.8, vt: 0.5 },
+  twister: { name: '모래 회오리', line: '치면 회오리 — 둘레 놈들을 빨아올려요', r: 0.064, H: 0.56, sq: 0.085, gdn: 0.7, vt: 0.45 },
+  scorp: { name: '거인 전갈', line: '마지막 대장 — 머리 위로 우르르', r: 0.21, H: 0, sq: 0, gdn: 1, vt: 1, boss: true },
 };
 /** 도감 차례(띄워 본 몬스터 · 대장은 솟게 해 본 것) */
 export const DEX: K[] = ['blob', 'bear', 'mole', 'boar', 'turtle', 'golem', 'shroom', 'bomb', 'twister', 'scorp'];
@@ -74,6 +74,7 @@ interface StageDef {
   key: K | 'cloud' | 'cactus'; ch: number; name: string; news: string;
   /** 별 셋째(한 주먹에 N) · 무리가 다가오는 빠르기 · 카메라 평소 빠르기 · 무리 사이 · 무리들(길을 따라 차례로) */
   n: number; v: number; cv: number; gap: number; herds: string[];
+  /** 구름 · 선인장 자리 (무리 차례 단위: 1.5 = 둘째와 셋째 무리 사이) */
   clouds?: number[]; cacti?: number[];
   boss?: { k: K; need: number; summon: string[] };
 }
@@ -84,34 +85,35 @@ export const CHAPTERS = ['햇살 들판 길', '버섯 숲 길', '노을 사막 �
  * 구름·선인장은 길 위 x(시작에서 화면 폭 몇 개).
  */
 export const STAGES: StageDef[] = [
-  { key: 'blob', ch: 0, name: '말랑이', news: '땅을 톡! 흙 주먹이 쾅 — 하늘로 붕', n: 7, v: 0.012, cv: 0.045, gap: 0.27,
+  { key: 'blob', ch: 0, name: '말랑이', news: '땅을 톡! 흙 주먹이 쾅 — 하늘로 붕', n: 8, v: 0.018, cv: 0.0675, gap: 0.42,
     herds: ['bbbbbb', 'bbbb', 'bbbbb', 'bbb', 'bbbbb', 'bbbb', 'bbbbbb', 'bbbb', 'bbbbb', 'bbbb', 'bbbbbb'] },
-  { key: 'bear', ch: 0, name: '덩치 곰', news: '낮게 뜨지만 떨어지면 쿵! 둘레가 들썩', n: 9, v: 0.015, cv: 0.05, gap: 0.27,
+  { key: 'bear', ch: 0, name: '덩치 곰', news: '낮게 뜨지만 떨어지면 쿵! 둘레가 들썩', n: 10, v: 0.0225, cv: 0.075, gap: 0.42,
     herds: ['bbBbb', 'bbbb', 'bBbb', 'bbbbb', 'bbBb', 'bbbb', 'Bbbbb', 'bbbb', 'bbBbb', 'bbbb', 'bbbbBb'] },
-  { key: 'mole', ch: 0, name: '우산 두더지', news: '둥실둥실 — 떨어지기 전에 또 톡!', n: 10, v: 0.017, cv: 0.052, gap: 0.27,
+  { key: 'mole', ch: 0, name: '우산 두더지', news: '둥실둥실 — 떨어지기 전에 또 톡!', n: 11, v: 0.0255, cv: 0.078, gap: 0.42,
     herds: ['bbmbb', 'bbbb', 'mbbm', 'bbBbb', 'bmbb', 'bbbbm', 'mbbb', 'bBbb', 'bbmbb', 'mbbbb', 'bbmbbm'] },
-  { key: 'boar', ch: 0, name: '대장 거인 멧돼지', news: '안 떠요 — 졸개를 머리 위로 떨어뜨려요', n: 9, v: 0.016, cv: 0.05, gap: 0.27,
+  { key: 'boar', ch: 0, name: '대장 거인 멧돼지', news: '안 떠요 — 졸개를 머리 위로 떨어뜨려요', n: 12, v: 0.024, cv: 0.075, gap: 0.42,
     herds: ['bbbbb', 'bBbb', 'bbmbb', 'bbbb'], boss: { k: 'boar', need: 7, summon: ['bbbm', 'bBbb'] } },
-  { key: 'turtle', ch: 1, name: '고무공 거북', news: '떨어지면 통통! 두 번 더 튀며 깔아요', n: 11, v: 0.019, cv: 0.055, gap: 0.27,
+  { key: 'turtle', ch: 1, name: '고무공 거북', news: '떨어지면 통통! 두 번 더 튀며 깔아요', n: 12, v: 0.0285, cv: 0.0825, gap: 0.42,
     herds: ['bbtbb', 'bbmb', 'btbbb', 'bbBb', 'tbbbb', 'bbmb', 'bbtbb', 'bBbt', 'bbbbb', 'btbb', 'bbtbbB'] },
-  { key: 'golem', ch: 1, name: '바위 골렘', news: '두 번 치면 와장창! 파편이 둘레를 띄워요', n: 11, v: 0.019, cv: 0.055, gap: 0.27,
+  { key: 'golem', ch: 1, name: '바위 골렘', news: '두 번 치면 와장창! 파편이 둘레를 띄워요', n: 11, v: 0.0285, cv: 0.0825, gap: 0.42,
     herds: ['bbgbb', 'btbb', 'bbbgb', 'bbmb', 'gbbbb', 'bbBb', 'bbgbbb', 'btbb', 'bbbgb', 'bmbb', 'bgbbgb'] },
-  { key: 'cloud', ch: 1, name: '구름 밭', news: '구름에 걸린 놈은 오래 떠 있어요 — 모아서 톡', n: 12, v: 0.02, cv: 0.055, gap: 0.27,
-    herds: ['bbbbb', 'bbtb', 'bmbbb', 'bbgb', 'bbbbb', 'btbm', 'bbbbbb', 'bBbg', 'bbbbb', 'bmbb', 'bbbmbb'], clouds: [0.75, 1.45, 2.15, 2.85, 3.55] },
-  { key: 'shroom', ch: 1, name: '대장 버섯 왕', news: '포자 방패 — 머리 위로 떨어뜨려요', n: 11, v: 0.02, cv: 0.055, gap: 0.27,
-    herds: ['bbtbb', 'bgbb', 'bbbtb', 'bmbb'], clouds: [1.75], boss: { k: 'shroom', need: 9, summon: ['bbtb', 'bgbb'] } },
-  { key: 'cactus', ch: 2, name: '선인장 밭', news: '선인장 위로 떨어지면 앗! 또 튀어요', n: 12, v: 0.022, cv: 0.058, gap: 0.27,
-    herds: ['bbbbb', 'bbtb', 'bbmbb', 'bgbb', 'bbbbB', 'btbm', 'bbbbbb', 'bbgt', 'bbmbb', 'btbb', 'bbbbbb'], cacti: [0.64, 1.18, 1.72, 2.26, 2.8, 3.34] },
-  { key: 'bomb', ch: 2, name: '폭탄 풍뎅이', news: '떨어지면 펑! 둘레가 다 떠요', n: 13, v: 0.023, cv: 0.06, gap: 0.27,
-    herds: ['bbxbb', 'bbtb', 'bxbbx', 'bbgb', 'bbxbB', 'bmbb', 'xbbbx', 'bbgt', 'bbxbb', 'btbb', 'bbxbbx'], cacti: [1.18, 2.26, 3.34] },
-  { key: 'twister', ch: 2, name: '모래 회오리', news: '치면 회오리 — 둘레 놈들을 빨아올려요', n: 14, v: 0.024, cv: 0.06, gap: 0.27,
-    herds: ['bbwbb', 'bxbb', 'bbbwb', 'bbgt', 'wbbxb', 'bbBb', 'bbbwbb', 'bxbg', 'bbwbb', 'bmbb', 'bbwbbx'], cacti: [1.72, 2.8] },
-  { key: 'scorp', ch: 2, name: '대장 거인 전갈', news: '마지막 대장 — 머리 위로 우르르', n: 12, v: 0.022, cv: 0.058, gap: 0.27,
-    herds: ['bbxbb', 'bwbb', 'bbgbx', 'btbb'], cacti: [1.18], boss: { k: 'scorp', need: 11, summon: ['bbxb', 'bwbb', 'bBbt'] } },
+  { key: 'cloud', ch: 1, name: '구름 밭', news: '구름에 걸린 놈은 오래 떠 있어요 — 모아서 톡', n: 13, v: 0.03, cv: 0.0825, gap: 0.42,
+    herds: ['bbbbb', 'bbtb', 'bmbbb', 'bbgb', 'bbbbb', 'btbm', 'bbbbbb', 'bBbg', 'bbbbb', 'bmbb', 'bbbmbb'], clouds: [0.5, 2.5, 4.5, 6.5, 8.5] },
+  { key: 'shroom', ch: 1, name: '대장 버섯 왕', news: '포자 방패 — 머리 위로 떨어뜨려요', n: 12, v: 0.03, cv: 0.0825, gap: 0.42,
+    herds: ['bbtbb', 'bgbb', 'bbbtb', 'bmbb'], clouds: [3.3], boss: { k: 'shroom', need: 9, summon: ['bbtb', 'bgbb'] } },
+  { key: 'cactus', ch: 2, name: '선인장 밭', news: '선인장 위로 떨어지면 앗! 또 튀어요', n: 13, v: 0.033, cv: 0.087, gap: 0.42,
+    herds: ['bbbbb', 'bbtb', 'bbmbb', 'bgbb', 'bbbbB', 'btbm', 'bbbbbb', 'bbgt', 'bbmbb', 'btbb', 'bbbbbb'], cacti: [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5] },
+  { key: 'bomb', ch: 2, name: '폭탄 풍뎅이', news: '떨어지면 펑! 둘레가 다 떠요', n: 13, v: 0.0345, cv: 0.09, gap: 0.42,
+    herds: ['bbxbb', 'bbtb', 'bxbbx', 'bbgb', 'bbxbB', 'bmbb', 'xbbbx', 'bbgt', 'bbxbb', 'btbb', 'bbxbbx'], cacti: [1.5, 3.5, 5.5, 7.5] },
+  { key: 'twister', ch: 2, name: '모래 회오리', news: '치면 회오리 — 둘레 놈들을 빨아올려요', n: 13, v: 0.036, cv: 0.09, gap: 0.42,
+    herds: ['bbwbb', 'bxbb', 'bbbwb', 'bbgt', 'wbbxb', 'bbBb', 'bbbwbb', 'bxbg', 'bbwbb', 'bmbb', 'bbwbbx'], cacti: [2.5, 5.5, 8.5] },
+  { key: 'scorp', ch: 2, name: '대장 거인 전갈', news: '마지막 대장 — 머리 위로 우르르', n: 14, v: 0.033, cv: 0.087, gap: 0.42,
+    herds: ['bbxbb', 'bwbb', 'bbgbx', 'btbb'], cacti: [1.5], boss: { k: 'scorp', need: 11, summon: ['bbxb', 'bwbb', 'bBbt'] } },
 ];
 /** 무리 자리: 첫 무리는 화면 가운데, 다음은 gap마다 (조금씩 흔들어) — 길 길이는 마지막 무리 뒤로 조금 */
-const herdX = (d: StageDef, i: number, j: number) => 0.5 + i * d.gap + (i ? (j - 0.5) * 0.05 : 0);
-const roadLen = (d: StageDef) => (d.boss ? 0.5 + d.herds.length * d.gap + 0.85 : 0.5 + (d.herds.length - 1) * d.gap + 0.42);
+const herdX = (d: StageDef, i: number, j: number) => 0.46 + i * d.gap + (i ? (j - 0.5) * 0.06 : 0);
+const atIdx = (d: StageDef, q: number) => 0.46 + q * d.gap;
+const roadLen = (d: StageDef) => (d.boss ? 0.46 + d.herds.length * d.gap + 0.75 : 0.46 + (d.herds.length - 1) * d.gap + 0.5);
 export const STAGE_COUNT = STAGES.length;
 /** 장 끝 둘 중 하나(길 위의 큰 돌상) */
 export const PERKS: { name: string; line: string }[][] = [
@@ -123,7 +125,8 @@ export const PERKS: { name: string; line: string }[][] = [
 /** 몬스터 상태: 길을 어슬렁 · 공중 · 구름에 걸림 · 기절(곧 동전) · 꽃을 밟고 달아남 · 회오리 · 대장 · 대장이 솟음 */
 const WALK = 0, AIR = 1, CAUGHT = 2, KO = 3, FLEE = 4, TWIST = 5, BOSS = 6, UPHEAVE = 7;
 interface Mon {
-  id: number; k: K; x: number; z: number; h: number; vx: number; vh: number; r: number;
+  /** 떨어질 x(늘 앞쪽 가장 가까운 무리 위) · 그 무리가 다가오는 빠르기(떨어질 자리도 따라 움직인다) */
+  id: number; k: K; x: number; z: number; h: number; lx: number; lvx: number; vh: number; r: number;
   st: number; tm: number;
   /** 공중 연속(이번에 몇 번째로 공중에서 맞았나) · 이번 비행의 꼭대기 · 마지막으로 친 주먹 · 기절할 때 받을 점수 · 마지막으로 센 주먹 */
   c: number; top: number; tap: number; val: number; cnt: number;
@@ -177,13 +180,23 @@ const falling = (m: Mon) => !m.dead && ((m.st === AIR && m.vh < FALLING) || m.st
 const juggly = (m: Mon) => falling(m) && m.c < C_MAX;
 const bossOf = (s: GPState): Mon | undefined => (s.boss ? s.mons.find((m) => m.id === s.boss && !m.dead) : undefined);
 /** 정령 레벨이 주는 힘: 주먹 반지름 · 띄우는 높이 배수 · 깔아뭉개는 반지름 배수 */
-export const fistR = (s: GPState) => RF * (1 + 0.022 * (s.lv - 1)) * (s.perk[1] === 2 ? 1.28 : 1);
+export const fistR = (s: GPState) => RF * (1 + 0.015 * (s.lv - 1)) * (s.perk[1] === 2 ? 1.22 : 1);
 const liftMul = (s: GPState) => 1 + 0.02 * (s.lv - 1);
 const squashMul = (s: GPState) => (s.perk[1] === 1 ? 1.55 : 1) * (1 + 0.015 * (s.lv - 1));
-/** 이 놈이 떨어지면 깔아뭉개는 반지름 (공중 연속이 쌓일수록 넓다) */
-export const sqR = (s: GPState, m: Mon) => KD[m.k].sq * (1 + 0.16 * Math.min(4, m.c)) * squashMul(s);
-/** 이대로 떨어지면 닿는 x (옆 끌림이 다 줄어든 뒤) */
-export const landX = (m: Mon) => m.x + (m.vx * DT) / (1 - KD[m.k].drag);
+/** 이 놈이 떨어지면 깔아뭉개는 반지름 (공중 연속이 쌓일수록 넓다: 쿵 ×1 · ×1.4 · ×2 · ×3) */
+export const sqR = (s: GPState, m: Mon) => KD[m.k].sq * CRASH[Math.min(C_MAX, m.c)] * squashMul(s);
+/** 떨어질 x */
+export const landX = (m: Mon) => m.lx;
+/** 지금 높이·빠르기에서 땅에 닿기까지 남은 초 (옆으로는 이 시간에 맞춰 떨어질 자리로 간다) */
+function timeToLand(m: Mon): number {
+  const kd = KD[m.k];
+  let t = 0, h = m.h, v = -m.vh;
+  if (v < 0) (t += -v / G_UP), (h += (v * v) / (2 * G_UP)), (v = 0);
+  if (v >= kd.vt) return t + h / kd.vt;
+  const tv = (kd.vt - v) / kd.gdn, dv = v * tv + 0.5 * kd.gdn * tv * tv;
+  if (dv >= h) return t + (-v + Math.sqrt(v * v + 2 * kd.gdn * h)) / kd.gdn;
+  return t + tv + (h - dv) / kd.vt;
+}
 /** 높이 떨어지면 쿵! 둘레가 들썩 (무겁거나 공중 연속 둘 이상) */
 const quakes = (m: Mon) => KD[m.k].heavy === true || m.c >= 2;
 
@@ -198,7 +211,7 @@ function wow(s: GPState, text: string, sub: string, n: number, tap: number, star
 // ───────────────────────────── 무리 ─────────────────────────────
 function add(s: GPState, k: K, x: number, z: number, hid: number, ox: number): Mon {
   const kd = KD[k], m: Mon = {
-    id: ++s.nid, k, x, z, h: 0, vx: 0, vh: 0, r: kd.r, st: isBossK(k) ? BOSS : WALK, tm: 0, c: 0, top: 0, tap: 0, val: 1, cnt: 0,
+    id: ++s.nid, k, x, z, h: 0, lx: x, lvx: 0, vh: 0, r: kd.r, st: isBossK(k) ? BOSS : WALK, tm: 0, c: 0, top: 0, tap: 0, val: 1, cnt: 0,
     spin: 0, spinV: 0, face: -1, hid, ox, ph: s.rng() * TAU, hp: k === 'golem' ? 2 : 1, bounce: k === 'turtle' ? 2 : 0, bonked: false, cl: -1, how: 0, dead: false,
     seed: Math.floor(s.rng() * 1e6), born: s.t, hurtT: -99, landT: -99,
   };
@@ -210,15 +223,15 @@ const isBossK = (k: K) => KD[k].boss === true;
 function placeHerd(s: GPState, hd: HerdDef, v: number) {
   const hid = s.herds.length, kinds = [...hd.m].map((c) => CHAR[c]).sort((a, b) => KD[b].r - KD[a].r);
   s.herds.push({ x: hd.x, v: v * (0.85 + 0.3 * s.rng()) });
-  const sp = hd.sp ?? 0.024 + 0.008 * kinds.length, mine: Mon[] = [];
+  const sp = hd.sp ?? 0.03 + 0.012 * kinds.length, mine: Mon[] = [];
   for (const k of kinds) {
     let bx = 0, bz = DZ / 2, bd = -1;
     for (let i = 0; i < 10; i++) {
-      const ox = (s.rng() * 2 - 1) * sp, z = 0.015 + s.rng() * (DZ - 0.03);
+      const ox = (s.rng() * 2 - 1) * sp, z = 0.02 + s.rng() * (DZ - 0.04);
       let d = 9;
       for (const o of mine) d = Math.min(d, Math.hypot(o.ox - ox, (o.z - z) * 1.6) - (o.r + KD[k].r) * 0.75);
       if (d > bd) (bd = d), (bx = ox), (bz = z);
-      if (d > 0.01) break;
+      if (d > 0.012) break;
     }
     mine.push(add(s, k, hd.x + bx, bz, hid, bx));
   }
@@ -228,13 +241,13 @@ function newStage(s: GPState) {
   Object.assign(s, {
     phase: 'play', pt: 0, sp: 0, got: 0, starOk: [false, false, false], mons: [], herds: [], cam: 0, camV: 0, L: roadLen(d), started: false,
     cd: 0, taps: [], combo: 0, comboT: -99, maxCombo: 0, best: 0, bandAt: 0, lost: false, safeT: 0, kos: 0, clearT: 0,
-    fists: [], lavas: [], clouds: (d.clouds ?? []).map((x, i) => ({ x, h: i % 2 ? 0.5 : 0.45, w: 0.2 })), cacti: (d.cacti ?? []).map((x, i) => ({ x, z: i % 2 ? 0.02 : 0.005 })),
+    fists: [], lavas: [], clouds: (d.clouds ?? []).map((q, i) => ({ x: atIdx(d, q), h: i % 2 ? 0.52 : 0.46, w: 0.3 })), cacti: (d.cacti ?? []).map((q, i) => ({ x: atIdx(d, q), z: i % 2 ? 0.025 : 0.008 })),
     trampT: -99, sx: 0.2, mood: 0, moodT: -99, boss: 0, sway: 0, swayNeed: d.boss?.need ?? 0, bossOn: -1, upT: -1, sealed: false, summonT: 0, summonN: 0,
     freeze: 0, events: [], spot: null, big: null, newDex: [],
   } as Partial<GPState>);
-  d.herds.forEach((m, i) => placeHerd(s, { x: herdX(d, i, s.rng()), m, sp: i === 0 && s.stage === 0 ? 0.07 : undefined }, d.v));
+  d.herds.forEach((m, i) => placeHerd(s, { x: herdX(d, i, s.rng()), m, sp: i === 0 && s.stage === 0 ? 0.1 : undefined }, d.v));
   if (d.boss) {
-    const b = add(s, d.boss.k, s.L - 0.42, DZ * 0.45, -1, 0);
+    const b = add(s, d.boss.k, s.L - 0.36, DZ * 0.45, -1, 0);
     s.boss = b.id;
   }
   // 새것 스포트라이트: 새 몬스터면 처음 보이는 그놈
@@ -253,8 +266,9 @@ const tapOf = (s: GPState, id: number): Tap | undefined => {
   for (let i = s.taps.length - 1; i >= 0; i--) if (s.taps[i].id === id) return s.taps[i];
   return undefined;
 };
-/** 기절한 놈의 점수: ⌈마지막으로 친 주먹이 바로 띄운 수 × (1 + 공중에서 맞은 횟수) ÷ 2⌉ (무거운 놈 두 배) — 큰 한 주먹 · 오래 띄우기가 곧 점수. 작은 주먹으로 다시 치면 작아진다 */
-const valOf = (hit: number, m: Mon) => Math.ceil((Math.max(1, hit) * (1 + m.c)) / 2) * (KD[m.k].heavy ? 2 : 1);
+/** 기절한 놈의 점수: 공중 연속 0·1·2·3 → 1·3·8·20점 (무거운 놈 두 배) — 깔린 놈은 떨어진 놈의 공중 연속을 받는다. 솜씨는 공중 연속에서 */
+const VAL = [1, 3, 8, 20];
+const valOf = (m: Mon) => VAL[Math.min(C_MAX, m.c)] * (KD[m.k].heavy ? 2 : 1);
 /** 이 주먹의 몫으로 센다 */
 function count(s: GPState, m: Mon, tap: Tap | undefined) {
   if (!tap) return;
@@ -272,13 +286,27 @@ function record(s: GPState, tap: Tap) {
   const d = STAGES[s.stage], prev = s.best;
   s.best = n;
   const star = prev < d.n && n >= d.n;
-  if (star || (n >= WOW_N && n >= s.bandAt + 2)) (wow(s, `한 주먹에 ${n}마리!`, BAND[n >= 13 ? 3 : n >= 10 ? 2 : n >= 7 ? 1 : 0], n, tap.id, star), (s.bandAt = n));
+  if (star || (n >= WOW_N && n >= s.bandAt + 3)) (wow(s, `한 주먹에 ${n}마리!`, BAND[n >= 13 ? 3 : n >= 10 ? 2 : n >= 7 ? 1 : 0], n, tap.id, star), (s.bandAt = n));
   if (star) ev(s, 'star3', tap.x, 0.5, n), see(s, 'star3');
 }
-/** 띄우기: 꼭대기 높이 H(지금 높이보다 조금이라도 더) */
-function launch(s: GPState, m: Mon, H: number) {
+/** 앞쪽(오른쪽) 가장 가까운 무리 — 뜬 놈들이 떨어질 곳. 대장이 그보다 가까우면 대장 머리. 없으면 앞으로 조금 (화면 안) */
+function ahead(s: GPState, fromX: number, skip: Set<number>): { x: number; v: number } {
+  let near: Mon | null = null;
+  for (const o of s.mons) if (grounded(o) && !skip.has(o.id) && o.x > fromX + 0.04 && o.x < s.cam + 1.02 && (!near || o.x < near.x)) near = o;
+  const b = bossOf(s);
+  if (b && b.st === BOSS && s.bossOn >= 0 && b.x > fromX && (!near || b.x < near.x + 0.1)) return { x: b.x, v: 0.008 };
+  if (!near) return { x: Math.min(fromX + FWD, s.cam + 0.92), v: 0 };
+  let sx = 0, n = 0;
+  for (const o of s.mons) if (grounded(o) && !skip.has(o.id) && o.hid === near.hid && Math.abs(o.x - near.x) < 0.3) (sx += o.x), n++;
+  const hd = s.herds[near.hid];
+  return { x: Math.min(sx / n, s.cam + 0.93), v: hd ? hd.v : 0 };
+}
+/** 띄우기: 꼭대기 높이 H(지금 높이보다 조금이라도 더) · 떨어질 x · 그 자리가 다가오는 빠르기 */
+function launch(s: GPState, m: Mon, H: number, lx = m.x, lvx = 0) {
   const top = Math.min(H_MAX, Math.max(m.h + 0.1, H));
   m.vh = Math.sqrt(2 * G_UP * Math.max(0.02, top - m.h));
+  m.lx = lx;
+  m.lvx = lvx;
   m.top = top;
   m.st = AIR;
   m.tm = 0;
@@ -289,9 +317,8 @@ function launch(s: GPState, m: Mon, H: number) {
 /** 땅에서 살짝 뜨기(쿵! 들썩 · 파편 · 펑 · 회오리): 바깥으로 */
 function hop(s: GPState, o: Mon, fromX: number, H: number, push: number, tap: Tap | undefined) {
   if (o.k === 'golem' && o.hp > 1) return crack(s, o, tap);
-  o.vx = (o.x >= fromX ? 1 : -1) * push * (0.7 + 0.3 * s.rng());
   o.c = 0;
-  launch(s, o, H * liftMul(s));
+  launch(s, o, H * liftMul(s), o.x + (o.x >= fromX ? 1 : -1) * push * (0.7 + 0.3 * s.rng()));
   count(s, o, tap);
   see(s, 'hop');
 }
@@ -308,7 +335,7 @@ function shatter(s: GPState, m: Mon, tap: Tap | undefined) {
   ko(s, m, 2);
   ev(s, 'shatter', m.x, GY + m.z - m.r, 0);
   see(s, 'shatter');
-  for (const o of s.mons) if (grounded(o) && o !== m && !isBoss(o) && Math.abs(o.x - m.x) <= 0.19 + o.r * 0.5) hop(s, o, m.x, 0.36, 0.22, tap);
+  for (const o of s.mons) if (grounded(o) && o !== m && !isBoss(o) && Math.abs(o.x - m.x) <= 0.26 + o.r * 0.5) hop(s, o, m.x, 0.4, 0.14, tap);
 }
 /** 폭탄 풍뎅이 펑: 둘레가 다 뜬다 */
 function blast(s: GPState, m: Mon, tap: Tap | undefined) {
@@ -318,10 +345,7 @@ function blast(s: GPState, m: Mon, tap: Tap | undefined) {
   see(s, 'blast');
   for (const o of s.mons) {
     if (o === m || o.dead || isBoss(o)) continue;
-    if (grounded(o) && Math.abs(o.x - m.x) <= 0.18 + o.r * 0.5) {
-      if (o.k === 'bomb') (o.hp = 0), hop(s, o, m.x, 0.34, 0.3, tap);
-      else hop(s, o, m.x, 0.34, 0.3, tap);
-    }
+    if (grounded(o) && Math.abs(o.x - m.x) <= 0.25 + o.r * 0.5) hop(s, o, m.x, 0.38, 0.16, tap);
   }
 }
 /** 모래 회오리: 그 자리에서 빙글빙글 — 둘레 놈들을 빨아올린다 */
@@ -333,13 +357,11 @@ function twist(s: GPState, m: Mon, tap: Tap | undefined) {
   see(s, 'twist');
 }
 function ko(s: GPState, m: Mon, how: number) {
-  const tp = tapOf(s, m.tap);
-  if (tp) m.val = valOf(tp.hit, m);
+  if (!isBoss(m)) m.val = valOf(m);
   m.st = KO;
   m.tm = 0;
   m.how = how;
   m.h = 0;
-  m.vx = 0;
   m.vh = 0;
   s.kos++;
   s.sp += Math.max(1, m.val);
@@ -359,9 +381,9 @@ function onTap(s: GPState, px: number, py: number) {
   // 쌍둥이 주먹: 무리가 더 많은 쪽 옆에 작은 주먹 하나 더
   if (s.perk[0] === 2) {
     let l = 0, r = 0;
-    for (const m of s.mons) if (grounded(m) || falling(m)) (m.x < fx - rf && m.x > fx - 0.5 ? l++ : m.x > fx + rf && m.x < fx + 0.5 ? r++ : 0);
-    const x2 = clamp(fx + (r >= l ? 1 : -1) * rf * 1.55, s.cam + 0.03, s.cam + 0.97);
-    n += punch(s, x2, z, rf * 0.62, tap, true);
+    for (const m of s.mons) if (grounded(m) || falling(m)) (m.x < fx - rf && m.x > fx - 0.6 ? l++ : m.x > fx + rf && m.x < fx + 0.6 ? r++ : 0);
+    const x2 = clamp(fx + (r >= l ? 1 : -1) * rf * 1.5, s.cam + 0.03, s.cam + 0.97);
+    n += punch(s, x2, z, rf * 0.55, tap, true);
     see(s, 'twin');
   }
   if (s.perk[0] === 1) s.lavas.push({ x: fx, t: s.t, tap: tap.id }), see(s, 'lava');
@@ -389,13 +411,18 @@ function punch(s: GPState, fx: number, z: number, rf: number, tap: Tap, small: b
     else s.combo = 0;
   }
   tap.air += air.length;
+  // 뜬 놈들은 모두 앞쪽 가장 가까운 무리 위로 (무리 모양 그대로 조금 모아서)
+  const caught = new Set<number>([...air, ...ground].map((m) => m.id));
+  let right = fx, cx = 0;
+  for (const m of [...air, ...ground]) (right = Math.max(right, m.x)), (cx += m.x);
+  cx /= Math.max(1, air.length + ground.length);
+  const to = ahead(s, right, caught);
+  const spot = (m: Mon) => to.x + clamp((m.x - cx) * 0.45, -0.09, 0.09);
   let met = 0, mx = 0, my = 0;
   for (const m of air) {
     m.c++;
     if (m.c >= C_MAX) (met++, (mx = m.x), (my = GY + m.z - m.h - m.r));
-    const dir = clamp((m.x - fx) / rf, -1, 1);
-    m.vx = dir * VX * 0.8;
-    launch(s, m, KD[m.k].H * liftMul(s) * (1 + UP_PER * m.c));
+    launch(s, m, KD[m.k].H * liftMul(s) * (1 + UP_PER * m.c), spot(m), to.v);
     count(s, m, tap);
   }
   for (const m of ground) {
@@ -409,22 +436,21 @@ function punch(s: GPState, fx: number, z: number, rf: number, tap: Tap, small: b
       twist(s, m, tap);
       continue;
     }
-    const dir = clamp((m.x - fx) / rf, -1, 1);
-    m.vx = dir * VX * (KD[m.k].heavy ? 0.75 : 1) + (Math.abs(dir) < 0.15 ? (s.rng() - 0.5) * 0.08 : 0);
     m.c = 0;
-    launch(s, m, KD[m.k].H * liftMul(s) * (0.92 + 0.16 * s.rng()));
+    launch(s, m, KD[m.k].H * liftMul(s) * (0.94 + 0.12 * s.rng()), spot(m), to.v);
     count(s, m, tap);
   }
   if (met) ev(s, 'meteor', mx, my, met), see(s, 'meteor');
   const n = air.length + ground.length;
   // 쌍둥이 주먹(옆의 작은 주먹)이 띄운 놈은 '한 주먹' 수에 안 든다
   if (!small) tap.hit += n;
-  s.fists.push({ x: fx, z, t: s.wt, k: (rf / RF) * (1 + 0.07 * Math.min(6, s.combo)), combo: s.combo, n, small });
+  s.fists.push({ x: fx, z, t: s.wt, k: (rf / RF) * (1 + 0.05 * Math.min(6, s.combo)), combo: s.combo, n, small });
   ev(s, small ? 'punch2' : 'punch', fx, GY + z, n, s.combo, tink ? 'tink' : '');
   if (tink) see(s, 'tink');
   see(s, 'punch');
   if (air.length) ev(s, 'combo', fx, GY + z - 0.25, s.combo, air.length);
-  if (n >= 3) s.freeze = Math.max(s.freeze, 3);
+  // 쾅! 멈칫 0.05초 (맞은 놈이 있을 때)
+  if (n) s.freeze = Math.max(s.freeze, 3);
   return n;
 }
 
@@ -437,15 +463,14 @@ function airStep(s: GPState, m: Mon) {
     m.tm++;
     m.h = (c ? c.h : m.h) + 0.012 * Math.sin(m.tm * 0.12 + m.ph);
     if (c) m.x += clamp(c.x + m.ox * 0.6 - m.x, -0.002, 0.002);
-    if (m.tm >= CATCH_T || !c) (m.st = AIR), (m.vh = 0.4), (m.vx = (s.rng() - 0.5) * 0.2), ev(s, 'uncaught', m.x, GY + m.z - m.h);
+    if (m.tm >= CATCH_T || !c) (m.st = AIR), (m.vh = 0.4), (m.lx = m.x), (m.lvx = 0), ev(s, 'uncaught', m.x, GY + m.z - m.h);
     return;
   }
   m.tm++;
-  m.x += m.vx * DT;
-  m.vx *= kd.drag;
-  // 화면 밖으로는 안 날아간다 (가장자리에서 통)
-  if (m.x < s.cam + 0.03) (m.x = s.cam + 0.03), m.vx < 0 && (m.vx = -m.vx * 0.5);
-  if (m.x > s.cam + 0.97) (m.x = s.cam + 0.97), m.vx > 0 && (m.vx = -m.vx * 0.5);
+  // 옆으로는 떨어질 자리를 향해 (남은 시간에 맞춰) — 그 자리는 무리를 따라 움직이고, 화면 밖으로는 안 간다
+  m.lx = clamp(m.lx - m.lvx * DT, s.cam + 0.05, s.cam + 0.95);
+  const rem = timeToLand(m);
+  m.x = rem > DT ? m.x + ((m.lx - m.x) * DT) / rem : m.lx;
   if (m.vh > 0) m.vh -= G_UP * DT;
   else m.vh = Math.max(-kd.vt, m.vh - kd.gdn * DT);
   m.h += m.vh * DT;
@@ -454,7 +479,7 @@ function airStep(s: GPState, m: Mon) {
     // 구름 밭: 위에서 떨어지다 구름에 닿으면 걸린다
     for (let i = 0; i < s.clouds.length; i++) {
       const c = s.clouds[i];
-      if (!kd.heavy && m.cl !== i && Math.abs(m.x - c.x) < c.w * 0.5 && m.h <= c.h + 0.015 && m.h >= c.h - 0.05 && m.top > c.h + 0.03) {
+      if (!kd.heavy && m.cl !== i && Math.abs(m.x - c.x) < c.w * 0.5 && m.h <= c.h + 0.015 && m.h >= c.h - 0.06 && m.top > c.h + 0.03) {
         m.st = CAUGHT;
         m.tm = 0;
         m.cl = i;
@@ -466,7 +491,7 @@ function airStep(s: GPState, m: Mon) {
     }
     // 대장 머리 위
     const b = bossOf(s);
-    if (b && b.st === BOSS && !m.bonked && Math.abs(m.x - b.x) < b.r * 1.05 && m.h <= b.r * 2.05 && m.h > b.r * 0.9) return bonk(s, b, m);
+    if (b && b.st === BOSS && !m.bonked && Math.abs(m.x - b.x) < b.r * 0.95 && m.h <= b.r * 2.0 && m.h > b.r * 0.9) return bonk(s, b, m);
   }
   if (m.h <= 0 && m.vh <= 0) land(s, m);
 }
@@ -476,9 +501,10 @@ function bonk(s: GPState, b: Mon, m: Mon) {
   const add = 1 + (KD[m.k].heavy ? 1 : 0) + Math.min(2, m.c);
   s.sway = Math.min(s.swayNeed, s.sway + add);
   b.hurtT = s.t;
-  m.vx = (m.x >= b.x ? 1 : -1) * 0.34;
   m.vh = 0.95;
   m.h = Math.max(m.h, b.r * 1.9);
+  m.lx = m.x + (m.x >= b.x ? 1 : -1) * (b.r + 0.12);
+  m.lvx = 0;
   ev(s, 'bonk', b.x, GY + b.z - b.r * 2.1, add, s.sway / Math.max(1, s.swayNeed));
   see(s, 'bonk');
   if (s.sway >= s.swayNeed) upheave(s, b, tapOf(s, m.tap));
@@ -491,7 +517,7 @@ function upheave(s: GPState, b: Mon, tap: Tap | undefined) {
   b.vh = 0;
   b.spinV = 0.06;
   let n = 0;
-  for (const o of s.mons) if (grounded(o) || o.st === TWIST) (n++, (o.st = WALK), hop(s, o, b.x, 0.45 + 0.2 * s.rng(), 0.3, undefined), (o.tap = tap?.id ?? 0));
+  for (const o of s.mons) if (grounded(o) || o.st === TWIST) (n++, (o.st = WALK), hop(s, o, b.x, 0.5 + 0.2 * s.rng(), 0.2, undefined), (o.tap = tap?.id ?? 0));
   s.sealed = true;
   if (!s.dex.includes(b.k)) (s.dex.push(b.k), s.newDex.push(b.k), see(s, 'dex:' + b.k));
   wow(s, '땅이 통째로 솟는다!', n ? `졸개 ${n}마리도 함께` : `${KD[b.k].name} 하늘 끝까지`, n, -1);
@@ -506,15 +532,15 @@ function land(s: GPState, m: Mon) {
   const tap = tapOf(s, m.tap);
   // 선인장 밭: 선인장 위로 떨어지면 '앗!' 또 튄다
   for (const c of s.cacti) {
-    if (Math.abs(m.x - c.x) < 0.045 + m.r * 0.4) {
-      m.vx = (m.x >= c.x ? 1 : -1) * 0.34;
-      launch(s, m, Math.max(0.26, m.top * 0.6));
+    if (Math.abs(m.x - c.x) < 0.06 + m.r * 0.4) {
+      const to = ahead(s, m.x, new Set([m.id]));
+      launch(s, m, Math.max(0.3, m.top * 0.6), to.x, to.v);
       ev(s, 'ouch', m.x, GY + m.z - m.r * 2);
       see(s, 'ouch');
       return;
     }
   }
-  const sq = sqR(s, m), qr = quakes(m) ? sq * 1.9 : 0;
+  const sq = sqR(s, m), qr = quakes(m) ? sq * 1.8 : 0;
   let n = 0, q = 0;
   for (const o of s.mons) {
     if (o === m || o.dead || isBoss(o) || (o.st !== WALK && o.st !== TWIST)) continue;
@@ -525,15 +551,18 @@ function land(s: GPState, m: Mon) {
         else shatter(s, o, tap);
       } else if (o.k === 'bomb') blast(s, o, tap);
       else if (o.st === WALK) (count(s, o, tap), (o.c = m.c), ko(s, o, 1), n++);
-    } else if (qr && dx <= qr + o.r * 0.5 && o.st === WALK) (hop(s, o, m.x, 0.15 + 0.03 * Math.min(3, m.c), 0.16, tap), q++);
+    } else if (qr && dx <= qr + o.r * 0.5 && o.st === WALK) (hop(s, o, m.x, 0.18 + 0.05 * Math.min(3, m.c), 0.1, tap), (o.c = Math.max(0, m.c - 1)), q++);
   }
   if (n) see(s, 'squash');
   if (qr) see(s, 'quake');
   ev(s, 'land', m.x, GY + m.z, n, q, m.k);
+  // 별똥별 착지: 땅이 파인다 (공중 연속 둘 이상)
+  if (m.c >= 2) ev(s, 'crash', m.x, GY + m.z, Math.min(C_MAX, m.c), sq), see(s, 'crash');
   // 고무공 거북: 통통 두 번 더
   if (m.k === 'turtle' && m.bounce > 0) {
     m.bounce--;
-    launch(s, m, m.top * 0.55);
+    const to = ahead(s, m.x, new Set([m.id]));
+    launch(s, m, m.top * 0.55, Math.min(to.x, m.x + 0.3), to.v);
     m.top = Math.max(0.12, m.top);
     ev(s, 'boing', m.x, GY + m.z, 2 - m.bounce);
     see(s, 'boing');
@@ -547,11 +576,18 @@ function land(s: GPState, m: Mon) {
 function walkStep(s: GPState, m: Mon) {
   const hd = s.herds[m.hid];
   if (!hd) return;
-  const tx = hd.x + m.ox + 0.013 * Math.sin(s.t * 0.028 + m.ph), dx = tx - m.x, sp = 0.0011;
+  const tx = hd.x + m.ox + 0.018 * Math.sin(s.t * 0.028 + m.ph), dx = tx - m.x, sp = 0.0016;
   m.x += clamp(dx, -sp, sp);
   if (Math.abs(dx) > 0.0015) m.face = dx < 0 ? -1 : 1;
   // 용암 주먹: 남은 용암을 밟으면 붕
-  for (const l of s.lavas) if (s.t - l.t < LAVA_T && Math.abs(m.x - l.x) < 0.05 + m.r * 0.4) return void (hop(s, m, l.x, 0.3, 0.12, tapOf(s, l.tap)), ev(s, 'lava', m.x, GY + m.z));
+  for (const l of s.lavas)
+    if (s.t - l.t < LAVA_T && Math.abs(m.x - l.x) < 0.07 + m.r * 0.4) {
+      const to = ahead(s, m.x, new Set([m.id]));
+      m.c = 0;
+      launch(s, m, 0.4 * liftMul(s), to.x, to.v);
+      count(s, m, tapOf(s, l.tap));
+      return void ev(s, 'lava', m.x, GY + m.z);
+    }
   // 꽃길을 밟았다 (화면 왼쪽 끝)
   if (m.x < s.cam + EDGE) trample(s, m);
 }
@@ -579,21 +615,21 @@ function twistStep(s: GPState, m: Mon) {
   for (const o of s.mons) {
     if (!grounded(o) || o === m || isBoss(o)) continue;
     const dx = m.x - o.x;
-    if (Math.abs(dx) > 0.27 + o.r * 0.5) continue;
-    o.x += clamp(dx, -0.0042, 0.0042);
-    if (Math.abs(dx) < 0.03 + o.r * 0.4) {
+    if (Math.abs(dx) > 0.36 + o.r * 0.5) continue;
+    o.x += clamp(dx, -0.006, 0.006);
+    if (Math.abs(dx) < 0.045 + o.r * 0.4) {
       if (o.k === 'golem' && o.hp > 1) (o.hp = 1), (o.hurtT = s.t);
-      o.vx = (s.rng() - 0.5) * 0.25;
       o.c = 0;
-      launch(s, o, (0.44 + 0.12 * s.rng()) * liftMul(s));
+      const to = ahead(s, m.x + 0.1, new Set([o.id, m.id]));
+      launch(s, o, (0.5 + 0.12 * s.rng()) * liftMul(s), to.x, to.v);
       count(s, o, tap);
       ev(s, 'suck', o.x, GY + o.z - o.r);
     }
   }
   if (m.tm >= TWIST_T) {
-    m.vx = (s.rng() - 0.5) * 0.2;
     m.c = 0;
-    launch(s, m, KD.twister.H * liftMul(s));
+    const to = ahead(s, m.x, new Set([m.id]));
+    launch(s, m, KD.twister.H * liftMul(s), to.x, to.v);
   }
 }
 function bossStep(s: GPState, b: Mon) {
@@ -623,21 +659,21 @@ function bossStep(s: GPState, b: Mon) {
     return;
   }
   // 천천히 다가오고(쿵쿵), 너무 다가오면 꽃길을 밟고 펄쩍 물러난다
-  b.x -= 0.0055 * DT;
-  if (b.x < s.cam + 0.22) {
+  b.x -= 0.008 * DT;
+  if (b.x < s.cam + 0.32) {
     trample(s, b);
     b.st = BOSS;
-    b.x = s.cam + 0.58;
+    b.x = s.cam + 0.64;
     ev(s, 'leap', b.x, GY + b.z - b.r);
   }
   // 졸개 부르기
   const minions = s.mons.reduce((a, m) => a + (!m.dead && !isBoss(m) && m.st !== KO && m.st !== FLEE ? 1 : 0), 0);
-  if (++s.summonT >= 230 || (minions <= 3 && s.summonT >= 60)) {
+  if (++s.summonT >= 260 || (minions <= 3 && s.summonT >= 60)) {
     s.summonT = 0;
     if (minions <= 10 && d.boss) {
-      // 졸개는 대장 곁(오른쪽 · 가끔 왼쪽)에서 땅을 뚫고 나와 꽃길 쪽으로 걷는다
-      const list = d.boss.summon, m = list[s.summonN % list.length], side = s.summonN++ % 3 === 2 ? -1 : 1;
-      placeHerd(s, { x: clamp(b.x + side * 0.2, s.cam + 0.2, s.cam + 0.92), m }, d.v * 1.2);
+      // 졸개는 대장 곁(앞쪽 · 가끔 뒤쪽)에서 땅을 뚫고 나와 꽃길 쪽으로 걷는다 — 대장 앞의 졸개를 치면 대장 머리 위로
+      const list = d.boss.summon, m = list[s.summonN % list.length], side = s.summonN++ % 3 === 2 ? 1 : -1;
+      placeHerd(s, { x: clamp(b.x + side * (b.r + 0.14), s.cam + 0.2, s.cam + 0.9), m }, d.v * 1.1);
       ev(s, 'summon', b.x, GY + b.z - b.r * 2.2);
     }
   }
@@ -650,7 +686,7 @@ function camStep(s: GPState) {
   for (const m of s.mons) {
     if (!grounded(m) && m.st !== TWIST) continue;
     if (m.x > s.cam + 0.15 && m.x < s.cam + 1.02) quiet = false;
-    if (m.x < s.cam + 0.26) near = true;
+    if (m.x < s.cam + 0.28) near = true;
   }
   // 꽃길 가까이에 놈이 있으면 카메라는 기다려 준다 (밀어붙이는 것은 놈들 자신의 걸음뿐)
   const target = s.cam >= end || near ? 0 : quiet ? CAM_FAST : d.cv;
@@ -699,7 +735,7 @@ function playStep(s: GPState) {
         if (++m.tm >= KO_T) (m.dead = true), ev(s, 'coin', m.x, GY + m.z - m.r, m.val, m.how, m.k);
         break;
       case FLEE:
-        m.x -= 0.006;
+        m.x -= 0.008;
         if (++m.tm >= 50) m.dead = true;
         break;
     }
@@ -798,107 +834,65 @@ function between(s: GPState, left: boolean): Input | null {
   if (s.phase === 'pick') return s.picked < 0 && s.pt >= PICK_MIN ? at(left ? 0.28 : 0.72, 0.9) : NO;
   return NO;
 }
-/** 졸개를 대장 머리 위로: 떨어지는 놈은 대장 쪽으로 밀어 올리고(멀면 한 번에 갈 수 있는 만큼), 대장 둘레 길 위 놈은 머리 위로 띄운다 */
-function bossShot(s: GPState, b: Mon): number | null {
+/** 여기를 치면 바로 뜨는 수(떨어지는 놈 + 길 위 놈) · 그중 공중 놈 · 꽃길 가까운 놈 */
+export function plan(s: GPState, fx: number): { hit: number; air: number; edge: number } {
   const rf = fistR(s);
-  let best: number | null = null, bv = 9;
-  for (const m of s.mons) {
-    if (m.dead || isBoss(m) || m.x < s.cam || m.x > s.cam + 1) continue;
-    let reach = 0;
-    if (juggly(m) && !m.bonked) reach = (VX * 0.8 * DT) / (1 - KD[m.k].drag);
-    else if (grounded(m) && Math.abs(m.x - b.x) < 0.3) reach = (VX * (KD[m.k].heavy ? 0.75 : 1) * DT) / (1 - KD[m.k].drag);
-    else continue;
-    // 화면 안에서 칠 수 있는 만큼만 (오른쪽 끝의 놈은 덜 밀린다)
-    const fx = clamp(m.x - clamp((b.x - m.x) / reach, -1, 1) * rf, s.cam + 0.02, s.cam + 0.98), dir = clamp((m.x - fx) / rf, -1, 1);
-    if (Math.abs(m.x - fx) > rf * (juggly(m) ? AIR_K : 1)) continue;
-    const miss = Math.abs(b.x - (m.x + dir * reach));
-    if (miss > b.r * 0.85) continue;
-    // 머리에 닿는 놈 중 낮게 떨어지는 놈부터 (길 위 놈은 그다음)
-    const v = miss / b.r + (juggly(m) ? m.h : 0.6);
-    if (v < bv) (bv = v), (best = fx);
-  }
-  return best;
-}
-/** 여기를 치면 바로 뜨는 수와, 뜬 놈들이 떨어질 자리에서 다음 주먹이 한 번에 잡을 수(눈덩이: 떨어지는 무리 + 그 아래 무리) */
-export function plan(s: GPState, fx: number): { hit: number; air: number; edge: number; pot: number } {
-  const rf = fistR(s), lands: number[] = [], hitIds = new Set<number>();
   let hit = 0, air = 0, edge = 0;
   for (const m of s.mons) {
     if (m.dead || isBoss(m)) continue;
-    const dx = Math.abs(m.x - fx), dir = clamp((m.x - fx) / rf, -1, 1);
-    if (juggly(m) && dx <= rf * AIR_K + m.r * 0.5) {
-      hit++, air++, hitIds.add(m.id);
-      if (m.c + 1 < C_MAX) lands.push(m.x + (dir * VX * 0.8 * DT) / (1 - KD[m.k].drag));
-    } else if (grounded(m) && dx <= rf + m.r * 0.5) {
-      hit++, hitIds.add(m.id);
-      if (m.x - s.cam < 0.3) edge++;
-      if (m.k !== 'golem' && m.k !== 'twister') lands.push(m.x + (dir * VX * (KD[m.k].heavy ? 0.75 : 1) * DT) / (1 - KD[m.k].drag));
+    const dx = Math.abs(m.x - fx);
+    if (juggly(m) && dx <= rf * AIR_K + m.r * 0.5) hit++, air++;
+    else if ((grounded(m) || m.st === TWIST) && dx <= rf + m.r * 0.5) {
+      hit++;
+      if (m.x - s.cam < 0.32) edge++;
     }
   }
-  let pot = 0;
-  for (const p of lands) {
-    if (p < s.cam + 0.05 || p > s.cam + 1.1) continue;
-    let n = 0;
-    for (const q of lands) if (Math.abs(q - p) <= rf * AIR_K * 0.8) n++;
-    for (const o of s.mons) if (grounded(o) && !hitIds.has(o.id) && !isBoss(o) && Math.abs(o.x - p) <= rf * 0.9) n++;
-    pot = Math.max(pot, n);
-  }
-  return { hit, air, edge, pot };
+  return { hit, air, edge };
 }
 const lastTap = new WeakMap<object, number>();
-/** 봇(눈덩이): 무리 가장자리를 쳐서 옆 무리 위로 떨어뜨리고, 떨어지는 무리와 아래 무리를 한 주먹에 잡아 다시 앞 무리 위로 */
+/** 봇(눈덩이): 앞 무리를 쳐서 눈덩이를 시작하고, 떨어지는 무리가 다음 무리 위로 낮게 내려왔을 때 그 자리를 쳐서 둘을 한 주먹에 — 무리마다 톡 한 번 */
 export const groundpunchSmart: Bot<GPState> = {
-  name: '눈덩이 — 떨어지는 무리와 아래 무리를 한 주먹에',
+  name: '눈덩이 — 떨어지는 무리가 아래 무리 위로 내려올 때 한 주먹에',
   act(s) {
     const mid = between(s, true);
     if (mid) return mid;
     if (!ready(s)) return NO;
-    const d = STAGES[s.stage], rf = fistR(s), b = bossOf(s), since = s.t - (lastTap.get(s) ?? -999);
+    const since = s.t - (lastTap.get(s) ?? -999);
     const go = (x: number) => (lastTap.set(s, s.t), at(x - s.cam));
-    // 대장: 떨어지는 졸개를 머리 위로
-    if (b && b.st === BOSS && s.bossOn >= 0) {
-      const x = bossShot(s, b);
-      if (x !== null && x > s.cam + 0.02 && x < s.cam + 0.98) return go(x);
-    }
-    const cands: number[] = [];
-    for (let i = 0; i <= 20; i++) cands.push(s.cam + 0.03 + (i * 0.94) / 20);
-    let jug = 0;
-    for (const m of s.mons) {
-      if (m.dead || isBoss(m) || m.x < s.cam || m.x > s.cam + 1) continue;
-      if (juggly(m)) jug++, cands.push(m.x, m.x - rf * 0.5, m.x - rf, m.x + rf * 0.5);
-      else if (grounded(m)) cands.push(m.x, m.x - rf * 0.95, m.x - rf * 0.6, m.x + rf * 0.6);
-    }
-    let cx = -1, cv = -1, ch = 0, sx = -1, sv = -1, ex = -1, evv = -1;
     // 손가락이 조금 빗나가도 되는 자리: 양옆 2.5%를 쳐도 잡히는 수 (가장 적은 쪽)
-    const robust = (x: number) => {
-      const a = plan(s, x), l = plan(s, x - 0.025), r = plan(s, x + 0.025);
-      return { hit: Math.min(a.hit, l.hit, r.hit), pot: Math.min(a.pot, l.pot, r.pot), air: a.air, edge: a.edge };
+    const best = (xs: number[]) => {
+      let bx = -1, bh = 0, bg = 0;
+      for (const x of xs) {
+        if (x < s.cam + 0.03 || x > s.cam + 0.97) continue;
+        const p = plan(s, x);
+        if (!p.hit) continue;
+        const hit = Math.min(p.hit, plan(s, x - 0.025).hit, plan(s, x + 0.025).hit);
+        if (hit > bh || (hit === bh && p.hit - p.air > bg)) (bh = hit), (bg = p.hit - p.air), (bx = x);
+      }
+      return { x: bx, hit: bh, ground: bg };
     };
-    // 먼저 그 자리만 재고, 앞선 몇 곳만 양옆까지 다시 잰다 (가볍게)
-    const first = cands.filter((x) => x >= s.cam + 0.02 && x <= s.cam + 0.98).map((x) => ({ x, p: plan(s, x) }));
-    const top = new Set<number>();
-    first.sort((a, b) => b.p.hit + 0.45 * b.p.pot - (a.p.hit + 0.45 * a.p.pot)).slice(0, 6).forEach((q) => top.add(q.x));
-    first.sort((a, b) => b.p.pot + 0.3 * b.p.hit - (a.p.pot + 0.3 * a.p.hit)).slice(0, 4).forEach((q) => top.add(q.x));
-    first.filter((q) => q.p.edge).sort((a, b) => b.p.hit - a.p.hit).slice(0, 2).forEach((q) => top.add(q.x));
-    for (const x of top) {
-      const p = robust(x);
-      const vc = p.hit + 0.45 * p.pot + 0.2 * p.air;
-      if (p.hit > ch || (p.hit === ch && vc > cv)) (ch = p.hit), (cv = vc), (cx = x);
-      const vs = p.pot + 0.3 * p.hit;
-      if (p.hit && vs > sv) (sv = vs), (sx = x);
-      if (p.edge && vc > evv) (evv = vc), (ex = x);
-    }
-    if (cx < 0 || ch === 0) return NO;
+    const ground = s.mons.filter((m) => grounded(m) && m.x > s.cam && m.x < s.cam + 1);
     // 꽃길이 위험하면 바로
-    if (ex >= 0 && s.mons.some((m) => grounded(m) && !isBoss(m) && m.x - s.cam < 0.18)) return go(ex);
-    // 한 주먹에 크게 잡을 수 있으면 잡는다 (별 셋째 전엔 N, 그 뒤엔 여섯 — 오래 못 기다린다)
-    const goal = Math.max(3, (s.best < d.n ? d.n : 8) - Math.floor(since / 50));
-    if (ch >= goal) return go(cx);
-    // 떨어지는 무리가 있으면 아래 무리 위로 올 때까지 잠깐 (잡을 거리가 늘어난다)
-    if (jug && since < 70) return NO;
-    // 없으면 눈덩이를 시작: 다음 주먹이 크게 잡을 자리로 띄운다
-    if (sx >= 0 && (sv >= 7 || since > 75)) return go(sx);
-    return since > 110 ? go(cx) : NO;
+    const edge = ground.filter((m) => m.x - s.cam < 0.22);
+    if (edge.length) {
+      const e = best(edge.flatMap((m) => [m.x, m.x + 0.08, m.x + 0.14]));
+      if (e.x >= 0) return go(e.x);
+    }
+    const air = s.mons.filter((m) => juggly(m) && m.x > s.cam - 0.05 && m.x < s.cam + 1.05);
+    if (air.length) {
+      // 낮게 내려와 떨어질 자리 위에 거의 온 놈들: 그 자리를 쳐서 아래 무리까지 한 주먹
+      const low = air.filter((m) => m.h < 0.24 && Math.abs(m.x - m.lx) < 0.1);
+      if (low.length) {
+        const c = best(low.flatMap((m) => [m.lx, m.x, m.lx + 0.05, m.lx - 0.05]));
+        if (c.x >= 0 && (c.ground > 0 || c.hit >= 6)) return go(c.x);
+      }
+      if (since < 160) return NO;
+    }
+    // 공중이 비었으면 가장 앞(꽃길 쪽) 무리로 눈덩이를 시작
+    if (!ground.length) return NO;
+    const f = ground.reduce((a, m) => (m.x < a.x ? m : a));
+    const c = best([f.x, f.x + 0.05, f.x + 0.1, f.x - 0.05]);
+    return c.x >= 0 && since > 45 ? go(c.x) : NO;
   },
 };
 /** 봇: 아무 때나 아무 데나 톡 */
@@ -1855,7 +1849,8 @@ const PALS: Pal[] = [
   { sky: ['#6cc4e0', '#b0e2e0', '#eaf7e2'], far: ['#94c4a8', '#7ab090'], mid: ['#6db45e', '#4e9848', '#356f3a'], road: '#e6c690', road2: '#ceaa6e', verge: '#64b24c', lip: '#4d9c40', soil: ['#8f603e', '#774c2e', '#603c24'], flower: ['#ff6b6b', '#fff3a8', '#c39af5', '#ffffff'] },
   { sky: ['#ffa86e', '#ffd49c', '#fff1d2'], far: ['#f2b08c', '#e39a7a'], mid: ['#f6c870', '#eab058', '#d39440'], road: '#f6dda6', road2: '#e8c482', verge: '#c8b45c', lip: '#b49c4a', soil: ['#cc9252', '#b47a40', '#966232'], flower: ['#ff7a5c', '#ffe36b', '#ffffff', '#7fd0c0'] },
 ];
-interface Bg { sky: HTMLCanvasElement; far: HTMLCanvasElement; mid: HTMLCanvasElement; road: HTMLCanvasElement }
+/** 배경 네 겹 — 한 프레임에 한 겹씩 굽는다(첫 프레임·장 넘김 끊김 줄이기) */
+interface Bg { sky?: HTMLCanvasElement; far?: HTMLCanvasElement; mid?: HTMLCanvasElement; road?: HTMLCanvasElement }
 const BGS = new Map<string, Bg>();
 /** 위쪽 끝(이어 붙일 때 끊기지 않게 x = 0 근처 것은 w 너머에도 한 번 더) */
 function wrap(w: number, x: number, r: number, paint: (x: number) => void) {
@@ -1863,14 +1858,31 @@ function wrap(w: number, x: number, r: number, paint: (x: number) => void) {
   if (x - r < 0) paint(x + w);
   if (x + r > w) paint(x - w);
 }
-const FAR_Y = 0.56, FAR_H = 0.42, MID_Y = 0.68, MID_H = 0.33, ROAD_Y = GY - 0.045;
-function bakeBg(ch: number, w: number, h: number, sc: number): Bg {
+const FAR_Y = GY - 0.43, FAR_H = 0.45, MID_Y = GY - 0.41, MID_H = 0.43, ROAD_Y = GY - 0.045;
+const bgOf = (ch: number, w: number, h: number, sc: number): Bg => {
   const key = `${ch}:${w}:${h}:${sc}`;
-  const got = BGS.get(key);
-  if (got) return got;
-  if (BGS.size > 6) BGS.clear();
+  let bg = BGS.get(key);
+  if (!bg) {
+    if (BGS.size > 6) BGS.clear();
+    BGS.set(key, (bg = {}));
+  }
+  return bg;
+};
+/** 아직 안 구운 겹을 n개까지 굽는다(길 → 하늘 → 언덕 → 먼 산) — 구운 것이 있으면 true */
+function warmBg(ch: number, w: number, h: number, sc: number, n = 1): boolean {
+  const bg = bgOf(ch, w, h, sc);
+  let did = 0;
+  for (const k of ['road', 'sky', 'mid', 'far'] as const) {
+    if (bg[k]) continue;
+    if (did >= n) return true;
+    bg[k] = bakeLayer(k, ch, w, sc);
+    did++;
+  }
+  return did > 0;
+}
+function bakeLayer(which: 'sky' | 'far' | 'mid' | 'road', ch: number, w: number, sc: number): HTMLCanvasElement {
   const P = PALS[ch], R = (v: number) => v * w;
-  const sky = layer(w, R(GY + 0.02), sc, (g) => {
+  if (which === 'sky') return layer(w, R(GY + 0.02), sc, (g) => {
     g.fillStyle = lin(g, 0, R(0.1), 0, R(GY), [0, P.sky[0]], [0.55, P.sky[1]], [1, P.sky[2]]);
     g.fillRect(0, 0, w, R(GY + 0.02));
     const sx = ch === 2 ? R(0.7) : R(0.82), sy = ch === 2 ? R(0.52) : R(0.24), sr = R(ch === 2 ? 0.12 : 0.07);
@@ -1886,7 +1898,7 @@ function bakeBg(ch: number, w: number, h: number, sc: number): Bg {
       for (const [dx, dy, q] of [[-1.3, 0.2, 0.8], [0, 0, 1.2], [1.3, 0.25, 0.85], [0.5, -0.5, 0.8]]) ell(g, cx + dx * k, cy + dy * k, q * k, q * k * 0.8), g.fill();
     }
   });
-  const far = layer(w, R(FAR_H), sc, (g) => {
+  if (which === 'far') return layer(w, R(FAR_H), sc, (g) => {
     const base = R(FAR_H);
     for (let row = 0; row < 2; row++) {
       g.fillStyle = row ? P.far[1] : P.far[0];
@@ -1907,17 +1919,17 @@ function bakeBg(ch: number, w: number, h: number, sc: number): Bg {
     g.fillStyle = 'rgba(255,255,255,.18)';
     g.fillRect(0, 0, w, base);
   });
-  const mid = layer(w * 1.5, R(MID_H), sc, (g) => {
+  if (which === 'mid') return layer(w * 1.5, R(MID_H), sc, (g) => {
     const W2 = w * 1.5, base = R(MID_H);
     g.fillStyle = P.mid[0];
     g.beginPath();
     g.moveTo(0, base);
-    for (let i = 0; i <= 12; i++) g.quadraticCurveTo(((i - 0.5) / 12) * W2, base - R(0.1 + 0.05 * Math.sin(i * 1.9 + ch)), (i / 12) * W2, base - R(0.08 + 0.04 * Math.sin(i * 2.3 + ch * 2)));
+    for (let i = 0; i <= 12; i++) g.quadraticCurveTo(((i - 0.5) / 12) * W2, base - R(0.13 + 0.06 * Math.sin(i * 1.9 + ch)), (i / 12) * W2, base - R(0.1 + 0.05 * Math.sin(i * 2.3 + ch * 2)));
     g.lineTo(W2, base);
     g.closePath();
     g.fill();
     for (let i = 0; i < 9; i++) {
-      const x = ((i + 0.3 + hsh(i * 13 + ch) * 0.4) / 9) * W2, k = R(0.05 + hsh(i * 7 + ch) * 0.035), y = base - R(0.06);
+      const x = ((i + 0.3 + hsh(i * 13 + ch) * 0.4) / 9) * W2, k = R(0.075 + hsh(i * 7 + ch) * 0.05), y = base - R(0.075);
       wrap(W2, x, k * 1.6, (px) => {
         g.lineWidth = Math.max(1.2, k * 0.06);
         g.strokeStyle = 'rgba(75,48,32,.45)';
@@ -1997,7 +2009,7 @@ function bakeBg(ch: number, w: number, h: number, sc: number): Bg {
     g.fill();
   });
   const top = ROAD_Y, H2 = HUD_B - top + 0.01;
-  const road = layer(w, R(H2), sc, (g) => {
+  return layer(w, R(H2), sc, (g) => {
     const Y = (y: number) => R(y - top);
     // 뒤 풀섶
     g.fillStyle = P.verge;
@@ -2005,7 +2017,7 @@ function bakeBg(ch: number, w: number, h: number, sc: number): Bg {
     g.fillStyle = 'rgba(0,0,0,.08)';
     g.fillRect(0, Y(GY - 0.012), w, R(0.02));
     for (let i = 0; i < 40; i++) {
-      const x = (i / 40) * w + hsh(i) * R(0.02), k = R(0.012 + hsh(i * 3) * 0.01);
+      const x = (i / 40) * w + hsh(i) * R(0.02), k = R(0.016 + hsh(i * 3) * 0.014);
       wrap(w, x, k, (px) => {
         g.fillStyle = i % 3 ? P.lip : P.mid[2];
         g.beginPath();
@@ -2017,7 +2029,7 @@ function bakeBg(ch: number, w: number, h: number, sc: number): Bg {
       });
     }
     for (let i = 0; i < 10; i++) {
-      const x = ((i + hsh(i * 9 + ch)) / 10) * w, k = R(0.009);
+      const x = ((i + hsh(i * 9 + ch)) / 10) * w, k = R(0.013);
       wrap(w, x, k * 2, (px) => {
         g.fillStyle = P.flower[i % P.flower.length];
         for (let j = 0; j < 5; j++) ell(g, px + Math.cos(j * 1.256) * k, Y(GY - 0.02) + Math.sin(j * 1.256) * k, k * 0.75, k * 0.75), g.fill();
@@ -2030,9 +2042,9 @@ function bakeBg(ch: number, w: number, h: number, sc: number): Bg {
     g.fillStyle = lin(g, 0, Y(GY), 0, Y(GY + DZ + 0.03), [0, P.road2], [0.15, P.road], [1, P.road]);
     g.fillRect(0, Y(GY), w, R(DZ + 0.03));
     g.fillStyle = 'rgba(160,110,60,.12)';
-    for (const ry of [0.045, 0.11]) g.fillRect(0, Y(GY + ry), w, R(0.012));
+    for (const ry of [0.06, 0.14]) g.fillRect(0, Y(GY + ry), w, R(0.016));
     for (let i = 0; i < 46; i++) {
-      const x = hsh(i * 5 + ch * 3) * w, y = GY + 0.01 + hsh(i * 7 + 1) * (DZ + 0.01), k = R(0.004 + hsh(i * 11) * 0.007);
+      const x = hsh(i * 5 + ch * 3) * w, y = GY + 0.01 + hsh(i * 7 + 1) * (DZ + 0.01), k = R(0.006 + hsh(i * 11) * 0.01);
       wrap(w, x, k, (px) => {
         ell(g, px, Y(y), k, k * 0.65);
         g.fillStyle = i % 4 ? 'rgba(150,105,60,.35)' : 'rgba(255,255,255,.45)';
@@ -2084,9 +2096,6 @@ function bakeBg(ch: number, w: number, h: number, sc: number): Bg {
       g.stroke();
     }
   });
-  const bg = { sky, far, mid, road };
-  BGS.set(key, bg);
-  return bg;
 }
 function tile(ctx: C2, img: HTMLCanvasElement, off: number, y: number, tw: number, th: number, w: number) {
   let x = -(((off % tw) + tw) % tw);
@@ -2099,13 +2108,19 @@ const fmt = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g
 const KCOL: Record<K, string> = { blob: '#ff9fc6', bear: '#d9a066', mole: '#b29a8a', boar: '#c0705a', turtle: '#ff5a4e', golem: '#c8cfd8', shroom: '#ff7a6a', bomb: '#7f8fd8', twister: '#f0d08a', scorp: '#ff8a5c' };
 /** 정령 레벨이 오르면 달라지는 모습 */
 const LV_GIFT: Record<number, string> = { 3: '머리에 꽃이 피었어요', 5: '꽃이 둘 — 주먹이 커져요', 7: '나무 왕관을 썼어요', 10: '금빛으로 빛나요' };
+/** 큰 띠가 떠 있는 틱 (0.8초) */
+const BAND_T = 48;
 const STAR_WORDS = (s: GPState) => ['길 끝까지', '꽃길 안 밟히기', `한 주먹에 ${STAGES[s.stage].n}마리`];
 const recent = new WeakMap<object, { x: number; y: number; t: number; size: number }[]>();
 const blobV = (m: Mon, ch: number) => (m.seed + ch * 2) % BLOB_COL.length;
 
 function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
   const fx = juice(s), cam = s.cam, t = s.t;
-  const X = (x: number) => (x - cam) * w, Y = (y: number) => y * w, R = (r: number) => r * w;
+  // 카메라가 높이 뜬 놈을 따라 살짝 위로 (세상이 아래로 내려간다)
+  let topH = 0;
+  for (const m of s.mons) if (m.st === AIR || m.st === CAUGHT || m.st === UPHEAVE) topH = Math.max(topH, m.h + m.r * 2.2 - m.z);
+  const camY = (fx.memo.camY = (fx.memo.camY ?? 0) + (clamp((topH - 0.62) * 0.8, 0, 0.15) - (fx.memo.camY ?? 0)) * 0.06);
+  const X = (x: number) => (x - cam) * w, Y = (y: number) => (y + camY) * w, R = (r: number) => r * w;
   const sc = typeof ctx.getTransform === 'function' ? Math.min(3, Math.max(1, Math.round(ctx.getTransform().a || 1))) : 1;
   const d = STAGES[s.stage], ch = d.ch, P = PALS[ch], seenT = fx.memo.t ?? -1;
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, Math.round(R(sz)))}px system-ui, sans-serif`);
@@ -2118,7 +2133,13 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
   const puff = (x: number, y: number, col: string, n: number, spd = 3, size = 3) => {
     if (fx.particles.length < 150) fx.burst(x, y, col, Math.min(n, 150 - fx.particles.length), spd, size);
   };
+  const bandOn = !!s.big && t - s.big.t < BAND_T;
   const say = (x: number, y: number, str: string, col: string, size: number) => {
+    // 큰 글자는 한 번에 하나 (큰 띠가 떠 있는 동안은 큰 글자를 안 띄운다)
+    if (size >= 16) {
+      if (bandOn) return;
+      fx.popups = fx.popups.filter((p) => p.size < 16);
+    } else if (bandOn && y < Y(0.5)) return;
     let rec = recent.get(s);
     if (!rec) recent.set(s, (rec = []));
     x = clamp(x, w * 0.12, w * 0.88);
@@ -2136,8 +2157,9 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
   // 미리 굽기(끊김 줄이기): 결과·선물 화면에서 다음 장의 배경을 한 번, 판 중에는 이 판(또는 다음 판)에 나올 스티커를 프레임마다 하나씩
   {
     const rest = s.phase === 'result' || s.phase === 'pick', ns = rest && s.stage + 1 < STAGES.length ? s.stage + 1 : s.stage, nd = STAGES[ns];
-    if (rest && s.pt === 24 && nd.ch !== ch) bakeBg(nd.ch, Math.round(w), Math.round(h), q2);
-    else {
+    if (!(rest && s.pt < 12) && warmBg(nd.ch, Math.round(w), Math.round(h), q2, 1)) {
+      /* 다음 장 배경을 한 겹 구웠다 */
+    } else {
       const kinds = [...new Set([...nd.herds.join(''), ...(nd.boss?.summon.join('') ?? '')].map((c) => CHAR[c]))];
       if (nd.boss) kinds.push(nd.boss.k);
       const list: [K, number, number][] = [];
@@ -2157,14 +2179,18 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
   ctx.save();
   fx.begin(ctx);
   // ── 하늘 · 먼 산 · 가까운 언덕 · 길 (시차) ──
-  const bg = bakeBg(ch, Math.round(w), Math.round(h), q2);
-  ctx.drawImage(bg.sky, 0, 0, w, R(GY + 0.02));
-  tile(ctx, bg.far, cam * w * 0.12, R(FAR_Y), w, R(FAR_H), w);
+  const bg = bgOf(ch, Math.round(w), Math.round(h), q2);
+  if (!bg.road) warmBg(ch, Math.round(w), Math.round(h), q2, 1);
+  ctx.fillStyle = P.sky[0];
+  ctx.fillRect(0, 0, w, h);
+  if (bg.sky) ctx.drawImage(bg.sky, 0, R(camY * 0.35), w, R(GY + 0.02));
+  else (ctx.fillStyle = lin(ctx, 0, 0, 0, R(GY), [0, P.sky[0]], [1, P.sky[2]])), ctx.fillRect(0, R(camY * 0.35), w, R(GY + 0.02));
+  if (bg.far) tile(ctx, bg.far, cam * w * 0.12, R(FAR_Y + camY * 0.55), w, R(FAR_H), w);
   // 구경꾼 새 (큰 순간엔 빙글)
   const cheer = (s.big && t - s.big.t < 70) || s.phase === 'result';
   for (let i = 0; i < 3; i++) {
-    const bx = ((t * (0.35 + i * 0.08) + i * 150) % (w + 80)) - 40, by = R(0.2 + i * 0.07) + Math.sin(t * 0.05 + i) * R(0.012) - (cheer ? Math.abs(Math.sin(t * 0.25 + i)) * R(0.03) : 0);
-    const flap = Math.sin(t * 0.3 + i * 2) * R(0.012), k = R(0.016);
+    const bx = ((t * (0.35 + i * 0.08) + i * 150) % (w + 80)) - 40, by = R(0.2 + i * 0.08 + camY * 0.5) + Math.sin(t * 0.05 + i) * R(0.012) - (cheer ? Math.abs(Math.sin(t * 0.25 + i)) * R(0.03) : 0);
+    const flap = Math.sin(t * 0.3 + i * 2) * R(0.016), k = R(0.021);
     ctx.fillStyle = ['#ffffff', '#ffe36b', '#ffb0c8'][i];
     ctx.strokeStyle = OUT;
     ctx.lineWidth = 1.4;
@@ -2187,13 +2213,49 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
     ell(ctx, bx + k * 0.45, by - k * 0.2, k * 0.14, k * 0.18);
     ctx.fill();
   }
-  tile(ctx, bg.mid, cam * w * 0.45, R(MID_Y), w * 1.5, R(MID_H), w);
-  tile(ctx, bg.road, cam * w, R(ROAD_Y), w, R(HUD_B - ROAD_Y + 0.01), w);
+  if (bg.mid) tile(ctx, bg.mid, cam * w * 0.45, R(MID_Y + camY * 0.85), w * 1.5, R(MID_H), w);
+  if (bg.road) tile(ctx, bg.road, cam * w, Y(ROAD_Y), w, R(HUD_B - ROAD_Y + 0.01), w);
+  // ── 높이 눈금 (왼쪽 덩굴): 얼마나 높이 떴나 ──
+  {
+    const vx = R(0.03), g0 = Y(GY + 0.06), topY = Y(GY + 0.06 - 1.05);
+    ctx.strokeStyle = 'rgba(70,140,60,.75)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let i = 0; i <= 24; i++) {
+      const yy = g0 + ((topY - g0) * i) / 24, xx = vx + Math.sin(i * 0.9) * R(0.006);
+      if (i) ctx.lineTo(xx, yy);
+      else ctx.moveTo(xx, yy);
+    }
+    ctx.stroke();
+    let hiH = 0;
+    for (const m of s.mons) if (m.st === AIR || m.st === CAUGHT) hiH = Math.max(hiH, m.h);
+    font(0.032, 900);
+    ctx.textAlign = 'left';
+    for (let k = 1; k <= 4; k++) {
+      const yy = g0 - R(k * 0.25), lit = hiH >= k * 0.25 - 0.02;
+      if (yy < R(0.12)) continue;
+      ell(ctx, vx + R(0.012), yy, R(0.014), R(0.007), -0.5);
+      ctx.fillStyle = lit ? '#ffd84a' : '#8fd36a';
+      ctx.fill();
+      text(`${k * 5}m`, vx + R(0.03), yy, lit ? '#ffe36b' : 'rgba(255,255,255,.85)', 'rgba(75,48,32,.75)', 3);
+    }
+    if (hiH > 0.12) {
+      const yy = Math.max(R(0.13), g0 - R(hiH));
+      ctx.fillStyle = '#ff7a3d';
+      ctx.beginPath();
+      ctx.moveTo(vx - R(0.004), yy);
+      ctx.lineTo(vx + R(0.035), yy - R(0.012));
+      ctx.lineTo(vx + R(0.035), yy + R(0.012));
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.textAlign = 'center';
+  }
 
   // ── 길 끝 표지 (꽃 아치) ──
   const endX = X(s.L - 0.04);
   if (endX < w + R(0.1)) {
-    const k = R(0.09), ex = endX, ey = Y(GY + 0.005);
+    const k = R(0.13), ex = endX, ey = Y(GY + 0.005);
     ctx.lineWidth = Math.max(1.5, k * 0.06);
     ctx.strokeStyle = OUT;
     for (const sd of [-1, 1]) rr(ctx, ex + sd * k * 0.7 - k * 0.08, ey - k * 1.6, k * 0.16, k * 1.6, k * 0.05), (ctx.fillStyle = '#a06e44'), ctx.fill(), ctx.stroke();
@@ -2252,7 +2314,7 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
 
   // ── 선인장 ──
   for (const c of s.cacti) {
-    const cx = X(c.x), cy = Y(GY + c.z), k = R(0.034);
+    const cx = X(c.x), cy = Y(GY + c.z), k = R(0.05);
     if (cx < -k * 2 || cx > w + k * 2) continue;
     const ouch = since('ouch') < 14 && s.events.some((e) => e.k === 'ouch' && t - e.t < 14 && Math.abs(e.x - c.x) < 0.08);
     ctx.save();
@@ -2285,7 +2347,7 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
   for (const l of s.lavas) {
     const age = t - l.t, a = Math.min(1, age / 4, (LAVA_T - age) / 14);
     if (a <= 0) continue;
-    const lx = X(l.x), ly = Y(GY + DZ * 0.55), k = R(0.06);
+    const lx = X(l.x), ly = Y(GY + DZ * 0.55), k = R(0.09);
     ctx.globalAlpha = a;
     ctx.fillStyle = radg(ctx, lx, ly, 0, k * 1.3, [0, '#fff07a'], [0.4, '#ff9a3d'], [1, 'rgba(230,70,30,0)']);
     ell(ctx, lx, ly, k * 1.3, k * 0.45);
@@ -2297,9 +2359,9 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
 
   // ── 꽃길 (화면 왼쪽 끝 · 정령의 꽃밭) ──
   {
-    const tr = t - s.trampT < 70, k = R(0.016);
+    const tr = t - s.trampT < 70, k = R(0.024);
     for (let i = 0; i < 6; i++) {
-      const px = R(0.012 + (i % 3) * 0.022), py = Y(GY + 0.02 + Math.floor(i / 3) * 0.075 + (i % 2) * 0.02), flat = tr ? 0.4 : 1;
+      const px = R(0.016 + (i % 3) * 0.03), py = Y(GY + 0.03 + Math.floor(i / 3) * 0.1 + (i % 2) * 0.025), flat = tr ? 0.4 : 1;
       ctx.strokeStyle = '#4a9a3e';
       ctx.lineWidth = 1.6;
       ctx.beginPath();
@@ -2327,9 +2389,9 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
     // 높이 있을 때는 흐리게, 내려올수록 진하게 (어디에 떨어질지 = 어디를 치면 되는지)
     const near = clamp(1.25 - m.h * 1.9, 0.15, 1), col = meteor && near > 0.6 ? '255,90,60' : under ? '255,190,40' : '255,255,255';
     ctx.globalAlpha = near;
-    const rr0 = R(r) * (0.92 + 0.08 * pul);
+    const rr0 = Math.min(R(0.17), R(r)) * (0.92 + 0.08 * pul);
     ell(ctx, X(lx), gy, rr0, rr0 * 0.3);
-    ctx.fillStyle = `rgba(${col},${(under ? 0.2 : 0.1) + 0.16 * near})`;
+    ctx.fillStyle = `rgba(${col},${(under && !meteor ? 0.2 : 0.08) + 0.12 * near})`;
     ctx.fill();
     ctx.lineWidth = 4.5;
     ctx.strokeStyle = 'rgba(75,48,32,.3)';
@@ -2352,6 +2414,24 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
       ctx.stroke();
       ctx.setLineDash([]);
     }
+  }
+  // ── 별똥별이 판 땅 (잠깐 남는다) ──
+  for (const e of s.events) {
+    if (e.k !== 'crash' || t - e.t > 100) continue;
+    const a = Math.min(1, (100 - (t - e.t)) / 30), rx = Math.min(R(0.2), R(e.x2) * (0.75 + 0.1 * e.n)), cx = X(e.x), cy = Y(e.y) + R(0.01);
+    ctx.globalAlpha = a;
+    ell(ctx, cx, cy, rx, rx * 0.26);
+    ctx.fillStyle = 'rgba(90,55,30,.55)';
+    ctx.fill();
+    ell(ctx, cx, cy - rx * 0.05, rx * 0.8, rx * 0.17);
+    ctx.fillStyle = 'rgba(60,35,18,.5)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,240,200,.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, rx * 0.26, 0, Math.PI * 1.05, Math.PI * 1.95);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
   }
   // ── NEW 스포트라이트 ──
   const spotM = s.spot && s.phase === 'play' ? s.mons.find((m) => m.id === s.spot!.id && m.st === WALK) : undefined;
@@ -2379,6 +2459,13 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
       y -= bob * u * 0.12;
       sy = 1 + 0.05 * bob;
       sx = 1 - 0.03 * bob;
+      // 첫 톡 전(1판): 다 같이 들썩들썩 춤 (구경거리 · 그림만)
+      if (!s.started && s.stage === 0) {
+        const beat = Math.abs(Math.sin(t * 0.16 + (m.id % 2) * 0.6));
+        y -= beat * u * 0.32;
+        rot = Math.sin(t * 0.08 + m.id) * 0.18;
+        sy = 0.92 + 0.1 * beat;
+      }
       // 무리끼리 투닥투닥 (구경거리 · 그림만): 가끔 폴짝 뛰어 옆 놈을 툭
       const hp = (t + m.seed) % 130;
       if (hp < 16) {
@@ -2423,9 +2510,9 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
     }
     if (m.st === TWIST) {
       // 모래 회오리 기둥
-      const H2 = R(0.34), age = m.tm;
+      const H2 = R(0.46), age = m.tm;
       for (let i = 0; i < 7; i++) {
-        const yy = Y(GY + m.z) - (H2 * i) / 6, rw = R(0.03 + i * 0.022) * (0.9 + 0.1 * Math.sin(t * 0.3 + i));
+        const yy = Y(GY + m.z) - (H2 * i) / 6, rw = R(0.045 + i * 0.03) * (0.9 + 0.1 * Math.sin(t * 0.3 + i));
         ctx.strokeStyle = `rgba(232,196,130,${0.75 - i * 0.06})`;
         ctx.lineWidth = R(0.012);
         ctx.beginPath();
@@ -2443,7 +2530,7 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
     if (m.st === AIR && m.c >= C_MAX) {
       // 별똥별: 불꼬리
       for (let i = 4; i >= 1; i--) {
-        ell(ctx, x - m.vx * R(0.02) * i, y - u - Math.min(0.4, -m.vh) * R(0.06) * i * -1 - R(0.018) * i, u * (1.1 - i * 0.16), u * (1.1 - i * 0.16));
+        ell(ctx, x - clamp(m.lx - m.x, -0.3, 0.3) * R(0.1) * i, y - u - R(0.024) * i, u * (1.1 - i * 0.16), u * (1.1 - i * 0.16));
         ctx.fillStyle = i % 2 ? `rgba(255,120,50,${0.5 - i * 0.08})` : `rgba(255,214,90,${0.6 - i * 0.1})`;
         ctx.fill();
       }
@@ -2536,7 +2623,7 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
       ctx.strokeStyle = `rgba(90,55,30,${0.7 * (1 - age / 20)})`;
       ctx.lineWidth = 2;
       for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * TAU + f.t, L = R(0.05 + 0.04 * hsh(f.t + i)) * f.k;
+        const a = (i / 6) * TAU + f.t, L = R(0.09 + 0.07 * hsh(f.t + i)) * f.k * (f.n ? 1 : 0.6);
         ctx.beginPath();
         ctx.moveTo(fxp, fyp);
         ctx.lineTo(fxp + Math.cos(a) * L * 0.5, fyp + Math.sin(a) * L * 0.12);
@@ -2544,10 +2631,10 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
         ctx.stroke();
       }
       ctx.fillStyle = `rgba(80,50,25,${0.5 * (1 - age / 20)})`;
-      ell(ctx, fxp, fyp, R(0.07) * f.k, R(0.02) * f.k);
+      ell(ctx, fxp, fyp, R(0.1) * f.k, R(0.03) * f.k);
       ctx.fill();
     }
-    drawFist(ctx, fxp, fyp, R(0.08) * f.k, age, f.combo, f.small);
+    drawFist(ctx, fxp, fyp, R(0.115) * f.k, age, f.combo, f.small);
   }
   // 대장 (주먹보다 앞) · 머리 위 과녁 (떨어지는 졸개가 있을 때)
   if (bossM && bossM.st === BOSS) {
@@ -2602,33 +2689,34 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
   {
     const tx = s.sx * w;
     fx.memo.sx = fx.memo.sx === undefined ? tx : fx.memo.sx + (tx - fx.memo.sx) * 0.18;
-    const k = R(0.058), px = fx.memo.sx, moodAge = t - s.moodT;
+    // 정령은 땅과 함께 내려가되, 아래 띠 위로 얼굴은 늘 내민다
+    const k = R(0.075), px = fx.memo.sx, moodAge = t - s.moodT, Ys = (y: number) => (y + Math.min(camY, HUD_B - 0.055 - SOIL - 0.06)) * w;
     let mood = moodAge < 40 ? s.mood : 0;
     if (s.big && t - s.big.t < 60) mood = 3;
     if (s.phase === 'result' || (s.phase === 'end' && s.won)) mood = 3;
     if (s.phase === 'end' && !s.won) mood = 2;
     const pop = moodAge < 10 && s.mood !== 2 ? Math.sin((moodAge / 10) * Math.PI) * k * 0.35 : 0;
-    const py = Y(SOIL + 0.03) - pop + Math.sin(t * 0.06) * R(0.003);
+    const py = Ys(SOIL + 0.06) - pop + Math.sin(t * 0.06) * R(0.003), hy = Ys(SOIL + 0.105);
     // 구멍
     ctx.fillStyle = '#3e2414';
-    ell(ctx, px, Y(SOIL + 0.06), k * 1.25, k * 0.38);
+    ell(ctx, px, hy, k * 1.25, k * 0.38);
     ctx.fill();
     ctx.save();
     ctx.beginPath();
-    ctx.rect(px - k * 2.5, py - k * 4, k * 5, Y(SOIL + 0.06) - (py - k * 4));
+    ctx.rect(px - k * 2.5, py - k * 4, k * 5, hy - (py - k * 4));
     ctx.clip();
     drawSpirit(ctx, px, py, k, s.lv, t, mood);
     ctx.restore();
-    // 구멍 앞 흙더미 · 손
+    // 구멍 앞 흙더미 · 손 (첫 톡 전엔 손을 흔든다)
     ctx.fillStyle = P.soil[0];
     ctx.strokeStyle = 'rgba(60,35,20,.6)';
     ctx.lineWidth = 1.5;
-    ell(ctx, px, Y(SOIL + 0.068), k * 1.45, k * 0.3);
+    ell(ctx, px, hy + R(0.008), k * 1.45, k * 0.3);
     ctx.fill();
     ctx.stroke();
-    const up = mood === 1 && moodAge < 16 ? 1 : 0;
-    spiritHand(ctx, px - k * 0.95, Y(SOIL + 0.058), k, 0);
-    spiritHand(ctx, px + k * 0.95, Y(SOIL + 0.058), k, up);
+    const wave = s.phase === 'play' && s.stage === 0 && !s.started, up = (mood === 1 && moodAge < 16) || wave ? 1 : 0;
+    spiritHand(ctx, px - k * 0.95, hy - R(0.002), k, 0);
+    spiritHand(ctx, px + k * 0.95 + (wave ? Math.sin(t * 0.3) * k * 0.3 : 0), hy - R(0.002) - (wave ? k * 0.4 : 0), k, up);
     if (s.combo >= 2 && t - s.comboT < 140 && s.phase === 'play') {
       font(0.036, 900);
       text(`공중 연속 ${s.combo}`, px, py - k * (s.lv >= 7 ? 2.9 : 2.2), s.combo >= 4 ? '#ffd23f' : '#ffffff', OUT, 4);
@@ -2652,9 +2740,9 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.restore();
-    drawHand(ctx, hx + R(0.02), hy - R(0.02), R(0.085), press);
-    font(0.05, 900);
-    text('톡!', hx + R(0.11), hy - R(0.03), '#ffffff', OUT, 4);
+    drawHand(ctx, hx + R(0.03), hy - R(0.02), R(0.11), press);
+    font(0.054, 900);
+    text('톡!', hx + R(0.15), hy - R(0.03), '#ffffff', OUT, 4);
   }
 
   // ── 방금 일어난 일: 소리 · 흙먼지 · 흔들림 · 글자 (한 번만) ──
@@ -2672,13 +2760,15 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
         if (e.x2 > 0 && n) fx.sound('zap', 0.8 + Math.min(8, e.x2) * 0.12, 0.5);
         if (e.text === 'tink') (fx.sound('ding', 0.6, 0.6), say(ex, ey - R(0.2), '끄떡없다!', '#ffd0c8', 15));
         fx.kick(small ? 2 : 3 + Math.min(9, n * 1.2));
-        puff(ex, ey, '#c99360', 8 + Math.min(10, n), 4 + big * 2, 3.2);
-        puff(ex, ey, '#f3dfb0', 5, 3, 2.6);
-        fx.ring(ex, ey, n ? '#fff3c4' : 'rgba(255,255,255,.6)', R(0.09 + 0.06 * big), 4);
+        puff(ex, ey, '#c99360', 10 + Math.min(10, n), 4.5 + big * 2, 3.6);
+        puff(ex, ey, '#9aa3ad', 5 + Math.min(5, n), 5, 3);
+        puff(ex, ey, '#f3dfb0', 6, 3, 3);
+        fx.ring(ex, ey, n ? '#fff3c4' : 'rgba(255,255,255,.6)', R(0.14 + 0.08 * big), 5);
+        if (n) fx.ring(ex, ey, 'rgba(255,220,140,.8)', R(0.24 + 0.08 * big), 3);
         if (!small) {
           font(0.05, 900);
           if (!n) say(ex, ey - R(0.18), '헛방~', '#f3dfb0', 14);
-          else if (!e.x2) say(ex, ey - R(0.34), n >= 5 ? '콰쾅!' : '쾅!', n >= 5 ? '#ffd23f' : '#ffffff', Math.round(R(0.05 + 0.02 * big)));
+          else if (!e.x2) say(ex, ey - R(0.46), n >= 5 ? '콰쾅!' : '쾅!', n >= 5 ? '#ffd23f' : '#ffffff', Math.round(R(0.05 + 0.02 * big)));
         }
         break;
       }
@@ -2711,6 +2801,20 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
       case 'blast': fx.sound('thud', 0.6, 1.3); fx.sound('zap', 0.6, 0.8); fx.kick(11); fx.blink('#fff3c4', 0.3); puff(ex, ey, '#ff9a3d', 14, 6, 3.4); puff(ex, ey, '#ffe36b', 10, 5, 3); fx.ring(ex, ey, '#ffb070', R(0.18), 6); say(ex, ey - R(0.08), '펑!', '#ffd23f', 21); break;
       case 'twist': fx.sound('whoosh', 0.6, 1.2); fx.sound('swell', 0.8, 0.7); say(ex, ey - R(0.14), '회오리!', '#fff3c4', 18); break;
       case 'suck': fx.sound('whoosh', 1.5, 0.4); break;
+      case 'crash': {
+        // 별똥별 착지: 땅이 파이고 둘레가 다 튄다
+        const lv = e.n;
+        fx.sound('thud', 0.5 - lv * 0.05, 1.3);
+        fx.sound('crack', 0.6, 1);
+        fx.kick(8 + lv * 4);
+        if (lv >= 3) fx.blink('#fff3c4', 0.25);
+        puff(ex, ey, '#c99360', 14 + lv * 4, 5 + lv, 3.6);
+        puff(ex, ey, '#9aa3ad', 8, 5, 3);
+        fx.ring(ex, ey, '#ffb070', Math.min(R(0.2), R(e.x2 * 0.9)), 6);
+        fx.ring(ex, ey, '#fff3c4', Math.min(R(0.3), R(e.x2 * 1.3)), 3);
+        say(ex, ey - R(0.12), lv >= 3 ? '별똥별 쿵쿵!' : '별똥별 쿵!', '#ffb070', lv >= 3 ? 19 : 17);
+        break;
+      }
       case 'meteor': fx.sound('zap', 1.3, 0.6); puff(ex, ey, '#ffb070', 6, 3, 2.6); say(ex, ey - R(0.05), e.n > 1 ? `별똥별 ${e.n}!` : '별똥별!', '#ffb070', 16); break;
       case 'fling': fx.sound('whoosh', 0.5, 1.3); fx.sound('swell', 1.4, 0.8); puff(ex, ey, '#ffe36b', 12, 5, 3); break;
       case 'caught': fx.sound('swell', 1.6, 0.4); puff(ex, ey, '#ffffff', 4, 2, 2.6); break;
@@ -2737,7 +2841,7 @@ function drawAll(ctx: C2, s: GPState, w: number, h: number, _th: Theme) {
       case 'end': fx.sound(e.n ? 'clear' : 'fail', 0.9, 1); break;
     }
   }
-  if (s.big && (fx.memo.bigT ?? -1) !== s.big.t && s.big.t > seenT) (fx.memo.bigT = s.big.t), fx.sound('chime', 1 + Math.min(8, s.big.n) * 0.04, 1), fx.blink('#fff6c8', 0.22), fx.kick(7);
+  if (s.big && (fx.memo.bigT ?? -1) !== s.big.t && s.big.t > seenT) (fx.memo.bigT = s.big.t), fx.sound('chime', 1 + Math.min(8, s.big.n) * 0.04, 1), fx.blink('#fff6c8', 0.22), fx.kick(7), (fx.popups = fx.popups.filter((p) => p.size < 16));
   fx.memo.t = t;
   ctx.restore();
   drawHud(ctx, s, w, h);
@@ -2816,7 +2920,7 @@ function drawHud(ctx: C2, s: GPState, w: number, h: number) {
       }
       ctx.textAlign = 'center';
       font(0.034, 900);
-      if (!(s.big && t - s.big.t < 62)) text(`${KD[boss.k].name} 휘청 ${s.sway}/${s.swayNeed}`, w / 2, by2 + bh2 / 2 + 0.5, INK, 'rgba(255,255,255,.75)', 3);
+      if (!(s.big && t - s.big.t < BAND_T)) text(`${KD[boss.k].name} 휘청 ${s.sway}/${s.swayNeed}`, w / 2, by2 + bh2 / 2 + 0.5, INK, 'rgba(255,255,255,.75)', 3);
     } else {
       const p = clamp(s.cam / Math.max(0.01, s.L - 1), 0, 1);
       rr(ctx, bx, by, bw, bh, bh / 2);
@@ -2879,8 +2983,8 @@ function drawHud(ctx: C2, s: GPState, w: number, h: number) {
   else if (s.phase === 'end') tip = s.won ? '모든 길을 쓸었어요!' : '누르면 다시 해요';
   else if (s.stage === 0 && !s.started) tip = '땅을 톡! 흙 주먹이 쾅 솟아 하늘로 붕';
   else if (boss && s.bossOn >= 0 && s.upT < 0) tip = `${KD[boss.k].name}는 안 떠요 — 떨어지는 졸개를 머리 위로!`;
-  else if (s.stage === 0 && s.tapN < 4) tip = anyFalling ? '떨어지는 놈 그림자 근처를 또 톡 — 더 높이!' : '무리 가장자리를 치면 옆 무리 위로 떨어져요';
-  else if (anyFalling && s.stage < 3 && s.best < d.n) tip = '금빛 고리 아래 무리를 같이 톡 — 한 주먹에 많이!';
+  else if (s.stage === 0 && s.tapN < 5) tip = anyFalling ? '떨어지는 놈 아래를 또 톡 — 아래 무리까지 한 주먹!' : '뜬 놈들은 앞 무리 위로 떨어져요';
+  else if (anyFalling && s.stage < 3 && s.best < d.n) tip = '동그라미 자리를 톡 — 떨어지는 놈 + 아래 무리 한 주먹!';
   font(0.036, 800);
   text(tip, w / 2, Y(1.402), INK);
   font(0.034, 700);
@@ -2925,8 +3029,8 @@ function drawHud(ctx: C2, s: GPState, w: number, h: number) {
   }
 
   // ── 큰 순간 띠 ──
-  if (s.big && t - s.big.t < 62 && s.phase !== 'end') {
-    const age = t - s.big.t, pop = age < 7 ? 1.4 - 0.4 * (age / 7) : 1 + 0.03 * Math.sin(age * 0.5), a = Math.min(1, (62 - age) / 14), n = s.big.n;
+  if (s.big && t - s.big.t < BAND_T && s.phase !== 'end') {
+    const age = t - s.big.t, pop = age < 6 ? 1.4 - 0.4 * (age / 6) : 1 + 0.03 * Math.sin(age * 0.5), a = Math.min(1, (BAND_T - age) / 10), n = s.big.n;
     const by = Y(0.3), size = 0.058 + Math.min(0.016, n * 0.0012);
     ctx.save();
     ctx.globalAlpha = a;

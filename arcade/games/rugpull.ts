@@ -5,12 +5,12 @@
  * 무대: 한낮의 몬스터 먹자 축제 광장(3/4 시점 한 화면). 바닥엔 돗자리·식탁보·멍석이 깔려 있고 가운데엔 떡·꼬치·수박.
  *   몬스터들이 사방 문에서 들어와 먹을 것 쪽으로 몰려가 깔개 위에 올라선다(저절로 — 늘 어딘가 붐빈다).
  *   나는 오른쪽 아래 단상의 장난꾸러기 꼬마 요리사(킥킥).
- * 조작은 톡 하나: 톡 한 깔개가 톡한 반대쪽으로 '홱!' 빠지고, 위의 놈들은 공중제비로 **톡한 쪽으로** 날아간다
- *   (깔개 가운데를 톡 하면 요리사 반대쪽으로). 날아갈 길 ±30° 안에 무리가 있으면 그쪽으로 붙는다(손가락 오차 견디기).
- *   깔개 밖을 톡 하면 가장 가까운 깔개가 톡한 곳 쪽으로. 겹친 깔개(3장)는 겹친 곳을 톡 하면 두 장이 한꺼번에.
- *   먹을 것은 제자리에 '탁' 남고 다시 가득 — 그래서 다음 무리가 또 몰려온다. 뺀 깔개는 다시 깔리는 데 1초(굴러 있던 천이 펴짐).
+ * 조작은 톡 하나: 깔개 어디를 톡 해도 그 깔개가 '홱!' 빠지고, 위의 놈들은 공중제비로 **가장 가까운 다른 무리** 쪽으로 날아간다
+ *   (없으면 광장 가운데로). 깔개마다 날아갈 쪽을 은은한 점선 화살표로 늘 보여 준다 — 판단은 '어느 깔개?' 하나.
+ *   깔개 밖을 톡 하면 가장 가까운 깔개. 회전 원판(2장)은 사방으로, 겹친 깔개(3장)는 겹친 곳을 톡 하면 두 장이 한꺼번에.
+ *   먹을 것은 제자리에 '탁' 남고 다시 가득. 뺀 깔개는 1.5초 동안 구겨진 천 뭉치가 펴지며 다시 깔리고, 손님이 다시 모이는 데 1초쯤.
  * 날아간 놈 → 떨어지며 미끄러지고(볼링) → 서 있는 놈에 부딪히면 그놈도 넘어져 굴러간다(도미노) → 넘어진 놈은 별이 돌다 동전으로 펑.
- * 0.5초짜리 판단: 어느 깔개가 제일 붐비나 · 어느 쪽을 톡 해야 옆 무리로 날아가나 · 배고픈 놈이 요리사 쪽으로 오나.
+ * 0.5초짜리 판단: 어느 깔개가 붐비고, 그 화살표 끝 무리도 붐비나 · 배고픈 놈이 요리사 쪽으로 오나.
  * 지는 것: 먹을 것이 바닥나면 그 깔개 놈들이 '배고파!' 하고 요리사 앞 매트로 몰려온다 — 매트에서 1.5초 버티면 요리사 콩, 하트 -1.
  *   (매트도 깔개라 빼면 된다.) 첫 톡 전에는 아무도 배고프지 않고, 1판은 콩 맞아도 하트를 잃지 않는다. 하트 셋을 다 잃으면 끝.
  * 판 12개(장 3 × 4판, 장 끝은 대장): 1 말랑 떡도깨비 → 2 덩치 곰(안 날아가고 그 자리에 쿵 — 둘레가 튕김) → 3 물풍선 개구리(떨어지면 펑, 물바다는 쭈욱 미끄럼)
@@ -18,10 +18,13 @@
  *   → 8 대장 수박 문어 → 9 병아리 떼(한 깔개에 잔뜩) → 10 폭죽 다람쥐(떨어지면 펑!) → 11 통통 젤리(세 번 튕김) → 12 대장 도깨비 왕.
  *   장마다 새 깔개: 1장 돗자리·식탁보·멍석 · 2장 회전 원판(빼면 사방으로) · 3장 겹친 깔개(한 번에 두 장).
  * 대장: 커다란 잔칫상 위에 앉아 있다. 졸개를 날려 잔칫상에 부딪히게 하면 흔들 눈금이 차고, 꽉 차면 '잔칫상 식탁보 빼기!' — 톡 하면 대장이 데굴데굴.
+ *   장마다 다른 짓: 돼지 왕은 가만히 · 수박 문어는 먹물을 뿜어 깔개 하나를 미끄럼판으로(빼면 멀리 쭉) · 도깨비 왕은 잔칫상째 광장을 돌아다닌다(상 밑 깔개를 빼면 덜컹).
+ * 판 시작엔 광장이 반쯤 비어 있고 첫 3초 동안 손님이 우르르 몰려든다. 별 셋째(한 번 빼서 N마리)는 판 시작 10초 뒤부터 센다.
  * 성장(저절로): 판을 깨면 요리사 레벨 +1 — 빼는 힘(날아가는 거리)·다시 깔리는 빠르기·모자. 장 끝에 광장의 큰 물건 둘 중 하나를 톡
  *   (기름 항아리 / 고무 깔개 · 큰 부채 / 폭죽 상자). 도감 = 날려 본 몬스터.
  * 별(쉬운 말 셋): 축제 지키기 · 하트 안 잃고 · 한 번 빼서 N마리. 점수: 한 번 빼서 n번째로 넘어진 놈은 ⌈n²/4⌉점, 판 점수는 별 수로 곱해진다.
- * 큰 띠는 그 판 최고 기록을 넘을 때(다섯부터)·별 셋째·대장 순간에만 — 나머지는 사건 자리의 작은 숫자와 소리.
+ * 큰 띠는 연쇄가 끝난 뒤 한 번: 그 판 최고 기록을 직전 띠보다 3 넘게 넘을 때(다섯부터, 띠 사이 2초)·별 셋째·대장 순간에만.
+ *   나머지는 연쇄가 끝난 자리의 작은 'N마리!' 하나와 소리.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -34,7 +37,9 @@ const PX0 = 0.035, PX1 = 0.965, PY0 = 0.255, PY1 = 1.265;
 /** 요리사 단상(오른쪽 아래 구석, 굴러온 놈은 튕긴다) */
 const CHEF_X = 0.85, CHEF_Y = 1.2, POD_R = 0.085;
 /** 손이 쉬는 틱(톡 사이) · 깔개가 다시 깔리는 틱(레벨이 오르면 빨라짐) · 서 있는 손님 상한 · 화면의 적 상한 · 문으로 한 마리씩 들어오는 간격 */
-const HAND_T = 36, RELAY_T = 50, CAP_UP = 20, MAX_MONS = 24, GATE_EVERY = 4;
+const HAND_T = 36, RELAY_T = 90, CAP_UP = 20, MAX_MONS = 24, GATE_EVERY = 5;
+/** 다시 깔린 뒤 손님이 다시 오기 시작하는 틱 · 판 시작 손님 몰려옴(틱) · 별 셋째를 세기 시작하는 틱 · 큰 띠 사이 · 날아갈 무리를 찾는 거리 */
+const OPEN_T = 22, RUSH_T = 180, STAR_T = 600, BAND_GAP = 120, AIM_R = 0.72;
 /** 날기: 기본 거리 · 떨어진 뒤 미끄러지는 빠르기 · 마찰(물바다·기름) · 넘어뜨리는 최소 빠르기 · 기절 틱 */
 const FLING_L = 0.27, SKID_V = 0.012, FRIC = 0.94, FRIC_WET = 0.976, FRIC_OIL = 0.952, KNOCK_V = 0.0026, STOP_V = 0.0013, DIZZY_T = 22;
 /** 배고픔: 매트에서 버티는 틱(지나면 요리사 콩) · 배고픈 놈 걷는 빠르기 */
@@ -88,71 +93,71 @@ const DOOR = RG('door', 0.655, 1.175, 0.085, 0.06, 'none');
 /** 판 12개. 깔개 자리는 판마다 조금씩 다르다 — 이웃 깔개끼리 날아가 닿을 거리(0.3~0.45)에 둔다 */
 export const STAGES: StageDef[] = [
   {
-    key: 'mochi', ch: 0, name: '말랑 떡도깨비', news: '깔개를 톡! 위의 놈들이 톡한 쪽으로 날아가요', n: 155, star: 6, eat: 0.0002,
+    key: 'mochi', ch: 0, name: '말랑 떡도깨비', news: '깔개를 톡! 위의 놈들이 화살표 쪽 무리로 날아가요', n: 100, star: 6, eat: 0.0002,
     mix: [['mochi', 1]],
-    rugs: [RG('cloth', 0.27, 0.8, 0.13, 0.1, 'tteok'), RG('mung', 0.68, 0.74, 0.15, 0.15, 'tteok'), RG('mat', 0.3, 0.47, 0.12, 0.08, 'skewer'), RG('cloth', 0.72, 0.43, 0.13, 0.095, 'jeon'), DOOR],
+    rugs: [RG('cloth', 0.27, 0.8, 0.13, 0.1, 'tteok'), RG('mung', 0.68, 0.74, 0.15, 0.15, 'tteok'), RG('mat', 0.3, 0.42, 0.12, 0.08, 'skewer'), RG('cloth', 0.72, 0.43, 0.13, 0.095, 'jeon'), DOOR],
   },
   {
-    key: 'bear', ch: 0, name: '덩치 곰', news: '곰은 안 날아가요 — 그 자리에 쿵! 둘레가 튕겨요', n: 200, star: 9, eat: 0.0003,
+    key: 'bear', ch: 0, name: '덩치 곰', news: '곰은 안 날아가요 — 그 자리에 쿵! 둘레가 튕겨요', n: 130, star: 9, eat: 0.00045,
     mix: [['bear', 2], ['mochi', 12]],
     rugs: [RG('mung', 0.5, 0.68, 0.15, 0.15, 'tteok'), RG('cloth', 0.22, 0.43, 0.13, 0.095, 'skewer'), RG('cloth', 0.78, 0.43, 0.13, 0.095, 'jeon'), RG('mat', 0.24, 0.98, 0.12, 0.08, 'dumpling'), DOOR],
   },
   {
-    key: 'frog', ch: 0, name: '물풍선 개구리', news: '떨어지면 펑! 물바다에선 쭈욱 미끄러져요', n: 225, star: 11, eat: 0.00042,
+    key: 'frog', ch: 0, name: '물풍선 개구리', news: '떨어지면 펑! 물바다에선 쭈욱 미끄러져요', n: 145, star: 13, eat: 0.0007,
     mix: [['frog', 3], ['bear', 1], ['mochi', 10]],
     rugs: [RG('cloth', 0.25, 0.49, 0.13, 0.1, 'tteok'), RG('cloth', 0.74, 0.49, 0.13, 0.1, 'skewer'), RG('mung', 0.47, 1.0, 0.14, 0.14, 'jeon'), RG('mat', 0.15, 0.8, 0.1, 0.07, 'dumpling'), DOOR],
   },
   {
-    key: 'kingpig', ch: 0, name: '배부른 돼지 왕', news: '잔칫상에 졸개를 날려 흔들어요 — 꽉 차면 잔칫상 빼기!', n: 0, star: 8, eat: 0.0004,
-    mix: [], boss: { k: 'kingpig', meter: 34, minions: [['mochi', 7], ['frog', 2], ['bear', 1]] },
+    key: 'kingpig', ch: 0, name: '배부른 돼지 왕', news: '잔칫상에 졸개를 날려 흔들어요 — 꽉 차면 잔칫상 빼기!', n: 0, star: 10, eat: 0.00055,
+    mix: [], boss: { k: 'kingpig', meter: 100, minions: [['mochi', 7], ['frog', 2], ['bear', 1]] },
     rugs: [RG('feast', 0.5, 0.43, 0.25, 0.1, 'tteok'), RG('cloth', 0.2, 0.77, 0.12, 0.09, 'skewer'), RG('cloth', 0.8, 0.77, 0.12, 0.09, 'jeon'), RG('mung', 0.47, 1.0, 0.13, 0.13, 'tteok'), DOOR],
   },
   {
-    key: 'tanuki', ch: 1, name: '쟁반 너구리', news: '쟁반이 멀리까지 슝! 가는 길을 줄줄이 넘어뜨려요', n: 240, star: 14, eat: 0.00044,
+    key: 'tanuki', ch: 1, name: '쟁반 너구리', news: '쟁반이 멀리까지 슝! 가는 길을 줄줄이 넘어뜨려요', n: 150, star: 15, eat: 0.00065,
     mix: [['tanuki', 3], ['frog', 1], ['bear', 1], ['mochi', 9]],
     rugs: [RG('spin', 0.5, 0.7, 0.13, 0.13, 'melon'), RG('cloth', 0.2, 0.44, 0.12, 0.09, 'corn'), RG('cloth', 0.8, 0.44, 0.12, 0.09, 'skewer'), RG('mat', 0.24, 1.02, 0.11, 0.08, 'melon'), DOOR],
   },
   {
-    key: 'cat', ch: 1, name: '사뿐 고양이', news: '제 깔개로는 사뿐 착지! 날아온 놈에 맞아야 넘어져요', n: 240, star: 14, eat: 0.00046,
+    key: 'cat', ch: 1, name: '사뿐 고양이', news: '제 깔개로는 사뿐 착지! 날아온 놈에 맞아야 넘어져요', n: 150, star: 15, eat: 0.00065,
     mix: [['cat', 3], ['tanuki', 1], ['frog', 1], ['bear', 1], ['mochi', 8]],
     rugs: [RG('mung', 0.28, 0.53, 0.14, 0.14, 'melon'), RG('spin', 0.72, 0.66, 0.12, 0.12, 'corn'), RG('cloth', 0.3, 0.99, 0.12, 0.09, 'skewer'), RG('mat', 0.76, 0.35, 0.11, 0.07, 'melon'), DOOR],
   },
   {
-    key: 'pig', ch: 1, name: '풍선 돼지', news: '풍선 덕에 둥실 멀리 — 떨어지면 쿵! 둘레가 튕겨요', n: 260, star: 16, eat: 0.00048,
+    key: 'pig', ch: 1, name: '풍선 돼지', news: '풍선 덕에 둥실 멀리 — 떨어지면 쿵! 둘레가 튕겨요', n: 170, star: 18, eat: 0.0007,
     mix: [['pig', 3], ['cat', 1], ['tanuki', 1], ['frog', 1], ['bear', 1], ['mochi', 8]],
     rugs: [RG('spin', 0.5, 0.53, 0.13, 0.13, 'melon'), RG('cloth', 0.18, 0.79, 0.12, 0.09, 'corn'), RG('cloth', 0.82, 0.79, 0.12, 0.09, 'skewer'), RG('mung', 0.44, 1.01, 0.13, 0.13, 'melon'), DOOR],
   },
   {
-    key: 'octo', ch: 1, name: '수박 문어 대감', news: '여덟 다리 대장! 졸개를 날려 잔칫상을 흔들어요', n: 0, star: 12, eat: 0.00046,
-    mix: [], boss: { k: 'octo', meter: 44, minions: [['mochi', 6], ['tanuki', 1], ['pig', 1], ['cat', 1], ['frog', 1]] },
+    key: 'octo', ch: 1, name: '수박 문어 대감', news: '먹물 뿜은 깔개는 미끄럼판 — 빼면 쭉 미끄러져요', n: 0, star: 13, eat: 0.00065,
+    mix: [], boss: { k: 'octo', meter: 105, minions: [['mochi', 6], ['tanuki', 1], ['pig', 1], ['cat', 1], ['frog', 1]] },
     rugs: [RG('feast', 0.5, 0.43, 0.25, 0.1, 'melon'), RG('spin', 0.22, 0.79, 0.12, 0.12, 'corn'), RG('cloth', 0.78, 0.77, 0.12, 0.09, 'skewer'), RG('mat', 0.47, 1.05, 0.11, 0.075, 'melon'), DOOR],
   },
   {
-    key: 'chick', ch: 2, name: '병아리 떼', news: '작아서 한 깔개에 잔뜩! 겹친 곳을 톡 하면 두 장이 한꺼번에', n: 290, star: 14, eat: 0.00046,
+    key: 'chick', ch: 2, name: '병아리 떼', news: '작아서 한 깔개에 잔뜩! 겹친 곳을 톡 하면 두 장이 한꺼번에', n: 185, star: 16, eat: 0.00065,
     mix: [['chick', 3], ['pig', 1], ['tanuki', 1], ['frog', 1], ['bear', 1], ['mochi', 7]],
     rugs: [RG('cloth', 0.29, 0.55, 0.14, 0.1, 'dumpling', 4, 1), RG('mat', 0.46, 0.64, 0.11, 0.075, 'tteok', 3, 1), RG('mung', 0.74, 0.43, 0.13, 0.13, 'corn'), RG('cloth', 0.3, 0.99, 0.12, 0.09, 'dumpling'), DOOR],
   },
   {
-    key: 'squirrel', ch: 2, name: '폭죽 다람쥐', news: '떨어지면 펑! 둘레가 다 날아가요', n: 290, star: 15, eat: 0.00048,
+    key: 'squirrel', ch: 2, name: '폭죽 다람쥐', news: '떨어지면 펑! 둘레가 다 날아가요', n: 185, star: 17, eat: 0.0007,
     mix: [['squirrel', 3], ['chick', 1], ['cat', 1], ['pig', 1], ['bear', 1], ['mochi', 8]],
     rugs: [RG('mung', 0.27, 0.5, 0.13, 0.13, 'corn', 6, 2), RG('mat', 0.43, 0.63, 0.11, 0.075, 'dumpling', 3, 2), RG('cloth', 0.77, 0.48, 0.12, 0.09, 'tteok'), RG('spin', 0.47, 0.99, 0.12, 0.12, 'corn'), DOOR],
   },
   {
-    key: 'jelly', ch: 2, name: '통통 젤리', news: '떨어지면 통! 통! 통! 세 번 튕기며 넘어뜨려요', n: 310, star: 16, eat: 0.0005,
+    key: 'jelly', ch: 2, name: '통통 젤리', news: '떨어지면 통! 통! 통! 세 번 튕기며 넘어뜨려요', n: 200, star: 19, eat: 0.00072,
     mix: [['jelly', 3], ['squirrel', 1], ['chick', 1], ['cat', 1], ['tanuki', 1], ['mochi', 8]],
     rugs: [RG('cloth', 0.25, 0.47, 0.13, 0.095, 'tteok', 4, 3), RG('mat', 0.41, 0.58, 0.11, 0.075, 'corn', 3, 3), RG('spin', 0.76, 0.5, 0.12, 0.12, 'dumpling'), RG('mung', 0.47, 0.98, 0.13, 0.13, 'corn'), DOOR],
   },
   {
-    key: 'goblin', ch: 2, name: '도깨비 왕', news: '마지막 대장! 졸개를 날려 잔칫상을 흔들어요', n: 0, star: 14, eat: 0.00048,
-    mix: [], boss: { k: 'goblin', meter: 54, minions: [['mochi', 5], ['chick', 1], ['squirrel', 1], ['jelly', 1], ['cat', 1], ['pig', 1]] },
-    rugs: [RG('feast', 0.5, 0.43, 0.25, 0.1, 'corn'), RG('cloth', 0.21, 0.77, 0.12, 0.09, 'dumpling', 4, 4), RG('mat', 0.36, 0.87, 0.1, 0.07, 'tteok', 3, 4), RG('spin', 0.78, 0.8, 0.12, 0.12, 'corn'), DOOR],
+    key: 'goblin', ch: 2, name: '도깨비 왕', news: '잔칫상이 돌아다녀요 — 상 밑 깔개를 빼면 덜컹!', n: 0, star: 15, eat: 0.0007,
+    mix: [], boss: { k: 'goblin', meter: 140, minions: [['mochi', 5], ['chick', 1], ['squirrel', 1], ['jelly', 1], ['cat', 1], ['pig', 1]] },
+    rugs: [RG('feast', 0.5, 0.49, 0.2, 0.09, 'corn'), RG('cloth', 0.22, 0.68, 0.12, 0.09, 'dumpling', 4, 4), RG('mat', 0.35, 0.79, 0.1, 0.07, 'tteok', 3, 4), RG('spin', 0.78, 0.66, 0.12, 0.12, 'corn'), RG('mat', 0.5, 0.97, 0.11, 0.075, 'dumpling'), DOOR],
   },
 ];
 export const STAGE_COUNT = STAGES.length;
 /** 장 끝 둘 중 하나(광장의 큰 물건) */
 export const PERKS: { name: string; line: string }[][] = [
   [{ name: '기름 항아리', line: '미끌미끌 더 멀리 굴러요' }, { name: '고무 깔개', line: '튕겨 와서 한 번 더 홱!' }],
-  [{ name: '큰 부채', line: '훨씬 멀리 날아가요' }, { name: '폭죽 상자', line: '떨어지면 작게 펑!' }],
+  [{ name: '큰 부채', line: '먼 무리까지 날아가요' }, { name: '폭죽 상자', line: '떨어지면 작게 펑!' }],
 ];
 /** 문: 광장 밖에서 안으로 들어오는 길 (밖 x·y → 안 x·y) */
 const GATES: [number, number, number, number][] = [
@@ -172,7 +177,7 @@ interface Mon {
   /** 날기: 출발 · 도착 · 걸리는 틱 · 높이 · 남은 튕김(젤리) · 착지 모양 */
   fx0: number; fy0: number; fx1: number; fy1: number; fT: number; fH: number; hops: number; soft: boolean;
   /** 넘어뜨린 빼기 번호(0 없음) · 셌나 · 대장 눈금에 넣었나 */
-  src: number; counted: boolean; metered: boolean;
+  src: number; counted: boolean; metered: boolean; slick: boolean;
   face: number; seed: number; born: number; bumpT: number; hurtT: number; spin: number; hungryT: number;
   dead: boolean;
 }
@@ -180,8 +185,8 @@ interface Rug {
   id: number; t: RT; x: number; y: number; w: number; h: number; food: Food; cap: number; pair: number;
   /** 먹을 것 양(1 가득) · 다시 깔리기까지 남은 틱 · 빠진 쪽(각) · 마지막으로 뺀 틱 · 회전 원판 각 · 자리(가운데 기준 바닥 좌표) */
   amt: number; relay: number; relayMax: number; pullA: number; pullT: number; rot: number; spots: [number, number][];
-  /** 고무 깔개: 튕겨 돌아올 틱 */
-  snap: number; seed: number;
+  /** 고무 깔개: 튕겨 돌아올 틱 · 다시 손님을 받는 틱 · 먹물(미끄럼판) 끝나는 틱 */
+  snap: number; seed: number; openT: number; ink: number;
 }
 /** 날아가는 쟁반 */
 interface Tray { x: number; y: number; vx: number; vy: number; src: number; t: number; hit: number[]; metered: boolean }
@@ -210,7 +215,13 @@ export interface RugState {
   seen: Set<string>;
   banner: { head: string; sub: string; t: number } | null; spot: { id: number; t: number; label: string } | null;
   big: { text: string; t: number; n: number; yank: number; star: boolean } | null;
+  /** 판 시작 틱 · 별 셋째로 세는 최고(10초 뒤) · 마지막 큰 띠 수·틱 · 아직 끝나지 않은 빼기 · 대장 짓(먹물 틱 · 잔칫상 길 각) */
+  t0: number; bestStar: number; bandN: number; bandT: number; open: Open[]; inkT: number; path: number;
+  /** 대장 판: 빼기마다 흔든 칸 (별 셋째 '한 번 빼서 N칸 들썩') */
+  mtally: Map<number, number>;
 }
+/** 아직 연쇄가 이어지는 빼기: 번호 · 뺀 틱 · 마지막으로 넘어진 틱 · 수 · 마지막 자리 · 잔칫상 빼기 뒤인가 */
+interface Open { id: number; t0: number; last: number; n: number; x: number; y: number; sealed: boolean }
 
 /** 빗변 (Math.hypot 대신 제곱근으로) */
 const hyp = (a: number, b: number) => Math.sqrt(a * a + b * b);
@@ -226,7 +237,9 @@ const boss = (s: RugState) => s.mons.find((m) => KD[m.k].boss && !m.dead);
 const feast = (s: RugState) => s.rugs.find((r) => r.t === 'feast');
 /** 요리사 레벨이 주는 힘: 날아가는 거리 · 다시 깔리는 틱 */
 export const flingL = (s: RugState) => FLING_L * (1 + 0.035 * (s.lv - 1)) * (s.perk[1] === 1 ? 1.32 : 1);
-const relayT = (s: RugState, r: Rug) => Math.max(36, RELAY_T - 2 * (s.lv - 1)) + (r.t === 'mung' ? 14 : r.t === 'door' ? -14 : 0);
+/** 날아갈 무리를 찾는 거리 (큰 부채면 더 멀리) */
+const aimR = (s: RugState) => AIM_R * (s.perk[1] === 1 ? 1.3 : 1);
+const relayT = (s: RugState, r: Rug) => (r.t === 'door' ? 60 : Math.max(78, RELAY_T - (s.lv - 1)));
 
 // ───────────────────────────── 깔개 ─────────────────────────────
 const round = (r: { t: RT }) => r.t === 'mung' || r.t === 'spin';
@@ -255,7 +268,7 @@ function mkRug(d: RugDef, id: number, seed: number): Rug {
       spots.push([Math.cos(a) * rx, Math.sin(a) * ry]);
     }
   }
-  return { id, t: d.t, x: d.x, y: d.y, w: d.w, h: d.h, food: d.food, cap, pair: d.pair ?? 0, amt: 1, relay: 0, relayMax: 1, pullA: 0, pullT: -999, rot: 0, spots, snap: -1, seed };
+  return { id, t: d.t, x: d.x, y: d.y, w: d.w, h: d.h, food: d.food, cap, pair: d.pair ?? 0, amt: 1, relay: 0, relayMax: 1, pullA: 0, pullT: -999, rot: 0, spots, snap: -1, seed, openT: 0, ink: -1 };
 }
 /** 자리의 화면 좌표 (회전 원판은 돈다) */
 function spotXY(r: Rug, i: number): [number, number] {
@@ -268,9 +281,9 @@ function spotXY(r: Rug, i: number): [number, number] {
 }
 const laid = (r: Rug) => r.relay <= 0;
 const occ = (s: RugState, r: Rug, i: number) => s.mons.reduce((a, m) => a + (!m.dead && m.rug === r.id && m.spot === i ? KD[m.k].slot : 0), 0);
-/** 빈자리 (먹을 것이 있는 깔개 — 다시 깔리는 중이어도 먹을 것은 제자리라 바로 몰려온다) */
+/** 빈자리 (먹을 것이 있고, 다시 깔린 지 조금 지난 깔개 — 손님이 다시 모이는 데 1초쯤) */
 function freeSpots(s: RugState, r: Rug, slot: number): number[] {
-  if (r.cap <= 0 || r.amt < 0.3) return [];
+  if (r.cap <= 0 || r.amt < 0.3 || !laid(r) || s.t < r.openT) return [];
   const out: number[] = [];
   for (let i = 0; i < r.spots.length; i++) if (occ(s, r, i) + slot <= 1.001) out.push(i);
   return out;
@@ -281,7 +294,7 @@ function add(s: RugState, k: K, x: number, y: number, st: number): Mon {
   const d = KD[k];
   const m: Mon = {
     id: ++s.nid, k, x, y, r: d.r, st, tm: 0, tx: x, ty: y, rug: -1, spot: -1, vx: 0, vy: 0,
-    fx0: x, fy0: y, fx1: x, fy1: y, fT: 1, fH: 0, hops: k === 'jelly' || k === 'cat' ? 2 : 0, soft: false, src: 0, counted: false, metered: false,
+    fx0: x, fy0: y, fx1: x, fy1: y, fT: 1, fH: 0, hops: k === 'jelly' || k === 'cat' ? 2 : 0, soft: false, src: 0, counted: false, metered: false, slick: false,
     face: x < 0.5 ? 1 : -1, seed: Math.floor(s.rng() * 1e6), born: s.t, bumpT: -99, hurtT: -99, spin: 0, hungryT: -99, dead: false,
   };
   if (!s.seen.has('k:' + k)) see(s, 'k:' + k);
@@ -317,7 +330,7 @@ function claim(s: RugState, m: Mon) {
   } else {
     // 깔개 가장자리 바깥에서 서성 (날아온 놈에 맞기 좋다)
     const rugs = s.rugs.filter((r) => r.t !== 'door' && r.t !== 'feast');
-    const r = rugs[Math.floor(s.rng() * rugs.length)] ?? s.rugs[0], a = s.rng() * TAU, q = 1.25 + s.rng() * 0.25;
+    const r = rugs[Math.floor(s.rng() * rugs.length)] ?? s.rugs[0], a = s.rng() * TAU, q = 1.4 + s.rng() * 0.45;
     m.tx = clamp(r.x + Math.cos(a) * r.w * q, PX0 + 0.05, PX1 - 0.05);
     m.ty = clamp(r.y + Math.sin(a) * r.h * q * YS, PY0 + 0.05, PY1 - 0.06);
     m.rug = -1;
@@ -363,7 +376,7 @@ function newStage(s: RugState) {
   s.trays = [];
   s.puddles = [];
   s.inbox = [];
-  s.gateT = 30;
+  s.gateT = 6;
   s.done = 0;
   s.total = d.n;
   s.hand = 0;
@@ -382,6 +395,15 @@ function newStage(s: RugState) {
   s.got = 0;
   s.newDex = [];
   s.big = null;
+  s.t0 = s.t;
+  s.bestStar = 0;
+  s.bandN = 0;
+  s.bandT = -999;
+  s.open = [];
+  s.mtally = new Map();
+  s.inkT = s.t + 200;
+  s.path = 0;
+  if (d.boss?.k === 'goblin') moveFeast(s, 0);
   // 문 밖 줄: 새 손님이 맨 앞에 꼭 하나
   if (d.boss) {
     const f = s.rugs.find((r) => r.t === 'feast')!, b = add(s, d.boss.k, f.x, f.y - f.h * YS * 0.3, EAT);
@@ -390,8 +412,8 @@ function newStage(s: RugState) {
     b.face = 1;
   } else s.inbox.push(d.key);
   refill(s);
-  // 첫 장면: 깔개마다 이미 먹고 있다 (세상이 이미 붐빈다)
-  const pre = s.stage === 0 ? [4, 6, 3, 2, 0] : d.rugs.map((r) => (r.t === 'door' ? 0 : r.t === 'feast' ? 3 : Math.max(1, (r.cap ?? CAPS[r.t]) - 1 - (s.rng() < 0.5 ? 1 : 0))));
+  // 첫 장면: 깔개가 반쯤 차 있고 (첫 판은 식탁보·멍석에 무리) 첫 3초 동안 문으로 우르르 몰려든다
+  const pre = s.stage === 0 ? [4, 5, 0, 0, 0] : d.rugs.map((r) => (r.t === 'door' ? 0 : r.t === 'feast' ? 2 : Math.max(1, Math.floor((r.cap ?? CAPS[r.t]) / 3))));
   s.rugs.forEach((r, ri) => {
     for (let j = 0; j < (pre[ri] ?? 0); j++) {
       const fr = freeSpots(s, r, 1);
@@ -404,7 +426,7 @@ function newStage(s: RugState) {
     }
   });
   // 몇은 걸어 들어오는 중
-  for (let j = 0; j < 3; j++) {
+  for (let j = 0; j < (s.stage === 0 ? 1 : 2); j++) {
     refill(s);
     const k = s.inbox.shift()!, [ox, oy, ix, iy] = GATES[(j * 2) % GATES.length];
     const m = add(s, k, ox + (ix - ox) * 0.9, oy + (iy - oy) * 0.9, ENTER);
@@ -424,7 +446,7 @@ function newStage(s: RugState) {
 }
 
 // ───────────────────────────── 넘어뜨리기 ─────────────────────────────
-/** 빼기 번호 src로 몇 번째 넘어졌나 — 점수·최고 기록·큰 띠 */
+/** 빼기 번호 src로 몇 번째 넘어졌나 — 점수 (큰 띠·별은 연쇄가 끝난 뒤 settle에서) */
 function count(s: RugState, m: Mon, src: number) {
   if (m.counted || KD[m.k].boss) return;
   m.counted = true;
@@ -435,18 +457,39 @@ function count(s: RugState, m: Mon, src: number) {
   s.sp += Math.ceil((n * n) / 4);
   if (!s.dex.includes(m.k)) s.dex.push(m.k), s.newDex.push(m.k), see(s, 'dex:' + m.k);
   ev(s, 'down', m.x, m.y - m.r, n, 0, 0, m.k);
-  if (!s.full && n > s.best) {
-    const d = STAGES[s.stage], star = s.best < d.star && n >= d.star;
-    s.best = n;
-    if (n >= WOW_N || star) {
-      if (s.big && s.big.yank === src && s.big.n > 0) (s.big.text = `${n}마리 한 방!`), (s.big.n = n), (s.big.t = Math.max(s.big.t, s.t - 8));
-      else wow(s, `${n}마리 한 방!`, n, src);
-      if (star) (s.big!.star = true), ev(s, 'star3', m.x, m.y - m.r);
+  const o = s.open.find((q) => q.id === src);
+  if (o) (o.n = n), (o.last = s.t), (o.x = m.x), (o.y = m.y - m.r);
+}
+/** 연쇄가 끝난 빼기: 그 자리에 'N마리!' 하나 · 최고 기록 큰 띠(직전 띠보다 3 넘게, 띠 사이 2초) · 별 셋째(판 시작 10초 뒤의 빼기만) */
+function settle(s: RugState) {
+  if (!s.open.length) return;
+  const d = STAGES[s.stage];
+  for (const o of [...s.open]) {
+    const busy = s.t - o.t0 < 300 && (s.mons.some((m) => m.src === o.id && (m.st === FLY || m.st === SLAM || (m.st === ROLL && hyp(m.vx, m.vy) > KNOCK_V))) || s.trays.some((q) => q.src === o.id));
+    if (busy || s.t - o.last < 8 || s.t - o.t0 < 12) continue;
+    s.open.splice(s.open.indexOf(o), 1);
+    const n = s.tally.get(o.id) ?? o.n;
+    if (n >= 2) ev(s, 'tally', o.x, o.y, n);
+    if (o.sealed) continue;
+    const prev = s.best;
+    s.best = Math.max(s.best, n);
+    // 별 셋째: 보통 판은 한 번 빼서 넘어진 수 · 대장 판은 한 번 빼서 흔든 칸
+    const sv = d.boss ? s.mtally.get(o.id) ?? 0 : n;
+    let star = false;
+    if (o.t0 - s.t0 >= STAR_T && sv > s.bestStar) {
+      star = s.bestStar < d.star && sv >= d.star;
+      s.bestStar = sv;
     }
+    if (star) {
+      wow(s, d.boss ? `${sv}칸 들썩!` : `${n}마리 한 방!`, d.boss ? 0 : n, o.id);
+      s.big!.star = true;
+      ev(s, 'star3', o.x, o.y);
+    } else if (n > prev && n >= WOW_N && n >= s.bandN + 3 && s.t - s.bandT >= BAND_GAP) wow(s, `${n}마리 한 방!`, n, o.id);
   }
 }
 function wow(s: RugState, text: string, n = 0, src = 0) {
   s.wowN++;
+  if (n) (s.bandN = n), (s.bandT = s.t);
   if (s.firstBig < 0 && s.firstTap >= 0) s.firstBig = s.t;
   s.big = { text, t: s.t, n, yank: src, star: false };
   s.freeze = Math.max(s.freeze, 4);
@@ -485,8 +528,16 @@ function hitBoss(s: RugState, x: number, y: number, r: number, src: number, m: M
   if (!f || !b || s.full || s.pulled || (m && m.metered)) return false;
   if (!inside(f, x, y, 1 + r / Math.min(f.w, f.h)) && dist(x, y, b.x, b.y) > b.r + r) return false;
   if (m) m.metered = true;
-  const add = m && (m.k === 'bear' || m.k === 'pig') ? 2 : 1;
+  addMeter(s, m && (m.k === 'bear' || m.k === 'pig' || m.slick) ? 2 : 1, src);
+  return true;
+}
+function addMeter(s: RugState, add: number, src: number) {
+  const f = feast(s), b = boss(s);
+  if (!f || !b || s.full || s.pulled) return;
   s.meter = Math.min(STAGES[s.stage].boss!.meter, s.meter + add);
+  s.mtally.set(src, (s.mtally.get(src) ?? 0) + add);
+  const o = s.open.find((q) => q.id === src);
+  if (o) o.last = Math.max(o.last, s.t);
   b.bumpT = s.t;
   ev(s, 'shake', b.x, b.y - b.r, s.meter);
   see(s, 'shake');
@@ -497,10 +548,33 @@ function hitBoss(s: RugState, x: number, y: number, r: number, src: number, m: M
     see(s, 'full');
     s.spot = { id: b.id, t: s.t, label: '잔칫상 식탁보 빼기!' };
   }
-  return true;
 }
+/** 도깨비 왕: 잔칫상이 광장을 천천히 돌아다닌다 (대장·상 앞 졸개도 함께) */
+const FEAST_PATH = { x: 0.5, y: 0.66, rx: 0.21, ry: 0.17, spd: (TAU / 60) / 15 };
+function moveFeast(s: RugState, dph: number) {
+  const f = feast(s);
+  if (!f) return;
+  s.path += dph;
+  const nx = FEAST_PATH.x + Math.sin(s.path) * FEAST_PATH.rx, ny = FEAST_PATH.y - Math.cos(s.path) * FEAST_PATH.ry, dx = nx - f.x, dy = ny - f.y;
+  f.x = nx;
+  f.y = ny;
+  for (const m of s.mons) {
+    if (m.dead || m.rug !== f.id || !upright(m.st)) continue;
+    if (KD[m.k].boss) (m.x += dx), (m.y += dy);
+    else if (m.spot >= 0) {
+      const [px, py] = spotXY(f, m.spot);
+      if (m.st === EAT) (m.x = px), (m.y = py);
+      else (m.tx = px), (m.ty = py);
+    }
+  }
+}
+/** 도깨비 왕 판: 이 깔개 위를 잔칫상이 지나는 중인가 */
+export const underFeast = (s: RugState, r: Rug) => {
+  const f = feast(s);
+  return !!f && r !== f && r.t !== 'door' && STAGES[s.stage].boss?.k === 'goblin' && !s.pulled && Math.abs(r.x - f.x) < r.w + f.w * 0.85 && Math.abs(r.y - f.y) < (r.h + f.h) * YS * 0.95;
+};
 /** 깔개 위의 놈을 날린다 (ang = 바닥 각) */
-function fling(s: RugState, m: Mon, ang: number, src: number, own: boolean, lm = 1) {
+function fling(s: RugState, m: Mon, ang: number, src: number, own: boolean, L0: number) {
   free(m);
   m.src = src;
   if (KD[m.k].boss) {
@@ -532,7 +606,7 @@ function fling(s: RugState, m: Mon, ang: number, src: number, own: boolean, lm =
   const soft = own && m.k === 'cat' && m.hops > 0;
   if (soft) m.hops--;
   else count(s, m, src);
-  const L = flingL(s) * lm * (0.9 + 0.2 * hsh(m.id * 7 + src)) * (m.k === 'pig' ? 1.75 : m.k === 'chick' ? 1.12 : 1);
+  const L = L0;
   m.st = FLY;
   m.tm = 0;
   m.soft = soft;
@@ -554,36 +628,43 @@ function fling(s: RugState, m: Mon, ang: number, src: number, own: boolean, lm =
     see(s, 'tray');
   }
 }
-/** 가운데를 톡 했을 때: 가장 가까운 벽 쪽 (문 앞 매트는 요리사 반대쪽) */
-export function centerAng(r: Rug): number {
-  if (r.t === 'door') return Math.atan2((r.y - CHEF_Y) / YS, r.x - CHEF_X);
-  const gaps: [number, number][] = [[r.x - PX0, Math.PI], [PX1 - r.x, 0], [(r.y - PY0) / YS, -Math.PI / 2], [(PY1 - r.y) / YS, Math.PI / 2]];
-  return gaps.reduce((a, b) => (b[0] < a[0] ? b : a))[1];
-}
-/** 놈들이 날아갈 쪽 고르기: 톡한 쪽(깔개 가운데에서 톡한 곳으로) — ±30° 안에 무리가 있으면 그쪽에 붙는다 */
-export function aimAt(s: RugState, r: Rug, x: number, y: number): number {
-  const vx = x - r.x, vy = (y - r.y) / YS, len = hyp(vx, vy);
-  // 깔개 가운데를 톡: 가장 가까운 광장 벽 쪽으로 곧장 (겨누려면 가장자리를 톡)
-  if (len < 0.3 * Math.min(r.w, r.h)) return centerAng(r);
-  const base = Math.atan2(vy, vx);
-  let best = base, bv = laneScore(s, r, base) + 0.01;
-  for (const d of [-1, 1, -2, 2, -3, 3]) {
-    const a = base + (d * Math.PI) / 22, v = laneScore(s, r, a) - Math.abs(d) * 0.002;
-    if (v > bv + 0.3) (bv = v), (best = a);
+/** 이 깔개를 빼면 위의 놈들이 날아갈 곳: 가장 가까운 다른 무리(다른 깔개 위 둘 이상 · 깔개 밖 셋 이상 모인 곳 · 대장 잔칫상) — 없으면 광장 가운데 */
+export function targetOf(s: RugState, r: Rug): { x: number; y: number; n: number } {
+  const ups = s.mons.filter((m) => !m.dead && upright(m.st) && !inside(r, m.x, m.y, 1.05));
+  let bx = 0.5, by = 0.72, bn = 0, bd = 1e9;
+  const take = (x: number, y: number, n: number) => {
+    const d = dist(r.x, r.y, x, y);
+    if (d < Math.min(r.w, r.h) * 0.9 || d > aimR(s)) return;
+    if (d < bd) (bd = d), (bx = x), (by = y), (bn = n);
+  };
+  const used = new Set<number>();
+  for (const q of s.rugs) {
+    if (q === r) continue;
+    let n = 0, sx = 0, sy = 0;
+    for (const m of ups) {
+      if (KD[m.k].boss || !inside(q, m.x, m.y, 1.05)) continue;
+      used.add(m.id);
+      n++;
+      sx += m.x;
+      sy += m.y;
+    }
+    if (n >= 2) take(sx / n, sy / n, n);
   }
-  return best;
-}
-/** 이 깔개를 a 쪽으로 빼면 날아가 닿을 무리 (어림) */
-function laneScore(s: RugState, r: Rug, a: number) {
-  const L = flingL(s), c = Math.cos(a), sn = Math.sin(a), wd = Math.min(r.w, r.h) * 0.75 + 0.05;
-  let v = 0;
-  for (const o of s.mons) {
-    if (o.dead || !upright(o.st) || inside(r, o.x, o.y)) continue;
-    const ox = o.x - r.x, oy = (o.y - r.y) / YS, u = ox * c + oy * sn;
-    if (u < L * 0.5 || u > L + 0.2) continue;
-    if (Math.abs(-ox * sn + oy * c) <= wd + o.r) v += KD[o.k].boss ? (s.full ? 0 : 2) : 1;
+  const b = boss(s), f = feast(s);
+  if (b && f && !s.pulled && r !== f && upright(b.st)) take(b.x, b.y + b.r * 0.3, 6);
+  // 깔개 밖에 셋 이상 모인 곳
+  const loose = ups.filter((m) => !used.has(m.id) && !KD[m.k].boss);
+  for (const m of loose) {
+    let n = 0, sx = 0, sy = 0;
+    for (const o of loose) if (dist(m.x, m.y, o.x, o.y) < 0.1) (n++, (sx += o.x), (sy += o.y));
+    if (n >= 3) take(sx / n, sy / n, n);
   }
-  return v;
+  if (bn === 0 && dist(r.x, r.y, bx, by) < 0.12) {
+    // 가운데 깔개인데 무리가 없다: 요리사 반대쪽으로
+    const a = Math.atan2((r.y - CHEF_Y) / YS, r.x - CHEF_X);
+    return { x: r.x + Math.cos(a) * 0.3, y: r.y + Math.sin(a) * 0.3 * YS, n: 0 };
+  }
+  return { x: bx, y: by, n: bn };
 }
 /** 깔개 위(발이 깔개 안)에 서 있는 놈들 */
 function riders(s: RugState, r: Rug): Mon[] {
@@ -613,7 +694,7 @@ export function rugsAt(s: RugState, x: number, y: number): { rugs: Rug[]; deny: 
   return { rugs: best ? [best] : [], deny: null };
 }
 /** 깔개를 홱! */
-function yank(s: RugState, set: Rug[], x: number, y: number) {
+function yank(s: RugState, set: Rug[]) {
   const id = ++s.yank;
   s.tally.set(id, 0);
   s.hand = HAND_T;
@@ -622,16 +703,26 @@ function yank(s: RugState, set: Rug[], x: number, y: number) {
   if (!s.started) s.started = true;
   let total = 0;
   for (const r of set) {
-    const spin = r.t === 'spin', a = spin ? 0 : aimAt(s, r, x, y), rs = riders(s, r);
+    const spin = r.t === 'spin', tg = targetOf(s, r), a = Math.atan2((tg.y - r.y) / YS, tg.x - r.x), rs = riders(s, r), slick = s.t < r.ink;
     s.chefA = a;
+    s.open.push({ id, t0: s.t, last: s.t, n: 0, x: r.x, y: r.y, sealed: s.full });
+    if (underFeast(s, r)) addMeter(s, 3 + Math.min(4, rs.length), id), ev(s, 'jolt', r.x, r.y), see(s, 'jolt');
+    if (slick) (r.ink = -1), ev(s, 'inkslide', r.x, r.y), see(s, 'inkslide');
     r.relay = r.relayMax = relayT(s, r) + (r.t === 'feast' ? 999 : 0);
     r.pullA = spin ? hsh(id) * TAU : a + Math.PI;
     r.pullT = s.t;
     r.amt = 1;
     if (s.perk[0] === 2 && r.t !== 'feast') r.snap = s.t + 16;
     for (const m of rs) {
-      const ra = spin ? Math.atan2((m.y - r.y) / YS, m.x - r.x) + 0.25 : a;
-      fling(s, m, ra, id, true, spin ? 0.62 : 1);
+      m.slick = slick;
+      if (spin) {
+        fling(s, m, Math.atan2((m.y - r.y) / YS, m.x - r.x) + 0.25, id, true, flingL(s) * 0.62 * (0.9 + 0.2 * hsh(m.id + id)));
+        continue;
+      }
+      // 무리 한가운데보다 조금 앞에 떨어지도록 (떨어져 미끄러지며 무리를 훑는다)
+      const lx = tg.x + (m.x - r.x) * 0.35 - Math.cos(a) * 0.03, ly = tg.y + (m.y - r.y) * 0.35 - Math.sin(a) * 0.03 * YS;
+      const ma = KD[m.k].boss ? a : Math.atan2((ly - m.y) / YS, lx - m.x), L = clamp(dist(m.x, m.y, lx, ly), 0.12, 0.62);
+      fling(s, m, ma, id, true, L);
     }
     total += rs.length;
     // 이 깔개로 걸어오던 놈들은 다른 데를 찾는다
@@ -651,17 +742,17 @@ function yank(s: RugState, set: Rug[], x: number, y: number) {
 function onTap(s: RugState, x: number, y: number) {
   if (s.firstTap < 0) s.firstTap = s.t;
   if (s.hand > 0) return void ((s.denyT = s.t), ev(s, 'deny', x, y));
-  // 첫 판 첫 톡: 어디를 눌러도 식탁보가 멍석 쪽으로 (이 게임에서 가장 시원한 순간)
+  // 첫 판 첫 톡: 어디를 눌러도 식탁보가 멍석 무리 쪽으로 (이 게임에서 가장 시원한 순간)
   if (s.stage === 0 && s.yanks === 0) {
-    const r = s.rugs[0], b = s.rugs[1];
+    const r = s.rugs[0];
     ev(s, 'tap', r.x, r.y);
-    yank(s, [r], r.x + (b.x - r.x) * 0.5, r.y + (b.y - r.y) * 0.5);
+    yank(s, [r]);
     return;
   }
   const { rugs, deny } = rugsAt(s, x, y);
   if (!rugs.length) return void (deny ? ((s.denyT = s.t), ev(s, 'deny', x, y, 1)) : ev(s, 'miss', x, y));
   ev(s, 'tap', x, y);
-  yank(s, rugs, x, y);
+  yank(s, rugs);
 }
 
 // ───────────────────────────── 한 틱 ─────────────────────────────
@@ -713,7 +804,7 @@ function land(s: RugState, m: Mon) {
   for (const o of s.mons) {
     if (o === m || o.dead || !upright(o.st) || KD[o.k].boss || o.k === 'bear') continue;
     const d = dist(m.x, m.y, o.x, o.y);
-    if (d > m.r + o.r + 0.024) continue;
+    if (d > m.r + o.r + 0.012) continue;
     const a = d > 1e-4 ? Math.atan2((o.y - m.y) / YS, o.x - m.x) : Math.atan2(sn, c);
     knock(s, o, c * 0.0075 + Math.cos(a) * 0.004, sn * 0.0075 + Math.sin(a) * 0.004, m.src);
   }
@@ -734,7 +825,7 @@ function land(s: RugState, m: Mon) {
   }
   m.st = ROLL;
   m.tm = 0;
-  const sk = m.k === 'pig' || m.k === 'squirrel' ? 0.55 : 1;
+  const sk = (m.k === 'pig' || m.k === 'squirrel' ? 0.55 : 1) * (m.slick ? 1.9 : 1) * (1 + 0.03 * (s.lv - 1));
   m.vx = c * SKID_V * sk;
   m.vy = sn * SKID_V * sk;
 }
@@ -763,7 +854,7 @@ function physics(s: RugState) {
   for (const m of s.mons) {
     if (m.dead || m.st !== ROLL) continue;
     const isBoss = !!KD[m.k].boss;
-    const fr = isBoss ? 0.977 : wet(s, m.x, m.y) ? FRIC_WET : s.perk[0] === 1 ? FRIC_OIL : FRIC;
+    const fr = isBoss ? 0.977 : m.slick || wet(s, m.x, m.y) ? FRIC_WET : s.perk[0] === 1 ? FRIC_OIL : FRIC;
     m.x += m.vx;
     m.y += m.vy * YS;
     m.vx *= fr;
@@ -798,11 +889,11 @@ function physics(s: RugState) {
         continue;
       }
       if (sp >= KNOCK_V) {
-        const ux = m.vx / sp, uy = m.vy / sp, k = sp * 0.92;
+        const ux = m.vx / sp, uy = m.vy / sp, k = sp * 0.86;
         knock(s, o, (ux * 0.55 + nx * 0.45) * k, (uy * 0.55 + ny * 0.45) * k, m.src);
         const vn = m.vx * nx + m.vy * ny;
-        m.vx = (m.vx - vn * nx * 0.5) * 0.7;
-        m.vy = (m.vy - vn * ny * 0.5) * 0.7;
+        m.vx = (m.vx - vn * nx * 0.5) * 0.56;
+        m.vy = (m.vy - vn * ny * 0.5) * 0.56;
         ev(s, 'knock', o.x, o.y - o.r * 0.5, 0, 0, 0, o.k);
       } else {
         // 살살 밀기
@@ -955,18 +1046,33 @@ function playStep(s: RugState) {
   const d = STAGES[s.stage];
   if (s.hand > 0) s.hand--;
   for (const r of s.rugs) {
-    if (r.relay > 0 && --r.relay === 0) ev(s, 'relay', r.x, r.y, 0, 0, 0, r.t);
+    if (r.relay > 0 && --r.relay === 0) (r.openT = s.t + OPEN_T), ev(s, 'relay', r.x, r.y, 0, 0, 0, r.t);
     if (r.t === 'spin' && laid(r)) r.rot += 0.011;
     if (r.snap === s.t) {
       // 고무 깔개: 튕겨 돌아오며 한 번 더 홱 (반대쪽으로)
       const rs = riders(s, r);
-      for (const m of rs) fling(s, m, r.pullA, s.yank, false);
+      for (const m of rs) fling(s, m, r.pullA, s.yank, false, flingL(s));
       ev(s, 'snap', r.x, r.y, rs.length, r.pullA);
       see(s, 'snap');
     }
   }
+  // 대장마다 다른 짓
+  if (d.boss?.k === 'goblin' && !s.pulled) moveFeast(s, FEAST_PATH.spd);
+  if (d.boss?.k === 'octo' && !s.full && !s.pulled && s.t >= s.inkT) {
+    // 수박 문어: 먹물을 뿜어 깔개 하나를 미끄럼판으로 (가장 붐비는 깔개)
+    s.inkT = s.t + 330;
+    const b = boss(s);
+    let best: Rug | null = null, bn = -1;
+    for (const r of s.rugs) {
+      if (r.t === 'door' || r.t === 'feast' || s.t < r.ink) continue;
+      const n = riders(s, r).length + hsh(r.id + s.t) * 0.5;
+      if (n > bn) (bn = n), (best = r);
+    }
+    if (best && b) (best.ink = s.t + 540), ev(s, 'ink', b.x, b.y - b.r, 0, best.x, best.y), see(s, 'ink');
+  }
   for (const m of s.mons) if (!m.dead) monStep(s, m);
   physics(s);
+  settle(s);
   hunger(s, d);
   if (s.mons.some((m) => m.dead)) s.mons = s.mons.filter((m) => !m.dead);
   if (s.puddles.length) s.puddles = s.puddles.filter((p) => s.t - p.t < p.life);
@@ -975,7 +1081,7 @@ function playStep(s: RugState) {
   if (!ending) {
     refill(s);
     const ups = s.mons.reduce((a, m) => a + (upright(m.st) ? 1 : 0), 0);
-    if (--s.gateT <= 0 && ups < CAP_UP && s.mons.length < MAX_MONS) (spawn(s), (s.gateT = GATE_EVERY));
+    if (--s.gateT <= 0 && ups < CAP_UP && s.mons.length < MAX_MONS) (spawn(s), (s.gateT = s.t - s.t0 < RUSH_T ? 12 : GATE_EVERY));
   }
   if (s.phase !== 'play') return;
   // 다 날려 보냈다: 굴러가던 놈들이 다 멈추면 판 깸
@@ -989,7 +1095,7 @@ function clearStage(s: RugState) {
   const d = STAGES[s.stage];
   s.phase = 'result';
   s.pt = 0;
-  s.starOk = [true, s.bonks === 0, s.best >= d.star];
+  s.starOk = [true, s.bonks === 0, s.bestStar >= d.star];
   s.got = s.starOk.filter(Boolean).length;
   s.stars += s.got;
   const gain = (s.sp + CLEAR_PTS) * STAR_MUL[s.got];
@@ -1016,12 +1122,12 @@ const game: GameDef<RugState> & { wows(s: RugState): number } = {
   genes: ['rugpull', 'chain', 'collect'],
   twist: '몬스터를 직접 치지 않고 놈들이 밟고 선 깔개를 홱 뺀다 — 공중제비로 날아간 놈들이 옆 무리를 도미노처럼 넘어뜨려서, 깔개에 많이 올라설수록 반갑다',
   rules: [
-    '깔개를 톡! 홱 빠지면서 위의 놈들이 톡한 쪽으로 날아가요.',
-    '날아간 놈이 다른 놈에 부딪히면 그놈도 넘어져요 — 붐비는 쪽으로!',
+    '깔개를 톡! 홱 빠지면서 위의 놈들이 화살표 쪽 무리로 날아가요.',
+    '날아간 놈에 부딪힌 놈도 넘어져요 — 붐비는 깔개를 골라요!',
     '먹을 게 바닥난 놈은 요리사 앞 매트로 와요. 매트도 빼면 돼요.',
   ],
   controls: 'touch',
-  hint: '깔개를 톡 — 위의 놈들이 톡한 쪽으로 날아가요 / 화살표로 고르고 스페이스',
+  hint: '깔개를 톡 — 위의 놈들이 화살표 쪽 무리로 날아가요 / 화살표 키로 고르고 스페이스',
   aspect: A,
   art: {
     concept: '한낮의 몬스터 먹자 축제 광장 — 스티커 그림책',
@@ -1037,7 +1143,7 @@ const game: GameDef<RugState> & { wows(s: RugState): number } = {
       rng: mulberry32(seed), seed, t: 0, stage: 0, phase: 'play', pt: 0, hearts: 3, pts: 0, sp: 0, stars: 0, got: 0, starOk: [false, false, false], dead: false, won: false,
       lv: 1, perk: [0, 0], picked: -1, dex: [], newDex: [], mons: [], rugs: [], trays: [], puddles: [], gone: [], events: [],
       nid: 0, inbox: [], gateT: 0, gateI: 0, done: 0, total: 0, hand: 0, yank: 0, tally: new Map(), best: 0, bonks: 0, started: false, yanks: 0,
-      meter: 0, full: false, pulled: false, bossDown: -1, clearT: 0, chefT: -99, chefHitT: -99, chefA: 0, lastGain: 0,
+      meter: 0, full: false, pulled: false, bossDown: -1, clearT: 0, chefT: -99, chefHitT: -99, chefA: 0, lastGain: 0, t0: 0, bestStar: 0, bandN: 0, bandT: -999, open: [], inkT: 0, path: 0, mtally: new Map(),
       freeze: 0, down: false, wowN: 0, firstTap: -1, firstBig: -1, denyT: -99, seen: new Set<string>(), banner: null, spot: null, big: null,
     } as RugState;
     newStage(s);
@@ -1068,6 +1174,7 @@ const game: GameDef<RugState> & { wows(s: RugState): number } = {
     if (s.gone.length) s.gone = s.gone.filter((c) => s.t - c.t < 50);
     if (s.spot && s.t - s.spot.t > 220 && !s.spot.label.startsWith('잔칫상')) s.spot = null;
     if (s.tally.size > 40) for (const k of [...s.tally.keys()].slice(0, s.tally.size - 40)) s.tally.delete(k);
+    if (s.mtally.size > 40) for (const k of [...s.mtally.keys()].slice(0, s.mtally.size - 40)) s.mtally.delete(k);
   },
   over: (s) => s.dead,
   score: (s) => s.pts + s.sp,
@@ -1091,8 +1198,8 @@ function between(s: RugState, left: boolean): Input | null {
   return NO;
 }
 
-/** 이 깔개들을 이 쪽으로 빼면 몇이 넘어질까 — 날아가 떨어질 자리·미끄러질 길·두 번째 도미노까지 어림 */
-function judge(s: RugState, set: Rug[], px: number, py: number): number {
+/** 이 깔개(들)를 빼면 몇이 넘어질까 — 화살표 끝 무리에 떨어져 미끄러지는 길 · 두 번째 도미노까지 어림 */
+function judge(s: RugState, set: Rug[], out?: { meter: number }): number {
   const L = flingL(s), fire = s.perk[1] === 2 ? 0.038 : 0, oil = s.perk[0] === 1 ? 1.35 : 1;
   const ups = s.mons.filter((o) => !o.dead && upright(o.st) && !KD[o.k].boss);
   const hit = new Set<number>(), ride = new Set<number>();
@@ -1111,22 +1218,31 @@ function judge(s: RugState, set: Rug[], px: number, py: number): number {
   };
   const feastHit = (x: number, y: number) => !!f && !!b && !s.full && !s.pulled && (inside(f, x, y, 1.15) || dist(x, y, b.x, b.y) < b.r + 0.06);
   for (const r of set) {
-    const spin = r.t === 'spin', a = spin ? 0 : aimAt(s, r, px, py), rs = riders(s, r);
+    const spin = r.t === 'spin', tg = targetOf(s, r), a = Math.atan2((tg.y - r.y) / YS, tg.x - r.x), rs = riders(s, r), slick = s.t < r.ink ? 1.9 : 1;
     if (r.t === 'feast') v += 60;
+    if (underFeast(s, r)) meter += 3 + Math.min(4, rs.length);
     for (const m of rs) ride.add(m.id);
     for (const m of rs) {
       if (KD[m.k].boss) continue;
-      const ma = spin ? Math.atan2((m.y - r.y) / YS, m.x - r.x) + 0.25 : a, c = Math.cos(ma), sn = Math.sin(ma);
+      let qx: number, qy: number, c: number, sn: number;
+      if (spin) {
+        const ma = Math.atan2((m.y - r.y) / YS, m.x - r.x) + 0.25;
+        (c = Math.cos(ma)), (sn = Math.sin(ma)), (qx = m.x + c * L * 0.62), (qy = m.y + sn * L * 0.62 * YS);
+      } else {
+        qx = tg.x + (m.x - r.x) * 0.35 - Math.cos(a) * 0.03;
+        qy = tg.y + (m.y - r.y) * 0.35 - Math.sin(a) * 0.03 * YS;
+        const ma = Math.atan2((qy - m.y) / YS, qx - m.x);
+        (c = Math.cos(ma)), (sn = Math.sin(ma));
+      }
       const first: Mon[] = [];
       if (m.k === 'bear') {
         v += 1;
         ring(m.x, m.y, 0.17, first);
       } else {
-        if (m.k !== 'cat') v += 1;
-        const LL = L * (spin ? 0.62 : 1) * (m.k === 'pig' ? 1.75 : m.k === 'chick' ? 1.12 : 1), qx = m.x + c * LL, qy = m.y + sn * LL * YS;
+        if (m.k !== 'cat' || m.hops <= 0) v += 1;
         if (feastHit(qx, qy)) meter += m.k === 'pig' ? 2 : 1;
-        if (m.k === 'cat') continue;
-        capsule(qx, qy, c, sn, 0.13 * oil * (m.k === 'pig' || m.k === 'squirrel' ? 0.55 : 1), m.r + 0.012 + fire, first);
+        if (m.k === 'cat' && m.hops > 0) continue;
+        capsule(qx, qy, c, sn, 0.14 * oil * slick * (m.k === 'pig' || m.k === 'squirrel' ? 0.55 : 1), m.r + 0.014 + fire, first);
         if (m.k === 'frog') ring(qx, qy, 0.11, first);
         if (m.k === 'squirrel') ring(qx, qy, 0.17, first);
         if (m.k === 'pig') ring(qx, qy, 0.125, first);
@@ -1137,14 +1253,14 @@ function judge(s: RugState, set: Rug[], px: number, py: number): number {
       for (const o of first) {
         v += 1;
         const sec: Mon[] = [];
-        capsule(o.x, o.y, c, sn, 0.07 * oil, o.r * 1.6, sec);
+        capsule(o.x, o.y, c, sn, 0.08 * oil * slick, o.r * 1.6, sec);
         v += sec.length * 0.8;
         if (feastHit(o.x + c * 0.06, o.y + sn * 0.06 * YS)) meter += 1;
       }
     }
   }
-  // 대장 판: 잔칫상을 흔드는 것도 값어치
-  if (f && b && !s.full) v += meter * 1.6;
+  if (f && b && !s.full) v += meter * 0.9;
+  if (out) out.meter = meter;
   // 배고파 매트에 선 놈 · 먹을 게 바닥나는 깔개는 서둘러
   for (const r of set) {
     const rs = riders(s, r);
@@ -1153,42 +1269,45 @@ function judge(s: RugState, set: Rug[], px: number, py: number): number {
   }
   return v;
 }
-/** 깔개 하나를 톡 할 자리들: 여덟 쪽 가장자리 (회전 원판은 가운데) */
-function taps(r: Rug): [number, number][] {
-  if (r.t === 'spin') return [[r.x, r.y]];
-  const out: [number, number][] = [];
-  for (let k = 0; k < 8; k++) {
-    const a = (k * TAU) / 8;
-    out.push([r.x + Math.cos(a) * r.w * 0.62, r.y + Math.sin(a) * r.h * YS * 0.62]);
+/** 봇이 톡 할 자리: 깔개 가운데 (겹친 짝은 겹친 곳도) */
+function taps(s: RugState, r: Rug): [number, number][] {
+  const out: [number, number][] = [[r.x, r.y]];
+  if (r.pair) {
+    const o = s.rugs.find((q) => q !== r && q.pair === r.pair);
+    if (o && yankable(s, o)) out.push([(r.x + o.x) / 2, (r.y + o.y) / 2]);
   }
   return out;
 }
-/** 봇: 넘어질 수가 가장 많은 깔개·쪽으로 (배고픈 놈이 매트에 오래 있으면 매트부터) */
+const lastYank = new WeakMap<object, number>();
+/** 봇: 넘어질 수가 큰 깔개를 고른다 — 작은 한 방은 아끼고(손님이 더 모이게) 배고픈 놈은 서둘러 */
 export const rugpullSmart: Bot<RugState> = {
-  name: '많이 넘어질 쪽으로',
+  name: '많이 넘어질 깔개',
   act(s) {
     const mid = between(s, true);
     if (mid) return mid;
     if (!ready(s)) return NO;
-    let bx = 0, by = 0, bv = 0;
+    let bx = 0, by = 0, bv = 0, bm = 0, urgent = false;
     // 지금 날아가는 놈이 떨어질 깔개는 건드리지 않는다 (어차피 넘어진다 — 연쇄를 가로채지 않기)
     const incoming = (r: Rug) => s.mons.some((m) => (m.st === FLY && !m.soft && inside(r, m.fx1, m.fy1, 1.5)) || (m.st === ROLL && hyp(m.vx, m.vy) > 0.004 && inside(r, m.x + m.vx * 14, m.y + m.vy * 14 * YS, 1.2)));
     for (const r of s.rugs) {
       if (!yankable(s, r) || (r.t !== 'door' && incoming(r))) continue;
-      const pts = taps(r);
-      // 겹친 짝: 겹친 곳 가운데도
-      if (r.pair) {
-        const o = s.rugs.find((q) => q !== r && q.pair === r.pair);
-        if (o && yankable(s, o)) pts.push([(r.x + o.x) / 2, (r.y + o.y) / 2]);
-      }
-      for (const [x, y] of pts) {
+      if (r.t === 'door' && riders(s, r).some((m) => m.st === DOORST && m.tm > 30)) urgent = true;
+      for (const [x, y] of taps(s, r)) {
         const { rugs } = rugsAt(s, x, y);
         if (!rugs.length || !rugs.includes(r)) continue;
-        const v = judge(s, rugs, x, y);
-        if (v > bv) (bv = v), (bx = x), (by = y);
+        const o = { meter: 0 }, v0 = judge(s, rugs, o) + (r.t === 'door' && riders(s, r).some((m) => m.st === DOORST && m.tm > 30) ? 30 : 0);
+        // 대장 판: 별 셋째(한 번에 N칸 들썩)를 노리는 동안은 잔칫상을 크게 흔드는 빼기를 더 쳐준다
+        const v = boss(s) && !s.full && s.bestStar < STAGES[s.stage].star ? v0 + o.meter * 1.2 : v0;
+        if (v > bv) (bv = v), (bx = x), (by = y), (bm = o.meter);
       }
     }
-    return bv >= 2 ? at(bx, by) : NO;
+    const since = s.t - (lastYank.get(s) ?? -999), d = STAGES[s.stage];
+    const want = Math.max(6, d.star * 0.7), seek = !!d.boss && !s.full && s.bestStar < d.star && s.t - s.t0 >= 540;
+    if (bv >= 2 && (urgent || (seek ? bm >= d.star * 0.85 : bv >= want) || since > (seek ? 100 : 170) || (s.full && !s.pulled))) {
+      lastYank.set(s, s.t);
+      return at(bx, by);
+    }
+    return NO;
   },
 };
 
@@ -2535,11 +2654,35 @@ const fmt = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g
 const KCOL: Record<K, string> = { mochi: '#ffd6e2', bear: '#d9a066', frog: '#7fdc5c', tanuki: '#c9ab88', cat: '#ffb35c', pig: '#ff98b0', chick: '#ffe45c', squirrel: '#e8a868', jelly: '#8ff0d6', kingpig: '#ff98b0', octo: '#ff8a5a', goblin: '#7fb0ff' };
 /** 요리사 레벨이 오르면 달라지는 모습 */
 const LV_GIFT: Record<number, string> = { 3: '모자가 높아졌어요', 5: '모자에 빨간 띠', 7: '모자에 금별', 9: '모자에 왕관', 11: '금빛 모자!' };
-const STAR_WORDS = (s: RugState) => (STAGES[s.stage].boss ? ['대장 쓰러뜨리기', '하트 안 잃고', `한 번 빼서 ${STAGES[s.stage].star}마리`] : ['축제 지키기', '하트 안 잃고', `한 번 빼서 ${STAGES[s.stage].star}마리`]);
+const STAR_WORDS = (s: RugState) => (STAGES[s.stage].boss ? ['대장 쓰러뜨리기', '하트 안 잃고', `한 번 빼서 ${STAGES[s.stage].star}칸 들썩`] : ['축제 지키기', '하트 안 잃고', `한 번 빼서 ${STAGES[s.stage].star}마리`]);
 const recent = new WeakMap<object, { x: number; y: number; t: number; size: number }[]>();
 const FONTS: [number, number][] = [[0.034, 700], [0.034, 800], [0.034, 900], [0.036, 800], [0.036, 900], [0.04, 900], [0.042, 900], [0.046, 900], [0.05, 900], [0.058, 900], [0.066, 900]];
 const moodOf = (s: RugState, m: Mon) =>
   m.st === EAT ? ((s.t + m.seed) % 90 < 70 ? M_EAT : M_WALK) : m.st === HUNGRY || m.st === DOORST ? M_HUNGRY : m.st === FLY || m.st === ROLL ? (m.soft ? M_HAPPY : M_FLY) : m.st === DIZZY || m.st === SLAM ? M_DIZZY : M_WALK;
+
+/** 미리 굽기(끊김 줄이기): 결과·선물 화면에서는 다음 판의 배경·스티커·깔개를, 판 중에는 이 판 손님 스티커를 프레임마다 조금씩 */
+function warmUp(s: RugState, fx: ReturnType<typeof juice>, w: number, h: number, qual: number, U: (r: number) => number) {
+  const rest = s.phase === 'result' || s.phase === 'pick';
+  if ((rest && s.pt < 12) || (!rest && s.t % 6)) return;
+  const ns = rest && s.stage + 1 < STAGES.length ? s.stage + 1 : s.stage, nd = STAGES[ns];
+  if (!bgCache.has(`${nd.ch}:${w}:${h}:${qual}`)) return void getBg(nd.ch, w, h, qual);
+  const kinds = [...new Set<K>([nd.key, ...nd.mix.map((m) => m[0]), ...(nd.boss ? nd.boss.minions.map((m) => m[0]) : [])])];
+  const moods = [M_WALK, M_EAT, M_FLY, M_DIZZY, M_HUNGRY, M_HAPPY], key = 'warm' + ns, total = kinds.length * moods.length;
+  let i = fx.memo[key] ?? 0, did = 0;
+  for (; i < total && did < (rest ? 3 : 1); i++) {
+    const k = kinds[Math.floor(i / moods.length)], px = Math.max(6, Math.round(U(KD[k].r) * qual)), mo = moods[i % moods.length];
+    if (!sprites.has(`${k}:${mo}:${px}`)) sprite(k, mo, px), did++;
+  }
+  fx.memo[key] = i;
+  if (did || !rest) return;
+  // 다음 판 깔개
+  const j = fx.memo['wr' + ns] ?? 0;
+  if (j < nd.rugs.length) {
+    const r = nd.rugs[j], wpx = U(r.w), spin = r.t === 'spin';
+    rugSprite({ t: r.t, seed: 0 } as Rug, nd.ch, wpx, spin ? wpx : U(r.h * YS), qual);
+    fx.memo['wr' + ns] = j + 1;
+  }
+}
 
 function drawAll(ctx: C2, s: RugState, w: number, h: number, _th: Theme) {
   const fx = juice(s), X = (x: number) => x * w, Y = (y: number) => y * w, U = (r: number) => r * w, t = s.t;
@@ -2567,9 +2710,10 @@ function drawAll(ctx: C2, s: RugState, w: number, h: number, _th: Theme) {
     for (let k = 0; k < 5 && rec.some((q) => t - q.t < 30 && Math.abs(q.x - x) < w * 0.16 && Math.abs(q.y - y) < (size + q.size) * 0.55); k++) y -= size * 0.9;
     rec.push({ x, y, t, size });
     if (rec.length > 14) rec.shift();
-    fx.pop(x, y, str, col, size);
+    fx.pop(x, y, str, col, Math.round(size));
   };
   const qual = Math.min(2, sc);
+  warmUp(s, fx, Math.round(w), Math.round(h), qual, U);
   const cheer = (s.big && t - s.big.t < 80) || s.phase === 'result' || (s.phase === 'end' && s.won);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -2643,9 +2787,9 @@ function drawAll(ctx: C2, s: RugState, w: number, h: number, _th: Theme) {
     ctx.globalAlpha = 1;
   }
 
-  // ── 깔개 ──
+  // ── 깔개 (잔칫상은 맨 나중 — 도깨비 왕의 상은 다른 깔개 위를 지나간다) ──
   const feastR = feast(s);
-  for (const r of s.rugs) {
+  for (const r of [...s.rugs.filter((q) => q.t !== 'feast'), ...(feastR ? [feastR] : [])]) {
     const wpx = U(r.w), hpx = U(r.h * YS), cx = X(r.x), cy = Y(r.y), spin = r.t === 'spin';
     const sp = rugSprite(r, ch, wpx, spin ? wpx : hpx, qual), pad = 8;
     const drawRug = (alpha = 1) => {
@@ -2680,7 +2824,39 @@ function drawAll(ctx: C2, s: RugState, w: number, h: number, _th: Theme) {
           ctx.stroke();
         }
       }
-      // 방금 다시 깔렸다: 살짝 펄럭
+      // 수박 문어의 먹물: 미끄럼판
+      if (s.t < r.ink) {
+        const age = t - (r.ink - 540), a = Math.min(1, age / 12);
+        ctx.save();
+        ctx.globalAlpha = a * 0.9;
+        for (let i = 0; i < 6; i++) {
+          const bx = cx + (hsh(r.id * 7 + i) - 0.5) * wpx * 1.4, by = cy + (hsh(r.id * 11 + i) - 0.5) * hpx * 1.3, k = U(0.022 + 0.018 * hsh(i + r.id));
+          ell(ctx, bx, by, k, k * 0.6);
+          ctx.fillStyle = '#2a2648';
+          ctx.fill();
+          ctx.fillStyle = 'rgba(190,200,255,.55)';
+          ell(ctx, bx - k * 0.3, by - k * 0.2, k * 0.35, k * 0.14);
+          ctx.fill();
+        }
+        ctx.restore();
+        const pul = 0.5 + 0.5 * Math.sin(t * 0.3);
+        ctx.strokeStyle = `rgba(120,110,255,${0.5 + 0.4 * pul})`;
+        ctx.lineWidth = 3;
+        if (spin || r.t === 'mung') ell(ctx, cx, cy, wpx + 3, hpx + 3);
+        else rr(ctx, cx - wpx - 3, cy - hpx - 3, 2 * wpx + 6, 2 * hpx + 6, U(0.012));
+        ctx.stroke();
+      }
+      // 도깨비 왕의 잔칫상이 지나는 깔개: 빼면 상이 덜컹
+      if (underFeast(s, r)) {
+        ctx.setLineDash([6, 4]);
+        ctx.lineDashOffset = -t * 0.6;
+        ctx.strokeStyle = 'rgba(255,220,60,.95)';
+        ctx.lineWidth = 3;
+        if (spin || r.t === 'mung') ell(ctx, cx, cy, wpx + 4, hpx + 4);
+        else rr(ctx, cx - wpx - 4, cy - hpx - 4, 2 * wpx + 8, 2 * hpx + 8, U(0.012));
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
       continue;
     }
     // 빠지는 중 / 말려 있다가 다시 펴지는 중
@@ -2756,6 +2932,74 @@ function drawAll(ctx: C2, s: RugState, w: number, h: number, _th: Theme) {
       ctx.strokeStyle = 'rgba(75,48,32,.45)';
       ctx.lineWidth = 1.2;
       for (const d of [-0.3, 0.15]) (ctx.beginPath(), ctx.moveTo(bx + d * k, by - k * 0.45), ctx.quadraticCurveTo(bx + (d + 0.15) * k, by - k * 0.1, bx + (d - 0.05) * k, by + k * 0.25), ctx.stroke());
+    }
+  }
+
+  // ── 날아갈 쪽: 깔개마다 은은한 점선 화살표 (가장 가까운 다른 무리로) ──
+  if (s.phase === 'play' && !(s.stage === 0 && s.yanks === 0)) {
+    for (const r of s.rugs) {
+      if (!laid(r) || (r.t === 'feast' && !(s.full && !s.pulled))) continue;
+      const n = riders(s, r).length, al = n ? 0.9 : 0.32;
+      if (r.t === 'spin') {
+        // 회전 원판: 사방으로
+        for (let i = 0; i < 4; i++) {
+          const a = r.rot * 2 + (i * TAU) / 4, c = Math.cos(a), sn = Math.sin(a), x0 = X(r.x + c * r.w * 1.08), y0 = Y(r.y + sn * r.h * YS * 1.08), x1 = X(r.x + c * r.w * 1.45), y1 = Y(r.y + sn * r.h * YS * 1.45);
+          ctx.strokeStyle = `rgba(255,255,255,${al})`;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(x0, y0);
+          ctx.lineTo(x1, y1);
+          ctx.stroke();
+          const ha = Math.atan2(y1 - y0, x1 - x0), k = U(0.014);
+          ctx.fillStyle = `rgba(255,255,255,${al})`;
+          ctx.beginPath();
+          ctx.moveTo(x1 + Math.cos(ha) * k, y1 + Math.sin(ha) * k);
+          ctx.lineTo(x1 + Math.cos(ha + 2.4) * k, y1 + Math.sin(ha + 2.4) * k);
+          ctx.lineTo(x1 + Math.cos(ha - 2.4) * k, y1 + Math.sin(ha - 2.4) * k);
+          ctx.fill();
+        }
+        continue;
+      }
+      const tg = targetOf(s, r), a = Math.atan2((tg.y - r.y) / YS, tg.x - r.x), c = Math.cos(a), sn = Math.sin(a);
+      const te = round(r) ? r.w : Math.min(r.w / Math.max(1e-6, Math.abs(c)), r.h / Math.max(1e-6, Math.abs(sn))), x0 = X(r.x + c * te * 0.92), y0 = Y(r.y + sn * te * YS * 0.92);
+      const len = dist(r.x, r.y, tg.x, tg.y), x1 = X(tg.x - c * 0.04), y1 = Y(tg.y - sn * 0.04 * YS);
+      if (Math.hypot(x1 - x0, y1 - y0) < U(0.04)) continue;
+      const mx = (x0 + x1) / 2, my = (y0 + y1) / 2 - U(0.03 + 0.08 * len);
+      ctx.setLineDash([6, 5]);
+      ctx.lineDashOffset = -t * 0.45;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = `rgba(75,48,32,${al * 0.35})`;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.quadraticCurveTo(mx, my, x1, y1);
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(255,255,255,${al})`;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.setLineDash([]);
+      const ha = Math.atan2(y1 - my, x1 - mx), k = U(0.02);
+      ctx.fillStyle = `rgba(255,255,255,${al})`;
+      ctx.strokeStyle = `rgba(75,48,32,${al * 0.35})`;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x1 + Math.cos(ha) * k, y1 + Math.sin(ha) * k);
+      ctx.lineTo(x1 + Math.cos(ha + 2.45) * k, y1 + Math.sin(ha + 2.45) * k);
+      ctx.lineTo(x1 + Math.cos(ha - 2.45) * k, y1 + Math.sin(ha - 2.45) * k);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+  // 먹물 줄기 (문어 → 깔개)
+  for (const e of s.events) {
+    if (e.k !== 'ink' || t - e.t > 20) continue;
+    const q = (t - e.t) / 20;
+    for (let i = 0; i < 5; i++) {
+      const u = clamp(q * 1.3 - i * 0.07, 0, 1), x = X(e.x + (e.x2 - e.x) * u), y = Y(e.y + (e.y2 - e.y) * u) - Math.sin(u * Math.PI) * U(0.12);
+      ell(ctx, x, y, U(0.014 - i * 0.002), U(0.012 - i * 0.002));
+      ctx.fillStyle = '#2a2648';
+      ctx.fill();
     }
   }
 
@@ -2993,9 +3237,12 @@ function drawAll(ctx: C2, s: RugState, w: number, h: number, _th: Theme) {
         const n = e.n;
         if (downs++ < 6) fx.sound('pop', 0.9 + Math.min(16, n) * 0.07, 0.6 + Math.min(0.5, n * 0.04));
         puff(ex, ey, KCOL[k] ?? '#ffffff', 4, 3, 2.8);
-        if (n >= 2) fx.pop(clamp(ex, w * 0.06, w * 0.94), Math.max(Y(0.2), ey - U(0.03)), String(n), n >= d.star ? '#ffe36b' : '#ffffff', Math.min(22, 12 + n * 0.8));
         break;
       }
+      case 'tally': say(ex, ey - U(0.05), `${e.n}마리!`, e.n >= d.star ? '#ffe36b' : '#ffffff', Math.min(24, 14 + e.n * 0.7)); break;
+      case 'ink': fx.sound('splash', 0.6, 1); fx.sound('whoosh', 0.8, 0.6); say(ex, ey - U(0.06), '푸악! 먹물', '#c8c4ff', 17); break;
+      case 'inkslide': fx.sound('whoosh', 0.7, 1); fx.sound('splash', 1.3, 0.6); say(ex, ey - U(0.07), '쭈욱~ 미끄럼!', '#c8c4ff', 18); break;
+      case 'jolt': fx.sound('thud', 0.8, 1.1); fx.sound('crack', 1.1, 0.7); fx.kick(7); say(ex, ey - U(0.08), '상이 덜컹!', '#ffe36b', 18); break;
       case 'land': fx.sound('thud', 1.6, 0.35); puff(ex, ey, '#f3dfb0', 3, 2.2, 2.4); break;
       case 'knock': fx.sound('boing', 1.3 + hsh(e.t) * 0.4, 0.35); break;
       case 'wall': fx.sound('boing', 0.8, 0.4); puff(ex, ey, '#f3dfb0', 3, 2, 2.2); break;
@@ -3208,9 +3455,10 @@ function drawHud(ctx: C2, s: RugState, w: number, h: number) {
   ctx.fillStyle = '#e3c48c';
   ctx.fillRect(0, Y(1.305), w, 2);
   const words = STAR_WORDS(s), res = s.phase === 'result';
-  const state = [res ? 1 : 0, s.bonks > 0 ? -1 : res ? 1 : 0, s.best >= d.star ? 1 : res || s.full ? -1 : 0];
+  const state = [res ? 1 : 0, s.bonks > 0 ? -1 : res ? 1 : 0, s.bestStar >= d.star ? 1 : res || s.full ? -1 : 0];
   font(0.034, 800);
-  const prog = s.best > 0 && s.best < d.star && !res && !s.full ? ` ${s.best}/${d.star}` : '';
+  const early = s.phase === 'play' && s.t - s.t0 < STAR_T;
+  const prog = s.bestStar > 0 && s.bestStar < d.star && !res && !s.full ? ` ${s.bestStar}/${d.star}` : '';
   const labels = words.map((q, i) => q + (i === 2 ? prog : ''));
   const gap = U(0.012), pad = Math.min(U(0.065), (w - U(0.03) - gap * 2 - labels.reduce((a, q) => a + ctx.measureText(q).width, 0)) / 3);
   const ws = labels.map((q) => ctx.measureText(q).width + pad), total = ws.reduce((a, c) => a + c, 0) + gap * 2;
@@ -3220,6 +3468,15 @@ function drawHud(ctx: C2, s: RugState, w: number, h: number) {
     rr(ctx, cx, cy - U(0.027), cw, U(0.054), U(0.027));
     ctx.fillStyle = on ? '#ffe9a0' : off ? '#efe4cf' : '#ffffff';
     ctx.fill();
+    if (i === 2 && early) {
+      // 판 시작 10초 동안은 별 셋째를 세지 않는다: 칩이 천천히 차오른다
+      ctx.save();
+      rr(ctx, cx, cy - U(0.027), cw, U(0.054), U(0.027));
+      ctx.clip();
+      ctx.fillStyle = 'rgba(200,180,140,.35)';
+      ctx.fillRect(cx, cy - U(0.027), cw * (1 - (s.t - s.t0) / STAR_T), U(0.054));
+      ctx.restore();
+    }
     ctx.strokeStyle = on ? '#e0a020' : off ? '#d6c6a8' : '#c9a878';
     ctx.lineWidth = on ? 2 : 1.4;
     ctx.stroke();
@@ -3238,14 +3495,17 @@ function drawHud(ctx: C2, s: RugState, w: number, h: number) {
   if (s.phase === 'pick') tip = '광장의 큰 물건 둘 중 하나를 톡!';
   else if (s.phase === 'result') tip = s.newDex.length ? `새 손님 ${KD[s.newDex[s.newDex.length - 1]].name}: ${KD[s.newDex[s.newDex.length - 1]].line}` : s.got === 3 ? '별 셋! 판 점수가 네 배' : '별이 많을수록 판 점수가 곱해져요';
   else if (s.phase === 'end') tip = s.won ? '모든 잔치를 지켰어요!' : '누르면 다시 해요';
-  else if (s.stage === 0 && s.yanks === 0) tip = '깔개를 톡! 위의 놈들이 톡한 쪽으로 날아가요';
+  else if (s.stage === 0 && s.yanks === 0) tip = '깔개를 톡! 위의 놈들이 옆 무리로 날아가요';
   else if (door) tip = '요리사 앞 매트에 배고픈 놈! 매트를 톡 해서 날려요';
   else if (d.boss && s.full && !s.pulled) tip = '잔칫상이 들썩! 잔칫상을 톡 — 대장이 데굴데굴';
+  else if (d.boss?.k === 'octo' && s.rugs.some((r) => s.t < r.ink)) tip = '먹물 깔개를 빼면 쭈욱 미끄러져요 — 잔칫상까지!';
+  else if (d.boss?.k === 'goblin' && s.rugs.some((r) => underFeast(s, r))) tip = '노란 점선 깔개 위를 상이 지나요 — 빼면 덜컹!';
   else if (d.boss && s.pulled) tip = '잔칫상 빼기 성공! 대장이 데굴데굴 — 졸개들도 털썩';
   else if (hungry) tip = '배고픈 놈이 요리사에게 와요 — 매트에 서면 톡!';
   else if (low) tip = '빨간 ! 깔개는 먹을 게 바닥나요 — 먼저 빼면 다시 가득';
-  else if (d.boss) tip = '대장의 잔칫상 쪽을 톡 — 날아간 놈이 부딪히면 들썩';
-  else if (s.stage < 2 && s.yanks < 8) tip = '깔개 가장자리를 톡 — 그쪽 무리로 날아가 와르르';
+  else if (d.boss) tip = '화살표가 잔칫상으로 가는 깔개를 톡 — 부딪히면 들썩';
+  else if (early && s.stage < 3) tip = '손님이 몰려와요 — 화살표 끝 무리가 붐빌수록 와르르';
+  else if (s.stage < 2 && s.yanks < 12) tip = '깔개 위 무리도, 화살표 끝 무리도 붐비는 깔개를 톡!';
   font(0.035, 800);
   text(tip, w / 2, Y(1.402), INK);
   font(0.033, 700);
@@ -3290,7 +3550,7 @@ function drawHud(ctx: C2, s: RugState, w: number, h: number) {
   let hand: [number, number] | null = null;
   if (s.phase === 'play' && s.stage === 0 && s.yanks === 0) {
     const r = s.rugs[0];
-    hand = [X(r.x + r.w * 0.72), Y(r.y)];
+    hand = [X(r.x + r.w * 0.2), Y(r.y + 0.01)];
   } else if (s.phase === 'play' && fr && s.full && !s.pulled) hand = [X(fr.x + fr.w * 0.5), Y(fr.y + fr.h * YS * 0.4)];
   if (hand) {
     const press = Math.max(0, Math.sin(t * 0.14)), [hx, hy] = hand;
@@ -3303,7 +3563,7 @@ function drawHud(ctx: C2, s: RugState, w: number, h: number) {
     text('톡!', hx + U(0.1), hy - U(0.02), '#ffffff', INK, 4);
     if (s.stage === 0) {
       // 날아갈 쪽 화살표
-      const r = s.rugs[0], b = s.rugs[1], ax0 = X(r.x + r.w * 0.95), ax1 = X(b.x - b.w * 0.9), ay = Y((r.y + b.y) / 2) - U(0.03), wob = Math.sin(t * 0.14) * U(0.008);
+      const r = s.rugs[0], b = s.rugs[1], ax0 = X(r.x + r.w * 1.05), ax1 = X(b.x - b.w * 0.9), ay = Y((r.y + b.y) / 2) - U(0.03), wob = Math.sin(t * 0.14) * U(0.008);
       ctx.strokeStyle = 'rgba(255,255,255,.9)';
       ctx.lineWidth = 4;
       ctx.setLineDash([8, 6]);

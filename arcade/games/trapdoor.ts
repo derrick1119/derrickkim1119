@@ -15,7 +15,7 @@
  * 대장(장마다 맨 아래 보물방): 위에서 떨어진 무게만큼 대장 머리 위 '쿵 게이지'가 차고(머리에 떨어지면 세 배), 꽉 차면 '천장째 와르르!'.
  * 성장(저절로): 판을 깨면 너구리 Lv+1 — 쿵 힘(떨어지는 무게 +5%/Lv) · 모습(고글 → 보자기 망토 → 3칸 함정문 → 왕관 → 금빛 보따리).
  *   장 끝에 보물방의 큰 물건 둘 중 하나를 톡(모래주머니 / 미끄럼틀 · 폭죽 상자 / 쌍둥이 문). 모으는 것 = 탑마다 보물 하나(12) · 도감(떨어뜨려 본 몬스터 8).
- * 별(쉬운 말 셋): 보물방 닿기 · 하트 안 잃기 · 한 번에 N마리. 점수: 한 번에 n번째로 쓰러진 놈은 ⌈n²/4⌉점, 판 점수는 별 수로 곱해진다(×1·×2·×4).
+ * 별(쉬운 말 셋): 보물방 닿기 · 하트 안 잃기 · 한 번에 N마리 깔기(함정문으로 떨어진 놈 말고 깔린 놈만). 점수: 한 번에 n번째로 쓰러진 놈은 2n점, 판 점수는 별 수로 곱해진다(×1·×2·×4).
  * 큰 띠는 그 판 최고 기록을 넘을 때·별 셋째·대장 순간에만 — 나머지는 떨어진 자리의 작은 숫자와 소리.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
@@ -24,21 +24,23 @@ import { juice } from '../juice.ts';
 
 const A = 1.5, TAU = Math.PI * 2;
 /** 탑 단면(가로 폭 = 1): 왼쪽 사다리 칸 · 바닥 칸 시작·끝 · 칸 수 · 칸 폭 · 층 높이 · 바닥 두께 · 바닥 깊이(3/4 시점, 뒤쪽 가장자리까지) */
-const WL = 0.1, WR = 0.97, NT = 8, TW = (WR - WL) / NT, FH = 0.38, TH = 0.05, DEP = 0.07;
-/** 지금 층 바닥이 오는 화면 높이 · 놀이 화면 위·아래 */
-const VIEW_Y = 0.5, TOP_Y = 0.1, BOT_Y = 1.305;
-/** 너구리 자리(사다리 옆 선반) · 이만큼 가까이 온 놈이 너구리를 본다 */
-const PERCH_X = 0.07, SPOT_R = 0.13, PERCH_H = 0.135, SNIFF = 0.12, LOOK_X = 0.235;
+const WL = 0.1, WR = 0.97, NT = 8, TW = (WR - WL) / NT, FH = 0.44, TH = 0.05, DEP = 0.075;
+/** 지금 층 바닥이 오는 화면 높이 · 놀이 화면 위·아래 (한 화면에 지금 층 + 아래 1.5층) */
+const VIEW_Y = 0.47, TOP_Y = 0.085, BOT_Y = 1.36;
+/** 너구리 자리(사다리 옆 선반) · 망보기가 튀어나오는 자리 */
+const PERCH_X = 0.07, SPOT_R = 0.13, PERCH_H = 0.16, LOOK_X = 0.235;
 /** 떨어지기 · 쉼 · 함정문 열림 · 금 간 바닥 · 기절 · 납작 · 내려가기 · 트램펄린 · 박쥐 끌려옴 · 책장 쓰러짐 */
-const GRAV = 0.0021, TAP_REST = 36, DOOR_T = 42, CRACK_T = 44, STUN_T = 36, FLAT_T = 28, DESC_T = 54, ARC_T = 34, SNAG_T = 8, SHELF_T = 14;
+const GRAV = 0.0021, TAP_REST = 36, DOOR_T = 42, CRACK_T = 44, STUN_T = 26, FLAT_T = 20, DESC_T = 46, ARC_T = 34, SNAG_T = 8, SHELF_T = 14;
 /** 결과 화면: 톡 받기 시작 · 저절로 넘어감 / 둘 중 하나: 톡 받기 시작 · 저절로 고름 · 고른 뒤 */
 const RES_MIN = 90, RES_AUTO = 420, PICK_MIN = 40, PICK_AUTO = 900, PICK_AFTER = 64, END_T = 210;
 /** 큰 띠를 띄우는 최소 마릿수 · 판 깸 점수 · 별 배수 · 다 깼을 때 · 대장 */
 const WOW_N = 5, CLEAR_PTS = 20, STAR_MUL = [1, 1, 2, 4], WIN_PTS = 100, BOSS_PTS = 120;
-/** 문으로 들어오는 간격 · 층이 비어 갈 때(우르르) */
-const GATE_EVERY = 22, GATE_RUSH = 7, LOW_EVERY = 95, LOW_MAX = 3;
-/** 곁에 쿵 떨어지면 이만큼 안의 낮잠 더미가 깨어 흩어진다 */
-const WAKE_R = 0.2;
+/** 한 번에 n번째로 쓰러진 놈의 점수 */
+const PTS = (n: number) => n * 2;
+/** 문으로 들어오는 간격(우르르) · 화면에 보이는 몬스터 상한(넘치면 문 앞에서 기다림) · 이만큼 남으면 겁먹고 스스로 사다리 구멍으로 */
+const GATE_RUSH = 8, VIS_CAP = 20, PANIC_N = 3, BAT_H = 0.25;
+/** 끌리는 것: 종이 다시 울리기까지(틱) · 공 빠르기 · 빛 빠르기 · 무리가 퍼지는 폭 · 따라가는 놈 비율 */
+const RING_T = 200, BALL_V = 0.0024, WISP_V = 0.0048, CROWD = 0.085, FOLLOW = 0.82;
 
 type K = 'imp' | 'bear' | 'bat' | 'mole' | 'octo' | 'owl';
 interface KDef { name: string; line: string; r: number; w: number; spd: number; boss?: boolean }
@@ -95,88 +97,88 @@ export const STAGES: SDef[] = [
   {
     key: 'imp', ch: 0, name: '꼬마 도깨비', news: '톡 한 칸이 쩍! 위 무리가 아래층을 깔아요', n: 8, thr: 2, alert: 9999, loot: '황금 국자',
     floors: [
-      Fl(0, [0.56, 0.84], [I(7)], [I(9)]), Fl(1, [0.56, 0.3], [I(7)], [I(9)]), Fl(2, [0.54, 0.85], [I(7)], [I(9)]), Fl(3, [0.36, 0.72], [I(7)], [I(9)]),
-      Fl(4, [0.62, 0.3], [I(6)], [I(9)]),
+      Fl(0, [0.56, 0.84], [I(6)], [I(5)]), Fl(1, [0.56, 0.3], [I(6)], [I(5)]), Fl(2, [0.54, 0.85], [I(6)], [I(5)]), Fl(3, [0.36, 0.72], [I(6)], [I(5)]),
+      Fl(4, [0.62, 0.3], [I(5)], [I(5)]),
     ],
     vault: [I(4)],
   },
   {
     key: 'bear', ch: 0, name: '덩치 곰', news: '무거워서 혼자 떨어져도 바닥이 쩍!', n: 14, thr: 3, alert: 130, loot: '은 접시',
     floors: [
-      Fl(0, [0.72, 0.4], [I(6), B(1)], [I(9)]), Fl(1, [0.35, 0.8], [I(6), B(1)], [I(8), B(1)]), Fl(2, [0.7, 0.45], [I(7)], [I(9), B(1)]),
-      Fl(3, [0.5, 0.86], [I(6), B(1)], [I(9)]), Fl(4, [0.3, 0.66], [I(7)], [I(8), B(1)]),
+      Fl(0, [0.72, 0.4], [I(5), B(1)], [I(5)]), Fl(1, [0.35, 0.8], [I(5), B(1)], [I(4), B(1)]), Fl(2, [0.7, 0.45], [I(6)], [I(5), B(1)]),
+      Fl(3, [0.5, 0.86], [I(5), B(1)], [I(5)]), Fl(4, [0.3, 0.66], [I(6)], [I(4), B(1)]),
     ],
     vault: [I(4)],
   },
   {
     key: 'bat', ch: 0, name: '풍선 박쥐', news: '떨어지는 무리가 박쥐를 지나가면 펑! 넓게', n: 18, thr: 3, alert: 125, loot: '꿀단지',
     floors: [
-      Fl(1, [0.4, 0.78], [I(6), B(1)], [I(9)]), Fl(2, [0.62, 0.3], [I(6), T(2)], [I(9)]), Fl(3, [0.42, 0.82], [I(5), B(1), T(2)], [I(9)]),
-      Fl(0, [0.68, 0.32], [I(6), T(2)], [I(8), B(1)]), Fl(4, [0.5, 0.82], [I(6), T(1)], [I(9)]),
+      Fl(1, [0.4, 0.78], [I(5), B(1)], [I(5)]), Fl(2, [0.62, 0.3], [I(5), T(2)], [I(5)]), Fl(3, [0.42, 0.82], [I(5), B(1), T(2)], [I(5)]),
+      Fl(0, [0.68, 0.32], [I(5), T(2)], [I(4), B(1)]), Fl(4, [0.5, 0.82], [I(5), T(1)], [I(5)]),
     ],
     vault: [I(4)],
   },
   {
     key: 'mole', ch: 0, name: '대장 두더지 주방장', news: '대장 머리 위로 떨어뜨려 쿵 게이지를 채워요', n: 9, thr: 3, alert: 125, loot: '주방장의 금 냄비',
-    floors: [Fl(1, [0.44, 0.8], [I(7), B(1)], [I(9)]), Fl(3, [0.6, 0.3], [I(6), T(2)], [I(9), B(1)])],
+    floors: [Fl(1, [0.44, 0.8], [I(6), B(1)], [I(5)]), Fl(3, [0.6, 0.3], [I(5), T(2)], [I(5), B(1)])],
     vault: [I(3)], boss: 'mole', gauge: 60,
   },
   {
     key: 'tramp', ch: 1, name: '트램펄린', news: '트램펄린에 떨어지면 옆으로 통! 한 번 더 깔아요', n: 16, thr: 3, alert: 120, loot: '태엽 로봇',
     floors: [
-      Fl(5, [0.4, 0.8], [I(6), B(1)], [I(9)]), Fl(7, [0.3, 0.75], [I(6)], [I(9), B(1)], { tramp: [[2, 1]] }), Fl(6, [0.58, 0.85], [I(5), B(1), T(1)], [I(9)], { tramp: [[6, -1]] }),
-      Fl(7, [0.32, 0.7], [I(6)], [I(9)], { tramp: [[4, 1]] }), Fl(5, [0.55, 0.85], [I(6), T(1)], [I(9)]), Fl(6, [0.4, 0.75], [I(6), B(1)], [I(9)], { tramp: [[1, 1]] }),
+      Fl(5, [0.4, 0.8], [I(5), B(1)], [I(5)]), Fl(7, [0.3, 0.75], [I(5)], [I(5), B(1)], { tramp: [[2, 1]] }), Fl(6, [0.58, 0.85], [I(5), B(1), T(1)], [I(5)], { tramp: [[6, -1]] }),
+      Fl(7, [0.32, 0.7], [I(5)], [I(5)], { tramp: [[4, 1]] }), Fl(5, [0.55, 0.85], [I(5), T(1)], [I(5)]), Fl(6, [0.4, 0.75], [I(5), B(1)], [I(5)], { tramp: [[1, 1]] }),
     ],
     vault: [I(4)],
   },
   {
     key: 'water', ch: 1, name: '물탱크', news: '물에 풍덩! 물결이 탱크 전체를 쓸어가요', n: 14, thr: 3, alert: 120, loot: '오리 잠수함',
     floors: [
-      Fl(6, [0.45, 0.82], [I(6), B(1)], [I(9)]), Fl(8, [0.55, 0.3], [I(7)], [I(9)], { water: [3, 6] }), Fl(5, [0.72, 0.4], [I(5), B(1), T(1)], [I(9)]),
-      Fl(8, [0.35, 0.8], [I(7)], [I(8), B(1)], { water: [1, 4] }), Fl(7, [0.6, 0.85], [I(6)], [I(9)], { tramp: [[2, 1]] }), Fl(8, [0.5, 0.25], [I(6), B(1)], [I(9)], { water: [2, 5] }),
+      Fl(6, [0.45, 0.82], [I(5), B(1)], [I(5)]), Fl(8, [0.55, 0.3], [I(6)], [I(5)], { water: [3, 6] }), Fl(5, [0.72, 0.4], [I(5), B(1), T(1)], [I(5)]),
+      Fl(8, [0.35, 0.8], [I(6)], [I(4), B(1)], { water: [1, 4] }), Fl(7, [0.6, 0.85], [I(5)], [I(5)], { tramp: [[2, 1]] }), Fl(8, [0.5, 0.25], [I(5), B(1)], [I(5)], { water: [2, 5] }),
     ],
     vault: [I(4)],
   },
   {
     key: 'belt', ch: 1, name: '컨베이어', news: '컨베이어가 놈들을 한쪽 벽으로 실어 쌓아요', n: 17, thr: 3, alert: 115, loot: '황금 팽이',
     floors: [
-      Fl(9, [0.5, 0.8], [I(7), B(1)], [I(9)], { belt: 1 }), Fl(9, [0.4, 0.75], [I(7)], [I(9), B(1)], { belt: -1 }), Fl(8, [0.6, 0.3], [I(6), T(1)], [I(9)], { water: [4, 7] }),
-      Fl(9, [0.45, 0.8], [I(6), B(1)], [I(9)], { belt: 1 }), Fl(6, [0.5, 0.82], [I(6), T(1)], [I(9)]), Fl(9, [0.6, 0.35], [I(6), B(1)], [I(9)], { belt: -1 }),
+      Fl(9, [0.5, 0.8], [I(6), B(1)], [I(5)], { belt: 1 }), Fl(9, [0.4, 0.75], [I(6)], [I(5), B(1)], { belt: -1 }), Fl(8, [0.6, 0.3], [I(5), T(1)], [I(5)], { water: [4, 7] }),
+      Fl(9, [0.45, 0.8], [I(5), B(1)], [I(5)], { belt: 1 }), Fl(6, [0.5, 0.82], [I(5), T(1)], [I(5)]), Fl(9, [0.6, 0.35], [I(5), B(1)], [I(5)], { belt: -1 }),
     ],
     vault: [I(4)],
   },
   {
     key: 'octo', ch: 1, name: '대장 대왕 문어', news: '여덟 다리 문어 — 머리에 떨어뜨려 쿵!', n: 10, thr: 3, alert: 115, loot: '문어의 진주 왕관',
-    floors: [Fl(7, [0.4, 0.8], [I(7), B(1)], [I(9)], { tramp: [[5, -1]] }), Fl(8, [0.55, 0.3], [I(6), T(1)], [I(9)], { water: [2, 4] }), Fl(9, [0.55, 0.3], [I(6), T(1)], [I(9), B(1)], { belt: 1 })],
+    floors: [Fl(7, [0.4, 0.8], [I(6), B(1)], [I(5)], { tramp: [[5, -1]] }), Fl(8, [0.55, 0.3], [I(5), T(1)], [I(5)], { water: [2, 4] }), Fl(9, [0.55, 0.3], [I(5), T(1)], [I(5), B(1)], { belt: 1 })],
     vault: [I(3)], boss: 'octo', gauge: 75,
   },
   {
     key: 'keg', ch: 2, name: '폭죽 통', news: '폭죽 통 위에 떨어지면 쾅! 바닥이 꼭 깨져요', n: 34, thr: 3, alert: 110, loot: '별똥별 지팡이',
     floors: [
-      Fl(10, [0.45, 0.82], [I(7), B(1)], [I(9)]), Fl(14, [0.3, 0.72], [I(7)], [I(9), B(1)], { keg: [2, 6] }), Fl(12, [0.6, 0.85], [I(6), T(1)], [I(9)], { keg: [4] }),
-      Fl(14, [0.4, 0.8], [I(6), B(1)], [I(9)], { keg: [1, 5] }), Fl(11, [0.55, 0.85], [I(6), T(1)], [I(9)]), Fl(14, [0.35, 0.7], [I(6), B(1)], [I(9)], { keg: [3, 6] }),
+      Fl(10, [0.45, 0.82], [I(6), B(1)], [I(5)]), Fl(14, [0.3, 0.72], [I(6)], [I(5), B(1)], { keg: [2, 6] }), Fl(12, [0.6, 0.85], [I(5), T(1)], [I(5)], { keg: [4] }),
+      Fl(14, [0.4, 0.8], [I(5), B(1)], [I(5)], { keg: [1, 5] }), Fl(11, [0.55, 0.85], [I(5), T(1)], [I(5)]), Fl(14, [0.35, 0.7], [I(5), B(1)], [I(5)], { keg: [3, 6] }),
     ],
     vault: [I(4)],
   },
   {
     key: 'ice', ch: 2, name: '얼음 바닥', news: '얼음에 떨어지면 주르륵 미끄러지며 볼링!', n: 14, thr: 3, alert: 110, loot: '얼음 수정구',
     floors: [
-      Fl(12, [0.5, 0.82], [I(7), B(1)], [I(9)]), Fl(13, [0.6, 0.3], [I(7)], [I(9), B(1)], { ice: 1 }), Fl(14, [0.45, 0.8], [I(6), T(1)], [I(9)], { keg: [5] }),
-      Fl(13, [0.4, 0.78], [I(7)], [I(8), B(1)], { ice: -1 }), Fl(10, [0.55, 0.85], [I(6), T(1)], [I(9)]), Fl(13, [0.6, 0.3], [I(6), B(1)], [I(9)], { ice: 1 }),
+      Fl(12, [0.5, 0.82], [I(6), B(1)], [I(5)]), Fl(13, [0.6, 0.3], [I(6)], [I(5), B(1)], { ice: 1 }), Fl(14, [0.45, 0.8], [I(5), T(1)], [I(5)], { keg: [5] }),
+      Fl(13, [0.4, 0.78], [I(6)], [I(4), B(1)], { ice: -1 }), Fl(10, [0.55, 0.85], [I(5), T(1)], [I(5)]), Fl(13, [0.6, 0.3], [I(5), B(1)], [I(5)], { ice: 1 }),
     ],
     vault: [I(4)],
   },
   {
     key: 'shelf', ch: 2, name: '도미노 책장', news: '책장에 떨어지면 쿵 쓰러지며 옆 책장까지!', n: 16, thr: 3, alert: 105, loot: '마법 주문서',
     floors: [
-      Fl(10, [0.45, 0.8], [I(7), B(1)], [I(9)]), Fl(11, [0.35, 0.75], [I(7)], [I(9), B(1)], { shelf: [1, 3, 5] }), Fl(13, [0.6, 0.3], [I(6), T(1)], [I(9)], { ice: 1 }),
-      Fl(11, [0.5, 0.82], [I(6), B(1)], [I(9)], { shelf: [2, 4, 6] }), Fl(12, [0.4, 0.8], [I(6), T(1)], [I(9)], { keg: [3] }), Fl(11, [0.6, 0.3], [I(6), B(1)], [I(9)], { shelf: [0, 2, 4] }),
+      Fl(10, [0.45, 0.8], [I(6), B(1)], [I(5)]), Fl(11, [0.35, 0.75], [I(6)], [I(5), B(1)], { shelf: [1, 3, 5] }), Fl(13, [0.6, 0.3], [I(5), T(1)], [I(5)], { ice: 1 }),
+      Fl(11, [0.5, 0.82], [I(5), B(1)], [I(5)], { shelf: [2, 4, 6] }), Fl(12, [0.4, 0.8], [I(5), T(1)], [I(5)], { keg: [3] }), Fl(11, [0.6, 0.3], [I(5), B(1)], [I(5)], { shelf: [0, 2, 4] }),
     ],
     vault: [I(4)],
   },
   {
     key: 'owl', ch: 2, name: '대장 대왕 부엉이', news: '마지막 대장 — 천장째 와르르!', n: 11, thr: 3, alert: 105, loot: '부엉이의 별 왕관',
-    floors: [Fl(11, [0.4, 0.78], [I(7), B(1)], [I(9)], { shelf: [2, 5] }), Fl(14, [0.6, 0.3], [I(6), T(1)], [I(9), B(1)], { keg: [4] }), Fl(13, [0.45, 0.8], [I(6), B(1)], [I(9)], { ice: -1 })],
+    floors: [Fl(11, [0.4, 0.78], [I(6), B(1)], [I(5)], { shelf: [2, 5] }), Fl(14, [0.6, 0.3], [I(5), T(1)], [I(5), B(1)], { keg: [4] }), Fl(13, [0.45, 0.8], [I(5), B(1)], [I(5)], { ice: -1 })],
     vault: [I(3)], boss: 'owl', gauge: 90,
   },
 ];
@@ -201,6 +203,8 @@ interface Mon {
   ax: number; bx: number; aT: number;
   /** 이번 연쇄에서 몇 번 내려앉았나 (덩치 곰은 처음 내려앉은 바닥만 반드시 깬다) */
   falls: number;
+  /** 무리 안의 제자리(끌리는 것에서 떨어진 만큼) · 끌리는 것을 따라가나 */
+  ox: number; fol: boolean;
   /** 함정문으로 떨어졌다면 그 톡 번호 (깔린 수를 셀 때 뺀다) */
   door: number;
   dead: boolean; seed: number; born: number; land: number; hurtT: number; face: number;
@@ -208,7 +212,9 @@ interface Mon {
 interface Tile { open: number; crack: number; drop: number; patch: number; at: number }
 interface Keg { x: number; live: boolean }
 interface Shelf { x: number; st: number; dir: number; t: number; drop: number }
-interface Floor { tiles: Tile[]; feat: Feat; queue: K[]; qT: number; low: number; kegs: Keg[]; shelves: Shelf[]; room: number; hot: number[]; tramp: number[]; gone: boolean }
+/** 층마다 무리가 끌려가는 것: 0 땡! 종이 울리는 화덕(부엌 탑) · 1 굴러가는 공(장난감 탑) · 2 떠다니는 빛(마법사 탑) */
+interface Lure { kind: number; x: number; vx: number; tx: number; next: number; ring: number; spots: number[] }
+interface Floor { tiles: Tile[]; feat: Feat; queue: K[]; qT: number; kegs: Keg[]; shelves: Shelf[]; room: number; hot: number[]; tramp: number[]; gone: boolean; lure: Lure }
 /** 톡 한 번의 연쇄: 쓰러뜨린 수 · 깨뜨린 바닥 수 · 처음 열린 자리 · 가장 깊이 간 층 · 점수 · 그중 깔린 수(함정문으로 떨어진 놈 말고) */
 interface Drop { id: number; n: number; t: number; cracks: number; x: number; f0: number; deep: number; pts: number; vic: number }
 /** 같은 연쇄가 같은 층에 내려앉은 무리(바닥이 깨질지 셈) */
@@ -259,9 +265,9 @@ function add(s: TrapState, k: K, f: number, x: number, z: number, st: number): M
   const m: Mon = {
     id: ++s.nid, k, v: STAGES[s.stage].ch, f, x: clamp(x, WL + r * 0.8, WR - r * 0.8), z, y: feetY(f, z), vx: 0, vy: 0, r, w: kd.w,
     st, tm: 0, dir: s.rng() < 0.5 ? -1 : 1, tx: x, nap: false, act: Math.floor(s.rng() * 3),
-    drop: 0, ko: false, alert: -1, acool: 0, ax: 0, bx: 0, aT: 0, falls: 0, door: 0, dead: false, seed: s.rng(), born: s.t, land: -99, hurtT: -99, face: s.rng() < 0.5 ? -1 : 1,
+    drop: 0, ko: false, alert: -1, acool: 0, ax: 0, bx: 0, aT: 0, falls: 0, door: 0, ox: (s.rng() - 0.5) * 2 * CROWD, fol: !kd.boss && s.rng() < FOLLOW, dead: false, seed: s.rng(), born: s.t, land: -99, hurtT: -99, face: s.rng() < 0.5 ? -1 : 1,
   };
-  if (k === 'bat') (m.st = FLOAT), (m.y = FY(f) - 0.205 - s.rng() * 0.035), (m.z = 0.5);
+  if (k === 'bat') (m.st = FLOAT), (m.y = FY(f) - BAT_H - s.rng() * 0.035), (m.z = 0.5), (m.fol = false);
   s.mons.push(m);
   return m;
 }
@@ -270,37 +276,69 @@ function expand(list: [K, number][]): K[] {
   for (const [k, n] of list) for (let i = 0; i < n; i++) out.push(k);
   return out;
 }
-/** 층에 무리를 놓는다: 아래층은 모두 낮잠 더미 둘(hot[0]·hot[1])에 모여 꾸벅꾸벅 — 너구리가 그 층에 오면 하나둘 깬다.
- *  맨 위층만 더미 하나 + 돌아다니는 놈들. (그래서 '어디에 떨어뜨리나'가 곧 '어느 더미 위로'다) */
+/** 층에 무리를 놓는다: 열에 여덟은 그 층의 '끌리는 것'(종 울린 화덕 · 공 · 빛) 둘레에 모여 따라다니고, 나머지는 어슬렁 */
 function placeFloor(s: TrapState, f: number, list: [K, number][]) {
-  const F = s.floors[f], all = expand(list), imps = all.filter((k) => k !== 'bat').length;
-  const piles = f === 0 ? [s.stage === 0 ? Math.ceil(imps * 0.55) : 0, 0] : [imps, 0];
-  const done = [0, 0];
-  let j = 0;
-  for (const k of all) {
+  const F = s.floors[f];
+  for (const k of expand(list)) {
     if (k === 'bat') {
       add(s, k, f, 0.25 + s.rng() * 0.62, 0.5, FLOAT);
       continue;
     }
-    const q = done[0] < piles[0] ? 0 : done[1] < piles[1] ? 1 : -1;
-    if (q >= 0) {
-      const p = done[q]++, n = piles[q];
-      const m = add(s, k, f, F.hot[q] + (p - (n - 1) / 2) * 0.021 + (s.rng() - 0.5) * 0.016, 0.15 + ((p * 0.37) % 1) * 0.75, IDLE);
-      m.nap = true;
-      m.tm = 99999;
-      continue;
-    }
-    const hot = F.hot.length > 1 ? F.hot[1 + (j++ % (F.hot.length - 1))] : F.hot[0];
-    let x = s.rng() < 0.6 ? hot + (s.rng() - 0.5) * 0.2 : WL + 0.06 + s.rng() * (WR - WL - 0.12);
-    if (x < WL + SPOT_R + 0.04) x += 0.16;
-    const m = add(s, k, f, x, 0.14 + s.rng() * 0.8, IDLE);
-    // 맨 위층은 곧바로 어슬렁 (첫 화면에서 세상이 움직이게)
-    m.tm = Math.floor(f === 0 ? 10 + s.rng() * 90 : 60 + s.rng() * 240);
+    const m = add(s, k, f, 0.5, 0.14 + s.rng() * 0.8, IDLE);
+    m.x = clamp(m.fol ? F.lure.x + m.ox : WL + 0.06 + s.rng() * (WR - WL - 0.12), WL + m.r, WR - m.r);
+    if (f === 0 && m.x < WL + SPOT_R + 0.04) m.x += 0.16;
+    m.tx = m.x;
+    m.tm = Math.floor(20 + s.rng() * 120);
   }
 }
-/** 너구리가 그 층에 오면 낮잠 더미가 하나둘 깬다 */
-function wake(s: TrapState, f: number, base: number) {
-  for (const m of s.mons) if (m.f === f && m.nap && m.st === IDLE && m.tm > 9000) m.tm = Math.floor(base + s.rng() * 30);
+/** 끌리는 것: 부엌 탑은 화덕 셋 중 하나에서 땡! · 장난감 탑은 굴러가는 공 · 마법사 탑은 떠다니는 빛 (판마다 층마다 다르게 흩는다) */
+function newLure(s: TrapState, k: number, ch: number): Lure {
+  const first = s.stage === 0 && k < 3, base = [0.24, 0.53, 0.82].map((x) => x + (s.rng() - 0.5) * 0.06);
+  for (let i = 2; i > 0; i--) {
+    const j = Math.floor(s.rng() * (i + 1));
+    [base[i], base[j]] = [base[j], base[i]];
+  }
+  if (first) base[0] = 0.56;
+  const x = base[0];
+  return {
+    kind: ch, x, tx: x, vx: (s.rng() < 0.5 ? -1 : 1) * BALL_V * (0.75 + s.rng() * 0.5), spots: base, ring: -99,
+    // 층마다 엇갈려 울린다 (1판 위 세 층은 처음 6초 동안 한 줄로 겹쳐 첫 톡이 크게 터진다)
+    next: first ? 360 + k * 45 : 90 + k * 47 + Math.floor(s.rng() * 90),
+  };
+}
+function lureStep(s: TrapState) {
+  for (let f = 0; f < s.nf - 1; f++) {
+    const F = s.floors[f], L = F.lure, seen = f >= s.c && f <= s.c + 2;
+    if (F.gone) continue;
+    if (L.kind === 0) {
+      if (s.t >= L.next) {
+        const others = L.spots.filter((x) => Math.abs(x - L.x) > 0.05);
+        L.x = others[Math.floor(s.rng() * others.length)];
+        L.ring = s.t;
+        L.next = s.t + RING_T + Math.floor(s.rng() * 60);
+        if (seen) ev(s, 'ring', L.x, FY(f), f);
+      }
+    } else if (L.kind === 1) {
+      L.x += L.vx;
+      if (L.x < WL + 0.07 || L.x > WR - 0.07) (L.vx = -L.vx), (L.x = clamp(L.x, WL + 0.07, WR - 0.07)), seen && ev(s, 'kick', L.x, FY(f), 0);
+      if (s.t >= L.next) {
+        L.vx = (s.rng() < 0.5 ? -1 : 1) * BALL_V * (0.75 + s.rng() * 0.6);
+        L.next = s.t + 220 + Math.floor(s.rng() * 120);
+        L.ring = s.t;
+        if (seen) ev(s, 'kick', L.x, FY(f), 1);
+      }
+    } else {
+      if (s.t >= L.next) {
+        let tx = WL + 0.1 + s.rng() * (WR - WL - 0.2);
+        if (Math.abs(tx - L.x) < 0.25) tx = L.x < 0.53 ? tx + 0.3 : tx - 0.3;
+        L.tx = clamp(tx, WL + 0.08, WR - 0.08);
+        L.next = s.t + 150 + Math.floor(s.rng() * 90);
+        L.ring = s.t;
+        if (seen) ev(s, 'wisp', L.tx, FY(f), f);
+      }
+      L.x += clamp(L.tx - L.x, -WISP_V, WISP_V);
+    }
+  }
 }
 function newStage(s: TrapState) {
   const d = STAGES[s.stage];
@@ -316,9 +354,9 @@ function newStage(s: TrapState) {
     const fd: FDef | undefined = d.floors[k], feat = fd?.feat ?? {}, tramp = new Array(NT).fill(0);
     for (const [i, dir] of feat.tramp ?? []) tramp[i] = dir;
     s.floors.push({
-      tiles: Array.from({ length: NT }, () => ({ open: 0, crack: 0, drop: 0, patch: 0, at: -99 })), feat, queue: fd ? expand(fd.door) : [], qT: 0, low: LOW_MAX,
+      tiles: Array.from({ length: NT }, () => ({ open: 0, crack: 0, drop: 0, patch: 0, at: -99 })), feat, queue: fd ? expand(fd.door) : [], qT: 0,
       kegs: (feat.keg ?? []).map((i) => ({ x: tileX(i), live: true })), shelves: (feat.shelf ?? []).map((i) => ({ x: tileX(i), st: 0, dir: 1, t: 0, drop: 0 })),
-      room: fd ? fd.room : 15 + d.ch, hot: fd ? hotSpots(s, k, fd.hot) : [0.5], tramp, gone: false,
+      room: fd ? fd.room : 15 + d.ch, hot: fd ? hotSpots(s, k, fd.hot) : [0.5], tramp, gone: false, lure: newLure(s, k, d.ch),
     });
   }
   for (let k = 0; k < d.floors.length; k++) placeFloor(s, k, d.floors[k].init);
@@ -347,7 +385,7 @@ function newStage(s: TrapState) {
   s.star3 = false;
   s.stT = 0;
   s.safeT = 0;
-  s.watchT = 250 + Math.floor(s.rng() * 60);
+  s.watchT = 1e9;
   s.taps = 0;
   s.clearT = 0;
   s.gauge = 0;
@@ -360,7 +398,6 @@ function newStage(s: TrapState) {
   s.newDex = [];
   s.lastDrop = 0;
   s.floors[0].qT = 50;
-  wake(s, 0, 330);
   s.banner = { head: `${CHAPTERS[d.ch]} · ${s.stage + 1}판`, sub: d.news, t: s.t };
   // NEW 스포트라이트: 이 판에 새로 나온 몬스터(보이는 층) — 장치 판은 그 장치 자리
   const nk = d.key as K;
@@ -381,7 +418,7 @@ function hotSpots(s: TrapState, k: number, def: number[]): number[] {
   return [a, clamp(b, WL + 0.14, WR - 0.08)];
 }
 /** 카메라: 지금 층 바닥이 화면 VIEW_Y에 — 맨 아래 두 층에서는 보물방 바닥이 화면 아래 띠 바로 위에 오게 */
-const camFor = (s: TrapState, k: number) => Math.min(FY(k) - VIEW_Y, FY(s.nf - 1) - 1.24);
+const camFor = (s: TrapState, k: number) => Math.min(FY(k) - VIEW_Y, FY(s.nf - 1) - 1.29);
 
 // ───────────────────────────── 톡: 함정문 ─────────────────────────────
 const span = (x: number, wd: number) => clamp(Math.round((x - WL) / TW - wd / 2), 0, NT - wd);
@@ -449,7 +486,7 @@ function ko(s: TrapState, m: Mon, D: Drop) {
   m.ko = true;
   m.drop = D.id;
   D.n++;
-  const p = Math.ceil((D.n * D.n) / 4);
+  const p = PTS(D.n);
   D.pts += p;
   s.sp += p;
   s.kills++;
@@ -488,17 +525,6 @@ function landOf(s: TrapState, id: number, f: number): Land {
   const L: Land = { id, f, t: s.t, w: 0, vw: 0, x0: 9, x1: -9, done: false, noCrack: false, force: false, splash: false, n0: dropOf(s, id).n };
   s.lands.push(L);
   return L;
-}
-function startle(s: TrapState, f: number, x: number) {
-  let n = 0;
-  for (const o of s.mons) {
-    if (o.dead || o.f !== f || !o.nap || o.st !== IDLE || Math.abs(o.x - x) > WAKE_R) continue;
-    o.nap = false;
-    o.tm = 4 + Math.floor(s.rng() * 14);
-    o.act = 1;
-    n++;
-  }
-  if (n) ev(s, 'startle', x, FY(f), n);
 }
 /** 내려앉은 놈 아래·곁의 놈들이 깔린다 */
 function crush(s: TrapState, m: Mon, D: Drop, L: Land | null, reach: number) {
@@ -558,8 +584,6 @@ function land(s: TrapState, m: Mon) {
   // 떨어지는 길에 있던 풍선 박쥐가 붙잡혀 끌려 내려온다
   for (const b of s.mons) if (!b.dead && b.st === FLOAT && b.f === m.f && Math.abs(b.x - m.x) < b.r + m.r + 0.035) (b.st = SNAG), (b.tm = 0), (b.drop = D.id), (b.ax = b.y), ev(s, 'snag', b.x, b.y);
   crush(s, m, D, L, m.r * 0.8 + (s.perk[0] === 2 ? TW * 0.45 : 0) + (s.perk[1] === 1 ? 0.035 : 0));
-  // 곁에 쿵: 낮잠 더미가 깜짝 깨어 흩어진다 (정통으로 깔아야 더미째 바닥이 깨진다)
-  if (!vault) startle(s, m.f, m.x);
   // 대장 방: 떨어진 무게만큼 쿵 게이지 (머리에 떨어지면 세 배)
   const b = vault ? bossOf(s) : undefined;
   if (b && s.collapseT < 0) {
@@ -653,11 +677,7 @@ function collapse(s: TrapState) {
 // ───────────────────────────── 몬스터의 몸짓 ─────────────────────────────
 function target(s: TrapState, m: Mon, F: Floor) {
   const u = s.rng();
-  // 너구리가 있는 층에서는 가끔 킁킁 냄새를 맡으며 사다리 쪽으로 간다
-  if (m.f === s.c && s.stage > 0 && u < SNIFF) m.tx = PERCH_X + 0.08 + s.rng() * 0.1;
-  // 너구리가 있는 층에서는 흩어져 돌아다닌다 (아래층은 모이는 자리 둘레)
-  else if (m.f === s.c) m.tx = WL + 0.05 + s.rng() * (WR - WL - 0.1);
-  else m.tx = u < 0.75 ? F.hot[Math.floor(s.rng() * F.hot.length)] + (s.rng() - 0.5) * 0.15 : WL + 0.05 + s.rng() * (WR - WL - 0.1);
+  m.tx = u < 0.5 ? F.hot[Math.floor(s.rng() * F.hot.length)] + (s.rng() - 0.5) * 0.15 : WL + 0.05 + s.rng() * (WR - WL - 0.1);
   m.tx = clamp(m.tx, WL + m.r, WR - m.r);
 }
 function alertT(s: TrapState) {
@@ -665,7 +685,7 @@ function alertT(s: TrapState) {
 }
 /** 망보기는 더 빨리 덤빈다 (층에 내려오자마자 한 놈이 알아챈다) */
 function lookT(s: TrapState) {
-  return s.stage === 1 ? 170 : s.stage < 4 ? 120 : 100;
+  return s.stage === 1 ? 170 : s.stage < 4 ? 110 : 95;
 }
 function walkStep(s: TrapState, m: Mon, F: Floor) {
   if (m.acool > 0) m.acool--;
@@ -680,34 +700,25 @@ function walkStep(s: TrapState, m: Mon, F: Floor) {
     return;
   }
   if (m.st === ENTER) {
-    m.x -= spd * (m.act === -2 ? 1.6 : 1.8);
+    m.x -= spd * 1.9;
     m.face = -1;
-    if (m.x <= m.tx) {
-      m.st = IDLE;
-      m.tm = 12 + Math.floor(s.rng() * 30);
-      // 아래층에 들어온 놈은 낮잠 자리에 눕는다 (너구리가 그 층에 오면 깬다)
-      if (m.act === -2) (m.nap = true), (m.tm = 99999), (m.act = 0);
-    }
+    if (m.x <= m.tx) (m.st = IDLE), (m.tm = 10 + Math.floor(s.rng() * 20));
+  } else if (m.nap) {
+    if (--m.tm <= 0) m.nap = false;
+  } else if (m.fol) {
+    // 끌리는 것을 따라간다: 종이 땡 울리면 우르르 뛰어간다
+    const L = F.lure, rush = L.kind === 0 && s.t - L.ring < 90, tx = clamp(L.x + m.ox * (L.kind === 1 ? 1.25 : 1), WL + m.r, WR - m.r), dx = tx - m.x;
+    const v = spd * (rush ? 3.0 : L.kind === 0 ? 1.0 : 1.7);
+    if (Math.abs(dx) > v + 0.004) (m.st = WALK), (m.x += Math.sign(dx) * v), (m.face = Math.sign(dx));
+    else if (m.st === WALK) (m.st = IDLE), (m.act = 1 + Math.floor(s.rng() * 2));
   } else if (m.st === IDLE) {
-    if (--m.tm <= 0) {
-      m.st = WALK;
-      m.nap = false;
-      target(s, m, F);
-      // 문으로 갓 들어온 놈은 너구리 냄새를 맡고 사다리 쪽으로 걸어온다
-      if (m.act < 0) (m.tx = PERCH_X + 0.1 + s.rng() * 0.12), (m.act = 0);
-    }
+    if (--m.tm <= 0) (m.st = WALK), target(s, m, F);
   } else {
     const dx = m.tx - m.x;
-    if (Math.abs(dx) <= spd) {
-      m.st = IDLE;
-      m.tm = Math.floor(50 + s.rng() * 160);
-      m.act = Math.floor(s.rng() * 3);
-      if (m.act === -3 && m.f !== s.c) (m.nap = true), (m.tm = 99999);
-      else if (s.rng() < 0.1) (m.nap = true), (m.tm += 240);
-      if (m.f !== s.c && !m.nap && s.rng() < 0.35) (m.tx = F.hot[0]), (m.nap = false), (m.st = WALK), (m.act = -3);
-    } else (m.x += Math.sign(dx) * spd), (m.face = Math.sign(dx));
+    if (Math.abs(dx) <= spd) (m.st = IDLE), (m.tm = Math.floor(50 + s.rng() * 160)), (m.act = Math.floor(s.rng() * 3));
+    else (m.x += Math.sign(dx) * spd), (m.face = Math.sign(dx));
   }
-  if (F.feat.belt && m.st !== ENTER && !(m.nap && m.tm > 9000)) m.x += F.feat.belt * 0.0013;
+  if (F.feat.belt && m.st !== ENTER) m.x += F.feat.belt * (m.fol ? 0.0006 : 0.0013);
   m.x = clamp(m.x, WL + m.r * 0.8, WR - m.r * 0.8);
 }
 function monStep(s: TrapState, m: Mon) {
@@ -747,9 +758,11 @@ function monStep(s: TrapState, m: Mon) {
       m.x += m.vx;
       m.vx *= 0.994;
       const D = dropOf(s, m.drop);
+      // 볼링: 아직 서 있는 놈만 쓰러뜨린다 (이미 쓰러진 몸끼리 벽에서 서로 밀어 대며 영영 안 사라지지 않게)
+      if (Math.abs(m.vx) >= 0.004)
       for (const o of s.mons) {
         if (o === m || o.dead || o.f !== m.f || KD[o.k].boss || !grounded(o) || Math.abs(o.x - m.x) > m.r + o.r * 0.9) continue;
-        if (o.st === STUN && o.drop === m.drop && s.t - o.land < 6) continue;
+        if (o.ko && (o.st === STUN || o.st === FLAT)) continue;
         if (!o.ko) ko(s, o, D);
         o.st = SKID;
         o.vx = m.vx * 0.95;
@@ -773,7 +786,7 @@ function monStep(s: TrapState, m: Mon) {
       // 풍선 박쥐: 천장 아래를 둥실둥실
       m.x += m.dir * KD.bat.spd;
       if (m.x < WL + 0.08 || m.x > WR - 0.06) m.dir = -m.dir;
-      m.y = FY(m.f) - 0.205 + Math.sin((s.t + m.seed * 400) * 0.05) * 0.012;
+      m.y = FY(m.f) - BAT_H + Math.sin((s.t + m.seed * 400) * 0.05) * 0.012;
       return;
     case SNAG: {
       m.tm++;
@@ -817,9 +830,16 @@ function monStep(s: TrapState, m: Mon) {
       if (--m.tm <= 0) (m.st = IDLE), (m.tm = 60), (m.y = feetY(m.f, m.z));
       return;
     case FLEE:
-      m.x += 0.0065;
-      m.face = 1;
-      if (m.x >= WR - 0.01) m.dead = true;
+      if (isVault(s, m.f)) {
+        m.x += 0.0065;
+        m.face = 1;
+        if (m.x >= WR - 0.01) m.dead = true;
+        return;
+      }
+      // 겁먹고 사다리 구멍으로 우다다 → 폴짝 뛰어내린다
+      m.x -= 0.012;
+      m.face = -1;
+      if (m.x <= WL + 0.015) (m.st = FALL), (m.vy = -0.012), (m.tm = 0), ev(s, 'jump', m.x, m.y);
       return;
   }
 }
@@ -856,7 +876,6 @@ function startDescend(s: TrapState) {
   while (!isVault(s, to) && s.floors[to].gone) to++;
   s.desc = 0;
   s.clearT = 0;
-  for (const m of s.mons) if (m.f === s.c && m.st === FLEE) m.dead = true;
   ev(s, 'desc', PERCH_X, FY(s.c), to - s.c);
   s.descTo = to;
 }
@@ -908,6 +927,7 @@ function playStep(s: TrapState) {
     }
     s.twin = s.twin.filter((q) => s.t < q.t);
   }
+  lureStep(s);
   for (let i = 0; i < s.mons.length; i++) if (!s.mons[i].dead) monStep(s, s.mons[i]);
   // 열린 칸 위의 놈은 떨어진다
   for (const m of s.mons) {
@@ -922,8 +942,9 @@ function playStep(s: TrapState) {
     if (isVault(s, L.f) || L.noCrack || L.x1 < L.x0) continue;
     // 낮잠 더미(덩치 곰은 셋으로 친다)를 깔고 내려앉으면 그 바닥이 쩍 — 더미가 줄줄이 겹친 줄은 끝까지 와르르
     const D = dropOf(s, L.id);
-    if (L.force || L.vw >= d.thr) crack(s, L.f, L.x0 + 0.012, L.x1 - 0.012, D);
-    else if (L.vw >= d.thr - 1) ev(s, 'creak', (L.x0 + L.x1) / 2, FY(L.f));
+    // 쿵 힘(너구리 Lv · 모래주머니)이 셀수록 적게 깔려도 깨진다
+    if (L.force || L.vw * power(s) >= d.thr) crack(s, L.f, L.x0 + 0.012, L.x1 - 0.012, D);
+    else if (L.vw * power(s) >= d.thr - 1) ev(s, 'creak', (L.x0 + L.x1) / 2, FY(L.f));
   }
   if (s.lands.length > 24) s.lands = s.lands.filter((L) => !L.done || s.t - L.t < 8);
   // 책장 도미노
@@ -947,36 +968,21 @@ function playStep(s: TrapState) {
     ev(s, 'peek', LOOK_X, o.y - o.r * 2.6, 1);
     see(s, 'alert');
   }
-  // 너구리를 봤다!
-  if (canSpot(s))
-    for (const m of s.mons)
-      if (m.f === s.c && m.alert < 0 && (m.st === WALK || m.st === IDLE) && !m.nap && m.acool === 0 && m.x < PERCH_X + SPOT_R + m.r && !KD[m.k].boss)
-        (m.alert = 0), (m.st = WALK), ev(s, 'alert', m.x, m.y - m.r * 2.6), see(s, 'alert');
   // 문으로 들어오는 무리 (지금 층만) — 층이 비어 가면 우르르
   const F = s.floors[s.c];
+  // 화면에 보이는 몬스터는 스물 남짓까지만 (느린 폰에서도 가볍게) — 넘치면 문 앞에서 잠깐 기다린다
+  const shown = s.mons.reduce((a, m) => a + (!m.dead && m.f >= s.c && m.f <= s.c + 2 ? 1 : 0), 0), room = shown < VIS_CAP;
   if (!isVault(s, s.c) && !F.gone && s.desc < 0) {
     const n = s.mons.reduce((a, m) => a + (m.f === s.c && grounded(m) && counts(m) ? 1 : 0), 0);
-    if (F.queue.length && --F.qT <= 0 && n < 9) {
+    if (F.queue.length && --F.qT <= 0 && n < 8 && (room || n <= 2)) {
       const k = F.queue.shift()!, m = add(s, k, s.c, WR + 0.02, 0.25 + s.rng() * 0.65, ENTER);
-      m.tx = WL + 0.08 + s.rng() * (WR - WL - 0.2);
-      m.act = s.rng() < 0.35 ? -1 : 0;
-      F.qT = n <= 2 ? GATE_RUSH : GATE_EVERY;
+      m.tx = WR - 0.06 - s.rng() * 0.12;
+      m.fol = true;
+      F.qT = GATE_RUSH;
       ev(s, 'enter', WR - 0.03, FY(s.c), F.queue.length);
     }
-    // 아래층(보이는 두 층)에도 문으로 하나둘 들어와 낮잠 자리에 눕는다 — 깔아뭉갤 더미가 다시 생긴다
-    for (let f = s.c + 1; f <= s.c + 2 && f < s.nf - 1; f++) {
-      const G2 = s.floors[f];
-      if (!G2.queue.length || G2.gone || G2.low <= 0 || --G2.qT > 0) continue;
-      G2.qT = LOW_EVERY;
-      const n2 = s.mons.reduce((a, m) => a + (m.f === f && grounded(m) && counts(m) ? 1 : 0), 0);
-      if (n2 >= 8) continue;
-      G2.low--;
-      const k = G2.queue.shift()!, m = add(s, k, f, WR + 0.02, 0.2 + s.rng() * 0.7, ENTER);
-      m.tx = clamp(G2.hot[0] + (s.rng() - 0.5) * 0.06, WL + 0.06, WR - 0.06);
-      m.act = -2;
-    }
     // 대장 판 맨 아래층: 대장이 졸개를 계속 올려 보낸다
-    if (!s.bossDown && s.c === s.nf - 2 && !F.queue.length && n <= 3 && ++s.summonT >= 46) {
+    if (!s.bossDown && s.c === s.nf - 2 && !F.queue.length && n <= 3 && (room || n <= 1) && ++s.summonT >= 46) {
       s.summonT = 0;
       F.queue.push(...expand([['imp', 5], ...((s.rng() < 0.45 ? [['bear', 1]] : []) as [K, number][])]));
       F.qT = 10;
@@ -987,7 +993,7 @@ function playStep(s: TrapState) {
   // 대장 방에도 졸개가 들락날락
   if (!s.bossDown && s.collapseT < 0 && s.t % 200 === 0) {
     const vf = s.nf - 1, n = s.mons.reduce((a, m) => a + (m.f === vf && !m.ko && !m.dead && grounded(m) && !KD[m.k].boss ? 1 : 0), 0);
-    if (n < 3) for (let i = 0; i < 2; i++) (add(s, 'imp', vf, WR + 0.02 + i * 0.05, 0.3 + s.rng() * 0.6, ENTER).tx = 0.55 + s.rng() * 0.3);
+    if (n < 3 && shown < VIS_CAP) for (let i = 0; i < 2; i++) (add(s, 'imp', vf, WR + 0.02 + i * 0.05, 0.3 + s.rng() * 0.6, ENTER).tx = 0.55 + s.rng() * 0.3);
   }
   // 천장째 와르르 → 대장 납작
   if (s.collapseT >= 0 && !s.bossDown) {
@@ -1022,17 +1028,31 @@ function playStep(s: TrapState) {
       s.cam = camFor(s, s.c);
       ev(s, 'arrive', PERCH_X, FY(s.c));
       if (isVault(s, s.c)) arriveVault(s);
-      else (s.floors[s.c].qT = 26), wake(s, s.c, 0), (s.watchT = s.stT + 14 + Math.floor(s.rng() * 16));
+      else (s.floors[s.c].qT = 20), (s.watchT = s.c % 2 === 1 ? s.stT + 14 + Math.floor(s.rng() * 16) : 1e9);
     }
   } else if (s.vaultT >= 0) {
     s.vaultT++;
     if (s.vaultT === 26) ev(s, 'chest', 0.82, FY(s.c));
-    if (s.vaultT >= 84) clearStage(s);
+    if (s.vaultT >= 72) clearStage(s);
   } else if (!isVault(s, s.c) && (s.bossDown || s.c < s.nf - 2)) {
-    let left = 0, falling = 0, last: Mon | null = null;
-    for (const m of s.mons) if (m.f === s.c && counts(m)) m.st === FALL ? falling++ : (left++, (last = m));
-    if (left === 1 && last && !F.queue.length && !falling && last.st !== LEAP && last.alert < 0 && last.st !== HIT) (last.st = FLEE), (last.alert = -1), ev(s, 'flee', last.x, last.y - last.r * 2.4), (left = 0);
-    if (left === 0 && !F.queue.length && !falling) {
+    let left = 0, busy = 0;
+    for (const m of s.mons) {
+      if (m.f !== s.c || m.dead) continue;
+      if (m.st === FALL || m.st === FLEE) busy++;
+      else if (counts(m)) left++;
+    }
+    // 셋 이하만 남으면 겁먹고 스스로 사다리 구멍으로 뛰어내린다 (치우기 톡 없음 · 아래층에 작은 깔기 보너스)
+    if (left > 0 && left <= PANIC_N && !F.queue.length && s.rest < TAP_REST - 6) {
+      const D: Drop = { id: ++s.did, n: 0, t: s.t, cracks: 0, x: WL, f0: s.c, deep: s.c, pts: 0, vic: 0 };
+      s.drops.push(D);
+      if (s.drops.length > 16) s.drops.shift();
+      for (const m of s.mons) if (m.f === s.c && !m.dead && counts(m) && m.st !== FALL) (m.st = FLEE), (m.alert = -1), (m.drop = D.id), (m.door = D.id);
+      ev(s, 'panic', 0.5, FY(s.c) - 0.12, left);
+      see(s, 'panic');
+      left = 0;
+      busy++;
+    }
+    if (left === 0 && !F.queue.length && !busy) {
       if (++s.clearT >= 20) startDescend(s);
     } else s.clearT = 0;
   }
@@ -1184,7 +1204,7 @@ export function judge(s: TrapState, i0: number, wd: number): { n: number; fall: 
     void W;
     if (mass.some((m) => m.k === 'bear' && (m.f === f - 1 || !m.ko) && cracks === 0)) force = true;
     if (noCrack) break;
-    if (force || vw >= d.thr) {
+    if (force || vw * pw >= d.thr) {
       cracks++;
       mass = mass.concat(vic);
       continue;
@@ -2460,7 +2480,7 @@ function drawAll(ctx: C2, s: TrapState, w: number, h: number, _th: Theme) {
     let rec = recent.get(s);
     if (!rec) recent.set(s, (rec = []));
     x = clamp(x, w * 0.14, w * 0.86);
-    y = Math.max(R(TOP_Y + 0.06), y);
+    y = clamp(y, R(TOP_Y + 0.06), R(BOT_Y - 0.05));
     for (let k = 0; k < 5 && rec.some((q) => t - q.t < 30 && Math.abs(q.x - x) < w * 0.18 && Math.abs(q.y - y) < (size + q.size) * 0.55); k++) y -= size * 0.9;
     rec.push({ x, y, t, size });
     if (rec.length > 14) rec.shift();
@@ -2836,9 +2856,9 @@ function drawAll(ctx: C2, s: TrapState, w: number, h: number, _th: Theme) {
     }
     if (s.stage === 0 && s.taps === 0 && s.phase === 'play') {
       // 처음 보는 사람에게: 이 너구리가 나
-      const lx = rx + k * 1.0, ly = ry - k * 3.0;
+      const lx = rx + k * 1.1, ly = ry - k * 1.25;
       font(0.036, 900);
-      rr(ctx, lx - R(0.01), ly - R(0.026), R(0.2), R(0.052), R(0.026));
+      rr(ctx, lx - R(0.01), ly - R(0.026), ctx.measureText('나: 꼬마 도둑').width + R(0.04), R(0.052), R(0.026));
       ctx.fillStyle = '#5a5a78';
       ctx.fill();
       ctx.textAlign = 'left';
