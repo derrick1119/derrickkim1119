@@ -75,10 +75,12 @@ export function drawFrame(g, x, y, w, h, open = 1, t = 0) {
 }
 // 소품: 헌 물건들과 길가의 것들 (* 로 시작하는 이름). 손에 드는 것들은 인형처럼 막대에 꿰어 세운다
 const PROP = { broom: 'broom', bat: 'bat', sandal: 'sandal', lid: 'lid', poker: 'poker', hopae: 'hopae' };
-const rod = (g, x, y, s) => { line(g, [x, y - 6 * s, x, y + 96 * s], INK, 4.4 * s); line(g, [x, y - 6 * s, x, y + 96 * s], '#c9a86a', 2.4 * s); };
+const rod = (g, x, y, s) => { line(g, [x, y - 6 * s, x, y + 96 * s], INK, 4.4 * s); line(g, [x, y - 6 * s, x, y + 96 * s], '#9a7440', 2.4 * s); };
 function prop(g, id, x, y, s, t) {
   if (PROP[id]) { rod(g, x, y - 8 * s, s); drawSprite(g, leftover(PROP[id]), x, y - 26 * s, 2.3 * s, 2.3 * s, Math.sin(t * 2 + x) * 0.06); return; }
   if (id === 'sword') { rod(g, x, y - 8 * s, s); const w = getWeapon('hwando'); if (w) drawSprite(g, w.spr, x, y - 22 * s, 1.5 * s, 1.5 * s, 0.5 + Math.sin(t * 2 + x) * 0.05); return; }
+  if (id === 'jar') { rod(g, x, y - 8 * s, s); const jy = y - 14 * s; path(g, p => { p.moveTo(x - 3 * s, jy - 30 * s); p.lineTo(x + 3 * s, jy - 30 * s); p.lineTo(x + 3 * s, jy - 22 * s); p.quadraticCurveTo(x + 12 * s, jy - 16 * s, x + 10 * s, jy - 4 * s); p.quadraticCurveTo(x + 8 * s, jy + 2 * s, x, jy + 2 * s); p.quadraticCurveTo(x - 8 * s, jy + 2 * s, x - 10 * s, jy - 4 * s); p.quadraticCurveTo(x - 12 * s, jy - 16 * s, x - 3 * s, jy - 22 * s); p.closePath(); }, '#f6efdc', INK, 2); rr(g, x - 4.4 * s, jy - 33 * s, 8.8 * s, 4 * s, 1.4 * s, '#8a2a26', INK, 1.4); line(g, [x - 7 * s, jy - 9 * s, x + 7 * s, jy - 9 * s], '#2f4d7e', 1.6 * s); return; }   // 술병
+  if (id === 'wisp') { for (let i = 0; i < 5; i++) { const q = (t * 0.32 + i * 0.2) % 1, wx = x + Math.sin(q * 5 + i * 2) * 16 * s + (i - 2) * 9 * s, wy = y - 54 * s - q * 96 * s; g.globalAlpha = 0.55 * Math.sin(q * Math.PI); ell(g, wx, wy, 6.4 * s, 9 * s, '#fbf7ec', 'rgba(90,96,120,0.5)', 1); } g.globalAlpha = 1; return; }   // 풀려나는 목소리들
   if (id === 'bow') { const w = getWeapon('bow'); if (w) drawSprite(g, w.spr, x, y - 66 * s, 1.25 * s, 1.25 * s, 0.35); return; }   // 나뭇가지에 걸어 둔 활
   if (id === 'chest') { drawSprite(g, stopSprite('treasure'), x, y + 4, 0.95 * s, 0.95 * s); return; }
   if (id === 'tavern') { drawSprite(g, stopSprite('rest'), x, y + 4, 1.1 * s, 1.1 * s); return; }
@@ -107,13 +109,13 @@ export function puppet(g, type, x, y, s, t, o = {}) {
   if (type[0] === '*') { prop(g, type.slice(1), x + dx, y + dy, s, t); return; }
   const L = getLook(type), sc = (o.scale || 1), ps = s * (L.boss ? 0.62 : 1) * sc / (L.scale / 1.1);
   // 인형을 받친 막대: 무대 아래 판 뒤로 내려간다. 누운 인형은 몸 가운데를 받쳐 막대도 함께 기운다
-  if (!o.noStick) { const hh = 34 * s * sc, cx = x + dx + (down || act === 'rise' ? Math.sin(rot) * hh : 0), cy = y + dy - (down || act === 'rise' ? Math.cos(rot) * hh + 4 * s : 8 * s), bx = x + dx * 0.3 + (down ? Math.sin(rot) * hh * 0.45 : 0); line(g, [cx, cy, bx, y + 96 * s], INK, 4.4 * s); line(g, [cx, cy, bx, y + 96 * s], '#c9a86a', 2.4 * s); }
+  if (!o.noStick) { const hh = 34 * s * sc, cx = x + dx + (down || act === 'rise' ? Math.sin(rot) * hh : 0), cy = y + dy - (down || act === 'rise' ? Math.cos(rot) * hh + 4 * s : 8 * s), bx = x + dx * 0.3 + (down ? Math.sin(rot) * hh * 0.45 : 0); line(g, [cx, cy, bx, y + 96 * s], INK, 4.4 * s); line(g, [cx, cy, bx, y + 96 * s], '#9a7440', 2.4 * s); }
   const shut = act === 'sleep' || (lie && act === 'bow');
   g.save(); g.translate(x + dx, y + dy); g.rotate(rot); if (f < 0) g.scale(-1, 1); if (lie) g.scale(1.06, 0.7); if (o.alpha !== undefined) g.globalAlpha *= o.alpha;
   portrait(g, type, 0, 0, ps * (L.scale / 1.1), shut ? 0 : t, false, bare ? 'none' : undefined, shut);
   g.restore();
   // 잠든 인형 위로 붓글씨 '쿨쿨' 이 번갈아 떠오른다
-  if (act === 'sleep') { const q = (t * 0.6) % 1, zx = x + (lie ? 30 : 34) * s, zy = y - (lie ? 58 : 44) * s; g.save(); g.globalAlpha = 0.25 + 0.6 * Math.sin(q * Math.PI); text(g, '쿨', zx + q * 8 * s, zy - q * 14 * s, { size: 17 * s, font: FONT_B, fill: '#4a4034' }); g.globalAlpha = 0.25 + 0.6 * Math.sin(((q + 0.5) % 1) * Math.PI); text(g, '쿨', zx + 16 * s + ((q + 0.5) % 1) * 8 * s, zy - 12 * s - ((q + 0.5) % 1) * 14 * s, { size: 13 * s, font: FONT_B, fill: '#4a4034' }); g.restore(); }
+  if (act === 'sleep') { const q = (t * 0.6) % 1, zx = x + (lie ? 30 : 34) * s, zy = y - (lie ? 58 : 44) * s; g.save(); g.globalAlpha = 0.5 + 0.5 * Math.sin(q * Math.PI); text(g, '쿨', zx + q * 8 * s, zy - q * 14 * s, { size: 20 * s, font: FONT_B, fill: '#2b2a30', stroke: 'rgba(246,239,220,0.8)', lw: 3 }); g.globalAlpha = 0.5 + 0.5 * Math.sin(((q + 0.5) % 1) * Math.PI); text(g, '쿨', zx + 19 * s + ((q + 0.5) % 1) * 8 * s, zy - 14 * s - ((q + 0.5) % 1) * 14 * s, { size: 15 * s, font: FONT_B, fill: '#2b2a30', stroke: 'rgba(246,239,220,0.8)', lw: 3 }); g.restore(); }
 }
 
 // 화면 가득한 인형극 한 편

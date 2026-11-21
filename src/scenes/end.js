@@ -42,7 +42,7 @@ export class EndScene {
       text(g, r.relics.length ? `지닌 보물 ${r.relics.length}` : '지닌 보물 없음', 544, 424, { size: 20, font: FONT_B, align: 'left' });
       const rp = Math.min(46, 660 / Math.max(1, r.relics.length)); r.relics.forEach((id, n) => relicIcon(g, id, 568 + n * rp, 476, Math.min(0.8, rp / 44)));
       // 평정해서 새 험로가 열렸으면 알린다: 다음 원정은 한 단계 더 험한 길로 갈 수 있다
-      if (r.newHard) { const k = Math.min(1, Math.max(0, (t - 0.9) / 0.35)), hd = HARD[r.newHard]; g.save(); g.globalAlpha = k; rr(g, 846, 404, 376, 38, 7, '#8a2a26', INK, 1.8); text(g, `새 험로가 열렸다 · ${r.newHard}단계 ${hd.name}`, 1034, 424, { size: 17.5, font: FONT_B, fill: C.cream, maxW: 356 }); g.restore(); }
+      if (r.newHard) { const k = Math.min(1, Math.max(0, (t - 0.9) / 0.35)), hd = HARD[r.newHard]; g.save(); g.globalAlpha = k; rr(g, 800, 400, 422, 46, 8, '#2f6f5c', INK, 2); rr(g, 804, 404, 414, 38, 5, null, 'rgba(240,217,154,0.8)', 1.2); text(g, `새 험로가 열렸다 · ${r.newHard}단계 ${hd.name}`, 1011, 424, { size: 20, font: FONT_B, fill: '#f6efdc', maxW: 396 }); g.restore(); }
     }
     // 다음에 맺을 영물의 인연 하나: 가장 가까운 것을 짚어 준다
     const nb = BEASTS.filter(b => !has(b.id)).sort((a, b) => deedCount(b) / b.need - deedCount(a) / a.need)[0];

@@ -52,12 +52,12 @@ export class RewardOverlay extends Overlay {
     if (lead && this.t < lead + 0.3) {
       const q = this.t / lead, pop = clamp((this.t - lead * 0.72) / 0.3, 0, 1), fade = 1 - clamp((this.t - lead) / 0.28, 0, 1);
       g.save(); g.globalAlpha = fade; g.translate(640, 372);
-      if (pop > 0) { g.save(); g.globalAlpha = fade * 0.5 * pop; ell(g, 0, -34, 150 * pop, 110 * pop, '#fff3cf'); g.restore(); goldRays(g, 0, -34, this.t, pop, 190); }
+      if (pop > 0) { const gl = g.createRadialGradient(0, -34, 10, 0, -34, 170 * pop + 1); gl.addColorStop(0, 'rgba(255,236,170,0.75)'); gl.addColorStop(0.55, 'rgba(240,210,100,0.28)'); gl.addColorStop(1, 'rgba(240,210,100,0)'); g.fillStyle = gl; g.fillRect(-190, -224, 380, 380); goldRays(g, 0, -34, this.t, pop, 190); }
       const sh = q < 0.72 ? Math.sin(this.t * 38) * 0.05 * (0.3 + q) : 0; g.rotate(sh); const sc = 2.5 + 0.5 * easeOutBack(pop); drawSprite(g, stopSprite('treasure'), 0, 40, sc, sc * (1 + 0.06 * Math.sin(this.t * 38) * (q < 0.72 ? 1 : 0)));
       g.restore(); if (!this.popped && pop > 0) { this.popped = true; sfx('star'); juice.burst(640, 330, '#f0d264', 16); }
     }
     if (this.t < lead) { brushTitle(g, 640, 34, 420, 62, '보물 상자', '#b8862a', 36); text(g, '무엇이 들었을까…', 640, 82, { size: 20, fill: C.cream }); return; }
-    text(g, done ? '챙겼습니다' : '하나를 고르세요', 640, 82, { size: 20, fill: C.cream });
+    text(g, done ? '챙겼습니다' : lead && t <= 0 ? '무엇이 들었을까…' : '하나를 고르세요', 640, 82, { size: 20, fill: C.cream });
     panel(g, 1070, 26, 180, 40, 'tag'); icon.coin(g, 1094, 46, 12); text(g, `엽전 ${r.gold}`, 1170, 47, { size: 20, maxW: 130 });
     p.opts.forEach((o, n) => {
       const d = describeReward(o), w = 224, h = 316, x = 264 + n * 264, k = easeOutBack(clamp((t - n * 0.1) / 0.32, 0, 1)), y = 118 + (1 - k) * 50, mine = this.taken === n;
@@ -65,7 +65,7 @@ export class RewardOverlay extends Overlay {
       if (d.card) { cardFace(g, d.card, x, y, w, h); packTag(g, x + w - 30, y + 62, d.n); if (o.kind !== 'card') { rr(g, x + 36, y - 25, 152, 27, 13, COL[d.col], INK, 1.6); text(g, d.title, x + 112, y - 11, { size: 17, fill: C.cream }); } } else tile(g, d, x, y, w, h, t);
       g.restore();
       if (done && !mine) rr(g, x - 3, y - (d.card && o.kind !== 'card' ? 27 : 3), w + 6, h + (d.card && o.kind !== 'card' ? 30 : 6), 9, 'rgba(24,28,44,0.62)');
-      if (mine) stamp(g, x + w - 44, y + 92, 38, '得', RED, 0.14);
+      if (mine && !d.relic) stamp(g, x + w - 44, y + 92, 38, '得', RED, 0.14);   // 보물은 가운데 공개 연출에 得 이 찍힌다
       else if (!done && t > 0.45 && button(g, 'rw' + n, x + 12, y + h + 12, w - 24, 54, '고르기', { size: 27 })) {
         this.taken = n; applyReward(o); r.pending = null; save(); sfx('card');
         // 고른 것이 제자리로 날아간다: 패는 덱으로, 보물은 크게 한 번 보여 준 뒤 보물 주머니로
@@ -194,7 +194,7 @@ export class ChoiceOverlay extends Overlay {
       });
       if (n && !bad) { const k = clamp((rt - 0.55 - n * 0.2) / 0.22, 0, 1); if (k > 0) { g.save(); g.globalAlpha = k; stamp(g, 1158, 306 - (n - 1) * 42 - 74, 30 * (1.5 - 0.5 * k), '得', RED, 0.16); g.restore(); } }
       if (this.result.length < 2) text(g, '별일 없이 지나갑니다', 910, 300, { size: 22, fill: SUB });
-      if (!this.left && rt > 0.5 + this.result.length * 0.18 && button(g, 'go', 740, 540, 340, 76, '길을 떠난다', { size: 34 })) { this.left = true; this.onDone(); }
+      if (!this.left && rt > 0.5 + this.result.length * 0.18 && button(g, 'go', 740, n ? 306 + (n - 1) * 42 + 76 : 356, 340, 76, '길을 떠난다', { size: 34 })) { this.left = true; this.onDone(); }
     }
   }
 }

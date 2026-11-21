@@ -31,7 +31,7 @@ export const juice = {
     if (sh) {
       sh.t += dt; const t = sh.t, k = clamp(t / 0.3, 0, 1), out = clamp((sh.dur - t) / 0.3, 0, 1), a = Math.min(k, out), e = easeOutBack(k);
       g.globalAlpha = a * 0.55; g.fillStyle = '#17151c'; g.fillRect(0, 0, W, H); g.globalAlpha = a;
-      drawInk(g, 'blot', 640, 296, 2.1 * (0.8 + 0.2 * e), -0.3, 1, MEOK, 1);
+      g.save(); g.beginPath(); g.rect(0, 100, W, H - 100); g.clip(); drawInk(g, 'blot', 640, 296, 2.1 * (0.8 + 0.2 * e), -0.3, 1, MEOK, 1); g.restore();
       goldRays(g, 640, 300, t, e, 178);
       ell(g, 640, 300, 86 * e, 86 * e, '#f6efdc', INK, 3); ell(g, 640, 300, 76 * e, 76 * e, null, 'rgba(201,150,46,0.9)', 1.6);
       sh.icon(g, 640, 300 - Math.sin(t * 4) * 4, 2.3 * e);

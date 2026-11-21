@@ -23,15 +23,15 @@ const WHY = {
     B('village', '「그 칼을 찾으러 간다.」 검객이 삿갓을 꾹 눌러썼어요.', ['blade', 0.42, 'talk'], ['banner', 0.72]),
   ],
   hunter: [
-    B('night', '명궁의 동생은 밤 고개에서 흰 범의 목소리에 홀려 사라졌어요.', ['hunter', 0.3, 'tremble'], ['jangsan', 0.72, 'wave']),
+    B('night', '명궁의 동생은 밤 고개에서 흰 범의 목소리에 홀려 사라졌어요.', ['hunter', 0.42, 'tremble'], ['jangsan', 0.76, 'wave']),
     B('village', '「동생을 찾을 때까지 활을 놓지 않겠다.」 명궁이 활을 메고 나섰어요.', ['hunter', 0.42, 'talk'], ['banner', 0.72]),
   ],
   bishop: [
-    B('night', '고승은 고개를 떠도는 넋들이 가여웠어요. 집에 가는 길을 잃은 넋들이었지요.', ['bishop', 0.32], ['skel', 0.6, 'wave'], ['skelarcher', 0.78, 'wave']),
+    B('night', '고승은 고개를 떠도는 넋들이 가여웠어요. 집에 가는 길을 잃은 넋들이었지요.', ['bishop', 0.4], ['skel', 0.64, 'wave'], ['skelarcher', 0.8, 'wave']),
     B('village', '「내가 가서 길을 밝혀 주마.」 고승이 목탁을 들었어요.', ['bishop', 0.42, 'talk'], ['banner', 0.72]),
   ],
   archmage: [
-    B('pass', '삼백 년 전, 신선은 장난삼아 헌 빗자루에 술을 한 잔 부었어요.', ['archmage', 0.36, 'wave'], ['*broom', 0.62]),
+    B('pass', '삼백 년 전, 신선은 장난삼아 헌 빗자루에 술을 한 잔 부었어요.', ['archmage', 0.34, 'wave'], ['*jar', 0.5], ['*broom', 0.66]),
     B('pass', '그랬더니 빗자루가 벌떡 일어나 첫 도깨비가 됐지 뭐예요!', ['archmage', 0.34, 'tremble'], ['goblin', 0.62, 'hop']),
     B('village', '「허허, 내가 벌인 일이니 내가 거두어야지.」 신선이 구름을 타고 내려왔어요.', ['archmage', 0.42, 'talk'], ['banner', 0.72]),
   ],
@@ -40,7 +40,7 @@ const WHY = {
     B('village', '「싸우지만 말고, 한 판 신나게 놀아서 달래 보세!」', ['sangsoe', 0.42, 'talk'], ['banner', 0.72]),
   ],
   chief: [
-    B('night', '산적 두령은 도깨비들에게 산채를 빼앗기고 쫓겨났어요.', ['chief', 0.26, 'shake'], ['warchief', 0.68, 'hop']),
+    B('night', '산적 두령은 도깨비들에게 산채를 빼앗기고 쫓겨났어요.', ['chief', 0.4, 'shake', -1], ['warchief', 0.72, 'hop']),
     B('village', '「내 집은 내가 찾는다. 김서방인지 뭔지, 씨름으로 결판내자!」', ['chief', 0.42, 'talk'], ['banner', 0.72]),
   ],
 };
@@ -210,8 +210,8 @@ const FINALE = {
     B('dawn', '검객은 그 칼을 서낭당에 고이 올려놓고, 처음으로 삿갓을 벗었답니다.', ['blade~', 0.4, 'wave'], ['*sword', 0.72], ['goblin', 0.58, 'sleep']),
   ],
   hunter: [
-    B('shrine', '흰 범이 명궁 앞에 엎드렸어요. 범이 삼켰던 목소리들이 하나씩 풀려났지요.', ['hunter', 0.3], ['jangsan', 0.6, 'bow']),
-    B('dawn', '동생 목소리가 말했어요. 「형, 이제 활을 내려놔.」 명궁은 활을 나무에 걸어 두었답니다.', ['hunter~', 0.34, 'bow'], ['jangsan', 0.58, 'sleep'], ['*bow', 0.875]),
+    B('shrine', '흰 범이 명궁 앞에 엎드렸어요. 범이 삼켰던 목소리들이 하나씩 풀려났지요.', ['hunter', 0.3], ['jangsan', 0.6, 'bow'], ['*wisp', 0.62]),
+    B('dawn', '동생 목소리가 말했어요. 「형, 이제 활을 내려놔.」 명궁은 활을 나무에 걸어 두었답니다.', ['hunter~', 0.34], ['jangsan', 0.58, 'sleep'], ['*bow', 0.875]),
   ],
   bishop: [
     B('shrine', '고승은 사흘 밤낮 목탁을 쳤어요. 길 잃은 넋들이 등불을 따라 하나둘 떠났지요.', ['bishop', 0.3, 'talk'], ['*lamp', 0.46], ['skel', 0.64, 'wave'], ['skelarcher', 0.8, 'wave']),

@@ -90,19 +90,19 @@ export class MetaScene {
     if ((meta.hardMax || 0) > 0) {
       // 험로: 단계마다 규칙이 하나씩 붙는다 (아래 단계의 규칙도 모두 따라온다)
       const hv = Math.min(meta.hard || 0, meta.hardMax), hd = HARD[hv];
-      text(g, hv ? `험로 ${hv}단계 · ${hd.name}` : '평탄한 길', 60, y + 30, { size: 24, font: FONT_B, align: 'left', fill: hv ? RED : INK, maxW: 370 });
-      textBlock(g, hv ? `${hd.desc}${hv > 1 ? ' (아래 단계 규칙도 모두)' : ''} · 공적 +${hv * 20}%` : '험로 규칙 없이 떠납니다. 평정할 때마다 한 단계씩 열립니다', 60, y + 58, 372, 20, { size: 14.5, align: 'left', fill: '#4a4034', weight: 400 });
-      // 열 단계 사다리: 도장이 찍힌 칸은 평정한 길, 굵은 테는 지금 고른 길, 흐린 칸은 아직 닫힌 길. 칸을 눌러 고른다
+      text(g, hv ? `험로 ${hv}단계 · ${hd.name}` : '평탄한 길', 56, y + 28, { size: 22, font: FONT_B, align: 'left', fill: hv ? RED : INK, maxW: 276 });
+      textBlock(g, hv ? `${hd.desc}${hv > 1 ? ' (아래 단계 규칙도 모두)' : ''} · 공적 +${hv * 20}%` : '험로 규칙 없이 떠납니다. 평정할 때마다 한 단계씩 열립니다', 56, y + 54, 276, 19, { size: 14, align: 'left', fill: '#4a4034', weight: 400 });
+      // 열 단계 사다리: 붉은 점이 찍힌 칸은 평정한 길, 짙은 칸은 지금 고른 길, 흐린 칸은 아직 닫힌 길. 칸을 눌러 고른다
       for (let lv = 0; lv <= HARD_MAX; lv++) {
-        const cx = 448 + lv * 42, cy = y + 16, open = lv <= meta.hardMax, cleared = lv < meta.hardMax, cur = lv === hv;
-        if (open && tapped('hl' + lv, cx, cy, 38, 50)) { meta.hard = lv; save(); sfx('card'); }
+        const cx = 350 + lv * 52, cy = y + 10, open = lv <= meta.hardMax, cleared = lv < meta.hardMax, cur = lv === hv;
+        if (open && tapped('hl' + lv, cx - 2, cy - 4, 52, 66)) { meta.hard = lv; save(); sfx('card'); }
         g.save(); if (!open) g.globalAlpha = 0.42;
-        rr(g, cx, cy + 3, 38, 50, 6, '#d9cdb0', INK, 1.6); rr(g, cx, cy, 38, 50, 6, cur ? '#2b3b60' : '#fbf3df', INK, cur ? 2.8 : 1.6);
-        text(g, lv ? String(lv) : '평', cx + 19, cy + 21, { size: lv ? 22 : 19, font: FONT_B, fill: cur ? '#f6efdc' : INK });
-        if (cleared) { ell(g, cx + 19, cy + 40, 5.4, 5.4, RED, INK, 1); } else if (!open) { rr(g, cx + 14, cy + 37, 10, 8, 2, '#8a8474', INK, 1); g.beginPath(); g.arc(cx + 19, cy + 37, 3.4, Math.PI, 0); g.strokeStyle = INK; g.lineWidth = 1.4; g.stroke(); }
+        rr(g, cx, cy + 3, 48, 58, 7, '#d9cdb0', INK, 1.6); rr(g, cx, cy, 48, 58, 7, cur ? '#2b3b60' : '#fbf3df', INK, cur ? 2.8 : 1.6);
+        text(g, lv ? String(lv) : '평', cx + 24, cy + 24, { size: lv ? 25 : 21, font: FONT_B, fill: cur ? '#f6efdc' : INK });
+        if (cleared) { ell(g, cx + 24, cy + 46, 5.8, 5.8, RED, INK, 1); } else if (!open) { rr(g, cx + 18, cy + 43, 12, 9, 2, '#8a8474', INK, 1); g.beginPath(); g.arc(cx + 24, cy + 43, 4, Math.PI, 0); g.strokeStyle = INK; g.lineWidth = 1.5; g.stroke(); }
         g.restore();
       }
-      text(g, `붉은 점 = 평정한 길 · 칸을 눌러 떠날 길을 고릅니다 (열린 길 ${meta.hardMax} / ${HARD_MAX})`, 678, y + 88, { size: 13.5, fill: SUB, weight: 400, maxW: 450 });
+      text(g, `붉은 점 = 평정한 길 · 칸을 눌러 떠날 길을 고릅니다 (열린 길 ${meta.hardMax} / ${HARD_MAX})`, 634, y + 90, { size: 15, fill: '#4a4034', weight: 400, maxW: 560 });
     } else { text(g, '험로', 64, y + 40, { size: 28, font: FONT_B, align: 'left', fill: SUB }); text(g, '세 고개를 모두 넘으면 더 험한 길이 열립니다', 64, y + 76, { size: 17, align: 'left', fill: SUB, weight: 400 }); }
     if (button(g, 'back', 960, y + 12, 290, 86, '돌아가기', { style: 'paper', size: 32 })) nav.go('title');
   }

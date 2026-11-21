@@ -262,7 +262,7 @@ export class BattleView {
         case 'melee': if (e.big || Math.random() < 0.45) fx.star(e.x, e.y, e.big ? 13 : 7); break;
         case 'squadLost': fx.txt(e.x, e.y - 66, e.again ? '전멸! — 다시 모인다' : '전멸!', RED, 26, 1.1); out.push(e); break;
         // 패의 살림: 전장에서 주운 패, 가득 찬 주머니, 턴 엽전, 주운 돌
-        case 'loot': if (e.x !== undefined) { fx.star(e.x, e.y - 20, 16, '#fffbe6'); fx.add({ k: 'text', x: Math.min(Math.max(e.x, 150), 1130), y: Math.min(Math.max(e.y - 56, 150), 492) - 78, vy: -8, drag: 1.5, s: e.why === 'hero' ? '되찾은 패' : '노획!', col: '#2f6f5c', size: 22, life: 0.9 }); } sfx('card'); out.push(e); break;
+        case 'loot': if (e.x !== undefined) { fx.star(e.x, e.y - 20, 16, '#fffbe6'); fx.add({ k: 'text', x: Math.min(Math.max(e.x, 150), 1130), y: Math.min(Math.max(e.y - 56, 150), 492) - 78, vy: -8, drag: 1.5, s: (e.why === 'hero' ? '되찾은 패 — ' : '노획 — ') + CARDS[e.id].name + (e.up ? '+' : ''), col: '#2f6f5c', size: 22, life: 1.1 }); } sfx('card'); out.push(e); break;
         case 'lootFull': out.push(e); break;
         case 'gold': fx.add({ k: 'text', x: e.x + 18, y: e.y - 34, vy: -40, drag: 1.5, s: '+' + e.n, col: '#b8862a', size: 17, life: 0.8 }); break;
         case 'scavenge': sfx('card'); out.push(e); break;

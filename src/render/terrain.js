@@ -207,7 +207,7 @@ const STOPS = {
     [[-24, -5, 21, 7.6, 0], [-6, -4, 15, 6.6, 1], [-27, -15, 15, 6.6, 1], [-12, -14, 13, 6, 0], [-21, -24, 11, 5.6, 1], [-20, -32, 7.4, 4.6, 0], [-20, -39, 4.6, 3.4, 1]].forEach(([x, y, rx, ry, n]) => stone(g, x, y, rx, ry, GREY[n]));
     grassTuft(g, 42, 1, 0.8, TEAL, SR());
   },
-  treasure(g) { // 보물 함: 놋쇠 장석을 댄 반닫이. 물고기 자물쇠를 채우고 붉은 보자기 끈으로 묶었다
+  treasure(g) { // 보물 함: 놋쇠 장석을 댄 반닫이. 물고기 자물쇠에 붉은 술을 달았다
     const gem = (x, y, r) => part(g, P(x, y - r, x + r * 0.62, y, x, y + r, x - r * 0.62, y), '#f0d264', null, { lw: 0.8 });
     for (const x of [-22, 22]) part(g, RC(x - 4.4, -3.4, 8.8, 3.4), dk(WOODD, 0.25), null, { lw: 1 });
     part(g, RC(-28, -30, 56, 27), WOODD, RC(0, -30, 28, 27), { k: 0.18, lw: 1.5 });
@@ -219,10 +219,8 @@ const STOPS = {
     // 앞바탕과 물고기 자물쇠
     part(g, E(0, -20, 7.8, 7.8), BRASS, E(1.8, -18.8, 5.8, 5.8), { lw: 1.1 });
     part(g, p => { p.moveTo(-5.4, -20); p.quadraticCurveTo(-1.2, -24.6, 3, -20); p.quadraticCurveTo(-1.2, -15.4, -5.4, -20); p.closePath(); }, '#e6b93e', null, { lw: 0.9 }); part(g, P(2.6, -20, 6.2, -23.2, 6.2, -16.8), '#e6b93e', null, { lw: 0.9 }); ell(g, -2.8, -20.7, 0.65, 0.65, INK);
-    // 보자기 끈: 뚜껑을 가로질러 묶은 매듭
-    part(g, RC(-3, -37.4, 6, 8.4), RED, RC(0, -37.4, 3, 8.4), { lw: 0.9 });
-    for (const s of [-1, 1]) part(g, p => { p.moveTo(s * 1, -38.6); p.quadraticCurveTo(s * 12.6, -51, s * 11.6, -39.6); p.quadraticCurveTo(s * 6, -37.6, s * 1, -38.6); p.closePath(); }, RED, p => { p.moveTo(s * 1, -38.6); p.quadraticCurveTo(s * 9, -41, s * 11.6, -39.6); p.quadraticCurveTo(s * 6, -37.6, s * 1, -38.6); p.closePath(); }, { lw: 1 });
-    part(g, E(0, -39, 3, 2.5), RED, E(0.8, -38.4, 2, 1.6), { lw: 1 });
+    // 자물쇠에 단 붉은 술
+    line(g, [6.2, -20, 8.4, -14], INK, 1.6); line(g, [6.2, -20, 8.4, -14], RED, 0.9); part(g, P(6.8, -14.4, 10.2, -14.4, 10.8, -6.4, 6.2, -6.4), RED, null, { lw: 0.9 });
     gem(-37, -46, 3.6); gem(36, -52, 3); gem(20, -60, 2.4);
   },
   fork(g) { // 갈림길 푯말

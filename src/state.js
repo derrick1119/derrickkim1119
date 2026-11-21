@@ -293,8 +293,8 @@ export const act = {
   card(id, up, n = 2) { if (!id) id = rollCards('battle', 1)[0].id; for (let k = 0; k < n; k++) addCard(id, { up }); return `패 [${CARDS[id].name}${up || mastered(id) ? '+' : ''}] ${n}장을 얻었습니다`; },
   cardUp() { const d = G.run.deck.filter(c => !isUnit(c) && canUp(c)); if (!d.length) return act.gold(30); const c = pick(d); master(c.id); return `전술을 익혔습니다: [${CARDS[c.id].name}] → [${CARDS[c.id].name}+]`; },
   supply(n) { const got = []; for (let k = 0; k < n; k++) { const id = pick(['sling', 'sling', 'rain', 'rain', 'heal', 'heal', 'horn', 'scout']); addCard(id); got.push(CARDS[id].name); } return `패 ${n}장: ${got.join(', ')}`; },
-  doubt() { addCard('doubt'); return '부정 -1: 덱에 쓸모없는 패 [잡념] 이 섞였습니다'; },
-  clearDoubt() { const d = G.run.deck, i = d.findIndex(c => c.id === 'doubt'); if (i < 0) return null; d.splice(i, 1); return '덱에서 [잡념] 이 사라졌습니다'; },
+  doubt() { addCard('doubt'); return '부정 -1: 덱에 쓸모없는 패 [잡념]이 섞였습니다'; },
+  clearDoubt() { const d = G.run.deck, i = d.findIndex(c => c.id === 'doubt'); if (i < 0) return null; d.splice(i, 1); return '덱에서 [잡념]이 사라졌습니다'; },
 };
 
 // ───────── 원정 끝: 공적 정산 ─────────
