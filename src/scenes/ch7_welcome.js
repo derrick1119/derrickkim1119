@@ -217,7 +217,7 @@
       ana.pose = (o, a, t) => { if (a.onSwing) { PL.sitOnSwing(o, ps, 1); o.face.eye = a.look ? 'open' : 'happy'; o.headTilt = a.look ? 0.14 : -0.1; if (a.look) o.armF = { a: 1.5, b: 0.2 }; } else if (a.lay) { o.lean = 0.3; o.armF = { hand: F.local(o, PL.ROOM_X + 8, W.y3(PL.ROOM_X) - 14) }; o.armB = { hand: F.local(o, PL.ROOM_X + 2, W.y3(PL.ROOM_X) - 8) }; } };
       leo.prop = null; leo.onSwing = ana.onSwing = true; leo.hill = ana.hill = 3; ana.z = 1;
       leo.x = PL.swingSeat(ps)[0] - 24; ana.x = leo.x + 48;
-      bean.x = PL.TREE_X - 74; bean.flip = false; bean.sit = 1;
+      bean.x = PL.TREE_X - 150; bean.flip = false; bean.sit = 1; ps.spot = [PL.swingSeat(ps)[0]];
       S.swinging = true;
       X.cam(PL.TREE_X + 10, py + 52, 1.5); X.camSnap();
       await X.view(null, { color: '#161d2a', out: 1.6, in: 2.2 });
@@ -232,7 +232,7 @@
       S.swinging = false; ps.swingA = 0;
       leo.onSwing = ana.onSwing = false; leo.hill = ana.hill = null;
       leo.x = PL.TREE_X + 20; ana.x = PL.TREE_X + 44;
-      bean.sit = 0; X.walk(bean, PL.BOARD_X + 64, 84).then(() => { bean.flip = false; bean.sit = 1; });
+      bean.sit = 0; X.walk(bean, PL.ROOM_X + 128, 84).then(() => { bean.flip = true; bean.sit = 1; });
       X.walk(ana, PL.ROOM_X + 34, 62);
       await X.walk(leo, PL.ROOM_X - 34, 62);
       leo.flip = false; ana.flip = true;
@@ -246,7 +246,7 @@
       /* and they turn to the sea, where boats come from */
       X.walk(ana, PL.ROOM_X + 76, 40);
       await X.walk(leo, PL.ROOM_X + 36, 40);
-      leo.flip = ana.flip = true; leo.hand = ana.hand = false;
+      leo.flip = ana.flip = true; leo.hand = ana.hand = false; ps.spot = [PL.ROOM_X + 56];
       ana.pose = (o, a, t) => { o.armB = { hand: F.local(o, (ana.x + leo.x) / 2, W.groundAt(ana.x) - 58) }; o.headTilt = -0.1; o.face.eye = 'happy'; };
       leo.pose = (o, a, t) => { o.armF = { hand: F.local(o, (ana.x + leo.x) / 2, W.groundAt(leo.x) - 58) }; o.headTilt = -0.1; o.face.eye = 'happy'; };
       X.cam(PL.ROOM_X + 24, py + 56, 1.45, 0.6);

@@ -77,10 +77,13 @@
     L.draw = function (g, t) {
       const V = T.view, W = V.W;
       if (!L.off || L.gen !== T.gen) L.build();
+      /* the lakeside is Welcome Harbor, so it is drawn in crayon; what the water shows is not */
+      P.cray = P.look === 'crayon'; if (P.cray) P.crayonize(g);
       /* dusk over the far bank */
       const sky = g.createLinearGradient(0, 0, 0, 240);
       sky.addColorStop(0, '#5d6aa6'); sky.addColorStop(0.7, '#c99aa6'); sky.addColorStop(1, '#f0c39a');
       g.fillStyle = sky; g.fillRect(-W / 2, 0, W, 240);
+      if (P.cray) { g.save(); g.globalCompositeOperation = 'multiply'; g.fillStyle = P.paper(); g.fillRect(-W / 2, 0, W, 240); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 0.2; g.fillStyle = P.crayonPat('#fff8e8').pat; g.scale(4.2, 1.5); g.fillRect(-W / 8.4, 0, W / 4.2, 160); g.restore(); }
       g.fillStyle = '#3c5568';
       g.beginPath(); g.moveTo(-W / 2, 240); g.lineTo(-W / 2, 150);
       for (let x = -W / 2; x <= W / 2; x += 40) g.lineTo(x, 168 + T.noise(x * 0.004, 5) * 34 + Math.sin(x * 0.013) * 10);
@@ -183,6 +186,8 @@
       const m = L.mote;
       if (m && !m.gone) { P.glow(g, m.x, m.y, 70, '#fff0b8', 0.7 + 0.2 * Math.sin(t * 3)); P.glow(g, m.x, m.y, 20, '#ffffff', 0.9); if (!m.held && T.clamp((T.time - m.t0 - 2.5) / 1.2) > 0) P.fingerHint(g, [[m.hx, m.hy], [m.hx + 120, m.hy + 150], [m.hx + 240, m.hy + 330]], (t * 0.4) % 1, T.clamp((T.time - m.t0 - 2.5) / 1.2), '#fff6e0'); }
     };
+    const draw0 = L.draw;
+    L.draw = function (g, t) { try { draw0(g, t); } finally { P.cray = false; } };
     /* give him the dream to carry; resolves when he has let it into the water */
     L.offerMote = function () { const W = T.view.W; return new Promise((res) => { L.mote = { hx: -W / 2 + 420, hy: 150, x: -W / 2 + 420, y: 120, held: false, gone: false, t0: T.time, res }; }); };
     return L;

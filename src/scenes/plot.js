@@ -123,7 +123,11 @@
     if (ps.tree > 0.01) {
       const k = ps.tree, x = TREE_X, y = y3(x), s = 0.5 + 1.1 * k;
       const q = ps.swing > 0.01 ? swingGeo(ps) : null;
-      if (q) P.line(g, x, y - 84 * s, q.x1 + 10, q.top - 2, 6.5, '#6b4f52');
+      if (q) {   /* a limb that leaves the trunk, goes up through the leaves and out over the slope */
+        g.strokeStyle = '#6b4f52'; g.lineCap = 'round'; g.lineWidth = 8;
+        g.beginPath(); g.moveTo(x + 1, y - 46 * s); g.quadraticCurveTo(x + 24 * s, y - 116 * s, q.x1 + 12, q.top - 3); g.stroke();
+        P.fill(g, P.ellipse(q.x1 + 17, q.top - 9, 12, 7, -0.4), '#5f9a6a'); P.fill(g, P.ellipse(q.x1 + 3, q.top - 13, 10, 6, 0.5), '#4f8a62');
+      }
       K.tree(g, x, y, s, '#5f9a6a', '#4f8a62', '#6b4f52', Math.sin(t * 0.8));
       if (k > 0.75) { const rr = T.rng(4); for (let i = 0; i < 9; i++) P.fill(g, P.circle(x - 36 * s + rr() * 72 * s, y - 62 * s - rr() * 60 * s, 4.4), '#c9433a'); }
       if (q) {
@@ -163,6 +167,7 @@
     const y3 = T.world.y3, n = ps.night;
     if (n < 0.02) return;
     if (ps.lantern > 0.01) P.glow(g, LAMP_X, y3(LAMP_X) - 80, 150, '#ffd98a', 0.5 * n);
+    if (ps.spot) P.glow(g, ps.spot[0], y3(ps.spot[0]) - 78, 150, '#ffdca0', 0.42 * n);
     if (ps.room2 > 0.5) P.glow(g, ROOM_X, y3(ROOM_X) - 8, 54, '#ffe9b8', 0.42 * n * (0.85 + 0.15 * Math.sin(T.time * 1.6)));
     if (ps.stage >= 4) { const gy = y3(HX); [[-71, -86], [-1, -86]].forEach((q) => { P.glow(g, HX + q[0], gy + q[1], 70, '#ffd98a', 0.55 * n); P.fill(g, P.rr(HX + q[0] - 25, gy + q[1] - 30, 50, 60, 2), T.rgba('#ffe2a0', 0.5 * n)); }); }
   };
@@ -178,7 +183,22 @@
       g.beginPath(); g.arc(x, y, s, 0, TAU); g.fill();
     }
     g.globalAlpha = 1;
-    if (ps.aurora.length) {
+    if (ps.aurora.length && P.look === 'crayon') {
+      /* chalk on dark paper: one long stroke for every touch of the finger, each a little different */
+      g.save(); g.lineCap = 'round';
+      for (let i = 0; i < ps.aurora.length; i++) {
+        const p = ps.aurora[i], h = 110 + T.noise(i * 0.37, 5) * 90 + Math.sin(i * 0.9) * 34, sway = Math.sin(t * 0.9 + p[0] * 0.011 + i * 0.37) * 5;
+        const x = p[0] + sway + T.noise(i * 1.7, 2) * 6, y = p[1] + T.noise(i * 0.53, 9) * 14, lean = 10 + T.noise(i * 0.21, 4) * 8;
+        const wgt = 0.5 + 0.5 * T.noise(i * 0.83, 6) + 0.5;   /* how hard the chalk was pressed for this one */
+        g.globalAlpha = n * (0.18 + 0.2 * wgt + 0.1 * Math.sin(t * 1.3 + i * 1.9));
+        g.strokeStyle = ['#a8f5cf', '#8fe6d6', '#c9f7b8'][i % 3];
+        g.lineWidth = 2.5 + wgt * 6; g.beginPath(); g.moveTo(x, y); g.lineTo(x + lean * 0.7, y - h * 0.7); g.stroke();
+        g.lineWidth = 1.5 + wgt * 2.5; g.beginPath(); g.moveTo(x + lean * 0.6, y - h * 0.6); g.lineTo(x + lean, y - h); g.stroke();   /* it thins as it lifts off */
+        g.strokeStyle = '#f2b6d6'; g.lineWidth = 5; g.globalAlpha *= 0.7;
+        g.beginPath(); g.moveTo(x - 2, y + 4); g.lineTo(x + 1, y - h * 0.14); g.stroke();
+      }
+      g.restore();
+    } else if (ps.aurora.length) {
       g.save(); g.globalCompositeOperation = 'lighter';
       for (let i = 0; i < ps.aurora.length; i++) {
         const p = ps.aurora[i], h = 170 + Math.sin(i * 1.15 + t * 0.7) * 50, sway = Math.sin(t * 0.9 + p[0] * 0.011 + i * 0.37) * 12;

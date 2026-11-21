@@ -1017,7 +1017,6 @@
     p.rect(xa - 20, SEA + 30, xb - xa + 40, 1700);
     if (P.cray) {   /* chalk-white cloud, each puff with its own drawn curl */
       P.noEdge = true; g.fillStyle = '#fff8ee'; g.fill(p); P.noEdge = false;
-      g.save(); g.globalAlpha = 0.4; g.fillStyle = P.crayonPat('#e6b0c0').pat; g.fillRect(xa - 20, SEA + 70, xb - xa + 40, 900); g.restore();
       g.strokeStyle = '#c79aae'; g.lineWidth = 2.2; g.lineCap = 'round'; g.globalAlpha = 0.55;
       for (let x = a; x <= xb + 58; x += 58) { const y = surf(x) + 20, rr = 44 + T.noise(x * 0.01, 3) * 8; g.beginPath(); g.arc(x, y, rr, Math.PI * 1.12, Math.PI * 1.88); g.stroke(); }
       g.globalAlpha = 1;
@@ -1041,21 +1040,21 @@
     P.line(g, bx - 40, PIER_Y - 150, bx + 40, PIER_Y - 150, 9, '#6f5346');
     P.fill(g, P.poly([[bx - 46, PIER_Y - 152], [bx, PIER_Y - 178], [bx + 46, PIER_Y - 152]]), '#8a5578');
     g.save(); g.translate(bx, PIER_Y - 146); g.rotate(sw);
-    P.fill(g, P.soft([[-6, 0], [-18, 34], [-24, 46], [24, 46], [18, 34], [6, 0]]), '#d9a441');
+    P.fill(g, P.soft([[-6, 0], [-18, 34], [-24, 46], [24, 46], [18, 34], [6, 0]]), '#b07a2a');
     P.fill(g, P.rr(-25, 44, 50, 6, 3), '#b8862c');
     P.fill(g, P.circle(Math.sin(t * 5.2 + 1) * 8 * S.bell.k, 54, 5), '#8a6a2a');
     g.restore();
     if (S.bell.k > 0.02) P.glow(g, bx, PIER_Y - 110, 90 + (1 - S.bell.k) * 110, '#ffe6a0', S.bell.k * 0.5);
     /* lanterns on a line from the end post to the bell, crates, a coil of rope */
-    P.line(g, 16, PIER_Y, 16, PIER_Y - 132, 6, '#7f5f52');
-    const A0 = [16, PIER_Y - 130], B0 = [bx - 26, PIER_Y - 148], C0 = [(16 + bx) / 2, PIER_Y - 66];
+    P.line(g, 16, PIER_Y, 16, PIER_Y - 242, 6, '#7f5f52');
+    const A0 = [16, PIER_Y - 240], B0 = [bx - 8, PIER_Y - 174], C0 = [(16 + bx) / 2, PIER_Y - 186];
     const at = (u) => [(1 - u) * (1 - u) * A0[0] + 2 * (1 - u) * u * C0[0] + u * u * B0[0], (1 - u) * (1 - u) * A0[1] + 2 * (1 - u) * u * C0[1] + u * u * B0[1]];
     g.strokeStyle = '#6f5346'; g.lineWidth = 1.6;
     g.beginPath(); g.moveTo(A0[0], A0[1]); g.quadraticCurveTo(C0[0], C0[1], B0[0], B0[1]); g.stroke();
     [0.2, 0.4, 0.6, 0.8].forEach((u, i) => { const q = at(u); K.lantern(g, q[0], q[1] + 8, t, { bare: true, s: 0.6, seed: i }); });
     P.fill(g, P.box(462, PIER_Y - 34, 40, 34, 0.8, 5), '#c79a62'); P.fill(g, P.box(476, PIER_Y - 58, 30, 24, 0.8, 6), '#b3864f');
     g.strokeStyle = '#d9c9a8'; g.lineWidth = 4; g.beginPath(); g.ellipse(250, PIER_Y - 4, 17, 5, 0, 0, TAU); g.stroke();
-    K.boat(g, 330, SEA - 6 + Math.sin(t * 0.8) * 3, 0.8, '#3f7f86', Math.sin(t * 0.8 + 1) * 0.03);
+    if (!(S.hook && S.hook.flags.clearPier)) K.boat(g, 330, SEA - 6 + Math.sin(t * 0.8) * 3, 0.8, '#3f7f86', Math.sin(t * 0.8 + 1) * 0.03);   /* out of the way when the whole town is on the pier */
   }
   function drawPostman(g) {
     if (!S.post.on) return;
@@ -1141,7 +1140,7 @@
   function overlay(g) {
     const V = T.view, W = V.W, t = T.time;
     const sp = spot();
-    if (sp && !TALK.cur) { const [sx, sy] = toScreen(sp[0], sp[1]); P.beacon(g, sx, sy, sp[2] * S.cam.z * 0.8, t, 1, '#fff0c8'); }
+    if (sp && !TALK.cur && !S.game) { const [sx, sy] = toScreen(sp[0], sp[1]); P.beacon(g, sx, sy, sp[2] * S.cam.z * 0.8, t, 1, '#fff0c8'); }
     if (S.game) { P.cray = P.look === 'crayon'; if (P.cray) P.crayonize(g); S.game.draw(g, t); P.cray = false; }
     if (S.title.a > 0.01) {
       P.text(g, '1장', 0, 300, { font: 'serif', size: 26, track: 12, color: '#4a4468', alpha: 0.8 * S.title.a });

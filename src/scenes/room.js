@@ -320,6 +320,7 @@
     if (args.title) {
       S.mode = 'title'; S.title.a = 1; S.tod = 0; S.fam.a = 0; S.zoom.k = 0;
       S.saved = T.loadGame();
+      S.seen = T.store.get('tyt-seen') || 0;   /* chapters reached before: only those are offered on the title */
     } else if (args.final) {
       S.mode = 'final'; S.tod = 5; S.fam.a = 1; S.zoom.k = 0;
       S.runFinal();
@@ -348,7 +349,7 @@
   /* a quiet row at the foot of the title: straight to any chapter */
   const CHAPTERS = [['1장', 'kitchen'], ['2장', 'ch2'], ['3장', 'ch3'], ['4장', 'ch4'], ['5장', 'ch5'], ['6장', 'ch6'], ['마지막 장', 'ch7']];
   const chapterX = (i) => (i - 3) * 100 + (i === 6 ? 22 : 0);
-  const overChapter = (x, y) => { if (Math.abs(y - 842) > 28) return -1; for (let i = 0; i < CHAPTERS.length; i++) if (Math.abs(x - chapterX(i)) < (i === 6 ? 62 : 46)) return i; return -1; };
+  const overChapter = (x, y) => { if (Math.abs(y - 842) > 28) return -1; for (let i = 0; i < Math.min(CHAPTERS.length, S.seen || 0); i++) if (Math.abs(x - chapterX(i)) < (i === 6 ? 62 : 46)) return i; return -1; };
   S.skipToChapter = function (i) {
     const c = CHAPTERS[i || 0];
     if (S.mode !== 'title' || S.title.leaving || T.director.busy() || !c || !T.scenes[c[1]]) return;
@@ -917,23 +918,24 @@
 
   function drawTitle(g) {
     const V = T.view, W = V.W, a = S.title.a;
-    g.fillStyle = T.rgba('#0f1522', 0.72 * a); g.fillRect(-W / 2, 0, W, V.H);
+    g.fillStyle = T.rgba('#0f1522', 0.8 * a); g.fillRect(-W / 2, 0, W, V.H);
     const ta = T.clamp(a * 1.6 - 0.6);
     P.text(g, 'TAKE YOUR TIME', 0, 318, { font: 'serif', size: 25, track: 11, color: '#e9dcc0', alpha: 0.85 * ta });
     P.text(g, '천천히 와', 0, 470, { size: 178, color: '#f7eeda', alpha: ta, seed: 2, glow: 'rgba(255,214,150,0.35)' });
     if (!S.title.leaving) {
-      const p = 0.55 + 0.45 * Math.sin(T.time * 2.2);
+      const p = 0.8 + 0.2 * Math.sin(T.time * 2.2);
       if (S.saved) {
-        P.text(g, '눌러서 이어하기 · ' + NAMES[S.saved.chapter || 0], 0, 742, { font: 'serif', size: 26, color: '#f3ead8', alpha: p * ta });
+        P.text(g, '눌러서 이어하기 · ' + NAMES[S.saved.chapter || 0], 0, 738, { font: 'serif', size: 31, color: '#f3ead8', alpha: p * ta });
         P.text(g, '처음부터 시작하기', 0, 784, { font: 'serif', size: 19, color: '#e9dcc0', alpha: 0.8 * ta });
         g.fillStyle = T.rgba('#e9dcc0', 0.4 * ta); g.fillRect(-74, 794, 148, 1.2);
       } else {
-        P.text(g, '화면을 눌러 시작', 0, 742, { font: 'serif', size: 26, color: '#f3ead8', alpha: p * ta });
+        P.text(g, '화면을 눌러 시작', 0, 738, { font: 'serif', size: 31, color: '#f3ead8', alpha: p * ta });
         P.text(g, '소리를 켜면 더 좋아요', 0, 782, { font: 'serif', size: 19, color: '#c9cfdb', alpha: 0.7 * ta });
       }
       /* a quiet way straight to any chapter */
-      P.text(g, '장 바로 가기', 0, 814, { font: 'serif', size: 15, track: 6, color: '#c9cfdb', alpha: 0.55 * ta });
+      if (S.seen > 0) P.text(g, '장 바로 가기', 0, 814, { font: 'serif', size: 15, track: 6, color: '#c9cfdb', alpha: 0.55 * ta });
       CHAPTERS.forEach((c, i) => {
+        if (i >= (S.seen || 0)) return;
         const x = chapterX(i), on = S.title.hover === i;
         P.text(g, c[0], x, 850, { font: 'serif', size: 21, color: on ? '#fff3d6' : '#e9dcc0', alpha: (on ? 1 : 0.78) * ta });
         if (on) { g.fillStyle = T.rgba('#fff3d6', 0.6 * ta); g.fillRect(x - 22, 861, 44, 1.2); }
@@ -1009,8 +1011,7 @@
     if (S.intro && S.intro.a > 0.01) {
       const x = -T.view.W / 2 + 96, a = S.intro.a;
       P.text(g, '늦가을, 병실', x, 762, { font: 'serif', size: 40, track: 3, color: '#f1e8d6', alpha: a, align: 'left' });
-      P.text(g, '레오는 아나 몰래, 남기고 갈 레시피를 적고 있다', x, 814, { font: 'serif', size: 23, color: '#d9d2e4', alpha: 0.92 * a, align: 'left' });
-      P.text(g, '빛나는 물건을 누르면 기억이 열린다', x, 852, { font: 'serif', size: 19, color: '#c9cfdb', alpha: 0.75 * a, align: 'left' });
+      P.text(g, '레오는 아나 몰래, 남기고 갈 레시피를 적고 있다', x, 816, { font: 'serif', size: 25, color: '#f1e8d6', alpha: a, align: 'left' });
     }
     if (S.title.a > 0.003) drawTitle(g);
     if (S.dip.a > 0.003) { g.fillStyle = T.rgba('#fff6e2', S.dip.a); g.fillRect(-W / 2, 0, W, V.H); }

@@ -109,7 +109,7 @@
         bram.boat = big; bram.seat = -70; bram.stand = 1; bram.hop = 0; bram.flip = true; big.riders.push(bram);
         wife.boat = big; wife.seat = 40; wife.stand = 0; wife.hop = 0; wife.flip = true; wife.prop = null; big.riders.push(wife);
         bram.pose = (o, a, t) => { o.armF = { a: 1.1, b: 0.4 }; };
-        S.rope = { boat: big }; S.big = big;
+        S.rope = { boat: big }; S.big = big; W.S.hook.flags.clearPier = true;
         X.cam(60, 452, 1);
       }, { out: 0.8, in: 1 });
       T.announce('브램 선장의 배가 처음으로 물에 떴다. 아흔아홉 살 아내가 타고 있다.');

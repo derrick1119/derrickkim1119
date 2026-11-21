@@ -221,7 +221,7 @@
     }
     /* torso */
     {
-      const ws = K.torsoW / 17, ts = K.torso / 30, belly = st.kid ? 0.3 : st.belly == null ? 0.9 : st.belly;
+      const ws = K.torsoW / 17, ts = K.torso / 30, belly = st.kid ? 0.3 : st.belly == null ? 0.4 : st.belly;
       const at = (t, w) => [ax * t * ts - ay * w * ws, ay * t * ts + ax * w * ws];   /* t up the spine, w out to the front (+) or back (-) */
       const body = T.P.soft([at(-3.6, -6.2), at(4, -8.4), at(14, -8.5), at(22, -8.9), at(28.4, -7.5), at(31.3, -3.2),
         at(31.3, 3.4), at(28.4, 7.7), at(20, 8.8), at(11, 8.5 + belly), at(3, 8.2 + belly * 0.6), at(-3.6, 6)]);

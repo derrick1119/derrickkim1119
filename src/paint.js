@@ -324,9 +324,9 @@
     const c = document.createElement('canvas'); c.width = c.height = N;
     const g = c.getContext('2d'), r = T.rng(77);
     g.lineCap = 'round';
-    for (let i = 0; i < 150; i++) {
-      const x = r() * N, y = r() * N, a = -0.62 + (r() - 0.5) * 0.5, len = 10 + r() * 46, w = 0.6 + r() * 1.7;
-      g.strokeStyle = 'rgba(0,0,0,' + (0.16 + r() * 0.5) + ')'; g.lineWidth = w;
+    for (let i = 0; i < 260; i++) {
+      const x = r() * N, y = r() * N, a = -0.62 + (r() - 0.5) * 0.9, len = 5 + r() * 22, w = 0.6 + r() * 1.9;
+      g.strokeStyle = 'rgba(0,0,0,' + (0.1 + r() * 0.36) + ')'; g.lineWidth = w;
       for (let ox = -N; ox <= N; ox += N) for (let oy = -N; oy <= N; oy += N) { g.beginPath(); g.moveTo(x + ox, y + oy); g.lineTo(x + ox + Math.cos(a) * len, y + oy + Math.sin(a) * len); g.stroke(); }
     }
     for (let i = 0; i < 260; i++) { g.fillStyle = 'rgba(0,0,0,' + (0.2 + r() * 0.5) + ')'; g.fillRect(r() * N, r() * N, 1 + r() * 1.4, 1 + r() * 1.4); }
@@ -424,6 +424,7 @@
     if (alpha <= 0.01) return;
     const pulse = 0.5 + 0.5 * Math.sin(t * 2.2);
     P.glow(g, x, y, r * (1.5 + pulse * 0.35), color, 0.34 * alpha);
+    g.save(); g.strokeStyle = T.rgba('#3d3a5c', 0.17 * alpha); g.lineWidth = 2.4; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.stroke(); g.restore();   /* so it shows on pale paper too */
     g.save();
     g.globalCompositeOperation = 'screen';
     g.strokeStyle = T.rgba(color, (0.5 + 0.3 * pulse) * alpha);

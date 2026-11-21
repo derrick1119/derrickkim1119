@@ -240,7 +240,7 @@
     set(k, v) { try { window.localStorage.setItem(k, JSON.stringify(v)); } catch (_) { /* a private window, or a viewer with no storage */ } },
     del(k) { try { window.localStorage.removeItem(k); } catch (_) { /* same */ } },
   };
-  let savedAs = '', saveTick = 0;
+  let savedAs = '', saveTick = 0, seenMax = -1;
   T.loadGame = function () { const s = T.store.get('tyt-save'); return s && (s.chapter > 0 || s.count > 0) ? s : null; };
   T.clearGame = function () { savedAs = ''; T.store.del('tyt-save'); };
   /* written whenever the chapter, the checkpoint or the memories seen have changed */
@@ -249,6 +249,8 @@
     if (!(s.chapter > 0 || s.count > 0)) return;
     const snap = { chapter: s.chapter, cp: s.cp, done: s.done, count: s.count, together: s.together }, j = JSON.stringify(snap);
     if (j !== savedAs) { savedAs = j; T.store.set('tyt-save', snap); }
+    if (seenMax < 0) seenMax = T.store.get('tyt-seen') || 0;
+    if (s.chapter > seenMax) { seenMax = s.chapter; T.store.set('tyt-seen', seenMax); }
   }
 
   /* ---------- when something goes wrong ---------- */

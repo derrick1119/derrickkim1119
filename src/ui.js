@@ -42,12 +42,12 @@
       const tk = K.cur;
       if (!tk) return;
       const V = T.view;
-      const gr = g.createLinearGradient(0, 640, 0, 900);
-      gr.addColorStop(0, 'rgba(14,20,32,0)'); gr.addColorStop(1, T.rgba('#0e1420', 0.62 * tk.a));
-      g.fillStyle = gr; g.fillRect(-V.W / 2, 640, V.W, 260);
+      const gr = g.createLinearGradient(0, 668, 0, 900);   /* dark enough to read over a pale sea of cloud, and no taller than the words need */
+      gr.addColorStop(0, 'rgba(14,20,32,0)'); gr.addColorStop(0.42, T.rgba('#0e1420', 0.6 * tk.a)); gr.addColorStop(1, T.rgba('#0e1420', 0.82 * tk.a));
+      g.fillStyle = gr; g.fillRect(-V.W / 2, 668, V.W, 232);
       const col = WHO[tk.who][1];
       const lines = tk.text.split('\n').length;
-      P.text(g, tk.text, 0, lines > 1 ? 782 : 810, { font: 'serif', size: 38, color: col, k: tk.k, alpha: tk.a, lh: 1.5 });
+      P.text(g, tk.text, 0, lines > 1 ? 782 : 810, { font: 'serif', size: 38, color: col, k: tk.k, alpha: tk.a, lh: 1.5, glow: 'rgba(8,12,22,0.9)' });
       if (tk.done && tk.a > 0.9) T.continueDot(g, 0, 872, col);
     };
     return K;

@@ -32,6 +32,7 @@
     const guests = [[260, F.styles.nana, 124], [330, F.styles.mother, 138], [640, F.styles.rosa, 138], [700, F.styles.rosaSon, 142], [1030, F.styles.villagerA, 140], [1100, F.styles.villagerB, 132], [1420, F.styles.villagerC, 142], [1500, F.styles.post, 140]];
     V.draw = function (g, t, S) {
       const W = T.view.W, wx = V.p * LEN, hint = T.clamp((S.idle - 2) / 1.2);
+      P.cray = P.look === 'crayon'; if (P.cray) P.crayonize(g);   /* the road is the harbour's; the hall below it is not */
       /* ---- above: the flower road in Welcome Harbor ---- */
       const sky = g.createLinearGradient(0, 0, 0, SHORE);
       sky.addColorStop(0, '#8496cc'); sky.addColorStop(0.5, '#eebca6'); sky.addColorStop(1, '#ffe2ae');
@@ -39,7 +40,7 @@
       P.glow(g, 380, 420, 520, '#fff2c4', 0.85);
       const hillBand = (par, base, amp, col, seed) => { g.fillStyle = col; g.beginPath(); g.moveTo(-W / 2, SHORE); for (let x = -W / 2; x <= W / 2 + 40; x += 40) g.lineTo(x, base + T.noise((x + wx * par) * 0.0022, seed) * amp); g.lineTo(W / 2, SHORE); g.closePath(); g.fill(); };
       hillBand(0.25, 300, 60, '#c9a0b2', 3); hillBand(0.5, 356, 46, '#9db08c', 5);
-      for (let i = 0; i < 9; i++) { const x = ((i * 310 - wx * 0.5) % 2400 + 2400) % 2400 - 1000; K.tree(g, x, 372 + T.noise(i, 2) * 10, 0.6, i % 2 ? '#4f8f7a' : '#e0a94a', null, null, Math.sin(t * 0.8 + i)); }
+      for (let i = 0; i < 9; i++) { const x = ((i * 310 - wx * 0.5) % 2400 + 2400) % 2400 - 1000; const near = T.clamp((Math.abs(x - LX) - 70) / 70); if (near <= 0.02) continue; g.globalAlpha = near; K.tree(g, x, 372 + T.noise(i, 2) * 10, 0.6, ['#4f8f7a', '#7fb08a', '#e9a3b4'][i % 3], null, null, Math.sin(t * 0.8 + i)); g.globalAlpha = 1; }
       P.fill(g, P.box(-W / 2, SHORE - 40, W, 40, 0, 1), '#e3b488');
       g.fillStyle = 'rgba(255,240,200,0.35)'; g.fillRect(-W / 2, SHORE - 40, W, 5);
       for (let i = -2; i < 26; i++) {
@@ -63,6 +64,7 @@
       for (const q of V.petals) { g.save(); g.translate(q.x + Math.sin(q.ph * 1.3) * 20, q.y); g.rotate(q.ph * 2); g.fillStyle = q.c; g.globalAlpha = 0.9; g.beginPath(); g.ellipse(0, 0, 6, 3.4, 0, 0, TAU); g.fill(); g.restore(); }
       g.restore();
 
+      P.cray = false;
       /* ---- below: the water, and in it the wedding ---- */
       const wg = g.createLinearGradient(0, SHORE, 0, 900);
       wg.addColorStop(0, '#5d7896'); wg.addColorStop(1, '#22384f');
@@ -74,30 +76,34 @@
       const hall = g.createLinearGradient(0, 40, 0, SHORE);
       hall.addColorStop(0, '#6f7fa6'); hall.addColorStop(1, '#a79bb4');
       g.fillStyle = hall; g.fillRect(-W / 2, 40, W, SHORE - 40);
+      g.fillStyle = '#7d7096'; g.fillRect(-W / 2, SHORE - 150, W, 150);          /* panelled lower wall */
+      g.fillStyle = 'rgba(255,240,220,0.25)'; g.fillRect(-W / 2, SHORE - 152, W, 4);
       for (let i = -1; i < 9; i++) {
         const x = i * 300 - wx + 100;
         if (x < -W / 2 - 160 || x > W / 2 + 160) continue;
-        P.fill(g, P.soft([[x - 60, SHORE - 60], [x - 60, 190], [x, 110], [x + 60, 190], [x + 60, SHORE - 60]]), '#ffe2a8');
-        P.glow(g, x, 250, 150, '#ffe9b8', 0.35);
-        g.strokeStyle = '#d9d0e0'; g.lineWidth = 8; g.beginPath(); g.moveTo(x - 60, SHORE - 60); g.lineTo(x - 60, 190); g.quadraticCurveTo(x, 90, x + 60, 190); g.lineTo(x + 60, SHORE - 60); g.stroke();
-        for (let k = 0; k < 7; k++) P.fill(g, P.circle(x + 80 + k * 23, 150 + Math.sin(k * 0.6) * 22, 9), ['#e58aa0', '#f6f0e0', '#9ab86a'][k % 3]);
+        P.glow(g, x, 230, 130, '#ffe9b8', 0.4);
+        P.fill(g, P.soft([[x - 46, SHORE - 176], [x - 46, 212], [x, 150], [x + 46, 212], [x + 46, SHORE - 176]]), '#ffe2a8');
+        g.strokeStyle = '#d9d0e0'; g.lineWidth = 5;
+        g.beginPath(); g.moveTo(x - 46, SHORE - 176); g.lineTo(x - 46, 212); g.quadraticCurveTo(x, 138, x + 46, 212); g.lineTo(x + 46, SHORE - 176); g.closePath(); g.stroke();
+        g.lineWidth = 3; g.beginPath(); g.moveTo(x, 156); g.lineTo(x, SHORE - 176); g.moveTo(x - 46, 236); g.lineTo(x + 46, 236); g.stroke();
+        for (let k = 0; k < 7; k++) P.fill(g, P.circle(x + 78 + k * 24, 132 + Math.sin((k / 6) * Math.PI) * 26, 9), ['#e58aa0', '#f6f0e0', '#9ab86a'][k % 3]);
       }
-      /* guests in rows */
+      /* pews, and the backs of the people in them */
       for (let i = -3; i < 34; i++) {
-        const x = i * 62 - wx * 1.0 + 30;
+        const x = i * 66 - wx + 30;
         if (x < -W / 2 - 40 || x > W / 2 + 40) continue;
         const col = ['#5d6f8a', '#8a5578', '#3f6b70', '#6b5a48', '#9a6b43'][((i % 5) + 5) % 5];
-        g.globalAlpha = 0.6;
-        P.fill(g, P.rr(x - 16, SHORE - 84, 32, 50, 12), col); P.fill(g, P.circle(x, SHORE - 95, 12), ['#f0c7a9', '#e7b793', '#f3ccb0'][((i % 3) + 3) % 3]);
-        P.fill(g, P.box(x - 24, SHORE - 54, 48, 20, 0, i + 50), '#7d6f86');
-        g.globalAlpha = 1;
+        P.fill(g, P.rr(x - 19, SHORE - 96, 38, 62, 13), col);
+        P.fill(g, P.circle(x, SHORE - 110, 14), ['#3a2b25', '#6b4a3a', '#d9d2c6', '#2a2024'][((i % 4) + 4) % 4]);
+        P.fill(g, P.rr(x - 31, SHORE - 62, 62, 30, 5), '#5a4a5e');
+        P.fill(g, P.rr(x - 31, SHORE - 64, 62, 6, 3), '#77657a');
       }
       P.fill(g, P.box(-W / 2, SHORE - 36, W, 36, 0, 2), '#c9573f');
       /* Ana, Lily, and beside Lily's free arm the one who is not there */
       const hug = T.ease.io(V.hug.k);
-      const ana = { x: LX + 132 - hug * 34, y: SHORE - 6 - F.hipHeight(F.styles.ana, 176), s: 176, style: F.anaAt(61), flip: hug > 0.4, lean: 0.05, face: { eye: 'happy', mouth: 'smile', blush: 0.24, tear: 0.6, tearY: (t * 2) % 3 } };
+      const ana = { x: LX + 180 - hug * 62, y: SHORE - 6 - F.hipHeight(F.styles.ana, 176), s: 176, style: F.anaAt(61), flip: hug > 0.4, lean: 0.05, face: { eye: 'happy', mouth: 'smile', blush: 0.24, tear: 0.6, tearY: (t * 2) % 3 } };
       const lst = F.lilyAt(27, { top: '#fbf7ec', bottom: '#fbf7ec', skirt: 44, shoe: '#fbf7ec' });
-      const lily = { x: LX + 66, y: SHORE - 6 - F.hipHeight(lst, 178), s: 178, style: lst, lean: 0.04, face: { eye: hug > 0.5 ? 'closed' : 'open', mouth: 'smile', blush: 0.3 } };
+      const lily = { x: LX + 92, y: SHORE - 6 - F.hipHeight(lst, 178), s: 178, style: lst, lean: 0.04, face: { eye: hug > 0.5 ? 'closed' : 'open', mouth: 'smile', blush: 0.3 } };
       if (V.going) { ana.walk = V.ph + 0.6; lily.walk = V.ph + 0.3; }
       ana.armB = { hand: F.local(ana, lily.x + 20, lily.y - 40) };
       lily.armF = hug > 0.02 ? { hand: F.local(lily, ana.x - 6, ana.y - 60), bend: 1 } : { hand: F.local(lily, ana.x - 22, ana.y - 34) };

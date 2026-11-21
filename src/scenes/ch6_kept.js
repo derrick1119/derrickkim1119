@@ -142,8 +142,8 @@
       await X.wait(4);
 
       /* ---- the one that needs a night sky ---- */
-      leo.x = PL.TREE_X - 30; leo.flip = false; ps.night = 1; bean.x = PL.TREE_X - 26; bean.flip = false;
-      X.cam(px + 110, py + 6, 1); X.camSnap();
+      leo.x = PL.TREE_X - 30; leo.flip = false; ps.night = 1; bean.x = PL.BOARD_X - 70; bean.flip = false; ps.spot = [PL.TREE_X - 30];
+      X.cam(px + 150, py + 44, 1.25); X.camSnap();
       await X.view(null, { color: '#1b2a40' });
       X.bed(5, 0.14, 'night');
       leo.pose2 = 1;
@@ -167,7 +167,7 @@
       });
       /* he keeps the other half of the swing free */
       await X.walk(leo, PL.TREE_X + 70, 60);
-      leo.onSwing = true; leo.hill = 3; leo.x = PL.swingSeat(ps)[0] - 16;
+      leo.onSwing = true; leo.hill = 3; leo.x = PL.swingSeat(ps)[0] - 16; ps.spot = [leo.x];
       S.swinging = true;
       await X.wait(4.2);
       X.end();

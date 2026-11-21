@@ -381,7 +381,7 @@
       const V = T.view, W = V.W, t = T.time;
       if (S.view) S.view.draw(g, t, S); else Wd().draw(g);
       /* invitations and hints */
-      if (S.spot && !TALK.cur && S.dip.a < 0.3) { const q = spotScreen(); P.beacon(g, q[0], q[1], q[2] * 0.8, t, 1, '#fff0c8'); }
+      if (S.spot && !TALK.cur && !S.game && S.dip.a < 0.3) { const q = spotScreen(); P.beacon(g, q[0], q[1], q[2] * 0.8, t, 1, '#fff0c8'); }
       else if (S.sw && !S.sw.ok && !S.sw.asked && !S.view && !TALK.cur && S.dip.a < 0.3) { const q = lampSpot(); P.beacon(g, q[0], q[1], q[2] * 0.8, t, 1, '#fff0c8'); }
       const h = T.clamp((S.idle - 2.4) / 1.2) * (1 - S.dip.a);
       if (h > 0 && !TALK.cur) {
