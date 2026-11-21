@@ -5,10 +5,16 @@
  * 졸업한 게임은 스튜디오(`studio/<게임>/`)가 이어받는다(원본 `games/guardian2.ts`·`sheepdog.ts`·`balloonpop.ts`·`duckbath.ts`·`screwshop.ts`·`animalbus.ts`·`demolition.ts`·`potionsort.ts`·`bodyhop.ts`·`slowdash.ts`·`petsquad.ts`는 스튜디오 참고용으로 파일만 남김).
  */
 import type { Bot, GameDef } from './core.ts';
+import { rugpull, rugpullRandom, rugpullSmart, rugpullHabit, rugpullHabit2 } from './games/rugpull.ts';
+import { trapdoor, trapdoorRandom, trapdoorSmart, trapdoorHabit, trapdoorHabit2 } from './games/trapdoor.ts';
+import { groundpunch, groundpunchRandom, groundpunchSmart, groundpunchHabit, groundpunchHabit2 } from './games/groundpunch.ts';
 
 /** habits: 늘 같은 버릇대로 하는 봇들(기준 13, 0081 계기판 '버릇 격차') */
 export interface Entry<S = any> { game: GameDef<S>; dumb: Bot<S>; smart: Bot<S>; habits?: Bot<S>[] }
 
 export const GAMES: Entry[] = [
-  // 40라운드 판정(2026-11-21): 👻 몸 갈아타기 → 스튜디오 졸업(AAA 목표, 원본 games/bodyhop.ts는 참고용으로 남김) · 탄막 훔치기·싸움 붙이기 폐기 — 41라운드 준비 중
+  // 41라운드(2026-11-21): 실시간 전투 · 몸 갈아타기와 다른 새 뼈대 셋(공장이 고름)
+  { game: rugpull, dumb: rugpullRandom, smart: rugpullSmart, habits: [rugpullHabit, rugpullHabit2] },
+  { game: trapdoor, dumb: trapdoorRandom, smart: trapdoorSmart, habits: [trapdoorHabit, trapdoorHabit2] },
+  { game: groundpunch, dumb: groundpunchRandom, smart: groundpunchSmart, habits: [groundpunchHabit, groundpunchHabit2] },
 ];

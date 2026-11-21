@@ -109,7 +109,7 @@ export const STAGES: SDef[] = [
     vault: [I(4)],
   },
   {
-    key: 'bear', ch: 0, name: '덩치 곰', news: '무거워서 혼자 떨어져도 바닥이 쩍!', n: 12, thr: 4, alert: 130, loot: '은 접시',
+    key: 'bear', ch: 0, name: '덩치 곰', news: '무거워서 혼자 떨어져도 바닥이 쩍!', n: 14, thr: 4, alert: 130, loot: '은 접시',
     floors: [
       Fl(0, [0.72, 0.4], [I(5), B(1)], [I(6)]), Fl(1, [0.35, 0.8], [I(5), B(1)], [I(5), B(1)]), Fl(2, [0.7, 0.45], [I(6)], [I(6), B(1)]),
       Fl(3, [0.5, 0.86], [I(5), B(1)], [I(6)]), Fl(4, [0.3, 0.66], [I(6)], [I(5), B(1)]),
@@ -117,7 +117,7 @@ export const STAGES: SDef[] = [
     vault: [I(4)],
   },
   {
-    key: 'bat', ch: 0, name: '풍선 박쥐', news: '떨어지는 무리가 박쥐를 지나가면 펑! 넓게', n: 15, thr: 4, alert: 125, loot: '꿀단지',
+    key: 'bat', ch: 0, name: '풍선 박쥐', news: '떨어지는 무리가 박쥐를 지나가면 펑! 넓게', n: 16, thr: 4, alert: 125, loot: '꿀단지',
     floors: [
       Fl(1, [0.4, 0.78], [I(5), B(1)], [I(6)]), Fl(2, [0.62, 0.3], [I(5), T(2)], [I(6)]), Fl(3, [0.42, 0.82], [I(5), B(1), T(2)], [I(6)]),
       Fl(0, [0.68, 0.32], [I(5), T(2)], [I(5), B(1)]), Fl(4, [0.5, 0.82], [I(5), T(1)], [I(6)]),
@@ -125,12 +125,12 @@ export const STAGES: SDef[] = [
     vault: [I(4)],
   },
   {
-    key: 'mole', ch: 0, name: '대장 두더지 주방장', news: '대장 머리 위로 떨어뜨려 쿵 게이지를 채워요', n: 8, thr: 4, alert: 125, loot: '주방장의 금 냄비',
+    key: 'mole', ch: 0, name: '대장 두더지 주방장', news: '대장 머리 위로 떨어뜨려 쿵 게이지를 채워요', n: 9, thr: 4, alert: 125, loot: '주방장의 금 냄비',
     floors: [Fl(1, [0.44, 0.8], [I(6), B(1)], [I(6)]), Fl(3, [0.6, 0.3], [I(5), T(2)], [I(6), B(1)])],
     vault: [I(3)], boss: 'mole', gauge: 60,
   },
   {
-    key: 'tramp', ch: 1, name: '트램펄린', news: '트램펄린에 떨어지면 옆으로 통! 한 번 더 깔아요', n: 12, thr: 4, alert: 120, loot: '태엽 로봇',
+    key: 'tramp', ch: 1, name: '트램펄린', news: '트램펄린에 떨어지면 옆으로 통! 한 번 더 깔아요', n: 14, thr: 4, alert: 120, loot: '태엽 로봇',
     floors: [
       Fl(5, [0.4, 0.8], [I(5), B(1)], [I(6)]), Fl(7, [0.3, 0.75], [I(5)], [I(6), B(1)], { tramp: [[2, 1]] }), Fl(6, [0.58, 0.85], [I(5), B(1), T(1)], [I(6)], { tramp: [[6, -1]] }),
       Fl(7, [0.32, 0.7], [I(5)], [I(6)], { tramp: [[4, 1]] }), Fl(5, [0.55, 0.85], [I(5), T(1)], [I(6)]), Fl(6, [0.4, 0.75], [I(5), B(1)], [I(6)], { tramp: [[1, 1]] }),
@@ -138,7 +138,7 @@ export const STAGES: SDef[] = [
     vault: [I(4)],
   },
   {
-    key: 'water', ch: 1, name: '물탱크', news: '물에 풍덩! 물결이 탱크 전체를 쓸어가요', n: 14, thr: 4, alert: 120, loot: '오리 잠수함',
+    key: 'water', ch: 1, name: '물탱크', news: '물에 풍덩! 물결이 탱크 전체를 쓸어가요', n: 12, thr: 4, alert: 120, loot: '오리 잠수함',
     floors: [
       Fl(6, [0.45, 0.82], [I(5), B(1)], [I(6)]), Fl(8, [0.55, 0.3], [I(6)], [I(6)], { water: [3, 6] }), Fl(5, [0.72, 0.4], [I(5), B(1), T(1)], [I(6)]),
       Fl(8, [0.35, 0.8], [I(6)], [I(5), B(1)], { water: [1, 4] }), Fl(7, [0.6, 0.85], [I(5)], [I(6)], { tramp: [[2, 1]] }), Fl(8, [0.5, 0.25], [I(5), B(1)], [I(6)], { water: [2, 5] }),
@@ -146,7 +146,7 @@ export const STAGES: SDef[] = [
     vault: [I(4)],
   },
   {
-    key: 'belt', ch: 1, name: '컨베이어', news: '컨베이어가 놈들을 한쪽 벽으로 실어 쌓아요', n: 15, thr: 4, alert: 115, loot: '황금 팽이',
+    key: 'belt', ch: 1, name: '컨베이어', news: '컨베이어가 놈들을 한쪽 벽으로 실어 쌓아요', n: 19, thr: 4, alert: 115, loot: '황금 팽이',
     floors: [
       Fl(9, [0.5, 0.8], [I(6), B(1)], [I(6)], { belt: 1 }), Fl(9, [0.4, 0.75], [I(6)], [I(6), B(1)], { belt: -1 }), Fl(8, [0.6, 0.3], [I(5), T(1)], [I(6)], { water: [4, 7] }),
       Fl(9, [0.45, 0.8], [I(5), B(1)], [I(6)], { belt: 1 }), Fl(6, [0.5, 0.82], [I(5), T(1)], [I(6)]), Fl(9, [0.6, 0.35], [I(5), B(1)], [I(6)], { belt: -1 }),
@@ -159,7 +159,7 @@ export const STAGES: SDef[] = [
     vault: [I(3)], boss: 'octo', gauge: 75,
   },
   {
-    key: 'keg', ch: 2, name: '폭죽 통', news: '폭죽 통 위에 떨어지면 쾅! 바닥이 꼭 깨져요', n: 30, thr: 4.5, alert: 110, loot: '별똥별 지팡이',
+    key: 'keg', ch: 2, name: '폭죽 통', news: '폭죽 통 위에 떨어지면 쾅! 바닥이 꼭 깨져요', n: 33, thr: 4.5, alert: 110, loot: '별똥별 지팡이',
     floors: [
       Fl(10, [0.45, 0.82], [I(6), B(1)], [I(6)]), Fl(14, [0.3, 0.72], [I(6)], [I(6), B(1)], { keg: [2, 6] }), Fl(12, [0.6, 0.85], [I(5), T(1)], [I(6)], { keg: [4] }),
       Fl(14, [0.4, 0.8], [I(5), B(1)], [I(6)], { keg: [1, 5] }), Fl(11, [0.55, 0.85], [I(5), T(1)], [I(6)]), Fl(14, [0.35, 0.7], [I(5), B(1)], [I(6)], { keg: [3, 6] }),
@@ -175,7 +175,7 @@ export const STAGES: SDef[] = [
     vault: [I(4)],
   },
   {
-    key: 'shelf', ch: 2, name: '도미노 책장', news: '책장에 떨어지면 쿵 쓰러지며 옆 책장까지!', n: 19, thr: 4.5, alert: 105, loot: '마법 주문서',
+    key: 'shelf', ch: 2, name: '도미노 책장', news: '책장에 떨어지면 쿵 쓰러지며 옆 책장까지!', n: 22, thr: 4.5, alert: 105, loot: '마법 주문서',
     floors: [
       Fl(10, [0.45, 0.8], [I(6), B(1)], [I(6)]), Fl(11, [0.35, 0.75], [I(6)], [I(6), B(1)], { shelf: [1, 3, 5] }), Fl(13, [0.6, 0.3], [I(5), T(1)], [I(6)], { ice: 1 }),
       Fl(11, [0.5, 0.82], [I(5), B(1)], [I(6)], { shelf: [2, 4, 6] }), Fl(12, [0.4, 0.8], [I(5), T(1)], [I(6)], { keg: [3] }), Fl(11, [0.6, 0.3], [I(5), B(1)], [I(6)], { shelf: [0, 2, 4] }),
@@ -313,7 +313,9 @@ function formClumps(s: TrapState, f: number, snap = false) {
       m.g = sp.reduce((b, v, j) => (Math.abs(v - m.x) < Math.abs(sp[b] - m.x) ? j : b), 0);
       if (snap) m.x = m.tx = clumpX(F, m);
     }
-  while (F.queue.length) ropeIn(s, F.queue.shift()!, f, true);
+  // 화면에 보이는 놈은 스물대여섯까지 (남은 문 무리는 자리가 나면 들어온다)
+  let shown = s.mons.reduce((a, m) => a + (!m.dead && m.f >= f && m.f <= f + 2 ? 1 : 0), 0);
+  while (F.queue.length && shown++ < VIS_CAP + 3) ropeIn(s, F.queue.shift()!, f, true);
   aimBelow(s, f);
 }
 function clumpW(s: TrapState, f = s.c): number[] {
@@ -668,7 +670,7 @@ function land(s: TrapState, m: Mon) {
   ev(s, 'land', m.x, m.y, 0, m.w, 0, m.k);
   // 떨어지는 길에 있던 풍선 박쥐가 붙잡혀 끌려 내려온다
   for (const b of s.mons) if (!b.dead && b.st === FLOAT && b.f === m.f && Math.abs(b.x - m.x) < b.r + m.r + 0.035) (b.st = SNAG), (b.tm = 0), (b.drop = D.id), (b.ax = b.y), ev(s, 'snag', b.x, b.y);
-  crush(s, m, D, L, m.r * 0.8 + (s.perk[0] === 2 ? TW * 0.45 : 0) + (s.perk[1] === 1 ? 0.035 : 0));
+  crush(s, m, D, L, m.r * 0.8 + (s.perk[0] === 2 ? TW * 0.22 : 0) + (s.perk[1] === 1 ? 0.035 : 0));
   // 곁에 쿵: 깔리지 않은 무리는 놀라 흩어진다 (정통으로 깔아야 무리째 — 아무 데나 톡 하면 아래층 무리가 흩어져 큰 한 방이 사라진다)
   if (!vault) spookAt(s, m.f, m.x);
   // 대장 방: 떨어진 무게만큼 쿵 게이지 (머리에 떨어지면 세 배)
@@ -1108,7 +1110,7 @@ function playStep(s: TrapState) {
   if (!isVault(s, s.c) && !F.gone && s.desc < 0) {
     const n = s.mons.reduce((a, m) => a + (m.f === s.c && grounded(m) && counts(m) ? 1 : 0), 0);
     // 층에 내려서면 문 무리가 한꺼번에 우르르 (셋으로 나뉘어 모인다 — 한 놈씩 치우는 톡이 없게)
-    if (F.queue.length && --F.qT <= 0 && n < 12 && (shown < VIS_CAP + 5 || n <= 2)) {
+    if (F.queue.length && --F.qT <= 0 && n < 12 && (shown < VIS_CAP + 3 || n <= 2)) {
       ropeIn(s, F.queue.shift()!, s.c);
       F.qT = GATE_RUSH;
     }
@@ -1307,7 +1309,7 @@ export function judge(s: TrapState, i0: number, wd: number): { n: number; fall: 
   if (!fall) return { n: 0, fall: 0, cracks: 0, gauge: 0, alert: -1 };
   let n = 0, cracks = 0, gauge = 0, alert = -1;
   for (const m of mass) (used.add(m.id), m.ko || n++), m.alert >= 0 && (alert = Math.max(alert, m.alert));
-  const reachX = (s.perk[0] === 2 ? TW * 0.45 : 0) + (s.perk[1] === 1 ? 0.035 : 0);
+  const reachX = (s.perk[0] === 2 ? TW * 0.22 : 0) + (s.perk[1] === 1 ? 0.035 : 0);
   const R0 = 0.8, R1 = 0.6;
   const take = (o: Mon, out: Mon[]) => {
     if (used.has(o.id)) return;
@@ -3341,7 +3343,7 @@ function drawAll(ctx: C2, s: TrapState, w: number, h: number, _th: Theme) {
       case 'vault': fx.sound('chime', 0.9, 0.7); break;
       case 'chest': fx.sound('chime', 1.2, 1); fx.sound('coin', 1.1, 0.9); puff(ex, ey - R(0.05), '#ffd84a', 18, 5, 3.2); fx.ring(ex, ey - R(0.05), '#ffe36b', R(0.18), 5); break;
       case 'star3': fx.sound('coin', 1.25, 1); puff(ex, ey, '#ffd84a', 14, 5.5, 3.2); fx.ring(ex, ey, '#ffd84a', R(0.2), 5); break;
-      case 'summon': fx.sound('swell', 0.9, 0.8); say(ex, ey - R(0.06), '졸개들아!', '#ffd0c8', 17); break;
+      case 'summon': fx.sound('swell', 0.9, 0.8); say(ex, ey - R(0.15), '졸개들아!', '#ffd0c8', 17); break;
       case 'bonk': fx.sound('thud', 0.5, 1.4); fx.sound('boing', 0.6, 0.7); fx.kick(8); say(ex, ey - R(0.04), '대장 머리에 쿵!', '#ffe36b', 16); break;
       case 'collapse': fx.sound('crack', 0.5, 1.5); fx.sound('thud', 0.4, 1.5); fx.kick(18); fx.blink('#fff3c4', 0.5); break;
       case 'bossko': fx.sound('clear', 0.8, 1.2); fx.kick(14); puff(ex, ey - R(0.06), '#ffd84a', 20, 6, 3.4); puff(ex, ey - R(0.06), KCOL[k] ?? '#ffffff', 14, 5, 3); break;

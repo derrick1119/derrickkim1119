@@ -1,157 +1,157 @@
 {
- "bodyhop": {
-  "id": "bodyhop",
-  "name": "👻 몸 갈아타기",
+ "rugpull": {
+  "id": "rugpull",
+  "name": "🧺 식탁보 빼기",
   "n": 24,
   "dumb": {
-   "score": 2483.5,
-   "sec": 180
+   "score": 10956.5,
+   "sec": 137.6
   },
   "smart": {
-   "score": 12810.5,
+   "score": 46868,
    "sec": 180,
    "capped": 1
   },
-  "skillGap": 5.16,
+  "skillGap": 4.28,
   "reveals": [
-   12,
-   16,
-   29.4
+   13,
+   18.8,
+   29.6
   ],
   "dumbReveals": [
-   9,
-   19.9
+   13.4,
+   26
   ],
   "parts": {
-   "skill": 0.789,
+   "skill": 0.699,
    "onboarding": 1,
    "session": 0,
    "simplicity": 0.85,
    "unfold": 1
   },
-  "fun": 0.594,
+  "fun": 0.575,
   "firstLoss": {
    "idle": 0,
    "late": 0
   },
   "presses": {
-   "perMin": 27,
+   "perMin": 37,
    "maxSame": 2
   },
   "habitStar3": {
    "rate": 0.21,
-   "stage": 5,
-   "bot": "버릇: 늘 가장 큰 적"
+   "stage": 4,
+   "bot": "버릇: 늘 요리사에게 가장 가까운 깔개"
   },
   "human": {
-   "sec": 314.9,
+   "sec": 437,
    "capped": 0,
-   "scoreRatio": 2.52
+   "scoreRatio": 3.05
   },
   "wow": {
-   "firstSec": 0.35,
+   "firstSec": 0.97,
    "seen": 1,
-   "dumbPerMin": 3.7,
-   "smartPerMin": 6.3
+   "dumbPerMin": 4.6,
+   "smartPerMin": 7
   },
   "stages": {
-   "change": 0.27,
-   "lateWow": 1.6,
-   "n": 8,
+   "change": 0.13,
+   "lateWow": 0.76,
+   "n": 6,
    "tapOnly": true
   },
-  "precision": 0.99,
-  "habitGap": 3.05
+  "precision": 1,
+  "habitGap": 3.09
  },
- "bulletsteal": {
-  "id": "bulletsteal",
-  "name": "🌂 탄막 훔치기",
+ "trapdoor": {
+  "id": "trapdoor",
+  "name": "🕳️ 함정문 탑",
   "n": 24,
   "dumb": {
-   "score": 6964.5,
-   "sec": 180
+   "score": 33656.5,
+   "sec": 126.9
   },
   "smart": {
-   "score": 35022,
+   "score": 405371,
    "sec": 180,
    "capped": 1
   },
-  "skillGap": 5.03,
+  "skillGap": 12.04,
   "reveals": [
-   9,
-   12.3,
-   17
+   17.3,
+   33.9,
+   49.3
   ],
   "dumbReveals": [
-   3.4,
-   10.5
+   13.6,
+   34.3
   ],
   "parts": {
-   "skill": 0.777,
+   "skill": 1,
    "onboarding": 1,
    "session": 0,
    "simplicity": 0.85,
    "unfold": 1
   },
-  "fun": 0.591,
+  "fun": 0.633,
   "firstLoss": {
    "idle": 0,
    "late": 0
   },
   "presses": {
-   "perMin": 32,
+   "perMin": 49,
    "maxSame": 2
   },
   "habitStar3": {
-   "rate": 0.17,
-   "stage": 3,
-   "bot": "버릇: 늘 화면 가운데"
+   "rate": 0.46,
+   "stage": 7,
+   "bot": "버릇: 늘 가장 붐비는 칸"
   },
   "human": {
-   "sec": 496.7,
+   "sec": 211,
    "capped": 0,
-   "scoreRatio": 3.22
+   "scoreRatio": 0.97
   },
   "wow": {
-   "firstSec": 0.08,
+   "firstSec": 0.33,
    "seen": 1,
-   "dumbPerMin": 19.3,
-   "smartPerMin": 29.7
+   "dumbPerMin": 5.7,
+   "smartPerMin": 6.5
   },
   "stages": {
-   "change": 0.11,
-   "lateWow": 0.52,
-   "n": 6,
+   "change": 0.16,
+   "lateWow": 1.01,
+   "n": 11,
    "tapOnly": true
   },
-  "precision": 1,
-  "habitGap": 3.89
+  "precision": 0.78,
+  "habitGap": 1.4
  },
- "brawlstart": {
-  "id": "brawlstart",
-  "name": "🥊 싸움 붙이기",
+ "groundpunch": {
+  "id": "groundpunch",
+  "name": "👊 땅 주먹 저글링",
   "n": 24,
   "dumb": {
-   "score": 82746,
+   "score": 3498,
    "sec": 180
   },
   "smart": {
-   "score": 426418.5,
+   "score": 18156.5,
    "sec": 180,
    "capped": 1
   },
-  "skillGap": 5.15,
+  "skillGap": 5.19,
   "reveals": [
    10.6,
-   16.3,
-   25.4
+   17,
+   29.6
   ],
   "dumbReveals": [
-   9.6,
-   26
+   9.8,
+   18
   ],
   "parts": {
-   "skill": 0.788,
+   "skill": 0.792,
    "onboarding": 1,
    "session": 0,
    "simplicity": 0.85,
@@ -163,32 +163,32 @@
    "late": 0
   },
   "presses": {
-   "perMin": 14,
-   "maxSame": 2
+   "perMin": 33,
+   "maxSame": 4
   },
   "habitStar3": {
-   "rate": 0.04,
-   "stage": 5,
-   "bot": "늘 가장 큰 놈"
+   "rate": 0.25,
+   "stage": 6,
+   "bot": "버릇: 늘 공중 놈 아래만"
   },
   "human": {
-   "sec": 273.9,
+   "sec": 345.4,
    "capped": 0,
-   "scoreRatio": 2.5
+   "scoreRatio": 2.06
   },
   "wow": {
-   "firstSec": 0.48,
+   "firstSec": 0.83,
    "seen": 1,
-   "dumbPerMin": 4.3,
-   "smartPerMin": 7.3
+   "dumbPerMin": 2.3,
+   "smartPerMin": 5.3
   },
   "stages": {
-   "change": 0.14,
-   "lateWow": 1.03,
-   "n": 8,
+   "change": 0.15,
+   "lateWow": 0.72,
+   "n": 6,
    "tapOnly": true
   },
   "precision": 1,
-  "habitGap": 10.36
+  "habitGap": 1.12
  }
 }

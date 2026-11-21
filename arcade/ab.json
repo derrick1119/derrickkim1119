@@ -579,6 +579,21 @@
       "machinePick": "bodyhop",
       "machinePick2": "brawlstart",
       "decidedAt": "2026-11-21"
+    },
+    {
+      "round": 41,
+      "openedAt": "2026-11-21",
+      "A": null,
+      "B": null,
+      "games": [
+        "rugpull",
+        "trapdoor",
+        "groundpunch"
+      ],
+      "winner": null,
+      "note": "40라운드에서 몸 갈아타기 졸업(AAA 스튜디오) 뒤 같은 방향(실시간 전투·톡 하나·정답 없음·한 번에 여럿·성장은 저절로), 졸업작은 이어 가지 않음. 공장이 고른 새 동사·뼈대 셋: 식탁보 빼기(축제 광장, 깔개를 홱 빼면 위의 놈들이 날아가 옆 무리를 넘어뜨림) · 함정문 탑(내려가는 탑, 바닥을 열어 무리를 아래층으로 와르르) · 땅 주먹 저글링(나아가는 들판, 흙 주먹으로 띄우고 떨어지는 놈을 또 쳐 공중 연속). 브리프 v22(기다림 금지·큰 띠 아끼기·판 길이는 사람 기준). 오너가 고른다",
+      "machinePick": "trapdoor",
+      "machinePick2": "rugpull"
     }
   ],
   "graduated": [
