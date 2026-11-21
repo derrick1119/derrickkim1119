@@ -5,6 +5,7 @@ import { button, panel, brushTitle, seal, C, tapped } from '../ui/ui.js';
 import { nav } from '../nav.js';
 import { newRun, heroOpen, UNLOCKS, meta } from '../state.js';
 import { UNITS, HEROES, HERO_SKILLS, HERO_COL, HERO_SEAL, HERO_TRAIT } from '../data/units.js';
+import { inkGlyph, MEOK } from '../render/ink.js';
 import { CARDS, starterDeck, isUnit } from '../data/cards.js';
 import { dimBackdrop } from './title.js';
 import { portrait } from '../render/sprites.js';
@@ -33,6 +34,8 @@ export class HeroScene {
     panel(g, 40, 248, 1200, 322);
     ell(g, 152, 408, 94, 94, '#efd9a8', INK, 2.4); ell(g, 152, 408, 87, 87, null, 'rgba(201,150,46,0.8)', 1.2);
     g.save(); g.beginPath(); g.arc(152, 408, 92, 0, TAU); g.clip(); g.fillStyle = 'rgba(140,160,120,0.6)'; g.fillRect(50, 452, 210, 60); portrait(g, id, 148, 484, 1.75, this.t, true); g.restore();
+    // 이름 옆에 붓으로 쓴 영웅의 한 자를 옅게 깐다
+    inkGlyph(g, HERO_SEAL[id], 648, 306, 104, { col: MEOK, alpha: 0.13, halo: false, rot: -0.06 });
     text(g, d.name, 272, 298, { size: 46, font: FONT_B, align: 'left' }); g.save(); g.translate(272 + g.measureText(d.name).width + 34, 292); g.rotate(-0.06); seal(g, 0, 0, 34, HERO_SEAL[id], col); g.restore();
     text(g, d.desc, 274, 336, { size: 19, align: 'left', fill: SUB, maxW: 440 });
     const sd = starterDeck(id), nu = sd.filter(c => CARDS[c.id].kind === 'unit').length, nt = sd.filter(c => !isUnit(c)).length;

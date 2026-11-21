@@ -1,5 +1,6 @@
 // 즉시 모드 UI — 한지 판과 놋쇠 귀장식, 쪽빛 옻칠에 금선, 붉은 낙관
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT, FONT_B, st, fs, ell, rr, rrPath, poly, line, path, text, clamp, makeCanvas } from '../render/draw.js';
+import { drawInk, MEOK } from '../render/ink.js';
 
 export const C = { paper: PAPER, tray: '#1f2a47', ink: INK, sub: SUB, navy: NAVY, indigo: INDIGO, red: RED, redD: REDD, gold: OCHRE, teal: TEAL, grey: '#a9a394', cream: '#fbf7ec', dim: '#a4afcc', gilt: '#e2b85a' };
 
@@ -36,6 +37,11 @@ function paperPanel(g, w, h) {
   let sd = (w * 3 + h) | 0; const R = () => { sd = (sd * 1664525 + 1013904223) >>> 0; return sd / 4294967296; };
   g.save(); g.beginPath(); rrPath(g, 1.5, 1.5, w - 3, h - 3, 6); g.clip(); g.lineWidth = 0.9; const n = Math.min(320, (w * h / 3000) | 0);
   for (let k = 0; k < n; k++) { const px = R() * w, py = R() * h, a = R() * TAU, l = 5 + R() * 12; g.strokeStyle = R() < 0.5 ? 'rgba(160,136,92,0.16)' : 'rgba(255,255,255,0.5)'; g.beginPath(); g.moveTo(px, py); g.lineTo(px + Math.cos(a) * l, py + Math.sin(a) * l); g.stroke(); }
+  // 큰 종이에는 귀퉁이에 먹이 옅게 번지고 먹물 몇 방울이 튀어 있다
+  if (w > 260 && h > 180) {
+    const k = Math.min(1.7, Math.max(0.8, h / 230)); drawInk(g, 'wash', w - 34 * k, h - 22 * k, k, 0, 0.2, MEOK, (w + h) % 3); drawInk(g, 'wash', 26 * k, 30 * k, k * 0.6, 0, 0.11, MEOK, (w * 7 + h) % 3);
+    g.fillStyle = MEOK; for (let j = 0; j < 12; j++) { const a = Math.PI * (1 + R() * 0.5), d = (50 + R() * 150) * k; g.globalAlpha = 0.1 + R() * 0.22; g.beginPath(); g.arc(w - 20 + Math.cos(a) * d, h - 14 + Math.sin(a) * d * 0.7, 0.6 + R() * R() * 2.6, 0, TAU); g.fill(); } g.globalAlpha = 1;
+  }
   rr(g, 0, 0, w, h, 7, null, 'rgba(150,118,66,0.13)', 16); g.restore();
   rr(g, 7, 7, w - 14, h - 14, 3.5, null, 'rgba(38,42,54,0.5)', 1.1); rr(g, 10, 10, w - 20, h - 20, 2.5, null, 'rgba(201,150,46,0.75)', 0.9);
   if (w > 150 && h > 110) for (const [cx, cy, sx, sy] of [[0, 0, 1, 1], [w, 0, -1, 1], [0, h, 1, -1], [w, h, -1, -1]]) { g.save(); g.translate(cx, cy); g.scale(sx, sy); corner(g); g.restore(); }

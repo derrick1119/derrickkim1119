@@ -4,6 +4,7 @@ import { ui } from './ui/ui.js';
 import { sfx, unlockAudio } from './audio.js';
 import { load, G } from './state.js';
 import { preloadLooks } from './render/sprites.js';
+import { inkWipe } from './render/ink.js';
 import { warmIcons } from './render/icons.js';
 import { TitleScene } from './scenes/title.js';
 import { HeroScene } from './scenes/hero.js';
@@ -57,18 +58,19 @@ function frame(ts) {
   ui.top = 0; ui.layer = 0;
   if (nav.cur) nav.cur.frame(g, dt, inp);
   if (nav.dir) {
-    nav.fade = Math.max(0, Math.min(1, nav.fade + nav.dir * dt * 4.5));
+    nav.fade = Math.max(0, Math.min(1, nav.fade + nav.dir * dt * 3.2));
     if (nav.dir > 0 && nav.fade >= 1) { const n = nav.next; nav.next = null; nav.cur = new nav.scenes[n.name](n.args); nav.dir = -1; ui.active = null; }
     else if (nav.dir < 0 && nav.fade <= 0) nav.dir = 0;
   }
-  if (nav.fade > 0) { g.globalAlpha = nav.fade; g.fillStyle = '#1f2a44'; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
+  // 장면이 바뀔 때: 큰 붓이 화면을 덮고, 새 장면 위에서 걷힌다
+  if (nav.fade > 0) inkWipe(g, nav.fade, nav.dir < 0 ? -1 : 1, W, H);
   if (inp.released) ui.active = null;
   inp.pressed = false; inp.released = false;
   requestAnimationFrame(frame);
 }
 
 async function boot() {
-  try { await Promise.all([document.fonts.load("20px 'Yeon Sung'", '가A1'), document.fonts.load("700 20px 'Gowun Batang'", '가A1'), document.fonts.load("400 20px 'Gowun Batang'", '가A1'), document.fonts.load("900 20px 'Hanja Seal'", '甲')]); } catch (e) { /* 폰트 없이 진행 */ }
+  try { await Promise.all([document.fonts.load("20px 'Yeon Sung'", '가A1'), document.fonts.load("700 20px 'Gowun Batang'", '가A1'), document.fonts.load("400 20px 'Gowun Batang'", '가A1'), document.fonts.load("900 20px 'Hanja Seal'", '甲'), document.fonts.load("20px 'Hanja Brush'", '甲')]); } catch (e) { /* 폰트 없이 진행 */ }
   load(); preloadLooks(); warmIcons();
   const q = new URLSearchParams(location.search);
   window.__game = { nav, inp, run: () => G.run };

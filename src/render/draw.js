@@ -4,6 +4,8 @@ export const INK = '#262a36', PAPER = '#f8f0dc', HANJI = '#e9dec4', RED = '#c840
 // 도장에 찍는 한자는 'Hanja Seal'(Noto Serif KR 부분집합)이 맡는다
 export const FONT = "'Gowun Batang', 'Hanja Seal', 'Apple SD Gothic Neo', 'Malgun Gothic', serif";
 export const FONT_B = "'Yeon Sung', 'Hanja Seal', 'Gowun Batang', 'Apple SD Gothic Neo', serif";
+// 큰 연출에 쓰는 붓글씨 한자 ('Hanja Brush' = Yuji Boku 부분집합). 없는 글자는 도장 글꼴로 넘어간다
+export const FONT_BRUSH = "'Hanja Brush', 'Hanja Seal', 'Yeon Sung', serif";
 
 export function st(g, col, lw) { g.strokeStyle = col; g.lineWidth = lw; g.lineJoin = 'round'; g.lineCap = 'round'; g.stroke(); }
 export function fs(g, fill, sc, lw) { if (fill) { g.fillStyle = fill; g.fill(); } if (sc) st(g, sc, lw || 1.2); }

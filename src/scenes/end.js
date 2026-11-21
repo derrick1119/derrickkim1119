@@ -11,6 +11,7 @@ import { backdrop } from './title.js';
 import { portrait } from '../render/sprites.js';
 import { relicIcon } from '../render/icons.js';
 import { cardFace } from '../ui/cards.js';
+import { inkMark } from '../render/ink.js';
 
 export class EndScene {
   constructor(a) { this.win = !!(a && a.win); this.t = 0; this.r = G.run; this.gain = settleRun(this.win); this.conf = Array.from({ length: 70 }, () => ({ x: Math.random() * W, y: -Math.random() * H, v: 90 + Math.random() * 140, c: [RED, INDIGO, '#d9a441', '#3f6b5c', '#fbf7ec'][(Math.random() * 5) | 0], p: Math.random() * 6 })); }
@@ -20,6 +21,8 @@ export class EndScene {
     if (!win) { g.fillStyle = 'rgba(31,42,68,0.42)'; g.fillRect(0, 0, W, H); }
     if (win) for (const c of this.conf) { c.y += c.v * dt; if (c.y > H) { c.y = -20; c.x = Math.random() * W; } g.save(); g.translate(c.x + Math.sin(t * 2 + c.p) * 20, c.y); g.rotate(t * 3 + c.p); rr(g, -7, -4, 14, 8, 1, c.c, INK, 1); g.restore(); }
     brushTitle(g, 640, 54, 520, 76, win ? '고개를 넘었다' : '도깨비에 홀린 밤', win ? INDIGO : '#5a5346', 44);
+    // 원정의 끝을 알리는 한 자: 이기면 勝, 지면 敗
+    inkMark(g, win ? '勝' : '敗', 310, 64, 86, { k: (t - 0.25) / 0.5, col: win ? '#f6efdc' : '#f3b9a6', v: win ? 0 : 2 });
     // 이긴 밤에는 영웅의 후일담, 진 밤에는 장승 앞에서 깨어난다
     const tale = win ? ENDING + '\n' + (r && EPILOGUE[r.hero] || '') : (r ? `${CHAPTERS[Math.min(2, r.ch)].name} 에서 길을 잃었습니다.\n` : '') + DEFEAT;
     textBlock(g, tale, 640, 112, 1100, 25, { size: 18.5, stroke: win ? '#ecdfc2' : 'rgba(31,42,68,0.7)', lw: 5, fill: win ? INK : C.cream });

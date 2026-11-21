@@ -3,7 +3,8 @@ import { W, H, VIEW } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, OCHRE, TEAL, FONT_B, text, ell, rr, rrPath, poly, line, path, st, drawSprite, clamp, lerp, easeOutBack } from './draw.js';
 import { getLook, getWeapon, blinking, leftover } from './sprites.js';
 import { defOf } from '../sim/battle.js';
-import { HERO_COL } from '../data/units.js';
+import { HERO_COL, HERO_SEAL } from '../data/units.js';
+import { inkTrail, inkStreak, MEOK, JU } from './ink.js';
 import { CARDS } from '../data/cards.js';
 import { makeGround, makeFar, vignette, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, FAR_H } from './terrain.js';
 import { Fx } from './fx.js';
@@ -61,10 +62,11 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   }
   if (wspr) {
     const ct = Math.cos(tilt), sn = Math.sin(tilt), fsx = flip * sxm;
-    // 휘두른 자리에 남는 흰 궤적 (hx, hy = 손, r0→r1 = 무기가 돈 각)
-    const trail = (hx, hy, r0, r1, back, q) => { const a = clamp((0.86 - q) / 0.3, 0, 1) * alpha; if (a <= 0.02) return; g.save(); g.lineCap = 'round'; g.globalAlpha = a * 0.4; g.beginPath(); g.arc(hx, hy, 25 * k, r0 - PI / 2, r1 - PI / 2, back); st(g, INK, 6.4 * k); g.globalAlpha = a * 0.9; g.beginPath(); g.arc(hx, hy, 25 * k, r0 - PI / 2, r1 - PI / 2, back); st(g, '#fffdf2', 3.6 * k); g.restore(); };
+    // 휘두른 자리에 남는 먹 자국: 붓으로 그은 초승달 (hx, hy = 손, r0→r1 = 무기가 돈 각)
+    const inkc = u.team === 0 ? '#191b28' : '#2c1517';
+    const trail = (hx, hy, r0, r1, back, q) => { const a = clamp((0.86 - q) / 0.3, 0, 1) * alpha; if (a <= 0.02) return; g.save(); g.globalAlpha = 1; inkTrail(g, hx, hy, 26 * k, r0 - PI / 2, r1 - PI / 2, 12.5 * k, a, inkc, u.id); g.restore(); };
     // 찌르거나 쏜 방향으로 뻗는 짧은 선
-    const streak = (hx, hy, d0, d1, a) => { if (a <= 0.02) return; g.save(); g.lineCap = 'round'; g.globalAlpha = a * alpha * 0.4; line(g, [hx + c * d0 * k, hy + s * d0 * k, hx + c * d1 * k, hy + s * d1 * k], INK, 5.4 * k); g.globalAlpha = a * alpha * 0.9; line(g, [hx + c * d0 * k, hy + s * d0 * k, hx + c * d1 * k, hy + s * d1 * k], '#fffdf2', 2.8 * k); g.restore(); };
+    const streak = (hx, hy, d0, d1, a) => { if (a <= 0.02) return; g.save(); g.globalAlpha = 1; inkStreak(g, hx + c * d0 * k, hy + s * d0 * k, hx + c * d1 * k, hy + s * d1 * k, 6 * k, a * alpha, inkc); g.restore(); };
     const put = (px, py, sg) => {
       const hx0 = px * k * dir * fsx, hy0 = py * k * sy; let hx = x + hx0 * ct - hy0 * sn, hy = by + hx0 * sn + hy0 * ct, rot;
       if (mode === 'thrust') {
@@ -245,7 +247,7 @@ export class BattleView {
           if (e.dodge) { fx.puff(e.x, e.y - 16, 2, '#dfe6ee', 7); fx.txt(e.x, e.y - 50, '흘림', '#5a4a8a', 16, 0.5); break; }
           if (e.block) { fx.star(e.x, e.y - 18, 9, '#dfe6ee'); sfx('clang'); break; }
           if (e.kind === 'burn') { fx.burst(e.x, e.y - 16, 1, '#ff9a2e', 50, 3); break; }
-          if (e.kind === 'melee' || e.kind === 'proj') { fx.burst(e.x, e.y - 16, e.flank ? 4 : 2, e.team === 0 ? '#e4826a' : '#f6d98a', 110); if (e.kind === 'melee' && (e.big || e.flank)) fx.slash(e.x, e.y - 18, e.big ? 26 : 18, e.team === 0 ? REDD : INK); sfx(e.kind === 'proj' ? 'thud' : 'hit'); }
+          if (e.kind === 'melee' || e.kind === 'proj') { fx.burst(e.x, e.y - 16, e.flank ? 4 : 2, e.team === 0 ? '#e4826a' : '#f6d98a', 110); if (e.kind === 'melee' && (e.big || e.flank)) { fx.slash(e.x, e.y - 18, e.big ? 30 : 20, e.team === 0 ? REDD : MEOK); if (e.big) fx.splat(e.x, e.y - 16, 0.3, e.team === 0 ? REDD : MEOK, 0.4); } sfx(e.kind === 'proj' ? 'thud' : 'hit'); }
           if (e.flank && Math.random() < 0.34) fx.txt(e.x, e.y - 46, '배후!', '#c8642a', 18, 0.6);
           if (e.big && e.amt >= 60) fx.txt(e.x, e.y - 42, String(Math.round(e.amt)), e.team === 0 ? RED : INK, 20, 0.7);
           break;
@@ -256,12 +258,14 @@ export class BattleView {
         case 'lootFull': out.push(e); break;
         case 'gold': fx.add({ k: 'text', x: e.x + 18, y: e.y - 34, vy: -40, drag: 1.5, s: '+' + e.n, col: '#b8862a', size: 17, life: 0.8 }); break;
         case 'scavenge': sfx('card'); out.push(e); break;
-        case 'bannerDown': fx.shake = 18; fx.flash = 0.9; fx.flashCol = '#fff'; fx.ring(e.x, e.y, 220, RED, 0.8, 10); fx.scraps(e.x, e.y - 50, 26, [PAPER, '#c9d6e6', '#b8342a']); sfx('boom'); out.push(e); break;
+        case 'bannerDown': fx.shake = 18; fx.flash = 0.9; fx.flashCol = '#fff'; fx.ring(e.x, e.y, 220, RED, 0.8, 10); fx.splat(e.x, e.y - 40, 3, MEOK, 1.1); fx.stain(e.x, e.y + 4, 2.6, 8, 0.4); fx.glyph(e.x + 30, e.y - 110, '破', 150, JU, 1.6); fx.scraps(e.x, e.y - 50, 26, [PAPER, '#c9d6e6', '#b8342a']); sfx('boom'); out.push(e); break;
         case 'waveClear': out.push(e); break;
         case 'waveStart': sfx('warn'); break;
         case 'heroSkill': {
           const col = HERO_COL[e.hero] || INDIGO, id = e.id, P2 = e.pts || [];
           fx.add({ k: 'text', x: e.x, y: e.y - 100, vy: -20, drag: 1.5, s: e.name + '!', col, size: 30, life: 1.3, big: true }); fx.ring(e.x, e.y, 64, col, 0.35, 6);
+          // 영웅의 한 자를 등 뒤에 붓으로 쓰고, 발밑에 먹 고리를 긋는다
+          fx.enso(e.x, e.y, 1.15, MEOK, 0.8); if (HERO_SEAL[e.hero]) fx.glyph(e.x - 4, e.y - 46, HERO_SEAL[e.hero], 112, MEOK, 0.95, { ground: true, peak: 0.6, halo: 'rgba(248,240,220,0.5)' });
           if (id === 'whirl') { fx.ring(e.x, e.y, 112, INK, 0.3, 7); for (let i = 0; i < 4; i++) fx.slash(e.x + Math.cos(i * 1.57) * 52, e.y - 16 + Math.sin(i * 1.57) * 34, 34, REDD, i * 1.57 + 1.2); fx.shake = Math.max(fx.shake, 6); sfx('charge'); }
           else if (id === 'roar') { fx.ring(e.x, e.y, 190, RED, 0.6, 9); sfx('horn'); }
           else if (id === 'leap') sfx('leap');
@@ -285,14 +289,19 @@ export class BattleView {
           else if (id === 'throw') { fx.star(e.tx, e.ty - 14, 28, '#fbf7ec'); fx.ring(e.tx, e.ty, 60, INK, 0.35, 6); fx.puff(e.tx, e.ty - 6, 8, '#e8dcc0', 12); fx.shake = Math.max(fx.shake, 8); sfx('charge'); }
           break;
         }
-        case 'combo': fx.flash = 0.7; fx.flashCol = '#fff3b0'; fx.shake = 12; fx.ring(e.ax, e.ay, 260, OCHRE, 0.8, 10); fx.ring(e.bx, e.by, 260, OCHRE, 0.8, 10); fx.beam(e.ax, e.ay - 30, e.bx, e.by - 30, '#f0d264', 0.6, 6); sfx('boss'); out.push(e); break;
+        case 'combo': { fx.flash = 0.7; fx.flashCol = '#fff3b0'; fx.shake = 12; fx.ring(e.ax, e.ay, 260, OCHRE, 0.8, 10); fx.ring(e.bx, e.by, 260, OCHRE, 0.8, 10); fx.beam(e.ax, e.ay - 30, e.bx, e.by - 30, '#f0d264', 0.6, 6);
+          // 두 영웅 사이를 큰 붓으로 긋고 '合' 한 자를 찍는다
+          const mx = (e.ax + e.bx) / 2, my = (e.ay + e.by) / 2 - 40; fx.ink('swash', mx, my + 14, { s: 0.9, s1: 1.25, rot: -0.08, life: 1.1, peak: 0.9, in: 0.08, fast: true, v: 0 }); fx.enso(e.ax, e.ay, 1.5, MEOK, 1); fx.enso(e.bx, e.by, 1.5, MEOK, 1); fx.glyph(mx, my, '合', 170, JU, 1.4);
+          sfx('boss'); out.push(e); break; }
         case 'comboFx': for (const [x, y] of e.pts) { if (e.style === 'slash') { fx.slash(x, y - 18, 48, '#eef0ff', 0.8); fx.slash(x, y - 18, 48, '#5a4a8a', 2.3); } else if (e.style === 'arrow') { fx.add({ k: 'arrow', x, y, life: 0.2 }); fx.add({ k: 'stuck', ground: true, x, y, life: 0.9 }); } else { fx.bolt(x, y - 8); fx.star(x, y - 16, 22, '#fffbe6'); } } break;
         case 'morale': fx.add({ k: 'text', x: e.x, y: e.y - 52, vy: -42, drag: 1.5, s: '사기 +' + Math.round(e.n * 10) / 10, col: '#b8862a', size: 21, life: 1 }); sfx('coin'); break;
         case 'synergy': case 'chase': out.push(e); break;
         case 'death': {
           const L = getLook(e.utype); fx.puff(e.x, e.y - 12, e.boss ? 14 : 4, PAPER, e.boss ? 18 : 9); fx.scraps(e.x, e.y - 22, e.boss ? 26 : 6, e.team === 0 ? [PAPER, '#c9d6e6', '#e9dec4'] : [PAPER, '#efc9b8', '#e9dec4']);
           fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.front, sx: L.scale, sy: L.scale, life: 0.3 }); if (L.head) fx.add({ k: 'sprite', x: e.x, y: e.y, spr: L.head, sx: L.scale, sy: L.scale, life: 0.3 });
-          if (e.boss) { fx.shake = 16; fx.flash = 1; fx.flashCol = '#fff'; fx.ring(e.x, e.y, 150, INK, 0.7, 8); sfx('boom'); } else sfx('death');
+          // 요괴는 먹으로 번져 사라진다: 바닥에 먹 자국이 남고 먹 연기가 피어오른다
+          if (e.team === 1) { fx.stain(e.x, e.y + 2, e.boss ? 2.6 : 0.6 + Math.random() * 0.35, e.boss ? 9 : 5); fx.wisp(e.x, e.y - 16, e.boss ? 8 : 2); }
+          if (e.boss) { fx.shake = 16; fx.flash = 1; fx.flashCol = '#fff'; fx.ring(e.x, e.y, 150, INK, 0.7, 8); fx.splat(e.x, e.y - 30, 2.8, MEOK, 1); fx.glyph(e.x, e.y - 96, '滅', 150, JU, 1.7); sfx('boom'); } else sfx('death');
           if (e.team === 1) out.push(e);
           break;
         }
@@ -301,7 +310,7 @@ export class BattleView {
         case 'charge': fx.star(e.x, e.y - 14, 24, '#fbf7ec'); fx.ring(e.x, e.y, 46, INK, 0.3, 5); fx.puff(e.x, e.y - 6, 6, '#e8dcc0', 9); fx.txt(e.x, e.y - 52, '돌격!', e.team === 0 ? INDIGO : RED, 24, 0.8); fx.shake = Math.max(fx.shake, 5); sfx('charge'); break;
         case 'impact': {
           const st2 = e.style, col = st2 === 'root' ? '#4f8a4a' : st2 === 'dark' ? '#5a4a8a' : st2 === 'strike' || st2 === 'volley' ? INDIGO : st2 === 'iceball' ? '#4f8fb8' : '#d9702a';
-          fx.ring(e.x, e.y, e.r * 1.25, col, 0.45, 8); fx.ring(e.x, e.y, e.r * 0.8, INK, 0.3, 4);
+          fx.ring(e.x, e.y, e.r * 1.25, col, 0.45, 8); fx.ring(e.x, e.y, e.r * 0.8, INK, 0.3, 4); fx.stain(e.x, e.y, e.r / 30, 2.2, 0.36);
           fx.burst(e.x, e.y - 8, st2 === 'fireball' || st2 === 'iceball' ? 8 : 14, st2 === 'root' ? '#9bcf7a' : st2 === 'dark' ? '#b8a0e0' : st2 === 'iceball' ? '#bfe3ee' : '#ffb03a', 220, 4.5); fx.scraps(e.x, e.y - 10, 4, ['#e9dec4', '#d9cdb0']); fx.puff(e.x, e.y - 6, st2 === 'fireball' ? 4 : 8, st2 === 'root' ? '#cfe6b8' : st2 === 'dark' ? '#d3c6ea' : '#e8dcc0', 13);
           fx.shake = Math.max(fx.shake, st2 === 'fireball' || st2 === 'iceball' ? 3 : st2 === 'meteor' ? 14 : 8); if (st2 === 'meteor') { fx.flash = 0.7; fx.flashCol = '#ffd9a0'; }
           sfx('boom'); break;

@@ -20,6 +20,7 @@ import { RewardOverlay, ShopOverlay, ChoiceOverlay, ForkOverlay, StoryOverlay, r
 import { cardIcon, relicIcon } from '../render/icons.js';
 import { sfx, audio, setMuted } from '../audio.js';
 import { nav } from '../nav.js';
+import { drawInk, inkGlyph, inkMark, MEOK, JU } from '../render/ink.js';
 
 const NUM = ['', '하나', '둘', '셋', '넷', '다섯'];
 export const GRADE = ['', '丙', '乙', '甲'];
@@ -60,7 +61,7 @@ export class RunScene {
     else if (st.type === 'battle' || st.type === 'elite' || st.type === 'boss') {
       // 싸움터를 먼저 차린다(지형·하늘). 요괴가 닿기 전 잠깐이 진형을 고칠 시간이다
       const e = this.enc = encounterHere(); b.prepWave(waveSetup(e)); this.phase = 'prep'; this.prepT = this.first ? 5.5 : 4; this.grade = null;
-      this.note = { s: e.name, sub: e.boss ? (BOSS[e.key] ? BOSS[e.key].sub : '두목과의 싸움') : e.affix ? `강적 — ${AFFIX[e.affix].name}: ${AFFIX[e.affix].desc}` : e.enemyName + '가 몰려옵니다', col: e.boss || e.affix ? RED : INDIGO, t: 2.2 };
+      this.note = { s: e.name, sub: e.boss ? (BOSS[e.key] ? BOSS[e.key].sub : '두목과의 싸움') : e.affix ? `강적 — ${AFFIX[e.affix].name}: ${AFFIX[e.affix].desc}` : e.enemyName + '가 몰려옵니다', col: e.boss || e.affix ? RED : INDIGO, t: 2.2, ch: e.boss ? '頭' : st.type === 'elite' ? '強' : '戰', chCol: e.boss ? '#f3b9a6' : undefined };
       if (e.boss) sfx('boss');
     }
     else if (st.type === 'event') { this.phase = 'stop'; const id = r.pending && r.pending.kind === 'event' ? r.pending.id : pickEvent(); r.pending = { kind: 'event', id }; const v = eventView({ id }); this.over = new ChoiceOverlay({ title: v.title, art: v.art, text: v.text, choices: v.choices, onDone: done }); }
@@ -383,14 +384,22 @@ export class RunScene {
   }
   drawNotes(g, b) {
     const nt = this.note, gr = this.grade;
-    if (nt) { const k = clamp(Math.min(nt.t / 0.3, 1), 0, 1); g.save(); g.globalAlpha = k; g.translate(0, (1 - easeOutBack(k)) * -20); brushTitle(g, 640, 210, 520, 76, nt.s, nt.col, 40); if (nt.sub) { rr(g, 340, 258, 600, 36, 8, 'rgba(248,240,220,0.94)', INK, 1.6); text(g, nt.sub, 640, 277, { size: 18, maxW: 570 }); } g.restore(); }
+    if (nt) {
+      const k = clamp(Math.min(nt.t / 0.3, 1), 0, 1); if (nt.t0 === undefined) nt.t0 = nt.t;
+      g.save(); g.globalAlpha = k; g.translate(0, (1 - easeOutBack(k)) * -20); brushTitle(g, 640, 210, 520, 76, nt.s, nt.col, 40); if (nt.sub) { rr(g, 340, 258, 600, 36, 8, 'rgba(248,240,220,0.94)', INK, 1.6); text(g, nt.sub, 640, 277, { size: 18, maxW: 570 }); }
+      // 싸움을 알리는 한 자: 먹물이 떨어지고 그 위에 붓글씨가 찍힌다
+      if (nt.ch) inkMark(g, nt.ch, 304, 204, 112, { k: (nt.t0 - nt.t) / 0.5, col: nt.chCol, v: nt.ch === '頭' ? 2 : nt.ch === '強' ? 1 : 0 });
+      g.restore();
+    }
     if (gr && this.phase === 'clear') {
       const t = gr.t, kk = clamp((t - 0.25) / 0.16, 0, 1), sc = 2.2 - 1.2 * kk;
-      text(g, '물리쳤다!', 560, 300, { size: 64, font: FONT_B, stroke: PAPER, lw: 12 });
-      if (t > 0.25) { if (!gr.stamped && kk >= 1) { gr.stamped = true; sfx('star'); this.view.fx.shake = 6; } g.save(); g.globalAlpha = kk; g.translate(760, 300); g.scale(sc, sc); stamp(g, 0, 0, 52, GRADE[gr.grade], RED); g.restore(); }
+      // 굵은 먹 띠를 한 번에 긋고 그 위에 흰 글씨, 붓이 빠진 자리에 전공 등급을 붓글씨로 찍는다
+      const bk = clamp(t / 0.16, 0, 1); g.save(); g.beginPath(); g.rect(360, 220, 40 + 620 * bk, 170); g.clip(); drawInk(g, 'bar', 668, 302, 1.12, -0.022, 1, MEOK, 0); g.restore();
+      g.globalAlpha = clamp((t - 0.06) / 0.14, 0, 1); text(g, '물리쳤다!', 548, 300, { size: 64, font: FONT_B, fill: '#f6efdc' }); g.globalAlpha = 1;
+      if (t > 0.25) { if (!gr.stamped && kk >= 1) { gr.stamped = true; sfx('star'); this.view.fx.shake = 6; this.view.fx.splat(826, 300, 1.5, MEOK, 0.5); } g.save(); g.globalAlpha = kk; g.translate(826, 298); g.scale(sc, sc); ell(g, 0, 0, 52, 52, 'rgba(248,240,220,0.94)'); drawInk(g, 'enso', 0, 0, 0.74, 0.3, 1, MEOK, gr.grade % 3); inkGlyph(g, GRADE[gr.grade], 0, 2, 74, { col: JU, halo: false, rot: -0.04 }); g.restore(); }
       if (t > 0.5) { panel(g, 540, 360, 200, 44, 'tag'); icon.coin(g, 574, 382, 14); text(g, `엽전 +${gr.gold}`, 652, 383, { size: 23, font: FONT_B }); }
     }
-    if (this.phase === 'over') { g.fillStyle = `rgba(31,42,68,${clamp((1.8 - this.endT) / 1.2, 0, 0.6)})`; g.fillRect(0, 0, W, H); text(g, '깃발을 모두 잃었습니다', 640, 320, { size: 54, font: FONT_B, fill: C.cream, stroke: INK, lw: 8 }); }
+    if (this.phase === 'over') { const ok = clamp((1.8 - this.endT) / 1.2, 0, 1); g.fillStyle = `rgba(23,21,28,${ok * 0.66})`; g.fillRect(0, 0, W, H); drawInk(g, 'blot', 640, 300, 2.2, 0.4, ok * 0.9, MEOK, 1); inkGlyph(g, '敗', 640, 268, 210, { col: '#b8301f', halo: false, alpha: ok }); text(g, '깃발을 모두 잃었습니다', 640, 420, { size: 46, font: FONT_B, fill: C.cream, stroke: INK, lw: 8 }); }
     if (this.toastT > 0) { g.globalAlpha = clamp(this.toastT / 0.3, 0, 1); rr(g, 290, 502, 700, 46, 9, 'rgba(31,42,68,0.2)'); rr(g, 290, 499, 700, 46, 9, PAPER, INK, 2.2); rr(g, 293.4, 502.4, 693.2, 39.2, 6, null, 'rgba(201,150,46,0.7)', 0.9); text(g, this.toastS, 640, 523, { size: 19, maxW: 670 }); g.globalAlpha = 1; }
   }
   drawMenu(g) {

@@ -1,0 +1,33 @@
+<!doctype html>
+<!-- 먹·붓 그림 미리보기: node tools/serve.mjs 8090 → http://localhost:8090/tools/ink.html -->
+<meta charset="utf-8"><title>먹과 붓</title>
+<link rel="stylesheet" href="../style.css">
+<style>html, body { height: auto; overflow: auto; background: #e9dec4; } canvas { display: block; }</style>
+<canvas id="c" width="1280" height="900"></canvas>
+<script type="module">
+import { drawInk, inkGlyph, inkMark, inkTrail, inkStreak, inkWipe, MEOK, JU } from '../src/render/ink.js';
+import { text, FONT_B, INDIGO, REDD } from '../src/render/draw.js';
+await Promise.all([document.fonts.load("20px 'Hanja Brush'", '甲'), document.fonts.load("20px 'Yeon Sung'", '가')]);
+const g = document.getElementById('c').getContext('2d');
+g.fillStyle = '#efe5cc'; g.fillRect(0, 0, 1280, 900);
+const lab = (s, x, y) => text(g, s, x, y, { size: 14, align: 'left', fill: '#6b5a44' });
+lab('베기 자국 (모양 0·1·2, 붉은 먹, 쪽빛)', 20, 20);
+for (let v = 0; v < 3; v++) drawInk(g, 'slash', 130 + v * 230, 90, 1, 0, 1, MEOK, v);
+drawInk(g, 'slash', 830, 90, 1, 0.5, 1, JU, 1); drawInk(g, 'slash', 1070, 90, 0.8, -0.6, 1, INDIGO, 2); drawInk(g, 'slash', 1190, 100, 0.45, 2.2, 1, MEOK, 0);
+lab('제목 아래 붓 자국', 20, 170);
+drawInk(g, 'bar', 330, 250, 1, -0.03, 1, MEOK, 0); text(g, '물리쳤다!', 250, 250, { size: 60, font: FONT_B, fill: '#f6efdc' }); drawInk(g, 'swash', 950, 250, 1, 0, 1, MEOK, 1);
+drawInk(g, 'bar', 330, 250, 1, 0, 0, MEOK, 0);
+lab('고리 · 먹물 · 번짐', 20, 340);
+for (let v = 0; v < 3; v++) drawInk(g, 'enso', 130 + v * 220, 470, 0.85, 0, 1, v === 2 ? JU : MEOK, v);
+for (let v = 0; v < 3; v++) drawInk(g, 'splat', 790 + v * 170, 450, 0.8 + v * 0.2, v, 1, MEOK, v);
+drawInk(g, 'wash', 1180, 520, 0.8, 0, 1, MEOK, 0); drawInk(g, 'wash', 1000, 560, 0.5, 0, 1, MEOK, 1);
+inkGlyph(g, '甲', 130, 470, 96, { col: JU }); inkGlyph(g, '乙', 350, 470, 96, { col: JU }); inkGlyph(g, '丙', 570, 470, 96, { col: MEOK });
+lab('먹물 위의 붓글씨 · 영웅의 한 자', 20, 610);
+['戰', '強', '頭'].forEach((c, i) => inkMark(g, c, 120 + i * 210, 730, 120, { v: i, col: i === 2 ? '#f0b8a8' : undefined }));
+['將', '劍', '弓', '僧', '仙', '樂', '合', '勝', '敗', '滅', '破'].forEach((c, i) => inkGlyph(g, c, 690 + i * 54, 660, 46, { col: i === 6 ? JU : MEOK }));
+lab('휘두른 자국 · 찌른 자국', 660, 610);
+g.save(); g.translate(0, -40); g.scale(2, 2); for (let i = 0; i < 4; i++) inkTrail(g, 30 + i * 70, 440, 25, -2.4, -2.4 + 0.8 + i * 0.7, 9, 1, MEOK, i);
+for (let i = 0; i < 3; i++) inkStreak(g, 300 + i * 70, 440, 350 + i * 70, 432 - i * 6, 6, 1, MEOK); g.restore();
+const k = +new URLSearchParams(location.search).get('wipe'); if (k) inkWipe(g, Math.abs(k), k > 0 ? 1 : -1, 1280, 900);
+document.title = 'ready';
+</script>

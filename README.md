@@ -109,6 +109,8 @@ src/render/figures.js      인형 그림: 사람·도깨비(몸과 머리를 따
 src/render/sprites.js      병종별 외형 등록(몸·머리·눈 감은 머리 스프라이트), 갈아 끼우는 무기 그림(칼날 빛·코등이·유소까지 음영)
 src/render/icons.js        전술 패·보물 아이콘
 src/render/terrain.js      이어 붙여 흐르는 한지 바닥(번진 풀빛·흙길·솔숲)·안개 낀 겹산, 소나무·바위·덤불, 길가의 주막·장터·푯말, 지형물·개울
+src/render/ink.js          먹과 붓: 붓 한 획(비백·튄 먹물), 먹 얼룩·번짐, 붓글씨 한자, 휘두른 먹 자국, 장면 전환의 먹  ← 먹 느낌은 여기
+src/render/fx.js           파티클과 화면 효과 (먹 베기·먹 자국·먹 연기·붓글씨)
 src/render/battleview.js   전장 렌더러, 이벤트 → 이펙트/사운드
 src/ui/ui.js               한지 판(놋쇠 귀장식)·쪽빛 옻칠 띠(칠보문·회문)·단추·낙관·붓 제목 띠·엽전 아이콘
 src/ui/cards.js            패 그림, 덱 살피기(무기 끼우기), 보물 살피기
@@ -132,10 +134,12 @@ HERO=sangsoe node tools/campaign.mjs 16 casual   # 영웅 하나만 골라 돌�
 TRACE=1 node tools/campaign.mjs 20 casual        # 원정마다 결과 한 줄(도달한 고개·덱·보물·사건)
 ```
 
-디버그 진입: `?debug=1&ch=1&i=3&state=at` (둘째 고개 넷째 칸에 바로 도착), `&type=shop|event|rest|elite|boss|treasure` (그 칸 바꿔치기), `&cards=thunder,volley!,u_knight` (! = 강화), `&items=gun,axe`, `&relics=drum,yut`, `&gold=300`, `&scene=end&win=1`, `&scene=meta&merit=60`. 인형 확인은 `tools/gallery.html`(얼굴만 크게: `tools/faces.html`), 아이콘 확인은 `tools/icons.html`, 무기 그림은 `tools/weapons.html`, 배경·길가 그림은 `tools/scenery.html?t=pass|grove|dusk`.
+디버그 진입: `?debug=1&ch=1&i=3&state=at` (둘째 고개 넷째 칸에 바로 도착), `&type=shop|event|rest|elite|boss|treasure` (그 칸 바꿔치기), `&cards=thunder,volley!,u_knight` (! = 강화), `&items=gun,axe`, `&relics=drum,yut`, `&gold=300`, `&scene=end&win=1`, `&scene=meta&merit=60`. 인형 확인은 `tools/gallery.html`(얼굴만 크게: `tools/faces.html`), 아이콘 확인은 `tools/icons.html`, 무기 그림은 `tools/weapons.html`, 배경·길가 그림은 `tools/scenery.html?t=pass|grove|dusk`. 먹·붓 그림은 `tools/ink.html`.
 
 ## 폰트
 
-Yeon Sung, Gowun Batang, Noto Serif KR (SIL Open Font License 1.1) — `assets/fonts/` 에 라이선스 전문 포함.
+Yeon Sung, Gowun Batang, Noto Serif KR, Yuji Boku (SIL Open Font License 1.1) — `assets/fonts/` 에 라이선스 전문 포함.
 
 도장·낙관의 한자(戰·强·得·甲 …)는 Noto Serif KR Black 에서 필요한 글자만 뽑은 작은 글꼴(`noto-serif-kr-hanja-900-subset.woff2`, 17KB)로 찍습니다. 새 한자 도장을 넣으려면 `tools/hanja_font.py` 의 글자 목록에 더하고 다시 돌리세요(목록에 없는 한자는 기기의 기본 글꼴로 보입니다).
+
+힘을 줘야 하는 큰 한자(싸움을 알리는 戰·強·頭, 전공 등급 甲·乙·丙, 영웅의 한 자 將·劍·弓·僧·仙·樂, 合·滅·破·勝·敗)는 붓글씨 글꼴 Yuji Boku 에서 뽑은 `yuji-boku-hanja-subset.woff2`(10KB)로 씁니다. `python3 tools/hanja_font.py <fontsource 파일 폴더> brush` 로 다시 만듭니다.
