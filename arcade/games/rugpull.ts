@@ -93,7 +93,7 @@ const DOOR = RG('door', 0.655, 1.175, 0.085, 0.06, 'none');
 /** 판 12개. 깔개 자리는 판마다 조금씩 다르다 — 이웃 깔개끼리 날아가 닿을 거리(0.3~0.45)에 둔다 */
 export const STAGES: StageDef[] = [
   {
-    key: 'mochi', ch: 0, name: '말랑 떡도깨비', news: '깔개를 톡! 위의 놈들이 화살표 쪽 무리로 날아가요', n: 100, star: 8, eat: 0.0002,
+    key: 'mochi', ch: 0, name: '말랑 떡도깨비', news: '깔개를 톡! 위의 놈들이 화살표 쪽 무리로 날아가요', n: 100, star: 9, eat: 0.0002,
     mix: [['mochi', 1]],
     rugs: [RG('cloth', 0.27, 0.8, 0.13, 0.1, 'tteok'), RG('mung', 0.68, 0.74, 0.15, 0.15, 'tteok'), RG('mat', 0.3, 0.42, 0.12, 0.08, 'skewer'), RG('cloth', 0.72, 0.43, 0.13, 0.095, 'jeon'), DOOR],
   },
@@ -1064,7 +1064,7 @@ function playStep(s: RugState) {
     const b = boss(s);
     let best: Rug | null = null, bn = -1;
     for (const r of s.rugs) {
-      if (r.t === 'door' || r.t === 'feast' || s.t < r.ink) continue;
+      if (r.t === 'door' || r.t === 'feast' || s.t < r.ink || !laid(r)) continue;
       const n = riders(s, r).length + hsh(r.id + s.t) * 0.5;
       if (n > bn) (bn = n), (best = r);
     }
@@ -3006,18 +3006,6 @@ function drawAll(ctx: C2, s: RugState, w: number, h: number, _th: Theme) {
       ctx.stroke();
     }
   }
-  // 먹물 줄기 (문어 → 깔개)
-  for (const e of s.events) {
-    if (e.k !== 'ink' || t - e.t > 20) continue;
-    const q = (t - e.t) / 20;
-    for (let i = 0; i < 5; i++) {
-      const u = clamp(q * 1.3 - i * 0.07, 0, 1), x = X(e.x + (e.x2 - e.x) * u), y = Y(e.y + (e.y2 - e.y) * u) - Math.sin(u * Math.PI) * U(0.12);
-      ell(ctx, x, y, U(0.014 - i * 0.002), U(0.012 - i * 0.002));
-      ctx.fillStyle = '#2a2648';
-      ctx.fill();
-    }
-  }
-
   // ── 그림자 (먼저 바닥에) ──
   for (const m of s.mons) {
     let gx = m.x, gy = m.y, hgt = 0;
@@ -3183,6 +3171,18 @@ function drawAll(ctx: C2, s: RugState, w: number, h: number, _th: Theme) {
     ink(ctx, radg(ctx, -k * 0.3, -k * 0.3, 0, k * 1.3, [0, '#ffffff'], [1, '#9aa6b4']), 1.5);
     ctx.restore();
   }
+  // 먹물 줄기 (문어 → 깔개)
+  for (const e of s.events) {
+    if (e.k !== 'ink' || t - e.t > 20) continue;
+    const q = (t - e.t) / 20;
+    for (let i = 0; i < 5; i++) {
+      const u = clamp(q * 1.3 - i * 0.07, 0, 1), x = X(e.x + (e.x2 - e.x) * u), y = Y(e.y + (e.y2 - e.y) * u) - Math.sin(u * Math.PI) * U(0.12);
+      ell(ctx, x, y, U(0.022 - i * 0.003), U(0.018 - i * 0.002));
+      ctx.fillStyle = '#2a2648';
+      ctx.fill();
+    }
+  }
+
   // 동전 펑 · 배불러 떠남
   for (const g of s.gone) {
     const age = t - g.t, x = X(g.x), y = Y(g.y);
