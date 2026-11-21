@@ -92,8 +92,8 @@ const FS_PRE = `#version 300 es
 precision highp float; in vec2 vU; uniform sampler2D uS; uniform vec2 uTx; out vec4 o;
 void main(){
   vec3 c = (texture(uS, vU + uTx * vec2(-1,-1)).rgb + texture(uS, vU + uTx * vec2(1,-1)).rgb + texture(uS, vU + uTx * vec2(-1,1)).rgb + texture(uS, vU + uTx * vec2(1,1)).rgb) * .25;
-  float b = max(c.r, max(c.g, c.b)), k = clamp(b - 1.2, 0., 1.); k = k * k * .5;
-  o = vec4(c * max(k, b - 1.7) / max(b, 1e-4), 1.);
+  float b = max(c.r, max(c.g, c.b)), k = clamp(b - 2., 0., 1.); k = k * k * .5;
+  o = vec4(c * max(k, b - 2.5) / max(b, 1e-4), 1.);
 }`;
 const FS_DOWN = `#version 300 es
 precision highp float; in vec2 vU; uniform sampler2D uS; uniform vec2 uTx; out vec4 o;

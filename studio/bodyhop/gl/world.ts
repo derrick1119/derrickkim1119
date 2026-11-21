@@ -19,7 +19,7 @@ export interface Stage { ground: Mesh; arena: Mesh; props: Mesh; crowd: Mesh; fo
 function grass(x: number, _y: number, z: number): number[] {
   const n = vnoise(x * 2.2, 0, z * 2.2) * 0.55 + vnoise(x * 9, 1, z * 9) * 0.3 + vnoise(x * 40, 2, z * 40) * 0.15, far = Math.min(1, Math.hypot(x, z) / 5);
   const stripe = Math.hypot(x, z) < 2.2 ? 0.1 * Math.sign(Math.sin((x * 0.8 + z * 0.6) * 9)) : 0;
-  const c = mix3(mix3(hex('#3f7f22'), hex('#8fca44'), Math.min(1, Math.max(0, n + stripe))), hex('#8fb7a0'), far * 0.35);
+  const c = mix3(mix3(hex('#3f7a2a'), hex('#86b850'), Math.min(1, Math.max(0, n + stripe))), hex('#9fb7c0'), far * 0.5);
   return [...c, 0.92, 0.15];
 }
 export function buildStage(): Stage {
