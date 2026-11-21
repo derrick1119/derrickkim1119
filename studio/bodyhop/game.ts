@@ -1486,6 +1486,8 @@ export const bodyhopPatient: Bot<HopState> = {
   },
 };
 /** 측정·스크린샷용: k판으로 건너뛰기 */
+/** 3D 화면(look.ts)이 시뮬 좌표를 마당 평면에 올릴 때 쓰는 값 — 시뮬과 같은 상수 */
+export const GEO = { A, CX, CY, AR, YS, HOME_X, HOME_Y, GATE_X, GATE_Y, ENTER, IDLE, WIND, DASH, REST, SKILL, CLAIM, CHARGE_T };
 export const __jump = (s: HopState, k: number, lv = k + 1, perk: number[] = [k > 3 ? 1 : 0, k > 7 ? 1 : 0]) => ((s.stage = k), (s.lv = lv), (s.perk = perk), newStage(s));
 
 // ───────────────────────────── 그리기: 도구 ─────────────────────────────
