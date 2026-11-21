@@ -62,7 +62,7 @@
 - 기계 추천 적중 9/37 (23·25·26라운드 연속 적중 — 재미 1위 = 숙련 격차 상위) · 오너: 원버튼 고집 안 해도 됨 · 오너 선택 3번 모두 원버튼, 2·3라운드 승자는 '처치 → 무작위 강화'가 있는 쪽
 
 ## 졸업한 게임
-- 🎓 👻 몸 갈아타기 (2026-11-21, 40라운드) → 스튜디오 `studio/bodyhop/` · **목표: AAA 게임급**(오너) · 세션·예약은 아래 0126 기록 · 플레이: https://derrick1119.github.io/derrickkim1119/studio/bodyhop/
+- 🎓 👻 몸 갈아타기 (2026-11-21, 40라운드) → 스튜디오 `studio/bodyhop/` · **목표: AAA 게임급**(오너) · 세션 session_01Nm4gEvw85GnHNtv4Qsb7tB · 예약 trig_01PUKNCpB26QPXMhFcE9Yqsq 매시 :40 · 플레이: https://derrick1119.github.io/derrickkim1119/studio/bodyhop/
 - 🎓 행성 수호대 2 (2026-11-07, 8라운드) → 스튜디오 `studio/planet-guardian/` (세션 session_01Nm4gExEyeU9e8MSuJic6vN) · 플레이: https://derrick1119.github.io/derrickkim1119/studio/planet-guardian/
 - ~~🎓 🐑 양치기 멍멍~~ (2026-11-12 졸업 → **2026-11-14 스튜디오 폐기**, 오너: "폐기." — 2차 피드백 "좁은 공간에 모아서 지나가야하는 스테이지는 재미가 아니라 좀 힘들게 하는 느낌", 오너가 코드·페이지까지 지우라고 함)
 - ~~🎓 🎈 풍선 팡 연쇄~~ (2026-11-12 졸업 → **2026-11-13 스튜디오 폐기**, 오너: "넌 폐기 종료", 팀이 예약 사이클을 끔) · 기록: `studio/balloonpop/`

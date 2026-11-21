@@ -4,6 +4,8 @@
 플레이 주소: https://derrick1119.github.io/derrickkim1119/studio/bodyhop/
 빌드: (M0 전 — 첫 사이클에 프로토타입을 옮겨 올린다. 그때까지 공장 계기판 https://derrick1119.github.io/derrickkim1119/arcade/ 에는 이 게임이 없음)
 
+운영: 세션 session_01Nm4gEvw85GnHNtv4Qsb7tB · 예약 사이클 trig_01PUKNCpB26QPXMhFcE9Yqsq 매시 :40 (발견 공장이 2026-11-21 개설)
+
 ## 지켜보는 법
 - `TALK.md`(최신이 위) — 팀 대화 · `MILESTONES.md` — 마일스톤과 오너 테스트 허들
 - `GDD.md` 기획 · `ART.md` 아트 방향 · `FUN.md` 재미 기준 · `TEAM.md` 사이클 규칙 · `BRIEF.md` 운영 브리프
