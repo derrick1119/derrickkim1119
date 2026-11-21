@@ -3,20 +3,25 @@
  * 규칙 한 줄: 톡한 곳으로 슝 날아가 둘레의 적 총알을 전부 빼앗고, 빼앗은 총알이 저절로 되날아간다.
  * 뒤집힘: 탄막이 많을수록 좋다(전부 내 무기). 꼬마 마녀는 쏠 줄 모른다 — 적이 쏴 줘야 공격할 수 있다.
  *
- * 손짓은 톡 하나(아무 데나): 톡 → 6틱 만에 그곳으로 슝(이동 중 무적) → 도착하는 순간 먹보 모자가 둘레(화면 폭 27%~)의
+ * 손짓은 톡 하나(아무 데나): 톡 → 6틱 만에 그곳으로 슝(이동 중 무적) → 도착하는 순간 먹보 모자가 둘레(화면 폭 26%~)의
  *   적 총알을 전부 꿀꺽 → 0.3초 뒤 저절로 전부 유도 별이 되어 가까운 적부터 되날아간다(불꽃놀이).
- *   한입에 5·10·20·30발이면 ×2·×3·×4·×5(탄이 커지고 세진다) — 그래서 '모일 때까지 기다렸다 한입에'가 가장 세다.
- *   쉼 0.5초(쉼 동안 누른 톡은 쉼이 끝나면 나간다). 연타하면 한입이 작아져 약하다.
- * 정답 없음: 어디를 톡 해도 근처 총알은 훔쳐지고 적은 맞는다. 잘하면 한입이 커져 더 빨리·더 크게 터진다. 타이밍 창 없음(언제 눌러도 훔쳐진다).
+ *   한입에 열 발마다 ×1 더(10발 ×2 · 20발 ×3 · 30발 ×4 … ×6까지) — 탄이 커지고 세진다.
+ *   배고픈 모자(뼈대에서 바꾼 것 — 이유: 쉼 0.5초만으로는 '아무 데나 연타'가 '모았다 한입'과 거의 같은 세기였다. 봇으로 재 보니 격차 1.2배):
+ *     한입 뒤엔 모자 입(훔치는 둘레)이 55%로 작아졌다가 2.2초에 걸쳐 다시 다 커진다(고리가 금빛이 되면 다 큰 것).
+ *     그래서 '모일 때까지 기다렸다 한입에'가 가장 세고, 연타는 한입이 작다. 언제 눌러도 훔쳐지긴 한다(좁은 타이밍 창 없음 — 늦어서 손해 보는 때가 없다).
+ *     빈 입(0발)은 배가 안 차서, 빈자리로 비키는 톡은 공짜다.
+ * 정답 없음: 어디를 톡 해도 근처 총알은 훔쳐지고 적은 맞는다. 잘하면 한입이 커져 더 빨리·더 크게 터진다.
+ * 넉넉함: 적 몸 위를 톡 하면 통 튕겨 몸 밖에 선다(다치지 않는다). 마녀가 코앞이면 적이 깜짝 놀라 2초쯤 못 쏜다.
  * 하트 3(판마다 새로): 맞으면 -1(잠깐 무적), 다 잃으면 그 판만 바로 다시(같은 판에서 거듭 지면 하트 +1씩, 6까지 · 대장의 깨진 갑옷은 그대로).
  *   판 시작 10초는 방울이 지켜 준다(1판은 끝까지 — 1판에서는 잃을 것이 없다). 끝 = 15판을 다 지나면.
  * 판 15(장 3 × (새 적 4 + 대장)): 판마다 새 적 = 새 탄막.
- *   1장 아침 구름길: 꽃 구름(둥근 꽃) → 대포 문어(나를 겨눈 부채 — 모여들 때 한입) → 회오리 새(나선) → 비눗방울 게(방울을 훔치면 옆 탄까지 줄줄이 펑) → 천둥 구름 대왕
+ *   1장 아침 구름길: 꽃 구름(둥근 꽃) → 대포 문어(나를 겨눈 부채 — 모여들 때 한입) → 회오리 새(나선) → 비눗방울 게(큰 방울을 훔치면 옆 탄까지 줄줄이 펑) → 천둥 구름 대왕
  *   2장 노을 풍선길: 민들레(떠서 쌓이는 홀씨 밭) → 거울 박쥐(되쏜 탄을 튕겨 두 배로 돌려준다 — 또 훔친다) → 커튼 해파리(구슬 줄) → 팝콘 옥수수(알이 터지면 여섯 배) → 풍선 고래 선장
- *   3장 별밤 오로라길: 가시 성게(빨간 가시탄은 못 훔친다 — 톡으로 비키기) → 고리 달팽이(도는 방패 고리를 훔쳐야 맞는다) → 별똥 물고기 떼 → 금화 까치(금화 한 닢 = 세 발) → 별 먹는 부엉이 대왕
+ *   3장 별밤 오로라길: 가시 성게(빨간 가시탄은 못 훔친다 — 톡으로 비키기) → 고리 달팽이(도는 방패 고리를 훔쳐야 맞는다) → 별똥 물고기 떼 → 금화 까치(금화 한 닢 = 세 발) → 부엉이 대왕
  * 별: 하늘 지나가기 · 하트 안 잃기 · 한입에 N발(1판 별 1 → 2판 별 2 → 3판부터 별 3).
- * 성장: 판을 깨면 모자 레벨이 저절로 +1(둘레·되쏘는 세기·모자 모습). 장 끝(대장 뒤)에만 하늘에 뜬 큰 선물 둘 중 하나를 톡.
+ * 성장: 판을 깨면 모자 레벨이 저절로 +1(입 크기·되쏘는 세기·모자 모습). 장 끝(대장 뒤)에만 하늘에 뜬 큰 선물 둘 중 하나를 톡.
  *   도감 = 훔쳐 본 탄 무늬 16가지. 결과 화면에 다음 판 새 적의 그림자가 미리 보인다.
+ * 점수: 큰 한입일수록 훨씬 크게(한입 n발 × (배수² - 1)) + 잡은 적 × 배수 + 판 200 + 별 150.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
 import type { Bot, GameDef, Input, Theme } from '../core.ts';
@@ -57,7 +62,7 @@ const FOE: Record<FK, FoeDef> = {
   octo: { name: '대포 문어', r: 0.048, hp: 44, pts: 15, every: 90 },
   bird: { name: '회오리 새', r: 0.046, hp: 50, pts: 15, every: 90 },
   crab: { name: '비눗방울 게', r: 0.048, hp: 44, pts: 15, every: 100 },
-  king: { name: '천둥 구름 대왕', r: 0.17, hp: 2600, pts: 300, every: 64, boss: 1 },
+  king: { name: '천둥 구름 대왕', r: 0.17, hp: 2400, pts: 300, every: 64, boss: 1 },
   puff: { name: '민들레', r: 0.048, hp: 48, pts: 20, every: 110 },
   bat: { name: '거울 박쥐', r: 0.046, hp: 30, pts: 20, every: 90 },
   jelly: { name: '커튼 해파리', r: 0.048, hp: 52, pts: 20, every: 104 },
@@ -65,7 +70,7 @@ const FOE: Record<FK, FoeDef> = {
   whale: { name: '풍선 고래 선장', r: 0.19, hp: 2600, pts: 500, every: 70, boss: 1 },
   urchin: { name: '가시 성게', r: 0.048, hp: 56, pts: 30, every: 116 },
   snail: { name: '고리 달팽이', r: 0.048, hp: 50, pts: 30, every: 420 },
-  fish: { name: '별똥 물고기', r: 0.034, hp: 12, pts: 8, every: 100 },
+  fish: { name: '별똥 물고기', r: 0.034, hp: 12, pts: 8, every: 120 },
   pie: { name: '금화 까치', r: 0.046, hp: 56, pts: 40, every: 130 },
   owl: { name: '부엉이 대왕', r: 0.19, hp: 3000, pts: 800, every: 76, boss: 1 },
 };
@@ -208,7 +213,7 @@ interface Foe {
   id: number; k: FK; x: number; y: number; sx: number; sy: number; ex: number; ey: number; hp: number; max: number;
   st: number; tm: number; cool: number; ph: number; n: number; a: number; burst: number; mir: number; phase: number; plan: number; dead: boolean; grp: number;
   // 연출
-  hurtT: number; wind: number; seed: number; shy: number;
+  hurtT: number; wind: number; seed: number; shy: number; shyN: number;
 }
 /** m: 0 곧게 · 1 느려지다 둥실(홀씨·금화) · 2 알(느려지다 펑) · 3 고리(주인 둘레를 돈다) · 4 흔들흔들(방울) */
 interface Bul { k: number; x: number; y: number; vx: number; vy: number; r: number; life: number; age: number; val: number; m: number; own: number; a: number; tk: number }
@@ -315,7 +320,7 @@ function fire(s: StealState, f: Foe) {
       break;
     case 'king':
       ring(s, DROP, f.x, f.y, 14, (f.n % 2) * (Math.PI / 14), 0.0013, 800);
-      if (f.n % 2 === 0) for (const sd of [-1, 1]) fan(s, INK, f.x + sd * 0.14, f.y + 0.04, Math.atan2(ay - f.y, ax - (f.x + sd * 0.14)), 3 + f.phase, 0.14, 0.0018, 800);
+      if (f.n % 2 === 0) for (const sd of [-1, 1]) fan(s, INK, f.x + sd * 0.14, f.y + 0.04, Math.atan2(ay - f.y, ax - (f.x + sd * 0.14)), f.phase >= 2 ? 4 : 3, 0.14, 0.0018, 800);
       break;
     case 'whale':
       for (let j = 0; j < 9; j++) shoot(s, BEAD, 0.1 + j * 0.1 + (f.n % 2) * 0.05 - 0.025, f.y + 0.1, 0, 0.0016, 900);
@@ -345,7 +350,7 @@ function spawnWave(s: StealState) {
     const f: Foe = {
       id: ++s.nid, k, x: first ? x : ex, y: first ? y : ey, sx: x, sy: y, ex, ey, hp, max, st: first ? 1 : 0, tm: 0,
       cool: first ? 34 + s.foes.length * 26 : (boss ? 50 : 24) + Math.floor(s.rng() * 50), ph: s.rng() * TAU, n: 0, a: s.rng() * TAU, burst: 0,
-      mir: k === 'bat' ? 5 : 0, phase: boss ? s.keepPh : 0, plan: 0, dead: false, grp: s.wave * 2.1 + y0 * 7 + (x0 - 0.5) * 1.5, hurtT: 0, wind: 0, seed: Math.floor(s.rng() * 1e6), shy: -999,
+      mir: k === 'bat' ? 5 : 0, phase: boss ? s.keepPh : 0, plan: 0, dead: false, grp: s.wave * 2.1 + y0 * 7 + (x0 - 0.5) * 1.5, hurtT: 0, wind: 0, seed: Math.floor(s.rng() * 1e6), shy: -999, shyN: 0,
     };
     s.foes.push(f);
     // 첫 화면: 꽃이 이미 세 겹으로 피어 있다(세상이 먼저 움직이고 있다)
@@ -643,16 +648,17 @@ function foesStep(s: StealState) {
         for (const b of s.buls) if (b.m === 3 && b.own === f.id) c++;
         if (c < 8) shoot(s, PEBBLE, f.x, f.y, 0, 0, 1e9, 3, 1, f.id, f.a + (f.burst++ % 8) * (TAU / 8));
       }
-    } else if (f.k === 'king' && f.phase >= 1 && t % (f.phase >= 2 ? 8 : 14) === 0) shoot(s, DROP, 0.06 + s.rng() * 0.88, HUD_T, 0, 0.0018, 760);
+    } else if (f.k === 'king' && f.phase >= 1 && t % (f.phase >= 2 ? 11 : 17) === 0) shoot(s, DROP, 0.06 + s.rng() * 0.88, HUD_T, 0, 0.0018, 760);
     else if (f.k === 'owl' && t % 6 === 0) {
       f.a += 0.41;
       shoot(s, COMET, f.x, f.y, Math.cos(f.a) * 0.0018, Math.sin(f.a) * 0.0018, 700);
     }
     if (--f.cool <= 0) {
-      // 마녀가 코앞이면 깜짝 놀라 못 쏜다(코앞에서 쏘는 탄에 맞는 억울함 없이) — 대장은 예외
-      if (!FOE[f.k].boss && s.zt < 0 && (f.x - s.wx) ** 2 + (f.y - s.wy) ** 2 < 0.15 * 0.15) (f.cool = 36), (f.shy = t);
+      // 마녀가 코앞이면 깜짝 놀라 잠깐(세 번, 약 2초) 못 쏜다 — 코앞에서 갑자기 쏘는 탄에 맞는 억울함 없이. 대장은 예외
+      const close = !FOE[f.k].boss && s.zt < 0 && (f.x - s.wx) ** 2 + (f.y - s.wy) ** 2 < 0.15 * 0.15;
+      if (close && f.shyN < 3) (f.cool = 40), (f.shy = t), f.shyN++;
       else if (s.buls.length > BUL_MAX - 3 && f.k !== 'snail') f.cool = 20;
-      else (fire(s, f), (f.cool = FOE[f.k].every + Math.floor(s.rng() * 16)));
+      else (fire(s, f), (f.cool = FOE[f.k].every + Math.floor(s.rng() * 16)), (f.shyN = close ? f.shyN : 0));
     }
     f.wind = f.cool < WIND ? 1 - f.cool / WIND : 0;
   }
@@ -706,7 +712,8 @@ function hurt(s: StealState, b: Bul) {
 }
 
 function hitCheck(s: StealState) {
-  if (s.zt >= 0) return;
+  // 이동 중 · 마지막 적까지 잡은 뒤엔 안 맞는다
+  if (s.zt >= 0 || (s.foes.length === 0 && s.wave >= STAGES[s.stage].waves.length)) return;
   const safe = s.inv > 0 || s.pt < GRACE || s.stage === 0, x = s.wx, y = s.wy;
   for (const b of s.buls) {
     if (b.age < 14) continue;
@@ -742,6 +749,7 @@ function endStage(s: StealState, ok: boolean) {
   s.sweepT = s.t;
   s.spts += s.buls.length * 2;
   s.buls = [];
+  s.shots = [];
   s.starOk = s.stage === 0 ? [true] : s.stage === 1 ? [true, s.best >= d.starN] : [true, s.hits === 0, s.best >= d.starN];
   s.got = s.starOk.filter(Boolean).length;
   s.stars += s.got;
@@ -841,11 +849,11 @@ const game: GameDef<StealState> = {
   id: 'bulletsteal',
   name: '🌂 탄막 훔치기',
   genes: ['bulletsteal', 'chain', 'collect'],
-  twist: '쏠 줄 모르는 꼬마 마녀 — 톡한 곳으로 슝 날아가면 먹보 모자가 둘레의 적 총알을 전부 꿀꺽하고 저절로 되쏜다. 탄막이 많을수록 좋아서, 피하는 대신 가장 빽빽한 곳으로 뛰어든다',
+  twist: '쏠 줄 모르는 꼬마 마녀 — 톡한 곳으로 슝 날아가면 먹보 모자가 둘레의 적 총알을 전부 꿀꺽하고 저절로 되쏜다. 탄막이 많을수록 좋아서, 피하는 대신 가장 빽빽한 곳으로 뛰어든다(한입 뒤엔 모자 입이 작아졌다 다시 커져, 모았다 한입이 연타보다 훨씬 세다)',
   rules: [
     '아무 데나 톡! 마녀가 슝 날아가 둘레의 적 탄을 모자로 전부 훔쳐요. 훔친 탄은 저절로 되날아가요.',
-    '한입에 많이 훔칠수록 ×2 ×3… 세져요. 탄이 모일 때까지 기다렸다 한입에!',
-    '맞으면 하트 -1, 셋을 다 잃으면 그 판만 다시. 빨간 가시탄만 못 훔쳐요.',
+    '한입에 열 발마다 ×1 더 세져요. 한입 뒤엔 모자 입이 작아졌다 다시 커지니, 탄이 모일 때까지 기다렸다 한입에!',
+    '맞으면 하트 -1, 셋을 다 잃으면 그 판만 다시. 빨간 가시탄만 못 훔쳐요(비켜요).',
   ],
   controls: 'touch',
   hint: '탄이 빽빽한 곳을 톡 — 모자가 다 훔쳐 되쏴요 / 화살표로 옮기고 스페이스',
