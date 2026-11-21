@@ -1574,7 +1574,8 @@ function rr(ctx: C2, x: number, y: number, w: number, h: number, r: number) {
 const ICON: Record<string, string[]> = {
   star: ['...#...', '..###..', '#######', '.#####.', '..###..', '.##.##.', '.#...#.'],
   heart: ['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...'],
-  glass: ['#####', '.###.', '..#..', '.###.', '#####'],
+  glass: ['#######', '.#...#.', '..#.#..', '...#...', '..#.#..', '.#...#.', '#######'],
+  sand: ['.......', '..###..', '...#...', '.......', '...#...', '..###..', '.......'],
   disc: ['..###..', '.#####.', '#######', '#######', '#######', '.#####.', '..###..'],
   star5: ['..#..', '#####', '.###.', '.#.#.', '#...#'],
   heart5: ['.#.#.', '#####', '#####', '.###.', '..#..'],
@@ -2708,28 +2709,39 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   ctx.fillStyle = 'rgba(255,214,110,.5)';
   ctx.fillRect(0, hb - 1.5, w, 1.5);
   {
-    const cx = R(0.055), cy = hb / 2;
-    ctx.fillStyle = lin(ctx, cx, cy - R(0.03), cx, cy + R(0.03), [0, '#ffe08a'], [1, '#c8902a']);
-    const fc = ctx.fillStyle; // 🎨 F3: 동전도 도트(검은 테 = 한 칸 큰 원을 먼저)
-    ctx.fillStyle = OUT;
-    pxMap(ctx, ICON.disc, cx, cy, cellOf(R(0.034), 7));
-    ctx.fill();
-    ctx.fillStyle = fc;
-    pxMap(ctx, ICON.disc, cx, cy, cellOf(R(0.028), 7));
-    ctx.fill();
+    let cx = R(0.055), nx = R(0.1);
+    const cy = hb / 2, w2 = s.stage >= STAGE_COUNT, lab = w2 ? `2-${s.stage - STAGE_COUNT + 1}` : String(s.stage + 1); // M2 S1 시험 판은 '2-1'
+    const fc = lin(ctx, cx, cy - R(0.03), cx, cy + R(0.03), [0, '#ffe08a'], [1, '#c8902a']); // 🎨 F3: 동전도 도트(검은 테 = 한 칸 큰 원을 먼저)
+    if (w2) { // 🧪 F3: '2-10'이 동전보다 넓어 좌우로 삐져나왔음 → 월드 2는 글 길이만큼 도트 패
+      font(0.032, 900);
+      const x0 = R(0.02), pw = Math.max(R(0.07), ctx.measureText(lab).width + R(0.03)), ph = R(0.056);
+      (cx = x0 + pw / 2), (nx = x0 + pw + R(0.025));
+      ctx.fillStyle = OUT;
+      rr(ctx, x0 - 3, cy - ph / 2 - 3, pw + 6, ph + 6, 6);
+      ctx.fill();
+      ctx.fillStyle = fc;
+      rr(ctx, x0, cy - ph / 2, pw, ph, 3);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = OUT;
+      pxMap(ctx, ICON.disc, cx, cy, cellOf(R(0.034), 7));
+      ctx.fill();
+      ctx.fillStyle = fc;
+      pxMap(ctx, ICON.disc, cx, cy, cellOf(R(0.028), 7));
+      ctx.fill();
+      font(0.036, 900);
+    }
     ctx.fillStyle = '#2a1a08';
-    font(0.036, 900);
     ctx.textAlign = 'center';
-    if (s.stage >= STAGE_COUNT) font(0.026, 900);
-    ctx.fillText(s.stage >= STAGE_COUNT ? `${2}-${s.stage - STAGE_COUNT + 1}` : String(s.stage + 1), cx, cy + 1); // M2 S1 시험 판은 '2-1'
+    ctx.fillText(lab, cx, cy + 1);
     ctx.textAlign = 'left';
     ctx.fillStyle = '#fff6e0';
     font(0.044, 900);
-    ctx.fillText(d.name, R(0.1), cy + 1);
-    const nw = ctx.measureText(d.name).width;
+    ctx.fillText(d.name, nx, cy + 1, w - nx - R(0.16));
+    const nw = Math.min(ctx.measureText(d.name).width, w - nx - R(0.16));
     font(0.036, 700);
     ctx.fillStyle = '#9aa3cc';
-    ctx.fillText(s.stage >= STAGE_COUNT ? ` / 2-${TRIAL.length}` : ` / ${STAGE_COUNT}`, R(0.1) + nw, cy + 2); // M2 S5 월드 2
+    ctx.fillText(w2 ? ` / 2-${TRIAL.length}` : ` / ${STAGE_COUNT}`, nx + nw, cy + 2); // M2 S5 월드 2
   }
   {
     const cy = hb / 2;
@@ -2853,8 +2865,11 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     const r1 = ty + R(0.042);
     {
       const ix = R(0.04);
-      ctx.fillStyle = '#9ff0ff'; // 🎨 F3: 모래시계도 도트
-      pxMap(ctx, ICON.glass, ix, r1, cellOf(R(0.018), 5));
+      ctx.fillStyle = '#9ff0ff'; // 🎨 F3: 모래시계도 도트 · 🧪 I자로 읽혀 유리 테 + 금빛 모래 두 색으로
+      pxMap(ctx, ICON.glass, ix, r1, 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffd36b';
+      pxMap(ctx, ICON.sand, ix, r1, 2);
       ctx.fill();
       const gx = R(0.07), gw = w - R(0.07) - R(0.24), gh = R(0.038); // 🎨 F3: 글(어두운 색)이 띠 밖으로 넘쳐 위아래가 잘려 보였음 → 띠를 키움
       ctx.fillStyle = 'rgba(255,255,255,.08)';

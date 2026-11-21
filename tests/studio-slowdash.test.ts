@@ -613,6 +613,17 @@ describe('느린 시간 닌자 플레이 빌드', () => {
     expect(src).not.toMatch(/fillRect\(-20, -20, w \+ 40, h \+ 40\)/); // 하늘에 경계선 남던 덮기 없음
     expect(juice).toMatch(/fillRect\(-w, -h, w \* 3, h \* 3\)/); // 번쩍도 화면 전체
   });
+  it('M3 F3 \'AI 티\' ①(💬 오너 "AI로 제작된 티" → "계속 이어서 해"): 판 글은 도트 글 · 작게 굽는 글은 가늘게(🧪 겹획 메움) · 머리말 단추 글은 밝게 · 월드 2 번호는 패 · ★♥는 도트 맵', () => {
+    const src = readFileSync('studio/slowdash/game.ts', 'utf8'), pix = readFileSync('studio/slowdash/pix.ts', 'utf8'), main = readFileSync('studio/slowdash/main.ts', 'utf8'), html = readFileSync('studio/slowdash/index.html', 'utf8');
+    expect(main).toMatch(/pixelText\(ctx\)/); // 판 캔버스의 fillText·strokeText를 도트 글로
+    expect(pix).toMatch(/cap = sz < 14 \? 500 : sz < 16 \? 600 : sz < 22 \? 700 : 800/); // '싹▇이'·'끝▇' 막기: 작게 구울수록 가늘게
+    expect(pix).toMatch(/q = px >= 44 \? 2 : 1/); // 37px 제목도 2칸이면 '벽'이 메워졌음
+    expect(html).toMatch(/\.tg button\{[^}]*color:#dfe6ff/); // 단추 글이 검정(바탕과 1.3:1)이던 것
+    expect(main).toMatch(/pxLabel\(soundBtn,/);
+    expect(src).toMatch(/pw = Math\.max\(R\(0\.07\), ctx\.measureText\(lab\)\.width \+ R\(0\.03\)\)/); // '2-10'이 동전 밖으로 삐져나오던 것
+    expect(src).toMatch(/function starPath\(ctx: C2, x: number, y: number, r: number\) \{\n  iconAt\(/); // ★♥는 도트 맵(세상 캔버스에서는 한 칸 = 도트 한 칸) · 세상 속 arc는 아직 남음(② 다음 일)
+    expect(src).toMatch(/function heartPath\(ctx: C2, x: number, y: number, r: number\) \{\n  iconAt\(/);
+  });
   it('M3 S1 시안 모음: 스타일 넷(도트·3D·2.5D·2D)과 캐릭터 셋 그림이 있고, 모음 페이지가 일곱 장을 모두 가리킨다', () => {
     const dir = 'web/public/studio/slowdash/concepts/', page = readFileSync(dir + 'index.html', 'utf8');
     for (const img of ['a-pixel.png', 'b-3d.webp', 'c-2_5d.webp', 'd-2d.webp', 'cast1.webp', 'cast2.webp', 'cast3.webp']) {
