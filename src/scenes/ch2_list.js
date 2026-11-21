@@ -56,6 +56,7 @@
       await X.tween(ps.food, 'drop', 1, 2.8, T.ease.out3);
       A.sfx('join');
       X.tween(ps.food, 'glow', 0, 2);
+      await X.TALK.say('leo', '오늘이… 내 기일이구나.\n아나가 차린 밥상이야.');
       leo.flip = false;
       await X.walk(leo, PL.TABLE_X - 66);
       leo.flip = false; leo.chair = 1;
@@ -78,6 +79,7 @@
       await X.walk(nana, PL.TABLE_X - 170, 78);
       nana.pose = (o, a, t) => { o.armB = { a: 1.6 + Math.sin(t * 5) * 0.3, b: 0.4 }; };
       await X.wait(1.4);
+      await X.TALK.say('nana', '보고 싶으면 따라오너라.');
       nana.pose = null; leo.chair = 0;
       X.walk(nana, C.PLOT + 420, 80);
       await X.wait(0.5);
@@ -86,6 +88,7 @@
       const lake = T.lake({ paint: T.vig.floor, leo: F.leoAt(0), nana: true });
       await X.view(lake, { color: '#1b2a40' });
       T.announce('거울 호수. 물결이 일어 비친 모습이 고리마다 어긋나 있다. 고리를 눌러 돌려 맞춘다.');
+      await X.TALK.say('nana', '이 호수엔 두고 온 사람들이 비친단다.\n볼 수는 있어도, 닿지는 않아.');
       await lake.calm({ start: [3, 6] });
       X.age('아나, 37');
       T.announce('거울 호수. 부엌 바닥에 주저앉아 공책을 끌어안은 아나가 비친다.');

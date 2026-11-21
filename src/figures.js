@@ -66,6 +66,20 @@
     g.beginPath(); g.moveTo(pts[0], pts[1]); g.lineTo(pts[2], pts[3]); g.lineTo(pts[4], pts[5]); g.stroke();
   }
 
+  /* The head, facing +x: forehead, the bridge and tip of the nose, lips, chin, jaw, the back of the skull.
+     ft is how far the features stand out: 1 for a grown face, less for a child's. */
+  function headPath(g, R, ft) {
+    g.beginPath();
+    g.moveTo(-R * 0.1, -R * 1.02);
+    g.quadraticCurveTo(R * 0.74, -R * 1.02, R * 0.9, -R * 0.3);
+    g.quadraticCurveTo(R * 0.93, -R * 0.06, R * (0.92 + 0.28 * ft), R * 0.2);
+    g.quadraticCurveTo(R * (0.94 + 0.12 * ft), R * 0.35, R * 0.86, R * 0.37);
+    g.quadraticCurveTo(R * 0.97, R * 0.64, R * (0.64 + 0.1 * ft), R * (0.93 + 0.05 * ft));
+    g.quadraticCurveTo(R * 0.2, R * 1.12, -R * 0.5, R * 0.8);
+    g.quadraticCurveTo(-R * 1.06, R * 0.5, -R * 1.02, -R * 0.12);
+    g.quadraticCurveTo(-R * 0.98, -R * 1.02, -R * 0.1, -R * 1.02);
+    g.closePath();
+  }
   function hairPath(g, style, R, st) {
     const d = Math.PI / 180;
     g.beginPath();
@@ -86,7 +100,7 @@
       g.quadraticCurveTo(R * 0.2, -R * 0.4, R * 0.86, -R * 0.5);
       g.closePath();
     } else if (style === 'beanie') {
-      g.arc(0, 0, R + 1.5, -20 * d, 176 * d, true);
+      g.arc(0, 0, R + 1.5, -34 * d, 176 * d, true);   /* worn back off the brow */
       g.closePath();
     } else if (style === 'bun') {
       g.arc(0, 0, R + 1.1, -30 * d, 172 * d, true);
@@ -155,13 +169,22 @@
     g.scale(sx * u, u);
     const drawArm = (a, color) => {
       limb(g, a, K.armW, color);
-      g.fillStyle = st.skin; g.beginPath(); g.arc(a[4], a[5], K.hand, 0, TAU); g.fill();
+      const an = Math.atan2(a[5] - a[3], a[4] - a[2]), cx = Math.cos(an), cy = Math.sin(an);
+      g.strokeStyle = T.shade(color, -0.12); g.lineWidth = K.armW + 0.5; g.lineCap = 'butt';   /* cuff */
+      g.beginPath(); g.moveTo(a[4] - cx * 2.8, a[5] - cy * 2.8); g.lineTo(a[4] - cx * 1.3, a[5] - cy * 1.3); g.stroke();
+      g.fillStyle = st.skin;
+      g.beginPath(); g.ellipse(a[4] + cx * 1.1, a[5] + cy * 1.1, K.hand * 1.3, K.hand * 0.98, an, 0, TAU); g.fill();
+      g.beginPath(); g.arc(a[4] + cx * 0.5 - cy * K.hand * 0.8, a[5] + cy * 0.5 + cx * K.hand * 0.8, K.hand * 0.5, 0, TAU); g.fill();   /* thumb */
     };
     const drawLeg = (l, color) => {
       limb(g, l, K.legW, st.skirt ? st.skin : color);
       if (!o.noShoes) {
+        const x = l[4], y = l[5], f = K.legW / 7.6;
         g.fillStyle = st.shoe;
-        g.beginPath(); g.ellipse(l[4] + 2.4, l[5] + 1.2, K.legW * 0.82, K.legW * 0.46, 0, 0, TAU); g.fill();
+        g.beginPath(); g.moveTo(x - 3.3 * f, y + 3.2); g.lineTo(x - 3.5 * f, y - 0.4); g.quadraticCurveTo(x - 1 * f, y - 2.6, x + 1.8 * f, y - 1.2);
+        g.quadraticCurveTo(x + 7 * f, y - 0.5, x + 7.2 * f, y + 3.2); g.closePath(); g.fill();
+        g.strokeStyle = T.shade(st.shoe, T.hex(st.shoe)[0] > 150 ? -0.25 : -0.4); g.lineWidth = 1; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(x - 3.2 * f, y + 3.2); g.lineTo(x + 7.1 * f, y + 3.2); g.stroke();
       }
     };
 
@@ -190,12 +213,28 @@
       g.lineTo(hx - nx * b1, hy - ny * b1);
       g.quadraticCurveTo(dx * (len + 2.5), dy * (len + 2.5), hx + nx * a1, hy + ny * a1);
       g.closePath(); g.fill();
+      g.strokeStyle = T.shade(st.bottom, 0.16); g.lineWidth = 1.1; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(hx - nx * b1 * 0.92 - dx * 1.6, hy - ny * b1 * 0.92 - dy * 1.6);
+      g.quadraticCurveTo(dx * (len + 0.9), dy * (len + 0.9), hx + nx * a1 * 0.92 - dx * 1.6, hy + ny * a1 * 0.92 - dy * 1.6); g.stroke();
     } else if (!o.noLegs) {
       g.fillStyle = st.bottom; g.beginPath(); g.arc(0, 0, K.torsoW * 0.47, 0, TAU); g.fill();
     }
     /* torso */
-    g.strokeStyle = st.top; g.lineWidth = K.torsoW; g.lineCap = 'round';
-    g.beginPath(); g.moveTo(ax * 3, ay * 3); g.lineTo(shd[0] - ax * 2.5, shd[1] - ay * 2.5); g.stroke();
+    {
+      const ws = K.torsoW / 17, ts = K.torso / 30, belly = st.kid ? 0.3 : st.belly == null ? 0.9 : st.belly;
+      const at = (t, w) => [ax * t * ts - ay * w * ws, ay * t * ts + ax * w * ws];   /* t up the spine, w out to the front (+) or back (-) */
+      const body = T.P.soft([at(-3.6, -6.2), at(4, -8.4), at(14, -8.5), at(22, -8.9), at(28.4, -7.5), at(31.3, -3.2),
+        at(31.3, 3.4), at(28.4, 7.7), at(20, 8.8), at(11, 8.5 + belly), at(3, 8.2 + belly * 0.6), at(-3.6, 6)]);
+      g.fillStyle = st.top; g.fill(body);
+      g.save(); g.clip(body);
+      g.strokeStyle = 'rgba(30,24,48,0.1)'; g.lineWidth = 6.5 * ws; g.lineCap = 'butt';   /* the far side falls away */
+      let q = at(-5, -7), r2 = at(33, -7); g.beginPath(); g.moveTo(q[0], q[1]); g.lineTo(r2[0], r2[1]); g.stroke();
+      g.strokeStyle = dark(st.top); g.lineWidth = 1.5;                                    /* hem */
+      q = at(-0.6, -10); r2 = at(-0.6, 11); g.beginPath(); g.moveTo(q[0], q[1]); g.lineTo(r2[0], r2[1]); g.stroke();
+      g.restore();
+      g.fillStyle = dark(st.top);                                                         /* collar */
+      g.beginPath(); g.ellipse(nk[0] + ax * 0.4, nk[1] + ay * 0.4, 4.3 * ws, 1.7, lean, 0, TAU); g.fill();
+    }
     if (st.stripe) {
       g.strokeStyle = st.stripe; g.lineWidth = 1.1; g.lineCap = 'butt';
       for (let i = 0; i < 5; i++) {
@@ -208,7 +247,7 @@
       g.beginPath(); g.moveTo(nk[0] - 4.2, nk[1] + 2.2); g.lineTo(nk[0] + 4.6, nk[1] + 2.6); g.stroke();
     }
     /* neck + head */
-    g.strokeStyle = st.skin; g.lineWidth = 5; g.lineCap = 'round';
+    g.strokeStyle = T.shade(st.skin, -0.09); g.lineWidth = 4.6; g.lineCap = 'round';
     g.beginPath(); g.moveTo(nk[0], nk[1] + 1); g.lineTo(head[0], head[1]); g.stroke();
     g.save();
     g.translate(head[0], head[1]);
@@ -221,8 +260,9 @@
     }
     if (st.hairStyle === 'bun') { g.fillStyle = st.hair; g.beginPath(); g.arc(-R * 0.92, -R * 0.62, R * 0.46, 0, TAU); g.fill(); }
     g.fillStyle = st.skin;
-    g.beginPath(); g.arc(0, 0, R, 0, TAU); g.fill();
-    g.beginPath(); g.arc(R - 0.2, 1.3, 1.75, 0, TAU); g.fill(); /* nose */
+    headPath(g, R, st.kid ? 0.5 : 1); g.fill();
+    g.fillStyle = T.shade(st.skin, -0.1);   /* ear */
+    g.beginPath(); g.ellipse(-R * 0.2, R * 0.14, R * 0.17, R * 0.25, 0.25, 0, TAU); g.fill();
     if (st.beard) {
       g.fillStyle = st.beard;
       g.beginPath(); g.moveTo(-R * 0.5, R * 0.3); g.quadraticCurveTo(R * 0.1, R * 1.75, R * 0.95, R * 0.42);
@@ -230,17 +270,33 @@
     }
     if (face.blush !== 0) {
       g.fillStyle = T.rgba('#e2725b', face.blush == null ? 0.22 : face.blush);
-      g.beginPath(); g.arc(R * 0.42, R * 0.4, R * 0.27, 0, TAU); g.fill();
+      g.beginPath(); g.ellipse(R * 0.4, R * 0.42, R * 0.3, R * 0.22, 0.2, 0, TAU); g.fill();
     }
     g.strokeStyle = '#2b2024'; g.fillStyle = '#2b2024'; g.lineWidth = 0.9; g.lineCap = 'round';
     const ex = R * 0.47, ey = -R * 0.06;
-    if (face.eye === 'closed') { g.beginPath(); g.arc(ex, ey - 0.4, 1.5, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke(); }
-    else if (face.eye === 'happy') { g.beginPath(); g.arc(ex, ey + 0.9, 1.5, 1.15 * Math.PI, 1.85 * Math.PI); g.stroke(); }
-    else { g.beginPath(); g.arc(ex, ey, 0.95, 0, TAU); g.fill(); }
+    /* everyone blinks, each to their own clock */
+    const bs = ((st.hair || '#000000').charCodeAt(1) * 7 + (st.top || '#000000').charCodeAt(2) * 3) % 17;
+    const blink = (T.time * 0.34 + bs * 0.059) % 1 > 0.958;
+    const sad = face.eye === 'closed' || face.tear > 0.3;
+    if (face.eye === 'closed' || (blink && face.eye !== 'happy')) { g.beginPath(); g.moveTo(ex - 1.7, ey - 0.2); g.quadraticCurveTo(ex, ey + 1.2, ex + 1.7, ey - 0.1); g.stroke(); }
+    else if (face.eye === 'happy') { g.beginPath(); g.moveTo(ex - 1.8, ey + 0.7); g.quadraticCurveTo(ex, ey - 1.5, ex + 1.8, ey + 0.6); g.stroke(); }
+    else {
+      g.beginPath(); g.ellipse(ex, ey, 1.02, 1.36, 0, 0, TAU); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.9)'; g.beginPath(); g.arc(ex + 0.38, ey - 0.5, 0.36, 0, TAU); g.fill();
+      g.fillStyle = '#2b2024';
+      g.lineWidth = 0.7; g.beginPath(); g.moveTo(ex - 1.8, ey - 0.9); g.quadraticCurveTo(ex - 0.2, ey - 2.0, ex + 1.7, ey - 1.0); g.stroke(); g.lineWidth = 0.9;   /* lid */
+    }
+    /* the brow says more than the eye does */
+    g.strokeStyle = T.shade(st.hair || '#3a2b25', T.hex(st.hair || '#3a2b25')[0] > 190 ? -0.3 : -0.05); g.lineWidth = 0.85;
+    const by = ey - (face.eye === 'happy' ? 4.1 : 3.5);
+    g.beginPath(); g.moveTo(ex - 2.1, by + (sad ? 0.9 : 0.3)); g.quadraticCurveTo(ex, by - (sad ? 0.1 : 0.7), ex + 2.0, by + (sad ? -0.7 : 0.25)); g.stroke();
+    g.strokeStyle = '#2b2024'; g.lineWidth = 0.9;
     if (face.old) { g.lineWidth = 0.6; g.beginPath(); g.moveTo(ex - 2.6, ey - 1.6); g.lineTo(ex - 4.4, ey - 2.6); g.moveTo(ex - 2.8, ey + 0.4); g.lineTo(ex - 4.8, ey + 0.8); g.moveTo(ex + 0.4, ey + 3.4); g.lineTo(ex + 2.6, ey + 4.2); g.stroke(); g.lineWidth = 0.9; }
-    if (face.mouth === 'smile') { g.beginPath(); g.arc(R * 0.5, R * 0.36, 2.3, 0.18 * Math.PI, 0.72 * Math.PI); g.stroke(); }
-    else if (face.mouth === 'open') { g.beginPath(); g.ellipse(R * 0.66, R * 0.52, 1.3, 1.7, 0, 0, TAU); g.fill(); }
-    else if (face.mouth === 'line') { g.beginPath(); g.moveTo(R * 0.5, R * 0.52); g.lineTo(R * 0.8, R * 0.5); g.stroke(); }
+    g.strokeStyle = '#7a3438'; g.lineWidth = 0.85;
+    if (face.mouth === 'smile') { g.beginPath(); g.moveTo(R * 0.9, R * 0.6); g.quadraticCurveTo(R * 0.7, R * 0.72, R * 0.5, R * 0.5); g.stroke(); }
+    else if (face.mouth === 'open') { g.fillStyle = '#7a3438'; g.beginPath(); g.moveTo(R * 0.9, R * 0.56); g.quadraticCurveTo(R * 0.74, R * 0.98, R * 0.5, R * 0.54); g.quadraticCurveTo(R * 0.7, R * 0.62, R * 0.9, R * 0.56); g.fill(); g.fillStyle = '#2b2024'; }
+    else if (face.mouth === 'line') { g.beginPath(); g.moveTo(R * 0.9, R * 0.62); g.lineTo(R * 0.58, R * 0.62); g.stroke(); }
+    g.strokeStyle = '#2b2024'; g.lineWidth = 0.9;
     if (face.tear) {
       g.fillStyle = T.rgba('#bfe0f2', face.tear);
       g.beginPath(); g.ellipse(ex + 0.6, ey + 3.2 + (face.tearY || 0), 0.9, 1.5, 0, 0, TAU); g.fill();
@@ -248,6 +304,12 @@
     g.fillStyle = st.hairStyle === 'beanie' ? st.beanie : st.hair;
     hairPath(g, st.hairStyle, R, st);
     g.fill();
+    if (st.hairStyle !== 'beanie' && st.hair) {   /* a few strands, so it is hair and not a cap */
+      g.save(); hairPath(g, st.hairStyle, R, st); g.clip();
+      g.strokeStyle = T.shade(st.hair, T.hex(st.hair)[0] > 150 ? -0.12 : 0.16); g.lineWidth = 0.6; g.globalAlpha *= 0.32;
+      for (let i = 0; i < 2; i++) { g.beginPath(); g.arc(R * 0.7, R * 1.3, R * (1.75 + i * 0.42), -148 * d2r, -96 * d2r); g.stroke(); }
+      g.restore();
+    }
     if (st.glasses) {
       g.strokeStyle = '#6b5a48'; g.lineWidth = 0.8;
       g.beginPath(); g.arc(ex, ey + 0.2, 2.5, 0, TAU); g.stroke();
@@ -261,7 +323,7 @@
     if (st.hairStyle === 'beanie') {
       g.strokeStyle = T.shade(st.beanie, 0.16); g.lineWidth = 3.6; g.lineCap = 'round';
       const d = Math.PI / 180, r1 = R + 1.5;
-      g.beginPath(); g.moveTo(Math.cos(-20 * d) * r1, Math.sin(-20 * d) * r1); g.lineTo(Math.cos(176 * d) * r1, Math.sin(176 * d) * r1); g.stroke();
+      g.beginPath(); g.moveTo(Math.cos(-34 * d) * r1, Math.sin(-34 * d) * r1); g.lineTo(Math.cos(176 * d) * r1, Math.sin(176 * d) * r1); g.stroke();
       g.fillStyle = st.hair; /* a little hair at the nape */
       g.beginPath(); g.ellipse(-R * 0.72, R * 0.42, 2.2, 3.2, 0.5, 0, TAU); g.fill();
     }

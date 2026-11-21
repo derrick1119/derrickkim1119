@@ -26,7 +26,10 @@
       const n = P.count(text);
       const tk = (K.cur = { who, text, k: 0, done: false, a: 1 });
       T.announce(WHO[who][0] + ': ' + text.replace(/\n/g, ' '));
-      k.tween(tk, 'k', 1, Math.max(0.6, n * (o.slow ? 0.11 : 0.062)), T.ease.lin).then(() => { tk.done = true; });
+      const dur = Math.max(0.6, n * (o.slow ? 0.11 : 0.062));
+      k.tween(tk, 'k', 1, dur, T.ease.lin).then(() => { tk.done = true; });
+      /* a remark in passing leaves by itself: o.auto seconds after it has been said */
+      if (o.auto) k.wait(dur + o.auto).then(() => { if (K.cur === tk && tk.next) { tk.done = true; tk.next(); } });
       return new Promise((res) => {
         tk.next = () => {
           if (!tk.done) { tk.k = 1; tk.done = true; k.tweens = k.tweens.filter((w) => w.obj !== tk); return; }

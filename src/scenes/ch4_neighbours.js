@@ -52,6 +52,7 @@
         S.b1 = X.boat({ x: -760, riders: [bean] }); bean.seat = 34;
       });
       X.walk(leo, 250, 110);
+      X.TALK.say('nana', '종이 울리면 누가 오는 거란다.\n누구를 마중하게 될지는, 와 봐야 알지.', { auto: 3 });
       await X.sail(S.b1, -74, 84);
       T.announce('배 위에 늙은 강아지 한 마리. 빈이다.');
       A.sfx('door');
@@ -170,6 +171,7 @@
       /* and beside her picture, his own face, which has not changed in fifteen years */
       X.tween(lake.fade, 'a', 0.45, 2);
       await X.tween(lake, 'mirror', 0.9, 2);
+      await X.TALK.say('leo', '같이 늙자고 했는데.');
       const Wv = T.view.W;
       await X.tap(() => [-Wv / 2 + 350, 340, 70], { screen: true });
       lake.touch(-Wv / 2 + 350, 340);

@@ -34,6 +34,7 @@
       await X.wait(2.6);
       /* He has one dream to give. Tap the water to see another evening; carry the light to the water to use it. */
       let sent = false;
+      await X.TALK.say('nana', '꿈으로 한 번은 다녀올 수 있단다.\n평생 딱 한 번이니, 꼭 필요한 날에 쓰렴.');
       const dreamt = lake.offerMote().then(() => { sent = true; });
       for (let i = 0; i < 3 && !sent; i++) {
         if (i > 0) { await X.tween(lake.fade, 'a', 0, 0.7); lake.i = i; lake.amp = 1; await X.tween(lake.fade, 'a', 1, 0.9); X.note({ voice: 'felt', vel: 0.3 }); }

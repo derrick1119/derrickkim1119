@@ -327,6 +327,8 @@
     await k.tween(S.hug, 'k', 1, 0.8, T.ease.out);
     await k.wait(2.2);
     await TALK.say('nana', '왜 이렇게 빨리 왔니.', { slow: true });
+    await TALK.say('nana', '네 엄마보다 먼저 올 줄은 몰랐구나.');
+    await TALK.say('nana', '여긴 마중 나루란다.\n먼저 온 사람이, 올 사람을 기다리는 곳이지.');
     await k.wait(0.8);
     k.tween(S.hug, 'k', 0, 1, T.ease.io);
     await k.tween(S.cup, 'k', 1, 1.1, T.ease.io);
@@ -383,14 +385,14 @@
     }
     /* neighbours */
     const near = Math.abs(S.wx - 930) < 150;
-    if (near && !S.bram.near) { S.bram.near = true; S.clock.tween(S.bram, 'wave', 1, 0.5).then(() => S.clock.wait(2.4)).then(() => S.clock.tween(S.bram, 'wave', 0, 0.6)); note(); }
+    if (near && !S.bram.near) { S.bram.near = true; TALK.say('nana', '브램 선장은 배를 짓는단다.\n아내가 오면 태우려고, 육십 년째.', { auto: 3.2 }); S.clock.tween(S.bram, 'wave', 1, 0.5).then(() => S.clock.wait(2.4)).then(() => S.clock.tween(S.bram, 'wave', 0, 0.6)); note(); }
     if (!S.post.on && !S.post.done && S.wx > 1010) S.post.on = true;
     if (S.post.on) {
       S.post.x -= 170 * dt;
       if (!S.post.rang && S.post.x - S.wx < 300) { S.post.rang = true; A.sfx('bike'); }
       if (S.post.x < 420) { S.post.on = false; S.post.done = true; }
     }
-    if (!S.rosa.done && S.wx > 1930) { S.rosa.done = true; S.clock.tween(S.rosa, 'k', 1, 1.1, T.ease.io).then(() => { notes(4, { vel: 0.3 }); return S.clock.wait(2.2); }).then(() => S.clock.tween(S.rosa, 'k', 0, 1)); }
+    if (!S.rosa.done && S.wx > 1930) { S.rosa.done = true; TALK.say('nana', '로사는 아들 줄 담요를 뜨지.\n다들 누군가를 기다리며 무언가를 만든단다.', { auto: 2.4 }); S.clock.tween(S.rosa, 'k', 1, 1.1, T.ease.io).then(() => { notes(4, { vel: 0.3 }); return S.clock.wait(2.2); }).then(() => S.clock.tween(S.rosa, 'k', 0, 1)); }
     if (!S.kidWave.done && S.wx > 2230) { S.kidWave.done = true; S.clock.tween(S.kidWave, 'k', 1, 0.5).then(() => S.clock.wait(2)).then(() => S.clock.tween(S.kidWave, 'k', 0, 0.6)); note(); }
     if (S.ph === 'walk' && S.join2 && S.wx >= DOOR - 52.5 && !S.nmoving) goHome();
     if (S.ph === 'climb' && S.wx >= STOP - 54.5 && !S.nmoving) pointOut();

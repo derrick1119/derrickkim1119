@@ -181,6 +181,7 @@
       const pressed = X.seaLamp({ rounds: [[3, 0, 1, 2], [0, 2, 1, 3, 3]] });
       X.sail(S.b1, -74, 62);
       await pressed;
+      X.TALK.say('nana', '저 배엔… 내 딸이 탔구나.\n네 엄마란다.', { auto: 3 });
       await new Promise((res) => { const iv = () => (S.b1.x >= -74.5 ? res() : X.wait(0.2).then(iv)); iv(); });
       A.sfx('door');
       await X.land(mom, 40);
