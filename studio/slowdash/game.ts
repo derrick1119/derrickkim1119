@@ -1657,9 +1657,10 @@ function ghostOf(im: HTMLCanvasElement, key: number, col: string) {
   x.clearRect(0, 0, g.width, g.height);
   x.globalCompositeOperation = 'source-over';
   x.fillStyle = col; // 바둑판 실루엣은 너무 시끄러웠음 → 바깥 테 한 칸만(🧪 r4 자체 점검)
-  for (let j = -1; j <= H; j++) for (let i = -1; i <= W; i++) { // 👁 r4: 1칸 테가 국수·낙서처럼 보였다 → 바깥 테 + 안쪽 테 두 칸
+  for (let j = -1; j <= H; j++) for (let i = -1; i <= W; i++) { // 👁 r4: 1칸 테가 국수·낙서처럼 보였다 → 👁 r6: 테만으론 여전히 낙서 → 속은 짙은 청록 그림자, 바깥 한 칸 밝은 테
     const n = a(i - 1, j) || a(i + 1, j) || a(i, j - 1) || a(i, j + 1);
-    if ((a(i, j) && (!a(i - 1, j) || !a(i + 1, j) || !a(i, j - 1) || !a(i, j + 1))) || (!a(i, j) && n)) x.fillRect(i + 1, j + 1, 1, 1);
+    if (a(i, j)) { if (col !== '#ffffff') (x.fillStyle = '#1f5c63'), x.fillRect(i + 1, j + 1, 1, 1); } // 흰 깜빡임은 테만
+    else if (n) (x.fillStyle = col), x.fillRect(i + 1, j + 1, 1, 1);
   }
   GHOST.set(key, g);
   return g;
@@ -2100,16 +2101,15 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.restore();
     if (f.k === 'shield' && f.hp > 1 && !shieldBehind) drawShieldDisc(ctx, k, f.fa, Math.max(0, 1 - (t - (fx.memo['bn' + f.id] ?? -99)) / 10));
     if (f.k === 'boss') {
+      const ox = Math.round(X(x) / PX) * PX - X(x), oy = Math.round((Y(y) - R(z)) / PX) * PX - (Y(y) - R(z)); // 👁 r5·r6: 45° 돌린 네모(번짐) → 도트 마름모, 칸 격자에 맞춤
       for (let j = 0; j < 4; j++) {
-        ctx.fillStyle = j < f.hp ? '#ff5a4e' : 'rgba(255,255,255,.2)';
-        ctx.save();
-        ctx.translate((j - 1.5) * k * 0.13, -k * 1.32);
-        ctx.rotate(Math.PI / 4);
-        ctx.fillRect(-k * 0.035, -k * 0.035, k * 0.07, k * 0.07);
-        ctx.strokeStyle = OUT;
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(-k * 0.035, -k * 0.035, k * 0.07, k * 0.07);
-        ctx.restore();
+        const cx = ox + Math.round(((j - 1.5) * k * 0.15) / PX) * PX, cy = oy + Math.round((-k * 1.32) / PX) * PX;
+        const cells = (rows: string[], col: string) => {
+          ctx.fillStyle = col;
+          rows.forEach((r, jj) => [...r].forEach((ch, ii) => ch === '#' && ctx.fillRect(cx + (ii - (r.length >> 1)) * PX, cy + (jj - (rows.length >> 1)) * PX, PX, PX)));
+        };
+        cells(['.###.', '#####', '.###.'], OUT);
+        cells(['.#.', '###', '.#.'], j < f.hp ? '#ff5a4e' : '#4a4f72');
       }
     }
     if (inSmoke(s, s.nx, s.ny) && f.k !== 'dummy' && s.phase === 'play') {
@@ -2487,7 +2487,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     prev.hits.forEach((hq, i) => {
       const f = s.foes.find((q) => q.id === hq.id);
       if (!f) return;
-      const k = R(FOE_H[f.k]) * depth(f.y), bx = X(f.x), by = Y(f.y) - k * 1.15;
+      const k = R(FOE_H[f.k]) * depth(f.y), bx = X(f.x) + k * 0.42, by = Y(f.y) - k * 1.08; // 👁 r6: 번호 배지가 줄 선 적 얼굴을 덮었다 → 머리 오른쪽 위
       ctx.fillStyle = '#ffffff'; // 👁 r1: 도트 원 배지
       pxMap(ctx, ICON.disc9, bx, by, PX);
       ctx.fill();
@@ -2964,7 +2964,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
           ctx.fill();
         }
         ctx.textAlign = 'left';
-        ctx.fillStyle = ok[j] ? '#fff6dc' : bad[j] ? 'rgba(255,255,255,.35)' : '#e6ecff';
+        ctx.fillStyle = ok[j] ? '#fff6dc' : bad[j] ? '#9aa3cc' : '#e6ecff'; // 🧪 F5: 꺼진 칩 글 대비 3.1:1 → 불투명 밝은 회색
         if (icon) font(0.034, 800);
         else ctx.font = '700 13px system-ui, sans-serif';
         ctx.fillText(labels[j], xx + (icon ? R(0.05) : R(0.015)) * scale, r2 + 1, pw - (icon ? R(0.058) : R(0.02)) * scale);

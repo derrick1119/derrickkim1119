@@ -213,7 +213,7 @@ const PTC = new Map<string, Glyph>();
 const PAD = 2;
 // 렉(5ce7c59 perf: 켠 뒤 3초 ≤50ms 27·29 → 9/30): 새 글이 한 프레임에 몰려 처음 굽기가 쌓였다 → 한 프레임에 굽는 시간을 2.5ms로 묶고,
 //   넘친 글은 그 프레임만 보통 글로 그린다(다음 프레임에 굽힘) · 굽는 판은 한 장을 돌려 쓰고, 다 구운 글은 보통 캔버스에 옮긴다(읽기용 캔버스는 그리기가 느림)
-export const pxtStat = { n: 0, ms: 0, max: 0, skip: 0 };
+export const pxtStat = { n: 0, ms: 0, max: 0, skip: 0, last: [] as string[] }; // last: 최근 구운 글(측정용 · 20개)
 let SCR: CanvasRenderingContext2D | null = null, spent = 0;
 /** 프레임마다 한 번(굽기 예산을 새로) */
 export function pxtFrame() {
@@ -256,6 +256,7 @@ function glyphs(font: string, txt: string, style: string, outline: boolean, budg
   PTC.set(key, g);
   const dt = performance.now() - t0;
   (spent += dt), pxtStat.n++, (pxtStat.ms += dt), (pxtStat.max = Math.max(pxtStat.max, dt));
+  pxtStat.last.push(`${Math.round(dt)}ms ${txt}`), pxtStat.last.length > 20 && pxtStat.last.shift();
   return g;
 }
 /** 판 캔버스의 fillText·strokeText를 도트 글로 갈아 끼운다(measureText·글꼴·정렬·maxWidth는 그대로 따름) */
