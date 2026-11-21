@@ -80,10 +80,10 @@ export class ShopOverlay extends Overlay {
       g.save(); if (it.sold) g.globalAlpha = 0.45;
       rr(g, x + 3, y + 5, w, h, 6, 'rgba(50,36,20,0.24)'); rr(g, x, y, w, h, 6, PAPER, INK, 2.6);
       g.save(); g.beginPath(); rrPath(g, x + 2, y + 2, w - 4, 32, 5); g.clip(); g.fillStyle = col; g.fillRect(x, y, w, 34); g.restore(); text(g, d.title, x + w / 2, y + 19, { size: 20, font: FONT_B, fill: C.cream });
-      if (card) { cardFace(g, it, x + 10, y + 42, 96, 124); packTag(g, x + 104, y + 172, d.n, 0.78); }
+      if (card) cardFace(g, it, x + 10, y + 42, 96, 124);
       else { rr(g, x + 10, y + 42, 96, 124, 5, '#efe4c9', INK, 1.4); const cx = x + 58, cy = y + 104; if (d.misc === 'supply') supplyArt(g, d.ids, cx, cy, 1); else if (d.relic) { relicIcon(g, d.relic, cx, cy, 1.5); if (it.kind === 'cleanse') stamp(g, cx + 26, cy + 38, 15, '淨', TEAL, -0.1); } else if (d.weapon) weaponIcon(g, d.weapon, cx, cy, 0.95); else if (d.misc === 'burn') miscIcon(g, 'burn', cx, cy, 1.5); else { g.save(); g.beginPath(); g.rect(x + 11, y + 43, 94, 122); g.clip(); portrait(g, 'spear', cx, cy + 50, 1.2, t, !it.sold); g.restore(); ell(g, cx + 30, cy - 40, 13, 13, PAPER, INK, 1.6); text(g, '↑', cx + 30, cy - 39, { size: 20, font: FONT_B, fill: TEAL }); } }
       text(g, d.name, x + 116, y + 58, { size: 19, font: FONT_B, align: 'left', maxW: w - 126 });
-      textBlock(g, d.desc.split('\n').join(' · '), x + 116, y + 84, w - 128, 19.5, { size: 14, align: 'left', fill: SUB, weight: 400 });
+      textBlock(g, d.desc.split('\n').join(' · '), x + 116, y + 84, w - 126, 20, { size: 15, align: 'left', fill: '#4a4034', weight: 400 });
       g.restore();
       if (it.sold) stamp(g, x + w - 52, y + h - 30, 22, '得', RED, -0.14);
       else if (button(g, 'buy' + n, x + 10, y + h - 54, w - 20, 44, `엽전 ${it.price}`, { style: afford ? 'indigo' : 'grey', size: 22 })) this.buy(it);

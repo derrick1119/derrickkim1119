@@ -99,12 +99,12 @@ export class RunScene {
   }
   talkTick(dt) {
     const k = this.talk; if (!k) return; if (!k.cur && this.note) return;
-    if (k.cur) { k.t -= dt; if (k.cur.u.dead) k.t = Math.min(k.t, 0.25); if (k.t > 0) return; k.cur = null; }
+    if (k.cur) { if (this.note) return; k.t -= dt; if (k.cur.u.dead) k.t = Math.min(k.t, 0.25); if (k.t > 0) return; k.cur = null; }
     while (k.q.length) { const l = k.q.shift(), u = l[2] || this.speaker(l[0], k.last); if (!u) continue; k.cur = { u, s: l[1], t0: this.T }; k.last = u; k.t = talkTime(l[1]); return; }
     this.talk = null;
   }
   drawTalk(g) {
-    const k = this.talk; if (!k || !k.cur) return; const u = k.cur.u, L = u.type ? getLook(u.type) : null;
+    const k = this.talk; if (!k || !k.cur || this.note) return; const u = k.cur.u, L = u.type ? getLook(u.type) : null;
     const top = u.h || (L ? Math.min(150, L.h * L.scale + (L.float ? 12 : 4)) : 70);
     bubble(g, clamp(u.x, 30, W - 30), Math.max(HUD_H + 70, u.y - top - (u.jumpH || 0)), k.cur.s, easeOutBack(clamp((this.T - k.cur.t0) / 0.18, 0, 1)));
   }
@@ -366,7 +366,7 @@ export class RunScene {
     cardFace(g, c, x, yy, w, h, { cost: b.free > 0 ? 0 : b.costOf(c), dim: !can, free: b.free > 0 });
     if (why === 'cap' || why === 'hero') { rr(g, x + 10, yy + h / 2 - 14, w - 20, 28, 6, 'rgba(31,42,68,0.86)'); text(g, why === 'cap' ? '부대 가득' : CARDS[c.id].kind === 'lead' ? '출전 중' : '영웅 없음', x + w / 2, yy + h / 2 + 1, { size: 17, font: FONT_B, fill: C.cream }); }
     // 같은 전술 패가 주머니에 몇 장 남았는지 (이 한 장 포함)
-    if (!isUnit(c) && CARDS[c.id].kind !== 'curse') { const left = this.stock[c.id] || 1; rr(g, x + 5, yy + h - 23, 30, 17, 4, left > 1 ? 'rgba(31,42,68,0.86)' : '#8a2a26'); text(g, '×' + left, x + 20, yy + h - 14, { size: 12, fill: C.cream }); }
+    if (!isUnit(c) && CARDS[c.id].kind !== 'curse') { const left = this.stock[c.id] || 1; rr(g, x + 5, yy + h - 26, 36, 20, 5, left > 1 ? 'rgba(31,42,68,0.9)' : '#8a2a26'); text(g, '×' + left, x + 23, yy + h - 15.5, { size: 14.5, fill: C.cream }); }
     g.restore();
     text(g, String(n + 1), x + w - 11, y + h - 7, { size: 14.5, fill: '#4a4034' });
   }
