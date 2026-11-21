@@ -18,6 +18,19 @@
     return null;
   }
 
+  /* go straight to a scene by its #name, from wherever the game is (the test menu's buttons) */
+  T.jump = function (name) {
+    const st = T.state;
+    Object.keys(st.done).forEach((id) => { st.done[id] = false; });
+    st.count = 0; st.order = []; st.together = false;
+    const j = name === 'title' ? ['room', { title: true }] : jump(name);
+    if (!j) return false;
+    if (T.audio) T.audio.pad(null);
+    T.director.trans = null;   /* a jump may interrupt a cut that is already under way */
+    T.director.go(j[0], { style: 'fade', color: '#161d2a', out: 0.35, in: 0.6, args: j[1] });
+    return true;
+  };
+
   function start(saved) {
     T.P.clearLayout();
     const st = T.state;
