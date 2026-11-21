@@ -204,7 +204,20 @@
     }
     g.globalAlpha = 1;
   }
+  /* the painted look: a canopy of soft masses, lit from the low sun on the left */
+  const painted = () => T.ART === 'concept';
+  function canopy(g, x, y, rx, ry, col, seed, n) {
+    const r = T.rng(seed), blobs = [];
+    for (let i = 0; i < (n || 12); i++) { const a = r() * TAU, d = Math.sqrt(r()); blobs.push([x + Math.cos(a) * d * rx, y + Math.sin(a) * d * ry * 0.85, (0.32 + r() * 0.3) * Math.max(rx, ry)]); }
+    blobs.sort((a2, b2) => a2[1] - b2[1]);
+    const dark = T.mix(col, '#4a2f5a', 0.45), lite = T.mix(col, '#fff0d8', 0.42);
+    const soft = (bx, by, br, c, al) => { const gr = g.createRadialGradient(bx, by, br * 0.15, bx, by, br); gr.addColorStop(0, T.rgba(c, al)); gr.addColorStop(0.72, T.rgba(c, al * 0.9)); gr.addColorStop(1, T.rgba(c, 0)); g.fillStyle = gr; g.fillRect(bx - br, by - br, br * 2, br * 2); };
+    for (const q of blobs) soft(q[0] + q[2] * 0.15, q[1] + q[2] * 0.12, q[2], dark, 0.95);
+    for (const q of blobs) soft(q[0], q[1], q[2] * 0.86, col, 0.95);
+    for (const q of blobs) soft(q[0] - q[2] * 0.3, q[1] - q[2] * 0.3, q[2] * 0.5, lite, 0.8);
+  }
   function tree(g, x, y, s, color, dark) {
+    if (painted()) { P.line(g, x, y + 4, x, y - 34 * s, 5 * s, dark); canopy(g, x, y - 52 * s, 26 * s, 30 * s, color, Math.round(x) & 255, 7); return; }
     P.line(g, x, y + 4, x, y - 30 * s, 5 * s, dark);
     P.fill(g, P.ellipse(x, y - 52 * s, 24 * s, 30 * s), color);
     P.fill(g, P.ellipse(x - 12 * s, y - 40 * s, 15 * s, 17 * s), T.shade(color, -0.08));
@@ -218,7 +231,8 @@
     g.beginPath(); g.moveTo(x + 4, y - 100); g.quadraticCurveTo(x + 44, y - 124, x + 58, y - 160); g.stroke();
     const cols = ['#e3923f', '#d6703b', '#e9ae46', '#c95a38', '#e39a44'];
     const r = T.rng(71);
-    for (let i = 0; i < 16; i++) {
+    if (painted()) { canopy(g, x - 30, y - 170, 80, 56, T.mix('#e98a5a', '#2a2c55', night * 0.55), 11, 14); canopy(g, x + 30, y - 160, 70, 50, T.mix('#f0a65a', '#2a2c55', night * 0.55), 12, 12); canopy(g, x, y - 200, 64, 44, T.mix('#f4b46a', '#2a2c55', night * 0.55), 13, 10); }
+    else for (let i = 0; i < 16; i++) {
       const a = r() * TAU, d = 20 + r() * 74;
       const lx = x + Math.cos(a) * d * 1.25, ly = y - 168 + Math.sin(a) * d * 0.8;
       P.fill(g, P.ellipse(lx, ly, 34 + r() * 22, 28 + r() * 16, r() * 3), T.mix(cols[i % 5], '#2a2c55', night * 0.55));
@@ -307,6 +321,12 @@
     sky.addColorStop(0, T.mix('#4a4a80', '#0b1026', n)); sky.addColorStop(0.5, T.mix('#b0748f', '#16204a', n)); sky.addColorStop(0.9, T.mix('#f3ad78', '#33406e', n));
     g.fillStyle = sky; g.fillRect(x0, 0, x1 - x0, 900);
     if (n < 0.98) P.glow(g, -260 + px * 0.2, 560, 420, '#ffd08a', 0.7 * (1 - n));
+    if (painted() && n < 0.98) {   /* big clouds catching the low sun */
+      P.cumulus(g, 300 + px * 0.25, 260, 420, 21, { lit: '#ffe3c8', shade: '#b48fb8', a: 0.9 * (1 - n), sun: -1 });
+      P.cumulus(g, -520 + px * 0.25, 200, 300, 22, { lit: '#ffe9d2', shade: '#b896be', a: 0.8 * (1 - n), sun: 1 });
+      P.cumulus(g, -40 + px * 0.2, 330, 260, 23, { lit: '#ffd9b8', shade: '#c79ab4', a: 0.7 * (1 - n), sun: -1 });
+      P.glow(g, -260 + px * 0.2, 560, 220, '#fff2dc', 0.5 * (1 - n));
+    }
     /* stars come out one at a time */
     g.fillStyle = '#f6f3ff';
     for (const s of S.stars) {
@@ -345,6 +365,8 @@
     bigTree(g, TREE, y3(TREE), n);
     walkers(g, 3);
     g.restore();
+    /* air between the hills */
+    if (painted()) { const hz = g.createLinearGradient(0, 380, 0, 720); hz.addColorStop(0, T.rgba(T.mix('#f4c3c4', '#2a2c55', n * 0.7), 0)); hz.addColorStop(0.6, T.rgba(T.mix('#f4c3c4', '#2a2c55', n * 0.7), 0.28)); hz.addColorStop(1, T.rgba(T.mix('#f4c3c4', '#2a2c55', n * 0.7), 0)); g.fillStyle = hz; g.fillRect(x0, 380, x1 - x0, 340); }
 
     g.save(); g.translate(o2, 0);
     g.fillStyle = tint('#9d6d88'); hillPath(g, y2, x0 - o2, x1 - o2, 0); g.fill();
@@ -375,6 +397,16 @@
       const x = x0 + r() * (x1 - x0), h = 30 + r() * 62, sway = Math.sin(t * 1.1 + i) * 5;
       g.lineWidth = 2 + r() * 2.5;
       g.beginPath(); g.moveTo(x + px * 1.6, 880); g.quadraticCurveTo(x + px * 1.6 + sway * 0.4, 880 - h * 0.6, x + px * 1.6 + sway + (r() - 0.5) * 18, 880 - h); g.stroke();
+    }
+    /* close to us and out of focus: flowers in the corners, as if we were sitting in the grass */
+    if (painted()) {
+      const fr = T.rng(41);
+      for (let i = 0; i < 12; i++) {
+        const left = i < 6, bx = (left ? x0 + 40 + fr() * 220 : x1 - 40 - fr() * 220) + px * 2.2, by = 800 + fr() * 90, br = 34 + fr() * 40;
+        const c = i % 3 === 0 ? tint('#e9909e', 0.55) : tint('#4a3352', 0.5);
+        const gr = g.createRadialGradient(bx, by, br * 0.1, bx, by, br); gr.addColorStop(0, T.rgba(c, 0.8)); gr.addColorStop(1, T.rgba(c, 0));
+        g.fillStyle = gr; g.fillRect(bx - br, by - br, br * 2, br * 2);
+      }
     }
     /* the aurora lays a little green on the land */
     if (S.paint.length && n > 0.3) {

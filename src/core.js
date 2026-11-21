@@ -114,6 +114,7 @@
     g.scale(ps, ps);
     g.translate(-x0, -y0);
     fn(g);
+    if (T.P && T.P.brushify && T.artOn && T.artOn()) T.P.brushify(c, ps);   /* the painted look: laid over in brush strokes */
     return { c, x0, y0, w: c.width / ps, h: c.height / ps };
   };
   T.blit = function (g, L, dx = 0, dy = 0) { g.drawImage(L.c, L.x0 + dx, L.y0 + dy, L.w, L.h); };
@@ -370,6 +371,8 @@
   T.speed = 1; /* test hook */
   function frame(now) {
     const raw = T.paused ? 0 : Math.min(0.05, (now - last) / 1000 || 0);
+    /* a slow device gets the painted look without its per-frame effects (the brushwork baked into layers stays) */
+    if (raw > 0 && T.artOn && T.artOn()) { T.frameAvg = (T.frameAvg || 1 / 60) * 0.97 + raw * 0.03; T.artSlow = (T.artSlow || 0) + (T.frameAvg > 1 / 40 ? raw : -raw); T.artSlow = Math.max(0, Math.min(4, T.artSlow)); if (T.artSlow >= 3 && T.artAuto !== false) T.artLite = true; }
     const dt = raw * T.speed;
     /* hurrying: hold the screen down (or Shift), or tap, while the scene is only passing time */
     const idle = waiting();

@@ -412,4 +412,31 @@
     g.quadraticCurveTo((a[0] + b[0]) / 2, Math.max(a[1], b[1]) + slack, b[0], b[1]);
     g.stroke();
   };
+
+  /* the painted look: each figure is drawn on its own sheet, given a little volume (light on the side the scene's
+     light is on, plum shadow on the other), and then laid on the picture */
+  const flat = F.person;
+  let sheet = null;
+  F.person = function (g, o) {
+    if (!(T.artOn && T.artOn()) || T.artLite || !g.getTransform || g.canvas !== T.canvas || o.flatLook) return flat(g, o);
+    const m = g.getTransform(), s = o.s || 150;
+    const bx0 = o.x - s * 0.85, by0 = o.y - s * 0.9, bx1 = o.x + s * 0.85, by1 = o.y + s * 0.62;   /* the figure's own extent, with room for arms */
+    const xs = [], ys = [];
+    for (const [x, y] of [[bx0, by0], [bx1, by0], [bx0, by1], [bx1, by1]]) { xs.push(m.a * x + m.c * y + m.e); ys.push(m.b * x + m.d * y + m.f); }
+    const rx = Math.floor(Math.min(...xs)), ry = Math.floor(Math.min(...ys)), rw = Math.ceil(Math.max(...xs)) - rx, rh = Math.ceil(Math.max(...ys)) - ry;
+    if (rw <= 0 || rh <= 0 || rw * rh > 6e6) return flat(g, o);
+    if (!sheet) sheet = document.createElement('canvas');
+    if (sheet.width < rw || sheet.height < rh) { sheet.width = Math.max(sheet.width, rw); sheet.height = Math.max(sheet.height, rh); }
+    const sg = sheet.getContext('2d');
+    sg.setTransform(1, 0, 0, 1, 0, 0); sg.globalAlpha = 1; sg.globalCompositeOperation = 'source-over'; sg.clearRect(0, 0, rw, rh);
+    sg.setTransform(m.a, m.b, m.c, m.d, m.e - rx, m.f - ry);
+    const j = flat(sg, o);
+    const cur = T.director && T.director.cur, Ld = (cur && cur.lightDir) || [-0.55, -0.83], cx = o.x, cy = o.y - s * 0.35, R = s * 0.8;
+    sg.globalCompositeOperation = 'source-atop';
+    const gr = sg.createLinearGradient(cx + Ld[0] * R, cy + Ld[1] * R, cx - Ld[0] * R, cy - Ld[1] * R);
+    gr.addColorStop(0, 'rgba(255,228,192,0.34)'); gr.addColorStop(0.42, 'rgba(255,228,192,0)'); gr.addColorStop(0.58, 'rgba(76,44,104,0)'); gr.addColorStop(1, 'rgba(76,44,104,0.38)');
+    sg.fillStyle = gr; sg.fillRect(bx0, by0, bx1 - bx0, by1 - by0);
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(sheet, 0, 0, rw, rh, rx, ry, rw, rh); g.restore();
+    return j;
+  };
 })();

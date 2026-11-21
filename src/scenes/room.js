@@ -589,8 +589,13 @@
       g.fillStyle = T.rgba('#f1f3ff', 0.92 * nightK);
       g.beginPath(); g.arc(WIN.x + 236 + px, WIN.y + 86 + py, 17, 0, TAU); g.fill();
     }
+    if (T.ART === 'concept') {   /* the painted look: big soft clouds in the pane, lit from the low sun */
+      const ck = 0.55 + 0.45 * dayK;
+      P.cumulus(g, WIN.x + 90 + px * 0.6, WIN.y + 250 + py * 0.6, 260, 4, { lit: T.mix('#fff1de', top, 0.25), shade: T.mix('#c9a7c6', top, 0.35), a: ck, sun: 1 });
+      P.cumulus(g, WIN.x + 260 + px * 0.6, WIN.y + 330 + py * 0.6, 200, 9, { lit: T.mix('#ffe7cf', top, 0.2), shade: T.mix('#c5a0c0', top, 0.35), a: ck * 0.9, sun: -1 });
+    }
     /* roofs across the way */
-    const roof = T.mix(top, '#161d2c', 0.62);
+    const roof = T.mix(top, '#161d2c', T.ART === 'concept' ? 0.38 : 0.62);
     const lit = T.rampNum(LAMP_K, tod);
     for (const b of S.roofs) {
       g.fillStyle = roof;
@@ -927,7 +932,7 @@
   S.SPOTS = { LEO, ANA, LILY, LILY_HAND };
   /* where the light comes from, for the painted look; and how much of it the key art already has */
   S.light = () => [WIN.x + WIN.w * 0.55, WIN.y + WIN.h * 0.62, 620];
-  S.gradeK = () => 1 - 0.85 * (T.ART === 'concept' && T.artImage('key') ? S.title.a : 0);
+  S.lightDir = [-0.8, -0.6];   /* the window is on the left */
 
   /* the painted key art, drifting a little, under the title */
   function keyArt(g, im, a) {
@@ -943,7 +948,7 @@
   }
   function drawTitle(g) {
     const V = T.view, W = V.W, a = S.title.a;
-    const key = T.ART === 'concept' && T.artImage('key');
+    const key = null;   /* the concept painting is a reference, not the title */
     if (key) keyArt(g, key, a);
     else { g.fillStyle = T.rgba('#0f1522', 0.8 * a); g.fillRect(-W / 2, 0, W, V.H); }
     const ta = T.clamp(a * 1.6 - 0.6);
