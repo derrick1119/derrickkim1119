@@ -33,6 +33,17 @@ export class Storage {
     return { state: defaultState(), fresh: true };
   }
 
+  /** 저장된 기록의 저장 시각(lastSeen). 없거나 읽지 못하면 0. 다른 창이 더 새로 저장했는지 볼 때 쓴다. */
+  peekLastSeen() {
+    if (!this.available) return 0;
+    try {
+      const raw = JSON.parse(window.localStorage.getItem(KEY) || 'null');
+      return raw && typeof raw.lastSeen === 'number' && Number.isFinite(raw.lastSeen) ? raw.lastSeen : 0;
+    } catch {
+      return 0;
+    }
+  }
+
   /** @returns {boolean} 저장에 성공했는지 */
   save(state) {
     if (!this.available) return false;

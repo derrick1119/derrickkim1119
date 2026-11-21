@@ -207,8 +207,10 @@ export class Game extends Emitter {
     if (!auto) {
       s.run.specimens++;
       s.run.fuel = Math.min(100, s.run.fuel + 100 / this.specimensPerMission);
+      if (s.run.fuel > 100 - 1e-6) s.run.fuel = 100; // 100/14 를 14번 더하면 99.999… 가 된다
     }
-    const grown = this._addSize(gain, true);
+    // 구름 은폐 중이거나 드론이 모은 것은 승급 셀카로도 들키지 않는다
+    const grown = this._addSize(gain, !auto && !this.cloaked);
     this.emit('change');
     return { ok: true, gain, ...grown };
   }

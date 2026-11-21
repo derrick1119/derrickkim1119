@@ -180,6 +180,12 @@ try {
   s = await state(page);
   check('다음 대원이 더 큰 기체로 시작한다', s.gen === 2 && s.run.size > 30);
 
+  // 보고서부터 다시 시작한 경우에도, 다음 대원이 도착하면 출석 보급품을 받는다
+  await page.waitForSelector('.modal-gift', { timeout: 4000 });
+  check('출석 보급품', (await state(page)).daily.streak === 1);
+  await click(page, '.modal-gift .btn');
+  await page.waitForFunction(() => !window.__ufo.ui.modals.active);
+
   // 설정: 저장 코드, 언어
   await click(page, '.hud .icon-btn');
   await page.waitForSelector('.modal-settings');
@@ -200,11 +206,6 @@ try {
   s = await state(page);
   check('저장 코드를 불러오면 그 상태로 돌아간다', s.gen === 2 && s.lang === null && s.unlocked.specimens.firefly === true);
 
-  // 한 번이라도 들킨 뒤 다시 들어오면 출석 보급품을 받는다
-  await page.waitForSelector('.modal-gift', { timeout: 4000 });
-  const before = (await state(page)).grant;
-  check('출석 보급품', (await state(page)).daily.streak === 1 && before > 0);
-  await click(page, '.modal-gift .btn');
 
   // 엔딩
   await page.waitForFunction(() => window.__ufo.scene.ufo.mode === 'hover' && window.__ufo.game.playing, null, { timeout: 5000 });

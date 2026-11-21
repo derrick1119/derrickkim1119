@@ -152,12 +152,14 @@ export class Scene {
     const w = Math.max(240, Math.round(rect.width));
     const h = Math.max(320, Math.round(rect.height));
     const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
-    if (w === this.w && h === this.h && dpr === this.dpr && this.backdrop) return;
+    const bw = Math.round(w * dpr);
+    const bh = Math.round(h * dpr);
+    if (w === this.w && h === this.h && dpr === this.dpr && this.backdrop && this.canvas.width === bw && this.canvas.height === bh) return;
     this.w = w;
     this.h = h;
     this.dpr = dpr;
-    this.canvas.width = Math.round(w * dpr);
-    this.canvas.height = Math.round(h * dpr);
+    this.canvas.width = bw;
+    this.canvas.height = bh;
     this.layout();
   }
 

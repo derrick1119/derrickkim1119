@@ -45,18 +45,30 @@ export class Modals {
         this.stack = this.stack.filter((e) => e !== entry);
         layer.remove();
         this.root.hidden = this.stack.length === 0;
+        this._syncInert();
         onClose?.();
       },
     };
-    layer.addEventListener('pointerdown', (e) => {
+    // 바깥을 눌러 닫는 것은 click 에서 한다. pointerdown 에서 닫으면 같은 터치의 click 이 아래 버튼을 누른다.
+    layer.addEventListener('click', (e) => {
       if (e.target === layer && dismiss) entry.close();
     });
     this.stack.push(entry);
     this.root.hidden = false;
     this.root.append(layer);
-    // 키보드 사용자를 위해 첫 버튼에 초점을 준다.
-    requestAnimationFrame(() => card.querySelector('[data-autofocus], .btn')?.focus({ preventScroll: true }));
+    this._syncInert();
+    // 키보드 사용자를 위해 정해 둔 버튼, 없으면 첫 버튼에 초점을 준다.
+    requestAnimationFrame(() => (card.querySelector('[data-autofocus]') || card.querySelector('.btn'))?.focus({ preventScroll: true }));
     return entry;
+  }
+
+  /** 맨 위 모달만 조작할 수 있게, 그 아래 모달과 화면의 나머지는 inert 로 막는다. */
+  _syncInert() {
+    const top = this.stack[this.stack.length - 1];
+    for (const e of this.stack) e.layer.inert = e !== top;
+    const parent = this.root.parentElement;
+    if (!parent) return;
+    for (const el of parent.children) if (el !== this.root) el.inert = !!top;
   }
 
   closeAll() {

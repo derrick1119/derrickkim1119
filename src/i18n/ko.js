@@ -625,6 +625,7 @@ export default {
     missionBusy: '지금은 출동할 수 없어요',
     fuelShort: '연료가 부족해요. 표본을 더 모으세요',
     update: '새 버전이 준비됐어요. 다시 열면 적용됩니다.',
+    otherTab: '다른 창에서 이 게임을 하고 있어요. 이 창의 진행은 저장되지 않아요.',
   },
 
   tutorial: {

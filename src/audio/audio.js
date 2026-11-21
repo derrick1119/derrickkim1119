@@ -28,6 +28,8 @@ export class GameAudio {
     this._nextBar = 0;
     this._bar = 0;
     this._tension = 0;
+    this._retry = null;
+    this._retries = 0;
   }
 
   get ready() {
@@ -75,7 +77,8 @@ export class GameAudio {
         for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
         this.noise = buf;
       }
-      if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+      if (this.ctx.state !== 'running') this.ctx.resume().catch(() => {});
+      this._retries = 0;
       this._startMusic();
     } catch {
       this.ctx = null; // 소리가 안 나도 게임은 계속된다
@@ -84,6 +87,8 @@ export class GameAudio {
 
   suspend() {
     this._stopMusic();
+    if (this._retry) clearTimeout(this._retry);
+    this._retry = null;
     if (this.ctx && this.ctx.state === 'running') this.ctx.suspend().catch(() => {});
   }
 
@@ -271,12 +276,17 @@ export class GameAudio {
 
   _startMusic() {
     if (!this.ctx || !this.musicOn || this._timer || this.ctx.state !== 'running') {
-      // resume() 직후에는 아직 running 이 아닐 수 있으니 잠시 뒤 다시 본다.
-      if (this.ctx && this.musicOn && !this._timer && this.ctx.state !== 'running') {
-        setTimeout(() => this._startMusic(), 300);
+      // resume() 직후에는 아직 running 이 아닐 수 있으니 잠시 뒤 한 번만 다시 본다(재시도는 늘 하나뿐).
+      if (this.ctx && this.musicOn && !this._timer && this.ctx.state !== 'running' && !this._retry && this._retries < 12) {
+        this._retries++;
+        this._retry = setTimeout(() => {
+          this._retry = null;
+          this._startMusic();
+        }, 300);
       }
       return;
     }
+    this._retries = 0;
     this._nextBar = this.ctx.currentTime + 0.1;
     this._timer = setInterval(() => this._schedule(), 400);
     this._schedule();

@@ -447,3 +447,46 @@ test('월드: 기체를 건드리면 반응한다', () => {
   assert.equal(r.type, 'ufo');
   assert.equal(r.result.count, 1);
 });
+
+test('연료 압축기 레벨마다 정확히 그 개수로 연료가 찬다(소수점 오차 없음)', () => {
+  for (let lv = 0; lv <= 5; lv++) {
+    const g = newGame(always(0.999), (s) => {
+      s.gadgets.tank = lv;
+      return s;
+    });
+    const need = g.specimensPerMission;
+    for (let i = 0; i < need - 1; i++) g.collect('dandelion');
+    assert.equal(g.canMission('crop').reason, 'fuel', `Lv${lv}: ${need - 1}개로는 부족`);
+    g.collect('dandelion');
+    assert.ok(g.canMission('crop').ok, `Lv${lv}: ${need}개면 출동`);
+  }
+});
+
+test('구름 은폐 중에는 승급 셀카로도 들키지 않는다', () => {
+  const g = newGame(always(0.5));
+  assert.ok(g.activateCloak().ok);
+  g.rng = always(0);
+  g.run.size = 99.5;
+  const r = g.collect('dandelion');
+  assert.equal(r.formUps.length, 1);
+  assert.equal(r.report, null);
+  assert.equal(g.phase, 'play');
+});
+
+test('저장본의 Object.prototype 이름은 사건·표본 id 로 받지 않는다', () => {
+  const s = sanitize({
+    v: 1,
+    seen: { constructor: 1, toString: 2, hasOwnProperty: 1, cow_moo: 1 },
+    resist: { valueOf: 3 },
+    unlocked: { specimens: { constructor: true }, missions: { toString: true } },
+    stats: { bySpecimen: { constructor: 9 } },
+    phase: 'discovered',
+    lastReport: { cause: 'toString' },
+  });
+  assert.deepEqual(Object.keys(s.seen), ['cow_moo']);
+  assert.deepEqual(Object.keys(s.resist), ['cow_moo']);
+  assert.deepEqual(Object.keys(s.unlocked.specimens), ['dandelion']);
+  assert.deepEqual(Object.keys(s.unlocked.missions), ['crop']);
+  assert.deepEqual(s.stats.bySpecimen, {});
+  assert.equal(s.phase, 'play');
+});

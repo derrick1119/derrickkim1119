@@ -624,6 +624,7 @@ export default {
     missionBusy: 'Cannot launch right now',
     fuelShort: 'Not enough fuel. Collect more specimens',
     update: 'A new version is ready. Reopen the game to apply it.',
+    otherTab: 'This game is open in another window. Progress here is not being saved.',
   },
 
   tutorial: {

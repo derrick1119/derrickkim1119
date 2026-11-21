@@ -59,12 +59,15 @@ export class UI {
     this.started = false;
     this.timers = new Set();
     this.toastQueue = [];
+    this.enterPending = false; // 보고서부터 다시 시작했을 때, 다음 대원이 도착하면 출석·자리 비움을 확인한다
     this.toastBusy = false;
     this.stageShown = this.game.form.stage;
 
     this._build();
     this._bindGame();
     this.scene.canvas.addEventListener('pointerdown', (e) => this._onPointer(e));
+    // 휴대폰이 소리를 멈췄다가(전화·잠금 등) 돌아왔을 때 다음 터치에서 다시 깨운다
+    for (const type of ['pointerdown', 'click']) this.stage.addEventListener(type, () => this.audio.unlock(), { capture: true, passive: true });
   }
 
   /** 화면이 꺼지거나 UI 를 다시 만들 때 취소되는 타이머. */
@@ -279,8 +282,17 @@ export class UI {
   _enter() {
     const game = this.game;
     game.busy = false;
+    // 엔딩을 보던 중에 저장된 상태(불러온 저장 코드 등)는 다음 대원부터 이어 간다
+    if (game.phase === 'ending') {
+      game.finishEnding();
+      this.world.reset();
+      this.scene.layout();
+      this.sizeShown = game.run.size;
+    }
     if (game.phase === 'discovered' && game.state.lastReport) {
-      // 보고서를 보던 중에 앱이 꺼졌던 경우
+      // 보고서를 보던 중에 앱이 꺼졌던 경우. 출석·자리 비움 확인은 다음 대원이 도착한 뒤에 한다.
+      this.transitioning = true;
+      this.enterPending = true;
       this.scene.ufo.mode = 'caught';
       showReport(this, { ...game.state.lastReport }, () => this._nextGeneration());
       return;
@@ -449,7 +461,8 @@ export class UI {
 
   /** 처음 한 번만 보여 주는 안내. */
   showCoach(key) {
-    if (!this.game.markTutorial(key)) return;
+    // 모달에 가려 못 보는 안내는 쓰지 않고 아껴 둔다
+    if (this.modals.active || !this.game.markTutorial(key)) return;
     this.coach.textContent = t(`tutorial.${key}`);
     this.coach.hidden = false;
     this.coach.dataset.key = key;
@@ -518,7 +531,8 @@ export class UI {
   }
 
   _openSettings() {
-    if (this.modals.active) return;
+    // 들킴·임무·엔딩 연출 중에는 열지 않는다(연출 모달 아래에 깔려 흐름이 끊기지 않게).
+    if (this.modals.active || this.transitioning || this.game.busy || this.game.phase !== 'play') return;
     this.audio.sfx('open');
     showSettings(this);
   }
@@ -649,6 +663,8 @@ export class UI {
       if (game.phase === 'play' && !game.cloaked) audio.sfx('safe');
     });
     world.on('stage', ({ form }) => {
+      // 지구인이 새로 바뀌므로, 하늘을 보던 사람이 있었어도 긴장 음악을 푼다
+      audio.setTension(0);
       // 형태가 바뀌어도 무대가 그대로면(콩알 → 꼬마 접시) 알리지 않는다.
       const stage = FORMS[form].stage;
       if (stage !== this.stageShown && this.started) this.toast(t('toast.stage', { name: t(`stage.${stage}`) }), 'info');
@@ -720,6 +736,10 @@ export class UI {
       this.transitioning = false;
       this.save();
       this._runHints();
+      if (this.enterPending) {
+        this.enterPending = false;
+        this.onEnter?.();
+      }
     });
   }
 
@@ -762,7 +782,9 @@ export class UI {
     this.holdReport = false;
     this.pending = null;
     this.transitioning = false;
+    this.enterPending = false;
     this.game.replaceState(state);
+    this.game.busy = true; // 본부 교신 등을 보는 동안 세계를 멈춘다(_enter 에서 푼다)
     setLang(state.lang || detectLang());
     this.audio.setSfx(state.settings.sfx);
     this.audio.setMusic(state.settings.music);
@@ -775,6 +797,23 @@ export class UI {
     this.rebuild();
     this.save();
     this.begin();
+  }
+
+  /** 다른 창에서 더 새로 저장된 기록으로 갈아탄다. 첫 화면에서는 첫 화면을 그대로 둔다. */
+  adoptSave(state) {
+    if (this.started) {
+      this.replaceSave(state);
+      return;
+    }
+    this.game.replaceState(state);
+    this.game.busy = true;
+    setLang(state.lang || detectLang());
+    this.audio.setSfx(state.settings.sfx);
+    this.audio.setMusic(state.settings.music);
+    this.haptics.set(state.settings.haptics);
+    this.world.reset();
+    this.scene.layout();
+    this.rebuild();
   }
 
   resetSave() {

@@ -32,9 +32,29 @@ function start(hotData) {
   const audio = new GameAudio(state.settings);
   const haptics = new Haptics(state.settings.haptics);
 
+  // 같은 기기에서 게임을 두 창(탭)에 열어 둔 경우: 더 새로 저장된 기록을 오래된 창이 덮어쓰지 않게 한다.
+  let lastSavedAt = state.lastSeen || 0; // 이 창이 마지막으로 읽거나 쓴 기록의 시각
+  let staleWarned = false;
+  const newerElsewhere = () => storage.peekLastSeen() > lastSavedAt + 500;
   const save = () => {
+    if (newerElsewhere()) {
+      if (!staleWarned && ui.started) {
+        staleWarned = true;
+        ui.toast(t('toast.otherTab'), 'warn');
+      }
+      return;
+    }
     game.state.lastSeen = Date.now();
-    storage.save(game.state);
+    if (storage.save(game.state)) lastSavedAt = game.state.lastSeen;
+  };
+  /** 다른 창이 더 새로 저장했으면 그 기록으로 갈아탄다. */
+  const adoptNewer = () => {
+    if (!newerElsewhere()) return false;
+    const { state: latest } = storage.load();
+    lastSavedAt = latest.lastSeen;
+    staleWarned = false;
+    ui.adoptSave(latest);
+    return true;
   };
 
   /** 자리를 비운 동안의 성장과 출석 보급품을 확인한다. */
@@ -126,11 +146,15 @@ function start(hotData) {
     }
     last = performance.now();
     audio.resume();
+    if (adoptNewer()) return;
     const away = hiddenAt ? (Date.now() - hiddenAt) / 1000 : 0;
     if (ui.started && !ui.modals.active && !ui.transitioning && !game.busy) checkRewards(away);
   });
   window.addEventListener('pagehide', () => {
     if (ui.started) save();
+  });
+  window.addEventListener('focus', () => {
+    if (!document.hidden) adoptNewer();
   });
 
   // 미리보기 환경이 새 버전으로 갈아 끼울 때 진행 상황을 넘겨준다.

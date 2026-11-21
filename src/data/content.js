@@ -116,10 +116,13 @@ function buildCauses() {
   return list;
 }
 
+/** id → 항목 표. 프로토타입이 없어 'constructor' 같은 이름은 없는 id 로 취급된다(저장본 검증용). */
+const byId = (list) => Object.freeze(Object.assign(Object.create(null), Object.fromEntries(list.map((x) => [x.id, x]))));
+
 export const CAUSES = buildCauses();
-export const CAUSE_BY_ID = Object.fromEntries(CAUSES.map((c) => [c.id, c]));
-export const SPECIMEN_BY_ID = Object.fromEntries(SPECIMENS.map((s) => [s.id, s]));
-export const MISSION_BY_ID = Object.fromEntries(MISSIONS.map((m) => [m.id, m]));
+export const CAUSE_BY_ID = byId(CAUSES);
+export const SPECIMEN_BY_ID = byId(SPECIMENS);
+export const MISSION_BY_ID = byId(MISSIONS);
 
 /**
  * 장비. cost(level) = base * growth^level.
@@ -135,7 +138,7 @@ export const GADGETS = [
   { id: 'ai', max: 15, base: 60, growth: 1.42 },
   { id: 'autopilot', max: 5, base: 150, growth: 2.0 },
 ];
-export const GADGET_BY_ID = Object.fromEntries(GADGETS.map((g) => [g.id, g]));
+export const GADGET_BY_ID = byId(GADGETS);
 
 const unique = (s) => Object.keys(s.seen).length;
 
