@@ -1,17 +1,34 @@
 // 공적 장부: 원정에서 쌓은 공적으로 영웅·병력·출발 혜택을 연다 (가로)
 import { W, H } from '../config.js';
 import { INK, PAPER, RED, INDIGO, TEAL, OCHRE, SUB, FONT_B, text, textBlock, rr } from '../render/draw.js';
-import { button, panel, brushTitle, stamp, tapped, C } from '../ui/ui.js';
+import { button, panel, brushTitle, stamp, bar, tapped, C } from '../ui/ui.js';
+import { UNITS } from '../data/units.js';
 import { TALES } from '../data/story.js';
 import { CHAPTERS } from '../data/stages.js';
 import { nav } from '../nav.js';
-import { meta, save, UNLOCKS, has, buyUnlock, HARD_DESC } from '../state.js';
+import { meta, save, UNLOCKS, has, buyUnlock, HARD_DESC, BEASTS, deedCount, noteDeed } from '../state.js';
 import { dimBackdrop } from './title.js';
 import { portrait } from '../render/sprites.js';
 import { sfx } from '../audio.js';
 
 export class MetaScene {
-  constructor() { this.t = 0; this.book = false; this.sel = 0; }
+  constructor() { this.t = 0; this.book = false; this.beasts = false; this.sel = 0; noteDeed(); }
+  // 영물의 인연: 원정에서 쌓은 공으로 영물이 합류한다. 아직 못 만난 영물도 무엇을 하면 되는지 보인다
+  drawBeasts(g) {
+    brushTitle(g, 250, 48, 360, 66, '영물의 인연', TEAL, 38);
+    text(g, `인연을 맺은 영물 ${BEASTS.filter(b => has(b.id)).length} / ${BEASTS.length}`, 520, 44, { size: 30, font: FONT_B, align: 'left' });
+    text(g, '원정을 거듭하며 공을 쌓으면 영물이 군대에 합류합니다. 한 번 맺은 인연은 다음 원정에도 이어집니다', 520, 78, { size: 16, fill: SUB, weight: 400, align: 'left', maxW: 720 });
+    BEASTS.forEach((b, n) => {
+      const x = 30, y = 108 + n * 93, w = 1220, h = 85, open = has(b.id), u = UNITS[b.id], cnt = Math.min(b.need, deedCount(b));
+      rr(g, x, y + 4, w, h, 6, 'rgba(50,36,20,0.2)'); rr(g, x, y, w, h, 6, open ? '#e6efdc' : PAPER, INK, 2.4);
+      rr(g, x + 9, y + 8, 96, 69, 5, '#efe4c9', INK, 1.2); g.save(); g.beginPath(); g.rect(x + 10, y + 9, 94, 67); g.clip(); if (!open) g.globalAlpha = 0.4; portrait(g, b.id, x + 57, y + 72, 0.82, open ? this.t : 0); g.restore();
+      text(g, u.name, x + 122, y + 29, { size: 26, font: FONT_B, align: 'left' }); text(g, `${u.role} · ${u.desc}`, x + 124, y + 60, { size: 15.5, align: 'left', fill: SUB, weight: 400, maxW: 330 });
+      text(g, b.how, x + 480, y + 28, { size: 19, font: FONT_B, align: 'left', fill: open ? TEAL : INK, maxW: 470 }); text(g, b.lore, x + 482, y + 58, { size: 15, align: 'left', fill: SUB, weight: 400, maxW: 470 });
+      if (open) stamp(g, x + w - 76, y + 42, 28, '緣', TEAL, -0.12);
+      else { bar(g, x + w - 250, y + 34, 150, 16, cnt / b.need, TEAL); text(g, `${cnt} / ${b.need}`, x + w - 54, y + 43, { size: 21, font: FONT_B }); }
+    });
+    if (button(g, 'beastback', 960, 584, 290, 86, '장부로', { style: 'paper', size: 32 })) this.beasts = false;
+  }
   // 이야기책: 주막에서 들은 옛이야기를 다시 읽는다
   drawBook(g) {
     const got = meta.tales || [];
@@ -36,10 +53,12 @@ export class MetaScene {
   frame(g, dt) {
     this.t += dt; dimBackdrop(g, 0.82);
     if (this.book) { this.drawBook(g); return; }
-    if (button(g, 'book', 1010, 22, 240, 62, `이야기책 ${(meta.tales || []).length}/${TALES.length}`, { style: 'teal', size: 23 })) { this.book = true; return; }
+    if (this.beasts) { this.drawBeasts(g); return; }
+    if (button(g, 'book', 1046, 22, 204, 62, `이야기책 ${(meta.tales || []).length}/${TALES.length}`, { style: 'teal', size: 21 })) { this.book = true; return; }
+    if (button(g, 'beasts', 830, 22, 204, 62, `영물 ${BEASTS.filter(b => has(b.id)).length}/${BEASTS.length}`, { style: 'teal', size: 21 })) { this.beasts = true; return; }
     brushTitle(g, 250, 48, 360, 66, '공적 장부', INDIGO, 38);
     text(g, `쌓인 공적 ${meta.merit}`, 520, 44, { size: 30, font: FONT_B, align: 'left' });
-    text(g, '원정이 끝날 때마다 전공 등급과 물리친 두목만큼 공적이 쌓입니다', 520, 78, { size: 16, fill: SUB, weight: 400, align: 'left', maxW: 470 });
+    text(g, '원정이 끝날 때마다 공적이 쌓입니다', 520, 78, { size: 16, fill: SUB, weight: 400, align: 'left', maxW: 290 });
     UNLOCKS.forEach((u, n) => {
       const x = 30 + (n % 2) * 620, y = 108 + Math.floor(n / 2) * 90, w = 600, h = 82, open = has(u.id), afford = meta.merit >= u.cost;
       rr(g, x, y + 4, w, h, 6, 'rgba(50,36,20,0.2)'); rr(g, x, y, w, h, 6, open ? '#e6efdc' : PAPER, INK, 2.4);

@@ -4,7 +4,7 @@ import { W, H, VIEW, HUD_H, BAR_Y } from '../config.js';
 import { TAU, INK, PAPER, RED, REDD, INDIGO, NAVY, TEAL, OCHRE, SUB, FONT_B, text, textBlock, ell, rr, rrPath, poly, line, st as inkStroke, clamp, easeOutBack } from '../render/draw.js';
 import { BattleView, ghostUnits } from '../render/battleview.js';
 import { Battle, formation, defOf, HAND, REFILL } from '../sim/battle.js';
-import { G, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, STOP } from '../state.js';
+import { G, meta, save, battleSetup, waveSetup, mods, powerNow, goldFor, curStop, chooseFork, encounterHere, advance, genShop, pickEvent, hearTale, taleView, settleBattle, lootTable, grantLoot, tacticCards, addCard, noteDeed, STOP } from '../state.js';
 import { MARCH as MARCH_TALK, CHATTER, FIRST_SIGHT, BOSS, bondLines } from '../data/story.js';
 import { CHAPTERS } from '../data/stages.js';
 import { AFFIX } from '../data/encounters.js';
@@ -27,14 +27,14 @@ export const GRADE = ['', '丙', '乙', '甲'];
 const MARCH = 520, MARCH_V = 300;
 const FIGHT = t => t === 'battle' || t === 'elite' || t === 'boss';
 const talkTime = s => clamp(1.3 + s.length * 0.07, 2, 3.6);
-const DOK = ['goblin', 'orc', 'garcher', 'rshield', 'shaman'], GHOST = ['skel', 'skelarcher'];
+const DOK = ['goblin', 'orc', 'garcher', 'rshield', 'shaman', 'dueok', 'yagwang'], GHOST = ['skel', 'skelarcher'];
 
 export class RunScene {
   constructor() {
     const r = this.r = G.run; this.ch = r.ch;
     this.b = new Battle(battleSetup()); this.view = new BattleView(CHAPTERS[Math.min(2, r.ch)].theme, r.ch * 31 + 7);
     this.T = 0; this.dt = 0; this.speed = 1; this.slow = 1; this.menu = false; this.over = null; this.sub = null;
-    this.order = null; this.aim = null; this.slotAnim = []; this.toastS = ''; this.toastT = 0; this.note = null; this.grade = null; this.enc = null; this.fade = 0; this.endT = 0;
+    this.order = null; this.aim = null; this.slotAnim = []; this.toastS = ''; this.toastT = 0; this.note = null; this.grade = null; this.enc = null; this.fade = 0; this.endT = 0; this.joinQ = [];
     this.first = (meta.runs || 0) <= 1 && r.wins === 0; this.hints = 0; this.talk = null; if (!r.seen) r.seen = {}; this.stock = {}; this.lootT = 0;
     const rd = r.road;
     if (rd.i === 0 && rd.state !== 'reward') this.note = { s: CHAPTERS[r.ch].name, sub: CHAPTERS[r.ch].sub, col: INDIGO, t: 2.6 };
@@ -66,7 +66,7 @@ export class RunScene {
     }
     else if (st.type === 'event') { this.phase = 'stop'; const id = r.pending && r.pending.kind === 'event' ? r.pending.id : pickEvent(); r.pending = { kind: 'event', id }; const v = eventView({ id }); this.over = new ChoiceOverlay({ title: v.title, art: v.art, text: v.text, choices: v.choices, onDone: done }); }
     else if (st.type === 'shop') { this.phase = 'stop'; const items = r.pending && r.pending.kind === 'shop' ? r.pending.items : genShop(); r.pending = { kind: 'shop', items }; this.over = new ShopOverlay({ items, onDone: done }); }
-    else if (st.type === 'rest') { this.phase = 'stop'; b.repair(1); const tl = r.pending && r.pending.kind === 'rest' ? r.pending : Object.assign({ kind: 'rest' }, hearTale(r.ch)); r.pending = tl; this.over = new ChoiceOverlay({ title: '주막', art: 'priest', col: '#2f6f5c', text: '고갯마루 주막에서 수레를 고칩니다.\n주모가 옛이야기 한 토막을 들려줍니다.', tale: taleView(tl), choices: restChoices(), onDone: done }); }
+    else if (st.type === 'rest') { this.phase = 'stop'; b.repair(1); const tl = r.pending && r.pending.kind === 'rest' ? r.pending : Object.assign({ kind: 'rest' }, hearTale(r.ch)); r.pending = tl; this.welcome(noteDeed()); this.over = new ChoiceOverlay({ title: '주막', art: 'priest', col: '#2f6f5c', text: '고갯마루 주막에서 수레를 고칩니다.\n주모가 옛이야기 한 토막을 들려줍니다.', tale: taleView(tl), choices: restChoices(), onDone: done }); }
     else { this.phase = 'stop'; this.reward('treasure'); }
     save();
   }
@@ -120,7 +120,11 @@ export class RunScene {
     r.gold += gold; r.merit = (r.merit || 0) + grade; r.wins++; r.kills = b.kills; r.lost = b.lost; r.nextMorale = 0; r.road.state = 'reward';
     settleBattle(b); if (enc.kind !== 'battle') { const got = grantLoot(enc.kind === 'boss' ? 4 : 3); this.toast(`${enc.kind === 'boss' ? '두목' : '강적'}의 짐에서 패 ${got.length}장을 노획 — ${got.join(', ')}`, 4.5); this.sync(); }
     this.grade = { grade, gold, t: 0, stamped: false }; this.phase = 'clear'; this.order = null; this.aim = null; sfx('win'); save();
+    // 영물의 인연: 밤 싸움·강적·두목을 이긴 공, 깃발을 지켜 낸 공을 적는다
+    this.welcome([].concat(enc.sky === 'night' ? noteDeed('night') : [], enc.kind === 'elite' ? noteDeed('elite') : [], enc.kind === 'boss' ? noteDeed('boss') : [], enc.kind === 'boss' && r.flags >= 3 ? noteDeed('safe') : []));
   }
+  // 새로 인연을 맺은 영물은 그 자리에서 군대에 합류한다 (알림은 다른 알림이 끝난 뒤에 차례로 뜬다)
+  welcome(list) { if (!list || !list.length) return; for (const bt of list) { addCard('u_' + bt.id); this.joinQ.push(bt); } this.sync(); }
   // 요괴가 쓰러질 때: 두목의 마지막 한마디, 처음 보는 것에 놀란 병사의 한마디
   onDeath(e) {
     const r = this.r;
@@ -175,6 +179,8 @@ export class RunScene {
     this.T += dt; this.dt = dt; const b = this.b, view = this.view, r = this.r;
     ui.top = this.sub ? 1 : this.over ? (this.over.sub ? 2 : 1) : 0;
     if (this.toastT > 0) this.toastT -= dt; if (this.note) { this.note.t -= dt; if (this.note.t <= 0) this.note = null; }
+    else if (!this.deedSeen) { this.deedSeen = true; this.welcome(noteDeed()); }   // 지난 원정까지 쌓인 공으로 이미 채운 인연
+    else if (this.joinQ.length && this.phase !== 'clear' && this.phase !== 'over' && this.phase !== 'fight') { const bt = this.joinQ.shift(), nm = UNITS[bt.id].name; this.note = { s: `${nm} — 영물의 인연`, sub: `${bt.lore}. ${nm} 패가 덱에 들어왔습니다`, col: TEAL, t: 4, ch: '靈' }; sfx('star'); }
     const live = !this.menu && !this.over && !this.sub && this.phase !== 'over' && this.phase !== 'stop';
     if (live) this.input(i);
     const aiming = this.aim && (this.aim.live || (this.aim.drag && i.y < BAR_Y - 8)), want = (this.order && this.order.moved) || aiming ? 0.12 : 1;

@@ -12,13 +12,14 @@ import { icon } from '../ui/ui.js';
 
 const PI = Math.PI;
 // 쓰러진 자리에 남는 것
-const LEFT = { goblin: 'broom', orc: 'bat', garcher: 'sandal', rshield: 'lid', shaman: 'poker', skel: 'hopae', skelarcher: 'hopae' };
+const LEFT = { goblin: 'broom', orc: 'bat', garcher: 'sandal', rshield: 'lid', shaman: 'poker', skel: 'hopae', skelarcher: 'hopae', dueok: 'bat', yagwang: 'sandal' };
 function swing(p) { if (p < 0.28) return lerp(0, -0.9, p / 0.28); if (p < 0.55) return lerp(-0.9, 1.7, (p - 0.28) / 0.27); return lerp(1.7, 0, (p - 0.55) / 0.45); }
 
 // 종이 인형 한 장: 걷기는 깡충거림과 기울임, 공격은 내지르기와 무기 휘두르기
 // T = 화면의 시계(걸음·깜빡임), ST = 전투의 시계(공격·등장 시각은 전투 시간으로 적혀 있다)
 export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
-  const L = getLook(u.type), k = L.scale, hold = L.hold, WP = u.def && u.def.wpn ? getWeapon(u.def.wpn) : null;
+  // 그슨대는 살아 있는 동안 점점 커진다
+  const L = getLook(u.type), k = L.scale * (u.grown ? 1 + u.grown * 0.075 : 1), hold = L.hold, WP = u.def && u.def.wpn ? getWeapon(u.def.wpn) : null;
   const mode = WP ? WP.mode : hold.mode, ha = WP ? WP.a : hold.a, wspr = WP ? WP.spr : L.weapon, hand = WP ? WP.hand : 'R';
   const c = Math.cos(u.facing), s = Math.sin(u.facing);
   if (u._dir === undefined) { u._dir = u.team === 0 ? 1 : -1; u._flipT = -9; }
@@ -227,6 +228,7 @@ export class BattleView {
       g.restore();
     } else {
       const a = p.ang || 0;
+      if (p.kind === 'sunfire') { g.globalAlpha = 0.45; ell(g, p.x - Math.cos(a) * 9, p.y - Math.sin(a) * 9, 4.4, 4.4, '#ff9a2e'); ell(g, p.x - Math.cos(a) * 16, p.y - Math.sin(a) * 16, 2.8, 2.8, '#e0503f'); g.globalAlpha = 1; ell(g, p.x, p.y, 5.6, 5.6, '#f0a53a', INK, 1.2); ell(g, p.x - 1.2, p.y - 1.4, 2, 2, '#fbe08a'); return; }
       if (p.kind === 'dark') { g.globalAlpha = 0.5; ell(g, p.x - Math.cos(a) * 8, p.y - Math.sin(a) * 8, 5, 5, '#8fd3e8'); g.globalAlpha = 1; ell(g, p.x, p.y, 6, 6, '#3d3560', INK, 1.2); return; }
       if (p.kind === 'note') { for (let i = 0; i < 3; i++) { g.globalAlpha = 0.9 - i * 0.28; g.beginPath(); g.arc(p.x - Math.cos(a) * i * 7, p.y - Math.sin(a) * i * 7, 4.4 + i * 2, a - 0.9, a + 0.9); st(g, i ? '#e2b24a' : INK, i ? 1.8 : 3.4); if (!i) { g.beginPath(); g.arc(p.x, p.y, 4.4, a - 0.9, a + 0.9); st(g, '#fff3c0', 1.8); } } g.globalAlpha = 1; return; }
       if (p.kind === 'stone') { ell(g, p.x, p.y, 4.4, 4, '#a59f8f', INK, 1.2); return; }
@@ -305,7 +307,7 @@ export class BattleView {
           if (e.team === 1) out.push(e);
           break;
         }
-        case 'shoot': if (e.kind === 'note') { sfx('clang'); break; } sfx(e.kind === 'fireball' || e.kind === 'dark' || e.kind === 'iceball' || e.kind === 'spark' ? 'magic' : e.kind === 'shell' ? 'boom' : e.kind === 'bullet' ? 'thud' : 'shoot'); if (e.kind === 'bullet') fx.puff(e.x, e.y - 26, 3, '#d9d4c8', 7); if (e.kind === 'shell') { fx.puff(e.x, e.y - 30, 4, '#d9d4c8', 9); fx.shake = Math.max(fx.shake, 3); } break;
+        case 'shoot': if (e.kind === 'note') { sfx('clang'); break; } sfx(e.kind === 'fireball' || e.kind === 'dark' || e.kind === 'iceball' || e.kind === 'spark' || e.kind === 'sunfire' ? 'magic' : e.kind === 'shell' ? 'boom' : e.kind === 'bullet' ? 'thud' : 'shoot'); if (e.kind === 'bullet') fx.puff(e.x, e.y - 26, 3, '#d9d4c8', 7); if (e.kind === 'shell') { fx.puff(e.x, e.y - 30, 4, '#d9d4c8', 9); fx.shake = Math.max(fx.shake, 3); } break;
         case 'heal': if (!e.quiet && e.fx !== undefined) fx.beam(e.fx, e.fy - 34, e.x, e.y - 16, e.team === 0 ? '#f0d264' : '#e4826a', 0.22, 3); fx.add({ k: 'plus', x: e.x + (Math.random() - 0.5) * 12, y: e.y - 30, vy: -40, life: 0.6, size: 5.5, col: e.team === 0 ? '#5fae6a' : '#e4826a' }); sfx('heal'); break;
         case 'charge': fx.star(e.x, e.y - 14, 24, '#fbf7ec'); fx.ring(e.x, e.y, 46, INK, 0.3, 5); fx.puff(e.x, e.y - 6, 6, '#e8dcc0', 9); fx.txt(e.x, e.y - 52, '돌격!', e.team === 0 ? INDIGO : RED, 24, 0.8); fx.shake = Math.max(fx.shake, 5); sfx('charge'); break;
         case 'impact': {
@@ -317,7 +319,10 @@ export class BattleView {
         }
         case 'rainTick': if (e.fire) fx.burst(e.x, e.y, 3, '#ff9a2e', 90, 3); for (let i = 0; i < 9; i++) { const a = Math.random() * TAU, r = Math.sqrt(Math.random()) * e.r, x = e.x + Math.cos(a) * r, y = e.y + Math.sin(a) * r; fx.add({ k: 'arrow', x, y, life: 0.16 + Math.random() * 0.1 }); fx.add({ k: 'stuck', ground: true, x, y, life: 0.9 }); } sfx('rain'); break;
         case 'vanish': fx.puff(e.x, e.y - 14, e.ally ? 4 : 7, e.ally ? PAPER : '#cfe6f0', 11); if (e.ally) fx.scraps(e.x, e.y - 20, 3); else sfx('leap'); break;
-        case 'appear': fx.puff(e.x, e.y - 14, e.ally ? 10 : 7, e.ally ? PAPER : e.summon || e.revive ? '#cfe6f0' : '#f6f1e6', e.ally ? 13 : 11); if (e.ally) fx.ring(e.x, e.y, 60, INDIGO, 0.4, 5); if (!e.summon && !e.revive) { fx.txt(e.x, e.y - 54, '기습!', RED, 22, 0.8); sfx('warn'); } break;
+        case 'grow': fx.txt(e.x, e.y - 74 - e.n * 4, '커진다…', '#5a4a8a', 18, 0.8); fx.wisp(e.x, e.y - 30, 2); fx.ring(e.x, e.y, 46 + e.n * 4, '#3d3560', 0.4, 4); break;
+        case 'steal': fx.add({ k: 'text', x: e.x, y: e.y - 50, vy: -40, drag: 1.5, s: '사기 -' + e.n, col: RED, size: 17, life: 0.8 }); break;
+        case 'appear': if (e.pounce) { fx.puff(e.x, e.y - 14, 8, PAPER, 12); fx.ring(e.x, e.y, 70, OCHRE, 0.45, 7); fx.slash(e.x, e.y - 18, 36, MEOK); fx.txt(e.x, e.y - 62, '어흥!', '#c8642a', 28, 0.9); fx.shake = Math.max(fx.shake, 5); sfx('charge'); break; }
+          fx.puff(e.x, e.y - 14, e.ally ? 10 : 7, e.ally ? PAPER : e.summon || e.revive ? '#cfe6f0' : '#f6f1e6', e.ally ? 13 : 11); if (e.ally) fx.ring(e.x, e.y, 60, INDIGO, 0.4, 5); if (!e.summon && !e.revive) { fx.txt(e.x, e.y - 54, '기습!', RED, 22, 0.8); sfx('warn'); } break;
         case 'fuse': fx.txt(e.x, e.y - 60, '화르륵…', '#2f7fa8', 18, 0.5); break;
         case 'lob': fx.add({ k: 'arc', x: e.x, y: e.y - 34, x1: e.tx, y1: e.ty, h: 230, life: e.dur, size: 9, col: '#a59f8f' }); sfx('charge'); break;
         case 'raise': fx.beam(e.fx, e.fy - 40, e.x, e.y, '#8fd3e8', 0.5, 3); sfx('magic'); break;

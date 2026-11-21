@@ -2,6 +2,7 @@
 import { TAU, INK, PAPER, RED, INDIGO, TEAL, OCHRE, SKIN, st, fs, ell, rr, poly, line, path, paperSprite, drawSprite } from './draw.js';
 import { WEAPONS as WDATA, ARMS } from '../data/weapons.js';
 import { doll, dokkaebi, ITEM, DITEM, fox, jangseung, wisp, cart, horse, LEFTOVER, boar, catapult, mokshin, eoduksini, scarecrow, stakeLog, bannerCart, part, dk, lt, E, R, P, curve, rope, WHITE, BLACK, STEEL, IRON, WOOD, WOODD, HX, HY } from './figures.js';
+import { tiger, haetae, sapsal, magpie, samjoko, bulgasari, geuseundae, strawShoes } from './beasts.js';
 
 // ───────────── 무기 (원점 = 손잡이, 위쪽을 향함) ─────────────
 const STEELD = '#aab4ba', BRASS = '#c9962e';
@@ -131,6 +132,8 @@ const WEAPONS = {
 const hold = (a, mode, x, y) => ({ x: x === undefined ? HX : x, y: y === undefined ? HY : y, a, mode: mode || 'slash' });
 const DK = (o, extra) => Object.assign({ dok: o, weapon: 'club', hold: hold(0.35, 'slash', 16.4, -21), h: 64, neck: 27 }, extra);
 const CREAM = '#f1ead6';
+// 장산범: 흰 털이 길게 늘어진 범. 눈이 붉고 입을 벌리고 있다
+const JANGSAN = { coat: '#f3efe6', belly: '#ffffff', stripe: '#c9c3b6', eye: '#e0503f', shag: true, roar: true };
 const GHOST = { robe: '#c5d9df', top: '#b3ccd4', collar: '#eef6f8', git: '#9ab6c0', cuff: '#eef6f8', skin: '#e9f0f1', pale: true, tatter: true, ghost: true, eyes: 'ghost', mouth: 'frown', hair: '#5a6a72' };
 export const LOOKS = {
   // 아군
@@ -151,6 +154,12 @@ export const LOOKS = {
   hunter: { doll: { robe: '#6b5a3c', top: '#7a6844', vest: '#d9963f', pelt: true, git: '#4a3d2e', legs: '#d9cdb0', shoe: '#5a4030', sash: '#4a3d2e', hem: '#4a3d2e', hat: 'fur', skin: '#e4bb8e', jaw: 'square', brow: 'flat', eyes: 'round', beard: 'stubble', mouth: 'smirk', back: ITEM.quiver }, hold: hold(0, 'shoot'), scale: 1.3, hero: true, h: 64 },
   sangsoe: { doll: { robe: '#f6efdc', top: '#fffaf0', vest: INDIGO, git: '#22385c', legs: CREAM, sash: OCHRE, hem: '#22385c', cross: [RED, OCHRE], hat: 'sangmo', skin: '#e8c093', jaw: 'round', brow: 'arch', eyes: 'smile', mouth: 'grin', item: ITEM.gong }, hold: hold(0.4, 'cast'), scale: 1.3, hero: true, h: 68 },
   chief: { doll: { robe: '#5a4a3a', top: '#6b4a3a', vest: '#8a6a4a', fur: true, bare: true, git: '#3a2a22', legs: '#3a3640', sash: '#8a2a26', hem: '#3a2a22', wrist: '#3a2a22', hat: 'wild', hair: '#3a2a26', skin: '#d9a878', jaw: 'square', brow: 'bushy', eyes: 'glare', nose: 'broad', beard: 'wild', scar: true }, hold: hold(0.4), wide: 1.16, scale: 1.3, hero: true, h: 62 },
+  // 영물
+  magpie: { body: magpie, weapon: 'none', hold: hold(0, 'bite'), h: 50, float: true, scale: 0.86 },
+  sapsal: { body: sapsal, blinkBody: g => sapsal(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 36, scale: 0.98 },
+  haetae: { body: haetae, blinkBody: g => haetae(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 58, w: 130, ox: 62, scale: 1.12 },
+  samjoko: { body: samjoko, weapon: 'none', hold: hold(0, 'none'), h: 54, float: true, scale: 0.92 },
+  tiger: { body: tiger, blinkBody: g => tiger(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 50, w: 130, ox: 62, scale: 1.08 },
   decoy: { body: scarecrow, weapon: 'none', hold: hold(0, 'none'), h: 54, still: true },
   stake: { body: stakeLog, weapon: 'none', hold: hold(0, 'none'), h: 40, still: true },
   banner: { body: bannerCart, weapon: 'none', hold: hold(0, 'none'), h: 104, still: true, scale: 1.1 },
@@ -169,6 +178,11 @@ export const LOOKS = {
   skelarcher: { doll: Object.assign({}, GHOST, { hat: 'band', bandCol: '#c5d9df', item: ITEM.bow }), weapon: 'none', hold: hold(0, 'shoot'), float: true, border: '#e6f3f7', h: 60 },
   catapult: { body: catapult, weapon: 'arm', hold: hold(-0.9, 'lob', 0, -17), h: 50, scale: 1.15, still: true },
   necro: { doll: { robe: '#2b2a31', top: '#35343c', git: '#6b6470', collar: '#c9c2d0', cuff: '#c9c2d0', sash: '#6b6470', skin: '#e6e3d8', pale: true, hat: 'gat', brow: 'stern', eyes: 'sharp', mouth: 'frown', iris: '#7a1f1c', item: ITEM.scroll }, weapon: 'none', hold: hold(0, 'cast'), scale: 1.12, h: 66 },
+  dueok: DK({ skin: '#7d8a5a', cloth: '#7a2a26', horns: 2, warts: true, hair: '#5a2a22' }, { weapon: 'ironclub', scale: 1.28 }),
+  yagwang: DK({ skin: '#cfd98a', cloth: '#3a3550', item: strawShoes, hair: '#4a4a66' }, { weapon: 'none', hold: hold(0, 'bite'), scale: 0.72 }),
+  bulga: { body: bulgasari, blinkBody: g => bulgasari(g, { blink: true }), weapon: 'none', hold: hold(0, 'bite'), h: 54, w: 136, ox: 64, scale: 1.3 },
+  jangsan: { body: g => tiger(g, JANGSAN), blinkBody: g => tiger(g, Object.assign({ blink: true }, JANGSAN)), weapon: 'none', hold: hold(0, 'bite'), h: 50, w: 130, ox: 62, scale: 1.16 },
+  geuseun: { body: geuseundae, weapon: 'none', hold: hold(0, 'bite'), h: 72, scale: 1.2, float: true },
   // 두목
   warchief: DK({ skin: '#3f6f9f', horns: 2, beads: true, warts: true }, { weapon: 'ironclub', scale: 2.0, boss: true, h: 66 }),
   elder: { body: mokshin, weapon: 'none', hold: hold(0, 'bite'), h: 72, scale: 2.2, boss: true, still: true },

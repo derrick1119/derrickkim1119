@@ -25,6 +25,17 @@ export const UNITS = {
     desc: '신기전을 쏟아붓는 수레', tip: '전장 대부분이 사거리인 범위 포격. 장전이 느리고 가까운 적은 쏘지 못합니다.' },
   berserk: { name: '철퇴 장사', role: '난전', side: 0, cost: 3, n: 4, hp: 155, atk: 20, as: 1.2, range: 0, spd: 70, r: 12, frenzy: true,
     desc: '여럿을 후려치는 철퇴', tip: '한 번에 최대 3명을 타격. 체력이 절반 아래면 공격 속도 +50%.' },
+  // ───── 영물: 원정을 거듭하며 인연을 맺으면 합류한다 (state.js 의 BEASTS) ─────
+  magpie: { name: '까치', role: '길조', side: 0, beast: true, cost: 2, n: 6, hp: 30, atk: 8, as: 0.62, range: 0, spd: 150, r: 8, prefer: 'soft', dodge: 0.25, omen: 0.5,
+    desc: '반가운 소식을 물어 오는 길조', tip: '날쌔게 날아가 후방의 요괴를 쫍니다. 까치가 전장에 있는 동안 요괴 무리를 물리칠 때마다 사기를 0.5 더 얻습니다.' },
+  sapsal: { name: '삽살개', role: '벽사', side: 0, beast: true, cost: 2, n: 4, hp: 105, atk: 13, as: 0.8, range: 0, spd: 98, r: 10, bane: 1.6, seal: true,
+    desc: '귀신 쫓는 털북숭이 개', tip: '망령과 저승 요괴에게 1.6배 피해. 삽살개가 물어 쓰러뜨린 망령은 되살아나지 못합니다.' },
+  haetae: { name: '해태', role: '수호', side: 0, beast: true, cost: 3, n: 2, hp: 330, atk: 20, as: 1.25, range: 0, spd: 60, r: 14, armor: 0.15, fireproof: true, aura: { ward: 0.15, r: 125 },
+    desc: '불을 삼키는 수호 영물', tip: '화상에 걸리지 않고, 곁에 선 아군이 받는 피해 -15%. 전열 한가운데에 세우세요.' },
+  samjoko: { name: '삼족오', role: '원거리', side: 0, beast: true, cost: 3, n: 3, hp: 70, atk: 22, as: 1.55, range: 240, spd: 62, r: 10, proj: 'sunfire', soft: true, burnHit: { t: 3, k: 0.4 }, sun: true,
+    desc: '해 속에 사는 세 발 까마귀', tip: '햇불을 쏘아 3초 화상을 입힙니다. 삼족오가 전장에 있는 동안은 밤의 불이익이 사라집니다.' },
+  tiger: { name: '호랑이', role: '침투', side: 0, beast: true, cost: 3, n: 2, hp: 280, atk: 30, as: 0.95, range: 0, spd: 130, r: 14, leap: true, backstab: 2.0, pounce: { r: 60, stun: 1.2 }, prefer: 'soft',
+    desc: '산을 다스리는 산군', tip: '싸움이 붙으면 요괴 후방으로 뛰어들어 주변을 1.2초 기절시키고 뒤를 뭅니다. 돌팔매·북 도깨비의 천적.' },
   // ───── 영웅 ─────
   commander: { name: '장군', role: '영웅', side: 0, hero: true, cost: 0, n: 1, hp: 920, atk: 30.8, as: 0.847, range: 0, spd: 80, r: 14, aura: { dmg: 0.12, r: 130 },
     desc: '언월도를 든 근접 영웅', tip: '주변 아군 피해 +12%. 기력이 차면 회전 베기 → 호통 → 선봉 돌파를 차례로 씁니다.' },
@@ -77,6 +88,16 @@ export const UNITS = {
     desc: '붉은 원에 바위가 떨어진다', tip: '붉은 원이 보이면 부대를 끌어 피하세요! 기마 무사를 보내 부수는 것이 가장 확실합니다.' },
   necro: { name: '저승사자', role: '소환', side: 1, n: 1, hp: 190, atk: 16, as: 1.8, range: 215, spd: 46, r: 12, proj: 'dark', soft: true, raise: { cd: 5, max: 7 },
     desc: '쓰러진 자를 망령으로 일으킨다', tip: '쓰러진 자리에서 망령 병사를 일으킵니다. 살려두면 끝이 없으니 최우선으로 잡으세요.' },
+  dueok: { name: '두억시니', role: '난폭', side: 1, n: 2, hp: 310, atk: 32, as: 1.7, range: 0, spd: 52, r: 14, large: true, stunHit: { p: 0.3, t: 0.8 },
+    desc: '머리를 내리찍는 난폭한 귀신', tip: '맞으면 세 번에 한 번꼴로 기절합니다(영웅은 절반만). 창병과 화력을 모아 오래 맞서지 말고 빨리 쓰러뜨리세요.' },
+  yagwang: { name: '야광귀', role: '도둑', side: 1, n: 4, hp: 58, atk: 7, as: 1.0, range: 0, spd: 116, r: 9, prefer: 'soft', steal: 0.1,
+    desc: '신발을 훔쳐 가는 밤 귀신', tip: '때릴 때마다 사기를 0.1씩 훔쳐 갑니다. 오래 두면 사기가 바닥나니 후방에 [대기] 부대를 두어 빨리 잡으세요.' },
+  bulga: { name: '불가사리', role: '거대', side: 1, n: 1, hp: 470, atk: 26, as: 1.5, range: 0, spd: 46, r: 16, large: true, iron: { cut: 0.6, fire: 1.6 },
+    desc: '쇠를 먹고 자라는 짐승', tip: '칼과 화살은 열에 여섯만 통합니다. 불과 도술(도사·화살비·벼락·삼족오의 화상)에는 크게 다칩니다.' },
+  jangsan: { name: '장산범', role: '홀림', side: 1, n: 1, hp: 260, atk: 26, as: 1.0, range: 0, spd: 104, r: 13, taunt: 150, dodge: 0.2, prefer: 'soft',
+    desc: '사람 목소리를 흉내 내는 흰 범', tip: '목소리로 홀려 주변 아군이 저만 쫓게 만들고, 공격 다섯 중 하나를 흘립니다. 범위 공격으로 잡거나 [대기]로 진형을 지키세요.' },
+  geuseun: { name: '그슨대', role: '거대', side: 1, n: 1, hp: 430, atk: 22, as: 1.4, range: 0, spd: 46, r: 15, large: true, grow: { every: 4, atk: 0.14, hp: 0.07, max: 8 },
+    desc: '올려다볼수록 커지는 그림자', tip: '살려 둘수록 점점 커지고 세집니다. 보이는 대로 화력을 모아 먼저 쓰러뜨리세요.' },
   // ───── 보스 ─────
   warchief: { name: '푸른 김서방', role: '보스', side: 1, boss: true, n: 1, hp: 1900, atk: 44, as: 1.6, range: 0, reach: 14, spd: 52, r: 26, large: true, splash: 46, abil: ['slam', 'warcry'],
     desc: '터를 잃고 쫓겨 온 도깨비 두목', tip: '붉은 원이 보이면 부대를 빼세요. 체력이 절반이 되면 무리 전체가 광분합니다.' },
@@ -120,16 +141,18 @@ const COMBO_NAME = { 'bishop+commander': '금강 돌격', 'archmage+commander': 
 export const COMBOS = {};
 // ───── 진법: 전장에 선 부대 구성에 따라 켜진다 ─────
 const INF = ['sword', 'shield', 'spear', 'berserk'], RNG = ['xbow', 'wizard', 'cannon'];
-export const SYN_CLASS = t => INF.includes(t) ? 'inf' : RNG.includes(t) ? 'rng' : t === 'knight' ? 'cav' : t === 'priest' || t === 'bishop' ? 'heal' : '';
+export const BEAST_TYPES = ['magpie', 'sapsal', 'haetae', 'samjoko', 'tiger'];
+export const SYN_CLASS = t => INF.includes(t) ? 'inf' : RNG.includes(t) ? 'rng' : t === 'knight' ? 'cav' : t === 'priest' || t === 'bishop' ? 'heal' : BEAST_TYPES.includes(t) ? 'beast' : '';
 export const SYNERGIES = [
   { id: 'phalanx', name: '방진', need: '보병 3', desc: '보병이 받는 피해 -15%', n: c => [c.inf, 3] },
   { id: 'volley', name: '일제 사격', need: '원거리 2', desc: '원거리 공격 속도 +15%', n: c => [c.rng, 2] },
   { id: 'cav', name: '기동대', need: '기마 2', desc: '돌격 피해 +25%', n: c => [c.cav, 2] },
   { id: 'rite', name: '굿판', need: '치유 2', desc: '치유량 +25%', n: c => [c.heal, 2] },
   { id: 'three', name: '삼군', need: '보병·원거리·기마', desc: '모든 아군 피해 +8%', n: c => [(c.inf ? 1 : 0) + (c.rng ? 1 : 0) + (c.cav ? 1 : 0), 3] },
+  { id: 'spirit', name: '서낭의 가호', need: '영물 2', desc: '영물이 주는 피해 +15%', n: c => [c.beast, 2] },
 ];
 
-export const PLAYER_TYPES = ['sword', 'shield', 'spear', 'xbow', 'priest', 'knight', 'wizard', 'berserk', 'cannon'];
+export const PLAYER_TYPES = ['sword', 'shield', 'spear', 'xbow', 'priest', 'knight', 'wizard', 'berserk', 'cannon'].concat(BEAST_TYPES);
 export const HEROES = ['commander', 'blade', 'hunter', 'bishop', 'archmage', 'sangsoe', 'chief'];
 for (let i = 0; i < HEROES.length; i++) for (let j = i + 1; j < HEROES.length; j++) {
   const pr = [HEROES[i], HEROES[j]].sort(), key = pr.join('+');

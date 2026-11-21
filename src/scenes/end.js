@@ -1,9 +1,10 @@
 // 원정 끝 (평정 / 실패) — 가로
 import { W, H } from '../config.js';
-import { INK, RED, INDIGO, SUB, FONT_B, text, textBlock, rr } from '../render/draw.js';
+import { INK, RED, INDIGO, TEAL, SUB, FONT_B, text, textBlock, rr } from '../render/draw.js';
 import { button, panel, brushTitle, C } from '../ui/ui.js';
 import { nav } from '../nav.js';
-import { G, meta, save, settleRun } from '../state.js';
+import { G, meta, save, settleRun, BEASTS, has, deedCount } from '../state.js';
+import { UNITS } from '../data/units.js';
 import { CHAPTERS } from '../data/stages.js';
 import { CARDS, isUnit } from '../data/cards.js';
 import { ENDING, EPILOGUE, DEFEAT } from '../data/story.js';
@@ -36,6 +37,9 @@ export class EndScene {
       text(g, r.relics.length ? `지닌 보물 ${r.relics.length}` : '지닌 보물 없음', 544, 424, { size: 20, font: FONT_B, align: 'left' });
       const rp = Math.min(46, 660 / Math.max(1, r.relics.length)); r.relics.forEach((id, n) => relicIcon(g, id, 568 + n * rp, 476, Math.min(0.8, rp / 44)));
     }
+    // 다음에 맺을 영물의 인연 하나: 가장 가까운 것을 짚어 준다
+    const nb = BEASTS.filter(b => !has(b.id)).sort((a, b) => deedCount(b) / b.need - deedCount(a) / a.need)[0];
+    if (nb) { text(g, `다음 인연 · ${UNITS[nb.id].name}`, 544, 532, { size: 18, font: FONT_B, align: 'left', fill: TEAL }); text(g, `${nb.how}  (${Math.min(nb.need, deedCount(nb))} / ${nb.need})`, 716, 533, { size: 16, align: 'left', fill: SUB, weight: 400, maxW: 500 }); }
     if (t > 0.8 && button(g, 'home', 560, 586, 310, 90, '처음으로', { style: 'paper', size: 34 })) { G.run = null; save(); nav.go('title'); }
     if (t > 0.8 && button(g, 'meta', 890, 586, 310, 90, '공적 장부', { size: 34 })) { G.run = null; save(); nav.go('meta'); }
   }

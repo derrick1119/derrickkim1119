@@ -10,6 +10,8 @@ import { G, unitStats, equip, canUp, weaponOf, pouchCap, tacticCards } from '../
 import { portrait, weaponIcon } from '../render/sprites.js';
 import { cardIcon, relicIcon } from '../render/icons.js';
 import { sfx } from '../audio.js';
+// 패 그림 속 인형의 크기·높이 보정: 탈것은 조금 작게, 작은 영물은 크게, 날짐승은 가운데로 내린다
+const CARD_K = { knight: 0.82, cannon: 0.82, magpie: 1.55, sapsal: 1.4, samjoko: 1.35, haetae: 0.88, tiger: 0.9 }, CARD_Y = { magpie: 1.0, samjoko: 0.98 };
 
 const SCALED = ['dmg', 'tick', 'burn', 'dps', 'hp', 'barrier'];
 // 패 설명 (P 를 주면 원정 깊이에 따라 커지는 수치를 반영한다)
@@ -35,7 +37,7 @@ export function cardFace(g, c, x, y, w, h, o = {}) {
   const wg = g.createRadialGradient(cx, cy, ss * 0.1, cx, cy, ss * 1.1); wg.addColorStop(0, col + '3c'); wg.addColorStop(1, col + '00'); g.fillStyle = wg; g.fillRect(x, y + hh + 3, w, ah + 24);
   if (unit) {
     const gy = cy + ss * 0.42, gg = g.createLinearGradient(0, gy, 0, gy + ss * 0.7); gg.addColorStop(0, 'rgba(140,160,120,0.8)'); gg.addColorStop(1, 'rgba(140,160,120,0.2)'); g.fillStyle = gg; g.fillRect(x, gy, w, ah); g.fillStyle = 'rgba(38,42,54,0.22)'; g.fillRect(x, gy, w, 1);
-    const L = d.unit === 'knight' || d.unit === 'cannon' ? 0.82 : 1; portrait(g, d.unit, cx, cy + ss * 0.62, ss / (d.kind === 'lead' ? 66 : 54) * L, 0, false, c.wpn);
+    const L = CARD_K[d.unit] || 1; portrait(g, d.unit, cx, cy + ss * (CARD_Y[d.unit] || 0.62), ss / (d.kind === 'lead' ? 66 : 54) * L, 0, false, c.wpn);
   }
   g.restore();
   if (!unit) { g.setLineDash([3, 5]); g.beginPath(); g.arc(cx, cy, ss * 0.74, 0, TAU); st(g, col + '99', 1.2); g.setLineDash([]); cardIcon(g, c.id, cx, cy + (big ? 2 : 1), ss / (mini ? 36 : 40)); if (big) { g.save(); g.translate(x + w - 30, y + hh + 108); g.rotate(-0.08); seal(g, 0, 0, 27, d.ch, col); g.restore(); } }

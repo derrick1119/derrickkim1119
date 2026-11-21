@@ -4,17 +4,17 @@ import { UNITS } from './units.js';
 import { pickTerrain, pickSky } from './terrain.js';
 
 export const ROWS = 5; // 고개 하나의 갈림길 줄 수 (그 위가 두목)
-const THREAT = { goblin: 2, orc: 3, garcher: 2.5, rshield: 3.2, rassassin: 3, treant: 4.2, bomber: 3, wolf: 3.6, shaman: 3.4, skel: 3.2, skelarcher: 3, catapult: 4.2, necro: 5 };
-const ROLE = { goblin: 'front', orc: 'front', rshield: 'front', treant: 'front', skel: 'front', rassassin: 'mid', bomber: 'mid', wolf: 'flank', shaman: 'back', garcher: 'back', skelarcher: 'back', necro: 'back', catapult: 'siege' };
-const LIMIT = { catapult: 2, necro: 2, shaman: 2, wolf: 2, rassassin: 2, bomber: 2, treant: 3, rshield: 3 };
+const THREAT = { goblin: 2, orc: 3, garcher: 2.5, rshield: 3.2, rassassin: 3, treant: 4.2, bomber: 3, wolf: 3.6, shaman: 3.4, skel: 3.2, skelarcher: 3, catapult: 4.2, necro: 5, yagwang: 3.2, dueok: 4.8, bulga: 5.6, jangsan: 4.8, geuseun: 5.2 };
+const ROLE = { goblin: 'front', orc: 'front', rshield: 'front', treant: 'front', skel: 'front', rassassin: 'mid', bomber: 'mid', wolf: 'flank', shaman: 'back', garcher: 'back', skelarcher: 'back', necro: 'back', catapult: 'siege', yagwang: 'mid', dueok: 'front', bulga: 'front', jangsan: 'flank', geuseun: 'front' };
+const LIMIT = { catapult: 2, necro: 2, shaman: 2, wolf: 2, rassassin: 2, bomber: 2, treant: 3, rshield: 3, yagwang: 2, dueok: 2, bulga: 1, jangsan: 1, geuseun: 1 };
 const POOLS = [
-  { w: { goblin: 5, orc: 4, garcher: 4, rshield: 3, rassassin: 2 }, maps: ['meadow', 'ruins', 'pillars'], lvl: 1 },
-  { w: { goblin: 2, orc: 3, garcher: 3, rshield: 2, treant: 4, bomber: 3, wolf: 3, shaman: 3, rassassin: 2 }, maps: ['forest', 'river', 'pillars', 'ruins'], lvl: 2 },
-  { w: { skel: 5, skelarcher: 4, necro: 2, catapult: 2, rassassin: 2, rshield: 2, shaman: 2, wolf: 2, bomber: 2, orc: 1 }, maps: ['graveyard', 'fort', 'moat', 'pillars'], lvl: 3 },
+  { w: { goblin: 5, orc: 4, garcher: 4, rshield: 3, rassassin: 2, yagwang: 2 }, maps: ['meadow', 'ruins', 'pillars'], lvl: 1 },
+  { w: { goblin: 2, orc: 3, garcher: 3, rshield: 2, treant: 4, bomber: 3, wolf: 3, shaman: 3, rassassin: 2, dueok: 2, bulga: 1.5, jangsan: 1.5, yagwang: 1.5 }, maps: ['forest', 'river', 'pillars', 'ruins'], lvl: 2 },
+  { w: { skel: 5, skelarcher: 4, necro: 2, catapult: 2, rassassin: 2, rshield: 2, shaman: 2, wolf: 2, bomber: 2, orc: 1, geuseun: 2, dueok: 1.5, bulga: 1.5, jangsan: 1.5, yagwang: 1.5 }, maps: ['graveyard', 'fort', 'moat', 'pillars'], lvl: 3 },
 ];
 // 편성에서 가장 눈에 띄는 요괴가 싸움 이름을 정한다
-const FEATURE = ['necro', 'catapult', 'wolf', 'bomber', 'treant', 'shaman', 'skel', 'rassassin', 'rshield', 'garcher', 'orc', 'goblin'];
-const NAMES = { necro: ['저승사자의 명부', '저승사자 일행'], catapult: ['바위 세례', '투석 패거리'], skel: ['되살아나는 자들', '망령 무리'], wolf: ['멧돼지 몰이', '멧돼지 몰이패'], bomber: ['푸른 불빛', '도깨비불 떼'], treant: ['걸어오는 장승', '장승 행렬'], shaman: ['둥둥 북소리', '북 도깨비 패'], rassassin: ['여우 울음', '불여우 무리'], rshield: ['솥뚜껑 방벽', '솥뚜껑 패거리'], garcher: ['돌팔매질', '돌팔매 패'], orc: ['방망이 패거리', '방망이 패'], goblin: ['고갯마루의 불청객', '도깨비 떼'] };
+const FEATURE = ['necro', 'geuseun', 'bulga', 'jangsan', 'catapult', 'dueok', 'wolf', 'bomber', 'treant', 'shaman', 'skel', 'rassassin', 'rshield', 'garcher', 'orc', 'goblin'];
+const NAMES = { necro: ['저승사자의 명부', '저승사자 일행'], catapult: ['바위 세례', '투석 패거리'], skel: ['되살아나는 자들', '망령 무리'], wolf: ['멧돼지 몰이', '멧돼지 몰이패'], bomber: ['푸른 불빛', '도깨비불 떼'], treant: ['걸어오는 장승', '장승 행렬'], shaman: ['둥둥 북소리', '북 도깨비 패'], rassassin: ['여우 울음', '불여우 무리'], rshield: ['솥뚜껑 방벽', '솥뚜껑 패거리'], garcher: ['돌팔매질', '돌팔매 패'], orc: ['방망이 패거리', '방망이 패'], goblin: ['고갯마루의 불청객', '도깨비 떼'], geuseun: ['커지는 그림자', '그슨대와 그림자들'], bulga: ['쇠 먹는 짐승', '불가사리 무리'], jangsan: ['부르는 목소리', '장산범 무리'], dueok: ['내리찍는 주먹', '두억시니 패'], yagwang: ['신발 도둑', '야광귀 떼'] };
 export const AFFIX = {
   rage: { name: '광분', desc: '공격 속도 +20%', foe: { as: 1.2 } },
   iron: { name: '철갑', desc: '체력 +30%', foe: { hp: 1.3 } },
@@ -44,7 +44,7 @@ export function genEncounter(ch, row, kind, R, hard = 0) {
   const pool = POOLS[ch];
   let budget = budgetFor(ch, row, kind, hard);
   const first = ch === 0 && row === 0;
-  const avail = Object.keys(pool.w).filter(t => !(first && (t === 'rshield' || t === 'rassassin')));
+  const avail = Object.keys(pool.w).filter(t => !(first && (t === 'rshield' || t === 'rassassin' || t === 'yagwang')));
   const picks = [], cnt = {};
   for (let guard = 0; budget >= 1.8 && picks.length < 10 && guard < 80; guard++) {
     let cand = avail.filter(t => THREAT[t] <= budget + 0.6 && (cnt[t] || 0) < (LIMIT[t] || 4));

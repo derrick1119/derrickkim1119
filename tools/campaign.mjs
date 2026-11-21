@@ -1,7 +1,7 @@
 // 원정 전체 시뮬레이션: 행군하며 물결·갈림길·사건·장터·주막을 차례로 지나 세 고개를 넘는다
 // node tools/campaign.mjs [runs] [mode: casual|bot|auto] [all]   ("all" = 공적 해금을 모두 연 상태)
 import { Battle, HAND } from '../src/sim/battle.js';
-import { G, meta, UNLOCKS, heroOpen, settleBattle, lootTable, grantLoot, tacticCards, newRun, battleSetup, waveSetup, mods, powerNow, curStop, chooseFork, encounterHere, advance, rollRewards, applyReward, upgradeCard, canUp, removeCard, equip, goldFor, genShop, buyItem, pickEvent, unitCards, act } from '../src/state.js';
+import { G, meta, UNLOCKS, BEASTS, heroOpen, settleBattle, lootTable, grantLoot, tacticCards, newRun, battleSetup, waveSetup, mods, powerNow, curStop, chooseFork, encounterHere, advance, rollRewards, applyReward, upgradeCard, canUp, removeCard, equip, goldFor, genShop, buyItem, pickEvent, unitCards, act } from '../src/state.js';
 import { eventView } from '../src/data/events.js';
 import { CARDS, isUnit } from '../src/data/cards.js';
 import { UNITS, HEROES } from '../src/data/units.js';
@@ -9,7 +9,7 @@ import { canEquip } from '../src/data/weapons.js';
 import { VIEW, MID_Y } from '../src/config.js';
 
 const runs = Number(process.argv[2] || 20), mode = process.argv[3] || 'casual';
-if (process.argv[4] === 'all') for (const u of UNLOCKS) meta.unlocked[u.id] = true;
+if (process.argv[4] === 'all') { for (const u of UNLOCKS) meta.unlocked[u.id] = true; for (const b of BEASTS) meta.unlocked[b.id] = true; }
 const pick = a => a[(Math.random() * a.length) | 0];
 const used_ = {};
 // 패 한 장을 쓸 만한 자리. 능숙한 봇은 가장 좋은 자리를, 서툰 봇은 대충 고른다

@@ -40,7 +40,7 @@ export const CARDS = {
   doubt: { name: '잡념', ch: '念', kind: 'curse', cost: 1, target: false, v: {}, up: {}, desc: () => '쓸모없는 패. 사기 1을 내면 버릴 수 있다' },
 };
 // ── 병력 패·영웅 패: 내면 그 자리에 부대가 선다. 부대가 전멸하면 그 싸움이 끝난 뒤에야 돌아온다 ──
-const UNIT_CH = { sword: '刀', shield: '牌', spear: '槍', xbow: '弓', priest: '巫', knight: '騎', wizard: '道', berserk: '槌', cannon: '車' };
+const UNIT_CH = { sword: '刀', shield: '牌', spear: '槍', xbow: '弓', priest: '巫', knight: '騎', wizard: '道', berserk: '槌', cannon: '車', magpie: '鵲', sapsal: '犬', haetae: '守', samjoko: '烏', tiger: '虎' };
 for (const t of PLAYER_TYPES) CARDS['u_' + t] = { name: UNITS[t].name, ch: UNIT_CH[t] || UNITS[t].name[0], kind: 'unit', unit: t, cost: UNITS[t].cost, rare: UNITS[t].cost > 2 ? 1 : 0, target: true, r: 46, v: {}, up: {}, desc: () => UNITS[t].desc };
 for (const h of HEROES) CARDS['h_' + h] = { name: UNITS[h].name, ch: '英', kind: 'lead', unit: h, cost: 4, target: true, r: 46, v: {}, up: {}, desc: () => UNITS[h].desc };
 for (const k of Object.keys(CARDS)) CARDS[k].id = k;

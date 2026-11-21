@@ -1,5 +1,5 @@
 // 원정(런) 상태: 덱(병력·영웅·전술 패), 노정(길 위에서 차례로 만나는 것들), 전리품, 장터, 공적(원정 사이 성장), 저장
-import { UNITS, HEROES, lvlMult } from './data/units.js';
+import { UNITS, HEROES, lvlMult, BEAST_TYPES } from './data/units.js';
 import { RELICS, CURSES } from './data/relics.js';
 import { genEncounter } from './data/encounters.js';
 import { DEFAULT_MODS, PACE, MAX_CAP, defOf } from './sim/battle.js';
@@ -9,7 +9,7 @@ import { VIEW, MID_Y } from './config.js';
 import { TALES, TALE_BY_ID } from './data/story.js';
 
 const KEY = 'gogae.save.v4';
-export const meta = { best: 0, clears: 0, runs: 0, merit: 0, unlocked: {}, hard: 0, hardMax: 0, seen: {}, tales: [] };
+export const meta = { best: 0, clears: 0, runs: 0, merit: 0, unlocked: {}, hard: 0, hardMax: 0, seen: {}, tales: [], deeds: {} };
 export const G = { run: null };
 const rnd = () => Math.random();
 const pick = arr => arr[(rnd() * arr.length) | 0];
@@ -50,7 +50,23 @@ export function buyUnlock(id) { const u = UNLOCKS.find(x => x.id === id); if (!u
 export const FREE_HEROES = ['commander', 'blade', 'hunter'];
 export const heroOpen = h => FREE_HEROES.includes(h) || has(h);
 const BASE_TYPES = ['sword', 'shield', 'spear', 'xbow', 'priest', 'knight', 'wizard'];
-export const unitPool = () => BASE_TYPES.concat(['berserk', 'cannon'].filter(has));
+export const unitPool = () => BASE_TYPES.concat(['berserk', 'cannon'].filter(has), BEAST_TYPES.filter(has));
+// ───────── 영물의 인연: 원정을 거듭하며 공을 쌓으면 영물이 군대에 합류한다 ─────────
+// deed = 세는 공(tales 는 들은 옛이야기 수, 나머지는 meta.deeds 에 쌓인다), need = 채워야 하는 수
+export const BEASTS = [
+  { id: 'magpie', deed: 'tales', need: 3, how: '주막에서 옛이야기 세 편을 듣는다', lore: '반가운 이야기가 모이는 곳에 까치가 든다' },
+  { id: 'sapsal', deed: 'boss', need: 2, how: '두목을 두 번 물리친다', lore: '귀신을 쫓아낸 군대를 삽살개가 따른다' },
+  { id: 'samjoko', deed: 'night', need: 5, how: '밤 싸움을 다섯 번 이긴다', lore: '어둠을 견딘 군대에 해의 새가 내려앉는다' },
+  { id: 'tiger', deed: 'elite', need: 4, how: '강적을 네 번 물리친다', lore: '센 놈을 꺾은 군대를 산군이 알아본다' },
+  { id: 'haetae', deed: 'safe', need: 1, how: '깃발 셋을 모두 지닌 채 두목을 물리친다', lore: '지킬 줄 아는 군대 앞에 해태가 선다' },
+];
+export const deedCount = b => b.deed === 'tales' ? (meta.tales || []).length : (meta.deeds && meta.deeds[b.deed]) || 0;
+// 공을 하나 적고(kind 없이 부르면 확인만), 그 공으로 새로 인연을 맺은 영물들을 돌려준다
+export function noteDeed(kind, n = 1) {
+  if (kind) { if (!meta.deeds) meta.deeds = {}; meta.deeds[kind] = (meta.deeds[kind] || 0) + n; }
+  const fresh = BEASTS.filter(b => !has(b.id) && deedCount(b) >= b.need); for (const b of fresh) meta.unlocked[b.id] = true;
+  if (kind || fresh.length) save(); return fresh;
+}
 export const HARD_DESC = ['', '요괴 체력 +8%', '요괴 체력 +16%, 수 +5%', '요괴 체력 +24%, 수 +10%', '요괴 체력 +32%, 수 +15%', '요괴 체력 +40%, 수 +20%'];
 
 // ───────── 원정 시작 ─────────
