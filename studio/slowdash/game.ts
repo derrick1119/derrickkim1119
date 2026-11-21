@@ -1994,16 +1994,20 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     const m = MELEE[f.k], fx0 = X(f.x), fy0 = Y(f.y);
     if (m && f.st === WIND) {
       const u = 1 - f.tm / (m.wind * easeOf(s)[1]);
-      ctx.fillStyle = `rgba(255,70,60,${0.12 + 0.28 * u})`;
       // 👁 r3: 매끈한 부채꼴(번진 분홍 평행사변형) → 도트 칸 부채꼴(테는 칸 하나 밝게)
-      const rx = R(m.reach) / PX, ry = rx * 0.5, cx0 = Math.round(fx0 / PX), cy0 = Math.round(fy0 / PX), edge: number[] = [];
+      const rx = R(m.reach) / PX, ry = rx * 0.5, cx0 = Math.round(fx0 / PX), cy0 = Math.round(fy0 / PX), edge: number[] = [], fill: number[] = [];
       ctx.beginPath();
       for (let j = -Math.ceil(ry); j <= Math.ceil(ry); j++) for (let i = -Math.ceil(rx); i <= Math.ceil(rx); i++) {
         const q = (i / rx) ** 2 + (j / ry) ** 2;
         if (q > 1) continue;
         if (f.k !== 'boss') { let da = Math.atan2(j * 2, i) - f.fa; da = Math.atan2(Math.sin(da), Math.cos(da)); if (Math.abs(da) > 1.2) continue; }
         if (q > 0.62 || (f.k !== 'boss' && (i * i + j * j < 2))) edge.push(cx0 + i, cy0 + j);
+        else if ((i + j) % 2 === 0) fill.push(cx0 + i, cy0 + j);
       }
+      ctx.fillStyle = '#5a1f33'; // 🧪 F4: 주인공 칸을 빼자 위험 칸 정보가 사라졌다 → 바닥(주인공 아래)에 짙은 빨강 바둑판으로 범위를 깔고, 밝은 테는 위에
+      ctx.beginPath();
+      for (let e = 0; e < fill.length; e += 2) ctx.rect(fill[e] * PX, fill[e + 1] * PX, PX, PX);
+      ctx.fill();
       if (!(u > 0.6 && Math.floor(t / 3) % 2)) warns.push([u > 0.6 ? '#ff4a3d' : '#d8323a', edge]); // 👁 r4: 반투명 면 → 빨강 테만 · 👁 r5: 주인공 밑에 묻혔다 → 주인공 다음에 그림
     }
     if (f.k === 'shield') {
@@ -2419,8 +2423,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       // 👁 r5: 1px 베이지 점선이 갈색 적 무리 위에서 안 보였다 → 굵은 청록 도트 점선(검은 테)
       for (let i = 1; i < pts.length; i++) {
         const a0 = pts[i - 1], a1 = pts[i];
-        pxLine(ctx, X(a0.x), Y(a0.y) - R(0.04), X(a1.x), Y(a1.y) - R(0.04), 4, OUT, [3, 2], Math.floor(t / 4));
-        pxLine(ctx, X(a0.x), Y(a0.y) - R(0.04), X(a1.x), Y(a1.y) - R(0.04), 2, '#7cf8dd', [3, 2], Math.floor(t / 4));
+        pxLine(ctx, X(a0.x), Y(a0.y) - R(0.04), X(a1.x), Y(a1.y) - R(0.04), 1, '#ffffff', [2, 2], Math.floor(t / 4)); // 🧪 F4: 굵은 민트 띠가 '!'·얼굴을 덮었다 → 한 칸 흰 점선(내 선 청록과도 구별)
       }
       if (u <= 1) { // 손가락 점이 길을 따라 간다
         const L = [Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y), Math.hypot(pts[2].x - pts[1].x, pts[2].y - pts[1].y)], d = u * (L[0] + L[1]);
@@ -2645,7 +2648,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       fx.blink('#ff3b30', 0.22);
       fx.kick(6);
       fx.burst(ex, ey - R(0.06), '#ff8a7a', 14, 3.2, 2.2);
-      say(ex, ey - R(0.16), ...POP.hurt);
+      say(ex, ey - R(0.23), ...POP.hurt); // 🧪 F4: '아얏!'이 주인공 머리와 겹쳤다 → 머리 위로
       fx.memo.hurtT = t;
     }
     if (e.kind === 'whiff') say(ex, ey - R(0.15), ...POP.whiff);
