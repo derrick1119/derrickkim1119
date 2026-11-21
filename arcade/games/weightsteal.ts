@@ -11,7 +11,7 @@
  * 고양이는 저절로 보물 쪽으로 살금살금 걷다가 막히면 기다린다(아무것도 안 해도 잃는 것 없음).
  * 판 목표 = 고양이가 보물까지. 별 = 보물 · 톡 N번 안에 · 그 판의 도전(주머니 비우기·모두 납작·보석·꽃병 지키기 …).
  * 실패(납작 · 풍덩 · 톡을 다 씀) = 하트 -1, 같은 판 다시. 판을 깨면 보물이 '고양이의 비밀 창고'에 쌓인다.
- * 3장 18판: 1장 정원(바위·깃털 → 경비견 둥실 → 투구 → 양팔 저울 → 시소 → 곰 징검다리) · 2장 성벽(도개교 → 와르르 선반 → 바람 타기 → 바람 다리 → 바람 둘 → 저울문 → 해자)
+ * 3장 18판: 1장 정원(바위·깃털 → 경비견 둥실 → 투구 → 양팔 저울 → 시소 → 곰 징검다리) · 2장 성벽(도개교 → 바람 타기 → 바람 다리 → 바람 둘 → 저울문 → 와르르 선반(숨 돌리기) → 해자)
  *   · 3장 보물 탑(샹들리에 → 쿵 고양이 → 주머니 둘 → 둥실 고양이 → 왕관). 39라운드: 막힘 힌트(전구) · 막힌 것 표시 · 버팀 무게 표.
  */
 import { mulberry32, type Rng } from '../../engine/rng.ts';
@@ -147,14 +147,6 @@ export const STAGES: StageDef[] = [
     par: 2, budget: 5, stars: [ST('clear', 0, '왕관 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('flat', 0, '경비견 납작하게')], next: '',
   },
   {
-    ch: 1, name: '와르르 선반', news: '선반도 버티는 무게가 있어요 · 곰은 위에서 8이 누르면 납작', spot: [0.32, 0.4, 0.13],
-    hints: [],
-    solids: [gnd(0, XW), sol('shelf', 0.25, 0.39, 0.5, 0.515, { cap: 5 }), sol('shelf', 0.25, 0.39, 0.3, 0.315, { cap: 10 }), sol('wall', 0.2, 0.25, 0.28, 1.2), sol('ped', 0.6, 0.7, 0, 0.04)],
-    bodies: [bd('crate', 0.12), bd('bear', 0.32), bd('barrel', 0.32, 0.315), bd('sack', 0.32, 0.515)],
-    cat: [0.03, 0], prize: { x: 0.65, y: 0.04, k: 'egg' },
-    par: 2, budget: 6, stars: [ST('clear', 0, '황금알 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('flat', 0, '곰 납작하게')], next: '',
-  },
-  {
     ch: 1, name: '바람 타기', news: '바람 — 둥실 뜬 것은 바람에 밀려 가요', spot: [0.3, 0.44, 0.13],
     hints: [],
     solids: [gnd(0, XW), sol('stone', 0, 0.12, 0.3, 0.33), sol('wall', 0.5, XW, 0.24, 1.2), sol('ped', 0.59, 0.69, 0, 0.04)],
@@ -170,10 +162,10 @@ export const STAGES: StageDef[] = [
     bodies: [bd('crate', 0.15), bd('dog', 0.56)],
     wind: [{ x0: 0, x1: XW, y0: 0.3, y1: 1.2, vx: 0.0045 }],
     cat: [0.04, 0], prize: { x: 0.66, y: 0.04, k: 'harp' },
-    par: 4, budget: 7, stars: [ST('clear', 0, '황금 하프 훔치기'), ST('taps', 4, '톡 4번 안에'), ST('empty', 0, '주머니 비우고 끝내기')], next: '',
+    par: 3, budget: 7, stars: [ST('clear', 0, '황금 하프 훔치기'), ST('taps', 3, '톡 3번 안에'), ST('float', 0, '경비견 띄워 보내기')], next: '',
   },
   {
-    ch: 1, name: '바람 부는 성벽', news: '바람은 그대로 — 이번엔 경비병이 둘!', spot: [0.35, 0.45, 0.12],
+    ch: 1, name: '바람 부는 성벽', news: '이번엔 경비병이 둘 · 곰은 위에서 8이 누르면 납작', spot: [0.35, 0.45, 0.12],
     hints: [],
     solids: [gnd(0, XW), sol('wall', 0.58, XW, 0.2, 1.2), sol('ped', 0.61, XW, 0, 0.04)],
     bodies: [bd('barrel', 0.2), bd('dog', 0.35), bd('bear', 0.5)],
@@ -188,6 +180,14 @@ export const STAGES: StageDef[] = [
     bodies: [bd('pillow', 0.155, 0.312), bd('bear', 0.35), bd('helmet', 0.35, 0.124)],
     cat: [0.03, 0], prize: { x: 0.65, y: 0.04, k: 'harp' },
     par: 4, budget: 7, stars: [ST('clear', 0, '황금 하프 훔치기'), ST('taps', 4, '톡 4번 안에'), ST('flat', 0, '곰 납작하게')], next: '',
+  },
+  {
+    ch: 1, name: '와르르 선반', news: '선반도 버티는 무게가 있어요 — 넘으면 줄줄이 와르르', spot: [0.32, 0.4, 0.13],
+    hints: [],
+    solids: [gnd(0, XW), sol('shelf', 0.25, 0.39, 0.5, 0.515, { cap: 5 }), sol('shelf', 0.25, 0.39, 0.3, 0.315, { cap: 10 }), sol('wall', 0.2, 0.25, 0.28, 1.2), sol('ped', 0.6, 0.7, 0, 0.04)],
+    bodies: [bd('crate', 0.12), bd('bear', 0.32), bd('barrel', 0.32, 0.315), bd('sack', 0.32, 0.515)],
+    cat: [0.03, 0], prize: { x: 0.65, y: 0.04, k: 'egg' },
+    par: 2, budget: 6, stars: [ST('clear', 0, '황금알 훔치기'), ST('taps', 2, '톡 2번 안에'), ST('flat', 0, '곰 납작하게')], next: '',
   },
   {
     ch: 1, name: '해자 건너기', news: '시소로 해자를 훌쩍 — 무거울수록 높이, 모자라면 풍덩!', spot: [0.22, 0.06, 0.15],
@@ -848,6 +848,10 @@ export interface WSState {
   hintAt: number; hintTaps: number; hintAuto: boolean; hintN: number; hintSt: number; hintFor: number; tapLog: number[];
   /** 마지막으로 '진전'이 있었던 틱 (고양이가 보물에 가까워짐 · 납작·뚝·문 열림 같은 큰 일) — 15초 넘게 없으면 전구가 반짝 */
   prog: number; bestD: number;
+  /** 다시 털기(결과 화면 ↺ — 별 더 받기): 이번 시도는 전구가 별 길 · 별·창고는 늘어난 만큼만 */
+  replay: boolean; starHint: boolean; gemBest: number[]; chGiven: number[];
+  /** 키보드를 한 번이라도 썼나 (전구 옆 '(1)' 표시) */
+  kbd: boolean;
 }
 const GY = 1.03;
 /** 화면(너비 단위) ↔ 세상 (카메라 배율 W.z) */
@@ -894,7 +898,7 @@ function newStage(s: WSState, again = false) {
   s.hintAt = -1;
   s.prog = s.t;
   s.bestD = 9;
-  if (s.hintFor !== s.stage) (s.hintFor = s.stage), (s.hintSt = 0);
+  if (s.hintFor !== s.stage) (s.hintFor = s.stage), (s.hintSt = 0), (s.replay = false), (s.starHint = false);
   // 두 번 실패하면 판 시작 때 힌트를 한 번 저절로 (시작 카드가 지나간 뒤)
   if (!again && s.tries === 2) (s.hintAt = s.t + 100), (s.hintTaps = 0), (s.hintAuto = true), s.hintN++, s.hintSt++;
   const fresh = see(s, 'stage' + s.stage);
@@ -910,12 +914,22 @@ function finish(s: WSState, ok: boolean) {
   if (ok) {
     s.starOk = d.stars.map((q) => starMet(W, q));
     s.got = s.starOk.filter(Boolean).length;
-    s.stars += s.got;
-    s.pts += CLEAR_PTS + s.got * STAR_PTS;
-    s.stash.push(d.prize.k);
-    s.gemN += W.gems.filter((g) => g.got >= 0).length;
-    s.best[s.stage] = Math.max(s.best[s.stage] ?? 0, s.got);
-    if (s.stage === STAGES.length - 1) (s.won = true), (s.pts += WIN_PTS + s.hearts * HEART_PTS);
+    const prev = s.best[s.stage] ?? 0, gems = W.gems.filter((g) => g.got >= 0).length;
+    if (s.replay) {
+      // 다시 털기: 늘어난 별·보석만 (보물은 이미 창고에)
+      const up = Math.max(0, s.got - prev);
+      s.stars += up;
+      s.pts += up * STAR_PTS;
+      s.gemN += Math.max(0, gems - (s.gemBest[s.stage] ?? 0));
+    } else {
+      s.stars += s.got;
+      s.pts += CLEAR_PTS + s.got * STAR_PTS;
+      s.stash.push(d.prize.k);
+      s.gemN += gems;
+    }
+    s.gemBest[s.stage] = Math.max(s.gemBest[s.stage] ?? 0, gems);
+    s.best[s.stage] = Math.max(prev, s.got);
+    if (s.stage === STAGES.length - 1 && !s.won) (s.won = true), (s.pts += WIN_PTS + s.hearts * HEART_PTS);
     s.events.push({ t: s.t, k: 'clear', i: -1, x: 0.5, y: 0.5, v: s.got });
   } else {
     s.hearts--;
@@ -998,6 +1012,7 @@ const game: GameDef<WSState> & { wows(s: WSState): number } = {
       down: false, ax: 0.5, ay: 0.5, firstTap: -1, firstBig: -1, wowN: 0, lastWow: -99, lastTap: -99, stageT: 0, restarts: 0, vaultFrom: 0,
       seen: new Set<string>(), banner: null, events: [], stash: [], gemN: 0, best: STAGES.map(() => 0),
       hintAt: -1, hintTaps: 0, hintAuto: false, hintN: 0, hintSt: 0, hintFor: -1, tapLog: [], prog: 0, bestD: 9,
+      replay: false, starHint: false, gemBest: STAGES.map(() => 0), chGiven: [], kbd: false,
     } as unknown as WSState;
     newStage(s);
     return s;
@@ -1012,6 +1027,16 @@ const game: GameDef<WSState> & { wows(s: WSState): number } = {
       s.restarts++;
       s.events.push({ t: s.t, k: 'restart', i: -1, x: 0.5, y: 0.5, v: 0 });
       newStage(s, true);
+      return;
+    }
+    if (inp.dir !== 0 || inp.pick !== undefined) s.kbd = true;
+    if (s.phase === 'result' && fresh && isRestart(p!.x, p!.y * A) && s.got < s.d.stars.length) {
+      // 결과 화면 ↺ = 다시 털기 (별 더 받기) — 이번엔 전구가 별 길을 알려 준다
+      s.tries = 0;
+      newStage(s);
+      (s.replay = true), (s.starHint = true);
+      s.events.push({ t: s.t, k: 'restart', i: -1, x: 0.5, y: 0.5, v: 0 });
+      if (s.banner) s.banner.sub = '★ 더 받기 — 이번엔 전구가 별 길을 알려 줘요';
       return;
     }
     if (s.phase === 'play') {
@@ -1039,7 +1064,7 @@ const game: GameDef<WSState> & { wows(s: WSState): number } = {
       tick(s.W);
       pull(s);
       s.pt++;
-      const T = s.phase === 'result' ? RESULT_OK : s.phase === 'vault' ? VAULT_T : RESULT_FAIL;
+      const T = s.phase === 'result' ? RESULT_OK + (s.got < s.d.stars.length ? 90 : 0) : s.phase === 'vault' ? VAULT_T : RESULT_FAIL;
       if (s.pt >= T || (fresh && s.pt > (s.phase === 'vault' ? 70 : 50))) {
         const endCh = s.won || (s.stage + 1 < STAGES.length && STAGES[s.stage + 1].ch !== s.d.ch);
         if (s.phase === 'result' && endCh) {
@@ -1050,7 +1075,7 @@ const game: GameDef<WSState> & { wows(s: WSState): number } = {
         } else if (s.phase === 'result' || s.phase === 'vault') {
           if (s.won) s.dead = true;
           else {
-            if (endCh) s.hearts = Math.min(3, s.hearts + 1);
+            if (endCh && !s.chGiven.includes(s.d.ch)) s.hearts = Math.min(3, s.hearts + 1), s.chGiven.push(s.d.ch);
             s.stage++;
             s.tries = 0;
             newStage(s);
@@ -1831,6 +1856,7 @@ function drawSolids(ctx: C2, s: WSState, v: V) {
         ctx.fill();
         stroke(ctx, OUT, 1.6);
         txt(ctx, eq ? '=' : q.load > o.load ? '>' : '<', mx, bt - R(0.033), R(0.045), eq ? '#ffffff' : '#c0392b', 900, 'center', '');
+        txt(ctx, eq ? '열림!' : '같으면 열림', mx, bt - R(0.082), R(0.025), eq ? '#2a7a1a' : '#5a3a1a', 900, 'center', 'rgba(255,250,230,.95)');
       }
       const oc = (v.X(o.x0) + v.X(o.x1)) / 2, my = v.Y(0.45) + (q.id < o.id ? -1 : 1) * 0;
       ctx.strokeStyle = '#8a7040';
@@ -1855,7 +1881,16 @@ function drawSolids(ctx: C2, s: WSState, v: V) {
       rr(ctx, X0, T - D * 0.7 + sink, X1 - X0, D * 0.7, 4);
       ctx.fill();
       stroke(ctx, OUT, 1.4);
-      txt(ctx, `${Math.min(q.load, 99)}/${q.need}`, cx, T + R(0.03), R(0.037), p ? '#c8ffb0' : '#fff2c4', 900);
+      // 말로: 'N 실으면 열림 · 지금 M' (숫자만 있는 'M/N'은 쓰지 않는다)
+      const l1 = p ? '열림!' : `${q.need} 실으면 열림`, l2 = `지금 ${Math.min(q.load, 99)}`;
+      ctx.font = `900 ${R(0.025)}px system-ui, sans-serif`;
+      const sw = Math.max(ctx.measureText(l1).width, ctx.measureText(l2).width) + R(0.03), sy = T + R(0.022);
+      ctx.fillStyle = p ? '#dff8cf' : '#fff2d2';
+      rr(ctx, cx - sw / 2, sy, sw, R(0.062), R(0.012));
+      ctx.fill();
+      stroke(ctx, p ? '#3a8a2a' : '#7a4c2a', 1.3);
+      txt(ctx, l1, cx, sy + R(0.017), R(0.025), p ? '#2a7a1a' : '#5a3a1a', 900, 'center', '');
+      txt(ctx, l2, cx, sy + R(0.045), R(0.025), p ? '#2a7a1a' : '#c0392b', 900, 'center', '');
     } else if (q.k === 'gate' && ch === 0) {
       const top = v.Y(q.y1), bot = v.Y(q.y0);
       if (bot - top > 2) {
@@ -2959,22 +2994,13 @@ function catMode(s: WSState): string {
   if (W.cs === 'walk') return 'walk';
   return 'wait';
 }
-/** 막힘 알아채기 (브라우저 그리기 쪽에서만 — 시뮬레이션·봇 측정에는 영향 없음): 남은 톡으로 이길 길이 없나 */
-const STUCK = new WeakMap<object, { key: string; stuck: boolean }>();
+/** 막힘 알아채기 (브라우저 그리기 쪽에서만 — 시뮬레이션·봇 측정에는 영향 없음): 남은 톡으로 이길 길이 없나.
+ *  계산은 힌트 계산(여러 프레임에 나눠 미리)과 같은 것을 쓴다 — 아직 계산 중이면 '안 막힘'. */
 function isStuck(s: WSState): boolean {
   const W = s.W;
   if (s.phase !== 'play' || W.done || W.taps === 0 || W.calm < 45) return false;
-  const key = `${s.stage}:${s.stageT}:${W.taps}`;
-  let m = STUCK.get(s);
-  if (!m || m.key !== key) {
-    const p = planTaps(W, s.stage), V = cloneWorld(W);
-    for (const i of p) {
-      if (!tapBody(V, i)) break;
-      settle(V);
-    }
-    STUCK.set(s, (m = { key, stuck: V.done !== 1 }));
-  }
-  return m.stuck;
+  const j = JOB.get(s);
+  return !!j && !!j.res && j.res.kind === 'stuck' && j.key === curKey(s);
 }
 const sackPos = (W: World) => {
   const c = W.b[W.cat];
@@ -2982,105 +3008,185 @@ const sackPos = (W: World) => {
 };
 
 // ───────────────────────────── 막힘 힌트 (39라운드) ─────────────────────────────
-// 전구를 누르면 '지금 상태에서' 잘하는 봇의 계획(planTaps)을 한 번 돌려 첫 손길을 보여 준다.
-// 계산은 그리기 쪽에서만, 전구를 누를 때(그리고 가리킨 대로 한 수 둘 때) 한 번 — 시뮬레이션·봇 측정·s.rng 와 무관.
-interface HStep { id: number; give: boolean; val: number; k: Kind; fx: number; fy: number; tx: number; ty: number; hw: number; h: number; flats: number[]; broke: [number, number][]; eff: string[]; win: boolean; rose: boolean; fell: boolean; on: Kind | null }
-interface HInfo { kind: 'plan' | 'stuck' | 'done'; steps: HStep[]; text: string }
-interface HRec { at: number; k: number; kT: number; left: number; shown: number[]; info: HInfo | null; ended: boolean }
+// 전구를 누르면 '지금 상태에서' 가장 쉽게 깨는 길(최소 톡 — 톡 수가 같으면 별이 많은 길)을 한 수씩 보여 준다.
+// 다시 털기(결과 화면 ↺)에서는 별 길. 계산은 그리기 쪽에서만, 고요할 때 여러 프레임에 나눠 미리 —
+// 시뮬레이션·봇 측정·s.rng 와 무관 (봇은 전구를 쓰지 않는다).
+interface HStep { id: number; give: boolean; val: number; k: Kind; fx: number; fy: number; fh: number; tx: number; ty: number; hw: number; h: number; flats: number[]; broke: [number, number][]; eff: string[] }
+interface HMove { steps: HStep[]; from: number }
+interface HInfo { kind: 'plan' | 'stuck' | 'done'; steps: HStep[]; moves: HMove[] }
+interface Job { key: string; gen: Generator<void, HInfo> | null; res: HInfo | null }
+interface HRec { at: number; info: HInfo | null; base: number; k: number; kT: number; ended: boolean }
+const JOB = new WeakMap<object, Job>();
 const HINT = new WeakMap<object, HRec>();
-/** 말에 쓰는 짧은 이름 */
-const nm = (k: Kind) => (k === 'bear' ? '곰' : KD[k].name);
+const KEYM = new WeakMap<object, { t: number; key: string }>();
+/** 이번 프레임에 쓸 수 있는 시뮬레이션 틱 수 (나눠 계산) */
+let BUDGET = 0;
+const curKey = (s: WSState) => {
+  let m = KEYM.get(s);
+  if (!m || m.t !== s.t) KEYM.set(s, (m = { t: s.t, key: (s.starHint ? 'S' : 'C') + sig(s.W, s.stage) }));
+  return m.key;
+};
+function* settleG(V: World, max = 900): Generator<void, void> {
+  let n = 0;
+  while (!V.done && n < max && !(V.calm >= CALM_BOT && n > 4)) {
+    tick(V);
+    n++;
+    if (--BUDGET <= 0) yield;
+  }
+}
+/** 최소 톡으로 이기는 순서 (톡 수가 같으면 별 많은 쪽) · 별 길(star)이면 별 먼저. 같은 자리는 다시 안 본다 */
+function* searchG(W0: World, d: StageDef, star: boolean): Generator<void, number[]> {
+  const maxD = Math.min(5, W0.budget - W0.taps), full = d.stars.length;
+  let best: number[] = [], bv = -Infinity, bs = -1;
+  const val = (W: World, ns: number) => (star ? ns * 1000 - W.taps * 10 : -W.taps * 1000 + ns * 10) + (W.pouch.length ? 0 : 1);
+  for (let D = 1; D <= maxD; D++) {
+    const seen = new Map<string, number>();
+    const rec = function* (W: World, seq: number[], dep: number): Generator<void, void> {
+      if (W.done === 1) {
+        const ns = d.stars.filter((q) => starMet(W, q)).length, v = val(W, ns);
+        if (v > bv) (bv = v), (bs = ns), (best = seq.slice());
+        return;
+      }
+      if (W.done !== 0 || dep === 0) return;
+      const k = sig(W, 0), was = seen.get(k);
+      if (was !== undefined && was >= dep) return;
+      seen.set(k, dep);
+      for (const b of tappable(W)) {
+        const V = cloneWorld(W);
+        if (!tapBody(V, b.id)) continue;
+        yield* settleG(V);
+        seq.push(b.id);
+        yield* rec(V, seq, dep - 1);
+        seq.pop();
+      }
+    };
+    yield* rec(W0, [], D);
+    if (best.length && (!star || bs >= full)) break;
+  }
+  return best;
+}
+const nm = (k: Kind) => (k === 'bear' ? '곰' : k === 'sack' ? '자루' : KD[k].name);
 const ege = (k: Kind) => nm(k) + (GUARD(k) || k === 'cat' ? '에게' : '에');
-/** 한 손길 뒤에 일어난 큰 일 (말 한 줄용) */
-function effects(C: World, ev: WEv[]): string[] {
-  const out: string[] = [];
-  const add = (x: string) => out.includes(x) || out.push(x);
+/** 한 손길 뒤에 일어난 큰 일 — 짧게 (중요한 것 먼저) */
+function effects(C: World, ev: WEv[], b: Body, fy: number): string[] {
+  const out: [number, string][] = [];
+  const add = (r: number, x: string) => out.some((o) => o[1] === x) || out.push([r, x]);
   for (const e of ev) {
-    const b = ['squash', 'rope', 'shatter', 'launch', 'splash'].includes(e.k) ? C.b[e.i] : null;
-    if (e.k === 'squash' && b) add(`${nm(b.k)} 납작`);
-    else if (e.k === 'snap') add('가지가 뚝');
-    else if (e.k === 'break') add(C.s[e.i].k === 'plank' ? '다리가 와르르' : C.s[e.i].k === 'trap' ? '마루가 와르르' : '선반이 와르르');
-    else if (e.k === 'rope') add('사슬이 뚝');
-    else if (e.k === 'shatter' && b && b.k !== 'pot') add(`${nm(b.k)} 와장창`);
-    else if (e.k === 'gate' && e.v === 1) add('문이 열려요');
-    else if (e.k === 'slam') add('도개교가 쾅 내려와요');
-    else if (e.k === 'launch' && b?.k === 'cat' && e.v > 0.012) add('고양이가 휙 날아가요');
-    else if (e.k === 'splash' && b && b.k !== 'cat') add(`${nm(b.k)} 풍덩 — 디딤돌`);
+    const o = ['squash', 'rope', 'shatter', 'launch', 'splash'].includes(e.k) ? C.b[e.i] : null;
+    if (e.k === 'squash' && o) add(0, `${nm(o.k)} 납작`);
+    else if (e.k === 'gate' && e.v === 1) add(1, '문 열림');
+    else if (e.k === 'launch' && o?.k === 'cat' && e.v > 0.012) add(1, '고양이 슝');
+    else if (e.k === 'slam') add(1, '다리 쾅');
+    else if (e.k === 'splash' && o && o.k !== 'cat') add(1, '디딤돌 쿵');
+    else if (e.k === 'grab') add(2, '길 열림');
+    else if (e.k === 'rope') add(3, '사슬 뚝');
+    else if (e.k === 'snap') add(3, '가지 뚝');
+    else if (e.k === 'break') add(3, '와르르');
+    else if (e.k === 'shatter' && o && o.k !== 'pot') add(3, '와장창');
   }
-  return out;
+  if (!b.kin && b.y - fy > 0.04 && GUARD(b.k)) add(2, `${nm(b.k)} 둥실`);
+  if (!b.kin && fy - b.y > 0.03 && live(b) && b.sup >= BODY && b.sup < PLANK) add(4, `${nm(C.b[b.sup - BODY].k)} 위로 쿵`);
+  return out.sort((x, y) => x[0] - y[0]).map((o) => o[1]);
 }
-/** '왜'까지 말하는 한 줄: 훔치면 둥실 → 주면 쿵! 무엇이 납작 … (주고 다시 훔치는 이어 주기는 짧게) */
-const EFF_RANK = (e: string) => (e.endsWith('납작') ? 0 : e.startsWith('문이') || e.startsWith('고양이가') ? 1 : 2);
-function hintText(st: HStep[]): string {
-  const parts = st.map((q, j) => {
-    const n = nm(q.k), pv = j > 0 ? st[j - 1] : null, more = j < st.length - 1;
-    const pick = q.eff.slice().sort((a, b) => EFF_RANK(a) - EFF_RANK(b)).slice(0, 2), eff = q.eff.filter((e) => pick.includes(e)); // 중요한 둘을 일어난 차례대로
-    let t: string;
-    if (!q.give) {
-      if (pv && pv.give && pv.id === q.id) t = `다시 훔치면${q.rose ? ` ${n} 둥실` : ''}`;
-      else if (j > 0) t = q.rose ? `${n}도 훔치면 둥실` : `${n}도 훔쳐서`;
-      else t = q.rose || q.eff.length ? `${n} 무게를 훔치면${q.rose ? ' 둥실' : ''}` : `${n} 무게를 훔쳐서`;
-      if (eff.length) t += (q.rose ? ', ' : ' ') + eff.join(', ');
-    } else {
-      const two = j >= 2 && !pv!.give && !st[j - 2].give;
-      t = !pv ? `훔친 무게를 ${ege(q.k)} 주면` : two ? `합쳐서 ${ege(q.k)} 주면` : pv.id === q.id ? '다시 돌려주면' : `그 무게를 ${ege(q.k)} 주면`;
-      if (!eff.length && !q.win && more && !q.fell) t = t.replace('그 무게를 ', '').replace(/ 주면$/, ' 주고').replace(/ 돌려주면$/, ' 돌려주고');
-      else if (q.fell) t += q.on && !eff.some((e) => e.startsWith(nm(q.on!))) ? ` ${nm(q.on)} 위에 쿵!` : ' 쿵!';
-      if (eff.length) t += ' ' + eff.join(', ');
-    }
-    if (q.win && !eff.length) t += ' — 길이 열려요!';
-    return t;
-  });
-  return parts.join(' → ');
-}
-/** 지금 상태에서 다음 수 (가라앉힌 복사본으로 계산). 보여 줄 손길 = 무언가 일어나는(납작·뚝·문·이김) '주기'까지, 많아야 넷 */
-export function computeHint(s: WSState): HInfo {
-  const V0 = cloneWorld(s.W);
-  settle(V0);
-  if (V0.done === 1) return { kind: 'done', steps: [], text: '길이 열렸어요 — 고양이를 지켜봐요!' };
-  const p = V0.done ? [] : planTaps(V0, s.stage), T = cloneWorld(V0);
-  for (const i of p) {
-    if (!tapBody(T, i)) break;
-    settle(T);
-  }
-  if (!p.length || T.done !== 1) return { kind: 'stuck', steps: [], text: '이대로는 못 깨요 — 처음부터 다시 해 볼까요? (하트는 그대로)' };
+/** 지금 상태에서 끝까지 (손길마다 결과를 시뮬레이션해 둔다) */
+function* hintG(W: World, stage: number, star: boolean): Generator<void, HInfo> {
+  const none = (kind: 'stuck' | 'done'): HInfo => ({ kind, steps: [], moves: [] });
+  const V0 = cloneWorld(W);
+  V0.ev = null;
+  yield* settleG(V0);
+  if (V0.done === 1) return none('done');
+  const p = V0.done ? [] : yield* searchG(V0, STAGES[stage], star);
+  if (!p.length) return none('stuck');
   const steps: HStep[] = [], C = cloneWorld(V0);
-  for (let j = 0; j < p.length && j < 4; j++) {
-    const id = p[j], b = C.b[id], fx = b.x, fy = b.y, st0 = C.b.map((o) => o.st), on0 = C.s.map((q) => q.on);
+  for (const id of p) {
+    const b = C.b[id], fx = b.x, fy = b.y, fh = b.st === 1 ? FLAT_H : b.h, st0 = C.b.map((o) => o.st), on0 = C.s.map((q) => q.on);
     C.ev = [];
     const r = tapBody(C, id), val = C.ev.find((e) => e.k === 'steal' || e.k === 'give')?.v ?? 0;
-    settle(C);
-    const ev = C.ev, eff = effects(C, ev);
+    yield* settleG(C);
+    const ev = C.ev;
     C.ev = null;
-    const sup = live(b) && b.sup >= BODY && b.sup < PLANK ? C.b[b.sup - BODY] : null;
     steps.push({
-      id, give: r === 2, val, k: b.k, fx, fy, tx: b.x, ty: b.y, hw: b.hw, h: KD[b.k].h,
+      id, give: r === 2, val, k: b.k, fx, fy, fh, tx: b.x, ty: b.y, hw: b.hw, h: KD[b.k].h,
       flats: C.b.filter((o) => st0[o.id] === 0 && o.st === 1 && GUARD(o.k)).map((o) => o.id),
       broke: ev.filter((e) => (e.k === 'snap' || e.k === 'break') && on0[e.i]).map((e) => [e.i, e.v] as [number, number]),
-      eff, win: C.done === 1, rose: !b.kin && b.y - fy > 0.04, fell: !b.kin && (fy - b.y > 0.03 || ev.some((e) => e.i === id && (e.k === 'land' || e.k === 'splash'))), on: sup ? sup.k : null,
+      eff: effects(C, ev, b, fy),
     });
-    if (C.done || (r === 2 && (eff.length || j >= 2))) break;
   }
-  return { kind: 'plan', steps, text: hintText(steps) };
+  if (C.done !== 1) return none('stuck');
+  // 한 수 = '주기'까지 (훔치기 → 주기, 주머니 둘이면 훔치기 → 훔치기 → 주기)
+  const moves: HMove[] = [];
+  let cur: HMove | null = null;
+  steps.forEach((q, i) => {
+    if (!cur) moves.push((cur = { steps: [], from: i }));
+    cur.steps.push(q);
+    if (q.give) cur = null;
+  });
+  return { kind: 'plan', steps, moves };
 }
-/** 지금 보여 줄 힌트 (없으면 null). 가리킨 물건을 톡하면 다음 손길로 넘어가고, 다른 걸 톡하면 꺼진다 */
+/** 고요할 때 조금씩 미리 계산 (전구를 눌렀는데 아직이면 조금 더 빨리) — 누르는 순간 튀지 않게.
+ *  한 프레임에 쓰는 시간을 벽시계로 묶는다(보통 1ms · 눌렀는데 아직이면 4ms) — 느린 폰에서도 프레임마다 그만큼만. */
+function pumpHint(s: WSState) {
+  const W = s.W, r = HINT.get(s), pending = s.hintAt >= 0 && s.t >= s.hintAt && (!r || r.at !== s.hintAt || !r.info);
+  if (s.phase !== 'play' || W.done || W.calm < (pending ? 10 : 30)) return;
+  const key = curKey(s);
+  let j = JOB.get(s);
+  if (!j || j.key !== key) JOB.set(s, (j = { key, gen: hintG(W, s.stage, s.starHint), res: null }));
+  if (!j.gen) return;
+  const cap = pending ? 4 : 1, t0 = performance.now();
+  do {
+    BUDGET = 24;
+    for (;;) {
+      const x = j.gen.next();
+      if (x.done) {
+        (j.res = x.value), (j.gen = null);
+        return;
+      }
+      if (BUDGET <= 0) break;
+    }
+  } while (performance.now() - t0 < cap);
+}
+/** 지금 보여 줄 힌트 (없으면 null). 계산이 끝나기 전엔 info 없음(전구가 생각 중). 가리킨 대로 톡하면 다음 손길로, 다른 걸 톡하면 꺼진다 */
 function hintRec(s: WSState): HRec | null {
   if (s.hintAt < 0 || s.t < s.hintAt || s.phase !== 'play' || s.W.done) return null;
   let r = HINT.get(s);
-  if (!r || r.at !== s.hintAt) HINT.set(s, (r = { at: s.hintAt, k: -1, kT: s.t, left: 0, shown: [], info: null, ended: false }));
+  if (!r || r.at !== s.hintAt) HINT.set(s, (r = { at: s.hintAt, info: null, base: 0, k: 0, kT: s.t, ended: false }));
   if (r.ended) return null;
-  const k = s.tapLog.length - s.hintTaps;
-  if (k !== r.k) {
-    if (k > 0 && (s.tapLog[s.hintTaps + k - 1] !== r.shown[k - 1] || r.left - 1 <= 0)) return (r.ended = true), null;
-    const info = computeHint(s);
-    if (k === 0) r.left = info.steps.length;
-    else r.left--;
-    r.k = k;
-    r.kT = s.t;
-    r.info = info;
-    if (info.steps.length) r.shown[k] = info.steps[0].id;
+  if (!r.info) {
+    const j = JOB.get(s);
+    if (j && j.res && s.W.calm >= 10 && j.key === curKey(s)) (r.info = j.res), (r.base = s.tapLog.length), (r.k = 0), (r.kT = s.t);
+    return r;
   }
+  const k = s.tapLog.length - r.base;
+  if (k !== r.k) {
+    for (let i = r.k; i < k; i++) if (s.tapLog[r.base + i] !== r.info.steps[i]?.id) return (r.ended = true), null;
+    (r.k = k), (r.kT = s.t);
+  }
+  if (r.info.kind === 'plan' && r.k >= r.info.steps.length) return (r.ended = true), null;
   return r;
+}
+const CIRC = '①②③④⑤⑥⑦⑧';
+/** 한 수를 한 줄로 (≈22자) — 가능하면 '왜'(무엇이 납작·열림)까지 */
+function moveText(m: HMove): string {
+  const st = m.steps, give = st.find((q) => q.give), steals = st.filter((q) => !q.give);
+  // '왜': 주기에서 일어난 일 먼저 (훔쳤다가 돌려주는 수에서 '둥실'은 말하지 않는다)
+  const ge = give ? give.eff : [], se = steals.flatMap((q) => q.eff).filter((e) => !give || !e.endsWith('둥실'));
+  const eff = (ge.length ? ge : se).slice().sort((a, b) => effRank(a) - effRank(b))[0] ?? '';
+  const A = steals.map((q) => nm(q.k)).join('·'), c: string[] = [];
+  if (give && !steals.length) c.push(`${ege(give.k)} 주면 ${eff}`, `훔친 무게를 ${ege(give.k)} 주기`);
+  else if (give && steals.length === 1 && steals[0].id === give.id) c.push(`${A} 훔쳤다가 다시 주면 ${eff}`, `${A} 훔쳤다가 다시 주기`);
+  else if (give) c.push(`${A} 훔쳐 → ${ege(give.k)} 주면 ${eff}`, `${A} 무게 훔치기 → ${ege(give.k)} 주기`, `${A} 훔쳐 → ${ege(give.k)} 주기`);
+  else c.push(`${A} 훔치면 ${eff}`, `${A} 무게 훔치기`);
+  return c.find((x) => !x.endsWith(' ') && x.length <= 24) ?? c[c.length - 1];
+}
+const effRank = (e: string) => (e.endsWith('납작') ? 0 : ['문 열림', '고양이 슝', '다리 쾅', '디딤돌 쿵'].includes(e) ? 1 : e === '길 열림' || e.endsWith('둥실') ? 2 : e.endsWith('위로 쿵') ? 4 : 3);
+export function hintPlanText(s: WSState): string[] {
+  // 시험용: 지금 상태에서 힌트 계산을 끝까지 돌려 수마다 한 줄 (그리기와 같은 계산)
+  const g = hintG(s.W, s.stage, s.starHint);
+  BUDGET = 1e9;
+  let x = g.next();
+  while (!x.done) x = g.next();
+  const h = x.value;
+  return h.kind !== 'plan' ? [h.kind] : h.moves.map((m, i) => `${CIRC[i]} ${moveText(m)}`);
 }
 function wrapText(ctx: C2, text: string, size: number, maxW: number): string[] {
   ctx.font = `900 ${size}px system-ui, sans-serif`;
@@ -3124,12 +3230,12 @@ function drawStep(ctx: C2, s: WSState, vw: V, q: HStep, main: boolean) {
   const W = s.W, lb = W.b[q.id], R = vw.R, t = vw.t;
   if (!lb || !live(lb)) return;
   // 지금 할 손길은 실제 물건 자리, 그다음 손길은 앞 손길 뒤에 있을 자리(시뮬레이션)에
-  const b = main ? lb : { ...lb, x: q.fx, y: q.fy, h: q.h, st: 0 };
-  const col = q.give ? '#ff8a3a' : '#8fdcff', x = vw.X(b.x), top = baseY(vw, b.y + (b.st === 1 ? FLAT_H : b.h));
+  const bx = main ? lb.x : q.fx, by = main ? lb.y : q.fy, bh = main ? (lb.st === 1 ? FLAT_H : lb.h) : q.fh;
+  const col = q.give ? '#ff8a3a' : '#8fdcff', x = vw.X(bx), top = baseY(vw, by + bh);
   ctx.save();
   ctx.globalAlpha *= main ? 1 : 0.62;
   // 갈 자리: 점선 그림자 + 점선 길
-  if (Math.hypot(q.tx - b.x, q.ty - b.y) > 0.03) {
+  if (Math.hypot(q.tx - bx, q.ty - by) > 0.03) {
     const gx = vw.X(q.tx), gb = baseY(vw, q.ty), gh = R(q.h), gw = R(q.hw * 2);
     ctx.setLineDash([R(0.012), R(0.009)]);
     ctx.lineDashOffset = -t * 0.6;
@@ -3139,7 +3245,7 @@ function drawStep(ctx: C2, s: WSState, vw: V, q: HStep, main: boolean) {
     ctx.strokeStyle = col;
     ctx.lineWidth = 2.4;
     ctx.stroke();
-    const y0 = baseY(vw, b.y + b.h / 2), y1 = gb - gh / 2;
+    const y0 = baseY(vw, by + bh / 2), y1 = gb - gh / 2;
     ctx.strokeStyle = q.give ? 'rgba(200,80,20,.8)' : 'rgba(60,140,210,.8)';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -3170,7 +3276,7 @@ function drawStep(ctx: C2, s: WSState, vw: V, q: HStep, main: boolean) {
   for (const [si, ld] of q.broke) {
     const p = W.s[si];
     if (!p || !p.on) continue;
-    const y = vw.Y(p.y1), x0 = vw.X(p.x0), x1 = vw.X(p.x1), mx = (x0 + x1) / 2;
+    const y = vw.Y(p.y1), mx = (vw.X(p.x0) + vw.X(p.x1)) / 2;
     ctx.strokeStyle = '#e8453a';
     ctx.lineWidth = 2.6;
     ctx.beginPath();
@@ -3183,21 +3289,46 @@ function drawStep(ctx: C2, s: WSState, vw: V, q: HStep, main: boolean) {
   }
   ctx.restore();
 }
+/** 남은 수: 물건 위 작은 ②③ 동그라미(흐리게) */
+function moveDot(ctx: C2, vw: V, q: HStep, n: number, nth: number) {
+  const R = vw.R, x = vw.X(q.fx - q.hw) + R(0.01) + nth * R(0.04), y = Math.max(baseY(vw, q.fy + q.fh) - R(0.012), vw.w * 0.085 + R(0.03));
+  ctx.save();
+  ctx.globalAlpha = 0.62;
+  ctx.fillStyle = '#fffbe6';
+  ell(ctx, x, y, R(0.019), R(0.019));
+  ctx.fill();
+  stroke(ctx, '#c89a20', 1.6);
+  txt(ctx, CIRC[n] ?? String(n + 1), x, y + 1, R(0.03), '#8a5a08', 900, 'center', '');
+  ctx.restore();
+}
 function drawHint(ctx: C2, s: WSState, v: V, vw: V) {
   const r = hintRec(s);
   if (!r || !r.info) return;
-  const R = v.R, w = v.w, t = v.t, info = r.info, age = s.t - r.kT, press = Math.max(0, Math.sin(t * 0.16));
+  const R = v.R, w = v.w, t = v.t, info = r.info, W = s.W, age = s.t - r.kT, press = Math.max(0, Math.sin(t * 0.16));
   ctx.save();
   ctx.globalAlpha = Math.min(1, age / 8);
-  let fx = -1, fy = -1;
-  if (info.kind === 'stuck') (fx = R(RESTART.x)), (fy = R(RESTART.y));
-  else if (info.kind === 'plan') {
-    const st = info.steps.slice(0, Math.min(2, r.left));
-    for (let j = st.length - 1; j >= 0; j--) drawStep(ctx, s, vw, st[j], j === 0);
-    if (st.length && live(s.W.b[st[0].id])) {
-      const q = bodyScreen(s.W, st[0].id);
+  let fx = -1, fy = -1, line = '';
+  if (info.kind === 'stuck') ((fx = R(RESTART.x)), (fy = R(RESTART.y))), (line = '이대로는 못 깨요 — ↺ 처음부터 다시!');
+  else if (info.kind === 'done') line = '길이 열렸어요 — 고양이를 지켜봐요!';
+  else {
+    const mi = info.moves.findIndex((m) => r.k >= m.from && r.k < m.from + m.steps.length), m = info.moves[mi];
+    // 남은 수는 ②③ 동그라미만
+    const cnt = new Map<number, number>();
+    for (let j = mi + 1; j < Math.min(info.moves.length, mi + 4); j++) {
+      const q = info.moves[j].steps[0], c = cnt.get(q.id) ?? 0;
+      cnt.set(q.id, c + 1);
+      moveDot(ctx, vw, q, j, c);
+    }
+    // 이번 수: 아직 안 한 손길들 (뒤에서부터 그려 지금 손길이 위로)
+    const rest = m.steps.slice(r.k - m.from);
+    for (let j = rest.length - 1; j >= 0; j--) drawStep(ctx, s, vw, rest[j], j === 0);
+    // 손가락: 세상이 가라앉은 뒤에 (바람에 실려 가는 중엔 기다림)
+    const b = W.b[rest[0].id];
+    if (b && live(b) && (W.calm >= 12 || r.k === 0)) {
+      const q = bodyScreen(W, b.id);
       (fx = q.x * w), (fy = q.y * w);
     }
+    line = `${CIRC[mi] ?? ''} ${moveText(m)}`;
   }
   if (fx >= 0) {
     ctx.strokeStyle = `rgba(255,230,90,${0.5 + press * 0.5})`;
@@ -3206,9 +3337,13 @@ function drawHint(ctx: C2, s: WSState, v: V, vw: V) {
     ctx.stroke();
     drawHand(ctx, fx + R(0.018), fy + R(0.018), R(0.09), press);
   }
-  // 말 한 줄 (무엇을 왜)
-  const size = R(0.035), lines = wrapText(ctx, info.text, size, w - R(0.17)).slice(0, 3);
-  const lh = size * 1.3, ch = lines.length * lh + R(0.024), cy = R(PANEL) - R(0.012) - ch;
+  // 말 한 줄 (넘치면 글씨를 줄인다)
+  const maxW = w - R(0.16);
+  let size = R(0.038);
+  ctx.font = `900 ${size}px system-ui, sans-serif`;
+  const tw = ctx.measureText(line).width;
+  if (tw > maxW) size *= maxW / tw;
+  const ch = R(0.058), cy = R(PANEL) - R(0.014) - ch;
   ctx.fillStyle = 'rgba(60,30,10,.3)';
   rr(ctx, R(0.02) + 2, cy + 3, w - R(0.04), ch, R(0.025));
   ctx.fill();
@@ -3216,8 +3351,8 @@ function drawHint(ctx: C2, s: WSState, v: V, vw: V) {
   rr(ctx, R(0.02), cy, w - R(0.04), ch, R(0.025));
   ctx.fill();
   stroke(ctx, '#c89a20', 2);
-  bulbIcon(ctx, R(0.065), cy + ch / 2, R(0.022), true, t);
-  lines.forEach((ln, j) => txt(ctx, ln, R(0.11), cy + R(0.012) + lh * (j + 0.5) + 1, size, '#4a2a10', 900, 'left', '', w - R(0.15)));
+  bulbIcon(ctx, R(0.062), cy + ch / 2, R(0.019), true, t);
+  txt(ctx, line, R(0.1), cy + ch / 2 + 1, size, '#4a2a10', 900, 'left', '');
   ctx.restore();
 }
 /** 직접 그린 전구 (유리 · 필라멘트 · 나사 받침) */
@@ -3939,7 +4074,6 @@ function playEvents(s: WSState, v: V) {
       case 'hint':
         fx.sound('chime', 1.35, 0.8);
         fx.sound('ding', 1.8, 0.5);
-        fx.burst(v.w * BULB.x, v.w * BULB.y, '#ffe14a', 14, 2.6, 2.2);
         break;
       case 'vault':
         fx.sound('chime', 0.8, 1.1);
@@ -4026,13 +4160,14 @@ function drawHud(ctx: C2, s: WSState, v: V) {
   ctx.fillRect(0, hb - 1.5, w, 1.5);
   const cy = hb / 2;
   // ↺ 다시 단추 (하트는 그대로) — 막혔을 때는 반짝
-  const stuck = isStuck(s), pul = stuck ? 1 + 0.12 * Math.sin(s.t * 0.25) : 1, bxr = R(RESTART.x), byr = R(RESTART.y);
+  const more = s.phase === 'result' && s.got < s.d.stars.length && s.pt > 30; // 별을 놓쳤으면 결과 화면에서 ↺ = 다시 털기
+  const stuck = isStuck(s) || more, pul = stuck ? 1 + 0.12 * Math.sin(s.t * 0.25) : 1, bxr = R(RESTART.x), byr = R(RESTART.y);
   if (stuck) {
     ctx.fillStyle = 'rgba(255,210,60,.55)';
     ell(ctx, bxr, byr, R(0.045) * pul * 1.25, R(0.045) * pul * 1.25);
     ctx.fill();
   }
-  ctx.fillStyle = s.phase === 'play' ? ['#5fb44a', '#d9564a', '#8a5ad8'][d.ch] : 'rgba(120,90,60,.4)';
+  ctx.fillStyle = s.phase === 'play' || more ? ['#5fb44a', '#d9564a', '#8a5ad8'][d.ch] : 'rgba(120,90,60,.4)';
   ell(ctx, bxr, byr, R(0.034) * pul, R(0.034) * pul);
   ctx.fill();
   stroke(ctx, OUT, 1.6);
@@ -4072,9 +4207,17 @@ function drawHud(ctx: C2, s: WSState, v: V) {
 /** 오른쪽 위 전구 단추: 한 번 실패하면 살랑살랑 · 15초 넘게 진전이 없거나 막히면 반짝반짝 · 힌트를 보여 주는 동안 켜짐 */
 function drawBulb(ctx: C2, s: WSState, v: V) {
   const R = v.R, t = s.t, W = s.W, fx = juice(s), bx = R(BULB.x), by = R(BULB.y);
-  const play = s.phase === 'play' && !W.done, on = play && hintRec(s) !== null;
+  const play = s.phase === 'play' && !W.done, hr = play ? hintRec(s) : null, on = hr !== null, think = !!hr && !hr.info;
   const idle = play && !on && s.t - Math.max(s.prog, s.stageT) > 900 && W.calm > 60, stuck = play && !on && isStuck(s), spark = idle || stuck;
   if (spark && !fx.memo.bulbSpark) fx.sound('ding', 1.7, 0.45);
+  if (!fx.memo.glyph) {
+    // 힌트 글자(①②③ − → ·)를 미리 한 번 그려 둔다 — 처음 누를 때 글꼴 찾느라 튀지 않게
+    fx.memo.glyph = 1;
+    ctx.save();
+    ctx.globalAlpha = 0.01;
+    txt(ctx, '①②③④⑤ −+→· 훔쳐 주면 납작 열림', -500, -500, R(0.038), '#000000', 900, 'left', '');
+    ctx.restore();
+  }
   fx.memo.bulbSpark = spark ? 1 : 0;
   const wob = spark ? Math.sin(t * 0.16) * 0.22 : play && !on && s.tries >= 1 ? Math.sin(t * 0.09) * 0.13 : 0;
   // 누를 수 있는 동그란 자리
@@ -4099,11 +4242,21 @@ function drawBulb(ctx: C2, s: WSState, v: V) {
   ctx.globalAlpha = play ? 1 : 0.5;
   bulbIcon(ctx, 0, -R(0.022), R(0.02), on || spark, t);
   ctx.restore();
-  if (spark) {
-    // '힌트' 말풍선 (답은 말하지 않는다)
-    const ly = R(0.112), lx = bx - R(0.02);
+  if (think) {
+    // 생각 중: 도는 점 셋 (계산을 여러 프레임에 나눠 하는 동안)
+    for (let k = 0; k < 3; k++) {
+      const a = t * 0.2 + (k * TAU) / 3;
+      ctx.fillStyle = '#c87a08';
+      ell(ctx, bx + Math.cos(a) * R(0.043), by + Math.sin(a) * R(0.043), R(0.006), R(0.006));
+      ctx.fill();
+    }
+  }
+  if (spark || (s.kbd && play)) {
+    // '힌트' 말풍선 (답은 말하지 않는다) — 키보드를 쓴 적이 있으면 '(1)'
+    const lab = s.kbd ? '힌트 (1)' : '힌트', ly = R(0.112), lw = s.kbd ? R(0.13) : R(0.1), lx = Math.min(bx - R(0.02), v.w - lw / 2 - R(0.01));
+    ctx.globalAlpha = spark ? 1 : 0.8;
     ctx.fillStyle = '#fffbe6';
-    rr(ctx, lx - R(0.05), ly - R(0.018), R(0.1), R(0.036), R(0.018));
+    rr(ctx, lx - lw / 2, ly - R(0.018), lw, R(0.036), R(0.018));
     ctx.fill();
     stroke(ctx, '#c89a20', 1.4);
     ctx.fillStyle = '#fffbe6';
@@ -4112,7 +4265,8 @@ function drawBulb(ctx: C2, s: WSState, v: V) {
     ctx.lineTo(bx + R(0.006), ly - R(0.036));
     ctx.lineTo(bx + R(0.014), ly - R(0.018));
     ctx.fill();
-    txt(ctx, '힌트', lx, ly + 1, R(0.028), '#8a5a08', 900, 'center', '');
+    txt(ctx, lab, lx, ly + 1, R(0.028), '#8a5a08', 900, 'center', '');
+    ctx.globalAlpha = 1;
   }
 }
 
@@ -4302,7 +4456,7 @@ function drawOverlays(ctx: C2, s: WSState, v: V, vw: V) {
     ctx.fillStyle = '#2a1a10';
     ctx.fillRect(0, R(0.085), w, R(PANEL - 0.085));
     ctx.globalAlpha = a;
-    const cw = R(0.82), ch = ok ? R(0.56) : R(0.3), cx = w / 2, cy = R(ok ? 0.6 : 0.62), pop = Math.min(1, 0.7 + s.pt / 14);
+    const miss = ok && s.got < d.stars.length, cw = R(0.82), ch = ok ? R(miss ? 0.61 : 0.56) : R(0.3), cx = w / 2, cy = R(ok ? 0.6 : 0.62), pop = Math.min(1, 0.7 + s.pt / 14);
     ctx.translate(cx, cy);
     ctx.scale(pop, pop);
     ctx.fillStyle = 'rgba(60,30,10,.35)';
@@ -4350,7 +4504,12 @@ function drawOverlays(ctx: C2, s: WSState, v: V, vw: V) {
       rr(ctx, -cw / 2 + R(0.04), gy - R(0.035), cw - R(0.08), R(0.07), R(0.03));
       ctx.fill();
       drawLoot(ctx, d.prize.k, -cw / 2 + R(0.1), gy, R(0.026), s.t);
-      txt(ctx, `비밀 창고 +1 · 보물 ${s.stash.length}${s.gemN ? ` · 보석 ${s.gemN}` : ''}`, -cw / 2 + R(0.15), gy + 1, R(0.036), '#ffe9a0', 900, 'left', '', cw - R(0.2));
+      txt(ctx, s.replay ? `다시 털기 · 이 판 별 ${s.best[s.stage]}/${d.stars.length}` : `비밀 창고 +1 · 보물 ${s.stash.length}${s.gemN ? ` · 보석 ${s.gemN}` : ''}`, -cw / 2 + R(0.15), gy + 1, R(0.036), '#ffe9a0', 900, 'left', '', cw - R(0.2));
+      if (miss) {
+        // 별을 놓쳤으면: 다시 털기에서 전구가 별 길을 알려 준다
+        const my = gy + R(0.065);
+        txt(ctx, '★ 더 받는 법도 전구로 볼 수 있어요 — 왼쪽 위 ↺', 0, my, R(0.032), '#c06a08', 900, 'center', '', cw - R(0.06));
+      }
       // 다음에 풀릴 것
       const nx = s.stage + 1 < STAGES.length ? STAGES[s.stage + 1] : null, ny = ch / 2 - R(0.075);
       if (nx) {
@@ -4550,6 +4709,7 @@ function drawVault(ctx: C2, s: WSState, v: V) {
 
 function drawAll(ctx: CanvasRenderingContext2D, s: WSState, w: number, h: number, th: Theme) {
   void th;
+  pumpHint(s); // 힌트·막힘 계산을 조금씩 (그리기 쪽에서만)
   const d = s.d, t = s.t, z = s.W.z, pb = PANEL * w;
   const v: V = { w, h, X: (x) => x * z * w, Y: (y) => (GY - y * z) * w, R: (r) => r * z * w, t, ch: d.ch, pb, z };
   const vu: V = { w, h, X: (x) => x * w, Y: (y) => y * w, R: (r) => r * w, t, ch: d.ch, pb, z: 1 };
