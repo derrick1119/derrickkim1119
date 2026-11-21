@@ -26,7 +26,7 @@
       P.grainAmt = 0.15; P.vignette = 0.2; P.vignetteColor = '#4a3558';
       T.audio.ambience(0.3, 0.3, 0.15); S.bedNow = null; X.bed(def.pad == null ? 0 : def.pad, 0.12, def.mood);
       TALK.clear();
-      Promise.resolve().then(() => def.script(X, args || {})).catch((e) => { console.error(e); });
+      Promise.resolve().then(() => def.script(X, args || {})).catch((e) => { T.report(e, name + ' script'); });
     };
     S.exit = function () { T.cursor('default'); if (def.exit) def.exit(S); };
 

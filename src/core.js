@@ -233,6 +233,33 @@
   const live = document.getElementById('live');
   T.announce = function (text) { if (live && live.textContent !== text) live.textContent = text; };
 
+  /* ---------- when something goes wrong ---------- */
+  /* Keep going, say so quietly, and put the real message where it can be read: some viewers only show "Script error." */
+  T.errors = [];
+  let noteEl = null, noteTimer = 0;
+  T.report = function (err, where) {
+    const msg = String((err && (err.message || err)) || 'unknown'), key = where + ': ' + msg;
+    const seen = T.errors.find((e) => e.key === key);
+    if (seen) { seen.n++; return; }
+    const stack = err && err.stack ? String(err.stack).split('\n').slice(0, 5).join(' | ') : '';
+    T.errors.push({ key, where, msg, stack, n: 1 });
+    try { console.error('[Take Your Time] ' + key + (stack ? ' — ' + stack : '')); } catch (_) { /* no console */ }
+    if (T.errors.length > 3) return;
+    try {
+      if (!noteEl) {
+        noteEl = document.createElement('div');
+        noteEl.setAttribute('role', 'status');
+        noteEl.style.cssText = 'position:fixed;left:10px;right:10px;bottom:10px;z-index:9;padding:8px 12px;border-radius:10px;background:rgba(20,26,44,.86);color:#e9dcc0;font:12px/1.5 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-word';
+        noteEl.addEventListener('click', () => { noteEl.style.display = 'none'; });
+        document.body.appendChild(noteEl);
+      }
+      noteEl.textContent = '잠깐 문제가 있었지만 계속 진행합니다. (눌러서 닫기)\n' + key;
+      noteEl.style.display = 'block';
+      clearTimeout(noteTimer); noteTimer = setTimeout(() => { noteEl.style.display = 'none'; }, 16000);
+    } catch (_) { /* nowhere to say it */ }
+  };
+  window.addEventListener('unhandledrejection', (e) => { T.report(e.reason, 'script'); });
+
   /* ---------- input ---------- */
   const ptr = (T.pointer = { x: 0, y: 0, down: false, id: null, seen: false });
   function toStage(e) {
@@ -244,7 +271,7 @@
     ptr.x = x; ptr.y = y; ptr.seen = true;
     if (D.trans && D.trans.phase !== 'in') return;
     const s = D.cur;
-    if (s && s.pointer) s.pointer(type, x, y, e);
+    try { if (s && s.pointer) s.pointer(type, x, y, e); } catch (err) { T.report(err, 'touch'); }
   }
   canvas.addEventListener('pointerdown', (e) => {
     if (ptr.id !== null && ptr.id !== e.pointerId) return;
@@ -275,9 +302,11 @@
     if (e.key === 'm' || e.key === 'M') { if (T.audio) T.audio.toggleMute(); return; }
     if (D.trans && D.trans.phase !== 'in') return;
     const s = D.cur;
-    if (s && s.key && s.key(e.key, e) !== false) {
-      if ([' ', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) e.preventDefault();
-    }
+    try {
+      if (s && s.key && s.key(e.key, e) !== false) {
+        if ([' ', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) e.preventDefault();
+      }
+    } catch (err) { T.report(err, 'key'); }
   });
   T.cursor = function (c) { if (canvas.style.cursor !== c) canvas.style.cursor = c; };
 
@@ -304,7 +333,10 @@
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000 || 0) * T.speed;
     last = now;
-    T.step(dt);
+    try { T.step(dt); } catch (err) {
+      T.report(err, 'frame');
+      for (let i = 0; i < 40; i++) ctx.restore();   /* whatever was half drawn left its clips and transforms behind */
+    }
     requestAnimationFrame(frame);
   }
   T.step = function (dt) {

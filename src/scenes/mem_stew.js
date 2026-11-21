@@ -132,9 +132,13 @@
   };
   /* The last chapter plays this scene again, forty-five years on, in the kitchen he built:
      other bodies in the same two places, no paper frame, nothing for the hand to do. */
-  S.restage = function (cast) {
+  /* the later kitchen's backdrop; baked again whenever the screen has changed size under it */
+  function bakeLater() {
     const V = T.view, x0 = -V.W / 2 - 20, w = V.W + 40;
     if (!S.L.bg2 || S.bg2Gen !== T.gen) { S.L.bg2 = T.bake(x0, 0, w, 900, (g) => S.paintBg(g, { cold: true, dusk: true })); S.bg2Gen = T.gen; }
+  }
+  S.restage = function (cast) {
+    bakeLater();
     S.plain = true; S.cast = cast;
     S.ang = -0.6; S.shown = 1; S.p = 1; S.taste.k = 0; S.joy.k = 0; S.drag = false;
     if (!S.steam.length) { const r = T.rng(3); for (let i = 0; i < 9; i++) S.steam.push({ ph: r() * 10, x: (r() - 0.5) * 120, sp: 0.5 + r() * 0.5 }); }
@@ -211,6 +215,7 @@
     const [bx, by] = T.par(0.3);
     const plain = S.plain, cast = S.cast || { leo: F.styles.leo, ana: F.styles.ana };
     g.save(); g.translate(bx * 0.5, by * 0.5);
+    if (plain) bakeLater();
     T.blit(g, plain ? S.L.bg2 : S.L.bg);
     if (plain) S.ang += 0.035;
 

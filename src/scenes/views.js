@@ -31,7 +31,7 @@
       L.rip.push({ x, y, t: T.time });
       if (L.rip.length > 6) L.rip.shift();
       L.amp = Math.min(1, L.amp + 0.7);
-      T.audio.sfx('star', (x * 0.001 + 0.5) % 1);
+      T.audio.sfx('star', (((x * 0.001 + 0.5) % 1) + 1) % 1);   /* x runs negative on the left half: keep it in 0..1 */
       if (L.onTouch) L.onTouch(x, y);
     };
     /* the one dream he may send: a light he can carry to the water */

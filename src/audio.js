@@ -142,8 +142,8 @@
   }
   /* o: { m, at (seconds from now), vel, voice, dur } */
   A.note = function (o) {
-    if (!ok()) return;
-    const ctx = A.ctx, t = now() + 0.03 + (o.at || 0), f = mtof(o.m), vel = o.vel == null ? 0.5 : o.vel;
+    if (!ok() || !isFinite(o.m)) return;
+    const ctx = A.ctx, t = Math.max(0, now() + 0.03 + (o.at || 0)), f = mtof(o.m), vel = o.vel == null ? 0.5 : o.vel;
     const voice = o.voice || 'felt';
     const out = ctx.createGain();
     const dry = ctx.createGain();
@@ -315,7 +315,7 @@
     bus.gain.value = 0; bus.gain.setTargetAtTime(gain, t, 0.8); bus.connect(A.music);
     send.gain.value = 0; send.gain.setTargetAtTime(0.6 * gain, t, 0.8); send.connect(A.send);
     bed = { base: index, bar: 0, next: t + 0.5, mood: md, r: T.rng(11 + index), bus, send, gain, ghost: false, timer: null };
-    if (typeof ctx.startRendering !== 'function') { bed.timer = setInterval(() => { if (bed && A.ctx.state === 'running') bedPump(now() + 1.5); }, 240); bedPump(t + 1.5); }
+    if (typeof ctx.startRendering !== 'function') { bed.timer = setInterval(() => { try { if (bed && A.ctx.state === 'running') bedPump(now() + 1.5); } catch (e) { if (T.report) T.report(e, 'music'); } }, 240); bedPump(t + 1.5); }
   };
   A._bedPump = bedPump; /* test hooks: schedule ahead when rendering offline; see where it has got to */
   A._bedInfo = () => bed && { bar: bed.bar, gain: bed.gain };
@@ -426,7 +426,7 @@
     else if (name === 'bubble') { A.note({ m: 50 + Math.floor((k || 0) * 9), vel: 0.1, voice: 'pluck', dur: 0.25 }); }
     else if (name === 'step') burst({ type: 'lowpass', f0: 700, f1: 200, dur: 0.1, vel: 0.2, q: 0.5, rate: 3, verb: 0.2 });
     else if (name === 'whoosh') burst({ f0: 300, f1: 1400, dur: 0.7, vel: 0.3, q: 0.8, rate: 4, attack: 0.3, verb: 0.5 });
-    else if (name === 'star') A.note({ m: 72 + [0, 4, 7, 9, 12, 16][Math.floor((k || 0) * 6) % 6], vel: 0.22, voice: 'glass' });
+    else if (name === 'star') A.note({ m: 72 + [0, 4, 7, 9, 12, 16][((Math.floor((k || 0) * 6) % 6) + 6) % 6], vel: 0.22, voice: 'glass' });
     else if (name === 'knock') { burst({ type: 'lowpass', f0: 1400, f1: 300, dur: 0.07, vel: 0.5, q: 0.7, rate: 5, verb: 0.35 }); A.note({ m: 43 + Math.floor((k || 0) * 5), vel: 0.22, voice: 'pluck', dur: 0.2 }); }
     else if (name === 'bike') { A.note({ m: 91, vel: 0.2, voice: 'box', dur: 1.2 }); A.note({ m: 91, at: 0.16, vel: 0.16, voice: 'box', dur: 1.2 }); }
     else if (name === 'door') burst({ type: 'lowpass', f0: 420, f1: 120, dur: 0.22, vel: 0.5, q: 0.6, rate: 2.5, verb: 0.4 });
@@ -442,5 +442,10 @@
     btn.addEventListener('click', () => { A.unlock(); A.toggleMute(); });
     A.setMuted(A.muted);
   }
+  /* Sound is never worth stopping the story for: whatever goes wrong in here stays in here. */
+  ['note', 'pad', 'bed', 'motif', 'step', 'theme', 'fragment', 'toll', 'scaleStep', 'promise', 'ambience', 'sfx'].forEach((name) => {
+    const fn = A[name];
+    A[name] = function () { try { return fn.apply(A, arguments); } catch (e) { if (T.report) T.report(e, 'sound ' + name); return 0; } };
+  });
   A._build = build; /* test hook: render through an OfflineAudioContext */
 })();
