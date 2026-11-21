@@ -469,7 +469,7 @@ function frontHair(ctx, L, skin) {
   }
 }
 
-function hat(ctx, L, p) {
+function hat(ctx, L) {
   switch (L.head) {
     case 'straw': {
       const S = '#f2d27e';
@@ -652,7 +652,7 @@ function head(ctx, L, p, mode) {
     hair: L.hair,
     extra: L.face,
   });
-  hat(ctx, L, p);
+  hat(ctx, L);
 }
 
 // ───────── 들고 다니는 것 ─────────
@@ -916,7 +916,7 @@ function camera(ctx, x, y) {
 
 // ───────── 몸통(엉덩이 기준) ─────────
 
-function body(ctx, L, type) {
+function body(ctx, L) {
   switch (L.body) {
     case 'overalls': {
       torsoPath(ctx, 7.4, 9.6, -19.5, 1.5);
@@ -1180,7 +1180,6 @@ function person(ctx, type, p) {
   const sw = -Math.sin(ph) * walk; // 팔 흔들기(앞다리와 반대)
   const tilt = shock ? 0.16 : wave ? 0.08 : lk * 0.38;
   const mode = shock ? 'shock' : wave ? 'wave' : look > 0.5 ? 'look' : 'walk';
-  const sleeve = L.body === 'vest' ? L.top : L.top;
   const shortSleeve = L.sleeve === 'short' || L.sleeve === 'puff';
 
   groundShadow(ctx, 0, 0.6, 14 - hop * 0.7, 3.4, 0.24);
@@ -1266,7 +1265,7 @@ function person(ctx, type, p) {
   }
 
   // 몸통
-  body(ctx, L, type);
+  body(ctx, L);
   if (L.item === 'camera' && (look < 0.5 || shock)) {
     ctx.beginPath();
     ctx.moveTo(-4.4, -19);
@@ -1284,7 +1283,7 @@ function person(ctx, type, p) {
   const hangH = L.item === 'scope' ? [11.6 + sw * 1.5, -6] : [10.4 + sw * 3.2, -4.6];
   let fe;
   let fh;
-  let visor = false; // 손 차양: 팔은 머리 뒤로, 손바닥만 이마 앞에
+  let palm = false; // 손 차양: 손바닥을 펴서 이마 앞에 댄다
   if (shock) {
     fe = [16.6, -21];
     fh = [16.2, -30.5];
@@ -1304,20 +1303,18 @@ function person(ctx, type, p) {
     } else {
       lh = fromHead(FACE_X + 9.4, FACE_Y - 7.6, tilt);
       le = [17.6, -26];
-      visor = look > 0.05;
+      palm = look > 0.4;
     }
     fe = [lerp(hangE[0], le[0], lk), lerp(hangE[1], le[1], lk)];
     fh = [lerp(hangH[0], lh[0], lk), lerp(hangH[1], lh[1], lk)];
   }
-  const frontArm = () => {
-    if (shortSleeve) {
-      limb(ctx, [SH_X, SH_Y, fe[0], fe[1], fh[0], fh[1]], skin, 4.6);
-      limb(ctx, [SH_X, SH_Y, lerp(SH_X, fe[0], 0.55), lerp(SH_Y, fe[1], 0.55)], sleeve, L.sleeve === 'puff' ? 6.4 : 5.4);
-    } else {
-      limb(ctx, [SH_X, SH_Y, fe[0], fe[1], fh[0], fh[1]], sleeve, 5);
-    }
-  };
-  frontArm(); // 팔은 머리 뒤로 지나가고 손만 머리 앞에 온다
+  // 팔은 머리보다 먼저 그려 머리 뒤로 지나가게 하고, 손만 머리 앞에 올린다
+  if (shortSleeve) {
+    limb(ctx, [SH_X, SH_Y, fe[0], fe[1], fh[0], fh[1]], skin, 4.6);
+    limb(ctx, [SH_X, SH_Y, lerp(SH_X, fe[0], 0.55), lerp(SH_Y, fe[1], 0.55)], L.top, L.sleeve === 'puff' ? 6.4 : 5.4);
+  } else {
+    limb(ctx, [SH_X, SH_Y, fe[0], fe[1], fh[0], fh[1]], L.top, 5);
+  }
 
   // 머리
   ctx.save();
@@ -1336,7 +1333,7 @@ function person(ctx, type, p) {
     }
   }
   if (shock) net(ctx, fh[0], fh[1], -1.02 + Math.sin(t * 7) * 0.4);
-  if (visor && look > 0.4) {
+  if (palm) {
     ctx.save();
     ctx.translate(fh[0], fh[1]);
     ctx.rotate(-tilt - 0.12);
@@ -1577,7 +1574,7 @@ function balloonist(ctx, p) {
     skin,
     hair: L.hair,
   });
-  hat(ctx, L, p);
+  hat(ctx, L);
   ctx.restore();
 
   // 바구니

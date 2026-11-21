@@ -35,16 +35,18 @@ function paintIcon(ctx, kind, id, size) {
     }
     case 'watcher': {
       if (id === 'balloonist') {
-        const s = size / 122;
-        ctx.translate(c, size * 0.97);
+        const s = size / 118;
+        ctx.translate(c, size * 0.975);
         ctx.scale(s, s);
       } else if (id === 'astronaut') {
         const s = size / 66;
         ctx.translate(c, size * 0.56);
         ctx.scale(s, s);
       } else {
-        const s = (size / 70) * (WATCHERS[id]?.scale ? 1.12 : 1);
-        ctx.translate(c, size * 0.95);
+        // 개·낚싯대·쇠스랑·배낭처럼 한쪽으로 튀어나온 것을 감안해 가운데로 옮긴다
+        const SHIFT = { walker: 9, fisher: 7, farmer: 3, camper: 2 };
+        const s = (size / 74) * (WATCHERS[id]?.scale ? 1.08 : 1);
+        ctx.translate(c + (SHIFT[id] || 0) * s, size * 0.975);
         ctx.scale(s, s);
       }
       drawWatcher(ctx, id, { t: 0.2, dir: 1, walk: 0, look: 1 });
