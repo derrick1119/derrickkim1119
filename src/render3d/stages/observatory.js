@@ -1,11 +1,10 @@
 // 5. 천문대 언덕(땅거미 → 밤): 별이 돋는 짙은 청보라 하늘, 지평선의 노을 띠, 흰 돔 천문대(틈이 열린 돔과 망원경),
 //    소나무, 작은 등이 줄지어 선 굽은 오솔길, 골짜기 아래 마을 불빛, 달.
 import {
-  THREE, P, G, bake, terrain, cloudLayer, cloudMat, pine, bush, flowers, tuft, rock, halfW, smooth, clamp, fbm, noise2,
-  rgb, mixv, rng, TAU, glowPoints, starField, cachedTex, house,
-  sphereGeo, boxGeo, roundBoxGeo, cylGeo, coneGeo, torusGeo, latheGeo,
+  THREE, P, G, bake, terrain, cloudLayer, cloudMat, pine, bush, flowers, tuft, rock, halfW, smooth, fbm, noise2, rgb,
+  mixv, rng, TAU, glowPoints, starField, cachedTex, house, sphereGeo, roundBoxGeo, cylGeo, coneGeo, torusGeo, latheGeo,
 } from './common.js';
-import { bakeStatic, glowSprite } from '../kit.js';
+import { glowSprite } from '../kit.js';
 
 const OBS = { x: 2.6, z: -15.5 };
 
@@ -38,6 +37,15 @@ function color(x, y, z, ny) {
   return c;
 }
 
+// 돔 껍질 조각(틈·난간) 도형 캐시
+const shells = new Map();
+function shellGeo(rad, seg, off, width) {
+  const key = `${rad}|${seg}|${off}|${width}`;
+  let g = shells.get(key);
+  if (!g) shells.set(key, (g = new THREE.SphereGeometry(rad, seg, 12, Math.PI / 2 + off - width / 2, width, 0.05, 1.45)));
+  return g;
+}
+
 function observatory(parent, x, y, z, lamps) {
   const g = G(parent, x, y, z, -0.35, 1.15);
   g.add(P(cylGeo(1.15, 1.2, 0.18, 32), '#b9b6cc', { pos: [0, 0.09, 0], fin: 'soft' }));
@@ -46,11 +54,11 @@ function observatory(parent, x, y, z, lamps) {
   // 돔 + 열린 틈 + 망원경
   const dome = G(g, 0, 1.35, 0, 0.2);
   dome.add(P(sphereGeo(1, 36, 18), '#fbfaff', { scale: [1.07, 1.07, 1.07], fin: 'soft' }));
-  dome.add(P(roundBoxGeo(0.42, 1.3, 1.3, 0.05, 1), '#1f2350', { pos: [0, 0.48, 0.42], rot: [-0.55, 0, 0], fin: 'soft' }));
-  dome.add(P(roundBoxGeo(0.08, 1.2, 1.25, 0.03, 1), '#d9d6e6', { pos: [0.25, 0.48, 0.44], rot: [-0.55, 0, 0], fin: 'soft' }));
-  dome.add(P(roundBoxGeo(0.08, 1.2, 1.25, 0.03, 1), '#d9d6e6', { pos: [-0.25, 0.48, 0.44], rot: [-0.55, 0, 0], fin: 'soft' }));
-  dome.add(P(cylGeo(0.16, 0.2, 1.3, 16), '#8890b8', { pos: [0, 0.75, 0.42], rot: [-0.7, 0, 0], fin: 'metal' }));
-  dome.add(P(cylGeo(0.2, 0.2, 0.08, 16), '#3c4569', { pos: [0, 1.22, 0.83], rot: [-0.7, 0, 0], fin: 'soft' }));
+  // 틈: 돔 표면을 따라 앞쪽 위로 난 어두운 띠(구 껍질 조각)
+  dome.add(P(shellGeo(1.085, 8, 0, 0.4), '#1f2350', { fin: 'soft' }));
+  for (const sx of [-0.21, 0.21]) dome.add(P(shellGeo(1.1, 3, sx, 0.07), '#d9d6e6', { fin: 'soft' }));
+  dome.add(P(cylGeo(0.15, 0.19, 1.1, 16), '#8890b8', { pos: [0, 0.62, 0.42], rot: [-0.75, 0, 0], fin: 'metal' }));
+  dome.add(P(cylGeo(0.19, 0.19, 0.08, 16), '#3c4569', { pos: [0, 1.0, 0.8], rot: [-0.75, 0, 0], fin: 'soft' }));
   // 문과 창(불빛)
   g.add(P(roundBoxGeo(0.4, 0.62, 0.08, 0.05, 2), '#ffd98a', { pos: [0, 0.48, 1.05], fin: 'glow', cast: false }));
   g.add(P(roundBoxGeo(0.5, 0.08, 0.2, 0.03, 1), '#c9c3d8', { pos: [0, 0.82, 1.1], fin: 'soft' }));
@@ -161,9 +169,9 @@ export function buildObservatory({ w }) {
 
   // 불빛: 크기별로 두 묶음
   root.add(glowPoints(lamps.filter((l) => (l[4] || 1) >= 1).map((l) => l.slice(0, 4)), { size: 2.4, atten: true, opacity: 0.6 }));
-  root.add(glowPoints(lamps.filter((l) => (l[4] || 1) < 1).map((l) => l.slice(0, 4)), { size: 0.75, atten: true, opacity: 0.85, fog: false }));
+  root.add(glowPoints(lamps.filter((l) => (l[4] || 1) < 1).map((l) => l.slice(0, 4)), { size: 1.0, atten: true, opacity: 0.85, fog: false }));
   // 별
-  const stars = starField(53, { n: 340, yMin: 0.05, fade: '#7a6aa8' });
+  const stars = starField(53, { n: 620, yMin: 0.06, fade: '#7a6aa8', big: 0.14 });
   root.add(stars);
   // 달
   const moon = new THREE.Mesh(sphereGeo(1, 24, 16), new THREE.MeshBasicMaterial({ map: moonTex(), fog: false }));

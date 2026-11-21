@@ -2,10 +2,9 @@
 //    말뚝 울타리, 가로등, 찻길. 언덕을 따라 지붕이 층층이 올라가고 뒤로 먼 산이 안개에 잠긴다.
 import {
   THREE, P, G, bake, terrain, cloudLayer, cloudMat, roundTree, bush, flowers, tuft, house, picketFence, streetLamp,
-  hedge, car, stripGround, speckle, groundBlob, halfW, smooth, fbm, noise2, rgb, mixv, rng, TAU,
-  roundBoxGeo, cylGeo, coneGeo, sphereGeo, boxGeo, latheGeo,
+  hedge, car, stripGround, speckle, halfW, smooth, fbm, noise2, rgb, mixv, rng, roundBoxGeo, cylGeo, coneGeo, boxGeo,
 } from './common.js';
-import { bakeStatic } from '../kit.js';
+import {  } from '../kit.js';
 
 const hill = (z) => (z > -8.5 ? 0 : 3.4 * (1 - Math.exp(-(-8.5 - z) / 11)));
 
@@ -52,7 +51,7 @@ function drawStreet(ctx, W, Hh, row) {
   ctx.fillRect(0, 0, W, row(0.8));
   speckle(ctx, 0, 0, W, row(0.8), 900, ['#6aa83e', '#9bd35a', '#86c24a', '#a7d862'], r, [1.5, 4]);
   // 보도(보도블록)
-  fill(0.8, -0.85, '#ece3d4');
+  fill(0.8, -0.85, '#f1e4cc');
   ctx.strokeStyle = 'rgba(150,130,110,0.35)';
   ctx.lineWidth = 2;
   for (let x = 0; x <= W; x += px * 0.55) {
@@ -200,16 +199,7 @@ export function buildSuburb({ w }) {
     ch.add(P(roundBoxGeo(0.3, 0.55, 0.05, 0.05, 2), '#7fa6d8', { pos: [0, 1.65, 1.21], fin: 'gloss' }));
     ch.add(P(roundBoxGeo(0.4, 0.6, 0.05, 0.05, 2), '#8f5a3a', { pos: [0, 0.3, 1.21], fin: 'soft' }));
   }
-  // 먼 산 위 풍차와 나무
-  {
-    const x = -14;
-    const z = -88;
-    const y = H(x, z);
-    const m = G(props, x, y - 0.2, z, 0.2, 1.8);
-    m.add(P(latheGeo([[0.5, 0], [0.42, 1.2], [0.3, 2.0], [0, 2.0]], 12, 'farmill'), '#f1e6d2', { pos: [0, 0, 0] }));
-    m.add(P(sphereGeo(1, 10, 6), '#8f4a34', { pos: [0, 2.05, 0], scale: [0.38, 0.3, 0.42] }));
-    for (let i = 0; i < 4; i++) m.add(P(boxGeo(0.22, 1.3, 0.03), '#fff4dc', { pos: [Math.cos(i * 1.57 + 0.4) * 0.65, 2.05 + Math.sin(i * 1.57 + 0.4) * 0.65, 0.45], rot: [0, 0, i * 1.57 + 0.4 - Math.PI / 2] }));
-  }
+  // 먼 언덕 숲
   for (let i = 0; i < 40; i++) {
     const z = -45 - r() * 40;
     const x = (r() * 2 - 1) * halfW(w, z) * 1.1;

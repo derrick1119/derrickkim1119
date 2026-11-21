@@ -5,7 +5,7 @@
 //     색이 수십 가지여도 재질은 하나 → bakeStatic 이 마감별로 한 덩어리로 합친다.
 //   · 지형은 꼭짓점 색을 쓰는 높이 그물 한 장(bakeStatic 뒤에 붙인다).
 //   · 구름은 덩이마다 구 여러 개를 한 도형으로 합쳐 한 번에 그린다.
-import { THREE, mat, sphereGeo, boxGeo, roundBoxGeo, capsuleGeo, cylGeo, coneGeo, torusGeo, latheGeo, cloud3d, glowTexture, bakeStatic, rng } from '../kit.js';
+import { THREE, mat, sphereGeo, boxGeo, roundBoxGeo, capsuleGeo, cylGeo, coneGeo, torusGeo, latheGeo, glowTexture, bakeStatic, rng } from '../kit.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const CAM_Z = 14;
@@ -16,6 +16,27 @@ export const smooth = (a, b, x) => {
   const t = clamp((x - a) / (b - a));
   return t * t * (3 - 2 * t);
 };
+
+/**
+ * 화면 높이로 엔진의 카메라 배치를 어림한다(엔진 layout 과 같은 식, 계기판 150px·조작부 150px 기준).
+ * horizon = 지평선 화면 y, yAt(Y, z) = 세계 높이 Y·깊이 z 의 화면 y, Yat(yScreen, z) = 그 반대.
+ */
+export function screenModel(h = 844) {
+  const groundY = Math.round(h - 150 - Math.min(Math.max(h * 0.065, 30), 56));
+  const camY = Math.min(Math.max((0.45 * (groundY - 180)) / 64, 2.2), 3.4);
+  const horizon = groundY - 64 * camY;
+  const f = 64 * CAM_Z;
+  return {
+    groundY,
+    camY,
+    horizon,
+    hud: 150,
+    yAt: (Y, z) => horizon - (f * (Y - camY)) / (CAM_Z - z),
+    Yat: (yScreen, z) => camY + ((horizon - yScreen) * (CAM_Z - z)) / f,
+    /** 계기판(0) ~ 땅선(1) 사이 비율 → 화면 y */
+    frac: (k) => 150 + k * (groundY - 150),
+  };
+}
 
 /** 깊이 z 에서 화면 가로 절반(세계 단위). w = 화면 폭(px). */
 export const halfW = (w, z) => ((w / 2) / 64) * ((CAM_Z - z) / CAM_Z);
@@ -565,8 +586,8 @@ const cloudMatCache = new Map();
  * 구름 재질: 거의 스스로 빛나는 흰색에, 해를 등진 쪽과 아랫면은 라벤더빛 그늘이 진다.
  * light = 해가 오는 방향(세계), color = 볕 받는 면, shade = 그늘, rim = 가장자리 밝기.
  */
-export function cloudMat(color = '#ffffff', shade = '#b8c2f0', { opacity = 1, fog = false, light = [-0.5, 0.8, 0.45], mid = null } = {}) {
-  const key = `${color}|${shade}|${opacity}|${fog}|${light}|${mid}`;
+export function cloudMat(color = '#ffffff', shade = '#b8c2f0', { opacity = 1, fog = false, light = [-0.5, 0.8, 0.45], mid = null, steps = [-0.75, 0.05, 0.0, 0.7], rim = 0.35 } = {}) {
+  const key = `${color}|${shade}|${opacity}|${fog}|${light}|${mid}|${steps}|${rim}`;
   let m = cloudMatCache.get(key);
   if (m) return m;
   m = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: opacity < 1, opacity, fog });
@@ -589,14 +610,14 @@ export function cloudMat(color = '#ffffff', shade = '#b8c2f0', { opacity = 1, fo
         'vec4 diffuseColor = vec4( diffuse, opacity );',
         `vec3 n = normalize( vWN );
         float lit = dot( n, cL ) * 0.55 + n.y * 0.45;
-        vec3 cc = mix( cShade, cMid, smoothstep( -0.75, 0.05, lit ) );
-        cc = mix( cc, cTop, smoothstep( 0.0, 0.7, lit ) );
+        vec3 cc = mix( cShade, cMid, smoothstep( ${steps[0].toFixed(3)}, ${steps[1].toFixed(3)}, lit ) );
+        cc = mix( cc, cTop, smoothstep( ${steps[2].toFixed(3)}, ${steps[3].toFixed(3)}, lit ) );
         float rim = pow( 1.0 - abs( dot( n, -vVD ) ), 3.0 );
-        cc = mix( cc, cTop, rim * 0.35 * smoothstep( -0.2, 0.4, n.y ) );
+        cc = mix( cc, cTop, rim * ${rim.toFixed(3)} * smoothstep( -0.2, 0.4, n.y ) );
         vec4 diffuseColor = vec4( cc, opacity );`,
       );
   };
-  m.customProgramCacheKey = () => 'cloudMat2';
+  m.customProgramCacheKey = () => `cloudMat2|${steps}|${rim}`;
   cloudMatCache.set(key, m);
   return m;
 }

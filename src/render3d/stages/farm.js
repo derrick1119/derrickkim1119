@@ -1,8 +1,8 @@
 // 1. 시골 농장(한낮): 컨셉 그대로 — 바다와 등대 절벽, 빨간 헛간, 풍차, 연못과 선창, 울타리, 건초, 둥근 나무, 먼 마을.
 import {
   THREE, P, G, bake, terrain, cloudLayer, cloudMat, roundTree, bush, flowers, tuft, rock, fence, hayBale, house,
-  groundBlob, waterMat, vcolMat, mesa, halfW, smooth, clamp, fbm, noise2, rgb, mixv, rng, TAU,
-  sphereGeo, boxGeo, roundBoxGeo, cylGeo, coneGeo, torusGeo, latheGeo, extrudeGeo, glowPoints,
+  groundBlob, waterMat, mesa, halfW, smooth, fbm, noise2, rgb, mixv, rng, TAU, sphereGeo, boxGeo, roundBoxGeo, cylGeo,
+  coneGeo, torusGeo, latheGeo, extrudeGeo, capsuleGeo,
 } from './common.js';
 import { bakeStatic, glowSprite } from '../kit.js';
 
@@ -84,8 +84,10 @@ function color(x, y, z, ny) {
   if (y < SEA_Y - 0.05) return C_SEABED;
   const n = fbm(x * 0.35 + 3, z * 0.35, 3);
   const n2 = noise2(x * 1.7, z * 1.7);
-  let c = mixv(C_GRASS_DEEP, C_GRASS, smooth(0.25, 0.7, n));
-  c = mixv(c, C_GRASS_LIT, smooth(0.5, 0.9, n2) * 0.45 + smooth(1.0, 3.5, y) * 0.35);
+  let c = mixv(C_GRASS_DEEP, C_GRASS, smooth(0.22, 0.68, n));
+  c = mixv(c, C_GRASS_LIT, smooth(0.45, 0.85, n2) * 0.55 + smooth(1.0, 3.5, y) * 0.35);
+  // 가까운 풀밭: 볕 든 얼룩
+  if (z > -8) c = mixv(c, C_GRASS_LIT, smooth(0.55, 0.8, fbm(x * 0.9 + 7, z * 1.6, 2)) * 0.5 * smooth(-8, -3, z));
   // 바닷가 모래
   if (y < SEA_Y + 0.35) c = mixv(c, C_SAND, smooth(SEA_Y + 0.35, SEA_Y + 0.12, y));
   // 절벽(가파른 곳)
@@ -444,6 +446,19 @@ export function buildFarm({ w }) {
   }
   for (const [x, z, s] of [[-2.8, -2.4, 0.8], [3.2, -1.9, 0.6], [-0.6, -9.5, 0.9]]) rock(props, x, H(x, z), z, s, r);
 
+  // 갈매기 몇 마리(한 덩이로 합쳐 천천히 맴돈다)
+  const gulls = G(root);
+  gulls.userData.dynamic = true;
+  for (const [gx, gy, gz, k] of [[0, 0, 0, 1], [1.4, 0.5, -0.6, 0.85], [-1.1, 0.8, 0.4, 0.9]]) {
+    const b = G(gulls, gx, gy, gz, 0.3, k);
+    b.add(P(capsuleGeo(0.06, 0.3, 3, 8), '#ffffff', { rot: [0, 0, Math.PI / 2], fin: 'soft' }));
+    for (const sg of [-1, 1]) {
+      b.add(P(roundBoxGeo(0.08, 0.025, 0.34, 0.01, 1), '#f4f6ff', { pos: [0, 0.06, sg * 0.17], rot: [sg * 0.45, 0, 0], fin: 'soft' }));
+      b.add(P(roundBoxGeo(0.07, 0.022, 0.2, 0.01, 1), '#9aa3c0', { pos: [0, 0.16, sg * 0.42], rot: [-sg * 0.35, 0, 0], fin: 'soft' }));
+    }
+  }
+  bakeStatic(gulls);
+
   // 움직이는 것: 풍차 날개, 배
   const sails = mill.sails;
   const boatG = boat(root, 0.5, SEA_Y, -64, 1.7);
@@ -491,6 +506,8 @@ export function buildFarm({ w }) {
       drift(t);
       bank(t);
       beacon.material.opacity = 0.4 + 0.12 * Math.sin(t * 2.2);
+      gulls.position.set(-4.5 + Math.sin(t * 0.12) * 3, 7.8 + Math.sin(t * 0.7) * 0.25, -38 + Math.cos(t * 0.12) * 2);
+      gulls.rotation.y = Math.cos(t * 0.12) * 0.5;
     },
   };
 }

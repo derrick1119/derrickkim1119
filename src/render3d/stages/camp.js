@@ -1,9 +1,7 @@
 // 3. 캠핑장(해 질 녘 황금빛): 눈 덮인 겹겹 산, 산을 비추는 호수, 소나무 숲, 텐트, 모닥불(일렁임), 통나무, 바위.
-const CAMZ = 14;
 import {
-  THREE, P, G, bake, terrain, cloudLayer, cloudMat, pine, bush, flowers, tuft, rock, groundBlob, halfW, smooth, clamp,
-  fbm, noise2, rgb, mixv, rng, TAU, vcolMat, cachedTex, glowPoints, extrudeGeo,
-  sphereGeo, boxGeo, roundBoxGeo, cylGeo, coneGeo, capsuleGeo, latheGeo,
+  CAM_Z, THREE, P, G, bake, terrain, cloudLayer, cloudMat, pine, bush, flowers, tuft, rock, halfW, smooth, fbm, noise2, rgb,
+  mixv, rng, TAU, cachedTex, glowPoints, extrudeGeo, sphereGeo, roundBoxGeo, cylGeo, coneGeo, latheGeo,
 } from './common.js';
 import { bakeStatic, glowSprite } from '../kit.js';
 
@@ -161,15 +159,19 @@ function mirrorOf(mesh, level, tint, material = null) {
   g.setAttribute('normal', src.attributes.normal.clone());
   if (src.attributes.color) g.setAttribute('color', src.attributes.color.clone());
   if (src.attributes.uv) g.setAttribute('uv', src.attributes.uv.clone());
+  // 물 아래에 잠긴 삼각형은 빼고(반영을 가리지 않게), 감기 방향을 뒤집는다
   const n = src.index ? src.index.count : src.attributes.position.count;
-  const ni = new Uint32Array(n);
+  const at = (k) => (src.index ? src.index.array[k] : k);
+  const sy = src.attributes.position.array;
+  const ni = [];
   for (let i = 0; i < n; i += 3) {
-    const at = (k) => (src.index ? src.index.array[k] : k);
-    ni[i] = at(i);
-    ni[i + 1] = at(i + 2);
-    ni[i + 2] = at(i + 1);
+    const a = at(i);
+    const b = at(i + 1);
+    const c = at(i + 2);
+    if (Math.max(sy[a * 3 + 1], sy[b * 3 + 1], sy[c * 3 + 1]) < level + 0.05) continue;
+    ni.push(a, c, b);
   }
-  g.setIndex(new THREE.BufferAttribute(ni, 1));
+  g.setIndex(ni);
   const m = new THREE.Mesh(g, material || reflMat('vc', () => new THREE.MeshStandardMaterial({ vertexColors: true, color: tint, roughness: 1, envMapIntensity: 0.4 })));
   m.userData.ownGeometry = true;
   m.matrixAutoUpdate = false;
@@ -203,9 +205,23 @@ export function buildCamp({ w }) {
   const waterGeo = new THREE.PlaneGeometry(400, 60, 1, 1);
   waterGeo.rotateX(-Math.PI / 2);
   waterGeo.translate(0, LAKE_Y, -24);
-  const water = new THREE.Mesh(waterGeo, reflMat('water', () => new THREE.MeshBasicMaterial({ color: '#34468e', transparent: true, opacity: 0.34, depthWrite: false })));
+  const water = new THREE.Mesh(waterGeo, reflMat('water', () => new THREE.MeshBasicMaterial({ color: '#2c3c82', transparent: true, opacity: 0.42, depthWrite: false })));
   water.userData.ownGeometry = true;
   water.renderOrder = 2;
+  // 잔물결 결(옅은 가로줄, 덧그리기)
+  const rip = cachedTex('lakeRipple', 256, 512, (ctx, W, Hh) => {
+    const rr = rng(12);
+    ctx.clearRect(0, 0, W, Hh);
+    for (let i = 0; i < 160; i++) {
+      const y = rr() * Hh;
+      const l = 10 + rr() * 60;
+      ctx.fillStyle = `rgba(220,210,255,${0.2 + rr() * 0.35})`;
+      ctx.fillRect(rr() * W, y, l, 1.5);
+    }
+  }, { repeat: [24, 6] });
+  const ripples = new THREE.Mesh(waterGeo, reflMat('ripple', () => new THREE.MeshBasicMaterial({ map: rip, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })));
+  ripples.position.y = 0.005;
+  ripples.renderOrder = 3;
   water.receiveShadow = false;
 
   const leafs = [
@@ -277,7 +293,7 @@ export function buildCamp({ w }) {
     });
     root.add(mirrorOf(m, LAKE_Y, null, pm));
   }
-  root.add(near, far, refl, water);
+  root.add(near, far, refl, water, ripples);
 
   // 해 아래 물비늘(금빛 결)
   const SUNX = 12;
@@ -294,7 +310,7 @@ export function buildCamp({ w }) {
   const gl = new THREE.BufferGeometry();
   const zA = -38;
   const zB = -7.5;
-  const xc = (z) => (SUNX * (CAMZ - z)) / 254;
+  const xc = (z) => (SUNX * (CAM_Z - z)) / 254;
   const wd = (z) => 0.6 + (z - zA) * 0.06;
   gl.setAttribute('position', new THREE.Float32BufferAttribute([xc(zA) - wd(zA), LAKE_Y + 0.01, zA, xc(zA) + wd(zA), LAKE_Y + 0.01, zA, xc(zB) - wd(zB), LAKE_Y + 0.01, zB, xc(zB) + wd(zB), LAKE_Y + 0.01, zB], 3));
   gl.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 1, 1], 2));

@@ -2,8 +2,8 @@
 //    가로등이 켜진 거리, 그리고 탐조등 원뿔로 거리를 훑으며 맴도는 경찰 헬기.
 import {
   THREE, P, G, bake, terrain, cloudLayer, cloudMat, roundTree, bush, flowers, streetLamp, car, stripGround, speckle,
-  halfW, smooth, fbm, rgb, mixv, rng, TAU, cachedTex, glowPoints, mix,
-  sphereGeo, boxGeo, roundBoxGeo, cylGeo, coneGeo, capsuleGeo, torusGeo, latheGeo, mat,
+  halfW, smooth, rgb, mixv, rng, TAU, cachedTex, glowPoints, mix, screenModel, sphereGeo, boxGeo, roundBoxGeo, cylGeo,
+  coneGeo, capsuleGeo, torusGeo,
 } from './common.js';
 import { bakeStatic, glowSprite, glowTexture } from '../kit.js';
 
@@ -128,8 +128,7 @@ function billboard(parent, x, y, z, ry, s, tex) {
   const g = G(parent, x, y, z, ry, s);
   for (const lx of [-0.7, 0.7]) g.add(P(boxGeo(0.06, 0.6, 0.06), '#3c4569', { pos: [lx, 0.3, 0] }));
   g.add(P(roundBoxGeo(2.1, 1.1, 0.1, 0.03, 1), '#3c4569', { pos: [0, 1.1, -0.03], fin: 'soft' }));
-  const panel = new THREE.Mesh(new THREE.PlaneGeometry(1.96, 0.96), mat('#ffffff', { map: tex, rough: 0.6, emissive: '#000000' }));
-  panel.material = billMat(tex);
+  const panel = new THREE.Mesh(new THREE.PlaneGeometry(1.96, 0.96), billMat(tex));
   panel.position.set(0, 1.1, 0.03);
   panel.userData.ownGeometry = true;
   g.add(panel);
@@ -273,7 +272,7 @@ function drawStreet(ctx, W, Hh, row) {
     ctx.fillStyle = col;
     ctx.fillRect(0, row(z0), W, row(z1) - row(z0) + 1);
   };
-  fill(9, -0.85, '#e8dccd');
+  fill(9, -0.85, '#eadcc2');
   ctx.strokeStyle = 'rgba(110,90,120,0.3)';
   ctx.lineWidth = 2;
   for (let x = 0; x <= W; x += px * 0.5) {
@@ -323,7 +322,7 @@ function drawStreet(ctx, W, Hh, row) {
 // ───────── 무대 ─────────
 
 /** @param {{w:number,h:number}} size */
-export function buildCity({ w }) {
+export function buildCity({ w, h }) {
   const r = rng(41);
   const root = new THREE.Group();
   const props = G(root);
@@ -347,7 +346,9 @@ export function buildCity({ w }) {
     si++;
   }
   // 빌딩: 화면에서 지붕이 닿는 높이를 정해 두고(가운데는 낮게 = 기체 자리, 양옆은 높게) 거기서 높이를 거꾸로 구한다
-  const topAt = (x, z, yScreen) => 3.23 + ((432 - yScreen) * (14 - z)) / 896;
+  // yScreen 은 844px 화면 기준 값 → 실제 화면의 계기판~땅선 비율로 옮겨 쓴다
+  const sm = screenModel(h);
+  const topAt = (x, z, yScreen) => sm.Yat(sm.frac((yScreen - 150) / 489), z);
   const sideK = (x, z) => smooth(0.35, 0.95, Math.abs(x) / halfW(w, z));
   const roofs = [];
   const midRows = [
@@ -457,14 +458,15 @@ export function buildCity({ w }) {
   ], cm);
 
   const env = {
-    sky: { top: '#36389a', mid: '#c46aa4', horizon: '#ffae72', sunDir: [-0.1, 0.03, -1], sunColor: '#ffb070', sunStrength: 0.8, sunSize: 0.0015 },
-    fog: { color: '#f6b49a', near: 40, far: 320 },
+    sky: { top: '#36389a', mid: '#cf7598', horizon: '#ffb46c', sunDir: [-0.1, 0.03, -1], sunColor: '#ffb070', sunStrength: 0.8, sunSize: 0.0015 },
+    fog: { color: '#f6b494', near: 40, far: 320 },
     sun: { color: '#ffc49a', intensity: 2.3, dir: [-0.85, 0.65, 0.45] },
     hemi: { sky: '#b2abe2', ground: '#a88c7c', intensity: 0.9 },
     exposure: 1.0,
   };
 
-  const tmp = new THREE.Vector3();
+  const src = new THREE.Vector3();
+  const dir = new THREE.Vector3();
   const up = new THREE.Vector3(0, 1, 0);
   return {
     group: root,
@@ -484,11 +486,11 @@ export function buildCity({ w }) {
       // 탐조등: 헬기 배에서 거리로, 좌우로 훑는다
       const tx = hx * 0.4 + Math.sin(t * 0.7) * 2.6;
       const tz = -3 + Math.sin(t * 0.45) * 1.2;
-      const src = tmp.set(hx + 0.2, hy - 0.45, hz);
-      const dir = new THREE.Vector3(tx - src.x, 0.02 - src.y, tz - src.z);
+      src.set(hx + 0.2, hy - 0.45, hz);
+      dir.set(tx - src.x, 0.02 - src.y, tz - src.z);
       const len = dir.length();
       beam.position.copy(src);
-      beam.quaternion.setFromUnitVectors(up, dir.clone().multiplyScalar(-1 / len));
+      beam.quaternion.setFromUnitVectors(up, dir.multiplyScalar(-1 / len));
       beam.scale.set(1.1, len, 1.1);
       pool.position.set(tx, 0.03, tz);
       pool.scale.set(1.5, 1.1, 1);
