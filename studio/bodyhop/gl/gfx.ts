@@ -47,16 +47,17 @@ float shade(float ndl){
   return s / 9.;
 }
 void main(){
-  vec3 N = normalize(vN); if (!gl_FrontFacing) N = -N;
-  vec3 V = normalize(uCam - vW), L = uSun, H = normalize(L + V);
-  vec3 alb = pow(vC * uTint, vec3(2.2));
+  // 📱 아이폰(애플 GPU) 검은 블록: 0 벡터 normalize·음수 밑의 pow가 NaN을 내고 블룸이 그걸 사각 블록으로 번졌다 → 모두 막는다
+  float nl = length(vN); vec3 N = nl > 1e-6 ? vN / nl : vec3(0., 1., 0.); if (!gl_FrontFacing) N = -N;
+  vec3 V = normalize(uCam - vW), L = uSun, H = normalize(L + V + vec3(0., 1e-4, 0.));
+  vec3 alb = pow(max(vC * uTint, vec3(0.)), vec3(2.2));
   float rough = max(vM.x, .08), sss = vM.y, ndl = dot(N, L), nv = max(dot(N, V), 1e-3);
   float wrap = sss * .7, dif = clamp((ndl + wrap) / (1. + wrap), 0., 1.);
   float sh = shade(ndl);
-  float a2 = pow(rough, 4.), nh = max(dot(N, H), 0.), dd = nh*nh*(a2 - 1.) + 1.;
-  float spec = a2 / (3.14159 * dd * dd) * (.04 + .96 * pow(1. - max(dot(H, V), 0.), 5.)) * clamp(ndl, 0., 1.) * .25;
+  float a2 = pow(clamp(rough, .08, 1.), 4.), nh = clamp(dot(N, H), 0., 1.), dd = max(nh*nh*(a2 - 1.) + 1., 1e-3);
+  float spec = a2 / (3.14159 * dd * dd) * (.04 + .96 * pow(clamp(1. - dot(H, V), 0., 1.), 5.)) * clamp(ndl, 0., 1.) * .25;
   vec3 hemi = mix(uGnd, uSky, N.y * .5 + .5);
-  float fr = pow(1. - nv, 3.);
+  float fr = pow(clamp(1. - nv, 0., 1.), 3.);
   vec3 c = alb * (uSunC * dif * sh + hemi * vO);
   c += alb * sss * vec3(1., .55, .4) * .25 * uSunC * (1. - dif) * vO;   // 젤리: 그늘 쪽에 속빛
   c += uSunC * spec * sh * vO;
@@ -65,7 +66,7 @@ void main(){
   c = mix(c, vec3(2.4), uFlash);
   float d = length(vW - uCam), f = 1. - exp(-max(d - uFogS, 0.) * uFogD);
   c = mix(c, uFog, clamp(f, 0., 1.));
-  o = vec4(c, uAlpha);
+  o = vec4(clamp(c, 0., 60.), uAlpha);
 }`;
 const FS_DEPTH = `#version 300 es
 precision mediump float; void main(){}`;
@@ -77,7 +78,7 @@ void main(){
   vec4 p = uIVP * vec4(vU * 2. - 1., 1., 1.); vec3 r = normalize(p.xyz / p.w - uCam);
   float y = clamp(r.y, -.2, 1.), t = pow(clamp(y, 0., 1.), .55);
   vec3 c = mix(uHor, uZen, t);
-  float s = max(dot(r, uSun), 0.);
+  float s = clamp(dot(r, uSun), 0., 1.);
   c += uSunC * (pow(s, 900.) * 40. + pow(s, 24.) * .35 + pow(s, 4.) * .08);
   o = vec4(c, 1.);
 }`;
@@ -91,7 +92,9 @@ void main(){ vec2 q = gl_PointCoord * 2. - 1.; float r = dot(q, q); if (r > 1.) 
 const FS_PRE = `#version 300 es
 precision highp float; in vec2 vU; uniform sampler2D uS; uniform vec2 uTx; out vec4 o;
 void main(){
-  vec3 c = (texture(uS, vU + uTx * vec2(-1,-1)).rgb + texture(uS, vU + uTx * vec2(1,-1)).rgb + texture(uS, vU + uTx * vec2(-1,1)).rgb + texture(uS, vU + uTx * vec2(1,1)).rgb) * .25;
+  vec3 c = vec3(0.);
+  for (int i = 0; i < 4; i++) { vec3 t = texture(uS, vU + uTx * vec2(i == 0 || i == 2 ? -1. : 1., i < 2 ? -1. : 1.)).rgb; c += (t.r + t.g + t.b < 1e4) ? min(t, vec3(60.)) : vec3(0.); }
+  c *= .25;
   float b = max(c.r, max(c.g, c.b)), k = clamp(b - 2., 0., 1.); k = k * k * .5;
   o = vec4(c * max(k, b - 2.5) / max(b, 1e-4), 1.);
 }`;
@@ -110,11 +113,14 @@ const FS_FIN = `#version 300 es
 precision highp float; in vec2 vU; uniform sampler2D uS, uB; uniform float uExpo, uBloom, uSat, uCon, uWarm, uVig; out vec4 o;
 vec3 aces(vec3 x){ return clamp((x * (2.51 * x + .03)) / (x * (2.43 * x + .59) + .14), 0., 1.); }
 void main(){
-  vec3 c = texture(uS, vU).rgb + texture(uB, vU).rgb * uBloom;
+  vec3 sc = texture(uS, vU).rgb, bl = texture(uB, vU).rgb;
+  if (!(sc.r + sc.g + sc.b < 1e4)) sc = vec3(0.);
+  if (!(bl.r + bl.g + bl.b < 1e4)) bl = vec3(0.);
+  vec3 c = sc + bl * uBloom;
   c = aces(c * uExpo);
   c *= vec3(1. + uWarm, 1., 1. - uWarm);
   float l = dot(c, vec3(.2126, .7152, .0722)); c = max(mix(vec3(l), c, uSat), 0.);
-  c = pow(c, vec3(1. / 2.2));
+  c = pow(clamp(c, 0., 1.), vec3(1. / 2.2));
   c = clamp((c - .5) * uCon + .5, 0., 1.);
   vec2 q = vU - .5; c *= 1. - uVig * smoothstep(.25, .85, length(q * vec2(1.1, .85)));
   c += (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - .5) / 255.;
@@ -129,6 +135,8 @@ export class Gfx {
   gl: WebGL2RenderingContext;
   w = 1; h = 1;
   hdr: boolean;
+  /** false면 블룸 단계를 건너뜀(?safe=1 — 폰 GPU 비교용) */
+  bloomOn = true;
   draws = 0;
   private lit: Prog; private dep: Prog; private sky: Prog; private pt: Prog; private pre: Prog; private down: Prog; private up: Prog; private fin: Prog;
   private shFb: WebGLFramebuffer; private shTex: WebGLTexture; private SH = 2048;
@@ -230,10 +238,25 @@ export class Gfx {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.msFb);
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, this.msCol);
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.msDep);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE && this.hdr) {
+      // 이 기기가 반정밀도 MSAA를 못 하면 8비트로 다시
+      this.hdr = false;
+      this.scene = undefined as unknown as RT;
+      return this.resize(w, h);
+    }
     this.scene = this.rt(w, h, this.scene);
     for (let i = 0; i < 5; i++) this.bl[i] = this.rt(Math.max(1, w >> (i + 1)), Math.max(1, h >> (i + 1)), this.bl[i]);
   }
 
+  /** 디버그(?nan=1): 장면 HDR 버퍼에서 유한하지 않은 값(NaN·Inf)과 64 넘는 값의 수 — 폰 GPU에서 검은 블록이 번지는 원인 찾기 */
+  scan(): { bad: number; big: number; n: number } {
+    const gl = this.gl, { w, h } = this.scene, px = new Float32Array(w * h * 4);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.scene.fb);
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.FLOAT, px);
+    let bad = 0, big = 0;
+    for (let i = 0; i < px.length; i += 4) for (let c = 0; c < 3; c++) { const v = px[i + c]; if (!Number.isFinite(v)) { bad++; break; } if (v > 64) { big++; break; } }
+    return { bad, big, n: w * h };
+  }
   /** 빛 알갱이: [x, y, z, r, g, b, 세기, 크기] × n */
   points(data: Float32Array, n: number) {
     const gl = this.gl;
@@ -324,11 +347,13 @@ export class Gfx {
       gl.uniform2f(p.u.uTx, 1 / src.w, 1 / src.h);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
-    pass(this.pre, this.scene, this.bl[0]);
-    for (let i = 1; i < 5; i++) pass(this.down, this.bl[i - 1], this.bl[i]);
-    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
-    for (let i = 4; i > 0; i--) pass(this.up, this.bl[i], this.bl[i - 1]);
-    gl.disable(gl.BLEND);
+    if (this.bloomOn) {
+      pass(this.pre, this.scene, this.bl[0]);
+      for (let i = 1; i < 5; i++) pass(this.down, this.bl[i - 1], this.bl[i]);
+      gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+      for (let i = 4; i > 0; i--) pass(this.up, this.bl[i], this.bl[i - 1]);
+      gl.disable(gl.BLEND);
+    }
     // 5) 마무리
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, this.w, this.h);
@@ -336,7 +361,7 @@ export class Gfx {
     gl.useProgram(f.p);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.scene.tex); gl.uniform1i(f.u.uS, 0);
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.bl[0].tex); gl.uniform1i(f.u.uB, 1);
-    gl.uniform1f(f.u.uExpo, L.expo); gl.uniform1f(f.u.uBloom, L.bloom); gl.uniform1f(f.u.uSat, L.sat); gl.uniform1f(f.u.uCon, L.con); gl.uniform1f(f.u.uWarm, L.warm); gl.uniform1f(f.u.uVig, L.vig);
+    gl.uniform1f(f.u.uExpo, L.expo); gl.uniform1f(f.u.uBloom, this.bloomOn ? L.bloom : 0); gl.uniform1f(f.u.uSat, L.sat); gl.uniform1f(f.u.uCon, L.con); gl.uniform1f(f.u.uWarm, L.warm); gl.uniform1f(f.u.uVig, L.vig);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.activeTexture(gl.TEXTURE0);
   }

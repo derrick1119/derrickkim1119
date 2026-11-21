@@ -139,8 +139,9 @@ function smooth(v: Float32Array, idx: number[]) {
     for (const o of [a, b, c]) (v[o + 3] += fx), (v[o + 4] += fy), (v[o + 5] += fz);
   }
   for (let o = 0; o < v.length; o += STRIDE) {
-    const l = Math.hypot(v[o + 3], v[o + 4], v[o + 5]) || 1;
-    (v[o + 3] /= l), (v[o + 4] /= l), (v[o + 5] /= l);
+    const l = Math.hypot(v[o + 3], v[o + 4], v[o + 5]);
+    if (l < 1e-9) (v[o + 3] = 0), (v[o + 4] = 1), (v[o + 5] = 0); // 넓이 0 삼각형(회전체 꼭지): 0 법선은 폰 GPU에서 NaN
+    else (v[o + 3] /= l), (v[o + 4] /= l), (v[o + 5] /= l);
   }
 }
 /** 회전체: 옆모습 [반지름, 높이] 점들을 Y축으로 돌린다 */

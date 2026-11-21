@@ -30,6 +30,8 @@ try {
   document.getElementById('nogl')!.hidden = false;
   throw new Error('WebGL2 없음');
 }
+if (Q.get('safe')) gfx.bloomOn = false;
+cv.addEventListener('webglcontextlost', (e) => (e.preventDefault(), location.reload()));
 const t0 = performance.now();
 // ── 굽기(로딩 때 한 번) ──
 const stage = buildStage();
@@ -385,7 +387,7 @@ function frame(now: number) {
     if (c.life > 1.1) { chs[i] = chs[chs.length - 1]; chs.pop(); continue; }
     c.vy -= 3 * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.z += c.vz * dt; c.rot += dt * 8;
     if (c.y < c.sz) (c.y = c.sz), (c.vy = Math.abs(c.vy) * 0.35), (c.vx *= 0.6), (c.vz *= 0.6);
-    const k = Math.min(1, (1.1 - c.life) * 4);
+    const k = Math.max(0.05, Math.min(1, (1.1 - c.life) * 4)); // 크기 0 행렬은 법선이 0 → 폰 GPU NaN
     list.push({ m: BALL, model: trs(c.x, c.y, c.z, c.rot, c.rot * 0.7, 0, c.sz * k, c.sz * k * 0.75, c.sz * k), tint: c.c, shadow: false });
   }
   const sc = g.score(s);
@@ -413,7 +415,10 @@ function frame(now: number) {
   jsMs.push(performance.now() - j0);
   if (jsMs.length > 600) jsMs.shift();
   if (FREEZE < 0 || frames < 3) requestAnimationFrame(frame);
-  else if (frames === 3) document.body.dataset.ready = '1';
+  else if (frames === 3) {
+    if (Q.get('nan')) (window as unknown as { __scan: unknown }).__scan = gfx.scan();
+    document.body.dataset.ready = '1';
+  }
 }
 
 // ── 2D 겹: 숫자·큰 띠·내 몸 체력 ──
