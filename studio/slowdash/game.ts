@@ -1659,7 +1659,7 @@ function ghostOf(im: HTMLCanvasElement, key: number, col: string) {
   x.fillStyle = col; // 바둑판 실루엣은 너무 시끄러웠음 → 바깥 테 한 칸만(🧪 r4 자체 점검)
   for (let j = -1; j <= H; j++) for (let i = -1; i <= W; i++) { // 👁 r4: 1칸 테가 국수·낙서처럼 보였다 → 👁 r6: 테만으론 여전히 낙서 → 속은 짙은 청록 그림자, 바깥 한 칸 밝은 테
     const n = a(i - 1, j) || a(i + 1, j) || a(i, j - 1) || a(i, j + 1);
-    if (a(i, j)) { if (col !== '#ffffff') (x.fillStyle = '#1f5c63'), x.fillRect(i + 1, j + 1, 1, 1); } // 흰 깜빡임은 테만
+    if (a(i, j)) { if (col !== '#ffffff' && (i + j) % 2 === 0) (x.fillStyle = '#1f5c63'), x.fillRect(i + 1, j + 1, 1, 1); } // 흰 깜빡임은 테만 · 👁 r7: 꽉 채움은 벨 적을 가림 → 반 칸 바둑판
     else if (n) (x.fillStyle = col), x.fillRect(i + 1, j + 1, 1, 1);
   }
   GHOST.set(key, g);
@@ -2423,7 +2423,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       // 👁 r5: 1px 베이지 점선이 갈색 적 무리 위에서 안 보였다 → 굵은 청록 도트 점선(검은 테)
       for (let i = 1; i < pts.length; i++) {
         const a0 = pts[i - 1], a1 = pts[i];
-        pxLine(ctx, X(a0.x), Y(a0.y) - R(0.04), X(a1.x), Y(a1.y) - R(0.04), 1, '#ffffff', [2, 2], Math.floor(t / 4)); // 🧪 F4: 굵은 민트 띠가 '!'·얼굴을 덮었다 → 한 칸 흰 점선(내 선 청록과도 구별)
+        pxLine(ctx, X(a0.x), Y(a0.y) - R(0.04), X(a1.x), Y(a1.y) - R(0.04), 4, OUT, [2, 3], Math.floor(t / 4)); // 🧪 F4: 굵은 민트 띠가 '!'·얼굴을 덮었다 · 👁 r7: 한 칸 흰 점선은 안 보였다 → 2칸 흰 점 + 검은 테, 틈을 넓게(덮는 면적 줄임)
+        pxLine(ctx, X(a0.x), Y(a0.y) - R(0.04), X(a1.x), Y(a1.y) - R(0.04), 2, '#ffffff', [2, 3], Math.floor(t / 4));
       }
       if (u <= 1) { // 손가락 점이 길을 따라 간다
         const L = [Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y), Math.hypot(pts[2].x - pts[1].x, pts[2].y - pts[1].y)], d = u * (L[0] + L[1]);
