@@ -75,14 +75,14 @@ export const STAGES: StageDef[] = [
   { key: 'hedge', ch: 0, name: '가시 고슴도치', news: '타면 데굴데굴 줄지어 꿰뚫어요', n: 7, waves: [W(0, 0, ['hedge', 2], ['bear', 1], ['bean', 13]), W(8, 300, ['hedge', 1], ['bear', 1], ['bean', 7]), W(8, 360, ['hedge', 2], ['bean', 7])] },
   { key: 'frog', ch: 0, name: '긴 혀 개구리', news: '타면 쭈욱! 멀리 있는 적을 끌어모아요', n: 11, waves: [W(0, 0, ['frog', 2], ['bear', 1], ['hedge', 1], ['bean', 13]), W(8, 300, ['frog', 1], ['bear', 1], ['bean', 8]), W(8, 360, ['frog', 1], ['hedge', 1], ['bean', 8])] },
   { key: 'boar', ch: 0, name: '대장 멧돼지', news: '왕관 보호막을 깨면 탈 수 있어요', n: 12, shield: 140, summon: [['bear', 1], ['bean', 6]], swarm: [['hedge', 2], ['bear', 1], ['bean', 15]], waves: [W(0, 0, ['boar', 1], ['bear', 1], ['frog', 1], ['hedge', 1], ['bean', 11])] },
-  { key: 'mole', ch: 1, name: '폭탄 두더지', news: '타자마자 대폭발! 유령은 튀어나와요', n: 10, waves: [W(0, 0, ['mole', 2], ['bear', 1], ['hedge', 1], ['bean', 14]), W(9, 300, ['mole', 2], ['frog', 1], ['bean', 7]), W(9, 360, ['mole', 1], ['bear', 1], ['bean', 7])] },
+  { key: 'mole', ch: 1, name: '폭탄 두더지', news: '타자마자 대폭발! 유령은 튀어나와요', n: 9, waves: [W(0, 0, ['mole', 2], ['bear', 1], ['hedge', 1], ['bean', 14]), W(9, 300, ['mole', 2], ['frog', 1], ['bean', 7]), W(9, 360, ['mole', 1], ['bear', 1], ['bean', 7])] },
   { key: 'goat', ch: 1, name: '박치기 염소', news: '타면 돌진! 밀려난 적이 도미노처럼', n: 10, waves: [W(0, 0, ['goat', 2], ['mole', 1], ['bear', 1], ['bean', 14]), W(9, 300, ['goat', 1], ['frog', 1], ['bean', 8]), W(9, 360, ['goat', 1], ['mole', 1], ['hedge', 1], ['bean', 7])] },
-  { key: 'turtle', ch: 1, name: '방패 거북', news: '튼튼해요. 타면 빙글 돌며 적을 끌어모아요', n: 11, waves: [W(0, 0, ['turtle', 1], ['goat', 1], ['mole', 2], ['bean', 14]), W(9, 300, ['turtle', 1], ['hedge', 1], ['bean', 8]), W(9, 360, ['bear', 1], ['goat', 1], ['mole', 1], ['bean', 7])] },
+  { key: 'turtle', ch: 1, name: '방패 거북', news: '튼튼해요. 타면 빙글 돌며 적을 끌어모아요', n: 10, waves: [W(0, 0, ['turtle', 1], ['goat', 1], ['mole', 2], ['bean', 14]), W(9, 300, ['turtle', 1], ['hedge', 1], ['bean', 8]), W(9, 360, ['bear', 1], ['goat', 1], ['mole', 1], ['bean', 7])] },
   { key: 'crab', ch: 1, name: '대장 집게', news: '두 집게로 쿵쿵. 보호막을 깨고 타요', n: 13, shield: 200, summon: [['mole', 1], ['goat', 1], ['bean', 6]], swarm: [['turtle', 1], ['mole', 2], ['goat', 1], ['bean', 14]], waves: [W(0, 0, ['crab', 1], ['turtle', 1], ['goat', 1], ['mole', 1], ['bean', 11])] },
-  { key: 'cloud', ch: 2, name: '번개 구름', news: '타면 번개가 적에서 적으로 줄줄이', n: 11, waves: [W(0, 0, ['cloud', 2], ['goat', 1], ['turtle', 1], ['bean', 14]), W(9, 300, ['cloud', 1], ['mole', 1], ['bear', 1], ['bean', 8]), W(9, 360, ['cloud', 1], ['frog', 1], ['bean', 8])] },
+  { key: 'cloud', ch: 2, name: '번개 구름', news: '타면 번개가 적에서 적으로 줄줄이', n: 10, waves: [W(0, 0, ['cloud', 2], ['goat', 1], ['turtle', 1], ['bean', 14]), W(9, 300, ['cloud', 1], ['mole', 1], ['bear', 1], ['bean', 8]), W(9, 360, ['cloud', 1], ['frog', 1], ['bean', 8])] },
   { key: 'shroom', ch: 2, name: '포자 버섯', news: '포자 묻은 적은 터질 때 옆도 터뜨려요', n: 12, waves: [W(0, 0, ['shroom', 2], ['cloud', 1], ['goat', 1], ['bean', 14]), W(9, 300, ['shroom', 1], ['frog', 1], ['mole', 1], ['bean', 8]), W(9, 360, ['shroom', 1], ['bear', 1], ['bean', 8])] },
   { key: 'tanuki', ch: 2, name: '분신 너구리', news: '분신 둘이 생겨 펑이 세 번 터져요', n: 14, waves: [W(0, 0, ['tanuki', 2], ['shroom', 1], ['cloud', 1], ['bean', 14]), W(9, 300, ['tanuki', 1], ['turtle', 1], ['mole', 1], ['bean', 8]), W(9, 360, ['tanuki', 1], ['goat', 1], ['bean', 8])] },
-  { key: 'dragon', ch: 2, name: '대장 천둥 용', news: '마지막 대장. 타면 온 마당에 벼락', n: 14, shield: 270, summon: [['cloud', 1], ['tanuki', 1], ['bean', 6]], swarm: [['shroom', 1], ['tanuki', 1], ['goat', 2], ['bean', 14]], waves: [W(0, 0, ['dragon', 1], ['tanuki', 1], ['shroom', 1], ['cloud', 1], ['bean', 11])] },
+  { key: 'dragon', ch: 2, name: '대장 천둥 용', news: '마지막 대장. 타면 온 마당에 벼락', n: 15, shield: 270, summon: [['cloud', 1], ['tanuki', 1], ['bean', 6]], swarm: [['shroom', 1], ['tanuki', 1], ['goat', 2], ['bean', 14]], waves: [W(0, 0, ['dragon', 1], ['tanuki', 1], ['shroom', 1], ['cloud', 1], ['bean', 11])] },
 ];
 export const STAGE_COUNT = STAGES.length;
 /** 장 끝 둘 중 하나(마당의 큰 물건) */
@@ -133,6 +133,8 @@ export interface HopState {
   best: number; kos: number; kills: number; gain: number;
   wave: number; waveT: number; summonT: number; swarmed: boolean; rode: boolean; clearT: number;
   decoys: Decoy[]; q: Q[]; corpses: Corpse[]; events: Ev[]; lines: Line[];
+  /** 멈칫: 큰 순간에 세상이 몇 틱 멈춘다(손맛) */
+  freeze: number;
   down: boolean; wowN: number; firstTap: number; firstBig: number; denyT: number; readyT: number;
   seen: Set<string>;
   banner: { head: string; sub: string; t: number } | null; spot: { id: number; t: number; label: string } | null;
@@ -160,6 +162,7 @@ function wow(s: HopState, text: string, n = 0) {
   s.wowN++;
   if (s.firstBig < 0 && s.firstTap >= 0) s.firstBig = s.t;
   s.big = { text, t: s.t, n };
+  s.freeze = Math.max(s.freeze, 4);
   see(s, 'wow');
 }
 function keepIn(m: { x: number; y: number; r: number }) {
@@ -1038,7 +1041,7 @@ const game: GameDef<HopState> & { wows(s: HopState): number } = {
       lv: 1, perk: [0, 0], picked: -1, dex: [], newDex: [], mons: [], nid: 0, me: 0, gx: HOME_X, gy: HOME_Y, home: true, fly: null,
       charge: 1, dizzy: 0, out: 0, hopped: false, hops: 0, inT: 0, hop: { id: 0, t: -999, n: 0 }, best: 0, kos: 0, kills: 0, gain: 0,
       wave: 0, waveT: 0, summonT: 0, swarmed: false, rode: false, clearT: 0, decoys: [], q: [], corpses: [], events: [], lines: [],
-      down: false, wowN: 0, firstTap: -1, firstBig: -1, denyT: -99, readyT: -99, seen: new Set<string>(), banner: null, spot: null, big: null,
+      freeze: 0, down: false, wowN: 0, firstTap: -1, firstBig: -1, denyT: -99, readyT: -99, seen: new Set<string>(), banner: null, spot: null, big: null,
     } as HopState;
     newStage(s);
     return s;
@@ -1051,7 +1054,8 @@ const game: GameDef<HopState> & { wows(s: HopState): number } = {
     s.pt++;
     if (s.phase === 'play') {
       if (tap && p) onTap(s, p.x, p.y * A);
-      playStep(s);
+      if (s.freeze > 0) s.freeze--;
+      else playStep(s);
     } else if (s.phase === 'result') {
       if ((tap && s.pt >= RES_MIN) || s.pt >= RES_AUTO) advance(s);
     } else if (s.phase === 'pick') {
@@ -2580,7 +2584,8 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
   const sc = typeof ctx.getTransform === 'function' ? Math.min(3, Math.max(1, Math.round(ctx.getTransform().a || 1))) : 1;
   const d = STAGES[s.stage], ch = d.ch, P = PALS[ch], b = body(s), seenT = fx.memo.t ?? -1;
   const font = (sz: number, wgt = 800) => (ctx.font = `${wgt} ${Math.max(12, R(sz))}px system-ui, sans-serif`);
-  const baseQ = (k: K) => Math.round(R(KD[k].r) * 1.12 * sc);
+  // 스티커 해상도는 2배까지만(느린 폰에서 첫 프레임이 무겁지 않게)
+  const baseQ = (k: K) => Math.round(R(KD[k].r) * 1.12 * Math.min(2, sc));
   const text = (str: string, x: number, y: number, fill: string, stroke = 'rgba(75,48,32,.9)', lw = 3) => {
     ctx.lineJoin = 'round';
     if (lw > 0) (ctx.lineWidth = lw), (ctx.strokeStyle = stroke), ctx.strokeText(str, x, y);
@@ -2934,8 +2939,8 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
     if (spotM === m) {
       const ly = top - R(0.05) - Math.abs(Math.sin(t * 0.15)) * R(0.012);
       font(0.036, 900);
-      const tw = ctx.measureText(s.spot!.label).width + R(0.04);
-      rr(ctx, x - tw / 2, ly - R(0.027), tw, R(0.054), R(0.027));
+      const tw = ctx.measureText(s.spot!.label).width + R(0.04), lx = clamp(x, tw / 2 + 4, w - tw / 2 - 4);
+      rr(ctx, lx - tw / 2, ly - R(0.027), tw, R(0.054), R(0.027));
       ctx.fillStyle = '#ff5a4e';
       ctx.fill();
       ctx.strokeStyle = '#ffffff';
@@ -2947,7 +2952,7 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
       ctx.lineTo(x + R(0.014), ly + R(0.026));
       ctx.fillStyle = '#ff5a4e';
       ctx.fill();
-      text(s.spot!.label, x, ly + 0.5, '#ffffff', '', 0);
+      text(s.spot!.label, lx, ly + 0.5, '#ffffff', '', 0);
     }
   };
   for (const q of s.decoys) {
@@ -3283,11 +3288,11 @@ function drawAll(ctx: C2, s: HopState, w: number, h: number, _th: Theme) {
   if (s.big && (fx.memo.bigT ?? -1) !== s.big.t && s.big.t > seenT) (fx.memo.bigT = s.big.t), fx.sound('chime', 1 + Math.min(8, s.big.n) * 0.04, 1), fx.blink('#fff6c8', 0.22), fx.kick(7);
   fx.memo.t = t;
   ctx.restore();
-  drawHud(ctx, s, w, h, popN);
+  drawHud(ctx, s, w, h);
 }
 
 /** 위·아래 띠와 띠 위에 뜨는 것(시작 띠 · 큰 순간 · 결과 · 둘 중 하나 · 끝) */
-function drawHud(ctx: C2, s: HopState, w: number, h: number, popN: number) {
+function drawHud(ctx: C2, s: HopState, w: number, h: number) {
   const fx = juice(s), X = (x: number) => x * w, Y = (y: number) => y * w, R = (r: number) => r * w, t = s.t;
   const sc = typeof ctx.getTransform === 'function' ? Math.min(3, Math.max(1, Math.round(ctx.getTransform().a || 1))) : 1;
   const d = STAGES[s.stage], b = body(s);
@@ -3528,14 +3533,14 @@ function drawHud(ctx: C2, s: HopState, w: number, h: number, popN: number) {
     // 도감 (타 본 몸) — 다음 판에 나올 새 몸은 점선 동그라미
     const nx: StageDef | undefined = STAGES[s.stage + 1];
     font(0.034, 800);
-    text(`도감 ${s.dex.length}/${DEX.length}`, X(0.1), cy0 + R(0.405), MUTED);
+    text(`도감 ${s.dex.length}/${DEX.length}`, X(0.1), cy0 + R(0.402), MUTED);
     if (s.newDex.length) {
       ctx.textAlign = 'right';
-      text(`새 몸! ${s.newDex.map((k) => KD[k].name).slice(-2).join(' · ')}`, X(0.9), cy0 + R(0.405), '#d9480f');
+      text(`새 몸! ${s.newDex.map((k) => KD[k].name).slice(-2).join(' · ')}`, X(0.9), cy0 + R(0.402), '#d9480f');
     }
     ctx.textAlign = 'center';
     DEX.forEach((k, i) => {
-      const has = s.dex.includes(k), isNew = s.newDex.includes(k), u = R(KD[k].boss ? 0.017 : 0.021), px = X(0.115 + i * 0.0645), py = cy0 + R(0.485) - (isNew ? Math.abs(Math.sin(t * 0.18 + i)) * R(0.012) : 0);
+      const has = s.dex.includes(k), isNew = s.newDex.includes(k), u = R(KD[k].boss ? 0.017 : 0.021), px = X(0.115 + i * 0.0645), py = cy0 + R(0.498) - (isNew ? Math.abs(Math.sin(t * 0.18 + i)) * R(0.01) : 0);
       if (isNew) {
         ell(ctx, px, py - u, u * 1.7, u * 1.7);
         ctx.fillStyle = '#ffe9a0';
@@ -3556,7 +3561,7 @@ function drawHud(ctx: C2, s: HopState, w: number, h: number, popN: number) {
       }
       ctx.save();
       ctx.translate(px, py);
-      stamp(ctx, has ? sprite(k, M_HAPPY, 0, Math.round(R(KD[k].r) * 1.12 * sc)) : silhouette(k, Math.round(R(0.03) * sc)), u);
+      stamp(ctx, has ? sprite(k, M_HAPPY, 0, Math.round(R(KD[k].r) * 1.12 * Math.min(2, sc))) : silhouette(k, Math.round(R(0.03) * Math.min(2, sc))), u);
       ctx.restore();
       if (next) (font(0.04, 900), text('?', px, py - u, '#ff8a3d', '#ffffff', 3));
     });
@@ -3633,7 +3638,6 @@ function drawHud(ctx: C2, s: HopState, w: number, h: number, popN: number) {
     ctx.globalAlpha = 1;
   }
   ctx.textAlign = 'center';
-  void popN;
 }
 /** 스크린샷·모음 그림용 (게임에서는 쓰지 않는다) */
 export const __art = { sprite, stamp, drawGhost, drawPerk, silhouette };

@@ -11,7 +11,7 @@
  *     그래서 '모일 때까지 기다렸다 한입에'가 가장 세고, 연타는 한입이 작다. 언제 눌러도 훔쳐지긴 한다(좁은 타이밍 창 없음 — 늦어서 손해 보는 때가 없다).
  *     빈 입(0발)은 배가 안 차서, 빈자리로 비키는 톡은 공짜다.
  * 정답 없음: 어디를 톡 해도 근처 총알은 훔쳐지고 적은 맞는다. 잘하면 한입이 커져 더 빨리·더 크게 터진다.
- * 넉넉함: 적 몸 위를 톡 하면 통 튕겨 몸 밖에 선다(다치지 않는다). 마녀가 코앞이면 적이 깜짝 놀라 2초쯤 못 쏜다.
+ * 넉넉함: 적 몸 위를 톡 하면 통 튕겨 몸 밖에 선다(다치지 않는다). 꿀꺽 하면 둘레의 적이 깜짝 놀라 2초 못 쏜다(뛰어든 곳이 가장 안전하다 — 모자 입이 다시 커질 시간).
  * 하트 3(판마다 새로): 맞으면 -1(잠깐 무적), 다 잃으면 그 판만 바로 다시(같은 판에서 거듭 지면 하트 +1씩, 6까지 · 대장의 깨진 갑옷은 그대로).
  *   판 시작 10초는 방울이 지켜 준다(1판은 끝까지 — 1판에서는 잃을 것이 없다). 끝 = 15판을 다 지나면.
  * 판 15(장 3 × (새 적 4 + 대장)): 판마다 새 적 = 새 탄막.
@@ -43,7 +43,7 @@ const GRACE = 600, INV = 90;
 const R0 = 0.26, R_LVL = 0.004, CHAIN_R = 0.13, ORB_R = 0.105;
 /** 배고픈 모자: 한입 뒤엔 입이 R_MIN배로 작아졌다가 쉼(CD) 뒤 RECH틱에 걸쳐 다시 다 커진다 — 연타는 한입이 작다 */
 const R_MIN = 0.55, RECH = 96;
-const ENTER = 40, WIND = 22;
+const ENTER = 40, WIND = 22, STUN = 120;
 const RESULT_MIN = 90, RESULT_AUTO = 360, FAIL_T = 85, CHOICE_MIN = 45, PICK_T = 80, END_T = 420;
 const STAR_PTS = 150, CLEAR_PTS = 200, WIN_PTS = 1000;
 
@@ -70,7 +70,7 @@ const FOE: Record<FK, FoeDef> = {
   whale: { name: '풍선 고래 선장', r: 0.19, hp: 2600, pts: 500, every: 70, boss: 1 },
   urchin: { name: '가시 성게', r: 0.048, hp: 56, pts: 30, every: 116 },
   snail: { name: '고리 달팽이', r: 0.048, hp: 50, pts: 30, every: 420 },
-  fish: { name: '별똥 물고기', r: 0.034, hp: 12, pts: 8, every: 120 },
+  fish: { name: '별똥 물고기', r: 0.034, hp: 12, pts: 8, every: 140 },
   pie: { name: '금화 까치', r: 0.046, hp: 56, pts: 40, every: 130 },
   owl: { name: '부엉이 대왕', r: 0.19, hp: 3000, pts: 800, every: 76, boss: 1 },
 };
@@ -127,16 +127,16 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'crab', news: '비눗방울 게 — 큰 방울을 훔치면 옆 탄까지 펑', hint: '큰 방울이 탄 옆에 있을 때 훔치면 줄줄이!', starN: 50,
+    key: 'crab', news: '비눗방울 게 — 큰 방울을 훔치면 옆 탄도 펑', hint: '큰 방울이 탄 옆에 있을 때 훔치면 줄줄이!', starN: 58,
     waves: [
       [...row('crab', 4, 0.3, 0.16, 0.84), ...row('cloud', 4, 0.6, 0.2, 0.8)],
       [...loop('crab', 5, 0.5, 0.46, 0.25), ...row('octo', 4, 0.72, 0.16, 0.84, -0.06)],
       [...row('crab', 4, 0.5, 0.18, 0.82), ...row('bird', 3, 0.28, 0.25, 0.75), ...row('cloud', 4, 0.72, 0.14, 0.86)],
     ],
   },
-  { key: 'king', news: '천둥 구름 대왕 — 크게 한입 하면 갑옷이 와장창', hint: '대왕의 탄을 잔뜩 모았다가 한입에!', starN: 40, waves: [[['king', 0.5, 0.42]]] },
+  { key: 'king', news: '천둥 구름 대왕 — 큰 한입에 갑옷이 와장창', hint: '대왕의 탄을 잔뜩 모았다가 한입에!', starN: 40, waves: [[['king', 0.5, 0.42]]] },
   {
-    key: 'puff', news: '민들레 — 홀씨가 떠서 밭이 돼요', hint: '홀씨 밭이 넓어지면 한가운데로!', starN: 42,
+    key: 'puff', news: '민들레 — 홀씨가 떠서 밭이 돼요', hint: '홀씨 밭이 넓어지면 한가운데로!', starN: 46,
     waves: [
       [...row('puff', 5, 0.27, 0.14, 0.86, 0.06), ...row('cloud', 3, 0.66, 0.25, 0.75)],
       [...row('puff', 4, 0.26, 0.18, 0.82), ...col('octo', 2, 0.1, 0.46, 0.7), ...col('octo', 2, 0.9, 0.46, 0.7), ['octo', 0.5, 0.54]],
@@ -144,7 +144,7 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'bat', news: '거울 박쥐 — 튕겨 온 탄을 또 훔쳐요', hint: '거울이 튕긴 조각은 두 발 몫 — 또 한입!', starN: 60,
+    key: 'bat', news: '거울 박쥐 — 튕겨 온 탄을 또 훔쳐요', hint: '거울이 튕긴 조각은 두 발 몫 — 또 한입!', starN: 64,
     waves: [
       [...row('bat', 4, 0.52, 0.2, 0.8), ...row('cloud', 5, 0.27, 0.12, 0.88)],
       [...loop('bat', 5, 0.5, 0.54, 0.24), ...row('puff', 4, 0.25, 0.18, 0.82)],
@@ -152,7 +152,7 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'jelly', news: '커튼 해파리 — 구슬 줄이 겹겹이', hint: '구슬 줄이 두세 겹 쌓이면 한입에!', starN: 48,
+    key: 'jelly', news: '커튼 해파리 — 구슬 줄이 겹겹이', hint: '구슬 줄이 두세 겹 쌓이면 한입에!', starN: 60,
     waves: [
       [...row('jelly', 4, 0.26, 0.16, 0.84, 0.06), ...row('octo', 3, 0.6, 0.25, 0.75)],
       [...row('jelly', 4, 0.25, 0.16, 0.84), ...loop('bat', 4, 0.5, 0.6, 0.2, 0)],
@@ -160,7 +160,7 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'corn', news: '팝콘 옥수수 — 알이 터지면 여섯 배', hint: '알이 펑 터진 다음에 훔쳐요!', starN: 48,
+    key: 'corn', news: '팝콘 옥수수 — 알이 터지면 여섯 배', hint: '알이 펑 터진 다음에 훔쳐요!', starN: 52,
     waves: [
       [...row('corn', 4, 0.36, 0.16, 0.84), ...row('jelly', 3, 0.22, 0.2, 0.8)],
       [...loop('corn', 5, 0.5, 0.46, 0.25), ...row('crab', 4, 0.72, 0.18, 0.82)],
@@ -169,7 +169,7 @@ export const STAGES: StageDef[] = [
   },
   { key: 'whale', news: '풍선 고래 선장 — 노래가 하늘을 덮어요', hint: '하늘이 가득 찼을 때 한입에!', starN: 46, waves: [[['whale', 0.5, 0.42]]] },
   {
-    key: 'urchin', news: '가시 성게 — 빨간 가시는 못 훔쳐요, 비켜요', hint: '빨간 가시가 오면 다른 데를 톡!', starN: 46,
+    key: 'urchin', news: '가시 성게 — 빨간 가시는 못 훔쳐요, 비켜요', hint: '빨간 가시가 오면 다른 데를 톡!', starN: 50,
     waves: [
       [...row('urchin', 3, 0.3, 0.2, 0.8), ...row('cloud', 5, 0.6, 0.14, 0.86)],
       [...loop('urchin', 4, 0.5, 0.48, 0.26, Math.PI / 4), ...row('octo', 5, 0.24, 0.12, 0.88)],
@@ -200,7 +200,7 @@ export const STAGES: StageDef[] = [
       [...row('pie', 4, 0.3, 0.14, 0.86, 0.06), ...loop('urchin', 3, 0.5, 0.62, 0.16), ...row('snail', 2, 0.24, 0.3, 0.7)],
     ],
   },
-  { key: 'owl', news: '부엉이 대왕 — 별밤이 온통 탄막', hint: '빨간 가시만 비키고, 나머지는 한입에!', starN: 54, waves: [[['owl', 0.5, 0.42]]] },
+  { key: 'owl', news: '부엉이 대왕 — 별밤이 온통 탄막', hint: '빨간 가시만 비키고, 나머지는 한입에!', starN: 50, waves: [[['owl', 0.5, 0.42]]] },
 ];
 export const STAGE_COUNT = STAGES.length;
 /** 장 끝 선물: [왼쪽, 오른쪽] */
@@ -213,7 +213,7 @@ interface Foe {
   id: number; k: FK; x: number; y: number; sx: number; sy: number; ex: number; ey: number; hp: number; max: number;
   st: number; tm: number; cool: number; ph: number; n: number; a: number; burst: number; mir: number; phase: number; plan: number; dead: boolean; grp: number;
   // 연출
-  hurtT: number; wind: number; seed: number; shy: number; shyN: number;
+  hurtT: number; wind: number; seed: number; shy: number;
 }
 /** m: 0 곧게 · 1 느려지다 둥실(홀씨·금화) · 2 알(느려지다 펑) · 3 고리(주인 둘레를 돈다) · 4 흔들흔들(방울) */
 interface Bul { k: number; x: number; y: number; vx: number; vy: number; r: number; life: number; age: number; val: number; m: number; own: number; a: number; tk: number }
@@ -288,7 +288,7 @@ function fire(s: StealState, f: Foe) {
   f.n++;
   switch (f.k) {
     case 'cloud': ring(s, PETAL, f.x, f.y, 8, (f.n % 2) * (Math.PI / 8) + f.ph, 0.0013, 320); break;
-    case 'octo': fan(s, INK, f.x, f.y + 0.03, aim, 5, 0.13, s.stage < 5 ? 0.0018 : 0.0021, 800); break;
+    case 'octo': fan(s, INK, f.x, f.y + 0.03, aim, 5, 0.13, s.stage < 5 ? 0.0017 : 0.0021, 800); break;
     case 'bird': f.burst = 12; break;
     case 'crab': {
       // 큰 방울 하나(두 발 몫 · 훔치면 터지며 옆 탄까지) + 잔거품 셋
@@ -312,7 +312,7 @@ function fire(s: StealState, f: Foe) {
       // 고리를 바깥으로 흩뿌린다(다시 자란다)
       for (const b of s.buls) if (b.m === 3 && b.own === f.id) (b.m = 0), (b.own = 0), (b.vx = Math.cos(b.a) * 0.0016), (b.vy = Math.sin(b.a) * 0.0016), (b.life = b.age + 600);
       break;
-    case 'fish': shoot(s, STAR, f.x, f.y, Math.cos(aim) * 0.0019, Math.sin(aim) * 0.0019, 800); break;
+    case 'fish': shoot(s, STAR, f.x, f.y, Math.cos(aim) * 0.0017, Math.sin(aim) * 0.0017, 900); break;
     case 'pie':
       toss(s, COIN, f.x, f.y, 4, 3);
       f.sx = 0.15 + s.rng() * 0.7;
@@ -320,11 +320,11 @@ function fire(s: StealState, f: Foe) {
       break;
     case 'king':
       ring(s, DROP, f.x, f.y, 14, (f.n % 2) * (Math.PI / 14), 0.0013, 800);
-      if (f.n % 2 === 0) for (const sd of [-1, 1]) fan(s, INK, f.x + sd * 0.14, f.y + 0.04, Math.atan2(ay - f.y, ax - (f.x + sd * 0.14)), f.phase >= 2 ? 4 : 3, 0.14, 0.0018, 800);
+      if (f.n % 2 === 0) for (const sd of [-1, 1]) fan(s, INK, f.x + sd * 0.14, f.y + 0.04, Math.atan2(ay - f.y, ax - (f.x + sd * 0.14)), f.phase >= 2 ? 4 : 3, 0.14, 0.0015, 900);
       break;
     case 'whale':
       for (let j = 0; j < 9; j++) shoot(s, BEAD, 0.1 + j * 0.1 + (f.n % 2) * 0.05 - 0.025, f.y + 0.1, 0, 0.0016, 900);
-      fan(s, NOTE, f.x, f.y + 0.08, aim, 3, 0.2, 0.002, 800);
+      fan(s, NOTE, f.x, f.y + 0.08, aim, 3, 0.2, 0.0017, 900);
       if (f.n % 2 === 0) toss(s, SEED, f.x, f.y + 0.05, 5 + f.phase, 1);
       if (f.phase >= 1 && f.n % 2 === 1) kernels(s, f.x, f.y + 0.05, 1 + f.phase);
       break;
@@ -350,7 +350,7 @@ function spawnWave(s: StealState) {
     const f: Foe = {
       id: ++s.nid, k, x: first ? x : ex, y: first ? y : ey, sx: x, sy: y, ex, ey, hp, max, st: first ? 1 : 0, tm: 0,
       cool: first ? 34 + s.foes.length * 26 : (boss ? 50 : 24) + Math.floor(s.rng() * 50), ph: s.rng() * TAU, n: 0, a: s.rng() * TAU, burst: 0,
-      mir: k === 'bat' ? 5 : 0, phase: boss ? s.keepPh : 0, plan: 0, dead: false, grp: s.wave * 2.1 + y0 * 7 + (x0 - 0.5) * 1.5, hurtT: 0, wind: 0, seed: Math.floor(s.rng() * 1e6), shy: -999, shyN: 0,
+      mir: k === 'bat' ? 5 : 0, phase: boss ? s.keepPh : 0, plan: 0, dead: false, grp: s.wave * 2.1 + y0 * 7 + (x0 - 0.5) * 1.5, hurtT: 0, wind: 0, seed: Math.floor(s.rng() * 1e6), shy: -999,
     };
     s.foes.push(f);
     // 첫 화면: 꽃이 이미 세 겹으로 피어 있다(세상이 먼저 움직이고 있다)
@@ -451,6 +451,12 @@ function steal(s: StealState) {
     if (vis.length < 144) vis.push(b.x - x, b.y - y, b.k);
   }
   B.length = w;
+  // 꿀꺽! 둘레의 적들이 깜짝 놀라 2초쯤 못 쏜다(뛰어든 곳에서 코앞의 탄에 맞는 억울함 없이 — 모자 입이 다시 커질 시간). 대장은 안 놀란다
+  for (const f of s.foes) {
+    if (FOE[f.k].boss || f.st !== 1) continue;
+    const dx = f.x - x, dy = f.y - y;
+    if (dx * dx + dy * dy < R2 && f.cool < STUN) (f.cool = STUN + (f.id % 5) * 4), (f.shy = s.t), (f.burst = f.k === 'bird' ? 0 : f.burst);
+  }
   const mult = multOf(n);
   if (cnt > 0) s.hung = 0; // 빈 입은 배가 안 찬다(빈자리로 비키기는 공짜)
   s.gulp = { x, y, t: s.t, n, cnt, mult, r: R, vis, links, reds };
@@ -485,7 +491,8 @@ const nearestFoe = (s: StealState, x: number, y: number, not: Foe | null = null)
 /** 0.3초 뒤 저절로: 훔친 탄이 전부 유도 별이 되어 가까운 적부터 되날아간다 */
 function release(s: StealState, n: number, mult: number, echo: boolean) {
   if (n <= 0) return;
-  const K = Math.max(1, Math.min(n, SHOT_MAX, 40 - s.shots.length)), dmg = (n * mult * hatPow(s)) / K;
+  // 화면의 별은 SHOT_MAX개까지(느린 폰) — 많이 훔치면 별 하나하나가 크고 세진다
+  const K = Math.max(1, Math.min(n, SHOT_MAX - s.shots.length)), dmg = (n * mult * hatPow(s)) / K;
   if (!echo) (s.relId++, (s.relKills = 0), (s.relT = s.t), (s.relN = n));
   const hx = s.wx, hy = s.wy - 0.07;
   const list = s.foes.filter((f) => !f.dead && f.y > 0.02).sort((a, b) => (a.x - hx) ** 2 + (a.y - hy) ** 2 - ((b.x - hx) ** 2 + (b.y - hy) ** 2));
@@ -553,7 +560,7 @@ function hitFoe(s: StealState, f: Foe, sh: Shot) {
   } else if (s.perk[0] === 0) {
     // 갈래 별: 둘로 갈라져 다른 적에게
     for (const sd of [-1, 1]) {
-      if (s.shots.length >= 44) break;
+      if (s.shots.length >= SHOT_MAX) break;
       const o = nearestFoe(s, f.x + sd * 0.2, f.y, f) ?? (f.dead ? null : f);
       if (!o) break;
       s.shots.push({ x: f.x, y: f.y, vx: sd * 0.012, vy: -0.008, f: o, dmg: sh.dmg * 0.4, mult: sh.mult, age: 4, child: true, rel: sh.rel, sz: sh.sz * 0.7, hue: sh.hue + 3 });
@@ -643,7 +650,7 @@ function foesStep(s: StealState) {
       f.burst--;
     } else if (f.k === 'snail') {
       f.a += 0.03;
-      if ((t + f.id * 7) % 34 === 0 && !full) {
+      if ((t + f.id * 7) % 34 === 0 && !full && t - f.shy > STUN) {
         let c = 0;
         for (const b of s.buls) if (b.m === 3 && b.own === f.id) c++;
         if (c < 8) shoot(s, PEBBLE, f.x, f.y, 0, 0, 1e9, 3, 1, f.id, f.a + (f.burst++ % 8) * (TAU / 8));
@@ -654,11 +661,8 @@ function foesStep(s: StealState) {
       shoot(s, COMET, f.x, f.y, Math.cos(f.a) * 0.0018, Math.sin(f.a) * 0.0018, 700);
     }
     if (--f.cool <= 0) {
-      // 마녀가 코앞이면 깜짝 놀라 잠깐(세 번, 약 2초) 못 쏜다 — 코앞에서 갑자기 쏘는 탄에 맞는 억울함 없이. 대장은 예외
-      const close = !FOE[f.k].boss && s.zt < 0 && (f.x - s.wx) ** 2 + (f.y - s.wy) ** 2 < 0.15 * 0.15;
-      if (close && f.shyN < 3) (f.cool = 40), (f.shy = t), f.shyN++;
-      else if (s.buls.length > BUL_MAX - 3 && f.k !== 'snail') f.cool = 20;
-      else (fire(s, f), (f.cool = FOE[f.k].every + Math.floor(s.rng() * 16)), (f.shyN = close ? f.shyN : 0));
+      if (s.buls.length > BUL_MAX - 3 && f.k !== 'snail') f.cool = 20;
+      else (fire(s, f), (f.cool = FOE[f.k].every + Math.floor(s.rng() * 16)));
     }
     f.wind = f.cool < WIND ? 1 - f.cool / WIND : 0;
   }
@@ -716,7 +720,8 @@ function hitCheck(s: StealState) {
   if (s.zt >= 0 || (s.foes.length === 0 && s.wave >= STAGES[s.stage].waves.length)) return;
   const safe = s.inv > 0 || s.pt < GRACE || s.stage === 0, x = s.wx, y = s.wy;
   for (const b of s.buls) {
-    if (b.age < 14) continue;
+    // 막 나온 탄 · 아직 던져지는 중인 탄(홀씨·금화·알)은 안 아프다
+    if (b.age < 14 || ((b.m === 1 || b.m === 2) && b.vx * b.vx + b.vy * b.vy > 0.0000035)) continue;
     const dx = b.x - x, dy = b.y - y, rr = HIT + b.r * 0.6;
     if (dx * dx + dy * dy >= rr * rr) continue;
     if (safe) {
@@ -776,7 +781,7 @@ function play(s: StealState, tap: { x: number; y: number } | null) {
     // 적 몸 위에는 못 선다 — 통 튕겨 몸 밖으로(다치지 않는다)
     let tx = s.buf.x, ty = s.buf.y;
     for (let pass = 0; pass < 2; pass++) for (const f of s.foes) {
-      const rr = FOE[f.k].r + (FOE[f.k].boss ? 0.1 : 0.05);
+      const rr = FOE[f.k].r + (FOE[f.k].boss ? 0.1 : f.k === 'snail' ? 0.11 : 0.05);
       let dx = tx - f.x, dy = ty - f.y;
       const d = Math.hypot(dx, dy);
       if (d >= rr) continue;
@@ -950,6 +955,7 @@ function threat(s: StealState, x: number, y: number, H: number, onlyRed: boolean
   for (const b of s.buls) {
     if (onlyRed && b.k !== SPIKE) continue;
     const px = b.x - x, py = b.y - y, rr = HIT + b.r * 0.6 + pad;
+    if ((b.m === 1 || b.m === 2) && b.vx * b.vx + b.vy * b.vy > 0.0000035) continue;
     if (b.m === 3) {
       // 도는 조약돌: 고리 근처에 서 있으면 곧 맞는다
       if (px * px + py * py < (rr + 0.05) * (rr + 0.05)) best = 0;
@@ -975,7 +981,7 @@ function densest(s: StealState, step: number): { x: number; y: number; n: number
     const c = countAt(s, x, y, R2);
     if (c > bn) (bn = c), (bx = x), (by = y);
   };
-  for (const f of s.foes) consider(f.x, f.y + FOE[f.k].r + (FOE[f.k].boss ? 0.11 : 0.06));
+  for (const f of s.foes) consider(f.x, f.y + FOE[f.k].r + (FOE[f.k].boss ? 0.11 : f.k === 'snail' ? 0.12 : 0.06));
   for (let i = 0; i < B.length; i += step) if (B[i].k !== SPIKE) consider(B[i].x, B[i].y);
   for (let gy = 0; gy < 5; gy++) for (let gx = 0; gx < 4; gx++) consider(0.14 + gx * 0.24, 0.26 + gy * 0.22);
   // 그 둘레 탄들의 한가운데로 한 번 더 다듬는다
@@ -1066,7 +1072,7 @@ export const bulletstealHabit2: Bot<StealState> = {
     if (s.phase === 'choice') return s.pick < 0 && s.pt > CHOICE_MIN + 2 ? at(0.27, 0.62) : NO;
     if (!ready(s) || hunger(s) < 1) return NO;
     const f = nearestFoe(s, s.wx, s.wy);
-    return f ? at(f.x, f.y + FOE[f.k].r + (FOE[f.k].boss ? 0.11 : 0.06)) : NO;
+    return f ? at(f.x, f.y + FOE[f.k].r + (FOE[f.k].boss ? 0.11 : f.k === 'snail' ? 0.12 : 0.06)) : NO;
   },
 };
 
@@ -2694,7 +2700,7 @@ function drawAll(ctx: C2, s: StealState, w: number, h: number, th: Theme) {
     const spr = foeSprite(f.k, kk, sc);
     let sx = 1, sy = 1, rot = 0, ox = 0;
     if (f.st === 0) sx = sy = 0.6 + 0.4 * Math.min(1, f.tm / ENTER);
-    if (t - f.shy < 40) (ox = Math.sin(t * 1.7) * 1.6 * u1), (sy *= 0.94);
+    if (t - f.shy < 30) (ox = Math.sin(t * 1.7) * 1.6 * u1), (sy *= 0.94);
     else if (f.wind > 0) (sx *= 1 + 0.16 * f.wind), (sy *= 1 + 0.16 * f.wind), (ox = Math.sin(t * 1.3) * f.wind * 1.5 * u1);
     else (sy *= 1 + Math.sin(t * 0.1 + f.ph) * 0.03), (sx *= 1 - Math.sin(t * 0.1 + f.ph) * 0.03);
     if (f.hurtT > 0) (ox += Math.sin(t * 2.4) * 2.5 * u1), (sy *= 0.9), (sx *= 1.08);
@@ -2706,13 +2712,15 @@ function drawAll(ctx: C2, s: StealState, w: number, h: number, th: Theme) {
     ell(ctx, px + kk * 0.14, py + kk * 0.62, kk * 0.42, kk * 0.12);
     ctx.fill();
     blit(ctx, spr, px + ox, py, kk * 2.7, rot, sx, sy);
-    if (t - f.shy < 40 && !D.boss) {
+    if (f.cool > WIND && t - f.shy < STUN && !D.boss) {
       // 깜짝! (코앞의 마녀 때문에 못 쏜다)
       ctx.fillStyle = 'rgba(140,215,255,.95)';
       ell(ctx, px + kk * 0.42, py - kk * 0.3 + ((t - f.shy) % 20) * 0.25 * u1, kk * 0.06, kk * 0.1);
       ctx.fill();
-      font(13, 900);
-      text('!', px - kk * 0.42, py - kk * 0.42, '#ffffff', OUT, 3);
+      if (t - f.shy < 40) {
+        font(13, 900);
+        text('!', px - kk * 0.42, py - kk * 0.42, '#ffffff', OUT, 3);
+      }
     }
     if (f.wind > 0.2 && !D.boss) {
       ctx.strokeStyle = `rgba(255,255,255,${0.7 * f.wind})`;
@@ -2826,14 +2834,27 @@ function drawAll(ctx: C2, s: StealState, w: number, h: number, th: Theme) {
     if (left < 30) ctx.globalAlpha = 1;
   }
 
+  // 퉤! 순간의 빛살(큰 한입일수록 길고 굵게)
+  if (fx.memo.spitT !== undefined && t - fx.memo.spitT < 10) {
+    const age = t - fx.memo.spitT, m = fx.memo.spitM, n = 8 + m * 2, len = R(0.1 + m * 0.045) * (0.5 + age / 10);
+    ctx.strokeStyle = `rgba(255,250,200,${0.85 * (1 - age / 10)})`;
+    ctx.lineWidth = (2 + m * 0.8) * u1;
+    ctx.beginPath();
+    for (let j = 0; j < n; j++) {
+      const a = (j * TAU) / n + 0.3;
+      ctx.moveTo(fx.memo.spitX + Math.cos(a) * len * 0.45, fx.memo.spitY + Math.sin(a) * len * 0.45);
+      ctx.lineTo(fx.memo.spitX + Math.cos(a) * len, fx.memo.spitY + Math.sin(a) * len);
+    }
+    ctx.stroke();
+  }
   // ── 되쏜 별 ──
   for (const sh of s.shots) {
-    const r0 = R(0.022), r = R(0.015) * sh.sz, px = X(sh.x), py = R(sh.y);
+    const r0 = R(0.022), r = R(0.017) * sh.sz, px = X(sh.x), py = R(sh.y);
     ctx.strokeStyle = SHOT_COL[((sh.hue % 4) + 4) % 4];
     ctx.globalAlpha = 0.75;
     ctx.lineWidth = r * 1.1;
     ctx.beginPath();
-    ctx.moveTo(px - X(sh.vx) * 3.2, py - R(sh.vy) * 3.2);
+    ctx.moveTo(px - X(sh.vx) * 4.5, py - R(sh.vy) * 4.5);
     ctx.lineTo(px, py);
     ctx.stroke();
     ctx.globalAlpha = 1;
@@ -2885,7 +2906,7 @@ function drawAll(ctx: C2, s: StealState, w: number, h: number, th: Theme) {
       pose = 5;
       const e = Math.min(1, s.pt / 30);
       wx = wxp + (X(s.phase === 'end' ? 0.5 : 0.2) - wxp) * e;
-      wy = wyp + (R(s.phase === 'end' ? 0.9 : 1.2) - wyp) * e;
+      wy = wyp + (R(s.phase === 'end' ? 1.05 : 1.2) - wyp) * e;
     } else if (s.phase === 'fail') {
       pose = 6;
       wy = wyp + s.pt * s.pt * 0.05 * u1;
@@ -2978,7 +2999,9 @@ function drawAll(ctx: C2, s: StealState, w: number, h: number, th: Theme) {
         if (m >= 2) fx.sound('thud', clamp(1.35 - m * 0.12, 0.6, 1.3), 0.5 + m * 0.12);
         fx.kick(2 + m * 2.2);
         fx.ring(ex, ey, '#ffe14d', R(0.06 + m * 0.025), 3 + m);
-        B(ex, ey, '#fff3a0', 6 + m * 4, 3 + m * 0.5, 2.6);
+        B(ex, ey, '#fff3a0', 6 + m * 3, 3 + m * 0.5, 2.6);
+        if (m >= 3) for (let j = 0; j < 4; j++) B(ex, ey, SHOT_COL[j], 5 + m, 4 + m * 0.6, 3);
+        (fx.memo.spitT = t), (fx.memo.spitX = ex), (fx.memo.spitY = ey), (fx.memo.spitM = m);
         if (e.text === 'echo') say(ex, ey - R(0.2), '한 번 더!', '#b8fff0', 13);
         else if (e.n < WOW_N) say(ex, ey - R(0.2), '퉤!', '#fff3a0', 13);
         else {
@@ -3149,13 +3172,14 @@ function drawHud(ctx: C2, s: StealState, w: number, h: number, fx: ReturnType<ty
     const str = kind === 2 ? '갑옷 와장창!' : kind === 3 ? '대장 격파!' : n >= 50 ? `꿀~꺽! ${n}발!` : n >= 30 ? `화면 가득 ${n}발!` : `한입에 ${n}발!`;
     const size = (kind ? 26 : Math.min(32, 19 + n * 0.28)) * u1;
     ctx.font = `900 ${Math.max(12, size)}px system-ui, sans-serif`;
-    const tw = ctx.measureText(str).width, pw = tw + size * 1.5, ph = size * 1.55, half = pw / 2 + size * 0.9;
-    const bx = clamp(fx.memo.bigX, Math.min(w / 2, half + 4), Math.max(w / 2, w - half - (kind ? 4 : size * 0.6))), by = clamp(fx.memo.bigY - R(0.4), R(0.2), R(1.0));
+    const tw = ctx.measureText(str).width, pw = tw + size * 1.5, ph = size * 1.55, fit = Math.min(1, (w - 12 * u1) / (pw + size * (kind ? 1.2 : 2.3))), half = (pw / 2 + size * 0.9) * fit;
+    const bx = clamp(fx.memo.bigX, Math.min(w / 2, half + 4), Math.max(w / 2, w - half - (kind ? 4 : size * 0.6))), by = clamp(fx.memo.bigY - R(0.4), R(0.27), R(1.0));
+    fx.memo.bigH = by + ph * 0.5 * fit;
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate(bx, by);
     ctx.rotate(-0.04);
-    ctx.scale(pop, pop);
+    ctx.scale(pop * fit, pop * fit);
     // 톱니 리본
     ctx.beginPath();
     ctx.moveTo(-pw / 2 - size * 0.5, -ph / 2);
@@ -3189,7 +3213,7 @@ function drawHud(ctx: C2, s: StealState, w: number, h: number, fx: ReturnType<ty
     const age = t - fx.memo.multT, pop = age < 6 ? 1.5 - 0.5 * (age / 6) : 1;
     ctx.save();
     ctx.globalAlpha = Math.min(1, (50 - age) / 12);
-    ctx.translate(w / 2, clamp((fx.memo.bigY ?? R(0.5)) - R(0.4), R(0.2), R(1.0)) + R(0.135));
+    ctx.translate(w / 2, (fx.memo.bigT !== undefined && t - fx.memo.bigT < 58 ? fx.memo.bigH ?? R(0.3) : R(0.22)) + R(0.062));
     ctx.scale(pop, pop);
     font(17, 900);
     const str = `${fx.memo.multN}마리 한꺼번에!`;
@@ -3280,6 +3304,7 @@ function drawHud(ctx: C2, s: StealState, w: number, h: number, fx: ReturnType<ty
     let hint = d.hint;
     if (s.stage === 0 && playing && s.firstTap >= 0 && s.gulps <= 3 && hunger(s) < 1) hint = '모자 입이 다시 커지면(금빛 고리) 또 한입!';
     else if (s.phase === 'result') hint = s.won ? '하늘 끝까지 왔어요!' : s.stage % 5 === 4 ? '대장을 물리쳤다! 선물을 골라요' : `다음 판엔 새 적 — ${FOE[STAGES[s.stage + 1].key].name}`;
+    else if (s.phase === 'end') hint = '하늘 끝까지 왔어요! 훔쳐 본 탄 무늬를 다 모았나요?';
     else if (s.phase === 'choice') hint = '둘 중 하나만 가질 수 있어요';
     else if (s.phase === 'fail') hint = '탄이 닿기 전에 한입 하거나 빈 데로 비켜요';
     else if (playing && s.pt < GRACE && s.stage === 1 && s.pt > 200) hint = '처음 10초는 방울이 지켜 줘요';
