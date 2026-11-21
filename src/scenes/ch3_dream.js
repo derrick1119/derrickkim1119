@@ -135,7 +135,7 @@
       await X.wait(1.6);
       const lake = T.lake({
         paint: T.vig.rosa, leo: F.leoAt(0), shore: true, cover: { k: 0 },
-        rhText: '로사, 실바구니, 등불을 좌우로 끌어 보세요. 물그림자가 제자리에 겹치면 머물러요',
+        rhText: '로사는 요람 옆 빈 걸상에, 실바구니는 요람 발치에, 등불은 어두운 창에. 좌우로 끌어 점선에 맞춰 보세요',
         things: [
           { kind: 'lamp', id: 'lamp', x: 60, at: [-410, 300] },
           { kind: 'who', id: 'rosa', style: F.styles.rosa, x: 330, at: [-265, 748], flip: false, lockFlip: false, ps: 340,

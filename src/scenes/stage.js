@@ -148,7 +148,7 @@
       S.clock.tween(s, 'k', 1, 0.8, T.ease.out);
       T.audio.sfx('join');
       const open = () => { s.ok = true; S.clock.tween(s, 'mist', 0, 1.2); X.notes(3); s.res(); };
-      if (s.rounds) X.play(T.puzzle.bell({ rounds: s.rounds, beat: s.beat })).then(open); else open();
+      if (s.rounds) X.play(T.puzzle.bell({ rounds: s.rounds, beat: s.beat, shuffle: s.shuffle, reverse: s.reverse })).then(open); else open();
     }
     /* hand the scene to a puzzle until it is solved */
     X.play = async function (G) {

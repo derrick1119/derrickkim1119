@@ -64,11 +64,19 @@
       X.title();
       await X.wait(4.4);
 
-      /* ---- the table, year after year ---- */
+      /* ---- the table, year after year: he cooks what he has watched her cook ---- */
+      const stove = () => { const q = W.toScreen(PL.TABLE_X + 100, W.y3(PL.TABLE_X + 100) - 62); return [q[0], q[1], S.cam.z * 0.8]; };
+      const cookYear = async (o) => {
+        X.cam(PL.TABLE_X - 30, py + 20, 1.15);
+        leo.chair = 0; leo.x = PL.TABLE_X + 30; leo.flip = false; bean.x = PL.HX + 120; bean.flip = false;
+        await X.play(T.puzzle.cook(Object.assign({ at: stove }, o)));
+        ps.food.show = true; ps.food.drop = 1; ps.food.fall = 0; ps.food.fill = 1; ps.food.glow = 0.6; X.tween(ps.food, 'glow', 0, 2);
+        leo.x = PL.TABLE_X - 66; leo.chair = 1;
+      };
       await X.years(25, 30, { age: 66 });
-      T.announce('해마다 그날이면, 레오는 호수에서 본 대로 스튜를 따라 끓인다. 아나의 솜씨가 늘수록 레오의 스튜도 맛있어진다.');
-      await serve({ color: '#b24c2b' });
-      await X.TALK.say('leo', '올해도 호수에서 본 대로 끓였어, 빈.');
+      T.announce('해마다 그날이면, 레오는 호수에서 본 대로 아나의 스튜를 끓인다. 처음엔 차례만 지키면 된다.');
+      await X.TALK.say('leo', '감자, 당근, 양파, 토마토.\n아나가 넣던 차례 그대로.');
+      await cookYear({ steps: ['potato', 'carrot', 'onion', 'tomato'], caption: '아나가 넣던 차례대로 재료를 눌러 넣으세요' });
       await X.tap(bowl);
       await bite(); ps.food.fill = 0.5;
       leo.mood = 'good'; await X.wait(1.3); leo.mood = null;
@@ -77,7 +85,9 @@
 
       await X.dip(async () => { ps.food.show = false; bean.x = PL.TABLE_X + 96; }, { out: 0.7, in: 0.9 });
       await X.years(30, 35, { age: 71 });
-      await serve({ color: '#bd5530' });
+      T.announce('호수에서 보니, 아나는 토마토를 넣은 뒤 불을 줄이고 한참을 기다렸다가 소금을 친다.');
+      await X.TALK.say('leo', '불은 약하게, 오래오래.\n그다음에 소금 조금.');
+      await cookYear({ steps: ['onion', 'potato', 'carrot', 'tomato', 'salt'], heat: true, caption: '토마토 다음엔 불을 눌러 약하게 줄이고, 뭉근히 끓으면 소금을 넣으세요' });
       await X.tap(bowl);
       await bite(); ps.food.fill = 0.5;
       leo.mood = 'laugh'; await X.wait(1.3); leo.mood = null;
@@ -86,21 +96,17 @@
 
       await X.dip(async () => { ps.food.show = false; bean.x = PL.TABLE_X + 118; }, { out: 0.7, in: 0.9 });
       await X.years(35, 40, { age: 76 });
-      await serve({ color: '#bd5530' });
+      /* this year she put in something that is not in his notebook */
+      await cookYear({ steps: ['onion', 'potato', 'carrot', 'tomato', 'salt'], heat: true, caption: '작년처럼 끓여 보세요' });
       await X.tap(bowl);
       await bite(); ps.food.fill = 0.75;
-      /* this year she put in something that is not in his notebook */
       leo.mood = 'wonder';
       A.fragment(6);
-      T.announce('올해 아나는 레오의 공책에 없는 풀을 넣었다. 레오의 스튜에는 그 맛이 없다.');
+      T.announce('호수 속 아나의 스튜는 빛깔이 다르다. 레오의 공책에 없는 풀이 들어갔다.');
       await X.TALK.say('leo', '…올해는 뭘 넣은 거지? 내 공책엔 없는 건데.');
-      /* what did she put in it? */
+      leo.mood = null;
       T.announce('아나의 맛 찾기. 네 가지 풀 가운데 둘을 골라, 호수에 비친 아나의 스튜와 견주어 본다.');
       await X.play(T.puzzle.taste({ answer: [0, 2] }));
-      ps.food.herb = true; ps.food.color = '#c8742f';
-      await X.tap(bowl);
-      await bite(); ps.food.fill = 0.45;
-      leo.mood = 'laugh'; await X.wait(1.4); leo.mood = null;
       await X.card(notebook, {
         max: 18,
         run: async (c) => {
@@ -108,6 +114,13 @@
           for (let i = 0; i < 5; i++) { if (i === 4) await X.wait(0.8); A.sfx('crayon'); await X.tween(c, 'w', i + 1, i === 4 ? 1.5 : 0.9, lin); X.note(); await X.wait(0.2); }
         },
       });
+      ps.food.show = false;
+      T.announce('이번엔 처음 보는 풀까지. 그 풀은 맨 마지막, 불을 끄기 직전에 넣는다.');
+      await cookYear({ steps: ['onion', 'potato', 'carrot', 'tomato', 'salt', 'herb'], pantry: ['potato', 'carrot', 'herb', 'onion', 'tomato', 'salt'], heat: true, caption: '공책대로 끓이고, 처음 보는 풀은 맨 마지막에 넣으세요' });
+      ps.food.herb = true; ps.food.color = '#c8742f';
+      await X.tap(bowl);
+      await bite(); ps.food.fill = 0.45;
+      leo.mood = 'laugh'; await X.wait(1.4); leo.mood = null;
       await bite(); ps.food.fill = 0.2; await bite(); ps.food.fill = 0;
       await X.wait(0.5);
 
@@ -128,7 +141,7 @@
       X.toll(1); await X.wait(1.2);
       await X.TALK.say('kid', '레오 아저씨, 종이 울렸어!\n이번엔 우리 엄마야. 꼭 그래.');
       await X.TALK.say('leo', '그래. 등불 켜 드리자.');
-      const pressed = X.seaLamp({ rounds: [[1, 2, 0, 3]] });
+      const pressed = X.seaLamp({ rounds: [[1, 2, 0, 3], [3, 1, 2, 0]], shuffle: true });
       X.sail(S.b1, -74, 62);
       await pressed;
       await new Promise((res) => { const iv = () => (S.b1.x >= -74.5 ? res() : X.wait(0.2).then(iv)); iv(); });
@@ -182,7 +195,7 @@
       await X.years(40, 45, { age: 81 });
       const lake = T.lake({
         paint: T.vig.grand, leo: F.leoAt(3), shore: true, leoFace: { eye: 'happy', old: true },
-        rhText: '등불, 냄비, 레오를 좌우로 끌어 보세요. 이번에도 물그림자가 제자리에 겹치면 머물러요',
+        rhText: '등불은 창에, 냄비는 아나의 화구에, 레오는 늘 앉던 조리대에. 좌우로 끌어 점선에 맞춰 보세요',
         things: [{ kind: 'lamp', x: 300, at: [-428, 300] }, { kind: 'pot', x: -250, at: [24, 548] }, { kind: 'leo', x: 120, at: [-330, 588], flip: false, lockFlip: false }],
       });
       await X.view(lake, { color: '#1b2a40' });

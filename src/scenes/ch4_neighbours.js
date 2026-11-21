@@ -114,7 +114,7 @@
       /* ---- Bean's lake: Lily on the back step with his collar ---- */
       const lakeB = T.lake({
         paint: T.vig.lilyBean, leo: F.leoAt(0), mom: true, shore: true,
-        rhText: '빈, 공, 등불을 좌우로 끌어 보세요. 물그림자가 제자리에 겹치면 머물러요',
+        rhText: '빈은 릴리 옆 늘 앉던 계단에, 공은 풀밭에, 등불은 꺼진 현관 등에. 좌우로 끌어 점선에 맞춰 보세요',
         things: [
           { kind: 'dog', id: 'bean', x: -330, at: [140, 634], flip: false, lockFlip: false, ps: 300 },
           { kind: 'ball', id: 'ball', x: 320, at: [-150, 700],
@@ -187,7 +187,7 @@
       await X.wait(1.6);
       const lakeW = T.lake({
         paint: T.vig.bramWife, leo: F.leoAt(0), shore: true,
-        rhText: '브램, 배, 등불을 좌우로 끌어 보세요. 물그림자가 제자리에 겹치면 머물러요',
+        rhText: '브램은 마르타 옆 빈 의자에, 배는 옛 배 곁 창턱에, 등불은 꺼진 등대에. 좌우로 끌어 점선에 맞춰 보세요',
         things: [
           { kind: 'who', id: 'bram', style: F.styles.bram, x: 320, at: [148, 734], ps: 300,
             prop: (g, j, lo, t, L) => { if (L.lit.bram < 0.5) return; const k = L.knock ? Math.sin(L.knock * Math.PI) : 0; g.save(); g.translate(j.handF[0], j.handF[1]); g.rotate(-0.6 - k * 0.8); P.line(g, 0, 0, 0, -22, 3, '#8a6442'); P.fill(g, P.rr(-8, -30, 16, 10, 3), '#6f4a34'); g.restore(); } },
@@ -233,7 +233,7 @@
         S.b1 = X.boat({ x: -900, riders: [wife] });
       });
       X.toll(2);
-      const pressed = X.seaLamp({ rounds: [[0, 1, 2, 3], [2, 1, 0, 3]] });
+      const pressed = X.seaLamp({ rounds: [[0, 1, 2, 3], [2, 1, 3, 0, 1]] });
       X.sail(S.b1, -74, 30);
       await pressed;
       await new Promise((res) => { const iv = () => (S.b1.x >= -74.5 ? res() : X.wait(0.2).then(iv)); iv(); });

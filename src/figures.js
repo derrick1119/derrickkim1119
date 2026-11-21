@@ -354,7 +354,8 @@
     const u = (o.s || 240) / 100, sx = o.flip ? -1 : 1;
     const ph = o.walk == null ? null : o.walk;
     const wag = o.wag || 0, sit = o.sit || 0;
-    const body = o.shadow ? '#101c33' : '#f2e7d3', patch = o.shadow ? '#101c33' : '#b57c50', dark = o.shadow ? '#101c33' : '#e0d2ba';
+    const sc = o.tintAll || (o.shadow ? '#101c33' : null);
+    const body = sc || '#f2e7d3', patch = sc || '#b57c50', dark = sc || '#e0d2ba';
     g.save();
     g.translate(o.x, o.y);
     if (o.rot) g.rotate(o.rot);

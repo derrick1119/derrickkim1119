@@ -245,6 +245,24 @@
     function drawShore(g, t, W) {
       const R = L.rh, Q = things(), live = R && !R.solved, ls = L.leo || F.styles.leoHome;
       const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+      /* where each thing belongs: a faint shape of it in the empty place, and a ring that warms as its shadow comes near */
+      if (live) for (const q of Q) {
+        if (q.lock) continue;
+        const near = T.clamp(1 - Math.abs(q.x - q.to) / 180), x = q.to, y = q.depth, pulse = 0.5 + 0.5 * Math.sin(t * 2.4 + x);
+        g.save();
+        g.globalAlpha = 0.16 + 0.12 * pulse + 0.25 * near;
+        if (person(q)) {
+          const fo = { x, y, s: (q.ps || 372) * SC, flip: q.flip == null ? true : q.flip, sit: true, lean: 0.14, headTilt: 0.12, legF: { foot: [16, 6] }, legB: { foot: [12, 8] }, armF: { a: 0.7, b: 0.8 }, armB: { a: 0.55, b: 0.7 }, face: {} };
+          if (q.pose) q.pose(fo, t, L, true);
+          F.person(g, Object.assign({}, fo, { style: flat(q.style || ls, '#fff3d6'), flatLook: true }));
+        } else if (q.kind === 'dog') F.dog(g, { x, y, s: (q.ps || 300) * SC, sit: 1, flip: q.flip, tintAll: '#fff3d6' });
+        g.globalAlpha = 0.4 + 0.25 * pulse + 0.35 * near;
+        g.setLineDash([7, 7]); g.lineDashOffset = -t * 18; g.lineWidth = 2.4; g.strokeStyle = T.mix('#fff3d6', '#ffd98a', near);
+        g.beginPath();
+        if (person(q) || q.kind === 'dog') g.ellipse(x, y + (q.kind === 'dog' ? 4 : 10), 48, 12, 0, 0, TAU); else g.arc(x, y - 6, 30 + near * 6, 0, TAU);
+        g.stroke();
+        g.restore();
+      }
       /* the shadows, lying in her picture */
       for (let i = 0; i < Q.length; i++) {
         const q = Q[i], near = T.clamp(1 - Math.abs(q.x - q.to) / 180), lit = L.lit[idOf(q)], dy = q.depth;
@@ -333,7 +351,7 @@
       for (let i = 0; i < 12; i++) { const rx = (i < 6 ? -W / 2 + 10 + i * 21 : W / 2 - 150 + (i - 6) * 24) + T.noise(i, 3) * 10, h = 34 + T.noise(i * 1.7, 4) * 20, sw = Math.sin(t * 1.2 + i) * 4; g.beginPath(); g.moveTo(rx, 262 + (i % 3) * 5); g.quadraticCurveTo(rx + sw * 0.4, 244, rx + sw, 262 - h); g.stroke(); }
       if (live) {
         T.band(g, 1);
-        P.text(g, L.rhText || '기둥의 등불, 냄비, 레오를 좌우로 끌어 보세요. 물그림자가 제자리에 겹치면 머물러요', 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' });
+        P.text(g, L.rhText || '등불은 깜깜한 창에, 냄비는 아나의 냄비에, 레오는 늘 앉던 조리대에. 물가에서 좌우로 끌어 점선에 맞춰 보세요', 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' });
         if (R.idle > 9) { const h = L.hintAt(); if (h) P.beacon(g, h[0], h[1], 44, t, 1, '#fff0c8'); }
       } else if (L.note) T.band(g, 1), P.text(g, L.note, 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' });
     }

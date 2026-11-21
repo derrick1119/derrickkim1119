@@ -105,7 +105,7 @@
       await X.walk(leo, 132, 40);
       S.track = null;
       X.cam(qx - 60, qy, 1.05, 0.9);
-      const pressed = X.seaLamp({ rounds: [[0, 1, 2, 3]], beat: 1.15 });
+      const pressed = X.seaLamp({ rounds: [[0, 1, 2, 3], [0, 1, 2, 3, 2, 1]], beat: 1.05, shuffle: true });
       const arrived = X.sail(boat, -74, 56);
       await pressed;
       await arrived;

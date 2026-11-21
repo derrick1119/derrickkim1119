@@ -287,3 +287,89 @@
     return G;
   };
 })();
+
+/* ---------- cooking her stew, at his own stove on the hill ----------
+   Drawn where the stove stands in the town (o.at: () => screen [x, y, scale]), not on a screen of its own.
+   o.steps: the recipe, in order (ingredient keys); o.heat: true when the heat must be turned down once the
+   tomatoes are in and the pot left to simmer; o.herb: an ingredient that only goes in at the very end. */
+(function () {
+  'use strict';
+  const T = window.TYT, P = T.P, Z = T.puzzle, make = Z.make;
+  const ING = {
+    potato: ['감자', '#d9b56a'], carrot: ['당근', '#e07a3c'], onion: ['양파', '#e9d2a8'], tomato: ['토마토', '#c9473a'],
+    salt: ['소금', '#f4f1ea'], herb: ['처음 보는 풀', '#6fa35c'], bread: ['빵', '#c98a4b'],
+  };
+  Z.cook = function (o) {
+    const keys = o.pantry || ['potato', 'carrot', 'onion', 'tomato', 'salt'];
+    const G = make({ i: 0, heat: 2, simmer: 0, bub: 0, pot: [], need: o.steps.slice(), stirred: 0 });
+    /* once the tomatoes are in (with o.heat) the fire must come down to low and the pot simmer before anything else */
+    const waiting = () => o.heat && G.pot.includes('tomato') && G.simmer < 1 && G.i < G.need.length;
+    const geo = () => { const a = o.at(); const s = a[2]; return { x: a[0], y: a[1], s, jar: (n) => [a[0] - 250 * s + n * (500 * s / Math.max(1, keys.length - 1)), a[1] + 120 * s], fire: [a[0] + 170 * s, a[1] + 40 * s] }; };
+    G.keyOf = (key) => { if (key === 'ArrowDown' || key === '0') return 99; const n = +key - 1; return n >= 0 && n < keys.length ? n : -1; };
+    G.hit = (x, y) => { const q = geo(); if (Math.hypot(x - q.fire[0], y - q.fire[1]) < 56 * q.s) return 99; for (let n = 0; n < keys.length; n++) { const j = q.jar(n); if (Math.hypot(x - j[0], y - j[1]) < 52 * q.s) return n; } return -1; };
+    G.tap = function (n) {
+      G.idle = 0;
+      if (n === 99) {   /* the fire: high, then low */
+        if (!o.heat) return;
+        G.heat = G.heat === 2 ? 1 : 2; T.audio.sfx('step'); G.say = G.heat === 1 ? '불을 약하게 줄였어요' : '불을 세게 올렸어요'; return;
+      }
+      if (G.i >= G.need.length) return;
+      const k = keys[n];
+      if (waiting()) { G.wrong(G.heat === 2 ? '공책에 “불은 약하게, 오래오래”라고 적혀 있어요. 불부터 줄여요' : '아직이에요. 약한 불에서 뭉근히 끓도록 조금 기다려요'); return; }
+      if (k !== G.need[G.i]) { G.wrong(o.herb && k === o.herb && G.i < G.need.length - 1 ? '그 풀은 맨 마지막이에요. 아나가 불을 끄기 직전에 넣었어요' : '아나는 그걸 이때 넣지 않았어요. 공책의 차례를 봐요'); return; }
+      G.say = ''; G.pot.push(k); G.i++; G.bub = 1; T.audio.sfx('bubble', n / keys.length); T.audio.step(G.i * 2, { voice: 'pluck', vel: 0.34 });
+      if (G.i >= G.need.length) { T.audio.promise(); G.finish(1.6); }
+    };
+    const up = G.update;
+    G.update = function (dt) {
+      up(dt);
+      G.bub = Math.max(0, G.bub - dt * 1.2);
+      if (o.heat && G.pot.includes('tomato') && G.simmer < 1) G.simmer = Math.min(1, G.simmer + dt * (G.heat === 1 ? 0.28 : 0));
+    };
+    G.next = () => { if (G.done || G.i >= G.need.length) return null; if (waiting()) return G.heat === 2 ? 'ArrowDown' : null; return String(keys.indexOf(G.need[G.i]) + 1); };
+    G.hintAt = () => { const q = geo(); if (waiting()) return G.heat === 2 ? q.fire : null; return G.i < G.need.length ? q.jar(keys.indexOf(G.need[G.i])) : null; };
+    G.draw = function (g, t) {
+      if (G.a < 0.005) return;
+      const q = geo(), s = q.s;
+      g.save(); g.globalAlpha = G.a;
+      /* the stove on the grass: stones, a fire, the pot */
+      [-30, 0, 30].forEach((dx, k) => P.fill(g, P.ellipse(q.fire[0] + dx * s, q.fire[1] + 22 * s, 16 * s, 10 * s), k === 1 ? '#6f6a66' : '#807a74'));
+      const fl = G.heat === 2 ? 1 : 0.45;
+      for (let k = 0; k < 5; k++) { const ph = t * 9 + k * 1.7; P.fill(g, P.ellipse(q.fire[0] + (k - 2) * 9 * s, q.fire[1] + (6 - Math.abs(Math.sin(ph)) * 18 * fl) * s, 7 * s, (12 + 14 * fl * Math.abs(Math.sin(ph))) * s), k % 2 ? '#ffb45a' : '#ff7a3a'); }
+      P.glow(g, q.fire[0], q.fire[1], 70 * s, '#ffb45a', 0.4 + 0.3 * fl);
+      P.fill(g, P.rr(q.fire[0] - 50 * s, q.fire[1] - 52 * s, 100 * s, 50 * s, 12 * s), '#2d6672');
+      const fillC = G.pot.length ? T.mix('#e9d2a8', '#c9573f', Math.min(1, G.pot.filter((k) => k === 'tomato' || k === 'carrot').length / 2)) : '#7fa3b0';
+      P.fill(g, P.ellipse(q.fire[0], q.fire[1] - 52 * s, 50 * s, 10 * s), fillC);
+      if (G.pot.includes('herb')) { P.fill(g, P.circle(q.fire[0] - 12 * s, q.fire[1] - 53 * s, 4 * s), '#6fa35c'); P.fill(g, P.circle(q.fire[0] + 10 * s, q.fire[1] - 51 * s, 4 * s), '#6fa35c'); }
+      const steam = 0.2 + G.bub * 0.5 + (o.heat && G.pot.includes('tomato') ? G.simmer * 0.3 : 0);
+      for (let k = 0; k < 4; k++) { const life = (t * 0.4 + k / 4) % 1; P.glow(g, q.fire[0] + Math.sin(t + k * 2) * 12 * s, q.fire[1] - (70 + life * 90) * s, (14 + life * 20) * s, '#fff3dc', Math.sin(life * Math.PI) * steam); }
+      if (o.heat && G.pot.includes('tomato') && G.simmer < 1) {   /* how long it has simmered */
+        P.fill(g, P.rr(q.fire[0] - 50 * s, q.fire[1] + 44 * s, 100 * s, 8 * s, 4 * s), 'rgba(20,26,44,0.4)');
+        P.fill(g, P.rr(q.fire[0] - 50 * s, q.fire[1] + 44 * s, 100 * s * G.simmer, 8 * s, 4 * s), '#ffcf8a');
+      }
+      /* the jars and baskets, each with what is in it */
+      keys.forEach((k, n) => {
+        const j = q.jar(n), used = G.pot.includes(k) && k !== 'salt', c = ING[k][1];
+        g.save(); g.globalAlpha = G.a * (used ? 0.35 : 1);
+        P.fill(g, P.rr(j[0] - 34 * s, j[1] - 26 * s, 68 * s, 46 * s, 10 * s), '#a57d58');
+        for (let m = 0; m < 3; m++) P.fill(g, P.circle(j[0] + (m - 1) * 16 * s, j[1] - 26 * s - (m % 2) * 6 * s, 11 * s), c);
+        P.text(g, ING[k][0], j[0], j[1] + 44 * s, { font: 'serif', size: 20 * Math.max(0.8, s), color: '#fff6e4', glow: 'rgba(14,20,32,0.9)' });
+        P.text(g, String(n + 1), j[0] - 30 * s, j[1] - 40 * s, { font: 'serif', size: 15, color: '#fff6e4', alpha: 0.6, glow: 'rgba(14,20,32,0.9)' });
+        g.restore();
+      });
+      /* her recipe, as he has written it down, with what is done struck through */
+      const rx = q.x - 470 * s, ry = q.y - 200 * s;
+      P.fill(g, P.rr(rx - 120 * s, ry - 30 * s, 240 * s, (60 + G.need.length * 34) * s, 10 * s), 'rgba(251,244,226,0.95)');
+      P.text(g, '아나표 스튜', rx, ry, { size: 34 * Math.max(0.85, s), color: '#b54a36', seed: 3 });
+      G.need.forEach((k, n) => {
+        const y = ry + (40 + n * 34) * s, done = n < G.i;
+        P.text(g, (n + 1) + '. ' + (o.labels && o.labels[n] ? o.labels[n] : ING[k][0]), rx, y, { size: 26 * Math.max(0.85, s), color: done ? '#9a8f86' : '#33405c', seed: 5 + n });
+        if (done) P.line(g, rx - 80 * s, y - 4, rx + 80 * s, y - 2, 2, '#c9573f');
+      });
+      g.restore();
+      G.hintRing(g, t);
+      G.caption(g, o.caption || '공책에 적은 차례대로 재료를 눌러 넣으세요');
+    };
+    return G;
+  };
+})();
