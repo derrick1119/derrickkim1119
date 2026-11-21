@@ -2480,6 +2480,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     }
     // 내릴 자리: 닌자 그림자
     drawGhost(ctx, X(prev.ex), Y(prev.ey), Math.sign(last[2] - last[0]) || s.face, 1);
+    for (const f of s.foes) if (targets.has(f.id) && Math.abs(f.x - prev.ex) < 0.12 && f.y <= prev.ey + 0.02 && f.y > prev.ey - 0.2) drawFoe(f, 1, true); // 🧪·👁 F6: 그림자가 내릴 자리의 벨 적을 덮었다 → 그 적을 그림자 위에 다시
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2;
     ring(ctx, X(prev.ex), Y(prev.ey), R(0.035), R(0.016)); // 👁 도트 고리

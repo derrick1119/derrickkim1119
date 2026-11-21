@@ -208,7 +208,7 @@ export const hand = () => sprite('hd', () => grid(['..w', '..ww', '..ww', '..ww.
 // ── 🎨 M3 F3 'AI 티' ① 도트 글자(💬 오너 "AI로 제작된 티가 많이 난다" → 🎨 가장 큰 원인 = 도트 세상 위 매끈한 웹 글꼴) ──
 //   캔버스 글을 화면 밖에 한 번 작게 쓰고 → 가장자리를 딱 끊고(알파 > 128만) → (테 글이면) 1칸 테를 두른 뒤 굽는다. 그다음엔 늘 drawImage(부드럽게 하기 끔).
 //   부르는 쪽(fillText·strokeText)은 그대로 — 판 캔버스의 두 함수를 갈아 끼운다. 글 크기 ≥ 44px만 2칸이 한 글자 점, 나머지는 1칸(37px 제목도 2칸이면 '벽'의 ㅂ이 메워졌음).
-type Glyph = { c: HTMLCanvasElement; q: number; w: number; asc: number; desc: number };
+type Glyph = { c: HTMLCanvasElement; bm?: ImageBitmap; q: number; w: number; asc: number; desc: number };
 const PTC = new Map<string, Glyph>();
 const PAD = 2;
 // 렉(5ce7c59 perf: 켠 뒤 3초 ≤50ms 27·29 → 9/30): 새 글이 한 프레임에 몰려 처음 굽기가 쌓였다 → 한 프레임에 굽는 시간을 2.5ms로 묶고,
@@ -239,9 +239,19 @@ function glyphs(font: string, txt: string, style: string, outline: boolean, budg
   x.fillText(txt, PAD, PAD + asc);
   const im = x.getImageData(0, 0, W, H), d = im.data, on = new Uint8Array(W * H);
   for (let i = 0; i < W * H; i++) on[i] = d[i * 4 + 3] > 128 ? 1 : 0;
+  // 🧪 F6: 테 글은 획 사이 1칸 틈까지 테로 메워 '줄'의 ㄹ이 덩어리였다 → 바깥과 이어진 빈 칸에만 테(글자 속 구멍·틈은 비움)
+  const out = new Uint8Array(W * H);
+  if (outline) {
+    const st: number[] = [];
+    for (let i = 0; i < W * H; i++) { const xx = i % W, yy = (i / W) | 0; if ((xx === 0 || yy === 0 || xx === W - 1 || yy === H - 1) && !on[i]) (out[i] = 1), st.push(i); }
+    while (st.length) { const i = st.pop()!, xx = i % W; for (const n of [xx > 0 ? i - 1 : -1, xx < W - 1 ? i + 1 : -1, i - W, i + W]) if (n >= 0 && n < W * H && !on[n] && !out[n]) (out[n] = 1), st.push(n); }
+  }
   for (let i = 0; i < W * H; i++) {
     let v = on[i];
-    if (outline && !v) { const xx = i % W, yy = (i / W) | 0; v = (xx > 0 && on[i - 1]) || (xx < W - 1 && on[i + 1]) || (yy > 0 && on[i - W]) || (yy < H - 1 && on[i + W]) ? 1 : 0; }
+    if (outline && !v && out[i]) {
+      const xx = i % W, yy = (i / W) | 0, l = xx > 0 && on[i - 1], r = xx < W - 1 && on[i + 1], u = yy > 0 && on[i - W], d = yy < H - 1 && on[i + W];
+      v = (l || r || u || d) && !(l && r) && !(u && d) ? 1 : 0; // 양쪽 획 사이에 낀 1칸 틈은 비움
+    }
     d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = 255;
     d[i * 4 + 3] = v ? 255 : 0;
   }
@@ -252,6 +262,8 @@ function glyphs(font: string, txt: string, style: string, outline: boolean, budg
   o.fillStyle = style;
   o.fillRect(0, 0, W, H);
   g = { c, q, w, asc, desc };
+  const gg = g; // 렉: 다 구운 글은 ImageBitmap으로 바꿔 둔다(그릴 때 캔버스 → 비트맵 변환을 매 프레임 안 하게)
+  if (typeof createImageBitmap === 'function') createImageBitmap(c).then((b) => (gg.bm = b)).catch(() => {});
   if (PTC.size > 240) PTC.delete(PTC.keys().next().value!);
   PTC.set(key, g);
   const dt = performance.now() - t0;
@@ -274,10 +286,8 @@ export function pixelText(ctx: CanvasRenderingContext2D, budget = true) {
     const tw = g.w * g.q, sx = mw && tw > mw ? mw / tw : 1, a = ctx.textAlign, b = ctx.textBaseline;
     const left = x - (a === 'center' ? tw * sx / 2 : a === 'right' || a === 'end' ? tw * sx : 0) - PAD * g.q * sx;
     const base = b === 'middle' ? y + ((g.asc - g.desc) / 2) * g.q : b === 'top' || b === 'hanging' ? y + g.asc * g.q : b === 'bottom' || b === 'ideographic' ? y - g.desc * g.q : y;
-    const sm = ctx.imageSmoothingEnabled;
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(g.c, Math.round(left), Math.round(base - (PAD + g.asc) * g.q), g.c.width * g.q * sx, g.c.height * g.q);
-    ctx.imageSmoothingEnabled = sm;
+    if (ctx.imageSmoothingEnabled) ctx.imageSmoothingEnabled = false; // 렉: 글마다 켜고 끄던 것 → 한 번 끄면 그대로(판 캔버스는 도트라 늘 끔)
+    ctx.drawImage(g.bm ?? g.c, Math.round(left), Math.round(base - (PAD + g.asc) * g.q), g.c.width * g.q * sx, g.c.height * g.q);
   };
   ctx.fillText = (t: string, x: number, y: number, mw?: number) => draw(String(t), x, y, mw, false);
   ctx.strokeText = (t: string, x: number, y: number, mw?: number) => draw(String(t), x, y, mw, true);
