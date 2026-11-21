@@ -12,6 +12,7 @@
 | `frame-check.cjs` | (0118) 느린 폰 흉내: CPU 4배 느리게 하고 게임마다 기다림 3초 + 톡·긋기 5초 동안 프레임 간격과 **게임 코드 시간**(rAF 콜백). 볼 숫자는 게임 코드 — 중앙 ≤ 8ms · p95 ≤ 16ms 권장. 간격은 헤드리스가 GPU 없이 칠해서 과장됨. `node arcade/kit/frame-check.cjs id1,id2 [4] [3]` |
 | `studio-brief.TEMPLATE.md` · `studio-status.TEMPLATE.md` | (0121) 졸업 때 `studio/<id>/BRIEF.md`·`STATUS.md`를 만드는 틀(동물 군단 브리프에서 일반화, 오너 기준 1~12를 38라운드까지로 새로 씀). `{{...}}` 칸을 채운다. 졸업 순서: 틀 채우기 → `create_session`(세션 첫 말에 BRIEF 읽기) → 그 세션에 `create_trigger` 매시(공장 :10과 겹치지 않게) → 레지스트리에서 빼고 ab.json `graduated`. |
 | `snapshot-wt.sh` | (0119) 에이전트가 고치는 중에도 안전한 작업 중 사본: 지정한 파일의 '지금 모습'을 복사 → 깨끗한 worktree(HEAD + origin)에서 verify → **통과한 그 사본만** 커밋 → 가지만 옮기고 작업 트리는 그대로 → push. `SCRATCH=<임시 폴더> arcade/kit/snapshot-wt.sh "메시지" arcade/games/<id>.ts` (`<세션 주소>`는 바꿔 쓴다). 옛 `snapshot.sh`는 검증과 커밋 사이에 파일이 바뀌면 깨진 사본을 커밋할 수 있다. |
+| `hint-check.cjs` | (0123) 실제 계기판에서 막힘 힌트 점검: 시작 5초 → 전구 톡 → 18초 가만히, 게임마다 스크린샷 셋(`<id>-0before/1hint/2idle.png`)·콘솔 에러. |
 | `snapshot.sh` | 에이전트가 만드는 중인 `arcade/games/` 파일을 '작업 중 사본'으로 커밋 → `pull --no-rebase` → verify(두 번까지) → 통과할 때만 push. 오래된 `index.lock`(60초 넘음·git 프로세스 없음)은 지우고, 커밋 실패는 "COMMIT FAILED"로 알린다. 절대 stash·checkout·reset 하지 않는다(에이전트 파일 보호). |
 
 `<작업 폴더>`는 세션의 임시 폴더(예: 세션 scratchpad)로 바꿔 쓴다. 에이전트마다 `<작업 폴더>/diorama/<id>/`에 임시 파일을 둔다.
