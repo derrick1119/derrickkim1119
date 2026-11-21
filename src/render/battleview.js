@@ -15,6 +15,8 @@ const PI = Math.PI;
 const LEFT = { goblin: 'broom', orc: 'bat', garcher: 'sandal', rshield: 'lid', shaman: 'poker', skel: 'hopae', skelarcher: 'hopae', dueok: 'bat', yagwang: 'sandal' };
 function swing(p) { if (p < 0.28) return lerp(0, -0.9, p / 0.28); if (p < 0.55) return lerp(-0.9, 1.7, (p - 0.28) / 0.27); return lerp(1.7, 0, (p - 0.55) / 0.45); }
 
+// 맞았을 때 움찔하는 시간(초)과 가장 크게 밀리는 거리(픽셀, 인형 크기에 비례)
+const HIT_T = 0.22, HIT_PX = 6;
 // 종이 인형 한 장: 걷기는 깡충거림과 기울임, 공격은 내지르기와 무기 휘두르기
 // T = 화면의 시계(걸음·깜빡임), ST = 전투의 시계(공격·등장 시각은 전투 시간으로 적혀 있다)
 export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
@@ -37,6 +39,9 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   // 막 세워진 인형은 톡 하고 일어선다. 걸을 때는 디딜 때마다 살짝 눌린다
   const age = ST - (u.born || 0); if (age >= 0 && age < 0.3) { const e = age / 0.3, b = 1 + 2.2 * Math.pow(e - 1, 3) + 1.2 * Math.pow(e - 1, 2); sy *= 0.3 + 0.7 * b; sxm *= 1.25 - 0.25 * b; }
   if (moving) { const q = Math.abs(Math.cos(ph)); sy *= 1 - 0.05 * q * q; }
+  // 맞은 순간: 맞은 방향으로 살짝 밀리며 뒤로 젖혀졌다가 곧 제자리로 돌아온다 (빠르게 밀리고 천천히 돌아온다)
+  const ht = ST - (u.hitT === undefined ? -9 : u.hitT);
+  if (ht >= 0 && ht < HIT_T && !L.still) { const e = ht / HIT_T, f = e < 0.2 ? e / 0.2 : Math.pow(1 - (e - 0.2) / 0.8, 2), a = HIT_PX * k * f; x += u.hitX * a; y += u.hitY * a * 0.6; tilt += u.hitX * f * 0.1; sy *= 1 - 0.05 * f * Math.min(1, Math.abs(u.hitX) + Math.abs(u.hitY)); }
   if (act > 0) {
     if (mode === 'slash' || mode === 'thrust' || mode === 'bite') { x += c * act * 6 * k; y += s * act * 6 * k; tilt += dir * act * (mode === 'bite' ? 0.2 : 0.12); }
     else if (mode === 'shoot') { x -= c * act * 3 * k; y -= s * act * 3 * k; sy *= 1 - act * 0.05; }

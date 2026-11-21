@@ -153,7 +153,7 @@ export class Battle {
       atk: (def.atk || 0) * m * (team === 0 ? (um && um.atk || 1) * (def.hero ? md.heroAtk : 1) : this.foe.atk), healAmt: (def.heal || 0) * m * (team === 0 && def.hero ? md.heroAtk : 1), facing: team === 0 ? 0 : PI,
       target: null, cd: 0.2 + this.rand() * 0.5, retarget: this.rand() * 0.3, swing: 0, swingTarget: null, atkT: -9, cast: 0,
       moving: false, walk: this.rand() * 10, still: 0, stuck: 0, run: 0, stun: 0, root: 0, haste: 0, weaken: 0, rage: 0, burn: 0, burnDmg: 0, burnAcc: 0,
-      gauge: 0, skillI: 0, slow: 0, slowAmt: 0, guard: 0, guardAmt: 0, dmgUp: 0, dmgUpAmt: 0, regen: 0, regenAmt: 0, life: 0, temp: false, born: this.time,
+      gauge: 0, skillI: 0, slow: 0, slowAmt: 0, guard: 0, guardAmt: 0, dmgUp: 0, dmgUpAmt: 0, regen: 0, regenAmt: 0, life: 0, temp: false, born: this.time, hitT: -9, hitX: 0, hitY: 0,
       barrier: 0, barrierT: 0, auraDmg: 0, auraHaste: 0, mark: 0, markAmt: 0, taunt: def.taunt || 0, tauntT: 0, slot: { dx: off ? off[0] : 0, dy: off ? off[1] : 0 }, dead: false, hidden: 0, flash: 0, eng: 0,
       path: null, pi: 0, pathT: 0, pgx: 0, pgy: 0, leapCd: def.leap ? 1.1 + this.rand() * 0.7 : 0, fuse: 0, jump: null, jumpH: 0, stab: false, revived: false, summoned: false, chargeFx: 0,
     };
@@ -764,6 +764,13 @@ export class Battle {
     if (t.team === 0) { const md = this.mods; if (md.openGuard && this.waveOn && this.waveT < 6) d *= 1 - md.openGuard; if (md.holdGuard && t.squad.order.kind === 'hold') d *= 1 - md.holdGuard; }
     if (t.barrier > 0) { const a = Math.min(t.barrier, d); t.barrier -= a; d -= a; if (d <= 0) { this.ev('hit', { x: t.x, y: t.y, amt: 0, block: true, team: t.team, kind }); return 0; } }
     t.hp -= d; t.flash = 1;
+    // 맞은 순간의 움찔: 그림만 맞은 방향으로 아주 살짝 밀렸다가 제자리로 돌아온다 (실제 자리와 진형은 그대로).
+    // 잇달아 맞아도 밀린 채로 있지 않도록 가벼운 타격은 0.3초에 한 번만, 큰 타격도 0.12초 안에는 다시 움찔하지 않는다
+    if (d > 0 && kind !== 'burn' && !t.def.structure && this.time - t.hitT > (d > t.maxHp * 0.12 ? 0.12 : 0.3)) {
+      let ax, ay; if (src && (kind === 'melee' || kind === 'proj')) { ax = t.x - (ox === undefined ? src.x : ox); ay = t.y - (oy === undefined ? src.y : oy); } else { ax = -Math.cos(t.facing); ay = -Math.sin(t.facing); }
+      const al = hyp(ax, ay) || 1, k = Math.min(1, 0.5 + d / (t.maxHp * 0.3)) * (t.def.boss ? 0.3 : t.def.large ? 0.6 : 1);
+      t.hitT = this.time; t.hitX = ax / al * k; t.hitY = ay / al * k;
+    }
     // 두목의 체력을 사분의 일 깎을 때마다 기세가 오른다
     if (t.def.boss && t.team === 1) { const q = Math.min(3, Math.floor((1 - Math.max(0, t.hp) / t.maxHp) * 4)); if (q > (t.q || 0)) { this.gain((q - (t.q || 0)) * 1.5, t.x, t.y - 40); t.q = q; } }
     this.ev('hit', { x: t.x, y: t.y, amt: d, flank, block, team: t.team, kind, big: d > 45 });
