@@ -15,6 +15,8 @@ import type { Input } from './core.ts';
 type Mon = HopState['mons'][number];
 /** 👁 3D r1 [치명] '캐릭터가 25~40px': 그림만 시뮬 반지름의 VIS배(판정·시뮬은 그대로) */
 const VIS = 1.4;
+/** 유령 크기(반지름 1 단위 메시의 배율) */
+const GSZ = 0.046, gsz = GSZ * 1.35;
 const Q = new URLSearchParams(location.search);
 const { A, CX, CY, YS } = GEO;
 const W = (x: number, y: number): [number, number] => [x - CX, (y - CY) / YS];
@@ -280,7 +282,7 @@ function monDraws(out: Draw[], m: Mon, t: number, now: number) {
   if (m.shield > 0) out.push({ m: BALL, model: trs(X, r * 1.1, Z, 0, 0, 0, r * 1.6), pass: 2, emis: [0.55, 0.38, 0.08], fres: [1.2, 0.8, 0.2], alpha: 0.35 + 0.08 * Math.sin(now * 0.004), shadow: false, tint: [0, 0, 0] });
 }
 function ghostDraw(out: Draw[], t: number) {
-  const gs = 0.046; // 👁 r3 [치명] '유령이 안 보임' → 키우고 진하게
+  const gs = GSZ; // 👁 r3 [치명] '유령이 안 보임' → 키우고 진하게
   let x = 0, y = 0, z = 0, sc = gs, gw = 1;
   const [hx, hz] = W(GEO.HOME_X, GEO.HOME_Y), home: V3 = [hx, 0.27, hz + 0.02];
   const b = s.me ? s.mons.find((m) => m.id === s.me && !m.dead) : null;
@@ -294,7 +296,7 @@ function ghostDraw(out: Draw[], t: number) {
     burst(x, y + 0.02, z, 1, CYAN, 0.03, 0.012, 0.3, 0, 0.3, 0.7);
   } else if (b) {
     const [bx, bz] = W(b.x, b.y);
-    x = bx; z = bz; y = b.r * VIS * (rig(b.k).h - 0.15) + 0.03 + 0.008 * Math.sin(t * 0.1); sc = gs * 0.85; gw = 1;
+    x = bx; z = bz; y = b.r * VIS * (rig(b.k).h - 0.1) + 0.045 + 0.008 * Math.sin(t * 0.1); sc = gs * 1.35; gw = 1; // 👁 ⑦: 1.5배·머리에서 띄움
   } else if (s.home || s.phase !== 'play') {
     [x, y, z] = home; y += 0.01 * Math.sin(t * 0.06);
   } else {
@@ -436,7 +438,7 @@ function drawOverlay(now: number) {
   }
   const b = s.me ? s.mons.find((m) => m.id === s.me && !m.dead) : s.fly ? s.mons.find((m) => m.id === s.fly!.to) : null;
   if (b && s.phase === 'play') {
-    const [X, Z] = W(b.x, b.y), [sx, sy] = project(X, b.r * VIS * (rig(b.k).h + 1.4), Z), f = s.me ? b.hp / b.max : 1, w = 46;
+    const [X, Z] = W(b.x, b.y), [sx, sy] = project(X, b.r * VIS * (rig(b.k).h - 0.1) + 0.045 + gsz * 2.6, Z), f = s.me ? b.hp / b.max : 1, w = 46;
     o2.fillStyle = 'rgba(20,14,40,.7)'; rr(sx - w / 2 - 2, sy - 5, w + 4, 10, 5); o2.fill();
     o2.fillStyle = f < 0.3 && Math.sin(now * 0.02) > 0 ? '#ff4b5c' : '#4fe6ff'; rr(sx - w / 2, sy - 3, w * f, 6, 3); o2.fill();
     o2.fillStyle = '#4fe6ff'; o2.beginPath(); o2.moveTo(sx - 6, sy - 9); o2.lineTo(sx + 6, sy - 9); o2.lineTo(sx, sy - 2 - 1); o2.closePath(); o2.strokeStyle = '#140c2a'; o2.lineWidth = 3; o2.stroke(); o2.fill();
