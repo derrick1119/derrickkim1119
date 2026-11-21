@@ -111,6 +111,52 @@
       await bite(); ps.food.fill = 0.2; await bite(); ps.food.fill = 0;
       await X.wait(0.5);
 
+      /* ---- Pipi's mother and father: she has been seven for forty years ---- */
+      const keep = S.actors;
+      let pipi, pm, pd, qleo;
+      await X.dip(async () => {
+        ps.food.show = false; leo.chair = 0;
+        S.actors = []; S.boats = [];
+        const [qx, qy] = X.place.quay(); X.cam(qx, qy, 1.05); X.camSnap();
+        qleo = X.actor('leo', { x: 330, style: F.leoAt(3), flip: true, face: { old: true } });
+        pipi = X.actor('kid', { x: 250, style: F.styles.kidA, s: 100, flip: true });
+        pipi.pose = (o, a, t) => { if (!a.moving && !a.hug) o.y -= Math.abs(Math.sin(t * 5)) * 4; };
+        pm = X.actor('pmom', { style: F.styles.villagerB, s: 128, lean: 0.14, face: { old: true } });
+        pd = X.actor('pdad', { style: F.styles.villagerA, s: 138, lean: 0.12, face: { old: true } });
+        S.b1 = X.boat({ x: -880, riders: [pm, pd] });
+      });
+      X.bed(1, 0.13, 'sea');
+      X.toll(1); await X.wait(1.2);
+      await X.TALK.say('kid', '레오 아저씨, 종이 울렸어!\n이번엔 우리 엄마 아빠야. 꼭 그래.');
+      await X.TALK.say('leo', '그래. 등불 켜 드리자.');
+      const pressed = X.seaLamp({ rounds: [[1, 2, 0, 3]] });
+      X.sail(S.b1, -74, 62);
+      await pressed;
+      await new Promise((res) => { const iv = () => (S.b1.x >= -74.5 ? res() : X.wait(0.2).then(iv)); iv(); });
+      A.sfx('door');
+      X.land(pd, 64); await X.land(pm, 30);
+      T.announce('배에서 백발의 노부부가 내린다. 피피가 달려간다.');
+      await X.TALK.say('kid', '엄마! 아빠!');
+      pipi.hug = { k: 0 }; pm.hug = pipi.hug;
+      pipi.pose = (o) => T.embrace(o, pipi, pm, pipi.hug.k, true);
+      pm.pose = (o) => { T.embrace(o, pm, pipi, pipi.hug.k); o.lean += 0.2 * pipi.hug.k; };
+      pipi.armOver = true; pm.z = 1;
+      await X.walk(pipi, pm.x + 30, 180);
+      pipi.flip = true;
+      await X.tween(pipi.hug, 'k', 1, 0.7, T.ease.out);
+      A.motif({ voice: 'box', vel: 0.36, beat: 0.7 });
+      await X.wait(1.2);
+      await X.TALK.say('pmom', '…우리 피피, 그대로구나.', { slow: true });
+      await X.TALK.say('kid', '나 기다리는 동안\n레오 아저씨 집 짓는 거 도왔다?');
+      await X.TALK.say('pdad', '…고맙습니다.\n우리 애랑 놀아 주셔서.');
+      await X.TALK.say('leo', '제가 도움을 받았는걸요.');
+      await X.wait(1.4);
+      await X.dip(async () => {
+        S.actors = keep; S.boats = [];
+        X.cam(px + 60, py, 1); X.camSnap();
+      }, { out: 1, in: 1.2 });
+      X.bed(4, 0.13, 'home');
+
       /* ---- the list ---- */
       const board = () => [PL.BOARD_X, W.y3(PL.BOARD_X) - 74, 44];
       await X.tap(board);

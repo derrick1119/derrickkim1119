@@ -12,9 +12,16 @@
     g.restore();
   };
 
+  /* the dark band words sit on at the foot of the screen, so they read over anything */
+  T.band = function (g, a) {
+    const V = T.view, gr = g.createLinearGradient(0, 760, 0, 900);
+    gr.addColorStop(0, 'rgba(14,20,32,0)'); gr.addColorStop(0.45, T.rgba('#0e1420', 0.55 * a)); gr.addColorStop(1, T.rgba('#0e1420', 0.75 * a));
+    g.fillStyle = gr; g.fillRect(-V.W / 2, 760, V.W, 140);
+  };
+
   const WHO = {
     leo: ['레오', '#fbeccb'], ana: ['아나', '#ffdccf'], mom: ['엄마', '#f3e6f4'],
-    bram: ['브램 선장', '#dfe8f4'], rosa: ['로사', '#fff0c0'], wife: ['마르타', '#f0e2f0'], son: ['로사의 아들', '#e6e9ef'], kid: ['피피', '#fde6c8'], post: ['집배원', '#dfeaf2'], both: ['레오와 아나', '#fff3dc'],
+    bram: ['브램 선장', '#dfe8f4'], rosa: ['로사', '#fff0c0'], wife: ['마르타', '#f0e2f0'], son: ['로사의 아들', '#e6e9ef'], kid: ['피피', '#fde6c8'], pmom: ['피피의 엄마', '#f6e6da'], pdad: ['피피의 아빠', '#e3ecf2'], post: ['집배원', '#dfeaf2'], both: ['레오와 아나', '#fff3dc'],
   };
 
   /* One line at a time at the foot of the screen. A tap finishes the line, the next tap moves on. */

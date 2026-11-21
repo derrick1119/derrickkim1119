@@ -24,7 +24,7 @@
     };
     G.wrong = function (text) { G.shake = 1; G.idle = 0; if (text) G.say = text; T.audio.sfx('knock', 0.2); };
     G.dim = function (g, k) { const V = T.view; g.fillStyle = T.rgba('#141a2c', (k == null ? 0.62 : k) * G.a); g.fillRect(-V.W / 2, 0, V.W, V.H); };
-    G.caption = function (g, text) { P.text(g, G.say || text, 0, 850, { font: 'serif', size: 25, color: INK, alpha: 0.94 * G.a }); };
+    G.caption = function (g, text) { T.band(g, G.a); P.text(g, G.say || text, 0, 850, { font: 'serif', size: 25, color: INK, alpha: 0.94 * G.a, glow: 'rgba(8,12,22,0.9)' }); };
     G.update = function (dt) { G.idle += dt; G.shake = Math.max(0, G.shake - dt * 2.6); };
     /* left alone long enough, it shows the next move */
     G.hintRing = function (g, t) { if (G.done || G.idle < 9 || !G.hintAt) return; const q = G.hintAt(); if (q) P.beacon(g, q[0], q[1], 46, t, G.a, '#fff0c8'); };

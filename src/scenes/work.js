@@ -57,7 +57,7 @@
       /* the slope, and the cloud sea it climbs out of */
       P.fill(g, P.poly([[AX - 260, AY + 60], [AX - 40, AY + 30], [BX + 40, BY + 30], [BX + 330, BY + 30], [BX + 330, 900], [AX - 260, 900]]), '#6f9a6a');
       P.fill(g, P.poly([[AX - 260, AY + 60], [AX - 40, AY + 30], [BX + 40, BY + 30], [BX + 330, BY + 30], [BX + 330, BY + 52], [BX + 44, BY + 52], [AX - 36, AY + 54], [AX - 260, AY + 84]]), '#8fb884');
-      for (let i = 0; i < 5; i++) P.fill(g, P.circle(AX - 250 + i * 60, AY + 110 + (i % 2) * 14, 64), 'rgba(255,248,232,0.9)');
+      { const cg = g.createLinearGradient(0, AY + 40, 0, AY + 200); cg.addColorStop(0, 'rgba(255,248,232,0)'); cg.addColorStop(1, 'rgba(255,248,232,0.95)'); g.fillStyle = cg; g.fillRect(-T.view.W / 2, AY + 40, T.view.W, 220); }
       /* stones already up, by the stakes */
       for (let i = 0; i < G.i; i++) P.fill(g, P.ellipse(BX + 110 + i * 62, BY + 18, 27, 20), i % 2 ? '#a9a39b' : '#b9b3aa');
       P.line(g, BX + 290, BY + 30, BX + 290, BY - 40, 5, '#b08e62'); P.fill(g, P.poly([[BX + 290, BY - 40], [BX + 312, BY - 34], [BX + 290, BY - 26]]), '#c9573f');
@@ -135,6 +135,11 @@
         for (let i = 0; i < 22; i++) P.fill(g, P.poly([[-168 + i * 15.4, 0], [-160.3 + i * 15.4, 8], [-152.6 + i * 15.4, 0]]), '#aeb7bd');
         P.fill(g, P.rr(-222, -50, 60, 60, 14), '#8a5a3b'); P.fill(g, P.rr(-208, -36, 30, 30, 9), 'rgba(20,26,44,0.7)');
         g.restore();
+        /* Leo on the handle */
+        const st = o.style || F.styles.leoHome, s = 230, hh = F.hipHeight(st, s), hx = sx - 196, hy = sy - 30;
+        const lo = { x: hx - 70, y: 640 - hh, s, style: st, lean: 0.12 + G.x * 0.06, face: { blush: 0.2, mouth: 'line' } };
+        lo.armF = { hand: F.local(lo, hx, hy) }; lo.armB = { hand: F.local(lo, hx - 4, hy + 8) };
+        F.person(g, lo);
       }
       /* which way now */
       for (const d of [0, 1]) {
@@ -185,7 +190,7 @@
       sky(g, G);
       g.save(); g.globalAlpha = G.a;
       const GY = 700, k = (G.n - G.yank * 0.8 * (G.n > 0 ? 1 : 0)) / G.pulls;
-      P.fill(g, P.rr(-900, GY, 1800, 220, 0), '#6f9a6a'); P.fill(g, P.rr(-900, GY, 1800, 16, 0), '#8fb884');
+      { const VW = T.view.W; P.fill(g, P.rr(-VW / 2, GY, VW, 220, 0), '#6f9a6a'); P.fill(g, P.rr(-VW / 2, GY, VW, 16, 0), '#8fb884'); }
       /* the frame coming up off the grass, hinged at its foot */
       const ang = T.lerp(-1.42, 0, T.ease.io(T.clamp(k)));
       g.save(); g.translate(-420, GY); g.rotate(ang);
@@ -261,7 +266,7 @@
       if (G.a < 0.005) return;
       sky(g, G);
       g.save(); g.globalAlpha = G.a;
-      P.fill(g, P.rr(-900, GY, 1800, 300, 0), '#6f9a6a'); P.fill(g, P.rr(-900, GY, 1800, 16, 0), '#8fb884');
+      { const VW = T.view.W; P.fill(g, P.rr(-VW / 2, GY, VW, 300, 0), '#6f9a6a'); P.fill(g, P.rr(-VW / 2, GY, VW, 16, 0), '#8fb884'); }
       for (let i = 0; i < N; i++) {
         const x = lx(i) + (G.at === i && !G.moving ? 0 : G.jig(t, i) * 0.3), gone = G.got.includes(i);
         g.strokeStyle = gone ? '#8fb884' : '#3f6b4a'; g.lineCap = 'round'; g.lineWidth = 5;

@@ -332,9 +332,10 @@
       g.strokeStyle = '#2f4a48'; g.lineCap = 'round'; g.lineWidth = 3;
       for (let i = 0; i < 12; i++) { const rx = (i < 6 ? -W / 2 + 10 + i * 21 : W / 2 - 150 + (i - 6) * 24) + T.noise(i, 3) * 10, h = 34 + T.noise(i * 1.7, 4) * 20, sw = Math.sin(t * 1.2 + i) * 4; g.beginPath(); g.moveTo(rx, 262 + (i % 3) * 5); g.quadraticCurveTo(rx + sw * 0.4, 244, rx + sw, 262 - h); g.stroke(); }
       if (live) {
+        T.band(g, 1);
         P.text(g, L.rhText || '기둥의 등불, 냄비, 레오를 좌우로 끌어 보세요. 물그림자가 제자리에 겹치면 머물러요', 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' });
         if (R.idle > 9) { const h = L.hintAt(); if (h) P.beacon(g, h[0], h[1], 44, t, 1, '#fff0c8'); }
-      } else if (L.note) P.text(g, L.note, 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' });
+      } else if (L.note) T.band(g, 1), P.text(g, L.note, 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' });
     }
     const draw0 = L.draw;
     L.draw = function (g, t) { try { draw0(g, t); } finally { P.cray = false; } };
@@ -610,6 +611,7 @@
         g.restore();
       }
       if (D.gq && !D.gq.done) {
+        T.band(g, 1);
         P.text(g, '꿈속에서는 아무것도 제자리에 있지 않아요. 떠다니는 것들을 눌러 제자리로 돌려 주세요', 0, 866, { font: 'serif', size: 26, color: '#fbf6ff', alpha: 0.96, glow: 'rgba(27,36,64,0.95)' });
         if (D.gq.idle > 9) { const h = D.hintAt(); if (h) P.beacon(g, h[0], h[1], 52, t, 1, '#fff0c8'); }
       }

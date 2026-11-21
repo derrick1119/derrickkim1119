@@ -48,7 +48,7 @@
       const W = T.world, C = W.C, PL = T.plot, S = X.S, ps = S.ps, A = X.A, TALK = X.TALK;
       const PIER = C.PIER_Y;
       const [px, py] = X.place.plot();
-      S.rb = { a: 0, run: 0 };
+      S.rb = { a: 0, run: 0 }; RB[2][1] = C.PIER_Y - 2;
       X.cam(px, py, 1); X.camSnap();
       let leo = X.actor('leo', { x: PL.HX + 150, style: F.leoAt(0), flip: true });
       leo.pose = (o, a, t) => { if (!a.moving) { const sw = Math.max(0, Math.sin(t * 5.6)); o.armF = { a: 1.2 + sw * 0.9, b: 0.8 - sw * 0.6 }; } };

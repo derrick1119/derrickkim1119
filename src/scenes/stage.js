@@ -238,6 +238,7 @@
       }
       g.restore();
       const ink = dark ? '#f1e8d6' : '#3d3a5c', halo = dark ? 'rgba(15,21,34,0.8)' : 'rgba(255,246,228,0.95)';
+      g.save(); g.globalAlpha = a; const bk = g.createRadialGradient(0, 430, 40, 0, 430, 340); bk.addColorStop(0, dark ? 'rgba(20,28,48,0.75)' : 'rgba(255,248,234,0.9)'); bk.addColorStop(1, 'rgba(255,248,234,0)'); g.fillStyle = bk; g.fillRect(-360, 200, 720, 460); g.restore();
       P.text(g, '마중 나루에 온 지', 0, 292, { font: 'serif', size: 27, track: 8, color: ink, alpha: 0.85 * a, glow: halo });
       P.text(g, Math.round(y.n) + '년', 0, 440, { size: 196, color: ink, alpha: a, seed: 4, glow: halo });
       P.text(g, '아나, ' + Math.round(T.lerp(y.age0, y.age, u)), 0, 566, { font: 'serif', size: 42, track: 3, color: ink, alpha: 0.9 * a, glow: halo });
