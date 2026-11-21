@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#8fd6f2">
+<meta name="description" content="꼬마 유령이 톡 한 적의 몸으로 옮겨 탄다 — 버린 몸은 펑! 가장 센 적이 곧 내 몸.">
+<title>몸 갈아타기</title>
+<style>
+:root{--ink:#3b2a20;--muted:#8a7a66;--panel:#fff8e8;--line:#e2d3b4;--hot:#ff5a4e}
+@media (prefers-color-scheme:dark){:root{--ink:#f6e7c1;--muted:#b7a98f;--panel:#23303a;--line:#3a4a55}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--panel);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;overscroll-behavior:none}
+main{max-width:420px;margin:0 auto;padding:0 8px 16px}
+header{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 4px}
+h1{font-size:20px;font-weight:900;margin:0}
+header small{color:var(--muted);font-size:12px}
+#game{position:relative;display:flex;flex-direction:column;align-items:center;touch-action:none;user-select:none;-webkit-user-select:none}
+.g-canvas{display:block;border-radius:10px;touch-action:none;outline:none}
+.g-canvas:focus-visible{box-shadow:0 0 0 3px var(--hot)}
+.g-overlay{position:absolute;top:0;left:0;right:0;bottom:52px;margin:0 auto;width:min(100%,380px);border:0;border-radius:10px;background:color-mix(in srgb,var(--panel) 90%,transparent);color:var(--ink);font:inherit;cursor:pointer;display:grid;place-content:center;gap:4px;text-align:center}
+.g-overlay b{font-size:30px}
+.g-overlay span{font-size:14px;color:var(--muted)}
+@media (hover:none){.g-overlay span.kbd{display:none}}
+.g-overlay span.msg{font-size:16px;color:var(--ink)}
+.g-overlay:focus-visible{outline:3px solid var(--hot)}
+.g-mute{position:relative;z-index:2;margin-top:8px;min-height:44px;padding:0 16px;border:1px solid var(--line);border-radius:22px;background:var(--panel);color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
+.g-mute:focus-visible{outline:3px solid var(--hot)}
+</style>
+</head>
+<body>
+<main>
+  <header><h1>👻 몸 갈아타기</h1></header>
+  <div id="game"></div>
+</main>
+<script>/*BUNDLE*/</script>
+</body>
+</html>
