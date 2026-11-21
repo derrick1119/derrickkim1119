@@ -122,7 +122,7 @@
     try { window.localStorage.setItem('tyt-muted', m ? '1' : '0'); } catch (_) { /* fine */ }
     if (ok()) A.master.gain.setTargetAtTime(m ? 0 : 0.9, now(), 0.08);
     const btn = document.getElementById('mute');
-    if (btn) { btn.setAttribute('aria-pressed', m ? 'true' : 'false'); btn.setAttribute('aria-label', m ? '소리 켜기' : '소리 끄기'); }
+    if (btn) { btn.setAttribute('aria-pressed', m ? 'true' : 'false'); btn.setAttribute('aria-label', (T.tr || String)(m ? '소리 켜기' : '소리 끄기')); }
   };
   A.toggleMute = function () { A.setMuted(!A.muted); };
   A.setVolume = function (kind, v) {

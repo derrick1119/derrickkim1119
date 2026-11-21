@@ -273,7 +273,7 @@
         noteEl.addEventListener('click', () => { noteEl.style.display = 'none'; });
         document.body.appendChild(noteEl);
       }
-      noteEl.textContent = '잠깐 문제가 있었지만 계속 진행합니다. (눌러서 닫기)\n' + key;
+      noteEl.textContent = (T.tr || String)('잠깐 문제가 있었지만 계속 진행합니다. (눌러서 닫기)\n') + key;
       noteEl.style.display = 'block';
       clearTimeout(noteTimer); noteTimer = setTimeout(() => { noteEl.style.display = 'none'; }, 16000);
     } catch (_) { /* nowhere to say it */ }

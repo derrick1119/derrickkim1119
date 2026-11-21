@@ -25,7 +25,7 @@
       const k = S.clock;
       const n = P.count(text);
       const tk = (K.cur = { who, text, k: 0, done: false, a: 1 });
-      T.announce(WHO[who][0] + ': ' + text.replace(/\n/g, ' '));
+      T.announce(T.tr(WHO[who][0]) + ': ' + T.tr(text).replace(/\n/g, ' '));
       const dur = Math.max(0.6, n * (o.slow ? 0.11 : 0.062));
       k.tween(tk, 'k', 1, dur, T.ease.lin).then(() => { tk.done = true; });
       /* a remark in passing leaves by itself: o.auto seconds after it has been said */

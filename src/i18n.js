@@ -1,0 +1,188 @@
+/* Take Your Time — a second language. Written by tools/make_i18n.py: edit the table there, not this file.
+   Every string the game draws passes through T.tr on its way to the screen; in English it is looked up
+   here by its Korean original, and some lines are set a little smaller because they run longer. */
+(function () {
+  'use strict';
+  const T = window.TYT;
+  const EN = {
+ "천천히 와": "Take Your Time",
+ "화면을 눌러 시작": "Tap to begin",
+ "소리를 켜면 더 좋아요": "Better with the sound on",
+ "장 바로 가기": "CHAPTERS",
+ "눌러서 이어하기 · ": "Tap to continue · ",
+ "처음부터 시작하기": "Start from the beginning",
+ "프롤로그": "Prologue",
+ "1장 「항구」": "Chapter 1: Harbor",
+ "2장 「약속 목록」": "Chapter 2: The List",
+ "3장 「꿈」": "Chapter 3: The Dream",
+ "4장 「이웃들」": "Chapter 4: Neighbors",
+ "5장 「꽃길」": "Chapter 5: The Flower Road",
+ "6장 「다 지킨 약속」": "Chapter 6: Promises Kept",
+ "마지막 장 「마중」": "Last Chapter: Welcome",
+ "1장": "Chapter 1",
+ "2장": "Chapter 2",
+ "3장": "Chapter 3",
+ "4장": "Chapter 4",
+ "5장": "Chapter 5",
+ "6장": "Chapter 6",
+ "마지막 장": "Last Chapter",
+ "1장 끝": "End of Chapter 1",
+ "2장 끝": "End of Chapter 2",
+ "3장 끝": "End of Chapter 3",
+ "4장 끝": "End of Chapter 4",
+ "5장 끝": "End of Chapter 5",
+ "6장 끝": "End of Chapter 6",
+ "프롤로그 끝": "End of the Prologue",
+ "끝": "The End",
+ "이어서 보기": "Continue",
+ "처음으로 돌아가기": "Back to the beginning",
+ "처음부터 다시 보기": "Watch again from the start",
+ "항구": "Harbor",
+ "약속 목록": "The List",
+ "꿈": "The Dream",
+ "이웃들": "Neighbors",
+ "꽃길": "The Flower Road",
+ "다 지킨 약속": "Promises Kept",
+ "마중": "Welcome",
+ "마중 나루": "Welcome Harbor",
+ "약속": "PROMISES",
+ "빛나는 것을 만져 보세요": "Touch what is glowing",
+ "릴리의 손을 잡아 주세요": "Take Lily's hand",
+ "공책을 펼쳐 보세요": "Open the notebook",
+ "꾹 누른 채로, 릴리 곁을 걸어 주세요": "Press and hold to walk beside Lily",
+ "늦가을, 병실": "Late autumn. A hospital room.",
+ "레오는 아나 몰래, 남기고 갈 레시피를 적고 있다": "In secret, Leo is writing down the recipes he will leave for Ana",
+ "장례를 마친 밤": "The night after the funeral",
+ "레오": "Leo",
+ "아나": "Ana",
+ "릴리": "Lily",
+ "할머니": "Grandma",
+ "브램 선장": "Captain Bram",
+ "로사": "Rosa",
+ "레오와 아나": "Leo and Ana",
+ "엄마": "Mom",
+ "아빠": "Dad",
+ "빈": "Bean",
+ "나": "me",
+ "언젠가, 마당 있는 넓은 집에서 살자.": "Someday, a big house with a yard.",
+ "평생 밥은 내가 해줄게.": "I'll cook for you, all my life.",
+ "아빠가 그네 만들어줄게.": "Daddy will build you a swing.",
+ "오로라, 꼭 같이 보러 가자.": "The aurora. Let's go and see it, together.",
+ "넓은 부엌": "a big kitchen",
+ "마당": "a yard",
+ "더 높이!": "Higher!",
+ "우리,\n같이 늙자.": "Let's grow old\ntogether.",
+ "먼저 가서 넓은 집도 짓고,\n맛있는 것도 많이 해놓을게.": "I'll go on ahead and build us a big house,\nand have plenty of good things cooking.",
+ "당신 왔을 때\n같이 행복할 수 있게.": "So that when you come,\nwe can be happy there together.",
+ "그러니까…  천천히 와.": "So…  take your time.",
+ "약속했다.\n넓은 집, 맛있는 거.": "That's a promise, then.\nA big house. Good food.",
+ "응, 약속.": "A promise.",
+ "마당 있는 넓은 집": "A big house with a yard",
+ "평생 밥해주기": "Cook for you, always",
+ "오로라 보러 가기": "See the aurora",
+ "릴리의 그네": "Lily's swing",
+ "같이 늙기": "Grow old together",
+ "레오표 스튜": "Leo's Stew",
+ "감자 셋": "3 potatoes",
+ "당근 둘": "2 carrots",
+ "양파 하나": "1 onion",
+ "토마토 넷": "4 tomatoes",
+ "약한 불에, 오래오래": "Low heat, nice and slow",
+ "소금은 조금만!": "Only a little salt!",
+ "끼니 거르지 마.": "Don't skip meals.",
+ "왜 이렇게 빨리 왔니.": "Why have you come so soon?",
+ "네 엄마보다 먼저 올 줄은 몰랐구나.": "I never thought you would come before your mother.",
+ "여긴 마중 나루란다.\n먼저 온 사람이, 올 사람을 기다리는 곳이지.": "This is Welcome Harbor. Those who came first\nwait here for the ones still to come.",
+ "브램 선장은 배를 짓는단다.\n아내가 오면 태우려고, 육십 년째.": "Captain Bram is building a boat\nto take his wife out in. Sixty years now.",
+ "로사는 아들 줄 담요를 뜨지.\n다들 누군가를 기다리며 무언가를 만든단다.": "Rosa is knitting a blanket for her son.\nEveryone here is making something for someone.",
+ "저기가 네 자리다.\n네 사람 오면 같이 살 데.": "That spot is yours.\nFor when your someone comes.",
+ "오늘이… 내 기일이구나.\n아나가 차린 밥상이야.": "So today is the day I died.\nAna set this table for me.",
+ "보고 싶으면 따라오너라.": "If you want to see her, come with me.",
+ "이 호수엔 두고 온 사람들이 비친단다.\n볼 수는 있어도, 닿지는 않아.": "This lake shows the ones we left behind.\nYou can look. You cannot reach them.",
+ "꿈으로 한 번은 다녀올 수 있단다.\n평생 딱 한 번이니, 꼭 필요한 날에 쓰렴.": "You may visit her once, in a dream.\nOnly once. Keep it for the day it is needed.",
+ "혼자서는 못 하겠어.": "I can't do this alone.",
+ "할 수 있어.": "You can.",
+ "릴리랑 맛있는 거 많이 먹고, 많이 웃고,\n그 얘기 나중에 다 들려줘.": "Eat well with Lily. Laugh a lot.\nAnd tell me all of it, later.",
+ "나 거기서 집 짓고 있어.": "I'm building us a house over there.",
+ "천천히 와.": "Take your time.",
+ "종이 울리면 누가 오는 거란다.\n누구를 마중하게 될지는, 와 봐야 알지.": "When the bell rings, someone is coming.\nWho it is, we find out on the pier.",
+ "저 애는 집 보러 온 게 아니라\n너 보러 온 거야.": "He didn't come to see the house.\nHe came to see you.",
+ "그 사람은 원래 뭐든 천천히 했어.": "She always did take her time.",
+ "우리 아기.": "My baby.",
+ "같이 늙자고 했는데.": "We said we would grow old together.",
+ "아빠,": "Dad,",
+ "나 결혼해.": "I'm getting married.",
+ "보러 와 줄 거지?": "You'll come, won't you?",
+ "저 배엔… 내 딸이 탔구나.\n네 엄마란다.": "On that boat… that's my daughter.\nYour mother.",
+ "우리 아들, 여기 있었구나.": "My boy. So this is where you were.",
+ "아나표 스튜": "Ana's Stew",
+ "토마토는 넉넉히": "Plenty of tomatoes",
+ "불은 약하게, 오래오래": "Low heat, nice and slow",
+ "처음 보는 풀 한 줌": "A handful of something new",
+ "이번엔 내가 배운다": "This time I learn from her",
+ "우리 집": "Our home",
+ "엄마 먼저 가서, 아빠랑 맛있는 거 해놓을게.": "I'll go on ahead, and Dad and I\nwill have something good on the table.",
+ "그러니까 천천히 와.": "So take your time.",
+ "…당신, 왜 이렇게 늙었어?": "…Look at you. When did you get so old?",
+ "같이 늙자며.": "You said we would grow old together.",
+ "기다리는 동안… 당신을 위해서 참 많은 걸 했어.": "While I waited… I did so many things for you.",
+ "내가 끓인 게 더 맛있는데?": "Mine tastes better, you know.",
+ "알아. 45년 동안 먹었어.": "I know. I've been eating it for 45 years.",
+ "릴리 방도 만들어야지.": "We'll need a room for Lily, too.",
+ "종이 부르는 차례를 한 번 더 들어 보세요": "Listen to the bell once more",
+ "같은 차례로 등불을 눌러 대답해 주세요": "Answer by pressing the lamps in the same order",
+ "종이 부르는 차례를 들어 보세요": "Listen to the order the bell calls in",
+ "줄보다 솟거나 꺼진 돌이 있어요. 놓은 돌을 눌러 다시 들어내세요": "A stone stands above the string, or falls short. Press a placed stone to lift it out",
+ "돌마다 높이가 달라요. 네 돌의 머리가 모두 줄에 닿게 놓아 주세요": "Every stone is a different height. Set them so all four tops meet the string",
+ "그건 아직 받쳐 줄 것이 없어요": "Nothing is standing yet to carry that one",
+ "아래에서부터, 서로 받쳐 주는 차례대로 세워 주세요": "From the ground up: raise each timber once what carries it is standing",
+ "맨 나중에 감긴, 가장 위의 고리부터 풀려요": "It comes off from the top: the last turn first",
+ "감긴 차례를 거꾸로 따라가며, 말뚝을 눌러 밧줄을 풀어 주세요": "Press the posts to unwind the rope, last turn first",
+ "반쯤 닮았어요. 둘 중 하나는 맞아요": "Halfway there. One of the two is right",
+ "전혀 다른 맛이에요": "Nothing like it",
+ "두 가지를 골라 넣어 보세요. 노란 점은 아나의 맛과 닮은 만큼이에요": "Choose two to put in. The yellow dots show how near it is to Ana's",
+ "앞에서부터 되풀이되는 차례를 살펴보세요": "Look at how the flowers repeat from the start",
+ "꽃이 놓이는 차례를 보고, 빈자리에 올 꽃을 골라 주세요": "Read the order of the flowers and choose what fills the gap",
+ "고리를 눌러 돌려 주세요. 바깥 고리는 안쪽 고리를 함께 끌고 가요": "Press a ring to turn it. An outer ring carries the one inside it along",
+ "물결의 고리를 눌러 돌려서, 흩어진 모습을 맞춰 주세요": "Press the rings in the water to turn them until the picture is whole",
+ "설정": "SETTINGS",
+ "음악": "Music",
+ "효과음과 주변 소리": "Effects and ambience",
+ "전체 화면 켜기 / 끄기": "Full screen on / off",
+ "닫고 계속하기": "Close and carry on",
+ "저장을 지우고 처음부터": "Erase my progress and start over",
+ "정말 지울까요? 한 번 더 누르면 지워져요": "Really erase it? Press once more to confirm",
+ "소리 켜기": "Turn sound on",
+ "소리 끄기": "Turn sound off",
+ "잠깐 문제가 있었지만 계속 진행합니다. (눌러서 닫기)\n": "Something went wrong for a moment; carrying on. (tap to close)\n"
+};
+  /* hand-lettered lines that need less room than they were given */
+  const SMALLER = {"천천히 와": 0.62, "1장": 0.86, "2장": 0.86, "3장": 0.86, "4장": 0.86, "5장": 0.86, "6장": 0.86, "마지막 장": 0.86, "꿈": 0.8, "꽃길": 0.56, "다 지킨 약속": 0.9, "마중 나루": 0.8, "언젠가, 마당 있는 넓은 집에서 살자.": 0.84, "평생 밥은 내가 해줄게.": 0.86, "아빠가 그네 만들어줄게.": 0.86, "오로라, 꼭 같이 보러 가자.": 0.7, "넓은 부엌": 0.8, "우리,\n같이 늙자.": 0.74, "마당 있는 넓은 집": 0.74, "평생 밥해주기": 0.82, "같이 늙기": 0.86, "약한 불에, 오래오래": 0.8, "소금은 조금만!": 0.9, "끼니 거르지 마.": 0.9, "나 결혼해.": 0.56, "보러 와 줄 거지?": 0.8, "토마토는 넉넉히": 0.9, "불은 약하게, 오래오래": 0.82, "처음 보는 풀 한 줌": 0.76, "이번엔 내가 배운다": 0.74};
+  const saved = (T.store.get('tyt-set') || {}).lang;
+  T.lang = saved || ((navigator.language || 'ko').toLowerCase().startsWith('ko') ? 'ko' : 'en');
+  T.tr = function (s) {
+    if (T.lang !== 'en' || typeof s !== 'string') return s;
+    if (EN[s] != null) return EN[s];
+    const m = /^아나, (\d+)$/.exec(s);
+    if (m) return 'Ana, ' + m[1];
+    if (s === 'TAKE YOUR TIME') return '천천히 와';
+    if (s === 'WELCOME HARBOR') return '마중 나루';
+    return s;
+  };
+  T.trScale = (s) => (T.lang === 'en' && SMALLER[s]) || 1;
+  /* what is read aloud: a line with no English yet is left unsaid rather than said in the wrong language */
+  const say = T.announce;
+  T.announce = function (text) {
+    if (T.lang === 'en') { const e = T.tr(text); if (e === text && /[\uac00-\ud7a3]/.test(text)) return; text = e; }
+    say(text);
+  };
+  T.setLang = function (lang) {
+    T.lang = lang === 'en' ? 'en' : 'ko';
+    document.documentElement.lang = T.lang;
+    const turn = document.getElementById('turn'), stage = document.getElementById('stage');
+    if (turn) turn.textContent = T.lang === 'en' ? 'Turn the screen sideways for a wider view.' : '화면을 가로로 돌리면 더 넓게 볼 수 있어요.';
+    if (stage) stage.setAttribute('aria-label', T.lang === 'en' ? 'Take Your Time. A story that begins in a hospital room in late autumn and goes on to the harbor of those who came first.' : 'Take Your Time, 천천히 와. 늦가을 병실에서 시작해 먼저 온 사람들의 항구로 이어지는 이야기.');
+    if (T.P && T.P.clearLayout) T.P.clearLayout();
+  };
+  T.setLang(T.lang);
+})();

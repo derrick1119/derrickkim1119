@@ -925,7 +925,7 @@
     if (!S.title.leaving) {
       const p = 0.8 + 0.2 * Math.sin(T.time * 2.2);
       if (S.saved) {
-        P.text(g, '눌러서 이어하기 · ' + NAMES[S.saved.chapter || 0], 0, 738, { font: 'serif', size: 31, color: '#f3ead8', alpha: p * ta });
+        P.text(g, T.tr('눌러서 이어하기 · ') + T.tr(NAMES[S.saved.chapter || 0]), 0, 738, { font: 'serif', size: 31, color: '#f3ead8', alpha: p * ta });
         P.text(g, '처음부터 시작하기', 0, 784, { font: 'serif', size: 19, color: '#e9dcc0', alpha: 0.8 * ta });
         g.fillStyle = T.rgba('#e9dcc0', 0.4 * ta); g.fillRect(-74, 794, 148, 1.2);
       } else {

@@ -41,7 +41,8 @@
   /* ---------- the bell asks, the lamps answer ---------- */
   /* o: { rounds: [[lamp, lamp, …], …], beat } — four lamps, the four notes of the call */
   Z.bell = function (o) {
-    const NOTE = [69, 67, 65, 72], WORD = ['천', '천', '히', '와'];
+    /* the call, a syllable to a lamp; in English the last lamp is the note held */
+    const NOTE = [69, 67, 65, 72], WORD = T.lang === 'en' ? ['Take', 'your', 'time', '~'] : ['천', '천', '히', '와'];
     const G = make({ quiet: true, rounds: o.rounds, r: 0, i: 0, phase: 'listen', lit: [0.12, 0.12, 0.12, 0.12] });
     const lx = (n) => (n - 1.5) * 196, LY = 300;
     const glow = (n) => { G.lit[n] = 1; G.clock.tween(G.lit, n, 0.12, 1.1, T.ease.out); };

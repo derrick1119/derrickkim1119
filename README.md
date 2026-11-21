@@ -102,6 +102,17 @@ python3 tools/bundle.py
 오른쪽 위의 설정 단추(또는 `Esc`)로 음악과 효과음 크기, 전체 화면, 저장 지우기를 고를 수 있고,
 설정이 열려 있는 동안 게임은 멈춥니다.
 
+## 언어
+
+한국어와 영어로 볼 수 있습니다. 처음에는 브라우저 언어를 따르고, 설정에서 바꾸면 그 선택이 기억됩니다.
+영어 문장은 `tools/make_i18n.py`의 표에 있고, 고친 뒤 아래처럼 다시 만듭니다.
+
+```bash
+python3 tools/make_i18n.py
+```
+
+화면 낭독기용 장면 설명은 아직 한국어만 있어서, 영어에서는 대사만 읽힙니다.
+
 ## 구조
 
 빌드 과정 없이 `<script>` 태그로 읽는 순수 캔버스 게임입니다. 그림과 음악은 모두 코드로 만듭니다.
@@ -109,6 +120,7 @@ python3 tools/bundle.py
 ```
 index.html                 화면 틀
 src/core.js                화면 크기, 시간, 입력, 장면 전환
+src/i18n.js                영어 문장 (tools/make_i18n.py가 만든다)
 src/paint.js               손그림 느낌의 도형, 분필, 크레파스, 종이결, 글씨
 src/figures.js             레오, 아나, 릴리, 할머니, 마을 사람들, 빈을 그리는 인형 리그
 src/audio.js               자장가 한 곡과 1장부터 그 화성으로 이어지는 잔잔한 반주, 항구의 종, 효과음 (전부 합성)
@@ -127,6 +139,7 @@ src/scenes/stage.js        2장부터 쓰는 무대: 배우, 카메라, 배, 기
 src/scenes/views.js        거울 호수(물결 고리 퍼즐 포함)와 그 안에 비치는 살아 있는 세계, 꿈
 src/scenes/ch2_list.js … ch7_welcome.js   2장부터 마지막 장까지의 대본
 tools/subset_fonts.py      글꼴을 쓰는 글자만 남겨 fonts.css로 묶기
+tools/make_i18n.py         영어 번역 표에서 src/i18n.js 만들기
 tools/bundle.py            게임 전체를 HTML 파일 하나로 묶기
 ```
 
