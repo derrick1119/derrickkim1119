@@ -1,5 +1,5 @@
 /* Chapter 1 「항구」 — arrival. One long walk, left to right and always upward:
-   across the sea of cloud, onto the quay and into Nana's arms, up through a town where
+   across the sea of cloud, onto the quay and into Mom's arms, up through a town where
    everyone is building for someone, into the house she kept ready, and on to the empty
    plot at the top of the hill. The camera follows; what the hand does is light the lamps:
    the ones standing out in the cloud sea, the one at each turning of the road, and his own. */
@@ -24,14 +24,14 @@
     return k[k.length - 1][1];
   }
   const bump = (x, c, w) => Math.exp(-((x - c) / w) * ((x - c) / w));
-  const LEO_S = 150, NANA_S = 124;
+  const LEO_S = 150, MOM_S = 132;
 
   const S = (T.scenes.harbor = {
     spr: {}, ph: 'sail', cam: { x: 0, y: 450, z: 1 }, camK: 2.2,
     boat: { x: -1500 }, lamps: [], tolls: 0, bell: { k: 0 },
     wx: 0, nx: 0, wph: 0, nph: 0, moving: false, nmoving: false,
     d2: 0, d3: 0, a2: 0, a3: 0, join1: false, join2: false, snap: { k: 0, x: 0, y: 0 }, gate: [null, { k: 0 }, { k: 0 }], r2: 0, r3: 0,
-    leo: {}, nana: {}, hug: { k: 0 }, cup: { k: 0 }, arms: { k: 0 }, lampDown: false,
+    leo: {}, mom: {}, hug: { k: 0 }, cup: { k: 0 }, arms: { k: 0 }, lampDown: false,
     drag: null, idle: 0, noteI: 0,
     home: { open: 0 }, st: null, eat: { k: 0 }, ghost: { a: 0 }, ladle: { k: 0 }, marks: { n: 0, fresh: 0 }, stool: { k: 0 }, sweater: { a: 1, lift: 0 }, clap: { k: 0 },
     point: { k: 0 }, lamp: { planted: 0 }, rest: { k: 0 },
@@ -47,7 +47,7 @@
   const hillOf = (x) => (x < J1 || !S.join1 ? 1 : x < J2 || !S.join2 ? 2 : 3);
   const groundAt = (x) => { if (x < QUAY) return PIER_Y; const h = hillOf(x); return h === 1 ? y1(x) : h === 2 ? y2(x) : y3(x); };
   const surf = (x) => SEA - Math.sin(x * 0.013 + T.time * 0.8) * 4;
-  const HG = () => y3(HOUSE) + 2;                  /* Nana's doorstep */
+  const HG = () => y3(HOUSE) + 2;                  /* Mom's doorstep */
   const UF = () => HG() - 186;                      /* her upstairs floor */
   const toScreen = (wx, wy) => [(wx - S.cam.x) * S.cam.z, 450 + (wy - S.cam.y) * S.cam.z];
   const toWorld = (X, Y) => [X / S.cam.z + S.cam.x, (Y - 450) / S.cam.z + S.cam.y];
@@ -56,7 +56,7 @@
   /* ---------- build: bake the town ---------- */
   const C = { terra: '#c8623f', teal: '#3f7f86', must: '#d7a23c', plum: '#8a5578', slate: '#5d6f8a', rose: '#d98a8f' };
   S.build = function () {
-    if (S.builtGen === T.gen && S.spr.nana) return;   /* baked art is good until the canvas changes size */
+    if (S.builtGen === T.gen && S.spr.mom) return;   /* baked art is good until the canvas changes size */
     S.builtGen = T.gen;
     const H = K.house, sp = (S.spr = {});
     sp.shed = H({ w: 150, h: 112, roofH: 62, roof: 'hip', wall: '#e9dcc0', roofC: C.teal, door: { x: -30, c: '#6b5a48' }, win: [[22, -84, 40, 44, 0]], seed: 11 });
@@ -71,7 +71,7 @@
     sp.far1 = H({ w: 110, h: 90, roofH: 56, roof: 'gable', wall: '#f3e6cc', roofC: C.plum, win: [[-16, -66, 32, 36, 1]], seed: 101 }, 1);
     sp.far2 = H({ w: 120, h: 84, roofH: 52, roof: 'hip', wall: '#f3e6cc', roofC: C.terra, win: [[-40, -62, 30, 34, 1], [14, -62, 30, 34, 1]], seed: 111 }, 1);
     sp.far3 = H({ w: 104, h: 86, roofH: 56, roof: 'gable', roofC: C.teal, stage: 0.5, seed: 121 }, 1);
-    sp.nana = H({ w: 300, h: 276, roofH: 156, roof: 'gable', wall: '#f8eed6', roofC: C.plum, door: { x: -100, c: C.teal }, win: [[20, -150, 54, 60, 1, true], [-34, -150, 0, 0, 0]].slice(0, 1), round: [0, -338], chim: 92, roses: true, seed: 131 }, 1.7);
+    sp.mom = H({ w: 300, h: 276, roofH: 156, roof: 'gable', wall: '#f8eed6', roofC: C.plum, door: { x: -100, c: C.teal }, win: [[20, -150, 54, 60, 1, true], [-34, -150, 0, 0, 0]].slice(0, 1), round: [0, -338], chim: 92, roses: true, seed: 131 }, 1.7);
     sp.slip = K.slip();
     sp.inside = T.bake(-190, -470, 380, 500, paintInside, 1.8);
 
@@ -115,7 +115,7 @@
     }
   };
 
-  /* Nana's house, cut open. Local space: door-step level is y = 0, the upstairs floor is y = -186. */
+  /* Mom's house, cut open. Local space: door-step level is y = 0, the upstairs floor is y = -186. */
   function paintInside(g) {
     const shell = P.poly([[-152, 6], [-152, -272], [-170, -268], [0, -436], [170, -268], [152, -272], [152, 6]]);
     g.save(); g.shadowColor = 'rgba(255,200,120,0.45)'; g.shadowBlur = 34; P.fill(g, shell, '#efe2c6'); g.restore();
@@ -199,7 +199,7 @@
     s.join1 = false; s.join2 = false; s.snap.k = 0; s.gate[1].k = 0; s.gate[2].k = 0; s.r2 = 0; s.r3 = 0;
     s.boat.x = -1500; s.lamps = [{ x: -1020, k: 0, ok: false, mist: 1 }, { x: SEA_LAMP, k: 0, ok: false, mist: 1 }]; s.game = null; s.tolls = 0; s.bell.k = 0;
     s.leo = { x: 0, y: PIER_Y, stand: 0, hop: 0, style: F.styles.leoBed, flip: false, lamp: false };
-    s.nana = { x: 300, y: PIER_Y, flip: true, wave: 0 };
+    s.mom = { x: 300, y: PIER_Y, flip: true, wave: 0 };
     s.wx = 60; s.nx = 130; s.wph = 0; s.nph = 0; s.moving = false; s.nmoving = false;
     s.hug.k = 0; s.cup.k = 0; s.arms.k = 0; s.lampDown = false; s.drag = null; s.idle = 0; s.noteI = 0;
     s.home.open = 0; s.st = null; s.eat.k = 0; s.ghost.a = 0; s.ladle.k = 0; s.marks.n = 0; s.marks.fresh = 0; s.stool.k = 0; s.sweater.a = 1; s.sweater.lift = 0; s.clap.k = 0;
@@ -207,7 +207,7 @@
     s.title.a = 0; s.place.a = 0; s.end.a = 0; s.canLeave = false; s.hintA.a = 0;
     s.bram.wave = 0; s.bram.near = false; s.post.x = 2000; s.post.on = false; s.post.rang = false; s.rosa.k = 0; s.rosa.done = false; s.kidWave.k = 0;
     s.cam.x = -1240; s.cam.y = 450; s.cam.z = 1; s.camK = 2.2; s.placed = false;
-    s.nanaHome = false; s.plotGo = false; s.running = false; s.sitting = false; s.climbing = false; s.nClimb = false;
+    s.momHome = false; s.plotGo = false; s.running = false; s.sitting = false; s.climbing = false; s.nClimb = false;
     s.inWalk = null; s.flash = 0; s.wait = null; s.post.done = false; s.kidWave.done = false; s.lastStep = null;
     TALK.clear();
   }
@@ -232,7 +232,7 @@
       S.boat.x = -560; S.tolls = 2; S.ph = 'sail';
     } else {
       seaLit();
-      S.boat.x = -74; S.leo.lamp = true; S.nana.flip = false; S.lampDown = false;
+      S.boat.x = -74; S.leo.lamp = true; S.mom.flip = false; S.lampDown = false;
       if (cp === 'street') { S.wx = 300; S.nx = 354; S.ph = 'walk'; }
       else if (cp === 'hills') { S.join1 = true; S.gate[1].k = 1; S.r2 = 9999; S.wx = J1 + 40; S.nx = S.wx + 54; S.ph = 'walk'; }
       else if (cp === 'house') { joinAll(); S.wx = 2880; S.nx = 2934; S.ph = 'walk'; }
@@ -249,7 +249,7 @@
     const c = S.camT, ph = S.ph;
     if (ph === 'sail' || ph === 'dock') { c.x = Math.min(S.boat.x + 260, 150); c.y = 450; c.z = 1; }
     else if (ph === 'meet') { c.x = 150; c.y = 452; c.z = 1.05; }
-    else if (ph === 'hug') { c.x = S.nana.x - 14; c.y = 548; c.z = 1.6; }
+    else if (ph === 'hug') { c.x = S.mom.x - 14; c.y = 548; c.z = 1.6; }
     else if (ph === 'walk' || ph === 'climb' || ph === 'point') { c.x = S.wx + 170; c.y = groundAt(S.wx) - 190; c.z = 1; }
     else if (ph === 'home') {
       const up = S.st === 'beam' || S.st === 'marks' || S.st === 'sweater' || S.st === 'wear';
@@ -293,7 +293,7 @@
     const th = [-900, -640, -330, -130];
     if (S.tolls < 4 && b.x > th[S.tolls]) { A.toll(S.tolls, 0.3 + S.tolls * 0.03); S.tolls++; S.bell.k = 1; k.tween(S.bell, 'k', 0, 3.2, T.ease.out); }
     if (!S.placed && b.x > -420) { S.placed = true; T.announce('마중 나루. 종이 울리고, 부두에 누군가 등불을 들고 서 있다.'); k.tween(S.place, 'a', 1, 1.6).then(() => k.wait(3)).then(() => k.tween(S.place, 'a', 0, 1.8)); }
-    if (b.x > -640) { const n = S.nana; if (n.x > 132) { n.x = Math.max(132, n.x - 52 * dt); S.nph += dt * 5.6; S.nmoving = true; } else { S.nmoving = false; n.wave = Math.min(1, n.wave + dt * 1.5); } }
+    if (b.x > -640) { const n = S.mom; if (n.x > 132) { n.x = Math.max(132, n.x - 52 * dt); S.nph += dt * 5.6; S.nmoving = true; } else { S.nmoving = false; n.wave = Math.min(1, n.wave + dt * 1.5); } }
     if (!next && b.x >= -74.5 && S.ph === 'sail') dock();
   }
   async function dock() {
@@ -313,7 +313,7 @@
   /* ---------- the first embrace ---------- */
   S.meet = async function () {
     if (S.ph !== 'meet') return;
-    const k = S.clock, A = T.audio, n = S.nana;
+    const k = S.clock, A = T.audio, n = S.mom;
     S.ph = 'hug'; S.camK = 1.5;
     k.tween(S.hintA, 'a', 0, 0.3);
     S.lampDown = true;
@@ -326,9 +326,9 @@
     k.tween(S.arms, 'k', 0, 0.5);
     await k.tween(S.hug, 'k', 1, 0.8, T.ease.out);
     await k.wait(2.2);
-    await TALK.say('nana', '왜 이렇게 빨리 왔니.', { slow: true });
-    await TALK.say('nana', '네 엄마보다 먼저 올 줄은 몰랐구나.');
-    await TALK.say('nana', '여긴 마중 나루란다.\n먼저 온 사람이, 올 사람을 기다리는 곳이지.');
+    await TALK.say('mom', '왜 이렇게 빨리 왔니.', { slow: true });
+    await TALK.say('mom', '천천히 오라고 했는데.');
+    await TALK.say('mom', '여긴 마중 나루란다.\n먼저 온 사람이, 올 사람을 기다리는 곳이지.');
     await k.wait(0.8);
     k.tween(S.hug, 'k', 0, 1, T.ease.io);
     await k.tween(S.cup, 'k', 1, 1.1, T.ease.io);
@@ -345,7 +345,7 @@
   /* ---------- walking, and the hills ---------- */
   function target() { return S.ph !== 'walk' ? 0 : !S.join1 ? 2 : !S.join2 ? 3 : 0; }
   const waitingAt = () => { const h = target(); return h && !S.moving && !S.nmoving && S.wx >= (h === 2 ? J1 : J2) - 104.5 ? h - 1 : 0; };
-  /* Nana holds her lamp to the one at the turning, and the road ahead comes alight */
+  /* Mom holds her lamp to the one at the turning, and the road ahead comes alight */
   function lightGate() {
     const n = waitingAt();
     if (!n) return;
@@ -375,34 +375,34 @@
       const st = Math.floor(S.wph / Math.PI);
       if (st !== S.lastStep) { S.lastStep = st; if (st % 2 === 0) A.sfx('step'); }
     }
-    /* Nana leads, a lantern's length ahead, and waits when he falls behind */
+    /* Mom leads, a lantern's length ahead, and waits when he falls behind */
     if (S.ph === 'walk' || S.ph === 'climb') {
       const nl = S.ph === 'walk' ? (!S.join1 ? J1 - 50 : !S.join2 ? J2 - 50 : DOOR) : STOP;
       const want = Math.min(nl, S.wx + 54);
       S.nmoving = S.nx < want - 0.5;
       if (S.nmoving) { const v = 86 / (1 + slope(S.nx) * 0.9); S.nx = Math.min(want, S.nx + v * dt); S.nph += (v * dt) / 9.4; }
-      S.nana.flip = !S.nmoving && !S.moving && (S.ph === 'walk' && target() !== 0);
+      S.mom.flip = !S.nmoving && !S.moving && (S.ph === 'walk' && target() !== 0);
     }
     /* neighbours */
     const near = Math.abs(S.wx - 930) < 150;
-    if (near && !S.bram.near) { S.bram.near = true; TALK.say('nana', '브램 선장은 배를 짓는단다.\n아내가 오면 태우려고, 육십 년째.', { auto: 3.2 }); S.clock.tween(S.bram, 'wave', 1, 0.5).then(() => S.clock.wait(2.4)).then(() => S.clock.tween(S.bram, 'wave', 0, 0.6)); note(); }
+    if (near && !S.bram.near) { S.bram.near = true; TALK.say('mom', '브램 선장은 배를 짓는단다.\n아내가 오면 태우려고, 육십 년째.', { auto: 3.2 }); S.clock.tween(S.bram, 'wave', 1, 0.5).then(() => S.clock.wait(2.4)).then(() => S.clock.tween(S.bram, 'wave', 0, 0.6)); note(); }
     if (!S.post.on && !S.post.done && S.wx > 1010) S.post.on = true;
     if (S.post.on) {
       S.post.x -= 170 * dt;
       if (!S.post.rang && S.post.x - S.wx < 300) { S.post.rang = true; A.sfx('bike'); }
       if (S.post.x < 420) { S.post.on = false; S.post.done = true; }
     }
-    if (!S.rosa.done && S.wx > 1930) { S.rosa.done = true; TALK.say('nana', '로사는 아들 줄 담요를 뜨지.\n다들 누군가를 기다리며 무언가를 만든단다.', { auto: 2.4 }); S.clock.tween(S.rosa, 'k', 1, 1.1, T.ease.io).then(() => { notes(4, { vel: 0.3 }); return S.clock.wait(2.2); }).then(() => S.clock.tween(S.rosa, 'k', 0, 1)); }
+    if (!S.rosa.done && S.wx > 1930) { S.rosa.done = true; TALK.say('mom', '로사는 아들 줄 담요를 뜨지.\n다들 누군가를 기다리며 무언가를 만든단다.', { auto: 2.4 }); S.clock.tween(S.rosa, 'k', 1, 1.1, T.ease.io).then(() => { notes(4, { vel: 0.3 }); return S.clock.wait(2.2); }).then(() => S.clock.tween(S.rosa, 'k', 0, 1)); }
     if (!S.kidWave.done && S.wx > 2230) { S.kidWave.done = true; S.clock.tween(S.kidWave, 'k', 1, 0.5).then(() => S.clock.wait(2)).then(() => S.clock.tween(S.kidWave, 'k', 0, 0.6)); note(); }
     if (S.ph === 'walk' && S.join2 && S.wx >= DOOR - 52.5 && !S.nmoving) goHome();
     if (S.ph === 'climb' && S.wx >= STOP - 54.5 && !S.nmoving) pointOut();
   }
 
-  /* ---------- Nana's house ---------- */
+  /* ---------- Mom's house ---------- */
   const tap = (name) => new Promise((res) => { S.st = name; S.idle = 0; S.wait = res; });
   S.act = function () { if (S.wait) { const w = S.wait; S.wait = null; S.idle = 0; w(); } };
   async function goHome() {
-    const k = S.clock, A = T.audio, L = S.leo, N = S.nana;
+    const k = S.clock, A = T.audio, L = S.leo, N = S.mom;
     S.ph = 'home'; S.st = 'enter'; S.camK = 1.3;
     L.x = S.wx; L.y = HG(); N.x = S.nx; N.y = HG(); N.flip = false;
     A.sfx('door');
@@ -410,7 +410,7 @@
     k.tween(S.home, 'open', 1, 1.8, T.ease.io);
     S.inWalk = { l: HOUSE - 34, n: HOUSE + 118 };
     await k.wait(2.6);
-    T.announce('할머니의 부엌. 감자 수프가 끓고, 갓 구운 빵 냄새가 난다.');
+    T.announce('엄마의 부엌. 감자 수프가 끓고, 갓 구운 빵 냄새가 난다.');
     await tap('table');
     /* the meal: she ladles, he sits, and for a moment he is seven again */
     S.st = 'eat';
@@ -455,7 +455,7 @@
     await k.wait(0.5);
     A.sfx('chalk'); A.scaleStep(18, { vel: 0.44, voice: 'felt' });
     await k.tween(S.marks, 'fresh', 1, 0.5, T.ease.out);
-    T.announce('할머니가 레오의 키를 새로 긋는다. 해마다 어림해 그어 둔 눈금보다 조금 더 높다.');
+    T.announce('엄마가 레오의 키를 새로 긋는다. 일곱 살에서 멈춘 눈금 위로, 해마다 어림해 그어 둔 눈금보다 조금 더 높다.');
     await k.wait(1.4);
     await k.tween(S.stool, 'k', 0, 0.8, T.ease.io);
     await tap('sweater');
@@ -488,7 +488,7 @@
     k.wait(2.5).then(() => { S.camK = 2.2; });
   }
   function homeMove(dt) {
-    const L = S.leo, N = S.nana, w = S.inWalk;
+    const L = S.leo, N = S.mom, w = S.inWalk;
     if (!w) return;
     const go = (p, tx, v, ph) => {
       const d = tx - p.x;
@@ -505,11 +505,11 @@
   async function pointOut() {
     const k = S.clock;
     S.ph = 'point';
-    S.nana.flip = true;
+    S.mom.flip = true;
     await k.wait(0.5);
     await k.tween(S.point, 'k', 1, 0.9, T.ease.out);
     await k.wait(0.6);
-    await TALK.say('nana', '저기가 네 자리다.\n네 사람 오면 같이 살 데.', { slow: true });
+    await TALK.say('mom', '저기가 네 자리야.\n네 사람 오면 같이 살 데.', { slow: true });
     S.ph = 'plot'; S.idle = 0;
     k.tween(S.point, 'k', 0, 1.2, T.ease.io);
   }
@@ -530,7 +530,7 @@
     await k.tween(S.rest, 'k', 1, 1.3, T.ease.io);
     await k.wait(1.6);
     S.camK = 0.34; S.ph = 'end';
-    S.nanaHome = true;
+    S.momHome = true;
     await k.wait(10.5);
     T.announce('1장 끝. 다음은 2장, 약속 목록.');
     await k.tween(S.end, 'a', 1, 2.2, T.ease.io);
@@ -551,7 +551,7 @@
   function spot() {
     if (S.ph === 'sail') { const s = seaLamp(); return s && !s.asked && S.boat.x >= s.x - 340 ? [s.x + 24, surf(s.x) - 96, 56] : null; }
     if (S.ph === 'walk') { const n = waitingAt(); if (n) { const q = gateAt(n); return [q[0], q[1], 48]; } return null; }
-    if (S.ph === 'meet') return [S.nana.x, PIER_Y - 70, 70];
+    if (S.ph === 'meet') return [S.mom.x, PIER_Y - 70, 70];
     if (S.ph === 'home' && S.wait && SPOT[S.st]) return SPOT[S.st]();
     if (S.ph === 'plot' && !S.plotGo) return [PLOT + 10, groundAt(PLOT) - 46, 70];
     return null;
@@ -585,10 +585,10 @@
     S.idle += dt;
     if (S.game) S.game.update(dt);
     if (S.ph === 'sail') sail(dt);
-    if (S.running) { const v = 120; S.wx = Math.min(S.nana.x - 36, S.wx + v * dt); S.wph += (v * dt) / 9; S.moving = true; } else if (S.ph === 'hug' || S.ph === 'meet' || S.ph === 'dock') S.moving = false;
+    if (S.running) { const v = 120; S.wx = Math.min(S.mom.x - 36, S.wx + v * dt); S.wph += (v * dt) / 9; S.moving = true; } else if (S.ph === 'hug' || S.ph === 'meet' || S.ph === 'dock') S.moving = false;
     if (S.ph === 'walk' || S.ph === 'climb' || S.ph === 'plot') walk(dt);
     if (S.ph === 'home') homeMove(dt);
-    if (S.nanaHome && S.nx > STOP - 190) { S.nx -= 30 * dt; S.nph += dt * 3.6; S.nmoving = true; S.nana.flip = true; } else if (S.nanaHome) { S.nmoving = false; S.nana.flip = false; }
+    if (S.momHome && S.nx > STOP - 190) { S.nx -= 30 * dt; S.nph += dt * 3.6; S.nmoving = true; S.mom.flip = true; } else if (S.momHome) { S.nmoving = false; S.mom.flip = false; }
     camUpdate(dt);
   };
 
@@ -801,7 +801,7 @@
     }
   }
 
-  /* ---------- drawing: Nana's house ---------- */
+  /* ---------- drawing: Mom's house ---------- */
   function drawHome(g) {
     const t = T.time, open = S.home.open, hg = HG(), uf = hg - 186;
     if (open > 0.005) {
@@ -833,7 +833,7 @@
     }
     if (open < 0.995) {
       g.save(); g.globalAlpha = 1 - open;
-      T.blit(g, S.spr.nana, HOUSE, hg + 3);
+      T.blit(g, S.spr.mom, HOUSE, hg + 3);
       /* smoke */
       g.restore();
     }
@@ -842,12 +842,12 @@
   function handLamp(g, hand, lit) { P.line(g, hand[0], hand[1], hand[0], hand[1] + 9, 1.6, '#5d5066'); K.lantern(g, hand[0], hand[1] + 16, T.time, { bare: true, s: 0.8, lit, seed: hand[0] > 0 ? 3 : 7 }); }
 
   function inside(g) {
-    const t = T.time, L = S.leo, N = S.nana, hg = HG(), uf = hg - 186, st = S.st;
+    const t = T.time, L = S.leo, N = S.mom, hg = HG(), uf = hg - 186, st = S.st;
     const lUp = Math.abs(L.y - uf) < 2, nUp = Math.abs(N.y - uf) < 2;
-    /* Nana */
-    const ns = F.styles.nana, nh = F.hipHeight(ns, NANA_S);
+    /* Mom */
+    const ns = F.styles.mom, nh = F.hipHeight(ns, MOM_S);
     const stool = T.ease.io(S.stool.k);
-    const no = { x: N.x, y: N.y - nh - stool * 20, s: NANA_S, style: ns, flip: N.flip, lean: 0.1, face: { blush: 0.2, mouth: 'smile' } };
+    const no = { x: N.x, y: N.y - nh - stool * 20, s: MOM_S, style: ns, flip: N.flip, lean: 0.1, face: { blush: 0.2, mouth: 'smile' } };
     if (S.nmoving || S.nClimb) { no.walk = S.nph; if (S.nClimb) no.flip = true; }
     else if (st === 'table' || st === 'enter') { no.flip = true; no.armF = { a: 1.25 + Math.sin(t * 2.4) * 0.12, b: 0.5 }; no.lean = 0.14; }   /* stirring the pot */
     else if (st === 'eat' || st === 'stairs') {
@@ -893,17 +893,17 @@
 
   /* ---------- drawing: people on the road ---------- */
   function people(g, h) {
-    if (S.ph === 'home' || S.ph === 'sail') { if (S.ph === 'sail' && h === 1) pierNana(g); return; }
-    const t = T.time, L = S.leo, N = S.nana;
-    const ns = F.styles.nana, ls = L.style;
+    if (S.ph === 'home' || S.ph === 'sail') { if (S.ph === 'sail' && h === 1) pierMom(g); return; }
+    const t = T.time, L = S.leo, N = S.mom;
+    const ns = F.styles.mom, ls = L.style;
     const onPier = S.ph === 'dock' || S.ph === 'meet' || S.ph === 'hug';
     if (onPier) {
       if (h !== 1) return;
       const hug = T.ease.io(S.hug.k), cup = T.ease.io(S.cup.k), arms = S.arms.k;
       const lx = S.ph === 'dock' ? null : S.wx;
-      /* Nana */
-      const nh = F.hipHeight(ns, NANA_S);
-      const no = { x: N.x, y: PIER_Y - nh, s: NANA_S, style: ns, flip: true, lean: 0.1 + hug * 0.16, headTilt: hug * 0.16 - cup * 0.3, face: { eye: hug > 0.5 ? 'closed' : 'open', mouth: cup > 0.4 ? 'smile' : null, blush: 0.22, tear: Math.max(hug, cup) * 0.8, tearY: (t * 2) % 3 } };
+      /* Mom */
+      const nh = F.hipHeight(ns, MOM_S);
+      const no = { x: N.x, y: PIER_Y - nh, s: MOM_S, style: ns, flip: true, lean: 0.1 + hug * 0.16, headTilt: hug * 0.16 - cup * 0.3, face: { eye: hug > 0.5 ? 'closed' : 'open', mouth: cup > 0.4 ? 'smile' : null, blush: 0.22, tear: Math.max(hug, cup) * 0.8, tearY: (t * 2) % 3 } };
       const lhY = PIER_Y - F.hipHeight(ls, LEO_S);
       const headL = [(lx || 52) + 10, lhY - 72];
       if (hug > 0.02) { no.armF = { hand: F.local(no, T.lerp(N.x - 30, (lx || 0) - 12, hug), lhY - 50 + Math.sin(t * 5) * 3 * hug) }; no.armB = { hand: F.local(no, (lx || 0) - 6, lhY - 26) }; }
@@ -936,8 +936,8 @@
       if (hillOf(w.x) !== h) continue;
       const gy = groundAt(w.x);
       if (w.id === 'n') {
-        const nh = F.hipHeight(ns, NANA_S);
-        const o = { x: w.x, y: gy - nh, s: NANA_S, style: ns, flip: N.flip, lean: 0.1, face: { blush: 0.2, mouth: 'smile' }, skip: { armF: true } };
+        const nh = F.hipHeight(ns, MOM_S);
+        const o = { x: w.x, y: gy - nh, s: MOM_S, style: ns, flip: N.flip, lean: 0.1, face: { blush: 0.2, mouth: 'smile' }, skip: { armF: true } };
         if (S.nmoving) { o.walk = S.nph; o.lean = 0.14; }
         o.armF = { a: 0.95, b: 0.55 };
         if (pt > 0.02) { o.armB = { a: -(1.5 + Math.sin(t * 2) * 0.03) * pt, b: 0.1 }; o.headTilt = -0.1; }
@@ -958,10 +958,10 @@
       }
     }
   }
-  function pierNana(g) {
-    const N = S.nana, ns = F.styles.nana, t = T.time;
+  function pierMom(g) {
+    const N = S.mom, ns = F.styles.mom, t = T.time;
     if (S.boat.x < -1100) return;
-    const o = { x: N.x, y: PIER_Y - F.hipHeight(ns, NANA_S), s: NANA_S, style: ns, flip: true, lean: 0.1, face: { blush: 0.2 }, skip: { armF: true } };
+    const o = { x: N.x, y: PIER_Y - F.hipHeight(ns, MOM_S), s: MOM_S, style: ns, flip: true, lean: 0.1, face: { blush: 0.2 }, skip: { armF: true } };
     if (S.nmoving) o.walk = S.nph;
     o.armF = { a: 1.0 + N.wave * 0.9 + Math.sin(t * 3.5) * 0.14 * N.wave, b: 0.5 };
     F.person(g, o);
@@ -1169,7 +1169,7 @@
 
   T.world = {
     S, K1, K2, K3,
-    C: { SEA, PIER_Y, QUAY, J1, J2, HOUSE, DOOR, STOP, PLOT, LEO_S, NANA_S, SEA_LAMP },
+    C: { SEA, PIER_Y, QUAY, J1, J2, HOUSE, DOOR, STOP, PLOT, LEO_S, MOM_S, SEA_LAMP },
     y1, y2, y3, groundAt, hillOf, surf, HG, toScreen, toWorld, layer, handLamp,
     cam: S.cam,
     /* hook: { people(g, hill), plot(g, x), beforeSea(g, xa, xb), sky(g), screen(g), flags: { bramGone } } */

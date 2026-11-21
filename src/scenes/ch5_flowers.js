@@ -1,4 +1,4 @@
-/* Chapter 5 「꽃길」 — years twenty to twenty-five. Two entrances: his mother at the harbour,
+/* Chapter 5 「꽃길」 — years twenty to twenty-five. Two entrances: a letter at the harbour,
    and Lily at her wedding, where he walks the flower road beside the arm she has left empty.
    Afterwards he looks at the swing he built for a child, and makes it wide enough for two. */
 (function () {
@@ -29,7 +29,7 @@
       }
       for (const q of V.petals) { q.y += q.v * dt; q.ph += dt; if (q.y > SHORE) { q.y = -10; } }
     };
-    const guests = [[260, F.styles.nana, 124], [330, F.styles.mother, 138], [640, F.styles.rosa, 138], [700, F.styles.rosaSon, 142], [1030, F.styles.villagerA, 140], [1100, F.styles.villagerB, 132], [1420, F.styles.villagerC, 142], [1500, F.styles.post, 140]];
+    const guests = [[260, F.styles.mom, 132], [330, F.styles.villagerC, 138], [640, F.styles.rosa, 138], [700, F.styles.rosaSon, 142], [1030, F.styles.villagerA, 140], [1100, F.styles.villagerB, 132], [1420, F.styles.villagerC, 142], [1500, F.styles.post, 140]];
     V.draw = function (g, t, S) {
       const W = T.view.W, wx = V.p * LEN, hint = T.clamp((S.idle - 2) / 1.2);
       P.cray = P.look === 'crayon'; if (P.cray) P.crayonize(g);   /* the road is the harbour's; the hall below it is not */
@@ -166,80 +166,46 @@
       let leo = X.actor('leo', { x: PL.HX + 150, style: F.leoAt(2), flip: true, lean: 0.06 });
       let bean = X.actor('bean', { dog: true, s: 220, x: PL.HX + 190, sit: 1, wag: 0.5 });
       X.title();
-      await X.wait(5.4);
+      await X.wait(4.2);
       X.toll(0); await X.wait(1.5); X.toll(1);
       await X.wait(1);
       X.walk(leo, PL.HX - 440, 96);
       await X.wait(1.6);
 
-      /* ---- his mother ---- */
-      let nana, mom;
+      /* ---- the bell is not only for people: a letter comes in on the mail boat ---- */
+      let mom, post;
       await X.dip(async () => {
         S.actors = []; S.boats = [];
         const [qx, qy] = X.place.quay(); X.cam(qx, qy, 1.05); X.camSnap();
-        nana = X.actor('nana', { x: 150, style: F.styles.nana, s: C.NANA_S, lamp: true, lampHand: 'F', lean: 0.1, flip: true });
+        mom = X.actor('mom', { x: 150, style: F.styles.mom, s: C.MOM_S, lamp: true, lampHand: 'F', lean: 0.1, flip: true });
         leo = X.actor('leo', { x: 214, style: F.leoAt(2), flip: true, lean: 0.06 });
-        mom = X.actor('mom', { style: F.styles.mother, s: 138, lean: 0.06 });
-        S.b1 = X.boat({ x: -880, riders: [mom] });
+        bean = X.actor('bean', { dog: true, s: 220, x: 268, sit: 1, flip: true, wag: 0.6 });
+        post = X.actor('post', { style: F.styles.post, s: 140, lean: 0.05 });
+        S.b1 = X.boat({ x: -880, riders: [post], hull: '#3f6b8a' });
       });
-      X.age('아나, 56');
-      nana.pose = (o, a, t) => { if (!a.hug) { o.armF = { a: 1.0 + 0.9 + Math.sin(t * 3.5) * 0.14, b: 0.5 }; o.y -= Math.abs(Math.sin(t * 3)) * 2; } };
+      X.age('아나, 61');
       const pressed = X.seaLamp({ rounds: [[3, 0, 1, 2], [0, 2, 1, 3, 3]] });
       X.sail(S.b1, -74, 62);
       await pressed;
-      X.TALK.say('nana', '저 배엔… 내 딸이 탔구나.\n네 엄마란다.', { auto: 3 });
+      X.TALK.say('mom', '종이 사람 때문에만 울리는 건 아니란다.\n꼭 전하고 싶은 말도, 배를 타고 와.', { auto: 3 });
       await new Promise((res) => { const iv = () => (S.b1.x >= -74.5 ? res() : X.wait(0.2).then(iv)); iv(); });
       A.sfx('door');
-      await X.land(mom, 40);
-      T.announce('배에서 내린 사람은 레오의 어머니다. 할머니의 딸.');
-      await X.wait(0.6);
-      await X.tap(() => [mom.x, PIER - 70, 64]);
-      /* she goes past her own mother, first, to her son */
-      nana.lamp = false; nana.pose = null;
-      await X.walk(mom, leo.x - 38, 110);
-      mom.cup = { k: 0 }; mom.hug = { k: 0 };
-      mom.pose = (o, a, t) => {
-        const k = T.ease.io(mom.cup.k), hy = PIER - F.hipHeight(leo.style, leo.s) - 72;
-        if (k > 0.02 && mom.hug.k < 0.02) { o.armF = { hand: F.local(o, T.lerp(mom.x + 20, leo.x + 2, k), T.lerp(PIER - 60, hy + 12, k)) }; o.armB = { hand: F.local(o, T.lerp(mom.x + 20, leo.x - 14, k), T.lerp(PIER - 60, hy + 16, k)) }; o.headTilt = -0.2 * k; o.face.tear = k * 0.8; o.face.tearY = (t * 2) % 3; }
-        T.embrace(o, mom, leo, mom.hug.k);
-      };
-      leo.pose = (o, a, t) => { o.headTilt = 0.2 * mom.cup.k; o.face.tear = mom.cup.k * 0.7; o.face.tearY = (t * 2) % 3; T.embrace(o, leo, mom, mom.hug.k, true); };
-      await X.tween(mom.cup, 'k', 1, 1.1);
-      A.motif({ voice: 'felt', vel: 0.4, beat: 0.82 });
-      await X.wait(1.2);
-      await X.TALK.say('mom', '우리 아들, 여기 있었구나.', { slow: true });
-      /* three generations on the quay */
-      leo.armOver = true; mom.z = 1;
-      await X.tween(mom.hug, 'k', 1, 0.8, T.ease.out);
-      nana.hug = { k: 0 };
-      nana.pose = (o, a, t) => T.embrace(o, nana, mom, nana.hug.k);
-      await X.walk(nana, mom.x - 30, 80);
-      nana.flip = false; nana.z = 2;
-      await X.tween(nana.hug, 'k', 1, 0.8, T.ease.out);
-      T.announce('세 사람이 항구에서 끌어안는다. 할머니의 기다림도 여기서 끝난다.');
-      X.notes(4);
-      await X.wait(4);
-
-      /* ---- a letter comes up the hill ---- */
-      let post;
+      await X.land(post, 44);
+      /* he holds it out: one letter, addressed in a hand Leo knows */
+      post.pose = (o, a, t) => { o.armF = { hand: F.local(o, post.x + 34, PIER - 74 + Math.sin(t * 2) * 2) }; };
+      post.prop = (g, j) => { g.save(); g.translate(j.handF[0] + 6, j.handF[1] - 4); g.rotate(-0.2); P.fill(g, P.rr(-13, -9, 26, 18, 2), '#fbf4e2'); P.line(g, -13, -9, 0, 1, 1.4, '#c9b79a'); P.line(g, 13, -9, 0, 1, 1.4, '#c9b79a'); P.fill(g, P.circle(0, 1, 2.6), '#c9573f'); g.restore(); };
+      T.announce('우편배가 닿는다. 집배원이 레오에게 편지 한 통을 내민다.');
+      await X.wait(0.5);
+      X.walk(leo, post.x + 70, 90);
+      await X.tap(() => [post.x + 36, PIER - 76, 60]);
+      await X.card(invitation, { run: async (c) => { T.announce('릴리의 편지. 아빠, 나 결혼해. 보러 와 줄 거지? 릴리.'); await X.tween(c, 'w', 1, 4.4, T.ease.lin); }, max: 16 });
+      post.prop = null; post.pose = null;
       await X.dip(async () => {
         S.actors = []; S.boats = [];
         X.cam(px, py, 1); X.camSnap();
         leo = X.actor('leo', { x: PL.HX + 160, style: F.leoAt(2), flip: true, lean: 0.06 });
         bean = X.actor('bean', { dog: true, s: 220, x: PL.HX + 200, sit: 1, wag: 0.5 });
-        post = X.actor('post', { x: PL.HX - 520, style: F.styles.post, s: 140, keepFlip: true, y: null });
-        post.pose = (o, a, t) => { o.y += 16; o.lean = 0.34; const c = a.moving ? t * 7 : 0; o.legF = { foot: [8 + Math.cos(c) * 6, 28 + Math.sin(c) * 6] }; o.legB = { foot: [8 - Math.cos(c) * 6, 28 - Math.sin(c) * 6] }; o.armF = { hand: [20, -14] }; o.armB = { hand: [19, -12] }; o.walk = null; };
-        post.prop = (g, j, o, a, t) => { K.bike(g, o.x - 12, W.groundAt(a.x) + 1, 1.25, a.moving ? t * 7 : 0); P.fill(g, P.rr(o.x - 34, o.y - 2, 24, 20, 4), '#b98a5a'); };
       });
-      X.age('아나, 61');
-      await X.walk(post, PL.HX - 150, 150);
-      A.sfx('bike');
-      leo.flip = true;
-      await X.walk(leo, PL.HX - 92, 90);
-      await X.tap(() => [post.x + 10, W.groundAt(post.x) - 80, 60]);
-      await X.card(invitation, { run: async (c) => { T.announce('릴리의 편지. 아빠, 나 결혼해. 보러 와 줄 거지? 릴리.'); await X.tween(c, 'w', 1, 4.4, T.ease.lin); }, max: 16 });
-      X.walk(post, PL.HX - 640, 150);
-      await X.wait(0.8);
       /* the whole town weaves the road she will not walk on */
       T.announce('꽃길에 걸 화환을 엮는다. 꽃이 되풀이되는 차례를 보고 빈자리를 채운다.');
       await X.play(T.puzzle.garland({ pattern: [0, 1, 0, 2], len: 13, gaps: [5, 7, 10, 11, 12] }));
@@ -256,7 +222,7 @@
       await X.wait(5.5);
 
       /* ---- the swing ---- */
-      leo.x = PL.TREE_X - 40; leo.flip = false; post.hidden = true; bean.x = PL.TREE_X - 26; bean.flip = false;
+      leo.x = PL.TREE_X - 40; leo.flip = false; bean.x = PL.TREE_X - 26; bean.flip = false;
       X.cam(PL.TREE_X + 40, py + 40, 1.5); X.camSnap();
       await X.view(null, { out: 1.4, in: 1.6 });
       X.bed(5, 0.13, 'home');

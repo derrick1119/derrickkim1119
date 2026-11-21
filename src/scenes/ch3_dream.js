@@ -13,19 +13,19 @@
       const [px, py] = X.place.plot();
       X.cam(px, py, 1); X.camSnap();
       const leo = X.actor('leo', { x: PL.HX + 30, style: F.leoAt(0) });
-      const nana = X.actor('nana', { x: PL.HX - 150, style: F.styles.nana, s: C.NANA_S, lamp: true, lampHand: 'F', lean: 0.1 });
+      const mom = X.actor('mom', { x: PL.HX - 150, style: F.styles.mom, s: C.MOM_S, lamp: true, lampHand: 'F', lean: 0.1 });
       /* measuring up the first beam */
       leo.pose = (o, a, t) => { if (!a.moving && !a.push) { o.armF = { a: 1.3 + Math.sin(t * 2.4) * 0.3, b: 0.4 }; o.headTilt = 0.1; } };
       X.title();
-      await X.wait(5.6);
+      await X.wait(4.2);
 
       /* to the lake */
       leo.pose = null;
-      X.walk(nana, C.PLOT + 420, 80);
+      X.walk(mom, C.PLOT + 420, 80);
       await X.wait(0.4);
       X.walk(leo, C.PLOT + 380, 80);
       await X.wait(1.7);
-      const lake = T.lake({ paint: T.vig.tired, leo: F.leoAt(0), nana: true, i: 0 });
+      const lake = T.lake({ paint: T.vig.tired, leo: F.leoAt(0), mom: true, i: 0 });
       await X.view(lake, { color: '#1b2a40' });
       T.announce('호수에 물결이 인다. 고리 셋을 눌러 돌려 비친 모습을 맞춘다.');
       await lake.calm({ start: [2, 5, 7] });
@@ -34,7 +34,7 @@
       await X.wait(2.6);
       /* He has one dream to give. Tap the water to see another evening; carry the light to the water to use it. */
       let sent = false;
-      await X.TALK.say('nana', '꿈으로 한 번은 다녀올 수 있단다.\n평생 딱 한 번이니, 꼭 필요한 날에 쓰렴.');
+      await X.TALK.say('mom', '꿈으로 한 번은 다녀올 수 있단다.\n평생 딱 한 번이니, 꼭 필요한 날에 쓰렴.');
       const dreamt = lake.offerMote().then(() => { sent = true; });
       for (let i = 0; i < 3 && !sent; i++) {
         if (i > 0) { await X.tween(lake.fade, 'a', 0, 0.7); lake.i = i; lake.amp = 1; await X.tween(lake.fade, 'a', 1, 0.9); X.note({ voice: 'felt', vel: 0.3 }); }
@@ -77,17 +77,17 @@
       await X.wait(6.5);
 
       /* back on the hill: up goes the frame */
-      leo.x = PL.HX - 150; leo.flip = false; nana.x = PL.HX + 160; nana.flip = true; nana.lamp = false;
+      leo.x = PL.HX - 150; leo.flip = false; mom.x = PL.HX + 160; mom.flip = true; mom.lamp = false;
       const push = (o, a, t) => { o.armF = { a: 1.9, b: 0.3 }; o.armB = { a: 1.7, b: 0.3 }; o.lean = 0.2; };
       await X.view(null, { color: '#fff6e6' });
-      leo.pose = push; nana.pose = push; leo.push = true;
+      leo.pose = push; mom.pose = push; leo.push = true;
       /* the timber is cut and lying in the grass: what goes up first? */
       T.announce('뼈대 세우기. 풀밭에 놓인 나무 일곱 개를, 서로 받쳐 주는 차례대로 세운다.');
       await X.tap(() => [PL.HX, W.y3(PL.HX) - 30, 60]);
       await X.play(T.puzzle.frame());
       for (let i = 0; i < 3; i++) { A.sfx('knock', i / 3); X.note(); X.tween(ps, 'raise', (i + 1) / 3, 0.5, T.ease.out); await X.wait(0.55); }
       ps.stage = 2; ps.raise = 0;
-      leo.pose = null; nana.pose = (o, a, t) => { o.armF = { a: 1.35 + Math.sin(t * 16) * 0.16, b: 1.1 }; o.armB = { a: 1.2 - Math.sin(t * 16) * 0.16, b: 1.1 }; o.face.eye = 'happy'; };
+      leo.pose = null; mom.pose = (o, a, t) => { o.armF = { a: 1.35 + Math.sin(t * 16) * 0.16, b: 1.1 }; o.armB = { a: 1.2 - Math.sin(t * 16) * 0.16, b: 1.1 }; o.face.eye = 'happy'; };
       T.announce('집의 뼈대가 선다.');
       A.motif({ voice: 'box', vel: 0.36, beat: 0.7 });
       await X.wait(3.4);

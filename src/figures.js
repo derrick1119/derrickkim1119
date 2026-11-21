@@ -15,14 +15,14 @@
     anaBlack: { skin: '#f0c7a9', hair: '#2a2024', hairStyle: 'bob', top: '#2f2b35', bottom: '#2f2b35', skirt: 30, shoe: '#221d24' },
     leoHome: { skin: '#e9c0a2', hair: '#3a2b25', hairStyle: 'beanie', beanie: '#d7a23c', top: '#d7a23c', bottom: '#4b5669', shoe: '#33291f' },
     leoKid: { skin: '#f0c4a6', hair: '#3a2b25', hairStyle: 'short', top: '#d7a23c', bottom: '#4b5669', shoe: '#33291f', kid: true },
-    nana: { skin: '#eec3a6', hair: '#f3efe6', hairStyle: 'bun', glasses: true, top: '#7b5a86', scarf: '#e9dcc3', bottom: '#3f6b70', skirt: 34, shoe: '#4a3530' },
+    /* his mother: she has been here since he was seven, and has let herself grow old watching him */
+    mom: { skin: '#eec3a6', hair: '#a59a94', hairStyle: 'bun', top: '#7b5a86', scarf: '#e9dcc3', bottom: '#3f6b70', skirt: 34, shoe: '#4a3530' },
     bram: { skin: '#e2ad88', hair: '#f3efe6', hairStyle: 'short', beard: '#f3efe6', cap: '#2f4460', top: '#2f4460', bottom: '#6b5a48', shoe: '#33291f' },
     rosa: { skin: '#f1c8aa', hair: '#6b3f2a', hairStyle: 'bob', top: '#e9b93a', bottom: '#e9b93a', skirt: 26, shoe: '#5a3a2e' },
     post: { skin: '#e7b793', hair: '#3a2b25', hairStyle: 'short', cap: '#3f6b8a', top: '#3f6b8a', bottom: '#2f4460', shoe: '#33291f' },
     villagerA: { skin: '#e7b793', hair: '#8a8a8a', hairStyle: 'short', top: '#6f9a8a', bottom: '#5a4a44', shoe: '#33291f' },
     villagerB: { skin: '#f0c7a9', hair: '#c9c2b4', hairStyle: 'bun', top: '#c9805a', bottom: '#5d6f8a', skirt: 28, shoe: '#4a3530' },
     /* the later chapters */
-    mother: { skin: '#eec3a6', hair: '#b9b2a8', hairStyle: 'bob', top: '#3f7f86', scarf: '#f1c04a', bottom: '#5d6f8a', skirt: 32, shoe: '#4a3530' },
     bramWife: { skin: '#eec3a6', hair: '#f6f2ea', hairStyle: 'bun', top: '#b98aa4', scarf: '#f6e9cc', bottom: '#6b5a78', skirt: 34, shoe: '#4a3530' },
     rosaSon: { skin: '#e2ad88', hair: '#f3efe6', hairStyle: 'short', top: '#8a8f9a', bottom: '#4b5669', shoe: '#33291f' },
     villagerC: { skin: '#e2ad88', hair: '#5a4a44', hairStyle: 'short', top: '#8a5578', bottom: '#4b5669', shoe: '#33291f' },

@@ -50,7 +50,7 @@ T = [
     ("레오는 아나 몰래, 남기고 갈 레시피를 적고 있다", "In secret, Leo is writing down the recipes he will leave for Ana"),
     ("장례를 마친 밤", "The night after the funeral"),
     # ---- names
-    ("레오", "Leo"), ("아나", "Ana"), ("릴리", "Lily"), ("할머니", "Grandma"), ("브램 선장", "Captain Bram"), ("로사", "Rosa"),
+    ("레오", "Leo"), ("아나", "Ana"), ("릴리", "Lily"), ("브램 선장", "Captain Bram"), ("로사", "Rosa"),
     ("레오와 아나", "Leo and Ana"), ("엄마", "Mom"), ("아빠", "Dad"), ("빈", "Bean"), ("나", "me"),
     # ---- prologue
     ("언젠가, 마당 있는 넓은 집에서 살자.", "Someday, a big house with a yard.", 0.84), ("평생 밥은 내가 해줄게.", "I'll cook for you, all my life.", 0.86),
@@ -66,14 +66,19 @@ T = [
     # ---- chapter 1
     ("레오표 스튜", "Leo's Stew"), ("감자 셋", "Three potatoes"), ("당근 둘", "Two carrots"), ("양파 하나", "An onion"), ("토마토 넷", "Four tomatoes"),
     ("약한 불에, 오래오래", "Low heat, nice and slow", 0.8), ("소금은 조금만!", "Less salt!"), ("끼니 거르지 마.", "Don't skip meals.", 0.9),
-    ("왜 이렇게 빨리 왔니.", "Why have you come so soon?"), ("네 엄마보다 먼저 올 줄은 몰랐구나.", "I never thought you'd get here before your mother."),
+    ("왜 이렇게 빨리 왔니.", "Why have you come so soon?"), ("천천히 오라고 했는데.", "I told you to take your time."),
     ("여긴 마중 나루란다.", "This is Welcome Harbor. Those who came first\nwait here for the ones still to come."),
     ("브램 선장은 배를 짓는단다.", "Captain Bram is building a boat\nto take his wife out in. Sixty years now."),
     ("로사는 아들 줄 담요를 뜨지.", "Rosa is knitting a blanket for her son.\nEveryone here is making something for someone."),
-    ("저기가 네 자리다.", "That spot is yours.\nFor when your someone comes."),
+    ("저기가 네 자리야.", "That spot is yours.\nFor when your someone comes."),
     # ---- chapter 2
-    ("오늘이… 내 기일이구나.", "So today is the day I died.\nAna set this table for me."), ("보고 싶으면 따라오너라.", "If you want to see her, come with me."),
-    ("이 호수엔 두고 온 사람들이 비친단다.", "This lake shows the ones we left behind.\nYou can look. You cannot reach them."),
+    ("오늘로 꼭 일 년이구나.", "A year ago today.\nCome with me, if you want to see her."),
+    ("소금을 두 번 넣었네.", "She salted it twice."), ("아나가 한 대로, 레오의 냄비에도 소금을 두 번 넣어 주세요", "Do as Ana did: tap Leo's pot to salt it, twice."), ("기다리는 장면에서는 화면을 길게 누르거나 톡톡 두드리면 빨리 지나가요", "Where a scene is only passing time, hold the screen down or tap to move it along."), ("볼 수는 있어도, 닿지는 않아.", "You can look. You cannot reach them."),
+    ("기둥의 등불, 냄비, 레오를 좌우로 끌어 보세요.", "Slide the lamp post, the pot and Leo along the bank. Each shadow settles when it finds its place."),
+    ("올해도 호수에서 본 대로 끓였어, 빈.", "Made it the way I watched her make it, Bean. Same as every year."),
+    ("…올해는 뭘 넣은 거지? 내 공책엔 없는 건데.", "…What did she put in this year?\nThat isn't in my notebook."),
+    ("종이 사람 때문에만 울리는 건 아니란다.", "The bell doesn't only ring for people.\nWhat someone needs to tell you comes by boat too."),
+    ("이 호수엔 두고 온 사람들이 비친단다.", "This lake shows the ones we left behind.\nIt's where I watched you grow up."),
     # ---- chapter 3
     ("꿈으로 한 번은 다녀올 수 있단다.", "You may visit her once, in a dream.\nOnly once. Keep it for the day it is needed."),
     ("혼자서는 못 하겠어.", "I can't do this alone."), ("할 수 있어.", "You can."),
@@ -85,7 +90,7 @@ T = [
     ("그 사람은 원래 뭐든 천천히 했어.", "She always did take her time."), ("우리 아기.", "My baby."), ("같이 늙자고 했는데.", "We said we would grow old together."),
     # ---- chapter 5
     ("아빠,", "Dad,"), ("나 결혼해.", "I'm getting married.", 0.56), ("보러 와 줄 거지?", "You'll come, won't you?", 0.8),
-    ("저 배엔… 내 딸이 탔구나.", "On that boat… that's my daughter.\nYour mother."), ("우리 아들, 여기 있었구나.", "My boy. So this is where you were."),
+    
     # ---- chapter 6
     ("아나표 스튜", "Ana's Stew"), ("토마토는 넉넉히", "Plenty of tomatoes", 0.9), ("불은 약하게, 오래오래", "Low heat, nice and slow", 0.82),
     ("처음 보는 풀 한 줌", "A handful of something new", 0.76), ("이번엔 내가 배운다", "This time I learn from her", 0.74),
@@ -94,7 +99,7 @@ T = [
     ("엄마 먼저 가서, 아빠랑 맛있는 거 해놓을게.", "I'll go on ahead, and Dad and I\nwill have something good on the table."),
     ("그러니까 천천히 와.", "So take your time."), ("…당신, 왜 이렇게 늙었어?", "…Look at you. When did you get so old?"),
     ("같이 늙자며.", "You said we would grow old together."), ("기다리는 동안…", "While I waited… I did so many things for you."),
-    ("내가 끓인 게 더 맛있는데?", "Mine tastes better, you know."), ("알아. 45년 동안 먹었어.", "I know. I've been eating it for 45 years."),
+    ("내가 끓인 게 더 맛있는데?", "Mine tastes better, you know."), ("알아. 45년 동안 따라 끓였어.", "I know. I've been copying yours for 45 years."),
     ("릴리 방도 만들어야지.", "We'll need a room for Lily, too."),
     # ---- puzzles
     ("종이 부르는 차례를 한 번 더 들어 보세요", "Listen to the bell once more."), ("같은 차례로 등불을 눌러 대답해 주세요", "Answer the bell. Tap the lanterns in the same order."),
@@ -105,8 +110,8 @@ T = [
     ("아래에서부터, 서로 받쳐 주는 차례대로 세워 주세요", "Build from the ground up. A timber can go up only once its support is standing."),
     ("맨 나중에 감긴, 가장 위의 고리부터 풀려요", "It comes off from the top: the last turn first."),
     ("감긴 차례를 거꾸로 따라가며,", "Tap the posts to unwind the rope, last turn first."),
-    ("반쯤 닮았어요.", "Halfway there. One of the two is right."), ("전혀 다른 맛이에요", "Nothing like it."),
-    ("두 가지를 골라 넣어 보세요.", "Choose two to put in. The yellow dots show how near it is to Ana's."),
+    ("반쯤 닮았어요.", "Halfway there. One of the two is right."), ("전혀 다른 빛깔이에요", "Nothing like it."),
+    ("두 가지를 골라 넣어 보세요.", "Choose two to put in. The yellow dots show how near it looks to Ana's, down in the lake."),
     ("앞에서부터 되풀이되는 차례를 살펴보세요", "Look at how the flowers repeat from the start."),
     ("꽃이 놓이는 차례를 보고,", "Read the order of the flowers and choose what fills the gap."),
     ("고리를 눌러 돌려 주세요.", "Tap a ring to turn it. An outer ring carries the inner one along."),

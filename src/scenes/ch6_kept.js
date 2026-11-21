@@ -1,6 +1,7 @@
 /* Chapter 6 「다 지킨 약속」 — years thirty to forty-five. The house is finished and still
-   empty. What she cooks for him on the day gets better every year, and one year it is a taste
-   he does not know: now she is the one teaching. He crosses the list off, one line at a time,
+   empty. Every year, on the day, he makes the stew the way he has watched her make it in the
+   lake; it gets better every year, and one year she puts in something he does not know: now she
+   is the one teaching. He crosses the list off, one line at a time,
    until a single line is left that cannot be kept alone. */
 (function () {
   'use strict';
@@ -54,50 +55,52 @@
       };
       const bowl = () => [bx, bowlY() + 2, 44];
       const bite = async () => { await X.tween(leo, 'bite', 1, 0.5); X.note({ voice: 'pluck', vel: 0.4 }); await X.wait(0.25); await X.tween(leo, 'bite', 0, 0.45); };
+      /* he ladles out his own: made the way he watched her make it */
       const serve = async (o) => {
-        Object.assign(ps.food, { show: true, drop: 0, glow: 1, fill: 1, burnt: false, herb: false }, o);
-        await X.tween(ps.food, 'drop', 1, 2.4, T.ease.out3);
-        A.sfx('join');
-        X.tween(ps.food, 'glow', 0, 2);
+        Object.assign(ps.food, { show: true, drop: 0, fall: 16, glow: 0, fill: 1, burnt: false, herb: false }, o);
+        await X.tween(ps.food, 'drop', 1, 0.7, T.ease.out3);
+        A.sfx('knock', 0.5);
       };
       X.title();
-      await X.wait(5.6);
+      await X.wait(4.4);
 
       /* ---- the table, year after year ---- */
       X.age('아나, 66');
-      T.announce('기일마다 식탁에 내려앉는 스튜가, 해마다 더 맛있어진다.');
+      T.announce('해마다 그날이면, 레오는 호수에서 본 대로 스튜를 따라 끓인다. 아나의 솜씨가 늘수록 레오의 스튜도 맛있어진다.');
       await serve({ color: '#b24c2b' });
+      await X.TALK.say('leo', '올해도 호수에서 본 대로 끓였어, 빈.');
       await X.tap(bowl);
       await bite(); ps.food.fill = 0.5;
-      leo.mood = 'good'; await X.wait(1.5); leo.mood = null;
+      leo.mood = 'good'; await X.wait(1.3); leo.mood = null;
       await bite(); ps.food.fill = 0;
-      await X.wait(0.6);
+      await X.wait(0.5);
 
-      await X.dip(async () => { ps.food.show = false; bean.x = PL.TABLE_X + 96; }, { out: 0.8, in: 1 });
+      await X.dip(async () => { ps.food.show = false; bean.x = PL.TABLE_X + 96; }, { out: 0.7, in: 0.9 });
       X.age('아나, 71');
       await serve({ color: '#bd5530' });
       await X.tap(bowl);
       await bite(); ps.food.fill = 0.5;
-      leo.mood = 'laugh'; await X.wait(1.5); leo.mood = null;
+      leo.mood = 'laugh'; await X.wait(1.3); leo.mood = null;
       await bite(); ps.food.fill = 0;
-      await X.wait(0.6);
+      await X.wait(0.5);
 
-      await X.dip(async () => { ps.food.show = false; bean.x = PL.TABLE_X + 118; }, { out: 0.8, in: 1 });
+      await X.dip(async () => { ps.food.show = false; bean.x = PL.TABLE_X + 118; }, { out: 0.7, in: 0.9 });
       X.age('아나, 76');
-      await serve({ color: '#c8742f', herb: true });
+      await serve({ color: '#bd5530' });
       await X.tap(bowl);
       await bite(); ps.food.fill = 0.75;
-      /* this is not his recipe any more */
+      /* this year she put in something that is not in his notebook */
       leo.mood = 'wonder';
       A.fragment(6);
-      T.announce('올해의 스튜에서는 레오가 모르는 맛이 난다. 아나가 맛을 바꿨다.');
-      await X.wait(2.2);
+      T.announce('올해 아나는 레오의 공책에 없는 풀을 넣었다. 레오의 스튜에는 그 맛이 없다.');
+      await X.TALK.say('leo', '…올해는 뭘 넣은 거지? 내 공책엔 없는 건데.');
+      /* what did she put in it? */
+      T.announce('아나의 맛 찾기. 네 가지 풀 가운데 둘을 골라, 호수에 비친 아나의 스튜와 견주어 본다.');
+      await X.play(T.puzzle.taste({ answer: [0, 2] }));
+      ps.food.herb = true; ps.food.color = '#c8742f';
       await X.tap(bowl);
       await bite(); ps.food.fill = 0.45;
-      leo.mood = 'laugh'; await X.wait(1.6); leo.mood = null;
-      /* what did she put in it? */
-      T.announce('아나의 맛 찾기. 네 가지 풀 가운데 둘을 골라 맛을 견주어 본다.');
-      await X.play(T.puzzle.taste({ answer: [0, 2] }));
+      leo.mood = 'laugh'; await X.wait(1.4); leo.mood = null;
       await X.card(notebook, {
         max: 18,
         run: async (c) => {

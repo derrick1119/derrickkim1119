@@ -204,8 +204,8 @@
     }
 
     /* ---------- cards, cuts, sound ---------- */
-    X.title = function () { const c = S.cards.title, k = S.clock; T.announce(def.title.join(', ')); return k.wait(0.8).then(() => k.tween(c, 'a', 1, 1.5)).then(() => k.wait(3)).then(() => k.tween(c, 'a', 0, 1.6)); };
-    X.age = function (text) { const c = S.cards.age, k = S.clock; c.text = text; T.announce(text); return k.tween(c, 'a', 1, 1.2).then(() => k.wait(3.4)).then(() => k.tween(c, 'a', 0, 1.4)); };
+    X.title = function () { const c = S.cards.title, k = S.clock; T.announce(def.title.join(', ')); return k.wait(0.5).then(() => k.tween(c, 'a', 1, 1.2)).then(() => k.wait(2.4)).then(() => k.tween(c, 'a', 0, 1.2)); };
+    X.age = function (text) { const c = S.cards.age, k = S.clock; c.text = text; T.announce(text); return k.tween(c, 'a', 1, 1).then(() => k.wait(2.8)).then(() => k.tween(c, 'a', 0, 1.2)); };
     /* a page held up to read. draw(g, c) with c: { a, w, ready } */
     X.card = async function (draw, o = {}) {
       const k = S.clock, c = Object.assign({ a: 0, w: 0, ready: false }, o.init || {});

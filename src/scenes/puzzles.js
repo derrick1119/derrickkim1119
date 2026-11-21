@@ -253,7 +253,7 @@
   };
 
   /* ---------- finding the taste ---------- */
-  /* Two of four herbs are hers. Each try tells him how near he is. o: { answer: [a, b] } */
+  /* Two of four herbs are hers. He cannot taste her pot, only see it in the lake: each try tells him how near his looks. o: { answer: [a, b] } */
   Z.taste = function (o) {
     const ans = o.answer, COL = ['#6fa35c', '#c8a23c', '#b65a7a', '#4f8f9a'];
     const G = make({ pick: [], tries: [], busy: false });
@@ -279,7 +279,7 @@
       G.tries.push({ pick: G.pick.slice().sort(), m });
       if (G.tries.length > 5) G.tries.shift();
       if (m === 2) { T.audio.promise(); G.finish(1.7); return; }
-      G.wrong(m === 1 ? '반쯤 닮았어요. 둘 중 하나는 맞아요' : '전혀 다른 맛이에요');
+      G.wrong(m === 1 ? '반쯤 닮았어요. 둘 중 하나는 맞아요' : '전혀 다른 빛깔이에요');
       G.pick = []; G.busy = false;
     };
     G.hit = (x, y) => { for (let n = 0; n < 4; n++) if (Math.abs(x - jx(n)) < 66 && Math.abs(y - JY) < 110) return n; return -1; };
@@ -290,8 +290,9 @@
       if (G.a < 0.005) return;
       G.dim(g);
       g.save(); g.globalAlpha = G.a;
-      /* her bowl, to taste against */
-      P.glow(g, -196, 300, 150, '#fff0c0', 0.35);
+      /* her pot, as the lake shows it: to look at, not to taste */
+      P.glow(g, -196, 300, 150, '#cfe2f2', 0.3);
+      g.lineWidth = 2; for (let i = 0; i < 3; i++) { g.strokeStyle = T.rgba('#dfeeff', 0.34 - i * 0.09 + 0.06 * Math.sin(t * 2 + i)); g.beginPath(); g.ellipse(-196, 306, 122 + i * 26 + Math.sin(t * 1.4 + i) * 4, 62 + i * 13, 0, 0, TAU); g.stroke(); }
       P.fill(g, P.poly([[-276, 268], [-116, 268], [-144, 340], [-248, 340]]), '#f2ead8');
       P.fill(g, P.ellipse(-196, 268, 78, 15), '#c8742f');
       P.fill(g, P.circle(-216, 266, 5), '#6fa35c'); P.fill(g, P.circle(-178, 270, 5), '#6fa35c');
@@ -315,7 +316,7 @@
       });
       g.restore();
       G.hintRing(g, t);
-      G.caption(g, '두 가지를 골라 넣어 보세요. 노란 점은 아나의 맛과 닮은 만큼이에요');
+      G.caption(g, '두 가지를 골라 넣어 보세요. 노란 점은 호수에 비친 아나의 스튜와 닮은 만큼이에요');
     };
     return G;
   };

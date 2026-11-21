@@ -65,7 +65,7 @@
       const lake = T.lake({ paint: T.vig.bed, leo: F.leoAt(4), said: { k: 0 }, mirror: 0.5, leoFace: { old: true }, fade: { a: 0 } });
       S.view = lake;
       X.title();
-      await X.wait(5.8);
+      await X.wait(4.6);
       await X.tween(lake.fade, 'a', 1, 2.6);
       X.age('아나, 81');
       T.announce('호수. 병상에 누운 아나가 쉰 살이 넘은 릴리의 손을 잡고 있다.');
@@ -204,7 +204,7 @@
       await X.wait(1.3);
       await TALK.say('ana', '내가 끓인 게 더 맛있는데?');
       await X.wait(0.3);
-      await TALK.say('leo', '알아. 45년 동안 먹었어.');
+      await TALK.say('leo', '알아. 45년 동안 따라 끓였어.');
       X.tween(St.joy, 'k', 1, 0.7, T.ease.out);
       X.tween(St.taste, 'k', 0, 1.2, T.ease.io);
       X.notes(5, { voice: 'box', vel: 0.34 });

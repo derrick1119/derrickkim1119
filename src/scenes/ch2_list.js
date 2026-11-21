@@ -1,6 +1,6 @@
-/* Chapter 2 「약속 목록」 — one year on. He writes the list down; what she cooked for him on the
-   day arrives, too salty, and he eats all of it; the lake shows her for the first time;
-   and he sets the first stones of the house. */
+/* Chapter 2 「약속 목록」 — one year on. He writes the list down; his mother takes him to the lake,
+   where he sees her for the first time: making his stew, too salty. He lends her kitchen what he
+   has on his bank (물그림자), salts his own to match, and cannot touch her. Then the first stones. */
 (function () {
   'use strict';
   const T = window.TYT, P = T.P, F = T.F;
@@ -15,17 +15,9 @@
       X.cam(px, py, 1); X.camSnap();
       const leo = X.actor('leo', { x: C.PLOT + 4, style: F.leoAt(0), flip: true, sit: 1 });
       /* thinking it over, a stick of charcoal in his hand */
-      leo.pose = (o, a, t) => {
-        if (a.chair) {
-          const bite = T.ease.io(a.bite || 0), bx = PL.TABLE_X - 16, by = W.y3(PL.TABLE_X) - 66;
-          o.lean = 0.12; o.armF = { hand: F.local(o, T.lerp(bx, a.x + 16, bite), T.lerp(by, o.y - 62, bite)), bend: -1 }; o.armB = { hand: F.local(o, bx - 12, by + 6) };
-          if (a.mood === 'salt') { o.face.eye = 'closed'; o.face.mouth = 'open'; o.headTilt = Math.sin(t * 16) * 0.1; }
-          else if (a.mood === 'laugh') { o.face.eye = 'happy'; o.face.mouth = 'open'; o.y += Math.sin(t * 13) * 1.6; }
-          else if (a.mood === 'cry') { o.face.eye = 'closed'; o.face.tear = 0.9; o.face.tearY = (t * 2) % 3; o.headTilt = 0.2; }
-        } else if (a.sit > 0.5) o.headTilt = -0.1 + Math.sin(t * 0.6) * 0.06;
-      };
+      leo.pose = (o, a, t) => { if (a.sit > 0.5) o.headTilt = -0.1 + Math.sin(t * 0.6) * 0.06; };
       X.title();
-      await X.wait(5.6);
+      await X.wait(4.4);
 
       /* the list */
       await X.tap(() => [leo.x, W.groundAt(leo.x) - 50, 60]);
@@ -47,63 +39,77 @@
       await X.walk(leo, PL.BOARD_X + 30);
       A.sfx('knock'); await X.wait(0.3); A.sfx('knock', 0.6);
       ps.board = true;
-      await X.wait(1.2);
+      await X.wait(0.9);
 
-      /* the first anniversary: what she made for him comes down on to his table */
-      ps.food.show = true; ps.food.drop = 0; ps.food.glow = 1; ps.food.burnt = true; ps.food.color = '#a8452a';
+      /* a year to the day. His mother comes for him: there is a place where he can see her */
+      const mom = X.actor('mom', { x: C.PLOT - 470, style: F.styles.mom, s: C.MOM_S, lamp: true, lampHand: 'F', lean: 0.1 });
       X.bed(2, 0.13, 'home');
-      T.announce('첫 기일. 아나가 차린 음식이 레오의 식탁에 내려앉는다.');
-      await X.tween(ps.food, 'drop', 1, 2.8, T.ease.out3);
-      A.sfx('join');
-      X.tween(ps.food, 'glow', 0, 2);
-      await X.TALK.say('leo', '오늘이… 내 기일이구나.\n아나가 차린 밥상이야.');
-      leo.flip = false;
-      await X.walk(leo, PL.TABLE_X - 66);
-      leo.flip = false; leo.chair = 1;
-      const bowl = () => [PL.TABLE_X - 16, W.y3(PL.TABLE_X) - 64, 44];
-      const bite = async () => { await X.tween(leo, 'bite', 1, 0.5); X.note({ voice: 'pluck', vel: 0.4 }); await X.wait(0.25); await X.tween(leo, 'bite', 0, 0.45); };
-      await X.tap(bowl);
-      await bite();
-      ps.food.fill = 0.78;
-      leo.mood = 'salt'; await X.wait(1.5);          /* far too salty */
-      leo.mood = 'laugh'; await X.wait(1.8);         /* of course it is */
-      leo.mood = null;
-      for (let i = 0; i < 3; i++) { await X.tap(bowl); await bite(); ps.food.fill = [0.5, 0.25, 0][i]; }
-      leo.mood = 'cry';
-      T.announce('너무 짜다. 레오는 웃다가 울고, 한 그릇을 다 먹는다.');
-      await X.wait(2.8);
-      leo.mood = null;
-
-      /* Nana takes him to the lake */
-      const nana = X.actor('nana', { x: C.PLOT - 470, style: F.styles.nana, s: C.NANA_S, lamp: true, lampHand: 'F', lean: 0.1 });
-      await X.walk(nana, PL.TABLE_X - 170, 78);
-      nana.pose = (o, a, t) => { o.armB = { a: 1.6 + Math.sin(t * 5) * 0.3, b: 0.4 }; };
-      await X.wait(1.4);
-      await X.TALK.say('nana', '보고 싶으면 따라오너라.');
-      nana.pose = null; leo.chair = 0;
-      X.walk(nana, C.PLOT + 420, 80);
+      await X.walk(mom, leo.x - 120, 100);
+      leo.flip = true;
+      mom.pose = (o, a, t) => { o.armB = { a: 1.6 + Math.sin(t * 5) * 0.3, b: 0.4 }; };
+      await X.wait(0.9);
+      await X.TALK.say('mom', '오늘로 꼭 일 년이구나.\n보고 싶으면 따라오렴.');
+      mom.pose = null;
+      X.walk(mom, C.PLOT + 420, 96);
       await X.wait(0.5);
-      X.walk(leo, C.PLOT + 380, 80);
-      await X.wait(1.6);
-      const lake = T.lake({ paint: T.vig.floor, leo: F.leoAt(0), nana: true });
-      await X.view(lake, { color: '#1b2a40' });
-      T.announce('거울 호수. 물결이 일어 비친 모습이 고리마다 어긋나 있다. 고리를 눌러 돌려 맞춘다.');
-      await X.TALK.say('nana', '이 호수엔 두고 온 사람들이 비친단다.\n볼 수는 있어도, 닿지는 않아.');
-      await lake.calm({ start: [3, 6] });
-      X.age('아나, 37');
-      T.announce('거울 호수. 부엌 바닥에 주저앉아 공책을 끌어안은 아나가 비친다.');
-      await X.wait(3.2);
-      /* he reaches for her, and the picture breaks into rings */
-      await X.tap(() => [40, 560, 130], { screen: true });
-      if (!lake.rip.length || T.time - lake.rip[lake.rip.length - 1].t > 0.3) lake.touch(40, 560);
-      await X.tween(lake.reach, 'k', 1, 0.8);
-      await X.wait(2.6);
-      await X.tween(lake.reach, 'k', 0, 1);
+      X.walk(leo, C.PLOT + 380, 96);
       await X.wait(1.4);
+      /* the lake: her kitchen in the water, and on the bank the things he has to lend it */
+      const lake = T.lake({
+        paint: T.vig.first, leo: F.leoAt(0), mom: true, shore: true, leoFace: {},
+        things: [{ kind: 'lamp', x: 96, to: -300 }, { kind: 'pot', x: -250, to: 17 }, { kind: 'leo', x: 340, to: 183 }],
+      });
+      await X.view(lake, { color: '#1b2a40' });
+      X.age('아나, 37');
+      T.announce('거울 호수. 물속에 아나의 부엌이 비친다. 아나가 레오의 공책을 펴 놓고, 레오가 서던 자리에서 스튜를 끓인다.');
+      await X.TALK.say('mom', '이 호수엔 두고 온 사람들이 비친단다.\n나도 여기서, 네가 크는 걸 다 봤지.');
+      T.announce('물그림자 맞추기. 물가의 등불과 냄비와 레오를 좌우로 옮기면 물속에 그림자가 진다. 등불은 비 오는 창에, 냄비는 아나의 냄비에, 레오는 조리대의 빈자리에 겹친다. 숫자 키로 고르고 좌우 화살표로 옮긴다.');
+      await lake.rhyme();
+      T.announce('세 그림자가 제자리를 찾는다. 물결이 멎고, 잠깐, 한 부엌에 두 사람이 있다.');
+      X.notes(3, { voice: 'felt', vel: 0.3 });
+      await X.wait(1.8);
+      /* she salts it, and salts it again */
+      lake.beat = 1;
+      for (let i = 0; i < 2; i++) { lake.salt.k = 0; A.sfx('step'); await X.tween(lake.salt, 'k', 0.97, 0.95, lin); lake.salt.k = 0; await X.wait(0.3); }
+      T.announce('아나가 소금을 넣는다. 한 번, 그리고 한 번 더. 레오의 냄비를 눌러 똑같이 넣는다.');
+      /* and so does he, to have it the way she is having it */
+      lake.beat = 1.5; lake.note = '아나가 한 대로, 레오의 냄비에도 소금을 두 번 넣어 주세요';
+      const hisPot = () => [17, 186, 56];
+      for (let i = 0; i < 2; i++) { await X.tap(hisPot, { screen: true }); lake.salt.k = 0; A.sfx('step'); await X.tween(lake.salt, 'k', 0.97, 0.8, lin); lake.salt.k = 0; X.note({ voice: 'pluck', vel: 0.36 }); }
+      lake.note = null;
+      await X.wait(0.4);
+      /* the taste, on both sides of the water at once */
+      lake.beat = 2;
+      await X.tween(lake.sip, 'k', 1, 1.0);
+      lake.leoFace = { eye: 'closed', mouth: 'open' };
+      A.sfx('knock', 0.2);
+      T.announce('둘이 같이 맛을 본다. 너무 짜다. 물 이쪽과 저쪽에서 똑같이 얼굴을 찌푸린다.');
+      await X.wait(1.7);
+      lake.beat = 3; lake.leoFace = { eye: 'happy', mouth: 'open' };
+      X.tween(lake.sip, 'k', 0, 0.8);
+      X.notes(3, { voice: 'pluck', vel: 0.34 });
+      await X.TALK.say('leo', '소금을 두 번 넣었네.');
+      await X.wait(0.8);
+      /* and then she looks at the place on the counter she used to watch him from */
+      lake.beat = 4; lake.leoFace = { mouth: 'line' };
+      await X.wait(1.2);
+      X.tween(lake.tear, 'k', 1, 2);
+      X.tween(lake.part, 'k', 0.86, 2.2);   /* to her, the seat is empty */
+      T.announce('웃음이 멎는다. 아나가 조리대의 빈자리를 본다.');
+      await X.wait(2.4);
+      /* he reaches for her, and the picture breaks into rings */
+      await X.tap(() => [156, 338, 74], { screen: true });
+      if (!lake.rip.length || T.time - lake.rip[lake.rip.length - 1].t > 0.3) lake.touch(156, 338);
+      X.tween(lake.part, 'k', 1, 0.7); X.tween(lake.gone, 'k', 1, 1.3);
+      await X.tween(lake.reach, 'k', 1, 0.8);
+      await X.wait(1.6);
+      await X.TALK.say('mom', '볼 수는 있어도, 닿지는 않아.', { slow: true });
+      await X.tween(lake.reach, 'k', 0, 1);
+      await X.wait(0.8);
 
       /* back on the hill: the first stones */
-      leo.x = PL.HX - 200; leo.flip = false; ps.food.show = false;
-      S.actors = S.actors.filter((a) => a !== nana);
+      leo.x = PL.HX - 200; leo.flip = false; leo.chair = 0;
+      S.actors = S.actors.filter((a) => a !== mom);
       await X.view(null, { color: '#1b2a40' });
       X.bed(4, 0.13, 'walk');
       await X.tap(() => [PL.SX[0], W.y3(PL.SX[0]) - 8, 40]);

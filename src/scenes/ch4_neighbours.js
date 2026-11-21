@@ -27,7 +27,7 @@
       let leo = X.actor('leo', { x: PL.HX + 150, style: F.leoAt(0), flip: true });
       leo.pose = (o, a, t) => { if (!a.moving) { const sw = Math.max(0, Math.sin(t * 5.6)); o.armF = { a: 1.2 + sw * 0.9, b: 0.8 - sw * 0.6 }; } };
       X.title();
-      await X.wait(5.4);
+      await X.wait(4.2);
 
       /* ---- the bell: someone is coming, and he has nothing ready ---- */
       X.toll(0); await X.wait(1.6); X.toll(1);
@@ -44,15 +44,15 @@
         });
         X.age(age);
       };
-      let nana, bean;
+      let mom, bean;
       await quay('아나, 41', () => {
         leo = X.actor('leo', { x: 620, style: F.leoAt(0), flip: true });
-        nana = X.actor('nana', { x: 300, style: F.styles.nana, s: C.NANA_S, lamp: true, lampHand: 'F', lean: 0.1, flip: true });
+        mom = X.actor('mom', { x: 300, style: F.styles.mom, s: C.MOM_S, lamp: true, lampHand: 'F', lean: 0.1, flip: true });
         bean = X.actor('bean', { dog: true, s: 220, wag: 1 });
         S.b1 = X.boat({ x: -760, riders: [bean] }); bean.seat = 34;
       });
       X.walk(leo, 250, 110);
-      X.TALK.say('nana', '종이 울리면 누가 오는 거란다.\n누구를 마중하게 될지는, 와 봐야 알지.', { auto: 3 });
+      X.TALK.say('mom', '종이 울리면 누가 오는 거란다.\n누구를 마중하게 될지는, 와 봐야 알지.', { auto: 3 });
       await X.sail(S.b1, -74, 84);
       T.announce('배 위에 늙은 강아지 한 마리. 빈이다.');
       A.sfx('door');
@@ -63,7 +63,7 @@
       leo.pose = (o, a, t) => { o.armF = { a: 2.7, b: 2.2 }; o.headTilt = -0.1; }; leo.flip = false;
       await X.wait(1.5);
       leo.flip = true;
-      await X.TALK.say('nana', '저 애는 집 보러 온 게 아니라\n너 보러 온 거야.');
+      await X.TALK.say('mom', '저 애는 집 보러 온 게 아니라\n너 보러 온 거야.');
       leo.pose = null;
       await X.tap(() => [bean.x, PIER - 30, 56]);
       leo.sit = 0.5;
@@ -81,7 +81,7 @@
         bram.pose = (o, a, t) => { if (!a.moving && !a.boat) { o.armF = { a: -0.5, b: -0.3 }; o.armB = { a: -0.5, b: -0.3 }; o.y += Math.sin(t * 2.4) * 1.5; } };
         leo = X.actor('leo', { x: 392, style: F.leoAt(0), flip: true });
         bean = X.actor('bean', { dog: true, s: 220, x: 440, sit: 1, flip: true, wag: 0.6 });
-        nana = X.actor('nana', { x: 322, style: F.styles.nana, s: C.NANA_S, lamp: true, lampHand: 'F', lean: 0.1, flip: true });
+        mom = X.actor('mom', { x: 322, style: F.styles.mom, s: C.MOM_S, lamp: true, lampHand: 'F', lean: 0.1, flip: true });
         crowd.push(X.actor('v1', { x: 486, style: F.styles.villagerA, s: 142, flip: true }), X.actor('v2', { x: 268, style: F.styles.villagerB, s: 134, flip: true }), X.actor('v3', { x: 222, style: F.styles.rosa, s: 138, flip: true }));
         wife = X.actor('wife', { style: F.styles.bramWife, s: 106, lean: 0.24, face: { old: true } });
         S.b1 = X.boat({ x: -900, riders: [wife] });
@@ -119,7 +119,7 @@
       S.rope = null;
       A.sfx('whoosh'); X.bed(3, 0.14, 'walk'); A.theme({ voice: 'box', vel: 0.3, beat: 0.62, left: false });
       X.sail(S.big, -1500, 54);
-      [leo, nana].concat(crowd).forEach((a) => { a.pose = wave; });
+      [leo, mom].concat(crowd).forEach((a) => { a.pose = wave; });
       bram.pose = wave; wife.pose = (o, a, t) => { o.armF = { a: 2.0 + Math.sin(t * 5) * 0.2, b: 0.3 }; };
       for (let i = 0; i < 4; i++) { await X.tween(bean, 'jump', 12, 0.18, T.ease.out); await X.tween(bean, 'jump', 0, 0.18, T.ease.in); await X.wait(0.5); }
       X.cam(-240, 452, 1, 0.5);
@@ -134,7 +134,7 @@
         rosa.prop = (g, j, o, a) => { if (!a.hug) P.fill(g, P.rr(j.handF[0] - 12, j.handF[1] - 6, 26, 16, 5), '#fbf7ec'); };
         leo = X.actor('leo', { x: 392, style: F.leoAt(0), flip: true });
         bean = X.actor('bean', { dog: true, s: 220, x: 440, sit: 1, flip: true, wag: 0.6 });
-        nana = X.actor('nana', { x: 322, style: F.styles.nana, s: C.NANA_S, lamp: true, lampHand: 'F', lean: 0.1, flip: true });
+        mom = X.actor('mom', { x: 322, style: F.styles.mom, s: C.MOM_S, lamp: true, lampHand: 'F', lean: 0.1, flip: true });
         son = X.actor('son', { style: F.styles.rosaSon, s: 144, lean: 0.16, face: { old: true } });
         S.b1 = X.boat({ x: -820, riders: [son] });
       });

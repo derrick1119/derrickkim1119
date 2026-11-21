@@ -98,7 +98,7 @@
       P.line(g, LAMP_X, y + 6, LAMP_X, y - 84, 4.5, '#6f4a34');
       K.lantern(g, LAMP_X, y - 86, t, { bare: true, s: 1.1, lit: 1, seed: 4 });
     }
-    /* the table where what she cooks arrives */
+    /* the table, and the bowl he sets on it: his own stew, made the way he watched her make it */
     if (ps.table) {
       const x = TABLE_X, y = y3(x), top = y - 52;
       P.line(g, x - 30, top + 4, x - 36, y + 2, 5, '#8a6442'); P.line(g, x + 30, top + 4, x + 36, y + 2, 5, '#8a6442');
@@ -106,7 +106,7 @@
       [-66, 66].forEach((dx, i) => P.fill(g, P.box(x + dx - 15, y - 30, 30, 32, 0.8, 5 + i), '#c79a62'));
       const f = ps.food;
       if (f.show) {
-        const fy = top - 4 - (1 - T.ease.out3(T.clamp(f.drop))) * 300, a = T.clamp(f.drop * 3);
+        const fy = top - 4 - (1 - T.ease.out3(T.clamp(f.drop))) * (f.fall == null ? 300 : f.fall), a = T.clamp(f.drop * 3);
         if (f.glow > 0.01) P.glow(g, x - 6, fy - 8, 70, '#fff0c0', 0.7 * f.glow);
         g.save(); g.globalAlpha = a;
         const bx = x - 16;

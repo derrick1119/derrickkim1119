@@ -9,10 +9,16 @@
   const COUNTER = 622, FLOORY = 822;
 
   /* ---------- the lake ---------- */
-  /* o: { paint(g, t), leo: style, nana: bool, mirror: 0..1 (how plainly he sees himself), warm: bool } */
+  /* o: { paint(g, t), leo: style, mom: bool, mirror: 0..1 (how plainly he sees himself), warm: bool,
+     shore: bool, things: [{ kind: 'lamp'|'pot'|'leo', x, to }] } */
   T.lake = function (o) {
-    const L = Object.assign({ dark: true, mood: 'still', chord: 4, rip: [], amp: 0, reach: { k: 0 }, mote: null, fade: { a: 1 }, mirror: 0.25 }, o);
+    const L = Object.assign({ dark: true, mood: 'still', chord: 4, rip: [], amp: 0, reach: { k: 0 }, mote: null, fade: { a: 1 }, mirror: 0.25, lit: { lamp: 0, pot: 0, leo: 0 }, beat: 0, sip: { k: 0 }, salt: { k: 0 }, tear: { k: 0 }, part: { k: 0 }, gone: { k: 0 }, note: null }, o);
     const SC = 0.7, TOP = 232, PH = 640;
+    /* 물그림자: with o.shore he stands on the far bank, and what stands there with him (o.things) throws a
+       shadow straight down into her picture. Slid until it lies on its counterpart, a shadow stays. */
+    const BANK = 228, DEPTH = { lamp: TOP + 304 * SC, pot: TOP + 548 * SC, leo: TOP + (COUNTER - 34) * SC };
+    const things = () => L.things || [];
+    const clampX = (x) => { const lim = T.view.W * SC / 2 - 56; return T.clamp(x, -lim, lim); };
     /* the picture can arrive broken into rings, each turned a little: tap a ring to turn it a notch */
     const RCY = TOP + PH / 2 - 20, RADS = { 2: [0, 150, 280], 3: [0, 112, 202, 292], 4: [0, 88, 160, 232, 304] };
     L.build = function () {
@@ -27,7 +33,7 @@
       L.mid = m;
     };
     L.touch = function (x, y) {
-      if (y < TOP - 30) return;
+      if (y < TOP - 30 || (L.rh && !L.rh.solved && y < 272)) return;
       L.rip.push({ x, y, t: T.time });
       if (L.rip.length > 6) L.rip.shift();
       L.amp = Math.min(1, L.amp + 0.7);
@@ -44,11 +50,34 @@
       T.audio.step(R.taps++, { voice: 'glass', vel: 0.3 });
       if (aligned(R)) { R.solved = true; R.t = 1.3; L.amp = 0; T.audio.promise(); }
     }
+    function settle(q) {
+      const R = L.rh;
+      if (!R || q.lock || Math.abs(q.x - q.to) >= 30) return;
+      q.lock = true; q.x = q.to; q.go = null; R.n++; R.idle = 0; if (R.sel >= 0 && things()[R.sel] === q) R.sel = -1;
+      T.audio.sfx('join'); T.audio.step(R.n * 2 + 1, { voice: 'glass', vel: 0.36 });
+      if (things().every((w) => w.lock)) { R.solved = true; R.t = 1.8; L.amp = 0; T.audio.promise(); }
+    }
+    const thingAt = (x, y) => { let best = -1, bd = 78; if (y < 268) things().forEach((q, i) => { const d = Math.abs(x - q.x); if (!q.lock && d < bd) { bd = d; best = i; } }); return best; };
+    const rhNext = () => (L.rh && !L.rh.solved ? things().findIndex((q) => !q.lock) : -1);
+    /* begin sliding: resolves when every shadow has found its place */
+    L.rhyme = function () { return new Promise((res) => { L.rh = { sel: -1, held: -1, dx: 0, moved: false, idle: 0, solved: false, t: 0, n: 0, res }; L.amp = 0.3; }); };
     const ringNext = () => { const R = L.ring; if (!R || R.solved) return -1; for (let i = R.n - 1; i >= 0; i--) if (R.rot[i] % 8) return i; return -1; };
     /* o: { start: [notches off, innermost first], couple: a ring drags the one inside it } */
     L.calm = function (o) { const n = o.start.length; return new Promise((res) => { L.ring = { n, rot: o.start.slice(), vis: o.start.slice(), couple: !!o.couple, rad: RADS[n], solved: false, idle: 0, taps: 0, t: 0, res }; L.amp = 0.35; }); };
-    L.hintAt = () => { const i = ringNext(); if (i < 0) return null; const R = L.ring; return [0, i === 0 ? RCY : RCY - (R.rad[i] + R.rad[i + 1]) / 2]; };
+    L.hintAt = () => { const h = rhNext(); if (h >= 0) { const q = things()[h]; return L.rh.sel === h ? [q.to, DEPTH[q.kind] - (q.kind === 'leo' ? 60 : 0)] : [q.x, BANK - 46]; } const i = ringNext(); if (i < 0) return null; const R = L.ring; return [0, i === 0 ? RCY : RCY - (R.rad[i] + R.rad[i + 1]) / 2]; };
     L.pointer = function (type, x, y) {
+      if (L.rh && !L.rh.solved) {
+        const R = L.rh, Q = things();
+        if (type === 'down') {
+          const i = thingAt(x, y);
+          if (i >= 0) { R.held = i; R.sel = i; R.dx = Q[i].x - x; R.moved = false; R.idle = 0; Q[i].go = null; T.audio.sfx('step'); }
+          else if (R.sel >= 0 && !Q[R.sel].lock && y > 236) { Q[R.sel].go = clampX(x); R.idle = 0; }   /* picked up with one tap, sent with the next */
+        } else if (type === 'move') {
+          if (R.held >= 0) { const q = Q[R.held], nx = clampX(x + R.dx); q.ph = (q.ph || 0) + Math.abs(nx - q.x) / 9; if (nx !== q.x) q.flip = nx < q.x; q.x = nx; R.moved = true; R.idle = 0; }
+          T.cursor(R.held >= 0 ? 'grabbing' : thingAt(x, y) >= 0 ? 'grab' : 'default');
+        } else if (type === 'up' && R.held >= 0) { const q = Q[R.held]; R.held = -1; if (R.moved) settle(q); }
+        return true;
+      }
       if (L.ring && !L.ring.solved) {
         if (type === 'down') { const d = Math.hypot(x, y - RCY), R = L.ring; for (let i = 0; i < R.n; i++) if (d < R.rad[i + 1]) { turn(i); break; } }
         return true;
@@ -61,11 +90,24 @@
       return false;
     };
     L.key = function (key) {
+      if (L.rh && !L.rh.solved) {
+        const R = L.rh, Q = things();
+        if (key >= '1' && key <= String(Q.length)) { if (!Q[+key - 1].lock) { R.sel = +key - 1; R.idle = 0; T.audio.sfx('step'); } return true; }
+        if ((key === 'ArrowLeft' || key === 'ArrowRight') && R.sel >= 0 && !Q[R.sel].lock) { const q = Q[R.sel]; q.go = null; q.flip = key === 'ArrowLeft'; q.x = clampX(q.x + (q.flip ? -16 : 16)); q.ph = (q.ph || 0) + 1.8; R.idle = 0; settle(q); return true; }
+        return false;
+      }
       if (L.ring && !L.ring.solved) { if (key >= '1' && key <= String(L.ring.n)) { turn(+key - 1); return true; } return false; }
       if (L.mote && !L.mote.gone && (key === ' ' || key === 'Enter' || key === 'ArrowDown')) { L.mote.x = 40; L.mote.y = 520; L.release(); return true; } return false; };
-    L.want = function () { const i = ringNext(); return i >= 0 ? 'key:' + (i + 1) : L.mote && !L.mote.gone ? 'mote' : null; };
+    L.want = function () { const h = rhNext(); if (h >= 0) { const q = things()[h]; return 'key:' + (L.rh.sel !== h ? h + 1 : q.x > q.to ? 'ArrowLeft' : 'ArrowRight'); } if (L.rh) return 'busy'; const i = ringNext(); return i >= 0 ? 'key:' + (i + 1) : L.mote && !L.mote.gone ? 'mote' : null; };
     L.release = function () { const m = L.mote; if (!m || m.gone) return; m.gone = true; L.rip.push({ x: m.x, y: m.y, t: T.time }); L.amp = 1; if (m.res) m.res(); };
     L.update = function (dt) {
+      const H = L.rh;
+      if (H) {
+        H.idle += dt;
+        for (const q of things()) if (q.go != null && !q.lock) { const d = q.go - q.x, st = Math.sign(d) * Math.min(Math.abs(d), 560 * dt); q.x += st; q.ph = (q.ph || 0) + Math.abs(st) / 9; if (st) q.flip = st < 0; if (Math.abs(q.go - q.x) < 0.5) { q.go = null; settle(q); } }
+        if (H.solved) { H.t -= dt; if (H.t <= 0) { L.rh = null; H.res(); } } else L.amp = Math.max(L.amp, 0.2);
+      }
+      for (const q of things()) L.lit[q.kind] += ((q.lock ? 1 : 0) - L.lit[q.kind]) * Math.min(1, dt * 1.8);
       const R = L.ring;
       if (R) {
         R.idle += dt;
@@ -88,7 +130,7 @@
       g.beginPath(); g.moveTo(-W / 2, 240); g.lineTo(-W / 2, 150);
       for (let x = -W / 2; x <= W / 2; x += 40) g.lineTo(x, 168 + T.noise(x * 0.004, 5) * 34 + Math.sin(x * 0.013) * 10);
       g.lineTo(W / 2, 240); g.closePath(); g.fill();
-      [-300, 120, 520, 760, -640].forEach((x, i) => { K.tree(g, x, 196 + (i % 2) * 8, 0.55, '#2f4a58', '#28404e', '#22343f', Math.sin(t * 0.7 + i)); });
+      (L.shore ? [-450, -140, 420, 650, -720] : [-300, 120, 520, 760, -640]).forEach((x, i) => { K.tree(g, x, 196 + (i % 2) * 8, 0.55, '#2f4a58', '#28404e', '#22343f', Math.sin(t * 0.7 + i)); });
       [-80, 380, 640].forEach((x, i) => P.glow(g, x, 188, 34, '#ffd98a', 0.7 * (0.8 + 0.2 * Math.sin(t * 2 + i))));
       /* water */
       const wg = g.createLinearGradient(0, 206, 0, 900);
@@ -124,7 +166,7 @@
       mk.addColorStop(0, 'rgba(0,0,0,0)'); mk.addColorStop(0.11, 'rgba(0,0,0,1)'); mk.addColorStop(0.89, 'rgba(0,0,0,1)'); mk.addColorStop(1, 'rgba(0,0,0,0)');
       mg.fillStyle = mk; mg.fillRect(0, 0, mw, mh);
       mk = mg.createLinearGradient(0, 0, 0, mh);
-      mk.addColorStop(0, 'rgba(0,0,0,0)'); mk.addColorStop(0.12, 'rgba(0,0,0,1)'); mk.addColorStop(0.86, 'rgba(0,0,0,1)'); mk.addColorStop(1, 'rgba(0,0,0,0)');
+      mk.addColorStop(L.shore ? 0.07 : 0, 'rgba(0,0,0,0)'); mk.addColorStop(L.shore ? 0.2 : 0.12, 'rgba(0,0,0,1)'); mk.addColorStop(0.86, 'rgba(0,0,0,1)'); mk.addColorStop(1, 'rgba(0,0,0,0)');
       mg.fillStyle = mk; mg.fillRect(0, 0, mw, mh);
       g.save();
       g.globalAlpha = L.fade.a;
@@ -162,30 +204,114 @@
       }
       g.restore();
 
-      /* the near bank, and whoever has come to look */
-      const bx = -W / 2 + 250;
-      P.fill(g, P.soft([[-W / 2 - 40, 150], [-W / 2 + 120, 150], [bx + 90, 178], [bx + 190, 226], [bx + 110, 252], [-W / 2 + 60, 300], [-W / 2 - 40, 330]]), '#3f6058');
-      P.fill(g, P.soft([[-W / 2 - 40, 150], [-W / 2 + 120, 150], [bx + 90, 178], [bx + 188, 224], [bx + 60, 206], [-W / 2 - 40, 196]]), '#58806c');
-      const ls = L.leo || F.styles.leoHome, s = 190;
-      const reach = T.ease.io(L.reach.k);
-      const lo = { x: bx + 96, y: 208, s, style: ls, sit: true, lean: 0.16 + reach * 0.14, headTilt: 0.26, legF: { a: Math.PI / 2 - 0.5, b: 0.5 }, legB: { a: Math.PI / 2 - 0.62, b: 0.62 }, face: Object.assign({ blush: 0.14 }, L.leoFace) };
-      lo.armF = reach > 0.02 ? { a: 0.5 + reach * 0.5, b: 0.1 } : { a: 0.5, b: 1.0 };
-      lo.armB = { a: 0.3, b: 0.9 };
-      /* his reflection, upside down in the dark water under him */
-      g.save();
-      g.beginPath(); g.rect(-W / 2, 250, W, 400); g.clip();
-      g.translate(Math.sin(t * 1.4) * 2.5, 2 * 262); g.scale(1, -1);
-      g.globalAlpha = L.mirror * (0.75 + 0.25 * Math.sin(t * 1.1));
-      F.person(g, lo);
-      g.restore();
-      if (L.nana) { const no = { x: bx - 4, y: 206 - F.hipHeight(F.styles.nana, 158), s: 158, style: F.styles.nana, lean: 0.1, headTilt: 0.14, armF: { a: 0.9, b: 0.5 }, face: { blush: 0.2 } }; const j = F.person(g, no); P.glow(g, j.handF[0], j.handF[1] + 20, 60, '#ffd98a', 0.6); P.fill(g, P.rr(j.handF[0] - 6, j.handF[1] + 8, 12, 16, 3), '#fff0b8'); }
-      F.person(g, lo);
-      /* reeds */
-      g.strokeStyle = '#2f4a48'; g.lineCap = 'round';
-      for (let i = 0; i < 16; i++) { const rx = -W / 2 + 20 + i * 27 + T.noise(i, 3) * 12, h = 50 + T.noise(i * 1.7, 4) * 26, sw = Math.sin(t * 1.2 + i) * 5; g.lineWidth = 3; g.beginPath(); g.moveTo(rx, 330 + (i % 3) * 8); g.quadraticCurveTo(rx + sw * 0.4, 300, rx + sw, 330 - h); g.stroke(); }
+      if (L.shore) drawShore(g, t, W);
+      else {
+        /* the near bank, and whoever has come to look */
+        const bx = -W / 2 + 250;
+        P.fill(g, P.soft([[-W / 2 - 40, 150], [-W / 2 + 120, 150], [bx + 90, 178], [bx + 190, 226], [bx + 110, 252], [-W / 2 + 60, 300], [-W / 2 - 40, 330]]), '#3f6058');
+        P.fill(g, P.soft([[-W / 2 - 40, 150], [-W / 2 + 120, 150], [bx + 90, 178], [bx + 188, 224], [bx + 60, 206], [-W / 2 - 40, 196]]), '#58806c');
+        const ls = L.leo || F.styles.leoHome, s = 190;
+        const reach = T.ease.io(L.reach.k);
+        const lo = { x: bx + 96, y: 208, s, style: ls, sit: true, lean: 0.16 + reach * 0.14, headTilt: 0.26, legF: { a: Math.PI / 2 - 0.5, b: 0.5 }, legB: { a: Math.PI / 2 - 0.62, b: 0.62 }, face: Object.assign({ blush: 0.14 }, L.leoFace) };
+        lo.armF = reach > 0.02 ? { a: 0.5 + reach * 0.5, b: 0.1 } : { a: 0.5, b: 1.0 };
+        lo.armB = { a: 0.3, b: 0.9 };
+        /* his reflection, upside down in the dark water under him */
+        g.save();
+        g.beginPath(); g.rect(-W / 2, 250, W, 400); g.clip();
+        g.translate(Math.sin(t * 1.4) * 2.5, 2 * 262); g.scale(1, -1);
+        g.globalAlpha = L.mirror * (0.75 + 0.25 * Math.sin(t * 1.1));
+        F.person(g, lo);
+        g.restore();
+        if (L.mom) { const no = { x: bx - 4, y: 206 - F.hipHeight(F.styles.mom, 158), s: 158, style: F.styles.mom, lean: 0.1, headTilt: 0.14, armF: { a: 0.9, b: 0.5 }, face: { blush: 0.2 } }; const j = F.person(g, no); P.glow(g, j.handF[0], j.handF[1] + 20, 60, '#ffd98a', 0.6); P.fill(g, P.rr(j.handF[0] - 6, j.handF[1] + 8, 12, 16, 3), '#fff0b8'); }
+        F.person(g, lo);
+        /* reeds */
+        g.strokeStyle = '#2f4a48'; g.lineCap = 'round';
+        for (let i = 0; i < 16; i++) { const rx = -W / 2 + 20 + i * 27 + T.noise(i, 3) * 12, h = 50 + T.noise(i * 1.7, 4) * 26, sw = Math.sin(t * 1.2 + i) * 5; g.lineWidth = 3; g.beginPath(); g.moveTo(rx, 330 + (i % 3) * 8); g.quadraticCurveTo(rx + sw * 0.4, 300, rx + sw, 330 - h); g.stroke(); }
+      }
       const m = L.mote;
       if (m && !m.gone) { P.glow(g, m.x, m.y, 70, '#fff0b8', 0.7 + 0.2 * Math.sin(t * 3)); P.glow(g, m.x, m.y, 20, '#ffffff', 0.9); if (!m.held && T.clamp((T.time - m.t0 - 2.5) / 1.2) > 0) P.fingerHint(g, [[m.hx, m.hy], [m.hx + 120, m.hy + 150], [m.hx + 240, m.hy + 330]], (t * 0.4) % 1, T.clamp((T.time - m.t0 - 2.5) / 1.2), '#fff6e0'); }
     };
+    /* a flat cut-out of him, for the shadow before it has found its seat */
+    const flat = (st, c) => { const o2 = {}; Object.keys(st).forEach((k) => { o2[k] = typeof st[k] === 'string' && st[k][0] === '#' ? c : st[k]; }); return o2; };
+    function drawShore(g, t, W) {
+      const R = L.rh, Q = things(), live = R && !R.solved, ls = L.leo || F.styles.leoHome;
+      const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+      /* the shadows, lying in her picture */
+      for (let i = 0; i < Q.length; i++) {
+        const q = Q[i], near = T.clamp(1 - Math.abs(q.x - q.to) / 180), lit = L.lit[q.kind], dy = DEPTH[q.kind];
+        if (lit < 0.97) {
+          const c = T.mix('#a9c8ea', '#ffd98a', near), gr = g.createLinearGradient(0, 252, 0, dy);
+          gr.addColorStop(0, T.rgba(c, 0.5 * (1 - lit))); gr.addColorStop(0.5, T.rgba(c, (0.2 + 0.3 * near) * (1 - lit))); gr.addColorStop(1, T.rgba(c, 0));
+          g.fillStyle = gr; g.fillRect(q.x - 3, 250, 6, dy - 250);
+        }
+        g.save();
+        if (q.kind === 'lamp') { const a = (0.3 + 0.34 * near) * (1 - lit * 0.85); P.glow(g, q.x, dy, 84 + 30 * near, '#ffd98a', a); g.globalAlpha = a * 0.75; P.fill(g, P.rr(q.x - 27, dy - 36, 54, 72, 9), '#ffe2a0'); g.globalAlpha = 1; }
+        else if (q.kind === 'pot') {
+          g.globalAlpha = (0.46 + 0.3 * near) * (1 - lit); P.fill(g, P.rr(q.x - 68, dy + 6, 16, 9, 3), '#101c33'); P.fill(g, P.rr(q.x + 52, dy + 6, 16, 9, 3), '#101c33'); P.fill(g, P.rr(q.x - 54, dy - 3, 108, 46, 14), '#101c33'); P.fill(g, P.ellipse(q.x, dy - 3, 55, 9), '#22365c');
+          g.globalAlpha = 1; for (let k = 0; k < 2; k++) { const life = (t * 0.3 + k * 0.5) % 1; P.glow(g, q.x + Math.sin(t + k * 2) * 10, dy - 20 - life * 90, 16 + life * 22, '#fff3dc', Math.sin(life * Math.PI) * (0.1 + 0.16 * near + 0.14 * lit)); }
+        } else {
+          const fo = { x: q.x, y: dy, s: 372 * SC, flip: true, sit: true, lean: 0.14 + T.ease.io(L.reach.k) * 0.1, headTilt: 0.12, legF: { foot: [16, 6] }, legB: { foot: [12, 8] }, armF: { a: 0.7, b: 0.8 }, armB: { a: 0.55, b: 0.7 }, face: Object.assign({ blush: 0.14 }, L.leoFace) };
+          if (lit < 0.97) { g.globalAlpha = (0.3 + 0.26 * near) * (1 - lit); F.person(g, Object.assign({}, fo, { style: flat(ls, '#101c33'), face: {} })); }
+          const part = T.ease.io(L.part.k), gone = T.ease.io(L.gone.k);
+          if (lit > 0.5 && part > 0.02) { g.globalAlpha = 0.36 * part * (1 - gone); F.person(g, Object.assign({}, fo, { style: flat(ls, '#101c33'), face: {} })); }   /* what she sees there: nothing */
+          if (lit > 0.02) { const here = lit * (1 - part); g.globalAlpha = 0.74 * here; P.glow(g, q.x - 10, dy - 90, 150, '#ffe2a8', 0.18 * here); F.person(g, Object.assign({}, fo, { style: ls })); }
+        }
+        g.restore();
+      }
+      /* the far bank, across the water from us */
+      const edge = (y, amp, seed) => { const pts = []; for (let x = -W / 2 - 60; x <= W / 2 + 60; x += 90) pts.push([x, y + T.noise(x * 0.012, seed) * amp]); return pts; };
+      P.fill(g, P.soft(edge(206, 5, 1).concat(edge(256, 6, 2).reverse())), '#3f6058');
+      P.fill(g, P.soft(edge(204, 5, 1).concat(edge(238, 5, 3).reverse())), '#58806c');
+      if (L.mom) {
+        const mx = -W * SC / 2 + 22, ms = F.styles.mom;
+        const j = F.person(g, { x: mx, y: BANK - F.hipHeight(ms, 132), s: 132, style: ms, lean: 0.08, headTilt: 0.12, armF: { a: 0.9, b: 0.5 }, face: { blush: 0.2 } });
+        P.glow(g, j.handF[0], j.handF[1] + 18, 54, '#ffd98a', 0.6); P.fill(g, P.rr(j.handF[0] - 5, j.handF[1] + 7, 10, 14, 3), '#fff0b8');
+      }
+      const order = Q.map((q, i) => i).sort((a2, b2) => (R && R.held === a2 ? 1 : 0) - (R && R.held === b2 ? 1 : 0));
+      for (const i of order) {
+        const q = Q[i], x = q.x, sel = live && !q.lock && (R.sel === i || R.held === i);
+        if (live && !q.lock) {   /* it can be slid: little arrows either side */
+          g.save(); g.globalAlpha = sel ? 0.9 : 0.34 + 0.2 * pulse; g.fillStyle = '#fff6e0';
+          for (const d of [-1, 1]) { const ax = x + d * 56 + d * (sel ? pulse * 6 : 0), ay = BANK - 44; g.beginPath(); g.moveTo(ax, ay - 14); g.lineTo(ax + d * 18, ay); g.lineTo(ax, ay + 14); g.closePath(); g.fill(); }
+          g.restore();
+        }
+        if (q.kind === 'lamp') K.lantern(g, x, BANK + 2, t, { s: 1.2, lit: 1, seed: 5 });
+        else if (q.kind === 'pot') {
+          const sk = L.beat === 1 ? 0 : L.salt.k;
+          g.save(); g.translate(x, BANK); g.scale(1.36, 1.36);
+          P.glow(g, 0, -2, 30, '#ffb45a', 0.55 + 0.2 * Math.sin(t * 9));
+          [-17, 0, 17].forEach((dx, k) => P.fill(g, P.ellipse(dx, 2, 9, 6), k === 1 ? '#6f6a66' : '#807a74'));
+          P.fill(g, P.rr(-25, -34, 50, 28, 9), '#2d6672'); P.fill(g, P.ellipse(0, -34, 25, 5.5), '#a8452a');
+          P.line(g, -29, -27, -25, -27, 4, '#234f58'); P.line(g, 25, -27, 29, -27, 4, '#234f58');
+          for (let k = 0; k < 3; k++) { const life = (t * 0.33 + k * 0.33) % 1; P.glow(g, Math.sin(t * 1.3 + k * 2) * 7, -44 - life * 70, 9 + life * 14, '#fff3dc', Math.sin(life * Math.PI) * (0.16 + 0.2 * L.lit.pot)); }
+          g.restore();
+          if (sk > 0.02 && sk < 0.98) { g.fillStyle = '#ffffff'; for (let k = 0; k < 6; k++) g.fillRect(x - 9 + k * 3.4, BANK - 118 + ((t * 130 + k * 13) % 64), 3.4, 3.4); }
+        } else {
+          const reach = T.ease.io(L.reach.k), seated = T.ease.io(L.lit.leo), sip = T.ease.io(L.sip.k), sk = L.beat === 1 ? 0 : L.salt.k;
+          const hh = F.hipHeight(ls, 172);
+          const lo = { x, y: T.lerp(BANK - hh, BANK - 6, seated), s: 172, style: ls, flip: q.lock ? true : !!q.flip, lean: 0.05 + reach * 0.34, headTilt: 0.2 + reach * 0.16, face: Object.assign({ blush: 0.14 }, L.leoFace) };
+          if (seated > 0.5) { lo.sit = true; lo.legF = { a: Math.PI / 2 - 0.5, b: 0.5 }; lo.legB = { a: Math.PI / 2 - 0.62, b: 0.62 }; lo.armF = reach > 0.02 ? { hand: F.local(lo, x - 14 - 30 * reach, T.lerp(BANK - 16, BANK + 74, reach)) } : { a: 0.5, b: 1.0 }; lo.armB = { a: 0.3, b: 0.9 }; }
+          else if (live && (R.held === i || q.go != null)) lo.walk = q.ph || 0;
+          /* his pot is beside him: a pinch of salt, a spoon to the mouth */
+          const pot = Q.find((w) => w.kind === 'pot');
+          if (pot && seated > 0.5 && (sip > 0.02 || (sk > 0.02 && sk < 0.98))) {
+            const salting = sk > 0.02 && sk < 0.98, hx = salting ? pot.x + 4 : T.lerp(pot.x + 8, x - 14, sip), hy = salting ? BANK - 124 + Math.abs(Math.sin(t * 9)) * 8 : T.lerp(BANK - 58, BANK - 112, sip);
+            lo.armF = { hand: F.local(lo, hx, hy) };
+            if (salting) lo.shaker = true; else if (sip > 0.02) lo.prop = [hx, hy];
+          }
+          const j = F.person(g, lo);
+          if (lo.prop) { P.line(g, j.handF[0], j.handF[1], j.handF[0] - 17, j.handF[1] + 6, 3.4, '#b98a5a'); P.fill(g, P.ellipse(j.handF[0] - 21, j.handF[1] + 7, 7, 4), '#b98a5a'); }
+          if (lo.shaker) { g.save(); g.translate(j.handF[0] - 2, j.handF[1] + 8); g.rotate(2.7); P.fill(g, P.rr(-6, -10, 12, 19, 3), '#f6f2ea'); P.fill(g, P.rr(-6, -13, 12, 6, 2), '#8f96a0'); g.restore(); }
+        }
+      }
+      /* reeds along the water's edge */
+      g.strokeStyle = '#2f4a48'; g.lineCap = 'round'; g.lineWidth = 3;
+      for (let i = 0; i < 12; i++) { const rx = (i < 6 ? -W / 2 + 10 + i * 21 : W / 2 - 150 + (i - 6) * 24) + T.noise(i, 3) * 10, h = 34 + T.noise(i * 1.7, 4) * 20, sw = Math.sin(t * 1.2 + i) * 4; g.beginPath(); g.moveTo(rx, 262 + (i % 3) * 5); g.quadraticCurveTo(rx + sw * 0.4, 244, rx + sw, 262 - h); g.stroke(); }
+      if (live) {
+        P.text(g, '기둥의 등불, 냄비, 레오를 좌우로 끌어 보세요. 물그림자가 제자리에 겹치면 머물러요', 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' });
+        if (R.idle > 9) { const h = L.hintAt(); if (h) P.beacon(g, h[0], h[1], 44, t, 1, '#fff0c8'); }
+      } else if (L.note) P.text(g, L.note, 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' });
+    }
     const draw0 = L.draw;
     L.draw = function (g, t) { try { draw0(g, t); } finally { P.cray = false; } };
     /* give him the dream to carry; resolves when he has let it into the water */
@@ -227,6 +353,35 @@
     book(g, a.x + 36, a.y - 60, -1.25);
     F.person(g, Object.assign({}, a, { only: 'armF', skip: null, armF: { hand: F.local(a, a.x + 30, a.y - 70) } }));
     night(g, '#5d6a92');
+  };
+  /* one year on, to the day: she makes his stew out of his notebook, standing in his place at the stove.
+     L.lit is what his bank has lent the room; L.beat: 0 stirring · 1 salt, and salt again · 2 the taste · 3 laughing · 4 the empty seat */
+  V_.first = function (g, t, L) {
+    T.blit(g, bg()); rain(g, t);
+    const lit = L.lit || {}, b = L.beat || 0, st = F.anaAt(37), sip = T.ease.io(L.sip ? L.sip.k : 0), salt = L.salt ? L.salt.k : 0;
+    if (lit.lamp > 0.01) { g.save(); g.beginPath(); g.rect(-534, 164, 212, 252); g.clip(); g.fillStyle = T.rgba('#ffb85a', 0.34 * lit.lamp); g.fillRect(-534, 164, 212, 252); P.glow(g, -428, 300, 200, '#ffc76a', 0.95 * lit.lamp); P.glow(g, -428, 300, 64, '#ffe6ac', 0.95 * lit.lamp); g.restore(); }
+    /* the notebook open on the counter, and two bowls set out from habit */
+    book(g, 118, COUNTER - 10, -0.05);
+    [176, 216].forEach((x) => { P.fill(g, P.poly([[x - 17, COUNTER - 26], [x + 17, COUNTER - 26], [x + 11, COUNTER - 10], [x - 11, COUNTER - 10]]), '#f2ead8'); P.fill(g, P.ellipse(x, COUNTER - 26, 16, 3.6), '#e3d9c4'); });
+    /* the pot */
+    P.fill(g, P.ellipse(24, 550, 80, 12), '#a8452a');
+    for (let i = 0; i < 4; i++) { const life = (t * 0.2 + i * 0.25) % 1; P.glow(g, 24 + Math.sin(t + i * 2) * 14, 520 - life * 160, 20 + life * 32, '#fff3dc', Math.sin(life * Math.PI) * (0.16 + 0.14 * (lit.pot || 0))); }
+    const grim = b === 2 && sip > 0.9, laugh = b === 3, still = b >= 4, tear = L.tear ? L.tear.k : 0;
+    const a = { x: -132, y: FLOORY - F.hipHeight(st, 372) + (laugh ? Math.sin(t * 13) * 3 : 0), s: 372, style: st, lean: 0.06 + Math.sin(t * 1.1) * 0.012 - (still ? 0.03 : 0), headTilt: grim ? Math.sin(t * 17) * 0.09 : still ? -0.05 : 0.12,
+      face: { eye: grim ? 'closed' : laugh ? 'happy' : 'open', mouth: grim || laugh ? 'open' : still ? 'line' : null, blush: 0.2, tear: tear * 0.9, tearY: (t * 2) % 3 }, skip: { armF: true } };
+    a.armB = still ? { a: 0.3, b: 0.4 } : { hand: F.local(a, -28, 566) };
+    const j = F.person(g, a);
+    /* the spoon hand: round the pot, over it with salt, or up to her mouth */
+    let hx, hy, spoon = true;
+    let shaker = false;
+    if (b === 1 && salt > 0.02 && salt < 0.98) { hx = 10 + Math.sin(t * 9) * 5; hy = 428 + Math.abs(Math.sin(t * 9)) * 12; spoon = false; shaker = true; g.fillStyle = '#ffffff'; for (let k = 0; k < 8; k++) g.fillRect(2 + k * 5, 466 + ((t * 170 + k * 19) % 76), 6, 6); }
+    else if (b >= 2 && !still) { hx = T.lerp(-30, j.head[0] + 50, sip); hy = T.lerp(498, j.head[1] + 38, sip); }
+    else if (still) { hx = a.x + 36; hy = a.y + 30; spoon = false; }
+    else { const tip = [24 + Math.cos(t * 2.2) * 44, 552 + Math.sin(t * 2.2) * 6]; hx = tip[0] - 60; hy = tip[1] - 56; P.line(g, hx - 6, hy - 10, tip[0], tip[1], 6, '#b98a5a'); spoon = false; }
+    if (spoon) { P.line(g, hx, hy, hx - 34, hy + 12, 6, '#b98a5a'); P.fill(g, P.ellipse(hx - 40, hy + 14, 13, 7, 0.2), '#b98a5a'); }
+    F.person(g, Object.assign({}, a, { only: 'armF', skip: null, armF: { hand: F.local(a, hx, hy) } }));
+    if (shaker) { g.save(); g.translate(hx + 6, hy + 22); g.rotate(2.75); P.fill(g, P.rr(-13, -22, 26, 40, 6), '#f6f2ea'); P.fill(g, P.rr(-13, -28, 26, 12, 4), '#8f96a0'); g.restore(); }
+    night(g, T.mix('#5d6a92', '#7d7890', (lit.lamp || 0) * 0.6 + (lit.leo || 0) * 0.25), T.mix('#e9dcc2', '#ffe9c2', lit.lamp || 0));
   };
   /* three years on: work, the child, the nights. i picks one of three evenings. */
   V_.tired = function (g, t, L) {
