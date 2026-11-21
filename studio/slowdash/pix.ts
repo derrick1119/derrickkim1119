@@ -156,8 +156,9 @@ export function bgGrid(lw: number, lh: number, place: number, hz: number, gb: nu
     const big = place === 2 || v === 3, tw = big ? 22 : 14, tx = Math.round(big ? lw / 2 - tw / 2 : lw * 0.66), th = hz - (big ? 21 : 23), ty = hz - th; // 뾰족 끝도 HUD 아래
     rect(tx, ty, tw, th, '3');
     rect(tx + tw - 3, ty, 3, th, '2'); // 그늘 쪽
-    for (let j = 0; j < 8; j++) rect(tx + j, ty - 8 + j, tw - 2 * j, 1, j ? '2' : '1'); // 뾰족 지붕
-    put(tx + tw / 2, ty - 9, 'y');
+    const sp = Math.min(8, tw / 2 - 1); // 👁 r5: 뾰족 지붕이 거꾸로(아래로 좁아지는 역삼각형) 떠 있었다 → 탑 위로 좁아짐
+    for (let j = 0; j < sp; j++) rect(tx + j, ty - 1 - j, tw - 2 * j, 1, j === sp - 1 ? '1' : '2');
+    put(tx + tw / 2 - 1, ty - 1 - sp, 'y');
     const cx = tx + tw / 2, cy = ty + (big ? 10 : 7), cr = big ? 7 : 5;
     for (let y = -cr; y <= cr; y++) for (let x = -cr; x <= cr; x++) { const d = x * x + y * y; if (d <= cr * cr) put(cx + x, cy + y, d > (cr - 1) ** 2 ? '6' : '9'); }
     for (let j = 1; j < cr - 1; j++) (put(cx, cy - j, '1'), put(cx + j * 0.6, cy + j * 0.3, '1')); // 시침·분침

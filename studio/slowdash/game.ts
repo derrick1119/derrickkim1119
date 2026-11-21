@@ -2082,8 +2082,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(X(x), Y(y));
-    ctx.fillStyle = 'rgba(4,6,18,.4)';
-    ell(ctx, 0, 0, k * (f.k === 'boss' ? 0.38 : 0.26), k * 0.07);
+    ctx.fillStyle = '#1b1636'; // 👁 r5: 반투명 그림자 → 한 색
+    ell(ctx, Math.round(X(x) / PX) * PX - X(x), 0, k * (f.k === 'boss' ? 0.38 : 0.26), k * 0.07);
     ctx.fill();
     ctx.translate(0, -R(z));
     if (f.hurtT > 0) ctx.translate(Math.sin(t * 2) * k * 0.04, 0);
@@ -2093,11 +2093,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     if (shieldBehind) drawShieldDisc(ctx, k, f.fa, 0);
     ctx.save();
     ctx.scale(face, 1);
-    if (outline) { // M3 S1 렉: 그림자 흐림(shadowBlur) 대신 몸 뒤 옅은 금빛 후광 한 장
-      ctx.fillStyle = 'rgba(255,241,176,.32)';
-      ell(ctx, 0, -k * 0.46, k * 0.4, k * 0.52);
-      ctx.fill();
-    }
+    // 👁 r5: 몸 뒤 옅은 금빛 후광이 칸이 어긋난 회색 반투명 네모로 보였다 → 뺌(벨 적은 번호 배지로 충분)
+    void outline;
     drawFoeBody(ctx, k, pose, wt);
     ctx.restore();
     if (f.k === 'shield' && f.hp > 1 && !shieldBehind) drawShieldDisc(ctx, k, f.fa, Math.max(0, 1 - (t - (fx.memo['bn' + f.id] ?? -99)) / 10));
@@ -2227,7 +2224,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   const drawNinja = (alpha = 1) => {
     const k = R(NIN_H) * depth(s.ny), hx = clamp(X(s.nx), k * (s.face < 0 ? 1.1 : 0.6), w - k * (s.face > 0 ? 1.1 : 0.6)); // 칼은 앞쪽으로 나옴 // 👁 r1: 화면 끝에서 칼끝·몸이 잘렸다 → 그릴 때만 안쪽으로
     const blinkOff = s.inv > INV_DASH && s.phase === 'play' && t - (fx.memo.hurtT ?? -99) < INV_HURT && Math.floor(t / 4) % 2 === 0; // 👁 r1: 판 시작 무적에는 안 깜빡임(첫 화면 주인공이 유령처럼 보였음)
-    ctx.fillStyle = 'rgba(124,248,221,.22)'; // M3 S3: 발밑 빛도 한 색(청록 = 내 힘)
+    ctx.fillStyle = '#24505e'; // M3 S3: 발밑 빛도 한 색(청록 = 내 힘) · 👁 r5: 반투명 타원 → 불투명 짙은 청록
     ell(ctx, hx, Y(s.ny), k * 0.55, k * 0.2);
     ctx.fill();
     ctx.save();
@@ -2413,24 +2410,20 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     if (g) {
       const pts = [{ x: s.nx, y: s.ny }, ...g], u = (t % 100) / 70;
       ctx.save();
-      ctx.setLineDash([R(0.02), R(0.016)]);
-      ctx.lineCap = 'round';
-      ctx.lineWidth = R(0.012);
-      ctx.strokeStyle = 'rgba(255,240,180,.75)';
-      ctx.beginPath();
-      pts.forEach((q, i) => (i ? ctx.lineTo(X(q.x), Y(q.y) - R(0.04)) : ctx.moveTo(X(q.x), Y(q.y) - R(0.04))));
-      ctx.stroke();
-      ctx.setLineDash([]);
+      // 👁 r5: 1px 베이지 점선이 갈색 적 무리 위에서 안 보였다 → 굵은 청록 도트 점선(검은 테)
+      for (let i = 1; i < pts.length; i++) {
+        const a0 = pts[i - 1], a1 = pts[i];
+        pxLine(ctx, X(a0.x), Y(a0.y) - R(0.04), X(a1.x), Y(a1.y) - R(0.04), 4, OUT, [3, 2], Math.floor(t / 4));
+        pxLine(ctx, X(a0.x), Y(a0.y) - R(0.04), X(a1.x), Y(a1.y) - R(0.04), 2, '#7cf8dd', [3, 2], Math.floor(t / 4));
+      }
       if (u <= 1) { // 손가락 점이 길을 따라 간다
         const L = [Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y), Math.hypot(pts[2].x - pts[1].x, pts[2].y - pts[1].y)], d = u * (L[0] + L[1]);
         const [a0, a1, k] = d < L[0] ? [pts[0], pts[1], d / L[0]] : [pts[1], pts[2], (d - L[0]) / L[1]];
         const hx = X(a0.x + (a1.x - a0.x) * k), hy = Y(a0.y + (a1.y - a0.y) * k) - R(0.04);
         if (demoNow(s)) drawHand(ctx, hx, hy, R(0.09), 1); // ✏️ M2 S2 휙 두 번 뒤: 손가락 그림이 직접 그어 보인다
         else {
-          ctx.fillStyle = 'rgba(255,250,220,.95)';
-          ctx.beginPath();
-          ctx.arc(hx, hy, R(0.022), 0, TAU);
-          ctx.fill();
+          ctx.fillStyle = '#fff6dc';
+          pxMap(ctx, ICON.disc, hx, hy, PX); // 👁 도트 점
         }
       }
       ctx.restore();

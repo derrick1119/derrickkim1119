@@ -74,18 +74,8 @@ export class Juice {
 
   /** 다 그린 뒤 부른다: 파티클·글자·번쩍을 덧그린다 */
   render(ctx: CanvasRenderingContext2D, w: number, h: number) {
-    for (const r of this.rings) {
-      r.life--;
-      r.r += (r.max - r.r) * 0.18;
-      ctx.fillStyle = r.color; // 🎨 F3 'AI 티': 매끈한 원 고리 → 3px 칸 도트 고리(두꺼운 고리는 6px 칸) · 👁 r1: 옅어지며 1px 선처럼 번짐 → 불투명 · 끝 8프레임은 칸을 하나 걸러 사라짐
-      const z = r.width * (r.life / 24) > 2.5 ? 6 : 3, n = Math.max(12, Math.ceil((Math.PI * 2 * r.r) / z));
-      for (let k = 0; k < n; k++) {
-        if (r.life < 8 && k % 2) continue;
-        const a = (k / n) * Math.PI * 2;
-        ctx.fillRect(Math.round((r.x + Math.cos(a) * r.r - z / 2) / 3) * 3, Math.round((r.y + Math.sin(a) * r.r - z / 2) / 3) * 3, z, z);
-      }
-    }
-    this.rings = this.rings.filter((r) => r.life > 0);
+    this.rings.length = 0; // 👁 r5: 큰 고리는 칸이 세상보다 잘아 '벡터 원'으로 읽혔다(r1~r5 계속) → 그리지 않음(칼빛·조각이 대신)
+
     for (const p of this.particles) {
       p.x += p.vx;
       p.y += p.vy;
