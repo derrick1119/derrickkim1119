@@ -17,7 +17,16 @@
     /* 물그림자: with o.shore he stands on the far bank, and what stands there with him (o.things) throws a
        shadow straight down into her picture. Slid until it lies on its counterpart, a shadow stays. */
     const BANK = 228, DEPTH = { lamp: TOP + 304 * SC, pot: TOP + 548 * SC, leo: TOP + (COUNTER - 34) * SC };
+    /* a thing: { kind: 'lamp'|'pot'|'leo'|'who'|'dog' or anything with its own bank()/ghost(), id, x (on the bank),
+       at: [x, y] where its shadow belongs in the picture, style (people), flip, ps (picture size) } */
     const things = () => L.things || [];
+    const idOf = (q) => q.id || q.kind;
+    const person = (q) => q.kind === 'leo' || q.kind === 'who';
+    (L.things || []).forEach((q) => {
+      if (q.at) { q.to = q.at[0] * SC; q.depth = TOP + q.at[1] * SC; }
+      if (q.depth == null) q.depth = DEPTH[q.kind] || TOP + 400 * SC;
+      if (L.lit[idOf(q)] == null) L.lit[idOf(q)] = 0;
+    });
     const clampX = (x) => { const lim = T.view.W * SC / 2 - 56; return T.clamp(x, -lim, lim); };
     /* the picture can arrive broken into rings, each turned a little: tap a ring to turn it a notch */
     const RCY = TOP + PH / 2 - 20, RADS = { 2: [0, 150, 280], 3: [0, 112, 202, 292], 4: [0, 88, 160, 232, 304] };
@@ -64,7 +73,7 @@
     const ringNext = () => { const R = L.ring; if (!R || R.solved) return -1; for (let i = R.n - 1; i >= 0; i--) if (R.rot[i] % 8) return i; return -1; };
     /* o: { start: [notches off, innermost first], couple: a ring drags the one inside it } */
     L.calm = function (o) { const n = o.start.length; return new Promise((res) => { L.ring = { n, rot: o.start.slice(), vis: o.start.slice(), couple: !!o.couple, rad: RADS[n], solved: false, idle: 0, taps: 0, t: 0, res }; L.amp = 0.35; }); };
-    L.hintAt = () => { const h = rhNext(); if (h >= 0) { const q = things()[h]; return L.rh.sel === h ? [q.to, DEPTH[q.kind] - (q.kind === 'leo' ? 60 : 0)] : [q.x, BANK - 46]; } const i = ringNext(); if (i < 0) return null; const R = L.ring; return [0, i === 0 ? RCY : RCY - (R.rad[i] + R.rad[i + 1]) / 2]; };
+    L.hintAt = () => { const h = rhNext(); if (h >= 0) { const q = things()[h]; return L.rh.sel === h ? [q.to, q.depth - (person(q) ? 60 : 0)] : [q.x, BANK - 46]; } const i = ringNext(); if (i < 0) return null; const R = L.ring; return [0, i === 0 ? RCY : RCY - (R.rad[i] + R.rad[i + 1]) / 2]; };
     L.pointer = function (type, x, y) {
       if (L.rh && !L.rh.solved) {
         const R = L.rh, Q = things();
@@ -107,7 +116,7 @@
         for (const q of things()) if (q.go != null && !q.lock) { const d = q.go - q.x, st = Math.sign(d) * Math.min(Math.abs(d), 560 * dt); q.x += st; q.ph = (q.ph || 0) + Math.abs(st) / 9; if (st) q.flip = st < 0; if (Math.abs(q.go - q.x) < 0.5) { q.go = null; settle(q); } }
         if (H.solved) { H.t -= dt; if (H.t <= 0) { L.rh = null; H.res(); } } else L.amp = Math.max(L.amp, 0.2);
       }
-      for (const q of things()) L.lit[q.kind] += ((q.lock ? 1 : 0) - L.lit[q.kind]) * Math.min(1, dt * 1.8);
+      for (const q of things()) { const id = idOf(q); L.lit[id] += ((q.lock ? 1 : 0) - L.lit[id]) * Math.min(1, dt * 1.8); }
       const R = L.ring;
       if (R) {
         R.idle += dt;
@@ -238,25 +247,33 @@
       const pulse = 0.5 + 0.5 * Math.sin(t * 3);
       /* the shadows, lying in her picture */
       for (let i = 0; i < Q.length; i++) {
-        const q = Q[i], near = T.clamp(1 - Math.abs(q.x - q.to) / 180), lit = L.lit[q.kind], dy = DEPTH[q.kind];
+        const q = Q[i], near = T.clamp(1 - Math.abs(q.x - q.to) / 180), lit = L.lit[idOf(q)], dy = q.depth;
         if (lit < 0.97) {
           const c = T.mix('#a9c8ea', '#ffd98a', near), gr = g.createLinearGradient(0, 252, 0, dy);
           gr.addColorStop(0, T.rgba(c, 0.5 * (1 - lit))); gr.addColorStop(0.5, T.rgba(c, (0.2 + 0.3 * near) * (1 - lit))); gr.addColorStop(1, T.rgba(c, 0));
           g.fillStyle = gr; g.fillRect(q.x - 3, 250, 6, dy - 250);
         }
         g.save();
-        if (q.kind === 'lamp') { const a = (0.3 + 0.34 * near) * (1 - lit * 0.85); P.glow(g, q.x, dy, 84 + 30 * near, '#ffd98a', a); g.globalAlpha = a * 0.75; P.fill(g, P.rr(q.x - 27, dy - 36, 54, 72, 9), '#ffe2a0'); g.globalAlpha = 1; }
+        if (q.ghost) q.ghost(g, q.x, dy, near, lit, t, L);
+        else if (q.kind === 'dog') {
+          const fd = { x: q.x, y: dy, s: (q.ps || 300) * SC, sit: 1, flip: q.flip, wag: Math.sin(t * 9) * 0.5 * lit, headTilt: 0.2 };
+          if (lit < 0.97) { g.globalAlpha = (0.34 + 0.3 * near) * (1 - lit); F.dog(g, Object.assign({}, fd, { shadow: true })); }
+          if (lit > 0.02) { g.globalAlpha = 0.74 * lit; P.glow(g, q.x, dy - 30, 110, '#ffe2a8', 0.2 * lit); F.dog(g, fd); }
+        }
+        else if (q.kind === 'lamp') { const a = (0.3 + 0.34 * near) * (1 - lit * 0.85); P.glow(g, q.x, dy, 84 + 30 * near, '#ffd98a', a); g.globalAlpha = a * 0.75; P.fill(g, P.rr(q.x - 27, dy - 36, 54, 72, 9), '#ffe2a0'); g.globalAlpha = 1; }
         else if (q.kind === 'pot') {
           g.globalAlpha = (0.46 + 0.3 * near) * (1 - lit); P.fill(g, P.rr(q.x - 68, dy + 6, 16, 9, 3), '#101c33'); P.fill(g, P.rr(q.x + 52, dy + 6, 16, 9, 3), '#101c33'); P.fill(g, P.rr(q.x - 54, dy - 3, 108, 46, 14), '#101c33'); P.fill(g, P.ellipse(q.x, dy - 3, 55, 9), '#22365c');
           g.globalAlpha = 1; for (let k = 0; k < 2; k++) { const life = (t * 0.3 + k * 0.5) % 1; P.glow(g, q.x + Math.sin(t + k * 2) * 10, dy - 20 - life * 90, 16 + life * 22, '#fff3dc', Math.sin(life * Math.PI) * (0.1 + 0.16 * near + 0.14 * lit)); }
-        } else {
-          const fo = { x: q.x, y: dy, s: 372 * SC, flip: true, sit: true, lean: 0.14 + T.ease.io(L.reach.k) * 0.1, headTilt: 0.12, legF: { foot: [16, 6] }, legB: { foot: [12, 8] }, armF: { a: 0.7, b: 0.8 }, armB: { a: 0.55, b: 0.7 }, face: Object.assign({ blush: 0.14 }, L.leoFace) };
-          const sipK = T.ease.io(L.sip.k);
+        } else if (person(q)) {
+          const qs = q.style || ls, leoHere = q.kind === 'leo';
+          const fo = { x: q.x, y: dy, s: (q.ps || 372) * SC, flip: q.flip == null ? true : q.flip, sit: true, lean: 0.14 + (leoHere ? T.ease.io(L.reach.k) * 0.1 : 0), headTilt: 0.12, legF: { foot: [16, 6] }, legB: { foot: [12, 8] }, armF: { a: 0.7, b: 0.8 }, armB: { a: 0.55, b: 0.7 }, face: Object.assign({ blush: 0.14 }, leoHere ? L.leoFace : q.face) };
+          if (q.pose) q.pose(fo, t, L, true);
+          const sipK = leoHere ? T.ease.io(L.sip.k) : 0;
           if (sipK > 0.02) fo.armF = { hand: F.local(fo, T.lerp(q.x - 66, q.x - 34, sipK), T.lerp(dy - 22, dy - 116, sipK)) };
-          if (lit < 0.97) { g.globalAlpha = (0.3 + 0.26 * near) * (1 - lit); F.person(g, Object.assign({}, fo, { style: flat(ls, '#101c33'), face: {} })); }
-          const part = T.ease.io(L.part.k), gone = T.ease.io(L.gone.k);
-          if (lit > 0.5 && part > 0.02) { g.globalAlpha = 0.36 * part * (1 - gone); F.person(g, Object.assign({}, fo, { style: flat(ls, '#101c33'), face: {} })); }   /* what she sees there: nothing */
-          if (lit > 0.02) { const here = lit * (1 - part); g.globalAlpha = 0.74 * here; P.glow(g, q.x - 10, dy - 90, 150, '#ffe2a8', 0.18 * here); const jk = F.person(g, Object.assign({}, fo, { style: ls })); if (sipK > 0.02 && jk && jk.handF) { P.line(g, jk.handF[0], jk.handF[1], jk.handF[0] - 26, jk.handF[1] + 9, 5, '#b98a5a'); P.fill(g, P.ellipse(jk.handF[0] - 32, jk.handF[1] + 11, 10, 6), '#b98a5a'); } }
+          if (lit < 0.97) { g.globalAlpha = (0.3 + 0.26 * near) * (1 - lit); F.person(g, Object.assign({}, fo, { style: flat(qs, '#101c33'), face: {} })); }
+          const part = leoHere || q.parts ? T.ease.io(L.part.k) : 0, gone = T.ease.io(L.gone.k);
+          if (lit > 0.5 && part > 0.02) { g.globalAlpha = 0.36 * part * (1 - gone); F.person(g, Object.assign({}, fo, { style: flat(qs, '#101c33'), face: {} })); }   /* what they see there: nothing */
+          if (lit > 0.02) { const here = lit * (1 - part); g.globalAlpha = 0.74 * here; P.glow(g, q.x - 10, dy - 90 * (fo.s / 260), 150 * (fo.s / 260), '#ffe2a8', 0.18 * here); const jk = F.person(g, Object.assign({}, fo, { style: qs })); if (sipK > 0.02 && jk && jk.handF) { P.line(g, jk.handF[0], jk.handF[1], jk.handF[0] - 26, jk.handF[1] + 9, 5, '#b98a5a'); P.fill(g, P.ellipse(jk.handF[0] - 32, jk.handF[1] + 11, 10, 6), '#b98a5a'); } }
         }
         g.restore();
       }
@@ -277,7 +294,9 @@
           for (const d of [-1, 1]) { const ax = x + d * 56 + d * (sel ? pulse * 6 : 0), ay = BANK - 44; g.beginPath(); g.moveTo(ax, ay - 14); g.lineTo(ax + d * 18, ay); g.lineTo(ax, ay + 14); g.closePath(); g.fill(); }
           g.restore();
         }
-        if (q.kind === 'lamp') K.lantern(g, x, BANK + 2, t, { s: 1.2, lit: 1, seed: 5 });
+        if (q.bank) q.bank(g, x, t, L, q);
+        else if (q.kind === 'dog') { const sat = L.lit[idOf(q)]; F.dog(g, { x, y: BANK + 2 - (q.jump || 0), s: 220, walk: live && (R.held === i || q.go != null) ? q.ph || 0 : null, sit: sat > 0.5 ? 1 : 0, flip: q.lock ? !!q.lockFlip : !!q.flip, wag: Math.sin(t * (q.wagRate || 10)) * (q.wag == null ? 0.8 : q.wag), headTilt: q.tilt || 0 }); }
+        else if (q.kind === 'lamp') K.lantern(g, x, BANK + 2, t, { s: 1.2, lit: 1, seed: 5 });
         else if (q.kind === 'pot') {
           const sk = L.beat === 1 ? 0 : L.salt.k;
           g.save(); g.translate(x, BANK); g.scale(1.36, 1.36);
@@ -288,20 +307,23 @@
           for (let k = 0; k < 3; k++) { const life = (t * 0.33 + k * 0.33) % 1; P.glow(g, Math.sin(t * 1.3 + k * 2) * 7, -44 - life * 70, 9 + life * 14, '#fff3dc', Math.sin(life * Math.PI) * (0.16 + 0.2 * L.lit.pot)); }
           g.restore();
           if (sk > 0.02 && sk < 0.98) { g.fillStyle = '#ffffff'; for (let k = 0; k < 6; k++) g.fillRect(x - 9 + k * 3.4, BANK - 118 + ((t * 130 + k * 13) % 64), 3.4, 3.4); }
-        } else {
-          const reach = T.ease.io(L.reach.k), seated = T.ease.io(L.lit.leo), sip = T.ease.io(L.sip.k), sk = L.beat === 1 ? 0 : L.salt.k;
-          const hh = F.hipHeight(ls, 172);
-          const lo = { x, y: T.lerp(BANK - hh, BANK - 6, seated), s: 172, style: ls, flip: q.lock ? true : !!q.flip, lean: 0.05 + reach * 0.34, headTilt: 0.2 + reach * 0.16, face: Object.assign({ blush: 0.14 }, L.leoFace) };
+        } else if (person(q)) {
+          const leoHere = q.kind === 'leo', qs = q.style || ls;
+          const reach = leoHere ? T.ease.io(L.reach.k) : 0, seated = T.ease.io(L.lit[idOf(q)]), sip = leoHere ? T.ease.io(L.sip.k) : 0, sk = !leoHere || L.beat === 1 ? 0 : L.salt.k;
+          const hh = F.hipHeight(qs, 172);
+          const lo = { x, y: T.lerp(BANK - hh, BANK - 6, seated), s: 172, style: qs, flip: q.lock ? (q.lockFlip == null ? true : q.lockFlip) : !!q.flip, lean: 0.05 + reach * 0.34, headTilt: 0.2 + reach * 0.16, face: Object.assign({ blush: 0.14 }, leoHere ? L.leoFace : q.face) };
           if (seated > 0.5) { lo.sit = true; lo.legF = { a: Math.PI / 2 - 0.5, b: 0.5 }; lo.legB = { a: Math.PI / 2 - 0.62, b: 0.62 }; lo.armF = reach > 0.02 ? { hand: F.local(lo, x - 14 - 30 * reach, T.lerp(BANK - 16, BANK + 74, reach)) } : { a: 0.5, b: 1.0 }; lo.armB = { a: 0.3, b: 0.9 }; }
           else if (live && (R.held === i || q.go != null)) lo.walk = q.ph || 0;
           /* his pot is beside him: a pinch of salt, a spoon to the mouth */
-          const pot = Q.find((w) => w.kind === 'pot');
+          if (q.pose) q.pose(lo, t, L, false);
+          const pot = leoHere && Q.find((w) => w.kind === 'pot');
           if (pot && seated > 0.5 && (sip > 0.02 || (sk > 0.02 && sk < 0.98))) {
             const salting = sk > 0.02 && sk < 0.98, hx = salting ? pot.x + 4 : T.lerp(pot.x + 8, x - 14, sip), hy = salting ? BANK - 124 + Math.abs(Math.sin(t * 9)) * 8 : T.lerp(BANK - 58, BANK - 112, sip);
             lo.armF = { hand: F.local(lo, hx, hy) };
             if (salting) lo.shaker = true; else if (sip > 0.02) lo.prop = [hx, hy];
           }
           const j = F.person(g, lo);
+          if (q.prop) q.prop(g, j, lo, t, L);
           if (lo.prop) { P.line(g, j.handF[0], j.handF[1], j.handF[0] - 17, j.handF[1] + 6, 3.4, '#b98a5a'); P.fill(g, P.ellipse(j.handF[0] - 21, j.handF[1] + 7, 7, 4), '#b98a5a'); }
           if (lo.shaker) { g.save(); g.translate(j.handF[0] - 2, j.handF[1] + 8); g.rotate(2.7); P.fill(g, P.rr(-6, -10, 12, 19, 3), '#f6f2ea'); P.fill(g, P.rr(-6, -13, 12, 6, 2), '#8f96a0'); g.restore(); }
         }
@@ -310,7 +332,7 @@
       g.strokeStyle = '#2f4a48'; g.lineCap = 'round'; g.lineWidth = 3;
       for (let i = 0; i < 12; i++) { const rx = (i < 6 ? -W / 2 + 10 + i * 21 : W / 2 - 150 + (i - 6) * 24) + T.noise(i, 3) * 10, h = 34 + T.noise(i * 1.7, 4) * 20, sw = Math.sin(t * 1.2 + i) * 4; g.beginPath(); g.moveTo(rx, 262 + (i % 3) * 5); g.quadraticCurveTo(rx + sw * 0.4, 244, rx + sw, 262 - h); g.stroke(); }
       if (live) {
-        P.text(g, '기둥의 등불, 냄비, 레오를 좌우로 끌어 보세요. 물그림자가 제자리에 겹치면 머물러요', 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' });
+        P.text(g, L.rhText || '기둥의 등불, 냄비, 레오를 좌우로 끌어 보세요. 물그림자가 제자리에 겹치면 머물러요', 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' });
         if (R.idle > 9) { const h = L.hintAt(); if (h) P.beacon(g, h[0], h[1], 44, t, 1, '#fff0c8'); }
       } else if (L.note) P.text(g, L.note, 0, 864, { font: 'serif', size: 27, color: '#f3ead8', alpha: 0.94, glow: 'rgba(8,12,22,0.9)' });
     }
@@ -492,14 +514,42 @@
   };
 
   /* ---------- the dream: their first flat, as she remembers it ---------- */
-  /* o: { chalk: {k}, near: {k} (he comes to sit by her), lift: {k} (she looks up) } */
+  /* o: { chalk: {k}, near: {k} (he comes to sit by her), lift: {k} (she looks up), fall: {k} (falling into it),
+     settle: {k} (the room stops drifting) }. Nothing in a dream stays put: the room sways, the air is full of
+     slow lights, and the things of the flat float loose until they are put back (D.gather). */
   T.dream = function (o) {
-    const D = Object.assign({ dark: true, mood: 'night', chord: 2, chalk: { k: 0 }, near: { k: 0 }, lift: { k: 0 }, lean: { k: 0 } }, o);
-    D.draw = function (g, t) {
+    const D = Object.assign({ dark: true, mood: 'night', chord: 2, chalk: { k: 0 }, near: { k: 0 }, lift: { k: 0 }, lean: { k: 0 }, fall: { k: 0 }, settle: { k: 0 }, items: null, gq: null }, o);
+    const ITEMS = [
+      { name: 'cup', home: [-436, 600], f: [-40, 330] }, { name: 'book', home: [-330, 486], f: [60, 450] },
+      { name: 'photo', home: [-200, 452], f: [-30, 560] }, { name: 'clock', home: [-470, 444], f: [-600, 330] }, { name: 'plant', home: [-150, 618], f: [-620, 600] },
+    ];
+    let off = null, gen = -1;
+    const ZM = 1.38, ZC = [-300, 520], ZS = [-110, 470];
+    const toScr = (x, y) => [(x - ZC[0]) * ZM + ZS[0], (y - ZC[1]) * ZM + ZS[1]];
+    const toScene = (x, y) => [(x - ZS[0]) / ZM + ZC[0], (y - ZS[1]) / ZM + ZC[1]];
+    function build() {
+      const V = T.view;
+      off = document.createElement('canvas'); off.width = Math.ceil(V.W * V.ps); off.height = Math.ceil(900 * V.ps); gen = T.gen;
+    }
+    function item(g, n, x, y, rot, a) {
+      g.save(); g.translate(x, y); g.rotate(rot); g.scale(1.3, 1.3); g.globalAlpha *= a;
+      if (n === 'cup') { P.fill(g, P.poly([[-14, -16], [14, -16], [10, 10], [-10, 10]]), '#f6efe0'); g.strokeStyle = '#f6efe0'; g.lineWidth = 4; g.beginPath(); g.arc(16, -3, 7, -1.4, 1.4); g.stroke(); P.fill(g, P.ellipse(0, -16, 14, 3.5), '#c9a070'); }
+      else if (n === 'book') { P.fill(g, P.rr(-30, -9, 60, 18, 3), '#d7a23c'); P.fill(g, P.rr(-27, -6, 54, 12, 2), '#f6f0e0'); P.fill(g, P.rr(12, -10, 5, 22, 1), '#c9573f'); }
+      else if (n === 'photo') { P.fill(g, P.rr(-22, -28, 44, 56, 3), '#7a5a3e'); P.fill(g, P.rr(-17, -23, 34, 46, 2), '#e9dcc0'); P.fill(g, P.circle(-5, -6, 5), '#c9573f'); P.fill(g, P.circle(6, -6, 5), '#d7a23c'); }
+      else if (n === 'clock') { P.fill(g, P.circle(0, 0, 20), '#f6efe0'); g.strokeStyle = '#3d3a5c'; g.lineWidth = 2.5; g.beginPath(); g.arc(0, 0, 20, 0, TAU); g.moveTo(0, 0); g.lineTo(0, -12); g.moveTo(0, 0); g.lineTo(8, 3); g.stroke(); }
+      else { P.fill(g, P.poly([[-14, -2], [14, -2], [10, 22], [-10, 22]]), '#c9805a'); P.fill(g, P.ellipse(-8, -14, 7, 14, -0.4), '#6fa35c'); P.fill(g, P.ellipse(8, -14, 7, 14, 0.4), '#6fa35c'); P.fill(g, P.ellipse(0, -20, 6, 15), '#7fb36c'); }
+      g.restore();
+    }
+    const itemAt = (it, t) => {
+      const k = T.ease.io(it.k);
+      const fx = it.f[0] + Math.sin(t * 0.6 + it.ph) * 26, fy = it.f[1] + Math.sin(t * 0.9 + it.ph * 2) * 18;
+      return [T.lerp(fx, it.home[0], k), T.lerp(fy, it.home[1], k) - Math.sin(k * Math.PI) * 60, (1 - k) * Math.sin(t * 0.7 + it.ph) * 0.8];
+    };
+    function scene(g, t) {
       const H = T.scenes.home, G = H.GEO, W = T.view.W;
       H.paintStill(g, D.chalk.k);
       const near = T.ease.io(D.near.k), lift = T.ease.io(D.lift.k), ln = T.ease.io(D.lean.k);
-      const ana = { x: G.ROOM.x + 290, y: G.FLOOR - 55, s: 190, style: F.anaAt(39, { top: '#e9dcc3', bottom: '#9fb0c4', skirt: 30 }), flip: true, sit: true, lean: 0.3 - lift * 0.22 + ln * 0.16, headTilt: 0.5 - lift * 0.5 + ln * 0.12, face: { eye: lift > 0.5 ? (ln > 0.5 ? 'closed' : 'open') : 'closed', mouth: lift > 0.7 ? 'smile' : 'line', blush: 0.2, tear: 0.8 * (1 - ln * 0.6), tearY: (t * 2) % 3 } };
+      const ana = { x: G.ROOM.x + 290, y: G.FLOOR - 55, s: 190, style: F.anaAt(39, { top: '#e9dcc3', bottom: '#9fb0c4', skirt: 30 }), flip: true, sit: true, lean: 0.3 - lift * 0.22 + ln * 0.16, headTilt: 0.5 - lift * 0.5 + ln * 0.12, face: { eye: lift > 0.5 ? (ln > 0.5 ? 'closed' : 'open') : 'closed', mouth: lift > 0.7 ? 'smile' : 'line', blush: 0.2, tear: lift < 0.5 ? 0.8 : 0.3, tearY: (t * 2) % 3 } };
       ana.armF = { hand: F.local(ana, ana.x - 30, ana.y - 20 + lift * 14) }; ana.armB = { a: 0.5, b: 0.9 };
       const lx = T.lerp(G.ROOM.x + 40, G.ROOM.x + 238, near);
       const leo = { x: lx, y: G.FLOOR - F.hipHeight(F.styles.leoHome, 200) * (1 - near * 0.3) - near * 4, s: 200, style: F.styles.leoHome, lean: 0.06, headTilt: 0.1, face: { blush: 0.14, mouth: 'smile' } };
@@ -510,13 +560,88 @@
       F.person(g, leo);
       g.restore();
       F.person(g, ana);
-      /* dreams are soft at the edges */
-      g.save(); g.globalCompositeOperation = 'soft-light'; g.fillStyle = 'rgba(150,130,230,0.4)'; g.fillRect(-W / 2, 0, W, 900); g.restore();
-      const vg = g.createRadialGradient(-200, 480, 240, -200, 480, 1000);
-      vg.addColorStop(0, 'rgba(246,240,255,0)'); vg.addColorStop(1, 'rgba(246,240,255,0.75)');
+      /* the things of the flat, loose in the air until they are put back */
+      if (D.items) for (const it of D.items) { const q = itemAt(it, t); if (it.k < 1) P.glow(g, q[0], q[1], 46, '#fff6e0', 0.35 * (1 - it.k)); item(g, it.name, q[0], q[1], q[2], 1); }
+      void W;
+    }
+    D.draw = function (g, t) {
+      const V = T.view, W = V.W, ps = V.ps;
+      if (!off || gen !== T.gen || off.width !== Math.ceil(W * ps)) build();
+      const og = off.getContext('2d');
+      og.setTransform(1, 0, 0, 1, 0, 0); og.clearRect(0, 0, off.width, off.height);
+      og.setTransform(ps, 0, 0, ps, (W / 2) * ps, 0);
+      /* the whole room sways a little, as if on water */
+      const sway = (1 - T.ease.io(D.settle.k) * 0.7);
+      og.translate(ZS[0], ZS[1]); og.scale(ZM, ZM); og.translate(-ZC[0], -ZC[1]);
+      og.translate(-300, 520); og.rotate(Math.sin(t * 0.5) * 0.018 * sway); og.translate(300, -520);
+      scene(og, t);
+      /* laid down in slow waves: nothing in a dream holds quite still */
+      g.fillStyle = '#e9e0f6'; g.fillRect(-W / 2, 0, W, 900);
+      const strip = 6;
+      for (let y = 0; y < 900; y += strip) {
+        const dx = (Math.sin(y * 0.018 + t * 1.1) * 7 + Math.sin(y * 0.047 - t * 1.7) * 3) * sway;
+        g.drawImage(off, 0, y * ps, off.width, strip * ps, -W / 2 + dx, y, W, strip + 0.6);
+      }
+      /* soft at the edges, lilac, and full of slow lights */
+      g.save(); g.globalCompositeOperation = 'soft-light'; g.fillStyle = 'rgba(150,130,230,0.45)'; g.fillRect(-W / 2, 0, W, 900); g.restore();
+      const vg = g.createRadialGradient(-200, 480, 220, -200, 480, 980);
+      vg.addColorStop(0, 'rgba(246,240,255,0)'); vg.addColorStop(0.7, 'rgba(236,226,255,0.55)'); vg.addColorStop(1, 'rgba(246,240,255,0.92)');
       g.fillStyle = vg; g.fillRect(-W / 2, 0, W, 900);
+      const r = T.rng(11);
+      for (let i = 0; i < 42; i++) {
+        const sx = r() * W - W / 2, sp = 0.3 + r() * 0.7, ph = r() * TAU;
+        const x = sx + Math.sin(t * 0.3 * sp + ph) * 40, y = 900 - ((t * 22 * sp + r() * 900) % 960);
+        P.glow(g, x, y, 10 + sp * 14, i % 3 ? '#fff6e0' : '#d9c8ff', 0.5 + 0.3 * Math.sin(t * 2 + ph));
+      }
+      /* falling in: the lake's lights swirl down into a point, and open into the room */
+      const fk = D.fall.k;
+      if (fk < 1) {
+        const a = 1 - T.ease.io(T.clamp((fk - 0.55) / 0.45));
+        g.save(); g.globalAlpha = a; g.fillStyle = '#1b2440'; g.fillRect(-W / 2, 0, W, 900);
+        const rr = T.rng(4);
+        for (let i = 0; i < 120; i++) {
+          const ang = rr() * TAU + t * (0.6 + rr()) + fk * 6, d0 = 60 + rr() * 700, d = d0 * (1 - T.ease.in(T.clamp(fk / 0.7)) * 0.96);
+          P.glow(g, -60 + Math.cos(ang) * d, 450 + Math.sin(ang) * d * 0.6, 6 + rr() * 10, i % 4 ? '#fff0c8' : '#d9c8ff', 0.8);
+        }
+        P.glow(g, -60, 450, 40 + fk * 600, '#f6f0ff', T.clamp(fk * 1.4));
+        g.restore();
+      }
+      if (D.gq && !D.gq.done) {
+        P.text(g, '꿈속에서는 아무것도 제자리에 있지 않아요. 떠다니는 것들을 눌러 제자리로 돌려 주세요', 0, 866, { font: 'serif', size: 26, color: '#fbf6ff', alpha: 0.96, glow: 'rgba(27,36,64,0.95)' });
+        if (D.gq.idle > 9) { const h = D.hintAt(); if (h) P.beacon(g, h[0], h[1], 52, t, 1, '#fff0c8'); }
+      }
     };
-    D.spot = () => { const G = T.scenes.home.GEO; return [G.ROOM.x + 290, G.FLOOR - 110, 70]; };
+    /* put the room back together, a thing at a time; resolves when all of it is home */
+    D.gather = function () {
+      D.items = ITEMS.map((it, i) => Object.assign({ k: 0, ph: i * 1.7, done: false }, it));
+      return new Promise((res) => { D.gq = { idle: 0, done: false, res, n: 0 }; });
+    };
+    function put(i) {
+      const it = D.items && D.items[i];
+      if (!it || it.done || !D.gq || D.gq.done) return;
+      it.done = true; D.gq.idle = 0; D.gq.n++;
+      T.audio.step(D.gq.n * 2, { voice: 'glass', vel: 0.34 });
+      if (D.items.every((q) => q.done)) { D.gq.done = true; D.gq.wait = 1.6; T.audio.promise(); }
+    }
+    D.update = function (dt) {
+      if (D.items) for (const it of D.items) if (it.done && it.k < 1) it.k = Math.min(1, it.k + dt * 1.6);
+      const q = D.gq;
+      if (!q) return;
+      if (!q.done) q.idle += dt;
+      else if (q.wait > 0) { q.wait -= dt; if (q.wait <= 0) q.res(); }
+    };
+    D.pointer = function (type, x, y) {
+      if (!D.gq || D.gq.done || type !== 'down') return false;
+      const t = T.time;
+      let best = -1, bd = 70;
+      D.items.forEach((it, i) => { if (it.done) return; const q0 = itemAt(it, t), q = toScr(q0[0], q0[1]), d = Math.hypot(x - q[0], y - q[1]); if (d < bd) { bd = d; best = i; } });
+      if (best >= 0) put(best);
+      return true;
+    };
+    D.key = function (key) { if (!D.gq || D.gq.done) return false; const n = +key - 1; if (n >= 0 && n < 5) { put(n); return true; } return false; };
+    D.want = function () { if (!D.gq || D.gq.done) return null; const i = D.items.findIndex((q) => !q.done); return i >= 0 ? 'key:' + (i + 1) : null; };
+    D.hintAt = function () { if (!D.gq || D.gq.done) return null; const it = D.items.find((q) => !q.done); if (!it) return null; const q = itemAt(it, T.time); return toScr(q[0], q[1]); };
+    D.spot = () => { const G = T.scenes.home.GEO, q = toScr(G.ROOM.x + 290, G.FLOOR - 110); return [q[0], q[1], 90]; };
     return D;
   };
 })();

@@ -37,6 +37,7 @@
     G.jig = (t, i) => (G.shake ? Math.sin(t * 42 + i * 1.7) * 6 * G.shake : 0);
     return G;
   }
+  Z.make = make;   /* the jobs of work (work.js) are built on the same frame */
 
   /* ---------- the bell asks, the lamps answer ---------- */
   /* o: { rounds: [[lamp, lamp, …], …], beat } — four lamps, the four notes of the call */

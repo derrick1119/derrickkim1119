@@ -142,6 +142,8 @@ HEAD = """/* Take Your Time — a second language. Written by tools/make_i18n.py
   T.tr = function (s) {
     if (T.lang !== 'en' || typeof s !== 'string') return s;
     if (EN[s] != null) return EN[s];
+    const y = /^(\\d+)년$/.exec(s);
+    if (y) return y[1] === '1' ? '1 year' : y[1] + ' years';
     const m = /^아나, (\\d+)$/.exec(s);
     if (m) return 'Ana, ' + m[1];
     if (s === 'TAKE YOUR TIME') return '천천히 와';

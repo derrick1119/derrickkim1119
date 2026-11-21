@@ -18,6 +18,7 @@
       leo.pose = (o, a, t) => { if (a.sit > 0.5) o.headTilt = -0.1 + Math.sin(t * 0.6) * 0.06; };
       X.title();
       await X.wait(4.4);
+      await X.years(0, 1, { age: 37 });
 
       /* the list */
       await X.tap(() => [leo.x, W.groundAt(leo.x) - 50, 60]);
@@ -41,6 +42,37 @@
       ps.board = true;
       await X.wait(0.9);
 
+      /* Captain Bram, with a handcart: no one carries stone up this hill alone */
+      const bram = X.actor('bram', { x: C.PLOT - 560, style: F.styles.bram, s: 144, lean: 0.12 });
+      bram.cart = { stones: 0 };
+      bram.pose = (o, a) => { const hx = a.x + (a.flip ? -30 : 30); o.armF = { hand: F.local(o, hx, W.groundAt(hx) - 52) }; o.armB = { hand: F.local(o, hx - (a.flip ? -6 : 6), W.groundAt(hx) - 48) }; o.lean = 0.16; };
+      bram.prop = (g, j, o, a) => { if (!a.cart) return; const d = a.flip ? -1 : 1, cx = a.x + d * 70, gy = W.groundAt(cx); P.line(g, a.x + d * 30, gy - 50, cx - d * 20, gy - 34, 4, '#6f4a34'); P.fill(g, P.rr(cx - 34, gy - 50, 68, 28, 5), '#8a5a3b'); P.fill(g, P.circle(cx, gy - 12, 12), '#5a3d28'); P.fill(g, P.circle(cx, gy - 12, 4), '#c9a070'); for (let i = 0; i < a.cart.stones; i++) P.fill(g, P.ellipse(cx - 18 + i * 18, gy - 54, 12, 9), '#b3ada4'); };
+      leo.flip = true;
+      await X.walk(bram, PL.HX - 250, 70);
+      bram.flip = false;
+      await X.TALK.say('bram', '주춧돌 놓을 자리는 봐 뒀나?');
+      await X.TALK.say('leo', '돌을 어디서 구해야 할지 모르겠어요.');
+      await X.TALK.say('bram', '바닷가에 둥근 돌이 많아.\n혼자선 못 올리지. 내 수레를 쓰게.');
+      T.announce('돌 나르기. 누를 때마다 돌을 한 번씩 밀어 올린다. 숨이 차면 잠깐 쉬어야 한다.');
+      await X.play(T.puzzle.haul({ trips: 2 }));
+      bram.cart.stones = 3;
+      T.announce('바닷가의 둥근 돌 네 개가 집터에 모였다.');
+      /* sitting on the stones they brought up */
+      bram.pose = null; bram.prop = null; leo.flip = true;
+      X.tween(leo, 'sit', 1, 0.8); bram.sit = 0; X.tween(bram, 'sit', 1, 0.8);
+      await X.wait(1);
+      await X.TALK.say('bram', '나도 처음엔 혼자 다 하려고 했지.');
+      await X.TALK.say('leo', '선장님은 왜 배를 지으세요?');
+      await X.TALK.say('bram', '바다에 나갔다가 못 돌아왔어.\n서른둘에.');
+      await X.TALK.say('bram', '그 사람은 아직 저쪽에 있고.\n오면 태워 주려고 짓는 거야.');
+      await X.TALK.say('leo', '…육십 년이나요?');
+      await X.TALK.say('bram', '기다리는 동안 손이 놀면,\n마음이 먼저 지치거든.');
+      await X.TALK.say('bram', '자네도 뭐든 지어. 천천히.', { slow: true });
+      X.tween(bram, 'sit', 0, 0.6); X.tween(leo, 'sit', 0, 0.6);
+      await X.wait(0.6);
+      X.walk(bram, C.PLOT - 600, 70).then(() => { bram.hidden = true; });
+      await X.wait(1.4);
+
       /* a year to the day. His mother comes for him: there is a place where he can see her */
       const mom = X.actor('mom', { x: C.PLOT - 470, style: F.styles.mom, s: C.MOM_S, lamp: true, lampHand: 'F', lean: 0.1 });
       X.bed(2, 0.13, 'home');
@@ -60,7 +92,6 @@
         things: [{ kind: 'lamp', x: 96, to: -300 }, { kind: 'pot', x: -250, to: 17 }, { kind: 'leo', x: 340, to: 183 }],
       });
       await X.view(lake, { color: '#1b2a40' });
-      X.age('아나, 37');
       T.announce('거울 호수. 물속에 아나의 부엌이 비친다. 아나가 레오의 공책을 펴 놓고, 레오가 서던 자리에서 스튜를 끓인다.');
       await X.TALK.say('mom', '이 호수엔 두고 온 사람들이 비친단다.\n나도 여기서, 네가 크는 걸 다 봤지.');
       T.announce('물그림자 맞추기. 물가의 등불과 냄비와 레오를 좌우로 옮기면 물속에 그림자가 진다. 등불은 비 오는 창에, 냄비는 아나의 냄비에, 레오는 조리대의 빈자리에 겹친다. 숫자 키로 고르고 좌우 화살표로 옮긴다.');

@@ -8,7 +8,7 @@
   const TAU = Math.PI * 2;
 
   T.stage = function (name, def) {
-    const S = (T.scenes[name] = { def, actors: [], boats: [], ps: null, camT: { x: 0, y: 0, z: 1 }, camK: 2, dip: { a: 0, color: '#fff6e6' }, cards: {} });
+    const S = (T.scenes[name] = { def, actors: [], boats: [], ps: null, camT: { x: 0, y: 0, z: 1 }, camK: 2, dip: { a: 0, color: '#fff6e6' }, cards: {}, yr: { a: 0, n: 0, from: 0, to: 0, age: 36, age0: 36, tick: null } });
     const TALK = T.talk(S);
     const X = (S.X = { S, TALK, A: T.audio });
     const Wd = () => T.world;
@@ -16,11 +16,11 @@
     S.build = function () { T.scenes.harbor.build(); T.plot.build(); if (def.build) def.build(S); if (S.view && S.view.build) S.view.build(); };
     S.enter = function (args) {
       S.actors = []; S.boats = []; S.spot = null; S.waitTap = null; S.waitAny = null; S.view = null; S.gest = null; S.paintG = null; S.sw = null; S.game = null; S.cardO = null; S.follow = null; S.drag0 = null;
-      S.dip.a = 0; S.dip.color = '#fff6e6';
+      S.dip.a = 0; S.dip.color = '#fff6e6'; S.yr.a = 0; S.yr.tick = null;
       S.cards = { title: { a: 0 }, age: { a: 0, text: '' }, end: { a: 0 } };
       S.canNext = false; S.idle = 0; S.noteI = (def.chapter * 5) % T.audio.melodyLength; S.camK = 2;
       S.ps = T.plot.state(def.plot);
-      Wd().borrow({ people: drawActors, plot: (g) => T.plot.draw(g, S.ps), beforeSea: drawBoats, screen: afterWorld, flags: def.flags || {} });
+      Wd().borrow({ people: drawActors, plot: (g) => T.plot.draw(g, S.ps), beforeSea: drawBoats, screen: afterWorld, sky: (g) => { if (def.sky) def.sky(g, S); }, flags: def.flags || {} });
       S.cam = Wd().cam;
       T.state.chapter = def.chapter; T.state.cp = null;
       P.grainAmt = 0.15; P.vignette = 0.2; P.vignetteColor = '#4a3558';
@@ -66,7 +66,7 @@
         if (a.boat) { const p = riderPos(a); x = p.x; gy = p.y; }
         g.save(); if (a.alpha < 1) g.globalAlpha = a.alpha;
         const slope = a.boat ? 0 : Math.atan2(W_.groundAt(x + 14) - W_.groundAt(x - 14), 28);
-        F.dog(g, { x, y: gy + 2 - (a.jump || 0), rot: slope * 0.7, s: a.s, walk: a.moving ? a.ph : null, sit: a.sit, flip: a.flip, wag: Math.sin(t * (a.wagRate || 10)) * (a.wag == null ? 1 : a.wag), headTilt: a.headTilt || 0 });
+        F.dog(g, { x, y: gy + 2 - (a.jump || 0), rot: a.rot != null ? a.rot : slope * 0.7, s: a.s, walk: a.moving ? a.ph : null, sit: a.sit, flip: a.flip, wag: Math.sin(t * (a.wagRate || 10)) * (a.wag == null ? 1 : a.wag), headTilt: a.headTilt || 0 });
         g.restore();
         return null;
       }
@@ -206,6 +206,42 @@
     /* ---------- cards, cuts, sound ---------- */
     X.title = function () { const c = S.cards.title, k = S.clock; T.announce(def.title.join(', ')); return k.wait(0.5).then(() => k.tween(c, 'a', 1, 1.2)).then(() => k.wait(2.4)).then(() => k.tween(c, 'a', 0, 1.2)); };
     X.age = function (text) { const c = S.cards.age, k = S.clock; c.text = text; T.announce(text); return k.tween(c, 'a', 1, 1).then(() => k.wait(2.8)).then(() => k.tween(c, 'a', 0, 1.2)); };
+    /* the years going by: the count of years since he came runs up from `from` to `to` over a sweep of seasons.
+       o: { age: hers at the end, during(seconds): change the hill while it runs } */
+    X.years = async function (from, to, o = {}) {
+      const k = S.clock, y = S.yr;
+      y.n = from; y.from = from; y.to = to; y.age = o.age || 36 + to; y.age0 = y.age - (to - from);
+      T.announce(T.lang === 'en' ? `${to} ${to === 1 ? 'year' : 'years'} since he came. Ana is ${y.age}.` : `마중 나루에 온 지 ${to}년. 아나, ${y.age}.`);
+      await k.tween(y, 'a', 1, 0.7);
+      const dur = T.clamp((to - from) * 0.42, 1.5, 3.8);
+      if (o.during) o.during(dur);
+      let last = from;
+      y.tick = () => { const n = Math.floor(y.n + 0.02); if (n > last) { last = n; T.audio.scaleStep(n % 14, { vel: 0.24, voice: 'box' }); } };
+      await k.tween(y, 'n', to, dur, T.ease.io);
+      y.tick(); y.tick = null;
+      await k.wait(1.2);
+      await k.tween(y, 'a', 0, 0.8);
+    };
+    function drawYears(g, y, W, t, dark) {
+      const a = y.a, span = Math.max(1, y.to - y.from), u = T.clamp((y.n - y.from) / span);
+      /* the seasons go round once a year, but never more than four times while we watch */
+      const sp = (u * Math.min(span, 4) * 0.999) % 1, SEAS = ['#f7b9c8', '#9fcf86', '#e89a4e', '#ffffff'];
+      const si = Math.floor(sp * 4) % 4, sc = T.mix(SEAS[si], SEAS[(si + 1) % 4], (sp * 4) % 1);
+      g.save();
+      g.fillStyle = T.rgba(dark ? T.mix('#1b2540', sc, 0.18) : T.mix('#fff6e6', sc, 0.42), 0.62 * a); g.fillRect(-W / 2, 0, W, 900);
+      const r = T.rng(7);
+      for (let i = 0; i < 80; i++) {
+        const sx = r(), sy = r(), sz = 0.6 + r() * 0.9, ph = r() * 6.28;
+        const x = -W / 2 - 40 + ((sx * W + t * 240 * sz + u * 1400) % (W + 80)), yy = -20 + ((sy * 900 + t * 110 * sz + Math.sin(t * 2 + ph) * 30) % 940);
+        g.globalAlpha = a * 0.9; g.fillStyle = sc;
+        g.beginPath(); g.ellipse(x, yy, 8 * sz, 4.4 * sz, t * 2 + ph, 0, TAU); g.fill();
+      }
+      g.restore();
+      const ink = dark ? '#f1e8d6' : '#3d3a5c', halo = dark ? 'rgba(15,21,34,0.8)' : 'rgba(255,246,228,0.95)';
+      P.text(g, '마중 나루에 온 지', 0, 292, { font: 'serif', size: 27, track: 8, color: ink, alpha: 0.85 * a, glow: halo });
+      P.text(g, Math.round(y.n) + '년', 0, 440, { size: 196, color: ink, alpha: a, seed: 4, glow: halo });
+      P.text(g, '아나, ' + Math.round(T.lerp(y.age0, y.age, u)), 0, 566, { font: 'serif', size: 42, track: 3, color: ink, alpha: 0.9 * a, glow: halo });
+    }
     /* a page held up to read. draw(g, c) with c: { a, w, ready } */
     X.card = async function (draw, o = {}) {
       const k = S.clock, c = Object.assign({ a: 0, w: 0, ready: false }, o.init || {});
@@ -340,6 +376,7 @@
     S.hintAt = () => (S.game && S.game.hintAt ? S.game.hintAt() : S.view && S.view.hintAt ? S.view.hintAt() : null);
     S.update = function (dt) {
       S.idle += dt;
+      if (S.yr.tick) S.yr.tick();
       if (S.game) S.game.update(dt);
       const W_ = Wd();
       for (const a of S.actors) {
@@ -390,6 +427,7 @@
       }
       const dark = S.ps.night > 0.5 || (S.view && S.view.dark);
       const ink = dark ? '#f1e8d6' : '#3d3a5c', ink2 = dark ? '#d9d2e4' : '#4a4468';
+      if (S.yr.a > 0.01) drawYears(g, S.yr, W, t, dark);
       if (S.cards.title.a > 0.01) {
         const a = S.cards.title.a;
         P.text(g, def.title[0], 0, 300, { font: 'serif', size: 26, track: 12, color: ink2, alpha: 0.8 * a });
