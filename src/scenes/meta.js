@@ -70,7 +70,7 @@ export class MetaScene {
     if (button(g, 'bookback', 960, 584, 290, 86, '장부로', { style: 'paper', size: 32 })) this.book = false;
   }
   frame(g, dt) {
-    this.t += dt; dimBackdrop(g, 0.82, 'paper');   // 공적 장부는 그림체 시험판에서도 한지 배경 (짙은 글씨가 많다)
+    this.t += dt; dimBackdrop(g, 0.82);
     if (this.book) { this.drawBook(g); return; }
     if (this.beasts) { this.drawBeasts(g); return; }
     if (button(g, 'book', 1046, 22, 204, 62, `이야기책 ${(meta.tales || []).length}/${TALES.length}`, { style: 'teal', size: 21 })) { this.book = true; return; }

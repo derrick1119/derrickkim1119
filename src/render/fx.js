@@ -1,31 +1,7 @@
 // 파티클과 화면 효과 (먹·종이 느낌)
-import { TAU, INK, PAPER, FONT_B, text, poly, ell, rr, st, line, drawSprite } from './draw.js';
+import { TAU, INK, PAPER, FONT_B, text, poly, ell, rr, st, drawSprite } from './draw.js';
 import { drawInk, MEOK } from './ink.js';
 import { inkGlyph } from './symbols.js';
-import { ART } from './art.js';
-import { ILL, glowStreak, glowTrail } from './illust.js';
-const hexA = (c, a) => c[0] === '#' && c.length === 7 ? `rgba(${parseInt(c.slice(1, 3), 16)},${parseInt(c.slice(3, 5), 16)},${parseInt(c.slice(5, 7), 16)},${a})` : `rgba(255,214,140,${a})`;
-// 빛 한 점: 가운데는 희고 둘레로 번진다 (더해 그린다)
-function glow(g, x, y, r, col, al) { if (al <= 0.01 || r <= 0.2) return; g.save(); g.globalCompositeOperation = 'lighter'; const gl = g.createRadialGradient(x, y, 0.5, x, y, r * 3); gl.addColorStop(0, hexA(col, 0.9 * al)); gl.addColorStop(0.35, hexA(col, 0.35 * al)); gl.addColorStop(1, hexA(col, 0)); g.fillStyle = gl; g.fillRect(x - r * 3, y - r * 3, r * 6, r * 6); g.globalAlpha = al; ell(g, x, y, r * 0.55, r * 0.55, '#fff6e0'); g.restore(); }
-// 일러스트 그림체: 먹 자국·종잇조각 대신 빛과 도깨비불로 그린다. 그리면 true
-function drawIll(g, p, k, a) {
-  switch (p.k) {
-    case 'dot': glow(g, p.x, p.y, p.size * (0.6 + a * 0.6), p.col || ILL.gold, Math.min(1, a * 2)); return true;
-    case 'puff': g.globalAlpha = Math.min(1, a * 1.2) * 0.45; ell(g, p.x, p.y, p.size * (0.6 + k * 0.9), p.size * (0.6 + k * 0.9) * 0.8, '#d4cbef'); g.globalAlpha = 1; return true;
-    case 'scrap': glow(g, p.x, p.y, p.size * 0.9, '#c4b2ff', Math.min(1, a * 2.5)); return true;
-    case 'slash': { const l = p.len * (0.55 + Math.min(1, k * 3.4) * 0.45), dx = Math.cos(p.ang) * l / 2, dy = Math.sin(p.ang) * l / 2; glowStreak(g, p.x - dx, p.y - dy, p.x + dx, p.y + dy, 3.4, Math.min(1, a * 1.7), ILL.gold); return true; }
-    case 'ink': {
-      const kin = p.in || 0.12, al = (k < kin ? k / kin : Math.pow(1 - (k - kin) / (1 - kin), p.pow || 1.4)) * (p.peak || 1), e = 1 - Math.pow(1 - Math.min(1, k * 3), 2), sc = (p.s + (p.s1 - p.s) * e) * 100;
-      if (p.kind === 'wash') { if (p.ground) return true; glow(g, p.x, p.y, sc * 0.16 + 3, (p.x * 7 | 0) % 2 ? ILL.wisp : ILL.wisp2, al * 0.9); return true; }   // 피어오르는 도깨비불
-      if (p.kind === 'splat' || p.kind === 'blot') { if (p.ground) return true; glow(g, p.x, p.y, sc * 0.14 + 4, ILL.gold, al); g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = al * 0.8; for (let i = 0; i < 8; i++) { const an = i / 8 * TAU + (p.rot || 0); line(g, [p.x + Math.cos(an) * sc * 0.1, p.y + Math.sin(an) * sc * 0.1, p.x + Math.cos(an) * sc * 0.34, p.y + Math.sin(an) * sc * 0.34], ILL.gold, 2); } g.restore(); return true; }
-      if (p.kind === 'enso') { g.save(); g.globalCompositeOperation = 'lighter'; for (const [lw, aa] of [[9, 0.18], [4, 0.4], [1.6, 0.9]]) { g.globalAlpha = al * aa; g.beginPath(); g.ellipse(p.x, p.y, sc * 0.5, sc * 0.5 * 0.42, 0, 0, TAU); st(g, ILL.gold, lw); } g.restore(); return true; }
-      if (p.kind === 'swash' || p.kind === 'slash' || p.kind === 'bar') { glowTrail(g, p.x, p.y + sc * 0.5, sc * 0.6, -Math.PI * 0.85, -Math.PI * 0.15, 10, al, ILL.gold); return true; }
-      return false;
-    }
-    case 'glyph': { if (!p.goldened) { p.goldened = true; p.col = '#ffcf6a'; } glow(g, p.x, p.y, p.size * 0.22, ILL.gold, Math.min(1, (1 - k) * 2) * 0.7); return false; }   // 붓 기호는 금빛으로, 뒤에 빛을 깐다
-  }
-  return false;
-}
 
 export class Fx {
   constructor() { this.p = []; this.shake = 0; this.flash = 0; this.flashCol = '#fff'; }
@@ -76,7 +52,6 @@ export class Fx {
   drawLayer(g, ground) {
     for (const p of this.p) {
       if (!!p.ground !== ground) continue;
-      if (ART.illust && drawIll(g, p, p.t / p.life, 1 - p.t / p.life)) continue;
       const k = p.t / p.life, a = 1 - k;
       switch (p.k) {
         case 'dot': g.globalAlpha = Math.min(1, a * 2); ell(g, p.x, p.y, p.size * (0.5 + a * 0.5), p.size * (0.5 + a * 0.5), p.col, INK, 1); break;

@@ -9,15 +9,11 @@ import { audio, setMuted, sfx } from '../audio.js';
 import { portrait } from '../render/sprites.js';
 import { THEMES, pine, bush, boulder, grassTuft } from '../render/terrain.js';
 import { part, dk, lt, R as RC, curve } from '../render/figures.js';
-import { ART, setArt } from '../render/art.js';
-import { illustKeyArt } from '../render/illust.js';
 
 let bg = null;
 const rgba = (c, a) => `rgba(${parseInt(c.slice(1, 3), 16)},${parseInt(c.slice(3, 5), 16)},${parseInt(c.slice(5, 7), 16)},${a})`;
 // 여러 장면이 함께 쓰는 배경: 붉은 해, 안개에 잠긴 겹산, 고갯마루의 솔
-// kind = 'paper' 면 그림체와 상관없이 한지 배경 (인형극 무대의 걸개그림은 늘 종이다)
-export function backdrop(kind) {
-  if (ART.illust && kind !== 'paper') return illustKeyArt();
+export function backdrop() {
   if (bg) return bg;
   const S = 1.5, c = makeCanvas(W * S, H * S), g = c.getContext('2d'); g.scale(S, S); const R = rng(77), T = THEMES.pass, SKY = '#ecdfc2';
   const sk = g.createLinearGradient(0, 0, 0, 520); sk.addColorStop(0, '#e6d6b4'); sk.addColorStop(0.5, SKY); sk.addColorStop(1, '#f3ead2'); g.fillStyle = sk; g.fillRect(0, 0, W, H);
@@ -62,7 +58,7 @@ export function backdrop(kind) {
   grassTuft(g, 96, 584, 2, '#5f7a5a', R); grassTuft(g, 1200, 616, 2, '#5f7a5a', R);
   bg = c; return c;
 }
-export function dimBackdrop(g, a = 0.72, kind) { g.drawImage(backdrop(kind), 0, 0, W, H); g.fillStyle = ART.illust && kind !== 'paper' ? `rgba(20,16,38,${a * 0.8})` : `rgba(241,231,207,${a})`; g.fillRect(0, 0, W, H); }
+export function dimBackdrop(g, a = 0.72) { g.drawImage(backdrop(), 0, 0, W, H); g.fillStyle = `rgba(241,231,207,${a})`; g.fillRect(0, 0, W, H); }
 
 export class TitleScene {
   constructor() { this.t = 0; this.confirm = false; this.petals = Array.from({ length: 26 }, () => ({ x: Math.random() * W, y: Math.random() * H, s: 3 + Math.random() * 3, v: 24 + Math.random() * 30, ph: Math.random() * 9 })); }
@@ -71,18 +67,14 @@ export class TitleScene {
     g.drawImage(backdrop(), 0, 0, W, H);
     // 고개를 지키는 의병과 넘어오는 요괴들
     portrait(g, 'xbow', 640, 566, 1.7, t); portrait(g, 'shield', 706, 620, 1.8, t); portrait(g, 'sword', 800, 590, 1.7, t); portrait(g, 'commander', 760, 660, 1.9, t, true);
-    // 요괴는 의병 쪽(왼쪽)을 본다: 옆모습인 일러스트 그림체에서는 좌우를 뒤집어 그린다
-    const foe = (type, x, y, k, bob) => { if (!ART.illust) return portrait(g, type, x, y, k, t, bob); g.save(); g.translate(x, 0); g.scale(-1, 1); portrait(g, type, 0, y, k, t, bob); g.restore(); };
-    foe('bomber', 1010, 470 + Math.sin(t * 2.4) * 8, 1.5); foe('goblin', 960, 600, 1.6, true); foe('rassassin', 1010, 680, 1.4); foe('warchief', 1120, 640 + Math.sin(t * 1.6) * 4, 1.2);
+    portrait(g, 'bomber', 1010, 470 + Math.sin(t * 2.4) * 8, 1.5, t); portrait(g, 'goblin', 960, 600, 1.6, t, true); portrait(g, 'rassassin', 1010, 680, 1.4, t); portrait(g, 'warchief', 1120, 640 + Math.sin(t * 1.6) * 4, 1.2, t);
     for (const p of this.petals) { p.x -= (p.v + Math.sin(t * 1.3 + p.ph) * 12) * dt; p.y += (p.v * 0.5 + Math.cos(t * 1.7 + p.ph) * 10) * dt; if (p.x < -12 || p.y > H + 12) { p.x = W + 12 + Math.random() * 80; p.y = Math.random() * H * 0.8; } g.save(); g.globalAlpha = 0.85; g.translate(p.x, p.y); g.rotate(t * 1.6 + p.ph); g.scale(1, 0.35 + 0.65 * Math.abs(Math.sin(t * 2.2 + p.ph))); ell(g, 0, 0, p.s * 1.25, p.s * 0.7, p.ph > 4.5 ? '#f3c4c9' : '#fbf1ee', 'rgba(38,42,54,0.4)', 0.7); g.restore(); }
     // 제목
     const ty = 150 + Math.sin(t * 1.3) * 3;
-    const TF = ART.illust ? '#f6efdc' : INK, TS = ART.illust ? '#1b1526' : '#ecdfc2';   // 일러스트 그림체의 밤하늘 위에서는 밝은 글씨
-    if (ART.illust) { const gl = g.createRadialGradient(330, ty + 60, 20, 330, ty + 60, 320); gl.addColorStop(0, 'rgba(255,214,140,0.22)'); gl.addColorStop(1, 'rgba(255,214,140,0)'); g.fillStyle = gl; g.fillRect(0, 0, 700, 500); }
-    text(g, '도깨비', 250, ty, { size: 132, font: FONT_B, fill: TF, stroke: TS, lw: 10 });
-    text(g, '고개', 400, ty + 128, { size: 132, font: FONT_B, fill: TF, stroke: TS, lw: 10 });
+    text(g, '도깨비', 250, ty, { size: 132, font: FONT_B, fill: INK, stroke: '#ecdfc2', lw: 10 });
+    text(g, '고개', 400, ty + 128, { size: 132, font: FONT_B, fill: INK, stroke: '#ecdfc2', lw: 10 });
     g.save(); g.translate(520, ty - 34); g.rotate(0.06); seal(g, 0, 0, 78, 'boss'); g.restore();   // 제목 옆의 낙관: 도깨비 얼굴
-    text(g, '열두 고개, 열두 옛이야기 — 긴 밤을 걷으러 가는 길', 372, ty + 232, { size: 22, fill: ART.illust ? '#d8d0f0' : SUB, stroke: TS, lw: 5 });
+    text(g, '열두 고개, 열두 옛이야기 — 긴 밤을 걷으러 가는 길', 372, ty + 232, { size: 22, fill: SUB, stroke: '#ecdfc2', lw: 5 });
     const r = G.run;
     if (this.confirm) {
       g.fillStyle = 'rgba(31,42,68,0.55)'; g.fillRect(0, 0, W, H);
@@ -104,8 +96,6 @@ export class TitleScene {
       g.restore();
       if (button(g, 'meta', 190, 576, 260, 58, `공적 장부${meta.merit ? ' · ' + meta.merit : ''}`, { style: 'paper', size: 25 })) nav.go('meta');
     }
-    // 그림체 바꾸기 (일러스트 그림체는 시험판: 첫 화면·싸움터·인물 외곽선·싸움 효과만 바뀐다)
-    if (!this.confirm && button(g, 'art', 868, 650, 320, 54, ART.illust ? '그림체 · 일러스트 (시험)' : '그림체 · 종이 인형', { style: 'paper', size: 20 })) setArt(ART.illust ? 'paper' : 'illust');
     if (iconBtn(g, 'snd', 1204, 648, 60, 56, (gg, x, y) => icon.sound(gg, x - 3, y, !audio.muted))) { setMuted(!audio.muted); sfx('click'); }
     if (meta.best > 0) { panel(g, 16, 16, 230, 40, 'tag'); text(g, meta.clears ? `평정 ${meta.clears}회` : `최고 기록 · ${chapterOf(Math.floor((meta.best - 1) / 6)).short}`, 131, 37, { size: 17, maxW: 210 }); }
   }

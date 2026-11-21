@@ -5,8 +5,6 @@ import { getLook, getWeapon, blinking, leftover } from './sprites.js';
 import { defOf } from '../sim/battle.js';
 import { HERO_COL, HERO_SEAL } from '../data/units.js';
 import { inkTrail, inkStreak, MEOK, JU } from './ink.js';
-import { ART } from './art.js';
-import { illustFar, illustGround, ILL_FAR_H, ILL, mapleBranch, drawWisps, glowTrail, glowStreak, nightGrade, glowDot } from './illust.js';
 import { CARDS } from '../data/cards.js';
 import { makeGround, makeFar, vignette, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, FAR_H, THEMES } from './terrain.js';
 import { Fx } from './fx.js';
@@ -53,7 +51,6 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
   if (u.stun > 0) x += Math.sin(T * 40 + u.id) * 0.9;
   if (u.temp) alpha *= u.life < 3 ? 0.55 + 0.35 * Math.abs(Math.sin(T * 9)) : 0.92;
   g.save(); if (alpha < 1) g.globalAlpha = alpha;
-  if (L.ill && !L.float && !u.jumpH) { g.fillStyle = 'rgba(10,6,24,0.38)'; g.beginPath(); g.ellipse(u.x + 1, u.y + 1, u.r * 1.05 * Math.min(1.8, k), u.r * 0.36 * Math.min(1.8, k), 0, 0, TAU); g.fill(); }   // 일러스트 인물은 발밑 그림자
   if (L.float || u.jumpH) { g.fillStyle = 'rgba(50,36,20,0.16)'; g.beginPath(); g.ellipse(u.x, u.y + 1, u.r * 0.9, u.r * 0.36, 0, 0, TAU); g.fill(); }
   if (u.guard > 0) { g.beginPath(); g.ellipse(u.x, u.y, u.r * 1.3, u.r * 0.62, 0, 0, TAU); st(g, INK, 3.4); g.beginPath(); g.ellipse(u.x, u.y, u.r * 1.3, u.r * 0.62, 0, 0, TAU); st(g, '#8fb6e6', 1.8); }
   if (u.mark > 0) { const mr = u.r * 1.2, my = u.y + 1; g.beginPath(); g.ellipse(u.x, my, mr, mr * 0.46, 0, 0, TAU); st(g, RED, 1.8); for (const a of [0, PI / 2, PI, PI * 1.5]) line(g, [u.x + Math.cos(a) * mr * 0.7, my + Math.sin(a) * mr * 0.32, u.x + Math.cos(a) * mr * 1.25, my + Math.sin(a) * mr * 0.58], RED, 1.8); }
@@ -69,14 +66,13 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
     const ny = -L.neck * k * sy, ht = tilt * 0.5 + (moving ? Math.sin(ph * 2 + 0.6) * 0.04 : Math.sin(T * 1.7 + u.id * 1.3) * 0.03) + (act > 0 ? dir * act * 0.07 : 0), a2 = tilt + ht;
     drawSprite(g, bl && L.blink ? L.blink : L.head, x - ny * Math.sin(tilt) + ny * Math.sin(a2), by + ny * Math.cos(tilt) - ny * Math.cos(a2), sx, k * sy, a2, fl);
   }
-  if (L.glow) { const ct = Math.cos(tilt), sn = Math.sin(tilt), fsx = flip * sxm; for (const q of L.glow) { const gx = q.x * k * dir * fsx, gy = q.y * k * sy; glowDot(g, x + gx * ct - gy * sn, by + gx * sn + gy * ct, q.r * k, q.col, alpha * (0.75 + 0.25 * Math.sin(T * 6 + u.id))); } }
   if (wspr) {
     const ct = Math.cos(tilt), sn = Math.sin(tilt), fsx = flip * sxm;
     // 휘두른 자리에 남는 먹 자국: 붓으로 그은 초승달 (hx, hy = 손, r0→r1 = 무기가 돈 각)
     const inkc = u.team === 0 ? '#191b28' : '#2c1517';
-    const trail = (hx, hy, r0, r1, back, q) => { const a = clamp((0.86 - q) / 0.3, 0, 1) * alpha; if (a <= 0.02) return; g.save(); g.globalAlpha = 1; if (ART.illust) glowTrail(g, hx, hy, 28 * k, r0 - PI / 2, r1 - PI / 2, 9 * k, a, u.team === 0 ? ILL.gold : ILL.foe); else inkTrail(g, hx, hy, 26 * k, r0 - PI / 2, r1 - PI / 2, 12.5 * k, a, inkc, u.id); g.restore(); };
+    const trail = (hx, hy, r0, r1, back, q) => { const a = clamp((0.86 - q) / 0.3, 0, 1) * alpha; if (a <= 0.02) return; g.save(); g.globalAlpha = 1; inkTrail(g, hx, hy, 26 * k, r0 - PI / 2, r1 - PI / 2, 12.5 * k, a, inkc, u.id); g.restore(); };
     // 찌르거나 쏜 방향으로 뻗는 짧은 선
-    const streak = (hx, hy, d0, d1, a) => { if (a <= 0.02) return; g.save(); g.globalAlpha = 1; if (ART.illust) glowStreak(g, hx + c * d0 * k, hy + s * d0 * k, hx + c * d1 * k, hy + s * d1 * k, 4 * k, a * alpha, u.team === 0 ? ILL.gold : ILL.foe); else inkStreak(g, hx + c * d0 * k, hy + s * d0 * k, hx + c * d1 * k, hy + s * d1 * k, 6 * k, a * alpha, inkc); g.restore(); };
+    const streak = (hx, hy, d0, d1, a) => { if (a <= 0.02) return; g.save(); g.globalAlpha = 1; inkStreak(g, hx + c * d0 * k, hy + s * d0 * k, hx + c * d1 * k, hy + s * d1 * k, 6 * k, a * alpha, inkc); g.restore(); };
     const put = (px, py, sg) => {
       const hx0 = px * k * dir * fsx, hy0 = py * k * sy; let hx = x + hx0 * ct - hy0 * sn, hy = by + hx0 * sn + hy0 * ct, rot;
       if (mode === 'thrust') {
@@ -88,12 +84,11 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
       else if (mode === 'shoot') { rot = sg * (ha - act * (hand === 'C' ? 0.28 : 0.08)) + tilt; if (ap < 0.45) streak(hx, hy, 12, 12 + 30 * Math.min(1, ap / 0.2), 1 - ap / 0.45); }
       else { rot = sg * (ha + (ap < 1 ? swing(ap) : 0)) + tilt; if (ap > 0.28 && ap < 0.86) trail(hx, hy, sg * (ha - 0.9) + tilt, sg * (ha + (ap < 0.55 ? swing(ap) : 1.7)) + tilt, sg < 0, ap); }
       drawSprite(g, wspr, hx, hy, sg * k * Math.abs(fsx), k, rot, fl);
-      if (L.fist) drawSprite(g, L.fist, hx, hy, sg * k * Math.abs(fsx), k, rot, fl);   // 손잡이를 감싼 주먹
     };
     // 활은 쏘는 쪽(앞)으로 내밀어 든다: 활등이 과녁을 향하고 시위가 몸 쪽에 온다
     if (hand === 'L') put(hold.x + 3, hold.y - 1, -dir);
     else if (hand === 'C') put(hold.x * 0.42, hold.y - 1.5, dir);
-    else { put(hold.x, hold.y, dir); if (hand === 'B') { const hx0 = -hold.x * k * dir * fsx, hy0 = hold.y * k * sy; const q = clamp(ap * 1.25 - 0.25, 0, 1), rot = -dir * (ha + (mode === 'cast' ? -act * 0.95 : ap < 1 ? swing(q) : 0)) + tilt, bx = x + hx0 * ct - hy0 * sn, byy = by + hx0 * sn + hy0 * ct; drawSprite(g, wspr, bx, byy, -dir * k * Math.abs(fsx), k, rot, fl); if (L.fist) drawSprite(g, L.fist, bx, byy, -dir * k * Math.abs(fsx), k, rot, fl); if (mode !== 'cast' && ap < 1 && q > 0.28 && q < 0.86) trail(bx, byy, -dir * (ha - 0.9) + tilt, -dir * (ha + (q < 0.55 ? swing(q) : 1.7)) + tilt, dir > 0, q); } }
+    else { put(hold.x, hold.y, dir); if (hand === 'B') { const hx0 = -hold.x * k * dir * fsx, hy0 = hold.y * k * sy; const q = clamp(ap * 1.25 - 0.25, 0, 1), rot = -dir * (ha + (mode === 'cast' ? -act * 0.95 : ap < 1 ? swing(q) : 0)) + tilt, bx = x + hx0 * ct - hy0 * sn, byy = by + hx0 * sn + hy0 * ct; drawSprite(g, wspr, bx, byy, -dir * k * Math.abs(fsx), k, rot, fl); if (mode !== 'cast' && ap < 1 && q > 0.28 && q < 0.86) trail(bx, byy, -dir * (ha - 0.9) + tilt, -dir * (ha + (q < 0.55 ? swing(q) : 1.7)) + tilt, dir > 0, q); } }
   }
   const top = by - L.h * k;
   // ── 두목 싸움의 표시들 (sim/bossfight.js) ──
@@ -135,8 +130,7 @@ const isNight = theme => !!(THEMES[theme] && THEMES[theme].night);
 export class BattleView {
   constructor(theme, seed) { this.fx = new Fx(); this.dust = 0; this.scroll = 0; this.props = []; this.ter = null; this.oldTer = null; this.terT = -9; this.oldT = -9; this.skyA = { night: 0, rain: 0 }; this.setTheme(theme, seed); }
   setTheme(theme, seed) {
-    this.theme = theme; this.ground = ART.illust ? illustGround(GW, seed) : makeGround(theme, seed); this.far = ART.illust ? illustFar(FW, seed) : makeFar(theme, seed); this.farH = ART.illust ? ILL_FAR_H : FAR_H;
-    if (ART.illust) this.wisps = Array.from({ length: 16 }, (_, i) => ({ x: Math.random() * W, y: 160 + Math.random() * 380, s: 2 + Math.random() * 2.4, ph: Math.random() * 9, col: i % 4 === 0 ? '#ffd27a' : i % 2 ? ILL.wisp : ILL.wisp2, flame: i % 4 !== 0 }));
+    this.theme = theme; this.ground = makeGround(theme, seed); this.far = makeFar(theme, seed);
     // 바람에 날리는 꽃잎·나뭇잎·도깨비불
     this.amb = []; for (let i = 0; i < 22; i++) this.amb.push({ x: Math.random() * W, y: 110 + Math.random() * 440, s: 2.4 + Math.random() * 2.6, v: 14 + Math.random() * 22, ph: Math.random() * 9, col: (AMB[theme] || AMB.pass)[i % 3] });
   }
@@ -146,9 +140,8 @@ export class BattleView {
     const fx = this.fx, sc = Math.max(0, this.scroll);
     g.save();
     if (fx.shake > 0) g.translate((Math.random() - 0.5) * fx.shake, (Math.random() - 0.5) * fx.shake);
-    for (let x = -((sc * 0.25) % FW); x < W; x += FW) g.drawImage(this.far, x, 0, FW, this.farH || FAR_H);
+    for (let x = -((sc * 0.25) % FW); x < W; x += FW) g.drawImage(this.far, x, 0, FW, FAR_H);
     for (let x = -(sc % GW); x < W; x += GW) g.drawImage(this.ground, x, 0, GW, H);
-    if (ART.illust) mapleBranch(g, -18, 66, 0.92, T);   // 왼쪽 위를 감싸는 단풍 가지와 청사초롱
     // 지형: 싸움터가 차려지면 종이 무대 장치처럼 일어서고, 끝나면 접힌다
     if (!this.ter) this.ter = b.terrain; else if (b.terrain !== this.ter) { this.oldTer = this.ter; this.oldT = T; this.ter = b.terrain; this.terT = T; }
     const kin = clamp((T - this.terT) / 0.38, 0, 1), kout = this.oldTer ? 1 - clamp((T - this.oldT) / 0.25, 0, 1) : 0;
@@ -164,16 +157,13 @@ export class BattleView {
     if (opt.orders) this.drawOrders(g, b, T);
     fx.drawLayer(g, true);
     const list = [];
-    for (const u of b.units) { if (u.dead || u.hidden > 0 || u.x > W + 60) continue; list.push({ y: u.y + (u.def && u.def.boss ? 26 : 0), u }); }   // 두목은 둘레의 졸개에 가리지 않게
+    for (const u of b.units) { if (u.dead || u.hidden > 0 || u.x > W + 60) continue; list.push({ y: u.y, u }); }
     for (const p of this.props) { const x = p.wx - sc; if (x > -90 && x < W + 90) list.push({ y: p.y, spr: p.spr, x }); }
     for (const o of this.ter.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: easeOutBack(kin) }); }
     if (kout > 0) for (const o of this.oldTer.obstacles) if (o.kind !== 'water') { const q = obstacleBase(o); list.push({ y: q.y, x: q.x, spr: obstacleSprite(o, this.theme), sy: kout }); }
     if (opt.extra) for (const e of opt.extra) list.push(e);
     list.sort((a, c) => a.y - c.y);
-    const illGrade = ART.illust;
-    if (illGrade) nightGrade(g, 0, 60, W, 512, 0.85);   // 땅은 달빛 남보라로 깊게 누르고, 인물은 옅게만 눌러 또렷하게 띄운다
     for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march, b.time); else if (it.spr) { if (it.sy === undefined) drawSprite(g, it.spr, it.x, it.y); else if (it.sy > 0.02) drawSprite(g, it.spr, it.x, it.y, 1 + (1 - Math.min(1, it.sy)) * 0.15, it.sy); } }
-    if (illGrade) nightGrade(g, 0, 60, W, 512, 0.3);   // (표식과 빛은 그 위에 밝게)
     // 소품(종·여의주·업경대·명부 든 사자): 어떤 인형에도 가리지 않게 맨 위에 표식과 이름, 남은 숨을 단다
     const tag = (x, y, s, col) => { g.font = `400 17px ${FONT_B}`; const w = g.measureText(s).width + 22; rr(g, x - w / 2, y - 14, w, 28, 7, '#fbf3df', col, 2.2); text(g, s, x, y + 1, { size: 17, font: FONT_B, fill: col }); };
     for (const u of b.units) {
@@ -194,10 +184,10 @@ export class BattleView {
     if (this.dust <= 0) { this.dust = 0.09; for (const u of b.units) if (!u.dead && u.moving && u.def.charge && u.run > 60 && u.hidden <= 0) fx.puff(u.x - Math.cos(u.facing) * 12, u.y - 2, 1, '#e8dcc0', 6); if (opt.march) for (const u of b.units) if (!u.dead && u.team === 0 && Math.random() < 0.05) fx.puff(u.x - 10, u.y - 1, 1, '#e8dcc0', 5); }
     for (const p of b.proj) this.drawProj(g, p, T);
     this.drawSky(g, b, T, opt.dt || 0);
-    if (ART.illust) drawWisps(g, this.wisps, T, opt.dt || 0, { x0: 0, x1: W, y0: 150, y1: 545 }); else this.drawAmbient(g, T, opt.dt || 0, opt.march);
+    this.drawAmbient(g, T, opt.dt || 0, opt.march);
     fx.drawLayer(g, false);
     g.restore();
-    g.drawImage(vignette(ART.illust || isNight(this.theme)), 0, 0, W, H);
+    g.drawImage(vignette(isNight(this.theme)), 0, 0, W, H);
     if (fx.flash > 0) { g.globalAlpha = fx.flash * 0.45; g.fillStyle = fx.flashCol; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
   }
   // 밤과 비: 싸움터의 하늘에 따라 천천히 덮였다가 걷힌다
@@ -284,7 +274,6 @@ export class BattleView {
       if (p.kind === 'bullet') { g.globalAlpha = 0.5; line(g, [p.x - Math.cos(a) * 34, p.y - Math.sin(a) * 34, p.x, p.y], '#fbf7ec', 3); g.globalAlpha = 1; ell(g, p.x, p.y, 2.8, 2.8, '#3a3a44', INK, 1); return; }
       if (p.kind === 'spark') { const nx = -Math.sin(a), ny = Math.cos(a), pts = []; for (let i = 0; i <= 4; i++) { const d = i * 9, o = (i % 2 ? 1 : -1) * (i === 0 || i === 4 ? 0 : 5); pts.push(p.x - Math.cos(a) * d + nx * o, p.y - Math.sin(a) * d + ny * o); } line(g, pts, INK, 5); line(g, pts, '#b89cf0', 2.6); ell(g, p.x, p.y, 3.4, 3.4, '#fffbe6', INK, 1); return; }
       if (p.kind === 'firearrow') { g.globalAlpha = 0.75; ell(g, p.x - Math.cos(a) * 3, p.y - Math.sin(a) * 3, 5.5, 5.5, '#ff9a2e'); g.globalAlpha = 1; }
-      if (ART.illust) glowStreak(g, p.x - Math.cos(a) * 46, p.y - Math.sin(a) * 46, p.x, p.y, 2.6, 0.8, p.team === 1 ? ILL.foe : ILL.gold);
       line(g, [p.x - Math.cos(a) * 16, p.y - Math.sin(a) * 16, p.x, p.y], INK, 2.6);
       g.save(); g.translate(p.x, p.y); g.rotate(a); poly(g, [-18, -2.6, -12, 0, -18, 2.6], '#fbf7ec', INK, 0.8); poly(g, [0, -2.2, 5, 0, 0, 2.2], '#e4e8ea', INK, 0.8); g.restore();
     }

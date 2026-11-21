@@ -31,7 +31,7 @@ const BG = {
 
 // 걸개그림과 무대 바닥. floor = 인형이 서는 높이를 돌려준다
 export function drawStage(g, x, y, w, h, o = {}) {
-  const bg = BG[o.bg] || BG.pass, k = w / 1040, floor = y + h - 74 * k, b = backdrop('paper');
+  const bg = BG[o.bg] || BG.pass, k = w / 1040, floor = y + h - 74 * k, b = backdrop();
   g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
   g.drawImage(b, 0, b.height * 0.06, b.width, b.height * 0.7, x, y, w, floor - y + 30 * k);
   // 무대 장치: 걸개그림 앞에 세운 종이 나무·집·서낭당

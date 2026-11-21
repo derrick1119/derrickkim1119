@@ -4,9 +4,6 @@ import { WEAPONS as WDATA, ARMS } from '../data/weapons.js';
 import { doll, dokkaebi, ITEM, DITEM, fox, jangseung, wisp, cart, horse, LEFTOVER, boar, catapult, mokshin, eoduksini, scarecrow, stakeLog, bannerCart, part, dk, lt, E, R, P, curve, rope, WHITE, BLACK, STEEL, IRON, WOOD, WOODD, HX, HY } from './figures.js';
 import { tiger, haetae, sapsal, magpie, samjoko, bulgasari, geuseundae, strawShoes } from './beasts.js';
 import { gumiho, serpent, plagueSpirit, bell, pearl, mirror, bottleItem, foxTails } from './bossart.js';
-import { ART } from './art.js';
-import { illPerson, illFist, ILL_LOOKS, ILL_WEAPONS, ILL_WEAPON_HAND } from './illchar.js';
-import { glowDot } from './illust.js';
 
 // ───────────── 무기 (원점 = 손잡이, 위쪽을 향함) ─────────────
 const STEELD = '#aab4ba', BRASS = '#c9962e';
@@ -219,31 +216,19 @@ export const LOOKS = {
 
 export const UNIT_SCALE = 1.1;
 const cache = new Map();
-// 일러스트 그림체(시험판)에서는 사람·도깨비를 illchar.js 의 그림으로 바꿔 굽는다 (없는 병종은 종이 인형 그대로)
-const lookOf = type => (ART.illust && ILL_LOOKS[type]) || LOOKS[type];
-const WSRC = ART.illust ? Object.assign({}, WEAPONS, ILL_WEAPONS) : WEAPONS;
 // 머리는 작은 종이에 따로 굽는다 (고개 까딱임·눈 깜빡임)
 const HEAD = { w: 74, h: 68, ox: 37, oy: 80, bw: 1.7 };
-const HEAD_ILL = { w: 84, h: 88, ox: 42, oy: 100, bw: 1.7 };   // 일러스트 인물은 키가 커서 머리 종이도 크다
 // 인형극에서 엎드리거나 잠든 범은 이빨을 드러내지 않는다
 LOOKS.tigerboss_calm = Object.assign({}, LOOKS.tigerboss, { body: g => tiger(g, Object.assign({}, TTEOK, { roar: false, blink: true, calm: true })), blinkBody: null });
 LOOKS.jangsan_calm = Object.assign({}, LOOKS.jangsan, { body: g => tiger(g, Object.assign({}, JANGSAN, { roar: false, blink: true, calm: true })), blinkBody: null });
 for (let n = 1; n < 9; n++) LOOKS['gumiho' + n] = Object.assign({}, LOOKS.gumiho, { body: g => gumiho(g, { tails: n }), blinkBody: g => gumiho(g, { tails: n, blink: true }) });
 export function getLook(type) {
   let L = cache.get(type); if (L) return L;
-  const d = lookOf(type); if (!d) throw new Error('unknown look ' + type);
-  const lift = (d.doll || d.ill) && (d.doll || d.ill).lift || 0, ill = ART.illust && !!ILL_LOOKS[type], o = { w: d.w || 110, ox: d.ox || 55, h: 132, oy: 114, border: d.border, rim: ill ? 1.1 : 0, shadow: ill ? false : undefined }, HD = d.ill ? HEAD_ILL : HEAD, ho = Object.assign({ border: d.border, rim: o.rim, shadow: o.shadow }, HD, { oy: HD.oy + lift });
+  const d = LOOKS[type]; if (!d) throw new Error('unknown look ' + type);
+  const lift = d.doll && d.doll.lift || 0, o = { w: d.w || 110, ox: d.ox || 55, h: 132, oy: 114, border: d.border }, ho = Object.assign({ border: d.border }, HEAD, { oy: HEAD.oy + lift });
   const wrap = fn => d.wide ? g => { g.scale(d.wide, 1); fn(g); } : fn;
   let front, head = null, blink = null, frontBlink = null;
-  if (d.ill) {
-    const q = d.ill;
-    front = paperSprite(wrap(g => { if (q.under) q.under(g, q); illPerson(g, q, 'body'); }), o);
-    head = paperSprite(wrap(g => illPerson(g, q, 'head')), ho);
-    if (!q.face || q.face.eye !== 'closed') blink = paperSprite(wrap(g => illPerson(g, Object.assign({}, q, { blink: true }), 'head')), ho);
-  } else if (d.fig) {
-    if (d.body) { front = paperSprite(wrap(g => d.fig(g, 'body', {})), o); frontBlink = paperSprite(wrap(g => d.fig(g, 'body', { blink: true })), o); }
-    else { front = paperSprite(wrap(g => d.fig(g, 'body')), o); head = paperSprite(wrap(g => d.fig(g, 'head', {})), ho); blink = paperSprite(wrap(g => d.fig(g, 'head', { blink: true })), ho); }
-  } else if (d.doll) {
+  if (d.doll) {
     const q = d.doll, up = g => { if (q.lift) g.translate(0, -q.lift); };
     front = paperSprite(wrap(g => { if (q.under) q.under(g); up(g); doll(g, q, 'body'); }), o);
     head = paperSprite(wrap(g => { up(g); doll(g, q, 'head'); }), ho);
@@ -251,8 +236,8 @@ export function getLook(type) {
   } else if (d.dok) {
     front = paperSprite(g => dokkaebi(g, d.dok, 'body'), o); head = paperSprite(g => dokkaebi(g, d.dok, 'head'), ho); blink = paperSprite(g => dokkaebi(g, Object.assign({}, d.dok, { blink: true }), 'head'), ho);
   } else { front = paperSprite(wrap(d.body), o); if (d.blinkBody) frontBlink = paperSprite(wrap(d.blinkBody), o); }
-  const weapon = d.weapon && d.weapon !== 'none' ? paperSprite(WSRC[d.weapon], { w: 60, h: 90, ox: 30, oy: 62, border: d.border, shadow: ART.illust ? false : undefined }) : null;
-  L = { front, back: front, head, blink, frontBlink, neck: (d.neck || (d.ill ? 47.5 : 33)) + lift, weapon, hold: d.hold, glow: ART.illust && d.glow || null, fist: ill && d.fist ? paperSprite(g => illFist(g, d.fist.skin, d.fist.r), { w: 18, h: 18, ox: 9, oy: 9, shadow: false }) : null, ill, scale: (d.scale || 1) * UNIT_SCALE, h: d.h || 60, hero: !!d.hero, boss: !!d.boss, float: !!d.float, still: !!d.still };
+  const weapon = d.weapon && d.weapon !== 'none' ? paperSprite(WEAPONS[d.weapon], { w: 60, h: 90, ox: 30, oy: 62, border: d.border }) : null;
+  L = { front, back: front, head, blink, frontBlink, neck: (d.neck || 33) + lift, weapon, hold: d.hold, scale: (d.scale || 1) * UNIT_SCALE, h: d.h || 60, hero: !!d.hero, boss: !!d.boss, float: !!d.float, still: !!d.still };
   cache.set(type, L); return L;
 }
 // 지금 눈을 깜빡일 때인가 (인형마다 박자가 조금씩 다르다)
@@ -262,7 +247,7 @@ const wcache = new Map();
 export function getWeapon(wid) {
   let w = wcache.get(wid); if (w) return w;
   const d = WDATA[wid]; if (!d) return null;
-  w = { spr: paperSprite(WSRC[d.spr] || WSRC.hwando, { w: 64, h: 104, ox: 32, oy: 66, shadow: ART.illust ? false : undefined }), a: d.a || 0, mode: d.mode || 'slash', hand: (ART.illust && ILL_WEAPON_HAND[d.spr]) || d.hand || 'R', cast: d.cast === undefined ? 0.95 : d.cast };
+  w = { spr: paperSprite(WEAPONS[d.spr] || WEAPONS.hwando, { w: 64, h: 104, ox: 32, oy: 66 }), a: d.a || 0, mode: d.mode || 'slash', hand: d.hand || 'R', cast: d.cast === undefined ? 0.95 : d.cast };
   wcache.set(wid, w); return w;
 }
 const lcache = new Map();
@@ -276,13 +261,11 @@ export function portrait(g, type, x, y, s, t = 0, bob = false, wpn, shut = false
   drawSprite(g, bl && L.frontBlink ? L.frontBlink : L.front, x, yy, k, k);
   if (L.head) drawSprite(g, bl && L.blink ? L.blink : L.head, x, yy + (bob ? Math.sin(t * 5) * 0.5 * s : 0), k, k);
   const W = wpn === 'none' ? null : getWeapon(wpn || baseWeapon(type));   // 'none' = 빈손 (인형극에서 쓴다)
-  const F = L.fist, fist = (px, py, sx, a) => { if (F) drawSprite(g, F, px, py, sx, k, a); };   // 일러스트 인물: 손잡이를 감싼 주먹
   if (W) {
-    if (W.hand === 'L') { drawSprite(g, W.spr, x + (h.x + 3) * k, yy + (h.y - 1) * k, -k, k, -W.a); fist(x + (h.x + 3) * k, yy + (h.y - 1) * k, -k, -W.a); } // 활은 보는 쪽(앞)으로 내밀어 든다 — 싸움터의 인형과 같다
-    else if (W.hand === 'C') { drawSprite(g, W.spr, x + h.x * 0.42 * k, yy + (h.y - 1.5) * k, k, k, W.a); fist(x + h.x * 0.42 * k, yy + (h.y - 1.5) * k, k, W.a); }
-    else { drawSprite(g, W.spr, x + h.x * k, yy + h.y * k, k, k, W.a); fist(x + h.x * k, yy + h.y * k, k, W.a); if (W.hand === 'B') { drawSprite(g, W.spr, x - h.x * k, yy + h.y * k, -k, k, -W.a); fist(x - h.x * k, yy + h.y * k, -k, -W.a); } }
-  } else if (L.weapon && wpn !== 'none') { drawSprite(g, L.weapon, x + h.x * k, yy + h.y * k, k, k, h.a); fist(x + h.x * k, yy + h.y * k, k, h.a); }
-  if (L.glow) for (const q of L.glow) glowDot(g, x + q.x * k, yy + q.y * k, q.r * k, q.col, 0.8 + 0.2 * Math.sin(t * 5 + q.x));
+    if (W.hand === 'L') drawSprite(g, W.spr, x + (h.x + 3) * k, yy + (h.y - 1) * k, -k, k, -W.a); // 활은 보는 쪽(앞)으로 내밀어 든다 — 싸움터의 인형과 같다
+    else if (W.hand === 'C') drawSprite(g, W.spr, x + h.x * 0.42 * k, yy + (h.y - 1.5) * k, k, k, W.a);
+    else { drawSprite(g, W.spr, x + h.x * k, yy + h.y * k, k, k, W.a); if (W.hand === 'B') drawSprite(g, W.spr, x - h.x * k, yy + h.y * k, -k, k, -W.a); }
+  } else if (L.weapon && wpn !== 'none') drawSprite(g, L.weapon, x + h.x * k, yy + h.y * k, k, k, h.a);
 }
 // 무기 그림만 (보관함·전리품용). [그림 중심까지의 거리, 길이] 로 칸 가운데에 비슷한 크기로 맞춘다
 const ICON = { chae: [6, 26], hwando: [12, 34], twin: [10, 28], axe: [9, 34], flail: [12, 40], spear: [16, 56], lance: [18, 64], dangpa: [17, 58], hyeopdo: [16, 64], woldo: [14, 68], mace: [11, 34], bigaxe: [12, 45], thresher: [15, 52], crossbow: [8, 34], gun: [11, 46], firetal: [12.5, 20], icetal: [12.5, 20], bolttal: [12.5, 20], featherfan: [5, 24], fans: [3, 22], staff: [11, 62], bells: [8, 30], bowl: [10, 28] };
