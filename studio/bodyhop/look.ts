@@ -62,6 +62,8 @@ if (Q.get('stage')) __jump(s, Math.max(0, Math.min(STAGES.length - 1, Number(Q.g
 let botRng = mulberry32(seed ^ 0x9e3779b9), manual = false, held: Input = { tap: false, dir: 0, pointer: null };
 let ptr: { x: number; y: number } | null = null, latch: { x: number; y: number } | null = null, seenT = -1;
 const FREEZE = Q.get('t') ? Number(Q.get('t')) : -1;
+/** 디버그: ?off=puff,chunk,pt,corpse,ghost,fx — 그 층을 끈다(화면 비평 원인 찾기용) */
+const OFF = new Set((Q.get('off') ?? '').split(','));
 function tick() {
   let inp: Input;
   if (!manual) {
@@ -86,9 +88,9 @@ if (FREEZE > 0) {
 const cam = { eye: [0, 1.6, 1.6] as V3, at: [0, 0, -0.1] as V3, fov: (38 * Math.PI) / 180 };
 let shake = 0, zoom = 0;
 function placeCam(t: number) {
-  const asp = gfx.w / gfx.h, pitch = (Number(Q.get('pitch') ?? 57) * Math.PI) / 180;
-  const hf = Math.atan(Math.tan(cam.fov / 2) * asp), d = 0.505 / Math.tan(hf) * (1 - zoom * 0.08);
-  const at: V3 = [0, 0.02, -0.2 + 0.12 * Math.max(0, 0.75 - asp)];
+  const asp = gfx.w / gfx.h, pitch = (Number(Q.get('pitch') ?? 63) * Math.PI) / 180;
+  const hf = Math.atan(Math.tan(cam.fov / 2) * asp), d = 0.47 / Math.tan(hf) * (1 - zoom * 0.08);
+  const at: V3 = [0, 0.02, -0.26 + 0.1 * Math.max(0, 0.75 - asp)];
   const sx = shake * shake * 0.012 * Math.sin(t * 0.9), sy = shake * shake * 0.01 * Math.sin(t * 1.3 + 1);
   cam.at = [at[0] + sx, at[1] + sy, at[2]];
   cam.eye = [at[0] + sx * 0.5, at[1] + Math.sin(pitch) * d, at[2] + Math.cos(pitch) * d];
@@ -248,20 +250,20 @@ function monDraws(out: Draw[], m: Mon, t: number, now: number) {
   if (m.stun > 0) rz = 0.18 * Math.sin(t * 0.4);
   const atk = t - m.atkT;
   if (atk >= 0 && atk < 12) (punch = Math.sin((atk / 12) * Math.PI)), (sy *= 1 - punch * 0.12), (rx += punch * 0.15);
-  const hurt = Math.max(0, 1 - (t - m.hurtT) / 7);
+  const hurt = Math.max(0, 1 - (t - m.hurtT) / 4); // 👁 r2: 맞은 몸 흰 번쩍이 길고 세서 흰 덩어리로 보였다 → 4틱·약하게
   if (hurt > 0) sy *= 1 - hurt * 0.15;
   const claim = m.st === GEO.CLAIM ? 0.6 + 0.4 * Math.sin(t * 0.8) : 0;
   const sx = 1 / Math.sqrt(sy), model = trs(X, lift, Z, ry, rx, rz, r * sx, r * sy, r * sx);
-  const fres = me ? [0.05, 0.9, 1.25] : claim ? [claim * 0.2, claim * 0.9, claim * 1.2] : undefined;
-  out.push({ m: me ? R.me : R.foe, model, fres, flash: hurt * 0.6 + (m.inv > 0 && me ? 0.0 : 0), emis: me ? [0.01, 0.05, 0.07] : undefined });
+  const fres = me ? [0.0, 0.7, 0.95] : claim ? [claim * 0.2, claim * 0.9, claim * 1.2] : undefined;
+  out.push({ m: me ? R.me : R.foe, model, fres, flash: hurt * 0.35, emis: me ? [0.01, 0.05, 0.07] : undefined });
   for (const p of R.parts) {
     const side = Math.sign(p.at[0]), ext = punch * 0.5 * (side > 0 ? 1 : 0.6);
     const lx = p.at[0] * r * sx, ly = p.at[1] * r * sy + Math.sin(t * 0.09 + sd + side) * r * 0.04, lz = (p.at[2] + ext) * r;
     const c = Math.cos(ry), sn = Math.sin(ry);
-    out.push({ m: p.m, model: trs(X + lx * c + lz * sn, lift + ly, Z - lx * sn + lz * c, ry + side * 0.3, punch * 0.5, 0, r), flash: hurt * 0.6, fres });
+    out.push({ m: p.m, model: trs(X + lx * c + lz * sn, lift + ly, Z - lx * sn + lz * c, ry + side * 0.3, punch * 0.5, 0, r), flash: hurt * 0.35, fres });
   }
   // 보호막(대장)
-  if (m.shield > 0) out.push({ m: BALL, model: trs(X, r * 1.1, Z, 0, 0, 0, r * 1.6), pass: 2, emis: [0.5, 0.9, 1.2], alpha: 0.18 + 0.05 * Math.sin(now * 0.004), shadow: false, tint: [0, 0, 0] });
+  if (m.shield > 0) out.push({ m: BALL, model: trs(X, r * 1.1, Z, 0, 0, 0, r * 1.6), pass: 2, emis: [0.55, 0.38, 0.08], fres: [1.2, 0.8, 0.2], alpha: 0.35 + 0.08 * Math.sin(now * 0.004), shadow: false, tint: [0, 0, 0] });
 }
 function ghostDraw(out: Draw[], t: number) {
   const gs = 0.034;
@@ -275,19 +277,19 @@ function ghostDraw(out: Draw[], t: number) {
     x = from[0] + (tx - from[0]) * e; z = from[2] + (tz - from[2]) * e;
     y = from[1] + (th - from[1]) * e + Math.sin(u * Math.PI) * 0.16;
     sc = gs * (1 + 0.25 * Math.sin(u * Math.PI));
-    for (let k = 0; k < 3; k++) burst(x, y + 0.03, z, 1, CYAN, 0.05, 0.03, 0.35, 0, 0.3, 1.3);
+    burst(x, y + 0.02, z, 1, CYAN, 0.03, 0.012, 0.3, 0, 0.3, 0.7);
   } else if (b) {
     const [bx, bz] = W(b.x, b.y);
-    x = bx; z = bz; y = b.r * VIS * (rig(b.k).h - 0.35) + 0.01 + 0.008 * Math.sin(t * 0.1); sc = gs * 0.8; gw = 0.9;
+    x = bx; z = bz; y = b.r * VIS * (rig(b.k).h - 0.25) + 0.02 + 0.008 * Math.sin(t * 0.1); sc = gs * 1.05; gw = 1;
   } else if (s.home || s.phase !== 'play') {
     [x, y, z] = home; y += 0.01 * Math.sin(t * 0.06);
   } else {
     const [gx, gz] = W(s.gx, s.gy);
     x = gx + 0.005 * Math.sin(t * 0.9); z = gz; y = 0.1 + 0.02 * Math.sin(t * 0.12);
   }
-  out.push({ m: GH, model: trs(x, y, z, 0.3 * Math.sin(t * 0.03), 0, 0.08 * Math.sin(t * 0.07), sc), pass: 1, alpha: 0.9, fres: [0.25 * gw, 0.9 * gw, 1.3 * gw], emis: [0.12, 0.2, 0.24], shadow: false });
+  out.push({ m: GH, model: trs(x, y, z, 0.3 * Math.sin(t * 0.03), 0, 0.08 * Math.sin(t * 0.07), sc), pass: 1, alpha: 0.92, fres: [0.05 * gw, 0.55 * gw, 0.85 * gw], emis: [0.03, 0.08, 0.1], shadow: false });
   // 유령 둘레 빛(가산)
-  glow(x, y + sc, z, CYAN, sc * 7, 0.45 * gw);
+  glow(x, y + sc, z, CYAN, sc * 5, 0.22 * gw);
   return [x, y, z] as V3;
 }
 
@@ -315,11 +317,11 @@ function frame(now: number) {
   ];
   for (const m of s.mons) if (!m.dead) monDraws(list, m, t, now);
   // 버린 몸·쓰러진 몸: 잠깐 부풀었다 사라짐
-  for (const c of s.corpses) {
+  for (const c of OFF.has('corpse') ? [] : s.corpses) {
     const u = (s.t - c.t) / 10;
     if (u > 1) continue;
     const R = rig(c.k), [X, Z] = W(c.x, c.y), r = KD[c.k].r * VIS, sc = c.how === 3 ? r * (1 + u * 0.4) : r * (1 - u * 0.7);
-    list.push({ m: R.foe, model: trs(X, 0, Z, 0, 0, 0, sc, sc * (c.how === 1 ? 1 - u * 0.6 : 1), sc), flash: 0.45 * (1 - u), fres: [1.2 * (1 - u), 0.6 * (1 - u), 0.2 * (1 - u)] });
+    list.push({ m: R.foe, model: trs(X, 0, Z, 0, 0, 0, sc, sc * (c.how === 1 ? 1 - u * 0.6 : 1), sc), flash: 0.12 * (1 - u), fres: [1.0 * (1 - u), 0.45 * (1 - u), 0.12 * (1 - u)] });
   }
   const b = s.me ? s.mons.find((m) => m.id === s.me && !m.dead) : null;
   if (b && s.phase === 'play') {
@@ -331,7 +333,14 @@ function frame(now: number) {
     list.push({ m: RING, model: trs(bx, 0.006, bz, 0, 0, 0, pr * (1 + beat * 0.04), 0.2, pr * (1 + beat * 0.04)), pass: 2, tint: [0, 0, 0], emis: [0.02, 0.32 + inside * 0.06, 0.45 + inside * 0.07].map((v) => v * (0.45 + 0.55 * ready) * (1 + beat)), alpha: 0.8, shadow: false });
     list.push({ m: RING, model: trs(bx, 0.006, bz, sec, 0, 0, b.r * VIS * 1.2, 1.2, b.r * VIS * 1.2), pass: 2, tint: [0, 0, 0], emis: [0.1, 0.9, 1.2], alpha: 0.9, shadow: false });
   }
-  ghostDraw(list, t);
+  if (s.fly && s.phase === 'play') {
+    const to = s.mons.find((m) => m.id === s.fly!.to);
+    if (to) {
+      const [tx, tz] = W(to.x, to.y), u = s.fly.t / s.fly.T;
+      list.push({ m: RING, model: trs(tx, 0.006, tz, sec * 2, 0, 0, to.r * VIS * (1.9 - 0.7 * u), 1.4, to.r * VIS * (1.9 - 0.7 * u)), pass: 2, tint: [0, 0, 0], emis: [0.1, 1.1, 1.4], alpha: 1, shadow: false });
+    }
+  }
+  if (!OFF.has('ghost')) ghostDraw(list, t);
   for (let i = fxs.length - 1; i >= 0; i--) {
     const f = fxs[i];
     f.t += dt;
@@ -341,13 +350,17 @@ function frame(now: number) {
     if (f.k === 'flash') glow(f.x, f.y, f.z, f.c, f.r * (1.2 + 2 * e), 1.1 * (1 - u) * (1 - u));
     else list.push({ m: RING, model: trs(f.x, f.y, f.z, 0, 0, 0, f.r * (0.2 + e), 1 + (1 - u) * 2, f.r * (0.2 + e)), pass: 2, tint: [0, 0, 0], emis: f.c.map((c) => c * 1.3 * (1 - u)), alpha: 1, shadow: false });
   }
+  if (OFF.has('puff')) pfs.length = 0;
+  if (OFF.has('chunk')) chs.length = 0;
+  if (OFF.has('pt')) pts.length = 0;
+  if (OFF.has('fx')) fxs.length = 0;
   for (let i = pfs.length - 1; i >= 0; i--) {
     const p = pfs[i];
     p.life += dt;
     if (p.life > p.max) { pfs[i] = pfs[pfs.length - 1]; pfs.pop(); continue; }
     const u = p.life / p.max, e = 1 - Math.pow(1 - u, 2);
     const rr2 = p.r * (1 + 2.2 * e);
-    list.push({ m: BALL, model: trs(p.x + p.vx * e * 0.35, p.y + rr2 * 0.6 + e * 0.03, p.z + p.vz * e * 0.35, 0, 0, 0, rr2), tint: p.c.map((v) => v * 0.82), pass: 1, alpha: 0.6 * (1 - u * u), shadow: false });
+    list.push({ m: BALL, model: trs(p.x + p.vx * e * 0.35, p.y + rr2 * 0.6 + e * 0.03, p.z + p.vz * e * 0.35, 0, 0, 0, rr2), tint: p.c.map((v) => v * 0.62), pass: 1, alpha: 0.55 * (1 - u * u), shadow: false });
   }
   for (let i = chs.length - 1; i >= 0; i--) {
     const c = chs[i];
@@ -406,9 +419,9 @@ function drawOverlay(now: number) {
     txt(p.text, sx, sy, (p.big ? 32 : 22) * pop, p.big || p.text[0] === '+' ? '#ffd23f' : '#ffffff');
     o2.globalAlpha = 1;
   }
-  const b = s.me ? s.mons.find((m) => m.id === s.me && !m.dead) : null;
+  const b = s.me ? s.mons.find((m) => m.id === s.me && !m.dead) : s.fly ? s.mons.find((m) => m.id === s.fly!.to) : null;
   if (b && s.phase === 'play') {
-    const [X, Z] = W(b.x, b.y), [sx, sy] = project(X, b.r * VIS * (rig(b.k).h + 0.9), Z), f = b.hp / b.max, w = 46;
+    const [X, Z] = W(b.x, b.y), [sx, sy] = project(X, b.r * VIS * (rig(b.k).h + 1.4), Z), f = s.me ? b.hp / b.max : 1, w = 46;
     o2.fillStyle = 'rgba(20,14,40,.7)'; rr(sx - w / 2 - 2, sy - 5, w + 4, 10, 5); o2.fill();
     o2.fillStyle = f < 0.3 && Math.sin(now * 0.02) > 0 ? '#ff4b5c' : '#4fe6ff'; rr(sx - w / 2, sy - 3, w * f, 6, 3); o2.fill();
     o2.fillStyle = '#4fe6ff'; o2.beginPath(); o2.moveTo(sx - 6, sy - 9); o2.lineTo(sx + 6, sy - 9); o2.lineTo(sx, sy - 2 - 1); o2.closePath(); o2.strokeStyle = '#140c2a'; o2.lineWidth = 3; o2.stroke(); o2.fill();

@@ -60,9 +60,9 @@ void main(){
   vec3 c = alb * (uSunC * dif * sh + hemi * vO);
   c += alb * sss * vec3(1., .55, .4) * .25 * uSunC * (1. - dif) * vO;   // 젤리: 그늘 쪽에 속빛
   c += uSunC * spec * sh * vO;
-  c += uRim * fr * vO * (.35 + .65 * sh);
+  c += uRim * fr * vO * (.35 + .65 * sh) * min(1., max(uTint.r, max(uTint.g, uTint.b)));
   c += uFres * fr * 2.2 + uEmis;
-  c = mix(c, vec3(6.), uFlash);
+  c = mix(c, vec3(2.4), uFlash);
   float d = length(vW - uCam), f = 1. - exp(-max(d - uFogS, 0.) * uFogD);
   c = mix(c, uFog, clamp(f, 0., 1.));
   o = vec4(c, uAlpha);

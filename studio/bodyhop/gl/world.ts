@@ -308,7 +308,7 @@ export function ghostMesh(): Mesh {
     return d;
   };
   const E: [number, number, number, number][] = [[0.25, 1.05, 0.66, 0.13], [-0.25, 1.05, 0.66, 0.13]];
-  const paint = facePaint((x, y, z) => (Math.abs(x) < 0.09 && y > 0.78 && y < 0.86 && z > 0.6 ? [...hex('#3b2a4a'), 0.3, 0] : [...mix3(hex('#bdf6ff'), hex('#ffffff'), Math.min(1, y / 1.5)), 0.25, 1]), E, 'foe', [0.45, 0.86, 0.56, 0.12]);
+  const paint = facePaint((x, y, z) => (Math.abs(x) < 0.09 && y > 0.78 && y < 0.86 && z > 0.6 ? [...hex('#3b2a4a'), 0.3, 0] : [...mix3(hex('#7fe3f5'), hex('#d8fbff'), Math.min(1, y / 1.5)), 0.25, 1]), E, 'foe', [0.45, 0.86, 0.56, 0.12]);
   return sdfMesh(f, paint, [-0.95, -0.4, -0.95], [0.95, 1.8, 0.95], 0.06);
 }
 
