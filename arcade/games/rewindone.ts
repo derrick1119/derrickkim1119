@@ -79,18 +79,18 @@ export const STAGES: StageDef[] = [
   { key: 'barrel', ch: 0, name: '굴러오는 술통', news: '술통 — 거꾸로 굴러도 부딪히면 쿵!', tip: '점선을 봐요: 누구에게 굴러가나?', stars: ['goal', 'safe', 'sand'], fix: '가로등', spot: '술통 수레' },
   { key: 'arrow', ch: 0, name: '도깨비 화살', news: '화살 — 되감으면 쏜 자리로 돌아가요', tip: '화살을 되감으면 도깨비가 꽈당', stars: ['goal', 'safe', 'sand'], fix: '풍차', spot: '도깨비' },
   { key: 'stairs', ch: 0, name: '와르르 계단', news: '되감는 중에 다시 톡 — 그 모양 그대로 멈춰요', tip: '상자가 계단 모양일 때 다시 톡!', stars: ['goal', 'safe', 'sand'], fix: '깃발 줄', spot: '상자 탑' },
-  { key: 'twice', ch: 0, name: '갈 때 하나 올 때 둘', news: '연쇄 — 부딪혀 떨어진 것은 부딪힌 것을 되감으면 함께 돌아가요', tip: '둘째 도깨비가 골목 앞에 서면 술통을 끝까지', stars: ['goal', 'taps', 'sand'], fix: '열기구', spot: '꽃바구니' },
+  { key: 'twice', ch: 0, name: '갈 때 하나 올 때 둘', news: '연쇄 — 친 것을 되감으면 떨어진 것도 함께 와요', tip: '둘째 도깨비가 골목 앞에 서면 술통을 끝까지', stars: ['goal', 'taps', 'sand'], fix: '열기구', spot: '꽃바구니' },
   { key: 'raft', ch: 1, name: '떠내려간 뗏목', news: '뗏목 — 탄 아이도 함께 거꾸로', tip: '폭포에 닿기 전에 뗏목을 톡', stars: ['goal', 'rescue', 'sand'], fix: '물레방아', spot: '뗏목' },
   { key: 'log', ch: 1, name: '통나무 다리', news: '말뚝 — 되감는 통나무가 여기 오면 빛나요', tip: '통나무가 강을 가로지를 때 다시 톡!', stars: ['goal', 'safe', 'sand'], fix: '나룻배', spot: '말뚝' },
   { key: 'water', ch: 1, name: '터진 물탱크', news: '물탱크 — 쏟아진 물도 거꾸로', tip: '물이 차기 전에 물탱크를 톡', stars: ['goal', 'safe', 'sand'], fix: '새 떼', spot: '물탱크' },
   { key: 'balloon', ch: 1, name: '날아간 고양이', news: '풍선 — 날아간 것도 거꾸로 내려와요', tip: '풍선을 톡 — 아이 품으로', stars: ['goal', 'rescue', 'sand'], fix: '무지개', spot: '풍선' },
   { key: 'ferry', ch: 1, name: '나룻배 왕복', news: '나룻배 — 그냥 두면 태우고 건너가요', tip: '부엉이가 나루에 오면 나룻배를 톡', stars: ['goal', 'safe', 'sand'], fix: '연 날리기', spot: '나룻배' },
   { key: 'chain', ch: 1, name: '두 뗏목 맞추기', news: '뗏목 둘 — 되감기는 하나씩', tip: '하나를 붙인 뒤 얼른 다른 하나도', stars: ['goal', 'sand', 'taps'], fix: '물고기', spot: '뗏목 둘' },
-  { key: 'crate', ch: 2, name: '상자 승강기', news: '올라탄 채 되감으면 같이 올라가요', tip: '부엉이가 상자에 타면 톡 — 올라가는 동안 페인트 통도', stars: ['goal', 'safe', 'sand'], fix: '숫자판', spot: '상자' },
+  { key: 'crate', ch: 2, name: '상자 승강기', news: '승강기 — 타고 되감으면 함께 올라가요', tip: '승강기를 되감으며 날아오는 화살도 함께', stars: ['goal', 'safe', 'sand'], fix: '숫자판', spot: '망보는 도깨비' },
   { key: 'gear', ch: 2, name: '굴러간 톱니', news: '톱니 — 기계에 끼우면 다리가 내려와요', tip: '톱니가 도깨비를 쓰러뜨린 뒤에 되감아요', stars: ['goal', 'safe', 'sand'], fix: '큰 톱니', spot: '톱니 기계' },
   { key: 'scale', ch: 2, name: '저울 승강기', news: '저울 — 자루가 왼쪽 접시에 앉으면 오른쪽이 올라가요', tip: '부엉이가 접시에 타면 자루를 톡', stars: ['goal', 'safe', 'sand'], fix: '종', spot: '모래 자루' },
   { key: 'fire', ch: 2, name: '거꾸로 솟는 물', news: '불 — 거꾸로 솟는 물이 지나가면 꺼져요', tip: '등불 말고 물을 되감아요', stars: ['goal', 'sand', 'taps'], fix: '뻐꾸기', spot: '쏟아진 물' },
-  { key: 'cross', ch: 2, name: '오르며 막기', news: '도깨비가 높은 곳을 노려요', tip: '상자를 올리면서 화살도 함께', stars: ['goal', 'safe', 'sand'], fix: '시계추', spot: '도깨비' },
+  { key: 'cross', ch: 2, name: '오르며 막기', news: '도깨비 둘 — 하나는 아래층 고양이를 노려요', tip: '승강기를 올리면서 화살 둘도 차례로', stars: ['goal', 'safe', 'sand'], fix: '시계추', spot: '도깨비 둘' },
   { key: 'grand', ch: 2, name: '시계탑 꼭대기', news: '마지막 — 배운 것 모두', tip: '무엇부터 되감을지 차례를 봐요', stars: ['goal', 'safe', 'sand'], fix: '시계 바늘', spot: '' },
 ];
 export const STAGE_COUNT = STAGES.length;
@@ -607,22 +607,40 @@ function tapThing(W: World, th: Thing, E: Sink): number {
   W.sand -= pinch;
   W.used += pinch;
   E?.('rew', P.x, P.y, th.big, th.id);
+  if (rewN(W) >= 2) E?.('twin', P.x, P.y, 0, th.id);
   return 1;
 }
 
+/** 부엉이가 지금 타고 올라가는 중인가 (되감는 승강기 · 올라가는 저울 접시) — 망보는 도깨비가 깨는 때 */
+function riding(W: World): boolean {
+  const H = W.hero;
+  if (H.on === -3 && W.L.scale) {
+    const sk = W.th.find((q) => q.k === 'sack');
+    return !!sk && sk.tau <= 6 && W.tilt < 0.9;
+  }
+  const fr = H.on >= 0 ? thingOf(W, supThing(H.on)) : undefined;
+  return !!fr && fr.k === 'crate' && fr.st === REW && fr.tau > 20;
+}
 /** 도깨비가 쏘는 화살 */
 function shoot(W: World, g: Actor, E: Sink) {
-  const H = W.hero, tgtKid = g.alt === 1 && g.shots % 2 === 1;
+  const H = W.hero, tgtKid = (g.alt === 1 && g.shots % 2 === 1) || g.alt === 3;
   // 망보는 도깨비(alt 2): 승강기에 탄 부엉이가 올라올 자리를 노린다 (빠른 화살)
-  const F = g.alt === 2 ? 72 : 104;
+  const F = g.alt >= 2 ? 72 : 104;
   let tx: number, ty: number;
   const kid = tgtKid ? W.ac.find((a) => a.role === R_VILL && !a.hurt) : undefined;
   const lift = H.on >= 0 ? thingOf(W, supThing(H.on)) : undefined;
+  const sc = W.L.scale;
   if (kid) (tx = kid.x), (ty = kid.y);
-  else if (lift && lift.k === 'crate' && lift.st === REW) {
-    const rem = lift.tau / W.L.rw;
-    if (rem >= F) (pose(lift, lift.tau - W.L.rw * F), (tx = H.x), (ty = P.y));
-    else (tx = Math.min(0.95, H.x + V * (F - rem) * 0.97)), (ty = lift.y);
+  else if (sc && H.on === -3 && g.alt === 2) {
+    // 저울 접시: 다 오르면 걸어 나간다
+    const rem = (1 - W.tilt) / 0.013, xTop = Math.max(H.x, sc[3] + sc[4] / 2 - LOOK - 0.004), cur = sc[5] + (sc[6] - sc[5]) * W.tilt;
+    if (rem >= F) (tx = xTop), (ty = cur + ((sc[6] - cur) * F) / rem);
+    else (tx = Math.min(0.95, xTop + V * (F - rem) * 0.97)), (ty = sc[6]);
+  } else if (lift && lift.k === 'crate' && lift.st === REW) {
+    // 부엉이는 오르는 동안 승강기 오른쪽 끝까지 걸어가 서 있다가, 다 오르면 걸어 나간다
+    const rem = lift.tau / W.L.rw, xTop = Math.max(H.x, lift.x + lift.w / 2 - LOOK - 0.004);
+    if (rem >= F) (pose(lift, lift.tau - W.L.rw * F), (tx = xTop), (ty = P.y));
+    else (tx = Math.min(0.95, xTop + V * (F - rem) * 0.97)), (ty = lift.y);
   } else {
     const walking = H.st === H_WALK || H.st === H_IDLE;
     const fr = H.on >= 0 ? thingOf(W, supThing(H.on)) : undefined;
@@ -741,10 +759,9 @@ export function stepWorld(W: World, E: Sink) {
       }
     }
     if (a.role === R_ARCH && !a.ko && H.st !== H_WIN && H.st !== H_FAIL && W.t >= a.next) {
-      if (a.alt === 2 && a.shots === 0) {
-        // 망보는 도깨비: 부엉이가 승강기를 타고 올라오기 시작하면 깨어나 쏜다 (그 뒤로는 per마다)
-        const fr = H.on >= 0 ? thingOf(W, supThing(H.on)) : undefined;
-        if (fr && fr.k === 'crate' && fr.st === REW && fr.tau > 20) (shoot(W, a, E), (a.next = W.t + a.per));
+      if (a.alt >= 2 && a.shots === 0) {
+        // 망보는 도깨비: 부엉이가 타고 올라오기 시작하면 깨어나 쏜다 (그 뒤로는 per마다) — alt 3은 마을 사람을 노린다
+        if (riding(W)) (E?.('wake', a.x, a.y - 0.1, a.alt, a.id), shoot(W, a, E), (a.next = W.t + a.per));
       } else {
         shoot(W, a, E);
         a.next += a.per;
@@ -1229,27 +1246,30 @@ function rawLevel(si: number, r: Rng): Level {
       L.gearY = UP3;
       L.things.push(sackT(0.13, 0.74, lane, Math.round(rnd(r, 12, 22))));
       const gx = rnd(r, 0.84, 0.9);
-      L.actors.push(Ac('goblin', R_ARCH, gx, UP3, { next: Math.round(rnd(r, 170, 200)), per: Math.round(rnd(r, 170, 190)), alt: 1 }));
+      L.actors.push(Ac('goblin', R_ARCH, gx, UP3, { next: 0, per: 80, alt: 2 }));
       L.actors.push(Ac('cat', R_VILL, 0.06, lane));
       L.deco.roof = gx;
       L.sand = 260;
       break;
     }
     case 'fire': {
-      L.ground = [0, 1, lane];
-      L.fire = [0.46, 0.6, lane];
+      L.ground = [0, 0.68, lane, 0.82, 1, UP3];
+      L.shaft = [0.68, 0.82, UP3, lane];
+      L.gearY = UP3;
+      L.things.push(crateT(0.75, UP3, lane, 0.15, Math.round(rnd(r, 30, 50)), true));
+      L.fire = [0.4, 0.54, lane];
       // 등불(먼저 떨어져 불을 냄 — 되감아도 불은 그대로) · 물통(그 전에 쏟아짐 — 되감으면 불을 지나 솟는다)
-      const bv = Ac('beaver', R_DECO, 0.42, 0.56), mole = Ac('mole', R_DECO, 0.64, 0.5);
+      const bv = Ac('beaver', R_DECO, 0.36, 0.56), mole = Ac('mole', R_DECO, 0.58, 0.5);
       L.actors.push(bv, mole);
-      const lamp = potT(0.47, 0.58, 1, bv.id, lane - 0.01);
+      const lamp = potT(0.41, 0.58, 1, bv.id, lane - 0.01);
       lamp.n = 2;
       lamp.harm = 0;
-      const pail = potT(rnd(r, 0.56, 0.59), 0.52, 1, mole.id, lane);
+      const pail = potT(rnd(r, 0.5, 0.53), 0.52, 1, mole.id, lane);
       pail.n = 1;
       pail.harm = 0;
       L.things.push(pre(lamp), pre(pail));
-      L.actors.push(Ac('kid', R_DECO, 0.86, lane));
-      L.sand = 240;
+      L.actors.push(Ac('kid', R_DECO, 0.62, lane));
+      L.sand = 260;
       break;
     }
     case 'crate': {
@@ -1278,10 +1298,22 @@ function rawLevel(si: number, r: Rng): Level {
       const m = Ac('machine', R_DECO, 0.22, 0.6);
       L.actors.push(m);
       const gp = rollPath([0.22, 0.64, 0.25, 0.7, 0.4, lane, 0.47, lane, 0.55, lane + 0.17], 0.05, 0.001, 0.00009, 0.0042, 18);
-      L.things.push(T('gear', { path: gp, hold: Math.round(rnd(r, 26, 36)), owner: m.id, big: 1.4 }));
-      L.things[0].dur = gp.length / 3 - 1;
+      const gr = T('gear', { path: gp, hold: Math.round(rnd(r, 26, 36)), owner: m.id, big: 1.4 });
+      gr.dur = gp.length / 3 - 1;
+      L.things.push(gr);
       // 길을 막은 도깨비 (구르는 톱니에 꽈당 — 그 뒤에 되감아야)
       L.actors.push(Ac('walker', R_WALK, rnd(r, 0.37, 0.41), lane));
+      // 비탈 아래 등 기둥: 톱니가 쿵 치면 매단 꽃바구니가 툭 (연쇄: 톱니를 되감으면 함께 제자리로)
+      const bxp = 0.3, hb = potT(bxp - 0.04, 0.66, 1, -1, lane);
+      hb.cause = gr.id;
+      hb.w = 14;
+      hb.dur = Math.ceil(potHit(hb) + 16);
+      for (let i = 0; i < gr.dur; i++) if (gp[i * 3] >= bxp + 0.02) {
+        hb.ctau = i;
+        break;
+      }
+      L.things.push(hb);
+      L.deco.post = bxp - 0.04;
       // 창가 화분이 고양이 위로
       const gm = Ac('grandma', R_DECO, 0.84, 0.5), cat = Ac('cat', R_VILL, 0.79, lane);
       L.actors.push(gm, cat);
@@ -1296,12 +1328,14 @@ function rawLevel(si: number, r: Rng): Level {
       L.ground = [0, 0.5, lane, 0.66, 1, UP3];
       L.shaft = [0.5, 0.66, UP3, lane];
       L.gearY = UP3;
-      L.things.push(crateT(0.58, UP3, lane, 0.17, Math.round(rnd(r, 8, 16))));
-      const gx = rnd(r, 0.82, 0.88);
-      L.actors.push(Ac('goblin', R_ARCH, gx, UP3, { next: Math.round(rnd(r, 100, 130)), per: Math.round(rnd(r, 165, 185)) }));
-      L.actors.push(Ac('cat', R_DECO, 0.2, lane));
+      L.things.push(crateT(0.58, UP3, lane, 0.17, Math.round(rnd(r, 8, 16)), true));
+      // 망보는 도깨비 둘: 승강기가 오르기 시작하면 하나는 부엉이를, 하나는 아래층 고양이를 쏜다
+      const gx = rnd(r, 0.84, 0.88);
+      L.actors.push(Ac('goblin', R_ARCH, gx, UP3, { next: 0, per: 80, alt: 2 }));
+      L.actors.push(Ac('goblin', R_ARCH, rnd(r, 0.72, 0.76), UP3, { next: 0, per: 400, alt: 3 }));
+      L.actors.push(Ac('cat', R_VILL, rnd(r, 0.3, 0.36), lane));
       L.deco.roof = gx;
-      L.sand = 240;
+      L.sand = 260;
       break;
     }
     case 'grand': {
@@ -1316,9 +1350,12 @@ function rawLevel(si: number, r: Rng): Level {
       L.things.push(T('gear', { path: gp, hold: Math.round(rnd(r, 14, 22)), owner: m.id, big: 1.4 }));
       L.things[0].dur = gp.length / 3 - 1;
       L.actors.push(Ac('walker', R_WALK, rnd(r, 0.27, 0.3), lane));
-      L.things.push(crateT(0.58, UP3, lane, 0.17, Math.round(rnd(r, 60, 80))));
-      const gx = rnd(r, 0.82, 0.9);
-      L.actors.push(Ac('goblin', R_ARCH, gx, UP3, { next: Math.round(rnd(r, 150, 180)), per: 190 }));
+      L.things.push(crateT(0.58, UP3, lane, 0.17, Math.round(rnd(r, 20, 40)), true));
+      // 꼭대기 망보는 도깨비 (승강기가 오르면 깬다) + 아래층 고양이를 노리는 도깨비
+      const gx = rnd(r, 0.84, 0.9);
+      L.actors.push(Ac('goblin', R_ARCH, gx, UP3, { next: 0, per: 80, alt: 2 }));
+      L.actors.push(Ac('cat', R_VILL, rnd(r, 0.1, 0.16), lane));
+      L.actors.push(Ac('goblin', R_ARCH, rnd(r, 0.72, 0.76), UP3, { next: 0, per: 400, alt: 3 }));
       L.deco.roof = gx;
       L.heroDelay = 150;
       L.sand = 260;
@@ -1369,6 +1406,19 @@ function score2(W0: World, dockId = -1, dockFrom = 0): number {
   const snap: World[] = [];
   const o = rollout(W0, 1300, dockId, dockFrom, snap);
   let v = value(o);
+  if (o.fail && dockId < 0 && W0.sand > 0) {
+    // 넘어지기 조금 전에 한 번 더 톡 하면 살 수 있나 (날아오는 화살을 되감기 등)
+    const C = cloneWorld(W0), tb = o.t - 30;
+    while (C.t < tb) stepWorld(C, null);
+    for (const th of C.th) {
+      if (!tappable(th)) continue;
+      const c = cloneWorld(C);
+      tapThing(c, thingOf(c, th.id)!, null);
+      const v2 = value(rollout(c));
+      if (v2 - 1500 > v) v = v2 - 1500;
+    }
+    return v;
+  }
   if (o.win || o.fail || !snap.length || snap[0].sand <= 0) return v;
   const S = snap[0];
   for (const th of S.th) {
@@ -1416,7 +1466,8 @@ function decide(W: World, base: Out, bv: number): typeof PICK {
       const v2 = tryTap(W, th.id, true);
       if (v2 > vNow) (vNow = v2), (dk = true);
     }
-    if (vNow <= bestV) continue;
+    // 이기는 길이 안 보이는 '조금 더 걸어감'은 함부로 사지 않는다 (막다른 길일 수 있다)
+    if (vNow <= bestV || (vNow < 20000 && vNow < bv + 600)) continue;
     // 조금 뒤에 해도 똑같이 좋으면 기다린다 (되감기는 늦을수록 비싸지만, 다시 벌어지는 일은 너무 일찍 하면 헛일)
     const c2 = cloneWorld(W);
     for (let k = 0; k < Math.max(LATER, PACE); k++) stepWorld(c2, null);
@@ -1602,7 +1653,11 @@ function newStage(s: RewState) {
     pose(th, 0);
     let sx = P.x, sy = P.y;
     const own = L.actors.find((a) => a.k === 'grandma' || a.k === 'farmer' || a.k === 'goblin' || a.k === 'machine' || a.k === 'walker');
-    if ((d.key === 'pot' || d.key === 'barrel' || d.key === 'arrow' || d.key === 'gear' || d.key === 'cross') && own) (sx = own.x), (sy = own.y - 0.05);
+    if ((d.key === 'pot' || d.key === 'barrel' || d.key === 'arrow' || d.key === 'gear' || d.key === 'cross' || d.key === 'crate') && own) (sx = own.x), (sy = own.y - 0.05);
+    if (d.key === 'twice') {
+      const hb = L.things.find((q) => q.cause >= 0);
+      if (hb) (sx = hb.x), (sy = hb.y - 0.04);
+    }
     if (d.key === 'log') (sx = (th.x + th.x2) / 2), (sy = th.y);
     s.spot = { x: sx, y: sy, r: 0.11, label: d.spot, t: s.t + 150 };
   }
@@ -1849,11 +1904,12 @@ function showHint(s: RewState, auto: boolean) {
       const th = thingOf(C, acts[i + 1]), ts = acts[i + 2];
       if (ts >= 0) {
         if (!th || th.st !== REW) i += 3;
-        else if (th.tau <= ts) (tapThing(C, th, i === 0 ? sink : null), (i += 3));
+        else if (th.tau <= ts) (tapThing(C, th, sink), (i += 3));
         else break;
       } else if (C.t >= acts[i]) {
         if (i === 0 && th) (th0 = { ...th }), (h.ghost = th.tau);
         if (th && tappable(th)) tapThing(C, th, i === 0 ? sink : null);
+        if (i === 0 && th && tappable(th)) evs.push({ t: C.t, kind: 'go!', x: 0, y: 0, v: 0, id: th.id });
         i += 3;
       } else break;
     }
@@ -1865,18 +1921,29 @@ function showHint(s: RewState, auto: boolean) {
   if (!cur && th && th.k === 'arrow') h.arch = th.owner;
   const nm = thingName(th);
   let why = '';
+  // 다음 수를 두기 전까지 일어난 일만 이 한 수의 덕으로 친다 (물건 id가 붙은 사건은 언제든)
+  const nextT = acts.length > 3 && acts[5] < 0 ? acts[3] : 1e9;
   for (const e of evs) {
+    const mine = e.t < nextT;
     if (e.kind === 'catch' && e.id === h.id) why ||= `${eul(nm)} 제자리까지 — 주인이 받아요`;
-    else if (e.kind === 'ko') why ||= th && th.k === 'arrow' ? '화살을 되감으면 쏜 도깨비가 꽈당!' : `되감은 ${iga(nm)} 도깨비를 꽈당!`;
-    else if (e.kind === 'rescue') why ||= `${eul(nm)} 되감아 태운 친구를 데려와요`;
-    else if (e.kind === 'machine') why ||= '톱니를 기계까지 — 다리가 내려와요';
-    else if (e.kind === 'steam') why ||= '쏟아진 물을 거꾸로 — 불을 지나 솟아요';
+    else if (e.kind === 'arrowHome' && e.id === h.id) why ||= '화살을 되감으면 쏜 도깨비가 꽈당!';
+    else if (e.kind === 'ko' && mine && th && (th.k === 'barrel' || th.k === 'gear')) why ||= `되감은 ${iga(nm)} 도깨비를 꽈당!`;
+    else if (e.kind === 'rescue' && mine) why ||= `${eul(nm)} 되감아 태운 친구를 데려와요`;
+    else if (e.kind === 'machine' && e.id === h.id) why ||= '톱니를 기계까지 — 다리가 내려와요';
+    else if (e.kind === 'steam' && e.id === h.id) why ||= '쏟아진 물을 거꾸로 — 불을 지나 솟아요';
     else if (e.kind === 'chain' && e.v === h.id) why ||= `${eul(nm)} 되감으면 떨어진 것도 함께 돌아와요`;
-    else if (e.kind === 'dock' && e.id === h.id) why ||= th && th.k === 'stack' ? '상자가 계단 모양일 때 다시 톡' : `${iga(nm)} 강을 가로지를 때 다시 톡 — 다리가 돼요`;
+    else if (e.kind === 'dock' && e.id === h.id) why ||= (h.stop < 0 ? `${eul(nm)} 되감다가, ` : '') + (th && th.k === 'stack' ? '계단 모양일 때 다시 톡' : '강을 가로지를 때 다시 톡 — 다리가 돼요');
+    else if (e.kind === 'stop' && e.id === h.id && th && th.k === 'crate' && h.stop < 0) why ||= '부엉이를 태운 채 상자를 되감다가, 위층에서 다시 톡';
     else if (e.kind === 'origin' && e.id === h.id && th && th.k === 'crate') why ||= '부엉이를 태운 채 상자를 되감아요';
     else if (e.kind === 'plankMend' && e.id === h.id && e.v === 0) why ||= '다리를 되감아 다시 세워요';
   }
-  if (!why) why = h.stop >= 0 ? `${iga(nm)} 이 자리에 오면 다시 톡 — 멈춰요` : th && th.k === 'crate' ? '부엉이를 태운 채 상자를 되감아요' : `${eul(nm)} 되감아요`;
+  if (!why && th && h.stop < 0) {
+    if (th.k === 'crate') why = '부엉이를 태운 채 상자를 되감아요';
+    else if (th.k === 'ferry') why = '나룻배를 되감아 이쪽 나루로 데려와요';
+    else if (th.k === 'sack') why = '모래 자루를 되감아 접시에 앉혀요 — 반대쪽이 올라가요';
+    else if (th.k === 'pot' && th.n === 0) why = `${eul(nm)} 되감아 길 위에서 치워요`;
+  }
+  if (!why) why = h.stop >= 0 ? `${iga(nm)} 이 자리에 오면 다시 톡 — 멈춰요` : `${eul(nm)} 되감아요`;
   h.text = why;
 }
 /** 힌트 따라가기: 그 수를 두면 '좋아요' 하고 접고, 때를 한참 놓치면 접는다 (전구는 그대로) */
@@ -1985,6 +2052,7 @@ function sinkOf(s: RewState): Sink {
   return (kind, x, y, v = 0, id = -1) => {
     ev(s, kind, x, y, v, id);
     if (PROG.has(kind)) s.progT = s.t;
+    if (kind === 'twin') (s.wowN++, see(s, 'twin'), (s.slow = Math.max(s.slow, 14)));
     if (kind === 'chain') {
       // 연쇄: 되감는 물건이 밀었던 것까지 끌고 온다 — 한 번의 되감기에 한 번 큰 순간
       if (s.t - (s.chainT ?? -99) > 40) (s.wowN++, see(s, 'chain'), (s.slow = Math.max(s.slow, 18)));
@@ -2065,6 +2133,8 @@ export const rewindone: GameDef<RewState> & { wows(s: RewState): number } = {
       for (let j = 0; j < 6; j++) if (s.pt === REV0 + j * REVD) ev(s, 'revive', FIX_POS[b + j][0], FIX_POS[b + j][1], b + j);
       if (s.pt === NOTCH_T) ev(s, 'notch', CLK[0], CLK[1], s.chDone + 1);
       if (s.chDone < 2 && s.pt === ABIL_T) ev(s, 'ability', 0.5, 0.75, s.chDone);
+      // 능력이 생기는 장: 일찍 톡 하면 새 능력 카드로 건너뛴다
+      if (s.chDone < 2 && press && s.pt > 60 && s.pt < ABIL_T - 1) return void (s.pt = ABIL_T - 1);
       if (s.pt >= (s.chDone < 2 ? CH_END_AB : CH_END) || (press && s.pt > (s.chDone < 2 ? ABIL_T + 40 : 60))) {
         if (s.won) s.dead = true;
         else s.stage++, newStage(s);
@@ -2162,7 +2232,9 @@ function skip(s: RewState, m: Mind): Input | null {
   }
   if (s.phase === 'play') return null;
   if (m.up) return (m.up = false), NO;
-  if (s.pt > 52) return (m.up = true), { tap: false, dir: 0, pointer: { x: 0.5, y: 0.5 } };
+  // 장 끝: 한 번 톡 = 새 능력 카드로 건너뛰기, 카드를 조금 본 뒤 한 번 더
+  const ok = s.phase === 'chapter' ? (s.chDone < 2 ? (s.pt > 62 && s.pt < ABIL_T - 2) || s.pt > ABIL_T + 42 : s.pt > 62) : s.pt > 52;
+  if (ok) return (m.up = true), { tap: false, dir: 0, pointer: { x: 0.5, y: 0.5 } };
   return NO;
 }
 /** 잘하는 봇: 판마다 같은 세계로 끝까지 둬 본 계획대로 톡. 멈춤은 'τ가 여기까지 오면'으로 따르고, 세계가 계획과 어긋나면 다시 계획 */
@@ -2261,7 +2333,7 @@ function habitBot(name: string, pick: (W: World) => number): Bot<RewState> {
   };
 }
 /** 측정·조율용 (게임에는 안 씀) */
-export const _dbg = { jump: (s: RewState, st: number) => ((s.stage = st), (s.fixed = st), (s.gears = st), newStage(s)), rollout, value, tryTap, tap: (W: World, th: Thing, E: Sink) => tapThing(W, th, E), rawLevel, planFrom: (L: Level) => planFrom(newWorld(L)), planW: planFrom, simPlan, mind: (s: RewState) => minds.get(s), tapPt: (s: RewState, k: string) => tapPoint(s, s.W.th.find((q) => q.k === k)!), trialHabit, habitFirst, habitNear, starsOf, newWorld, stepWorld };
+export const _dbg = { score2, jump: (s: RewState, st: number) => ((s.stage = st), (s.fixed = st), (s.gears = st), newStage(s)), rollout, value, tryTap, tap: (W: World, th: Thing, E: Sink) => tapThing(W, th, E), rawLevel, planFrom: (L: Level) => planFrom(newWorld(L)), planW: planFrom, simPlan, mind: (s: RewState) => minds.get(s), tapPt: (s: RewState, k: string) => tapPoint(s, s.W.th.find((q) => q.k === k)!), trialHabit, habitFirst, habitNear, starsOf, newWorld, stepWorld };
 export const rewindoneHabit: Bot<RewState> = habitBot('버릇: 먼저 움직인 것부터', habitFirst);
 export const rewindoneHabit2: Bot<RewState> = habitBot('버릇: 주인공에 가까운 것', habitNear);
 const dumbAt = new WeakMap<object, { next: number; until: number; p: { x: number; y: number } }>();
@@ -3521,9 +3593,15 @@ function drawCrateT(ctx: C2, v: View, th: Thing, tau: number, a = 1) {
   ctx.strokeStyle = '#d8b07a';
   ctx.lineWidth = Math.max(1.5, R(0.004));
   ctx.beginPath();
-  if (tau <= CR_FRAY) {
+  if (tau <= CR_FRAY || th.n === 1) {
     ctx.moveTo(x, Y(0.36));
     ctx.lineTo(x, top);
+    if (th.n === 1) {
+      // 승강기 감개: 풀리면(앞으로) 돌고, 되감으면 거꾸로 돈다
+      ctx.stroke();
+      brass(ctx, x, Y(0.36), R(0.026), 8, tau * 0.12);
+      ctx.beginPath();
+    }
   } else {
     ctx.moveTo(x, Y(0.36));
     ctx.lineTo(x + R(0.01), Y(0.36) + R(0.08));
@@ -5289,10 +5367,10 @@ function drawScene(ctx: C2, s: RewState, w: number, h: number, _th: Theme) {
   if (L.deco.post !== undefined) {
     const px = L.deco.post, sx = X(px + 0.06), hb = W.th.find((q) => q.k === 'pot' && q.cause >= 0);
     ctx.fillStyle = lin(ctx, sx - R(0.008), 0, sx + R(0.008), 0, [[0, '#5a5a6a'], [1, '#3a3a4a']]);
-    rr(ctx, sx - R(0.007), Y(0.5), R(0.014), Y(LY) - Y(0.5), R(0.004));
+    rr(ctx, sx - R(0.007), Y(0.5), R(0.014), Y(L.heroY) - Y(0.5), R(0.004));
     ctx.fill();
     ctx.fillStyle = '#3a3a4a';
-    rr(ctx, sx - R(0.016), Y(LY) - R(0.012), R(0.032), R(0.014), R(0.004));
+    rr(ctx, sx - R(0.016), Y(L.heroY) - R(0.012), R(0.032), R(0.014), R(0.004));
     ctx.fill();
     // 팔 · 등
     ctx.strokeStyle = '#3a3a4a';
@@ -5493,9 +5571,27 @@ function drawScene(ctx: C2, s: RewState, w: number, h: number, _th: Theme) {
       ctx.fill();
     }
   }
+  // 두 개 함께 되감는 동안: 둘 사이에 보랏빛 시계 줄
+  {
+    const rs = W.th.filter((q) => q.st === REW);
+    if (rs.length >= 2) {
+      const a = thingCenter(rs[0]), b = thingCenter(rs[1]);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(200,168,255,.85)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 6]);
+      ctx.lineDashOffset = -t * 0.6;
+      ctx.beginPath();
+      ctx.moveTo(X(a.x), Y(a.y));
+      ctx.quadraticCurveTo((X(a.x) + X(b.x)) / 2, Math.min(Y(a.y), Y(b.y)) - R(0.08), X(b.x), Y(b.y));
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
   // 말뚝에 걸 수 있는 동안: '지금 다시 톡!' (되감기 빛 위에)
   for (const th of W.th) {
-    if (th.dock < 0 || !L.canal || th.st !== REW || !canDock(th)) continue;
+    // 글자 안내는 말뚝을 처음 배우는 판만 (그 뒤로는 말뚝이 빛나는 것만 — 답은 전구에)
+    if (th.dock < 0 || !L.canal || th.st !== REW || !canDock(th) || L.key !== 'log') continue;
     font(0.04, 900);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -5526,11 +5622,10 @@ function drawFilm(ctx: C2, s: RewState, w: number, v: View, font: (sz: number, w
   // 빛바랜 필름 색 · 가장자리 어둡게
   ctx.fillStyle = rew ? 'rgba(120,220,255,.16)' : 'rgba(255,196,120,.2)';
   ctx.fillRect(0, y0, w, y1 - y0);
-  const vg = ctx.createRadialGradient(w / 2, (y0 + y1) / 2, w * 0.35, w / 2, (y0 + y1) / 2, w * 0.95);
-  vg.addColorStop(0, 'rgba(60,30,20,0)');
-  vg.addColorStop(1, 'rgba(60,30,20,.4)');
-  ctx.fillStyle = vg;
-  ctx.fillRect(0, y0, w, y1 - y0);
+  // 위·아래 가장자리만 살짝 어둡게 (화면 전체 둥근 그라데이션은 느린 폰에서 무겁다)
+  ctx.fillStyle = 'rgba(60,30,20,.22)';
+  ctx.fillRect(0, y0, w, w * 0.025);
+  ctx.fillRect(0, y1 - w * 0.025, w, w * 0.025);
   // 필름 띠 (양옆 구멍이 흐른다: 앞으로는 천천히 위로, 되감을 땐 빠르게 아래로)
   const bw = w * 0.045, gap = w * 0.075, off = (rew ? (ft - FILM_FWD) * w * 0.05 : -ft * w * 0.012) % gap;
   for (const x0 of [0, w - bw]) {
@@ -5684,7 +5779,7 @@ function drawHint(ctx: C2, s: RewState, v: View, font: (sz: number, w?: number) 
   font(0.038, 900);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  const maxW = SV.R(0.84), tw = Math.min(maxW, ctx.measureText(line).width) + SV.R(0.12), bx = SV.X(0.5) - tw / 2, by = SV.Y(0.075);
+  const maxW = SV.R(0.84), tw = Math.min(maxW, ctx.measureText(line).width) + SV.R(0.12), bx = SV.X(0.5) - tw / 2, by = SV.Y(BOTY - 0.06);
   ctx.fillStyle = 'rgba(255,250,225,.96)';
   rr(ctx, bx, by - SV.R(0.038), tw, SV.R(0.076), SV.R(0.038));
   ctx.fill();
@@ -5858,6 +5953,24 @@ function drawActor(ctx: C2, v: View, s: RewState, a: Actor) {
   if (a.hurt && a.role === R_RIDER) return;
   if (a.role !== R_RIDER || a.saved) shadow(ctx, X(a.x), Y(a.y), R(0.025), 0.18);
   critter(ctx, a.k, X(a.x), Y(a.y), u, mood, t + a.id * 13, dir, arms);
+  // 망보는 도깨비: 깨기 전엔 '…' 말풍선 (부엉이가 타고 올라오면 깬다) — 아래층을 노리는 도깨비는 고양이 표시
+  if (a.role === R_ARCH && a.alt >= 2 && !a.ko) {
+    const bx = X(a.x) + R(0.035), by = Y(a.y) - R(0.13);
+    if (a.shots === 0) {
+      ctx.fillStyle = 'rgba(255,255,255,.92)';
+      rr(ctx, bx - R(0.03), by - R(0.018), R(0.06), R(0.036), R(0.018));
+      ctx.fill();
+      ctx.fillStyle = '#5a4a6a';
+      for (let k = 0; k < 3; k++) (ell(ctx, bx - R(0.015) + k * R(0.015), by + Math.sin(t * 0.15 + k) * R(0.003), R(0.0045), R(0.0045)), ctx.fill());
+    }
+    if (a.alt === 3) {
+      // 노리는 곳: 아래층 고양이 (작은 과녁)
+      ctx.strokeStyle = 'rgba(255,80,70,.8)';
+      ctx.lineWidth = 2;
+      ell(ctx, X(a.x) - R(0.04), Y(a.y) - R(0.03), R(0.012), R(0.012));
+      ctx.stroke();
+    }
+  }
 }
 /** 처음 하는 사람: 손가락이 물건 위에서 톡 + 안내 한 줄 */
 function drawGuide(ctx: C2, s: RewState, v: View, font: (sz: number, w?: number) => void, SV: View) {
@@ -6296,6 +6409,26 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
         fx.ring(x, y, 'rgba(255,255,255,.8)', R(0.04), 2);
         fx.sound('tick', 1.5, 0.3);
         break;
+      case 'twin': {
+        // 두 개 함께 되감기: 두 물건 사이에 시계 빛줄
+        const o = s.W.th.find((q) => q.st === REW && q.id !== e.id);
+        if (o && th) {
+          const a = thingCenter(th), b = thingCenter(o);
+          fx.ring(X(a.x), Y(a.y), '#c8a8ff', R(0.12), 5);
+          fx.ring(X(b.x), Y(b.y), '#c8a8ff', R(0.12), 5);
+          pop((X(a.x) + X(b.x)) / 2, Math.min(Y(a.y), Y(b.y)) - R(0.08), '두 개 함께!', '#e8d8ff', 30);
+        }
+        fx.blink('#e8d8ff', 0.2);
+        fx.sound('chime', 1.5, 0.8);
+        fx.sound('rewind', 1.4, 0.6);
+        break;
+      }
+      case 'wake':
+        pop(cx, y - R(0.04), e.v === 3 ? '저기 고양이!' : '앗, 올라온다!', '#ffd0c0', 22);
+        fx.ring(x, y, '#ff6a5a', R(0.07), 4);
+        fx.sound('zap', 0.9, 0.5);
+        fx.sound('boing', 1.6, 0.4);
+        break;
       case 'ability':
         for (const c of ['#ffd25a', '#7fe8ff', '#ff8ab8', '#ffffff']) fx.burst(x, y, c, 18, 5, 2.8);
         fx.ring(x, y, '#ffd25a', R(0.3), 7);
@@ -6409,6 +6542,15 @@ function drawHud(ctx: C2, s: RewState, w: number, h: number, v: View, font: (sz:
   }
   // ↺ 처음부터 · 전구(막힘 힌트): 한 번 지면 살랑, 15초 넘게 나아간 게 없으면 반짝
   againIcon(ctx, AGAIN[0] * w, AGAIN[1] * w, R(0.032));
+  if (s.hint && s.hint.restart && s.phase === 'play') {
+    // 지금 상태로는 못 깬다: ↺ 단추를 가리킨다
+    const pr = (t % 40) / 40, press = pr > 0.5 && pr < 0.78 ? 1 : 0;
+    ctx.strokeStyle = `rgba(255,230,90,${1 - pr * 0.7})`;
+    ctx.lineWidth = 3;
+    ell(ctx, AGAIN[0] * w, AGAIN[1] * w, R(0.04) * (1 + pr * 0.5), R(0.04) * (1 + pr * 0.5));
+    ctx.stroke();
+    drawHand(ctx, AGAIN[0] * w + R(0.015), AGAIN[1] * w + R(0.07) - press * R(0.01), R(0.055), press);
+  }
   {
     const stall = s.phase === 'play' && !s.film && s.t - s.progT > 900, wig = s.fails > 0 && !s.hint ? Math.sin(t * 0.18) * 0.18 : 0;
     const on = !!s.hint || stall || s.fails > 0;
@@ -6671,7 +6813,7 @@ function drawCards(ctx: C2, s: RewState, w: number, v: View, font: (sz: number, 
     a = Math.min(1, age / 8);
     if (s.ok) head = s.won ? '시계탑이 다시 움직여요!' : '시계 부품을 찾았어요!';
     else (head = '어이쿠!'), (sub = s.hearts > 0 ? `${s.why} · 하트 -1 · 다시 해 봐요` : `${s.why} · 하트가 없어요`);
-  } else if (s.banner && t - s.banner.t < 170) {
+  } else if (s.banner && t - s.banner.t < 170 && !s.film) {
     age = t - s.banner.t;
     a = Math.min(1, age / 8, (170 - age) / 25);
     (head = s.banner.head), (sub = s.banner.sub);
@@ -6760,7 +6902,7 @@ function drawCards(ctx: C2, s: RewState, w: number, v: View, font: (sz: number, 
   }
   ctx.restore();
   // 새것 스포트라이트
-  if (s.spot && s.phase === 'play') {
+  if (s.spot && s.phase === 'play' && !s.film) {
     const sp = s.spot, ag = t - sp.t, aa = Math.min(1, ag / 10, (200 - ag) / 30);
     if (aa > 0 && ag >= 0) {
       ctx.save();
