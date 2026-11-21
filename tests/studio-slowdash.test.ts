@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { runBot } from '../studio/slowdash/core.ts';
-import { ONBOARD, STAGES, STRIKE, TRIAL, WORLD_LOCK, measureKit, missOf, textWarm, useOwl, worldStars, slowdash as g, slowdashRandom, slowdashSmart, startStage } from '../studio/slowdash/game.ts';
+import { ONBOARD, SHIELD_HP, STAGES, STRIKE, TRIAL, WORLD_LOCK, measureKit, missOf, textWarm, useOwl, worldStars, slowdash as g, slowdashRandom, slowdashSmart, startStage } from '../studio/slowdash/game.ts';
 import { BOTS, measure, setBambooOff, tapEvery, try3, tryStage } from '../studio/slowdash/funqa.ts';
 import { chainHz, sfx } from '../studio/slowdash/sfx.ts';
 import { PAL, PX, SOLDIER, bgGrid, heroGrid, soldierGrid } from '../studio/slowdash/pix.ts';
@@ -109,7 +109,7 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(missOf(w)).toBe('');
   });
 
-  it('S003 헛방: 아무것도 못 벤 획은 헛방으로 세고 근처 칼잡이가 바로 칼을 든다 · 방패 바로 앞 0길이 떼기는 취소가 아니라 튕김(헛방)', () => {
+  it('S003 헛방: 아무것도 못 벤 획은 헛방으로 세고 근처 칼잡이가 바로 칼을 든다 · M3 F2 방패 병정은 앞에서 베어도 안 튕기고 두 번 베면 쓰러진다', () => {
     // (경직 20틱은 S003 측정으로 뺐다 — 장인 '옮겨 서기'를 막아 5판 ★3 .92 → .04, 연타엔 효과 0. TALK S003)
     const s = g.create(4);
     startStage(s, K('sword'));
@@ -123,19 +123,29 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(s.dashes).toBe(1);
     expect(s.whiffs).toBe(1);
     expect(s.events.some((e) => e.kind === 'whiffme')).toBe(true);
-    // 방패 바로 앞: 길이 0이어도 '튕김' 사건이 나고 헛방으로 센다
+    // 💬 M3 F2 오너 "방패병이 부딪치면 멈추게 하지 말고 … 2번 공격해야 하는 걸로": 방패가 사무라이 쪽을 봐도 튕기지 않는다 — 첫 칼에 방패가 깨지고(쨍!) 둘째 칼에 쓰러진다
     const t = g.create(9);
     startStage(t, K('shield'));
     for (let k = 0; k < 80; k++) g.step(t, { tap: false, dir: 0, pointer: null });
     const sh = t.foes.find((f) => f.k === 'shield')!;
-    sh.fa = Math.atan2(t.ny - sh.y, t.nx - sh.x);
-    t.nx = sh.x + Math.cos(sh.fa) * 0.062;
-    t.ny = sh.y + Math.sin(sh.fa) * 0.062;
-    const w0 = t.whiffs;
-    g.step(t, { tap: false, dir: 0, pointer: { x: sh.x, y: sh.y / A } });
-    g.step(t, { tap: false, dir: 0, pointer: null });
-    expect(t.events.some((e) => e.kind === 'bounce' && e.t === t.t)).toBe(true);
-    expect(t.whiffs).toBe(w0 + 1);
+    expect(sh.hp).toBe(2);
+    expect(SHIELD_HP).toBe(2);
+    const cut = (toY: number) => {
+      sh.fa = Math.atan2(t.ny - sh.y, t.nx - sh.x); // 방패가 사무라이를 본다(앞에서 베기)
+      (t.g = 100), (t.inv = 99);
+      g.step(t, { tap: false, dir: 0, pointer: { x: sh.x, y: toY / A } });
+      g.step(t, { tap: false, dir: 0, pointer: null });
+    };
+    (t.nx = sh.x), (t.ny = sh.y + 0.16);
+    cut(sh.y - 0.1);
+    expect(t.events.some((e) => e.kind === 'bounce')).toBe(false);
+    expect(t.events.some((e) => e.kind === 'shieldbreak' && e.t === t.t)).toBe(true);
+    expect(sh.hp).toBe(1);
+    expect(t.foes.includes(sh)).toBe(true); // 아직 서 있다
+    expect(t.ny).toBeLessThan(sh.y); // 멈추지 않고 방패를 지나갔다
+    for (let k = 0; k < 4; k++) g.step(t, { tap: false, dir: 0, pointer: null });
+    cut(sh.y + 0.12);
+    expect(t.foes.includes(sh)).toBe(false); // 둘째 칼에 쓰러짐
   });
 
   it('S004 찾아오는 위협: 일격 판에서 내린 자리에 32틱 뒤 일격 — 그 자리에 남으면 맞고, 꾹(느린 시간) 하면 비켜 갈 틈이 있다', () => {
@@ -227,20 +237,8 @@ describe('느린 시간 닌자 시뮬', () => {
     expect(Math.hypot(s.nx - 0.4, s.ny - 0.8)).toBeLessThan(0.03); // 지운 뒤 새로 그은 길로만 간다
     const r = tryStage(BOTS.habit, 101, K('shield')); // 측정기: 60초 진전 없음 = 막힘(실패)
     expect(r.sec).toBeLessThan(120);
-    expect(r.ok).toBe(false);
-    // S011 압박: 0.2초 안에 또 아무것도 못 벤 튕김이면 멈칫·무적이 없다(방패 앞 연타로 세상을 멈춰 버티던 구멍) — 버릇 봇은 이제 막히지 않고 진다
+    // (M3 F2: 방패 앞 튕김을 걷어내서 '버릇 봇이 방패 판에서 진다'와 '연달아 튕기면 멈칫 없음'은 더 이상 규칙이 아니다 — 측정기가 막힘 없이 끝나는 것만 본다)
     expect(r.stall).toBe(false);
-    const b = g.create(3);
-    startStage(b, K('shield'));
-    for (let k = 0; k < 400 && !b.foes.some((f) => f.k === 'shield' && f.st !== 0); k++) g.step(b, { tap: false, dir: 0, pointer: null });
-    const sh = b.foes.find((f) => f.k === 'shield')!;
-    (b.nx = sh.x), (b.ny = sh.y + 0.12), (sh.fa = Math.PI / 2), (b.g = 100), (b.inv = 0);
-    const tap = () => (g.step(b, at(sh.x, sh.y - 0.05)), g.step(b, { tap: false, dir: 0, pointer: null }));
-    tap();
-    expect(b.freeze).toBeGreaterThan(0); // 한 번 튕김은 멈칫(그대로)
-    for (let k = 0; k < 4; k++) g.step(b, { tap: false, dir: 0, pointer: null });
-    tap();
-    expect(b.freeze).toBe(0);
   });
 
   it('S012 알림·길잡이: 꾹 누른 길이 처음 덤불에 걸리면 알림이 줄 맨 앞에 바로 뜬다 · 1-2판은 꺾은 획을 긋기 전까지 셋 넘게 베는 ㄱ자 길이 있다', () => {

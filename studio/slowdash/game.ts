@@ -65,6 +65,8 @@ const MELEE: Partial<Record<K, { start: number; reach: number; wind: number; res
  *  남긴 것: 헛방을 세고 근처 칼잡이가 바로 칼을 든다. */
 /** strikeR: 일격 반지름 · strikeOn: 측정용 끄기(1/0) · strikeT: 판에 값이 없을 때 쓸 실험값(0이면 판 값) */
 export const STRIKE = { r: 0.075, on: 1, t: 0 };
+/** 💬 M3 F2 오너(11-21) "방패병이 부딪치면 멈추게 하지 말고 … 2번 공격해야 하는 걸로": 방패 병정은 앞뒤 없이 두 번 베면 쓰러진다(첫 칼에 방패가 깨지고 잠깐 멈칫) — 앞에서 튕기던 것은 걷어냄 */
+export const SHIELD_HP = 2;
 export const TUNE = { shieldTurn: 0.015, whiffG: 0, stiff: 0, whiffR: 0.2, counterR: 0, counterT: 14 };
 /** ✏️ S003 📐 안 A '착지 반격': 내린 자리 counterR 안의 칼잡이·방패·대장이 곧바로 짧은 칼(counterT틱 — 사람 반응 0.5초보다 짧다)을 든다.
  *  꾹 하면 세상이 0.12배라 내릴 자리를 읽고 비켜 내릴 수 있다 = 느린 시간이 '읽는 시간'. 0이면 끔(측정용).
@@ -157,7 +159,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
   },
   // ✏️ M1 S008: 📐 1-6~1-10 꺾기 판(방패 · 통 · 섞기 · 수리검 · 대장) — 고리 일격 없음. 거울 판은 M2로(잘라내기 ③)
   {
-    key: 'shield', name: '높은 지붕', place: 1, news: '방패 병정 — 앞은 튕겨요, 꺾어 등 뒤를 베요', goal: '지붕 건너가기', card: '앞은 튕겨요, 등 뒤를!',
+    key: 'shield', name: '높은 지붕', place: 1, news: '방패 병정 — 두 번 베야 쓰러져요', goal: '지붕 건너가기', card: '방패는 두 번 베요!',
     hint: '덤불 옆으로 올라가 꺾어 등을 베요', start: [0.5, 1.15], g0: 60, ease: [1.3, 2.5, 0.8],
     thorns: [[0.5, 0.93, 0.05], [0.2, 1.04, 0.05], [0.8, 1.04, 0.05]], // ✏️ S009 📐 가시덤불
     waves: [
@@ -179,7 +181,7 @@ const RAW: Omit<StageDef, 'stars'>[] = [
     n: 5,
   },
   {
-    key: 'mix', name: '광장 한가운데', place: 2, news: '섞여 와요 — 활 병정 먼저, 방패는 등 뒤로', goal: '광장 지나가기', card: '활 병정 먼저!',
+    key: 'mix', name: '광장 한가운데', place: 2, news: '섞여 와요 — 활 병정 먼저, 방패는 두 번', goal: '광장 지나가기', card: '활 병정 먼저!',
     hint: '덤불 사이로 올라가 갈라 꺾어요', start: [0.5, 1.15], g0: 60, ease: [1.2, 3, 0.7],
     thorns: [[0.36, 1.0, 0.05], [0.64, 1.0, 0.05]], // ✏️ S009 📐 가시덤불
     waves: [
@@ -277,7 +279,7 @@ export const TRIAL: StageDef[] = starsOf([
     n: 5,
   },
   {
-    key: 'leafShield', name: '용마루', place: 1, news: '방패 등 뒤의 잎 — U자로 돌아요', card: 'U자로 돌아 등과 잎', goal: '용마루 건너가기',
+    key: 'leafShield', name: '용마루', place: 1, news: '방패 뒤의 잎 — 꺾어 들어가요', card: '방패는 두 번 · 잎은 꺾어', goal: '용마루 건너가기',
     hint: 'U자로 돌아 등과 잎', start: [0.5, 1.15], g0: 60, ease: [1.2, 4, 0.8], thorns: [[0.2, 1.04, 0.05], [0.8, 1.04, 0.05]],
     waves: [
       { need: 1, wait: 1e9, foes: [['shield', 0.5, 0.72, 3], ['leaf', 0.5, 0.58, 0], ['dummy', 0.36, 0.82, 0], ['dummy', 0.64, 0.82, 0]] },
@@ -384,7 +386,7 @@ interface Bamboo { id: number; x: number; y: number; fall: number; dx: number; d
 interface Cut { k: K; x: number; y: number; a: number; t: number; face: number; n: number; seed: number; boom: boolean }
 interface Ink { x: number; y: number; r: number; t: number; seed: number }
 interface Ev { t: number; kind: string; x: number; y: number; n?: number; text?: string }
-interface Path { legs: number[][]; hits: { id: number; leg: number }[]; bounce: boolean; barrels: number[]; shots: number[]; ex: number; ey: number; dodges: { id: number; leg: number }[]; bells: { id: number; n: number }[]; falls: { id: number; leg: number; dx: number; dy: number; k?: number }[]; toks: number[] }
+interface Path { legs: number[][]; hits: { id: number; leg: number }[]; barrels: number[]; shots: number[]; ex: number; ey: number; dodges: { id: number; leg: number }[]; bells: { id: number; n: number }[]; falls: { id: number; leg: number; dx: number; dy: number; k?: number }[]; toks: number[] }
 
 export interface DashState {
   rng: Rng; seed: number; t: number; wt: number; stage: number; phase: 'play' | 'result'; pt: number; ok: boolean; why: string;
@@ -400,7 +402,7 @@ export interface DashState {
   foes: Foe[]; shots: Shot[]; barrels: Barrel[]; mirrors: Mirror[]; smokes: Smoke[]; bamboos: Bamboo[]; thorns: { x: number; y: number; r: number }[]; nid: number;
   wave: number; waveT: number;
   dashN: number; chain: number; best: number; hits: number; arrows: number; backK: number; boomBest: number; boomBy: Record<number, number>;
-  mirK: number; bounceT: number; bents: number; leafGuide: boolean; leafCut: boolean; dodgeN: number; bellGuide: boolean; bambooGuide: boolean;
+  mirK: number; bents: number; leafGuide: boolean; leafCut: boolean; dodgeN: number; bellGuide: boolean; bambooGuide: boolean;
   /** ✏️ M2 S4 부엉이 귀띔: 이 판에서 진 수 · 물어봄(화면이 카드를 띄운다) · 거절함(이 시도) · 쓰는 중(★★★ 없음, 길을 보여 줌) */
   failN: number; owlAsk: boolean; owlNo: boolean; owl: boolean;
   /** 오너 피드백 → 🧪: 싹쓸이 뒤 '공짜 한 획' — 남은 틱 동안 꾹 해도 먹이 안 줄고, 다음 돌진은 먹이 안 든다(돌진하면 끝) */
@@ -418,6 +420,7 @@ const TIP: Record<string, string> = {
   bellCut: '쩍!', bambooFall: '쓰러진 대나무가 줄을 베어요!', bamboo: '대나무는 곧은 칼엔 툭! 꺾어 들어가요', bell: '종은 두 번 지나야 깨져요',
   leaf: '잎 병정은 곧은 칼을 휙! 꺾어 들어가 베요', leafDemo: '손가락을 따라 옆에서 꺾어 그어 보세요', shotcut: '날아오는 화살·수리검도 돌진 선에 끊겨요!',
   thorn: '덤불도 한 대! ★★★ 놓침 — 꺾어 돌아가요', chain: '연쇄 — 쉬지 않고 이어 베면 점수가 불어나요', sweep: '싹쓸이! 다음 한 획은 먹이 안 들어요',
+  shield2: '방패가 깨졌어요 — 한 번 더 베면 쓰러져요',
   thornRed: '빨간 덤불은 한 대! 손가락을 사무라이 위에 잠깐 두면 지워져요',
 };
 function see(s: DashState, key: string, text = TIP[key] ?? '') {
@@ -447,12 +450,10 @@ function boxExit(x: number, y: number, dx: number, dy: number) {
   return Math.max(0, t);
 }
 
-/** 방패 무사를 앞에서 베려 하는가 (방패가 돌진 쪽을 향하고 있으면 튕긴다) */
-const fromFront = (f: Foe, dx: number, dy: number) => f.k === 'shield' && f.st !== STUN && dx * Math.cos(f.fa) + dy * Math.sin(f.fa) < -0.15 * Math.hypot(dx, dy);
 
 /**
  * 돌진 선 따라가기 (시뮬레이션·미리 보기·봇이 모두 같은 것을 쓴다).
- * 거울에 닿으면 꺾여 남은 길이만큼 이어 가고(최대 3토막), 방패를 앞에서 만나면 거기서 튕겨 멈춘다.
+ * 거울에 닿으면 꺾여 남은 길이만큼 이어 간다(최대 3토막). (방패 앞 튕김은 M3 F2에서 걷어냄 — 방패는 두 번 베기)
  */
 function trace(s: DashState, px: number, py: number, tx: number, ty: number, maxLen: number, cut: boolean, bw = BW, fd?: number[]): Path {
   let dx = tx - px, dy = ty - py;
@@ -460,7 +461,7 @@ function trace(s: DashState, px: number, py: number, tx: number, ty: number, max
   if (L < 1e-6) (dx = 0), (dy = -1);
   else (dx /= L), (dy /= L);
   let rem = Math.min(L, maxLen), x = px, y = py, skip = -1;
-  const out: Path = { legs: [], hits: [], bounce: false, barrels: [], shots: [], ex: px, ey: py, dodges: [], bells: [], falls: [], toks: [] };
+  const out: Path = { legs: [], hits: [], barrels: [], shots: [], ex: px, ey: py, dodges: [], bells: [], falls: [], toks: [] };
   const used = new Set<number>();
   for (let leg = 0; leg < 3 && rem > 1e-4; leg++) {
     let len = Math.min(rem, boxExit(x, y, dx, dy)), mi = -1;
@@ -483,11 +484,6 @@ function trace(s: DashState, px: number, py: number, tx: number, ty: number, max
       }
       cand.sort((a, b) => a.u - b.u);
       for (const c of cand) {
-        if (fromFront(c.f, dx, dy)) {
-          end = Math.max(0, Math.min(len, c.u - RAD.shield - 0.02));
-          out.bounce = true;
-          break;
-        }
         if (c.f.k === 'bell') continue; // 🔔 종은 토막 하나로는 안 깨진다 — 한 획 전체에서 따로 두 번 들어왔는지 tracePath가 센다
         if (leafy(s, c.f)) { // 🍃 첫 방향과 거의 같은 칼이면 '휙'(fd 없으면 이 토막이 첫 방향)
           const [fx, fy] = fd ?? (leg === 0 ? [dx, dy] : [Number.NaN, 0]);
@@ -521,7 +517,7 @@ function trace(s: DashState, px: number, py: number, tx: number, ty: number, max
     x += dx * end;
     y += dy * end;
     rem -= end;
-    if (globalThis.__SHIP__ || out.bounce || mi < 0 || end < len) break;
+    if (globalThis.__SHIP__ || mi < 0 || end < len) break;
     const m = s.mirrors[mi], mx = m.bx - m.ax, my = m.by - m.ay, ml = Math.hypot(mx, my), nx = -my / ml, ny = mx / ml, dd = dx * nx + dy * ny;
     dx -= 2 * dd * nx;
     dy -= 2 * dd * ny;
@@ -555,7 +551,7 @@ function bellsOf(s: DashState, out: Path, bw: number) {
   }
 }
 
-/** 한붓 획: 닌자에서 점들을 차례로 이어 maxLen까지 돌진 선을 이어 붙인다(같은 적은 한 번만 · 방패 앞에서 튕기면 거기서 멈춤) */
+/** 한붓 획: 사무라이에서 점들을 차례로 이어 maxLen까지 돌진 선을 이어 붙인다(같은 적은 한 번만) */
 const STROKE_STEP = 0.035, STROKE_MAX = 40, STROKE_LEN = 1.6, ERASE_R = 0.045, ERASE_DWELL = 12; // M2 S2: ⅓초 → 0.2초(🧪 1-6·1-9) // 오너 질문 뒤: 점 한도 24 → 40(큰 원)
 /** ✏️ S009 꺾는 점 너그럽게(📋): 꺾인 한붓 획은 칼날 폭이 BEND_W배 — 손가락으로 그린 길은 적 위를 정확히 지나기 어렵다 */
 export const BEND = { w: 1.8 };
@@ -566,7 +562,7 @@ export const HITSTOP = { max: 5, base: 1 };
 /** 한 줄은 DMAX(.85)까지, 꺾인 한붓 획은 먹이 되는 만큼 STROKE_LEN까지(먹 값은 길이대로) */
 const reachFor = (s: DashState, pts: unknown[]) => (pts.length > 1 ? Math.min(STROKE_LEN, (s.g - GBASE) / GPER) : reachOf(s.g));
 function tracePath(s: DashState, pts: { x: number; y: number }[], maxLen: number): Path {
-  const out: Path = { legs: [], hits: [], bounce: false, barrels: [], shots: [], ex: s.nx, ey: s.ny, dodges: [], bells: [], falls: [], toks: [] };
+  const out: Path = { legs: [], hits: [], barrels: [], shots: [], ex: s.nx, ey: s.ny, dodges: [], bells: [], falls: [], toks: [] };
   const used = new Set<number>();
   let x = s.nx, y = s.ny, rem = maxLen;
   // 🍃 이 획의 첫 방향: 닌자에서 .08 넘게 떨어진 첫 점 쪽(손가락 점은 촘촘해서 첫 토막만으로는 방향이 흔들린다)
@@ -585,10 +581,6 @@ function tracePath(s: DashState, pts: { x: number; y: number }[], maxLen: number
     for (const j of P.shots) if (!out.shots.includes(j)) out.shots.push(j);
     rem -= P.legs.reduce((a, l) => a + Math.hypot(l[2] - l[0], l[3] - l[1]), 0);
     (x = P.ex), (y = P.ey);
-    if (P.bounce) {
-      out.bounce = true;
-      break;
-    }
   }
   if (!out.legs.length) out.legs.push([s.nx, s.ny, s.nx, s.ny]);
   (out.ex = x), (out.ey = y);
@@ -664,11 +656,12 @@ function explode(s: DashState, b: Barrel) {
       ev(s, 'dodge', f.x, f.y);
       continue;
     }
-    if (f.k === 'boss') {
+    if (f.hp > 1) { // 대장 · 방패 병정(M3 F2): 펑도 한 칼
       f.hp--;
       f.hurtT = 30;
       (f.st = STUN), (f.tm = 50);
-      if (f.hp > 0) continue;
+      if (f.k === 'shield') ev(s, 'shieldbreak', f.x, f.y, f.hp);
+      continue;
     }
     k++;
     s.pts += PTS[f.k] * 2;
@@ -692,7 +685,7 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
   const L = reachOf(s.g), full = L >= HOP;
   const P = tracePath(s, pts, full ? reachFor(s, pts) : HOP);
   // 닌자 바로 위에서 떼면 취소 (게이지도 안 든다)
-  if (pathLen(P) < 0.03 && !P.hits.length && !P.bounce) return void ev(s, 'cancel', s.nx, s.ny); // S003: 방패 바로 앞 0길이는 취소가 아니라 '챙' 튕김(헛방)
+  if (pathLen(P) < 0.03 && !P.hits.length) return void ev(s, 'cancel', s.nx, s.ny);
   if (full && !(s.free > 0)) s.g = Math.max(0, s.g - dashCost(pathLen(P))); // 공짜 한 획이면 먹이 안 든다
   s.free = 0;
   s.dashes++;
@@ -709,19 +702,19 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     s.pts += PTS[f.k] * n;
     if (h.leg > 0) s.mirK++;
     if (leafy(s, f)) (s.leafCut = true), (s.leafGuide = false), (s.dodgeN = 0);
-    if (f.k === 'boss') {
-      boss = true;
+    if (f.k === 'boss') boss = true;
+    if (f.hp > 1) { // 대장(4) · 방패 병정(2 · M3 F2): 한 칼에 하나씩 깎이고 밀려나 멈칫
       f.hp--;
       f.hurtT = 30;
-      if (f.hp > 0) {
-        (f.st = STUN), (f.tm = 55);
-        f.x = clamp(f.x + Math.cos(a) * 0.06, X0, X1);
-        f.y = clamp(f.y + Math.sin(a) * 0.06, Y0, Y1);
-        ev(s, 'bosshit', f.x, f.y, f.hp);
-        continue;
-      }
-      s.pts += 300;
+      (f.st = STUN), (f.tm = 55);
+      const kb = f.k === 'boss' ? 0.06 : 0.035;
+      f.x = clamp(f.x + Math.cos(a) * kb, X0, X1);
+      f.y = clamp(f.y + Math.sin(a) * kb, Y0, Y1);
+      ev(s, f.k === 'boss' ? 'bosshit' : 'shieldbreak', f.x, f.y, f.hp);
+      if (f.k === 'shield') see(s, 'shield2');
+      continue;
     }
+    if (f.k === 'boss') (f.hurtT = 30), (s.pts += 300);
     if (f.k === 'shield') s.backK++;
     if (!globalThis.__SHIP__ && f.k === 'bell') (s.bellGuide = false), (s.dodgeN = 0), see(s, 'bellCut'); // M2 S8 번들 덜기 ⓑ: 보류한 종의 알림 글은 짧게(어느 판에도 종이 없음)
     kill(s, f, n, a, false);
@@ -795,17 +788,14 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
   if (Math.abs(last[2] - last[0]) > 0.005) s.face = last[2] > last[0] ? 1 : -1;
   s.nx = P.ex;
   s.ny = P.ey;
-  // ✏️ S011 압박: 아무것도 못 벤 튕김이 60틱 안에 또 오면 무적을 안 준다 — 방패 앞 연타 튕김으로 서서 버티던 구멍(한 번 튕김은 그대로 봐줌)
-  const idle = n === 0 && P.bounce && s.t - s.bounceT < 12;
-  if (P.bounce && n === 0) s.bounceT = s.t;
   if (P.legs.length > 1 && pts.length > 1) s.bents++; // S012 꺾은 획 수(1-2 길잡이를 끄는 데 씀)
-  if (!idle) s.inv = Math.max(s.inv, INV_DASH);
+  s.inv = Math.max(s.inv, INV_DASH);
   s.combo = { id, n, t: s.t };
   s.best = Math.max(s.best, n);
   if (n > 0 || P.shots.length) s.chain++;
   else s.chain = 0;
   if (s.chain >= 3) see(s, 'chain');
-  s.freeze = n > 0 ? Math.min(HITSTOP.max, HITSTOP.base + n) : P.bounce && !idle ? 3 : 0; // S011: 연달아 튕기면 멈칫도 없다(세상이 멈춰 서서 버티던 진짜 원인) · M3 S1 오너 "렉·연출 과도": 벤 뒤 멈칫 최대 8 → 5틱(133 → 83ms)
+  s.freeze = n > 0 ? Math.min(HITSTOP.max, HITSTOP.base + n) : 0; // M3 S1 오너 "렉·연출 과도": 멈칫 짧게 · M3 F2: 방패 튕김 멈칫은 걷어냄
   if (n >= 3) s.slowT = 30;
   if (n >= 3 && s.firstBig < 0) s.firstBig = s.t;
   s.trail = { legs: P.legs, t: s.t, n };
@@ -828,7 +818,6 @@ function doDash(s: DashState, pts: { x: number; y: number }[]) {
     ev(s, 'sweep', P.ex, P.ey, n);
     see(s, 'sweep');
   }
-  if (P.bounce) ev(s, 'bounce', P.ex, P.ey);
   // ✏️ S004 '찾아오는 위협': 너구리 포수가 내린 자리를 노린다 — 빨간 고리가 조이고, 그 자리에 남아 있으면 맞는다.
   //   실시간 사람 반응(0.5초)보다 짧게 닿고, 꾹 하면(세상 0.12배) 비켜 갈 틈이 생긴다.
   {
@@ -1026,7 +1015,7 @@ function spawnWave(s: DashState) {
     const ex = sd === 1 ? -0.08 : sd === 2 ? 1.08 : x, ey = sd === 3 ? Y0 - 0.12 : y;
     const instant = s.stage === 0 && s.wave === 0;
     s.foes.push({
-      id: ++s.nid, k, x: instant ? x : ex, y: instant ? y : ey, tx: x, ty: y, ex, ey, hp: k === 'boss' ? 4 : 1,
+      id: ++s.nid, k, x: instant ? x : ex, y: instant ? y : ey, tx: x, ty: y, ex, ey, hp: k === 'boss' ? 4 : k === 'shield' ? SHIELD_HP : 1,
       st: instant ? IDLE : ENTER, tm: 0, fa: Math.atan2(s.ny - y, s.nx - x), cool: k === 'archer' ? 20 + s.rng() * 40 : k === 'shuri' ? 60 + s.rng() * 60 : 20,
       ax: s.nx, ay: s.ny, hurtT: 0, whiff: 0, seed: Math.floor(s.rng() * 1e6),
     });
@@ -1176,7 +1165,7 @@ export const slowdash: GameDef<DashState> = {
       stars: 0, base: 0, got: 0, starOk: [false, false, false], pts: 0, won: false, dead: false, again: false, tries: 0,
       nx: 0.5, ny: 1.17, face: 1, hp: HP, inv: 0, g: GMAX, down: false, lock: false, stiff: 0, whiffs: 0, stroke: [], anchor: null, dwell: 0, aim: null, holdT: 0, freeze: 0, slowT: 0,
       strikes: [], foes: [], shots: [], barrels: [], mirrors: [], smokes: [], bamboos: [], thorns: [], nid: 0, wave: 0, waveT: 0,
-      dashN: 0, chain: 0, best: 0, hits: 0, arrows: 0, backK: 0, boomBest: 0, boomBy: {}, mirK: 0, bounceT: -999, bents: 0, leafGuide: false, leafCut: false, dodgeN: 0, bellGuide: false, bambooGuide: false, failN: 0, free: 0, owlAsk: false, owlNo: false, owl: false, bossCombo: 0, dashes: 0,
+      dashN: 0, chain: 0, best: 0, hits: 0, arrows: 0, backK: 0, boomBest: 0, boomBy: {}, mirK: 0, bents: 0, leafGuide: false, leafCut: false, dodgeN: 0, bellGuide: false, bambooGuide: false, failN: 0, free: 0, owlAsk: false, owlNo: false, owl: false, bossCombo: 0, dashes: 0,
       firstDash: false, firstBig: -1, firstPress: -1, combo: { id: -1, n: 0, t: -99 },
       seen: new Set<string>(), spotted: new Set<string>(), newsQ: [], news: null, spot: null, events: [], cuts: [], inks: [], trail: null,
       camX: 0, mood: 0, moodT: 0, owlT: -999, sheathT: -999, slowVis: 0,
@@ -1277,7 +1266,7 @@ export const NOTES = {
   ],
   hint: '꾹 누르면 느려지고, 떼면 번쩍 돌진! / 화살표로 겨누고 스페이스',
   art: {
-    concept: '시간이 멈춘 태엽 마을의 꼬마 사무라이 \'초침\' — 도트 · 벽력일섬',
+    concept: '시간이 멈춘 태엽 마을의 떠돌이 검객(사무라이) \'초침\' — 도트 · 벽력일섬',
     mood: '초승달 아래 시간이 멈춘 태엽 마을. 불 켜진 창과 시계탑, 돌길·기와·광장. 누르면 세상이 청회색으로 가라앉고 사무라이와 그은 길, 겨눈 병정만 색이 남는다.',
   },
 };
@@ -1320,7 +1309,7 @@ function danger(s: DashState, qx: number, qy: number, skipF: Set<number>, skipS:
 /** (x,y)에서 한 줄로 꿸 수 있는 적의 최대 수 (다음 돌진 내다보기) */
 function lineUp(s: DashState, x: number, y: number, skip: Set<number>, maxL: number) {
   let best = 0;
-  const fs = s.foes.filter((f) => !skip.has(f.id) && f.st !== ENTER && (f.k !== 'shield' || !fromFront(f, f.x - x, f.y - y)));
+  const fs = s.foes.filter((f) => !skip.has(f.id) && f.st !== ENTER);
   for (const f of fs) {
     const dx = f.x - x, dy = f.y - y, d = Math.hypot(dx, dy);
     if (d < 0.02 || d > maxL) continue;
@@ -1338,7 +1327,7 @@ function lineUp(s: DashState, x: number, y: number, skip: Set<number>, maxL: num
 
 /** 셋 이상이 한 줄에 서 있는 줄을 찾아, 그 줄의 끝(밖)에 설 자리 */
 function lineSpots(s: DashState) {
-  const fs = s.foes.filter((f) => f.st !== ENTER && f.k !== 'shield');
+  const fs = s.foes.filter((f) => f.st !== ENTER);
   const out: { x: number; y: number; c: number }[] = [];
   for (let i = 0; i < fs.length; i++)
     for (let j = i + 1; j < fs.length; j++) {
@@ -1401,7 +1390,7 @@ function judge(s: DashState, x: number, y: number, L: number): Choice {
     const f = s.foes.find((q) => q.id === h.id)!;
     n++;
     v += PTS[f.k] * n;
-    if (f.k !== 'boss' || f.hp <= 1) skipF.add(f.id);
+    if (f.hp <= 1) skipF.add(f.id);
     if (f.k === 'boss') bossIn = true;
     if (f.k === 'shield' && d.key === 'shield') obj += 90;
     if (f.k === 'archer' && farm) obj -= 400;
@@ -1419,7 +1408,6 @@ function judge(s: DashState, x: number, y: number, L: number): Choice {
   if (d.key === 'barrel' && boom >= 3 && s.boomBest < 3) obj += 75 * boom;
   v += P.shots.length * 8;
   if (goal(d, 'arrow') && s.arrows < 3) obj += P.shots.length * 130;
-  if (P.bounce) v -= 80;
   if (thornOf(s, P.legs)) v -= 650; // S009 가시덤불은 돌아간다
   const cost = reachOf(s.g) >= HOP ? dashCost(pathLen(P)) : 0, after = s.g - cost + GAIN * ((n * (n + 1)) / 2) + P.shots.length * SHOT_G;
   v += 1.2 * (after - s.g);
@@ -1450,7 +1438,7 @@ export const slowdashSmart: Bot<DashState> = {
     const live = s.foes.filter((f) => f.st !== ENTER), d = STAGES[s.stage];
     if (!live.length && here > 40) return NO;
     // ✏️ S008(🧪 S007 1-1 탭 봇 300초 멈춤): 적이 하나만 남으면 줄 세울 일이 없다 — 옮겨 서기 굴레 대신 바로 벤다
-    if (live.length === 1 && here > 40 && live[0].k !== 'shield') return at(live[0].x, live[0].y); // 방패는 앞이면 튕기니 예전처럼 돌아간다
+    if (live.length === 1 && here > 40) return at(live[0].x, live[0].y);
     const wm = waitMem.get(s);
     farm = goal(d, 'arrow') && s.arrows < 3 && (!wm || s.t - wm.since < 900);
     let best: Choice | null = null, repo: Choice | null = null, kill: Choice | null = null;
@@ -1782,14 +1770,14 @@ const BGV: Record<string, number> = { leafWait: 2, smoke: 1, leafShield: 2, roof
 const fontOf = (w: number, sz: number, wgt = 800) => `${wgt} ${Math.max(12, sz * w)}px system-ui, sans-serif`;
 /** 떠오르는 글(사건마다 한 마디): [글, 색, 크기px] */
 const POP = {
-  bounce: ['챙!', '#ffd86b', 18], shotcut: ['탁!', '#e8f4ff', 14], hurt: ['아얏!', '#ffb3a8', 18], whiff: ['헛방!', '#d8dcef', 14], shoot: ['슝', '#ffd0c8', 12],
+  crack: ['쨍!', '#ffd86b', 18], shotcut: ['탁!', '#e8f4ff', 14], hurt: ['아얏!', '#ffb3a8', 18], whiff: ['헛방!', '#d8dcef', 14], shoot: ['슝', '#ffd0c8', 12],
   shoot3: ['휙휙휙', '#ffd0c8', 12], clink: ['팅!', '#e8f4ff', 14], boom: ['펑!', '#ffd166', 26], bosshit: ['으윽!', '#ffd0c8', 18], empty: ['게이지 바닥!', '#ffb3a8', 14],
 } satisfies Record<string, [string, string, number]>;
 const chainPop = (n: number): [string, string, number] => [`연쇄 ×${n}`, '#9ff0ff', Math.min(26, 14 + n * 1.5)];
 /** 큰 순간 띠: [글, 크기px] (🧪: '싹둑'은 '싹쓸이'와 헷갈려 뺌) */
 const bannerOf = (sw: boolean, n: number): [string, number] => [sw ? '싹쓸이!' : `${n}명 베기!`, sw ? 24 : Math.min(22, 14 + n * 2)];
 /** 꾹 글 두 줄(위 하늘): [N명 한 줄! 또는 스으…, 까닭] (M3 S12) */
-const HOLD2: Record<string, string> = { bounce: '방패에 튕겨요!', dodge: '휙! 꺾어요', tok: '툭! 꺾어요' };
+const HOLD2: Record<string, string> = { shield: '방패는 두 번 베요', dodge: '휙! 꺾어요', tok: '툭! 꺾어요' };
 const holdCap = (n: number, why: string): [string, string] => [n >= 2 ? `스으… ${n}명 한 줄!` : '스으…', HOLD2[why] ?? '']; // 🧪 S12: 2명 이상에도 '스으…'(1-1 첫 꾹의 '느려졌다' 신호)
 /** 아래 팁 줄 */
 const HINT = {
@@ -1805,7 +1793,7 @@ export function textWarm(w: number): WarmText[] {
   for (const [t, z] of [bannerOf(true, 0), ...[2, 3, 4].map((n) => bannerOf(false, n))]) add(`900 ${z}px system-ui, sans-serif`, t, 6, { lj: 'round' });
   add(fontOf(w, 0.036, 900), '부엉!', 3);
   hint(TIP.sweep), hint(TIP.chain);
-  for (const [t, , z] of [POP.hurt, POP.bounce, POP.shotcut, POP.boom, POP.clink, POP.whiff, POP.bosshit, POP.empty, ...[3, 4, 5, 6].map(chainPop), POP.shoot, POP.shoot3]) add(`800 ${z}px system-ui, sans-serif`, t, 3);
+  for (const [t, , z] of [POP.hurt, POP.crack, POP.shotcut, POP.boom, POP.clink, POP.whiff, POP.bosshit, POP.empty, ...[3, 4, 5, 6].map(chainPop), POP.shoot, POP.shoot3]) add(`800 ${z}px system-ui, sans-serif`, t, 3);
   for (const t of Object.values(TIP)) if (t !== TIP.sweep && t !== TIP.chain) hint(t);
   hint(HINT.hold), hint(HINT.short), hint(HINT.bend), hint(HINT.first, 0.04);
   for (let k = 1; k <= 5; k++) add(fontOf(w, 0.05, 900), holdCap(k, '')[0], 4);
@@ -2014,7 +2002,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     if (f.hurtT > 0) ctx.translate(Math.sin(t * 2) * k * 0.04, 0);
     const pose = foePose(f, moving);
     if (d.leafBoss) pose.alt = true; // 2-10 태엽 큰 인형
-    const shieldBehind = f.k === 'shield' && Math.sin(f.fa) <= -0.2;
+    const shieldBehind = f.k === 'shield' && f.hp > 1 && Math.sin(f.fa) <= -0.2; // M3 F2: 깨진 방패는 안 그림
     if (shieldBehind) drawShieldDisc(ctx, k, f.fa, 0);
     ctx.save();
     ctx.scale(face, 1);
@@ -2025,7 +2013,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     }
     drawFoeBody(ctx, k, pose, wt);
     ctx.restore();
-    if (f.k === 'shield' && !shieldBehind) drawShieldDisc(ctx, k, f.fa, Math.max(0, 1 - (t - (fx.memo['bn' + f.id] ?? -99)) / 10));
+    if (f.k === 'shield' && f.hp > 1 && !shieldBehind) drawShieldDisc(ctx, k, f.fa, Math.max(0, 1 - (t - (fx.memo['bn' + f.id] ?? -99)) / 10));
     if (f.k === 'boss') {
       for (let j = 0; j < 4; j++) {
         ctx.fillStyle = j < f.hp ? '#ff5a4e' : 'rgba(255,255,255,.2)';
@@ -2368,7 +2356,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     }
     const last = prev.legs[prev.legs.length - 1];
     const want = strokeLen(s);
-    if (want > pathLen(prev) + 0.03 && !prev.bounce) {
+    if (want > pathLen(prev) + 0.03) {
       ctx.strokeStyle = 'rgba(255,140,120,.55)';
       ctx.lineWidth = 2;
       ctx.setLineDash([3, 5]);
@@ -2393,17 +2381,6 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.lineWidth = 2;
     ell(ctx, X(prev.ex), Y(prev.ey), R(0.035), R(0.016));
     ctx.stroke();
-    if (prev.bounce) {
-      ctx.strokeStyle = '#ffcf4a';
-      ctx.lineWidth = 3;
-      const bx = X(prev.ex), by = Y(prev.ey) - R(0.06);
-      ctx.beginPath();
-      ctx.moveTo(bx - R(0.02), by - R(0.02));
-      ctx.lineTo(bx + R(0.02), by + R(0.02));
-      ctx.moveTo(bx + R(0.02), by - R(0.02));
-      ctx.lineTo(bx - R(0.02), by + R(0.02));
-      ctx.stroke();
-    }
     // 벨 차례 번호
     prev.hits.forEach((hq, i) => {
       const f = s.foes.find((q) => q.id === hq.id);
@@ -2449,7 +2426,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     // M3 S12(🧪 S10 허들 2 숙련 ❌: 1-10·2-10에서 꾹 때 글 넷이 닌자 위 60px 안에 겹침 · 오너 '연출 과도'):
     //   꾹 글('N명 한 줄!' · '스으…' · '휙! 꺾어요' · '방패에 튕겨요!')은 위 하늘 한곳에 두 줄로 — 판 위엔 번호 · ✕ · '휙' 한 글자만
     {
-      const [c1, c2] = holdCap(prev.hits.length, prev.bounce ? 'bounce' : prev.dodges.length ? 'dodge' : prev.toks.length ? 'tok' : ''), cy = Math.max(R(0.26), s.stage === 0 ? dy + Y(HZ) - R(0.13) : dy * 0.75) - dy;
+      const [c1, c2] = holdCap(prev.hits.length, prev.hits.some((h) => s.foes.find((q) => q.id === h.id)?.k === 'shield' && (s.foes.find((q) => q.id === h.id)?.hp ?? 0) > 1) ? 'shield' : prev.dodges.length ? 'dodge' : prev.toks.length ? 'tok' : ''), cy = Math.max(R(0.26), s.stage === 0 ? dy + Y(HZ) - R(0.13) : dy * 0.75) - dy;
       // ↑ 🧪 S12 QC: 짧은 화면에서 싹쓸이 칩 아래끝(≈ R(0.215))과 맞붙던 것 → R(0.26) 아래 · 1-1은 지평선 바로 위(손끝에서 265px 위라 눈을 옮겨야 했다 · (95))
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -2464,7 +2441,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
         ctx.lineWidth = 3;
         ctx.strokeStyle = 'rgba(0,0,0,.6)';
         ctx.strokeText(c2, w / 2, cy + R(0.065));
-        ctx.fillStyle = prev.bounce ? '#ffd86b' : '#c8ffb0';
+        ctx.fillStyle = c2 === HOLD2.shield ? '#ffd86b' : '#c8ffb0';
         ctx.fillText(c2, w / 2, cy + R(0.065));
       }
     }
@@ -2565,8 +2542,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       fx.burst(ex, ey - R(0.04), '#ffd84a', 16, 5, 2.6);
     }
     if (e.kind === 'chain' && (e.n ?? 0) >= 3) say(w * 0.8, Y(0.56), ...chainPop(e.n ?? 2));
-    if (e.kind === 'bounce') {
-      say(ex, ey - R(0.14), ...POP.bounce);
+    if (e.kind === 'shieldbreak') { // M3 F2: 첫 칼에 방패가 깨진다
+      say(ex, ey - R(0.14), ...POP.crack);
       fx.burst(ex, ey - R(0.06), '#ffe9a0', 8, 3, 2);
       fx.kick(3);
       for (const f of s.foes) if (f.k === 'shield' && Math.hypot(f.x - e.x, f.y - e.y) < 0.12) fx.memo['bn' + f.id] = t;
