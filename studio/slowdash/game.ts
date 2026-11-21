@@ -1559,14 +1559,16 @@ function ell(ctx: C2, x: number, y: number, rx: number, ry: number, rot = 0) {
   ctx.beginPath();
   ctx.ellipse(x, y, Math.max(0.1, rx), Math.max(0.1, ry), rot, 0, TAU);
 }
-function lin(ctx: C2, x0: number, y0: number, x1: number, y1: number, ...st: [number, string][]) {
-  const g = ctx.createLinearGradient(x0, y0, x1, y1);
-  for (const [o, c] of st) g.addColorStop(o, c);
-  return g;
+/** M3 F3 🎨 'AI 티' 1차(💬 오너 "AI로 제작된 티가 많이 난다"): 도트 세상 위 매끈한 그라데이션이 가장 큰 원인 → 그라데이션 대신 가운데 색 한 칸(납작한 도트 면) */
+function lin(_ctx: C2, _x0: number, _y0: number, _x1: number, _y1: number, ...st: [number, string][]) {
+  return st.reduce((b, q) => (Math.abs(q[0] - 0.5) < Math.abs(b[0] - 0.5) ? q : b))[1];
 }
+/** 둥근 칩 대신 3px 격자에 맞춘 네모 + 모서리 한 칸 깎기(도트 상자) */
 function rr(ctx: C2, x: number, y: number, w: number, h: number, r: number) {
+  const sn = (v: number) => Math.round(v / PX) * PX, x0 = sn(x), y0 = sn(y), x1 = sn(x + w), y1 = sn(y + h), c = r >= PX && x1 - x0 > 2 * PX && y1 - y0 > 2 * PX ? PX : 0;
   ctx.beginPath();
-  ctx.roundRect(x, y, w, h, Math.max(0, Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2)));
+  ctx.moveTo(x0 + c, y0), ctx.lineTo(x1 - c, y0), ctx.lineTo(x1 - c, y0 + c), ctx.lineTo(x1, y0 + c), ctx.lineTo(x1, y1 - c), ctx.lineTo(x1 - c, y1 - c), ctx.lineTo(x1 - c, y1);
+  ctx.lineTo(x0 + c, y1), ctx.lineTo(x0 + c, y1 - c), ctx.lineTo(x0, y1 - c), ctx.lineTo(x0, y0 + c), ctx.lineTo(x0 + c, y0 + c), ctx.closePath();
 }
 function starPath(ctx: C2, x: number, y: number, r: number) {
   ctx.beginPath();
