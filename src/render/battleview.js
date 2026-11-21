@@ -177,7 +177,7 @@ export class BattleView {
     // 명부: 이름이 적힌 부대와 명부 든 사자를 먹줄로 잇는다
     { const boss = b.units.find(e => !e.dead && e.ai && e.ai.doomSq); if (boss && boss.ai.scribe && !boss.ai.scribe.dead) { const q = boss.ai.doomSq, sc = boss.ai.scribe; g.save(); g.globalAlpha = 0.75; g.setLineDash([10, 8]); g.lineDashOffset = -T * 26; line(g, [q.cx, q.cy - 60, sc.x, sc.y - 50], INK, 5); line(g, [q.cx, q.cy - 60, sc.x, sc.y - 50], '#f3e7c8', 2.4); g.setLineDash([]); g.restore(); } }
     // 붉지 않은 원의 이름과 연타의 차례: 부대에 가리지 않게 원 위쪽 테두리에 단다
-    for (const z of b.zones) if (z.kind === 'tele' && !z.ally && (z.n || ZLABEL[z.style])) tag(z.x, Math.max(VIEW.y0 + 4, z.y - z.r * 0.62), z.n ? `${z.n}` : ZLABEL[z.style], TELE[z.style] || RED);
+    { const put = []; for (const z of b.zones) if (z.kind === 'tele' && !z.ally && (z.n || ZLABEL[z.style])) { const s2 = z.n ? `${z.n}` : ZLABEL[z.style], ty = Math.max(VIEW.y0 + 4, z.y - z.r * 0.62); if (put.some(q => q[2] === s2 && Math.hypot(q[0] - z.x, q[1] - ty) < 130)) continue; put.push([z.x, ty, s2]); tag(z.x, ty, s2, TELE[z.style] || RED); } }   // 겹친 원에는 이름표를 하나만
     // 명부에 이름이 적힌 부대: 머리 위에 남은 숨을 센다
     for (const q of b.squads) if (q.doom > 0 && q.alive > 0) tag(q.cx, q.cy - 84 + Math.sin(T * 6) * 3, `명부에 적혔다 ${Math.ceil(q.doom)}`, q.doom < 3 ? RED : '#5a4a8a');
     this.dust -= opt.dt || 0;
