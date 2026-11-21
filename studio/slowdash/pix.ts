@@ -203,3 +203,55 @@ export const thorn = (hot: number) => sprite('th' + hot, () => grid(['...D....D.
 export const owl = (blink: number) => sprite('ow' + blink, () => grid(['..H.....H', '..HhhhhhH', '.Hjjhhjjh', blink ? '.HkkjjkkH' : '.Hykjjkyh', '.HjjhyhjjH', '..hhhhhhH', '..hjhjhhH', '..hhhhhhH', '...y..y', 'HHHHHHHHHHHH']));
 /** 안내 손가락(검지가 위) — 손끝은 (2, 0) */
 export const hand = () => sprite('hd', () => grid(['..w', '..ww', '..ww', '..ww.w', '..wwwww.w', '.8wwwwwww', '8wwwwwwww', '.8wwwwww8', '..8wwww8', '...8888']));
+
+// ── 🎨 M3 F3 'AI 티' ① 도트 글자(💬 오너 "AI로 제작된 티가 많이 난다" → 🎨 가장 큰 원인 = 도트 세상 위 매끈한 웹 글꼴) ──
+//   캔버스 글을 화면 밖에 한 번 작게 쓰고 → 가장자리를 딱 끊고(알파 > 110만) → (테 글이면) 1칸 테를 두른 뒤 굽는다. 그다음엔 늘 drawImage(부드럽게 하기 끔).
+//   부르는 쪽(fillText·strokeText)은 그대로 — 판 캔버스의 두 함수를 갈아 끼운다. 글 크기 ≥ 22px는 2칸, ≥ 33px는 3칸이 한 글자 점.
+const PTC = new Map<string, { c: HTMLCanvasElement; q: number; w: number; asc: number; desc: number }>();
+const PAD = 2;
+function glyphs(font: string, txt: string, style: string, outline: boolean) {
+  const key = font + '|' + style + '|' + (outline ? 1 : 0) + '|' + txt;
+  let g = PTC.get(key);
+  if (g) return g;
+  const px = Number(/([\d.]+)px/.exec(font)?.[1] ?? 16), q = px >= 33 ? 3 : px >= 22 ? 2 : 1, src = font.replace(/[\d.]+px/, `${(px / q).toFixed(2)}px`);
+  const c = document.createElement('canvas'), x = c.getContext('2d', { willReadFrequently: true })!;
+  x.font = src;
+  const m = x.measureText(txt), asc = Math.ceil(m.fontBoundingBoxAscent || (px / q) * 0.82), desc = Math.ceil(m.fontBoundingBoxDescent || (px / q) * 0.24), w = Math.ceil(m.width);
+  (c.width = w + PAD * 2), (c.height = asc + desc + PAD * 2);
+  x.font = src;
+  x.fillStyle = '#fff';
+  x.fillText(txt, PAD, PAD + asc);
+  const im = x.getImageData(0, 0, c.width, c.height), d = im.data, W = c.width, H = c.height, on = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) on[i] = d[i * 4 + 3] > 110 ? 1 : 0;
+  for (let i = 0; i < W * H; i++) {
+    let v = on[i];
+    if (outline && !v) { const xx = i % W, yy = (i / W) | 0; v = (xx > 0 && on[i - 1]) || (xx < W - 1 && on[i + 1]) || (yy > 0 && on[i - W]) || (yy < H - 1 && on[i + W]) ? 1 : 0; }
+    d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = 255;
+    d[i * 4 + 3] = v ? 255 : 0;
+  }
+  x.putImageData(im, 0, 0);
+  x.globalCompositeOperation = 'source-in';
+  x.fillStyle = style;
+  x.fillRect(0, 0, W, H);
+  g = { c, q, w, asc, desc };
+  if (PTC.size > 240) PTC.delete(PTC.keys().next().value!);
+  PTC.set(key, g);
+  return g;
+}
+/** 판 캔버스의 fillText·strokeText를 도트 글로 갈아 끼운다(measureText·글꼴·정렬·maxWidth는 그대로 따름) */
+export function pixelText(ctx: CanvasRenderingContext2D) {
+  const fill0 = ctx.fillText.bind(ctx), stroke0 = ctx.strokeText.bind(ctx);
+  const draw = (txt: string, x: number, y: number, mw: number | undefined, outline: boolean) => {
+    const st = outline ? ctx.strokeStyle : ctx.fillStyle;
+    if (typeof st !== 'string' || !txt) return void (outline ? stroke0 : fill0)(txt, x, y, mw as number);
+    const g = glyphs(ctx.font, txt, st, outline), tw = g.w * g.q, sx = mw && tw > mw ? mw / tw : 1, a = ctx.textAlign, b = ctx.textBaseline;
+    const left = x - (a === 'center' ? tw * sx / 2 : a === 'right' || a === 'end' ? tw * sx : 0) - PAD * g.q * sx;
+    const base = b === 'middle' ? y + ((g.asc - g.desc) / 2) * g.q : b === 'top' || b === 'hanging' ? y + g.asc * g.q : b === 'bottom' || b === 'ideographic' ? y - g.desc * g.q : y;
+    const sm = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(g.c, Math.round(left), Math.round(base - (PAD + g.asc) * g.q), g.c.width * g.q * sx, g.c.height * g.q);
+    ctx.imageSmoothingEnabled = sm;
+  };
+  ctx.fillText = (t: string, x: number, y: number, mw?: number) => draw(String(t), x, y, mw, false);
+  ctx.strokeText = (t: string, x: number, y: number, mw?: number) => draw(String(t), x, y, mw, true);
+}

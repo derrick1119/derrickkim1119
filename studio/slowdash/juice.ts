@@ -78,11 +78,12 @@ export class Juice {
       r.life--;
       r.r += (r.max - r.r) * 0.18;
       ctx.globalAlpha = Math.max(0, r.life / 24);
-      ctx.strokeStyle = r.color;
-      ctx.lineWidth = r.width * (r.life / 24) + 0.5;
-      ctx.beginPath();
-      ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
-      ctx.stroke();
+      ctx.fillStyle = r.color; // 🎨 F3 'AI 티': 매끈한 원 고리 → 3px 칸 도트 고리(두꺼운 고리는 6px 칸)
+      const z = r.width * (r.life / 24) > 2.5 ? 6 : 3, n = Math.max(12, Math.ceil((Math.PI * 2 * r.r) / z));
+      for (let k = 0; k < n; k++) {
+        const a = (k / n) * Math.PI * 2;
+        ctx.fillRect(Math.round((r.x + Math.cos(a) * r.r) / 3) * 3 - z / 2, Math.round((r.y + Math.sin(a) * r.r) / 3) * 3 - z / 2, z, z);
+      }
     }
     this.rings = this.rings.filter((r) => r.life > 0);
     for (const p of this.particles) {

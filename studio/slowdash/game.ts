@@ -1570,21 +1570,25 @@ function rr(ctx: C2, x: number, y: number, w: number, h: number, r: number) {
   ctx.moveTo(x0 + c, y0), ctx.lineTo(x1 - c, y0), ctx.lineTo(x1 - c, y0 + c), ctx.lineTo(x1, y0 + c), ctx.lineTo(x1, y1 - c), ctx.lineTo(x1 - c, y1 - c), ctx.lineTo(x1 - c, y1);
   ctx.lineTo(x0 + c, y1), ctx.lineTo(x0 + c, y1 - c), ctx.lineTo(x0, y1 - c), ctx.lineTo(x0, y0 + c), ctx.lineTo(x0 + c, y0 + c), ctx.closePath();
 }
-function starPath(ctx: C2, x: number, y: number, r: number) {
+// 🎨 M3 F3 'AI 티' ①: 별·하트·모래시계·동전 = 도트 그림(칸 사각형을 모은 길 · 매끈한 곡선 0)
+const ICON: Record<string, string[]> = {
+  star: ['...#...', '..###..', '#######', '.#####.', '..###..', '.##.##.', '.#...#.'],
+  heart: ['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...'],
+  glass: ['#####', '.###.', '..#..', '.###.', '#####'],
+  disc: ['..###..', '.#####.', '#######', '#######', '#######', '.#####.', '..###..'],
+};
+/** 그림 한 장을 칸(c px) 사각형 길로 — 가운데가 (x, y) */
+function pxMap(ctx: C2, rows: string[], x: number, y: number, c: number) {
+  const h = rows.length, w = rows[0].length, x0 = Math.round(x - (w * c) / 2), y0 = Math.round(y - (h * c) / 2);
   ctx.beginPath();
-  for (let k = 0; k < 10; k++) {
-    const a = -Math.PI / 2 + (k * Math.PI) / 5, q = k % 2 ? r * 0.45 : r;
-    if (k) ctx.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q);
-    else ctx.moveTo(x + Math.cos(a) * q, y + Math.sin(a) * q);
-  }
-  ctx.closePath();
+  rows.forEach((r, j) => [...r].forEach((ch, i) => ch === '#' && ctx.rect(x0 + i * c, y0 + j * c, c, c)));
+}
+const cellOf = (r: number, n: number) => Math.max(2, Math.round((r * 2) / n));
+function starPath(ctx: C2, x: number, y: number, r: number) {
+  pxMap(ctx, ICON.star, x, y, cellOf(r, 7));
 }
 function heartPath(ctx: C2, x: number, y: number, r: number) {
-  ctx.beginPath();
-  ctx.moveTo(x, y + r * 0.9);
-  ctx.bezierCurveTo(x - r * 1.5, y - r * 0.1, x - r * 0.9, y - r * 1.25, x, y - r * 0.45);
-  ctx.bezierCurveTo(x + r * 0.9, y - r * 1.25, x + r * 1.5, y - r * 0.1, x, y + r * 0.9);
-  ctx.closePath();
+  pxMap(ctx, ICON.heart, x, y, cellOf(r * 1.2, 7));
 }
 /** 펄럭이는 띠 (두건 끈·목도리·허리띠 꼬리) */
 const OUT = '#0b0e1c';
@@ -2177,7 +2181,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
         ctx.fill();
         ctx.strokeStyle = OUT;
         ctx.lineWidth = 1.2;
-        ctx.stroke();
+        /* 🎨 도트 아이콘은 테 없음 */
       }
     }
     // 위험 경고: 곧 맞을 것 같으면 머리 위 '!'
@@ -2695,12 +2699,13 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   {
     const cx = R(0.055), cy = hb / 2;
     ctx.fillStyle = lin(ctx, cx, cy - R(0.03), cx, cy + R(0.03), [0, '#ffe08a'], [1, '#c8902a']);
-    ctx.beginPath();
-    ctx.arc(cx, cy, R(0.03), 0, TAU);
+    const fc = ctx.fillStyle; // 🎨 F3: 동전도 도트(검은 테 = 한 칸 큰 원을 먼저)
+    ctx.fillStyle = OUT;
+    pxMap(ctx, ICON.disc, cx, cy, cellOf(R(0.034), 7));
     ctx.fill();
-    ctx.strokeStyle = OUT;
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx.fillStyle = fc;
+    pxMap(ctx, ICON.disc, cx, cy, cellOf(R(0.028), 7));
+    ctx.fill();
     ctx.fillStyle = '#2a1a08';
     font(0.036, 900);
     ctx.textAlign = 'center';
@@ -2726,7 +2731,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.fill();
     ctx.strokeStyle = OUT;
     ctx.lineWidth = 1.2;
-    ctx.stroke();
+    /* 🎨 도트 아이콘은 테 없음 */
   }
   // ✏️ M2 S3 켜자마자 1-1(GDD §7): 제목은 첫 판을 깬 뒤에 크게 한 번
   if (s.phase === 'result' && s.ok && s.stage === 0) {
@@ -2773,7 +2778,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       const w1 = ctx.measureText(head).width;
       font(0.036, 800);
       const w2 = sub ? ctx.measureText(sub).width : 0;
-      const cw = Math.min(w - R(0.06), Math.max(w1, w2) + R(0.1)) * unroll, ch = sub ? R(0.13) : R(0.08);
+      const cw = Math.min(w - R(0.06), Math.max(w1, w2) + R(0.1)) * unroll, stars = s.phase === 'result' && s.ok, ch = stars ? (sub ? R(0.15) : R(0.115)) : sub ? R(0.13) : R(0.08); // 🎨 F3: 깬 카드는 별 줄만큼 키움(별이 카드 아래로 삐져나오고 제목 윗줄이 잘렸음)
       ctx.fillStyle = 'rgba(0,0,0,.35)';
       rr(ctx, w / 2 - cw / 2 + 3, cy - ch / 2 + 4, cw, ch, R(0.02));
       ctx.fill();
@@ -2795,23 +2800,23 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       font(0.045, 900);
       ctx.fillStyle = s.phase === 'result' ? (s.ok ? '#8a5a0a' : '#9a2a20') : '#2a1a0c';
       if (s.phase === 'result' && s.ok) {
-        const up = sub ? R(0.022) : 0;
-        ctx.fillText(head, w / 2, cy - R(0.022) - up);
+        const up = sub ? R(0.018) : 0;
+        ctx.fillText(head, w / 2, cy - R(0.026) - up, w - R(0.1));
         if (sub) {
           font(0.034, 800);
           ctx.fillStyle = '#7a3a1a';
-          ctx.fillText(sub, w / 2, cy + R(0.05), w - R(0.1));
+          ctx.fillText(sub, w / 2, cy + R(0.056), w - R(0.1));
         }
         for (let j = 0; j < 3; j++) {
           const ag = s.pt - (12 + j * 12);
-          const sx = w / 2 + (j - 1) * R(0.07), sy = cy + R(0.03) - up;
+          const sx = w / 2 + (j - 1) * R(0.07), sy = cy + R(0.028) - up;
           const pop = ag < 0 ? 0 : ag < 8 ? 1.9 - 0.9 * (ag / 8) : 1;
           starPath(ctx, sx, sy, R(0.026) * (ag < 0 ? 1 : pop));
           ctx.fillStyle = ag >= 0 && s.starOk[j] ? '#ffc93a' : 'rgba(90,60,20,.18)';
           ctx.fill();
           ctx.strokeStyle = ag >= 0 && s.starOk[j] ? '#7a4a08' : 'rgba(90,60,20,.4)';
           ctx.lineWidth = 1.5;
-          ctx.stroke();
+          /* 🎨 도트 아이콘은 테 없음 */
           if (ag >= 0 && s.starOk[j] && (fx.memo['st' + j] ?? -1) < s.t - ag) (fx.memo['st' + j] = s.t - ag), fx.burst(sx, sy, '#ffd84a', 16, 3, 2.4);
         }
       } else {
@@ -2837,18 +2842,10 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     const r1 = ty + R(0.042);
     {
       const ix = R(0.04);
-      ctx.fillStyle = '#9ff0ff';
-      ctx.beginPath();
-      ctx.moveTo(ix - R(0.014), r1 - R(0.018));
-      ctx.lineTo(ix + R(0.014), r1 - R(0.018));
-      ctx.lineTo(ix - R(0.014), r1 + R(0.018));
-      ctx.lineTo(ix + R(0.014), r1 + R(0.018));
-      ctx.closePath();
+      ctx.fillStyle = '#9ff0ff'; // 🎨 F3: 모래시계도 도트
+      pxMap(ctx, ICON.glass, ix, r1, cellOf(R(0.018), 5));
       ctx.fill();
-      ctx.strokeStyle = '#e9fbff';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      const gx = R(0.07), gw = w - R(0.07) - R(0.24), gh = R(0.03);
+      const gx = R(0.07), gw = w - R(0.07) - R(0.24), gh = R(0.038); // 🎨 F3: 글(어두운 색)이 띠 밖으로 넘쳐 위아래가 잘려 보였음 → 띠를 키움
       ctx.fillStyle = 'rgba(255,255,255,.08)';
       rr(ctx, gx, r1 - gh / 2, gw, gh, gh / 2);
       ctx.fill();
@@ -2884,7 +2881,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.lineWidth = 1.5;
       rr(ctx, gx, r1 - gh / 2, gw, gh, gh / 2);
       ctx.stroke();
-      font(0.034, 900);
+      font(0.032, 900);
       ctx.textAlign = 'center';
       ctx.fillStyle = '#0b1a2a';
       if (fr > 0.35) ctx.fillText('느린 시간', gx + (gw * fr) / 2, r1 + 1);
@@ -2905,7 +2902,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
         ctx.fill();
         ctx.strokeStyle = j < s.hp ? OUT : 'rgba(255,255,255,.3)';
         ctx.lineWidth = 1.2;
-        ctx.stroke();
+        /* 🎨 도트 아이콘은 테 없음 */
       }
     }
     // 2줄: 별 셋 (쉬운 말)

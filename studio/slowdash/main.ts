@@ -6,6 +6,7 @@ import { TICK } from './core.ts';
 import { peek } from './juice.ts';
 import { STAGES, STAGE_COUNT, TRIAL, WORLD_LOCK, slowdash as g, startStage, textWarm, useOwl, warmText, worldStars, type DashState, type WarmText } from './game.ts';
 import { sfx } from './sfx.ts';
+import { pixelText } from './pix.ts';
 
 const store = {
   get(k: string) { try { return Number(localStorage.getItem('slowdash:' + k) ?? 0); } catch { return 0; } },
@@ -27,6 +28,25 @@ picker.setAttribute('role', 'dialog');
 picker.hidden = true;
 root.append(canvas, overlay, picker);
 const ctx = canvas.getContext('2d', { alpha: false })!;
+if (new URLSearchParams(location.search).get('pxt') !== '0') pixelText(ctx); // 🎨 M3 F3 'AI 티' ①: 판 캔버스의 글을 도트 글로(?pxt=0 이면 끔 · 비교용)
+{ // 🎨 F3: 머리말 제목도 도트 글(웹 글꼴 → 작은 캔버스 한 장 · 글은 aria-label로 남김)
+  const h1 = document.querySelector('h1');
+  if (h1 && new URLSearchParams(location.search).get('pxt') !== '0') {
+    const c = document.createElement('canvas'), x = c.getContext('2d')!, d = Math.min(2, window.devicePixelRatio || 1), parts: [string, string][] = [['벽력', '#ffffff'], ['일섬', '#ffd36b']];
+    pixelText(x);
+    x.font = '900 20px system-ui, sans-serif';
+    const w = Math.ceil(parts.reduce((a, [t]) => a + x.measureText(t).width, 0)) + 6;
+    (c.width = w * d), (c.height = 30 * d), (c.style.width = `${w}px`), (c.style.height = '30px'), (c.style.imageRendering = 'pixelated'), (c.style.display = 'block');
+    x.scale(d, d);
+    x.font = '900 20px system-ui, sans-serif';
+    x.textBaseline = 'middle';
+    let cx = 3;
+    for (const [t, col] of parts) (x.strokeStyle = '#0e0f22'), x.strokeText(t, cx, 15), (x.fillStyle = col), x.fillText(t, cx, 15), (cx += x.measureText(t).width);
+    h1.setAttribute('aria-label', h1.textContent ?? '');
+    h1.replaceChildren(c);
+  }
+}
+
 const aspect = g.aspect ?? 1.52;
 const pal = g.art!.palette;
 
