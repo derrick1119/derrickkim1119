@@ -442,8 +442,8 @@
     S.st = 'up'; S.sitting = false; k.tween(S.eat, 'k', 0, 0.4);
     S.inWalk = { l: HOUSE - 116, n: HOUSE + 118 };
     await k.wait(1.5);
-    S.climbing = true;
-    await k.tween(L, 'y', UF(), 1.8, T.ease.io);
+    S.climbing = true; L.x = HOUSE - 112;
+    await k.tween(L, 'y', UF(), 3.0, T.ease.lin);
     S.climbing = false;
     S.inWalk = { l: HOUSE - 4, n: HOUSE + 118 };
     T.announce('다락에는 어릴 적 방이 그대로 있다.');
@@ -454,8 +454,8 @@
     S.inWalk = { l: HOUSE - 32, n: HOUSE - 116 };
     await k.wait(1.1);
     L.flip = false;
-    S.nClimb = true;
-    await k.tween(N, 'y', UF(), 1.5, T.ease.io);
+    S.nClimb = true; N.x = HOUSE - 112;
+    await k.tween(N, 'y', UF(), 3.2, T.ease.lin);
     S.nClimb = false;
     S.inWalk = { l: HOUSE - 32, n: HOUSE - 78 };
     for (let i = 0; i < 19; i++) {
@@ -859,8 +859,11 @@
     /* Mom */
     const ns = F.styles.mom, nh = F.hipHeight(ns, MOM_S);
     const stool = T.ease.io(S.stool.k);
-    const no = { x: N.x, y: N.y - nh - stool * 20, s: MOM_S, style: ns, flip: N.flip, lean: 0.1, face: { blush: 0.2, mouth: 'smile' } };
-    if (S.nmoving || S.nClimb) { no.walk = S.nph; if (S.nClimb) no.flip = true; }
+    /* onto the step-stool: a foot up first, then her weight after it */
+    const sk = S.stool.k, up1 = T.ease.io(T.clamp(sk / 0.4)), up2 = T.ease.io(T.clamp((sk - 0.4) / 0.6)), su = 2000 / MOM_S;
+    const no = { x: N.x, y: N.y - nh - up2 * 20, s: MOM_S, style: ns, flip: N.flip, lean: 0.1, face: { blush: 0.2, mouth: 'smile' } };
+    if (S.nClimb) ladderPose(no, N.y, hg, MOM_S);
+    else if (S.nmoving) no.walk = S.nph;
     else if (st === 'table' || st === 'enter') { no.flip = true; no.armF = { a: 1.25 + Math.sin(t * 2.4) * 0.12, b: 0.5 }; no.lean = 0.14; }   /* stirring the pot */
     else if (st === 'eat' || st === 'stairs') {
       no.flip = true; const ld = T.ease.io(S.ladle.k);
@@ -868,7 +871,12 @@
       no.armB = { a: 0.8, b: 1.5 }; no.face.eye = S.ghost.a > 0.3 ? 'happy' : 'open';
     } else if (nUp && (st === 'marks' || st === 'sweater' || st === 'wear' || st === 'leave')) {
       no.flip = N.x > L.x;
-      if (stool > 0.02) { no.x = T.lerp(N.x, HOUSE - 78, stool); no.flip = false; no.armF = { hand: F.local(no, HOUSE - 52, uf - 152 + (1 - stool) * 50) }; no.headTilt = -0.3 * stool; }
+      if (stool > 0.02) {
+        no.x = T.lerp(N.x, HOUSE - 78, T.clamp(sk * 4)); no.flip = false; no.lean = 0.1 + 0.08 * Math.sin(T.clamp(sk) * Math.PI);
+        no.legF = { foot: [6 + 3 * up1 * (1 - up2), 49 - su * up1 * (1 - up2)] };
+        no.legB = { foot: [-2, up2 < 0.8 ? 49 + su * up2 : T.lerp(49 + su * 0.8, 49, (up2 - 0.8) / 0.2)] };
+        no.armF = { hand: F.local(no, HOUSE - 52, uf - 152 + (1 - up2) * 50) }; no.headTilt = -0.3 * up2;
+      }
       else if (S.clap.k > 0.05) { no.armF = { a: 1.35 + Math.sin(t * 16) * 0.16, b: 1.1 }; no.armB = { a: 1.2 - Math.sin(t * 16) * 0.16, b: 1.1 }; no.face.eye = 'happy'; }
       else { no.armF = { a: 0.5, b: 1.3 }; no.armB = { a: 0.4, b: 1.3 }; no.headTilt = -0.14; }
     }
@@ -881,26 +889,39 @@
       lo.armF = { hand: F.local(lo, T.lerp(HOUSE - 28, HOUSE - 52, bite * e), T.lerp(hg - 78, hg - 128, bite * e)), bend: -1 };
       lo.armB = { hand: F.local(lo, HOUSE - 34, hg - 72) };
       lo.face.eye = bite > 0.8 ? 'closed' : 'open';
-    } else if (S.climbing) { lo.walk = t * 9; lo.flip = true; lo.armF = { a: 2.2 + Math.sin(t * 9) * 0.4, b: 0.4 }; lo.armB = { a: 2.0 - Math.sin(t * 9) * 0.4, b: 0.4 }; }
+    } else if (S.climbing) ladderPose(lo, L.y, hg, LEO_S);
     else if (S.moving) lo.walk = S.wph;
     else if (st === 'marks' && lUp) { lo.flip = false; lo.lean = -0.02; lo.headTilt = -0.04; }
     else if (st === 'wear') { lo.armF = { a: 1.2 + S.sweater.lift * 0.5, b: 0.9 }; }
     else if (st === 'table' || st === 'enter') { lo.headTilt = -0.12 + Math.sin(t * 0.7) * 0.06; }
     else if (lUp) { lo.headTilt = -0.16 + Math.sin(t * 0.6) * 0.08; }
-    if (N.x < L.x) { F.person(g, no); F.person(g, lo); } else { F.person(g, lo); F.person(g, no); }
+    const boy = S.sitting ? T.ease.io(S.ghost.a) : 0;
+    const man = () => { if (boy > 0.99) return; g.save(); g.globalAlpha = 1 - boy; F.person(g, lo); g.restore(); };
+    if (N.x < L.x) { F.person(g, no); man(); } else { man(); F.person(g, no); }
     if (S.flash > 0.01) P.glow(g, L.x, L.y - 90, 120, '#ffe6a0', S.flash * 0.8);
-    /* the boy he was, across the table */
-    if (S.ghost.a > 0.01) {
-      const ks = F.styles.leoKid, bite = Math.max(0, Math.sin(t * 2.6 + 1.6));
-      const ko = { x: HOUSE + 80, y: hg - 52, s: 118, style: ks, flip: true, sit: true, lean: 0.14,
+    /* the boy he was, on the same stool, legs not reaching the floor */
+    if (boy > 0.01) {
+      const ks = F.styles.leoKid, bite = Math.max(0, Math.sin(t * 2.6));
+      const ko = { x: HOUSE - 70, y: hg - 56, s: 118, style: ks, sit: true, lean: 0.14,
         legF: { a: Math.PI / 2 - 0.1, b: Math.PI / 2 - 0.3 + Math.sin(t * 4) * 0.35 }, legB: { a: Math.PI / 2 - 0.2, b: Math.PI / 2 - 0.3 + Math.sin(t * 4 + Math.PI) * 0.35 },
         face: { eye: bite > 0.8 ? 'happy' : 'open', mouth: 'smile', blush: 0.3 } };
-      ko.armF = { hand: F.local(ko, T.lerp(HOUSE + 40, HOUSE + 62, bite), T.lerp(hg - 78, hg - 108, bite)), bend: -1 };
-      g.save(); g.globalAlpha = S.ghost.a * 0.62;
-      P.glow(g, ko.x - 6, ko.y - 30, 70, '#fff0c8', 0.5);
+      ko.armF = { hand: F.local(ko, T.lerp(HOUSE - 28, HOUSE - 50, bite), T.lerp(hg - 78, hg - 112, bite)), bend: -1 };
+      ko.armB = { hand: F.local(ko, HOUSE - 36, hg - 72) };
+      g.save(); g.globalAlpha = boy;
+      P.glow(g, ko.x + 4, ko.y - 34, 96, '#fff0c8', 0.42 * Math.sin(T.clamp(S.ghost.a) * Math.PI) + 0.12);
       F.person(g, ko);
       g.restore();
     }
+  }
+  /* on the ladder: facing it, close in, a hand and the other foot going up a rung at a time */
+  function ladderPose(o, footY, hg, s) {
+    const rung = (hg - footY) / 22, ph = rung * Math.PI, a = Math.sin(ph), u = 2200 / s;
+    o.x = HOUSE - 112; o.flip = true; o.lean = 0.16; o.walk = null; o.headTilt = -0.2;
+    o.y -= Math.abs(a) * 3;
+    o.armF = { hand: F.local(o, HOUSE - 124, o.y - 46 * (s / 150) - 13 * a) };
+    o.armB = { hand: F.local(o, HOUSE - 121, o.y - 46 * (s / 150) + 13 * a) };
+    o.legF = { foot: [5, 49 - u * 0.62 * Math.max(0, -a)] };
+    o.legB = { foot: [3, 49 - u * 0.62 * Math.max(0, a)] };
   }
 
   /* ---------- drawing: people on the road ---------- */
