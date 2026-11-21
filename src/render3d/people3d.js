@@ -572,7 +572,7 @@ function buildPerson(parent, L, { legs = true } = {}) {
 function pointUp(P, st, bodyYaw, k) {
   const yr = clamp(st.aim.yaw - bodyYaw, -0.6, 0.9);
   const el = clamp(st.aim.elev, 0.6, 1.25);
-  _c.set(-0.55 + Math.sin(yr) * 0.12, 0.6 + el * 0.2, 0.2).normalize();
+  _c.set(-0.82 + Math.sin(yr) * 0.1, 0.55 + el * 0.2, 0.04).normalize();
   const sh = P.arms[0].userData.base;
   const t = [sh.x + _c.x * ARM * 1.12, sh.y + 0.02 + _c.y * ARM * 1.12, sh.z + _c.z * ARM * 1.12];
   st.F = [lerp(st.F[0], t[0], k), lerp(st.F[1], t[1], k), lerp(st.F[2], t[2], k)];
@@ -628,14 +628,27 @@ function aimAt(root, flip, target, headY, out) {
   return out;
 }
 
-/** 한 장면 상태(포즈 계산 중간값). */
-function poseState(p) {
+/** 한 장면 상태(포즈 계산 중간값). 사람마다 하나를 두고 매 장면 다시 채운다. */
+function poseState(p, R) {
+  const st = R.st || (R.st = { aim: { yaw: 0, elev: 0 } });
   const t = p.t || 0;
   const shock = !!p.shock;
   const wave = !shock && !!p.wave;
   const look = shock || wave ? 0 : clamp01(p.look);
-  const walk = clamp01(p.walk);
-  return { t, dir: p.dir < 0 ? -1 : 1, walk, shock, wave, look, lk: smooth(look), ph: t * 9, aim: { yaw: 0, elev: 0 }, F: [0, 0, 0], B: [0, 0, 0], palm: 0, netB: false };
+  st.t = t;
+  st.dir = p.dir < 0 ? -1 : 1;
+  st.walk = clamp01(p.walk);
+  st.shock = shock;
+  st.wave = wave;
+  st.look = look;
+  st.lk = smooth(look);
+  st.ph = t * 9;
+  st.palm = 0;
+  st.point = 0;
+  st.netB = false;
+  st.maxF = 0;
+  st.maxB = 0;
+  return st;
 }
 
 /** 표정 고르기. */
@@ -663,7 +676,7 @@ function swingNet(net, hand, t, side, phase = 0) {
  */
 function updateGround(R, pose) {
   const P = R.P;
-  const st = poseState(pose);
+  const st = poseState(pose, R);
   const { t, walk, shock, wave, lk } = st;
   R.flip.scale.x = st.dir;
   aimAt(R.root, R.flip, pose.target, 0.66, st.aim);
@@ -698,10 +711,10 @@ function updateGround(R, pose) {
   st.B = [0.205, -0.002, 0.035 - sw * 0.11];
   for (const sh of P.arms) sh.position.copy(sh.userData.base);
   if (shock) {
-    st.F = [-0.25, 0.33, 0.1];
+    st.F = [-0.3, 0.3, 0.05];
     st.B = [0.25, 0.28 + Math.sin(t * 14) * 0.035, 0.07];
   } else if (wave) {
-    st.F = [-0.28 + Math.sin(t * 10) * 0.06, 0.36, 0.08];
+    st.F = [-0.31 + Math.sin(t * 10) * 0.05, 0.33, 0.06];
   } else if (lk > 0) {
     pointUp(P, st, bodyYaw, lk);
   }
@@ -972,7 +985,7 @@ const DEFS = {
       );
       add(P.torso, merged('coatBtn', () => [0.13, 0.06, -0.01].map((y) => ell([0, y, bodyR(y) * 0.9 + 0.012], [0.017, 0.017, 0.01]))), M('#e07a2a', { rough: 0.4 }));
       const white = M('#eeeaf2', { rough: 0.9 });
-      add(P.head, merged('fisherHair', () => [capHair(1, -0.015), ell([0, -0.08, -0.15], [0.18, 0.12, 0.1])]), white, { outline: OL });
+      add(P.head, merged('fisherHair', () => [capHair(0.97, -0.03), ell([-0.2, -0.05, -0.03], [0.05, 0.085, 0.07]), ell([0.2, -0.05, -0.03], [0.05, 0.085, 0.07]), ell([0, -0.08, -0.15], [0.18, 0.12, 0.1])]), white, { outline: OL });
       add(
         P.head,
         merged('beard', () => [
@@ -1145,7 +1158,7 @@ const DEFS = {
       add(
         P.head,
         merged('astroHair', () => [...curls, ell([0, 0.0, -0.21], [0.12, 0.09, 0.07]), ell([0.0, 0.248, 0.02], [0.038, 0.034, 0.038]), ell([0.04, 0.258, -0.01], [0.032, 0.03, 0.032]), ell([-0.032, 0.252, -0.03], [0.03, 0.028, 0.03])]),
-        M('#d89a5f', { rough: 0.7 }),
+        M('#c27a42', { rough: 0.7 }),
         { outline: OLS },
       );
       add(P.head, cg('glasses', () => glassesGeo()), M('#2b2f4a', { rough: 0.4 }));
@@ -1543,7 +1556,7 @@ function buildBalloonist() {
 
 function updateBalloonist(R, pose) {
   const P = R.P;
-  const st = poseState(pose);
+  const st = poseState(pose, R);
   const { t, shock, wave, lk } = st;
   R.flip.scale.x = st.dir;
   R.ride.position.y = Math.sin(t * 1.2) * 0.03;
@@ -1567,10 +1580,10 @@ function updateBalloonist(R, pose) {
   st.B = [0.22, rimY, 0.19];
   for (const sh of P.arms) sh.position.copy(sh.userData.base);
   if (shock) {
-    st.F = [-0.25, 0.33, 0.1];
+    st.F = [-0.3, 0.3, 0.05];
     st.B = [0.22, rimY, 0.19];
   } else if (wave) {
-    st.F = [-0.28 + Math.sin(t * 10) * 0.06, 0.36, 0.08];
+    st.F = [-0.31 + Math.sin(t * 10) * 0.05, 0.33, 0.06];
   } else if (lk > 0) {
     pointUp(P, st, bodyYaw + 0.35, lk);
   }
@@ -1673,7 +1686,7 @@ function buildAstronaut() {
 
 function updateAstronaut(R, pose) {
   const P = R.P;
-  const st = poseState(pose);
+  const st = poseState(pose, R);
   const { t, shock, wave, lk, walk } = st;
   R.flip.scale.x = st.dir;
   R.drift.position.y = Math.sin(t * 1.1) * 0.03;
