@@ -378,7 +378,7 @@
     T.audio.ambience(0.5, 0.3);
     k.wait(0.5).then(() => T.audio.motif({ voice: 'felt', vel: 0.36, beat: 0.9 }));
     k.tween(S.title, 'a', 0, 2.2, T.ease.io).then(() => { S.mode = 'hub'; S.title.leaving = false; S.frag = 9; });
-    k.wait(4.2).then(() => { if (T.state.count === 0 && !S.sel) k.tween(S, 'hintA', 1, 1.2); });
+    k.wait(T.state.count === 0 ? 11.8 : 4.2).then(() => { if (T.state.count === 0 && !S.sel) k.tween(S, 'hintA', 1, 1.2); });
     /* where we are, and what he is doing, for someone who has just arrived */
     S.intro = { a: 0 };
     if (T.state.count === 0) k.wait(2.4).then(() => k.tween(S.intro, 'a', 1, 1.4)).then(() => k.wait(5.5)).then(() => k.tween(S.intro, 'a', 0, 1.6));

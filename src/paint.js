@@ -223,12 +223,15 @@
     L = { chars: [], w: 0, h: lines.length * size * lh, n: 0 };
     lines.forEach((ln, li) => {
       const arr = Array.from(ln);
-      const lw = g.measureText(ln).width + Math.max(0, arr.length - 1) * track;
+      const aw = kind === 'hand' ? g.measureText("'").width : 0;   /* the pen's apostrophe is set in far too much space */
+      const lw = g.measureText(ln).width + Math.max(0, arr.length - 1) * track - arr.filter((c) => c === "'").length * aw * 0.56;
       L.w = Math.max(L.w, lw);
-      let acc = '';
+      let acc = '', cut = 0;
       arr.forEach((ch, ci) => {
-        const x = g.measureText(acc).width + ci * track;
+        const tight = aw > 0 && ch === "'";
+        const x = g.measureText(acc).width + ci * track - cut - (tight ? aw * 0.28 : 0);
         acc += ch;
+        if (tight) cut += aw * 0.56;
         if (ch.trim()) L.chars.push({ ch, x, lw, line: li, i: L.n });
         L.n++;
       });
