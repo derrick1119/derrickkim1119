@@ -559,6 +559,9 @@ export const BEND = { w: 1.8 };
 export const BAMBOO = { r: 0.03, L: 0.4 };
 /** M3 S1 벤 뒤 멈칫(틱): min(max, base + 벤 수) — 오너 "렉·연출 과도"로 8·2 → 5·1 (측정기가 예전 값과 견줄 수 있게 내보냄) */
 export const HITSTOP = { max: 5, base: 1 };
+/** M3 F3 일섬 연출: 셋 이상 한 획일 때만(💬 오너 "한번에 베기 성공하면 게임성이 흔들리지 않는 선에서 화려한 연출") — 그림만, 시뮬은 그대로 */
+export const ISSEN = { n: 3, dark: 4, streak: 20, zoom: 8, stagger: 2, hold: 5 };
+const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches; // 움직임 줄이기: 어둠·당겨 보기 뺌
 /** 한 줄은 DMAX(.85)까지, 꺾인 한붓 획은 먹이 되는 만큼 STROKE_LEN까지(먹 값은 길이대로) */
 const reachFor = (s: DashState, pts: unknown[]) => (pts.length > 1 ? Math.min(STROKE_LEN, (s.g - GBASE) / GPER) : reachOf(s.g));
 function tracePath(s: DashState, pts: { x: number; y: number }[], maxLen: number): Path {
@@ -2067,9 +2070,12 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.restore();
   } });
   // 베인 적: 잠깐 멈췄다가(칼을 집어넣는 '찰칵') 반으로 갈라진다
-  const SPLIT = 10;
+  const SPLIT = 10, perT = new Map<number, number>();
+  for (const c of s.cuts) perT.set(c.t, (perT.get(c.t) ?? 0) + 1);
+  // M3 F3 일섬: 셋 이상 한 획이면 모두 잠깐 멈췄다가 벤 차례대로 '타다닥' 갈라진다
+  const splitOf = (c: { t: number; n: number }) => SPLIT + ((perT.get(c.t) ?? 0) >= ISSEN.n ? ISSEN.hold + c.n * ISSEN.stagger : 0);
   for (const c of s.cuts) {
-    const age = t - c.t;
+    const age = t - c.t, sp = splitOf(c);
     items.push({
       y: c.y,
       draw: () => {
@@ -2086,7 +2092,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
           ctx.restore();
           return;
         }
-        if (age < SPLIT) {
+        if (age < sp) {
           ctx.save();
           ctx.translate(cx, cy);
           ctx.fillStyle = 'rgba(4,6,18,.4)';
@@ -2105,7 +2111,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
           ctx.restore();
           return;
         }
-        const u = age - SPLIT, nx = -Math.sin(c.a), ny = Math.cos(c.a), Lc = k * 3, fall = u * u * 0.06;
+        const u = age - sp, nx = -Math.sin(c.a), ny = Math.cos(c.a), Lc = k * 3, fall = u * u * 0.06;
         for (const sd of [1, -1]) {
           ctx.save();
           ctx.globalAlpha = Math.max(0, 1 - u / 45);
@@ -2263,6 +2269,8 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   }
   items.sort((a, b) => a.y - b.y);
   for (const it of items) it.draw();
+  // ── M3 F3 일섬(셋 이상 한 획): 0.07초 어둠(만화의 임팩트 컷) 뒤 화면 끝에서 끝까지 가르는 칼빛 ──
+  const big = !!s.trail && s.trail.n >= ISSEN.n && since < ISSEN.streak;
   // ── 돌진 자국: 칼빛 선 + 잔상 ──
   const sw = !!s.trail?.sw, life = sw ? 40 : 24;
   if (s.trail && since < life) {
@@ -2271,7 +2279,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       const x0 = X(lg[0]), y0 = Y(lg[1]) - R(0.05), x1 = X(lg[2]), y1 = Y(lg[3]) - R(0.05);
       pxLine(ctx, x0, y0, x1, y1, sw ? (a > 0.5 ? 6 : 4) : a > 0.5 ? 3 : 2, sw ? `rgba(255,211,64,${0.7 * a})` : `rgba(25,182,167,${0.7 * a})`); // M3 S8 도트 칼자국: 청록(싹쓸이는 금) 계단 + 흰 심
       pxLine(ctx, x0, y0, x1, y1, sw ? 2 : 1, `rgba(255,255,255,${a})`); // 🧪 S8: 싹쓸이 칼자국이 큰 금 고리에 묻혔다 → 굵게(6칸) · 고리는 작게 흰색
-      if (since < 14) for (const u of [0.25, 0.5, 0.75]) drawFox(ctx, X(lg[0] + (lg[2] - lg[0]) * u), Y(lg[1] + (lg[3] - lg[1]) * u), R(NIN_H) * depth(lg[1] + (lg[3] - lg[1]) * u), s.face, 2, wt, 0.16 * (1 - since / 14) * (0.5 + u));
+      if (since < 14) for (const u of big ? [0.15, 0.3, 0.45, 0.6, 0.75, 0.9] : [0.25, 0.5, 0.75]) drawFox(ctx, X(lg[0] + (lg[2] - lg[0]) * u), Y(lg[1] + (lg[3] - lg[1]) * u), R(NIN_H) * depth(lg[1] + (lg[3] - lg[1]) * u), s.face, 2, wt, 0.16 * (1 - since / 14) * (0.5 + u));
     }
   }
   // 연기 (가린다)
@@ -2288,9 +2296,9 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   if (sv > 0.02) {
     ctx.save(); // M3 S1 렉: 화면 전체 채도 합성(saturation)은 휴대폰 GPU에서 비싸다 → 회청색 덮기 한 겹
     ctx.fillStyle = `rgba(52,58,76,${0.5 * sv})`;
-    ctx.fillRect(-20, -20, w + 40, h + 40);
+    ctx.fillRect(-20, -20 - dy, w + 40, h + 40 + dy); // M3 F3: 긴 캔버스의 위 하늘까지(전엔 하늘 가운데에 경계선이 남았다)
     ctx.fillStyle = `rgba(16,24,60,${0.22 * sv})`;
-    ctx.fillRect(-20, -20, w + 40, h + 40);
+    ctx.fillRect(-20, -20 - dy, w + 40, h + 40 + dy);
     // 시간이 늘어지는 물결
     for (let j = 0; j < 3; j++) {
       const ph = ((t * 0.012 + j / 3) % 1);
@@ -2306,6 +2314,31 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     }
     for (const f of s.foes) if (targets.has(f.id)) drawFoe(f, 1, true);
     drawNinja(1);
+  }
+  // M3 F3 일섬: 0.07초 먹빛 어둠(만화의 임팩트 컷) 속에 칼빛 · 사무라이 · 벤 자국만 → 화면 끝에서 끝까지 가르는 칼빛이 0.3초 남는다
+  if (big && since < ISSEN.dark && !REDUCED) {
+    ctx.fillStyle = 'rgba(6,6,18,.86)';
+    ctx.fillRect(-20, -20 - dy, w + 40, h + 40 + dy);
+    for (const c of s.cuts) if (c.t === s.trail!.t) {
+      const k = R(FOE_H[c.k]) * depth(c.y), cx = X(c.x), my = Y(c.y) - k * 0.42;
+      pxLine(ctx, cx - Math.cos(c.a) * k * 0.7, my - Math.sin(c.a) * k * 0.7, cx + Math.cos(c.a) * k * 0.7, my + Math.sin(c.a) * k * 0.7, 2, '#ffffff');
+    }
+    drawNinja(1);
+  }
+  if (big && s.trail) {
+    const L = s.trail.legs, p0 = L[0], p1 = L[L.length - 1], ax = X(p0[0]), ay = Y(p0[1]) - R(0.05), bx = X(p1[2]), by = Y(p1[3]) - R(0.05);
+    const d = Math.hypot(bx - ax, by - ay) || 1, ux = (bx - ax) / d, uy = (by - ay) / d, a = 1 - since / ISSEN.streak;
+    // 화면 안만(렉: 화면 밖 칸까지 칠하지 않게) — 보이는 네모(가로 0~w · 세로 -dy~h-dy)와 만나는 구간
+    let t0 = -1e4, t1 = 1e4;
+    for (const [p, q0, q1] of [[ax, 0, w], [ay, -dy, h - dy]] as const) {
+      const v = p === ax ? ux : uy;
+      if (Math.abs(v) < 1e-9) continue;
+      const e0 = (q0 - p) / v, e1 = (q1 - p) / v;
+      (t0 = Math.max(t0, Math.min(e0, e1))), (t1 = Math.min(t1, Math.max(e0, e1)));
+    }
+    const sx0 = ax + ux * t0, sy0 = ay + uy * t0, sx1 = ax + ux * t1, sy1 = ay + uy * t1;
+    pxLine(ctx, sx0, sy0, sx1, sy1, since < 6 ? 5 : 3, s.trail.sw ? `rgba(255,211,64,${0.55 * a})` : `rgba(124,248,221,${0.55 * a})`);
+    pxLine(ctx, sx0, sy0, sx1, sy1, since < 6 ? 2 : 1, `rgba(255,255,255,${a})`);
   }
   // ✏️ S012 1-2 길잡이(🧪 S011 '글로는 한붓을 못 배운다'): 꺾은 획을 한 번도 안 그었으면, 가장 많이 베는 ㄱ자 길을 손가락이 그려 보인다
   {
@@ -2536,7 +2569,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     }
     if (e.kind === 'sweep') { // 한 획 싹쓸이
       fx.memo.swT = t;
-      fx.blink('#fff3c4', 0.15);
+      if ((s.trail?.n ?? 0) < ISSEN.n) fx.blink('#fff3c4', 0.15); // 셋 이상이면 일섬 어둠 컷이 대신한다
       fx.kick(6);
       fx.ring(ex, ey - R(0.04), '#e8fbff', R(0.22), 3);
       fx.burst(ex, ey - R(0.04), '#ffd84a', 16, 5, 2.6);
@@ -2592,7 +2625,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   }
   for (const c of s.cuts) {
     const key = 'c' + c.t + ':' + c.seed;
-    if (c.boom || t - c.t < SPLIT - 1 || fx.memo[key] !== undefined) continue;
+    if (c.boom || t - c.t < splitOf(c) - 1 || fx.memo[key] !== undefined) continue;
     fx.memo[key] = 1;
     fx.burst(X(c.x), Y(c.y) - R(0.05), '#1a1028', 5, 2.6, 2.6);
     fx.burst(X(c.x), Y(c.y) - R(0.05), '#ffffff', 3, 2.2, 1.4);
@@ -2603,7 +2636,10 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx = hi;
     ctx.save();
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(lo.canvas, 0, 0, w, h);
+    if (big && since < ISSEN.zoom && !REDUCED && s.trail) { // 일섬: 벤 줄 가운데로 살짝 당겨 보기(8프레임 · 1.05 → 1)
+      const L = s.trail.legs, mx = X((L[0][0] + L[L.length - 1][2]) / 2), my = Y((L[0][1] + L[L.length - 1][3]) / 2) + dy, z = 1 + 0.05 * (1 - since / ISSEN.zoom);
+      ctx.drawImage(lo.canvas, mx - mx * z, my - my * z, w * z, h * z);
+    } else ctx.drawImage(lo.canvas, 0, 0, w, h);
     ctx.restore();
     for (const f of later) f();
   }

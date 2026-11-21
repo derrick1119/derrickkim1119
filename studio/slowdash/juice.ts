@@ -115,7 +115,7 @@ export class Juice {
     if (this.flash > 0.01) {
       ctx.globalAlpha = this.flash;
       ctx.fillStyle = this.flashColor;
-      ctx.fillRect(0, 0, w, h);
+      ctx.fillRect(-w, -h, w * 3, h * 3); // M3 F3: 늘어난 위 하늘까지(그리는 쪽이 판을 아래로 옮겨도 화면 전체)
       this.flash *= 0.82;
     }
     ctx.globalAlpha = 1;
