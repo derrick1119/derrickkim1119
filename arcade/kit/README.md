@@ -4,7 +4,7 @@
 
 | 파일 | 쓰임 |
 |---|---|
-| `BRIEF.md` | 에이전트 공통 브리프(마지막: 38라운드 v19 — 오너가 고른 아이디어를 깊게 · 소리 · 판 사이 성장). 새 라운드는 이걸 복사해 '이번 라운드의 1순위'·재료·장르 목록만 바꾼다. 기준 1~23은 오너 피드백이 쌓인 것이라 지우지 않는다. |
+| `BRIEF.md` | 에이전트 공통 브리프(마지막: 39라운드 v20 — 이어 다듬기: 답은 막혔을 때만(막힘 힌트) · 판마다 함정·고민 · 맨 위 39라운드 부분 + 아래 v19 본문). 새 라운드는 이걸 복사해 '이번 라운드의 1순위'·재료·장르 목록만 바꾼다. 기준 1~23은 오너 피드백이 쌓인 것이라 지우지 않는다. |
 | `TASK_COMMON.md` | 에이전트 과제 앞에 붙이는 공통 규칙(파일 하나만, git은 `show`·`log`만 — `status`도 금지, 잠금 파일 사고 0103). |
 | `eval.TEMPLATE.ts` | 게임 하나 24판 측정(계기판과 같은 `evaluateGame`). GAMEID·GAMEVAR·DUMBVAR·SMARTVAR를 바꿔 `npx tsx`. |
 | `snap-entry.TEMPLATE.ts` · `snap.html` · `snap.TEMPLATE.cjs` | 잘하는 봇으로 지정한 초마다 캔버스를 그려 `snap.png` 한 장으로. `npx esbuild <폴더>/snap-entry.ts --bundle --outfile=<폴더>/snap.js` 뒤 `node <폴더>/snap.cjs 1,3,30,90`. |
