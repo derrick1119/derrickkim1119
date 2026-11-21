@@ -7,6 +7,9 @@ export const FONT_B = "'Yeon Sung', 'Hanja Seal', 'Gowun Batang', 'Apple SD Goth
 // 큰 연출에 쓰는 붓글씨 한자 ('Hanja Brush' = Yuji Boku 부분집합). 없는 글자는 도장 글꼴로 넘어간다
 export const FONT_BRUSH = "'Hanja Brush', 'Hanja Seal', 'Yeon Sung', serif";
 
+// 받침에 따라 조사를 고른다: iga('장승 행렬') → '장승 행렬이', iga('방망이 패') → '방망이 패가'
+export const josa = (w, a, b) => { const c = String(w).charCodeAt(String(w).length - 1); return w + (c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? a : b); };
+export const iga = w => josa(w, '이', '가');
 export function st(g, col, lw) { g.strokeStyle = col; g.lineWidth = lw; g.lineJoin = 'round'; g.lineCap = 'round'; g.stroke(); }
 export function fs(g, fill, sc, lw) { if (fill) { g.fillStyle = fill; g.fill(); } if (sc) st(g, sc, lw || 1.2); }
 export function ell(g, x, y, rx, ry, fill, sc, lw, rot) { g.beginPath(); g.ellipse(x, y, rx, ry, rot || 0, 0, TAU); fs(g, fill, sc, lw); }

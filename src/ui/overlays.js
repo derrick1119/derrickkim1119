@@ -42,7 +42,7 @@ export class RewardOverlay extends Overlay {
   finish() { if (this.left) return; this.left = true; this.onDone(); }
   draw(g, dt) {
     const r = G.run, p = this.p, t = this.t, done = this.taken !== -1;
-    dim(g, 0.6);
+    dim(g, 0.78);
     brushTitle(g, 640, 34, 420, 62, { battle: '전리품', elite: '강적의 전리품', boss: '두목의 전리품', treasure: '보물 상자' }[this.kind] || '전리품', this.kind === 'treasure' ? '#b8862a' : INDIGO, 36);
     text(g, done ? '챙겼습니다' : '하나를 고르세요', 640, 94, { size: 20, fill: C.cream });
     panel(g, 1070, 26, 180, 40, 'tag'); icon.coin(g, 1094, 46, 12); text(g, `엽전 ${r.gold}`, 1170, 47, { size: 20, maxW: 130 });
@@ -71,7 +71,7 @@ export class ShopOverlay extends Overlay {
   constructor(o) { super(); this.items = o.items; this.onDone = o.onDone; this.msg = ''; this.msgT = 0; }
   draw(g, dt) {
     const r = G.run, t = this.t; if (this.msgT > 0) this.msgT -= dt;
-    dim(g, 0.62);
+    dim(g, 0.8);
     brushTitle(g, 640, 34, 300, 62, '장터', '#b8742a', 38);
     panel(g, 1070, 26, 180, 40, 'tag'); icon.coin(g, 1094, 46, 12); text(g, `엽전 ${r.gold}`, 1170, 47, { size: 20, maxW: 130 });
     this.items.forEach((it, n) => {
@@ -114,7 +114,7 @@ export class ChoiceOverlay extends Overlay {
   constructor(o) { super(); Object.assign(this, { title: o.title, art: o.art, body: o.text, choices: o.choices, onDone: o.onDone, col: o.col || '#6a5a8a', tale: o.tale || null, result: null }); }
   draw(g) {
     const r = G.run, t = this.t;
-    dim(g, 0.6);
+    dim(g, 0.78);
     panel(g, 60, 70, 1160, 580);
     brushTitle(g, 330, 76, 360, 62, this.title, this.col, 34);
     ell(g, 330, 270, 112, 112, '#efe2c4', INK, 3); g.save(); g.beginPath(); g.arc(330, 270, 110, 0, TAU); g.clip(); g.fillStyle = '#a9b78f'; g.globalAlpha = 0.5; g.fillRect(210, 326, 240, 60); g.globalAlpha = 1; portrait(g, this.art, 330, 360, UNITS[this.art].hero || UNITS[this.art].boss ? 1.9 : 2.3, t, true); g.restore();
@@ -155,7 +155,7 @@ export class StoryOverlay extends Overlay {
   next() { if (this.left) return; if (this.i < this.lines.length - 1) { this.i++; this.pt = 0; sfx('card'); } else { this.left = true; this.onDone(); } }
   draw(g, dt) {
     const [who, s] = this.lines[this.i], k = clamp(this.pt / 0.22, 0, 1), t = this.t; this.pt += dt;
-    dim(g, 0.6);
+    dim(g, 0.78);
     if (!this.left && button(g, 'stskip', 1090, 596, 150, 50, '건너뛰기', { style: 'paper', size: 20 })) { this.left = true; this.onDone(); return; }
     const x = 170, y = 372, w = 940, h = 176;
     if (who) {
@@ -180,8 +180,8 @@ export class ForkOverlay extends Overlay {
   constructor(o) { super(); this.a = o.a; this.b = o.b; this.onPick = o.onPick; }
   draw(g) {
     const t = this.t;
-    dim(g, 0.35);
-    brushTitle(g, 640, 120, 360, 62, '갈림길', '#5a5346', 36);
+    dim(g, 0.72);
+    brushTitle(g, 640, 120, 360, 62, '갈림길', '#8a5a2c', 36);
     text(g, '어느 길로 갈까요?', 640, 180, { size: 22, fill: C.cream, stroke: INK, lw: 4 });
     [['a', this.a, 220], ['b', this.b, 680]].forEach(([key, st, x], n) => {
       const v = STOP[st.type], w = 380, h = 250, k = easeOutBack(clamp((t - n * 0.12) / 0.3, 0, 1)), y = 214 + (1 - k) * 40;
@@ -191,7 +191,7 @@ export class ForkOverlay extends Overlay {
       rr(g, x, y + 6, w, h, 14, '#d9cdb0', INK, 3); rr(g, x, y + dn, w, h, 14, PAPER, INK, 3); rr(g, x + 9, y + 9 + dn, w - 18, h - 18, 8, null, v.col + '88', 1.6);
       seal(g, x + w / 2, y + 78 + dn, 84, v.ch, v.col); text(g, v.name, x + w / 2, y + 152 + dn, { size: 34, font: FONT_B });
       textBlock(g, forkDesc(st.type), x + w / 2, y + 194 + dn, w - 50, 24, { size: 17, fill: SUB, weight: 400 });
-      text(g, n ? '오른쪽 길 ▶' : '◀ 왼쪽 길', x + w / 2, y + h - 22 + dn, { size: 15, fill: v.col });
+      text(g, n ? '오른쪽 길 ▶' : '◀ 왼쪽 길', x + w / 2, y + h - 23 + dn, { size: 18, font: FONT_B, fill: v.col });
       g.restore();
     });
   }

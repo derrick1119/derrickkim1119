@@ -1,6 +1,6 @@
 // 공적 장부: 원정에서 쌓은 공적으로 영웅·병력·출발 혜택을 연다 (가로)
 import { W, H } from '../config.js';
-import { INK, PAPER, RED, INDIGO, TEAL, OCHRE, SUB, FONT_B, text, textBlock, rr } from '../render/draw.js';
+import { INK, PAPER, RED, INDIGO, TEAL, OCHRE, SUB, FONT_B, text, textBlock, rr, makeCanvas } from '../render/draw.js';
 import { button, panel, brushTitle, stamp, bar, tapped, C } from '../ui/ui.js';
 import { UNITS } from '../data/units.js';
 import { TALES } from '../data/story.js';
@@ -11,6 +11,14 @@ import { dimBackdrop } from './title.js';
 import { portrait } from '../render/sprites.js';
 import { sfx } from '../audio.js';
 
+// 영물 초상의 크기·자리 보정(칸을 고르게 채우도록)과, 아직 못 만난 영물의 먹 실루엣
+const BK = { magpie: 1.42, sapsal: 1.5, samjoko: 1.22, tiger: 0.98, haetae: 0.9 }, BY = { magpie: 90, samjoko: 92, sapsal: 68, tiger: 70, haetae: 74 }, BX = { magpie: 5, tiger: -4, haetae: -2, sapsal: -3 };
+const SHADES = new Map();
+function shade(id) {
+  let c = SHADES.get(id);
+  if (!c) { c = makeCanvas(204, 134); const k = c.getContext('2d'); k.scale(2, 2); portrait(k, id, 51 + (BX[id] || 0), (BY[id] || 73) - 9, BK[id] || 1, 0); k.globalCompositeOperation = 'source-in'; k.fillStyle = '#3d3944'; k.fillRect(0, 0, 102, 67); SHADES.set(id, c); }
+  return c;
+}
 export class MetaScene {
   constructor() { this.t = 0; this.book = false; this.beasts = false; this.sel = 0; noteDeed(); }
   // 영물의 인연: 원정에서 쌓은 공으로 영물이 합류한다. 아직 못 만난 영물도 무엇을 하면 되는지 보인다
@@ -21,8 +29,11 @@ export class MetaScene {
     BEASTS.forEach((b, n) => {
       const x = 30, y = 108 + n * 93, w = 1220, h = 85, open = has(b.id), u = UNITS[b.id], cnt = Math.min(b.need, deedCount(b));
       rr(g, x, y + 4, w, h, 6, 'rgba(50,36,20,0.2)'); rr(g, x, y, w, h, 6, open ? '#e6efdc' : PAPER, INK, 2.4);
-      rr(g, x + 9, y + 8, 96, 69, 5, '#efe4c9', INK, 1.2); g.save(); g.beginPath(); g.rect(x + 10, y + 9, 94, 67); g.clip(); if (!open) g.globalAlpha = 0.4; portrait(g, b.id, x + 57, y + 72, 0.82, open ? this.t : 0); g.restore();
-      text(g, u.name, x + 122, y + 29, { size: 26, font: FONT_B, align: 'left' }); text(g, `${u.role} · ${u.desc}`, x + 124, y + 60, { size: 15.5, align: 'left', fill: SUB, weight: 400, maxW: 330 });
+      // 초상: 칸을 채우는 고른 크기로. 아직 못 만난 영물은 먹 실루엣으로 보인다
+      rr(g, x + 9, y + 8, 104, 69, 5, open ? '#f3ead2' : '#e6dcc2', INK, 1.2); g.save(); g.beginPath(); g.rect(x + 10, y + 9, 102, 67); g.clip();
+      if (open) portrait(g, b.id, x + 61 + (BX[b.id] || 0), y + (BY[b.id] || 73), BK[b.id] || 1, this.t); else g.drawImage(shade(b.id), x + 10, y + 9, 102, 67);
+      g.restore();
+      text(g, u.name, x + 130, y + 29, { size: 26, font: FONT_B, align: 'left' }); text(g, `${u.role} · ${u.desc}`, x + 132, y + 60, { size: 15.5, align: 'left', fill: SUB, weight: 400, maxW: 330 });
       text(g, b.how, x + 480, y + 28, { size: 19, font: FONT_B, align: 'left', fill: open ? TEAL : INK, maxW: 470 }); text(g, b.lore, x + 482, y + 58, { size: 15, align: 'left', fill: SUB, weight: 400, maxW: 470 });
       if (open) stamp(g, x + w - 76, y + 42, 28, '緣', TEAL, -0.12);
       else { bar(g, x + w - 250, y + 34, 150, 16, cnt / b.need, TEAL); text(g, `${cnt} / ${b.need}`, x + w - 54, y + 43, { size: 21, font: FONT_B }); }
@@ -46,8 +57,8 @@ export class MetaScene {
     if (has) {
       text(g, t.title, 860, 190, { size: 40, font: FONT_B }); g.fillStyle = 'rgba(201,150,46,0.8)'; g.fillRect(700, 226, 320, 1.6);
       textBlock(g, t.s, 860, 290, 700, 44, { size: 23 });
-      text(g, `— ${CHAPTERS[t.ch].name} 의 주막에서`, 1210, 530, { size: 15, align: 'right', fill: SUB, weight: 400 });
-    } else { stamp(g, 860, 300, 46, '?', '#a9a394', -0.1); text(g, '아직 듣지 못한 이야기입니다', 860, 384, { size: 24, font: FONT_B, fill: SUB }); text(g, `${CHAPTERS[t.ch].name} 의 주막에 들러 보세요`, 860, 420, { size: 17, fill: SUB, weight: 400 }); }
+      text(g, `— ${CHAPTERS[t.ch].name}의 주막에서`, 1210, 530, { size: 15, align: 'right', fill: SUB, weight: 400 });
+    } else { stamp(g, 860, 300, 46, '?', '#a9a394', -0.1); text(g, '아직 듣지 못한 이야기입니다', 860, 384, { size: 24, font: FONT_B, fill: SUB }); text(g, `${CHAPTERS[t.ch].name}의 주막에 들러 보세요`, 860, 420, { size: 17, fill: SUB, weight: 400 }); }
     if (button(g, 'bookback', 960, 584, 290, 86, '장부로', { style: 'paper', size: 32 })) this.book = false;
   }
   frame(g, dt) {

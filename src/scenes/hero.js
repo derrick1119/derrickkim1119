@@ -26,7 +26,7 @@ export class HeroScene {
       g.save(); g.beginPath(); g.rect(x + 4, y + 4, w - 8, 100); g.clip(); g.fillStyle = on ? '#f3e2b0' : '#ece0c2'; g.fillRect(x + 4, y + 4, w - 8, 100); g.fillStyle = 'rgba(140,160,120,0.55)'; g.fillRect(x + 4, y + 82, w - 8, 24);
       if (locked) g.globalAlpha = 0.5; portrait(g, id, x + w / 2 - 4, y + 100, 0.86, this.t, on); g.restore();
       g.fillStyle = INK; g.fillRect(x + 4, y + 104, w - 8, 1.6); g.fillStyle = HERO_COL[id]; g.fillRect(x + 4, y + 105.6, w - 8, 3);
-      text(g, d.name, x + w / 2, y + 123, { size: 21, font: FONT_B, fill: locked ? SUB : INK }); text(g, locked ? `공적 ${UNLOCKS.find(u => u.id === id).cost}` : ROLE[id], x + w / 2, y + 140, { size: 12.5, fill: locked ? RED : SUB, weight: 400 });
+      text(g, d.name, x + w / 2, y + 123, { size: 21, font: FONT_B, fill: locked ? SUB : INK }); text(g, locked ? `공적 ${UNLOCKS.find(u => u.id === id).cost}` : ROLE[id], x + w / 2, y + 141, { size: 14.5, fill: locked ? RED : '#5a4a3a' });
       if (on) rr(g, x - 3, y - 3, w + 6, h + 6, 9, null, RED, 4);
     });
     // 고른 영웅

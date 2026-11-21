@@ -12,9 +12,9 @@ export const WEAPONS = {
   // 장병기
   spear: { name: '장창', cls: 'pole', base: true, spr: 'spear', a: 0.1, mode: 'thrust', desc: '긴 리치. 돌진형 적에게 2배, 정면 돌격을 받아친다', mod: d => { d.reach = (d.reach || 0) + 14; d.antiCav = true; d.brace = true; } },
   lance: { name: '기창', cls: 'pole', base: true, spr: 'lance', a: 0.18, mode: 'thrust', desc: '말 위에서 쓰는 긴 창' },
-  dangpa: { name: '당파', cls: 'pole', spr: 'dangpa', a: 0.1, mode: 'thrust', desc: '세 갈래 창. 리치 +10, 받는 근접 피해 -20%, 돌격을 받아친다', mod: d => { d.reach = (d.reach || 0) + 10; d.brace = true; d.armor = 0.2; } },
-  hyeopdo: { name: '협도', cls: 'pole', spr: 'hyeopdo', a: 0.2, mode: 'slash', desc: '리치 +10, 한 번에 2명 타격', mod: d => { d.reach = (d.reach || 0) + 10; d.cleave = Math.max(d.cleave || 0, 2); } },
-  woldo: { name: '언월도', cls: 'pole', spr: 'woldo', a: 0.22, mode: 'slash', desc: '공격력 +30%, 2명 타격, 리치 +8, 공격 속도 -18%', mod: d => { d.atk *= 1.3; d.as *= 1.18; d.reach = (d.reach || 0) + 8; d.cleave = Math.max(d.cleave || 0, 2); } },
+  dangpa: { name: '당파', cls: 'pole', spr: 'dangpa', a: 0.1, mode: 'thrust', desc: '세 갈래 창. 닿는 거리 +10, 받는 근접 피해 -20%, 돌격을 받아친다', mod: d => { d.reach = (d.reach || 0) + 10; d.brace = true; d.armor = 0.2; } },
+  hyeopdo: { name: '협도', cls: 'pole', spr: 'hyeopdo', a: 0.2, mode: 'slash', desc: '닿는 거리 +10, 한 번에 2명 타격', mod: d => { d.reach = (d.reach || 0) + 10; d.cleave = Math.max(d.cleave || 0, 2); } },
+  woldo: { name: '언월도', cls: 'pole', spr: 'woldo', a: 0.22, mode: 'slash', desc: '공격력 +30%, 2명 타격, 닿는 거리 +8, 공격 속도 -18%', mod: d => { d.atk *= 1.3; d.as *= 1.18; d.reach = (d.reach || 0) + 8; d.cleave = Math.max(d.cleave || 0, 2); } },
   // 둔기
   mace: { name: '철퇴', cls: 'blunt', base: true, spr: 'mace', a: 0.4, mode: 'slash', desc: '한 번에 3명 타격', mod: d => { d.cleave = Math.max(d.cleave || 0, 3); } },
   bigaxe: { name: '큰 도끼', cls: 'blunt', spr: 'bigaxe', a: 0.4, mode: 'slash', desc: '공격력 +35%, 2명 타격, 방패 무시', mod: d => { d.atk *= 1.35; d.cleave = Math.max(d.cleave || 0, 2); d.pierce = true; } },

@@ -43,12 +43,12 @@ export function tiger(g, o = {}) {
   for (const s of [-1, 1]) {
     const ix = 24 + s * 2, ox = 24 + s * 8.2;
     if (o.blink) curve(g, p => { p.moveTo(ix, -32.6); p.quadraticCurveTo(24 + s * 5, -32, ox, -34.8); }, INK, 1.4);
-    else { path(g, p => { p.moveTo(ix, -32.4); p.quadraticCurveTo(24 + s * 4.6, -36.8, ox, -35.2); p.quadraticCurveTo(24 + s * 5.6, -31, ix, -32.4); p.closePath(); }, eye, INK, 0.9); ell(g, 24 + s * 5, -33.7, 0.75, 1.6, INK); }
-    line(g, [24 + s * 1.4, -35, 24 + s * 8.8, -37.8], INK, 1.5);
+    else { path(g, p => { p.moveTo(ix, -32.2); p.quadraticCurveTo(24 + s * 4.6, -37.4, ox, -35.6); p.quadraticCurveTo(24 + s * 5.8, -30.6, ix, -32.2); p.closePath(); }, eye, INK, 1); ell(g, 24 + s * 5, -33.8, 0.8, 1.9, INK); }
+    line(g, [24 + s * 1.2, -34.6, 24 + s * 9, -38.4], INK, 2);
   }
   path(g, P(22.5, -28.6, 25.5, -28.6, 24, -26.4), '#c9584a', INK, 0.7);
   if (o.roar) { part(g, p => { p.moveTo(20, -25.4); p.quadraticCurveTo(24, -27, 28, -25.4); p.quadraticCurveTo(27.4, -20.4, 24, -20.4); p.quadraticCurveTo(20.6, -20.4, 20, -25.4); p.closePath(); }, '#7a1f1c', null, { lw: 0.9 }); for (const s of [-1, 1]) poly(g, [24 + s * 3, -25.4, 24 + s * 2.2, -22.4, 24 + s * 1.4, -25.6], WHITE, INK, 0.5); }
-  else { line(g, [24, -26.4, 24, -24.8], INK, 0.8); curve(g, p => { p.moveTo(20.4, -24.6); p.quadraticCurveTo(22.4, -22.8, 24, -24.8); p.quadraticCurveTo(25.6, -22.8, 27.6, -24.6); }, INK, 0.9); }
+  else { line(g, [24, -26.4, 24, -25], INK, 0.8); curve(g, p => { p.moveTo(19.8, -23.2); p.quadraticCurveTo(22, -25.4, 24, -25); p.quadraticCurveTo(26, -25.4, 28.2, -23.2); }, INK, 1); for (const s of [-1, 1]) poly(g, [24 + s * 3.2, -24.6, 24 + s * 2.5, -21.8, 24 + s * 1.7, -24.8], WHITE, INK, 0.5); }
   for (const s of [-1, 1]) for (const dy of [-0.6, 1.4]) line(g, [24 + s * 5.6, -25 + dy, 24 + s * 12.4, -25.6 + dy * 2.2], INK, 0.5);
 }
 
@@ -154,7 +154,7 @@ export function samjoko(g) {
 // ───────── 불가사리: 쇠를 먹는 짐승 ─────────
 // 곰 같은 몸에 코끼리 코, 등에는 쇠 바늘이 돋고 살갗 틈으로 불빛이 샌다
 export function bulgasari(g, o = {}) {
-  const C = '#4b4a58', D = '#34333e', rust = '#8a5a44', far = dk(C, 0.3);
+  const C = '#5f5e70', D = '#3a3946', rust = '#9a6248', far = dk(C, 0.3);
   // 소 꼬리
   rope(g, p => { p.moveTo(-22, -27); p.quadraticCurveTo(-30, -24, -28.6, -13.6); }, C, 1.6); part(g, P(-30.6, -14.6, -26.6, -14.6, -27.6, -7.6, -29.8, -7.6), D, null, { lw: 0.9 });
   paw(g, -12, -18, far, false, 4.2); paw(g, 12, -18, far, false, 4.2);
@@ -181,7 +181,7 @@ export function bulgasari(g, o = {}) {
 
 // ───────── 그슨대: 올려다볼수록 커지는 그림자 ─────────
 export function geuseundae(g) {
-  const D = '#211e2b', M = '#3b3652';
+  const D = '#262234', M = '#6a62a0';
   g.globalAlpha = 0.3; ell(g, 0, -2, 13, 4.6, '#5a4f86'); g.globalAlpha = 1;
   // 땅까지 끌리는 긴 팔과 손가락
   for (const s of [-1, 1]) { rope(g, p => { p.moveTo(s * 5.6, -47); p.bezierCurveTo(s * 15.6, -44, s * 14, -24, s * 15.6, -9.6); }, D, 3.2); for (const dx of [-2.4, 0, 2.4]) { line(g, [s * 15.6 + dx * 0.5, -10, s * 15.6 + dx * 1.5, -1.6], INK, 2); line(g, [s * 15.6 + dx * 0.5, -10, s * 15.6 + dx * 1.5, -1.6], D, 0.9); } }
@@ -192,7 +192,7 @@ export function geuseundae(g) {
   part(g, p => { p.moveTo(-7, -54); p.lineTo(-10.6, -61.6); p.lineTo(-6, -60); p.lineTo(-6.4, -68.6); p.lineTo(-2.4, -63.6); p.lineTo(0.4, -70.6); p.lineTo(3, -63.4); p.lineTo(7.4, -67); p.lineTo(6.6, -60); p.lineTo(10.6, -60.6); p.lineTo(7, -54); p.quadraticCurveTo(0, -50, -7, -54); p.closePath(); }, D, P(2, -71, 11, -71, 11, -52, 3, -52), { shc: '#15121c', lw: 1.2 });
   part(g, p => { p.moveTo(-5.6, -58); p.quadraticCurveTo(-5.6, -63.6, 0, -63.6); p.quadraticCurveTo(5.6, -63.6, 5.6, -58); p.quadraticCurveTo(4.6, -51.6, 0, -51); p.quadraticCurveTo(-4.6, -51.6, -5.6, -58); p.closePath(); }, '#2e2a3c', P(2, -64, 6, -64, 6, -50, 0.6, -50, 3.6, -56), { shc: '#1c1826', lw: 1 });
   // 뻥 뚫린 흰 눈과 세로로 찢어진 입
-  for (const s of [-1, 1]) { ell(g, s * 2.5, -58.6, 1.7, 2, '#f1f6f7', INK, 0.7); ell(g, s * 2.5, -58.2, 0.5, 0.7, '#211e2b'); }
+  for (const s of [-1, 1]) { g.globalAlpha = 0.4; ell(g, s * 2.6, -58.6, 3.2, 3.4, '#cfe6f0'); g.globalAlpha = 1; ell(g, s * 2.6, -58.6, 2, 2.3, '#f6fbfc', INK, 0.7); ell(g, s * 2.6, -58.2, 0.55, 0.8, '#211e2b'); }
   part(g, E(0, -54, 1.1, 2), '#0e0c14', null, { lw: 0.6 });
 }
 

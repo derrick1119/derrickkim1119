@@ -251,23 +251,23 @@ export class BattleView {
           if (e.kind === 'burn') { fx.burst(e.x, e.y - 16, 1, '#ff9a2e', 50, 3); break; }
           if (e.kind === 'melee' || e.kind === 'proj') { fx.burst(e.x, e.y - 16, e.flank ? 4 : 2, e.team === 0 ? '#e4826a' : '#f6d98a', 110); if (e.kind === 'melee' && (e.big || e.flank)) { fx.slash(e.x, e.y - 18, e.big ? 30 : 20, e.team === 0 ? REDD : MEOK); if (e.big) fx.splat(e.x, e.y - 16, 0.3, e.team === 0 ? REDD : MEOK, 0.4); } sfx(e.kind === 'proj' ? 'thud' : 'hit'); }
           if (e.flank && Math.random() < 0.34) fx.txt(e.x, e.y - 46, '배후!', '#c8642a', 18, 0.6);
-          if (e.big && e.amt >= 60) fx.txt(e.x, e.y - 42, String(Math.round(e.amt)), e.team === 0 ? RED : INK, 20, 0.7);
+          if (e.big && e.amt >= 60) fx.num(e.x, e.y - 42, e.amt, e.team === 0 ? RED : INK);
           break;
-        case 'melee': fx.star(e.x, e.y, e.big ? 15 : 10); break;
+        case 'melee': if (e.big || Math.random() < 0.45) fx.star(e.x, e.y, e.big ? 13 : 7); break;
         case 'squadLost': fx.txt(e.x, e.y - 66, e.again ? '전멸! — 다시 모인다' : '전멸!', RED, 26, 1.1); out.push(e); break;
         // 패의 살림: 전장에서 주운 패, 가득 찬 주머니, 턴 엽전, 주운 돌
         case 'loot': if (e.x !== undefined) { fx.star(e.x, e.y - 20, 16, '#fffbe6'); fx.add({ k: 'text', x: Math.min(Math.max(e.x, 150), 1130), y: e.y - 62, vy: -34, drag: 1.5, s: (e.why === 'hero' ? '되찾은 패 — ' : '노획 — ') + CARDS[e.id].name + (e.up ? '+' : ''), col: '#2f6f5c', size: 20, life: 1.3 }); } sfx('card'); out.push(e); break;
         case 'lootFull': out.push(e); break;
         case 'gold': fx.add({ k: 'text', x: e.x + 18, y: e.y - 34, vy: -40, drag: 1.5, s: '+' + e.n, col: '#b8862a', size: 17, life: 0.8 }); break;
         case 'scavenge': sfx('card'); out.push(e); break;
-        case 'bannerDown': fx.shake = 18; fx.flash = 0.9; fx.flashCol = '#fff'; fx.ring(e.x, e.y, 220, RED, 0.8, 10); fx.splat(e.x, e.y - 40, 3, MEOK, 1.1); fx.stain(e.x, e.y + 4, 2.6, 8, 0.4); fx.glyph(e.x + 30, e.y - 110, '破', 150, JU, 1.6); fx.scraps(e.x, e.y - 50, 26, [PAPER, '#c9d6e6', '#b8342a']); sfx('boom'); out.push(e); break;
+        case 'bannerDown': fx.shake = 18; fx.flash = 0.9; fx.flashCol = '#fff'; fx.ring(e.x, e.y, 220, RED, 0.8, 10); fx.splat(e.x, e.y - 40, 3, MEOK, 1.1); fx.stain(e.x, e.y + 4, 2.6, 8, 0.4); fx.glyph(Math.max(e.x + 190, 310), Math.max(e.y - 20, 300), '破', 140, JU, 1.6); fx.scraps(e.x, e.y - 50, 26, [PAPER, '#c9d6e6', '#b8342a']); sfx('boom'); out.push(e); break;
         case 'waveClear': out.push(e); break;
         case 'waveStart': sfx('warn'); break;
         case 'heroSkill': {
           const col = HERO_COL[e.hero] || INDIGO, id = e.id, P2 = e.pts || [];
           fx.add({ k: 'text', x: e.x, y: e.y - 100, vy: -20, drag: 1.5, s: e.name + '!', col, size: 30, life: 1.3, big: true }); fx.ring(e.x, e.y, 64, col, 0.35, 6);
           // 영웅의 한 자를 등 뒤에 붓으로 쓰고, 발밑에 먹 고리를 긋는다
-          fx.enso(e.x, e.y, 1.15, MEOK, 0.8); if (HERO_SEAL[e.hero]) fx.glyph(e.x - 4, e.y - 46, HERO_SEAL[e.hero], 112, MEOK, 0.95, { ground: true, peak: 0.6, halo: 'rgba(248,240,220,0.5)' });
+          fx.enso(e.x, e.y, 1.15, MEOK, 0.8); if (HERO_SEAL[e.hero]) fx.glyph(e.x, Math.max(118, e.y - 152), HERO_SEAL[e.hero], 68, MEOK, 1.05);
           if (id === 'whirl') { fx.ring(e.x, e.y, 112, INK, 0.3, 7); for (let i = 0; i < 4; i++) fx.slash(e.x + Math.cos(i * 1.57) * 52, e.y - 16 + Math.sin(i * 1.57) * 34, 34, REDD, i * 1.57 + 1.2); fx.shake = Math.max(fx.shake, 6); sfx('charge'); }
           else if (id === 'roar') { fx.ring(e.x, e.y, 190, RED, 0.6, 9); sfx('horn'); }
           else if (id === 'leap') sfx('leap');
@@ -296,7 +296,8 @@ export class BattleView {
           const mx = (e.ax + e.bx) / 2, my = (e.ay + e.by) / 2 - 40; fx.ink('swash', mx, my + 14, { s: 0.9, s1: 1.25, rot: -0.08, life: 1.1, peak: 0.9, in: 0.08, fast: true, v: 0 }); fx.enso(e.ax, e.ay, 1.5, MEOK, 1); fx.enso(e.bx, e.by, 1.5, MEOK, 1); fx.glyph(mx, my, '合', 170, JU, 1.4);
           sfx('boss'); out.push(e); break; }
         case 'comboFx': for (const [x, y] of e.pts) { if (e.style === 'slash') { fx.slash(x, y - 18, 48, '#eef0ff', 0.8); fx.slash(x, y - 18, 48, '#5a4a8a', 2.3); } else if (e.style === 'arrow') { fx.add({ k: 'arrow', x, y, life: 0.2 }); fx.add({ k: 'stuck', ground: true, x, y, life: 0.9 }); } else { fx.bolt(x, y - 8); fx.star(x, y - 16, 22, '#fffbe6'); } } break;
-        case 'morale': fx.add({ k: 'text', x: e.x, y: e.y - 52, vy: -42, drag: 1.5, s: '사기 +' + Math.round(e.n * 10) / 10, col: '#b8862a', size: 21, life: 1 }); sfx('coin'); break;
+        // 사기는 싸움터 한복판이 아니라 왼쪽 아래 사기 표시 위에서 오른다
+        case 'morale': fx.add({ k: 'text', x: 118 + Math.random() * 30, y: 548, vy: -34, drag: 1.5, s: '사기 +' + Math.round(e.n * 10) / 10, col: '#b8862a', size: 21, life: 1 }); fx.star(e.x, e.y - 30, 11, '#f0d264'); sfx('coin'); break;
         case 'synergy': case 'chase': out.push(e); break;
         case 'death': {
           const L = getLook(e.utype); fx.puff(e.x, e.y - 12, e.boss ? 14 : 4, PAPER, e.boss ? 18 : 9); fx.scraps(e.x, e.y - 22, e.boss ? 26 : 6, e.team === 0 ? [PAPER, '#c9d6e6', '#e9dec4'] : [PAPER, '#efc9b8', '#e9dec4']);

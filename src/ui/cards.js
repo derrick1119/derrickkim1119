@@ -45,7 +45,7 @@ export function cardFace(g, c, x, y, w, h, o = {}) {
   else if (unit && (c.lv || 1) > 1) { rr(g, x + w - 26, y + h - 17, 23, 14, 3, NAVY); text(g, 'Lv' + c.lv, x + w - 14.5, y + h - 9.6, { size: 10, fill: '#f0d99a' }); }
   if (big) {
     rr(g, x + w / 2 - 34, y + hh + 132, 68, 24, 5, null, col, 1.4); text(g, k.name, x + w / 2, y + hh + 145, { size: 15, fill: col });
-    textBlock(g, o.text || cardText(c, o.P || 1), x + w / 2, y + hh + (unit ? 174 : 178), w - (unit ? 18 : 24), unit ? 19 : 22, { size: unit ? 13.5 : 16.5, fill: SUB, weight: 400 });
+    textBlock(g, o.text || cardText(c, o.P || 1), x + w / 2, y + hh + (unit ? 174 : 178), w - (unit ? 18 : 24), unit ? 19 : 22, { size: unit ? 14 : 16.5, fill: '#4a4034', weight: 400 });
   } else if (!mini) { const ky = y + h - 13; text(g, k.name, x + w / 2, ky, { size: 13, fill: col }); for (const sg of [-1, 1]) { line(g, [x + w / 2 + sg * 22, ky, x + w / 2 + sg * (w / 2 - 12), ky], col + '77', 1); ell(g, x + w / 2 + sg * 22, ky, 1.3, 1.3, col + 'aa'); } }
   rr(g, x + 3.5, y + 3.5, w - 7, h - 7, r - 2, null, gilt ? '#c9962e' : 'rgba(38,42,54,0.16)', gilt ? 1.6 : 0.9);
   if (c.wpn && !mini) { ell(g, x + w - 13, y + hh + 13, 9, 9, RED, INK, 1.2); text(g, '武', x + w - 13, y + hh + 14, { size: 11, fill: C.cream }); }
@@ -83,7 +83,7 @@ export class DeckView {
   frame(g, dt) { const L = ui.layer; ui.layer = L + 1; try { this.draw(g, dt); } finally { ui.layer = L; } }
   draw(g, dt) {
     this.t += dt; const r = G.run, deck = r.deck, mode = this.mode;
-    g.fillStyle = 'rgba(31,42,68,0.62)'; g.fillRect(0, 0, W, H);
+    g.fillStyle = 'rgba(24,32,54,0.86)'; g.fillRect(0, 0, W, H);
     panel(g, 30, 24, 1220, 672);
     brushTitle(g, 300, 30, 300, 60, this.title || (mode === 'up' ? '패 다듬기' : mode === 'burn' ? '패 태우기' : '덱 살피기'), mode === 'burn' ? '#7a1f1c' : INDIGO, 32);
     text(g, mode === 'up' ? '익힐 전술 패(그 종류가 모두 +)나 조련할 병력 패를 고르세요' : mode === 'burn' ? '덱에서 없앨 패를 고르세요' : `병력 ${deck.filter(isUnit).length}장 · 전술 패 ${tacticCards().length}/${pouchCap()}장 — 전술 패는 한 번 쓰면 사라집니다`, 480, 62, { size: 17, fill: SUB, weight: 400, align: 'left', maxW: 400 });
@@ -135,7 +135,7 @@ export class RelicView {
   frame(g, dt) { const L = ui.layer; ui.layer = L + 1; try { this.draw(g); } finally { ui.layer = L; } }
   draw(g) {
     const r = G.run, n = r.relics.length, cols = n > 9 ? 3 : 2, cw = 1160 / cols, rows = Math.ceil(n / cols), lh = Math.min(62, 500 / Math.max(1, rows));
-    g.fillStyle = 'rgba(31,42,68,0.62)'; g.fillRect(0, 0, W, H);
+    g.fillStyle = 'rgba(24,32,54,0.86)'; g.fillRect(0, 0, W, H);
     panel(g, 30, 24, 1220, 672); brushTitle(g, 640, 30, 300, 60, '지닌 보물', '#b8742a', 32);
     if (!n) text(g, '아직 지닌 보물이 없습니다', 640, 330, { size: 24, fill: SUB });
     r.relics.forEach((id, k) => {

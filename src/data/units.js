@@ -27,11 +27,11 @@ export const UNITS = {
     desc: '여럿을 후려치는 철퇴', tip: '한 번에 최대 3명을 타격. 체력이 절반 아래면 공격 속도 +50%.' },
   // ───── 영물: 원정을 거듭하며 인연을 맺으면 합류한다 (state.js 의 BEASTS) ─────
   magpie: { name: '까치', role: '길조', side: 0, beast: true, cost: 2, n: 6, hp: 30, atk: 8, as: 0.62, range: 0, spd: 150, r: 8, prefer: 'soft', dodge: 0.25, omen: 0.5,
-    desc: '반가운 소식을 물어 오는 길조', tip: '날쌔게 날아가 후방의 요괴를 쫍니다. 까치가 전장에 있는 동안 요괴 무리를 물리칠 때마다 사기를 0.5 더 얻습니다.' },
+    desc: '반가운 소식을 물어 오는 새', tip: '날쌔게 날아가 후방의 요괴를 쫍니다. 까치가 전장에 있는 동안 요괴 무리를 물리칠 때마다 사기를 0.5 더 얻습니다.' },
   sapsal: { name: '삽살개', role: '벽사', side: 0, beast: true, cost: 2, n: 4, hp: 105, atk: 13, as: 0.8, range: 0, spd: 98, r: 10, bane: 1.6, seal: true,
     desc: '귀신 쫓는 털북숭이 개', tip: '망령과 저승 요괴에게 1.6배 피해. 삽살개가 물어 쓰러뜨린 망령은 되살아나지 못합니다.' },
   haetae: { name: '해태', role: '수호', side: 0, beast: true, cost: 3, n: 2, hp: 330, atk: 20, as: 1.25, range: 0, spd: 60, r: 14, armor: 0.15, fireproof: true, aura: { ward: 0.15, r: 125 },
-    desc: '불을 삼키는 수호 영물', tip: '화상에 걸리지 않고, 곁에 선 아군이 받는 피해 -15%. 전열 한가운데에 세우세요.' },
+    desc: '불을 삼키는 신령한 짐승', tip: '화상에 걸리지 않고, 곁에 선 아군이 받는 피해 -15%. 전열 한가운데에 세우세요.' },
   samjoko: { name: '삼족오', role: '원거리', side: 0, beast: true, cost: 3, n: 3, hp: 70, atk: 22, as: 1.55, range: 240, spd: 62, r: 10, proj: 'sunfire', soft: true, burnHit: { t: 3, k: 0.4 }, sun: true,
     desc: '해 속에 사는 세 발 까마귀', tip: '햇불을 쏘아 3초 화상을 입힙니다. 삼족오가 전장에 있는 동안은 밤의 불이익이 사라집니다.' },
   tiger: { name: '호랑이', role: '침투', side: 0, beast: true, cost: 3, n: 2, hp: 280, atk: 30, as: 0.95, range: 0, spd: 130, r: 14, leap: true, backstab: 2.0, pounce: { r: 60, stun: 1.2 }, prefer: 'soft',

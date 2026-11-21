@@ -18,6 +18,11 @@ export class Fx {
   puff(x, y, n = 4, col = PAPER, size = 9) { for (let i = 0; i < n; i++) { const a = Math.random() * TAU, s = 20 + Math.random() * 40; this.add({ k: 'puff', x: x + Math.cos(a) * 4, y: y + Math.sin(a) * 3, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6 - 18, drag: 3, life: 0.35 + Math.random() * 0.25, col, size: size * (0.7 + Math.random() * 0.6) }); } }
   star(x, y, size = 16, col = '#f6d98a') { this.add({ k: 'star', x, y, life: 0.18, size, col, rot: Math.random() * TAU }); }
   ring(x, y, r, col = INK, life = 0.4, lw = 5) { this.add({ k: 'ring', ground: true, x, y, r, col, life, lw }); }
+  // 피해 숫자: 같은 자리에 잇달아 뜨면 겹쳐 쌓지 않고 한 숫자로 더한다
+  num(x, y, amt, col = INK) {
+    for (const p of this.p) if (p.num && p.col === col && p.t < 0.4 && Math.abs(p.x - x) < 54 && Math.abs(p.y - y) < 44) { p.val += amt; p.s = String(Math.round(p.val)); p.size = Math.min(30, 20 + Math.sqrt(p.val) * 0.25); p.t = Math.min(p.t, 0.12); return; }
+    this.add({ k: 'text', num: true, val: amt, x: x + (Math.random() - 0.5) * 10, y, vy: -46, drag: 1.5, s: String(Math.round(amt)), col, size: 20, life: 0.8 });
+  }
   txt(x, y, s, col = INK, size = 20, life = 0.8) { this.add({ k: 'text', x: x + (Math.random() - 0.5) * 10, y, vy: -46, drag: 1.5, s, col, size, life }); }
   // 종잇조각: 인형이 쓰러질 때 흩날린다
   scraps(x, y, n = 6, cols = [PAPER]) { for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.6, s = 60 + Math.random() * 120; this.add({ k: 'scrap', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, g: 300, drag: 1.6, life: 0.6 + Math.random() * 0.5, size: 3 + Math.random() * 4, col: cols[(Math.random() * cols.length) | 0], rot: Math.random() * TAU, vr: (Math.random() - 0.5) * 16 }); } }
@@ -28,7 +33,11 @@ export class Fx {
   // 튀는 먹물
   splat(x, y, s = 0.4, col = MEOK, life = 0.45) { this.ink('splat', x, y, { s: s * 0.45, s1: s, rot: Math.random() * TAU, col, life, in: 0.08 }); }
   // 바닥에 번져 남는 먹 자국 (납작하게 눕힌다)
-  stain(x, y, s = 0.7, life = 5, peak = 0.34) { this.ink('splat', x, y, { ground: true, s: s * 0.34, s1: s * 0.6, sx: (Math.random() < 0.5 ? -1 : 1) * 1.7, life, peak, in: 0.04, pow: 2.2, fast: true }); }
+  // 물 먹은 종이에 번진 옅은 먹 + 가운데 떨어진 진한 먹 한 방울
+  stain(x, y, s = 0.7, life = 5, peak = 0.34) {
+    this.ink('wash', x, y, { ground: true, s: s * 0.26, s1: s * 0.46, sx: 1.5, life, peak: Math.min(1, peak * 2), in: 0.04, pow: 2.2, fast: true });
+    this.ink('splat', x + (Math.random() - 0.5) * 8, y + 1, { ground: true, s: s * 0.2, s1: s * 0.34, sx: (Math.random() < 0.5 ? -1 : 1) * 1.25, rot: (Math.random() - 0.5) * 0.6, life: life * 0.8, peak: peak * 0.95, in: 0.04, pow: 2.4, fast: true });
+  }
   // 바닥에 한 붓으로 그린 고리
   enso(x, y, s = 1, col = MEOK, life = 0.7) { this.ink('enso', x, y, { ground: true, s: s * 0.34, s1: s * 0.62, sx: 1.6, rot: 0, col, life, peak: 0.85, in: 0.1, fast: true }); }
   // 피어오르는 먹 연기

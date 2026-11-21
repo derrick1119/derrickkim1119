@@ -3,7 +3,7 @@ import { W, H } from '../config.js';
 import { INK, RED, INDIGO, TEAL, SUB, FONT_B, text, textBlock, rr } from '../render/draw.js';
 import { button, panel, brushTitle, C } from '../ui/ui.js';
 import { nav } from '../nav.js';
-import { G, meta, save, settleRun, BEASTS, has, deedCount } from '../state.js';
+import { G, meta, save, settleRun, BEASTS, has, deedCount, noteDeed } from '../state.js';
 import { UNITS } from '../data/units.js';
 import { CHAPTERS } from '../data/stages.js';
 import { CARDS, isUnit } from '../data/cards.js';
@@ -15,7 +15,7 @@ import { cardFace } from '../ui/cards.js';
 import { inkMark } from '../render/ink.js';
 
 export class EndScene {
-  constructor(a) { this.win = !!(a && a.win); this.t = 0; this.r = G.run; this.gain = settleRun(this.win); this.conf = Array.from({ length: 70 }, () => ({ x: Math.random() * W, y: -Math.random() * H, v: 90 + Math.random() * 140, c: [RED, INDIGO, '#d9a441', '#3f6b5c', '#fbf7ec'][(Math.random() * 5) | 0], p: Math.random() * 6 })); }
+  constructor(a) { this.win = !!(a && a.win); this.t = 0; this.r = G.run; this.gain = settleRun(this.win); this.fresh = noteDeed(); this.conf = Array.from({ length: 70 }, () => ({ x: Math.random() * W, y: -Math.random() * H, v: 90 + Math.random() * 140, c: [RED, INDIGO, '#d9a441', '#3f6b5c', '#fbf7ec'][(Math.random() * 5) | 0], p: Math.random() * 6 })); }
   frame(g, dt) {
     this.t += dt; const t = this.t, r = this.r, win = this.win;
     g.drawImage(backdrop(), 0, 0, W, H);
@@ -25,7 +25,7 @@ export class EndScene {
     // 원정의 끝을 알리는 한 자: 이기면 勝, 지면 敗
     inkMark(g, win ? '勝' : '敗', 310, 64, 86, { k: (t - 0.25) / 0.5, col: win ? '#f6efdc' : '#f3b9a6', v: win ? 0 : 2 });
     // 이긴 밤에는 영웅의 후일담, 진 밤에는 장승 앞에서 깨어난다
-    const tale = win ? ENDING + '\n' + (r && EPILOGUE[r.hero] || '') : (r ? `${CHAPTERS[Math.min(2, r.ch)].name} 에서 길을 잃었습니다.\n` : '') + DEFEAT;
+    const tale = win ? ENDING + '\n' + (r && EPILOGUE[r.hero] || '') : (r ? `${CHAPTERS[Math.min(2, r.ch)].name}에서 길을 잃었습니다.\n` : '') + DEFEAT;
     textBlock(g, tale, 640, 112, 1100, 25, { size: 18.5, stroke: win ? '#ecdfc2' : 'rgba(31,42,68,0.7)', lw: 5, fill: win ? INK : C.cream });
     if (r) { portrait(g, r.hero, 250, 590 - (win ? Math.abs(Math.sin(t * 4)) * 10 : 0), 3.2, t); if (win) { portrait(g, 'sword', 110, 620, 1.9, t, true); portrait(g, 'priest', 410, 620, 1.9, t, true); } else portrait(g, 'treant', 420, 620, 1.5, 0); }
     panel(g, 520, 198, 720, 364);
@@ -39,7 +39,8 @@ export class EndScene {
     }
     // 다음에 맺을 영물의 인연 하나: 가장 가까운 것을 짚어 준다
     const nb = BEASTS.filter(b => !has(b.id)).sort((a, b) => deedCount(b) / b.need - deedCount(a) / a.need)[0];
-    if (nb) { text(g, `다음 인연 · ${UNITS[nb.id].name}`, 544, 532, { size: 18, font: FONT_B, align: 'left', fill: TEAL }); text(g, `${nb.how}  (${Math.min(nb.need, deedCount(nb))} / ${nb.need})`, 716, 533, { size: 16, align: 'left', fill: SUB, weight: 400, maxW: 500 }); }
+    if (this.fresh.length) { text(g, `새로 맺은 인연 · ${this.fresh.map(b => UNITS[b.id].name).join(' · ')}`, 544, 532, { size: 18, font: FONT_B, align: 'left', fill: TEAL }); text(g, '다음 원정부터 전리품과 장터에 나옵니다', 880, 533, { size: 16, align: 'left', fill: SUB, weight: 400, maxW: 340 }); }
+    else if (nb) { text(g, `다음 인연 · ${UNITS[nb.id].name}`, 544, 532, { size: 18, font: FONT_B, align: 'left', fill: TEAL }); text(g, `${nb.how}  (${Math.min(nb.need, deedCount(nb))} / ${nb.need})`, 716, 533, { size: 16, align: 'left', fill: SUB, weight: 400, maxW: 500 }); }
     if (t > 0.8 && button(g, 'home', 560, 586, 310, 90, '처음으로', { style: 'paper', size: 34 })) { G.run = null; save(); nav.go('title'); }
     if (t > 0.8 && button(g, 'meta', 890, 586, 310, 90, '공적 장부', { size: 34 })) { G.run = null; save(); nav.go('meta'); }
   }
