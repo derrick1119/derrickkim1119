@@ -135,63 +135,67 @@ function twinkle(ctx, x, y, r, color, alpha = 1) {
 const DRAW = {
   dandelion(ctx, t) {
     const CREAM = '#fff6e0';
-    const TAN = '#c39a64';
+    const TAN = '#b98c55';
     ctx.save();
     ctx.rotate(Math.sin(t * 1.8) * 0.13);
     // 밝은 하늘·밤하늘 모두에서 보이게 은은한 빛무리
     glow(ctx, 0, -5, 20, '#fff3cf', 0.42);
     const hx = 0;
-    const hy = -3;
-    // 솜털 우산의 부피
-    ctx.beginPath();
-    ctx.moveTo(hx, hy);
-    ctx.arc(hx, hy, 12.5, -Math.PI / 2 - 1.32, -Math.PI / 2 + 1.32);
-    ctx.closePath();
-    const fluff = ctx.createRadialGradient(hx, hy - 2, 1, hx, hy, 13);
-    fluff.addColorStop(0, 'rgba(255,250,236,0.15)');
-    fluff.addColorStop(1, 'rgba(255,248,230,0.55)');
-    ctx.fillStyle = fluff;
-    ctx.fill();
+    const hy = -2.5;
     // 줄기와 씨앗
     ctx.beginPath();
     ctx.moveTo(hx, hy);
     ctx.quadraticCurveTo(hx + 1.2, 4, hx + 0.4, 10.5);
-    stroke(ctx, TAN, 2.4);
+    stroke(ctx, TAN, 2.3);
     ctx.beginPath();
     ctx.moveTo(hx, hy);
     ctx.quadraticCurveTo(hx + 1.2, 4, hx + 0.4, 10.5);
-    stroke(ctx, CREAM, 1.1);
+    stroke(ctx, CREAM, 1);
     ellipse(ctx, hx + 0.4, 13.4, 2, 3.7);
     shade(ctx, '#b57a45', -2, 10, 2.5, 17, { lw: 1.1, light: 0.35, dark: 0.25 });
-    // 솜털 가닥
-    const n = 11;
-    const tips = [];
+    // 솜털 우산: 가는 털이 양산처럼 퍼지고, 끝은 깃털처럼 갈라진다.
+    const n = 9;
+    const hairs = [];
     for (let i = 0; i < n; i++) {
-      const a = -Math.PI / 2 + (i - (n - 1) / 2) * 0.255;
-      const len = 12.2 - Math.abs(i - (n - 1) / 2) * 0.32;
-      tips.push([hx + Math.cos(a) * len, hy + Math.sin(a) * len, a]);
+      const u = i / (n - 1) - 0.5;
+      const a = -Math.PI / 2 + u * 3.05;
+      const len = i % 2 ? 11.8 : 12.8;
+      hairs.push([a, hx + Math.cos(a) * len * 1.08, hy + Math.sin(a) * len * 0.92]);
     }
+    // 폭신한 부피(옅은 크림 안개)
     ctx.beginPath();
-    for (const [x, y] of tips) {
-      ctx.moveTo(hx, hy);
-      ctx.lineTo(x, y);
-    }
-    stroke(ctx, withAlpha(TAN, 0.9), 2.3);
-    ctx.beginPath();
-    for (const [x, y] of tips) {
-      ctx.moveTo(hx, hy);
-      ctx.lineTo(x, y);
-    }
-    stroke(ctx, CREAM, 1.05);
-    // 가닥 끝 솜뭉치
-    for (const [x, y, a] of tips) {
+    ctx.ellipse(hx, hy - 1, 13, 11.6, 0, Math.PI * 0.96, Math.PI * 2.04);
+    ctx.closePath();
+    const fluff = ctx.createRadialGradient(hx, hy, 1, hx, hy - 1, 13);
+    fluff.addColorStop(0, 'rgba(255,250,236,0.1)');
+    fluff.addColorStop(0.75, 'rgba(255,248,230,0.3)');
+    fluff.addColorStop(1, 'rgba(255,248,230,0.12)');
+    ctx.fillStyle = fluff;
+    ctx.fill();
+    const hairPath = () => {
       ctx.beginPath();
-      addCircle(ctx, x, y, 2.15);
-      addCircle(ctx, x - Math.sin(a) * 1.3, y + Math.cos(a) * 1.3 - 0.4, 1.4);
-      blob(ctx, CREAM, TAN, 0.55);
+      for (const [a, x, y] of hairs) {
+        ctx.moveTo(hx, hy);
+        ctx.lineTo(x, y);
+        const bx = x - Math.cos(a) * 1.8;
+        const by = y - Math.sin(a) * 1.8;
+        for (const s of [-1, 1]) {
+          ctx.moveTo(bx, by);
+          ctx.lineTo(bx + Math.cos(a + s * 0.62) * 2.6, by + Math.sin(a + s * 0.62) * 2.6);
+        }
+      }
+    };
+    hairPath();
+    stroke(ctx, withAlpha(TAN, 0.9), 2);
+    hairPath();
+    stroke(ctx, CREAM, 0.95);
+    for (const [, x, y] of hairs) {
+      circle(ctx, x, y, 1.35);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
     }
     // 가운데 매듭
-    ball(ctx, hx, hy, 1.9, '#f1d9a6', { lw: 0.9, line: TAN });
+    ball(ctx, hx, hy, 1.8, '#f1d9a6', { lw: 0.9, line: TAN });
     ctx.restore();
   },
 
@@ -213,14 +217,10 @@ const DRAW = {
     ctx.fillStyle = radial(ctx, 5.4, 4.8, 7, '#fdffe0', pulse > 0.4 ? '#eaff66' : '#d9f25a', '#a6cf32');
     ctx.fill();
     stroke(ctx, '#86ad2a', 1.4);
-    ctx.save();
-    ctx.globalAlpha *= 0.45;
-    for (const k of [-1.2, 1.8]) {
-      ctx.beginPath();
-      ctx.ellipse(4.8 + k * Math.cos(0.5), 4.2 + k * Math.sin(0.5), 4.6, 5.2, 0.5, -0.95 + Math.PI / 2, 0.95 + Math.PI / 2);
-      stroke(ctx, '#a4c93a', 0.9);
-    }
-    ctx.restore();
+    // 마디
+    ctx.beginPath();
+    ctx.ellipse(4.8, 4.2, 4.4, 5.6, 0.5, Math.PI * 0.55, Math.PI * 1.25);
+    stroke(ctx, withAlpha('#9cc236', 0.55), 0.9);
     // 다리
     ctx.beginPath();
     for (const x of [-3.5, -1, 1.5]) {

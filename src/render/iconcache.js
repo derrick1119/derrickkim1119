@@ -9,16 +9,16 @@ import { drawEmblem } from './emblems.js';
 const cache = new Map();
 /** 표본마다 꼬리·줄 때문에 중심이 어긋나는 만큼 보정한다. [dy, 배율] */
 const SPECIMEN_FIT = {
-  dandelion: [-1, 1.5],
+  dandelion: [-1, 1.3],
   firefly: [1, 1.5],
-  balloon: [-5, 1.15],
-  kite: [-7, 1.05],
-  chicken: [1, 1.3],
-  cow: [1, 1.05],
-  drone: [0, 1.2],
-  weather: [-9, 1.0],
-  satellite: [2, 0.98],
-  meteor: [3, 1.1],
+  balloon: [-2, 1.06],
+  kite: [-4, 1.0],
+  chicken: [1, 1.15],
+  cow: [-0.5, 0.94],
+  drone: [1, 0.95],
+  weather: [0, 0.95],
+  satellite: [3.5, 0.93],
+  meteor: [3, 1.15],
 };
 
 function paintIcon(ctx, kind, id, size) {

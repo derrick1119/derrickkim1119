@@ -1,6 +1,6 @@
 // 임무 엠블럼과 특수 사건 배지. 원점은 중심, 반지름 20 px 의 둥근 배지.
 // 금빛 테두리 고리 안에 컨셉 아트풍 작은 풍경(밝은 낮 하늘·초록 들판·밤의 따뜻한 불빛)을 그린다.
-import { P, TAU, tone, edge, shade, ball, gloss, glow, withAlpha, circle, ellipse, rrect, poly, cumulus } from './draw.js';
+import { P, TAU, edge, shade, ball, gloss, glow, withAlpha, circle, ellipse, rrect, poly, cumulus } from './draw.js';
 
 const R = 20;
 const IN = 16.3; // 그림 창 반지름
@@ -8,6 +8,8 @@ const IN = 16.3; // 그림 창 반지름
 const DAY = ['#3a78de', '#69aaf4', '#bfe2ff'];
 const NIGHT = ['#121a5a', '#28318a', '#4a3f95'];
 const WARM = '#ffd86a'; // 밤 불빛
+const ALIEN = '#a4b3cc'; // 대원(기체 그림과 같은 색)
+const ALIEN_EYE = '#141a36';
 
 // ───────── 틀과 도구 ─────────
 
@@ -109,8 +111,9 @@ function stars(ctx, pts, t) {
 }
 
 /**
- * 작은 우리 기체(컨셉의 남색 접시 + 하늘색 유리 돔 + 청록 불빛). s=1 이면 폭 14 px.
+ * 작은 우리 기체(컨셉처럼 남색 접시 + 하늘색 유리 돔 + 청록 띠 불빛). s=1 이면 폭 15 px.
  * face: 돔 속 대원의 표정 'calm' | 'sleep' | 'happy' | 'laugh' | 'sneeze' | null
+ * lights: 테두리 띠 불빛 색
  */
 function ufo(ctx, x, y, s = 1, { face = 'calm', tilt = 0, lights = P.glow } = {}) {
   ctx.save();
@@ -119,7 +122,7 @@ function ufo(ctx, x, y, s = 1, { face = 'calm', tilt = 0, lights = P.glow } = {}
   ctx.scale(s, s);
   // 돔
   ctx.beginPath();
-  ctx.ellipse(0, -1.3, 3.7, 4, 0, Math.PI, TAU);
+  ctx.ellipse(0, -1.4, 3.9, 4.6, 0, Math.PI, TAU);
   ctx.closePath();
   const g = ctx.createLinearGradient(-3, -5, 3, -1);
   g.addColorStop(0, '#e8fcff');
@@ -127,46 +130,59 @@ function ufo(ctx, x, y, s = 1, { face = 'calm', tilt = 0, lights = P.glow } = {}
   g.addColorStop(1, '#4ea4d8');
   fill(ctx, g);
   if (face) {
-    ball(ctx, 0, -1.7, 2.1, P.alien, { lw: 0, light: 0.3, dark: 0.2 });
-    ctx.fillStyle = P.ink;
-    ctx.strokeStyle = P.ink;
+    ball(ctx, 0, -2.9, 2.3, ALIEN, { lw: 0, light: 0.35, dark: 0.25 });
     if (face === 'calm' || face === 'happy') {
-      for (const sx of [-0.85, 0.85]) {
-        ellipse(ctx, sx, -1.8, 0.48, 0.7);
-        ctx.fill();
+      for (const sx of [-1, 1]) {
+        ellipse(ctx, sx * 0.9, -3, 0.62, 0.86, -sx * 0.4);
+        fill(ctx, ALIEN_EYE);
+        circle(ctx, sx * 0.9 - 0.2, -3.3, 0.2);
+        fill(ctx, '#ffffff');
       }
     } else {
       ctx.beginPath();
-      for (const sx of [-0.85, 0.85]) {
+      for (const sx of [-1, 1]) {
+        const ex = sx * 0.9;
         if (face === 'sleep') {
-          ctx.moveTo(sx - 0.55, -1.8);
-          ctx.quadraticCurveTo(sx, -1.25, sx + 0.55, -1.8);
+          ctx.moveTo(ex - 0.55, -3.1);
+          ctx.quadraticCurveTo(ex, -2.5, ex + 0.55, -3.1);
         } else if (face === 'laugh') {
-          ctx.moveTo(sx - 0.55, -1.5);
-          ctx.quadraticCurveTo(sx, -2.4, sx + 0.55, -1.5);
+          ctx.moveTo(ex - 0.55, -2.8);
+          ctx.quadraticCurveTo(ex, -3.7, ex + 0.55, -2.8);
         } else {
-          ctx.moveTo(sx - 0.5 * Math.sign(sx), -2.3);
-          ctx.lineTo(sx + 0.45 * Math.sign(sx), -1.8);
-          ctx.lineTo(sx - 0.5 * Math.sign(sx), -1.3);
+          // 재채기: 질끈 감은 > < 눈
+          ctx.moveTo(ex - 0.5 * sx, -3.6);
+          ctx.lineTo(ex + 0.45 * sx, -3.1);
+          ctx.lineTo(ex - 0.5 * sx, -2.6);
         }
       }
-      stroke(ctx, P.ink, 0.45);
+      stroke(ctx, ALIEN_EYE, 0.5);
     }
   }
   ctx.beginPath();
-  ctx.ellipse(0, -1.3, 3.7, 4, 0, Math.PI, TAU);
+  ctx.ellipse(0, -1.4, 3.9, 4.6, 0, Math.PI, TAU);
   stroke(ctx, '#3b7fb3', 0.6);
-  gloss(ctx, -1.7, -3.7, 1, 0.6, -0.5, 0.85);
-  // 선체
-  ellipse(ctx, 0, 0, 7.4, 2.7);
-  shade(ctx, P.hull, -4, -2.7, 4, 2.7, { lw: 0.7, light: 0.5, dark: 0.3 });
+  gloss(ctx, -2, -4.4, 0.9, 0.55, -0.6, 0.85);
+  // 아래 빛 그릇
+  ellipse(ctx, 0, 2.3, 2.8, 1);
+  fill(ctx, withAlpha(lights, 0.9));
+  // 선체: 어두운 아랫면 + 밝은 윗면
+  ellipse(ctx, 0, 0.7, 7, 2.2);
+  fill(ctx, P.hullDark);
   ctx.beginPath();
-  ctx.ellipse(0, -0.6, 5.8, 1.3, 0, Math.PI * 1.08, Math.PI * 1.92);
+  ctx.ellipse(0, 0, 7.4, 2.2, 0, Math.PI, TAU);
+  ctx.ellipse(0, 0, 7.4, 1.3, 0, 0, Math.PI);
+  ctx.closePath();
+  shade(ctx, P.hull, -4, -2.2, 4, 1.4, { lw: 0.6, light: 0.5, dark: 0.25, line: P.hullDark });
+  ctx.beginPath();
+  ctx.ellipse(0, -0.4, 5.8, 1.1, 0, Math.PI * 1.08, Math.PI * 1.92);
   stroke(ctx, withAlpha(P.hullLight, 0.85), 0.6);
-  // 테두리 불빛
-  for (const lx of [-4.8, -1.6, 1.6, 4.8]) {
-    circle(ctx, lx, 0.8, 0.78);
-    fill(ctx, lights);
+  // 테두리 띠 불빛
+  ctx.beginPath();
+  ctx.ellipse(0, 0.3, 7, 1.35, 0, Math.PI * 0.06, Math.PI * 0.94);
+  stroke(ctx, lights, 1.1);
+  for (const lx of [-4.6, -1.6, 1.6, 4.6]) {
+    circle(ctx, lx, 0.3 + 1.35 * Math.sqrt(1 - (lx / 7) ** 2), 0.5);
+    fill(ctx, '#ffffff');
   }
   ctx.restore();
 }
@@ -305,7 +321,7 @@ const EMBLEMS = {
       cloud(ctx, [[-14, 11 + b, 5.6], [-7, 8.8 + b, 6.2], [1, 9.6 + b, 6.6], [9, 8.4 + b, 6], [15, 11 + b, 5.2], [0, 15 + b, 7]], '#bcc8f2');
       // Zz
       const z = (t * 0.5) % 1;
-      for (const [x, y, s, a] of [[7.2, -6.4, 2.4, 1], [11.4, -10.6, 1.7, 0.85]]) {
+      for (const [x, y, s, a] of [[6, -6.2, 2.3, 1], [9.8, -9.8, 1.6, 0.85]]) {
         ctx.beginPath();
         const yy = y - z * 1.2;
         ctx.moveTo(x - s, yy - s);
@@ -323,19 +339,20 @@ const EMBLEMS = {
 
   streetlamp(ctx, t) {
     scene(ctx, () => {
-      sky(ctx, NIGHT);
+      sky(ctx, ['#1c276e', '#383f96', '#6a52a6']);
       stars(ctx, [[-6, -13, 0.8], [12, -12, 0.6], [-12, -6, 0.5]], t);
       // 골목 집들
-      ctx.fillStyle = '#272c6c';
+      ctx.fillStyle = '#2c3378';
       ctx.fillRect(-R, 0, 10, R);
       poly(ctx, [[-R, 0], [-15, -4.5], [-10, 0]]);
       ctx.fill();
       ctx.fillRect(9, 2, R, R);
       poly(ctx, [[8, 2], [13.5, -2.5], [19, 2]]);
       ctx.fill();
-      for (const [x, y] of [[-15.6, 3], [-12.6, 3], [11.6, 5], [14.6, 5]]) {
+      for (const [x, y] of [[-15.8, 2.6], [-12.8, 2.6], [11.4, 4.6], [14.4, 4.6]]) {
+        glow(ctx, x + 1.1, y + 1.3, 3.2, WARM, 0.5);
         ctx.fillStyle = WARM;
-        ctx.fillRect(x, y, 1.8, 2.2);
+        ctx.fillRect(x, y, 2.2, 2.6);
       }
       ctx.fillStyle = vg(ctx, 10, IN, '#3a3e84', '#2b2f6e');
       ctx.fillRect(-R, 10, R * 2, R);
@@ -344,18 +361,19 @@ const EMBLEMS = {
       ctx.moveTo(-6.5, 11);
       ctx.lineTo(-6.5, -1.5);
       ctx.quadraticCurveTo(-6.5, -3.5, -4.4, -3.4);
-      stroke(ctx, '#545c9a', 1.1);
-      glow(ctx, -4, -2.6, 5, WARM, 0.8);
+      stroke(ctx, '#6a74b4', 1.2);
+      cone(ctx, -4.2, -2.4, 1.4, -8, 0, 11, '#ffe99a', 0.3, 0.04);
+      glow(ctx, -4, -2.6, 6, WARM, 0.85);
       ellipse(ctx, -4, -3, 1.8, 1);
       fill(ctx, '#fff2b0');
       // 앞 가로등: 머리가 우리 기체
       const on = Math.sin(t * 9) > -0.92;
-      if (on) cone(ctx, 4.4, -6, 4.5, -5.5, 15, 13, '#ffe99a', 0.55, 0.08);
+      if (on) cone(ctx, 4.4, -6, 4.5, -6.5, 16, 13, '#ffe99a', 0.7, 0.12);
       glow(ctx, 4.4, 11.5, 9, WARM, on ? 0.45 : 0.2);
-      rrect(ctx, 0.4, -5, 2, 17, 0.8);
-      shade(ctx, '#3c467a', 0.4, -5, 2.4, 12, { lw: 0.7, light: 0.45 });
-      rrect(ctx, -0.6, 10.6, 4, 2.6, 0.8);
-      shade(ctx, '#3c467a', -0.6, 10.6, 3.4, 13, { lw: 0.7 });
+      rrect(ctx, 0.4, -5, 2.2, 17, 0.8);
+      shade(ctx, '#4f5b9c', 0.4, -5, 2.6, 12, { lw: 0.7, light: 0.5 });
+      rrect(ctx, -0.6, 10.6, 4.2, 2.6, 0.8);
+      shade(ctx, '#4f5b9c', -0.6, 10.6, 3.6, 13, { lw: 0.7 });
       if (on) glow(ctx, 4.4, -6.4, 9, '#fff3b0', 0.7);
       ufo(ctx, 4.4, -7.6, 1.15, { face: 'calm', lights: on ? '#fff3b0' : P.glow });
     });
@@ -503,12 +521,13 @@ const EMBLEMS = {
       sky(ctx, ['#0e1550', '#21307e', '#3b4c9c']);
       stars(ctx, [[-12, -9, 0.9], [-6, -14, 0.6], [-2, -6, 0.5], [6, -3, 0.6], [13, -2, 0.5], [-13, -1, 0.5]], t);
       // 지나가는 기체와 꼬리 빛
-      const x = 6 + Math.sin(t * 0.9) * 1.2;
+      const x = 5.6 + Math.sin(t * 0.9) * 1.2;
       ctx.beginPath();
-      ctx.moveTo(x - 6, -9.4);
-      ctx.quadraticCurveTo(x - 14, -8.4, x - 20, -11);
+      ctx.moveTo(x - 6.4, -7.2);
+      ctx.quadraticCurveTo(x - 12, -5.4, x - 17, -8);
       stroke(ctx, withAlpha(P.glow, 0.45), 1.6);
-      ufo(ctx, x, -10.4, 1.05, { tilt: -0.1 });
+      glow(ctx, x, -8, 8, P.glow, 0.3);
+      ufo(ctx, x, -8.4, 1.05, { tilt: -0.1 });
       // 언덕
       land(ctx, 6, 3.6, 7.4, '#2c5a7a');
       land(ctx, 11, 9.5, 10, '#23496a');
@@ -547,19 +566,33 @@ const EMBLEMS = {
     scene(ctx, () => {
       sky(ctx, NIGHT);
       stars(ctx, [[8, -13, 0.8], [13, -6, 0.5], [2, -15, 0.5]], t);
-      // 땅과 활주로
+      // 땅과 활주로(멀리 뻗는다)
       ctx.fillStyle = vg(ctx, 4, IN, '#26336c', '#1c2457');
       ctx.fillRect(-R, 4, R * 2, R);
-      poly(ctx, [[2, 4], [8, 4], [R, 14], [-2, R]]);
-      fill(ctx, '#3c4380');
+      poly(ctx, [[3.2, 4.2], [6.2, 4.2], [17, R], [-5, R]]);
+      ctx.fillStyle = vg(ctx, 4, IN, '#3f4688', '#525aa0');
+      ctx.fill();
+      poly(ctx, [[3.2, 4.2], [6.2, 4.2], [17, R], [-5, R]]);
+      stroke(ctx, withAlpha('#c9d4ff', 0.5), 0.6);
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const u0 = i / 4 + 0.08;
+        const u1 = u0 + 0.13;
+        ctx.moveTo(4.7 + 1.3 * u0 * u0, 4.2 + 15.8 * u0 * u0);
+        ctx.lineTo(4.7 + 1.3 * u1 * u1, 4.2 + 15.8 * u1 * u1);
+      }
+      stroke(ctx, withAlpha('#ffffff', 0.65), 0.7);
       // 활주로 등(차례로 깜빡인다)
       for (let i = 0; i < 5; i++) {
-        const u = i / 4;
+        const u = (i + 0.4) / 5;
+        const k = u * u;
         const on = Math.floor(t * 6 - i) % 5 === 0;
-        for (const [ax, ay, bx, by, c] of [[2, 4, -2, R, '#9fe8ff'], [8, 4, R, 14, '#ffd86a']]) {
-          const x = ax + (bx - ax) * u;
-          const y = ay + (by - ay) * u;
-          glow(ctx, x, y, 1.5 + u * 2 + (on ? 1.5 : 0), c, 0.9);
+        for (const [ax, bx, c] of [[3.2, -5, '#9fe8ff'], [6.2, 17, '#ffd86a']]) {
+          const x = ax + (bx - ax) * k;
+          const y = 4.2 + 15.8 * k;
+          glow(ctx, x, y, 1.2 + k * 2.4 + (on ? 1.6 : 0), c, 0.85);
+          circle(ctx, x, y, 0.45 + k * 0.6);
+          fill(ctx, on ? '#ffffff' : c);
         }
       }
       // 관제탑
@@ -593,7 +626,9 @@ const EMBLEMS = {
       circle(ctx, -6.4, -15.4, 1.1);
       fill(ctx, on ? '#ff6b5e' : '#9a5a7a');
       // 활주로를 산책하는 기체
-      ufo(ctx, 9.4, 6.6, 0.85, { face: 'happy' });
+      const hb = Math.sin(t * 2) * 0.7;
+      glow(ctx, 8.2, -3 + hb, 7, P.glow, 0.3);
+      ufo(ctx, 8.2, -4 + hb, 0.95, { face: 'happy' });
     });
   },
 
@@ -707,16 +742,17 @@ const EMBLEMS = {
       sky(ctx, ['#0b1042', '#1a2266', '#2c3280']);
       stars(ctx, [[-3, -13, 0.8], [13, 6, 0.6], [-14, 4, 0.5], [6, -14, 0.5], [12, -11, 0.6]], t);
       // 멀리 뜬 지구
-      ball(ctx, -10, -8.6, 3.6, '#3f86e0', { lw: 0.6, light: 0.45 });
+      glow(ctx, -8.4, -7.8, 7, '#7fc4ff', 0.35);
+      ball(ctx, -8.4, -7.8, 3.5, '#3f86e0', { lw: 0.6, light: 0.45 });
       ctx.save();
-      circle(ctx, -10, -8.6, 3.6);
+      circle(ctx, -8.4, -7.8, 3.5);
       ctx.clip();
-      ellipse(ctx, -11.4, -9.4, 1.8, 1.2, 0.4);
+      ellipse(ctx, -9.8, -8.6, 1.8, 1.2, 0.4);
       fill(ctx, '#6fcf5a');
-      ellipse(ctx, -8.2, -7, 1.4, 1.6, -0.3);
+      ellipse(ctx, -6.6, -6.2, 1.4, 1.6, -0.3);
       fill(ctx, '#6fcf5a');
       ctx.restore();
-      gloss(ctx, -11.2, -10, 1, 0.6, -0.5, 0.7);
+      gloss(ctx, -9.6, -9.2, 1, 0.6, -0.5, 0.7);
       // 달 뒤에서 빼꼼 내다보는 기체
       const peek = 1 + Math.sin(t * 1.6) * 1.5;
       ufo(ctx, 8 + peek, -5.4, 1.05, { tilt: -0.3 });
@@ -738,24 +774,36 @@ const EMBLEMS = {
     scene(ctx, () => {
       sky(ctx, ['#3a78de', '#62a2f2', '#9fd2ff']);
       const k = 0.5 + 0.5 * Math.sin(t * 2.5);
-      // 사방으로 날아가는 은폐 구름 조각
-      for (const [a, d, r] of [[-2.6, 11, 4], [-1.6, 11.5, 4.4], [-0.5, 12, 3.8], [0.6, 12, 4.2], [1.7, 12.5, 4], [2.6, 11.5, 3.8]]) {
-        const dd = d + k * 2.2;
-        const x = Math.cos(a) * dd;
-        const y = 1 + Math.sin(a) * dd * 0.85;
-        cloud(ctx, [[x, y, r], [x + Math.cos(a) * 2.2, y + Math.sin(a) * 2, r * 0.7]], '#c3cdf3');
-      }
-      // 재채기 선
+      // 에취! 만화식 폭발 테두리
       ctx.beginPath();
-      for (const a of [-2.2, -1.2, -0.3, 0.5, 2.9]) {
-        ctx.moveTo(Math.cos(a) * 7.5, 1 + Math.sin(a) * 6.5);
-        ctx.lineTo(Math.cos(a) * 9.5, 1 + Math.sin(a) * 8.2);
+      for (let i = 0; i < 24; i++) {
+        const a = (i / 24) * TAU + 0.1;
+        const r = i % 2 ? 7.6 : 11.4 + k * 1.2 + (i % 4 ? 0 : 1.2);
+        if (i) ctx.lineTo(Math.cos(a) * r, 2 + Math.sin(a) * r * 0.9);
+        else ctx.moveTo(Math.cos(a) * r, 2 + Math.sin(a) * r * 0.9);
       }
-      stroke(ctx, '#ffffff', 1.1);
-      ufo(ctx, 0, 1.6, 1.5, { face: 'sneeze', tilt: -0.08 + k * 0.08 });
-      for (const [x, y, r] of [[6.4, -5.6, 0.9], [8.8, -3.4, 0.7], [7.8, -7.8, 0.6]]) {
+      ctx.closePath();
+      fill(ctx, 'rgba(255,248,214,0.92)');
+      stroke(ctx, '#ffc93f', 0.9);
+      // 사방으로 날아가는 은폐 구름 조각
+      for (const [a, d, r] of [[-2.55, 13.6, 4.6], [-1.45, 14.6, 3.6], [-0.35, 14, 4.2], [0.75, 13.6, 4.8], [2.15, 14.2, 4]]) {
+        const dd = d + k * 2;
+        const cx = Math.cos(a);
+        const sy = Math.sin(a);
+        const x = cx * dd;
+        const y = 2 + sy * dd * 0.9;
+        ctx.beginPath();
+        for (const o of [-1.6, 1.6]) {
+          ctx.moveTo(x - cx * (r + 1) - sy * o, y - sy * (r + 1) + cx * o);
+          ctx.lineTo(x - cx * (r + 4.5) - sy * o, y - sy * (r + 4.5) + cx * o);
+        }
+        stroke(ctx, 'rgba(255,255,255,0.85)', 0.8);
+        cloud(ctx, [[x, y, r], [x - cx * r * 0.7 + sy * r * 0.5, y - sy * r * 0.7 - cx * r * 0.4, r * 0.66]], '#c3cdf3');
+      }
+      ufo(ctx, 0, 2.4, 1.45, { face: 'sneeze', tilt: -0.1 + k * 0.1 });
+      for (const [x, y, r] of [[6.2, -4.6, 0.9], [8.4, -2.4, 0.7], [7.6, -6.8, 0.6]]) {
         circle(ctx, x + k * 1.2, y - k * 0.6, r);
-        fill(ctx, '#bdf0ff');
+        fill(ctx, '#7fd8ff');
       }
     });
   },
@@ -829,17 +877,30 @@ const EMBLEMS = {
         ctx.quadraticCurveTo(x + s * 3.6, y + 1.4, x + s * 4.8, y);
       }
       stroke(ctx, '#d04a7a', 1);
-      // 콕콕 찌르는 손가락
-      const poke = Math.max(0, Math.sin(t * 8)) * 1.8;
+      // 콕콕 찌르는 손가락(아래 왼쪽에서)
+      const poke = Math.max(0, Math.sin(t * 8)) * 1.6;
+      const SKIN = P.skin[0];
+      const SKIN_LINE = edge(P.skin[1], 0.4);
       ctx.save();
-      ctx.translate(-6.6 + poke, 13 - poke);
-      ctx.rotate(0.72);
-      rrect(ctx, -2.1, -11, 4.2, 12, 2.1);
-      shade(ctx, P.skin[0], -2, -11, 2, 1, { lw: 0.9, line: edge(P.skin[1], 0.4) });
-      rrect(ctx, -1.4, -10.4, 2.8, 2.8, 1.1);
-      fill(ctx, '#ffe9e4');
-      rrect(ctx, -5, -1, 10, 9, 3.6);
-      shade(ctx, P.skin[0], -5, -1, 5, 8, { lw: 0.9, line: edge(P.skin[1], 0.4) });
+      ctx.translate(-6.2 + poke * 0.6, 9.8 - poke * 0.8);
+      ctx.rotate(0.6);
+      rrect(ctx, -5.8, 6.6, 11.6, 7, 1.6);
+      shade(ctx, P.blue, -5.8, 6.6, 5.8, 13, { lw: 0.9 });
+      rrect(ctx, -3.8, -8.4, 4.6, 9.6, 2.3);
+      shade(ctx, SKIN, -3.8, -8.4, 0.8, 1, { lw: 0.9, line: SKIN_LINE });
+      rrect(ctx, -3, -7.7, 3, 2.8, 1.2);
+      fill(ctx, '#fff0ea');
+      rrect(ctx, -5.2, -1.4, 10.4, 8.6, 3.8);
+      shade(ctx, SKIN, -5.2, -1.4, 5.2, 7.2, { lw: 0.9, line: SKIN_LINE });
+      ctx.beginPath();
+      for (const y of [1, 3.2, 5.4]) {
+        ctx.moveTo(1.4, y);
+        ctx.quadraticCurveTo(3.8, y + 0.2, 4.8, y + 1.2);
+      }
+      stroke(ctx, SKIN_LINE, 0.7);
+      ellipse(ctx, -4.6, 2.4, 1.7, 3, 0.25);
+      shade(ctx, SKIN, -6.2, -0.8, -2.8, 5.2, { lw: 0.9, line: SKIN_LINE });
+      gloss(ctx, -2.4, -5.6, 0.7, 1.8, 0, 0.5);
       ctx.restore();
     });
   },
