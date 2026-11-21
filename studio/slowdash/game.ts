@@ -1973,7 +1973,9 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     }
   }
   // ── 땅 위: 먹물 자국 · 그림자 · 위험 표시 ──
+  const warns: [string, number[]][] = []; // 공격 범위 테(주인공 위에 그림)
   for (const k of s.inks) {
+    if (s.phase === 'result') break; // 👁 r5: 판 깬 화면에 먹 자국 15개가 흩어져 지저분했다
     const a = Math.max(0, 1 - (t - k.t) / 420) * Math.min(1, Math.max(0, t - k.t - 8) / 6);
     if (a <= 0) continue;
     if (a < 0.15 || (a < 0.35 && Math.floor(t / 4) % 2)) continue; // 👁 r2: 반투명 겹침이 흐린 얼룩 → 한 색 도트 자국, 끝에 깜빡이며 사라짐
@@ -2002,12 +2004,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
         if (f.k !== 'boss') { let da = Math.atan2(j * 2, i) - f.fa; da = Math.atan2(Math.sin(da), Math.cos(da)); if (Math.abs(da) > 1.2) continue; }
         if (q > 0.62 || (f.k !== 'boss' && (i * i + j * j < 2))) edge.push(cx0 + i, cy0 + j);
       }
-      if (!(u > 0.6 && Math.floor(t / 3) % 2)) { // 👁 r4: 반투명 면이 피·그림자 얼룩처럼 읽혔다 → 또렷한 빨강 테만, 칼 내리기 직전엔 깜빡
-        ctx.fillStyle = u > 0.6 ? '#ff4a3d' : '#d8323a';
-        ctx.beginPath();
-        for (let e = 0; e < edge.length; e += 2) ctx.rect(edge[e] * PX, edge[e + 1] * PX, PX, PX);
-        ctx.fill();
-      }
+      if (!(u > 0.6 && Math.floor(t / 3) % 2)) warns.push([u > 0.6 ? '#ff4a3d' : '#d8323a', edge]); // 👁 r4: 반투명 면 → 빨강 테만 · 👁 r5: 주인공 밑에 묻혔다 → 주인공 다음에 그림
     }
     if (f.k === 'shield') {
       ctx.strokeStyle = 'rgba(255,214,110,.75)';
@@ -2333,6 +2330,12 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
   items.sort((a, b) => a.y - b.y);
   for (const it of items) it.draw();
   if (s.phase === 'play') drawNinja();
+  for (const [col, edge] of warns) {
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    for (let e = 0; e < edge.length; e += 2) ctx.rect(edge[e] * PX, edge[e + 1] * PX, PX, PX);
+    ctx.fill();
+  }
   // ── M3 F3 일섬(셋 이상 한 획): 0.07초 어둠(만화의 임팩트 컷) 뒤 화면 끝에서 끝까지 가르는 칼빛 ──
   const big = !!s.trail && s.trail.n >= ISSEN.n && since < ISSEN.streak, peak = big && (s.trail!.n >= ISSEN.top || !!s.trail!.sw); // 정점(넷 이상·싹쓸이)에만 어둠·당겨 보기
   // ── 돌진 자국: 칼빛 선 + 잔상 ──
@@ -2797,7 +2800,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       const w1 = ctx.measureText(head).width;
       font(0.036, 800);
       const w2 = sub ? ctx.measureText(sub).width : 0;
-      const cw = Math.min(w - R(0.06), Math.max(w1, w2) + R(0.1)) * unroll, stars = s.phase === 'result' && s.ok, ch = stars ? (sub ? R(0.15) : R(0.115)) : sub ? R(0.13) : R(0.08); // 🎨 F3: 깬 카드는 별 줄만큼 키움(별이 카드 아래로 삐져나오고 제목 윗줄이 잘렸음)
+      const cw = Math.min(w - R(0.06), Math.max(w1, w2) + R(0.1)) * unroll, stars = s.phase === 'result' && s.ok, ch = stars ? (sub ? R(0.19) : R(0.16)) : sub ? R(0.13) : R(0.08); // 🎨 F3: 깬 카드는 별 줄만큼 키움(별이 카드 아래로 삐져나오고 제목 윗줄이 잘렸음)
       ctx.fillStyle = 'rgba(0,0,0,.35)';
       rr(ctx, w / 2 - cw / 2 + 3, cy - ch / 2 + 4, cw, ch, R(0.02));
       ctx.fill();
@@ -2824,13 +2827,13 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
         if (sub) {
           font(0.034, 800);
           ctx.fillStyle = '#7a3a1a';
-          ctx.fillText(sub, w / 2, cy + R(0.056), w - R(0.1));
+          ctx.fillText(sub, w / 2, cy + R(0.075), w - R(0.1));
         }
         for (let j = 0; j < 3; j++) {
           const ag = s.pt - (12 + j * 12);
-          const sx = w / 2 + (j - 1) * R(0.07), sy = cy + R(0.028) - up;
+          const sx = w / 2 + (j - 1) * R(0.09), sy = cy + R(0.04) - up; // 👁 r5: 판 깬 순간 별이 12px라 초라했다 → 크게(7칸 × 4px)
           const pop = ag < 0 ? 0 : ag < 8 ? 1.9 - 0.9 * (ag / 8) : 1;
-          starPath(ctx, sx, sy, R(0.026) * (ag < 0 ? 1 : pop));
+          starPath(ctx, sx, sy, R(0.036) * (ag < 0 ? 1 : pop));
           ctx.fillStyle = ag >= 0 && s.starOk[j] ? '#ffc93a' : 'rgba(90,60,20,.18)';
           ctx.fill();
           ctx.strokeStyle = ag >= 0 && s.starOk[j] ? '#7a4a08' : 'rgba(90,60,20,.4)';

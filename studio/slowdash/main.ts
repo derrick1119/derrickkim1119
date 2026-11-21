@@ -384,6 +384,7 @@ else start();
 if (q.get('warm') !== '0') {
   try {
     const t = g.create(7), c = document.createElement('canvas').getContext('2d')!;
+    if (PXT) pixelText(c, false); // 렉(📋 F4: 켠 뒤 3초 27·29 → 12·10/30 · 도트 글 첫 굽기 ~4ms×18): 예열 그리기에서 판 글을 미리 구워 로딩 안에 숨김(굽기 캐시는 판 캔버스와 같이 씀)
     if (s.stage) startStage(t, s.stage); // 지금 하는 판의 적·장치 코드까지(대장 휙 · 대나무 쓰러짐)
     (c.canvas.width = W), (c.canvas.height = H);
     for (let i = 0; i < 240; i++) { // 꺾은 획 한 번 + 곧은 획 한 번
