@@ -115,6 +115,14 @@ function onFace(px, py, rr = HR) {
 /** +z 를 얼굴 그림의 (px, py) 방향으로 돌리는 회전(order YXZ 로 쓴다). */
 const faceRot = (px, py, roll = 0) => [py / FK, px / FK, roll];
 
+/** 한 번만 만드는 텍스처. */
+const texCache = new Map();
+function texOnce(key, make) {
+  let t = texCache.get(key);
+  if (!t) texCache.set(key, (t = make()));
+  return t;
+}
+
 // 재질: 무광 점토/플라스틱
 const M = (c, o = {}) => mat(c, { rough: 0.78, ...o });
 
@@ -992,15 +1000,12 @@ const DEFS = {
       const bob = add(
         line,
         sphereGeo(0.03, 14, 10),
-        M('#ffffff', {
-          rough: 0.4,
-          map: canvasTexture(16, 16, (ctx) => {
-            ctx.fillStyle = '#e2483c';
-            ctx.fillRect(0, 0, 16, 8);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 8, 16, 8);
-          }),
-        }),
+        M('#ffffff', { rough: 0.4, map: texOnce('bobber', () => canvasTexture(16, 16, (ctx) => {
+          ctx.fillStyle = '#e2483c';
+          ctx.fillRect(0, 0, 16, 8);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 8, 16, 8);
+        })) }),
       );
       line.userData.bob = bob;
       line.userData.str = line.children[0];
@@ -1567,7 +1572,7 @@ function buildAstronaut() {
   R.flip.add(R.drift);
   // 사람 뼈대를 그대로 쓰되 몸 중심이 원점이 되게 내린다(발 −0.45 … 헬멧 꼭대기 +0.45)
   R.suit = new THREE.Group();
-  R.suit.position.y = -0.43;
+  R.suit.position.y = -0.45;
   R.drift.add(R.suit);
   const P = buildPerson(R.suit, L);
   R.P = P;
@@ -1577,37 +1582,38 @@ function buildAstronaut() {
   add(
     P.torso,
     roundBoxGeo(0.12, 0.08, 0.03, 0.012, 2),
-    M('#ffffff', {
-      rough: 0.4,
-      map: canvasTexture(64, 48, (ctx) => {
-        ctx.fillStyle = '#3f6fd0';
-        ctx.fillRect(0, 0, 64, 48);
-        for (const [x, c] of [[14, '#ff7a5c'], [32, '#ffd23f'], [50, '#5fe0c8']]) {
-          ctx.fillStyle = c;
-          ctx.beginPath();
-          ctx.arc(x, 18, 6, 0, TAU);
-          ctx.fill();
-        }
-        ctx.fillStyle = '#9fe8ff';
-        ctx.fillRect(10, 32, 44, 5);
-      }),
-    }),
+    M('#ffffff', { rough: 0.4, map: texOnce('panel', () => canvasTexture(64, 48, (ctx) => {
+      ctx.fillStyle = '#3f6fd0';
+      ctx.fillRect(0, 0, 64, 48);
+      for (const [x, c] of [[14, '#ff7a5c'], [32, '#ffd23f'], [50, '#5fe0c8']]) {
+        ctx.fillStyle = c;
+        ctx.beginPath();
+        ctx.arc(x, 18, 6, 0, TAU);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#9fe8ff';
+      ctx.fillRect(10, 32, 44, 5);
+    })) }),
     { pos: [0, 0.09, 0.145], rot: [-0.12, 0, 0] },
   );
   add(P.torso, cg('suitBelt', () => place(torusGeo(0.165, 0.018, 8, 32), [0, -0.01, 0], [Math.PI / 2, 0, 0], [1, 0.9, 1])), M('#b8bdd6', { rough: 0.5 }));
-  // 헬멧: 앞이 뚫린 흰 껍데기(안쪽은 외곽선 재질이 남색으로 비친다) + 유리 + 테
-  const HELM = 0.3;
-  const OPEN = 0.95;
-  add(P.head, cg('helmet', () => place(new THREE.SphereGeometry(HELM, 40, 28, 0, TAU, OPEN, Math.PI - OPEN), [0, 0.01, 0], [Math.PI / 2, 0, 0])), suit, { outline: OL });
-  add(P.head, cg('helmetRim', () => place(torusGeo(HELM * Math.sin(OPEN), 0.022, 10, 40), [0, 0.01, HELM * Math.cos(OPEN)])), M(ACC, { rough: 0.5 }));
+  // 헬멧: 앞이 뚫린 흰 껍데기(안쪽은 외곽선 재질이 남색으로 비친다) + 유리 + 테. 머리는 조금 줄여 안에 넣는다.
+  P.head.scale.setScalar(0.86);
+  const helm = new THREE.Group();
+  helm.position.y = HEAD_C;
+  P.neck.add(helm);
+  const HELM = 0.285;
+  const OPEN = 0.98;
+  add(helm, cg('helmet', () => place(new THREE.SphereGeometry(HELM, 40, 28, 0, TAU, OPEN, Math.PI - OPEN), [0, 0.01, 0], [Math.PI / 2, 0, 0])), suit, { outline: OL });
+  add(helm, cg('helmetRim', () => place(torusGeo(HELM * Math.sin(OPEN), 0.022, 10, 40), [0, 0.01, HELM * Math.cos(OPEN)])), M(ACC, { rough: 0.5 }));
   const visor = add(
-    P.head,
+    helm,
     cg('visor', () => place(new THREE.SphereGeometry(HELM - 0.004, 32, 12, 0, TAU, 0, OPEN + 0.03), [0, 0.01, 0], [Math.PI / 2, 0, 0])),
     new THREE.MeshStandardMaterial({ color: '#b8ecff', transparent: true, opacity: 0.22, roughness: 0.05, metalness: 0.1, envMapIntensity: 1.6, depthWrite: false }),
     { cast: false },
   );
   visor.renderOrder = 4;
-  add(P.head, merged('helmetEars', () => [place(cylGeo(0.06, 0.06, 0.05, 16), [-HELM + 0.01, 0.0, -0.02], [0, 0, Math.PI / 2]), place(cylGeo(0.06, 0.06, 0.05, 16), [HELM - 0.01, 0.0, -0.02], [0, 0, Math.PI / 2])]), M('#d6d9ee', { rough: 0.5 }));
+  add(helm, merged('helmetEars', () => [place(cylGeo(0.06, 0.06, 0.05, 16), [-HELM + 0.01, 0.0, -0.02], [0, 0, Math.PI / 2]), place(cylGeo(0.06, 0.06, 0.05, 16), [HELM - 0.01, 0.0, -0.02], [0, 0, Math.PI / 2])]), M('#d6d9ee', { rough: 0.5 }));
   add(P.head, merged('astroHair', () => [capHair(1, 0.004), fringe(-20, -62, 0.16, 0.06, 0.06, 0.3)]), M('#2a2130', { rough: 0.5 }));
   // 가리키는 손가락
   R.finger = add(P.torso, cg('finger', () => place(capsuleGeo(0.02, 0.08, 4, 8), [0, -0.04, 0])), M(ACC, { rough: 0.6 }), { outline: OLS });
@@ -1621,8 +1627,8 @@ function buildAstronaut() {
     }),
     M('#e4e6f2', { rough: 0.6 }),
   );
-  R.topY = -0.43 + HIP + NECK + HEAD_C + 0.01 + HELM;
-  R.headY = -0.43 + HIP + NECK + HEAD_C;
+  R.topY = -0.45 + HIP + NECK + HEAD_C + 0.01 + HELM;
+  R.headY = -0.45 + HIP + NECK + HEAD_C;
   return R;
 }
 

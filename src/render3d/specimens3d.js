@@ -705,8 +705,7 @@ function buildChicken() {
       }
       return place(latheGeo(pts, 20), [0, 0, 0], [-Math.PI / 2 - 0.5, 0, 0], [0.42, 1, 1]);
     });
-    const w = mesh(wGeo, mat('#ecedf8', { rough: 0.7 }), { pos: [sx * 0.022, -0.045, 0.02], rot: [0, sx * 0.1, 0] });
-    addOutline(w, OL);
+    const w = mesh(wGeo, mat('#e6e8f6', { rough: 0.65 }), { pos: [sx * 0.018, -0.045, 0.02], rot: [0, sx * 0.12, 0] });
     pivot.add(w);
     body.add(pivot);
     wings.push({ pivot, sx });
@@ -1058,9 +1057,9 @@ function buildDrone() {
   addOutline(skids, OL_S);
   tilt.add(skids);
   // 짐벌 카메라(눈)
-  const cam = mesh(sphereGeo(0.05, 24, 16), mat('#3a4170', { rough: 0.35 }), { cast: false, pos: [0, -0.052, 0.07] });
+  const cam = mesh(sphereGeo(0.054, 24, 16), mat('#3a4170', { rough: 0.35 }), { cast: false, pos: [0, -0.045, 0.085] });
   addOutline(cam, OL);
-  cam.add(faceCap(0.05, faceTexture('sp-drone-lens', droneLens), { width: 1.6, height: 1.6 }));
+  cam.add(faceCap(0.054, faceTexture('sp-drone-lens', droneLens), { width: 1.6, height: 1.6 }));
   tilt.add(cam);
   // 깜빡이: 앞 오른쪽 빨강(깜빡), 앞 왼쪽 초록
   const ledOn = mat('#ff5a4e', { emissive: '#ff3a30', emissiveIntensity: 1.4, rough: 0.3 });
@@ -1176,7 +1175,7 @@ function buildWeather() {
 
 function foilTexture() {
   return tex('satFoil', 128, 128, (ctx, w, h) => {
-    ctx.fillStyle = '#f2b23a';
+    ctx.fillStyle = '#f7b93a';
     ctx.fillRect(0, 0, w, h);
     const r = rng(9);
     for (let i = 0; i < 46; i++) {
@@ -1188,7 +1187,7 @@ function foilTexture() {
       ctx.lineTo(x + (r() - 0.5) * s * 2, y + (r() - 0.5) * s * 2);
       ctx.lineTo(x + (r() - 0.5) * s * 2, y + (r() - 0.5) * s * 2);
       ctx.closePath();
-      ctx.fillStyle = r() > 0.5 ? 'rgba(255,236,150,0.45)' : 'rgba(190,120,30,0.3)';
+      ctx.fillStyle = r() > 0.5 ? 'rgba(255,240,170,0.4)' : 'rgba(214,140,40,0.22)';
       ctx.fill();
     }
     // 테두리 띠
@@ -1241,22 +1240,22 @@ function buildSatellite() {
   const rig = new THREE.Group(); // 천천히 기우뚱
   turn.add(rig);
 
-  const body = mesh(roundBoxGeo(0.14, 0.165, 0.13, 0.022, 3), mat('#ffffff', { map: foilTexture(), rough: 0.35, metal: 0.25, envIntensity: 0.8 }), { cast: false });
+  const body = mesh(roundBoxGeo(0.13, 0.15, 0.12, 0.022, 3), mat('#ffffff', { map: foilTexture(), rough: 0.32, metal: 0.2, envIntensity: 0.8 }), { cast: false });
   addOutline(body, OL);
   rig.add(body);
   // 팔대 + 접시 받침 + 안테나 막대(한 도형)
   const strutGeo = merged('satStruts', () => [
-    rod([-0.07, 0, 0], [-0.12, 0, 0], 0.009, { seg: 8 }),
-    rod([0.07, 0, 0], [0.12, 0, 0], 0.009, { seg: 8 }),
-    rod([0, 0.08, 0.03], [0, 0.115, 0.06], 0.008, { seg: 6 }),
-    rod([-0.04, 0.08, -0.04], [-0.06, 0.16, -0.05], 0.005, { seg: 5 }),
+    rod([-0.06, 0, 0], [-0.1, 0, 0], 0.009, { seg: 8 }),
+    rod([0.06, 0, 0], [0.1, 0, 0], 0.009, { seg: 8 }),
+    rod([0, 0.07, 0.03], [0, 0.105, 0.055], 0.008, { seg: 6 }),
+    rod([-0.035, 0.07, -0.035], [-0.055, 0.15, -0.045], 0.005, { seg: 5 }),
   ]);
   rig.add(mesh(strutGeo, mat('#a3a8cf', { rough: 0.45 }), { cast: false }));
   // 태양 전지판
   const pMat = mat('#ffffff', { map: panelTexture(), rough: 0.3, envIntensity: 0.9 });
   const panels = [];
   for (const sx of [-1, 1]) {
-    const p = mesh(roundBoxGeo(0.17, 0.11, 0.012, 0.005, 2), pMat, { cast: false, pos: [sx * 0.2, 0, 0] });
+    const p = mesh(roundBoxGeo(0.19, 0.115, 0.012, 0.005, 2), pMat, { cast: false, pos: [sx * 0.19, 0, 0] });
     addOutline(p, OL_S);
     rig.add(p);
     panels.push(p);
@@ -1276,7 +1275,7 @@ function buildSatellite() {
     return latheGeo(pts, 32);
   });
   const dishG = new THREE.Group();
-  dishG.position.set(0, 0.115, 0.06);
+  dishG.position.set(0, 0.105, 0.055);
   dishG.rotation.x = Math.PI / 2 - 0.5;
   rig.add(dishG);
   const dish = mesh(dishGeo, mat('#f2f3ff', { rough: 0.45 }), { cast: false });
@@ -1285,11 +1284,11 @@ function buildSatellite() {
   dishG.add(mesh(cylGeo(0.0045, 0.0045, 0.06, 6), mat('#a3a8cf', { rough: 0.45 }), { cast: false, pos: [0, 0.042, 0] }));
   const red = mat('#ff6b5e', { emissive: '#ff3a30', emissiveIntensity: 0.5, rough: 0.35 });
   dishG.add(mesh(sphereGeo(0.012, 10, 8), red, { cast: false, pos: [0, 0.074, 0] }));
-  rig.add(mesh(sphereGeo(0.012, 10, 8), red, { cast: false, pos: [-0.06, 0.165, -0.05] }));
+  rig.add(mesh(sphereGeo(0.012, 10, 8), red, { cast: false, pos: [-0.055, 0.155, -0.045] }));
   // 깜빡이
   const ledOn = mat('#ff5a4e', { emissive: '#ff3a30', emissiveIntensity: 1.4, rough: 0.3 });
   const ledOff = mat('#b4774a', { rough: 0.45 });
-  const led = mesh(sphereGeo(0.012, 10, 8), ledOn, { cast: false, pos: [0.035, -0.05, 0.068] });
+  const led = mesh(sphereGeo(0.012, 10, 8), ledOn, { cast: false, pos: [0.032, -0.045, 0.063] });
   const ledGlow = glowSprite('#ff5a4e', 0.13, 0.8);
   ledGlow.position.copy(led.position);
   rig.add(led, ledGlow);
@@ -1298,8 +1297,8 @@ function buildSatellite() {
   return {
     root,
     update(t, dir = 1) {
-      turn.rotation.y = yaw(t, dir * 0.55);
-      rig.rotation.z = -0.18 * (turn.rotation.y / 0.55) + Math.sin(t * 0.8) * 0.06;
+      turn.rotation.y = yaw(t, dir * 0.4);
+      rig.rotation.z = -0.22 * (turn.rotation.y / 0.4) + Math.sin(t * 0.8) * 0.06;
       rig.rotation.x = 0.1 + Math.sin(t * 0.6) * 0.05;
       root.position.y = Math.sin(t * 1.2) * 0.01;
       for (const p of panels) p.rotation.x = Math.sin(t * 0.7) * 0.15;
