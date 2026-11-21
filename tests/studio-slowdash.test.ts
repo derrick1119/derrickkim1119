@@ -608,7 +608,7 @@ describe('느린 시간 닌자 플레이 빌드', () => {
     const src = readFileSync('studio/slowdash/game.ts', 'utf8'), juice = readFileSync('studio/slowdash/juice.ts', 'utf8');
     expect(src).toMatch(/ISSEN = \{ n: 3,/); // 셋 이상만
     expect(src).toMatch(/prefers-reduced-motion: reduce/);
-    expect(src).toMatch(/since < ISSEN\.dark && !REDUCED/); // 어둠 컷은 움직임 줄이기면 안 함
+    expect(src).toMatch(/peak && since < ISSEN\.dark && !REDUCED/); // 어둠 컷은 정점(넷 이상·싹쓸이)에만 · 움직임 줄이기면 안 함
     expect(src.match(/fillRect\(-20, -20 - dy, w \+ 40, h \+ 40 \+ dy\)/g)?.length).toBeGreaterThanOrEqual(3); // 느린 시간 덮기 둘 + 일섬 어둠
     expect(src).not.toMatch(/fillRect\(-20, -20, w \+ 40, h \+ 40\)/); // 하늘에 경계선 남던 덮기 없음
     expect(juice).toMatch(/fillRect\(-w, -h, w \* 3, h \* 3\)/); // 번쩍도 화면 전체
