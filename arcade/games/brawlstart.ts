@@ -3830,8 +3830,8 @@ function drawAll(ctx: C2, s: BrawlState, w: number, h: number, th: Theme) {
   // 여우의 킥킥 — 싸움을 구경하는 동안
   if (play && t !== seenT && pose === 3 && t % 44 === 0) say(s.fx + 0.05, FOX_Y - 0.26, '킥킥', '#ffffff', 13), fx.sound('tick', 1.6, 0.3);
   fx.memo.t = t;
-  // 도감 그림자 그림은 판 도중 한가한 프레임에 하나씩 미리 만들어 둔다 (결과 화면이 끊기지 않게)
-  if (play && s.clouds.length === 0 && t % 4 === 0) {
+  // 도감 그림자 그림은 판 도중에 네 틱에 하나씩 미리 만들어 둔다 (결과 화면 첫 프레임이 끊기지 않게 — 한 번만 드는 값)
+  if (play && t % 4 === 0) {
     for (const e of DEX) {
       const r0 = Math.round(R(e.k === 'boss' || e.k === 'bear' ? 0.03 : e.k === 'boar' ? 0.028 : 0.026));
       if (shadeCache.has(`${e.k}|${e.ch}|${r0}`)) continue;

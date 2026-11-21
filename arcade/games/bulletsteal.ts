@@ -122,7 +122,7 @@ export const STAGES: StageDef[] = [
     ],
   },
   {
-    key: 'octo', news: '대포 문어 — 부채 탄이 내게 모일 때 한입에', hint: '', starN: 24,
+    key: 'octo', news: '대포 문어 — 부채 탄이 내게 모일 때 한입에', hint: '', starN: 30,
     waves: [
       [...row('octo', 3, 0.27, 0.2, 0.8), ['cloud', 0.13, 0.78], ['cloud', 0.87, 0.78], ['cloud', 0.5, 0.5]],
       [...col('octo', 2, 0.1, 0.46, 0.84), ...col('octo', 2, 0.9, 0.46, 0.84), ...row('octo', 2, 0.24, 0.36, 0.64), ...loop('cloud', 3, 0.5, 0.52, 0.13)],
@@ -567,7 +567,7 @@ function dealDmg(s: StealState, f: Foe, dmg: number, sh: Shot) {
   if (f.hp > 0) return;
   f.dead = true;
   s.kills++;
-  s.spts += d.pts * (rage(s) > 0 ? 1 : sh.mult);
+  s.spts += rage(s) > 0 ? Math.ceil(d.pts / 2) : d.pts * sh.mult; // 화난 뒤에 잡은 적은 절반 점수(배수 없음)
   let multi = 0;
   if (sh.rel === s.relId) {
     multi = ++s.relKills;
@@ -787,6 +787,7 @@ function hitCheck(s: StealState) {
 
 function endStage(s: StealState, ok: boolean) {
   if (s.phase !== 'play') return;
+  const calm = rage(s) === 0;
   s.phase = ok ? 'result' : 'fail';
   s.pt = 0;
   s.buf = null;
@@ -805,13 +806,13 @@ function endStage(s: StealState, ok: boolean) {
   s.sweep = [];
   for (const b of s.buls) s.sweep.push(b.x, b.y, b.k);
   s.sweepT = s.t;
-  s.spts += s.buls.length * 2;
+  if (calm) s.spts += s.buls.length * 2; // 남은 탄 쓸어 담기·판 점수는 적이 화나기 전에 깼을 때 온전히(빨리 깰수록 크다)
   s.buls = [];
   s.shots = [];
   s.starOk = s.stage === 0 ? [true] : s.stage === 1 ? [true, s.gotN] : [true, s.hits === 0, s.gotN];
   s.got = s.starOk.filter(Boolean).length;
   s.stars += s.got;
-  s.pts += s.spts + CLEAR_PTS + s.got * STAR_PTS;
+  s.pts += s.spts + (calm ? CLEAR_PTS : 0) + s.got * STAR_PTS;
   s.lvl++;
   see(s, 'lvl' + Math.min(3, Math.floor(s.lvl / 5)));
   if (s.stage === STAGE_COUNT - 1) (s.won = true), (s.pts += WIN_PTS);
