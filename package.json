@@ -6,7 +6,7 @@
   "description": "쉿! UFO — 지구인에게 들키지 않고 지구를 관측하는 방치형 육성 게임",
   "scripts": {
     "start": "node tools/serve.mjs",
-    "test": "node --test \"tests/*.test.js\"",
+    "test": "node --test tests/*.test.js",
     "sim": "node tools/sim.mjs",
     "build": "node tools/build.mjs",
     "smoke": "node tools/smoke.mjs",

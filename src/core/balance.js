@@ -4,24 +4,24 @@ import { FORMS, GOAL_SIZE, CAUSE_BY_ID, GADGET_BY_ID, MISSION_BY_ID } from '../d
 export const BAL = {
   startSize: 30,
   /** 새 사건을 하나 발견할 때마다 다음 기체의 시작 지름이 이만큼 곱해진다. */
-  startGrowthPerCause: 1.22,
+  startGrowthPerCause: 1.2,
   /** 세대가 하나 늘 때마다 성장량 보너스(가산). */
   genGainBonus: 0.02,
   genGainBonusCap: 2.0,
   /** 관측 완료 1회당 성장량 보너스(가산). */
   clearGainBonus: 0.1,
   /** 같은 사건으로 다시 들킬 때마다 그 사건의 발각 확률에 곱해지는 값. */
-  decay: { specimen: 0.7, gaze: 0.8, mission: 0.8, special: 0.5 },
+  decay: { specimen: 0.65, gaze: 0.8, mission: 0.75, special: 0.5 },
   /** 발각 확률의 하한. 완전한 면역은 없다. */
-  floor: { specimen: 0.003, gaze: 0.08, mission: 0.05, special: 0.004 },
+  floor: { specimen: 0.002, gaze: 0.08, mission: 0.04, special: 0.004 },
   newCauseGrantMult: 3,
-  reportGrantBase: 10,
+  reportGrantBase: 12,
   reportGrantGrowth: 1.6,
   missionGrantBase: 4,
   missionGrantGrowth: 1.35,
   formGrantBase: 5,
   formGrantGrowth: 1.6,
-  baseSpecimensPerMission: 10,
+  baseSpecimensPerMission: 15,
   cloakBase: 3,
   cloakPerLevel: 0.4,
   cooldownBase: 30,

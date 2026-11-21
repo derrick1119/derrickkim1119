@@ -243,6 +243,7 @@ try {
   await page.evaluate(() => {
     const { game, ui } = window.__ufo;
     game.rng = () => 0;
+    game.run.fuel = 100;
     ui.launchMission('crop');
   });
   await page.waitForSelector('.modal-report', { timeout: 8000 });

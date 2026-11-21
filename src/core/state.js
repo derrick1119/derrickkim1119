@@ -9,7 +9,7 @@ export function defaultRun(size = BAL.startSize) {
   return {
     size,
     form: formIndexForSize(size),
-    fuel: 100,
+    fuel: 0,
     specimens: 0,
     missions: 0,
     time: 0,

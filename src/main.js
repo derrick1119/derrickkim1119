@@ -69,7 +69,12 @@ function start(hotData) {
     },
   });
 
+  // 화면이 너무 낮으면(휴대폰을 눕힌 경우) 세로로 돌려 달라고 안내하고 게임을 멈춘다.
+  const CRAMPED_HEIGHT = 430;
+  let cramped = false;
   const relayout = () => {
+    cramped = stage.clientHeight < CRAMPED_HEIGHT;
+    stage.classList.toggle('is-cramped', cramped);
     scene.resize();
     ui.measure();
   };
@@ -95,8 +100,10 @@ function start(hotData) {
     if (document.hidden) return;
     const dt = Math.min(Math.max((now - last) / 1000, 0), 0.1);
     last = now;
-    if (ui.started) game.tick(dt);
-    world.update(dt);
+    if (!cramped) {
+      if (ui.started) game.tick(dt);
+      world.update(dt);
+    }
     scene.update(dt);
     scene.render();
     ui.update(dt);

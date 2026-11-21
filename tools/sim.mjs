@@ -4,7 +4,7 @@
 import { Game } from '../src/core/game.js';
 import { defaultState } from '../src/core/state.js';
 import { seededRng } from '../src/core/rng.js';
-import { FORMS, SPECIMENS, MISSIONS, GADGETS, WATCHERS, CAUSES, SPECIMEN_BY_ID } from '../src/data/content.js';
+import { FORMS, SPECIMENS, MISSIONS, GADGETS, WATCHERS, CAUSES, CAUSE_BY_ID, SPECIMEN_BY_ID } from '../src/data/content.js';
 import { formatSize } from '../src/core/format.js';
 
 const args = process.argv.slice(2);
@@ -62,8 +62,18 @@ function simulate(seed) {
   let t = 0;
   const marks = {};
   let cleared = null;
+  const kinds = { specimen: 0, gaze: 0, mission: 0, special: 0 };
+  const runSeconds = [];
+  let runStart = 0;
   game.on('ending', (e) => {
     cleared = { ...e, t, unique: game.uniqueCauses };
+  });
+  game.on('discovered', (r) => {
+    kinds[CAUSE_BY_ID[r.cause].kind]++;
+    runSeconds.push(t - runStart);
+  });
+  game.on('generation', () => {
+    runStart = t;
   });
   while (!cleared && t < MAX_HOURS * 3600) {
     spend(game);
@@ -105,7 +115,7 @@ function simulate(seed) {
     t += TAP_SECONDS;
     game.tick(TAP_SECONDS);
   }
-  return { cleared, marks, game, t };
+  return { cleared, marks, game, t, kinds, runSeconds };
 }
 
 const q = (arr, p) => arr.slice().sort((a, b) => a - b)[Math.min(arr.length - 1, Math.floor(arr.length * p))];
@@ -132,6 +142,18 @@ for (const g of [5, 10, 20, 40, 80]) {
     `${String(g).padStart(3)}세대 시점: 경과 ${mins(q(rows.map((m) => m.t), 0.5))}, 도감 ${q(rows.map((m) => m.unique), 0.5)}, ` +
       `최고 형태 ${q(rows.map((m) => m.best), 0.5)}, 보유 연구비 ${q(rows.map((m) => m.grant), 0.5)}`,
   );
+}
+{
+  // 무엇 때문에 들키는지, 한 대원이 얼마나 버티는지
+  const total = { specimen: 0, gaze: 0, mission: 0, special: 0 };
+  for (const r of results) for (const k of Object.keys(total)) total[k] += r.kinds[k];
+  const sum = Object.values(total).reduce((a, b) => a + b, 0) || 1;
+  console.log('들킨 원인 비율: ' + Object.entries(total).map(([k, v]) => `${k} ${Math.round((v / sum) * 100)}%`).join(' · '));
+  const span = (from, to) => {
+    const xs = results.flatMap((r) => r.runSeconds.slice(from, to));
+    return xs.length ? `${q(xs, 0.5).toFixed(0)}초` : '-';
+  };
+  console.log(`대원 한 명의 관측 시간(중앙값): 1~5대 ${span(0, 5)} · 6~20대 ${span(5, 20)} · 21~50대 ${span(20, 50)} · 51대~ ${span(50)}`);
 }
 if (VERBOSE && done.length) {
   const g = done[0].game;

@@ -14,7 +14,18 @@ import {
   missionRisk,
 } from '../src/core/balance.js';
 import { formatSize, formatPercent, formatGain } from '../src/core/format.js';
-import { FORMS, GOAL_SIZE, CAUSES, SPECIMENS, MISSIONS, GADGETS, TICKLE_POKES } from '../src/data/content.js';
+import {
+  FORMS,
+  GOAL_SIZE,
+  CAUSES,
+  CAUSE_BY_ID,
+  SPECIMENS,
+  SPECIMEN_BY_ID,
+  MISSIONS,
+  MISSION_BY_ID,
+  GADGETS,
+  TICKLE_POKES,
+} from '../src/data/content.js';
 
 /** 항상 같은 값을 내는 난수. 0 = 반드시 들킴, 0.999 = 절대 안 들킴. */
 const always = (v) => () => v;
@@ -23,8 +34,8 @@ const newGame = (rng = always(0.999), patch = (s) => s) => new Game(patch(defaul
 test('발각 확률은 들킬수록 내려가되 하한 아래로는 가지 않는다', () => {
   const p0 = detectChance('cow_moo', 0);
   const p1 = detectChance('cow_moo', 1);
-  assert.equal(p0, 0.06);
-  assert.ok(Math.abs(p1 - 0.06 * BAL.decay.specimen) < 1e-12);
+  assert.equal(p0, CAUSE_BY_ID.cow_moo.base);
+  assert.ok(Math.abs(p1 - p0 * BAL.decay.specimen) < 1e-12);
   assert.equal(detectChance('cow_moo', 200), BAL.floor.specimen);
   assert.equal(detectChance('gaze_kid', 200), BAL.floor.gaze);
   assert.equal(detectChance('없는사건', 0), 0);
@@ -51,16 +62,17 @@ test('형태 경계와 시작 지름', () => {
 
 test('표본을 모으면 자라고 연료가 찬다', () => {
   const g = newGame();
+  const gain = SPECIMEN_BY_ID.dandelion.gain;
+  assert.equal(g.run.fuel, 0, '새 대원은 빈 연료로 시작한다');
   const r = g.collect('dandelion');
   assert.ok(r.ok);
-  assert.equal(r.gain, 1);
-  assert.equal(g.run.size, 31);
+  assert.equal(r.gain, gain);
+  assert.equal(g.run.size, 30 + gain);
   assert.equal(g.run.specimens, 1);
   assert.equal(g.state.stats.specimens, 1);
+  assert.ok(Math.abs(g.run.fuel - 100 / BAL.baseSpecimensPerMission) < 1e-9);
+  for (let i = 0; i < BAL.baseSpecimensPerMission + 3; i++) g.collect('dandelion');
   assert.equal(g.run.fuel, 100, '연료는 100 을 넘지 않는다');
-  g.run.fuel = 0;
-  g.collect('dandelion');
-  assert.equal(g.run.fuel, 10);
 });
 
 test('해금하지 않은 표본은 모을 수 없다', () => {
@@ -134,7 +146,7 @@ test('수집 드론은 들키지 않고, 조금만 얻고, 연료를 채우지 �
   g.run.fuel = 0;
   const r = g.collect('balloon', { watchers: ['kid'], auto: true });
   assert.equal(r.report, null);
-  assert.ok(Math.abs(r.gain - 6 * BAL.droneYield) < 1e-9);
+  assert.ok(Math.abs(r.gain - SPECIMEN_BY_ID.balloon.gain * BAL.droneYield) < 1e-9);
   assert.equal(g.run.fuel, 0);
   assert.equal(g.run.specimens, 0);
 });
@@ -148,12 +160,13 @@ test('임무: 연료가 차야 출동하고, 성공하면 자라고, 실패하�
   g.run.fuel = 100;
   const ok = g.resolveMission('crop');
   assert.ok(ok.success);
-  assert.equal(ok.gain, 15);
+  assert.equal(ok.gain, MISSION_BY_ID.crop.gain);
   assert.equal(g.run.fuel, 0);
   assert.equal(g.state.stats.missionsOk, 1);
   assert.ok(ok.grant > 0);
 
   const g2 = newGame(always(0));
+  g2.run.fuel = 100;
   const fail = g2.resolveMission('crop');
   assert.equal(fail.success, false);
   assert.equal(fail.report.cause, 'crop_art');
@@ -194,6 +207,7 @@ test('목표 지름에 닿으면 관측 완료, 이어서 다음 세대', () => 
   });
   g.run.size = GOAL_SIZE - 10;
   g.run.form = 7;
+  g.run.fuel = 100;
   let ending = null;
   g.on('ending', (e) => (ending = e));
   const r = g.resolveMission('moon');
@@ -239,7 +253,7 @@ test('해금은 순서대로, 연구비가 있어야', () => {
   assert.equal(cost, gadgetCost('beam', 0));
   assert.ok(g.upgrade('beam'));
   assert.equal(g.state.gadgets.beam, 1);
-  assert.ok(Math.abs(g.specimenGain('dandelion') - 1.1) < 1e-9);
+  assert.ok(Math.abs(g.specimenGain('dandelion') - SPECIMEN_BY_ID.dandelion.gain * 1.1) < 1e-9);
   assert.equal(g.upgrade('없는장비'), false);
 });
 

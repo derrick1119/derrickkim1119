@@ -45,16 +45,16 @@ export const WATCHERS = {
  * mode   = 화면에서 움직이는 방식, rarity = 등장 빈도 배수
  */
 export const SPECIMENS = [
-  { id: 'dandelion', cost: 0, gain: 1, risk: 0, cause: null, mode: 'float', rarity: 1 },
-  { id: 'firefly', cost: 15, gain: 2.5, risk: 0, cause: null, mode: 'wander', rarity: 1 },
-  { id: 'balloon', cost: 40, gain: 6, risk: 0.03, cause: 'balloon_kid', mode: 'float', rarity: 1 },
-  { id: 'kite', cost: 100, gain: 24, risk: 0.04, cause: 'kite_string', mode: 'sway', rarity: 1 },
-  { id: 'chicken', cost: 220, gain: 90, risk: 0.05, cause: 'chicken_alarm', mode: 'ground', rarity: 1 },
-  { id: 'cow', cost: 450, gain: 360, risk: 0.06, cause: 'cow_moo', mode: 'ground', rarity: 1 },
-  { id: 'drone', cost: 850, gain: 1500, risk: 0.07, cause: 'drone_cam', mode: 'drift', rarity: 1 },
-  { id: 'weather', cost: 1500, gain: 6000, risk: 0.08, cause: 'weather_radar', mode: 'float', rarity: 1 },
-  { id: 'satellite', cost: 2600, gain: 24000, risk: 0.09, cause: 'satellite_feed', mode: 'drift', rarity: 0.9 },
-  { id: 'meteor', cost: 4200, gain: 60000, risk: 0.1, cause: 'meteor_wish', mode: 'streak', rarity: 0.45 },
+  { id: 'dandelion', cost: 0, gain: 2, risk: 0, cause: null, mode: 'float', rarity: 1 },
+  { id: 'firefly', cost: 15, gain: 4, risk: 0, cause: null, mode: 'wander', rarity: 1 },
+  { id: 'balloon', cost: 40, gain: 8, risk: 0.02, cause: 'balloon_kid', mode: 'float', rarity: 1 },
+  { id: 'kite', cost: 100, gain: 28, risk: 0.025, cause: 'kite_string', mode: 'sway', rarity: 1 },
+  { id: 'chicken', cost: 220, gain: 100, risk: 0.03, cause: 'chicken_alarm', mode: 'ground', rarity: 1 },
+  { id: 'cow', cost: 450, gain: 400, risk: 0.035, cause: 'cow_moo', mode: 'ground', rarity: 1 },
+  { id: 'drone', cost: 850, gain: 1600, risk: 0.04, cause: 'drone_cam', mode: 'drift', rarity: 1 },
+  { id: 'weather', cost: 1500, gain: 6500, risk: 0.045, cause: 'weather_radar', mode: 'float', rarity: 1 },
+  { id: 'satellite', cost: 2600, gain: 26000, risk: 0.05, cause: 'satellite_feed', mode: 'drift', rarity: 0.9 },
+  { id: 'meteor', cost: 4200, gain: 65000, risk: 0.06, cause: 'meteor_wish', mode: 'streak', rarity: 0.45 },
 ];
 
 /**
@@ -69,18 +69,18 @@ export const SPAWN_RANK_WEIGHTS = [1, 0.9, 0.7, 0.5, 0.35, 0.25, 0.2, 0.15, 0.12
  * risk = 기본 발각 확률. causes 중 하나가 무작위로 걸린다.
  */
 export const MISSIONS = [
-  { id: 'crop', cost: 0, gain: 15, risk: 0.35, causes: ['crop_art', 'crop_typo'] },
-  { id: 'cvs', cost: 30, gain: 40, risk: 0.4, causes: ['cvs_clerk'] },
-  { id: 'cloudnap', cost: 80, gain: 90, risk: 0.45, causes: ['cloud_gone', 'snore'] },
-  { id: 'streetlamp', cost: 170, gain: 180, risk: 0.5, causes: ['lamp_complaint'] },
-  { id: 'highway', cost: 320, gain: 700, risk: 0.52, causes: ['dashcam', 'speedcam'] },
-  { id: 'fireworks', cost: 560, gain: 1600, risk: 0.55, causes: ['fireworks_dud'] },
-  { id: 'stadium', cost: 950, gain: 3000, risk: 0.58, causes: ['kisscam', 'homerun'] },
-  { id: 'telescope', cost: 1500, gain: 13000, risk: 0.62, causes: ['telescope_eye'] },
-  { id: 'airport', cost: 2300, gain: 30000, risk: 0.66, causes: ['tower_clearance'] },
-  { id: 'forecast', cost: 3400, gain: 55000, risk: 0.7, causes: ['weathercast'] },
-  { id: 'pyramid', cost: 4800, gain: 220000, risk: 0.74, causes: ['pyramid_photo'] },
-  { id: 'moon', cost: 6500, gain: 500000, risk: 0.8, causes: ['eclipse_live'] },
+  { id: 'crop', cost: 0, gain: 25, risk: 0.2, causes: ['crop_art', 'crop_typo'] },
+  { id: 'cvs', cost: 30, gain: 60, risk: 0.24, causes: ['cvs_clerk'] },
+  { id: 'cloudnap', cost: 80, gain: 140, risk: 0.28, causes: ['cloud_gone', 'snore'] },
+  { id: 'streetlamp', cost: 170, gain: 280, risk: 0.32, causes: ['lamp_complaint'] },
+  { id: 'highway', cost: 320, gain: 1000, risk: 0.36, causes: ['dashcam', 'speedcam'] },
+  { id: 'fireworks', cost: 560, gain: 2400, risk: 0.4, causes: ['fireworks_dud'] },
+  { id: 'stadium', cost: 950, gain: 4500, risk: 0.44, causes: ['kisscam', 'homerun'] },
+  { id: 'telescope', cost: 1500, gain: 20000, risk: 0.48, causes: ['telescope_eye'] },
+  { id: 'airport', cost: 2300, gain: 45000, risk: 0.52, causes: ['tower_clearance'] },
+  { id: 'forecast', cost: 3400, gain: 85000, risk: 0.56, causes: ['weathercast'] },
+  { id: 'pyramid', cost: 4800, gain: 330000, risk: 0.6, causes: ['pyramid_photo'] },
+  { id: 'moon', cost: 6500, gain: 750000, risk: 0.66, causes: ['eclipse_live'] },
 ];
 
 /** 특수 사건. 표본도 시선도 임무도 아닌 곳에서 터진다. */

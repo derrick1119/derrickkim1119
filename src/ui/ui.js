@@ -9,7 +9,8 @@ import { PANELS, renderPanel, panelSignature } from './panels.js';
 const MISSION_SUSPENSE_MS = 2100;
 const REPORT_DELAY_MS = 1250;
 const RECALL_MS = 650;
-const TOAST_MS = 2600;
+const TOAST_MS = 2400;
+const TOAST_QUICK_MS = 1400; // 뒤에 밀린 알림이 있을 때
 
 function setText(el, value) {
   if (el._text !== value) {
@@ -57,6 +58,9 @@ export class UI {
     this.transitioning = false;
     this.started = false;
     this.timers = new Set();
+    this.toastQueue = [];
+    this.toastBusy = false;
+    this.stageShown = this.game.form.stage;
 
     this._build();
     this._bindGame();
@@ -170,8 +174,9 @@ export class UI {
     this.modalRoot = h('div', { class: 'modal-root', hidden: '' });
     this.modals = new Modals(this.modalRoot);
     this.titleHost = h('div', { class: 'title-host' });
+    const rotate = h('div', { class: 'rotate-hint', role: 'status', text: t('title.rotate') });
 
-    this.root = h('div', { class: 'ui' }, this.hud, this.gaze, this.bubble, this.toasts, this.coach, this.sheet, this.dock, this.titleHost, this.modalRoot);
+    this.root = h('div', { class: 'ui' }, this.hud, this.gaze, this.bubble, this.toasts, this.coach, this.sheet, this.dock, this.titleHost, this.modalRoot, rotate);
     this.stage.append(this.root);
     document.title = t('meta.title');
     this.gazeKey = '';
@@ -303,6 +308,7 @@ export class UI {
     this.grantShown = Math.abs(gd) < 1 ? s.grant : this.grantShown + gd * Math.min(1, dt * 10);
     setText(this.grantText, formatInt(this.grantShown));
 
+    this.stageShown = game.form.stage;
     const last = game.formIndex === FORMS.length - 1;
     setText(this.genText, t('hud.gen', { n: s.gen }));
     setText(this.clearText, String(s.clears));
@@ -410,10 +416,24 @@ export class UI {
 
   /** @param {string} text  @param {'info'|'good'|'warn'|'grant'} [kind]  @param {Node} [extra] 글 뒤에 붙일 요소 */
   toast(text, kind = 'info', extra = null) {
-    const el = h('div', { class: `toast ${kind}` }, h('span', { text }), extra);
+    // 한 번에 하나씩만 보여 준다. 여러 개가 겹치면 말풍선과 하늘을 가린다.
+    this.toastQueue.push({ text, kind, extra });
+    if (this.toastQueue.length > 5) this.toastQueue.splice(0, this.toastQueue.length - 5);
+    this._pumpToast();
+  }
+
+  _pumpToast() {
+    if (this.toastBusy || !this.toastQueue.length) return;
+    const { text, kind, extra } = this.toastQueue.shift();
+    const ms = this.toastQueue.length ? TOAST_QUICK_MS : TOAST_MS;
+    const el = h('div', { class: `toast ${kind}`, style: { '--ms': `${ms}ms` } }, h('span', { text }), extra);
     this.toasts.append(el);
-    while (this.toasts.children.length > 3) this.toasts.firstChild.remove();
-    setTimeout(() => el.remove(), TOAST_MS);
+    this.toastBusy = true;
+    setTimeout(() => {
+      el.remove();
+      this.toastBusy = false;
+      this._pumpToast();
+    }, ms);
   }
 
   /** 조종사의 말풍선. */
@@ -629,7 +649,10 @@ export class UI {
       if (game.phase === 'play' && !game.cloaked) audio.sfx('safe');
     });
     world.on('stage', ({ form }) => {
-      this.toast(t('toast.stage', { name: t(`stage.${FORMS[form].stage}`) }), 'info');
+      // 형태가 바뀌어도 무대가 그대로면(콩알 → 꼬마 접시) 알리지 않는다.
+      const stage = FORMS[form].stage;
+      if (stage !== this.stageShown && this.started) this.toast(t('toast.stage', { name: t(`stage.${stage}`) }), 'info');
+      this.stageShown = stage;
     });
 
     game.on('formUp', ({ form }) => {
