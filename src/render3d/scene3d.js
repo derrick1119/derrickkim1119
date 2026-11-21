@@ -16,8 +16,8 @@ import { setIconRenderer } from '../render/iconcache.js';
 
 /** 형태별 화면상 기체 너비(px). 2D 장면과 같다. */
 const UFO_SCREEN_W = [70, 100, 116, 150, 156, 160, 190, 232];
-/** 지상 표본(닭·소)의 중심이 땅에서 떠 있는 높이(px). */
-const GROUND_LIFT = { chicken: 15, cow: 16 };
+/** 지상 표본(닭·소)의 중심이 땅에서 떠 있는 높이(px): 모델의 발 높이(0.24·0.25) × 1.12배 × 64px. */
+const GROUND_LIFT = { chicken: 17, cow: 18 };
 const SPECIMEN_SCALE = 1.12;
 const CHASE_SHARE = 0.32;
 const CHASE_TIME = 1.3;

@@ -36,8 +36,7 @@ const TAU = Math.PI * 2;
 const OL = 0.014; // 기본 외곽선 굵기
 const OL_S = 0.008; // 가는 부품 외곽선
 const OL_XS = 0.0045; // 실·솜털 외곽선
-const WHITE = '#f4f4fb'; // 흰 몸(너무 하얗면 번진다)
-const NAVY = '#363a6e';
+const WHITE = '#f4f4fb'; // 흰 몸(아주 흰색은 번져 보인다)
 
 // ───────── 캐시와 도형 도구 ─────────
 
@@ -130,18 +129,17 @@ function glassy(color, opacity, { rough = 0.35, side = THREE.FrontSide } = {}) {
   });
 }
 
-/** 덧그리기 단색(빛·꼬리). 캐시. */
-function additive(key, map, color = '#ffffff', opacity = 1, normal = false) {
-  return once(`add:${key}`, () =>
+/** 빛을 받지 않는 그림 판 재질(별똥별 꼬리). add = 덧그리기. 캐시. */
+function glowPlate(key, map, opacity = 1, add = true) {
+  return once(`plate:${key}`, () =>
     new THREE.MeshBasicMaterial({
       map,
-      color: new THREE.Color(color),
       transparent: true,
       opacity,
       depthWrite: false,
       fog: false,
       side: THREE.DoubleSide,
-      blending: normal ? THREE.NormalBlending : THREE.AdditiveBlending,
+      blending: add ? THREE.AdditiveBlending : THREE.NormalBlending,
     }),
   );
 }
@@ -166,6 +164,13 @@ function follower(rate = 9) {
     else v += (target - v) * (1 - Math.exp(-dt * rate));
     return v;
   };
+}
+
+/** 얼굴 껍데기(개체마다 재질이 하나씩 생긴다 → dispose 대상 표시). */
+function face(radius, texture, o) {
+  const m = faceCap(radius, texture, o);
+  m.userData.ownMaterial = true;
+  return m;
 }
 
 /** 한 메시만 보이게 켜고 끈다(깜빡이 등). */
@@ -236,9 +241,11 @@ function paintSmile(ctx, x, y, w, lw) {
 
 function buildDandelion() {
   const root = new THREE.Group();
+  const bob = new THREE.Group(); // 둥실거림(root 의 자리·크기·회전은 장면 몫이라 건드리지 않는다)
+  root.add(bob);
   const sway = new THREE.Group(); // 솜털 가운데를 축으로 흔들린다
   sway.position.y = 0.05;
-  root.add(sway);
+  bob.add(sway);
   const spin = new THREE.Group(); // 천천히 돈다(입체감)
   sway.add(spin);
 
@@ -249,8 +256,8 @@ function buildDandelion() {
     const list = [];
     for (let i = 0; i < N; i++) {
       const az = i * 2.39996 + r() * 0.35;
-      const pol = 0.1 + 1.52 * Math.sqrt((i + 0.5) / N);
-      const len = 0.18 + r() * 0.03;
+      const pol = 0.15 + 1.5 * Math.pow((i + 0.5) / N, 0.38);
+      const len = 0.17 + 0.025 * Math.sin(pol) + r() * 0.025;
       const d = new THREE.Vector3(Math.sin(pol) * Math.cos(az), Math.cos(pol), Math.sin(pol) * Math.sin(az));
       list.push({ d, len });
     }
@@ -263,16 +270,22 @@ function buildDandelion() {
       parts.push(rod([0, 0, 0], tip.toArray(), 0.0058, { seg: 5 }));
       // 끝 갈래: 털 방향에서 ±35° 벌어진 잔털 두 가닥
       const side = new THREE.Vector3().crossVectors(d, Math.abs(d.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : UP).normalize();
-      const base = d.clone().multiplyScalar(len * 0.82);
-      for (const s of [-1, 1]) {
-        const tw = d.clone().multiplyScalar(Math.cos(0.6)).addScaledVector(side, s * Math.sin(0.6)).normalize();
-        parts.push(rod(base.toArray(), base.clone().addScaledVector(tw, 0.04).toArray(), 0.0042, { seg: 4 }));
+      const up = new THREE.Vector3().crossVectors(side, d).normalize();
+      for (const [f, len2, axis] of [
+        [0.62, 0.032, up],
+        [0.82, 0.04, side],
+      ]) {
+        const base = d.clone().multiplyScalar(len * f);
+        for (const s of [-1, 1]) {
+          const tw = d.clone().multiplyScalar(Math.cos(0.6)).addScaledVector(axis, s * Math.sin(0.6)).normalize();
+          parts.push(rod(base.toArray(), base.clone().addScaledVector(tw, len2).toArray(), 0.0042, { seg: 4 }));
+        }
       }
     }
     return parts;
   });
   const hair = mesh(hairGeo, mat('#fffaf0', { rough: 0.6, emissive: '#fff4e0', emissiveIntensity: 0.45 }), { cast: false });
-  addOutline(hair, OL_XS, '#b89470');
+  addOutline(hair, OL_XS, '#c2a27e');
   spin.add(hair);
   // 털끝 솜뭉치
   const puffGeo = merged('dandPuff', () => hairs.map(({ d, len }) => place(sphereGeo(0.013, 8, 6), d.clone().multiplyScalar(len).toArray())));
@@ -300,7 +313,7 @@ function buildDandelion() {
       sway.rotation.z = Math.sin(t * 1.8) * 0.14;
       sway.rotation.x = Math.sin(t * 1.3 + 1) * 0.08;
       spin.rotation.y = t * 0.6;
-      root.position.y = Math.sin(t * 2.2) * 0.012;
+      bob.position.y = Math.sin(t * 2.2) * 0.012;
     },
   };
 }
@@ -369,6 +382,7 @@ function buildFirefly() {
   // 극(+y)을 앞(+z)으로 돌려 무늬가 몸통을 감싸는 고리가 되게 한다
   const tailGeo = once('g:ffTail', () => place(sphereGeo(1, 24, 18), [0, 0, 0], [Math.PI / 2, 0, 0]).scale(0.098, 0.09, 0.135));
   const tail = mesh(tailGeo, tailMat, { cast: false, pos: [0, -0.012, -0.115], rot: [0.3, 0, 0] });
+  tail.userData.ownMaterial = true;
   addOutline(tail, OL, '#4f6a1c');
   body.add(tail);
   // 가슴(주황 등판)
@@ -376,9 +390,9 @@ function buildFirefly() {
   addOutline(chest, OL);
   body.add(chest);
   // 머리
-  const head = mesh(sphereGeo(0.082, 28, 20), mat('#434a98', { rough: 0.45 }), { cast: false, pos: [0, 0.04, 0.1] });
+  const head = mesh(sphereGeo(0.082, 28, 20), mat('#4a56b4', { rough: 0.45 }), { cast: false, pos: [0, 0.04, 0.1] });
   addOutline(head, OL);
-  head.add(faceCap(0.082, faceTexture('sp-firefly', fireflyFace), { width: 1.85, height: 1.85 }));
+  head.add(face(0.082, faceTexture('sp-firefly', fireflyFace), { width: 1.85, height: 1.85 }));
   body.add(head);
   const headTurn = head; // 머리는 카메라 쪽으로 더 돌린다
   // 더듬이(끝에 작은 빛 방울)
@@ -464,9 +478,11 @@ function balloonGeo() {
 
 function buildBalloon() {
   const root = new THREE.Group();
+  const bob = new THREE.Group(); // 둥실거림(root 의 자리·크기·회전은 장면 몫이라 건드리지 않는다)
+  root.add(bob);
   const sway = new THREE.Group();
   sway.position.y = 0.07;
-  root.add(sway);
+  bob.add(sway);
   const red = '#f2473f';
   const body = mesh(balloonGeo(), mat(red, { rough: 0.2, envIntensity: 1.1 }), { cast: false });
   addOutline(body, OL);
@@ -507,7 +523,7 @@ function buildBalloon() {
       sway.rotation.y = Math.sin(t * 0.9) * 0.25;
       string.rotation.z = Math.sin(t * 3) * 0.18;
       string.rotation.x = Math.sin(t * 2.3) * 0.12;
-      root.position.y = Math.sin(t * 2) * 0.014;
+      bob.position.y = Math.sin(t * 2) * 0.014;
     },
   };
 }
@@ -655,7 +671,6 @@ function buildKite() {
       segs[0].rotation.z = 0.2 + Math.sin(t * 4) * 0.35;
       segs[1].rotation.z = Math.sin(t * 4 - 1.2) * 0.55;
       segs[2].rotation.z = Math.sin(t * 4 - 2.4) * 0.6;
-      root.position.y = Math.sin(t * 1.6) * 0.01;
     },
   };
 }
@@ -665,8 +680,8 @@ function buildKite() {
 function chickenFace(ctx, s) {
   const c = s / 2;
   for (const sx of [-1, 1]) {
-    paintEye(ctx, c + sx * 46, c - 12, 25, 31);
-    paintCheek(ctx, c + sx * 72, c + 34, 28, 18, 0.75);
+    paintEye(ctx, c + sx * 60, c - 12, 25, 31);
+    paintCheek(ctx, c + sx * 80, c + 34, 28, 18, 0.75);
   }
 }
 
@@ -716,7 +731,7 @@ function buildChicken() {
   body.add(head);
   const skull = mesh(sphereGeo(0.102, 28, 20), white);
   addOutline(skull, OL);
-  skull.add(faceCap(0.102, faceTexture('sp-chicken', chickenFace), { width: 1.75, height: 1.75 }));
+  skull.add(face(0.102, faceTexture('sp-chicken', chickenFace), { width: 1.75, height: 1.75 }));
   head.add(skull);
   // 볏
   const combGeo = merged('chickComb', () => [
@@ -758,15 +773,20 @@ function buildChicken() {
   return {
     root,
     update(t, dir = 1) {
-      const y = yaw(t, dir * 1.05);
+      const y = yaw(t, dir * 1.2);
       turn.rotation.y = y;
-      head.rotation.y = -y * 0.4; // 머리는 카메라 쪽으로 더 돌린다
+      head.rotation.y = -y * 0.38; // 머리는 카메라 쪽으로 조금 더 돌린다
       const ph = t * 7;
       body.position.y = Math.abs(Math.sin(ph)) * 0.014;
       body.rotation.x = 0.06 + Math.sin(ph * 2) * 0.03;
       head.position.z = 0.075 + Math.sin(ph) * 0.012;
       head.rotation.x = Math.sin(ph) * 0.08;
-      for (const { hip, sx } of legs) hip.rotation.x = Math.sin(ph) * 0.55 * sx;
+      // 발가락이 땅을 파고들지 않게 다리를 벌린 만큼 엉덩이를 들어 올린다
+      const lift = Math.abs(Math.sin(ph)) * 0.014;
+      for (const { hip, sx } of legs) {
+        hip.rotation.x = Math.sin(ph) * 0.45 * sx;
+        hip.position.y = -0.14 + lift;
+      }
       const flap = Math.max(0, Math.sin(t * 9)) * 0.35;
       for (const { pivot, sx } of wings) pivot.rotation.z = sx * (0.05 + flap);
     },
@@ -851,6 +871,10 @@ function cowLegTexture() {
 function buildCow() {
   const root = new THREE.Group();
   const turn = new THREE.Group();
+  // 몸집을 조금 줄이되 발끝은 y = −0.25 에 둔다
+  const K = 0.9;
+  turn.scale.setScalar(K);
+  turn.position.y = -0.25 * (1 - K);
   root.add(turn);
   const body = new THREE.Group();
   body.position.set(0, -0.025, -0.03);
@@ -867,9 +891,9 @@ function buildCow() {
   // 꼬리(끝에 털뭉치)
   const tailPivot = new THREE.Group();
   tailPivot.position.set(0, 0.06, -0.225);
-  const tailGeo = once('g:cowTail', () => rod([0, 0, 0], [0, -0.13, -0.04], 0.011, { capsule: true, seg: 6 }));
+  const tailGeo = once('g:cowTail', () => rod([0, 0, 0], [0, -0.115, -0.03], 0.011, { capsule: true, seg: 6 }));
   tailPivot.add(mesh(tailGeo, white));
-  tailPivot.add(mesh(sphereGeo(0.026, 12, 10), mat(COW_PATCH, { rough: 0.8 }), { pos: [0, -0.14, -0.043], scale: [0.9, 1.25, 0.9] }));
+  tailPivot.add(mesh(sphereGeo(0.025, 12, 10), mat(COW_PATCH, { rough: 0.8 }), { pos: [0, -0.125, -0.033], scale: [0.9, 1.25, 0.9] }));
   body.add(tailPivot);
   // 다리 넷: 위 끝을 축으로 걷는다(대각선 둘씩 같이)
   const legGeo = once('g:cowLeg', () => place(capsuleGeo(0.037, 0.15, 6, 14), [0, -0.075, 0]));
@@ -895,10 +919,10 @@ function buildCow() {
   body.add(head);
   const skull = mesh(sphereGeo(0.118, 28, 20), white);
   addOutline(skull, OL);
-  const face = faceCap(0.118, faceTexture('sp-cow', cowFace(false)), { width: 1.8, height: 1.8 });
-  const faceOpen = face.material.map;
+  const muzzleFace = face(0.118, faceTexture('sp-cow', cowFace(false)), { width: 1.8, height: 1.8 });
+  const faceOpen = muzzleFace.material.map;
   const faceBlink = faceTexture('sp-cow-blink', cowFace(true));
-  skull.add(face);
+  skull.add(muzzleFace);
   head.add(skull);
   // 귀(바깥 흰색 + 안쪽 분홍) — 한 도형에 재질 묶음 넷
   const earGeo = merged(
@@ -911,8 +935,16 @@ function buildCow() {
     ],
     true,
   );
+  if (earGeo.groups.length === 4) {
+    // 흰 바깥 둘, 분홍 안쪽 둘을 각각 한 번에 그린다
+    const [a, b, c, d] = earGeo.groups;
+    earGeo.clearGroups();
+    earGeo.addGroup(a.start, a.count + b.count, 0);
+    earGeo.addGroup(c.start, c.count + d.count, 1);
+  }
   const pink = mat('#ff9fb4', { rough: 0.6 });
-  const ears = new THREE.Mesh(earGeo, [white, white, pink, pink]);
+  const ears = new THREE.Mesh(earGeo, [white, pink]);
+  ears.castShadow = true;
   outlineWith(ears, earGeo, OL);
   head.add(ears);
   // 작은 뿔
@@ -944,15 +976,17 @@ function buildCow() {
       turn.rotation.y = y;
       head.rotation.y = -y * 0.42;
       const ph = t * 5;
-      body.position.y = -0.025 + Math.abs(Math.sin(ph)) * 0.008;
-      for (const { hip, ph: p } of legs) hip.rotation.x = Math.sin(ph + p * Math.PI) * 0.4;
+      // 다리를 벌린 만큼 몸을 낮춰 발굽이 늘 땅에 닿게 한다
+      const swing = Math.sin(ph) * 0.4;
+      body.position.y = -0.025 - 0.15 * (1 - Math.cos(swing));
+      for (const { hip, ph: p } of legs) hip.rotation.x = p ? -swing : swing;
       head.rotation.x = Math.sin(ph * 2) * 0.03 - 0.04;
       head.rotation.z = Math.sin(t * 1.3) * 0.06;
       snout.rotation.x = Math.sin(t * 6) * 0.07;
       snout.position.y = -0.05 + Math.sin(t * 6) * 0.004;
-      face.material.map = t % 3.4 < 0.14 ? faceBlink : faceOpen;
-      tailPivot.rotation.z = Math.sin(t * 3.2) * 0.45;
-      tailPivot.rotation.x = 0.25 + Math.sin(t * 2.1) * 0.1;
+      muzzleFace.material.map = t % 3.4 < 0.14 ? faceBlink : faceOpen;
+      tailPivot.rotation.z = Math.sin(t * 3.2) * 0.4;
+      tailPivot.rotation.x = 0.1 + Math.sin(t * 2.1) * 0.08;
     },
   };
 }
@@ -989,9 +1023,11 @@ function droneLens(ctx, s) {
 
 function buildDrone() {
   const root = new THREE.Group();
+  const bob = new THREE.Group(); // 둥실거림(root 의 자리·크기·회전은 장면 몫이라 건드리지 않는다)
+  root.add(bob);
   const view = new THREE.Group(); // 위가 조금 보이게 카메라 쪽으로 기울인다
   view.rotation.x = 0.32;
-  root.add(view);
+  bob.add(view);
   const turn = new THREE.Group();
   view.add(turn);
   const tilt = new THREE.Group(); // 나아가는 쪽으로 앞머리를 숙인다
@@ -1059,7 +1095,7 @@ function buildDrone() {
   // 짐벌 카메라(눈)
   const cam = mesh(sphereGeo(0.054, 24, 16), mat('#3a4170', { rough: 0.35 }), { cast: false, pos: [0, -0.045, 0.085] });
   addOutline(cam, OL);
-  cam.add(faceCap(0.054, faceTexture('sp-drone-lens', droneLens), { width: 1.6, height: 1.6 }));
+  cam.add(face(0.054, faceTexture('sp-drone-lens', droneLens), { width: 1.6, height: 1.6 }));
   tilt.add(cam);
   // 깜빡이: 앞 오른쪽 빨강(깜빡), 앞 왼쪽 초록
   const ledOn = mat('#ff5a4e', { emissive: '#ff3a30', emissiveIntensity: 1.4, rough: 0.3 });
@@ -1077,7 +1113,7 @@ function buildDrone() {
       turn.rotation.y = yaw(t, dir * 0.8);
       tilt.rotation.x = 0.1 + Math.sin(t * 1.9) * 0.03;
       tilt.rotation.z = Math.sin(t * 1.4) * 0.05;
-      root.position.y = Math.sin(t * 2.6) * 0.016;
+      bob.position.y = Math.sin(t * 2.6) * 0.016;
       for (const { p, s } of props) p.rotation.y = s * t * 31;
       const on = Math.sin(t * 8) > 0;
       red.material = on ? ledOn : ledOff;
@@ -1110,12 +1146,16 @@ function weatherTexture() {
 
 function buildWeather() {
   const root = new THREE.Group();
+  const bob = new THREE.Group(); // 둥실거림(root 의 자리·크기·회전은 장면 몫이라 건드리지 않는다)
+  root.add(bob);
   const halo = glowSprite('#fff2d2', 0.8, 0.38);
   halo.position.set(0, 0.11, -0.1);
-  root.add(halo);
-  const ball = mesh(sphereGeo(0.19, 36, 26), mat('#ffffff', { map: weatherTexture(), rough: 0.32, envIntensity: 0.9 }), { cast: false, pos: [0, 0.11, 0], scale: [1, 1.07, 1] });
+  bob.add(halo);
+  const ball = mesh(sphereGeo(0.19, 36, 26), mat('#fffaf0', { map: weatherTexture(), rough: 0.3, envIntensity: 0.9 }), { cast: false, pos: [0, 0.11, 0], scale: [1, 1.07, 1] });
   addOutline(ball, OL);
-  root.add(ball);
+  bob.add(ball);
+  const hiGeo = once('g:weatherHi', () => new THREE.SphereGeometry(0.193, 12, 8, 0.86, 0.26, 0.6, 0.42));
+  bob.add(mesh(hiGeo, basic('#ffffff', { opacity: 0.6 }), { cast: false, pos: [0, 0.11, 0], scale: [1, 1.07, 1] }));
   // 목
   const neckGeo = once('g:weatherNeck', () =>
     latheGeo(
@@ -1132,11 +1172,11 @@ function buildWeather() {
   );
   const neck = mesh(neckGeo, mat('#f3dfc0', { rough: 0.5 }), { cast: false, pos: [0, -0.07, 0] });
   addOutline(neck, OL_S);
-  root.add(neck);
+  bob.add(neck);
   // 매달린 짐: 줄 → 주황 반사판 → 관측 상자(목 아래를 축으로 흔들린다)
   const hang = new THREE.Group();
   hang.position.y = -0.105;
-  root.add(hang);
+  bob.add(hang);
   const lineGeo = merged('weatherLine', () => [
     rod([0, 0, 0], [0, -0.045, 0], 0.0045, { seg: 5 }),
     rod([0, -0.095, 0], [0, -0.12, 0], 0.0045, { seg: 5 }),
@@ -1160,7 +1200,7 @@ function buildWeather() {
   return {
     root,
     update(t) {
-      root.position.y = Math.sin(t * 1.5) * 0.014;
+      bob.position.y = Math.sin(t * 1.5) * 0.014;
       hang.rotation.z = Math.sin(t * 1.6) * 0.16;
       hang.rotation.x = Math.sin(t * 1.1) * 0.08;
       ball.rotation.y = t * 0.25;
@@ -1235,8 +1275,10 @@ function panelTexture() {
 
 function buildSatellite() {
   const root = new THREE.Group();
+  const bob = new THREE.Group(); // 둥실거림(root 의 자리·크기·회전은 장면 몫이라 건드리지 않는다)
+  root.add(bob);
   const turn = new THREE.Group();
-  root.add(turn);
+  bob.add(turn);
   const rig = new THREE.Group(); // 천천히 기우뚱
   turn.add(rig);
 
@@ -1300,7 +1342,7 @@ function buildSatellite() {
       turn.rotation.y = yaw(t, dir * 0.4);
       rig.rotation.z = -0.22 * (turn.rotation.y / 0.4) + Math.sin(t * 0.8) * 0.06;
       rig.rotation.x = 0.1 + Math.sin(t * 0.6) * 0.05;
-      root.position.y = Math.sin(t * 1.2) * 0.01;
+      bob.position.y = Math.sin(t * 1.2) * 0.01;
       for (const p of panels) p.rotation.x = Math.sin(t * 0.7) * 0.15;
       const on = Math.sin(t * 5) > 0.3;
       led.material = on ? ledOn : ledOff;
@@ -1316,7 +1358,7 @@ function starGeo() {
     const OUT = 0.155;
     const IN = 0.088;
     const D = 0.07;
-    const g = new THREE.SphereGeometry(1, 72, 48);
+    const g = new THREE.SphereGeometry(1, 56, 40);
     const p = g.attributes.position;
     for (let i = 0; i < p.count; i++) {
       const x = p.getX(i);
@@ -1434,20 +1476,22 @@ function buildMeteor() {
     g.translate(0.5, 0, 0);
     return g;
   });
-  const outer = mesh(tailPlane, additive('meteorOuter', tailTexture('tailOuter', false), '#ffffff', 0.9, true), { cast: false, pos: [-0.02, 0, -0.06], scale: [LEN, 0.27, 1] });
-  const core = mesh(tailPlane, additive('meteorCore', tailTexture('tailCore', true), '#ffffff', 1), { cast: false, pos: [-0.02, 0, -0.05], scale: [LEN * 0.8, 0.2, 1] });
+  // 밝은 낮하늘에서도 색이 남도록 바깥 겹은 보통 섞기, 속심은 덧그리기
+  const outer = mesh(tailPlane, glowPlate('meteorOuter', tailTexture('tailOuter', false), 0.9, false), { cast: false, pos: [-0.02, 0, -0.06], scale: [LEN, 0.27, 1] });
+  const core = mesh(tailPlane, glowPlate('meteorCore', tailTexture('tailCore', true), 1), { cast: false, pos: [-0.02, 0, -0.05], scale: [LEN * 0.8, 0.2, 1] });
   outer.renderOrder = 3;
   core.renderOrder = 4;
   tail.add(outer, core);
   // 반짝이: 꼬리를 따라 흘러가며 사라진다
   const sparkles = [];
+  const SIDES = [-0.5, 0.7, -0.75, 0.35];
   for (let i = 0; i < 4; i++) {
     const m = new THREE.SpriteMaterial({ map: sparkleTexture(), color: new THREE.Color(i % 2 ? '#fff3b0' : '#ffffff'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
     const s = new THREE.Sprite(m);
     s.renderOrder = 6;
     s.raycast = () => {};
     tail.add(s);
-    sparkles.push({ s, k: i / 4, side: (i % 2 ? 1 : -1) * (0.3 + 0.4 * ((i * 7) % 3) / 2) });
+    sparkles.push({ s, k: i / 4, side: SIDES[i] });
   }
   // 빛무리
   const glow = glowSprite('#ffcf4a', 0.85, 0.55);
@@ -1461,8 +1505,8 @@ function buildMeteor() {
   spin.add(star);
   // 반짝 하이라이트
   const hiGeo = once('g:starHi', () => new THREE.SphereGeometry(0.03, 12, 8));
-  const hi = mesh(hiGeo, basic('#ffffff', { opacity: 0.75 }), { cast: false, pos: [-0.035, 0.04, 0.052], rot: [0, 0, -0.6], scale: [1, 0.55, 0.3] });
-  spin.add(hi);
+  const hi = mesh(hiGeo, basic('#ffffff', { opacity: 0.8 }), { cast: false, pos: [-0.032, 0.038, 0.078], rot: [0, 0, -0.6], scale: [0.9, 0.5, 0.2] });
+  root.add(hi);
 
   const ANG = 0.42; // 내려가는 기울기(라디안)
   return {
@@ -1520,5 +1564,11 @@ export function createSpecimen(kind) {
     if (o.isMesh && o.name !== 'outline' && !o.material.transparent) o.castShadow = cast && o.castShadow;
   });
   sp.update(0, 1);
+  /** (선택) 내릴 때 이 개체만 쓰던 재질(얼굴·빛무리·반딧불 배)을 해제한다. 공용 도형·텍스처는 그대로 둔다. */
+  sp.dispose = () => {
+    sp.root.traverse((o) => {
+      if (o.isSprite || o.userData.ownMaterial) o.material.dispose();
+    });
+  };
   return sp;
 }
