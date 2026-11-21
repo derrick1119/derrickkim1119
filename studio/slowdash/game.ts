@@ -431,7 +431,7 @@ function see(s: DashState, key: string, text = TIP[key] ?? '') {
   if (URGENT.has(key)) (s.newsQ.unshift(text), (s.news = null));
   else s.newsQ.push(text);
 }
-const URGENT = new Set(['thorn', 'thornRed', 'leaf', 'leafDemo', 'bell', 'bamboo']);
+const URGENT = new Set(['shield2', 'thorn', 'thornRed', 'leaf', 'leafDemo', 'bell', 'bamboo']); // M3 F2 🧪: '방패가 깨졌어요'가 덤불 알림에 밀려 안 보이던 것
 /** 🍃 잎 성질: 잎 너구리 · 2-10 큰 너구리(leafBoss 판의 대장) — 첫 방향 25° 안의 칼은 휙 */
 const leafy = (s: DashState, f: Foe) => f.k === 'leaf' || (f.k === 'boss' && !!STAGES[s.stage].leafBoss);
 const nameOf = (s: DashState, f: Foe) => (f.k === 'boss' && STAGES[s.stage].leafBoss ? '태엽 큰 인형' : KIND_NAME[f.k]);
