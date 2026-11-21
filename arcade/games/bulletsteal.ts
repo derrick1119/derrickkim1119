@@ -3063,7 +3063,7 @@ function drawAll(ctx: C2, s: StealState, w: number, h: number, th: Theme) {
         B(ex, ey, '#d8f5c0', 4, 2.4, 2);
         break;
       case 'boom':
-        fx.ring(ex, ey, '#ff8a5c', R(0.16), 4);
+        if (t - (fx.memo.boomT ?? -99) > 5) ((fx.memo.boomT = t), fx.ring(ex, ey, 'rgba(255,170,110,.8)', R(0.15), 2.5));
         fx.sound('thud', 1.5, 0.45);
         break;
       case 'fizz':
@@ -3173,8 +3173,7 @@ function drawHud(ctx: C2, s: StealState, w: number, h: number, fx: ReturnType<ty
     const size = (kind ? 26 : Math.min(32, 19 + n * 0.28)) * u1;
     ctx.font = `900 ${Math.max(12, size)}px system-ui, sans-serif`;
     const tw = ctx.measureText(str).width, pw = tw + size * 1.5, ph = size * 1.55, fit = Math.min(1, (w - 12 * u1) / (pw + size * (kind ? 1.2 : 2.3))), half = (pw / 2 + size * 0.9) * fit;
-    const bx = clamp(fx.memo.bigX, Math.min(w / 2, half + 4), Math.max(w / 2, w - half - (kind ? 4 : size * 0.6))), by = clamp(fx.memo.bigY - R(0.4), R(0.27), R(1.0));
-    fx.memo.bigH = by + ph * 0.5 * fit;
+    const bx = clamp(fx.memo.bigX, Math.min(w / 2, half + 4), Math.max(w / 2, w - half - (kind ? 4 : size * 0.6))), by = clamp(fx.memo.bigY - R(0.4), R(0.29), R(1.0));
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate(bx, by);
@@ -3213,7 +3212,7 @@ function drawHud(ctx: C2, s: StealState, w: number, h: number, fx: ReturnType<ty
     const age = t - fx.memo.multT, pop = age < 6 ? 1.5 - 0.5 * (age / 6) : 1;
     ctx.save();
     ctx.globalAlpha = Math.min(1, (50 - age) / 12);
-    ctx.translate(w / 2, (fx.memo.bigT !== undefined && t - fx.memo.bigT < 58 ? fx.memo.bigH ?? R(0.3) : R(0.22)) + R(0.085));
+    ctx.translate(w / 2, R(0.152));
     ctx.scale(pop, pop);
     font(17, 900);
     const str = `${fx.memo.multN}마리 한꺼번에!`;
