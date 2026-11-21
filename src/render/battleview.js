@@ -6,7 +6,7 @@ import { defOf } from '../sim/battle.js';
 import { HERO_COL, HERO_SEAL } from '../data/units.js';
 import { inkTrail, inkStreak, MEOK, JU } from './ink.js';
 import { ART } from './art.js';
-import { illustFar, illustGround, ILL_FAR_H, ILL, mapleBranch, drawWisps, glowTrail, glowStreak, nightGrade } from './illust.js';
+import { illustFar, illustGround, ILL_FAR_H, ILL, mapleBranch, drawWisps, glowTrail, glowStreak, nightGrade, glowDot } from './illust.js';
 import { CARDS } from '../data/cards.js';
 import { makeGround, makeFar, vignette, stopSprite, obstacleSprite, obstacleBase, drawRiver, GW, FW, FAR_H, THEMES } from './terrain.js';
 import { Fx } from './fx.js';
@@ -68,6 +68,7 @@ export function drawUnit(g, u, T, alpha = 1, march = false, ST = T) {
     const ny = -L.neck * k * sy, ht = tilt * 0.5 + (moving ? Math.sin(ph * 2 + 0.6) * 0.04 : Math.sin(T * 1.7 + u.id * 1.3) * 0.03) + (act > 0 ? dir * act * 0.07 : 0), a2 = tilt + ht;
     drawSprite(g, bl && L.blink ? L.blink : L.head, x - ny * Math.sin(tilt) + ny * Math.sin(a2), by + ny * Math.cos(tilt) - ny * Math.cos(a2), sx, k * sy, a2, fl);
   }
+  if (L.glow) { const ct = Math.cos(tilt), sn = Math.sin(tilt), fsx = flip * sxm; for (const q of L.glow) { const gx = q.x * k * dir * fsx, gy = q.y * k * sy; glowDot(g, x + gx * ct - gy * sn, by + gx * sn + gy * ct, q.r * k, q.col, alpha * (0.75 + 0.25 * Math.sin(T * 6 + u.id))); } }
   if (wspr) {
     const ct = Math.cos(tilt), sn = Math.sin(tilt), fsx = flip * sxm;
     // 휘두른 자리에 남는 먹 자국: 붓으로 그은 초승달 (hx, hy = 손, r0→r1 = 무기가 돈 각)
@@ -168,8 +169,9 @@ export class BattleView {
     if (opt.extra) for (const e of opt.extra) list.push(e);
     list.sort((a, c) => a.y - c.y);
     const illGrade = ART.illust;
+    if (illGrade) nightGrade(g, 0, 60, W, 512, 0.85);   // 땅은 달빛 남보라로 깊게 누르고, 인물은 옅게만 눌러 또렷하게 띄운다
     for (const it of list) { if (it.u) drawUnit(g, it.u, T, it.alpha === undefined ? 1 : it.alpha, opt.march, b.time); else if (it.spr) { if (it.sy === undefined) drawSprite(g, it.spr, it.x, it.y); else if (it.sy > 0.02) drawSprite(g, it.spr, it.x, it.y, 1 + (1 - Math.min(1, it.sy)) * 0.15, it.sy); } }
-    if (illGrade) nightGrade(g, 0, 60, W, 512);   // 달빛 남보라로 눌러 준다 (표식과 빛은 그 위에 밝게)
+    if (illGrade) nightGrade(g, 0, 60, W, 512, 0.3);   // (표식과 빛은 그 위에 밝게)
     // 소품(종·여의주·업경대·명부 든 사자): 어떤 인형에도 가리지 않게 맨 위에 표식과 이름, 남은 숨을 단다
     const tag = (x, y, s, col) => { g.font = `400 17px ${FONT_B}`; const w = g.measureText(s).width + 22; rr(g, x - w / 2, y - 14, w, 28, 7, '#fbf3df', col, 2.2); text(g, s, x, y + 1, { size: 17, font: FONT_B, fill: col }); };
     for (const u of b.units) {

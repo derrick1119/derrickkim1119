@@ -71,7 +71,9 @@ export class TitleScene {
     g.drawImage(backdrop(), 0, 0, W, H);
     // 고개를 지키는 의병과 넘어오는 요괴들
     portrait(g, 'xbow', 640, 566, 1.7, t); portrait(g, 'shield', 706, 620, 1.8, t); portrait(g, 'sword', 800, 590, 1.7, t); portrait(g, 'commander', 760, 660, 1.9, t, true);
-    portrait(g, 'bomber', 1010, 470 + Math.sin(t * 2.4) * 8, 1.5, t); portrait(g, 'goblin', 960, 600, 1.6, t, true); portrait(g, 'rassassin', 1010, 680, 1.4, t); portrait(g, 'warchief', 1120, 640 + Math.sin(t * 1.6) * 4, 1.2, t);
+    // 요괴는 의병 쪽(왼쪽)을 본다: 옆모습인 일러스트 그림체에서는 좌우를 뒤집어 그린다
+    const foe = (type, x, y, k, bob) => { if (!ART.illust) return portrait(g, type, x, y, k, t, bob); g.save(); g.translate(x, 0); g.scale(-1, 1); portrait(g, type, 0, y, k, t, bob); g.restore(); };
+    foe('bomber', 1010, 470 + Math.sin(t * 2.4) * 8, 1.5); foe('goblin', 960, 600, 1.6, true); foe('rassassin', 1010, 680, 1.4); foe('warchief', 1120, 640 + Math.sin(t * 1.6) * 4, 1.2);
     for (const p of this.petals) { p.x -= (p.v + Math.sin(t * 1.3 + p.ph) * 12) * dt; p.y += (p.v * 0.5 + Math.cos(t * 1.7 + p.ph) * 10) * dt; if (p.x < -12 || p.y > H + 12) { p.x = W + 12 + Math.random() * 80; p.y = Math.random() * H * 0.8; } g.save(); g.globalAlpha = 0.85; g.translate(p.x, p.y); g.rotate(t * 1.6 + p.ph); g.scale(1, 0.35 + 0.65 * Math.abs(Math.sin(t * 2.2 + p.ph))); ell(g, 0, 0, p.s * 1.25, p.s * 0.7, p.ph > 4.5 ? '#f3c4c9' : '#fbf1ee', 'rgba(38,42,54,0.4)', 0.7); g.restore(); }
     // 제목
     const ty = 150 + Math.sin(t * 1.3) * 3;

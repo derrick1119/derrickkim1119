@@ -147,10 +147,17 @@ export function glowStreak(g, x0, y0, x1, y1, w, alpha, col = ILL.gold) {
   for (const [wm, a, c] of [[2.8, 0.22, col === ILL.gold ? '#ff8a2a' : col], [1.2, 0.45, col], [0.4, 0.95, ILL.goldCore]]) { g.globalAlpha = alpha * a; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.strokeStyle = c; g.lineWidth = w * wm; g.stroke(); }
   g.restore();
 }
+// 빛나는 점 (구슬·부적·도깨비불): 가산 합성의 둥근 빛
+export function glowDot(g, x, y, r, col, alpha = 1) {
+  if (alpha <= 0.02 || r <= 0) return;
+  g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = Math.min(1, alpha);
+  const gr = g.createRadialGradient(x, y, 0, x, y, r * 2.2); gr.addColorStop(0, col); gr.addColorStop(0.35, col + '88'); gr.addColorStop(1, col + '00');
+  g.fillStyle = gr; g.beginPath(); g.arc(x, y, r * 2.2, 0, Math.PI * 2); g.fill(); g.restore();
+}
 // 밤빛 보정: 싸움터 전체를 달빛의 남보라로 눌러 주고, 달 쪽에서 옅은 빛을 비춘다
-export function nightGrade(g, x, y, w, h) {
-  g.save(); g.globalCompositeOperation = 'multiply'; g.fillStyle = 'rgba(160,148,210,0.72)'; g.fillRect(x, y, w, h);
-  g.globalCompositeOperation = 'screen'; const gl = g.createRadialGradient(x + w * 0.78, y - 40, 20, x + w * 0.78, y - 40, w * 0.7); gl.addColorStop(0, 'rgba(255,232,190,0.16)'); gl.addColorStop(1, 'rgba(255,232,190,0)'); g.fillStyle = gl; g.fillRect(x, y, w, h);
+export function nightGrade(g, x, y, w, h, k = 1) {
+  g.save(); g.globalCompositeOperation = 'multiply'; g.fillStyle = `rgba(160,148,210,${0.72 * k})`; g.fillRect(x, y, w, h);
+  g.globalCompositeOperation = 'screen'; const gl = g.createRadialGradient(x + w * 0.78, y - 40, 20, x + w * 0.78, y - 40, w * 0.7); gl.addColorStop(0, `rgba(255,232,190,${0.16 * k})`); gl.addColorStop(1, 'rgba(255,232,190,0)'); g.fillStyle = gl; g.fillRect(x, y, w, h);
   g.restore();
 }
 
