@@ -1687,7 +1687,7 @@ interface Pose { k: K; st: number; tm: number; fa: number; seed: number; hurt: n
 /** 적 하나 (발 자리 원점, 오른쪽 보기). k = 키 */
 function drawFoeBody(ctx: C2, k: number, p: Pose, t: number) {
   if (SOLDIER.has(p.k)) { // M3 S2 🎨 도트 태엽 병정(칼·활·방패·연습 인형) — 나머지 적은 S3
-    const z = p.k === 'boss' ? 2 : 1, im = soldier(p.k === 'boss' && p.alt ? 'doll' : p.k), w = im.width * PX * z, h = im.height * PX * z, bob = p.moving && Math.sin(t * 0.22 + p.seed) > 0 ? -PX : 0;
+    const z = 1, im = soldier(p.k === 'boss' && p.alt ? 'doll' : p.k), w = im.width * PX * z, h = im.height * PX * z, bob = p.moving && Math.sin(t * 0.22 + p.seed) > 0 ? -PX : 0; // 👁 새 눈: 대장도 1배(그림이 Scale2x로 이미 두 배 칸)
     ctx.save();
     ctx.scale(-1, 1); // 시안 병정은 왼쪽을 본다 · M3 S7 대장 둘은 같은 태엽 몸을 두 배로(태엽 장군 · 태엽 큰 인형)
     ctx.drawImage(im, -w / 2, -h + PX * z + bob, w, h);
@@ -2386,6 +2386,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       const hot = prev ? thornOf(s, prev.legs)?.m : null;
       for (const m of s.thorns) drawThorn(ctx, X(m.x), Y(m.y), R(m.r) * 1.25, t, m === hot);
     }
+    if (prev && s.aim) { const lg = prev.legs[prev.legs.length - 1]; drawGhost(ctx, X(prev.ex), Y(prev.ey), Math.sign(lg[2] - lg[0]) || s.face, 1); } // 내릴 자리 그림자 → 그 위에 벨 적
     for (const f of s.foes) if (targets.has(f.id)) drawFoe(f, 1, true);
     drawNinja(1);
   }
@@ -2479,8 +2480,7 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
       ctx.fill();
     }
     // 내릴 자리: 닌자 그림자
-    drawGhost(ctx, X(prev.ex), Y(prev.ey), Math.sign(last[2] - last[0]) || s.face, 1);
-    for (const f of s.foes) if (targets.has(f.id) && Math.abs(f.x - prev.ex) < 0.12 && f.y <= prev.ey + 0.02 && f.y > prev.ey - 0.2) drawFoe(f, 1, true); // 🧪·👁 F6: 그림자가 내릴 자리의 벨 적을 덮었다 → 그 적을 그림자 위에 다시
+    // 그림자(drawGhost)는 위 느린 시간 칸에서 벨 적보다 먼저 그린다(🧪·👁 F6~F7: 그림자가 벨 적을 덮었다)
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2;
     ring(ctx, X(prev.ex), Y(prev.ey), R(0.035), R(0.016)); // 👁 도트 고리
@@ -2713,7 +2713,13 @@ function drawAll(ctx: C2, s: DashState, w: number, h: number, th: Theme) {
     ctx.save();
     ctx.translate(bx, by);
     ctx.font = `900 ${size}px system-ui, sans-serif`;
-    // 👁 r2: '싹쓸이!' 뒤 매끈한 먹 얼룩(다각형·원)이 검은 연기 덩어리로 보였다 → 뺌(글 테가 대신 받침)
+    // 👁 r2: '싹쓸이!' 뒤 매끈한 먹 얼룩(다각형·원)이 검은 연기 덩어리로 보였다 → 뺌 · 🧪 F7: 글 틈으로 빛기둥이 비쳐 '쓸'이 노란 덩어리 → 어두운 도트 패를 받침
+    {
+      const tw = ctx.measureText(txt).width + 18, th = size + 10;
+      ctx.fillStyle = OUT;
+      rr(ctx, -tw / 2, -th / 2 + 2, tw, th, 3);
+      ctx.fill();
+    }
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.lineJoin = 'round';

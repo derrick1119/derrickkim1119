@@ -14,12 +14,29 @@ export const PAL: Record<string, string> = {
 type Dot = [number, number, string];
 
 /** 글자 맵(+덧칠 맵·점) → 테두리 1칸을 두른 글자 격자 */
-function grid(rows: string[], over: string[][] = [], dots: Dot[] = []) {
+function compose(rows: string[], over: string[][] = [], dots: Dot[] = []) {
   const W = Math.max(...rows.map((r) => r.length), ...over.flat().map((r) => r.length)) + 2, H = rows.length + 2;
   const g = Array.from({ length: H }, () => Array<string>(W).fill('.'));
   for (const m of [rows, ...over]) m.forEach((r, y) => [...r].forEach((c, x) => c !== '.' && (g[y + 1][x + 1] = c)));
   for (const [x, y, c] of dots) g[y + 1][x + 1] = c;
-  return g.map((r, y) => r.map((c, x) => (c !== '.' ? c : [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => { const v = g[y + dy]?.[x + dx]; return v && v !== '.' && v !== 'k'; }) ? 'k' : '.')));
+  return g;
+}
+const outlined = (g: string[][]) => g.map((r, y) => r.map((c, x) => (c !== '.' ? c : [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => { const v = g[y + dy]?.[x + dx]; return v && v !== '.' && v !== 'k'; }) ? 'k' : '.')));
+function grid(rows: string[], over: string[][] = [], dots: Dot[] = []) {
+  return outlined(compose(rows, over, dots));
+}
+/** 👁 F6~F7 새 눈 'AI 티' 1순위: 대장만 작은 그림을 2배로 키워 도트가 6px(다른 인물 3px) → Scale2x(도트 그림 규칙 확대)로 칸을 두 배로 만들고 그 칸에서 다듬어, 화면에는 1배(3px)로 그린다 */
+function scale2x(g: string[][]) {
+  const H = g.length, W = g[0].length, o = Array.from({ length: H * 2 }, () => Array<string>(W * 2).fill('.'));
+  const at = (x: number, y: number) => g[y]?.[x] ?? '.';
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const P = g[y][x], A = at(x, y - 1), B = at(x + 1, y), C = at(x - 1, y), D = at(x, y + 1);
+    o[y * 2][x * 2] = C === A && C !== D && A !== B ? A : P;
+    o[y * 2][x * 2 + 1] = A === B && A !== C && B !== D ? B : P;
+    o[y * 2 + 1][x * 2] = D === C && D !== B && C !== A ? C : P;
+    o[y * 2 + 1][x * 2 + 1] = B === D && B !== A && D !== C ? D : P;
+  }
+  return o;
 }
 const cache = new Map<string, HTMLCanvasElement>();
 /** 처음 부를 때 한 번만 캔버스로 굽는다(매 프레임은 drawImage만) */
@@ -119,7 +136,18 @@ const ARM: Record<string, Dot[]> = {
 export const SOLDIER = new Set(Object.keys(HAT).filter((k) => k !== 'doll')); // doll은 boss의 2-10 모습
 /** 태엽 병정 스프라이트(발 = 아래 가운데) · 얼굴은 왼쪽을 본다 */
 const COAT: Record<string, Record<string, string>> = { boss: { h: 'y', H: 'Y', j: 'o' }, doll: { h: 'r', H: 'q', j: 'p' } }; // 🧪 S7: 대장 몸이 졸개와 같아 포개지면 묻힘 → 장군 금 갑옷 · 큰 인형 분홍 옷
-export const soldierGrid = (k: string) => grid(BODY.map((r, i) => (i >= 11 && COAT[k] ? r.replace(/[hHj]/g, (c) => COAT[k][c]) : r)), [KEY, HAT[k]], ARM[k]);
+export const soldierGrid = (k: string) => {
+  const raw = compose(BODY.map((r, i) => (i >= 11 && COAT[k] ? r.replace(/[hHj]/g, (c) => COAT[k][c]) : r)), [KEY, HAT[k]], ARM[k]);
+  if (k !== 'boss' && k !== 'doll') return outlined(raw);
+  const g = scale2x(raw), put = (x: number, y: number, c: string) => g[y]?.[x] !== undefined && (g[y][x] = c);
+  // 얼굴(BODY 7줄 눈 'k' · 칸 2배): 장군은 성난 눈썹, 큰 인형은 속눈썹 · 갑옷·옷에 리벳/단추 · 칼날 하이라이트
+  const ey = (7 + 1) * 2 - 1;
+  if (k === 'boss') for (const ex of [(6 + 1) * 2, (9 + 1) * 2]) (put(ex - 1, ey - 1, 'k'), put(ex, ey, 'k'), put(ex + 1, ey, 'k'));
+  else for (const ex of [(6 + 1) * 2, (9 + 1) * 2]) (put(ex - 1, ey, 'k'), put(ex + 2, ey, 'k'));
+  for (let y = (11 + 1) * 2; y < g.length; y++) for (let x = 0; x < g[y].length; x++) if (g[y][x] === COAT[k].h && (x * 3 + y * 5) % 11 === 0) g[y][x] = k === 'boss' ? 'w' : 'y';
+  for (let y = 0; y < g.length; y++) for (let x = 0; x < 6; x++) if (g[y][x] === '9' && g[y][x + 1] === '9') g[y][x] = 'w';
+  return outlined(g);
+};
 export const soldier = (k: string) => sprite('so' + k, () => soldierGrid(k));
 
 // ── 배경(M3 S3 · 🧪 🔴1: 대숲 벡터를 줄인 '모자이크' → 32색 도트 · 후광·그라데이션 0) ──
@@ -226,7 +254,7 @@ function glyphs(font: string, txt: string, style: string, outline: boolean, budg
   if (budget && spent > 2.5) return pxtStat.skip++, null;
   const t0 = performance.now();
   // 🧪 F3: 굵은 글을 작게 굽자 겹획(ㄹ·ㅁ·ㅆ)이 메워져 '싹▇이'·'끝▇'이 됐다 → 굽는 크기(s)가 작을수록 가늘게 · 2칸 점은 44px 이상만
-  const px = Number(/([\d.]+)px/.exec(font)?.[1] ?? 16), q = px >= 44 ? 2 : 1, sz = px / q, cap = sz < 18 ? 500 : sz < 22 ? 600 : 800; // 👁·🧪: 14~17.5px도 600이면 '활'·'줄'이 메워짐
+  const px = Number(/([\d.]+)px/.exec(font)?.[1] ?? 16), q = px >= 44 ? 2 : 1, sz = px / q, cap = sz < 20 ? 500 : sz < 22 ? 600 : 800; // 👁·🧪: 14~17.5px도 600이면 '활'·'줄'이 메워짐
   const src = font.replace(/[\d.]+px/, `${sz.toFixed(2)}px`).replace(/\b(bold|[1-9]00)\b/, (m) => String(Math.min(m === 'bold' ? 700 : Number(m), cap)));
   const x = (SCR ??= document.createElement('canvas').getContext('2d', { willReadFrequently: true })!);
   x.font = src;
