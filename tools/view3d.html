@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>쉿! UFO 3D 미리보기</title>
+<style>html, body { margin: 0; background: #111; color: #eee; font: 12px system-ui; } canvas { display: block; }</style>
+<script type="importmap">{ "imports": { "three": "../node_modules/three/build/three.module.js", "three/addons/": "../node_modules/three/examples/jsm/" } }</script>
+</head>
+<body>
+<!-- 개발용 3D 미리보기. npm start 후 /tools/view3d.html?mode=...
+  mode=stages  : 무대 7종을 휴대폰 세로 화면으로 늘어놓는다(&w=390&h=844, &t=초)
+  mode=actors  : 기체 8형태·표정, 지구인 11종(걷기/올려다보기/들킴), 표본 10종을 무대(&stage=farm) 앞에 늘어놓는다
+  mode=demo    : 엔진 시험 장면
+  t 를 주면 그 시각에 멈춘 한 장을 그린다(스크린샷용). 다 그리면 body[data-ready] 가 붙는다. -->
+<canvas id="sheet"></canvas>
+<script type="module" src="./view3d.js"></script>
+</body>
+</html>

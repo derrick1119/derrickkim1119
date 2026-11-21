@@ -7,6 +7,14 @@ import { drawSpecimen } from './specimens.js';
 import { drawEmblem } from './emblems.js';
 
 const cache = new Map();
+/** 3D 아이콘 촬영기(3D 장면이 켜지면 등록된다). (kind, id, px) => HTMLCanvasElement | null */
+let render3d = null;
+
+/** 3D 촬영기를 등록한다. 등록 전에 2D 로 그려 둔 아이콘은 버리고 새로 찍는다. */
+export function setIconRenderer(fn) {
+  render3d = fn;
+  cache.clear();
+}
 /** 표본마다 꼬리·줄 때문에 중심이 어긋나는 만큼 보정한다. [dy, 배율] */
 const SPECIMEN_FIT = {
   dandelion: [-1, 1.3],
@@ -86,8 +94,18 @@ export function iconURL(kind, id, size = 56, silhouette = false) {
   cv.width = size * scale;
   cv.height = size * scale;
   const ctx = cv.getContext('2d');
+  let shot = null;
+  if (render3d && kind !== 'emblem') {
+    try {
+      shot = render3d(kind, id, size * scale);
+    } catch (err) {
+      console.warn('3D 아이콘을 찍지 못해 2D 로 그립니다.', err);
+      shot = null;
+    }
+  }
+  if (shot) ctx.drawImage(shot, 0, 0, size * scale, size * scale);
   ctx.scale(scale, scale);
-  paintIcon(ctx, kind, id, size);
+  if (!shot) paintIcon(ctx, kind, id, size);
   if (silhouette) {
     ctx.globalCompositeOperation = 'source-in';
     ctx.fillStyle = C.inkSoft;

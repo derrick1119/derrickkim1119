@@ -47,7 +47,10 @@ async function main() {
   await cp(join(ROOT, 'manifest.webmanifest'), join(DIST, 'manifest.webmanifest'));
 
   // 4) index.html: 개발용 모듈 진입점을 묶음으로 바꾼다
-  const html = await read('index.html');
+  // 개발용 import map(three.js 위치)은 묶음에는 필요 없다
+  const html = (await read('index.html')).replace(/<!-- 개발용: 묶지 않은 모듈이[^\n]*\n<script type="importmap">[^\n]*<\/script>\n/, '');
+  must(html, '<script type="module" src="./src/main.js"></script>', 'index.html');
+  if (html.includes('importmap')) throw new Error('빌드 실패: index.html 의 import map 을 지우지 못했습니다');
   const devScript = '<script type="module" src="./src/main.js"></script>';
   must(html, devScript, 'index.html');
   await writeFile(join(DIST, 'index.html'), html.replace(devScript, '<script type="module" src="./app.js"></script>'));

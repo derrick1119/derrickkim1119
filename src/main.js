@@ -14,7 +14,7 @@ const SAVE_EVERY_SECONDS = 5;
 const OFFLINE_MIN_SECONDS = 60;
 
 /** @param {object} hotData 미리보기 환경이 새 버전으로 갈아 끼울 때 넘겨주는 직전 상태(없으면 빈 객체) */
-function start(hotData) {
+async function start(hotData) {
   const storage = new Storage();
   let { state } = storage.load();
   if (hotData && typeof hotData === 'object' && typeof hotData.v === 'number') state = sanitize(hotData);
@@ -28,7 +28,19 @@ function start(hotData) {
   const stage = document.getElementById('stage');
   const canvas = document.getElementById('scene');
   const world = new World(game);
-  const scene = new Scene(canvas, game, world, { reducedMotion: prefersReducedMotion() });
+  // 3D 로 그리고, WebGL 을 못 쓰거나 3D 를 시작하지 못하면 2D 그림으로 대신한다(?2d 로 2D 를 고를 수도 있다)
+  const sceneOpts = { reducedMotion: prefersReducedMotion() };
+  let scene = null;
+  if (!new URLSearchParams(location.search).has('2d')) {
+    try {
+      const { Scene3D, webglAvailable } = await import('./render3d/scene3d.js');
+      if (webglAvailable()) scene = new Scene3D(canvas, game, world, sceneOpts);
+    } catch (err) {
+      console.warn('3D 를 시작하지 못해 2D 로 그립니다.', err);
+      scene = null;
+    }
+  }
+  if (!scene) scene = new Scene(canvas, game, world, sceneOpts);
   const audio = new GameAudio(state.settings);
   const haptics = new Haptics(state.settings.haptics);
 
@@ -172,13 +184,11 @@ function start(hotData) {
 }
 
 function boot(hotData) {
-  try {
-    start(hotData);
-  } catch (err) {
+  start(hotData).catch((err) => {
     console.error(err);
     const el = document.getElementById('boot');
     if (el) el.textContent = '게임을 시작하지 못했어요. 새로 고침해 주세요. / Could not start. Please reload.';
-  }
+  });
 }
 
 if (window.claude?.hot?.ready) window.claude.hot.ready(boot);
