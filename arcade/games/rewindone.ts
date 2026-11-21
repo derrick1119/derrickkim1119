@@ -1916,7 +1916,7 @@ function hintWork(s: RewState) {
   if (!s.drawn || s.phase !== 'play' || s.film) return;
   const W = s.W, think = !!s.hint && s.hint.think;
   const warm = think || s.fails > 0 || s.t - s.progT > 540;
-  const fresh = !!s.hplan && s.hplan.ver === s.ver && (s.hplan.acts.length === 0 || s.hplan.acts[0] >= W.t - 240);
+  const fresh = !!s.hplan && s.hplan.ver === s.ver && (s.hplan.acts.length === 0 || s.hplan.acts[0] >= W.t - 90);
   if (s.hjob && s.hjob.ver !== s.ver) s.hjob = null;
   if (!s.hjob) {
     if (!warm || (fresh && !think)) return;
@@ -2563,49 +2563,6 @@ function clockGlyph(ctx: C2, x: number, y: number, r: number, t: number, a: numb
   ctx.closePath();
   ctx.fillStyle = '#7fe8ff';
   ctx.fill();
-  ctx.restore();
-}
-/** 한 물건만 색을 입혀 덧그린다 (화면 밖 캔버스에 그리고 그 모양에만 색) */
-let tintCv: HTMLCanvasElement | null = null;
-function tinted(ctx: C2, fn: (o: C2) => void, col: string, a: number, box?: number[]) {
-  if (typeof document === 'undefined') return;
-  const cw = ctx.canvas.width, chh = ctx.canvas.height;
-  if (!tintCv) tintCv = document.createElement('canvas');
-  if (tintCv.width !== cw || tintCv.height !== chh) (tintCv.width = cw), (tintCv.height = chh);
-  const o = tintCv.getContext('2d');
-  if (!o) return;
-  const m = ctx.getTransform();
-  // 물건 둘레만 (화면 전체를 칠하면 휴대폰에서 무겁다)
-  let x0 = 0, y0 = 0, x1 = cw, y1 = chh;
-  if (box) {
-    x0 = Math.max(0, Math.floor(m.a * box[0] + m.e) - 2);
-    y0 = Math.max(0, Math.floor(m.d * box[1] + m.f) - 2);
-    x1 = Math.min(cw, Math.ceil(m.a * box[2] + m.e) + 2);
-    y1 = Math.min(chh, Math.ceil(m.d * box[3] + m.f) + 2);
-    if (x1 <= x0 || y1 <= y0) return;
-  }
-  const bw = x1 - x0, bh = y1 - y0;
-  o.setTransform(1, 0, 0, 1, 0, 0);
-  o.globalCompositeOperation = 'source-over';
-  o.globalAlpha = 1;
-  o.clearRect(x0, y0, bw, bh);
-  o.save();
-  o.beginPath();
-  o.rect(x0, y0, bw, bh);
-  o.clip();
-  o.setTransform(m);
-  fn(o);
-  o.restore();
-  o.setTransform(1, 0, 0, 1, 0, 0);
-  o.globalCompositeOperation = 'source-atop';
-  o.globalAlpha = a;
-  o.fillStyle = col;
-  o.fillRect(x0, y0, bw, bh);
-  o.globalAlpha = 1;
-  o.globalCompositeOperation = 'source-over';
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.drawImage(tintCv, x0, y0, bw, bh, x0, y0, bw, bh);
   ctx.restore();
 }
 /** 먼 배경을 1/3 해상도로 그려 늘린다 — 흐린 느낌을 거의 공짜로 (filter: blur는 휴대폰·소프트웨어 그리기에서 아주 느리다) */
@@ -5160,13 +5117,24 @@ function drawChapterScene(ctx: C2, s: RewState, w: number, h: number) {
   };
   if (typeof document === 'undefined') paintVista(ctx);
   else {
-    const sc = ctx.getTransform().a || 1, key = `${w}|${h}|${sc}|${shown}`;
+    // 전경은 화면 해상도의 절반까지만 (CSS 픽셀 1.5배) — 다시 그릴 때 드는 값이 1/4
+    const sc = Math.min(1.5, ctx.getTransform().a || 1), key = `${w}|${h}|${sc}|${shown}`;
     if (!vistaCv) vistaCv = document.createElement('canvas');
     const o = vistaCv.getContext('2d');
-    if (o && (vistaKey !== key || t % 3 === 0)) {
+    if (o) {
       if (vistaCv.width !== Math.ceil(w * sc) || vistaCv.height !== Math.ceil(h * sc)) (vistaCv.width = Math.ceil(w * sc)), (vistaCv.height = Math.ceil(h * sc));
       o.setTransform(sc, 0, 0, sc, 0, 0);
-      paintVista(o);
+      if (vistaKey !== key) paintVista(o);
+      else {
+        // 띠 셋 중 하나씩만 새로 (세 프레임에 한 바퀴 — 풍차·분수는 계속 움직인다)
+        const b = t % 3, bh = h / 3;
+        o.save();
+        o.beginPath();
+        o.rect(0, b * bh - 1, w, bh + 2);
+        o.clip();
+        paintVista(o);
+        o.restore();
+      }
       vistaKey = key;
     }
     if (o) ctx.drawImage(vistaCv, 0, 0, w, h);
@@ -5266,9 +5234,10 @@ function drawChapterScene(ctx: C2, s: RewState, w: number, h: number) {
       ctx.fillStyle = 'rgba(90,60,90,.12)';
       ell(ctx, ix, iy, w * 0.04, w * 0.04);
       ctx.fill();
+      // 아직 안 되살린 것: 흐린 그림 (물들이기 대신 반투명 — 느린 폰)
       ctx.save();
-      ctx.globalAlpha *= 0.4 + 0.5 * na;
-      tinted(ctx, (o) => fixIcon(o, ik, ix, iy, w * 0.032, t, false), '#3a2a4a', 1, [ix - w * 0.05, iy - w * 0.05, ix + w * 0.05, iy + w * 0.05]);
+      ctx.globalAlpha *= 0.25 + 0.45 * na;
+      fixIcon(ctx, ik, ix, iy, w * 0.032, t, false);
       ctx.restore();
     }
   } else {
@@ -6269,7 +6238,7 @@ function doEvents(ctx: C2, s: RewState, v: View, w: number, top: number, bot = 1
   // 큰 글자는 한 번에 하나: 새 것이 오면 앞의 것은 바로 사라진다 (우선순위 3 큰 순간 > 2 안내·다침 > 1 반응 — 낮은 것은 작은 말로)
   const small = (x: number, y: number, text: string, col: string, _size?: number) => {
     const yy = Math.max(top + 10, Math.min(bot - 10, y)), xx = Math.max(R(0.1), Math.min(X(1) - R(0.1), x)), hd = HEAD.get(fx);
-    for (const q of fx.popups) if (q.life > 12 && Math.abs(q.x - xx) < (q === hd?.p ? 90 : 55) && Math.abs(q.y - yy) < (q === hd?.p ? 34 : 22)) return;
+    for (const q of fx.popups) if (q.life > 12 && Math.abs(q.x - xx) < (q === hd?.p ? 90 : 72) && Math.abs(q.y - yy) < (q === hd?.p ? 34 : 28)) return;
     fx.pop(xx, yy, text, col, 15);
   };
   const hl = (x: number, y: number, text: string, col: string, size: number, pri: number) => {
