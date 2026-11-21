@@ -3213,7 +3213,7 @@ function drawHud(ctx: C2, s: StealState, w: number, h: number, fx: ReturnType<ty
     const age = t - fx.memo.multT, pop = age < 6 ? 1.5 - 0.5 * (age / 6) : 1;
     ctx.save();
     ctx.globalAlpha = Math.min(1, (50 - age) / 12);
-    ctx.translate(w / 2, (fx.memo.bigT !== undefined && t - fx.memo.bigT < 58 ? fx.memo.bigH ?? R(0.3) : R(0.22)) + R(0.062));
+    ctx.translate(w / 2, (fx.memo.bigT !== undefined && t - fx.memo.bigT < 58 ? fx.memo.bigH ?? R(0.3) : R(0.22)) + R(0.085));
     ctx.scale(pop, pop);
     font(17, 900);
     const str = `${fx.memo.multN}마리 한꺼번에!`;
